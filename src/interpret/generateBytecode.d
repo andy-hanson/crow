@@ -196,7 +196,7 @@ immutable(ByteCode) generateBytecode(
 		mapFullIndexDict!(LowFunIndex, ByteCodeIndex, LowFun)(
 			tempAlloc,
 			program.allFuns,
-			(immutable LowFunIndex funIndex, scope ref immutable LowFun fun) @safe {
+			(immutable LowFunIndex funIndex, scope ref immutable LowFun fun) {
 				immutable ByteCodeIndex funPos = nextByteCodeIndex(writer);
 				generateBytecodeForFun(
 					tempAlloc,

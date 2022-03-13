@@ -42,7 +42,7 @@ import model.model :
 	withType;
 import util.alloc.alloc : Alloc;
 import util.col.arr : ptrAt, sizeEq;
-import util.col.arrUtil : arrLiteral, fold, map, mapWithSize;
+import util.col.arrUtil : arrLiteral, fold, map;
 import util.col.mutDict : getOrAdd, getOrAddAndDidAdd, ValueAndDidAdd;
 import util.col.mutArr : MutArr, push;
 import util.memory : allocate, allocateMut;
@@ -165,7 +165,7 @@ immutable(StructBody) instantiateStructBody(
 	DelayStructInsts delayStructInsts,
 ) {
 	immutable TypeParamsAndArgs typeParamsAndArgs =
-		immutable TypeParamsAndArgs(typeParams(declAndArgs.decl.deref()), declAndArgs.typeArgs);
+		immutable TypeParamsAndArgs(declAndArgs.decl.deref().typeParams, declAndArgs.typeArgs);
 	return matchStructBody!(immutable StructBody)(
 		body_(declAndArgs.decl.deref()),
 		(ref immutable StructBody.Bogus) =>
@@ -257,7 +257,7 @@ private immutable(Ptr!StructInst) instantiateStructInst(
 	ref immutable StructInst contextStructInst,
 ) {
 	immutable TypeParamsAndArgs ta = immutable TypeParamsAndArgs(
-		typeParams(contextStructInst.decl.deref()),
+		contextStructInst.decl.deref().typeParams,
 		contextStructInst.typeArgs);
 	return instantiateStructInst(alloc, programState, structInst, ta, noneMut!(Ptr!(MutArr!(Ptr!StructInst))));
 }
@@ -341,7 +341,7 @@ immutable(Sig) instantiateSig(
 	immutable Params params = matchParams!(immutable Params)(
 		sig.params,
 		(immutable Param[] params) =>
-			immutable Params(mapWithSize!Param(alloc, params, (ref immutable Param p) =>
+			immutable Params(map(alloc, params, (ref immutable Param p) =>
 				instantiateParam(alloc, programState, typeParamsAndArgs, p))),
 		(ref immutable Params.Varargs v) =>
 			immutable Params(allocate(alloc, immutable Params.Varargs(

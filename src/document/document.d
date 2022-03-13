@@ -23,7 +23,6 @@ import model.model :
 	Purity,
 	RecordField,
 	returnType,
-	specs,
 	SpecBody,
 	SpecDecl,
 	SpecDeclSig,
@@ -153,12 +152,12 @@ immutable(DocExport) documentStructOrAlias(ref Alloc alloc, immutable StructOrAl
 
 immutable(DocExport) documentStructAlias(ref Alloc alloc, ref immutable StructAlias a) {
 	immutable Opt!(Ptr!StructInst) optTarget = target(a);
-	return documentExport(alloc, a.range, a.name, a.docComment, typeParams(a), reprNamedRecord(alloc, "alias", [
+	return documentExport(alloc, a.range, a.name, a.docComment, a.typeParams, reprNamedRecord(alloc, "alias", [
 		nameAndRepr("target", documentStructInst(alloc, force(optTarget).deref()))]));
 }
 
 immutable(DocExport) documentStructDecl(ref Alloc alloc, ref immutable StructDecl a) {
-	return documentExport(alloc, a.range, a.name, a.docComment, typeParams(a), matchStructBody!(immutable Repr)(
+	return documentExport(alloc, a.range, a.name, a.docComment, a.typeParams, matchStructBody!(immutable Repr)(
 		body_(a),
 		(ref immutable StructBody.Bogus) =>
 			unreachable!(immutable Repr),
@@ -255,7 +254,7 @@ immutable(DocExport) documentSpec(ref Alloc alloc, ref immutable SpecDecl a) {
 				reprNamedRecord(alloc, "sigs", [
 					nameAndRepr("sigs", reprArr(alloc, sigs, (ref immutable SpecDeclSig sig) =>
 						documentSpecDeclSig(alloc, sig)))])))]);
-	return documentExport(alloc, a.range, a.name, a.docComment, typeParams(a), value);
+	return documentExport(alloc, a.range, a.name, a.docComment, a.typeParams, value);
 }
 
 immutable(Repr) documentSpecDeclSig(ref Alloc alloc, ref immutable SpecDeclSig a) {
@@ -280,7 +279,7 @@ immutable(DocExport) documentFun(ref Alloc alloc, ref immutable FunDecl a) {
 	if (!empty(specs))
 		add(alloc, fields, nameAndRepr("specs", reprArr(specs)));
 	immutable Repr value = reprNamedRecord("fun", finishArr(alloc, fields));
-	return documentExport(alloc, a.range, a.name, a.docComment, typeParams(a), value);
+	return documentExport(alloc, a.range, a.name, a.docComment, a.typeParams, value);
 }
 
 immutable(Repr[]) documentSpecs(ref Alloc alloc, ref immutable FunDecl a) {
@@ -291,7 +290,7 @@ immutable(Repr[]) documentSpecs(ref Alloc alloc, ref immutable FunDecl a) {
 		add(alloc, res, reprSpecialSpec(alloc, shortSym("unsafe")));
 	if (noCtx(a))
 		add(alloc, res, reprSpecialSpec(alloc, shortSym("noctx")));
-	foreach (immutable Ptr!SpecInst spec; specs(a))
+	foreach (immutable Ptr!SpecInst spec; a.specs)
 		add(alloc, res, documentSpecInst(alloc, spec.deref()));
 	return finishArr(alloc, res);
 }

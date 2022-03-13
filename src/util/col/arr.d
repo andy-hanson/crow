@@ -7,21 +7,45 @@ import util.ptr : Ptr;
 import util.memory : overwriteMemory;
 import util.util : verify;
 
-struct ArrWithSize(T) {
-	ubyte* sizeAndBegin_;
+struct SmallArray(T) {
+	@safe @nogc pure nothrow:
+	alias toArray this;
+
 	@disable this();
-	@system immutable this(immutable ubyte* p) { sizeAndBegin_ = p; }
+
+	@system static immutable(ulong) encode(immutable T[] values) {
+		immutable ulong value = cast(immutable ulong) values.ptr;
+		verify((values.length & 0xffff_ffff_ffff_0000) == 0);
+		verify((value & 0xffff_0000_0000_0000) == 0);
+		return (((cast(ulong) values.length) << 48) | value);
+	}
+
+	@system static immutable(T[]) decode(immutable ulong value) {
+		immutable ulong highBits = value & 0xffff_0000_0000_0000;
+		immutable ulong length = highBits >> 48;
+		verify(length < 256); // sanity check
+		immutable ulong lowBits = value & 0x0000_ffff_ffff_ffff;
+		return (cast(immutable T*) lowBits)[0 .. length];
+	}
+
+	@trusted immutable this(immutable T[] values) {
+		sizeAndBegin = encode(values);
+	}
+
+	@property @trusted immutable(T[]) toArray() immutable {
+		return decode(sizeAndBegin);
+	}
+
+	private:
+	immutable ulong sizeAndBegin;
 }
 
-@trusted immutable(T[]) toArr(T)(return scope immutable ArrWithSize!T a) {
-	immutable T* begin = cast(immutable T*) (a.sizeAndBegin_ + size_t.sizeof);
-	immutable size_t size = *(cast(immutable size_t*) a.sizeAndBegin_);
-	return begin[0 .. size];
+immutable(SmallArray!T) small(T)(immutable T[] values) {
+	return immutable SmallArray!T(values);
 }
 
-@trusted immutable(ArrWithSize!T) emptyArrWithSize(T)() {
-	static immutable size_t zero = 0;
-	return immutable ArrWithSize!T(cast(immutable ubyte*) &zero);
+immutable(SmallArray!T) emptySmallArray(T)() {
+	return small(emptyArr!T);
 }
 
 @system void freeArr(T)(ref Alloc alloc, immutable T[] a) {

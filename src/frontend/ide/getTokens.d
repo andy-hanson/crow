@@ -55,7 +55,7 @@ import frontend.parse.ast :
 	UnlessAst;
 import model.model : Visibility;
 import util.alloc.alloc : Alloc;
-import util.col.arr : ArrWithSize, empty, toArr;
+import util.col.arr : empty;
 import util.col.arrBuilder : add, ArrBuilder, finishArr;
 import util.col.sortUtil : eachSorted, findUnsortedPair, UnsortedPair;
 import util.comparison : compareNat32, Comparison;
@@ -92,7 +92,7 @@ immutable(Repr) reprTokens(ref Alloc alloc, ref immutable Token[] tokens) {
 		reprToken(alloc, it));
 }
 
-immutable(Token[]) tokensOfAst(ref Alloc alloc, ref const AllSymbols allSymbols, ref immutable FileAst ast) {
+immutable(Token[]) tokensOfAst(ref Alloc alloc, ref const AllSymbols allSymbols, scope ref immutable FileAst ast) {
 	ArrBuilder!Token tokens;
 
 	addImportTokens(alloc, tokens, allSymbols, ast.imports, shortSym("import"));
@@ -101,18 +101,20 @@ immutable(Token[]) tokensOfAst(ref Alloc alloc, ref const AllSymbols allSymbols,
 	//TODO: also tests...
 	eachSorted!(RangeWithinFile, SpecDeclAst, StructAliasAst, StructDeclAst, FunDeclAst)(
 		RangeWithinFile.max,
-		(ref immutable RangeWithinFile a, ref immutable RangeWithinFile b) =>
+		(scope ref immutable RangeWithinFile a, scope ref immutable RangeWithinFile b) =>
 			compareRangeWithinFile(a, b),
-		ast.specs, (ref immutable SpecDeclAst it) => it.range, (ref immutable SpecDeclAst it) {
+		ast.specs, (scope ref immutable SpecDeclAst it) => it.range, (scope ref immutable SpecDeclAst it) {
 			addSpecTokens(alloc, tokens, allSymbols, it);
 		},
-		ast.structAliases, (ref immutable StructAliasAst it) => it.range, (ref immutable StructAliasAst it) {
+		ast.structAliases,
+		(scope ref immutable StructAliasAst it) => it.range,
+		(scope ref immutable StructAliasAst it) {
 			addStructAliasTokens(alloc, tokens, allSymbols, it);
 		},
-		ast.structs, (ref immutable StructDeclAst it) => it.range, (ref immutable StructDeclAst it) {
+		ast.structs, (scope ref immutable StructDeclAst it) => it.range, (scope ref immutable StructDeclAst it) {
 			addStructTokens(alloc, tokens, allSymbols, it);
 		},
-		ast.funs, (ref immutable FunDeclAst it) => it.range, (ref immutable FunDeclAst it) {
+		ast.funs, (scope ref immutable FunDeclAst it) => it.range, (scope ref immutable FunDeclAst it) {
 			addFunTokens(alloc, tokens, allSymbols, it);
 		});
 	immutable Token[] res = finishArr(alloc, tokens);
@@ -148,7 +150,7 @@ void addImportTokens(
 	ref Alloc alloc,
 	ref ArrBuilder!Token tokens,
 	ref const AllSymbols allSymbols,
-	ref immutable Opt!ImportsOrExportsAst a,
+	scope ref immutable Opt!ImportsOrExportsAst a,
 	immutable Sym keyword,
 ) {
 	if (has(a)) {
@@ -166,7 +168,7 @@ void addSpecTokens(
 	ref Alloc alloc,
 	ref ArrBuilder!Token tokens,
 	ref const AllSymbols allSymbols,
-	ref immutable SpecDeclAst a,
+	scope ref immutable SpecDeclAst a,
 ) {
 	add(alloc, tokens, immutable Token(
 		Token.Kind.spec,
@@ -190,7 +192,7 @@ void addSigReturnTypeAndParamsTokens(
 	ref Alloc alloc,
 	ref ArrBuilder!Token tokens,
 	ref const AllSymbols allSymbols,
-	ref immutable SigAst a,
+	scope ref immutable SigAst a,
 ) {
 	addTypeTokens(alloc, tokens, allSymbols, a.returnType);
 	matchParamsAst!(
@@ -244,7 +246,7 @@ void addInstStructTokens(
 	ref Alloc alloc,
 	ref ArrBuilder!Token tokens,
 	ref const AllSymbols allSymbols,
-	ref immutable TypeAst.InstStruct a,
+	scope ref immutable TypeAst.InstStruct a,
 ) {
 	add(alloc, tokens, immutable Token(Token.Kind.struct_, rangeOfNameAndRange(a.name, allSymbols)));
 	addTypeArgsTokens(alloc, tokens, allSymbols, a.typeArgs);
@@ -254,9 +256,9 @@ void addTypeArgsTokens(
 	ref Alloc alloc,
 	ref ArrBuilder!Token tokens,
 	ref const AllSymbols allSymbols,
-	ref immutable ArrWithSize!TypeAst typeArgs,
+	scope immutable TypeAst[] typeArgs,
 ) {
-	foreach (immutable TypeAst typeArg; toArr(typeArgs))
+	foreach (immutable TypeAst typeArg; typeArgs)
 		addTypeTokens(alloc, tokens, allSymbols, typeArg);
 }
 
@@ -264,7 +266,7 @@ void addParamTokens(
 	ref Alloc alloc,
 	ref ArrBuilder!Token tokens,
 	ref const AllSymbols allSymbols,
-	ref immutable ParamAst a,
+	scope ref immutable ParamAst a,
 ) {
 	if (has(a.name))
 		add(alloc, tokens, immutable Token(
@@ -277,9 +279,9 @@ void addTypeParamsTokens(
 	ref Alloc alloc,
 	ref ArrBuilder!Token tokens,
 	ref const AllSymbols allSymbols,
-	ref immutable ArrWithSize!NameAndRange a,
+	scope immutable NameAndRange[] a,
 ) {
-	foreach (ref immutable NameAndRange typeParam; toArr(a))
+	foreach (immutable NameAndRange typeParam; a)
 		add(alloc, tokens, immutable Token(Token.Kind.typeParam, rangeOfNameAndRange(typeParam, allSymbols)));
 }
 
@@ -287,7 +289,7 @@ void addStructAliasTokens(
 	ref Alloc alloc,
 	ref ArrBuilder!Token tokens,
 	ref const AllSymbols allSymbols,
-	ref immutable StructAliasAst a,
+	scope ref immutable StructAliasAst a,
 ) {
 	add(alloc, tokens, immutable Token(
 		Token.Kind.struct_,
@@ -300,7 +302,7 @@ void addStructTokens(
 	ref Alloc alloc,
 	ref ArrBuilder!Token tokens,
 	ref const AllSymbols allSymbols,
-	ref immutable StructDeclAst a,
+	scope ref immutable StructDeclAst a,
 ) {
 	add(alloc, tokens, immutable Token(
 		Token.Kind.struct_,
@@ -322,7 +324,7 @@ void addStructTokens(
 		},
 		(ref immutable StructDeclAst.Body.Record record) {
 			addModifierTokens(alloc, tokens, allSymbols, a);
-			foreach (ref immutable StructDeclAst.Body.Record.Field field; toArr(record.fields)) {
+			foreach (ref immutable StructDeclAst.Body.Record.Field field; record.fields) {
 				add(alloc, tokens, immutable Token(
 					Token.Kind.member,
 					rangeAtName(allSymbols, field.range.start, field.name)));
@@ -346,9 +348,9 @@ void addModifierTokens(
 	ref Alloc alloc,
 	ref ArrBuilder!Token tokens,
 	ref const AllSymbols allSymbols,
-	ref immutable StructDeclAst a,
+	scope ref immutable StructDeclAst a,
 ) {
-	foreach (ref immutable ModifierAst modifier; toArr(a.modifiers))
+	foreach (ref immutable ModifierAst modifier; a.modifiers)
 		add(alloc, tokens, immutable Token(Token.Kind.modifier, rangeOfModifierAst(modifier, allSymbols)));
 }
 
@@ -358,12 +360,12 @@ void addEnumOrFlagsTokens(
 	ref const AllSymbols allSymbols,
 	ref immutable StructDeclAst a,
 	scope immutable Opt!(Ptr!TypeAst) typeArg,
-	scope immutable ArrWithSize!(StructDeclAst.Body.Enum.Member) members,
+	scope immutable StructDeclAst.Body.Enum.Member[] members,
 ) {
 	if (has(typeArg))
 		addTypeTokens(alloc, tokens, allSymbols, force(typeArg).deref());
 	addModifierTokens(alloc, tokens, allSymbols, a);
-	foreach (ref immutable StructDeclAst.Body.Enum.Member member; toArr(members)) {
+	foreach (ref immutable StructDeclAst.Body.Enum.Member member; members) {
 		add(alloc, tokens, immutable Token(Token.Kind.member, member.range));
 		if (has(member.value)) {
 			immutable uint addLen = " = ".length;
@@ -379,7 +381,7 @@ void addFunTokens(
 	ref Alloc alloc,
 	ref ArrBuilder!Token tokens,
 	ref const AllSymbols allSymbols,
-	ref immutable FunDeclAst a,
+	scope ref immutable FunDeclAst a,
 ) {
 	add(alloc, tokens, immutable Token(
 		Token.Kind.fun,
@@ -415,7 +417,6 @@ void addExprTokens(
 		},
 		(ref immutable BogusAst) {},
 		(ref immutable CallAst it) {
-			immutable ExprAst[] args = toArr(it.args);
 			void addName() {
 				add(alloc, tokens, immutable Token(Token.Kind.fun, rangeOfNameAndRange(it.funName, allSymbols)));
 				addTypeArgsTokens(alloc, tokens, allSymbols, it.typeArgs);
@@ -425,9 +426,9 @@ void addExprTokens(
 				case CallAst.Style.setDot:
 				case CallAst.Style.infix:
 				case CallAst.Style.suffixOperator:
-					addExprTokens(alloc, tokens, allSymbols, args[0]);
+					addExprTokens(alloc, tokens, allSymbols, it.args[0]);
 					addName();
-					addExprsTokens(alloc, tokens, allSymbols, args[1 .. $]);
+					addExprsTokens(alloc, tokens, allSymbols, it.args[1 .. $]);
 					break;
 				case CallAst.style.emptyParens:
 					break;
@@ -436,13 +437,13 @@ void addExprTokens(
 				case CallAst.Style.setSingle:
 				case CallAst.Style.single:
 					addName();
-					addExprsTokens(alloc, tokens, allSymbols, args);
+					addExprsTokens(alloc, tokens, allSymbols, it.args);
 					break;
 				case CallAst.Style.comma:
 				case CallAst.Style.setDeref:
 				case CallAst.Style.setSubscript:
 				case CallAst.Style.subscript:
-					addExprsTokens(alloc, tokens, allSymbols, args);
+					addExprsTokens(alloc, tokens, allSymbols, it.args);
 					break;
 			}
 		},
@@ -589,7 +590,7 @@ void addExprsTokens(
 	ref Alloc alloc,
 	ref ArrBuilder!Token tokens,
 	ref const AllSymbols allSymbols,
-	immutable ExprAst[] exprs,
+	scope immutable ExprAst[] exprs,
 ) {
 	foreach (ref immutable ExprAst expr; exprs)
 		addExprTokens(alloc, tokens, allSymbols, expr);

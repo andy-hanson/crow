@@ -5,7 +5,7 @@ module model.model;
 import model.constant : Constant;
 import model.diag : Diagnostics, FilesInfo; // TODO: move FilesInfo here?
 import util.alloc.alloc : Alloc;
-import util.col.arr : ArrWithSize, empty, emptyArr, only, sizeEq, toArr;
+import util.col.arr : empty, emptyArr, only, sizeEq, small, SmallArray;
 import util.col.arrUtil : arrEqual;
 import util.col.dict : SymDict;
 import util.col.fullIndexDict : FullIndexDict;
@@ -130,7 +130,7 @@ struct Type {
 		typeParam,
 		structInst,
 	}
-	immutable this(immutable Bogus a) {
+	@trusted immutable this(immutable Bogus a) {
 		inner = TaggedPtr!Kind(Kind.bogus, null);
 	}
 	@trusted immutable this(immutable Ptr!TypeParam a) {
@@ -155,9 +155,9 @@ struct Type {
 			immutable Type.Bogus bogus = immutable Type.Bogus();
 			return cbBogus(bogus);
 		case Type.Kind.typeParam:
-			return cbTypeParam(immutable Ptr!TypeParam(cast(immutable TypeParam*) a.inner.ptr()));
+			return cbTypeParam(a.inner.asPtr!TypeParam());
 		case Type.Kind.structInst:
-			return cbStructInst(immutable Ptr!StructInst(cast(immutable StructInst*) a.inner.ptr()));
+			return cbStructInst(a.inner.asPtr!StructInst());
 	}
 }
 
@@ -279,10 +279,10 @@ struct Params {
 		immutable Type elementType;
 	}
 
-	immutable this(immutable ArrWithSize!Param a) {
-		inner = immutable TaggedPtr!Kind(Kind.regular, a.sizeAndBegin_);
+	@trusted immutable this(immutable Param[] a) {
+		inner = immutable TaggedPtr!Kind(Kind.regular, a);
 	}
-	immutable this(immutable Ptr!Varargs a) {
+	@trusted immutable this(immutable Ptr!Varargs a) {
 		inner = immutable TaggedPtr!Kind(Kind.varargs, a.rawPtr());
 	}
 
@@ -301,9 +301,9 @@ struct Params {
 ) {
 	final switch (a.inner.tag()) {
 		case Params.Kind.regular:
-			return cbRegular(a.inner.arrWithSize!Param());
+			return cbRegular(a.inner.asArray!Param());
 		case Params.Kind.varargs:
-			return cbVarargs(*(cast(immutable Params.Varargs*) a.inner.ptr()));
+			return cbVarargs(a.inner.asPtr!(Params.Varargs)().deref());
 	}
 }
 
@@ -600,15 +600,11 @@ struct StructAlias {
 	immutable SafeCStr docComment;
 	immutable Visibility visibility;
 	immutable Sym name;
-	immutable ArrWithSize!TypeParam typeParams_;
+	immutable SmallArray!TypeParam typeParams;
 
 	private:
 	// This will be none if the alias target is not found
 	Late!(immutable Opt!(Ptr!StructInst)) target_;
-}
-
-immutable(TypeParam[]) typeParams(ref const StructAlias a) {
-	return toArr(a.typeParams_);
 }
 
 immutable(Opt!(Ptr!StructInst)) target(ref immutable StructAlias a) {
@@ -650,7 +646,7 @@ struct StructDecl {
 	immutable FileAndRange range;
 	immutable SafeCStr docComment;
 	immutable Sym name;
-	immutable ArrWithSize!TypeParam typeParams_;
+	immutable SmallArray!TypeParam typeParams;
 	immutable Visibility visibility;
 	immutable Linkage linkage;
 	// Note: purity on the decl does not take type args into account
@@ -659,10 +655,6 @@ struct StructDecl {
 
 	private:
 	Late!(immutable StructBody) _body_;
-}
-
-immutable(TypeParam[]) typeParams(ref immutable StructDecl a) {
-	return toArr(a.typeParams_);
 }
 
 immutable(bool) bodyIsSet(ref const StructDecl a) {
@@ -800,13 +792,9 @@ struct SpecDecl {
 	immutable SafeCStr docComment;
 	immutable Visibility visibility;
 	immutable Sym name;
-	immutable ArrWithSize!TypeParam typeParams_;
+	immutable SmallArray!TypeParam typeParams;
 	immutable SpecBody body_;
 	MutArr!(immutable Ptr!SpecInst) insts;
-}
-
-immutable(TypeParam[]) typeParams(ref immutable SpecDecl a) {
-	return toArr(a.typeParams_);
 }
 
 struct SpecDeclAndArgs {
@@ -1021,15 +1009,15 @@ struct FunDecl {
 		immutable Visibility v,
 		immutable FunFlags f,
 		immutable Sig s,
-		immutable ArrWithSize!TypeParam tps,
-		immutable ArrWithSize!(Ptr!SpecInst) sps,
+		immutable TypeParam[] tps,
+		immutable Ptr!SpecInst[] sps,
 	) {
 		docComment = dc;
 		visibility = v;
 		flags = f;
 		sig = s;
-		typeParams_ = tps;
-		specs_ = sps;
+		typeParams = small(tps);
+		specs = sps;
 		body_ = immutable FunBody(immutable FunBody.Builtin());
 	}
 	this(
@@ -1037,16 +1025,16 @@ struct FunDecl {
 		immutable Visibility v,
 		immutable FunFlags f,
 		immutable Sig s,
-		immutable ArrWithSize!TypeParam tps,
-		immutable ArrWithSize!(Ptr!SpecInst) sps,
+		immutable TypeParam[] tps,
+		immutable Ptr!SpecInst[] sps,
 		immutable FunBody b,
 	) {
 		docComment = dc;
 		visibility = v;
 		flags = f;
 		sig = s;
-		typeParams_ = tps;
-		specs_ = sps;
+		typeParams = small(tps);
+		specs = sps;
 		body_ = b;
 	}
 
@@ -1054,8 +1042,8 @@ struct FunDecl {
 	immutable Visibility visibility;
 	immutable FunFlags flags;
 	immutable Sig sig;
-	immutable ArrWithSize!TypeParam typeParams_;
-	immutable ArrWithSize!(Ptr!SpecInst) specs_;
+	immutable SmallArray!TypeParam typeParams;
+	immutable SmallArray!(Ptr!SpecInst) specs;
 	FunBody body_;
 
 	immutable(FileAndPos) fileAndPos() immutable {
@@ -1070,13 +1058,6 @@ struct FunDecl {
 
 immutable(Linkage) linkage(ref immutable FunDecl a) {
 	return isExtern(a.body_) ? Linkage.extern_ : Linkage.internal;
-}
-
-immutable(TypeParam[]) typeParams(ref immutable FunDecl a) {
-	return toArr(a.typeParams_);
-}
-immutable(Ptr!SpecInst[]) specs(ref immutable FunDecl a) {
-	return toArr(a.specs_);
 }
 
 immutable(bool) isExtern(ref immutable FunDecl a) {
@@ -1468,8 +1449,8 @@ struct StructOrAlias {
 immutable(TypeParam[]) typeParams(ref immutable StructOrAlias a) {
 	return matchStructOrAlias!(immutable TypeParam[])(
 		a,
-		(ref immutable StructAlias al) => al.typeParams,
-		(ref immutable StructDecl d) => d.typeParams);
+		(ref immutable StructAlias al) => al.typeParams.toArray(),
+		(ref immutable StructDecl d) => d.typeParams.toArray());
 }
 
 immutable(FileAndRange) range(ref immutable StructOrAlias a) {

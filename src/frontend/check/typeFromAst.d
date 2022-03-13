@@ -33,7 +33,7 @@ import model.model :
 	TypeParam,
 	typeParams;
 import util.alloc.alloc : Alloc;
-import util.col.arr : empty, toArr;
+import util.col.arr : empty;
 import util.col.arrUtil : arrLiteral, fillArr, find, findPtr, map;
 import util.col.dict : getAt;
 import util.opt : force, has, none, Opt, some;
@@ -146,7 +146,7 @@ immutable(Type) typeFromAst(
 				findPtr!TypeParam(typeParamsScope.innerTypeParams, (immutable Ptr!TypeParam it) =>
 					symEq(it.deref().name, iAst.name.name));
 			if (has(found)) {
-				if (!empty(toArr(iAst.typeArgs)))
+				if (!empty(iAst.typeArgs))
 					addDiag(ctx, iAst.range, immutable Diag(immutable Diag.TypeParamCantHaveTypeArgs()));
 				return immutable Type(force(found));
 			} else
@@ -155,7 +155,7 @@ immutable(Type) typeFromAst(
 					commonTypes,
 					iAst.name.name,
 					iAst.range,
-					toArr(iAst.typeArgs),
+					iAst.typeArgs,
 					structsAndAliasesDict,
 					typeParamsScope,
 					delayStructInsts);

@@ -67,9 +67,8 @@ import model.diag : DiagnosticWithinFile;
 import model.model : FieldMutability, Visibility;
 import model.parseDiag : ParseDiag;
 import util.alloc.alloc : Alloc;
-import util.col.arr : ArrWithSize, emptyArr, emptyArrWithSize;
+import util.col.arr : emptyArr, emptySmallArray, small;
 import util.col.arrBuilder : add, ArrBuilder, finishArr;
-import util.col.arrWithSizeBuilder : add, ArrWithSizeBuilder, finishArrWithSize;
 import util.col.str : SafeCStr;
 import util.conv : safeToUshort;
 import util.memory : allocate;
@@ -101,16 +100,16 @@ immutable(FileAst) parseFile(
 
 private:
 
-immutable(ArrWithSize!NameAndRange) parseTypeParams(ref Lexer lexer) {
+immutable(NameAndRange[]) parseTypeParams(ref Lexer lexer) {
 	if (tryTakeOperator(lexer, Operator.less)) {
-		ArrWithSizeBuilder!NameAndRange res;
+		ArrBuilder!NameAndRange res;
 		do {
 			add(lexer.alloc, res, takeNameAndRange(lexer));
 		} while (tryTakeToken(lexer, Token.comma));
 		takeTypeArgsEnd(lexer);
-		return finishArrWithSize(lexer.alloc, res);
+		return finishArr(lexer.alloc, res);
 	} else
-		return emptyArrWithSize!NameAndRange;
+		return emptyArr!NameAndRange;
 }
 
 struct ImportAndDedent {
@@ -260,13 +259,13 @@ immutable(ParamAst) parseSingleParam(ref Lexer lexer) {
 
 immutable(ParamsAst) parseParenthesizedParams(ref Lexer lexer) {
 	if (tryTakeToken(lexer, Token.parenRight))
-		return immutable ParamsAst(emptyArrWithSize!ParamAst);
+		return immutable ParamsAst(emptySmallArray!ParamAst);
 	else if (tryTakeToken(lexer, Token.dot3)) {
 		immutable ParamAst param = parseSingleParam(lexer);
 		takeOrAddDiagExpectedToken(lexer, Token.parenRight, ParseDiag.Expected.Kind.closingParen);
 		return immutable ParamsAst(allocate(lexer.alloc, immutable ParamsAst.Varargs(param)));
 	} else {
-		ArrWithSizeBuilder!ParamAst res;
+		ArrBuilder!ParamAst res;
 		for (;;) {
 			add(lexer.alloc, res, parseSingleParam(lexer));
 			if (tryTakeToken(lexer, Token.parenRight))
@@ -276,18 +275,18 @@ immutable(ParamsAst) parseParenthesizedParams(ref Lexer lexer) {
 				break;
 			}
 		}
-		return immutable ParamsAst(finishArrWithSize(lexer.alloc, res));
+		return immutable ParamsAst(finishArr(lexer.alloc, res));
 	}
 }
 
 immutable(ParamsAndMaybeDedent) parseIndentedParams(ref Lexer lexer) {
-	ArrWithSizeBuilder!ParamAst res;
+	ArrBuilder!ParamAst res;
 	for (;;) {
 		add(lexer.alloc, res, parseSingleParam(lexer));
 		immutable size_t dedents = takeNewlineOrDedentAmount(lexer, 1);
 		if (dedents != 0)
 			return immutable ParamsAndMaybeDedent(
-				immutable ParamsAst(finishArrWithSize(lexer.alloc, res)),
+				immutable ParamsAst(finishArr(lexer.alloc, res)),
 				some(dedents - 1));
 	}
 }
@@ -298,7 +297,7 @@ immutable(ParamsAndMaybeDedent) parseParams(ref Lexer lexer) {
 	else
 		final switch (takeNewlineOrIndent_topLevel(lexer)) {
 			case NewlineOrIndent.newline:
-				return immutable ParamsAndMaybeDedent(immutable ParamsAst(emptyArrWithSize!ParamAst), some!size_t(0));
+				return immutable ParamsAndMaybeDedent(immutable ParamsAst(emptyArr!ParamAst), some!size_t(0));
 			case NewlineOrIndent.indent:
 				return parseIndentedParams(lexer);
 		}
@@ -369,13 +368,13 @@ immutable(SpecSigAst[]) parseIndentedSigs(ref Lexer lexer) {
 	}
 }
 
-immutable(ArrWithSize!(StructDeclAst.Body.Enum.Member)) parseEnumOrFlagsMembers(ref Lexer lexer) {
+immutable(StructDeclAst.Body.Enum.Member[]) parseEnumOrFlagsMembers(ref Lexer lexer) {
 	final switch (takeNewlineOrIndent_topLevel(lexer)) {
 		case NewlineOrIndent.newline:
-			return emptyArrWithSize!(StructDeclAst.Body.Enum.Member);
+			return emptyArr!(StructDeclAst.Body.Enum.Member);
 		case NewlineOrIndent.indent:
-			ArrWithSizeBuilder!(StructDeclAst.Body.Enum.Member) res;
-			immutable(ArrWithSize!(StructDeclAst.Body.Enum.Member)) recur() {
+			ArrBuilder!(StructDeclAst.Body.Enum.Member) res;
+			immutable(StructDeclAst.Body.Enum.Member[]) recur() {
 				immutable Pos start = curPos(lexer);
 				immutable Sym name = takeName(lexer);
 				immutable Opt!LiteralIntOrNat value = tryTakeToken(lexer, Token.equal)
@@ -386,7 +385,7 @@ immutable(ArrWithSize!(StructDeclAst.Body.Enum.Member)) parseEnumOrFlagsMembers(
 					case NewlineOrDedent.newline:
 						return recur();
 					case NewlineOrDedent.dedent:
-						return finishArrWithSize(lexer.alloc, res);
+						return finishArr(lexer.alloc, res);
 				}
 			}
 			return recur();
@@ -394,7 +393,7 @@ immutable(ArrWithSize!(StructDeclAst.Body.Enum.Member)) parseEnumOrFlagsMembers(
 }
 
 immutable(StructDeclAst.Body.Record) parseRecordBody(ref Lexer lexer) {
-	ArrWithSizeBuilder!(StructDeclAst.Body.Record.Field) fields;
+	ArrBuilder!(StructDeclAst.Body.Record.Field) fields;
 	final switch (takeNewlineOrIndent_topLevel(lexer)) {
 		case NewlineOrIndent.newline:
 			break;
@@ -402,13 +401,10 @@ immutable(StructDeclAst.Body.Record) parseRecordBody(ref Lexer lexer) {
 			parseRecordFields(lexer, fields);
 			break;
 	}
-	return immutable StructDeclAst.Body.Record(finishArrWithSize(lexer.alloc, fields));
+	return immutable StructDeclAst.Body.Record(small(finishArr(lexer.alloc, fields)));
 }
 
-void parseRecordFields(
-	ref Lexer lexer,
-	ref ArrWithSizeBuilder!(StructDeclAst.Body.Record.Field) res,
-) {
+void parseRecordFields(ref Lexer lexer, ref ArrBuilder!(StructDeclAst.Body.Record.Field) res) {
 	immutable Pos start = curPos(lexer);
 	immutable Visibility visibility = tryTakePrivate(lexer);
 	immutable Sym name = takeName(lexer);
@@ -519,8 +515,8 @@ immutable(SpecUsesAndSigFlagsAndKwBody) parseNextSpec(
 			return setExtern(true);
 		case Token.name:
 			immutable NameAndRange name = getCurNameAndRange(lexer, start);
-			immutable ArrWithSize!TypeAst typeArgs = tryParseTypeArgsBracketed(lexer);
-			add(lexer.alloc, specUses, immutable SpecUseAst(range(lexer, start), name, typeArgs));
+			immutable TypeAst[] typeArgs = tryParseTypeArgsBracketed(lexer);
+			add(lexer.alloc, specUses, immutable SpecUseAst(range(lexer, start), name, small(typeArgs)));
 			return nextSpecOrStop(lexer, specUses, flags, builtin, extern_, canTakeNext);
 		default:
 			addDiagUnexpectedCurToken(lexer, start, token);
@@ -599,7 +595,7 @@ immutable(FunDeclAst) parseFun(
 	immutable Visibility visibility,
 	immutable Pos start,
 	immutable Sym name,
-	immutable ArrWithSize!NameAndRange typeParams,
+	immutable NameAndRange[] typeParams,
 ) {
 	immutable SigAstAndMaybeDedent sig = parseSigAfterNameAndSpace(lexer, start, name);
 	immutable FunDeclStuff stuff = () {
@@ -625,7 +621,7 @@ immutable(FunDeclAst) parseFun(
 	return immutable FunDeclAst(
 		range(lexer, start),
 		docComment,
-		typeParams,
+		small(typeParams),
 		sig.sig,
 		extra.specUses,
 		visibility,
@@ -659,18 +655,18 @@ void parseSpecOrStructOrFun(
 	immutable Pos start = curPos(lexer);
 	immutable Visibility visibility = tryTakePrivate(lexer);
 	immutable Sym name = takeNameOrOperator(lexer);
-	immutable ArrWithSize!NameAndRange typeParams = parseTypeParams(lexer);
+	immutable NameAndRange[] typeParams = parseTypeParams(lexer);
 
 	void addStruct(scope immutable(StructDeclAst.Body) delegate() @safe @nogc pure nothrow cb) {
-		immutable ArrWithSize!ModifierAst modifiers = parseModifiers(lexer);
+		immutable ModifierAst[] modifiers = parseModifiers(lexer);
 		immutable StructDeclAst.Body body_ = cb();
 		add(lexer.alloc, structs, immutable StructDeclAst(
 			range(lexer, start),
 			docComment,
 			visibility,
 			name,
-			typeParams,
-			modifiers,
+			small(typeParams),
+			small(modifiers),
 			body_));
 	}
 
@@ -692,7 +688,7 @@ void parseSpecOrStructOrFun(
 				docComment,
 				visibility,
 				name,
-				typeParams,
+				small(typeParams),
 				target));
 			break;
 		case Token.builtin:
@@ -707,7 +703,7 @@ void parseSpecOrStructOrFun(
 				docComment,
 				visibility,
 				name,
-				typeParams,
+				small(typeParams),
 				immutable SpecBodyAst(immutable SpecBodyAst.Builtin())));
 			takeNewline_topLevel(lexer);
 			break;
@@ -715,7 +711,7 @@ void parseSpecOrStructOrFun(
 			nextToken(lexer);
 			immutable Opt!(Ptr!TypeAst) typeArg = tryParseTypeArg(lexer);
 			addStruct(() => immutable StructDeclAst.Body(
-				immutable StructDeclAst.Body.Enum(typeArg, parseEnumOrFlagsMembers(lexer))));
+				immutable StructDeclAst.Body.Enum(typeArg, small(parseEnumOrFlagsMembers(lexer)))));
 			break;
 		case Token.externPtr:
 			nextToken(lexer);
@@ -726,7 +722,7 @@ void parseSpecOrStructOrFun(
 			nextToken(lexer);
 			immutable Opt!(Ptr!TypeAst) typeArg = tryParseTypeArg(lexer);
 			addStruct(() => immutable StructDeclAst.Body(
-				immutable StructDeclAst.Body.Flags(typeArg, parseEnumOrFlagsMembers(lexer))));
+				immutable StructDeclAst.Body.Flags(typeArg, small(parseEnumOrFlagsMembers(lexer)))));
 			break;
 		case Token.record:
 			nextToken(lexer);
@@ -740,7 +736,7 @@ void parseSpecOrStructOrFun(
 				docComment,
 				visibility,
 				name,
-				typeParams,
+				small(typeParams),
 				immutable SpecBodyAst(sigs)));
 			break;
 		case Token.union_:
@@ -766,12 +762,12 @@ void parseSpecOrStructOrFun(
 	}
 }
 
-immutable(ArrWithSize!ModifierAst) parseModifiers(ref Lexer lexer) {
-	ArrWithSizeBuilder!ModifierAst res;
+immutable(ModifierAst[]) parseModifiers(ref Lexer lexer) {
+	ArrBuilder!ModifierAst res;
 	parseModifiersRecur(lexer, res);
-	return finishArrWithSize(lexer.alloc, res);
+	return finishArr(lexer.alloc, res);
 }
-void parseModifiersRecur(ref Lexer lexer, ref ArrWithSizeBuilder!ModifierAst res) {
+void parseModifiersRecur(ref Lexer lexer, ref ArrBuilder!ModifierAst res) {
 	immutable Pos start = curPos(lexer);
 	immutable Opt!(ModifierAst.Kind) kind = tryParseModifierKind(lexer);
 	if (has(kind)) {

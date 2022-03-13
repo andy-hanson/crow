@@ -2,35 +2,46 @@ module util.ptr;
 
 @safe @nogc pure nothrow:
 
-import util.col.arr : ArrWithSize, toArr;
+import util.col.arr : SmallArray;
 import util.hash : Hasher, hashSizeT;
 import util.opt : hasInvalid;
 import util.util : verify;
 
+/*
+WARN: It's the user's responsibility to ensure that the type associated with each kind is consistent.
+Stores a kind in the lower 2 bits of the pointer.
+Also can store array length in the upper 16 bits.
+*/
 struct TaggedPtr(E) {
 	@safe @nogc pure nothrow:
 
-	immutable this(immutable E tag, immutable void* ptr) {
-		immutable size_t tagValue = cast(size_t) tag;
-		immutable size_t ptrValue = cast(size_t) ptr;
-		verify(tagValue < 4);
-		// Ptr must be word-aligned.
-		verify((ptrValue & 0b11) == 0);
-		value = ptrValue | tagValue;
+	@system immutable this(immutable E tag, immutable void* ptr) {
+		value = taggedValue(tag, cast(immutable ulong) ptr);
+	}
+	@system immutable this(T)(immutable E tag, immutable T[] values) {
+		value = taggedValue(tag, SmallArray!T.encode(values));
 	}
 
-	immutable(E) tag() immutable {
+	private static ulong taggedValue(immutable E tag, immutable ulong value) {
+		immutable ulong tagValue = cast(immutable ulong) tag;
+		verify(tagValue < 0b100);
+		// Ptr must be word-aligned.
+		verify((value & 0b11) == 0);
+		return value | tagValue;
+	}
+
+	@system immutable(E) tag() immutable {
 		return cast(E) (value & 0b11);
 	}
-	@system immutable(void*) ptr() immutable {
-		return cast(immutable void*) cast(void*) (value & ~0b11);
+	@system immutable(Ptr!T) asPtr(T)() immutable {
+		return immutable Ptr!T(cast(immutable T*) cast(void*) (value & ~0b11));
 	}
-	@system immutable(T[]) arrWithSize(T)() immutable {
-		return toArr(immutable ArrWithSize!T(cast(immutable ubyte*) ptr()));
+	@system immutable(T[]) asArray(T)() immutable {
+		return SmallArray!T.decode(value & ~0b11);
 	}
 
 	private:
-	size_t value;
+	ulong value;
 }
 
 // Non-null

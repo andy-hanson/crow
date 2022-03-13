@@ -20,10 +20,9 @@ import frontend.parse.lexer :
 	tryTakeOperator,
 	tryTakeToken;
 import model.parseDiag : ParseDiag;
-import util.col.arr : ArrWithSize, emptyArrWithSize;
+import util.col.arr : emptyArr, small;
 import util.col.arrBuilder : add, ArrBuilder, finishArr;
-import util.col.arrUtil : arrWithSizeLiteral;
-import util.col.arrWithSizeBuilder : add, ArrWithSizeBuilder, finishArrWithSize;
+import util.col.arrUtil : arrLiteral;
 import util.memory : allocate;
 import util.ptr : Ptr;
 import util.opt : none, Opt, some;
@@ -40,22 +39,22 @@ immutable(Opt!(Ptr!TypeAst)) tryParseTypeArg(ref Lexer lexer) {
 		return none!(Ptr!TypeAst);
 }
 
-immutable(ArrWithSize!TypeAst) tryParseTypeArgsForExpr(ref Lexer lexer) {
+immutable(TypeAst[]) tryParseTypeArgsForExpr(ref Lexer lexer) {
 	if (tryTakeToken(lexer, Token.atLess)) {
-		immutable ArrWithSize!TypeAst res = parseTypesWithCommas(lexer);
+		immutable TypeAst[] res = parseTypesWithCommas(lexer);
 		takeTypeArgsEnd(lexer);
 		return res;
 	} else
-		return emptyArrWithSize!TypeAst;
+		return emptyArr!TypeAst;
 }
 
-immutable(ArrWithSize!TypeAst) tryParseTypeArgsBracketed(ref Lexer lexer) {
+immutable(TypeAst[]) tryParseTypeArgsBracketed(ref Lexer lexer) {
 	if (tryTakeOperator(lexer, Operator.less)) {
-		immutable ArrWithSize!TypeAst res = parseTypesWithCommas(lexer);
+		immutable TypeAst[] res = parseTypesWithCommas(lexer);
 		takeTypeArgsEnd(lexer);
 		return res;
 	} else
-		return emptyArrWithSize!TypeAst;
+		return emptyArr!TypeAst;
 }
 
 private void parseTypesWithCommas(Builder)(ref Lexer lexer, ref Builder output) {
@@ -64,15 +63,15 @@ private void parseTypesWithCommas(Builder)(ref Lexer lexer, ref Builder output) 
 	} while (tryTakeToken(lexer, Token.comma));
 }
 
-private immutable(ArrWithSize!TypeAst) parseTypesWithCommas(ref Lexer lexer) {
-	ArrWithSizeBuilder!TypeAst res;
+private immutable(TypeAst[]) parseTypesWithCommas(ref Lexer lexer) {
+	ArrBuilder!TypeAst res;
 	parseTypesWithCommas(lexer, res);
-	return finishArrWithSize(lexer.alloc, res);
+	return finishArr(lexer.alloc, res);
 }
 
-private immutable(ArrWithSize!TypeAst) tryParseTypeArgsAllowSpace(ref Lexer lexer) {
+private immutable(TypeAst[]) tryParseTypeArgsAllowSpace(ref Lexer lexer) {
 	return peekToken(lexer, Token.name)
-		? arrWithSizeLiteral(lexer.alloc, [parseType(lexer)])
+		? arrLiteral(lexer.alloc, [parseType(lexer)])
 		: tryParseTypeArgsBracketed(lexer);
 }
 
@@ -96,7 +95,7 @@ private immutable(TypeAst) parseTypeBeforeSuffixes(ref Lexer lexer, immutable Re
 	switch (token) {
 		case Token.name:
 			immutable NameAndRange name = getCurNameAndRange(lexer, start);
-			immutable ArrWithSize!TypeAst typeArgs = () {
+			immutable TypeAst[] typeArgs = () {
 				final switch (requireBracket) {
 					case RequireBracket.no:
 						return tryParseTypeArgsAllowSpace(lexer);
@@ -105,7 +104,7 @@ private immutable(TypeAst) parseTypeBeforeSuffixes(ref Lexer lexer, immutable Re
 				}
 			}();
 			immutable RangeWithinFile rng = range(lexer, start);
-			return immutable TypeAst(immutable TypeAst.InstStruct(rng, name, typeArgs));
+			return immutable TypeAst(immutable TypeAst.InstStruct(rng, name, small(typeArgs)));
 		case Token.act:
 			return parseFunType(lexer, start, TypeAst.Fun.Kind.act);
 		case Token.fun:

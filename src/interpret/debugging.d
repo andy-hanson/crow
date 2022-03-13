@@ -86,10 +86,10 @@ void writeFunSig(
 			writeWithCommas!ConcreteParam(
 				writer,
 				it.deref().paramsExcludingCtxAndClosure,
-				(scope ref immutable ConcreteParam param) @safe {
+				(scope ref immutable ConcreteParam param) {
 					matchConcreteParamSource!void(
 						param.source,
-						(scope ref immutable ConcreteParamSource.Closure) @safe {
+						(scope ref immutable ConcreteParamSource.Closure) {
 							writeStatic(writer, "<closure>");
 						},
 						(scope ref immutable Param p) {
@@ -98,7 +98,7 @@ void writeFunSig(
 							else
 								writeChar(writer, '_');
 						},
-						(scope ref immutable ConcreteParamSource.Synthetic) @safe {
+						(scope ref immutable ConcreteParamSource.Synthetic) {
 							writeChar(writer, '_');
 						});
 					writeChar(writer, ' ');

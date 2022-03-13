@@ -101,7 +101,6 @@ src_files_common = src\concretize\allConstantsBuilder.d \
 	src\util\col\arr.d \
 	src\util\col\arrBuilder.d \
 	src\util\col\arrUtil.d \
-	src\util\col\arrWithSizeBuilder.d \
 	src\util\col\dict.d \
 	src\util\col\dictBuilder.d \
 	src\util\col\exactSizeArrBuilder.d \

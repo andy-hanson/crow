@@ -33,7 +33,6 @@ import model.model :
 	SpecDecl,
 	specImpls,
 	SpecInst,
-	specs,
 	SpecSig,
 	StructDecl,
 	StructInst,
@@ -119,8 +118,8 @@ immutable(Repr) reprStructDecl(ref Alloc alloc, ref Ctx ctx, ref immutable Struc
 		add(alloc, fields, nameAndRepr("doc", reprStr(a.docComment)));
 	add(alloc, fields, nameAndRepr("visibility", reprVisibility(a.visibility)));
 	add(alloc, fields, nameAndRepr("name", reprSym(a.name)));
-	if (!empty(typeParams(a)))
-		add(alloc, fields, nameAndRepr("typeparams", reprArr(alloc, typeParams(a), (ref immutable TypeParam it) =>
+	if (!empty(a.typeParams))
+		add(alloc, fields, nameAndRepr("typeparams", reprArr(alloc, a.typeParams, (ref immutable TypeParam it) =>
 			reprTypeParam(alloc, it))));
 	if (a.purity != Purity.data)
 		add(alloc, fields, nameAndRepr("purity", reprSym(symOfPurity(a.purity))));
@@ -149,11 +148,11 @@ immutable(Repr) reprFunDecl(ref Alloc alloc, ref Ctx ctx, ref immutable FunDecl 
 	if (a.flags.preferred)
 		add(alloc, fields, nameAndRepr("preferred", reprBool(true)));
 	add(alloc, fields, nameAndRepr("sig", reprSig(alloc, ctx, a.sig)));
-	if (!empty(typeParams(a)))
-		add(alloc, fields, nameAndRepr("typeparams", reprArr(alloc, typeParams(a), (ref immutable TypeParam it) =>
+	if (!empty(a.typeParams))
+		add(alloc, fields, nameAndRepr("typeparams", reprArr(alloc, a.typeParams, (ref immutable TypeParam it) =>
 			reprTypeParam(alloc, it))));
-	if (!empty(specs(a)))
-		add(alloc, fields, nameAndRepr("specs", reprArr(alloc, specs(a), (ref immutable Ptr!SpecInst it) =>
+	if (!empty(a.specs))
+		add(alloc, fields, nameAndRepr("specs", reprArr(alloc, a.specs, (ref immutable Ptr!SpecInst it) =>
 			reprSpecInst(alloc, ctx, it.deref()))));
 	add(alloc, fields, nameAndRepr("body", reprFunBody(alloc, ctx, a.body_)));
 	return reprNamedRecord("fun", finishArr(alloc, fields));

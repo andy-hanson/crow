@@ -5,7 +5,7 @@ module frontend.parse.ast;
 import model.model : FieldMutability, symOfFieldMutability, Visibility;
 import model.reprModel : reprVisibility;
 import util.alloc.alloc : Alloc;
-import util.col.arr : ArrWithSize, empty, emptyArr, emptyArrWithSize, toArr;
+import util.col.arr : empty, emptyArr, emptySmallArray, SmallArray;
 import util.col.arrBuilder : add, ArrBuilder, finishArr;
 import util.col.arrUtil : arrLiteral;
 import util.col.str : SafeCStr, safeCStr, safeCStrIsEmpty;
@@ -75,7 +75,7 @@ struct TypeAst {
 	struct InstStruct {
 		immutable RangeWithinFile range;
 		immutable NameAndRange name;
-		immutable ArrWithSize!TypeAst typeArgs;
+		immutable SmallArray!TypeAst typeArgs;
 	}
 
 	struct Suffix {
@@ -134,7 +134,7 @@ immutable(TypeAst) bogusTypeAst(immutable RangeWithinFile range) {
 	return immutable TypeAst(immutable TypeAst.InstStruct(
 		range,
 		immutable NameAndRange(range.start, shortSym("bogus")),
-		emptyArrWithSize!TypeAst));
+		emptySmallArray!TypeAst));
 }
 
 immutable(RangeWithinFile) range(immutable TypeAst a) {
@@ -202,7 +202,7 @@ immutable(Sym) symForTypeAstSuffix(immutable TypeAst.Suffix.Kind a) {
 struct ArrowAccessAst {
 	immutable ExprAst left;
 	immutable NameAndRange name;
-	immutable ArrWithSize!TypeAst typeArgs;
+	immutable SmallArray!TypeAst typeArgs;
 }
 
 struct BogusAst {}
@@ -230,11 +230,11 @@ struct CallAst {
 	immutable Sym funNameName;
 	immutable Pos funNameStart;
 	immutable Style style;
-	immutable ArrWithSize!TypeAst typeArgs;
-	immutable ArrWithSize!ExprAst args;
+	immutable SmallArray!TypeAst typeArgs;
+	immutable SmallArray!ExprAst args;
 
 	immutable this(
-		immutable Style s, immutable NameAndRange f, immutable ArrWithSize!TypeAst t, immutable ArrWithSize!ExprAst a) {
+		immutable Style s, immutable NameAndRange f, immutable TypeAst[] t, immutable ExprAst[] a) {
 		funNameName = f.name;
 		funNameStart = f.start;
 		style = s;
@@ -632,7 +632,7 @@ struct ParamAst {
 struct SpecUseAst {
 	immutable RangeWithinFile range;
 	immutable NameAndRange spec;
-	immutable ArrWithSize!TypeAst typeArgs;
+	immutable SmallArray!TypeAst typeArgs;
 }
 
 struct ParamsAst {
@@ -642,7 +642,7 @@ struct ParamsAst {
 		immutable ParamAst param;
 	}
 
-	immutable this(immutable ArrWithSize!ParamAst a) { kind = Kind.regular; regular = a; }
+	immutable this(immutable ParamAst[] a) { kind = Kind.regular; regular = a; }
 	immutable this(immutable Ptr!Varargs a) { kind = Kind.varargs; varargs = a; }
 
 	private:
@@ -653,7 +653,7 @@ struct ParamsAst {
 	}
 	immutable Kind kind;
 	union {
-		immutable ArrWithSize!ParamAst regular;
+		immutable SmallArray!ParamAst regular;
 		immutable Ptr!Varargs varargs;
 	}
 }
@@ -661,7 +661,7 @@ struct ParamsAst {
 @trusted immutable(T) matchParamsAst(T, alias cbRegular, alias cbVarargs)(ref immutable ParamsAst a) {
 	final switch (a.kind) {
 		case ParamsAst.Kind.regular:
-			return cbRegular(toArr(a.regular));
+			return cbRegular(a.regular);
 		case ParamsAst.Kind.varargs:
 			return cbVarargs(a.varargs.deref());
 	}
@@ -684,7 +684,7 @@ struct StructAliasAst {
 	immutable SafeCStr docComment;
 	immutable Visibility visibility;
 	immutable Sym name;
-	immutable ArrWithSize!NameAndRange typeParams;
+	immutable SmallArray!NameAndRange typeParams;
 	immutable TypeAst target;
 }
 
@@ -747,12 +747,12 @@ struct StructDeclAst {
 			}
 
 			immutable Opt!(Ptr!TypeAst) typeArg;
-			immutable ArrWithSize!Member members;
+			immutable SmallArray!Member members;
 		}
 		struct Flags {
 			alias Member = Enum.Member;
 			immutable Opt!(Ptr!TypeAst) typeArg;
-			immutable ArrWithSize!Member members;
+			immutable SmallArray!Member members;
 		}
 		struct ExternPtr {}
 		struct Record {
@@ -765,7 +765,7 @@ struct StructDeclAst {
 				immutable FieldMutability mutability;
 				immutable TypeAst type;
 			}
-			immutable ArrWithSize!Field fields;
+			immutable SmallArray!Field fields;
 		}
 		struct Union {
 			struct Member {
@@ -810,8 +810,8 @@ struct StructDeclAst {
 	immutable SafeCStr docComment;
 	immutable Visibility visibility;
 	immutable Sym name; // start is range.start
-	immutable ArrWithSize!NameAndRange typeParams;
-	immutable ArrWithSize!ModifierAst modifiers;
+	immutable SmallArray!NameAndRange typeParams;
+	immutable SmallArray!ModifierAst modifiers;
 	immutable Body body_;
 }
 static assert(StructDeclAst.Body.sizeof <= 24);
@@ -881,7 +881,7 @@ struct SpecDeclAst {
 	immutable SafeCStr docComment;
 	immutable Visibility visibility;
 	immutable Sym name;
-	immutable ArrWithSize!NameAndRange typeParams;
+	immutable SmallArray!NameAndRange typeParams;
 	immutable SpecBodyAst body_;
 }
 
@@ -927,7 +927,7 @@ struct FunBodyAst {
 struct FunDeclAst {
 	immutable RangeWithinFile range;
 	immutable SafeCStr docComment;
-	immutable ArrWithSize!NameAndRange typeParams;
+	immutable SmallArray!NameAndRange typeParams;
 	immutable SigAst sig;
 	immutable SpecUseAst[] specUses;
 	immutable Visibility visibility;
@@ -1053,7 +1053,7 @@ immutable(Repr) reprSpecDeclAst(ref Alloc alloc, ref immutable SpecDeclAst a) {
 		reprStr(a.docComment),
 		reprVisibility(a.visibility),
 		reprSym(a.name),
-		reprTypeParams(alloc, toArr(a.typeParams)),
+		reprTypeParams(alloc, a.typeParams),
 		reprSpecBodyAst(alloc, a.body_)]);
 }
 
@@ -1076,7 +1076,7 @@ immutable(Repr) reprStructAliasAst(ref Alloc alloc, ref immutable StructAliasAst
 		reprStr(a.docComment),
 		reprVisibility(a.visibility),
 		reprSym(a.name),
-		reprTypeParams(alloc, toArr(a.typeParams)),
+		reprTypeParams(alloc, a.typeParams),
 		reprTypeAst(alloc, a.target)]);
 }
 
@@ -1085,12 +1085,12 @@ immutable(Repr) reprEnumOrFlags(
 	ref Alloc alloc,
 	immutable string name,
 	immutable Opt!(Ptr!TypeAst) typeArg,
-	immutable ArrWithSize!(StructDeclAst.Body.Enum.Member) members,
+	immutable StructDeclAst.Body.Enum.Member[] members,
 ) {
 	return reprRecord(alloc, name, [
 		reprOpt(alloc, typeArg, (ref immutable Ptr!TypeAst it) =>
 			reprTypeAst(alloc, it.deref())),
-		reprArr(alloc, toArr(members), (ref immutable StructDeclAst.Body.Enum.Member it) =>
+		reprArr(alloc, members, (ref immutable StructDeclAst.Body.Enum.Member it) =>
 			reprEnumMember(alloc, it))]);
 }
 
@@ -1145,7 +1145,7 @@ immutable(Repr) reprField(ref Alloc alloc, ref immutable StructDeclAst.Body.Reco
 
 immutable(Repr) reprRecord(ref Alloc alloc, ref immutable StructDeclAst.Body.Record a) {
 	return reprRecord(alloc, "record", [
-		reprArr(alloc, toArr(a.fields), (ref immutable StructDeclAst.Body.Record.Field it) =>
+		reprArr(alloc, a.fields, (ref immutable StructDeclAst.Body.Record.Field it) =>
 			reprField(alloc, it))]);
 }
 
@@ -1209,9 +1209,9 @@ immutable(Repr) reprStructDeclAst(ref Alloc alloc, ref immutable StructDeclAst a
 	if (!safeCStrIsEmpty(a.docComment))
 		add(alloc, fields, nameAndRepr("doc", reprStr(a.docComment)));
 	add(alloc, fields, nameAndRepr("visibility", reprVisibility(a.visibility)));
-	maybeAddTypeParams(alloc, fields, toArr(a.typeParams));
-	if (!empty(toArr(a.modifiers)))
-		add(alloc, fields, nameAndRepr("modifiers", reprArr(alloc, toArr(a.modifiers), (ref immutable ModifierAst x) =>
+	maybeAddTypeParams(alloc, fields, a.typeParams);
+	if (!empty(a.modifiers))
+		add(alloc, fields, nameAndRepr("modifiers", reprArr(alloc, a.modifiers, (ref immutable ModifierAst x) =>
 			reprModifierAst(alloc, x))));
 	add(alloc, fields, nameAndRepr("body", reprStructBodyAst(alloc, a.body_)));
 	return reprNamedRecord("struct-decl", finishArr(alloc, fields));
@@ -1231,7 +1231,7 @@ immutable(Repr) reprFunDeclAst(ref Alloc alloc, ref immutable FunDeclAst a) {
 	if (!safeCStrIsEmpty(a.docComment))
 		add(alloc, fields, nameAndRepr("doc", reprStr(a.docComment)));
 	add(alloc, fields, nameAndRepr("visibility", reprVisibility(a.visibility)));
-	maybeAddTypeParams(alloc, fields, toArr(a.typeParams));
+	maybeAddTypeParams(alloc, fields, a.typeParams);
 	add(alloc, fields, nameAndRepr("sig", reprSig(alloc, a.sig)));
 	if (!empty(a.specUses))
 		add(alloc, fields, nameAndRepr("spec-uses", reprArr(alloc, a.specUses, (ref immutable SpecUseAst s) =>
@@ -1268,7 +1268,7 @@ immutable(Repr) reprSpecUseAst(ref Alloc alloc, ref immutable SpecUseAst a) {
 	return reprRecord(alloc, "spec-use", [
 		reprRangeWithinFile(alloc, a.range),
 		reprSym(a.spec.name),
-		reprArr(alloc, toArr(a.typeArgs), (ref immutable TypeAst it) =>
+		reprArr(alloc, a.typeArgs, (ref immutable TypeAst it) =>
 			reprTypeAst(alloc, it))]);
 }
 
@@ -1308,9 +1308,9 @@ immutable(Sym) symOfFunKind(immutable TypeAst.Fun.Kind a) {
 immutable(Repr) reprInstStructAst(ref Alloc alloc, immutable TypeAst.InstStruct a) {
 	immutable Repr range = reprRangeWithinFile(alloc, a.range);
 	immutable Repr name = reprNameAndRange(alloc, a.name);
-	immutable Opt!Repr typeArgs = empty(toArr(a.typeArgs))
+	immutable Opt!Repr typeArgs = empty(a.typeArgs)
 		? none!Repr
-		: some(reprArr(alloc, toArr(a.typeArgs), (ref immutable TypeAst t) => reprTypeAst(alloc, t)));
+		: some(reprArr(alloc, a.typeArgs, (ref immutable TypeAst t) => reprTypeAst(alloc, t)));
 	return reprRecord("inststruct", has(typeArgs)
 		? arrLiteral!Repr(alloc, [range, name, force(typeArgs)])
 		: arrLiteral!Repr(alloc, [range, name]));
@@ -1354,7 +1354,7 @@ immutable(Repr) reprExprAstKind(ref Alloc alloc, ref immutable ExprAstKind ast) 
 			reprRecord(alloc, "arrow-access", [
 				reprExprAst(alloc, e.left),
 				reprNameAndRange(alloc, e.name),
-				reprArr(alloc, toArr(e.typeArgs), (ref immutable TypeAst it) =>
+				reprArr(alloc, e.typeArgs, (ref immutable TypeAst it) =>
 					reprTypeAst(alloc, it))]),
 		(ref immutable BogusAst e) =>
 			reprSym("bogus"),
@@ -1362,9 +1362,9 @@ immutable(Repr) reprExprAstKind(ref Alloc alloc, ref immutable ExprAstKind ast) 
 			reprRecord(alloc, "call", [
 				reprSym(symOfCallAstStyle(e.style)),
 				reprNameAndRange(alloc, e.funName),
-				reprArr(alloc, toArr(e.typeArgs), (ref immutable TypeAst it) =>
+				reprArr(alloc, e.typeArgs, (ref immutable TypeAst it) =>
 					reprTypeAst(alloc, it)),
-				reprArr(alloc, toArr(e.args), (ref immutable ExprAst it) =>
+				reprArr(alloc, e.args, (ref immutable ExprAst it) =>
 					reprExprAst(alloc, it))]),
 		(ref immutable FunPtrAst a) =>
 			reprRecord(alloc, "fun-ptr", [reprSym(a.name)]),

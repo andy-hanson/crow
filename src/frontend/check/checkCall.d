@@ -58,7 +58,6 @@ import model.model :
 	SpecBody,
 	SpecDeclSig,
 	SpecInst,
-	specs,
 	SpecSig,
 	StructDeclAndArgs,
 	StructInst,
@@ -69,7 +68,7 @@ import model.model :
 	TypeParam,
 	typeParams;
 import util.alloc.alloc : Alloc;
-import util.col.arr : empty, emptyArr, emptyArrWithSize, only, only_const, ptrAt, toArr;
+import util.col.arr : empty, emptyArr, only, only_const, ptrAt;
 import util.col.arrBuilder : add, ArrBuilder, finishArr;
 import util.col.arrUtil :
 	exists,
@@ -102,14 +101,13 @@ import util.util : Empty, todo, verify;
 immutable(Expr) checkCall(
 	ref ExprCtx ctx,
 	immutable FileAndRange range,
-	ref immutable CallAst ast,
+	scope ref immutable CallAst ast,
 	ref Expected expected,
 ) {
 	PerfMeasurer perfMeasurer = startMeasure(ctx.alloc, ctx.perf, PerfMeasure.checkCall);
 	immutable Sym funName = ast.funName.name;
-	immutable ExprAst[] argAsts = toArr(ast.args);
-	immutable size_t arity = argAsts.length;
-	immutable Type[] explicitTypeArgs = typeArgsFromAsts(ctx, toArr(ast.typeArgs));
+	immutable size_t arity = ast.args.length;
+	immutable Type[] explicitTypeArgs = typeArgsFromAsts(ctx, ast.typeArgs);
 	Candidates candidates = mutMaxArr!(maxCandidates, Candidate);
 	getInitialCandidates(ctx, candidates, funName, explicitTypeArgs, arity);
 
@@ -128,7 +126,7 @@ immutable(Expr) checkCall(
 		CommonOverloadExpected common =
 			getCommonOverloadParamExpected(ctx.alloc, ctx.programState, tempAsArr_mut(candidates), argIdx);
 		pauseMeasure(ctx.alloc, ctx.perf, perfMeasurer);
-		immutable Expr arg = checkExpr(ctx, argAsts[argIdx], common.expected);
+		immutable Expr arg = checkExpr(ctx, ast.args[argIdx], common.expected);
 		resumeMeasure(ctx.alloc, ctx.perf, perfMeasurer);
 
 		// If it failed to check, don't continue, just stop there.
@@ -190,8 +188,8 @@ immutable(Expr) checkIdentifierCall(
 	immutable CallAst callAst = immutable CallAst(
 		CallAst.Style.single,
 		immutable NameAndRange(range.range.start, name),
-		emptyArrWithSize!TypeAst,
-		emptyArrWithSize!ExprAst);
+		emptyArr!TypeAst,
+		emptyArr!ExprAst);
 	return checkCall(ctx, range, callAst, expected);
 }
 
@@ -601,7 +599,7 @@ immutable(bool) checkBuiltinSpec(
 	immutable Opt!(Ptr!FunDecl) outerCalled,
 ) {
 	// We store the impls in a flat array. Calculate the size ahead of time.
-	immutable size_t nImpls = sum(specs(called.deref()), (ref immutable Ptr!SpecInst specInst) =>
+	immutable size_t nImpls = sum(called.deref().specs, (ref immutable Ptr!SpecInst specInst) =>
 		nSigs(specInst.deref().body_));
 	if (nImpls != 0 && has(outerCalled)) {
 		addDiag2(ctx, range, immutable Diag(immutable Diag.SpecImplHasSpecs(force(outerCalled), called)));

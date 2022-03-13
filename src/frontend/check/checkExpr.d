@@ -107,7 +107,7 @@ import util.col.arr :
 	castImmutable,
 	empty,
 	emptyArr,
-	emptyArrWithSize,
+	emptySmallArray,
 	only,
 	ptrsRange,
 	setAt,
@@ -115,7 +115,6 @@ import util.col.arr :
 import util.col.arrUtil :
 	arrLiteral,
 	arrsCorrespond,
-	arrWithSizeLiteral,
 	exists,
 	fillArr_mut,
 	map,
@@ -242,13 +241,13 @@ immutable(Expr) checkArrowAccess(
 	immutable CallAst callDeref = immutable CallAst(
 		CallAst.style.single,
 		immutable NameAndRange(range.range.start, symForOperator(Operator.times)),
-		emptyArrWithSize!TypeAst,
-		arrWithSizeLiteral!ExprAst(ctx.alloc, [ast.left]));
+		emptyArr!TypeAst,
+		arrLiteral!ExprAst(ctx.alloc, [ast.left]));
 	immutable CallAst callName = immutable CallAst(
 		CallAst.style.infix,
 		ast.name,
 		ast.typeArgs,
-		arrWithSizeLiteral!ExprAst(ctx.alloc, [immutable ExprAst(range.range, immutable ExprAstKind(callDeref))]));
+		arrLiteral!ExprAst(ctx.alloc, [immutable ExprAst(range.range, immutable ExprAstKind(callDeref))]));
 	return checkCall(ctx, range, callName, expected);
 }
 
@@ -294,8 +293,8 @@ immutable(Expr) checkEmptyNew(
 ) {
 	immutable CallAst ast = immutable CallAst(CallAst.style.emptyParens,
 		immutable NameAndRange(range.start, shortSym("new")),
-		emptyArrWithSize!TypeAst,
-		emptyArrWithSize!ExprAst);
+		emptyArr!TypeAst,
+		emptyArr!ExprAst);
 	return checkCall(ctx, range, ast, expected);
 }
 
@@ -342,8 +341,8 @@ immutable(Expr) checkInterpolated(
 	immutable CallAst firstCall = immutable CallAst(
 		CallAst.style.single,
 		immutable NameAndRange(range.range.start, shortSym("interp")),
-		emptyArrWithSize!TypeAst,
-		emptyArrWithSize!ExprAst);
+		emptyArr!TypeAst,
+		emptyArr!ExprAst);
 	immutable ExprAst firstCallExpr = immutable ExprAst(
 		immutable RangeWithinFile(range.range.start, range.range.start),
 		immutable ExprAstKind(firstCall));
@@ -361,8 +360,8 @@ immutable(CallAst) checkInterpolatedRecur(
 		return immutable CallAst(
 			CallAst.Style.infix,
 			immutable NameAndRange(pos, shortSym("finish")),
-			emptyArrWithSize!TypeAst,
-			arrWithSizeLiteral!ExprAst(ctx.alloc, [left]));
+			emptyArr!TypeAst,
+			arrLiteral!ExprAst(ctx.alloc, [left]));
 	else {
 		immutable CallAst c = matchInterpolatedPart!(
 			immutable CallAst,
@@ -374,15 +373,15 @@ immutable(CallAst) checkInterpolatedRecur(
 				return immutable CallAst(
 					CallAst.Style.infix,
 					immutable NameAndRange(pos, shortSym("with-str")),
-					emptyArrWithSize!TypeAst,
-					arrWithSizeLiteral!ExprAst(ctx.alloc, [left, right]));
+					emptyArr!TypeAst,
+					arrLiteral!ExprAst(ctx.alloc, [left, right]));
 			},
 			(ref immutable ExprAst e) =>
 				immutable CallAst(
 					CallAst.Style.infix,
 					immutable NameAndRange(pos, shortSym("with-value")),
-					emptyArrWithSize!TypeAst,
-					arrWithSizeLiteral!ExprAst(ctx.alloc, [left, e])),
+					emptyArr!TypeAst,
+					arrLiteral!ExprAst(ctx.alloc, [left, e])),
 		)(parts[0]);
 		immutable Pos newPos = matchInterpolatedPart!(
 			immutable Pos,
@@ -712,8 +711,8 @@ immutable(Expr) checkStringLiteral(
 		immutable CallAst call = immutable CallAst(
 				CallAst.Style.emptyParens,
 				immutable NameAndRange(range.start, shortSym("literal")),
-				emptyArrWithSize!TypeAst,
-				arrWithSizeLiteral!ExprAst(ctx.alloc, [curAst]));
+				emptyArr!TypeAst,
+				arrLiteral!ExprAst(ctx.alloc, [curAst]));
 		return checkCall(ctx, range, call, expected);
 	}
 }
@@ -722,7 +721,7 @@ immutable(Type) getStrType(ref ExprCtx ctx, immutable FileAndRange range) {
 	return typeFromAst2(ctx, immutable TypeAst(immutable TypeAst.InstStruct(
 		range.range,
 		immutable NameAndRange(range.start, shortSym("str")),
-		emptyArrWithSize!TypeAst)));
+		emptySmallArray!TypeAst)));
 }
 
 
@@ -1150,8 +1149,8 @@ immutable(Expr) checkThen(
 	immutable CallAst call = immutable CallAst(
 		CallAst.Style.infix,
 		immutable NameAndRange(range.range.start, shortSym("then")),
-		emptyArrWithSize!TypeAst,
-		arrWithSizeLiteral!ExprAst(ctx.alloc, [ast.futExpr, lambda]));
+		emptyArr!TypeAst,
+		arrLiteral!ExprAst(ctx.alloc, [ast.futExpr, lambda]));
 	return checkCall(ctx, range, call, expected);
 }
 
@@ -1168,8 +1167,8 @@ immutable(Expr) checkThenVoid(
 	immutable CallAst call = immutable CallAst(
 		CallAst.Style.infix,
 		immutable NameAndRange(range.range.start, shortSym("then-void")),
-		emptyArrWithSize!TypeAst,
-		arrWithSizeLiteral!ExprAst(ctx.alloc, [ast.futExpr, lambda]));
+		emptyArr!TypeAst,
+		arrLiteral!ExprAst(ctx.alloc, [ast.futExpr, lambda]));
 	return checkCall(ctx, range, call, expected);
 }
 

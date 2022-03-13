@@ -2,8 +2,10 @@ module util.comparison;
 
 @safe @nogc pure nothrow:
 
-alias Comparer(T) = immutable(Comparison) delegate(ref immutable T, ref immutable T) @safe @nogc pure nothrow;
-alias ConstComparer(T) = immutable(Comparison) delegate(ref const T, ref const T) @safe @nogc pure nothrow;
+alias Comparer(T) =
+	immutable(Comparison) delegate(scope ref immutable T, scope ref immutable T) @safe @nogc pure nothrow;
+alias ConstComparer(T) =
+	immutable(Comparison) delegate(scope ref const T, scope ref const T) @safe @nogc pure nothrow;
 
 enum Comparison {
 	less,

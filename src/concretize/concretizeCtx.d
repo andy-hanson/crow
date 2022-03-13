@@ -167,7 +167,7 @@ struct ConcreteFunKey {
 }
 
 private immutable(ContainingFunInfo) toContainingFunInfo(ref immutable ConcreteFunKey a) {
-	return immutable ContainingFunInfo(typeParams(a.inst.deref().decl.deref()), a.typeArgs, a.specImpls);
+	return immutable ContainingFunInfo(a.inst.deref().decl.deref().typeParams, a.typeArgs, a.specImpls);
 }
 
 immutable(TypeArgsScope) typeArgsScope(ref immutable ConcreteFunKey a) {

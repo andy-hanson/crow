@@ -155,7 +155,7 @@ void writeConstants(ref Writer writer, ref immutable Ctx ctx, ref immutable AllC
 				writeChar(writer, '"');
 			} else {
 				writeChar(writer, '{');
-				writeWithCommas!Constant(writer, elements, (scope ref immutable Constant element) @safe {
+				writeWithCommas!Constant(writer, elements, (scope ref immutable Constant element) {
 					writeConstantRef(writer, ctx, ConstantRefPos.inner, a.elementType, element);
 				});
 				writeChar(writer, '}');
@@ -594,7 +594,7 @@ void writeTempOrInline(
 ) {
 	matchWriteExprResult!void(
 		a,
-		(ref immutable WriteExprResult.Done it) @safe {
+		(ref immutable WriteExprResult.Done it) {
 			immutable WriteKind writeKind = immutable WriteKind(immutable WriteKind.Inline(it.args));
 			immutable WriteExprResult res = writeExpr(writer, tempAlloc, 0, ctx, writeKind, e);
 			verify(isDone(res) && empty(asDone(res).args));
@@ -618,7 +618,7 @@ void writeTempOrInlines(
 		args,
 		(scope ref immutable LowExpr expr, scope ref immutable WriteExprResult) =>
 			!isVoid(expr.type),
-		(scope ref immutable LowExpr expr, scope ref immutable WriteExprResult arg) @safe {
+		(scope ref immutable LowExpr expr, scope ref immutable WriteExprResult arg) {
 			writeTempOrInline(writer, tempAlloc, ctx, expr, arg);
 		});
 }
@@ -814,14 +814,14 @@ immutable(WriteExprResult) writeExpr(
 		(ref immutable LowExprKind.CallFunPtr it) =>
 			writeCallFunPtr(writer, tempAlloc, indent, ctx, writeKind, type, it),
 		(ref immutable LowExprKind.CreateRecord it) =>
-			inlineable(it.args, (scope ref immutable WriteExprResult[] args) @safe {
+			inlineable(it.args, (scope ref immutable WriteExprResult[] args) {
 				writeCastToType(writer, ctx.ctx, type);
 				writeChar(writer, '{');
 				writeTempOrInlines(writer, tempAlloc, ctx, it.args, args);
 				writeChar(writer, '}');
 			}),
 		(ref immutable LowExprKind.CreateUnion it) =>
-			inlineableSingleArg(it.arg, (scope ref immutable WriteExprResult arg) @safe {
+			inlineableSingleArg(it.arg, (scope ref immutable WriteExprResult arg) {
 				writeCreateUnion(writer, ctx.ctx, ConstantRefPos.outer, type, it.memberIndex, () {
 					writeTempOrInline(writer, tempAlloc, ctx, it.arg, arg);
 				});
