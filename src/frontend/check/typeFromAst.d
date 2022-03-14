@@ -9,10 +9,12 @@ import frontend.check.checkCtx :
 	ImportIndex,
 	markUsedImport,
 	markUsedSpec,
-	markUsedStructOrAlias;
+	markUsedStructOrAlias,
+	rangeInFile;
 import frontend.check.dicts : SpecDeclAndIndex, SpecsDict, StructsAndAliasesDict, StructOrAliasAndIndex;
 import frontend.check.instantiate : DelayStructInsts, instantiateStruct, instantiateStructNeverDelay, TypeParamsScope;
-import frontend.parse.ast : matchTypeAst, range, symForTypeAstDict, symForTypeAstSuffix, TypeAst;
+import frontend.parse.ast :
+	matchTypeAst, NameAndRange, range, rangeOfNameAndRange, symForTypeAstDict, symForTypeAstSuffix, TypeAst;
 import frontend.programState : ProgramState;
 import model.diag : Diag;
 import model.model :
@@ -34,7 +36,7 @@ import model.model :
 	typeParams;
 import util.alloc.alloc : Alloc;
 import util.col.arr : empty;
-import util.col.arrUtil : arrLiteral, fillArr, find, findPtr, map;
+import util.col.arrUtil : arrLiteral, eachPair, fillArr, find, findPtr, map, mapWithIndex_scope;
 import util.opt : force, has, none, Opt, some;
 import util.ptr : Ptr;
 import util.sourceRange : RangeWithinFile;
@@ -112,6 +114,20 @@ private immutable(Type[]) getTypeArgsIfNumberMatches(
 			structsAndAliasesDict,
 			typeParamsScope,
 			delayStructInsts);
+}
+
+immutable(TypeParam[]) checkTypeParams(ref CheckCtx ctx, scope immutable NameAndRange[] asts) {
+	immutable TypeParam[] res = mapWithIndex_scope!(TypeParam, NameAndRange)(
+		ctx.alloc,
+		asts,
+		(immutable size_t index, scope ref immutable NameAndRange ast) =>
+			immutable TypeParam(rangeInFile(ctx, rangeOfNameAndRange(ast, ctx.allSymbols)), ast.name, index));
+	eachPair!TypeParam(res, (ref immutable TypeParam a, ref immutable TypeParam b) {
+		if (symEq(a.name, b.name))
+			addDiag(ctx, b.range, immutable Diag(
+				immutable Diag.ParamShadowsPrevious(Diag.ParamShadowsPrevious.Kind.typeParam, b.name)));
+	});
+	return res;
 }
 
 immutable(Type) typeFromAst(

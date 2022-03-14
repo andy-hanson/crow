@@ -49,7 +49,9 @@ src_files_common = src\concretize\allConstantsBuilder.d \
 	src\frontend\check\checkCall.d \
 	src\frontend\check\checkCtx.d \
 	src\frontend\check\checkExpr.d \
+	src\frontend\check\checkStructs.d \
 	src\frontend\check\dicts.d \
+	src\frontend\check\funsForStruct.d \
 	src\frontend\check\inferringType.d \
 	src\frontend\check\instantiate.d \
 	src\frontend\check\typeFromAst.d \
