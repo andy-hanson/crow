@@ -12,6 +12,11 @@ struct MutMaxArr(size_t maxSize, T) {
 	@disable this();
 	@disable this(ref const MutMaxArr);
 
+	ref inout(T) opIndex(immutable size_t i) inout {
+		verify(i < size_);
+		return values[i];
+	}
+
 	private:
 	size_t size_;
 	T[maxSize] values = void;
@@ -49,7 +54,6 @@ void fillMutMaxArr(size_t maxSize, T)(
 	immutable size_t size,
 	immutable T value,
 ) {
-	verify(a.size_ == 0);
 	a.size_ = size;
 	foreach (immutable size_t i; 0 .. size)
 		overwriteMemory(&a.values[i], value);
@@ -59,7 +63,6 @@ void fillMutMaxArr_mut(size_t maxSize, T)(
 	immutable size_t size,
 	scope T delegate() @safe @nogc pure nothrow cb,
 ) {
-	verify(a.size_ == 0);
 	a.size_ = size;
 	foreach (immutable size_t i; 0 .. size)
 		overwriteMemory(&a.values[i], cb());
@@ -70,7 +73,6 @@ void mapTo(size_t maxSize, Out, In)(
 	scope immutable In[] values,
 	scope immutable(Out) delegate(ref immutable In) @safe @nogc pure nothrow cb,
 ) {
-	verify(a.size_ == 0);
 	verify(values.length < maxSize);
 	a.size_ = values.length;
 	foreach (immutable size_t i; 0 .. values.length)
@@ -81,7 +83,6 @@ void mapTo_mut(size_t maxSize, Out, In)(
 	scope immutable In[] values,
 	scope Out delegate(ref immutable In) @safe @nogc pure nothrow cb,
 ) {
-	verify(a.size_ == 0);
 	verify(values.length < maxSize);
 	a.size_ = values.length;
 	foreach (immutable size_t i; 0 .. values.length)

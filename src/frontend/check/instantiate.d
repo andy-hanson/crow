@@ -2,6 +2,7 @@ module frontend.check.instantiate;
 
 @safe @nogc pure nothrow:
 
+import frontend.lang : maxTypeParams;
 import frontend.programState : ProgramState;
 import model.model :
 	body_,
@@ -73,9 +74,9 @@ struct TypeParamsAndArgs {
 	}
 }
 
-alias TypeArgsArray = MutMaxArr!(8, Type);
+alias TypeArgsArray = MutMaxArr!(maxTypeParams, Type);
 TypeArgsArray typeArgsArray() {
-	return mutMaxArr!(8, Type);
+	return mutMaxArr!(maxTypeParams, Type);
 }
 
 private immutable(Opt!(Ptr!T)) tryGetTypeArg(T)(

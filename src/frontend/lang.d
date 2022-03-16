@@ -14,3 +14,6 @@ enum OptimizationLevel {
 	none,
 	o2,
 }
+
+immutable size_t maxParams = 16;
+immutable size_t maxTypeParams = 16;

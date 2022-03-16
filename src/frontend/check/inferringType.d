@@ -7,6 +7,7 @@ import frontend.check.dicts : FunsDict, ModuleLocalFunIndex, StructsAndAliasesDi
 import frontend.check.instantiate :
 	instantiateStructNeverDelay, tryGetTypeArg_const, tryGetTypeArg_mut, TypeArgsArray, typeArgsArray, TypeParamsScope;
 import frontend.check.typeFromAst : typeFromAst;
+import frontend.lang : maxParams;
 import frontend.parse.ast : TypeAst;
 import frontend.programState : ProgramState;
 import model.diag : Diag;
@@ -35,7 +36,7 @@ import util.cell : Cell, cellGet, cellSet;
 import util.col.arr : emptyArr, emptyArr_mut, sizeEq;
 import util.col.fullIndexDict : FullIndexDict;
 import util.col.mutArr : MutArr;
-import util.col.mutMaxArr : mapTo, push, tempAsArr;
+import util.col.mutMaxArr : mapTo, MutMaxArr, push, tempAsArr;
 import util.opt : has, force, none, noneMut, Opt, some;
 import util.perf : Perf;
 import util.ptr : Ptr, ptrEquals;
@@ -62,10 +63,10 @@ struct ExprCtx {
 	immutable TypeParam[] outermostFunTypeParams;
 	immutable FunFlags outermostFunFlags;
 	FullIndexDict!(ModuleLocalFunIndex, bool) funsUsed;
-	bool[] paramsUsed;
 
-	// Locals of the function or message. Lambda locals are stored in the lambda.
-	// (Note the Let stores the local and this points to that.)
+	MutMaxArr!(maxParams, bool) paramsUsed = void;
+	// Locals of the function. Lambda locals are stored in the lambda.
+	// (the Let stores the local and this points to that.)
 	MutArr!LocalAndUsed messageOrFunctionLocals;
 	// These are pointers because MutArr currently only works on copyable values,
 	// and LambdaInfo should not be copied.

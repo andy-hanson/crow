@@ -69,7 +69,7 @@ import util.alloc.alloc : Alloc;
 import util.col.arr : empty, emptyArr, only, only_const, ptrAt;
 import util.col.arrBuilder : add, ArrBuilder, finishArr;
 import util.col.arrUtil : exists, exists_const, fillArrOrFail, map_const;
-import util.col.mutArr : peek;
+import util.col.mutArr : mutArrIsEmpty;
 import util.col.mutMaxArr :
 	copyToFrom,
 	fillMutMaxArr_mut,
@@ -510,7 +510,7 @@ void checkCalledDeclFlags(
 	matchCalledDecl!(
 		void,
 		(immutable Ptr!FunDecl f) {
-			checkCallFlags(ctx.checkCtx, range, f, ctx.outermostFunFlags, has(peek(ctx.lambdas)), argsKind);
+			checkCallFlags(ctx.checkCtx, range, f, ctx.outermostFunFlags, !mutArrIsEmpty(ctx.lambdas), argsKind);
 		},
 		(ref immutable SpecSig) {
 			// For a spec, we check the flags when providing the spec impl

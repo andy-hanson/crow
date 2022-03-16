@@ -100,9 +100,8 @@ import model.model :
 	TypeParam,
 	UnionMember,
 	worstCasePurity;
-import util.col.arr : castImmutable, empty, emptyArr, emptySmallArray, only, ptrsRange, sizeEq;
-import util.col.arrUtil :
-	arrLiteral, arrsCorrespond, exists, fillArr_mut, map, mapZip, mapZipWithIndex, zipPtrFirst;
+import util.col.arr : empty, emptyArr, emptySmallArray, only, ptrsRange, sizeEq;
+import util.col.arrUtil : arrLiteral, arrsCorrespond, exists, map, mapZip, mapZipWithIndex, zipPtrFirst;
 import util.col.fullIndexDict : FullIndexDict;
 import util.col.mutArr :
 	moveToArr,
@@ -117,7 +116,7 @@ import util.col.mutArr :
 	push,
 	tempAsArr,
 	tempAsArr_mut;
-import util.col.mutMaxArr : push, pushLeft, tempAsArr;
+import util.col.mutMaxArr : fillMutMaxArr, push, pushLeft, tempAsArr;
 import util.col.str : copyToSafeCStr;
 import util.conv : safeToUint;
 import util.memory : allocate;
@@ -149,14 +148,12 @@ immutable(Expr) checkFunctionBody(
 		params,
 		typeParams,
 		flags,
-		usedFuns,
-		// TODO: use temp alloc
-		fillArr_mut!bool(checkCtx.alloc, params.length, (immutable size_t) =>
-			false));
+		usedFuns);
+	fillMutMaxArr(exprCtx.paramsUsed, params.length, false);
 	immutable Expr res = checkAndExpect(exprCtx, ast, returnType);
 	zipPtrFirst!(Param, bool)(
 		params,
-		castImmutable(exprCtx.paramsUsed),
+		tempAsArr(exprCtx.paramsUsed),
 		(immutable Ptr!Param param, ref immutable bool used) {
 			if (!used && has(param.deref().name))
 				addDiag(checkCtx, param.deref().range, immutable Diag(immutable Diag.UnusedParam(param)));
