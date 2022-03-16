@@ -74,9 +74,9 @@ run
 # Testing compiler/interpreter performance
 
 ```sh
-make bin/crow-o2-debug
+make bin/crow-fast-debug
 mkdir perf && cd perf
-valgrind --tool=callgrind -v --dump-every-bb=10000000 ../bin/crow-o2-debug run some-program.crow --interpret
+valgrind --tool=callgrind -v --dump-every-bb=10000000 ../bin/crow-fast-debug run some-program.crow --interpret
 kcachegrind .
 ```
 

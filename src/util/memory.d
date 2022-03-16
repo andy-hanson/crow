@@ -12,7 +12,7 @@ import util.ptr : Ptr;
 	*(cast(byte[T.sizeof]*) ptr) = *(cast(const byte[T.sizeof]*) &value);
 }
 
-@trusted void initMemory_mut(T)(T* ptr, ref T value) {
+@trusted void initMemory_mut(T)(T* ptr, scope ref T value) {
 	*(cast(byte[T.sizeof]*) ptr) = *(cast(const byte[T.sizeof]*) &value);
 }
 
@@ -32,7 +32,7 @@ import util.ptr : Ptr;
 	return dest;
 }
 
-void overwriteMemory(T)(T* ptr, T value) {
+void overwriteMemory(T)(T* ptr, scope T value) {
 	initMemory_mut!T(ptr, value);
 }
 

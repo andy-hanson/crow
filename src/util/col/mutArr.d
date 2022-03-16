@@ -21,10 +21,6 @@ struct MutArr(T) {
 	}
 }
 
-@system MutArr!T newUninitializedMutArr(T)(ref Alloc alloc, immutable size_t size) {
-	return MutArr!T(allocateT!T(alloc, size), size, size);
-}
-
 @system T* mutArrPtrAt(T)(ref MutArr!T a, immutable size_t index) {
 	verify(index < a.size_);
 	return a.begin_ + index;

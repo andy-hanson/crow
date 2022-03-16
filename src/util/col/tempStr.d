@@ -9,6 +9,12 @@ import util.util : verify;
 struct TempStr(size_t strCapacity) {
 	@safe @nogc pure nothrow:
 
+	// Unfortunately LDC will 'memset' fields even though they are marked '= void'.
+	// The whole 'TempStr' must be marked '= void'.
+	// Then 'initializeTempStr'.
+	@disable this();
+	@disable this(ref const TempStr);
+
 	@system inout(char*) ptr() inout {
 		return buffer.ptr;
 	}
@@ -17,8 +23,12 @@ struct TempStr(size_t strCapacity) {
 	}
 
 	private:
+	size_t length_ = void;
 	char[strCapacity] buffer = void;
-	size_t length_;
+}
+
+void initializeTempStr(size_t capacity)(ref TempStr!capacity a) {
+	a.length_ = 0;
 }
 
 immutable(size_t) length(size_t capacity)(ref const TempStr!capacity a) {

@@ -106,7 +106,8 @@ import util.col.str :
 	strEq,
 	strOfCStr,
 	strOfSafeCStr;
-import util.col.tempStr : asTempSafeCStr, copyTempStrToSafeCStr, length, pushToTempStr, setLength, TempStr;
+import util.col.tempStr :
+	asTempSafeCStr, copyTempStrToSafeCStr, initializeTempStr, length, pushToTempStr, setLength, TempStr;
 import util.conv : bitsOfFloat64, float32OfBits, float64OfBits;
 import util.memory : memset;
 import util.opt : force, forceOrTodo, has, none, Opt, some;
@@ -152,11 +153,11 @@ private:
 void logPerf(scope ref Perf perf) {
 	eachMeasure(perf, (immutable SafeCStr name, immutable PerfMeasureResult m) @trusted {
 		printf(
-			"%s * %d took %llums and %lluMB\n",
+			"%s * %d took %llums and %lluKB\n",
 			name.ptr,
 			m.count,
 			divRound(m.nanoseconds, 1_000_000),
-			divRound(m.bytesAllocated, 1024 * 1024));
+			divRound(m.bytesAllocated, 1024));
 	});
 }
 
@@ -289,7 +290,8 @@ immutable(SafeCStr[]) getAllArgs(
 	ref AllPaths allPaths,
 	immutable SafeCStr crowDir,
 ) {
-	TempStrForPath dirPath;
+	TempStrForPath dirPath = void;
+	initializeTempStr(dirPath);
 	pushToTempStr(dirPath, crowDir);
 	pushToTempStr(dirPath, "/temp");
 	immutable CStr dirPathCStr = asTempSafeCStr(dirPath).ptr;
@@ -419,7 +421,8 @@ version (Windows) {
 	version (Windows) {
 		return todo!(immutable ExitCode)("!");
 	} else {
-		TempStrForPath path;
+		TempStrForPath path = void;
+		initializeTempStr(path);
 		pushToTempStr(path, dir);
 		immutable char* dirCStr = asTempSafeCStr(path).ptr;
 		immutable int err = mkdir(dirCStr, S_IRWXU);
@@ -1087,7 +1090,8 @@ void tryReadFile(
 	immutable SafeCStr path,
 	scope void delegate(immutable Opt!SafeCStr) @safe @nogc pure nothrow cb,
 ) {
-	TempStr!0x100000 content;
+	TempStr!0x100000 content = void;
+	initializeTempStr(content);
 	immutable CStr pathTempCStr = path.ptr;
 	FILE* fd = fopen(pathTempCStr, "rb");
 	if (fd == null) {
@@ -1184,7 +1188,7 @@ version (Windows) {
 }
 
 @trusted immutable(SafeCStr) getCwd(ref Alloc alloc) {
-	char[maxPathSize] buff;
+	char[maxPathSize] buff = void;
 	version (Windows) {
 		char* b = _getcwd(buff.ptr, maxPathSize);
 		if (b != null)
@@ -1215,7 +1219,7 @@ immutable(SafeCStr) copyCStrToSafeCStr(ref Alloc alloc, immutable CStr begin) {
 immutable size_t maxPathSize = 0x1000;
 
 @trusted immutable(SafeCStr) getPathToThisExecutable(ref Alloc alloc) {
-	char[maxPathSize] buff;
+	char[maxPathSize] buff = void;
 	version(Windows) {
 		HMODULE mod = GetModuleHandle(null);
 		verify(mod != null);

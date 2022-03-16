@@ -60,18 +60,6 @@ pure:
 @system Out[] fillArrUninitialized(Out)(ref Alloc alloc, immutable size_t size) {
 	return allocateT!Out(alloc, size)[0 .. size];
 }
-
-@trusted immutable(Out[]) fillArr(Out)(
-	ref Alloc alloc,
-	immutable size_t size,
-	scope immutable(Out) delegate(immutable size_t) @safe @nogc pure nothrow cb,
-) {
-	Out* res = allocateT!Out(alloc, size);
-	foreach (immutable size_t i; 0 .. size)
-		initMemory(res + i, cb(i));
-	return cast(immutable) res[0 .. size];
-}
-
 @trusted Out[] fillArr_mut(Out)(
 	ref Alloc alloc,
 	immutable size_t size,
@@ -257,17 +245,6 @@ immutable(T[]) copyArr(T)(ref Alloc alloc, scope immutable T[] a) {
 	return res[0 .. a.length];
 }
 
-@trusted immutable(Out[]) mapPtrs(Out, In)(
-	ref Alloc alloc,
-	immutable In[] a,
-	scope immutable(Out) delegate(immutable Ptr!In) @safe @nogc pure nothrow cb,
-) {
-	Out* res = allocateT!Out(alloc, a.length);
-	foreach (immutable size_t i; 0 .. a.length)
-		initMemory(res + i, cb(ptrAt(a, i)));
-	return cast(immutable) res[0 .. a.length];
-}
-
 @trusted immutable(Out[]) mapWithOptFirst2(Out, In)(
 	ref Alloc alloc,
 	ref immutable Opt!Out optFirst0,
@@ -299,17 +276,6 @@ immutable(T[]) copyArr(T)(ref Alloc alloc, scope immutable T[] a) {
 	foreach (immutable size_t i, ref immutable In x; a)
 		initMemory(res + offset + i, cb(x));
 	return cast(immutable) res[0 .. offset + a.length];
-}
-
-@trusted immutable(Out[]) mapWithFirst(Out, In)(
-	ref Alloc alloc,
-	immutable Out first,
-	scope immutable In[] a,
-	scope immutable(Out) delegate(ref immutable In) @safe @nogc pure nothrow cb,
-) {
-	immutable Opt!Out someFirst = some!Out(first);
-	return mapWithOptFirst!(Out, In)(alloc, someFirst, a, (ref immutable In x) =>
-		cb(x));
 }
 
 @trusted immutable(Out[]) mapWithFirst2(Out, In)(
@@ -363,21 +329,6 @@ immutable(T[]) copyArr(T)(ref Alloc alloc, scope immutable T[] a) {
 ) {
 	Out* res = allocateT!Out(alloc, a.length);
 	foreach (immutable size_t i, ref immutable In x; a) {
-		immutable Opt!Out o = cb(x);
-		if (has(o))
-			initMemory(res + i, force(o));
-		else
-			return none!(Out[]);
-	}
-	return some!(Out[])(cast(immutable) res[0 .. a.length]);
-}
-@trusted immutable(Opt!(Out[])) mapOrNone_const(Out, In)(
-	ref Alloc alloc,
-	ref const In[] a,
-	scope immutable(Opt!Out) delegate(ref const In) @safe @nogc pure nothrow cb,
-) {
-	Out* res = allocateT!Out(alloc, a.length);
-	foreach (immutable size_t i, ref const In x; a) {
 		immutable Opt!Out o = cb(x);
 		if (has(o))
 			initMemory(res + i, force(o));
@@ -619,26 +570,6 @@ void zipPtrFirst(T, U)(
 	foreach (immutable size_t i; 0 .. sz)
 		initMemory(res + i, cb(in0[i], in1[i], i));
 	return cast(immutable) res[0 .. sz];
-}
-
-
-@trusted immutable(Opt!(Out[])) mapZipOrNone(Out, In0, In1)(
-	ref Alloc alloc,
-	ref immutable In0[] in0,
-	ref immutable In1[] in1,
-	scope immutable(Opt!Out) delegate(ref immutable In0, ref immutable In1) @safe @nogc pure nothrow cb,
-) {
-	verify(sizeEq(in0, in1));
-	immutable size_t sz = in0.length;
-	Out* res = allocateT!Out(alloc, sz);
-	foreach (immutable size_t i; 0 .. sz) {
-		immutable Opt!Out o = cb(in0[i], in1[i]);
-		if (has(o))
-			initMemory(res + i, force(o));
-		else
-			return none!(Out[]);
-	}
-	return some!(Out[])(cast(immutable) res[0 .. sz]);
 }
 
 immutable(bool) eachCorresponds(T, U)(

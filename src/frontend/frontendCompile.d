@@ -24,7 +24,7 @@ import util.col.arrBuilder : add, ArrBuilder, arrBuilderSize, finishArr;
 import util.col.arrUtil : copyArr, map, mapOp, mapOrNoneImpure, mapWithSoFar, prepend;
 import util.col.dict : dictSize, mapValues;
 import util.col.fullIndexDict : FullIndexDict, fullIndexDictOfArr, fullIndexDictSize, ptrAt;
-import util.col.mutMaxArr : isEmpty, mustPeek, mustPop, MutMaxArr, push;
+import util.col.mutMaxArr : isEmpty, mustPeek, mustPop, MutMaxArr, mutMaxArr, push;
 import util.col.mutDict : addToMutDict, getAt_mut, hasKey_mut, moveToDict, mustGetAt_mut, MutDict, setInDict;
 import util.col.str : SafeCStr;
 import util.conv : safeToUshort;
@@ -225,7 +225,7 @@ struct ParseStackEntry {
 	ArrBuilder!AstAndResolvedImports res;
 	LineAndColumnGettersBuilder lineAndColumnGetters;
 
-	MutMaxArr!(32, ParseStackEntry) stack;
+	MutMaxArr!(32, ParseStackEntry) stack = mutMaxArr!(32, ParseStackEntry)();
 
 	void pushIt(immutable PathAndStorageKind path, immutable Opt!PathAndRange importedFrom) {
 		withFile!void(storage, path, crowExtension, (immutable Opt!SafeCStr opFileContent) {
@@ -497,7 +497,7 @@ immutable(ModuleAndNames[]) mapImportsOrExports(
 	ref immutable FileIndexAndNames[] paths,
 	ref immutable FullIndexDict!(FileIndex, Module) compiled,
 ) {
-	return mapOp!(ModuleAndNames, FileIndexAndNames)(modelAlloc, paths, (ref immutable FileIndexAndNames it) @safe =>
+	return mapOp!(ModuleAndNames, FileIndexAndNames)(modelAlloc, paths, (ref immutable FileIndexAndNames it) =>
 		it.fileIndex == FileIndex.none
 			? none!ModuleAndNames
 			: some(immutable ModuleAndNames(it.range, ptrAt(compiled, it.fileIndex), it.names)));

@@ -5,7 +5,7 @@ module model.model;
 import model.constant : Constant;
 import model.diag : Diagnostics, FilesInfo; // TODO: move FilesInfo here?
 import util.alloc.alloc : Alloc;
-import util.col.arr : empty, emptyArr, only, sizeEq, small, SmallArray;
+import util.col.arr : empty, emptyArr, only, small, SmallArray;
 import util.col.arrUtil : arrEqual;
 import util.col.dict : SymDict;
 import util.col.fullIndexDict : FullIndexDict;
@@ -673,25 +673,20 @@ void setBody(ref StructDecl a, immutable StructBody value) {
 }
 
 struct StructDeclAndArgs {
-	@safe @nogc pure nothrow:
-
 	immutable Ptr!StructDecl decl;
 	immutable Type[] typeArgs;
-
-	immutable this(immutable Ptr!StructDecl d, immutable Type[] t) {
-		verify(d.deref().typeParams.length == t.length);
-		decl = d;
-		typeArgs = t;
-	}
 }
 
-immutable(bool) structDeclAndArgsEqual(ref immutable StructDeclAndArgs a, ref immutable StructDeclAndArgs b) {
+immutable(bool) structDeclAndArgsEqual(
+	scope ref immutable StructDeclAndArgs a,
+	scope ref immutable StructDeclAndArgs b,
+) {
 	return ptrEquals(a.decl, b.decl) &&
 		arrEqual!(immutable Type)(a.typeArgs, b.typeArgs, (ref immutable Type ta, ref immutable Type tb) =>
 			typeEquals(ta, tb));
 }
 
-void hashStructDeclAndArgs(ref Hasher hasher, ref immutable StructDeclAndArgs a) {
+void hashStructDeclAndArgs(ref Hasher hasher, scope ref immutable StructDeclAndArgs a) {
 	hashPtr(hasher, a.decl);
 	foreach (immutable Type t; a.typeArgs)
 		hashType(hasher, t);
@@ -777,13 +772,6 @@ struct SpecBody {
 		case SpecBody.Kind.sigs:
 			return cbSigs(a.sigs);
 	}
-}
-
-immutable(size_t) nSigs(ref immutable SpecBody a) {
-	return matchSpecBody!(immutable size_t)(
-		a,
-		(immutable SpecBody.Builtin) => immutable size_t(0),
-		(immutable SpecDeclSig[] sigs) => sigs.length);
 }
 
 struct SpecDecl {
@@ -1102,13 +1090,6 @@ immutable(bool) isVariadic(ref immutable FunDecl a) {
 		(ref immutable Params.Varargs) => true);
 }
 
-private immutable(size_t) nSpecImpls(ref immutable FunDecl a) {
-	size_t n = 0;
-	foreach (immutable Ptr!SpecInst s; a.specs)
-		n += s.deref().body_.nSigs;
-	return n;
-}
-
 immutable(bool) isTemplate(ref immutable FunDecl a) {
 	return !empty(a.typeParams) || !empty(a.specs);
 }
@@ -1127,14 +1108,6 @@ struct FunDeclAndArgs {
 	immutable Ptr!FunDecl decl;
 	immutable Type[] typeArgs;
 	immutable Called[] specImpls;
-
-	immutable this(immutable Ptr!FunDecl d, immutable Type[] ta, immutable Called[] si) {
-		decl = d;
-		typeArgs = ta;
-		specImpls = si;
-		verify(sizeEq(typeArgs, decl.deref().typeParams));
-		verify(specImpls.length == nSpecImpls(decl.deref()));
-	}
 }
 
 immutable(bool) funDeclAndArgsEqual(ref immutable FunDeclAndArgs a, ref immutable FunDeclAndArgs b) {
@@ -1286,7 +1259,7 @@ ref immutable(Params) params(return scope ref immutable CalledDecl a) {
 	return a.sig.params;
 }
 
-immutable(TypeParam[]) typeParams(ref immutable CalledDecl a) {
+immutable(TypeParam[]) typeParams(return scope ref immutable CalledDecl a) {
 	return matchCalledDecl!(
 		immutable TypeParam[],
 		(immutable Ptr!FunDecl f) => f.deref().typeParams,

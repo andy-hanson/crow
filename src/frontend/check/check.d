@@ -19,7 +19,13 @@ import frontend.check.dicts :
 	StructOrAliasAndIndex;
 import frontend.check.funsForStruct : addFunsForStruct, countFunsForStruct;
 import frontend.check.instantiate :
-	DelayStructInsts, instantiateSpec, instantiateStruct, instantiateStructBody, TypeParamsScope;
+	DelayStructInsts,
+	instantiateSpec,
+	instantiateStruct,
+	instantiateStructBody,
+	TypeArgsArray,
+	typeArgsArray,
+	TypeParamsScope;
 import frontend.check.typeFromAst : checkTypeParams, tryFindSpec, typeArgsFromAsts, typeFromAst;
 import frontend.diagnosticsBuilder : addDiagnostic, DiagnosticsBuilder;
 import frontend.parse.ast :
@@ -85,13 +91,11 @@ import model.model :
 	Sig,
 	SpecBody,
 	SpecDecl,
-	SpecDeclAndArgs,
 	SpecDeclSig,
 	SpecInst,
 	StructAlias,
 	StructBody,
 	StructDecl,
-	StructDeclAndArgs,
 	StructInst,
 	StructOrAlias,
 	target,
@@ -105,7 +109,7 @@ import model.model :
 import util.alloc.alloc : Alloc;
 import util.col.arr : castImmutable, empty, emptyArr, only, ptrAt, ptrsRange, sizeEq, small;
 import util.col.arrBuilder : add, ArrBuilder, finishArr;
-import util.col.arrUtil : arrLiteral, cat, eachPair, map, mapOp, mapToMut, mapWithIndex, zipFirstMut, zipMutPtrFirst;
+import util.col.arrUtil : cat, eachPair, map, mapOp, mapToMut, mapWithIndex, zipFirstMut, zipMutPtrFirst;
 import util.col.dict : dictEach, hasKey, KeyValuePair, SymDict;
 import util.col.dictBuilder : finishDict, SymDictBuilder, tryAddToDict;
 import util.col.exactSizeArrBuilder : ExactSizeArrBuilder, exactSizeArrBuilderAdd, finish, newExactSizeArrBuilder;
@@ -114,6 +118,7 @@ import util.col.fullIndexDict :
 import util.col.multiDict : buildMultiDict, multiDictEach;
 import util.col.mutArr : mustPop, MutArr, mutArrIsEmpty;
 import util.col.mutDict : insertOrUpdate, moveToDict, MutSymDict;
+import util.col.mutMaxArr : tempAsArr;
 import util.col.mutSet : addToMutSymSetOkIfPresent;
 import util.col.str : copySafeCStr, safeCStr;
 import util.memory : allocate, allocateMut, overwriteMemory;
@@ -237,11 +242,7 @@ immutable(Ptr!StructInst) instantiateNonTemplateStructDecl(
 	ref MutArr!(Ptr!StructInst) delayedStructInsts,
 	immutable Ptr!StructDecl structDecl,
 ) {
-	return instantiateStruct(
-		alloc,
-		programState,
-		immutable StructDeclAndArgs(structDecl, emptyArr!Type),
-		someMut(ptrTrustMe_mut(delayedStructInsts)));
+	return instantiateStruct(alloc, programState, structDecl, [], someMut(ptrTrustMe_mut(delayedStructInsts)));
 }
 
 immutable(CommonTypes) getCommonTypes(
@@ -327,10 +328,7 @@ immutable(CommonTypes) getCommonTypes(
 
 	immutable Ptr!StructDecl constPtr = com("const-ptr", 1);
 	immutable Ptr!StructInst cStr = instantiateStruct(
-		ctx.alloc,
-		ctx.programState,
-		immutable StructDeclAndArgs(constPtr, arrLiteral!Type(ctx.alloc, [immutable Type(char8)])),
-		someMut(ptrTrustMe_mut(delayedStructInsts)));
+		ctx.alloc, ctx.programState, constPtr, [immutable Type(char8)], someMut(ptrTrustMe_mut(delayedStructInsts)));
 
 	immutable string[] missingArr = finishArr(ctx.alloc, missing);
 
@@ -402,7 +400,7 @@ immutable(Params) checkParams(
 			immutable Param[] params = mapWithIndex!(Param, ParamAst)(
 				ctx.alloc,
 				asts,
-				(immutable size_t index, scope ref immutable ParamAst ast) @safe =>
+				(immutable size_t index, scope ref immutable ParamAst ast) =>
 					checkParam(
 						ctx, commonTypes, structsAndAliasesDict, typeParamsScope, delayStructInsts,
 						ast, index));
@@ -620,19 +618,24 @@ immutable(Ptr!SpecInst[]) checkSpecUses(
 		immutable Opt!(Ptr!SpecDecl) opSpec = tryFindSpec(ctx, ast.spec.name, ast.range, specsDict);
 		if (has(opSpec)) {
 			immutable Ptr!SpecDecl spec = force(opSpec);
-			immutable Type[] typeArgs = typeArgsFromAsts(
+			TypeArgsArray typeArgs = typeArgsArray();
+			typeArgsFromAsts(
+				typeArgs,
 				ctx,
 				commonTypes,
 				ast.typeArgs,
 				structsAndAliasesDict,
 				typeParamsScope,
 				noneMut!(Ptr!(MutArr!(Ptr!StructInst))));
-			if (!sizeEq(typeArgs, spec.deref().typeParams)) {
+			if (!sizeEq(tempAsArr(typeArgs), spec.deref().typeParams)) {
 				addDiag(ctx, ast.range, immutable Diag(
-					immutable Diag.WrongNumberTypeArgsForSpec(spec, spec.deref().typeParams.length, typeArgs.length)));
+					immutable Diag.WrongNumberTypeArgsForSpec(
+						spec,
+						spec.deref().typeParams.length,
+						tempAsArr(typeArgs).length)));
 				return none!(Ptr!SpecInst);
 			} else
-				return some(instantiateSpec(ctx.alloc, ctx.programState, SpecDeclAndArgs(spec, typeArgs)));
+				return some(instantiateSpec(ctx.alloc, ctx.programState, spec, tempAsArr(typeArgs)));
 		} else
 			return none!(Ptr!SpecInst);
 	});

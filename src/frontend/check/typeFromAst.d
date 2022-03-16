@@ -12,7 +12,8 @@ import frontend.check.checkCtx :
 	markUsedStructOrAlias,
 	rangeInFile;
 import frontend.check.dicts : SpecDeclAndIndex, SpecsDict, StructsAndAliasesDict, StructOrAliasAndIndex;
-import frontend.check.instantiate : DelayStructInsts, instantiateStruct, instantiateStructNeverDelay, TypeParamsScope;
+import frontend.check.instantiate :
+	DelayStructInsts, instantiateStruct, instantiateStructNeverDelay, TypeArgsArray, typeArgsArray, TypeParamsScope;
 import frontend.parse.ast :
 	matchTypeAst, NameAndRange, range, rangeOfNameAndRange, symForTypeAstDict, symForTypeAstSuffix, TypeAst;
 import frontend.programState : ProgramState;
@@ -27,7 +28,6 @@ import model.model :
 	SpecDecl,
 	StructAlias,
 	StructDecl,
-	StructDeclAndArgs,
 	StructInst,
 	StructOrAlias,
 	target,
@@ -36,7 +36,8 @@ import model.model :
 	typeParams;
 import util.alloc.alloc : Alloc;
 import util.col.arr : empty;
-import util.col.arrUtil : arrLiteral, eachPair, fillArr, find, findPtr, map, mapWithIndex_scope;
+import util.col.arrUtil : eachPair, find, findPtr, mapWithIndex_scope;
+import util.col.mutMaxArr : fillMutMaxArr, mapTo, tempAsArr;
 import util.opt : force, has, none, Opt, some;
 import util.ptr : Ptr;
 import util.sourceRange : RangeWithinFile;
@@ -73,7 +74,9 @@ private immutable(Type) instStructFromAst(
 	else {
 		immutable StructOrAlias sOrA = force(opDecl);
 		immutable size_t nExpectedTypeArgs = typeParams(sOrA).length;
-		immutable Type[] typeArgs = getTypeArgsIfNumberMatches(
+		TypeArgsArray typeArgs = typeArgsArray();
+		getTypeArgsIfNumberMatches(
+			typeArgs,
 			ctx, commonTypes, range, structsAndAliasesDict,
 			sOrA, nExpectedTypeArgs, typeArgAsts, typeParamsScope, delayStructInsts);
 		return matchStructOrAliasPtr!(immutable Type)(
@@ -86,12 +89,14 @@ private immutable(Type) instStructFromAst(
 				immutable Type(instantiateStruct(
 					ctx.alloc,
 					ctx.programState,
-					immutable StructDeclAndArgs(decl, typeArgs),
+					decl,
+					tempAsArr(typeArgs),
 					delayStructInsts)));
 	}
 }
 
-private immutable(Type[]) getTypeArgsIfNumberMatches(
+private void getTypeArgsIfNumberMatches(
+	ref TypeArgsArray res,
 	ref CheckCtx ctx,
 	ref immutable CommonTypes commonTypes,
 	immutable RangeWithinFile range,
@@ -105,9 +110,10 @@ private immutable(Type[]) getTypeArgsIfNumberMatches(
 	if (typeArgAsts.length != nExpectedTypeArgs) {
 		addDiag(ctx, range, immutable Diag(
 			immutable Diag.WrongNumberTypeArgsForStruct(sOrA, nExpectedTypeArgs, typeArgAsts.length)));
-		return fillArr!Type(ctx.alloc, nExpectedTypeArgs, (immutable size_t) => immutable Type(Type.Bogus()));
+		fillMutMaxArr(res, nExpectedTypeArgs, immutable Type(immutable Type.Bogus()));
 	} else
-		return typeArgsFromAsts(
+		typeArgsFromAsts(
+			res,
 			ctx,
 			commonTypes,
 			typeArgAsts,
@@ -240,13 +246,10 @@ private immutable(Type) typeFromFunAst(
 		// We don't have a fun type big enough
 		todo!void("!");
 	immutable Ptr!StructDecl decl = structs[ast.returnAndParamTypes.length - 1];
-	immutable Type[] typeArgs = map!Type(ctx.alloc, ast.returnAndParamTypes, (ref immutable TypeAst it) =>
-		typeFromAst(ctx, commonTypes, it, structsAndAliasesDict, typeParamsScope, delayStructInsts));
-	return immutable Type(instantiateStruct(
-		ctx.alloc,
-		ctx.programState,
-		immutable StructDeclAndArgs(decl, typeArgs),
-		delayStructInsts));
+	TypeArgsArray typeArgs = typeArgsArray();
+	mapTo(typeArgs, ast.returnAndParamTypes, (ref immutable TypeAst x) =>
+		typeFromAst(ctx, commonTypes, x, structsAndAliasesDict, typeParamsScope, delayStructInsts));
+	return immutable Type(instantiateStruct(ctx.alloc, ctx.programState, decl, tempAsArr(typeArgs), delayStructInsts));
 }
 
 immutable(Opt!(Ptr!SpecDecl)) tryFindSpec(
@@ -270,7 +273,8 @@ immutable(Opt!(Ptr!SpecDecl)) tryFindSpec(
 			nr.spec);
 }
 
-immutable(Type[]) typeArgsFromAsts(
+void typeArgsFromAsts(
+	ref TypeArgsArray res,
 	ref CheckCtx ctx,
 	ref immutable CommonTypes commonTypes,
 	scope immutable TypeAst[] typeAsts,
@@ -278,8 +282,8 @@ immutable(Type[]) typeArgsFromAsts(
 	immutable TypeParamsScope typeParamsScope,
 	DelayStructInsts delayStructInsts,
 ) {
-	return map!Type(ctx.alloc, typeAsts, (ref immutable TypeAst it) =>
-		typeFromAst(ctx, commonTypes, it, structsAndAliasesDict, typeParamsScope, delayStructInsts));
+	mapTo(res, typeAsts, (ref immutable TypeAst ast) =>
+		typeFromAst(ctx, commonTypes, ast, structsAndAliasesDict, typeParamsScope, delayStructInsts));
 }
 
 immutable(Type) makeFutType(
@@ -288,10 +292,7 @@ immutable(Type) makeFutType(
 	ref immutable CommonTypes commonTypes,
 	immutable Type type,
 ) {
-	return immutable Type(instantiateStructNeverDelay(
-		alloc,
-		programState,
-		immutable StructDeclAndArgs(commonTypes.fut, arrLiteral!Type(alloc, [type]))));
+	return immutable Type(instantiateStructNeverDelay(alloc, programState, commonTypes.fut, [type]));
 }
 
 private:

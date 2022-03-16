@@ -10,7 +10,7 @@ import util.cell : Cell, cellGet, cellSet;
 import util.col.arr : arrOfRange, empty;
 import util.col.arrBuilder : add, ArrBuilder;
 import util.col.str : copyToSafeCStr, CStr, SafeCStr, safeCStr;
-import util.col.tempStr : copyTempStrToString, pushToTempStr, TempStr;
+import util.col.tempStr : copyTempStrToString, initializeTempStr, pushToTempStr, TempStr;
 import util.conv : safeIntFromUint, safeToUint;
 import util.opt : force, has, none, Opt, some;
 import util.ptr : Ptr;
@@ -984,7 +984,8 @@ public enum QuoteKind {
 }
 
 public @trusted immutable(StringPart) takeStringPart(ref Lexer lexer, immutable QuoteKind quoteKind) {
-	TempStr!0x10000 res;
+	TempStr!0x10000 res = void;
+	initializeTempStr(res);
 	immutable StringPart.After after = () {
 		while (true) {
 			immutable char x = takeChar(lexer);

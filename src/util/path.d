@@ -5,7 +5,7 @@ module util.path;
 import util.alloc.alloc : Alloc, allocateT;
 import util.col.mutArr : MutArr, mutArrAt, mutArrRange, mutArrSize, push;
 import util.col.str : copyToSafeCStr, eachChar, end, SafeCStr, safeCStr, safeCStrIsEmpty, safeCStrSize, strOfSafeCStr;
-import util.col.tempStr : TempStr;
+import util.col.tempStr : initializeTempStr, TempStr;
 import util.comparison : compareEnum, compareNat16, Comparison, compareOr;
 import util.conv : safeToUshort;
 import util.hash : Hasher, hashUshort;
@@ -190,7 +190,8 @@ private size_t pathToStrLength(
 alias TempStrForPath = TempStr!0x1000;
 
 @trusted immutable(TempStrForPath) pathToTempStr(ref const AllPaths allPaths, immutable AbsolutePath path) {
-	TempStrForPath res;
+	TempStrForPath res = void;
+	initializeTempStr(res);
 	immutable size_t length = pathToStrLength(allPaths, path.root, 1, path.path, path.extension);
 	verify(length < res.capacity);
 	pathToStrWorker2(allPaths, path.root, 1, path.path, path.extension, res.ptr, res.ptr + length);

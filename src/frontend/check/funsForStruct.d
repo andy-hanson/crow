@@ -3,7 +3,8 @@ module frontend.check.funsForStruct;
 @safe @nogc pure nothrow:
 
 import frontend.check.checkCtx : CheckCtx;
-import frontend.check.instantiate : instantiateStruct, instantiateStructNeverDelay, makeArrayType, makeNamedValType;
+import frontend.check.instantiate :
+	instantiateStruct, instantiateStructNeverDelay, makeArrayType, makeNamedValType, TypeArgsArray, typeArgsArray;
 import frontend.parse.ast : FunDeclAst;
 import frontend.programState : ProgramState;
 import model.model :
@@ -31,7 +32,6 @@ import model.model :
 	SpecInst,
 	StructBody,
 	StructDecl,
-	StructDeclAndArgs,
 	StructInst,
 	Type,
 	typeArgs,
@@ -41,10 +41,11 @@ import model.model :
 	Visibility,
 	visibility;
 import util.alloc.alloc : Alloc;
-import util.col.arr : empty, emptyArr;
-import util.col.arrUtil : arrLiteral, count, map, mapPtrs, sum;
+import util.col.arr : empty, emptyArr, ptrsRange;
+import util.col.arrUtil : arrLiteral, count, map, sum;
 import util.col.exactSizeArrBuilder : ExactSizeArrBuilder, exactSizeArrBuilderAdd;
 import util.col.mutArr : MutArr;
+import util.col.mutMaxArr : push, tempAsArr;
 import util.col.str : safeCStr;
 import util.opt : force, has, none, noneMut, Opt, some;
 import util.ptr : Ptr;
@@ -113,11 +114,7 @@ immutable(Ptr!StructInst) instantiateNonTemplateStructDeclNeverDelay(
 	ref ProgramState programState,
 	immutable Ptr!StructDecl structDecl,
 ) {
-	return instantiateStruct(
-		alloc,
-		programState,
-		immutable StructDeclAndArgs(structDecl, emptyArr!Type),
-		noneMut!(Ptr!(MutArr!(Ptr!StructInst))));
+	return instantiateStruct(alloc, programState, structDecl, [], noneMut!(Ptr!(MutArr!(Ptr!StructInst))));
 }
 
 immutable(bool) recordIsAlwaysByVal(ref immutable StructBody.Record record) {
@@ -424,12 +421,11 @@ void addFunsForRecord(
 	ref immutable StructBody.Record record,
 ) {
 	immutable TypeParam[] typeParams = struct_.deref().typeParams;
-	immutable Type[] typeArgs = mapPtrs(ctx.alloc, typeParams, (immutable Ptr!TypeParam p) =>
-		immutable Type(p));
-	immutable Type structType = immutable Type(instantiateStructNeverDelay(
-		ctx.alloc,
-		ctx.programState,
-		immutable StructDeclAndArgs(struct_, typeArgs)));
+	scope TypeArgsArray typeArgs = typeArgsArray();
+	foreach (immutable Ptr!TypeParam p; ptrsRange(typeParams))
+		push(typeArgs, immutable Type(p));
+	immutable Type structType = immutable Type(
+		instantiateStructNeverDelay(ctx.alloc, ctx.programState, struct_, tempAsArr(typeArgs)));
 	immutable Param[] ctorParams = map(ctx.alloc, record.fields, (ref immutable RecordField it) =>
 		immutable Param(it.range, some(it.name), it.type, it.index));
 	FunDecl constructor(immutable Type returnType, immutable FunFlags flags) {
@@ -452,10 +448,7 @@ void addFunsForRecord(
 	} else {
 		exactSizeArrBuilderAdd(funsBuilder, constructor(structType, FunFlags.generatedPreferred));
 		immutable Type byValType = immutable Type(
-			instantiateStructNeverDelay(
-				ctx.alloc,
-				ctx.programState,
-				immutable StructDeclAndArgs(commonTypes.byVal, arrLiteral!Type(ctx.alloc, [structType]))));
+			instantiateStructNeverDelay(ctx.alloc, ctx.programState, commonTypes.byVal, [structType]));
 		exactSizeArrBuilderAdd(funsBuilder, constructor(byValType, FunFlags.generatedNoCtx));
 	}
 
@@ -513,12 +506,11 @@ void addFunsForUnion(
 	ref immutable StructBody.Union union_,
 ) {
 	immutable TypeParam[] typeParams = struct_.deref().typeParams;
-	immutable Type[] typeArgs = mapPtrs(ctx.alloc, typeParams, (immutable Ptr!TypeParam p) =>
-		immutable Type(p));
-	immutable Type structType = immutable Type(instantiateStructNeverDelay(
-		ctx.alloc,
-		ctx.programState,
-		immutable StructDeclAndArgs(struct_, typeArgs)));
+	scope TypeArgsArray typeArgs = typeArgsArray();
+	foreach (immutable Ptr!TypeParam x; ptrsRange(typeParams))
+		push(typeArgs, immutable Type(x));
+	immutable Type structType = immutable Type(
+		instantiateStructNeverDelay(ctx.alloc, ctx.programState, struct_, tempAsArr(typeArgs)));
 	foreach (immutable size_t memberIndex, ref immutable UnionMember member; union_.members) {
 		immutable Param[] params = has(member.type)
 			? arrLiteral!Param(ctx.alloc, [

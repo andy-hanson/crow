@@ -8,7 +8,7 @@ import util.col.arrUtil : contains, findIndex;
 import util.col.mutArr : MutArr, mutArrAt, mutArrSize, push;
 import util.col.mutDict : addToMutDict, getAt_mut, mutDictSize, MutStringDict;
 import util.col.str : copyToSafeCStr, eachChar, SafeCStr, safeCStr, strOfSafeCStr;
-import util.col.tempStr : pushToTempStr, tempAsStr, TempStr;
+import util.col.tempStr : initializeTempStr, pushToTempStr, tempAsStr, TempStr;
 import util.conv : safeToSizeT;
 import util.hash : Hasher, hashUlong;
 import util.opt : force, has, Opt, none, some;
@@ -81,7 +81,8 @@ immutable(Sym) prependSet(ref AllSymbols allSymbols, immutable Sym a) {
 	if (has(short_))
 		return force(short_);
 	else {
-		TempStr!0x100 temp;
+		TempStr!0x100 temp = void;
+		initializeTempStr(temp);
 		pushToTempStr(temp, "set-");
 		eachCharInSym(allSymbols, a, (immutable char x) {
 			pushToTempStr(temp, x);

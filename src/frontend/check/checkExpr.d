@@ -24,7 +24,7 @@ import frontend.check.inferringType :
 	tryGetInferred,
 	typeFromAst2,
 	typeFromOptAst;
-import frontend.check.instantiate : instantiateFun, instantiateStructNeverDelay;
+import frontend.check.instantiate : instantiateFun, instantiateStructNeverDelay, TypeArgsArray, typeArgsArray;
 import frontend.check.typeFromAst : makeFutType;
 import frontend.parse.ast :
 	ArrowAccessAst,
@@ -64,14 +64,12 @@ import model.model :
 	assertNonVariadic,
 	asStructInst,
 	body_,
-	Called,
 	CalledDecl,
 	ClosureField,
 	CommonTypes,
 	decl,
 	Expr,
 	FunDecl,
-	FunDeclAndArgs,
 	FunFlags,
 	FunInst,
 	FunKind,
@@ -95,7 +93,6 @@ import model.model :
 	SpecInst,
 	StructBody,
 	StructDecl,
-	StructDeclAndArgs,
 	StructInst,
 	Type,
 	typeArgs,
@@ -105,17 +102,7 @@ import model.model :
 	worstCasePurity;
 import util.col.arr : castImmutable, empty, emptyArr, emptySmallArray, only, ptrsRange, sizeEq;
 import util.col.arrUtil :
-	arrLiteral,
-	arrsCorrespond,
-	exists,
-	fillArr_mut,
-	map,
-	mapOrNone,
-	mapWithFirst,
-	mapZip,
-	mapZipWithIndex,
-	prepend,
-	zipPtrFirst;
+	arrLiteral, arrsCorrespond, exists, fillArr_mut, map, mapZip, mapZipWithIndex, zipPtrFirst;
 import util.col.fullIndexDict : FullIndexDict;
 import util.col.mutArr :
 	moveToArr,
@@ -130,6 +117,7 @@ import util.col.mutArr :
 	push,
 	tempAsArr,
 	tempAsArr_mut;
+import util.col.mutMaxArr : push, pushLeft, tempAsArr;
 import util.col.str : copyToSafeCStr;
 import util.conv : safeToUint;
 import util.memory : allocate;
@@ -392,14 +380,14 @@ struct ExpectedLambdaType {
 	immutable Ptr!StructInst funStructInst;
 	immutable Ptr!StructDecl funStruct;
 	immutable FunKind kind;
-	immutable Type[] paramTypes;
 	immutable Type nonInstantiatedPossiblyFutReturnType;
 }
 
 immutable(Opt!ExpectedLambdaType) getExpectedLambdaType(
+	ref TypeArgsArray paramTypes,
 	ref ExprCtx ctx,
 	immutable FileAndRange range,
-	ref Expected expected,
+	ref const Expected expected,
 ) {
 	immutable Opt!Type expectedType = shallowInstantiateType(expected);
 	if (!has(expectedType) || !isStructInst(force(expectedType))) {
@@ -416,23 +404,25 @@ immutable(Opt!ExpectedLambdaType) getExpectedLambdaType(
 		immutable FunKind kind = force(opKind);
 		immutable Type nonInstantiatedNonFutReturnType = expectedStructInst.deref().typeArgs[0];
 		immutable Type[] nonInstantiatedParamTypes = expectedStructInst.deref().typeArgs[1 .. $];
-		immutable Opt!(Type[]) paramTypes =
-			mapOrNone!Type(ctx.alloc, nonInstantiatedParamTypes, (ref immutable Type it) =>
-				tryGetDeeplyInstantiatedTypeFor(ctx.alloc, ctx.programState, expected, it));
-		if (has(paramTypes)) {
-			immutable Type nonInstantiatedReturnType = kind == FunKind.ref_
-				? makeFutType(ctx.alloc, ctx.programState, ctx.commonTypes, nonInstantiatedNonFutReturnType)
-				: nonInstantiatedNonFutReturnType;
-			return some(immutable ExpectedLambdaType(
-				expectedStructInst,
-				funStruct,
-				kind,
-				force(paramTypes),
-				nonInstantiatedReturnType));
-		} else {
-			addDiag2(ctx, range, immutable Diag(immutable Diag.LambdaCantInferParamTypes()));
-			return none!ExpectedLambdaType;
+
+		foreach (ref immutable Type x; nonInstantiatedParamTypes) {
+			immutable Opt!Type t = tryGetDeeplyInstantiatedTypeFor(ctx.alloc, ctx.programState, expected, x);
+			if (has(t)) {
+				push(paramTypes, force(t));
+			} else {
+				addDiag2(ctx, range, immutable Diag(immutable Diag.LambdaCantInferParamTypes()));
+				return none!ExpectedLambdaType;
+			}
 		}
+
+		immutable Type nonInstantiatedReturnType = kind == FunKind.ref_
+			? makeFutType(ctx.alloc, ctx.programState, ctx.commonTypes, nonInstantiatedNonFutReturnType)
+			: nonInstantiatedNonFutReturnType;
+		return some(immutable ExpectedLambdaType(
+			expectedStructInst,
+			funStruct,
+			kind,
+			nonInstantiatedReturnType));
 	}
 }
 
@@ -745,7 +735,7 @@ immutable(Expr) checkWithLocal(
 immutable(Param[]) checkFunOrSendFunParamsForLambda(
 	ref ExprCtx ctx,
 	scope immutable LambdaAst.Param[] paramAsts,
-	immutable Type[] expectedParamTypes,
+	scope immutable Type[] expectedParamTypes,
 ) {
 	return mapZipWithIndex!(Param, LambdaAst.Param, Type)(
 		ctx.alloc,
@@ -797,22 +787,14 @@ immutable(Expr) checkFunPtr(
 	if (nParams >= ctx.commonTypes.funPtrStructs.length)
 		todo!void("arity too high");
 
-	immutable Ptr!FunInst funInst = instantiateFun(
-		ctx.alloc,
-		ctx.programState,
-		immutable FunDeclAndArgs(funDecl, emptyArr!Type, emptyArr!Called));
-
+	immutable Ptr!FunInst funInst = instantiateFun(ctx.alloc, ctx.programState, funDecl, [], []);
 	immutable Ptr!StructDecl funPtrStruct = ctx.commonTypes.funPtrStructs[nParams];
-	immutable Type[] returnTypeAndParamTypes = mapWithFirst(
-		ctx.alloc,
-		returnType(funDecl.deref()),
-		assertNonVariadic(params(funInst.deref())),
-		(ref immutable Param it) => it.type);
-
-	immutable Ptr!StructInst structInst = instantiateStructNeverDelay(
-		ctx.alloc,
-		ctx.programState,
-		immutable StructDeclAndArgs(funPtrStruct, returnTypeAndParamTypes));
+	scope TypeArgsArray returnTypeAndParamTypes = typeArgsArray();
+	push(returnTypeAndParamTypes, returnType(funDecl.deref()));
+	foreach (ref immutable Param x; assertNonVariadic(params(funInst.deref())))
+		push(returnTypeAndParamTypes, x.type);
+	immutable Ptr!StructInst structInst =
+		instantiateStructNeverDelay(ctx.alloc, ctx.programState, funPtrStruct, tempAsArr(returnTypeAndParamTypes));
 	immutable Expr expr = immutable Expr(range, immutable Expr.FunPtr(funInst, structInst));
 	return check(ctx, expected, immutable Type(structInst), expr);
 }
@@ -833,19 +815,20 @@ immutable(Expr) checkLambdaCommon(
 	ref immutable ExprAst bodyAst,
 	ref Expected expected,
 ) {
-	immutable Opt!ExpectedLambdaType opEt = getExpectedLambdaType(ctx, range, expected);
+	scope TypeArgsArray paramTypes = typeArgsArray();
+	immutable Opt!ExpectedLambdaType opEt = getExpectedLambdaType(paramTypes, ctx, range, expected);
 	if (!has(opEt))
 		return bogus(expected, range);
 
 	immutable ExpectedLambdaType et = force(opEt);
 	immutable FunKind kind = et.kind;
 
-	if (!sizeEq(paramAsts, et.paramTypes)) {
+	if (!sizeEq(paramAsts, tempAsArr(paramTypes))) {
 		addDiag2(ctx, range, immutable Diag(Diag.LambdaWrongNumberParams(et.funStructInst, paramAsts.length)));
 		return bogus(expected, range);
 	}
 
-	immutable Param[] params = checkFunOrSendFunParamsForLambda(ctx, paramAsts, et.paramTypes);
+	immutable Param[] params = checkFunOrSendFunParamsForLambda(ctx, paramAsts, tempAsArr(paramTypes));
 	LambdaInfo info = LambdaInfo(kind, params);
 	Expected returnTypeInferrer = copyWithNewExpectedType(expected, et.nonInstantiatedPossiblyFutReturnType);
 
@@ -884,12 +867,9 @@ immutable(Expr) checkLambdaCommon(
 			immutable Diag.SendFunDoesNotReturnFut(actualPossiblyFutReturnType)));
 		return bogus(expected, range);
 	} else {
-		immutable Ptr!StructInst instFunStruct = instantiateStructNeverDelay(
-			ctx.alloc,
-			ctx.programState,
-			immutable StructDeclAndArgs(
-				et.funStruct,
-				prepend!Type(ctx.alloc, force(actualNonFutReturnType), et.paramTypes)));
+		pushLeft(paramTypes, force(actualNonFutReturnType));
+		immutable Ptr!StructInst instFunStruct =
+			instantiateStructNeverDelay(ctx.alloc, ctx.programState, et.funStruct, tempAsArr(paramTypes));
 		immutable Expr.Lambda lambda = immutable Expr.Lambda(
 			params,
 			body_,
