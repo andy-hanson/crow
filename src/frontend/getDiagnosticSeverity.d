@@ -62,8 +62,6 @@ immutable(DiagSeverity) getDiagnosticSeverity(ref immutable Diag a) {
 			DiagSeverity.checkError,
 		(ref immutable Diag.LiteralOverflow) =>
 			DiagSeverity.checkError,
-		(ref immutable Diag.LocalShadowsPrevious) =>
-			DiagSeverity.checkError,
 		(ref immutable Diag.MatchCaseNamesDoNotMatch) =>
 			DiagSeverity.checkError,
 		(ref immutable Diag.MatchCaseShouldHaveLocal) =>
@@ -82,8 +80,6 @@ immutable(DiagSeverity) getDiagnosticSeverity(ref immutable Diag a) {
 			DiagSeverity.checkError,
 		(ref immutable Diag.NameNotFound) =>
 			DiagSeverity.nameNotFound,
-		(ref immutable Diag.ParamShadowsPrevious) =>
-			DiagSeverity.checkError,
 		(ref immutable(ParseDiag)) =>
 			DiagSeverity.parseError,
 		(ref immutable Diag.PurityWorseThanParent) =>

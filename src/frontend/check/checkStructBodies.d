@@ -256,15 +256,16 @@ immutable(StructBody.Enum) checkEnum(
 	ref immutable StructDeclAst.Body.Enum e,
 	ref MutArr!(Ptr!StructInst) delayStructInsts,
 ) {
-	immutable EnumTypeAndMembers tm = checkEnumMembers(
+	immutable EnumOrFlagsTypeAndMembers tm = checkEnumOrFlagsMembers(
 		ctx, commonTypes, structsAndAliasesDict, range, e.typeArg, e.members, delayStructInsts,
+		Diag.DuplicateDeclaration.Kind.enumMember,
 		(immutable Opt!EnumValue lastValue, immutable EnumBackingType enumType) =>
 			has(lastValue)
 				? immutable ValueAndOverflow(
 					immutable EnumValue(force(lastValue).value + 1),
 					force(lastValue) == maxValue(enumType))
 				: immutable ValueAndOverflow(immutable EnumValue(0), false));
-	return immutable StructBody.Enum(tm.backingType, tm.memers);
+	return immutable StructBody.Enum(tm.backingType, tm.members);
 }
 
 immutable(StructBody.Flags) checkFlags(
@@ -275,8 +276,9 @@ immutable(StructBody.Flags) checkFlags(
 	ref immutable StructDeclAst.Body.Flags f,
 	ref MutArr!(Ptr!StructInst) delayStructInsts,
 ) {
-	immutable EnumTypeAndMembers tm = checkEnumMembers(
+	immutable EnumOrFlagsTypeAndMembers tm = checkEnumOrFlagsMembers(
 		ctx, commonTypes, structsAndAliasesDict, range, f.typeArg, f.members, delayStructInsts,
+		Diag.DuplicateDeclaration.Kind.flagsMember,
 		(immutable Opt!EnumValue lastValue, immutable EnumBackingType enumType) =>
 			has(lastValue)
 				? immutable ValueAndOverflow(
@@ -284,12 +286,12 @@ immutable(StructBody.Flags) checkFlags(
 					immutable EnumValue(force(lastValue).value * 2),
 					force(lastValue).value >= maxValue(enumType).value / 2)
 				: immutable ValueAndOverflow(immutable EnumValue(1), false));
-	return immutable StructBody.Flags(tm.backingType, tm.memers);
+	return immutable StructBody.Flags(tm.backingType, tm.members);
 }
 
-struct EnumTypeAndMembers {
+struct EnumOrFlagsTypeAndMembers {
 	immutable EnumBackingType backingType;
-	immutable StructBody.Enum.Member[] memers;
+	immutable StructBody.Enum.Member[] members;
 }
 
 struct ValueAndOverflow {
@@ -297,7 +299,7 @@ struct ValueAndOverflow {
 	immutable bool overflow;
 }
 
-immutable(EnumTypeAndMembers) checkEnumMembers(
+immutable(EnumOrFlagsTypeAndMembers) checkEnumOrFlagsMembers(
 	ref CheckCtx ctx,
 	ref immutable CommonTypes commonTypes,
 	ref immutable StructsAndAliasesDict structsAndAliasesDict,
@@ -305,6 +307,7 @@ immutable(EnumTypeAndMembers) checkEnumMembers(
 	immutable Opt!(Ptr!TypeAst) typeArg,
 	immutable StructDeclAst.Body.Enum.Member[] memberAsts,
 	ref MutArr!(Ptr!StructInst) delayStructInsts,
+	Diag.DuplicateDeclaration.Kind memberKind,
 	scope immutable(ValueAndOverflow) delegate(
 		immutable Opt!EnumValue,
 		immutable EnumBackingType,
@@ -355,11 +358,13 @@ immutable(EnumTypeAndMembers) checkEnumMembers(
 	eachPair!(StructBody.Enum.Member)(
 		members,
 		(ref immutable StructBody.Enum.Member a, ref immutable StructBody.Enum.Member b) {
+			if (a.name == b.name)
+				addDiag(ctx, b.range, immutable Diag(immutable Diag.DuplicateDeclaration(memberKind, b.name)));
 			if (a.value == b.value)
 				addDiag(ctx, b.range, immutable Diag(
 					immutable Diag.EnumDuplicateValue(isSignedEnumBackingType(enumType), b.value.value)));
 		});
-	return immutable EnumTypeAndMembers(enumType, members);
+	return immutable EnumOrFlagsTypeAndMembers(enumType, members);
 }
 
 immutable(bool) valueOverflows(immutable EnumBackingType type, immutable EnumValue value) {
@@ -477,7 +482,7 @@ immutable(StructBody.Record) checkRecord(
 	eachPair!RecordField(fields, (ref immutable RecordField a, ref immutable RecordField b) {
 		if (symEq(a.name, b.name))
 			addDiag(ctx, b.range, immutable Diag(
-				immutable Diag.DuplicateDeclaration(Diag.DuplicateDeclaration.Kind.field, a.name)));
+				immutable Diag.DuplicateDeclaration(Diag.DuplicateDeclaration.Kind.recordField, a.name)));
 	});
 	return immutable StructBody.Record(
 		immutable RecordFlags(

@@ -1,0 +1,50 @@
+foo record
+	a nat
+	a nat
+
+foo union
+	b
+	b nat
+
+foo enum
+	c
+	c
+
+foo flags
+	d
+	d
+
+s spec
+s spec
+
+f nat(a nat, a nat)
+	a
+
+f nat()
+	a = 1
+	a = 2
+	a
+
+f nat(a nat)
+	a = 1
+	a
+
+f nat()
+	do: a =>
+		a = 1
+		a
+
+f nat()
+	do: a =>
+		b = 1
+		do: b =>
+			a = 2
+			b
+
+f nat()
+	do: a =>
+		do: a =>
+			a
+
+do nat(f fun nat(nat))
+	f[0]

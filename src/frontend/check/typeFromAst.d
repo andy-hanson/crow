@@ -131,7 +131,7 @@ immutable(TypeParam[]) checkTypeParams(ref CheckCtx ctx, scope immutable NameAnd
 	eachPair!TypeParam(res, (ref immutable TypeParam a, ref immutable TypeParam b) {
 		if (symEq(a.name, b.name))
 			addDiag(ctx, b.range, immutable Diag(
-				immutable Diag.ParamShadowsPrevious(Diag.ParamShadowsPrevious.Kind.typeParam, b.name)));
+				immutable Diag.DuplicateDeclaration(Diag.DuplicateDeclaration.Kind.typeParam, b.name)));
 	});
 	return res;
 }

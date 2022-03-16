@@ -514,23 +514,30 @@ void writeDiag(
 			}
 		},
 		(ref immutable Diag.DuplicateDeclaration d) {
-			writeStatic(writer, "duplicate ");
-			final switch (d.kind) {
-				case Diag.DuplicateDeclaration.Kind.structOrAlias:
-					writeStatic(writer, "struct");
-					break;
-				case Diag.DuplicateDeclaration.Kind.spec:
-					writeStatic(writer, "spec");
-					break;
-				case Diag.DuplicateDeclaration.Kind.field:
-					writeStatic(writer, "field");
-					break;
-				case Diag.DuplicateDeclaration.Kind.unionMember:
-					writeStatic(writer, "member");
-					break;
-			}
-			writeChar(writer, ' ');
+			immutable string desc = () {
+				final switch (d.kind) {
+					case Diag.DuplicateDeclaration.Kind.enumMember:
+						return "enum member";
+					case Diag.DuplicateDeclaration.Kind.flagsMember:
+						return "flags member";
+					case Diag.DuplicateDeclaration.Kind.paramOrLocal:
+						return "variable";
+					case Diag.DuplicateDeclaration.Kind.recordField:
+						return "record field";
+					case Diag.DuplicateDeclaration.Kind.spec:
+						return "spec";
+					case Diag.DuplicateDeclaration.Kind.structOrAlias:
+						return "type";
+					case Diag.DuplicateDeclaration.Kind.typeParam:
+						return "type parameter";
+					case Diag.DuplicateDeclaration.Kind.unionMember:
+						return "union member";
+				}
+			}();
+			writeStatic(writer, desc);
+			writeStatic(writer, " name ");
 			writeName(writer, allSymbols, d.name);
+			writeStatic(writer, " is already used");
 		},
 		(ref immutable Diag.DuplicateExports d) {
 			writeStatic(writer, "there are multiple exported ");
@@ -653,10 +660,6 @@ void writeDiag(
 			writeStatic(writer, "literal exceeds the range of a ");
 			writeStructInst(writer, allSymbols, d.type.deref());
 		},
-		(ref immutable Diag.LocalShadowsPrevious d) {
-			writeName(writer, allSymbols, d.name);
-			writeStatic(writer, " is already in scope");
-		},
 		(ref immutable Diag.MatchCaseNamesDoNotMatch d) {
 			writeStatic(writer, "expected the case names to be: ");
 			writeWithCommas!Sym(writer, d.expectedNames, (ref immutable Sym name) {
@@ -713,18 +716,6 @@ void writeDiag(
 			}();
 			writeStatic(writer, kind);
 			writeStatic(writer, " name not found: ");
-			writeName(writer, allSymbols, d.name);
-		},
-		(ref immutable Diag.ParamShadowsPrevious d) {
-			immutable string message = () {
-				final switch (d.kind) {
-					case Diag.ParamShadowsPrevious.Kind.param:
-						return "there is already a parameter named ";
-					case Diag.ParamShadowsPrevious.Kind.typeParam:
-						return "there is already a type parameter named ";
-				}
-			}();
-			writeStatic(writer, message);
 			writeName(writer, allSymbols, d.name);
 		},
 		(ref immutable ParseDiag pd) {

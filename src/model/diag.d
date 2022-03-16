@@ -120,9 +120,13 @@ struct Diag {
 	}
 	struct DuplicateDeclaration {
 		enum Kind {
-			structOrAlias,
+			enumMember,
+			flagsMember,
+			paramOrLocal,
+			recordField,
 			spec,
-			field,
+			structOrAlias,
+			typeParam,
 			unionMember,
 		}
 		immutable Kind kind;
@@ -194,9 +198,6 @@ struct Diag {
 	struct LiteralOverflow {
 		immutable Ptr!StructInst type;
 	}
-	struct LocalShadowsPrevious {
-		immutable Sym name;
-	}
 	struct MatchCaseNamesDoNotMatch {
 		immutable Sym[] expectedNames;
 	}
@@ -232,14 +233,6 @@ struct Diag {
 		enum Kind {
 			spec,
 			type,
-		}
-		immutable Kind kind;
-		immutable Sym name;
-	}
-	struct ParamShadowsPrevious {
-		enum Kind {
-			param,
-			typeParam,
 		}
 		immutable Kind kind;
 		immutable Sym name;
@@ -356,7 +349,6 @@ struct Diag {
 		linkageWorseThanContainingFun,
 		linkageWorseThanContainingType,
 		literalOverflow,
-		localShadowsPrevious,
 		matchCaseNamesDoNotMatch,
 		matchCaseShouldHaveLocal,
 		matchCaseShouldNotHaveLocal,
@@ -366,7 +358,6 @@ struct Diag {
 		modifierInvalid,
 		mutFieldNotAllowed,
 		nameNotFound,
-		paramShadowsPrevious,
 		parseDiag,
 		purityWorseThanParent,
 		puritySpecifierRedundant,
@@ -420,7 +411,6 @@ struct Diag {
 		immutable LinkageWorseThanContainingFun linkageWorseThanContainingFun;
 		immutable LinkageWorseThanContainingType linkageWorseThanContainingType;
 		immutable LiteralOverflow literalOverflow;
-		immutable LocalShadowsPrevious localShadowsPrevious;
 		immutable MatchCaseNamesDoNotMatch matchCaseNamesDoNotMatch;
 		immutable MatchCaseShouldHaveLocal matchCaseShouldHaveLocal;
 		immutable MatchCaseShouldNotHaveLocal matchCaseShouldNotHaveLocal;
@@ -430,7 +420,6 @@ struct Diag {
 		immutable ModifierInvalid modifierInvalid;
 		immutable MutFieldNotAllowed mutFieldNotAllowed;
 		immutable NameNotFound nameNotFound;
-		immutable ParamShadowsPrevious paramShadowsPrevious;
 		immutable ParseDiag parseDiag;
 		immutable PurityWorseThanParent purityWorseThanParent;
 		immutable PuritySpecifierRedundant puritySpecifierRedundant;
@@ -515,9 +504,6 @@ struct Diag {
 		kind = Kind.linkageWorseThanContainingType; linkageWorseThanContainingType = a;
 	}
 	@trusted immutable this(immutable LiteralOverflow a) { kind = Kind.literalOverflow; literalOverflow = a; }
-	@trusted immutable this(immutable LocalShadowsPrevious a) {
-		kind = Kind.localShadowsPrevious; localShadowsPrevious = a;
-	}
 	@trusted immutable this(immutable MatchCaseNamesDoNotMatch a) {
 		kind = Kind.matchCaseNamesDoNotMatch; matchCaseNamesDoNotMatch = a;
 	}
@@ -544,9 +530,6 @@ struct Diag {
 	}
 	@trusted immutable this(immutable NameNotFound a) {
 		kind = Kind.nameNotFound; nameNotFound = a;
-	}
-	@trusted immutable this(immutable ParamShadowsPrevious a) {
-		kind = Kind.paramShadowsPrevious; paramShadowsPrevious = a;
 	}
 	@trusted immutable this(immutable ParseDiag a) {
 		kind = Kind.parseDiag; parseDiag = a;
@@ -664,9 +647,6 @@ struct Diag {
 	) @safe @nogc pure nothrow cbLinkageWorseThanContainingType,
 	scope immutable(Out) delegate(ref immutable Diag.LiteralOverflow) @safe @nogc pure nothrow cbLiteralOverflow,
 	scope immutable(Out) delegate(
-		ref immutable Diag.LocalShadowsPrevious
-	) @safe @nogc pure nothrow cbLocalShadowsPrevious,
-	scope immutable(Out) delegate(
 		ref immutable Diag.MatchCaseNamesDoNotMatch
 	) @safe @nogc pure nothrow cbMatchCaseNamesDoNotMatch,
 	scope immutable(Out) delegate(
@@ -687,9 +667,6 @@ struct Diag {
 	scope immutable(Out) delegate(
 		ref immutable Diag.NameNotFound
 	) @safe @nogc pure nothrow cbNameNotFound,
-	scope immutable(Out) delegate(
-		ref immutable Diag.ParamShadowsPrevious
-	) @safe @nogc pure nothrow cbParamShadowsPrevious,
 	scope immutable(Out) delegate(
 		ref immutable ParseDiag)
 	 @safe @nogc pure nothrow cbParseDiag,
@@ -806,8 +783,6 @@ struct Diag {
 			return cbLinkageWorseThanContainingType(a.linkageWorseThanContainingType);
 		case Diag.Kind.literalOverflow:
 			return cbLiteralOverflow(a.literalOverflow);
-		case Diag.Kind.localShadowsPrevious:
-			return cbLocalShadowsPrevious(a.localShadowsPrevious);
 		case Diag.Kind.matchCaseNamesDoNotMatch:
 			return cbMatchCaseNamesDoNotMatch(a.matchCaseNamesDoNotMatch);
 		case Diag.Kind.matchCaseShouldHaveLocal:
@@ -826,8 +801,6 @@ struct Diag {
 			return cbMutFieldNotAllowed(a.mutFieldNotAllowed);
 		case Diag.Kind.nameNotFound:
 			return cbNameNotFound(a.nameNotFound);
-		case Diag.Kind.paramShadowsPrevious:
-			return cbParamShadowsPrevious(a.paramShadowsPrevious);
 		case Diag.Kind.parseDiag:
 			return cbParseDiag(a.parseDiag);
 		case Diag.Kind.purityWorseThanParent:

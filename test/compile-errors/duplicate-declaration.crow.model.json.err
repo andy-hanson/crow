@@ -1,0 +1,29 @@
+./test/compile-errors/duplicate-declaration.crow 5:1-9:1 type name 'foo' is already used
+
+./test/compile-errors/duplicate-declaration.crow 9:1-13:1 type name 'foo' is already used
+
+./test/compile-errors/duplicate-declaration.crow 13:1-17:1 type name 'foo' is already used
+
+./test/compile-errors/duplicate-declaration.crow 3:5-3:10 record field name 'a' is already used
+
+./test/compile-errors/duplicate-declaration.crow 7:5-7:10 union member name 'b' is already used
+
+./test/compile-errors/duplicate-declaration.crow 11:5-11:6 enum member name 'c' is already used
+
+./test/compile-errors/duplicate-declaration.crow 15:5-15:6 flags member name 'd' is already used
+
+./test/compile-errors/duplicate-declaration.crow 17:1-18:1 spec name 's' is already used
+
+./test/compile-errors/duplicate-declaration.crow 20:14-20:19 variable name 'a' is already used
+
+./test/compile-errors/duplicate-declaration.crow 25:5-25:6 variable name 'a' is already used
+
+./test/compile-errors/duplicate-declaration.crow 29:5-29:6 variable name 'a' is already used
+
+./test/compile-errors/duplicate-declaration.crow 34:9-34:10 variable name 'a' is already used
+
+./test/compile-errors/duplicate-declaration.crow 40:13-40:14 variable name 'b' is already used
+
+./test/compile-errors/duplicate-declaration.crow 41:13-41:14 variable name 'a' is already used
+
+./test/compile-errors/duplicate-declaration.crow 46:13-46:14 variable name 'a' is already used

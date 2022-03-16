@@ -260,12 +260,12 @@ each<k, v> void(a frozen-dict<k, v>, f act void(k, v))
 		f[pair from, pair to]
 
 fold<a, k, v> a(acc a, a frozen-dict<k, v>, f act a(a, k, v))
-	acc fold a.pairs, (acc, pair) =>
-		f[acc, pair from, pair to]
+	acc fold a.pairs, (inner-acc, pair) =>
+		f[inner-acc, pair from, pair to]
 
 fold-with-index<a, k, v> a(acc a, a frozen-dict<k, v>, f act a(a, k, v, nat64))
-	acc fold-with-index a.pairs, (acc, pair, index) =>
-		f[acc, pair from, pair to, index]
+	acc fold-with-index a.pairs, (inner-acc, pair, index) =>
+		f[inner-acc, pair from, pair to, index]
 
 .verify void(a frozen-dict<nat64, str>, keys-order nat64[], bucket-starts nat64[]) unsafe
 	a.pairs map (pair => pair from) is keys-order

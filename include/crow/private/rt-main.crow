@@ -89,8 +89,8 @@ body
 	ctx-by-val = gctx new-ctx tls.ref-of-val, 0
 	ctx = ctx-by-val ref-of-val
 
-	add act fut nat64(c-str[], main-ptr) = (all-args, main-ptr) =>
-		all-args add-first-task main-ptr
+	add act fut nat64(c-str[], main-ptr) = (all-args, main-ptr-2) =>
+		all-args add-first-task main-ptr-2
 	all-args = argv[0 .. argc.to-int64.unsafe-to-nat64]
 	add call-with-ctx ctx, all-args, main-ptr
 

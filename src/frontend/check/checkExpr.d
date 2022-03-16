@@ -713,7 +713,8 @@ immutable(Expr) checkWithLocal(
 ) {
 	// Look for a parameter with the name
 	if (nameIsParameterOrLocalInScope(ctx, local.deref().name)) {
-		addDiag2(ctx, local.deref().range, Diag(Diag.LocalShadowsPrevious(local.deref().name)));
+		addDiag2(ctx, local.deref().range, immutable Diag(
+			immutable Diag.DuplicateDeclaration(Diag.DuplicateDeclaration.Kind.paramOrLocal, local.deref().name)));
 		return bogus(expected, rangeInFile2(ctx, ast.range));
 	} else {
 		Ptr!(MutArr!LocalAndUsed) locals = mutArrIsEmpty(ctx.lambdas)
@@ -738,12 +739,21 @@ immutable(Param[]) checkFunOrSendFunParamsForLambda(
 		ctx.alloc,
 		paramAsts,
 		expectedParamTypes,
-		(ref immutable LambdaAst.Param ast, ref immutable Type expectedParamType, immutable size_t index) =>
-			immutable Param(
+		(ref immutable LambdaAst.Param ast, ref immutable Type expectedParamType, immutable size_t index) {
+			immutable Opt!Sym name = () {
+				if (nameIsParameterOrLocalInScope(ctx, ast.name)) {
+					addDiag(ctx.checkCtx, rangeOfNameAndRange(ast, ctx.allSymbols), immutable Diag(
+						immutable Diag.DuplicateDeclaration(Diag.DuplicateDeclaration.Kind.paramOrLocal, ast.name)));
+					return none!Sym;
+				} else
+					return some(ast.name);
+			}();
+			return immutable Param(
 				rangeInFile2(ctx, rangeOfNameAndRange(ast, ctx.allSymbols)),
-				some(ast.name),
+				name,
 				expectedParamType,
-				index));
+				index);
+		});
 }
 
 immutable(Expr) checkFunPtr(
@@ -802,16 +812,6 @@ immutable(Expr) checkLambda(
 	ref immutable LambdaAst ast,
 	ref Expected expected,
 ) {
-	return checkLambdaCommon(ctx, range, ast.params, ast.body_, expected);
-}
-
-immutable(Expr) checkLambdaCommon(
-	ref ExprCtx ctx,
-	immutable FileAndRange range,
-	scope immutable LambdaAst.Param[] paramAsts,
-	ref immutable ExprAst bodyAst,
-	ref Expected expected,
-) {
 	scope TypeArgsArray paramTypes = typeArgsArray();
 	immutable Opt!ExpectedLambdaType opEt = getExpectedLambdaType(paramTypes, ctx, range, expected);
 	if (!has(opEt))
@@ -820,19 +820,19 @@ immutable(Expr) checkLambdaCommon(
 	immutable ExpectedLambdaType et = force(opEt);
 	immutable FunKind kind = et.kind;
 
-	if (!sizeEq(paramAsts, tempAsArr(paramTypes))) {
-		addDiag2(ctx, range, immutable Diag(Diag.LambdaWrongNumberParams(et.funStructInst, paramAsts.length)));
+	if (!sizeEq(ast.params, tempAsArr(paramTypes))) {
+		addDiag2(ctx, range, immutable Diag(Diag.LambdaWrongNumberParams(et.funStructInst, ast.params.length)));
 		return bogus(expected, range);
 	}
 
-	immutable Param[] params = checkFunOrSendFunParamsForLambda(ctx, paramAsts, tempAsArr(paramTypes));
+	immutable Param[] params = checkFunOrSendFunParamsForLambda(ctx, ast.params, tempAsArr(paramTypes));
 	LambdaInfo info = LambdaInfo(kind, params);
 	Expected returnTypeInferrer = copyWithNewExpectedType(expected, et.nonInstantiatedPossiblyFutReturnType);
 
 	immutable Expr body_ = withLambda(ctx, info, () =>
 		// Note: checking the body of the lambda may fill in candidate type args
 		// if the expected return type contains candidate's type params
-		checkExpr(ctx, bodyAst, returnTypeInferrer));
+		checkExpr(ctx, ast.body_, returnTypeInferrer));
 	immutable Ptr!ClosureField[] closureFields = moveToArr(ctx.alloc, info.closureFields);
 
 	final switch (kind) {

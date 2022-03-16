@@ -406,8 +406,8 @@ immutable(Params) checkParams(
 						ast, index));
 			eachPair!Param(params, (ref immutable Param x, ref immutable Param y) {
 				if (has(x.name) && has(y.name) && symEq(force(x.name), force(y.name)))
-					addDiag(ctx, y.range, immutable Diag(immutable Diag.ParamShadowsPrevious(
-						Diag.ParamShadowsPrevious.Kind.param, force(y.name))));
+					addDiag(ctx, y.range, immutable Diag(immutable Diag.DuplicateDeclaration(
+						Diag.DuplicateDeclaration.Kind.paramOrLocal, force(y.name))));
 			});
 			return immutable Params(params);
 		},
@@ -578,22 +578,22 @@ immutable(StructsAndAliasesDict) buildStructsAndAliasesDict(
 	immutable StructAlias[] aliases,
 ) {
 	SymDictBuilder!StructOrAliasAndIndex builder;
-	void warnOnDup(immutable Sym name, immutable Opt!StructOrAliasAndIndex opt) {
+	void warnOnDup(immutable Sym name, immutable FileAndRange range, immutable Opt!StructOrAliasAndIndex opt) {
 		if (has(opt))
-			addDiag(ctx, force(opt).structOrAlias.range, immutable Diag(
+			addDiag(ctx, range, immutable Diag(
 				immutable Diag.DuplicateDeclaration(Diag.DuplicateDeclaration.Kind.structOrAlias, name)));
 	}
 	foreach (immutable size_t index; 0 .. structs.length) {
 		immutable Ptr!StructDecl decl = ptrAt(structs, index);
 		immutable Sym name = decl.deref().name;
-		warnOnDup(name, tryAddToDict(ctx.alloc, builder, name, immutable StructOrAliasAndIndex(
+		warnOnDup(name, decl.deref().range, tryAddToDict(ctx.alloc, builder, name, immutable StructOrAliasAndIndex(
 			immutable StructOrAlias(decl),
 			immutable ModuleLocalStructOrAliasIndex(index))));
 	}
 	foreach (immutable size_t index; 0 .. aliases.length) {
 		immutable Ptr!StructAlias alias_ = ptrAt(aliases, index);
 		immutable Sym name = alias_.deref().name;
-		warnOnDup(name, tryAddToDict(ctx.alloc, builder, name, immutable StructOrAliasAndIndex(
+		warnOnDup(name, alias_.deref().range, tryAddToDict(ctx.alloc, builder, name, immutable StructOrAliasAndIndex(
 			immutable StructOrAlias(alias_),
 			immutable ModuleLocalStructOrAliasIndex(index))));
 	}

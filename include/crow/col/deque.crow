@@ -198,12 +198,12 @@ test
 	d-pop.rest.dbg is "[3]"
 
 	# Test converting right stack to array
-	x = 1 ~ (2 ~ (3 ~ ()))
-	x.to-arr is (1, 2, 3)
-	x.dbg is "1 2 3 []"
-	x-pop = x.pop-right!
-	x-pop.value is 3
-	x-pop.rest.dbg is "[1 2]"
+	e = 1 ~ (2 ~ (3 ~ ()))
+	e.to-arr is (1, 2, 3)
+	e.dbg is "1 2 3 []"
+	e-pop = e.pop-right!
+	e-pop.value is 3
+	e-pop.rest.dbg is "[1 2]"
 
 	six = 1 ~ (2 ~ (3, 4)) ~ 5 ~ 6
 	six.dbg is "1 2 [3 4] 5 6"
