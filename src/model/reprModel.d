@@ -265,7 +265,7 @@ immutable(Repr) reprExpr(ref Alloc alloc, ref Ctx ctx, ref immutable Expr a) {
 					reprParam(alloc, ctx, it)),
 				reprExpr(alloc, ctx, a.body_),
 				reprArr(alloc, a.closure, (ref immutable Ptr!ClosureField it) =>
-					reprClosureField(alloc, ctx, it.deref())),
+					reprSym(it.deref().name)),
 				reprStructInst(alloc, ctx, a.type.deref()),
 				reprSym(symOfFunKind(a.kind)),
 				reprType(alloc, ctx, a.returnType)]),
@@ -301,13 +301,6 @@ immutable(Repr) reprExpr(ref Alloc alloc, ref Ctx ctx, ref immutable Expr a) {
 			reprRecord(alloc, "c-string-lit", [reprStr(it.value)]),
 		(ref immutable Expr.SymbolLiteral it) =>
 			reprRecord(alloc, "sym-lit", [reprSym(it.value)]));
-}
-
-immutable(Repr) reprClosureField(ref Alloc alloc, ref Ctx ctx, ref immutable ClosureField a) {
-	return reprRecord(alloc, "closure-f", [
-		reprSym(a.name),
-		reprType(alloc, ctx, a.type),
-		reprExpr(alloc, ctx, a.expr)]);
 }
 
 immutable(Sym) symOfFunKind(immutable FunKind a) {

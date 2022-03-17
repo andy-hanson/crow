@@ -42,6 +42,7 @@ import model.model :
 	FunDecl,
 	FunFlags,
 	FunKind,
+	isBogus,
 	isPurityAlwaysCompatible,
 	isVariadic,
 	matchArity,
@@ -67,7 +68,6 @@ import model.model :
 	Type,
 	typeArgs,
 	typeEquals,
-	typeIsBogus,
 	TypeParam,
 	typeParams;
 import util.alloc.alloc : Alloc;
@@ -157,13 +157,12 @@ private immutable(Expr) checkCallInner(
 		immutable Expr arg = checkExpr(ctx, locals, ast.args[argIdx], common.expected);
 		resumeMeasure(ctx.alloc, ctx.perf, perfMeasurer);
 
+		immutable Type actualArgType = inferred(common.expected);
 		// If it failed to check, don't continue, just stop there.
-		if (typeIsBogus(arg)) {
+		if (isBogus(actualArgType)) {
 			someArgIsBogus = true;
 			return none!Expr;
 		}
-
-		immutable Type actualArgType = inferred(common.expected);
 		add(ctx.alloc, actualArgTypes, actualArgType);
 		// If the Inferring already came from the candidate, no need to do more work.
 		if (!common.isExpectedFromCandidate)

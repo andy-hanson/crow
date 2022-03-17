@@ -76,7 +76,6 @@ import model.model :
 	FunInst,
 	FunKind,
 	FunKindAndStructs,
-	getType,
 	IntegralTypes,
 	isBogus,
 	isStructInst,
@@ -86,6 +85,7 @@ import model.model :
 	matchCalledDecl,
 	matchStructBody,
 	matchType,
+	matchVariableRef,
 	noCtx,
 	Param,
 	params,
@@ -101,10 +101,11 @@ import model.model :
 	typeEquals,
 	TypeParam,
 	UnionMember,
+	VariableRef,
 	worstCasePurity;
 import util.alloc.alloc : Alloc;
 import util.col.arr : empty, emptyArr, emptySmallArray, only, ptrsRange, sizeEq;
-import util.col.arrUtil : arrLiteral, arrsCorrespond, exists, map, mapZip, mapZipWithIndex, zipPtrFirst;
+import util.col.arrUtil : arrLiteral, arrsCorrespond, map, mapZip, mapZipWithIndex, zipPtrFirst;
 import util.col.fullIndexDict : FullIndexDict;
 import util.col.mutArr : moveToArr, MutArr, mutArrAt, mutArrRange, mutArrSize, push, tempAsArr;
 import util.col.mutMaxArr : fillMutMaxArr, push, pushLeft, tempAsArr;
@@ -115,7 +116,7 @@ import util.opt : force, has, none, noneMut, Opt, some, someMut;
 import util.ptr : Ptr, ptrEquals, ptrTrustMe_mut;
 import util.sourceRange : FileAndRange, Pos, RangeWithinFile;
 import util.sym : Operator, shortSym, Sym, symEq, symForOperator, symOfStr;
-import util.util : todo, verify;
+import util.util : todo;
 
 immutable(Expr) checkFunctionBody(
 	ref CheckCtx checkCtx,
@@ -426,18 +427,18 @@ immutable(Opt!FunKind) getFunStructInfo(ref immutable CommonTypes a, immutable P
 	return none!FunKind;
 }
 
-immutable(Opt!Expr) getIdentifierNonCall(
-	ref Alloc alloc,
-	ref LocalsInfo locals,
-	immutable FileAndRange range,
-	immutable Sym name,
-) {
+struct VariableRefAndType {
+	immutable VariableRef variableRef;
+	immutable Type type;
+}
+
+immutable(Opt!VariableRefAndType) getIdentifierNonCall(ref Alloc alloc, ref LocalsInfo locals, immutable Sym name) {
 	immutable Opt!(Ptr!Local) fromLocals = has(locals.locals)
 		? getIdentifierInLocals(force(locals.locals).deref(), name)
 		: none!(Ptr!Local);
 	return has(fromLocals)
-		? some(immutable Expr(range, immutable Expr.LocalRef(force(fromLocals))))
-		: getIdentifierFromFunOrLambda(alloc, range, name, locals.funOrLambda.deref());
+		? some(immutable VariableRefAndType(immutable VariableRef(force(fromLocals)), force(fromLocals).deref().type))
+		: getIdentifierFromFunOrLambda(alloc, name, locals.funOrLambda.deref());
 }
 
 immutable(Opt!(Ptr!Local)) getIdentifierInLocals(ref LocalNode node, immutable Sym name) {
@@ -450,40 +451,35 @@ immutable(Opt!(Ptr!Local)) getIdentifierInLocals(ref LocalNode node, immutable S
 		return none!(Ptr!Local);
 }
 
-immutable(Opt!Expr) getIdentifierFromFunOrLambda(
+immutable(Opt!VariableRefAndType) getIdentifierFromFunOrLambda(
 	ref Alloc alloc,
-	immutable FileAndRange range,
 	immutable Sym name,
 	ref FunOrLambdaInfo info,
 ) {
 	foreach (immutable Ptr!Param param; ptrsRange(info.params))
 		if (has(param.deref().name) && symEq(force(param.deref().name), name)) {
 			info.paramsUsed[param.deref().index] = true;
-			return some(immutable Expr(range, immutable Expr.ParamRef(param)));
+			return some(immutable VariableRefAndType(immutable VariableRef(param), param.deref().type));
 		}
 	foreach (immutable Ptr!ClosureField field; mutArrRange(info.closureFields))
 		if (symEq(field.deref().name, name))
-			return some(immutable Expr(range, immutable Expr.ClosureFieldRef(field)));
+			return some(immutable VariableRefAndType(immutable VariableRef(field), field.deref().type));
 
-	immutable(Opt!Expr) fromOuter = has(info.outer)
-		? getIdentifierNonCall(alloc, force(info.outer).deref(), range, name)
-		: none!Expr;
-	if (has(fromOuter)) {
-		verify(!exists!(immutable Ptr!ClosureField)(
-			tempAsArr(info.closureFields),
-			(ref immutable Ptr!ClosureField it) =>
-				symEq(it.deref().name, name)));
-		immutable Type type = getType(force(fromOuter));
-		immutable Ptr!ClosureField field =
-			allocate(alloc, immutable ClosureField(name, type, force(fromOuter), mutArrSize(info.closureFields)));
+	immutable(Opt!VariableRefAndType) optOuter = has(info.outer)
+		? getIdentifierNonCall(alloc, force(info.outer).deref(), name)
+		: none!VariableRefAndType;
+	if (has(optOuter)) {
+		immutable VariableRefAndType outer = force(optOuter);
+		immutable Ptr!ClosureField field = allocate(alloc,
+			immutable ClosureField(name, outer.type, outer.variableRef, mutArrSize(info.closureFields)));
 		push(alloc, info.closureFields, field);
-		return some(immutable Expr(range, immutable Expr.ClosureFieldRef(field)));
+		return some(immutable VariableRefAndType(immutable VariableRef(field), outer.type));
 	} else
-		return none!Expr;
+		return none!VariableRefAndType;
 }
 
 immutable(bool) nameIsParameterOrLocalInScope(ref Alloc alloc, ref LocalsInfo locals, immutable Sym name) {
-	return has(getIdentifierNonCall(alloc, locals, FileAndRange.empty, name));
+	return has(getIdentifierNonCall(alloc, locals, name));
 }
 
 immutable(Expr) checkIdentifier(
@@ -494,10 +490,23 @@ immutable(Expr) checkIdentifier(
 	ref Expected expected,
 ) {
 	immutable Sym name = ast.name;
-	immutable Opt!Expr res = getIdentifierNonCall(ctx.alloc, locals, range, name);
-	return has(res)
-		? check(ctx, expected, getType(force(res)), force(res))
-		: checkIdentifierCall(ctx, locals, range, name, expected);
+	immutable Opt!VariableRefAndType res = getIdentifierNonCall(ctx.alloc, locals, name);
+	if (has(res)) {
+		immutable Expr expr = toExpr(range, force(res).variableRef);
+		return check(ctx, expected, force(res).type, expr);
+	} else
+		return checkIdentifierCall(ctx, locals, range, name, expected);
+}
+
+immutable(Expr) toExpr(immutable FileAndRange range, immutable VariableRef a) {
+	return matchVariableRef(
+		a,
+		(immutable Ptr!Param x) =>
+			immutable Expr(range, immutable Expr.ParamRef(x)),
+		(immutable Ptr!Local x) =>
+			immutable Expr(range, immutable Expr.LocalRef(x)),
+		(immutable Ptr!ClosureField x) =>
+			immutable Expr(range, immutable Expr.ClosureFieldRef(x)));
 }
 
 struct IntRange {

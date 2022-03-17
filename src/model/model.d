@@ -35,7 +35,7 @@ import util.sym :
 	symForOperator,
 	symForSpecial,
 	writeSym;
-import util.util : max, min, todo, unreachable, verify;
+import util.util : max, min, unreachable, verify;
 import util.writer : writeChar, Writer, writeStatic, writeWithCommas;
 
 struct AbsolutePathsGetter {
@@ -125,11 +125,6 @@ struct TypeParam {
 struct Type {
 	@safe @nogc pure nothrow:
 	struct Bogus {}
-	enum Kind {
-		bogus,
-		typeParam,
-		structInst,
-	}
 	@trusted immutable this(immutable Bogus a) {
 		inner = TaggedPtr!Kind(Kind.bogus, null);
 	}
@@ -141,7 +136,12 @@ struct Type {
 	}
 
 	private:
-	TaggedPtr!Kind inner;
+	enum Kind {
+		bogus,
+		typeParam,
+		structInst,
+	}
+	immutable TaggedPtr!Kind inner;
 }
 
 @trusted immutable(T) matchType(T)(
@@ -1564,10 +1564,44 @@ struct Local {
 	immutable Type type;
 }
 
+struct VariableRef {
+	@safe @nogc pure nothrow:
+
+	@trusted immutable this(immutable Ptr!Param a) {
+		inner = TaggedPtr!Kind(Kind.param, a.rawPtr());
+	}
+	@trusted immutable this(immutable Ptr!Local a) {
+		inner = TaggedPtr!Kind(Kind.local, a.rawPtr());
+	}
+	@trusted immutable this(immutable Ptr!ClosureField a) {
+		inner = TaggedPtr!Kind(Kind.closure, a.rawPtr());
+	}
+
+	private:
+	enum Kind { param, local, closure }
+	immutable TaggedPtr!Kind inner;
+}
+
+@trusted immutable(T) matchVariableRef(T)(
+	immutable VariableRef a,
+	scope immutable(T) delegate(immutable Ptr!Param) @safe @nogc pure nothrow cbParam,
+	scope immutable(T) delegate(immutable Ptr!Local) @safe @nogc pure nothrow cbLocal,
+	scope immutable(T) delegate(immutable Ptr!ClosureField) @safe @nogc pure nothrow cbClosure,
+) {
+	final switch (a.inner.tag()) {
+		case VariableRef.Kind.param:
+			return cbParam(a.inner.asPtr!Param);
+		case VariableRef.Kind.local:
+			return cbLocal(a.inner.asPtr!Local);
+		case VariableRef.Kind.closure:
+			return cbClosure(a.inner.asPtr!ClosureField);
+	}
+}
+
 struct ClosureField {
 	immutable Sym name;
 	immutable Type type;
-	immutable Expr expr;
+	immutable VariableRef variableRef;
 	immutable size_t index;
 }
 
@@ -1805,49 +1839,6 @@ immutable(FileAndRange) range(scope ref immutable Expr a) {
 		case Expr.Kind.symbolLiteral:
 			return cbSymbolLiteral(a.symbolLiteral);
 	}
-}
-
-immutable(bool) typeIsBogus(ref immutable Expr a) {
-	return matchExpr!(immutable bool)(
-		a,
-		(ref immutable Expr.Bogus) => true,
-		(ref immutable Expr.Call e) => isBogus(returnType(e.called)),
-		(ref immutable Expr.ClosureFieldRef e) => isBogus(e.field.deref().type),
-		(ref immutable Expr.Cond e) => isBogus(e.type),
-		(ref immutable Expr.FunPtr) => false,
-		(ref immutable Expr.IfOption e) => isBogus(e.type),
-		(ref immutable Expr.Lambda) => false,
-		(ref immutable Expr.Let e) => typeIsBogus(e.then),
-		(ref immutable Expr.Literal) => false,
-		(ref immutable Expr.LocalRef e) => isBogus(e.local.deref().type),
-		(ref immutable Expr.MatchEnum e) => isBogus(e.type),
-		(ref immutable Expr.MatchUnion e) => isBogus(e.type),
-		(ref immutable Expr.ParamRef e) => isBogus(e.param.deref().type),
-		(ref immutable Expr.Seq e) => typeIsBogus(e.then),
-		(ref immutable Expr.CStringLiteral) => false,
-		(ref immutable Expr.SymbolLiteral) => false);
-}
-
-//TODO: this is only called on LocalRef or ParamRef, all others unreachable
-immutable(Type) getType(ref immutable Expr a) {
-	return matchExpr!(immutable Type)(
-		a,
-		(ref immutable Expr.Bogus) => immutable Type(immutable Type.Bogus()),
-		(ref immutable Expr.Call e) => returnType(e.called),
-		(ref immutable Expr.ClosureFieldRef e) => e.field.deref().type,
-		(ref immutable Expr.Cond) => todo!(immutable Type)("getType cond"),
-		(ref immutable Expr.FunPtr e) => immutable Type(e.structInst),
-		(ref immutable Expr.IfOption e) => e.type,
-		(ref immutable Expr.Lambda e) => immutable Type(e.type),
-		(ref immutable Expr.Let e) => unreachable!(immutable Type),
-		(ref immutable Expr.Literal e) => immutable Type(e.structInst),
-		(ref immutable Expr.LocalRef e) => e.local.deref().type,
-		(ref immutable Expr.MatchEnum) => todo!(immutable Type)("getType matchEnum"),
-		(ref immutable Expr.MatchUnion) => todo!(immutable Type)("getType matchUnion"),
-		(ref immutable Expr.ParamRef e) => e.param.deref().type,
-		(ref immutable Expr.Seq e) => unreachable!(immutable Type),
-		(ref immutable Expr.CStringLiteral) => unreachable!(immutable Type),
-		(ref immutable Expr.SymbolLiteral) => unreachable!(immutable Type));
 }
 
 void writeStructDecl(ref Writer writer, ref const AllSymbols allSymbols, ref immutable StructDecl a) {

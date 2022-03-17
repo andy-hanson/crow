@@ -63,13 +63,16 @@ import model.model :
 	Local,
 	matchCalled,
 	matchExpr,
+	matchVariableRef,
+	Param,
 	Purity,
 	range,
 	specImpls,
 	SpecSig,
 	StructInst,
 	Type,
-	typeArgs;
+	typeArgs,
+	VariableRef;
 import util.alloc.alloc : Alloc;
 import util.col.arr : empty, emptyArr, only, ptrAt;
 import util.col.arrUtil : arrLiteral, map, mapWithIndex, mapZip;
@@ -234,12 +237,12 @@ immutable(Ptr!ConcreteFun) getConcreteFunFromFunInst(
 immutable(ConcreteExpr) concretizeClosureFieldRef(
 	ref ConcretizeExprCtx ctx,
 	immutable FileAndRange range,
-	ref immutable Expr.ClosureFieldRef e,
+	immutable Ptr!ClosureField closureField,
 ) {
 	immutable Ptr!ConcreteParam closureParam = force(ctx.currentConcreteFun.closureParam);
 	immutable ConcreteType closureType = closureParam.deref().type;
 	immutable ConcreteStructBody.Record record = asRecord(body_(closureType.struct_.deref()));
-	immutable Ptr!ConcreteField field = ptrAt(record.fields, e.field.deref().index);
+	immutable Ptr!ConcreteField field = ptrAt(record.fields, closureField.deref().index);
 	immutable ConcreteExpr closureParamRef = immutable ConcreteExpr(closureType, range, immutable ConcreteExprKind(
 		immutable ConcreteExprKind.ParamRef(closureParam)));
 	return immutable ConcreteExpr(field.deref().type, range, immutable ConcreteExprKind(
@@ -332,7 +335,7 @@ immutable(ConcreteExpr) concretizeLambda(
 
 	immutable ConcreteExpr[] closureArgs =
 		map!ConcreteExpr(ctx.alloc, e.closure, (ref immutable Ptr!ClosureField f) =>
-			concretizeExpr(ctx, locals, f.deref().expr));
+			concretizeVariableRef(ctx, range, locals, f.deref().variableRef));
 	immutable ConcreteField[] closureFields =
 		concretizeClosureFields(ctx.concretizeCtx, e.closure, tScope);
 	immutable ConcreteType closureType = concreteTypeFromClosure(
@@ -494,10 +497,10 @@ immutable(ConcreteExpr) concretizeIfOption(
 immutable(ConcreteExpr) concretizeLocalRef(
 	immutable FileAndRange range,
 	scope ref immutable Locals locals,
-	ref immutable Expr.LocalRef e,
+	immutable Ptr!Local local,
 ) {
 	return matchLocalOrConstant!(immutable ConcreteExpr)(
-		getLocal(locals, e.local),
+		getLocal(locals, local),
 		(immutable Ptr!ConcreteLocal local) =>
 			immutable ConcreteExpr(local.deref().type, range, immutable ConcreteExprKind(
 				immutable ConcreteExprKind.LocalRef(local))),
@@ -562,14 +565,30 @@ immutable(ConcreteExpr) concretizeMatchUnion(
 immutable(ConcreteExpr) concretizeParamRef(
 	ref ConcretizeExprCtx ctx,
 	immutable FileAndRange range,
-	ref immutable Expr.ParamRef e,
+	immutable Ptr!Param param,
 ) {
-	immutable size_t paramIndex = e.param.deref().index;
+	immutable size_t paramIndex = param.deref().index;
 	// NOTE: we'll never see a ParamRef to a param from outside of a lambda --
 	// that would be a ClosureFieldRef instead.
 	immutable Ptr!ConcreteParam concreteParam = ptrAt(ctx.currentConcreteFun.paramsExcludingCtxAndClosure, paramIndex);
 	return immutable ConcreteExpr(concreteParam.deref().type, range, immutable ConcreteExprKind(
 		immutable ConcreteExprKind.ParamRef(concreteParam)));
+}
+
+immutable(ConcreteExpr) concretizeVariableRef(
+	ref ConcretizeExprCtx ctx,
+	immutable FileAndRange range,
+	scope ref immutable Locals locals,
+	immutable VariableRef a,
+) {
+	return matchVariableRef!(immutable ConcreteExpr)(
+		a,
+		(immutable Ptr!Param x) =>
+			concretizeParamRef(ctx, range, x),
+		(immutable Ptr!Local x) =>
+			concretizeLocalRef(range, locals, x),
+		(immutable Ptr!ClosureField x) =>
+			concretizeClosureFieldRef(ctx, range, x));
 }
 
 immutable(ConcreteExpr) concretizeExpr(
@@ -585,7 +604,7 @@ immutable(ConcreteExpr) concretizeExpr(
 		(ref immutable Expr.Call e) =>
 			concretizeCall(ctx, range, locals, e),
 		(ref immutable Expr.ClosureFieldRef e) =>
-			concretizeClosureFieldRef(ctx, range, e),
+			concretizeClosureFieldRef(ctx, range, e.field),
 		(ref immutable Expr.Cond e) {
 			immutable ConcreteExpr cond = concretizeExpr(ctx, locals, e.cond);
 			return isConstant(cond.kind)
@@ -612,13 +631,13 @@ immutable(ConcreteExpr) concretizeExpr(
 				range,
 				immutable ConcreteExprKind(e.value)),
 		(ref immutable Expr.LocalRef e) =>
-			concretizeLocalRef(range, locals, e),
+			concretizeLocalRef(range, locals, e.local),
 		(ref immutable Expr.MatchEnum e) =>
 			concretizeMatchEnum(ctx, range, locals, e),
 		(ref immutable Expr.MatchUnion e) =>
 			concretizeMatchUnion(ctx, range, locals, e),
 		(ref immutable Expr.ParamRef e) =>
-			concretizeParamRef(ctx, range, e),
+			concretizeParamRef(ctx, range, e.param),
 		(ref immutable Expr.Seq e) {
 			immutable ConcreteExpr first = concretizeExpr(ctx, locals, e.first);
 			immutable ConcreteExpr then = concretizeExpr(ctx, locals, e.then);
