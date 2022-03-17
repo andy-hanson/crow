@@ -44,11 +44,29 @@ import util.sourceRange : FileAndRange, RangeWithinFile;
 import util.sym : AllSymbols;
 import util.util : verify;
 
-struct LambdaInfo {
-	immutable FunKind funKind;
-	immutable Param[] lambdaParams;
-	MutArr!LocalAndUsed locals;
+struct FunOrLambdaInfo {
+	Opt!(Ptr!LocalsInfo) outer;
+	// none for a function
+	immutable Opt!FunKind funKind;
+	immutable Param[] params;
+	MutMaxArr!(maxParams, bool) paramsUsed = void;
+	// Will be empty for a function
 	MutArr!(immutable Ptr!ClosureField) closureFields;
+}
+
+struct LocalsInfo {
+	Ptr!FunOrLambdaInfo funOrLambda;
+	Opt!(Ptr!LocalNode) locals;
+}
+
+immutable(bool) isInLambda(ref LocalsInfo a) {
+	return has(a.funOrLambda.deref().outer);
+}
+
+struct LocalNode {
+	Opt!(Ptr!LocalNode) prev;
+	bool isUsed;
+	immutable Ptr!Local local;
 }
 
 struct ExprCtx {
@@ -63,14 +81,6 @@ struct ExprCtx {
 	immutable TypeParam[] outermostFunTypeParams;
 	immutable FunFlags outermostFunFlags;
 	FullIndexDict!(ModuleLocalFunIndex, bool) funsUsed;
-
-	MutMaxArr!(maxParams, bool) paramsUsed = void;
-	// Locals of the function. Lambda locals are stored in the lambda.
-	// (the Let stores the local and this points to that.)
-	MutArr!LocalAndUsed messageOrFunctionLocals;
-	// These are pointers because MutArr currently only works on copyable values,
-	// and LambdaInfo should not be copied.
-	MutArr!(Ptr!LambdaInfo) lambdas;
 
 	ref Alloc alloc() return scope {
 		return checkCtx().alloc();
@@ -95,11 +105,6 @@ struct ExprCtx {
 
 void markUsedLocalFun(ref ExprCtx a, immutable ModuleLocalFunIndex index) {
 	a.funsUsed[index] = true;
-}
-
-struct LocalAndUsed {
-	bool isUsed;
-	immutable Ptr!Local local;
 }
 
 immutable(FileAndRange) rangeInFile2(ref const ExprCtx ctx, immutable RangeWithinFile range) {

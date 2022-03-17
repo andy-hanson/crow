@@ -1828,7 +1828,8 @@ immutable(bool) typeIsBogus(ref immutable Expr a) {
 		(ref immutable Expr.SymbolLiteral) => false);
 }
 
-immutable(Type) getType(ref immutable Expr a, ref immutable CommonTypes commonTypes) {
+//TODO: this is only called on LocalRef or ParamRef, all others unreachable
+immutable(Type) getType(ref immutable Expr a) {
 	return matchExpr!(immutable Type)(
 		a,
 		(ref immutable Expr.Bogus) => immutable Type(immutable Type.Bogus()),
@@ -1838,15 +1839,15 @@ immutable(Type) getType(ref immutable Expr a, ref immutable CommonTypes commonTy
 		(ref immutable Expr.FunPtr e) => immutable Type(e.structInst),
 		(ref immutable Expr.IfOption e) => e.type,
 		(ref immutable Expr.Lambda e) => immutable Type(e.type),
-		(ref immutable Expr.Let e) => getType(e.then, commonTypes),
+		(ref immutable Expr.Let e) => unreachable!(immutable Type),
 		(ref immutable Expr.Literal e) => immutable Type(e.structInst),
 		(ref immutable Expr.LocalRef e) => e.local.deref().type,
 		(ref immutable Expr.MatchEnum) => todo!(immutable Type)("getType matchEnum"),
 		(ref immutable Expr.MatchUnion) => todo!(immutable Type)("getType matchUnion"),
 		(ref immutable Expr.ParamRef e) => e.param.deref().type,
-		(ref immutable Expr.Seq e) => getType(e.then, commonTypes),
-		(ref immutable Expr.CStringLiteral) => immutable Type(commonTypes.cStr),
-		(ref immutable Expr.SymbolLiteral) => immutable Type(commonTypes.sym));
+		(ref immutable Expr.Seq e) => unreachable!(immutable Type),
+		(ref immutable Expr.CStringLiteral) => unreachable!(immutable Type),
+		(ref immutable Expr.SymbolLiteral) => unreachable!(immutable Type));
 }
 
 void writeStructDecl(ref Writer writer, ref const AllSymbols allSymbols, ref immutable StructDecl a) {

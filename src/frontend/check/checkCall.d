@@ -11,8 +11,12 @@ import frontend.check.inferringType :
 	check,
 	Expected,
 	ExprCtx,
+	FunOrLambdaInfo,
 	inferred,
 	InferringTypeArgs,
+	isInLambda,
+	LocalNode,
+	LocalsInfo,
 	markUsedLocalFun,
 	matchTypesNoDiagnostic,
 	programState,
@@ -37,6 +41,7 @@ import model.model :
 	Expr,
 	FunDecl,
 	FunFlags,
+	FunKind,
 	isPurityAlwaysCompatible,
 	isVariadic,
 	matchArity,
@@ -69,7 +74,6 @@ import util.alloc.alloc : Alloc;
 import util.col.arr : empty, emptyArr, only, only_const, ptrAt;
 import util.col.arrBuilder : add, ArrBuilder, finishArr;
 import util.col.arrUtil : exists, exists_const, fillArrOrFail, map_const;
-import util.col.mutArr : mutArrIsEmpty;
 import util.col.mutMaxArr :
 	copyToFrom,
 	fillMutMaxArr_mut,
@@ -87,15 +91,16 @@ import util.col.mutMaxArr :
 	tempAsArr_const,
 	tempAsArr_mut;
 import util.memory : overwriteMemory;
-import util.opt : force, has, none, Opt, some;
+import util.opt : force, has, none, noneMut, Opt, some;
 import util.perf : endMeasure, PerfMeasure, PerfMeasurer, pauseMeasure, resumeMeasure, startMeasure;
-import util.ptr : Ptr;
+import util.ptr : Ptr, ptrTrustMe_mut;
 import util.sourceRange : FileAndRange;
 import util.sym : Sym, symEq;
 import util.util : Empty, todo;
 
 immutable(Expr) checkCall(
 	ref ExprCtx ctx,
+	ref LocalsInfo locals,
 	immutable FileAndRange range,
 	scope ref immutable CallAst ast,
 	ref Expected expected,
@@ -105,13 +110,25 @@ immutable(Expr) checkCall(
 	immutable Expr res = withCandidates!(immutable Expr)(
 		ctx, ast.funName.name, tempAsArr(explicitTypeArgs), ast.args.length,
 		(ref Candidates candidates) =>
-			checkCallInner(ctx, range, ast, expected, tempAsArr(explicitTypeArgs), perfMeasurer, candidates));
+			checkCallInner(ctx, locals, range, ast, expected, tempAsArr(explicitTypeArgs), perfMeasurer, candidates));
 	endMeasure(ctx.alloc, ctx.perf, perfMeasurer);
 	return res;
 }
 
+immutable(Expr) checkCallNoLocals(
+	ref ExprCtx ctx,
+	immutable FileAndRange range,
+	scope ref immutable CallAst ast,
+	ref Expected expected,
+) {
+	FunOrLambdaInfo emptyFunInfo = FunOrLambdaInfo(noneMut!(Ptr!LocalsInfo), none!FunKind, emptyArr!Param);
+	LocalsInfo emptyLocals = LocalsInfo(ptrTrustMe_mut(emptyFunInfo), noneMut!(Ptr!LocalNode));
+	return checkCall(ctx, emptyLocals, range, ast, expected);
+}
+
 private immutable(Expr) checkCallInner(
 	ref ExprCtx ctx,
+	ref LocalsInfo locals,
 	immutable FileAndRange range,
 	scope ref immutable CallAst ast,
 	ref Expected expected,
@@ -137,7 +154,7 @@ private immutable(Expr) checkCallInner(
 		CommonOverloadExpected common =
 			getCommonOverloadParamExpected(ctx.alloc, ctx.programState, tempAsArr_mut(candidates), argIdx);
 		pauseMeasure(ctx.alloc, ctx.perf, perfMeasurer);
-		immutable Expr arg = checkExpr(ctx, ast.args[argIdx], common.expected);
+		immutable Expr arg = checkExpr(ctx, locals, ast.args[argIdx], common.expected);
 		resumeMeasure(ctx.alloc, ctx.perf, perfMeasurer);
 
 		// If it failed to check, don't continue, just stop there.
@@ -181,11 +198,13 @@ private immutable(Expr) checkCallInner(
 				immutable Diag.CallMultipleMatches(funName, candidatesForDiag(ctx.alloc, candidates))));
 		return bogus(expected, range);
 	} else
-		return checkCallAfterChoosingOverload(ctx, only_const(candidates), range, force(args), expected);
+		return checkCallAfterChoosingOverload(
+			ctx, isInLambda(locals), only_const(candidates), range, force(args), expected);
 }
 
 immutable(Expr) checkIdentifierCall(
 	ref ExprCtx ctx,
+	ref LocalsInfo locals,
 	immutable FileAndRange range,
 	immutable Sym name,
 	ref Expected expected,
@@ -196,7 +215,7 @@ immutable(Expr) checkIdentifierCall(
 		immutable NameAndRange(range.range.start, name),
 		emptyArr!TypeAst,
 		emptyArr!ExprAst);
-	return checkCall(ctx, range, callAst, expected);
+	return checkCallNoLocals(ctx, range, callAst, expected);
 }
 
 struct UsedFun {
@@ -503,6 +522,7 @@ void checkCallFlags(
 
 void checkCalledDeclFlags(
 	ref ExprCtx ctx,
+	immutable bool isInLambda,
 	ref immutable CalledDecl res,
 	immutable FileAndRange range,
 	immutable ArgsKind argsKind,
@@ -510,7 +530,7 @@ void checkCalledDeclFlags(
 	matchCalledDecl!(
 		void,
 		(immutable Ptr!FunDecl f) {
-			checkCallFlags(ctx.checkCtx, range, f, ctx.outermostFunFlags, !mutArrIsEmpty(ctx.lambdas), argsKind);
+			checkCallFlags(ctx.checkCtx, range, f, ctx.outermostFunFlags, isInLambda, argsKind);
 		},
 		(ref immutable SpecSig) {
 			// For a spec, we check the flags when providing the spec impl
@@ -548,6 +568,7 @@ void filterByParamType(
 
 immutable(Opt!Called) findSpecSigImplementation(
 	ref ExprCtx ctx,
+	immutable bool isInLambda,
 	immutable FileAndRange range,
 	ref immutable Sig specSig,
 	immutable Ptr!FunDecl outerCalled,
@@ -571,7 +592,8 @@ immutable(Opt!Called) findSpecSigImplementation(
 				addDiag2(ctx, range, immutable Diag(immutable Diag.SpecImplNotFound(specSig.name)));
 				return none!Called;
 			case 1:
-				return getCalledFromCandidate(ctx, range, only_const(candidates), some(outerCalled), ArgsKind.nonEmpty);
+				return getCalledFromCandidate(
+					ctx, isInLambda, range, only_const(candidates), some(outerCalled), ArgsKind.nonEmpty);
 			default:
 				addDiag2(ctx, range, immutable Diag(
 					immutable Diag.SpecImplFoundMultiple(specSig.name, candidatesForDiag(ctx.alloc, candidates))));
@@ -622,6 +644,7 @@ immutable size_t maxSpecImpls = 16;
 immutable(bool) checkSpecImpls(
 	ref MutMaxArr!(maxSpecImpls, Called) res,
 	ref ExprCtx ctx,
+	immutable bool isInLambda,
 	immutable FileAndRange range,
 	immutable Ptr!FunDecl called,
 	immutable Type[] typeArgz,
@@ -643,7 +666,7 @@ immutable(bool) checkSpecImpls(
 							immutable Diag.SpecImplHasSpecs(force(outerCalled), called)));
 						return false;
 					}
-					immutable Opt!Called impl = findSpecSigImplementation(ctx, range, sig.sig, called);
+					immutable Opt!Called impl = findSpecSigImplementation(ctx, isInLambda, range, sig.sig, called);
 					if (!has(impl))
 						return false;
 					push(res, force(impl));
@@ -658,6 +681,7 @@ immutable(bool) checkSpecImpls(
 
 immutable(Opt!Called) getCalledFromCandidate(
 	ref ExprCtx ctx,
+	immutable bool isInLambda,
 	immutable FileAndRange range,
 	ref const Candidate candidate,
 	immutable Opt!(Ptr!FunDecl) outerCalled,
@@ -665,7 +689,7 @@ immutable(Opt!Called) getCalledFromCandidate(
 ) {
 	if (has(candidate.used))
 		markUsedFun(ctx, force(candidate.used));
-	checkCalledDeclFlags(ctx, candidate.called, range, argsKind);
+	checkCalledDeclFlags(ctx, isInLambda, candidate.called, range, argsKind);
 
 	TypeArgsArray candidateTypeArgs = typeArgsArray();
 	foreach (ref const SingleInferringType x; tempAsArr(candidate.typeArgs)) {
@@ -681,7 +705,7 @@ immutable(Opt!Called) getCalledFromCandidate(
 		immutable Opt!Called,
 		(immutable Ptr!FunDecl f) {
 			MutMaxArr!(maxSpecImpls, Called) specImpls = mutMaxArr!(maxSpecImpls, Called);
-			return checkSpecImpls(specImpls, ctx, range, f, tempAsArr(candidateTypeArgs), outerCalled)
+			return checkSpecImpls(specImpls, ctx, isInLambda, range, f, tempAsArr(candidateTypeArgs), outerCalled)
 				? some(immutable Called(
 					instantiateFun(
 						ctx.alloc,
@@ -698,13 +722,14 @@ immutable(Opt!Called) getCalledFromCandidate(
 
 immutable(Expr) checkCallAfterChoosingOverload(
 	ref ExprCtx ctx,
+	immutable bool isInLambda,
 	ref const Candidate candidate,
 	immutable FileAndRange range,
 	immutable Expr[] args,
 	ref Expected expected,
 ) {
 	immutable Opt!Called opCalled = getCalledFromCandidate(
-		ctx, range, candidate, none!(Ptr!FunDecl),
+		ctx, isInLambda, range, candidate, none!(Ptr!FunDecl),
 		empty(args) ? ArgsKind.empty : ArgsKind.nonEmpty);
 	if (has(opCalled)) {
 		immutable Called called = force(opCalled);
