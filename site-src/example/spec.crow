@@ -1,11 +1,11 @@
 import
 	crow/col/arr-util: fold
 	crow/io/print: print
-	crow/math/vec
+	crow/math/vec: +, new, to-str, vec2-64
 
 main fut nat(_ str[]) summon
 	nats nat[] = 0, 1
-	vecs vec2[] = (0, 1), (2, 3)
+	vecs vec2-64[] = (0, 1), (2, 3)
 	print: "nats sum: {nats sum}"
 	print: "vecs sum: {vecs sum}"
 	()
