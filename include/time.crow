@@ -12,6 +12,8 @@ timespec record by-val extern
 
 tm extern-ptr
 
+nanosleep err-t(requested_time timespec*, remaining timespec mut*) noctx extern
+
 # TODO:SUMMON
 clock_gettime err-t(clock-id __clockid_t, timespec cell timespec) noctx extern
 

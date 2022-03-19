@@ -91,7 +91,7 @@ version (WebAssembly) {
 	void debugLog(immutable char* message, immutable size_t value) {
 		import core.stdc.stdio : printf;
 		debug {
-			printf("debug log: %s == %lu\n", message, value);
+			printf("debug log: %s == %llu\n", message, value);
 		}
 	}
 }

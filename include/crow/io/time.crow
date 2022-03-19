@@ -13,7 +13,7 @@ import
 export
 	./private/time-low-level: get-monotime-nsec
 
-get-monotime-msec nat64()
+get-monotime-msec nat64() summon
 	get-monotime-nsec / 1000000
 
 unix-time record

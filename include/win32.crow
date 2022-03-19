@@ -385,6 +385,11 @@ SYSTEM_INFO record mut by-val extern
 new SYSTEM_INFO() noctx unsafe
 	(), (), (), (), (), (), (), (), (), ()
 
+# TODO: should be 'summon'
+GetTickCount DWORD() noctx extern
+
+Sleep void(dwMilliseconds DWORD) noctx summon extern
+
 # Not using bytes-types due to alignment
 
 .chars2 record by-val extern

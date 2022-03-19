@@ -1,9 +1,10 @@
 no-std
 import
 	time: clock_gettime, CLOCK_MONOTONIC, new, timespec, tv_nsec, tv_sec
+	win32: GetTickCount
 	../../cell: *, cell, new
 	../../ptr: by-val, ref-of-val
-	../../private/bootstrap: nat32, nat64, todo
+	../../private/bootstrap: nat64, todo
 	../../private/number-low-level:
 		==, to-nat64, unsafe-add, unsafe-div, unsafe-mod, unsafe-mul, unsafe-to-int64, unsafe-to-nat64, wrap-mul
 	../../version: is-windows
@@ -14,7 +15,7 @@ timestamp alias
 
 ###
 Get the value from a monotonic clock.
-WARN: THis should be 'summon', but I didn't mark it that way so 'perf' can use it.
+WARN: This should be 'summon', but I didn't mark it that way so 'perf' can use it.
 ###
 get-monotime-nsec timestamp() noctx trusted
 	if is-windows
@@ -33,8 +34,6 @@ get-monotime-nsec timestamp() noctx trusted
 
 nsec-to-msec nat64(a nat64) trusted noctx
 	a unsafe-div 1000000
-
-.GetTickCount nat32() noctx extern
 
 to-timespec timespec(a timestamp) noctx unsafe
 	second = 1000000000

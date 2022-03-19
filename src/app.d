@@ -719,7 +719,8 @@ immutable(SafeCStr[]) cCompilerArgs(ref immutable CCompileOptions options) {
 	immutable SafeCStr[] args =
 		cCompileArgs(alloc, allSymbols, allPaths, cPath, exePath, allExternLibraryNames, options);
 	version (Windows) {
-		TempStrForPath clPath;
+		TempStrForPath clPath = void;
+		initializeTempStr(clPath);
 		immutable ExitCode clErr = findPathToCl(clPath);
 		if (clErr != ExitCode.ok)
 			return clErr;
@@ -1241,7 +1242,8 @@ immutable size_t maxPathSize = 0x1000;
 	immutable SafeCStr[] args,
 ) {
 	version (Windows) {
-		TempStr!0x1000 argsStr;
+		TempStr!0x1000 argsStr = void;
+		initializeTempStr(argsStr);
 		pushToTempStr(argsStr, '"');
 		pushToTempStr(argsStr, executablePath);
 		pushToTempStr(argsStr, '"');
@@ -1297,8 +1299,10 @@ immutable size_t maxPathSize = 0x1000;
 		verifyOk(CloseHandle(stdoutWrite));
 		verifyOk(CloseHandle(stderrWrite));
 
-		TempStr!0x10000 stdoutBuf;
-		TempStr!0x10000 stderrBuf;
+		TempStr!0x10000 stdoutBuf = void;
+		initializeTempStr(stdoutBuf);
+		TempStr!0x10000 stderrBuf = void;
+		initializeTempStr(stderrBuf);
 		readFromPipe(stdoutBuf, stdoutRead);
 		verifyOk(CloseHandle(stdoutRead));
 		readFromPipe(stderrBuf, stderrRead);
