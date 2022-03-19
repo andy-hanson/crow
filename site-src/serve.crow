@@ -18,8 +18,7 @@ main fut nat(args str[]) unsafe summon
 			res = req handle-request
 			info log "{req url} {res status}"
 			res,
-		server = port start-http-server handler
-		drop: server
+		_ = port start-http-server handler
 		print: "serving on http://localhost:{port}/"
 		()
 

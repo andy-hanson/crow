@@ -13,8 +13,7 @@ main fut nat(args str[]) unsafe summon
 			descr = req describe-request
 			print: descr
 			(200, "OK", (), "Your request:\n{descr}".to-bytes),
-		server = port start-http-server handler
-		drop: server
+		_ = port start-http-server handler
 		()
 	else
 		print: "Usage: server PORT"

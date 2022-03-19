@@ -25,7 +25,7 @@ import
 	../extra-types: err-t
 	../fun-util: fun-ptr1, subscript
 	../io/private/time-low-level: get-monotime-nsec, nsec-to-msec, timestamp, to-timespec
-	../misc: drop, new, void
+	../misc: new, void
 	../ptr:
 		==, any-mut-ptr, as-any-mut-ptr, as-ref, by-val, null, ptr-cast, ptr-to,
 		ref-of-val, size-of, to-nat64, zeroed
@@ -185,7 +185,8 @@ wait-on void(a condition, until-time timestamp?, last-sequence sequence-id) noct
 					nsec.nsec-to-msec.unsafe-to-nat32 Sleep
 				else
 					ts = nsec to-timespec
-					drop: ts.ptr-to nanosleep null
+					_ = ts.ptr-to nanosleep null
+					()
 		else
 			hard-unreachable
 	elif is-windows
@@ -279,7 +280,8 @@ get-and-increment nat64(a thread-safe-counter) noctx unsafe
 	old
 
 decrement void(a thread-safe-counter) noctx unsafe
-	drop: a get-and-decrement
+	_ = a get-and-decrement
+	()
 
 # Returns the old value
 get-and-decrement nat64(t thread-safe-counter) noctx unsafe

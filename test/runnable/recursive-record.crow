@@ -1,6 +1,6 @@
 main fut nat(_ str[]) summon trusted
 	a r = (),
-	drop: a
+	_ = a
 	()
 
 r record

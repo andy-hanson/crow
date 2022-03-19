@@ -156,7 +156,7 @@ Associates the key `pair.a` with the value `pair.b`.
 This may overwrite the key if it's already in `a`, or add a new entry.
 ###
 ~ <k, v> v[k](a v[k], pair pair<k, v>) is-data<k> compare<k> hash-mix<k>
-	res = a get-or-update pair.from, old-value =>
+	res = a get-or-update pair.from, _ =>
 		pair.to insert
 	if node ?= res new-node
 		node,
@@ -211,7 +211,7 @@ Removes a key and its associated value, and returns the value and the new dictio
 If the key is not in the dictionary, returns an empty option.
 ###
 try-remove<k, v> try-remove-result<k, v>?(a v[k], key k) is-data<k> compare<k> hash-mix<k>
-	res = a get-or-update key, old-value => remove
+	res = a get-or-update key, _ => remove
 	if value ?= res old-value
 		(value, (res.new-node!,)),
 
@@ -400,10 +400,10 @@ body
 region iteration
 
 each<k, v> void(a v[k], f act void(k, v)) is-data<k> compare<k> hash-mix<k>
-	() fold a, (ignore, key, value) => f[key, value]
+	() fold a, (_, key, value) => f[key, value]
 
 each-key<k, v> void(a v[k], f act void(k)) is-data<k> compare<k> hash-mix<k>
-	() fold-keys a, (ignore, key) => f[key]
+	() fold-keys a, (_, key) => f[key]
 
 fold<a, k, v> a(acc a, a v[k], f act a(a, k, v)) is-data<k> compare<k> hash-mix<k>
 	acc fold-recur a.root, f
@@ -415,18 +415,18 @@ fold<a, k, v> a(acc a, a v[k], f act a(a, k, v)) is-data<k> compare<k> hash-mix<
 		acc fold l, (cur, pair) => f[cur, pair.from, pair.to]
 
 fold-keys<a, k, v> a(acc a, a v[k], f act a(a, k)) is-data<k> compare<k> hash-mix<k>
-	acc fold a, (cur, key, value) => f[cur, key]
+	acc fold a, (cur, key, _) => f[cur, key]
 
 # TODO: map
 # TODO: map-values
 
 # Array of every key in the dictionary.
 keys<k, v> k[](a v[k]) is-data<k> compare<k> hash-mix<k>
-	a map-to-arr (k, ignore) => k
+	a map-to-arr (k, _) => k
 
 # Array of every value in the dictionary.
 values<k, v> v[](a v[k]) is-data<k> compare<k> hash-mix<k>
-	a map-to-arr (ignore, v) => v
+	a map-to-arr (_, v) => v
 
 # Calls `f` on every pair in the dictionary and returns an array of the results.
 map-to-arr<a, k, v> a[](a v[k], f act a(k, v)) trusted is-data<k> compare<k> hash-mix<k>

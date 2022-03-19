@@ -5,7 +5,7 @@ This is useful for external libraries where the size of a type matters but not i
 
 no-std
 import
-	./misc: drop
+	./misc: new
 	./private/bootstrap: nat16, nat32, nat64
 	./private/number-low-level: new
 
@@ -103,24 +103,25 @@ new bytes256() noctx
 
 # Just ensuring that private fields are used...
 test
-	drop: ()::bytes2.n0
-	drop: ()::bytes4.n0
-	drop: ()::bytes8.n0
-	drop: ()::bytes12.n0
-	drop: ()::bytes12.n1
-	drop: ()::bytes14.n0
-	drop: ()::bytes14.n1
-	drop: ()::bytes16.n0
-	drop: ()::bytes16.n1
-	drop: ()::bytes32.n0
-	drop: ()::bytes32.n1
-	drop: ()::bytes40.n0
-	drop: ()::bytes40.n1
-	drop: ()::bytes48.n0
-	drop: ()::bytes48.n1
-	drop: ()::bytes64.n0
-	drop: ()::bytes64.n1
-	drop: ()::bytes128.n0
-	drop: ()::bytes128.n1
-	drop: ()::bytes256.n0
-	drop: ()::bytes256.n1
+	_ = ()::bytes2.n0
+	_ = ()::bytes4.n0
+	_ = ()::bytes8.n0
+	_ = ()::bytes12.n0
+	_ = ()::bytes12.n1
+	_ = ()::bytes14.n0
+	_ = ()::bytes14.n1
+	_ = ()::bytes16.n0
+	_ = ()::bytes16.n1
+	_ = ()::bytes32.n0
+	_ = ()::bytes32.n1
+	_ = ()::bytes40.n0
+	_ = ()::bytes40.n1
+	_ = ()::bytes48.n0
+	_ = ()::bytes48.n1
+	_ = ()::bytes64.n0
+	_ = ()::bytes64.n1
+	_ = ()::bytes128.n0
+	_ = ()::bytes128.n1
+	_ = ()::bytes256.n0
+	_ = ()::bytes256.n1
+	()

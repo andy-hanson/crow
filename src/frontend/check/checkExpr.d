@@ -51,8 +51,10 @@ import frontend.parse.ast :
 	matchNameOrUnderscoreOrNone,
 	NameAndRange,
 	NameOrUnderscoreOrNone,
+	OptNameAndRange,
 	ParenthesizedAst,
 	rangeOfNameAndRange,
+	rangeOfOptNameAndRange,
 	SeqAst,
 	ThenAst,
 	ThenVoidAst,
@@ -147,17 +149,21 @@ immutable(Expr) checkFunctionBody(
 	// leave funInfo.closureFields uninitialized, it won't be used
 	scope LocalsInfo locals = LocalsInfo(ptrTrustMe_mut(funInfo), noneMut!(Ptr!LocalNode));
 	immutable Expr res = checkAndExpect(exprCtx, locals, ast, returnType);
-	zipPtrFirst!(Param, bool)(
-		params,
-		tempAsArr(funInfo.paramsUsed),
-		(immutable Ptr!Param param, ref immutable bool used) {
-			if (!used && has(param.deref().name))
-				addDiag(checkCtx, param.deref().range, immutable Diag(immutable Diag.UnusedParam(param)));
-		});
+	checkUnusedParams(checkCtx, params, tempAsArr(funInfo.paramsUsed));
 	return res;
 }
 
 private:
+
+void checkUnusedParams(ref CheckCtx checkCtx, immutable Param[] params, scope immutable bool[] paramsUsed) {
+	return zipPtrFirst!(Param, bool)(
+		params,
+		paramsUsed,
+		(immutable Ptr!Param param, ref immutable bool used) {
+			if (!used && has(param.deref().name))
+				addDiag(checkCtx, param.deref().range, immutable Diag(immutable Diag.UnusedParam(param)));
+		});
+}
 
 struct ExprAndType {
 	immutable Expr expr;
@@ -717,20 +723,19 @@ immutable(Param[]) checkParamsForLambda(
 		ctx.alloc,
 		paramAsts,
 		expectedParamTypes,
-		(ref immutable LambdaAst.Param ast, ref immutable Type expectedParamType, immutable size_t index) {
+		(ref immutable LambdaAst.Param ast, ref immutable Type type, immutable size_t index) {
+			immutable RangeWithinFile range = rangeOfOptNameAndRange(ast, ctx.allSymbols);
 			immutable Opt!Sym name = () {
-				if (nameIsParameterOrLocalInScope(ctx.alloc, locals, ast.name)) {
-					addDiag(ctx.checkCtx, rangeOfNameAndRange(ast, ctx.allSymbols), immutable Diag(
-						immutable Diag.DuplicateDeclaration(Diag.DuplicateDeclaration.Kind.paramOrLocal, ast.name)));
+				if (has(ast.name) && nameIsParameterOrLocalInScope(ctx.alloc, locals, force(ast.name))) {
+					addDiag(ctx.checkCtx, range, immutable Diag(
+						immutable Diag.DuplicateDeclaration(
+							Diag.DuplicateDeclaration.Kind.paramOrLocal,
+							force(ast.name))));
 					return none!Sym;
 				} else
-					return some(ast.name);
+					return ast.name;
 			}();
-			return immutable Param(
-				rangeInFile2(ctx, rangeOfNameAndRange(ast, ctx.allSymbols)),
-				name,
-				expectedParamType,
-				index);
+			return immutable Param(rangeInFile2(ctx, range), name, type, index);
 		});
 }
 
@@ -818,6 +823,8 @@ immutable(Expr) checkLambda(
 	// if the expected return type contains candidate's type params
 	immutable Expr body_ = checkExpr(ctx, lambdaLocalsInfo, ast.body_, returnTypeInferrer);
 
+	checkUnusedParams(ctx.checkCtx, params, tempAsArr(lambdaInfo.paramsUsed));
+
 	final switch (kind) {
 		case FunKind.plain:
 			foreach (ref immutable ClosureFieldBuilder cf; tempAsArr(lambdaInfo.closureFields))
@@ -872,12 +879,20 @@ immutable(Expr) checkLet(
 	ref Expected expected,
 ) {
 	immutable ExprAndType init = checkAndExpect(ctx, locals, ast.initializer, typeFromOptAst(ctx, ast.type));
-	immutable Ptr!Local local = allocate(ctx.alloc, immutable Local(
-		rangeInFile2(ctx, rangeOfNameAndRange(immutable NameAndRange(range.start, ast.name), ctx.allSymbols)),
-		ast.name,
-		init.type));
-	immutable Expr then = checkWithLocal(ctx, locals, local, ast.then, expected);
-	return immutable Expr(range, allocate(ctx.alloc, immutable Expr.Let(local, init.expr, then)));
+	if (has(ast.name)) {
+		immutable Ptr!Local local = allocate(ctx.alloc, immutable Local(
+			rangeInFile2(ctx, rangeOfOptNameAndRange(immutable OptNameAndRange(range.start, ast.name), ctx.allSymbols)),
+			force(ast.name),
+			init.type));
+		immutable Expr then = checkWithLocal(ctx, locals, local, ast.then, expected);
+		return immutable Expr(range, allocate(ctx.alloc, immutable Expr.Let(local, init.expr, then)));
+	} else {
+		immutable Expr then = checkExpr(ctx, locals, ast.then, expected);
+		return immutable Expr(range,
+			allocate(ctx.alloc, immutable Expr.Seq(
+				immutable Expr(init.expr.range, allocate(ctx.alloc, immutable Expr.Drop(init.expr))),
+				then)));
+	}
 }
 
 immutable(Expr) checkWithOptLocal(

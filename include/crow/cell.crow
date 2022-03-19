@@ -1,6 +1,6 @@
 no-std
 import
-	./misc: drop, new, void
+	./misc: new, void
 	./ptr: as-any-mut-ptr, as-const, as-ref, by-val, const-ptr, mut-ptr, ptr-cast
 	./private/number-low-level: nat64
 
@@ -68,4 +68,5 @@ swap<a> void(a cell a, b cell a) noctx
 
 test
 	a cell nat64 = 1,
-	drop: a.ignore
+	_ = a ignore
+	()

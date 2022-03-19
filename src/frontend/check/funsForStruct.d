@@ -257,7 +257,7 @@ FunDecl flagsAllFunction(
 	return FunDecl(
 		safeCStr!"",
 		visibility,
-		FunFlags.generatedNoCtx,
+		FunFlags.generatedNoCtx.withOkIfUnused(),
 		immutable Sig(
 			fileAndPosFromFileAndRange(fileAndRange),
 			shortSym("all"),
@@ -277,7 +277,7 @@ FunDecl flagsNegateFunction(
 	return FunDecl(
 		safeCStr!"",
 		visibility,
-		FunFlags.generatedNoCtx,
+		FunFlags.generatedNoCtx.withOkIfUnused(),
 		immutable Sig(
 			fileAndPosFromFileAndRange(fileAndRange),
 			symForOperator(Operator.tilde),
@@ -375,7 +375,7 @@ FunDecl flagsUnionOrIntersectFunction(
 	return FunDecl(
 		safeCStr!"",
 		visibility,
-		FunFlags.generatedNoCtx,
+		FunFlags.generatedNoCtx.withOkIfUnused(),
 		immutable Sig(
 			fileAndPosFromFileAndRange(fileAndRange),
 			symForOperator(operator),

@@ -24,6 +24,7 @@ import frontend.parse.ast :
 	MatchAst,
 	NameAndRange,
 	NameOrUnderscoreOrNone,
+	OptNameAndRange,
 	ParenthesizedAst,
 	SeqAst,
 	ThenAst,
@@ -55,8 +56,10 @@ import frontend.parse.lexer :
 	takeName,
 	takeNameAndRange,
 	takeNameOrOperator,
+	takeNameOrUnderscore,
 	takeNameOrUnderscoreOrNone,
 	takeNewlineOrDedentAmount,
+	takeOptNameAndRange,
 	takeOrAddDiagExpectedToken,
 	takeStringPart,
 	Token,
@@ -869,7 +872,7 @@ immutable(LambdaAst.Param[]) parseParenthesizedLambdaParametersRecur(
 	ref ArrBuilder!(LambdaAst.Param) parameters,
 ) {
 	immutable Pos start = curPos(lexer);
-	immutable Sym name = takeName(lexer);
+	immutable Opt!Sym name = takeNameOrUnderscore(lexer);
 	add(lexer.alloc, parameters, immutable LambdaAst.Param(start, name));
 	if (tryTakeToken(lexer, Token.comma))
 		return parseParenthesizedLambdaParametersRecur(lexer, parameters);
@@ -879,6 +882,16 @@ immutable(LambdaAst.Param[]) parseParenthesizedLambdaParametersRecur(
 				immutable ParseDiag.Expected(ParseDiag.Expected.Kind.closingParen)));
 		return finishArr(lexer.alloc, parameters);
 	}
+}
+
+immutable(ExprAndMaybeDedent) parseLambdaAfterArrow(
+	ref Lexer lexer,
+	immutable Pos start,
+	immutable AllowedBlock allowedBlock,
+	immutable Opt!Sym paramName,
+) {
+	return parseLambdaAfterArrow(lexer, start, allowedBlock, arrLiteral!(LambdaAst.Param)(lexer.alloc, [
+		immutable LambdaAst.Param(start, paramName)]));
 }
 
 immutable(ExprAndMaybeDedent) parseLambdaAfterArrow(
@@ -934,7 +947,6 @@ immutable(ExprAndMaybeDedent) exprBlockNotAllowed(
 
 immutable(ExprAndMaybeDedent) parseExprBeforeCall(ref Lexer lexer, immutable AllowedBlock allowedBlock) {
 	immutable Pos start = curPos(lexer);
-
 	immutable Token token = nextToken(lexer);
 	switch (token) {
 		case Token.parenLeft:
@@ -979,14 +991,9 @@ immutable(ExprAndMaybeDedent) parseExprBeforeCall(ref Lexer lexer, immutable All
 				: exprBlockNotAllowed(lexer, start, ParseDiag.NeedsBlockCtx.Kind.match);
 		case Token.name:
 			immutable Sym name = getCurSym(lexer);
-			if (tryTakeToken(lexer, Token.arrowLambda))
-				return parseLambdaAfterArrow(
-					lexer,
-					start,
-					allowedBlock,
-					arrLiteral!(LambdaAst.Param)(lexer.alloc, [immutable LambdaAst.Param(start, name)]));
-			else
-				return handleName(lexer, start, immutable NameAndRange(start, name));
+			return tryTakeToken(lexer, Token.arrowLambda)
+				? parseLambdaAfterArrow(lexer, start, allowedBlock, some(name))
+				: handleName(lexer, start, immutable NameAndRange(start, name));
 		case Token.operator:
 			// '&' can't be used as a prefix operator, instead it makes a fun-ptr
 			immutable Operator operator = getCurOperator(lexer);
@@ -999,14 +1006,22 @@ immutable(ExprAndMaybeDedent) parseExprBeforeCall(ref Lexer lexer, immutable All
 				return handlePrefixOperator(lexer, allowedBlock, start, getCurOperator(lexer));
 		case Token.literal:
 			return handleLiteral(lexer, start, getCurLiteral(lexer));
+		case Token.underscore:
+			return tryTakeToken(lexer, Token.arrowLambda)
+				? parseLambdaAfterArrow(lexer, start, allowedBlock, none!Sym)
+				: badToken(lexer, start, token);
 		case Token.unless:
 			return isAllowBlock(allowedBlock)
 				? toMaybeDedent(parseUnless(lexer, start, asAllowBlock(allowedBlock).curIndent))
 				: exprBlockNotAllowed(lexer, start, ParseDiag.NeedsBlockCtx.Kind.unless);
 		default:
-			addDiagUnexpectedCurToken(lexer, start, token);
-			return skipRestOfLineAndReturnBogusNoDiag(lexer, start);
+			return badToken(lexer, start, token);
 	}
+}
+
+immutable(ExprAndMaybeDedent) badToken(ref Lexer lexer, immutable Pos start, immutable Token token) {
+	addDiagUnexpectedCurToken(lexer, start, token);
+	return skipRestOfLineAndReturnBogusNoDiag(lexer, start);
 }
 
 immutable(ExprAndMaybeDedent) handlePrefixOperator(
@@ -1155,7 +1170,7 @@ immutable(ExprAndDedent) parseSingleStatementLine(ref Lexer lexer, immutable uin
 
 immutable(ExprAndDedent) parseEqualsOrThen(ref Lexer lexer, immutable uint curIndent) {
 	immutable Pos start = curPos(lexer);
-	immutable NameAndRange name = takeNameAndRange(lexer);
+	immutable OptNameAndRange name = takeOptNameAndRange(lexer);
 	immutable TypeAndEqualsOrThen te = parseTypeAndEqualsOrThen(lexer);
 	immutable ExprAndDedent initAndDedent = parseExprNoLet(lexer, curIndent);
 	immutable ExprAndDedent thenAndDedent =
@@ -1167,7 +1182,7 @@ immutable(ExprAndDedent) parseEqualsOrThen(ref Lexer lexer, immutable uint curIn
 
 immutable(ExprAstKind) letOrThen(
 	ref Alloc alloc,
-	immutable NameAndRange name,
+	immutable OptNameAndRange name,
 	immutable Opt!(Ptr!TypeAst) type,
 	immutable EqualsOrThen kind,
 	immutable ExprAst init,

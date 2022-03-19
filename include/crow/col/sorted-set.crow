@@ -303,7 +303,7 @@ body
 region iteration
 
 each<a> void(a sorted-set a, f act void(a)) is-data<a> compare<a>
-	() fold a, (ignore, x) => f[x]
+	() fold a, (_, x) => f[x]
 
 fold<a, b> a(acc a, a sorted-set b, f act a(a, b)) is-data<b> compare<b>
 	acc fold-recur a.init-iters, a.remove, f

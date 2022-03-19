@@ -99,7 +99,7 @@ then<out, in> fut out(a fut in, f ref out(in)) trusted is-sendable<out> is-senda
 
 # Like `then`, but `f` takes no parameter (since it will be `void` anyway.)
 then-void<out> fut out(a fut void, f ref out()) is-sendable<out>
-	a then ignore =>
+	a then _ =>
 		f[]
 
 ###

@@ -4,7 +4,7 @@ import
 	../bool: bool
 	../compare: <, <=, equal
 	../fun-util: subscript
-	../misc: drop, new, void
+	../misc: new, void
 	../opt: new, opt
 	../ptr:
 		==, <=>, +, -, *, as-any-const-ptr, as-any-mut-ptr, as-const, as-mut, by-val, mut-ptr,
@@ -146,7 +146,8 @@ This is O(n).
 ###
 copy-from<a> void(dest fix-arr a, source a[]) trusted
 	assert: dest.size == source.size
-	drop: dest.begin-ptr.as-any-mut-ptr memcpy source.begin-ptr.as-any-const-ptr, (dest.size wrap-mul size-of@<a>)
+	_ = dest.begin-ptr.as-any-mut-ptr memcpy source.begin-ptr.as-any-const-ptr, (dest.size wrap-mul size-of@<a>)
+	()
 
 ###
 Copies elements from `source` to `dest`.
@@ -205,11 +206,11 @@ make-fix-arr<a> fix-arr a(size nat64, f act a(nat64)) trusted
 Equivalent to `value, value, ...`.
 ###
 fill-fix-arr<a> fix-arr a(size nat64, value a)
-	size make-fix-arr ignore => value
+	size make-fix-arr _ => value
 
 # Sets every element to `value`.
 fill<a> void(a fix-arr a, value a)
-	a set-map ignore => value
+	a set-map _ => value
 
 ###
 Unsafe cast a fix-arr to arr.

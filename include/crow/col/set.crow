@@ -232,8 +232,7 @@ body
 region iteration
 
 each<a> void(a set a, f act void(a)) is-data<a> compare<a> hash-mix<a>
-	() fold a, (ignore, x) =>
-		f[x]
+	() fold a, (_, x) => f[x]
 
 fold<a, b> a(acc a, a set b, f act a(a, b)) is-data<b> compare<b> hash-mix<b>
 	acc fold-recur a.add, a.add.add-size-left, a.remove, f

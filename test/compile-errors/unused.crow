@@ -1,0 +1,22 @@
+foo<a> void(p nat, _ str)
+	_ act void(nat) = x => ()
+	_ act void(nat) = _ => ()
+	()
+
+.bar<a> void() compare<a>
+	()
+
+.r record mut
+	.r0 .mut nat
+
+.u union
+	u0 nat
+
+.a alias
+	nat
+
+.e enum
+	e0
+
+.f flags
+	f0

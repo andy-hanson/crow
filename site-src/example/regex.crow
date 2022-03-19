@@ -32,7 +32,7 @@ parse result<regex, str>(source str) unsafe
 		res ok
 	else
 		buf char8 mut[] = 1000 fill-mut-arr "\0"
-		drop: err regerror res.wrapped.as-const-ptr, buf.begin-ptr, buf.size
+		_ = err regerror res.wrapped.as-const-ptr, buf.begin-ptr, buf.size
 		res free
 		buf.begin-ptr.as-const.to-str err
 
@@ -47,7 +47,7 @@ matches bool(a regex, candidate str) trusted
 		false
 	else
 		buf char8 mut[] = 1000 fill-mut-arr "\0"
-		drop: err regerror a.wrapped.as-const-ptr, buf.begin-ptr, buf.size
+		_ = err regerror a.wrapped.as-const-ptr, buf.begin-ptr, buf.size
 		buf.begin-ptr.as-const.to-str throw
 
 regex_t record mut by-val extern

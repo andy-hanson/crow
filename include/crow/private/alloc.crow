@@ -6,7 +6,7 @@ import
 	../bool: !, ||, bool, false, to-nat64, true
 	../compare: !=, <, <=, >
 	../fun-util: subscript
-	../misc: drop, new
+	../misc: new
 	../ptr:
 		==, <=>, +, -, *, any-const-ptr, any-mut-ptr, as-any-const-ptr, as-any-mut-ptr, as-const,
 		as-mut, as-ref, by-val, const-ptr, mut-ptr, null, ptr-cast, ref-of-val, set-deref,
@@ -17,11 +17,13 @@ import
 	./thread-utils: acquire, barrier, init, release, wait-barrier, uninit
 
 mem-copy<a> void(dest a mut*, src a*, size nat64) unsafe noctx
-	drop: dest.as-any-mut-ptr memcpy src.as-any-const-ptr, (size wrap-mul size-of@<a>)
+	_ = dest.as-any-mut-ptr memcpy src.as-any-const-ptr, (size wrap-mul size-of@<a>)
+	()
 
 set-zero-range<a> void(begin a mut*, size nat64) noctx unsafe
 	# TODO: wrap-mul is unsafe
-	drop: begin.as-any-mut-ptr memset 0, (size wrap-mul size-of@<a>)
+	_ = begin.as-any-mut-ptr memset 0, (size wrap-mul size-of@<a>)
+	()
 
 mark-ctx record mut
 	memory-size-words nat64
@@ -133,7 +135,7 @@ uninit by-val gc() noctx unsafe
 	hard-assert: bytes.as-any-mut-ptr is-word-aligned
 	bytes-end = bytes + size-words
 
-	drop: mark.as-any-mut-ptr memset 0, size-words
+	_ = mark.as-any-mut-ptr memset 0, size-words
 
 	res by-val gc = uninit, uninit, 0, none, false, size-words, mark, mark, mark-end, bytes, bytes, bytes-end
 	res.ref-of-val validate-gc
@@ -148,7 +150,7 @@ run-garbage-collection<a> void(gc gc, gc-root a) noctx unsafe
 	hard-assert: gc needs-gc
 	if gc.barrier.ref-of-val wait-barrier
 		gc.gc-count := gc.gc-count wrap-add 1
-		drop: gc.mark-begin.as-any-mut-ptr memset 0, gc.size-words
+		_ = gc.mark-begin.as-any-mut-ptr memset 0, gc.size-words
 		mark-ctx by-val mark-ctx = gc.size-words, gc.mark-begin, gc.data-begin
 		mark-ctx.ref-of-val mark-visit gc-root
 		prev-mark-cur = gc.mark-cur
@@ -157,7 +159,8 @@ run-garbage-collection<a> void(gc gc, gc-root a) noctx unsafe
 		gc.mark-begin clear-free-mem prev-mark-cur, gc.data-begin
 		gc validate-gc
 		gc.needs-gc := false
-	drop: gc.barrier.ref-of-val wait-barrier
+	_ = gc.barrier.ref-of-val wait-barrier
+	()
 
 # TODO: use memset
 .clear-free-mem void(mark-ptr bool mut*, mark-end bool mut*, data-ptr nat64 mut*) noctx unsafe
@@ -315,7 +318,8 @@ unmanaged-free<a> void(p a mut*) noctx unsafe
 	p.as-any-mut-ptr free
 
 copy-data-from<a> void(to a mut*, from a*, len nat64) unsafe
-	drop: to.as-any-mut-ptr memcpy from.as-any-const-ptr, (len wrap-mul size-of@<a>)
+	_ = to.as-any-mut-ptr memcpy from.as-any-const-ptr, (len wrap-mul size-of@<a>)
+	()
 
 fill-ptr-range<a> void(begin a mut*, size nat64, f act a(nat64)) unsafe
 	begin fill-ptr-range-recur 0, size, f

@@ -48,6 +48,7 @@ import frontend.parse.lexer :
 	takeName,
 	takeNameAndRange,
 	takeNameOrOperator,
+	takeNameOrUnderscore,
 	takeNewlineOrDedentAmount,
 	takeNewlineOrIndent_topLevel,
 	takeNewlineOrSingleDedent,
@@ -250,9 +251,7 @@ struct ParamsAndMaybeDedent {
 
 immutable(ParamAst) parseSingleParam(ref Lexer lexer) {
 	immutable Pos start = curPos(lexer);
-	immutable Opt!Sym name = tryTakeToken(lexer, Token.underscore)
-		? none!Sym
-		: some(takeName(lexer));
+	immutable Opt!Sym name = takeNameOrUnderscore(lexer);
 	immutable TypeAst type = parseType(lexer);
 	return immutable ParamAst(range(lexer, start), name, type);
 }

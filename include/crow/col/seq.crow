@@ -494,7 +494,7 @@ slice-left<a> seq a(a seq-iter a) trusted
 		b = a.seq get-l0-branch
 		(b.left branch-or-leaf-l0 b.down, a.cur.as-1d.slice-left),
 	as l1-leaf
-		a.seq slice-left-update-l1 ignore =>
+		a.seq slice-left-update-l1 _ =>
 			a.cur.as-2d.slice-left.leaf,
 	as l1-left
 		a.seq slice-left-update-l1 l1 =>
@@ -505,7 +505,7 @@ slice-left<a> seq a(a seq-iter a) trusted
 			b = l1.node as-branch
 			b.left branch-or-leaf-l1 b.down, a.cur.as-2d.slice-left
 	as l2-leaf
-		a.seq slice-left-update-l2 ignore =>
+		a.seq slice-left-update-l2 _ =>
 			a.cur.slice-left,
 
 ###
@@ -522,7 +522,7 @@ slice-right<a> seq a(a seq-iter a) trusted
 	as l0-right
 		a.cur.as-1d.slice-right to-seq
 	as l1-leaf
-		a.seq slice-right-update-l1 ignore =>
+		a.seq slice-right-update-l1 _ =>
 			a.cur.as-2d.slice-right.leaf,
 	as l1-left
 		a.seq slice-right-update-l1 l1 =>
@@ -533,7 +533,7 @@ slice-right<a> seq a(a seq-iter a) trusted
 			b = l1.node as-branch
 			b.left branch-or-leaf-l1 b.down, a.cur.as-2d.slice-right
 	as l2-leaf
-		a.seq slice-right-update-l2 ignore =>
+		a.seq slice-right-update-l2 _ =>
 			a.cur.slice-right,
 
 .level<l, a> spec
@@ -763,7 +763,7 @@ slice-right<a> seq a(a seq-iter a) trusted
 region iteration
 
 each<a> void(a seq a, f act void(a))
-	() fold a, (ignore, x) => f[x]
+	() fold a, (_, x) => f[x]
 
 fold<a, b> a(acc a, a seq b, f act a(a, b))
 	acc fold-chunks a, (cur, chunk) =>

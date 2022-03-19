@@ -4,7 +4,7 @@ import
 	crow/c-types: u-int, u-long
 	crow/extra-types: err-t
 	crow/fun-util: fun-ptr1
-	crow/misc: drop
+	crow/misc: new
 	crow/ptr: any-const-ptr, any-mut-ptr, by-val, const-ptr, mut-ptr, ref-of-val, zeroed
 	crow/private/bootstrap: int32
 	time: __clockid_t, timespec
@@ -98,13 +98,14 @@ pthread_barrierattr_destroy err-t(attr pthread_barrierattr_t mut*) unsafe extern
 
 test
 	mutex by-val pthread_mutex_t = zeroed
-	drop: mutex.ref-of-val sizer
+	_ = mutex.ref-of-val sizer
 	mutex-attr by-val pthread_mutexattr_t = zeroed
-	drop: mutex-attr.ref-of-val sizer
+	_ = mutex-attr.ref-of-val sizer
 	cond by-val pthread_cond_t = zeroed
-	drop: cond.ref-of-val sizer
+	_ = cond.ref-of-val sizer
 	cond-attr by-val pthread_condattr_t = zeroed
-	drop: cond-attr.ref-of-val sizer
+	_ = cond-attr.ref-of-val sizer
 	barrier by-val pthread_barrier_t = zeroed
-	drop: barrier.ref-of-val sizer
-	drop: zeroed::pthread_barrierattr_t.sizer
+	_ = barrier.ref-of-val sizer
+	_ = zeroed::pthread_barrierattr_t.sizer
+	()

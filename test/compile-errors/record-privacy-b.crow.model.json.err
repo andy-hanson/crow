@@ -4,14 +4,14 @@ actual argument types:  (other arguments not checked, gave up early)
 candidates (with 1 arguments):
 	new arr<a>(...arr<a>) (from crow/col/private/arr-low-level.crow line 12)
 	new fut<a>(a) (from crow/fut.crow line 28)
-	new opt<a>(a) (from crow/opt.crow line 17)
+	new opt<a>(a) (from crow/opt.crow line 16)
 	new interp(str) (from crow/str-conv.crow line 156)
 	new by-val<interp>(str) (from crow/str-conv.crow line 156)
 
-./test/compile-errors/record-privacy-b.crow 9:13-9:14 there is no function or field named 'j'
+./test/compile-errors/record-privacy-b.crow 9:11-9:12 there is no function or field named 'j'
 
 ./test/compile-errors/record-privacy-b.crow 10:6-10:11 there is no function named 'set-k'
 
 ./test/compile-errors/record-privacy-b.crow 12:6-12:11 there is no function named 'set-l'
 
-./test/compile-errors/record-privacy-b.crow 13:13-13:14 there is no function or field named 'l'
+./test/compile-errors/record-privacy-b.crow 13:11-13:12 there is no function or field named 'l'

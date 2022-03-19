@@ -146,7 +146,7 @@ body
 region iteration
 
 each<a> void(a frozen-set a, f act void(a))
-	() fold a, (ignore, x) =>
+	() fold a, (_, x) =>
 		f[x]
 
 fold<a, b> a(acc a, a frozen-set b, f act a(a, b))

@@ -5,7 +5,7 @@ import
 	crow/c-types: c-char, c-int, long, u-short, u-int, size_t
 	crow/extra-types: err-t
 	crow/fun-util: fun-ptr1
-	crow/misc: drop, void
+	crow/misc: new, void
 	crow/private/bootstrap: c-str
 	crow/private/number-low-level:
 		int64, max-nat64, nat8, nat16, nat32, nat64, new, to-nat16, to-nat32, unsafe-to-nat32
@@ -468,28 +468,29 @@ Sleep void(dwMilliseconds DWORD) noctx summon extern
 
 # Just ensuring that private fields are used...
 test
-	drop: ()::chars2.n0
-	drop: ()::chars2.n1
-	drop: ()::chars4.n0
-	drop: ()::chars4.n1
-	drop: ()::chars8.n0
-	drop: ()::chars8.n1
-	drop: ()::chars14.n0
-	drop: ()::chars14.n1
-	drop: ()::chars14.n2
-	drop: ()::chars16.n0
-	drop: ()::chars16.n1
-	drop: ()::chars32.n0
-	drop: ()::chars32.n1
-	drop: ()::chars64.n0
-	drop: ()::chars64.n1
-	drop: ()::chars128.n0
-	drop: ()::chars128.n1
-	drop: ()::chars129.n0
-	drop: ()::chars129.n1
-	drop: ()::chars256.n0
-	drop: ()::chars256.n1
-	drop: ()::chars257.n0
-	drop: ()::chars257.n1
-	drop: ()::chars-max-path.n0
-	drop: ()::chars-max-path.n1
+	_ = ()::chars2.n0
+	_ = ()::chars2.n1
+	_ = ()::chars4.n0
+	_ = ()::chars4.n1
+	_ = ()::chars8.n0
+	_ = ()::chars8.n1
+	_ = ()::chars14.n0
+	_ = ()::chars14.n1
+	_ = ()::chars14.n2
+	_ = ()::chars16.n0
+	_ = ()::chars16.n1
+	_ = ()::chars32.n0
+	_ = ()::chars32.n1
+	_ = ()::chars64.n0
+	_ = ()::chars64.n1
+	_ = ()::chars128.n0
+	_ = ()::chars128.n1
+	_ = ()::chars129.n0
+	_ = ()::chars129.n1
+	_ = ()::chars256.n0
+	_ = ()::chars256.n1
+	_ = ()::chars257.n0
+	_ = ()::chars257.n1
+	_ = ()::chars-max-path.n0
+	_ = ()::chars-max-path.n1
+	()

@@ -48,6 +48,15 @@ immutable(RangeWithinFile) rangeOfNameAndRange(immutable NameAndRange a, ref con
 	return rangeOfStartAndName(a.start, a.name, allSymbols);
 }
 
+struct OptNameAndRange {
+	immutable Pos start;
+	immutable Opt!Sym name;
+}
+
+immutable(RangeWithinFile) rangeOfOptNameAndRange(immutable OptNameAndRange a, ref const AllSymbols allSymbols) {
+	return rangeOfStartAndName(a.start, has(a.name) ? force(a.name) : shortSym("_"), allSymbols);
+}
+
 struct TypeAst {
 	@safe @nogc pure nothrow:
 
@@ -300,13 +309,13 @@ struct InterpolatedPart {
 }
 
 struct LambdaAst {
-	alias Param = NameAndRange;
+	alias Param = OptNameAndRange;
 	immutable Param[] params;
 	immutable ExprAst body_;
 }
 
 struct LetAst {
-	immutable Sym name;
+	immutable Opt!Sym name;
 	immutable Opt!(Ptr!TypeAst) type;
 	immutable ExprAst initializer;
 	immutable ExprAst then;
@@ -1347,6 +1356,12 @@ immutable(Repr) reprNameAndRange(ref Alloc alloc, immutable NameAndRange a) {
 	return reprRecord(alloc, "name-range", [reprNat(a.start), reprSym(a.name)]);
 }
 
+immutable(Repr) reprLambdaParamAst(ref Alloc alloc, immutable LambdaAst.Param a) {
+	return reprRecord(alloc, "param", [
+		reprNat(a.start),
+		reprSym(has(a.name) ? force(a.name) : shortSym("_"))]);
+}
+
 immutable(Repr) reprExprAstKind(ref Alloc alloc, ref immutable ExprAstKind ast) {
 	return matchExprAstKind!(
 		immutable Repr,
@@ -1390,11 +1405,11 @@ immutable(Repr) reprExprAstKind(ref Alloc alloc, ref immutable ExprAstKind ast) 
 		(ref immutable LambdaAst it) =>
 			reprRecord(alloc, "lambda", [
 				reprArr(alloc, it.params, (ref immutable LambdaAst.Param it) =>
-					reprNameAndRange(alloc, it)),
+					reprLambdaParamAst(alloc, it)),
 				reprExprAst(alloc, it.body_)]),
 		(ref immutable LetAst a) =>
 			reprRecord(alloc, "let", [
-				reprSym(a.name),
+				reprSym(has(a.name) ? force(a.name) : shortSym("_")),
 				reprExprAst(alloc, a.initializer),
 				reprExprAst(alloc, a.then)]),
 		(ref immutable LiteralAst a) =>
@@ -1424,7 +1439,7 @@ immutable(Repr) reprExprAstKind(ref Alloc alloc, ref immutable ExprAstKind ast) 
 				reprExprAst(alloc, a.then)]),
 		(ref immutable ThenAst it) =>
 			reprRecord(alloc, "then-ast", [
-				reprNameAndRange(alloc, it.left),
+				reprLambdaParamAst(alloc, it.left),
 				reprExprAst(alloc, it.futExpr),
 				reprExprAst(alloc, it.then)]),
 		(ref immutable ThenVoidAst it) =>

@@ -137,6 +137,7 @@ all-files file[]() summon
 .lint-imports-in-file void(failures str mut[], a file)
 	not-used = a.imports to-mut-set
 	a.uses each-key x =>
-		drop: not-used try-remove x
+		_ = not-used try-remove x
+		()
 	not-used each x =>
 		failures ~= "{a path}: unused import {x}"

@@ -77,12 +77,12 @@ size<a> nat64(a mut-grid a)
 
 # Creates a new grid with the given width and height, setting every element to `value`.
 fill-mut-grid<a> mut-grid a(width nat64, height nat64, value a)
-	width make-mut-grid height, (ignore, ignore2) => value
+	width make-mut-grid height, (_, _) => value
 
 # Creates a new grid with the given width and height, setting every element to `f[x, y]`.
 make-mut-grid<a> mut-grid a(width nat64, height nat64, f act a(nat64, nat64)) trusted
 	res mut-grid a = (width * height).uninitialized-fix-arr, width, height
-	res set-map-with-coords (ignore, coord) => f[coord.x, coord.y]
+	res set-map-with-coords (_, coord) => f[coord.x, coord.y]
 	res
 
 # Copy elements to a new grid.
@@ -144,10 +144,10 @@ to-str<a> str(a mut-grid a) write<a>
 region iteration
 
 each<a> void(a mut-grid a, f act void(a))
-	() fold a, (ignore, value) => f[value]
+	() fold a, (_, value) => f[value]
 
 each-row<a> void(a mut-grid a, f act void(fix-arr a))
-	() fold-rows a, (ignore, row) => f[row]
+	() fold-rows a, (_, row) => f[row]
 
 fold-rows<a, b> a(acc a, a mut-grid b, f act a(a, fix-arr b))
 	acc fold-rows-recur a, 0, f

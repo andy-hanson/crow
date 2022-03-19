@@ -250,6 +250,8 @@ immutable(Repr) reprExpr(ref Alloc alloc, ref Ctx ctx, ref immutable Expr a) {
 			reprRecord(alloc, "closure-rf", [reprNat(a.index)]),
 		(ref immutable Expr.Cond) =>
 			todo!(immutable Repr)("cond"),
+		(ref immutable Expr.Drop x) =>
+			reprRecord(alloc, "drop", [reprExpr(alloc, ctx, x.arg)]),
 		(ref immutable Expr.FunPtr it) =>
 			reprRecord(alloc, "fun-ptr", [
 				reprFunInst(alloc, ctx, it.funInst.deref()),

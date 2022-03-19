@@ -2,7 +2,6 @@ no-std
 import
 	./bool: bool, false, new, true
 	./compare: equal
-	./misc: drop
 	./private/bootstrap: none, some
 	./private/exception-low-level: throw-c-str
 	./private/number-low-level: ==, int64, nat64, new
@@ -32,9 +31,9 @@ opt-equal<a> bool(a a?, b a?) equal<a> noctx no-doc
 
 # True iff `a` is an empty option.
 is-empty<a> bool(a a?) noctx
+	# TODO: `if _ ?= a`
 	if x ?= a
-		# TODO: use '_'
-		drop: x
+		_ = x
 		false
 	else
 		true

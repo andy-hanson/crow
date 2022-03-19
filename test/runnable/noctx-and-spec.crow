@@ -5,7 +5,7 @@ In that case, the particular instance of `<` should actually get a ctx.
 
 main fut nat(_ str[]) summon
 	x t = ()
-	drop: x < x
+	_ = x < x
 	()
 
 t record

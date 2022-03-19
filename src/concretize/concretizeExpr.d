@@ -21,7 +21,8 @@ import concretize.concretizeCtx :
 	symType,
 	typeArgsScope,
 	TypeArgsScope,
-	typesToConcreteTypes_fromConcretizeCtx = typesToConcreteTypes;
+	typesToConcreteTypes_fromConcretizeCtx = typesToConcreteTypes,
+	voidType;
 import concretize.constantsOrExprs : asConstantsOrExprs, ConstantsOrExprs, matchConstantsOrExprs;
 import model.concreteModel :
 	asConstant,
@@ -294,6 +295,19 @@ immutable(ConcreteField[]) concretizeClosureFields(
 			index,
 			ConcreteMutability.const_,
 			getConcreteType_fromConcretizeCtx(ctx, variableRefType(x), typeArgsScope)));
+}
+
+immutable(ConcreteExpr) concretizeDrop(
+	ref ConcretizeExprCtx ctx,
+	immutable FileAndRange range,
+	scope ref immutable Locals locals,
+	ref immutable Expr.Drop e,
+) {
+	immutable ConcreteExpr arg = concretizeExpr(ctx, locals, e.arg);
+	immutable ConcreteExprKind kind = isConstant(arg.kind)
+		? immutable ConcreteExprKind(immutable Constant(immutable Constant.Void()))
+		: immutable ConcreteExprKind(allocate(ctx.alloc, immutable ConcreteExprKind.Drop(arg)));
+	return immutable ConcreteExpr(voidType(ctx.concretizeCtx), range, kind);
 }
 
 immutable(ConcreteExpr) concretizeFunPtr(
@@ -615,6 +629,8 @@ immutable(ConcreteExpr) concretizeExpr(
 						concretizeExpr(ctx, locals, e.then),
 						concretizeExpr(ctx, locals, e.else_)))));
 		},
+		(ref immutable Expr.Drop e) =>
+			concretizeDrop(ctx, range, locals, e),
 		(ref immutable Expr.FunPtr e) =>
 			concretizeFunPtr(ctx, range, e),
 		(ref immutable Expr.IfOption e) =>

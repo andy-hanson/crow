@@ -8,10 +8,10 @@ remove-include-and-crow str(a str)
 	((a try-remove-start "include/")! try-remove-end ".crow")!
 
 search-dir-recursive str[](path str) summon
-	path search-dir-recursive (ignore => true)
+	path search-dir-recursive _ => true
 
 search-dir-recursive str[](path str, file-filter act bool(str)) summon
-	path search-dir-recursive (ignore => true), file-filter
+	path search-dir-recursive (_ => true), file-filter
 
 search-dir-recursive str[](path str, dir-filter act bool(str), file-filter act bool(str)) summon
 	path.names-in-dir flat-map name =>

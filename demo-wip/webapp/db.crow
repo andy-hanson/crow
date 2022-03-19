@@ -30,8 +30,8 @@ main fut nat(_ str[]) unsafe summon
 				o
 			as err _
 				throw: "TODO"
-			post = db add-post cookie, "hello world"
-			pi = db get-post-info post
+			first-post = db add-post cookie, "hello world"
+			pi = db get-post-info first-post
 			print: "{pi user-name} ({pi user}): {pi content}"
 
 			print: "users:"

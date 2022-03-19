@@ -91,21 +91,21 @@ move-to-sorted-set<a> sorted-set a(a mut-sorted-set a) is-data<a> compare<a>
 region iteration
 
 each<a> void(a mut-sorted-set a, f act void(a)) is-data<a> compare<a>
-	a.inner each (k, v) => f[k]
+	a.inner each (k, _) => f[k]
 
 fold<a, b> a(acc a, a mut-sorted-set b, f act a(a, b)) is-data<b> compare<b>
-	acc fold a.inner, (cur, k, v) => f[cur, k]
+	acc fold a.inner, (cur, k, _) => f[cur, k]
 
 filter<a> mut-sorted-set a(a mut-sorted-set a, f act bool(a)) is-data<a> compare<a>
-	(a.inner filter (k, v) => f[k]),
+	(a.inner filter (k, _) => f[k]),
 
 map<out, in> mut-sorted-set out(a mut-sorted-set in, f act out(in)) is-data<in> compare<in> is-data<out> compare<out>
-	(a.inner map (k, v) => f[k], ()),
+	(a.inner map (k, _) => f[k], ()),
 
 region mutating iteration
 
 set-filter<a> void(a mut-sorted-set a, f act bool(a)) is-data<a> compare<a>
-	a.inner set-filter (k, v) => f[k]
+	a.inner set-filter (k, _) => f[k]
 
 set-map<a> void(a mut-sorted-set a, f act a(a)) is-data<a> compare<a>
-	a.inner set-map (k, v) => f[k], ()
+	a.inner set-map (k, _) => f[k], ()

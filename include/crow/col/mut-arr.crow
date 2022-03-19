@@ -4,7 +4,7 @@ import
 	../bool: &&, bool
 	../compare: <, <=, >, >=, equal
 	../fun-util: subscript
-	../misc: drop, new, void
+	../misc: new, void
 	../opt: new, opt
 	../ptr:
 		==, +, -, *, as-any-const-ptr, as-any-mut-ptr, as-const, by-val, const-ptr, mut-ptr,
@@ -187,7 +187,7 @@ copy-range-to-arr<a> a[](a a mut[], begin nat64, size nat64) trusted
 	"range out of bounds" assert-c-str (size <= a.size && (begin wrap-add size) <= a.size)
 	res a mut* = size alloc-uninitialized
 	src = a.begin-ptr + begin
-	drop: res.as-any-mut-ptr memcpy src.as-any-const-ptr, (size wrap-mul size-of@<a>)
+	_ = res.as-any-mut-ptr memcpy src.as-any-const-ptr, (size wrap-mul size-of@<a>)
 	size, res.as-const
 
 ###
@@ -201,7 +201,7 @@ pop-n-from-start<a> a[](a a mut[], n nat64) trusted
 	dest = a.begin-ptr as-any-mut-ptr
 	src = a.begin-ptr + n as-any-const-ptr
 	new-size = a.size wrap-sub n
-	drop: dest memmove src, (new-size wrap-mul size-of@<a>)
+	_ = dest memmove src, (new-size wrap-mul size-of@<a>)
 	a.size := new-size
 	res
 
@@ -297,7 +297,8 @@ noctx-must-remove-unordered<a> void(a a mut[], value a) noctx unsafe equal<a>
 	if index == a.size
 		todo
 	elif a.begin-ptr[index] == value
-		a noctx-remove-unordered-at index drop
+		_ = a noctx-remove-unordered-at index
+		()
 	else
 		a noctx-must-remove-unordered-recur (index wrap-add 1), value
 
@@ -316,7 +317,7 @@ Does nothing if `a.size <= new-size` already.
 ###
 reduce-size-if-more-than<a> void(a a mut[], new-size nat64)
 	if new-size < a.size
-		a.pop drop
+		_ = a.pop
 		a reduce-size-if-more-than new-size
 
 # TODO:MOVE
@@ -344,7 +345,7 @@ insert-at<a> void(a a mut[], index nat64, value a) trusted
 	dest = a.begin-ptr + index + 1
 	src = a.begin-ptr + index
 	n = a.size wrap-sub index
-	drop: dest.as-any-mut-ptr memmove src.as-any-const-ptr, (n wrap-mul size-of@<a>)
+	_ = dest.as-any-mut-ptr memmove src.as-any-const-ptr, (n wrap-mul size-of@<a>)
 	a.size := a.size wrap-add 1
 	a[index] := value
 	hard-assert: a.size <= a.capacity
@@ -365,7 +366,7 @@ remove-at<a> a(a a mut[], index nat64) trusted
 	dest = a.begin-ptr + index
 	src = a.begin-ptr + index + 1
 	n = a.size wrap-sub index wrap-sub 1
-	drop: dest.as-any-mut-ptr memmove src.as-any-const-ptr, (n wrap-mul size-of@<a>)
+	_ = dest.as-any-mut-ptr memmove src.as-any-const-ptr, (n wrap-mul size-of@<a>)
 	a.size := a.size wrap-sub 1
 	res
 

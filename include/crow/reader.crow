@@ -3,7 +3,7 @@ import
 	./bool: !, &&, ||, bool, false, new, true
 	./col/mut-arr: ~=, move-to-arr, mut-arr, new
 	./fun-util: subscript
-	./misc: drop, new, void
+	./misc: new, void
 	./number: +, *, **, float64, int64, nat64, to-float64, to-int64
 	./opt: ??, is-empty, new, opt
 	./str: ==, char8, literal, str
@@ -63,7 +63,7 @@ If the reader had already reached the end of the string before calling this, ret
 try-take-char bool(a reader, c char8)
 	if peek ?= a.iter peek
 		if peek == c
-			a.next drop
+			_ = a next
 			true
 
 ###
@@ -105,13 +105,13 @@ take-nat nat64?(a reader)
 .take-nat-and-count-digits nat-and-count-digits?(a reader)
 	unless a is-empty
 		if first-digit ?= a.peek.char-to-nat64
-			a.next drop
+			_ = a next
 			(first-digit take-nat-and-count-digits-recur 1, a),
 .take-nat-and-count-digits-recur nat-and-count-digits(acc nat64, count-digits nat64, a reader)
 	if a is-empty
 		acc, count-digits
 	elif v ?= a.peek.char-to-nat64
-		a.next drop
+		_ = a next
 		acc * 10 + v take-nat-and-count-digits-recur count-digits + 1, a
 	else
 		acc, count-digits
@@ -139,7 +139,7 @@ skip-whitespace void(a reader)
 	if a try-take-char "-"
 		false
 	else
-		a try-take-char "+" drop
+		_ = a try-take-char "+"
 		true
 
 ###

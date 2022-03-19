@@ -2,7 +2,8 @@ module frontend.parse.lexer;
 
 @safe @nogc pure nothrow:
 
-import frontend.parse.ast : LiteralAst, LiteralIntOrNat, matchLiteralAst, NameAndRange, NameOrUnderscoreOrNone;
+import frontend.parse.ast :
+	LiteralAst, LiteralIntOrNat, matchLiteralAst, NameAndRange, NameOrUnderscoreOrNone, OptNameAndRange;
 import model.diag : Diag, DiagnosticWithinFile;
 import model.parseDiag : ParseDiag;
 import util.alloc.alloc : Alloc;
@@ -322,6 +323,16 @@ immutable(NameAndRange) takeNameAndRange(ref Lexer lexer) {
 	}
 }
 
+immutable(OptNameAndRange) takeOptNameAndRange(ref Lexer lexer) {
+	immutable Pos start = curPos(lexer);
+	if (tryTakeToken(lexer, Token.underscore))
+		return immutable OptNameAndRange(start, none!Sym);
+	else {
+		immutable NameAndRange res = takeNameAndRange(lexer);
+		return immutable OptNameAndRange(res.start, some(res.name));
+	}
+}
+
 immutable(Opt!Sym) tryTakeName(ref Lexer lexer) {
 	return tryTakeToken(lexer, Token.name)
 		? some(getCurSym(lexer))
@@ -339,6 +350,12 @@ immutable(Opt!NameAndRange) tryTakeNameOrOperatorAndRange(ref Lexer lexer) {
 		: tryTakeToken(lexer, Token.operator)
 		? some(immutable NameAndRange(start, symForOperator(getCurOperator(lexer))))
 		: none!NameAndRange;
+}
+
+immutable(Opt!Sym) takeNameOrUnderscore(ref Lexer lexer) {
+	return tryTakeToken(lexer, Token.underscore)
+		? none!Sym
+		: some(takeName(lexer));
 }
 
 immutable(Sym) takeNameOrOperator(ref Lexer lexer) {
@@ -828,7 +845,6 @@ immutable(bool) isExpressionStartToken(immutable Token a) {
 		case Token.summon:
 		case Token.test:
 		case Token.trusted:
-		case Token.underscore:
 		case Token.union_:
 		case Token.unsafe:
 			return false;
@@ -841,6 +857,7 @@ immutable(bool) isExpressionStartToken(immutable Token a) {
 		case Token.parenLeft:
 		case Token.quoteDouble:
 		case Token.quoteDouble3:
+		case Token.underscore:
 		case Token.unless:
 			return true;
 	}
@@ -1246,7 +1263,7 @@ public @trusted immutable(bool) lookaheadWillTakeEqualsOrThen(ref Lexer lexer) {
 				if ((ptr[1] == '=' && ptr[2] == ' ') || (ptr[1] == '<' && ptr[2] == '-' && ptr[3] == ' '))
 					return true;
 				break;
-			// characters that appear in typse
+			// characters that appear in types
 			case '<':
 			case '>':
 			case ',':

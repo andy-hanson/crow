@@ -52,10 +52,10 @@ compact-dict<k, v> compact-dict<k, v>(a pair<k, v>[]) is-data<k> compare<k> hash
 	(), a.to-frozen-dict.end-node
 
 keys<k, v> k[](a compact-dict<k, v>) is-data<k> compare<k> hash-mix<k>
-	a map-to-arr (k, v) => k
+	a map-to-arr (k, _) => k
 
 values<k, v> v[](a compact-dict<k, v>) is-data<k> compare<k> hash-mix<k>
-	a map-to-arr (k, v) => v
+	a map-to-arr (_, v) => v
 
 is-empty<k, v> bool(a compact-dict<k, v>) is-data<k> compare<k> hash-mix<k>
 	match a impl
@@ -70,7 +70,7 @@ This is O(n).
 ###
 
 size<k, v> nat64(a compact-dict<k, v>) is-data<k> compare<k> hash-mix<k>
-	0 fold a, (acc, k, v) => acc wrap-add 1
+	0 fold a, (acc, _, _) => acc wrap-add 1
 
 ~ <k, v> compact-dict<k, v>(a compact-dict<k, v>, pair pair<k, v>) is-data<k> compare<k> hash-mix<k>
 	a add-or-remove pair.from, (pair.to,)
@@ -179,7 +179,7 @@ body
 region iteration
 
 each<k, v> void(a compact-dict<k, v>, f act void(k, v)) is-data<k> compare<k> hash-mix<k>
-	() fold a, (ignore, k, v) =>
+	() fold a, (_, k, v) =>
 		f[k, v]
 
 fold<a, k, v> a(acc a, a compact-dict<k, v>, f act a(a, k, v)) is-data<k> compare<k> hash-mix<k>

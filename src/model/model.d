@@ -1654,6 +1654,10 @@ struct Expr {
 		immutable Expr else_;
 	}
 
+	struct Drop {
+		immutable Expr arg;
+	}
+
 	struct FunPtr {
 		immutable Ptr!FunInst funInst;
 		immutable Ptr!StructInst structInst;
@@ -1735,6 +1739,7 @@ struct Expr {
 		call,
 		closureFieldRef,
 		cond,
+		drop,
 		funPtr,
 		ifOption,
 		lambda,
@@ -1756,6 +1761,7 @@ struct Expr {
 		immutable Call call;
 		immutable ClosureFieldRef closureFieldRef;
 		immutable Ptr!Cond cond;
+		immutable Ptr!Drop drop;
 		immutable FunPtr funPtr;
 		immutable Ptr!IfOption ifOption;
 		immutable Ptr!Lambda lambda;
@@ -1777,6 +1783,7 @@ struct Expr {
 		range_ = r; kind = Kind.closureFieldRef; closureFieldRef = a;
 	}
 	@trusted immutable this(immutable FileAndRange r, immutable Ptr!Cond a) { range_ = r; kind = Kind.cond; cond = a; }
+	@trusted immutable this(immutable FileAndRange r, immutable Ptr!Drop a) { range_ = r; kind = Kind.drop; drop = a; }
 	@trusted immutable this(immutable FileAndRange r, immutable FunPtr a) {
 		range_ = r; kind = Kind.funPtr; funPtr = a;
 	}
@@ -1821,6 +1828,7 @@ immutable(FileAndRange) range(scope ref immutable Expr a) {
 	scope immutable(T) delegate(ref immutable Expr.Call) @safe @nogc pure nothrow cbCall,
 	scope immutable(T) delegate(ref immutable Expr.ClosureFieldRef) @safe @nogc pure nothrow cbClosureFieldRef,
 	scope immutable(T) delegate(ref immutable Expr.Cond) @safe @nogc pure nothrow cbCond,
+	scope immutable(T) delegate(ref immutable Expr.Drop) @safe @nogc pure nothrow cbDrop,
 	scope immutable(T) delegate(ref immutable Expr.FunPtr) @safe @nogc pure nothrow cbFunPtr,
 	scope immutable(T) delegate(ref immutable Expr.IfOption) @safe @nogc pure nothrow cbIfOption,
 	scope immutable(T) delegate(ref immutable Expr.Lambda) @safe @nogc pure nothrow cbLambda,
@@ -1843,6 +1851,8 @@ immutable(FileAndRange) range(scope ref immutable Expr a) {
 			return cbClosureFieldRef(a.closureFieldRef);
 		case Expr.Kind.cond:
 			return cbCond(a.cond.deref());
+		case Expr.Kind.drop:
+			return cbDrop(a.drop.deref());
 		case Expr.Kind.funPtr:
 			return cbFunPtr(a.funPtr);
 		case Expr.Kind.ifOption:

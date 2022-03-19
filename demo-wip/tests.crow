@@ -41,44 +41,44 @@ import
 	crow/test-util/test-runner: run-all-tests
 
 main fut nat(_ str[]) summon
-	drop: ().from-bytes :: nat8[]
-	drop: quality-moderate
-	drop: bold
-	drop: () :: compact-dict<nat, nat>
-	drop: () :: compact-sorted-dict<nat, nat>
-	drop: () :: deque<nat>
-	drop: dummy-seq-tests
-	drop: () :: nat[nat]
-	drop: () :: environ
-	drop: () :: frozen-dict<nat, nat>
-	drop: () :: frozen-set<nat>
-	drop: () :: hamt-set<nat>
-	drop: "".strip
-	drop: () :: index-set
-	drop: info
-	drop: () :: list<nat>
-	drop: () :: nat mut[]
-	drop: () :: mat3-32
-	drop: () :: mut-deque<nat>
-	drop: () :: nat mut[nat]
-	drop: () :: mut-grid<nat>
-	drop: () :: mut-priority-queue<nat, nat>
-	drop: () :: mut-set<nat>
-	drop: () :: mut-sorted-dict<nat, nat>
-	drop: () :: mut-sorted-set<nat>
-	drop: () :: mut-stack<nat>
-	drop: () :: measure-total
-	drop: () :: priority-queue<nat, nat>
-	drop: ((), (), ()) :: process-result
-	drop: () :: reader
-	drop: () :: set<nat>
-	drop: () :: sorted-set<nat>
-	drop: () :: stack<nat>
-	drop: () :: tree-set<nat>
-	drop: () :: vec2-32
-	drop: () :: queue<nat>
-	drop: gmt
-	drop: "".json-str
-	drop: () parse-named-args ()
+	_ = ().from-bytes :: nat8[]
+	_ = quality-moderate
+	_ = bold
+	_ = () :: compact-dict<nat, nat>
+	_ = () :: compact-sorted-dict<nat, nat>
+	_ = () :: deque<nat>
+	_ = dummy-seq-tests
+	_ = () :: nat[nat]
+	_ = () :: environ
+	_ = () :: frozen-dict<nat, nat>
+	_ = () :: frozen-set<nat>
+	_ = () :: hamt-set<nat>
+	_ = "".strip
+	_ = () :: index-set
+	_ = info
+	_ = () :: list<nat>
+	_ = () :: nat mut[]
+	_ = () :: mat3-32
+	_ = () :: mut-deque<nat>
+	_ = () :: nat mut[nat]
+	_ = () :: mut-grid<nat>
+	_ = () :: mut-priority-queue<nat, nat>
+	_ = () :: mut-set<nat>
+	_ = () :: mut-sorted-dict<nat, nat>
+	_ = () :: mut-sorted-set<nat>
+	_ = () :: mut-stack<nat>
+	_ = () :: measure-total
+	_ = () :: priority-queue<nat, nat>
+	_ = ((), (), ()) :: process-result
+	_ = () :: reader
+	_ = () :: set<nat>
+	_ = () :: sorted-set<nat>
+	_ = () :: stack<nat>
+	_ = () :: tree-set<nat>
+	_ = () :: vec2-32
+	_ = () :: queue<nat>
+	_ = gmt
+	_ = "".json-str
+	_ = () parse-named-args ()
 	run-all-tests
 	()

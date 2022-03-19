@@ -28,7 +28,7 @@ import
 	../compare: <=
 	../exception: assert, throw
 	../extra-types: fd-t
-	../misc: drop, new, void
+	../misc: new, void
 	../number: ==, <=>, int32, nat8, nat32, to-int32, to-int64, to-nat32, to-nat64
 	../private/bootstrap: todo
 	../private/c-str-util: find-c-str-end
@@ -153,7 +153,7 @@ shell-exec str(command str) trusted summon
 	unless stderr-read->CloseHandle
 		todo
 
-	drop: process-info->hProcess WaitForSingleObject INFINITE
+	_ = process-info->hProcess WaitForSingleObject INFINITE
 
 	exit-code cell DWORD = 0,
 	ok5 = process-info->hProcess GetExitCodeProcess exit-code.as-mut-ptr

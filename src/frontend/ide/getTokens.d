@@ -39,6 +39,7 @@ import frontend.parse.ast :
 	range,
 	rangeOfModifierAst,
 	rangeOfNameAndRange,
+	rangeOfOptNameAndRange,
 	SeqAst,
 	SigAst,
 	SpecBodyAst,
@@ -513,7 +514,9 @@ void addExprTokens(
 			addExprTokens(alloc, tokens, allSymbols, it.body_);
 		},
 		(ref immutable LetAst it) {
-			add(alloc, tokens, localDefOfNameAndRange(allSymbols, immutable NameAndRange(a.range.start, it.name)));
+			add(alloc, tokens, has(it.name)
+				? localDefOfNameAndRange(allSymbols, immutable NameAndRange(a.range.start, force(it.name)))
+				: immutable Token(Token.Kind.keyword, rangeOfStartAndLength(a.range.start, "_".length)));
 			addExprTokens(alloc, tokens, allSymbols, it.initializer);
 			addExprTokens(alloc, tokens, allSymbols, it.then);
 		},
@@ -583,7 +586,7 @@ void addLambdaAstParam(
 	ref const AllSymbols allSymbols,
 	ref immutable LambdaAst.Param param,
 ) {
-	add(alloc, tokens, immutable Token(Token.Kind.param, rangeOfNameAndRange(param, allSymbols)));
+	add(alloc, tokens, immutable Token(Token.Kind.param, rangeOfOptNameAndRange(param, allSymbols)));
 }
 
 void addExprsTokens(

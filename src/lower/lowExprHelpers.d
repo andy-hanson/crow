@@ -71,7 +71,7 @@ immutable(LowExpr) genDrop(
 	ref Alloc alloc,
 	immutable FileAndRange range,
 	ref immutable LowExpr a,
-	immutable ubyte localIndex,
+	immutable size_t localIndex,
 ) {
 	// TODO: less hacky way?
 	return immutable LowExpr(

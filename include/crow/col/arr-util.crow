@@ -148,8 +148,7 @@ Equivalent to `value, value, ...` or `size make-arr () => value`.
 Array with the given `size` where every element is `value`.
 ###
 fill-arr<a> a[](size nat64, value a)
-	size make-arr ignore =>
-		value
+	size make-arr _ => value
 
 region iteration
 
@@ -237,8 +236,7 @@ flat-map<out, in> out[](a in[], f act out[](in))
 
 # Array containing only the elements of `a` for which `f[a[i]]` returns true.
 filter<a> a[](a a[], f act bool(a))
-	a filter-with-index (cur, index) =>
-		f[cur]
+	a filter-with-index (cur, _) => f[cur]
 
 # Like `filter`, but also provides the element index.
 filter-with-index<a> a[](a a[], f act bool(a, nat64)) trusted

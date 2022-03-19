@@ -8,10 +8,6 @@ export
 new void() noctx
 	new-void
 
-# Ignores the value and returns a `void`.
-drop<a> void(_ a) noctx
-	()
-
 # Spec that is satisfied by a `new` function with no arguments.
 new<a> spec
 	new a()

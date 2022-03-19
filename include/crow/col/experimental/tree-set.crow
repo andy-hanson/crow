@@ -4,7 +4,7 @@ import
 	../../compare: !=, <, <=, >, >=, compare
 	../../exception: assert, forbid, unreachable
 	../../fun-util: subscript
-	../../misc: drop, is-data, void
+	../../misc: is-data, void
 	../../opt: !, new, opt
 	../../ptr: ==, <=>, +, -, *, const-ptr, mut-ptr, set-deref
 	../../range: ..
@@ -122,11 +122,11 @@ This is O(n).
 			out + 1
 		as equal
 			*out := value
-			a.next drop
+			_ = a next
 			out + 1
 		as greater
 			*out := peek
-			a.next drop
+			_ = a next
 			out + 1 walk-iter-union value, a
 	else
 		*out := value
@@ -142,10 +142,10 @@ intersect<a> tree-set a(a tree-set a, b tree-set a) trusted is-data<a> compare<a
 		as less
 			false
 		as equal
-			a.next drop
+			_ = a next
 			true
 		as greater
-			a.next drop
+			_ = a next
 			a walk-iter-has value
 
 ###

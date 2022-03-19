@@ -3,11 +3,12 @@ import
 
 foo void()
 	a private-ctor = 0,
-	drop: a
+	_ = a
 	b private-mut = 0, 0, 0
 	b.j := 0
-	drop: b.j
+	_ = b.j
 	b.k := 0
-	drop: b.k
+	_ = b.k
 	b.l := 0
-	drop: b.l
+	_ = b.l
+	()

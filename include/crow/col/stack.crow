@@ -4,7 +4,7 @@ import
 	../compare: !=
 	../exception: assert, forbid
 	../fun-util: subscript
-	../misc: drop, new, void
+	../misc: new, void
 	../opt: !, ==, is-empty, new, opt, opt-equal
 	../ptr: ==, +, -, set-deref
 	../str: ==, literal, str
@@ -80,8 +80,7 @@ Number of elements in the stack.
 This is O(1).
 ###
 size<a> nat64(a stack a)
-	0 fold a, (acc, ignore) =>
-		drop: ignore
+	0 fold a, (acc, _) =>
 		acc wrap-add 1
 
 ###
@@ -186,7 +185,7 @@ test
 	d = c ~ 3
 	d.to-arr is (1, 2, 3)
 
-	each-spy spy-act1<void, nat64> = new: ignore => ()
+	each-spy spy-act1<void, nat64> = new: _ => ()
 	d each each-spy.fn
 	each-spy.calls is (1, 2, 3)
 

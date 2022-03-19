@@ -255,7 +255,7 @@ pop<k, v> popped<k, v>?(a priority-queue<k, v>) is-data<k> compare<k>
 region iteration
 
 each<k, v> void(a priority-queue<k, v>, f act void(k, v)) is-data<k> compare<k>
-	() fold a, (ignore, k, v) => f[k, v]
+	() fold a, (_, k, v) => f[k, v]
 
 fold<a, k, v> a(acc a, a priority-queue<k, v>, f act a(a, k, v)) is-data<k> compare<k>
 	acc walk-fold a.each-arr, f
@@ -340,10 +340,10 @@ map-to-arr<out, k, v> out[](a priority-queue<k, v>, f act out(k, v)) is-data<k> 
 	arr
 
 keys<k, v> k[](a priority-queue<k, v>) is-data<k> compare<k>
-	a map-to-arr (k, v) => k
+	a map-to-arr (k, _) => k
 
 values<k, v> v[](a priority-queue<k, v>) is-data<k> compare<k>
-	a map-to-arr (k, v) => v
+	a map-to-arr (_, v) => v
 
 test
 	p priority-queue<nat64, str> = ()
@@ -389,7 +389,7 @@ test
 	folded = "init" fold p6, (acc, k, v) => "{acc}, {k} -> {v}"
 	folded is "init, 6 -> 6, 6 -> 6b, 6 -> 6c, 7 -> 7, 7 -> 7b, 8 -> 8"
 
-	filter-order spy-act2<bool, nat64, str> = new: (k, v) => k == 6
+	filter-order spy-act2<bool, nat64, str> = new: (k, _) => k == 6
 	filtered = p6 filter filter-order.fn
 	filter-calls = filter-order calls
 	filter-calls is p6-pairs

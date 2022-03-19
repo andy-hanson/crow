@@ -303,7 +303,7 @@ region iteration
 
 # Calls `f` for each key-value pair in `db`.
 each<k, v> void(txn lmdb-txn, db lmdb-db<k, v>, f act void(k, v)) summon lmdb-key<k> serialize<v>
-	() fold txn, db, (ignore, key, value) => f[key, value]
+	() fold txn, db, (_, key, value) => f[key, value]
 
 fold<a, k, v> a(acc a, txn lmdb-txn, db lmdb-db<k, v>, f act a(a, k, v)) trusted summon lmdb-key<k> serialize<v>
 	txn with-cursor db, cursor =>

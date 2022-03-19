@@ -16,6 +16,7 @@ import lower.lowExprHelpers :
 	constantNat64,
 	genAddPtr,
 	genBitwiseNegate,
+	genDrop,
 	genEnumEq,
 	genEnumIntersect,
 	genEnumToIntegral,
@@ -1035,10 +1036,14 @@ immutable(Opt!LowFunIndex) tryGetLowFunIndex(ref const GetLowExprCtx ctx, immuta
 	return ctx.concreteFunToLowFunIndex[it];
 }
 
-immutable(Ptr!LowLocal) addTempLocal(ref GetLowExprCtx ctx, immutable LowType type) {
-	immutable size_t index = ctx.tempLocalIndex;
+immutable(size_t) getTempLocalIndex(ref GetLowExprCtx ctx) {
+	immutable size_t res = ctx.tempLocalIndex;
 	ctx.tempLocalIndex++;
-	return genLocal(ctx.alloc, shortSym("temp"), index, type);
+	return res;
+}
+
+immutable(Ptr!LowLocal) addTempLocal(ref GetLowExprCtx ctx, immutable LowType type) {
+	return genLocal(ctx.alloc, shortSym("temp"), getTempLocalIndex(ctx), type);
 }
 
 enum ExprPos {
@@ -1084,6 +1089,8 @@ immutable(LowExprKind) getLowExprKind(
 			immutable LowExprKind(allocate(ctx.alloc, immutable LowExprKind.CreateUnion(
 				it.memberIndex,
 				getLowExpr(ctx, locals, it.arg, ExprPos.nonTail)))),
+		(ref immutable ConcreteExprKind.Drop it) =>
+			getDropExpr(ctx, locals, expr.range, it),
 		(ref immutable ConcreteExprKind.Lambda it) =>
 			getLambdaExpr(ctx, locals, it),
 		(ref immutable ConcreteExprKind.Let it) =>
@@ -1469,6 +1476,16 @@ immutable(LowExprKind) getCreateArrExpr(
 		temp,
 		allocatePtr,
 		writeAndGetArr)));
+}
+
+immutable(LowExprKind) getDropExpr(
+	ref GetLowExprCtx ctx,
+	scope ref immutable Locals locals,
+	immutable FileAndRange range,
+	ref immutable ConcreteExprKind.Drop a,
+) {
+	immutable LowExpr arg = getLowExpr(ctx, locals, a.arg, ExprPos.nonTail);
+	return genDrop(ctx.alloc, range, arg, getTempLocalIndex(ctx)).kind;
 }
 
 immutable(LowExprKind) getLambdaExpr(

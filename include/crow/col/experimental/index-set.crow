@@ -7,7 +7,7 @@ import
 	../../exception: assert
 	../../fun-util: subscript
 	../../log: info, log
-	../../misc: drop, new, void
+	../../misc: new, void
 	../../opt: ??, is-empty, new, opt
 	../../ptr: ==, +, *, const-ptr, ptr-to, set-deref
 	../../range: .., each
@@ -402,7 +402,7 @@ to-str str(a index-set)
 region iteration
 
 each void(a index-set, f act void(nat64))
-	() fold a, (ignore, x) => f[x]
+	() fold a, (_, x) => f[x]
 
 fold<a> a(acc a, a index-set, f act a(a, nat64)) trusted
 	acc fold a.root, 0, a.capacity, f
@@ -486,7 +486,7 @@ map-to-arr<a> a[](a index-set, f act a(nat64)) trusted
 	actual is expected
 	r = a arr
 	r is expected-arr
-	drop: 0 fold a, (prev, cur) =>
+	_ = 0 fold a, (prev, cur) =>
 		prev .. cur each x =>
 			x in a is false
 		cur in a is true

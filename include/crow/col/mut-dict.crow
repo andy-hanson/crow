@@ -5,7 +5,7 @@ import
 	../exception: assert, forbid
 	../fun-util: subscript
 	../hash: hash, hash-mix
-	../misc: drop, is-data, new, void
+	../misc: is-data, new, void
 	../opt: is-empty, new, opt, opt-equal
 	../ptr: ==, +, *, mut-ptr, set-deref
 	../str: ==, literal, str
@@ -133,7 +133,8 @@ Sets the key to the given value, so that `a[key]` will return `value`.
 If the key is already in the dictionary, this overwrites the previous value.
 ###
 set-subscript<k, v> void(a v mut[k], key k, value v) is-data<k> compare<k> hash-mix<k>
-	drop: a update key, (value,)
+	_ = a update key, (value,)
+	()
 
 # Remove all keys, leaving the dictionary empty.
 clear<k, v> void(a v mut[k]) is-data<k> compare<k> hash-mix<k>
@@ -198,7 +199,7 @@ Returns the old value (if it exists).
 				if value ?= new-value
 					m[index] := key, value
 				else
-					drop: m remove-unordered-at index
+					_ = m remove-unordered-at index
 					if m is-empty
 						a.entries[entry-index] := none
 					elif m.size == 1
@@ -243,7 +244,7 @@ region iteration
 
 # Calls `f` for every key and value in the dictionary.
 each<k, v> void(a v mut[k], f act void(k, v)) is-data<k> compare<k> hash-mix<k>
-	() fold a, (ignore, key, value) => f[key, value]
+	() fold a, (_, key, value) => f[key, value]
 
 ###
 Calls `f` for every key and value in the dictionary.
@@ -251,7 +252,7 @@ Calls `f` for every key and value in the dictionary.
 This is like `each` but without providing values.
 ###
 each-key<k, v> void(a v mut[k], f act void(k)) is-data<k> compare<k> hash-mix<k>
-	a each (k, ignore) => f[k]
+	a each (k, _) => f[k]
 
 ###
 Calls `f` for every key and value in the dictionary.

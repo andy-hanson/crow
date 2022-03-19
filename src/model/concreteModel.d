@@ -792,6 +792,10 @@ struct ConcreteExprKind {
 		immutable ConcreteExpr arg;
 	}
 
+	struct Drop {
+		immutable ConcreteExpr arg;
+	}
+
 	struct Let {
 		immutable Ptr!ConcreteLocal local;
 		immutable ConcreteExpr value; // If a constant, we just use 'then' in place of the Let
@@ -848,6 +852,7 @@ struct ConcreteExprKind {
 		createArr,
 		createRecord,
 		createUnion,
+		drop,
 		lambda,
 		let,
 		localRef,
@@ -866,6 +871,7 @@ struct ConcreteExprKind {
 		immutable Constant constant;
 		immutable CreateRecord createRecord;
 		immutable Ptr!CreateUnion createUnion;
+		immutable Ptr!Drop drop;
 		immutable Ptr!Lambda lambda;
 		immutable Ptr!Let let;
 		immutable LocalRef localRef;
@@ -884,6 +890,7 @@ struct ConcreteExprKind {
 	@trusted immutable this(immutable Constant a) { kind = Kind.constant; constant = a; }
 	@trusted immutable this(immutable CreateRecord a) { kind = Kind.createRecord; createRecord = a; }
 	immutable this(immutable Ptr!CreateUnion a) { kind = Kind.createUnion; createUnion = a; }
+	immutable this(immutable Ptr!Drop a) { kind = Kind.drop; drop = a; }
 	@trusted immutable this(immutable Ptr!Lambda a) { kind = Kind.lambda; lambda = a; }
 	@trusted immutable this(immutable Ptr!Let a) { kind = Kind.let; let = a; }
 	@trusted immutable this(immutable LocalRef a) { kind = Kind.localRef; localRef = a; }
@@ -920,6 +927,7 @@ immutable(bool) isConstant(ref immutable ConcreteExprKind a) {
 	scope immutable(T) delegate(ref immutable ConcreteExprKind.CreateArr) @safe @nogc pure nothrow cbCreateArr,
 	scope immutable(T) delegate(ref immutable ConcreteExprKind.CreateRecord) @safe @nogc pure nothrow cbCreateRecord,
 	scope immutable(T) delegate(ref immutable ConcreteExprKind.CreateUnion) @safe @nogc pure nothrow cbCreateUnion,
+	scope immutable(T) delegate(ref immutable ConcreteExprKind.Drop) @safe @nogc pure nothrow cbDrop,
 	scope immutable(T) delegate(ref immutable ConcreteExprKind.Lambda) @safe @nogc pure nothrow cbLambda,
 	scope immutable(T) delegate(ref immutable ConcreteExprKind.Let) @safe @nogc pure nothrow cbLet,
 	scope immutable(T) delegate(ref immutable ConcreteExprKind.LocalRef) @safe @nogc pure nothrow cbLocalRef,
@@ -946,6 +954,8 @@ immutable(bool) isConstant(ref immutable ConcreteExprKind a) {
 			return cbCreateRecord(a.createRecord);
 		case ConcreteExprKind.Kind.createUnion:
 			return cbCreateUnion(a.createUnion.deref());
+		case ConcreteExprKind.Kind.drop:
+			return cbDrop(a.drop.deref());
 		case ConcreteExprKind.Kind.lambda:
 			return cbLambda(a.lambda.deref());
 		case ConcreteExprKind.Kind.let:

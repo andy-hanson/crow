@@ -272,6 +272,8 @@ immutable(Repr) reprOfConcreteExprKind(ref Alloc alloc, ref immutable ConcreteEx
 			reprRecord(alloc, "union", [
 				reprNat(it.memberIndex),
 				reprOfConcreteExpr(alloc, it.arg)]),
+		(ref immutable ConcreteExprKind.Drop it) =>
+			reprRecord(alloc, "drop", [reprOfConcreteExpr(alloc, it.arg)]),
 		(ref immutable ConcreteExprKind.Lambda it) =>
 			reprRecord(alloc, "lambda", [
 				reprNat(it.memberIndex),

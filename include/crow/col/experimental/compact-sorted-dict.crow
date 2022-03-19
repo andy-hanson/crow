@@ -60,7 +60,7 @@ Number of pairs.
 This is O(n).
 ###
 size<k, v> nat64(a compact-sorted-dict<k, v>) is-data<k> compare<k>
-	0 fold a, (acc, k, v) => acc + 1
+	0 fold a, (acc, _, _) => acc + 1
 
 to-arr<k, v> pair<k, v>[](a compact-sorted-dict<k, v>) is-data<k> compare<k>
 	# TODO:PERF Just use 'fold'?
@@ -265,7 +265,7 @@ compact<k, v> compact-sorted-dict<k, v>(a compact-sorted-dict<k, v>) is-data<k> 
 region iteration
 
 each<k, v> void(a compact-sorted-dict<k, v>, f act void(k, v)) is-data<k> compare<k>
-	() fold a, (ignore, k, v) =>
+	() fold a, (_, k, v) =>
 		f[k, v]
 
 fold<a, k, v> a(acc a, a compact-sorted-dict<k, v>, f act a(a, k, v)) is-data<k> compare<k>
@@ -390,7 +390,7 @@ body
 	a map-to-arr f to-compact-sorted-dict
 
 keys<k, v> k[](a compact-sorted-dict<k, v>) is-data<k> compare<k>
-	a map-to-arr (k, v) => k
+	a map-to-arr (k, _) => k
 
 map-to-arr<out, k, v> out[](a compact-sorted-dict<k, v>, f act out(k, v)) is-data<k> compare<k>
 	a.to-arr map pair => f[pair.from, pair.to]
@@ -507,11 +507,11 @@ test
 		cur.is-empty ? pair : "{cur}, {pair}"
 	h-folded is "5 -> 5, 10 -> 10b, 15 -> 15, 20 -> 20"
 
-	h-filtered = h filter (k, v) =>
+	h-filtered = h filter (k, _) =>
 		k is-even
 	h-filtered verify "[10 -> 10b, 20 -> 20]"
 
-	h-mapped = h map-values (k, v) =>
+	h-mapped = h map-values (_, v) =>
 		"{v.end-iter.prev! value}"
 	h-mapped verify "[5 -> 5, 10 -> b, 20 -> 0]"
 
