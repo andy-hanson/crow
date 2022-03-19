@@ -19,8 +19,7 @@ import model.concreteModel : ConcreteFun, concreteFunRange;
 import model.diag : FilesInfo, writeFileAndPos; // TODO: FilesInfo probably belongs elsewhere
 import model.lowModel : LowFunSource, LowProgram, matchLowFunSource;
 import model.typeLayout : PackField;
-import util.alloc.alloc : TempAlloc;
-import util.alloc.rangeAlloc : RangeAlloc;
+import util.alloc.alloc : Alloc, TempAlloc;
 import util.col.stack :
 	asTempArr,
 	clearStack,
@@ -311,7 +310,7 @@ private immutable(NextOperation) getNextOperationAndDebug(ref Interpreter a, imm
 		import core.stdc.stdio : printf;
 		{
 			ubyte[10_000] mem;
-			scope RangeAlloc dbgAlloc = RangeAlloc(&mem[0], mem.length);
+			scope Alloc dbgAlloc = Alloc(&mem[0], mem.length);
 			scope Writer writer = Writer(ptrTrustMe_mut(dbgAlloc));
 			showStack(writer, a);
 			showReturnStack(writer, a, cur);
@@ -320,7 +319,7 @@ private immutable(NextOperation) getNextOperationAndDebug(ref Interpreter a, imm
 
 		{
 			ubyte[10_000] mem;
-			scope RangeAlloc dbgAlloc = RangeAlloc(&mem[0], mem.length);
+			scope Alloc dbgAlloc = Alloc(&mem[0], mem.length);
 			scope Writer writer = Writer(ptrTrustMe_mut(dbgAlloc));
 			writeStatic(writer, "STEP: ");
 			immutable ShowDiagOptions showDiagOptions = immutable ShowDiagOptions(false);

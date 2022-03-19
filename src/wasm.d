@@ -13,7 +13,6 @@ import lib.server :
 	Server,
 	StrParseDiagnostic;
 import util.alloc.alloc : Alloc, allocateT;
-import util.alloc.rangeAlloc : RangeAlloc;
 import util.col.str : CStr, SafeCStr;
 import util.memory : utilMemcpy = memcpy, utilMemmove = memmove;
 import util.path : StorageKind;
@@ -58,7 +57,7 @@ extern(C) immutable(size_t) getGlobalBufferSizeBytes() {
 }
 
 @system extern(C) Server* newServer(ubyte* allocStart, immutable size_t allocLength) {
-	RangeAlloc alloc = RangeAlloc(allocStart, allocLength);
+	Alloc alloc = Alloc(allocStart, allocLength);
 	Server* ptr = allocateT!Server(alloc, 1);
 	ptr.__ctor(alloc.move());
 	return ptr;
@@ -91,7 +90,7 @@ extern(C) immutable(size_t) getGlobalBufferSizeBytes() {
 	immutable StorageKind storageKind,
 	scope immutable CStr path,
 ) {
-	RangeAlloc resultAlloc = RangeAlloc(resultStart, resultLength);
+	Alloc resultAlloc = Alloc(resultStart, resultLength);
 	immutable Token[] tokens = withNullPerf!(immutable Token[], (scope ref Perf perf) =>
 		getTokens(resultAlloc, perf, *server, storageKind, immutable SafeCStr(path)));
 	immutable Repr repr = reprTokens(resultAlloc, tokens);
@@ -105,7 +104,7 @@ extern(C) immutable(size_t) getGlobalBufferSizeBytes() {
 	immutable StorageKind storageKind,
 	scope immutable CStr path,
 ) {
-	RangeAlloc resultAlloc = RangeAlloc(resultStart, resultLength);
+	Alloc resultAlloc = Alloc(resultStart, resultLength);
 	immutable StrParseDiagnostic[] diags = withNullPerf!(immutable StrParseDiagnostic[], (scope ref Perf perf) =>
 		getParseDiagnostics(resultAlloc, perf, *server, storageKind, immutable SafeCStr(path)));
 	immutable Repr repr = reprParseDiagnostics(resultAlloc, diags);
@@ -120,7 +119,7 @@ extern(C) immutable(size_t) getGlobalBufferSizeBytes() {
 	scope immutable CStr path,
 	immutable Pos pos,
 ) {
-	RangeAlloc resultAlloc = RangeAlloc(resultStart, resultLength);
+	Alloc resultAlloc = Alloc(resultStart, resultLength);
 	return withNullPerf!(immutable SafeCStr, (scope ref Perf perf) =>
 		getHover(perf, resultAlloc, *server, storageKind, immutable SafeCStr(path), pos)).ptr;
 }
@@ -131,7 +130,7 @@ extern(C) immutable(size_t) getGlobalBufferSizeBytes() {
 	Server* server,
 	scope immutable CStr path,
 ) {
-	RangeAlloc resultAlloc = RangeAlloc(resultStart, resultLength);
+	Alloc resultAlloc = Alloc(resultStart, resultLength);
 	immutable FakeExternResult result = withWebPerf!(immutable FakeExternResult)((scope ref Perf perf) =>
 		run(perf, resultAlloc, *server, immutable SafeCStr(path)));
 	return writeRunResult(server.alloc, result);

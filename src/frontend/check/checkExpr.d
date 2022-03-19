@@ -142,7 +142,7 @@ immutable(Expr) checkFunctionBody(
 		flags,
 		usedFuns);
 	scope FunOrLambdaInfo funInfo =
-		FunOrLambdaInfo(noneMut!(Ptr!LocalsInfo), none!FunKind, params, none!(Ptr!(Expr.Lambda)));
+		FunOrLambdaInfo(noneMut!(Ptr!LocalsInfo), params, none!(Ptr!(Expr.Lambda)));
 	fillMutMaxArr(funInfo.paramsUsed, params.length, false);
 	// leave funInfo.closureFields uninitialized, it won't be used
 	scope LocalsInfo locals = LocalsInfo(ptrTrustMe_mut(funInfo), noneMut!(Ptr!LocalNode));
@@ -809,8 +809,7 @@ immutable(Expr) checkLambda(
 
 	Ptr!(Expr.Lambda) lambda = () @trusted { return allocateUninitialized!(Expr.Lambda)(ctx.alloc); }();
 
-	FunOrLambdaInfo lambdaInfo =
-		FunOrLambdaInfo(someMut(ptrTrustMe_mut(locals)), some(kind), params, some(castImmutable(lambda)));
+	FunOrLambdaInfo lambdaInfo = FunOrLambdaInfo(someMut(ptrTrustMe_mut(locals)), params, some(castImmutable(lambda)));
 	fillMutMaxArr(lambdaInfo.paramsUsed, params.length, false);
 	initializeMutMaxArr(lambdaInfo.closureFields);
 	scope LocalsInfo lambdaLocalsInfo = LocalsInfo(ptrTrustMe_mut(lambdaInfo), noneMut!(Ptr!LocalNode));

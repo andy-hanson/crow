@@ -17,7 +17,6 @@ import model.model :
 	decl,
 	Expr,
 	FunFlags,
-	FunKind,
 	isBogus,
 	isTypeParam,
 	Local,
@@ -52,8 +51,6 @@ struct ClosureFieldBuilder {
 
 struct FunOrLambdaInfo {
 	Opt!(Ptr!LocalsInfo) outer;
-	// none for a function
-	immutable Opt!FunKind funKind;
 	immutable Param[] params;
 	// none for a function.
 	// WARN: This will not be initialized; but we allocate the pointer early.

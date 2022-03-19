@@ -90,7 +90,6 @@ version(Test) {
 	import test.test : test;
 }
 import util.alloc.alloc : Alloc, TempAlloc;
-import util.alloc.rangeAlloc : RangeAlloc;
 import util.col.arrBuilder : add, addAll, ArrBuilder, finishArr;
 import util.col.arrUtil : mapImpure, prepend, zipImpureSystem;
 import util.col.str :
@@ -137,7 +136,7 @@ import versionInfo : versionInfoForJIT;
 	ubyte* mem = cast(ubyte*) pureMalloc(memorySizeBytes);
 	scope(exit) pureFree(mem);
 	verify(mem != null);
-	RangeAlloc alloc = RangeAlloc(mem, memorySizeBytes);
+	Alloc alloc = Alloc(mem, memorySizeBytes);
 	immutable CommandLineArgs args = parseCommandLineArgs(alloc, argc, argv);
 	immutable immutable(ulong) function() @safe @nogc pure nothrow getTimeNanosPure =
 		cast(immutable(ulong) function() @safe @nogc pure nothrow) &getTimeNanos;

@@ -37,7 +37,7 @@ immutable(FakeExternResult) withFakeExtern(
 		},
 		(immutable Sym name, immutable(DynCallType), scope immutable ulong[], scope immutable DynCallType[]) {
 			version (WebAssembly) {
-				debugLog("Can't call extern function from fake extern\n");
+				debugLog("Can't call extern function from fake extern:");
 				debugLog(safeCStrOfSym(alloc, allSymbols, name).ptr);
 			}
 			return todo!(immutable ulong)("not for fake");

@@ -41,7 +41,6 @@ import model.model :
 	Expr,
 	FunDecl,
 	FunFlags,
-	FunKind,
 	isBogus,
 	isPurityAlwaysCompatible,
 	isVariadic,
@@ -123,7 +122,7 @@ immutable(Expr) checkCallNoLocals(
 	ref Expected expected,
 ) {
 	FunOrLambdaInfo emptyFunInfo =
-		FunOrLambdaInfo(noneMut!(Ptr!LocalsInfo), none!FunKind, emptyArr!Param, none!(Ptr!(Expr.Lambda)));
+		FunOrLambdaInfo(noneMut!(Ptr!LocalsInfo), emptyArr!Param, none!(Ptr!(Expr.Lambda)));
 	LocalsInfo emptyLocals = LocalsInfo(ptrTrustMe_mut(emptyFunInfo), noneMut!(Ptr!LocalNode));
 	return checkCall(ctx, emptyLocals, range, ast, expected);
 }
