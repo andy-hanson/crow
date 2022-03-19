@@ -11,6 +11,7 @@ struct MutMaxArr(size_t maxSize, T) {
 	// To work around, you must call the function 'mutMaxArr' instead.
 	@disable this();
 	@disable this(ref const MutMaxArr);
+	@disable void opAssign(ref const MutMaxArr);
 
 	ref inout(T) opIndex(immutable size_t i) inout {
 		verify(i < size_);
@@ -36,9 +37,13 @@ immutable(size_t) mutMaxArrSize(size_t maxSize, T)(ref MutMaxArr!(maxSize, T) a)
 	return a.size_;
 }
 
+void initializeMutMaxArr(size_t maxSize, T)(ref MutMaxArr!(maxSize, T) a) {
+	a.size_ = 0;
+}
+
 @trusted MutMaxArr!(maxSize, T) mutMaxArr(size_t maxSize, T)() {
 	MutMaxArr!(maxSize, T) res = void;
-	res.size_ = 0;
+	initializeMutMaxArr(res);
 	return res;
 }
 

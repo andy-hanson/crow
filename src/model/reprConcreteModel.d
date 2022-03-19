@@ -26,7 +26,6 @@ import model.concreteModel :
 	matchConcreteParamSource,
 	matchConcreteStructBody,
 	matchConcreteStructSource,
-	name,
 	NeedsCtx,
 	returnType,
 	symOfBuiltinStructKind,
@@ -131,7 +130,8 @@ immutable(Repr) reprOfConcreteStructBodyRecord(ref Alloc alloc, ref immutable Co
 }
 
 immutable(Repr) reprOfConcreteField(ref Alloc alloc, ref immutable ConcreteField a) {
-	return reprRecord(alloc, "field", [reprSym(name(a)),
+	return reprRecord(alloc, "field", [
+		reprSym(a.debugName),
 		reprSym(symOfConcreteMutability(a.mutability)),
 		reprOfConcreteType(alloc, a.type)]);
 }
@@ -299,7 +299,9 @@ immutable(Repr) reprOfConcreteExprKind(ref Alloc alloc, ref immutable ConcreteEx
 		(ref immutable ConcreteExprKind.ParamRef it) =>
 			reprRecord(alloc, "param-ref", [reprOfConcreteParamRef(it.param.deref())]),
 		(ref immutable ConcreteExprKind.RecordFieldGet it) =>
-			reprRecord(alloc, "get-field", [reprOfConcreteExpr(alloc, it.target), reprSym(name(it.field.deref()))]),
+			reprRecord(alloc, "get-field", [
+				reprOfConcreteExpr(alloc, it.target),
+				reprSym(it.field.deref().debugName)]),
 		(ref immutable ConcreteExprKind.Seq it) =>
 			reprRecord(alloc, "seq", [reprOfConcreteExpr(alloc, it.first), reprOfConcreteExpr(alloc, it.then)]));
 }

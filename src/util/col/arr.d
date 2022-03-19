@@ -3,40 +3,82 @@ module util.col.arr;
 @safe @nogc pure nothrow:
 
 import util.alloc.alloc : Alloc, freeT;
+import util.conv : safeToUshort;
 import util.ptr : Ptr;
 import util.util : verify;
+
+// Like SmallArray but without implying that it's an array
+struct PtrAndSmallNumber(T) {
+	@safe @nogc pure nothrow:
+
+	private immutable ulong value;
+
+	private immutable this(immutable ulong v) {
+		value = v;
+	}
+	immutable this(immutable Ptr!T ptr, immutable ushort number) {
+		value = encode(ptr.rawPtr(), number);
+	}
+	immutable this(immutable T* ptr, immutable ushort number) {
+		value = encode(ptr, number);
+	}
+
+	private static immutable(ulong) encode(immutable T* ptr, immutable ushort number) {
+		immutable ulong val = cast(immutable ulong) ptr;
+		verify((val & 0xffff_0000_0000_0000) == 0);
+		return ((cast(ulong) number) << 48) | val;
+	}
+
+	@system immutable(ulong) asUlong() immutable {
+		return value;
+	}
+
+	static immutable(PtrAndSmallNumber!T) decode(immutable ulong value) {
+		return immutable PtrAndSmallNumber!T(value);
+	}
+
+	@trusted immutable(Ptr!T) ptr() immutable {
+		return immutable Ptr!T(rawPtr());
+	}
+
+	@trusted immutable(T*) rawPtr() immutable {
+		return cast(immutable T*) (value & 0x0000_ffff_ffff_ffff);
+	}
+
+	immutable(ushort) number() immutable {
+		return (value & 0xffff_0000_0000_0000) >> 48;
+	}
+}
 
 struct SmallArray(T) {
 	@safe @nogc pure nothrow:
 	alias toArray this;
 
 	@disable this();
+	private immutable this(immutable PtrAndSmallNumber!T v) {
+		sizeAndBegin = v;
+	}
 
 	@system static immutable(ulong) encode(immutable T[] values) {
-		immutable ulong value = cast(immutable ulong) values.ptr;
-		verify((values.length & 0xffff_ffff_ffff_0000) == 0);
-		verify((value & 0xffff_0000_0000_0000) == 0);
-		return (((cast(ulong) values.length) << 48) | value);
+		return (immutable SmallArray!T(values)).sizeAndBegin.value;
 	}
 
 	@system static immutable(T[]) decode(immutable ulong value) {
-		immutable ulong highBits = value & 0xffff_0000_0000_0000;
-		immutable ulong length = highBits >> 48;
-		verify(length < 256); // sanity check
-		immutable ulong lowBits = value & 0x0000_ffff_ffff_ffff;
-		return (cast(immutable T*) lowBits)[0 .. length];
+		return (immutable SmallArray!T(PtrAndSmallNumber!T.decode(value))).toArray();
 	}
 
 	@trusted immutable this(immutable T[] values) {
-		sizeAndBegin = encode(values);
+		sizeAndBegin = immutable PtrAndSmallNumber!T(values.ptr, safeToUshort(values.length));
 	}
 
 	@property @trusted immutable(T[]) toArray() immutable {
-		return decode(sizeAndBegin);
+		immutable size_t length = sizeAndBegin.number;
+		verify(length < 0xffff); // sanity check
+		return sizeAndBegin.rawPtr()[0 .. length];
 	}
 
 	private:
-	immutable ulong sizeAndBegin;
+	immutable PtrAndSmallNumber!T sizeAndBegin;
 }
 
 immutable(SmallArray!T) small(T)(immutable T[] values) {

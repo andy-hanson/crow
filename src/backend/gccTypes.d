@@ -38,6 +38,7 @@ import backend.mangle : MangledNames, writeStructMangledName;
 import backend.writeTypes : TypeWriters, writeTypes;
 import model.concreteModel : ConcreteStruct;
 import model.lowModel :
+	debugName,
 	LowExternPtrType,
 	LowField,
 	LowFunPtrType,
@@ -47,7 +48,6 @@ import model.lowModel :
 	LowType,
 	LowUnion,
 	matchLowTypeCombinePtr,
-	name,
 	PrimitiveType;
 import util.alloc.alloc : Alloc;
 import util.cell : Cell, cellGet, cellSet;
@@ -370,7 +370,7 @@ struct GccTypesWip {
 		(ref immutable LowField field) {
 			//TODO:NO ALLOC
 			Writer writer = Writer(ptrTrustMe_mut(alloc));
-			writeSym(writer, allSymbols, name(field));
+			writeSym(writer, allSymbols, debugName(field));
 			return gcc_jit_context_new_field(ctx, null, getGccType(typesWip, field.type), finishWriterToCStr(writer));
 		});
 	verify(empty(typesWip.recordFields[recordIndex]));

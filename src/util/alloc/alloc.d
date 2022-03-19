@@ -20,6 +20,10 @@ T* allocateT(T)(ref Alloc alloc, immutable size_t count) {
 	return cast(T*) allocateBytes(alloc, T.sizeof * count);
 }
 
+T* allocateUninitialized(T)(ref Alloc alloc) {
+	return allocateT!T(alloc, 1);
+}
+
 private void freeBytes(ref Alloc alloc, ubyte* ptr, immutable size_t size) {
 	static assert(Alloc.stringof == "RangeAlloc");
 	alloc.freeBytesImpl(ptr, size);

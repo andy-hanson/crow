@@ -7,7 +7,6 @@ import frontend.showDiag : ShowDiagOptions;
 import model.model :
 	AbsolutePathsGetter,
 	CalledDecl,
-	ClosureField,
 	EnumBackingType,
 	FunDecl,
 	getAbsolutePath,
@@ -179,7 +178,8 @@ struct Diag {
 	}
 	struct LambdaCantInferParamTypes {}
 	struct LambdaClosesOverMut {
-		immutable Ptr!ClosureField field;
+		immutable Sym name;
+		immutable Type type;
 	}
 	struct LambdaWrongNumberParams {
 		immutable Ptr!StructInst expectedLambdaType;

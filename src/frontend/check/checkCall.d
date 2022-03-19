@@ -78,6 +78,7 @@ import util.col.mutMaxArr :
 	copyToFrom,
 	fillMutMaxArr_mut,
 	filterUnordered,
+	initializeMutMaxArr,
 	isEmpty,
 	mapTo,
 	mapTo_mut,
@@ -121,7 +122,8 @@ immutable(Expr) checkCallNoLocals(
 	scope ref immutable CallAst ast,
 	ref Expected expected,
 ) {
-	FunOrLambdaInfo emptyFunInfo = FunOrLambdaInfo(noneMut!(Ptr!LocalsInfo), none!FunKind, emptyArr!Param);
+	FunOrLambdaInfo emptyFunInfo =
+		FunOrLambdaInfo(noneMut!(Ptr!LocalsInfo), none!FunKind, emptyArr!Param, none!(Ptr!(Expr.Lambda)));
 	LocalsInfo emptyLocals = LocalsInfo(ptrTrustMe_mut(emptyFunInfo), noneMut!(Ptr!LocalNode));
 	return checkCall(ctx, emptyLocals, range, ast, expected);
 }
@@ -323,7 +325,7 @@ struct Candidate {
 void initializeCandidate(ref Candidate a, immutable Opt!UsedFun used, immutable CalledDecl called) {
 	overwriteMemory(&a.used, used);
 	overwriteMemory(&a.called, called);
-	a.typeArgs = mutMaxArr!(16, SingleInferringType);
+	initializeMutMaxArr(a.typeArgs);
 }
 void overwriteCandidate(ref Candidate a, ref const Candidate b) {
 	overwriteMemory(&a.used, b.used);

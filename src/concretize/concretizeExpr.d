@@ -33,7 +33,6 @@ import model.concreteModel :
 	ConcreteExpr,
 	ConcreteExprKind,
 	ConcreteField,
-	ConcreteFieldSource,
 	ConcreteFun,
 	ConcreteFunBody,
 	ConcreteLambdaImpl,
@@ -56,7 +55,7 @@ import model.concreteModel :
 import model.constant : asBool, asRecord, asUnion, Constant;
 import model.model :
 	Called,
-	ClosureField,
+	debugName,
 	Expr,
 	FunInst,
 	FunKind,
@@ -72,7 +71,8 @@ import model.model :
 	StructInst,
 	Type,
 	typeArgs,
-	VariableRef;
+	VariableRef,
+	variableRefType;
 import util.alloc.alloc : Alloc;
 import util.col.arr : empty, emptyArr, only, ptrAt;
 import util.col.arrUtil : arrLiteral, map, mapWithIndex, mapZip;
@@ -237,12 +237,12 @@ immutable(Ptr!ConcreteFun) getConcreteFunFromFunInst(
 immutable(ConcreteExpr) concretizeClosureFieldRef(
 	ref ConcretizeExprCtx ctx,
 	immutable FileAndRange range,
-	immutable Ptr!ClosureField closureField,
+	immutable Expr.ClosureFieldRef closureField,
 ) {
 	immutable Ptr!ConcreteParam closureParam = force(ctx.currentConcreteFun.closureParam);
 	immutable ConcreteType closureType = closureParam.deref().type;
 	immutable ConcreteStructBody.Record record = asRecord(body_(closureType.struct_.deref()));
-	immutable Ptr!ConcreteField field = ptrAt(record.fields, closureField.deref().index);
+	immutable Ptr!ConcreteField field = ptrAt(record.fields, closureField.index);
 	immutable ConcreteExpr closureParamRef = immutable ConcreteExpr(closureType, range, immutable ConcreteExprKind(
 		immutable ConcreteExprKind.ParamRef(closureParam)));
 	return immutable ConcreteExpr(field.deref().type, range, immutable ConcreteExprKind(
@@ -285,15 +285,15 @@ immutable(ConcreteExpr) getGetExclusion(
 
 immutable(ConcreteField[]) concretizeClosureFields(
 	ref ConcretizeCtx ctx,
-	ref immutable Ptr!ClosureField[] closure,
+	immutable VariableRef[] closure,
 	immutable TypeArgsScope typeArgsScope,
 ) {
-	return mapWithIndex!ConcreteField(ctx.alloc, closure, (immutable size_t index, ref immutable Ptr!ClosureField it) =>
+	return mapWithIndex!ConcreteField(ctx.alloc, closure, (immutable size_t index, ref immutable VariableRef x) =>
 		immutable ConcreteField(
-			immutable ConcreteFieldSource(it),
+			debugName(x),
 			index,
 			ConcreteMutability.const_,
-			getConcreteType_fromConcretizeCtx(ctx, it.deref().type, typeArgsScope)));
+			getConcreteType_fromConcretizeCtx(ctx, variableRefType(x), typeArgsScope)));
 }
 
 immutable(ConcreteExpr) concretizeFunPtr(
@@ -333,11 +333,9 @@ immutable(ConcreteExpr) concretizeLambda(
 	immutable ConcreteType concreteType = getConcreteType_forStructInst(ctx, e.type);
 	immutable Ptr!ConcreteStruct concreteStruct = mustBeNonPointer(concreteType);
 
-	immutable ConcreteExpr[] closureArgs =
-		map!ConcreteExpr(ctx.alloc, e.closure, (ref immutable Ptr!ClosureField f) =>
-			concretizeVariableRef(ctx, range, locals, f.deref().variableRef));
-	immutable ConcreteField[] closureFields =
-		concretizeClosureFields(ctx.concretizeCtx, e.closure, tScope);
+	immutable ConcreteExpr[] closureArgs = map!ConcreteExpr(ctx.alloc, e.closure, (ref immutable VariableRef x) =>
+		concretizeVariableRef(ctx, range, locals, x));
+	immutable ConcreteField[] closureFields = concretizeClosureFields(ctx.concretizeCtx, e.closure, tScope);
 	immutable ConcreteType closureType = concreteTypeFromClosure(
 		ctx.concretizeCtx,
 		closureFields,
@@ -375,9 +373,9 @@ immutable(ConcreteExpr) concretizeLambda(
 		immutable ConcreteField[] fields = asRecord(body_(concreteStruct.deref())).fields;
 		verify(fields.length == 2);
 		immutable ConcreteField exclusionField = fields[0];
-		verify(symEq(name(exclusionField), shortSym("exclusion")));
+		verify(symEq(exclusionField.debugName, shortSym("exclusion")));
 		immutable ConcreteField actionField = fields[1];
-		verify(symEq(name(actionField), shortSym("action")));
+		verify(symEq(actionField.debugName, shortSym("action")));
 		immutable ConcreteType funType = actionField.type;
 		immutable ConcreteExpr exclusion = getGetExclusion(ctx, exclusionField.type, range);
 		return immutable ConcreteExpr(concreteType, range, immutable ConcreteExprKind(
@@ -587,7 +585,7 @@ immutable(ConcreteExpr) concretizeVariableRef(
 			concretizeParamRef(ctx, range, x),
 		(immutable Ptr!Local x) =>
 			concretizeLocalRef(range, locals, x),
-		(immutable Ptr!ClosureField x) =>
+		(immutable Expr.ClosureFieldRef x) =>
 			concretizeClosureFieldRef(ctx, range, x));
 }
 
@@ -604,7 +602,7 @@ immutable(ConcreteExpr) concretizeExpr(
 		(ref immutable Expr.Call e) =>
 			concretizeCall(ctx, range, locals, e),
 		(ref immutable Expr.ClosureFieldRef e) =>
-			concretizeClosureFieldRef(ctx, range, e.field),
+			concretizeClosureFieldRef(ctx, range, e),
 		(ref immutable Expr.Cond e) {
 			immutable ConcreteExpr cond = concretizeExpr(ctx, locals, e.cond);
 			return isConstant(cond.kind)

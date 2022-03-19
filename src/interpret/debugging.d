@@ -11,13 +11,11 @@ import model.concreteModel :
 	ConcreteStruct,
 	ConcreteStructSource,
 	ConcreteType,
-	matchConcreteFieldSource,
 	matchConcreteFunSource,
 	matchConcreteParamSource,
 	matchConcreteStructSource;
 import model.lowModel :
 	AllLowTypes,
-	LowField,
 	LowFun,
 	LowFunIndex,
 	LowFunSource,
@@ -30,7 +28,7 @@ import model.lowModel :
 	matchLowType,
 	PrimitiveType,
 	symOfPrimitiveType;
-import model.model : ClosureField, decl, FunInst, name, Param, RecordField, Type, typeArgs, writeTypeUnquoted;
+import model.model : decl, FunInst, name, Param, Type, typeArgs, writeTypeUnquoted;
 import util.col.arr : empty;
 import util.opt : force, has;
 import util.ptr : Ptr;
@@ -207,18 +205,6 @@ void writeConcreteStruct(
 void writeConcreteType(scope ref Writer writer, scope ref const AllSymbols allSymbols, scope immutable ConcreteType a) {
 	//TODO: if it doesn't have the usual by-ref or by-val we should write that
 	writeConcreteStruct(writer, allSymbols, a.struct_.deref());
-}
-
-void writeFieldName(ref Writer writer, ref const AllSymbols allSymbols, ref immutable LowField a) {
-	matchConcreteFieldSource!(
-		void,
-		(immutable Ptr!ClosureField it) {
-			writeSym(writer, allSymbols, it.deref().name);
-		},
-		(immutable Ptr!RecordField it) {
-			writeSym(writer, allSymbols, it.deref().name);
-		},
-	)(a.source.deref().source);
 }
 
 void writeLocalName(ref Writer writer, ref const AllSymbols allSymbols, ref immutable LowLocal a) {

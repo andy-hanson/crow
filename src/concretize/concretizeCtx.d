@@ -15,7 +15,6 @@ import model.concreteModel :
 	ConcreteExpr,
 	ConcreteExprKind,
 	ConcreteField,
-	ConcreteFieldSource,
 	ConcreteFun,
 	ConcreteFunBody,
 	concreteFunRange,
@@ -674,7 +673,7 @@ void initializeConcreteStruct(
 				r.fields,
 				(immutable size_t index, immutable Ptr!RecordField f) =>
 					immutable ConcreteField(
-						immutable ConcreteFieldSource(f),
+						f.deref().name,
 						index,
 						toConcreteMutability(f.deref().mutability),
 						getConcreteType(ctx, f.deref().type, typeArgsScope)));

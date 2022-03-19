@@ -7,13 +7,12 @@ import frontend.check.dicts : FunsDict, ModuleLocalFunIndex, StructsAndAliasesDi
 import frontend.check.instantiate :
 	instantiateStructNeverDelay, tryGetTypeArg_const, tryGetTypeArg_mut, TypeArgsArray, typeArgsArray, TypeParamsScope;
 import frontend.check.typeFromAst : typeFromAst;
-import frontend.lang : maxParams;
+import frontend.lang : maxClosureFields, maxParams;
 import frontend.parse.ast : TypeAst;
 import frontend.programState : ProgramState;
 import model.diag : Diag;
 import model.model :
 	asTypeParam,
-	ClosureField,
 	CommonTypes,
 	decl,
 	Expr,
@@ -30,7 +29,8 @@ import model.model :
 	StructInst,
 	Type,
 	typeArgs,
-	TypeParam;
+	TypeParam,
+	VariableRef;
 import util.alloc.alloc : Alloc;
 import util.cell : Cell, cellGet, cellSet;
 import util.col.arr : emptyArr, emptyArr_mut, sizeEq;
@@ -41,17 +41,26 @@ import util.opt : has, force, none, noneMut, Opt, some;
 import util.perf : Perf;
 import util.ptr : Ptr, ptrEquals;
 import util.sourceRange : FileAndRange, RangeWithinFile;
-import util.sym : AllSymbols;
+import util.sym : AllSymbols, Sym;
 import util.util : verify;
+
+struct ClosureFieldBuilder {
+	immutable Sym name; // Redundant to the variableRef, but it's faster to keep this close
+	immutable Type type; // Same as above
+	immutable VariableRef variableRef;
+}
 
 struct FunOrLambdaInfo {
 	Opt!(Ptr!LocalsInfo) outer;
 	// none for a function
 	immutable Opt!FunKind funKind;
 	immutable Param[] params;
+	// none for a function.
+	// WARN: This will not be initialized; but we allocate the pointer early.
+	immutable Opt!(Ptr!(Expr.Lambda)) lambda;
 	MutMaxArr!(maxParams, bool) paramsUsed = void;
-	// Will be empty for a function
-	MutArr!(immutable Ptr!ClosureField) closureFields;
+	// Will be uninitialized for a function
+	MutMaxArr!(maxClosureFields, ClosureFieldBuilder) closureFields = void;
 }
 
 struct LocalsInfo {

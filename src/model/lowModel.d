@@ -392,8 +392,8 @@ struct LowField {
 	immutable LowType type;
 }
 
-immutable(Sym) name(ref immutable LowField a) {
-	return name(a.source.deref());
+immutable(Sym) debugName(ref immutable LowField a) {
+	return a.source.deref().debugName;
 }
 
 struct LowParamSource {

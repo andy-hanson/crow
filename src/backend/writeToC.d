@@ -32,6 +32,7 @@ import model.lowModel :
 	asPtrGcPointee,
 	asRecordType,
 	asUnionType,
+	debugName,
 	isChar8,
 	isExtern,
 	isGlobal,
@@ -55,7 +56,6 @@ import model.lowModel :
 	matchLowFunBody,
 	matchLowType,
 	matchLowTypeCombinePtr,
-	name,
 	PointerTypeAndConstantsLow,
 	PrimitiveType,
 	UpdateParam;
@@ -306,7 +306,7 @@ void writeRecord(ref Writer writer, ref immutable Ctx ctx, ref immutable LowReco
 			writeStatic(writer, "\n\t");
 			writeType(writer, ctx, field.type);
 			writeChar(writer, ' ');
-			writeMangledName(writer, ctx.mangledNames, name(field));
+			writeMangledName(writer, ctx.mangledNames, debugName(field));
 			writeChar(writer, ';');
 		}
 	}
@@ -1283,7 +1283,7 @@ void writeRecordFieldRef(
 	writeMangledName(
 		writer,
 		ctx.mangledNames,
-		name(ctx.ctx.program.allRecords[record].fields[fieldIndex]));
+		debugName(ctx.ctx.program.allRecords[record].fields[fieldIndex]));
 }
 
 // For some reason, providing a type for a record makes it non-constant.

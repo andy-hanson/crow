@@ -625,9 +625,9 @@ void writeDiag(
 		},
 		(ref immutable Diag.LambdaClosesOverMut d) {
 			writeStatic(writer, "lambda is a plain 'fun' but closes over ");
-			writeName(writer, allSymbols, d.field.deref().name);
+			writeName(writer, allSymbols, d.name);
 			writeStatic(writer, " of 'mut' type ");
-			writeTypeQuoted(writer, allSymbols, d.field.deref().type);
+			writeTypeQuoted(writer, allSymbols, d.type);
 			writeStatic(writer, " (should it be an 'act' or 'ref' fun?)");
 		},
 		(ref immutable Diag.LambdaWrongNumberParams d) {

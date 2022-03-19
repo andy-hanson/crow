@@ -130,7 +130,7 @@ import util.col.arrUtil :
 	zipFirstMut;
 import util.col.dict : mustGetAt;
 import util.col.fullIndexDict : FullIndexDict, fullIndexDictZip, mapFullIndexDict_mut;
-import util.col.mutMaxArr : mustPop, MutMaxArr, mutMaxArr, push, tempAsArr_mut;
+import util.col.mutMaxArr : initializeMutMaxArr, mustPop, MutMaxArr, push, tempAsArr_mut;
 import util.col.str : CStr, SafeCStr;
 import util.opt : force, has, none, noneMut, Opt, some, someMut;
 import util.perf : Perf, PerfMeasure, withMeasure;
@@ -316,7 +316,7 @@ extern(C) {
 					conversionFunctions,
 					builtinPopcountlFunction,
 					globalVoid);
-				exprCtx.locals = mutMaxArr!(32, LocalPair);
+				initializeMutMaxArr(exprCtx.locals);
 
 				if (isStubFunction(funIndex)) {
 					debug {

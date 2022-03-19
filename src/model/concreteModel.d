@@ -4,7 +4,7 @@ module model.concreteModel;
 
 import model.constant : Constant;
 import model.model :
-	ClosureField,
+	debugName,
 	decl,
 	EnumBackingType,
 	EnumFunction,
@@ -23,7 +23,6 @@ import model.model :
 	params,
 	Purity,
 	range,
-	RecordField,
 	StructInst,
 	summon;
 import util.col.arr : empty, only;
@@ -372,35 +371,6 @@ void hashConcreteType(ref Hasher hasher, ref immutable ConcreteType a) {
 	hashBool(hasher, a.isPointer);
 }
 
-struct ConcreteFieldSource {
-	@safe @nogc pure nothrow:
-
-	@trusted immutable this(immutable Ptr!ClosureField a) { kind_ = Kind.closureField; closureField_ = a; }
-	@trusted immutable this(immutable Ptr!RecordField a) { kind_ = Kind.recordField; recordField_ = a; }
-
-	private:
-	enum Kind {
-		closureField,
-		recordField,
-	}
-	immutable Kind kind_;
-	union {
-		immutable Ptr!ClosureField closureField_;
-		immutable Ptr!RecordField recordField_;
-	}
-}
-
-@trusted immutable(T) matchConcreteFieldSource(T, alias cbClosureField, alias cbRecordField)(
-	ref immutable ConcreteFieldSource a,
-) {
-	final switch (a.kind_) {
-		case ConcreteFieldSource.Kind.closureField:
-			return cbClosureField(a.closureField_);
-		case ConcreteFieldSource.Kind.recordField:
-			return cbRecordField(a.recordField_);
-	}
-}
-
 enum ConcreteMutability {
 	const_,
 	mutable,
@@ -416,20 +386,10 @@ immutable(Sym) symOfConcreteMutability(immutable ConcreteMutability a) {
 }
 
 struct ConcreteField {
-	immutable ConcreteFieldSource source;
+	immutable Sym debugName;
 	immutable size_t index;
 	immutable ConcreteMutability mutability;
 	immutable ConcreteType type;
-}
-
-immutable(Sym) name(ref immutable ConcreteField a) {
-	return matchConcreteFieldSource!(
-		immutable Sym,
-		(immutable Ptr!ClosureField it) =>
-			it.deref().name,
-		(immutable Ptr!RecordField it) =>
-			it.deref().name,
-	)(a.source);
 }
 
 struct ConcreteParamSource {

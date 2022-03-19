@@ -8,6 +8,7 @@ import model.lowModel :
 	asPrimitive,
 	AllLowTypes,
 	asPtrRawConst,
+	debugName,
 	LowExpr,
 	LowExprKind,
 	LowFunIndex,
@@ -18,7 +19,6 @@ import model.lowModel :
 	LowParamSource,
 	LowRecord,
 	LowType,
-	name,
 	PrimitiveType,
 	UpdateParam;
 import util.alloc.alloc : Alloc;
@@ -432,7 +432,7 @@ immutable(LowType.PtrRawConst) getElementPtrTypeFromArrType(
 ) {
 	immutable LowRecord arrRecord = allTypes.allRecords[arrType];
 	verify(arrRecord.fields.length == 2);
-	verify(symEq(name(arrRecord.fields[0]), shortSym("size")));
-	verify(symEq(name(arrRecord.fields[1]), shortSym("begin-ptr")));
+	verify(symEq(debugName(arrRecord.fields[0]), shortSym("size")));
+	verify(symEq(debugName(arrRecord.fields[1]), shortSym("begin-ptr")));
 	return asPtrRawConst(arrRecord.fields[1].type);
 }

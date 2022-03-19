@@ -10,6 +10,7 @@ import frontend.check.inferringType :
 	addDiag2,
 	bogus,
 	check,
+	ClosureFieldBuilder,
 	copyWithNewExpectedType,
 	Expected,
 	ExprCtx,
@@ -67,7 +68,6 @@ import model.model :
 	asStructInst,
 	body_,
 	CalledDecl,
-	ClosureField,
 	CommonTypes,
 	decl,
 	Expr,
@@ -103,17 +103,17 @@ import model.model :
 	UnionMember,
 	VariableRef,
 	worstCasePurity;
-import util.alloc.alloc : Alloc;
-import util.col.arr : empty, emptyArr, emptySmallArray, only, ptrsRange, sizeEq;
+import util.alloc.alloc : Alloc, allocateUninitialized;
+import util.col.arr : empty, emptyArr, emptySmallArray, only, PtrAndSmallNumber, ptrsRange, sizeEq;
 import util.col.arrUtil : arrLiteral, arrsCorrespond, map, mapZip, mapZipWithIndex, zipPtrFirst;
 import util.col.fullIndexDict : FullIndexDict;
-import util.col.mutArr : moveToArr, MutArr, mutArrAt, mutArrRange, mutArrSize, push, tempAsArr;
-import util.col.mutMaxArr : fillMutMaxArr, push, pushLeft, tempAsArr;
+import util.col.mutArr : MutArr, mutArrAt, mutArrSize, push, tempAsArr;
+import util.col.mutMaxArr : fillMutMaxArr, initializeMutMaxArr, mutMaxArrSize, push, pushLeft, tempAsArr;
 import util.col.str : copyToSafeCStr;
-import util.conv : safeToUint;
-import util.memory : allocate;
+import util.conv : safeToUshort, safeToUint;
+import util.memory : allocate, initMemory;
 import util.opt : force, has, none, noneMut, Opt, some, someMut;
-import util.ptr : Ptr, ptrEquals, ptrTrustMe_mut;
+import util.ptr : castImmutable, Ptr, ptrEquals, ptrTrustMe_mut;
 import util.sourceRange : FileAndRange, Pos, RangeWithinFile;
 import util.sym : Operator, shortSym, Sym, symEq, symForOperator, symOfStr;
 import util.util : todo;
@@ -141,8 +141,10 @@ immutable(Expr) checkFunctionBody(
 		typeParams,
 		flags,
 		usedFuns);
-	scope FunOrLambdaInfo funInfo = FunOrLambdaInfo(noneMut!(Ptr!LocalsInfo), none!FunKind, params);
+	scope FunOrLambdaInfo funInfo =
+		FunOrLambdaInfo(noneMut!(Ptr!LocalsInfo), none!FunKind, params, none!(Ptr!(Expr.Lambda)));
 	fillMutMaxArr(funInfo.paramsUsed, params.length, false);
+	// leave funInfo.closureFields uninitialized, it won't be used
 	scope LocalsInfo locals = LocalsInfo(ptrTrustMe_mut(funInfo), noneMut!(Ptr!LocalNode));
 	immutable Expr res = checkAndExpect(exprCtx, locals, ast, returnType);
 	zipPtrFirst!(Param, bool)(
@@ -461,19 +463,24 @@ immutable(Opt!VariableRefAndType) getIdentifierFromFunOrLambda(
 			info.paramsUsed[param.deref().index] = true;
 			return some(immutable VariableRefAndType(immutable VariableRef(param), param.deref().type));
 		}
-	foreach (immutable Ptr!ClosureField field; mutArrRange(info.closureFields))
-		if (symEq(field.deref().name, name))
-			return some(immutable VariableRefAndType(immutable VariableRef(field), field.deref().type));
+	foreach (immutable size_t index, ref immutable ClosureFieldBuilder field; tempAsArr(info.closureFields))
+		if (symEq(field.name, name))
+			return some(immutable VariableRefAndType(
+				immutable VariableRef(immutable Expr.ClosureFieldRef(
+					immutable PtrAndSmallNumber!(Expr.Lambda)(force(info.lambda), safeToUshort(index)))),
+				field.type));
 
 	immutable(Opt!VariableRefAndType) optOuter = has(info.outer)
 		? getIdentifierNonCall(alloc, force(info.outer).deref(), name)
 		: none!VariableRefAndType;
 	if (has(optOuter)) {
 		immutable VariableRefAndType outer = force(optOuter);
-		immutable Ptr!ClosureField field = allocate(alloc,
-			immutable ClosureField(name, outer.type, outer.variableRef, mutArrSize(info.closureFields)));
-		push(alloc, info.closureFields, field);
-		return some(immutable VariableRefAndType(immutable VariableRef(field), outer.type));
+		immutable size_t closureFieldIndex = mutMaxArrSize(info.closureFields);
+		push(info.closureFields, immutable ClosureFieldBuilder(name, outer.type, outer.variableRef));
+		return some(immutable VariableRefAndType(
+			immutable VariableRef(immutable Expr.ClosureFieldRef(
+				immutable PtrAndSmallNumber!(Expr.Lambda)(force(info.lambda), safeToUshort(closureFieldIndex)))),
+			outer.type));
 	} else
 		return none!VariableRefAndType;
 }
@@ -505,8 +512,8 @@ immutable(Expr) toExpr(immutable FileAndRange range, immutable VariableRef a) {
 			immutable Expr(range, immutable Expr.ParamRef(x)),
 		(immutable Ptr!Local x) =>
 			immutable Expr(range, immutable Expr.LocalRef(x)),
-		(immutable Ptr!ClosureField x) =>
-			immutable Expr(range, immutable Expr.ClosureFieldRef(x)));
+		(immutable Expr.ClosureFieldRef x) =>
+			immutable Expr(range, x));
 }
 
 struct IntRange {
@@ -800,25 +807,31 @@ immutable(Expr) checkLambda(
 	immutable Param[] params = checkParamsForLambda(ctx, locals, ast.params, tempAsArr(paramTypes));
 	Expected returnTypeInferrer = copyWithNewExpectedType(expected, et.nonInstantiatedPossiblyFutReturnType);
 
-	scope FunOrLambdaInfo lambdaInfo = FunOrLambdaInfo(someMut(ptrTrustMe_mut(locals)), some(kind), params);
+	Ptr!(Expr.Lambda) lambda = () @trusted { return allocateUninitialized!(Expr.Lambda)(ctx.alloc); }();
+
+	FunOrLambdaInfo lambdaInfo =
+		FunOrLambdaInfo(someMut(ptrTrustMe_mut(locals)), some(kind), params, some(castImmutable(lambda)));
 	fillMutMaxArr(lambdaInfo.paramsUsed, params.length, false);
+	initializeMutMaxArr(lambdaInfo.closureFields);
 	scope LocalsInfo lambdaLocalsInfo = LocalsInfo(ptrTrustMe_mut(lambdaInfo), noneMut!(Ptr!LocalNode));
 
 	// Checking the body of the lambda may fill in candidate type args
 	// if the expected return type contains candidate's type params
 	immutable Expr body_ = checkExpr(ctx, lambdaLocalsInfo, ast.body_, returnTypeInferrer);
-	immutable Ptr!ClosureField[] closureFields = moveToArr(ctx.alloc, lambdaInfo.closureFields);
 
 	final switch (kind) {
 		case FunKind.plain:
-			foreach (immutable Ptr!ClosureField cf; closureFields)
-				if (worstCasePurity(cf.deref().type) == Purity.mut)
-					addDiag2(ctx, range, immutable Diag(Diag.LambdaClosesOverMut(cf)));
+			foreach (ref immutable ClosureFieldBuilder cf; tempAsArr(lambdaInfo.closureFields))
+				if (worstCasePurity(cf.type) == Purity.mut)
+					addDiag2(ctx, range, immutable Diag(immutable Diag.LambdaClosesOverMut(cf.name, cf.type)));
 			break;
 		case FunKind.mut:
 		case FunKind.ref_:
 			break;
 	}
+	immutable VariableRef[] closureFields =
+		map(ctx.alloc, tempAsArr(lambdaInfo.closureFields), (ref immutable ClosureFieldBuilder x) =>
+			x.variableRef);
 
 	immutable Type actualPossiblyFutReturnType = inferred(returnTypeInferrer);
 	immutable Opt!Type actualNonFutReturnType = kind == FunKind.ref_
@@ -841,14 +854,14 @@ immutable(Expr) checkLambda(
 		pushLeft(paramTypes, force(actualNonFutReturnType));
 		immutable Ptr!StructInst instFunStruct =
 			instantiateStructNeverDelay(ctx.alloc, ctx.programState, et.funStruct, tempAsArr(paramTypes));
-		immutable Expr.Lambda lambda = immutable Expr.Lambda(
+		initMemory(lambda.rawPtr(), immutable Expr.Lambda(
 			params,
 			body_,
 			closureFields,
 			instFunStruct,
 			kind,
-			actualPossiblyFutReturnType);
-		return immutable Expr(range, allocate(ctx.alloc, lambda));
+			actualPossiblyFutReturnType));
+		return immutable Expr(range, castImmutable(lambda));
 	}
 }
 

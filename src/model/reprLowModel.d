@@ -5,6 +5,7 @@ module model.reprLowModel;
 import model.concreteModel : ConcreteFun, ConcreteLocal, ConcreteParam;
 import model.constant : Constant;
 import model.lowModel :
+	debugName,
 	LowExpr,
 	LowExprKind,
 	LowExternPtrType,
@@ -29,7 +30,6 @@ import model.lowModel :
 	matchLowLocalSource,
 	matchLowParamSource,
 	matchLowType,
-	name,
 	PrimitiveType,
 	symOfPrimitiveType,
 	UpdateParam;
@@ -113,7 +113,7 @@ immutable(Repr) reprOfLowRecord(ref Alloc alloc, ref immutable LowRecord a) {
 	return reprRecord(alloc, "record", [
 		reprOfConcreteStructRef(alloc, a.source.deref()),
 		reprArr(alloc, a.fields, (ref immutable LowField field) =>
-			reprRecord(alloc, "field", [reprSym(name(field)), reprOfLowType(alloc, field.type)]))]);
+			reprRecord(alloc, "field", [reprSym(debugName(field)), reprOfLowType(alloc, field.type)]))]);
 }
 
 immutable(Repr) reprOfLowUnion(ref Alloc alloc, ref immutable LowUnion a){

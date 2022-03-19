@@ -5,7 +5,7 @@ module model.model;
 import model.constant : Constant;
 import model.diag : Diagnostics, FilesInfo; // TODO: move FilesInfo here?
 import util.alloc.alloc : Alloc;
-import util.col.arr : empty, emptyArr, only, small, SmallArray;
+import util.col.arr : empty, emptyArr, only, PtrAndSmallNumber, small, SmallArray;
 import util.col.arrUtil : arrEqual;
 import util.col.dict : SymDict;
 import util.col.fullIndexDict : FullIndexDict;
@@ -1566,27 +1566,27 @@ struct Local {
 
 struct VariableRef {
 	@safe @nogc pure nothrow:
-
 	@trusted immutable this(immutable Ptr!Param a) {
-		inner = TaggedPtr!Kind(Kind.param, a.rawPtr());
+		inner = immutable TaggedPtr!Kind(Kind.param, a.rawPtr());
 	}
 	@trusted immutable this(immutable Ptr!Local a) {
-		inner = TaggedPtr!Kind(Kind.local, a.rawPtr());
+		inner = immutable TaggedPtr!Kind(Kind.local, a.rawPtr());
 	}
-	@trusted immutable this(immutable Ptr!ClosureField a) {
-		inner = TaggedPtr!Kind(Kind.closure, a.rawPtr());
+	@trusted immutable this(immutable Expr.ClosureFieldRef a) {
+		inner = immutable TaggedPtr!Kind(Kind.closure, a.lambdaAndIndex);
 	}
 
 	private:
 	enum Kind { param, local, closure }
 	immutable TaggedPtr!Kind inner;
 }
+static assert(VariableRef.sizeof == 8);
 
 @trusted immutable(T) matchVariableRef(T)(
 	immutable VariableRef a,
 	scope immutable(T) delegate(immutable Ptr!Param) @safe @nogc pure nothrow cbParam,
 	scope immutable(T) delegate(immutable Ptr!Local) @safe @nogc pure nothrow cbLocal,
-	scope immutable(T) delegate(immutable Ptr!ClosureField) @safe @nogc pure nothrow cbClosure,
+	scope immutable(T) delegate(immutable Expr.ClosureFieldRef) @safe @nogc pure nothrow cbClosure,
 ) {
 	final switch (a.inner.tag()) {
 		case VariableRef.Kind.param:
@@ -1594,15 +1594,30 @@ struct VariableRef {
 		case VariableRef.Kind.local:
 			return cbLocal(a.inner.asPtr!Local);
 		case VariableRef.Kind.closure:
-			return cbClosure(a.inner.asPtr!ClosureField);
+			return cbClosure(immutable Expr.ClosureFieldRef(a.inner.asPtrAndSmallNumber!(Expr.Lambda)()));
 	}
 }
 
-struct ClosureField {
-	immutable Sym name;
-	immutable Type type;
-	immutable VariableRef variableRef;
-	immutable size_t index;
+immutable(Sym) debugName(immutable VariableRef a) {
+	return matchVariableRef!(immutable Sym)(
+		a,
+		(immutable Ptr!Param x) =>
+			force(x.deref().name),
+		(immutable Ptr!Local x) =>
+			x.deref().name,
+		(immutable Expr.ClosureFieldRef x) =>
+			debugName(x.variableRef()));
+}
+
+immutable(Type) variableRefType(immutable VariableRef a) {
+	return matchVariableRef!(immutable Type)(
+		a,
+		(immutable Ptr!Param x) =>
+			x.deref().type,
+		(immutable Ptr!Local x) =>
+			x.deref().type,
+		(immutable Expr.ClosureFieldRef x) =>
+			variableRefType(x.variableRef()));
 }
 
 struct Expr {
@@ -1615,7 +1630,21 @@ struct Expr {
 	}
 
 	struct ClosureFieldRef {
-		immutable Ptr!ClosureField field;
+		@safe @nogc pure nothrow:
+
+		immutable PtrAndSmallNumber!Lambda lambdaAndIndex;
+
+		immutable(Ptr!(Expr.Lambda)) lambda() immutable {
+			return lambdaAndIndex.ptr;
+		}
+
+		immutable(ushort) index() immutable {
+			return lambdaAndIndex.number;
+		}
+
+		immutable(VariableRef) variableRef() immutable {
+			return lambda.deref().closure[index];
+		}
 	}
 
 	struct Cond {
@@ -1642,7 +1671,7 @@ struct Expr {
 	struct Lambda {
 		immutable Param[] params;
 		immutable Expr body_;
-		immutable Ptr!ClosureField[] closure;
+		immutable VariableRef[] closure;
 		// This is the funN type;
 		immutable Ptr!StructInst type;
 		immutable FunKind kind;

@@ -5,7 +5,7 @@ module model.reprModel;
 import model.model :
 	body_,
 	Called,
-	ClosureField,
+	debugName,
 	decl,
 	EnumFunction,
 	enumFunctionName,
@@ -45,6 +45,7 @@ import model.model :
 	TypeParam,
 	typeParams,
 	unsafe,
+	VariableRef,
 	Visibility;
 import model.reprConstant : reprOfConstant;
 import util.alloc.alloc : Alloc;
@@ -246,7 +247,7 @@ immutable(Repr) reprExpr(ref Alloc alloc, ref Ctx ctx, ref immutable Expr a) {
 				reprArr(alloc, e.args, (ref immutable Expr arg) =>
 					reprExpr(alloc, ctx, arg))]),
 		(ref immutable Expr.ClosureFieldRef a) =>
-			reprRecord(alloc, "closure-rf", [reprSym(a.field.deref().name)]),
+			reprRecord(alloc, "closure-rf", [reprNat(a.index)]),
 		(ref immutable Expr.Cond) =>
 			todo!(immutable Repr)("cond"),
 		(ref immutable Expr.FunPtr it) =>
@@ -264,8 +265,8 @@ immutable(Repr) reprExpr(ref Alloc alloc, ref Ctx ctx, ref immutable Expr a) {
 				reprArr(alloc, a.params, (ref immutable Param it) =>
 					reprParam(alloc, ctx, it)),
 				reprExpr(alloc, ctx, a.body_),
-				reprArr(alloc, a.closure, (ref immutable Ptr!ClosureField it) =>
-					reprSym(it.deref().name)),
+				reprArr(alloc, a.closure, (ref immutable VariableRef it) =>
+					reprSym(debugName(it))),
 				reprStructInst(alloc, ctx, a.type.deref()),
 				reprSym(symOfFunKind(a.kind)),
 				reprType(alloc, ctx, a.returnType)]),

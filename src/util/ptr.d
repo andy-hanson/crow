@@ -2,7 +2,7 @@ module util.ptr;
 
 @safe @nogc pure nothrow:
 
-import util.col.arr : SmallArray;
+import util.col.arr : PtrAndSmallNumber, SmallArray;
 import util.hash : Hasher, hashSizeT;
 import util.opt : hasInvalid;
 import util.util : verify;
@@ -21,6 +21,9 @@ struct TaggedPtr(E) {
 	@system immutable this(T)(immutable E tag, immutable T[] values) {
 		value = taggedValue(tag, SmallArray!T.encode(values));
 	}
+	@system immutable this(T)(immutable E tag, immutable PtrAndSmallNumber!T pn) {
+		value = taggedValue(tag, pn.asUlong());
+	}
 
 	private static ulong taggedValue(immutable E tag, immutable ulong value) {
 		immutable ulong tagValue = cast(immutable ulong) tag;
@@ -38,6 +41,9 @@ struct TaggedPtr(E) {
 	}
 	@system immutable(T[]) asArray(T)() immutable {
 		return SmallArray!T.decode(value & ~0b11);
+	}
+	@system immutable(PtrAndSmallNumber!T) asPtrAndSmallNumber(T)() immutable {
+		return PtrAndSmallNumber!T.decode(value & ~0b11);
 	}
 
 	private:
