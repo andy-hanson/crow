@@ -5,7 +5,17 @@ module test.testPath;
 import test.testUtil : Test;
 import util.col.str : safeCStr, safeCStrEq;
 import util.comparison : Comparison;
-import util.path : childPath, comparePath, AllPaths, Path, pathToSafeCStr, rootPath;
+import util.path :
+	childPath,
+	comparePath,
+	AllPaths,
+	Path,
+	PathAndExtension,
+	parseAbsoluteOrRelPathAndExtension,
+	pathEqual,
+	pathToSafeCStr,
+	rootPath,
+	TEST_countPathParts;
 import util.ptr : ptrTrustMe_mut;
 import util.sym : shortSym;
 import util.util : verify;
@@ -17,13 +27,22 @@ void testPath(ref Test test) {
 	verify(comparePath(a, a) == Comparison.equal);
 	verify(comparePath(a, b) == Comparison.less);
 
-	verify(safeCStrEq(pathToSafeCStr(test.alloc, allPaths, safeCStr!"", a, safeCStr!""), safeCStr!"a"));
-	verify(safeCStrEq(pathToSafeCStr(test.alloc, allPaths, safeCStr!"root", b, safeCStr!""), safeCStr!"root/b"));
+	verify(safeCStrEq(pathToSafeCStr(test.alloc, allPaths, a), safeCStr!"a"));
 
 	immutable Path aX = childPath(allPaths, a, shortSym("x"));
 	verify(childPath(allPaths, a, shortSym("x")) == aX);
 	immutable Path aY = childPath(allPaths, a, shortSym("y"));
 	verify(aX != aY);
-	verify(safeCStrEq(pathToSafeCStr(test.alloc, allPaths, safeCStr!"", aX, safeCStr!""), safeCStr!"a/x"));
-	verify(safeCStrEq(pathToSafeCStr(test.alloc, allPaths, safeCStr!"root", aY, safeCStr!""), safeCStr!"root/a/y"));
+	verify(safeCStrEq(pathToSafeCStr(test.alloc, allPaths, aX), safeCStr!"a/x"));
+	verify(safeCStrEq(pathToSafeCStr(test.alloc, allPaths, aY), safeCStr!"a/y"));
+
+	immutable PathAndExtension zW = parseAbsoluteOrRelPathAndExtension(allPaths, aX, safeCStr!"/z/w.crow");
+	verify(safeCStrEq(pathToSafeCStr(test.alloc, allPaths, zW.path), safeCStr!"/z/w"));
+	verify(safeCStrEq(zW.extension, ".crow"));
+	immutable Path aXZW = parseAbsoluteOrRelPathAndExtension(allPaths, aX, safeCStr!"./z/w").path;
+	verify(safeCStrEq(pathToSafeCStr(test.alloc, allPaths, aXZW), safeCStr!"a/x/z/w"));
+	verify(pathEqual(aXZW, parseAbsoluteOrRelPathAndExtension(allPaths, aX, safeCStr!"z/w").path));
+	verify(pathEqual(aY, parseAbsoluteOrRelPathAndExtension(allPaths, aX, safeCStr!"../y").path));
+
+	verify(TEST_countPathParts(allPaths, zW.path) == 3); // initial empty part before the leading "/"
 }

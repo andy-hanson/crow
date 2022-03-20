@@ -6,14 +6,14 @@ import util.alloc.alloc : Alloc;
 import util.col.fullIndexDict : FullIndexDict;
 import util.col.dict : Dict;
 import util.conv : safeToUint, safeToUshort;
-import util.path : hashPathAndStorageKind, PathAndStorageKind, pathAndStorageKindEqual;
+import util.path : hashPath, Path, pathEqual;
 import util.repr : Repr, reprNat, reprRecord;
 import util.sym : AllSymbols, Sym, symSize;
 
 alias Pos = uint;
 
-alias FilePaths = FullIndexDict!(FileIndex, PathAndStorageKind);
-alias PathToFile = Dict!(PathAndStorageKind, FileIndex, pathAndStorageKindEqual, hashPathAndStorageKind);
+alias FilePaths = FullIndexDict!(FileIndex, Path);
+alias PathToFile = Dict!(Path, FileIndex, pathEqual, hashPath);
 
 struct FileIndex {
 	immutable ushort index;

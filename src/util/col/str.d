@@ -4,10 +4,8 @@ module util.col.str;
 
 import util.alloc.alloc : Alloc, allocateT;
 import util.col.arr : empty, freeArr;
-import util.col.arrUtil : cat3;
 import util.hash : Hasher, hashUbyte;
 import util.memory : memcpy;
-import util.opt : force, has, none, Opt, some;
 
 alias CStr = immutable(char)*;
 
@@ -59,23 +57,6 @@ immutable(bool) strEq(immutable string a, immutable string b) {
 	return cast(immutable) begin[0 .. a.length];
 }
 
-immutable(bool) startsWith(immutable string a, immutable string b) {
-	return a.length >= b.length && strEq(a[0 .. b.length], b);
-}
-
-immutable(bool) startsWith(immutable SafeCStr a, immutable string b) {
-	return startsWith(strOfSafeCStr(a), b);
-}
-
-immutable(bool) startsWith(immutable SafeCStr a, immutable SafeCStr b) {
-	immutable Opt!SafeCStr rest = restIfStartsWith(a, b);
-	return has(rest);
-}
-
-@trusted immutable(SafeCStr) catToSafeCStr(ref Alloc alloc, immutable string a, immutable string b) {
-	return immutable SafeCStr(cat3(alloc, a, b, "\0").ptr);
-}
-
 @trusted immutable(SafeCStr) safeCStr(immutable char* content)() {
 	return immutable SafeCStr(content);
 }
@@ -107,19 +88,6 @@ immutable(bool) safeCStrEq(immutable SafeCStr a, immutable string b) {
 
 immutable(bool) safeCStrEq(immutable SafeCStr a, immutable SafeCStr b) {
 	return safeCStrEq(a, strOfSafeCStr(b));
-}
-
-immutable(bool) safeCStrEqCat(immutable SafeCStr a, immutable SafeCStr b1, immutable string b2) {
-	immutable Opt!SafeCStr rest = restIfStartsWith(a, b1);
-	return has(rest) && safeCStrEq(force(rest), b2);
-}
-
-private @trusted immutable(Opt!SafeCStr) restIfStartsWith(immutable SafeCStr a, immutable SafeCStr b) {
-	return *b.ptr == '\0'
-		? some(a)
-		: *a.ptr == *b.ptr
-		? restIfStartsWith(immutable SafeCStr(a.ptr + 1), immutable SafeCStr(b.ptr + 1))
-		: none!SafeCStr;
 }
 
 void hashStr(ref Hasher hasher, immutable string a) {

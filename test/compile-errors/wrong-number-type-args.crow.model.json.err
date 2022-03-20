@@ -1,4 +1,4 @@
-./test/compile-errors/wrong-number-type-args.crow 2:5-2:9 there is no function or variable named 'todo'
+test/compile-errors/wrong-number-type-args.crow 2:5-2:9 there is no function or variable named 'todo'
 
-./test/compile-errors/wrong-number-type-args.crow 5:7-5:12 there are functions named 'magic', but none takes 1 type arguments. candidates:
-	magic opt<out>(opt<in>) (from test/compile-errors/wrong-number-type-args.crow line 1)
+test/compile-errors/wrong-number-type-args.crow 5:7-5:12 there are functions named 'magic', but none takes 1 type arguments. candidates:
+	magic opt<out>(opt<in>) (from test/compile-errors/wrong-number-type-args.crow.crow line 1)

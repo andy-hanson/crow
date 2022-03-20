@@ -7,7 +7,6 @@ import test.testUtil : Test;
 import util.alloc.alloc : Alloc;
 import util.col.arrUtil : fillArrUninitialized;
 import util.col.str : SafeCStr, safeCStr, safeCStrEq;
-import util.path : StorageKind;
 import util.util : verify;
 
 @trusted void testServer(ref Test test) {
@@ -15,7 +14,7 @@ import util.util : verify;
 	Server server = Server(Alloc(bytes.ptr, bytes.length));
 	immutable SafeCStr path = safeCStr!"main";
 	immutable SafeCStr content = safeCStr!"content";
-	addOrChangeFile(server, StorageKind.local, path, content);
-	immutable SafeCStr res = getFile(server, StorageKind.local, path);
+	addOrChangeFile(server, path, content);
+	immutable SafeCStr res = getFile(server, path);
 	verify(safeCStrEq(res, content));
 }

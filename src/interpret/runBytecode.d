@@ -42,7 +42,7 @@ import util.col.str : SafeCStr;
 import util.conv : safeToSizeT;
 import util.memory : allocateMut, memcpy, memmove, memset, overwriteMemory;
 import util.opt : has;
-import util.path : AllPaths;
+import util.path : AllPaths, PathsInfo;
 import util.perf : Perf, PerfMeasure, withMeasureNoAlloc;
 import util.ptr : Ptr, ptrTrustMe, ptrTrustMe_const, ptrTrustMe_mut;
 import util.sourceRange : FileAndPos;
@@ -55,6 +55,7 @@ import util.writer : finishWriterToSafeCStr, Writer, writeChar, writeHex, writeS
 	ref TempAlloc tempAlloc,
 	ref const AllSymbols allSymbols,
 	ref const AllPaths allPaths,
+	ref immutable PathsInfo pathsInfo,
 	scope ref Extern extern_,
 	ref immutable LowProgram lowProgram,
 	ref immutable ByteCode byteCode,
@@ -62,7 +63,7 @@ import util.writer : finishWriterToSafeCStr, Writer, writeChar, writeHex, writeS
 	scope immutable SafeCStr[] allArgs,
 ) {
 	return withInterpreter!(immutable int)(
-		tempAlloc, extern_, lowProgram, byteCode, allSymbols, allPaths, filesInfo,
+		tempAlloc, extern_, lowProgram, byteCode, allSymbols, allPaths, pathsInfo, filesInfo,
 		(scope ref Interpreter interpreter) {
 			push(interpreter.dataStack, allArgs.length);
 			push(interpreter.dataStack, cast(immutable ulong) allArgs.ptr);
@@ -97,6 +98,7 @@ private alias ReturnStack = Stack!(immutable(Operation)*);
 	ref immutable ByteCode byteCode,
 	ref const AllSymbols allSymbols,
 	ref const AllPaths allPaths,
+	ref immutable PathsInfo pathsInfo,
 	ref immutable FilesInfo filesInfo,
 	scope immutable(T) delegate(scope ref Interpreter) @system @nogc nothrow cb,
 ) {
@@ -107,6 +109,7 @@ private alias ReturnStack = Stack!(immutable(Operation)*);
 		ptrTrustMe(byteCode),
 		ptrTrustMe_const(allSymbols),
 		ptrTrustMe_const(allPaths),
+		ptrTrustMe(pathsInfo),
 		ptrTrustMe(filesInfo));
 
 	// Ensure the last 'return' returns to here
@@ -137,6 +140,7 @@ struct Interpreter {
 		immutable Ptr!ByteCode b,
 		const Ptr!AllSymbols as,
 		const Ptr!AllPaths ap,
+		immutable Ptr!PathsInfo pi,
 		immutable Ptr!FilesInfo f,
 	) {
 		tempAllocPtr = ta;
@@ -145,6 +149,7 @@ struct Interpreter {
 		byteCodePtr = b;
 		allSymbolsPtr = as;
 		allPathsPtr = ap;
+		pathsInfoPtr = pi;
 		filesInfoPtr = f;
 		dataStack = DataStack(ta.deref(), 1024 * 64);
 		returnStack = ReturnStack(ta.deref(), 1024 * 4);
@@ -157,6 +162,7 @@ struct Interpreter {
 	immutable Ptr!ByteCode byteCodePtr;
 	const Ptr!AllSymbols allSymbolsPtr;
 	const Ptr!AllPaths allPathsPtr;
+	immutable Ptr!PathsInfo pathsInfoPtr;
 	immutable Ptr!FilesInfo filesInfoPtr;
 	//TODO:PRIVATE
 	public DataStack dataStack;
@@ -178,6 +184,9 @@ struct Interpreter {
 	}
 	ref const(AllPaths) allPaths() const return scope pure {
 		return allPathsPtr.deref();
+	}
+	ref immutable(PathsInfo) pathsInfo() const return scope pure {
+		return pathsInfoPtr.deref();
 	}
 	ref immutable(FilesInfo) filesInfo() const return scope pure {
 		return filesInfoPtr.deref();
@@ -239,6 +248,7 @@ private void writeByteCodeSource(
 	scope ref Writer writer,
 	ref const AllSymbols allSymbols,
 	ref const AllPaths allPaths,
+	ref immutable PathsInfo pathsInfo,
 	ref immutable ShowDiagOptions showDiagOptions,
 	ref immutable LowProgram lowProgram,
 	ref immutable FilesInfo filesInfo,
@@ -251,7 +261,7 @@ private void writeByteCodeSource(
 			immutable FileAndPos where = immutable FileAndPos(
 				concreteFunRange(it.deref(), allSymbols).fileIndex,
 				source.pos);
-			writeFileAndPos(writer, allPaths, showDiagOptions, filesInfo, where);
+			writeFileAndPos(writer, allPaths, pathsInfo, showDiagOptions, filesInfo, where);
 		},
 		(ref immutable LowFunSource.Generated) {},
 	)(lowProgram.allFuns[source.fun].source);
@@ -323,7 +333,8 @@ private immutable(NextOperation) getNextOperationAndDebug(ref Interpreter a, imm
 			scope Writer writer = Writer(ptrTrustMe_mut(dbgAlloc));
 			writeStatic(writer, "STEP: ");
 			immutable ShowDiagOptions showDiagOptions = immutable ShowDiagOptions(false);
-			writeByteCodeSource(writer, a.allSymbols, a.allPaths, showDiagOptions, a.lowProgram, a.filesInfo, source);
+			writeByteCodeSource(
+				writer, a.allSymbols, a.allPaths, a.pathsInfo, showDiagOptions, a.lowProgram, a.filesInfo, source);
 			//writeChar(writer, ' ');
 			//writeReprNoNewline(writer, reprOperation(dbgAlloc, operation));
 			//writeChar(writer, '\n');

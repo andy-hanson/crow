@@ -74,7 +74,7 @@ import util.col.str : SafeCStr;
 import util.conv : safeToUshort;
 import util.memory : allocate;
 import util.opt : force, has, none, Opt, some;
-import util.path : AbsOrRelPath, AllPaths, childPath, Path, rootPath;
+import util.path : AllPaths, childPath, Path, PathOrRelPath, rootPath;
 import util.perf : Perf, PerfMeasure, withMeasure;
 import util.ptr : Ptr, ptrTrustMe_mut;
 import util.sourceRange : Pos, RangeWithinFile;
@@ -124,7 +124,7 @@ struct NamesAndDedent {
 	immutable NewlineOrDedent dedented;
 }
 
-immutable(AbsOrRelPath) parseImportPath(ref AllPaths allPaths, ref Lexer lexer) {
+immutable(PathOrRelPath) parseImportPath(ref AllPaths allPaths, ref Lexer lexer) {
 	immutable Opt!ushort nParents = () {
 		if (tryTakeToken(lexer, Token.dot)) {
 			takeOrAddDiagExpectedOperator(lexer, Operator.divide, ParseDiag.Expected.Kind.slash);
@@ -135,7 +135,7 @@ immutable(AbsOrRelPath) parseImportPath(ref AllPaths allPaths, ref Lexer lexer) 
 		} else
 			return none!ushort;
 	}();
-	return immutable AbsOrRelPath(
+	return immutable PathOrRelPath(
 		nParents,
 		addPathComponents(allPaths, lexer, rootPath(allPaths, takeName(lexer))));
 }
@@ -156,7 +156,7 @@ immutable(Path) addPathComponents(ref AllPaths allPaths, ref Lexer lexer, immuta
 
 immutable(ImportAndDedent) parseSingleModuleImportOnOwnLine(ref AllPaths allPaths, ref Lexer lexer) {
 	immutable Pos start = curPos(lexer);
-	immutable AbsOrRelPath path = parseImportPath(allPaths, lexer);
+	immutable PathOrRelPath path = parseImportPath(allPaths, lexer);
 	immutable NamesAndDedent names = () {
 		if (tryTakeToken(lexer, Token.colon)) {
 			if (tryTakeIndent(lexer, 1))

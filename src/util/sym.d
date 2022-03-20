@@ -91,6 +91,8 @@ immutable(Sym) prependSet(ref AllSymbols allSymbols, immutable Sym a) {
 	}
 }
 
+immutable(Sym) emptySym = shortSym("");
+
 immutable(Sym) symOfStr(ref AllSymbols allSymbols, scope immutable string str) {
 	immutable Opt!Sym packed = tryPackShortSym(str);
 	return has(packed) ? force(packed) : getSymFromLongStr(allSymbols, str);

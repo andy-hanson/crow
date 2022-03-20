@@ -315,7 +315,7 @@ immutable(V[]) valuesArray(K, V, alias equal, alias hash)(
 }
 
 void mutDictEach(K, V, alias equal, alias hash)(
-	ref const MutDict!(K, V, equal, hash) a,
+	scope ref const MutDict!(K, V, equal, hash) a,
 	scope void delegate(const K, ref const V) @safe @nogc pure nothrow cb,
 ) {
 	foreach (ref const Opt!(KeyValuePair!(K, V)) pair; a.pairs)

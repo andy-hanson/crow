@@ -66,8 +66,8 @@ const getCompiler = () => {
 /** @type {function(TextDocument): Promise<PublishDiagnosticsParams>} */
 const getSyntaxDiagnostics = async document => {
 	const comp = await getCompiler()
-	comp.addOrChangeFile(StorageKind.local, "main", document.getText())
-	const diags = comp.getParseDiagnostics(StorageKind.local, "main").map(diag => {
+	comp.addOrChangeFile("main", document.getText())
+	const diags = comp.getParseDiagnostics("main").map(diag => {
 		/** @type {Diagnostic} */
 		const res = {
 			severity: DiagnosticSeverity.Error,

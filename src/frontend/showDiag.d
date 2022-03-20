@@ -2,6 +2,7 @@ module frontend.showDiag;
 
 @safe @nogc pure nothrow:
 
+import frontend.lang : crowExtension;
 import frontend.parse.lexer : Token;
 import model.diag : Diagnostic, Diag, Diagnostics, FilesInfo, matchDiag, TypeKind, writeFileAndRange;
 import model.model :
@@ -37,7 +38,7 @@ import util.col.arrUtil : exists;
 import util.col.str : SafeCStr;
 import util.lineAndColumnGetter : lineAndColumnAtPos;
 import util.opt : force, has, Opt;
-import util.path : AllPaths, baseName, PathAndStorageKind;
+import util.path : AllPaths, baseName, Path, PathsInfo, writePath, writeRelPath;
 import util.ptr : Ptr, ptrTrustMe_mut;
 import util.sourceRange : FileAndPos;
 import util.sym : AllSymbols, strOfOperator, Sym, writeSym;
@@ -58,22 +59,24 @@ import util.writer :
 	writeWithCommas,
 	writeWithNewlines,
 	Writer;
-import util.writerUtils : showChar, writeName, writeNl, writePathAndStorageKind, writeRelPath;
+import util.writerUtils : showChar, writeName, writeNl;
 
 struct ShowDiagOptions {
 	immutable bool color;
 }
 
-immutable(SafeCStr) strOfDiagnostics(	ref Alloc alloc,
+immutable(SafeCStr) strOfDiagnostics(
+	ref Alloc alloc,
 	ref const AllSymbols allSymbols,
 	ref const AllPaths allPaths,
+	ref immutable PathsInfo pathsInfo,
 	ref immutable ShowDiagOptions options,
 	ref immutable FilesInfo filesInfo,
 	ref immutable Diagnostics diagnostics,
 ) {
 	Writer writer = Writer(ptrTrustMe_mut(alloc));
 	writeWithNewlines!Diagnostic(writer, diagnostics.diags, (ref immutable Diagnostic it) {
-		showDiagnostic(alloc, writer, allSymbols, allPaths, options, filesInfo, it);
+		showDiagnostic(alloc, writer, allSymbols, allPaths, pathsInfo, options, filesInfo, it);
 	});
 	return finishWriterToSafeCStr(writer);
 }
@@ -82,12 +85,13 @@ immutable(string) strOfDiagnostic(
 	ref Alloc alloc,
 	ref const AllSymbols allSymbols,
 	ref const AllPaths allPaths,
+	ref immutable PathsInfo pathsInfo,
 	ref immutable ShowDiagOptions options,
 	ref immutable FilesInfo filesInfo,
 	ref immutable Diagnostic diagnostic,
 ) {
 	Writer writer = Writer(ptrTrustMe_mut(alloc));
-	showDiagnostic(alloc, writer, allSymbols, allPaths, options, filesInfo, diagnostic);
+	showDiagnostic(alloc, writer, allSymbols, allPaths, pathsInfo, options, filesInfo, diagnostic);
 	return finishWriter(writer);
 }
 
@@ -96,14 +100,15 @@ private:
 void writeLineNumber(
 	ref Writer writer,
 	ref const AllPaths allPaths,
+	ref immutable PathsInfo pathsInfo,
 	ref immutable ShowDiagOptions options,
-	immutable FilesInfo fi,
+	ref immutable FilesInfo fi,
 	immutable FileAndPos pos,
 ) {
-	immutable PathAndStorageKind where = fi.filePaths[pos.fileIndex];
+	immutable Path where = fi.filePaths[pos.fileIndex];
 	if (options.color)
 		writeBold(writer);
-	writePathAndStorageKind(writer, allPaths, where);
+	writePath(writer, allPaths, pathsInfo, where, crowExtension);
 	writeStatic(writer, ".crow");
 	if (options.color)
 		writeReset(writer);
@@ -115,6 +120,7 @@ void writeLineNumber(
 void writeParseDiag(
 	ref Writer writer,
 	ref const AllPaths allPaths,
+	ref immutable PathsInfo pathsInfo,
 	ref immutable ParseDiag d,
 ) {
 	matchParseDiag!void(
@@ -127,9 +133,9 @@ void writeParseDiag(
 		},
 		(ref immutable ParseDiag.CircularImport it) {
 			writeStatic(writer, "circular import from ");
-			writePathAndStorageKind(writer, allPaths, it.from);
+			writePath(writer, allPaths, pathsInfo, it.from, crowExtension);
 			writeStatic(writer, " to ");
-			writePathAndStorageKind(writer, allPaths, it.to);
+			writePath(writer, allPaths, pathsInfo, it.to, crowExtension);
 		},
 		(ref immutable ParseDiag.Expected it) {
 			final switch (it.kind) {
@@ -193,7 +199,7 @@ void writeParseDiag(
 			writeStatic(writer, "file does not exist");
 			if (has(d.importedFrom)) {
 				writeStatic(writer, " (imported from ");
-				writePathAndStorageKind(writer, allPaths, force(d.importedFrom).path);
+				writePath(writer, allPaths, pathsInfo, force(d.importedFrom).path, crowExtension);
 				writeChar(writer, ')');
 			}
 		},
@@ -247,7 +253,7 @@ void writeParseDiag(
 		},
 		(ref immutable ParseDiag.RelativeImportReachesPastRoot d) {
 			writeStatic(writer, "importing ");
-			writeRelPath(writer, allPaths, d.imported);
+			writeRelPath(writer, allPaths, d.imported, crowExtension);
 			writeStatic(writer, " reaches above the source directory");
 			//TODO: recommend a compiler option to fix this
 		},
@@ -321,15 +327,16 @@ void writeCalledDecl(
 	ref Writer writer,
 	ref const AllSymbols allSymbols,
 	ref const AllPaths allPaths,
+	ref immutable PathsInfo pathsInfo,
 	ref immutable ShowDiagOptions options,
-	immutable FilesInfo fi,
+	ref immutable FilesInfo fi,
 	immutable CalledDecl c,
 ) {
 	writeSig(writer, allSymbols, c.sig);
 	return matchCalledDecl!(
 		void,
 		(immutable Ptr!FunDecl funDecl) {
-			writeFunDeclLocation(writer, allSymbols, allPaths, options, fi, funDecl.deref());
+			writeFunDeclLocation(writer, allSymbols, allPaths, pathsInfo, options, fi, funDecl.deref());
 		},
 		(ref immutable SpecSig specSig) {
 			writeStatic(writer, " (from spec ");
@@ -343,12 +350,13 @@ void writeFunDeclLocation(
 	ref Writer writer,
 	ref const AllSymbols allSymbols,
 	ref const AllPaths allPaths,
+	ref immutable PathsInfo pathsInfo,
 	ref immutable ShowDiagOptions options,
-	immutable FilesInfo fi,
+	ref immutable FilesInfo fi,
 	ref immutable FunDecl funDecl,
 ) {
 	writeStatic(writer, " (from ");
-	writeLineNumber(writer, allPaths, options, fi, funDecl.fileAndPos);
+	writeLineNumber(writer, allPaths, pathsInfo, options, fi, funDecl.fileAndPos);
 	writeChar(writer, ')');
 }
 
@@ -356,6 +364,7 @@ void writeCalledDecls(
 	ref Writer writer,
 	ref const AllSymbols allSymbols,
 	ref const AllPaths allPaths,
+	ref immutable PathsInfo pathsInfo,
 	ref immutable ShowDiagOptions options,
 	ref immutable FilesInfo fi,
 	ref immutable CalledDecl[] cs,
@@ -365,7 +374,7 @@ void writeCalledDecls(
 		if (filter(c)) {
 			writeNl(writer);
 			writeChar(writer, '\t');
-			writeCalledDecl(writer, allSymbols, allPaths, options, fi, c);
+			writeCalledDecl(writer, allSymbols, allPaths, pathsInfo, options, fi, c);
 		}
 }
 
@@ -373,17 +382,19 @@ void writeCalledDecls(
 	ref Writer writer,
 	ref const AllSymbols allSymbols,
 	ref const AllPaths allPaths,
+	ref immutable PathsInfo pathsInfo,
 	ref immutable ShowDiagOptions options,
 	ref immutable FilesInfo fi,
 	ref immutable CalledDecl[] cs,
 ) {
-	writeCalledDecls(writer, allSymbols, allPaths, options, fi, cs, (ref immutable CalledDecl) => true);
+	writeCalledDecls(writer, allSymbols, allPaths, pathsInfo, options, fi, cs, (ref immutable CalledDecl) => true);
 }
 
 void writeCallNoMatch(
 	ref Writer writer,
 	ref const AllSymbols allSymbols,
 	ref const AllPaths allPaths,
+	ref immutable PathsInfo pathsInfo,
 	ref immutable ShowDiagOptions options,
 	ref immutable FilesInfo fi,
 	ref immutable Diag.CallNoMatch d,
@@ -422,7 +433,7 @@ void writeCallNoMatch(
 			writeStatic(writer, " type");
 		}
 		writeStatic(writer, " arguments. candidates:");
-		writeCalledDecls(writer, allSymbols, allPaths, options, fi, d.allCandidates);
+		writeCalledDecls(writer, allSymbols, allPaths, pathsInfo, options, fi, d.allCandidates);
 	} else {
 		writeStatic(writer, "there are functions named ");
 		writeName(writer, allSymbols, d.funName);
@@ -449,8 +460,10 @@ void writeCallNoMatch(
 		writeStatic(writer, "\ncandidates (with ");
 		writeNat(writer, d.actualArity);
 		writeStatic(writer, " arguments):");
-		writeCalledDecls(writer, allSymbols, allPaths, options, fi, d.allCandidates, (ref immutable CalledDecl c) =>
-			arityMatches(arity(c), d.actualArity));
+		writeCalledDecls(
+			writer, allSymbols, allPaths, pathsInfo, options, fi, d.allCandidates,
+			(ref immutable CalledDecl c) =>
+				arityMatches(arity(c), d.actualArity));
 	}
 }
 
@@ -459,6 +472,7 @@ void writeDiag(
 	ref Writer writer,
 	ref const AllSymbols allSymbols,
 	ref const AllPaths allPaths,
+	ref immutable PathsInfo pathsInfo,
 	ref immutable ShowDiagOptions options,
 	ref immutable FilesInfo fi,
 	ref immutable Diag d,
@@ -473,10 +487,10 @@ void writeDiag(
 			writeStatic(writer, "cannot choose an overload of ");
 			writeName(writer, allSymbols, d.funName);
 			writeStatic(writer, ". multiple functions match:");
-			writeCalledDecls(writer, allSymbols, allPaths, options, fi, d.matches);
+			writeCalledDecls(writer, allSymbols, allPaths, pathsInfo, options, fi, d.matches);
 		},
 		(ref immutable Diag.CallNoMatch d) {
-			writeCallNoMatch(writer, allSymbols, allPaths, options, fi, d);
+			writeCallNoMatch(writer, allSymbols, allPaths, pathsInfo, options, fi, d);
 		},
 		(ref immutable Diag.CantCall it) {
 			immutable string descr = () {
@@ -719,7 +733,7 @@ void writeDiag(
 			writeName(writer, allSymbols, d.name);
 		},
 		(ref immutable ParseDiag pd) {
-			writeParseDiag(writer, allPaths, pd);
+			writeParseDiag(writer, allPaths, pathsInfo, pd);
 		},
 		(ref immutable Diag.PurityWorseThanParent d) {
 			writeStatic(writer, "struct ");
@@ -766,14 +780,14 @@ void writeDiag(
 			writeStatic(writer, "multiple implementations found for spec signature ");
 			writeName(writer, allSymbols, d.sigName);
 			writeChar(writer, ':');
-			writeCalledDecls(writer, allSymbols, allPaths, options, fi, d.matches);
+			writeCalledDecls(writer, allSymbols, allPaths, pathsInfo, options, fi, d.matches);
 		},
 		(ref immutable Diag.SpecImplHasSpecs d) {
 			writeStatic(writer, "calling ");
 			writeName(writer, allSymbols, name(d.outerCalled.deref()));
 			writeStatic(writer, ", spec implementation for ");
 			writeName(writer, allSymbols, name(d.specImpl.deref()));
-			writeFunDeclLocation(writer, allSymbols, allPaths, options, fi, d.specImpl.deref());
+			writeFunDeclLocation(writer, allSymbols, allPaths, pathsInfo, options, fi, d.specImpl.deref());
 			writeStatic(writer, " has specs itself; currently this is not allowed");
 		},
 		(ref immutable Diag.SpecImplNotFound d) {
@@ -821,7 +835,7 @@ void writeDiag(
 			} else {
 				writeStatic(writer, "imported module ");
 				// TODO: helper fn
-				immutable Sym moduleName = baseName(allPaths, fi.filePaths[it.importedModule.deref().fileIndex].path);
+				immutable Sym moduleName = baseName(allPaths, fi.filePaths[it.importedModule.deref().fileIndex]);
 				writeSym(writer, allSymbols, moduleName);
 			}
 			writeStatic(writer, " is unused");
@@ -877,13 +891,14 @@ void showDiagnostic(
 	ref Writer writer,
 	ref const AllSymbols allSymbols,
 	ref const AllPaths allPaths,
+	ref immutable PathsInfo pathsInfo,
 	ref immutable ShowDiagOptions options,
 	ref immutable FilesInfo fi,
 	ref immutable Diagnostic d,
 ) {
-	writeFileAndRange(writer, allPaths, options, fi, d.where);
+	writeFileAndRange(writer, allPaths, pathsInfo, options, fi, d.where);
 	writeChar(writer, ' ');
-	writeDiag(tempAlloc, writer, allSymbols, allPaths, options, fi, d.diag);
+	writeDiag(tempAlloc, writer, allSymbols, allPaths, pathsInfo, options, fi, d.diag);
 	writeNl(writer);
 }
 

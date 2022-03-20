@@ -11,7 +11,7 @@ import util.col.arrUtil : arrLiteral;
 import util.col.str : SafeCStr, safeCStr, safeCStrIsEmpty;
 import util.conv : safeToUint;
 import util.opt : force, has, none, Opt, some;
-import util.path : AbsOrRelPath, absOrRelPathToStr, AllPaths;
+import util.path : PathOrRelPath, pathOrRelPathToStr, AllPaths;
 import util.ptr : Ptr;
 import util.repr :
 	NameAndRepr,
@@ -976,7 +976,7 @@ struct TestAst {
 
 struct ImportAst {
 	immutable RangeWithinFile range;
-	immutable AbsOrRelPath path;
+	immutable PathOrRelPath path;
 	immutable Opt!(Sym[]) names;
 }
 
@@ -1050,7 +1050,7 @@ immutable(Repr) reprImportAst(
 	ref immutable ImportAst a,
 ) {
 	return reprRecord(alloc, "import-ast", [
-		reprStr(absOrRelPathToStr(alloc, allPaths, a.path)),
+		reprStr(pathOrRelPathToStr(alloc, allPaths, a.path)),
 		reprOpt!(Sym[])(alloc, a.names, (ref immutable Sym[] names) =>
 			reprArr(alloc, names, (ref immutable Sym name) =>
 				reprSym(name)))]);

@@ -2,68 +2,11 @@ module util.writerUtils;
 
 @safe @nogc pure nothrow:
 
-import util.col.str : SafeCStr, startsWith, strOfSafeCStr;
 import util.lineAndColumnGetter : LineAndColumn, lineAndColumnAtPos, LineAndColumnGetter;
-import util.opt : force, has, Opt;
-import util.path : AbsolutePath, AllPaths, baseName, nParents, parent, path, Path, PathAndStorageKind, RelPath;
 import util.sourceRange : Pos, RangeWithinFile;
 import util.sym : AllSymbols, Sym, writeSym, writeSymAndGetSize;
 import util.util : todo;
-import util.writer : writeChar, writeNat, Writer, writeStatic, writeSafeCStr, writeStr;
-
-private void writePath(
-	ref Writer writer,
-	ref const AllPaths allPaths,
-	immutable Path p,
-) {
-	immutable Opt!Path par = parent(allPaths, p);
-	if (has(par)) {
-		writePath(writer, allPaths, force(par));
-		writeChar(writer, '/');
-	}
-	writeSym(writer, allPaths.allSymbols, baseName(allPaths, p));
-}
-
-void writePathRelativeToCwd(
-	ref Writer writer,
-	ref const AllPaths allPaths,
-	immutable SafeCStr cwdCStr,
-	ref immutable AbsolutePath path,
-) {
-	immutable string cwd = strOfSafeCStr(cwdCStr);
-	immutable string root = strOfSafeCStr(path.root);
-	if (startsWith(root, cwd) &&
-		(root.length == cwd.length || (root.length > cwd.length + 1 && root[cwd.length] == '/'))) {
-		writeStatic(writer, "./");
-		if (root.length != cwd.length) {
-			writeStr(writer, root[cwd.length + 1 .. $]);
-			writeChar(writer, '/');
-		}
-	} else {
-		writeStr(writer, root);
-		writeChar(writer, '/');
-	}
-	writePath(writer, allPaths, path.path);
-	writeSafeCStr(writer, path.extension);
-}
-
-void writeRelPath(
-	ref Writer writer,
-	ref const AllPaths allPaths,
-	ref immutable RelPath p,
-) {
-	foreach (immutable ushort i; 0 .. nParents(p))
-		writeStatic(writer, "../");
-	writePath(writer, allPaths, p.path);
-}
-
-void writePathAndStorageKind(
-	ref Writer writer,
-	ref const AllPaths allPaths,
-	immutable PathAndStorageKind p,
-) {
-	writePath(writer, allPaths, p.path);
-}
+import util.writer : writeChar, writeNat, Writer, writeStatic;
 
 private void writeLineAndColumn(ref Writer writer, immutable LineAndColumn lc) {
 	writeNat(writer, lc.line + 1);

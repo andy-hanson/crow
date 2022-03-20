@@ -55,7 +55,6 @@ import interpret.bytecodeWriter :
 import lib.compiler : ExitCode;
 import lower.lowExprHelpers : nat64Type;
 import model.diag : FilesInfo, filesInfoForSingle;
-import model.model : AbsolutePathsGetter;
 import model.lowModel :
 	AllConstantsLow,
 	AllLowTypes,
@@ -80,10 +79,10 @@ import util.alloc.alloc : Alloc;
 import util.col.arr : emptyArr;
 import util.col.fullIndexDict : emptyFullIndexDict, fullIndexDictOfArr;
 import util.col.stack : stackBegin, pop, push;
-import util.col.str : SafeCStr, safeCStr;
+import util.col.str : SafeCStr;
 import util.lineAndColumnGetter : lineAndColumnGetterForEmptyFile;
 import util.memory : allocate;
-import util.path : Path, PathAndStorageKind, rootPath, StorageKind;
+import util.path : emptyPathsInfo, Path, PathsInfo, rootPath;
 import util.ptr : ptrTrustMe_mut;
 import util.sourceRange : FileIndex, Pos;
 import util.sym : shortSym, Sym;
@@ -127,13 +126,9 @@ void doInterpret(
 	scope void delegate(scope ref Interpreter, immutable(Operation)*) @system @nogc nothrow runInterpreter,
 ) {
 	immutable Path emptyPath = rootPath(test.allPaths, shortSym("test"));
-	immutable AbsolutePathsGetter emptyAbsolutePathsGetter =
-		immutable AbsolutePathsGetter(safeCStr!"", safeCStr!"", safeCStr!"");
-	immutable FilesInfo filesInfo = filesInfoForSingle(
-		test.alloc,
-		immutable PathAndStorageKind(emptyPath, StorageKind.global),
-		lineAndColumnGetterForEmptyFile(test.alloc),
-		emptyAbsolutePathsGetter);
+	immutable FilesInfo filesInfo = filesInfoForSingle(test.alloc,
+		emptyPath,
+		lineAndColumnGetterForEmptyFile(test.alloc));
 	immutable LowFun[1] lowFun = [immutable LowFun(
 		immutable LowFunSource(allocate(test.alloc, immutable LowFunSource.Generated(
 			shortSym("test"), emptyArr!LowType))),
@@ -156,8 +151,9 @@ void doInterpret(
 		immutable LowFunIndex(0),
 		emptyArr!Sym);
 	withFakeExtern(test.alloc, test.allSymbols, (scope ref Extern extern_) @trusted {
+		immutable PathsInfo pathsInfo = emptyPathsInfo;
 		withInterpreter!void(
-			test.alloc, extern_, lowProgram, byteCode, test.allSymbols, test.allPaths, filesInfo,
+			test.alloc, extern_, lowProgram, byteCode, test.allSymbols, test.allPaths, pathsInfo, filesInfo,
 			(scope ref Interpreter interpreter) {
 				runInterpreter(interpreter, initialOperationPointer(byteCode));
 			});

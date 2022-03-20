@@ -47,7 +47,7 @@ import util.col.arr : empty;
 import util.col.arrBuilder : add, ArrBuilder, arrBuilderSort, finishArr;
 import util.col.arrUtil : exists, findIndex, mapOp;
 import util.col.dict : dictEach;
-import util.col.str : SafeCStr, safeCStr, safeCStrIsEmpty;
+import util.col.str : SafeCStr, safeCStrIsEmpty;
 import util.comparison : compareNat16, compareNat32, Comparison;
 import util.opt : force, has, none, Opt, some;
 import util.path : AllPaths, Path, pathToSafeCStr;
@@ -86,8 +86,8 @@ immutable(Repr) documentModule(
 	ref immutable Program program,
 	ref immutable Module a,
 ) {
-	immutable Path path = program.filesInfo.filePaths[a.fileIndex].path;
-	immutable SafeCStr pathStr = pathToSafeCStr(alloc, allPaths, safeCStr!"", path, safeCStr!"");
+	immutable Path path = program.filesInfo.filePaths[a.fileIndex];
+	immutable SafeCStr pathStr = pathToSafeCStr(alloc, allPaths, path);
 	ArrBuilder!DocExport exports;
 	dictEach!(Sym, NameReferents, symEq, hashSym)(
 		a.allExportedNames,

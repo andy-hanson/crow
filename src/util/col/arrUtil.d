@@ -37,17 +37,6 @@ import util.util : max, verify;
 		cb(a[i], b[i]);
 }
 
-@trusted immutable(Out[]) mapImpure(Out, In)(
-	ref Alloc alloc,
-	scope immutable In[] a,
-	scope immutable(Out) delegate(ref immutable In) @safe @nogc nothrow cb,
-) {
-	Out* res = allocateT!Out(alloc, a.length);
-	foreach (immutable size_t i, ref immutable In x; a)
-		initMemory(res + i, cb(x));
-	return cast(immutable) res[0 .. a.length];
-}
-
 pure:
 
 @trusted immutable(T[]) arrLiteral(T)(ref Alloc alloc, scope immutable T[] values) {
@@ -139,7 +128,7 @@ immutable(bool) contains(T)(
 }
 
 immutable(Opt!size_t) findIndex(T)(
-	ref immutable T[] a,
+	scope immutable T[] a,
 	scope immutable(bool) delegate(ref immutable T) @safe @nogc pure nothrow cb,
 ) {
 	foreach (immutable size_t i, ref immutable T x; a)
@@ -444,23 +433,6 @@ private immutable(Acc) each(Acc, T)(
 	}
 }
 
-@trusted immutable(T[]) cat3(T)(
-	ref Alloc alloc,
-	immutable T[] a,
-	immutable T[] b,
-	immutable T[] c,
-) {
-	immutable size_t resSize = a.length + b.length + c.length;
-	T* res = allocateT!T(alloc, resSize);
-	foreach (immutable size_t i, ref immutable T x; a)
-		initMemory(res + i, x);
-	foreach (immutable size_t i, ref immutable T x; b)
-		initMemory(res + a.length + i, x);
-	foreach (immutable size_t i, ref immutable T x; c)
-		initMemory(res + a.length + b.length + i, x);
-	return cast(immutable) res[0 .. resSize];
-}
-
 @trusted immutable(T[]) append(T)(ref Alloc alloc, immutable T[] a, immutable T b) {
 	immutable size_t resSize = a.length + 1;
 	T* res = allocateT!T(alloc, resSize);
@@ -648,7 +620,7 @@ immutable(T) fold(T, U)(
 
 immutable(Opt!T) foldOrStop(T, U)(
 	immutable T start,
-	immutable U[] arr,
+	scope immutable U[] arr,
 	scope immutable(Opt!T) delegate(immutable T a, ref immutable U b) @safe @nogc pure nothrow cb,
 ) {
 	if (empty(arr))

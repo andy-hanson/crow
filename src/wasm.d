@@ -15,7 +15,6 @@ import lib.server :
 import util.alloc.alloc : Alloc, allocateT;
 import util.col.str : CStr, SafeCStr;
 import util.memory : utilMemcpy = memcpy, utilMemmove = memmove;
-import util.path : StorageKind;
 import util.perf : eachMeasure, Perf, PerfMeasureResult, withNullPerf;
 import util.ptr : ptrTrustMe_mut;
 import util.repr : Repr, jsonStrOfRepr, nameAndRepr, reprArr, reprNamedRecord, reprStr;
@@ -63,36 +62,26 @@ extern(C) immutable(size_t) getGlobalBufferSizeBytes() {
 	return ptr;
 }
 
-@system extern(C) void addOrChangeFile(
-	Server* server,
-	immutable StorageKind storageKind,
-	scope immutable CStr path,
-	scope immutable CStr content,
-) {
-	addOrChangeFile(*server, storageKind, immutable SafeCStr(path), immutable SafeCStr(content));
+@system extern(C) void addOrChangeFile(Server* server, scope immutable CStr path, scope immutable CStr content) {
+	addOrChangeFile(*server, immutable SafeCStr(path), immutable SafeCStr(content));
 }
 
-@system extern(C) void deleteFile(Server* server, immutable StorageKind storageKind, scope immutable CStr path) {
-	deleteFile(*server, storageKind, immutable SafeCStr(path));
+@system extern(C) void deleteFile(Server* server, scope immutable CStr path) {
+	deleteFile(*server, immutable SafeCStr(path));
 }
 
-@system extern(C) immutable(CStr) getFile(
-	Server* server,
-	immutable StorageKind storageKind,
-	scope immutable CStr path,
-) {
-	return getFile(*server, storageKind, immutable SafeCStr(path)).ptr;
+@system extern(C) immutable(CStr) getFile(Server* server, scope immutable CStr path) {
+	return getFile(*server, immutable SafeCStr(path)).ptr;
 }
 
 @system extern(C) immutable(CStr) getTokens(
 	ubyte* resultStart, immutable size_t resultLength,
 	Server* server,
-	immutable StorageKind storageKind,
 	scope immutable CStr path,
 ) {
 	Alloc resultAlloc = Alloc(resultStart, resultLength);
 	immutable Token[] tokens = withNullPerf!(immutable Token[], (scope ref Perf perf) =>
-		getTokens(resultAlloc, perf, *server, storageKind, immutable SafeCStr(path)));
+		getTokens(resultAlloc, perf, *server, immutable SafeCStr(path)));
 	immutable Repr repr = reprTokens(resultAlloc, tokens);
 	return jsonStrOfRepr(resultAlloc, server.allSymbols, repr).ptr;
 }
@@ -101,12 +90,11 @@ extern(C) immutable(size_t) getGlobalBufferSizeBytes() {
 	ubyte* resultStart,
 	immutable size_t resultLength,
 	Server* server,
-	immutable StorageKind storageKind,
 	scope immutable CStr path,
 ) {
 	Alloc resultAlloc = Alloc(resultStart, resultLength);
 	immutable StrParseDiagnostic[] diags = withNullPerf!(immutable StrParseDiagnostic[], (scope ref Perf perf) =>
-		getParseDiagnostics(resultAlloc, perf, *server, storageKind, immutable SafeCStr(path)));
+		getParseDiagnostics(resultAlloc, perf, *server, immutable SafeCStr(path)));
 	immutable Repr repr = reprParseDiagnostics(resultAlloc, diags);
 	return jsonStrOfRepr(resultAlloc, server.allSymbols, repr).ptr;
 }
@@ -115,13 +103,12 @@ extern(C) immutable(size_t) getGlobalBufferSizeBytes() {
 	ubyte* resultStart,
 	immutable size_t resultLength,
 	Server* server,
-	immutable StorageKind storageKind,
 	scope immutable CStr path,
 	immutable Pos pos,
 ) {
 	Alloc resultAlloc = Alloc(resultStart, resultLength);
 	return withNullPerf!(immutable SafeCStr, (scope ref Perf perf) =>
-		getHover(perf, resultAlloc, *server, storageKind, immutable SafeCStr(path), pos)).ptr;
+		getHover(perf, resultAlloc, *server, immutable SafeCStr(path), pos)).ptr;
 }
 
 @system extern(C) immutable(CStr) run(

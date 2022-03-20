@@ -6,9 +6,9 @@ import util.alloc.alloc : Alloc;
 import util.col.arr : empty, emptyArr, only;
 import util.col.arrBuilder : add, ArrBuilder, finishArr;
 import util.col.arrUtil : findIndex, foldOrStop, mapOrNone;
-import util.col.str : SafeCStr, safeCStr, safeCStrEq, safeCStrIsEmpty, startsWith, strEq, strOfSafeCStr;
+import util.col.str : SafeCStr, safeCStr, safeCStrEq, safeCStrIsEmpty, strEq, strOfSafeCStr;
 import util.opt : force, has, none, Opt, some;
-import util.path : AbsolutePath, AllPaths, parseAbsoluteOrRelPath, Path;
+import util.path : AllPaths, parseAbsoluteOrRelPathAndExtension, Path, PathAndExtension;
 import util.util : todo, verify;
 
 @safe @nogc nothrow: // not pure
@@ -59,11 +59,11 @@ pure:
 struct Command {
 	@safe @nogc pure nothrow:
 	struct Build {
-		immutable ProgramDirAndMain programDirAndMain;
+		immutable Path mainPath;
 		immutable BuildOptions options;
 	}
 	struct Document {
-		immutable ProgramDirAndRootPaths programDirAndRootPaths;
+		immutable Path[] rootPaths;
 	}
 	struct Help {
 		enum Kind {
@@ -75,10 +75,10 @@ struct Command {
 	}
 	struct Print {
 		immutable PrintKind kind;
-		immutable ProgramDirAndMain programDirAndMain;
+		immutable Path mainPath;
 	}
 	struct Run {
-		immutable ProgramDirAndMain programDirAndMain;
+		immutable Path mainPath;
 		immutable RunOptions options;
 		// Does not include executable path
 		immutable SafeCStr[] programArgs;
@@ -158,28 +158,18 @@ struct CCompileOptions {
 }
 
 private struct BuildOut {
-	immutable Opt!AbsolutePath outC;
-	immutable Opt!AbsolutePath outExecutable;
+	immutable Opt!PathAndExtension outC;
+	immutable Opt!PathAndExtension outExecutable;
 }
 
 immutable(bool) hasAnyOut(ref immutable BuildOut a) {
 	return has(a.outC) || has(a.outExecutable);
 }
 
-struct ProgramDirAndMain {
-	immutable SafeCStr programDir;
-	immutable Path mainPath;
-}
-
-struct ProgramDirAndRootPaths {
-	immutable SafeCStr programDir;
-	immutable Path[] rootPaths;
-}
-
 immutable(Command) parseCommand(
 	ref Alloc alloc,
 	ref AllPaths allPaths,
-	immutable SafeCStr cwd,
+	immutable Path cwd,
 	immutable SafeCStr[] args,
 ) {
 	if (empty(args))
@@ -214,7 +204,7 @@ version (Windows) {
 private:
 
 immutable(BuildOut) emptyBuildOut() {
-	return immutable BuildOut(none!AbsolutePath, none!AbsolutePath);
+	return immutable BuildOut(none!PathAndExtension, none!PathAndExtension);
 }
 
 immutable(bool) isSpecialArg(immutable string a, immutable string expected) {
@@ -225,79 +215,65 @@ immutable(bool) isHelp(immutable string a) {
 	return isSpecialArg(a, "help");
 }
 
-immutable(Command) useProgramDirAndMain(
+immutable(Command) withMainPath(
 	ref Alloc alloc,
 	ref AllPaths allPaths,
-	immutable SafeCStr cwd,
-	immutable SafeCStr arg,
-	scope immutable(Command) delegate(ref immutable ProgramDirAndMain) @safe pure @nogc nothrow cb,
+	immutable Path cwd,
+	scope immutable SafeCStr arg,
+	scope immutable(Command) delegate(immutable Path) @safe pure @nogc nothrow cb,
 ) {
-	immutable Opt!ProgramDirAndMain p = parseProgramDirAndMain(alloc, allPaths, cwd, arg);
+	immutable Opt!Path p = tryParseCrowPath(alloc, allPaths, cwd, arg);
 	return has(p)
 		? cb(force(p))
 		: immutable Command(immutable Command.Help(safeCStr!"Invalid path", Command.Help.Kind.error));
 }
 
-immutable(Command) useProgramDirAndRootPaths(
+immutable(Command) withRootPaths(
 	ref Alloc alloc,
 	ref AllPaths allPaths,
-	immutable SafeCStr cwd,
-	scope immutable SafeCStr[] args,
-	scope immutable(Command) delegate(ref immutable ProgramDirAndRootPaths) @safe pure @nogc nothrow cb,
+	immutable Path cwd,
+	immutable SafeCStr[] args,
+	scope immutable(Command) delegate(immutable Path[]) @safe pure @nogc nothrow cb,
 ) {
-	immutable Opt!ProgramDirAndRootPaths p = parseProgramDirAndRootPaths(alloc, allPaths, cwd, args);
+	immutable Opt!(Path[]) p = tryParseRootPaths(alloc, allPaths, cwd, args);
 	return has(p)
 		? cb(force(p))
 		: immutable Command(immutable Command.Help(safeCStr!"Invalid path", Command.Help.Kind.error));
 }
 
-immutable(Opt!ProgramDirAndMain) parseProgramDirAndMain(
+immutable(Opt!Path) tryParseCrowPath(
 	ref Alloc alloc,
 	ref AllPaths allPaths,
-	immutable SafeCStr cwd,
-	immutable SafeCStr arg,
+	immutable Path cwd,
+	scope immutable SafeCStr arg,
 ) {
-	immutable AbsolutePath mainAbsolutePath = parseAbsoluteOrRelPath(alloc, allPaths, cwd, arg);
-	return safeCStrIsEmpty(mainAbsolutePath.extension) || safeCStrEq(mainAbsolutePath.extension, crowExtension)
-		? some(immutable ProgramDirAndMain(mainAbsolutePath.root, mainAbsolutePath.path))
-		: none!ProgramDirAndMain;
+	immutable PathAndExtension path = parseAbsoluteOrRelPathAndExtension(allPaths, cwd, arg);
+	return safeCStrIsEmpty(path.extension) || safeCStrEq(path.extension, crowExtension)
+		? some(path.path)
+		: none!Path;
 }
 
-immutable(Opt!ProgramDirAndRootPaths) parseProgramDirAndRootPaths(
+immutable(Opt!(Path[])) tryParseRootPaths(
 	ref Alloc alloc,
 	ref AllPaths allPaths,
-	immutable SafeCStr cwd,
-	scope immutable SafeCStr[] args,
+	immutable Path cwd,
+	immutable SafeCStr[] args,
 ) {
 	verify(!empty(args));
-	immutable Opt!ProgramDirAndMain first = parseProgramDirAndMain(alloc, allPaths, cwd, args[0]);
-	if (!has(first))
-		return none!ProgramDirAndRootPaths;
-	else {
-		immutable SafeCStr programDir = force(first).programDir;
-		immutable Opt!(Path[]) rootPaths = mapOrNone(alloc, args, (ref immutable SafeCStr arg) {
-			immutable Opt!ProgramDirAndMain here = parseProgramDirAndMain(alloc, allPaths, cwd, arg);
-			// TODO: better handling if they don't all have same programDir
-			return has(here) && safeCStrEq(force(here).programDir, programDir)
-				? some(force(here).mainPath)
-				: none!Path;
-		});
-		return has(rootPaths)
-			? some(immutable ProgramDirAndRootPaths(programDir, force(rootPaths)))
-			: none!ProgramDirAndRootPaths;
-	}
+	return mapOrNone(alloc, args, (ref immutable SafeCStr arg) =>
+		tryParseCrowPath(alloc, allPaths, cwd, arg));
 }
 
 immutable(Command) parsePrintCommand(
 	ref Alloc alloc,
 	ref AllPaths allPaths,
-	immutable SafeCStr cwd,
+	immutable Path cwd,
 	immutable SafeCStr[] args,
 ) {
 	return args.length != 2
 		? todo!Command("Command.HelpPrint")
-		: useProgramDirAndMain(alloc, allPaths, cwd, args[1], (ref immutable ProgramDirAndMain it) =>
-			immutable Command(immutable Command.Print(parsePrintKind(args[0]), it)));
+		: withMainPath(alloc, allPaths, cwd, args[1], (immutable Path path) =>
+			immutable Command(immutable Command.Print(parsePrintKind(args[0]), path)));
 }
 
 immutable(PrintKind) parsePrintKind(immutable SafeCStr a) {
@@ -317,18 +293,18 @@ immutable(PrintKind) parsePrintKind(immutable SafeCStr a) {
 immutable(Command) parseDocumentCommand(
 	ref Alloc alloc,
 	ref AllPaths allPaths,
-	immutable SafeCStr cwd,
+	immutable Path cwd,
 	immutable SafeCStr[] args,
 ) {
 	immutable Command helpDocument = immutable Command(
 		immutable Command.Help(helpDocumentText, Command.Help.Kind.error));
 	immutable SplitArgs split = splitArgs(alloc, args);
-	return useProgramDirAndRootPaths(
+	return withRootPaths(
 		alloc,
 		allPaths,
 		cwd,
 		split.beforeFirstPart,
-		(ref immutable ProgramDirAndRootPaths it) =>
+		(immutable Path[] it) =>
 			empty(split.parts) && empty(split.afterDashDash)
 				? immutable Command(immutable Command.Document(it))
 				: helpDocument);
@@ -337,19 +313,19 @@ immutable(Command) parseDocumentCommand(
 immutable(Command) parseBuildCommand(
 	ref Alloc alloc,
 	ref AllPaths allPaths,
-	ref immutable SafeCStr cwd,
-	ref immutable SafeCStr[] args,
+	immutable Path cwd,
+	immutable SafeCStr[] args,
 ) {
 	immutable Command helpBuild = immutable Command(immutable Command.Help(helpBuildText, Command.Help.Kind.error));
 	immutable SplitArgs split = splitArgs(alloc, args);
 	return split.beforeFirstPart.length != 1
 		? helpBuild
-		: useProgramDirAndMain(
+		: withMainPath(
 			alloc,
 			allPaths,
 			cwd,
 			only(split.beforeFirstPart),
-			(ref immutable ProgramDirAndMain it) {
+			(immutable Path it) {
 				immutable Opt!BuildOptions options = parseBuildOptions(alloc, allPaths, cwd, split.parts, it);
 				return has(options) && empty(split.afterDashDash)
 					? immutable Command(immutable Command.Build(it, force(options)))
@@ -360,7 +336,7 @@ immutable(Command) parseBuildCommand(
 immutable(Command) parseRunCommand(
 	ref Alloc alloc,
 	ref AllPaths allPaths,
-	immutable SafeCStr cwd,
+	immutable Path cwd,
 	immutable SafeCStr[] args,
 ) {
 	if (args.length == 1 && isHelp(strOfSafeCStr(only(args))))
@@ -369,12 +345,12 @@ immutable(Command) parseRunCommand(
 		immutable SplitArgs split = splitArgs(alloc, args);
 		immutable Opt!RunOptions options = parseRunOptions(alloc, allPaths, split.parts);
 		return split.beforeFirstPart.length == 1 && has(options)
-			? useProgramDirAndMain(
+			? withMainPath(
 				alloc,
 				allPaths,
 				cwd,
 				only(split.beforeFirstPart),
-				(ref immutable ProgramDirAndMain it) =>
+				(immutable Path it) =>
 					immutable Command(immutable Command.Run(it, force(options), split.afterDashDash)))
 			: immutable Command(immutable Command.Help(helpRunText, Command.Help.Kind.error));
 	}
@@ -383,7 +359,7 @@ immutable(Command) parseRunCommand(
 immutable(Opt!RunOptions) parseRunOptions(
 	ref Alloc alloc,
 	ref AllPaths allPaths,
-	immutable ArgsPart[] argParts,
+	scope immutable ArgsPart[] argParts,
 ) {
 	if (empty(argParts)) {
 		version (Windows) {
@@ -408,19 +384,16 @@ immutable(Opt!RunOptions) parseRunOptions(
 immutable(Opt!BuildOptions) parseBuildOptions(
 	ref Alloc alloc,
 	ref AllPaths allPaths,
-	immutable SafeCStr cwd,
-	immutable ArgsPart[] argParts,
-	ref immutable ProgramDirAndMain programDirAndMain,
+	immutable Path cwd,
+	scope immutable ArgsPart[] argParts,
+	immutable Path mainPath,
 ) {
 	return foldOrStop!(BuildOptions, ArgsPart)(
 		// Default: unoptimized, compiled next to the source file
 		immutable BuildOptions(
 			immutable BuildOut(
-				none!AbsolutePath,
-				some(immutable AbsolutePath(
-					programDirAndMain.programDir,
-					programDirAndMain.mainPath,
-					defaultExeExtension))),
+				none!PathAndExtension,
+				some(immutable PathAndExtension(mainPath, defaultExeExtension))),
 			immutable CCompileOptions(OptimizationLevel.none)),
 		argParts,
 		(immutable BuildOptions cur, ref immutable ArgsPart part) {
@@ -429,7 +402,7 @@ immutable(Opt!BuildOptions) parseBuildOptions(
 				return has(buildOut) ? some(withBuildOut(cur, force(buildOut))) : none!BuildOptions;
 			} else if (safeCStrEq(part.tag, "--no-out")) {
 				return empty(part.args)
-					? some(withBuildOut(cur, immutable BuildOut(none!AbsolutePath, none!AbsolutePath)))
+					? some(withBuildOut(cur, immutable BuildOut(none!PathAndExtension, none!PathAndExtension)))
 					: none!BuildOptions;
 			} else if (safeCStrEq(part.tag, "--optimize")) {
 				return empty(part.args)
@@ -443,14 +416,14 @@ immutable(Opt!BuildOptions) parseBuildOptions(
 immutable(Opt!BuildOut) parseBuildOut(
 	ref Alloc alloc,
 	ref AllPaths allPaths,
-	immutable SafeCStr cwd,
+	immutable Path cwd,
 	immutable SafeCStr[] args,
 ) {
 	return foldOrStop(
 		emptyBuildOut(),
 		args,
 		(immutable BuildOut o, ref immutable SafeCStr arg) {
-			immutable AbsolutePath path = parseAbsoluteOrRelPath(alloc, allPaths, cwd, arg);
+			immutable PathAndExtension path = parseAbsoluteOrRelPathAndExtension(allPaths, cwd, arg);
 			if (safeCStrIsEmpty(path.extension)) {
 				return has(o.outExecutable)
 					? none!BuildOut
@@ -478,7 +451,7 @@ struct SplitArgs {
 
 immutable(SplitArgs) splitArgs(ref Alloc alloc, immutable SafeCStr[] args) {
 	immutable Opt!size_t optFirstArgIndex = findIndex!SafeCStr(args, (ref immutable SafeCStr arg) =>
-		startsWith(arg, "--"));
+		startsWithDashDash(arg));
 	if (!has(optFirstArgIndex))
 		return immutable SplitArgs(args, emptyArr!ArgsPart, emptyArr!SafeCStr);
 	else {
@@ -495,6 +468,10 @@ immutable(SplitArgs) splitArgs(ref Alloc alloc, immutable SafeCStr[] args) {
 	}
 }
 
+@trusted immutable(bool) startsWithDashDash(immutable SafeCStr a) {
+	return a.ptr[0] == '-' && a.ptr[1] == '-';
+}
+
 immutable(size_t) splitArgsRecur(
 	ref Alloc alloc,
 	ref ArrBuilder!ArgsPart parts,
@@ -507,7 +484,7 @@ immutable(size_t) splitArgsRecur(
 		return index;
 	} else {
 		immutable SafeCStr arg = args[index];
-		if (startsWith(arg, "--")) {
+		if (startsWithDashDash(arg)) {
 			add(alloc, parts, immutable ArgsPart(args[curPartStart], args[curPartStart + 1 .. index]));
 			return safeCStrEq(arg, "--")
 				? index + 1

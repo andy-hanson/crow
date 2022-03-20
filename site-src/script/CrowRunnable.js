@@ -59,7 +59,7 @@ export class CrowRunnable extends HTMLElement {
 customElements.define("crow-runnable", CrowRunnable)
 
 const connected = (shadowRoot, src, noRun, comp, initialText) => {
-	const MAIN = src
+	const MAIN = `/code/${src}`
 
 	/** @type {MutableObservable<string>} */
 	const text = new MutableObservable(initialText)
@@ -67,15 +67,15 @@ const connected = (shadowRoot, src, noRun, comp, initialText) => {
 	const tokens = new MutableObservable(/** @type {ReadonlyArray<Token>} */ ([]))
 	/** @type {function(number): string} */
 	const getHover = pos =>
-		comp.getHover(StorageKind.local, src, pos)
+		comp.getHover(src, pos)
 	const crowText = CrowText.create({getHover, tokens, text})
 
 	for (const [name, content] of Object.entries(includeAll))
-		comp.addOrChangeFile(StorageKind.global, name, content)
+		comp.addOrChangeFile(`/include/${name}`, content)
 
 	text.nowAndSubscribe(value => {
-		comp.addOrChangeFile(StorageKind.local, MAIN, value)
-		tokens.set(comp.getTokens(StorageKind.local, MAIN))
+		comp.addOrChangeFile(MAIN, value)
+		tokens.set(comp.getTokens(MAIN))
 	})
 
 	const output = createDiv({className:"output"})

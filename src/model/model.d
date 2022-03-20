@@ -10,13 +10,12 @@ import util.col.arrUtil : arrEqual;
 import util.col.dict : SymDict;
 import util.col.fullIndexDict : FullIndexDict;
 import util.col.mutArr : MutArr;
-import util.col.str : copySafeCStr, SafeCStr;
+import util.col.str : SafeCStr;
 import util.hash : Hasher;
 import util.late : Late, lateGet, lateIsSet, lateSet;
 import util.lineAndColumnGetter : LineAndColumnGetter;
 import util.memory : allocate;
 import util.opt : force, has, Opt, some;
-import util.path : AbsolutePath, PathAndStorageKind, StorageKind;
 import util.ptr : hashPtr, Ptr, ptrEquals, TaggedPtr;
 import util.sourceRange :
 	FileAndPos,
@@ -37,35 +36,6 @@ import util.sym :
 	writeSym;
 import util.util : max, min, unreachable, verify;
 import util.writer : writeChar, Writer, writeStatic, writeWithCommas;
-
-struct AbsolutePathsGetter {
-	immutable SafeCStr cwd;
-	immutable SafeCStr globalPath;
-	immutable SafeCStr localPath;
-}
-immutable(AbsolutePathsGetter) copyAbsolutePathsGetter(ref Alloc alloc, scope ref immutable AbsolutePathsGetter a) {
-	return immutable AbsolutePathsGetter(
-		copySafeCStr(alloc, a.cwd),
-		copySafeCStr(alloc, a.globalPath),
-		copySafeCStr(alloc, a.localPath));
-}
-
-private immutable(SafeCStr) getBasePath(return scope ref immutable AbsolutePathsGetter a, immutable StorageKind sk) {
-	final switch (sk) {
-		case StorageKind.global:
-			return a.globalPath;
-		case StorageKind.local:
-			return a.localPath;
-	}
-}
-
-immutable(AbsolutePath) getAbsolutePath(
-	return scope ref immutable AbsolutePathsGetter a,
-	immutable PathAndStorageKind p,
-	immutable SafeCStr extension,
-) {
-	return immutable AbsolutePath(getBasePath(a, p.storageKind), p.path, extension);
-}
 
 alias LineAndColumnGetters = immutable FullIndexDict!(FileIndex, LineAndColumnGetter);
 

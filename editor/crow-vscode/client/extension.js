@@ -158,8 +158,8 @@ const getCompiler = () => {
 const provideDocumentSemanticTokens = async (document, _cancellationToken) => {
 	try {
 		const comp = await getCompiler()
-		comp.addOrChangeFile(StorageKind.local, "main", document.getText())
-		const tokens = comp.getTokens(StorageKind.local, "main")
+		comp.addOrChangeFile("main", document.getText())
+		const tokens = comp.getTokens("main")
 		const builder = new SemanticTokensBuilder()
 		for (const {kind, range:{args:[start, end]}} of tokens) {
 			const length = end - start

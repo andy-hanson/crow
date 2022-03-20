@@ -24,24 +24,6 @@ immutable(Comparison) oppositeComparison(immutable Comparison a) {
 	}
 }
 
-immutable(Comparison) compareOr(
-	immutable Comparison a,
-	scope Comparison delegate() @safe @nogc pure nothrow cb,
-) {
-	return a == Comparison.equal
-		? cb()
-		: a;
-}
-
-immutable(Comparison) compareOr(
-	immutable Comparison a,
-	scope Comparison delegate() @safe @nogc pure nothrow cb0,
-	scope Comparison delegate() @safe @nogc pure nothrow cb1,
-) {
-	return compareOr(a, () =>
-		compareOr(cb0(), cb1));
-}
-
 immutable(Comparison) compareNat16(immutable ushort a, immutable ushort b) {
 	return compareT(a, b);
 }
@@ -56,10 +38,6 @@ immutable(Comparison) compareSizeT(immutable size_t a, immutable size_t b) {
 
 immutable(Comparison) compareUlong(immutable ulong a, immutable ulong b) {
 	return compareT(a, b);
-}
-
-immutable(Comparison) compareEnum(E)(immutable E a, immutable E b) {
-	return compareNat32(uint(a), uint(b));
 }
 
 private immutable(Comparison) compareT(T)(immutable T a, immutable T b) {

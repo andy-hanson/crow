@@ -21,7 +21,7 @@ import model.model :
 	writeTypeUnquoted;
 import util.alloc.alloc : Alloc, TempAlloc;
 import util.col.str : SafeCStr;
-import util.path : AllPaths;
+import util.path : AllPaths, PathsInfo;
 import util.ptr : ptrTrustMe_mut;
 import util.sym : AllSymbols, writeSym;
 import util.writer : finishWriterToSafeCStr, writeChar, Writer, writeStatic;
@@ -31,11 +31,12 @@ immutable(SafeCStr) getHoverStr(
 	ref Alloc alloc,
 	ref const AllSymbols allSymbols,
 	ref const AllPaths allPaths,
+	ref immutable PathsInfo pathsInfo,
 	ref immutable Program program,
 	ref immutable Position pos,
 ) {
 	Writer writer = Writer(ptrTrustMe_mut(alloc));
-	getHover(tempAlloc, writer, allSymbols, allPaths, program, pos);
+	getHover(tempAlloc, writer, allSymbols, allPaths, pathsInfo, program, pos);
 	return finishWriterToSafeCStr(writer);
 }
 
@@ -44,6 +45,7 @@ void getHover(
 	ref Writer writer,
 	ref const AllSymbols allSymbols,
 	ref const AllPaths allPaths,
+	ref immutable PathsInfo pathsInfo,
 	ref immutable Program program,
 	ref immutable Position pos,
 ) {
@@ -58,7 +60,7 @@ void getHover(
 		},
 		(ref immutable Position.ImportedModule it) {
 			writeStatic(writer, "import module ");
-			writeFile(writer, allPaths, program.filesInfo, it.import_.deref().module_.fileIndex);
+			writeFile(writer, allPaths, pathsInfo, program.filesInfo, it.import_.deref().module_.fileIndex);
 		},
 		(ref immutable Position.ImportedName it) {
 			getImportedNameHover(writer, it);

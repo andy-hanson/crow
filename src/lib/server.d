@@ -14,7 +14,7 @@ import frontend.showDiag : ShowDiagOptions, strOfDiagnostic;
 import interpret.extern_ : Extern;
 import interpret.fakeExtern : FakeExternResult,withFakeExtern;
 import model.diag : Diagnostic, DiagnosticWithinFile, FilesInfo;
-import model.model : AbsolutePathsGetter, Program;
+import model.model : Program;
 import util.alloc.alloc : Alloc;
 import util.col.arrBuilder : ArrBuilder;
 import util.col.arrUtil : arrLiteral, map;
@@ -25,19 +25,12 @@ import util.col.str : copySafeCStr, freeSafeCStr, SafeCStr, safeCStr;
 import util.dictReadOnlyStorage : withDictReadOnlyStorage, MutFiles;
 import util.lineAndColumnGetter : LineAndColumnGetter, lineAndColumnGetterForText;
 import util.opt : force, has, Opt;
-import util.path :
-	AllPaths,
-	hashPathAndStorageKind,
-	parsePath,
-	Path,
-	PathAndStorageKind,
-	pathAndStorageKindEqual,
-	StorageKind;
+import util.path : AllPaths, childPath, emptyPathsInfo, emptyRootPath, hashPath, parsePath, Path, pathEqual, PathsInfo;
 import util.perf : Perf;
 import util.ptr : Ptr;
 import util.readOnlyStorage : ReadOnlyStorage;
 import util.sourceRange : FileIndex, Pos, RangeWithinFile;
-import util.sym : AllSymbols;
+import util.sym : AllSymbols, shortSym;
 
 struct Server {
 	@safe @nogc pure nothrow:
@@ -45,33 +38,30 @@ struct Server {
 	Alloc alloc;
 	AllSymbols allSymbols;
 	AllPaths allPaths;
+	immutable Path includeDir;
+	immutable PathsInfo pathsInfo;
 	MutFiles files;
 
 	this(Alloc a) {
 		alloc = a.move();
 		allSymbols = AllSymbols(Ptr!Alloc(&alloc));
 		allPaths = AllPaths(Ptr!Alloc(&alloc), Ptr!AllSymbols(&allSymbols));
+		includeDir = childPath(allPaths, emptyRootPath(allPaths), shortSym("include"));
+		pathsInfo = emptyPathsInfo;
 		files = MutFiles.init;
 	}
 }
 
 pure void addOrChangeFile(
 	ref Server server,
-	immutable StorageKind storageKind,
 	scope immutable SafeCStr path,
 	scope immutable SafeCStr content,
 ) {
-	immutable PathAndStorageKind key = immutable PathAndStorageKind(toPath(server, path), storageKind);
 	immutable SafeCStr contentCopy = copySafeCStr(server.alloc, content);
-	insertOrUpdate!(
-		immutable PathAndStorageKind,
-		immutable SafeCStr,
-		pathAndStorageKindEqual,
-		hashPathAndStorageKind,
-	)(
+	insertOrUpdate!(immutable Path, immutable SafeCStr, pathEqual, hashPath)(
 		server.alloc,
 		server.files,
-		key,
+		toPath(server, path),
 		() => contentCopy,
 		(ref immutable SafeCStr old) @trusted {
 			freeSafeCStr(server.alloc, old);
@@ -79,31 +69,18 @@ pure void addOrChangeFile(
 		});
 }
 
-@trusted pure void deleteFile(ref Server server, immutable StorageKind storageKind, scope immutable SafeCStr path) {
-	immutable PathAndStorageKind key = immutable PathAndStorageKind(toPath(server, path), storageKind);
-	immutable(SafeCStr) deleted = mustDelete(server.files, key);
+@trusted pure void deleteFile(ref Server server, scope immutable SafeCStr path) {
+	immutable(SafeCStr) deleted = mustDelete(server.files, toPath(server, path));
 	freeSafeCStr(server.alloc, deleted);
 }
 
-pure immutable(SafeCStr) getFile(
-	ref Server server,
-	immutable StorageKind storageKind,
-	scope immutable SafeCStr path,
-) {
-	immutable PathAndStorageKind key = immutable PathAndStorageKind(toPath(server, path), storageKind);
-	immutable Opt!(immutable SafeCStr) text = getAt_mut(server.files, key);
+pure immutable(SafeCStr) getFile(ref Server server, scope immutable SafeCStr path) {
+	immutable Opt!(immutable SafeCStr) text = getAt_mut(server.files, toPath(server, path));
 	return has(text) ? force(text) : safeCStr!"";
 }
 
-immutable(Token[]) getTokens(
-	ref Alloc alloc,
-	scope ref Perf perf,
-	ref Server server,
-	immutable StorageKind storageKind,
-	scope immutable SafeCStr path,
-) {
-	immutable PathAndStorageKind key = immutable PathAndStorageKind(toPath(server, path), storageKind);
-	immutable SafeCStr text = mustGetAt_mut(server.files, key);
+immutable(Token[]) getTokens(ref Alloc alloc, scope ref Perf perf, ref Server server, scope immutable SafeCStr path) {
+	immutable SafeCStr text = mustGetAt_mut(server.files, toPath(server, path));
 	// diagnostics not used
 	ArrBuilder!DiagnosticWithinFile diagnosticsBuilder;
 	immutable FileAst ast = parseFile(alloc, perf, server.allPaths, server.allSymbols, diagnosticsBuilder, text);
@@ -119,19 +96,17 @@ immutable(StrParseDiagnostic[]) getParseDiagnostics(
 	ref Alloc alloc,
 	scope ref Perf perf,
 	ref Server server,
-	immutable StorageKind storageKind,
 	scope immutable SafeCStr path,
 ) {
-	immutable PathAndStorageKind key = immutable PathAndStorageKind(toPath(server, path), storageKind);
+	immutable Path key = toPath(server, path);
 	immutable SafeCStr text = mustGetAt_mut(server.files, key);
 	ArrBuilder!DiagnosticWithinFile diagsBuilder;
 	// AST not used
 	parseFile(alloc, perf, server.allPaths, server.allSymbols, diagsBuilder, text);
+	//TODO: use 'scope' to avoid allocating things here
 	immutable FilesInfo filesInfo = immutable FilesInfo(
-		fullIndexDictOfArr!(FileIndex, PathAndStorageKind)(arrLiteral!PathAndStorageKind(alloc, [key])),
-		dictLiteral!(PathAndStorageKind, FileIndex, pathAndStorageKindEqual, hashPathAndStorageKind)(
-			alloc, key, immutable FileIndex(0)),
-		immutable AbsolutePathsGetter(safeCStr!"", safeCStr!"", safeCStr!""),
+		fullIndexDictOfArr!(FileIndex, Path)(arrLiteral!Path(alloc, [key])),
+		dictLiteral!(Path, FileIndex, pathEqual, hashPath)(alloc, key, immutable FileIndex(0)),
 		fullIndexDictOfArr!(FileIndex, LineAndColumnGetter)(
 			arrLiteral!LineAndColumnGetter(alloc, [lineAndColumnGetterForText(alloc, text)])));
 	return map!StrParseDiagnostic(
@@ -140,38 +115,39 @@ immutable(StrParseDiagnostic[]) getParseDiagnostics(
 		(ref immutable Diagnostic it) =>
 			immutable StrParseDiagnostic(
 				it.where.range,
-				strOfDiagnostic(alloc, server.allSymbols, server.allPaths, showDiagOptions, filesInfo, it)));
+				strOfDiagnostic(
+					alloc, server.allSymbols, server.allPaths, server.pathsInfo, showDiagOptions, filesInfo, it)));
 }
 
 immutable(SafeCStr) getHover(
 	scope ref Perf perf,
 	ref Alloc alloc,
 	ref Server server,
-	immutable StorageKind storageKind,
 	scope immutable SafeCStr path,
 	immutable Pos pos,
 ) {
-	immutable PathAndStorageKind pk = immutable PathAndStorageKind(toPath(server, path), storageKind);
+	immutable Path key = toPath(server, path);
 	immutable Program program = withDictReadOnlyStorage!(immutable Program)(
+		server.includeDir,
 		server.files,
 		(scope ref const ReadOnlyStorage storage) =>
-			frontendCompile(alloc, perf, alloc, server.allPaths, server.allSymbols, storage, [pk]));
-	return getHoverFromProgram(alloc, server, pk, program, pos);
+			frontendCompile(alloc, perf, alloc, server.allPaths, server.allSymbols, storage, [key]));
+	return getHoverFromProgram(alloc, server, key, program, pos);
 }
 
 private pure immutable(SafeCStr) getHoverFromProgram(
 	ref Alloc alloc,
 	ref Server server,
-	immutable PathAndStorageKind pk,
+	immutable Path path,
 	ref immutable Program program,
 	immutable Pos pos,
 ) {
-	immutable Opt!FileIndex fileIndex = program.filesInfo.pathToFile[pk];
+	immutable Opt!FileIndex fileIndex = program.filesInfo.pathToFile[path];
 	if (has(fileIndex)) {
 		immutable Opt!Position position =
 			getPosition(server.allSymbols, program.allModules[force(fileIndex).index], pos);
 		return has(position)
-			? getHoverStr(alloc, alloc, server.allSymbols, server.allPaths, program, force(position))
+			? getHoverStr(alloc, alloc, server.allSymbols, server.allPaths, server.pathsInfo, program, force(position))
 			: safeCStr!"";
 	} else
 		return safeCStr!"";
@@ -183,14 +159,14 @@ immutable(FakeExternResult) run(
 	ref Server server,
 	scope immutable SafeCStr mainPath,
 ) {
-	immutable PathAndStorageKind main = immutable PathAndStorageKind(toPath(server, mainPath), StorageKind.local);
+	immutable Path main = toPath(server, mainPath);
 	// TODO: use an arena so anything allocated during interpretation is cleaned up.
 	// Or just have interpreter free things.
 	scope immutable SafeCStr[1] allArgs = [safeCStr!"/usr/bin/fakeExecutable"];
-	return withDictReadOnlyStorage(server.files, (scope ref const ReadOnlyStorage storage) =>
+	return withDictReadOnlyStorage(server.includeDir, server.files, (scope ref const ReadOnlyStorage storage) =>
 		withFakeExtern(alloc, server.allSymbols, (scope ref Extern extern_) =>
 			buildAndInterpret(
-				alloc, perf, server.allSymbols, server.allPaths, storage, extern_,
+				alloc, perf, server.allSymbols, server.allPaths, server.pathsInfo, storage, extern_,
 				showDiagOptions, main, allArgs)));
 }
 

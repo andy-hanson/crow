@@ -1,15 +1,9 @@
 const compiler = {}
 
-/** @typedef {number & {_isStorageKind:true}} StorageKind */
-const StorageKind = {
-	global: /** @type {StorageKind} */ (0),
-	local: /** @type {StorageKind} */ (1),
-}
-
 if (typeof window !== "undefined")
-	Object.assign(window, {compiler, StorageKind})
+	Object.assign(window, {compiler})
 if (typeof global !== "undefined")
-	Object.assign(global, {compiler, StorageKind})
+	Object.assign(global, {compiler})
 
 /** @typedef {number & {_isServer:true}} Server */
 
@@ -21,12 +15,12 @@ if (typeof global !== "undefined")
 @property {function(): number} getGlobalBufferSizeBytes
 @property {function(): number} getGlobalBufferPtr
 @property {function(Ptr, number): Server} newServer
-@property {function(Server, StorageKind, CStr, CStr): void} addOrChangeFile
-@property {function(Server, StorageKind, CStr): void} deleteFile
-@property {function(Server, StorageKind, CStr): CStr} getFile
-@property {function(Ptr, number, Server, StorageKind, CStr): CStr} getTokens
-@property {function(Ptr, number, Server, StorageKind, CStr): CStr} getParseDiagnostics
-@property {function(Ptr, number, Ptr, number, Server, StorageKind, CStr, number): CStr} getHover
+@property {function(Server, CStr, CStr): void} addOrChangeFile
+@property {function(Server, CStr): void} deleteFile
+@property {function(Server, CStr): CStr} getFile
+@property {function(Ptr, number, Server, CStr): CStr} getTokens
+@property {function(Ptr, number, Server, CStr): CStr} getParseDiagnostics
+@property {function(Ptr, number, Ptr, number, Server, CStr, number): CStr} getHover
 @property {function(Ptr, number, Ptr, number, Server, CStr): number} run
 */
 
@@ -196,16 +190,14 @@ class Compiler {
 	}
 
 	/**
-	@param {StorageKind} storageKind
 	@param {string} path
 	@param {string} content
 	@return {void}
 	*/
-	addOrChangeFile(storageKind, path, content) {
+	addOrChangeFile(path, content) {
 		try {
 			this._exports.addOrChangeFile(
 				this._server,
-				storageKind,
 				this._tempAlloc.writeCStr(path),
 				this._tempAlloc.writeCStr(content))
 		} finally {
@@ -214,46 +206,38 @@ class Compiler {
 	}
 
 	/**
-	@param {StorageKind} storageKind
 	@param {string} path
 	@return {void}
 	*/
-	deleteFile(storageKind, path) {
+	deleteFile(path) {
 		try {
-			this._exports.deleteFile(this._server, storageKind, this._tempAlloc.writeCStr(path))
+			this._exports.deleteFile(this._server, this._tempAlloc.writeCStr(path))
 		} finally {
 			this._tempAlloc.clear()
 		}
 	}
 
 	/**
-	@param {StorageKind} storageKind
 	@param {string} path
 	@return {string}
 	*/
-	getFile(storageKind, path) {
+	getFile(path) {
 		try {
-			return this._readCStr(this._exports.getFile(this._server, storageKind, this._tempAlloc.writeCStr(path)))
+			return this._readCStr(this._exports.getFile(this._server, this._tempAlloc.writeCStr(path)))
 		} finally {
 			this._tempAlloc.clear()
 		}
 	}
 
 	/**
-	@param {StorageKind} storageKind
 	@param {string} path
 	@return {ReadonlyArray<Token>}
 	*/
-	getTokens(storageKind, path) {
+	getTokens(path) {
 		try {
 			const pathCStr = this._tempAlloc.writeCStr(path)
 			const resultBuf = this._tempAlloc.reserveRest()
-			const res = this._exports.getTokens(
-				resultBuf.begin,
-				resultBuf.size,
-				this._server,
-				storageKind,
-				pathCStr)
+			const res = this._exports.getTokens(resultBuf.begin, resultBuf.size, this._server, pathCStr)
 			return JSON.parse(this._readCStr(res))
 		} finally {
 			this._tempAlloc.clear()
@@ -261,20 +245,14 @@ class Compiler {
 	}
 
 	/**
-	@param {StorageKind} storageKind
 	@param {string} path
 	@return {ReadonlyArray<Diagnostic>}
 	*/
-	getParseDiagnostics(storageKind, path) {
+	getParseDiagnostics(path) {
 		try {
 			const pathCStr = this._tempAlloc.writeCStr(path)
 			const resultBuf = this._tempAlloc.reserveRest()
-			const res = this._exports.getParseDiagnostics(
-				resultBuf.begin,
-				resultBuf.size,
-				this._server,
-				storageKind,
-				pathCStr)
+			const res = this._exports.getParseDiagnostics(resultBuf.begin, resultBuf.size, this._server, pathCStr)
 			return JSON.parse(this._readCStr(res))
 		} finally {
 			this._tempAlloc.clear()
@@ -282,22 +260,15 @@ class Compiler {
 	}
 
 	/**
-	@param {StorageKind} storageKind
 	@param {string} path
 	@param {number} pos
 	@return {string}
 	*/
-	getHover(storageKind, path, pos) {
+	getHover(path, pos) {
 		try {
 			const pathCStr = this._tempAlloc.writeCStr(path)
 			const resultBuf = this._tempAlloc.reserveRest()
-			const res = this._exports.getHover(
-				resultBuf.begin,
-				resultBuf.size,
-				this._server,
-				storageKind,
-				pathCStr,
-				pos)
+			const res = this._exports.getHover(resultBuf.begin, resultBuf.size, this._server, pathCStr, pos)
 			return this._readCStr(res)
 		} finally {
 			this._tempAlloc.clear()

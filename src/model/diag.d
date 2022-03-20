@@ -5,11 +5,9 @@ module model.diag;
 import frontend.lang : crowExtension;
 import frontend.showDiag : ShowDiagOptions;
 import model.model :
-	AbsolutePathsGetter,
 	CalledDecl,
 	EnumBackingType,
 	FunDecl,
-	getAbsolutePath,
 	LineAndColumnGetters,
 	Local,
 	Module,
@@ -30,12 +28,12 @@ import util.col.dict : dictLiteral;
 import util.col.fullIndexDict : fullIndexDictOfArr;
 import util.lineAndColumnGetter : LineAndColumnGetter;
 import util.opt : Opt;
-import util.path : AbsolutePath, AllPaths, hashPathAndStorageKind, PathAndStorageKind, pathAndStorageKindEqual;
+import util.path : AllPaths, hashPath, Path, pathEqual, PathsInfo, writePath;
 import util.ptr : Ptr;
 import util.sourceRange : FileAndPos, FileAndRange, FileIndex, FilePaths, PathToFile, RangeWithinFile;
 import util.sym : Sym;
 import util.writer : Writer, writeBold, writeHyperlink, writeChar, writeRed, writeReset, writeStatic;
-import util.writerUtils : writePathRelativeToCwd, writePos, writeRangeWithinFile;
+import util.writerUtils : writePos, writeRangeWithinFile;
 
 enum DiagSeverity {
 	unusedCode,
@@ -851,22 +849,17 @@ struct Diag {
 struct FilesInfo {
 	immutable FilePaths filePaths;
 	immutable PathToFile pathToFile;
-	immutable AbsolutePathsGetter absolutePathsGetter;
 	immutable LineAndColumnGetters lineAndColumnGetters;
 }
 
 immutable(FilesInfo) filesInfoForSingle(
 	ref Alloc alloc,
-	immutable PathAndStorageKind path,
+	immutable Path path,
 	immutable LineAndColumnGetter lineAndColumnGetter,
-	immutable AbsolutePathsGetter absolutePathsGetter,
 ) {
 	return immutable FilesInfo(
-		fullIndexDictOfArr!(FileIndex, PathAndStorageKind)(
-			arrLiteral!PathAndStorageKind(alloc, [path])),
-		dictLiteral!(PathAndStorageKind, FileIndex, pathAndStorageKindEqual, hashPathAndStorageKind)(
-			alloc, path, immutable FileIndex(0)),
-		absolutePathsGetter,
+		fullIndexDictOfArr!(FileIndex, Path)(arrLiteral!Path(alloc, [path])),
+		dictLiteral!(Path, FileIndex, pathEqual, hashPath)(alloc, path, immutable FileIndex(0)),
 		fullIndexDictOfArr!(FileIndex, LineAndColumnGetter)(
 			arrLiteral!LineAndColumnGetter(alloc, [lineAndColumnGetter])));
 }
@@ -874,11 +867,12 @@ immutable(FilesInfo) filesInfoForSingle(
 void writeFileAndRange(
 	ref Writer writer,
 	ref const AllPaths allPaths,
+	ref immutable PathsInfo pathsInfo,
 	ref immutable ShowDiagOptions options,
 	ref immutable FilesInfo fi,
 	ref immutable FileAndRange where,
 ) {
-	writeFileNoResetWriter(writer, allPaths, options, fi, where.fileIndex);
+	writeFileNoResetWriter(writer, allPaths, pathsInfo, options, fi, where.fileIndex);
 	if (where.fileIndex != FileIndex.none)
 		writeRangeWithinFile(writer, fi.lineAndColumnGetters[where.fileIndex], where.range);
 	if (options.color)
@@ -888,11 +882,12 @@ void writeFileAndRange(
 void writeFileAndPos(
 	ref Writer writer,
 	ref const AllPaths allPaths,
+	ref immutable PathsInfo pathsInfo,
 	ref immutable ShowDiagOptions options,
 	ref immutable FilesInfo fi,
 	ref immutable FileAndPos where,
 ) {
-	writeFileNoResetWriter(writer, allPaths, options, fi, where.fileIndex);
+	writeFileNoResetWriter(writer, allPaths, pathsInfo, options, fi, where.fileIndex);
 	if (where.fileIndex != FileIndex.none)
 		writePos(writer, fi.lineAndColumnGetters[where.fileIndex], where.pos);
 	if (options.color)
@@ -902,17 +897,19 @@ void writeFileAndPos(
 void writeFile(
 	ref Writer writer,
 	ref const AllPaths allPaths,
+	ref immutable PathsInfo pathsInfo,
 	ref immutable FilesInfo fi,
 	immutable FileIndex fileIndex,
 ) {
 	immutable ShowDiagOptions noColor = immutable ShowDiagOptions(false);
-	writeFileNoResetWriter(writer, allPaths, noColor, fi, fileIndex);
+	writeFileNoResetWriter(writer, allPaths, pathsInfo, noColor, fi, fileIndex);
 	// No need to reset writer since we didn't use color
 }
 
 private void writeFileNoResetWriter(
 	ref Writer writer,
 	ref const AllPaths allPaths,
+	ref immutable PathsInfo pathsInfo,
 	ref immutable ShowDiagOptions options,
 	ref immutable FilesInfo fi,
 	immutable FileIndex fileIndex,
@@ -922,16 +919,15 @@ private void writeFileNoResetWriter(
 	if (fileIndex == FileIndex.none) {
 		writeStatic(writer, "<generated code> ");
 	} else {
-		immutable PathAndStorageKind path = fi.filePaths[fileIndex];
-		immutable AbsolutePath abs = getAbsolutePath(fi.absolutePathsGetter, path, crowExtension);
+		immutable Path path = fi.filePaths[fileIndex];
 		if (options.color) {
 			writeHyperlink(
 				writer,
-				() { writePathRelativeToCwd(writer, allPaths, fi.absolutePathsGetter.cwd, abs); },
-				() { writePathRelativeToCwd(writer, allPaths, fi.absolutePathsGetter.cwd, abs); });
+				() { writePath(writer, allPaths, pathsInfo, path, crowExtension); },
+				() { writePath(writer, allPaths, pathsInfo, path, crowExtension); });
 			writeRed(writer);
 		} else
-			writePathRelativeToCwd(writer, allPaths, fi.absolutePathsGetter.cwd, abs);
+			writePath(writer, allPaths, pathsInfo, path, crowExtension);
 		writeChar(writer, ' ');
 	}
 }

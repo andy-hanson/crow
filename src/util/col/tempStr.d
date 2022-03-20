@@ -3,7 +3,7 @@ module util.col.tempStr;
 @safe @nogc pure nothrow:
 
 import util.alloc.alloc : Alloc;
-import util.col.str : copyStr, copyToSafeCStr, eachChar, SafeCStr;
+import util.col.str : copyStr, eachChar, SafeCStr;
 import util.util : verify;
 
 struct TempStr(size_t strCapacity) {
@@ -47,10 +47,6 @@ immutable(string) copyTempStrToString(size_t capacity)(ref Alloc alloc, ref cons
 
 @trusted immutable(SafeCStr) asTempSafeCStr(size_t capacity)(ref const TempStr!capacity a) {
 	return immutable SafeCStr(cast(immutable) a.buffer.ptr);
-}
-
-immutable(SafeCStr) copyTempStrToSafeCStr(size_t capacity)(ref Alloc alloc, ref const TempStr!capacity a) {
-	return copyToSafeCStr(alloc, a.buffer[0 .. a.length]);
 }
 
 @trusted immutable(string) tempAsStr(size_t capacity)(return ref const TempStr!capacity a) {

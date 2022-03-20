@@ -4,7 +4,7 @@ module model.parseDiag;
 
 import frontend.parse.lexer : Token;
 import util.opt : Opt;
-import util.path : PathAndStorageKind, PathAndRange, RelPath;
+import util.path : Path, PathAndRange, RelPath;
 import util.sym : Operator;
 
 struct ParseDiag {
@@ -12,8 +12,8 @@ struct ParseDiag {
 	struct CantPrecedeMutEquals {}
 	struct CantPrecedeOptEquals {}
 	struct CircularImport {
-		immutable PathAndStorageKind from;
-		immutable PathAndStorageKind to;
+		immutable Path from;
+		immutable Path to;
 	}
 	struct Expected {
 		enum Kind {
