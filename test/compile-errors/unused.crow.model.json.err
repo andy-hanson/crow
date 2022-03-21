@@ -1,25 +1,25 @@
-test/compile-errors/unused.crow 2:23-2:24 parameter x is unused
-
 test/compile-errors/unused.crow 1:13-1:18 parameter p is unused
 
+test/compile-errors/unused.crow 2:23-2:24 parameter x is unused
+
 test/compile-errors/unused.crow 6:1-6:2 private function bar is unused
+
+test/compile-errors/unused.crow 9:1-12:1 private type r is unused
 
 test/compile-errors/unused.crow 10:5-10:6 private function r0 is unused
 
 test/compile-errors/unused.crow 10:5-10:6 private function set-r0 is unused
 
+test/compile-errors/unused.crow 12:1-15:1 private type u is unused
+
 test/compile-errors/unused.crow 13:5-13:6 private function u0 is unused
-
-test/compile-errors/unused.crow 19:5-19:6 private function e0 is unused
-
-test/compile-errors/unused.crow 22:5-22:6 private function f0 is unused
 
 test/compile-errors/unused.crow 15:1-18:1 private type a is unused
 
-test/compile-errors/unused.crow 9:1-12:1 private type r is unused
-
-test/compile-errors/unused.crow 12:1-15:1 private type u is unused
-
 test/compile-errors/unused.crow 18:1-21:1 private type e is unused
 
+test/compile-errors/unused.crow 19:5-19:6 private function e0 is unused
+
 test/compile-errors/unused.crow 21:1-23:1 private type f is unused
+
+test/compile-errors/unused.crow 22:5-22:6 private function f0 is unused

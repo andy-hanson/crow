@@ -6,6 +6,7 @@ import frontend.getDiagnosticSeverity : getDiagnosticSeverity;
 import model.diag : Diag, Diagnostic, Diagnostics, DiagnosticWithinFile, DiagSeverity;
 import util.alloc.alloc : Alloc;
 import util.col.arrBuilder : add, ArrBuilder, arrBuilderClear, arrBuilderSort, arrBuilderTempAsArr, finishArr;
+import util.comparison : compareNat32, Comparison;
 import util.path : comparePath;
 import util.sourceRange : FileAndRange, FileIndex, FilePaths;
 
@@ -30,8 +31,7 @@ void addDiagnostic(ref Alloc alloc, ref DiagnosticsBuilder a, immutable FileAndR
 
 immutable(Diagnostics) finishDiagnostics(ref Alloc alloc, ref DiagnosticsBuilder a, immutable FilePaths filePaths) {
 	arrBuilderSort!Diagnostic(a.diags, (ref immutable Diagnostic a, ref immutable Diagnostic b) =>
-		// TOOD: sort by file position too
-		comparePath(filePaths[a.where.fileIndex], filePaths[b.where.fileIndex]));
+		compareDiagnostic(a, b, filePaths));
 	return immutable Diagnostics(a.severity, finishArr(alloc, a.diags));
 }
 
@@ -54,4 +54,15 @@ void addDiagnosticsForFile(
 ) {
 	foreach (ref const DiagnosticWithinFile diag; arrBuilderTempAsArr(diagnostics))
 		addDiagnostic(alloc, a, immutable FileAndRange(fileIndex, diag.range), diag.diag);
+}
+
+private:
+
+immutable(Comparison) compareDiagnostic(
+	ref immutable Diagnostic a,
+	ref immutable Diagnostic b,
+	immutable FilePaths filePaths,
+) {
+	immutable Comparison cmpPath = comparePath(filePaths[a.where.fileIndex], filePaths[b.where.fileIndex]);
+	return cmpPath != Comparison.equal ? cmpPath : compareNat32(a.where.start, b.where.start);
 }
