@@ -4,7 +4,7 @@ module util.col.dict;
 
 import util.alloc.alloc : Alloc;
 import util.col.mutDict :
-	addToMutDict, getAt_mut, hasKey_mut, moveToDict, mustGetAt_mut, MutDict, mutDictEach, mutDictSize;
+	addToMutDict, getAt_mut, hasKey_mut, moveToDict, mustGetAt_mut, MutDict, mutDictEach;
 public import util.col.mutDict : KeyValuePair;
 import util.opt : Opt;
 import util.ptr : hashPtr, Ptr, ptrEquals;
@@ -30,10 +30,6 @@ immutable(bool) hasKey(K, V, alias equal, alias hash)(ref immutable Dict!(K, V, 
 
 @trusted immutable(V) mustGetAt(K, V, alias equal, alias hash)(ref immutable Dict!(K, V, equal, hash) a, const K key) {
 	return cast(immutable) mustGetAt_mut(a.inner, key);
-}
-
-immutable(size_t) dictSize(K, V, alias equal, alias hash)(ref immutable Dict!(K, V, equal, hash) a) {
-	return mutDictSize(a.inner);
 }
 
 void dictEach(K, V, alias equal, alias hash)(

@@ -28,6 +28,10 @@ struct FullIndexDict(K, V) {
 	V[] values;
 }
 
+immutable(V[]) asArray(K, V)(immutable FullIndexDict!(K, V) a) {
+	return a.values;
+}
+
 immutable(FullIndexDict!(K, V)) fullIndexDictCastImmutable(K, V)(const FullIndexDict!(K, V) a) {
 	return immutable FullIndexDict!(K, V)(castImmutable(a.values));
 }
