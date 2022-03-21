@@ -76,7 +76,7 @@ import model.model :
 	variableRefType;
 import util.alloc.alloc : Alloc;
 import util.col.arr : empty, emptyArr, only, ptrAt;
-import util.col.arrUtil : arrLiteral, map, mapWithIndex, mapZip;
+import util.col.arrUtil : arrLiteral, map, mapZip;
 import util.col.mutArr : MutArr, mutArrSize, push;
 import util.col.mutDict : getOrAdd;
 import util.col.stackDict : StackDict, stackDictAdd, stackDictMustGet;
@@ -243,11 +243,12 @@ immutable(ConcreteExpr) concretizeClosureFieldRef(
 	immutable Ptr!ConcreteParam closureParam = force(ctx.currentConcreteFun.closureParam);
 	immutable ConcreteType closureType = closureParam.deref().type;
 	immutable ConcreteStructBody.Record record = asRecord(body_(closureType.struct_.deref()));
-	immutable Ptr!ConcreteField field = ptrAt(record.fields, closureField.index);
+	immutable ushort index = closureField.index;
+	immutable Ptr!ConcreteField field = ptrAt(record.fields, index);
 	immutable ConcreteExpr closureParamRef = immutable ConcreteExpr(closureType, range, immutable ConcreteExprKind(
 		immutable ConcreteExprKind.ParamRef(closureParam)));
 	return immutable ConcreteExpr(field.deref().type, range, immutable ConcreteExprKind(
-		allocate(ctx.alloc, immutable ConcreteExprKind.RecordFieldGet(closureParamRef, field))));
+		allocate(ctx.alloc, immutable ConcreteExprKind.RecordFieldGet(closureParamRef, index))));
 }
 
 immutable(ConstantsOrExprs) getConstantsOrExprs(
@@ -289,10 +290,9 @@ immutable(ConcreteField[]) concretizeClosureFields(
 	immutable VariableRef[] closure,
 	immutable TypeArgsScope typeArgsScope,
 ) {
-	return mapWithIndex!ConcreteField(ctx.alloc, closure, (immutable size_t index, ref immutable VariableRef x) =>
+	return map!ConcreteField(ctx.alloc, closure, (ref immutable VariableRef x) =>
 		immutable ConcreteField(
 			debugName(x),
-			index,
 			ConcreteMutability.const_,
 			getConcreteType_fromConcretizeCtx(ctx, variableRefType(x), typeArgsScope)));
 }

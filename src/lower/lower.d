@@ -1567,5 +1567,5 @@ immutable(LowExprKind) getRecordFieldGetExpr(
 ) {
 	return immutable LowExprKind(allocate(ctx.alloc, immutable LowExprKind.RecordFieldGet(
 		getLowExpr(ctx, locals, a.target, ExprPos.nonTail),
-		a.field.deref().index)));
+		a.fieldIndex)));
 }

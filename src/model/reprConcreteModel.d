@@ -303,7 +303,7 @@ immutable(Repr) reprOfConcreteExprKind(ref Alloc alloc, ref immutable ConcreteEx
 		(ref immutable ConcreteExprKind.RecordFieldGet it) =>
 			reprRecord(alloc, "get-field", [
 				reprOfConcreteExpr(alloc, it.target),
-				reprSym(it.field.deref().debugName)]),
+				reprNat(it.fieldIndex)]),
 		(ref immutable ConcreteExprKind.Seq it) =>
 			reprRecord(alloc, "seq", [reprOfConcreteExpr(alloc, it.first), reprOfConcreteExpr(alloc, it.then)]));
 }

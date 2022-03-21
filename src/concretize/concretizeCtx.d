@@ -668,15 +668,11 @@ void initializeConcreteStruct(
 					break;
 			}
 
-			immutable ConcreteField[] fields = mapPtrsWithIndex!ConcreteField(
-				ctx.alloc,
-				r.fields,
-				(immutable size_t index, immutable Ptr!RecordField f) =>
-					immutable ConcreteField(
-						f.deref().name,
-						index,
-						toConcreteMutability(f.deref().mutability),
-						getConcreteType(ctx, f.deref().type, typeArgsScope)));
+			immutable ConcreteField[] fields = map!ConcreteField(ctx.alloc, r.fields, (ref immutable RecordField f) =>
+				immutable ConcreteField(
+					f.name,
+					toConcreteMutability(f.mutability),
+					getConcreteType(ctx, f.type, typeArgsScope)));
 			immutable bool packed = r.flags.packed;
 			immutable ConcreteStructInfo info = getConcreteStructInfoForFields(fields);
 			lateSet(res.deref().info_, info);

@@ -387,7 +387,6 @@ immutable(Sym) symOfConcreteMutability(immutable ConcreteMutability a) {
 
 struct ConcreteField {
 	immutable Sym debugName;
-	immutable size_t index;
 	immutable ConcreteMutability mutability;
 	immutable ConcreteType type;
 }
@@ -835,7 +834,7 @@ struct ConcreteExprKind {
 	// TODO: this is only used for closure field accesses now. At least rename.
 	struct RecordFieldGet {
 		immutable ConcreteExpr target;
-		immutable Ptr!ConcreteField field;
+		immutable ushort fieldIndex;
 	}
 
 	struct Seq {
