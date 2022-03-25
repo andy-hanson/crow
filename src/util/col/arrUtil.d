@@ -5,7 +5,7 @@ import util.col.arr : empty, ptrAt, ptrsRange, sizeEq;
 import util.col.mutArr : mustPop, MutArr, mutArrAt, mutArrSize;
 import util.comparison : Comparer, Comparison;
 import util.memory : initMemory, initMemory_mut;
-import util.opt : force, has, none, noneMut, Opt, some, someMut;
+import util.opt : force, has, none, Opt, some;
 import util.ptr : Ptr;
 import util.util : max, verify;
 
@@ -155,15 +155,6 @@ immutable(Opt!T) find(T)(
 		if (cb(x))
 			return some(x);
 	return none!T;
-}
-Opt!T find_mut(T)(
-	T[] arr,
-	scope immutable(bool) delegate(ref const T) @safe @nogc pure nothrow cb,
-) {
-	foreach (ref T x; arr)
-		if (cb(x))
-			return someMut(x);
-	return noneMut!T;
 }
 
 immutable(Opt!(Ptr!T)) findPtr(T)(
