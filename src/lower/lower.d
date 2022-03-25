@@ -13,27 +13,27 @@ import lower.getBuiltinCall : BuiltinKind, getBuiltinKind, matchBuiltinKind;
 import lower.lowExprHelpers :
 	anyPtrMutType,
 	char8PtrPtrConstType,
-	constantNat64,
 	genAddPtr,
 	genBitwiseNegate,
+	genConstantNat64,
 	genDrop,
 	genEnumEq,
 	genEnumIntersect,
 	genEnumToIntegral,
 	genEnumUnion,
 	genLocal,
+	genLocalRef,
+	genParamRef,
+	genPtrCast,
+	genPtrCastKind,
+	genSeq,
+	genSizeOf,
 	genVoid,
+	genWrapMulNat64,
+	genWriteToPtr,
 	getElementPtrTypeFromArrType,
-	getSizeOf,
 	int32Type,
-	localRef,
-	paramRef,
-	ptrCast,
-	ptrCastKind,
-	seq,
-	voidType,
-	wrapMulNat64,
-	writeToPtr;
+	voidType;
 import model.concreteModel :
 	AllConstantsConcrete,
 	ArrTypeAndConstantsConcrete,
@@ -886,8 +886,8 @@ immutable(LowFun) mainFun(
 		immutable LowExprKind(immutable LowExprKind.Call(
 			rtMainIndex,
 			arrLiteral!LowExpr(ctx.alloc, [
-				paramRef(FileAndRange.empty, int32Type, argc),
-				paramRef(FileAndRange.empty, char8PtrPtrConstType, argv),
+				genParamRef(FileAndRange.empty, int32Type, argc),
+				genParamRef(FileAndRange.empty, char8PtrPtrConstType, argv),
 				userMainFunPtr]))));
 	immutable LowFunBody body_ = immutable LowFunBody(immutable LowFunExprBody(false, call));
 	return immutable LowFun(
@@ -1028,8 +1028,8 @@ alias getLocal = stackDictMustGet!(
 	nullPtr!ConcreteLocal,
 	ptrEquals!ConcreteLocal);
 
-immutable(LowExpr) getCtxParamRef(ref const GetLowExprCtx ctx, immutable FileAndRange range) {
-	return paramRef(range, ctx.ctxType, force(ctx.ctxParam));
+immutable(LowExpr) genCtxParamRef(ref const GetLowExprCtx ctx, immutable FileAndRange range) {
+	return genParamRef(range, ctx.ctxType, force(ctx.ctxParam));
 }
 
 immutable(Opt!LowFunIndex) tryGetLowFunIndex(ref const GetLowExprCtx ctx, immutable Ptr!ConcreteFun it) {
@@ -1125,8 +1125,8 @@ immutable(LowExpr) getAllocateExpr(
 		range,
 		immutable LowExprKind(immutable LowExprKind.Call(
 			allocFunIndex,
-			arrLiteral!LowExpr(alloc, [paramRef(range, ctxType, ctxParam), size]))));
-	return ptrCast(alloc, ptrType, range, allocate);
+			arrLiteral!LowExpr(alloc, [genParamRef(range, ctxType, ctxParam), size]))));
+	return genPtrCast(alloc, ptrType, range, allocate);
 }
 
 immutable(LowExprKind) getAllocExpr(
@@ -1148,15 +1148,15 @@ immutable(LowExprKind) getAllocExpr2(
 	immutable LowType ptrType,
 ) {
 	immutable Ptr!LowLocal local = addTempLocal(ctx, ptrType);
-	immutable LowExpr sizeofT = getSizeOf(range, asPtrGcPointee(ptrType));
+	immutable LowExpr sizeofT = genSizeOf(range, asPtrGcPointee(ptrType));
 	immutable LowExpr allocatePtr =
 		getAllocateExpr(ctx.alloc, ctx.allocFunIndex, ctx.ctxType, force(ctx.ctxParam), range, ptrType, sizeofT);
-	immutable LowExpr getTemp = localRef(ctx.alloc, range, local);
-	immutable LowExpr setTemp = writeToPtr(ctx.alloc, range, getTemp, inner);
+	immutable LowExpr getTemp = genLocalRef(ctx.alloc, range, local);
+	immutable LowExpr setTemp = genWriteToPtr(ctx.alloc, range, getTemp, inner);
 	return immutable LowExprKind(allocate(ctx.alloc, immutable LowExprKind.Let(
 		local,
 		allocatePtr,
-		seq(ctx.alloc, range, setTemp, getTemp))));
+		genSeq(ctx.alloc, range, setTemp, getTemp))));
 }
 
 immutable(LowExprKind) getCallExpr(
@@ -1205,7 +1205,7 @@ immutable(LowExprKind) getCallRegular(
 				case NeedsCtx.no:
 					return none!LowExpr;
 				case NeedsCtx.yes:
-					return some(getCtxParamRef(ctx, range));
+					return some(genCtxParamRef(ctx, range));
 			}
 		}();
 		immutable LowExpr[] args = mapWithOptFirst(ctx.alloc, ctxArg, a.args, (ref immutable ConcreteExpr it) =>
@@ -1388,7 +1388,7 @@ immutable(LowExprKind) getCallBuiltinExpr(
 			verify(a.args.length == 2);
 			verify(lowTypeEqual(p0, p1));
 			immutable Ptr!LowLocal lhsLocal = addTempLocal(ctx, p0);
-			immutable LowExpr lhsRef = localRef(ctx.alloc, range, lhsLocal);
+			immutable LowExpr lhsRef = genLocalRef(ctx.alloc, range, lhsLocal);
 			return immutable LowExprKind(allocate(ctx.alloc, immutable LowExprKind.Let(
 				lhsLocal,
 				getArg(a.args[0], ExprPos.nonTail),
@@ -1407,11 +1407,11 @@ immutable(LowExprKind) getCallBuiltinExpr(
 					immutable LowExprKind.MatchUnion.Case(none!(Ptr!LowLocal), getArg(a.args[1], ExprPos.tail)),
 					immutable LowExprKind.MatchUnion.Case(
 						some(valueLocal),
-						localRef(ctx.alloc, range, valueLocal))]))));
+						genLocalRef(ctx.alloc, range, valueLocal))]))));
 		},
 		(ref immutable BuiltinKind.PtrCast) {
 			verify(a.args.length == 1);
-			return ptrCastKind(ctx.alloc, getLowExpr(ctx, locals, only(a.args), ExprPos.nonTail));
+			return genPtrCastKind(ctx.alloc, getLowExpr(ctx, locals, only(a.args), ExprPos.nonTail));
 		},
 		(ref immutable BuiltinKind.SizeOf) {
 			immutable LowType typeArg =
@@ -1437,9 +1437,9 @@ immutable(LowExprKind) getCreateArrExpr(
 	immutable LowType arrType = lowTypeFromConcreteStruct(ctx.typeCtx, a.arrType);
 	immutable LowType elementType = lowTypeFromConcreteType(ctx.typeCtx, elementType(a));
 	immutable LowType elementPtrType = getLowRawPtrConstType(ctx.typeCtx, elementType);
-	immutable LowExpr elementSize = getSizeOf(range, elementType);
-	immutable LowExpr nElements = constantNat64(range, a.args.length);
-	immutable LowExpr sizeBytes = wrapMulNat64(ctx.alloc, range, elementSize, nElements);
+	immutable LowExpr elementSize = genSizeOf(range, elementType);
+	immutable LowExpr nElements = genConstantNat64(range, a.args.length);
+	immutable LowExpr sizeBytes = genWrapMulNat64(ctx.alloc, range, elementSize, nElements);
 	immutable LowExpr allocatePtr = getAllocateExpr(
 		ctx.alloc,
 		ctx.allocFunIndex,
@@ -1449,7 +1449,7 @@ immutable(LowExprKind) getCreateArrExpr(
 		elementPtrType,
 		sizeBytes);
 	immutable Ptr!LowLocal temp = addTempLocal(ctx, elementPtrType);
-	immutable LowExpr getTemp = localRef(ctx.alloc, range, temp);
+	immutable LowExpr getTemp = genLocalRef(ctx.alloc, range, temp);
 	immutable(LowExpr) recur(immutable LowExpr cur, immutable size_t prevIndex) {
 		if (prevIndex == 0)
 			return cur;
@@ -1461,16 +1461,16 @@ immutable(LowExprKind) getCreateArrExpr(
 				asPtrRawConst(elementPtrType),
 				range,
 				getTemp,
-				constantNat64(range, index));
-			immutable LowExpr writeToElement = writeToPtr(ctx.alloc, range, elementPtr, arg);
-			return recur(seq(ctx.alloc, range, writeToElement, cur), index);
+				genConstantNat64(range, index));
+			immutable LowExpr writeToElement = genWriteToPtr(ctx.alloc, range, elementPtr, arg);
+			return recur(genSeq(ctx.alloc, range, writeToElement, cur), index);
 		}
 	}
 	immutable LowExpr createArr = immutable LowExpr(
 		arrType,
 		range,
 		immutable LowExprKind(immutable LowExprKind.CreateRecord(
-			arrLiteral!LowExpr(ctx.alloc, [nElements, localRef(ctx.alloc, range, temp)]))));
+			arrLiteral!LowExpr(ctx.alloc, [nElements, genLocalRef(ctx.alloc, range, temp)]))));
 	immutable LowExpr writeAndGetArr = recur(createArr, a.args.length);
 	return immutable LowExprKind(allocate(ctx.alloc, immutable LowExprKind.Let(
 		temp,

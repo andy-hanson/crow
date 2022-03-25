@@ -8,7 +8,6 @@ import util.col.str : SafeCStr, safeCStrEq;
 import util.opt : asImmutable, force, has, none, Opt;
 import util.path : hashPath, Path, pathEqual;
 import util.readOnlyStorage : ReadFileResult, ReadOnlyStorage;
-import util.util : verify;
 
 immutable(T) withDictReadOnlyStorage(T)(
 	immutable Path includeDir,

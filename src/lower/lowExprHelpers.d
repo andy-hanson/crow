@@ -123,19 +123,16 @@ immutable(LowExpr) genIf(
 		allocate(alloc, immutable LowExprKind.If(cond, then, else_))));
 }
 
-immutable(LowExpr) incrPointer(
+immutable(LowExpr) genIncrPointer(
 	ref Alloc alloc,
 	immutable FileAndRange range,
 	immutable LowType.PtrRawConst ptrType,
 	ref immutable LowExpr ptr,
 ) {
-	return genAddPtr(alloc, ptrType, range, ptr, constantNat64(range, 1));
+	return genAddPtr(alloc, ptrType, range, ptr, genConstantNat64(range, 1));
 }
 
-immutable(LowExpr) constantNat64(
-	immutable FileAndRange range,
-	immutable ulong value,
-) {
+immutable(LowExpr) genConstantNat64(immutable FileAndRange range, immutable ulong value) {
 	return immutable LowExpr(
 		nat64Type,
 		range,
@@ -164,11 +161,11 @@ immutable(LowExpr) genCall(
 		immutable LowExprKind(immutable LowExprKind.Call(called, args)));
 }
 
-immutable(LowExpr) getSizeOf(immutable FileAndRange range, immutable LowType t) {
+immutable(LowExpr) genSizeOf(immutable FileAndRange range, immutable LowType t) {
 	return immutable LowExpr(nat64Type, range, immutable LowExprKind(immutable LowExprKind.SizeOf(t)));
 }
 
-immutable(LowExpr) localRef(ref Alloc alloc, immutable FileAndRange range, immutable Ptr!LowLocal local) {
+immutable(LowExpr) genLocalRef(ref Alloc alloc, immutable FileAndRange range, immutable Ptr!LowLocal local) {
 	return immutable LowExpr(local.deref().type, range, immutable LowExprKind(immutable LowExprKind.LocalRef(local)));
 }
 
@@ -178,7 +175,7 @@ immutable(LowParam) genParam(immutable Sym name, immutable LowType type) {
 		type);
 }
 
-immutable(LowExpr) paramRef(
+immutable(LowExpr) genParamRef(
 	immutable FileAndRange range,
 	immutable LowType type,
 	immutable LowParamIndex param,
@@ -189,7 +186,7 @@ immutable(LowExpr) paramRef(
 		immutable LowExprKind(immutable LowExprKind.ParamRef(param)));
 }
 
-immutable(LowExpr) wrapMulNat64(
+immutable(LowExpr) genWrapMulNat64(
 	ref Alloc alloc,
 	immutable FileAndRange range,
 	immutable LowExpr left,
@@ -347,20 +344,20 @@ immutable(LowExprKind) genEnumToIntegral(ref Alloc alloc, immutable LowExpr inne
 		allocate(alloc, immutable LowExprKind.SpecialUnary(LowExprKind.SpecialUnary.Kind.enumToIntegral, inner)));
 }
 
-immutable(LowExpr) ptrCast(
+immutable(LowExpr) genPtrCast(
 	ref Alloc alloc,
 	immutable LowType type,
 	immutable FileAndRange range,
 	immutable LowExpr inner,
 ) {
-	return immutable LowExpr(type, range, ptrCastKind(alloc, inner));
+	return immutable LowExpr(type, range, genPtrCastKind(alloc, inner));
 }
 
-immutable(LowExprKind) ptrCastKind(ref Alloc alloc, immutable LowExpr inner) {
+immutable(LowExprKind) genPtrCastKind(ref Alloc alloc, immutable LowExpr inner) {
 	return immutable LowExprKind(allocate(alloc, immutable LowExprKind.PtrCast(inner)));
 }
 
-immutable(LowExpr) recordFieldGet(
+immutable(LowExpr) genRecordFieldGet(
 	ref Alloc alloc,
 	immutable FileAndRange range,
 	ref immutable LowExpr target,
@@ -371,7 +368,7 @@ immutable(LowExpr) recordFieldGet(
 		allocate(alloc, immutable LowExprKind.RecordFieldGet(target, fieldIndex))));
 }
 
-immutable(LowExpr) seq(
+immutable(LowExpr) genSeq(
 	ref Alloc alloc,
 	immutable FileAndRange range,
 	immutable LowExpr first,
@@ -383,7 +380,7 @@ immutable(LowExpr) seq(
 		immutable LowExprKind(allocate(alloc, immutable LowExprKind.Seq(first, then))));
 }
 
-immutable(LowExpr) writeToPtr(
+immutable(LowExpr) genWriteToPtr(
 	ref Alloc alloc,
 	immutable FileAndRange range,
 	ref immutable LowExpr ptr,
@@ -414,7 +411,7 @@ immutable(LowExpr) genGetArrSize(
 	immutable FileAndRange range,
 	ref immutable LowExpr arr,
 ) {
-	return recordFieldGet(alloc, range, arr, nat64Type, 0);
+	return genRecordFieldGet(alloc, range, arr, nat64Type, 0);
 }
 
 immutable(LowExpr) genGetArrData(
@@ -423,7 +420,7 @@ immutable(LowExpr) genGetArrData(
 	ref immutable LowExpr arr,
 	immutable LowType.PtrRawConst elementPtrType,
 ) {
-	return recordFieldGet(alloc, range, arr, immutable LowType(elementPtrType), 1);
+	return genRecordFieldGet(alloc, range, arr, immutable LowType(elementPtrType), 1);
 }
 
 immutable(LowType.PtrRawConst) getElementPtrTypeFromArrType(

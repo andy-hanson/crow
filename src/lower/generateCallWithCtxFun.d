@@ -3,7 +3,7 @@ module lower.generateCallWithCtxFun;
 @safe @nogc pure nothrow:
 
 import lower.lower : ConcreteFunToLowFunIndex;
-import lower.lowExprHelpers : genLocal, localRef, paramRef;
+import lower.lowExprHelpers : genLocal, genLocalRef, genParamRef;
 import model.concreteModel : ConcreteLambdaImpl;
 import model.lowModel :
 	asUnionType,
@@ -41,8 +41,8 @@ immutable(LowFun) generateCallWithCtxFun(
 	immutable ConcreteLambdaImpl[] impls,
 ) {
 	immutable FileAndRange range = FileAndRange.empty;
-	immutable LowExpr funParamRef = paramRef(range, funType, immutable LowParamIndex(0));
-	immutable LowExpr ctxParamRef = paramRef(range, ctxType, immutable LowParamIndex(1));
+	immutable LowExpr funParamRef = genParamRef(range, funType, immutable LowParamIndex(0));
+	immutable LowExpr ctxParamRef = genParamRef(range, ctxType, immutable LowParamIndex(1));
 
 	size_t localIndex = 0;
 
@@ -57,10 +57,10 @@ immutable(LowFun) generateCallWithCtxFun(
 			immutable LowExpr[] args = mapWithFirst2!(LowExpr, LowType)(
 				alloc,
 				ctxParamRef,
-				localRef(alloc, range, closureLocal),
+				genLocalRef(alloc, range, closureLocal),
 				nonFunNonCtxParamTypes,
 				(immutable size_t i, ref immutable LowType paramType) =>
-					paramRef(range, paramType, immutable LowParamIndex(i + 2)));
+					genParamRef(range, paramType, immutable LowParamIndex(i + 2)));
 			immutable LowExpr then = immutable LowExpr(returnType, range, immutable LowExprKind(
 				immutable LowExprKind.Call(mustGetAt(concreteFunToLowFunIndex, impl.impl), args)));
 			return immutable LowExprKind.MatchUnion.Case(some(closureLocal), then);
