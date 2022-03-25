@@ -1056,11 +1056,12 @@ void tryReadFile(
 
 		immutable size_t size = safeCStrSize(content);
 		immutable long wroteBytes = fwrite(content.ptr, char.sizeof, size, fd);
-		if (wroteBytes != size)
+		if (wroteBytes != size) {
 			if (wroteBytes == -1)
 				todo!void("writeFile failed");
 			else
 				todo!void("writeFile -- didn't write all the bytes?");
+		}
 		return ExitCode.ok;
 	}
 }

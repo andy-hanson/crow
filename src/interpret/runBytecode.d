@@ -618,8 +618,9 @@ private @system immutable(NextOperation) nextOperation(ref Interpreter a, immuta
 		return getNextOperationAndDebug(a, cur);
 	version(TailRecursionAvailable) {
 		return cur.fn(a, cur + 1);
+	} else {
+		return immutable NextOperation(cur);
 	}
-	return immutable NextOperation(cur);
 }
 
 private @system immutable(Operation) readOperation(scope ref immutable(Operation)* cur) {
