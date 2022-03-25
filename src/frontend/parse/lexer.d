@@ -1230,7 +1230,7 @@ immutable(char[]) stripWhitespaceRight(immutable string a) {
 	return empty(a) || !isWhitespace(a[$ - 1]) ? a : stripWhitespaceRight(a[0 .. $ - 1]);
 }
 
-immutable(bool) isWhitespace(immutable char a) {
+public immutable(bool) isWhitespace(immutable char a) {
 	switch (a) {
 		case ' ':
 		case '\t':

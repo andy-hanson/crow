@@ -203,6 +203,14 @@ void writeParseDiag(
 				writeChar(writer, ')');
 			}
 		},
+		(ref immutable ParseDiag.FileReadError d) {
+			writeStatic(writer, "unable to read file");
+			if (has(d.importedFrom)) {
+				writeStatic(writer, " (imported from ");
+				writePath(writer, allPaths, pathsInfo, force(d.importedFrom).path, crowExtension);
+				writeChar(writer, ')');
+			}
+		},
 		(ref immutable ParseDiag.FunctionTypeMissingParens) {
 			writeStatic(writer, "function type missing parentheses");
 		},

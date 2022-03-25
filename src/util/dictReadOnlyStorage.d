@@ -5,9 +5,9 @@ module util.dictReadOnlyStorage;
 import frontend.lang : crowExtension;
 import util.col.mutDict : getAt_mut, MutDict;
 import util.col.str : SafeCStr, safeCStrEq;
-import util.opt : asImmutable, Opt;
+import util.opt : asImmutable, force, has, none, Opt;
 import util.path : hashPath, Path, pathEqual;
-import util.readOnlyStorage : ReadOnlyStorage;
+import util.readOnlyStorage : ReadFileResult, ReadOnlyStorage;
 import util.util : verify;
 
 immutable(T) withDictReadOnlyStorage(T)(
@@ -20,10 +20,14 @@ immutable(T) withDictReadOnlyStorage(T)(
 		(
 			immutable Path path,
 			immutable SafeCStr extension,
-			void delegate(immutable Opt!SafeCStr) @safe @nogc pure nothrow cb,
+			void delegate(immutable ReadFileResult) @safe @nogc pure nothrow cb,
 		) {
-			verify(safeCStrEq(extension, crowExtension));
-			return cb(asImmutable(getAt_mut(files, path)));
+			immutable Opt!SafeCStr res = safeCStrEq(extension, crowExtension)
+				? asImmutable(getAt_mut(files, path))
+				: none!SafeCStr;
+			return cb(has(res)
+				? immutable ReadFileResult(force(res))
+				: immutable ReadFileResult(immutable ReadFileResult.NotFound()));
 		});
 	return cb(storage);
 }

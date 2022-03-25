@@ -350,6 +350,12 @@ void writeSym(scope ref Writer writer, scope ref const AllSymbols allSymbols, im
 	writeSymAndGetSize(writer, allSymbols, a);
 }
 
+void writeQuotedSym(ref Writer writer, ref const AllSymbols allSymbols, immutable Sym a) {
+	writeChar(writer, '"');
+	writeSym(writer, allSymbols, a);
+	writeChar(writer, '"');
+}
+
 immutable(bool) isSymOperator(immutable Sym a) {
 	return a.value <= Operator.max;
 }

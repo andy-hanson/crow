@@ -41,6 +41,9 @@ struct ParseDiag {
 	struct FileDoesNotExist {
 		immutable Opt!PathAndRange importedFrom;
 	}
+	struct FileReadError {
+		immutable Opt!PathAndRange importedFrom;
+	}
 	struct FunctionTypeMissingParens {}
 	struct IndentNotDivisible {
 		immutable uint nSpaces;
@@ -96,6 +99,7 @@ struct ParseDiag {
 		circularImport,
 		expected,
 		fileDoesNotExist,
+		fileReadError,
 		functionTypeMissingParens,
 		indentNotDivisible,
 		indentTooMuch,
@@ -119,6 +123,7 @@ struct ParseDiag {
 		immutable CircularImport circularImport;
 		immutable Expected expected;
 		immutable FileDoesNotExist fileDoesNotExist;
+		immutable FileReadError fileReadError;
 		immutable FunctionTypeMissingParens functionTypeMissingParens;
 		immutable IndentNotDivisible indentNotDivisible;
 		immutable IndentTooMuch indentTooMuch;
@@ -142,6 +147,7 @@ struct ParseDiag {
 	@trusted immutable this(immutable CircularImport a) { kind = Kind.circularImport; circularImport = a; }
 	immutable this(immutable Expected a) { kind = Kind.expected; expected = a; }
 	immutable this(immutable FileDoesNotExist a) { kind = Kind.fileDoesNotExist; fileDoesNotExist = a; }
+	immutable this(immutable FileReadError a) { kind = Kind.fileReadError; fileReadError = a; }
 	immutable this(immutable FunctionTypeMissingParens a) {
 		kind = Kind.functionTypeMissingParens; functionTypeMissingParens = a;
 	}
@@ -173,6 +179,7 @@ static assert(ParseDiag.sizeof <= 32);
 	scope T delegate(ref immutable ParseDiag.CircularImport) @safe @nogc pure nothrow cbCircularImport,
 	scope T delegate(ref immutable ParseDiag.Expected) @safe @nogc pure nothrow cbExpected,
 	scope T delegate(ref immutable ParseDiag.FileDoesNotExist) @safe @nogc pure nothrow cbFileDoesNotExist,
+	scope T delegate(ref immutable ParseDiag.FileReadError) @safe @nogc pure nothrow cbFileReadError,
 	scope T delegate(
 		ref immutable ParseDiag.FunctionTypeMissingParens
 	) @safe @nogc pure nothrow cbFunctionTypeMissingParens,
@@ -204,6 +211,8 @@ static assert(ParseDiag.sizeof <= 32);
 			return cbExpected(a.expected);
 		case ParseDiag.Kind.fileDoesNotExist:
 			return cbFileDoesNotExist(a.fileDoesNotExist);
+		case ParseDiag.Kind.fileReadError:
+			return cbFileReadError(a.fileReadError);
 		case ParseDiag.Kind.functionTypeMissingParens:
 			return cbFunctionTypeMissingParens(a.functionTypeMissingParens);
 		case ParseDiag.Kind.indentNotDivisible:

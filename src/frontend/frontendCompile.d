@@ -6,6 +6,7 @@ import model.diag : Diag, Diagnostics, DiagnosticWithinFile, FilesInfo, filesInf
 import model.model : CommonTypes, Module, ModuleAndNames, Program, SpecialModules;
 import model.parseDiag : ParseDiag;
 import frontend.check.check : BootstrapCheck, check, checkBootstrap, PathAndAst;
+import frontend.config : Config, getConfig;
 import frontend.diagnosticsBuilder : addDiagnosticsForFile, DiagnosticsBuilder, finishDiagnostics;
 import frontend.parse.ast : emptyFileAst, FileAst, ImportAst, ImportsOrExportsAst;
 import frontend.lang : crowExtension;
@@ -28,17 +29,19 @@ import util.path :
 	AllPaths,
 	childPath,
 	concatPaths,
+	firstAndRest,
 	hashPath,
 	matchPathOrRelPath,
 	parent,
 	Path,
 	PathAndRange,
+	PathFirstAndRest,
 	pathEqual,
 	RelPath,
 	resolvePath;
 import util.perf : Perf, PerfMeasure, withMeasure;
 import util.ptr : Ptr;
-import util.readOnlyStorage : ReadOnlyStorage, withFile;
+import util.readOnlyStorage : asOption, matchReadFileResult, ReadFileResult, ReadOnlyStorage, withFile;
 import util.sourceRange : FileIndex, RangeWithinFile;
 import util.sym : AllSymbols, shortSym, Sym;
 import util.util : verify;
@@ -53,8 +56,9 @@ immutable(Program) frontendCompile(
 	scope immutable Path[] rootPaths,
 ) {
 	DiagnosticsBuilder diagsBuilder = DiagnosticsBuilder();
+	immutable Config config = getConfig(modelAlloc, allSymbols, allPaths, storage, diagsBuilder, rootPaths);
 	immutable ParsedEverything parsed = withMeasure!(immutable ParsedEverything, () =>
-		parseEverything(modelAlloc, perf, allPaths, allSymbols, diagsBuilder, storage, rootPaths, astsAlloc)
+		parseEverything(modelAlloc, perf, allPaths, allSymbols, diagsBuilder, storage, rootPaths, config, astsAlloc)
 	)(astsAlloc, perf, PerfMeasure.parseEverything);
 	return withMeasure!(immutable Program, () =>
 		checkEverything(
@@ -77,7 +81,7 @@ immutable(FileAstAndDiagnostics) parseSingleAst(
 	immutable Path path,
 ) {
 	// In this case model alloc and AST alloc are the same
-	return withFile(storage, path, crowExtension, (immutable Opt!SafeCStr opFileContent) {
+	return withFile(storage, path, crowExtension, (immutable ReadFileResult fileContent) {
 		ArrBuilder!DiagnosticWithinFile diags;
 		immutable FileAst ast = parseSingle(
 			alloc,
@@ -87,11 +91,11 @@ immutable(FileAstAndDiagnostics) parseSingleAst(
 			allSymbols,
 			diags,
 			none!PathAndRange,
-			opFileContent);
+			fileContent);
 		DiagnosticsBuilder diagsBuilder;
 		addDiagnosticsForFile(alloc, diagsBuilder, immutable FileIndex(0), diags);
 		immutable FilesInfo filesInfo =
-			filesInfoForSingle(alloc, path, lineAndColumnGetterForOptText(alloc, opFileContent));
+			filesInfoForSingle(alloc, path, lineAndColumnGetterForOptText(alloc, asOption(fileContent)));
 		return immutable FileAstAndDiagnostics(
 			ast,
 			filesInfo,
@@ -167,7 +171,7 @@ struct ParseStackEntry {
 }
 
 //TODO: Marked @trusted to avoid initializing stack...
-@trusted immutable(ParsedEverything) parseEverything(
+immutable(ParsedEverything) parseEverything(
 	ref Alloc modelAlloc,
 	scope ref Perf perf,
 	ref AllPaths allPaths,
@@ -175,6 +179,7 @@ struct ParseStackEntry {
 	ref DiagnosticsBuilder diagsBuilder,
 	scope ref const ReadOnlyStorage storage,
 	scope immutable Path[] rootPaths,
+	ref immutable Config config,
 	ref Alloc astAlloc,
 ) {
 	ArrBuilder!Path fileIndexToPath;
@@ -185,14 +190,14 @@ struct ParseStackEntry {
 	MutMaxArr!(32, ParseStackEntry) stack = mutMaxArr!(32, ParseStackEntry)();
 
 	void pushIt(immutable Path path, immutable Opt!PathAndRange importedFrom) {
-		withFile!void(storage, path, crowExtension, (immutable Opt!SafeCStr opFileContent) {
+		withFile!void(storage, path, crowExtension, (immutable ReadFileResult fileContent) @safe {
 			ArrBuilder!DiagnosticWithinFile diags;
 			immutable LineAndColumnGetter lineAndColumnGetter =
-				lineAndColumnGetterForOptText(modelAlloc, opFileContent);
+				lineAndColumnGetterForOptText(modelAlloc, asOption(fileContent));
 			immutable FileAst ast = parseSingle(
-				modelAlloc, astAlloc, perf, allPaths, allSymbols, diags, importedFrom, opFileContent);
+				modelAlloc, astAlloc, perf, allPaths, allSymbols, diags, importedFrom, fileContent);
 			immutable ImportAndExportPaths importsAndExports = resolveImportAndExportPaths(
-				modelAlloc, astAlloc, allPaths, diags, storage.includeDir, path, ast.imports, ast.exports);
+				modelAlloc, astAlloc, allPaths, diags, storage.includeDir, config, path, ast.imports, ast.exports);
 			addToMutDict(astAlloc, statuses, path, immutable ParseStatus(immutable ParseStatus.Started()));
 			push(stack, ParseStackEntry(path, ast, lineAndColumnGetter, importsAndExports, diags));
 		});
@@ -326,16 +331,22 @@ immutable(FileAst) parseSingle(
 	ref AllSymbols allSymbols,
 	ref ArrBuilder!DiagnosticWithinFile diags,
 	immutable Opt!PathAndRange importedFrom,
-	immutable Opt!SafeCStr opFileContent,
+	immutable ReadFileResult fileContent,
 ) {
-	// File content must go in astAlloc because we refer to strings without copying
-	if (has(opFileContent))
-		return immutable parseFile(astAlloc, perf, allPaths, allSymbols, diags, force(opFileContent));
-	else {
-		add(modelAlloc, diags, immutable DiagnosticWithinFile(RangeWithinFile.empty, immutable Diag(
-			immutable ParseDiag(immutable ParseDiag.FileDoesNotExist(importedFrom)))));
-		return emptyFileAst;
-	}
+	return matchReadFileResult!(immutable FileAst)(
+		fileContent,
+		(immutable SafeCStr content) =>
+			parseFile(astAlloc, perf, allPaths, allSymbols, diags, content),
+		(immutable(ReadFileResult.NotFound)) {
+			add(modelAlloc, diags, immutable DiagnosticWithinFile(RangeWithinFile.empty, immutable Diag(
+				immutable ParseDiag(immutable ParseDiag.FileDoesNotExist(importedFrom)))));
+			return emptyFileAst;
+		},
+		(immutable(ReadFileResult.Error)) {
+			add(modelAlloc, diags, immutable DiagnosticWithinFile(RangeWithinFile.empty, immutable Diag(
+				immutable ParseDiag(immutable ParseDiag.FileReadError(importedFrom)))));
+			return emptyFileAst;
+		});
 }
 
 struct ResolvedImport {
@@ -351,6 +362,7 @@ immutable(ResolvedImport) tryResolveImport(
 	ref AllPaths allPaths,
 	ref ArrBuilder!DiagnosticWithinFile diagnosticsBuilder,
 	immutable Path includeDir,
+	ref immutable Config config,
 	immutable Path fromPath,
 	immutable ImportAst ast,
 ) {
@@ -361,8 +373,13 @@ immutable(ResolvedImport) tryResolveImport(
 	}
 	return matchPathOrRelPath!(immutable ResolvedImport)(
 		ast.path,
-		(immutable Path global) =>
-			resolved(concatPaths(allPaths, includeDir, global)),
+		(immutable Path global) {
+			immutable PathFirstAndRest fr = firstAndRest(allPaths, global);
+			immutable Opt!Path fromConfig = config.include[fr.first];
+			return resolved(has(fromConfig)
+				? has(fr.rest) ? concatPaths(allPaths, force(fromConfig), force(fr.rest)) : force(fromConfig)
+				: concatPaths(allPaths, includeDir, global));
+		},
 		(immutable RelPath relPath) {
 			immutable Opt!Path rel = resolvePath(allPaths, parent(allPaths, fromPath), relPath);
 			if (has(rel))
@@ -386,12 +403,13 @@ immutable(ResolvedImport[]) resolveImportOrExportPaths(
 	ref AllPaths allPaths,
 	ref ArrBuilder!DiagnosticWithinFile diagnosticsBuilder,
 	immutable Path includeDir,
+	ref immutable Config config,
 	immutable Path fromPath,
 	ref immutable Opt!ImportsOrExportsAst importsOrExports,
 ) {
 	immutable ImportAst[] paths = has(importsOrExports) ? force(importsOrExports).paths : emptyArr!ImportAst;
 	return map(astAlloc, paths, (ref immutable ImportAst i) =>
-		tryResolveImport(modelAlloc, allPaths, diagnosticsBuilder, includeDir, fromPath, i));
+		tryResolveImport(modelAlloc, allPaths, diagnosticsBuilder, includeDir, config, fromPath, i));
 }
 
 immutable(ImportAndExportPaths) resolveImportAndExportPaths(
@@ -400,13 +418,16 @@ immutable(ImportAndExportPaths) resolveImportAndExportPaths(
 	ref AllPaths allPaths,
 	ref ArrBuilder!DiagnosticWithinFile diagnosticsBuilder,
 	immutable Path includeDir,
+	ref immutable Config config,
 	immutable Path fromPath,
 	ref immutable Opt!ImportsOrExportsAst imports,
 	ref immutable Opt!ImportsOrExportsAst exports,
 ) {
 	return immutable ImportAndExportPaths(
-		resolveImportOrExportPaths(modelAlloc, astAlloc, allPaths, diagnosticsBuilder, includeDir, fromPath, imports),
-		resolveImportOrExportPaths(modelAlloc, astAlloc, allPaths, diagnosticsBuilder, includeDir, fromPath, exports));
+		resolveImportOrExportPaths(
+			modelAlloc, astAlloc, allPaths, diagnosticsBuilder, includeDir, config, fromPath, imports),
+		resolveImportOrExportPaths(
+			modelAlloc, astAlloc, allPaths, diagnosticsBuilder, includeDir, config, fromPath, exports));
 }
 
 struct AstAndResolvedImports {

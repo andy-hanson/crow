@@ -3,6 +3,7 @@ module util.path;
 @safe @nogc pure nothrow:
 
 import util.alloc.alloc : Alloc, allocateT;
+import util.col.arrUtil : reduce;
 import util.col.mutArr : MutArr, mutArrAt, mutArrRange, mutArrSize, push;
 import util.col.str : eachChar, end, SafeCStr, safeCStr, safeCStrIsEmpty, safeCStrSize;
 import util.col.tempStr : initializeTempStr, TempStr;
@@ -44,6 +45,24 @@ immutable(Opt!Path) parent(ref const AllPaths allPaths, immutable Path a) {
 
 immutable(Sym) baseName(ref const AllPaths allPaths, immutable Path a) {
 	return mutArrAt(allPaths.pathToBaseName, a.index);
+}
+
+struct PathFirstAndRest {
+	immutable Sym first;
+	immutable Opt!Path rest;
+}
+
+immutable(PathFirstAndRest) firstAndRest(ref AllPaths allPaths, immutable Path a) {
+	immutable Opt!Path par = parent(allPaths, a);
+	immutable Sym baseName = baseName(allPaths, a);
+	if (has(par)) {
+		immutable PathFirstAndRest parentRes = firstAndRest(allPaths, force(par));
+		immutable Path rest = has(parentRes.rest)
+			? childPath(allPaths, force(parentRes.rest), baseName)
+			: rootPath(allPaths, baseName);
+		return immutable PathFirstAndRest(parentRes.first, some(rest));
+	} else
+		return immutable PathFirstAndRest(baseName, none!Path);
 }
 
 private immutable(Path) getOrAddChild(
@@ -358,6 +377,13 @@ private @system immutable(RelPathAndExtension) parseRelPathAndExtensionRecur(
 	}
 }
 
+immutable(Path) parseAbsoluteOrRelPath(ref AllPaths allPaths, immutable Path cwd, scope immutable SafeCStr a) {
+	immutable PathAndExtension res = parseAbsoluteOrRelPathAndExtension(allPaths, cwd, a);
+	if (!safeCStrIsEmpty(res.extension))
+		todo!void("!");
+	return res.path;
+}
+
 @trusted immutable(PathAndExtension) parseAbsoluteOrRelPathAndExtension(
 	ref AllPaths allPaths,
 	immutable Path cwd,
@@ -418,6 +444,27 @@ struct PathsInfo {
 
 immutable(PathsInfo) emptyPathsInfo() {
 	return immutable PathsInfo(none!Path);
+}
+
+immutable(Path) commonAncestor(ref const AllPaths allPaths, scope immutable Path[] paths) {
+	return reduce(paths, (immutable Path x, immutable Path y) =>
+		commonAncestorBinary(allPaths, x, y));
+}
+private immutable(Path) commonAncestorBinary(ref const AllPaths allPaths, immutable Path a, immutable Path b) {
+	immutable size_t aParts = countPathParts(allPaths, a);
+	immutable size_t bParts = countPathParts(allPaths, b);
+	return aParts > bParts
+		? commonAncestorRecur(allPaths, removeLastNParts(allPaths, a, aParts - bParts), b)
+		: commonAncestorRecur(allPaths, a, removeLastNParts(allPaths, b, bParts - aParts));
+}
+private immutable(Path) commonAncestorRecur(ref const AllPaths allPaths, immutable Path a, immutable Path b) {
+	if (pathEqual(a, b))
+		return a;
+	else {
+		immutable Opt!Path parA = parent(allPaths, a);
+		immutable Opt!Path parB = parent(allPaths, b);
+		return commonAncestorRecur(allPaths, force(parA), force(parB));
+	}
 }
 
 private:

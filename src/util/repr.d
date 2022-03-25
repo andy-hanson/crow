@@ -10,7 +10,7 @@ import util.col.str : SafeCStr, strOfSafeCStr;
 import util.memory : allocate;
 import util.opt : force, has, mapOption, Opt;
 import util.ptr : Ptr, ptrTrustMe_mut;
-import util.sym : AllSymbols, shortSym, Sym, writeSym;
+import util.sym : AllSymbols, shortSym, Sym, writeQuotedSym;
 import util.writer :
 	finishWriterToSafeCStr,
 	writeChar,
@@ -279,12 +279,4 @@ void writeReprJSON(ref Writer writer, ref const AllSymbols allSymbols, immutable
 		(immutable Sym it) {
 			writeQuotedSym(writer, allSymbols, it);
 		});
-}
-
-private:
-
-void writeQuotedSym(ref Writer writer, ref const AllSymbols allSymbols, immutable Sym a) {
-	writeChar(writer, '"');
-	writeSym(writer, allSymbols, a);
-	writeChar(writer, '"');
 }

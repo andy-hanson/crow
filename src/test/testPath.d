@@ -7,6 +7,7 @@ import util.col.str : safeCStr, safeCStrEq;
 import util.comparison : Comparison;
 import util.path :
 	childPath,
+	commonAncestor,
 	comparePath,
 	AllPaths,
 	Path,
@@ -45,4 +46,8 @@ void testPath(ref Test test) {
 	verify(pathEqual(aY, parseAbsoluteOrRelPathAndExtension(allPaths, aX, safeCStr!"../y").path));
 
 	verify(TEST_countPathParts(allPaths, zW.path) == 3); // initial empty part before the leading "/"
+
+	verify(pathEqual(commonAncestor(allPaths, [aX, aY]), a));
+	verify(pathEqual(commonAncestor(allPaths, [aX, aXZW]), aX));
+	verify(pathEqual(commonAncestor(allPaths, [aX, aXZW, aY]), a));
 }

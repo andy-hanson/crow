@@ -100,8 +100,8 @@ bin/crow.wasm: $(wasm_deps)
 
 ALL_INCLUDE = include/*.crow include/*/*.crow include/*/*/*.crow include/*/*/*/*.crow
 
-bin/crow.tar.xz: bin/crow demo/* demo/*/* $(ALL_INCLUDE)
-	tar --directory .. --create --xz --file bin/crow.tar.xz crow/bin/crow crow/demo crow/include
+bin/crow.tar.xz: bin/crow demo/* demo/*/* $(ALL_INCLUDE) libraries/* libraries/*/*
+	tar --directory .. --create --xz --file bin/crow.tar.xz crow/bin/crow crow/demo crow/include crow/libraries
 
 ### lint ###
 

@@ -109,7 +109,7 @@ import util.path :
 	TempStrForPath;
 import util.perf : eachMeasure, Perf, perfEnabled, PerfMeasure, PerfMeasureResult, withMeasure;
 import util.ptr : ptrTrustMe_mut;
-import util.readOnlyStorage : ReadOnlyStorage;
+import util.readOnlyStorage : ReadFileResult, ReadOnlyStorage;
 import util.sym : AllSymbols, shortSym, Sym, symAsTempBuffer, writeSym;
 import util.util : castImmutableRef, todo, unreachable, verify;
 import util.writer : finishWriterToSafeCStr, Writer, writeSafeCStr, writeStatic;
@@ -734,7 +734,7 @@ immutable(T) withReadOnlyStorage(T)(
 		(
 			immutable Path path,
 			immutable SafeCStr extension,
-			void delegate(immutable Opt!SafeCStr) @safe @nogc pure nothrow cb,
+			void delegate(immutable ReadFileResult) @safe @nogc pure nothrow cb,
 		) =>
 			tryReadFile(allPaths, path, extension, cb));
 	return cb(storage);
@@ -995,7 +995,7 @@ void tryReadFile(
 	scope ref const AllPaths allPaths,
 	immutable Path path,
 	immutable SafeCStr extension,
-	scope void delegate(immutable Opt!SafeCStr) @safe @nogc pure nothrow cb,
+	scope void delegate(immutable ReadFileResult) @safe @nogc pure nothrow cb,
 ) {
 	TempStrForPath pathTempStr = pathToTempStr(allPaths, path, extension);
 	return tryReadFileInner(asTempSafeCStr(pathTempStr), cb);
@@ -1003,20 +1003,16 @@ void tryReadFile(
 
 @trusted void tryReadFileInner(
 	immutable SafeCStr path,
-	scope void delegate(immutable Opt!SafeCStr) @safe @nogc pure nothrow cb,
+	scope void delegate(immutable ReadFileResult) @safe @nogc pure nothrow cb,
 ) {
 	TempStr!0x100000 content = void;
 	initializeTempStr(content);
 	immutable CStr pathTempCStr = path.ptr;
 	FILE* fd = fopen(pathTempCStr, "rb");
-	if (fd == null) {
-		if (errno == ENOENT) {
-			return cb(none!SafeCStr);
-		} else {
-			fprintf(stderr, "Failed to open file %s\n", pathTempCStr);
-			todo!void("fail");
-		}
-	}
+	if (fd == null)
+		return cb(errno == ENOENT
+			? immutable ReadFileResult(immutable ReadFileResult.NotFound())
+			: immutable ReadFileResult(immutable ReadFileResult.Error()));
 	scope(exit) fclose(fd);
 
 	immutable int err = fseek(fd, 0, SEEK_END);
@@ -1031,7 +1027,7 @@ void tryReadFile(
 	immutable size_t fileSize = cast(size_t) ftellResult;
 
 	if (fileSize == 0)
-		return cb(some(safeCStr!""));
+		return cb(immutable ReadFileResult(safeCStr!""));
 
 	// Go back to the beginning so we can read
 	immutable int err2 = fseek(fd, 0, SEEK_SET);
@@ -1044,7 +1040,7 @@ void tryReadFile(
 		todo!void("error reading file");
 
 	setLength(content, fileSize);
-	return cb(some(asTempSafeCStr(content)));
+	return cb(immutable ReadFileResult(asTempSafeCStr(content)));
 }
 
 @trusted immutable(ExitCode) writeFile(

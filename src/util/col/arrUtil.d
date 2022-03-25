@@ -608,6 +608,14 @@ private @system immutable(State) mapAndFoldRecur(Out, State, In)(
 		return state;
 }
 
+immutable(T) reduce(T)(
+	scope immutable T[] values,
+	scope immutable(T) delegate(immutable T, immutable T) @safe @nogc pure nothrow cb,
+) {
+	return fold(values[0], values[1 .. $], (immutable T a, ref immutable T b) =>
+		cb(a, b));
+}
+
 immutable(T) fold(T, U)(
 	immutable T start,
 	scope immutable U[] arr,
