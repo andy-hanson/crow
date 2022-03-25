@@ -1,0 +1,3 @@
+test/parse-errors/function-at-eof.crow 1:6-1:6 expected an indent
+
+test/parse-errors/function-at-eof.crow 1:6-1:7 expected an indent

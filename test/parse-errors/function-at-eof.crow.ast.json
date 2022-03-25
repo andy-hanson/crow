@@ -1,0 +1,1 @@
+{"_type":"file-ast","specs":[],"aliases":[],"structs":[],"funs":[{"_type":"fun-decl","visibility":"public","sig":{"_type":"sig-ast","args":[{"_type":"range","args":[0,5]},"f",{"_type":"inststruct","args":[{"_type":"range","args":[2,3]},{"_type":"name-range","args":[2,"t"]}]},[]]},"body":"bogus"}]}

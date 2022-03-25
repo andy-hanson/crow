@@ -579,7 +579,7 @@ immutable(SpecUsesAndSigFlagsAndKwBody) parseSpecUsesAndSigFlagsAndKwBody(ref Le
 		immutable FunDeclAstFlags(),
 		false,
 		none!(FunBodyAst.Extern),
-		() => !peekToken(lexer, Token.newline));
+		() => !peekToken(lexer, Token.newline) && !peekToken(lexer, Token.EOF));
 }
 
 //TODO:RENAME
