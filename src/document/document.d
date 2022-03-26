@@ -50,7 +50,7 @@ import util.col.dict : dictEach;
 import util.col.str : SafeCStr, safeCStrIsEmpty;
 import util.comparison : compareNat16, compareNat32, Comparison;
 import util.opt : force, has, none, Opt, some;
-import util.path : AllPaths, Path, pathToSafeCStr;
+import util.path : AllPaths, Path, PathsInfo, pathToSafeCStrPreferRelative;
 import util.ptr : Ptr;
 import util.repr : jsonStrOfRepr, NameAndRepr, nameAndRepr, Repr, reprArr, reprBool, reprNamedRecord, reprStr, reprSym;
 import util.sourceRange : FileAndRange;
@@ -61,9 +61,10 @@ immutable(SafeCStr) documentJSON(
 	ref Alloc alloc,
 	ref const AllSymbols allSymbols,
 	ref const AllPaths allPaths,
+	ref immutable PathsInfo pathsInfo,
 	ref immutable Program program,
 ) {
-	return jsonStrOfRepr(alloc, allSymbols, documentRootModules(alloc, allSymbols, allPaths, program));
+	return jsonStrOfRepr(alloc, allSymbols, documentRootModules(alloc, allSymbols, allPaths, pathsInfo, program));
 }
 
 private:
@@ -72,22 +73,24 @@ immutable(Repr) documentRootModules(
 	ref Alloc alloc,
 	ref const AllSymbols allSymbols,
 	ref const AllPaths allPaths,
+	ref immutable PathsInfo pathsInfo,
 	ref immutable Program program,
 ) {
 	return reprNamedRecord(alloc, "root", [
 		nameAndRepr("modules", reprArr(alloc, program.specialModules.rootModules, (ref immutable Ptr!Module x) =>
-			documentModule(alloc, allSymbols, allPaths, program, x.deref())))]);
+			documentModule(alloc, allSymbols, allPaths, pathsInfo, program, x.deref())))]);
 }
 
 immutable(Repr) documentModule(
 	ref Alloc alloc,
 	ref const AllSymbols allSymbols,
 	ref const AllPaths allPaths,
+	ref immutable PathsInfo pathsInfo,
 	ref immutable Program program,
 	ref immutable Module a,
 ) {
 	immutable Path path = program.filesInfo.filePaths[a.fileIndex];
-	immutable SafeCStr pathStr = pathToSafeCStr(alloc, allPaths, path);
+	immutable SafeCStr pathStr = pathToSafeCStrPreferRelative(alloc, allPaths, pathsInfo, path);
 	ArrBuilder!DocExport exports;
 	dictEach!(Sym, NameReferents, symEq, hashSym)(
 		a.allExportedNames,

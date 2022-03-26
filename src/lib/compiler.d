@@ -346,7 +346,7 @@ public immutable(DocumentResult) compileAndDocument(
 	immutable Program program = frontendCompile(alloc, perf, alloc, allPaths, allSymbols, storage, rootPaths);
 	return !hasDiags(program)
 		? immutable DocumentResult(
-			documentJSON(alloc, allSymbols, allPaths, program),
+			documentJSON(alloc, allSymbols, allPaths, pathsInfo, program),
 			safeCStr!"")
 		: immutable DocumentResult(
 			safeCStr!"",

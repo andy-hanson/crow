@@ -10,11 +10,11 @@ import util.comparison : compareNat16, Comparison;
 import util.conv : safeToUshort;
 import util.hash : Hasher, hashUshort;
 import util.opt : has, force, none, Opt, some;
-import util.ptr : Ptr;
+import util.ptr : Ptr, ptrTrustMe_mut;
 import util.sourceRange : RangeWithinFile;
 import util.sym : AllSymbols, eachCharInSym, emptySym, Sym, symEq, symOfStr, symSize, writeSym;
 import util.util : todo, verify;
-import util.writer : writeChar, Writer, writeSafeCStr, writeStatic;
+import util.writer : finishWriterToSafeCStr, writeChar, Writer, writeSafeCStr, writeStatic;
 
 struct AllPaths {
 	@safe @nogc pure nothrow:
@@ -298,6 +298,17 @@ immutable(SafeCStr) pathToSafeCStr(
 	scope immutable SafeCStr extension = safeCStr!"",
 ) {
 	return immutable SafeCStr(pathToStrWorker(alloc, allPaths, path, extension).ptr);
+}
+
+public immutable(SafeCStr) pathToSafeCStrPreferRelative(
+	ref Alloc alloc,
+	ref const AllPaths allPaths,
+	ref immutable PathsInfo pathsInfo,
+	immutable Path a,
+) {
+	Writer writer = Writer(ptrTrustMe_mut(alloc));
+	writePath(writer, allPaths, pathsInfo, a, safeCStr!"");
+	return finishWriterToSafeCStr(writer);
 }
 
 @trusted immutable(Path) parsePath(ref AllPaths allPaths, scope immutable SafeCStr str) {
