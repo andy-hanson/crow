@@ -520,7 +520,7 @@ struct StructBody {
 immutable(bool) isBogus(ref immutable StructBody a) {
 	return a.kind == StructBody.Kind.bogus;
 }
-immutable(bool) isRecord(ref const StructBody a) {
+private immutable(bool) isRecord(ref const StructBody a) {
 	return a.kind == StructBody.Kind.record;
 }
 @trusted ref const(StructBody.Record) asRecord(return scope ref const StructBody a) {

@@ -826,10 +826,6 @@ struct StructDeclAst {
 static assert(StructDeclAst.Body.sizeof <= 24);
 static assert(StructDeclAst.sizeof <= 88);
 
-immutable(bool) isRecord(ref immutable StructDeclAst.Body a) {
-	return a.kind == StructDeclAst.Body.Kind.record;
-}
-
 @trusted T matchStructDeclAstBody(
 	T,
 	alias cbBuiltin,

@@ -316,7 +316,7 @@ struct SpecSigAstAndDedent {
 	immutable size_t dedents;
 }
 
-immutable(SigAstAndMaybeDedent) parseSigAfterNameAndSpace(ref Lexer lexer, immutable Pos start, immutable Sym name) {
+immutable(SigAstAndMaybeDedent) parseSigAfterName(ref Lexer lexer, immutable Pos start, immutable Sym name) {
 	immutable TypeAst returnType = parseType(lexer);
 	immutable ParamsAndMaybeDedent params = parseParams(lexer);
 	return immutable SigAstAndMaybeDedent(
@@ -324,7 +324,7 @@ immutable(SigAstAndMaybeDedent) parseSigAfterNameAndSpace(ref Lexer lexer, immut
 		params.dedents);
 }
 
-immutable(SpecSigAstAndMaybeDedent) parseSpecSigAfterNameAndSpace(
+immutable(SpecSigAstAndMaybeDedent) parseSpecSigAfterName(
 	ref Lexer lexer,
 	immutable SafeCStr comment,
 	immutable Pos start,
@@ -342,7 +342,7 @@ immutable(SpecSigAstAndDedent) parseSpecSig(ref Lexer lexer, immutable uint curI
 	immutable SafeCStr comment = skipBlankLinesAndGetDocComment(lexer);
 	immutable Pos start = curPos(lexer);
 	immutable Sym sigName = takeNameOrOperator(lexer);
-	immutable SpecSigAstAndMaybeDedent s = parseSpecSigAfterNameAndSpace(lexer, comment, start, sigName);
+	immutable SpecSigAstAndMaybeDedent s = parseSpecSigAfterName(lexer, comment, start, sigName);
 	immutable size_t dedents = has(s.dedents) ? force(s.dedents) : takeNewlineOrDedentAmount(lexer, curIndent);
 	return SpecSigAstAndDedent(s.sig, dedents);
 }
@@ -595,7 +595,7 @@ immutable(FunDeclAst) parseFun(
 	immutable Sym name,
 	immutable NameAndRange[] typeParams,
 ) {
-	immutable SigAstAndMaybeDedent sig = parseSigAfterNameAndSpace(lexer, start, name);
+	immutable SigAstAndMaybeDedent sig = parseSigAfterName(lexer, start, name);
 	immutable FunDeclStuff stuff = () {
 		if (has(sig.dedents)) {
 			// Started at indent of 0

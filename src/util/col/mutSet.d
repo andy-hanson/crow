@@ -14,10 +14,6 @@ private struct Empty {}
 
 alias MutSymSet = MutSet!(immutable Sym, symEq, hashSym);
 
-void addToMutSymSetOkIfPresent(	ref Alloc alloc, ref MutSymSet set, immutable Sym sym) {
-	addToMutSetOkIfPresent!(immutable Sym, symEq, hashSym)(alloc, set, sym);
-}
-
 immutable(T[]) moveSetToArr(T, alias equal, alias hash)(ref Alloc alloc, ref MutSet!(immutable T, equal, hash) a) {
 	return keysArray(alloc, a.inner);
 }

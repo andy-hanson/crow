@@ -51,7 +51,6 @@ import model.diag : Diag;
 import model.model :
 	arity,
 	arityIsNonZero,
-	asRecord,
 	asStructDecl,
 	asStructInst,
 	body_,
@@ -65,7 +64,6 @@ import model.model :
 	IntegralTypes,
 	isBogus,
 	isLinkageAlwaysCompatible,
-	isRecord,
 	isStructInst,
 	Linkage,
 	linkageRange,
@@ -84,7 +82,6 @@ import model.model :
 	paramsArray,
 	Purity,
 	range,
-	RecordField,
 	returnType,
 	setBody,
 	setTarget,
@@ -119,7 +116,6 @@ import util.col.multiDict : buildMultiDict, multiDictEach;
 import util.col.mutArr : mustPop, MutArr, mutArrIsEmpty;
 import util.col.mutDict : insertOrUpdate, moveToDict, MutSymDict;
 import util.col.mutMaxArr : tempAsArr;
-import util.col.mutSet : addToMutSymSetOkIfPresent;
 import util.col.str : copySafeCStr, safeCStr;
 import util.memory : allocate, allocateMut, overwriteMemory;
 import util.opt : force, has, none, noneMut, Opt, some, someMut;
@@ -687,9 +683,6 @@ immutable(FunsAndDict) checkFuns(
 				name(it.deref()),
 				immutable FunDeclAndIndex(immutable ModuleLocalFunIndex(index), it)));
 
-	foreach (ref const FunDecl f; funs)
-		addToMutSymSetOkIfPresent(ctx.alloc, ctx.programState.names.funNames, name(f));
-
 	FunDecl[] funsWithAsts = funs[0 .. asts.length];
 	zipMutPtrFirst!(FunDecl, FunDeclAst)(funsWithAsts, asts, (Ptr!FunDecl fun, ref immutable FunDeclAst funAst) {
 		overwriteMemory(&fun.deref().body_, matchFunBodyAst!(
@@ -822,10 +815,6 @@ immutable(Module) checkWorkerAfterCommonTypes(
 ) {
 	checkStructBodies(ctx, commonTypes, structsAndAliasesDict, structs, ast.structs, delayStructInsts);
 	immutable StructDecl[] structsImmutable = castImmutable(structs);
-	foreach (ref const StructDecl s; structs)
-		if (isRecord(s.body_))
-			foreach (ref immutable RecordField f; asRecord(s.body_).fields)
-				addToMutSymSetOkIfPresent(ctx.alloc, ctx.programState.names.recordFieldNames, f.name);
 
 	while (!mutArrIsEmpty(delayStructInsts)) {
 		Ptr!StructInst i = mustPop(delayStructInsts);
@@ -838,9 +827,6 @@ immutable(Module) checkWorkerAfterCommonTypes(
 
 	immutable SpecDecl[] specs = checkSpecDecls(ctx, commonTypes, structsAndAliasesDict, ast.specs);
 	immutable SpecsDict specsDict = buildSpecsDict(ctx, specs);
-	foreach (ref immutable SpecDecl s; specs)
-		addToMutSymSetOkIfPresent(ctx.alloc, ctx.programState.names.specNames, s.name);
-
 	immutable FunsAndDict funsAndDict = checkFuns(
 		ctx,
 		commonTypes,
@@ -849,9 +835,7 @@ immutable(Module) checkWorkerAfterCommonTypes(
 		structsAndAliasesDict,
 		ast.funs,
 		ast.tests);
-
 	checkForUnused(ctx, structAliases, castImmutable(structs), specs);
-
 	return immutable Module(
 		fileIndex,
 		copySafeCStr(ctx.alloc, ast.docComment),
@@ -1004,11 +988,7 @@ immutable(BootstrapCheck) checkWorker(
 
 	// Since structs may refer to each other, first get a structsAndAliasesDict, *then* fill in bodies
 	StructDecl[] structs = checkStructsInitial(ctx, ast.structs);
-	foreach (ref const StructDecl s; structs)
-		addToMutSymSetOkIfPresent(alloc, programState.names.structAndAliasNames, s.name);
 	StructAlias[] structAliases = checkStructAliasesInitial(ctx, ast.structAliases);
-	foreach (ref const StructAlias a; structAliases)
-		addToMutSymSetOkIfPresent(alloc, programState.names.structAndAliasNames, a.name);
 	immutable StructsAndAliasesDict structsAndAliasesDict =
 		buildStructsAndAliasesDict(ctx, castImmutable(structs), castImmutable(structAliases));
 

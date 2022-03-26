@@ -16,20 +16,10 @@ import model.model :
 	structDeclAndArgsEqual,
 	StructInst;
 import util.col.mutDict : MutDict;
-import util.col.mutSet : MutSymSet;
 import util.ptr : Ptr;
 
 struct ProgramState {
-	ProgramNames names;
 	MutDict!(immutable FunDeclAndArgs, immutable Ptr!FunInst, funDeclAndArgsEqual, hashFunDeclAndArgs) funInsts;
 	MutDict!(immutable StructDeclAndArgs, Ptr!StructInst, structDeclAndArgsEqual, hashStructDeclAndArgs) structInsts;
 	MutDict!(immutable SpecDeclAndArgs, immutable Ptr!SpecInst, specDeclAndArgsEqual, hashSpecDeclAndArgs) specInsts;
-}
-
-private struct ProgramNames {
-	// These sets store all names seen *so far*.
-	MutSymSet structAndAliasNames;
-	MutSymSet specNames;
-	MutSymSet funNames;
-	MutSymSet recordFieldNames;
 }

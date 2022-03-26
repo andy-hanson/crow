@@ -824,7 +824,6 @@ void fillInConcreteFunBody(ref ConcretizeCtx ctx, Ptr!ConcreteFun cf) {
 			},
 			(ref immutable FunBody.Extern e) {
 				if (has(e.libraryName))
-					//TODO: don't always copy
 					addToMutSetOkIfPresent(ctx.alloc, ctx.allExternLibraryNames, force(e.libraryName));
 				return immutable ConcreteFunBody(immutable ConcreteFunBody.Extern(e.isGlobal));
 			},
