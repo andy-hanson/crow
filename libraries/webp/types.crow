@@ -4,5 +4,5 @@ import
 	crow/misc: void
 	crow/ptr: any-mut-ptr
 
-WebPMalloc any-mut-ptr(size size_t) extern<"webp"> noctx summon unsafe
-WebPFree void(ptr any-mut-ptr) extern<"webp"> noctx summon unsafe
+WebPMalloc any-mut-ptr(size size_t) extern<webp> noctx summon unsafe
+WebPFree void(ptr any-mut-ptr) extern<webp> noctx summon unsafe

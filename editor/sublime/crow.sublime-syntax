@@ -53,9 +53,6 @@ contexts:
     - match: '(>|\))(\?|\*)?'
       scope: comment # punctuation.definition.generic.end
       pop: true
-    # string in type arg: this happens with e.g. extern<"GL">
-    - match: '"'
-      push: string
     - match: '{{name}}\*?'
       scope: storage.type
 

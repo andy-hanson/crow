@@ -378,19 +378,6 @@ immutable(NameOrUnderscoreOrNone) takeNameOrUnderscoreOrNone(ref Lexer lexer) {
 		: immutable NameOrUnderscoreOrNone(immutable NameOrUnderscoreOrNone.None());
 }
 
-immutable(string) takeQuotedStr(ref Lexer lexer) {
-	if (takeOrAddDiagExpectedToken(lexer, Token.quoteDouble, ParseDiag.Expected.Kind.quoteDouble)) {
-		immutable StringPart sp = takeStringPart(lexer, QuoteKind.double_);
-		final switch (sp.after) {
-			case StringPart.After.quote:
-				return sp.text;
-			case StringPart.After.lbrace:
-				return todo!(immutable string)("!");
-		}
-	} else
-		return "";
-}
-
 @trusted void skipUntilNewlineNoDiag(ref Lexer lexer) {
 	while (!isNewlineChar(*lexer.ptr) && *lexer.ptr != '\0')
 		lexer.ptr++;

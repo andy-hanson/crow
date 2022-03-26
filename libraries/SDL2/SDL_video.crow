@@ -5,7 +5,7 @@ import
 	crow/c-types: c-int, u-int
 	crow/str: c-str
 
-SDL_DestroyWindow void(window SDL_Window) extern<"SDL2"> noctx summon unsafe
+SDL_DestroyWindow void(window SDL_Window) extern<SDL2> noctx summon unsafe
 
 SDL_Window extern-ptr
 
@@ -19,7 +19,7 @@ SDL_CreateWindow SDL_Window
 	h c-int
 	window-flags SDL_WindowFlags
 spec
-	extern<"SDL2">
+	extern<SDL2>
 	noctx
 	summon
 	unsafe
@@ -49,7 +49,7 @@ SDL_WindowFlags flags<nat32> extern
 	SDL_WINDOW_VULKAN = 0x10000000
 	SDL_WINDOW_METAL = 0x20000000
 
-SDL_GL_CreateContext SDL_GLContext(window SDL_Window) extern<"SDL2"> noctx summon unsafe
+SDL_GL_CreateContext SDL_GLContext(window SDL_Window) extern<SDL2> noctx summon unsafe
 
 SDL_GLattr enum<u-int> extern
 	SDL_GL_RED_SIZE = 0
@@ -85,9 +85,9 @@ SDL_GLprofile flags<c-int>
 	SDL_GL_CONTEXT_PROFILE_COMPATIBILITY = 2
 	SDL_GL_CONTEXT_PROFILE_ES = 4
 
-SDL_GL_SetAttribute c-int(attr SDL_GLattr, value c-int) extern<"SDL2"> noctx summon unsafe
+SDL_GL_SetAttribute c-int(attr SDL_GLattr, value c-int) extern<SDL2> noctx summon unsafe
 
 SDL_WINDOWPOS_UNDEFINED c-int()
 	0x1fff0000
 
-SDL_GL_SwapWindow void(window SDL_Window) extern<"SDL2"> noctx summon unsafe
+SDL_GL_SwapWindow void(window SDL_Window) extern<SDL2> noctx summon unsafe

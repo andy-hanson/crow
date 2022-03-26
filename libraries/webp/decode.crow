@@ -11,7 +11,7 @@ WebPDecodeRGBA nat8 mut*
 	width cell c-int
 	height cell c-int
 spec
-	extern<"webp">
+	extern<webp>
 	noctx
 	summon
 	unsafe

@@ -5,9 +5,9 @@ import
 	crow/misc: void
 	crow/number: nat32
 
-SDL_PumpEvents void() extern<"SDL2"> noctx summon
+SDL_PumpEvents void() extern<SDL2> noctx summon
 
-SDL_PollEvent c-int(event SDL_Event) extern<"SDL2"> noctx summon
+SDL_PollEvent c-int(event SDL_Event) extern<SDL2> noctx summon
 
 SDL_Event record by-ref extern
 	type SDL_EventType

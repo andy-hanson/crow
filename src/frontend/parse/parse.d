@@ -55,7 +55,6 @@ import frontend.parse.lexer :
 	takeNewline_topLevel,
 	takeOrAddDiagExpectedOperator,
 	takeOrAddDiagExpectedToken,
-	takeQuotedStr,
 	takeTypeArgsEnd,
 	Token,
 	tryTakeIndent,
@@ -78,7 +77,7 @@ import util.path : AllPaths, childPath, Path, PathOrRelPath, rootPath;
 import util.perf : Perf, PerfMeasure, withMeasure;
 import util.ptr : Ptr, ptrTrustMe_mut;
 import util.sourceRange : Pos, RangeWithinFile;
-import util.sym : AllSymbols, Operator, shortSym, shortSymValue, Sym, symEq, symOfStr;
+import util.sym : AllSymbols, Operator, shortSym, shortSymValue, Sym, symEq;
 import util.util : todo, unreachable, verify;
 
 immutable(FileAst) parseFile(
@@ -459,16 +458,16 @@ immutable(SpecUsesAndSigFlagsAndKwBody) emptySpecUsesAndSigFlagsAndKwBody =
 		none!FunBodyAst);
 
 immutable(FunBodyAst.Extern) takeExternName(ref Lexer lexer, immutable bool isGlobal) {
-	immutable Opt!Sym libraryName = tryTakeOperator(lexer, Operator.less)
-		? some(takeExternLibraryName(lexer))
-		: none!Sym;
-	return immutable FunBodyAst.Extern(isGlobal, libraryName);
+	immutable Opt!Sym name = tryTakeLibraryName(lexer);
+	return immutable FunBodyAst.Extern(isGlobal, name);
 }
-
-immutable(Sym) takeExternLibraryName(ref Lexer lexer) {
-	immutable string res = takeQuotedStr(lexer);
-	takeTypeArgsEnd(lexer);
-	return symOfStr(lexer.allSymbols, res);
+immutable(Opt!Sym) tryTakeLibraryName(ref Lexer lexer) {
+	if (tryTakeOperator(lexer, Operator.less)) {
+		immutable Sym res = takeName(lexer);
+		takeTypeArgsEnd(lexer);
+		return some(res);
+	} else
+		return none!Sym;
 }
 
 immutable(SpecUsesAndSigFlagsAndKwBody) parseNextSpec(
