@@ -18,8 +18,8 @@ struct Hasher {
 	}
 }
 
-void hashBool(ref Hasher hasher, immutable bool a) {
-	hasher.mix(a);
+void hashEnum(E)(ref Hasher hasher, immutable E a) {
+	hashSizeT(hasher, a);
 }
 
 void hashSizeT(ref Hasher hasher, immutable size_t a) {

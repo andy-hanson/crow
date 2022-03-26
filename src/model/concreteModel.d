@@ -28,7 +28,7 @@ import model.model :
 import util.col.arr : empty, only;
 import util.col.dict : PtrDict;
 import util.col.str : SafeCStr;
-import util.hash : hashBool, Hasher;
+import util.hash : hashEnum, Hasher;
 import util.late : Late, lateGet, lateIsSet, lateSet;
 import util.opt : none, Opt, some;
 import util.ptr : hashPtr, ptrEquals, Ptr;
@@ -230,9 +230,19 @@ struct ConcreteStructBody {
 }
 
 struct ConcreteType {
-	// NOTE: ConcreteType for 'ptr' (e.g. 'ptr byte') will *not* have isPointer set -- since it's not a ptr*
-	immutable bool isPointer;
+	immutable ReferenceKind reference;
 	immutable Ptr!ConcreteStruct struct_;
+}
+
+enum ReferenceKind { byRef, byVal }
+
+immutable(Sym) symOfReferenceKind(immutable ReferenceKind a) {
+	final switch (a) {
+		case ReferenceKind.byRef:
+			return shortSym("by-ref");
+		case ReferenceKind.byVal:
+			return shortSym("by-val");
+	}
 }
 
 struct TypeSize {
@@ -244,8 +254,8 @@ immutable(Purity) purity(immutable ConcreteType a) {
 	return a.struct_.deref().purity;
 }
 
-immutable(Ptr!ConcreteStruct) mustBeNonPointer(immutable ConcreteType a) {
-	verify(!a.isPointer);
+immutable(Ptr!ConcreteStruct) mustBeByVal(immutable ConcreteType a) {
+	verify(a.reference == ReferenceKind.byVal);
 	return a.struct_;
 }
 
@@ -303,7 +313,7 @@ struct ConcreteStruct {
 	immutable ConcreteStructSource source;
 	Late!(immutable ConcreteStructInfo) info_;
 	//TODO: this isn't needed outside of concretizeCtx.d
-	Late!(immutable bool) defaultIsPointer_;
+	Late!(immutable ReferenceKind) defaultReferenceKind_;
 	Late!(immutable TypeSize) typeSize_;
 	// Only set for records
 	Late!(immutable size_t[]) fieldOffsets_;
@@ -339,36 +349,44 @@ immutable(bool) isSelfMutable(ref immutable ConcreteStruct a) {
 	return info(a).isSelfMutable;
 }
 
-immutable(bool) defaultIsPointer(ref immutable ConcreteStruct a) {
-	return lateGet(a.defaultIsPointer_);
+immutable(ReferenceKind) defaultReferenceKind(ref immutable ConcreteStruct a) {
+	return lateGet(a.defaultReferenceKind_);
 }
 
 //TODO: this is only useful during concretize, move
 immutable(bool) hasSizeOrPointerSizeBytes(ref immutable ConcreteType a) {
-	return a.isPointer || lateIsSet(a.struct_.deref().typeSize_);
+	final switch (a.reference) {
+		case ReferenceKind.byRef:
+			return true;
+		case ReferenceKind.byVal:
+			return lateIsSet(a.struct_.deref().typeSize_);
+	}
 }
 
 immutable(TypeSize) sizeOrPointerSizeBytes(ref immutable ConcreteType a) {
-	return a.isPointer
-		? immutable TypeSize(8, 8)
-		: typeSize(a.struct_.deref());
+	final switch (a.reference) {
+		case ReferenceKind.byRef:
+			return immutable TypeSize(8, 8);
+		case ReferenceKind.byVal:
+			return typeSize(a.struct_.deref());
+	}
 }
 
 immutable(ConcreteType) byRef(immutable ConcreteType t) {
-	return immutable ConcreteType(true, t.struct_);
+	return immutable ConcreteType(ReferenceKind.byRef, t.struct_);
 }
 
 immutable(ConcreteType) byVal(ref immutable ConcreteType t) {
-	return immutable ConcreteType(false, t.struct_);
+	return immutable ConcreteType(ReferenceKind.byVal, t.struct_);
 }
 
 immutable(bool) concreteTypeEqual(ref immutable ConcreteType a, ref immutable ConcreteType b) {
-	return ptrEquals(a.struct_, b.struct_) && a.isPointer == b.isPointer;
+	return ptrEquals(a.struct_, b.struct_) && a.reference == b.reference;
 }
 
 void hashConcreteType(ref Hasher hasher, ref immutable ConcreteType a) {
 	hashPtr(hasher, a.struct_);
-	hashBool(hasher, a.isPointer);
+	hashEnum(hasher, a.reference);
 }
 
 enum ConcreteMutability {

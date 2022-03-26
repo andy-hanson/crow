@@ -49,9 +49,10 @@ import model.concreteModel :
 	isSummon,
 	isVariadic,
 	matchConcreteFunBody,
-	mustBeNonPointer,
+	mustBeByVal,
 	name,
 	purity,
+	ReferenceKind,
 	returnType;
 import model.constant : asBool, asRecord, asUnion, Constant;
 import model.model :
@@ -269,7 +270,7 @@ immutable(ConcreteExpr[]) getArgs(
 }
 
 immutable(ConcreteExpr) createAllocExpr(ref Alloc alloc, immutable ConcreteExpr inner) {
-	verify(!inner.type.isPointer);
+	verify(inner.type.reference == ReferenceKind.byVal);
 	return immutable ConcreteExpr(
 		byRef(inner.type),
 		inner.range,
@@ -345,7 +346,7 @@ immutable(ConcreteExpr) concretizeLambda(
 	immutable ConcreteParam[] params = concretizeParams(ctx.concretizeCtx, e.params, tScope);
 
 	immutable ConcreteType concreteType = getConcreteType_forStructInst(ctx, e.type);
-	immutable Ptr!ConcreteStruct concreteStruct = mustBeNonPointer(concreteType);
+	immutable Ptr!ConcreteStruct concreteStruct = mustBeByVal(concreteType);
 
 	immutable ConcreteExpr[] closureArgs = map!ConcreteExpr(ctx.alloc, e.closure, (ref immutable VariableRef x) =>
 		concretizeVariableRef(ctx, range, locals, x));
@@ -395,7 +396,7 @@ immutable(ConcreteExpr) concretizeLambda(
 		return immutable ConcreteExpr(concreteType, range, immutable ConcreteExprKind(
 			immutable ConcreteExprKind.CreateRecord(arrLiteral!ConcreteExpr(ctx.alloc, [
 				exclusion,
-				immutable ConcreteExpr(funType, range, lambda(mustBeNonPointer(funType)))]))));
+				immutable ConcreteExpr(funType, range, lambda(mustBeByVal(funType)))]))));
 	} else
 		return immutable ConcreteExpr(concreteType, range, lambda(concreteStruct));
 }
@@ -489,7 +490,7 @@ immutable(ConcreteExpr) concretizeIfOption(
 	if (isConstant(option.kind))
 		return todo!(immutable ConcreteExpr)("constant option");
 	else {
-		immutable ConcreteType someType = force(asUnion(body_(mustBeNonPointer(option.type).deref())).members[1]);
+		immutable ConcreteType someType = force(asUnion(body_(mustBeByVal(option.type).deref())).members[1]);
 		immutable ConcreteType type = getConcreteType(ctx, e.type);
 		immutable ConcreteExprKind.MatchUnion.Case noneCase = immutable ConcreteExprKind.MatchUnion.Case(
 			none!(Ptr!ConcreteLocal),
@@ -543,7 +544,7 @@ immutable(ConcreteExpr) concretizeMatchUnion(
 ) {
 	immutable ConcreteExpr matched = concretizeExpr(ctx, locals, e.matched);
 	immutable ConcreteType ct = getConcreteType_forStructInst(ctx, e.matchedUnion);
-	immutable Ptr!ConcreteStruct matchedUnion = mustBeNonPointer(ct);
+	immutable Ptr!ConcreteStruct matchedUnion = mustBeByVal(ct);
 	immutable ConcreteType type = getConcreteType(ctx, e.type);
 	if (isConstant(matched.kind)) {
 		immutable Constant.Union u = asUnion(asConstant(matched.kind));
@@ -678,7 +679,7 @@ immutable(ConstantsOrExprs) constantsOrExprsArr(
 	ref immutable ConstantsOrExprs args,
 	ref immutable ConcreteType arrayType,
 ) {
-	immutable Ptr!ConcreteStruct arrayStruct = mustBeNonPointer(arrayType);
+	immutable Ptr!ConcreteStruct arrayStruct = mustBeByVal(arrayType);
 	return matchConstantsOrExprs(
 		args,
 		(ref immutable Constant[] constants) =>

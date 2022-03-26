@@ -14,7 +14,7 @@ import model.concreteModel :
 	ConcreteLambdaImpl,
 	ConcreteProgram,
 	ConcreteStruct,
-	mustBeNonPointer;
+	mustBeByVal;
 import model.model :
 	assertNonVariadic,
 	asStructInst,
@@ -109,8 +109,8 @@ immutable(ConcreteProgram) concretizeInner(
 			ctx.allConstants,
 			allSymbols,
 			allConcreteFuns,
-			mustBeNonPointer(allFunsFun.deref().returnType),
-			mustBeNonPointer(staticSymsFun.deref().returnType)),
+			mustBeByVal(allFunsFun.deref().returnType),
+			mustBeByVal(staticSymsFun.deref().returnType)),
 		finishArr_immutable(alloc, ctx.allConcreteStructs),
 		allConcreteFuns,
 		mapToDict!(

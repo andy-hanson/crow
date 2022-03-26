@@ -32,9 +32,10 @@ import model.concreteModel :
 	hashConcreteType,
 	hasSizeOrPointerSizeBytes,
 	isSelfMutable,
-	mustBeNonPointer,
+	mustBeByVal,
 	NeedsCtx,
 	purity,
+	ReferenceKind,
 	sizeOrPointerSizeBytes,
 	TypeSize;
 import model.constant : Constant;
@@ -311,7 +312,7 @@ immutable(ConcreteType) symType(ref ConcretizeCtx a) {
 immutable(ConcreteType) ctxType(ref ConcretizeCtx a) {
 	immutable ConcreteType res = lazilySet(a._ctxType, () =>
 		getConcreteType_forStructInst(a, a.ctxStructInst, TypeArgsScope.empty));
-	verify(res.isPointer);
+	verify(res.reference == ReferenceKind.byRef);
 	return res;
 }
 
@@ -386,11 +387,11 @@ immutable(ConcreteType) getConcreteType_forStructInst(
 			});
 		if (res.didAdd)
 			initializeConcreteStruct(ctx, typeArgs, i.deref(), castMutable(res.value), typeArgsScope);
-		if (!lateIsSet(res.value.deref().defaultIsPointer_))
+		if (!lateIsSet(res.value.deref().defaultReferenceKind_))
 			// The only way 'defaultIsPointer' would not be set is if we are still computing the size of 's'.
 			// In that case, it's a recursive record, so it should be by-ref.
-			lateSet!(immutable bool)(castMutable(res.value).deref().defaultIsPointer_, true);
-		return immutable ConcreteType(lateGet(res.value.deref().defaultIsPointer_), res.value);
+			lateSet(castMutable(res.value).deref().defaultReferenceKind_, ReferenceKind.byRef);
+		return immutable ConcreteType(lateGet(res.value.deref().defaultReferenceKind_), res.value);
 	}
 }
 
@@ -443,7 +444,7 @@ immutable(ConcreteType) concreteTypeFromClosure(
 			ctx, cs, false, closureFields, false, FieldsType.closure);
 		add(ctx.alloc, ctx.allConcreteStructs, castImmutable(cs));
 		// TODO: consider passing closure by value
-		return immutable ConcreteType(true, castImmutable(cs));
+		return immutable ConcreteType(ReferenceKind.byRef, castImmutable(cs));
 	}
 }
 
@@ -464,10 +465,10 @@ private void setConcreteStructRecordSizeOrDefer(
 
 private void setConcreteStructRecordSize(ref Alloc alloc, DeferredRecordBody a) {
 	immutable TypeSizeAndFieldOffsets size = recordSize(alloc, a.packed, a.fields);
-	if (!lateIsSet(a.struct_.deref().defaultIsPointer_))
+	if (!lateIsSet(a.struct_.deref().defaultReferenceKind_))
 		lateSet(
-			a.struct_.deref().defaultIsPointer_,
-			getDefaultIsPointerForFields(size.typeSize, a.isSelfMutable, a.fieldsType));
+			a.struct_.deref().defaultReferenceKind_,
+			getDefaultReferenceKindForFields(size.typeSize, a.isSelfMutable, a.fieldsType));
 	lateSet(a.struct_.deref().typeSize_, size.typeSize);
 	lateSet(a.struct_.deref().fieldOffsets_, size.fieldOffsets);
 }
@@ -557,7 +558,7 @@ immutable(TypeSize) unionSize(ref immutable Opt!ConcreteType[] members) {
 	return immutable TypeSize(sizeBytes, unionAlign);
 }
 
-immutable(bool) getDefaultIsPointerForFields(
+immutable(ReferenceKind) getDefaultReferenceKindForFields(
 	immutable TypeSize typeSize,
 	immutable bool isSelfMutable,
 	immutable FieldsType type,
@@ -570,7 +571,7 @@ immutable(bool) getDefaultIsPointerForFields(
 				return 8 * 2;
 		}
 	}();
-	return isSelfMutable || typeSize.size > maxSize;
+	return isSelfMutable || typeSize.size > maxSize ? ReferenceKind.byRef : ReferenceKind.byVal;
 }
 
 enum FieldsType { record, closure }
@@ -627,44 +628,44 @@ void initializeConcreteStruct(
 		(ref immutable StructBody.Bogus) => unreachable!void,
 		(ref immutable StructBody.Builtin) {
 			immutable BuiltinStructKind kind = getBuiltinStructKind(i.decl.deref().name);
-			lateSet(res.deref().defaultIsPointer_, false);
+			lateSet(res.deref().defaultReferenceKind_, ReferenceKind.byVal);
 			lateSet(res.deref().info_, immutable ConcreteStructInfo(
 				immutable ConcreteStructBody(ConcreteStructBody.Builtin(kind, typeArgs)),
 				false));
 			lateSet(res.deref().typeSize_, getBuiltinStructSize(kind));
 		},
 		(ref immutable StructBody.Enum it) {
-			lateSet(res.deref().defaultIsPointer_, false);
+			lateSet(res.deref().defaultReferenceKind_, ReferenceKind.byVal);
 			lateSet(res.deref().info_, immutable ConcreteStructInfo(
 				immutable ConcreteStructBody(getConcreteStructBodyForEnum(ctx.alloc, it)),
 				false));
 			lateSet(res.deref().typeSize_, typeSizeForEnumOrFlags(it.backingType));
 		},
 		(ref immutable StructBody.Flags it) {
-			lateSet(res.deref().defaultIsPointer_, false);
+			lateSet(res.deref().defaultReferenceKind_, ReferenceKind.byVal);
 			lateSet(res.deref().info_, immutable ConcreteStructInfo(
 				immutable ConcreteStructBody(getConcreteStructBodyForFlags(ctx.alloc, it)),
 				false));
 			lateSet(res.deref().typeSize_, typeSizeForEnumOrFlags(it.backingType));
 		},
 		(ref immutable StructBody.ExternPtr it) {
-			// defaultIsPointer is false because the 'extern' type *is* a pointer
-			lateSet(res.deref().defaultIsPointer_, false);
+			// byVal because the 'extern' type *is* a pointer
+			lateSet(res.deref().defaultReferenceKind_, ReferenceKind.byVal);
 			lateSet(res.deref().info_, immutable ConcreteStructInfo(
 				immutable ConcreteStructBody(immutable ConcreteStructBody.ExternPtr()),
 				false));
 			lateSet(res.deref().typeSize_, getBuiltinStructSize(BuiltinStructKind.ptrMut));
 		},
 		(ref immutable StructBody.Record r) {
-			// don't set 'defaultIsPointer' until the end, unless explicit
+			// don't set 'defaultReferenceKind' until the end, unless explicit
 			final switch (r.flags.forcedByValOrRef) {
 				case ForcedByValOrRefOrNone.none:
 					break;
 				case ForcedByValOrRefOrNone.byVal:
-					lateSet(res.deref().defaultIsPointer_, false);
+					lateSet(res.deref().defaultReferenceKind_, ReferenceKind.byVal);
 					break;
 				case ForcedByValOrRefOrNone.byRef:
-					lateSet(res.deref().defaultIsPointer_, true);
+					lateSet(res.deref().defaultReferenceKind_, ReferenceKind.byRef);
 					break;
 			}
 
@@ -682,7 +683,7 @@ void initializeConcreteStruct(
 				ctx, res, packed, fields, info.isSelfMutable, FieldsType.record);
 		},
 		(ref immutable StructBody.Union u) {
-			lateSet(res.deref().defaultIsPointer_, false);
+			lateSet(res.deref().defaultReferenceKind_, ReferenceKind.byVal);
 			immutable Opt!ConcreteType[] members = map!(Opt!ConcreteType)(
 				ctx.alloc,
 				u.members,
@@ -831,7 +832,7 @@ void fillInConcreteFunBody(ref ConcretizeCtx ctx, Ptr!ConcreteFun cf) {
 				immutable ConcreteFunBody(concretizeExpr(ctx, inputs.containing, castImmutable(cf), e)),
 			(immutable FlagsFunction it) =>
 				immutable ConcreteFunBody(immutable ConcreteFunBody.FlagsFn(
-					getAllValue(asFlags(body_(mustBeNonPointer(castImmutable(cf).deref().returnType).deref()))),
+					getAllValue(asFlags(body_(mustBeByVal(castImmutable(cf).deref().returnType).deref()))),
 					it)),
 			(ref immutable FunBody.RecordFieldGet it) =>
 				immutable ConcreteFunBody(immutable ConcreteFunBody.RecordFieldGet(it.fieldIndex)),
@@ -848,9 +849,9 @@ immutable(ulong) getAllValue(ref immutable ConcreteStructBody.Flags flags) {
 }
 
 immutable(ConcreteFunBody) bodyForEnumOrFlagsMembers(ref ConcretizeCtx ctx, immutable ConcreteType returnType) {
-	immutable Ptr!ConcreteStruct arrayStruct = mustBeNonPointer(returnType);
+	immutable Ptr!ConcreteStruct arrayStruct = mustBeByVal(returnType);
 	immutable ConcreteType elementType = only(asInst(arrayStruct.deref().source).typeArgs); // named<e>
-	immutable ConcreteType enumOrFlagsType = only(asInst(mustBeNonPointer(elementType).deref().source).typeArgs);
+	immutable ConcreteType enumOrFlagsType = only(asInst(mustBeByVal(elementType).deref().source).typeArgs);
 	immutable Constant[] elements = map!Constant(
 		ctx.alloc,
 		enumOrFlagsMembers(enumOrFlagsType),
@@ -865,7 +866,7 @@ immutable(ConcreteFunBody) bodyForEnumOrFlagsMembers(ref ConcretizeCtx ctx, immu
 
 immutable(StructBody.Enum.Member[]) enumOrFlagsMembers(immutable ConcreteType type) {
 	return matchStructBody!(immutable StructBody.Enum.Member[])(
-		body_(decl(asInst(mustBeNonPointer(type).deref().source).inst.deref()).deref()),
+		body_(decl(asInst(mustBeByVal(type).deref().source).inst.deref()).deref()),
 		(ref immutable StructBody.Bogus) =>
 			unreachable!(immutable StructBody.Enum.Member[]),
 		(ref immutable StructBody.Builtin) =>
@@ -892,7 +893,7 @@ immutable(ConcreteFunBody) bodyForAllTests(ref ConcretizeCtx ctx, immutable Conc
 	immutable Constant arr = getConstantArr(
 		ctx.alloc,
 		ctx.allConstants,
-		mustBeNonPointer(returnType),
+		mustBeByVal(returnType),
 		mapWithIndex(ctx.alloc, allTests, (immutable size_t testIndex, scope ref immutable Test it) =>
 			immutable Constant(immutable Constant.FunPtr(concreteFunForTest(ctx, it, testIndex)))));
 	return immutable ConcreteFunBody(immutable ConcreteExpr(

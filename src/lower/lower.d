@@ -65,9 +65,10 @@ import model.concreteModel :
 	matchConcreteFunSource,
 	matchConcreteStructBody,
 	matchEnum,
-	mustBeNonPointer,
+	mustBeByVal,
 	NeedsCtx,
-	PointerTypeAndConstantsConcrete;
+	PointerTypeAndConstantsConcrete,
+	ReferenceKind;
 import model.constant : Constant;
 import model.lowModel :
 	AllConstantsLow,
@@ -430,11 +431,14 @@ immutable(LowType) lowTypeFromConcreteStruct(ref GetLowTypeCtx ctx, immutable Pt
 }
 
 immutable(LowType) lowTypeFromConcreteType(ref GetLowTypeCtx ctx, immutable ConcreteType it) {
-	return it.isPointer
-		? getOrAdd(ctx.alloc, ctx.concreteStructToPtrType, it.struct_, () =>
-			immutable LowType(immutable LowType.PtrGc(
-				allocate(ctx.alloc, lowTypeFromConcreteStruct(ctx, it.struct_)))))
-		: lowTypeFromConcreteStruct(ctx, it.struct_);
+	final switch (it.reference) {
+		case ReferenceKind.byRef:
+			return getOrAdd(ctx.alloc, ctx.concreteStructToPtrType, it.struct_, () =>
+				immutable LowType(immutable LowType.PtrGc(
+					allocate(ctx.alloc, lowTypeFromConcreteStruct(ctx, it.struct_)))));
+		case ReferenceKind.byVal:
+			return lowTypeFromConcreteStruct(ctx, it.struct_);
+	}
 }
 
 struct LowFunCause {
@@ -553,7 +557,7 @@ immutable(AllLowFuns) getAllLowFuns(
 	ref immutable ConcreteProgram program,
 ) {
 	immutable LowType ctxType =
-		lowTypeFromConcreteType(getLowTypeCtx, immutable ConcreteType(true, program.ctxType));
+		lowTypeFromConcreteType(getLowTypeCtx, immutable ConcreteType(ReferenceKind.byRef, program.ctxType));
 	PtrDictBuilder!(ConcreteFun, LowFunIndex) concreteFunToLowFunIndexBuilder;
 	ArrBuilder!LowFunCause lowFunCausesBuilder;
 
@@ -648,7 +652,7 @@ immutable(AllLowFuns) getAllLowFuns(
 			(ref immutable ConcreteFunBody.Builtin it) {
 				if (isCallWithCtxFun(fun.deref())) {
 					immutable Ptr!ConcreteStruct funStruct =
-						mustBeNonPointer(fun.deref().paramsExcludingCtxAndClosure[0].type);
+						mustBeByVal(fun.deref().paramsExcludingCtxAndClosure[0].type);
 					immutable LowType funType = lowTypeFromConcreteStruct(getLowTypeCtx, funStruct);
 					immutable LowType returnType =
 						lowTypeFromConcreteType(getLowTypeCtx, fun.deref().returnType);
@@ -1519,7 +1523,7 @@ immutable(LowExprKind) getMatchEnumExpr(
 	immutable ExprPos exprPos,
 	ref immutable ConcreteExprKind.MatchEnum a,
 ) {
-	immutable ConcreteStructBody.Enum enum_ = asEnum(body_(mustBeNonPointer(a.matchedValue.type).deref()));
+	immutable ConcreteStructBody.Enum enum_ = asEnum(body_(mustBeByVal(a.matchedValue.type).deref()));
 	immutable LowExpr matchedValue = getLowExpr(ctx, locals, a.matchedValue, ExprPos.nonTail);
 	immutable LowExpr[] cases = map!LowExpr(ctx.alloc, a.cases, (ref immutable ConcreteExpr case_) =>
 		getLowExpr(ctx, locals, case_, exprPos));

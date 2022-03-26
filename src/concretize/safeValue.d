@@ -28,6 +28,7 @@ import model.concreteModel :
 	matchConcreteStructBody,
 	matchEnum,
 	NeedsCtx,
+	ReferenceKind,
 	setBody;
 import model.constant : Constant;
 import model.model : EnumValue;
@@ -68,15 +69,18 @@ struct Ctx {
 
 immutable(ConcreteExpr) safeValueForType(ref Ctx ctx, immutable FileAndRange range, immutable ConcreteType type) {
 	immutable ConcreteExpr inner = safeValueForStruct(ctx, range, type.struct_);
-	return type.isPointer
-		? immutable ConcreteExpr(type, range, isConstant(inner.kind)
-			? immutable ConcreteExprKind(getConstantPtr(
-				ctx.alloc,
-				ctx.concretizeCtx.allConstants,
-				type.struct_,
-				asConstant(inner.kind)))
-			: immutable ConcreteExprKind(allocate(ctx.alloc, immutable ConcreteExprKind.Alloc(inner))))
-		: inner;
+	final switch (type.reference) {
+		case ReferenceKind.byRef:
+			return immutable ConcreteExpr(type, range, isConstant(inner.kind)
+				? immutable ConcreteExprKind(getConstantPtr(
+					ctx.alloc,
+					ctx.concretizeCtx.allConstants,
+					type.struct_,
+					asConstant(inner.kind)))
+				: immutable ConcreteExprKind(allocate(ctx.alloc, immutable ConcreteExprKind.Alloc(inner))));
+		case ReferenceKind.byVal:
+			return inner;
+	}
 }
 
 immutable(ConcreteExpr) safeValueForStruct(
@@ -84,7 +88,7 @@ immutable(ConcreteExpr) safeValueForStruct(
 	immutable FileAndRange range,
 	immutable Ptr!ConcreteStruct struct_,
 ) {
-	immutable ConcreteType type = immutable ConcreteType(false, struct_);
+	immutable ConcreteType type = immutable ConcreteType(ReferenceKind.byVal, struct_);
 	immutable(ConcreteExpr) fromConstant(immutable Constant constant) {
 		return immutable ConcreteExpr(
 			type,
@@ -192,7 +196,7 @@ immutable(ConcreteExpr) safeFunValue(ref Ctx ctx, immutable FileAndRange range, 
 	immutable size_t id =
 		nextLambdaImplId(ctx.concretizeCtx, struct_, immutable ConcreteLambdaImpl(closureType, impl));
 	return immutable ConcreteExpr(
-		immutable ConcreteType(false, struct_),
+		immutable ConcreteType(ReferenceKind.byVal, struct_),
 		range,
 		immutable ConcreteExprKind(allocate(ctx.alloc, immutable ConcreteExprKind.Lambda(
 			id,

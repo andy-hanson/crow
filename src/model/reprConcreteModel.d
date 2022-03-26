@@ -18,7 +18,7 @@ import model.concreteModel :
 	ConcreteStructBody,
 	ConcreteStructSource,
 	ConcreteType,
-	defaultIsPointer,
+	defaultReferenceKind,
 	isSelfMutable,
 	matchConcreteExprKind,
 	matchConcreteFunBody,
@@ -29,7 +29,8 @@ import model.concreteModel :
 	NeedsCtx,
 	returnType,
 	symOfBuiltinStructKind,
-	symOfConcreteMutability;
+	symOfConcreteMutability,
+	symOfReferenceKind;
 import model.constant : Constant;
 import model.model : EnumFunction, enumFunctionName, flagsFunctionName, FunInst, name, Param;
 import model.reprConstant : reprOfConstant;
@@ -72,8 +73,7 @@ immutable(Repr) reprOfConcreteStruct(ref Alloc alloc, ref immutable ConcreteStru
 	add(alloc, fields, nameAndRepr("name", reprOfConcreteStructSource(alloc, a.source)));
 	if (isSelfMutable(a))
 		add(alloc, fields, nameAndRepr("mut", reprBool(true)));
-	if (defaultIsPointer(a))
-		add(alloc, fields, nameAndRepr("ptr", reprBool(true)));
+	add(alloc, fields, nameAndRepr("reference", reprSym(symOfReferenceKind(defaultReferenceKind(a)))));
 	add(alloc, fields, nameAndRepr("body", reprOfConcreteStructBody(alloc, body_(a))));
 	return reprNamedRecord("struct", finishArr(alloc, fields));
 }
@@ -120,7 +120,7 @@ immutable(Repr) reprOfConcreteStructBodyBuiltin(ref Alloc alloc, ref immutable C
 
 immutable(Repr) reprOfConcreteType(ref Alloc alloc, immutable ConcreteType a) {
 	return reprRecord(alloc, "type", [
-		reprBool(a.isPointer),
+		reprSym(symOfReferenceKind(a.reference)),
 		reprOfConcreteStructRef(alloc, a.struct_.deref())]);
 }
 
