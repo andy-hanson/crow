@@ -13,7 +13,7 @@ import
 		all-funs, begin-ptr, c-str, fun-name, fun-name-and-ptr, fun-ptr, hard-assert, new, none,
 		opt, size, some
 	./number-low-level:
-		==, <=>, int32, int64, nat64, to-int64, unsafe-div, unsafe-to-int64, unsafe-to-int32,
+		==, <=>, nat64, to-int64, unsafe-div, unsafe-to-int64, unsafe-to-int32,
 		unsafe-to-nat64, wrap-add, wrap-sub
 	./range-low-level: ..
 export
@@ -32,19 +32,7 @@ get-backtrace backtrace() unsafe
 
 # TODO:INLINE
 .backtrace-and-get-n-code-ptrs nat64(arrs backtrace-arrs) unsafe
-	(arrs.code-ptrs backtrace code-ptrs-size.nat64-to-int32) int32-to-nat64
-
-# TODO:INLINE
-nat64-to-int32 int32(a nat64) unsafe
-	a.nat64-to-int64.unsafe-to-int32
-
-# TODO:INLINE
-nat64-to-int64 int64(a nat64) unsafe
-	a unsafe-to-int64
-
-# TODO:INLINE
-int32-to-nat64 nat64(a int32) unsafe
-	a.to-int64.unsafe-to-nat64
+	(arrs.code-ptrs backtrace code-ptrs-size.unsafe-to-int64.unsafe-to-int32).to-int64 unsafe-to-nat64
 
 # TODO:INLINE
 .fill-arrs backtrace(arrs backtrace-arrs, n-code-ptrs nat64) unsafe
