@@ -114,7 +114,7 @@ TextAndInfo generateText(
 			alloc,
 			allConstants.pointers,
 			(ref immutable PointerTypeAndConstantsLow it) =>
-				mapToMut!size_t(alloc, it.constants, (ref immutable Ptr!Constant) => size_t(0))));
+				mapToMut!(size_t, Constant)(alloc, it.constants, (scope ref immutable Constant) => size_t(0))));
 
 	// Ensure 0 is not a valid text index
 	exactSizeArrBuilderAdd(ctx.text, 0);
@@ -139,7 +139,7 @@ TextAndInfo generateText(
 	}
 	foreach (immutable size_t pointeeTypeIndex; 0 .. allConstants.pointers.length) {
 		immutable Ptr!PointerTypeAndConstantsLow typeAndConstants = ptrAt(allConstants.pointers, pointeeTypeIndex);
-		foreach (immutable size_t constantIndex, immutable Ptr!Constant pointee; typeAndConstants.deref().constants)
+		foreach (immutable size_t constantIndex, immutable Constant pointee; typeAndConstants.deref().constants)
 			recurWritePointer(
 				alloc,
 				tempAlloc,
@@ -147,7 +147,7 @@ TextAndInfo generateText(
 				pointeeTypeIndex,
 				typeAndConstants.deref().pointeeType,
 				constantIndex,
-				pointee.deref());
+				pointee);
 	}
 	ubyte[] text = finish(ctx.text);
 	return TextAndInfo(
@@ -217,7 +217,7 @@ void ensureConstant(
 			verify(lowTypeEqual(ptrs.deref().pointeeType, asPtrGcPointee(t)));
 			recurWritePointer(
 				alloc, tempAlloc, ctx,
-				it.typeIndex, ptrs.deref().pointeeType, it.index, ptrs.deref().constants[it.index].deref());
+				it.typeIndex, ptrs.deref.pointeeType, it.index, ptrs.deref().constants[it.index]);
 		},
 		(ref immutable Constant.Record it) {
 			immutable LowRecord record = ctx.program.allRecords[asRecordType(t)];

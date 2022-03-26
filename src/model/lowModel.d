@@ -1086,12 +1086,12 @@ struct PointerTypeAndConstantsLow {
 	@safe @nogc pure nothrow:
 
 	@disable this(ref const PointerTypeAndConstantsLow);
-	immutable this(immutable LowType p, immutable Ptr!Constant[] c) {
+	immutable this(immutable LowType p, immutable Constant[] c) {
 		pointeeType = p; constants = c;
 	}
 
 	immutable LowType pointeeType;
-	immutable Ptr!Constant[] constants;
+	immutable Constant[] constants;
 }
 
 // TODO: rename -- this is not all constants, just the ones by-ref

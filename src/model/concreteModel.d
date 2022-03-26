@@ -1000,7 +1000,7 @@ struct ArrTypeAndConstantsConcrete {
 
 struct PointerTypeAndConstantsConcrete {
 	immutable Ptr!ConcreteStruct pointeeType;
-	immutable Ptr!Constant[] constants;
+	immutable Constant[] constants;
 }
 
 // TODO: rename -- this is not all constants, just the ones by-ref

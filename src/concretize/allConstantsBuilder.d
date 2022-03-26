@@ -30,7 +30,6 @@ import util.col.mutDict :
 	MutSymDict,
 	valuesArray;
 import util.col.str : hashSafeCStr, SafeCStr, safeCStrEq;
-import util.memory : allocate;
 import util.opt : force, has, none, Opt, some;
 import util.ptr : hashPtr, Ptr, ptrEquals, ptrTrustMe_mut;
 import util.sym : AllSymbols, hashSym, safeCStrOfSym, Sym, symEq;
@@ -55,7 +54,7 @@ private struct ArrTypeAndConstants {
 
 private struct PointerTypeAndConstants {
 	immutable size_t typeIndex;
-	MutArr!(immutable Ptr!Constant) constants;
+	MutArr!(immutable Constant) constants;
 }
 
 immutable(AllConstantsConcrete) finishAllConstants(
@@ -90,7 +89,7 @@ immutable(AllConstantsConcrete) finishAllConstants(
 		)(alloc, a.pointers, (immutable Ptr!ConcreteStruct key, ref PointerTypeAndConstants value) =>
 			immutable PointerTypeAndConstantsConcrete(
 				key,
-				moveToArr!(immutable Ptr!Constant)(alloc, value.constants)));
+				moveToArr(alloc, value.constants)));
 	return immutable AllConstantsConcrete(moveToArr(alloc, a.cStringValues), allFuns, staticSyms, arrs, records);
 }
 
@@ -121,7 +120,7 @@ ref immutable(Constant) derefConstantPointer(
 	immutable Ptr!ConcreteStruct pointeeType,
 ) {
 	verify(mustGetAt_mut(a.pointers, pointeeType).typeIndex == pointer.typeIndex);
-	return mutArrAt(mustGetAt_mut(a.pointers, pointeeType).constants, pointer.index).deref();
+	return mutArrAt(mustGetAt_mut(a.pointers, pointeeType).constants, pointer.index);
 }
 
 // TODO: this will be used when creating constant records by-ref.
@@ -132,14 +131,12 @@ immutable(Constant) getConstantPtr(
 	ref immutable Constant value,
 ) {
 	Ptr!PointerTypeAndConstants d = ptrTrustMe_mut(getOrAdd(alloc, allConstants.pointers, struct_, () =>
-		PointerTypeAndConstants(mutDictSize(allConstants.pointers), MutArr!(immutable Ptr!Constant)())));
-	return immutable Constant(immutable Constant.Pointer(d.deref().typeIndex, findOrPush!(immutable Ptr!Constant)(
+		PointerTypeAndConstants(mutDictSize(allConstants.pointers), MutArr!(immutable Constant)())));
+	return immutable Constant(immutable Constant.Pointer(d.deref().typeIndex, findOrPush!(immutable Constant)(
 		alloc,
 		d.deref().constants,
-		(ref immutable Ptr!Constant a) =>
-			constantEqual(a.deref(), value),
-		() =>
-			allocate(alloc, value))));
+		(ref immutable Constant a) => constantEqual(a, value),
+		() => value)));
 }
 
 

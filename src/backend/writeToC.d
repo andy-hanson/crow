@@ -165,10 +165,10 @@ void writeConstants(ref Writer writer, ref immutable Ctx ctx, ref immutable AllC
 	}
 
 	foreach (ref immutable PointerTypeAndConstantsLow a; allConstants.pointers) {
-		foreach (immutable size_t i, immutable Ptr!Constant pointee; a.constants) {
+		foreach (immutable size_t i, immutable Constant pointee; a.constants) {
 			declareConstantPointerStorage(writer, ctx, a.pointeeType, i);
 			writeStatic(writer, " = ");
-			writeConstantRef(writer, ctx, ConstantRefPos.inner, a.pointeeType, pointee.deref());
+			writeConstantRef(writer, ctx, ConstantRefPos.inner, a.pointeeType, pointee);
 			writeStatic(writer, ";\n");
 		}
 	}

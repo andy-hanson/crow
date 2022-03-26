@@ -455,10 +455,10 @@ GlobalsForConstants generateGlobalsForConstants(
 		program.allConstants.pointers,
 		(scope ref immutable PointerTypeAndConstantsLow tc) {
 			immutable Ptr!gcc_jit_type gccPointeeType = getGccType(types, tc.pointeeType);
-			return mapWithIndex_mut!(Ptr!gcc_jit_lvalue)(
+			return mapWithIndex_mut!(Ptr!gcc_jit_lvalue, Constant)(
 				alloc,
 				tc.constants,
-				(immutable size_t index, scope ref immutable Ptr!Constant) {
+				(immutable size_t index, scope ref immutable Constant) {
 					//TODO:NO ALLOC
 					Writer writer = Writer(ptrTrustMe_mut(alloc));
 					writeConstantPointerStorageName(writer, mangledNames, program, tc.pointeeType, index);
@@ -1871,12 +1871,12 @@ immutable(ExprResult) initConstantsToGcc(ref ExprCtx ctx, ref ExprEmit emit) {
 		ctx.globalsForConstants.pointers,
 		ctx.program.allConstants.pointers,
 		(ref Ptr!gcc_jit_lvalue[] globals, ref immutable PointerTypeAndConstantsLow tc) {
-			zipFirstMut!(Ptr!gcc_jit_lvalue, Ptr!Constant)(
+			zipFirstMut!(Ptr!gcc_jit_lvalue, Constant)(
 				globals,
 				tc.constants,
-				(ref Ptr!gcc_jit_lvalue global, ref immutable Ptr!Constant value) {
+				(ref Ptr!gcc_jit_lvalue global, ref immutable Constant value) {
 					emitToLValueCb(global, (ref ExprEmit emitPointee) =>
-						constantToGcc(ctx, emitPointee, tc.pointeeType, value.deref()));
+						constantToGcc(ctx, emitPointee, tc.pointeeType, value));
 				});
 		});
 	return emitVoid(ctx, emit);
