@@ -6,7 +6,6 @@ import util.alloc.alloc : Alloc, allocateT;
 import util.col.arrUtil : reduce;
 import util.col.mutArr : MutArr, mutArrAt, mutArrRange, mutArrSize, push;
 import util.col.str : eachChar, end, SafeCStr, safeCStr, safeCStrIsEmpty, safeCStrSize;
-import util.col.tempStr : initializeTempStr, TempStr;
 import util.comparison : compareNat16, Comparison;
 import util.conv : safeToUshort;
 import util.hash : Hasher, hashUshort;
@@ -170,23 +169,26 @@ private size_t pathToStrLength(
 	return res + safeCStrSize(extension) + 1;
 }
 
-alias TempStrForPath = TempStr!0x1000;
+alias TempStrForPath = char[0x1000];
 
-immutable(TempStrForPath) pathToTempStr(ref const AllPaths allPaths, immutable PathAndExtension path) {
-	return pathToTempStr(allPaths, path.path, path.extension);
+@trusted immutable(SafeCStr) pathToTempStr(
+	ref TempStrForPath temp,
+	scope ref const AllPaths allPaths,
+	immutable PathAndExtension path,
+) {
+	return pathToTempStr(temp, allPaths, path.path, path.extension);
 }
 
-@trusted immutable(TempStrForPath) pathToTempStr(
-	ref const AllPaths allPaths,
+@trusted immutable(SafeCStr) pathToTempStr(
+	ref TempStrForPath temp,
+	scope ref const AllPaths allPaths,
 	immutable Path path,
-	scope immutable SafeCStr extension,
+	scope immutable SafeCStr extension = safeCStr!"",
 ) {
-	TempStrForPath res = void;
-	initializeTempStr(res);
 	immutable size_t length = pathToStrLength(allPaths, "", 0, path, extension);
-	verify(length < res.capacity);
-	pathToStrWorker2(allPaths, "", 0, path, extension, res.ptr, res.ptr + length);
-	return res;
+	verify(length < temp.length);
+	pathToStrWorker2(allPaths, "", 0, path, extension, temp.ptr, temp.ptr + length);
+	return immutable SafeCStr(cast(immutable) temp.ptr);
 }
 
 private immutable(string) pathToStrWorker(
@@ -309,7 +311,7 @@ struct PathAndExtension {
 	immutable SafeCStr extension;
 }
 
-@trusted private immutable(PathAndExtension) parsePathAndExtension(
+@trusted immutable(PathAndExtension) parsePathAndExtension(
 	ref AllPaths allPaths,
 	scope immutable SafeCStr str,
 ) {

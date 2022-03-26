@@ -256,7 +256,7 @@ spec
 	is-data<k-out>
 	compare<k-out>
 body
-	a map-to-arr ((k, v) => f[k, v]) to-mut-sorted-dict
+	a map-to-arr f to-mut-sorted-dict
 
 map-values<v-out, k, v-in> mut-sorted-dict<k, v-out>
 	a mut-sorted-dict<k, v-in>

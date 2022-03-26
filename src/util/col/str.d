@@ -50,13 +50,6 @@ immutable(bool) strEq(immutable string a, immutable string b) {
 	return a.length == b.length && (a.length == 0 || (a[0] == b[0] && strEq(a[1 .. $], b[1 .. $])));
 }
 
-@trusted immutable(string) copyStr(ref Alloc alloc, scope immutable string a) {
-	char* begin = cast(char*) allocateT!char(alloc, a.length);
-	foreach (immutable size_t i, immutable char x; a)
-		begin[i] = x;
-	return cast(immutable) begin[0 .. a.length];
-}
-
 @trusted immutable(SafeCStr) safeCStr(immutable char* content)() {
 	return immutable SafeCStr(content);
 }

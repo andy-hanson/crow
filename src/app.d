@@ -90,8 +90,7 @@ version(Test) {
 import util.alloc.alloc : Alloc, TempAlloc;
 import util.col.arrBuilder : add, addAll, ArrBuilder, finishArr;
 import util.col.arrUtil : prepend, zipImpureSystem;
-import util.col.str : CStr, SafeCStr, safeCStr, safeCStrEq, safeCStrIsEmpty, safeCStrSize, strEq, strOfCStr;
-import util.col.tempStr : asTempSafeCStr, initializeTempStr, length, pushToTempStr, setLength, TempStr;
+import util.col.str : CStr, SafeCStr, safeCStr, safeCStrIsEmpty, safeCStrSize, strEq, strOfCStr;
 import util.conv : bitsOfFloat64, float32OfBits, float64OfBits;
 import util.memory : memset;
 import util.opt : force, forceOrTodo, has, none, Opt, some;
@@ -103,6 +102,7 @@ import util.path :
 	PathAndExtension,
 	parent,
 	parsePath,
+	parsePathAndExtension,
 	PathsInfo,
 	pathToSafeCStr,
 	pathToTempStr,
@@ -110,9 +110,9 @@ import util.path :
 import util.perf : eachMeasure, Perf, perfEnabled, PerfMeasure, PerfMeasureResult, withMeasure;
 import util.ptr : ptrTrustMe_mut;
 import util.readOnlyStorage : ReadFileResult, ReadOnlyStorage;
-import util.sym : AllSymbols, shortSym, Sym, symAsTempBuffer, writeSym;
+import util.sym : AllSymbols, Operator, shortSym, Sym, symAsTempBuffer, symForOperator, symOfStr, writeSym;
 import util.util : castImmutableRef, todo, unreachable, verify;
-import util.writer : finishWriterToSafeCStr, Writer, writeSafeCStr, writeStatic;
+import util.writer : finishWriterToSafeCStr, writeChar, Writer, writeSafeCStr, writeStatic;
 import versionInfo : versionInfoForJIT;
 
 @system extern(C) immutable(int) main(immutable size_t argc, immutable CStr* argv) {
@@ -171,10 +171,10 @@ immutable(ExitCode) go(
 	ref AllPaths allPaths,
 	ref immutable CommandLineArgs args,
 ) {
-	immutable Path crowDir = getCrowDirectory(allPaths, args.pathToThisExecutable);
+	immutable Path crowDir = getCrowDirectory(allPaths, args.pathToThisExecutable.path);
 	immutable Path includeDir = childPath(allPaths, crowDir, shortSym("include"));
 	immutable Path tempDir = childPath(allPaths, crowDir, shortSym("temp"));
-	immutable ExitCode setupTempExitCode = setupTempDir(allPaths, tempDir);
+	immutable ExitCode setupTempExitCode = setupTempDir(allSymbols, allPaths, tempDir);
 	if (setupTempExitCode != ExitCode.ok)
 		return printErr(safeCStr!"Failed to set up temporary directory\n");
 
@@ -269,36 +269,40 @@ immutable(SafeCStr[]) getAllArgs(
 	return prepend(alloc, pathToSafeCStr(alloc, allPaths, main, safeCStr!".crow"), programArgs);
 }
 
-@trusted immutable(ExitCode) setupTempDir(ref const AllPaths allPaths, immutable Path tempDir) {
-	TempStrForPath dirPath = pathToTempStr(allPaths, tempDir, safeCStr!"");
-	immutable CStr dirPathCStr = asTempSafeCStr(dirPath).ptr;
+@trusted immutable(ExitCode) setupTempDir(
+	ref AllSymbols allSymbols,
+	ref AllPaths allPaths,
+	immutable Path tempDir,
+) {
+	TempStrForPath dirPathBuf = void;
+	immutable CStr dirPath = pathToTempStr(dirPathBuf, allPaths, tempDir, safeCStr!"").ptr;
 	version (Windows) {
-		if (GetFileAttributesA(dirPathCStr) == INVALID_FILE_ATTRIBUTES) {
-			immutable int ok = CreateDirectoryA(dirPathCStr, null);
+		if (GetFileAttributesA(dirPath) == INVALID_FILE_ATTRIBUTES) {
+			immutable int ok = CreateDirectoryA(dirPath, null);
 			if (!ok) {
-				fprintf(stderr, "error creating directory %s\n", dirPathCStr);
+				fprintf(stderr, "error creating directory %s\n", dirPath);
 				return ExitCode.error;
 			}
 		} else {
-			immutable ExitCode err = clearDir(dirPath);
+			immutable ExitCode err = clearDir(allSymbols, allPaths, tempDir);
 			if (err != ExitCode.ok)
 				return err;
 		}
 	} else {
-		DIR* dir = opendir(dirPathCStr);
+		DIR* dir = opendir(dirPath);
 		if (dir == null) {
 			if (errno == ENOENT) {
-				immutable int err = mkdir(dirPathCStr, S_IRWXU);
+				immutable int err = mkdir(dirPath, S_IRWXU);
 				if (err != 0) {
-					fprintf(stderr, "error creating directory %s\n", dirPathCStr);
+					fprintf(stderr, "error creating directory %s\n", dirPath);
 					return ExitCode.error;
 				}
 			} else {
-				fprintf(stderr, "error opening directory %s: error code %d\n", dirPathCStr, errno);
+				fprintf(stderr, "error opening directory %s: error code %d\n", dirPath, errno);
 				return ExitCode.error;
 			}
 		} else {
-			immutable ExitCode err = clearDirRecur(dirPath, dir);
+			immutable ExitCode err = clearDirRecur(allSymbols, allPaths, tempDir, dir);
 			if (err != ExitCode.ok)
 				return err;
 		}
@@ -307,12 +311,16 @@ immutable(SafeCStr[]) getAllArgs(
 }
 
 version (Windows) {
-	@system immutable(ExitCode) clearDir(ref TempStrForPath dirPath) {
-		immutable size_t oldLength = length(dirPath);
-		pushToTempStr(dirPath, "/*");
+	@system immutable(ExitCode) clearDir(
+		ref AllSymbols allSymbols,
+		ref AllPaths allPaths,
+		immutable Path dirPath,
+	) {
+		TempStrForPath searchPathBuf = void;
+		immutable CStr searchPath =
+			pathToTempStr(searchPathBuf, allPaths, childPath(allPaths, dirPath, symForOperator(Operator.times))).ptr;
 		WIN32_FIND_DATAA fileData;
-		HANDLE fileHandle = FindFirstFileA(asTempSafeCStr(dirPath).ptr, &fileData);
-		setLength(dirPath, oldLength);
+		HANDLE fileHandle = FindFirstFileA(searchPath, &fileData);
 		if (fileHandle == INVALID_HANDLE_VALUE) {
 			immutable DWORD error = GetLastError();
 			if (error != ERROR_PATH_NOT_FOUND) {
@@ -321,76 +329,82 @@ version (Windows) {
 			}
 			return ExitCode.ok;
 		} else {
-			immutable ExitCode err = clearDirRecur(dirPath, fileHandle);
+			immutable ExitCode err = clearDirRecur(allSymbols, allPaths, dirPath, fileHandle);
 			immutable int closeOk = FindClose(fileHandle);
 			verify(cast(immutable bool) closeOk);
 			return err;
 		}
 	}
 
-	@system immutable(ExitCode) clearDirRecur(ref TempStrForPath dirPath, HANDLE fileHandle) {
+	@system immutable(ExitCode) clearDirRecur(
+		ref AllSymbols allSymbols,
+		ref AllPaths allPaths,
+		immutable Path dirPath,
+		HANDLE fileHandle,
+	) {
 		WIN32_FIND_DATAA fileData;
 		if (FindNextFileA(fileHandle, &fileData)) {
 			immutable string name = strOfCStr(cast(immutable) fileData.cFileName.ptr);
 			if (!strEq(name, "..")) {
-				immutable size_t oldLength = length(dirPath);
-				pushToTempStr(dirPath, '/');
-				pushToTempStr(dirPath, name);
-
+				immutable Path child = childPath(allPaths, dirPath, symOfStr(allSymbols, name));
+				TempStrForPath childBuf = void;
+				immutable CStr childCStr = pathToTempStr(childBuf, allPaths, child).ptr;
 				if (fileData.dwFileAttributes & FILE_ATTRIBUTE_DIRECTORY) {
-					immutable ExitCode clearErr = clearDir(dirPath);
+					immutable ExitCode clearErr = clearDir(allSymbols, allPaths, child);
 					if (clearErr != ExitCode.ok)
 						return clearErr;
-					if (!RemoveDirectoryA(asTempSafeCStr(dirPath).ptr)) {
-						fprintf(stderr, "Error deleting directory %s\n", asTempSafeCStr(dirPath).ptr);
+					if (!RemoveDirectoryA(childCStr)) {
+						fprintf(stderr, "Error deleting directory %s\n", childCStr);
 						return ExitCode.error;
 					}
 				} else {
-					if (!DeleteFileA(asTempSafeCStr(dirPath).ptr)) {
-						fprintf(stderr, "Error deleting file %s\n", asTempSafeCStr(dirPath).ptr);
+					if (!DeleteFileA(childCStr)) {
+						fprintf(stderr, "Error deleting file %s\n", childCStr);
 						return ExitCode.error;
 					}
 				}
-
-				setLength(dirPath, oldLength);
 			}
-			return clearDirRecur(dirPath, fileHandle);
+			return clearDirRecur(allSymbols, allPaths, dirPath, fileHandle);
 		} else {
 			verify(GetLastError() == ERROR_NO_MORE_FILES);
 			return ExitCode.ok;
 		}
 	}
 } else {
-	@system immutable(ExitCode) clearDirRecur(ref TempStrForPath dirPath, DIR* dir) {
+	@system immutable(ExitCode) clearDirRecur(
+		ref AllSymbols allSymbols,
+		ref AllPaths allPaths,
+		immutable Path dirPath,
+		DIR* dir,
+	) {
 		immutable dirent* entry = cast(immutable) readdir(dir);
 		if (entry == null)
 			return ExitCode.ok;
-		immutable SafeCStr entryName = immutable SafeCStr(entry.d_name.ptr);
-		if (!safeCStrEq(entryName, ".") && !safeCStrEq(entryName, "..")) {
-			immutable size_t oldLength = length(dirPath);
-			pushToTempStr(dirPath, '/');
-			pushToTempStr(dirPath, entryName);
+		immutable string entryName = strOfCStr(entry.d_name.ptr);
+		if (!strEq(entryName, ".") && !strEq(entryName, "..")) {
+			immutable Path child = childPath(allPaths, dirPath, symOfStr(allSymbols, entryName));
 			stat_t s;
-			stat(asTempSafeCStr(dirPath).ptr, &s);
+			TempStrForPath buf = void;
+			immutable CStr childCStr = pathToTempStr(buf, allPaths, child).ptr;
+			stat(childCStr, &s);
 			if ((s.st_mode & S_IFMT) == S_IFDIR) {
-				DIR* innerDir = opendir(asTempSafeCStr(dirPath).ptr);
+				DIR* innerDir = opendir(childCStr);
 				if (innerDir == null) {
-					fprintf(stderr, "error opening directory %s (to delete contents)\n", asTempSafeCStr(dirPath).ptr);
+					fprintf(stderr, "error opening directory %s (to delete contents)\n", childCStr);
 					return ExitCode.error;
 				}
-				immutable ExitCode err = clearDirRecur(dirPath, innerDir);
+				immutable ExitCode err = clearDirRecur(allSymbols, allPaths, child, innerDir);
 				if (err != ExitCode.ok)
 					return err;
 			} else {
-				immutable int err = unlink(asTempSafeCStr(dirPath).ptr);
+				immutable int err = unlink(childCStr);
 				if (err != 0) {
-					fprintf(stderr, "error removing %s\n", asTempSafeCStr(dirPath).ptr);
+					fprintf(stderr, "error removing %s\n", childCStr);
 					return ExitCode.error;
 				}
 			}
-			setLength(dirPath, oldLength);
 		}
-		return clearDirRecur(dirPath, dir);
+		return clearDirRecur(allSymbols, allPaths, dirPath, dir);
 	}
 }
 
@@ -398,8 +412,8 @@ version (Windows) {
 	version (Windows) {
 		return todo!(immutable ExitCode)("!");
 	} else {
-		TempStrForPath path = pathToTempStr(allPaths, dir, safeCStr!"");
-		immutable char* dirCStr = asTempSafeCStr(path).ptr;
+		TempStrForPath buf = void;
+		immutable CStr dirCStr = pathToTempStr(buf, allPaths, dir).ptr;
 		immutable int err = mkdir(dirCStr, S_IRWXU);
 		if (err == ENOENT) {
 			immutable Opt!Path par = parent(allPaths, dir);
@@ -644,11 +658,10 @@ immutable(SafeCStr[]) cCompilerArgs(ref immutable CCompileOptions options) {
 		cCompileArgs(alloc, allSymbols, allPaths, cPath, exePath, allExternLibraryNames, options);
 	version (Windows) {
 		TempStrForPath clPath = void;
-		initializeTempStr(clPath);
 		immutable ExitCode clErr = findPathToCl(clPath);
 		if (clErr != ExitCode.ok)
 			return clErr;
-		scope immutable SafeCStr executable = asTempSafeCStr(clPath);
+		scope immutable SafeCStr executable = immutable SafeCStr(cast(immutable) clPath.ptr);
 	} else {
 		immutable SafeCStr executable = safeCStr!"/usr/bin/cc";
 	}
@@ -661,7 +674,7 @@ immutable(SafeCStr[]) cCompilerArgs(ref immutable CCompileOptions options) {
 
 version (Windows) {
 	@system immutable(ExitCode) findPathToCl(ref TempStrForPath res) {
-		int len = SearchPathA(null, "cl.exe", null, cast(uint) res.capacity, res.ptr, null);
+		int len = SearchPathA(null, "cl.exe", null, cast(uint) res.length, res.ptr, null);
 		if (len == 0) {
 			fprintf(stderr, "Could not find cl.exe on path. Be sure you are using a Native Tools Command Prompt.");
 			return ExitCode.error;
@@ -991,24 +1004,17 @@ extern(C) {
 	int dlGetLibraryPath(const DLLib* pLib, char* sOut, int bufSize);
 }
 
-void tryReadFile(
+@trusted void tryReadFile(
 	scope ref const AllPaths allPaths,
 	immutable Path path,
 	immutable SafeCStr extension,
 	scope void delegate(immutable ReadFileResult) @safe @nogc pure nothrow cb,
 ) {
-	TempStrForPath pathTempStr = pathToTempStr(allPaths, path, extension);
-	return tryReadFileInner(asTempSafeCStr(pathTempStr), cb);
-}
+	TempStrForPath pathBuf = void;
+	immutable CStr pathCStr = pathToTempStr(pathBuf, allPaths, path, extension).ptr;
+	char[0x100000] contentBuf = void;
 
-@trusted void tryReadFileInner(
-	immutable SafeCStr path,
-	scope void delegate(immutable ReadFileResult) @safe @nogc pure nothrow cb,
-) {
-	TempStr!0x100000 content = void;
-	initializeTempStr(content);
-	immutable CStr pathTempCStr = path.ptr;
-	FILE* fd = fopen(pathTempCStr, "rb");
+	FILE* fd = fopen(pathCStr, "rb");
 	if (fd == null)
 		return cb(errno == ENOENT
 			? immutable ReadFileResult(immutable ReadFileResult.NotFound())
@@ -1033,14 +1039,14 @@ void tryReadFile(
 	immutable int err2 = fseek(fd, 0, SEEK_SET);
 	verify(err2 == 0);
 
-	verify(fileSize < content.capacity);
-	immutable size_t nBytesRead = fread(content.ptr, char.sizeof, fileSize, fd);
+	verify(fileSize < contentBuf.length);
+	immutable size_t nBytesRead = fread(contentBuf.ptr, char.sizeof, fileSize, fd);
 	verify(nBytesRead == fileSize);
 	if (ferror(fd))
 		todo!void("error reading file");
+	contentBuf[nBytesRead] = '\0';
 
-	setLength(content, fileSize);
-	return cb(immutable ReadFileResult(asTempSafeCStr(content)));
+	return cb(immutable ReadFileResult(immutable SafeCStr(cast(immutable) contentBuf.ptr)));
 }
 
 @trusted immutable(ExitCode) writeFile(
@@ -1067,25 +1073,26 @@ void tryReadFile(
 }
 
 @system FILE* tryOpenFileForWrite(ref const AllPaths allPaths, immutable PathAndExtension path) {
-	TempStrForPath temp = pathToTempStr(allPaths, path);
-	FILE* fd = fopen(asTempSafeCStr(temp).ptr, "w");
+	TempStrForPath buf = void;
+	immutable CStr pathCStr = pathToTempStr(buf, allPaths, path).ptr;
+	FILE* fd = fopen(pathCStr, "w");
 	if (fd == null) {
 		if (errno == ENOENT) {
 			immutable Opt!Path par = parent(allPaths, path.path);
 			if (has(par)) {
 				immutable ExitCode res = mkdirRecur(allPaths, force(par));
 				if (res == ExitCode.ok)
-					return fopen(asTempSafeCStr(temp).ptr, "w");
+					return fopen(pathCStr, "w");
 			}
 		} else {
-			fprintf(stderr, "Failed to write file %s: %s\n", asTempSafeCStr(temp).ptr, strerror(errno));
+			fprintf(stderr, "Failed to write file %s: %s\n", pathCStr, strerror(errno));
 		}
 	}
 	return fd;
 }
 
 struct CommandLineArgs {
-	immutable Path pathToThisExecutable;
+	immutable PathAndExtension pathToThisExecutable;
 	immutable SafeCStr[] args;
 }
 
@@ -1109,43 +1116,23 @@ version (Windows) {
 
 @trusted immutable(Path) getCwd(ref AllPaths allPaths) {
 	TempStrForPath res = void;
-	initializeTempStr(res);
-	version (Windows) {
-		char* b = _getcwd(res.ptr, res.capacity);
-		if (b != null)
-			replaceBackslashWithSlash(b);
-	} else {
-		const char* b = getcwd(res.ptr, res.capacity);
-	}
-	if (b == null)
-		return todo!(immutable Path)("getcwd failed");
-	else {
-		verify(b == res.ptr);
-		return parsePath(allPaths, immutable SafeCStr(cast(immutable) res.ptr));
-	}
+	const char* cwd = getcwd(res.ptr, res.length);
+	return cwd == null
+		? todo!(immutable Path)("getcwd failed")
+		: parsePath(allPaths, immutable SafeCStr(cast(immutable) cwd));
 }
 
-@system void replaceBackslashWithSlash(char* a) {
-	if (*a != '\0') {
-		if (*a == '\\')
-			*a = '/';
-		replaceBackslashWithSlash(a + 1);
-	}
-}
-
-@trusted immutable(Path) getPathToThisExecutable(ref AllPaths allPaths) {
+@trusted immutable(PathAndExtension) getPathToThisExecutable(ref AllPaths allPaths) {
 	TempStrForPath res = void;
-	initializeTempStr(res);
 	version(Windows) {
 		HMODULE mod = GetModuleHandle(null);
 		verify(mod != null);
-		immutable DWORD size = GetModuleFileNameA(mod, res.ptr, res.capacity);
-		replaceBackslashWithSlash(buff.ptr);
+		immutable DWORD size = GetModuleFileNameA(mod, res.ptr, res.length);
 	} else {
-		immutable long size = readlink("/proc/self/exe", res.ptr, res.capacity);
+		immutable long size = readlink("/proc/self/exe", res.ptr, res.length);
 	}
-	verify(size > 0 && size < res.capacity);
-	return parsePath(allPaths, immutable SafeCStr(cast(immutable) res.ptr));
+	verify(size > 0 && size < res.length);
+	return parsePathAndExtension(allPaths, immutable SafeCStr(cast(immutable) res.ptr));
 }
 
 // Returns the child process' error code.
@@ -1157,15 +1144,7 @@ version (Windows) {
 	immutable SafeCStr[] args,
 ) {
 	version (Windows) {
-		TempStr!0x1000 argsStr = void;
-		initializeTempStr(argsStr);
-		pushToTempStr(argsStr, '"');
-		pushToTempStr(argsStr, executablePath);
-		pushToTempStr(argsStr, '"');
-		foreach (immutable SafeCStr arg; args) {
-			pushToTempStr(argsStr, ' ');
-			pushToTempStr(argsStr, arg);
-		}
+		immutable CStr argsCStr = windowsArgsCStr(tempAlloc, executablePath, args);
 
 		HANDLE stdoutRead;
 		HANDLE stdoutWrite;
@@ -1197,7 +1176,7 @@ version (Windows) {
 		int ok = CreateProcessA(
 			executablePath.ptr,
 			// not sure why Windows makes this mutable
-			cast(char*) asTempSafeCStr(argsStr).ptr,
+			cast(char*) argsCStr,
 			null,
 			null,
 			true,
@@ -1214,10 +1193,8 @@ version (Windows) {
 		verifyOk(CloseHandle(stdoutWrite));
 		verifyOk(CloseHandle(stderrWrite));
 
-		TempStr!0x10000 stdoutBuf = void;
-		initializeTempStr(stdoutBuf);
-		TempStr!0x10000 stderrBuf = void;
-		initializeTempStr(stderrBuf);
+		char[0x10000] stdoutBuf = void;
+		char[0x10000] stderrBuf = void;
 		readFromPipe(stdoutBuf, stdoutRead);
 		verifyOk(CloseHandle(stdoutRead));
 		readFromPipe(stderrBuf, stderrRead);
@@ -1231,7 +1208,7 @@ version (Windows) {
 			todo!void("");
 
 		if (exitCode != 0) {
-			fprintf(stderr, "Error invoking C compiler: %s\n", asTempSafeCStr(argsStr).ptr);
+			fprintf(stderr, "Error invoking C compiler: %s\n", argsCStr);
 			fprintf(stderr, "Exit code %d\n", exitCode);
 			fprintf(stderr, "C compiler stderr: %s\n", stderrBuf.ptr);
 			printf("C compiler stdout: %s\n", stdoutBuf.ptr);
@@ -1268,13 +1245,31 @@ version (Windows) {
 	}
 }
 
+version (Windows) {
+	immutable(CStr) windowsArgsCStr(
+		ref TempAlloc tempAlloc,
+		immutable SafeCStr executablePath,
+		scope immutable SafeCStr[] args,
+	) {
+		Writer writer = Writer(ptrTrustMe_mut(tempAlloc));
+		writeChar(writer, '"');
+		writeSafeCStr(writer, executablePath);
+		writeChar(writer, '"');
+		foreach (immutable SafeCStr arg; args) {
+			writeChar(writer, ' ');
+			writeSafeCStr(writer, arg);
+		}
+		return finishWriterToSafeCStr(writer).ptr;
+	}
+}
+
 void verifyOk(int ok) {
 	verify(ok == 1);
 }
 
 version (Windows) {
-	@system void readFromPipe(ref TempStr!0x10000 out_, HANDLE pipe) {
-		readFromPipeRecur(out_.ptr, out_.ptr + out_.capacity, pipe);
+	@system void readFromPipe(ref char[0x10000] out_, HANDLE pipe) {
+		readFromPipeRecur(out_.ptr, out_.ptr + out_.length, pipe);
 	}
 
 	@system void readFromPipeRecur(char* out_, char* outEnd, HANDLE pipe) {

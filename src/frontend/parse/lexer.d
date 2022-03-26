@@ -10,8 +10,8 @@ import util.alloc.alloc : Alloc;
 import util.cell : Cell, cellGet, cellSet;
 import util.col.arr : arrOfRange, empty;
 import util.col.arrBuilder : add, ArrBuilder;
+import util.col.arrUtil : copyArr;
 import util.col.str : copyToSafeCStr, CStr, SafeCStr, safeCStr;
-import util.col.tempStr : copyTempStrToString, initializeTempStr, pushToTempStr, TempStr;
 import util.conv : safeIntFromUint, safeToUint;
 import util.opt : force, has, none, Opt, some;
 import util.ptr : Ptr;
@@ -984,8 +984,12 @@ public enum QuoteKind {
 }
 
 public @trusted immutable(StringPart) takeStringPart(ref Lexer lexer, immutable QuoteKind quoteKind) {
-	TempStr!0x10000 res = void;
-	initializeTempStr(res);
+	char[0x10000] res = void;
+	size_t i = 0;
+	void push(immutable char c) {
+		res[i] = c;
+		i++;
+	}
 	immutable StringPart.After after = () {
 		while (true) {
 			immutable char x = takeChar(lexer);
@@ -998,7 +1002,7 @@ public @trusted immutable(StringPart) takeStringPart(ref Lexer lexer, immutable 
 							if (tryTakeCStr(lexer, "\"\""))
 								return StringPart.After.quote;
 							else
-								pushToTempStr(res, '"');
+								push('"');
 							break;
 					}
 					break;
@@ -1009,7 +1013,7 @@ public @trusted immutable(StringPart) takeStringPart(ref Lexer lexer, immutable 
 							addDiagExpected(lexer, ParseDiag.Expected.Kind.quoteDouble);
 							return StringPart.After.quote;
 						case QuoteKind.double3:
-							pushToTempStr(res, x);
+							push(x);
 							break;
 					}
 					break;
@@ -1054,14 +1058,14 @@ public @trusted immutable(StringPart) takeStringPart(ref Lexer lexer, immutable 
 								return 'a';
 						}
 					}();
-					pushToTempStr(res, escaped);
+					push(escaped);
 					break;
 				default:
-					pushToTempStr(res, x);
+					push(x);
 			}
 		}
 	}();
-	return immutable StringPart(copyTempStrToString(lexer.alloc, res), after);
+	return immutable StringPart(copyArr!char(lexer.alloc, cast(immutable) res[0 .. i]), after);
 }
 
 @trusted immutable(string) takeNameRest(ref Lexer lexer, immutable CStr begin) {

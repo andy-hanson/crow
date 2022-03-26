@@ -8,7 +8,6 @@ import util.col.arrUtil : contains, findIndex;
 import util.col.mutArr : MutArr, mutArrAt, mutArrSize, push;
 import util.col.mutDict : addToMutDict, getAt_mut, mutDictSize, MutStringDict;
 import util.col.str : copyToSafeCStr, eachChar, SafeCStr, safeCStr, strOfSafeCStr;
-import util.col.tempStr : initializeTempStr, pushToTempStr, tempAsStr, TempStr;
 import util.conv : safeToSizeT;
 import util.hash : Hasher, hashUlong;
 import util.opt : force, has, Opt, none, some;
@@ -76,18 +75,20 @@ private immutable(Sym) addLargeString(ref AllSymbols a, immutable SafeCStr value
 	return res;
 }
 
-immutable(Sym) prependSet(ref AllSymbols allSymbols, immutable Sym a) {
+@trusted immutable(Sym) prependSet(ref AllSymbols allSymbols, immutable Sym a) {
 	immutable Opt!Sym short_ = tryPrefixShortSymWithSet(a);
 	if (has(short_))
 		return force(short_);
 	else {
-		TempStr!0x100 temp = void;
-		initializeTempStr(temp);
-		pushToTempStr(temp, "set-");
+		char[0x100] temp = void;
+		temp[0 .. "set-".length] = "set-";
+		size_t i = "set-".length;
 		eachCharInSym(allSymbols, a, (immutable char x) {
-			pushToTempStr(temp, x);
+			temp[i] = x;
+			i++;
+			verify(i <= temp.length);
 		});
-		return getSymFromLongStr(allSymbols, tempAsStr(temp));
+		return getSymFromLongStr(allSymbols, cast(immutable) temp[0 .. i]);
 	}
 }
 

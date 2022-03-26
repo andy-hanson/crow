@@ -119,7 +119,6 @@ src_files_common = src\concretize\allConstantsBuilder.d \
 	src\util\col\stack.d \
 	src\util\col\stackDict.d \
 	src\util\col\str.d \
-	src\util\col\tempStr.d \
 	src\util\cell.d \
 	src\util\comparison.d \
 	src\util\conv.d \
@@ -127,6 +126,7 @@ src_files_common = src\concretize\allConstantsBuilder.d \
 	src\util\diff.d \
 	src\util\fn.d \
 	src\util\hash.d \
+	src\util\jsonParse.d \
 	src\util\late.d \
 	src\util\lineAndColumnGetter.d \
 	src\util\memory.d \
