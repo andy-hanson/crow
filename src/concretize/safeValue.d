@@ -3,7 +3,7 @@ module concretize.safeValue;
 @safe @nogc pure nothrow:
 
 import concretize.concretizeCtx : addConcreteFun, ConcretizeCtx, voidType;
-import concretize.concretizeExpr : closureParam, nextLambdaImplId;
+import concretize.concretizeExpr : nextLambdaImplId;
 import concretize.constantsOrExprs : asConstantsOrExprs, ConstantsOrExprs, matchConstantsOrExprs;
 import concretize.allConstantsBuilder : getConstantPtr;
 import model.concreteModel :

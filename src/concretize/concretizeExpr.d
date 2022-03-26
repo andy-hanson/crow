@@ -322,7 +322,7 @@ immutable(ConcreteExpr) concretizeFunPtr(
 		immutable Constant(immutable Constant.FunPtr(fun))));
 }
 
-public immutable(Ptr!ConcreteParam) closureParam(ref Alloc alloc, immutable ConcreteType closureType) {
+immutable(Ptr!ConcreteParam) closureParam(ref Alloc alloc, immutable ConcreteType closureType) {
 	return allocate(alloc, immutable ConcreteParam(
 		immutable ConcreteParamSource(immutable ConcreteParamSource.Closure()),
 		none!size_t,

@@ -457,7 +457,6 @@ public enum Token {
 	EOF, // end of file
 	export_, // 'export'
 	flags, // 'flags'
-	forceData, // 'force-data'
 	forceSendable, // 'force-sendable'
 	fun, // 'fun'
 	global, // 'global'
@@ -631,8 +630,6 @@ immutable(Token) tokenForSym(ref Lexer lexer, immutable Sym a) {
 			return Token.externPtr;
 		case shortSymValue("flags"):
 			return Token.flags;
-		case shortSymValue("force-data"):
-			return Token.forceData;
 		case shortSymValue("fun"):
 			return Token.fun;
 		case shortSymValue("global"):
@@ -811,7 +808,6 @@ immutable(bool) isExpressionStartToken(immutable Token a) {
 		case Token.externPtr:
 		case Token.EOF:
 		case Token.flags:
-		case Token.forceData:
 		case Token.forceSendable:
 		case Token.fun:
 		case Token.global:

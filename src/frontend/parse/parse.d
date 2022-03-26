@@ -788,8 +788,6 @@ immutable(Opt!(ModifierAst.Kind)) tryParseModifierKind(ref Lexer lexer) {
 					return some(ModifierAst.Kind.data);
 				case Token.extern_:
 					return some(ModifierAst.Kind.extern_);
-				case Token.forceData:
-					return some(ModifierAst.Kind.forceData);
 				case Token.forceSendable:
 					return some(ModifierAst.Kind.forceSendable);
 				case Token.mut:

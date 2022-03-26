@@ -1028,8 +1028,6 @@ immutable(string) describeTokenForUnexpected(immutable Token token) {
 			return "unexpected end of file";
 		case Token.flags:
 			return "unexpected keyword 'flags'";
-		case Token.forceData:
-			return "unexpected keyword 'force-data'";
 		case Token.forceSendable:
 			return "unexpected keyword 'force-sendable'";
 		case Token.fun:

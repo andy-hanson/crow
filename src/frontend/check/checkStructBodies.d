@@ -226,8 +226,6 @@ immutable(Opt!PurityAndForced) purityAndForcedFromModifier(immutable ModifierAst
 			return none!PurityAndForced;
 		case ModifierAst.Kind.data:
 			return some(immutable PurityAndForced(Purity.data, false));
-		case ModifierAst.Kind.forceData:
-			return some(immutable PurityAndForced(Purity.data, true));
 		case ModifierAst.Kind.forceSendable:
 			return some(immutable PurityAndForced(Purity.sendable, true));
 		case ModifierAst.Kind.mut:
@@ -649,7 +647,6 @@ immutable(RecordModifiers) checkRecordModifiers(ref CheckCtx ctx, immutable Modi
 					return withPacked(ctx, cur, range);
 				case ModifierAst.Kind.data:
 				case ModifierAst.Kind.extern_:
-				case ModifierAst.Kind.forceData:
 				case ModifierAst.Kind.forceSendable:
 				case ModifierAst.Kind.mut:
 				case ModifierAst.Kind.sendable:
