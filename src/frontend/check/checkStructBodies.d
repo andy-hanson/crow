@@ -245,7 +245,12 @@ void checkOnlyStructModifiers(ref CheckCtx ctx, immutable TypeKind typeKind, imm
 }
 
 immutable(bool) isStructModifier(immutable ModifierAst.Kind a) {
-	return a == ModifierAst.Kind.extern_ || has(purityAndForcedFromModifier(a));
+	if (a == ModifierAst.Kind.extern_)
+		return true;
+	else {
+		immutable Opt!PurityAndForced purity = purityAndForcedFromModifier(a);
+		return has(purity);
+	}
 }
 
 immutable(StructBody.Enum) checkEnum(

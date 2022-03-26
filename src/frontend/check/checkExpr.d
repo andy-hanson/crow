@@ -492,7 +492,8 @@ immutable(Opt!VariableRefAndType) getIdentifierFromFunOrLambda(
 }
 
 immutable(bool) nameIsParameterOrLocalInScope(ref Alloc alloc, ref LocalsInfo locals, immutable Sym name) {
-	return has(getIdentifierNonCall(alloc, locals, name));
+	immutable Opt!VariableRefAndType var = getIdentifierNonCall(alloc, locals, name);
+	return has(var);
 }
 
 immutable(Expr) checkIdentifier(

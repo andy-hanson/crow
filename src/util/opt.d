@@ -93,7 +93,7 @@ Opt!T someMut(T)(T value) {
 	return Opt!T(value);
 }
 
-immutable(bool) has(T)(const Opt!T a) {
+immutable(bool) has(T)(ref const Opt!T a) {
 	return a.has_;
 }
 

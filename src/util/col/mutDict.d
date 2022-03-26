@@ -46,7 +46,8 @@ immutable(size_t) mutDictSize(K, V, alias equal, alias hash)(ref const MutDict!(
 }
 
 immutable(bool) hasKey_mut(K, V, alias equal, alias hash)(ref const MutDict!(K, V, equal, hash) a, const K key) {
-	return has(getAt_mut(a, key));
+	immutable Opt!V value = getAt_mut(a, key);
+	return has(value);
 }
 
 const(Opt!V) getAt_mut(K, V, alias equal, alias hash)(ref const MutDict!(K, V, equal, hash) a, const K key) {
