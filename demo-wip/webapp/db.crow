@@ -4,16 +4,16 @@ import
 		cookie, cookie-matches, from-bytes, generate-login-cookie, login-cookie,
 		parse-login-cookie, to-bytes, to-str
 	crow/crypto/password-hash: password-hash, password-matches-hash, quality-moderate
-	crow/db/lmdb:
-		add, close-db, close-env, count, from-lmdb-key, get, lmdb-db, lmdb-env,
-		lmdb-key-flags, lmdb-txn, map, new, open-db, open-env, set, to-lmdb-key,
-		transaction-abort, transaction-commit, try-add, with-abortable-write-transaction, with-env,
-		with-read-transaction, with-test-env, with-write-transaction, zip
 	crow/io/print: print
 	crow/log: info, log
 	crow/reader: parse-nat
 	crow/serialize: from-bytes, to-bytes
 	crow/str-util: try-split-once
+	lmdb/main:
+		add, close-db, close-env, count, from-lmdb-key, get, lmdb-db, lmdb-env,
+		lmdb-key-flags, lmdb-txn, map, new, open-db, open-env, set, to-lmdb-key,
+		transaction-abort, transaction-commit, try-add, with-abortable-write-transaction, with-env,
+		with-read-transaction, with-test-env, with-write-transaction, zip
 
 main fut nat(_ str[]) unsafe summon
 	db-path with-env (true,), env =>

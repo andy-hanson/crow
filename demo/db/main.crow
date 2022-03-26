@@ -2,12 +2,12 @@
 
 import
 	crow/col/arr-util: tail
-	crow/db/lmdb:
-		from-lmdb-key, get, lmdb-key-flags, new, set, stat, to-lmdb-key, to-str, with-db, with-env,
-		with-read-transaction, with-write-transaction
 	crow/io/print: print
 	crow/parse-command: parse-named-args, single-str-or-throw
 	crow/serialize: from-bytes, to-bytes
+	lmdb/main:
+		from-lmdb-key, get, lmdb-key-flags, new, set, stat, to-lmdb-key, to-str, with-db, with-env,
+		with-read-transaction, with-write-transaction
 
 main fut nat(args str[]) unsafe summon
 	command-name = !args.is-empty ? args[0]

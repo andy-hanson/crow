@@ -1,12 +1,24 @@
 ###
 Wrapper library for LMDB to make it slightly more crow-friendly.
 
-For the raw library, import from `lmdb` instead of `crow/db/lmdb`.
+For the raw library, import from `lmdb/headers` instead of `lmdb`.
 ###
 
-no-std
 import
-	lmdb:
+	crow/bits: |
+	crow/cell: *, cell, new
+	crow/col/fix-arr:
+		begin-ptr, cast-immutable, end-ptr, fix-arr, fix-arr-from-begin-end, to-arr,
+		uninitialized-fix-arr
+	crow/col/private/arr-low-level: begin-ptr
+	crow/c-types: u-int
+	crow/extra-types: err-t
+	crow/io/file: make-directory, path-exists, remove-directory-and-contents-non-recursive
+	crow/log: info, log
+	crow/ptr: ==, +, as-mut, mut-ptr, null, ptr-cast-to-extern, set-deref, zeroed
+	crow/serialize: from-bytes, serialize, to-4-bytes, to-8-bytes, to-bytes
+	crow/str-util: to-c-str
+	./headers:
 		MDB_BAD_DBI, MDB_BAD_RSLOT, MDB_BAD_TXN, MDB_BAD_VALSIZE, MDB_CORRUPTED, MDB_CREATE,
 		MDB_cursor, mdb_cursor_close, MDB_CURSOR_FULL, mdb_cursor_get, mdb_cursor_open, MDB_dbi,
 		mdb_dbi_close, mdb_dbi_open, MDB_DBS_FULL, MDB_env, mdb_env_close, mdb_env_create,
@@ -17,29 +29,6 @@ import
 		mdb_txn_abort, mdb_txn_begin, mdb_txn_commit, MDB_TXN_FULL, MDB_val, MDB_VERSION_MISMATCH,
 		ms_branch_pages, ms_depth, ms_entries, ms_leaf_pages, ms_overflow_pages, ms_psize, mv_data,
 		mv_size, new
-	../bits: |
-	../bool: !, &&, ||, bool, new, true
-	../cell: *, cell, new
-	../col/arr: arr, is-empty, new, size
-	../col/fix-arr:
-		begin-ptr, cast-immutable, end-ptr, fix-arr, fix-arr-from-begin-end, to-arr,
-		uninitialized-fix-arr
-	../col/private/arr-low-level: begin-ptr
-	../c-types: u-int
-	../exception: assert, do-if-error, finally, forbid, throw
-	../extra-types: err-t
-	../fun-util: subscript
-	../io/file: make-directory, path-exists, remove-directory-and-contents-non-recursive
-	../log: info, log
-	../misc: is-data, new, void
-	../number: ==, *, nat, nat8, nat32, nat64, to-nat64
-	../opt: new, opt
-	../ptr: ==, +, as-mut, mut-ptr, null, ptr-cast-to-extern, set-deref, zeroed
-	../serialize: from-bytes, serialize, to-4-bytes, to-8-bytes, to-bytes
-	../str: literal, str
-	../str-conv: interp, finish, to-str, with-str, with-value
-	../str-util: to-c-str
-	../tuple: a, b, new, pair
 
 region env
 
