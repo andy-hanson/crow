@@ -1096,7 +1096,7 @@ immutable(LowExprKind) getLowExprKind(
 		(ref immutable ConcreteExprKind.Drop it) =>
 			getDropExpr(ctx, locals, expr.range, it),
 		(ref immutable ConcreteExprKind.Lambda it) =>
-			getLambdaExpr(ctx, locals, it),
+			getLambdaExpr(ctx, locals, expr.range, it),
 		(ref immutable ConcreteExprKind.Let it) =>
 			getLetExpr(ctx, locals, exprPos, it),
 		(ref immutable ConcreteExprKind.LocalRef it) @trusted =>
@@ -1495,11 +1495,14 @@ immutable(LowExprKind) getDropExpr(
 immutable(LowExprKind) getLambdaExpr(
 	ref GetLowExprCtx ctx,
 	scope ref immutable Locals locals,
+	immutable FileAndRange range,
 	ref immutable ConcreteExprKind.Lambda a,
 ) {
 	return immutable LowExprKind(allocate(ctx.alloc, immutable LowExprKind.CreateUnion(
 		a.memberIndex,
-		getLowExpr(ctx, locals, a.closure, ExprPos.nonTail))));
+		has(a.closure)
+			? getLowExpr(ctx, locals, force(a.closure).deref(), ExprPos.nonTail)
+			: genVoid(range))));
 }
 
 immutable(LowExprKind) getLetExpr(

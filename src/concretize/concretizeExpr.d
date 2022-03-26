@@ -357,15 +357,12 @@ immutable(ConcreteExpr) concretizeLambda(
 		immutable ConcreteStructSource(
 			immutable ConcreteStructSource.Lambda(ctx.currentConcreteFunPtr, lambdaIndex)));
 	immutable Ptr!ConcreteParam closureParam = closureParam(ctx.alloc, closureType);
-	immutable ConcreteExpr closure = empty(closureArgs)
-		? immutable ConcreteExpr(
-			closureType,
-			range,
-			immutable ConcreteExprKind(immutable Constant(immutable Constant.Void())))
-		: createAllocExpr(ctx.alloc, immutable ConcreteExpr(
+	immutable Opt!(Ptr!ConcreteExpr) closure = empty(closureArgs)
+		? none!(Ptr!ConcreteExpr)
+		: some(allocate(ctx.alloc, createAllocExpr(ctx.alloc, immutable ConcreteExpr(
 			byVal(closureType),
 			range,
-			immutable ConcreteExprKind(immutable ConcreteExprKind.CreateRecord(closureArgs))));
+			immutable ConcreteExprKind(immutable ConcreteExprKind.CreateRecord(closureArgs))))));
 
 	immutable Ptr!ConcreteFun fun = getConcreteFunForLambdaAndFillBody(
 		ctx.concretizeCtx,
@@ -379,9 +376,7 @@ immutable(ConcreteExpr) concretizeLambda(
 	immutable ConcreteLambdaImpl impl = immutable ConcreteLambdaImpl(closureType, fun);
 	immutable(ConcreteExprKind) lambda(immutable Ptr!ConcreteStruct funStruct) {
 		return immutable ConcreteExprKind(
-			allocate(ctx.alloc, immutable ConcreteExprKind.Lambda(
-				nextLambdaImplId(ctx.concretizeCtx, funStruct, impl),
-				closure)));
+			immutable ConcreteExprKind.Lambda(nextLambdaImplId(ctx.concretizeCtx, funStruct, impl), closure));
 	}
 	if (e.kind == FunKind.ref_) {
 		// For a fun-ref this is the inner 'act' type.

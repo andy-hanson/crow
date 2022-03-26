@@ -277,7 +277,8 @@ immutable(Repr) reprOfConcreteExprKind(ref Alloc alloc, ref immutable ConcreteEx
 		(ref immutable ConcreteExprKind.Lambda it) =>
 			reprRecord(alloc, "lambda", [
 				reprNat(it.memberIndex),
-				reprOfConcreteExpr(alloc, it.closure)]),
+				reprOpt(alloc, it.closure, (ref immutable Ptr!ConcreteExpr closure) =>
+					reprOfConcreteExpr(alloc, closure.deref()))]),
 		(ref immutable ConcreteExprKind.Let it) =>
 			reprRecord(alloc, "let", [
 				reprOfConcreteLocalRef(it.local.deref()),

@@ -823,7 +823,7 @@ struct ConcreteExprKind {
 	// (A fun-ref is a lambda wrapped in CreateRecord.)
 	struct Lambda {
 		immutable size_t memberIndex; // Member index of a Union (which hasn't been created yet)
-		immutable ConcreteExpr closure;
+		immutable Opt!(Ptr!ConcreteExpr) closure;
 	}
 
 	struct LocalRef {
@@ -889,7 +889,7 @@ struct ConcreteExprKind {
 		immutable CreateRecord createRecord;
 		immutable Ptr!CreateUnion createUnion;
 		immutable Ptr!Drop drop;
-		immutable Ptr!Lambda lambda;
+		immutable Lambda lambda;
 		immutable Ptr!Let let;
 		immutable LocalRef localRef;
 		immutable Ptr!MatchEnum matchEnum;
@@ -908,7 +908,7 @@ struct ConcreteExprKind {
 	@trusted immutable this(immutable CreateRecord a) { kind = Kind.createRecord; createRecord = a; }
 	immutable this(immutable Ptr!CreateUnion a) { kind = Kind.createUnion; createUnion = a; }
 	immutable this(immutable Ptr!Drop a) { kind = Kind.drop; drop = a; }
-	@trusted immutable this(immutable Ptr!Lambda a) { kind = Kind.lambda; lambda = a; }
+	@trusted immutable this(immutable Lambda a) { kind = Kind.lambda; lambda = a; }
 	@trusted immutable this(immutable Ptr!Let a) { kind = Kind.let; let = a; }
 	@trusted immutable this(immutable LocalRef a) { kind = Kind.localRef; localRef = a; }
 	@trusted immutable this(immutable Ptr!MatchEnum a) { kind = Kind.matchEnum; matchEnum = a; }
@@ -974,7 +974,7 @@ immutable(bool) isConstant(ref immutable ConcreteExprKind a) {
 		case ConcreteExprKind.Kind.drop:
 			return cbDrop(a.drop.deref());
 		case ConcreteExprKind.Kind.lambda:
-			return cbLambda(a.lambda.deref());
+			return cbLambda(a.lambda);
 		case ConcreteExprKind.Kind.let:
 			return cbLet(a.let.deref());
 		case ConcreteExprKind.Kind.localRef:

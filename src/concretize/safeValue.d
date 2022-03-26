@@ -35,7 +35,7 @@ import model.model : EnumValue;
 import util.alloc.alloc : Alloc;
 import util.col.arrUtil : map, mapWithIndex;
 import util.memory : allocate, allocateMut;
-import util.opt : force, has, some;
+import util.opt : force, has, none, some;
 import util.ptr : castImmutable, Ptr, ptrTrustMe_mut;
 import util.sourceRange : FileAndRange;
 
@@ -188,7 +188,7 @@ immutable(ConcreteExpr) safeFunValue(ref Ctx ctx, immutable FileAndRange range, 
 			allocate(ctx.alloc, immutable ConcreteFunSource.Lambda(range, ctx.containingFun, lambdaIndex))),
 		returnType,
 		NeedsCtx.yes,
-		some(closureParam(ctx.alloc, closureType)),
+		none!(Ptr!ConcreteParam),
 		params));
 	setBody(fun.deref(), immutable ConcreteFunBody(safeValueForType(ctx, range, returnType)));
 	immutable Ptr!ConcreteFun impl = castImmutable(fun);
@@ -198,10 +198,5 @@ immutable(ConcreteExpr) safeFunValue(ref Ctx ctx, immutable FileAndRange range, 
 	return immutable ConcreteExpr(
 		immutable ConcreteType(ReferenceKind.byVal, struct_),
 		range,
-		immutable ConcreteExprKind(allocate(ctx.alloc, immutable ConcreteExprKind.Lambda(
-			id,
-			immutable ConcreteExpr(
-				closureType,
-				range,
-				immutable ConcreteExprKind(immutable Constant(immutable Constant.Void())))))));
+		immutable ConcreteExprKind(immutable ConcreteExprKind.Lambda(id, none!(Ptr!ConcreteExpr))));
 }
