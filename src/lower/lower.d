@@ -128,7 +128,7 @@ import util.col.mutDict : getAt_mut, getOrAdd, MutDict, MutPtrDict, ValueAndDidA
 import util.col.stackDict : StackDict, stackDictAdd, stackDictMustGet;
 import util.late : Late, late, lateGet, lateIsSet, lateSet;
 import util.memory : allocate;
-import util.opt : asImmutable, force, has, mapOption, none, Opt, some;
+import util.opt : asImmutable, force, has, none, Opt, some;
 import util.perf : Perf, PerfMeasure, withMeasure;
 import util.ptr : nullPtr, Ptr, ptrEquals, ptrTrustMe, ptrTrustMe_mut;
 import util.sourceRange : FileAndRange;
@@ -807,9 +807,9 @@ immutable(LowFun) lowFunFromCause(
 							ctxType));
 				}
 			}();
-			immutable Opt!LowParam closureParam =
-				mapOption!LowParam(cf.deref().closureParam, (ref immutable Ptr!ConcreteParam it) =>
-					getLowParam(getLowTypeCtx, it));
+			immutable Opt!LowParam closureParam = has(cf.deref().closureParam)
+				? some(getLowParam(getLowTypeCtx, force(cf.deref().closureParam)))
+				: none!LowParam;
 			immutable LowParam[] params = mapWithOptFirst2!(LowParam, ConcreteParam)(
 				getLowTypeCtx.alloc,
 				ctxParam,

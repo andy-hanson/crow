@@ -109,17 +109,3 @@ immutable(bool) has(T)(ref const Opt!T a) {
 	verify(has(a));
 	return a.value_;
 }
-
-ref immutable(T) forceOrTodo(T)(return scope ref immutable Opt!T a) {
-	if (has(a))
-		return force(a);
-	else
-		assert(0);
-}
-
-immutable(Opt!Out) mapOption(Out, T)(
-	immutable Opt!T a,
-	scope immutable(Out) delegate(ref immutable T) @safe @nogc pure nothrow cb,
-) {
-	return has(a) ? some!Out(cb(force(a))) : none!Out;
-}

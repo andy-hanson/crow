@@ -42,6 +42,11 @@ immutable(Opt!Path) parent(ref const AllPaths allPaths, immutable Path a) {
 	return mutArrAt(allPaths.pathToParent, a.index);
 }
 
+immutable(Path) parentOrEmpty(ref AllPaths allPaths, immutable Path a) {
+	immutable Opt!Path res = parent(allPaths, a);
+	return has(res) ? force(res) : emptyRootPath(allPaths);
+}
+
 immutable(Sym) baseName(ref const AllPaths allPaths, immutable Path a) {
 	return mutArrAt(allPaths.pathToBaseName, a.index);
 }

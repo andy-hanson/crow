@@ -8,7 +8,7 @@ import util.col.arrUtil : arrLiteral, map, mapWithIndex;
 import util.col.fullIndexDict : FullIndexDict;
 import util.col.str : SafeCStr, strOfSafeCStr;
 import util.memory : allocate;
-import util.opt : force, has, mapOption, Opt;
+import util.opt : force, has, none, Opt, some;
 import util.ptr : Ptr, ptrTrustMe_mut;
 import util.sym : AllSymbols, shortSym, Sym, writeQuotedSym;
 import util.writer :
@@ -123,8 +123,7 @@ immutable(Repr) reprOpt(T)(
 	immutable Opt!T opt,
 	scope immutable(Repr) delegate(ref immutable T) @safe @nogc pure nothrow cb,
 ) {
-	return immutable Repr(mapOption!(Ptr!Repr, T)(opt, (ref immutable T t) =>
-		allocate!Repr(alloc, cb(t))));
+	return immutable Repr(has(opt) ? some(allocate!Repr(alloc, cb(force(opt)))) : none!(Ptr!Repr));
 }
 
 private struct ReprNamedRecord {

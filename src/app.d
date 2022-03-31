@@ -94,7 +94,7 @@ import util.col.arrUtil : prepend, zipImpureSystem;
 import util.col.str : CStr, SafeCStr, safeCStr, safeCStrIsEmpty, safeCStrSize, strEq, strOfCStr;
 import util.conv : bitsOfFloat64, float32OfBits, float64OfBits;
 import util.memory : memset;
-import util.opt : force, forceOrTodo, has, none, Opt, some;
+import util.opt : force, has, none, Opt, some;
 import util.path :
 	AllPaths,
 	baseName,
@@ -102,6 +102,7 @@ import util.path :
 	Path,
 	PathAndExtension,
 	parent,
+	parentOrEmpty,
 	parsePath,
 	parsePathAndExtension,
 	PathsInfo,
@@ -183,7 +184,7 @@ immutable(ExitCode) go(
 	ref AllPaths allPaths,
 	ref immutable CommandLineArgs args,
 ) {
-	immutable Path crowDir = getCrowDirectory(allPaths, args.pathToThisExecutable.path);
+	immutable Path crowDir = parentOrEmpty(allPaths, parentOrEmpty(allPaths, args.pathToThisExecutable.path));
 	immutable Path includeDir = childPath(allPaths, crowDir, shortSym("include"));
 	immutable Path tempDir = childPath(allPaths, crowDir, shortSym("temp"));
 	immutable ExitCode setupTempExitCode = setupTempDir(allSymbols, allPaths, tempDir);
@@ -544,12 +545,6 @@ immutable(RunBuildResult) runBuildInner(
 }
 
 immutable ShowDiagOptions showDiagOptions = immutable ShowDiagOptions(true);
-
-immutable(Path) getCrowDirectory(ref AllPaths allPaths, immutable Path pathToThisExecutable) {
-	immutable Opt!Path bin = parent(allPaths, pathToThisExecutable);
-	immutable Opt!Path res = parent(allPaths, forceOrTodo(bin));
-	return forceOrTodo(res);
-}
 
 immutable(ExitCode) buildToCAndCompile(
 	ref Alloc alloc,
