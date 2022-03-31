@@ -6,9 +6,10 @@ import util.alloc.alloc : Alloc;
 import util.col.arr : empty, emptyArr, only;
 import util.col.arrBuilder : add, ArrBuilder, finishArr;
 import util.col.arrUtil : findIndex, foldOrStop, mapOrNone;
-import util.col.str : SafeCStr, safeCStr, safeCStrEq, safeCStrIsEmpty, strEq, strOfSafeCStr;
+import util.col.str : SafeCStr, safeCStr, safeCStrEq, strEq, strOfSafeCStr;
 import util.opt : force, has, none, Opt, some;
 import util.path : AllPaths, parseAbsoluteOrRelPathAndExtension, Path, PathAndExtension;
+import util.sym : emptySym, SpecialSym, Sym, symEq, symForSpecial;
 import util.util : todo, verify;
 
 @safe @nogc nothrow: // not pure
@@ -196,9 +197,9 @@ immutable(Command) parseCommand(
 }
 
 version (Windows) {
-	immutable SafeCStr defaultExeExtension = safeCStr!".exe";
+	immutable Sym defaultExeExtension = symForSpecial(SpecialSym.dotExe);
 } else {
-	immutable SafeCStr defaultExeExtension = safeCStr!"";
+	immutable Sym defaultExeExtension = emptySym;
 }
 
 private:
@@ -248,7 +249,7 @@ immutable(Opt!Path) tryParseCrowPath(
 	scope immutable SafeCStr arg,
 ) {
 	immutable PathAndExtension path = parseAbsoluteOrRelPathAndExtension(allPaths, cwd, arg);
-	return safeCStrIsEmpty(path.extension) || safeCStrEq(path.extension, crowExtension)
+	return symEq(path.extension, emptySym) || symEq(path.extension, crowExtension)
 		? some(path.path)
 		: none!Path;
 }
@@ -424,11 +425,11 @@ immutable(Opt!BuildOut) parseBuildOut(
 		args,
 		(immutable BuildOut o, ref immutable SafeCStr arg) {
 			immutable PathAndExtension path = parseAbsoluteOrRelPathAndExtension(allPaths, cwd, arg);
-			if (safeCStrIsEmpty(path.extension)) {
+			if (symEq(path.extension, emptySym)) {
 				return has(o.outExecutable)
 					? none!BuildOut
 					: some(immutable BuildOut(o.outC, some(path)));
-			} else if (safeCStrEq(path.extension, safeCStr!".c")) {
+			} else if (symEq(path.extension, symForSpecial(SpecialSym.dotC))) {
 				return has(o.outC)
 					? none!BuildOut
 					: some(immutable BuildOut(some(path), o.outExecutable));

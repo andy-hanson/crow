@@ -18,7 +18,7 @@ import util.path :
 	rootPath,
 	TEST_countPathParts;
 import util.ptr : ptrTrustMe_mut;
-import util.sym : shortSym;
+import util.sym : shortSym, SpecialSym, symEq, symForSpecial;
 import util.util : verify;
 
 void testPath(ref Test test) {
@@ -39,7 +39,7 @@ void testPath(ref Test test) {
 
 	immutable PathAndExtension zW = parseAbsoluteOrRelPathAndExtension(allPaths, aX, safeCStr!"/z/w.crow");
 	verify(safeCStrEq(pathToSafeCStr(test.alloc, allPaths, zW.path), safeCStr!"/z/w"));
-	verify(safeCStrEq(zW.extension, ".crow"));
+	verify(symEq(zW.extension, symForSpecial(SpecialSym.dotCrow)));
 	immutable Path aXZW = parseAbsoluteOrRelPathAndExtension(allPaths, aX, safeCStr!"./z/w").path;
 	verify(safeCStrEq(pathToSafeCStr(test.alloc, allPaths, aXZW), safeCStr!"a/x/z/w"));
 	verify(pathEqual(aXZW, parseAbsoluteOrRelPathAndExtension(allPaths, aX, safeCStr!"z/w").path));

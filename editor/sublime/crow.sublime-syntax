@@ -112,22 +112,8 @@ contexts:
 
   after_export_or_import_keyword:
     - meta_scope: entity.name.namespace
-    - match: ' '
-      push: one_line_exports_or_imports
-    - match: $
-      push: multi_line_exports_or_imports
-    - match: '{{unindented_line}}'
-      pop: true
-
-  one_line_exports_or_imports:
-    - match: \.
-      scope: punctuation
-    - match: $
-      pop: true
-
-  multi_line_exports_or_imports:
-    - match: \.
-      scope: punctuation
+    - match: 'as'
+      scope: keyword
     - match: '{{unindented_line}}'
       pop: true
 

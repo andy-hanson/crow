@@ -1,6 +1,6 @@
 import
 	crow/cell: as-const-ptr, cell, new
-	crow/col/private/arr-low-level: subscript
+	crow/col/private/arr-low-level: begin-ptr, subscript
 	crow/io/duration: msec
 	crow/io/print: print
 	crow/io/time: continue, continue-or-quit, get-monotime-msec, quit, repeat-interval
@@ -18,9 +18,11 @@ import
 		|, SDL_CreateRenderer, SDL_DestroyTexture, SDL_CreateTextureFromSurface,
 		SDL_DestroyRenderer, SDL_RenderClear, SDL_RenderCopy, SDL_Renderer,
 		SDL_RENDERER_ACCELERATED, SDL_RENDERER_PRESENTVSYNC, SDL_RenderPresent, SDL_Texture
+	SDL2/SDL_rwops: SDL_RWFromConstMem
 	SDL2/SDL_scancode: SDL_NUM_SCANCODES, SDL_SCANCODE_RETURN, to-nat32
-	SDL2/SDL_surface: SDL_FreeSurface, SDL_LoadBMP
+	SDL2/SDL_surface: SDL_FreeSurface, SDL_LoadBMP_RW
 	SDL2/SDL_video: SDL_CreateWindow, SDL_DestroyWindow, SDL_Window, SDL_WINDOW_SHOWN
+	./crow.bmp as crow-bmp nat8[]
 
 main fut nat(_ str[]) summon trusted
 	SDL_INIT_VIDEO.SDL_Init handle-sdl-error "SDL_INIT_VIDEO"
@@ -80,8 +82,7 @@ main fut nat(_ str[]) summon trusted
 	renderer
 
 .create-texture SDL_Texture(renderer SDL_Renderer) summon trusted
-	image-path = "demo/sdl/crow.bmp"
-	bmp = image-path SDL_LoadBMP
+	bmp = crow-bmp.begin-ptr SDL_RWFromConstMem crow-bmp.size.to-int32 SDL_LoadBMP_RW 0
 	if bmp.as-any-const-ptr == null
 		"sdl-loadbmp-error" fail-sdl-error
 	texture = renderer SDL_CreateTextureFromSurface bmp

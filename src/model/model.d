@@ -844,6 +844,9 @@ struct FunBody {
 		immutable bool isGlobal;
 		immutable Opt!Sym libraryName;
 	}
+	struct FileBytes {
+		immutable ubyte[] bytes;
+	}
 	struct RecordFieldGet {
 		immutable size_t fieldIndex;
 	}
@@ -860,6 +863,7 @@ struct FunBody {
 		enumFunction,
 		extern_,
 		expr,
+		fileBytes,
 		flagsFunction,
 		recordFieldGet,
 		recordFieldSet,
@@ -873,6 +877,7 @@ struct FunBody {
 		immutable EnumFunction enumFunction;
 		immutable Extern extern_;
 		immutable Expr expr;
+		immutable FileBytes fileBytes;
 		immutable FlagsFunction flagsFunction;
 		immutable RecordFieldGet recordFieldGet;
 		immutable RecordFieldSet recordFieldSet;
@@ -886,6 +891,7 @@ struct FunBody {
 	immutable this(immutable EnumFunction a) { kind = Kind.enumFunction; enumFunction = a; }
 	@trusted immutable this(immutable Extern a) { kind = Kind.extern_; extern_ = a; }
 	@trusted immutable this(immutable Expr a) { kind = Kind.expr; expr = a; }
+	immutable this(immutable FileBytes a) { kind = Kind.fileBytes; fileBytes = a; }
 	immutable this(immutable FlagsFunction a) { kind = Kind.flagsFunction; flagsFunction = a; }
 	immutable this(immutable RecordFieldGet a) { kind = Kind.recordFieldGet; recordFieldGet = a; }
 	immutable this(immutable RecordFieldSet a) { kind = Kind.recordFieldSet; recordFieldSet = a; }
@@ -904,6 +910,7 @@ immutable(bool) isExtern(ref immutable FunBody a) {
 	alias cbEnumFunction,
 	alias cbExtern,
 	alias cbExpr,
+	alias cbFileBytes,
 	alias cbFlagsFunction,
 	alias cbRecordFieldGet,
 	alias cbRecordFieldSet,
@@ -923,6 +930,8 @@ immutable(bool) isExtern(ref immutable FunBody a) {
 			return cbEnumFunction(a.enumFunction);
 		case FunBody.Kind.extern_:
 			return cbExtern(a.extern_);
+		case FunBody.Kind.fileBytes:
+			return cbFileBytes(a.fileBytes);
 		case FunBody.Kind.flagsFunction:
 			return cbFlagsFunction(a.flagsFunction);
 		case FunBody.Kind.expr:
@@ -1422,8 +1431,8 @@ struct Module {
 
 	immutable FileIndex fileIndex;
 	immutable SafeCStr docComment;
-	immutable ModuleAndNames[] imports; // includes import of std (if applicable)
-	immutable ModuleAndNames[] exports;
+	immutable ImportOrExport[] imports; // includes import of std (if applicable)
+	immutable ImportOrExport[] exports;
 	immutable StructDecl[] structs;
 	immutable SpecDecl[] specs;
 	immutable FunDecl[] funs;
@@ -1432,16 +1441,97 @@ struct Module {
 	immutable SymDict!NameReferents allExportedNames;
 }
 
-struct ModuleAndNames {
+struct ImportOrExport {
 	@safe @nogc pure nothrow:
 
 	// none for an automatic import of std
 	immutable Opt!RangeWithinFile importSource;
-	immutable Ptr!Module modulePtr;
-	immutable Opt!(Sym[]) names;
+	immutable ImportOrExportKind kind;
+}
 
-	ref immutable(Module) module_() return scope immutable {
-		return modulePtr.deref();
+// No File option since those become FunDecls
+struct ImportOrExportKind {
+	@safe @nogc pure nothrow:
+
+	struct ModuleWhole {
+		@safe @nogc pure nothrow:
+		immutable Ptr!Module modulePtr;
+
+		ref immutable(Module) module_() return scope immutable {
+			return modulePtr.deref();
+		}
+	}
+	struct ModuleNamed {
+		@safe @nogc pure nothrow:
+		immutable Ptr!Module modulePtr;
+		immutable Sym[] names;
+
+		ref immutable(Module) module_() return scope immutable {
+			return modulePtr.deref();
+		}
+	}
+
+	immutable this(immutable ModuleWhole a) { kind = Kind.moduleWhole; moduleWhole = a; }
+	immutable this(immutable ModuleNamed a) { kind = Kind.moduleNamed; moduleNamed = a; }
+
+	private:
+	enum Kind { moduleWhole, moduleNamed, }
+	immutable Kind kind;
+	union {
+		immutable ModuleWhole moduleWhole;
+		immutable ModuleNamed moduleNamed;
+	}
+}
+
+@trusted immutable(T) matchImportOrExportKind(T)(
+	ref immutable ImportOrExportKind a,
+	scope immutable(T) delegate(immutable ImportOrExportKind.ModuleWhole) @safe @nogc pure nothrow cbModuleWhole,
+	scope immutable(T) delegate(immutable ImportOrExportKind.ModuleNamed) @safe @nogc pure nothrow cbModuleNamed,
+) {
+	final switch (a.kind) {
+		case ImportOrExportKind.Kind.moduleWhole:
+			return cbModuleWhole(a.moduleWhole);
+		case ImportOrExportKind.Kind.moduleNamed:
+			return cbModuleNamed(a.moduleNamed);
+	}
+}
+
+enum ImportFileType { nat8Array, str }
+
+immutable(Sym) symOfImportFileType(immutable ImportFileType a) {
+	final switch (a) {
+		case ImportFileType.nat8Array:
+			return shortSym("nat8Array");
+		case ImportFileType.str:
+			return shortSym("str");
+	}
+}
+
+struct FileContent {
+	@safe @nogc pure nothrow:
+
+	immutable this(immutable ubyte[] a) { kind = Kind.nat8Array; nat8Array = a; }
+	immutable this(immutable SafeCStr a) { kind = Kind.str; str = a; }
+
+	private:
+	enum Kind { nat8Array, str }
+	immutable Kind kind;
+	union {
+		immutable ubyte[] nat8Array;
+		immutable SafeCStr str;
+	}
+}
+
+@trusted immutable(T) matchFileContent(T)(
+	ref immutable FileContent a,
+	scope immutable(T) delegate(immutable ubyte[]) @safe @nogc pure nothrow cbNat8Array,
+	scope immutable(T) delegate(immutable SafeCStr) @safe @nogc pure nothrow cbStr,
+) {
+	final switch (a.kind) {
+		case FileContent.Kind.nat8Array:
+			return cbNat8Array(a.nat8Array);
+		case FileContent.Kind.str:
+			return cbStr(a.str);
 	}
 }
 
@@ -1664,6 +1754,14 @@ struct Expr {
 		immutable Constant value;
 	}
 
+	struct LiteralCString {
+		immutable SafeCStr value;
+	}
+
+	struct LiteralSymbol {
+		immutable Sym value;
+	}
+
 	struct LocalRef {
 		immutable Ptr!Local local;
 	}
@@ -1695,14 +1793,6 @@ struct Expr {
 		immutable Expr then;
 	}
 
-	struct CStringLiteral {
-		immutable SafeCStr value;
-	}
-
-	struct SymbolLiteral {
-		immutable Sym value;
-	}
-
 	private:
 	enum Kind {
 		bogus,
@@ -1715,13 +1805,13 @@ struct Expr {
 		lambda,
 		let,
 		literal,
+		literalCString,
+		literalSymbol,
 		localRef,
 		matchEnum,
 		matchUnion,
 		paramRef,
 		seq,
-		stringLiteral,
-		symbolLiteral,
 	}
 
 	immutable FileAndRange range_;
@@ -1737,13 +1827,13 @@ struct Expr {
 		immutable Ptr!Lambda lambda;
 		immutable Ptr!Let let;
 		immutable Ptr!Literal literal;
+		immutable LiteralCString literalCString;
+		immutable LiteralSymbol literalSymbol;
 		immutable LocalRef localRef;
 		immutable Ptr!MatchEnum matchEnum;
 		immutable Ptr!MatchUnion matchUnion;
 		immutable ParamRef paramRef;
 		immutable Ptr!Seq seq;
-		immutable CStringLiteral stringLiteral;
-		immutable SymbolLiteral symbolLiteral;
 	}
 
 	public:
@@ -1767,6 +1857,12 @@ struct Expr {
 	@trusted immutable this(immutable FileAndRange r, immutable Ptr!Literal a) {
 		range_ = r; kind = Kind.literal; literal = a;
 	}
+	@trusted immutable this(immutable FileAndRange r, immutable LiteralCString a) {
+		range_ = r; kind = Kind.literalCString; literalCString = a;
+	}
+	@trusted immutable this(immutable FileAndRange r, immutable LiteralSymbol a) {
+		range_ = r; kind = Kind.literalSymbol; literalSymbol = a;
+	}
 	@trusted immutable this(immutable FileAndRange r, immutable LocalRef a) {
 		range_ = r; kind = Kind.localRef; localRef = a;
 	}
@@ -1780,12 +1876,6 @@ struct Expr {
 		range_ = r; kind = Kind.paramRef; paramRef = a;
 	}
 	@trusted immutable this(immutable FileAndRange r, immutable Ptr!Seq a) { range_ = r; kind = Kind.seq; seq = a; }
-	@trusted immutable this(immutable FileAndRange r, immutable CStringLiteral a) {
-		range_ = r; kind = Kind.stringLiteral; stringLiteral = a;
-	}
-	@trusted immutable this(immutable FileAndRange r, immutable SymbolLiteral a) {
-		range_ = r; kind = Kind.symbolLiteral; symbolLiteral = a;
-	}
 }
 
 immutable(FileAndRange) range(scope ref immutable Expr a) {
@@ -1804,13 +1894,13 @@ immutable(FileAndRange) range(scope ref immutable Expr a) {
 	scope immutable(T) delegate(ref immutable Expr.Lambda) @safe @nogc pure nothrow cbLambda,
 	scope immutable(T) delegate(ref immutable Expr.Let) @safe @nogc pure nothrow cbLet,
 	scope immutable(T) delegate(ref immutable Expr.Literal) @safe @nogc pure nothrow cbLiteral,
+	scope immutable(T) delegate(ref immutable Expr.LiteralCString) @safe @nogc pure nothrow cbLiteralCString,
+	scope immutable(T) delegate(ref immutable Expr.LiteralSymbol) @safe @nogc pure nothrow cbLiteralSymbol,
 	scope immutable(T) delegate(ref immutable Expr.LocalRef) @safe @nogc pure nothrow cbLocalRef,
 	scope immutable(T) delegate(ref immutable Expr.MatchEnum) @safe @nogc pure nothrow cbMatchEnum,
 	scope immutable(T) delegate(ref immutable Expr.MatchUnion) @safe @nogc pure nothrow cbMatchUnion,
 	scope immutable(T) delegate(ref immutable Expr.ParamRef) @safe @nogc pure nothrow cbParamRef,
 	scope immutable(T) delegate(ref immutable Expr.Seq) @safe @nogc pure nothrow cbSeq,
-	scope immutable(T) delegate(ref immutable Expr.CStringLiteral) @safe @nogc pure nothrow cbStringLiteral,
-	scope immutable(T) delegate(ref immutable Expr.SymbolLiteral) @safe @nogc pure nothrow cbSymbolLiteral,
 ) {
 	final switch (a.kind) {
 		case Expr.Kind.bogus:
@@ -1833,6 +1923,10 @@ immutable(FileAndRange) range(scope ref immutable Expr a) {
 			return cbLet(a.let.deref());
 		case Expr.Kind.literal:
 			return cbLiteral(a.literal.deref());
+		case Expr.Kind.literalCString:
+			return cbLiteralCString(a.literalCString);
+		case Expr.Kind.literalSymbol:
+			return cbLiteralSymbol(a.literalSymbol);
 		case Expr.Kind.localRef:
 			return cbLocalRef(a.localRef);
 		case Expr.Kind.matchEnum:
@@ -1843,10 +1937,6 @@ immutable(FileAndRange) range(scope ref immutable Expr a) {
 			return cbParamRef(a.paramRef);
 		case Expr.Kind.seq:
 			return cbSeq(a.seq.deref());
-		case Expr.Kind.stringLiteral:
-			return cbStringLiteral(a.stringLiteral);
-		case Expr.Kind.symbolLiteral:
-			return cbSymbolLiteral(a.symbolLiteral);
 	}
 }
 

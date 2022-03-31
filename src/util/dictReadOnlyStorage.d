@@ -4,10 +4,11 @@ module util.dictReadOnlyStorage;
 
 import frontend.lang : crowExtension;
 import util.col.mutDict : getAt_mut, MutDict;
-import util.col.str : SafeCStr, safeCStrEq;
+import util.col.str : SafeCStr;
 import util.opt : asImmutable, force, has, none, Opt;
 import util.path : hashPath, Path, pathEqual;
 import util.readOnlyStorage : ReadFileResult, ReadOnlyStorage;
+import util.sym : Sym, symEq;
 
 immutable(T) withDictReadOnlyStorage(T)(
 	immutable Path includeDir,
@@ -18,15 +19,20 @@ immutable(T) withDictReadOnlyStorage(T)(
 		includeDir,
 		(
 			immutable Path path,
-			immutable SafeCStr extension,
-			void delegate(immutable ReadFileResult) @safe @nogc pure nothrow cb,
+			void delegate(immutable ReadFileResult!(ubyte[])) @safe @nogc pure nothrow cb,
+		) =>
+			cb(immutable ReadFileResult!(ubyte[])(immutable ReadFileResult!(ubyte[]).NotFound())),
+		(
+			immutable Path path,
+			immutable Sym extension,
+			void delegate(immutable ReadFileResult!SafeCStr) @safe @nogc pure nothrow cb,
 		) {
-			immutable Opt!SafeCStr res = safeCStrEq(extension, crowExtension)
+			immutable Opt!SafeCStr res = symEq(extension, crowExtension)
 				? asImmutable(getAt_mut(files, path))
 				: none!SafeCStr;
 			return cb(has(res)
-				? immutable ReadFileResult(force(res))
-				: immutable ReadFileResult(immutable ReadFileResult.NotFound()));
+				? immutable ReadFileResult!SafeCStr(force(res))
+				: immutable ReadFileResult!SafeCStr(immutable ReadFileResult!SafeCStr.NotFound()));
 		});
 	return cb(storage);
 }

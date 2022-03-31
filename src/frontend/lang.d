@@ -2,9 +2,9 @@ module frontend.lang;
 
 @safe @nogc pure nothrow:
 
-import util.col.str : SafeCStr, safeCStr;
+import util.sym : SpecialSym, Sym, symForSpecial;
 
-immutable(SafeCStr) crowExtension = safeCStr!".crow";
+immutable Sym crowExtension = symForSpecial(SpecialSym.dotCrow);
 
 struct JitOptions {
 	immutable OptimizationLevel optimization;

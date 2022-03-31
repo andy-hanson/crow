@@ -60,7 +60,7 @@ void getHover(
 		},
 		(ref immutable Position.ImportedModule it) {
 			writeStatic(writer, "import module ");
-			writeFile(writer, allPaths, pathsInfo, program.filesInfo, it.import_.deref().module_.fileIndex);
+			writeFile(writer, allPaths, pathsInfo, program.filesInfo, it.module_.deref().fileIndex);
 		},
 		(ref immutable Position.ImportedName it) {
 			getImportedNameHover(writer, it);

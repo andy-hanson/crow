@@ -88,6 +88,7 @@ version(Test) {
 	import test.test : test;
 }
 import util.alloc.alloc : Alloc, TempAlloc;
+import util.col.arr : emptyArr;
 import util.col.arrBuilder : add, addAll, ArrBuilder, finishArr;
 import util.col.arrUtil : prepend, zipImpureSystem;
 import util.col.str : CStr, SafeCStr, safeCStr, safeCStrIsEmpty, safeCStrSize, strEq, strOfCStr;
@@ -109,8 +110,19 @@ import util.path :
 	TempStrForPath;
 import util.perf : eachMeasure, Perf, perfEnabled, PerfMeasure, PerfMeasureResult, withMeasure;
 import util.ptr : ptrTrustMe_mut;
-import util.readOnlyStorage : ReadFileResult, ReadOnlyStorage;
-import util.sym : AllSymbols, Operator, shortSym, Sym, symAsTempBuffer, symForOperator, symOfStr, writeSym;
+import util.readOnlyStorage : matchReadFileResult, ReadFileResult, ReadOnlyStorage;
+import util.sym :
+	AllSymbols,
+	emptySym,
+	Operator,
+	shortSym,
+	SpecialSym,
+	Sym,
+	symAsTempBuffer,
+	symForOperator,
+	symForSpecial,
+	symOfStr,
+	writeSym;
 import util.util : castImmutableRef, todo, unreachable, verify;
 import util.writer : finishWriterToSafeCStr, writeChar, Writer, writeSafeCStr, writeStatic;
 import versionInfo : versionInfoForJIT;
@@ -266,7 +278,7 @@ immutable(SafeCStr[]) getAllArgs(
 	immutable Path main,
 	immutable SafeCStr[] programArgs,
 ) {
-	return prepend(alloc, pathToSafeCStr(alloc, allPaths, main, safeCStr!".crow"), programArgs);
+	return prepend(alloc, pathToSafeCStr(alloc, allPaths, main, symForSpecial(SpecialSym.dotCrow)), programArgs);
 }
 
 @trusted immutable(ExitCode) setupTempDir(
@@ -275,7 +287,7 @@ immutable(SafeCStr[]) getAllArgs(
 	immutable Path tempDir,
 ) {
 	TempStrForPath dirPathBuf = void;
-	immutable CStr dirPath = pathToTempStr(dirPathBuf, allPaths, tempDir, safeCStr!"").ptr;
+	immutable CStr dirPath = pathToTempStr(dirPathBuf, allPaths, tempDir, emptySym).ptr;
 	version (Windows) {
 		if (GetFileAttributesA(dirPath) == INVALID_FILE_ATTRIBUTES) {
 			immutable int ok = CreateDirectoryA(dirPath, null);
@@ -510,7 +522,7 @@ immutable(RunBuildResult) runBuildInner(
 	immutable Sym name = baseName(allPaths, mainPath);
 	immutable PathAndExtension cPath = has(options.out_.outC)
 		? force(options.out_.outC)
-		: immutable PathAndExtension(childPath(allPaths, tempDir, name), safeCStr!".c");
+		: immutable PathAndExtension(childPath(allPaths, tempDir, name), symForSpecial(SpecialSym.dotC));
 	immutable Opt!PathAndExtension exePath = has(options.out_.outExecutable)
 		? options.out_.outExecutable
 		: exeKind == ExeKind.ensureExe
@@ -746,10 +758,23 @@ immutable(T) withReadOnlyStorage(T)(
 		includeDir,
 		(
 			immutable Path path,
-			immutable SafeCStr extension,
-			void delegate(immutable ReadFileResult) @safe @nogc pure nothrow cb,
+			void delegate(immutable ReadFileResult!(ubyte[])) @safe @nogc pure nothrow cb,
 		) =>
-			tryReadFile(allPaths, path, extension, cb));
+			tryReadFile(allPaths, path, emptySym, NulTerminate.no, cb),
+		(
+			immutable Path path,
+			immutable Sym extension,
+			void delegate(immutable ReadFileResult!SafeCStr) @safe @nogc pure nothrow cb,
+		) =>
+			tryReadFile(allPaths, path, extension, NulTerminate.yes, (immutable ReadFileResult!(ubyte[]) x) =>
+				matchReadFileResult!(void, ubyte[])(
+					x,
+					(immutable ubyte[] bytes) @trusted =>
+						cb(immutable ReadFileResult!SafeCStr(immutable SafeCStr(cast(immutable char*) bytes.ptr))),
+					(immutable(ReadFileResult!(ubyte[]).NotFound)) =>
+						cb(immutable ReadFileResult!SafeCStr(immutable ReadFileResult!SafeCStr.NotFound())),
+					(immutable(ReadFileResult!(ubyte[]).Error)) =>
+						cb(immutable ReadFileResult!SafeCStr(immutable ReadFileResult!SafeCStr.Error())))));
 	return cb(storage);
 }
 
@@ -1004,21 +1029,24 @@ extern(C) {
 	int dlGetLibraryPath(const DLLib* pLib, char* sOut, int bufSize);
 }
 
+enum NulTerminate { no, yes }
+
 @trusted void tryReadFile(
 	scope ref const AllPaths allPaths,
 	immutable Path path,
-	immutable SafeCStr extension,
-	scope void delegate(immutable ReadFileResult) @safe @nogc pure nothrow cb,
+	immutable Sym extension,
+	immutable NulTerminate nulTerminate,
+	scope void delegate(immutable ReadFileResult!(ubyte[])) @safe @nogc pure nothrow cb,
 ) {
 	TempStrForPath pathBuf = void;
 	immutable CStr pathCStr = pathToTempStr(pathBuf, allPaths, path, extension).ptr;
-	char[0x100000] contentBuf = void;
+	ubyte[0x100000] contentBuf = void;
 
 	FILE* fd = fopen(pathCStr, "rb");
 	if (fd == null)
 		return cb(errno == ENOENT
-			? immutable ReadFileResult(immutable ReadFileResult.NotFound())
-			: immutable ReadFileResult(immutable ReadFileResult.Error()));
+			? immutable ReadFileResult!(ubyte[])(immutable ReadFileResult!(ubyte[]).NotFound())
+			: immutable ReadFileResult!(ubyte[])(immutable ReadFileResult!(ubyte[]).Error()));
 	scope(exit) fclose(fd);
 
 	immutable int err = fseek(fd, 0, SEEK_END);
@@ -1032,8 +1060,13 @@ extern(C) {
 
 	immutable size_t fileSize = cast(size_t) ftellResult;
 
-	if (fileSize == 0)
-		return cb(immutable ReadFileResult(safeCStr!""));
+	if (fileSize == 0) {
+		if (nulTerminate) {
+			static immutable ubyte[] bytes = [0];
+			return cb(immutable ReadFileResult!(ubyte[])(bytes));
+		} else
+			return cb(immutable ReadFileResult!(ubyte[])(emptyArr!ubyte));
+	}
 
 	// Go back to the beginning so we can read
 	immutable int err2 = fseek(fd, 0, SEEK_SET);
@@ -1044,9 +1077,10 @@ extern(C) {
 	verify(nBytesRead == fileSize);
 	if (ferror(fd))
 		todo!void("error reading file");
-	contentBuf[nBytesRead] = '\0';
+	if (nulTerminate) contentBuf[nBytesRead] = '\0';
 
-	return cb(immutable ReadFileResult(immutable SafeCStr(cast(immutable) contentBuf.ptr)));
+	return cb(immutable ReadFileResult!(ubyte[])(
+		cast(immutable) contentBuf[0 .. nBytesRead + (nulTerminate ? 1 : 0)]));
 }
 
 @trusted immutable(ExitCode) writeFile(

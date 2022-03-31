@@ -11,9 +11,10 @@ import frontend.diagnosticsBuilder : addDiagnostic, DiagnosticsBuilder;
 import frontend.programState : ProgramState;
 import model.diag : Diag;
 import model.model :
+	ImportOrExport,
+	ImportOrExportKind,
 	matchStructOrAlias,
-	Module,
-	ModuleAndNames,
+	matchImportOrExportKind,
 	NameReferents,
 	SpecDecl,
 	StructAlias,
@@ -39,8 +40,8 @@ struct CheckCtx {
 	Ptr!ProgramState programStatePtr;
 	Ptr!AllSymbols allSymbolsPtr;
 	public immutable FileIndex fileIndex;
-	immutable ModuleAndNames[] imports;
-	immutable ModuleAndNames[] reExports;
+	immutable ImportOrExport[] imports;
+	immutable ImportOrExport[] reExports;
 	// One entry for a whole-module import, or one entry for each named import
 	// Note: This is unnecessary for re-exports as those are never considered unused, but simpler to always have this
 	FullIndexDict!(ImportIndex, bool) importsAndReExportsUsed;
@@ -77,15 +78,18 @@ struct CheckCtx {
 
 FullIndexDict!(ImportIndex, bool) newUsedImportsAndReExports(
 	ref Alloc alloc,
-	ref immutable ModuleAndNames[] imports,
-	ref immutable ModuleAndNames[] reExports,
+	immutable ImportOrExport[] imports,
+	immutable ImportOrExport[] reExports,
 ) {
-	immutable size_t size = eachCat!(size_t, ModuleAndNames)(
+	immutable size_t size = eachCat!(size_t, ImportOrExport)(
 		0,
 		imports,
 		reExports,
-		(immutable size_t acc, ref immutable ModuleAndNames it) =>
-			acc + (has(it.names) ? force(it.names).length : 1));
+		(immutable size_t acc, ref immutable ImportOrExport x) =>
+			acc + matchImportOrExportKind!(immutable size_t)(
+				x.kind,
+				(immutable(ImportOrExportKind.ModuleWhole)) => 1,
+				(immutable ImportOrExportKind.ModuleNamed m) => m.names.length));
 	return makeFullIndexDict_mut!(ImportIndex, bool)(alloc, size, (immutable(ImportIndex)) => false);
 }
 
@@ -141,20 +145,23 @@ void checkForUnused(
 
 private void checkUnusedImports(ref CheckCtx ctx) {
 	size_t index = 0;
-	foreach (ref immutable ModuleAndNames it; ctx.imports) {
-		if (has(it.names)) {
-			foreach (ref immutable Sym name; force(it.names)) {
-				if (!ctx.importsAndReExportsUsed[immutable ImportIndex(index)] && has(it.importSource))
-					addDiag(ctx, force(it.importSource), immutable Diag(
-						immutable Diag.UnusedImport(it.modulePtr, some(name))));
+	foreach (ref immutable ImportOrExport x; ctx.imports) {
+		matchImportOrExportKind!void(
+			x.kind,
+			(immutable ImportOrExportKind.ModuleWhole m) {
+				if (!ctx.importsAndReExportsUsed[immutable ImportIndex(index)] && has(x.importSource))
+					addDiag(ctx, force(x.importSource), immutable Diag(
+						immutable Diag.UnusedImport(m.modulePtr, none!Sym)));
 				index++;
-			}
-		} else {
-			if (!ctx.importsAndReExportsUsed[immutable ImportIndex(index)] && has(it.importSource))
-				addDiag(ctx, force(it.importSource), immutable Diag(
-					immutable Diag.UnusedImport(it.modulePtr, none!Sym)));
-			index++;
-		}
+			},
+			(immutable ImportOrExportKind.ModuleNamed m) {
+				foreach (immutable Sym name; m.names) {
+					if (!ctx.importsAndReExportsUsed[immutable ImportIndex(index)] && has(x.importSource))
+						addDiag(ctx, force(x.importSource), immutable Diag(
+							immutable Diag.UnusedImport(m.modulePtr, some(name))));
+					index++;
+				}
+			});
 	}
 }
 
@@ -189,36 +196,50 @@ immutable(Acc) eachImportAndReExport(Acc)(
 	immutable Acc acc,
 	scope immutable(Acc) delegate(
 		immutable Acc,
-		immutable Ptr!Module,
 		immutable ImportIndex index,
 		ref immutable NameReferents,
 	) @safe @nogc pure nothrow cb,
 ) {
 	size_t index = 0;
-	return eachCat!(Acc, ModuleAndNames)(
+	return eachCat!(Acc, ImportOrExport)(
 		acc,
 		ctx.imports,
 		ctx.reExports,
-		(immutable Acc acc, ref immutable ModuleAndNames m) {
-			immutable Opt!size_t importIndex = () {
-				if (has(m.names)) {
-					immutable Opt!size_t symIndex = indexOfSym(force(m.names), name);
-					immutable Opt!size_t res = has(symIndex) ? some(index + force(symIndex)) : none!size_t;
-					index += force(m.names).length;
-					return res;
-				} else {
-					immutable size_t res = index;
+		(immutable Acc acc, ref immutable ImportOrExport m) {
+			immutable size_t startIndex = index;
+			immutable Opt!ImportIndexAndReferents importIndexAndReferents = matchImportOrExportKind(
+				m.kind,
+				(immutable ImportOrExportKind.ModuleWhole m) {
 					index++;
-					return some(res);
-				}
-			}();
-			if (has(importIndex)) {
-				immutable Opt!NameReferents referents = m.module_.allExportedNames[name];
-				if (has(referents))
-					return cb(acc, m.modulePtr, immutable ImportIndex(force(importIndex)), force(referents));
-			}
-			return acc;
+					immutable Opt!NameReferents referents = m.module_.allExportedNames[name];
+					return has(referents)
+						? some(immutable ImportIndexAndReferents(immutable ImportIndex(startIndex), force(referents)))
+						: none!ImportIndexAndReferents;
+				},
+				(immutable ImportOrExportKind.ModuleNamed m) {
+					index += m.names.length;
+					immutable Opt!size_t symIndex = indexOfSym(m.names, name);
+					if (has(symIndex)) {
+						immutable Opt!NameReferents referents = m.module_.allExportedNames[name];
+						return has(referents)
+							? some(immutable ImportIndexAndReferents(
+								immutable ImportIndex(startIndex + force(symIndex)),
+								force(referents)))
+							: none!ImportIndexAndReferents;
+					} else
+						return none!ImportIndexAndReferents;
+				});
+			if (has(importIndexAndReferents)) {
+				immutable ImportIndexAndReferents ir = force(importIndexAndReferents);
+				return cb(acc, ir.importIndex, ir.referents);
+			} else
+				return acc;
 		});
+}
+
+private struct ImportIndexAndReferents {
+	immutable ImportIndex importIndex;
+	immutable NameReferents referents;
 }
 
 immutable(FileAndPos) posInFile(ref const CheckCtx ctx, ref immutable Pos pos) {

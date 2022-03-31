@@ -45,6 +45,7 @@ struct ParseDiag {
 		immutable Opt!PathAndRange importedFrom;
 	}
 	struct FunctionTypeMissingParens {}
+	struct ImportFileTypeNotSupported {}
 	struct IndentNotDivisible {
 		immutable uint nSpaces;
 		immutable uint nSpacesPerIndent;
@@ -101,6 +102,7 @@ struct ParseDiag {
 		fileDoesNotExist,
 		fileReadError,
 		functionTypeMissingParens,
+		importFileTypeNotSupported,
 		indentNotDivisible,
 		indentTooMuch,
 		indentWrongCharacter,
@@ -125,6 +127,7 @@ struct ParseDiag {
 		immutable FileDoesNotExist fileDoesNotExist;
 		immutable FileReadError fileReadError;
 		immutable FunctionTypeMissingParens functionTypeMissingParens;
+		immutable ImportFileTypeNotSupported importFileTypeNotSupported;
 		immutable IndentNotDivisible indentNotDivisible;
 		immutable IndentTooMuch indentTooMuch;
 		immutable IndentWrongCharacter indentWrongCharacter;
@@ -150,6 +153,9 @@ struct ParseDiag {
 	immutable this(immutable FileReadError a) { kind = Kind.fileReadError; fileReadError = a; }
 	immutable this(immutable FunctionTypeMissingParens a) {
 		kind = Kind.functionTypeMissingParens; functionTypeMissingParens = a;
+	}
+	immutable this(immutable ImportFileTypeNotSupported a) {
+		kind = Kind.importFileTypeNotSupported; importFileTypeNotSupported = a;
 	}
 	immutable this(immutable IndentNotDivisible a) { kind = Kind.indentNotDivisible; indentNotDivisible = a; }
 	immutable this(immutable IndentTooMuch a) { kind = Kind.indentTooMuch; indentTooMuch = a; }
@@ -183,6 +189,9 @@ static assert(ParseDiag.sizeof <= 32);
 	scope T delegate(
 		ref immutable ParseDiag.FunctionTypeMissingParens
 	) @safe @nogc pure nothrow cbFunctionTypeMissingParens,
+	scope T delegate(
+		ref immutable ParseDiag.ImportFileTypeNotSupported
+	) @safe @nogc pure nothrow cbImportFileTypeNotSupported,
 	scope T delegate(ref immutable ParseDiag.IndentNotDivisible) @safe @nogc pure nothrow cbIndentNotDivisible,
 	scope T delegate(ref immutable ParseDiag.IndentTooMuch) @safe @nogc pure nothrow cbIndentTooMuch,
 	scope T delegate(ref immutable ParseDiag.IndentWrongCharacter) @safe @nogc pure nothrow cbIndentWrongCharacter,
@@ -215,6 +224,8 @@ static assert(ParseDiag.sizeof <= 32);
 			return cbFileReadError(a.fileReadError);
 		case ParseDiag.Kind.functionTypeMissingParens:
 			return cbFunctionTypeMissingParens(a.functionTypeMissingParens);
+		case ParseDiag.Kind.importFileTypeNotSupported:
+			return cbImportFileTypeNotSupported(a.importFileTypeNotSupported);
 		case ParseDiag.Kind.indentNotDivisible:
 			return cbIndentNotDivisible(a.indentNotDivisible);
 		case ParseDiag.Kind.indentTooMuch:

@@ -4,7 +4,7 @@ module util.diff;
 
 import util.alloc.alloc : Alloc, TempAlloc;
 import util.col.arr : only;
-import util.col.arrUtil : arrMax, arrMaxIndex, contains, fillArrUninitialized;
+import util.col.arrUtil : arrMax, arrMaxIndex, exists, fillArrUninitialized;
 import util.col.arrBuilder : add, ArrBuilder, finishArr;
 import util.comparison : compareSizeT;
 import util.sym : AllSymbols, shortSym, Sym, symEq, symSize, writeSym;
@@ -121,7 +121,7 @@ void longestCommonSubsequenceRecur(
 		// No output
 	} else if (a.length == 1) {
 		immutable Sym sa = only(a);
-		if (contains(b, sa, (ref immutable Sym x, ref immutable Sym y) => symEq(x, y)))
+		if (exists!Sym(b, (ref immutable Sym x) => symEq(x, sa)))
 			add(alloc, res, sa);
 	} else {
 		// Always slice 'a' exactly in half. Then find best way to slice 'b'.

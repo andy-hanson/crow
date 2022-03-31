@@ -36,7 +36,7 @@ void overwriteMemory(T)(T* ptr, scope T value) {
 	initMemory_mut!T(ptr, value);
 }
 
-@trusted immutable(Ptr!T) allocate(T)(ref Alloc alloc, immutable T value) {
+@trusted immutable(Ptr!T) allocate(T)(scope ref Alloc alloc, immutable T value) {
 	T* ptr = allocateUninitialized!T(alloc);
 	initMemory!T(ptr, value);
 	return immutable Ptr!T(cast(immutable) ptr);

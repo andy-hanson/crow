@@ -829,6 +829,15 @@ void fillInConcreteFunBody(ref ConcretizeCtx ctx, Ptr!ConcreteFun cf) {
 			},
 			(ref immutable Expr e) =>
 				immutable ConcreteFunBody(concretizeExpr(ctx, inputs.containing, castImmutable(cf), e)),
+			(immutable FunBody.FileBytes e) {
+				immutable ConcreteType type = cf.deref().returnType;
+				//TODO:PERF creating a Constant per byte is expensive
+				immutable Constant[] bytes = map(ctx.alloc, e.bytes, (ref immutable ubyte a) =>
+					immutable Constant(immutable Constant.Integral(a)));
+				immutable Constant arr = getConstantArr(ctx.alloc, ctx.allConstants, mustBeByVal(type), bytes);
+				immutable FileAndRange range = concreteFunRange(castImmutable(cf).deref(), ctx.allSymbols);
+				return immutable ConcreteFunBody(immutable ConcreteExpr(type, range, immutable ConcreteExprKind(arr)));
+			},
 			(immutable FlagsFunction it) =>
 				immutable ConcreteFunBody(immutable ConcreteFunBody.FlagsFn(
 					getAllValue(asFlags(body_(mustBeByVal(castImmutable(cf).deref().returnType).deref()))),

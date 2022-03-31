@@ -261,7 +261,11 @@ immutable(SafeCStr) showAst(
 }
 
 //TODO:INLINE
-immutable(SafeCStr) showModule(ref Alloc alloc, ref const AllSymbols allSymbols, ref immutable Module a) {
+immutable(SafeCStr) showModule(
+	ref Alloc alloc,
+	ref const AllSymbols allSymbols,
+	ref immutable Module a,
+) {
 	return jsonStrOfRepr(alloc, allSymbols, reprModule(alloc, a));
 }
 

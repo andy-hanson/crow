@@ -1,7 +1,12 @@
 no-std
 import
+	crow/c-types: c-int
+	crow/ptr: any-const-ptr, any-mut-ptr
 	crow/str: c-str
 
 SDL_RWops extern-ptr
 
 SDL_RWFromFile SDL_RWops(file c-str, mode c-str) extern<SDL2> noctx summon unsafe
+
+SDL_RWFromMem SDL_RWops(mem any-mut-ptr, size c-int) extern<SDL2> noctx summon unsafe
+SDL_RWFromConstMem SDL_RWops(mem any-const-ptr, size c-int) extern<SDL2> noctx summon unsafe

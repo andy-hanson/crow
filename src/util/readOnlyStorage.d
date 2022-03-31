@@ -6,78 +6,95 @@ import util.cell : Cell, cellGet, cellSet;
 import util.opt : force, none, Opt, some;
 import util.path : Path;
 import util.col.str : SafeCStr;
+import util.sym : Sym;
 
 struct ReadOnlyStorage {
 	// WARN: The string used may be a temporary
 	immutable Path includeDir;
-	void delegate(
+	private void delegate(
 		immutable Path path,
-		immutable SafeCStr extension,
-		scope void delegate(immutable ReadFileResult) @safe @nogc pure nothrow cb,
-	) @safe @nogc nothrow withFile;
+		scope void delegate(immutable ReadFileResult!(ubyte[])) @safe @nogc pure nothrow cb,
+	) @safe @nogc nothrow withFileBinary_;
+	private void delegate(
+		immutable Path path,
+		immutable Sym extension,
+		scope void delegate(immutable ReadFileResult!SafeCStr) @safe @nogc pure nothrow cb,
+	) @safe @nogc nothrow withFileText_;
 }
 
-struct ReadFileResult {
+struct ReadFileResult(T) {
 	@safe @nogc pure nothrow:
 
 	struct NotFound {}
 	struct Error {}
 
-	immutable this(immutable SafeCStr a) { kind = Kind.text; text = a; }
+	immutable this(immutable T a) { kind = Kind.content; content = a; }
 	immutable this(immutable NotFound a) { kind = Kind.notFound; notFound = a; }
 	immutable this(immutable Error a) { kind = Kind.error; error = a; }
 
 	private:
-	enum Kind { text, notFound, error }
+	enum Kind { content, notFound, error }
 	immutable Kind kind;
 	union {
-		immutable SafeCStr text;
+		immutable T content;
 		immutable NotFound notFound;
 		immutable Error error;
 	}
 }
 
-@trusted pure immutable(T) matchReadFileResult(T)(
-	immutable ReadFileResult a,
-	scope immutable(T) delegate(immutable SafeCStr) @safe @nogc pure nothrow cbText,
-	scope immutable(T) delegate(immutable ReadFileResult.NotFound) @safe @nogc pure nothrow cbNotFound,
-	scope immutable(T) delegate(immutable ReadFileResult.Error) @safe @nogc pure nothrow cbError,
+@trusted pure immutable(T) matchReadFileResult(T, Content)(
+	immutable ReadFileResult!Content a,
+	scope immutable(T) delegate(immutable Content) @safe @nogc pure nothrow cbContent,
+	scope immutable(T) delegate(immutable ReadFileResult!Content.NotFound) @safe @nogc pure nothrow cbNotFound,
+	scope immutable(T) delegate(immutable ReadFileResult!Content.Error) @safe @nogc pure nothrow cbError,
 ) {
 	final switch (a.kind) {
-		case ReadFileResult.Kind.text:
-			return cbText(a.text);
-		case ReadFileResult.Kind.notFound:
+		case ReadFileResult!Content.Kind.content:
+			return cbContent(a.content);
+		case ReadFileResult!Content.Kind.notFound:
 			return cbNotFound(a.notFound);
-		case ReadFileResult.Kind.error:
+		case ReadFileResult!Content.Kind.error:
 			return cbError(a.error);
 	}
 }
 
-pure immutable(Opt!SafeCStr) asOption(immutable ReadFileResult a) {
-	return matchReadFileResult!(immutable Opt!SafeCStr)(
+pure immutable(Opt!T) asOption(T)(immutable ReadFileResult!T a) {
+	return matchReadFileResult!(immutable Opt!T, T)(
 		a,
 		(immutable SafeCStr x) =>
 			some(x),
-		(immutable(ReadFileResult.NotFound)) =>
+		(immutable(ReadFileResult!T.NotFound)) =>
 			none!SafeCStr,
-		(immutable(ReadFileResult.Error)) =>
+		(immutable(ReadFileResult!T.Error)) =>
 			none!SafeCStr);
 }
 
-immutable(T) withFile(T)(
+immutable(T) withFileBinary(T)(
 	scope ref const ReadOnlyStorage storage,
 	immutable Path path,
-	immutable SafeCStr extension,
-	immutable(T) delegate(immutable ReadFileResult) @safe @nogc pure nothrow cb,
+	immutable(T) delegate(immutable ReadFileResult!(ubyte[])) @safe @nogc pure nothrow cb,
+) {
+	Cell!(immutable Opt!(immutable T)) res = Cell!(immutable Opt!(immutable T))(none!(immutable T));
+	storage.withFileBinary_(path, (immutable ReadFileResult!(ubyte[]) content) {
+		cellSet!(immutable Opt!T)(res, some!(immutable T)(cb(content)));
+	});
+	return force(cellGet(res));
+}
+
+immutable(T) withFileText(T)(
+	scope ref const ReadOnlyStorage storage,
+	immutable Path path,
+	immutable Sym extension,
+	immutable(T) delegate(immutable ReadFileResult!SafeCStr) @safe @nogc pure nothrow cb,
 ) {
 	static if (is(T == void)) {
-		storage.withFile(path, extension, (immutable ReadFileResult content) {
+		storage.withFileText_(path, extension, (immutable ReadFileResult!SafeCStr content) {
 			cb(content);
 		});
 	} else {
-		Cell!(immutable Opt!T) res = Cell!(immutable Opt!T)(none!T);
-		storage.withFile(path, extension, (immutable ReadFileResult content) {
-			cellSet!(immutable Opt!T)(res, some(cb(content)));
+		Cell!(immutable Opt!(immutable T)) res = Cell!(immutable Opt!(immutable T))(none!(immutable T));
+		storage.withFileText_(path, extension, (immutable ReadFileResult!SafeCStr content) {
+			cellSet!(immutable Opt!(immutable T))(res, some!(immutable T)(cb(content)));
 		});
 		return force(cellGet(res));
 	}

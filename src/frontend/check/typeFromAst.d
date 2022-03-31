@@ -23,7 +23,6 @@ import model.model :
 	FunKind,
 	FunKindAndStructs,
 	matchStructOrAliasPtr,
-	Module,
 	NameReferents,
 	SpecDecl,
 	StructAlias,
@@ -37,8 +36,9 @@ import model.model :
 import util.alloc.alloc : Alloc;
 import util.col.arr : empty;
 import util.col.arrUtil : eachPair, find, findPtr, mapWithIndex_scope;
+import util.col.mutArr : MutArr;
 import util.col.mutMaxArr : fillMutMaxArr, mapTo, tempAsArr;
-import util.opt : force, has, none, Opt, some;
+import util.opt : force, has, none, noneMut, Opt, some;
 import util.ptr : Ptr;
 import util.sourceRange : RangeWithinFile;
 import util.sym : shortSymValue, Sym, symEq;
@@ -134,6 +134,17 @@ immutable(TypeParam[]) checkTypeParams(ref CheckCtx ctx, scope immutable NameAnd
 				immutable Diag.DuplicateDeclaration(Diag.DuplicateDeclaration.Kind.typeParam, b.name)));
 	});
 	return res;
+}
+
+immutable(Type) typeFromAstNoTypeParamsNeverDelay(
+	ref CheckCtx ctx,
+	ref immutable CommonTypes commonTypes,
+	scope ref immutable TypeAst ast,
+	scope ref immutable StructsAndAliasesDict structsAndAliasesDict,
+) {
+	static immutable TypeParamsScope emptyTypeParams = immutable TypeParamsScope([]);
+	return typeFromAst(
+		ctx, commonTypes, ast, structsAndAliasesDict, emptyTypeParams, noneMut!(Ptr!(MutArr!(Ptr!StructInst))));
 }
 
 immutable(Type) typeFromAst(
@@ -310,10 +321,7 @@ immutable(Opt!T) tryFindT(T)(
 		ctx,
 		name,
 		fromThisModule,
-		(immutable Opt!T acc,
-		 immutable Ptr!Module,
-		 immutable ImportIndex index,
-		 ref immutable NameReferents referents) {
+		(immutable Opt!T acc, immutable ImportIndex index, ref immutable NameReferents referents) {
 			immutable Opt!T got = getFromNameReferents(referents);
 			if (has(got)) {
 				markUsedImport(ctx, index);

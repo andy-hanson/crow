@@ -4,6 +4,7 @@ import
 	crow/col/private/arr-low-level: begin-ptr, subscript
 	crow/c-types: c-int
 	crow/io/duration: msec
+	crow/io/file: read-file-binary
 	crow/io/print: print
 	crow/io/time: continue, continue-or-quit, get-monotime-msec, quit, repeat-interval
 	crow/math/mat: *, I, mat3-32, rotation, to-arr
@@ -33,6 +34,9 @@ import
 		SDL_WINDOW_OPENGL, SDL_WINDOWPOS_UNDEFINED, SDL_WINDOW_SHOWN, to-int32
 	./shader: shader-prog-destroy, shader-prog-load
 	./texture: load-texture, free-texture
+	./crow.webp as bad-crow-webp nat8[]
+	./fragment.frag.essl as fragment-shader str
+	./vertex.vert.essl as vertex-shader str
 
 main fut nat(_ str[]) summon trusted
 	SDL_INIT_VIDEO.SDL_Init handle-sdl-error "SDL_INIT_VIDEO"
@@ -51,7 +55,7 @@ main fut nat(_ str[]) summon trusted
 	if context.as-any-const-ptr == null
 		"SDL_GL_CreateContext" fail-sdl-error
 
-	shader-prog = "demo/open-gl/vertex.vert.essl" shader-prog-load "demo/open-gl/fragment.frag.essl"
+	shader-prog = vertex-shader shader-prog-load fragment-shader
 	"after shader-prog" gl-check-error
 	shader-prog glUseProgram
 
@@ -69,7 +73,11 @@ main fut nat(_ str[]) summon trusted
 	rotation-uniform-loc glUniformMatrix3fv 1, false, I.to-arr.begin-ptr
 	"after set rotation-uniform-loc" gl-check-error
 
-	texture = "demo/open-gl/crow.webp" load-texture
+	crow-webp = if false
+		bad-crow-webp
+	else
+		"demo/open-gl/crow.webp" read-file-binary
+	texture = crow-webp load-texture
 
 	vertices vertex[] = make-cube
 	triangle-vbo = vertices vbo-create

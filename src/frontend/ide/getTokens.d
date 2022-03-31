@@ -13,7 +13,7 @@ import frontend.parse.ast :
 	IdentifierAst,
 	IfAst,
 	IfOptionAst,
-	ImportAst,
+	ImportOrExportAst,
 	ImportsOrExportsAst,
 	InterpolatedAst,
 	InterpolatedPart,
@@ -158,7 +158,7 @@ void addImportTokens(
 		add(alloc, tokens, immutable Token(
 			Token.Kind.keyword,
 			rangeAtName(allSymbols, force(a).range.start, keyword)));
-		foreach (ref immutable ImportAst path; force(a).paths)
+		foreach (ref immutable ImportOrExportAst path; force(a).paths)
 			add(alloc, tokens, immutable Token(
 				Token.Kind.importPath,
 				path.range));

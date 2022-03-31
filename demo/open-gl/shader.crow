@@ -1,16 +1,8 @@
-no-std
 import
 	crow/cell: *, cell, new
-	crow/col/arr: arr, new, size
 	crow/col/fix-arr: begin-ptr, fix-arr, to-arr, uninitialized-fix-arr
 	crow/col/private/arr-low-level: begin-ptr
-	crow/compare: !=
-	crow/exception: assert, throw
-	crow/io/file: read-file
-	crow/misc: void
-	crow/number: ==, to-int32, to-nat64
 	crow/ptr: null
-	crow/str: c-str, str
 	crow/str-util: to-c-str
 	GLES2/gl2:
 		glAttachShader, GLchar, glCompileShader, GL_COMPILE_STATUS, glCreateProgram, glCreateShader,
@@ -19,9 +11,9 @@ import
 		GL_INFO_LOG_LENGTH, GLint, glLinkProgram, GL_LINK_STATUS, glShaderSource, GL_TRUE,
 		GLuint, GL_VERTEX_SHADER
 
-shader-prog-load GLuint(vert-file-name str, frag-file-name str) summon unsafe
-	vert-shader = vert-file-name shader-load GL_VERTEX_SHADER
-	frag-shader = frag-file-name shader-load GL_FRAGMENT_SHADER
+shader-prog-load GLuint(vert-shader-source str, frag-shader-source str) summon unsafe
+	vert-shader = vert-shader-source shader-load GL_VERTEX_SHADER
+	frag-shader = frag-shader-source shader-load GL_FRAGMENT_SHADER
 	shader-prog = glCreateProgram
 	assert: shader-prog != 0
 	shader-prog glAttachShader vert-shader
@@ -45,8 +37,8 @@ shader-prog-load GLuint(vert-file-name str, frag-file-name str) summon unsafe
 shader-prog-destroy void(shader-prog GLuint) summon unsafe
 	shader-prog glDeleteProgram
 
-.shader-load GLuint(file-name str, shader-type GLenum) summon unsafe
-	shader = file-name create-shader-from-source shader-type
+.shader-load GLuint(source str, shader-type GLenum) summon unsafe
+	shader = source create-shader-from-source shader-type
 	shader glCompileShader
 	compile-succeeded cell GLint = GL_FALSE,
 	shader glGetShaderiv GL_COMPILE_STATUS, compile-succeeded
@@ -60,8 +52,8 @@ shader-prog-destroy void(shader-prog GLuint) summon unsafe
 		shader glDeleteShader
 		err-log.to-arr.str throw
 
-.create-shader-from-source GLuint(file-name str, shader-type GLenum) summon unsafe
+.create-shader-from-source GLuint(source str, shader-type GLenum) summon unsafe
 	shader = shader-type glCreateShader
-	shader-sources c-str[] = file-name.read-file.to-c-str,
+	shader-sources c-str[] = source.to-c-str,
 	shader glShaderSource shader-sources.size.to-int32, shader-sources.begin-ptr, null
 	shader

@@ -52,7 +52,7 @@ immutable(bool) mutArrIsEmpty(T)(ref const MutArr!T a) {
 	return a.begin_ + a.size_;
 }
 
-@trusted void push(T)(ref Alloc alloc, scope ref MutArr!T a, T value) {
+@trusted void push(T)(scope ref Alloc alloc, scope ref MutArr!T a, T value) {
 	if (a.size_ == a.capacity_) {
 		immutable size_t newCapacity = a.size_ == 0 ? 2 : a.size_ * 2;
 		T* newBegin = allocateT!T(alloc, newCapacity);

@@ -39,7 +39,7 @@ import util.util : max, verify;
 
 pure:
 
-@trusted immutable(T[]) arrLiteral(T)(ref Alloc alloc, scope immutable T[] values) {
+@trusted immutable(T[]) arrLiteral(T)(scope ref Alloc alloc, scope immutable T[] values) {
 	T* ptr = allocateT!T(alloc, values.length);
 	foreach (immutable size_t i; 0 .. values.length)
 		initMemory(ptr + i, values[i]);
@@ -116,15 +116,6 @@ immutable(bool) everyWithIndex(T)(
 		if (!cb(x, i))
 			return false;
 	return true;
-}
-
-immutable(bool) contains(T)(
-	scope ref immutable T[] arr,
-	scope ref immutable T value,
-	immutable(bool) delegate(ref immutable T, ref immutable T) @safe @nogc pure nothrow equals,
-) {
-	return exists!T(arr, (ref immutable T v) =>
-		equals(v, value));
 }
 
 immutable(Opt!size_t) findIndex(T)(
@@ -424,7 +415,7 @@ private immutable(Acc) each(Acc, T)(
 	}
 }
 
-@trusted immutable(T[]) append(T)(ref Alloc alloc, immutable T[] a, immutable T b) {
+@trusted immutable(T[]) append(T)(scope ref Alloc alloc, immutable T[] a, immutable T b) {
 	immutable size_t resSize = a.length + 1;
 	T* res = allocateT!T(alloc, resSize);
 	foreach (immutable size_t i; 0 .. a.length)
@@ -433,7 +424,7 @@ private immutable(Acc) each(Acc, T)(
 	return (cast(immutable) res)[0 .. resSize];
 }
 
-@trusted immutable(T[]) prepend(T)(ref Alloc alloc, immutable T a, immutable T[] b) {
+@trusted immutable(T[]) prepend(T)(scope ref Alloc alloc, immutable T a, immutable T[] b) {
 	immutable size_t resSize = 1 + b.length;
 	T* res = allocateT!T(alloc, resSize);
 	initMemory(res + 0, a);

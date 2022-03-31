@@ -1,31 +1,21 @@
-no-std
 import
 	crow/c-types: c-int
 	crow/cell: *, cell, new
-	crow/col/arr: size
 	crow/col/private/arr-low-level: begin-ptr
-	crow/exception: finally
-	crow/fun-util: subscript
-	crow/io/file: read-file-binary
-	crow/misc: void
-	crow/number: nat, nat8, to-nat64
 	crow/ptr: mut-ptr
-	crow/str: str
 	webp/decode: WebPDecodeRGBA
 	webp/types: WebPFree
 
-# WARN: Remember to free
 webp-rgba-image record mut
 	image-data nat8 mut*
 	width nat
 	height nat
 
-with-webp<a> a(path str, cb act a(webp-rgba-image)) unsafe summon
-	image = path load-webp
+with-webp<a> a(compressed nat8[], cb act a(webp-rgba-image)) unsafe summon
+	image = compressed load-webp
 	(() => image free-webp) finally () => cb[image]
 
-.load-webp webp-rgba-image(path str) unsafe summon
-	compressed = path read-file-binary
+.load-webp webp-rgba-image(compressed nat8[]) unsafe summon
 	width cell c-int = 0,
 	height cell c-int = 0,
 	uncompressed = compressed.begin-ptr WebPDecodeRGBA compressed.size, width, height

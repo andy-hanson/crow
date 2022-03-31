@@ -16,14 +16,16 @@ import model.model :
 	FunDecl,
 	FunInst,
 	FunKind,
+	ImportOrExport,
+	ImportOrExportKind,
 	Local,
 	matchCalled,
 	matchExpr,
 	matchFunBody,
+	matchImportOrExportKind,
 	matchParams,
 	matchType,
 	Module,
-	ModuleAndNames,
 	name,
 	noCtx,
 	Param,
@@ -79,11 +81,11 @@ immutable(Repr) reprModule(ref Alloc alloc, ref immutable Module a) {
 	if (!safeCStrIsEmpty(a.docComment))
 		add(alloc, fields, nameAndRepr("doc", reprStr(a.docComment)));
 	if (!empty(a.imports))
-		add(alloc, fields, nameAndRepr("imports", reprArr(alloc, a.imports, (ref immutable ModuleAndNames m) =>
-			reprModuleAndNames(alloc, m))));
+		add(alloc, fields, nameAndRepr("imports", reprArr(alloc, a.imports, (ref immutable ImportOrExport x) =>
+			reprImportOrExport(alloc, x))));
 	if (!empty(a.exports))
-		add(alloc, fields, nameAndRepr("exports", reprArr(alloc, a.exports, (ref immutable ModuleAndNames m) =>
-			reprModuleAndNames(alloc, m))));
+		add(alloc, fields, nameAndRepr("exports", reprArr(alloc, a.exports, (ref immutable ImportOrExport x) =>
+			reprImportOrExport(alloc, x))));
 	if (!empty(a.structs))
 		add(alloc, fields, nameAndRepr("structs", reprArr(alloc, a.structs, (ref immutable StructDecl s) =>
 			reprStructDecl(alloc, ctx, s))));
@@ -98,14 +100,23 @@ immutable(Repr) reprModule(ref Alloc alloc, ref immutable Module a) {
 
 private:
 
-immutable(Repr) reprModuleAndNames(ref Alloc alloc, ref immutable ModuleAndNames a) {
+immutable(Repr) reprImportOrExport(ref Alloc alloc, ref immutable ImportOrExport a) {
 	return reprRecord(alloc, "import", [
 		reprOpt(alloc, a.importSource, (ref immutable RangeWithinFile it) =>
 			reprRangeWithinFile(alloc, it)),
-		reprNat(a.module_.fileIndex.index),
-		reprOpt!(Sym[])(alloc, a.names, (ref immutable Sym[] names) =>
-			reprArr(alloc, names, (ref immutable Sym name) =>
-				reprSym(name)))]);
+		reprImportOrExportKind(alloc, a.kind)]);
+}
+
+immutable(Repr) reprImportOrExportKind(ref Alloc alloc, ref immutable ImportOrExportKind a) {
+	return matchImportOrExportKind(
+		a,
+		(immutable ImportOrExportKind.ModuleWhole m) =>
+			reprRecord(alloc, "whole", [reprNat(m.module_.fileIndex.index)]),
+		(immutable ImportOrExportKind.ModuleNamed m) =>
+			reprRecord(alloc, "named", [
+				reprNat(m.module_.fileIndex.index),
+				reprArr(alloc, m.names, (ref immutable Sym name) =>
+					reprSym(name))]));
 }
 
 struct Ctx {
@@ -209,6 +220,8 @@ immutable(Repr) reprFunBody(ref Alloc alloc, ref Ctx ctx, ref immutable FunBody 
 					reprSym(libraryName))]),
 		(ref immutable Expr it) =>
 			reprExpr(alloc, ctx, it),
+		(immutable(FunBody.FileBytes)) =>
+			reprSym("bytes"),
 		(immutable FlagsFunction it) =>
 			reprRecord(alloc, "flags-fn", [reprSym(flagsFunctionName(it))]),
 		(ref immutable FunBody.RecordFieldGet it) =>
@@ -281,6 +294,10 @@ immutable(Repr) reprExpr(ref Alloc alloc, ref Ctx ctx, ref immutable Expr a) {
 			reprRecord(alloc, "literal", [
 				reprStructInst(alloc, ctx, it.structInst.deref()),
 				reprOfConstant(alloc, it.value)]),
+		(ref immutable Expr.LiteralCString it) =>
+			reprRecord(alloc, "c-string-lit", [reprStr(it.value)]),
+		(ref immutable Expr.LiteralSymbol it) =>
+			reprRecord(alloc, "sym-lit", [reprSym(it.value)]),
 		(ref immutable Expr.LocalRef it) =>
 			reprRecord(alloc, "local-ref", [reprSym(it.local.deref().name)]),
 		(ref immutable Expr.MatchEnum a) =>
@@ -299,11 +316,7 @@ immutable(Repr) reprExpr(ref Alloc alloc, ref Ctx ctx, ref immutable Expr a) {
 		(ref immutable Expr.Seq a) =>
 			reprRecord(alloc, "seq", [
 				reprExpr(alloc, ctx, a.first),
-				reprExpr(alloc, ctx, a.then)]),
-		(ref immutable Expr.CStringLiteral it) =>
-			reprRecord(alloc, "c-string-lit", [reprStr(it.value)]),
-		(ref immutable Expr.SymbolLiteral it) =>
-			reprRecord(alloc, "sym-lit", [reprSym(it.value)]));
+				reprExpr(alloc, ctx, a.then)]));
 }
 
 immutable(Sym) symOfFunKind(immutable FunKind a) {

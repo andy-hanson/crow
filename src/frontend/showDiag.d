@@ -214,6 +214,9 @@ void writeParseDiag(
 		(ref immutable ParseDiag.FunctionTypeMissingParens) {
 			writeStatic(writer, "function type missing parentheses");
 		},
+		(ref immutable ParseDiag.ImportFileTypeNotSupported) {
+			writeStatic(writer, "import file type not allowed; the only supported types are 'nat8[]' and 'str'");
+		},
 		(ref immutable ParseDiag.IndentNotDivisible d) {
 			writeStatic(writer, "expected indentation by ");
 			writeNat(writer, d.nSpacesPerIndent);

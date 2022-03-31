@@ -4,7 +4,7 @@ module util.sym;
 
 import util.alloc.alloc : Alloc;
 import util.col.arr : only;
-import util.col.arrUtil : contains, findIndex;
+import util.col.arrUtil : findIndex;
 import util.col.mutArr : MutArr, mutArrAt, mutArrSize, push;
 import util.col.mutDict : addToMutDict, getAt_mut, mutDictSize, MutStringDict;
 import util.col.str : copyToSafeCStr, eachChar, SafeCStr, safeCStr, strOfSafeCStr;
@@ -17,10 +17,6 @@ import util.writer : finishWriterToSafeCStr, writeChar, Writer;
 
 immutable(Opt!size_t) indexOfSym(ref immutable Sym[] a, immutable Sym value) {
 	return findIndex!Sym(a, (ref immutable Sym it) => symEq(it, value));
-}
-
-immutable(bool) containsSym(ref immutable Sym[] a, immutable Sym b) {
-	return contains(a, b, (ref immutable Sym a, ref immutable Sym b) => symEq(a, b));
 }
 
 struct Sym {
@@ -75,21 +71,39 @@ private immutable(Sym) addLargeString(ref AllSymbols a, immutable SafeCStr value
 	return res;
 }
 
-@trusted immutable(Sym) prependSet(ref AllSymbols allSymbols, immutable Sym a) {
+immutable(Sym) prependSet(ref AllSymbols allSymbols, immutable Sym a) {
 	immutable Opt!Sym short_ = tryPrefixShortSymWithSet(a);
-	if (has(short_))
-		return force(short_);
-	else {
-		char[0x100] temp = void;
-		temp[0 .. "set-".length] = "set-";
-		size_t i = "set-".length;
-		eachCharInSym(allSymbols, a, (immutable char x) {
-			temp[i] = x;
-			i++;
-			verify(i <= temp.length);
-		});
-		return getSymFromLongStr(allSymbols, cast(immutable) temp[0 .. i]);
+	return has(short_) ? force(short_) : prependToLongStr!"set-"(allSymbols, a);
+}
+
+private @trusted immutable(Sym) prependToLongStr(immutable string prepend)(ref AllSymbols allSymbols, immutable Sym a) {
+	char[0x100] temp = void;
+	temp[0 .. prepend.length] = prepend;
+	size_t i = prepend.length;
+	eachCharInSym(allSymbols, a, (immutable char x) {
+		temp[i] = x;
+		i++;
+		verify(i <= temp.length);
+	});
+	return getSymFromLongStr(allSymbols, cast(immutable) temp[0 .. i]);
+}
+
+@trusted immutable(Sym) concatSymsWithDot(ref AllSymbols allSymbols, immutable Sym a, immutable Sym b) {
+	char[0x100] temp = void;
+	size_t i = 0;
+	void push(immutable char c) {
+		temp[i] = c;
+		i++;
+		verify(i <= temp.length);
 	}
+	eachCharInSym(allSymbols, a, (immutable char x) {
+		push(x);
+	});
+	push('.');
+	eachCharInSym(allSymbols, b, (immutable char x) {
+		push(x);
+	});
+	return getSymFromLongStr(allSymbols, cast(immutable) temp[0 .. i]);
 }
 
 immutable(Sym) emptySym = shortSym("");
@@ -155,6 +169,11 @@ enum SpecialSym {
 	is_single_threaded,
 
 	dotNew,
+
+	dotC,
+	dotCrow,
+	dotExe,
+	dotJson,
 }
 
 immutable(Sym) symForOperator(immutable Operator a) {
@@ -271,6 +290,14 @@ private immutable(SafeCStr) strOfSpecial(immutable SpecialSym a) {
 
 		case SpecialSym.dotNew:
 			return safeCStr!".new";
+		case SpecialSym.dotC:
+			return safeCStr!".c";
+		case SpecialSym.dotCrow:
+			return safeCStr!".crow";
+		case SpecialSym.dotExe:
+			return safeCStr!".exe";
+		case SpecialSym.dotJson:
+			return safeCStr!".json";
 	}
 }
 

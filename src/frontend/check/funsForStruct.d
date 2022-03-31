@@ -5,7 +5,6 @@ module frontend.check.funsForStruct;
 import frontend.check.checkCtx : CheckCtx;
 import frontend.check.instantiate :
 	instantiateStruct, instantiateStructNeverDelay, makeArrayType, makeNamedValType, TypeArgsArray, typeArgsArray;
-import frontend.parse.ast : FunDeclAst;
 import frontend.programState : ProgramState;
 import model.model :
 	body_,
@@ -52,11 +51,8 @@ import util.ptr : Ptr;
 import util.sourceRange : fileAndPosFromFileAndRange, FileAndRange;
 import util.sym : Operator, prependSet, shortSym, SpecialSym, Sym, symForOperator, symForSpecial;
 
-immutable(size_t) countFunsForStruct(
-	ref immutable FunDeclAst[] asts,
-	ref immutable StructDecl[] structs,
-) {
-	return asts.length + sum!StructDecl(structs, (ref immutable StructDecl s) =>
+immutable(size_t) countFunsForStruct(immutable StructDecl[] structs) {
+	return sum!StructDecl(structs, (ref immutable StructDecl s) =>
 		matchStructBody!(immutable size_t)(
 			body_(s),
 			(ref immutable StructBody.Bogus) =>

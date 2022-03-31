@@ -19,6 +19,7 @@ import util.sourceRange : Pos, RangeWithinFile;
 import util.sym :
 	AllSymbols,
 	Operator,
+	concatSymsWithDot,
 	shortSym,
 	shortSymValue,
 	SpecialSym,
@@ -62,7 +63,7 @@ ref AllSymbols allSymbols(return scope ref Lexer lexer) {
 	Ptr!Alloc alloc,
 	Ptr!AllSymbols allSymbols,
 	Ptr!(ArrBuilder!DiagnosticWithinFile) diagnosticsBuilder,
-	immutable SafeCStr source,
+	return scope immutable SafeCStr source,
 ) {
 	return Lexer(
 		alloc,
@@ -323,6 +324,17 @@ immutable(NameAndRange) takeNameAndRange(ref Lexer lexer) {
 	}
 }
 
+immutable(Sym) takePathComponent(scope ref Lexer lexer) {
+	return takePathComponentRest(lexer, takeName(lexer));
+}
+private immutable(Sym) takePathComponentRest(ref Lexer lexer, immutable Sym cur) {
+	if (tryTakeToken(lexer, Token.dot)) {
+		immutable Sym extension = takeName(lexer);
+		return takePathComponentRest(lexer, concatSymsWithDot(lexer.allSymbols, cur, extension));
+	} else
+		return cur;
+}
+
 immutable(OptNameAndRange) takeOptNameAndRange(ref Lexer lexer) {
 	immutable Pos start = curPos(lexer);
 	if (tryTakeToken(lexer, Token.underscore))
@@ -385,7 +397,7 @@ immutable(NameOrUnderscoreOrNone) takeNameOrUnderscoreOrNone(ref Lexer lexer) {
 
 private:
 
-@trusted immutable(SafeCStr) takeRestOfLineAndNewline(ref Lexer lexer) {
+@trusted immutable(SafeCStr) takeRestOfLineAndNewline(scope ref Lexer lexer) {
 	immutable char* begin = lexer.ptr;
 	skipRestOfLineAndNewline(lexer);
 	immutable char* end = lexer.ptr - 1;
@@ -706,9 +718,21 @@ public immutable(Operator) getCurOperator(ref Lexer lexer) {
 	return cellGet(lexer.curOperator);
 }
 
-@trusted public immutable(LiteralAst) getCurLiteral(ref Lexer lexer) {
+@trusted public immutable(LiteralAst) getCurLiteral(scope ref Lexer lexer) {
 	//TODO: assert that cur token is Token.literal
-	return cellGet(lexer.curLiteral);
+	immutable LiteralAst res = cellGet(lexer.curLiteral);
+	// copy to avoid `scope`` issues
+	return matchLiteralAst!(
+		immutable LiteralAst,
+		(immutable LiteralAst.Float x) =>
+			immutable LiteralAst(x),
+		(immutable LiteralAst.Int x) =>
+			immutable LiteralAst(x),
+		(immutable LiteralAst.Nat x) =>
+			immutable LiteralAst(x),
+		(immutable(string)) =>
+			unreachable!(immutable LiteralAst)(),
+	)(res);
 }
 
 public immutable(bool) tryTakeToken(ref Lexer lexer, immutable Token expected) {
@@ -983,7 +1007,7 @@ public enum QuoteKind {
 	double3,
 }
 
-public @trusted immutable(StringPart) takeStringPart(ref Lexer lexer, immutable QuoteKind quoteKind) {
+public @trusted immutable(StringPart) takeStringPart(scope ref Lexer lexer, immutable QuoteKind quoteKind) {
 	char[0x10000] res = void;
 	size_t i = 0;
 	void push(immutable char c) {
@@ -1135,11 +1159,11 @@ struct IndentDelta {
 	}
 }
 
-public immutable(SafeCStr) skipBlankLinesAndGetDocComment(ref Lexer lexer) {
+public immutable(SafeCStr) skipBlankLinesAndGetDocComment(scope ref Lexer lexer) {
 	return skipBlankLinesAndGetDocCommentRecur(lexer, safeCStr!"");
 }
 
-immutable(SafeCStr) skipBlankLinesAndGetDocCommentRecur(ref Lexer lexer, immutable SafeCStr comment) {
+immutable(SafeCStr) skipBlankLinesAndGetDocCommentRecur(scope ref Lexer lexer, immutable SafeCStr comment) {
 	if (tryTakeNewline(lexer))
 		return skipBlankLinesAndGetDocCommentRecur(lexer, comment);
 	else if (tryTakeTripleHashThenNewline(lexer))
@@ -1199,7 +1223,7 @@ immutable(bool) tryTakeTripleHashThenNewline(ref Lexer lexer) {
 	return tryTakeCStr(lexer, "###\r") || tryTakeCStr(lexer, "###\n");
 }
 
-@trusted immutable(SafeCStr) takeRestOfBlockComment(ref Lexer lexer) {
+@trusted immutable(SafeCStr) takeRestOfBlockComment(scope ref Lexer lexer) {
 	immutable char* begin = lexer.ptr;
 	immutable char* end = skipRestOfBlockComment(lexer);
 	return copyToSafeCStr(lexer.alloc, stripWhitespace(arrOfRange(begin, end)));

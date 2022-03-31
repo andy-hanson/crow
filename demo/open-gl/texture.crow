@@ -1,12 +1,6 @@
-no-std
 import
 	crow/cell: *, as-mut-ptr, cell, new
-	crow/exception: throw
-	crow/misc: new, void
-	crow/number: to-int32
 	crow/ptr: as-const, ptr-to
-	crow/str: literal, str
-	crow/str-conv: finish, interp, to-str, with-str, with-value
 	GLES2/gl2:
 		==, glBindTexture, glDeleteTextures, glGetError, glGenTextures, GL_LINEAR, GL_NO_ERROR,
 		GL_RGBA, glTexImage2D, glTexParameteri, GL_TEXTURE_MAG_FILTER, GL_TEXTURE_MIN_FILTER,
@@ -14,8 +8,8 @@ import
 	./load-webp: height, image-data, width, with-webp
 
 # Remember to call 'free-texture'
-load-texture GLuint(path str) unsafe summon
-	path with-webp image =>
+load-texture GLuint(compressed nat8[]) unsafe summon
+	compressed with-webp image =>
 		texture-cell cell GLuint = 0,
 		1 glGenTextures texture-cell.as-mut-ptr
 		texture = *texture-cell
@@ -28,7 +22,7 @@ load-texture GLuint(path str) unsafe summon
 
 		err = glGetError
 		unless err == GL_NO_ERROR
-			"Error loading image {path}: code {err}" throw
+			"Error loading image: code {err}" throw
 
 		GL_TEXTURE_2D glTexParameteri GL_TEXTURE_MAG_FILTER, GL_LINEAR
 		GL_TEXTURE_2D glTexParameteri GL_TEXTURE_MIN_FILTER, GL_LINEAR

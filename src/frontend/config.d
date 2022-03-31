@@ -11,13 +11,13 @@ import util.col.arrBuilder : add, ArrBuilder, finishArr;
 import util.col.arrUtil : fold;
 import util.col.dict : KeyValuePair, SymDict;
 import util.col.dictBuilder : finishDict, SymDictBuilder, tryAddToDict;
-import util.col.str : SafeCStr, safeCStr;
-import util.readOnlyStorage : matchReadFileResult, ReadFileResult, ReadOnlyStorage, withFile;
+import util.col.str : SafeCStr;
+import util.readOnlyStorage : matchReadFileResult, ReadFileResult, ReadOnlyStorage, withFileText;
 import util.opt : force, has, none, Opt, some;
 import util.jsonParse : asObject, asString, isObject, isString, Json, parseJson;
 import util.path : AllPaths, childPath, commonAncestor, parent, parseAbsoluteOrRelPath, Path, PathAndRange;
 import util.sourceRange : RangeWithinFile;
-import util.sym : AllSymbols, shortSym, Sym, symEq;
+import util.sym : AllSymbols, shortSym, SpecialSym, Sym, symEq, symForSpecial;
 import util.util : todo;
 
 struct Config {
@@ -52,18 +52,22 @@ immutable(Config) getConfigRecur(
 ) {
 	immutable Path configPath = childPath(allPaths, searchPath, shortSym("crow-config"));
 	ArrBuilder!DiagnosticWithinFile diags;
-	immutable Opt!Config res = withFile(storage, configPath, safeCStr!".json", (immutable ReadFileResult a) =>
-		matchReadFileResult!(immutable Opt!Config)(
-			a,
-			(immutable SafeCStr content) pure =>
-				some(parseConfig(alloc, allSymbols, allPaths, searchPath, diags, content)),
-			(immutable(ReadFileResult.NotFound)) pure =>
-				none!Config,
-			(immutable(ReadFileResult.Error)) pure {
-				add(alloc, diags, immutable DiagnosticWithinFile(RangeWithinFile.empty, immutable Diag(
-					immutable ParseDiag(immutable ParseDiag.FileReadError(none!PathAndRange)))));
-				return some(emptyConfig);
-			}));
+	immutable Opt!Config res = withFileText(
+		storage,
+		configPath,
+		symForSpecial(SpecialSym.dotJson),
+		(immutable ReadFileResult!SafeCStr a) =>
+			matchReadFileResult!(immutable Opt!Config, SafeCStr)(
+				a,
+				(immutable SafeCStr content) pure =>
+					some(parseConfig(alloc, allSymbols, allPaths, searchPath, diags, content)),
+				(immutable(ReadFileResult!SafeCStr.NotFound)) pure =>
+					none!Config,
+				(immutable(ReadFileResult!SafeCStr.Error)) pure {
+					add(alloc, diags, immutable DiagnosticWithinFile(RangeWithinFile.empty, immutable Diag(
+						immutable ParseDiag(immutable ParseDiag.FileReadError(none!PathAndRange)))));
+					return some(emptyConfig);
+				}));
 	foreach (immutable DiagnosticWithinFile d; finishArr(alloc, diags))
 		todo!void("!");
 	if (has(res))

@@ -8,9 +8,11 @@ import frontend.parse.ast :
 	FunBodyAst,
 	FunDeclAst,
 	FunDeclAstFlags,
-	ImportAst,
+	ImportOrExportAst,
+	ImportOrExportAstKind,
 	ImportsOrExportsAst,
 	LiteralIntOrNat,
+	matchTypeAst,
 	ModifierAst,
 	NameAndRange,
 	ParamAst,
@@ -25,6 +27,7 @@ import frontend.parse.ast :
 	TestAst,
 	TypeAst;
 import frontend.parse.lexer :
+	addDiag,
 	addDiagAtChar,
 	addDiagUnexpectedCurToken,
 	alloc,
@@ -53,6 +56,7 @@ import frontend.parse.lexer :
 	takeNewlineOrIndent_topLevel,
 	takeNewlineOrSingleDedent,
 	takeNewline_topLevel,
+	takePathComponent,
 	takeOrAddDiagExpectedOperator,
 	takeOrAddDiagExpectedToken,
 	takeTypeArgsEnd,
@@ -64,10 +68,10 @@ import frontend.parse.lexer :
 import frontend.parse.parseExpr : parseFunExprBody;
 import frontend.parse.parseType : parseType, tryParseTypeArg, tryParseTypeArgsBracketed;
 import model.diag : DiagnosticWithinFile;
-import model.model : FieldMutability, Visibility;
+import model.model : FieldMutability, ImportFileType, Visibility;
 import model.parseDiag : ParseDiag;
 import util.alloc.alloc : Alloc;
-import util.col.arr : emptyArr, emptySmallArray, small;
+import util.col.arr : empty, emptyArr, emptySmallArray, small;
 import util.col.arrBuilder : add, ArrBuilder, finishArr;
 import util.col.str : SafeCStr;
 import util.conv : safeToUshort;
@@ -86,10 +90,10 @@ immutable(FileAst) parseFile(
 	ref AllPaths allPaths,
 	ref AllSymbols allSymbols,
 	ref ArrBuilder!DiagnosticWithinFile diagsBuilder,
-	immutable SafeCStr source,
+	scope immutable SafeCStr source,
 ) {
 	return withMeasure!(immutable FileAst, () {
-		Lexer lexer = createLexer(
+		scope Lexer lexer = createLexer(
 			ptrTrustMe_mut(alloc),
 			ptrTrustMe_mut(allSymbols),
 			ptrTrustMe_mut(diagsBuilder),
@@ -100,7 +104,7 @@ immutable(FileAst) parseFile(
 
 private:
 
-immutable(NameAndRange[]) parseTypeParams(ref Lexer lexer) {
+immutable(NameAndRange[]) parseTypeParams(scope ref Lexer lexer) {
 	if (tryTakeOperator(lexer, Operator.less)) {
 		ArrBuilder!NameAndRange res;
 		do {
@@ -113,17 +117,17 @@ immutable(NameAndRange[]) parseTypeParams(ref Lexer lexer) {
 }
 
 struct ImportAndDedent {
-	immutable ImportAst import_;
+	immutable ImportOrExportAst import_;
 	immutable NewlineOrDedent dedented;
 }
 
-struct NamesAndDedent {
-	immutable Opt!(Sym[]) names;
+struct ImportOrExportKindAndDedent {
+	immutable ImportOrExportAstKind kind;
 	immutable RangeWithinFile range;
 	immutable NewlineOrDedent dedented;
 }
 
-immutable(PathOrRelPath) parseImportPath(ref AllPaths allPaths, ref Lexer lexer) {
+immutable(PathOrRelPath) parseImportPath(ref AllPaths allPaths, scope ref Lexer lexer) {
 	immutable Opt!ushort nParents = () {
 		if (tryTakeToken(lexer, Token.dot)) {
 			takeOrAddDiagExpectedOperator(lexer, Operator.divide, ParseDiag.Expected.Kind.slash);
@@ -136,10 +140,10 @@ immutable(PathOrRelPath) parseImportPath(ref AllPaths allPaths, ref Lexer lexer)
 	}();
 	return immutable PathOrRelPath(
 		nParents,
-		addPathComponents(allPaths, lexer, rootPath(allPaths, takeName(lexer))));
+		addPathComponents(allPaths, lexer, rootPath(allPaths, takePathComponent(lexer))));
 }
 
-immutable(size_t) takeDotDotSlashes(ref Lexer lexer, immutable size_t acc) {
+immutable(size_t) takeDotDotSlashes(scope ref Lexer lexer, immutable size_t acc) {
 	if (tryTakeOperator(lexer, Operator.range)) {
 		takeOrAddDiagExpectedOperator(lexer, Operator.divide, ParseDiag.Expected.Kind.slash);
 		return takeDotDotSlashes(lexer, acc + 1);
@@ -147,33 +151,88 @@ immutable(size_t) takeDotDotSlashes(ref Lexer lexer, immutable size_t acc) {
 		return acc;
 }
 
-immutable(Path) addPathComponents(ref AllPaths allPaths, ref Lexer lexer, immutable Path acc) {
+immutable(Path) addPathComponents(ref AllPaths allPaths, scope ref Lexer lexer, immutable Path acc) {
 	return tryTakeOperator(lexer, Operator.divide)
-		? addPathComponents(allPaths, lexer, childPath(allPaths, acc, takeName(lexer)))
+		? addPathComponents(allPaths, lexer, childPath(allPaths, acc, takePathComponent(lexer)))
 		: acc;
 }
 
-immutable(ImportAndDedent) parseSingleModuleImportOnOwnLine(ref AllPaths allPaths, ref Lexer lexer) {
+immutable(ImportAndDedent) parseSingleModuleImportOnOwnLine(ref AllPaths allPaths, scope ref Lexer lexer) {
 	immutable Pos start = curPos(lexer);
 	immutable PathOrRelPath path = parseImportPath(allPaths, lexer);
-	immutable NamesAndDedent names = () {
-		if (tryTakeToken(lexer, Token.colon)) {
-			if (tryTakeIndent(lexer, 1))
-				return parseIndentedImportNames(lexer, start);
-			else {
-				immutable Sym[] names = parseSingleImportNamesOnSingleLine(lexer);
-				return immutable NamesAndDedent(
-					some!(Sym[])(names),
-					range(lexer, start),
-					takeNewlineOrSingleDedent(lexer));
-			}
-		}
-		return immutable NamesAndDedent(none!(Sym[]), range(lexer, start), takeNewlineOrSingleDedent(lexer));
-	}();
-	return immutable ImportAndDedent(immutable ImportAst(names.range, path, names.names), names.dedented);
+	immutable ImportOrExportKindAndDedent kind = parseImportOrExportKind(lexer, start);
+	return immutable ImportAndDedent(immutable ImportOrExportAst(kind.range, path, kind.kind), kind.dedented);
 }
 
-immutable(NamesAndDedent) parseIndentedImportNames(ref Lexer lexer, immutable Pos start) {
+immutable(ImportOrExportKindAndDedent) parseImportOrExportKind(scope ref Lexer lexer, immutable Pos start) {
+	if (tryTakeToken(lexer, Token.colon)) {
+		if (tryTakeIndent(lexer, 1))
+			return parseIndentedImportNames(lexer, start);
+		else {
+			immutable Sym[] names = parseSingleImportNamesOnSingleLine(lexer);
+			return immutable ImportOrExportKindAndDedent(
+				immutable ImportOrExportAstKind(immutable ImportOrExportAstKind.ModuleNamed(names)),
+				range(lexer, start),
+				takeNewlineOrSingleDedent(lexer));
+		}
+	} else if (tryTakeToken(lexer, Token.as)) {
+		immutable Sym name = takeName(lexer);
+		immutable ImportFileType type = parseImportFileType(lexer);
+		return immutable ImportOrExportKindAndDedent(
+			immutable ImportOrExportAstKind(
+				allocate(lexer.alloc, immutable ImportOrExportAstKind.File(name, type))),
+			range(lexer, start),
+			takeNewlineOrSingleDedent(lexer));
+	}
+	return immutable ImportOrExportKindAndDedent(
+		immutable ImportOrExportAstKind(immutable ImportOrExportAstKind.ModuleWhole()),
+		range(lexer, start),
+		takeNewlineOrSingleDedent(lexer));
+}
+
+immutable(ImportFileType) parseImportFileType(scope ref Lexer lexer) {
+	immutable Pos start = curPos(lexer);
+	immutable TypeAst type = parseType(lexer);
+	immutable Opt!(ImportFileType) fileType = toImportFileType(type);
+	if (has(fileType))
+		return force(fileType);
+	else {
+		addDiag(lexer, range(lexer, start), immutable ParseDiag(immutable ParseDiag.ImportFileTypeNotSupported()));
+		return ImportFileType.str;
+	}
+}
+
+immutable(Opt!(ImportFileType)) toImportFileType(immutable TypeAst a) {
+	return matchTypeAst!(
+		immutable Opt!(ImportFileType),
+		(immutable(TypeAst.Dict)) =>
+			none!(ImportFileType),
+		(immutable(TypeAst.Fun)) =>
+			none!(ImportFileType),
+		(immutable TypeAst.InstStruct x) =>
+			symEq(x.name.name, shortSym("str")) && empty(x.typeArgs)
+				? some(ImportFileType.str)
+				: none!(ImportFileType),
+		(immutable TypeAst.Suffix x) =>
+			x.kind == TypeAst.Suffix.Kind.arr
+				? matchTypeAst!(
+					immutable Opt!(ImportFileType),
+					(immutable(TypeAst.Dict)) =>
+						none!(ImportFileType),
+					(immutable(TypeAst.Fun)) =>
+						none!(ImportFileType),
+					(immutable TypeAst.InstStruct y) =>
+						symEq(y.name.name, shortSym("nat8")) && empty(y.typeArgs)
+							? some(ImportFileType.nat8Array)
+							: none!(ImportFileType),
+					(immutable(TypeAst.Suffix)) =>
+						none!(ImportFileType)
+					)(x.left)
+				: none!(ImportFileType),
+	)(a);
+}
+
+immutable(ImportOrExportKindAndDedent) parseIndentedImportNames(scope ref Lexer lexer, immutable Pos start) {
 	ArrBuilder!Sym names;
 	struct NewlineOrDedentAndRange {
 		immutable NewlineOrDedent newlineOrDedent;
@@ -215,10 +274,13 @@ immutable(NamesAndDedent) parseIndentedImportNames(ref Lexer lexer, immutable Po
 		}
 	}
 	immutable NewlineOrDedentAndRange res = recur();
-	return immutable NamesAndDedent(some!(Sym[])(finishArr(lexer.alloc, names)), res.range, res.newlineOrDedent);
+	return immutable ImportOrExportKindAndDedent(
+		immutable ImportOrExportAstKind(immutable ImportOrExportAstKind.ModuleNamed(finishArr(lexer.alloc, names))),
+		res.range,
+		res.newlineOrDedent);
 }
 
-immutable(Sym[]) parseSingleImportNamesOnSingleLine(ref Lexer lexer) {
+immutable(Sym[]) parseSingleImportNamesOnSingleLine(scope ref Lexer lexer) {
 	ArrBuilder!Sym names;
 	final switch (takeCommaSeparatedNames(lexer, names)) {
 		case TrailingComma.no:
@@ -233,7 +295,7 @@ immutable(Sym[]) parseSingleImportNamesOnSingleLine(ref Lexer lexer) {
 
 enum TrailingComma { no, yes }
 
-immutable(TrailingComma) takeCommaSeparatedNames(ref Lexer lexer, ref ArrBuilder!Sym names) {
+immutable(TrailingComma) takeCommaSeparatedNames(scope ref Lexer lexer, ref ArrBuilder!Sym names) {
 	add(lexer.alloc, names, takeNameOrOperator(lexer));
 	return tryTakeToken(lexer, Token.comma)
 		? peekToken(lexer, Token.newline)
@@ -248,14 +310,14 @@ struct ParamsAndMaybeDedent {
 	immutable Opt!size_t dedents;
 }
 
-immutable(ParamAst) parseSingleParam(ref Lexer lexer) {
+immutable(ParamAst) parseSingleParam(scope ref Lexer lexer) {
 	immutable Pos start = curPos(lexer);
 	immutable Opt!Sym name = takeNameOrUnderscore(lexer);
 	immutable TypeAst type = parseType(lexer);
 	return immutable ParamAst(range(lexer, start), name, type);
 }
 
-immutable(ParamsAst) parseParenthesizedParams(ref Lexer lexer) {
+immutable(ParamsAst) parseParenthesizedParams(scope ref Lexer lexer) {
 	if (tryTakeToken(lexer, Token.parenRight))
 		return immutable ParamsAst(emptySmallArray!ParamAst);
 	else if (tryTakeToken(lexer, Token.dot3)) {
@@ -277,7 +339,7 @@ immutable(ParamsAst) parseParenthesizedParams(ref Lexer lexer) {
 	}
 }
 
-immutable(ParamsAndMaybeDedent) parseIndentedParams(ref Lexer lexer) {
+immutable(ParamsAndMaybeDedent) parseIndentedParams(scope ref Lexer lexer) {
 	ArrBuilder!ParamAst res;
 	for (;;) {
 		add(lexer.alloc, res, parseSingleParam(lexer));
@@ -289,7 +351,7 @@ immutable(ParamsAndMaybeDedent) parseIndentedParams(ref Lexer lexer) {
 	}
 }
 
-immutable(ParamsAndMaybeDedent) parseParams(ref Lexer lexer) {
+immutable(ParamsAndMaybeDedent) parseParams(scope ref Lexer lexer) {
 	if (tryTakeToken(lexer, Token.parenLeft))
 		return ParamsAndMaybeDedent(parseParenthesizedParams(lexer), none!size_t);
 	else
@@ -316,7 +378,7 @@ struct SpecSigAstAndDedent {
 	immutable size_t dedents;
 }
 
-immutable(SigAstAndMaybeDedent) parseSigAfterName(ref Lexer lexer, immutable Pos start, immutable Sym name) {
+immutable(SigAstAndMaybeDedent) parseSigAfterName(scope ref Lexer lexer, immutable Pos start, immutable Sym name) {
 	immutable TypeAst returnType = parseType(lexer);
 	immutable ParamsAndMaybeDedent params = parseParams(lexer);
 	return immutable SigAstAndMaybeDedent(
@@ -325,7 +387,7 @@ immutable(SigAstAndMaybeDedent) parseSigAfterName(ref Lexer lexer, immutable Pos
 }
 
 immutable(SpecSigAstAndMaybeDedent) parseSpecSigAfterName(
-	ref Lexer lexer,
+	scope ref Lexer lexer,
 	immutable SafeCStr comment,
 	immutable Pos start,
 	immutable Sym name,
@@ -337,7 +399,7 @@ immutable(SpecSigAstAndMaybeDedent) parseSpecSigAfterName(
 		params.dedents);
 }
 
-immutable(SpecSigAstAndDedent) parseSpecSig(ref Lexer lexer, immutable uint curIndent) {
+immutable(SpecSigAstAndDedent) parseSpecSig(scope ref Lexer lexer, immutable uint curIndent) {
 	// TODO: this doesn't work because the lexer already skipped comments
 	immutable SafeCStr comment = skipBlankLinesAndGetDocComment(lexer);
 	immutable Pos start = curPos(lexer);
@@ -347,7 +409,7 @@ immutable(SpecSigAstAndDedent) parseSpecSig(ref Lexer lexer, immutable uint curI
 	return SpecSigAstAndDedent(s.sig, dedents);
 }
 
-immutable(SpecSigAst[]) parseIndentedSigs(ref Lexer lexer) {
+immutable(SpecSigAst[]) parseIndentedSigs(scope ref Lexer lexer) {
 	final switch (takeNewlineOrIndent_topLevel(lexer)) {
 		case NewlineOrIndent.newline:
 			return emptyArr!SpecSigAst;
@@ -366,7 +428,7 @@ immutable(SpecSigAst[]) parseIndentedSigs(ref Lexer lexer) {
 	}
 }
 
-immutable(StructDeclAst.Body.Enum.Member[]) parseEnumOrFlagsMembers(ref Lexer lexer) {
+immutable(StructDeclAst.Body.Enum.Member[]) parseEnumOrFlagsMembers(scope ref Lexer lexer) {
 	final switch (takeNewlineOrIndent_topLevel(lexer)) {
 		case NewlineOrIndent.newline:
 			return emptyArr!(StructDeclAst.Body.Enum.Member);
@@ -390,7 +452,7 @@ immutable(StructDeclAst.Body.Enum.Member[]) parseEnumOrFlagsMembers(ref Lexer le
 	}
 }
 
-immutable(StructDeclAst.Body.Record) parseRecordBody(ref Lexer lexer) {
+immutable(StructDeclAst.Body.Record) parseRecordBody(scope ref Lexer lexer) {
 	ArrBuilder!(StructDeclAst.Body.Record.Field) fields;
 	final switch (takeNewlineOrIndent_topLevel(lexer)) {
 		case NewlineOrIndent.newline:
@@ -402,7 +464,7 @@ immutable(StructDeclAst.Body.Record) parseRecordBody(ref Lexer lexer) {
 	return immutable StructDeclAst.Body.Record(small(finishArr(lexer.alloc, fields)));
 }
 
-void parseRecordFields(ref Lexer lexer, ref ArrBuilder!(StructDeclAst.Body.Record.Field) res) {
+void parseRecordFields(scope ref Lexer lexer, ref ArrBuilder!(StructDeclAst.Body.Record.Field) res) {
 	immutable Pos start = curPos(lexer);
 	immutable Visibility visibility = tryTakePrivate(lexer);
 	immutable Sym name = takeName(lexer);
@@ -419,7 +481,7 @@ void parseRecordFields(ref Lexer lexer, ref ArrBuilder!(StructDeclAst.Body.Recor
 	}
 }
 
-immutable(FieldMutability) parseFieldMutability(ref Lexer lexer) {
+immutable(FieldMutability) parseFieldMutability(scope ref Lexer lexer) {
 	if (tryTakeToken(lexer, Token.dot)) {
 		// '.' isn't valid at start of a type, so can only be '.mut'
 		if (tryTakeToken(lexer, Token.mut))
@@ -434,7 +496,7 @@ immutable(FieldMutability) parseFieldMutability(ref Lexer lexer) {
 			: FieldMutability.const_;
 }
 
-immutable(StructDeclAst.Body.Union.Member[]) parseUnionMembers(ref Lexer lexer) {
+immutable(StructDeclAst.Body.Union.Member[]) parseUnionMembers(scope ref Lexer lexer) {
 	ArrBuilder!(StructDeclAst.Body.Union.Member) res;
 	do {
 		immutable Pos start = curPos(lexer);
@@ -457,11 +519,11 @@ immutable(SpecUsesAndSigFlagsAndKwBody) emptySpecUsesAndSigFlagsAndKwBody =
 		immutable FunDeclAstFlags(),
 		none!FunBodyAst);
 
-immutable(FunBodyAst.Extern) takeExternName(ref Lexer lexer, immutable bool isGlobal) {
+immutable(FunBodyAst.Extern) takeExternName(scope ref Lexer lexer, immutable bool isGlobal) {
 	immutable Opt!Sym name = tryTakeLibraryName(lexer);
 	return immutable FunBodyAst.Extern(isGlobal, name);
 }
-immutable(Opt!Sym) tryTakeLibraryName(ref Lexer lexer) {
+immutable(Opt!Sym) tryTakeLibraryName(scope ref Lexer lexer) {
 	if (tryTakeOperator(lexer, Operator.less)) {
 		immutable Sym res = takeName(lexer);
 		takeTypeArgsEnd(lexer);
@@ -471,7 +533,7 @@ immutable(Opt!Sym) tryTakeLibraryName(ref Lexer lexer) {
 }
 
 immutable(SpecUsesAndSigFlagsAndKwBody) parseNextSpec(
-	ref Lexer lexer,
+	scope ref Lexer lexer,
 	ref ArrBuilder!SpecUseAst specUses,
 	immutable FunDeclAstFlags flags,
 	immutable bool builtin,
@@ -523,7 +585,7 @@ immutable(SpecUsesAndSigFlagsAndKwBody) parseNextSpec(
 }
 
 immutable(SpecUsesAndSigFlagsAndKwBody) nextSpecOrStop(
-	ref Lexer lexer,
+	scope ref Lexer lexer,
 	ref ArrBuilder!SpecUseAst specUses,
 	immutable FunDeclAstFlags flags,
 	immutable bool builtin,
@@ -552,7 +614,7 @@ immutable(SpecUsesAndSigFlagsAndKwBody) nextSpecOrStop(
 }
 
 // TODO: handle 'noctx' and friends too! (share code with parseSpecUsesAndSigFlagsAndKwBody)
-immutable(SpecUsesAndSigFlagsAndKwBody) parseIndentedSpecUses(ref Lexer lexer) {
+immutable(SpecUsesAndSigFlagsAndKwBody) parseIndentedSpecUses(scope ref Lexer lexer) {
 	if (takeIndentOrDiagTopLevel(lexer)) {
 		ArrBuilder!SpecUseAst builder;
 		return parseNextSpec(
@@ -569,7 +631,7 @@ immutable(SpecUsesAndSigFlagsAndKwBody) parseIndentedSpecUses(ref Lexer lexer) {
 			none!FunBodyAst);
 }
 
-immutable(SpecUsesAndSigFlagsAndKwBody) parseSpecUsesAndSigFlagsAndKwBody(ref Lexer lexer) {
+immutable(SpecUsesAndSigFlagsAndKwBody) parseSpecUsesAndSigFlagsAndKwBody(scope ref Lexer lexer) {
 	// Unlike indented specs, we check for a separator on first spec, so use nextSpecOrStop instead of parseNextSpec
 	ArrBuilder!SpecUseAst builder;
 	return nextSpecOrStop(
@@ -588,7 +650,7 @@ struct FunDeclStuff {
 }
 
 immutable(FunDeclAst) parseFun(
-	ref Lexer lexer,
+	scope ref Lexer lexer,
 	immutable SafeCStr docComment,
 	immutable Visibility visibility,
 	immutable Pos start,
@@ -629,7 +691,7 @@ immutable(FunDeclAst) parseFun(
 }
 
 void parseSpecOrStructOrFunOrTest(
-	ref Lexer lexer,
+	scope ref Lexer lexer,
 	ref ArrBuilder!SpecDeclAst specs,
 	ref ArrBuilder!StructAliasAst structAliases,
 	ref ArrBuilder!StructDeclAst structs,
@@ -644,7 +706,7 @@ void parseSpecOrStructOrFunOrTest(
 }
 
 void parseSpecOrStructOrFun(
-	ref Lexer lexer,
+	scope ref Lexer lexer,
 	ref ArrBuilder!SpecDeclAst specs,
 	ref ArrBuilder!StructAliasAst structAliases,
 	ref ArrBuilder!StructDeclAst structs,
@@ -761,12 +823,12 @@ void parseSpecOrStructOrFun(
 	}
 }
 
-immutable(ModifierAst[]) parseModifiers(ref Lexer lexer) {
+immutable(ModifierAst[]) parseModifiers(scope ref Lexer lexer) {
 	ArrBuilder!ModifierAst res;
 	parseModifiersRecur(lexer, res);
 	return finishArr(lexer.alloc, res);
 }
-void parseModifiersRecur(ref Lexer lexer, ref ArrBuilder!ModifierAst res) {
+void parseModifiersRecur(scope ref Lexer lexer, ref ArrBuilder!ModifierAst res) {
 	immutable Pos start = curPos(lexer);
 	immutable Opt!(ModifierAst.Kind) kind = tryParseModifierKind(lexer);
 	if (has(kind)) {
@@ -775,7 +837,7 @@ void parseModifiersRecur(ref Lexer lexer, ref ArrBuilder!ModifierAst res) {
 	}
 }
 
-immutable(Opt!(ModifierAst.Kind)) tryParseModifierKind(ref Lexer lexer) {
+immutable(Opt!(ModifierAst.Kind)) tryParseModifierKind(scope ref Lexer lexer) {
 	if (tryTakeToken(lexer, Token.dot)) {
 		immutable Opt!Sym name = tryTakeName(lexer);
 		if (!has(name) || !symEq(force(name), shortSym("new")))
@@ -825,17 +887,17 @@ immutable(Opt!(ModifierAst.Kind)) modifierKindFromSym(immutable Sym a) {
 	}
 }
 
-immutable(Visibility) tryTakePrivate(ref Lexer lexer) {
+immutable(Visibility) tryTakePrivate(scope ref Lexer lexer) {
 	return tryTakeToken(lexer, Token.dot) ? Visibility.private_ : Visibility.public_;
 }
 immutable(Opt!ImportsOrExportsAst) parseImportsOrExports(
 	ref AllPaths allPaths,
-	ref Lexer lexer,
+	scope ref Lexer lexer,
 	immutable Token keyword,
 ) {
 	immutable Pos start = curPos(lexer);
 	if (tryTakeToken(lexer, keyword)) {
-		ArrBuilder!ImportAst res;
+		ArrBuilder!ImportOrExportAst res;
 		if (takeIndentOrDiagTopLevel(lexer)) {
 			void recur() {
 				immutable ImportAndDedent id = parseSingleModuleImportOnOwnLine(allPaths, lexer);
@@ -850,7 +912,7 @@ immutable(Opt!ImportsOrExportsAst) parseImportsOrExports(
 		return none!ImportsOrExportsAst;
 }
 
-immutable(FileAst) parseFileInner(ref AllPaths allPaths, ref Lexer lexer) {
+immutable(FileAst) parseFileInner(ref AllPaths allPaths, scope ref Lexer lexer) {
 	immutable SafeCStr moduleDocComment = skipBlankLinesAndGetDocComment(lexer);
 	immutable bool noStd = tryTakeToken(lexer, Token.noStd);
 	if (noStd)
@@ -877,7 +939,7 @@ immutable(FileAst) parseFileInner(ref AllPaths allPaths, ref Lexer lexer) {
 }
 
 void parseFileRecur(
-	ref Lexer lexer,
+	scope ref Lexer lexer,
 	ref ArrBuilder!SpecDeclAst specs,
 	ref ArrBuilder!StructAliasAst structAliases,
 	ref ArrBuilder!StructDeclAst structs,

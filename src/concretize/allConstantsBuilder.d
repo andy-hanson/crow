@@ -139,7 +139,6 @@ immutable(Constant) getConstantPtr(
 		() => value)));
 }
 
-
 immutable(Constant) getConstantArr(
 	ref Alloc alloc,
 	ref AllConstantsBuilder allConstants,

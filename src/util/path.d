@@ -5,7 +5,7 @@ module util.path;
 import util.alloc.alloc : Alloc, allocateT;
 import util.col.arrUtil : reduce;
 import util.col.mutArr : MutArr, mutArrAt, mutArrRange, mutArrSize, push;
-import util.col.str : eachChar, end, SafeCStr, safeCStr, safeCStrIsEmpty, safeCStrSize;
+import util.col.str : end, SafeCStr;
 import util.comparison : compareNat16, Comparison;
 import util.conv : safeToUshort;
 import util.hash : Hasher, hashUshort;
@@ -14,7 +14,7 @@ import util.ptr : Ptr, ptrTrustMe_mut;
 import util.sourceRange : RangeWithinFile;
 import util.sym : AllSymbols, eachCharInSym, emptySym, Sym, symEq, symOfStr, symSize, writeSym;
 import util.util : todo, verify;
-import util.writer : finishWriterToSafeCStr, writeChar, Writer, writeSafeCStr, writeStatic;
+import util.writer : finishWriterToSafeCStr, writeChar, Writer, writeStatic;
 
 struct AllPaths {
 	@safe @nogc pure nothrow:
@@ -157,7 +157,7 @@ private size_t pathToStrLength(
 	immutable string prefix,
 	immutable size_t prefixMultiple,
 	immutable Path path,
-	scope immutable SafeCStr extension,
+	immutable Sym extension,
 ) {
 	size_t res = 0;
 	if (prefixMultiple != 0)
@@ -166,7 +166,7 @@ private size_t pathToStrLength(
 		// 1 for '/'
 		res += (isFirstPart ? 0 : 1) + symSize(allPaths.allSymbols, part);
 	});
-	return res + safeCStrSize(extension) + 1;
+	return res + symSize(allPaths.allSymbols, extension) + 1;
 }
 
 alias TempStrForPath = char[0x1000];
@@ -183,7 +183,7 @@ alias TempStrForPath = char[0x1000];
 	ref TempStrForPath temp,
 	scope ref const AllPaths allPaths,
 	immutable Path path,
-	scope immutable SafeCStr extension = safeCStr!"",
+	scope immutable Sym extension = emptySym,
 ) {
 	immutable size_t length = pathToStrLength(allPaths, "", 0, path, extension);
 	verify(length < temp.length);
@@ -195,7 +195,7 @@ private immutable(string) pathToStrWorker(
 	ref Alloc alloc,
 	scope ref const AllPaths allPaths,
 	immutable Path path,
-	scope immutable SafeCStr extension,
+	immutable Sym extension,
 ) {
 	return pathToStrWorker(alloc, allPaths, "", 0, path, extension);
 }
@@ -206,7 +206,7 @@ private @trusted immutable(string) pathToStrWorker(
 	scope immutable string prefix,
 	immutable size_t prefixCount,
 	immutable Path path,
-	scope immutable SafeCStr extension,
+	immutable Sym extension,
 ) {
 	immutable size_t length = pathToStrLength(allPaths, prefix, prefixCount, path, extension);
 	char* begin = allocateT!char(alloc, length);
@@ -219,19 +219,20 @@ private @system void pathToStrWorker2(
 	scope immutable string prefix,
 	immutable size_t prefixMultiple,
 	immutable Path path,
-	scope immutable SafeCStr extension,
+	immutable Sym extension,
 	scope char* begin,
 	scope char* end,
 ) {
 	char* cur = end - 1;
 	*cur = '\0';
-	cur -= safeCStrSize(extension);
-	eachChar(extension, (immutable char c) @trusted {
+	immutable size_t extensionSize = symSize(allPaths.allSymbols, extension);
+	cur -= extensionSize;
+	eachCharInSym(allPaths.allSymbols, extension, (immutable char c) @trusted {
 		*cur = c;
 		cur++;
 	});
-	cur -= safeCStrSize(extension);
-	verify(cur == end - 1 - safeCStrSize(extension));
+	cur -= extensionSize;
+	verify(cur == end - 1 - extensionSize);
 	walkPathBackwards(allPaths, path, (immutable Sym part, immutable bool isFirstPart) @trusted {
 		cur -= symSize(allPaths.allSymbols, part);
 		char* j = cur;
@@ -268,7 +269,7 @@ immutable(SafeCStr) pathOrRelPathToStr(
 	return matchPathOrRelPath(
 		a,
 		(immutable Path global) =>
-			pathToSafeCStr(alloc, allPaths, global, safeCStr!""),
+			pathToSafeCStr(alloc, allPaths, global, emptySym),
 		(immutable RelPath relPath) =>
 			relPathToSafeCStr(alloc, allPaths, relPath));
 }
@@ -279,8 +280,8 @@ private @trusted immutable(SafeCStr) relPathToSafeCStr(
 	immutable RelPath a,
 ) {
 	return immutable SafeCStr(a.nParents == 0
-		? pathToStrWorker(alloc, allPaths, "./", 1, a.path, safeCStr!"").ptr
-		: pathToStrWorker(alloc, allPaths, "../", a.nParents, a.path, safeCStr!"").ptr);
+		? pathToStrWorker(alloc, allPaths, "./", 1, a.path, emptySym).ptr
+		: pathToStrWorker(alloc, allPaths, "../", a.nParents, a.path, emptySym).ptr);
 }
 
 immutable(SafeCStr) pathToSafeCStr(
@@ -295,7 +296,7 @@ immutable(SafeCStr) pathToSafeCStr(
 	ref Alloc alloc,
 	scope ref const AllPaths allPaths,
 	immutable Path path,
-	scope immutable SafeCStr extension = safeCStr!"",
+	scope immutable Sym extension = emptySym,
 ) {
 	return immutable SafeCStr(pathToStrWorker(alloc, allPaths, path, extension).ptr);
 }
@@ -307,19 +308,19 @@ public immutable(SafeCStr) pathToSafeCStrPreferRelative(
 	immutable Path a,
 ) {
 	Writer writer = Writer(ptrTrustMe_mut(alloc));
-	writePath(writer, allPaths, pathsInfo, a, safeCStr!"");
+	writePath(writer, allPaths, pathsInfo, a, emptySym);
 	return finishWriterToSafeCStr(writer);
 }
 
 @trusted immutable(Path) parsePath(ref AllPaths allPaths, scope immutable SafeCStr str) {
 	immutable PathAndExtension pe = parsePathAndExtension(allPaths, str);
-	verify(safeCStrIsEmpty(pe.extension));
+	verify(symEq(pe.extension, emptySym));
 	return pe.path;
 }
 
 struct PathAndExtension {
 	immutable Path path;
-	immutable SafeCStr extension;
+	immutable Sym extension;
 }
 
 @trusted immutable(PathAndExtension) parsePathAndExtension(
@@ -329,7 +330,7 @@ struct PathAndExtension {
 	immutable(char)* ptr = str.ptr;
 	immutable string part = parsePathPart(allPaths, ptr);
 	if (*ptr == '\0') {
-		immutable StrAndExtension se = removeExtension(part.ptr);
+		immutable StrAndExtension se = removeExtension(allPaths.allSymbols, part.ptr);
 		return immutable PathAndExtension(
 			rootPath(allPaths, symOfStr(allPaths.allSymbols, se.withoutExtension)),
 			se.extension);
@@ -345,11 +346,11 @@ struct PathAndExtension {
 		ptr++;
 
 	if (*ptr == '\0')
-		return immutable PathAndExtension(path, safeCStr!"");
+		return immutable PathAndExtension(path, emptySym);
 	else {
 		immutable string part = parsePathPart(allPaths, ptr);
 		if (*ptr == '\0') {
-			immutable StrAndExtension se = removeExtension(part.ptr);
+			immutable StrAndExtension se = removeExtension(allPaths.allSymbols, part.ptr);
 			return immutable PathAndExtension(
 				childPath(allPaths, path, symOfStr(allPaths.allSymbols, se.withoutExtension)),
 				se.extension);
@@ -369,7 +370,7 @@ private @system immutable(string) parsePathPart(ref AllPaths allPaths, ref immut
 
 private struct RelPathAndExtension {
 	immutable RelPath relPath;
-	immutable SafeCStr extension;
+	immutable Sym extension;
 }
 
 private @trusted immutable(RelPathAndExtension) parseRelPathAndExtension(ref AllPaths allPaths, immutable SafeCStr a) {
@@ -392,7 +393,7 @@ private @system immutable(RelPathAndExtension) parseRelPathAndExtensionRecur(
 
 immutable(Path) parseAbsoluteOrRelPath(ref AllPaths allPaths, immutable Path cwd, scope immutable SafeCStr a) {
 	immutable PathAndExtension res = parseAbsoluteOrRelPathAndExtension(allPaths, cwd, a);
-	if (!safeCStrIsEmpty(res.extension))
+	if (!symEq(res.extension, emptySym))
 		todo!void("!");
 	return res.path;
 }
@@ -420,17 +421,17 @@ private @trusted immutable(bool) looksLikeAbsolutePath(immutable SafeCStr a) {
 
 private struct StrAndExtension {
 	immutable string withoutExtension;
-	immutable SafeCStr extension; // Includes the '.' (if it exists)
+	immutable Sym extension; // Includes the '.' (if it exists)
 }
 
-private @system immutable(StrAndExtension) removeExtension(immutable char* a) {
+private @system immutable(StrAndExtension) removeExtension(ref AllSymbols allSymbols, immutable char* a) {
 	immutable char* end = end(a);
 	immutable(char)* ptr = end;
 	while (ptr > a && *ptr != '.')
 		ptr--;
 	return ptr == a
-		? immutable StrAndExtension(a[0 .. (end - a)], safeCStr!"")
-		: immutable StrAndExtension(a[0 .. (ptr - a)], immutable SafeCStr(ptr));
+		? immutable StrAndExtension(a[0 .. (end - a)], emptySym)
+		: immutable StrAndExtension(a[0 .. (ptr - a)], symOfStr(allSymbols, ptr[0 .. (end - ptr)]));
 }
 
 immutable(bool) pathEqual(immutable Path a, immutable Path b) {
@@ -572,24 +573,24 @@ public void writePath(
 	ref const AllPaths allPaths,
 	ref immutable PathsInfo pathsInfo,
 	immutable Path a,
-	immutable SafeCStr extension,
+	immutable Sym extension,
 ) {
 	eachPartPreferRelative(allPaths, pathsInfo, a, (immutable Sym part, immutable bool isLast) {
 		writeSym(writer, allPaths.allSymbols, part);
 		if (!isLast)
 			writeChar(writer, '/');
 	});
-	writeSafeCStr(writer, extension);
+	writeSym(writer, allPaths.allSymbols, extension);
 }
 
 public void writeRelPath(
 	ref Writer writer,
 	ref const AllPaths allPaths,
 	immutable RelPath p,
-	immutable SafeCStr extension,
+	immutable Sym extension,
 ) {
 	foreach (immutable ushort i; 0 .. p.nParents)
 		writeStatic(writer, "../");
 	writePathPlain(writer, allPaths, p.path);
-	writeSafeCStr(writer, extension);
+	writeSym(writer, allPaths.allSymbols, extension);
 }

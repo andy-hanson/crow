@@ -640,6 +640,16 @@ immutable(ConcreteExpr) concretizeExpr(
 				getConcreteType_forStructInst(ctx, e.structInst),
 				range,
 				immutable ConcreteExprKind(e.value)),
+		(ref immutable Expr.LiteralCString e) =>
+			immutable ConcreteExpr(
+				cStrType(ctx.concretizeCtx),
+				range,
+				immutable ConcreteExprKind(constantCStr(ctx.concretizeCtx, e.value))),
+		(ref immutable Expr.LiteralSymbol e) =>
+			immutable ConcreteExpr(
+				symType(ctx.concretizeCtx),
+				range,
+				immutable ConcreteExprKind(constantSym(ctx.concretizeCtx, e.value))),
 		(ref immutable Expr.LocalRef e) =>
 			concretizeLocalRef(range, locals, e.local),
 		(ref immutable Expr.MatchEnum e) =>
@@ -655,17 +665,7 @@ immutable(ConcreteExpr) concretizeExpr(
 				? then
 				: immutable ConcreteExpr(then.type, range, immutable ConcreteExprKind(
 					allocate(ctx.alloc, immutable ConcreteExprKind.Seq(first, then))));
-		},
-		(ref immutable Expr.CStringLiteral e) =>
-			immutable ConcreteExpr(
-				cStrType(ctx.concretizeCtx),
-				range,
-				immutable ConcreteExprKind(constantCStr(ctx.concretizeCtx, e.value))),
-		(ref immutable Expr.SymbolLiteral e) =>
-			immutable ConcreteExpr(
-				symType(ctx.concretizeCtx),
-				range,
-				immutable ConcreteExprKind(constantSym(ctx.concretizeCtx, e.value))));
+		});
 }
 
 immutable(ConstantsOrExprs) constantsOrExprsArr(

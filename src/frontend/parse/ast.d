@@ -1,8 +1,8 @@
 module frontend.parse.ast;
 
-@safe @nogc pure nothrow:
+@safe @nogc nothrow:
 
-import model.model : FieldMutability, symOfFieldMutability, Visibility;
+import model.model : FieldMutability, ImportFileType, symOfFieldMutability, symOfImportFileType, Visibility;
 import model.reprModel : reprVisibility;
 import util.alloc.alloc : Alloc;
 import util.col.arr : empty, emptyArr, emptySmallArray, SmallArray;
@@ -30,6 +30,24 @@ import util.repr :
 import util.sourceRange : Pos, rangeOfStartAndLength, rangeOfStartAndName, RangeWithinFile, reprRangeWithinFile;
 import util.sym : AllSymbols, shortSym, SpecialSym, Sym, symForSpecial, symSize;
 import util.util : verify;
+
+@trusted immutable(T) matchImportOrExportAstKindImpure(T)(
+	immutable ImportOrExportAstKind a,
+	scope immutable(T) delegate(immutable ImportOrExportAstKind.ModuleWhole) @safe @nogc nothrow cbModuleWhole,
+	scope immutable(T) delegate(immutable ImportOrExportAstKind.ModuleNamed) @safe @nogc nothrow cbModuleNamed,
+	scope immutable(T) delegate(immutable ImportOrExportAstKind.File) @safe @nogc nothrow cbFile,
+) {
+	final switch (a.kind) {
+		case ImportOrExportAstKind.Kind.moduleWhole:
+			return cbModuleWhole(a.moduleWhole);
+		case ImportOrExportAstKind.Kind.moduleNamed:
+			return cbModuleNamed(a.moduleNamed);
+		case ImportOrExportAstKind.Kind.file:
+			return cbFile(a.file.deref() );
+	}
+}
+
+pure:
 
 struct NameAndRange {
 	@safe @nogc pure nothrow:
@@ -969,15 +987,58 @@ struct TestAst {
 	immutable ExprAst body_;
 }
 
-struct ImportAst {
+struct ImportOrExportAst {
 	immutable RangeWithinFile range;
+	// Does not include the extension (which is only allowed for file imports)
 	immutable PathOrRelPath path;
-	immutable Opt!(Sym[]) names;
+	immutable ImportOrExportAstKind kind;
+}
+
+struct ImportOrExportAstKind {
+	@safe @nogc pure nothrow:
+
+	struct ModuleWhole {}
+	struct ModuleNamed {
+		immutable Sym[] names;
+	}
+	struct File {
+		immutable Sym name;
+		immutable ImportFileType type;
+	}
+
+	immutable this(immutable ModuleWhole a) { kind = Kind.moduleWhole; moduleWhole = a; }
+	immutable this(immutable ModuleNamed a) { kind = Kind.moduleNamed; moduleNamed = a; }
+	immutable this(immutable Ptr!File a) { kind = Kind.file; file = a; }
+
+	private:
+	enum Kind { moduleWhole, moduleNamed, file }
+	immutable Kind kind;
+	union {
+		immutable ModuleWhole moduleWhole;
+		immutable ModuleNamed moduleNamed;
+		immutable Ptr!File file;
+	}
+}
+
+@trusted private immutable(T) matchImportOrExportAstKind(T)(
+	immutable ImportOrExportAstKind a,
+	scope immutable(T) delegate(immutable ImportOrExportAstKind.ModuleWhole) @safe @nogc pure nothrow cbModuleWhole,
+	scope immutable(T) delegate(immutable ImportOrExportAstKind.ModuleNamed) @safe @nogc pure nothrow cbModuleNamed,
+	scope immutable(T) delegate(immutable ImportOrExportAstKind.File) @safe @nogc pure nothrow cbFile,
+) {
+	final switch (a.kind) {
+		case ImportOrExportAstKind.Kind.moduleWhole:
+			return cbModuleWhole(a.moduleWhole);
+		case ImportOrExportAstKind.Kind.moduleNamed:
+			return cbModuleNamed(a.moduleNamed);
+		case ImportOrExportAstKind.Kind.file:
+			return cbFile(a.file.deref() );
+	}
 }
 
 struct ImportsOrExportsAst {
 	immutable RangeWithinFile range;
-	immutable ImportAst[] paths;
+	immutable ImportOrExportAst[] paths;
 }
 
 struct FileAst {
@@ -993,7 +1054,7 @@ struct FileAst {
 }
 
 private immutable ImportsOrExportsAst emptyImportsOrExports =
-	immutable ImportsOrExportsAst(RangeWithinFile.empty, emptyArr!ImportAst);
+	immutable ImportsOrExportsAst(RangeWithinFile.empty, emptyArr!ImportOrExportAst);
 immutable FileAst emptyFileAst = immutable FileAst(
 	safeCStr!"",
 	true,
@@ -1035,20 +1096,28 @@ immutable(Repr) reprImportsOrExports(
 ) {
 	return reprRecord(alloc, "ports", [
 		reprRangeWithinFile(alloc, a.range),
-		reprArr(alloc, a.paths, (ref immutable ImportAst a) =>
-			reprImportAst(alloc, allPaths, a))]);
+		reprArr(alloc, a.paths, (ref immutable ImportOrExportAst a) =>
+			reprImportOrExportAst(alloc, allPaths, a))]);
 }
 
-immutable(Repr) reprImportAst(
+immutable(Repr) reprImportOrExportAst(
 	ref Alloc alloc,
 	ref const AllPaths allPaths,
-	ref immutable ImportAst a,
+	ref immutable ImportOrExportAst a,
 ) {
-	return reprRecord(alloc, "import-ast", [
+	return reprRecord(alloc, "port", [
 		reprStr(pathOrRelPathToStr(alloc, allPaths, a.path)),
-		reprOpt!(Sym[])(alloc, a.names, (ref immutable Sym[] names) =>
-			reprArr(alloc, names, (ref immutable Sym name) =>
-				reprSym(name)))]);
+		matchImportOrExportAstKind(
+			a.kind,
+			(immutable(ImportOrExportAstKind.ModuleWhole)) =>
+				reprSym("whole"),
+			(immutable ImportOrExportAstKind.ModuleNamed m) =>
+				reprRecord(alloc, "named", [reprArr(alloc, m.names, (ref immutable Sym name) =>
+					reprSym(name))]),
+			(immutable ImportOrExportAstKind.File f) =>
+				reprRecord(alloc, "file", [
+					reprSym(f.name),
+					reprSym(symOfImportFileType(f.type))]))]);
 }
 
 immutable(Repr) reprSpecDeclAst(ref Alloc alloc, ref immutable SpecDeclAst a) {

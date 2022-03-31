@@ -652,36 +652,51 @@ immutable(Expr) checkStringLiteral(
 	immutable Opt!(Ptr!StructInst) expectedStruct,
 	immutable string value,
 ) {
-	if (has(expectedStruct) && ptrEquals(force(expectedStruct), ctx.commonTypes.char8)) {
-		immutable char char_ = () {
-			if (value.length != 1) {
-				addDiag2(ctx, range, immutable Diag(immutable Diag.CharLiteralMustBeOneChar()));
-				return empty(value) ? 'a' : value[0];
-			} else
-				return only(value);
-		}();
-		return immutable Expr(
-			range,
-			allocate(ctx.alloc, immutable Expr.Literal(
-				force(expectedStruct),
-				immutable Constant(immutable Constant.Integral(char_)))));
-	} else if (has(expectedStruct) && ptrEquals(force(expectedStruct), ctx.commonTypes.sym))
-		return immutable Expr(range, immutable Expr.SymbolLiteral(symOfStr(ctx.allSymbols, value)));
-	else if (has(expectedStruct) && ptrEquals(force(expectedStruct), ctx.commonTypes.cStr))
-		return immutable Expr(
-			range,
-			immutable Expr.CStringLiteral(copyToSafeCStr(ctx.alloc, value)));
-	else {
-		if (!has(expectedStruct))
-			mustSetType(ctx.alloc, ctx.programState, expected, getStrType(ctx, range));
-		// TODO: NEATER (don't create a synthetic AST)
-		immutable CallAst call = immutable CallAst(
-				CallAst.Style.emptyParens,
-				immutable NameAndRange(range.start, shortSym("literal")),
-				emptyArr!TypeAst,
-				arrLiteral!ExprAst(ctx.alloc, [curAst]));
-		return checkCallNoLocals(ctx, range, call, expected);
-	}
+	return has(expectedStruct) && ptrEquals(force(expectedStruct), ctx.commonTypes.char8)
+		? checkStringLiteralTypedAsChar(ctx, range, value)
+		: has(expectedStruct) && ptrEquals(force(expectedStruct), ctx.commonTypes.sym)
+		? immutable Expr(range, immutable Expr.LiteralSymbol(symOfStr(ctx.allSymbols, value)))
+		: has(expectedStruct) && ptrEquals(force(expectedStruct), ctx.commonTypes.cStr)
+		? immutable Expr(range, immutable Expr.LiteralCString(copyToSafeCStr(ctx.alloc, value)))
+		: checkStringExpressionTypedAsOther(ctx, curAst, range, expected, expectedStruct);
+}
+
+immutable(Expr) checkStringLiteralTypedAsChar(
+	ref ExprCtx ctx,
+	immutable FileAndRange range,
+	immutable string value,
+) {
+	immutable char char_ = () {
+		if (value.length != 1) {
+			addDiag2(ctx, range, immutable Diag(immutable Diag.CharLiteralMustBeOneChar()));
+			return 'a';
+		} else
+			return only(value);
+	}();
+	return immutable Expr(
+		range,
+		allocate(ctx.alloc, immutable Expr.Literal(
+			ctx.commonTypes.char8,
+			immutable Constant(immutable Constant.Integral(char_)))));
+}
+
+immutable(Expr) checkStringExpressionTypedAsOther(
+	ref ExprCtx ctx,
+	ref immutable ExprAst curAst,
+	immutable FileAndRange range,
+	ref Expected expected,
+	immutable Opt!(Ptr!StructInst) expectedStruct,
+) {
+	if (!has(expectedStruct))
+		mustSetType(ctx.alloc, ctx.programState, expected, getStrType(ctx, range));
+	// TODO: NEATER (don't create a synthetic AST)
+	immutable CallAst ast = immutable CallAst(
+		CallAst.Style.emptyParens,
+		immutable NameAndRange(range.start, shortSym("literal")),
+		emptyArr!TypeAst,
+		// TODO: allocating should be unnecessary, do on stack
+		arrLiteral!ExprAst(ctx.alloc, [curAst]));
+	return checkCallNoLocals(ctx, range, ast, expected);
 }
 
 immutable(Type) getStrType(ref ExprCtx ctx, immutable FileAndRange range) {
@@ -690,7 +705,6 @@ immutable(Type) getStrType(ref ExprCtx ctx, immutable FileAndRange range) {
 		immutable NameAndRange(range.start, shortSym("str")),
 		emptySmallArray!TypeAst)));
 }
-
 
 immutable(Expr) checkWithLocal(
 	ref ExprCtx ctx,

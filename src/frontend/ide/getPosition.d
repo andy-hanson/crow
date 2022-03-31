@@ -10,11 +10,13 @@ import model.model :
 	FlagsFunction,
 	FunBody,
 	FunDecl,
+	ImportOrExport,
+	ImportOrExportKind,
 	matchFunBody,
+	matchImportOrExportKind,
 	matchStructBody,
 	matchType,
 	Module,
-	ModuleAndNames,
 	Param,
 	paramsArray,
 	range,
@@ -36,10 +38,11 @@ struct Position {
 	@safe @nogc pure nothrow:
 
 	struct ImportedModule {
-		immutable Ptr!ModuleAndNames import_;
+		immutable Ptr!ImportOrExport import_;
+		immutable Ptr!Module module_;
 	}
 	struct ImportedName {
-		immutable Ptr!ModuleAndNames import_;
+		immutable Ptr!ImportOrExport import_;
 		immutable Sym name;
 	}
 	struct RecordFieldPosition {
@@ -176,6 +179,8 @@ immutable(Opt!Position) positionInFun(immutable Ptr!FunDecl a, immutable Pos pos
 				//TODO: delve inside!
 				? some(immutable Position(it))
 				: none!Position,
+		(immutable(FunBody.FileBytes)) =>
+			none!Position,
 		(immutable(FlagsFunction)) =>
 			none!Position,
 		(ref immutable FunBody.RecordFieldGet) =>
@@ -210,21 +215,25 @@ immutable(Opt!Position) positionInSig(
 
 immutable(Opt!Position) positionInImportsOrExports(
 	ref const AllSymbols allSymbols,
-	ref immutable ModuleAndNames[] importsOrExports,
+	immutable ImportOrExport[] importsOrExports,
 	immutable Pos pos,
 ) {
-	foreach (immutable Ptr!ModuleAndNames im; ptrsRange(importsOrExports)) {
+	foreach (immutable Ptr!ImportOrExport im; ptrsRange(importsOrExports)) {
 		if (has(im.deref().importSource) && hasPos(force(im.deref().importSource), pos)) {
-			if (has(im.deref().names)) {
-				Pos namePos = force(im.deref().importSource).start;
-				foreach (immutable Sym name; force(im.deref().names)) {
-					immutable Pos nameEnd = namePos + symSize(allSymbols, name);
-					if (pos < nameEnd)
-						return some(immutable Position(immutable Position.ImportedName(im, name)));
-					namePos = nameEnd + 1;
-				}
-			}
-			return some(immutable Position(immutable Position.ImportedModule(im)));
+			return matchImportOrExportKind!(immutable Opt!Position)(
+				im.deref().kind,
+				(immutable ImportOrExportKind.ModuleWhole m) =>
+					some(immutable Position(immutable Position.ImportedModule(im, m.modulePtr))),
+				(immutable ImportOrExportKind.ModuleNamed m) {
+					Pos namePos = force(im.deref().importSource).start;
+					foreach (immutable Sym name; m.names) {
+						immutable Pos nameEnd = namePos + symSize(allSymbols, name);
+						if (pos < nameEnd)
+							return some(immutable Position(immutable Position.ImportedName(im, name)));
+						namePos = nameEnd + 1;
+					}
+					return some(immutable Position(immutable Position.ImportedModule(im, m.modulePtr)));
+				});
 		}
 	}
 	return none!Position;

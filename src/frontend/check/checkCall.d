@@ -49,7 +49,6 @@ import model.model :
 	matchParams,
 	matchSpecBody,
 	matchType,
-	Module,
 	NameReferents,
 	Param,
 	Params,
@@ -286,7 +285,7 @@ void eachFunInScope(
 		ctx.checkCtx,
 		funName,
 		immutable Empty(),
-		(immutable(Empty), immutable Ptr!Module, immutable ImportIndex index, ref immutable NameReferents it) {
+		(immutable(Empty), immutable ImportIndex index, ref immutable NameReferents it) {
 			foreach (immutable Ptr!FunDecl f; it.funs) {
 				immutable Opt!UsedFun used = some(immutable UsedFun(index));
 				cb(used, immutable CalledDecl(f));

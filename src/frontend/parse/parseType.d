@@ -30,7 +30,7 @@ import util.sourceRange : Pos, RangeWithinFile;
 import util.sym : Operator;
 import util.util : todo;
 
-immutable(Opt!(Ptr!TypeAst)) tryParseTypeArg(ref Lexer lexer) {
+immutable(Opt!(Ptr!TypeAst)) tryParseTypeArg(scope ref Lexer lexer) {
 	if (tryTakeOperator(lexer, Operator.less)) {
 		immutable TypeAst res = parseType(lexer);
 		takeTypeArgsEnd(lexer);
@@ -39,7 +39,7 @@ immutable(Opt!(Ptr!TypeAst)) tryParseTypeArg(ref Lexer lexer) {
 		return none!(Ptr!TypeAst);
 }
 
-immutable(TypeAst[]) tryParseTypeArgsForExpr(ref Lexer lexer) {
+immutable(TypeAst[]) tryParseTypeArgsForExpr(scope ref Lexer lexer) {
 	if (tryTakeToken(lexer, Token.atLess)) {
 		immutable TypeAst[] res = parseTypesWithCommas(lexer);
 		takeTypeArgsEnd(lexer);
@@ -48,7 +48,7 @@ immutable(TypeAst[]) tryParseTypeArgsForExpr(ref Lexer lexer) {
 		return emptyArr!TypeAst;
 }
 
-immutable(TypeAst[]) tryParseTypeArgsBracketed(ref Lexer lexer) {
+immutable(TypeAst[]) tryParseTypeArgsBracketed(scope ref Lexer lexer) {
 	if (tryTakeOperator(lexer, Operator.less)) {
 		immutable TypeAst[] res = parseTypesWithCommas(lexer);
 		takeTypeArgsEnd(lexer);
@@ -57,39 +57,39 @@ immutable(TypeAst[]) tryParseTypeArgsBracketed(ref Lexer lexer) {
 		return emptyArr!TypeAst;
 }
 
-private void parseTypesWithCommas(Builder)(ref Lexer lexer, ref Builder output) {
+private void parseTypesWithCommas(Builder)(scope ref Lexer lexer, ref Builder output) {
 	do {
 		add(lexer.alloc, output, parseType(lexer));
 	} while (tryTakeToken(lexer, Token.comma));
 }
 
-private immutable(TypeAst[]) parseTypesWithCommas(ref Lexer lexer) {
+private immutable(TypeAst[]) parseTypesWithCommas(scope ref Lexer lexer) {
 	ArrBuilder!TypeAst res;
 	parseTypesWithCommas(lexer, res);
 	return finishArr(lexer.alloc, res);
 }
 
-private immutable(TypeAst[]) tryParseTypeArgsAllowSpace(ref Lexer lexer) {
+private immutable(TypeAst[]) tryParseTypeArgsAllowSpace(scope ref Lexer lexer) {
 	return peekToken(lexer, Token.name)
 		? arrLiteral(lexer.alloc, [parseType(lexer)])
 		: tryParseTypeArgsBracketed(lexer);
 }
 
-immutable(TypeAst) parseType(ref Lexer lexer) {
+immutable(TypeAst) parseType(scope ref Lexer lexer) {
 	return parseType(lexer, RequireBracket.no);
 }
 
-immutable(TypeAst) parseTypeRequireBracket(ref Lexer lexer) {
+immutable(TypeAst) parseTypeRequireBracket(scope ref Lexer lexer) {
 	return parseType(lexer, RequireBracket.yes);
 }
 
 private enum RequireBracket { no, yes }
 
-private immutable(TypeAst) parseType(ref Lexer lexer, immutable RequireBracket requireBracket) {
+private immutable(TypeAst) parseType(scope ref Lexer lexer, immutable RequireBracket requireBracket) {
 	return parseTypeSuffixes(lexer, parseTypeBeforeSuffixes(lexer, requireBracket));
 }
 
-private immutable(TypeAst) parseTypeBeforeSuffixes(ref Lexer lexer, immutable RequireBracket requireBracket) {
+private immutable(TypeAst) parseTypeBeforeSuffixes(scope ref Lexer lexer, immutable RequireBracket requireBracket) {
 	immutable Pos start = curPos(lexer);
 	immutable Token token = nextToken(lexer);
 	switch (token) {
@@ -117,7 +117,7 @@ private immutable(TypeAst) parseTypeBeforeSuffixes(ref Lexer lexer, immutable Re
 	}
 }
 
-private immutable(TypeAst) parseFunType(ref Lexer lexer, immutable Pos start, immutable TypeAst.Fun.Kind kind) {
+private immutable(TypeAst) parseFunType(scope ref Lexer lexer, immutable Pos start, immutable TypeAst.Fun.Kind kind) {
 	ArrBuilder!TypeAst returnAndParamTypes;
 	add(lexer.alloc, returnAndParamTypes, parseType(lexer));
 	if (tryTakeToken(lexer, Token.parenLeft)) {
@@ -135,7 +135,7 @@ private immutable(TypeAst) parseFunType(ref Lexer lexer, immutable Pos start, im
 		finishArr(lexer.alloc, returnAndParamTypes)));
 }
 
-private immutable(TypeAst) parseTypeSuffixes(ref Lexer lexer, immutable TypeAst ast) {
+private immutable(TypeAst) parseTypeSuffixes(scope ref Lexer lexer, immutable TypeAst ast) {
 	immutable(TypeAst) doSuffix(immutable TypeAst inner, immutable TypeAst.Suffix.Kind kind) {
 		return immutable TypeAst(allocate(lexer.alloc, immutable TypeAst.Suffix(kind, inner)));
 	}

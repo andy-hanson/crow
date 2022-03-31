@@ -26,17 +26,21 @@ import frontend.check.instantiate :
 	TypeArgsArray,
 	typeArgsArray,
 	TypeParamsScope;
-import frontend.check.typeFromAst : checkTypeParams, tryFindSpec, typeArgsFromAsts, typeFromAst;
+import frontend.check.typeFromAst :
+	checkTypeParams, tryFindSpec, typeArgsFromAsts, typeFromAst, typeFromAstNoTypeParamsNeverDelay;
 import frontend.diagnosticsBuilder : addDiagnostic, DiagnosticsBuilder;
 import frontend.parse.ast :
 	ExprAst,
+	ExprAstKind,
 	FileAst,
 	FunBodyAst,
 	FunDeclAst,
 	FunDeclAstFlags,
+	LiteralAst,
 	matchFunBodyAst,
 	matchParamsAst,
 	matchSpecBodyAst,
+	NameAndRange,
 	ParamAst,
 	ParamsAst,
 	SigAst,
@@ -45,7 +49,8 @@ import frontend.parse.ast :
 	SpecSigAst,
 	SpecUseAst,
 	StructAliasAst,
-	TestAst;
+	TestAst,
+	TypeAst;
 import frontend.programState : ProgramState;
 import model.diag : Diag;
 import model.model :
@@ -56,22 +61,28 @@ import model.model :
 	body_,
 	CommonTypes,
 	decl,
+	Expr,
+	FileContent,
 	FunBody,
 	FunDecl,
 	FunFlags,
 	FunKind,
 	FunKindAndStructs,
+	ImportFileType,
+	ImportOrExport,
+	ImportOrExportKind,
 	IntegralTypes,
 	isBogus,
 	isLinkageAlwaysCompatible,
 	isStructInst,
 	Linkage,
 	linkageRange,
+	matchFileContent,
+	matchImportOrExportKind,
 	matchParams,
 	matchStructOrAliasPtr,
 	matchType,
 	Module,
-	ModuleAndNames,
 	name,
 	NameReferents,
 	noCtx,
@@ -104,7 +115,7 @@ import model.model :
 	Visibility,
 	visibility;
 import util.alloc.alloc : Alloc;
-import util.col.arr : castImmutable, empty, emptyArr, only, ptrAt, ptrsRange, sizeEq, small;
+import util.col.arr : castImmutable, empty, emptyArr, emptySmallArray, only, ptrAt, ptrsRange, sizeEq, small;
 import util.col.arrBuilder : add, ArrBuilder, finishArr;
 import util.col.arrUtil : cat, eachPair, map, mapOp, mapToMut, mapWithIndex, zipFirstMut, zipMutPtrFirst;
 import util.col.dict : dictEach, hasKey, KeyValuePair, SymDict;
@@ -116,13 +127,13 @@ import util.col.multiDict : buildMultiDict, multiDictEach;
 import util.col.mutArr : mustPop, MutArr, mutArrIsEmpty;
 import util.col.mutDict : insertOrUpdate, moveToDict, MutSymDict;
 import util.col.mutMaxArr : tempAsArr;
-import util.col.str : copySafeCStr, safeCStr;
+import util.col.str : copySafeCStr, SafeCStr, safeCStr, strOfSafeCStr;
 import util.memory : allocate, allocateMut, overwriteMemory;
 import util.opt : force, has, none, noneMut, Opt, some, someMut;
 import util.perf : Perf;
-import util.ptr : castImmutable, Ptr, ptrEquals, ptrTrustMe_mut;
-import util.sourceRange : FileAndRange, FileIndex, RangeWithinFile;
-import util.sym : AllSymbols, containsSym, hashSym, shortSym, shortSymValue, Sym, symEq;
+import util.ptr : castImmutable, Ptr, ptrEquals, ptrTrustMe, ptrTrustMe_mut;
+import util.sourceRange : FileAndPos, FileAndRange, FileIndex, RangeWithinFile;
+import util.sym : AllSymbols, hashSym, shortSym, shortSymValue, Sym, symEq;
 import util.util : todo, verify;
 
 struct PathAndAst { //TODO:RENAME
@@ -143,19 +154,33 @@ immutable(BootstrapCheck) checkBootstrap(
 	ref ProgramState programState,
 	immutable PathAndAst pathAndAst,
 ) {
+	static immutable ImportsAndExports emptyImportsAndExports = immutable ImportsAndExports([], [], [], []);
 	return checkWorker(
 		alloc,
 		perf,
 		allSymbols,
 		diagsBuilder,
 		programState,
-		emptyArr!ModuleAndNames,
-		emptyArr!ModuleAndNames,
+		emptyImportsAndExports,
 		pathAndAst,
 		(ref CheckCtx ctx,
 		ref immutable StructsAndAliasesDict structsAndAliasesDict,
 		ref MutArr!(Ptr!StructInst) delayedStructInsts) =>
 			getCommonTypes(ctx, structsAndAliasesDict, delayedStructInsts));
+}
+
+struct ImportsAndExports {
+	immutable ImportOrExport[] moduleImports;
+	immutable ImportOrExport[] moduleExports;
+	immutable ImportOrExportFile[] fileImports;
+	immutable ImportOrExportFile[] fileExports;
+}
+
+struct ImportOrExportFile {
+	immutable RangeWithinFile range;
+	immutable Sym name;
+	immutable ImportFileType type;
+	immutable FileContent content;
 }
 
 immutable(Module) check(
@@ -164,8 +189,7 @@ immutable(Module) check(
 	ref AllSymbols allSymbols,
 	ref DiagnosticsBuilder diagsBuilder,
 	ref ProgramState programState,
-	immutable ModuleAndNames[] imports,
-	immutable ModuleAndNames[] exports,
+	ref immutable ImportsAndExports importsAndExports,
 	scope ref immutable PathAndAst pathAndAst,
 	ref immutable CommonTypes commonTypes,
 ) {
@@ -175,8 +199,7 @@ immutable(Module) check(
 		allSymbols,
 		diagsBuilder,
 		programState,
-		imports,
-		exports,
+		importsAndExports,
 		pathAndAst,
 		(ref CheckCtx, ref immutable(StructsAndAliasesDict), ref MutArr!(Ptr!StructInst)) => commonTypes,
 	).module_;
@@ -643,11 +666,14 @@ immutable(FunsAndDict) checkFuns(
 	scope ref immutable SpecsDict specsDict,
 	immutable StructDecl[] structs,
 	scope ref immutable StructsAndAliasesDict structsAndAliasesDict,
+	immutable ImportOrExportFile[] fileImports,
+	immutable ImportOrExportFile[] fileExports,
 	scope immutable FunDeclAst[] asts,
 	scope immutable TestAst[] testAsts,
 ) {
-	ExactSizeArrBuilder!FunDecl funsBuilder =
-		newExactSizeArrBuilder!FunDecl(ctx.alloc, countFunsForStruct(asts, structs));
+	ExactSizeArrBuilder!FunDecl funsBuilder = newExactSizeArrBuilder!FunDecl(
+		ctx.alloc,
+		asts.length + fileImports.length + fileExports.length + countFunsForStruct(structs));
 	foreach (ref immutable FunDeclAst funAst; asts) {
 		immutable TypeParam[] typeParams = checkTypeParams(ctx, funAst.typeParams);
 		immutable Sig sig = checkSig(
@@ -669,6 +695,15 @@ immutable(FunsAndDict) checkFuns(
 			funsBuilder,
 			FunDecl(copySafeCStr(ctx.alloc, funAst.docComment), funAst.visibility, flags, sig, typeParams, specUses));
 	}
+	foreach (ref immutable ImportOrExportFile f; fileImports)
+		exactSizeArrBuilderAdd(
+			funsBuilder,
+			funDeclForFileImportOrExport(ctx, commonTypes, structsAndAliasesDict, f, Visibility.private_));
+	foreach (ref immutable ImportOrExportFile f; fileExports)
+		exactSizeArrBuilderAdd(
+			funsBuilder,
+			funDeclForFileImportOrExport(ctx, commonTypes, structsAndAliasesDict, f, Visibility.public_));
+
 	foreach (immutable Ptr!StructDecl struct_; ptrsRange(structs))
 		addFunsForStruct(ctx, funsBuilder, commonTypes, struct_);
 	FunDecl[] funs = finish(funsBuilder);
@@ -691,23 +726,21 @@ immutable(FunsAndDict) checkFuns(
 				immutable FunBody(immutable FunBody.Builtin()),
 			(ref immutable FunBodyAst.Extern e) =>
 				immutable FunBody(checkExternFun(ctx, castImmutable(fun), e)),
-			(ref immutable ExprAst e) {
-				immutable Ptr!FunDecl f = castImmutable(fun);
-				return immutable FunBody(checkFunctionBody(
-					ctx,
-					structsAndAliasesDict,
-					commonTypes,
-					funsDict,
-					usedFuns,
-					returnType(f.deref()),
-					f.deref().typeParams,
-					paramsArray(params(f.deref())),
-					f.deref().specs,
-					f.deref().flags,
-					e));
-			},
+			(ref immutable ExprAst e) =>
+				immutable FunBody(getExprFunctionBody(
+					ctx, commonTypes, structsAndAliasesDict, funsDict, usedFuns, castImmutable(fun).deref(), e)),
 		)(funAst.body_));
 	});
+	foreach (immutable size_t i, ref immutable ImportOrExportFile f; fileImports) {
+		Ptr!FunDecl fun = ptrAt(funs, asts.length + i);
+		overwriteMemory(&fun.deref().body_, getFileImportFunctionBody(
+			ctx, commonTypes, structsAndAliasesDict, funsDict, usedFuns, castImmutable(fun).deref(), f));
+	}
+	foreach (immutable size_t i, ref immutable ImportOrExportFile f; fileExports) {
+		Ptr!FunDecl fun = ptrAt(funs, asts.length + fileImports.length + i);
+		overwriteMemory(&fun.deref().body_, getFileImportFunctionBody(
+			ctx, commonTypes, structsAndAliasesDict, funsDict, usedFuns, castImmutable(fun).deref(), f));
+	}
 
 	immutable Test[] tests = map!(Test, TestAst)(ctx.alloc, testAsts, (scope ref immutable TestAst ast) {
 		immutable Type voidType = immutable Type(commonTypes.void_);
@@ -740,6 +773,99 @@ immutable(FunsAndDict) checkFuns(
 		});
 
 	return immutable FunsAndDict(castImmutable(funs), tests, funsDict);
+}
+
+immutable(FunBody) getFileImportFunctionBody(
+	ref CheckCtx ctx,
+	ref immutable CommonTypes commonTypes,
+	scope ref immutable StructsAndAliasesDict structsAndAliasesDict,
+	ref immutable FunsDict funsDict,
+	ref FullIndexDict!(ModuleLocalFunIndex, bool) usedFuns,
+	ref immutable FunDecl f,
+	ref immutable ImportOrExportFile ie,
+) {
+	return matchFileContent!(immutable FunBody)(
+		ie.content,
+		(immutable ubyte[] bytes) =>
+			immutable FunBody(immutable FunBody.FileBytes(bytes)),
+		(immutable SafeCStr str) {
+			immutable ExprAst ast = immutable ExprAst(
+				f.range.range,
+				immutable ExprAstKind(immutable LiteralAst(strOfSafeCStr(str))));
+			return immutable FunBody(
+				getExprFunctionBody(ctx, commonTypes, structsAndAliasesDict, funsDict, usedFuns, f, ast));
+		});
+}
+
+immutable(Expr) getExprFunctionBody(
+	ref CheckCtx ctx,
+	ref immutable CommonTypes commonTypes,
+	scope ref immutable StructsAndAliasesDict structsAndAliasesDict,
+	ref immutable FunsDict funsDict,
+	ref FullIndexDict!(ModuleLocalFunIndex, bool) usedFuns,
+	ref immutable FunDecl f,
+	ref immutable ExprAst e,
+) {
+	return checkFunctionBody(
+		ctx,
+		structsAndAliasesDict,
+		commonTypes,
+		funsDict,
+		usedFuns,
+		returnType(f),
+		f.typeParams,
+		paramsArray(params(f)),
+		f.specs,
+		f.flags,
+		e);
+}
+
+FunDecl funDeclForFileImportOrExport(
+	ref CheckCtx ctx,
+	ref immutable CommonTypes commonTypes,
+	scope ref immutable StructsAndAliasesDict structsAndAliasesDict,
+	ref immutable ImportOrExportFile a,
+	immutable Visibility visibility,
+) {
+	return FunDecl(
+		safeCStr!"",
+		visibility,
+		FunFlags.generatedNoCtx,
+		immutable Sig(
+			immutable FileAndPos(ctx.fileIndex, a.range.start),
+			a.name,
+			typeForFileImport(ctx, commonTypes, structsAndAliasesDict, a.range, a.type),
+			immutable Params(emptyArr!Param)),
+		emptyArr!TypeParam,
+		emptyArr!(Ptr!SpecInst));
+}
+
+immutable(Type) typeForFileImport(
+	ref CheckCtx ctx,
+	ref immutable CommonTypes commonTypes,
+	scope ref immutable StructsAndAliasesDict structsAndAliasesDict,
+	immutable RangeWithinFile range,
+	immutable ImportFileType type,
+) {
+	final switch (type) {
+		case ImportFileType.nat8Array:
+			immutable TypeAst nat8 = immutable TypeAst(immutable TypeAst.InstStruct(
+				range,
+				immutable NameAndRange(range.start, shortSym("nat8")),
+				emptySmallArray!TypeAst));
+			immutable TypeAst.Suffix suffix = immutable TypeAst.Suffix(
+				TypeAst.Suffix.Kind.arr,
+				nat8);
+			immutable TypeAst nat8Array = immutable TypeAst(ptrTrustMe(suffix));
+			return typeFromAstNoTypeParamsNeverDelay(ctx, commonTypes, nat8Array, structsAndAliasesDict);
+		case ImportFileType.str:
+			//TODO: this sort of duplicates 'getStrType'
+			scope immutable TypeAst ast = immutable TypeAst(immutable TypeAst.InstStruct(
+				range,
+				immutable NameAndRange(range.start, shortSym("str")),
+				emptySmallArray!TypeAst));
+			return typeFromAstNoTypeParamsNeverDelay(ctx, commonTypes, ast, structsAndAliasesDict);
+	}
 }
 
 immutable(FunBody.Extern) checkExternFun(
@@ -809,8 +935,7 @@ immutable(Module) checkWorkerAfterCommonTypes(
 	StructDecl[] structs,
 	ref MutArr!(Ptr!StructInst) delayStructInsts,
 	immutable FileIndex fileIndex,
-	immutable ModuleAndNames[] imports,
-	immutable ModuleAndNames[] reExports,
+	ref immutable ImportsAndExports importsAndExports,
 	scope ref immutable FileAst ast,
 ) {
 	checkStructBodies(ctx, commonTypes, structsAndAliasesDict, structs, ast.structs, delayStructInsts);
@@ -833,18 +958,21 @@ immutable(Module) checkWorkerAfterCommonTypes(
 		specsDict,
 		structsImmutable,
 		structsAndAliasesDict,
+		importsAndExports.fileImports,
+		importsAndExports.fileExports,
 		ast.funs,
 		ast.tests);
 	checkForUnused(ctx, structAliases, castImmutable(structs), specs);
 	return immutable Module(
 		fileIndex,
 		copySafeCStr(ctx.alloc, ast.docComment),
-		imports, reExports,
+		importsAndExports.moduleImports,
+		importsAndExports.moduleExports,
 		structsImmutable, specs, funsAndDict.funs, funsAndDict.tests,
 		getAllExportedNames(
 			ctx.alloc,
 			ctx.diagsBuilder,
-			reExports,
+			importsAndExports.moduleExports,
 			structsAndAliasesDict,
 			specsDict,
 			funsAndDict.funsDict,
@@ -854,7 +982,7 @@ immutable(Module) checkWorkerAfterCommonTypes(
 immutable(SymDict!NameReferents) getAllExportedNames(
 	ref Alloc alloc,
 	ref DiagnosticsBuilder diagsBuilder,
-	ref immutable ModuleAndNames[] reExports,
+	immutable ImportOrExport[] reExports,
 	ref immutable StructsAndAliasesDict structsAndAliasesDict,
 	ref immutable SpecsDict specsDict,
 	ref immutable FunsDict funsDict,
@@ -884,16 +1012,23 @@ immutable(SymDict!NameReferents) getAllExportedNames(
 			});
 	}
 
-	foreach (ref immutable ModuleAndNames e; reExports) {
-		dictEach!(Sym, NameReferents, symEq, hashSym)(
-			e.module_.allExportedNames,
-			(immutable Sym name, ref immutable NameReferents value) {
-				if (!has(e.names) || containsSym(force(e.names), name))
-					addExport(name, value, immutable FileAndRange(
-						fileIndex,
-						has(e.importSource) ? force(e.importSource) : RangeWithinFile.empty));
+	foreach (ref immutable ImportOrExport e; reExports)
+		matchImportOrExportKind!void(
+			e.kind,
+			(immutable ImportOrExportKind.ModuleWhole m) {
+				dictEach!(Sym, NameReferents, symEq, hashSym)(
+					m.module_.allExportedNames,
+					(immutable Sym name, ref immutable NameReferents value) {
+						addExport(name, value, immutable FileAndRange(fileIndex, force(e.importSource)));
+					});
+			},
+			(immutable ImportOrExportKind.ModuleNamed m) {
+				foreach (immutable Sym name; m.names) {
+					immutable Opt!NameReferents value = m.module_.allExportedNames[name];
+					if (has(value))
+						addExport(name, force(value), immutable FileAndRange(fileIndex, force(e.importSource)));
+				}
 			});
-	}
 	dictEach!(Sym, StructOrAliasAndIndex, symEq, hashSym)(
 		structsAndAliasesDict,
 		(immutable Sym name, ref immutable StructOrAliasAndIndex it) {
@@ -953,8 +1088,7 @@ immutable(BootstrapCheck) checkWorker(
 	ref AllSymbols allSymbols,
 	ref DiagnosticsBuilder diagsBuilder,
 	ref ProgramState programState,
-	immutable ModuleAndNames[] imports,
-	immutable ModuleAndNames[] reExports,
+	ref immutable ImportsAndExports importsAndExports,
 	scope ref immutable PathAndAst pathAndAst,
 	scope immutable(CommonTypes) delegate(
 		ref CheckCtx,
@@ -962,8 +1096,8 @@ immutable(BootstrapCheck) checkWorker(
 		ref MutArr!(Ptr!StructInst),
 	) @safe @nogc pure nothrow getCommonTypes,
 ) {
-	checkImportsOrExports(alloc, diagsBuilder, pathAndAst.fileIndex, imports);
-	checkImportsOrExports(alloc, diagsBuilder, pathAndAst.fileIndex, reExports);
+	checkImportsOrExports(alloc, diagsBuilder, pathAndAst.fileIndex, importsAndExports.moduleImports);
+	checkImportsOrExports(alloc, diagsBuilder, pathAndAst.fileIndex, importsAndExports.moduleExports);
 	immutable FileAst ast = pathAndAst.ast;
 	CheckCtx ctx = CheckCtx(
 		ptrTrustMe_mut(alloc),
@@ -971,10 +1105,10 @@ immutable(BootstrapCheck) checkWorker(
 		ptrTrustMe_mut(programState),
 		ptrTrustMe_mut(allSymbols),
 		pathAndAst.fileIndex,
-		imports,
-		reExports,
+		importsAndExports.moduleImports,
+		importsAndExports.moduleExports,
 		// TODO: use temp alloc
-		newUsedImportsAndReExports(alloc, imports, reExports),
+		newUsedImportsAndReExports(alloc, importsAndExports.moduleImports, importsAndExports.moduleExports),
 		// TODO: use temp alloc
 		makeFullIndexDict_mut!(ModuleLocalAliasIndex, bool)(
 			alloc, ast.structAliases.length, (immutable(ModuleLocalAliasIndex)) => false),
@@ -1016,8 +1150,7 @@ immutable(BootstrapCheck) checkWorker(
 		structs,
 		delayStructInsts,
 		pathAndAst.fileIndex,
-		imports,
-		reExports,
+		importsAndExports,
 		ast);
 	return immutable BootstrapCheck(res, commonTypes);
 }
@@ -1026,17 +1159,21 @@ void checkImportsOrExports(
 	ref Alloc alloc,
 	ref DiagnosticsBuilder diags,
 	immutable FileIndex thisFile,
-	ref immutable ModuleAndNames[] imports,
+	immutable ImportOrExport[] imports,
 ) {
-	foreach (ref immutable ModuleAndNames m; imports)
-		if (has(m.names))
-			foreach (ref immutable Sym name; force(m.names))
-				if (!hasKey(m.module_.allExportedNames, name))
-					addDiagnostic(
-						alloc,
-						diags,
-						// TODO: use the range of the particular name
-						// (by advancing pos by symSize until we get to this name)
-						immutable FileAndRange(thisFile, force(m.importSource)),
-						immutable Diag(immutable Diag.ImportRefersToNothing(name)));
+	foreach (ref immutable ImportOrExport x; imports)
+		matchImportOrExportKind!void(
+			x.kind,
+			(immutable(ImportOrExportKind.ModuleWhole)) {},
+			(immutable ImportOrExportKind.ModuleNamed m) {
+				foreach (ref immutable Sym name; m.names)
+					if (!hasKey(m.module_.allExportedNames, name))
+						addDiagnostic(
+							alloc,
+							diags,
+							// TODO: use the range of the particular name
+							// (by advancing pos by symSize until we get to this name)
+							immutable FileAndRange(thisFile, force(x.importSource)),
+							immutable Diag(immutable Diag.ImportRefersToNothing(name)));
+			});
 }
