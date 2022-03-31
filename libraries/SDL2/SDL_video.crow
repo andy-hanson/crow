@@ -50,6 +50,7 @@ SDL_WindowFlags flags<nat32> extern
 	SDL_WINDOW_METAL = 0x20000000
 
 SDL_GL_CreateContext SDL_GLContext(window SDL_Window) extern<SDL2> noctx summon unsafe
+SDL_GL_DeleteContext void(context SDL_GLContext) extern<SDL2> noctx summon unsafe
 
 SDL_GLattr enum<u-int> extern
 	SDL_GL_RED_SIZE = 0

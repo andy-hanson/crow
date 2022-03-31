@@ -10,6 +10,7 @@ import
 	crow/math/mat: *, I, mat3-32, rotation, to-arr
 	crow/math/trig: pi
 	crow/math/vec: +, -, *, new, right, up, vec2-32, vec3-32
+	crow/private/runtime: cur-thread-id
 	crow/ptr: ==, as-any-const-ptr, null, ptr-cast, ptr-to, size-of, to-const-ptr
 	crow/str-util: to-str
 	GLES2/gl2:
@@ -29,9 +30,10 @@ import
 		SDL_NUM_SCANCODES, SDL_SCANCODE_RETURN, to-nat32
 	SDL2/SDL_video:
 		|, SDL_CreateWindow, SDL_DestroyWindow, SDL_GL_CONTEXT_PROFILE_ES, SDL_GL_CreateContext,
-		SDL_GL_DOUBLEBUFFER, SDL_GL_CONTEXT_MAJOR_VERSION, SDL_GL_CONTEXT_MINOR_VERSION,
-		SDL_GL_CONTEXT_PROFILE_MASK, SDL_GL_SetAttribute, SDL_GL_SwapWindow, SDL_Window,
-		SDL_WINDOW_OPENGL, SDL_WINDOWPOS_UNDEFINED, SDL_WINDOW_SHOWN, to-int32
+		SDL_GL_DeleteContext, SDL_GL_DOUBLEBUFFER, SDL_GL_CONTEXT_MAJOR_VERSION,
+		SDL_GL_CONTEXT_MINOR_VERSION, SDL_GL_CONTEXT_PROFILE_MASK, SDL_GL_SetAttribute,
+		SDL_GL_SwapWindow, SDL_Window, SDL_WINDOW_OPENGL, SDL_WINDOWPOS_UNDEFINED,
+		SDL_WINDOW_SHOWN, to-int32
 	./shader: shader-prog-destroy, shader-prog-load
 	./texture: load-texture, free-texture
 	./crow.webp as bad-crow-webp nat8[]
@@ -83,7 +85,7 @@ main fut nat(_ str[]) summon trusted
 	triangle-vbo = vertices vbo-create
 	assert: triangle-vbo != 0
 
-	renderer renderer = window, shader-prog, vertices, triangle-vbo, texture, rotation-uniform-loc
+	renderer renderer = cur-thread-id, window, shader-prog, vertices, triangle-vbo, texture, rotation-uniform-loc
 	renderer set-up-renderer
 
 	<- 25.msec repeat-interval () => renderer main-loop-body
@@ -92,6 +94,7 @@ main fut nat(_ str[]) summon trusted
 	texture free-texture
 	triangle-vbo vbo-free
 	shader-prog shader-prog-destroy
+	context SDL_GL_DeleteContext
 	window SDL_DestroyWindow
 	SDL_Quit
 	()
@@ -132,6 +135,8 @@ main fut nat(_ str[]) summon trusted
 	-a.pos, -a.normal, a.tex-coord, a.color
 
 .renderer record mut
+	# OpenGL only allows renders on the same thread.
+	render-thread-id nat
 	window SDL_Window
 	shader-prog GLuint
 	vertices vertex[]
@@ -160,17 +165,18 @@ main fut nat(_ str[]) summon trusted
 	GL_TEXTURE0 glActiveTexture
 	GL_TEXTURE_2D glBindTexture renderer.texture
 
-.main-loop-body continue-or-quit(renderer renderer) summon trusted
+.main-loop-body fut continue-or-quit(renderer renderer) summon trusted
 	SDL_PumpEvents
 	if look-for-quit-event
-		quit
+		quit,
 	else
 		key-states-ptr = null SDL_GetKeyboardState
 		key-states = key-states-ptr[0 .. SDL_NUM_SCANCODES.to-nat32.to-nat64]
 		if key-states[SDL_SCANCODE_RETURN.to-nat32 to-nat64] != 0
 			print: "return is pressed"
-		renderer render
-		continue
+		<- renderer.render-thread-id run-with-thread-id () =>
+			renderer render
+		continue,
 
 .render void(renderer renderer) summon unsafe
 	0.5 glClearColor 0.5, 0.5, 1
@@ -181,8 +187,17 @@ main fut nat(_ str[]) summon trusted
 	renderer.rotation-uniform-loc glUniformMatrix3fv 1, false, mat.to-arr.begin-ptr
 
 	GL_TRIANGLES glDrawArrays 0, renderer.vertices.size.to-int32
+	"after render" gl-check-error
 
 	renderer.window SDL_GL_SwapWindow
+
+.run-with-thread-id fut void(thread-id nat, cb act void()) unsafe
+	if cur-thread-id == thread-id
+		cb[]
+		()
+	else
+		<- delay
+		thread-id run-with-thread-id cb
 
 .look-for-quit-event bool() summon
 	e = SDL_Event

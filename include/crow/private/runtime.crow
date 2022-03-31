@@ -15,7 +15,7 @@ import
 	./bool-low-level: !, &&, ||, bool, false, true
 	./bootstrap:
 		call-with-ctx, ctx, gc-ctx-ptr, gctx-ptr, get-ctx, hard-assert, log-ctx-ptr, nat64, new,
-		sym, thread-local-stuff
+		sym, thread-id, thread-local-stuff
 	./exception-low-level: exception-ctx
 	./log-low-level: default-log-handler, log-ctx, log-handler, set-handler
 	./number-low-level: ==
@@ -53,6 +53,9 @@ global-ctx record mut
 	.n-waiting-threads by-val thread-safe-counter
 	.next-exclusion by-val thread-safe-counter
 	.is-shut-down mut bool
+
+cur-thread-id nat64() unsafe
+	get-ctx.thread-local-stuff thread-id
 
 uninit by-val global-ctx(n-threads nat64) noctx unsafe summon
 	q by-val task-queue = n-threads uninit
