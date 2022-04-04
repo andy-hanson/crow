@@ -614,6 +614,7 @@ immutable(ExitCode) help(ref immutable Command.Help a) {
 immutable(SafeCStr[]) cCompilerArgs(ref immutable CCompileOptions options) {
 	version (Windows) {
 		static immutable SafeCStr[] optimizedArgs = [
+			safeCStr!"/Zi",
 			safeCStr!"/std:c17",
 			safeCStr!"/Wall",
 			safeCStr!"/wd4098",
@@ -716,6 +717,14 @@ immutable(SafeCStr[]) cCompileArgs(
 		}
 	}
 	version (Windows) {
+		//TODO: get library paths from config
+		add(alloc, args,
+			safeCStr!"C:\\Users\\User\\Downloads\\SDL2-devel-2.0.20-VC\\SDL2-2.0.20\\lib\\x64\\SDL2.lib");
+		add(alloc, args,
+			safeCStr!"C:\\Users\\User\\Downloads\\libwebp-1.2.2-windows-x64\\lib\\libwebp.lib");
+		add(alloc, args, safeCStr!"/DEBUG");
+	}
+	version (Windows) {
 		Writer writer = Writer(ptrTrustMe_mut(alloc));
 		writeStatic(writer, "/out:");
 		writeSafeCStr(writer, pathToSafeCStr(alloc, allPaths, exePath));
@@ -780,10 +789,12 @@ immutable(ExitCode) withRealExtern(
 ) {
 	version (Windows) {
 		//TODO: verify that paths exist... dlLoadLibrary doesn't do that for us
-		DLLib*[3] libraries = [
+		DLLib*[5] libraries = [
 			dlLoadLibrary("C:\\Windows\\System32\\kernel32.dll"),
 			dlLoadLibrary("C:\\Windows\\System32\\ucrtbase.dll"),
 			dlLoadLibrary("C:\\Windows\\System32\\ws2_32.dll"),
+			dlLoadLibrary("C:\\Users\\User\\Downloads\\SDL2-devel-2.0.20-VC\\SDL2-2.0.20\\lib\\x64\\SDL2.dll"),
+			dlLoadLibrary("C:\\Windows\\System32\\opengl32.dll"),
 		];
 	} else {
 		// TODO: better way to find where it is (may depend on system)
@@ -858,14 +869,22 @@ immutable(ExitCode) withRealExtern(
 			}
 		}
 	}
-	if (ptr == null) {
+	if (ptr == null)
 		printf("Could not find extern function %s\n", nameCStr);
-	}
 	verify(ptr != null);
 	version (Windows) {
 		SetLastError(prevErr);
 	}
+	return dynamicCallFunPtr(ptr, returnType, parameters, parameterTypes, dcVm);
+}
 
+@system immutable(ulong) dynamicCallFunPtr(
+	DCpointer ptr,
+	immutable DynCallType returnType,
+	scope immutable ulong[] parameters,
+	scope immutable DynCallType[] parameterTypes,
+	DCCallVM* dcVm,
+) {
 	dcReset(dcVm);
 	zipImpureSystem!(ulong, DynCallType)(
 		parameters,

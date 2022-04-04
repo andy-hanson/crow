@@ -5,7 +5,7 @@
 
 This readme describes how to contribute to crow.
 
-For information about the langauge itself, visit the [website](http://crow-lang.xyz/).
+For information about the language itself, visit the [website](https://crow-lang.org/).
 
 
 # Setup
@@ -94,9 +94,14 @@ Sublime Text has syntax support but no other support.
 To install the plugin, run the following from the directory containing this readme:
 
 ```sh
-bash -llc 'ln -s `pwd`/editor/sublime/crow.sublime-syntax ~/.config/sublime-text-3/Packages/User/crow.sublime-syntax'
-bash -llc 'ln -s `pwd`/editor/sublime/repr.sublime-syntax ~/.config/sublime-text-3/Packages/User/repr.sublime-syntax'
+bash -llc 'ln -s `pwd`/editor/sublime/crow.sublime-syntax ~/.config/sublime-text/Packages/User/crow.sublime-syntax'
 ```
+
+Or on Windows:
+
+
+mklink "%USERPROFILE%\AppData\Roaming\Sublime Text\Packages\User\crow.sublime-syntax" ^
+	%CD%\editor\sublime\crow.sublime-syntax
 
 
 # Viewing documentation locally

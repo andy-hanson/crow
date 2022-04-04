@@ -1571,7 +1571,7 @@ struct CommonTypes {
 	immutable Ptr!StructDecl fut;
 	immutable Ptr!StructDecl namedVal;
 	immutable Ptr!StructDecl opt;
-	immutable Ptr!StructDecl[7] funPtrStructs; // Indexed by arity
+	immutable Ptr!StructDecl[10] funPtrStructs; // Indexed by arity
 	immutable FunKindAndStructs[3] funKindsAndStructs;
 }
 

@@ -3,6 +3,7 @@ import
 	crow/misc: void
 	crow/number: nat32
 	crow/c-types: c-int, u-int
+	crow/ptr: any-const-ptr
 	crow/str: c-str
 
 SDL_DestroyWindow void(window SDL_Window) extern<SDL2> noctx summon unsafe
@@ -92,3 +93,7 @@ SDL_WINDOWPOS_UNDEFINED c-int()
 	0x1fff0000
 
 SDL_GL_SwapWindow void(window SDL_Window) extern<SDL2> noctx summon unsafe
+
+SDL_GL_LoadLibrary c-int(path c-str) extern<SDL2> noctx summon unsafe
+
+SDL_GL_GetProcAddress any-const-ptr(proc c-str) extern<SDL2> noctx summon unsafe

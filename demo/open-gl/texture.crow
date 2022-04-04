@@ -1,33 +1,35 @@
 import
 	crow/cell: *, as-mut-ptr, cell, new
 	crow/ptr: as-const, ptr-to
-	GLES2/gl2:
-		==, glBindTexture, glDeleteTextures, glGetError, glGenTextures, GL_LINEAR, GL_NO_ERROR,
-		GL_RGBA, glTexImage2D, glTexParameteri, GL_TEXTURE_MAG_FILTER, GL_TEXTURE_MIN_FILTER,
+	OpenGL/gl:
+		glBindTexture, glDeleteTextures, gl-ext, glGenTextures, glGetError, glTexImage2D,
+		glTexParameteri
+	OpenGL/headers:
+		==, GL_LINEAR, GL_NO_ERROR, GL_RGBA, GL_TEXTURE_MAG_FILTER, GL_TEXTURE_MIN_FILTER,
 		GL_TEXTURE_2D, GLuint, GL_UNSIGNED_BYTE, to-str
 	./load-webp: height, image-data, width, with-webp
 
 # Remember to call 'free-texture'
-load-texture GLuint(compressed nat8[]) unsafe summon
+load-texture GLuint(gl gl-ext, compressed nat8[]) unsafe summon
 	compressed with-webp image =>
 		texture-cell cell GLuint = 0,
-		1 glGenTextures texture-cell.as-mut-ptr
+		gl glGenTextures 1, texture-cell.as-mut-ptr
 		texture = *texture-cell
 
-		GL_TEXTURE_2D glBindTexture texture
+		gl glBindTexture GL_TEXTURE_2D, texture
 		w = image.width to-int32
 		h = image.height to-int32
 		image-data = image.image-data as-const
-		GL_TEXTURE_2D glTexImage2D 0, GL_RGBA, w, h, 0, GL_RGBA, GL_UNSIGNED_BYTE, image-data
+		gl glTexImage2D GL_TEXTURE_2D, 0, GL_RGBA, w, h, 0, GL_RGBA, GL_UNSIGNED_BYTE, image-data
 
-		err = glGetError
+		err = gl glGetError
 		unless err == GL_NO_ERROR
 			"Error loading image: code {err}" throw
 
-		GL_TEXTURE_2D glTexParameteri GL_TEXTURE_MAG_FILTER, GL_LINEAR
-		GL_TEXTURE_2D glTexParameteri GL_TEXTURE_MIN_FILTER, GL_LINEAR
+		gl glTexParameteri GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR
+		gl glTexParameteri GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR
 
 		texture
 
-free-texture void(tex-name GLuint) unsafe summon
-	1 glDeleteTextures tex-name.ptr-to
+free-texture void(gl gl-ext, tex-name GLuint) unsafe summon
+	gl glDeleteTextures 1, tex-name.ptr-to

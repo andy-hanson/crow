@@ -1,6 +1,6 @@
 {
 	"include": {
-		"GLES2": "../../libraries/GLES2",
+		"OpenGL": "../../libraries/OpenGL",
 		"SDL2": "../../libraries/SDL2",
 		"webp": "../../libraries/webp"
 	}

@@ -339,6 +339,9 @@ immutable(CommonTypes) getCommonTypes(
 	immutable Ptr!StructDecl funPtr4 = com("fun-ptr4", 5);
 	immutable Ptr!StructDecl funPtr5 = com("fun-ptr5", 6);
 	immutable Ptr!StructDecl funPtr6 = com("fun-ptr6", 7);
+	immutable Ptr!StructDecl funPtr7 = com("fun-ptr7", 8);
+	immutable Ptr!StructDecl funPtr8 = com("fun-ptr8", 9);
+	immutable Ptr!StructDecl funPtr9 = com("fun-ptr9", 10);
 	immutable Ptr!StructDecl funRef0 = com("fun-ref0", 1);
 	immutable Ptr!StructDecl funRef1 = com("fun-ref1", 2);
 	immutable Ptr!StructDecl funRef2 = com("fun-ref2", 3);
@@ -379,7 +382,7 @@ immutable(CommonTypes) getCommonTypes(
 		fut,
 		namedVal,
 		opt,
-		[funPtr0, funPtr1, funPtr2, funPtr3, funPtr4, funPtr5, funPtr6],
+		[funPtr0, funPtr1, funPtr2, funPtr3, funPtr4, funPtr5, funPtr6, funPtr7, funPtr8, funPtr9],
 		[
 			immutable FunKindAndStructs(FunKind.plain, [fun0, fun1, fun2, fun3, fun4]),
 			immutable FunKindAndStructs(FunKind.mut, [funAct0, funAct1, funAct2, funAct3, funAct4]),

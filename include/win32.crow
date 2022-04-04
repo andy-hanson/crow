@@ -390,6 +390,8 @@ GetTickCount DWORD() noctx extern
 
 Sleep void(dwMilliseconds DWORD) noctx summon extern
 
+wglGetProcAddress any-mut-ptr(name c-str) noctx summon unsafe extern
+
 # Not using bytes-types due to alignment
 
 .chars2 record by-val extern

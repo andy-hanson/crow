@@ -5,8 +5,9 @@ import
 	crow/c-types: c-char, c-float, c-int, long, u-int
 	crow/enum-util: enum-to-str
 	crow/misc: void
+	crow/number: nat8
 	crow/ptr: any-const-ptr, const-ptr, mut-ptr
-	crow/str: str
+	crow/str: c-str, str
 
 GLbitfield alias
 	u-int
@@ -22,6 +23,8 @@ GLsizei alias
 	c-int
 GLsizeiptr alias
 	long
+GLubyte alias
+	nat8
 GLuint alias
 	u-int
 GLfloat alias
@@ -57,9 +60,9 @@ spec
 	summon
 	unsafe
 
-glClearColor void(red GLfloat, green GLfloat, blue GLfloat, alpha GLfloat) extern<GL> noctx summon unsafe
-
 glClear void(mask GLbitfield) extern<GL> noctx summon unsafe
+
+glClearColor void(red GLfloat, green GLfloat, blue GLfloat, alpha GLfloat) extern<GL> noctx summon unsafe
 
 glCompileShader void(shader GLuint) extern<GL> noctx summon unsafe
 
@@ -113,6 +116,8 @@ spec
 	unsafe
 
 glGetShaderiv void(reader GLuint, pname GLenum, params cell GLint) extern<GL> noctx summon unsafe
+
+glGetString c-str(name GLenum) extern<GL> noctx summon unsafe
 
 glGetUniformLocation GLint(program GLuint, name GLchar*) extern<GL> noctx summon unsafe
 
@@ -196,6 +201,7 @@ GLenum enum extern
 	GL_ALPHA = 0x1906
 	GL_RGB = 0x1907
 	GL_RGBA = 0x1908
+	GL_EXTENSIONS = 0x1f03
 	GL_TEXTURE0 = 0x84c0
 	GL_ARRAY_BUFFER = 0x8892
 	GL_STATIC_DRAW = 0x88e4

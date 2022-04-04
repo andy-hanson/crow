@@ -950,6 +950,9 @@ immutable(BuiltinStructKind) getBuiltinStructKind(immutable Sym name) {
 		case shortSymValue("fun-ptr4"):
 		case shortSymValue("fun-ptr5"):
 		case shortSymValue("fun-ptr6"):
+		case shortSymValue("fun-ptr7"):
+		case shortSymValue("fun-ptr8"):
+		case shortSymValue("fun-ptr9"):
 			return BuiltinStructKind.funPtrN;
 		case shortSymValue("int8"):
 			return BuiltinStructKind.int8;

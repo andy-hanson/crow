@@ -7,7 +7,9 @@ import
 	string: memcmp
 	./bool: bool
 	./compare: comparison, less, equal, greater
-	./fun-util: subscript
+	./fun-util:
+		fun-ptr0, fun-ptr1, fun-ptr2, fun-ptr3, fun-ptr4, fun-ptr5, fun-ptr6, fun-ptr7, fun-ptr8,
+		fun-ptr9, subscript
 	./misc: new
 	./private/bootstrap: arr, begin-ptr, nat64, size, void
 	./private/number-low-level: ==, unsafe-div, wrap-sub
@@ -195,6 +197,32 @@ Convert a pointer to a reference of the chosen type.
 UB if a value of that type was not stored at the pointer.
 ###
 as-ref<a> a(a any-mut-ptr) no-doc noctx unsafe builtin
+
+as-fun-ptr<r> fun-ptr0<r>(a any-const-ptr) noctx unsafe
+	a as-ref
+as-fun-ptr<r, p0> fun-ptr1<r, p0>(a any-const-ptr) noctx unsafe
+	a as-ref
+as-fun-ptr<r, p0, p1> fun-ptr2<r, p0, p1>(a any-const-ptr) noctx unsafe
+	a as-ref
+as-fun-ptr<r, p0, p1, p2> fun-ptr3<r, p0, p1, p2>(a any-const-ptr) noctx unsafe
+	a as-ref
+as-fun-ptr<r, p0, p1, p2, p3> fun-ptr4<r, p0, p1, p2, p3>(a any-const-ptr) noctx unsafe
+	a as-ref
+as-fun-ptr<r, p0, p1, p2, p3, p4> fun-ptr5<r, p0, p1, p2, p3, p4>(a any-const-ptr) noctx unsafe
+	a as-ref
+as-fun-ptr<r, p0, p1, p2, p3, p4, p5> fun-ptr6<r, p0, p1, p2, p3, p4, p5>(a any-const-ptr) noctx unsafe
+	a as-ref
+as-fun-ptr<r, p0, p1, p2, p3, p4, p5, p6> fun-ptr7<r, p0, p1, p2, p3, p4, p5, p6>(a any-const-ptr) noctx unsafe
+	a as-ref
+as-fun-ptr<r, p0, p1, p2, p3, p4, p5, p6, p7> fun-ptr8<r, p0, p1, p2, p3, p4, p5, p6, p7>(a any-const-ptr) noctx unsafe
+	a as-ref
+as-fun-ptr<r, p0, p1, p2, p3, p4, p5, p6, p7, p8> fun-ptr9<r, p0, p1, p2, p3, p4, p5, p6, p7, p8>
+	a any-const-ptr
+spec
+	noctx
+	unsafe
+body
+	a as-ref
 
 ###
 True if two references have the same pointer.

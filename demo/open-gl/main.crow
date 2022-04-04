@@ -11,29 +11,28 @@ import
 	crow/math/trig: pi
 	crow/math/vec: +, -, *, new, right, up, vec2-32, vec3-32
 	crow/private/runtime: cur-thread-id
-	crow/ptr: ==, as-any-const-ptr, null, ptr-cast, ptr-to, size-of, to-const-ptr
+	crow/ptr: ==, as-any-const-ptr, to-const-ptr, null, ptr-cast, ptr-to, size-of
 	crow/str-util: to-str
-	GLES2/gl2:
-		==, glActiveTexture, GL_ARRAY_BUFFER, GL_BACK, glBindBuffer, glBindTexture, glBufferData,
-		glBufferSubData, glClear, glClearColor, GL_COLOR_BUFFER_BIT, GL_CULL_FACE, glCullFace,
-		glDeleteBuffers, glDrawArrays, glEnable, glEnableVertexAttribArray, GL_FLOAT, glGenBuffers,
-		glGetError, glGetUniformLocation, GLint, GL_NO_ERROR, GL_STATIC_DRAW, GL_TEXTURE0,
-		GL_TEXTURE_2D, GL_TRIANGLES, GLuint, glUniform1i, glUniformMatrix3fv, glUseProgram,
-		glVertexAttribPointer, to-str
+	OpenGL/gl:
+		glActiveTexture, glBindBuffer, glBindTexture, glBufferData, glBufferSubData, glClear,
+		glClearColor, glCullFace, glDeleteBuffers, glDrawArrays, glEnable,
+		glEnableVertexAttribArray, gl-ext, glGenBuffers, glGetError, glGetUniformLocation,
+		glUniform1i, glUniformMatrix3fv, glUseProgram, glVertexAttribPointer, new
+	OpenGL/headers:
+		==, GL_ARRAY_BUFFER, GL_BACK, GL_COLOR_BUFFER_BIT, GL_CULL_FACE, GL_FLOAT, GLint,
+		GL_NO_ERROR, GL_STATIC_DRAW, GL_TEXTURE0, GL_TEXTURE_2D, GL_TRIANGLES, GLuint, to-str
 	SDL2/SDL:
 		SDL_GetError, SDL_Init, SDL_INIT_VIDEO, SDL_Quit
 	SDL2/SDL_events:
 		==, SDL_Event, SDL_PollEvent, SDL_PumpEvents, SDL_Quit, type
-	SDL2/SDL_keyboard:
-		SDL_GetKeyboardState
-	SDL2/SDL_scancode:
-		SDL_NUM_SCANCODES, SDL_SCANCODE_RETURN, to-nat32
+	SDL2/SDL_keyboard: SDL_GetKeyboardState
+	SDL2/SDL_scancode: SDL_NUM_SCANCODES, SDL_SCANCODE_RETURN, to-nat32
 	SDL2/SDL_video:
 		|, SDL_CreateWindow, SDL_DestroyWindow, SDL_GL_CONTEXT_PROFILE_ES, SDL_GL_CreateContext,
 		SDL_GL_DeleteContext, SDL_GL_DOUBLEBUFFER, SDL_GL_CONTEXT_MAJOR_VERSION,
-		SDL_GL_CONTEXT_MINOR_VERSION, SDL_GL_CONTEXT_PROFILE_MASK, SDL_GL_SetAttribute,
-		SDL_GL_SwapWindow, SDL_Window, SDL_WINDOW_OPENGL, SDL_WINDOWPOS_UNDEFINED,
-		SDL_WINDOW_SHOWN, to-int32
+		SDL_GL_CONTEXT_MINOR_VERSION, SDL_GL_CONTEXT_PROFILE_MASK, SDL_GL_LoadLibrary,
+		SDL_GL_SetAttribute, SDL_GL_SwapWindow, SDL_Window, SDL_WINDOW_OPENGL,
+		SDL_WINDOWPOS_UNDEFINED, SDL_WINDOW_SHOWN, to-int32
 	./shader: shader-prog-destroy, shader-prog-load
 	./texture: load-texture, free-texture
 	./crow.webp as bad-crow-webp nat8[]
@@ -43,13 +42,21 @@ import
 main fut nat(_ str[]) summon trusted
 	SDL_INIT_VIDEO.SDL_Init handle-sdl-error "SDL_INIT_VIDEO"
 
+	# TODO: is this redundant?
+	# This should be done after initializing the video driver, but before creating any OpenGL windows.
+	if false
+		"C:\\Windows\\System32\\opengl32.dll" .SDL_GL_LoadLibrary handle-sdl-error "SDL_GL_LoadLibrary"
+	# Same bad results as the builtin driver..
+	#if false
+	#	"C:\\Users\\User\\code\\crow\\opengl32.dll".SDL_GL_LoadLibrary handle-sdl-error "SDL_GL_LoadLibrary"
+
 	SDL_GL_CONTEXT_PROFILE_MASK SDL_GL_SetAttribute SDL_GL_CONTEXT_PROFILE_ES.to-int32 handle-sdl-error "set GL ES"
 	SDL_GL_CONTEXT_MAJOR_VERSION SDL_GL_SetAttribute 3 handle-sdl-error "set major version"
 	SDL_GL_CONTEXT_MINOR_VERSION SDL_GL_SetAttribute 0 handle-sdl-error "set minor version"
 	SDL_GL_DOUBLEBUFFER SDL_GL_SetAttribute 1 handle-sdl-error "set double buffer"
 
 	wflags = SDL_WINDOW_OPENGL | SDL_WINDOW_SHOWN
-	window = "crube" SDL_CreateWindow SDL_WINDOWPOS_UNDEFINED, SDL_WINDOWPOS_UNDEFINED, 480, 360, wflags
+	window = "crube" SDL_CreateWindow SDL_WINDOWPOS_UNDEFINED, SDL_WINDOWPOS_UNDEFINED, 960, 720, wflags
 	if window.as-any-const-ptr == null
 		"SDL_CreateWindow" fail-sdl-error
 
@@ -57,43 +64,45 @@ main fut nat(_ str[]) summon trusted
 	if context.as-any-const-ptr == null
 		"SDL_GL_CreateContext" fail-sdl-error
 
-	shader-prog = vertex-shader shader-prog-load fragment-shader
-	"after shader-prog" gl-check-error
-	shader-prog glUseProgram
+	gl gl-ext = ()
+	shader-prog = gl shader-prog-load vertex-shader, fragment-shader
 
-	tex-sampler-uniform-loc = shader-prog glGetUniformLocation "texSampler"
-	"after tex-sampler-uniform-loc" gl-check-error
+	gl gl-check-error "after shader-prog"
+	gl glUseProgram shader-prog
+
+	tex-sampler-uniform-loc = gl glGetUniformLocation shader-prog, "texSampler"
+	gl gl-check-error "after tex-sampler-uniform-loc"
 	assert: tex-sampler-uniform-loc >= 0
-	tex-sampler-uniform-loc glUniform1i 0
-	"after glUniform1i" gl-check-error
+	gl glUniform1i tex-sampler-uniform-loc, 0
+	gl gl-check-error "after glUniform1i"
 
-	rotation-uniform-loc = shader-prog glGetUniformLocation "rotation"
-	"after rotation-uniform-loc" gl-check-error
+	rotation-uniform-loc = gl glGetUniformLocation shader-prog, "rotation"
+	gl gl-check-error "after rotation-uniform-loc"
 	assert: tex-sampler-uniform-loc >= 0
-	tex-sampler-uniform-loc glUniform1i 0
-	"after glUniform1i" gl-check-error
-	rotation-uniform-loc glUniformMatrix3fv 1, false, I.to-arr.begin-ptr
-	"after set rotation-uniform-loc" gl-check-error
+	gl glUniform1i tex-sampler-uniform-loc, 0
+	gl gl-check-error "after glUniform1i"
+	gl glUniformMatrix3fv rotation-uniform-loc, 1, false, I.to-arr.begin-ptr
+	gl gl-check-error "after set rotation-uniform-loc"
 
-	crow-webp = if false
+	crow-webp = if true
 		bad-crow-webp
 	else
 		"demo/open-gl/crow.webp" read-file-binary
-	texture = crow-webp load-texture
+	texture = gl load-texture crow-webp
 
 	vertices vertex[] = make-cube
-	triangle-vbo = vertices vbo-create
+	triangle-vbo = gl vbo-create vertices
 	assert: triangle-vbo != 0
 
-	renderer renderer = cur-thread-id, window, shader-prog, vertices, triangle-vbo, texture, rotation-uniform-loc
+	renderer renderer = gl, cur-thread-id, window, shader-prog, vertices, triangle-vbo, texture, rotation-uniform-loc
 	renderer set-up-renderer
 
 	<- 25.msec repeat-interval () => renderer main-loop-body
 
 	# TODO: use 'finally'
-	texture free-texture
-	triangle-vbo vbo-free
-	shader-prog shader-prog-destroy
+	gl free-texture texture
+	gl vbo-free triangle-vbo
+	gl shader-prog-destroy shader-prog
 	context SDL_GL_DeleteContext
 	window SDL_DestroyWindow
 	SDL_Quit
@@ -105,8 +114,7 @@ main fut nat(_ str[]) summon trusted
 		# Change order so that the triangles have reverse winding
 		xs[1].invert, xs[0].invert, xs[2].invert
 	front ~~ back map v =>
-		# choose vertex color from position
-		v.pos, v.normal, v.tex-coord, (v.pos + (1, 1, 1)) * 0.5
+		v.pos, v.normal, (v.pos + (1, 1, 1)) * 0.5, v.tex-coord
 
 .cube-side vertex[](mat mat3-32)
 	t0 vec2-32 = 0.0, 1.0
@@ -115,26 +123,27 @@ main fut nat(_ str[]) summon trusted
 	t3 vec2-32 = 1.0, 0.0
 	n vec3-32 = 0, 0, -1
 	black vec3-32 = 0, 0, 0
-	dl vertex = (-1, -1, -1), n, t0, black
-	dr vertex = (1, -1, -1), n, t1, black
-	ul vertex = (-1, 1, -1), n, t2, black
-	ur vertex = (1, 1, -1), n, t3, black
+	dl vertex = (-1, -1, -1), n, black, t0
+	dr vertex = (1, -1, -1), n, black, t1
+	ul vertex = (-1, 1, -1), n, black, t2
+	ur vertex = (1, 1, -1), n, black, t3
 	(dl, dr, ul, ul, dr, ur) apply mat
 
 .apply vertex[](a vertex[], m mat3-32)
 	a map x =>
-		m * x.pos, m * x.normal, x.tex-coord, x.color
+		m * x.pos, m * x.normal, x.color, x.tex-coord
 
-.vertex record by-val
+.vertex record extern by-val
 	pos vec3-32
 	normal vec3-32
-	tex-coord vec2-32
 	color vec3-32
+	tex-coord vec2-32
 
 .invert vertex(a vertex)
-	-a.pos, -a.normal, a.tex-coord, a.color
+	-a.pos, -a.normal, a.color, a.tex-coord
 
 .renderer record mut
+	gl gl-ext
 	# OpenGL only allows renders on the same thread.
 	render-thread-id nat
 	window SDL_Window
@@ -145,25 +154,31 @@ main fut nat(_ str[]) summon trusted
 	rotation-uniform-loc GLint
 
 .set-up-renderer void(renderer renderer) unsafe summon
-	GL_CULL_FACE glEnable
-	GL_BACK glCullFace
+	gl = renderer gl
+	gl glEnable GL_CULL_FACE
+	gl glCullFace GL_BACK
 
-	renderer.shader-prog glUseProgram
+	gl glUseProgram renderer.shader-prog
 
-	GL_ARRAY_BUFFER glBindBuffer renderer.triangle-vbo
-	GL_ARRAY_BUFFER glBufferSubData 0, renderer.vertices.size-bytes.to-int64, renderer.vertices.begin-ptr.ptr-cast
+	gl glBindBuffer GL_ARRAY_BUFFER, renderer.triangle-vbo
+	gl glBufferSubData GL_ARRAY_BUFFER, 0, renderer.vertices.size-bytes.to-int64, renderer.vertices.begin-ptr.ptr-cast
 	stride = (to-int32: size-of@<vertex>)
-	0 glVertexAttribPointer 3, GL_FLOAT, false, stride, 0.to-const-ptr
-	0 glEnableVertexAttribArray
-	1 glVertexAttribPointer 3, GL_FLOAT, false, stride, (3 * size-of@<float32>).to-const-ptr
-	1 glEnableVertexAttribArray
-	2 glVertexAttribPointer 2, GL_FLOAT, false, stride, (6 * size-of@<float32>).to-const-ptr
-	2 glEnableVertexAttribArray
-	3 glVertexAttribPointer 3, GL_FLOAT, false, stride, (8 * size-of@<float32>).to-const-ptr
-	3 glEnableVertexAttribArray
+	# pos
+	gl glVertexAttribPointer 0, 3, GL_FLOAT, false, stride, 0.to-const-ptr
+	gl glEnableVertexAttribArray 0
+	# normal
+	# TODO: should not need parentheses
+	gl glVertexAttribPointer 1, 3, GL_FLOAT, false, stride, (size-of@<vec3-32>).to-const-ptr
+	gl glEnableVertexAttribArray 1
+	# color
+	gl glVertexAttribPointer 2, 3, GL_FLOAT, false, stride, (2 * size-of@<vec3-32>).to-const-ptr
+	gl glEnableVertexAttribArray 2
+	# tex-coord
+	gl glVertexAttribPointer 3, 2, GL_FLOAT, false, stride, (3 * size-of@<vec3-32>).to-const-ptr
+	gl glEnableVertexAttribArray 3
 
-	GL_TEXTURE0 glActiveTexture
-	GL_TEXTURE_2D glBindTexture renderer.texture
+	gl glActiveTexture GL_TEXTURE0
+	gl glBindTexture GL_TEXTURE_2D, renderer.texture
 
 .main-loop-body fut continue-or-quit(renderer renderer) summon trusted
 	SDL_PumpEvents
@@ -177,17 +192,17 @@ main fut nat(_ str[]) summon trusted
 		<- renderer.render-thread-id run-with-thread-id () =>
 			renderer render
 		continue,
-
 .render void(renderer renderer) summon unsafe
-	0.5 glClearColor 0.5, 0.5, 1
-	GL_COLOR_BUFFER_BIT glClear
+	gl = renderer gl
+	gl glClearColor 0.5, 0.5, 0.5, 1
+	gl glClear GL_COLOR_BUFFER_BIT
 
 	t = get-monotime-msec.to-float32 * 0.0003::float32
 	mat mat3-32 = (0.5::float32) * ((1, 2, 3) rotation t)
-	renderer.rotation-uniform-loc glUniformMatrix3fv 1, false, mat.to-arr.begin-ptr
+	gl glUniformMatrix3fv renderer.rotation-uniform-loc, 1, false, mat.to-arr.begin-ptr
 
-	GL_TRIANGLES glDrawArrays 0, renderer.vertices.size.to-int32
-	"after render" gl-check-error
+	gl glDrawArrays GL_TRIANGLES, 0, renderer.vertices.size.to-int32
+	gl gl-check-error "after render"
 
 	renderer.window SDL_GL_SwapWindow
 
@@ -211,27 +226,27 @@ main fut nat(_ str[]) summon trusted
 	throw: "sdl error in {description}: {SDL_GetError}"
 	SDL_Quit
 
-.vbo-create GLuint(vertices vertex[]) summon unsafe
+.vbo-create GLuint(gl gl-ext, vertices vertex[]) summon unsafe
 	vbo-cell cell GLuint = 0,
 	n-buffers = 1 to-int32
-	n-buffers glGenBuffers vbo-cell.as-mut-ptr
+	gl glGenBuffers n-buffers, vbo-cell.as-mut-ptr
 	vbo = *vbo-cell
-	GL_ARRAY_BUFFER glBindBuffer vbo
-	GL_ARRAY_BUFFER glBufferData vertices.size-bytes.to-int64, vertices.begin-ptr.ptr-cast, GL_STATIC_DRAW
-	GL_ARRAY_BUFFER glBindBuffer 0
-	err = glGetError
+	gl glBindBuffer GL_ARRAY_BUFFER, vbo
+	gl glBufferData GL_ARRAY_BUFFER, vertices.size-bytes.to-int64, vertices.begin-ptr.ptr-cast, GL_STATIC_DRAW
+	gl glBindBuffer GL_ARRAY_BUFFER, 0
+	err = gl glGetError
 	unless err == GL_NO_ERROR
-		n-buffers glDeleteBuffers vbo-cell.as-const-ptr
+		gl glDeleteBuffers n-buffers, vbo-cell.as-const-ptr
 		"Creating VBO failed: Code {err}" throw
 	vbo
 
 size-bytes nat(vertices vertex[]) unsafe
 	vertices.size * size-of@<vertex>
 
-.vbo-free void(vbo GLuint) summon unsafe
-	1 glDeleteBuffers vbo.ptr-to
+.vbo-free void(gl gl-ext, vbo GLuint) summon unsafe
+	gl glDeleteBuffers 1, vbo.ptr-to
 
-.gl-check-error void(desc str) summon
-	err = glGetError
+.gl-check-error void(gl gl-ext, desc str) summon
+	err = gl glGetError
 	unless err == GL_NO_ERROR
 		"Gl error at {desc}: code {err}" throw

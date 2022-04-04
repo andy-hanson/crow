@@ -27,8 +27,9 @@ lint result<str, failure[]>(path str, options test-options) summon
 	res move-to-arr
 
 .excluded-from-lint bool(name str)
-	exclude-exts str[] = ".bmp", ".err", ".mdb", ".png", ".svg", ".wasm", ".webp", ".woff2"
-	exclude-names str[] = "bin", "dyncall", "node_modules", "package-lock.json", "site"
+	exclude-exts str[] = ".bmp", ".dll", ".err", ".lib", ".mdb", ".png", ".svg", ".wasm", ".webp", ".woff2"
+	# TODO: gl.crow needs a multi-line call syntax
+	exclude-names str[] = "bin", "dyncall", "gl.crow", "node_modules", "package-lock.json", "site"
 	name starts-with "." || name in exclude-names || exclude-exts exists ext => name ends-with ext
 
 # Returns numner of errors

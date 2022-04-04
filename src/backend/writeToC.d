@@ -394,14 +394,17 @@ void writeStructs(ref Alloc alloc, ref Writer writer, ref immutable Ctx ctx) {
 			writeStatic(writer, " (*");
 			writeStructMangledName(writer, ctx.mangledNames, funPtr.source);
 			writeStatic(writer, ")(");
-			writeWithCommas!LowType(
-				writer,
-				funPtr.paramTypes,
-				(scope ref immutable LowType paramType) =>
-					!isVoid(paramType),
-				(scope ref immutable LowType paramType) {
-					writeType(writer, ctx, paramType);
-				});
+			if (empty(funPtr.paramTypes))
+				writeStatic(writer, "void");
+			else
+				writeWithCommas!LowType(
+					writer,
+					funPtr.paramTypes,
+					(scope ref immutable LowType paramType) =>
+						!isVoid(paramType),
+					(scope ref immutable LowType paramType) {
+						writeType(writer, ctx, paramType);
+					});
 			writeStatic(writer, ");\n");
 		},
 		(immutable LowType.Record, ref immutable LowRecord record) {
@@ -1325,6 +1328,15 @@ void writeConstantRef(
 			writeChar(writer, '"');
 		},
 		(immutable Constant.Float it) {
+			switch (asPrimitive(type)) {
+				case PrimitiveType.float32:
+					writeCastToType(writer, ctx, type);
+					break;
+				case PrimitiveType.float64:
+					break;
+				default:
+					unreachable!void();
+			}
 			writeFloatLiteral(writer, it.value);
 		},
 		(immutable Constant.FunPtr it) {
