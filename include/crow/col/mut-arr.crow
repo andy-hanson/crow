@@ -86,8 +86,9 @@ mut-arr<a> a mut[](a fix-arr a)
 	res ~~= a
 	res
 
-clear<a> void(a a mut[])
-	a pop-n a.size
+clear<a> void(a a mut[]) noctx trusted
+	a.begin-ptr set-zero-range a.size
+	a.size := 0
 
 ###
 Copies the `mut-arr`.
@@ -301,6 +302,11 @@ noctx-must-remove-unordered<a> void(a a mut[], value a) noctx unsafe equal<a>
 		()
 	else
 		a noctx-must-remove-unordered-recur (index wrap-add 1), value
+
+uninitialized-mut-arr<a> a mut[](size nat64) unsafe
+	res a mut[] = ()
+	res unsafe-set-size size
+	res
 
 ###
 Directly sets the `size` without touching the data.

@@ -1,0 +1,49 @@
+no-std
+import
+	crow/cell: as-mut-ptr, cell, new
+	crow/col/arr: size
+	crow/col/private/arr-low-level: begin-ptr
+	crow/flags-util: flags-to-str
+	crow/io/print: print
+	crow/exception: assert
+	crow/misc: void
+	crow/number: ==, /, to-nat32
+	crow/str: literal, str
+	crow/str-conv
+	crow/str-util: to-c-str
+	sndfile/headers:
+		|, to-nat32, ~, &, ==, all, flags-members, new, sf_close, sf_error, SF_FORMAT,
+		SF_FORMAT_FLAC, SF_FORMAT_OGG, SF_FORMAT_PCM_16, SF_FORMAT_PCM_32, SF_FORMAT_VORBIS,
+		SF_FORMAT_WAV, SF_INFO, SFM_WRITE, sf_open, sf_write_float
+	sndfile/util: check-sndfile-error
+	./sound: format, n-channels, sample-rate, samples, sound
+
+sound-file-format enum
+	flac
+	ogg-vorbis
+	wav
+
+write-sound-file void(path str, sound sound, format sound-file-format) trusted summon
+	n-channels = sound.format n-channels
+	n-frames = sound.samples.size / n-channels
+	sf-format = format to-sf-format
+	print: "sf-format is {sf-format to-nat32} = {sf-format flags-to-str}"
+	info SF_INFO = n-frames, sound.format.sample-rate.to-nat32, n-channels.to-nat32, sf-format, 1, 1
+	info-cell cell SF_INFO = info,
+	f = path.to-c-str sf_open SFM_WRITE, info-cell.as-mut-ptr
+	print: "f.sf_error is {f sf_error}"
+	f.sf_error check-sndfile-error
+	print: "write {sound.samples.size} samples"
+	n-written = f sf_write_float sound.samples.begin-ptr, sound.samples.size
+	f.sf_close check-sndfile-error
+	print: "n-written is {n-written}; samples size is {sound.samples.size}"
+	assert: n-written == sound.samples.size
+
+.to-sf-format SF_FORMAT(a sound-file-format) summon
+	match a
+	as flac
+		SF_FORMAT_FLAC | SF_FORMAT_PCM_16
+	as ogg-vorbis
+		SF_FORMAT_OGG | SF_FORMAT_VORBIS | SF_FORMAT_PCM_32
+	as wav
+		SF_FORMAT_WAV | SF_FORMAT_PCM_16

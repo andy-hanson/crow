@@ -1,0 +1,79 @@
+no-std
+import
+	crow/bool: &&
+	crow/cell: *, as-mut-ptr, cell, new
+	crow/col/arr: arr, size
+	crow/col/mut-arr: begin-ptr, move-to-arr, mut-arr, size, uninitialized-mut-arr
+	crow/col/private/arr-low-level: begin-ptr, end-ptr
+	crow/compare: <=, min
+	crow/exception: assert
+	crow/number: ==, <=>, *, float32, nat8, to-nat64
+	crow/private/alloc: mem-copy
+	crow/private/bootstrap: hard-assert, hard-unreachable
+	crow/ptr: ==, <=>, +, -, any-mut-ptr, as-any-mut-ptr, as-ref, const-ptr, mut-ptr
+	crow/str: str
+	crow/str-util: to-c-str
+	sndfile/headers:
+		channels, frames, new, samplerate, sf_close, sf_count_t, sf_error, SF_INFO, SFM_READ,
+		sf_open, sf_open_virtual, sf_read_float, SF_VIRTUAL_IO, SNDFILE
+	sndfile/util: check-sndfile-error
+	stdio: SEEK
+	./sound: new, sound
+
+read-sound-file sound(path str) trusted summon
+	info cell SF_INFO = (),
+	f = path.to-c-str sf_open SFM_READ, info.as-mut-ptr
+	f common *info
+
+sound-from-file-content sound(content nat8[]) trusted
+	info cell SF_INFO = (),
+	user-data = content, content.begin-ptr
+	virtual SF_VIRTUAL_IO = &get_filelen, &seek, &read, &write, &tell
+	f = virtual sf_open_virtual SFM_READ, info.as-mut-ptr, user-data.as-any-mut-ptr
+	f common *info
+
+.common sound(f SNDFILE, info SF_INFO) unsafe
+	f.sf_error check-sndfile-error
+	n-channels = info.channels to-nat64
+	sample-rate = info.samplerate to-nat64
+	samples float32 mut[] = info.frames * n-channels uninitialized-mut-arr
+	n-read = f sf_read_float samples.begin-ptr, samples.size
+	f.sf_close check-sndfile-error
+	assert: n-read == samples.size
+	(n-channels, sample-rate), samples.move-to-arr
+
+.get_filelen sf_count_t(user-data-ptr any-mut-ptr) noctx unsafe
+	a user-data = user-data-ptr as-ref
+	a.content size
+
+.seek sf_count_t(offset sf_count_t, whence SEEK, user-data-ptr any-mut-ptr) noctx unsafe
+	a user-data = user-data-ptr as-ref
+	start = match whence
+	as SEEK_SET
+		a.content begin-ptr
+	as SEEK_CUR
+		a cur
+	as SEEK_END
+		a.content end-ptr
+	pos = start + offset
+	hard-assert: a.content.begin-ptr <= pos && pos <= a.content.end-ptr
+	a.cur := pos
+	pos - a.content.begin-ptr
+
+.read sf_count_t(ptr nat8 mut*, count sf_count_t, user-data-ptr any-mut-ptr) noctx unsafe
+	a user-data = user-data-ptr as-ref
+	n-to-read = count min (a.content.end-ptr - a.cur)
+	ptr mem-copy a.cur, n-to-read
+	a.cur := a.cur + n-to-read
+	n-to-read
+
+.write sf_count_t(_ nat8*, _ sf_count_t, _ any-mut-ptr) noctx unsafe
+	hard-unreachable
+
+.tell sf_count_t(user-data-ptr any-mut-ptr) noctx unsafe
+	a user-data = user-data-ptr as-ref
+	a.cur - a.content.begin-ptr
+
+.user-data record by-ref mut
+	content nat8[]
+	cur mut nat8*

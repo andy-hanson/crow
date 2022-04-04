@@ -1,0 +1,55 @@
+no-std
+import
+	crow/cell: as-const-ptr, as-mut-ptr, cell, new
+	crow/col/fix-arr: cast-fix-arr, subscript
+	crow/compare: !=
+	crow/c-types: c-int
+	crow/exception: assert
+	crow/fut: new
+	crow/misc: new, void
+	crow/number: ==, <=>, float32, nat8, nat16, to-int32, to-int64, to-nat8
+	crow/ptr: any-mut-ptr, as-any-mut-ptr, as-ref, mut-ptr, null
+	crow/private/number-low-level: unsafe-to-nat64
+	crow/range: ..
+	SDL2/SDL: SDL_Init, SDL_INIT_AUDIO, SDL_Quit
+	SDL2/SDL_audio:
+		AUDIO_F32, new, SDL_AudioSpec, SDL_CloseAudioDevice, SDL_OpenAudioDevice,
+		SDL_PauseAudioDevice
+	./audio: audio, new
+	./audio-queue: audio-queue, clear, new, play, play-loop, pull
+	./sound: n-channels, new, sample-rate, sound-format
+
+start-sdl-audio audio() summon trusted
+	err = SDL_INIT_AUDIO SDL_Init
+	assert: err == 0
+
+	samples nat16 = 4096
+	format sound-format = 2, 48000
+	queue audio-queue = format, 
+	write-ctx write-ctx = queue, 
+
+	sr = format.sample-rate to-int32
+	nc = format.n-channels to-nat8
+	wc = write-ctx as-any-mut-ptr
+	aspec SDL_AudioSpec = sr, AUDIO_F32, nc, 0, samples, 0, 0, &audio-callback, wc
+	desired cell SDL_AudioSpec = aspec,
+	obtained cell SDL_AudioSpec = (),
+	device = null SDL_OpenAudioDevice 0, desired.as-const-ptr, obtained.as-mut-ptr, 0
+	assert: device != 0
+
+	device SDL_PauseAudioDevice 0
+
+	shut-down ref void() = () =>
+		device SDL_CloseAudioDevice
+		SDL_Quit
+		()
+	format, (() => queue clear), (x => queue play x), (x => queue play-loop x), shut-down
+
+.write-ctx record mut by-ref
+	queue audio-queue
+
+.audio-callback void(userdata any-mut-ptr, stream nat8 mut*, len c-int) noctx unsafe
+	write-ctx write-ctx = userdata as-ref
+	queue = write-ctx queue
+	floats = stream[0 .. len.to-int64.unsafe-to-nat64] cast-fix-arr@<float32, nat8>
+	queue pull floats

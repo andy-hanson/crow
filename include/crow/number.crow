@@ -106,6 +106,9 @@ Throws if `b == 0`.
 	else
 		a.to-nat64 % b
 
+round-down-to-multiple nat64(a nat64, b nat64)
+	a - (a % b)
+
 ###
 Throws if the result would overflow.
 

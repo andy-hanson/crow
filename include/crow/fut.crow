@@ -81,7 +81,7 @@ and the result of `then` will have the same exception as `a`.
 then<out, in> fut out(a fut in, f ref out(in)) trusted is-sendable<out> is-sendable<in>
 	res fut out = unresolved
 	action = f action
-	a add-task f.exclusion, () => 
+	a add-task f.exclusion, () =>
 		match a get-result
 		as ok value
 			match (() => action[value]) catch

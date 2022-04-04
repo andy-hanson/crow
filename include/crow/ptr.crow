@@ -28,6 +28,8 @@ as-mut<a> a mut*(a a*) noctx unsafe builtin
 null<a> a*() noctx unsafe
 	null.as-const
 null<a> a mut*() noctx unsafe builtin
+null<r, p0, p1, p2> fun-ptr3<r, p0, p1, p2>() noctx unsafe
+	null as-fun-ptr
 
 # Same as `null`.
 new<a> a*() noctx unsafe

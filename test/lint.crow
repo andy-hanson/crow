@@ -34,7 +34,7 @@ lint result<str, failure[]>(path str, options test-options) summon
 		ext in exclude-extensions
 
 .exclude-extensions set str()
-	"bmp", "dll", "err", "exe", "ilk", "lib", "mdb", "obj", "pdb", "png", "svg", "wasm", "webp", "woff2"
+	"bmp", "dll", "err", "exe", "ilk", "lib", "mdb", "obj", "ogg", "pdb", "png", "svg", "wasm", "wav", "webp", "woff2"
 .exclude-names set str()
 	# TODO: gl.crow needs a multi-line call syntax
 	"bin", "COPYING.txt", "dyncall", "gl.crow", "node_modules", "package-lock.json", "site"

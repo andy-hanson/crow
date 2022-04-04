@@ -243,8 +243,8 @@ validate-gc void(gc gc) noctx unsafe
 		gc.needs-gc := true
 
 .try-gc-alloc-recur any-mut-ptr?(gc gc, size-bytes nat64) noctx unsafe
-	# TODO: support larger allocations than 16MB
-	hard-assert: size-bytes < 0x1000000
+	# TODO: support larger allocations than 256MB
+	hard-assert: size-bytes < 0x10000000
 	# gc validate-gc
 	size-words = size-bytes words-of-bytes
 	cur = gc data-cur

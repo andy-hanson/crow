@@ -21,7 +21,7 @@ Arr or the range from begin to end.
 `begin` is inclusive and `end` is exclusive.
 UB if begin > end.
 ###
-arr-from-begin-end<a> a[](begin a*, end a*) no-doc unsafe noctx
+arr-from-begin-end<a> a[](begin a*, end a*) unsafe noctx
 	hard-assert: begin <= end
 	end - begin, begin
 

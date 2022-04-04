@@ -5,7 +5,7 @@ import
 	crow/extra-types: fd-t
 	crow/misc: void
 	crow/private/bootstrap: char8, c-str
-	crow/private/number-low-level: nat8
+	crow/private/number-low-level: nat8, nat32
 	crow/ptr: const-ptr, mut-ptr
 
 perror void(s c-str) unsafe summon extern<c> noctx
@@ -52,7 +52,7 @@ spec
 	extern<c>
 	noctx
 
-SEEK enum extern
+SEEK enum<nat32> extern
 	SEEK_SET
 	SEEK_CUR
 	SEEK_END

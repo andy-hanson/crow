@@ -1,18 +1,18 @@
 no-std
 import
 	string: memcpy
-	../bool: bool
-	../compare: <, <=, equal
+	../bool: &&, bool
+	../compare: !=, <, <=, equal
 	../fun-util: subscript
 	../misc: new, void
 	../opt: new, opt
 	../ptr:
 		==, <=>, +, -, *, as-any-const-ptr, as-any-mut-ptr, as-const, as-mut, by-val, mut-ptr,
-		ref-of-ptr, set-deref, set-subscript, size-of, subscript, swap
+		ptr-cast, ref-of-ptr, set-deref, set-subscript, size-of, subscript, swap
 	../private/alloc: alloc-uninitialized, fill-ptr-range, set-zero-range
 	../private/bootstrap: hard-assert
 	../private/exception-low-level: assert, forbid
-	../private/number-low-level: ==, <=>, nat64, wrap-mul, wrap-sub
+	../private/number-low-level: ==, <=>, nat64, unsafe-div, unsafe-mod, wrap-mul, wrap-sub
 	../private/range-low-level: .., range
 	./arr: arr, new, size, subscript
 	./private/arr-low-level: arr-from-begin-end, begin-ptr, subscript
@@ -69,7 +69,7 @@ subscript<a> fix-arr a(a a mut*, range range nat64) noctx unsafe
 	a.as-const[range],
 
 # Creates a `fix-arr` from a range of pointers.
-fix-arr-from-begin-end<a> fix-arr a(begin a mut*, end a mut*) unsafe noctx
+fix-arr-from-begin-end<a> fix-arr a(begin a mut*, end a mut*) no-doc unsafe noctx
 	hard-assert: begin <= end
 	(begin.as-const arr-from-begin-end end.as-const),
 
@@ -209,8 +209,10 @@ fill-fix-arr<a> fix-arr a(size nat64, value a)
 	size make-fix-arr _ => value
 
 # Sets every element to `value`.
-fill<a> void(a fix-arr a, value a)
-	a set-map _ => value
+fill<a> void(a fix-arr a, value a) noctx trusted
+	unless a is-empty
+		*a.begin-ptr := value
+		a.begin-ptr + 1 fix-arr-from-begin-end a.end-ptr fill value
 
 ###
 Unsafe cast a fix-arr to arr.
@@ -293,6 +295,17 @@ map<out, in> fix-arr out(a fix-arr in, f act out(in)) trusted
 
 map-with-index<out, in> fix-arr out(a fix-arr in, f act out(in, nat64)) trusted
 	a.size make-fix-arr i => f[a[i], i]
+
+###
+Casts elements to a different type.
+If the element type is different, adjusts the size so that the number of bytes is the same.
+###
+cast-fix-arr<out, in> fix-arr out(a fix-arr in) noctx unsafe
+	hard-assert: size-of@<in> != 0 && size-of@<out> != 0
+	size-bytes = a.size wrap-mul size-of@<in>
+	hard-assert: (size-bytes unsafe-mod size-of@<out>) == 0
+	size-out = size-bytes unsafe-div size-of@<out>
+	a.begin-ptr.ptr-cast@<out, in>[0 .. size-out]
 
 map-to-arr<out, in> out[](a fix-arr in, f act out(in)) trusted
 	a map f cast-immutable

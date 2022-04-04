@@ -1,0 +1,29 @@
+import
+	crow/col/arr-util: map
+	crow/col/dict: dict, keys, new, subscript
+	crow/io/path: get-extension
+	crow/io/print: print
+	crow/str-util: join
+	audio/read-sound-file: read-sound-file
+	audio/write-sound-file: flac, ogg-vorbis, sound-file-format, wav, write-sound-file
+	audio/sound: format, to-str, with-sample-rate
+
+main fut nat(args str[]) summon unsafe
+	if args.size != 2
+		"Usage: crow run convert-file.crow -- [IN] [OUT]" throw
+	in-path = args[0]
+	out-path = args[1]
+	ext = out-path.get-extension ?? "Output file needs extension" throw
+	format sound-file-format = default-file-types[ext str-to-sym] ?? describe-out-exts throw
+
+	sound = in-path.read-sound-file with-sample-rate 48000
+	print: "sound format is {sound format}"
+	out-path write-sound-file sound, format
+	()
+
+.describe-out-exts str()
+	supported = default-file-types.keys map (cur => cur to-str) join ", "
+	"Supported output file extensions: {supported}"
+
+.default-file-types sound-file-format[sym]()
+	("flac", flac), ("ogg", ogg-vorbis), ("wav", wav)

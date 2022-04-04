@@ -853,15 +853,17 @@ immutable(Opt!(DLLib*)) getLibrary(
 	scope WriteError writeError,
 ) {
 	immutable Sym fileName = dllOrSoName(allSymbols, libraryName);
-	if (has(configuredPath)) {
-		immutable Path fullPath = childPath(allPaths, force(configuredPath), fileName);
-		return loadLibraryFromPath(allPaths, fullPath, writeError);
+	immutable Opt!(DLLib*) fromPath = has(configuredPath)
+		? tryLoadLibraryFromPath(allPaths, childPath(allPaths, force(configuredPath), fileName))
+		: none!(DLLib*);
+	if (has(fromPath)) {
+		return fromPath;
 	} else {
 		switch (libraryName.value) {
 			case shortSymValue("c"):
 			case shortSymValue("m"):
 				version (Windows) {
-					return loadLibraryFromNameOrPath(safeCStr!"ucrtbase.dll", writeError);
+					return loadLibraryFromName(safeCStr!"ucrtbase.dll", writeError);
 				} else {
 					return some!(DLLib*)(null);
 				}
@@ -879,34 +881,32 @@ immutable(Sym) dllOrSoName(ref AllSymbols allSymbols, immutable Sym libraryName)
 	}
 }
 
+@trusted immutable(Opt!(DLLib*)) tryLoadLibraryFromPath(
+	ref const AllPaths allPaths,
+	immutable Path path,
+) {
+	TempStrForPath buf = void;
+	immutable SafeCStr pathStr = pathToTempStr(buf, allPaths, path);
+	immutable DLLib* res = dlLoadLibrary(pathStr.ptr);
+	return res == null ? none!(DLLib*) : some!(DLLib*)(res);
+}
+
 @trusted immutable(Opt!(DLLib*)) loadLibraryFromName(
 	ref const AllSymbols allSymbols,
 	immutable Sym name,
 	scope WriteError writeError,
 ) {
 	char[256] buf = symAsTempBuffer!256(allSymbols, name);
-	return loadLibraryFromNameOrPath(immutable SafeCStr(cast(immutable) buf.ptr), writeError);
+	return loadLibraryFromName(immutable SafeCStr(cast(immutable) buf.ptr), writeError);
 }
 
-@trusted immutable(Opt!(DLLib*)) loadLibraryFromPath(
-	ref const AllPaths allPaths,
-	immutable Path path,
-	scope WriteError writeError,
-) {
-	TempStrForPath buf = void;
-	return loadLibraryFromNameOrPath(pathToTempStr(buf, allPaths, path), writeError);
-}
-
-@trusted immutable(Opt!(DLLib*)) loadLibraryFromNameOrPath(
-	scope immutable SafeCStr name,
-	scope WriteError writeError,
-) {
+immutable(Opt!(DLLib*)) loadLibraryFromName(scope immutable SafeCStr name, scope WriteError writeError) {
 	immutable DLLib* res = dlLoadLibrary(name.ptr);
 	if (res == null) {
 		// TODO: use a Diagnostic
 		writeError(safeCStr!"Could not load library ");
 		writeError(name);
-		writeError(safeCStr!".\n");
+		writeError(safeCStr!"\n");
 		return none!(DLLib*);
 	} else
 		return some!(DLLib*)(res);
@@ -1120,12 +1120,26 @@ extern(C) {
 extern(C) {
 	// based on dyncall/dynload/dynload.h
 	struct DLLib;
-	immutable(DLLib*) dlLoadLibrary(const char* libpath);
+	immutable(DLLib*) dlLoadLibrary(scope const char* libpath);
 	pure void dlFreeLibrary(immutable DLLib* pLib);
-	pure void* dlFindSymbol(immutable DLLib* pLib, const char* pSymbolName);
+	pure void* dlFindSymbol(immutable DLLib* pLib, scope const char* pSymbolName);
 }
 
 enum NulTerminate { no, yes }
+
+@system void withBufferPossiblyOnStack(immutable size_t maxSizeOnStack)(
+	immutable size_t size,
+	scope void delegate(scope ubyte*) @nogc nothrow cb,
+) {
+	if (size <= maxSizeOnStack) {
+		ubyte[maxSizeOnStack] buf = void;
+		cb(buf.ptr);
+	} else {
+		ubyte* buf = cast(ubyte*) pureMalloc(size);
+		cb(buf);
+		pureFree(buf);
+	}
+}
 
 @trusted void tryReadFile(
 	scope ref const AllPaths allPaths,
@@ -1136,7 +1150,6 @@ enum NulTerminate { no, yes }
 ) {
 	TempStrForPath pathBuf = void;
 	immutable CStr pathCStr = pathToTempStr(pathBuf, allPaths, path, extension).ptr;
-	ubyte[0x100000] contentBuf = void;
 
 	FILE* fd = fopen(pathCStr, "rb");
 	if (fd == null)
@@ -1151,32 +1164,29 @@ enum NulTerminate { no, yes }
 	immutable long ftellResult = ftell(fd);
 	if (ftellResult < 0)
 		todo!void("ftell failed");
-	if (ftellResult > 99_999)
-		todo!void("size suspiciously large");
-
 	immutable size_t fileSize = cast(size_t) ftellResult;
-
 	if (fileSize == 0) {
 		if (nulTerminate) {
 			static immutable ubyte[] bytes = [0];
-			return cb(immutable ReadFileResult!(ubyte[])(bytes));
+			cb(immutable ReadFileResult!(ubyte[])(bytes));
 		} else
-			return cb(immutable ReadFileResult!(ubyte[])(emptyArr!ubyte));
+			cb(immutable ReadFileResult!(ubyte[])(emptyArr!ubyte));
+	} else {
+		withBufferPossiblyOnStack!0x100000(fileSize + (nulTerminate ? 1 : 0), (scope ubyte* contentBuf) {
+			// Go back to the beginning so we can read
+			immutable int err2 = fseek(fd, 0, SEEK_SET);
+			verify(err2 == 0);
+
+			immutable size_t nBytesRead = fread(contentBuf, ubyte.sizeof, fileSize, fd);
+			verify(nBytesRead == fileSize);
+			if (ferror(fd))
+				todo!void("error reading file");
+			if (nulTerminate) contentBuf[nBytesRead] = '\0';
+
+			return cb(immutable ReadFileResult!(ubyte[])(
+				cast(immutable) contentBuf[0 .. nBytesRead + (nulTerminate ? 1 : 0)]));
+		});
 	}
-
-	// Go back to the beginning so we can read
-	immutable int err2 = fseek(fd, 0, SEEK_SET);
-	verify(err2 == 0);
-
-	verify(fileSize < contentBuf.length);
-	immutable size_t nBytesRead = fread(contentBuf.ptr, char.sizeof, fileSize, fd);
-	verify(nBytesRead == fileSize);
-	if (ferror(fd))
-		todo!void("error reading file");
-	if (nulTerminate) contentBuf[nBytesRead] = '\0';
-
-	return cb(immutable ReadFileResult!(ubyte[])(
-		cast(immutable) contentBuf[0 .. nBytesRead + (nulTerminate ? 1 : 0)]));
 }
 
 @trusted immutable(ExitCode) writeFile(

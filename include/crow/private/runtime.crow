@@ -14,11 +14,11 @@ import
 		uninit
 	./bool-low-level: !, &&, ||, bool, false, true
 	./bootstrap:
-		call-with-ctx, ctx, gc-ctx-ptr, gctx-ptr, get-ctx, hard-assert, log-ctx-ptr, nat64, new,
-		sym, thread-id, thread-local-stuff
+		call-with-ctx, ctx, gc-ctx-ptr, gctx-ptr, get-ctx, hard-assert, log-ctx-ptr,
+		new, sym, thread-id, thread-local-stuff
 	./exception-low-level: exception-ctx
 	./log-low-level: default-log-handler, log-ctx, log-handler, set-handler
-	./number-low-level: ==
+	./number-low-level: ==, nat64
 	./perf-low-level: perf-ctx
 	./task-queue:
 		action, add-task, add-tasks, add-timed-task, any-tasks, exclusion, first-task-time, init,

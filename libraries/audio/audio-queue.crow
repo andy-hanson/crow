@@ -1,0 +1,146 @@
+no-std
+import
+	crow/bool: !, &&, bool, false, true
+	crow/cell: *, cell, new, set-deref
+	crow/col/arr: arr, arr-equal, new, size
+	crow/col/fix-arr:
+		begin-ptr, end-ptr, fill, fix-arr, fix-arr-from-begin-end, size,
+		temp-as-arr, uninitialized-fix-arr
+	crow/col/mut-arr: ~=, begin-ptr, clear, end-ptr, mut-arr, new, set-filter
+	crow/col/private/arr-low-level: arr-from-begin-end, begin-ptr, end-ptr
+	crow/compare: !=, >
+	crow/exception: throw
+	crow/misc: new, void
+	crow/number: +, ==, <=>, float32
+	crow/private/bootstrap: hard-assert
+	crow/private/thread-utils: acquire, init, lock, release, uninit
+	crow/ptr: ==, +, -, *, by-val, const-ptr, mut-ptr, ref-eq, ref-of-val, set-deref
+	crow/str: literal
+	crow/str-conv: finish, interp, with-str, with-value
+	crow/test-util: is
+	./audio: new, playing-sound
+	./sound: ==, format, new, samples, sound, sound-format, to-str
+
+audio-queue record force-sendable
+	format sound-format
+	.lock-by-val by-val lock
+	# All sounds normalized to `format`
+	.playing entry mut[]
+
+.lock lock(a audio-queue) noctx unsafe
+	a.lock-by-val ref-of-val
+
+new audio-queue(format sound-format) trusted
+	res audio-queue = format, uninit, ()
+	res.lock init
+	res
+
+.entry record by-ref force-sendable
+	samples float32[]
+	cur mut float32*
+	loop bool
+
+.reset-position void(a entry)
+	a.cur := a.samples begin-ptr
+
+.is-over bool(a entry) noctx trusted
+	!a.loop && a.cur == a.samples.end-ptr
+
+clear void(a audio-queue) noctx trusted
+	a.lock acquire
+	a.playing clear
+	a.lock release
+
+play playing-sound(a audio-queue, sound sound)
+	a play-common sound, false
+
+play-loop playing-sound(a audio-queue, sound sound)
+	a play-common sound, true
+
+# This locks the queue, so make sure 'out' isn't huge
+pull void(a audio-queue, out fix-arr float32) noctx unsafe
+	out fill 0
+	a.lock acquire
+	a.playing.begin-ptr each-playing a.playing.end-ptr, out
+	a.lock release
+
+.each-playing void(cur entry mut*, end entry mut*, out fix-arr float32) noctx unsafe
+	if cur != end
+		*cur add-to out
+		cur + 1 each-playing end, out
+	else
+		()
+
+.add-to void(a entry, out fix-arr float32) noctx unsafe
+	n-remaining = a.samples.end-ptr - a.cur
+	if n-remaining > out.size
+		end = a.cur + out.size
+		out add (a.cur arr-from-begin-end end)
+		a.cur := end
+	else
+		out-mid = out.begin-ptr + n-remaining
+		out.begin-ptr fix-arr-from-begin-end out-mid add (a.cur arr-from-begin-end a.samples.end-ptr)
+		if a loop
+			a.cur := a.samples begin-ptr
+			a add-to (out-mid fix-arr-from-begin-end out.end-ptr)
+		else
+			a.cur := a.samples end-ptr
+
+.add void(a fix-arr float32, b float32[]) noctx unsafe
+	hard-assert: a.size == b.size
+	a.begin-ptr add-recur a.end-ptr, b.begin-ptr
+.add-recur void(out float32 mut*, out-end float32 mut*, read float32*) noctx unsafe
+	unless out == out-end
+		*out := *out + *read
+		out + 1 add-recur out-end, read + 1
+
+.play-common playing-sound(a audio-queue, sound sound, loop bool) trusted
+	if sound.format != a.format
+		"sound format mismatch: expected {a format}, got {sound format}" throw
+	a.lock acquire
+	# Can't use 'set-filter' in 'noctx' code, so do it here
+	a.playing.filter := x => !x.is-over
+	entry entry = sound.samples, sound.samples.begin-ptr, loop
+	a.playing ~= entry
+	a.lock release
+	reset fun void() = () =>
+		entry reset-position 
+	set-playing fun void(bool) = desired =>
+		a set-playing entry, desired
+	reset, set-playing
+
+.set-playing void(a audio-queue, entry entry, desired bool) trusted
+	a.lock acquire
+	is-playing cell bool = false,
+	# Can't use 'set-filter' in 'noctx' code, so do it here
+	a.playing.filter := x =>
+		if x is-over
+			false
+		elif x ref-eq entry
+			*is-playing := true
+			desired
+		else
+			true
+	if desired && !*is-playing
+		a.playing ~= entry
+	a.lock release
+
+test
+	format sound-format = 2, 44100
+	a audio-queue = format,
+	sound sound = format, (1, 2, 3, 4, 5, 6, 7, 8)
+	buf fix-arr float32 = 3 uninitialized-fix-arr
+	a pull buf
+	buf.temp-as-arr is (0, 0, 0)
+	_ = a play sound
+	a pull buf
+	buf.temp-as-arr is (1, 2, 3)
+	a pull buf
+	buf.temp-as-arr is (4, 5, 6)
+	a pull buf
+	buf.temp-as-arr is (7, 8, 0)
+	a pull buf
+	buf.temp-as-arr is (0, 0, 0)
+
+.== bool(a float32[], b float32[])
+	a arr-equal b, (x, y) => x == y
