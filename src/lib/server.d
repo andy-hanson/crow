@@ -164,7 +164,7 @@ immutable(FakeExternResult) run(
 	// Or just have interpreter free things.
 	scope immutable SafeCStr[1] allArgs = [safeCStr!"/usr/bin/fakeExecutable"];
 	return withDictReadOnlyStorage(server.includeDir, server.files, (scope ref const ReadOnlyStorage storage) =>
-		withFakeExtern(alloc, server.allSymbols, (scope ref Extern extern_) =>
+		withFakeExtern(alloc, server.allSymbols, (scope ref Extern extern_) @trusted =>
 			buildAndInterpret(
 				alloc, perf, server.allSymbols, server.allPaths, server.pathsInfo, storage, extern_,
 				showDiagOptions, main, allArgs)));

@@ -33,7 +33,7 @@ void testString(ref Test test) {
 	verifyParseJson(test, safeCStr!"\"a\\nb\"", immutable Json(safeCStr!"a\\nb"));
 }
 
-void testArray(ref Test test) {
+@trusted void testArray(ref Test test) {
 	verifyParseJson(test, safeCStr!"[ ]", immutable Json(emptyArr!Json));
 	scope immutable Json[1] valuesA = [immutable Json(false)];
 	verifyParseJson(test, safeCStr!"[ false , ]", immutable Json(valuesA));
@@ -46,7 +46,7 @@ void testArray(ref Test test) {
 	verifyParseJson(test, safeCStr!"[true, \"foo\", [false], {}]", immutable Json(valuesB));
 }
 
-void testObject(ref Test test) {
+@trusted void testObject(ref Test test) {
 	verifyParseJson(test, safeCStr!"{ }", immutable Json(emptyArr!(KeyValuePair!(Sym, Json))));
 	scope immutable KeyValuePair!(Sym, Json)[1] fieldsA = [
 		immutable KeyValuePair!(Sym, Json)(shortSym("x"), immutable Json(false)),
