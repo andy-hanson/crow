@@ -15,7 +15,6 @@ import interpret.generateBytecode : generateBytecode;
 import interpret.runBytecode : runBytecode;
 import lower.lower : lower;
 import model.concreteModel : ConcreteProgram;
-import model.diag : Diagnostics, FilesInfo;
 import model.lowModel : LowProgram;
 import model.model : hasDiags, Module, Program;
 import model.reprConcreteModel : reprOfConcreteProgram;
@@ -23,7 +22,7 @@ import model.reprLowModel : reprOfLowProgram;
 import model.reprModel : reprModule;
 import util.alloc.alloc : Alloc;
 import util.col.arr : emptyArr, only;
-import util.col.str : SafeCStr, safeCStr, safeCStrSize;
+import util.col.str : SafeCStr, safeCStr;
 import util.opt : force, none, Opt, some;
 import util.path : AllPaths, Path, PathsInfo;
 import util.perf : Perf;
@@ -93,6 +92,7 @@ immutable(ExitCode) buildAndInterpret(
 	ref immutable PathsInfo pathsInfo,
 	scope ref const ReadOnlyStorage storage,
 	scope ref Extern extern_,
+	scope void delegate(scope immutable SafeCStr) @safe @nogc nothrow writeError,
 	ref immutable ShowDiagOptions showDiagOptions,
 	immutable Path main,
 	scope immutable SafeCStr[] allArgs,
@@ -115,36 +115,19 @@ immutable(ExitCode) buildAndInterpret(
 			programs.program.filesInfo,
 			allArgs));
 	} else {
-		writeDiagsToExtern(
+		writeError(strOfDiagnostics(
 			alloc,
 			allSymbols,
 			allPaths,
 			pathsInfo,
-			extern_,
 			showDiagOptions,
 			programs.program.filesInfo,
-			programs.program.diagnostics);
+			programs.program.diagnostics));
 		return ExitCode.error;
 	}
 }
 
 private:
-
-@trusted void writeDiagsToExtern(Extern)(
-	ref Alloc alloc,
-	ref const AllSymbols allSymbols,
-	ref AllPaths allPaths,
-	ref immutable PathsInfo pathsInfo,
-	ref Extern extern_,
-	ref immutable ShowDiagOptions showDiagOptions,
-	ref immutable FilesInfo filesInfo,
-	ref immutable Diagnostics diagnostics,
-) {
-	immutable int stderr = 2;
-	immutable SafeCStr s =
-		strOfDiagnostics(alloc, allSymbols, allPaths, pathsInfo, showDiagOptions, filesInfo, diagnostics);
-	extern_.write(stderr, s.ptr, safeCStrSize(s));
-}
 
 immutable(DiagsAndResultStrs) printTokens(
 	ref Alloc alloc,

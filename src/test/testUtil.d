@@ -77,14 +77,14 @@ void expectReturnStack(
 		debug {
 			Writer writer = test.writer();
 			writeStatic(writer, "expected:\nreturn:");
-			foreach (immutable Operation* ptr; stack) {
-				writeChar(writer, ' ');
-				writeNat(writer, byteCodeIndexOfPtr(interpreter, ptr).index);
-			}
-			writeStatic(writer, "\nactual:\nreturn:");
 			foreach (immutable ByteCodeIndex index; expected) {
 				writeChar(writer, ' ');
 				writeNat(writer, index.index);
+			}
+			writeStatic(writer, "\nactual:\nreturn:");
+			foreach (immutable Operation* ptr; stack) {
+				writeChar(writer, ' ');
+				writeNat(writer, byteCodeIndexOfPtr(interpreter, ptr).index);
 			}
 			writeChar(writer, '\n');
 			test.fail(finishWriter(writer));

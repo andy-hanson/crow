@@ -14,7 +14,7 @@ import interpret.bytecode :
 	NextOperation,
 	Operation;
 import interpret.debugging : writeFunName;
-import interpret.extern_ : DynCallType, Extern, FunPtr;
+import interpret.extern_ : DynCallType, DynCallSig, Extern, FunPtr;
 import model.concreteModel : ConcreteFun, concreteFunRange;
 import model.diag : FilesInfo, writeFileAndPos; // TODO: FilesInfo probably belongs elsewhere
 import model.lowModel : LowFunSource, LowProgram, matchLowFunSource;
@@ -40,7 +40,7 @@ import util.col.stack :
 	toArr;
 import util.col.str : SafeCStr;
 import util.conv : safeToSizeT;
-import util.memory : allocateMut, memcpy, memmove, memset, overwriteMemory;
+import util.memory : allocateMut, memcpy, memmove, overwriteMemory;
 import util.opt : has;
 import util.path : AllPaths, PathsInfo;
 import util.perf : Perf, PerfMeasure, withMeasureNoAlloc;
@@ -510,33 +510,34 @@ private @system void writePartialBytes(ubyte* ptr, immutable ulong value, immuta
 }
 
 @system immutable(NextOperation) opCallFunPtr(ref Interpreter a, immutable(Operation)* cur) {
-	immutable DynCallType returnType = cast(immutable DynCallType) readNat64(cur);
-	scope immutable DynCallType[] parameterTypes = readArray!DynCallType(cur);
-	immutable ulong funPtr = remove(a.dataStack, parameterTypes.length);
+	immutable DynCallSig sig = readDynCallSig(cur);
+	immutable ulong funPtr = remove(a.dataStack, sig.parameterTypes.length);
 	immutable ByteCodeIndex address = immutable ByteCodeIndex(safeToSizeT(funPtr));
 	return address.index < a.byteCode.byteCode.length
 		? callCommon(a, address, cur)
-		: opCallFunPtrCommon(a, cur, cast(immutable FunPtr) funPtr, returnType, parameterTypes);
+		: opCallFunPtrCommon(a, cur, cast(immutable FunPtr) funPtr, sig);
 }
 
 @system immutable(NextOperation) opCallFunPtrExtern(ref Interpreter a, immutable(Operation)* cur) {
 	verify(FunPtr.sizeof <= ulong.sizeof);
 	immutable FunPtr funPtr = cast(FunPtr) readNat64(cur);
-	immutable DynCallType returnType = cast(immutable DynCallType) readNat64(cur);
-	scope immutable DynCallType[] parameterTypes = readArray!DynCallType(cur);
-	return opCallFunPtrCommon(a, cur, funPtr, returnType, parameterTypes);
+	immutable DynCallSig sig = readDynCallSig(cur);
+	return opCallFunPtrCommon(a, cur, funPtr, sig);
+}
+
+private @system immutable(DynCallSig) readDynCallSig(ref immutable(Operation)* cur) {
+	return immutable DynCallSig(readArray!DynCallType(cur));
 }
 
 private @system immutable(NextOperation) opCallFunPtrCommon(
 	ref Interpreter a,
 	immutable(Operation)* cur,
 	immutable FunPtr funPtr,
-	immutable DynCallType returnType,
-	immutable DynCallType[] parameterTypes,
+	scope immutable DynCallSig sig,
 ) {
-	scope immutable ulong[] params = popN(a.dataStack, parameterTypes.length);
-	immutable ulong value = a.extern_.doDynCall(funPtr, returnType, params, parameterTypes);
-	if (returnType != DynCallType.void_)
+	scope immutable ulong[] params = popN(a.dataStack, sig.parameterTypes.length);
+	immutable ulong value = a.extern_.doDynCall(funPtr, sig, params);
+	if (sig.returnType != DynCallType.void_)
 		push(a.dataStack, value);
 	return nextOperation(a, cur);
 }
@@ -560,9 +561,6 @@ private @system immutable(NextOperation) callCommon(
 			verify(res <= int.max);
 			push(a.dataStack, res);
 			break;
-		case ExternOp.free:
-			a.extern_.free(cast(ubyte*) pop(a.dataStack));
-			break;
 		case ExternOp.longjmp:
 			immutable ulong val = pop(a.dataStack); // TODO: verify this is int32?
 			JmpBufTag* jmpBufPtr = cast(JmpBufTag*) pop(a.dataStack);
@@ -570,36 +568,10 @@ private @system immutable(NextOperation) callCommon(
 			//TODO: freeInterpreterRestore
 			push(a.dataStack, val);
 			break;
-		case ExternOp.malloc:
-			immutable ulong nBytes = safeToSizeT(pop(a.dataStack));
-			push(a.dataStack, cast(immutable ulong) a.extern_.malloc(nBytes));
-			break;
-		case ExternOp.memcpy:
-		case ExternOp.memmove:
-			immutable size_t size = safeToSizeT(pop(a.dataStack));
-			const ubyte* src = cast(ubyte*) pop(a.dataStack);
-			ubyte* dest = cast(ubyte*) pop(a.dataStack);
-			ubyte* res = memmove(dest, src, size);
-			push(a.dataStack, cast(immutable ulong) res);
-			break;
-		case ExternOp.memset:
-			immutable size_t size = safeToSizeT(pop(a.dataStack));
-			immutable ubyte value = cast(ubyte) pop(a.dataStack);
-			ubyte* begin = cast(ubyte*) pop(a.dataStack);
-			ubyte* res = memset(begin, value, size);
-			push(a.dataStack, cast(immutable ulong) res);
-			break;
 		case ExternOp.setjmp:
 			JmpBufTag* jmpBufPtr = cast(JmpBufTag*) pop(a.dataStack);
 			overwriteMemory(jmpBufPtr, createInterpreterRestore(a, cur));
 			push(a.dataStack, 0);
-			break;
-		case ExternOp.write:
-			immutable size_t nBytes = safeToSizeT(pop(a.dataStack));
-			immutable char* buf = cast(immutable char*) pop(a.dataStack);
-			immutable int fd = cast(int) pop(a.dataStack);
-			immutable long res = a.extern_.write(fd, buf, nBytes);
-			push(a.dataStack, res);
 			break;
 	}
 	return nextOperation(a, cur);

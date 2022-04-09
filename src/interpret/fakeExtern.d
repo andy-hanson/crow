@@ -2,12 +2,13 @@ module interpret.fakeExtern;
 
 @safe @nogc nothrow: // not pure
 
-import interpret.extern_ : DynCallType, Extern, FunPtr;
+import interpret.extern_ : DynCallSig, Extern, FunPtr;
 import lib.compiler : ExitCode;
 import util.alloc.alloc : Alloc, allocateBytes;
 import util.col.mutArr : moveToArr, MutArr, pushAll;
+import util.memory : memmove, memset;
 import util.sym : AllSymbols, safeCStrOfSym, shortSymValue, SpecialSym, specialSymValue, Sym;
-import util.util : debugLog, todo, verify, verifyFail;
+import util.util : debugLog, todo, unreachable, verify, verifyFail;
 
 struct FakeExternResult {
 	immutable ExitCode err;
@@ -15,32 +16,27 @@ struct FakeExternResult {
 	immutable string stderr;
 }
 
+struct FakeStdOutput {
+	MutArr!(immutable char) stdout;
+	MutArr!(immutable char) stderr;
+}
+
 immutable(FakeExternResult) withFakeExtern(
 	ref Alloc alloc,
 	ref const AllSymbols allSymbols,
-	scope immutable(ExitCode) delegate(scope ref Extern) @safe @nogc nothrow cb,
+	scope immutable(ExitCode) delegate(
+		scope ref Extern,
+		scope ref FakeStdOutput,
+	) @safe @nogc nothrow cb,
 ) {
-	MutArr!(immutable char) stdout;
-	MutArr!(immutable char) stderr;
+	scope FakeStdOutput std;
 	scope Extern extern_ = Extern(
-		(ubyte* ptr) {
-			// TODO: free
-		},
-		(immutable size_t size) {
-			return allocateBytes(alloc, size);
-		},
-		(immutable int fd, immutable char* buf, immutable size_t nBytes) {
-			immutable char[] arr = buf[0 .. nBytes];
-			verify(fd == 1 || fd == 2);
-			pushAll!char(alloc, fd == 1 ? stdout : stderr, arr);
-			return nBytes;
-		},
 		(immutable Sym name) =>
 			getFakeExternFun(alloc, allSymbols, name),
-		(FunPtr, immutable(DynCallType), scope immutable ulong[], scope immutable DynCallType[]) =>
-			todo!(immutable ulong)("not for fake"));
-	immutable ExitCode err = cb(extern_);
-	return immutable FakeExternResult(err, moveToArr(alloc, stdout), moveToArr(alloc, stderr));
+		(FunPtr ptr, scope immutable(DynCallSig), scope immutable ulong[] args) =>
+			callFakeExternFun(alloc, std, ptr, args));
+	immutable ExitCode err = cb(extern_, std);
+	return immutable FakeExternResult(err, moveToArr(alloc, std.stdout), moveToArr(alloc, std.stderr));
 }
 
 private:
@@ -48,17 +44,70 @@ private:
 immutable(FunPtr) getFakeExternFun(ref Alloc alloc, ref const AllSymbols allSymbols, immutable Sym name) {
 	switch (name.value) {
 		case shortSymValue("abort"):
-			return cast(immutable FunPtr) &abort;
+			return &abort;
 		case specialSymValue(SpecialSym.clock_gettime):
-			return cast(immutable FunPtr) &clockGetTime;
+			return &clockGetTime;
+		case shortSymValue("free"):
+			return &free;
 		case shortSymValue("nanosleep"):
-			return cast(immutable FunPtr) &nanosleep;
+			return &nanosleep;
+		case shortSymValue("malloc"):
+			return &malloc;
+		case shortSymValue("memcpy"):
+		case shortSymValue("memmove"):
+			return &memmove;
+		case shortSymValue("memset"):
+			return &memset;
+		case shortSymValue("write"):
+			return &write;
 		default:
 			debugLog("Can't call extern function from fake extern:");
 			debugLog(safeCStrOfSym(alloc, allSymbols, name).ptr);
-			return todo!FunPtr("not for fake");
+			return todo!(immutable FunPtr)("not for fake");
 	}
 }
+
+@system immutable(ulong) callFakeExternFun(
+	ref Alloc alloc,
+	scope ref FakeStdOutput std,
+	immutable FunPtr ptr,
+	scope immutable ulong[] args,
+) {
+	if (ptr == &free) {
+		verify(args.length == 1);
+		return 0;
+	} else if (ptr == &malloc) {
+		verify(args.length == 1);
+		return cast(immutable ulong) allocateBytes(alloc, cast(immutable size_t) args[0]);
+	} else if (ptr == &memmove) {
+		verify(args.length == 3);
+		return cast(immutable ulong) memmove(
+			cast(ubyte*) args[0],
+			cast(const ubyte*) args[1],
+			cast(immutable size_t) args[2]);
+	} else if (ptr == &memset) {
+		verify(args.length == 3);
+		return cast(immutable ulong) memset(
+			cast(ubyte*) args[0],
+			cast(immutable ubyte) args[1],
+			cast(immutable size_t) args[2]);
+	} else if (ptr == &write) {
+		verify(args.length == 3);
+		immutable int fd = cast(immutable int) args[0];
+		immutable char* buf = cast(immutable char*) args[1];
+		immutable size_t nBytes = cast(immutable size_t) args[2];
+		verify(fd == 1 || fd == 2);
+		pushAll!char(alloc, fd == 1 ? std.stdout : std.stderr, buf[0 .. nBytes]);
+		return nBytes;
+	} else
+		return unreachable!(immutable ulong)();
+}
+
+// Just used as fake funtion pointers, actual implementation in callFakeExternFun
+void free() {}
+void malloc() {}
+void write() {}
+
 
 void abort() {
 	debugLog("program aborted");

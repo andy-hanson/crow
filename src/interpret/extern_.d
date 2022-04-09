@@ -5,23 +5,29 @@ module interpret.extern_;
 import util.sym : Sym;
 
 struct Extern {
-	void delegate(ubyte*) @system @nogc nothrow free;
-	ubyte* delegate(immutable size_t) @system @nogc nothrow malloc;
-	immutable(long) delegate(
-		immutable int fd,
-		immutable char* buf,
-		immutable size_t nBytes,
-	) @system @nogc nothrow write;
 	immutable(FunPtr) delegate(immutable Sym name) @safe @nogc nothrow getExternFunPtr;
 	immutable(ulong) delegate(
 		immutable(FunPtr) funPtr,
-		immutable DynCallType returnType,
+		scope immutable DynCallSig sig,
 		scope immutable ulong[] parameters,
-		scope immutable DynCallType[] parameterTypes,
 	) @system @nogc nothrow doDynCall;
 }
 
 alias FunPtr = immutable void*;
+
+struct DynCallSig {
+	@safe @nogc pure nothrow:
+
+	immutable DynCallType[] returnTypeAndParameterTypes;
+
+	immutable(DynCallType) returnType() scope immutable {
+		return returnTypeAndParameterTypes[0];
+	}
+
+	immutable(DynCallType[]) parameterTypes() return scope immutable {
+		return returnTypeAndParameterTypes[1 .. $];
+	}
+}
 
 // These should all fit in a single stack entry (except 'void')
 enum DynCallType : ubyte {

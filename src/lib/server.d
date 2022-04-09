@@ -12,7 +12,7 @@ import frontend.parse.ast : FileAst;
 import frontend.parse.parse : parseFile;
 import frontend.showDiag : ShowDiagOptions, strOfDiagnostic;
 import interpret.extern_ : Extern;
-import interpret.fakeExtern : FakeExternResult,withFakeExtern;
+import interpret.fakeExtern : FakeExternResult, FakeStdOutput, withFakeExtern;
 import model.diag : Diagnostic, DiagnosticWithinFile, FilesInfo;
 import model.model : Program;
 import util.alloc.alloc : Alloc;
@@ -20,8 +20,9 @@ import util.col.arrBuilder : ArrBuilder;
 import util.col.arrUtil : arrLiteral, map;
 import util.col.dict : dictLiteral;
 import util.col.fullIndexDict : fullIndexDictOfArr;
+import util.col.mutArr : pushAll;
 import util.col.mutDict : getAt_mut, insertOrUpdate, mustDelete, mustGetAt_mut;
-import util.col.str : copySafeCStr, freeSafeCStr, SafeCStr, safeCStr;
+import util.col.str : copySafeCStr, freeSafeCStr, SafeCStr, safeCStr, strOfSafeCStr;
 import util.dictReadOnlyStorage : withDictReadOnlyStorage, MutFiles;
 import util.lineAndColumnGetter : LineAndColumnGetter, lineAndColumnGetterForText;
 import util.opt : force, has, Opt;
@@ -164,9 +165,12 @@ immutable(FakeExternResult) run(
 	// Or just have interpreter free things.
 	scope immutable SafeCStr[1] allArgs = [safeCStr!"/usr/bin/fakeExecutable"];
 	return withDictReadOnlyStorage(server.includeDir, server.files, (scope ref const ReadOnlyStorage storage) =>
-		withFakeExtern(alloc, server.allSymbols, (scope ref Extern extern_) @trusted =>
+		withFakeExtern(alloc, server.allSymbols, (scope ref Extern extern_, scope ref FakeStdOutput std) @trusted =>
 			buildAndInterpret(
 				alloc, perf, server.allSymbols, server.allPaths, server.pathsInfo, storage, extern_,
+				(immutable SafeCStr x) {
+					pushAll(alloc, std.stderr, strOfSafeCStr(x));
+				},
 				showDiagOptions, main, allArgs)));
 }
 

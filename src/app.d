@@ -51,7 +51,7 @@ version (Windows) {
 	import core.sys.posix.dirent : DIR, dirent, opendir, readdir;
 	import core.sys.posix.sys.stat : mkdir, pid_t, S_IFDIR, S_IFMT, S_IRWXU, stat, stat_t;
 	import core.sys.posix.time : clock_gettime, CLOCK_MONOTONIC, timespec;
-	import core.sys.posix.unistd : getcwd, read, readlink, unlink, posixWrite = write;
+	import core.sys.posix.unistd : getcwd, read, readlink, unlink;
 }
 version (Windows) { } else {
 	import backend.jit : jitAndRun;
@@ -59,7 +59,7 @@ version (Windows) { } else {
 import frontend.lang : JitOptions, OptimizationLevel;
 import frontend.showDiag : ShowDiagOptions, strOfDiagnostics;
 import interpret.applyFn : u64OfI32, u64OfI64;
-import interpret.extern_ : DynCallType, Extern, FunPtr;
+import interpret.extern_ : DynCallType, DynCallSig, Extern, FunPtr;
 import lib.cliParser :
 	BuildOptions,
 	CCompileOptions,
@@ -240,6 +240,9 @@ immutable(ExitCode) go(
 								pathsInfo,
 								storage,
 								extern_,
+								(scope immutable SafeCStr x) @safe {
+									printErr(x);
+								},
 								showDiagOptions,
 								run.mainPath,
 								getAllArgs(alloc, allPaths, storage, run.mainPath, run.programArgs)));
@@ -735,17 +738,17 @@ immutable(SafeCStr[]) cCompileArgs(
 	return finishArr(alloc, args);
 }
 
-@trusted immutable(ExitCode) print(immutable SafeCStr a) {
+@trusted immutable(ExitCode) print(scope immutable SafeCStr a) {
 	printf("%s", a.ptr);
 	return ExitCode.ok;
 }
 
-@trusted immutable(ExitCode) println(immutable SafeCStr a) {
+@trusted immutable(ExitCode) println(scope immutable SafeCStr a) {
 	printf("%s\n", a.ptr);
 	return ExitCode.ok;
 }
 
-@trusted immutable(ExitCode) printErr(immutable SafeCStr a) {
+@trusted immutable(ExitCode) printErr(scope immutable SafeCStr a) {
 	fprintf(stderr, "%s", a.ptr);
 	return ExitCode.error;
 }
@@ -807,28 +810,10 @@ immutable(ExitCode) withRealExtern(
 	verify(dcVm != null);
 	dcMode(dcVm, DC_CALL_C_DEFAULT);
 	scope Extern extern_ = Extern(
-		(ubyte* ptr) {
-			pureFree(ptr);
-		},
-		(immutable size_t size) =>
-			cast(ubyte*) pureMalloc(size),
-		(immutable int fd, immutable char* buf, immutable size_t nBytes) {
-			version (Windows) {
-				// writeDiagsToExtern uses this
-				verify(fd == 2);
-				return fprintf(stderr, "%.*s", cast(int) nBytes, buf);
-			} else {
-				return posixWrite(fd, buf, nBytes);
-			}
-		},
 		(immutable Sym name) =>
 			getExternFunPtr(allSymbols, libraries, name),
-		(
-			FunPtr funPtr,
-			immutable DynCallType returnType,
-			scope immutable ulong[] parameters,
-			scope immutable DynCallType[] parameterTypes,
-		) => dynamicCallFunPtr(funPtr, returnType, parameters, parameterTypes, dcVm));
+		(FunPtr funPtr, scope immutable DynCallSig sig, scope immutable ulong[] parameters) =>
+			dynamicCallFunPtr(funPtr, sig, parameters, dcVm));
 	immutable ExitCode res = cb(extern_);
 
 	foreach (DLLib* library; libraries)
@@ -867,9 +852,8 @@ immutable(ExitCode) withRealExtern(
 
 @system immutable(ulong) dynamicCallFunPtr(
 	immutable FunPtr funPtr,
-	immutable DynCallType returnType,
+	scope immutable DynCallSig sig,
 	scope immutable ulong[] parameters,
-	scope immutable DynCallType[] parameterTypes,
 	DCCallVM* dcVm,
 ) {
 	DCpointer ptr = cast(DCpointer) funPtr;
@@ -877,7 +861,7 @@ immutable(ExitCode) withRealExtern(
 	dcReset(dcVm);
 	zipImpureSystem!(ulong, DynCallType)(
 		parameters,
-		parameterTypes,
+		sig.parameterTypes,
 		(ref immutable ulong value, ref immutable DynCallType type) {
 			final switch (type) {
 				case DynCallType.bool_:
@@ -923,7 +907,7 @@ immutable(ExitCode) withRealExtern(
 		});
 
 	immutable ulong res = () {
-		final switch (returnType) {
+		final switch (sig.returnType) {
 			case DynCallType.bool_:
 				return dcCallBool(dcVm, ptr);
 			case DynCallType.char8:

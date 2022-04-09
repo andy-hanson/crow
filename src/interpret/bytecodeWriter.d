@@ -17,7 +17,7 @@ import interpret.bytecode :
 	StackOffset,
 	StackOffsetBytes,
 	subtractByteCodeIndex;
-import interpret.extern_ : DynCallType, FunPtr;
+import interpret.extern_ : DynCallType, DynCallSig, FunPtr;
 import interpret.runBytecode :
 	opAssertUnreachable,
 	opBreak,
@@ -152,38 +152,34 @@ void writeCallFunPtr(
 	immutable ByteCodeSource source,
 	// This is before the fun-ptr arg, which should be the first
 	immutable StackEntry stackEntryBeforeArgs,
-	immutable DynCallType returnType,
-	scope immutable DynCallType[] parameterTypes,
+	scope immutable DynCallSig sig,
 ) {
-	verify(stackEntryBeforeArgs.entry == writer.nextStackEntry - parameterTypes.length - 1);
+	verify(stackEntryBeforeArgs.entry == writer.nextStackEntry - sig.parameterTypes.length - 1);
 	pushOperationFn(writer, source, &opCallFunPtr);
-	writeCallFunPtrCommon(writer, source, returnType, parameterTypes);
+	writeCallFunPtrCommon(writer, source, sig);
 	writer.nextStackEntry -= 1; // for the fun-ptr
-	verify(writer.nextStackEntry == stackEntryBeforeArgs.entry + (returnType == DynCallType.void_ ? 0 : 1));
+	verify(writer.nextStackEntry == stackEntryBeforeArgs.entry + (sig.returnType == DynCallType.void_ ? 0 : 1));
 }
 
 void writeCallFunPtrExtern(
 	ref ByteCodeWriter writer,
 	immutable ByteCodeSource source,
 	immutable FunPtr funPtr,
-	immutable DynCallType returnType,
-	scope immutable DynCallType[] parameterTypes,
+	scope immutable DynCallSig sig,
 ) {
 	pushOperationFn(writer, source, &opCallFunPtrExtern);
 	pushNat64(writer, source, cast(immutable ulong) funPtr);
-	writeCallFunPtrCommon(writer, source, returnType, parameterTypes);
+	writeCallFunPtrCommon(writer, source, sig);
 }
 
 private void writeCallFunPtrCommon(
 	ref ByteCodeWriter writer,
 	immutable ByteCodeSource source,
-	immutable DynCallType returnType,
-	scope immutable DynCallType[] parameterTypes,
+	scope immutable DynCallSig sig,
 ) {
-	pushNat64(writer, source, returnType);
-	writeArray!DynCallType(writer, source, parameterTypes);
-	writer.nextStackEntry -= parameterTypes.length;
-	writer.nextStackEntry += (returnType == DynCallType.void_ ? 0 : 1);
+	writeArray!DynCallType(writer, source, sig.returnTypeAndParameterTypes);
+	writer.nextStackEntry -= sig.parameterTypes.length;
+	writer.nextStackEntry += (sig.returnType == DynCallType.void_ ? 0 : 1);
 }
 
 private immutable(size_t) getStackOffsetTo(
@@ -579,15 +575,9 @@ void writeExtern(ref ByteCodeWriter writer, immutable ByteCodeSource source, imm
 	immutable int stackEffect = () {
 		final switch (op) {
 			case ExternOp.longjmp:
-			case ExternOp.memcpy:
-			case ExternOp.memmove:
-			case ExternOp.memset:
-			case ExternOp.write:
 				return -2;
 			case ExternOp.backtrace:
-			case ExternOp.free:
 				return -1;
-			case ExternOp.malloc:
 			case ExternOp.setjmp:
 				return 0;
 		}

@@ -118,14 +118,4 @@ struct ByteCodeOffset {
 
 immutable size_t stackEntrySize = 8;
 
-enum ExternOp : ubyte {
-	backtrace,
-	free,
-	longjmp,
-	malloc,
-	memcpy,
-	memmove,
-	memset,
-	setjmp,
-	write,
-}
+enum ExternOp : ubyte { backtrace, longjmp, setjmp }

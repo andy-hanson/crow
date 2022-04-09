@@ -104,7 +104,7 @@ import interpret.bytecodeWriter :
 	writeSwitchWithValuesDelay,
 	writeWrite;
 import interpret.debugging : writeLowType;
-import interpret.extern_ : DynCallType, FunPtr;
+import interpret.extern_ : DynCallType, DynCallSig, FunPtr;
 import interpret.generateText :
 	generateText,
 	getTextInfoForArray,
@@ -371,12 +371,12 @@ void generateExternCall(
 		writeExtern(writer, source, force(op));
 	else {
 		immutable FunPtr funPtr = mustGetAt(funPtrs, name);
-		immutable DynCallType returnType = toDynCallType(fun.returnType);
-		MutMaxArr!(10, DynCallType) parameterTypes = void;
-		initializeMutMaxArr(parameterTypes);
+		MutMaxArr!(16, DynCallType) sigTypes = void;
+		initializeMutMaxArr(sigTypes);
+		toDynCallTypes(sigTypes, program, fun.returnType);
 		foreach (ref immutable LowParam x; fun.params)
-			toDynCallTypes(program, x.type, (immutable DynCallType t) => push(parameterTypes, t));
-		writeCallFunPtrExtern(writer, source, funPtr, returnType, tempAsArr(parameterTypes));
+			toDynCallTypes(sigTypes, program, x.type);
+		writeCallFunPtrExtern(writer, source, funPtr, immutable DynCallSig(tempAsArr(sigTypes)));
 	}
 	writeReturn(writer, source);
 }
@@ -432,37 +432,25 @@ immutable(DynCallType) toDynCallType(immutable LowType a) {
 }
 
 void toDynCallTypes(
+	scope ref MutMaxArr!(16, DynCallType) output,
 	scope ref immutable LowProgram program,
 	immutable LowType a,
-	scope void delegate(immutable DynCallType) @safe @nogc pure nothrow push,
 ) {
 	if (isRecordType(a)) {
 		foreach (immutable LowField field; program.allRecords[asRecordType(a)].fields)
-			toDynCallTypes(program, field.type, push);
+			toDynCallTypes(output, program, field.type);
 	} else
-		push(toDynCallType(a));
+		push(output, toDynCallType(a));
 }
 
 immutable(Opt!ExternOp) externOpFromName(immutable Sym a) {
 	switch (a.value) {
 		case shortSymValue("backtrace"):
 			return some(ExternOp.backtrace);
-		case shortSymValue("free"):
-			return some(ExternOp.free);
 		case shortSymValue("longjmp"):
 			return some(ExternOp.longjmp);
-		case shortSymValue("malloc"):
-			return some(ExternOp.malloc);
-		case shortSymValue("memcpy"):
-			return some(ExternOp.memcpy);
-		case shortSymValue("memmove"):
-			return some(ExternOp.memmove);
-		case shortSymValue("memset"):
-			return some(ExternOp.memset);
 		case shortSymValue("setjmp"):
 			return some(ExternOp.setjmp);
-		case shortSymValue("write"):
-			return some(ExternOp.write);
 		default:
 			return none!ExternOp;
 	}
@@ -532,12 +520,12 @@ void generateExpr(
 			immutable StackEntry stackEntryBeforeArgs = getNextStackEntry(writer);
 			generateExpr(writer, ctx, locals, it.funPtr);
 			generateArgs(writer, ctx, locals, it.args);
-			immutable DynCallType returnType = toDynCallType(expr.type);
-			MutMaxArr!(10, DynCallType) parameterTypes = void;
-			initializeMutMaxArr(parameterTypes);
+			MutMaxArr!(16, DynCallType) sigTypes = void;
+			initializeMutMaxArr(sigTypes);
+			toDynCallTypes(sigTypes, ctx.program, expr.type);
 			foreach (ref immutable LowExpr x; it.args)
-				toDynCallTypes(ctx.program, x.type, (immutable DynCallType t) => push(parameterTypes, t));
-			writeCallFunPtr(writer, source, stackEntryBeforeArgs, returnType, tempAsArr(parameterTypes));
+				toDynCallTypes(sigTypes, ctx.program, x.type);
+			writeCallFunPtr(writer, source, stackEntryBeforeArgs, immutable DynCallSig(tempAsArr(sigTypes)));
 		},
 		(ref immutable LowExprKind.CreateRecord it) {
 			generateCreateRecord(writer, ctx, asRecordType(expr.type), source, locals, it);

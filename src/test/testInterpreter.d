@@ -11,8 +11,8 @@ import interpret.bytecode :
 	FunNameAndPos,
 	initialOperationPointer,
 	Operation;
-import interpret.extern_ : DynCallType, Extern;
-import interpret.fakeExtern : withFakeExtern;
+import interpret.extern_ : DynCallType, DynCallSig, Extern;
+import interpret.fakeExtern : FakeStdOutput, withFakeExtern;
 import interpret.runBytecode :
 	byteCode,
 	Interpreter,
@@ -150,7 +150,7 @@ void doInterpret(
 		fullIndexDictOfArr!(LowFunIndex, LowFun)(lowFun),
 		immutable LowFunIndex(0),
 		emptyArr!Sym);
-	withFakeExtern(test.alloc, test.allSymbols, (scope ref Extern extern_) @trusted {
+	withFakeExtern(test.alloc, test.allSymbols, (scope ref Extern extern_, scope ref FakeStdOutput _) @trusted {
 		immutable PathsInfo pathsInfo = emptyPathsInfo;
 		withInterpreter!void(
 			test.alloc, extern_, lowProgram, byteCode, test.allSymbols, test.allPaths, pathsInfo, filesInfo,
@@ -237,8 +237,8 @@ void testCallFunPtr(ref Test test) {
 	immutable ByteCodeIndex delayed = writePushFunPtrDelayed(writer, source);
 	writePushConstants(writer, source, [1, 2]);
 	writeBreak(writer, source);
-	immutable DynCallType[2] parameterTypes = [DynCallType.nat64, DynCallType.nat64];
-	writeCallFunPtr(writer, source, argsFirstStackEntry, DynCallType.nat64, parameterTypes);
+	immutable DynCallType[3] sigTypes = [DynCallType.nat64, DynCallType.nat64, DynCallType.nat64];
+	writeCallFunPtr(writer, source, argsFirstStackEntry, immutable DynCallSig(sigTypes));
 	immutable ByteCodeIndex afterCall = nextByteCodeIndex(writer);
 	writeBreak(writer, source);
 	writeReturn(writer, source);
