@@ -4,7 +4,6 @@ import
 	crow/col/private/arr-low-level: begin-ptr, subscript
 	crow/c-types: c-int
 	crow/io/duration: msec
-	crow/io/file: read-file-binary
 	crow/io/print: print
 	crow/io/time: continue, continue-or-quit, get-monotime-msec, quit, repeat-interval
 	crow/math/mat: *, I, mat3-32, rotation, to-arr
@@ -34,8 +33,8 @@ import
 		SDL_GL_SetAttribute, SDL_GL_SwapWindow, SDL_Window, SDL_WINDOW_OPENGL,
 		SDL_WINDOWPOS_UNDEFINED, SDL_WINDOW_SHOWN, to-int32
 	./shader: shader-prog-destroy, shader-prog-load
-	./texture: load-texture, free-texture
-	./crow.webp as bad-crow-webp nat8[]
+	./texture: load-texture-from-bmp, free-texture
+	./crow.bmp as crow-bmp nat8[]
 	./fragment.frag.essl as fragment-shader str
 	./vertex.vert.essl as vertex-shader str
 
@@ -84,11 +83,7 @@ main fut nat(_ str[]) summon trusted
 	gl glUniformMatrix3fv rotation-uniform-loc, 1, false, I.to-arr.begin-ptr
 	gl gl-check-error "after set rotation-uniform-loc"
 
-	crow-webp = if true
-		bad-crow-webp
-	else
-		"demo/open-gl/crow.webp" read-file-binary
-	texture = gl load-texture crow-webp
+	texture = gl load-texture-from-bmp crow-bmp
 
 	vertices vertex[] = make-cube
 	triangle-vbo = gl vbo-create vertices

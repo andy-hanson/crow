@@ -1,0 +1,24 @@
+no-std
+import
+	crow/col/arr: arr, size
+	crow/col/private/arr-low-level: begin-ptr
+	crow/fun-util: subscript
+	crow/number: nat8, nat64, to-int32, to-nat64
+	crow/ptr: mut-ptr
+	SDL2/SDL_pixels: SDL_PIXELFORMAT_RGBA32
+	SDL2/SDL_rwops: SDL_RWFromConstMem
+	SDL2/SDL_surface: h, pixels, SDL_ConvertSurfaceFormat, SDL_LoadBMP_RW, SDL_FreeSurface, w
+
+rgba-image record mut
+	image-data nat8 mut*
+	width nat64
+	height nat64
+
+with-bmp<a> a(src nat8[], cb act a(rgba-image)) unsafe summon
+	surface = src.begin-ptr SDL_RWFromConstMem src.size.to-int32 SDL_LoadBMP_RW 0
+	converted = surface SDL_ConvertSurfaceFormat SDL_PIXELFORMAT_RGBA32, 0
+	surface SDL_FreeSurface
+	image rgba-image = converted.pixels, converted.w.to-nat64, converted.h.to-nat64
+	res = cb[image]
+	converted SDL_FreeSurface
+	res

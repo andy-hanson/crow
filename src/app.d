@@ -719,8 +719,6 @@ immutable(SafeCStr[]) cCompileArgs(
 		//TODO: get library paths from config
 		add(alloc, args,
 			safeCStr!"C:\\Users\\User\\Downloads\\SDL2-devel-2.0.20-VC\\SDL2-2.0.20\\lib\\x64\\SDL2.lib");
-		add(alloc, args,
-			safeCStr!"C:\\Users\\User\\Downloads\\libwebp-1.2.2-windows-x64\\lib\\libwebp.lib");
 		add(alloc, args, safeCStr!"/DEBUG");
 	}
 	version (Windows) {
@@ -797,10 +795,9 @@ immutable(ExitCode) withRealExtern(
 		];
 	} else {
 		// TODO: better way to find where it is (may depend on system)
-		DLLib*[5] libraries = [
+		DLLib*[4] libraries = [
 			dlLoadLibrary("/usr/lib64/libSDL2-2.0.so.0"),
 			dlLoadLibrary("/usr/lib64/libGL.so"),
-			dlLoadLibrary("/usr/lib64/libwebp.so"),
 			dlLoadLibrary("/usr/lib64/libsodium.so"),
 			dlLoadLibrary("/usr/lib64/liblmdb.so"),
 		];

@@ -31,3 +31,5 @@ is-wasm bool() noctx unsafe builtin
 The WASM interpreter used for the website is not considered Windows, even if run on Windows.
 ###
 is-windows bool() noctx unsafe builtin
+
+is-big-endian bool() noctx unsafe builtin

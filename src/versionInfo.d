@@ -3,9 +3,19 @@ module versionInfo;
 @safe @nogc pure nothrow:
 
 struct VersionInfo {
+	@safe @nogc pure nothrow:
+
 	immutable bool isSingleThreaded;
 	immutable bool isWasm;
 	immutable bool isWindows;
+
+	immutable(bool) isBigEndian() immutable {
+		version (BigEndian) {
+			return true;
+		} else {
+			return false;
+		}
+	}
 }
 
 immutable(VersionInfo) versionInfoForInterpret() {

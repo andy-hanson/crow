@@ -7,11 +7,11 @@ import
 	OpenGL/headers:
 		==, GL_LINEAR, GL_NO_ERROR, GL_RGBA, GL_TEXTURE_MAG_FILTER, GL_TEXTURE_MIN_FILTER,
 		GL_TEXTURE_2D, GLuint, GL_UNSIGNED_BYTE, to-str
-	./load-webp: height, image-data, width, with-webp
+	./load-bmp: height, image-data, width, with-bmp
 
 # Remember to call 'free-texture'
-load-texture GLuint(gl gl-ext, compressed nat8[]) unsafe summon
-	compressed with-webp image =>
+load-texture-from-bmp GLuint(gl gl-ext, bmp-raw nat8[]) unsafe summon
+	bmp-raw with-bmp image =>
 		texture-cell cell GLuint = 0,
 		gl glGenTextures 1, texture-cell.as-mut-ptr
 		texture = *texture-cell

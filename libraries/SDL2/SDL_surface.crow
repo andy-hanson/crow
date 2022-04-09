@@ -31,3 +31,13 @@ SDL_LoadBMP_RW SDL_Surface(src SDL_RWops, freesrc c-int) extern<SDL2> noctx summ
 
 SDL_LoadBMP SDL_Surface(file str) summon unsafe
 	file.to-c-str SDL_RWFromFile "rb" SDL_LoadBMP_RW 1
+
+SDL_ConvertSurfaceFormat SDL_Surface
+	src SDL_Surface
+	pixel_format nat32
+	flags_ nat32
+spec
+	extern<SDL2>
+	noctx
+	summon
+	unsafe

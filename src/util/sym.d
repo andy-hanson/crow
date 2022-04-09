@@ -166,6 +166,7 @@ enum SpecialSym {
 	force_sendable,
 	flags_members,
 	cur_exclusion,
+	is_big_endian,
 	is_single_threaded,
 
 	dotNew,
@@ -287,6 +288,8 @@ private immutable(SafeCStr) strOfSpecial(immutable SpecialSym a) {
 			return safeCStr!"flags-members";
 		case SpecialSym.cur_exclusion:
 			return safeCStr!"cur-exclusion";
+		case SpecialSym.is_big_endian:
+			return safeCStr!"is-big-endian";
 		case SpecialSym.is_single_threaded:
 			return safeCStr!"is-single-threaded";
 
