@@ -101,7 +101,8 @@ immutable(ExitCode) buildAndInterpret(
 		buildToLowProgram(alloc, perf, versionInfoForInterpret(), allSymbols, allPaths, storage, main);
 	if (!hasDiags(programs.program)) {
 		immutable LowProgram lowProgram = force(programs.concreteAndLowProgram).lowProgram;
-		immutable ByteCode byteCode = generateBytecode(alloc, alloc, allSymbols, programs.program, lowProgram);
+		immutable ByteCode byteCode =
+			generateBytecode(alloc, alloc, allSymbols, programs.program, lowProgram, extern_.getExternFunPtr);
 		return immutable ExitCode(runBytecode(
 			perf,
 			alloc,

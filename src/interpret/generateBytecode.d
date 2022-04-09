@@ -1,6 +1,6 @@
 module interpret.generateBytecode;
 
-@safe @nogc pure nothrow:
+@safe @nogc nothrow:
 
 import interpret.applyFn :
 	fnAddFloat32,
@@ -79,11 +79,11 @@ import interpret.bytecodeWriter :
 	writeAssertUnreachable,
 	writeCallDelayed,
 	writeCallFunPtr,
+	writeCallFunPtrExtern,
 	writeDup,
 	writeDupEntries,
 	writeDupEntry,
 	writeExtern,
-	writeExternDynCall,
 	writeFnBinary,
 	writeFnUnary,
 	writeMulConstantNat64,
@@ -104,7 +104,7 @@ import interpret.bytecodeWriter :
 	writeSwitchWithValuesDelay,
 	writeWrite;
 import interpret.debugging : writeLowType;
-import interpret.extern_ : DynCallType;
+import interpret.extern_ : DynCallType, FunPtr;
 import interpret.generateText :
 	generateText,
 	getTextInfoForArray,
@@ -126,6 +126,7 @@ import model.lowModel :
 	asRecordType,
 	asSpecialUnary,
 	asUnionType,
+	isExtern,
 	isLocalRef,
 	isParamRef,
 	isRecordFieldGet,
@@ -155,18 +156,19 @@ import model.typeLayout : nStackEntriesForType, optPack, Pack, sizeOfType;
 import util.alloc.alloc : Alloc, TempAlloc;
 import util.col.arr : castImmutable, empty, only;
 import util.col.arrUtil : map, mapOpWithIndex;
-import util.col.dict : mustGetAt;
+import util.col.dict : mustGetAt, SymDict;
 import util.col.fullIndexDict :
 	FullIndexDict, fullIndexDictEach, fullIndexDictOfArr, fullIndexDictSize, mapFullIndexDict;
 import util.col.mutIndexMultiDict :
 	MutIndexMultiDict, mutIndexMultiDictAdd, mutIndexMultiDictMustGetAt, newMutIndexMultiDict;
+import util.col.mutDict : addToMutDict, moveToDict, MutSymDict;
 import util.col.stackDict : StackDict, stackDictAdd, stackDictMustGet;
 import util.conv : bitsOfFloat32, bitsOfFloat64;
 import util.memory : overwriteMemory;
 import util.opt : force, has, none, Opt, some;
 import util.ptr : nullPtr, Ptr, ptrEquals, ptrTrustMe, ptrTrustMe_const, ptrTrustMe_mut;
 import util.sourceRange : FileIndex;
-import util.sym : AllSymbols, shortSymValue, Sym;
+import util.sym : AllSymbols, hashSym, shortSymValue, Sym, symEq;
 import util.util : divRoundUp, todo, unreachable, verify;
 import util.writer : finishWriter, writeChar, Writer, writeStatic;
 
@@ -176,6 +178,7 @@ immutable(ByteCode) generateBytecode(
 	ref const AllSymbols allSymbols,
 	scope ref immutable Program modelProgram,
 	scope ref immutable LowProgram program,
+	scope immutable(FunPtr) delegate(immutable Sym) @safe @nogc nothrow getExternFunPtr,
 ) {
 	TextAndInfo text = generateText(codeAlloc, tempAlloc, program, program.allConstants);
 
@@ -183,6 +186,8 @@ immutable(ByteCode) generateBytecode(
 		newMutIndexMultiDict!(LowFunIndex, ByteCodeIndex)(tempAlloc, fullIndexDictSize(program.allFuns));
 
 	ByteCodeWriter writer = newByteCodeWriter(ptrTrustMe_mut(codeAlloc));
+
+	immutable SymDict!FunPtr funPtrs = getFunPtrs(tempAlloc, program.allFuns, getExternFunPtr);
 
 	immutable FullIndexDict!(LowFunIndex, ByteCodeIndex) funToDefinition =
 		mapFullIndexDict!(LowFunIndex, ByteCodeIndex, LowFun)(
@@ -197,6 +202,7 @@ immutable(ByteCode) generateBytecode(
 					allSymbols,
 					text.info,
 					program,
+					funPtrs,
 					funIndex,
 					fun);
 				return funPos;
@@ -221,6 +227,26 @@ immutable(ByteCode) generateBytecode(
 }
 
 private:
+
+immutable(SymDict!FunPtr) getFunPtrs(
+	ref TempAlloc tempAlloc,
+	scope immutable FullIndexDict!(LowFunIndex, LowFun) allFuns,
+	scope immutable(FunPtr) delegate(immutable Sym) @safe @nogc nothrow getExternFunPtr,
+) {
+	MutSymDict!(immutable FunPtr) res;
+	foreach (ref immutable LowFun fun; allFuns.values) {
+		if (isExtern(fun.body_)) {
+			immutable Opt!Sym optName = name(fun);
+			immutable Sym name = force(optName);
+			immutable Opt!ExternOp externOp = externOpFromName(name);
+			if (!has(externOp))
+				addToMutDict(tempAlloc, res, name, getExternFunPtr(name));
+		}
+	}
+	return moveToDict!(Sym, FunPtr, symEq, hashSym)(tempAlloc, res);
+}
+
+pure:
 
 @trusted Out* trustedCast(Out, In)(In* ptr) {
 	return cast(Out*) ptr;
@@ -266,6 +292,7 @@ void generateBytecodeForFun(
 	ref const AllSymbols allSymbols,
 	ref immutable TextInfo textInfo,
 	scope ref immutable LowProgram program,
+	scope ref immutable SymDict!FunPtr funPtrs,
 	immutable LowFunIndex funIndex,
 	scope ref immutable LowFun fun,
 ) {
@@ -298,7 +325,7 @@ void generateBytecodeForFun(
 	matchLowFunBody!(
 		void,
 		(ref immutable LowFunBody.Extern body_) {
-			generateExternCall(tempAlloc, writer, allSymbols, funIndex, fun, body_);
+			generateExternCall(tempAlloc, writer, allSymbols, funIndex, fun, body_, funPtrs);
 		},
 		(ref immutable LowFunExprBody body_) {
 			ExprCtx ctx = ExprCtx(
@@ -331,6 +358,7 @@ void generateExternCall(
 	immutable LowFunIndex funIndex,
 	ref immutable LowFun fun,
 	ref immutable LowFunBody.Extern a,
+	immutable SymDict!FunPtr funPtrs,
 ) {
 	immutable ByteCodeSource source = immutable ByteCodeSource(funIndex, lowFunRange(fun, allSymbols).range.start);
 	immutable Opt!Sym optName = name(fun);
@@ -342,7 +370,8 @@ void generateExternCall(
 		immutable DynCallType[] parameterTypes = map(tempAlloc, fun.params, (ref immutable LowParam it) =>
 			toDynCallType(it.type));
 		immutable DynCallType returnType = toDynCallType(fun.returnType);
-		writeExternDynCall(writer, source, name, returnType, parameterTypes);
+		immutable FunPtr funPtr = mustGetAt(funPtrs, name);
+		writeCallFunPtrExtern(writer, source, funPtr, returnType, parameterTypes);
 	}
 	writeReturn(writer, source);
 }

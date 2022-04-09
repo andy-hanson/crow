@@ -12,13 +12,16 @@ struct Extern {
 		immutable char* buf,
 		immutable size_t nBytes,
 	) @system @nogc nothrow write;
+	immutable(FunPtr) delegate(immutable Sym name) @safe @nogc nothrow getExternFunPtr;
 	immutable(ulong) delegate(
-		immutable Sym name,
+		immutable(FunPtr) funPtr,
 		immutable DynCallType returnType,
 		scope immutable ulong[] parameters,
 		scope immutable DynCallType[] parameterTypes,
 	) @system @nogc nothrow doDynCall;
 }
+
+alias FunPtr = immutable void*;
 
 // These should all fit in a single stack entry (except 'void')
 enum DynCallType : ubyte {

@@ -41,7 +41,6 @@ version (Windows) {
 		SearchPathA,
 		SECURITY_ATTRIBUTES,
 		SetHandleInformation,
-		SetLastError,
 		STARTF_USESTDHANDLES,
 		STARTUPINFOA,
 		WaitForSingleObject,
@@ -60,7 +59,7 @@ version (Windows) { } else {
 import frontend.lang : JitOptions, OptimizationLevel;
 import frontend.showDiag : ShowDiagOptions, strOfDiagnostics;
 import interpret.applyFn : u64OfI32, u64OfI64;
-import interpret.extern_ : DynCallType, Extern;
+import interpret.extern_ : DynCallType, Extern, FunPtr;
 import lib.cliParser :
 	BuildOptions,
 	CCompileOptions,
@@ -825,12 +824,14 @@ immutable(ExitCode) withRealExtern(
 				return posixWrite(fd, buf, nBytes);
 			}
 		},
+		(immutable Sym name) =>
+			getExternFunPtr(allSymbols, libraries, name),
 		(
-			immutable Sym name,
+			FunPtr funPtr,
 			immutable DynCallType returnType,
 			scope immutable ulong[] parameters,
 			scope immutable DynCallType[] parameterTypes,
-		) => doDynCall(allSymbols, name, returnType, parameters, parameterTypes, dcVm, libraries));
+		) => dynamicCallFunPtr(funPtr, returnType, parameters, parameterTypes, dcVm));
 	immutable ExitCode res = cb(extern_);
 
 	foreach (DLLib* library; libraries)
@@ -840,22 +841,14 @@ immutable(ExitCode) withRealExtern(
 	return res;
 }
 
-@trusted immutable(ulong) doDynCall(
+@trusted immutable(FunPtr) getExternFunPtr(
 	ref const AllSymbols allSymbols,
+	scope const DLLib*[] libraries,
 	immutable Sym name,
-	immutable DynCallType returnType,
-	scope immutable ulong[] parameters,
-	scope immutable DynCallType[] parameterTypes,
-	DCCallVM* dcVm,
-	const DLLib*[] libraries,
 ) {
 	immutable char[256] nameBuffer = symAsTempBuffer!256(allSymbols, name);
 	immutable CStr nameCStr = nameBuffer.ptr;
 
-	//printf("Gonna call %s\n", nameCStr);
-	version (Windows) {
-		immutable int prevErr = GetLastError();
-	}
 	DCpointer ptr = null;
 	foreach (const DLLib* library; libraries) {
 		if (ptr == null) {
@@ -872,19 +865,18 @@ immutable(ExitCode) withRealExtern(
 	if (ptr == null)
 		printf("Could not find extern function %s\n", nameCStr);
 	verify(ptr != null);
-	version (Windows) {
-		SetLastError(prevErr);
-	}
-	return dynamicCallFunPtr(ptr, returnType, parameters, parameterTypes, dcVm);
+	return cast(immutable FunPtr) ptr;
 }
 
 @system immutable(ulong) dynamicCallFunPtr(
-	DCpointer ptr,
+	immutable FunPtr funPtr,
 	immutable DynCallType returnType,
 	scope immutable ulong[] parameters,
 	scope immutable DynCallType[] parameterTypes,
 	DCCallVM* dcVm,
 ) {
+	DCpointer ptr = cast(DCpointer) funPtr;
+	//printf("Gonna call %s\n", nameCStr);
 	dcReset(dcVm);
 	zipImpureSystem!(ulong, DynCallType)(
 		parameters,

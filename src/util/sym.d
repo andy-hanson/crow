@@ -174,6 +174,8 @@ enum SpecialSym {
 	dotCrow,
 	dotExe,
 	dotJson,
+
+	clock_gettime,
 }
 
 immutable(Sym) symForOperator(immutable Operator a) {
@@ -298,6 +300,9 @@ private immutable(SafeCStr) strOfSpecial(immutable SpecialSym a) {
 			return safeCStr!".exe";
 		case SpecialSym.dotJson:
 			return safeCStr!".json";
+
+		case SpecialSym.clock_gettime:
+			return safeCStr!"clock_gettime";
 	}
 }
 

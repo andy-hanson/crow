@@ -14,7 +14,7 @@ import interpret.bytecode :
 	NextOperation,
 	Operation;
 import interpret.debugging : writeFunName;
-import interpret.extern_ : DynCallType, Extern;
+import interpret.extern_ : DynCallType, Extern, FunPtr;
 import model.concreteModel : ConcreteFun, concreteFunRange;
 import model.diag : FilesInfo, writeFileAndPos; // TODO: FilesInfo probably belongs elsewhere
 import model.lowModel : LowFunSource, LowProgram, matchLowFunSource;
@@ -46,7 +46,7 @@ import util.path : AllPaths, PathsInfo;
 import util.perf : Perf, PerfMeasure, withMeasureNoAlloc;
 import util.ptr : Ptr, ptrTrustMe, ptrTrustMe_const, ptrTrustMe_mut;
 import util.sourceRange : FileAndPos;
-import util.sym : AllSymbols, Sym;
+import util.sym : AllSymbols;
 import util.util : divRoundUp, drop, min, unreachable, verify;
 import util.writer : finishWriterToSafeCStr, Writer, writeChar, writeHex, writeStatic;
 
@@ -516,6 +516,18 @@ private @system void writePartialBytes(ubyte* ptr, immutable ulong value, immuta
 	return callCommon(a, address, cur);
 }
 
+@system immutable(NextOperation) opCallFunPtrExtern(ref Interpreter a, immutable(Operation)* cur) {
+	verify(FunPtr.sizeof <= ulong.sizeof);
+	FunPtr funPtr = cast(FunPtr) readNat64(cur);
+	immutable DynCallType returnType = cast(immutable DynCallType) readNat64(cur);
+	scope immutable DynCallType[] parameterTypes = readArray!DynCallType(cur);
+	scope immutable ulong[] params = popN(a.dataStack, parameterTypes.length);
+	immutable ulong value = a.extern_.doDynCall(funPtr, returnType, params, parameterTypes);
+	if (returnType != DynCallType.void_)
+		push(a.dataStack, value);
+	return nextOperation(a, cur);
+}
+
 private @system immutable(NextOperation) callCommon(
 	ref Interpreter a,
 	immutable ByteCodeIndex address,
@@ -585,17 +597,6 @@ private @system immutable(size_t) backtrace(ref Interpreter a, void** res, immut
 	foreach (immutable size_t i; 0 .. resSize)
 		res[i] = cast(void*) byteCodeIndexOfPtr(a, peek(a.returnStack, i)).index;
 	return resSize;
-}
-
-@system immutable(NextOperation) opExternDynCall(ref Interpreter a, immutable(Operation)* cur) {
-	immutable Sym name = immutable Sym(readNat64(cur));
-	immutable DynCallType returnType = cast(immutable DynCallType) readNat64(cur);
-	scope immutable DynCallType[] parameterTypes = readArray!DynCallType(cur);
-	scope immutable ulong[] params = popN(a.dataStack, parameterTypes.length);
-	immutable ulong value = a.extern_.doDynCall(name, returnType, params, parameterTypes);
-	if (returnType != DynCallType.void_)
-		push(a.dataStack, value);
-	return nextOperation(a, cur);
 }
 
 // This isn't the structure the posix jmp-buf-tag has, but it fits inside it

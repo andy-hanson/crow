@@ -17,18 +17,18 @@ import interpret.bytecode :
 	StackOffset,
 	StackOffsetBytes,
 	subtractByteCodeIndex;
-import interpret.extern_ : DynCallType;
+import interpret.extern_ : DynCallType, FunPtr;
 import interpret.runBytecode :
 	opAssertUnreachable,
 	opBreak,
 	opCall,
 	opCallFunPtr,
+	opCallFunPtrExtern,
 	opDupBytes,
 	opDupWord,
 	opDupWordVariable,
 	opDupWords,
 	opExtern,
-	opExternDynCall,
 	opFnBinary,
 	opFnUnary,
 	opPack,
@@ -58,7 +58,6 @@ import util.col.fullIndexDict : FullIndexDict, fullIndexDictOfArr;
 import util.col.mutArr : moveToArr_mut, MutArr, mutArrEnd, mutArrPtrAt, mutArrSize, push;
 import util.memory : initMemory, overwriteMemory;
 import util.ptr : Ptr;
-import util.sym : Sym;
 import util.util : divRoundUp, todo, verify;
 
 struct ByteCodeWriter {
@@ -148,6 +147,7 @@ immutable(ByteCodeIndex) writeCallDelayed(
 	writer.operations[index.index] = immutable Operation(immutable ulong(value.index));
 }
 
+//TODO: this also needs to change
 void writeCallFunPtr(
 	ref ByteCodeWriter writer,
 	immutable ByteCodeSource source,
@@ -158,6 +158,21 @@ void writeCallFunPtr(
 	pushOperationFn(writer, source, &opCallFunPtr);
 	pushSizeT(writer, source, getStackOffsetTo(writer, stackEntryBeforeArgs));
 	writer.nextStackEntry = stackEntryBeforeArgs.entry + nEntriesForReturnType;
+}
+
+void writeCallFunPtrExtern(
+	ref ByteCodeWriter writer,
+	immutable ByteCodeSource source,
+	immutable FunPtr funPtr,
+	immutable DynCallType returnType,
+	scope immutable DynCallType[] parameterTypes,
+) {
+	pushOperationFn(writer, source, &opCallFunPtrExtern);
+	pushNat64(writer, source, cast(immutable ulong) funPtr);
+	pushNat64(writer, source, returnType);
+	writeArray!DynCallType(writer, source, parameterTypes);
+	writer.nextStackEntry -= parameterTypes.length;
+	writer.nextStackEntry += (returnType == DynCallType.void_ ? 0 : 1);
 }
 
 private immutable(size_t) getStackOffsetTo(
@@ -586,21 +601,6 @@ private @trusted void writeArray(T)(
 			initMemory(outBegin + i, value);
 		verify(outBegin + values.length <= cast(T*) mutArrEnd(writer.operations));
 	}
-}
-
-void writeExternDynCall(
-	ref ByteCodeWriter writer,
-	immutable ByteCodeSource source,
-	immutable Sym name,
-	immutable DynCallType returnType,
-	scope immutable DynCallType[] parameterTypes,
-) {
-	pushOperationFn(writer, source, &opExternDynCall);
-	pushNat64(writer, source, name.value);
-	pushNat64(writer, source, returnType);
-	writeArray!DynCallType(writer, source, parameterTypes);
-	writer.nextStackEntry -= parameterTypes.length;
-	writer.nextStackEntry += (returnType == DynCallType.void_ ? 0 : 1);
 }
 
 void writeFnBinary(alias fn)(ref ByteCodeWriter writer, immutable ByteCodeSource source) {
