@@ -147,17 +147,19 @@ immutable(ByteCodeIndex) writeCallDelayed(
 	writer.operations[index.index] = immutable Operation(immutable ulong(value.index));
 }
 
-//TODO: this also needs to change
 void writeCallFunPtr(
 	ref ByteCodeWriter writer,
 	immutable ByteCodeSource source,
 	// This is before the fun-ptr arg, which should be the first
 	immutable StackEntry stackEntryBeforeArgs,
-	immutable size_t nEntriesForReturnType,
+	immutable DynCallType returnType,
+	scope immutable DynCallType[] parameterTypes,
 ) {
+	verify(stackEntryBeforeArgs.entry == writer.nextStackEntry - parameterTypes.length - 1);
 	pushOperationFn(writer, source, &opCallFunPtr);
-	pushSizeT(writer, source, getStackOffsetTo(writer, stackEntryBeforeArgs));
-	writer.nextStackEntry = stackEntryBeforeArgs.entry + nEntriesForReturnType;
+	writeCallFunPtrCommon(writer, source, returnType, parameterTypes);
+	writer.nextStackEntry -= 1; // for the fun-ptr
+	verify(writer.nextStackEntry == stackEntryBeforeArgs.entry + (returnType == DynCallType.void_ ? 0 : 1));
 }
 
 void writeCallFunPtrExtern(
@@ -169,6 +171,15 @@ void writeCallFunPtrExtern(
 ) {
 	pushOperationFn(writer, source, &opCallFunPtrExtern);
 	pushNat64(writer, source, cast(immutable ulong) funPtr);
+	writeCallFunPtrCommon(writer, source, returnType, parameterTypes);
+}
+
+private void writeCallFunPtrCommon(
+	ref ByteCodeWriter writer,
+	immutable ByteCodeSource source,
+	immutable DynCallType returnType,
+	scope immutable DynCallType[] parameterTypes,
+) {
 	pushNat64(writer, source, returnType);
 	writeArray!DynCallType(writer, source, parameterTypes);
 	writer.nextStackEntry -= parameterTypes.length;

@@ -122,6 +122,7 @@ import model.lowModel :
 	asParamRef,
 	asPrimitiveType,
 	asPtrRawPointee,
+	asRecordType,
 	asRecordFieldGet,
 	asRecordType,
 	asSpecialUnary,
@@ -129,6 +130,7 @@ import model.lowModel :
 	isExtern,
 	isLocalRef,
 	isParamRef,
+	isRecordType,
 	isRecordFieldGet,
 	isSpecialUnary,
 	LowExpr,
@@ -162,6 +164,7 @@ import util.col.fullIndexDict :
 import util.col.mutIndexMultiDict :
 	MutIndexMultiDict, mutIndexMultiDictAdd, mutIndexMultiDictMustGetAt, newMutIndexMultiDict;
 import util.col.mutDict : addToMutDict, moveToDict, MutSymDict;
+import util.col.mutMaxArr : initializeMutMaxArr, MutMaxArr, push, tempAsArr;
 import util.col.stackDict : StackDict, stackDictAdd, stackDictMustGet;
 import util.conv : bitsOfFloat32, bitsOfFloat64;
 import util.memory : overwriteMemory;
@@ -325,7 +328,7 @@ void generateBytecodeForFun(
 	matchLowFunBody!(
 		void,
 		(ref immutable LowFunBody.Extern body_) {
-			generateExternCall(tempAlloc, writer, allSymbols, funIndex, fun, body_, funPtrs);
+			generateExternCall(writer, allSymbols, program, funIndex, fun, body_, funPtrs);
 		},
 		(ref immutable LowFunExprBody body_) {
 			ExprCtx ctx = ExprCtx(
@@ -352,9 +355,9 @@ void generateBytecodeForFun(
 }
 
 void generateExternCall(
-	ref TempAlloc tempAlloc,
 	ref ByteCodeWriter writer,
 	ref const AllSymbols allSymbols,
+	ref immutable LowProgram program,
 	immutable LowFunIndex funIndex,
 	ref immutable LowFun fun,
 	ref immutable LowFunBody.Extern a,
@@ -367,11 +370,13 @@ void generateExternCall(
 	if (has(op))
 		writeExtern(writer, source, force(op));
 	else {
-		immutable DynCallType[] parameterTypes = map(tempAlloc, fun.params, (ref immutable LowParam it) =>
-			toDynCallType(it.type));
-		immutable DynCallType returnType = toDynCallType(fun.returnType);
 		immutable FunPtr funPtr = mustGetAt(funPtrs, name);
-		writeCallFunPtrExtern(writer, source, funPtr, returnType, parameterTypes);
+		immutable DynCallType returnType = toDynCallType(fun.returnType);
+		MutMaxArr!(10, DynCallType) parameterTypes = void;
+		initializeMutMaxArr(parameterTypes);
+		foreach (ref immutable LowParam x; fun.params)
+			toDynCallTypes(program, x.type, (immutable DynCallType t) => push(parameterTypes, t));
+		writeCallFunPtrExtern(writer, source, funPtr, returnType, tempAsArr(parameterTypes));
 	}
 	writeReturn(writer, source);
 }
@@ -424,6 +429,18 @@ immutable(DynCallType) toDynCallType(immutable LowType a) {
 		(immutable LowType.Union) =>
 			unreachable!(immutable DynCallType),
 	)(a);
+}
+
+void toDynCallTypes(
+	scope ref immutable LowProgram program,
+	immutable LowType a,
+	scope void delegate(immutable DynCallType) @safe @nogc pure nothrow push,
+) {
+	if (isRecordType(a)) {
+		foreach (immutable LowField field; program.allRecords[asRecordType(a)].fields)
+			toDynCallTypes(program, field.type, push);
+	} else
+		push(toDynCallType(a));
 }
 
 immutable(Opt!ExternOp) externOpFromName(immutable Sym a) {
@@ -515,7 +532,12 @@ void generateExpr(
 			immutable StackEntry stackEntryBeforeArgs = getNextStackEntry(writer);
 			generateExpr(writer, ctx, locals, it.funPtr);
 			generateArgs(writer, ctx, locals, it.args);
-			writeCallFunPtr(writer, source, stackEntryBeforeArgs, nStackEntriesForType(ctx, expr.type));
+			immutable DynCallType returnType = toDynCallType(expr.type);
+			MutMaxArr!(10, DynCallType) parameterTypes = void;
+			initializeMutMaxArr(parameterTypes);
+			foreach (ref immutable LowExpr x; it.args)
+				toDynCallTypes(ctx.program, x.type, (immutable DynCallType t) => push(parameterTypes, t));
+			writeCallFunPtr(writer, source, stackEntryBeforeArgs, returnType, tempAsArr(parameterTypes));
 		},
 		(ref immutable LowExprKind.CreateRecord it) {
 			generateCreateRecord(writer, ctx, asRecordType(expr.type), source, locals, it);

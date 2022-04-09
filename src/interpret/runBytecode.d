@@ -510,17 +510,30 @@ private @system void writePartialBytes(ubyte* ptr, immutable ulong value, immuta
 }
 
 @system immutable(NextOperation) opCallFunPtr(ref Interpreter a, immutable(Operation)* cur) {
-	immutable size_t parametersSize = readSizeT(cur);
-	//TODO: handle a real function pointer being here?
-	immutable ByteCodeIndex address = immutable ByteCodeIndex(safeToSizeT(remove(a.dataStack, parametersSize)));
-	return callCommon(a, address, cur);
+	immutable DynCallType returnType = cast(immutable DynCallType) readNat64(cur);
+	scope immutable DynCallType[] parameterTypes = readArray!DynCallType(cur);
+	immutable ulong funPtr = remove(a.dataStack, parameterTypes.length);
+	immutable ByteCodeIndex address = immutable ByteCodeIndex(safeToSizeT(funPtr));
+	return address.index < a.byteCode.byteCode.length
+		? callCommon(a, address, cur)
+		: opCallFunPtrCommon(a, cur, cast(immutable FunPtr) funPtr, returnType, parameterTypes);
 }
 
 @system immutable(NextOperation) opCallFunPtrExtern(ref Interpreter a, immutable(Operation)* cur) {
 	verify(FunPtr.sizeof <= ulong.sizeof);
-	FunPtr funPtr = cast(FunPtr) readNat64(cur);
+	immutable FunPtr funPtr = cast(FunPtr) readNat64(cur);
 	immutable DynCallType returnType = cast(immutable DynCallType) readNat64(cur);
 	scope immutable DynCallType[] parameterTypes = readArray!DynCallType(cur);
+	return opCallFunPtrCommon(a, cur, funPtr, returnType, parameterTypes);
+}
+
+private @system immutable(NextOperation) opCallFunPtrCommon(
+	ref Interpreter a,
+	immutable(Operation)* cur,
+	immutable FunPtr funPtr,
+	immutable DynCallType returnType,
+	immutable DynCallType[] parameterTypes,
+) {
 	scope immutable ulong[] params = popN(a.dataStack, parameterTypes.length);
 	immutable ulong value = a.extern_.doDynCall(funPtr, returnType, params, parameterTypes);
 	if (returnType != DynCallType.void_)

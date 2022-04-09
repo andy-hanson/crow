@@ -319,8 +319,12 @@ immutable(PrimitiveType) asPrimitiveType(immutable LowType a) {
 	return a.primitive_;
 }
 
+immutable(bool) isRecordType(immutable LowType a) {
+	return a.kind_ == LowType.Kind.record;
+}
+
 immutable(LowType.Record) asRecordType(immutable LowType a) {
-	verify(a.kind_ == LowType.Kind.record);
+	verify(isRecordType(a));
 	return a.record_;
 }
 

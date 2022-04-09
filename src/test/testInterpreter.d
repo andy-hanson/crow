@@ -11,7 +11,7 @@ import interpret.bytecode :
 	FunNameAndPos,
 	initialOperationPointer,
 	Operation;
-import interpret.extern_ : Extern;
+import interpret.extern_ : DynCallType, Extern;
 import interpret.fakeExtern : withFakeExtern;
 import interpret.runBytecode :
 	byteCode,
@@ -229,7 +229,7 @@ void testCallFunPtr(ref Test test) {
 	// push 1, 2
 	// call-fun-ptr
 	// return
-	// # f nat(a nat, b nat):
+	// # f nat64(a nat64, b nat64):
 	// +
 	// return
 
@@ -237,7 +237,8 @@ void testCallFunPtr(ref Test test) {
 	immutable ByteCodeIndex delayed = writePushFunPtrDelayed(writer, source);
 	writePushConstants(writer, source, [1, 2]);
 	writeBreak(writer, source);
-	writeCallFunPtr(writer, source, argsFirstStackEntry, 1);
+	immutable DynCallType[2] parameterTypes = [DynCallType.nat64, DynCallType.nat64];
+	writeCallFunPtr(writer, source, argsFirstStackEntry, DynCallType.nat64, parameterTypes);
 	immutable ByteCodeIndex afterCall = nextByteCodeIndex(writer);
 	writeBreak(writer, source);
 	writeReturn(writer, source);
