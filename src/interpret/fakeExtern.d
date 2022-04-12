@@ -2,12 +2,17 @@ module interpret.fakeExtern;
 
 @safe @nogc nothrow: // not pure
 
-import interpret.extern_ : DynCallSig, Extern, FunPtr;
+import interpret.extern_ :
+	DynCallSig, Extern, ExternFunPtrsForAllLibraries, ExternFunPtrsForLibrary, FunPtr, WriteError, writeSymToCb;
 import lib.compiler : ExitCode;
+import model.lowModel : ExternLibraries, ExternLibrary;
 import util.alloc.alloc : Alloc, allocateBytes;
-import util.col.mutArr : moveToArr, MutArr, pushAll;
+import util.col.dict : KeyValuePair, makeDict;
+import util.col.mutArr : moveToArr, MutArr, mutArrIsEmpty, push, pushAll, tempAsArr;
+import util.col.str : safeCStr;
 import util.memory : memmove, memset;
-import util.sym : AllSymbols, safeCStrOfSym, shortSymValue, SpecialSym, specialSymValue, Sym;
+import util.opt : force, has, none, Opt, some;
+import util.sym : AllSymbols, hashSym, shortSym, shortSymValue, SpecialSym, specialSymValue, Sym, symEq;
 import util.util : debugLog, todo, unreachable, verify, verifyFail;
 
 struct FakeExternResult {
@@ -31,8 +36,8 @@ immutable(FakeExternResult) withFakeExtern(
 ) {
 	scope FakeStdOutput std;
 	scope Extern extern_ = Extern(
-		(immutable Sym name) =>
-			getFakeExternFun(alloc, allSymbols, name),
+		(scope immutable ExternLibraries libraries, scope WriteError writeError) =>
+			getAllFakeExternFuns(alloc, allSymbols, libraries, writeError),
 		(FunPtr ptr, scope immutable(DynCallSig), scope immutable ulong[] args) =>
 			callFakeExternFun(alloc, std, ptr, args));
 	immutable ExitCode err = cb(extern_, std);
@@ -41,29 +46,78 @@ immutable(FakeExternResult) withFakeExtern(
 
 private:
 
-immutable(FunPtr) getFakeExternFun(ref Alloc alloc, ref const AllSymbols allSymbols, immutable Sym name) {
+immutable(Opt!ExternFunPtrsForAllLibraries) getAllFakeExternFuns(
+	ref Alloc alloc,
+	ref const AllSymbols allSymbols,
+	scope immutable ExternLibraries libraries,
+	scope WriteError writeError,
+) {
+	MutArr!(immutable KeyValuePair!(Sym, Sym)) failures;
+	immutable ExternFunPtrsForAllLibraries res = makeDict!(Sym, ExternFunPtrsForLibrary, symEq, hashSym, ExternLibrary)(
+		alloc,
+		libraries,
+		(scope ref immutable ExternLibrary x) =>
+			immutable KeyValuePair!(Sym, ExternFunPtrsForLibrary)(
+				x.libraryName,
+				fakeExternFunsForLibrary(alloc, failures, allSymbols, x)));
+	foreach (immutable KeyValuePair!(Sym, Sym) x; tempAsArr(failures)) {
+		writeError(safeCStr!"Could not load extern function ");
+		writeSymToCb(writeError, allSymbols, x.value);
+		writeError(safeCStr!" from library ");
+		writeSymToCb(writeError, allSymbols, x.key);
+		writeError(safeCStr!"\n");
+	}
+	return mutArrIsEmpty(failures) ? some(res) : none!ExternFunPtrsForAllLibraries;
+}
+
+pure:
+
+immutable(ExternFunPtrsForLibrary) fakeExternFunsForLibrary(
+	ref Alloc alloc,
+	ref MutArr!(immutable KeyValuePair!(Sym, Sym)) failures,
+	ref const AllSymbols allSymbols,
+	scope ref immutable ExternLibrary lib,
+) {
+	return makeDict!(Sym, FunPtr, symEq, hashSym, Sym)(alloc, lib.importNames, (scope ref immutable Sym importName) {
+		immutable Opt!FunPtr res = getFakeExternFun(lib.libraryName, importName);
+		if (!has(res))
+			push(alloc, failures, immutable KeyValuePair!(Sym, Sym)(lib.libraryName, importName));
+		return immutable KeyValuePair!(Sym, FunPtr)(importName, has(res) ? force(res) : null);
+	});
+}
+
+immutable(Opt!FunPtr) getFakeExternFun(immutable Sym libraryName, immutable Sym name) {
+	return symEq(libraryName, shortSym("c"))
+		? getFakeExternFunC(name)
+		: none!FunPtr;
+}
+
+immutable(Opt!FunPtr) getFakeExternFunC(immutable Sym name) {
 	switch (name.value) {
 		case shortSymValue("abort"):
-			return &abort;
+			return some!FunPtr(&abort);
 		case specialSymValue(SpecialSym.clock_gettime):
-			return &clockGetTime;
+			return some!FunPtr(&clockGetTime);
 		case shortSymValue("free"):
-			return &free;
+			return some!FunPtr(&free);
 		case shortSymValue("nanosleep"):
-			return &nanosleep;
+			return some!FunPtr(&nanosleep);
 		case shortSymValue("malloc"):
-			return &malloc;
+			return some!FunPtr(&malloc);
 		case shortSymValue("memcpy"):
 		case shortSymValue("memmove"):
-			return &memmove;
+			return some!FunPtr(&memmove);
 		case shortSymValue("memset"):
-			return &memset;
+			return some!FunPtr(&memset);
 		case shortSymValue("write"):
-			return &write;
+			return some!FunPtr(&write);
+		case shortSymValue("backtrace"):
+		case shortSymValue("longjmp"):
+		case shortSymValue("setjmp"):
+			// these are treated specially by the interpreter
+			return some!FunPtr(&unreachable!void);
 		default:
-			debugLog("Can't call extern function from fake extern:");
-			debugLog(safeCStrOfSym(alloc, allSymbols, name).ptr);
-			return todo!(immutable FunPtr)("not for fake");
+			return none!FunPtr;
 	}
 }
 
@@ -107,7 +161,6 @@ immutable(FunPtr) getFakeExternFun(ref Alloc alloc, ref const AllSymbols allSymb
 void free() {}
 void malloc() {}
 void write() {}
-
 
 void abort() {
 	debugLog("program aborted");

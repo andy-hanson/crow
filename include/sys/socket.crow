@@ -38,22 +38,22 @@ INVALID_SOCKET SOCKET() unsafe
 
 sockaddr extern-ptr
 
-accept err-t(a SOCKET, addr sockaddr, addrlen cell socklen_t) unsafe extern noctx summon
+accept err-t(a SOCKET, addr sockaddr, addrlen cell socklen_t) unsafe extern<c> noctx summon
 
-bind err-t(a SOCKET, addr sockaddr, len socklen_t) unsafe extern noctx summon
+bind err-t(a SOCKET, addr sockaddr, len socklen_t) unsafe extern<c> noctx summon
 
-recv ssize_t(a SOCKET, buf any-mut-ptr, n size_t, recv-flags int32) unsafe extern noctx summon
+recv ssize_t(a SOCKET, buf any-mut-ptr, n size_t, recv-flags int32) unsafe extern<c> noctx summon
 
-socket SOCKET(domain c-int, type c-int, protocol c-int) unsafe extern noctx summon
+socket SOCKET(domain c-int, type c-int, protocol c-int) unsafe extern<c> noctx summon
 
-connect int32(a SOCKET, addr sockaddr, len socklen_t) unsafe extern noctx summon
+connect int32(a SOCKET, addr sockaddr, len socklen_t) unsafe extern<c> noctx summon
 
-listen err-t(a SOCKET, n int32) unsafe extern noctx summon
+listen err-t(a SOCKET, n int32) unsafe extern<c> noctx summon
 
-shutdown err-t(a SOCKET, how int32) unsafe extern noctx summon
+shutdown err-t(a SOCKET, how int32) unsafe extern<c> noctx summon
 
 # Win32 only; on POSIX just use 'close'
-closesocket c-int(s SOCKET) noctx unsafe summon extern
+closesocket c-int(s SOCKET) noctx unsafe summon extern<c>
 
 SHUT_RD int32() noctx
 	0

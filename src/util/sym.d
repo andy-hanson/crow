@@ -88,22 +88,20 @@ private @trusted immutable(Sym) prependToLongStr(immutable string prepend)(ref A
 	return getSymFromLongStr(allSymbols, cast(immutable) temp[0 .. i]);
 }
 
-@trusted immutable(Sym) concatSymsWithDot(ref AllSymbols allSymbols, immutable Sym a, immutable Sym b) {
+immutable(Sym) concatSymsWithDot(ref AllSymbols allSymbols, immutable Sym a, immutable Sym b) {
+	return concatSyms(allSymbols, [a, symForSpecial(SpecialSym.dot), b]);
+}
+
+@trusted immutable(Sym) concatSyms(ref AllSymbols allSymbols, scope immutable Sym[] syms) {
 	char[0x100] temp = void;
 	size_t i = 0;
-	void push(immutable char c) {
-		temp[i] = c;
-		i++;
-		verify(i <= temp.length);
-	}
-	eachCharInSym(allSymbols, a, (immutable char x) {
-		push(x);
-	});
-	push('.');
-	eachCharInSym(allSymbols, b, (immutable char x) {
-		push(x);
-	});
-	return getSymFromLongStr(allSymbols, cast(immutable) temp[0 .. i]);
+	foreach (immutable Sym s; syms)
+		eachCharInSym(allSymbols, s, (immutable char x) {
+			temp[i] = x;
+			i++;
+			verify(i <= temp.length);
+		});
+	return symOfStr(allSymbols, cast(immutable) temp[0 .. i]);
 }
 
 immutable(Sym) emptySym = shortSym("");
@@ -171,10 +169,14 @@ enum SpecialSym {
 
 	dotNew,
 
+	dot,
 	dotC,
 	dotCrow,
+	dotDll,
 	dotExe,
 	dotJson,
+	dotLib,
+	dotSo,
 
 	clock_gettime,
 }
@@ -295,14 +297,22 @@ private immutable(SafeCStr) strOfSpecial(immutable SpecialSym a) {
 
 		case SpecialSym.dotNew:
 			return safeCStr!".new";
+		case SpecialSym.dot:
+			return safeCStr!".";
 		case SpecialSym.dotC:
 			return safeCStr!".c";
 		case SpecialSym.dotCrow:
 			return safeCStr!".crow";
+		case SpecialSym.dotDll:
+			return safeCStr!".dll";
 		case SpecialSym.dotExe:
 			return safeCStr!".exe";
 		case SpecialSym.dotJson:
 			return safeCStr!".json";
+		case SpecialSym.dotLib:
+			return safeCStr!".lib";
+		case SpecialSym.dotSo:
+			return safeCStr!".so";
 
 		case SpecialSym.clock_gettime:
 			return safeCStr!"clock_gettime";

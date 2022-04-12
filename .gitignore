@@ -6,4 +6,8 @@ editor/crow-vscode/client/node_modules
 editor/crow-vscode/server/node_modules
 temp
 test/test
+*.exe
+*.ilk
 *.mdb
+*.obj
+*.pdb

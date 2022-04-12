@@ -104,7 +104,7 @@ import interpret.bytecodeWriter :
 	writeSwitchWithValuesDelay,
 	writeWrite;
 import interpret.debugging : writeLowType;
-import interpret.extern_ : DynCallType, DynCallSig, FunPtr;
+import interpret.extern_ : DynCallType, DynCallSig, ExternFunPtrsForAllLibraries, FunPtr;
 import interpret.generateText :
 	generateText,
 	getTextInfoForArray,
@@ -127,7 +127,6 @@ import model.lowModel :
 	asRecordType,
 	asSpecialUnary,
 	asUnionType,
-	isExtern,
 	isLocalRef,
 	isParamRef,
 	isRecordType,
@@ -158,12 +157,11 @@ import model.typeLayout : nStackEntriesForType, optPack, Pack, sizeOfType;
 import util.alloc.alloc : Alloc, TempAlloc;
 import util.col.arr : castImmutable, empty, only;
 import util.col.arrUtil : map, mapOpWithIndex;
-import util.col.dict : mustGetAt, SymDict;
+import util.col.dict : mustGetAt;
 import util.col.fullIndexDict :
 	FullIndexDict, fullIndexDictEach, fullIndexDictOfArr, fullIndexDictSize, mapFullIndexDict;
 import util.col.mutIndexMultiDict :
 	MutIndexMultiDict, mutIndexMultiDictAdd, mutIndexMultiDictMustGetAt, newMutIndexMultiDict;
-import util.col.mutDict : addToMutDict, moveToDict, MutSymDict;
 import util.col.mutMaxArr : initializeMutMaxArr, MutMaxArr, push, tempAsArr;
 import util.col.stackDict : StackDict, stackDictAdd, stackDictMustGet;
 import util.conv : bitsOfFloat32, bitsOfFloat64;
@@ -171,7 +169,7 @@ import util.memory : overwriteMemory;
 import util.opt : force, has, none, Opt, some;
 import util.ptr : nullPtr, Ptr, ptrEquals, ptrTrustMe, ptrTrustMe_const, ptrTrustMe_mut;
 import util.sourceRange : FileIndex;
-import util.sym : AllSymbols, hashSym, shortSymValue, Sym, symEq;
+import util.sym : AllSymbols, shortSymValue, Sym;
 import util.util : divRoundUp, todo, unreachable, verify;
 import util.writer : finishWriter, writeChar, Writer, writeStatic;
 
@@ -181,7 +179,7 @@ immutable(ByteCode) generateBytecode(
 	ref const AllSymbols allSymbols,
 	scope ref immutable Program modelProgram,
 	scope ref immutable LowProgram program,
-	scope immutable(FunPtr) delegate(immutable Sym) @safe @nogc nothrow getExternFunPtr,
+	scope immutable ExternFunPtrsForAllLibraries externFunPtrs,
 ) {
 	TextAndInfo text = generateText(codeAlloc, tempAlloc, program, program.allConstants);
 
@@ -189,8 +187,6 @@ immutable(ByteCode) generateBytecode(
 		newMutIndexMultiDict!(LowFunIndex, ByteCodeIndex)(tempAlloc, fullIndexDictSize(program.allFuns));
 
 	ByteCodeWriter writer = newByteCodeWriter(ptrTrustMe_mut(codeAlloc));
-
-	immutable SymDict!FunPtr funPtrs = getFunPtrs(tempAlloc, program.allFuns, getExternFunPtr);
 
 	immutable FullIndexDict!(LowFunIndex, ByteCodeIndex) funToDefinition =
 		mapFullIndexDict!(LowFunIndex, ByteCodeIndex, LowFun)(
@@ -205,7 +201,7 @@ immutable(ByteCode) generateBytecode(
 					allSymbols,
 					text.info,
 					program,
-					funPtrs,
+					externFunPtrs,
 					funIndex,
 					fun);
 				return funPos;
@@ -230,24 +226,6 @@ immutable(ByteCode) generateBytecode(
 }
 
 private:
-
-immutable(SymDict!FunPtr) getFunPtrs(
-	ref TempAlloc tempAlloc,
-	scope immutable FullIndexDict!(LowFunIndex, LowFun) allFuns,
-	scope immutable(FunPtr) delegate(immutable Sym) @safe @nogc nothrow getExternFunPtr,
-) {
-	MutSymDict!(immutable FunPtr) res;
-	foreach (ref immutable LowFun fun; allFuns.values) {
-		if (isExtern(fun.body_)) {
-			immutable Opt!Sym optName = name(fun);
-			immutable Sym name = force(optName);
-			immutable Opt!ExternOp externOp = externOpFromName(name);
-			if (!has(externOp))
-				addToMutDict(tempAlloc, res, name, getExternFunPtr(name));
-		}
-	}
-	return moveToDict!(Sym, FunPtr, symEq, hashSym)(tempAlloc, res);
-}
 
 pure:
 
@@ -295,7 +273,7 @@ void generateBytecodeForFun(
 	ref const AllSymbols allSymbols,
 	ref immutable TextInfo textInfo,
 	scope ref immutable LowProgram program,
-	scope ref immutable SymDict!FunPtr funPtrs,
+	scope immutable ExternFunPtrsForAllLibraries externFunPtrs,
 	immutable LowFunIndex funIndex,
 	scope ref immutable LowFun fun,
 ) {
@@ -328,7 +306,7 @@ void generateBytecodeForFun(
 	matchLowFunBody!(
 		void,
 		(ref immutable LowFunBody.Extern body_) {
-			generateExternCall(writer, allSymbols, program, funIndex, fun, body_, funPtrs);
+			generateExternCall(writer, allSymbols, program, funIndex, fun, body_, externFunPtrs);
 		},
 		(ref immutable LowFunExprBody body_) {
 			ExprCtx ctx = ExprCtx(
@@ -361,7 +339,7 @@ void generateExternCall(
 	immutable LowFunIndex funIndex,
 	ref immutable LowFun fun,
 	ref immutable LowFunBody.Extern a,
-	immutable SymDict!FunPtr funPtrs,
+	ref immutable ExternFunPtrsForAllLibraries externFunPtrs,
 ) {
 	immutable ByteCodeSource source = immutable ByteCodeSource(funIndex, lowFunRange(fun, allSymbols).range.start);
 	immutable Opt!Sym optName = name(fun);
@@ -370,7 +348,7 @@ void generateExternCall(
 	if (has(op))
 		writeExtern(writer, source, force(op));
 	else {
-		immutable FunPtr funPtr = mustGetAt(funPtrs, name);
+		immutable FunPtr funPtr = mustGetAt(mustGetAt(externFunPtrs, a.libraryName), name);
 		MutMaxArr!(16, DynCallType) sigTypes = void;
 		initializeMutMaxArr(sigTypes);
 		toDynCallTypes(sigTypes, program, fun.returnType);

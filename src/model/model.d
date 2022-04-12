@@ -16,6 +16,7 @@ import util.late : Late, lateGet, lateIsSet, lateSet;
 import util.lineAndColumnGetter : LineAndColumnGetter;
 import util.memory : allocate;
 import util.opt : force, has, Opt, some;
+import util.path : Path;
 import util.ptr : hashPtr, Ptr, ptrEquals, TaggedPtr;
 import util.sourceRange :
 	FileAndPos,
@@ -842,7 +843,7 @@ struct FunBody {
 	}
 	struct Extern {
 		immutable bool isGlobal;
-		immutable Opt!Sym libraryName;
+		immutable Sym libraryName;
 	}
 	struct FileBytes {
 		immutable ubyte[] bytes;
@@ -1599,11 +1600,20 @@ enum EnumBackingType {
 
 struct Program {
 	immutable FilesInfo filesInfo;
+	immutable Config config;
 	immutable SpecialModules specialModules;
 	immutable Module[] allModules;
 	immutable CommonTypes commonTypes;
 	immutable Diagnostics diagnostics;
 }
+
+struct Config {
+	immutable ConfigImportPaths include;
+	immutable ConfigExternPaths extern_;
+}
+
+alias ConfigImportPaths = immutable SymDict!Path;
+alias ConfigExternPaths = immutable SymDict!Path;
 
 immutable(bool) hasDiags(ref immutable Program a) {
 	return !empty(a.diagnostics.diags);

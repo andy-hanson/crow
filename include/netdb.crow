@@ -32,11 +32,11 @@ getaddrinfo c-int
 	pai addrinfo mut* mut*
 spec
 	unsafe
-	extern
+	extern<c>
 	noctx
 	summon
-freeaddrinfo void(ai addrinfo mut*) unsafe extern noctx
-gai_strerror c-str(ecode int32) extern noctx
+freeaddrinfo void(ai addrinfo mut*) unsafe extern<c> noctx
+gai_strerror c-str(ecode int32) extern<c> noctx
 
 hostent record mut by-ref extern
 	h_name c-str
@@ -45,14 +45,14 @@ hostent record mut by-ref extern
 	h_length c-int
 	h_addr_list c-str mut*
 
-gethostbyname hostent(name c-str) unsafe extern noctx
+gethostbyname hostent(name c-str) unsafe extern<c> noctx
 
 protoent record mut by-ref extern
 	p_name c-str
 	p_aliases c-str mut*
 	p_proto c-int
 
-getprotobyname protoent(name c-str) unsafe extern noctx
+getprotobyname protoent(name c-str) unsafe extern<c> noctx
 
 getaddrinfo_error_posix enum<int32>
 	EAI_NONE = 0

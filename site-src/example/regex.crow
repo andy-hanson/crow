@@ -94,9 +94,9 @@ regcomp reg_errcode_t
 spec
 	unsafe
 	noctx
-	extern
+	extern<c>
 
-regfree void(preg regex_t mut*) unsafe noctx extern
+regfree void(preg regex_t mut*) unsafe noctx extern<c>
 
 regexec reg_errcode_t
 	preg regex_t*
@@ -107,7 +107,7 @@ regexec reg_errcode_t
 spec
 	unsafe
 	noctx
-	extern
+	extern<c>
 
 regerror size_t
 	errcode reg_errcode_t
@@ -117,4 +117,4 @@ regerror size_t
 spec
 	unsafe
 	noctx
-	extern
+	extern<c>

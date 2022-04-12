@@ -100,7 +100,6 @@ import util.col.mutDict :
 	MutDict,
 	MutPtrDict,
 	ValueAndDidAdd;
-import util.col.mutSet : addToMutSetOkIfPresent, MutSymSet;
 import util.col.str : SafeCStr;
 import util.hash : Hasher;
 import util.late : Late, lateGet, lateIsSet, lateSet, lateSetOverwrite, lazilySet;
@@ -108,7 +107,7 @@ import util.memory : allocate, allocateMut;
 import util.opt : force, has, none, Opt, some;
 import util.ptr : castImmutable, castMutable, hashPtr, Ptr, ptrEquals;
 import util.sourceRange : FileAndRange;
-import util.sym : AllSymbols, shortSymValue, Sym;
+import util.sym : AllSymbols, shortSym, shortSymValue, Sym;
 import util.util : max, roundUp, todo, unreachable, verify;
 import versionInfo : VersionInfo;
 
@@ -261,7 +260,6 @@ struct ConcretizeCtx {
 	MutArr!DeferredRecordBody deferredRecords;
 	MutArr!DeferredUnionBody deferredUnions;
 	ArrBuilder!(immutable Ptr!ConcreteFun) allConcreteFuns;
-	MutSymSet allExternLibraryNames;
 
 	// This will only have an entry while a ConcreteFun hasn't had it's body filled in yet.
 	MutPtrDict!(ConcreteFun, immutable ConcreteFunBodyInputs) concreteFunToBodyInputs;
@@ -786,7 +784,8 @@ void fillInConcreteFunBody(ref ConcretizeCtx ctx, Ptr!ConcreteFun cf) {
 	// TODO: just assert it's not already set?
 	if (!lateIsSet(cf.deref()._body_)) {
 		// set to arbitrary temporarily
-		lateSet(cf.deref()._body_, immutable ConcreteFunBody(immutable ConcreteFunBody.Extern(false)));
+		lateSet(cf.deref()._body_, immutable ConcreteFunBody(
+			immutable ConcreteFunBody.Extern(false, shortSym("bogus"))));
 		immutable ConcreteFunBodyInputs inputs = mustDelete(ctx.concreteFunToBodyInputs, castImmutable(cf));
 		immutable ConcreteFunBody body_ = matchFunBody!(
 			immutable ConcreteFunBody,
@@ -822,11 +821,8 @@ void fillInConcreteFunBody(ref ConcretizeCtx ctx, Ptr!ConcreteFun cf) {
 						return bodyForEnumOrFlagsMembers(ctx, castImmutable(cf).deref().returnType);
 				}
 			},
-			(ref immutable FunBody.Extern e) {
-				if (has(e.libraryName))
-					addToMutSetOkIfPresent(ctx.alloc, ctx.allExternLibraryNames, force(e.libraryName));
-				return immutable ConcreteFunBody(immutable ConcreteFunBody.Extern(e.isGlobal));
-			},
+			(ref immutable FunBody.Extern x) =>
+				immutable ConcreteFunBody(immutable ConcreteFunBody.Extern(x.isGlobal, x.libraryName)),
 			(ref immutable Expr e) =>
 				immutable ConcreteFunBody(concretizeExpr(ctx, inputs.containing, castImmutable(cf), e)),
 			(immutable FunBody.FileBytes e) {

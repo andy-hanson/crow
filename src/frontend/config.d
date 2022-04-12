@@ -4,6 +4,7 @@ module frontend.config;
 
 import frontend.diagnosticsBuilder : DiagnosticsBuilder;
 import model.diag : Diag, DiagnosticWithinFile;
+import model.model : Config, ConfigExternPaths, ConfigImportPaths;
 import model.parseDiag : ParseDiag;
 import util.alloc.alloc : Alloc;
 import util.col.arr : only;
@@ -17,12 +18,8 @@ import util.opt : force, has, none, Opt, some;
 import util.jsonParse : asObject, asString, isObject, isString, Json, parseJson;
 import util.path : AllPaths, childPath, commonAncestor, parent, parseAbsoluteOrRelPath, Path, PathAndRange;
 import util.sourceRange : RangeWithinFile;
-import util.sym : AllSymbols, shortSym, SpecialSym, Sym, symEq, symForSpecial;
+import util.sym : AllSymbols, shortSym, shortSymValue, SpecialSym, Sym, symForSpecial;
 import util.util : todo;
-
-struct Config {
-	immutable SymDict!Path include;
-}
 
 immutable(Config) getConfig(
 	ref Alloc alloc,
@@ -83,11 +80,15 @@ immutable(Config) getConfigRecur(
 pure:
 
 immutable(Config) emptyConfig() {
-	return immutable Config(immutable SymDict!Path());
+	return immutable Config(immutable ConfigImportPaths(), immutable ConfigExternPaths());
 }
 
-immutable(Config) withInclude(immutable(Config), immutable SymDict!Path include) {
-	return immutable Config(include);
+immutable(Config) withInclude(immutable Config a, immutable ConfigImportPaths include) {
+	return immutable Config(include, a.extern_);
+}
+
+immutable(Config) withExtern(immutable Config a, immutable ConfigExternPaths extern_) {
+	return immutable Config(a.include, extern_);
 }
 
 immutable(Config) parseConfig(
@@ -121,16 +122,24 @@ immutable(Config) parseConfigRecur(
 	immutable KeyValuePair!(Sym, Json)[] fields,
 ) {
 	return fold(emptyConfig, fields, (immutable Config cur, ref immutable KeyValuePair!(Sym, Json) field) {
-		if (symEq(field.key, shortSym("include"))) {
-			return withInclude(cur, parseInclude(alloc, allSymbols, allPaths, dirContainingConfig, diags, field.value));
-		} else {
-			todo!void("diag -- bad key");
-			return cur;
+		immutable Json value = field.value;
+		switch (field.key.value) {
+			case shortSymValue("include"):
+				return withInclude(
+					cur,
+					parseIncludeOrExtern(alloc, allSymbols, allPaths, dirContainingConfig, diags, value));
+			case shortSymValue("extern"):
+				return withExtern(
+					cur,
+					parseIncludeOrExtern(alloc, allSymbols, allPaths, dirContainingConfig, diags, value));
+			default:
+				todo!void("diag -- bad key");
+				return cur;
 		}
 	});
 }
 
-immutable(SymDict!Path) parseInclude(
+immutable(SymDict!Path) parseIncludeOrExtern(
 	ref Alloc alloc,
 	ref AllSymbols allSymbols,
 	ref AllPaths allPaths,

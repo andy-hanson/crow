@@ -29,6 +29,7 @@ struct ParseDiag {
 			equalsOrThen,
 			indent,
 			lambdaArrow,
+			less,
 			name,
 			nameOrOperator,
 			quoteDouble,

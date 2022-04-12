@@ -92,7 +92,7 @@ mdb_stat record mut by-ref extern
 	ms_leaf_pages mut size_t
 	ms_overflow_pages mut size_t
 	ms_entries mut size_t
-mdb_stat err-t(txn MDB_txn, dbi MDB_dbi, stat mdb_stat) noctx extern unsafe summon
+mdb_stat err-t(txn MDB_txn, dbi MDB_dbi, stat mdb_stat) noctx extern<lmdb> unsafe summon
 
 MDB_cursor extern-ptr
 mdb_cursor_open err-t

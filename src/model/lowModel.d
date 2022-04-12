@@ -22,6 +22,7 @@ import util.col.fullIndexDict : FullIndexDict;
 import util.col.str : SafeCStr;
 import util.hash : Hasher, hashSizeT, hashUint;
 import util.opt : none, Opt;
+import util.path : Path;
 import util.ptr : Ptr;
 import util.sourceRange : FileAndRange;
 import util.sym : AllSymbols, shortSym, Sym;
@@ -496,6 +497,7 @@ struct LowFunBody {
 
 	struct Extern {
 		immutable bool isGlobal;
+		immutable Sym libraryName;
 	}
 
 	enum Kind {
@@ -1118,7 +1120,7 @@ struct LowProgram {
 	immutable AllLowTypes allTypes;
 	immutable FullIndexDict!(LowFunIndex, LowFun) allFuns;
 	immutable LowFunIndex main;
-	immutable Sym[] allExternLibraryNames;
+	immutable ExternLibraries externLibraries;
 
 	//TODO: NOT INSTANCE
 	ref immutable(FullIndexDict!(LowType.ExternPtr, LowExternPtrType)) allExternPtrTypes() return scope immutable {
@@ -1136,6 +1138,14 @@ struct LowProgram {
 	ref immutable(FullIndexDict!(LowType.Union, LowUnion)) allUnions() return scope immutable {
 		return allTypes.allUnions;
 	}
+}
+
+alias ExternLibraries = ExternLibrary[];
+
+struct ExternLibrary {
+	immutable Sym libraryName;
+	immutable Opt!Path configuredPath;
+	immutable Sym[] importNames;
 }
 
 struct AllLowTypes {

@@ -59,7 +59,15 @@ version (Windows) { } else {
 import frontend.lang : JitOptions, OptimizationLevel;
 import frontend.showDiag : ShowDiagOptions, strOfDiagnostics;
 import interpret.applyFn : u64OfI32, u64OfI64;
-import interpret.extern_ : DynCallType, DynCallSig, Extern, FunPtr;
+import interpret.extern_ :
+	DynCallType,
+	DynCallSig,
+	Extern,
+	ExternFunPtrsForAllLibraries,
+	ExternFunPtrsForLibrary,
+	FunPtr,
+	WriteError,
+	writeSymToCb;
 import lib.cliParser :
 	BuildOptions,
 	CCompileOptions,
@@ -83,13 +91,16 @@ import lib.compiler :
 	ProgramsAndFilesInfo,
 	justTypeCheck;
 import model.model : hasDiags;
+import model.lowModel : ExternLibraries, ExternLibrary;
 version(Test) {
 	import test.test : test;
 }
 import util.alloc.alloc : Alloc, TempAlloc;
 import util.col.arr : emptyArr;
 import util.col.arrBuilder : add, addAll, ArrBuilder, finishArr;
-import util.col.arrUtil : prepend, zipImpureSystem;
+import util.col.arrUtil : mapImpure, prepend, zipImpureSystem;
+import util.col.dict : KeyValuePair, makeDictFromKeys, SymDict, zipToDict;
+import util.col.mutArr : MutArr, mutArrIsEmpty, mutArrRange, push, pushAll, tempAsArr;
 import util.col.str : CStr, SafeCStr, safeCStr, safeCStrIsEmpty, safeCStrSize, strEq, strOfCStr;
 import util.conv : bitsOfFloat64, float32OfBits, float64OfBits;
 import util.memory : memset;
@@ -113,12 +124,16 @@ import util.ptr : ptrTrustMe_mut;
 import util.readOnlyStorage : matchReadFileResult, ReadFileResult, ReadOnlyStorage;
 import util.sym :
 	AllSymbols,
+	concatSyms,
 	emptySym,
+	hashSym,
 	Operator,
 	shortSym,
+	shortSymValue,
 	SpecialSym,
 	Sym,
 	symAsTempBuffer,
+	symEq,
 	symForOperator,
 	symForSpecial,
 	symOfStr,
@@ -231,8 +246,8 @@ immutable(ExitCode) go(
 				(scope ref immutable ReadOnlyStorage storage) =>
 					matchRunOptions!(immutable ExitCode)(
 						run.options,
-						(ref immutable RunOptions.Interpret) {
-							return withRealExtern(alloc, allSymbols, (scope ref Extern extern_) => buildAndInterpret(
+						(ref immutable RunOptions.Interpret) =>
+							withRealExtern(alloc, allSymbols, allPaths, (scope ref Extern extern_) => buildAndInterpret(
 								alloc,
 								perf,
 								allSymbols,
@@ -245,8 +260,7 @@ immutable(ExitCode) go(
 								},
 								showDiagOptions,
 								run.mainPath,
-								getAllArgs(alloc, allPaths, storage, run.mainPath, run.programArgs)));
-						},
+								getAllArgs(alloc, allPaths, storage, run.mainPath, run.programArgs))),
 						(ref immutable RunOptions.Jit it) {
 							version (Windows) {
 								return unreachable!(immutable ExitCode);
@@ -569,7 +583,7 @@ immutable(ExitCode) buildToCAndCompile(
 			return res == ExitCode.ok && has(exePath)
 				? compileC(
 					alloc, perf, allSymbols, allPaths,
-					cPath, force(exePath), result.allExternLibraryNames, cCompileOptions)
+					cPath, force(exePath), result.externLibraries, cCompileOptions)
 				: res;
 		} else
 			return printErr(result.diagnostics);
@@ -640,8 +654,6 @@ immutable(SafeCStr[]) cCompilerArgs(ref immutable CCompileOptions options) {
 			safeCStr!"-Wno-unused-variable",
 			safeCStr!"-Wno-unused-value",
 			safeCStr!"-Wno-builtin-declaration-mismatch",
-			safeCStr!"-pthread",
-			safeCStr!"-lm",
 			safeCStr!"-Ofast",
 		];
 		static immutable SafeCStr[] regularArgs = optimizedArgs[0 .. $ - 1] ~ [safeCStr!"-g"];
@@ -657,15 +669,14 @@ immutable(SafeCStr[]) cCompilerArgs(ref immutable CCompileOptions options) {
 @trusted immutable(ExitCode) compileC(
 	ref Alloc alloc,
 	ref Perf perf,
-	ref const AllSymbols allSymbols,
-	ref const AllPaths allPaths,
+	ref AllSymbols allSymbols,
+	ref AllPaths allPaths,
 	immutable PathAndExtension cPath,
 	immutable PathAndExtension exePath,
-	immutable Sym[] allExternLibraryNames,
+	scope immutable ExternLibrary[] externLibraries,
 	ref immutable CCompileOptions options,
 ) {
-	immutable SafeCStr[] args =
-		cCompileArgs(alloc, allSymbols, allPaths, cPath, exePath, allExternLibraryNames, options);
+	immutable SafeCStr[] args = cCompileArgs(alloc, allSymbols, allPaths, cPath, exePath, externLibraries, options);
 	version (Windows) {
 		TempStrForPath clPath = void;
 		immutable ExitCode clErr = findPathToCl(clPath);
@@ -695,11 +706,11 @@ version (Windows) {
 
 immutable(SafeCStr[]) cCompileArgs(
 	ref Alloc alloc,
-	ref const AllSymbols allSymbols,
-	ref const AllPaths allPaths,
+	ref AllSymbols allSymbols,
+	ref AllPaths allPaths,
 	immutable PathAndExtension cPath,
 	immutable PathAndExtension exePath,
-	immutable Sym[] allExternLibraryNames,
+	scope immutable ExternLibrary[] externLibraries,
 	ref immutable CCompileOptions options,
 ) {
 	ArrBuilder!SafeCStr args;
@@ -708,23 +719,26 @@ immutable(SafeCStr[]) cCompileArgs(
 	version (Windows) {
 		add(alloc, args, safeCStr!"/link");
 	}
-	foreach (immutable Sym it; allExternLibraryNames) {
+	foreach (immutable ExternLibrary x; externLibraries) {
 		version (Windows) {
-			//TODO
+			if (has(x.configuredPath)) {
+				immutable Sym xDotLib = concatSyms(allSymbols, [x.libraryName, symForSpecial(SpecialSym.dotLib)]);
+				immutable Path libPath = childPath(allPaths, force(x.configuredPath), xDotLib);
+				add(alloc, args, pathToSafeCStr(alloc, allPaths, libPath));
+			}
 		} else {
-			Writer writer = Writer(ptrTrustMe_mut(alloc));
-			writeStatic(writer, "-l");
-			writeSym(writer, allSymbols, it);
-			add(alloc, args, finishWriterToSafeCStr(writer));
+			if (has(x.configuredPath))
+				todo!void("link to library at custom path on Posix");
+			else {
+				Writer writer = Writer(ptrTrustMe_mut(alloc));
+				writeStatic(writer, "-l");
+				writeSym(writer, allSymbols, x.libraryName);
+				add(alloc, args, finishWriterToSafeCStr(writer));
+			}
 		}
 	}
 	version (Windows) {
-		//TODO: get library paths from config
-		add(alloc, args,
-			safeCStr!"C:\\Users\\User\\Downloads\\SDL2-devel-2.0.20-VC\\SDL2-2.0.20\\lib\\x64\\SDL2.lib");
 		add(alloc, args, safeCStr!"/DEBUG");
-	}
-	version (Windows) {
 		Writer writer = Writer(ptrTrustMe_mut(alloc));
 		writeStatic(writer, "/out:");
 		writeSafeCStr(writer, pathToSafeCStr(alloc, allPaths, exePath));
@@ -785,69 +799,165 @@ immutable(T) withReadOnlyStorage(T)(
 immutable(ExitCode) withRealExtern(
 	ref Alloc alloc,
 	ref AllSymbols allSymbols,
+	ref AllPaths allPaths,
 	scope immutable(ExitCode) delegate(scope ref Extern) @safe @nogc nothrow cb,
 ) {
-	version (Windows) {
-		//TODO: verify that paths exist... dlLoadLibrary doesn't do that for us
-		DLLib*[5] libraries = [
-			dlLoadLibrary("C:\\Windows\\System32\\kernel32.dll"),
-			dlLoadLibrary("C:\\Windows\\System32\\ucrtbase.dll"),
-			dlLoadLibrary("C:\\Windows\\System32\\ws2_32.dll"),
-			dlLoadLibrary("C:\\Users\\User\\Downloads\\SDL2-devel-2.0.20-VC\\SDL2-2.0.20\\lib\\x64\\SDL2.dll"),
-			dlLoadLibrary("C:\\Windows\\System32\\opengl32.dll"),
-		];
-	} else {
-		// TODO: better way to find where it is (may depend on system)
-		DLLib*[4] libraries = [
-			dlLoadLibrary("/usr/lib64/libSDL2-2.0.so.0"),
-			dlLoadLibrary("/usr/lib64/libGL.so"),
-			dlLoadLibrary("/usr/lib64/libsodium.so"),
-			dlLoadLibrary("/usr/lib64/liblmdb.so"),
-		];
-	}
-
 	DCCallVM* dcVm = dcNewCallVM(0x1000);
 	verify(dcVm != null);
 	dcMode(dcVm, DC_CALL_C_DEFAULT);
+	MutArr!(immutable DLLib*) allLibraries;
 	scope Extern extern_ = Extern(
-		(immutable Sym name) =>
-			getExternFunPtr(allSymbols, libraries, name),
+		(scope immutable ExternLibraries libraries, scope WriteError writeError) =>
+			loadLibraries(alloc, allSymbols, allPaths, allLibraries, libraries, writeError),
 		(FunPtr funPtr, scope immutable DynCallSig sig, scope immutable ulong[] parameters) =>
 			dynamicCallFunPtr(funPtr, sig, parameters, dcVm));
+
 	immutable ExitCode res = cb(extern_);
 
-	foreach (DLLib* library; libraries)
-		dlFreeLibrary(library);
-
+	foreach (immutable DLLib* lib; mutArrRange(allLibraries))
+		dlFreeLibrary(lib);
 	dcFree(dcVm);
 	return res;
 }
 
-@trusted immutable(FunPtr) getExternFunPtr(
+immutable(Opt!ExternFunPtrsForAllLibraries) loadLibraries(
+	ref Alloc alloc,
+	ref AllSymbols allSymbols,
+	ref AllPaths allPaths,
+	MutArr!(immutable DLLib*) allLibraries,
+	scope immutable ExternLibraries libraries,
+	scope WriteError writeError,
+) {
+	bool success = true;
+	immutable DLLib*[] libs = mapImpure(alloc, libraries, (ref immutable ExternLibrary x) {
+		immutable Opt!(DLLib*) lib = getLibrary(allSymbols, allPaths, x.libraryName, x.configuredPath, writeError);
+		if (has(lib))
+			return force(lib);
+		else {
+			success = false;
+			return null;
+		}
+	});
+	pushAll(alloc, allLibraries, libs);
+
+	return success
+		? loadLibrariesInner(alloc, allSymbols, libraries, libs, writeError)
+		: none!ExternFunPtrsForAllLibraries;
+}
+
+immutable(Opt!(DLLib*)) getLibrary(
+	ref AllSymbols allSymbols,
+	ref AllPaths allPaths,
+	immutable Sym libraryName,
+	immutable Opt!Path configuredPath,
+	scope WriteError writeError,
+) {
+	immutable Sym fileName = dllOrSoName(allSymbols, libraryName);
+	if (has(configuredPath)) {
+		immutable Path fullPath = childPath(allPaths, force(configuredPath), fileName);
+		return loadLibraryFromPath(allPaths, fullPath, writeError);
+	} else {
+		switch (libraryName.value) {
+			case shortSymValue("c"):
+			case shortSymValue("m"):
+				version (Windows) {
+					return loadLibraryFromNameOrPath(safeCStr!"ucrtbase.dll", writeError);
+				} else {
+					return some!(DLLib*)(null);
+				}
+			default:
+				return loadLibraryFromName(allSymbols, fileName, writeError);
+		}
+	}
+}
+
+immutable(Sym) dllOrSoName(ref AllSymbols allSymbols, immutable Sym libraryName) {
+	version (Windows) {
+		return concatSyms(allSymbols, [libraryName, symForSpecial(SpecialSym.dotDll)]);
+	} else {
+		return concatSyms(allSymbols, [shortSym("lib"), libraryName, symForSpecial(SpecialSym.dotSo)]);
+	}
+}
+
+@trusted immutable(Opt!(DLLib*)) loadLibraryFromName(
 	ref const AllSymbols allSymbols,
-	scope const DLLib*[] libraries,
+	immutable Sym name,
+	scope WriteError writeError,
+) {
+	char[256] buf = symAsTempBuffer!256(allSymbols, name);
+	return loadLibraryFromNameOrPath(immutable SafeCStr(cast(immutable) buf.ptr), writeError);
+}
+
+@trusted immutable(Opt!(DLLib*)) loadLibraryFromPath(
+	ref const AllPaths allPaths,
+	immutable Path path,
+	scope WriteError writeError,
+) {
+	TempStrForPath buf = void;
+	return loadLibraryFromNameOrPath(pathToTempStr(buf, allPaths, path), writeError);
+}
+
+@trusted immutable(Opt!(DLLib*)) loadLibraryFromNameOrPath(
+	scope immutable SafeCStr name,
+	scope WriteError writeError,
+) {
+	immutable DLLib* res = dlLoadLibrary(name.ptr);
+	if (res == null) {
+		// TODO: use a Diagnostic
+		writeError(safeCStr!"Could not load library ");
+		writeError(name);
+		writeError(safeCStr!".\n");
+		return none!(DLLib*);
+	} else
+		return some!(DLLib*)(res);
+}
+
+immutable(Opt!ExternFunPtrsForAllLibraries) loadLibrariesInner(
+	ref Alloc alloc,
+	ref const AllSymbols allSymbols,
+	scope immutable ExternLibraries libraries,
+	immutable DLLib*[] libs,
+	scope WriteError writeError,
+) {
+	MutArr!(immutable KeyValuePair!(Sym, Sym)) failures;
+	immutable ExternFunPtrsForAllLibraries res = zipToDict!(Sym, SymDict!FunPtr, symEq, hashSym, ExternLibrary, DLLib*)(
+		alloc,
+		libraries,
+		libs,
+		(ref immutable ExternLibrary x, ref immutable DLLib* lib) @safe @nogc nothrow {
+			immutable ExternFunPtrsForLibrary funPtrs = makeDictFromKeys!(Sym, FunPtr, symEq, hashSym)(
+				alloc,
+				x.importNames,
+				(immutable Sym importName) {
+					immutable Opt!FunPtr p = getExternFunPtr(allSymbols, lib, importName);
+					if (has(p))
+						return force(p);
+					else {
+						push(alloc, failures, immutable KeyValuePair!(Sym , Sym)(x.libraryName, importName));
+						return null;
+					}
+				});
+			return immutable KeyValuePair!(Sym, ExternFunPtrsForLibrary)(x.libraryName, funPtrs);
+		});
+	foreach (immutable KeyValuePair!(Sym, Sym) x; tempAsArr(failures)) {
+		writeError(safeCStr!"Could not load extern function ");
+		writeSymToCb(writeError, allSymbols, x.value);
+		writeError(safeCStr!" from library ");
+		writeSymToCb(writeError, allSymbols, x.key);
+		writeError(safeCStr!"\n");
+	}
+	return mutArrIsEmpty(failures) ? some(res) : none!ExternFunPtrsForAllLibraries;
+}
+
+@trusted pure immutable(Opt!FunPtr) getExternFunPtr(
+	ref const AllSymbols allSymbols,
+	immutable DLLib* library,
 	immutable Sym name,
 ) {
 	immutable char[256] nameBuffer = symAsTempBuffer!256(allSymbols, name);
 	immutable CStr nameCStr = nameBuffer.ptr;
-
-	DCpointer ptr = null;
-	foreach (const DLLib* library; libraries) {
-		if (ptr == null) {
-			ptr = dlFindSymbol(library, nameCStr);
-			debug if (false) {
-				char[256] libName;
-				int len = dlGetLibraryPath(library, libName.ptr, libName.length);
-				verify(len > 0 && len < libName.length);
-				libName[len] = '\0';
-				printf("Is it in %s? %d\n", libName.ptr, ptr != null);
-			}
-		}
-	}
-	if (ptr == null)
-		printf("Could not find extern function %s\n", nameCStr);
-	verify(ptr != null);
-	return cast(immutable FunPtr) ptr;
+	DCpointer ptr = dlFindSymbol(library, nameCStr);
+	return ptr == null ? none!FunPtr : some!FunPtr(cast(immutable) ptr);
 }
 
 @system immutable(ulong) dynamicCallFunPtr(
@@ -1010,10 +1120,9 @@ extern(C) {
 extern(C) {
 	// based on dyncall/dynload/dynload.h
 	struct DLLib;
-	DLLib *dlLoadLibrary(const char* libpath);
-	void dlFreeLibrary(DLLib* pLib);
-	void* dlFindSymbol(const DLLib* pLib, const char* pSymbolName);
-	int dlGetLibraryPath(const DLLib* pLib, char* sOut, int bufSize);
+	immutable(DLLib*) dlLoadLibrary(const char* libpath);
+	pure void dlFreeLibrary(immutable DLLib* pLib);
+	pure void* dlFindSymbol(immutable DLLib* pLib, const char* pSymbolName);
 }
 
 enum NulTerminate { no, yes }

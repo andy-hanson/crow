@@ -4,5 +4,5 @@ import
 	crow/ptr: any-mut-ptr
 	crow/private/bootstrap: void
 
-malloc any-mut-ptr(size size_t) unsafe extern noctx
-free void(p any-mut-ptr) unsafe extern noctx
+malloc any-mut-ptr(size size_t) unsafe extern<c> noctx
+free void(p any-mut-ptr) unsafe extern<c> noctx

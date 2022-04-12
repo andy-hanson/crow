@@ -175,6 +175,9 @@ void writeParseDiag(
 				case ParseDiag.Expected.Kind.lambdaArrow:
 					writeStatic(writer, "expected ' =>' after lambda parameters");
 					break;
+				case ParseDiag.Expected.Kind.less:
+					writeStatic(writer, "expected '<'");
+					break;
 				case ParseDiag.Expected.Kind.name:
 					writeStatic(writer, "expected a name (non-operator)");
 					break;

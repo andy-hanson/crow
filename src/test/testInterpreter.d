@@ -60,6 +60,7 @@ import model.lowModel :
 	AllLowTypes,
 	ArrTypeAndConstantsLow,
 	ConcreteFunToLowFunIndex,
+	ExternLibrary,
 	LowExternPtrType,
 	LowFun,
 	LowFunBody,
@@ -85,7 +86,7 @@ import util.memory : allocate;
 import util.path : emptyPathsInfo, Path, PathsInfo, rootPath;
 import util.ptr : ptrTrustMe_mut;
 import util.sourceRange : FileIndex, Pos;
-import util.sym : shortSym, Sym;
+import util.sym : shortSym;
 import util.util : verify;
 
 void testInterpreter(ref Test test) {
@@ -135,7 +136,7 @@ void doInterpret(
 		nat64Type,
 		immutable LowFunParamsKind(false, false),
 		emptyArr!LowParam,
-		immutable LowFunBody(immutable LowFunBody.Extern(false)))];
+		immutable LowFunBody(immutable LowFunBody.Extern(false, shortSym("bogus"))))];
 	immutable LowProgram lowProgram = immutable LowProgram(
 		ConcreteFunToLowFunIndex(),
 		immutable AllConstantsLow(
@@ -149,7 +150,7 @@ void doInterpret(
 			emptyFullIndexDict!(LowType.Union, LowUnion)),
 		fullIndexDictOfArr!(LowFunIndex, LowFun)(lowFun),
 		immutable LowFunIndex(0),
-		emptyArr!Sym);
+		emptyArr!ExternLibrary);
 	withFakeExtern(test.alloc, test.allSymbols, (scope ref Extern extern_, scope ref FakeStdOutput _) @trusted {
 		immutable PathsInfo pathsInfo = emptyPathsInfo;
 		withInterpreter!void(

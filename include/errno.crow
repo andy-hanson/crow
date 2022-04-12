@@ -9,8 +9,8 @@ errno err-t() unsafe noctx
 		*_errno
 	else
 		*__errno_location
-._errno err-t mut*() extern noctx unsafe
-.__errno_location err-t mut*() extern noctx unsafe
+._errno err-t mut*() extern<c> noctx unsafe
+.__errno_location err-t mut*() extern<c> noctx unsafe
 
 ENOENT err-t() noctx
 	2

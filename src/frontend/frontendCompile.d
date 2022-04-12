@@ -4,10 +4,18 @@ module frontend.frontendCompile;
 
 import model.diag : Diag, Diagnostics, DiagnosticWithinFile, FilesInfo, filesInfoForSingle;
 import model.model :
-	CommonTypes, FileContent, ImportFileType, ImportOrExport, ImportOrExportKind, Module, Program, SpecialModules;
+	CommonTypes,
+	Config,
+	FileContent,
+	ImportFileType,
+	ImportOrExport,
+	ImportOrExportKind,
+	Module,
+	Program,
+	SpecialModules;
 import model.parseDiag : ParseDiag;
 import frontend.check.check : BootstrapCheck, check, checkBootstrap, ImportOrExportFile, ImportsAndExports, PathAndAst;
-import frontend.config : Config, getConfig;
+import frontend.config : getConfig;
 import frontend.diagnosticsBuilder : addDiagnosticsForFile, DiagnosticsBuilder, finishDiagnostics;
 import frontend.parse.ast :
 	emptyFileAst,
@@ -70,7 +78,8 @@ immutable(Program) frontendCompile(
 	)(astsAlloc, perf, PerfMeasure.parseEverything);
 	return withMeasure!(immutable Program, () =>
 		checkEverything(
-			modelAlloc, perf, allSymbols, diagsBuilder, parsed.asts, parsed.filesInfo, parsed.commonModuleIndices)
+			modelAlloc, perf, allSymbols, diagsBuilder,
+			config, parsed.asts, parsed.filesInfo, parsed.commonModuleIndices)
 	)(modelAlloc, perf, PerfMeasure.checkEverything);
 }
 
@@ -756,6 +765,7 @@ immutable(Program) checkEverything(
 	scope ref Perf perf,
 	ref AllSymbols allSymbols,
 	ref DiagnosticsBuilder diagsBuilder,
+	immutable Config config,
 	immutable FullIndexDict!(FileIndex, AstAndResolvedImports) allAsts,
 	ref immutable FilesInfo filesInfo,
 	ref immutable CommonModuleIndices moduleIndices,
@@ -767,6 +777,7 @@ immutable(Program) checkEverything(
 	immutable Ptr!Module bootstrapModule = ptrAt(modules, moduleIndices.bootstrap.index);
 	return immutable Program(
 		filesInfo,
+		config,
 		immutable SpecialModules(
 			ptrAt(modules, moduleIndices.alloc.index),
 			bootstrapModule,

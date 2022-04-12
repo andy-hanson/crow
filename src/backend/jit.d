@@ -93,6 +93,7 @@ import model.lowModel :
 	ArrTypeAndConstantsLow,
 	asRecordType,
 	asUnionType,
+	ExternLibrary,
 	isFunPtrType,
 	isGlobal,
 	isPtrRawConst,
@@ -128,7 +129,7 @@ import util.opt : force, has, none, noneMut, Opt, some, someMut;
 import util.perf : Perf, PerfMeasure, withMeasure;
 import util.ptr : castImmutable, nullPtr, Ptr, ptrEquals, ptrTrustMe, ptrTrustMe_mut;
 import util.sourceRange : FileAndRange;
-import util.sym : AllSymbols, Sym, writeSym;
+import util.sym : AllSymbols, writeSym;
 import util.util : todo, unreachable, verify;
 import util.writer : finishWriterToCStr, writeChar, Writer, writeStatic;
 
@@ -210,11 +211,11 @@ GccProgram getGccProgram(
 	//gcc_jit_context_set_bool_option(ctx.deref(), gcc_jit_bool_option.GCC_JIT_BOOL_OPTION_DUMP_INITIAL_GIMPLE, true);
 	//gcc_jit_context_set_bool_option(ctx.deref(), gcc_jit_bool_option.GCC_JIT_BOOL_OPTION_DUMP_GENERATED_CODE, true);
 
-	foreach (immutable Sym it; program.allExternLibraryNames) {
+	foreach (ref immutable ExternLibrary x; program.externLibraries) {
 		//TODO:NO ALLOC
 		Writer writer = Writer(ptrTrustMe_mut(alloc));
 		writeStatic(writer, "-l");
-		writeSym(writer, allSymbols, it);
+		writeSym(writer, allSymbols, x.libraryName);
 		gcc_jit_context_add_driver_option(ctx.deref(), finishWriterToCStr(writer));
 	}
 

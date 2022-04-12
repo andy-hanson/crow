@@ -214,10 +214,8 @@ immutable(Repr) reprFunBody(ref Alloc alloc, ref Ctx ctx, ref immutable FunBody 
 			reprSym("new-union"),
 		(immutable EnumFunction it) =>
 			reprRecord(alloc, "enum-fn", [reprSym(enumFunctionName(it))]),
-		(ref immutable FunBody.Extern it) =>
-			reprRecord(alloc, "extern", [
-				reprOpt(alloc, it.libraryName, (ref immutable Sym libraryName) =>
-					reprSym(libraryName))]),
+		(ref immutable FunBody.Extern x) =>
+			reprRecord(alloc, "extern", [reprBool(x.isGlobal), reprSym(x.libraryName)]),
 		(ref immutable Expr it) =>
 			reprExpr(alloc, ctx, it),
 		(immutable(FunBody.FileBytes)) =>

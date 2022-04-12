@@ -5,19 +5,19 @@ r record extern
 u union extern
 	a str
 
-f void() noctx extern
+f void() noctx extern<c>
 
-f void() extern
+f void() extern<c>
 
-f str() noctx extern
+f str() noctx extern<c>
 
-f void(a str) noctx extern
+f void(a str) noctx extern<c>
 
-f<a> void(a a) noctx extern
+f<a> void(a a) noctx extern<c>
 
-f void(...a nat64[]) noctx extern
+f void(...a nat64[]) noctx extern<c>
 
 some-spec spec
 	foo void()
 
-f void() noctx extern some-spec
+f void() noctx extern<c> some-spec

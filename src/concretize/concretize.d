@@ -40,7 +40,6 @@ import util.col.arr : emptyArr, only;
 import util.col.arrBuilder : finishArr_immutable;
 import util.col.mutArr : moveToArr, MutArr;
 import util.col.mutDict : mapToDict, mutDictIsEmpty;
-import util.col.mutSet : moveSetToArr;
 import util.opt : force, has, Opt;
 import util.path : AllPaths;
 import util.perf : Perf, PerfMeasure, withMeasure;
@@ -125,8 +124,7 @@ immutable(ConcreteProgram) concretizeInner(
 			(ref MutArr!(immutable ConcreteLambdaImpl) it) =>
 				moveToArr(alloc, it)),
 		immutable ConcreteCommonFuns(markConcreteFun, rtMainConcreteFun, userMainConcreteFun, allocFun),
-		ctxStruct,
-		moveSetToArr(alloc, ctx.allExternLibraryNames));
+		ctxStruct);
 }
 
 immutable(bool) isNat(ref immutable CommonTypes commonTypes, immutable Type type) {

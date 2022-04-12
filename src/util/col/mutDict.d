@@ -301,13 +301,6 @@ immutable(Dict!(K, VOut, equal, hash)) mapToDict(K, VOut, VIn, alias equal, alia
 	return immutable Dict!(K, VOut, equal, hash)(immutable MutDict!(K, VOut, equal, hash)(a.size, outPairs));
 }
 
-immutable(K[]) keysArray(K, V, alias equal, alias hash)(
-	ref Alloc alloc,
-	ref const MutDict!(K, V, equal, hash) a,
-) {
-	return mapToArr_const!(K, K, V, equal, hash)(alloc, a, (immutable K k, ref V) => k);
-}
-
 immutable(V[]) valuesArray(K, V, alias equal, alias hash)(
 	ref Alloc alloc,
 	ref const MutDict!(K, V, equal, hash) a,

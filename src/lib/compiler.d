@@ -10,12 +10,12 @@ import frontend.frontendCompile : FileAstAndDiagnostics, frontendCompile, parseS
 import frontend.ide.getTokens : Token, tokensOfAst, reprTokens;
 import frontend.showDiag : ShowDiagOptions, strOfDiagnostics;
 import interpret.bytecode : ByteCode;
-import interpret.extern_ : Extern;
+import interpret.extern_ : Extern, ExternFunPtrsForAllLibraries, WriteError;
 import interpret.generateBytecode : generateBytecode;
 import interpret.runBytecode : runBytecode;
 import lower.lower : lower;
 import model.concreteModel : ConcreteProgram;
-import model.lowModel : LowProgram;
+import model.lowModel : ExternLibraries, ExternLibrary, LowProgram;
 import model.model : hasDiags, Module, Program;
 import model.reprConcreteModel : reprOfConcreteProgram;
 import model.reprLowModel : reprOfLowProgram;
@@ -23,12 +23,12 @@ import model.reprModel : reprModule;
 import util.alloc.alloc : Alloc;
 import util.col.arr : emptyArr, only;
 import util.col.str : SafeCStr, safeCStr;
-import util.opt : force, none, Opt, some;
+import util.opt : force, has, none, Opt, some;
 import util.path : AllPaths, Path, PathsInfo;
 import util.perf : Perf;
 import util.readOnlyStorage : ReadOnlyStorage;
 import util.repr : jsonStrOfRepr;
-import util.sym : AllSymbols, Sym;
+import util.sym : AllSymbols;
 import util.util : castImmutableRef;
 import versionInfo : VersionInfo, versionInfoForInterpret;
 version (WebAssembly) {} else {
@@ -92,7 +92,7 @@ immutable(ExitCode) buildAndInterpret(
 	ref immutable PathsInfo pathsInfo,
 	scope ref const ReadOnlyStorage storage,
 	scope ref Extern extern_,
-	scope void delegate(scope immutable SafeCStr) @safe @nogc nothrow writeError,
+	scope WriteError writeError,
 	ref immutable ShowDiagOptions showDiagOptions,
 	immutable Path main,
 	scope immutable SafeCStr[] allArgs,
@@ -101,19 +101,26 @@ immutable(ExitCode) buildAndInterpret(
 		buildToLowProgram(alloc, perf, versionInfoForInterpret(), allSymbols, allPaths, storage, main);
 	if (!hasDiags(programs.program)) {
 		immutable LowProgram lowProgram = force(programs.concreteAndLowProgram).lowProgram;
-		immutable ByteCode byteCode =
-			generateBytecode(alloc, alloc, allSymbols, programs.program, lowProgram, extern_.getExternFunPtr);
-		return immutable ExitCode(runBytecode(
-			perf,
-			alloc,
-			allSymbols,
-			allPaths,
-			pathsInfo,
-			extern_,
-			lowProgram,
-			byteCode,
-			programs.program.filesInfo,
-			allArgs));
+		immutable Opt!ExternFunPtrsForAllLibraries externFunPtrs =
+			extern_.loadExternFunPtrs(lowProgram.externLibraries, writeError);
+		if (has(externFunPtrs)) {
+			immutable ByteCode byteCode =
+				generateBytecode(alloc, alloc, allSymbols, programs.program, lowProgram, force(externFunPtrs));
+			return immutable ExitCode(runBytecode(
+				perf,
+				alloc,
+				allSymbols,
+				allPaths,
+				pathsInfo,
+				extern_,
+				lowProgram,
+				byteCode,
+				programs.program.filesInfo,
+				allArgs));
+		} else {
+			writeError(safeCStr!"Failed to load external libraries\n");
+			return ExitCode.error;
+		}
 	} else {
 		writeError(strOfDiagnostics(
 			alloc,
@@ -225,7 +232,7 @@ immutable(DiagsAndResultStrs) printLowModel(
 		immutable ConcreteProgram concreteProgram = concretize(
 			alloc, perf, versionInfo, allSymbols, allPaths, program,
 			only(program.specialModules.rootModules));
-		immutable LowProgram lowProgram = lower(alloc, perf, concreteProgram);
+		immutable LowProgram lowProgram = lower(alloc, perf, program.config.extern_, concreteProgram);
 		return immutable DiagsAndResultStrs(safeCStr!"", showLowProgram(alloc, allSymbols, lowProgram));
 	} else
 		return immutable DiagsAndResultStrs(
@@ -283,7 +290,7 @@ version (WebAssembly) {} else {
 	public struct BuildToCResult {
 		immutable SafeCStr cSource;
 		immutable SafeCStr diagnostics;
-		immutable Sym[] allExternLibraryNames;
+		immutable ExternLibraries externLibraries;
 	}
 	public immutable(BuildToCResult) buildToC(
 		ref Alloc alloc,
@@ -301,7 +308,7 @@ version (WebAssembly) {} else {
 			? immutable BuildToCResult(
 				writeToC(alloc, alloc, castImmutableRef(allSymbols), force(programs.concreteAndLowProgram).lowProgram),
 				safeCStr!"",
-				force(programs.concreteAndLowProgram).concreteProgram.allExternLibraryNames)
+				force(programs.concreteAndLowProgram).lowProgram.externLibraries)
 			: immutable BuildToCResult(
 				safeCStr!"",
 				strOfDiagnostics(
@@ -312,7 +319,7 @@ version (WebAssembly) {} else {
 					showDiagOptions,
 					programs.program.filesInfo,
 					programs.program.diagnostics),
-				emptyArr!Sym);
+				emptyArr!ExternLibrary);
 	}
 }
 
@@ -375,7 +382,9 @@ public immutable(ProgramsAndFilesInfo) buildToLowProgram(
 			only(program.specialModules.rootModules));
 		return immutable ProgramsAndFilesInfo(
 			program,
-			some(immutable ConcreteAndLowProgram(concreteProgram, lower(alloc, perf, concreteProgram))));
+			some(immutable ConcreteAndLowProgram(
+				concreteProgram,
+				lower(alloc, perf, program.config.extern_, concreteProgram))));
 	} else
 		return immutable ProgramsAndFilesInfo(program, none!ConcreteAndLowProgram);
 }

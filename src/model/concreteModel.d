@@ -481,6 +481,7 @@ struct ConcreteFunBody {
 	}
 	struct Extern {
 		immutable bool isGlobal;
+		immutable Sym libraryName;
 	}
 	struct FlagsFn {
 		immutable ulong allValue;
@@ -1022,7 +1023,6 @@ struct ConcreteProgram {
 	immutable PtrDict!(ConcreteStruct, ConcreteLambdaImpl[]) funStructToImpls;
 	immutable ConcreteCommonFuns commonFuns;
 	immutable Ptr!ConcreteStruct ctxType;
-	immutable Sym[] allExternLibraryNames;
 
 	//TODO:NOT INSTANCE
 	immutable(Ptr!ConcreteFun) markFun() immutable { return commonFuns.markFun; }

@@ -1,11 +1,12 @@
 import
-	crow/col/arr-util: each-with-index, exists, in
+	crow/col/arr-util: each-with-index, in
 	crow/col/mut-arr: ~=, move-to-arr, mut-arr, new
 	crow/col/seq: size
+	crow/col/set: in, new, set
 	crow/io/file: each-child-recursive, read-file
 	crow/io/path: base-name, get-extension
 	crow/io/print: print
-	crow/str-util: contains-substr, ends-with, lines, starts-with, try-remove-start
+	crow/str-util: contains-substr, lines, starts-with, try-remove-start
 	./failure: failure, flat-map-with-max-size, max-failures, new, print-tests, test-options
 
 lint result<str, failure[]>(path str, options test-options) summon
@@ -27,10 +28,16 @@ lint result<str, failure[]>(path str, options test-options) summon
 	res move-to-arr
 
 .excluded-from-lint bool(name str)
-	exclude-exts str[] = ".bmp", ".dll", ".err", ".lib", ".mdb", ".png", ".svg", ".wasm", ".webp", ".woff2"
+	if name starts-with "." || name in exclude-names
+		true
+	elif ext ?= name get-extension
+		ext in exclude-extensions
+
+.exclude-extensions set str()
+	"bmp", "dll", "err", "exe", "ilk", "lib", "mdb", "obj", "pdb", "png", "svg", "wasm", "webp", "woff2"
+.exclude-names set str()
 	# TODO: gl.crow needs a multi-line call syntax
-	exclude-names str[] = "bin", "dyncall", "gl.crow", "node_modules", "package-lock.json", "site"
-	name starts-with "." || name in exclude-names || exclude-exts exists ext => name ends-with ext
+	"bin", "COPYING.txt", "dyncall", "gl.crow", "node_modules", "package-lock.json", "site"
 
 # Returns numner of errors
 .lint-file failure[](path str) summon

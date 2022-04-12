@@ -66,6 +66,7 @@ import model.concreteModel :
 	matchConcreteStructBody,
 	matchEnum,
 	mustBeByVal,
+	name,
 	NeedsCtx,
 	PointerTypeAndConstantsConcrete,
 	ReferenceKind;
@@ -79,6 +80,8 @@ import model.lowModel :
 	asPtrRawConst,
 	asRecordType,
 	ConcreteFunToLowFunIndex,
+	ExternLibraries,
+	ExternLibrary,
 	hashLowType,
 	isArr,
 	isParamRef,
@@ -108,7 +111,8 @@ import model.lowModel :
 	PointerTypeAndConstantsLow,
 	PrimitiveType,
 	UpdateParam;
-import model.model : decl, EnumBackingType, EnumFunction, EnumValue, FlagsFunction, FunInst, name, range;
+import model.model :
+	decl, ConfigExternPaths, EnumBackingType, EnumFunction, EnumValue, FlagsFunction, FunInst, name, range;
 import util.alloc.alloc : Alloc;
 import util.col.arr : empty, emptyArr, only;
 import util.col.arrBuilder : add, ArrBuilder, arrBuilderSize, finishArr;
@@ -124,7 +128,8 @@ import util.col.dict : mustGetAt, PtrDict;
 import util.col.dictBuilder : finishDict, mustAddToDict, PtrDictBuilder;
 import util.col.fullIndexDict : FullIndexDict, fullIndexDictOfArr, fullIndexDictSize;
 import util.col.mutIndexDict : getOrAddAndDidAdd, mustGetAt, MutIndexDict, newMutIndexDict;
-import util.col.mutDict : getAt_mut, getOrAdd, MutDict, MutPtrDict, ValueAndDidAdd;
+import util.col.mutArr : moveToArr, MutArr, push;
+import util.col.mutDict : getAt_mut, getOrAdd, mapToArr_mut, MutDict, MutPtrDict, MutSymDict, ValueAndDidAdd;
 import util.col.stackDict : StackDict, stackDictAdd, stackDictMustGet;
 import util.late : Late, late, lateGet, lateIsSet, lateSet;
 import util.memory : allocate;
@@ -132,18 +137,27 @@ import util.opt : asImmutable, force, has, none, Opt, some;
 import util.perf : Perf, PerfMeasure, withMeasure;
 import util.ptr : nullPtr, Ptr, ptrEquals, ptrTrustMe, ptrTrustMe_mut;
 import util.sourceRange : FileAndRange;
-import util.sym : shortSym, Sym;
+import util.sym : hashSym, shortSym, Sym, symEq;
 import util.util : unreachable, verify;
 
-immutable(LowProgram) lower(ref Alloc alloc, scope ref Perf perf, ref immutable ConcreteProgram a) {
+immutable(LowProgram) lower(
+	ref Alloc alloc,
+	scope ref Perf perf,
+	scope ref immutable ConfigExternPaths configExtern,
+	ref immutable ConcreteProgram a,
+) {
 	return withMeasure!(immutable LowProgram, () =>
-		lowerInner(alloc, a)
+		lowerInner(alloc, configExtern, a)
 	)(alloc, perf, PerfMeasure.lower);
 }
 
-private immutable(LowProgram) lowerInner(ref Alloc alloc, ref immutable ConcreteProgram a) {
+private immutable(LowProgram) lowerInner(
+	ref Alloc alloc,
+	scope ref immutable ConfigExternPaths configExtern,
+	ref immutable ConcreteProgram a,
+) {
 	AllLowTypesWithCtx allTypes = getAllLowTypes(alloc, a);
-	immutable AllLowFuns allFuns = getAllLowFuns(allTypes.allTypes, allTypes.getLowTypeCtx, a);
+	immutable AllLowFuns allFuns = getAllLowFuns(allTypes.allTypes, allTypes.getLowTypeCtx, configExtern, a);
 	immutable AllConstantsLow allConstants = convertAllConstants(allTypes.getLowTypeCtx, a.allConstants);
 	immutable LowProgram res = immutable LowProgram(
 		allFuns.concreteFunToLowFunIndex,
@@ -151,7 +165,7 @@ private immutable(LowProgram) lowerInner(ref Alloc alloc, ref immutable Concrete
 		allTypes.allTypes,
 		allFuns.allLowFuns,
 		allFuns.main,
-		a.allExternLibraryNames);
+		allFuns.allExternFuns);
 	checkLowProgram(alloc, res);
 	return res;
 }
@@ -216,6 +230,7 @@ struct AllLowFuns {
 	immutable ConcreteFunToLowFunIndex concreteFunToLowFunIndex;
 	immutable FullIndexDict!(LowFunIndex, LowFun) allLowFuns;
 	immutable LowFunIndex main;
+	immutable ExternLibraries allExternFuns;
 }
 
 struct GetLowTypeCtx {
@@ -554,6 +569,7 @@ immutable(bool) needsMarkVisitFun(ref immutable AllLowTypes allTypes, immutable 
 immutable(AllLowFuns) getAllLowFuns(
 	ref immutable AllLowTypes allTypes,
 	ref GetLowTypeCtx getLowTypeCtx,
+	scope ref immutable ConfigExternPaths configExtern,
 	ref immutable ConcreteProgram program,
 ) {
 	immutable LowType ctxType =
@@ -646,6 +662,8 @@ immutable(AllLowFuns) getAllLowFuns(
 
 	Late!(immutable LowType) markCtxTypeLate = late!(immutable LowType);
 
+	MutSymDict!(MutArr!(immutable Sym)) allExternFuns;
+
 	foreach (immutable Ptr!ConcreteFun fun; program.allFuns) {
 		immutable Opt!LowFunIndex opIndex = matchConcreteFunBody!(immutable Opt!LowFunIndex)(
 			body_(fun.deref()),
@@ -688,8 +706,14 @@ immutable(AllLowFuns) getAllLowFuns(
 				none!LowFunIndex,
 			(immutable EnumFunction) =>
 				none!LowFunIndex,
-			(ref immutable ConcreteFunBody.Extern) =>
-				some(addLowFun(immutable LowFunCause(fun))),
+			(ref immutable ConcreteFunBody.Extern x) {
+				immutable Opt!Sym optName = name(fun.deref());
+				push(
+					getLowTypeCtx.alloc,
+					getOrAdd(getLowTypeCtx.alloc, allExternFuns, x.libraryName, () => MutArr!(immutable Sym)()),
+					force(optName));
+				return some(addLowFun(immutable LowFunCause(fun)));
+			},
 			(ref immutable(ConcreteExpr)) =>
 				some(addLowFun(immutable LowFunCause(fun))),
 			(ref immutable ConcreteFunBody.FlagsFn) =>
@@ -740,7 +764,18 @@ immutable(AllLowFuns) getAllLowFuns(
 				program.userMain,
 				userMainFunPtrType)));
 
-	return immutable AllLowFuns(concreteFunToLowFunIndex, allLowFuns, immutable LowFunIndex(lowFunCauses.length));
+	return immutable AllLowFuns(
+		concreteFunToLowFunIndex,
+		allLowFuns,
+		immutable LowFunIndex(lowFunCauses.length),
+		mapToArr_mut!(ExternLibrary, immutable Sym, MutArr!(immutable Sym), symEq, hashSym)(
+			getLowTypeCtx.alloc,
+			allExternFuns,
+			(immutable Sym libraryName, ref MutArr!(immutable Sym) xs) =>
+				immutable ExternLibrary(
+					libraryName,
+					configExtern[libraryName],
+					moveToArr!Sym(getLowTypeCtx.alloc, xs))));
 }
 
 public immutable(bool) concreteFunWillBecomeNonExternLowFun()(ref immutable ConcreteFun a) {
@@ -961,8 +996,8 @@ immutable(LowFunBody) getLowFunBody(
 			unreachable!(immutable LowFunBody),
 		(immutable EnumFunction) =>
 			unreachable!(immutable LowFunBody),
-		(ref immutable ConcreteFunBody.Extern it) =>
-			immutable LowFunBody(immutable LowFunBody.Extern(it.isGlobal)),
+		(ref immutable ConcreteFunBody.Extern x) =>
+			immutable LowFunBody(immutable LowFunBody.Extern(x.isGlobal, x.libraryName)),
 		(ref immutable ConcreteExpr it) @trusted {
 			GetLowExprCtx exprCtx = GetLowExprCtx(
 				thisFunIndex,

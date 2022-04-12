@@ -25,12 +25,12 @@ posix_spawn err-t
 	environ c-str*
 spec
 	unsafe
-	extern
+	extern<c>
 	noctx
 	summon
 
-posix_spawn_file_actions_init err-t(file-actions posix_spawn_file_actions_t) summon extern noctx
-posix_spawn_file_actions_destroy err-t(file-actions posix_spawn_file_actions_t) summon extern noctx
+posix_spawn_file_actions_init err-t(file-actions posix_spawn_file_actions_t) summon extern<c> noctx
+posix_spawn_file_actions_destroy err-t(file-actions posix_spawn_file_actions_t) summon extern<c> noctx
 posix_spawn_file_actions_addopen err-t
 	file-actions posix_spawn_file_actions_t
 	fd fd-t
@@ -39,14 +39,14 @@ posix_spawn_file_actions_addopen err-t
 	mode mode_t
 spec
 	summon
-	extern
+	extern<c>
 	noctx
 posix_spawn_file_actions_addclose err-t
 	file-actions posix_spawn_file_actions_t
 	fd fd-t
 spec
 	summon
-	extern
+	extern<c>
 	noctx
 posix_spawn_file_actions_adddup2 err-t
 	file-actions posix_spawn_file_actions_t
@@ -54,5 +54,5 @@ posix_spawn_file_actions_adddup2 err-t
 	new-fd fd-t
 spec
 	summon
-	extern
+	extern<c>
 	noctx

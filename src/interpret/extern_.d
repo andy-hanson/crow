@@ -2,16 +2,36 @@ module interpret.extern_;
 
 @safe @nogc nothrow:
 
-import util.sym : Sym;
+import model.lowModel : ExternLibraries;
+import util.col.dict : SymDict;
+import util.col.str : SafeCStr;
+import util.opt : Opt;
+import util.sym : AllSymbols, Sym, symAsTempBuffer;
 
 struct Extern {
-	immutable(FunPtr) delegate(immutable Sym name) @safe @nogc nothrow getExternFunPtr;
-	immutable(ulong) delegate(
-		immutable(FunPtr) funPtr,
-		scope immutable DynCallSig sig,
-		scope immutable ulong[] parameters,
-	) @system @nogc nothrow doDynCall;
+	// 'none' if anything failed to load
+	immutable(Opt!ExternFunPtrsForAllLibraries) delegate(
+		scope immutable ExternLibraries libraries,
+		scope WriteError writeError,
+	) @safe @nogc nothrow loadExternFunPtrs;
+	immutable DoDynCall doDynCall;
 }
+
+private alias DoDynCall = immutable(ulong) delegate(
+	immutable(FunPtr) funPtr,
+	scope immutable DynCallSig sig,
+	scope immutable ulong[] parameters,
+) @system @nogc nothrow;
+
+alias WriteError = void delegate(scope immutable SafeCStr) @safe @nogc nothrow;
+
+@trusted void writeSymToCb(scope WriteError writeError, ref const AllSymbols allSymbols, immutable Sym a) {
+	immutable char[256] buf = symAsTempBuffer!256(allSymbols, a);
+	writeError(immutable SafeCStr(buf.ptr));
+}
+
+alias ExternFunPtrsForAllLibraries = SymDict!(SymDict!FunPtr);
+alias ExternFunPtrsForLibrary = SymDict!FunPtr;
 
 alias FunPtr = immutable void*;
 

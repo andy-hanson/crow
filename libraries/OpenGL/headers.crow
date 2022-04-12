@@ -80,7 +80,7 @@ glDeleteShader void(shader GLuint) extern<GL> noctx summon unsafe
 
 glDeleteTextures void(n GLsizei, textures GLuint*) extern<GL> noctx summon unsafe
 
-glDrawArrays void(mode GLenum, first GLint, count GLsizei) extern noctx summon unsafe
+glDrawArrays void(mode GLenum, first GLint, count GLsizei) extern<GL> noctx summon unsafe
 
 glEnable void(cap GLenum) extern<GL> noctx summon unsafe
 glEnableVertexAttribArray void(index GLuint) extern<GL> noctx summon unsafe

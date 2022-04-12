@@ -7,7 +7,7 @@ import
 	crow/private/number-low-level: ==, int32
 	./types: pid_t
 
-waitpid pid_t(pid pid_t, wait-status cell status-t, options int32) unsafe extern noctx summon
+waitpid pid_t(pid pid_t, wait-status cell status-t, options int32) unsafe extern<c> noctx summon
 
 status-t alias
 	int32

@@ -913,7 +913,7 @@ struct FunBodyAst {
 	struct Builtin {}
 	struct Extern {
 		immutable bool isGlobal;
-		immutable Opt!Sym libraryName;
+		immutable Sym libraryName;
 	}
 
 	private:
@@ -1400,11 +1400,8 @@ immutable(Repr) reprFunBodyAst(ref Alloc alloc, ref immutable FunBodyAst a) {
 		immutable Repr,
 		(ref immutable FunBodyAst.Builtin) =>
 			reprRecord("builtin"),
-		(ref immutable FunBodyAst.Extern e) =>
-			reprRecord(alloc, "extern", [
-				reprBool(e.isGlobal),
-				reprOpt(alloc, e.libraryName, (ref immutable Sym it) =>
-					reprSym(it))]),
+		(ref immutable FunBodyAst.Extern x) =>
+			reprRecord(alloc, "extern", [reprBool(x.isGlobal), reprSym(x.libraryName)]),
 		(ref immutable ExprAst e) =>
 			reprExprAst(alloc, e),
 	)(a);

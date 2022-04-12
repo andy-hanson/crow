@@ -520,16 +520,15 @@ immutable(SpecUsesAndSigFlagsAndKwBody) emptySpecUsesAndSigFlagsAndKwBody =
 		none!FunBodyAst);
 
 immutable(FunBodyAst.Extern) takeExternName(scope ref Lexer lexer, immutable bool isGlobal) {
-	immutable Opt!Sym name = tryTakeLibraryName(lexer);
+	immutable Sym name = () {
+		if (takeOrAddDiagExpectedOperator(lexer, Operator.less, ParseDiag.Expected.Kind.less)) {
+			immutable Sym res = takeName(lexer);
+			takeTypeArgsEnd(lexer);
+			return res;
+		} else
+			return shortSym("bogus");
+	}();
 	return immutable FunBodyAst.Extern(isGlobal, name);
-}
-immutable(Opt!Sym) tryTakeLibraryName(scope ref Lexer lexer) {
-	if (tryTakeOperator(lexer, Operator.less)) {
-		immutable Sym res = takeName(lexer);
-		takeTypeArgsEnd(lexer);
-		return some(res);
-	} else
-		return none!Sym;
 }
 
 immutable(SpecUsesAndSigFlagsAndKwBody) parseNextSpec(

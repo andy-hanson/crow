@@ -5,7 +5,7 @@ import
 	crow/number: nat32
 	crow/str: c-str
 
-fcntl c-int(fd fd-t, cmd c-int, oflags oflag-t) summon unsafe extern noctx
+fcntl c-int(fd fd-t, cmd c-int, oflags oflag-t) summon unsafe extern<GL> noctx
 
 F_DUPFD c-int() noctx
 	0
@@ -18,7 +18,7 @@ F_GETFL c-int() noctx
 F_SETFL c-int() noctx
 	4
 
-open fd-t(path c-str, oflag oflag-t, permission nat32) summon unsafe extern noctx
+open fd-t(path c-str, oflag oflag-t, permission nat32) summon unsafe extern<GL> noctx
 
 oflag-t alias
 	c-int

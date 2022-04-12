@@ -11,6 +11,17 @@ import util.util : max, verify;
 
 @safe @nogc nothrow:
 
+@trusted immutable(Out[]) mapImpure(Out, In)(
+	ref Alloc alloc,
+	scope immutable In[] a,
+	scope immutable(Out) delegate(ref immutable In) @safe @nogc nothrow cb,
+) {
+	Out* res = allocateT!Out(alloc, a.length);
+	foreach (immutable size_t i, ref immutable In x; a)
+		initMemory(res + i, cb(x));
+	return cast(immutable) res[0 .. a.length];
+}
+
 @trusted immutable(Opt!(Out[])) mapOrNoneImpure(Out, In)(
 	ref Alloc alloc,
 	immutable In[] a,
@@ -434,8 +445,8 @@ private immutable(Acc) each(Acc, T)(
 }
 
 void zip(T, U)(
-	immutable T[] a,
-	immutable U[] b,
+	scope immutable T[] a,
+	scope immutable U[] b,
 	scope void delegate(ref immutable T, ref immutable U) @safe @nogc pure nothrow cb,
 ) {
 	verify(sizeEq(a, b));
@@ -444,9 +455,9 @@ void zip(T, U)(
 }
 
 void zip(T, U, V)(
-	immutable T[] a,
-	immutable U[] b,
-	immutable V[] c,
+	scope immutable T[] a,
+	scope immutable U[] b,
+	scope immutable V[] c,
 	scope void delegate(ref immutable T, ref immutable U, ref immutable V) @safe @nogc pure nothrow cb,
 ) {
 	verify(sizeEq(a, b) && sizeEq(b, c));
