@@ -17,7 +17,7 @@ struct Extern {
 	immutable DoDynCall doDynCall;
 }
 
-private alias DoDynCall = immutable(ulong) delegate(
+alias DoDynCall = immutable(ulong) delegate(
 	immutable(FunPtr) funPtr,
 	scope immutable DynCallSig sig,
 	scope immutable ulong[] parameters,

@@ -14,7 +14,7 @@ import interpret.bytecode :
 	NextOperation,
 	Operation;
 import interpret.debugging : writeFunName;
-import interpret.extern_ : DynCallType, DynCallSig, Extern, FunPtr;
+import interpret.extern_ : DoDynCall, DynCallType, DynCallSig, FunPtr;
 import model.concreteModel : ConcreteFun, concreteFunRange;
 import model.diag : FilesInfo, writeFileAndPos; // TODO: FilesInfo probably belongs elsewhere
 import model.lowModel : LowFunSource, LowProgram, matchLowFunSource;
@@ -56,14 +56,14 @@ import util.writer : finishWriterToSafeCStr, Writer, writeChar, writeHex, writeS
 	ref const AllSymbols allSymbols,
 	ref const AllPaths allPaths,
 	ref immutable PathsInfo pathsInfo,
-	scope ref Extern extern_,
+	scope DoDynCall doDynCall,
 	ref immutable LowProgram lowProgram,
 	ref immutable ByteCode byteCode,
 	ref immutable FilesInfo filesInfo,
 	scope immutable SafeCStr[] allArgs,
 ) {
 	return withInterpreter!(immutable int)(
-		tempAlloc, extern_, lowProgram, byteCode, allSymbols, allPaths, pathsInfo, filesInfo,
+		tempAlloc, doDynCall, lowProgram, byteCode, allSymbols, allPaths, pathsInfo, filesInfo,
 		(scope ref Interpreter interpreter) {
 			push(interpreter.dataStack, allArgs.length);
 			push(interpreter.dataStack, cast(immutable ulong) allArgs.ptr);
@@ -93,7 +93,7 @@ private alias ReturnStack = Stack!(immutable(Operation)*);
 
 @system immutable(T) withInterpreter(T)(
 	ref TempAlloc tempAlloc,
-	ref Extern extern_,
+	scope DoDynCall doDynCall,
 	scope ref immutable LowProgram lowProgram,
 	ref immutable ByteCode byteCode,
 	ref const AllSymbols allSymbols,
@@ -104,7 +104,7 @@ private alias ReturnStack = Stack!(immutable(Operation)*);
 ) {
 	scope Interpreter interpreter = Interpreter(
 		ptrTrustMe_mut(tempAlloc),
-		ptrTrustMe_mut(extern_),
+		doDynCall,
 		ptrTrustMe(lowProgram),
 		ptrTrustMe(byteCode),
 		ptrTrustMe_const(allSymbols),
@@ -135,7 +135,7 @@ struct Interpreter {
 	private:
 	@trusted this(
 		Ptr!TempAlloc ta,
-		Ptr!Extern e,
+		DoDynCall d,
 		immutable Ptr!LowProgram p,
 		immutable Ptr!ByteCode b,
 		const Ptr!AllSymbols as,
@@ -144,7 +144,7 @@ struct Interpreter {
 		immutable Ptr!FilesInfo f,
 	) {
 		tempAllocPtr = ta;
-		externPtr = e;
+		doDynCall = d;
 		lowProgramPtr = p;
 		byteCodePtr = b;
 		allSymbolsPtr = as;
@@ -157,7 +157,7 @@ struct Interpreter {
 
 	//TODO:KILL
 	Ptr!TempAlloc tempAllocPtr;
-	Ptr!Extern externPtr;
+	DoDynCall doDynCall;
 	immutable Ptr!LowProgram lowProgramPtr;
 	immutable Ptr!ByteCode byteCodePtr;
 	const Ptr!AllSymbols allSymbolsPtr;
@@ -172,9 +172,6 @@ struct Interpreter {
 	//TODO:KILL
 	ref TempAlloc tempAlloc() return scope pure {
 		return tempAllocPtr.deref();
-	}
-	ref Extern extern_() return scope pure {
-		return externPtr.deref();
 	}
 	ref immutable(LowProgram) lowProgram() const return scope pure {
 		return lowProgramPtr.deref();
@@ -536,7 +533,7 @@ private @system immutable(NextOperation) opCallFunPtrCommon(
 	scope immutable DynCallSig sig,
 ) {
 	scope immutable ulong[] params = popN(a.dataStack, sig.parameterTypes.length);
-	immutable ulong value = a.extern_.doDynCall(funPtr, sig, params);
+	immutable ulong value = a.doDynCall(funPtr, sig, params);
 	if (sig.returnType != DynCallType.void_)
 		push(a.dataStack, value);
 	return nextOperation(a, cur);

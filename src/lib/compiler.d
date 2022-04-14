@@ -112,7 +112,7 @@ immutable(ExitCode) buildAndInterpret(
 				allSymbols,
 				allPaths,
 				pathsInfo,
-				extern_,
+				extern_.doDynCall,
 				lowProgram,
 				byteCode,
 				programs.program.filesInfo,
