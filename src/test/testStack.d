@@ -11,7 +11,6 @@ import util.col.stack :
 	popN,
 	push,
 	remove,
-	setToArr,
 	Stack,
 	stackEnd,
 	stackIsEmpty,
@@ -27,7 +26,8 @@ void testStack(ref Test test) {
 private:
 
 @trusted void testPushPop(ref Test test) {
-	Stack!int a = Stack!int(test.alloc, 8);
+	int[8] storage = void;
+	Stack!int a = Stack!int(storage);
 
 	verify(stackIsEmpty(a));
 	push(a, 42);
@@ -38,15 +38,15 @@ private:
 
 	int* begin = stackEnd(a);
 
-	push(a, 1);
-	push(a, 2);
-	verifyStack(a, [1, 2]);
+	push(a, 5);
+	push(a, 6);
+	verifyStack(a, [5, 6]);
 
-	setToArr(a, [5, 6, 7]);
+	push(a, 7);
 	verify(stackTop(a) == begin + 2);
 	verify(stackEnd(a) == begin + 3);
 
-	immutable int[] popped = popN(a, 2);
+	scope immutable int[] popped = popN(a, 2);
 	verify(intArrEqual(popped, [6, 7]));
 	verifyStack(a, [5]);
 
@@ -70,9 +70,11 @@ private:
 }
 
 @trusted void testRemove(ref Test test) {
-	Stack!int a = Stack!int(test.alloc, 8);
+	int[8] storage = void;
+	Stack!int a = Stack!int(storage);
 
-	setToArr(a, [1, 2, 3, 4, 5, 6]);
+	foreach (immutable int i; [1, 2, 3, 4, 5, 6])
+		push(a, i);
 
 	remove(a, 0, 1);
 	verifyStack(a, [1, 2, 3, 4, 5]);

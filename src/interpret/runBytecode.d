@@ -19,7 +19,7 @@ import model.concreteModel : ConcreteFun, concreteFunRange;
 import model.diag : FilesInfo, writeFileAndPos; // TODO: FilesInfo probably belongs elsewhere
 import model.lowModel : LowFunSource, LowProgram, matchLowFunSource;
 import model.typeLayout : PackField;
-import util.alloc.alloc : Alloc, TempAlloc;
+import util.alloc.alloc : Alloc;
 import util.col.stack :
 	asTempArr,
 	clearStack,
@@ -29,18 +29,17 @@ import util.col.stack :
 	push,
 	pushUninitialized,
 	remove,
-	setToArr,
 	setStackTop,
 	Stack,
+	stackBeforeTop,
 	stackEnd,
 	stackIsEmpty,
 	stackRef,
 	stackSize,
-	stackTop,
-	toArr;
+	stackTop;
 import util.col.str : SafeCStr;
 import util.conv : safeToSizeT;
-import util.memory : allocateMut, memcpy, memmove, overwriteMemory;
+import util.memory : memcpy, memmove, overwriteMemory;
 import util.opt : has;
 import util.path : AllPaths, PathsInfo;
 import util.perf : Perf, PerfMeasure, withMeasureNoAlloc;
@@ -52,7 +51,6 @@ import util.writer : finishWriterToSafeCStr, Writer, writeChar, writeHex, writeS
 
 @trusted immutable(int) runBytecode(
 	scope ref Perf perf,
-	ref TempAlloc tempAlloc,
 	ref const AllSymbols allSymbols,
 	ref const AllPaths allPaths,
 	ref immutable PathsInfo pathsInfo,
@@ -63,7 +61,7 @@ import util.writer : finishWriterToSafeCStr, Writer, writeChar, writeHex, writeS
 	scope immutable SafeCStr[] allArgs,
 ) {
 	return withInterpreter!(immutable int)(
-		tempAlloc, doDynCall, lowProgram, byteCode, allSymbols, allPaths, pathsInfo, filesInfo,
+		doDynCall, lowProgram, byteCode, allSymbols, allPaths, pathsInfo, filesInfo,
 		(scope ref Interpreter interpreter) {
 			push(interpreter.dataStack, allArgs.length);
 			push(interpreter.dataStack, cast(immutable ulong) allArgs.ptr);
@@ -92,7 +90,6 @@ alias DataStack = Stack!ulong;
 private alias ReturnStack = Stack!(immutable(Operation)*);
 
 @system immutable(T) withInterpreter(T)(
-	ref TempAlloc tempAlloc,
 	scope DoDynCall doDynCall,
 	scope ref immutable LowProgram lowProgram,
 	ref immutable ByteCode byteCode,
@@ -102,15 +99,18 @@ private alias ReturnStack = Stack!(immutable(Operation)*);
 	ref immutable FilesInfo filesInfo,
 	scope immutable(T) delegate(scope ref Interpreter) @system @nogc nothrow cb,
 ) {
+	ulong[1024 * 64] dataStackStorage = void;
+	immutable(Operation)*[1024 * 4] returnStackStorage = void;
 	scope Interpreter interpreter = Interpreter(
-		ptrTrustMe_mut(tempAlloc),
 		doDynCall,
 		ptrTrustMe(lowProgram),
 		ptrTrustMe(byteCode),
 		ptrTrustMe_const(allSymbols),
 		ptrTrustMe_const(allPaths),
 		ptrTrustMe(pathsInfo),
-		ptrTrustMe(filesInfo));
+		ptrTrustMe(filesInfo),
+		DataStack(dataStackStorage),
+		ReturnStack(returnStackStorage));
 
 	// Ensure the last 'return' returns to here
 	push(interpreter.returnStack, operationOpStopInterpretation.ptr);
@@ -133,30 +133,6 @@ struct Interpreter {
 	@disable this(ref const Interpreter);
 
 	private:
-	@trusted this(
-		Ptr!TempAlloc ta,
-		DoDynCall d,
-		immutable Ptr!LowProgram p,
-		immutable Ptr!ByteCode b,
-		const Ptr!AllSymbols as,
-		const Ptr!AllPaths ap,
-		immutable Ptr!PathsInfo pi,
-		immutable Ptr!FilesInfo f,
-	) {
-		tempAllocPtr = ta;
-		doDynCall = d;
-		lowProgramPtr = p;
-		byteCodePtr = b;
-		allSymbolsPtr = as;
-		allPathsPtr = ap;
-		pathsInfoPtr = pi;
-		filesInfoPtr = f;
-		dataStack = DataStack(ta.deref(), 1024 * 64);
-		returnStack = ReturnStack(ta.deref(), 1024 * 4);
-	}
-
-	//TODO:KILL
-	Ptr!TempAlloc tempAllocPtr;
 	DoDynCall doDynCall;
 	immutable Ptr!LowProgram lowProgramPtr;
 	immutable Ptr!ByteCode byteCodePtr;
@@ -167,12 +143,9 @@ struct Interpreter {
 	//TODO:PRIVATE
 	public DataStack dataStack;
 	public ReturnStack returnStack;
+	InterpreterRestore curRestore;
 	// WARN: if adding any new mutable state here, make sure 'longjmp' still restores it
 
-	//TODO:KILL
-	ref TempAlloc tempAlloc() return scope pure {
-		return tempAllocPtr.deref();
-	}
 	ref immutable(LowProgram) lowProgram() const return scope pure {
 		return lowProgramPtr.deref();
 	}
@@ -195,26 +168,34 @@ public pure ref immutable(ByteCode) byteCode(return scope ref const Interpreter 
 	return a.byteCodePtr.deref();
 }
 
-// WARN: Does not restore data. Just mean for setjmp/longjmp.
+// WARN: Does not restore data. Just meant for setjmp/longjmp.
 private struct InterpreterRestore {
 	// This is the stack sizes and byte code index to be restored by longjmp
-	immutable ByteCodeIndex nextByteCodeIndex;
+	size_t nextByteCodeIndex;
 	ulong* dataStackTop;
-	immutable Operation*[] restoreReturnStack;
+	// Needs to restore position to 'returnStackTop' then push 'returnStackPush'
+	// (since the last entry may be different)
+	immutable(Operation)** returnStackTop;
+	immutable(Operation)* returnStackPush;
 }
 
-private @system InterpreterRestore* createInterpreterRestore(ref Interpreter a, immutable Operation* cur) {
-	InterpreterRestore value = InterpreterRestore(
-		nextByteCodeIndex(a, cur),
+private @system InterpreterRestore* createInterpreterRestore(return ref Interpreter a, immutable Operation* cur) {
+	a.curRestore = InterpreterRestore(
+		nextByteCodeIndex(a, cur).index,
 		stackTop(a.dataStack),
-		toArr(a.tempAlloc, a.returnStack));
-	return allocateMut(a.tempAlloc, value).rawPtr();
+		stackBeforeTop(a.returnStack),
+		peek(a.returnStack));
+	return &a.curRestore;
 }
 
-private @system immutable(Operation*) applyInterpreterRestore(ref Interpreter a, InterpreterRestore restore) {
+private @system immutable(Operation*) applyInterpreterRestore(ref Interpreter a, InterpreterRestore* restore) {
+	verify(restore == &a.curRestore);
 	setStackTop(a.dataStack, restore.dataStackTop);
-	setToArr(a.returnStack, restore.restoreReturnStack);
-	return &a.byteCode.byteCode[safeToSizeT(restore.nextByteCodeIndex.index)];
+	setStackTop(a.returnStack, restore.returnStackTop);
+	push(a.returnStack, restore.returnStackPush);
+	immutable size_t index = restore.nextByteCodeIndex;
+	a.curRestore = InterpreterRestore();
+	return &a.byteCode.byteCode[safeToSizeT(index)];
 }
 
 private void showStack(scope ref Writer writer, ref const Interpreter a) {
@@ -561,7 +542,7 @@ private @system immutable(NextOperation) callCommon(
 		case ExternOp.longjmp:
 			immutable ulong val = pop(a.dataStack); // TODO: verify this is int32?
 			JmpBufTag* jmpBufPtr = cast(JmpBufTag*) pop(a.dataStack);
-			cur = applyInterpreterRestore(a, **jmpBufPtr);
+			cur = applyInterpreterRestore(a, *jmpBufPtr);
 			//TODO: freeInterpreterRestore
 			push(a.dataStack, val);
 			break;

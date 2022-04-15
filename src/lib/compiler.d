@@ -108,7 +108,6 @@ immutable(ExitCode) buildAndInterpret(
 				generateBytecode(alloc, alloc, allSymbols, programs.program, lowProgram, force(externFunPtrs));
 			return immutable ExitCode(runBytecode(
 				perf,
-				alloc,
 				allSymbols,
 				allPaths,
 				pathsInfo,

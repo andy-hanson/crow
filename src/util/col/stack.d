@@ -2,8 +2,6 @@ module util.col.stack;
 
 @safe @nogc pure nothrow:
 
-import util.alloc.alloc : Alloc, allocateT;
-import util.col.arrUtil : copyArr;
 import util.util : verify;
 
 struct Stack(T) {
@@ -12,11 +10,11 @@ struct Stack(T) {
 	@disable this();
 	@disable this(ref const Stack);
 
-	@trusted this(ref Alloc alloc, immutable size_t capacity) {
-		begin = allocateT!T(alloc, capacity);
+	@trusted this(T[] storage) {
+		begin = storage.ptr;
 		top = begin - 1;
 		debug {
-			end = begin + capacity;
+			end = begin + storage.length;
 		}
 	}
 
@@ -51,18 +49,13 @@ struct Stack(T) {
 	return stackEnd(a) - stackBegin(a);
 }
 
-immutable(T[]) toArr(T)(ref Alloc alloc, ref const Stack!T a) {
-	return copyArr(alloc, asTempArr(a));
-}
-
-@system void setToArr(T)(ref Stack!T a, scope immutable T[] arr) {
-	clearStack(a);
-	foreach (immutable T value; arr)
-		push(a, value);
-}
-
 @system inout(T*) stackTop(T)(ref inout Stack!T a) {
 	return a.top;
+}
+
+@system inout(T*) stackBeforeTop(T)(ref inout Stack!T a) {
+	verify(!stackIsEmpty(a));
+	return stackTop(a) - 1;
 }
 
 @system inout(T*) stackBegin(T)(ref inout Stack!T a) {
@@ -92,7 +85,7 @@ immutable(T[]) toArr(T)(ref Alloc alloc, ref const Stack!T a) {
 }
 
 // WARN: result is temporary!
-@system immutable(T[]) popN(T)(ref Stack!T a, immutable size_t n) {
+@system immutable(T[]) popN(T)(return ref Stack!T a, immutable size_t n) {
 	a.top -= n;
 	return cast(immutable) a.top[1 .. n + 1];
 }

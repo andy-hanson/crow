@@ -154,7 +154,7 @@ void doInterpret(
 	withFakeExtern(test.alloc, test.allSymbols, (scope ref Extern extern_, scope ref FakeStdOutput _) @trusted {
 		immutable PathsInfo pathsInfo = emptyPathsInfo;
 		withInterpreter!void(
-			test.alloc, extern_.doDynCall, lowProgram, byteCode, test.allSymbols, test.allPaths, pathsInfo, filesInfo,
+			extern_.doDynCall, lowProgram, byteCode, test.allSymbols, test.allPaths, pathsInfo, filesInfo,
 			(scope ref Interpreter interpreter) {
 				runInterpreter(interpreter, initialOperationPointer(byteCode));
 			});
