@@ -342,7 +342,7 @@ struct PathAndExtension {
 	} else
 		return parsePathAndExtensionRecur(allPaths, ptr, rootPath(allPaths, symOfStr(allPaths.allSymbols, part)));
 }
-@system private immutable(PathAndExtension) parsePathAndExtensionRecur(
+private @system immutable(PathAndExtension) parsePathAndExtensionRecur(
 	ref AllPaths allPaths,
 	immutable(char)* ptr,
 	immutable Path path,

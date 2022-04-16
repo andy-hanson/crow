@@ -74,11 +74,13 @@ src_files_common = src\concretize\allConstantsBuilder.d \
 	src\interpret\bytecode.d \
 	src\interpret\bytecodeWriter.d \
 	src\interpret\debugging.d \
+	src\interpret\debugInfo.d \
 	src\interpret\extern_.d \
 	src\interpret\fakeExtern.d \
 	src\interpret\generateBytecode.d \
 	src\interpret\generateText.d \
 	src\interpret\runBytecode.d \
+	src\interpret\stacks.d \
 	src\lib\cliParser.d \
 	src\lib\compiler.d \
 	src\lib\server.d \
@@ -115,7 +117,6 @@ src_files_common = src\concretize\allConstantsBuilder.d \
 	src\util\col\mutMaxArr.d \
 	src\util\col\range.d \
 	src\util\col\sortUtil.d \
-	src\util\col\stack.d \
 	src\util\col\stackDict.d \
 	src\util\col\str.d \
 	src\util\cell.d \
@@ -198,7 +199,7 @@ bin\crow-debug.exe: $(app_deps_with_test)
 	dmd -ofbin\crow-debug.exe -m64 $(dmd_flags_assert) $(dmd_flags_debug) $(app_src_with_test) $(app_link)
 
 bin\crow.exe: $(app_deps_no_test)
-	ldc2 -ofbin\crow.exe $(ldc_flags_assert) $(ldc_fast_flags) $(app_src_no_test) $(app_link)
+	ldc2 -ofbin\crow.exe -g $(ldc_flags_assert) $(ldc_fast_flags) $(app_src_no_test) $(app_link)
 	del bin\crow.obj
 
 bin/crow.wasm: $(wasm_deps)

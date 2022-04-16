@@ -44,14 +44,20 @@ immutable(T) divRoundUp(T)(immutable T a, immutable T b) {
 	return res;
 }
 
-void verify(immutable bool condition) {
+void verify(immutable char* reason = null)(immutable bool condition) {
 	version(assert) {
-		if (!condition)
+		if (!condition) {
+			static if (reason != null)
+				debugLog(reason, 0);
 			verifyFail();
+		}
 	}
 	version(WebAssembly) {
-		if (!condition)
+		if (!condition) {
+			static if (reason != null)
+				debugLog(reason, 0);
 			verifyFail();
+		}
 	}
 }
 

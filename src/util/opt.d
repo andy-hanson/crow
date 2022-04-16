@@ -98,14 +98,14 @@ immutable(bool) has(T)(ref const Opt!T a) {
 }
 
 @trusted ref T force(T)(ref Opt!T a) {
-	verify(has(a));
+	verify!"force"(has(a));
 	return a.value_;
 }
 @trusted ref const(T) force(T)(ref const Opt!T a) {
-	verify(has(a));
+	verify!"force"(has(a));
 	return a.value_;
 }
 @trusted ref immutable(T) force(T)(ref immutable Opt!T a) {
-	verify(has(a));
+	verify!"force"(has(a));
 	return a.value_;
 }

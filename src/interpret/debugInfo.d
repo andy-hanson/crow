@@ -5,12 +5,10 @@ module interpret.debugInfo;
 import frontend.showDiag : ShowDiagOptions;
 import interpret.bytecode : ByteCode, ByteCodeIndex, ByteCodeSource, Operation;
 import interpret.debugging : writeFunName;
-import interpret.types : DataStack, ReturnStack;
 import model.diag : FilesInfo, writeFileAndPos;
 import model.concreteModel : ConcreteFun, concreteFunRange;
 import model.lowModel : LowFunSource, LowProgram, matchLowFunSource;
 import util.alloc.alloc : Alloc;
-import util.col.stack : asTempArr;
 import util.path : AllPaths, PathsInfo;
 import util.ptr : Ptr, ptrTrustMe_mut;
 import util.sourceRange : FileAndPos;
@@ -48,8 +46,8 @@ struct InterpreterDebugInfo {
 
 void printDebugInfo(
 	scope ref const InterpreterDebugInfo a,
-	scope ref const DataStack dataStack,
-	scope ref const ReturnStack returnStack,
+	scope immutable ulong[] dataStack,
+	scope immutable immutable(Operation)*[] returnStackReverse,
 	immutable Operation* cur,
 ) {
 	immutable ByteCodeSource source = nextSource(a, cur);
@@ -60,8 +58,8 @@ void printDebugInfo(
 			ubyte[10_000] mem;
 			scope Alloc dbgAlloc = Alloc(&mem[0], mem.length);
 			scope Writer writer = Writer(ptrTrustMe_mut(dbgAlloc));
-			showDataStack(writer, dataStack);
-			showReturnStack(writer, a, returnStack, cur);
+			showDataArr(writer, dataStack);
+			showReturnStack(writer, a, returnStackReverse, cur);
 			printf("%s\n", finishWriterToSafeCStr(writer).ptr);
 		}
 
@@ -92,18 +90,14 @@ void showDataArr(scope ref Writer writer, scope immutable ulong[] values) {
 
 private:
 
-void showDataStack(scope ref Writer writer, scope ref const DataStack a) {
-	showDataArr(writer, asTempArr(a));
-}
-
 void showReturnStack(
 	scope ref Writer writer,
 	scope ref const InterpreterDebugInfo debugInfo,
-	scope ref const ReturnStack returnStack,
+	scope const immutable(Operation)*[] returnStackReverse,
 	immutable(Operation)* cur,
 ) {
 	writeStatic(writer, "call stack:");
-	foreach (immutable Operation* ptr; asTempArr(returnStack)) {
+	foreach_reverse (immutable Operation* ptr; returnStackReverse) {
 		writeChar(writer, ' ');
 		writeFunNameAtByteCodePtr(writer, debugInfo, ptr);
 	}

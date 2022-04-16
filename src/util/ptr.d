@@ -59,7 +59,7 @@ struct Ptr(T) {
 	@disable this(); // No nulls!
 	@trusted this(inout T* p) inout {
 		ptr = cast(inout void*) p;
-		verify(ptr != null);
+		verify!"Ptr constructor"(ptr != null);
 	}
 	@trusted this(immutable T* p, immutable bool) immutable {
 		ptr = p;
@@ -89,6 +89,7 @@ static assert(hasInvalid!(Ptr!int));
 
 // Only for use as a sentinel
 static immutable Ptr!T nullPtr(T) = immutable Ptr!T(null, true);
+static Ptr!T nullPtr_mut(T) = Ptr!T(null, true);
 
 @trusted immutable(Ptr!T) ptrTrustMe(T)(scope ref immutable T t) {
 	return immutable Ptr!T(&t);

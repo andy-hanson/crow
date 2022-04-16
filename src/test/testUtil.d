@@ -4,11 +4,10 @@ module test.testUtil;
 
 import interpret.bytecode : ByteCode, ByteCodeIndex, Operation;
 import interpret.debugInfo : showDataArr;
-import interpret.types : DataStack, ReturnStack;
+import interpret.stacks : dataTempAsArr, returnTempAsArrReverse, Stacks;
 import util.alloc.alloc : Alloc;
 import util.col.arr : sizeEq;
-import util.col.arrUtil : eachCorresponds;
-import util.col.stack : asTempArr;
+import util.col.arrUtil : eachCorresponds, makeArr;
 import util.path : AllPaths;
 import util.ptr : Ptr;
 import util.sym : AllSymbols;
@@ -45,8 +44,8 @@ struct Test {
 	}
 }
 
-@trusted void expectDataStack(ref Test test, scope ref const DataStack dataStack, scope immutable ulong[] expected) {
-	immutable ulong[] stack = asTempArr(dataStack);
+@trusted void expectDataStack(ref Test test, scope const Stacks stacks, scope immutable ulong[] expected) {
+	scope immutable ulong[] stack = dataTempAsArr(stacks);
 	immutable bool eq = sizeEq(stack, expected) &&
 		eachCorresponds!(ulong, ulong)(stack, expected, (ref immutable ulong a, ref immutable ulong b) => a == b);
 	if (!eq) {
@@ -61,14 +60,14 @@ struct Test {
 	}
 }
 
-void expectReturnStack(
+@trusted void expectReturnStack(
 	ref Test test,
 	scope ref immutable ByteCode byteCode,
-	scope ref const ReturnStack returnStack,
+	scope ref const Stacks stacks,
 	scope immutable ByteCodeIndex[] expected,
 ) {
 	// Ignore first entry (which is opStopInterpretation)
-	immutable Operation*[] stack = asTempArr(returnStack)[1 .. $];
+	scope immutable(Operation*)[] stack = reverse(test.alloc, returnTempAsArrReverse(stacks)[0 .. $ - 1]);
 	immutable bool eq = sizeEq(stack, expected) &&
 		eachCorresponds!(immutable Operation*, ByteCodeIndex)(
 			stack,
@@ -93,4 +92,9 @@ void expectReturnStack(
 		}
 		verify(false);
 	}
+}
+
+private immutable(T[]) reverse(T)(ref Alloc alloc, scope T[] xs) {
+	return makeArr(alloc, xs.length, (immutable size_t i) =>
+		xs[xs.length - 1 - i]);
 }

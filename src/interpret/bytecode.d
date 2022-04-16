@@ -2,20 +2,15 @@ module interpret.bytecode;
 
 @safe @nogc nothrow: // not pure
 
-import interpret.runBytecode : Interpreter;
+import interpret.stacks : Stacks;
 import model.lowModel : LowFunIndex;
 import util.col.fullIndexDict : FullIndexDict, fullIndexDictSize;
 import util.sym : Sym;
 import util.sourceRange : FileIndex, Pos;
 import util.util : verify;
 
-// For perf, each operation reads the value of the next operation. Otherwise we'd be waiting on reading the poitner.
-struct NextOperation {
-	immutable(Operation)* operationPtr;
-}
-
 struct Operation {
-	alias Fn = immutable(NextOperation) function(ref Interpreter, immutable(Operation)*) @system @nogc nothrow;
+	alias Fn = void function(Stacks, immutable(Operation)*) @system @nogc nothrow;
 
 	@safe @nogc pure nothrow:
 

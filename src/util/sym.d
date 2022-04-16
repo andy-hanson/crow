@@ -427,7 +427,7 @@ immutable ulong shortSymTag = 0x8000000000000000;
 immutable size_t shortSymMaxChars = 12;
 
 immutable(ulong) codeForLetter(immutable char a) {
-	verify('a' <= a && a <= 'z');
+	verify!"codeForLetter"('a' <= a && a <= 'z');
 	return 1 + a - 'a';
 }
 immutable(char) letterFromCode(immutable ulong code) {

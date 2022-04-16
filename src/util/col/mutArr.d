@@ -5,7 +5,6 @@ module util.col.mutArr;
 import util.alloc.alloc : Alloc, allocateT, freeT, freeTPartial;
 import util.conv : safeToSizeT;
 import util.memory : initMemory_mut, memcpy, overwriteMemory;
-import util.opt : force, noneConst, noneMut, Opt, someConst, someMut;
 import util.util : verify;
 
 struct MutArr(T) {
@@ -76,24 +75,10 @@ void mutArrClear(T)(ref MutArr!T a) {
 	a.size_ = 0;
 }
 
-@trusted Opt!T pop(T)(ref MutArr!T a) {
-	if (a.size_ == 0)
-		return noneMut!T;
-	else {
-		a.size_--;
-		return someMut!T(a.begin_[a.size_]);
-	}
-}
-
-T mustPop(T)(ref MutArr!T a) {
-	Opt!T p = pop(a);
-	return force(p);
-}
-
-@trusted const(Opt!T) peek(T)(ref MutArr!T a) {
-	return mutArrIsEmpty(a)
-		? noneConst!T
-		: someConst(a.begin_[a.size_ - 1]);
+@trusted T mustPop(T)(ref MutArr!T a) {
+	verify(a.size_ != 0);
+	a.size_--;
+	return a.begin_[a.size_];
 }
 
 @trusted const(T[]) mutArrRange(T)(ref const MutArr!T a) {

@@ -22,7 +22,7 @@ new<a> list a()
 	((head, tail),),
 
 size<a> nat(a list a)
-	0 fold a, (acc, x) =>
+	0 fold a, (acc, _) =>
 		acc + 1
 
 fold<a, b> a(acc a, list list b, f act a(a, b))
