@@ -163,9 +163,9 @@ immutable(FakeExternResult) run(
 	immutable Path main = toPath(server, mainPath);
 	// TODO: use an arena so anything allocated during interpretation is cleaned up.
 	// Or just have interpreter free things.
-	scope immutable SafeCStr[1] allArgs = [safeCStr!"/usr/bin/fakeExecutable"];
+	immutable SafeCStr[1] allArgs = [safeCStr!"/usr/bin/fakeExecutable"];
 	return withDictReadOnlyStorage(server.includeDir, server.files, (scope ref const ReadOnlyStorage storage) =>
-		withFakeExtern(alloc, server.allSymbols, (scope ref Extern extern_, scope ref FakeStdOutput std) @trusted =>
+		withFakeExtern(alloc, server.allSymbols, (scope ref Extern extern_, scope ref FakeStdOutput std) =>
 			buildAndInterpret(
 				alloc, perf, server.allSymbols, server.allPaths, server.pathsInfo, storage, extern_,
 				(immutable SafeCStr x) {

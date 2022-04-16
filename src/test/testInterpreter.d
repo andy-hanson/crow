@@ -13,14 +13,7 @@ import interpret.bytecode :
 	Operation;
 import interpret.extern_ : DynCallType, DynCallSig, Extern;
 import interpret.fakeExtern : FakeStdOutput, withFakeExtern;
-import interpret.runBytecode :
-	byteCode,
-	Interpreter,
-	nextByteCodeIndex,
-	opBreak,
-	opCall,
-	opStopInterpretation,
-	withInterpreter;
+import interpret.runBytecode : Interpreter, opBreak, opCall, opStopInterpretation, withInterpreter;
 import interpret.bytecodeWriter :
 	ByteCodeWriter,
 	fillDelayedCall,
@@ -208,15 +201,15 @@ void testCall(ref Test test) {
 		stepUntilBreakAndExpect(test, interpreter, [1, 2], operation);
 		verify(operation.fn == &opCall);
 		stepUntilBreakAndExpect(test, interpreter, [1, 2], operation);
-		expectReturnStack(test, interpreter, [afterCall]);
+		expectReturnStack(test, byteCode, interpreter.returnStack, [afterCall]);
 		// opCall returns the first operation and moves nextOperation to the one after.
 		// + 1 because we are after the break.
 		verify(operation == &byteCode.byteCode[fIndex.index + 1]);
-		verify(curByteCodeIndex(interpreter, operation) == immutable ByteCodeIndex(fIndex.index + 1));
+		verify(curByteCodeIndex(byteCode, operation) == immutable ByteCodeIndex(fIndex.index + 1));
 		stepUntilBreakAndExpect(test, interpreter, [3], operation); // return
 		// + 1 because we are after the break.
-		verify(curByteCodeIndex(interpreter, operation) == immutable ByteCodeIndex(afterCall.index + 1));
-		expectReturnStack(test, interpreter, []);
+		verify(curByteCodeIndex(byteCode, operation) == immutable ByteCodeIndex(afterCall.index + 1));
+		expectReturnStack(test, byteCode, interpreter.returnStack, []);
 		stepUntilExit(interpreter, operation);
 	});
 }
@@ -262,11 +255,11 @@ void testCallFunPtr(ref Test test) {
 			operation);
 		// call-fun-ptr
 		stepUntilBreakAndExpect(test, interpreter, [1, 2], operation);
-		expectReturnStack(test, interpreter, [afterCall]);
-		verify(curByteCodeIndex(interpreter, operation) == immutable ByteCodeIndex(fIndex.index + 1));
+		expectReturnStack(test, byteCode, interpreter.returnStack, [afterCall]);
+		verify(curByteCodeIndex(byteCode, operation) == immutable ByteCodeIndex(fIndex.index + 1));
 		stepUntilBreakAndExpect(test, interpreter, [3], operation); // +
-		verify(curByteCodeIndex(interpreter, operation) == immutable ByteCodeIndex(afterCall.index + 1));
-		expectReturnStack(test, interpreter, []);
+		verify(curByteCodeIndex(byteCode, operation) == immutable ByteCodeIndex(afterCall.index + 1));
+		expectReturnStack(test, byteCode, interpreter.returnStack, []);
 		stepUntilExit(interpreter, operation);
 	});
 }
@@ -311,10 +304,10 @@ void testSwitchAndJump(ref Test test) {
 	doInterpret(test, byteCode, (ref Interpreter interpreter, immutable(Operation)* operation) {
 		 stepUntilBreakAndExpect(test, interpreter, [0], operation);
 		stepUntilBreakAndExpect(test, interpreter, [], operation);
-		verify(curByteCodeIndex(interpreter, operation) == firstCase);
+		verify(curByteCodeIndex(byteCode, operation) == firstCase);
 		stepUntilBreakAndExpect(test, interpreter, [3], operation); // push 3
 		stepUntilBreakAndExpect(test, interpreter, [3], operation); // jump
-		verify(curByteCodeIndex(interpreter, operation) == bottom);
+		verify(curByteCodeIndex(byteCode, operation) == bottom);
 		stepUntilExit(interpreter, operation);
 	});
 
@@ -325,9 +318,9 @@ void testSwitchAndJump(ref Test test) {
 		push(interpreter.dataStack, 1);
 		expectStack(test, interpreter, [1]);
 		stepUntilBreakAndExpect(test, interpreter, [], operation);
-		verify(curByteCodeIndex(interpreter, operation) == secondCase);
+		verify(curByteCodeIndex(byteCode, operation) == secondCase);
 		stepUntilBreakAndExpect(test, interpreter, [5], operation);
-		verify(curByteCodeIndex(interpreter, operation) == bottom);
+		verify(curByteCodeIndex(byteCode, operation) == bottom);
 		stepUntilExit(interpreter, operation);
 	});
 }
@@ -684,6 +677,6 @@ void expectStack(ref Test test, scope ref Interpreter interpreter, scope immutab
 	expectDataStack(test, interpreter.dataStack, expected);
 }
 
-immutable(ByteCodeIndex) curByteCodeIndex(scope ref Interpreter a, immutable Operation* operation) {
-	return immutable ByteCodeIndex(nextByteCodeIndex(a, operation).index);
+@trusted immutable(ByteCodeIndex) curByteCodeIndex(scope ref immutable ByteCode a, immutable Operation* operation) {
+	return immutable ByteCodeIndex(operation - a.byteCode.ptr);
 }

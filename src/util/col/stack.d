@@ -18,12 +18,6 @@ struct Stack(T) {
 		}
 	}
 
-	@trusted ~this() {
-		debug {
-			verify(top == begin - 1);
-		}
-	}
-
 	private:
 	// Last-pushed value
 	T* top;
@@ -31,10 +25,6 @@ struct Stack(T) {
 	debug {
 		T* end;
 	}
-}
-
-@trusted void clearStack(T)(ref Stack!T a) {
-	a.top = a.begin - 1;
 }
 
 @trusted immutable(bool) stackIsEmpty(T)(ref const Stack!T a) {

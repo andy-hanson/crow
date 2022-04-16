@@ -2,8 +2,9 @@ module test.testUtil;
 
 @safe @nogc nothrow: // not pure
 
-import interpret.bytecode : ByteCodeIndex, Operation;
-import interpret.runBytecode : byteCodeIndexOfPtr, DataStack, Interpreter, showDataArr;
+import interpret.bytecode : ByteCode, ByteCodeIndex, Operation;
+import interpret.debugInfo : showDataArr;
+import interpret.types : DataStack, ReturnStack;
 import util.alloc.alloc : Alloc;
 import util.col.arr : sizeEq;
 import util.col.arrUtil : eachCorresponds;
@@ -62,17 +63,18 @@ struct Test {
 
 void expectReturnStack(
 	ref Test test,
-	scope ref const Interpreter interpreter,
+	scope ref immutable ByteCode byteCode,
+	scope ref const ReturnStack returnStack,
 	scope immutable ByteCodeIndex[] expected,
 ) {
 	// Ignore first entry (which is opStopInterpretation)
-	immutable Operation*[] stack = asTempArr(interpreter.returnStack)[1 .. $];
+	immutable Operation*[] stack = asTempArr(returnStack)[1 .. $];
 	immutable bool eq = sizeEq(stack, expected) &&
 		eachCorresponds!(immutable Operation*, ByteCodeIndex)(
 			stack,
 			expected,
-			(ref immutable Operation* a, ref immutable ByteCodeIndex b) =>
-				byteCodeIndexOfPtr(interpreter, a) == b);
+			(ref immutable Operation* a, ref immutable ByteCodeIndex b) @trusted =>
+				immutable ByteCodeIndex(a - byteCode.byteCode.ptr) == b);
 	if (!eq) {
 		debug {
 			Writer writer = test.writer();
@@ -84,7 +86,7 @@ void expectReturnStack(
 			writeStatic(writer, "\nactual:\nreturn:");
 			foreach (immutable Operation* ptr; stack) {
 				writeChar(writer, ' ');
-				writeNat(writer, byteCodeIndexOfPtr(interpreter, ptr).index);
+				writeNat(writer, ptr - byteCode.byteCode.ptr);
 			}
 			writeChar(writer, '\n');
 			test.fail(finishWriter(writer));

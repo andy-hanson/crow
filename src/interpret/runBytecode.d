@@ -2,27 +2,22 @@ module interpret.runBytecode;
 
 @safe @nogc nothrow: // not pure
 
-import frontend.showDiag : ShowDiagOptions;
 import interpret.bytecode :
 	ByteCode,
 	ByteCodeIndex,
 	ByteCodeOffset,
 	ByteCodeOffsetUnsigned,
-	ByteCodeSource,
 	ExternOp,
 	initialOperationPointer,
 	NextOperation,
 	Operation;
-import interpret.debugging : writeFunName;
+import interpret.debugInfo : InterpreterDebugInfo, printDebugInfo;
 import interpret.extern_ : DoDynCall, DynCallType, DynCallSig, FunPtr;
-import model.concreteModel : ConcreteFun, concreteFunRange;
-import model.diag : FilesInfo, writeFileAndPos; // TODO: FilesInfo probably belongs elsewhere
-import model.lowModel : LowFunSource, LowProgram, matchLowFunSource;
+import interpret.types : DataStack, ReturnStack;
+import model.diag : FilesInfo; // TODO: FilesInfo probably belongs elsewhere
+import model.lowModel : LowProgram;
 import model.typeLayout : PackField;
-import util.alloc.alloc : Alloc;
 import util.col.stack :
-	asTempArr,
-	clearStack,
 	peek,
 	pop,
 	popN,
@@ -30,7 +25,6 @@ import util.col.stack :
 	pushUninitialized,
 	remove,
 	setStackTop,
-	Stack,
 	stackBeforeTop,
 	stackEnd,
 	stackIsEmpty,
@@ -43,11 +37,9 @@ import util.memory : memcpy, memmove, overwriteMemory;
 import util.opt : has;
 import util.path : AllPaths, PathsInfo;
 import util.perf : Perf, PerfMeasure, withMeasureNoAlloc;
-import util.ptr : Ptr, ptrTrustMe, ptrTrustMe_const, ptrTrustMe_mut;
-import util.sourceRange : FileAndPos;
+import util.ptr : Ptr, ptrTrustMe, ptrTrustMe_const;
 import util.sym : AllSymbols;
 import util.util : divRoundUp, drop, min, unreachable, verify;
-import util.writer : finishWriterToSafeCStr, Writer, writeChar, writeHex, writeStatic;
 
 @trusted immutable(int) runBytecode(
 	scope ref Perf perf,
@@ -66,14 +58,12 @@ import util.writer : finishWriterToSafeCStr, Writer, writeChar, writeHex, writeS
 			push(interpreter.dataStack, allArgs.length);
 			push(interpreter.dataStack, cast(immutable ulong) allArgs.ptr);
 			return withMeasureNoAlloc!(immutable int, () =>
-				runBytecodeInner(interpreter)
+				runBytecodeInner(interpreter, initialOperationPointer(byteCode))
 			)(perf, PerfMeasure.run);
 		});
 }
 
-private @system immutable(int) runBytecodeInner(scope ref Interpreter interpreter) {
-	immutable(Operation)* opPtr = initialOperationPointer(interpreter.byteCode);
-
+private @system immutable(int) runBytecodeInner(scope ref Interpreter interpreter, immutable(Operation)* opPtr) {
 	do {
 		opPtr = opPtr.fn(interpreter, opPtr + 1).operationPtr;
 		opPtr = opPtr.fn(interpreter, opPtr + 1).operationPtr;
@@ -85,9 +75,6 @@ private @system immutable(int) runBytecodeInner(scope ref Interpreter interprete
 	verify(stackIsEmpty(interpreter.dataStack));
 	return cast(int) returnCode;
 }
-
-alias DataStack = Stack!ulong;
-private alias ReturnStack = Stack!(immutable(Operation)*);
 
 @system immutable(T) withInterpreter(T)(
 	scope DoDynCall doDynCall,
@@ -101,14 +88,16 @@ private alias ReturnStack = Stack!(immutable(Operation)*);
 ) {
 	ulong[1024 * 64] dataStackStorage = void;
 	immutable(Operation)*[1024 * 4] returnStackStorage = void;
-	scope Interpreter interpreter = Interpreter(
-		doDynCall,
+	const InterpreterDebugInfo debugInfo = const InterpreterDebugInfo(
 		ptrTrustMe(lowProgram),
 		ptrTrustMe(byteCode),
 		ptrTrustMe_const(allSymbols),
 		ptrTrustMe_const(allPaths),
 		ptrTrustMe(pathsInfo),
-		ptrTrustMe(filesInfo),
+		ptrTrustMe(filesInfo));
+	scope Interpreter interpreter = Interpreter(
+		ptrTrustMe_const(debugInfo),
+		doDynCall,
 		DataStack(dataStackStorage),
 		ReturnStack(returnStackStorage));
 
@@ -120,9 +109,6 @@ private alias ReturnStack = Stack!(immutable(Operation)*);
 	else
 		immutable T res = cb(interpreter);
 
-	clearStack(interpreter.dataStack);
-	clearStack(interpreter.returnStack);
-
 	static if (!is(T == void))
 		return res;
 }
@@ -133,58 +119,37 @@ struct Interpreter {
 	@disable this(ref const Interpreter);
 
 	private:
+	const Ptr!InterpreterDebugInfo debugInfoPtr;
 	DoDynCall doDynCall;
-	immutable Ptr!LowProgram lowProgramPtr;
-	immutable Ptr!ByteCode byteCodePtr;
-	const Ptr!AllSymbols allSymbolsPtr;
-	const Ptr!AllPaths allPathsPtr;
-	immutable Ptr!PathsInfo pathsInfoPtr;
-	immutable Ptr!FilesInfo filesInfoPtr;
 	//TODO:PRIVATE
 	public DataStack dataStack;
 	public ReturnStack returnStack;
 	InterpreterRestore curRestore;
 	// WARN: if adding any new mutable state here, make sure 'longjmp' still restores it
 
-	ref immutable(LowProgram) lowProgram() const return scope pure {
-		return lowProgramPtr.deref();
+	//TODO:KILL (should not need during interpretation)
+	ref immutable(ByteCode) byteCode() const return scope pure {
+		return debugInfo.byteCode;
 	}
-	ref const(AllSymbols) allSymbols() const return scope pure {
-		return allSymbolsPtr.deref();
-	}
-	ref const(AllPaths) allPaths() const return scope pure {
-		return allPathsPtr.deref();
-	}
-	ref immutable(PathsInfo) pathsInfo() const return scope pure {
-		return pathsInfoPtr.deref();
-	}
-	ref immutable(FilesInfo) filesInfo() const return scope pure {
-		return filesInfoPtr.deref();
-	}
-}
 
-//TODO:PRIVATE
-public pure ref immutable(ByteCode) byteCode(return scope ref const Interpreter a) {
-	return a.byteCodePtr.deref();
+	ref const(InterpreterDebugInfo) debugInfo() const return scope pure {
+		return debugInfoPtr.deref();
+	}
 }
 
 // WARN: Does not restore data. Just meant for setjmp/longjmp.
 private struct InterpreterRestore {
 	// This is the stack sizes and byte code index to be restored by longjmp
-	size_t nextByteCodeIndex;
 	ulong* dataStackTop;
 	// Needs to restore position to 'returnStackTop' then push 'returnStackPush'
 	// (since the last entry may be different)
 	immutable(Operation)** returnStackTop;
 	immutable(Operation)* returnStackPush;
+	immutable(Operation)* nextByteCode;
 }
 
 private @system InterpreterRestore* createInterpreterRestore(return ref Interpreter a, immutable Operation* cur) {
-	a.curRestore = InterpreterRestore(
-		nextByteCodeIndex(a, cur).index,
-		stackTop(a.dataStack),
-		stackBeforeTop(a.returnStack),
-		peek(a.returnStack));
+	a.curRestore = InterpreterRestore(stackTop(a.dataStack), stackBeforeTop(a.returnStack), peek(a.returnStack), cur);
 	return &a.curRestore;
 }
 
@@ -193,133 +158,13 @@ private @system immutable(Operation*) applyInterpreterRestore(ref Interpreter a,
 	setStackTop(a.dataStack, restore.dataStackTop);
 	setStackTop(a.returnStack, restore.returnStackTop);
 	push(a.returnStack, restore.returnStackPush);
-	immutable size_t index = restore.nextByteCodeIndex;
+	immutable Operation* res = restore.nextByteCode;
 	a.curRestore = InterpreterRestore();
-	return &a.byteCode.byteCode[safeToSizeT(index)];
-}
-
-private void showStack(scope ref Writer writer, ref const Interpreter a) {
-	immutable ulong[] stack = asTempArr(a.dataStack);
-	showDataArr(writer, stack);
-}
-
-void showDataArr(scope ref Writer writer, scope ref immutable ulong[] values) {
-	writeStatic(writer, "data: ");
-	foreach (immutable ulong value; values) {
-		writeChar(writer, ' ');
-		writeHex(writer, value);
-	}
-	writeChar(writer, '\n');
-}
-
-private void showReturnStack(scope ref Writer writer, ref const Interpreter a, immutable(Operation)* cur) {
-	writeStatic(writer, "call stack:");
-	foreach (immutable Operation* ptr; asTempArr(a.returnStack)) {
-		writeChar(writer, ' ');
-		writeFunNameAtByteCodePtr(writer, a, ptr);
-	}
-	writeChar(writer, ' ');
-	writeFunNameAtByteCodePtr(writer, a, cur);
-}
-
-private void writeByteCodeSource(
-	scope ref Writer writer,
-	ref const AllSymbols allSymbols,
-	ref const AllPaths allPaths,
-	ref immutable PathsInfo pathsInfo,
-	ref immutable ShowDiagOptions showDiagOptions,
-	ref immutable LowProgram lowProgram,
-	ref immutable FilesInfo filesInfo,
-	immutable ByteCodeSource source,
-) {
-	writeFunName(writer, allSymbols, lowProgram, source.fun);
-	matchLowFunSource!(
-		void,
-		(immutable Ptr!ConcreteFun it) {
-			immutable FileAndPos where = immutable FileAndPos(
-				concreteFunRange(it.deref(), allSymbols).fileIndex,
-				source.pos);
-			writeFileAndPos(writer, allPaths, pathsInfo, showDiagOptions, filesInfo, where);
-		},
-		(ref immutable LowFunSource.Generated) {},
-	)(lowProgram.allFuns[source.fun].source);
-}
-
-private void writeFunNameAtIndex(
-	scope ref Writer writer,
-	ref const Interpreter interpreter,
-	immutable ByteCodeIndex index,
-) {
-	writeFunName(
-		writer,
-		interpreter.allSymbols,
-		interpreter.lowProgram,
-		byteCodeSourceAtIndex(interpreter, index).fun);
-}
-
-private void writeFunNameAtByteCodePtr(
-	scope ref Writer writer,
-	ref const Interpreter interpreter,
-	immutable Operation* ptr,
-) {
-	writeFunNameAtIndex(writer, interpreter, byteCodeIndexOfPtr(interpreter, ptr));
-}
-
-private immutable(ByteCodeSource) byteCodeSourceAtIndex(ref const Interpreter a, immutable ByteCodeIndex index) {
-	return a.byteCode.sources[index];
-}
-
-private immutable(ByteCodeSource) byteCodeSourceAtByteCodePtr(
-	ref const Interpreter a,
-	immutable Operation* ptr,
-) {
-	return byteCodeSourceAtIndex(a, byteCodeIndexOfPtr(a, ptr));
-}
-
-immutable(ByteCodeIndex) nextByteCodeIndex(scope ref const Interpreter a, immutable Operation* cur) {
-	return byteCodeIndexOfPtr(a, cur);
-}
-
-@trusted pure immutable(ByteCodeIndex) byteCodeIndexOfPtr(
-	ref const Interpreter a,
-	immutable Operation* ptr,
-) {
-	return immutable ByteCodeIndex(ptr - a.byteCode.byteCode.ptr);
-}
-
-private immutable(ByteCodeSource) nextSource(ref const Interpreter a, immutable Operation* cur) {
-	return byteCodeSourceAtByteCodePtr(a, cur);
+	return res;
 }
 
 private immutable(NextOperation) getNextOperationAndDebug(ref Interpreter a, immutable Operation* cur) {
-	immutable ByteCodeSource source = nextSource(a, cur);
-
-	debug {
-		import core.stdc.stdio : printf;
-		{
-			ubyte[10_000] mem;
-			scope Alloc dbgAlloc = Alloc(&mem[0], mem.length);
-			scope Writer writer = Writer(ptrTrustMe_mut(dbgAlloc));
-			showStack(writer, a);
-			showReturnStack(writer, a, cur);
-			printf("%s\n", finishWriterToSafeCStr(writer).ptr);
-		}
-
-		{
-			ubyte[10_000] mem;
-			scope Alloc dbgAlloc = Alloc(&mem[0], mem.length);
-			scope Writer writer = Writer(ptrTrustMe_mut(dbgAlloc));
-			writeStatic(writer, "STEP: ");
-			immutable ShowDiagOptions showDiagOptions = immutable ShowDiagOptions(false);
-			writeByteCodeSource(
-				writer, a.allSymbols, a.allPaths, a.pathsInfo, showDiagOptions, a.lowProgram, a.filesInfo, source);
-			//writeChar(writer, ' ');
-			//writeReprNoNewline(writer, reprOperation(dbgAlloc, operation));
-			//writeChar(writer, '\n');
-			printf("%s\n", finishWriterToSafeCStr(writer).ptr);
-		}
-	}
-
+	printDebugInfo(a.debugInfo, a.dataStack, a.returnStack, cur);
 	return immutable NextOperation(cur);
 }
 
@@ -558,7 +403,7 @@ private @system immutable(NextOperation) callCommon(
 private @system immutable(size_t) backtrace(ref Interpreter a, void** res, immutable uint size) {
 	immutable size_t resSize = min(stackSize(a.returnStack), size);
 	foreach (immutable size_t i; 0 .. resSize)
-		res[i] = cast(void*) byteCodeIndexOfPtr(a, peek(a.returnStack, i)).index;
+		res[i] = cast(void*) (peek(a.returnStack, i) - a.byteCode.byteCode.ptr);
 	return resSize;
 }
 
