@@ -4,7 +4,15 @@ module test.testInterpreter;
 
 import interpret.applyFn : fnWrapAddIntegral;
 import interpret.bytecode :
-	ByteCode, ByteCodeIndex, ByteCodeSource, FileToFuns, FunNameAndPos, initialOperationPointer, Operation;
+	ByteCode,
+	ByteCodeIndex,
+	ByteCodeSource,
+	castImmutable,
+	FileToFuns,
+	FunNameAndPos,
+	initialOperationPointer,
+	Operation,
+	Operations;
 import interpret.extern_ : DynCallType, DynCallSig, Extern;
 import interpret.fakeExtern : FakeStdOutput, withFakeExtern;
 import interpret.runBytecode : opCall, stepUntilBreak, stepUntilExit, withInterpreter;
@@ -13,7 +21,7 @@ import interpret.bytecodeWriter :
 	fillDelayedCall,
 	fillDelayedSwitchEntry,
 	fillInJumpDelayed,
-	finishByteCode,
+	finishOperations,
 	getNextStackEntry,
 	nextByteCodeIndex,
 	newByteCodeWriter,
@@ -71,7 +79,7 @@ import util.col.str : SafeCStr;
 import util.lineAndColumnGetter : lineAndColumnGetterForEmptyFile;
 import util.memory : allocate;
 import util.path : emptyPathsInfo, Path, PathsInfo, rootPath;
-import util.ptr : ptrTrustMe_mut;
+import util.ptr : castImmutable, ptrTrustMe_mut;
 import util.sourceRange : FileIndex, Pos;
 import util.sym : shortSym;
 import util.util : verify;
@@ -100,7 +108,11 @@ immutable(ByteCode) makeByteCode(
 ) {
 	ByteCodeWriter writer = newByteCodeWriter(ptrTrustMe_mut(alloc));
 	writeBytecode(writer, emptyByteCodeSource);
-	return finishByteCode(writer, emptyArr!ubyte, immutable ByteCodeIndex(0), dummyFileToFuns());
+	return dummyByteCode(castImmutable(finishOperations(writer)));
+}
+
+immutable(ByteCode) dummyByteCode(immutable Operations operations) {
+	return immutable ByteCode(operations, dummyFileToFuns(), emptyArr!ubyte, immutable ByteCodeIndex(0));
 }
 
 immutable(FileToFuns) dummyFileToFuns() {
@@ -187,9 +199,9 @@ void testCall(ref Test test) {
 	writeFnBinary!fnWrapAddIntegral(writer, source);
 	writeReturn(writer, source);
 
-	fillDelayedCall(writer, delayed, fIndex);
-	immutable ByteCode byteCode =
-		finishByteCode(writer, emptyArr!ubyte, immutable ByteCodeIndex(0), dummyFileToFuns());
+	Operations operations = finishOperations(writer);
+	fillDelayedCall(operations, delayed, castImmutable(&operations.byteCode[fIndex.index]));
+	immutable ByteCode byteCode = dummyByteCode(castImmutable(operations));
 
 	doInterpret(test, byteCode, (scope Stacks stacks, immutable(Operation)* operation) {
 		stepUntilBreakAndExpect(test, stacks, [1, 2], operation);
@@ -237,15 +249,16 @@ void testCallFunPtr(ref Test test) {
 	writeFnBinary!fnWrapAddIntegral(writer, source);
 	writeReturn(writer, source);
 
-	fillDelayedCall(writer, delayed, fIndex);
-	immutable ByteCode byteCode =
-		finishByteCode(writer, emptyArr!ubyte, immutable ByteCodeIndex(0), dummyFileToFuns());
+	Operations operations = finishOperations(writer);
+	immutable Operation* delayedOperationPtr = castImmutable(&operations.byteCode[fIndex.index]);
+	fillDelayedCall(operations, delayed, delayedOperationPtr);
+	immutable ByteCode byteCode = dummyByteCode(castImmutable(operations));
 
 	doInterpret(test, byteCode, (scope Stacks stacks, immutable(Operation)* operation) {
 		stepUntilBreakAndExpect(
 			test,
 			stacks,
-			[fIndex.index, 1, 2],
+			[cast(ulong) delayedOperationPtr, 1, 2],
 			operation);
 		// call-fun-ptr
 		stepUntilBreakAndExpect(test, stacks, [1, 2], operation);
@@ -292,11 +305,10 @@ void testSwitchAndJump(ref Test test) {
 	writeBreak(writer, source);
 	immutable ByteCodeIndex bottom = nextByteCodeIndex(writer);
 	writeReturn(writer, source);
-	immutable ByteCode byteCode =
-		finishByteCode(writer, emptyArr!ubyte, immutable ByteCodeIndex(0), dummyFileToFuns());
+	immutable ByteCode byteCode = dummyByteCode(castImmutable(finishOperations(writer)));
 
 	doInterpret(test, byteCode, (scope Stacks stacks, immutable(Operation)* operation) {
-		 stepUntilBreakAndExpect(test, stacks, [0], operation);
+		stepUntilBreakAndExpect(test, stacks, [0], operation);
 		stepUntilBreakAndExpect(test, stacks, [], operation);
 		verify(curByteCodeIndex(byteCode, operation) == firstCase);
 		stepUntilBreakAndExpect(test, stacks, [3], operation); // push 3

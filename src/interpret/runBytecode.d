@@ -3,13 +3,7 @@ module interpret.runBytecode;
 @safe @nogc nothrow: // not pure
 
 import interpret.bytecode :
-	ByteCode,
-	ByteCodeIndex,
-	ByteCodeOffset,
-	ByteCodeOffsetUnsigned,
-	ExternOp,
-	initialOperationPointer,
-	Operation;
+	ByteCode, ByteCodeOffset, ByteCodeOffsetUnsigned, ExternOp, initialOperationPointer, Operation;
 import interpret.debugInfo : InterpreterDebugInfo, printDebugInfo;
 import interpret.extern_ : DoDynCall, DynCallType, DynCallSig, FunPtr;
 import interpret.stacks :
@@ -359,18 +353,21 @@ private @system void writePartialBytes(ubyte* ptr, immutable ulong value, immuta
 }
 
 @system void opCall(Stacks stacks, immutable(Operation)* cur) {
-	immutable ByteCodeIndex address = immutable ByteCodeIndex(readSizeT(cur));
-	callCommon(address, stacks, cur);
+	callCommon(readOperationPtr(cur), stacks, cur);
 }
 
 @system void opCallFunPtr(Stacks stacks, immutable(Operation)* cur) {
 	immutable DynCallSig sig = readDynCallSig(cur);
-	immutable ulong funPtr = dataRemove(stacks, sig.parameterTypes.length);
-	immutable ByteCodeIndex address = immutable ByteCodeIndex(safeToSizeT(funPtr));
-	if (address.index < debugInfo.byteCode.byteCode.length)
-		callCommon(address, stacks, cur);
+	immutable void* funPtr = cast(immutable void*) dataRemove(stacks, sig.parameterTypes.length);
+	immutable Operation[] allOperations = debugInfo.byteCode.byteCode;
+	if (pointsIntoArr(allOperations, cast(immutable Operation*) funPtr))
+		callCommon(cast(immutable Operation*) funPtr, stacks, cur);
 	else
 		opCallFunPtrCommon(stacks, cur, cast(immutable FunPtr) funPtr, sig);
+}
+
+private @system immutable(bool) pointsIntoArr(T)(immutable T[] a, immutable T* b) {
+	return a.ptr <= b && b < (a.ptr + a.length);
 }
 
 @system void opCallFunPtrExtern(Stacks stacks, immutable(Operation)* cur) {
@@ -398,12 +395,12 @@ private @system void opCallFunPtrCommon(
 }
 
 private @system void callCommon(
-	immutable ByteCodeIndex address,
+	immutable Operation* address,
 	Stacks stacks,
 	immutable Operation* cur,
 ) {
 	returnPush(stacks, cur);
-	nextOperation(stacks, &debugInfo.byteCode.byteCode[address.index]);
+	nextOperation(stacks, address);
 }
 
 @system void opExtern(Stacks stacks, immutable(Operation)* cur) {
@@ -434,7 +431,7 @@ private @system void callCommon(
 private @system immutable(size_t) backtrace(ref const Stacks stacks, void** res, immutable uint size) {
 	immutable size_t resSize = min(returnStackSize(stacks), size);
 	foreach (immutable size_t i; 0 .. resSize)
-		res[i] = cast(void*) (returnPeek(stacks, i) - debugInfo.byteCode.byteCode.ptr);
+		res[i] = cast(void*) returnPeek(stacks, i);
 	return resSize;
 }
 
@@ -483,6 +480,10 @@ private @system immutable(ulong) readNat64(ref immutable(Operation)* cur) {
 
 private @system immutable(size_t) readSizeT(ref immutable(Operation)* cur) {
 	return safeToSizeT(readNat64(cur));
+}
+
+private @system immutable(Operation*) readOperationPtr(ref immutable(Operation)* cur) {
+	return cast(immutable Operation*) readSizeT(cur);
 }
 
 private @system immutable(T[]) readArray(T)(ref immutable(Operation)* cur) {

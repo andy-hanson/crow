@@ -77,11 +77,10 @@ immutable(Opt!Pack) optPack(TempAlloc)(
 	}
 }
 
-immutable TypeSize funPtrSize = ptrSize;
-
 private:
 
 immutable TypeSize ptrSize = immutable TypeSize(8, 8);
+immutable TypeSize funPtrSize = ptrSize;
 immutable TypeSize externPtrSize = ptrSize;
 
 immutable(TypeSize) primitiveSize(immutable PrimitiveType a) {

@@ -2,7 +2,6 @@ module interpret.generateText;
 
 @safe @nogc pure nothrow:
 
-import interpret.bytecode : ByteCodeIndex;
 import model.constant : Constant, matchConstant;
 import model.lowModel :
 	AllConstantsLow,
@@ -19,7 +18,7 @@ import model.lowModel :
 	lowTypeEqual,
 	PointerTypeAndConstantsLow,
 	PrimitiveType;
-import model.typeLayout : funPtrSize, sizeOfType;
+import model.typeLayout : sizeOfType;
 import util.alloc.alloc : Alloc, TempAlloc;
 import util.col.arr : castImmutable, empty, emptyArr, ptrAt;
 import util.col.arrUtil : map, mapToMut, sum, zip;
@@ -43,13 +42,6 @@ import util.col.str : SafeCStr, safeCStrSize;
 import util.conv : bitsOfFloat32, bitsOfFloat64;
 import util.ptr : Ptr, ptrTrustMe;
 import util.util : todo, unreachable, verify;
-
-struct InterpreterFunPtr {
-	immutable ByteCodeIndex index;
-	static if (ByteCodeIndex.sizeof == 4)
-		uint padding;
-}
-static assert(InterpreterFunPtr.sizeof == funPtrSize.size);
 
 struct TextIndex {
 	immutable size_t index;

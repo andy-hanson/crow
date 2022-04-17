@@ -4,7 +4,8 @@ module interpret.bytecode;
 
 import interpret.stacks : Stacks;
 import model.lowModel : LowFunIndex;
-import util.col.fullIndexDict : FullIndexDict, fullIndexDictSize;
+import util.col.arr : castImmutable;
+import util.col.fullIndexDict : FullIndexDict;
 import util.sym : Sym;
 import util.sourceRange : FileIndex, Pos;
 import util.util : verify;
@@ -15,11 +16,13 @@ struct Operation {
 	@safe @nogc pure nothrow:
 
 	immutable this(immutable Fn a) { fn = a; }
+	immutable this(immutable(Operation)* a) { operationPtr = a; }
 	immutable this(immutable long a) { long_ = a; }
 	immutable this(immutable ulong a) { ulong_ = a; }
 
 	union {
 		Fn fn;
+		immutable(Operation)* operationPtr;
 		long long_;
 		ulong ulong_;
 	}
@@ -43,26 +46,21 @@ struct ByteCodeSource {
 struct ByteCode {
 	@safe @nogc pure nothrow:
 
-	Operation[] byteCode;
-	immutable FullIndexDict!(ByteCodeIndex, ByteCodeSource) sources; // parallel to byteCode
+	immutable Operations operations;
 	immutable FileToFuns fileToFuns; // Look up in 'sources' first, then can find the corresponding function here
 	immutable ubyte[] text;
 	immutable ByteCodeIndex main;
 
-	immutable this(
-		immutable Operation[] bc,
-		immutable FullIndexDict!(ByteCodeIndex, ByteCodeSource) s,
-		immutable FileToFuns ff,
-		immutable ubyte[] t,
-		immutable ByteCodeIndex m,
-	) {
-		byteCode = bc;
-		sources = s;
-		fileToFuns = ff;
-		text = t;
-		main = m;
-		verify(byteCode.length == fullIndexDictSize(sources));
-	}
+	immutable(Operation[]) byteCode() immutable { return operations.byteCode; }
+	immutable(FullIndexDict!(ByteCodeIndex, ByteCodeSource)) sources() immutable { return operations.sources; }
+}
+
+struct Operations {
+	Operation[] byteCode;
+	immutable FullIndexDict!(ByteCodeIndex, ByteCodeSource) sources; // parallel to byteCode
+}
+immutable(Operations) castImmutable(Operations a) {
+	return immutable Operations(castImmutable(a.byteCode), a.sources);
 }
 
 @trusted immutable(Operation*) initialOperationPointer(return scope ref immutable ByteCode a) {

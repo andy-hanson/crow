@@ -5,14 +5,13 @@ module interpret.bytecodeWriter;
 import interpret.applyFn : fnWrapAddIntegral, fnWrapMulIntegral;
 import interpret.bytecode :
 	addByteCodeIndex,
-	ByteCode,
 	ByteCodeIndex,
 	ByteCodeOffset,
 	ByteCodeOffsetUnsigned,
 	ByteCodeSource,
 	ExternOp,
-	FileToFuns,
 	Operation,
+	Operations,
 	stackEntrySize,
 	StackOffset,
 	StackOffsetBytes,
@@ -54,7 +53,7 @@ import model.typeLayout : Pack;
 import util.alloc.alloc : Alloc;
 import util.col.arr : empty;
 import util.col.arrBuilder : add, ArrBuilder, finishArr;
-import util.col.fullIndexDict : FullIndexDict, fullIndexDictOfArr;
+import util.col.fullIndexDict : fullIndexDictOfArr;
 import util.col.mutArr : moveToArr_mut, MutArr, mutArrEnd, mutArrPtrAt, mutArrSize, push;
 import util.memory : initMemory, overwriteMemory;
 import util.ptr : Ptr;
@@ -64,7 +63,7 @@ struct ByteCodeWriter {
 	private:
 	Ptr!Alloc alloc;
 	// NOTE: sometimes we will write operation arguments here and cast to Operation
-	MutArr!(immutable Operation) operations;
+	MutArr!Operation operations;
 	ArrBuilder!ByteCodeSource sources; // parallel to operations
 	size_t nextStackEntry = 0;
 }
@@ -86,17 +85,12 @@ immutable(StackEntry) stackEntriesEnd(immutable StackEntries a) {
 	return immutable StackEntry(a.start.entry + a.size);
 }
 
-@trusted immutable(ByteCode) finishByteCode(
+Operations finishOperations(
 	ref ByteCodeWriter writer,
-	immutable ubyte[] text,
-	immutable ByteCodeIndex mainIndex,
-	immutable FileToFuns fileToFuns,
 ) {
-	immutable Operation[] operations =
-		moveToArr_mut!(immutable Operation)(writer.alloc.deref(), writer.operations);
-	immutable FullIndexDict!(ByteCodeIndex, ByteCodeSource) sources =
-		fullIndexDictOfArr!(ByteCodeIndex, ByteCodeSource)(finishArr(writer.alloc.deref(), writer.sources));
-	return immutable ByteCode(operations, sources, fileToFuns, text, mainIndex);
+	return Operations(
+		moveToArr_mut!Operation(writer.alloc.deref(), writer.operations),
+		fullIndexDictOfArr!(ByteCodeIndex, ByteCodeSource)(finishArr(writer.alloc.deref(), writer.sources)));
 }
 
 immutable(StackEntry) getNextStackEntry(ref const ByteCodeWriter writer) {
@@ -139,12 +133,8 @@ immutable(ByteCodeIndex) writeCallDelayed(
 	return fnAddress;
 }
 
-@trusted void fillDelayedCall(
-	ref ByteCodeWriter writer,
-	immutable ByteCodeIndex index,
-	immutable ByteCodeIndex value,
-) {
-	writer.operations[index.index] = immutable Operation(immutable ulong(value.index));
+void fillDelayedCall(ref Operations operations, immutable ByteCodeIndex index, immutable Operation* definition) {
+	operations.byteCode[index.index] = immutable Operation(definition);
 }
 
 void writeCallFunPtr(

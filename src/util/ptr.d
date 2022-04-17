@@ -111,6 +111,10 @@ void hashPtr(T)(ref Hasher hasher, const Ptr!T a) {
 	hashSizeT(hasher, cast(immutable size_t) a.rawPtr());
 }
 
+@trusted immutable(T*) castImmutable(T)(T* a) {
+	return cast(immutable) a;
+}
+
 @trusted immutable(Ptr!T) castImmutable(T)(Ptr!T a) {
 	return cast(immutable) a;
 }

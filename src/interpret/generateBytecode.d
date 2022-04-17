@@ -54,9 +54,12 @@ import interpret.bytecode :
 	ByteCode,
 	ByteCodeIndex,
 	ByteCodeSource,
+	castImmutable,
 	ExternOp,
 	FileToFuns,
 	FunNameAndPos,
+	Operation,
+	Operations,
 	stackEntrySize;
 import interpret.bytecodeWriter :
 	ByteCodeWriter,
@@ -65,7 +68,7 @@ import interpret.bytecodeWriter :
 	fillDelayedJumpIfFalse,
 	fillDelayedSwitchEntry,
 	fillInJumpDelayed,
-	finishByteCode,
+	finishOperations,
 	getNextStackEntry,
 	JumpIfFalseDelayed,
 	newByteCodeWriter,
@@ -110,7 +113,6 @@ import interpret.generateText :
 	getTextInfoForArray,
 	getTextPointer,
 	getTextPointerForCString,
-	InterpreterFunPtr,
 	TextAndInfo,
 	TextArrInfo,
 	TextIndex,
@@ -165,7 +167,6 @@ import util.col.mutIndexMultiDict :
 import util.col.mutMaxArr : initializeMutMaxArr, MutMaxArr, push, tempAsArr;
 import util.col.stackDict : StackDict, stackDictAdd, stackDictMustGet;
 import util.conv : bitsOfFloat32, bitsOfFloat64;
-import util.memory : overwriteMemory;
 import util.opt : force, has, none, Opt, some;
 import util.ptr : nullPtr, Ptr, ptrEquals, ptrTrustMe, ptrTrustMe_const, ptrTrustMe_mut;
 import util.sourceRange : FileIndex;
@@ -207,31 +208,27 @@ immutable(ByteCode) generateBytecode(
 				return funPos;
 		});
 
+	Operations operations = finishOperations(writer);
+
 	fullIndexDictEach!(LowFunIndex, ByteCodeIndex)(
 		funToDefinition,
-		(immutable LowFunIndex index, ref immutable ByteCodeIndex definition) {
+		(immutable LowFunIndex index, ref immutable ByteCodeIndex definitionIndex) @trusted {
+			immutable Operation* definition = cast(immutable) &operations.byteCode[definitionIndex.index];
 			foreach (immutable TextIndex reference; mutIndexMultiDictMustGetAt(text.funToTextReferences, index))
-				overwriteMemory(
-					trustedCast!(InterpreterFunPtr, ubyte)(&text.text[reference.index]),
-					immutable InterpreterFunPtr(definition));
+				*(cast(immutable(Operation)**) &text.text[reference.index]) = definition;
 			foreach (immutable ByteCodeIndex reference; mutIndexMultiDictMustGetAt(funToReferences, index))
-				fillDelayedCall(writer, reference, definition);
+				fillDelayedCall(operations, reference, definition);
 		});
 
-	return finishByteCode(
-		writer,
+	return immutable ByteCode(
+		castImmutable(operations),
+		fileToFuns(codeAlloc, allSymbols, modelProgram),
 		castImmutable(text.text),
-		funToDefinition[program.main],
-		fileToFuns(codeAlloc, allSymbols, modelProgram));
+		funToDefinition[program.main]);
 }
 
 private:
-
 pure:
-
-@trusted Out* trustedCast(Out, In)(In* ptr) {
-	return cast(Out*) ptr;
-}
 
 immutable(FileToFuns) fileToFuns(
 	ref Alloc alloc,
