@@ -1,9 +1,9 @@
 uncaught exception: FOO
-	at backtrace-and-get-n-code-ptrs
-	at get-backtrace
-	at throw-c-str
-	at throw
-	at bar
-	at foo
-	at main
-	at subscript
+	at bar (test/runnable/fail:8)
+	at foo (test/runnable/fail:5)
+	at main (test/runnable/fail:3)
+	at add-first-task.lambda0 (include/crow/private/rt-main:108)
+	at call-w-ctx<gc-ptr(fut<nat64>)> (generated)
+	at subscript<a> (include/crow/private/bootstrap:433)
+	at catch<fut<out>>.lambda0 (include/crow/private/exception-low-level:115)
+	at call-w-ctx<result<fut<nat64>, exception>> (generated)

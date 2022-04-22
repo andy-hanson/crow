@@ -1,0 +1,218 @@
+no-std
+import
+	crow/bool: bool, false
+	crow/c-types: c-char
+	crow/fun-util: fun-ptr2, fun-ptr3, fun-ptr5
+	crow/private/bootstrap: c-str
+	crow/private/number-low-level: nat32, unsafe-to-nat32
+	crow/ptr: *, any-const-ptr, any-mut-ptr, const-ptr, mut-ptr, null, size-of
+	win32: CONTEXT, DWORD, DWORD64, HANDLE, Rbp, Rip, Rsp, WORD
+
+ADDRESS_MODE enum<nat32> extern
+	AddrMode1616
+	AddrMode1632
+	AddrModeReal
+	AddrModeFlat
+
+ADDRESS64 record extern by-val
+	Offset DWORD64
+	Segment WORD
+	Mode ADDRESS_MODE
+
+new ADDRESS64() noctx
+	0,
+
+new ADDRESS64(offset DWORD64) noctx
+	offset, 0, AddrModeFlat
+
+STACKFRAME64 record extern by-val
+	AddrPC ADDRESS64
+	AddrReturn ADDRESS64
+	AddrFrame ADDRESS64
+	AddrStack ADDRESS64
+	AddrBStore ADDRESS64
+	FuncTableEntry any-const-ptr
+	Params0 DWORD64
+	Params1 DWORD64
+	Params2 DWORD64
+	Params3 DWORD64
+	Far bool
+	Virtual bool
+	Reserved0 DWORD64
+	Reserved1 DWORD64
+	Reserved2 DWORD64
+	KdHelp KDHELP64
+
+new STACKFRAME64(context CONTEXT*) noctx unsafe
+	(context->Rip,), (), (context->Rbp,), (context->Rsp,), (), null, 0, 0, 0, 0, false, false, 0, 0, 0, ()
+
+KDHELP64 record extern by-val
+	Thread DWORD64
+	ThCallbackStack DWORD
+	ThCallbackBStore DWORD
+	NextCallback DWORD
+	FramePointer DWORD
+	KiCallUserMode DWORD64
+	KeUserCallbackDispatcher DWORD64
+	SystemRangeStart DWORD64
+	KiUserExceptionDispatcher DWORD64
+	StackBase DWORD64
+	StackLimit DWORD64
+	BuildVersion DWORD
+	RetpolineStubFunctionTableSize DWORD
+	RetpolineStubFunctionTable DWORD64
+	RetpolineStubOffset DWORD
+	RetpolineStubSize DWORD
+	Reserved00 DWORD64
+	Reserved01 DWORD64
+
+new KDHELP64() noctx
+	0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0
+
+IMAGEHLP_SYMBOL64 record extern by-val
+	SizeOfStruct DWORD
+	Address DWORD64
+	Size DWORD
+	Flags DWORD
+	MaxNameLength DWORD
+	# Actually may be more than one char, making the size of this struct actually bigger
+	Name c-char
+
+new IMAGEHLP_SYMBOL64(max-name-length DWORD) noctx unsafe
+	# TODO: should not need parentheses
+	(size-of@<IMAGEHLP_LINE64>).unsafe-to-nat32, 0, 0, 0, max-name-length, "\0"
+
+IMAGEHLP_LINE64 record extern by-val
+	SizeOfStruct DWORD
+	Key any-const-ptr
+	LineNumber DWORD
+	FileName c-str
+	Address DWORD64
+
+new IMAGEHLP_LINE64() noctx unsafe
+	# TODO: should not need parentheses
+	(size-of@<IMAGEHLP_LINE64>).unsafe-to-nat32, null, 0, null, 0
+
+IMAGEHLP_SYMBOL_TYPE_INFO enum<nat32> extern
+	TI_GET_SYMTAG
+	TI_GET_SYMNAME
+	TI_GET_LENGTH
+	TI_GET_TYPE
+	TI_GET_TYPEID
+	TI_GET_BASETYPE
+	TI_GET_ARRAYINDEXTYPEID
+	TI_FINDCHILDREN
+	TI_GET_DATAKIND
+	TI_GET_ADDRESSOFFSET
+	TI_GET_OFFSET
+	TI_GET_VALUE
+	TI_GET_COUNT
+	TI_GET_CHILDRENCOUNT
+	TI_GET_BITPOSITION
+	TI_GET_VIRTUALBASECLASS
+	TI_GET_VIRTUALTABLESHAPEID
+	TI_GET_VIRTUALBASEPOINTEROFFSET
+	TI_GET_CLASSPARENTID
+	TI_GET_NESTED
+	TI_GET_SYMINDEX
+	TI_GET_LEXICALPARENT
+	TI_GET_ADDRESS
+	TI_GET_THISADJUST
+	TI_GET_UDTKIND
+	TI_IS_EQUIV_TO
+	TI_GET_CALLING_CONVENTION
+	TI_IS_CLOSE_EQUIV_TO
+	TI_GTIEX_REQS_VALID
+	TI_GET_VIRTUALBASEOFFSET
+	TI_GET_VIRTUALBASEDISPINDEX
+	TI_GET_IS_REFERENCE
+	TI_GET_INDIRECTVIRTUALBASECLASS
+	TI_GET_VIRTUALBASETABLETYPE
+	TI_GET_OBJECTPOINTERTYPE
+	IMAGEHLP_SYMBOL_TYPE_INFO_MAX
+
+PREAD_PROCESS_MEMORY_ROUTINE64 alias
+	fun-ptr5<bool, HANDLE, DWORD64, any-mut-ptr, DWORD, DWORD mut*>
+PFUNCTION_TABLE_ACCESS_ROUTINE64 alias
+	fun-ptr2<any-const-ptr, HANDLE, DWORD64>
+PGET_MODULE_BASE_ROUTINE64 alias
+	fun-ptr2<DWORD64, HANDLE, DWORD64>
+PTRANSLATE_ADDRESS_ROUTINE64 alias
+	fun-ptr3<DWORD64, HANDLE, HANDLE, ADDRESS64 mut*>
+
+StackWalk64 bool
+	MachineType DWORD
+	hProcess HANDLE
+	hThread HANDLE
+	StackFrame STACKFRAME64 mut*
+	ContextRecord any-const-ptr
+	ReadMemoryRoutine PREAD_PROCESS_MEMORY_ROUTINE64
+	FunctionTableAccessRoutine PFUNCTION_TABLE_ACCESS_ROUTINE64
+	GetModuleBaseRoutine PGET_MODULE_BASE_ROUTINE64
+	TranslateAddress PTRANSLATE_ADDRESS_ROUTINE64
+spec
+	noctx
+	unsafe
+	extern<DbgHelp>
+
+SymFunctionTableAccess64 any-const-ptr(hProcess HANDLE, AddrBase DWORD64) noctx unsafe extern<DbgHelp>
+
+# A process that calls SymInitialize should not call it again unless it calls SymCleanup first
+SymInitialize bool(hProcess HANDLE, UserSearchPath c-str, fInvadeProcess bool) noctx unsafe extern<DbgHelp>
+SymCleanup bool(hProcess HANDLE) noctx unsafe extern<DbgHelp>
+
+SymSetOptions DWORD(SymOptions SymOptions) noctx unsafe extern<DbgHelp>
+
+SymOptions flags<nat32> extern
+	SYMOPT_CASE_INSENSITIVE = 0x00000001
+	SYMOPT_UNDNAME = 0x00000002
+	SYMOPT_DEFERRED_LOADS = 0x00000004
+	SYMOPT_NO_CPP = 0x00000008
+	SYMOPT_LOAD_LINES = 0x00000010
+	SYMOPT_OMAP_FIND_NEAREST = 0x00000020
+	SYMOPT_LOAD_ANYTHING = 0x00000040
+	SYMOPT_IGNORE_CVREC = 0x00000080
+	SYMOPT_NO_UNQUALIFIED_LOADS = 0x00000100
+	SYMOPT_FAIL_CRITICAL_ERRORS = 0x00000200
+	SYMOPT_EXACT_SYMBOLS = 0x00000400
+	SYMOPT_ALLOW_ABSOLUTE_SYMBOLS = 0x00000800
+	SYMOPT_IGNORE_NT_SYMPATH = 0x00001000
+	SYMOPT_INCLUDE_32BIT_MODULES = 0x00002000
+	SYMOPT_PUBLICS_ONLY = 0x00004000
+	SYMOPT_NO_PUBLICS = 0x00008000
+	SYMOPT_AUTO_PUBLICS = 0x00010000
+	SYMOPT_NO_IMAGE_SEARCH = 0x00020000
+	SYMOPT_SECURE = 0x00040000
+	SYMOPT_NO_PROMPTS = 0x00080000
+	SYMOPT_OVERWRITE = 0x00100000
+	SYMOPT_IGNORE_IMAGEDIR = 0x00200000
+	SYMOPT_FLAT_DIRECTORY = 0x00400000
+	SYMOPT_FAVOR_COMPRESSED = 0x00800000
+	SYMOPT_ALLOW_ZERO_ADDRESS = 0x01000000
+	SYMOPT_DISABLE_SYMSRV_AUTODETECT = 0x02000000
+	SYMOPT_READONLY_CACHE = 0x04000000
+	SYMOPT_SYMPATH_LAST = 0x08000000
+	SYMOPT_DISABLE_FAST_SYMBOLS = 0x10000000
+	SYMOPT_DISABLE_SYMSRV_TIMEOUT = 0x20000000
+	SYMOPT_DISABLE_SRVSTAR_ON_STARTUP = 0x40000000
+	SYMOPT_DEBUG = 0x80000000
+
+SymGetSymFromAddr64 bool
+	hProcess HANDLE
+	qwAddr DWORD64
+	pdwDisplacement DWORD64 mut*
+	Symbol IMAGEHLP_SYMBOL64 mut*
+spec
+	noctx
+	unsafe
+	extern<DbgHelp>
+
+SymGetLineFromAddr64 bool
+	hProcess HANDLE
+	qwAddr DWORD64
+	pdwDisplacement DWORD mut*
+	Line64 IMAGEHLP_LINE64 mut*
+spec
+	noctx
+	unsafe
+	extern<DbgHelp>

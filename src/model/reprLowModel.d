@@ -253,6 +253,12 @@ immutable(Repr) reprOfLowExprKind(ref Alloc alloc, ref immutable LowExprKind a) 
 				reprStr(strOfSpecialBinaryKind(it.kind)),
 				reprOfLowExpr(alloc, it.left),
 				reprOfLowExpr(alloc, it.right)]),
+		(ref immutable LowExprKind.SpecialTernary it) =>
+			reprRecord(alloc, "ternary", [
+				reprStr(strOfSpecialTernaryKind(it.kind)),
+				reprOfLowExpr(alloc, it.args[0]),
+				reprOfLowExpr(alloc, it.args[1]),
+				reprOfLowExpr(alloc, it.args[2])]),
 		(ref immutable LowExprKind.Switch0ToN it) =>
 			reprRecord(alloc, "switch-n", [
 				reprOfLowExpr(alloc, it.value),
@@ -339,6 +345,8 @@ immutable(string) strOfSpecialUnaryKind(immutable LowExprKind.SpecialUnary.Kind 
 			return "to-ptr (from nat64)";
 		case LowExprKind.SpecialUnary.Kind.truncateToInt64FromFloat64:
 			return "truncate-to-int (from float64)";
+		case LowExprKind.SpecialUnary.Kind.unsafeInt32ToNat32:
+			return "unsafe-int32-to-nat32";
 		case LowExprKind.SpecialUnary.Kind.unsafeInt64ToInt8:
 			return "unsafe-int64-to-int8";
 		case LowExprKind.SpecialUnary.Kind.unsafeInt64ToInt16:
@@ -552,5 +560,12 @@ immutable(string) strOfSpecialBinaryKind(immutable LowExprKind.SpecialBinary.Kin
 			return "wrap-sub (nat64)";
 		case LowExprKind.SpecialBinary.Kind.writeToPtr:
 			return "wriite to ptr";
+	}
+}
+
+immutable(string) strOfSpecialTernaryKind(immutable LowExprKind.SpecialTernary.Kind a) {
+	final switch (a) {
+		case LowExprKind.SpecialTernary.Kind.interpreterBacktrace:
+			return "interpreter-backtrace";
 	}
 }

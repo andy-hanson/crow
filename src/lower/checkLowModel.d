@@ -205,6 +205,9 @@ void checkLowExpr(
 		(ref immutable LowExprKind.SpecialBinary it) {
 			// TODO
 		},
+		(ref immutable LowExprKind.SpecialTernary) {
+			// TODO
+		},
 		(ref immutable LowExprKind.Switch0ToN it) {
 			checkLowExpr(ctx, it.value.type, it.value);
 			foreach (ref immutable LowExpr case_; it.cases)

@@ -3,8 +3,8 @@ module interpret.runBytecode;
 @safe @nogc nothrow: // not pure
 
 import interpret.bytecode :
-	ByteCode, ByteCodeOffset, ByteCodeOffsetUnsigned, ExternOp, initialOperationPointer, Operation;
-import interpret.debugInfo : InterpreterDebugInfo, printDebugInfo;
+	ByteCode, ByteCodeOffset, ByteCodeOffsetUnsigned, FunPtrToOperationPtr, initialOperationPointer, Operation;
+import interpret.debugInfo : BacktraceEntry, fillBacktrace, InterpreterDebugInfo, printDebugInfo;
 import interpret.extern_ : DoDynCall, DynCallType, DynCallSig, FunPtr;
 import interpret.stacks :
 	dataDupWord,
@@ -21,15 +21,13 @@ import interpret.stacks :
 	dataStackIsEmpty,
 	dataTempAsArr,
 	dataTop,
-	returnBeforeTop,
 	returnPeek,
 	returnPop,
 	returnPush,
 	returnStackIsEmpty,
-	returnStackSize,
 	returnTempAsArrReverse,
-	setDataTop,
-	setReturnTop,
+	saveStacks,
+	setReturnPeek,
 	Stacks,
 	withStacks;
 import model.diag : FilesInfo; // TODO: FilesInfo probably belongs elsewhere
@@ -38,12 +36,12 @@ import model.typeLayout : PackField;
 import util.col.str : SafeCStr;
 import util.conv : safeToSizeT;
 import util.memory : memcpy, memmove, overwriteMemory;
-import util.opt : has;
+import util.opt : force, has, Opt;
 import util.path : AllPaths, PathsInfo;
 import util.perf : Perf, PerfMeasure, withMeasureNoAlloc;
-import util.ptr : nullPtr_mut, Ptr, ptrTrustMe, ptrTrustMe_const;
+import util.ptr : nullPtr, Ptr, ptrTrustMe;
 import util.sym : AllSymbols;
-import util.util : divRoundUp, drop, min, unreachable, verify;
+import util.util : divRoundUp, drop, unreachable, verify;
 
 @trusted immutable(int) runBytecode(
 	scope ref Perf perf,
@@ -58,7 +56,7 @@ import util.util : divRoundUp, drop, min, unreachable, verify;
 ) {
 	return withInterpreter!(immutable int)(
 		doDynCall, lowProgram, byteCode, allSymbols, allPaths, pathsInfo, filesInfo,
-		(Stacks stacks) {
+		(ref Stacks stacks) {
 			dataPush(stacks, allArgs.length);
 			dataPush(stacks, cast(immutable ulong) allArgs.ptr);
 			return withMeasureNoAlloc!(immutable int, () =>
@@ -71,9 +69,25 @@ private @system immutable(int) runBytecodeInner(ref Stacks stacks, immutable(Ope
 	stepUntilExit(stacks, operation);
 	immutable ulong returnCode = dataPop(stacks);
 	verify(dataStackIsEmpty(stacks));
+	verify(returnStackIsEmpty(stacks));
 	return cast(int) returnCode;
 }
 
+@system immutable(ulong) syntheticCall(
+	immutable DynCallSig sig,
+	immutable Operation* operationPtr,
+	scope void delegate(ref Stacks stacks) @nogc nothrow cbPushArgs,
+) {
+	return withStacks!(immutable ulong)((ref Stacks stacks) {
+		returnPush(stacks, operationOpStopInterpretation.ptr);
+		cbPushArgs(stacks);
+		immutable(Operation)* op = operationPtr;
+		stepUntilExit(stacks, op);
+		return sig.returnType == DynCallType.void_ ? 0 : dataPop(stacks);
+	});
+}
+
+// This only works if you did 'returnPush(stacks, operationOpStopInterpretation.ptr);'
 @system void stepUntilExit(ref Stacks stacks, ref immutable(Operation)* operation) {
 	setNext(stacks, operation);
 	do {
@@ -107,18 +121,18 @@ private @system immutable(int) runBytecodeInner(ref Stacks stacks, immutable(Ope
 	ref const AllPaths allPaths,
 	ref immutable PathsInfo pathsInfo,
 	ref immutable FilesInfo filesInfo,
-	scope immutable(T) delegate(Stacks) @system @nogc nothrow cb,
+	scope immutable(T) delegate(ref Stacks) @system @nogc nothrow cb,
 ) {
-	const InterpreterDebugInfo debugInfo = const InterpreterDebugInfo(
+	immutable InterpreterDebugInfo debugInfo = const InterpreterDebugInfo(
 		ptrTrustMe(lowProgram),
 		ptrTrustMe(byteCode),
-		ptrTrustMe_const(allSymbols),
-		ptrTrustMe_const(allPaths),
+		ptrTrustMe(cast(immutable) allSymbols),
+		ptrTrustMe(cast(immutable) allPaths),
 		ptrTrustMe(pathsInfo),
 		ptrTrustMe(filesInfo));
-	debugInfoPtr = Ptr!(const InterpreterDebugInfo)(&debugInfo);
-	doDynCall = doDynCall_;
-	return withStacks!T((Stacks stacks) {
+	overwriteMemory(&globals, immutable InterpreterGlobals(
+		ptrTrustMe(debugInfo), byteCode.funPtrToOperationPtr, doDynCall_));
+	return withStacks!T((ref Stacks stacks) {
 		// Ensure the last 'return' returns to here
 		returnPush(stacks, operationOpStopInterpretation.ptr);
 
@@ -128,8 +142,8 @@ private @system immutable(int) runBytecodeInner(ref Stacks stacks, immutable(Ope
 			immutable T res = cb(stacks);
 
 		debug {
-			debugInfoPtr = nullPtr_mut!(const InterpreterDebugInfo);
-			doDynCall = null;
+			overwriteMemory(&globals, immutable InterpreterGlobals(
+				nullPtr!InterpreterDebugInfo, FunPtrToOperationPtr(), null));
 		}
 
 		static if (!is(T == void))
@@ -141,55 +155,19 @@ private @system void setNext(Stacks stacks, immutable Operation* operationPtr) {
 	nextStacks = stacks;
 	nextOperationPtr = operationPtr;
 }
-// TODO: this should be 'static' but that breaks things on Windows
-// (probably same issue as https://issues.dlang.org/show_bug.cgi?id=23024)
-private __gshared Stacks nextStacks;
-private __gshared immutable(Operation)* nextOperationPtr;
+private static Stacks nextStacks;
+private static immutable(Operation)* nextOperationPtr;
 
-// Globals
-private __gshared Ptr!(const InterpreterDebugInfo) debugInfoPtr = void;
-private __gshared DoDynCall doDynCall = void;
-private @system ref const(InterpreterDebugInfo) debugInfo() {
-	return debugInfoPtr.deref();
+// Use a struct to ensure we assign every global
+private struct InterpreterGlobals {
+	immutable Ptr!InterpreterDebugInfo debugInfoPtr;
+	immutable FunPtrToOperationPtr funPtrToOperationPtr;
+	immutable DoDynCall doDynCall;
 }
-//TODO:KILL (should not need during interpretation)
-private @system ref immutable(ByteCode) byteCode() {
-	return debugInfo.byteCode;
-}
+private __gshared InterpreterGlobals globals = void;
 
-// Thread-local
-private static InterpreterRestore restoreStorage = void;
-// WARN: if adding any new mutable state here, make sure 'longjmp' still restores it
-
-// WARN: Does not restore data. Just meant for setjmp/longjmp.
-private struct InterpreterRestore {
-	// This is the stack sizes and byte code index to be restored by longjmp
-	ulong* dataStackTop;
-	// Needs to restore position to 'returnStackTop' then push 'returnStackPush'
-	// (since the last entry may be different)
-	immutable(Operation)** returnStackTop;
-	immutable(Operation)* returnStackPush;
-	immutable(Operation)* nextByteCode;
-}
-
-private @system InterpreterRestore* createInterpreterRestore(ref Stacks stacks, immutable Operation* cur) {
-	restoreStorage = InterpreterRestore(dataTop(stacks), returnBeforeTop(stacks), returnPeek(stacks), cur);
-	return &restoreStorage;
-}
-
-private @system immutable(Operation*) applyInterpreterRestore(ref Stacks stacks, InterpreterRestore* restore) {
-	verify(restore == &restoreStorage);
-	setDataTop(stacks, restore.dataStackTop);
-	setReturnTop(stacks, restore.returnStackTop);
-	returnPush(stacks, restore.returnStackPush);
-	immutable Operation* res = restore.nextByteCode;
-	restoreStorage = InterpreterRestore();
-	return res;
-}
-
-private @system void getNextOperationAndDebug(Stacks stacks, immutable Operation* cur) {
-	printDebugInfo(debugInfo, dataTempAsArr(stacks), returnTempAsArrReverse(stacks), cur);
-	nextOperation(stacks, cur);
+private @system ref immutable(InterpreterDebugInfo) debugInfo() {
+	return globals.debugInfoPtr.deref();
 }
 
 void opAssertUnreachable(Stacks, immutable Operation* cur) {
@@ -215,13 +193,13 @@ void opAssertUnreachable(Stacks, immutable Operation* cur) {
 	nextOperation(stacks, cur);
 }
 
-@system void opReturn(Stacks stacks, immutable Operation* cur) {
+@system void opReturn(Stacks stacks, immutable(Operation)* cur) {
 	verify(!returnStackIsEmpty(stacks));
-	immutable Operation* returnTo = returnPop(stacks);
-	nextOperation(stacks, returnTo);
+	cur = returnPop(stacks);
+	nextOperation(stacks, cur);
 }
 
-private immutable(Operation[8]) operationOpStopInterpretation = [
+immutable(Operation[8]) operationOpStopInterpretation = [
 	immutable Operation(&opStopInterpretation),
 	immutable Operation(&opStopInterpretation),
 	immutable Operation(&opStopInterpretation),
@@ -248,7 +226,8 @@ private @system void opStopInterpretation(Stacks stacks, immutable(Operation)* c
 	immutable ByteCodeOffsetUnsigned[] offsets = readArray!ByteCodeOffsetUnsigned(cur);
 	immutable ulong value = dataPop(stacks);
 	immutable ByteCodeOffsetUnsigned offset = offsets[safeToSizeT(value)];
-	nextOperation(stacks, cur + offset.offset);
+	cur += offset.offset;
+	nextOperation(stacks, cur);
 }
 
 @system void opStackRef(Stacks stacks, immutable(Operation)* cur) {
@@ -281,7 +260,6 @@ private @system void opReadWordsCommon(
 		dataPush(stacks, ptr[i]);
 	nextOperation(stacks, cur);
 }
-
 
 @system void opReadNat8(immutable size_t offsetBytes)(
 	Stacks stacks,
@@ -353,90 +331,82 @@ private @system void writePartialBytes(ubyte* ptr, immutable ulong value, immuta
 }
 
 @system void opCall(Stacks stacks, immutable(Operation)* cur) {
-	callCommon(readOperationPtr(cur), stacks, cur);
+	immutable Operation* op = readOperationPtr(cur);
+	returnPush(stacks, cur);
+	cur = op;
+	nextOperation(stacks, cur);
 }
 
 @system void opCallFunPtr(Stacks stacks, immutable(Operation)* cur) {
 	immutable DynCallSig sig = readDynCallSig(cur);
-	immutable void* funPtr = cast(immutable void*) dataRemove(stacks, sig.parameterTypes.length);
-	immutable Operation[] allOperations = debugInfo.byteCode.byteCode;
-	if (pointsIntoArr(allOperations, cast(immutable Operation*) funPtr))
-		callCommon(cast(immutable Operation*) funPtr, stacks, cur);
-	else
-		opCallFunPtrCommon(stacks, cur, cast(immutable FunPtr) funPtr, sig);
-}
-
-private @system immutable(bool) pointsIntoArr(T)(immutable T[] a, immutable T* b) {
-	return a.ptr <= b && b < (a.ptr + a.length);
+	immutable FunPtr funPtr = immutable FunPtr(cast(immutable void*) dataRemove(stacks, sig.parameterTypes.length));
+	immutable Opt!(Operation*) operationPtr = globals.funPtrToOperationPtr[funPtr];
+	if (has(operationPtr)) {
+		returnPush(stacks, cur);
+		cur = force(operationPtr);
+	} else {
+		scope immutable ulong[] params = dataPopN(stacks, sig.parameterTypes.length);
+		// This is an extern FunPtr, but it might call back into a synthetic FunPtr
+		saveStacks(stacks);
+		immutable ulong value = globals.doDynCall(funPtr, sig, params);
+		if (sig.returnType != DynCallType.void_)
+			dataPush(stacks, value);
+	}
+	nextOperation(stacks, cur);
 }
 
 @system void opCallFunPtrExtern(Stacks stacks, immutable(Operation)* cur) {
 	verify(FunPtr.sizeof <= ulong.sizeof);
-	immutable FunPtr funPtr = cast(FunPtr) readNat64(cur);
+	immutable FunPtr funPtr = immutable FunPtr(cast(immutable void*) readNat64(cur));
 	immutable DynCallSig sig = readDynCallSig(cur);
-	opCallFunPtrCommon(stacks, cur, funPtr, sig);
+	scope immutable ulong[] params = dataPopN(stacks, sig.parameterTypes.length);
+	// This is an extern FunPtr, but it might call back into a synthetic FunPtr
+	saveStacks(stacks);
+	immutable ulong value = globals.doDynCall(funPtr, sig, params);
+	if (sig.returnType != DynCallType.void_)
+		dataPush(stacks, value);
+	nextOperation(stacks, cur);
 }
 
 private @system immutable(DynCallSig) readDynCallSig(ref immutable(Operation)* cur) {
 	return immutable DynCallSig(readArray!DynCallType(cur));
 }
 
-private @system void opCallFunPtrCommon(
-	Stacks stacks,
-	immutable(Operation)* cur,
-	immutable FunPtr funPtr,
-	scope immutable DynCallSig sig,
-) {
-	scope immutable ulong[] params = dataPopN(stacks, sig.parameterTypes.length);
-	immutable ulong value = doDynCall(funPtr, sig, params);
-	if (sig.returnType != DynCallType.void_)
-		dataPush(stacks, value);
+@system void opSetjmp(Stacks stacks, immutable(Operation)* cur) {
+	FakeJmpBufTag* jmpBufPtr = cast(FakeJmpBufTag*) dataPop(stacks);
+	*jmpBufPtr = FakeJmpBufTag(stacks.inner, returnPeek(stacks), cur);
+	// The return from the setjmp is in the handler for 'longjmp'
+	dataPush(stacks, 0);
 	nextOperation(stacks, cur);
 }
 
-private @system void callCommon(
-	immutable Operation* address,
-	Stacks stacks,
-	immutable Operation* cur,
-) {
-	returnPush(stacks, cur);
-	nextOperation(stacks, address);
-}
-
-@system void opExtern(Stacks stacks, immutable(Operation)* cur) {
-	immutable ExternOp op = cast(ExternOp) readNat64(cur);
-	final switch (op) {
-		case ExternOp.backtrace:
-			immutable int size = cast(int) dataPop(stacks);
-			void** array = cast(void**) dataPop(stacks);
-			immutable size_t res = backtrace(stacks, array, cast(uint) size);
-			verify(res <= int.max);
-			dataPush(stacks, res);
-			break;
-		case ExternOp.longjmp:
-			immutable ulong val = dataPop(stacks); // TODO: verify this is int32?
-			JmpBufTag* jmpBufPtr = cast(JmpBufTag*) dataPop(stacks);
-			cur = applyInterpreterRestore(stacks, *jmpBufPtr);
-			dataPush(stacks, val);
-			break;
-		case ExternOp.setjmp:
-			JmpBufTag* jmpBufPtr = cast(JmpBufTag*) dataPop(stacks);
-			overwriteMemory(jmpBufPtr, createInterpreterRestore(stacks, cur));
-			dataPush(stacks, 0);
-			break;
-	}
+@system void opLongjmp(Stacks stacks, immutable(Operation)* cur) {
+	immutable ulong val = dataPop(stacks);
+	FakeJmpBufTag* jmpBufPtr = cast(FakeJmpBufTag*) dataPop(stacks);
+	stacks.inner = jmpBufPtr.stacks;
+	setReturnPeek(stacks, jmpBufPtr.returnPeek);
+	cur = jmpBufPtr.nextOperationPtr;
+	// return value of 'setjmp'
+	dataPush(stacks, val);
 	nextOperation(stacks, cur);
 }
 
-private @system immutable(size_t) backtrace(ref const Stacks stacks, void** res, immutable uint size) {
-	immutable size_t resSize = min(returnStackSize(stacks), size);
-	foreach (immutable size_t i; 0 .. resSize)
-		res[i] = cast(void*) returnPeek(stacks, i);
-	return resSize;
+@system void opInterpreterBacktrace(Stacks stacks, immutable(Operation)* cur) {
+	immutable size_t skip = safeToSizeT(dataPop(stacks));
+	immutable size_t max = safeToSizeT(dataPop(stacks));
+	BacktraceEntry* out_ = cast(BacktraceEntry*) dataPop(stacks);
+	BacktraceEntry* res = fillBacktrace(debugInfo, out_, max, skip, stacks);
+	dataPush(stacks, cast(immutable size_t) res);
+	nextOperation(stacks, cur);
 }
 
-// This isn't the structure the posix jmp-buf-tag has, but it fits inside it
-private alias JmpBufTag = InterpreterRestore*;
+private struct FakeJmpBufTag {
+	Stacks.Inner stacks;
+	immutable(Operation)* returnPeek;
+	immutable(Operation)* nextOperationPtr;
+}
+// see setjmp.crow
+static assert(FakeJmpBufTag.sizeof <= 288);
 
 @system void opFnUnary(alias cb)(Stacks stacks, immutable(Operation)* cur) {
 	dataPush(stacks, cb(dataPop(stacks)));
@@ -452,7 +422,8 @@ private alias JmpBufTag = InterpreterRestore*;
 
 private @system void nextOperation(Stacks stacks, immutable Operation* cur) {
 	static if (false)
-		getNextOperationAndDebug(stacks, cur);
+		printDebugInfo(debugInfo, dataTempAsArr(stacks), returnTempAsArrReverse(stacks), cur);
+
 	version(TailRecursionAvailable) {
 		cur.fn(stacks, cur + 1);
 	} else {
@@ -501,7 +472,8 @@ private @system immutable(T[]) readArray(T)(ref immutable(Operation)* cur) {
 
 @system void opJump(Stacks stacks, immutable(Operation)* cur) {
 	immutable ByteCodeOffset offset = immutable ByteCodeOffset(readInt64(cur));
-	nextOperation(stacks, cur + offset.offset);
+	cur += offset.offset;
+	nextOperation(stacks, cur);
 }
 
 @system void opPack(Stacks stacks, immutable(Operation)* cur) {

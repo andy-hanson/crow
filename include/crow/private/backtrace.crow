@@ -1,111 +1,206 @@
 no-std
 import
-	sys/execinfo: backtrace
-	../col/private/arr-low-level: new, subscript
-	../compare: <, <=, >
+	win32:
+		CONTEXT, CONTEXT_FULL, GetCurrentProcess, GetCurrentThread, HANDLE,
+		IMAGE_FILE_MACHINE_AMD64, new, RtlCaptureContext
+	windows/DbgHelp:
+		AddrPC, FileName, IMAGEHLP_LINE64, IMAGEHLP_SYMBOL64, LineNumber, Name, new, Offset,
+		STACKFRAME64, StackWalk64, SymCleanup, SymGetLineFromAddr64, SymGetSymFromAddr64,
+		SymFunctionTableAccess64, SymInitialize, SYMOPT_LOAD_LINES, SymSetOptions
+	../bool: ||, true
+	../bytes-types: new
+	../cell: as-mut-ptr, cell, new
+	../col/private/arr-low-level: arr-from-begin-end, new
+	../compare: <=
 	../misc: new, void
+	../private/number-low-level: ==, <=>, nat8, nat32, nat64, unsafe-to-nat32, wrap-add, wrap-sub
 	../ptr:
-		==, <=>, +, *, any-const-ptr, as-const, const-ptr, mut-ptr, set-deref, set-subscript,
-		subscript
-	../version: is-windows
+		==, +, *, as-any-const-ptr, as-const, by-val, mut-ptr, null, ptr-cast, ptr-to, ref-of-val,
+		set-deref, size-of
+	../version: is-interpreted, is-windows
 	./alloc: copy-data-from, try-alloc-uninitialized
-	./bootstrap:
-		all-funs, begin-ptr, c-str, fun-name, fun-name-and-ptr, fun-ptr, hard-assert, new, none,
-		opt, size, some
-	./number-low-level:
-		==, <=>, nat64, to-int64, unsafe-div, unsafe-to-int64, unsafe-to-int32,
-		unsafe-to-nat64, wrap-add, wrap-sub
-	./range-low-level: ..
+	./bootstrap: char8, c-str, hard-assert, none, opt, some
+	./c-str-util: c-str-size-incl-nul
+	./libunwind:
+		new, unw_context_t, unw_cursor_t, unw_getcontext, unw_get_proc_name, unw_init_local,
+		unw_step, unw_word_t
 export
-	./bootstrap: backtrace, return-stack
+	./bootstrap: backtrace, backtrace-entry, entries, file-path, function-name, line-number, new
 
-get-backtrace backtrace() unsafe
-	# Being careful to avoid calling functions that may throw here
-	if is-windows
-		(),
-	elif arrs ?= try-alloc-backtrace-arrs
-		n-code-ptrs = arrs backtrace-and-get-n-code-ptrs
-		hard-assert: n-code-ptrs <= code-ptrs-size
-		arrs fill-arrs n-code-ptrs
+.new backtrace()
+	(),
+
+get-backtrace backtrace(skip nat64) unsafe
+	max-entries = 8
+	opt-entries backtrace-entry mut*? = max-entries try-alloc-uninitialized
+	if entries ?= opt-entries
+		if is-interpreted
+			end = entries interpreter-backtrace max-entries, skip
+			entries copy-strings end
+			(entries.as-const arr-from-begin-end end.as-const),
+		elif is-windows
+			entries get-native-backtrace-windows max-entries, (skip wrap-add 2)
+		else
+			entries get-native-backtrace-libunwind max-entries, (skip wrap-add 1)
+
+###
+Implemented by interpreter only.
+Returns the pointer to after the last entry written.
+Result c-str are temporary, must copy!
+###
+.interpreter-backtrace backtrace-entry mut*
+	out backtrace-entry mut*
+	max-entries nat64
+	skip nat64
+spec
+	noctx
+	unsafe
+	builtin
+
+.copy-strings void(cur backtrace-entry mut*, end backtrace-entry mut*) unsafe
+	if cur == end
+		()
 	else
-		(),
+		*cur := cur->function-name.copy-c-str-or-empty, cur->file-path.copy-c-str-or-empty, cur->line-number
+		cur + 1 copy-strings end
 
-# TODO:INLINE
-.backtrace-and-get-n-code-ptrs nat64(arrs backtrace-arrs) unsafe
-	(arrs.code-ptrs backtrace code-ptrs-size.unsafe-to-int64.unsafe-to-int32).to-int64 unsafe-to-nat64
-
-# TODO:INLINE
-.fill-arrs backtrace(arrs backtrace-arrs, n-code-ptrs nat64) unsafe
-	arrs.funs copy-data-from all-funs.begin-ptr, all-funs.size
-	arrs.funs set-sort all-funs.size
-	end-code-names = arrs.code-names + n-code-ptrs
-	arrs.code-names fill-code-names end-code-names, arrs.code-ptrs.as-const, arrs.funs.as-const
-	arrs.code-names.as-const[0 .. n-code-ptrs],
-
-.fill-code-names void
-	code-names c-str mut*
-	end-code-names c-str mut*
-	code-ptrs any-const-ptr*
-	funs fun-name-and-ptr*
+.get-native-backtrace-windows backtrace
+	entries backtrace-entry mut*
+	max-entries nat64
+	skip nat64
 spec
 	unsafe
 body
-	if code-names < end-code-names
-		*code-names := *code-ptrs get-fun-name funs, all-funs.size
-		code-names + 1 fill-code-names end-code-names, code-ptrs + 1, funs
+	if vars ?= try-alloc-windows-backtrace-vars
+		entries get-windows-backtrace-with-vars max-entries, (skip wrap-add 1), vars
 
-.code-ptrs-size nat64()
-	8
+.get-windows-backtrace-with-vars backtrace
+	entries backtrace-entry mut*
+	max-entries nat64
+	skip nat64
+	vars windows-backtrace-vars
+spec
+	unsafe
+body
+	process = GetCurrentProcess
+	thread = GetCurrentThread
 
-.backtrace-arrs record mut
-	code-ptrs any-const-ptr mut*
-	code-names c-str mut*
-	funs fun-name-and-ptr mut*
+	ok0 = process SymInitialize null, true
+	hard-assert: ok0
 
-.try-alloc-backtrace-arrs backtrace-arrs?() unsafe
-	size = 8
-	# TODO: support type on left of '?='
-	if code-ptrs ?= size.try-alloc-uninitialized :: any-const-ptr mut*?
-		if code-names ?= size.try-alloc-uninitialized :: c-str mut*?
-			if funs ?= all-funs.size.try-alloc-uninitialized :: fun-name-and-ptr mut*?
-				(code-ptrs, code-names, funs) some
+	# For some reason this has to be on the stack. Failed when in 'windows-backtrace-vars'
+	context CONTEXT = CONTEXT_FULL,
+	context.ptr-to RtlCaptureContext
+	frame STACKFRAME64 = context.ptr-to,
+
+	_ = SYMOPT_LOAD_LINES SymSetOptions
+	max-end = entries + max-entries
+	end = entries windows-walk-backtrace max-end, skip, process, thread, context.ptr-to, frame.ptr-to, vars
+	ok1 = process SymCleanup
+	hard-assert: ok1
+	(entries.as-const arr-from-begin-end end.as-const),
+
+.windows-backtrace-vars record by-val mut
+	offset nat64 mut*
+	displacement nat32 mut*
+	symbol IMAGEHLP_SYMBOL64 mut*
+	line IMAGEHLP_LINE64 mut*
+
+.try-alloc-windows-backtrace-vars windows-backtrace-vars?() unsafe
+	if offset ?= try-alloc-uninitialized :: nat64 mut*?
+		if displacement ?= try-alloc-uninitialized :: nat32 mut*?
+			symbol-max-name-length = 255
+			symbol-size = size-of@<IMAGEHLP_SYMBOL64> wrap-add symbol-max-name-length wrap-add 1
+			if symbol-buffer ?= symbol-size.try-alloc-uninitialized :: nat8 mut*?
+				symbol IMAGEHLP_SYMBOL64 mut* = symbol-buffer ptr-cast
+				*symbol := symbol-max-name-length.unsafe-to-nat32,
+				if line ?= try-alloc-uninitialized :: IMAGEHLP_LINE64 mut*?
+					*line := ()
+					(offset, displacement, symbol, line) some
+
+.new<a> a?() noctx
+	none
+
+.windows-walk-backtrace backtrace-entry mut*
+	out backtrace-entry mut*
+	out-end backtrace-entry mut*
+	skip nat64
+	process HANDLE
+	thread HANDLE
+	context CONTEXT mut*
+	frame STACKFRAME64 mut*
+	vars windows-backtrace-vars
+spec
+	unsafe
+body
+	ctx = context as-any-const-ptr
+	if out == out-end
+		out
+	elif IMAGE_FILE_MACHINE_AMD64 StackWalk64 process, thread, frame, ctx, null, &SymFunctionTableAccess64, null, null
+		if skip == 0
+			name c-str = if process SymGetSymFromAddr64 frame->AddrPC.Offset, vars.offset, vars.symbol
+				vars.symbol->Name.ptr-to copy-c-str-or-empty
 			else
-				none
+				""
+			*out := if process SymGetLineFromAddr64 frame->AddrPC.Offset, vars.displacement, vars.line
+				name, vars.line->FileName.copy-c-str-or-empty, vars.line->LineNumber
+			else
+				name, "", 0
+			out + 1 windows-walk-backtrace out-end, 0, process, thread, context, frame, vars
 		else
-			none
+			out windows-walk-backtrace out-end, (skip wrap-sub 1), process, thread, context, frame, vars
 	else
-		none
+		out
 
-.get-fun-name c-str(code-ptr any-const-ptr, funs fun-name-and-ptr*, size nat64) unsafe noctx
-	# TODO: this will fail to give a name for the last function
-	if size < 2
-		"<<UNKNOWN>>"
-	elif code-ptr < funs[1].fun-ptr
-		funs->fun-name
+.copy-c-str-or-empty c-str(a c-str) unsafe
+	size = a c-str-size-incl-nul
+	if out ?= size.try-alloc-uninitialized :: char8 mut*?
+		out copy-data-from a, size
+		out as-const
 	else
-		code-ptr get-fun-name funs + 1, (size wrap-sub 1)
+		""
 
-# TODO: use the one from sort.crow
-.set-sort void(a fun-name-and-ptr mut*, size nat64) noctx unsafe
-	if size > 1
-		a swap 0, (size unsafe-div 2)
-		after-pivot = a set-partition a->fun-ptr, 1, (size wrap-sub 1)
-		new-pivot-index = after-pivot wrap-sub 1
-		a swap 0, new-pivot-index
-		a set-sort new-pivot-index
-		a + after-pivot set-sort (size wrap-sub after-pivot)
+.get-native-backtrace-libunwind backtrace(entries backtrace-entry mut*, max-entries nat64, skip nat64) unsafe
+	cursor-val by-val unw_cursor_t = (),
+	cursor = cursor-val ref-of-val
+	context-val by-val unw_context_t = (),
+	context = context-val ref-of-val
+	err0 = context unw_getcontext
+	hard-assert: err0 == 0
+	err1 = cursor unw_init_local context
+	hard-assert: err1 == 0
+	# omit 'get-native-backtrace' in addition to other skipped
+	cursor unwind-skip (skip wrap-add 1)
+	end = entries unwind-recur entries + max-entries, cursor
+	(entries.as-const arr-from-begin-end end.as-const),
 
-.set-partition nat64(a fun-name-and-ptr mut*, pivot any-const-ptr, l nat64, r nat64) noctx unsafe
-	if l <= r
-		if a[l].fun-ptr < pivot
-			a set-partition pivot, (l wrap-add 1), r
+.unwind-skip void(cursor unw_cursor_t, skip nat64) unsafe
+	unless skip == 0
+		_ = cursor unw_step
+		cursor unwind-skip (skip wrap-sub 1)
+
+# Returns one past the last entry written to
+.unwind-recur backtrace-entry mut*
+	out-cur backtrace-entry mut*
+	out-end backtrace-entry mut*
+	cursor unw_cursor_t
+spec
+	unsafe
+body
+	if out-cur == out-end || cursor.unw_step <= 0
+		out-cur
+	else
+		offset by-val cell unw_word_t = 0,
+		buf-size = 256
+		buf-try char8 mut*? = buf-size try-alloc-uninitialized
+		if buf ?= buf-try
+			err = cursor unw_get_proc_name buf, buf-size, offset.ref-of-val.as-mut-ptr
+			*out-cur := if err == 0
+				# TODO: get filename and line number too
+				buf.as-const, "", 0
+			else
+				"", "", 0
+			out-cur + 1 unwind-recur out-end, cursor
 		else
-			a swap l, r
-			a set-partition pivot, l, (r wrap-sub 1)
-	else
-		l
-
-.swap<a> void(a a mut*, lo nat64, hi nat64) noctx unsafe
-	temp = a[lo]
-	a[lo] := a[hi]
-	a[hi] := temp
+			*out-cur := "<<out of memory for backtrace>>", "", 0
+			out-cur + 1

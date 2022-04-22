@@ -2,6 +2,7 @@ no-std
 import
 	crow/bits: |, <<
 	crow/bool: bool
+	crow/bytes-types: bytes2048, new
 	crow/c-types: c-char, c-int, long, u-short, u-int, size_t
 	crow/extra-types: err-t
 	crow/fun-util: fun-ptr1
@@ -84,6 +85,8 @@ WORD alias
 	nat16
 DWORD alias
 	nat32
+DWORD64 alias
+	nat64
 ULONG_PTR alias
 	nat64
 
@@ -115,7 +118,7 @@ _beginthreadex HANDLE
 spec
 	noctx
 	unsafe
-	extern<kernel32>
+	extern<c>
 
 WAIT_OBJECT_0 DWORD() noctx
 	0
@@ -398,7 +401,81 @@ GetTickCount DWORD() noctx extern<kernel32>
 
 Sleep void(dwMilliseconds DWORD) noctx summon extern<kernel32>
 
-wglGetProcAddress any-mut-ptr(name c-str) noctx summon unsafe extern<kernel32>
+CONTEXT record extern by-val
+	P1Home DWORD64
+	P2Home DWORD64
+	P3Home DWORD64
+	P4Home DWORD64
+	P5Home DWORD64
+	P6Home DWORD64
+	ContextFlags DWORD
+
+	SegCs WORD
+	SegDs WORD
+	SegEs WORD
+	SegFs WORD
+	SegGs WORD
+	SegSs WORD
+	EFlags DWORD
+
+	Dr0 DWORD64
+	Dr1 DWORD64
+	Dr2 DWORD64
+	Dr3 DWORD64
+	Dr6 DWORD64
+	Dr7 DWORD64
+
+	Rax DWORD64
+	Rcx DWORD64
+	Rdx DWORD64
+	Rbx DWORD64
+	Rsp DWORD64
+	Rbp DWORD64
+	Rsi DWORD64
+	Rdi DWORD64
+	R8 DWORD64
+	R9 DWORD64
+	R10 DWORD64
+	R11 DWORD64
+	R12 DWORD64
+	R13 DWORD64
+	R14 DWORD64
+	R15 DWORD64
+
+	Rip DWORD64
+	# There's a lot more declared here, reserve enough space for it all
+	opaque bytes2048
+new CONTEXT(ContextFlags DWORD) noctx
+	cf = ContextFlags
+	0, 0, 0, 0, 0, 0, cf, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, ()
+
+RtlCaptureContext void(context CONTEXT mut*) noctx unsafe extern<kernel32>
+
+# TODO: use a flags enum
+CONTEXT_AMD64 DWORD() noctx
+	0x00100000
+CONTEXT_CONTROL DWORD() noctx
+	CONTEXT_AMD64 | 0x00000001
+CONTEXT_INTEGER DWORD() noctx
+	CONTEXT_AMD64 | 0x00000002
+CONTEXT_SEGMENTS DWORD() noctx
+	CONTEXT_AMD64 | 0x00000004
+CONTEXT_FLOATING_POINT DWORD() noctx
+	CONTEXT_AMD64 | 0x00000008
+CONTEXT_DEBUG_REGISTERS DWORD() noctx
+	CONTEXT_AMD64 | 0x00000010
+CONTEXT_FULL DWORD() noctx
+	CONTEXT_CONTROL | CONTEXT_INTEGER | CONTEXT_FLOATING_POINT
+CONTEXT_ALL DWORD() noctx
+	CONTEXT_CONTROL | CONTEXT_INTEGER | CONTEXT_SEGMENTS | CONTEXT_FLOATING_POINT | CONTEXT_DEBUG_REGISTERS
+CONTEXT_XSTATE DWORD() noctx
+	CONTEXT_AMD64 | 0x00000040
+
+GetCurrentProcess HANDLE() noctx unsafe extern<kernel32>
+GetCurrentThread HANDLE() noctx unsafe extern<kernel32>
+
+IMAGE_FILE_MACHINE_AMD64 DWORD() noctx
+	0x8664
 
 # Not using bytes-types due to alignment
 

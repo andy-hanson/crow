@@ -10,7 +10,7 @@ import util.ptr : hashPtr, Ptr, ptrEquals;
 import util.sym : hashSym, Sym, symEq;
 import util.util : verify;
 
-private struct DictBuilder(K, V, alias equal, alias hash) {
+struct DictBuilder(K, V, alias equal, alias hash) {
 	@disable this(ref const DictBuilder);
 
 	private:
@@ -41,7 +41,7 @@ immutable(Opt!V) tryAddToDict(K, V, alias equal, alias hash)(
 	immutable V value,
 ) {
 	ValueAndDidAdd!(immutable V) v = getOrAddAndDidAdd(alloc, a.builder, key, () => value);
-	return v.didAdd ? none!V : some(v.value);
+	return v.didAdd ? none!V : some!V(v.value);
 }
 
 immutable(Dict!(K, V, equal, hash)) finishDict(K, V, alias equal, alias hash)(

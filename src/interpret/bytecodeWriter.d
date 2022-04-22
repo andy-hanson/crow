@@ -9,7 +9,6 @@ import interpret.bytecode :
 	ByteCodeOffset,
 	ByteCodeOffsetUnsigned,
 	ByteCodeSource,
-	ExternOp,
 	Operation,
 	Operations,
 	stackEntrySize,
@@ -27,9 +26,10 @@ import interpret.runBytecode :
 	opDupWord,
 	opDupWordVariable,
 	opDupWords,
-	opExtern,
 	opFnBinary,
 	opFnUnary,
+	opInterpreterBacktrace,
+	opLongjmp,
 	opPack,
 	opPushValue64,
 	opSet,
@@ -45,6 +45,7 @@ import interpret.runBytecode :
 	opRemove,
 	opRemoveVariable,
 	opReturn,
+	opSetjmp,
 	opStackRef,
 	opSwitch0ToN,
 	opWrite;
@@ -158,7 +159,7 @@ void writeCallFunPtrExtern(
 	scope immutable DynCallSig sig,
 ) {
 	pushOperationFn(writer, source, &opCallFunPtrExtern);
-	pushNat64(writer, source, cast(immutable ulong) funPtr);
+	pushNat64(writer, source, cast(immutable ulong) funPtr.fn);
 	writeCallFunPtrCommon(writer, source, sig);
 }
 
@@ -413,6 +414,10 @@ immutable(ByteCodeIndex) writePushFunPtrDelayed(
 	return fnAddress;
 }
 
+void fillDelayedFunPtr(ref Operations operations, immutable ByteCodeIndex index, immutable FunPtr definition) {
+	operations.byteCode[index.index] = immutable Operation(cast(immutable ulong) definition.fn);
+}
+
 void writeRemove(ref ByteCodeWriter writer, immutable ByteCodeSource source, immutable StackEntries entries) {
 	if (entries.size != 0) {
 		writeRemoveInner(
@@ -561,20 +566,13 @@ immutable(SwitchDelayed) writeSwitchWithValuesDelay(
 	*/
 }
 
-void writeExtern(ref ByteCodeWriter writer, immutable ByteCodeSource source, immutable ExternOp op) {
-	immutable int stackEffect = () {
-		final switch (op) {
-			case ExternOp.longjmp:
-				return -2;
-			case ExternOp.backtrace:
-				return -1;
-			case ExternOp.setjmp:
-				return 0;
-		}
-	}();
-	pushOperationFn(writer, source, &opExtern);
-	pushNat64(writer, source, op);
-	writer.nextStackEntry += stackEffect;
+void writeSetjmp(ref ByteCodeWriter writer, immutable ByteCodeSource source) {
+	pushOperationFn(writer, source, &opSetjmp);
+}
+
+void writeLongjmp(ref ByteCodeWriter writer, immutable ByteCodeSource source) {
+	pushOperationFn(writer, source, &opLongjmp);
+	writer.nextStackEntry -= 2;
 }
 
 private @trusted void writeArray(T)(
@@ -592,6 +590,11 @@ private @trusted void writeArray(T)(
 			initMemory(outBegin + i, value);
 		verify(outBegin + values.length <= cast(T*) mutArrEnd(writer.operations));
 	}
+}
+
+void writeInterpreterBacktrace(ref ByteCodeWriter writer, immutable ByteCodeSource source) {
+	pushOperationFn(writer, source, &opInterpreterBacktrace);
+	writer.nextStackEntry -= 2;
 }
 
 void writeFnBinary(alias fn)(ref ByteCodeWriter writer, immutable ByteCodeSource source) {

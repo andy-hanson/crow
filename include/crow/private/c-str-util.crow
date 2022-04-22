@@ -3,7 +3,7 @@ import
 	../compare: !=
 	../ptr: +, -, *, as-const, as-mut, mut-ptr
 	./bootstrap: char8, c-str, hard-unreachable, none, opt, some, to-nat8
-	./number-low-level: ==, nat64
+	./number-low-level: ==, nat64, wrap-add
 
 ###
 Walk a c-str and return a pointer to the first occurrence of `c`.
@@ -30,3 +30,6 @@ find-c-str-end char8 mut*(a char8 mut*) unsafe noctx
 
 c-str-size nat64(a c-str) unsafe noctx
 	a.find-c-str-end - a
+
+c-str-size-incl-nul nat64(a c-str) unsafe noctx
+	a.c-str-size wrap-add 1

@@ -27,7 +27,7 @@ main fut nat(_ str[]) summon
 				failures ~= "{file path} export not used: {public-export}"
 	files each file =>
 		file.members.private each private-member =>
-			if file.uses[private-member]! < 2 && !(private-member in excluded-private)
+			if file.uses[private-member]! < 2
 				failures ~= "{file path} private member not used: {private-member}"
 	files each file =>
 		failures lint-imports-in-file file
@@ -41,10 +41,7 @@ main fut nat(_ str[]) summon
 	res move-to-set
 
 .excluded-public sym[]()
-	"derefConstantPointer", "diffSymbols", "test"
-
-.excluded-private sym[]()
-	"writeFieldName", "writeLocalName", "asConcreteFun"
+	"derefConstantPointer", "diffSymbols", "main"
 
 .file record
 	path str
@@ -79,18 +76,14 @@ all-files file[]() summon
 			elif line contains-substr "access:private"
 				private ~= name
 			else
-				unless path in excluded-unknown-access-paths || name in excluded-unknown-access
+				unless path == "src/wasm.d" || name in excluded-unknown-access
 					"Unexpected non-public, non-private member {name} in {path}" throw
 
 	public.move-to-arr, private.move-to-arr
 
-# extern functions are neither public nor private
-.excluded-unknown-access-paths str[]()
-	"src/app.d", "src/wasm.d"
-
 # for some reason, dscanner doesn't give non-nested unions like Converter64 access:private
 .excluded-unknown-access sym[]()
-	"Converter32", "Converter64", "DoubleToUlong"
+	"Converter32", "Converter64", "DCValue", "DoubleToUlong"
 
 .imports-and-rest record
 	imports set sym

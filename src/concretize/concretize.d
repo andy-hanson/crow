@@ -91,8 +91,6 @@ immutable(ConcreteProgram) concretizeInner(
 		getOrAddNonTemplateConcreteFunAndFillBody(ctx, getUserMainFun(alloc, program, mainModule));
 	immutable Ptr!ConcreteFun allocFun =
 		getOrAddNonTemplateConcreteFunAndFillBody(ctx, getAllocFun(alloc, program));
-	immutable Ptr!ConcreteFun allFunsFun =
-		getOrAddNonTemplateConcreteFunAndFillBody(ctx, getAllFunsFun(alloc, program));
 	immutable Ptr!ConcreteFun staticSymsFun =
 		getOrAddNonTemplateConcreteFunAndFillBody(ctx, getStaticSymsFun(alloc, program));
 	// We remove items from these dicts when we process them.
@@ -107,8 +105,6 @@ immutable(ConcreteProgram) concretizeInner(
 			alloc,
 			ctx.allConstants,
 			allSymbols,
-			allConcreteFuns,
-			mustBeByVal(allFunsFun.deref().returnType),
 			mustBeByVal(staticSymsFun.deref().returnType)),
 		finishArr_immutable(alloc, ctx.allConcreteStructs),
 		allConcreteFuns,
@@ -229,13 +225,6 @@ immutable(Ptr!FunInst) getStaticSymsFun(ref Alloc alloc, ref immutable Program p
 		shortSym("static-syms"));
 	if (funs.length != 1)
 		todo!void("wrong number static-syms funs");
-	return nonTemplateFunInst(alloc, only(funs));
-}
-
-immutable(Ptr!FunInst) getAllFunsFun(ref Alloc alloc, ref immutable Program program) {
-	immutable Ptr!FunDecl[] funs =
-		getFuns(program.specialModules.bootstrapModule.deref(), shortSym("all-funs"));
-	if (funs.length != 1) todo!void("wrong number all-funs funs");
 	return nonTemplateFunInst(alloc, only(funs));
 }
 

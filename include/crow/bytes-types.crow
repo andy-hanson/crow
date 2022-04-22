@@ -101,6 +101,27 @@ bytes256 record by-val extern
 new bytes256() noctx
 	(), ()
 
+bytes512 record by-val extern
+	.n0 bytes256
+	.n1 bytes256
+
+new bytes512() noctx
+	(), ()
+
+bytes1024 record by-val extern
+	.n0 bytes512
+	.n1 bytes512
+
+new bytes1024() noctx
+	(), ()
+
+bytes2048 record by-val extern
+	.n0 bytes1024
+	.n1 bytes1024
+
+new bytes2048() noctx
+	(), ()
+
 # Just ensuring that private fields are used...
 test
 	_ = ()::bytes2.n0
@@ -124,4 +145,10 @@ test
 	_ = ()::bytes128.n1
 	_ = ()::bytes256.n0
 	_ = ()::bytes256.n1
+	_ = ()::bytes512.n0
+	_ = ()::bytes512.n1
+	_ = ()::bytes1024.n0
+	_ = ()::bytes1024.n1
+	_ = ()::bytes2048.n0
+	_ = ()::bytes2048.n1
 	()

@@ -77,6 +77,7 @@ src_files_common = src\concretize\allConstantsBuilder.d \
 	src\interpret\debugInfo.d \
 	src\interpret\extern_.d \
 	src\interpret\fakeExtern.d \
+	src\interpret\funToReferences.d \
 	src\interpret\generateBytecode.d \
 	src\interpret\generateText.d \
 	src\interpret\runBytecode.d \
@@ -113,7 +114,6 @@ src_files_common = src\concretize\allConstantsBuilder.d \
 	src\util\col\mutArr.d \
 	src\util\col\mutDict.d \
 	src\util\col\mutIndexDict.d \
-	src\util\col\mutIndexMultiDict.d \
 	src\util\col\mutMaxArr.d \
 	src\util\col\range.d \
 	src\util\col\sortUtil.d \
@@ -142,7 +142,8 @@ src_files_common = src\concretize\allConstantsBuilder.d \
 	src\util\writer.d \
 	src\util\writerUtils.d \
 	src\versionInfo.d
-app_src_no_test = src\app.d \
+app_only_files = src\app\main.d src\app\dyncall.d
+app_src_no_test = $(app_only_files) \
 	$(src_files_common) \
 	src\backend\mangle.d \
 	src\backend\writeToC.d \
@@ -170,18 +171,18 @@ other_deps = bin\d-imports\date.txt bin\d-imports\commit-hash.txt
 app_deps_no_test = $(app_src_no_test) $(other_deps) dyncall
 app_deps_with_test = $(app_src_with_test) $(other_deps) dyncall
 
-d_flags_common = -w -betterC -preview=dip25 -preview=dip1000 -J=bin\d-imports
-dmd_flags_assert = $(d_flags_common) -check=on -boundscheck=on
-dmd_flags_debug = -debug -g -version=Debug -version=Test
-ldc_flags_assert = $(d_flags_common) --enable-asserts=true --boundscheck=on
-ldc_flags_no_assert = $(d_flags_common) --enable-asserts=false --boundscheck=off
+ldc_flags_common = -w -betterC -preview=dip25 -preview=dip1000 -J=bin\d-imports
+ldc_flags_app = --m64
+ldc_flags_debug = --d-debug -g --d-version=Debug --d-version=Test
+ldc_flags_assert = $(ldc_flags_common) --enable-asserts=true --boundscheck=on
+ldc_flags_no_assert = $(ldc_flags_common) --enable-asserts=false --boundscheck=off
 ldc_fast_flags = -O2 --d-version=Optimized --d-version=TailRecursionAvailable
 ldc_fast_flags_no_tail_call = -O2 --d-version=Optimized
 
-app_link = -L=dyncall\dyncall\dyncall_s.lib -L=dyncall\dynload\dynload_s.lib -L=/stack:16777216
+app_link = -L=dyncall\dyncall\dyncall_s.lib -L=dyncall\dyncallback\dyncallback_s.lib -L=dyncall\dynload\dynload_s.lib -L=/stack:16777216
 
-app_files_no_test = src\app.d $(src_files_no_test)
-app_files_with_test = src\app.d $(src_files_with_test)
+app_files_no_test = $(app_only_files) $(src_files_no_test)
+app_files_with_test = $(app_only_files) $(src_files_with_test)
 # TODO: should not need document\mangle\writeToC\writeTypes
 wasm_src = src\wasm.d $(src_files_common) src\document\document.d src\backend\mangle.d src\backend\writeToC.d src\backend\writeTypes.d
 wasm_deps = $(wasm_src)
@@ -197,10 +198,10 @@ bin\d-imports\commit-hash.txt: bin\d-imports
 	git rev-parse --short HEAD > bin\d-imports\commit-hash.txt
 
 bin\crow-debug.exe: $(app_deps_with_test)
-	dmd -ofbin\crow-debug.exe -m64 $(dmd_flags_assert) $(dmd_flags_debug) $(app_src_with_test) $(app_link)
+	ldc2 -ofbin\crow-debug.exe -g $(ldc_flags_assert) $(ldc_flags_app) $(ldc_flags_debug) $(app_src_with_test) $(app_link)
 
 bin\crow.exe: $(app_deps_no_test)
-	ldc2 -ofbin\crow.exe -g $(ldc_flags_assert) $(ldc_fast_flags) $(app_src_no_test) $(app_link)
+	ldc2 -ofbin\crow.exe -g $(ldc_flags_assert) $(ldc_flags_app) $(ldc_fast_flags) $(app_src_no_test) $(app_link)
 	del bin\crow.obj
 
 bin/crow.wasm: $(wasm_deps)

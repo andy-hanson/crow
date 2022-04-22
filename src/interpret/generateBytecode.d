@@ -1,6 +1,6 @@
 module interpret.generateBytecode;
 
-@safe @nogc nothrow:
+@safe @nogc pure nothrow:
 
 import interpret.applyFn :
 	fnAddFloat32,
@@ -55,9 +55,9 @@ import interpret.bytecode :
 	ByteCodeIndex,
 	ByteCodeSource,
 	castImmutable,
-	ExternOp,
 	FileToFuns,
 	FunNameAndPos,
+	FunPtrToOperationPtr,
 	Operation,
 	Operations,
 	stackEntrySize;
@@ -65,6 +65,7 @@ import interpret.bytecodeWriter :
 	ByteCodeWriter,
 	nextByteCodeIndex,
 	fillDelayedCall,
+	fillDelayedFunPtr,
 	fillDelayedJumpIfFalse,
 	fillDelayedSwitchEntry,
 	fillInJumpDelayed,
@@ -86,9 +87,10 @@ import interpret.bytecodeWriter :
 	writeDup,
 	writeDupEntries,
 	writeDupEntry,
-	writeExtern,
 	writeFnBinary,
 	writeFnUnary,
+	writeInterpreterBacktrace,
+	writeLongjmp,
 	writeMulConstantNat64,
 	writePushConstant,
 	writePushConstantPointer,
@@ -103,11 +105,30 @@ import interpret.bytecodeWriter :
 	writeRemove,
 	writeReturn,
 	writeSet,
+	writeSetjmp,
 	writeSwitch0ToNDelay,
 	writeSwitchWithValuesDelay,
 	writeWrite;
 import interpret.debugging : writeLowType;
-import interpret.extern_ : DynCallType, DynCallSig, ExternFunPtrsForAllLibraries, FunPtr;
+import interpret.extern_ :
+	DynCallType,
+	DynCallSig,
+	ExternFunPtrsForAllLibraries,
+	FunPtr,
+	funPtrEquals,
+	FunPtrInputs,
+	hashFunPtr,
+	MakeSyntheticFunPtrs;
+import interpret.funToReferences :
+	eachFunPtr,
+	finishAt,
+	FunPtrReferences,
+	FunPtrTypeToDynCallSig,
+	FunReferences,
+	FunToReferences,
+	initFunToReferences,
+	registerCall,
+	registerFunPtrReference;
 import interpret.generateText :
 	generateText,
 	getTextInfoForArray,
@@ -120,6 +141,7 @@ import interpret.generateText :
 import model.concreteModel : TypeSize;
 import model.constant : Constant, matchConstant;
 import model.lowModel :
+	asFunPtrType,
 	asLocalRef,
 	asParamRef,
 	asPrimitiveType,
@@ -129,6 +151,7 @@ import model.lowModel :
 	asRecordType,
 	asSpecialUnary,
 	asUnionType,
+	hashLowFunIndex,
 	isLocalRef,
 	isParamRef,
 	isRecordType,
@@ -140,8 +163,10 @@ import model.lowModel :
 	LowFun,
 	LowFunBody,
 	LowFunExprBody,
+	lowFunIndexEquals,
 	lowFunRange,
 	LowFunIndex,
+	LowFunPtrType,
 	LowLocal,
 	LowParam,
 	LowProgram,
@@ -158,16 +183,16 @@ import model.model : FunDecl, Module, name, Program, range;
 import model.typeLayout : nStackEntriesForType, optPack, Pack, sizeOfType;
 import util.alloc.alloc : Alloc, TempAlloc;
 import util.col.arr : castImmutable, empty, only;
+import util.col.arrBuilder : add, ArrBuilder, finishArr;
 import util.col.arrUtil : map, mapOpWithIndex;
-import util.col.dict : mustGetAt;
+import util.col.dict : Dict, KeyValuePair, mustGetAt, zipToDict;
 import util.col.fullIndexDict :
 	FullIndexDict, fullIndexDictEach, fullIndexDictOfArr, fullIndexDictSize, mapFullIndexDict;
-import util.col.mutIndexMultiDict :
-	MutIndexMultiDict, mutIndexMultiDictAdd, mutIndexMultiDictMustGetAt, newMutIndexMultiDict;
 import util.col.mutMaxArr : initializeMutMaxArr, MutMaxArr, push, tempAsArr;
 import util.col.stackDict : StackDict, stackDictAdd, stackDictMustGet;
 import util.conv : bitsOfFloat32, bitsOfFloat64;
 import util.opt : force, has, none, Opt, some;
+import util.perf : Perf, PerfMeasure, withMeasure;
 import util.ptr : nullPtr, Ptr, ptrEquals, ptrTrustMe, ptrTrustMe_const, ptrTrustMe_mut;
 import util.sourceRange : FileIndex;
 import util.sym : AllSymbols, shortSymValue, Sym;
@@ -175,18 +200,39 @@ import util.util : divRoundUp, todo, unreachable, verify;
 import util.writer : finishWriter, writeChar, Writer, writeStatic;
 
 immutable(ByteCode) generateBytecode(
+	ref Alloc alloc,
+	scope ref Perf perf,
+	ref const AllSymbols allSymbols,
+	scope ref immutable Program modelProgram,
+	scope ref immutable LowProgram program,
+	scope immutable ExternFunPtrsForAllLibraries externFunPtrs,
+	scope immutable MakeSyntheticFunPtrs makeSyntheticFunPtrs,
+) {
+	//TODO: use a temp alloc for 2nd arg
+	return withMeasure!(immutable ByteCode, () =>
+		generateBytecodeInner(alloc, alloc, allSymbols, modelProgram, program, externFunPtrs, makeSyntheticFunPtrs)
+	)(alloc, perf, PerfMeasure.generateBytecode);
+}
+
+private immutable(ByteCode) generateBytecodeInner(
 	ref Alloc codeAlloc,
 	ref TempAlloc tempAlloc,
 	ref const AllSymbols allSymbols,
 	scope ref immutable Program modelProgram,
 	scope ref immutable LowProgram program,
 	scope immutable ExternFunPtrsForAllLibraries externFunPtrs,
+	scope immutable MakeSyntheticFunPtrs cbMakeSyntheticFunPtrs,
 ) {
-	TextAndInfo text = generateText(codeAlloc, tempAlloc, program, program.allConstants);
+	immutable FunPtrTypeToDynCallSig funPtrTypeToDynCallSig =
+		mapFullIndexDict!(LowType.FunPtr, DynCallSig, LowFunPtrType)(
+			codeAlloc,
+			program.allFunPtrTypes,
+			(immutable(LowType.FunPtr), scope ref immutable LowFunPtrType x) =>
+				funPtrDynCallSig(codeAlloc, program, x));
 
-	MutIndexMultiDict!(LowFunIndex, ByteCodeIndex) funToReferences =
-		newMutIndexMultiDict!(LowFunIndex, ByteCodeIndex)(tempAlloc, fullIndexDictSize(program.allFuns));
-
+	FunToReferences funToReferences =
+		initFunToReferences(tempAlloc, funPtrTypeToDynCallSig, fullIndexDictSize(program.allFuns));
+	TextAndInfo text = generateText(codeAlloc, tempAlloc, program, program.allConstants, funToReferences);
 	ByteCodeWriter writer = newByteCodeWriter(ptrTrustMe_mut(codeAlloc));
 
 	immutable FullIndexDict!(LowFunIndex, ByteCodeIndex) funToDefinition =
@@ -198,8 +244,8 @@ immutable(ByteCode) generateBytecode(
 				generateBytecodeForFun(
 					tempAlloc,
 					writer,
-					funToReferences,
 					allSymbols,
+					funToReferences,
 					text.info,
 					program,
 					externFunPtrs,
@@ -210,25 +256,87 @@ immutable(ByteCode) generateBytecode(
 
 	Operations operations = finishOperations(writer);
 
+	immutable SyntheticFunPtrs syntheticFunPtrs = makeSyntheticFunPtrs(
+		codeAlloc, allSymbols, program,
+		castImmutable(operations.byteCode), funToDefinition, funToReferences, cbMakeSyntheticFunPtrs);
+
 	fullIndexDictEach!(LowFunIndex, ByteCodeIndex)(
 		funToDefinition,
-		(immutable LowFunIndex index, ref immutable ByteCodeIndex definitionIndex) @trusted {
+		(immutable LowFunIndex funIndex, ref immutable ByteCodeIndex definitionIndex) @trusted {
 			immutable Operation* definition = cast(immutable) &operations.byteCode[definitionIndex.index];
-			foreach (immutable TextIndex reference; mutIndexMultiDictMustGetAt(text.funToTextReferences, index))
-				*(cast(immutable(Operation)**) &text.text[reference.index]) = definition;
-			foreach (immutable ByteCodeIndex reference; mutIndexMultiDictMustGetAt(funToReferences, index))
+			immutable FunReferences references = finishAt(tempAlloc, funToReferences, funIndex);
+			foreach (immutable ByteCodeIndex reference; references.calls)
 				fillDelayedCall(operations, reference, definition);
+			if (has(references.ptrRefs)) {
+				immutable FunPtrReferences ptrRefs = force(references.ptrRefs);
+				immutable FunPtr funPtr = mustGetAt(syntheticFunPtrs.funToFunPtr, funIndex);
+				foreach (immutable TextIndex reference; ptrRefs.textRefs)
+					*(cast(ulong*) &text.text[reference.index]) = cast(immutable ulong) funPtr.fn;
+				foreach (immutable ByteCodeIndex reference; ptrRefs.funPtrRefs)
+					fillDelayedFunPtr(operations, reference, funPtr);
+			}
 		});
 
 	return immutable ByteCode(
 		castImmutable(operations),
+		syntheticFunPtrs.funPtrToOperationPtr,
 		fileToFuns(codeAlloc, allSymbols, modelProgram),
 		castImmutable(text.text),
 		funToDefinition[program.main]);
 }
 
 private:
-pure:
+
+immutable(SyntheticFunPtrs) makeSyntheticFunPtrs(
+	ref Alloc alloc,
+	ref const AllSymbols allSymbols,
+	scope ref immutable LowProgram program,
+	immutable Operation[] byteCode,
+	scope immutable FunToDefinition funToDefinition,
+	scope ref const FunToReferences funToReferences,
+	scope immutable MakeSyntheticFunPtrs cbMakeSyntheticFunPtrs
+) {
+	ArrBuilder!FunPtrInputs inputsBuilder;
+	eachFunPtr(funToReferences, (immutable LowFunIndex funIndex, immutable DynCallSig sig) @trusted {
+		add(alloc, inputsBuilder, immutable FunPtrInputs(funIndex, sig, &byteCode[funToDefinition[funIndex].index]));
+	});
+	immutable FunPtrInputs[] inputs = finishArr(alloc, inputsBuilder);
+	immutable FunPtr[] funPtrs = cbMakeSyntheticFunPtrs(inputs);
+	immutable FunToFunPtr funToFunPtr = zipToDict!(LowFunIndex, FunPtr, lowFunIndexEquals, hashLowFunIndex)(
+		alloc,
+		inputs,
+		funPtrs,
+		(ref immutable FunPtrInputs inputs, ref immutable FunPtr funPtr) =>
+			immutable KeyValuePair!(LowFunIndex, FunPtr)(inputs.funIndex, funPtr));
+	immutable FunPtrToOperationPtr funPtrToOperationPtr = zipToDict!(FunPtr, Operation*, funPtrEquals, hashFunPtr)(
+		alloc,
+		inputs,
+		funPtrs,
+		(ref immutable FunPtrInputs inputs, ref immutable FunPtr funPtr) =>
+			immutable KeyValuePair!(FunPtr, Operation*)(funPtr, inputs.operationPtr));
+	return immutable SyntheticFunPtrs(funToFunPtr, funPtrToOperationPtr);
+}
+
+struct SyntheticFunPtrs {
+	immutable FunToFunPtr funToFunPtr;
+	immutable FunPtrToOperationPtr funPtrToOperationPtr;
+}
+alias FunToFunPtr = immutable Dict!(LowFunIndex, FunPtr, lowFunIndexEquals, hashLowFunIndex);
+alias FunToDefinition = immutable FullIndexDict!(LowFunIndex, ByteCodeIndex);
+
+immutable(DynCallSig) funPtrDynCallSig(
+	ref Alloc alloc,
+	scope ref immutable LowProgram program,
+	scope immutable LowFunPtrType a,
+) {
+	ArrBuilder!DynCallType sigTypes;
+	add(alloc, sigTypes, toDynCallType(a.returnType));
+	foreach (ref immutable LowType x; a.paramTypes)
+		toDynCallTypes(program, x, (immutable DynCallType x) {
+			add(alloc, sigTypes, x);
+		});
+	return immutable DynCallSig(finishArr(alloc, sigTypes));
+}
 
 immutable(FileToFuns) fileToFuns(
 	ref Alloc alloc,
@@ -266,8 +374,8 @@ immutable(size_t) nStackEntriesForUnionType(ref const ExprCtx ctx, immutable Low
 void generateBytecodeForFun(
 	ref TempAlloc tempAlloc,
 	ref ByteCodeWriter writer,
-	ref MutIndexMultiDict!(LowFunIndex, ByteCodeIndex) funToReferences,
 	ref const AllSymbols allSymbols,
+	ref FunToReferences funToReferences,
 	ref immutable TextInfo textInfo,
 	scope ref immutable LowProgram program,
 	scope immutable ExternFunPtrsForAllLibraries externFunPtrs,
@@ -298,7 +406,8 @@ void generateBytecodeForFun(
 	immutable StackEntry stackEntryAfterParameters = immutable StackEntry(stackEntry);
 	setStackEntryAfterParameters(writer, stackEntryAfterParameters);
 	immutable size_t returnEntries = nStackEntriesForType(program, fun.returnType);
-	immutable ByteCodeSource source = immutable ByteCodeSource(funIndex, lowFunRange(fun, allSymbols).range.start);
+	immutable ByteCodeSource source =
+		immutable ByteCodeSource(funIndex, lowFunRange(fun, allSymbols).range.start);
 
 	matchLowFunBody!(
 		void,
@@ -341,22 +450,29 @@ void generateExternCall(
 	immutable ByteCodeSource source = immutable ByteCodeSource(funIndex, lowFunRange(fun, allSymbols).range.start);
 	immutable Opt!Sym optName = name(fun);
 	immutable Sym name = force(optName);
-	immutable Opt!ExternOp op = externOpFromName(name);
-	if (has(op))
-		writeExtern(writer, source, force(op));
-	else {
-		immutable FunPtr funPtr = mustGetAt(mustGetAt(externFunPtrs, a.libraryName), name);
-		MutMaxArr!(16, DynCallType) sigTypes = void;
-		initializeMutMaxArr(sigTypes);
-		toDynCallTypes(sigTypes, program, fun.returnType);
-		foreach (ref immutable LowParam x; fun.params)
-			toDynCallTypes(sigTypes, program, x.type);
-		writeCallFunPtrExtern(writer, source, funPtr, immutable DynCallSig(tempAsArr(sigTypes)));
+	switch (name.value) {
+		case shortSymValue("longjmp"):
+			writeLongjmp(writer, source);
+			break;
+		case shortSymValue("setjmp"):
+			writeSetjmp(writer, source);
+			break;
+		default:
+			immutable FunPtr funPtr = mustGetAt(mustGetAt(externFunPtrs, a.libraryName), name);
+			MutMaxArr!(16, DynCallType) sigTypes = void;
+			initializeMutMaxArr(sigTypes);
+			push(sigTypes, toDynCallType(fun.returnType));
+			foreach (ref immutable LowParam x; fun.params)
+				toDynCallTypes(program, x.type, (immutable DynCallType x) {
+					push(sigTypes, x);
+				});
+			writeCallFunPtrExtern(writer, source, funPtr, immutable DynCallSig(tempAsArr(sigTypes)));
+			break;
 	}
 	writeReturn(writer, source);
 }
 
-immutable(DynCallType) toDynCallType(immutable LowType a) {
+immutable(DynCallType) toDynCallType(scope immutable LowType a) {
 	return matchLowType!(
 		immutable DynCallType,
 		(immutable LowType.ExternPtr) =>
@@ -407,28 +523,15 @@ immutable(DynCallType) toDynCallType(immutable LowType a) {
 }
 
 void toDynCallTypes(
-	scope ref MutMaxArr!(16, DynCallType) output,
 	scope ref immutable LowProgram program,
-	immutable LowType a,
+	scope immutable LowType a,
+	scope void delegate(immutable DynCallType) @safe @nogc pure nothrow cb,
 ) {
 	if (isRecordType(a)) {
 		foreach (immutable LowField field; program.allRecords[asRecordType(a)].fields)
-			toDynCallTypes(output, program, field.type);
+			toDynCallTypes(program, field.type, cb);
 	} else
-		push(output, toDynCallType(a));
-}
-
-immutable(Opt!ExternOp) externOpFromName(immutable Sym a) {
-	switch (a.value) {
-		case shortSymValue("backtrace"):
-			return some(ExternOp.backtrace);
-		case shortSymValue("longjmp"):
-			return some(ExternOp.longjmp);
-		case shortSymValue("setjmp"):
-			return some(ExternOp.setjmp);
-		default:
-			return none!ExternOp;
-	}
+		cb(toDynCallType(a));
 }
 
 struct ExprCtx {
@@ -440,7 +543,7 @@ struct ExprCtx {
 	immutable LowFunIndex curFunIndex;
 	immutable size_t returnTypeSizeInStackEntries;
 	Ptr!TempAlloc tempAllocPtr;
-	Ptr!(MutIndexMultiDict!(LowFunIndex, ByteCodeIndex)) funToReferences;
+	Ptr!FunToReferences funToReferencesPtr;
 	immutable ByteCodeIndex startOfCurrentFun;
 	immutable StackEntries[] parameterEntries;
 
@@ -455,6 +558,12 @@ struct ExprCtx {
 	}
 	ref TempAlloc tempAlloc() return scope {
 		return tempAllocPtr.deref();
+	}
+	ref FunToReferences funToReferences() return scope {
+		return funToReferencesPtr.deref();
+	}
+	immutable(FunPtrTypeToDynCallSig) funPtrTypeToDynCallSig() {
+		return funToReferences.funPtrTypeToDynCallSig;
 	}
 }
 
@@ -487,20 +596,15 @@ void generateExpr(
 			immutable StackEntry stackEntryBeforeArgs = getNextStackEntry(writer);
 			immutable size_t expectedStackEffect = nStackEntriesForType(ctx, expr.type);
 			generateArgs(writer, ctx, locals, it.args);
-			registerFunAddress(ctx, it.called,
-				writeCallDelayed(writer, source, stackEntryBeforeArgs, expectedStackEffect));
+			immutable ByteCodeIndex where = writeCallDelayed(writer, source, stackEntryBeforeArgs, expectedStackEffect);
+			registerCall(ctx.tempAlloc, ctx.funToReferences, it.called, where);
 			verify(stackEntryBeforeArgs.entry + expectedStackEffect == getNextStackEntry(writer).entry);
 		},
 		(ref immutable LowExprKind.CallFunPtr it) {
 			immutable StackEntry stackEntryBeforeArgs = getNextStackEntry(writer);
 			generateExpr(writer, ctx, locals, it.funPtr);
 			generateArgs(writer, ctx, locals, it.args);
-			MutMaxArr!(16, DynCallType) sigTypes = void;
-			initializeMutMaxArr(sigTypes);
-			toDynCallTypes(sigTypes, ctx.program, expr.type);
-			foreach (ref immutable LowExpr x; it.args)
-				toDynCallTypes(sigTypes, ctx.program, x.type);
-			writeCallFunPtr(writer, source, stackEntryBeforeArgs, immutable DynCallSig(tempAsArr(sigTypes)));
+			writeCallFunPtr(writer, source, stackEntryBeforeArgs, ctx.funPtrTypeToDynCallSig[it.funPtrType()]);
 		},
 		(ref immutable LowExprKind.CreateRecord it) {
 			generateCreateRecord(writer, ctx, asRecordType(expr.type), source, locals, it);
@@ -609,6 +713,9 @@ void generateExpr(
 		},
 		(ref immutable LowExprKind.SpecialBinary it) {
 			generateSpecialBinary(writer, ctx, source, locals, it);
+		},
+		(ref immutable LowExprKind.SpecialTernary it) {
+			generateSpecialTernary(writer, ctx, source, locals, it);
 		},
 		(ref immutable LowExprKind.Switch0ToN it) {
 			generateSwitch0ToN(writer, ctx, source, locals, it);
@@ -812,10 +919,6 @@ immutable(FieldOffsetAndSize) getFieldOffsetAndSize(
 	return immutable FieldOffsetAndSize(field.offset, size);
 }
 
-void registerFunAddress(ref ExprCtx ctx, immutable LowFunIndex fun, immutable ByteCodeIndex index) {
-	mutIndexMultiDictAdd(ctx.tempAlloc, ctx.funToReferences.deref(), fun, index);
-}
-
 void generateConstant(
 	ref ByteCodeWriter writer,
 	ref ExprCtx ctx,
@@ -861,8 +964,9 @@ void generateConstant(
 			}
 		},
 		(immutable Constant.FunPtr it) {
-			immutable LowFunIndex index = mustGetAt(ctx.program.concreteFunToLowFunIndex, it.fun);
-			registerFunAddress(ctx, index, writePushFunPtrDelayed(writer, source));
+			immutable LowFunIndex fun = mustGetAt(ctx.program.concreteFunToLowFunIndex, it.fun);
+			immutable ByteCodeIndex where = writePushFunPtrDelayed(writer, source);
+			registerFunPtrReference(ctx.tempAlloc, ctx.funToReferences, asFunPtrType(type), fun, where);
 		},
 		(immutable Constant.Integral it) {
 			writePushConstant(writer, source, it.value);
@@ -929,6 +1033,7 @@ void generateSpecialUnary(
 		case LowExprKind.SpecialUnary.Kind.toNat8FromChar:
 		case LowExprKind.SpecialUnary.Kind.toNat64FromPtr:
 		case LowExprKind.SpecialUnary.Kind.toPtrFromNat64:
+		case LowExprKind.SpecialUnary.Kind.unsafeInt32ToNat32:
 		case LowExprKind.SpecialUnary.Kind.unsafeInt64ToInt8:
 		case LowExprKind.SpecialUnary.Kind.unsafeInt64ToInt16:
 		case LowExprKind.SpecialUnary.Kind.unsafeInt64ToInt32:
@@ -1091,6 +1196,21 @@ void generatePtrToRecordFieldGet(
 		// Also allow: dereference ptr, get field, and get ptr of that
 		// This only works if it's a local .. or another RecordFieldGet
 		todo!void("ptr-to-record-field-get");
+	}
+}
+
+void generateSpecialTernary(
+	ref ByteCodeWriter writer,
+	ref ExprCtx ctx,
+	immutable ByteCodeSource source,
+	scope ref immutable Locals locals,
+	ref immutable LowExprKind.SpecialTernary a,
+) {
+	foreach (ref immutable LowExpr arg; a.args)
+		generateExpr(writer, ctx, locals, arg);
+	final switch (a.kind) {
+		case LowExprKind.SpecialTernary.Kind.interpreterBacktrace:
+			writeInterpreterBacktrace(writer, source);
 	}
 }
 

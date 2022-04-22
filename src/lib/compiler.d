@@ -104,8 +104,9 @@ immutable(ExitCode) buildAndInterpret(
 		immutable Opt!ExternFunPtrsForAllLibraries externFunPtrs =
 			extern_.loadExternFunPtrs(lowProgram.externLibraries, writeError);
 		if (has(externFunPtrs)) {
-			immutable ByteCode byteCode =
-				generateBytecode(alloc, alloc, allSymbols, programs.program, lowProgram, force(externFunPtrs));
+			immutable ByteCode byteCode = generateBytecode(
+				alloc, perf, allSymbols,
+				programs.program, lowProgram, force(externFunPtrs), extern_.makeSyntheticFunPtrs);
 			return immutable ExitCode(runBytecode(
 				perf,
 				allSymbols,
@@ -231,7 +232,7 @@ immutable(DiagsAndResultStrs) printLowModel(
 		immutable ConcreteProgram concreteProgram = concretize(
 			alloc, perf, versionInfo, allSymbols, allPaths, program,
 			only(program.specialModules.rootModules));
-		immutable LowProgram lowProgram = lower(alloc, perf, program.config.extern_, concreteProgram);
+		immutable LowProgram lowProgram = lower(alloc, perf, allSymbols, program.config.extern_, concreteProgram);
 		return immutable DiagsAndResultStrs(safeCStr!"", showLowProgram(alloc, allSymbols, lowProgram));
 	} else
 		return immutable DiagsAndResultStrs(
@@ -383,7 +384,7 @@ public immutable(ProgramsAndFilesInfo) buildToLowProgram(
 			program,
 			some(immutable ConcreteAndLowProgram(
 				concreteProgram,
-				lower(alloc, perf, program.config.extern_, concreteProgram))));
+				lower(alloc, perf, allSymbols, program.config.extern_, concreteProgram))));
 	} else
 		return immutable ProgramsAndFilesInfo(program, none!ConcreteAndLowProgram);
 }

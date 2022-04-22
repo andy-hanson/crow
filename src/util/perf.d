@@ -152,6 +152,7 @@ enum PerfMeasure {
 	gccCompile,
 	gccCreateProgram,
 	gccJit,
+	generateBytecode,
 	lower,
 	parseEverything,
 	parseFile,
@@ -187,6 +188,8 @@ pure immutable(SafeCStr) perfMeasureName(immutable PerfMeasure a) {
 			return safeCStr!"gccCompile";
 		case PerfMeasure.gccJit:
 			return safeCStr!"gccJit";
+		case PerfMeasure.generateBytecode:
+			return safeCStr!"generateBytecode";
 		case PerfMeasure.lower:
 			return safeCStr!"lower";
 		case PerfMeasure.parseEverything:

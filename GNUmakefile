@@ -47,7 +47,7 @@ src_files_common = src/concretize/*.d \
 	src/util/*.d \
 	src/util/*/*.d \
 	src/versionInfo.d
-app_src_no_test = src/app.d $(src_files_common) src/backend/*.d src/document/*.d
+app_src_no_test = src/app/*.d $(src_files_common) src/backend/*.d src/document/*.d
 app_src_with_test = $(app_src_no_test) src/test/*.d
 other_deps = bin/d-imports/date.txt bin/d-imports/commit-hash.txt
 app_deps_no_test = $(app_src_no_test) $(other_deps) dyncall
@@ -60,10 +60,10 @@ ldc_flags_assert = $(d_flags_common) --enable-asserts=true --boundscheck=on
 ldc_flags_no_assert = $(d_flags_common) --enable-asserts=false --boundscheck=off
 ldc_fast_flags = -O2 --d-version=Optimized --d-version=TailRecursionAvailable -L=--strip-all
 ldc_fast_flags_no_tail_call = -O2 --d-version=Optimized -L=--strip-all
-app_link = -L=-ldyncall_s -L=-ldynload_s -L=-L./dyncall/dyncall -L=-L./dyncall/dynload -L=-lgccjit
+app_link = -L=-ldyncall_s -L=-ldyncallback_s -L=-ldynload_s -L=-L./dyncall/dyncall -L=-L./dyncall/dyncallback -L=-L./dyncall/dynload -L=-lgccjit
 
-app_files_no_test = src/app.d $(src_files_no_test)
-app_files_with_test = src/app.d $(src_files_with_test)
+app_files_no_test = src/app/*.d $(src_files_no_test)
+app_files_with_test = src/app/*.d $(src_files_with_test)
 # TODO: should not need document/mangle/writeToC/writeTypes
 wasm_src = src/wasm.d $(src_files_common) src/document/document.d src/backend/mangle.d src/backend/writeToC.d src/backend/writeTypes.d
 wasm_deps = $(wasm_src)
@@ -111,7 +111,7 @@ lint-dscanner:
 	dub run dscanner -- --styleCheck src/*.d src/*/*.d src/*/*/*.d
 
 lint-imports-exports: bin/crow
-	./bin/crow run script/lint.crow --optimize
+	./bin/crow run script/lint.crow
 
 ### site ###
 

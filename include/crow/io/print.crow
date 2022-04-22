@@ -13,7 +13,7 @@ import
 	../misc: new, void
 	../ptr: null, size-of
 	../str: char8, literal, str
-	../str-conv: finish, interp, to-str, with-value
+	../str-conv: finish, interp, to-str, with-str, with-value
 	../str-util: to-bytes
 	../version: is-windows
 	../private/bootstrap: hard-assert, todo
@@ -22,8 +22,7 @@ import
 
 # Print to stdout, including a newline.
 print void(a str) summon
-	a print-no-newline
-	"\n" print-no-newline
+	"{a}\n" print-no-newline
 
 # Print to stdout, without appending a newline.
 print-no-newline void(a str) summon trusted

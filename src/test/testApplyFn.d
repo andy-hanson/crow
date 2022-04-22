@@ -151,7 +151,7 @@ immutable(ulong) u64OfI64Bits(immutable long a) {
 			writeFnBinary!fn(writer, source);
 			writeReturn(writer, source);
 		},
-		(Stacks stacks, immutable(Operation)* cur) {
+		(ref Stacks stacks, immutable(Operation)* cur) {
 			stepUntilExitAndExpect(test, stacks, [stackOut], cur);
 		});
 }
@@ -163,7 +163,7 @@ immutable(ulong) u64OfI64Bits(immutable long a) {
 			writeFnUnary!fn(writer, source);
 			writeReturn(writer, source);
 		},
-		(Stacks stacks, immutable(Operation)* cur) {
+		(ref Stacks stacks, immutable(Operation)* cur) {
 			dataPush(stacks, stackIn);
 			stepUntilExitAndExpect(test, stacks, [stackOut], cur);
 		});

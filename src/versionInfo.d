@@ -5,7 +5,12 @@ module versionInfo;
 struct VersionInfo {
 	@safe @nogc pure nothrow:
 
-	immutable bool isSingleThreaded;
+	immutable bool isInterpreted;
+	immutable bool isJit;
+
+	immutable(bool) isSingleThreaded() immutable {
+		return isWasm();
+	}
 
 	immutable(bool) isWasm() immutable {
 		version (WebAssembly) {
@@ -34,15 +39,15 @@ struct VersionInfo {
 }
 
 immutable(VersionInfo) versionInfoForInterpret() {
-	return immutable VersionInfo(true);
+	return immutable VersionInfo(true, false);
 }
 
 version (WebAssembly) {} else {
 	immutable(VersionInfo) versionInfoForJIT() {
-		return immutable VersionInfo(false);
+		return immutable VersionInfo(false, true);
 	}
 
 	immutable(VersionInfo) versionInfoForBuildToC() {
-		return immutable VersionInfo(false);
+		return immutable VersionInfo(false, false);
 	}
 }

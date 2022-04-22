@@ -900,6 +900,8 @@ immutable(WriteExprResult) writeExpr(
 			writeSpecialUnary(writer, tempAlloc, indent, ctx, writeKind, type, it),
 		(ref immutable LowExprKind.SpecialBinary it) =>
 			writeSpecialBinary(writer, tempAlloc, indent, ctx, writeKind, type, it),
+		(ref immutable LowExprKind.SpecialTernary) =>
+			unreachable!(immutable WriteExprResult),
 		(ref immutable LowExprKind.Switch0ToN it) =>
 			writeSwitch(writer, tempAlloc, indent, ctx, writeKind, type, it.value, it.cases, (immutable size_t i) =>
 				immutable EnumValue(i)),
@@ -1467,6 +1469,7 @@ immutable(WriteExprResult) writeSpecialUnary(
 		case LowExprKind.SpecialUnary.Kind.toNat64FromPtr:
 		case LowExprKind.SpecialUnary.Kind.toPtrFromNat64:
 		case LowExprKind.SpecialUnary.Kind.truncateToInt64FromFloat64:
+		case LowExprKind.SpecialUnary.Kind.unsafeInt32ToNat32:
 		case LowExprKind.SpecialUnary.Kind.unsafeInt64ToInt8:
 		case LowExprKind.SpecialUnary.Kind.unsafeInt64ToInt16:
 		case LowExprKind.SpecialUnary.Kind.unsafeInt64ToInt32:
@@ -1556,6 +1559,7 @@ void writeLValue(ref Writer writer, ref const FunBodyCtx ctx, ref immutable LowE
 			}
 		},
 		(ref immutable LowExprKind.SpecialBinary) => unreachable!void(),
+		(ref immutable LowExprKind.SpecialTernary) => unreachable!void(),
 		(ref immutable LowExprKind.Switch0ToN) => unreachable!void(),
 		(ref immutable LowExprKind.SwitchWithValues) => unreachable!void(),
 		(ref immutable LowExprKind.TailRecur) => unreachable!void(),

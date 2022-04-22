@@ -1,5 +1,8 @@
+module app.main;
+
 @safe @nogc nothrow: // not pure
 
+import app.dyncall : withRealExtern;
 import core.memory : pureFree, pureMalloc;
 import core.stdc.errno : ENOENT, errno;
 import core.stdc.stdio : fclose, ferror, FILE, fopen, fprintf, fread, fseek, ftell, fwrite, printf, SEEK_END, SEEK_SET;
@@ -58,16 +61,7 @@ version (Windows) { } else {
 }
 import frontend.lang : JitOptions, OptimizationLevel;
 import frontend.showDiag : ShowDiagOptions, strOfDiagnostics;
-import interpret.applyFn : u64OfI32, u64OfI64;
-import interpret.extern_ :
-	DynCallType,
-	DynCallSig,
-	Extern,
-	ExternFunPtrsForAllLibraries,
-	ExternFunPtrsForLibrary,
-	FunPtr,
-	WriteError,
-	writeSymToCb;
+import interpret.extern_ : Extern;
 import lib.cliParser :
 	BuildOptions,
 	CCompileOptions,
@@ -91,18 +85,15 @@ import lib.compiler :
 	ProgramsAndFilesInfo,
 	justTypeCheck;
 import model.model : hasDiags;
-import model.lowModel : ExternLibraries, ExternLibrary;
+import model.lowModel : ExternLibrary;
 version(Test) {
 	import test.test : test;
 }
 import util.alloc.alloc : Alloc, TempAlloc;
 import util.col.arr : emptyArr;
 import util.col.arrBuilder : add, addAll, ArrBuilder, finishArr;
-import util.col.arrUtil : mapImpure, prepend, zipImpureSystem;
-import util.col.dict : KeyValuePair, makeDictFromKeys, SymDict, zipToDict;
-import util.col.mutArr : MutArr, mutArrIsEmpty, mutArrRange, push, pushAll, tempAsArr;
+import util.col.arrUtil : prepend;
 import util.col.str : CStr, SafeCStr, safeCStr, safeCStrIsEmpty, safeCStrSize, strEq, strOfCStr;
-import util.conv : bitsOfFloat64, float32OfBits, float64OfBits;
 import util.memory : memset;
 import util.opt : force, has, none, Opt, some;
 import util.path :
@@ -126,14 +117,12 @@ import util.sym :
 	AllSymbols,
 	concatSyms,
 	emptySym,
-	hashSym,
 	Operator,
+	safeCStrOfSym,
 	shortSym,
 	shortSymValue,
 	SpecialSym,
 	Sym,
-	symAsTempBuffer,
-	symEq,
 	symForOperator,
 	symForSpecial,
 	symOfStr,
@@ -721,11 +710,19 @@ immutable(SafeCStr[]) cCompileArgs(
 	}
 	foreach (immutable ExternLibrary x; externLibraries) {
 		version (Windows) {
+			immutable Sym xDotLib = concatSyms(allSymbols, [x.libraryName, symForSpecial(SpecialSym.dotLib)]);
 			if (has(x.configuredPath)) {
-				immutable Sym xDotLib = concatSyms(allSymbols, [x.libraryName, symForSpecial(SpecialSym.dotLib)]);
-				immutable Path libPath = childPath(allPaths, force(x.configuredPath), xDotLib);
-				add(alloc, args, pathToSafeCStr(alloc, allPaths, libPath));
-			}
+				immutable Path path = childPath(allPaths, force(x.configuredPath), xDotLib);
+				add(alloc, args, pathToSafeCStr(alloc, allPaths, path));
+			} else
+				switch (x.libraryName.value) {
+					case shortSymValue("c"):
+					case shortSymValue("m"):
+						break;
+					default:
+						add(alloc, args, safeCStrOfSym(alloc, allSymbols, xDotLib));
+						break;
+				}
 		} else {
 			if (has(x.configuredPath))
 				todo!void("link to library at custom path on Posix");
@@ -794,335 +791,6 @@ immutable(T) withReadOnlyStorage(T)(
 					(immutable(ReadFileResult!(ubyte[]).Error)) =>
 						cb(immutable ReadFileResult!SafeCStr(immutable ReadFileResult!SafeCStr.Error())))));
 	return cb(storage);
-}
-
-immutable(ExitCode) withRealExtern(
-	ref Alloc alloc,
-	ref AllSymbols allSymbols,
-	ref AllPaths allPaths,
-	scope immutable(ExitCode) delegate(scope ref Extern) @safe @nogc nothrow cb,
-) {
-	DCCallVM* dcVm = dcNewCallVM(0x1000);
-	verify(dcVm != null);
-	dcMode(dcVm, DC_CALL_C_DEFAULT);
-	MutArr!(immutable DLLib*) allLibraries;
-	scope Extern extern_ = Extern(
-		(scope immutable ExternLibraries libraries, scope WriteError writeError) =>
-			loadLibraries(alloc, allSymbols, allPaths, allLibraries, libraries, writeError),
-		(FunPtr funPtr, scope immutable DynCallSig sig, scope immutable ulong[] parameters) =>
-			dynamicCallFunPtr(funPtr, sig, parameters, dcVm));
-
-	immutable ExitCode res = cb(extern_);
-
-	foreach (immutable DLLib* lib; mutArrRange(allLibraries))
-		dlFreeLibrary(lib);
-	dcFree(dcVm);
-	return res;
-}
-
-immutable(Opt!ExternFunPtrsForAllLibraries) loadLibraries(
-	ref Alloc alloc,
-	ref AllSymbols allSymbols,
-	ref AllPaths allPaths,
-	MutArr!(immutable DLLib*) allLibraries,
-	scope immutable ExternLibraries libraries,
-	scope WriteError writeError,
-) {
-	bool success = true;
-	immutable DLLib*[] libs = mapImpure(alloc, libraries, (ref immutable ExternLibrary x) {
-		immutable Opt!(DLLib*) lib = getLibrary(allSymbols, allPaths, x.libraryName, x.configuredPath, writeError);
-		if (has(lib))
-			return force(lib);
-		else {
-			success = false;
-			return null;
-		}
-	});
-	pushAll(alloc, allLibraries, libs);
-
-	return success
-		? loadLibrariesInner(alloc, allSymbols, libraries, libs, writeError)
-		: none!ExternFunPtrsForAllLibraries;
-}
-
-immutable(Opt!(DLLib*)) getLibrary(
-	ref AllSymbols allSymbols,
-	ref AllPaths allPaths,
-	immutable Sym libraryName,
-	immutable Opt!Path configuredPath,
-	scope WriteError writeError,
-) {
-	immutable Sym fileName = dllOrSoName(allSymbols, libraryName);
-	immutable Opt!(DLLib*) fromPath = has(configuredPath)
-		? tryLoadLibraryFromPath(allPaths, childPath(allPaths, force(configuredPath), fileName))
-		: none!(DLLib*);
-	if (has(fromPath)) {
-		return fromPath;
-	} else {
-		switch (libraryName.value) {
-			case shortSymValue("c"):
-			case shortSymValue("m"):
-				version (Windows) {
-					return loadLibraryFromName(safeCStr!"ucrtbase.dll", writeError);
-				} else {
-					return some!(DLLib*)(null);
-				}
-			default:
-				return loadLibraryFromName(allSymbols, fileName, writeError);
-		}
-	}
-}
-
-immutable(Sym) dllOrSoName(ref AllSymbols allSymbols, immutable Sym libraryName) {
-	version (Windows) {
-		return concatSyms(allSymbols, [libraryName, symForSpecial(SpecialSym.dotDll)]);
-	} else {
-		return concatSyms(allSymbols, [shortSym("lib"), libraryName, symForSpecial(SpecialSym.dotSo)]);
-	}
-}
-
-@trusted immutable(Opt!(DLLib*)) tryLoadLibraryFromPath(
-	ref const AllPaths allPaths,
-	immutable Path path,
-) {
-	TempStrForPath buf = void;
-	immutable SafeCStr pathStr = pathToTempStr(buf, allPaths, path);
-	immutable DLLib* res = dlLoadLibrary(pathStr.ptr);
-	return res == null ? none!(DLLib*) : some!(DLLib*)(res);
-}
-
-@trusted immutable(Opt!(DLLib*)) loadLibraryFromName(
-	ref const AllSymbols allSymbols,
-	immutable Sym name,
-	scope WriteError writeError,
-) {
-	char[256] buf = symAsTempBuffer!256(allSymbols, name);
-	return loadLibraryFromName(immutable SafeCStr(cast(immutable) buf.ptr), writeError);
-}
-
-immutable(Opt!(DLLib*)) loadLibraryFromName(scope immutable SafeCStr name, scope WriteError writeError) {
-	immutable DLLib* res = dlLoadLibrary(name.ptr);
-	if (res == null) {
-		// TODO: use a Diagnostic
-		writeError(safeCStr!"Could not load library ");
-		writeError(name);
-		writeError(safeCStr!"\n");
-		return none!(DLLib*);
-	} else
-		return some!(DLLib*)(res);
-}
-
-immutable(Opt!ExternFunPtrsForAllLibraries) loadLibrariesInner(
-	ref Alloc alloc,
-	ref const AllSymbols allSymbols,
-	scope immutable ExternLibraries libraries,
-	immutable DLLib*[] libs,
-	scope WriteError writeError,
-) {
-	MutArr!(immutable KeyValuePair!(Sym, Sym)) failures;
-	immutable ExternFunPtrsForAllLibraries res = zipToDict!(Sym, SymDict!FunPtr, symEq, hashSym, ExternLibrary, DLLib*)(
-		alloc,
-		libraries,
-		libs,
-		(ref immutable ExternLibrary x, ref immutable DLLib* lib) @safe @nogc nothrow {
-			immutable ExternFunPtrsForLibrary funPtrs = makeDictFromKeys!(Sym, FunPtr, symEq, hashSym)(
-				alloc,
-				x.importNames,
-				(immutable Sym importName) {
-					immutable Opt!FunPtr p = getExternFunPtr(allSymbols, lib, importName);
-					if (has(p))
-						return force(p);
-					else {
-						push(alloc, failures, immutable KeyValuePair!(Sym , Sym)(x.libraryName, importName));
-						return null;
-					}
-				});
-			return immutable KeyValuePair!(Sym, ExternFunPtrsForLibrary)(x.libraryName, funPtrs);
-		});
-	foreach (immutable KeyValuePair!(Sym, Sym) x; tempAsArr(failures)) {
-		writeError(safeCStr!"Could not load extern function ");
-		writeSymToCb(writeError, allSymbols, x.value);
-		writeError(safeCStr!" from library ");
-		writeSymToCb(writeError, allSymbols, x.key);
-		writeError(safeCStr!"\n");
-	}
-	return mutArrIsEmpty(failures) ? some(res) : none!ExternFunPtrsForAllLibraries;
-}
-
-@trusted pure immutable(Opt!FunPtr) getExternFunPtr(
-	ref const AllSymbols allSymbols,
-	immutable DLLib* library,
-	immutable Sym name,
-) {
-	immutable char[256] nameBuffer = symAsTempBuffer!256(allSymbols, name);
-	immutable CStr nameCStr = nameBuffer.ptr;
-	DCpointer ptr = dlFindSymbol(library, nameCStr);
-	return ptr == null ? none!FunPtr : some!FunPtr(cast(immutable) ptr);
-}
-
-@system immutable(ulong) dynamicCallFunPtr(
-	immutable FunPtr funPtr,
-	scope immutable DynCallSig sig,
-	scope immutable ulong[] parameters,
-	DCCallVM* dcVm,
-) {
-	DCpointer ptr = cast(DCpointer) funPtr;
-	//printf("Gonna call %s\n", nameCStr);
-	dcReset(dcVm);
-	zipImpureSystem!(ulong, DynCallType)(
-		parameters,
-		sig.parameterTypes,
-		(ref immutable ulong value, ref immutable DynCallType type) {
-			final switch (type) {
-				case DynCallType.bool_:
-					dcArgBool(dcVm, cast(bool) value);
-					break;
-				case DynCallType.char8:
-					todo!void("handle this type");
-					break;
-				case DynCallType.int8:
-					todo!void("handle this type");
-					break;
-				case DynCallType.int16:
-					dcArgShort(dcVm, cast(short) value);
-					break;
-				case DynCallType.int32:
-					dcArgInt(dcVm, cast(int) value);
-					break;
-				case DynCallType.float32:
-					dcArgFloat(dcVm, float32OfBits(cast(uint) value));
-					break;
-				case DynCallType.float64:
-					dcArgDouble(dcVm, float64OfBits(value));
-					break;
-				case DynCallType.nat8:
-					todo!void("handle this type");
-					break;
-				case DynCallType.nat16:
-					todo!void("handle this type");
-					break;
-				case DynCallType.nat32:
-					dcArgInt(dcVm, cast(uint) value);
-					break;
-				case DynCallType.int64:
-				case DynCallType.nat64:
-					dcArgLong(dcVm, value);
-					break;
-				case DynCallType.pointer:
-					dcArgPointer(dcVm, cast(void*) value);
-					break;
-				case DynCallType.void_:
-					unreachable!void();
-			}
-		});
-
-	immutable ulong res = () {
-		final switch (sig.returnType) {
-			case DynCallType.bool_:
-				return dcCallBool(dcVm, ptr);
-			case DynCallType.char8:
-				return todo!(immutable ulong)("handle this type");
-			case DynCallType.int8:
-				return todo!(immutable ulong)("handle this type");
-			case DynCallType.int16:
-				return todo!(immutable ulong)("handle this type");
-			case DynCallType.int32:
-				return u64OfI32(dcCallInt(dcVm, ptr));
-			case DynCallType.int64:
-			case DynCallType.nat64:
-				return u64OfI64(dcCallLong(dcVm, ptr));
-			case DynCallType.float32:
-				return todo!(immutable ulong)("handle this type");
-			case DynCallType.float64:
-				return bitsOfFloat64(dcCallDouble(dcVm, ptr));
-			case DynCallType.nat8:
-				return todo!(immutable ulong)("handle this type");
-			case DynCallType.nat16:
-				return todo!(immutable ulong)("handle this type");
-			case DynCallType.nat32:
-				return cast(uint) dcCallInt(dcVm, ptr);
-			case DynCallType.pointer:
-				return cast(size_t) dcCallPointer(dcVm, ptr);
-			case DynCallType.void_:
-				dcCallVoid(dcVm, ptr);
-				return 0;
-		}
-	}();
-	dcReset(dcVm);
-	// printf("Did call %s\n", nameCStr);
-
-	return res;
-}
-
-extern(C) {
-	// dlfcn.h
-	//void* dlopen(const char* file, int mode);
-	//int dlclose(void* handle);
-	//void* dlsym(void* handle, const char* name);
-	//enum RTLD_LAZY = 1;
-
-	// dyncall_types.h
-	//alias DCvoid = void;
-	alias DCbool = int;
-	alias DCchar = char;
-	//alias DCuchar = uchar;
-	alias DCshort = short;
-	//alias DCushort = ushort;
-	alias DCint = int;
-	//alias DCuint = uint;
-	alias DClong = long;
-	//alias DCulong = ulong;
-	//typedef DC_LONG_LONG DClonglong;
-	//typedef unsigned DC_LONG_LONG DCulonglong;
-	alias DCfloat = float;
-	alias DCdouble = double;
-	alias DCpointer = void*;
-	//alias DCstring = const char*;
-	alias DCsize = size_t;
-
-	// dyncall.h
-	struct DCCallVM;
-
-	enum DC_CALL_C_DEFAULT = 0;
-
-	DCCallVM* dcNewCallVM(DCsize size);
-	void dcFree(DCCallVM* vm);
-	void dcReset(DCCallVM* vm);
-
-	void dcMode(DCCallVM* vm, DCint mode);
-
-	void dcArgBool (DCCallVM* vm, DCbool value);
-	//void dcArgChar (DCCallVM* vm, DCchar value);
-	void dcArgShort (DCCallVM* vm, DCshort value);
-	void dcArgInt (DCCallVM* vm, DCint value);
-	void dcArgLong (DCCallVM* vm, DClong value);
-	//void dcArgLongLong (DCCallVM* vm, DClonglong value);
-	void dcArgFloat (DCCallVM* vm, DCfloat value);
-	void dcArgDouble (DCCallVM* vm, DCdouble value);
-	void dcArgPointer (DCCallVM* vm, DCpointer value);
-	// void dcArgStruct (DCCallVM* vm, DCstruct* s, DCpointer value);
-
-	void dcCallVoid (DCCallVM* vm, DCpointer funcptr);
-	DCbool dcCallBool (DCCallVM* vm, DCpointer funcptr);
-	//DCchar dcCallChar (DCCallVM* vm, DCpointer funcptr);
-	//DCshort dcCallShort (DCCallVM* vm, DCpointer funcptr);
-	DCint dcCallInt (DCCallVM* vm, DCpointer funcptr);
-	DClong dcCallLong (DCCallVM* vm, DCpointer funcptr);
-	//DClonglong dcCallLongLong (DCCallVM* vm, DCpointer funcptr);
-	//DCfloat dcCallFloat (DCCallVM* vm, DCpointer funcptr);
-	DCdouble dcCallDouble (DCCallVM* vm, DCpointer funcptr);
-	DCpointer dcCallPointer (DCCallVM* vm, DCpointer funcptr);
-	// void dcCallStruct (DCCallVM* vm, DCpointer funcptr, DCstruct* s, DCpointer returnValue);
-
-	//DCint dcGetError (DCCallVM* vm);
-}
-
-extern(C) {
-	// based on dyncall/dynload/dynload.h
-	struct DLLib;
-	immutable(DLLib*) dlLoadLibrary(scope const char* libpath);
-	pure void dlFreeLibrary(immutable DLLib* pLib);
-	pure void* dlFindSymbol(immutable DLLib* pLib, scope const char* pSymbolName);
 }
 
 enum NulTerminate { no, yes }

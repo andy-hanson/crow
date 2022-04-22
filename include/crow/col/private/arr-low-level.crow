@@ -23,7 +23,10 @@ UB if begin > end.
 ###
 arr-from-begin-end<a> a[](begin a*, end a*) unsafe noctx
 	hard-assert: begin <= end
-	end - begin, begin
+	begin arr-from-begin-size (end - begin)
+
+arr-from-begin-size<a> a[](begin a*, size nat64) unsafe noctx
+	size, begin
 
 arr-cast<out, in> out[](a in[]) no-doc unsafe noctx
 	hard-assert: size-of@<out> == size-of@<in>

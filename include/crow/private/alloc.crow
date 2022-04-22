@@ -297,6 +297,9 @@ try-alloc-uninitialized<a> a mut*?(size nat64) unsafe
 	else
 		none
 
+try-alloc-uninitialized<a> a mut*?() unsafe
+	1 try-alloc-uninitialized
+
 unmanaged-alloc-uninitialized<a> a mut*() noctx unsafe
 	1 unmanaged-alloc-elements
 

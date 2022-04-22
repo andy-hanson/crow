@@ -104,7 +104,9 @@ body
 	res = path-to-crow spawn-and-wait-result args
 	stdout-failures = path handle-output "{path}.stdout", res.stdout, overwrite-output
 	stderr-failures failure[] = if res.exit-code != 0 || res.stderr != ""
-		path handle-output ("{path}.stderr"), res.stderr, overwrite-output
+		# Exceptions differ between interpreter and JIT
+		err-path = path ends-with "/fail.crow" && !interpret ? "{path}.jit.stderr" : "{path}.stderr"
+		path handle-output err-path, res.stderr, overwrite-output
 	stdout-failures ~~ stderr-failures
 
 .remove-colors str(s str)

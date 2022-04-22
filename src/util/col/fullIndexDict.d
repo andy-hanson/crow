@@ -43,14 +43,14 @@ immutable(FullIndexDict!(K, V)) emptyFullIndexDict(K, V)() {
 	return fullIndexDictOfArr!(K, V)(emptyArr!V);
 }
 
-immutable(size_t) fullIndexDictSize(K, V)(ref const FullIndexDict!(K, V) a) {
+immutable(size_t) fullIndexDictSize(K, V)(const FullIndexDict!(K, V) a) {
 	return a.values.length;
 }
 
-immutable(FullIndexDict!(K, V)) fullIndexDictOfArr(K, V)(immutable V[] values) {
+immutable(FullIndexDict!(K, V)) fullIndexDictOfArr(K, V)(return scope immutable V[] values) {
 	return immutable FullIndexDict!(K, V)(values);
 }
-FullIndexDict!(K, V) fullIndexDictOfArr_mut(K, V)(V[] values) {
+private FullIndexDict!(K, V) fullIndexDictOfArr_mut(K, V)(V[] values) {
 	return FullIndexDict!(K, V)(values);
 }
 
@@ -64,7 +64,7 @@ FullIndexDict!(K, V) makeFullIndexDict_mut(K, V)(
 }
 
 void fullIndexDictEachKey(K, V)(
-	immutable FullIndexDict!(K, V) a,
+	scope immutable FullIndexDict!(K, V) a,
 	scope void delegate(immutable K) @safe @nogc pure nothrow cb,
 ) {
 	foreach (immutable size_t i; 0 .. fullIndexDictSize(a))
@@ -72,7 +72,7 @@ void fullIndexDictEachKey(K, V)(
 }
 
 void fullIndexDictEachValue(K, V)(
-	immutable FullIndexDict!(K, V) a,
+	scope immutable FullIndexDict!(K, V) a,
 	scope void delegate(ref immutable V) @safe @nogc pure nothrow cb,
 ) {
 	foreach (ref immutable V value; a.values)
@@ -80,10 +80,18 @@ void fullIndexDictEachValue(K, V)(
 }
 
 void fullIndexDictEach(K, V)(
-	immutable FullIndexDict!(K, V) a,
+	scope immutable FullIndexDict!(K, V) a,
 	scope void delegate(immutable K, ref immutable V) @safe @nogc pure nothrow cb,
 ) {
 	foreach (immutable size_t key, ref immutable V value; a.values)
+		cb(immutable K(key), value);
+}
+
+pure void fullIndexDictEach(K, V)(
+	scope const FullIndexDict!(K, V) a,
+	scope void delegate(immutable K, ref const V) @safe @nogc pure nothrow cb,
+) {
+	foreach (immutable size_t key, ref const V value; a.values)
 		cb(immutable K(key), value);
 }
 

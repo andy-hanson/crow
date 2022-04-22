@@ -2,9 +2,11 @@ module interpret.extern_;
 
 @safe @nogc nothrow:
 
-import model.lowModel : ExternLibraries;
+import interpret.bytecode : Operation;
+import model.lowModel : ExternLibraries, LowFunIndex;
 import util.col.dict : SymDict;
 import util.col.str : SafeCStr;
+import util.hash : Hasher, hashSizeT;
 import util.opt : Opt;
 import util.sym : AllSymbols, Sym, symAsTempBuffer;
 
@@ -14,13 +16,23 @@ struct Extern {
 		scope immutable ExternLibraries libraries,
 		scope WriteError writeError,
 	) @safe @nogc nothrow loadExternFunPtrs;
+	immutable MakeSyntheticFunPtrs makeSyntheticFunPtrs;
 	immutable DoDynCall doDynCall;
 }
 
+struct FunPtrInputs {
+	immutable LowFunIndex funIndex;
+	immutable DynCallSig sig;
+	immutable Operation* operationPtr;
+}
+
+alias MakeSyntheticFunPtrs =
+	immutable(FunPtr[]) delegate(scope immutable FunPtrInputs[] inputs) @safe @nogc pure nothrow;
+
 alias DoDynCall = immutable(ulong) delegate(
-	immutable(FunPtr) funPtr,
-	scope immutable DynCallSig sig,
-	scope immutable ulong[] parameters,
+	immutable FunPtr,
+	scope immutable DynCallSig,
+	scope immutable ulong[] args,
 ) @system @nogc nothrow;
 
 alias WriteError = void delegate(scope immutable SafeCStr) @safe @nogc nothrow;
@@ -30,10 +42,16 @@ alias WriteError = void delegate(scope immutable SafeCStr) @safe @nogc nothrow;
 	writeError(immutable SafeCStr(buf.ptr));
 }
 
-alias ExternFunPtrsForAllLibraries = SymDict!(SymDict!FunPtr);
+alias ExternFunPtrsForAllLibraries = SymDict!ExternFunPtrsForLibrary;
 alias ExternFunPtrsForLibrary = SymDict!FunPtr;
 
-alias FunPtr = immutable void*;
+struct FunPtr { immutable void* fn; }
+pure immutable(bool) funPtrEquals(immutable FunPtr a, immutable FunPtr b) {
+	return a == b;
+}
+pure void hashFunPtr(ref Hasher hasher, immutable FunPtr a) {
+	hashSizeT(hasher, cast(immutable size_t) a.fn);
+}
 
 struct DynCallSig {
 	@safe @nogc pure nothrow:

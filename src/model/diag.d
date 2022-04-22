@@ -881,11 +881,11 @@ void writeFileAndRange(
 
 void writeFileAndPos(
 	ref Writer writer,
-	ref const AllPaths allPaths,
-	ref immutable PathsInfo pathsInfo,
-	ref immutable ShowDiagOptions options,
-	ref immutable FilesInfo fi,
-	ref immutable FileAndPos where,
+	scope ref const AllPaths allPaths,
+	scope ref immutable PathsInfo pathsInfo,
+	scope ref immutable ShowDiagOptions options,
+	scope ref immutable FilesInfo fi,
+	scope immutable FileAndPos where,
 ) {
 	writeFileNoResetWriter(writer, allPaths, pathsInfo, options, fi, where.fileIndex);
 	if (where.fileIndex != FileIndex.none)
@@ -908,10 +908,10 @@ void writeFile(
 
 private void writeFileNoResetWriter(
 	ref Writer writer,
-	ref const AllPaths allPaths,
-	ref immutable PathsInfo pathsInfo,
-	ref immutable ShowDiagOptions options,
-	ref immutable FilesInfo fi,
+	scope ref const AllPaths allPaths,
+	scope ref immutable PathsInfo pathsInfo,
+	scope ref immutable ShowDiagOptions options,
+	scope ref immutable FilesInfo fi,
 	immutable FileIndex fileIndex,
 ) {
 	if (options.color)

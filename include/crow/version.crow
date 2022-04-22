@@ -13,6 +13,9 @@ no-std
 import
 	./bool: bool
 
+is-interpreted bool() noctx unsafe builtin
+is-jit bool() noctx unsafe builtin
+
 ###
 `true` iff the code is run in the interpreter.
 

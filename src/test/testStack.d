@@ -28,7 +28,7 @@ void testStack(ref Test test) {
 private:
 
 @trusted void testPushPop(ref Test test) {
-	withStacks!void((Stacks stacks) { testPushPop(test, stacks); });
+	withStacks!void((ref Stacks stacks) { testPushPop(test, stacks); });
 }
 
 @system void testPushPop(ref Test test, Stacks a) {
@@ -76,7 +76,7 @@ private:
 }
 
 @trusted void testRemoveN(ref Test test) {
-	withStacks!void((Stacks stacks) { testPushPop(test, stacks); });
+	withStacks!void((ref Stacks stacks) { testPushPop(test, stacks); });
 }
 
 @system void testRemoveN(ref Test test, Stacks a) {

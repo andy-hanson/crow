@@ -199,8 +199,7 @@ GccProgram getGccProgram(
 	verify(ctxPtr != null);
 	Ptr!gcc_jit_context ctx = Ptr!gcc_jit_context(ctxPtr);
 
-	//TODO: compile option for this
-	//gcc_jit_context_set_bool_option(ctx.deref(), gcc_jit_bool_option.GCC_JIT_BOOL_OPTION_DEBUGINFO, true);
+	gcc_jit_context_set_bool_option(ctx.deref(), gcc_jit_bool_option.GCC_JIT_BOOL_OPTION_DEBUGINFO, true);
 	final switch (options.optimization) {
 		case OptimizationLevel.none:
 			break;
@@ -888,6 +887,8 @@ immutable(ExprResult) toGccExpr(
 			unaryToGcc(ctx, locals, emit, a, it),
 		(ref immutable LowExprKind.SpecialBinary it) =>
 			binaryToGcc(ctx, locals, emit, a, it),
+		(ref immutable LowExprKind.SpecialTernary) =>
+			unreachable!ExprResult,
 		(ref immutable LowExprKind.Switch0ToN it) =>
 			switch0ToNToGcc(ctx, locals, emit, a, it),
 		(ref immutable LowExprKind.SwitchWithValues) =>
@@ -1385,6 +1386,7 @@ immutable(ExprResult) constantToGcc(
 		case LowExprKind.SpecialUnary.Kind.toNat64FromNat16:
 		case LowExprKind.SpecialUnary.Kind.toNat64FromNat32:
 		case LowExprKind.SpecialUnary.Kind.truncateToInt64FromFloat64:
+		case LowExprKind.SpecialUnary.Kind.unsafeInt32ToNat32:
 		case LowExprKind.SpecialUnary.Kind.unsafeInt64ToInt8:
 		case LowExprKind.SpecialUnary.Kind.unsafeInt64ToInt16:
 		case LowExprKind.SpecialUnary.Kind.unsafeInt64ToInt32:
@@ -1839,6 +1841,7 @@ Ptr!gcc_jit_lvalue getLValue(ref ExprCtx ctx, ref Locals locals, ref immutable L
 				? gcc_jit_rvalue_dereference(emitToRValue(ctx, locals, it.arg), null)
 				: todo!(Ptr!gcc_jit_lvalue)("!"),
 		(ref immutable LowExprKind.SpecialBinary) => unreachable!(Ptr!gcc_jit_lvalue)(),
+		(ref immutable LowExprKind.SpecialTernary) => unreachable!(Ptr!gcc_jit_lvalue)(),
 		(ref immutable LowExprKind.Switch0ToN) => unreachable!(Ptr!gcc_jit_lvalue)(),
 		(ref immutable LowExprKind.SwitchWithValues) => unreachable!(Ptr!gcc_jit_lvalue)(),
 		(ref immutable LowExprKind.TailRecur) => unreachable!(Ptr!gcc_jit_lvalue)(),

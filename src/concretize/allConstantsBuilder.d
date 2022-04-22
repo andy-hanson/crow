@@ -2,22 +2,19 @@ module concretize.allConstantsBuilder;
 
 @safe @nogc pure nothrow:
 
-import lower.lower : concreteFunWillBecomeNonExternLowFun;
 import model.concreteModel :
 	AllConstantsConcrete,
 	ArrTypeAndConstantsConcrete,
 	asInst,
-	ConcreteFun,
 	ConcreteStruct,
 	ConcreteType,
 	concreteTypeEqual,
 	hashConcreteType,
-	name,
 	PointerTypeAndConstantsConcrete;
 import model.constant : Constant, constantEqual;
 import util.alloc.alloc : Alloc;
 import util.col.arr : empty, only;
-import util.col.arrUtil : arrEqual, arrLiteral, findIndex_const, mapOp;
+import util.col.arrUtil : arrEqual, arrLiteral, findIndex_const;
 import util.col.mutArr : moveToArr, MutArr, mutArrAt, mutArrSize, push, tempAsArr;
 import util.col.mutDict :
 	getOrAdd,
@@ -30,7 +27,7 @@ import util.col.mutDict :
 	MutSymDict,
 	valuesArray;
 import util.col.str : hashSafeCStr, SafeCStr, safeCStrEq;
-import util.opt : force, has, none, Opt, some;
+import util.opt : force, has, Opt;
 import util.ptr : hashPtr, Ptr, ptrEquals, ptrTrustMe_mut;
 import util.sym : AllSymbols, hashSym, safeCStrOfSym, Sym, symEq;
 import util.util : verify;
@@ -61,11 +58,8 @@ immutable(AllConstantsConcrete) finishAllConstants(
 	ref Alloc alloc,
 	ref AllConstantsBuilder a,
 	ref const AllSymbols allSymbols,
-	immutable Ptr!ConcreteFun[] allConcreteFuns,
-	immutable Ptr!ConcreteStruct arrNamedValFunPtrStruct,
 	immutable Ptr!ConcreteStruct arrSymStruct,
 ) {
-	immutable Constant allFuns = makeAllFuns(alloc, a, allSymbols, allConcreteFuns, arrNamedValFunPtrStruct);
 	immutable Constant staticSyms = getConstantArr(alloc, a, arrSymStruct, valuesArray(alloc, a.syms));
 	immutable ArrTypeAndConstantsConcrete[] arrs =
 		mapToArr_mut!(
@@ -90,28 +84,7 @@ immutable(AllConstantsConcrete) finishAllConstants(
 			immutable PointerTypeAndConstantsConcrete(
 				key,
 				moveToArr(alloc, value.constants)));
-	return immutable AllConstantsConcrete(moveToArr(alloc, a.cStringValues), allFuns, staticSyms, arrs, records);
-}
-
-private immutable(Constant) makeAllFuns(
-	ref Alloc alloc,
-	ref AllConstantsBuilder a,
-	ref const AllSymbols allSymbols,
-	immutable Ptr!ConcreteFun[] allConcreteFuns,
-	immutable Ptr!ConcreteStruct arrNamedValFunPtrStruct,
-) {
-	return getConstantArr(
-		alloc,
-		a,
-		arrNamedValFunPtrStruct,
-		mapOp!Constant(alloc, allConcreteFuns, (ref immutable Ptr!ConcreteFun it) {
-			immutable Opt!Sym name = name(it.deref());
-			return has(name) && concreteFunWillBecomeNonExternLowFun(it.deref())
-				? some(immutable Constant(immutable Constant.Record(arrLiteral!Constant(alloc, [
-					getConstantCStrForSym(alloc, a, allSymbols, force(name)),
-					immutable Constant(immutable Constant.FunPtr(it))]))))
-				: none!Constant;
-		}));
+	return immutable AllConstantsConcrete(moveToArr(alloc, a.cStringValues), staticSyms, arrs, records);
 }
 
 ref immutable(Constant) derefConstantPointer(

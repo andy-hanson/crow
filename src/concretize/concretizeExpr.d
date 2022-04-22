@@ -716,6 +716,10 @@ immutable(Opt!Constant) tryEvalConstantBuiltin(immutable Sym name, ref immutable
 	switch (name.value) {
 		case specialSymValue(SpecialSym.is_big_endian):
 			return some(immutable Constant(immutable Constant.BoolConstant(versionInfo.isBigEndian)));
+		case specialSymValue(SpecialSym.is_interpreted):
+			return some(immutable Constant(immutable Constant.BoolConstant(versionInfo.isInterpreted)));
+		case shortSymValue("is-jit"):
+			return some(immutable Constant(immutable Constant.BoolConstant(versionInfo.isJit)));
 		case specialSymValue(SpecialSym.is_single_threaded):
 			return some(immutable Constant(immutable Constant.BoolConstant(versionInfo.isSingleThreaded)));
 		case shortSymValue("is-wasm"):

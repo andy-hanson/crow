@@ -1,17 +1,18 @@
 no-std
 import
-	setjmp: jmp_buf, __jmp_buf_tag, longjmp, new, setjmp
+	setjmp: jmp_buf, __jmp_buf_tag, longjmp, new, setjmp, _setjmp
 	../bool: bool
 	../col/private/arr-low-level: new
 	../compare: !=
 	../fun-util: subscript
 	../misc: new, void
 	../ptr: ==, as-ref, by-val, null, ptr-to
+	../version: is-interpreted, is-windows
 	./backtrace: get-backtrace
 	./bootstrap:
-		c-str, err, exception-ctx-ptr, get-ctx, hard-assert, hard-unreachable, int32, new, ok, result,
+		c-str, err, exception-ctx-ptr, get-ctx, hard-assert, hard-unreachable, new, ok, result,
 		thread-local-stuff
-	./number-low-level: ==
+	./number-low-level: ==, int32, nat64
 export
 	./bootstrap: exception, message
 
@@ -30,9 +31,14 @@ catch-with-exception-ctx<a> a(ec exception-ctx, try act a(), catcher act a(excep
 	old-thrown-exception = ec thrown-exception
 	old-jmp-buf = ec jmp-buf-ptr
 	store __jmp_buf_tag = ()
-	ec.jmp-buf-ptr := store ptr-to
-	setjmp-result = ec.jmp-buf-ptr setjmp
+	setjmp-result = if is-interpreted
+		store.ptr-to setjmp
+	elif is-windows
+		store.ptr-to _setjmp
+	else
+		store.ptr-to setjmp
 	if setjmp-result == 0
+		ec.jmp-buf-ptr := store ptr-to
 		# Get here after setting the jump.
 		# If it throws, we'll go to the above branch.
 		res = try[]
@@ -50,7 +56,10 @@ catch-with-exception-ctx<a> a(ec exception-ctx, try act a(), catcher act a(excep
 		catcher[thrown-exception]
 
 throw-c-str<a> a(message c-str) trusted
-	(message, get-backtrace) throw
+	message throw-c-str 2
+
+throw-c-str<a> a(message c-str, skip nat64) trusted
+	(message, skip get-backtrace) throw
 
 ###
 Throw an existing exception object.

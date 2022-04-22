@@ -5,31 +5,45 @@ module interpret.stacks;
 import interpret.bytecode : Operation;
 import util.util : verify;
 
-// Thread-local.
-// For efficiency, 'dataPtr' and 'returnPtr' are passed as parameters
-// to avoid the cost of reading a thread-local variable.
 private immutable size_t stacksStorageSize = 0x10000;
-// Can't store stacks in static memory on Windows due to https://issues.dlang.org/show_bug.cgi?id=23024
-version (Windows) {
-} else {
-	private static ulong[stacksStorageSize] stacksStorage = void;
+private static bool stacksInitialized = false;
+private static Stacks.Inner savedStacks;
+private static ulong[stacksStorageSize] stacksStorage = void;
+
+void saveStacks(Stacks a) {
+	verify(stacksInitialized);
+	savedStacks = a.inner;
 }
 
-// WARN: Not reentrant. There can only be one Stacks object per thread.
-immutable(T) withStacks(T)(scope immutable(T) delegate(Stacks) @nogc nothrow cb) {
-	version (Windows) {
-		ulong[stacksStorageSize] storage;
-		Stacks.Inner inner = Stacks.Inner(
-			storage,
-			storage.ptr - 1,
-			cast(immutable(Operation)**) (storage.ptr + storage.length));
-		Stacks stacks = Stacks(&inner);
-	} else {
-		Stacks stacks = Stacks(
+/*
+WARN: In case this is reentrant, the interpreter must call 'saveStacks' before.
+The callback should have a net 0 effect on the stack depths..
+*/
+immutable(T) withStacks(T)(scope immutable(T) delegate(ref Stacks) @nogc nothrow cb) {
+	if (!stacksInitialized) {
+		savedStacks = Stacks.Inner(
 			stacksStorage.ptr - 1,
 			cast(immutable(Operation)**) (stacksStorage.ptr + stacksStorage.length));
+		stacksInitialized = true;
 	}
-	return cb(stacks);
+
+	Stacks.Inner stacksAtStart = savedStacks;
+	version (Windows) {
+		Stacks curStacks = Stacks(&stacksAtStart);
+	} else {
+		Stacks curStacks = stacksAtStart;
+	}
+
+	static if (is(T == void))
+		cb(curStacks);
+	else
+		immutable T res = cb(curStacks);
+
+	verify(curStacks.inner == stacksAtStart);
+	savedStacks = stacksAtStart;
+
+	static if (!is(T == void))
+		return res;
 }
 
 private immutable(Operation)** storageEnd(ref Stacks a) {
@@ -46,31 +60,38 @@ struct Stacks {
 
 	private:
 	version (Windows) {
-		struct Inner {
-			ulong[] storage;
+		// Apparently, tail recursion breaks on Windows if Stacks is bigger than a pointer.
+		// See https://github.com/ldc-developers/ldc/issues/3968
+		public struct Inner {
+			private:
 			ulong* dataPtr;
 			immutable(Operation)** returnPtr;
 		}
-		Inner* inner;
+		Inner* inner_;
 
-		inout(ulong[]) storage() inout { return inner.storage; }
+		public ref inout(Inner) inner() inout { return *inner_; }
 		ref inout(ulong*) dataPtr() inout { return inner.dataPtr; }
 		ref inout(immutable(Operation)**) returnPtr() inout { return inner.returnPtr; }
 
+		public void setTo(Inner inner) { *inner_ = inner; }
+
 	} else {
+		public alias Inner = Stacks;
 		// Grows right towards returnPtr. Points to the last-pushed value.
 		ulong* dataPtr;
 		// Grows left towards dataPtr. Points to the last-pushed value.
 		immutable(Operation)** returnPtr;
 
-		ulong[] storage() { return stacksStorage; }
-		const(ulong[]) storage() const { return stacksStorage; }
+		public ref inout(Inner) inner() inout { return this; }
 	}
+
+	@trusted ulong[] storage() { return stacksStorage; }
+	@trusted const(ulong[]) storage() const { return stacksStorage; }
 }
 version (Windows) {
 	static assert(Stacks.sizeof == (void*).sizeof);
 } else {
-	static assert(Stacks.sizeof == 2 * (void*).sizeof);
+	static assert(Stacks.sizeof == (void*).sizeof * 2);
 }
 
 immutable(bool) dataStackIsEmpty(ref const Stacks a) {
@@ -82,6 +103,11 @@ void dataPush(ref Stacks a, immutable ulong value) {
 	a.dataPtr++;
 	debug verify!"dataPush check"(a.dataPtr < cast(ulong*) a.returnPtr);
 	*a.dataPtr = value;
+}
+
+void dataPush(ref Stacks a, scope immutable ulong[] values) {
+	foreach (immutable ulong value; values)
+		dataPush(a, value);
 }
 
 void dataPushUninitialized(ref Stacks a, immutable size_t n) {
@@ -124,10 +150,6 @@ immutable(ulong[]) dataPopN(return ref Stacks a, immutable size_t n) {
 // pointer to the last data value pushed
 ulong* dataTop(ref Stacks a) {
 	return a.dataPtr;
-}
-
-void setDataTop(ref Stacks a, ulong* top) {
-	a.dataPtr = top;
 }
 
 // Pointer to the value at the bottom of the data stack
@@ -184,19 +206,14 @@ immutable(Operation*) returnPeek(ref const Stacks a, immutable size_t offset = 0
 	return *(a.returnPtr + offset);
 }
 
+void setReturnPeek(ref Stacks a, immutable Operation* value) {
+	*a.returnPtr = value;
+}
+
 immutable(Operation*) returnPop(ref Stacks a) {
 	immutable Operation* res = *a.returnPtr;
 	a.returnPtr++;
 	return res;
-}
-
-immutable(Operation)** returnBeforeTop(ref Stacks a) {
-	debug verify(!returnStackIsEmpty(a));
-	return a.returnPtr + 1;
-}
-
-void setReturnTop(ref Stacks a, immutable(Operation)** top) {
-	a.returnPtr = top;
 }
 
 immutable(Operation*[]) returnTempAsArrReverse(ref const Stacks a) {

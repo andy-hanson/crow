@@ -94,14 +94,16 @@ main fut nat(_ str[]) summon trusted
 
 	<- 25.msec repeat-interval () => renderer main-loop-body
 
-	# TODO: use 'finally'
-	gl free-texture texture
-	gl vbo-free triangle-vbo
-	gl shader-prog-destroy shader-prog
-	context SDL_GL_DeleteContext
-	window SDL_DestroyWindow
-	SDL_Quit
-	()
+	# SDL_DestroyWindow hangs on Windows if called from a different thread
+	renderer.render-thread-id run-with-thread-id () =>
+		# TODO: use 'finally'
+		gl free-texture texture
+		gl vbo-free triangle-vbo
+		gl shader-prog-destroy shader-prog
+		context SDL_GL_DeleteContext
+		window SDL_DestroyWindow
+		SDL_Quit
+		()
 
 .make-cube vertex[]()
 	front = I.cube-side ~~ (up rotation pi / 2 cube-side) ~~ (right rotation pi / 2 cube-side)
@@ -201,10 +203,9 @@ main fut nat(_ str[]) summon trusted
 
 	renderer.window SDL_GL_SwapWindow
 
-.run-with-thread-id fut void(thread-id nat, cb act void()) unsafe
+.run-with-thread-id<a> fut a(thread-id nat, cb act a()) unsafe is-sendable<a>
 	if cur-thread-id == thread-id
-		cb[]
-		()
+		cb[],
 	else
 		<- delay
 		thread-id run-with-thread-id cb

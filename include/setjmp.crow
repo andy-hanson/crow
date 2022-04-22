@@ -1,12 +1,13 @@
 no-std
 import
 	crow/ptr: mut-ptr
-	crow/bytes-types: bytes256, new
+	crow/bytes-types: bytes512, new
 	crow/private/bootstrap: int32, void
 
 # Make this as big as the biggest one I've found, which is on Windows where it is 16 * 128 bits.
+# The interpreter uses a fake implementation of this.
 __jmp_buf_tag record by-val extern
-	spacer bytes256
+	spacer bytes512
 
 new __jmp_buf_tag() noctx
 	(),
@@ -17,8 +18,15 @@ new __jmp_buf_tag() noctx
 jmp_buf alias
 	__jmp_buf_tag mut*
 
-# TODO: this is marked __THROWNL, what does that do?
+# WARN: Use _setjmp on Windows
 setjmp int32(env jmp_buf) unsafe extern<c> noctx
 
-# TODO: this is marked __THROWNL, what does that do?
+# WARN: Windows only
+_setjmp int32(env jmp_buf) unsafe extern<kernel32> noctx
+
+###
+This is used internally by crow for `throw` and should not be used otherwise.
+
+The interpreter uses a fake implementation.
+###
 longjmp void(env jmp_buf, val int32) unsafe extern<c> noctx

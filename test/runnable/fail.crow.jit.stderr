@@ -1,0 +1,9 @@
+uncaught exception: FOO
+	at bar
+	at foo
+	at main_0
+	at add__sfirst__stask__lambda0
+	at call__sw__sctx_418
+	at subscript_27
+	at catch_0__lambda0
+	at call__sw__sctx_414

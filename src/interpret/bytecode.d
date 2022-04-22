@@ -2,9 +2,11 @@ module interpret.bytecode;
 
 @safe @nogc nothrow: // not pure
 
+import interpret.extern_ : FunPtr, funPtrEquals, hashFunPtr;
 import interpret.stacks : Stacks;
 import model.lowModel : LowFunIndex;
 import util.col.arr : castImmutable;
+import util.col.dict : Dict;
 import util.col.fullIndexDict : FullIndexDict;
 import util.sym : Sym;
 import util.sourceRange : FileIndex, Pos;
@@ -47,6 +49,7 @@ struct ByteCode {
 	@safe @nogc pure nothrow:
 
 	immutable Operations operations;
+	immutable FunPtrToOperationPtr funPtrToOperationPtr;
 	immutable FileToFuns fileToFuns; // Look up in 'sources' first, then can find the corresponding function here
 	immutable ubyte[] text;
 	immutable ByteCodeIndex main;
@@ -54,6 +57,8 @@ struct ByteCode {
 	immutable(Operation[]) byteCode() immutable { return operations.byteCode; }
 	immutable(FullIndexDict!(ByteCodeIndex, ByteCodeSource)) sources() immutable { return operations.sources; }
 }
+
+alias FunPtrToOperationPtr = immutable Dict!(FunPtr, Operation*, funPtrEquals, hashFunPtr);
 
 struct Operations {
 	Operation[] byteCode;
@@ -110,5 +115,3 @@ struct ByteCodeOffset {
 }
 
 immutable size_t stackEntrySize = 8;
-
-enum ExternOp : ubyte { backtrace, longjmp, setjmp }

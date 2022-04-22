@@ -489,8 +489,8 @@ private immutable(Path) commonAncestorRecur(ref const AllPaths allPaths, immutab
 private:
 
 void eachPartPreferRelative(
-	ref const AllPaths allPaths,
-	ref immutable PathsInfo pathsInfo,
+	scope ref const AllPaths allPaths,
+	scope ref immutable PathsInfo pathsInfo,
 	immutable Path a,
 	scope void delegate(immutable Sym, immutable bool) @safe @nogc pure nothrow cb,
 ) {
@@ -534,7 +534,7 @@ immutable(Path) removeLastNParts(ref const AllPaths allPaths, immutable Path a, 
 }
 
 void eachPart(
-	ref const AllPaths allPaths,
+	scope ref const AllPaths allPaths,
 	immutable Path a,
 	immutable size_t maxParts,
 	scope void delegate(immutable Sym, immutable bool) @safe @nogc pure nothrow cb,
@@ -547,7 +547,7 @@ void eachPart(
 }
 
 void eachPartRecur(
-	ref const AllPaths allPaths,
+	scope ref const AllPaths allPaths,
 	immutable Path a,
 	immutable size_t maxParts,
 	scope void delegate(immutable Sym, immutable bool) @safe @nogc pure nothrow cb,
@@ -575,8 +575,8 @@ void writePathPlain(
 
 public void writePath(
 	ref Writer writer,
-	ref const AllPaths allPaths,
-	ref immutable PathsInfo pathsInfo,
+	scope ref const AllPaths allPaths,
+	scope ref immutable PathsInfo pathsInfo,
 	immutable Path a,
 	immutable Sym extension,
 ) {

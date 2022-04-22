@@ -5,7 +5,6 @@ module interpret.debugging;
 import model.concreteModel :
 	ConcreteFun,
 	ConcreteFunSource,
-	ConcreteLocal,
 	ConcreteParam,
 	ConcreteParamSource,
 	ConcreteStruct,
@@ -19,12 +18,9 @@ import model.lowModel :
 	LowFun,
 	LowFunIndex,
 	LowFunSource,
-	LowLocal,
-	LowLocalSource,
 	LowProgram,
 	LowType,
 	matchLowFunSource,
-	matchLowLocalSource,
 	matchLowType,
 	PrimitiveType,
 	symOfPrimitiveType;
@@ -205,16 +201,4 @@ void writeConcreteStruct(
 void writeConcreteType(scope ref Writer writer, scope ref const AllSymbols allSymbols, scope immutable ConcreteType a) {
 	//TODO: if it doesn't have the usual by-ref or by-val we should write that
 	writeConcreteStruct(writer, allSymbols, a.struct_.deref());
-}
-
-void writeLocalName(ref Writer writer, ref const AllSymbols allSymbols, ref immutable LowLocal a) {
-	matchLowLocalSource!(
-		void,
-		(ref immutable ConcreteLocal it) {
-			writeSym(writer, allSymbols, it.source.deref().name);
-		},
-		(ref immutable LowLocalSource.Generated) {
-			writeStatic(writer, "<<generated>>");
-		},
-	)(a.source);
 }

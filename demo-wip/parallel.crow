@@ -1,0 +1,19 @@
+import
+	crow/col/arr-util: flat-map, map
+	crow/io/print: print
+	crow/private/thread-utils: count-processors
+	crow/str-util: join
+
+main fut nat(_ str[]) unsafe summon
+	print: "running with {count-processors} processors"
+	# TODO: a module with helpers to do things like filter in parallel
+	tasks fut<pair<nat, bool>>[] = 1_000_000 .. 1_004_000 map x =>
+		launch: () => (x, x.is-prime),
+	pairs <- tasks wait-all
+	primes nat[] = pairs flat-map x => x.b ? x.a,
+	print: "primes: {primes map (x => x to-str) join ", "}"
+	()
+
+# intentionally inefficient to demonstrate parallel speedup
+is-prime bool(a nat)
+	!(2 .. a exists x => a is-multiple-of x)

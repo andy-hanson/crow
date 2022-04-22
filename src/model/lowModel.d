@@ -613,6 +613,12 @@ struct LowExpr {
 struct LowFunIndex {
 	immutable size_t index;
 }
+immutable(bool) lowFunIndexEquals(immutable LowFunIndex a, immutable LowFunIndex b) {
+	return a == b;
+}
+void hashLowFunIndex(ref Hasher hasher, immutable LowFunIndex a) {
+	hashSizeT(hasher, a.index);
+}
 
 struct LowParamIndex {
 	immutable size_t index;
@@ -627,8 +633,14 @@ struct LowExprKind {
 	}
 
 	struct CallFunPtr {
+		@safe @nogc pure nothrow:
+
 		immutable LowExpr funPtr;
 		immutable LowExpr[] args;
+
+		immutable(LowType.FunPtr) funPtrType() immutable {
+			return asFunPtrType(funPtr.type);
+		}
 	}
 
 	struct CreateRecord {
@@ -750,6 +762,7 @@ struct LowExprKind {
 			toNat64FromPtr,
 			toPtrFromNat64,
 			truncateToInt64FromFloat64,
+			unsafeInt32ToNat32,
 			unsafeInt64ToInt8,
 			unsafeInt64ToInt16,
 			unsafeInt64ToInt32,
@@ -867,6 +880,12 @@ struct LowExprKind {
 		immutable LowExpr right;
 	}
 
+	struct SpecialTernary {
+		enum Kind { interpreterBacktrace }
+		immutable Kind kind;
+		immutable LowExpr[3] args;
+	}
+
 	struct Switch0ToN {
 		immutable LowExpr value;
 		immutable LowExpr[] cases;
@@ -904,6 +923,7 @@ struct LowExprKind {
 		constant,
 		specialUnary,
 		specialBinary,
+		specialTernary,
 		switchWithValues,
 		switch0ToN,
 		tailRecur,
@@ -929,6 +949,7 @@ struct LowExprKind {
 		immutable Constant constant;
 		immutable Ptr!SpecialUnary specialUnary;
 		immutable Ptr!SpecialBinary specialBinary;
+		immutable Ptr!SpecialTernary specialTernary;
 		immutable Ptr!Switch0ToN switch0ToN;
 		immutable Ptr!SwitchWithValues switchWithValues;
 		immutable TailRecur tailRecur;
@@ -954,6 +975,7 @@ struct LowExprKind {
 	@trusted immutable this(immutable Constant a) { kind = Kind.constant; constant = a; }
 	@trusted immutable this(immutable Ptr!SpecialUnary a) { kind = Kind.specialUnary; specialUnary = a; }
 	@trusted immutable this(immutable Ptr!SpecialBinary a) { kind = Kind.specialBinary; specialBinary = a; }
+	@trusted immutable this(immutable Ptr!SpecialTernary a) { kind = Kind.specialTernary; specialTernary = a; }
 	@trusted immutable this(immutable Ptr!Switch0ToN a) { kind = Kind.switch0ToN; switch0ToN = a; }
 	@trusted immutable this(immutable Ptr!SwitchWithValues a) { kind = Kind.switchWithValues; switchWithValues = a; }
 	@trusted immutable this(immutable TailRecur a) { kind = Kind.tailRecur; tailRecur = a; }
@@ -981,6 +1003,7 @@ static assert(LowExprKind.sizeof <= 32);
 	alias cbConstant,
 	alias cbSpecialUnary,
 	alias cbSpecialBinary,
+	alias cbSpecialTernary,
 	alias cbSwitch0ToN,
 	alias cbSwitchWithValues,
 	alias cbTailRecur,
@@ -1023,6 +1046,8 @@ static assert(LowExprKind.sizeof <= 32);
 			return cbSpecialUnary(a.specialUnary.deref());
 		case LowExprKind.Kind.specialBinary:
 			return cbSpecialBinary(a.specialBinary.deref());
+		case LowExprKind.Kind.specialTernary:
+			return cbSpecialTernary(a.specialTernary.deref());
 		case LowExprKind.Kind.switch0ToN:
 			return cbSwitch0ToN(a.switch0ToN.deref());
 		case LowExprKind.Kind.switchWithValues:

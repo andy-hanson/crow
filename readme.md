@@ -13,11 +13,14 @@ For information about the language itself, visit the [website](https://crow-lang
 Install these tools (potentially from your operating system's package manager):
 
 * [`dmd`](https://dlang.org/download.html#dmd) (used to compile `bin/crow-debug` due to much faster compiles)
+	- Skip this on Windows (not used due to https://issues.dlang.org/show_bug.cgi?id=23024)
 * [`git`](https://git-scm.com/) (used to get this repository)
 * [`hg`](https://mercurial-scm.org) (used to clone the `dyncall` library)
 * [`ldc`](https://github.com/ldc-developers/ldc#installation) (used to compile `bin/crow`).
 	- `wasm-ld` may need to be installed separately (used to compile `bin/crow.wasm`)
 * [`libgccjit`](https://gcc.gnu.org/onlinedocs/jit) (`bin/crow` links to this)
+	- Skip this on Windows
+* [`libunwind`](https://www.nongnu.org/libunwind)
 	- Skip this on Windows
 * [`node.js](https://nodejs.org/) (used for tests of WASM module)
 

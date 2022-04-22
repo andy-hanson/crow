@@ -2,10 +2,12 @@ module interpret.generateText;
 
 @safe @nogc pure nothrow:
 
+import interpret.funToReferences : FunToReferences, registerTextReference;
 import model.constant : Constant, matchConstant;
 import model.lowModel :
 	AllConstantsLow,
 	ArrTypeAndConstantsLow,
+	asFunPtrType,
 	asPrimitive,
 	asPtrGcPointee,
 	asRecordType,
@@ -36,11 +38,9 @@ import util.col.exactSizeArrBuilder :
 	finish,
 	newExactSizeArrBuilder,
 	padTo;
-import util.col.fullIndexDict : fullIndexDictSize;
-import util.col.mutIndexMultiDict : MutIndexMultiDict, mutIndexMultiDictAdd, newMutIndexMultiDict;
 import util.col.str : SafeCStr, safeCStrSize;
 import util.conv : bitsOfFloat32, bitsOfFloat64;
-import util.ptr : Ptr, ptrTrustMe;
+import util.ptr : Ptr, ptrTrustMe, ptrTrustMe_mut;
 import util.util : todo, unreachable, verify;
 
 struct TextIndex {
@@ -49,7 +49,6 @@ struct TextIndex {
 
 struct TextAndInfo {
 	ubyte[] text; // mutable since it contains function pointers that must be filled in later
-	MutIndexMultiDict!(LowFunIndex, TextIndex) funToTextReferences;
 	immutable TextInfo info;
 }
 
@@ -89,13 +88,14 @@ TextAndInfo generateText(
 	ref TempAlloc tempAlloc,
 	scope ref immutable LowProgram program,
 	scope ref immutable AllConstantsLow allConstants,
+	ref FunToReferences funToReferences,
 ) {
 	Ctx ctx = Ctx(
 		ptrTrustMe(program),
 		ptrTrustMe(allConstants),
 		// '1 +' because we add a dummy byte at 0
 		newExactSizeArrBuilder!ubyte(alloc, 1 + getAllConstantsSize(program, allConstants)),
-		newMutIndexMultiDict!(LowFunIndex, TextIndex)(alloc, fullIndexDictSize(program.allFuns)),
+		ptrTrustMe_mut(funToReferences),
 		emptyArr!size_t, // cStringIndexToTextIndex will be overwritten just below this
 		mapToMut!(size_t[], ArrTypeAndConstantsLow)(
 			alloc,
@@ -144,7 +144,6 @@ TextAndInfo generateText(
 	ubyte[] text = finish(ctx.text);
 	return TextAndInfo(
 		text,
-		ctx.funToTextReferences,
 		immutable TextInfo(
 			castImmutable(text),
 			castImmutable(ctx.cStringIndexToTextIndex),
@@ -160,7 +159,7 @@ struct Ctx {
 	immutable Ptr!LowProgram programPtr;
 	immutable Ptr!AllConstantsLow allConstantsPtr;
 	ExactSizeArrBuilder!ubyte text;
-	MutIndexMultiDict!(LowFunIndex, TextIndex) funToTextReferences;
+	Ptr!FunToReferences funToReferencesPtr;
 	immutable(size_t)[] cStringIndexToTextIndex;
 	size_t[][] arrTypeIndexToConstantIndexToTextIndex;
 	size_t[][] pointeeTypeIndexToIndexToTextIndex;
@@ -171,6 +170,10 @@ struct Ctx {
 
 	ref immutable(AllConstantsLow) allConstants() return scope const {
 		return allConstantsPtr.deref();
+	}
+
+	ref FunToReferences funToReferences() return scope {
+		return funToReferencesPtr.deref();
 	}
 }
 
@@ -322,11 +325,12 @@ void writeConstant(
 			}
 		},
 		(immutable Constant.FunPtr it) {
-			immutable LowFunIndex index = mustGetAt(ctx.program.concreteFunToLowFunIndex, it.fun);
-			mutIndexMultiDictAdd(
-				alloc,
-				ctx.funToTextReferences,
-				index,
+			immutable LowFunIndex fun = mustGetAt(ctx.program.concreteFunToLowFunIndex, it.fun);
+			registerTextReference(
+				tempAlloc,
+				ctx.funToReferences,
+				asFunPtrType(type),
+				fun,
 				immutable TextIndex(exactSizeArrBuilderCurSize(ctx.text)));
 			add64(ctx.text, 0);
 		},

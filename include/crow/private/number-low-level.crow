@@ -85,6 +85,7 @@ unsafe-mod nat64(a nat64, b nat64) noctx unsafe builtin
 
 unsafe-to-nat8 nat8(a nat64) noctx unsafe builtin
 unsafe-to-nat16 nat16(a nat64) noctx unsafe builtin
+unsafe-to-nat32 nat32(a int32) noctx unsafe builtin
 unsafe-to-nat32 nat32(a nat64) noctx unsafe builtin
 unsafe-to-nat64 nat64(a int64) noctx unsafe builtin
 

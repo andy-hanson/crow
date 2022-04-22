@@ -11,13 +11,14 @@ import model.lowModel :
 	LowExprKind,
 	LowType,
 	PrimitiveType;
-import util.sym : Operator, operatorSymValue, shortSymValue, SpecialSym, specialSymValue, Sym;
-import util.util : todo;
+import util.alloc.alloc : Alloc;
+import util.sym :
+	AllSymbols, Operator, operatorSymValue, safeCStrOfSym, shortSymValue, SpecialSym, specialSymValue, Sym;
+import util.util : debugLog, todo;
 
 struct BuiltinKind {
 	@safe @nogc pure nothrow:
 
-	struct AllFuns {}
 	struct CallFunPtr {}
 	struct GetCtx {}
 	struct InitConstants {}
@@ -28,7 +29,6 @@ struct BuiltinKind {
 	struct StaticSyms {}
 	struct Zeroed {}
 
-	immutable this(immutable AllFuns a) { kind_ = Kind.allFuns; allFuns_ = a; }
 	immutable this(immutable CallFunPtr a) { kind_ = Kind.callFunPtr; callFunPtr_ = a; }
 	immutable this(immutable GetCtx a) { kind_ = Kind.getCtx; getCtx_ = a; }
 	@trusted immutable this(immutable Constant a) { kind_ = Kind.constant; constant_ = a; }
@@ -37,6 +37,7 @@ struct BuiltinKind {
 	immutable this(immutable OptQuestion2 a) { kind_ = Kind.optQuestion2; optQuestion2_ = a; }
 	immutable this(immutable LowExprKind.SpecialUnary.Kind a) { kind_ = Kind.unary; unary_ = a; }
 	immutable this(immutable LowExprKind.SpecialBinary.Kind a) { kind_ = Kind.binary; binary_ = a; }
+	immutable this(immutable LowExprKind.SpecialTernary.Kind a) { kind_ = Kind.ternary; ternary_ = a; }
 	immutable this(immutable PtrCast a) { kind_ = Kind.ptrCast; ptrCast_ = a; }
 	immutable this(immutable SizeOf a) { kind_ = Kind.sizeOf; sizeOf_ = a; }
 	immutable this(immutable StaticSyms a) { kind_ = Kind.staticSyms; staticSyms_ = a; }
@@ -44,13 +45,13 @@ struct BuiltinKind {
 
 	private:
 	enum Kind {
-		allFuns,
 		callFunPtr,
 		getCtx,
 		constant,
 		initConstants,
 		unary,
 		binary,
+		ternary,
 		optOr,
 		optQuestion2,
 		ptrCast,
@@ -60,13 +61,13 @@ struct BuiltinKind {
 	}
 	immutable Kind kind_;
 	union {
-		immutable AllFuns allFuns_;
 		immutable CallFunPtr callFunPtr_;
 		immutable GetCtx getCtx_;
 		immutable Constant constant_;
 		immutable InitConstants initConstants_;
 		immutable LowExprKind.SpecialUnary.Kind unary_;
 		immutable LowExprKind.SpecialBinary.Kind binary_;
+		immutable LowExprKind.SpecialTernary.Kind ternary_;
 		immutable OptOr optOr_;
 		immutable OptQuestion2 optQuestion2_;
 		immutable PtrCast ptrCast_;
@@ -78,13 +79,13 @@ struct BuiltinKind {
 
 @trusted immutable(T) matchBuiltinKind(T)(
 	ref immutable BuiltinKind a,
-	scope immutable(T) delegate(ref immutable BuiltinKind.AllFuns) @safe @nogc pure nothrow cbAllFuns,
 	scope immutable(T) delegate(ref immutable BuiltinKind.CallFunPtr) @safe @nogc pure nothrow cbCallFunPtr,
 	scope immutable(T) delegate(ref immutable BuiltinKind.GetCtx) @safe @nogc pure nothrow cbGetCtx,
 	scope immutable(T) delegate(ref immutable Constant) @safe @nogc pure nothrow cbConstant,
 	scope immutable(T) delegate(ref immutable BuiltinKind.InitConstants) @safe @nogc pure nothrow cbInitConstants,
 	scope immutable(T) delegate(immutable LowExprKind.SpecialUnary.Kind) @safe @nogc pure nothrow cbUnary,
 	scope immutable(T) delegate(immutable LowExprKind.SpecialBinary.Kind) @safe @nogc pure nothrow cbBinary,
+	scope immutable(T) delegate(immutable LowExprKind.SpecialTernary.Kind) @safe @nogc pure nothrow cbTernary,
 	scope immutable(T) delegate(ref immutable BuiltinKind.OptOr) @safe @nogc pure nothrow cbOptOr,
 	scope immutable(T) delegate(ref immutable BuiltinKind.OptQuestion2) @safe @nogc pure nothrow cbOptQuestion2,
 	scope immutable(T) delegate(ref immutable BuiltinKind.PtrCast) @safe @nogc pure nothrow cbPtrCast,
@@ -93,8 +94,6 @@ struct BuiltinKind {
 	scope immutable(T) delegate(ref immutable BuiltinKind.Zeroed) @safe @nogc pure nothrow cbZeroed,
 ) {
 	final switch (a.kind_) {
-		case BuiltinKind.Kind.allFuns:
-			return cbAllFuns(a.allFuns_);
 		case BuiltinKind.Kind.callFunPtr:
 			return cbCallFunPtr(a.callFunPtr_);
 		case BuiltinKind.Kind.getCtx:
@@ -107,6 +106,8 @@ struct BuiltinKind {
 			return cbUnary(a.unary_);
 		case BuiltinKind.Kind.binary:
 			return cbBinary(a.binary_);
+		case BuiltinKind.Kind.ternary:
+			return cbTernary(a.ternary_);
 		case BuiltinKind.Kind.optOr:
 			return cbOptOr(a.optOr_);
 		case BuiltinKind.Kind.optQuestion2:
@@ -123,6 +124,8 @@ struct BuiltinKind {
 }
 
 immutable(BuiltinKind) getBuiltinKind(
+	ref Alloc alloc,
+	ref const AllSymbols allSymbols,
 	immutable Sym name,
 	immutable LowType rt,
 	immutable LowType p0,
@@ -142,6 +145,8 @@ immutable(BuiltinKind) getBuiltinKind(
 	}
 
 	immutable(T) failT(T)() {
+		debugLog("Unsupported builtin function:");
+		debugLog(safeCStrOfSym(alloc, allSymbols, name).ptr);
 		return todo!T("not a builtin fun");
 	}
 	immutable(BuiltinKind) fail() {
@@ -267,8 +272,6 @@ immutable(BuiltinKind) getBuiltinKind(
 				: isNat64(rt)
 				? LowExprKind.SpecialBinary.Kind.bitwiseXorNat64
 				: failBinary());
-		case shortSymValue("all-funs"):
-			return immutable BuiltinKind(immutable BuiltinKind.AllFuns());
 		case shortSymValue("as-const"):
 		case shortSymValue("as-mut"):
 		case shortSymValue("ptr-cast"):
@@ -281,6 +284,8 @@ immutable(BuiltinKind) getBuiltinKind(
 			return constantBool(false);
 		case shortSymValue("get-ctx"):
 			return immutable BuiltinKind(immutable BuiltinKind.GetCtx());
+		case specialSymValue(SpecialSym.interpreter_backtrace):
+			return immutable BuiltinKind(LowExprKind.SpecialTernary.Kind.interpreterBacktrace);
 		case shortSymValue("is-less"):
 			return binary(
 				isInt8(p0) ? LowExprKind.SpecialBinary.Kind.lessInt8 :
@@ -473,7 +478,11 @@ immutable(BuiltinKind) getBuiltinKind(
 		case specialSymValue(SpecialSym.unsafe_to_nat16):
 			return isNat64(p0) ? unary(LowExprKind.SpecialUnary.Kind.unsafeNat64ToNat16): fail();
 		case specialSymValue(SpecialSym.unsafe_to_nat32):
-			return isNat64(p0) ? unary(LowExprKind.SpecialUnary.Kind.unsafeNat64ToNat32) : fail();
+			return unary(isInt32(p0)
+				? LowExprKind.SpecialUnary.Kind.unsafeInt32ToNat32
+				: isNat64(p0)
+				? LowExprKind.SpecialUnary.Kind.unsafeNat64ToNat32
+				: failUnary());
 		case specialSymValue(SpecialSym.unsafe_to_nat64):
 			return isInt64(p0) ? unary(LowExprKind.SpecialUnary.Kind.unsafeInt64ToNat64) : fail();
 		default:

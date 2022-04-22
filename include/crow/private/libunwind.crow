@@ -1,0 +1,36 @@
+no-std
+import
+	../c-types: c-char, c-int, size_t
+	../bytes-types: bytes1024
+	../ptr: mut-ptr
+	./number-low-level: nat64
+
+unw_word_t alias
+	nat64
+unw_cursor_t record extern by-ref
+	opaque bytes1024
+unw_context_t record extern by-ref mut
+	opaque bytes1024
+
+# TODO: aliases for different machine types
+unw_getcontext c-int(context unw_context_t) noctx unsafe
+	context _Ux86_64_getcontext
+unw_init_local c-int(cursor unw_cursor_t, context unw_context_t) noctx unsafe
+	cursor _ULx86_64_init_local context
+unw_step c-int(cursor unw_cursor_t) noctx unsafe
+	cursor _ULx86_64_step
+unw_get_proc_name c-int(cursor unw_cursor_t, begin c-char mut*, size size_t, offset unw_word_t mut*) noctx unsafe
+	cursor _ULx86_64_get_proc_name begin, size, offset
+
+._Ux86_64_getcontext c-int(context unw_context_t) extern<unwind> noctx unsafe
+._ULx86_64_init_local c-int(cursor unw_cursor_t, context unw_context_t) extern<unwind> noctx unsafe
+._ULx86_64_step c-int(cursor unw_cursor_t) extern<unwind> noctx unsafe
+._ULx86_64_get_proc_name c-int
+	cursor unw_cursor_t
+	begin c-char mut*
+	size size_t
+	offset unw_word_t mut*
+spec
+	extern<unwind>
+	noctx
+	unsafe
