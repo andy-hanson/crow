@@ -157,6 +157,7 @@ app_src_with_test = $(app_src_no_test) \
 	src\test\testInterpreter.d \
 	src\test\testJson.d \
 	src\test\testLineAndColumnGetter.d \
+	src\test\testMemory.d \
 	src\test\testPath.d \
 	src\test\testServer.d \
 	src\test\testSortUtil.d \

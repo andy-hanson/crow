@@ -10,6 +10,7 @@ import test.testHover : testHover;
 import test.testInterpreter : testInterpreter;
 import test.testJson : testJson;
 import test.testLineAndColumnGetter : testLineAndColumnGetter;
+import test.testMemory : testMemory;
 import test.testPath : testPath;
 import test.testServer : testServer;
 import test.testSortUtil : testSortUtil;
@@ -41,6 +42,7 @@ immutable(NameAndTest[]) allTests = [
 	immutable NameAndTest("interpreter", &testInterpreter),
 	immutable NameAndTest("json", &testJson),
 	immutable NameAndTest("line-and-column-getter", &testLineAndColumnGetter),
+	immutable NameAndTest("memory", &testMemory),
 	immutable NameAndTest("path", &testPath),
 	immutable NameAndTest("server", &testServer),
 	immutable NameAndTest("sort-util", &testSortUtil),

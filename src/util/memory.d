@@ -21,8 +21,13 @@ import util.ptr : Ptr;
 }
 
 @system ubyte* memmove(return scope ubyte* dest, scope const ubyte* src, immutable size_t length) {
-	foreach (immutable size_t i; 0 .. length)
-		dest[i] = src[i];
+	if (dest < src) {
+		foreach (immutable size_t i; 0 .. length)
+			dest[i] = src[i];
+	} else {
+		foreach_reverse (immutable size_t i; 0 .. length)
+			dest[i] = src[i];
+	}
 	return dest;
 }
 
