@@ -13,7 +13,11 @@ import util.sourceRange : FileIndex, Pos;
 import util.util : verify;
 
 struct Operation {
-	alias Fn = void function(Stacks, immutable(Operation)*) @system @nogc nothrow;
+	alias Fn = void function(
+		ulong* stacksData,
+		immutable(Operation)** stacksReturn,
+		immutable(Operation)* cur,
+	) @system @nogc nothrow;
 
 	@safe @nogc pure nothrow:
 

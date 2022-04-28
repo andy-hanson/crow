@@ -7,12 +7,12 @@ import util.util : verify;
 
 private immutable size_t stacksStorageSize = 0x10000;
 private static bool stacksInitialized = false;
-private static Stacks.Inner savedStacks;
+private static Stacks savedStacks;
 private static ulong[stacksStorageSize] stacksStorage = void;
 
 void saveStacks(Stacks a) {
 	verify(stacksInitialized);
-	savedStacks = a.inner;
+	savedStacks = a;
 }
 
 /*
@@ -21,25 +21,21 @@ The callback should have a net 0 effect on the stack depths..
 */
 immutable(T) withStacks(T)(scope immutable(T) delegate(ref Stacks) @nogc nothrow cb) {
 	if (!stacksInitialized) {
-		savedStacks = Stacks.Inner(
+		savedStacks = Stacks(
 			stacksStorage.ptr - 1,
 			cast(immutable(Operation)**) (stacksStorage.ptr + stacksStorage.length));
 		stacksInitialized = true;
 	}
 
-	Stacks.Inner stacksAtStart = savedStacks;
-	version (Windows) {
-		Stacks curStacks = Stacks(&stacksAtStart);
-	} else {
-		Stacks curStacks = stacksAtStart;
-	}
+	Stacks stacksAtStart = savedStacks;
+	Stacks curStacks = stacksAtStart;
 
 	static if (is(T == void))
 		cb(curStacks);
 	else
 		immutable T res = cb(curStacks);
 
-	verify(curStacks.inner == stacksAtStart);
+	verify(curStacks == stacksAtStart);
 	savedStacks = stacksAtStart;
 
 	static if (!is(T == void))
@@ -47,51 +43,17 @@ immutable(T) withStacks(T)(scope immutable(T) delegate(ref Stacks) @nogc nothrow
 }
 
 private immutable(Operation)** storageEnd(ref Stacks a) {
-	verify!"storageEnd"(a.storage.length == stacksStorageSize);
-	return cast(immutable(Operation)**) (a.storage.ptr + a.storage.length);
+	verify!"storageEnd"(stacksStorage.length == stacksStorageSize);
+	return cast(immutable(Operation)**) (stacksStorage.ptr + stacksStorage.length);
 }
 private const(immutable(Operation)**) storageEnd(ref const Stacks a) {
-	verify!"storageEnd"(a.storage.length == stacksStorageSize);
-	return cast(immutable(Operation)**) (a.storage.ptr + a.storage.length);
+	verify!"storageEnd"(stacksStorage.length == stacksStorageSize);
+	return cast(immutable(Operation)**) (stacksStorage.ptr + stacksStorage.length);
 }
 
 struct Stacks {
-	@safe @nogc nothrow:
-
-	private:
-	version (Windows) {
-		// Apparently, tail recursion breaks on Windows if Stacks is bigger than a pointer.
-		// See https://github.com/ldc-developers/ldc/issues/3968
-		public struct Inner {
-			private:
-			ulong* dataPtr;
-			immutable(Operation)** returnPtr;
-		}
-		Inner* inner_;
-
-		public ref inout(Inner) inner() inout { return *inner_; }
-		ref inout(ulong*) dataPtr() inout { return inner.dataPtr; }
-		ref inout(immutable(Operation)**) returnPtr() inout { return inner.returnPtr; }
-
-		public void setTo(Inner inner) { *inner_ = inner; }
-
-	} else {
-		public alias Inner = Stacks;
-		// Grows right towards returnPtr. Points to the last-pushed value.
-		ulong* dataPtr;
-		// Grows left towards dataPtr. Points to the last-pushed value.
-		immutable(Operation)** returnPtr;
-
-		public ref inout(Inner) inner() inout { return this; }
-	}
-
-	@trusted ulong[] storage() { return stacksStorage; }
-	@trusted const(ulong[]) storage() const { return stacksStorage; }
-}
-version (Windows) {
-	static assert(Stacks.sizeof == (void*).sizeof);
-} else {
-	static assert(Stacks.sizeof == (void*).sizeof * 2);
+	ulong* dataPtr;
+	immutable(Operation)** returnPtr;
 }
 
 immutable(bool) dataStackIsEmpty(ref const Stacks a) {
@@ -154,7 +116,7 @@ ulong* dataTop(ref Stacks a) {
 
 // Pointer to the value at the bottom of the data stack
 const(ulong*) dataBegin(ref const Stacks a) {
-	return a.storage.ptr;
+	return stacksStorage.ptr;
 }
 
 // One past the last data value pushed
@@ -163,7 +125,7 @@ ulong* dataEnd(ref Stacks a) {
 }
 
 immutable(ulong[]) dataTempAsArr(ref const Stacks a) {
-	return cast(immutable) a.storage.ptr[0 .. a.dataPtr + 1 - a.storage.ptr];
+	return cast(immutable) stacksStorage.ptr[0 .. a.dataPtr + 1 - stacksStorage.ptr];
 }
 
 immutable(ulong) dataRemove(ref Stacks a, immutable size_t offset) {

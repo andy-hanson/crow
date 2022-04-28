@@ -222,7 +222,7 @@ immutable(LoadedLibraries) loadLibrariesInner(
 @system immutable(ulong) dynamicCallFunPtr(
 	immutable FunPtr funPtr,
 	scope const ref AllSymbols allSymbols,
-	scope immutable Opt!Sym /*debugName*/,
+	scope immutable Opt!Sym debugName,
 	scope immutable DynCallSig sig,
 	scope immutable ulong[] parameters,
 ) {
