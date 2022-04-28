@@ -53,7 +53,7 @@ struct Perf {
 	PerfMeasureResult[PerfMeasure.max + 1] measures;
 }
 
-immutable bool perfEnabled = false;
+immutable bool perfEnabled = true;
 
 private struct PerfMeasurerNoAlloc {
 	private:

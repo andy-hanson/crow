@@ -282,10 +282,8 @@ void eachFunInScope(
 			(immutable SpecBody.Builtin) {},
 			(immutable SpecDeclSig[] sigs) {
 				foreach (immutable size_t i, ref immutable SpecDeclSig sig; sigs)
-					if (symEq(sig.sig.name, funName)) {
-						cb(UsedFun.none, immutable CalledDecl(
-							immutable SpecSig(specInst, ptrAt(sigs, i), totalIndex + i)));
-					}
+					if (symEq(sig.sig.name, funName))
+						cb(UsedFun.none, immutable CalledDecl(immutable SpecSig(specInst, ptrAt(sigs, i), totalIndex + i)));
 				totalIndex += sigs.length;
 			});
 
@@ -298,9 +296,8 @@ void eachFunInScope(
 		funName,
 		immutable Empty(),
 		(immutable(Empty), immutable ImportIndex index, ref immutable NameReferents it) {
-			foreach (immutable FunDecl* f; it.funs) {
+			foreach (immutable FunDecl* f; it.funs)
 				cb(immutable UsedFun(index), immutable CalledDecl(f));
-			}
 			return immutable Empty();
 		});
 }
