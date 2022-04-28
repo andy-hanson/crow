@@ -761,12 +761,11 @@ immutable(Expr) checkFunPtr(
 	ref Expected expected,
 ) {
 	MutArr!(immutable Ptr!FunDecl) funsInScope = MutArr!(immutable Ptr!FunDecl)();
-	eachFunInScope(ctx, ast.name, (ref immutable Opt!UsedFun used, immutable CalledDecl cd) {
+	eachFunInScope(ctx, ast.name, (immutable UsedFun used, immutable CalledDecl cd) {
 		matchCalledDecl!(
 			void,
 			(immutable Ptr!FunDecl it) {
-				if (has(used))
-					markUsedFun(ctx, force(used));
+				markUsedFun(ctx, used);
 				push(ctx.alloc, funsInScope, it);
 			},
 			(ref immutable SpecSig) {

@@ -220,27 +220,39 @@ immutable(Expr) checkIdentifierCall(
 struct UsedFun {
 	@safe @nogc pure nothrow:
 
+	struct None {}
+	private immutable this(immutable None a) { kind = Kind.none; none_ = a; }
 	immutable this(immutable ImportIndex a) { kind = Kind.import_; import_ = a; }
 	immutable this(immutable ModuleLocalFunIndex a) { kind = Kind.moduleLocal; moduleLocal = a; }
 
+	static immutable(UsedFun) none() {
+		return immutable UsedFun(immutable None());
+	}
+
 	private:
 	enum Kind {
+		none,
 		import_,
 		moduleLocal,
 	}
 	immutable Kind kind;
 	union {
+		immutable None none_;
 		immutable ImportIndex import_;
 		immutable ModuleLocalFunIndex moduleLocal;
 	}
 }
+static assert(UsedFun.sizeof <= 16);
 
 private T matchUsedFun(T)(
-	ref immutable UsedFun a,
+	immutable UsedFun a,
+	scope T delegate(immutable UsedFun.None) @safe @nogc pure nothrow cbNone,
 	scope T delegate(immutable ImportIndex) @safe @nogc pure nothrow cbImport,
 	scope T delegate(immutable ModuleLocalFunIndex) @safe @nogc pure nothrow cbModuleLocal,
 ) {
 	final switch (a.kind) {
+		case UsedFun.Kind.none:
+			return cbNone(a.none_);
 		case UsedFun.Kind.import_:
 			return cbImport(a.import_);
 		case UsedFun.Kind.moduleLocal:
@@ -251,6 +263,7 @@ private T matchUsedFun(T)(
 void markUsedFun(ref ExprCtx ctx, ref immutable UsedFun used) {
 	matchUsedFun!void(
 		used,
+		(immutable UsedFun.None) {},
 		(immutable ImportIndex it) =>
 			markUsedImport(ctx.checkCtx, it),
 		(immutable ModuleLocalFunIndex it) =>
@@ -260,7 +273,7 @@ void markUsedFun(ref ExprCtx ctx, ref immutable UsedFun used) {
 void eachFunInScope(
 	ref ExprCtx ctx,
 	immutable Sym funName,
-	scope void delegate(ref immutable Opt!UsedFun, immutable CalledDecl) @safe @nogc pure nothrow cb,
+	scope void delegate(immutable UsedFun, immutable CalledDecl) @safe @nogc pure nothrow cb,
 ) {
 	size_t totalIndex = 0;
 	foreach (immutable Ptr!SpecInst specInst; ctx.outermostFunSpecs)
@@ -270,15 +283,14 @@ void eachFunInScope(
 			(immutable SpecDeclSig[] sigs) {
 				foreach (immutable size_t i, ref immutable SpecDeclSig sig; sigs)
 					if (symEq(sig.sig.name, funName)) {
-						immutable Opt!UsedFun used = none!UsedFun;
-						cb(used, immutable CalledDecl(immutable SpecSig(specInst, ptrAt(sigs, i), totalIndex + i)));
+						cb(UsedFun.none, immutable CalledDecl(
+							immutable SpecSig(specInst, ptrAt(sigs, i), totalIndex + i)));
 					}
 				totalIndex += sigs.length;
 			});
 
 	foreach (ref immutable FunDeclAndIndex f; ctx.funsDict[funName]) {
-		immutable Opt!UsedFun used = some(immutable UsedFun(f.index));
-		cb(used, immutable CalledDecl(f.decl));
+		cb(immutable UsedFun(f.index), immutable CalledDecl(f.decl));
 	}
 
 	eachImportAndReExport!Empty(
@@ -287,8 +299,7 @@ void eachFunInScope(
 		immutable Empty(),
 		(immutable(Empty), immutable ImportIndex index, ref immutable NameReferents it) {
 			foreach (immutable Ptr!FunDecl f; it.funs) {
-				immutable Opt!UsedFun used = some(immutable UsedFun(index));
-				cb(used, immutable CalledDecl(f));
+				cb(immutable UsedFun(index), immutable CalledDecl(f));
 			}
 			return immutable Empty();
 		});
@@ -315,12 +326,12 @@ immutable(bool) candidateIsPreferred(ref const Candidate a) {
 }
 
 struct Candidate {
-	immutable Opt!UsedFun used;
+	immutable UsedFun used;
 	immutable CalledDecl called;
 	// Note: this is always empty if calling a SpecSig
 	MutMaxArr!(16, SingleInferringType) typeArgs;
 }
-void initializeCandidate(ref Candidate a, immutable Opt!UsedFun used, immutable CalledDecl called) {
+void initializeCandidate(ref Candidate a, immutable UsedFun used, immutable CalledDecl called) {
 	overwriteMemory(&a.used, used);
 	overwriteMemory(&a.called, called);
 	initializeMutMaxArr(a.typeArgs);
@@ -357,7 +368,7 @@ void getInitialCandidates(
 	scope immutable Type[] explicitTypeArgs,
 	immutable size_t actualArity,
 ) {
-	eachFunInScope(ctx, funName, (ref immutable Opt!UsedFun used, immutable CalledDecl called) @trusted {
+	eachFunInScope(ctx, funName, (immutable UsedFun used, immutable CalledDecl called) @trusted {
 		immutable size_t nTypeParams = typeParams(called).length;
 		immutable bool typeArgsMatch = empty(explicitTypeArgs) || nTypeParams == explicitTypeArgs.length;
 		if (arityMatches(arity(called), actualArity) && typeArgsMatch) {
@@ -377,7 +388,7 @@ void getInitialCandidates(
 
 immutable(CalledDecl[]) getAllCandidatesAsCalledDecls(ref ExprCtx ctx, immutable Sym funName) {
 	ArrBuilder!CalledDecl res = ArrBuilder!CalledDecl();
-	eachFunInScope(ctx, funName, (ref immutable Opt!UsedFun, immutable CalledDecl called) {
+	eachFunInScope(ctx, funName, (immutable UsedFun, immutable CalledDecl called) {
 		add(ctx.alloc, res, called);
 	});
 	return finishArr(ctx.alloc, res);
@@ -686,8 +697,7 @@ immutable(Opt!Called) getCalledFromCandidate(
 	immutable Opt!(Ptr!FunDecl) outerCalled,
 	immutable ArgsKind argsKind,
 ) {
-	if (has(candidate.used))
-		markUsedFun(ctx, force(candidate.used));
+	markUsedFun(ctx, candidate.used);
 	checkCalledDeclFlags(ctx, isInLambda, candidate.called, range, argsKind);
 
 	TypeArgsArray candidateTypeArgs = typeArgsArray();
