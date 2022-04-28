@@ -17,7 +17,7 @@ import util.path : AllPaths, Path, PathsInfo, pathToSafeCStrPreferRelative;
 import util.ptr : Ptr, ptrTrustMe_mut;
 import util.sourceRange : FileAndPos, FileIndex;
 import util.sym : AllSymbols;
-import util.util : min;
+import util.util : min, verify;
 import util.writer : finishWriterToSafeCStr, writeChar, writeHex, writeNat, Writer, writeStatic;
 
 struct InterpreterDebugInfo {
@@ -250,9 +250,13 @@ immutable(Opt!ByteCodeSource) byteCodeSourceAtByteCodePtr(
 	ref const InterpreterDebugInfo a,
 	immutable Operation* ptr,
 ) {
-	return ptrInRange(operationOpStopInterpretation, ptr)
-		? none!ByteCodeIndex
-		: some(immutable ByteCodeIndex(ptr - a.byteCode.byteCode.ptr));
+	if (ptrInRange(operationOpStopInterpretation, ptr))
+		return none!ByteCodeIndex;
+	else {
+		immutable size_t index = ptr - a.byteCode.byteCode.ptr;
+		verify(index < a.byteCode.byteCode.length);
+		return some(immutable ByteCodeIndex(index));
+	}
 }
 
 immutable(Opt!ByteCodeSource) nextSource(ref const InterpreterDebugInfo a, immutable Operation* cur) {

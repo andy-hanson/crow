@@ -31,6 +31,7 @@ version (Windows) {
 		GetLastError,
 		GetModuleFileNameA,
 		GetModuleHandle,
+		GetTickCount,
 		ERROR_PATH_NOT_FOUND,
 		HANDLE,
 		HANDLE_FLAG_INHERIT,
@@ -172,7 +173,7 @@ static assert(divRound(14, 10) == 1);
 
 @trusted immutable(ulong) getTimeNanos() {
 	version(Windows) {
-		return todo!(immutable ulong)("TODO");
+		return (cast(ulong) GetTickCount()) * 1_000_000;
 	} else {
 		timespec time;
 		clock_gettime(CLOCK_MONOTONIC, &time);
