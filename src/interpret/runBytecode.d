@@ -173,13 +173,13 @@ private ref immutable(InterpreterDebugInfo) debugInfo() {
 
 pragma(inline, true):
 
-private void operationWithoutNext(void delegate(Stacks, immutable(Operation)* cur) @nogc nothrow cb)(
+private void operationWithoutNext(void function(Stacks, immutable(Operation)* cur) @nogc nothrow cb)(
 	ulong* stacksData, immutable(Operation)** stacksReturn, immutable(Operation)* cur,
 ) {
 	cb(Stacks(stacksData, stacksReturn), cur);
 }
 
-private void operation(string name, void delegate(ref Stacks, ref immutable(Operation)* cur) @nogc nothrow cb)(
+private void operation(string name, void function(ref Stacks, ref immutable(Operation)* cur) @nogc nothrow cb)(
 	ulong* stacksData,
 	immutable(Operation)** stacksReturn,
 	immutable(Operation)* cur,
