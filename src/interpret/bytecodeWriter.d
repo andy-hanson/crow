@@ -248,19 +248,22 @@ void writeSet(ref ByteCodeWriter writer, immutable ByteCodeSource source, immuta
 private void writeSetInner(
 	ref ByteCodeWriter writer,
 	immutable ByteCodeSource source,
-	immutable size_t offset,
-	immutable size_t size,
+	immutable size_t offsetEntries,
+	immutable size_t sizeEntries,
 ) {
-	static foreach (immutable size_t possibleOffset; 0 .. 8)
-		static foreach (immutable size_t possibleSize; 0 .. 4)
-			if (offset == possibleOffset && size == possibleSize) {
+	if (sizeEntries == 0) return;
+	verify(offsetEntries + 1 >= sizeEntries * 2);
+
+	static foreach (immutable size_t possibleSize; 1 .. 4)
+		static foreach (immutable size_t possibleOffset; possibleSize * 2 - 1 .. possibleSize * 2 + 3)
+			if (offsetEntries == possibleOffset && sizeEntries == possibleSize) {
 				pushOperationFn(writer, source, &opSet!(possibleOffset, possibleSize));
 				return;
 			}
 
 	pushOperationFn(writer, source, &opSetVariable);
-	pushSizeT(writer, source, offset);
-	pushSizeT(writer, source, size);
+	pushSizeT(writer, source, offsetEntries);
+	pushSizeT(writer, source, sizeEntries);
 }
 
 void writeRead(

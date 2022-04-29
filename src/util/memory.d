@@ -19,6 +19,11 @@ import util.alloc.alloc : Alloc, allocateUninitialized;
 	return memmove(dest, src, length);
 }
 
+@system void memcpyWords(ulong* dest, scope const ulong* src, immutable size_t length) {
+	foreach (immutable size_t i; 0 .. length)
+		dest[i] = src[i];
+}
+
 @system ubyte* memmove(return scope ubyte* dest, scope const ubyte* src, immutable size_t length) {
 	if (dest < src) {
 		foreach (immutable size_t i; 0 .. length)

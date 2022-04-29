@@ -3,35 +3,60 @@ module test.testStack;
 @safe @nogc nothrow: // not pure
 
 import interpret.stacks :
-	dataEnd,
+	dataBegin,
+	dataDropN,
 	dataPeek,
 	dataPop,
+	dataPopAndSet,
+	dataPopAndWriteToPtr,
 	dataPopN,
 	dataPush,
+	dataPushRef,
+	dataReadAndPush,
 	dataRemove,
 	dataRemoveN,
 	dataStackIsEmpty,
 	dataTempAsArr,
-	dataTop,
 	returnStackIsEmpty,
 	Stacks,
 	withStacks;
-import test.testUtil : Test;
+import test.testUtil : expectDataStack, Test;
 import util.col.arrUtil : arrEqual;
+import util.conv : ulongOfBytes;
 import util.util : verify;
 
-void testStack(ref Test test) {
-	testPushPop(test);
+@trusted void testStack(ref Test test) {
+	testDataPopAndSet(test);
 	testRemoveN(test);
+	testDataPopAndWriteToPtr(test);
+	testDataPushPop(test);
+	testDataReadAndPush(test);
+	testStackRef(test);
 }
 
 private:
+@system:
 
-@trusted void testPushPop(ref Test test) {
-	withStacks!void((ref Stacks stacks) { testPushPop(test, stacks); });
+void stackTest(void delegate(ref Test, ref Stacks) @nogc nothrow cb)(ref Test test) {
+	withStacks!void((ref Stacks stacks) { cb(test, stacks); });
 }
 
-@system void testPushPop(ref Test test, Stacks a) {
+alias testDataPopAndSet = stackTest!((ref Test test, ref Stacks a) {
+	dataPush(a, [1, 2, 3, 4, 5]);
+	dataPopAndSet(a, 3, 2);
+	expectDataStackAndClear(test, a, [1, 4, 5]);
+});
+
+alias testDataPopAndWriteToPtr = stackTest!((ref Test test, ref Stacks a) {
+	ulong writeTo;
+	dataPush(a, cast(immutable ulong) &writeTo);
+	dataPush(a, 7);
+	dataPopAndWriteToPtr(a, 0, 8);
+	expectDataStack(test, a, []);
+	verify(writeTo == 7);
+});
+
+alias testDataPushPop = stackTest!((ref Test test, ref Stacks a) {
 	verify(dataStackIsEmpty(a));
 	verify(returnStackIsEmpty(a));
 
@@ -40,61 +65,68 @@ private:
 	verify(dataPop(a) == 42);
 	verify(dataStackIsEmpty(a));
 
-	ulong* begin = dataEnd(a);
-
 	dataPush(a, 5);
-	dataPush(a, 6);
-	verifyData(a, [5, 6]);
-
-	dataPush(a, 7);
-	verify(dataTop(a) == begin + 2);
-	verify(dataEnd(a) == begin + 3);
+	dataPush(a, [6, 7]);
+	expectDataStack(test, a, [5, 6, 7]);
 
 	scope immutable ulong[] popped = dataPopN(a, 2);
 	verify(dataArrEqual(popped, [6, 7]));
-	verifyData(a, [5]);
+	expectDataStack(test, a, [5]);
 
 	dataPush(a, 8);
 	dataPush(a, 9);
-	verifyData(a, [5, 8, 9]);
+	expectDataStack(test, a, [5, 8, 9]);
 	immutable ulong removed = dataRemove(a, 1);
 	verify(removed == 8);
-	verifyData(a, [5, 9]);
+	expectDataStack(test, a, [5, 9]);
 
 	dataPush(a, 11);
 	dataPush(a, 13);
 
-	verifyData(a, [5, 9, 11, 13]);
+	expectDataStack(test, a, [5, 9, 11, 13]);
 
 	dataRemoveN(a, 2, 2);
-	verifyData(a, [5, 13]);
+	expectDataStack(test, a, [5, 13]);
 
 	verify(dataPop(a) == 13);
 	verify(dataPop(a) == 5);
 	verify(dataStackIsEmpty(a));
 	verify(returnStackIsEmpty(a));
-}
+});
 
-@trusted void testRemoveN(ref Test test) {
-	withStacks!void((ref Stacks stacks) { testPushPop(test, stacks); });
-}
+alias testDataReadAndPush = stackTest!((ref Test test, ref Stacks a) {
+	ubyte[5] byteData = [1, 2, 3, 4, 5];
+	dataReadAndPush(a, &byteData[1], 3);
+	expectDataStackAndClear(test, a, [ulongOfBytes([2, 3, 4, 0, 0, 0, 0, 0])]);
 
-@system void testRemoveN(ref Test test, Stacks a) {
-	foreach (immutable int i; [1, 2, 3, 4, 5, 6])
-		dataPush(a, i);
+	ulong[5] longData = [1, 2, 3, 4, 5];
+	dataReadAndPush(a, cast(ubyte*) &longData[1], 3 * ulong.sizeof);
+	expectDataStackAndClear(test, a, [2, 3, 4]);
+});
+
+alias testRemoveN = stackTest!((ref Test test, ref Stacks a) {
+	dataPush(a, [1, 2, 3, 4, 5, 6]);
 
 	dataRemoveN(a, 0, 1);
-	verifyData(a, [1, 2, 3, 4, 5]);
+	expectDataStack(test, a, [1, 2, 3, 4, 5]);
 
 	dataRemoveN(a, 3, 2);
-	verifyData(a, [1, 4, 5]);
+	expectDataStack(test, a, [1, 4, 5]);
 
 	dataRemoveN(a, 2, 3);
-	verifyData(a, []);
-}
+	expectDataStack(test, a, []);
+});
 
-@trusted void verifyData(ref Stacks a, scope immutable ulong[] expected) {
-	verify(dataArrEqual(dataTempAsArr(a), expected));
+alias testStackRef = stackTest!((ref Test test, ref Stacks a) {
+	dataPush(a, [1, 2, 3, 4]);
+	dataPushRef(a, 1);
+	verify(*(cast(const ulong*) dataPeek(a)) == 3);
+	expectDataStackAndClear(test, a, [1, 2, 3, 4, cast(immutable ulong) (dataBegin(a) + 2)]);
+});
+
+void expectDataStackAndClear(ref Test test, ref Stacks a, scope immutable ulong[] expected) {
+	expectDataStack(test, a, expected);
+	dataDropN(a, expected.length);
 }
 
 immutable(bool) dataArrEqual(scope immutable ulong[] a, scope immutable ulong[] b) {

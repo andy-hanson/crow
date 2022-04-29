@@ -60,7 +60,8 @@ import util.util : todo, unreachable, verify;
 		(scope immutable FunPtrInputs[] inputs) =>
 			makeSyntheticFunPtrs(alloc, inputs),
 		(immutable FunPtr funPtr, scope immutable DynCallSig sig, scope immutable ulong[] parameters) =>
-			dynamicCallFunPtr(funPtr, allSymbols, lateGet(debugNames)[funPtr], sig, parameters));
+			// lateGet(debugNames)[funPtr]
+			dynamicCallFunPtr(funPtr, allSymbols, sig, parameters));
 	return cb(extern_);
 }
 
@@ -222,7 +223,7 @@ immutable(LoadedLibraries) loadLibrariesInner(
 @system immutable(ulong) dynamicCallFunPtr(
 	immutable FunPtr funPtr,
 	scope const ref AllSymbols allSymbols,
-	scope immutable Opt!Sym /*debugName*/,
+	// scope immutable Opt!Sym debugName,
 	scope immutable DynCallSig sig,
 	scope immutable ulong[] parameters,
 ) {

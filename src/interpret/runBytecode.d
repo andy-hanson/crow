@@ -7,20 +7,24 @@ import interpret.bytecode :
 import interpret.debugInfo : BacktraceEntry, fillBacktrace, InterpreterDebugInfo, printDebugInfo;
 import interpret.extern_ : DoDynCall, DynCallType, DynCallSig, FunPtr;
 import interpret.stacks :
+	dataApplyBinary,
+	dataApplyUnary,
+	dataDupBytes,
 	dataDupWord,
 	dataDupWords,
-	dataEnd,
+	dataPack,
 	dataPeek,
 	dataPop,
+	dataPopAndSet,
+	dataPopAndWriteToPtr,
 	dataPopN,
 	dataPush,
-	dataPushUninitialized,
-	dataRef,
+	dataPushRef,
+	dataReadAndPush,
 	dataRemove,
 	dataRemoveN,
 	dataStackIsEmpty,
 	dataTempAsArr,
-	dataTop,
 	returnPeek,
 	returnPop,
 	returnPush,
@@ -91,10 +95,10 @@ immutable(ulong) syntheticCall(
 void stepUntilExit(ref Stacks stacks, ref immutable(Operation)* operation) {
 	setNext(stacks, operation);
 	do {
-		nextOperationPtr.fn(nextStacks.dataPtr, nextStacks.returnPtr, nextOperationPtr + 1);
-		nextOperationPtr.fn(nextStacks.dataPtr, nextStacks.returnPtr, nextOperationPtr + 1);
-		nextOperationPtr.fn(nextStacks.dataPtr, nextStacks.returnPtr, nextOperationPtr + 1);
-		nextOperationPtr.fn(nextStacks.dataPtr, nextStacks.returnPtr, nextOperationPtr + 1);
+		nextOperationPtr.fn(nextStacks.dataPtr_, nextStacks.dataPeek_, nextStacks.returnPtr_, nextOperationPtr + 1);
+		nextOperationPtr.fn(nextStacks.dataPtr_, nextStacks.dataPeek_, nextStacks.returnPtr_, nextOperationPtr + 1);
+		nextOperationPtr.fn(nextStacks.dataPtr_, nextStacks.dataPeek_, nextStacks.returnPtr_, nextOperationPtr + 1);
+		nextOperationPtr.fn(nextStacks.dataPtr_, nextStacks.dataPeek_, nextStacks.returnPtr_, nextOperationPtr + 1);
 	} while (nextOperationPtr.fn != &opStopInterpretation);
 	stacks = nextStacks;
 	operation = nextOperationPtr;
@@ -108,7 +112,7 @@ void stepUntilBreak(ref Stacks stacks, ref immutable(Operation)* operation) {
 	setNext(stacks, operation);
 	do {
 		verify(nextOperationPtr.fn != &opStopInterpretation);
-		nextOperationPtr.fn(nextStacks.dataPtr, nextStacks.returnPtr, nextOperationPtr + 1);
+		nextOperationPtr.fn(nextStacks.dataPtr_, nextStacks.dataPeek_, nextStacks.returnPtr_, nextOperationPtr + 1);
 	} while ((nextOperationPtr - 1).fn != &opBreak);
 	stacks = nextStacks;
 	operation = nextOperationPtr;
@@ -174,13 +178,14 @@ private ref immutable(InterpreterDebugInfo) debugInfo() {
 pragma(inline, true):
 
 private void operationWithoutNext(alias cb)(
-	ulong* stacksData, immutable(Operation)** stacksReturn, immutable(Operation)* cur,
+	ulong* stacksData, ulong stacksPeek, immutable(Operation)** stacksReturn, immutable(Operation)* cur,
 ) {
-	cb(Stacks(stacksData, stacksReturn), cur);
+	cb(Stacks(stacksData, stacksPeek, stacksReturn), cur);
 }
 
 private void operation(alias cb)(
 	ulong* stacksData,
+	ulong stacksPeek,
 	immutable(Operation)** stacksReturn,
 	immutable(Operation)* cur,
 ) {
@@ -188,10 +193,10 @@ private void operation(alias cb)(
 		printDebugInfo(debugInfo, dataTempAsArr(stacks), returnTempAsArrReverse(stacks), cur - 1);
 		debugLog(__traits(identifier, cb));
 	}
-	Stacks stacks = Stacks(stacksData, stacksReturn);
+	Stacks stacks = Stacks(stacksData, stacksPeek, stacksReturn);
 	cb(stacks, cur);
 	version(TailRecursionAvailable) {
-		cur.fn(stacks.dataPtr, stacks.returnPtr, cur + 1);
+		cur.fn(stacks.dataPtr_, stacks.dataPeek_, stacks.returnPtr_, cur + 1);
 	} else {
 		setNext(stacks, cur);
 	}
@@ -261,7 +266,7 @@ private void opSwitch0ToNInner(ref Stacks stacks, ref immutable(Operation)* cur)
 alias opStackRef = operation!opStackRefInner;
 private void opStackRefInner(ref Stacks stacks, ref immutable(Operation)* cur) {
 	immutable size_t offset = readStackOffset(cur);
-	dataPush(stacks, cast(immutable ulong) dataRef(stacks, offset));
+	dataPushRef(stacks, offset);
 }
 
 alias opReadWords(immutable size_t offsetWords, immutable size_t sizeWords) =
@@ -310,44 +315,14 @@ private void opReadBytesVariableInner(ref Stacks stacks, ref immutable(Operation
 	immutable size_t offsetBytes = readSizeT(cur);
 	immutable size_t sizeBytes = readSizeT(cur);
 	immutable ubyte* ptr = (cast(immutable ubyte*) dataPop(stacks)) + offsetBytes;
-	readNoCheck(stacks, ptr, sizeBytes);
+	dataReadAndPush(stacks, ptr, sizeBytes);
 }
 
 alias opWrite = operation!opWriteInner;
 private void opWriteInner(ref Stacks stacks, ref immutable(Operation)* cur) {
-	immutable size_t offset = readSizeT(cur);
-	immutable size_t size = readSizeT(cur);
-	if (size < 8) { //TODO:UNNECESSARY?
-		verify(size != 0);
-		immutable ulong value = dataPop(stacks);
-		ubyte* ptr = cast(ubyte*) dataPop(stacks);
-		writePartialBytes(ptr + offset, value, size);
-	} else {
-		immutable size_t sizeWords = divRoundUp(size, 8);
-		ubyte* destWithoutOffset = cast(ubyte*) dataPeek(stacks, sizeWords);
-		ubyte* src = cast(ubyte*) (dataEnd(stacks) - sizeWords);
-		ubyte* dest = destWithoutOffset + offset;
-		memcpy(dest, src, size);
-		dataPopN(stacks, sizeWords + 1);
-	}
-}
-
-private void writePartialBytes(ubyte* ptr, immutable ulong value, immutable size_t size) {
-	//TODO: Just have separate ops for separate sizes
-	switch (size) {
-		case 1:
-			*(cast(ubyte*) ptr) = cast(immutable ubyte) value;
-			break;
-		case 2:
-			*(cast(ushort*) ptr) = cast(immutable ushort) value;
-			break;
-		case 4:
-			*(cast(uint*) ptr) = cast(immutable uint) value;
-			break;
-		default:
-			unreachable!void();
-			break;
-	}
+	immutable size_t offsetBytes = readSizeT(cur);
+	immutable size_t sizeBytes = readSizeT(cur);
+	dataPopAndWriteToPtr(stacks, offsetBytes, sizeBytes);
 }
 
 alias opCall = operation!opCallInner;
@@ -430,14 +405,12 @@ static assert(FakeJmpBufTag.sizeof <= 288);
 
 alias opFnUnary(alias cb) = operation!(opFnUnaryInner!cb);
 private void opFnUnaryInner(alias cb)(ref Stacks stacks, ref immutable(Operation)* cur) {
-	dataPush(stacks, cb(dataPop(stacks)));
+	dataApplyUnary!cb(stacks);
 }
 
 alias opFnBinary(alias cb) = operation!(opFnBinaryInner!cb);
-private void opFnBinaryInner(alias cb)(ref Stacks stacks, ref immutable(Operation)* cur) {
-	immutable ulong y = dataPop(stacks);
-	immutable ulong x = dataPop(stacks);
-	dataPush(stacks, cb(x, y));
+private void opFnBinaryInner(ref Stacks stacks, ref immutable(Operation)* cur) {
+	dataApplyBinary!cb(stacks);
 }
 
 private immutable(Operation) readOperation(scope ref immutable(Operation)* cur) {
@@ -490,20 +463,7 @@ private void opPackInner(ref Stacks stacks, ref immutable(Operation)* cur) {
 	immutable size_t inEntries = readSizeT(cur);
 	immutable size_t outEntries = readSizeT(cur);
 	immutable PackField[] fields = readArray!PackField(cur);
-
-	ubyte* base = cast(ubyte*) (dataEnd(stacks) - inEntries);
-	foreach (immutable PackField field; fields)
-		memmove(base + field.outOffset, base + field.inOffset, safeToSizeT(field.size));
-
-	// drop extra entries
-	drop(dataPopN(stacks, inEntries - outEntries));
-
-	// fill remaining bytes with 0
-	ubyte* ptr = base + fields[$ - 1].outOffset + fields[$ - 1].size;
-	while (ptr < cast(ubyte*) dataEnd(stacks)) {
-		*ptr = 0;
-		ptr++;
-	}
+	dataPack(stacks, inEntries, outEntries, fields);
 }
 
 alias opPushValue64 = operation!opPushInner;
@@ -515,8 +475,7 @@ alias opDupBytes = operation!opDupBytesInner;
 private void opDupBytesInner(ref Stacks stacks, ref immutable(Operation)* cur) {
 	immutable size_t offsetBytes = readSizeT(cur);
 	immutable size_t sizeBytes = readSizeT(cur);
-	const ubyte* ptr = (cast(const ubyte*) dataEnd(stacks)) - offsetBytes;
-	readNoCheck(stacks, ptr, sizeBytes);
+	dataDupBytes(stacks, offsetBytes, sizeBytes);
 }
 
 alias opDupWord(immutable size_t offsetWords) = operation!(opDupWordInner!offsetWords);
@@ -541,6 +500,8 @@ alias opSet(immutable size_t offsetWords, immutable size_t sizeWords) = operatio
 private void opSetInner(immutable size_t offsetWords, immutable size_t sizeWords)(
 	ref Stacks stacks, ref immutable(Operation)* cur,
 ) {
+	static assert(sizeWords > 0);
+	static assert(offsetWords + 1 >= sizeWords * 2);
 	opSetCommon(stacks, cur, offsetWords, sizeWords);
 }
 
@@ -557,25 +518,5 @@ private void opSetCommon(
 	immutable size_t offsetWords,
 	immutable size_t sizeWords,
 ) {
-	// Start at the end of the range and pop in reverse
-	const ulong* begin = dataTop(stacks) - offsetWords;
-	const(ulong)* ptr = begin + sizeWords;
-	foreach (immutable size_t i; 0 .. sizeWords) {
-		ptr--;
-		overwriteMemory(ptr, dataPop(stacks));
-	}
-	verify(ptr == begin);
-}
-
-private void readNoCheck(ref Stacks stacks, const ubyte* readFrom, immutable size_t sizeBytes) {
-	ubyte* outPtr = cast(ubyte*) dataEnd(stacks);
-	immutable size_t sizeWords = divRoundUp(sizeBytes, ulong.sizeof);
-	dataPushUninitialized(stacks, sizeWords);
-	memcpy(outPtr, readFrom, sizeBytes);
-
-	ubyte* endPtr = outPtr + sizeBytes;
-	while (endPtr < cast(ubyte*) dataEnd(stacks)) {
-		*endPtr = 0;
-		endPtr++;
-	}
+	dataPopAndSet(stacks, offsetWords, sizeWords);
 }

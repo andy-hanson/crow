@@ -43,7 +43,7 @@ struct Test {
 	}
 }
 
-@trusted void expectDataStack(ref Test test, scope const Stacks stacks, scope immutable ulong[] expected) {
+@trusted void expectDataStack(ref Test test, scope Stacks stacks, scope immutable ulong[] expected) {
 	scope immutable ulong[] stack = dataTempAsArr(stacks);
 	immutable bool eq = sizeEq(stack, expected) &&
 		eachCorresponds!(ulong, ulong)(stack, expected, (ref immutable ulong a, ref immutable ulong b) => a == b);

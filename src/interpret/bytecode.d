@@ -14,6 +14,7 @@ import util.util : verify;
 struct Operation {
 	alias Fn = void function(
 		ulong* stacksData,
+		ulong stacksPeek,
 		immutable(Operation)** stacksReturn,
 		immutable(Operation)* cur,
 	) @system @nogc nothrow;

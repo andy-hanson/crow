@@ -48,6 +48,13 @@ immutable(double) float64OfBits(immutable ulong value) {
 	return conv.asFloat64;
 }
 
+// Result will depend on system endianness
+@system immutable(ulong) ulongOfBytes(immutable ubyte[8] value) {
+	Converter64 conv;
+	conv.asBytes = value;
+	return conv.asU64;
+}
+
 private:
 
 union Converter32 {
@@ -58,4 +65,5 @@ union Converter32 {
 union Converter64 {
 	ulong asU64;
 	double asFloat64;
+	ubyte[8] asBytes;
 }
