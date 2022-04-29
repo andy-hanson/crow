@@ -17,7 +17,6 @@ import interpret.stacks :
 	dataPop,
 	dataPopAndSet,
 	dataPopAndWriteToPtr,
-	dataPopN,
 	dataPush,
 	dataPushRef,
 	dataReadAndPush,
@@ -33,6 +32,7 @@ import interpret.stacks :
 	saveStacks,
 	setReturnPeek,
 	Stacks,
+	withDataPopN,
 	withStacks;
 import model.diag : FilesInfo; // TODO: FilesInfo probably belongs elsewhere
 import model.lowModel : LowProgram;
@@ -340,14 +340,8 @@ private void opCallFunPtrInner(ref Stacks stacks, ref immutable(Operation)* cur)
 	if (has(operationPtr)) {
 		returnPush(stacks, cur);
 		cur = force(operationPtr);
-	} else {
-		scope immutable ulong[] params = dataPopN(stacks, sig.parameterTypes.length);
-		// This is an extern FunPtr, but it might call back into a synthetic FunPtr
-		saveStacks(stacks);
-		immutable ulong value = globals.doDynCall(funPtr, sig, params);
-		if (sig.returnType != DynCallType.void_)
-			dataPush(stacks, value);
-	}
+	} else
+		callFunPtrExternCommon(stacks, cur, funPtr, sig);
 }
 
 alias opCallFunPtrExtern = operation!opCallFunPtrExternInner;
@@ -355,10 +349,20 @@ private void opCallFunPtrExternInner(ref Stacks stacks, ref immutable(Operation)
 	verify(FunPtr.sizeof <= ulong.sizeof);
 	immutable FunPtr funPtr = immutable FunPtr(cast(immutable void*) readNat64(cur));
 	immutable DynCallSig sig = readDynCallSig(cur);
-	scope immutable ulong[] params = dataPopN(stacks, sig.parameterTypes.length);
-	// This is an extern FunPtr, but it might call back into a synthetic FunPtr
-	saveStacks(stacks);
-	immutable ulong value = globals.doDynCall(funPtr, sig, params);
+	callFunPtrExternCommon(stacks, cur, funPtr, sig);
+}
+
+void callFunPtrExternCommon(
+	ref Stacks stacks,
+	ref immutable(Operation)* cur,
+	immutable FunPtr funPtr,
+	immutable DynCallSig sig,
+) {
+	immutable ulong value = withDataPopN!((scope immutable ulong[] params) {
+		// This is an extern FunPtr, but it might call back into a synthetic FunPtr
+		saveStacks(stacks);
+		return globals.doDynCall(funPtr, sig, params);
+	})(stacks, sig.parameterTypes.length);
 	if (sig.returnType != DynCallType.void_)
 		dataPush(stacks, value);
 }

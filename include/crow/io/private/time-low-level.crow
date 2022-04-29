@@ -21,7 +21,7 @@ get-monotime-nsec timestamp() noctx trusted
 	if is-windows
 		GetTickCount.to-nat64 msec-to-nsec
 	else
-		time-cell by-val cell timespec = (0, 0),
+		time-cell by-val cell timespec = (),
 		err = CLOCK_MONOTONIC clock_gettime time-cell.ref-of-val
 		if err == 0
 			time = *time-cell.ref-of-val

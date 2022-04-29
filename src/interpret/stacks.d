@@ -192,8 +192,20 @@ immutable(ulong[]) dataPopN(return ref Stacks a, immutable size_t n) {
 	return res;
 }
 
+// WARN: 'cb' shouldn't touch the stack, although it can call 'saveStacks'
+immutable(ulong) withDataPopN(alias cb)(
+	ref Stacks a,
+	immutable size_t n,
+) {
+	dataPeekFlush(a);
+	a.dataPtr_ -= n;
+	immutable ulong res = cb(cast(immutable) a.dataPtr_[1 .. n + 1]);
+	dataPeekRestore(a);
+	return res;
+}
+
 void dataDropN(ref Stacks a, immutable size_t n) {
-	dataPopN(a, n);
+	withDataPopN!((scope immutable ulong[]) => cast(immutable ulong) 0)(a, n);
 }
 
 void dataPopAndSet(ref Stacks a, immutable size_t offsetWords, immutable size_t sizeWords) {

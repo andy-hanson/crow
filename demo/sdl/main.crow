@@ -31,7 +31,8 @@ main fut nat(_ str[]) summon trusted
 		"SDL_CreateWindow" fail-sdl-error
 	renderer = window renderer
 	texture = renderer create-texture
-	<- 25.msec repeat-interval () => renderer main-loop-body texture
+	<- 25.msec repeat-interval () =>
+		renderer main-loop-body texture
 	# TODO: use 'finally'
 	texture SDL_DestroyTexture
 	renderer SDL_DestroyRenderer

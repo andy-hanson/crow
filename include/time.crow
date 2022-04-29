@@ -10,6 +10,9 @@ timespec record by-val extern
 	tv_sec long
 	tv_nsec long
 
+new timespec() noctx
+	0, 0
+
 tm extern-ptr
 
 nanosleep err-t(requested_time timespec*, remaining timespec mut*) noctx extern<c>

@@ -1,0 +1,33 @@
+import
+	crow/io/print: print
+	crow/io/time: get-monotime-nsec
+	crow/cell
+	crow/ptr
+	time: clock_gettime, CLOCK_MONOTONIC, new, timespec, tv_sec, tv_nsec
+
+main fut nat(_ str[]) summon unsafe
+	myts timespec = ()
+	ptr nat64 mut* = myts.ptr-to.ptr-cast@<nat64, timespec>
+	ptr2 = ptr + 1
+	*ptr2 := 42
+	print: "myts is {myts tv_sec} {myts tv_nsec}"
+
+	time-cell by-val cell timespec = (),
+	err = CLOCK_MONOTONIC clock_gettime time-cell.ref-of-val
+	if err == 0
+		time = *time-cell.ref-of-val
+		print: "sec is {time tv_sec}"
+		print: "nsec is {time tv_nsec}"
+	else
+		print: "some error"
+
+
+	start = get-monotime-nsec
+	print: "hello, world! start is {start}"
+	end = get-monotime-nsec
+	print: "end is {end}"
+	print: "That took {end - start}ns"
+	()
+
+
+	()
