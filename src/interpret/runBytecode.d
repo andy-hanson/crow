@@ -17,6 +17,7 @@ import interpret.stacks :
 	dataPop,
 	dataPopAndSet,
 	dataPopAndWriteToPtr,
+	dataPopN,
 	dataPush,
 	dataPushRef,
 	dataReadAndPush,
@@ -32,7 +33,6 @@ import interpret.stacks :
 	saveStacks,
 	setReturnPeek,
 	Stacks,
-	withDataPopN,
 	withStacks;
 import model.diag : FilesInfo; // TODO: FilesInfo probably belongs elsewhere
 import model.lowModel : LowProgram;
@@ -95,10 +95,10 @@ immutable(ulong) syntheticCall(
 void stepUntilExit(ref Stacks stacks, ref immutable(Operation)* operation) {
 	setNext(stacks, operation);
 	do {
-		nextOperationPtr.fn(nextStacks.dataPtr_, nextStacks.dataPeek_, nextStacks.returnPtr_, nextOperationPtr + 1);
-		nextOperationPtr.fn(nextStacks.dataPtr_, nextStacks.dataPeek_, nextStacks.returnPtr_, nextOperationPtr + 1);
-		nextOperationPtr.fn(nextStacks.dataPtr_, nextStacks.dataPeek_, nextStacks.returnPtr_, nextOperationPtr + 1);
-		nextOperationPtr.fn(nextStacks.dataPtr_, nextStacks.dataPeek_, nextStacks.returnPtr_, nextOperationPtr + 1);
+		nextOperationPtr.fn(nextStacks.dataPtr_, nextStacks.returnPtr_, nextOperationPtr + 1);
+		nextOperationPtr.fn(nextStacks.dataPtr_, nextStacks.returnPtr_, nextOperationPtr + 1);
+		nextOperationPtr.fn(nextStacks.dataPtr_, nextStacks.returnPtr_, nextOperationPtr + 1);
+		nextOperationPtr.fn(nextStacks.dataPtr_, nextStacks.returnPtr_, nextOperationPtr + 1);
 	} while (nextOperationPtr.fn != &opStopInterpretation);
 	stacks = nextStacks;
 	operation = nextOperationPtr;
@@ -112,7 +112,7 @@ void stepUntilBreak(ref Stacks stacks, ref immutable(Operation)* operation) {
 	setNext(stacks, operation);
 	do {
 		verify(nextOperationPtr.fn != &opStopInterpretation);
-		nextOperationPtr.fn(nextStacks.dataPtr_, nextStacks.dataPeek_, nextStacks.returnPtr_, nextOperationPtr + 1);
+		nextOperationPtr.fn(nextStacks.dataPtr_, nextStacks.returnPtr_, nextOperationPtr + 1);
 	} while ((nextOperationPtr - 1).fn != &opBreak);
 	stacks = nextStacks;
 	operation = nextOperationPtr;
@@ -178,14 +178,13 @@ private ref immutable(InterpreterDebugInfo) debugInfo() {
 pragma(inline, true):
 
 private void operationWithoutNext(alias cb)(
-	ulong* stacksData, ulong stacksPeek, immutable(Operation)** stacksReturn, immutable(Operation)* cur,
+	ulong* stacksData, immutable(Operation)** stacksReturn, immutable(Operation)* cur,
 ) {
-	cb(Stacks(stacksData, stacksPeek, stacksReturn), cur);
+	cb(Stacks(stacksData, stacksReturn), cur);
 }
 
 private void operation(alias cb)(
 	ulong* stacksData,
-	ulong stacksPeek,
 	immutable(Operation)** stacksReturn,
 	immutable(Operation)* cur,
 ) {
@@ -193,10 +192,10 @@ private void operation(alias cb)(
 		printDebugInfo(debugInfo, dataTempAsArr(stacks), returnTempAsArrReverse(stacks), cur - 1);
 		debugLog(__traits(identifier, cb));
 	}
-	Stacks stacks = Stacks(stacksData, stacksPeek, stacksReturn);
+	Stacks stacks = Stacks(stacksData, stacksReturn);
 	cb(stacks, cur);
 	version(TailRecursionAvailable) {
-		cur.fn(stacks.dataPtr_, stacks.dataPeek_, stacks.returnPtr_, cur + 1);
+		cur.fn(stacks.dataPtr_, stacks.returnPtr_, cur + 1);
 	} else {
 		setNext(stacks, cur);
 	}
@@ -358,11 +357,10 @@ void callFunPtrExternCommon(
 	immutable FunPtr funPtr,
 	immutable DynCallSig sig,
 ) {
-	immutable ulong value = withDataPopN!((scope immutable ulong[] params) {
-		// This is an extern FunPtr, but it might call back into a synthetic FunPtr
-		saveStacks(stacks);
-		return globals.doDynCall(funPtr, sig, params);
-	})(stacks, sig.parameterTypes.length);
+	immutable ulong[] params = dataPopN(stacks, sig.parameterTypes.length);
+	// This is an extern FunPtr, but it might call back into a synthetic FunPtr
+	saveStacks(stacks);
+	immutable ulong value = globals.doDynCall(funPtr, sig, params);
 	if (sig.returnType != DynCallType.void_)
 		dataPush(stacks, value);
 }
@@ -413,7 +411,7 @@ private void opFnUnaryInner(alias cb)(ref Stacks stacks, ref immutable(Operation
 }
 
 alias opFnBinary(alias cb) = operation!(opFnBinaryInner!cb);
-private void opFnBinaryInner(ref Stacks stacks, ref immutable(Operation)* cur) {
+private void opFnBinaryInner(alias cb)(ref Stacks stacks, ref immutable(Operation)* cur) {
 	dataApplyBinary!cb(stacks);
 }
 

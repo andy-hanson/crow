@@ -9,6 +9,7 @@ import interpret.stacks :
 	dataPop,
 	dataPopAndSet,
 	dataPopAndWriteToPtr,
+	dataPopN,
 	dataPush,
 	dataPushRef,
 	dataReadAndPush,
@@ -18,7 +19,6 @@ import interpret.stacks :
 	dataTempAsArr,
 	returnStackIsEmpty,
 	Stacks,
-	withDataPopN,
 	withStacks;
 import test.testUtil : expectDataStack, Test;
 import util.col.arrUtil : arrEqual;
@@ -69,11 +69,8 @@ alias testDataPushPop = stackTest!((ref Test test, ref Stacks a) {
 	dataPush(a, [6, 7]);
 	expectDataStack(test, a, [5, 6, 7]);
 
-	immutable ulong x = withDataPopN!((scope immutable ulong[] popped) {
-		verify(dataArrEqual(popped, [6, 7]));
-		return 3;
-	})(a, 2);
-	verify(x == 3);
+	scope immutable ulong[] popped = dataPopN(a, 2);
+	verify(dataArrEqual(popped, [6, 7]));
 	expectDataStack(test, a, [5]);
 
 	dataPush(a, 8);

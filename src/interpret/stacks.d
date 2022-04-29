@@ -13,11 +13,7 @@ import util.util : divRoundUp, verify;
 private immutable size_t stacksStorageSize = 0x10000;
 private static bool stacksInitialized = false;
 private static Stacks savedStacks;
-// NOTE: first entry will be dummy, since stack is initialized with a peek value.
 private static ulong[stacksStorageSize] stacksStorage = void;
-
-//TODO!
-private immutable size_t N_PEEK = 1;
 
 void saveStacks(Stacks a) {
 	verify(stacksInitialized);
@@ -32,7 +28,6 @@ immutable(T) withStacks(T)(scope immutable(T) delegate(ref Stacks) @nogc nothrow
 	if (!stacksInitialized) {
 		savedStacks = Stacks(
 			stacksStorage.ptr - 1,
-			0,
 			cast(immutable(Operation)**) (stacksStorage.ptr + stacksStorage.length));
 		stacksInitialized = true;
 	}
@@ -65,53 +60,30 @@ struct Stacks {
 	// Treat all fields as private.
 	// Only exposed since `Operation` passes these as separate parameters for performance.
 
-	// Points to last value written to memory (meaning, not counting 'dataPeek_')
+	// Points to last value pushed.
 	ulong* dataPtr_;
-	// Stores the last value pushed.
-	ulong dataPeek_;
 	// Points to the last value returned.
 	immutable(Operation)** returnPtr_;
 }
 
-private void dataPushToMemory(ref Stacks a, ulong value) {
-	a.dataPtr_++;
-	debug verify(a.dataPtr_ < cast(ulong*) a.returnPtr_);
-	*a.dataPtr_ = value;
-}
-
-private immutable(ulong) dataPopFromMemory(ref Stacks a) {
-	immutable ulong res = *a.dataPtr_;
-	a.dataPtr_--;
-	return res;
-}
-
 void dataApplyUnary(alias cb)(ref Stacks a) {
-	a.dataPeek_ = cb(a.dataPeek_);
+	*a.dataPtr_ = cb(*a.dataPtr_);
 }
 
 void dataApplyBinary(alias cb)(ref Stacks a) {
-	a.dataPeek_ = cb(dataPopFromMemory(a), a.dataPeek_);
-}
-
-// Used by operations that are simpler with all data in memory and not touch 'dataPeek_'.
-// Be sure to call 'restorePeek' after!
-private void dataPeekFlush(ref Stacks a) {
-	dataPushToMemory(a, a.dataPeek_);
-}
-
-private void dataPeekRestore(ref Stacks a) {
-	a.dataPeek_ = dataPopFromMemory(a);
+	immutable size_t rhs = dataPop(a);
+	*a.dataPtr_ = cb(*a.dataPtr_, rhs);
 }
 
 immutable(bool) dataStackIsEmpty(ref const Stacks a) {
-	// The value in 'a.dataPeek_' will be a dummy value in this case.
 	debug verify!"dataStackIsEmpty check"(a.dataPtr_ >= stacksStorage.ptr - 1);
 	return a.dataPtr_ == stacksStorage.ptr - 1;
 }
 
 void dataPush(ref Stacks a, immutable ulong value) {
-	dataPushToMemory(a, a.dataPeek_);
-	a.dataPeek_ = value;
+	a.dataPtr_++;
+	debug verify(a.dataPtr_ < cast(ulong*) a.returnPtr_);
+	*a.dataPtr_ = value;
 }
 
 void dataPush(ref Stacks a, scope immutable ulong[] values) {
@@ -120,12 +92,6 @@ void dataPush(ref Stacks a, scope immutable ulong[] values) {
 }
 
 void dataReadAndPush(ref Stacks a, const ubyte* readFrom, immutable size_t sizeBytes) {
-	dataPeekFlush(a);
-	dataReadAndPushInner(a, readFrom, sizeBytes);
-	dataPeekRestore(a);
-}
-
-void dataReadAndPushInner(ref Stacks a, const ubyte* readFrom, immutable size_t sizeBytes) {
 	a.dataPtr_++;
 	memcpy(cast(ubyte*) a.dataPtr_, readFrom, sizeBytes);
 	ubyte* bytePtr = (cast(ubyte*) a.dataPtr_) + sizeBytes;
@@ -139,20 +105,16 @@ void dataReadAndPushInner(ref Stacks a, const ubyte* readFrom, immutable size_t 
 
 // On the stack is a pointer followed by the data to write to it.
 void dataPopAndWriteToPtr(ref Stacks a, immutable size_t offsetBytes, immutable size_t sizeBytes) {
-	dataPeekFlush(a);
 	immutable size_t sizeWords = divRoundUp(sizeBytes, ulong.sizeof);
 	ubyte* src = cast(ubyte*) (a.dataPtr_ + 1 - sizeWords);
 	a.dataPtr_ -= sizeWords;
 	ubyte* dest = (cast(ubyte*) *a.dataPtr_) + offsetBytes;
 	a.dataPtr_--;
 	memcpy(dest, src, sizeBytes);
-	dataPeekRestore(a);
 }
 
 immutable(ulong) dataPeek(ref const Stacks a, immutable size_t offset = 0) {
-	return offset == 0
-		? a.dataPeek_
-		: *(a.dataPtr_ - (offset - 1));
+	return *(a.dataPtr_ - offset);
 }
 
 void dataDupWord(ref Stacks a, immutable size_t offsetWords) {
@@ -165,69 +127,44 @@ void dataDupWords(ref Stacks a, immutable size_t offsetWords, immutable size_t s
 }
 
 void dataDupBytes(ref Stacks a, immutable size_t offsetBytes, immutable size_t sizeBytes) {
-	dataPeekFlush(a);
 	const ubyte* ptr = (cast(const ubyte*) (a.dataPtr_ + 1)) - offsetBytes;
-	dataReadAndPushInner(a, ptr, sizeBytes);
-	dataPeekRestore(a);
+	dataReadAndPush(a, ptr, sizeBytes);
 }
 
 immutable(ulong) dataPop(ref Stacks a) {
-	immutable ulong res = a.dataPeek_;
-	a.dataPeek_ = dataPopFromMemory(a);
+	immutable ulong res = *a.dataPtr_;
+	a.dataPtr_--;
 	return res;
 }
 
 void dataPushRef(ref Stacks a, immutable size_t offset) {
-	dataPeekFlush(a);
-	dataPushToMemory(a, cast(immutable ulong) (a.dataPtr_ - offset));
-	dataPeekRestore(a);
+	dataPush(a, cast(immutable ulong) (a.dataPtr_ - offset));
 }
 
 // WARN: result is temporary!
 immutable(ulong[]) dataPopN(return ref Stacks a, immutable size_t n) {
-	dataPeekFlush(a);
 	a.dataPtr_ -= n;
-	immutable ulong[] res = cast(immutable) a.dataPtr_[1 .. n + 1];
-	dataPeekRestore(a);
-	return res;
-}
-
-// WARN: 'cb' shouldn't touch the stack, although it can call 'saveStacks'
-immutable(ulong) withDataPopN(alias cb)(
-	ref Stacks a,
-	immutable size_t n,
-) {
-	dataPeekFlush(a);
-	a.dataPtr_ -= n;
-	immutable ulong res = cb(cast(immutable) a.dataPtr_[1 .. n + 1]);
-	dataPeekRestore(a);
-	return res;
+	return cast(immutable) a.dataPtr_[1 .. n + 1];
 }
 
 void dataDropN(ref Stacks a, immutable size_t n) {
-	withDataPopN!((scope immutable ulong[]) => cast(immutable ulong) 0)(a, n);
+	dataPopN(a, n);
 }
 
 void dataPopAndSet(ref Stacks a, immutable size_t offsetWords, immutable size_t sizeWords) {
 	debug verify(offsetWords + 1 >= sizeWords * 2);
-	dataPeekFlush(a);
 	// Start at the end of the range and pop in reverse
 	memcpyWords(a.dataPtr_ - offsetWords, a.dataPtr_ + 1 - sizeWords, sizeWords);
 	a.dataPtr_ -= sizeWords;
-	dataPeekRestore(a);
 }
 
 // Pointer to the value at the bottom of the data stack
 const(ulong*) dataBegin(ref const Stacks a) {
-	// + 1 because the stack starts out with a '0' value
-	return stacksStorage.ptr + 1;
+	return stacksStorage.ptr;
 }
 
 immutable(ulong[]) dataTempAsArr(return ref Stacks a) {
-	dataPeekFlush(a);
-	immutable ulong[] res = cast(immutable) stacksStorage.ptr[N_PEEK .. a.dataPtr_ + 1 - stacksStorage.ptr];
-	dataPeekRestore(a);
-	return res;
+	return cast(immutable) stacksStorage.ptr[0 .. a.dataPtr_ + 1 - stacksStorage.ptr];
 }
 
 immutable(ulong) dataRemove(ref Stacks a, immutable size_t offset) {
@@ -237,7 +174,6 @@ immutable(ulong) dataRemove(ref Stacks a, immutable size_t offset) {
 }
 
 void dataRemoveN(ref Stacks a, immutable size_t offset, immutable size_t nToRemove) {
-	dataPeekFlush(a);
 	// For example, if offset = 0 and nEntries = 1, this pops the last element.
 	debug verify!"dataRemoveN check"(offset + 1 >= nToRemove);
 	ulong* outPtr = a.dataPtr_ - offset;
@@ -245,13 +181,11 @@ void dataRemoveN(ref Stacks a, immutable size_t offset, immutable size_t nToRemo
 	foreach (immutable size_t i; 0 .. offset + 1 - nToRemove)
 		outPtr[i] = inPtr[i];
 	a.dataPtr_ -= nToRemove;
-	dataPeekRestore(a);
 }
 
 void dataPack(ref Stacks a, immutable size_t inEntries, immutable size_t outEntries, scope immutable PackField[] fields) {
 	debug verify(inEntries > outEntries);
 
-	dataPeekFlush(a);
 	ubyte* base = cast(ubyte*) (a.dataPtr_ + 1 - inEntries);
 	foreach (immutable PackField field; fields)
 		memmove(base + field.outOffset, base + field.inOffset, safeToSizeT(field.size));
@@ -264,7 +198,6 @@ void dataPack(ref Stacks a, immutable size_t inEntries, immutable size_t outEntr
 		*ptr = 0;
 		ptr++;
 	}
-	dataPeekRestore(a);
 }
 
 immutable(bool) returnStackIsEmpty(ref const Stacks a) {
