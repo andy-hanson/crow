@@ -3,7 +3,6 @@ module interpret.bytecode;
 @safe @nogc nothrow: // not pure
 
 import interpret.extern_ : FunPtr, funPtrEquals, hashFunPtr;
-import interpret.stacks : Stacks;
 import model.lowModel : LowFunIndex;
 import util.col.arr : castImmutable;
 import util.col.dict : Dict;
