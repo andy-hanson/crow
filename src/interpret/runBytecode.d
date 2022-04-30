@@ -173,20 +173,20 @@ private ref immutable(InterpreterDebugInfo) debugInfo() {
 
 pragma(inline, true):
 
-private void operationWithoutNext(void function(Stacks, immutable(Operation)* cur) @nogc nothrow cb)(
+private void operationWithoutNext(alias cb)(
 	ulong* stacksData, immutable(Operation)** stacksReturn, immutable(Operation)* cur,
 ) {
 	cb(Stacks(stacksData, stacksReturn), cur);
 }
 
-private void operation(string name, void function(ref Stacks, ref immutable(Operation)* cur) @nogc nothrow cb)(
+private void operation(alias cb)(
 	ulong* stacksData,
 	immutable(Operation)** stacksReturn,
 	immutable(Operation)* cur,
 ) {
 	static if (false) {
 		printDebugInfo(debugInfo, dataTempAsArr(stacks), returnTempAsArrReverse(stacks), cur - 1);
-		debugLog(name);
+		debugLog(__traits(identifier, cb));
 	}
 	Stacks stacks = Stacks(stacksData, stacksReturn);
 	cb(stacks, cur);
@@ -197,28 +197,15 @@ private void operation(string name, void function(ref Stacks, ref immutable(Oper
 	}
 }
 
-alias opAssertUnreachable = operationWithoutNext!((Stacks, immutable(Operation)* cur) {
+alias opAssertUnreachable = operationWithoutNext!opAssertUnreachableInner;
+private void opAssertUnreachableInner(Stacks, immutable Operation* cur) {
 	unreachable!void();
-});
+}
 
-alias opBreak = operationWithoutNext!((Stacks stacks, immutable Operation* cur) {
+alias opBreak = operationWithoutNext!opBreakInner;
+private void opBreakInner(Stacks stacks, immutable Operation* cur) {
 	setNext(stacks, cur);
-});
-
-alias opRemove(immutable size_t offset, immutable size_t nEntries) =
-	operation!("remove", (ref Stacks stacks, ref immutable(Operation)* cur) {
-		dataRemoveN(stacks, offset, nEntries);
-	});
-
-alias opRemoveVariable = operation!("remove (variable)", (ref Stacks stacks, ref immutable(Operation)* cur) {
-	immutable size_t offset = readStackOffset(cur);
-	immutable size_t nEntries = readSizeT(cur);
-	dataRemoveN(stacks, offset, nEntries);
-});
-
-alias opReturn = operation!("return", (ref Stacks stacks, ref immutable(Operation)* cur) {
-	cur = returnPop(stacks);
-});
+}
 
 immutable(Operation[8]) operationOpStopInterpretation = [
 	immutable Operation(&opStopInterpretation),
@@ -231,39 +218,66 @@ immutable(Operation[8]) operationOpStopInterpretation = [
 	immutable Operation(&opStopInterpretation),
 ];
 
-private alias opStopInterpretation = operationWithoutNext!((Stacks stacks, immutable(Operation)* cur) {
+private alias opStopInterpretation = operationWithoutNext!opStopInterpretationInner;
+private void opStopInterpretationInner(Stacks stacks, immutable Operation* cur) {
 	setNext(stacks, &operationOpStopInterpretation[0]);
-});
+}
 
-alias opJumpIfFalse = operation!("jump if false", (ref Stacks stacks, ref immutable(Operation)* cur) {
+alias opRemove(immutable size_t offset, immutable size_t nEntries) = operation!(opRemoveInner!(offset, nEntries));
+private void opRemoveInner(immutable size_t offset, immutable size_t nEntries)(
+	ref Stacks stacks, ref immutable(Operation)* cur,
+) {
+	dataRemoveN(stacks, offset, nEntries);
+}
+
+alias opRemoveVariable = operation!opRemoveVariableInner;
+private void opRemoveVariableInner(ref Stacks stacks, ref immutable(Operation)* cur) {
+	immutable size_t offset = readStackOffset(cur);
+	immutable size_t nEntries = readSizeT(cur);
+	dataRemoveN(stacks, offset, nEntries);
+}
+
+alias opReturn = operation!opReturnInner;
+private void opReturnInner(ref Stacks stacks, ref immutable(Operation)* cur) {
+	cur = returnPop(stacks);
+}
+
+alias opJumpIfFalse = operation!opJumpIfFalseInner;
+private void opJumpIfFalseInner(ref Stacks stacks, ref immutable(Operation)* cur) {
 	immutable ByteCodeOffsetUnsigned offset = immutable ByteCodeOffsetUnsigned(readSizeT(cur));
 	immutable ulong value = dataPop(stacks);
 	if (value == 0)
 		cur += offset.offset;
-});
+}
 
-alias opSwitch0ToN = operation!("switch", (ref Stacks stacks, ref immutable(Operation)* cur) {
+alias opSwitch0ToN = operation!opSwitch0ToNInner;
+private void opSwitch0ToNInner(ref Stacks stacks, ref immutable(Operation)* cur) {
 	immutable ByteCodeOffsetUnsigned[] offsets = readArray!ByteCodeOffsetUnsigned(cur);
 	immutable ulong value = dataPop(stacks);
 	immutable ByteCodeOffsetUnsigned offset = offsets[safeToSizeT(value)];
 	cur += offset.offset;
-});
+}
 
-alias opStackRef = operation!("stack ref", (ref Stacks stacks, ref immutable(Operation)* cur) {
+alias opStackRef = operation!opStackRefInner;
+private void opStackRefInner(ref Stacks stacks, ref immutable(Operation)* cur) {
 	immutable size_t offset = readStackOffset(cur);
 	dataPush(stacks, cast(immutable ulong) dataRef(stacks, offset));
-});
+}
 
 alias opReadWords(immutable size_t offsetWords, immutable size_t sizeWords) =
-	operation!("read words", (ref Stacks stacks, ref immutable(Operation)* cur) {
-		opReadWordsCommon(stacks, cur, offsetWords, sizeWords);
-	});
+	operation!(opReadWordsInner!(offsetWords, sizeWords));
+private void opReadWordsInner(immutable size_t offsetWords, immutable size_t sizeWords)(
+	ref Stacks stacks, ref immutable(Operation)* cur,
+) {
+	opReadWordsCommon(stacks, cur, offsetWords, sizeWords);
+}
 
-alias opReadWordsVariable = operation!("read words (variable)", (ref Stacks stacks, ref immutable(Operation)* cur) {
+alias opReadWordsVariable = operation!opReadWordsVariableInner;
+private void opReadWordsVariableInner(ref Stacks stacks, ref immutable(Operation)* cur) {
 	immutable size_t offsetWords = readSizeT(cur);
 	immutable size_t sizeWords = readSizeT(cur);
 	opReadWordsCommon(stacks, cur, offsetWords, sizeWords);
-});
+}
 
 private void opReadWordsCommon(
 	ref Stacks stacks,
@@ -276,29 +290,31 @@ private void opReadWordsCommon(
 		dataPush(stacks, ptr[i]);
 }
 
-alias opReadNat8(immutable size_t offsetBytes) =
-	operation!("read nat8", (ref Stacks stacks, ref immutable(Operation)* cur) {
-		dataPush(stacks, *((cast(immutable ubyte*) dataPop(stacks)) + offsetBytes));
-	});
+alias opReadNat8(immutable size_t offsetBytes) = operation!(opReadNat8Inner!offsetBytes);
+private void opReadNat8Inner(immutable size_t offsetBytes)(ref Stacks stacks, ref immutable(Operation)* cur) {
+	dataPush(stacks, *((cast(immutable ubyte*) dataPop(stacks)) + offsetBytes));
+}
 
-alias opReadNat16(immutable size_t offsetNat16s) =
-	operation!("read nat16", (ref Stacks stacks, ref immutable(Operation)* cur) {
-		dataPush(stacks, *((cast(immutable ushort*) dataPop(stacks)) + offsetNat16s));
-	});
+alias opReadNat16(immutable size_t offsetNat16s) = operation!(opReadNat16Inner!offsetNat16s);
+private void opReadNat16Inner(immutable size_t offsetNat16s)(ref Stacks stacks, ref immutable(Operation)* cur) {
+	dataPush(stacks, *((cast(immutable ushort*) dataPop(stacks)) + offsetNat16s));
+}
 
-alias opReadNat32(immutable size_t offsetNat32s) =
-	operation!("read nat32", (ref Stacks stacks, ref immutable(Operation)* cur) {
-		dataPush(stacks, *((cast(immutable uint*) dataPop(stacks)) + offsetNat32s));
-	});
+alias opReadNat32(immutable size_t offsetNat32s) = operation!(opReadNat32Inner!offsetNat32s);
+private void opReadNat32Inner(immutable size_t offsetNat32s)(ref Stacks stacks, ref immutable(Operation)* cur) {
+	dataPush(stacks, *((cast(immutable uint*) dataPop(stacks)) + offsetNat32s));
+}
 
-alias opReadBytesVariable = operation!("read bytes (variable)", (ref Stacks stacks, ref immutable(Operation)* cur) {
+alias opReadBytesVariable = operation!opReadBytesVariableInner;
+private void opReadBytesVariableInner(ref Stacks stacks, ref immutable(Operation)* cur) {
 	immutable size_t offsetBytes = readSizeT(cur);
 	immutable size_t sizeBytes = readSizeT(cur);
 	immutable ubyte* ptr = (cast(immutable ubyte*) dataPop(stacks)) + offsetBytes;
 	readNoCheck(stacks, ptr, sizeBytes);
-});
+}
 
-alias opWrite = operation!("write", (ref Stacks stacks, ref immutable(Operation)* cur) {
+alias opWrite = operation!opWriteInner;
+private void opWriteInner(ref Stacks stacks, ref immutable(Operation)* cur) {
 	immutable size_t offset = readSizeT(cur);
 	immutable size_t size = readSizeT(cur);
 	if (size < 8) { //TODO:UNNECESSARY?
@@ -314,7 +330,7 @@ alias opWrite = operation!("write", (ref Stacks stacks, ref immutable(Operation)
 		memcpy(dest, src, size);
 		dataPopN(stacks, sizeWords + 1);
 	}
-});
+}
 
 private void writePartialBytes(ubyte* ptr, immutable ulong value, immutable size_t size) {
 	//TODO: Just have separate ops for separate sizes
@@ -334,13 +350,15 @@ private void writePartialBytes(ubyte* ptr, immutable ulong value, immutable size
 	}
 }
 
-alias opCall = operation!("call", (ref Stacks stacks, ref immutable(Operation)* cur) {
+alias opCall = operation!opCallInner;
+private void opCallInner(ref Stacks stacks, ref immutable(Operation)* cur) {
 	immutable Operation* op = readOperationPtr(cur);
 	returnPush(stacks, cur);
 	cur = op;
-});
+}
 
-alias opCallFunPtr = operation!("call fun-ptr", (ref Stacks stacks, ref immutable(Operation)* cur) {
+alias opCallFunPtr = operation!opCallFunPtrInner;
+private void opCallFunPtrInner(ref Stacks stacks, ref immutable(Operation)* cur) {
 	immutable DynCallSig sig = readDynCallSig(cur);
 	immutable FunPtr funPtr = immutable FunPtr(cast(immutable void*) dataRemove(stacks, sig.parameterTypes.length));
 	immutable Opt!(Operation*) operationPtr = globals.funPtrToOperationPtr[funPtr];
@@ -355,9 +373,10 @@ alias opCallFunPtr = operation!("call fun-ptr", (ref Stacks stacks, ref immutabl
 		if (sig.returnType != DynCallType.void_)
 			dataPush(stacks, value);
 	}
-});
+}
 
-alias opCallFunPtrExtern = operation!("call extern", (ref Stacks stacks, ref immutable(Operation)* cur) {
+alias opCallFunPtrExtern = operation!opCallFunPtrExternInner;
+private void opCallFunPtrExternInner(ref Stacks stacks, ref immutable(Operation)* cur) {
 	verify(FunPtr.sizeof <= ulong.sizeof);
 	immutable FunPtr funPtr = immutable FunPtr(cast(immutable void*) readNat64(cur));
 	immutable DynCallSig sig = readDynCallSig(cur);
@@ -367,20 +386,22 @@ alias opCallFunPtrExtern = operation!("call extern", (ref Stacks stacks, ref imm
 	immutable ulong value = globals.doDynCall(funPtr, sig, params);
 	if (sig.returnType != DynCallType.void_)
 		dataPush(stacks, value);
-});
+}
 
 private immutable(DynCallSig) readDynCallSig(ref immutable(Operation)* cur) {
 	return immutable DynCallSig(readArray!DynCallType(cur));
 }
 
-alias opSetjmp = operation!("setjmp", (ref Stacks stacks, ref immutable(Operation)* cur) {
+alias opSetjmp = operation!opSetjmpInner;
+private void opSetjmpInner(ref Stacks stacks, ref immutable(Operation)* cur) {
 	FakeJmpBufTag* jmpBufPtr = cast(FakeJmpBufTag*) dataPop(stacks);
 	*jmpBufPtr = FakeJmpBufTag(stacks, returnPeek(stacks), cur);
 	// The return from the setjmp is in the handler for 'longjmp'
 	dataPush(stacks, 0);
-});
+}
 
-alias opLongjmp = operation!("longjmp", (ref Stacks stacks, ref immutable(Operation)* cur) {
+alias opLongjmp = operation!opLongjmpInner;
+private void opLongjmpInner(ref Stacks stacks, ref immutable(Operation)* cur) {
 	immutable ulong val = dataPop(stacks);
 	FakeJmpBufTag* jmpBufPtr = cast(FakeJmpBufTag*) dataPop(stacks);
 	stacks = jmpBufPtr.stacks;
@@ -388,15 +409,16 @@ alias opLongjmp = operation!("longjmp", (ref Stacks stacks, ref immutable(Operat
 	cur = jmpBufPtr.nextOperationPtr;
 	// return value of 'setjmp'
 	dataPush(stacks, val);
-});
+}
 
-alias opInterpreterBacktrace = operation!("interpreter-backtrace", (ref Stacks stacks, ref immutable(Operation)* cur) {
+alias opInterpreterBacktrace = operation!opInterpreterBacktraceInner;
+private void opInterpreterBacktraceInner(ref Stacks stacks, ref immutable(Operation)* cur) {
 	immutable size_t skip = safeToSizeT(dataPop(stacks));
 	immutable size_t max = safeToSizeT(dataPop(stacks));
 	BacktraceEntry* out_ = cast(BacktraceEntry*) dataPop(stacks);
 	BacktraceEntry* res = fillBacktrace(debugInfo, out_, max, skip, stacks);
 	dataPush(stacks, cast(immutable size_t) res);
-});
+}
 
 private struct FakeJmpBufTag {
 	Stacks stacks;
@@ -406,15 +428,17 @@ private struct FakeJmpBufTag {
 // see setjmp.crow
 static assert(FakeJmpBufTag.sizeof <= 288);
 
-alias opFnUnary(alias cb) = operation!("unary", (ref Stacks stacks, ref immutable(Operation)* cur) {
+alias opFnUnary(alias cb) = operation!(opFnUnaryInner!cb);
+private void opFnUnaryInner(alias cb)(ref Stacks stacks, ref immutable(Operation)* cur) {
 	dataPush(stacks, cb(dataPop(stacks)));
-});
+}
 
-alias opFnBinary(alias cb) = operation!("binary", (ref Stacks stacks, ref immutable(Operation)* cur) {
+alias opFnBinary(alias cb) = operation!(opFnBinaryInner!cb);
+private void opFnBinaryInner(alias cb)(ref Stacks stacks, ref immutable(Operation)* cur) {
 	immutable ulong y = dataPop(stacks);
 	immutable ulong x = dataPop(stacks);
 	dataPush(stacks, cb(x, y));
-});
+}
 
 private immutable(Operation) readOperation(scope ref immutable(Operation)* cur) {
 	immutable Operation res = *cur;
@@ -455,12 +479,14 @@ private immutable(T[]) readArray(T)(ref immutable(Operation)* cur) {
 	return res;
 }
 
-alias opJump = operation!("jump", (ref Stacks stacks, ref immutable(Operation)* cur) {
+alias opJump = operation!opJumpInner;
+private void opJumpInner(ref Stacks stacks, ref immutable(Operation)* cur) {
 	immutable ByteCodeOffset offset = immutable ByteCodeOffset(readInt64(cur));
 	cur += offset.offset;
-});
+}
 
-alias opPack = operation!("pack", (ref Stacks stacks, ref immutable(Operation)* cur) {
+alias opPack = operation!opPackInner;
+private void opPackInner(ref Stacks stacks, ref immutable(Operation)* cur) {
 	immutable size_t inEntries = readSizeT(cur);
 	immutable size_t outEntries = readSizeT(cur);
 	immutable PackField[] fields = readArray!PackField(cur);
@@ -478,45 +504,52 @@ alias opPack = operation!("pack", (ref Stacks stacks, ref immutable(Operation)* 
 		*ptr = 0;
 		ptr++;
 	}
-});
+}
 
-alias opPushValue64 = operation!("push", (ref Stacks stacks, ref immutable(Operation)* cur) {
+alias opPushValue64 = operation!opPushInner;
+private void opPushInner(ref Stacks stacks, ref immutable(Operation)* cur) {
 	dataPush(stacks, readNat64(cur));
-});
+}
 
-alias opDupBytes = operation!("dup bytes", (ref Stacks stacks, ref immutable(Operation)* cur) {
+alias opDupBytes = operation!opDupBytesInner;
+private void opDupBytesInner(ref Stacks stacks, ref immutable(Operation)* cur) {
 	immutable size_t offsetBytes = readSizeT(cur);
 	immutable size_t sizeBytes = readSizeT(cur);
 	const ubyte* ptr = (cast(const ubyte*) dataEnd(stacks)) - offsetBytes;
 	readNoCheck(stacks, ptr, sizeBytes);
-});
+}
 
-alias opDupWord(immutable size_t offsetWords) =
-	operation!("dup word", (ref Stacks stacks, ref immutable(Operation)* cur) {
-		dataDupWord(stacks, offsetWords);
-	});
+alias opDupWord(immutable size_t offsetWords) = operation!(opDupWordInner!offsetWords);
+private void opDupWordInner(immutable size_t offsetWords)(ref Stacks stacks, ref immutable(Operation)* cur) {
+	dataDupWord(stacks, offsetWords);
+}
 
-alias opDupWordVariable = operation!("dup word (variable)", (ref Stacks stacks, ref immutable(Operation)* cur) {
+alias opDupWordVariable = operation!opDupWordVariableInner;
+private void opDupWordVariableInner(ref Stacks stacks, ref immutable(Operation)* cur) {
 	dataDupWord(stacks, readSizeT(cur));
-});
+}
 
-alias opDupWords = operation!("dup words", (ref Stacks stacks, ref immutable(Operation)* cur) {
+alias opDupWords = operation!opDupWordsInner;
+private void opDupWordsInner(ref Stacks stacks, ref immutable(Operation)* cur) {
 	immutable size_t offsetWords = readStackOffset(cur);
 	immutable size_t sizeWords = readSizeT(cur);
 	dataDupWords(stacks, offsetWords, sizeWords);
-});
+}
 
 // Copies data from the top of the stack to write to something lower on the stack.
-alias opSet(immutable size_t offsetWords, immutable size_t sizeWords) =
-	operation!("set", (ref Stacks stacks, ref immutable(Operation)* cur) {
-		opSetCommon(stacks, cur, offsetWords, sizeWords);
-	});
+alias opSet(immutable size_t offsetWords, immutable size_t sizeWords) = operation!(opSetInner!(offsetWords, sizeWords));
+private void opSetInner(immutable size_t offsetWords, immutable size_t sizeWords)(
+	ref Stacks stacks, ref immutable(Operation)* cur,
+) {
+	opSetCommon(stacks, cur, offsetWords, sizeWords);
+}
 
-alias opSetVariable = operation!("set (variable)", (ref Stacks stacks, ref immutable(Operation)* cur) {
+alias opSetVariable = operation!opSetVariableInner;
+private void opSetVariableInner(ref Stacks stacks, ref immutable(Operation)* cur) {
 	immutable size_t offsetWords = readStackOffset(cur);
 	immutable size_t sizeWords = readSizeT(cur);
 	opSetCommon(stacks, cur, offsetWords, sizeWords);
-});
+}
 
 private void opSetCommon(
 	ref Stacks stacks,
