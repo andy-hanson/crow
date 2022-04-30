@@ -39,7 +39,7 @@ import util.col.str : SafeCStr;
 import util.lineAndColumnGetter : lineAndColumnAtPos;
 import util.opt : force, has, Opt;
 import util.path : AllPaths, baseName, Path, PathsInfo, writePath, writeRelPath;
-import util.ptr : Ptr, ptrTrustMe_mut;
+import util.ptr : ptrTrustMe_mut;
 import util.sourceRange : FileAndPos;
 import util.sym : AllSymbols, strOfOperator, Sym, writeSym;
 import util.util : unreachable;
@@ -349,12 +349,12 @@ void writeCalledDecl(
 	writeSig(writer, allSymbols, c.sig);
 	return matchCalledDecl!(
 		void,
-		(immutable Ptr!FunDecl funDecl) {
-			writeFunDeclLocation(writer, allSymbols, allPaths, pathsInfo, options, fi, funDecl.deref());
+		(immutable FunDecl* funDecl) {
+			writeFunDeclLocation(writer, allSymbols, allPaths, pathsInfo, options, fi, *funDecl);
 		},
 		(ref immutable SpecSig specSig) {
 			writeStatic(writer, " (from spec ");
-			writeName(writer, allSymbols, specSig.specInst.deref().name);
+			writeName(writer, allSymbols, name(*specSig.specInst));
 			writeChar(writer, ')');
 		},
 	)(c);
@@ -521,7 +521,7 @@ void writeDiag(
 			}();
 			writeStatic(writer, descr);
 			writeChar(writer, ' ');
-			writeName(writer, allSymbols, it.callee.deref().name);
+			writeName(writer, allSymbols, name(*it.callee));
 		},
 		(ref immutable Diag.CantInferTypeArguments) {
 			writeStatic(writer, "can't infer type arguments");
@@ -588,7 +588,7 @@ void writeDiag(
 		},
 		(ref immutable Diag.EnumBackingTypeInvalid d) {
 			writeStatic(writer, "type ");
-			writeStructInst(writer, allSymbols, d.actual.deref());
+			writeStructInst(writer, allSymbols, *d.actual);
 			writeStatic(writer, " cannot be used to back an enum");
 		},
 		(ref immutable Diag.EnumDuplicateValue d) {
@@ -614,7 +614,7 @@ void writeDiag(
 		},
 		(ref immutable Diag.ExternFunForbidden d) {
 			writeStatic(writer, "'extern' function ");
-			writeName(writer, allSymbols, d.fun.deref().name);
+			writeName(writer, allSymbols, name(*d.fun));
 			writeStatic(writer, () {
 				final switch (d.reason) {
 					case Diag.ExternFunForbidden.Reason.hasSpecs:
@@ -633,7 +633,7 @@ void writeDiag(
 		},
 		(ref immutable Diag.ExternRecordMustBeByRefOrVal d) {
 			writeStatic(writer, "'extern' record ");
-			writeName(writer, allSymbols, d.struct_.deref().name);
+			writeName(writer, allSymbols, d.struct_.name);
 			writeStatic(writer, " must be explicitly 'by-ref' or 'by-val'");
 		},
 		(ref immutable Diag.ExternUnion d) {
@@ -660,16 +660,16 @@ void writeDiag(
 		},
 		(ref immutable Diag.LambdaWrongNumberParams d) {
 			writeStatic(writer, "expected a ");
-			writeStructInst(writer, allSymbols, d.expectedLambdaType.deref());
+			writeStructInst(writer, allSymbols, *d.expectedLambdaType);
 			writeStatic(writer, " but lambda has ");
 			writeNat(writer, d.actualNParams);
 			writeStatic(writer, " parameters");
 		},
 		(ref immutable Diag.LinkageWorseThanContainingFun d) {
 			writeStatic(writer, "'extern' function ");
-			writeName(writer, allSymbols, name(d.containingFun.deref()));
+			writeName(writer, allSymbols, name(*d.containingFun));
 			if (has(d.param)) {
-				immutable Opt!Sym paramName = force(d.param).deref().name;
+				immutable Opt!Sym paramName = force(d.param).name;
 				if (has(paramName)) {
 					writeStatic(writer, " parameter ");
 					writeName(writer, allSymbols, force(paramName));
@@ -680,13 +680,13 @@ void writeDiag(
 		},
 		(ref immutable Diag.LinkageWorseThanContainingType d) {
 			writeStatic(writer, "extern type ");
-			writeName(writer, allSymbols, d.containingType.deref().name);
+			writeName(writer, allSymbols, d.containingType.name);
 			writeStatic(writer, " can't reference non-extern type ");
 			writeTypeQuoted(writer, allSymbols, d.referencedType);
 		},
 		(ref immutable Diag.LiteralOverflow d) {
 			writeStatic(writer, "literal exceeds the range of a ");
-			writeStructInst(writer, allSymbols, d.type.deref());
+			writeStructInst(writer, allSymbols, *d.type);
 		},
 		(ref immutable Diag.MatchCaseNamesDoNotMatch d) {
 			writeStatic(writer, "expected the case names to be: ");
@@ -751,9 +751,9 @@ void writeDiag(
 		},
 		(ref immutable Diag.PurityWorseThanParent d) {
 			writeStatic(writer, "struct ");
-			writeName(writer, allSymbols, d.parent.deref().name);
+			writeName(writer, allSymbols, d.parent.name);
 			writeStatic(writer, " has purity ");
-			writePurity(writer, d.parent.deref().purity);
+			writePurity(writer, d.parent.purity);
 			writeStatic(writer, ", but member of type ");
 			writeTypeQuoted(writer, allSymbols, d.child);
 			writeStatic(writer, " has purity ");
@@ -777,7 +777,7 @@ void writeDiag(
 		},
 		(ref immutable Diag.SpecBuiltinNotSatisfied d) {
 			writeStatic(writer, "trying to call ");
-			writeName(writer, allSymbols, d.called.deref.name);
+			writeName(writer, allSymbols, name(*d.called));
 			writeStatic(writer, ", but ");
 			writeTypeQuoted(writer, allSymbols, d.type);
 			immutable string message = () {
@@ -798,10 +798,10 @@ void writeDiag(
 		},
 		(ref immutable Diag.SpecImplHasSpecs d) {
 			writeStatic(writer, "calling ");
-			writeName(writer, allSymbols, name(d.outerCalled.deref()));
+			writeName(writer, allSymbols, name(*d.outerCalled));
 			writeStatic(writer, ", spec implementation for ");
-			writeName(writer, allSymbols, name(d.specImpl.deref()));
-			writeFunDeclLocation(writer, allSymbols, allPaths, pathsInfo, options, fi, d.specImpl.deref());
+			writeName(writer, allSymbols, name(*d.specImpl));
+			writeFunDeclLocation(writer, allSymbols, allPaths, pathsInfo, options, fi, *d.specImpl);
 			writeStatic(writer, " has specs itself; currently this is not allowed");
 		},
 		(ref immutable Diag.SpecImplNotFound d) {
@@ -849,43 +849,43 @@ void writeDiag(
 			} else {
 				writeStatic(writer, "imported module ");
 				// TODO: helper fn
-				immutable Sym moduleName = baseName(allPaths, fi.filePaths[it.importedModule.deref().fileIndex]);
+				immutable Sym moduleName = baseName(allPaths, fi.filePaths[it.importedModule.fileIndex]);
 				writeSym(writer, allSymbols, moduleName);
 			}
 			writeStatic(writer, " is unused");
 		},
 		(ref immutable Diag.UnusedLocal it) {
 			writeStatic(writer, "local ");
-			writeSym(writer, allSymbols, it.local.deref().name);
+			writeSym(writer, allSymbols, it.local.name);
 			writeStatic(writer, " is unused");
 		},
 		(ref immutable Diag.UnusedParam it) {
 			writeStatic(writer, "parameter ");
-			writeSym(writer, allSymbols, force(it.param.deref().name));
+			writeSym(writer, allSymbols, force(it.param.name));
 			writeStatic(writer, " is unused");
 		},
 		(ref immutable Diag.UnusedPrivateFun it) {
 			writeStatic(writer, "private function ");
-			writeSym(writer, allSymbols, name(it.fun.deref()));
+			writeSym(writer, allSymbols, name(*it.fun));
 			writeStatic(writer, " is unused");
 		},
 		(ref immutable Diag.UnusedPrivateSpec it) {
 			writeStatic(writer, "private spec ");
-			writeSym(writer, allSymbols, it.spec.deref().name);
+			writeSym(writer, allSymbols, it.spec.name);
 			writeStatic(writer, " is unused");
 		},
 		(ref immutable Diag.UnusedPrivateStruct it) {
 			writeStatic(writer, "private type ");
-			writeSym(writer, allSymbols, it.struct_.deref().name);
+			writeSym(writer, allSymbols, it.struct_.name);
 			writeStatic(writer, " is unused");
 		},
 		(ref immutable Diag.UnusedPrivateStructAlias it) {
 			writeStatic(writer, "private type ");
-			writeSym(writer, allSymbols, it.alias_.deref().name);
+			writeSym(writer, allSymbols, it.alias_.name);
 			writeStatic(writer, " is unused");
 		},
 		(ref immutable Diag.WrongNumberTypeArgsForSpec d) {
-			writeName(writer, allSymbols, d.decl.deref().name);
+			writeName(writer, allSymbols, d.decl.name);
 			writeStatic(writer, " expected to get ");
 			writeNat(writer, d.nExpectedTypeArgs);
 			writeStatic(writer, " type args, but got ");

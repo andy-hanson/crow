@@ -51,7 +51,6 @@ import util.col.str : SafeCStr, safeCStrIsEmpty;
 import util.comparison : compareNat16, compareNat32, Comparison;
 import util.opt : force, has, none, Opt, some;
 import util.path : AllPaths, Path, PathsInfo, pathToSafeCStrPreferRelative;
-import util.ptr : Ptr;
 import util.repr : jsonStrOfRepr, NameAndRepr, nameAndRepr, Repr, reprArr, reprBool, reprNamedRecord, reprStr, reprSym;
 import util.sourceRange : FileAndRange;
 import util.sym : AllSymbols, hashSym, shortSym, Sym, symEq;
@@ -77,8 +76,8 @@ immutable(Repr) documentRootModules(
 	ref immutable Program program,
 ) {
 	return reprNamedRecord(alloc, "root", [
-		nameAndRepr("modules", reprArr(alloc, program.specialModules.rootModules, (ref immutable Ptr!Module x) =>
-			documentModule(alloc, allSymbols, allPaths, pathsInfo, program, x.deref())))]);
+		nameAndRepr("modules", reprArr(alloc, program.specialModules.rootModules, (ref immutable Module* x) =>
+			documentModule(alloc, allSymbols, allPaths, pathsInfo, program, *x)))]);
 }
 
 immutable(Repr) documentModule(
@@ -98,10 +97,10 @@ immutable(Repr) documentModule(
 			if (has(referents.structOrAlias))
 				add(alloc, exports, documentStructOrAlias(alloc, force(referents.structOrAlias)));
 			if (has(referents.spec))
-				add(alloc, exports, documentSpec(alloc, force(referents.spec).deref()));
-			foreach (immutable Ptr!FunDecl fun; referents.funs)
-				if (!fun.deref().noDoc)
-					add(alloc, exports, documentFun(alloc, fun.deref()));
+				add(alloc, exports, documentSpec(alloc, *force(referents.spec)));
+			foreach (immutable FunDecl* fun; referents.funs)
+				if (!noDoc(*fun))
+					add(alloc, exports, documentFun(alloc, *fun));
 		});
 	arrBuilderSort!DocExport(exports, (ref immutable DocExport x, ref immutable DocExport y) =>
 		compareRanges(x.range, y.range));
@@ -153,9 +152,9 @@ immutable(DocExport) documentStructOrAlias(ref Alloc alloc, immutable StructOrAl
 }
 
 immutable(DocExport) documentStructAlias(ref Alloc alloc, ref immutable StructAlias a) {
-	immutable Opt!(Ptr!StructInst) optTarget = target(a);
+	immutable Opt!(StructInst*) optTarget = target(a);
 	return documentExport(alloc, a.range, a.name, a.docComment, a.typeParams, reprNamedRecord(alloc, "alias", [
-		nameAndRepr("target", documentStructInst(alloc, force(optTarget).deref()))]));
+		nameAndRepr("target", documentStructInst(alloc, *force(optTarget)))]));
 }
 
 immutable(DocExport) documentStructDecl(ref Alloc alloc, ref immutable StructDecl a) {
@@ -292,8 +291,8 @@ immutable(Repr[]) documentSpecs(ref Alloc alloc, ref immutable FunDecl a) {
 		add(alloc, res, reprSpecialSpec(alloc, shortSym("unsafe")));
 	if (noCtx(a))
 		add(alloc, res, reprSpecialSpec(alloc, shortSym("noctx")));
-	foreach (immutable Ptr!SpecInst spec; a.specs)
-		add(alloc, res, documentSpecInst(alloc, spec.deref()));
+	foreach (immutable SpecInst* spec; a.specs)
+		add(alloc, res, documentSpecInst(alloc, *spec));
 	return finishArr(alloc, res);
 }
 
@@ -312,10 +311,10 @@ immutable(Repr) documentTypeRef(ref Alloc alloc, immutable Type a) {
 		a,
 		(immutable Type.Bogus) =>
 			unreachable!(immutable Repr),
-		(immutable Ptr!TypeParam it) =>
-			reprNamedRecord(alloc, "type-param", [nameAndRepr("name", reprSym(it.deref().name))]),
-		(immutable Ptr!StructInst it) =>
-			documentStructInst(alloc, it.deref()));
+		(immutable TypeParam* it) =>
+			reprNamedRecord(alloc, "type-param", [nameAndRepr("name", reprSym(it.name))]),
+		(immutable StructInst* it) =>
+			documentStructInst(alloc, *it));
 }
 
 immutable(Repr) documentSpecInst(ref Alloc alloc, ref immutable SpecInst a) {

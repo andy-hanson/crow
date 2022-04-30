@@ -23,19 +23,18 @@ import util.col.str : SafeCStr;
 import util.hash : Hasher, hashSizeT, hashUint;
 import util.opt : none, Opt;
 import util.path : Path;
-import util.ptr : Ptr;
 import util.sourceRange : FileAndRange;
 import util.sym : AllSymbols, shortSym, Sym;
 import util.util : unreachable, verify;
 
 struct LowExternPtrType {
-	immutable Ptr!ConcreteStruct source;
+	immutable ConcreteStruct* source;
 }
 
 struct LowRecord {
 	@safe @nogc pure nothrow:
 
-	immutable Ptr!ConcreteStruct source;
+	immutable ConcreteStruct* source;
 	immutable LowField[] fields;
 
 	//TODO:MOVE
@@ -43,32 +42,32 @@ struct LowRecord {
 		return matchConcreteStructSource!(
 			immutable bool,
 			(ref immutable ConcreteStructSource.Inst it) =>
-				asRecord(body_(it.inst.deref())).flags.packed,
+				asRecord(body_(*it.inst)).flags.packed,
 			(ref immutable ConcreteStructSource.Lambda) =>
 				false,
-		)(source.deref().source);
+		)(source.source);
 	}
 }
 
 immutable(TypeSize) typeSize(ref immutable LowRecord a) {
-	return typeSize(a.source.deref());
+	return typeSize(*a.source);
 }
 
 immutable(bool) isArr(ref immutable LowRecord a) {
-	return isArr(a.source.deref());
+	return isArr(*a.source);
 }
 
 struct LowUnion {
-	immutable Ptr!ConcreteStruct source;
+	immutable ConcreteStruct* source;
 	immutable LowType[] members;
 }
 
 immutable(TypeSize) typeSize(ref immutable LowUnion a) {
-	return typeSize(a.source.deref());
+	return typeSize(*a.source);
 }
 
 struct LowFunPtrType {
-	immutable Ptr!ConcreteStruct source;
+	immutable ConcreteStruct* source;
 	immutable LowType returnType;
 	immutable LowType[] paramTypes;
 }
@@ -133,13 +132,13 @@ struct LowType {
 	}
 	// May be gc-allocated or not; gc will try to trace
 	struct PtrGc {
-		immutable Ptr!LowType pointee;
+		immutable LowType* pointee;
 	}
 	struct PtrRawConst {
-		immutable Ptr!LowType pointee;
+		immutable LowType* pointee;
 	}
 	struct PtrRawMut {
-		immutable Ptr!LowType pointee;
+		immutable LowType* pointee;
 	}
 	struct Record {
 		immutable size_t index;
@@ -193,11 +192,11 @@ immutable(bool) lowTypeEqual(immutable LowType a, immutable LowType b) {
 			case LowType.Kind.primitive:
 				return a.primitive_ == b.primitive_;
 			case LowType.Kind.ptrGc:
-				return lowTypeEqual(a.ptrGc_.pointee.deref(), b.ptrGc_.pointee.deref());
+				return lowTypeEqual(*a.ptrGc_.pointee, *b.ptrGc_.pointee);
 			case LowType.Kind.ptrRawConst:
-				return lowTypeEqual(a.ptrRawConst_.pointee.deref(), b.ptrRawConst_.pointee.deref());
+				return lowTypeEqual(*a.ptrRawConst_.pointee, *b.ptrRawConst_.pointee);
 			case LowType.Kind.ptrRawMut:
-				return lowTypeEqual(a.ptrRawMut_.pointee.deref(), b.ptrRawMut_.pointee.deref());
+				return lowTypeEqual(*a.ptrRawMut_.pointee, *b.ptrRawMut_.pointee);
 			case LowType.Kind.record:
 				return a.record_.index == b.record_.index;
 			case LowType.Kind.union_:
@@ -219,13 +218,13 @@ immutable(bool) lowTypeEqual(immutable LowType a, immutable LowType b) {
 			hashUint(hasher, a.primitive_);
 			break;
 		case LowType.Kind.ptrGc:
-			hashLowType(hasher, a.ptrGc_.pointee.deref());
+			hashLowType(hasher, *a.ptrGc_.pointee);
 			break;
 		case LowType.Kind.ptrRawConst:
-			hashLowType(hasher, a.ptrRawConst_.pointee.deref());
+			hashLowType(hasher, *a.ptrRawConst_.pointee);
 			break;
 		case LowType.Kind.ptrRawMut:
-			hashLowType(hasher, a.ptrRawMut_.pointee.deref());
+			hashLowType(hasher, *a.ptrRawMut_.pointee);
 			break;
 		case LowType.Kind.record:
 			hashSizeT(hasher, a.record_.index);
@@ -280,7 +279,7 @@ private immutable(bool) isPtrRawConstOrMut(immutable LowType a) {
 
 @trusted immutable(LowType) asPtrGcPointee(return immutable LowType a) {
 	verify(isPtrGc(a));
-	return a.ptrGc_.pointee.deref();
+	return *a.ptrGc_.pointee;
 }
 
 @trusted immutable(LowType.PtrRawConst) asPtrRawConst(immutable LowType a) {
@@ -383,22 +382,22 @@ struct LowPtrCombine {
 		cbExternPtr,
 		cbFunPtr,
 		cbPrimitive,
-		(immutable LowType.PtrGc it) => cbPtr(immutable LowPtrCombine(it.pointee.deref())),
-		(immutable LowType.PtrRawConst it) => cbPtr(immutable LowPtrCombine(it.pointee.deref())),
-		(immutable LowType.PtrRawMut it) => cbPtr(immutable LowPtrCombine(it.pointee.deref())),
+		(immutable LowType.PtrGc it) => cbPtr(immutable LowPtrCombine(*it.pointee)),
+		(immutable LowType.PtrRawConst it) => cbPtr(immutable LowPtrCombine(*it.pointee)),
+		(immutable LowType.PtrRawMut it) => cbPtr(immutable LowPtrCombine(*it.pointee)),
 		cbRecord,
 		cbUnion,
 	)(a);
 }
 
 struct LowField {
-	immutable Ptr!ConcreteField source;
+	immutable ConcreteField* source;
 	immutable size_t offset;
 	immutable LowType type;
 }
 
 immutable(Sym) debugName(ref immutable LowField a) {
-	return a.source.deref().debugName;
+	return a.source.debugName;
 }
 
 struct LowParamSource {
@@ -408,7 +407,7 @@ struct LowParamSource {
 		immutable Sym name;
 	}
 
-	@trusted immutable this(immutable Ptr!ConcreteParam a) { kind_ = Kind.concreteParam; concreteParam_ = a; }
+	@trusted immutable this(immutable ConcreteParam* a) { kind_ = Kind.concreteParam; concreteParam_ = a; }
 	immutable this(immutable Generated a) { kind_ = Kind.generated; generated_ = a; }
 
 	private:
@@ -418,7 +417,7 @@ struct LowParamSource {
 	}
 	immutable Kind kind_;
 	union {
-		immutable Ptr!ConcreteParam concreteParam_;
+		immutable ConcreteParam* concreteParam_;
 		immutable Generated generated_;
 	}
 }
@@ -428,7 +427,7 @@ struct LowParamSource {
 ) {
 	final switch (a.kind_) {
 		case LowParamSource.Kind.concreteParam:
-			return cbConcreteParam(a.concreteParam_.deref());
+			return cbConcreteParam(*a.concreteParam_);
 		case LowParamSource.Kind.generated:
 			return cbGenerated(a.generated_);
 	}
@@ -447,7 +446,7 @@ struct LowLocalSource {
 		immutable size_t index;
 	}
 
-	@trusted immutable this(immutable Ptr!ConcreteLocal a) { kind_ = Kind.concreteLocal; concreteLocal_ = a; }
+	@trusted immutable this(immutable ConcreteLocal* a) { kind_ = Kind.concreteLocal; concreteLocal_ = a; }
 	immutable this(immutable Generated a) { kind_ = Kind.generated; generated_ = a; }
 
 	private:
@@ -457,7 +456,7 @@ struct LowLocalSource {
 	}
 	immutable Kind kind_;
 	union {
-		immutable Ptr!ConcreteLocal concreteLocal_;
+		immutable ConcreteLocal* concreteLocal_;
 		immutable Generated generated_;
 	}
 }
@@ -467,7 +466,7 @@ struct LowLocalSource {
 ) {
 	final switch (a.kind_) {
 		case LowLocalSource.Kind.concreteLocal:
-			return cbConcreteLocal(a.concreteLocal_.deref());
+			return cbConcreteLocal(*a.concreteLocal_);
 		case LowLocalSource.Kind.generated:
 			return cbGenerated(a.generated_);
 	}
@@ -540,8 +539,8 @@ struct LowFunSource {
 		immutable LowType[] typeArgs;
 	}
 
-	@trusted immutable this(immutable Ptr!ConcreteFun a) { kind_ = Kind.concreteFun; concreteFun_ = a; }
-	@trusted immutable this(immutable Ptr!Generated a) { kind_ = Kind.generated; generated_ = a; }
+	@trusted immutable this(immutable ConcreteFun* a) { kind_ = Kind.concreteFun; concreteFun_ = a; }
+	@trusted immutable this(immutable Generated* a) { kind_ = Kind.generated; generated_ = a; }
 
 	private:
 	enum Kind {
@@ -550,8 +549,8 @@ struct LowFunSource {
 	}
 	immutable Kind kind_;
 	union {
-		immutable Ptr!ConcreteFun concreteFun_;
-		immutable Ptr!Generated generated_;
+		immutable ConcreteFun* concreteFun_;
+		immutable Generated* generated_;
 	}
 }
 static assert(LowFunSource.sizeof <= 16);
@@ -561,7 +560,7 @@ static assert(LowFunSource.sizeof <= 16);
 		case LowFunSource.Kind.concreteFun:
 			return cbConcreteFun(a.concreteFun_);
 		case LowFunSource.Kind.generated:
-			return cbGenerated(a.generated_.deref());
+			return cbGenerated(*a.generated_);
 	}
 }
 
@@ -586,7 +585,7 @@ struct LowFun {
 immutable(Opt!Sym) name(ref immutable LowFun a) {
 	return matchLowFunSource!(
 		immutable Opt!Sym,
-		(immutable Ptr!ConcreteFun it) => name(it.deref()),
+		(immutable ConcreteFun* it) => name(*it),
 		(ref immutable LowFunSource.Generated) => none!Sym,
 	)(a.source);
 }
@@ -594,14 +593,14 @@ immutable(Opt!Sym) name(ref immutable LowFun a) {
 immutable(FileAndRange) lowFunRange(ref immutable LowFun a, ref const AllSymbols allSymbols) {
 	return matchLowFunSource!(
 		immutable FileAndRange,
-		(immutable Ptr!ConcreteFun cf) =>
-			concreteFunRange(cf.deref(), allSymbols),
+		(immutable ConcreteFun* cf) =>
+			concreteFunRange(*cf, allSymbols),
 		(ref immutable LowFunSource.Generated) =>
 			FileAndRange.empty,
 	)(a.source);
 }
 
-// TODO: use Ptr!ConcreteExpr
+// TODO: use ConcreteExpr*
 private alias LowExprSource = FileAndRange;
 
 struct LowExpr {
@@ -661,19 +660,19 @@ struct LowExprKind {
 	struct InitConstants {}
 
 	struct Let {
-		immutable Ptr!LowLocal local;
+		immutable LowLocal* local;
 		immutable LowExpr value;
 		immutable LowExpr then;
 	}
 
 	struct LocalRef {
-		immutable Ptr!LowLocal local;
+		immutable LowLocal* local;
 	}
 
 	// TODO: compile down to a Switch?
 	struct MatchUnion {
 		struct Case {
-			immutable Opt!(Ptr!LowLocal) local;
+			immutable Opt!(LowLocal*) local;
 			immutable LowExpr then;
 		}
 
@@ -932,52 +931,52 @@ struct LowExprKind {
 	public immutable Kind kind; //TODO:PRIVATE
 	union {
 		immutable Call call;
-		immutable Ptr!CallFunPtr callFunPtr;
+		immutable CallFunPtr* callFunPtr;
 		immutable CreateRecord createRecord;
-		immutable Ptr!CreateUnion createUnion;
-		immutable Ptr!If if_;
+		immutable CreateUnion* createUnion;
+		immutable If* if_;
 		immutable InitConstants initConstants;
-		immutable Ptr!Let let;
+		immutable Let* let;
 		immutable LocalRef localRef;
-		immutable Ptr!MatchUnion matchUnion;
+		immutable MatchUnion* matchUnion;
 		immutable ParamRef paramRef;
-		immutable Ptr!PtrCast ptrCast;
-		immutable Ptr!RecordFieldGet recordFieldGet;
-		immutable Ptr!RecordFieldSet recordFieldSet;
-		immutable Ptr!Seq seq;
+		immutable PtrCast* ptrCast;
+		immutable RecordFieldGet* recordFieldGet;
+		immutable RecordFieldSet* recordFieldSet;
+		immutable Seq* seq;
 		immutable SizeOf sizeOf;
 		immutable Constant constant;
-		immutable Ptr!SpecialUnary specialUnary;
-		immutable Ptr!SpecialBinary specialBinary;
-		immutable Ptr!SpecialTernary specialTernary;
-		immutable Ptr!Switch0ToN switch0ToN;
-		immutable Ptr!SwitchWithValues switchWithValues;
+		immutable SpecialUnary* specialUnary;
+		immutable SpecialBinary* specialBinary;
+		immutable SpecialTernary* specialTernary;
+		immutable Switch0ToN* switch0ToN;
+		immutable SwitchWithValues* switchWithValues;
 		immutable TailRecur tailRecur;
 		immutable Zeroed zeroed;
 	}
 
 	public:
 	@trusted immutable this(immutable Call a) { kind = Kind.call; call = a; }
-	@trusted immutable this(immutable Ptr!CallFunPtr a) { kind = Kind.callFunPtr; callFunPtr = a; }
+	@trusted immutable this(immutable CallFunPtr* a) { kind = Kind.callFunPtr; callFunPtr = a; }
 	@trusted immutable this(immutable CreateRecord a) { kind = Kind.createRecord; createRecord = a; }
-	@trusted immutable this(immutable Ptr!CreateUnion a) { kind = Kind.createUnion; createUnion = a; }
-	immutable this(immutable Ptr!If a) { kind = Kind.if_; if_ = a; }
+	@trusted immutable this(immutable CreateUnion* a) { kind = Kind.createUnion; createUnion = a; }
+	immutable this(immutable If* a) { kind = Kind.if_; if_ = a; }
 	immutable this(immutable InitConstants a) { kind = Kind.initConstants; initConstants = a; }
-	@trusted immutable this(immutable Ptr!Let a) { kind = Kind.let; let = a; }
+	@trusted immutable this(immutable Let* a) { kind = Kind.let; let = a; }
 	@trusted immutable this(immutable LocalRef a) { kind = Kind.localRef; localRef = a; }
-	@trusted immutable this(immutable Ptr!MatchUnion a) { kind = Kind.matchUnion; matchUnion = a; }
+	@trusted immutable this(immutable MatchUnion* a) { kind = Kind.matchUnion; matchUnion = a; }
 	@trusted immutable this(immutable ParamRef a) { kind = Kind.paramRef; paramRef = a; }
-	@trusted immutable this(immutable Ptr!PtrCast a) { kind = Kind.ptrCast; ptrCast = a; }
-	@trusted immutable this(immutable Ptr!RecordFieldGet a) { kind = Kind.recordFieldGet; recordFieldGet = a; }
-	@trusted immutable this(immutable Ptr!RecordFieldSet a) { kind = Kind.recordFieldSet; recordFieldSet = a; }
-	@trusted immutable this(immutable Ptr!Seq a) { kind = Kind.seq; seq = a; }
+	@trusted immutable this(immutable PtrCast* a) { kind = Kind.ptrCast; ptrCast = a; }
+	@trusted immutable this(immutable RecordFieldGet* a) { kind = Kind.recordFieldGet; recordFieldGet = a; }
+	@trusted immutable this(immutable RecordFieldSet* a) { kind = Kind.recordFieldSet; recordFieldSet = a; }
+	@trusted immutable this(immutable Seq* a) { kind = Kind.seq; seq = a; }
 	@trusted immutable this(immutable SizeOf a) { kind = Kind.sizeOf; sizeOf = a; }
 	@trusted immutable this(immutable Constant a) { kind = Kind.constant; constant = a; }
-	@trusted immutable this(immutable Ptr!SpecialUnary a) { kind = Kind.specialUnary; specialUnary = a; }
-	@trusted immutable this(immutable Ptr!SpecialBinary a) { kind = Kind.specialBinary; specialBinary = a; }
-	@trusted immutable this(immutable Ptr!SpecialTernary a) { kind = Kind.specialTernary; specialTernary = a; }
-	@trusted immutable this(immutable Ptr!Switch0ToN a) { kind = Kind.switch0ToN; switch0ToN = a; }
-	@trusted immutable this(immutable Ptr!SwitchWithValues a) { kind = Kind.switchWithValues; switchWithValues = a; }
+	@trusted immutable this(immutable SpecialUnary* a) { kind = Kind.specialUnary; specialUnary = a; }
+	@trusted immutable this(immutable SpecialBinary* a) { kind = Kind.specialBinary; specialBinary = a; }
+	@trusted immutable this(immutable SpecialTernary* a) { kind = Kind.specialTernary; specialTernary = a; }
+	@trusted immutable this(immutable Switch0ToN* a) { kind = Kind.switch0ToN; switch0ToN = a; }
+	@trusted immutable this(immutable SwitchWithValues* a) { kind = Kind.switchWithValues; switchWithValues = a; }
 	@trusted immutable this(immutable TailRecur a) { kind = Kind.tailRecur; tailRecur = a; }
 	@trusted immutable this(immutable Zeroed a) { kind = Kind.zeroed; zeroed = a; }
 }
@@ -1013,45 +1012,45 @@ static assert(LowExprKind.sizeof <= 32);
 		case LowExprKind.Kind.call:
 			return cbCall(a.call);
 		case LowExprKind.Kind.callFunPtr:
-			return cbCallFunPtr(a.callFunPtr.deref());
+			return cbCallFunPtr(*a.callFunPtr);
 		case LowExprKind.Kind.createRecord:
 			return cbCreateRecord(a.createRecord);
 		case LowExprKind.Kind.createUnion:
-			return cbCreateUnion(a.createUnion.deref());
+			return cbCreateUnion(*a.createUnion);
 		case LowExprKind.Kind.if_:
-			return cbIf(a.if_.deref());
+			return cbIf(*a.if_);
 		case LowExprKind.Kind.initConstants:
 			return cbInitConstants(a.initConstants);
 		case LowExprKind.Kind.let:
-			return cbLet(a.let.deref());
+			return cbLet(*a.let);
 		case LowExprKind.Kind.localRef:
 			return cbLocalRef(a.localRef);
 		case LowExprKind.Kind.matchUnion:
-			return cbMatchUnion(a.matchUnion.deref());
+			return cbMatchUnion(*a.matchUnion);
 		case LowExprKind.Kind.paramRef:
 			return cbParamRef(a.paramRef);
 		case LowExprKind.Kind.ptrCast:
-			return cbPtrCast(a.ptrCast.deref());
+			return cbPtrCast(*a.ptrCast);
 		case LowExprKind.Kind.recordFieldGet:
-			return cbRecordFieldGet(a.recordFieldGet.deref());
+			return cbRecordFieldGet(*a.recordFieldGet);
 		case LowExprKind.Kind.recordFieldSet:
-			return cbRecordFieldSet(a.recordFieldSet.deref());
+			return cbRecordFieldSet(*a.recordFieldSet);
 		case LowExprKind.Kind.seq:
-			return cbSeq(a.seq.deref());
+			return cbSeq(*a.seq);
 		case LowExprKind.Kind.sizeOf:
 			return cbSizeOf(a.sizeOf);
 		case LowExprKind.Kind.constant:
 			return cbConstant(a.constant);
 		case LowExprKind.Kind.specialUnary:
-			return cbSpecialUnary(a.specialUnary.deref());
+			return cbSpecialUnary(*a.specialUnary);
 		case LowExprKind.Kind.specialBinary:
-			return cbSpecialBinary(a.specialBinary.deref());
+			return cbSpecialBinary(*a.specialBinary);
 		case LowExprKind.Kind.specialTernary:
-			return cbSpecialTernary(a.specialTernary.deref());
+			return cbSpecialTernary(*a.specialTernary);
 		case LowExprKind.Kind.switch0ToN:
-			return cbSwitch0ToN(a.switch0ToN.deref());
+			return cbSwitch0ToN(*a.switch0ToN);
 		case LowExprKind.Kind.switchWithValues:
-			return cbSwitchWithValues(a.switchWithValues.deref());
+			return cbSwitchWithValues(*a.switchWithValues);
 		case LowExprKind.Kind.tailRecur:
 			return cbTailRecur(a.tailRecur);
 		case LowExprKind.Kind.zeroed:
@@ -1088,7 +1087,7 @@ immutable(bool) isRecordFieldGet(ref immutable LowExprKind a) {
 
 @trusted ref immutable(LowExprKind.RecordFieldGet) asRecordFieldGet(return scope ref immutable LowExprKind a) {
 	verify(isRecordFieldGet(a));
-	return a.recordFieldGet.deref();
+	return *a.recordFieldGet;
 }
 
 immutable(bool) isSpecialUnary(ref immutable LowExprKind a) {
@@ -1097,7 +1096,7 @@ immutable(bool) isSpecialUnary(ref immutable LowExprKind a) {
 
 @trusted ref immutable(LowExprKind.SpecialUnary) asSpecialUnary(return scope ref immutable LowExprKind a) {
 	verify(isSpecialUnary(a));
-	return a.specialUnary.deref();
+	return *a.specialUnary;
 }
 
 struct ArrTypeAndConstantsLow {

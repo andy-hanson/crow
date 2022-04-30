@@ -6,7 +6,6 @@ import util.alloc.alloc : Alloc, allocateT;
 import util.col.arr : arrOfRange_mut;
 import util.col.str : eachChar, SafeCStr, safeCStrSize;
 import util.memory : initMemory_mut, memset;
-import util.ptr : Ptr;
 import util.util : verify;
 
 //TODO:MOVE
@@ -26,10 +25,10 @@ immutable(size_t) exactSizeArrBuilderCurSize(T)(ref const ExactSizeArrBuilder!T 
 	return ExactSizeArrBuilder!T(begin, begin, begin + size);
 }
 
-@trusted immutable(Ptr!T) exactSizeArrBuilderAdd(T)(ref ExactSizeArrBuilder!T a, T value) {
+@trusted immutable(T*) exactSizeArrBuilderAdd(T)(ref ExactSizeArrBuilder!T a, T value) {
 	verify(a.cur < a.end);
 	initMemory_mut!T(a.cur, value);
-	immutable Ptr!T res = immutable Ptr!T(cast(immutable) a.cur);
+	immutable T* res = cast(immutable) a.cur;
 	a.cur++;
 	return res;
 }

@@ -39,7 +39,6 @@ import util.col.arrUtil : eachPair, find, findPtr, mapWithIndex_scope;
 import util.col.mutArr : MutArr;
 import util.col.mutMaxArr : fillMutMaxArr, mapTo, tempAsArr;
 import util.opt : force, has, none, noneMut, Opt, some;
-import util.ptr : Ptr;
 import util.sourceRange : RangeWithinFile;
 import util.sym : shortSymValue, Sym, symEq;
 import util.util : todo;
@@ -85,7 +84,7 @@ private immutable(Type) instStructFromAst(
 				nExpectedTypeArgs != 0
 					? todo!(immutable Type)("alias with type params")
 					: typeFromOptInst(target(a)),
-			(immutable Ptr!StructDecl decl) =>
+			(immutable StructDecl* decl) =>
 				immutable Type(instantiateStruct(
 					ctx.alloc,
 					ctx.programState,
@@ -144,7 +143,7 @@ immutable(Type) typeFromAstNoTypeParamsNeverDelay(
 ) {
 	static immutable TypeParamsScope emptyTypeParams = immutable TypeParamsScope([]);
 	return typeFromAst(
-		ctx, commonTypes, ast, structsAndAliasesDict, emptyTypeParams, noneMut!(Ptr!(MutArr!(Ptr!StructInst))));
+		ctx, commonTypes, ast, structsAndAliasesDict, emptyTypeParams, noneMut!(MutArr!(StructInst*)*));
 }
 
 immutable(Type) typeFromAst(
@@ -174,9 +173,9 @@ immutable(Type) typeFromAst(
 			if (has(optSyntax))
 				addDiag(ctx, iAst.range, immutable Diag(immutable Diag.TypeShouldUseSyntax(force(optSyntax))));
 
-			immutable Opt!(Ptr!TypeParam) found =
-				findPtr!TypeParam(typeParamsScope.innerTypeParams, (immutable Ptr!TypeParam it) =>
-					symEq(it.deref().name, iAst.name.name));
+			immutable Opt!(TypeParam*) found =
+				findPtr!TypeParam(typeParamsScope.innerTypeParams, (immutable TypeParam* it) =>
+					symEq(it.name, iAst.name.name));
 			if (has(found)) {
 				if (!empty(iAst.typeArgs))
 					addDiag(ctx, iAst.range, immutable Diag(immutable Diag.TypeParamCantHaveTypeArgs()));
@@ -226,7 +225,7 @@ private immutable(Opt!(Diag.TypeShouldUseSyntax.Kind)) typeSyntaxKind(immutable 
 	}
 }
 
-private immutable(Type) typeFromOptInst(immutable Opt!(Ptr!StructInst) a) {
+private immutable(Type) typeFromOptInst(immutable Opt!(StructInst*) a) {
 	return has(a) ? immutable Type(force(a)) : immutable Type(Type.Bogus());
 }
 
@@ -252,18 +251,18 @@ private immutable(Type) typeFromFunAst(
 		commonTypes.funKindsAndStructs,
 		(ref immutable FunKindAndStructs it) =>
 			it.kind == funKind);
-	immutable Ptr!StructDecl[] structs = force(optF).structs;
+	immutable StructDecl*[] structs = force(optF).structs;
 	if (ast.returnAndParamTypes.length > structs.length)
 		// We don't have a fun type big enough
 		todo!void("!");
-	immutable Ptr!StructDecl decl = structs[ast.returnAndParamTypes.length - 1];
+	immutable StructDecl* decl = structs[ast.returnAndParamTypes.length - 1];
 	TypeArgsArray typeArgs = typeArgsArray();
 	mapTo(typeArgs, ast.returnAndParamTypes, (ref immutable TypeAst x) =>
 		typeFromAst(ctx, commonTypes, x, structsAndAliasesDict, typeParamsScope, delayStructInsts));
 	return immutable Type(instantiateStruct(ctx.alloc, ctx.programState, decl, tempAsArr(typeArgs), delayStructInsts));
 }
 
-immutable(Opt!(Ptr!SpecDecl)) tryFindSpec(
+immutable(Opt!(SpecDecl*)) tryFindSpec(
 	ref CheckCtx ctx,
 	immutable Sym name,
 	immutable RangeWithinFile range,
@@ -272,8 +271,8 @@ immutable(Opt!(Ptr!SpecDecl)) tryFindSpec(
 	immutable Opt!SpecDeclAndIndex opDeclFromHere = specsDict[name];
 	if (has(opDeclFromHere))
 		markUsedSpec(ctx, force(opDeclFromHere).index);
-	immutable Opt!(Ptr!SpecDecl) here = has(opDeclFromHere) ? some(force(opDeclFromHere).decl) : none!(Ptr!SpecDecl);
-	return tryFindT!(Ptr!SpecDecl)(
+	immutable Opt!(SpecDecl*) here = has(opDeclFromHere) ? some(force(opDeclFromHere).decl) : none!(SpecDecl*);
+	return tryFindT!(SpecDecl*)(
 		ctx,
 		name,
 		range,

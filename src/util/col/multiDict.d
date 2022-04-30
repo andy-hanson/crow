@@ -8,7 +8,6 @@ import util.col.dict : dictEach, Dict, KeyValuePair;
 import util.col.mutArr : moveToArr, MutArr, push;
 import util.col.mutDict : getOrAdd, mapToDict, MutDict;
 import util.opt : force, has, Opt;
-import util.ptr : Ptr;
 import util.sym : hashSym, Sym, symEq;
 
 private struct MultiDict(K, V, alias equal, alias hash) {
@@ -35,7 +34,7 @@ alias SymMultiDict(V) =
 @trusted immutable(MultiDict!(K, V, equal, hash)) buildMultiDict(K, V, alias equal, alias hash, T)(
 	ref Alloc alloc,
 	immutable T[] inputs,
-	scope immutable(KeyValuePair!(K, V)) delegate(immutable size_t, immutable Ptr!T) @safe @nogc pure nothrow getPair,
+	scope immutable(KeyValuePair!(K, V)) delegate(immutable size_t, immutable T*) @safe @nogc pure nothrow getPair,
 ) {
 	MutDict!(immutable K, MutArr!(immutable V), equal, hash) builder;
 	foreach (immutable size_t i; 0 .. inputs.length) {

@@ -5,7 +5,6 @@ module frontend.check.dicts;
 import model.model : FunDecl, SpecDecl, StructOrAlias;
 import util.col.dict : SymDict;
 import util.col.multiDict : SymMultiDict;
-import util.ptr : Ptr;
 
 alias StructsAndAliasesDict = SymDict!StructOrAliasAndIndex;
 alias SpecsDict = SymDict!SpecDeclAndIndex;
@@ -35,7 +34,7 @@ struct ModuleLocalAliasIndex { immutable size_t index; }
 struct ModuleLocalStructIndex { immutable size_t index; }
 
 struct SpecDeclAndIndex {
-	immutable Ptr!SpecDecl decl;
+	immutable SpecDecl* decl;
 	immutable ModuleLocalSpecIndex index;
 }
 
@@ -45,7 +44,7 @@ struct ModuleLocalSpecIndex {
 
 struct FunDeclAndIndex {
 	immutable ModuleLocalFunIndex index;
-	immutable Ptr!FunDecl decl;
+	immutable FunDecl* decl;
 }
 
 // Index of a function in this module.

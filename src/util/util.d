@@ -2,7 +2,8 @@ module util.util;
 
 @safe @nogc pure nothrow:
 
-T todo(T)(immutable string) {
+T todo(T)(immutable char* s) {
+	debugLog(s);
 	assert(0);
 }
 

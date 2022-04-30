@@ -28,7 +28,7 @@ import util.col.mutDict :
 	valuesArray;
 import util.col.str : hashSafeCStr, SafeCStr, safeCStrEq;
 import util.opt : force, has, Opt;
-import util.ptr : hashPtr, Ptr, ptrEquals, ptrTrustMe_mut;
+import util.ptr : hashPtr, ptrEquals, ptrTrustMe_mut;
 import util.sym : AllSymbols, hashSym, safeCStrOfSym, Sym, symEq;
 import util.util : verify;
 
@@ -43,7 +43,7 @@ struct AllConstantsBuilder {
 }
 
 private struct ArrTypeAndConstants {
-	immutable Ptr!ConcreteStruct arrType;
+	immutable ConcreteStruct* arrType;
 	immutable ConcreteType elementType;
 	immutable size_t typeIndex; // order this was inserted into 'arrs'
 	MutArr!(immutable Constant[]) constants;
@@ -58,7 +58,7 @@ immutable(AllConstantsConcrete) finishAllConstants(
 	ref Alloc alloc,
 	ref AllConstantsBuilder a,
 	ref const AllSymbols allSymbols,
-	immutable Ptr!ConcreteStruct arrSymStruct,
+	immutable ConcreteStruct* arrSymStruct,
 ) {
 	immutable Constant staticSyms = getConstantArr(alloc, a, arrSymStruct, valuesArray(alloc, a.syms));
 	immutable ArrTypeAndConstantsConcrete[] arrs =
@@ -76,11 +76,11 @@ immutable(AllConstantsConcrete) finishAllConstants(
 	immutable PointerTypeAndConstantsConcrete[] records =
 		mapToArr_mut!(
 			PointerTypeAndConstantsConcrete,
-			immutable Ptr!ConcreteStruct,
+			immutable ConcreteStruct*,
 			PointerTypeAndConstants,
 			ptrEquals!ConcreteStruct,
 			hashPtr!ConcreteStruct,
-		)(alloc, a.pointers, (immutable Ptr!ConcreteStruct key, ref PointerTypeAndConstants value) =>
+		)(alloc, a.pointers, (immutable ConcreteStruct* key, ref PointerTypeAndConstants value) =>
 			immutable PointerTypeAndConstantsConcrete(
 				key,
 				moveToArr(alloc, value.constants)));
@@ -90,7 +90,7 @@ immutable(AllConstantsConcrete) finishAllConstants(
 ref immutable(Constant) derefConstantPointer(
 	ref AllConstantsBuilder a,
 	ref immutable Constant.Pointer pointer,
-	immutable Ptr!ConcreteStruct pointeeType,
+	immutable ConcreteStruct* pointeeType,
 ) {
 	verify(mustGetAt_mut(a.pointers, pointeeType).typeIndex == pointer.typeIndex);
 	return mutArrAt(mustGetAt_mut(a.pointers, pointeeType).constants, pointer.index);
@@ -100,14 +100,14 @@ ref immutable(Constant) derefConstantPointer(
 immutable(Constant) getConstantPtr(
 	ref Alloc alloc,
 	ref AllConstantsBuilder allConstants,
-	immutable Ptr!ConcreteStruct struct_,
+	immutable ConcreteStruct* struct_,
 	ref immutable Constant value,
 ) {
-	Ptr!PointerTypeAndConstants d = ptrTrustMe_mut(getOrAdd(alloc, allConstants.pointers, struct_, () =>
+	PointerTypeAndConstants* d = ptrTrustMe_mut(getOrAdd(alloc, allConstants.pointers, struct_, () =>
 		PointerTypeAndConstants(mutDictSize(allConstants.pointers), MutArr!(immutable Constant)())));
-	return immutable Constant(immutable Constant.Pointer(d.deref().typeIndex, findOrPush!(immutable Constant)(
+	return immutable Constant(immutable Constant.Pointer(d.typeIndex, findOrPush!(immutable Constant)(
 		alloc,
-		d.deref().constants,
+		d.constants,
 		(ref immutable Constant a) => constantEqual(a, value),
 		() => value)));
 }
@@ -115,26 +115,26 @@ immutable(Constant) getConstantPtr(
 immutable(Constant) getConstantArr(
 	ref Alloc alloc,
 	ref AllConstantsBuilder allConstants,
-	immutable Ptr!ConcreteStruct arrStruct,
+	immutable ConcreteStruct* arrStruct,
 	immutable Constant[] elements,
 ) {
 	if (empty(elements))
 		return constantEmptyArr();
 	else {
-		immutable ConcreteType elementType = only(asInst(arrStruct.deref().source).typeArgs);
-		Ptr!ArrTypeAndConstants d = ptrTrustMe_mut(getOrAdd(alloc, allConstants.arrs, elementType, () =>
+		immutable ConcreteType elementType = only(asInst(arrStruct.source).typeArgs);
+		ArrTypeAndConstants* d = ptrTrustMe_mut(getOrAdd(alloc, allConstants.arrs, elementType, () =>
 			ArrTypeAndConstants(
 				arrStruct,
 				elementType,
 				mutDictSize(allConstants.arrs), MutArr!(immutable Constant[])())));
 		immutable size_t index = findOrPush!(immutable Constant[])(
 			alloc,
-			d.deref().constants,
+			d.constants,
 			(ref immutable Constant[] it) =>
 				constantArrEqual(it, elements),
 			() =>
 				elements);
-		return immutable Constant(immutable Constant.ArrConstant(d.deref().typeIndex, index));
+		return immutable Constant(immutable Constant.ArrConstant(d.typeIndex, index));
 	}
 }
 

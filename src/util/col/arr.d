@@ -4,7 +4,6 @@ module util.col.arr;
 
 import util.alloc.alloc : Alloc, freeT;
 import util.conv : safeToUshort;
-import util.ptr : Ptr;
 import util.util : verify;
 
 // Like SmallArray but without implying that it's an array
@@ -15,9 +14,6 @@ struct PtrAndSmallNumber(T) {
 
 	private immutable this(immutable ulong v) {
 		value = v;
-	}
-	immutable this(immutable Ptr!T ptr, immutable ushort number) {
-		value = encode(ptr.rawPtr(), number);
 	}
 	immutable this(immutable T* ptr, immutable ushort number) {
 		value = encode(ptr, number);
@@ -37,11 +33,7 @@ struct PtrAndSmallNumber(T) {
 		return immutable PtrAndSmallNumber!T(value);
 	}
 
-	@trusted immutable(Ptr!T) ptr() immutable {
-		return immutable Ptr!T(rawPtr());
-	}
-
-	@trusted immutable(T*) rawPtr() immutable {
+	@trusted immutable(T*) ptr() immutable {
 		return cast(immutable T*) (value & 0x0000_ffff_ffff_ffff);
 	}
 
@@ -74,7 +66,7 @@ struct SmallArray(T) {
 	@property @trusted immutable(T[]) toArray() immutable {
 		immutable size_t length = sizeAndBegin.number;
 		verify(length < 0xffff); // sanity check
-		return sizeAndBegin.rawPtr()[0 .. length];
+		return sizeAndBegin.ptr()[0 .. length];
 	}
 
 	private:
@@ -129,9 +121,10 @@ immutable(bool) empty(T)(const T[] a) {
 	return a.length == 0;
 }
 
-@trusted inout(Ptr!T) ptrAt(T)(return scope inout T[] a, immutable size_t index) {
+//TOOD:KILL
+@trusted inout(T*) ptrAt(T)(return scope inout T[] a, immutable size_t index) {
 	verify(index < a.length);
-	return inout Ptr!T(&a[index]);
+	return &a[index];
 }
 
 ref immutable(T) only(T)(return scope immutable T[] a) {
@@ -143,7 +136,7 @@ ref const(T) only_const(T)(const T[] a) {
 	return a[0];
 }
 
-immutable(Ptr!T) lastPtr(T)(immutable T[] a) {
+immutable(T*) lastPtr(T)(immutable T[] a) {
 	verify(a.length != 0);
 	return ptrAt(a, a.length - 1);
 }
@@ -160,8 +153,8 @@ private struct PtrsRange(T) {
 		return begin >= end;
 	}
 
-	immutable(Ptr!T) front() const {
-		return immutable Ptr!T(begin);
+	immutable(T*) front() const {
+		return begin;
 	}
 
 	@trusted void popFront() {

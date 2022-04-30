@@ -57,19 +57,18 @@ import util.col.arrBuilder : add, ArrBuilder, finishArr;
 import util.col.fullIndexDict : fullIndexDictOfArr;
 import util.col.mutArr : moveToArr_mut, MutArr, mutArrEnd, mutArrPtrAt, mutArrSize, push;
 import util.memory : initMemory, overwriteMemory;
-import util.ptr : Ptr;
 import util.util : divRoundUp, todo, verify;
 
 struct ByteCodeWriter {
 	private:
-	Ptr!Alloc alloc;
+	Alloc* alloc;
 	// NOTE: sometimes we will write operation arguments here and cast to Operation
 	MutArr!Operation operations;
 	ArrBuilder!ByteCodeSource sources; // parallel to operations
 	size_t nextStackEntry = 0;
 }
 
-ByteCodeWriter newByteCodeWriter(Ptr!Alloc alloc) {
+ByteCodeWriter newByteCodeWriter(Alloc* alloc) {
 	return ByteCodeWriter(alloc);
 }
 
@@ -90,8 +89,8 @@ Operations finishOperations(
 	ref ByteCodeWriter writer,
 ) {
 	return Operations(
-		moveToArr_mut!Operation(writer.alloc.deref(), writer.operations),
-		fullIndexDictOfArr!(ByteCodeIndex, ByteCodeSource)(finishArr(writer.alloc.deref(), writer.sources)));
+		moveToArr_mut!Operation(*writer.alloc, writer.operations),
+		fullIndexDictOfArr!(ByteCodeIndex, ByteCodeSource)(finishArr(*writer.alloc, writer.sources)));
 }
 
 immutable(StackEntry) getNextStackEntry(ref const ByteCodeWriter writer) {
@@ -607,8 +606,8 @@ void writeFnUnary(alias fn)(ref ByteCodeWriter writer, immutable ByteCodeSource 
 }
 
 private void pushOperation(ref ByteCodeWriter writer, immutable ByteCodeSource source, immutable Operation value) {
-	push(writer.alloc.deref(), writer.operations, value);
-	add(writer.alloc.deref(), writer.sources, source);
+	push(*writer.alloc, writer.operations, value);
+	add(*writer.alloc, writer.sources, source);
 }
 
 private void pushOperationFn(ref ByteCodeWriter writer, immutable ByteCodeSource source, immutable Operation.Fn fn) {

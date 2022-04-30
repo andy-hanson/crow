@@ -33,11 +33,11 @@ import util.col.arr : sizeEq;
 import util.col.arrUtil : zip;
 import util.col.fullIndexDict : fullIndexDictEachValue;
 import util.opt : force, has;
-import util.ptr : Ptr, ptrTrustMe, ptrTrustMe_mut;
+import util.ptr : ptrTrustMe, ptrTrustMe_mut;
 import util.repr : Repr, reprRecord, reprSym;
 import util.util : verify;
 
-void checkLowProgram(ref Alloc alloc, ref immutable LowProgram a) {
+void checkLowProgram(ref Alloc alloc, scope ref immutable LowProgram a) {
 	Ctx ctx = Ctx(ptrTrustMe_mut(alloc), ptrTrustMe(a));
 	fullIndexDictEachValue!(LowFunIndex, LowFun)(a.allFuns, (ref immutable LowFun fun) {
 		checkLowFun(ctx, fun);
@@ -49,30 +49,30 @@ private:
 struct Ctx {
 	@safe @nogc pure nothrow:
 
-	Ptr!Alloc allocPtr;
-	immutable Ptr!LowProgram programPtr;
+	Alloc* allocPtr;
+	immutable LowProgram* programPtr;
 
 	ref Alloc alloc() return scope {
-		return allocPtr.deref();
+		return *allocPtr;
 	}
 
 	ref immutable(LowProgram) program() return scope const {
-		return programPtr.deref();
+		return *programPtr;
 	}
 }
 
 struct FunCtx {
 	@safe @nogc pure nothrow:
 
-	Ptr!Ctx ctxPtr;
-	immutable Ptr!LowFun funPtr;
+	Ctx* ctxPtr;
+	immutable LowFun* funPtr;
 
 	ref Ctx ctx() return scope {
-		return ctxPtr.deref();
+		return *ctxPtr;
 	}
 
 	ref immutable(LowFun) fun() return scope const {
-		return funPtr.deref();
+		return *funPtr;
 	}
 }
 
@@ -106,11 +106,11 @@ void checkLowExpr(
 	matchLowExprKind!(
 		void,
 		(ref immutable LowExprKind.Call it) {
-			immutable Ptr!LowFun fun = &ctx.ctx.program.allFuns[it.called];
-			checkTypeEqual(ctx.ctx, type, fun.deref().returnType);
-			verify(sizeEq(fun.deref().params, it.args));
+			immutable LowFun* fun = &ctx.ctx.program.allFuns[it.called];
+			checkTypeEqual(ctx.ctx, type, fun.returnType);
+			verify(sizeEq(fun.params, it.args));
 			zip!(LowParam, LowExpr)(
-				fun.deref().params,
+				fun.params,
 				it.args,
 				(ref immutable LowParam param, ref immutable LowExpr arg) {
 					checkLowExpr(ctx, param.type, arg);
@@ -146,11 +146,11 @@ void checkLowExpr(
 			verify(isVoid(type));
 		},
 		(ref immutable LowExprKind.Let it) {
-			checkLowExpr(ctx, it.local.deref().type, it.value);
+			checkLowExpr(ctx, it.local.type, it.value);
 			checkLowExpr(ctx, type, it.then);
 		},
 		(ref immutable LowExprKind.LocalRef it) {
-			checkTypeEqual(ctx.ctx, type, it.local.deref().type);
+			checkTypeEqual(ctx.ctx, type, it.local.type);
 		},
 		(ref immutable LowExprKind.MatchUnion it) {
 			checkLowExpr(ctx, it.matchedValue.type, it.matchedValue);
@@ -159,7 +159,7 @@ void checkLowExpr(
 				it.cases,
 				(ref immutable LowType memberType, ref immutable LowExprKind.MatchUnion.Case case_) {
 					if (has(case_.local))
-						checkTypeEqual(ctx.ctx, memberType, force(case_.local).deref().type);
+						checkTypeEqual(ctx.ctx, memberType, force(case_.local).type);
 					checkLowExpr(ctx, type, case_.then);
 				});
 		},
@@ -258,14 +258,14 @@ immutable(Repr) reprOfLowType2(ref Ctx ctx, immutable LowType a) {
 		(immutable PrimitiveType it) =>
 			reprSym(symOfPrimitiveType(it)),
 		(immutable LowType.PtrGc it) =>
-			reprRecord(ctx.alloc, "gc-ptr", [reprOfLowType2(ctx, it.pointee.deref())]),
+			reprRecord(ctx.alloc, "gc-ptr", [reprOfLowType2(ctx, *it.pointee)]),
 		(immutable LowType.PtrRawConst it) =>
-			reprRecord(ctx.alloc, "ptr-const", [reprOfLowType2(ctx, it.pointee.deref())]),
+			reprRecord(ctx.alloc, "ptr-const", [reprOfLowType2(ctx, *it.pointee)]),
 		(immutable LowType.PtrRawMut it) =>
-			reprRecord(ctx.alloc, "ptr-mut", [reprOfLowType2(ctx, it.pointee.deref())]),
+			reprRecord(ctx.alloc, "ptr-mut", [reprOfLowType2(ctx, *it.pointee)]),
 		(immutable LowType.Record it) =>
-			reprOfConcreteStructRef(ctx.alloc, ctx.program.allRecords[it].source.deref()),
+			reprOfConcreteStructRef(ctx.alloc, *ctx.program.allRecords[it].source),
 		(immutable LowType.Union it) =>
-			reprOfConcreteStructRef(ctx.alloc, ctx.program.allUnions[it].source.deref()),
+			reprOfConcreteStructRef(ctx.alloc, *ctx.program.allUnions[it].source),
 	)(a);
 }

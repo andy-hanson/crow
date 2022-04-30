@@ -10,7 +10,7 @@ import util.col.str : SafeCStr, safeCStrEq, strEq, hashSafeCStr, hashStr;
 import util.hash : Hasher;
 import util.memory : initMemory, overwriteMemory;
 import util.opt : force, has, none, noneConst, Opt, some, someConst, someMut;
-import util.ptr : hashPtr, Ptr, ptrEquals;
+import util.ptr : hashPtr, ptrEquals;
 import util.sym : hashSym, Sym, symEq;
 import util.util : drop, unreachable, verify;
 
@@ -21,7 +21,7 @@ struct MutDict(K, V, alias equal, alias hash) {
 }
 
 alias MutPtrDict(K, V) =
-	MutDict!(immutable Ptr!K, V, ptrEquals!K, hashPtr!K);
+	MutDict!(immutable K*, V, ptrEquals!K, hashPtr!K);
 
 alias MutSafeCStrDict(V) =
 	MutDict!(immutable SafeCStr, V, safeCStrEq, hashSafeCStr);
@@ -59,7 +59,7 @@ const(Opt!V) getAt_mut(K, V, alias equal, alias hash)(ref const MutDict!(K, V, e
 		if (!has(a.pairs[i]))
 			return noneConst!V;
 		else if (equal(key, force(a.pairs[i]).key))
-			return someConst!V(force(a.pairs[i]).value);
+			return someConst!V(cast(const V) force(a.pairs[i]).value);
 		else {
 			i = nextI(a, i);
 		}

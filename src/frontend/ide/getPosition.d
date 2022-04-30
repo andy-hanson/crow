@@ -30,7 +30,6 @@ import model.model :
 	TypeParam;
 import util.col.arr : empty, ptrsRange;
 import util.opt : force, has, none, Opt, some;
-import util.ptr : Ptr;
 import util.sourceRange : hasPos, Pos, RangeWithinFile;
 import util.sym : AllSymbols, Sym, symSize;
 
@@ -38,28 +37,28 @@ struct Position {
 	@safe @nogc pure nothrow:
 
 	struct ImportedModule {
-		immutable Ptr!ImportOrExport import_;
-		immutable Ptr!Module module_;
+		immutable ImportOrExport* import_;
+		immutable Module* module_;
 	}
 	struct ImportedName {
-		immutable Ptr!ImportOrExport import_;
+		immutable ImportOrExport* import_;
 		immutable Sym name;
 	}
 	struct RecordFieldPosition {
-		immutable Ptr!StructDecl struct_;
-		immutable Ptr!RecordField field;
+		immutable StructDecl* struct_;
+		immutable RecordField* field;
 	}
 
 	@trusted immutable this(immutable Expr a) { kind = Kind.expr; expr = a; }
-	@trusted immutable this(immutable Ptr!FunDecl a) { kind = Kind.funDecl; funDecl = a; }
+	@trusted immutable this(immutable FunDecl* a) { kind = Kind.funDecl; funDecl = a; }
 	@trusted immutable this(immutable ImportedModule a) { kind = Kind.importedModule; importedModule = a; }
 	@trusted immutable this(immutable ImportedName a) { kind = Kind.importedName; importedName = a; }
-	immutable this(immutable Ptr!Param a) { kind = Kind.param; param = a; }
+	immutable this(immutable Param* a) { kind = Kind.param; param = a; }
 	@trusted immutable this(immutable RecordFieldPosition a) { kind = Kind.recordField; recordField = a; }
-	@trusted immutable this(immutable Ptr!SpecDecl a) { kind = Kind.specDecl; specDecl = a; }
-	@trusted immutable this(immutable Ptr!StructDecl a) { kind = Kind.structDecl; structDecl = a; }
+	@trusted immutable this(immutable SpecDecl* a) { kind = Kind.specDecl; specDecl = a; }
+	@trusted immutable this(immutable StructDecl* a) { kind = Kind.structDecl; structDecl = a; }
 	immutable this(immutable Type a) { kind = Kind.type; type = a; }
-	@trusted immutable this(immutable Ptr!TypeParam a) { kind = Kind.typeParam; typeParam = a; }
+	@trusted immutable this(immutable TypeParam* a) { kind = Kind.typeParam; typeParam = a; }
 
 	private:
 	enum Kind {
@@ -77,15 +76,15 @@ struct Position {
 	immutable Kind kind;
 	union {
 		immutable Expr expr;
-		immutable Ptr!FunDecl funDecl;
+		immutable FunDecl* funDecl;
 		immutable ImportedModule importedModule;
 		immutable ImportedName importedName;
-		immutable Ptr!Param param;
+		immutable Param* param;
 		immutable RecordFieldPosition recordField;
-		immutable Ptr!SpecDecl specDecl;
-		immutable Ptr!StructDecl structDecl;
+		immutable SpecDecl* specDecl;
+		immutable StructDecl* structDecl;
 		immutable Type type;
-		immutable Ptr!TypeParam typeParam;
+		immutable TypeParam* typeParam;
 	}
 }
 
@@ -106,23 +105,23 @@ struct Position {
 		case Position.Kind.expr:
 			return cbExpr(a.expr);
 		case Position.Kind.funDecl:
-			return cbFunDecl(a.funDecl.deref());
+			return cbFunDecl(*a.funDecl);
 		case Position.Kind.importedModule:
 			return cbImportedModule(a.importedModule);
 		case Position.Kind.importedName:
 			return cbImportedName(a.importedName);
 		case Position.Kind.param:
-			return cbParam(a.param.deref());
+			return cbParam(*a.param);
 		case Position.Kind.recordField:
 			return cbRecordField(a.recordField);
 		case Position.Kind.specDecl:
-			return cbSpecDecl(a.specDecl.deref());
+			return cbSpecDecl(*a.specDecl);
 		case Position.Kind.structDecl:
-			return cbStructDecl(a.structDecl.deref());
+			return cbStructDecl(*a.structDecl);
 		case Position.Kind.type:
 			return cbType(a.type);
 		case Position.Kind.typeParam:
-			return cbTypeParam(a.typeParam.deref());
+			return cbTypeParam(*a.typeParam);
 	}
 }
 
@@ -134,16 +133,16 @@ immutable(Opt!Position) getPosition(ref const AllSymbols allSymbols, ref immutab
 	if (has(fromExports))
 		return fromExports;
 
-	foreach (immutable Ptr!StructDecl s; ptrsRange(module_.structs))
-		if (hasPos(s.deref().range.range, pos))
+	foreach (immutable StructDecl* s; ptrsRange(module_.structs))
+		if (hasPos(s.range.range, pos))
 			return some(positionInStruct(allSymbols, s, pos));
 
-	foreach (immutable Ptr!SpecDecl s; ptrsRange(module_.specs))
-		if (hasPos(s.deref().range.range, pos))
+	foreach (immutable SpecDecl* s; ptrsRange(module_.specs))
+		if (hasPos(s.range.range, pos))
 			//TODO: delve inside!
 			return some(immutable Position(s));
 
-	foreach (immutable Ptr!FunDecl f; ptrsRange(module_.funs)) {
+	foreach (immutable FunDecl* f; ptrsRange(module_.funs)) {
 		immutable Opt!Position fromFun = positionInFun(f, pos, allSymbols);
 		if (has(fromFun))
 			return fromFun;
@@ -156,8 +155,8 @@ immutable(Opt!Position) getPosition(ref const AllSymbols allSymbols, ref immutab
 
 private:
 
-immutable(Opt!Position) positionInFun(immutable Ptr!FunDecl a, immutable Pos pos, ref const AllSymbols allSymbols) {
-	immutable Opt!Position fromSig = positionInSig(a.deref().sig, pos, immutable Position(a), allSymbols);
+immutable(Opt!Position) positionInFun(immutable FunDecl* a, immutable Pos pos, ref const AllSymbols allSymbols) {
+	immutable Opt!Position fromSig = positionInSig(a.sig, pos, immutable Position(a), allSymbols);
 	if (has(fromSig))
 		return fromSig;
 	return matchFunBody!(
@@ -187,7 +186,7 @@ immutable(Opt!Position) positionInFun(immutable Ptr!FunDecl a, immutable Pos pos
 			none!Position,
 		(ref immutable FunBody.RecordFieldSet) =>
 			none!Position,
-	)(a.deref().body_);
+	)(a.body_);
 }
 
 immutable(Opt!Position) positionInSig(
@@ -204,11 +203,11 @@ immutable(Opt!Position) positionInSig(
 	//TODO: have a way to get return type range if there are no parameters
 	if (!empty(params) && betweenRanges(nameRange, pos, params[0].range.range))
 		return some(immutable Position(a.returnType));
-	foreach (immutable Ptr!Param x; ptrsRange(params))
-		if (hasPos(x.deref().range.range, pos))
-			return some(hasPos(x.deref().nameRange(allSymbols), pos)
+	foreach (immutable Param* x; ptrsRange(params))
+		if (hasPos(x.range.range, pos))
+			return some(hasPos(x.nameRange(allSymbols), pos)
 				? immutable Position(x)
-				: immutable Position(x.deref().type));
+				: immutable Position(x.type));
 	// TODO: specs
 	return none!Position;
 }
@@ -218,14 +217,14 @@ immutable(Opt!Position) positionInImportsOrExports(
 	immutable ImportOrExport[] importsOrExports,
 	immutable Pos pos,
 ) {
-	foreach (immutable Ptr!ImportOrExport im; ptrsRange(importsOrExports)) {
-		if (has(im.deref().importSource) && hasPos(force(im.deref().importSource), pos)) {
+	foreach (immutable ImportOrExport* im; ptrsRange(importsOrExports)) {
+		if (has(im.importSource) && hasPos(force(im.importSource), pos)) {
 			return matchImportOrExportKind!(immutable Opt!Position)(
-				im.deref().kind,
+				im.kind,
 				(immutable ImportOrExportKind.ModuleWhole m) =>
 					some(immutable Position(immutable Position.ImportedModule(im, m.modulePtr))),
 				(immutable ImportOrExportKind.ModuleNamed m) {
-					Pos namePos = force(im.deref().importSource).start;
+					Pos namePos = force(im.importSource).start;
 					foreach (immutable Sym name; m.names) {
 						immutable Pos nameEnd = namePos + symSize(allSymbols, name);
 						if (pos < nameEnd)
@@ -239,11 +238,11 @@ immutable(Opt!Position) positionInImportsOrExports(
 	return none!Position;
 }
 
-immutable(Position) positionInStruct(ref const AllSymbols allSymbols, immutable Ptr!StructDecl a, immutable Pos pos) {
+immutable(Position) positionInStruct(ref const AllSymbols allSymbols, immutable StructDecl* a, immutable Pos pos) {
 	//TODO: look through type params!
 
 	immutable Opt!Position specific = matchStructBody!(immutable Opt!Position)(
-		body_(a.deref()),
+		body_(*a),
 		(ref immutable StructBody.Bogus) =>
 			none!Position,
 		(ref immutable StructBody.Builtin) =>
@@ -255,11 +254,11 @@ immutable(Position) positionInStruct(ref const AllSymbols allSymbols, immutable 
 		(ref immutable StructBody.ExternPtr) =>
 			none!Position,
 		(ref immutable StructBody.Record it) {
-			foreach (immutable Ptr!RecordField field; ptrsRange(it.fields))
-				if (hasPos(field.deref().range.range, pos))
-					return nameHasPos(allSymbols, field.deref().range.start, field.deref().name, pos)
+			foreach (immutable RecordField* field; ptrsRange(it.fields))
+				if (hasPos(field.range.range, pos))
+					return nameHasPos(allSymbols, field.range.start, field.name, pos)
 						? some(immutable Position(immutable Position.RecordFieldPosition(a, field)))
-						: positionOfType(field.deref().type);
+						: positionOfType(field.type);
 			return none!Position;
 		},
 		(ref immutable StructBody.Union) =>
@@ -272,8 +271,8 @@ immutable(Opt!Position) positionOfType(immutable Type a) {
 	return matchType!(immutable Opt!Position)(
 		a,
 		(immutable Type.Bogus) => none!Position,
-		(immutable Ptr!TypeParam it) => some(immutable Position(it)),
-		(immutable Ptr!StructInst it) => some(immutable Position(decl(it.deref()))));
+		(immutable TypeParam* it) => some(immutable Position(it)),
+		(immutable StructInst* it) => some(immutable Position(decl(*it))));
 }
 
 immutable(bool) nameHasPos(

@@ -21,7 +21,7 @@ immutable(Repr) reprOfConstant(ref Alloc alloc, ref immutable Constant a) {
 			reprFloat(it.value),
 		(immutable Constant.FunPtr it) =>
 			reprRecord(alloc, "fun-ptr", [
-				reprOpt(alloc, name(it.fun.deref()), (ref immutable Sym name) => reprSym(name))]),
+				reprOpt(alloc, name(*it.fun), (ref immutable Sym name) => reprSym(name))]),
 		(immutable Constant.Integral it) =>
 			reprNat(it.value),
 		(immutable Constant.Null) =>

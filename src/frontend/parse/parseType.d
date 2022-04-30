@@ -24,19 +24,18 @@ import util.col.arr : emptyArr, small;
 import util.col.arrBuilder : add, ArrBuilder, finishArr;
 import util.col.arrUtil : arrLiteral;
 import util.memory : allocate;
-import util.ptr : Ptr;
 import util.opt : none, Opt, some;
 import util.sourceRange : Pos, RangeWithinFile;
 import util.sym : Operator;
 import util.util : todo;
 
-immutable(Opt!(Ptr!TypeAst)) tryParseTypeArg(scope ref Lexer lexer) {
+immutable(Opt!(TypeAst*)) tryParseTypeArg(scope ref Lexer lexer) {
 	if (tryTakeOperator(lexer, Operator.less)) {
 		immutable TypeAst res = parseType(lexer);
 		takeTypeArgsEnd(lexer);
 		return some(allocate(lexer.alloc, res));
 	} else
-		return none!(Ptr!TypeAst);
+		return none!(TypeAst*);
 }
 
 immutable(TypeAst[]) tryParseTypeArgsForExpr(scope ref Lexer lexer) {

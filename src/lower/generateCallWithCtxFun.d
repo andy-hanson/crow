@@ -25,7 +25,6 @@ import util.col.arrUtil : mapWithFirst2, mapZip, prepend;
 import util.col.dict : mustGetAt;
 import util.memory : allocate;
 import util.opt : some;
-import util.ptr : Ptr;
 import util.sourceRange : FileAndRange;
 import util.sym : shortSym, Sym;
 import util.util : verify;
@@ -51,7 +50,7 @@ immutable(LowFun) generateCallWithCtxFun(
 		impls,
 		allTypes.allUnions[asUnionType(funType)].members,
 		(ref immutable ConcreteLambdaImpl impl, ref immutable LowType closureType) {
-			immutable Ptr!LowLocal closureLocal =
+			immutable LowLocal* closureLocal =
 				genLocal(alloc, shortSym("closure"), localIndex, closureType);
 			localIndex = localIndex + 1;
 			immutable LowExpr[] args = mapWithFirst2!(LowExpr, LowType)(

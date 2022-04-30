@@ -14,7 +14,7 @@ import util.dictReadOnlyStorage : withDictReadOnlyStorage, MutFiles;
 import util.opt : force, has, Opt;
 import util.path : emptyPathsInfo, Path, PathsInfo, rootPath;
 import util.perf : Perf, withNullPerf;
-import util.ptr : Ptr, ptrTrustMe_mut;
+import util.ptr : ptrTrustMe_mut;
 import util.readOnlyStorage : ReadOnlyStorage;
 import util.sourceRange : Pos;
 import util.sym : shortSym;
@@ -30,12 +30,12 @@ private:
 struct HoverTest {
 	@safe @nogc pure nothrow:
 
-	Ptr!Test testPtr;
+	Test* testPtr;
 	immutable Program program;
-	immutable Ptr!Module mainModule;
+	immutable Module* mainModule;
 
 	ref Test test() return scope {
-		return testPtr.deref();
+		return *testPtr;
 	}
 }
 
@@ -46,15 +46,15 @@ HoverTest initHoverTest(ref Test test, immutable SafeCStr content) {
 	immutable Program program = withDictReadOnlyStorage!(immutable Program)(
 		rootPath(test.allPaths, shortSym("include")),
 		files,
-		(scope ref const ReadOnlyStorage storage) =>
-			withNullPerf!(immutable Program, (scope ref Perf perf) =>
+		(scope ref const ReadOnlyStorage storage) @safe =>
+			withNullPerf!(immutable Program, (ref Perf perf) @safe =>
 				frontendCompile(test.alloc, perf, test.alloc, test.allPaths, test.allSymbols, storage, [path])));
-	immutable Ptr!Module mainModule = lastPtr(program.allModules);
+	immutable Module* mainModule = lastPtr(program.allModules);
 	return HoverTest(ptrTrustMe_mut(test), program, mainModule);
 }
 
 immutable(SafeCStr) hover(ref HoverTest a, immutable Pos pos) {
-	immutable Opt!Position position = getPosition(a.test.allSymbols, a.mainModule.deref(), pos);
+	immutable Opt!Position position = getPosition(a.test.allSymbols, *a.mainModule, pos);
 	immutable PathsInfo pathsInfo = emptyPathsInfo;
 	return has(position)
 		? getHoverStr(

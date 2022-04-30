@@ -3,7 +3,6 @@ module util.writer;
 @safe @nogc pure nothrow:
 
 import util.alloc.alloc : Alloc;
-import util.ptr : Ptr;
 import util.col.arrBuilder : add, ArrBuilder, finishArr;
 import util.col.arrUtil : zip;
 import util.col.str : CStr, eachChar, SafeCStr;
@@ -12,12 +11,12 @@ import util.util : abs, verify;
 struct Writer {
 	private:
 	//TODO:PRIVATE
-	public Ptr!Alloc alloc;
+	public Alloc* alloc;
 	ArrBuilder!char res;
 }
 
 immutable(string) finishWriter(scope ref Writer writer) {
-	return finishArr(writer.alloc.deref, writer.res);
+	return finishArr(*writer.alloc, writer.res);
 }
 
 @trusted immutable(CStr) finishWriterToCStr(ref Writer writer) {
@@ -30,7 +29,7 @@ immutable(string) finishWriter(scope ref Writer writer) {
 }
 
 void writeChar(ref Writer writer, immutable char c) {
-	add(writer.alloc.deref(), writer.res, c);
+	add(*writer.alloc, writer.res, c);
 }
 
 void writeSafeCStr(ref Writer writer, scope immutable SafeCStr a) {

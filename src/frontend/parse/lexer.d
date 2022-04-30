@@ -14,7 +14,6 @@ import util.col.arrUtil : copyArr;
 import util.col.str : copyToSafeCStr, CStr, SafeCStr, safeCStr;
 import util.conv : safeIntFromUint, safeToUint;
 import util.opt : force, has, none, Opt, some;
-import util.ptr : Ptr;
 import util.sourceRange : Pos, RangeWithinFile;
 import util.sym :
 	AllSymbols,
@@ -37,9 +36,9 @@ private enum IndentKind {
 
 struct Lexer {
 	private:
-	Ptr!Alloc allocPtr;
-	Ptr!AllSymbols allSymbolsPtr;
-	Ptr!(ArrBuilder!DiagnosticWithinFile) diagnosticsBuilderPtr;
+	Alloc* allocPtr;
+	AllSymbols* allSymbolsPtr;
+	ArrBuilder!DiagnosticWithinFile* diagnosticsBuilderPtr;
 	immutable CStr sourceBegin;
 	CStr ptr;
 	immutable IndentKind indentKind;
@@ -52,17 +51,17 @@ struct Lexer {
 }
 
 ref Alloc alloc(return scope ref Lexer lexer) {
-	return lexer.allocPtr.deref();
+	return *lexer.allocPtr;
 }
 
 ref AllSymbols allSymbols(return scope ref Lexer lexer) {
-	return lexer.allSymbolsPtr.deref();
+	return *lexer.allSymbolsPtr;
 }
 
 @trusted Lexer createLexer(
-	Ptr!Alloc alloc,
-	Ptr!AllSymbols allSymbols,
-	Ptr!(ArrBuilder!DiagnosticWithinFile) diagnosticsBuilder,
+	Alloc* alloc,
+	AllSymbols* allSymbols,
+	ArrBuilder!DiagnosticWithinFile* diagnosticsBuilder,
 	return scope immutable SafeCStr source,
 ) {
 	return Lexer(
@@ -89,7 +88,7 @@ private immutable(Pos) posOfPtr(ref const Lexer lexer, immutable CStr ptr) {
 }
 
 void addDiag(ref Lexer lexer, immutable RangeWithinFile range, immutable ParseDiag diag) {
-	add(lexer.alloc, lexer.diagnosticsBuilderPtr.deref(), immutable DiagnosticWithinFile(range, immutable Diag(diag)));
+	add(lexer.alloc, *lexer.diagnosticsBuilderPtr, immutable DiagnosticWithinFile(range, immutable Diag(diag)));
 }
 
 void addDiagAtChar(ref Lexer lexer, immutable ParseDiag diag) {

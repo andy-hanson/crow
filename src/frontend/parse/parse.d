@@ -79,7 +79,7 @@ import util.memory : allocate;
 import util.opt : force, has, none, Opt, some;
 import util.path : AllPaths, childPath, Path, PathOrRelPath, rootPath;
 import util.perf : Perf, PerfMeasure, withMeasure;
-import util.ptr : Ptr, ptrTrustMe_mut;
+import util.ptr : ptrTrustMe_mut;
 import util.sourceRange : Pos, RangeWithinFile;
 import util.sym : AllSymbols, Operator, shortSym, shortSymValue, Sym, symEq;
 import util.util : todo, unreachable, verify;
@@ -769,7 +769,7 @@ void parseSpecOrStructOrFun(
 			break;
 		case Token.enum_:
 			nextToken(lexer);
-			immutable Opt!(Ptr!TypeAst) typeArg = tryParseTypeArg(lexer);
+			immutable Opt!(TypeAst*) typeArg = tryParseTypeArg(lexer);
 			addStruct(() => immutable StructDeclAst.Body(
 				immutable StructDeclAst.Body.Enum(typeArg, small(parseEnumOrFlagsMembers(lexer)))));
 			break;
@@ -780,7 +780,7 @@ void parseSpecOrStructOrFun(
 			break;
 		case Token.flags:
 			nextToken(lexer);
-			immutable Opt!(Ptr!TypeAst) typeArg = tryParseTypeArg(lexer);
+			immutable Opt!(TypeAst*) typeArg = tryParseTypeArg(lexer);
 			addStruct(() => immutable StructDeclAst.Body(
 				immutable StructDeclAst.Body.Flags(typeArg, small(parseEnumOrFlagsMembers(lexer)))));
 			break;

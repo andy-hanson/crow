@@ -48,7 +48,6 @@ import util.alloc.alloc : Alloc;
 import util.col.arrUtil : arrLiteral, mapWithIndex;
 import util.memory : allocate;
 import util.opt : force, has, none, Opt, some;
-import util.ptr : Ptr;
 import util.sourceRange : FileAndRange;
 import util.sym : shortSym;
 import util.util : unreachable;
@@ -61,7 +60,7 @@ immutable(LowFun) generateMarkVisitGcPtr(
 	immutable Opt!LowFunIndex visitPointee,
 ) {
 	immutable LowType pointerType = immutable LowType(pointerTypePtrGc);
-	immutable LowType pointeeType = pointerTypePtrGc.pointee.deref();
+	immutable LowType pointeeType = *pointerTypePtrGc.pointee;
 	immutable FileAndRange range = FileAndRange.empty;
 	immutable LowParam[] params = arrLiteral!LowParam(alloc, [
 		genParam(shortSym("mark-ctx"), markCtxType),
@@ -142,7 +141,7 @@ immutable(LowFun) generateMarkVisitArrInner(
 	immutable LowExpr visit = genCall(
 		alloc,
 		range,
-		getMarkVisitFun(markVisitFuns, elementPtrType.pointee.deref()),
+		getMarkVisitFun(markVisitFuns, *elementPtrType.pointee),
 		voidType,
 		arrLiteral!LowExpr(alloc, [
 			markCtxParamRef,
@@ -164,7 +163,7 @@ immutable(LowFun) generateMarkVisitArrInner(
 	return immutable LowFun(
 		immutable LowFunSource(allocate(alloc, immutable LowFunSource.Generated(
 			shortSym("mark-elems"),
-			arrLiteral!LowType(alloc, [elementPtrType.pointee.deref()])))),
+			arrLiteral!LowType(alloc, [*elementPtrType.pointee])))),
 		voidType,
 		immutable LowFunParamsKind(false, false),
 		params,
@@ -179,7 +178,7 @@ immutable(LowFun) generateMarkVisitArrOuter(
 	immutable LowType.PtrRawConst elementPtrType,
 	immutable Opt!LowFunIndex inner,
 ) {
-	immutable LowType elementType = elementPtrType.pointee.deref();
+	immutable LowType elementType = *elementPtrType.pointee;
 	immutable FileAndRange range = FileAndRange.empty;
 	immutable LowParam[] params = arrLiteral!LowParam(alloc, [
 		genParam(shortSym("mark-ctx"), markCtxType),
@@ -306,7 +305,7 @@ immutable(LowFunExprBody) visitUnionBody(
 			(immutable size_t memberIndex, ref immutable LowType memberType) {
 				immutable Opt!LowFunIndex visitMember = tryGetMarkVisitFun(markVisitFuns, memberType);
 				if (has(visitMember)) {
-					immutable Ptr!LowLocal local = genLocal(
+					immutable LowLocal* local = genLocal(
 						alloc,
 						shortSym("value"),
 						memberIndex,
@@ -320,7 +319,7 @@ immutable(LowFunExprBody) visitUnionBody(
 						arrLiteral!LowExpr(alloc, [markCtx, getLocal]));
 					return immutable LowExprKind.MatchUnion.Case(some(local), then);
 				} else
-					return immutable LowExprKind.MatchUnion.Case(none!(Ptr!LowLocal), genVoid(range));
+					return immutable LowExprKind.MatchUnion.Case(none!(LowLocal*), genVoid(range));
 			});
 	immutable LowExpr expr = immutable LowExpr(voidType, range, immutable LowExprKind(
 		allocate(alloc, immutable LowExprKind.MatchUnion(value, cases))));

@@ -54,7 +54,7 @@ import util.col.arrUtil : eachPair, fold, map, mapAndFold, MapAndFold, mapToMut,
 import util.col.mutArr : MutArr;
 import util.col.str : copySafeCStr;
 import util.opt : force, has, none, Opt, some, someMut;
-import util.ptr : castImmutable, Ptr, ptrEquals, ptrTrustMe_mut;
+import util.ptr : castImmutable, ptrTrustMe_mut;
 import util.sourceRange : RangeWithinFile;
 import util.sym : shortSym, SpecialSym, Sym, symEq, symForSpecial;
 import util.util : todo, unreachable;
@@ -80,12 +80,12 @@ void checkStructBodies(
 	ref immutable StructsAndAliasesDict structsAndAliasesDict,
 	ref StructDecl[] structs,
 	scope immutable StructDeclAst[] asts,
-	ref MutArr!(Ptr!StructInst) delayStructInsts,
+	ref MutArr!(StructInst*) delayStructInsts,
 ) {
 	zipMutPtrFirst!(StructDecl, StructDeclAst)(
 		structs,
 		asts,
-		(Ptr!StructDecl struct_, ref immutable StructDeclAst ast) {
+		(StructDecl* struct_, ref immutable StructDeclAst ast) {
 			immutable StructBody body_ = matchStructDeclAstBody!(
 				immutable StructBody,
 				(ref immutable StructDeclAst.Body.Builtin) {
@@ -128,7 +128,7 @@ void checkStructBodies(
 						delayStructInsts));
 				},
 			)(ast.body_);
-			setBody(struct_.deref(), body_);
+			setBody(*struct_, body_);
 		});
 }
 
@@ -257,7 +257,7 @@ immutable(StructBody.Enum) checkEnum(
 	ref immutable StructsAndAliasesDict structsAndAliasesDict,
 	immutable RangeWithinFile range,
 	ref immutable StructDeclAst.Body.Enum e,
-	ref MutArr!(Ptr!StructInst) delayStructInsts,
+	ref MutArr!(StructInst*) delayStructInsts,
 ) {
 	immutable EnumOrFlagsTypeAndMembers tm = checkEnumOrFlagsMembers(
 		ctx, commonTypes, structsAndAliasesDict, range, e.typeArg, e.members, delayStructInsts,
@@ -277,7 +277,7 @@ immutable(StructBody.Flags) checkFlags(
 	ref immutable StructsAndAliasesDict structsAndAliasesDict,
 	immutable RangeWithinFile range,
 	ref immutable StructDeclAst.Body.Flags f,
-	ref MutArr!(Ptr!StructInst) delayStructInsts,
+	ref MutArr!(StructInst*) delayStructInsts,
 ) {
 	immutable EnumOrFlagsTypeAndMembers tm = checkEnumOrFlagsMembers(
 		ctx, commonTypes, structsAndAliasesDict, range, f.typeArg, f.members, delayStructInsts,
@@ -307,9 +307,9 @@ immutable(EnumOrFlagsTypeAndMembers) checkEnumOrFlagsMembers(
 	ref immutable CommonTypes commonTypes,
 	ref immutable StructsAndAliasesDict structsAndAliasesDict,
 	immutable RangeWithinFile range,
-	immutable Opt!(Ptr!TypeAst) typeArg,
+	immutable Opt!(TypeAst*) typeArg,
 	immutable StructDeclAst.Body.Enum.Member[] memberAsts,
-	ref MutArr!(Ptr!StructInst) delayStructInsts,
+	ref MutArr!(StructInst*) delayStructInsts,
 	Diag.DuplicateDeclaration.Kind memberKind,
 	scope immutable(ValueAndOverflow) delegate(
 		immutable Opt!EnumValue,
@@ -319,7 +319,7 @@ immutable(EnumOrFlagsTypeAndMembers) checkEnumOrFlagsMembers(
 	immutable TypeParamsScope typeParamsScope = immutable TypeParamsScope(emptyArr!TypeParam);
 	immutable Type implementationType = has(typeArg)
 		? typeFromAst(
-			ctx, commonTypes, force(typeArg).deref(), structsAndAliasesDict, typeParamsScope,
+			ctx, commonTypes, *force(typeArg), structsAndAliasesDict, typeParamsScope,
 			someMut(ptrTrustMe_mut(delayStructInsts)))
 		: immutable Type(commonTypes.integrals.nat32);
 	immutable EnumBackingType enumType = getEnumTypeFromType(ctx, range, commonTypes, implementationType);
@@ -436,28 +436,28 @@ immutable(EnumBackingType) getEnumTypeFromType(
 		type,
 		(immutable Type.Bogus) =>
 			defaultEnumBackingType(),
-		(immutable Ptr!TypeParam) =>
+		(immutable TypeParam*) =>
 			// enums can't have type params
 			unreachable!EnumBackingType(),
-		(immutable Ptr!StructInst it) =>
-			ptrEquals(integrals.int8, it)
+		(immutable StructInst* x) =>
+			x == integrals.int8
 				? EnumBackingType.int8
-				: ptrEquals(integrals.int16, it)
+				: x == integrals.int16
 				? EnumBackingType.int16
-				: ptrEquals(integrals.int32, it)
+				: x == integrals.int32
 				? EnumBackingType.int32
-				: ptrEquals(integrals.int64, it)
+				: x == integrals.int64
 				? EnumBackingType.int64
-				: ptrEquals(integrals.nat8, it)
+				: x == integrals.nat8
 				? EnumBackingType.nat8
-				: ptrEquals(integrals.nat16, it)
+				: x == integrals.nat16
 				? EnumBackingType.nat16
-				: ptrEquals(integrals.nat32, it)
+				: x == integrals.nat32
 				? EnumBackingType.nat32
-				: ptrEquals(integrals.nat64, it)
+				: x == integrals.nat64
 				? EnumBackingType.nat64
 				: (() {
-					addDiag(ctx, range, immutable Diag(immutable Diag.EnumBackingTypeInvalid(it)));
+					addDiag(ctx, range, immutable Diag(immutable Diag.EnumBackingTypeInvalid(x)));
 					return defaultEnumBackingType();
 				})());
 }
@@ -466,15 +466,15 @@ immutable(StructBody.Record) checkRecord(
 	ref CheckCtx ctx,
 	ref immutable CommonTypes commonTypes,
 	ref immutable StructsAndAliasesDict structsAndAliasesDict,
-	immutable Ptr!StructDecl struct_,
+	immutable StructDecl* struct_,
 	immutable ModifierAst[] modifierAsts,
 	ref immutable StructDeclAst.Body.Record r,
-	ref MutArr!(Ptr!StructInst) delayStructInsts,
+	ref MutArr!(StructInst*) delayStructInsts,
 ) {
 	immutable RecordModifiers modifiers = checkRecordModifiers(ctx, modifierAsts);
 	immutable bool forcedByVal = modifiers.byValOrRefOrNone == ForcedByValOrRefOrNone.byVal;
-	if (struct_.deref().linkage != Linkage.internal && modifiers.byValOrRefOrNone == ForcedByValOrRefOrNone.none)
-		addDiag(ctx, struct_.deref().range, immutable Diag(
+	if (struct_.linkage != Linkage.internal && modifiers.byValOrRefOrNone == ForcedByValOrRefOrNone.none)
+		addDiag(ctx, struct_.range, immutable Diag(
 				immutable Diag.ExternRecordMustBeByRefOrVal(struct_)));
 	immutable RecordField[] fields = mapWithIndex(
 		ctx.alloc,
@@ -489,7 +489,7 @@ immutable(StructBody.Record) checkRecord(
 	});
 	return immutable StructBody.Record(
 		immutable RecordFlags(
-			recordNewVisibility(ctx, struct_.deref(), fields, modifiers.newVisibility),
+			recordNewVisibility(ctx, *struct_, fields, modifiers.newVisibility),
 			modifiers.packed,
 			modifiers.byValOrRefOrNone),
 		fields);
@@ -499,8 +499,8 @@ immutable(RecordField) checkRecordField(
 	ref CheckCtx ctx,
 	ref immutable CommonTypes commonTypes,
 	ref immutable StructsAndAliasesDict structsAndAliasesDict,
-	ref MutArr!(Ptr!StructInst) delayStructInsts,
-	immutable Ptr!StructDecl struct_,
+	ref MutArr!(StructInst*) delayStructInsts,
+	immutable StructDecl* struct_,
 	immutable bool forcedByVal,
 	immutable size_t index,
 	ref immutable StructDeclAst.Body.Record.Field ast,
@@ -510,12 +510,12 @@ immutable(RecordField) checkRecordField(
 		commonTypes,
 		ast.type,
 		structsAndAliasesDict,
-		TypeParamsScope(struct_.deref().typeParams),
+		TypeParamsScope(struct_.typeParams),
 		someMut(ptrTrustMe_mut(delayStructInsts)));
 	checkReferenceLinkageAndPurity(ctx, struct_, ast.range, fieldType);
 	if (ast.mutability != FieldMutability.const_) {
 		immutable Opt!(Diag.MutFieldNotAllowed.Reason) reason =
-			struct_.deref().purity != Purity.mut && !struct_.deref().purityIsForced
+			struct_.purity != Purity.mut && !struct_.purityIsForced
 				? some(Diag.MutFieldNotAllowed.Reason.recordIsNotMut)
 				: forcedByVal
 				? some(Diag.MutFieldNotAllowed.Reason.recordIsForcedByVal)
@@ -531,15 +531,15 @@ immutable(StructBody.Union) checkUnion(
 	ref CheckCtx ctx,
 	ref immutable CommonTypes commonTypes,
 	ref immutable StructsAndAliasesDict structsAndAliasesDict,
-	immutable Ptr!StructDecl struct_,
+	immutable StructDecl* struct_,
 	ref immutable StructDeclAst.Body.Union ast,
-	ref MutArr!(Ptr!StructInst) delayStructInsts,
+	ref MutArr!(StructInst*) delayStructInsts,
 ) {
-	final switch (struct_.deref().linkage) {
+	final switch (struct_.linkage) {
 		case Linkage.internal:
 			break;
 		case Linkage.extern_:
-			addDiag(ctx, struct_.deref().range, immutable Diag(immutable Diag.ExternUnion()));
+			addDiag(ctx, struct_.range, immutable Diag(immutable Diag.ExternUnion()));
 	}
 	immutable UnionMember[] members =
 		map!UnionMember(ctx.alloc, ast.members, (ref immutable StructDeclAst.Body.Union.Member memberAst) =>
@@ -556,8 +556,8 @@ immutable(UnionMember) checkUnionMember(
 	ref CheckCtx ctx,
 	ref immutable CommonTypes commonTypes,
 	ref immutable StructsAndAliasesDict structsAndAliasesDict,
-	ref MutArr!(Ptr!StructInst) delayStructInsts,
-	immutable Ptr!StructDecl struct_,
+	ref MutArr!(StructInst*) delayStructInsts,
+	immutable StructDecl* struct_,
 	ref immutable StructDeclAst.Body.Union.Member ast,
 ) {
 	immutable Opt!Type type = !has(ast.type) ? none!Type : some(typeFromAst(
@@ -565,7 +565,7 @@ immutable(UnionMember) checkUnionMember(
 		commonTypes,
 		force(ast.type),
 		structsAndAliasesDict,
-		TypeParamsScope(struct_.deref().typeParams),
+		TypeParamsScope(struct_.typeParams),
 		someMut(ptrTrustMe_mut(delayStructInsts))));
 	if (has(type))
 		checkReferencePurity(ctx, struct_, ast.range, force(type));
@@ -658,11 +658,11 @@ immutable(RecordModifiers) checkRecordModifiers(ref CheckCtx ctx, immutable Modi
 
 void checkReferenceLinkageAndPurity(
 	ref CheckCtx ctx,
-	immutable Ptr!StructDecl struct_,
+	immutable StructDecl* struct_,
 	immutable RangeWithinFile range,
 	immutable Type referencedType,
 ) {
-	if (!isLinkagePossiblyCompatible(struct_.deref().linkage, linkageRange(referencedType)))
+	if (!isLinkagePossiblyCompatible(struct_.linkage, linkageRange(referencedType)))
 		addDiag(ctx, range, immutable Diag(
 			immutable Diag.LinkageWorseThanContainingType(struct_, referencedType)));
 	checkReferencePurity(ctx, struct_, range, referencedType);
@@ -670,12 +670,12 @@ void checkReferenceLinkageAndPurity(
 
 void checkReferencePurity(
 	ref CheckCtx ctx,
-	immutable Ptr!StructDecl struct_,
+	immutable StructDecl* struct_,
 	immutable RangeWithinFile range,
 	immutable Type referencedType,
 ) {
-	if (!isPurityPossiblyCompatible(struct_.deref().purity, purityRange(referencedType)) &&
-		!struct_.deref().purityIsForced)
+	if (!isPurityPossiblyCompatible(struct_.purity, purityRange(referencedType)) &&
+		!struct_.purityIsForced)
 		addDiag(ctx, range, immutable Diag(immutable Diag.PurityWorseThanParent(struct_, referencedType)));
 }
 

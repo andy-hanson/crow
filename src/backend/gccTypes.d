@@ -63,26 +63,26 @@ import util.col.fullIndexDict :
 	ptrAt_mut;
 import util.col.str : CStr;
 import util.opt : force, has, none, noneMut, Opt, some, someMut;
-import util.ptr : castImmutable, Ptr, ptrTrustMe_mut;
+import util.ptr : castImmutable, ptrTrustMe_mut;
 import util.sym : AllSymbols, writeSym;
 import util.util : verify;
 import util.writer : finishWriterToCStr, writeNat, Writer, writeStatic;
 
 struct GccTypes {
 	private:
-	immutable Ptr!gcc_jit_type[PrimitiveType.max + 1] primitiveTypes;
-	immutable FullIndexDict!(LowType.ExternPtr, Ptr!gcc_jit_type) externPtrs;
-	immutable FullIndexDict!(LowType.FunPtr, Ptr!gcc_jit_type) funPtrs;
-	immutable FullIndexDict!(LowType.Record, Ptr!gcc_jit_struct) records;
-	public immutable FullIndexDict!(LowType.Record, Ptr!gcc_jit_field[]) recordFields;
-	immutable FullIndexDict!(LowType.Union, Ptr!gcc_jit_struct) unions;
+	immutable gcc_jit_type*[PrimitiveType.max + 1] primitiveTypes;
+	immutable FullIndexDict!(LowType.ExternPtr, gcc_jit_type*) externPtrs;
+	immutable FullIndexDict!(LowType.FunPtr, gcc_jit_type*) funPtrs;
+	immutable FullIndexDict!(LowType.Record, gcc_jit_struct*) records;
+	public immutable FullIndexDict!(LowType.Record, gcc_jit_field*[]) recordFields;
+	immutable FullIndexDict!(LowType.Union, gcc_jit_struct*) unions;
 	public immutable FullIndexDict!(LowType.Union, UnionFields) unionFields;
 }
 
 struct UnionFields {
-	immutable Ptr!gcc_jit_field kindField;
-	immutable Ptr!gcc_jit_field innerField;
-	immutable Ptr!gcc_jit_field[] memberFields;
+	immutable gcc_jit_field* kindField;
+	immutable gcc_jit_field* innerField;
+	immutable gcc_jit_field*[] memberFields;
 }
 
 immutable(GccTypes) getGccTypes(
@@ -95,22 +95,22 @@ immutable(GccTypes) getGccTypes(
 	GccTypesWip typesWip = GccTypesWip(
 		getPrimitiveTypes(ctx),
 		gccExternPtrTypes(alloc, ctx, program, mangledNames),
-		mapFullIndexDict_mut!(LowType.FunPtr, Opt!(Ptr!gcc_jit_type), LowFunPtrType)(
+		mapFullIndexDict_mut!(LowType.FunPtr, Opt!(gcc_jit_type*), LowFunPtrType)(
 			alloc,
 			program.allFunPtrTypes,
 			(immutable LowType.FunPtr, ref immutable LowFunPtrType) =>
-				noneMut!(Ptr!gcc_jit_type)),
-		mapFullIndexDict_mut!(LowType.Record, Ptr!gcc_jit_struct, LowRecord)(
+				noneMut!(gcc_jit_type*)),
+		mapFullIndexDict_mut!(LowType.Record, gcc_jit_struct*, LowRecord)(
 			alloc,
 			program.allRecords,
 			(immutable LowType.Record, scope ref immutable LowRecord record) =>
 				structStub(alloc, ctx, mangledNames, record.source)),
-		mapFullIndexDict_mut!(LowType.Record, immutable Ptr!gcc_jit_field[], LowRecord)(
+		mapFullIndexDict_mut!(LowType.Record, immutable gcc_jit_field*[], LowRecord)(
 			alloc,
 			program.allRecords,
 			(immutable LowType.Record, ref immutable LowRecord record) =>
-				emptyArr!(Ptr!gcc_jit_field)),
-		mapFullIndexDict_mut!(LowType.Union, Ptr!gcc_jit_struct, LowUnion)(
+				emptyArr!(gcc_jit_field*)),
+		mapFullIndexDict_mut!(LowType.Union, gcc_jit_struct*, LowUnion)(
 			alloc,
 			program.allUnions,
 			(immutable LowType.Union, ref immutable LowUnion union_) =>
@@ -122,7 +122,7 @@ immutable(GccTypes) getGccTypes(
 				none!UnionFields));
 
 	scope immutable TypeWriters writers = immutable TypeWriters(
-		(immutable Ptr!ConcreteStruct) {
+		(immutable ConcreteStruct*) {
 			// Do nothing, we declared types ahead of time.
 		},
 		(immutable LowType.FunPtr funPtrIndex, ref immutable LowFunPtrType funPtr) {
@@ -140,13 +140,13 @@ immutable(GccTypes) getGccTypes(
 		typesWip.primitiveTypes,
 		typesWip.externPtrs,
 		//TODO:PERF just cast, since Opt!Ptr and Ptr representations are the same
-		mapFullIndexDict!(LowType.FunPtr, Ptr!gcc_jit_type, Opt!(Ptr!gcc_jit_type))(
+		mapFullIndexDict!(LowType.FunPtr, gcc_jit_type*, Opt!(gcc_jit_type*))(
 			alloc,
 			fullIndexDictCastImmutable(typesWip.funPtrs),
-			(immutable LowType.FunPtr, scope ref immutable Opt!(Ptr!gcc_jit_type) a) =>
+			(immutable LowType.FunPtr, scope ref immutable Opt!(gcc_jit_type*) a) =>
 				force(a)),
 		fullIndexDictCastImmutable(typesWip.records),
-		fullIndexDictCastImmutable2!(LowType.Record, Ptr!gcc_jit_field[])(typesWip.recordFields),
+		fullIndexDictCastImmutable2!(LowType.Record, gcc_jit_field*[])(typesWip.recordFields),
 		fullIndexDictCastImmutable(typesWip.unions),
 		mapFullIndexDict!(LowType.Union, UnionFields, Opt!UnionFields)(
 			alloc,
@@ -162,17 +162,17 @@ extern(C) {
 }
 
 //TODO: this is just for debugging
-immutable(Ptr!gcc_jit_function) generateAssertFieldOffsetsFunction(
+immutable(gcc_jit_function*) generateAssertFieldOffsetsFunction(
 	ref Alloc alloc,
 	ref gcc_jit_context ctx,
 	ref immutable LowProgram program,
 	ref immutable GccTypes types,
 ) {
-	immutable Ptr!gcc_jit_type boolType = getGccType(types, immutable LowType(PrimitiveType.bool_));
-	immutable Ptr!gcc_jit_type nat64Type = getGccType(types, immutable LowType(PrimitiveType.nat64));
-	immutable Ptr!gcc_jit_type voidPtrType = gcc_jit_context_get_type(ctx, gcc_jit_types.GCC_JIT_TYPE_VOID_PTR);
+	immutable gcc_jit_type* boolType = getGccType(types, immutable LowType(PrimitiveType.bool_));
+	immutable gcc_jit_type* nat64Type = getGccType(types, immutable LowType(PrimitiveType.nat64));
+	immutable gcc_jit_type* voidPtrType = gcc_jit_context_get_type(ctx, gcc_jit_types.GCC_JIT_TYPE_VOID_PTR);
 
-	Ptr!gcc_jit_function fn = gcc_jit_context_new_function(
+	gcc_jit_function* fn = gcc_jit_context_new_function(
 		ctx,
 		null,
 		gcc_jit_function_kind.GCC_JIT_FUNCTION_EXPORTED,
@@ -182,33 +182,33 @@ immutable(Ptr!gcc_jit_function) generateAssertFieldOffsetsFunction(
 		null,
 		false);
 
-	Cell!(immutable Ptr!gcc_jit_rvalue) accum = Cell!(immutable Ptr!gcc_jit_rvalue)(
+	Cell!(immutable gcc_jit_rvalue*) accum = Cell!(immutable gcc_jit_rvalue*)(
 		gcc_jit_context_new_rvalue_from_long(ctx, boolType, 1));
 
-	fullIndexDictZip3!(LowType.Record, LowRecord, Ptr!gcc_jit_struct, Ptr!gcc_jit_field[])(
+	fullIndexDictZip3!(LowType.Record, LowRecord, gcc_jit_struct*, gcc_jit_field*[])(
 		program.allRecords,
 		types.records,
 		types.recordFields,
 		(immutable LowType.Record,
 		 ref immutable LowRecord record,
-		 ref immutable Ptr!gcc_jit_struct gccRecord,
-		 ref immutable Ptr!gcc_jit_field[] gccFields) {
-			Ptr!gcc_jit_lvalue local = gcc_jit_function_new_local(fn, null, gcc_jit_struct_as_type(gccRecord), "temp");
-			immutable Ptr!gcc_jit_rvalue recordAddress = gcc_jit_context_new_cast(
+		 ref immutable gcc_jit_struct* gccRecord,
+		 ref immutable gcc_jit_field*[] gccFields) {
+			gcc_jit_lvalue* local = gcc_jit_function_new_local(fn, null, gcc_jit_struct_as_type(gccRecord), "temp");
+			immutable gcc_jit_rvalue* recordAddress = gcc_jit_context_new_cast(
 				ctx,
 				null,
 				gcc_jit_lvalue_get_address(local, null),
 				voidPtrType);
-			zip!(LowField, Ptr!gcc_jit_field)(
+			zip!(LowField, gcc_jit_field*)(
 				record.fields,
 				gccFields,
-				(ref immutable LowField field, ref immutable Ptr!gcc_jit_field gccField) {
-					immutable Ptr!gcc_jit_rvalue fieldAddress = gcc_jit_context_new_cast(
+				(ref immutable LowField field, ref immutable gcc_jit_field* gccField) {
+					immutable gcc_jit_rvalue* fieldAddress = gcc_jit_context_new_cast(
 						ctx,
 						null,
 						gcc_jit_lvalue_get_address(gcc_jit_lvalue_access_field(local, null, gccField), null),
 						voidPtrType);
-					immutable Ptr!gcc_jit_rvalue actualOffset = gcc_jit_context_new_binary_op(
+					immutable gcc_jit_rvalue* actualOffset = gcc_jit_context_new_binary_op(
 						ctx,
 						null,
 						//TODO: pointer subtraction?
@@ -216,9 +216,9 @@ immutable(Ptr!gcc_jit_function) generateAssertFieldOffsetsFunction(
 						nat64Type,
 						fieldAddress,
 						recordAddress);
-					immutable Ptr!gcc_jit_rvalue expectedOffset =
+					immutable gcc_jit_rvalue* expectedOffset =
 						gcc_jit_context_new_rvalue_from_long(ctx, nat64Type, field.offset);
-					immutable Ptr!gcc_jit_rvalue eq = gcc_jit_context_new_comparison(
+					immutable gcc_jit_rvalue* eq = gcc_jit_context_new_comparison(
 						ctx,
 						null,
 						gcc_jit_comparison.GCC_JIT_COMPARISON_EQ,
@@ -234,15 +234,15 @@ immutable(Ptr!gcc_jit_function) generateAssertFieldOffsetsFunction(
 				});
 		});
 
-	Ptr!gcc_jit_block block = gcc_jit_function_new_block(fn, null);
+	gcc_jit_block* block = gcc_jit_function_new_block(fn, null);
 	gcc_jit_block_end_with_return(block, null, cellGet(accum));
 
 	return castImmutable(fn);
 }
 
-immutable(Ptr!gcc_jit_type) getGccType(ref immutable GccTypes types, scope immutable LowType a) {
-	immutable Ptr!gcc_jit_type res = matchLowTypeCombinePtr!(
-		immutable Ptr!gcc_jit_type,
+immutable(gcc_jit_type*) getGccType(ref immutable GccTypes types, scope immutable LowType a) {
+	immutable gcc_jit_type* res = matchLowTypeCombinePtr!(
+		immutable gcc_jit_type*,
 		(immutable LowType.ExternPtr x) =>
 			types.externPtrs[x],
 		(immutable LowType.FunPtr x) =>
@@ -256,15 +256,15 @@ immutable(Ptr!gcc_jit_type) getGccType(ref immutable GccTypes types, scope immut
 		(immutable LowType.Union x) =>
 			gcc_jit_struct_as_type(types.unions[x]),
 	)(a);
-	verify(res.rawPtr() != null);
+	verify(res != null);
 	return res;
 }
 
 private:
 
-immutable(Ptr!gcc_jit_type) getGccType(ref GccTypesWip typesWip, immutable LowType a) {
-	immutable Ptr!gcc_jit_type res = matchLowTypeCombinePtr!(
-		immutable Ptr!gcc_jit_type,
+immutable(gcc_jit_type*) getGccType(ref GccTypesWip typesWip, immutable LowType a) {
+	immutable gcc_jit_type* res = matchLowTypeCombinePtr!(
+		immutable gcc_jit_type*,
 		(immutable LowType.ExternPtr x) =>
 			typesWip.externPtrs[x],
 		(immutable LowType.FunPtr x) =>
@@ -278,18 +278,18 @@ immutable(Ptr!gcc_jit_type) getGccType(ref GccTypesWip typesWip, immutable LowTy
 		(immutable LowType.Union x) =>
 			gcc_jit_struct_as_type(typesWip.unions[x]),
 	)(a);
-	verify(res.rawPtr() != null);
+	verify(res != null);
 	return res;
 }
 
-@trusted immutable(Ptr!gcc_jit_type[PrimitiveType.max + 1]) getPrimitiveTypes(ref gcc_jit_context ctx) {
+@trusted immutable(gcc_jit_type*[PrimitiveType.max + 1]) getPrimitiveTypes(ref gcc_jit_context ctx) {
 	gcc_jit_type*[PrimitiveType.max + 1] res;
 	foreach (immutable size_t i; cast(size_t) PrimitiveType.min .. cast(size_t) PrimitiveType.max + 1)
-		res[i] = cast(gcc_jit_type*) getOnePrimitiveType(ctx, cast(immutable PrimitiveType) i).rawPtr();
-	return cast(immutable Ptr!gcc_jit_type[PrimitiveType.max + 1]) res;
+		res[i] = cast(gcc_jit_type*) getOnePrimitiveType(ctx, cast(immutable PrimitiveType) i);
+	return cast(immutable gcc_jit_type*[PrimitiveType.max + 1]) res;
 }
 
-immutable(Ptr!gcc_jit_type) getOnePrimitiveType(ref gcc_jit_context ctx, immutable PrimitiveType a) {
+immutable(gcc_jit_type*) getOnePrimitiveType(ref gcc_jit_context ctx, immutable PrimitiveType a) {
 	final switch (a) {
 		case PrimitiveType.bool_:
 			return gcc_jit_context_get_type(ctx, gcc_jit_types.GCC_JIT_TYPE_BOOL);
@@ -321,12 +321,12 @@ immutable(Ptr!gcc_jit_type) getOnePrimitiveType(ref gcc_jit_context ctx, immutab
 }
 
 struct GccTypesWip {
-	immutable Ptr!gcc_jit_type[PrimitiveType.max + 1] primitiveTypes;
-	immutable FullIndexDict!(LowType.ExternPtr, Ptr!gcc_jit_type) externPtrs;
-	FullIndexDict!(LowType.FunPtr, Opt!(Ptr!gcc_jit_type)) funPtrs;
-	FullIndexDict!(LowType.Record, Ptr!gcc_jit_struct) records;
-	FullIndexDict!(LowType.Record, immutable Ptr!gcc_jit_field[]) recordFields;
-	FullIndexDict!(LowType.Union, Ptr!gcc_jit_struct) unions;
+	immutable gcc_jit_type*[PrimitiveType.max + 1] primitiveTypes;
+	immutable FullIndexDict!(LowType.ExternPtr, gcc_jit_type*) externPtrs;
+	FullIndexDict!(LowType.FunPtr, Opt!(gcc_jit_type*)) funPtrs;
+	FullIndexDict!(LowType.Record, gcc_jit_struct*) records;
+	FullIndexDict!(LowType.Record, immutable gcc_jit_field*[]) recordFields;
+	FullIndexDict!(LowType.Union, gcc_jit_struct*) unions;
 	FullIndexDict!(LowType.Union, immutable Opt!UnionFields) unionFields;
 }
 
@@ -337,16 +337,16 @@ struct GccTypesWip {
 	immutable LowType.FunPtr funPtrIndex,
 	ref immutable LowFunPtrType funPtr,
 ) {
-	Ptr!(Opt!(Ptr!gcc_jit_type)) ptr = ptrAt_mut(typesWip.funPtrs, funPtrIndex);
-	verify(!has(ptr.deref()));
-	const Ptr!gcc_jit_type returnType = getGccType(typesWip, funPtr.returnType);
+	Opt!(gcc_jit_type*)* ptr = ptrAt_mut(typesWip.funPtrs, funPtrIndex);
+	verify(!has(*ptr));
+	const gcc_jit_type* returnType = getGccType(typesWip, funPtr.returnType);
 	//TODO:NO ALLOC
-	immutable Ptr!gcc_jit_type[] paramTypes = map!(Ptr!gcc_jit_type)(
+	immutable gcc_jit_type*[] paramTypes = map!(gcc_jit_type*, LowType)(
 		alloc,
 		funPtr.paramTypes,
 		(ref immutable LowType x) =>
 			getGccType(typesWip, x));
-	ptr.deref() = someMut!(Ptr!gcc_jit_type)(gcc_jit_context_new_function_ptr_type(
+	*ptr = someMut!(gcc_jit_type*)(gcc_jit_context_new_function_ptr_type(
 		ctx,
 		null,
 		returnType,
@@ -363,8 +363,8 @@ struct GccTypesWip {
 	immutable LowType.Record recordIndex,
 	ref immutable LowRecord record,
 ) {
-	Ptr!gcc_jit_struct struct_ = typesWip.records[recordIndex];
-	immutable Ptr!gcc_jit_field[] fields = map!(Ptr!gcc_jit_field)(
+	gcc_jit_struct* struct_ = typesWip.records[recordIndex];
+	immutable gcc_jit_field*[] fields = map!(gcc_jit_field*, LowField)(
 		alloc,
 		record.fields,
 		(ref immutable LowField field) {
@@ -386,7 +386,7 @@ struct GccTypesWip {
 	immutable LowType.Union unionIndex,
 	ref immutable LowUnion union_,
 ) {
-	Ptr!gcc_jit_struct struct_ = typesWip.unions[unionIndex];
+	gcc_jit_struct* struct_ = typesWip.unions[unionIndex];
 
 	//TODO:NO ALLOC
 	immutable CStr mangledNameInner = () {
@@ -396,7 +396,7 @@ struct GccTypesWip {
 		return finishWriterToCStr(writer);
 	}();
 
-	immutable Ptr!gcc_jit_field[] memberFields = mapWithIndex!(Ptr!gcc_jit_field)(
+	immutable gcc_jit_field*[] memberFields = mapWithIndex!(gcc_jit_field*, LowType)(
 		alloc,
 		union_.members,
 		(immutable size_t memberIndex, ref immutable LowType memberType) {
@@ -406,29 +406,29 @@ struct GccTypesWip {
 			writeNat(writer, memberIndex);
 			return gcc_jit_context_new_field(ctx, null, getGccType(typesWip, memberType), finishWriterToCStr(writer));
 		});
-	immutable Ptr!gcc_jit_type innerUnion = gcc_jit_context_new_union_type(
+	immutable gcc_jit_type* innerUnion = gcc_jit_context_new_union_type(
 		ctx,
 		null,
 		mangledNameInner,
 		cast(int) memberFields.length,
 		memberFields.ptr);
 
-	immutable Ptr!gcc_jit_field kindField =
+	immutable gcc_jit_field* kindField =
 		gcc_jit_context_new_field(ctx, null, getGccType(typesWip, immutable LowType(PrimitiveType.nat64)), "kind");
-	immutable Ptr!gcc_jit_field innerField = gcc_jit_context_new_field(ctx, null, innerUnion, "inner");
-	scope immutable Ptr!gcc_jit_field[2] outerFields = [kindField, innerField];
+	immutable gcc_jit_field* innerField = gcc_jit_context_new_field(ctx, null, innerUnion, "inner");
+	scope immutable gcc_jit_field*[2] outerFields = [kindField, innerField];
 	gcc_jit_struct_set_fields(struct_, null, 2, outerFields.ptr);
 	verify(!has(typesWip.unionFields[unionIndex]));
 	typesWip.unionFields[unionIndex] = some(immutable UnionFields(kindField, innerField, memberFields));
 }
 
-immutable(FullIndexDict!(LowType.ExternPtr, Ptr!gcc_jit_type)) gccExternPtrTypes(
+immutable(FullIndexDict!(LowType.ExternPtr, gcc_jit_type*)) gccExternPtrTypes(
 	ref Alloc alloc,
 	ref gcc_jit_context ctx,
 	ref immutable LowProgram program,
 	ref immutable MangledNames mangledNames,
 ) {
-	return mapFullIndexDict!(LowType.ExternPtr, Ptr!gcc_jit_type, LowExternPtrType)(
+	return mapFullIndexDict!(LowType.ExternPtr, gcc_jit_type*, LowExternPtrType)(
 		alloc,
 		program.allExternPtrTypes,
 		(immutable LowType.ExternPtr, ref immutable LowExternPtrType extern_) =>
@@ -436,11 +436,11 @@ immutable(FullIndexDict!(LowType.ExternPtr, Ptr!gcc_jit_type)) gccExternPtrTypes
 				castImmutable(structStub(alloc, ctx, mangledNames, extern_.source)))));
 }
 
-Ptr!gcc_jit_struct structStub(
+gcc_jit_struct* structStub(
 	ref Alloc alloc,
 	ref gcc_jit_context ctx,
 	ref immutable MangledNames mangledNames,
-	scope immutable Ptr!ConcreteStruct source,
+	scope immutable ConcreteStruct* source,
 ) {
 	//TODO:PERF use a temporary (dont' allocate string)
 	Writer writer = Writer(ptrTrustMe_mut(alloc));

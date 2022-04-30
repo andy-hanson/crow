@@ -6,7 +6,7 @@ import util.alloc.alloc : Alloc;
 import util.col.mutDict : getOrAddAndDidAdd, moveToDict, MutDict, ValueAndDidAdd;
 import util.col.dict : Dict;
 import util.opt : has, none, Opt, some;
-import util.ptr : hashPtr, Ptr, ptrEquals;
+import util.ptr : hashPtr, ptrEquals;
 import util.sym : hashSym, Sym, symEq;
 import util.util : verify;
 
@@ -18,7 +18,7 @@ struct DictBuilder(K, V, alias equal, alias hash) {
 }
 
 alias PtrDictBuilder(K, V) =
-	DictBuilder!(Ptr!K, V, ptrEquals!K, hashPtr!K);
+	DictBuilder!(K*, V, ptrEquals!K, hashPtr!K);
 
 alias SymDictBuilder(V) =
 	DictBuilder!(Sym, V, symEq, hashSym);

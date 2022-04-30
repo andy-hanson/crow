@@ -83,7 +83,7 @@ import util.col.str : SafeCStr;
 import util.lineAndColumnGetter : lineAndColumnGetterForEmptyFile;
 import util.memory : allocate;
 import util.path : emptyPathsInfo, Path, PathsInfo, rootPath;
-import util.ptr : castImmutable, ptrTrustMe_mut;
+import util.ptr : castImmutable, castNonScope, ptrTrustMe_mut;
 import util.sourceRange : FileIndex, Pos;
 import util.sym : shortSym;
 import util.util : verify;
@@ -228,10 +228,6 @@ void testCall(ref Test test) {
 		expectReturnStack(test, byteCode, stacks, []);
 		stepUntilExitAndExpect(test, stacks, [3], operation);
 	});
-}
-
-@trusted immutable(T) castNonScope(T)(scope T xs) {
-	return xs;
 }
 
 void testCallFunPtr(ref Test test) {

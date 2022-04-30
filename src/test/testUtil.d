@@ -9,7 +9,6 @@ import util.alloc.alloc : Alloc;
 import util.col.arr : sizeEq;
 import util.col.arrUtil : eachCorresponds, makeArr;
 import util.path : AllPaths;
-import util.ptr : Ptr;
 import util.sym : AllSymbols;
 import util.util : verify;
 import util.writer : finishWriter, writeChar, writeNat, Writer, writeStatic;
@@ -17,14 +16,14 @@ import util.writer : finishWriter, writeChar, writeNat, Writer, writeStatic;
 struct Test {
 	@safe @nogc pure nothrow:
 
-	Ptr!Alloc allocPtr;
+	Alloc* allocPtr;
 	AllSymbols allSymbols;
 	AllPaths allPaths;
 
-	this(Ptr!Alloc ap) {
+	@trusted this(Alloc* ap) {
 		allocPtr = ap;
 		allSymbols = AllSymbols(ap);
-		allPaths = AllPaths(ap, Ptr!AllSymbols(&allSymbols));
+		allPaths = AllPaths(ap, &allSymbols);
 	}
 
 	Writer writer() {
@@ -40,7 +39,7 @@ struct Test {
 	}
 
 	ref Alloc alloc() return scope {
-		return allocPtr.deref();
+		return *allocPtr;
 	}
 }
 

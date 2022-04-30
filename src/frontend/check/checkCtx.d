@@ -26,7 +26,6 @@ import util.col.fullIndexDict :
 	FullIndexDict, fullIndexDictCastImmutable, fullIndexDictOfArr, fullIndexDictZipPtrs, makeFullIndexDict_mut;
 import util.opt : force, has, none, Opt, some;
 import util.perf : Perf;
-import util.ptr : Ptr;
 import util.sourceRange : FileAndPos, FileAndRange, FileIndex, Pos, RangeWithinFile;
 import util.sym : AllSymbols, indexOfSym, Sym;
 
@@ -35,10 +34,10 @@ struct CheckCtx {
 
 	private:
 
-	Ptr!Alloc allocPtr;
-	Ptr!Perf perfPtr;
-	Ptr!ProgramState programStatePtr;
-	Ptr!AllSymbols allSymbolsPtr;
+	Alloc* allocPtr;
+	Perf* perfPtr;
+	ProgramState* programStatePtr;
+	AllSymbols* allSymbolsPtr;
 	public immutable FileIndex fileIndex;
 	immutable ImportOrExport[] imports;
 	immutable ImportOrExport[] reExports;
@@ -48,31 +47,31 @@ struct CheckCtx {
 	FullIndexDict!(ModuleLocalAliasIndex, bool) structAliasesUsed;
 	FullIndexDict!(ModuleLocalStructIndex, bool) structsUsed;
 	FullIndexDict!(ModuleLocalSpecIndex, bool) specsUsed;
-	Ptr!DiagnosticsBuilder diagsBuilderPtr;
+	DiagnosticsBuilder* diagsBuilderPtr;
 
 	public:
 
-	ref Alloc alloc() return scope {
-		return allocPtr.deref();
+	@trusted ref Alloc alloc() return scope {
+		return *allocPtr;
 	}
 
 	ref const(AllSymbols) allSymbols() return scope const {
-		return allSymbolsPtr.deref();
+		return *allSymbolsPtr;
 	}
 	ref AllSymbols allSymbols() return scope {
-		return allSymbolsPtr.deref();
+		return *allSymbolsPtr;
 	}
 
 	ref Perf perf() return scope {
-		return perfPtr.deref();
+		return *perfPtr;
 	}
 
-	ref ProgramState programState() return scope {
-		return programStatePtr.deref();
+	@trusted ref ProgramState programState() return scope {
+		return *programStatePtr;
 	}
 
 	ref DiagnosticsBuilder diagsBuilder() return scope {
-		return diagsBuilderPtr.deref();
+		return *diagsBuilderPtr;
 	}
 }
 
@@ -104,13 +103,13 @@ void checkForUnused(
 	fullIndexDictZipPtrs!(ModuleLocalAliasIndex, StructAlias, bool)(
 		fullIndexDictOfArr!(ModuleLocalAliasIndex, StructAlias)(structAliases),
 		fullIndexDictCastImmutable(ctx.structAliasesUsed),
-		(immutable(ModuleLocalAliasIndex), immutable Ptr!StructAlias alias_, immutable Ptr!bool used) {
-			final switch (alias_.deref().visibility) {
+		(immutable(ModuleLocalAliasIndex), immutable StructAlias* alias_, immutable bool* used) {
+			final switch (alias_.visibility) {
 				case Visibility.public_:
 					break;
 				case Visibility.private_:
-					if (!used.deref())
-						addDiag(ctx, alias_.deref().range, immutable Diag(
+					if (!*used)
+						addDiag(ctx, alias_.range, immutable Diag(
 							immutable Diag.UnusedPrivateStructAlias(alias_)));
 			}
 		});
@@ -118,13 +117,13 @@ void checkForUnused(
 	fullIndexDictZipPtrs!(ModuleLocalStructIndex, StructDecl, bool)(
 		fullIndexDictOfArr!(ModuleLocalStructIndex, StructDecl)(structDecls),
 		fullIndexDictCastImmutable(ctx.structsUsed),
-		(immutable(ModuleLocalStructIndex), immutable Ptr!StructDecl struct_, immutable Ptr!bool used) {
-			final switch (struct_.deref().visibility) {
+		(immutable(ModuleLocalStructIndex), immutable StructDecl* struct_, immutable bool* used) {
+			final switch (struct_.visibility) {
 				case Visibility.public_:
 					break;
 				case Visibility.private_:
-					if (!used.deref())
-						addDiag(ctx, struct_.deref().range, immutable Diag(
+					if (!*used)
+						addDiag(ctx, struct_.range, immutable Diag(
 							immutable Diag.UnusedPrivateStruct(struct_)));
 			}
 		});
@@ -132,13 +131,13 @@ void checkForUnused(
 	fullIndexDictZipPtrs!(ModuleLocalSpecIndex, SpecDecl, bool)(
 		fullIndexDictOfArr!(ModuleLocalSpecIndex, SpecDecl)(specDecls),
 		fullIndexDictCastImmutable(ctx.specsUsed),
-		(immutable(ModuleLocalSpecIndex), immutable Ptr!SpecDecl spec, immutable Ptr!bool used) {
-			final switch (spec.deref().visibility) {
+		(immutable(ModuleLocalSpecIndex), immutable SpecDecl* spec, immutable bool* used) {
+			final switch (spec.visibility) {
 				case Visibility.public_:
 					break;
 				case Visibility.private_:
-					if (!used.deref())
-						addDiag(ctx, spec.deref().range, immutable Diag(immutable Diag.UnusedPrivateSpec(spec)));
+					if (!*used)
+						addDiag(ctx, spec.range, immutable Diag(immutable Diag.UnusedPrivateSpec(spec)));
 			}
 		});
 }
@@ -191,7 +190,7 @@ void markUsedImport(ref CheckCtx ctx, immutable ImportIndex index) {
 }
 
 immutable(Acc) eachImportAndReExport(Acc)(
-	ref const CheckCtx ctx,
+	scope ref const CheckCtx ctx,
 	immutable Sym name,
 	immutable Acc acc,
 	scope immutable(Acc) delegate(
@@ -242,11 +241,11 @@ private struct ImportIndexAndReferents {
 	immutable NameReferents referents;
 }
 
-immutable(FileAndPos) posInFile(ref const CheckCtx ctx, ref immutable Pos pos) {
+immutable(FileAndPos) posInFile(scope ref const CheckCtx ctx, ref immutable Pos pos) {
 	return immutable FileAndPos(ctx.fileIndex, pos);
 }
 
-immutable(FileAndRange) rangeInFile(ref const CheckCtx ctx, immutable RangeWithinFile range) {
+immutable(FileAndRange) rangeInFile(scope ref const CheckCtx ctx, immutable RangeWithinFile range) {
 	return immutable FileAndRange(ctx.fileIndex, range);
 }
 

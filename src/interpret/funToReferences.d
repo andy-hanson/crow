@@ -12,7 +12,6 @@ import util.col.fullIndexDict : FullIndexDict, fullIndexDictEach, makeFullIndexD
 import util.late : Late, lateGet, lateIsSet, lateSet;
 import util.memory : allocateMut;
 import util.opt : none, Opt, some;
-import util.ptr : Ptr;
 
 struct FunToReferences {
 	immutable FunPtrTypeToDynCallSig funPtrTypeToDynCallSig;
@@ -30,7 +29,7 @@ void eachFunPtr(
 		a.inner,
 		(immutable LowFunIndex index, ref const FunReferencesBuilder b) {
 			if (lateIsSet(b.ptrRefs))
-				cb(index, lateGet(b.ptrRefs).deref().sig);
+				cb(index, lateGet(b.ptrRefs).sig);
 		});
 }
 
@@ -63,13 +62,13 @@ immutable(FunReferences) finishAt(
 	ref FunReferencesBuilder builder() { return a.inner[index]; }
 	immutable ByteCodeIndex[] calls = finishArr(tempAlloc, builder.calls);
 	if (lateIsSet(builder.ptrRefs)) {
-		Ptr!FunPtrReferencesBuilder ptrs = lateGet(builder.ptrRefs);
+		FunPtrReferencesBuilder* ptrs = lateGet(builder.ptrRefs);
 		return immutable FunReferences(
 			calls,
 			some(immutable FunPtrReferences(
-				ptrs.deref().sig,
-				finishArr(tempAlloc, ptrs.deref().funPtrRefs),
-				finishArr(tempAlloc, ptrs.deref().textReferences))));
+				ptrs.sig,
+				finishArr(tempAlloc, ptrs.funPtrRefs),
+				finishArr(tempAlloc, ptrs.textReferences))));
 	} else
 		return immutable FunReferences(calls, none!FunPtrReferences);
 }
@@ -114,12 +113,12 @@ ref FunPtrReferencesBuilder ptrRefs(
 	if (!lateIsSet(a.inner[fun].ptrRefs))
 		lateSet(a.inner[fun].ptrRefs, allocateMut(tempAlloc, FunPtrReferencesBuilder(
 			a.funPtrTypeToDynCallSig[type])));
-	return lateGet(a.inner[fun].ptrRefs).deref();
+	return *lateGet(a.inner[fun].ptrRefs);
 }
 
 struct FunReferencesBuilder {
 	ArrBuilder!ByteCodeIndex calls;
-	Late!(Ptr!FunPtrReferencesBuilder) ptrRefs;
+	Late!(FunPtrReferencesBuilder*) ptrRefs;
 }
 
 struct FunPtrReferencesBuilder {

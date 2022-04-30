@@ -38,7 +38,6 @@ import util.col.mutArr : MutArr;
 import util.col.mutMaxArr : mapTo, MutMaxArr, push, tempAsArr;
 import util.opt : has, force, none, noneMut, Opt, some;
 import util.perf : Perf;
-import util.ptr : Ptr, ptrEquals;
 import util.sourceRange : FileAndRange, RangeWithinFile;
 import util.sym : AllSymbols, Sym;
 import util.util : verify;
@@ -50,39 +49,39 @@ struct ClosureFieldBuilder {
 }
 
 struct FunOrLambdaInfo {
-	Opt!(Ptr!LocalsInfo) outer;
+	Opt!(LocalsInfo*) outer;
 	immutable Param[] params;
 	// none for a function.
 	// WARN: This will not be initialized; but we allocate the pointer early.
-	immutable Opt!(Ptr!(Expr.Lambda)) lambda;
+	immutable Opt!(Expr.Lambda*) lambda;
 	MutMaxArr!(maxParams, bool) paramsUsed = void;
 	// Will be uninitialized for a function
 	MutMaxArr!(maxClosureFields, ClosureFieldBuilder) closureFields = void;
 }
 
 struct LocalsInfo {
-	Ptr!FunOrLambdaInfo funOrLambda;
-	Opt!(Ptr!LocalNode) locals;
+	FunOrLambdaInfo* funOrLambda;
+	Opt!(LocalNode*) locals;
 }
 
 immutable(bool) isInLambda(ref LocalsInfo a) {
-	return has(a.funOrLambda.deref().outer);
+	return has(a.funOrLambda.outer);
 }
 
 struct LocalNode {
-	Opt!(Ptr!LocalNode) prev;
+	Opt!(LocalNode*) prev;
 	bool isUsed;
-	immutable Ptr!Local local;
+	immutable Local* local;
 }
 
 struct ExprCtx {
 	@safe @nogc pure nothrow:
 
-	Ptr!CheckCtx checkCtxPtr;
+	CheckCtx* checkCtxPtr;
 	immutable StructsAndAliasesDict structsAndAliasesDict;
 	immutable FunsDict funsDict;
 	immutable CommonTypes commonTypes;
-	immutable Ptr!SpecInst[] outermostFunSpecs;
+	immutable SpecInst*[] outermostFunSpecs;
 	immutable Param[] outermostFunParams;
 	immutable TypeParam[] outermostFunTypeParams;
 	immutable FunFlags outermostFunFlags;
@@ -102,10 +101,10 @@ struct ExprCtx {
 		return checkCtx().perf();
 	}
 	ref CheckCtx checkCtx() return scope {
-		return checkCtxPtr.deref();
+		return *checkCtxPtr;
 	}
 	ref const(CheckCtx) checkCtx() return scope const {
-		return checkCtxPtr.deref();
+		return *checkCtxPtr;
 	}
 }
 
@@ -131,8 +130,8 @@ TypeArgsArray typeArgsFromAsts(ref ExprCtx ctx, scope immutable TypeAst[] typeAs
 	return res;
 }
 
-immutable(Opt!Type) typeFromOptAst(ref ExprCtx ctx, immutable Opt!(Ptr!TypeAst) ast) {
-	return has(ast) ? some(typeFromAst2(ctx, force(ast).deref())) : none!Type;
+immutable(Opt!Type) typeFromOptAst(ref ExprCtx ctx, immutable Opt!(TypeAst*) ast) {
+	return has(ast) ? some(typeFromAst2(ctx, *force(ast))) : none!Type;
 }
 
 immutable(Type) typeFromAst2(ref ExprCtx ctx, scope immutable TypeAst ast) {
@@ -142,7 +141,7 @@ immutable(Type) typeFromAst2(ref ExprCtx ctx, scope immutable TypeAst ast) {
 		ast,
 		ctx.structsAndAliasesDict,
 		immutable TypeParamsScope(ctx.outermostFunTypeParams),
-		noneMut!(Ptr!(MutArr!(Ptr!(StructInst)))));
+		noneMut!(MutArr!(StructInst*)*));
 }
 
 struct SingleInferringType {
@@ -222,9 +221,9 @@ Expected copyWithNewExpectedType(ref Expected expected, immutable Type type) {
 immutable(Opt!Type) shallowInstantiateType(ref const Expected expected) {
 	immutable Opt!Type t = cellGet(expected.type);
 	if (has(t) && isTypeParam(force(t))) {
-		const Opt!(Ptr!SingleInferringType) typeArg =
+		const Opt!(SingleInferringType*) typeArg =
 			tryGetTypeArgFromInferringTypeArgs_const(expected.inferringTypeArgs, asTypeParam(force(t)));
-		return has(typeArg) ? tryGetInferred(force(typeArg).deref()) : none!Type;
+		return has(typeArg) ? tryGetInferred(*force(typeArg)) : none!Type;
 	} else
 		return t;
 }
@@ -299,16 +298,16 @@ private immutable(bool) setTypeNoDiagnostic(
 			false);
 }
 
-private Opt!(Ptr!SingleInferringType) tryGetTypeArgFromInferringTypeArgs_mut(
+private Opt!(SingleInferringType*) tryGetTypeArgFromInferringTypeArgs_mut(
 	return scope ref InferringTypeArgs inferringTypeArgs,
-	immutable Ptr!TypeParam typeParam,
+	immutable TypeParam* typeParam,
 ) {
 	return tryGetTypeArg_mut!SingleInferringType(inferringTypeArgs.params, inferringTypeArgs.args, typeParam);
 }
 
-const(Opt!(Ptr!SingleInferringType)) tryGetTypeArgFromInferringTypeArgs_const(
+const(Opt!(SingleInferringType*)) tryGetTypeArgFromInferringTypeArgs_const(
 	return scope ref const InferringTypeArgs inferringTypeArgs,
-	immutable Ptr!TypeParam typeParam,
+	immutable TypeParam* typeParam,
 ) {
 	return tryGetTypeArg_const!SingleInferringType(inferringTypeArgs.params, inferringTypeArgs.args, typeParam);
 }
@@ -361,7 +360,7 @@ struct SetTypeResult {
 immutable(SetTypeResult) checkAssignabilityForStructInstsWithSameDecl(
 	ref Alloc alloc,
 	ref ProgramState programState,
-	immutable Ptr!StructDecl decl,
+	immutable StructDecl* decl,
 	immutable Type[] as,
 	immutable Type[] bs,
 	scope ref InferringTypeArgs aInferringTypeArgs,
@@ -398,15 +397,15 @@ immutable(SetTypeResult) checkAssignabilityForStructInstsWithSameDecl(
 immutable(SetTypeResult) setTypeNoDiagnosticWorker_forStructInst(
 	ref Alloc alloc,
 	ref ProgramState programState,
-	immutable Ptr!StructInst a,
-	immutable Ptr!StructInst b,
+	ref immutable StructInst a,
+	ref immutable StructInst b,
 	scope ref InferringTypeArgs aInferringTypeArgs,
 ) {
 	// Handling a union expected type is done in Expected::check
 	// TODO: but it's done here to for case of call return type ...
-	if (ptrEquals(a.deref().decl, b.deref().decl))
+	if (decl(a) == decl(b))
 		return checkAssignabilityForStructInstsWithSameDecl(
-			alloc, programState, a.deref().decl, a.deref().typeArgs, b.deref().typeArgs, aInferringTypeArgs);
+			alloc, programState, a.decl, a.typeArgs, b.typeArgs, aInferringTypeArgs);
 	else
 		return SetTypeResult(SetTypeResult.Fail());
 }
@@ -421,14 +420,14 @@ immutable(Opt!Type) tryGetDeeplyInstantiatedTypeWorker(
 		a,
 		(immutable Type.Bogus) =>
 			some(immutable Type(Type.Bogus())),
-		(immutable Ptr!TypeParam p) {
-			const Opt!(Ptr!SingleInferringType) ta = tryGetTypeArgFromInferringTypeArgs_const(inferringTypeArgs, p);
+		(immutable TypeParam* p) {
+			const Opt!(SingleInferringType*) ta = tryGetTypeArgFromInferringTypeArgs_const(inferringTypeArgs, p);
 			// If it's not one of the inferring types, it's instantiated enough to return.
-			return has(ta) ? tryGetInferred(force(ta).deref()) : some(a);
+			return has(ta) ? tryGetInferred(*force(ta)) : some(a);
 		},
-		(immutable Ptr!StructInst i) {
+		(immutable StructInst* i) {
 			scope TypeArgsArray newTypeArgs = typeArgsArray();
-			foreach (immutable Type x; typeArgs(i.deref())) {
+			foreach (immutable Type x; typeArgs(*i)) {
 				immutable Opt!Type t = tryGetDeeplyInstantiatedTypeWorker(alloc, programState, x, inferringTypeArgs);
 				if (has(t))
 					push(newTypeArgs, force(t));
@@ -436,7 +435,7 @@ immutable(Opt!Type) tryGetDeeplyInstantiatedTypeWorker(
 					return none!Type;
 			}
 			return some(immutable Type(
-				instantiateStructNeverDelay(alloc, programState, decl(i.deref()), tempAsArr(newTypeArgs))));
+				instantiateStructNeverDelay(alloc, programState, decl(*i), tempAsArr(newTypeArgs))));
 		});
 }
 
@@ -488,36 +487,36 @@ immutable(SetTypeResult) checkAssignability(
 		(immutable Type.Bogus) =>
 			// TODO: make sure to infer type params in this case!
 			immutable SetTypeResult(immutable SetTypeResult.Keep()),
-		(immutable Ptr!TypeParam pa) {
-			Opt!(Ptr!SingleInferringType) aInferring = tryGetTypeArgFromInferringTypeArgs_mut(aInferringTypeArgs, pa);
+		(immutable TypeParam* pa) {
+			Opt!(SingleInferringType*) aInferring = tryGetTypeArgFromInferringTypeArgs_mut(aInferringTypeArgs, pa);
 			return has(aInferring)
-				? setTypeNoDiagnosticWorker_forSingleInferringType(alloc, programState, force(aInferring).deref, b)
+				? setTypeNoDiagnosticWorker_forSingleInferringType(alloc, programState, *force(aInferring), b)
 				: matchType!(immutable SetTypeResult)(
 					b,
 					(immutable Type.Bogus) =>
 						// Bogus is assignable to anything
 						immutable SetTypeResult(immutable SetTypeResult.Keep()),
-					(immutable Ptr!TypeParam pb) =>
-						ptrEquals(pa, pb)
+					(immutable TypeParam* pb) =>
+						pa == pb
 							? immutable SetTypeResult(immutable SetTypeResult.Keep())
 							: immutable SetTypeResult(immutable SetTypeResult.Fail()),
-					(immutable Ptr!StructInst) =>
+					(immutable StructInst*) =>
 						// Expecting a type param, got a particular type
 						immutable SetTypeResult(immutable SetTypeResult.Fail()));
 		},
-		(immutable Ptr!StructInst ai) @safe =>
+		(immutable StructInst* ai) @safe =>
 			matchType!(immutable SetTypeResult)(
 				b,
 				(immutable Type.Bogus) =>
 					// Bogus is assignable to anything
 					immutable SetTypeResult(immutable SetTypeResult.Keep()),
-				(immutable Ptr!TypeParam) =>
+				(immutable TypeParam*) =>
 					immutable SetTypeResult(immutable SetTypeResult.Fail()),
-				(immutable Ptr!StructInst bi) =>
+				(immutable StructInst* bi) =>
 					setTypeNoDiagnosticWorker_forStructInst(
 						alloc,
 						programState,
-						ai,
-						bi,
+						*ai,
+						*bi,
 						aInferringTypeArgs)));
 }

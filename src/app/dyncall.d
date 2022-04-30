@@ -31,7 +31,6 @@ import util.late : Late, late, lateGet, lateSet;
 import util.memory : allocate;
 import util.opt : force, has, Opt, none, some;
 import util.path : AllPaths, childPath, Path, pathToTempStr, TempStrForPath;
-import util.ptr : Ptr;
 import util.sym :
 	AllSymbols,
 	concatSyms,
@@ -83,20 +82,22 @@ immutable(LoadedLibraries) loadLibraries(
 ) {
 	bool success = true;
 	immutable DLLib*[] libs = mapImpure(alloc, libraries, (ref immutable ExternLibrary x) {
-		immutable Opt!(DLLib*) lib = getLibrary(allSymbols, allPaths, x.libraryName, x.configuredPath, writeError);
-		if (has(lib))
-			return force(lib);
-		else {
-			success = false;
-			return null;
-		}
+		immutable LibraryAndError lib = getLibrary(allSymbols, allPaths, x.libraryName, x.configuredPath, writeError);
+		if (lib.error) success = false;
+		return lib.library;
 	});
 	return success
 		? loadLibrariesInner(alloc, allSymbols, libraries, libs, writeError)
 		: immutable LoadedLibraries(immutable DebugNames(), none!ExternFunPtrsForAllLibraries);
 }
 
-immutable(Opt!(DLLib*)) getLibrary(
+// Can't use Opt since 'null' is sometimes allowed as the library
+struct LibraryAndError {
+	immutable DLLib* library;
+	immutable bool error;
+}
+
+immutable(LibraryAndError) getLibrary(
 	ref AllSymbols allSymbols,
 	ref AllPaths allPaths,
 	immutable Sym libraryName,
@@ -108,7 +109,7 @@ immutable(Opt!(DLLib*)) getLibrary(
 		? tryLoadLibraryFromPath(allPaths, childPath(allPaths, force(configuredPath), fileName))
 		: none!(DLLib*);
 	if (has(fromPath)) {
-		return fromPath;
+		return immutable LibraryAndError(force(fromPath), false);
 	} else {
 		switch (libraryName.value) {
 			case shortSymValue("c"):
@@ -116,7 +117,7 @@ immutable(Opt!(DLLib*)) getLibrary(
 				version (Windows) {
 					return loadLibraryFromName(safeCStr!"ucrtbase.dll", writeError);
 				} else {
-					return some!(DLLib*)(null);
+					return immutable LibraryAndError(null, false);
 				}
 			case shortSymValue("pthread"):
 				// TODO: understand why this is different
@@ -142,10 +143,10 @@ immutable(Sym) dllOrSoName(ref AllSymbols allSymbols, immutable Sym libraryName)
 	TempStrForPath buf = void;
 	immutable SafeCStr pathStr = pathToTempStr(buf, allPaths, path);
 	immutable DLLib* res = dlLoadLibrary(pathStr.ptr);
-	return res == null ? none!(DLLib*) : some!(DLLib*)(res);
+	return res == null ? none!(DLLib*) : some(res);
 }
 
-@trusted immutable(Opt!(DLLib*)) loadLibraryFromName(
+@trusted immutable(LibraryAndError) loadLibraryFromName(
 	ref const AllSymbols allSymbols,
 	immutable Sym name,
 	scope WriteError writeError,
@@ -154,16 +155,15 @@ immutable(Sym) dllOrSoName(ref AllSymbols allSymbols, immutable Sym libraryName)
 	return loadLibraryFromName(immutable SafeCStr(cast(immutable) buf.ptr), writeError);
 }
 
-immutable(Opt!(DLLib*)) loadLibraryFromName(scope immutable SafeCStr name, scope WriteError writeError) {
+immutable(LibraryAndError) loadLibraryFromName(scope immutable SafeCStr name, scope WriteError writeError) {
 	immutable DLLib* res = dlLoadLibrary(name.ptr);
 	if (res == null) {
 		// TODO: use a Diagnostic
 		writeError(safeCStr!"Could not load library ");
 		writeError(name);
 		writeError(safeCStr!"\n");
-		return none!(DLLib*);
-	} else
-		return some!(DLLib*)(res);
+	}
+	return immutable LibraryAndError(res, res == null);
 }
 
 immutable(LoadedLibraries) loadLibrariesInner(
@@ -341,9 +341,8 @@ pure immutable(FunPtr[]) makeSyntheticFunPtrs(ref Alloc alloc, scope immutable F
 ) {
 	char[16] sigStr;
 	toDynCallSigString(sigStr, sig);
-	immutable Ptr!UserData userData = allocate(alloc, immutable UserData(sig, operationPtr));
-	return immutable FunPtr(
-		cast(immutable) dcbNewCallback(sigStr.ptr, &callbackHandler, cast(void*) userData.rawPtr()));
+	immutable UserData* userData = allocate(alloc, immutable UserData(sig, operationPtr));
+	return immutable FunPtr(cast(immutable) dcbNewCallback(sigStr.ptr, &callbackHandler, cast(void*) userData));
 }
 
 @system extern(C) immutable(char) callbackHandler(DCCallback* cb, DCArgs* args, DCValue* result, void* userDataPtr) {

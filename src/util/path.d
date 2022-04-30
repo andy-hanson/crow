@@ -10,7 +10,7 @@ import util.comparison : compareNat16, Comparison;
 import util.conv : safeToUshort;
 import util.hash : Hasher, hashUshort;
 import util.opt : has, force, none, Opt, some;
-import util.ptr : Ptr, ptrTrustMe_mut;
+import util.ptr : ptrTrustMe_mut;
 import util.sourceRange : RangeWithinFile;
 import util.sym : AllSymbols, eachCharInSym, emptySym, Sym, symEq, symOfStr, symSize, writeSym;
 import util.util : todo, verify;
@@ -19,18 +19,18 @@ import util.writer : finishWriterToSafeCStr, writeChar, Writer, writeStatic;
 struct AllPaths {
 	@safe @nogc pure nothrow:
 	private:
-	Ptr!Alloc alloc;
-	Ptr!AllSymbols allSymbolsPtr;
+	Alloc* alloc;
+	AllSymbols* allSymbolsPtr;
 	MutArr!(Opt!Path) pathToParent;
 	MutArr!Sym pathToBaseName;
 	MutArr!(MutArr!Path) pathToChildren;
 	MutArr!Path rootChildren;
 
 	ref const(AllSymbols) allSymbols() return scope const {
-		return allSymbolsPtr.deref();
+		return *allSymbolsPtr;
 	}
 	ref AllSymbols allSymbols() return scope {
-		return allSymbolsPtr.deref();
+		return *allSymbolsPtr;
 	}
 }
 
@@ -80,10 +80,10 @@ private immutable(Path) getOrAddChild(
 			return child;
 
 	immutable Path res = immutable Path(safeToUshort(mutArrSize(allPaths.pathToParent)));
-	push(allPaths.alloc.deref(), children, res);
-	push(allPaths.alloc.deref(), allPaths.pathToParent, parent);
-	push(allPaths.alloc.deref(), allPaths.pathToBaseName, name);
-	push(allPaths.alloc.deref(), allPaths.pathToChildren, MutArr!Path());
+	push(*allPaths.alloc, children, res);
+	push(*allPaths.alloc, allPaths.pathToParent, parent);
+	push(*allPaths.alloc, allPaths.pathToBaseName, name);
+	push(*allPaths.alloc, allPaths.pathToChildren, MutArr!Path());
 	return res;
 }
 

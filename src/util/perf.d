@@ -1,5 +1,7 @@
 module util.perf;
 
+@safe @nogc nothrow:
+
 import util.alloc.alloc : Alloc, curBytes;
 import util.col.sortUtil : sortInPlace;
 import util.col.str : SafeCStr, safeCStr;
@@ -32,7 +34,7 @@ immutable(T) withMeasure(T, alias cb)(
 }
 
 immutable(T) withNullPerf(T, alias cb)() {
-	scope Perf perf = Perf(() => immutable ulong(0));
+	Perf perf = Perf(() => immutable ulong(0));
 	return cb(perf);
 }
 

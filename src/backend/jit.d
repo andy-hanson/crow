@@ -127,7 +127,7 @@ import util.col.stackDict : MutStackDict, mutStackDictAdd, mutStackDictMustGet;
 import util.col.str : CStr, SafeCStr;
 import util.opt : force, has, none, noneMut, Opt, some, someMut;
 import util.perf : Perf, PerfMeasure, withMeasure;
-import util.ptr : castImmutable, nullPtr, Ptr, ptrEquals, ptrTrustMe, ptrTrustMe_mut;
+import util.ptr : castImmutable, ptrEquals, ptrTrustMe, ptrTrustMe_mut;
 import util.sourceRange : FileAndRange;
 import util.sym : AllSymbols, writeSym;
 import util.util : todo, unreachable, verify;
@@ -151,7 +151,7 @@ import util.writer : finishWriterToCStr, writeChar, Writer, writeStatic;
 	//TODO
 	if (false) {
 		gcc_jit_context_compile_to_file(
-			gccProgram.ctx.deref(),
+			*gccProgram.ctx,
 			gcc_jit_output_kind.GCC_JIT_OUTPUT_KIND_EXECUTABLE,
 			"GCCJITOUT");
 		return 0;
@@ -174,8 +174,8 @@ import util.writer : finishWriterToCStr, writeChar, Writer, writeStatic;
 
 private:
 
-@trusted immutable(int) runMain(ref Alloc alloc, ref Perf perf, immutable SafeCStr[] allArgs, immutable MainType main) {
-	return withMeasure!(immutable int, () =>
+immutable(int) runMain(ref Alloc alloc, ref Perf perf, immutable SafeCStr[] allArgs, immutable MainType main) {
+	return withMeasure!(immutable int, () @trusted =>
 		main(cast(int) allArgs.length, cast(immutable CStr*) allArgs.ptr)
 	)(alloc, perf, PerfMeasure.run);
 }
@@ -184,8 +184,8 @@ pure:
 
 
 struct GccProgram {
-	Ptr!gcc_jit_context ctx;
-	immutable Ptr!gcc_jit_result result;
+	gcc_jit_context* ctx;
+	immutable gcc_jit_result* result;
 }
 
 GccProgram getGccProgram(
@@ -195,41 +195,38 @@ GccProgram getGccProgram(
 	ref immutable LowProgram program,
 	ref immutable JitOptions options,
 ) {
-	gcc_jit_context* ctxPtr = gcc_jit_context_acquire();
-	verify(ctxPtr != null);
-	Ptr!gcc_jit_context ctx = Ptr!gcc_jit_context(ctxPtr);
+	gcc_jit_context* ctx = gcc_jit_context_acquire();
+	verify(ctx != null);
 
-	gcc_jit_context_set_bool_option(ctx.deref(), gcc_jit_bool_option.GCC_JIT_BOOL_OPTION_DEBUGINFO, true);
+	gcc_jit_context_set_bool_option(*ctx, gcc_jit_bool_option.GCC_JIT_BOOL_OPTION_DEBUGINFO, true);
 	final switch (options.optimization) {
 		case OptimizationLevel.none:
 			break;
 		case OptimizationLevel.o2:
-			gcc_jit_context_set_int_option(ctx.deref(), gcc_jit_int_option.GCC_JIT_INT_OPTION_OPTIMIZATION_LEVEL, 2);
+			gcc_jit_context_set_int_option(*ctx, gcc_jit_int_option.GCC_JIT_INT_OPTION_OPTIMIZATION_LEVEL, 2);
 			break;
 	}
-	//gcc_jit_context_set_bool_option(ctx.deref(), gcc_jit_bool_option.GCC_JIT_BOOL_OPTION_DUMP_INITIAL_GIMPLE, true);
-	//gcc_jit_context_set_bool_option(ctx.deref(), gcc_jit_bool_option.GCC_JIT_BOOL_OPTION_DUMP_GENERATED_CODE, true);
+	//gcc_jit_context_set_bool_option(*ctx, gcc_jit_bool_option.GCC_JIT_BOOL_OPTION_DUMP_INITIAL_GIMPLE, true);
+	//gcc_jit_context_set_bool_option(*ctx, gcc_jit_bool_option.GCC_JIT_BOOL_OPTION_DUMP_GENERATED_CODE, true);
 
 	foreach (ref immutable ExternLibrary x; program.externLibraries) {
 		//TODO:NO ALLOC
 		Writer writer = Writer(ptrTrustMe_mut(alloc));
 		writeStatic(writer, "-l");
 		writeSym(writer, allSymbols, x.libraryName);
-		gcc_jit_context_add_driver_option(ctx.deref(), finishWriterToCStr(writer));
+		gcc_jit_context_add_driver_option(*ctx, finishWriterToCStr(writer));
 	}
 
 	withMeasure!(void, () {
-		buildGccProgram(alloc, ctx.deref(), allSymbols, program);
+		buildGccProgram(alloc, *ctx, allSymbols, program);
 	})(alloc, perf, PerfMeasure.gccCreateProgram);
 
-	verify(gcc_jit_context_get_first_error(ctx.deref()) == null);
+	verify(gcc_jit_context_get_first_error(*ctx) == null);
 
-	immutable gcc_jit_result* resultRawPtr = withMeasure!(immutable gcc_jit_result*, () =>
-		gcc_jit_context_compile(ctx.deref())
+	immutable gcc_jit_result* result = withMeasure!(immutable gcc_jit_result*, () =>
+		gcc_jit_context_compile(*ctx)
 	)(alloc, perf, PerfMeasure.gccCompile);
-	verify(resultRawPtr != null);
-	immutable Ptr!gcc_jit_result result = immutable Ptr!gcc_jit_result(resultRawPtr);
-
+	verify(result != null);
 	return GccProgram(ctx, result);
 }
 
@@ -251,8 +248,8 @@ extern(C) {
 
 	GlobalsForConstants globalsForConstants = generateGlobalsForConstants(alloc, ctx, program, gccTypes, mangledNames);
 
-	immutable Ptr!gcc_jit_type crowVoidType = getGccType(gccTypes, immutable LowType(PrimitiveType.void_));
-	immutable Ptr!gcc_jit_rvalue globalVoid = gcc_jit_lvalue_as_rvalue(
+	immutable gcc_jit_type* crowVoidType = getGccType(gccTypes, immutable LowType(PrimitiveType.void_));
+	immutable gcc_jit_rvalue* globalVoid = gcc_jit_lvalue_as_rvalue(
 		gcc_jit_context_new_global(
 			ctx,
 			null,
@@ -261,15 +258,15 @@ extern(C) {
 			"void"));
 
 	//immutable FullIndexDict!(LowFunIndex, LowFun) allFuns;
-	FullIndexDict!(LowFunIndex, Ptr!gcc_jit_function) gccFuns =
-		mapFullIndexDict_mut!(LowFunIndex, Ptr!gcc_jit_function, LowFun)(
+	FullIndexDict!(LowFunIndex, gcc_jit_function*) gccFuns =
+		mapFullIndexDict_mut!(LowFunIndex, gcc_jit_function*, LowFun)(
 			alloc,
 			program.allFuns,
 			(immutable LowFunIndex funIndex, scope ref immutable LowFun fun) =>
 				toGccFunctionSignature(alloc, ctx, program, mangledNames, gccTypes, funIndex, fun));
 
-	immutable Ptr!gcc_jit_type nat64Type = getGccType(gccTypes, immutable LowType(PrimitiveType.nat64));
-	immutable Ptr!gcc_jit_function abortFunction = castImmutable(gcc_jit_context_new_function(
+	immutable gcc_jit_type* nat64Type = getGccType(gccTypes, immutable LowType(PrimitiveType.nat64));
+	immutable gcc_jit_function* abortFunction = castImmutable(gcc_jit_context_new_function(
 		ctx,
 		null,
 		gcc_jit_function_kind.GCC_JIT_FUNCTION_IMPORTED,
@@ -279,19 +276,19 @@ extern(C) {
 		null,
 		false));
 	immutable ConversionFunctions conversionFunctions = generateConversionFunctions(ctx);
-	immutable Ptr!gcc_jit_function builtinPopcountlFunction =
+	immutable gcc_jit_function* builtinPopcountlFunction =
 		gcc_jit_context_get_builtin_function(ctx, "__builtin_popcountl");
 
 	// Now fill in the body of every function.
-	fullIndexDictZip!(LowFunIndex, LowFun, Ptr!gcc_jit_function)(
+	fullIndexDictZip!(LowFunIndex, LowFun, gcc_jit_function*)(
 		program.allFuns,
 		gccFuns,
-		(immutable LowFunIndex funIndex, ref immutable LowFun fun, ref Ptr!gcc_jit_function curFun) {
+		(immutable LowFunIndex funIndex, ref immutable LowFun fun, ref gcc_jit_function* curFun) {
 		matchLowFunBody!(
 			void,
 			(ref immutable LowFunBody.Extern it) {},
 			(ref immutable LowFunExprBody expr) {
-				Ptr!gcc_jit_block entryBlock = gcc_jit_function_new_block(curFun, "entry");
+				gcc_jit_block* entryBlock = gcc_jit_function_new_block(curFun, "entry");
 				ExprCtx exprCtx = ExprCtx(
 					ptrTrustMe_mut(alloc),
 					ptrTrustMe(program),
@@ -357,34 +354,34 @@ immutable(bool) isStubFunction(immutable(LowFunIndex)) {
 }
 
 struct ConversionFunctions {
-	immutable Ptr!gcc_jit_function ptrToNat64;
-	immutable Ptr!gcc_jit_function nat64ToPtr;
+	immutable gcc_jit_function* ptrToNat64;
+	immutable gcc_jit_function* nat64ToPtr;
 }
 
 @trusted immutable(ConversionFunctions) generateConversionFunctions(ref gcc_jit_context ctx) {
-	immutable Ptr!gcc_jit_type voidPtrType = gcc_jit_context_get_type(ctx, gcc_jit_types.GCC_JIT_TYPE_VOID_PTR);
-	immutable Ptr!gcc_jit_type nat64Type = gcc_jit_context_get_type(ctx, gcc_jit_types.GCC_JIT_TYPE_UNSIGNED_LONG);
-	immutable Ptr!gcc_jit_field ptrField = gcc_jit_context_new_field(ctx, null, voidPtrType, "ptr");
-	immutable Ptr!gcc_jit_field nat64Field = gcc_jit_context_new_field(ctx, null, nat64Type, "nat64");
-	immutable Ptr!gcc_jit_field[2] fields = [ptrField, nat64Field];
-	immutable Ptr!gcc_jit_type unionType =
+	immutable gcc_jit_type* voidPtrType = gcc_jit_context_get_type(ctx, gcc_jit_types.GCC_JIT_TYPE_VOID_PTR);
+	immutable gcc_jit_type* nat64Type = gcc_jit_context_get_type(ctx, gcc_jit_types.GCC_JIT_TYPE_UNSIGNED_LONG);
+	immutable gcc_jit_field* ptrField = gcc_jit_context_new_field(ctx, null, voidPtrType, "ptr");
+	immutable gcc_jit_field* nat64Field = gcc_jit_context_new_field(ctx, null, nat64Type, "nat64");
+	immutable gcc_jit_field*[2] fields = [ptrField, nat64Field];
+	immutable gcc_jit_type* unionType =
 		gcc_jit_context_new_union_type(ctx, null, "__ptrToNat64Converter", 2, fields.ptr);
 	return immutable ConversionFunctions(
 		makeConversionFunction(ctx, "__ptrToNat64", unionType, voidPtrType, ptrField, nat64Type, nat64Field),
 		makeConversionFunction(ctx, "__nat64ToPtr", unionType, nat64Type, nat64Field, voidPtrType, ptrField));
 }
 
-@trusted immutable(Ptr!gcc_jit_function) makeConversionFunction(
+@trusted immutable(gcc_jit_function*) makeConversionFunction(
 	ref gcc_jit_context ctx,
 	immutable CStr name,
-	immutable Ptr!gcc_jit_type converterType,
-	immutable Ptr!gcc_jit_type inType,
-	immutable Ptr!gcc_jit_field inField,
-	immutable Ptr!gcc_jit_type outType,
-	immutable Ptr!gcc_jit_field outField,
+	immutable gcc_jit_type* converterType,
+	immutable gcc_jit_type* inType,
+	immutable gcc_jit_field* inField,
+	immutable gcc_jit_type* outType,
+	immutable gcc_jit_field* outField,
 ) {
-	immutable Ptr!gcc_jit_param param = gcc_jit_context_new_param(ctx, null, inType, "in");
-	Ptr!gcc_jit_function res = gcc_jit_context_new_function(
+	immutable gcc_jit_param* param = gcc_jit_context_new_param(ctx, null, inType, "in");
+	gcc_jit_function* res = gcc_jit_context_new_function(
 		ctx,
 		null,
 		gcc_jit_function_kind.GCC_JIT_FUNCTION_INTERNAL,
@@ -393,8 +390,8 @@ struct ConversionFunctions {
 		1,
 		&param,
 		false);
-	Ptr!gcc_jit_block block = gcc_jit_function_new_block(res, "entry");
-	Ptr!gcc_jit_lvalue local = gcc_jit_function_new_local(res, null, converterType, "converter");
+	gcc_jit_block* block = gcc_jit_function_new_block(res, "entry");
+	gcc_jit_lvalue* local = gcc_jit_function_new_local(res, null, converterType, "converter");
 	gcc_jit_block_add_assignment(
 		block,
 		null,
@@ -412,8 +409,8 @@ struct GlobalsForConstants {
 	// Ignoring program.allConstants.cStrings because gcc supports those directly.
 
 	// WARN: This is the *storage* for the constant. It needs to be converted.
-	immutable Ptr!gcc_jit_rvalue[][] arrs;
-	Ptr!gcc_jit_lvalue[][] pointers;
+	immutable gcc_jit_rvalue*[][] arrs;
+	gcc_jit_lvalue*[][] pointers;
 }
 
 GlobalsForConstants generateGlobalsForConstants(
@@ -423,16 +420,16 @@ GlobalsForConstants generateGlobalsForConstants(
 	ref immutable GccTypes types,
 	ref immutable MangledNames mangledNames,
 ) {
-	immutable Ptr!gcc_jit_rvalue[][] arrGlobals = map!(Ptr!gcc_jit_rvalue[], ArrTypeAndConstantsLow)(
+	immutable gcc_jit_rvalue*[][] arrGlobals = map!(gcc_jit_rvalue*[], ArrTypeAndConstantsLow)(
 		alloc,
 		program.allConstants.arrs,
 		(ref immutable ArrTypeAndConstantsLow tc) {
-			immutable Ptr!gcc_jit_type gccElementType = getGccType(types, tc.elementType);
-			return mapWithIndex!(Ptr!gcc_jit_rvalue)(
+			immutable gcc_jit_type* gccElementType = getGccType(types, tc.elementType);
+			return mapWithIndex!(gcc_jit_rvalue*, Constant[])(
 				alloc,
 				tc.constants,
 				(immutable size_t index, ref immutable Constant[] values) {
-					immutable Ptr!gcc_jit_type arrayType = gcc_jit_context_new_array_type(
+					immutable gcc_jit_type* arrayType = gcc_jit_context_new_array_type(
 						ctx,
 						null,
 						gccElementType,
@@ -450,12 +447,12 @@ GlobalsForConstants generateGlobalsForConstants(
 				});
 		});
 
-	Ptr!gcc_jit_lvalue[][] ptrGlobals = mapToMut!(Ptr!gcc_jit_lvalue[])(
+	gcc_jit_lvalue*[][] ptrGlobals = mapToMut!(gcc_jit_lvalue*[])(
 		alloc,
 		program.allConstants.pointers,
 		(scope ref immutable PointerTypeAndConstantsLow tc) {
-			immutable Ptr!gcc_jit_type gccPointeeType = getGccType(types, tc.pointeeType);
-			return mapWithIndex_mut!(Ptr!gcc_jit_lvalue, Constant)(
+			immutable gcc_jit_type* gccPointeeType = getGccType(types, tc.pointeeType);
+			return mapWithIndex_mut!(gcc_jit_lvalue*, Constant)(
 				alloc,
 				tc.constants,
 				(immutable size_t index, scope ref immutable Constant) {
@@ -475,7 +472,7 @@ GlobalsForConstants generateGlobalsForConstants(
 	return GlobalsForConstants(arrGlobals, ptrGlobals);
 }
 
-@trusted Ptr!gcc_jit_function toGccFunctionSignature(
+@trusted gcc_jit_function* toGccFunctionSignature(
 	ref Alloc alloc,
 	ref gcc_jit_context ctx,
 	ref immutable LowProgram program,
@@ -497,9 +494,9 @@ GlobalsForConstants generateGlobalsForConstants(
 		},
 	)(fun.body_);
 
-	immutable Ptr!gcc_jit_type returnType = getGccType(gccTypes, fun.returnType);
+	immutable gcc_jit_type* returnType = getGccType(gccTypes, fun.returnType);
 	//TODO:NO ALLOC
-	immutable Ptr!gcc_jit_param[] params = map!(immutable Ptr!gcc_jit_param, LowParam)(
+	immutable gcc_jit_param*[] params = map!(immutable gcc_jit_param*, LowParam)(
 		alloc,
 		fun.params,
 		(ref immutable LowParam param) {
@@ -519,7 +516,7 @@ GlobalsForConstants generateGlobalsForConstants(
 		// The function name needs to be different from the global name, else libgccjit gets confused.
 		writeStatic(writer, "__getter");
 	immutable CStr name = finishWriterToCStr(writer);
-	Ptr!gcc_jit_function res =
+	gcc_jit_function* res =
 		gcc_jit_context_new_function(ctx, null, kind, returnType, name, cast(int) params.length, params.ptr, false);
 
 	matchLowFunBody!(
@@ -529,13 +526,13 @@ GlobalsForConstants generateGlobalsForConstants(
 				Writer globalWriter = Writer(ptrTrustMe_mut(alloc));
 				writeLowFunMangledName(globalWriter, mangledNames, funIndex, fun);
 				immutable CStr globalName = finishWriterToCStr(globalWriter);
-				Ptr!gcc_jit_lvalue global = gcc_jit_context_new_global(
+				gcc_jit_lvalue* global = gcc_jit_context_new_global(
 					ctx,
 					null,
 					gcc_jit_global_kind.GCC_JIT_GLOBAL_IMPORTED,
 					returnType,
 					globalName);
-				Ptr!gcc_jit_block block = gcc_jit_function_new_block(res, null);
+				gcc_jit_block* block = gcc_jit_function_new_block(res, null);
 				gcc_jit_block_end_with_return(block, null, gcc_jit_lvalue_as_rvalue(global));
 			}
 		},
@@ -556,7 +553,7 @@ struct ExprEmit {
 	struct Void {}
 	// Write to this local. Return none.
 	struct WriteTo {
-		Ptr!gcc_jit_lvalue lvalue;
+		gcc_jit_lvalue* lvalue;
 	}
 
 	this(immutable Return a) { kind = Kind.return_; return_ = a; }
@@ -580,7 +577,7 @@ struct ExprEmit {
 	}
 }
 
-alias ExprResult = immutable Opt!(Ptr!gcc_jit_rvalue);
+alias ExprResult = immutable Opt!(gcc_jit_rvalue*);
 
 @trusted immutable(T) matchExprEmit(T)(
 	ref ExprEmit a,
@@ -612,24 +609,24 @@ immutable(bool) isReturn(ref ExprEmit a) {
 immutable(ExprResult) emitSimpleNoSideEffects(
 	ref ExprCtx ctx,
 	ref ExprEmit emit,
-	immutable Ptr!gcc_jit_rvalue value,
+	immutable gcc_jit_rvalue* value,
 ) {
-	verify(value.rawPtr() != null);
+	verify(value != null);
 	return matchExprEmit!(immutable ExprResult)(
 		emit,
 		(ref immutable ExprEmit.Return) {
 			gcc_jit_block_end_with_return(ctx.curBlock, null, value);
-			return none!(Ptr!gcc_jit_rvalue);
+			return none!(gcc_jit_rvalue*);
 		},
 		(ref immutable ExprEmit.Value) =>
 			some(value),
 		(ref immutable ExprEmit.Void) {
 			gcc_jit_block_add_eval(ctx.curBlock, null, value);
-			return none!(Ptr!gcc_jit_rvalue);
+			return none!(gcc_jit_rvalue*);
 		},
 		(ref ExprEmit.WriteTo it) {
 			gcc_jit_block_add_assignment(ctx.curBlock, null, it.lvalue, value);
-			return none!(Ptr!gcc_jit_rvalue);
+			return none!(gcc_jit_rvalue*);
 		});
 }
 
@@ -638,21 +635,21 @@ immutable(ExprResult) emitSimpleYesSideEffects(
 	ref ExprCtx ctx,
 	ref ExprEmit emit,
 	immutable LowType type,
-	immutable Ptr!gcc_jit_rvalue value,
+	immutable gcc_jit_rvalue* value,
 ) {
 	return isValue(emit)
-		? some(getRValueUsingLocal(ctx, type, (Ptr!gcc_jit_lvalue local) {
+		? some(getRValueUsingLocal(ctx, type, (gcc_jit_lvalue* local) {
 			gcc_jit_block_add_assignment(ctx.curBlock, null, local, value);
 		}))
 		: emitSimpleNoSideEffects(ctx, emit, value);
 }
 
-immutable(Ptr!gcc_jit_rvalue) getRValueUsingLocal(
+immutable(gcc_jit_rvalue*) getRValueUsingLocal(
 	ref ExprCtx ctx,
 	immutable LowType type,
-	scope void delegate(Ptr!gcc_jit_lvalue) @safe @nogc pure nothrow cb,
+	scope void delegate(gcc_jit_lvalue*) @safe @nogc pure nothrow cb,
 ) {
-	Ptr!gcc_jit_lvalue local = gcc_jit_function_new_local(ctx.curFun, null, getGccType(ctx.types, type), "temp");
+	gcc_jit_lvalue* local = gcc_jit_function_new_local(ctx.curFun, null, getGccType(ctx.types, type), "temp");
 	cb(local);
 	return gcc_jit_lvalue_as_rvalue(local);
 }
@@ -661,14 +658,14 @@ immutable(ExprResult) emitWriteToLValue(
 	ref ExprCtx ctx,
 	ref ExprEmit emit,
 	immutable LowType type,
-	scope void delegate(Ptr!gcc_jit_lvalue) @safe @nogc pure nothrow cb,
+	scope void delegate(gcc_jit_lvalue*) @safe @nogc pure nothrow cb,
 ) {
 	return matchExprEmit!(immutable ExprResult)(
 		emit,
 		(ref immutable ExprEmit.Return) {
-			immutable Ptr!gcc_jit_rvalue rvalue = getRValueUsingLocal(ctx, type, cb);
+			immutable gcc_jit_rvalue* rvalue = getRValueUsingLocal(ctx, type, cb);
 			gcc_jit_block_end_with_return(ctx.curBlock, null, rvalue);
-			return none!(Ptr!gcc_jit_rvalue);
+			return none!(gcc_jit_rvalue*);
 		},
 		(ref immutable ExprEmit.Value) =>
 			some(getRValueUsingLocal(ctx, type, cb)),
@@ -676,7 +673,7 @@ immutable(ExprResult) emitWriteToLValue(
 			unreachable!(immutable ExprResult)(),
 		(ref ExprEmit.WriteTo it) {
 			cb(it.lvalue);
-			return none!(Ptr!gcc_jit_rvalue);
+			return none!(gcc_jit_rvalue*);
 		});
 }
 
@@ -689,15 +686,15 @@ immutable(ExprResult) emitVoid(
 		(ref immutable ExprEmit.Return) {
 			//TODO: this should be unnecessary, use local void
 			gcc_jit_block_end_with_return(ctx.curBlock, null, ctx.globalVoid);
-			return none!(Ptr!gcc_jit_rvalue);
+			return none!(gcc_jit_rvalue*);
 		},
 		(ref immutable ExprEmit.Value) =>
 			some(ctx.globalVoid),
 		(ref immutable ExprEmit.Void) =>
-			none!(Ptr!gcc_jit_rvalue),
+			none!(gcc_jit_rvalue*),
 		(ref ExprEmit.WriteTo it) {
 			gcc_jit_block_add_assignment(ctx.curBlock, null, it.lvalue, ctx.globalVoid);
-			return none!(Ptr!gcc_jit_rvalue);
+			return none!(gcc_jit_rvalue*);
 		});
 }
 
@@ -706,18 +703,18 @@ immutable(ExprResult) emitWithBranching(
 	ref ExprEmit emit,
 	immutable LowType type,
 	scope void delegate(
-		Ptr!gcc_jit_block originalBlock,
-		Opt!(Ptr!gcc_jit_block) endBlock,
-		Opt!(Ptr!gcc_jit_lvalue) local,
+		gcc_jit_block* originalBlock,
+		Opt!(gcc_jit_block*) endBlock,
+		Opt!(gcc_jit_lvalue*) local,
 	) @safe @nogc pure nothrow cb,
 ) {
-	Opt!(Ptr!gcc_jit_block) endBlock = isReturn(emit)
-		? noneMut!(Ptr!gcc_jit_block)
+	Opt!(gcc_jit_block*) endBlock = isReturn(emit)
+		? noneMut!(gcc_jit_block*)
 		: someMut(gcc_jit_function_new_block(ctx.curFun, "switchEnd"));
-	Opt!(Ptr!gcc_jit_lvalue) local = isValue(emit)
+	Opt!(gcc_jit_lvalue*) local = isValue(emit)
 		? someMut(gcc_jit_function_new_local(ctx.curFun, null, getGccType(ctx.types, type), "temp"))
-		: noneMut!(Ptr!gcc_jit_lvalue);
-	Ptr!gcc_jit_block originalBlock = ctx.curBlock;
+		: noneMut!(gcc_jit_lvalue*);
+	gcc_jit_block* originalBlock = ctx.curBlock;
 
 	cb(originalBlock, endBlock, local);
 
@@ -725,21 +722,21 @@ immutable(ExprResult) emitWithBranching(
 	ctx.curBlock = has(endBlock) ? force(endBlock) : originalBlock;
 	return has(local)
 		? some(gcc_jit_lvalue_as_rvalue(force(local)))
-		: none!(Ptr!gcc_jit_rvalue);
+		: none!(gcc_jit_rvalue*);
 }
 
 immutable(ExprResult) emitSwitch(
 	ref ExprCtx ctx,
 	ref ExprEmit emit,
 	immutable LowType type,
-	immutable Ptr!gcc_jit_rvalue switchedValue,
+	immutable gcc_jit_rvalue* switchedValue,
 	immutable size_t nCases,
 	scope immutable(ExprResult) delegate(ref ExprEmit, immutable size_t) @safe @nogc pure nothrow cbCase,
 ) {
 	return emitWithBranching(
 		ctx, emit, type,
-		(Ptr!gcc_jit_block originalBlock, Opt!(Ptr!gcc_jit_block) endBlock, Opt!(Ptr!gcc_jit_lvalue) local) @trusted {
-			Ptr!gcc_jit_block defaultBlock = gcc_jit_function_new_block(ctx.curFun, "switchDefault");
+		(gcc_jit_block* originalBlock, Opt!(gcc_jit_block*) endBlock, Opt!(gcc_jit_lvalue*) local) @trusted {
+			gcc_jit_block* defaultBlock = gcc_jit_function_new_block(ctx.curFun, "switchDefault");
 			gcc_jit_block_add_eval(
 				defaultBlock,
 				null,
@@ -750,11 +747,11 @@ immutable(ExprResult) emitSwitch(
 			else
 				gcc_jit_block_end_with_return(defaultBlock, null, arbitraryValue(ctx, type));
 
-			immutable Ptr!gcc_jit_case[] cases = makeArr!(Ptr!gcc_jit_case)(
+			immutable gcc_jit_case*[] cases = makeArr!(gcc_jit_case*)(
 				ctx.alloc,
 				nCases,
 				(immutable size_t i) {
-					Ptr!gcc_jit_block caseBlock = gcc_jit_function_new_block(ctx.curFun, "switchCase");
+					gcc_jit_block* caseBlock = gcc_jit_function_new_block(ctx.curFun, "switchCase");
 					ctx.curBlock = caseBlock;
 					if (has(local))
 						emitToLValueCb(force(local), (ref ExprEmit emitLocal) =>
@@ -766,7 +763,7 @@ immutable(ExprResult) emitSwitch(
 					if (has(endBlock))
 						// A nested branch may have changed to a new block, so use that instead of 'caseBlock'
 						gcc_jit_block_end_with_jump(ctx.curBlock, null, force(endBlock));
-					immutable Ptr!gcc_jit_rvalue caseValue =
+					immutable gcc_jit_rvalue* caseValue =
 						//TODO:PERF cache these?
 						gcc_jit_context_new_rvalue_from_long(ctx.gcc, ctx.nat64Type, i);
 					return gcc_jit_context_new_case(ctx.gcc, caseValue, caseValue, caseBlock);
@@ -783,62 +780,62 @@ immutable(ExprResult) emitSwitch(
 }
 
 alias Locals = MutStackDict!(
-	immutable Ptr!LowLocal,
-	Ptr!gcc_jit_lvalue,
-	nullPtr!LowLocal,
+	immutable LowLocal*,
+	gcc_jit_lvalue*,
+	null,
 	ptrEquals!LowLocal);
 alias addLocal = mutStackDictAdd!(
-	immutable Ptr!LowLocal,
-	Ptr!gcc_jit_lvalue,
-	nullPtr!LowLocal,
+	immutable LowLocal*,
+	gcc_jit_lvalue*,
+	null,
 	ptrEquals!LowLocal);
 alias getLocal = mutStackDictMustGet!(
-	immutable Ptr!LowLocal,
-	Ptr!gcc_jit_lvalue,
-	nullPtr!LowLocal,
+	immutable LowLocal*,
+	gcc_jit_lvalue*,
+	null,
 	ptrEquals!LowLocal);
 
 struct ExprCtx {
 	@safe @nogc pure nothrow:
 
-	Ptr!Alloc allocPtr;
-	immutable Ptr!LowProgram programPtr;
-	Ptr!gcc_jit_context gccPtr;
-	immutable Ptr!MangledNames mangledNamesPtr;
-	immutable Ptr!GccTypes typesPtr;
-	Ptr!GlobalsForConstants globalsForConstantsPtr;
-	FullIndexDict!(LowFunIndex, Ptr!gcc_jit_function) gccFuns;
-	Ptr!gcc_jit_function curFun;
-	Ptr!gcc_jit_block entryBlock;
-	Ptr!gcc_jit_block curBlock;
-	immutable Ptr!gcc_jit_type nat64Type;
-	immutable Ptr!gcc_jit_function abortFunction;
+	Alloc* allocPtr;
+	immutable LowProgram* programPtr;
+	gcc_jit_context* gccPtr;
+	immutable MangledNames* mangledNamesPtr;
+	immutable GccTypes* typesPtr;
+	GlobalsForConstants* globalsForConstantsPtr;
+	FullIndexDict!(LowFunIndex, gcc_jit_function*) gccFuns;
+	gcc_jit_function* curFun;
+	gcc_jit_block* entryBlock;
+	gcc_jit_block* curBlock;
+	immutable gcc_jit_type* nat64Type;
+	immutable gcc_jit_function* abortFunction;
 	immutable ConversionFunctions conversionFunctions;
-	immutable Ptr!gcc_jit_function builtinPopcountlFunction;
-	immutable Ptr!gcc_jit_rvalue globalVoid;
+	immutable gcc_jit_function* builtinPopcountlFunction;
+	immutable gcc_jit_rvalue* globalVoid;
 
 	ref Alloc alloc() return scope {
-		return allocPtr.deref();
+		return *allocPtr;
 	}
 
 	ref immutable(LowProgram) program() const return scope {
-		return programPtr.deref();
+		return *programPtr;
 	}
 
 	ref immutable(MangledNames) mangledNames() const return scope {
-		return mangledNamesPtr.deref();
+		return *mangledNamesPtr;
 	}
 
 	ref immutable(GccTypes) types() const return scope {
-		return typesPtr.deref();
+		return *typesPtr;
 	}
 
 	ref GlobalsForConstants globalsForConstants() return scope {
-		return globalsForConstantsPtr.deref();
+		return *globalsForConstantsPtr;
 	}
 
 	ref gcc_jit_context gcc() return scope {
-		return gccPtr.deref();
+		return *gccPtr;
 	}
 }
 
@@ -900,21 +897,21 @@ immutable(ExprResult) toGccExpr(
 	)(a.kind);
 }
 
-immutable(Ptr!gcc_jit_rvalue) emitToRValueCb(
+immutable(gcc_jit_rvalue*) emitToRValueCb(
 	scope immutable(ExprResult) delegate(ref ExprEmit) @safe @nogc pure nothrow cbEmit,
 ) {
 	ExprEmit emit = ExprEmit(immutable ExprEmit.Value());
-	immutable Opt!(Ptr!gcc_jit_rvalue) res = cbEmit(emit);
+	immutable Opt!(gcc_jit_rvalue*) res = cbEmit(emit);
 	return force(res);
 }
 
-immutable(Ptr!gcc_jit_rvalue) emitToRValue(ref ExprCtx ctx, ref Locals locals, ref immutable LowExpr a) {
+immutable(gcc_jit_rvalue*) emitToRValue(ref ExprCtx ctx, ref Locals locals, ref immutable LowExpr a) {
 	return emitToRValueCb((ref ExprEmit emit) =>
 		toGccExpr(ctx, locals, emit, a));
 }
 
 void emitToLValueCb(
-	Ptr!gcc_jit_lvalue lvalue,
+	gcc_jit_lvalue* lvalue,
 	scope immutable(ExprResult) delegate(ref ExprEmit) @safe @nogc pure nothrow cbEmit,
 ) {
 	ExprEmit emit = ExprEmit(ExprEmit.WriteTo(lvalue));
@@ -922,7 +919,7 @@ void emitToLValueCb(
 	verify(!has(result));
 }
 
-void emitToLValue(ref ExprCtx ctx, ref Locals locals, Ptr!gcc_jit_lvalue lvalue, scope ref immutable LowExpr a) {
+void emitToLValue(ref ExprCtx ctx, ref Locals locals, gcc_jit_lvalue* lvalue, scope ref immutable LowExpr a) {
 	emitToLValueCb(lvalue, (ref ExprEmit emitArg) =>
 		toGccExpr(ctx, locals, emitArg, a));
 }
@@ -934,10 +931,11 @@ void emitToLValue(ref ExprCtx ctx, ref Locals locals, Ptr!gcc_jit_lvalue lvalue,
 	immutable LowType type,
 	ref immutable LowExprKind.Call a,
 ) {
-	const Ptr!gcc_jit_function called = ctx.gccFuns[a.called];
+	const gcc_jit_function* called = ctx.gccFuns[a.called];
 	//TODO:NO ALLOC
-	immutable Ptr!gcc_jit_rvalue[] argsGcc = map!(Ptr!gcc_jit_rvalue)(ctx.alloc, a.args, (ref immutable LowExpr arg) =>
-		emitToRValue(ctx, locals, arg));
+	immutable gcc_jit_rvalue*[] argsGcc =
+		map!(gcc_jit_rvalue*, LowExpr)(ctx.alloc, a.args, (ref immutable LowExpr arg) =>
+			emitToRValue(ctx, locals, arg));
 	return emitSimpleYesSideEffects(ctx, emit, type, castImmutable(
 		gcc_jit_context_new_call(ctx.gcc, null, called, cast(int) argsGcc.length, argsGcc.ptr)));
 }
@@ -949,10 +947,11 @@ void emitToLValue(ref ExprCtx ctx, ref Locals locals, Ptr!gcc_jit_lvalue lvalue,
 	ref immutable LowExpr expr,
 	ref immutable LowExprKind.CallFunPtr a,
 ) {
-	immutable Ptr!gcc_jit_rvalue funPtrGcc = emitToRValue(ctx, locals, a.funPtr);
+	immutable gcc_jit_rvalue* funPtrGcc = emitToRValue(ctx, locals, a.funPtr);
 	//TODO:NO ALLOC
-	immutable Ptr!gcc_jit_rvalue[] argsGcc = map!(Ptr!gcc_jit_rvalue)(ctx.alloc, a.args, (ref immutable LowExpr arg) =>
-		emitToRValue(ctx, locals, arg));
+	immutable gcc_jit_rvalue*[] argsGcc =
+		map!(gcc_jit_rvalue*, LowExpr)(ctx.alloc, a.args, (ref immutable LowExpr arg) =>
+			emitToRValue(ctx, locals, arg));
 	return emitSimpleYesSideEffects(ctx, emit, expr.type, gcc_jit_context_new_call_through_ptr(
 		ctx.gcc,
 		null,
@@ -970,18 +969,18 @@ void emitToLValue(ref ExprCtx ctx, ref Locals locals, Ptr!gcc_jit_lvalue lvalue,
 	verify(isReturn(emit));
 
 	// We need to be sure to generate all the new parameter values before overwriting any,
-	Ptr!gcc_jit_lvalue[] updateParamLocals =
-		mapToMut!(Ptr!gcc_jit_lvalue)(ctx.alloc, a.updateParams, (scope ref immutable UpdateParam updateParam) {
-			Ptr!gcc_jit_lvalue local =
+	gcc_jit_lvalue*[] updateParamLocals =
+		mapToMut!(gcc_jit_lvalue*)(ctx.alloc, a.updateParams, (scope ref immutable UpdateParam updateParam) {
+			gcc_jit_lvalue* local =
 				gcc_jit_function_new_local(ctx.curFun, null, getGccType(ctx.types, updateParam.newValue.type), "temp");
 			emitToLValue(ctx, locals, local, updateParam.newValue);
 			return local;
 		});
-	zipFirstMut!(Ptr!gcc_jit_lvalue, UpdateParam)(
+	zipFirstMut!(gcc_jit_lvalue*, UpdateParam)(
 		updateParamLocals,
 		a.updateParams,
-		(ref Ptr!gcc_jit_lvalue local, ref immutable UpdateParam updateParam) {
-			Ptr!gcc_jit_param param = getParam(ctx, immutable LowExprKind.ParamRef(updateParam.param));
+		(ref gcc_jit_lvalue* local, ref immutable UpdateParam updateParam) {
+			gcc_jit_param* param = getParam(ctx, immutable LowExprKind.ParamRef(updateParam.param));
 			gcc_jit_block_add_assignment(
 				ctx.curBlock,
 				null,
@@ -989,7 +988,7 @@ void emitToLValue(ref ExprCtx ctx, ref Locals locals, Ptr!gcc_jit_lvalue lvalue,
 				gcc_jit_lvalue_as_rvalue(local));
 		});
 	gcc_jit_block_end_with_jump(ctx.curBlock, null, ctx.entryBlock);
-	return none!(Ptr!gcc_jit_rvalue);
+	return none!(gcc_jit_rvalue*);
 }
 
 immutable(ExprResult) emitRecordCb(
@@ -998,10 +997,10 @@ immutable(ExprResult) emitRecordCb(
 	immutable LowType type,
 	scope immutable(ExprResult) delegate(immutable size_t, ref ExprEmit) @safe @nogc pure nothrow cbEmitArg,
 ) {
-	return emitWriteToLValue(ctx, emit, type, (Ptr!gcc_jit_lvalue lvalue) {
-		immutable Ptr!gcc_jit_field[] fields = ctx.types.recordFields[asRecordType(type)];
-		foreach (immutable size_t i, immutable Ptr!gcc_jit_field field; fields) {
-			immutable Ptr!gcc_jit_rvalue value = emitToRValueCb((ref ExprEmit emitArg) =>
+	return emitWriteToLValue(ctx, emit, type, (gcc_jit_lvalue* lvalue) {
+		immutable gcc_jit_field*[] fields = ctx.types.recordFields[asRecordType(type)];
+		foreach (immutable size_t i, immutable gcc_jit_field* field; fields) {
+			immutable gcc_jit_rvalue* value = emitToRValueCb((ref ExprEmit emitArg) =>
 				cbEmitArg(i, emitArg));
 			gcc_jit_block_add_assignment(ctx.curBlock, null, gcc_jit_lvalue_access_field(lvalue, null, field), value);
 		}
@@ -1043,14 +1042,14 @@ immutable(ExprResult) emitUnion(
 	immutable size_t memberIndex,
 	scope immutable(ExprResult) delegate(ref ExprEmit) @safe @nogc pure nothrow cbEmitArg,
 ) {
-	return emitWriteToLValue(ctx, emit, type, (Ptr!gcc_jit_lvalue lvalue) {
+	return emitWriteToLValue(ctx, emit, type, (gcc_jit_lvalue* lvalue) {
 		immutable UnionFields unionFields = ctx.types.unionFields[asUnionType(type)];
 		gcc_jit_block_add_assignment(
 			ctx.curBlock,
 			null,
 			gcc_jit_lvalue_access_field(lvalue, null, unionFields.kindField),
 			gcc_jit_context_new_rvalue_from_long(ctx.gcc, ctx.nat64Type, memberIndex));
-		Ptr!gcc_jit_lvalue memberLValue = gcc_jit_lvalue_access_field(
+		gcc_jit_lvalue* memberLValue = gcc_jit_lvalue_access_field(
 			gcc_jit_lvalue_access_field(lvalue, null, unionFields.innerField),
 			null,
 			unionFields.memberFields[memberIndex]);
@@ -1085,17 +1084,17 @@ immutable(ExprResult) emitWithLocal(
 	ref ExprCtx ctx,
 	ref Locals locals,
 	ref ExprEmit emit,
-	immutable Ptr!LowLocal lowLocal,
+	immutable LowLocal* lowLocal,
 	scope immutable(ExprResult) delegate(ref ExprEmit) @safe @nogc pure nothrow cbValue,
 	immutable LowExpr then,
 ) {
 	//TODO:NO ALLOC
 	Writer writer = Writer(ctx.allocPtr);
-	writeLowLocalName(writer, ctx.mangledNames, lowLocal.deref());
-	Ptr!gcc_jit_lvalue gccLocal = gcc_jit_function_new_local(
+	writeLowLocalName(writer, ctx.mangledNames, *lowLocal);
+	gcc_jit_lvalue* gccLocal = gcc_jit_function_new_local(
 		ctx.curFun,
 		null,
-		getGccType(ctx.types, lowLocal.deref().type),
+		getGccType(ctx.types, lowLocal.type),
 		finishWriterToCStr(writer));
 	emitToLValueCb(gccLocal, (ref ExprEmit valueEmit) =>
 		cbValue(valueEmit));
@@ -1120,7 +1119,7 @@ immutable(ExprResult) matchUnionToGcc(
 	ref immutable LowExprKind.MatchUnion a,
 ) {
 	// We need to create a local for the matchedValue.
-	Ptr!gcc_jit_lvalue matchedLocal = gcc_jit_function_new_local(
+	gcc_jit_lvalue* matchedLocal = gcc_jit_function_new_local(
 		ctx.curFun,
 		null,
 		getGccType(ctx.types, a.matchedValue.type),
@@ -1129,7 +1128,7 @@ immutable(ExprResult) matchUnionToGcc(
 
 	immutable UnionFields unionFields = ctx.types.unionFields[asUnionType(a.matchedValue.type)];
 
-	immutable Ptr!gcc_jit_rvalue matchedValueKind = gcc_jit_rvalue_access_field(
+	immutable gcc_jit_rvalue* matchedValueKind = gcc_jit_rvalue_access_field(
 		gcc_jit_lvalue_as_rvalue(matchedLocal),
 		null,
 		unionFields.kindField);
@@ -1150,7 +1149,7 @@ immutable(ExprResult) matchUnionToGcc(
 					force(case_.local),
 					(ref ExprEmit valueEmit) {
 						// The value is the nth value in the union..
-						immutable Ptr!gcc_jit_rvalue matchedValueInner = gcc_jit_rvalue_access_field(
+						immutable gcc_jit_rvalue* matchedValueInner = gcc_jit_rvalue_access_field(
 							gcc_jit_lvalue_as_rvalue(matchedLocal),
 							null,
 							unionFields.innerField);
@@ -1172,7 +1171,7 @@ immutable(ExprResult) paramRefToGcc(
 	return emitSimpleNoSideEffects(ctx, emit, gcc_jit_param_as_rvalue(getParam(ctx, a)));
 }
 
-Ptr!gcc_jit_param getParam(ref ExprCtx ctx, immutable LowExprKind.ParamRef a) {
+gcc_jit_param* getParam(ref ExprCtx ctx, immutable LowExprKind.ParamRef a) {
 	return gcc_jit_function_get_param(ctx.curFun, cast(int) a.index.index);
 }
 
@@ -1200,19 +1199,19 @@ immutable(ExprResult) recordFieldGetToGcc(
 	ref ExprEmit emit,
 	ref immutable LowExprKind.RecordFieldGet a,
 ) {
-	immutable Ptr!gcc_jit_rvalue target = emitToRValue(ctx, locals, a.target);
-	immutable Ptr!gcc_jit_field field = ctx.types.recordFields[a.record][a.fieldIndex];
+	immutable gcc_jit_rvalue* target = emitToRValue(ctx, locals, a.target);
+	immutable gcc_jit_field* field = ctx.types.recordFields[a.record][a.fieldIndex];
 	return emitSimpleNoSideEffects(ctx, emit, a.targetIsPointer
 		? gcc_jit_lvalue_as_rvalue(gcc_jit_rvalue_dereference_field(target, null, field))
 		: gcc_jit_rvalue_access_field(target, null, field));
 }
 
-Ptr!gcc_jit_lvalue recordFieldGetToLValue(
+gcc_jit_lvalue* recordFieldGetToLValue(
 	ref ExprCtx ctx,
 	ref Locals locals,
 	ref immutable LowExprKind.RecordFieldGet a,
 ) {
-	immutable Ptr!gcc_jit_field field = ctx.types.recordFields[a.record][a.fieldIndex];
+	immutable gcc_jit_field* field = ctx.types.recordFields[a.record][a.fieldIndex];
 	return a.targetIsPointer
 		? gcc_jit_rvalue_dereference_field(emitToRValue(ctx, locals, a.target), null, field)
 		: gcc_jit_lvalue_access_field(getLValue(ctx, locals, a.target), null, field);
@@ -1224,10 +1223,10 @@ immutable(ExprResult) recordFieldSetToGcc(
 	ref ExprEmit emit,
 	ref immutable LowExprKind.RecordFieldSet a,
 ) {
-	immutable Ptr!gcc_jit_rvalue target = emitToRValue(ctx, locals, a.target);
-	immutable Ptr!gcc_jit_field field = ctx.types.recordFields[a.record][a.fieldIndex];
+	immutable gcc_jit_rvalue* target = emitToRValue(ctx, locals, a.target);
+	immutable gcc_jit_field* field = ctx.types.recordFields[a.record][a.fieldIndex];
 	verify(a.targetIsPointer); // TODO: make if this is always true, don't have it...
-	immutable Ptr!gcc_jit_rvalue value = emitToRValue(ctx, locals, a.value);
+	immutable gcc_jit_rvalue* value = emitToRValue(ctx, locals, a.value);
 	gcc_jit_block_add_assignment(ctx.curBlock, null, gcc_jit_rvalue_dereference_field(target, null, field), value);
 	return emitVoid(ctx, emit);
 }
@@ -1265,15 +1264,15 @@ immutable(ExprResult) constantToGcc(
 		a,
 		(ref immutable Constant.ArrConstant it) {
 			immutable size_t arrSize = ctx.program.allConstants.arrs[it.typeIndex].constants[it.index].length;
-			immutable Ptr!gcc_jit_rvalue storage = ctx.globalsForConstants.arrs[it.typeIndex][it.index];
-			immutable Ptr!gcc_jit_rvalue arrPtr = gcc_jit_lvalue_get_address(
+			immutable gcc_jit_rvalue* storage = ctx.globalsForConstants.arrs[it.typeIndex][it.index];
+			immutable gcc_jit_rvalue* arrPtr = gcc_jit_lvalue_get_address(
 				gcc_jit_context_new_array_access(ctx.gcc, null, storage, gcc_jit_context_zero(ctx.gcc, ctx.nat64Type)),
 				null);
-			immutable Ptr!gcc_jit_field[] fields = ctx.types.recordFields[asRecordType(type)];
+			immutable gcc_jit_field*[] fields = ctx.types.recordFields[asRecordType(type)];
 			verify(fields.length == 2);
-			immutable Ptr!gcc_jit_field sizeField = fields[0];
-			immutable Ptr!gcc_jit_field ptrField = fields[1];
-			return emitWriteToLValue(ctx, emit, type, (Ptr!gcc_jit_lvalue local) {
+			immutable gcc_jit_field* sizeField = fields[0];
+			immutable gcc_jit_field* ptrField = fields[1];
+			return emitWriteToLValue(ctx, emit, type, (gcc_jit_lvalue* local) {
 				gcc_jit_block_add_assignment(
 					ctx.curBlock,
 					null,
@@ -1301,10 +1300,10 @@ immutable(ExprResult) constantToGcc(
 				emit,
 				gcc_jit_context_new_rvalue_from_double(ctx.gcc, getGccType(ctx.types, type), it.value)),
 		(immutable Constant.FunPtr it) {
-			immutable Ptr!gcc_jit_rvalue value = gcc_jit_function_get_address(
+			immutable gcc_jit_rvalue* value = gcc_jit_function_get_address(
 				ctx.gccFuns[mustGetAt(ctx.program.concreteFunToLowFunIndex, it.fun)],
 				null);
-			immutable Ptr!gcc_jit_rvalue castValue = () {
+			immutable gcc_jit_rvalue* castValue = () {
 				if (isPtrRawConst(type)) {
 					// We need to cast function pointer to any-ptr for 'all-funs'
 					return gcc_jit_context_new_cast(ctx.gcc, null, value, getGccType(ctx.types, type));
@@ -1323,7 +1322,7 @@ immutable(ExprResult) constantToGcc(
 		(immutable Constant.Null) =>
 			emitSimpleNoSideEffects(ctx, emit, gcc_jit_context_null(ctx.gcc, getGccType(ctx.types, type))),
 		(immutable Constant.Pointer it) {
-			Ptr!gcc_jit_lvalue storage = ctx.globalsForConstants.pointers[it.typeIndex][it.index];
+			gcc_jit_lvalue* storage = ctx.globalsForConstants.pointers[it.typeIndex][it.index];
 			return emitSimpleNoSideEffects(ctx, emit, gcc_jit_lvalue_get_address(storage, null));
 		},
 		(ref immutable Constant.Record it) {
@@ -1401,11 +1400,11 @@ immutable(ExprResult) constantToGcc(
 				emitToRValue(ctx, locals, a.arg),
 				getGccType(ctx.types, expr.type)));
 		case LowExprKind.SpecialUnary.Kind.toNat64FromPtr:
-			immutable Ptr!gcc_jit_rvalue arg = emitToRValue(ctx, locals, a.arg);
+			immutable gcc_jit_rvalue* arg = emitToRValue(ctx, locals, a.arg);
 			return emitSimpleNoSideEffects(ctx, emit, castImmutable(
 				gcc_jit_context_new_call(ctx.gcc, null, ctx.conversionFunctions.ptrToNat64, 1, &arg)));
 		case LowExprKind.SpecialUnary.Kind.toPtrFromNat64:
-			immutable Ptr!gcc_jit_rvalue arg = emitToRValue(ctx, locals, a.arg);
+			immutable gcc_jit_rvalue* arg = emitToRValue(ctx, locals, a.arg);
 			return emitSimpleNoSideEffects(ctx, emit, gcc_jit_context_new_cast(
 				ctx.gcc,
 				null,
@@ -1420,8 +1419,8 @@ immutable(ExprResult) constantToGcc(
 	ref ExprEmit emit,
 	ref immutable LowExpr arg,
 ) {
-	immutable Ptr!gcc_jit_rvalue argGcc = emitToRValue(ctx, locals, arg);
-	immutable Ptr!gcc_jit_rvalue call = castImmutable(gcc_jit_context_new_call(
+	immutable gcc_jit_rvalue* argGcc = emitToRValue(ctx, locals, arg);
+	immutable gcc_jit_rvalue* call = castImmutable(gcc_jit_context_new_call(
 		ctx.gcc,
 		null,
 		ctx.builtinPopcountlFunction,
@@ -1566,8 +1565,8 @@ immutable(ExprResult) binaryToGcc(
 		case LowExprKind.SpecialBinary.Kind.unsafeModNat64:
 			return operator(gcc_jit_binary_op.GCC_JIT_BINARY_OP_MODULO);
 		case LowExprKind.SpecialBinary.Kind.writeToPtr:
-			immutable Ptr!gcc_jit_rvalue left = emitToRValue(ctx, locals, a.left);
-			immutable Ptr!gcc_jit_rvalue right = emitToRValue(ctx, locals, a.right);
+			immutable gcc_jit_rvalue* left = emitToRValue(ctx, locals, a.left);
+			immutable gcc_jit_rvalue* right = emitToRValue(ctx, locals, a.right);
 			gcc_jit_block_add_assignment(ctx.curBlock, null, gcc_jit_rvalue_dereference(left, null), right);
 			return emitVoid(ctx, emit);
 	}
@@ -1590,8 +1589,8 @@ immutable(ExprResult) operatorForLhsRhs(
 	ref ExprEmit emit,
 	immutable LowType type,
 	immutable gcc_jit_binary_op op,
-	immutable Ptr!gcc_jit_rvalue lhs,
-	immutable Ptr!gcc_jit_rvalue rhs,
+	immutable gcc_jit_rvalue* lhs,
+	immutable gcc_jit_rvalue* rhs,
 ) {
 	return emitSimpleNoSideEffects(ctx, emit, gcc_jit_context_new_binary_op(
 		ctx.gcc,
@@ -1660,13 +1659,13 @@ immutable(ExprResult) ptrArithmeticToGcc(
 ) {
 	// `ptr + nat` is `&ptr[nat]`
 	// `ptr - nat` is `&ptr[-(int) nat]`
-	immutable Ptr!gcc_jit_rvalue rightRValue = emitToRValue(ctx, locals, right);
-	immutable Ptr!gcc_jit_rvalue rightWithSign = () {
+	immutable gcc_jit_rvalue* rightRValue = emitToRValue(ctx, locals, right);
+	immutable gcc_jit_rvalue* rightWithSign = () {
 		final switch (op) {
 			case PtrArith.addNat:
 				return rightRValue;
 			case PtrArith.subtractNat:
-				immutable Ptr!gcc_jit_type int64Type = getGccType(ctx.types, immutable LowType(PrimitiveType.int64));
+				immutable gcc_jit_type* int64Type = getGccType(ctx.types, immutable LowType(PrimitiveType.int64));
 				return gcc_jit_context_new_unary_op(
 					ctx.gcc,
 					null,
@@ -1697,14 +1696,14 @@ immutable(ExprResult) ifToGcc(
 	immutable LowExpr then,
 	immutable LowExpr else_,
 ) {
-	immutable Ptr!gcc_jit_rvalue condValue = emitToRValue(ctx, locals, cond);
+	immutable gcc_jit_rvalue* condValue = emitToRValue(ctx, locals, cond);
 	return emitWithBranching(
 		ctx, emit, type,
-		(Ptr!gcc_jit_block originalBlock, Opt!(Ptr!gcc_jit_block) endBlock, Opt!(Ptr!gcc_jit_lvalue) local) {
-			Ptr!gcc_jit_block thenBlock = gcc_jit_function_new_block(ctx.curFun, "then");
-			Ptr!gcc_jit_block elseBlock = gcc_jit_function_new_block(ctx.curFun, "else");
+		(gcc_jit_block* originalBlock, Opt!(gcc_jit_block*) endBlock, Opt!(gcc_jit_lvalue*) local) {
+			gcc_jit_block* thenBlock = gcc_jit_function_new_block(ctx.curFun, "then");
+			gcc_jit_block* elseBlock = gcc_jit_function_new_block(ctx.curFun, "else");
 			gcc_jit_block_end_with_conditional(originalBlock, null, condValue, thenBlock, elseBlock);
-			void branch(Ptr!gcc_jit_block block, ref immutable LowExpr blockExpr) {
+			void branch(gcc_jit_block* block, ref immutable LowExpr blockExpr) {
 				ctx.curBlock = block;
 				if (has(local))
 					emitToLValue(ctx, locals, force(local), blockExpr);
@@ -1744,7 +1743,7 @@ immutable(ExprResult) zeroedToGcc(
 	ref ExprEmit emit,
 	immutable LowType type,
 ) {
-	immutable Ptr!gcc_jit_type gccType = getGccType(ctx.types, type);
+	immutable gcc_jit_type* gccType = getGccType(ctx.types, type);
 	return matchLowTypeCombinePtr!(
 		immutable ExprResult,
 		(immutable LowType.ExternPtr) =>
@@ -1774,7 +1773,7 @@ immutable(ExprResult) zeroedToGcc(
 						emit,
 						gcc_jit_context_new_rvalue_from_double(ctx.gcc, gccType, 0));
 				case PrimitiveType.void_:
-					return emitWriteToLValue(ctx, emit, type, (Ptr!gcc_jit_lvalue) {
+					return emitWriteToLValue(ctx, emit, type, (gcc_jit_lvalue*) {
 						// empty type, nothing to write to
 					});
 			}
@@ -1792,12 +1791,12 @@ immutable(ExprResult) zeroedToGcc(
 	)(type);
 }
 
-immutable(Ptr!gcc_jit_rvalue) arbitraryValue(ref ExprCtx ctx, immutable LowType type) {
-	immutable(Ptr!gcc_jit_rvalue) nullValue() {
+immutable(gcc_jit_rvalue*) arbitraryValue(ref ExprCtx ctx, immutable LowType type) {
+	immutable(gcc_jit_rvalue*) nullValue() {
 		return gcc_jit_context_null(ctx.gcc, getGccType(ctx.types, type));
 	}
 	return matchLowTypeCombinePtr!(
-		immutable Ptr!gcc_jit_rvalue,
+		immutable gcc_jit_rvalue*,
 		(immutable LowType.ExternPtr) =>
 			nullValue(),
 		(immutable LowType.FunPtr) =>
@@ -1808,59 +1807,59 @@ immutable(Ptr!gcc_jit_rvalue) arbitraryValue(ref ExprCtx ctx, immutable LowType 
 		(immutable(LowPtrCombine)) =>
 			nullValue(),
 		(immutable LowType.Record) =>
-			getRValueUsingLocal(ctx, type, (Ptr!gcc_jit_lvalue) {}),
+			getRValueUsingLocal(ctx, type, (gcc_jit_lvalue*) {}),
 		(immutable LowType.Union) =>
-			getRValueUsingLocal(ctx, type, (Ptr!gcc_jit_lvalue) {}),
+			getRValueUsingLocal(ctx, type, (gcc_jit_lvalue*) {}),
 	)(type);
 }
 
-Ptr!gcc_jit_lvalue getLValue(ref ExprCtx ctx, ref Locals locals, ref immutable LowExpr expr) {
+gcc_jit_lvalue* getLValue(ref ExprCtx ctx, ref Locals locals, ref immutable LowExpr expr) {
 	return matchLowExprKind!(
-		Ptr!gcc_jit_lvalue,
-		(ref immutable LowExprKind.Call) => unreachable!(Ptr!gcc_jit_lvalue)(),
-		(ref immutable LowExprKind.CallFunPtr) => unreachable!(Ptr!gcc_jit_lvalue)(),
-		(ref immutable LowExprKind.CreateRecord) => unreachable!(Ptr!gcc_jit_lvalue)(),
-		(ref immutable LowExprKind.CreateUnion) => unreachable!(Ptr!gcc_jit_lvalue)(),
-		(ref immutable LowExprKind.If) => unreachable!(Ptr!gcc_jit_lvalue)(),
-		(ref immutable LowExprKind.InitConstants) => unreachable!(Ptr!gcc_jit_lvalue)(),
-		(ref immutable LowExprKind.Let) => unreachable!(Ptr!gcc_jit_lvalue)(),
+		gcc_jit_lvalue*,
+		(ref immutable LowExprKind.Call) => unreachable!(gcc_jit_lvalue*)(),
+		(ref immutable LowExprKind.CallFunPtr) => unreachable!(gcc_jit_lvalue*)(),
+		(ref immutable LowExprKind.CreateRecord) => unreachable!(gcc_jit_lvalue*)(),
+		(ref immutable LowExprKind.CreateUnion) => unreachable!(gcc_jit_lvalue*)(),
+		(ref immutable LowExprKind.If) => unreachable!(gcc_jit_lvalue*)(),
+		(ref immutable LowExprKind.InitConstants) => unreachable!(gcc_jit_lvalue*)(),
+		(ref immutable LowExprKind.Let) => unreachable!(gcc_jit_lvalue*)(),
 		(ref immutable LowExprKind.LocalRef it) =>
 			getLocal(locals, it.local),
-		(ref immutable LowExprKind.MatchUnion) => unreachable!(Ptr!gcc_jit_lvalue)(),
+		(ref immutable LowExprKind.MatchUnion) => unreachable!(gcc_jit_lvalue*)(),
 		(ref immutable LowExprKind.ParamRef it) =>
 			gcc_jit_param_as_lvalue(getParam(ctx, it)),
-		(ref immutable LowExprKind.PtrCast) => todo!(Ptr!gcc_jit_lvalue)("!"),
+		(ref immutable LowExprKind.PtrCast) => todo!(gcc_jit_lvalue*)("!"),
 		(ref immutable LowExprKind.RecordFieldGet it) =>
 			recordFieldGetToLValue(ctx, locals, it),
-		(ref immutable LowExprKind.RecordFieldSet) => unreachable!(Ptr!gcc_jit_lvalue)(),
-		(ref immutable LowExprKind.Seq) => unreachable!(Ptr!gcc_jit_lvalue)(),
-		(ref immutable LowExprKind.SizeOf) => unreachable!(Ptr!gcc_jit_lvalue)(),
-		(ref immutable Constant) => unreachable!(Ptr!gcc_jit_lvalue)(),
+		(ref immutable LowExprKind.RecordFieldSet) => unreachable!(gcc_jit_lvalue*)(),
+		(ref immutable LowExprKind.Seq) => unreachable!(gcc_jit_lvalue*)(),
+		(ref immutable LowExprKind.SizeOf) => unreachable!(gcc_jit_lvalue*)(),
+		(ref immutable Constant) => unreachable!(gcc_jit_lvalue*)(),
 		(ref immutable LowExprKind.SpecialUnary it) =>
 			it.kind == LowExprKind.SpecialUnary.Kind.deref
 				? gcc_jit_rvalue_dereference(emitToRValue(ctx, locals, it.arg), null)
-				: todo!(Ptr!gcc_jit_lvalue)("!"),
-		(ref immutable LowExprKind.SpecialBinary) => unreachable!(Ptr!gcc_jit_lvalue)(),
-		(ref immutable LowExprKind.SpecialTernary) => unreachable!(Ptr!gcc_jit_lvalue)(),
-		(ref immutable LowExprKind.Switch0ToN) => unreachable!(Ptr!gcc_jit_lvalue)(),
-		(ref immutable LowExprKind.SwitchWithValues) => unreachable!(Ptr!gcc_jit_lvalue)(),
-		(ref immutable LowExprKind.TailRecur) => unreachable!(Ptr!gcc_jit_lvalue)(),
-		(ref immutable LowExprKind.Zeroed) => unreachable!(Ptr!gcc_jit_lvalue)(),
+				: todo!(gcc_jit_lvalue*)("!"),
+		(ref immutable LowExprKind.SpecialBinary) => unreachable!(gcc_jit_lvalue*)(),
+		(ref immutable LowExprKind.SpecialTernary) => unreachable!(gcc_jit_lvalue*)(),
+		(ref immutable LowExprKind.Switch0ToN) => unreachable!(gcc_jit_lvalue*)(),
+		(ref immutable LowExprKind.SwitchWithValues) => unreachable!(gcc_jit_lvalue*)(),
+		(ref immutable LowExprKind.TailRecur) => unreachable!(gcc_jit_lvalue*)(),
+		(ref immutable LowExprKind.Zeroed) => unreachable!(gcc_jit_lvalue*)(),
 	)(expr.kind);
 }
 
 immutable(ExprResult) initConstantsToGcc(ref ExprCtx ctx, ref ExprEmit emit) {
-	zip!(Ptr!gcc_jit_rvalue[], ArrTypeAndConstantsLow)(
+	zip!(gcc_jit_rvalue*[], ArrTypeAndConstantsLow)(
 		ctx.globalsForConstants.arrs,
 		ctx.program.allConstants.arrs,
-		(ref immutable Ptr!gcc_jit_rvalue[] globals, ref immutable ArrTypeAndConstantsLow tc) {
-			zip!(Ptr!gcc_jit_rvalue, Constant[])(
+		(ref immutable gcc_jit_rvalue*[] globals, ref immutable ArrTypeAndConstantsLow tc) {
+			zip!(gcc_jit_rvalue*, Constant[])(
 				globals,
 				tc.constants,
-				(ref immutable Ptr!gcc_jit_rvalue global, ref immutable Constant[] elements) {
+				(ref immutable gcc_jit_rvalue* global, ref immutable Constant[] elements) {
 					verify(!empty(elements)); // Not sure how GCC would handle an empty global
 					foreach (immutable size_t index, immutable Constant elementValue; elements) {
-						Ptr!gcc_jit_lvalue elementLValue = gcc_jit_context_new_array_access(
+						gcc_jit_lvalue* elementLValue = gcc_jit_context_new_array_access(
 							ctx.gcc,
 							null,
 							global,
@@ -1871,14 +1870,14 @@ immutable(ExprResult) initConstantsToGcc(ref ExprCtx ctx, ref ExprEmit emit) {
 					}
 				});
 		});
-	zipFirstMut!(Ptr!gcc_jit_lvalue[], PointerTypeAndConstantsLow)(
+	zipFirstMut!(gcc_jit_lvalue*[], PointerTypeAndConstantsLow)(
 		ctx.globalsForConstants.pointers,
 		ctx.program.allConstants.pointers,
-		(ref Ptr!gcc_jit_lvalue[] globals, ref immutable PointerTypeAndConstantsLow tc) {
-			zipFirstMut!(Ptr!gcc_jit_lvalue, Constant)(
+		(ref gcc_jit_lvalue*[] globals, ref immutable PointerTypeAndConstantsLow tc) {
+			zipFirstMut!(gcc_jit_lvalue*, Constant)(
 				globals,
 				tc.constants,
-				(ref Ptr!gcc_jit_lvalue global, ref immutable Constant value) {
+				(ref gcc_jit_lvalue* global, ref immutable Constant value) {
 					emitToLValueCb(global, (ref ExprEmit emitPointee) =>
 						constantToGcc(ctx, emitPointee, tc.pointeeType, value));
 				});

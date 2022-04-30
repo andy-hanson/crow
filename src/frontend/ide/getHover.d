@@ -60,7 +60,7 @@ void getHover(
 		},
 		(ref immutable Position.ImportedModule it) {
 			writeStatic(writer, "import module ");
-			writeFile(writer, allPaths, pathsInfo, program.filesInfo, it.module_.deref().fileIndex);
+			writeFile(writer, allPaths, pathsInfo, program.filesInfo, it.module_.fileIndex);
 		},
 		(ref immutable Position.ImportedName it) {
 			getImportedNameHover(writer, it);
@@ -71,11 +71,11 @@ void getHover(
 		},
 		(ref immutable Position.RecordFieldPosition it) {
 			writeStatic(writer, "field ");
-			writeStructDecl(writer, allSymbols, it.struct_.deref());
+			writeStructDecl(writer, allSymbols, *it.struct_);
 			writeChar(writer, '.');
-			writeSym(writer, allSymbols, it.field.deref().name);
+			writeSym(writer, allSymbols, it.field.name);
 			writeStatic(writer, " (");
-			writeTypeUnquoted(writer, allSymbols, it.field.deref().type);
+			writeTypeUnquoted(writer, allSymbols, it.field.type);
 			writeChar(writer, ')');
 		},
 		(ref immutable SpecDecl) {

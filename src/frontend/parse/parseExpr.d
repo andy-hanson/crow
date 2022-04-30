@@ -74,7 +74,6 @@ import util.col.arrUtil : append, arrLiteral, prepend;
 import util.col.arrBuilder : add, ArrBuilder, finishArr;
 import util.memory : allocate;
 import util.opt : force, has, none, Opt, some;
-import util.ptr : Ptr;
 import util.sourceRange : Pos, RangeWithinFile;
 import util.sym :
 	isSymOperator,
@@ -1191,7 +1190,7 @@ immutable(ExprAndDedent) parseEqualsOrThen(scope ref Lexer lexer, immutable uint
 immutable(ExprAstKind) letOrThen(
 	scope ref Alloc alloc,
 	immutable OptNameAndRange name,
-	immutable Opt!(Ptr!TypeAst) type,
+	immutable Opt!(TypeAst*) type,
 	immutable EqualsOrThen kind,
 	immutable ExprAst init,
 	immutable ExprAst then,
@@ -1207,13 +1206,13 @@ immutable(ExprAstKind) letOrThen(
 
 enum EqualsOrThen { equals, then }
 struct TypeAndEqualsOrThen {
-	immutable Opt!(Ptr!TypeAst) type;
+	immutable Opt!(TypeAst*) type;
 	immutable EqualsOrThen equalsOrThen;
 }
 immutable(TypeAndEqualsOrThen) parseTypeAndEqualsOrThen(scope ref Lexer lexer) {
 	immutable Opt!EqualsOrThen res = tryTakeEqualsOrThen(lexer);
 	if (has(res))
-		return immutable TypeAndEqualsOrThen(none!(Ptr!TypeAst), force(res));
+		return immutable TypeAndEqualsOrThen(none!(TypeAst*), force(res));
 	else {
 		immutable TypeAst type = parseType(lexer);
 		immutable Opt!EqualsOrThen optEqualsOrThen = tryTakeEqualsOrThen(lexer);

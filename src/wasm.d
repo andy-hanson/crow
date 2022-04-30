@@ -80,8 +80,9 @@ extern(C) immutable(size_t) getGlobalBufferSizeBytes() {
 	scope immutable CStr path,
 ) {
 	Alloc resultAlloc = Alloc(resultStart, resultLength);
-	immutable Token[] tokens = withNullPerf!(immutable Token[], (scope ref Perf perf) =>
-		getTokens(resultAlloc, perf, *server, immutable SafeCStr(path)));
+	immutable SafeCStr safePath = immutable SafeCStr(path);
+	immutable Token[] tokens = withNullPerf!(immutable Token[], (ref Perf perf) =>
+		getTokens(resultAlloc, perf, *server, safePath));
 	immutable Repr repr = reprTokens(resultAlloc, tokens);
 	return jsonStrOfRepr(resultAlloc, server.allSymbols, repr).ptr;
 }
@@ -93,8 +94,9 @@ extern(C) immutable(size_t) getGlobalBufferSizeBytes() {
 	scope immutable CStr path,
 ) {
 	Alloc resultAlloc = Alloc(resultStart, resultLength);
-	immutable StrParseDiagnostic[] diags = withNullPerf!(immutable StrParseDiagnostic[], (scope ref Perf perf) =>
-		getParseDiagnostics(resultAlloc, perf, *server, immutable SafeCStr(path)));
+	immutable SafeCStr safePath = immutable SafeCStr(path);
+	immutable StrParseDiagnostic[] diags = withNullPerf!(immutable StrParseDiagnostic[], (ref Perf perf) =>
+		getParseDiagnostics(resultAlloc, perf, *server, safePath));
 	immutable Repr repr = reprParseDiagnostics(resultAlloc, diags);
 	return jsonStrOfRepr(resultAlloc, server.allSymbols, repr).ptr;
 }
@@ -107,8 +109,9 @@ extern(C) immutable(size_t) getGlobalBufferSizeBytes() {
 	immutable Pos pos,
 ) {
 	Alloc resultAlloc = Alloc(resultStart, resultLength);
-	return withNullPerf!(immutable SafeCStr, (scope ref Perf perf) =>
-		getHover(perf, resultAlloc, *server, immutable SafeCStr(path), pos)).ptr;
+	immutable SafeCStr safePath = immutable SafeCStr(path);
+	return withNullPerf!(immutable SafeCStr, (ref Perf perf) =>
+		getHover(perf, resultAlloc, *server, safePath, pos)).ptr;
 }
 
 @system extern(C) immutable(CStr) run(

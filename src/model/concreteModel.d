@@ -31,7 +31,7 @@ import util.col.str : SafeCStr;
 import util.hash : hashEnum, Hasher;
 import util.late : Late, lateGet, lateIsSet, lateSet;
 import util.opt : none, Opt, some;
-import util.ptr : hashPtr, ptrEquals, Ptr;
+import util.ptr : hashPtr;
 import util.sourceRange : FileAndRange;
 import util.sym : AllSymbols, shortSym, Sym;
 import util.util : unreachable, verify;
@@ -231,7 +231,7 @@ struct ConcreteStructBody {
 
 struct ConcreteType {
 	immutable ReferenceKind reference;
-	immutable Ptr!ConcreteStruct struct_;
+	immutable ConcreteStruct* struct_;
 }
 
 enum ReferenceKind { byRef, byVal }
@@ -251,10 +251,10 @@ struct TypeSize {
 }
 
 immutable(Purity) purity(immutable ConcreteType a) {
-	return a.struct_.deref().purity;
+	return a.struct_.purity;
 }
 
-immutable(Ptr!ConcreteStruct) mustBeByVal(immutable ConcreteType a) {
+immutable(ConcreteStruct*) mustBeByVal(immutable ConcreteType a) {
 	verify(a.reference == ReferenceKind.byVal);
 	return a.struct_;
 }
@@ -268,12 +268,12 @@ struct ConcreteStructSource {
 	@safe @nogc pure nothrow:
 
 	struct Inst {
-		immutable Ptr!StructInst inst;
+		immutable StructInst* inst;
 		immutable ConcreteType[] typeArgs;
 	}
 
 	struct Lambda {
-		immutable Ptr!ConcreteFun containingFun;
+		immutable ConcreteFun* containingFun;
 		immutable size_t index;
 	}
 
@@ -323,7 +323,7 @@ immutable(bool) isArr(ref immutable ConcreteStruct a) {
 	return matchConcreteStructSource!(
 		immutable bool,
 		(ref immutable ConcreteStructSource.Inst it) =>
-			isArr(it.inst.deref()),
+			isArr(*it.inst),
 		(ref immutable ConcreteStructSource.Lambda it) =>
 			false,
 	)(a.source);
@@ -359,7 +359,7 @@ immutable(bool) hasSizeOrPointerSizeBytes(ref immutable ConcreteType a) {
 		case ReferenceKind.byRef:
 			return true;
 		case ReferenceKind.byVal:
-			return lateIsSet(a.struct_.deref().typeSize_);
+			return lateIsSet(a.struct_.typeSize_);
 	}
 }
 
@@ -368,7 +368,7 @@ immutable(TypeSize) sizeOrPointerSizeBytes(ref immutable ConcreteType a) {
 		case ReferenceKind.byRef:
 			return immutable TypeSize(8, 8);
 		case ReferenceKind.byVal:
-			return typeSize(a.struct_.deref());
+			return typeSize(*a.struct_);
 	}
 }
 
@@ -381,7 +381,7 @@ immutable(ConcreteType) byVal(ref immutable ConcreteType t) {
 }
 
 immutable(bool) concreteTypeEqual(ref immutable ConcreteType a, ref immutable ConcreteType b) {
-	return ptrEquals(a.struct_, b.struct_) && a.reference == b.reference;
+	return a.struct_ == b.struct_ && a.reference == b.reference;
 }
 
 void hashConcreteType(ref Hasher hasher, ref immutable ConcreteType a) {
@@ -416,7 +416,7 @@ struct ConcreteParamSource {
 	struct Synthetic {}
 
 	immutable this(immutable Closure a) { kind_ = Kind.closure; closure_ = a; }
-	@trusted immutable this(immutable Ptr!Param a) { kind_ = Kind.param; param_ = a; }
+	@trusted immutable this(immutable Param* a) { kind_ = Kind.param; param_ = a; }
 	immutable this(immutable Synthetic a) { kind_ = Kind.synthetic; synthetic_ = a; }
 
 	private:
@@ -428,7 +428,7 @@ struct ConcreteParamSource {
 	immutable Kind kind_;
 	union {
 		immutable Closure closure_;
-		immutable Ptr!Param param_;
+		immutable Param* param_;
 		immutable Synthetic synthetic_;
 	}
 }
@@ -447,7 +447,7 @@ immutable(bool) isClosure(ref immutable ConcreteParamSource a) {
 		case ConcreteParamSource.Kind.closure:
 			return cbClosure(a.closure_);
 		case ConcreteParamSource.Kind.param:
-			return cbParam(a.param_.deref());
+			return cbParam(*a.param_);
 		case ConcreteParamSource.Kind.synthetic:
 			return cbSynthetic(a.synthetic_);
 	}
@@ -460,7 +460,7 @@ struct ConcreteParam {
 }
 
 struct ConcreteLocal {
-	immutable Ptr!Local source;
+	immutable Local* source;
 	// Needed to distinguish two locals with the same name when compiling to C
 	immutable size_t index;
 	immutable ConcreteType type;
@@ -596,7 +596,7 @@ struct ConcreteFunSource {
 
 	struct Lambda {
 		immutable FileAndRange range;
-		immutable Ptr!ConcreteFun containingFun;
+		immutable ConcreteFun* containingFun;
 		immutable size_t index; // nth lambda in the containing function
 	}
 
@@ -605,9 +605,9 @@ struct ConcreteFunSource {
 		immutable size_t testIndex;
 	}
 
-	@trusted immutable this(immutable Ptr!FunInst a) { kind_ = Kind.funInst; funInst_ = a; }
-	@trusted immutable this(immutable Ptr!Lambda a) { kind_ = Kind.lambda; lambda_ = a; }
-	@trusted immutable this(immutable Ptr!Test a) { kind_ = Kind.test; test_ = a; }
+	@trusted immutable this(immutable FunInst* a) { kind_ = Kind.funInst; funInst_ = a; }
+	@trusted immutable this(immutable Lambda* a) { kind_ = Kind.lambda; lambda_ = a; }
+	@trusted immutable this(immutable Test* a) { kind_ = Kind.test; test_ = a; }
 
 	private:
 	enum Kind {
@@ -617,14 +617,14 @@ struct ConcreteFunSource {
 	}
 	immutable Kind kind_;
 	union {
-		immutable Ptr!FunInst funInst_;
-		immutable Ptr!Lambda lambda_;
-		immutable Ptr!Test test_;
+		immutable FunInst* funInst_;
+		immutable Lambda* lambda_;
+		immutable Test* test_;
 	}
 }
 static assert(ConcreteFunSource.sizeof <= 16);
 
-@trusted immutable(Ptr!FunInst) asFunInst(ref immutable ConcreteFunSource a) {
+@trusted immutable(FunInst*) asFunInst(ref immutable ConcreteFunSource a) {
 	verify(a.kind_ == ConcreteFunSource.Kind.funInst);
 	return a.funInst_;
 }
@@ -634,11 +634,11 @@ static assert(ConcreteFunSource.sizeof <= 16);
 ) {
 	final switch (a.kind_) {
 		case ConcreteFunSource.Kind.funInst:
-			return cbFunInst(a.funInst_.deref());
+			return cbFunInst(*a.funInst_);
 		case ConcreteFunSource.Kind.lambda:
-			return cbLambda(a.lambda_.deref());
+			return cbLambda(*a.lambda_);
 		case ConcreteFunSource.Kind.test:
-			return cbTest(a.test_.deref());
+			return cbTest(*a.test_);
 	}
 }
 
@@ -651,7 +651,7 @@ struct ConcreteFun {
 	immutable ConcreteFunSource source;
 	immutable ConcreteType returnType;
 	immutable NeedsCtx needsCtx;
-	immutable Opt!(Ptr!ConcreteParam) closureParam;
+	immutable Opt!(ConcreteParam*) closureParam;
 	immutable ConcreteParam[] paramsExcludingCtxAndClosure;
 	Late!(immutable ConcreteFunBody) _body_;
 }
@@ -689,9 +689,9 @@ immutable(bool) isSummon(ref immutable ConcreteFun a) {
 	return matchConcreteFunSource!(
 		immutable bool,
 		(ref immutable FunInst it) =>
-			summon(decl(it).deref()),
+			summon(*decl(it)),
 		(ref immutable ConcreteFunSource.Lambda it) =>
-			isSummon(it.containingFun.deref()),
+			isSummon(*it.containingFun),
 		(ref immutable ConcreteFunSource.Test) =>
 			// 'isSummon' is called for direct calls, but tests are never called directly
 			unreachable!(immutable bool)(),
@@ -702,7 +702,7 @@ immutable(FileAndRange) concreteFunRange(ref immutable ConcreteFun a, ref const 
 	return matchConcreteFunSource!(
 		immutable FileAndRange,
 		(ref immutable FunInst it) =>
-			decl(it).deref().range,
+			decl(it).range,
 		(ref immutable ConcreteFunSource.Lambda it) =>
 			it.range,
 		(ref immutable ConcreteFunSource.Test it) =>
@@ -776,7 +776,7 @@ struct ConcreteExprKind {
 	}
 
 	struct Call {
-		immutable Ptr!ConcreteFun called;
+		immutable ConcreteFun* called;
 		immutable ConcreteExpr[] args;
 	}
 
@@ -789,10 +789,10 @@ struct ConcreteExprKind {
 	struct CreateArr {
 		@safe @nogc pure nothrow:
 
-		immutable Ptr!ConcreteStruct arrType;
+		immutable ConcreteStruct* arrType;
 		immutable ConcreteExpr[] args;
 
-		immutable this(immutable Ptr!ConcreteStruct at, immutable ConcreteExpr[] as) {
+		immutable this(immutable ConcreteStruct* at, immutable ConcreteExpr[] as) {
 			arrType = at;
 			args = as;
 			verify(!empty(args));
@@ -815,7 +815,7 @@ struct ConcreteExprKind {
 	}
 
 	struct Let {
-		immutable Ptr!ConcreteLocal local;
+		immutable ConcreteLocal* local;
 		immutable ConcreteExpr value; // If a constant, we just use 'then' in place of the Let
 		immutable ConcreteExpr then;
 	}
@@ -824,11 +824,11 @@ struct ConcreteExprKind {
 	// (A fun-ref is a lambda wrapped in CreateRecord.)
 	struct Lambda {
 		immutable size_t memberIndex; // Member index of a Union (which hasn't been created yet)
-		immutable Opt!(Ptr!ConcreteExpr) closure;
+		immutable Opt!(ConcreteExpr*) closure;
 	}
 
 	struct LocalRef {
-		immutable Ptr!ConcreteLocal local;
+		immutable ConcreteLocal* local;
 	}
 
 	struct MatchEnum {
@@ -838,7 +838,7 @@ struct ConcreteExprKind {
 
 	struct MatchUnion {
 		struct Case {
-			immutable Opt!(Ptr!ConcreteLocal) local;
+			immutable Opt!(ConcreteLocal*) local;
 			immutable ConcreteExpr then;
 		}
 
@@ -847,7 +847,7 @@ struct ConcreteExprKind {
 	}
 
 	struct ParamRef {
-		immutable Ptr!ConcreteParam param;
+		immutable ConcreteParam* param;
 	}
 
 	// TODO: this is only used for closure field accesses now. At least rename.
@@ -882,49 +882,49 @@ struct ConcreteExprKind {
 	}
 	immutable Kind kind;
 	union {
-		immutable Ptr!Alloc alloc;
+		immutable Alloc* alloc;
 		immutable Call call;
-		immutable Ptr!Cond cond;
-		immutable Ptr!CreateArr createArr;
+		immutable Cond* cond;
+		immutable CreateArr* createArr;
 		immutable Constant constant;
 		immutable CreateRecord createRecord;
-		immutable Ptr!CreateUnion createUnion;
-		immutable Ptr!Drop drop;
+		immutable CreateUnion* createUnion;
+		immutable Drop* drop;
 		immutable Lambda lambda;
-		immutable Ptr!Let let;
+		immutable Let* let;
 		immutable LocalRef localRef;
-		immutable Ptr!MatchEnum matchEnum;
-		immutable Ptr!MatchUnion matchUnion;
+		immutable MatchEnum* matchEnum;
+		immutable MatchUnion* matchUnion;
 		immutable ParamRef paramRef;
-		immutable Ptr!RecordFieldGet recordFieldGet;
-		immutable Ptr!Seq seq;
+		immutable RecordFieldGet* recordFieldGet;
+		immutable Seq* seq;
 	}
 
 	public:
-	@trusted immutable this(immutable Ptr!Alloc a) { kind = Kind.alloc; alloc = a; }
+	@trusted immutable this(immutable Alloc* a) { kind = Kind.alloc; alloc = a; }
 	@trusted immutable this(immutable Call a) { kind = Kind.call; call = a; }
-	@trusted immutable this(immutable Ptr!Cond a) { kind = Kind.cond; cond = a; }
-	@trusted immutable this(immutable Ptr!CreateArr a) { kind = Kind.createArr; createArr = a; }
+	@trusted immutable this(immutable Cond* a) { kind = Kind.cond; cond = a; }
+	@trusted immutable this(immutable CreateArr* a) { kind = Kind.createArr; createArr = a; }
 	@trusted immutable this(immutable Constant a) { kind = Kind.constant; constant = a; }
 	@trusted immutable this(immutable CreateRecord a) { kind = Kind.createRecord; createRecord = a; }
-	immutable this(immutable Ptr!CreateUnion a) { kind = Kind.createUnion; createUnion = a; }
-	immutable this(immutable Ptr!Drop a) { kind = Kind.drop; drop = a; }
+	immutable this(immutable CreateUnion* a) { kind = Kind.createUnion; createUnion = a; }
+	immutable this(immutable Drop* a) { kind = Kind.drop; drop = a; }
 	@trusted immutable this(immutable Lambda a) { kind = Kind.lambda; lambda = a; }
-	@trusted immutable this(immutable Ptr!Let a) { kind = Kind.let; let = a; }
+	@trusted immutable this(immutable Let* a) { kind = Kind.let; let = a; }
 	@trusted immutable this(immutable LocalRef a) { kind = Kind.localRef; localRef = a; }
-	@trusted immutable this(immutable Ptr!MatchEnum a) { kind = Kind.matchEnum; matchEnum = a; }
-	@trusted immutable this(immutable Ptr!MatchUnion a) { kind = Kind.matchUnion; matchUnion = a; }
+	@trusted immutable this(immutable MatchEnum* a) { kind = Kind.matchEnum; matchEnum = a; }
+	@trusted immutable this(immutable MatchUnion* a) { kind = Kind.matchUnion; matchUnion = a; }
 	@trusted immutable this(immutable ParamRef a) { kind = Kind.paramRef; paramRef = a; }
-	@trusted immutable this(immutable Ptr!RecordFieldGet a) { kind = Kind.recordFieldGet; recordFieldGet = a; }
-	@trusted immutable this(immutable Ptr!Seq a) { kind = Kind.seq; seq = a; }
+	@trusted immutable this(immutable RecordFieldGet* a) { kind = Kind.recordFieldGet; recordFieldGet = a; }
+	@trusted immutable this(immutable Seq* a) { kind = Kind.seq; seq = a; }
 }
 
 immutable(ConcreteType) elementType(return scope ref immutable ConcreteExprKind.CreateArr a) {
-	return only(asInst(a.arrType.deref().source).typeArgs);
+	return only(asInst(a.arrType.source).typeArgs);
 }
 
 immutable(ConcreteType) returnType(return scope ref immutable ConcreteExprKind.Call a) {
-	return a.called.deref().returnType;
+	return a.called.returnType;
 }
 
 immutable(bool) isConstant(ref immutable ConcreteExprKind a) {
@@ -959,48 +959,48 @@ immutable(bool) isConstant(ref immutable ConcreteExprKind a) {
 ) {
 	final switch (a.kind) {
 		case ConcreteExprKind.Kind.alloc:
-			return cbAlloc(a.alloc.deref());
+			return cbAlloc(*a.alloc);
 		case ConcreteExprKind.Kind.call:
 			return cbCall(a.call);
 		case ConcreteExprKind.Kind.cond:
-			return cbCond(a.cond.deref());
+			return cbCond(*a.cond);
 		case ConcreteExprKind.Kind.constant:
 			return cbConstant(a.constant);
 		case ConcreteExprKind.Kind.createArr:
-			return cbCreateArr(a.createArr.deref());
+			return cbCreateArr(*a.createArr);
 		case ConcreteExprKind.Kind.createRecord:
 			return cbCreateRecord(a.createRecord);
 		case ConcreteExprKind.Kind.createUnion:
-			return cbCreateUnion(a.createUnion.deref());
+			return cbCreateUnion(*a.createUnion);
 		case ConcreteExprKind.Kind.drop:
-			return cbDrop(a.drop.deref());
+			return cbDrop(*a.drop);
 		case ConcreteExprKind.Kind.lambda:
 			return cbLambda(a.lambda);
 		case ConcreteExprKind.Kind.let:
-			return cbLet(a.let.deref());
+			return cbLet(*a.let);
 		case ConcreteExprKind.Kind.localRef:
 			return cbLocalRef(a.localRef);
 		case ConcreteExprKind.Kind.matchEnum:
-			return cbMatchEnum(a.matchEnum.deref());
+			return cbMatchEnum(*a.matchEnum);
 		case ConcreteExprKind.Kind.matchUnion:
-			return cbMatchUnion(a.matchUnion.deref());
+			return cbMatchUnion(*a.matchUnion);
 		case ConcreteExprKind.Kind.paramRef:
 			return cbParamRef(a.paramRef);
 		case ConcreteExprKind.Kind.recordFieldGet:
-			return cbRecordFieldGet(a.recordFieldGet.deref());
+			return cbRecordFieldGet(*a.recordFieldGet);
 		case ConcreteExprKind.Kind.seq:
-			return cbSeq(a.seq.deref());
+			return cbSeq(*a.seq);
 	}
 }
 
 struct ArrTypeAndConstantsConcrete {
-	immutable Ptr!ConcreteStruct arrType;
+	immutable ConcreteStruct* arrType;
 	immutable ConcreteType elementType;
 	immutable Constant[][] constants;
 }
 
 struct PointerTypeAndConstantsConcrete {
-	immutable Ptr!ConcreteStruct pointeeType;
+	immutable ConcreteStruct* pointeeType;
 	immutable Constant[] constants;
 }
 
@@ -1017,27 +1017,27 @@ struct ConcreteProgram {
 	@safe @nogc pure nothrow:
 
 	immutable AllConstantsConcrete allConstants;
-	immutable Ptr!ConcreteStruct[] allStructs;
-	immutable Ptr!ConcreteFun[] allFuns;
+	immutable ConcreteStruct*[] allStructs;
+	immutable ConcreteFun*[] allFuns;
 	immutable PtrDict!(ConcreteStruct, ConcreteLambdaImpl[]) funStructToImpls;
 	immutable ConcreteCommonFuns commonFuns;
-	immutable Ptr!ConcreteStruct ctxType;
+	immutable ConcreteStruct* ctxType;
 
 	//TODO:NOT INSTANCE
-	immutable(Ptr!ConcreteFun) markFun() immutable { return commonFuns.markFun; }
-	immutable(Ptr!ConcreteFun) rtMain() immutable { return commonFuns.rtMain; }
-	immutable(Ptr!ConcreteFun) userMain() immutable { return commonFuns.userMain; }
-	immutable(Ptr!ConcreteFun) allocFun() immutable { return commonFuns.allocFun; }
+	immutable(ConcreteFun*) markFun() immutable { return commonFuns.markFun; }
+	immutable(ConcreteFun*) rtMain() immutable { return commonFuns.rtMain; }
+	immutable(ConcreteFun*) userMain() immutable { return commonFuns.userMain; }
+	immutable(ConcreteFun*) allocFun() immutable { return commonFuns.allocFun; }
 }
 
 struct ConcreteCommonFuns {
-	immutable Ptr!ConcreteFun markFun;
-	immutable Ptr!ConcreteFun rtMain;
-	immutable Ptr!ConcreteFun userMain;
-	immutable Ptr!ConcreteFun allocFun;
+	immutable ConcreteFun* markFun;
+	immutable ConcreteFun* rtMain;
+	immutable ConcreteFun* userMain;
+	immutable ConcreteFun* allocFun;
 }
 
 struct ConcreteLambdaImpl {
 	immutable ConcreteType closureType;
-	immutable Ptr!ConcreteFun impl;
+	immutable ConcreteFun* impl;
 }

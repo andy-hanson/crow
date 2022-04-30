@@ -62,7 +62,6 @@ import util.col.sortUtil : eachSorted, findUnsortedPair, UnsortedPair;
 import util.comparison : compareNat32, Comparison;
 import util.conv : safeToUint;
 import util.opt : force, has, Opt;
-import util.ptr : Ptr;
 import util.repr : Repr, nameAndRepr, reprArr, reprNamedRecord, reprSym;
 import util.sourceRange : Pos, rangeOfStartAndLength, rangeOfStartAndName, RangeWithinFile, reprRangeWithinFile;
 import util.sym : AllSymbols, shortSym, Sym, symSize;
@@ -360,11 +359,11 @@ void addEnumOrFlagsTokens(
 	ref ArrBuilder!Token tokens,
 	ref const AllSymbols allSymbols,
 	ref immutable StructDeclAst a,
-	scope immutable Opt!(Ptr!TypeAst) typeArg,
+	scope immutable Opt!(TypeAst*) typeArg,
 	scope immutable StructDeclAst.Body.Enum.Member[] members,
 ) {
 	if (has(typeArg))
-		addTypeTokens(alloc, tokens, allSymbols, force(typeArg).deref());
+		addTypeTokens(alloc, tokens, allSymbols, *force(typeArg));
 	addModifierTokens(alloc, tokens, allSymbols, a);
 	foreach (ref immutable StructDeclAst.Body.Enum.Member member; members) {
 		add(alloc, tokens, immutable Token(Token.Kind.member, member.range));

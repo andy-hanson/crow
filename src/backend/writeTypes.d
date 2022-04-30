@@ -17,7 +17,6 @@ import util.alloc.alloc : Alloc;
 import util.col.arrUtil : every;
 import util.col.fullIndexDict :
 	FullIndexDict, fullIndexDictEachKey, fullIndexDictEachValue, fullIndexDictSize, makeFullIndexDict_mut;
-import util.ptr : Ptr;
 import util.util : verify;
 
 void writeTypes(
@@ -91,7 +90,7 @@ void writeTypes(
 }
 
 struct TypeWriters {
-	void delegate(immutable Ptr!ConcreteStruct) @safe @nogc pure nothrow cbDeclareStruct;
+	void delegate(immutable ConcreteStruct*) @safe @nogc pure nothrow cbDeclareStruct;
 	void delegate(immutable LowType.FunPtr, ref immutable LowFunPtrType) @safe @nogc pure nothrow cbWriteFunPtr;
 	void delegate(immutable LowType.Record, ref immutable LowRecord) @safe @nogc pure nothrow cbWriteRecord;
 	void delegate(immutable LowType.Union, ref immutable LowUnion) @safe @nogc pure nothrow cbWriteUnion;

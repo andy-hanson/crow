@@ -55,7 +55,6 @@ import util.path :
 	RelPath,
 	resolvePath;
 import util.perf : Perf, PerfMeasure, withMeasure;
-import util.ptr : Ptr;
 import util.readOnlyStorage :
 	asOption, matchReadFileResult, ReadFileResult, ReadOnlyStorage, withFileBinary, withFileText;
 import util.sourceRange : FileIndex, RangeWithinFile;
@@ -64,7 +63,7 @@ import util.util : verify;
 
 immutable(Program) frontendCompile(
 	ref Alloc modelAlloc,
-	scope ref Perf perf,
+	ref Perf perf,
 	ref Alloc astsAlloc,
 	ref AllPaths allPaths,
 	ref AllSymbols allSymbols,
@@ -699,7 +698,7 @@ struct ModulesAndCommonTypes {
 
 immutable(ModulesAndCommonTypes) getModules(
 	ref Alloc modelAlloc,
-	scope ref Perf perf,
+	ref Perf perf,
 	ref AllSymbols allSymbols,
 	ref DiagnosticsBuilder diagsBuilder,
 	ref ProgramState programState,
@@ -731,7 +730,7 @@ immutable(ModulesAndCommonTypes) getModules(
 
 immutable(Module) checkNonBootstrapModule(
 	ref Alloc modelAlloc,
-	scope ref Perf perf,
+	ref Perf perf,
 	ref AllSymbols allSymbols,
 	ref DiagnosticsBuilder diagsBuilder,
 	ref ProgramState programState,
@@ -762,7 +761,7 @@ immutable(Module) checkNonBootstrapModule(
 
 immutable(Program) checkEverything(
 	ref Alloc modelAlloc,
-	scope ref Perf perf,
+	ref Perf perf,
 	ref AllSymbols allSymbols,
 	ref DiagnosticsBuilder diagsBuilder,
 	immutable Config config,
@@ -774,7 +773,7 @@ immutable(Program) checkEverything(
 	immutable ModulesAndCommonTypes modulesAndCommonTypes =
 		getModules(modelAlloc, perf, allSymbols, diagsBuilder, programState, moduleIndices.std, allAsts);
 	immutable Module[] modules = modulesAndCommonTypes.modules;
-	immutable Ptr!Module bootstrapModule = ptrAt(modules, moduleIndices.bootstrap.index);
+	immutable Module* bootstrapModule = ptrAt(modules, moduleIndices.bootstrap.index);
 	return immutable Program(
 		filesInfo,
 		config,

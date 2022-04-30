@@ -28,7 +28,6 @@ import util.lineAndColumnGetter : LineAndColumnGetter, lineAndColumnGetterForTex
 import util.opt : force, has, Opt;
 import util.path : AllPaths, childPath, emptyPathsInfo, emptyRootPath, hashPath, parsePath, Path, pathEqual, PathsInfo;
 import util.perf : Perf;
-import util.ptr : Ptr;
 import util.readOnlyStorage : ReadOnlyStorage;
 import util.sourceRange : FileIndex, Pos, RangeWithinFile;
 import util.sym : AllSymbols, shortSym;
@@ -43,10 +42,10 @@ struct Server {
 	immutable PathsInfo pathsInfo;
 	MutFiles files;
 
-	this(Alloc a) {
+	@trusted this(Alloc a) {
 		alloc = a.move();
-		allSymbols = AllSymbols(Ptr!Alloc(&alloc));
-		allPaths = AllPaths(Ptr!Alloc(&alloc), Ptr!AllSymbols(&allSymbols));
+		allSymbols = AllSymbols(&alloc);
+		allPaths = AllPaths(&alloc, &allSymbols);
 		includeDir = childPath(allPaths, emptyRootPath(allPaths), shortSym("include"));
 		pathsInfo = emptyPathsInfo;
 		files = MutFiles.init;
@@ -121,7 +120,7 @@ immutable(StrParseDiagnostic[]) getParseDiagnostics(
 }
 
 immutable(SafeCStr) getHover(
-	scope ref Perf perf,
+	ref Perf perf,
 	ref Alloc alloc,
 	ref Server server,
 	scope immutable SafeCStr path,
@@ -155,7 +154,7 @@ private pure immutable(SafeCStr) getHoverFromProgram(
 }
 
 immutable(FakeExternResult) run(
-	scope ref Perf perf,
+	ref Perf perf,
 	ref Alloc alloc,
 	ref Server server,
 	scope immutable SafeCStr mainPath,

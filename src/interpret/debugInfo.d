@@ -14,7 +14,7 @@ import util.alloc.alloc : Alloc;
 import util.lineAndColumnGetter : LineAndColumn, lineAndColumnAtPos;
 import util.opt : force, has, none, Opt, some;
 import util.path : AllPaths, Path, PathsInfo, pathToSafeCStrPreferRelative;
-import util.ptr : Ptr, ptrTrustMe_mut;
+import util.ptr : ptrTrustMe_mut;
 import util.sourceRange : FileAndPos, FileIndex;
 import util.sym : AllSymbols;
 import util.util : min, verify;
@@ -22,30 +22,30 @@ import util.writer : finishWriterToSafeCStr, writeChar, writeHex, writeNat, Writ
 
 struct InterpreterDebugInfo {
 	@safe @nogc pure nothrow:
-	immutable Ptr!LowProgram lowProgramPtr;
-	immutable Ptr!ByteCode byteCodePtr;
-	immutable Ptr!AllSymbols allSymbolsPtr;
-	immutable Ptr!AllPaths allPathsPtr;
-	immutable Ptr!PathsInfo pathsInfoPtr;
-	immutable Ptr!FilesInfo filesInfoPtr;
+	immutable LowProgram* lowProgramPtr;
+	immutable ByteCode* byteCodePtr;
+	immutable AllSymbols* allSymbolsPtr;
+	immutable AllPaths* allPathsPtr;
+	immutable PathsInfo* pathsInfoPtr;
+	immutable FilesInfo* filesInfoPtr;
 
 	ref immutable(ByteCode) byteCode() const return scope pure {
-		return byteCodePtr.deref();
+		return *byteCodePtr;
 	}
 	ref immutable(LowProgram) lowProgram() const return scope pure {
-		return lowProgramPtr.deref();
+		return *lowProgramPtr;
 	}
 	ref immutable(AllSymbols) allSymbols() const return scope pure {
-		return allSymbolsPtr.deref();
+		return *allSymbolsPtr;
 	}
 	ref immutable(AllPaths) allPaths() const return scope pure {
-		return allPathsPtr.deref();
+		return *allPathsPtr;
 	}
 	ref immutable(PathsInfo) pathsInfo() const return scope pure {
-		return pathsInfoPtr.deref();
+		return *pathsInfoPtr;
 	}
 	ref immutable(FilesInfo) filesInfo() const return scope pure {
-		return filesInfoPtr.deref();
+		return *filesInfoPtr;
 	}
 }
 
@@ -201,8 +201,8 @@ immutable(Opt!FileIndex) getFileIndex(
 ) {
 	return matchLowFunSource!(
 		immutable Opt!FileIndex,
-		(immutable Ptr!ConcreteFun it) =>
-			some(concreteFunRange(it.deref(), allSymbols).fileIndex),
+		(immutable ConcreteFun* it) =>
+			some(concreteFunRange(*it, allSymbols).fileIndex),
 		(ref immutable LowFunSource.Generated) =>
 			none!FileIndex,
 	)(lowProgram.allFuns[fun].source);

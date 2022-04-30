@@ -40,7 +40,7 @@ import util.col.exactSizeArrBuilder :
 	padTo;
 import util.col.str : SafeCStr, safeCStrSize;
 import util.conv : bitsOfFloat32, bitsOfFloat64;
-import util.ptr : Ptr, ptrTrustMe, ptrTrustMe_mut;
+import util.ptr : ptrTrustMe_mut;
 import util.util : todo, unreachable, verify;
 
 struct TextIndex {
@@ -71,30 +71,33 @@ immutable(TextArrInfo) getTextInfoForArray(
 ) {
 	immutable size_t constantSize = allConstants.arrs[a.typeIndex].constants[a.index].length;
 	immutable size_t textIndex = info.arrTypeIndexToConstantIndexToTextIndex[a.typeIndex][a.index];
-	return immutable TextArrInfo(constantSize, ptrAt(info.text, textIndex).rawPtr());
+	return immutable TextArrInfo(constantSize, &info.text[textIndex]);
 }
 
 immutable(ubyte*) getTextPointer(ref immutable TextInfo info, immutable Constant.Pointer a) {
 	immutable size_t textIndex = info.pointeeTypeIndexToIndexToTextIndex[a.typeIndex][a.index];
-	return ptrAt(info.text, textIndex).rawPtr();
+	return &info.text[textIndex];
 }
 
 immutable(ubyte*) getTextPointerForCString(ref immutable TextInfo info, immutable Constant.CString a) {
-	return ptrAt(info.text, info.cStringIndexToTextIndex[a.index]).rawPtr();
+	return &info.text[info.cStringIndexToTextIndex[a.index]];
 }
 
-TextAndInfo generateText(
+// TODO: not @trusted
+@trusted TextAndInfo generateText(
 	ref Alloc alloc,
 	ref TempAlloc tempAlloc,
-	scope ref immutable LowProgram program,
-	scope ref immutable AllConstantsLow allConstants,
+	immutable LowProgram* programPtr,
+	immutable AllConstantsLow* allConstantsPtr,
 	ref FunToReferences funToReferences,
 ) {
+	ref immutable(AllConstantsLow) allConstants() { return *allConstantsPtr; }
+
 	Ctx ctx = Ctx(
-		ptrTrustMe(program),
-		ptrTrustMe(allConstants),
+		programPtr,
+		allConstantsPtr,
 		// '1 +' because we add a dummy byte at 0
-		newExactSizeArrBuilder!ubyte(alloc, 1 + getAllConstantsSize(program, allConstants)),
+		newExactSizeArrBuilder!ubyte(alloc, 1 + getAllConstantsSize(*programPtr, allConstants)),
 		ptrTrustMe_mut(funToReferences),
 		emptyArr!size_t, // cStringIndexToTextIndex will be overwritten just below this
 		mapToMut!(size_t[], ArrTypeAndConstantsLow)(
@@ -118,62 +121,66 @@ TextAndInfo generateText(
 	});
 
 	foreach (immutable size_t arrTypeIndex; 0 .. allConstants.arrs.length) {
-		scope immutable Ptr!ArrTypeAndConstantsLow typeAndConstants = ptrAt(allConstants.arrs, arrTypeIndex);
-		foreach (immutable size_t constantIndex, ref immutable Constant[] elements; typeAndConstants.deref().constants)
+		scope immutable ArrTypeAndConstantsLow* typeAndConstants = ptrAt(allConstants.arrs, arrTypeIndex);
+		foreach (immutable size_t constantIndex, ref immutable Constant[] elements; typeAndConstants.constants)
 			recurWriteArr(
 				alloc,
 				tempAlloc,
 				ctx,
 				arrTypeIndex,
-				typeAndConstants.deref().elementType,
+				typeAndConstants.elementType,
 				constantIndex,
 				elements);
 	}
 	foreach (immutable size_t pointeeTypeIndex; 0 .. allConstants.pointers.length) {
-		immutable Ptr!PointerTypeAndConstantsLow typeAndConstants = ptrAt(allConstants.pointers, pointeeTypeIndex);
-		foreach (immutable size_t constantIndex, immutable Constant pointee; typeAndConstants.deref().constants)
+		immutable PointerTypeAndConstantsLow* typeAndConstants = ptrAt(allConstants.pointers, pointeeTypeIndex);
+		foreach (immutable size_t constantIndex, immutable Constant pointee; typeAndConstants.constants)
 			recurWritePointer(
 				alloc,
 				tempAlloc,
 				ctx,
 				pointeeTypeIndex,
-				typeAndConstants.deref().pointeeType,
+				typeAndConstants.pointeeType,
 				constantIndex,
 				pointee);
 	}
-	ubyte[] text = finish(ctx.text);
+	ubyte[] text = castNonScope(finish(ctx.text));
 	return TextAndInfo(
 		text,
 		immutable TextInfo(
 			castImmutable(text),
-			castImmutable(ctx.cStringIndexToTextIndex),
-			castImmutable(ctx.arrTypeIndexToConstantIndexToTextIndex),
-			castImmutable(ctx.pointeeTypeIndexToIndexToTextIndex)));
+			castNonScope(castImmutable(ctx.cStringIndexToTextIndex)),
+			castNonScope(castImmutable(ctx.arrTypeIndexToConstantIndexToTextIndex)),
+			castNonScope(castImmutable(ctx.pointeeTypeIndexToIndexToTextIndex))));
 }
 
 private:
 
+T[] castNonScope(T)(scope T[] a) {
+	return a;
+}
+
 struct Ctx {
 	@safe @nogc pure nothrow:
 
-	immutable Ptr!LowProgram programPtr;
-	immutable Ptr!AllConstantsLow allConstantsPtr;
+	immutable LowProgram* programPtr;
+	immutable AllConstantsLow* allConstantsPtr;
 	ExactSizeArrBuilder!ubyte text;
-	Ptr!FunToReferences funToReferencesPtr;
+	FunToReferences* funToReferencesPtr;
 	immutable(size_t)[] cStringIndexToTextIndex;
 	size_t[][] arrTypeIndexToConstantIndexToTextIndex;
 	size_t[][] pointeeTypeIndexToIndexToTextIndex;
 
 	ref immutable(LowProgram) program() return scope const {
-		return programPtr.deref();
+		return *programPtr;
 	}
 
 	ref immutable(AllConstantsLow) allConstants() return scope const {
-		return allConstantsPtr.deref();
+		return *allConstantsPtr;
 	}
 
 	ref FunToReferences funToReferences() return scope {
-		return funToReferencesPtr.deref();
+		return *funToReferencesPtr;
 	}
 }
 
@@ -188,16 +195,16 @@ void ensureConstant(
 	matchConstant!void(
 		c,
 		(ref immutable Constant.ArrConstant it) {
-			immutable Ptr!ArrTypeAndConstantsLow arrs = ptrAt(ctx.allConstants.arrs, it.typeIndex);
-			verify(arrs.deref().arrType == asRecordType(t));
+			immutable ArrTypeAndConstantsLow* arrs = ptrAt(ctx.allConstants.arrs, it.typeIndex);
+			verify(arrs.arrType == asRecordType(t));
 			recurWriteArr(
 				alloc,
 				tempAlloc,
 				ctx,
 				it.typeIndex,
-				arrs.deref().elementType,
+				arrs.elementType,
 				it.index,
-				arrs.deref().constants[it.index]);
+				arrs.constants[it.index]);
 		},
 		(immutable Constant.BoolConstant) {},
 		(ref immutable Constant.CString) {
@@ -208,11 +215,11 @@ void ensureConstant(
 		(immutable Constant.Integral) {},
 		(immutable Constant.Null) {},
 		(immutable Constant.Pointer it) {
-			immutable Ptr!PointerTypeAndConstantsLow ptrs = ptrAt(ctx.allConstants.pointers, it.typeIndex);
-			verify(lowTypeEqual(ptrs.deref().pointeeType, asPtrGcPointee(t)));
+			immutable PointerTypeAndConstantsLow* ptrs = ptrAt(ctx.allConstants.pointers, it.typeIndex);
+			verify(lowTypeEqual(ptrs.pointeeType, asPtrGcPointee(t)));
 			recurWritePointer(
 				alloc, tempAlloc, ctx,
-				it.typeIndex, ptrs.deref.pointeeType, it.index, ptrs.deref().constants[it.index]);
+				it.typeIndex, ptrs.pointeeType, it.index, ptrs.constants[it.index]);
 		},
 		(ref immutable Constant.Record it) {
 			immutable LowRecord record = ctx.program.allRecords[asRecordType(t)];

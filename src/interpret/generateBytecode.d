@@ -193,7 +193,7 @@ import util.col.stackDict : StackDict, stackDictAdd, stackDictMustGet;
 import util.conv : bitsOfFloat32, bitsOfFloat64;
 import util.opt : force, has, none, Opt, some;
 import util.perf : Perf, PerfMeasure, withMeasure;
-import util.ptr : nullPtr, Ptr, ptrEquals, ptrTrustMe, ptrTrustMe_const, ptrTrustMe_mut;
+import util.ptr : ptrEquals, ptrTrustMe, ptrTrustMe_const, ptrTrustMe_mut;
 import util.sourceRange : FileIndex;
 import util.sym : AllSymbols, shortSymValue, Sym;
 import util.util : divRoundUp, todo, unreachable, verify;
@@ -204,7 +204,7 @@ immutable(ByteCode) generateBytecode(
 	scope ref Perf perf,
 	ref const AllSymbols allSymbols,
 	scope ref immutable Program modelProgram,
-	scope ref immutable LowProgram program,
+	ref immutable LowProgram program,
 	scope immutable ExternFunPtrsForAllLibraries externFunPtrs,
 	scope immutable MakeSyntheticFunPtrs makeSyntheticFunPtrs,
 ) {
@@ -219,7 +219,7 @@ private immutable(ByteCode) generateBytecodeInner(
 	ref TempAlloc tempAlloc,
 	ref const AllSymbols allSymbols,
 	scope ref immutable Program modelProgram,
-	scope ref immutable LowProgram program,
+	ref immutable LowProgram program,
 	scope immutable ExternFunPtrsForAllLibraries externFunPtrs,
 	scope immutable MakeSyntheticFunPtrs cbMakeSyntheticFunPtrs,
 ) {
@@ -232,7 +232,7 @@ private immutable(ByteCode) generateBytecodeInner(
 
 	FunToReferences funToReferences =
 		initFunToReferences(tempAlloc, funPtrTypeToDynCallSig, fullIndexDictSize(program.allFuns));
-	TextAndInfo text = generateText(codeAlloc, tempAlloc, program, program.allConstants, funToReferences);
+	TextAndInfo text = generateText(codeAlloc, tempAlloc, &program, &program.allConstants, funToReferences);
 	ByteCodeWriter writer = newByteCodeWriter(ptrTrustMe_mut(codeAlloc));
 
 	immutable FullIndexDict!(LowFunIndex, ByteCodeIndex) funToDefinition =
@@ -537,30 +537,30 @@ void toDynCallTypes(
 struct ExprCtx {
 	@safe @nogc pure nothrow:
 
-	const Ptr!AllSymbols allSymbolsPtr;
-	immutable Ptr!LowProgram programPtr;
-	immutable Ptr!TextInfo textInfoPtr;
+	const AllSymbols* allSymbolsPtr;
+	immutable LowProgram* programPtr;
+	immutable TextInfo* textInfoPtr;
 	immutable LowFunIndex curFunIndex;
 	immutable size_t returnTypeSizeInStackEntries;
-	Ptr!TempAlloc tempAllocPtr;
-	Ptr!FunToReferences funToReferencesPtr;
+	TempAlloc* tempAllocPtr;
+	FunToReferences* funToReferencesPtr;
 	immutable ByteCodeIndex startOfCurrentFun;
 	immutable StackEntries[] parameterEntries;
 
 	ref const(AllSymbols) allSymbols() return scope const {
-		return allSymbolsPtr.deref();
+		return *allSymbolsPtr;
 	}
 	ref immutable(LowProgram) program() return scope const {
-		return programPtr.deref();
+		return *programPtr;
 	}
 	ref immutable(TextInfo) textInfo() return scope const {
-		return textInfoPtr.deref();
+		return *textInfoPtr;
 	}
 	ref TempAlloc tempAlloc() return scope {
-		return tempAllocPtr.deref();
+		return *tempAllocPtr;
 	}
 	ref FunToReferences funToReferences() return scope {
-		return funToReferencesPtr.deref();
+		return *funToReferencesPtr;
 	}
 	immutable(FunPtrTypeToDynCallSig) funPtrTypeToDynCallSig() {
 		return funToReferences.funPtrTypeToDynCallSig;
@@ -568,19 +568,19 @@ struct ExprCtx {
 }
 
 alias Locals = immutable StackDict!(
-	immutable Ptr!LowLocal,
+	immutable LowLocal*,
 	immutable StackEntries,
-	nullPtr!LowLocal,
+	null,
 	ptrEquals!LowLocal);
 alias addLocal = stackDictAdd!(
-	immutable Ptr!LowLocal,
+	immutable LowLocal*,
 	immutable StackEntries,
-	nullPtr!LowLocal,
+	null,
 	ptrEquals!LowLocal);
 alias getLocal = stackDictMustGet!(
-	immutable Ptr!LowLocal,
+	immutable LowLocal*,
 	immutable StackEntries,
-	nullPtr!LowLocal,
+	null,
 	ptrEquals!LowLocal);
 
 void generateExpr(
@@ -623,7 +623,7 @@ void generateExpr(
 		},
 		(ref immutable LowExprKind.Let it) {
 			immutable StackEntries localEntries =
-				immutable StackEntries(getNextStackEntry(writer), nStackEntriesForType(ctx, it.local.deref().type));
+				immutable StackEntries(getNextStackEntry(writer), nStackEntriesForType(ctx, it.local.type));
 			generateExpr(writer, ctx, locals, it.value);
 			verify(getNextStackEntry(writer).entry == localEntries.start.entry + localEntries.size);
 			scope immutable Locals newLocals = addLocal(locals, it.local, localEntries);
@@ -654,7 +654,7 @@ void generateExpr(
 				(immutable size_t caseIndex, ref immutable LowExprKind.MatchUnion.Case case_) {
 					fillDelayedSwitchEntry(writer, switchDelayed, caseIndex);
 					if (has(case_.local)) {
-						immutable size_t nEntries = nStackEntriesForType(ctx, force(case_.local).deref().type);
+						immutable size_t nEntries = nStackEntriesForType(ctx, force(case_.local).type);
 						verify(nEntries <= matchedEntriesWithoutKind.size);
 						scope immutable Locals newLocals = addLocal(
 							locals,

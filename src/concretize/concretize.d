@@ -43,7 +43,7 @@ import util.col.mutDict : mapToDict, mutDictIsEmpty;
 import util.opt : force, has, Opt;
 import util.path : AllPaths;
 import util.perf : Perf, PerfMeasure, withMeasure;
-import util.ptr : hashPtr, Ptr, ptrEquals, ptrTrustMe, ptrTrustMe_const, ptrTrustMe_mut;
+import util.ptr : castNonScope, hashPtr, ptrEquals, ptrTrustMe;
 import util.sym : AllSymbols, shortSym, SpecialSym, Sym, symEq, symForSpecial;
 import util.util : todo, verify;
 import versionInfo : VersionInfo;
@@ -55,48 +55,50 @@ immutable(ConcreteProgram) concretize(
 	ref AllSymbols allSymbols,
 	ref const AllPaths allPaths,
 	ref immutable Program program,
-	immutable Ptr!Module mainModule,
+	immutable Module* mainModule,
 ) {
 	return withMeasure!(immutable ConcreteProgram, () =>
-		concretizeInner(alloc, versionInfo, allSymbols, allPaths, program, mainModule)
+		concretizeInner(&alloc, versionInfo, &allSymbols, allPaths, program, mainModule)
 	)(alloc, perf, PerfMeasure.concretize);
 }
 
 private:
 
 immutable(ConcreteProgram) concretizeInner(
-	ref Alloc alloc,
+	Alloc* allocPtr,
 	immutable VersionInfo versionInfo,
-	ref AllSymbols allSymbols,
+	AllSymbols* allSymbolsPtr,
 	ref const AllPaths allPaths,
 	ref immutable Program program,
-	immutable Ptr!Module mainModule,
+	immutable Module* mainModule,
 ) {
+	ref Alloc alloc() { return *allocPtr; }
+
 	ConcretizeCtx ctx = ConcretizeCtx(
-		ptrTrustMe_mut(alloc),
+		allocPtr,
 		versionInfo,
-		ptrTrustMe_const(allSymbols),
+		allSymbolsPtr,
 		getCurExclusionFun(alloc, program),
-		program.commonTypes.ctx,
+		castNonScope(program.commonTypes.ctx),
 		ptrTrustMe(program.commonTypes),
 		ptrTrustMe(program));
-	immutable Ptr!ConcreteStruct ctxStruct = ctxType(ctx).struct_;
-	immutable Ptr!ConcreteFun markConcreteFun =
+	immutable ConcreteStruct* ctxStruct = ctxType(ctx).struct_;
+	immutable ConcreteFun* markConcreteFun =
 		getOrAddNonTemplateConcreteFunAndFillBody(ctx, getMarkFun(alloc, program));
-	immutable Ptr!ConcreteFun rtMainConcreteFun =
+	immutable ConcreteFun* rtMainConcreteFun =
 		getOrAddNonTemplateConcreteFunAndFillBody(ctx, getRtMainFun(alloc, program));
 	// We remove items from these dicts when we process them.
 	verify(mutDictIsEmpty(ctx.concreteFunToBodyInputs));
-	immutable Ptr!ConcreteFun userMainConcreteFun =
+	immutable ConcreteFun* userMainConcreteFun =
 		getOrAddNonTemplateConcreteFunAndFillBody(ctx, getUserMainFun(alloc, program, mainModule));
-	immutable Ptr!ConcreteFun allocFun =
+	immutable ConcreteFun* allocFun =
 		getOrAddNonTemplateConcreteFunAndFillBody(ctx, getAllocFun(alloc, program));
-	immutable Ptr!ConcreteFun staticSymsFun =
+	immutable ConcreteFun* staticSymsFun =
 		getOrAddNonTemplateConcreteFunAndFillBody(ctx, getStaticSymsFun(alloc, program));
 	// We remove items from these dicts when we process them.
 	verify(mutDictIsEmpty(ctx.concreteFunToBodyInputs));
 
-	immutable Ptr!ConcreteFun[] allConcreteFuns = finishArr_immutable(alloc, ctx.allConcreteFuns);
+	immutable ConcreteFun*[] allConcreteFuns = finishArr_immutable(alloc, ctx.allConcreteFuns);
 
 	deferredFillRecordAndUnionBodies(ctx);
 
@@ -104,12 +106,12 @@ immutable(ConcreteProgram) concretizeInner(
 		finishAllConstants(
 			alloc,
 			ctx.allConstants,
-			allSymbols,
-			mustBeByVal(staticSymsFun.deref().returnType)),
+			*allSymbolsPtr,
+			mustBeByVal(staticSymsFun.returnType)),
 		finishArr_immutable(alloc, ctx.allConcreteStructs),
 		allConcreteFuns,
 		mapToDict!(
-			Ptr!ConcreteStruct,
+			ConcreteStruct*,
 			ConcreteLambdaImpl[],
 			MutArr!(immutable ConcreteLambdaImpl),
 			ptrEquals!ConcreteStruct,
@@ -133,19 +135,19 @@ immutable(bool) isInt32(ref immutable CommonTypes commonTypes, immutable Type ty
 
 immutable(bool) isStr(ref immutable CommonTypes commonTypes, immutable Type type) {
 	//TODO:better
-	return isStructInst(type) && symEq(asStructInst(type).deref().decl.deref().name, shortSym("str"));
+	return isStructInst(type) && symEq(decl(*asStructInst(type)).name, shortSym("str"));
 }
 
 immutable(bool) isFutNat(ref immutable CommonTypes commonTypes, immutable Type type) {
 	return isStructInst(type) &&
-		ptrEquals(decl(asStructInst(type).deref), commonTypes.fut) &&
-		isNat(commonTypes, only(typeArgs(asStructInst(type).deref)));
+		ptrEquals(decl(*asStructInst(type)), commonTypes.fut) &&
+		isNat(commonTypes, only(typeArgs(*asStructInst(type))));
 }
 
 immutable(bool) isArrStr(ref immutable CommonTypes commonTypes, immutable Type type) {
 	return isStructInst(type) &&
-		ptrEquals(decl(asStructInst(type).deref), commonTypes.arr) &&
-		isStr(commonTypes, only(typeArgs(asStructInst(type).deref)));
+		ptrEquals(decl(*asStructInst(type)), commonTypes.arr) &&
+		isStr(commonTypes, only(typeArgs(*asStructInst(type))));
 }
 
 void checkRtMainSignature(ref immutable CommonTypes commonTypes, ref immutable FunDecl mainFun) {
@@ -178,66 +180,58 @@ void checkUserMainSignature(ref immutable CommonTypes commonTypes, ref immutable
 		todo!void("checkUserMainSignature doesn't take arr str");
 }
 
-immutable(Ptr!FunInst) getMarkFun(ref Alloc alloc, ref immutable Program program) {
-	immutable Ptr!FunDecl[] markFuns = getFuns(
-		program.specialModules.allocModule.deref(),
-		shortSym("mark"));
+immutable(FunInst*) getMarkFun(ref Alloc alloc, ref immutable Program program) {
+	immutable FunDecl*[] markFuns = getFuns(*program.specialModules.allocModule, shortSym("mark"));
 	if (markFuns.length != 1)
 		todo!void("wong number mark funs");
-	immutable Ptr!FunDecl markFun = only(markFuns);
+	immutable FunDecl* markFun = only(markFuns);
 	//TODO: check the signature
 	return nonTemplateFunInst(alloc, markFun);
 }
 
-immutable(Ptr!FunInst) getRtMainFun(ref Alloc alloc, ref immutable Program program) {
-	immutable Ptr!FunDecl[] mainFuns =
-		getFuns(program.specialModules.runtimeMainModule.deref(), shortSym("rt-main"));
+immutable(FunInst*) getRtMainFun(ref Alloc alloc, ref immutable Program program) {
+	immutable FunDecl*[] mainFuns = getFuns(*program.specialModules.runtimeMainModule, shortSym("rt-main"));
 	if (mainFuns.length != 1)
 		todo!void("wrong number rt-main funs");
-	immutable Ptr!FunDecl mainFun = only(mainFuns);
-	checkRtMainSignature(program.commonTypes, mainFun.deref());
+	immutable FunDecl* mainFun = only(mainFuns);
+	checkRtMainSignature(program.commonTypes, *mainFun);
 	return nonTemplateFunInst(alloc, mainFun);
 }
 
-immutable(Ptr!FunInst) getUserMainFun(ref Alloc alloc, ref immutable Program program, immutable Ptr!Module mainModule) {
-	immutable Ptr!FunDecl[] mainFuns = getFuns(mainModule.deref(), shortSym("main"));
+immutable(FunInst*) getUserMainFun(ref Alloc alloc, ref immutable Program program, immutable Module* mainModule) {
+	immutable FunDecl*[] mainFuns = getFuns(*mainModule, shortSym("main"));
 	if (mainFuns.length != 1)
 		todo!void("wrong number main funs");
-	immutable Ptr!FunDecl mainFun = only(mainFuns);
-	checkUserMainSignature(program.commonTypes, mainFun.deref());
+	immutable FunDecl* mainFun = only(mainFuns);
+	checkUserMainSignature(program.commonTypes, *mainFun);
 	return nonTemplateFunInst(alloc, mainFun);
 }
 
-immutable(Ptr!FunInst) getAllocFun(ref Alloc alloc, ref immutable Program program) {
-	immutable Ptr!FunDecl[] allocFuns = getFuns(
-		program.specialModules.allocModule.deref(),
-		shortSym("alloc"));
+immutable(FunInst*) getAllocFun(ref Alloc alloc, ref immutable Program program) {
+	immutable FunDecl*[] allocFuns = getFuns(*program.specialModules.allocModule, shortSym("alloc"));
 	if (allocFuns.length != 1)
 		todo!void("wrong number alloc funs");
-	immutable Ptr!FunDecl allocFun = only(allocFuns);
+	immutable FunDecl* allocFun = only(allocFuns);
 	// TODO: check the signature!
 	return nonTemplateFunInst(alloc, allocFun);
 }
 
-immutable(Ptr!FunInst) getStaticSymsFun(ref Alloc alloc, ref immutable Program program) {
-	immutable Ptr!FunDecl[] funs = getFuns(
-		program.specialModules.bootstrapModule.deref(),
-		shortSym("static-syms"));
+immutable(FunInst*) getStaticSymsFun(ref Alloc alloc, ref immutable Program program) {
+	immutable FunDecl*[] funs = getFuns(*program.specialModules.bootstrapModule, shortSym("static-syms"));
 	if (funs.length != 1)
 		todo!void("wrong number static-syms funs");
 	return nonTemplateFunInst(alloc, only(funs));
 }
 
-immutable(Ptr!FunInst) getCurExclusionFun(ref Alloc alloc, ref immutable Program program) {
-	immutable Ptr!FunDecl[] funs = getFuns(
-		program.specialModules.runtimeModule.deref(),
-		symForSpecial(SpecialSym.cur_exclusion));
+immutable(FunInst*) getCurExclusionFun(ref Alloc alloc, ref immutable Program program) {
+	immutable FunDecl*[] funs =
+		getFuns(*program.specialModules.runtimeModule, symForSpecial(SpecialSym.cur_exclusion));
 	if (funs.length != 1)
 		todo!void("wrong number cur-exclusion funs");
 	return nonTemplateFunInst(alloc, only(funs));
 }
 
-immutable(Ptr!FunDecl[]) getFuns(ref immutable Module a, immutable Sym name) {
+immutable(FunDecl*[]) getFuns(ref immutable Module a, immutable Sym name) {
 	immutable Opt!NameReferents optReferents = a.allExportedNames[name];
-	return has(optReferents) ? force(optReferents).funs : emptyArr!(Ptr!FunDecl);
+	return has(optReferents) ? force(optReferents).funs : emptyArr!(FunDecl*);
 }

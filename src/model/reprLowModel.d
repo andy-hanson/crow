@@ -41,7 +41,6 @@ import model.reprConcreteModel :
 	reprOfConcreteStructRef;
 import model.reprConstant : reprOfConstant;
 import util.alloc.alloc : Alloc;
-import util.ptr : Ptr;
 import util.repr :
 	nameAndRepr,
 	Repr,
@@ -84,11 +83,11 @@ immutable(Repr) reprOfLowType(ref Alloc alloc, immutable LowType a) {
 		(immutable PrimitiveType it) =>
 			reprSym(symOfPrimitiveType(it)),
 		(immutable LowType.PtrGc it) =>
-			reprRecord(alloc, "gc-ptr", [reprOfLowType(alloc, it.pointee.deref())]),
+			reprRecord(alloc, "gc-ptr", [reprOfLowType(alloc, *it.pointee)]),
 		(immutable LowType.PtrRawConst it) =>
-			reprRecord(alloc, "ptr-const", [reprOfLowType(alloc, it.pointee.deref())]),
+			reprRecord(alloc, "ptr-const", [reprOfLowType(alloc, *it.pointee)]),
 		(immutable LowType.PtrRawMut it) =>
-			reprRecord(alloc, "ptr-mut", [reprOfLowType(alloc, it.pointee.deref())]),
+			reprRecord(alloc, "ptr-mut", [reprOfLowType(alloc, *it.pointee)]),
 		(immutable LowType.Record it) =>
 			reprRecord(alloc, "record", [reprNat(it.index)]),
 		(immutable LowType.Union it) =>
@@ -98,12 +97,12 @@ immutable(Repr) reprOfLowType(ref Alloc alloc, immutable LowType a) {
 
 immutable(Repr) reprOfExternPtrType(ref Alloc alloc, ref immutable LowExternPtrType a) {
 	return reprRecord(alloc, "extern-ptr", [
-		reprOfConcreteStructRef(alloc, a.source.deref())]);
+		reprOfConcreteStructRef(alloc, *a.source)]);
 }
 
 immutable(Repr) reprOfLowFunPtrType(ref Alloc alloc, ref immutable LowFunPtrType a) {
 	return reprRecord(alloc, "fun-ptr", [
-		reprOfConcreteStructRef(alloc, a.source.deref()),
+		reprOfConcreteStructRef(alloc, *a.source),
 		reprOfLowType(alloc, a.returnType),
 		reprArr(alloc, a.paramTypes, (ref immutable LowType it) =>
 			reprOfLowType(alloc, it))]);
@@ -111,14 +110,14 @@ immutable(Repr) reprOfLowFunPtrType(ref Alloc alloc, ref immutable LowFunPtrType
 
 immutable(Repr) reprOfLowRecord(ref Alloc alloc, ref immutable LowRecord a) {
 	return reprRecord(alloc, "record", [
-		reprOfConcreteStructRef(alloc, a.source.deref()),
+		reprOfConcreteStructRef(alloc, *a.source),
 		reprArr(alloc, a.fields, (ref immutable LowField field) =>
 			reprRecord(alloc, "field", [reprSym(debugName(field)), reprOfLowType(alloc, field.type)]))]);
 }
 
 immutable(Repr) reprOfLowUnion(ref Alloc alloc, ref immutable LowUnion a){
 	return reprRecord(alloc, "union", [
-		reprOfConcreteStructRef(alloc, a.source.deref()),
+		reprOfConcreteStructRef(alloc, *a.source),
 		reprArr(alloc, a.members, (ref immutable LowType it) =>
 			reprOfLowType(alloc, it))]);
 }
@@ -142,8 +141,8 @@ immutable(Repr) reprOfLowFunParamsKind(ref Alloc alloc, ref immutable LowFunPara
 immutable(Repr) reprOfLowFunSource(ref Alloc alloc, ref immutable LowFunSource a) {
 	return matchLowFunSource!(
 		immutable Repr,
-		(immutable Ptr!ConcreteFun it) =>
-			reprOfConcreteFunRef(alloc, it.deref()),
+		(immutable ConcreteFun* it) =>
+			reprOfConcreteFunRef(alloc, *it),
 		(ref immutable LowFunSource.Generated it) =>
 			reprRecord(alloc, "generated", [reprSym(it.name)]),
 	)(a);
@@ -214,11 +213,11 @@ immutable(Repr) reprOfLowExprKind(ref Alloc alloc, ref immutable LowExprKind a) 
 			reprSym("init-const"),
 		(ref immutable LowExprKind.Let it) =>
 			reprRecord(alloc, "let", [
-				reprOfLowLocalSource(alloc, it.local.deref().source),
+				reprOfLowLocalSource(alloc, it.local.source),
 				reprOfLowExpr(alloc, it.value),
 				reprOfLowExpr(alloc, it.then)]),
 		(ref immutable LowExprKind.LocalRef it) =>
-			reprRecord(alloc, "local-ref", [reprOfLowLocalSource(alloc, it.local.deref().source)]),
+			reprRecord(alloc, "local-ref", [reprOfLowLocalSource(alloc, it.local.source)]),
 		(ref immutable LowExprKind.MatchUnion it) =>
 			reprOfMatchUnion(alloc, it),
 		(ref immutable LowExprKind.ParamRef it) =>
@@ -288,8 +287,8 @@ immutable(Repr) reprOfMatchUnion(ref Alloc alloc, ref immutable LowExprKind.Matc
 		reprOfLowExpr(alloc, a.matchedValue),
 		reprArr(alloc, a.cases, (ref immutable LowExprKind.MatchUnion.Case case_) =>
 			reprRecord(alloc, "case", [
-				reprOpt(alloc, case_.local, (ref immutable Ptr!LowLocal it) =>
-					reprOfLowLocalSource(alloc, it.deref().source)),
+				reprOpt!(LowLocal*)(alloc, case_.local, (ref immutable LowLocal* it) =>
+					reprOfLowLocalSource(alloc, it.source)),
 				reprOfLowExpr(alloc, case_.then)]))]);
 }
 

@@ -68,7 +68,7 @@ import util.col.dict : mustGetAt;
 import util.col.fullIndexDict : fullIndexDictEach, fullIndexDictEachKey;
 import util.col.str : eachChar, SafeCStr;
 import util.opt : force, has, some;
-import util.ptr : Ptr, ptrTrustMe, ptrTrustMe_mut;
+import util.ptr : ptrTrustMe, ptrTrustMe_mut;
 import util.sym : AllSymbols;
 import util.util : abs, drop, todo, unreachable, verify;
 import util.writer :
@@ -205,27 +205,27 @@ void declareConstantPointerStorage(
 struct Ctx {
 	@safe @nogc pure nothrow:
 
-	immutable Ptr!LowProgram programPtr;
+	immutable LowProgram* programPtr;
 	immutable MangledNames mangledNames;
 
 	ref immutable(LowProgram) program() return scope immutable {
-		return programPtr.deref();
+		return *programPtr;
 	}
 	ref immutable(AllSymbols) allSymbols() return scope immutable {
-		return mangledNames.allSymbols.deref();
+		return *mangledNames.allSymbols;
 	}
 }
 
 struct FunBodyCtx {
 	@safe @nogc pure nothrow:
 
-	immutable Ptr!Ctx ctxPtr;
+	immutable Ctx* ctxPtr;
 	immutable bool hasTailRecur;
 	immutable LowFunIndex curFun;
 	size_t nextTemp;
 
 	ref immutable(Ctx) ctx() return scope const {
-		return ctxPtr.deref();
+		return *ctxPtr;
 	}
 
 	ref immutable(MangledNames) mangledNames() return scope const {
@@ -284,7 +284,7 @@ void writeParamDecl(ref Writer writer, ref immutable Ctx ctx, scope ref immutabl
 	writeLowParamName(writer, ctx.mangledNames, a);
 }
 
-void writeStructHead(ref Writer writer, ref immutable Ctx ctx, immutable Ptr!ConcreteStruct source) {
+void writeStructHead(ref Writer writer, ref immutable Ctx ctx, immutable ConcreteStruct* source) {
 	writeStatic(writer, "struct ");
 	writeStructMangledName(writer, ctx.mangledNames, source);
 	writeStatic(writer, " {");
@@ -325,7 +325,7 @@ void writeUnion(ref Writer writer, ref immutable Ctx ctx, ref immutable LowUnion
 	writeStructHead(writer, ctx, a.source);
 	writeStatic(writer, "\n\tuint64_t kind;");
 	immutable bool isBuiltin = matchConcreteStructBody!(immutable bool)(
-		body_(a.source.deref()),
+		body_(*a.source),
 		(ref immutable ConcreteStructBody.Builtin it) {
 			verify(it.kind == BuiltinStructKind.fun);
 			return true;
@@ -355,7 +355,7 @@ void writeUnion(ref Writer writer, ref immutable Ctx ctx, ref immutable LowUnion
 	writeStructEnd(writer);
 }
 
-void declareStruct(ref Writer writer, ref immutable Ctx ctx, immutable Ptr!ConcreteStruct source) {
+void declareStruct(ref Writer writer, ref immutable Ctx ctx, immutable ConcreteStruct* source) {
 	writeStatic(writer, "struct ");
 	writeStructMangledName(writer, ctx.mangledNames, source);
 	writeStatic(writer, ";\n");
@@ -382,7 +382,7 @@ void staticAssertStructSize(
 
 void writeStructs(ref Alloc alloc, ref Writer writer, ref immutable Ctx ctx) {
 	scope immutable TypeWriters writers = immutable TypeWriters(
-		(immutable Ptr!ConcreteStruct it) {
+		(immutable ConcreteStruct* it) {
 			declareStruct(writer, ctx, it);
 		},
 		(immutable LowType.FunPtr, ref immutable LowFunPtrType funPtr) {
@@ -653,7 +653,7 @@ struct WriteKind {
 
 	@trusted immutable this(immutable Inline a) { kind = Kind.inline; inline = a; }
 	immutable this(immutable InlineOrTemp a) { kind = Kind.inlineOrTemp; inlineOrTemp = a; }
-	@trusted immutable this(immutable Ptr!LowLocal a) { kind = Kind.local; local = a; }
+	@trusted immutable this(immutable LowLocal* a) { kind = Kind.local; local = a; }
 	immutable this(immutable MakeTemp a) { kind = Kind.makeTemp; makeTemp = a; }
 	immutable this(immutable Return a) { kind = Kind.return_; return_ = a; }
 	immutable this(immutable UseTemp a) { kind = Kind.useTemp; useTemp = a; }
@@ -673,7 +673,7 @@ struct WriteKind {
 	union {
 		immutable Inline inline;
 		immutable InlineOrTemp inlineOrTemp;
-		immutable Ptr!LowLocal local;
+		immutable LowLocal* local;
 		immutable MakeTemp makeTemp;
 		immutable Return return_;
 		immutable UseTemp useTemp;
@@ -710,7 +710,7 @@ immutable(bool) isVoid(ref immutable WriteKind a) {
 	ref immutable WriteKind a,
 	scope T delegate(ref immutable WriteKind.Inline) @safe @nogc pure nothrow cbInline,
 	scope T delegate(ref immutable WriteKind.InlineOrTemp) @safe @nogc pure nothrow cbInlineOrTemp,
-	scope T delegate(immutable Ptr!LowLocal) @safe @nogc pure nothrow cbLocal,
+	scope T delegate(immutable LowLocal*) @safe @nogc pure nothrow cbLocal,
 	scope T delegate(ref immutable WriteKind.MakeTemp) @safe @nogc pure nothrow cbMakeTemp,
 	scope T delegate(ref immutable WriteKind.Return) @safe @nogc pure nothrow cbReturn,
 	scope T delegate(ref immutable WriteKind.UseTemp) @safe @nogc pure nothrow cbUseTemp,
@@ -834,10 +834,10 @@ immutable(WriteExprResult) writeExpr(
 			}),
 		(ref immutable LowExprKind.Let it) {
 			if (!isInline(writeKind)) {
-				if (isVoid(it.local.deref().type))
+				if (isVoid(it.local.type))
 					writeExprVoid(writer, tempAlloc, indent, ctx, it.value);
 				else {
-					writeDeclareLocal(writer, indent, ctx, it.local.deref());
+					writeDeclareLocal(writer, indent, ctx, *it.local);
 					writeChar(writer, ';');
 					immutable WriteKind localWriteKind = immutable WriteKind(it.local);
 					drop(writeExpr(writer, tempAlloc, indent, ctx, localWriteKind, it.value));
@@ -848,7 +848,7 @@ immutable(WriteExprResult) writeExpr(
 		},
 		(ref immutable LowExprKind.LocalRef it) =>
 			inlineableSimple(() {
-				writeLowLocalName(writer, ctx.mangledNames, it.local.deref());
+				writeLowLocalName(writer, ctx.mangledNames, *it.local);
 			}),
 		(ref immutable LowExprKind.MatchUnion it) =>
 			writeMatchUnion(writer, tempAlloc, indent, ctx, writeKind, type, it),
@@ -943,8 +943,8 @@ immutable(WriteExprResult) writeNonInlineable(
 			writeExprDone(),
 		(ref immutable WriteKind.InlineOrTemp) =>
 			makeTemp(),
-		(immutable Ptr!LowLocal it) {
-			writeLowLocalName(writer, ctx.mangledNames, it.deref());
+		(immutable LowLocal* it) {
+			writeLowLocalName(writer, ctx.mangledNames, *it);
 			writeStatic(writer, " = ");
 			return writeExprDone();
 		},
@@ -1047,7 +1047,7 @@ immutable(WriteExprResult) writeReturnVoid(
 		writeKind,
 		(ref immutable WriteKind.Inline) => unreachable!(immutable WriteExprResult),
 		(ref immutable WriteKind.InlineOrTemp) => unreachable!(immutable WriteExprResult),
-		(immutable Ptr!LowLocal) => unreachable!(immutable WriteExprResult),
+		(immutable LowLocal*) => unreachable!(immutable WriteExprResult),
 		(ref immutable WriteKind.MakeTemp) => unreachable!(immutable WriteExprResult),
 		(ref immutable WriteKind.Return) {
 			writeNewline(writer, indent);
@@ -1077,9 +1077,9 @@ immutable(WriteExprResult) writeCallExpr(
 ) {
 	immutable WriteExprResult[] args = writeExprsTempOrInline(writer, tempAlloc, indent, ctx, a.args);
 	return writeNonInlineable(writer, indent, ctx, writeKind, type, () {
-		immutable Ptr!LowFun called = &ctx.ctx.program.allFuns[a.called];
-		writeLowFunMangledName(writer, ctx.mangledNames, a.called, called.deref());
-		if (!isGlobal(called.deref().body_)) {
+		immutable LowFun* called = &ctx.ctx.program.allFuns[a.called];
+		writeLowFunMangledName(writer, ctx.mangledNames, a.called, *called);
+		if (!isGlobal(called.body_)) {
 			writeChar(writer, '(');
 			writeTempOrInlines(writer, tempAlloc, ctx, a.args, args);
 			writeChar(writer, ')');
@@ -1165,8 +1165,8 @@ immutable(WriteExprResult) writeMatchUnion(
 		writeStatic(writer, "case ");
 		writeNat(writer, caseIndex);
 		writeStatic(writer, ": {");
-		if (has(case_.local) && !isVoid(force(case_.local).deref().type)) {
-			writeDeclareLocal(writer, indent + 2, ctx, force(case_.local).deref());
+		if (has(case_.local) && !isVoid(force(case_.local).type)) {
+			writeDeclareLocal(writer, indent + 2, ctx, *force(case_.local));
 			writeStatic(writer, " = ");
 			writeTempRef(writer, matchedValue);
 			writeStatic(writer, ".as");
@@ -1526,7 +1526,7 @@ void writeLValue(ref Writer writer, ref const FunBodyCtx ctx, ref immutable LowE
 		(ref immutable LowExprKind.InitConstants) => unreachable!void(),
 		(ref immutable LowExprKind.Let) => unreachable!void(),
 		(ref immutable LowExprKind.LocalRef it) {
-			writeLowLocalName(writer, ctx.mangledNames, it.local.deref());
+			writeLowLocalName(writer, ctx.mangledNames, *it.local);
 		},
 		(ref immutable LowExprKind.MatchUnion) => unreachable!void(),
 		(ref immutable LowExprKind.ParamRef it) {

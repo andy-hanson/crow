@@ -18,7 +18,7 @@ struct DiagnosticsBuilder {
 	ArrBuilder!Diagnostic diags;
 }
 
-void addDiagnostic(ref Alloc alloc, ref DiagnosticsBuilder a, immutable FileAndRange where, immutable Diag diag) {
+void addDiagnostic(ref Alloc alloc, scope ref DiagnosticsBuilder a, immutable FileAndRange where, immutable Diag diag) {
 	immutable DiagSeverity severity = getDiagnosticSeverity(diag);
 	if (severity >= a.severity) {
 		if (severity > a.severity) {

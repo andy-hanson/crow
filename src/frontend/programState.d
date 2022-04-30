@@ -16,10 +16,9 @@ import model.model :
 	structDeclAndArgsEqual,
 	StructInst;
 import util.col.mutDict : MutDict;
-import util.ptr : Ptr;
 
 struct ProgramState {
-	MutDict!(immutable FunDeclAndArgs, immutable Ptr!FunInst, funDeclAndArgsEqual, hashFunDeclAndArgs) funInsts;
-	MutDict!(immutable StructDeclAndArgs, Ptr!StructInst, structDeclAndArgsEqual, hashStructDeclAndArgs) structInsts;
-	MutDict!(immutable SpecDeclAndArgs, immutable Ptr!SpecInst, specDeclAndArgsEqual, hashSpecDeclAndArgs) specInsts;
+	MutDict!(immutable FunDeclAndArgs, immutable FunInst*, funDeclAndArgsEqual, hashFunDeclAndArgs) funInsts;
+	MutDict!(immutable StructDeclAndArgs, StructInst*, structDeclAndArgsEqual, hashStructDeclAndArgs) structInsts;
+	MutDict!(immutable SpecDeclAndArgs, immutable SpecInst*, specDeclAndArgsEqual, hashSpecDeclAndArgs) specInsts;
 }

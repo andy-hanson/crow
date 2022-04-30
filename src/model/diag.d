@@ -29,7 +29,6 @@ import util.col.fullIndexDict : fullIndexDictOfArr;
 import util.lineAndColumnGetter : LineAndColumnGetter;
 import util.opt : Opt;
 import util.path : AllPaths, hashPath, Path, pathEqual, PathsInfo, writePath;
-import util.ptr : Ptr;
 import util.sourceRange : FileAndPos, FileAndRange, FileIndex, FilePaths, PathToFile, RangeWithinFile;
 import util.sym : Sym;
 import util.writer : Writer, writeBold, writeHyperlink, writeChar, writeRed, writeReset, writeStatic;
@@ -104,7 +103,7 @@ struct Diag {
 		}
 
 		immutable Reason reason;
-		immutable Ptr!FunDecl callee;
+		immutable FunDecl* callee;
 	}
 
 	struct CantInferTypeArguments {}
@@ -146,7 +145,7 @@ struct Diag {
 		immutable Sym name;
 	}
 	struct EnumBackingTypeInvalid {
-		immutable Ptr!StructInst actual;
+		immutable StructInst* actual;
 	}
 	struct EnumDuplicateValue {
 		immutable bool signed;
@@ -160,12 +159,12 @@ struct Diag {
 	}
 	struct ExternFunForbidden {
 		enum Reason { hasSpecs, hasTypeParams, needsNoCtx, variadic }
-		immutable Ptr!FunDecl fun;
+		immutable FunDecl* fun;
 		immutable Reason reason;
 	}
 	struct ExternPtrHasTypeParams {}
 	struct ExternRecordMustBeByRefOrVal {
-		immutable Ptr!StructDecl struct_;
+		immutable StructDecl* struct_;
 	}
 	struct ExternUnion {}
 	struct IfNeedsOpt {
@@ -180,21 +179,21 @@ struct Diag {
 		immutable Type type;
 	}
 	struct LambdaWrongNumberParams {
-		immutable Ptr!StructInst expectedLambdaType;
+		immutable StructInst* expectedLambdaType;
 		immutable size_t actualNParams;
 	}
 	struct LinkageWorseThanContainingFun {
-		immutable Ptr!FunDecl containingFun;
+		immutable FunDecl* containingFun;
 		immutable Type referencedType;
 		// empty for return type
-		immutable Opt!(Ptr!Param) param;
+		immutable Opt!(Param*) param;
 	}
 	struct LinkageWorseThanContainingType {
-		immutable Ptr!StructDecl containingType;
+		immutable StructDecl* containingType;
 		immutable Type referencedType;
 	}
 	struct LiteralOverflow {
-		immutable Ptr!StructInst type;
+		immutable StructInst* type;
 	}
 	struct MatchCaseNamesDoNotMatch {
 		immutable Sym[] expectedNames;
@@ -236,7 +235,7 @@ struct Diag {
 		immutable Sym name;
 	}
 	struct PurityWorseThanParent {
-		immutable Ptr!StructDecl parent;
+		immutable StructDecl* parent;
 		immutable Type child;
 	}
 	struct PuritySpecifierRedundant {
@@ -252,15 +251,15 @@ struct Diag {
 	struct SpecBuiltinNotSatisfied {
 		immutable SpecBody.Builtin.Kind kind;
 		immutable Type type;
-		immutable Ptr!FunDecl called;
+		immutable FunDecl* called;
 	}
 	struct SpecImplFoundMultiple {
 		immutable Sym sigName;
 		immutable CalledDecl[] matches;
 	}
 	struct SpecImplHasSpecs {
-		immutable Ptr!FunDecl outerCalled;
-		immutable Ptr!FunDecl specImpl;
+		immutable FunDecl* outerCalled;
+		immutable FunDecl* specImpl;
 	}
 	struct SpecImplNotFound {
 		immutable Sym sigName;
@@ -286,29 +285,29 @@ struct Diag {
 		immutable Kind kind;
 	}
 	struct UnusedImport {
-		immutable Ptr!Module importedModule;
+		immutable Module* importedModule;
 		immutable Opt!Sym importedName;
 	}
 	struct UnusedLocal {
-		immutable Ptr!Local local;
+		immutable Local* local;
 	}
 	struct UnusedParam {
-		immutable Ptr!Param param;
+		immutable Param* param;
 	}
 	struct UnusedPrivateFun {
-		immutable Ptr!FunDecl fun;
+		immutable FunDecl* fun;
 	}
 	struct UnusedPrivateSpec {
-		immutable Ptr!SpecDecl spec;
+		immutable SpecDecl* spec;
 	}
 	struct UnusedPrivateStruct {
-		immutable Ptr!StructDecl struct_;
+		immutable StructDecl* struct_;
 	}
 	struct UnusedPrivateStructAlias {
-		immutable Ptr!StructAlias alias_;
+		immutable StructAlias* alias_;
 	}
 	struct WrongNumberTypeArgsForSpec {
-		immutable Ptr!SpecDecl decl;
+		immutable SpecDecl* decl;
 		immutable size_t nExpectedTypeArgs;
 		immutable size_t nActualTypeArgs;
 	}

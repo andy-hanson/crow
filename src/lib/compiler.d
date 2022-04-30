@@ -86,7 +86,7 @@ struct ExitCode {
 
 immutable(ExitCode) buildAndInterpret(
 	ref Alloc alloc,
-	scope ref Perf perf,
+	ref Perf perf,
 	ref AllSymbols allSymbols,
 	ref AllPaths allPaths,
 	ref immutable PathsInfo pathsInfo,
@@ -185,7 +185,7 @@ immutable(DiagsAndResultStrs) printModel(
 	return !hasDiags(program)
 		? immutable DiagsAndResultStrs(
 			safeCStr!"",
-			showModule(alloc, allSymbols, only(program.specialModules.rootModules).deref()))
+			showModule(alloc, allSymbols, *only(program.specialModules.rootModules)))
 		: immutable DiagsAndResultStrs(
 			strOfDiagnostics(
 				alloc, allSymbols, allPaths, pathsInfo, showDiagOptions, program.filesInfo, program.diagnostics),
@@ -368,7 +368,7 @@ public struct ProgramsAndFilesInfo {
 
 public immutable(ProgramsAndFilesInfo) buildToLowProgram(
 	ref Alloc alloc,
-	scope ref Perf perf,
+	ref Perf perf,
 	immutable VersionInfo versionInfo,
 	ref AllSymbols allSymbols,
 	ref AllPaths allPaths,

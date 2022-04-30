@@ -47,7 +47,6 @@ import util.col.mutArr : MutArr;
 import util.col.mutMaxArr : push, tempAsArr;
 import util.col.str : safeCStr;
 import util.opt : force, has, none, noneMut, Opt, some;
-import util.ptr : Ptr;
 import util.sourceRange : fileAndPosFromFileAndRange, FileAndRange;
 import util.sym : Operator, prependSet, shortSym, SpecialSym, Sym, symForOperator, symForSpecial;
 
@@ -82,10 +81,10 @@ void addFunsForStruct(
 	ref CheckCtx ctx,
 	ref ExactSizeArrBuilder!FunDecl funsBuilder,
 	ref immutable CommonTypes commonTypes,
-	immutable Ptr!StructDecl struct_,
+	immutable StructDecl* struct_,
 ) {
 	matchStructBody!void(
-		body_(struct_.deref()),
+		body_(*struct_),
 		(ref immutable StructBody.Bogus) {},
 		(ref immutable StructBody.Builtin) {},
 		(ref immutable StructBody.Enum it) {
@@ -105,12 +104,12 @@ void addFunsForStruct(
 
 private:
 
-immutable(Ptr!StructInst) instantiateNonTemplateStructDeclNeverDelay(
+immutable(StructInst*) instantiateNonTemplateStructDeclNeverDelay(
 	ref Alloc alloc,
 	ref ProgramState programState,
-	immutable Ptr!StructDecl structDecl,
+	immutable StructDecl* structDecl,
 ) {
-	return instantiateStruct(alloc, programState, structDecl, [], noneMut!(Ptr!(MutArr!(Ptr!StructInst))));
+	return instantiateStruct(alloc, programState, structDecl, [], noneMut!(MutArr!(StructInst*)*));
 }
 
 immutable(bool) recordIsAlwaysByVal(ref immutable StructBody.Record record) {
@@ -121,13 +120,13 @@ void addFunsForEnum(
 	ref CheckCtx ctx,
 	ref ExactSizeArrBuilder!FunDecl funsBuilder,
 	ref immutable CommonTypes commonTypes,
-	immutable Ptr!StructDecl struct_,
+	immutable StructDecl* struct_,
 	ref immutable StructBody.Enum enum_,
 ) {
 	immutable Type enumType =
 		immutable Type(instantiateNonTemplateStructDeclNeverDelay(ctx.alloc, ctx.programState, struct_));
-	immutable Visibility visibility = struct_.deref().visibility;
-	immutable FileAndRange range = struct_.deref().range;
+	immutable Visibility visibility = struct_.visibility;
+	immutable FileAndRange range = struct_.range;
 	addEnumFlagsCommonFunctions(
 		ctx.alloc, funsBuilder, ctx.programState, visibility, range, enumType, enum_.backingType, commonTypes,
 		shortSym("enum-members"));
@@ -139,13 +138,13 @@ void addFunsForFlags(
 	ref CheckCtx ctx,
 	ref ExactSizeArrBuilder!FunDecl funsBuilder,
 	ref immutable CommonTypes commonTypes,
-	immutable Ptr!StructDecl struct_,
+	immutable StructDecl* struct_,
 	ref immutable StructBody.Flags flags,
 ) {
 	immutable Type type =
 		immutable Type(instantiateNonTemplateStructDeclNeverDelay(ctx.alloc, ctx.programState, struct_));
-	immutable Visibility visibility = struct_.deref().visibility;
-	immutable FileAndRange range = struct_.deref().range;
+	immutable Visibility visibility = struct_.visibility;
+	immutable FileAndRange range = struct_.range;
 	addEnumFlagsCommonFunctions(
 		ctx.alloc, funsBuilder, ctx.programState, visibility, range, type, flags.backingType, commonTypes,
 		symForSpecial(SpecialSym.flags_members));
@@ -197,7 +196,7 @@ FunDecl enumOrFlagsConstructor(
 			enumType,
 			immutable Params(emptyArr!Param)),
 		emptyArr!TypeParam,
-		emptyArr!(Ptr!SpecInst),
+		emptyArr!(SpecInst*),
 		immutable FunBody(immutable FunBody.CreateEnum(member.value)));
 }
 
@@ -220,7 +219,7 @@ FunDecl enumEqualFunction(
 				immutable Param(fileAndRange, some(shortSym("a")), enumType, 0),
 				immutable Param(fileAndRange, some(shortSym("b")), enumType, 1)]))),
 		emptyArr!TypeParam,
-		emptyArr!(Ptr!SpecInst),
+		emptyArr!(SpecInst*),
 		immutable FunBody(EnumFunction.equal));
 }
 
@@ -240,7 +239,7 @@ FunDecl flagsNewFunction(
 			enumType,
 			immutable Params(emptyArr!Param)),
 		emptyArr!TypeParam,
-		emptyArr!(Ptr!SpecInst),
+		emptyArr!(SpecInst*),
 		immutable FunBody(FlagsFunction.new_));
 }
 
@@ -260,7 +259,7 @@ FunDecl flagsAllFunction(
 			enumType,
 			immutable Params(emptyArr!Param)),
 		emptyArr!TypeParam,
-		emptyArr!(Ptr!SpecInst),
+		emptyArr!(SpecInst*),
 		immutable FunBody(FlagsFunction.all));
 }
 
@@ -281,7 +280,7 @@ FunDecl flagsNegateFunction(
 			immutable Params(arrLiteral!Param(alloc, [
 				immutable Param(fileAndRange, some(shortSym("a")), enumType, 0)]))),
 		emptyArr!TypeParam,
-		emptyArr!(Ptr!SpecInst),
+		emptyArr!(SpecInst*),
 		immutable FunBody(FlagsFunction.negate));
 }
 
@@ -304,11 +303,11 @@ FunDecl enumToIntegralFunction(
 			immutable Params(arrLiteral!Param(alloc, [
 				immutable Param(fileAndRange, some(shortSym("a")), enumType, 0)]))),
 		emptyArr!TypeParam,
-		emptyArr!(Ptr!SpecInst),
+		emptyArr!(SpecInst*),
 		immutable FunBody(EnumFunction.toIntegral));
 }
 
-immutable(Ptr!StructInst) getBackingTypeFromEnumType(
+immutable(StructInst*) getBackingTypeFromEnumType(
 	immutable EnumBackingType a,
 	ref immutable CommonTypes commonTypes,
 ) {
@@ -356,7 +355,7 @@ FunDecl enumOrFlagsMembersFunction(
 				immutable Type(makeNamedValType(alloc, programState, commonTypes, enumType)))),
 			immutable Params(emptyArr!Param)),
 		emptyArr!TypeParam,
-		emptyArr!(Ptr!SpecInst),
+		emptyArr!(SpecInst*),
 		immutable FunBody(EnumFunction.members));
 }
 
@@ -380,7 +379,7 @@ FunDecl flagsUnionOrIntersectFunction(
 				immutable Param(fileAndRange, some(shortSym("a")), enumType, 0),
 				immutable Param(fileAndRange, some(shortSym("b")), enumType, 0)]))),
 		emptyArr!TypeParam,
-		emptyArr!(Ptr!SpecInst),
+		emptyArr!(SpecInst*),
 		immutable FunBody(fn));
 }
 
@@ -413,12 +412,12 @@ void addFunsForRecord(
 	ref CheckCtx ctx,
 	ref ExactSizeArrBuilder!FunDecl funsBuilder,
 	ref immutable CommonTypes commonTypes,
-	immutable Ptr!StructDecl struct_,
+	immutable StructDecl* struct_,
 	ref immutable StructBody.Record record,
 ) {
-	immutable TypeParam[] typeParams = struct_.deref().typeParams;
+	immutable TypeParam[] typeParams = struct_.typeParams;
 	scope TypeArgsArray typeArgs = typeArgsArray();
-	foreach (immutable Ptr!TypeParam p; ptrsRange(typeParams))
+	foreach (immutable TypeParam* p; ptrsRange(typeParams))
 		push(typeArgs, immutable Type(p));
 	immutable Type structType = immutable Type(
 		instantiateStructNeverDelay(ctx.alloc, ctx.programState, struct_, tempAsArr(typeArgs)));
@@ -430,12 +429,12 @@ void addFunsForRecord(
 			record.flags.newVisibility,
 			flags.withOkIfUnused(),
 			immutable Sig(
-				fileAndPosFromFileAndRange(struct_.deref().range),
+				fileAndPosFromFileAndRange(struct_.range),
 				shortSym("new"),
 				returnType,
 				immutable Params(ctorParams)),
 			typeParams,
-			emptyArr!(Ptr!SpecInst),
+			emptyArr!(SpecInst*),
 			immutable FunBody(immutable FunBody.CreateRecord()));
 	}
 
@@ -449,7 +448,7 @@ void addFunsForRecord(
 	}
 
 	foreach (immutable size_t fieldIndex, ref immutable RecordField field; record.fields) {
-		immutable Visibility fieldVisibility = leastVisibility(struct_.deref().visibility, field.visibility);
+		immutable Visibility fieldVisibility = leastVisibility(struct_.visibility, field.visibility);
 		exactSizeArrBuilderAdd(funsBuilder, FunDecl(
 			safeCStr!"",
 			fieldVisibility,
@@ -461,7 +460,7 @@ void addFunsForRecord(
 				immutable Params(arrLiteral!Param(ctx.alloc, [
 					immutable Param(field.range, some(shortSym("a")), structType, 0)]))),
 			typeParams,
-			emptyArr!(Ptr!SpecInst),
+			emptyArr!(SpecInst*),
 			immutable FunBody(immutable FunBody.RecordFieldGet(fieldIndex))));
 
 		immutable Opt!Visibility mutVisibility = visibilityOfFieldMutability(field.mutability);
@@ -478,7 +477,7 @@ void addFunsForRecord(
 						immutable Param(field.range, some(shortSym("a")), structType, 0),
 						immutable Param(field.range, some(field.name), field.type, 1)]))),
 				typeParams,
-				emptyArr!(Ptr!SpecInst),
+				emptyArr!(SpecInst*),
 				immutable FunBody(immutable FunBody.RecordFieldSet(fieldIndex))));
 	}
 }
@@ -498,12 +497,12 @@ void addFunsForUnion(
 	ref CheckCtx ctx,
 	ref ExactSizeArrBuilder!FunDecl funsBuilder,
 	ref immutable CommonTypes commonTypes,
-	immutable Ptr!StructDecl struct_,
+	immutable StructDecl* struct_,
 	ref immutable StructBody.Union union_,
 ) {
-	immutable TypeParam[] typeParams = struct_.deref().typeParams;
+	immutable TypeParam[] typeParams = struct_.typeParams;
 	scope TypeArgsArray typeArgs = typeArgsArray();
-	foreach (immutable Ptr!TypeParam x; ptrsRange(typeParams))
+	foreach (immutable TypeParam* x; ptrsRange(typeParams))
 		push(typeArgs, immutable Type(x));
 	immutable Type structType = immutable Type(
 		instantiateStructNeverDelay(ctx.alloc, ctx.programState, struct_, tempAsArr(typeArgs)));
@@ -514,7 +513,7 @@ void addFunsForUnion(
 			: emptyArr!Param;
 		exactSizeArrBuilderAdd(funsBuilder, FunDecl(
 			safeCStr!"",
-			struct_.deref().visibility,
+			struct_.visibility,
 			FunFlags.generatedNoCtx,
 			immutable Sig(
 				fileAndPosFromFileAndRange(member.range),
@@ -522,7 +521,7 @@ void addFunsForUnion(
 				structType,
 				immutable Params(params)),
 			typeParams,
-			emptyArr!(Ptr!SpecInst),
+			emptyArr!(SpecInst*),
 			immutable FunBody(immutable FunBody.CreateUnion(memberIndex))));
 	}
 }

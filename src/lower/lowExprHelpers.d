@@ -23,7 +23,6 @@ import model.lowModel :
 	UpdateParam;
 import util.alloc.alloc : Alloc;
 import util.memory : allocate;
-import util.ptr : Ptr;
 import util.sourceRange : FileAndRange;
 import util.sym : shortSym, Sym, symEq;
 import util.util : unreachable, verify;
@@ -31,15 +30,15 @@ import util.util : unreachable, verify;
 immutable LowType boolType = immutable LowType(PrimitiveType.bool_);
 private immutable LowType char8Type = immutable LowType(PrimitiveType.char8);
 private immutable LowType char8PtrConstType =
-	immutable LowType(immutable LowType.PtrRawConst(immutable Ptr!LowType(&char8Type)));
+	immutable LowType(immutable LowType.PtrRawConst(&char8Type));
 immutable LowType char8PtrPtrConstType =
-	immutable LowType(immutable LowType.PtrRawConst(immutable Ptr!LowType(&char8PtrConstType)));
+	immutable LowType(immutable LowType.PtrRawConst(&char8PtrConstType));
 immutable LowType int32Type = immutable LowType(PrimitiveType.int32);
 immutable LowType nat64Type = immutable LowType(PrimitiveType.nat64);
 private immutable LowType nat8Type = immutable LowType(PrimitiveType.nat8);
 private immutable LowType anyPtrConstType =
-	immutable LowType(immutable LowType.PtrRawConst(immutable Ptr!LowType(&nat8Type)));
-immutable LowType anyPtrMutType = immutable LowType(immutable LowType.PtrRawMut(immutable Ptr!LowType(&nat8Type)));
+	immutable LowType(immutable LowType.PtrRawConst(&nat8Type));
+immutable LowType anyPtrMutType = immutable LowType(immutable LowType.PtrRawMut(&nat8Type));
 immutable LowType voidType = immutable LowType(PrimitiveType.void_);
 
 immutable(LowExpr) genAddPtr(
@@ -165,8 +164,8 @@ immutable(LowExpr) genSizeOf(immutable FileAndRange range, immutable LowType t) 
 	return immutable LowExpr(nat64Type, range, immutable LowExprKind(immutable LowExprKind.SizeOf(t)));
 }
 
-immutable(LowExpr) genLocalRef(ref Alloc alloc, immutable FileAndRange range, immutable Ptr!LowLocal local) {
-	return immutable LowExpr(local.deref().type, range, immutable LowExprKind(immutable LowExprKind.LocalRef(local)));
+immutable(LowExpr) genLocalRef(ref Alloc alloc, immutable FileAndRange range, immutable LowLocal* local) {
+	return immutable LowExpr(local.type, range, immutable LowExprKind(immutable LowExprKind.LocalRef(local)));
 }
 
 immutable(LowParam) genParam(immutable Sym name, immutable LowType type) {
@@ -395,7 +394,7 @@ immutable(LowExpr) genVoid(immutable FileAndRange source) {
 	return immutable LowExpr(voidType, source, immutable LowExprKind(immutable Constant(immutable Constant.Void())));
 }
 
-immutable(Ptr!LowLocal) genLocal(
+immutable(LowLocal*) genLocal(
 	ref Alloc alloc,
 	immutable Sym name,
 	immutable size_t index,

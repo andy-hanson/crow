@@ -11,7 +11,7 @@ import util.col.str : copyToSafeCStr, eachChar, SafeCStr, safeCStr, strOfSafeCSt
 import util.conv : safeToSizeT;
 import util.hash : Hasher, hashUlong;
 import util.opt : force, has, Opt, none, some;
-import util.ptr : Ptr, ptrTrustMe_mut;
+import util.ptr : ptrTrustMe_mut;
 import util.util : drop, verify;
 import util.writer : finishWriterToSafeCStr, writeChar, Writer;
 
@@ -36,7 +36,7 @@ struct Sym {
 struct AllSymbols {
 	@safe @nogc pure nothrow:
 
-	this(Ptr!Alloc allocPtr_) {
+	this(Alloc* allocPtr_) {
 		allocPtr = allocPtr_;
 		static assert(Operator.min == 0 && SpecialSym.min == 0);
 		for (Operator op = Operator.min; op <= Operator.max; op++)
@@ -52,12 +52,12 @@ struct AllSymbols {
 	}
 
 	private:
-	Ptr!Alloc allocPtr;
+	Alloc* allocPtr;
 	MutStringDict!(immutable Sym) largeStringToIndex;
 	MutArr!(immutable SafeCStr) largeStringFromIndex;
 
 	ref Alloc alloc() return scope {
-		return allocPtr.deref();
+		return *allocPtr;
 	}
 }
 

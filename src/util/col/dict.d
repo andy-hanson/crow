@@ -8,7 +8,7 @@ import util.col.mutDict :
 	addToMutDict, getAt_mut, hasKey_mut, moveToDict, mustGetAt_mut, MutDict, mutDictEach;
 public import util.col.mutDict : KeyValuePair;
 import util.opt : Opt;
-import util.ptr : hashPtr, Ptr, ptrEquals;
+import util.ptr : hashPtr, ptrEquals;
 import util.sym : hashSym, Sym, symEq;
 
 struct Dict(K, V, alias equal, alias hash) {
@@ -20,7 +20,7 @@ struct Dict(K, V, alias equal, alias hash) {
 }
 
 alias PtrDict(K, V) =
-	Dict!(Ptr!K, V, ptrEquals!K, hashPtr!K);
+	Dict!(K*, V, ptrEquals!K, hashPtr!K);
 
 alias SymDict(V) =
 	Dict!(Sym, V, symEq, hashSym);

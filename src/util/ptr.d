@@ -4,7 +4,6 @@ module util.ptr;
 
 import util.col.arr : PtrAndSmallNumber, SmallArray;
 import util.hash : Hasher, hashSizeT;
-import util.opt : hasInvalid;
 import util.util : verify;
 
 /*
@@ -36,8 +35,8 @@ struct TaggedPtr(E) {
 	@system immutable(E) tag() immutable {
 		return cast(E) (value & 0b11);
 	}
-	@system immutable(Ptr!T) asPtr(T)() immutable {
-		return immutable Ptr!T(cast(immutable T*) cast(void*) (value & ~0b11));
+	@system immutable(T*) asPtr(T)() immutable {
+		return cast(immutable T*) cast(void*) (value & ~0b11);
 	}
 	@system immutable(T[]) asArray(T)() immutable {
 		return SmallArray!T.decode(value & ~0b11);
@@ -50,74 +49,34 @@ struct TaggedPtr(E) {
 	ulong value;
 }
 
-// Non-null
-struct Ptr(T) {
-	static immutable Ptr!T INVALID = immutable Ptr!T(null, true);
-	static Ptr!T INVALID_mut = Ptr!T(null, true);
-
-	@safe @nogc pure nothrow:
-	@disable this(); // No nulls!
-	@trusted this(inout T* p) inout {
-		ptr = cast(inout void*) p;
-		verify!"Ptr constructor"(ptr != null);
-	}
-	@trusted this(immutable T* p, immutable bool) immutable {
-		ptr = p;
-	}
-	@trusted this(T* p, immutable bool) {
-		ptr = cast(void*) p;
-	}
-
-	// Using a void* greatly speeds up compile times. Don't know why.
-	private void* ptr;
-
-	ref T deref() {
-		return *rawPtr();
-	}
-	ref const(T) deref() const {
-		return *rawPtr();
-	}
-	ref immutable(T) deref() immutable {
-		return *rawPtr();
-	}
-
-	@trusted T* rawPtr() { return cast(T*) ptr; }
-	@trusted const(T*) rawPtr() const { return cast(const T*) ptr; }
-	@trusted immutable(T*) rawPtr() immutable { return cast(immutable T*) ptr; }
-}
-static assert(hasInvalid!(Ptr!int));
-
-// Only for use as a sentinel
-static immutable Ptr!T nullPtr(T) = immutable Ptr!T(null, true);
-
-@trusted immutable(Ptr!T) ptrTrustMe(T)(scope ref immutable T t) {
-	return immutable Ptr!T(&t);
+@trusted immutable(T*) ptrTrustMe(T)(scope ref immutable T t) {
+	return &t;
 }
 
-@trusted Ptr!T ptrTrustMe_mut(T)(scope ref T t) {
-	return Ptr!T(&t);
+@trusted T* ptrTrustMe_mut(T)(scope ref T t) {
+	return &t;
 }
 
-@trusted const(Ptr!T) ptrTrustMe_const(T)(ref const T t) {
-	return const Ptr!T(&t);
+@trusted const(T*) ptrTrustMe_const(T)(ref const T t) {
+	return &t;
 }
 
-immutable(bool) ptrEquals(T)(const Ptr!T a, const Ptr!T b) {
-	return a.ptr == b.ptr;
+immutable(bool) ptrEquals(T)(const T* a, const T* b) {
+	return a == b;
 }
 
-void hashPtr(T)(ref Hasher hasher, const Ptr!T a) {
-	hashSizeT(hasher, cast(immutable size_t) a.rawPtr());
+void hashPtr(T)(ref Hasher hasher, const T* a) {
+	hashSizeT(hasher, cast(immutable size_t) a);
 }
 
 @trusted immutable(T*) castImmutable(T)(T* a) {
 	return cast(immutable) a;
 }
 
-@trusted immutable(Ptr!T) castImmutable(T)(Ptr!T a) {
-	return cast(immutable) a;
+@trusted T* castMutable(T)(immutable T* a) {
+	return cast(T*) a;
 }
 
-@trusted Ptr!T castMutable(T)(immutable Ptr!T a) {
-	return cast(Ptr!T) a;
+@trusted immutable(T) castNonScope(T)(scope T xs) {
+	return xs;
 }

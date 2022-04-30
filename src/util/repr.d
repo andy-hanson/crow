@@ -9,7 +9,7 @@ import util.col.fullIndexDict : FullIndexDict;
 import util.col.str : SafeCStr, strOfSafeCStr;
 import util.memory : allocate;
 import util.opt : force, has, none, Opt, some;
-import util.ptr : Ptr, ptrTrustMe_mut;
+import util.ptr : ptrTrustMe_mut;
 import util.sym : AllSymbols, shortSym, Sym, writeQuotedSym;
 import util.writer :
 	finishWriterToSafeCStr,
@@ -123,7 +123,7 @@ immutable(Repr) reprOpt(T)(
 	immutable Opt!T opt,
 	scope immutable(Repr) delegate(ref immutable T) @safe @nogc pure nothrow cb,
 ) {
-	return immutable Repr(has(opt) ? some(allocate!Repr(alloc, cb(force(opt)))) : none!(Ptr!Repr));
+	return immutable Repr(has(opt) ? some(allocate!Repr(alloc, cb(force(opt)))) : none!(Repr*));
 }
 
 private struct ReprNamedRecord {
@@ -166,7 +166,7 @@ struct Repr {
 		immutable ReprNamedRecord namedRecord;
 		immutable double float_;
 		immutable long int_;
-		immutable Opt!(Ptr!Repr) opt;
+		immutable Opt!(Repr*) opt;
 		immutable ReprRecord record;
 		immutable string str;
 		immutable Sym symbol;
@@ -178,7 +178,7 @@ struct Repr {
 	@trusted immutable this(immutable ReprNamedRecord a) { kind = Kind.namedRecord; namedRecord = a; }
 	immutable this(immutable double a) { kind = Kind.float_; float_ = a; }
 	immutable this(immutable long a) { kind = Kind.int_; int_ = a; }
-	@trusted immutable this(immutable Opt!(Ptr!Repr) a) { kind = Kind.opt; opt = a; }
+	@trusted immutable this(immutable Opt!(Repr*) a) { kind = Kind.opt; opt = a; }
 	@trusted immutable this(immutable ReprRecord a) { kind = Kind.record; record = a; }
 	@trusted immutable this(immutable string a) { kind = Kind.str; str = a; }
 	immutable this(immutable Sym a) { kind = Kind.symbol; symbol = a; }
@@ -191,7 +191,7 @@ private @trusted T matchRepr(T)(
 	scope T delegate(immutable double) @safe @nogc pure nothrow cbFloat,
 	scope T delegate(immutable long) @safe @nogc pure nothrow cbInt,
 	scope T delegate(ref immutable ReprNamedRecord) @safe @nogc pure nothrow cbNamedRecord,
-	scope T delegate(immutable Opt!(Ptr!Repr)) @safe @nogc pure nothrow cbOpt,
+	scope T delegate(immutable Opt!(Repr*)) @safe @nogc pure nothrow cbOpt,
 	scope T delegate(ref immutable ReprRecord) @safe @nogc pure nothrow cbRecord,
 	scope T delegate(ref immutable string) @safe @nogc pure nothrow cbStr,
 	scope T delegate(immutable Sym) @safe @nogc pure nothrow cbSym,
@@ -254,10 +254,10 @@ void writeReprJSON(ref Writer writer, ref const AllSymbols allSymbols, immutable
 			}
 			writeChar(writer,'}');
 		},
-		(immutable Opt!(Ptr!Repr) it) {
+		(immutable Opt!(Repr*) it) {
 			if (has(it)) {
 				writeStatic(writer, "{\"_type\":\"some\",\"value\":");
-				writeReprJSON(writer, allSymbols, force(it).deref());
+				writeReprJSON(writer, allSymbols, *force(it));
 				writeChar(writer, '}');
 			} else {
 				writeStatic(writer, "{\"_type\":\"none\"}");

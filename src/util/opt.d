@@ -6,15 +6,15 @@ import util.util : verify;
 
 struct Opt(T) {
 	private:
-	static if (hasInvalid!T) {
+	static if (is(T == U*, U)) {
 		this(BeNone) immutable {
-			value_ = T.INVALID;
+			value_ = null;
 		}
 		this(BeNone) const {
-			value_ = T.INVALID;
+			value_ = null;
 		}
 		this(BeNone) {
-			value_ = T.INVALID_mut;
+			value_ = null;
 		}
 		@trusted this(immutable T value) immutable {
 			value_ = value;
@@ -28,10 +28,8 @@ struct Opt(T) {
 		T value_;
 
 		immutable(bool) has_() const {
-			return value_ != T.INVALID;
+			return value_ != null;
 		}
-
-		static assert(Opt!T.sizeof == T.sizeof);
 	} else {
 		this(BeNone) immutable {
 			has_ = false;
@@ -59,10 +57,6 @@ struct Opt(T) {
 	}
 }
 
-immutable(bool) hasInvalid(T)() {
-	return __traits(hasMember, T, "INVALID");
-}
-
 private struct BeNone {}
 
 immutable(Opt!T) none(T)() {
@@ -81,8 +75,11 @@ Opt!T noneMut(T)() {
 	return Opt!T(BeNone());
 }
 
-immutable(Opt!T) some(T)(immutable T value) {
+immutable(Opt!T) some(T)(immutable T value) if (!is(T == U*, U)) {
 	return immutable Opt!T(value);
+}
+immutable(Opt!(T*)) some(T)(immutable T* value) {
+	return immutable Opt!(T*)(value);
 }
 
 const(Opt!T) someConst(T)(const T value) {

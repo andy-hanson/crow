@@ -3,7 +3,6 @@ module util.memory;
 @safe @nogc pure nothrow:
 
 import util.alloc.alloc : Alloc, allocateUninitialized;
-import util.ptr : Ptr;
 
 @trusted void initMemory(T)(T* ptr, const T value) {
 	*(cast(byte[T.sizeof]*) ptr) = *(cast(const byte[T.sizeof]*) &value);
@@ -41,14 +40,14 @@ void overwriteMemory(T)(T* ptr, scope T value) {
 	initMemory_mut!T(ptr, value);
 }
 
-@trusted immutable(Ptr!T) allocate(T)(scope ref Alloc alloc, immutable T value) {
+@trusted immutable(T*) allocate(T)(scope ref Alloc alloc, immutable T value) {
 	T* ptr = allocateUninitialized!T(alloc);
 	initMemory!T(ptr, value);
-	return immutable Ptr!T(cast(immutable) ptr);
+	return cast(immutable) ptr;
 }
 
-@trusted Ptr!T allocateMut(T)(ref Alloc alloc, T value) {
+@trusted T* allocateMut(T)(ref Alloc alloc, T value) {
 	T* ptr = allocateUninitialized!T(alloc);
 	initMemory_mut!T(ptr, value);
-	return Ptr!T(ptr);
+	return ptr;
 }

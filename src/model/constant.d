@@ -4,7 +4,6 @@ module model.constant;
 
 import model.concreteModel : ConcreteFun;
 import util.col.arrUtil : eachCorresponds;
-import util.ptr : Ptr, ptrEquals;
 import util.util : verify;
 
 // WARN: The type of a constant is implicit (given by context).
@@ -30,7 +29,7 @@ struct Constant {
 		immutable double value;
 	}
 	struct FunPtr {
-		immutable Ptr!ConcreteFun fun;
+		immutable ConcreteFun* fun;
 	}
 	// For int and nat types.
 	// For a large nat, this may wrap around to negative.
@@ -77,7 +76,7 @@ struct Constant {
 		immutable Null null_;
 		immutable Pointer pointer;
 		immutable Record record;
-		immutable Ptr!Union union_;
+		immutable Union* union_;
 		immutable Void void_;
 	}
 	public:
@@ -90,7 +89,7 @@ struct Constant {
 	immutable this(immutable Null a) { kind = Kind.null_; null_ = a; }
 	@trusted immutable this(immutable Pointer a) { kind = Kind.pointer; pointer = a; }
 	@trusted immutable this(immutable Record a) { kind = Kind.record; record = a; }
-	@trusted immutable this(immutable Ptr!Union a) { kind = Kind.union_; union_ = a; }
+	@trusted immutable this(immutable Union* a) { kind = Kind.union_; union_ = a; }
 	immutable this(immutable Void a) { kind = Kind.void_; void_ = a; }
 }
 static assert(Constant.sizeof <= 24);
@@ -112,7 +111,7 @@ immutable(Constant.Integral) asIntegral(ref immutable Constant a) {
 
 @trusted immutable(Constant.Union) asUnion(ref immutable Constant a) {
 	verify(a.kind == Constant.Kind.union_);
-	return a.union_.deref();
+	return *a.union_;
 }
 
 // WARN: Only do this with constants known to have the same type
@@ -129,7 +128,7 @@ immutable(Constant.Integral) asIntegral(ref immutable Constant a) {
 			//TODO: handle NaN
 			return a.float_ == b.float_;
 		case Constant.Kind.funPtr:
-			return ptrEquals(a.funPtr.fun, b.funPtr.fun);
+			return a.funPtr.fun == b.funPtr.fun;
 		case Constant.Kind.integral:
 			return a.integral.value == b.integral.value;
 		case Constant.Kind.null_:
@@ -184,7 +183,7 @@ immutable(Constant.Integral) asIntegral(ref immutable Constant a) {
 		case Constant.Kind.record:
 			return cbRecord(a.record);
 		case Constant.Kind.union_:
-			return cbUnion(a.union_.deref());
+			return cbUnion(*a.union_);
 		case Constant.Kind.void_:
 			return cbVoid(a.void_);
 	}

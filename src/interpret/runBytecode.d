@@ -39,7 +39,7 @@ import util.memory : memcpy, memmove, overwriteMemory;
 import util.opt : force, has, Opt;
 import util.path : AllPaths, PathsInfo;
 import util.perf : Perf, PerfMeasure, withMeasureNoAlloc;
-import util.ptr : nullPtr, Ptr, ptrTrustMe;
+import util.ptr : ptrTrustMe;
 import util.sym : AllSymbols;
 import util.util : debugLog, divRoundUp, drop, unreachable, verify;
 
@@ -59,7 +59,7 @@ import util.util : debugLog, divRoundUp, drop, unreachable, verify;
 		(ref Stacks stacks) {
 			dataPush(stacks, allArgs.length);
 			dataPush(stacks, cast(immutable ulong) allArgs.ptr);
-			return withMeasureNoAlloc!(immutable int, () =>
+			return withMeasureNoAlloc!(immutable int, () @trusted =>
 				runBytecodeInner(stacks, initialOperationPointer(byteCode))
 			)(perf, PerfMeasure.run);
 		});
@@ -144,7 +144,7 @@ immutable(T) withInterpreter(T)(
 
 		debug {
 			overwriteMemory(&globals, immutable InterpreterGlobals(
-				nullPtr!InterpreterDebugInfo, FunPtrToOperationPtr(), null));
+				null, FunPtrToOperationPtr(), null));
 		}
 
 		static if (!is(T == void))
@@ -161,14 +161,14 @@ private static immutable(Operation)* nextOperationPtr;
 
 // Use a struct to ensure we assign every global
 private struct InterpreterGlobals {
-	immutable Ptr!InterpreterDebugInfo debugInfoPtr;
+	immutable InterpreterDebugInfo* debugInfoPtr;
 	immutable FunPtrToOperationPtr funPtrToOperationPtr;
 	immutable DoDynCall doDynCall;
 }
 private __gshared InterpreterGlobals globals = void;
 
 private ref immutable(InterpreterDebugInfo) debugInfo() {
-	return globals.debugInfoPtr.deref();
+	return *globals.debugInfoPtr;
 }
 
 pragma(inline, true):
