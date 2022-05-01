@@ -6,9 +6,9 @@ import frontend.lang : crowExtension;
 import util.col.mutDict : getAt_mut, MutDict;
 import util.col.str : SafeCStr;
 import util.opt : asImmutable, force, has, none, Opt;
-import util.path : hashPath, Path, pathEqual;
+import util.path : Path;
 import util.readOnlyStorage : ReadFileResult, ReadOnlyStorage;
-import util.sym : Sym, symEq;
+import util.sym : Sym;
 
 immutable(T) withDictReadOnlyStorage(T)(
 	immutable Path includeDir,
@@ -27,7 +27,7 @@ immutable(T) withDictReadOnlyStorage(T)(
 			immutable Sym extension,
 			void delegate(immutable ReadFileResult!SafeCStr) @safe @nogc pure nothrow cb,
 		) {
-			immutable Opt!SafeCStr res = symEq(extension, crowExtension)
+			immutable Opt!SafeCStr res = extension == crowExtension
 				? asImmutable(getAt_mut(files, path))
 				: none!SafeCStr;
 			return cb(has(res)
@@ -37,4 +37,4 @@ immutable(T) withDictReadOnlyStorage(T)(
 	return cb(storage);
 }
 
-alias MutFiles = MutDict!(immutable Path, immutable SafeCStr, pathEqual, hashPath);
+alias MutFiles = MutDict!(immutable Path, immutable SafeCStr);

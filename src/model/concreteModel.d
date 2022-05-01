@@ -26,7 +26,7 @@ import model.model :
 	StructInst,
 	summon;
 import util.col.arr : empty, only;
-import util.col.dict : PtrDict;
+import util.col.dict : Dict;
 import util.col.str : SafeCStr;
 import util.hash : hashEnum, Hasher;
 import util.late : Late, lateGet, lateIsSet, lateSet;
@@ -230,8 +230,19 @@ struct ConcreteStructBody {
 }
 
 struct ConcreteType {
+	@safe @nogc pure nothrow:
+
 	immutable ReferenceKind reference;
 	immutable ConcreteStruct* struct_;
+
+	immutable(bool) opEquals(scope immutable ConcreteType b) scope immutable {
+		return struct_ == b.struct_ && reference == reference;
+	}
+
+	void hash(ref Hasher hasher) scope immutable {
+		hashPtr(hasher, struct_);
+		hashEnum(hasher, reference);
+	}
 }
 
 enum ReferenceKind { byRef, byVal }
@@ -378,15 +389,6 @@ immutable(ConcreteType) byRef(immutable ConcreteType t) {
 
 immutable(ConcreteType) byVal(ref immutable ConcreteType t) {
 	return immutable ConcreteType(ReferenceKind.byVal, t.struct_);
-}
-
-immutable(bool) concreteTypeEqual(ref immutable ConcreteType a, ref immutable ConcreteType b) {
-	return a.struct_ == b.struct_ && a.reference == b.reference;
-}
-
-void hashConcreteType(ref Hasher hasher, ref immutable ConcreteType a) {
-	hashPtr(hasher, a.struct_);
-	hashEnum(hasher, a.reference);
 }
 
 enum ConcreteMutability {
@@ -1019,7 +1021,7 @@ struct ConcreteProgram {
 	immutable AllConstantsConcrete allConstants;
 	immutable ConcreteStruct*[] allStructs;
 	immutable ConcreteFun*[] allFuns;
-	immutable PtrDict!(ConcreteStruct, ConcreteLambdaImpl[]) funStructToImpls;
+	immutable Dict!(ConcreteStruct*, ConcreteLambdaImpl[]) funStructToImpls;
 	immutable ConcreteCommonFuns commonFuns;
 	immutable ConcreteStruct* ctxType;
 

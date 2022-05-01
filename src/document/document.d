@@ -53,7 +53,7 @@ import util.opt : force, has, none, Opt, some;
 import util.path : AllPaths, Path, PathsInfo, pathToSafeCStrPreferRelative;
 import util.repr : jsonStrOfRepr, NameAndRepr, nameAndRepr, Repr, reprArr, reprBool, reprNamedRecord, reprStr, reprSym;
 import util.sourceRange : FileAndRange;
-import util.sym : AllSymbols, hashSym, shortSym, Sym, symEq;
+import util.sym : AllSymbols, shortSym, Sym;
 import util.util : unreachable, verify;
 
 immutable(SafeCStr) documentJSON(
@@ -91,7 +91,7 @@ immutable(Repr) documentModule(
 	immutable Path path = program.filesInfo.filePaths[a.fileIndex];
 	immutable SafeCStr pathStr = pathToSafeCStrPreferRelative(alloc, allPaths, pathsInfo, path);
 	ArrBuilder!DocExport exports;
-	dictEach!(Sym, NameReferents, symEq, hashSym)(
+	dictEach!(Sym, NameReferents)(
 		a.allExportedNames,
 		(immutable(Sym), ref immutable NameReferents referents) {
 			if (has(referents.structOrAlias))

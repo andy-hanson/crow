@@ -7,7 +7,7 @@ import model.diag : Diagnostics, FilesInfo; // TODO: move FilesInfo here?
 import util.alloc.alloc : Alloc;
 import util.col.arr : empty, emptyArr, only, PtrAndSmallNumber, small, SmallArray;
 import util.col.arrUtil : arrEqual;
-import util.col.dict : SymDict;
+import util.col.dict : Dict;
 import util.col.fullIndexDict : FullIndexDict;
 import util.col.mutArr : MutArr;
 import util.col.str : SafeCStr;
@@ -17,7 +17,7 @@ import util.lineAndColumnGetter : LineAndColumnGetter;
 import util.memory : allocate;
 import util.opt : force, has, Opt, some;
 import util.path : Path;
-import util.ptr : hashPtr, ptrEquals, TaggedPtr;
+import util.ptr : hashPtr, TaggedPtr;
 import util.sourceRange :
 	FileAndPos,
 	FileAndRange,
@@ -25,16 +25,7 @@ import util.sourceRange :
 	FileIndex,
 	rangeOfStartAndName,
 	RangeWithinFile;
-import util.sym :
-	AllSymbols,
-	Operator,
-	shortSym,
-	SpecialSym,
-	Sym,
-	symEq,
-	symForOperator,
-	symForSpecial,
-	writeSym;
+import util.sym : AllSymbols, Operator, shortSym, SpecialSym, Sym, symForOperator, symForSpecial, writeSym;
 import util.util : max, min, unreachable, verify;
 import util.writer : writeChar, Writer, writeStatic, writeWithCommas;
 
@@ -113,6 +104,29 @@ struct Type {
 		structInst,
 	}
 	immutable TaggedPtr!Kind inner;
+
+	public:
+
+	immutable(bool) opEquals(scope immutable Type b) scope immutable {
+		return matchType!(immutable bool)(
+			this,
+			(immutable Type.Bogus) =>
+				isBogus(b),
+			(immutable TypeParam* p) =>
+				isTypeParam(b) && p == asTypeParam(b),
+			(immutable StructInst* i) =>
+				isStructInst(b) && i == asStructInst(b));
+	}
+
+	void hash(ref Hasher hasher) scope immutable {
+		matchType!void(
+			this,
+			(immutable Type.Bogus) {},
+			(immutable TypeParam* p) =>
+				hashPtr(hasher, p),
+			(immutable StructInst* i) =>
+				hashPtr(hasher, i));
+	}
 }
 
 @trusted immutable(T) matchType(T)(
@@ -196,28 +210,6 @@ immutable(LinkageRange) linkageRange(immutable Type a) {
 			immutable LinkageRange(Linkage.internal, Linkage.extern_),
 		(immutable StructInst* i) =>
 			i.linkageRange);
-}
-
-//TODO:MOVE?
-immutable(bool) typeEquals(immutable Type a, immutable Type b) {
-	return matchType!(immutable bool)(
-		a,
-		(immutable Type.Bogus) =>
-			isBogus(b),
-		(immutable TypeParam* p) =>
-			isTypeParam(b) && ptrEquals(p, asTypeParam(b)),
-		(immutable StructInst* i) =>
-			isStructInst(b) && ptrEquals(i, asStructInst(b)));
-}
-
-private void hashType(ref Hasher hasher, immutable Type a) {
-	matchType!void(
-		a,
-		(immutable Type.Bogus) {},
-		(immutable TypeParam* p) =>
-			hashPtr(hasher, p),
-		(immutable StructInst* i) =>
-			hashPtr(hasher, i));
 }
 
 struct Param {
@@ -644,23 +636,22 @@ void setBody(ref StructDecl a, immutable StructBody value) {
 }
 
 struct StructDeclAndArgs {
+	@safe @nogc pure nothrow:
+
 	immutable StructDecl* decl;
 	immutable Type[] typeArgs;
-}
 
-immutable(bool) structDeclAndArgsEqual(
-	scope ref immutable StructDeclAndArgs a,
-	scope ref immutable StructDeclAndArgs b,
-) {
-	return ptrEquals(a.decl, b.decl) &&
-		arrEqual!(immutable Type)(a.typeArgs, b.typeArgs, (ref immutable Type ta, ref immutable Type tb) =>
-			typeEquals(ta, tb));
-}
+	immutable(bool) opEquals(scope immutable StructDeclAndArgs b) scope immutable {
+		return decl == b.decl &&
+			arrEqual!(immutable Type)(typeArgs, b.typeArgs, (ref immutable Type ta, ref immutable Type tb) =>
+				ta == tb);
+	}
 
-void hashStructDeclAndArgs(ref Hasher hasher, scope ref immutable StructDeclAndArgs a) {
-	hashPtr(hasher, a.decl);
-	foreach (immutable Type t; a.typeArgs)
-		hashType(hasher, t);
+	void hash(ref Hasher hasher) scope immutable {
+		hashPtr(hasher, decl);
+		foreach (immutable Type t; typeArgs)
+			t.hash(hasher);
+	}
 }
 
 struct StructInst {
@@ -679,7 +670,7 @@ struct StructInst {
 
 immutable(bool) isArr(ref immutable StructInst i) {
 	// TODO: only do this for the arr in bootstrap, not anything named 'arr'
-	return symEq(decl(i).name, shortSym("arr"));
+	return decl(i).name == shortSym("arr");
 }
 
 immutable(Sym) name(ref immutable StructInst i) {
@@ -757,20 +748,22 @@ struct SpecDecl {
 }
 
 struct SpecDeclAndArgs {
+	@safe @nogc pure nothrow:
+
 	immutable SpecDecl* decl;
 	immutable Type[] typeArgs;
-}
 
-immutable(bool) specDeclAndArgsEqual(ref immutable SpecDeclAndArgs a, ref immutable SpecDeclAndArgs b) {
-	return ptrEquals(a.decl, b.decl) &&
-		arrEqual!(immutable Type)(a.typeArgs, b.typeArgs, (ref immutable Type ta, ref immutable Type tb) =>
-			typeEquals(ta, tb));
-}
+	immutable(bool) opEquals(scope immutable SpecDeclAndArgs b) scope immutable {
+		return decl == b.decl &&
+			arrEqual!(immutable Type)(typeArgs, b.typeArgs, (ref immutable Type ta, ref immutable Type tb) =>
+				ta == tb);
+	}
 
-void hashSpecDeclAndArgs(ref Hasher hasher, ref immutable SpecDeclAndArgs a) {
-	hashPtr(hasher, a.decl);
-	foreach (immutable Type t; a.typeArgs)
-		hashType(hasher, t);
+	void hash(ref Hasher hasher) scope immutable {
+		hashPtr(hasher, decl);
+		foreach (immutable Type t; typeArgs)
+			t.hash(hasher);
+	}
 }
 
 struct SpecInst {
@@ -1088,22 +1081,22 @@ struct FunDeclAndArgs {
 	immutable FunDecl* decl;
 	immutable Type[] typeArgs;
 	immutable Called[] specImpls;
-}
 
-immutable(bool) funDeclAndArgsEqual(ref immutable FunDeclAndArgs a, ref immutable FunDeclAndArgs b) {
-	return ptrEquals(a.decl, b.decl) &&
-		arrEqual!Type(a.typeArgs, b.typeArgs, (ref immutable Type ta, ref immutable Type tb) =>
-			typeEquals(ta, tb)) &&
-		arrEqual!Called(a.specImpls, b.specImpls, (ref immutable Called ca, ref immutable Called cb) =>
-			calledEquals(ca, cb));
-}
+	immutable(bool) opEquals(scope immutable FunDeclAndArgs b) scope immutable {
+		return decl == b.decl &&
+			arrEqual!Type(typeArgs, b.typeArgs, (ref immutable Type ta, ref immutable Type tb) =>
+				ta == tb) &&
+			arrEqual!Called(specImpls, b.specImpls, (ref immutable Called ca, ref immutable Called cb) =>
+				ca == cb);
+	}
 
-void hashFunDeclAndArgs(ref Hasher hasher, ref immutable FunDeclAndArgs a) {
-	hashPtr(hasher, a.decl);
-	foreach (immutable Type t; a.typeArgs)
-		hashType(hasher, t);
-	foreach (ref immutable Called c; a.specImpls)
-		hashCalled(hasher, c);
+	void hash(ref Hasher hasher) scope immutable {
+		hashPtr(hasher, decl);
+		foreach (immutable Type t; typeArgs)
+			t.hash(hasher);
+		foreach (ref immutable Called c; specImpls)
+			c.hash(hasher);
+	}
 }
 
 struct FunInst {
@@ -1113,17 +1106,17 @@ struct FunInst {
 
 immutable(bool) isCallWithCtxFun(ref immutable FunInst a) {
 	// TODO: only do this for the call-with-ctx in bootstrap
-	return symEq(name(*decl(a)), symForSpecial(SpecialSym.call_with_ctx));
+	return name(*decl(a)) == symForSpecial(SpecialSym.call_with_ctx);
 }
 
 immutable(bool) isCompareFun(ref immutable FunInst a) {
 	// TODO: only do this for the '<=>' in bootstrap
-	return symEq(name(*decl(a)), symForOperator(Operator.compare));
+	return name(*decl(a)) == symForOperator(Operator.compare);
 }
 
 immutable(bool) isMarkVisitFun(ref immutable FunInst a) {
 	// TODO: only do this for the 'mark-visit' in bootstrap
-	return symEq(name(*decl(a)), shortSym("mark-visit"));
+	return name(*decl(a)) == shortSym("mark-visit");
 }
 
 immutable(FunInst*) nonTemplateFunInst(ref Alloc alloc, immutable FunDecl* decl) {
@@ -1165,19 +1158,23 @@ immutable(Arity) arity(ref immutable FunInst a) {
 }
 
 struct SpecSig {
+	@safe @nogc pure nothrow:
+
 	immutable SpecInst* specInst;
 	immutable SpecDeclSig* sig;
 	immutable size_t indexOverAllSpecUses; // this is redundant to specInst and sig
-}
 
-private immutable(bool) specSigEquals(ref immutable SpecSig a, ref immutable SpecSig b) {
-	// Don't bother with indexOverAllSpecUses, it's redundant if we checked sig
-	return ptrEquals(a.specInst, b.specInst) && ptrEquals(a.sig, b.sig);
-}
+	private:
 
-private void hashSpecSig(ref Hasher hasher, ref immutable SpecSig a) {
-	hashPtr(hasher, a.specInst);
-	hashPtr(hasher, a.sig);
+	immutable(bool) opEquals(scope immutable SpecSig b) scope immutable {
+		// Don't bother with indexOverAllSpecUses, it's redundant if we checked sig
+		return specInst == b.specInst && sig == b.sig;
+	}
+
+	void hash(ref Hasher hasher) scope immutable {
+		hashPtr(hasher, specInst);
+		hashPtr(hasher, sig);
+	}
 }
 
 immutable(Sym) name(ref immutable SpecSig a) {
@@ -1267,6 +1264,36 @@ struct Called {
 	public:
 	@trusted immutable this(immutable FunInst* a) { kind = Kind.funInst; funInst = a; }
 	@trusted immutable this(immutable SpecSig a) { kind = Kind.specSig; specSig = a; }
+
+	immutable(bool) opEquals(scope immutable Called b) scope immutable {
+		return matchCalled!(
+			immutable bool,
+			(immutable FunInst* fa) =>
+				matchCalled!(
+					immutable bool,
+					(immutable FunInst* fb) => fa == fb,
+					(ref immutable SpecSig) => false,
+				)(b),
+			(ref immutable SpecSig sa) =>
+				matchCalled!(
+					immutable bool,
+					(immutable FunInst*) => false,
+					(ref immutable SpecSig sb) => sa == sb,
+				)(b),
+		)(this);
+	}
+
+	void hash(ref Hasher hasher) scope immutable {
+		matchCalled!(
+			void,
+			(immutable FunInst* f) {
+				hashPtr(hasher, f);
+			},
+			(ref immutable SpecSig s) {
+				s.hash(hasher);
+			},
+		)(this);
+	}
 }
 
 @trusted T matchCalled(T, alias cbFunInst, alias cbSpecSig)(ref immutable Called a) {
@@ -1276,36 +1303,6 @@ struct Called {
 		case Called.Kind.specSig:
 			return cbSpecSig(a.specSig);
 	}
-}
-
-private immutable(bool) calledEquals(ref immutable Called a, ref immutable Called b) {
-	return matchCalled!(
-		immutable bool,
-		(immutable FunInst* fa) =>
-			matchCalled!(
-				immutable bool,
-				(immutable FunInst* fb) => ptrEquals(fa, fb),
-				(ref immutable SpecSig) => false,
-			)(b),
-		(ref immutable SpecSig sa) =>
-			matchCalled!(
-				immutable bool,
-				(immutable FunInst*) => false,
-				(ref immutable SpecSig sb) => specSigEquals(sa, sb),
-			)(b),
-	)(a);
-}
-
-private void hashCalled(ref Hasher hasher, ref immutable Called a) {
-	matchCalled!(
-		void,
-		(immutable FunInst* f) {
-			hashPtr(hasher, f);
-		},
-		(ref immutable SpecSig sa) {
-			hashSpecSig(hasher, sa);
-		},
-	)(a);
 }
 
 @trusted ref immutable(Sig) sig(return scope ref immutable Called a) {
@@ -1429,7 +1426,7 @@ struct Module {
 	immutable FunDecl[] funs;
 	immutable Test[] tests;
 	// Includes re-exports
-	immutable SymDict!NameReferents allExportedNames;
+	immutable Dict!(Sym, NameReferents) allExportedNames;
 }
 
 struct ImportOrExport {
@@ -1602,8 +1599,8 @@ struct Config {
 	immutable ConfigExternPaths extern_;
 }
 
-alias ConfigImportPaths = immutable SymDict!Path;
-alias ConfigExternPaths = immutable SymDict!Path;
+alias ConfigImportPaths = immutable Dict!(Sym, Path);
+alias ConfigExternPaths = immutable Dict!(Sym, Path);
 
 immutable(bool) hasDiags(ref immutable Program a) {
 	return !empty(a.diagnostics.diags);

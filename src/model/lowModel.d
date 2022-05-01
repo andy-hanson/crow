@@ -17,7 +17,7 @@ import model.concreteModel :
 	TypeSize;
 import model.constant : Constant;
 import model.model : asRecord, body_, EnumValue;
-import util.col.dict : PtrDict;
+import util.col.dict : Dict;
 import util.col.fullIndexDict : FullIndexDict;
 import util.col.str : SafeCStr;
 import util.hash : Hasher, hashSizeT, hashUint;
@@ -179,65 +179,66 @@ struct LowType {
 	immutable this(immutable PrimitiveType a) { kind_ = Kind.primitive; primitive_ = a; }
 	immutable this(immutable Record a) { kind_ = Kind.record; record_ = a; }
 	immutable this(immutable Union a) { kind_ = Kind.union_; union_ = a; }
+
+	immutable(bool) opEquals(scope immutable LowType b) scope immutable {
+		return kind_ == b.kind_ && () {
+			final switch (kind_) {
+				case LowType.Kind.externPtr:
+					return externPtr_.index == b.externPtr_.index;
+				case LowType.Kind.funPtr:
+					return funPtr_.index == b.funPtr_.index;
+				case LowType.Kind.primitive:
+					return primitive_ == b.primitive_;
+				case LowType.Kind.ptrGc:
+					return *ptrGc_.pointee == *b.ptrGc_.pointee;
+				case LowType.Kind.ptrRawConst:
+					return *ptrRawConst_.pointee == *b.ptrRawConst_.pointee;
+				case LowType.Kind.ptrRawMut:
+					return *ptrRawMut_.pointee == *b.ptrRawMut_.pointee;
+				case LowType.Kind.record:
+					return record_.index == b.record_.index;
+				case LowType.Kind.union_:
+					return union_.index == b.union_.index;
+			}
+		}();
+	}
+
+	@trusted void hash(ref Hasher hasher) scope immutable {
+		hashUint(hasher, kind_);
+		final switch (kind_) {
+			case LowType.Kind.externPtr:
+				hashSizeT(hasher, externPtr_.index);
+				break;
+			case LowType.Kind.funPtr:
+				hashSizeT(hasher, funPtr_.index);
+				break;
+			case LowType.Kind.primitive:
+				hashUint(hasher, primitive_);
+				break;
+			case LowType.Kind.ptrGc:
+				ptrGc_.pointee.hash(hasher);
+				break;
+			case LowType.Kind.ptrRawConst:
+				ptrRawConst_.pointee.hash(hasher);
+				break;
+			case LowType.Kind.ptrRawMut:
+				ptrRawMut_.pointee.hash(hasher);
+				break;
+			case LowType.Kind.record:
+				hashSizeT(hasher, record_.index);
+				break;
+			case LowType.Kind.union_:
+				hashSizeT(hasher, union_.index);
+				break;
+		}
+	}
+
 }
 static assert(LowType.sizeof <= 16);
 
-immutable(bool) lowTypeEqual(immutable LowType a, immutable LowType b) {
-	return a.kind_ == b.kind_ && () {
-		final switch (a.kind_) {
-			case LowType.Kind.externPtr:
-				return a.externPtr_.index == b.externPtr_.index;
-			case LowType.Kind.funPtr:
-				return a.funPtr_.index == b.funPtr_.index;
-			case LowType.Kind.primitive:
-				return a.primitive_ == b.primitive_;
-			case LowType.Kind.ptrGc:
-				return lowTypeEqual(*a.ptrGc_.pointee, *b.ptrGc_.pointee);
-			case LowType.Kind.ptrRawConst:
-				return lowTypeEqual(*a.ptrRawConst_.pointee, *b.ptrRawConst_.pointee);
-			case LowType.Kind.ptrRawMut:
-				return lowTypeEqual(*a.ptrRawMut_.pointee, *b.ptrRawMut_.pointee);
-			case LowType.Kind.record:
-				return a.record_.index == b.record_.index;
-			case LowType.Kind.union_:
-				return a.union_.index == b.union_.index;
-		}
-	}();
-}
-
-@trusted void hashLowType(ref Hasher hasher, immutable LowType a) {
-	hashUint(hasher, a.kind_);
-	final switch (a.kind_) {
-		case LowType.Kind.externPtr:
-			hashSizeT(hasher, a.externPtr_.index);
-			break;
-		case LowType.Kind.funPtr:
-			hashSizeT(hasher, a.funPtr_.index);
-			break;
-		case LowType.Kind.primitive:
-			hashUint(hasher, a.primitive_);
-			break;
-		case LowType.Kind.ptrGc:
-			hashLowType(hasher, *a.ptrGc_.pointee);
-			break;
-		case LowType.Kind.ptrRawConst:
-			hashLowType(hasher, *a.ptrRawConst_.pointee);
-			break;
-		case LowType.Kind.ptrRawMut:
-			hashLowType(hasher, *a.ptrRawMut_.pointee);
-			break;
-		case LowType.Kind.record:
-			hashSizeT(hasher, a.record_.index);
-			break;
-		case LowType.Kind.union_:
-			hashSizeT(hasher, a.union_.index);
-			break;
-	}
-}
-
 immutable(bool) lowTypeEqualCombinePtr(immutable LowType a, immutable LowType b) {
-	return lowTypeEqual(a, b) ||
-		(isPtrGcOrRaw(a) && isPtrGcOrRaw(b) && lowTypeEqual(asGcOrRawPointee(a), asGcOrRawPointee(b)));
+	return a == b ||
+		(isPtrGcOrRaw(a) && isPtrGcOrRaw(b) && asGcOrRawPointee(a) == asGcOrRawPointee(b));
 }
 
 immutable(bool) isPrimitive(immutable LowType a) {
@@ -610,13 +611,13 @@ struct LowExpr {
 }
 
 struct LowFunIndex {
+	@safe @nogc pure nothrow:
+
 	immutable size_t index;
-}
-immutable(bool) lowFunIndexEquals(immutable LowFunIndex a, immutable LowFunIndex b) {
-	return a == b;
-}
-void hashLowFunIndex(ref Hasher hasher, immutable LowFunIndex a) {
-	hashSizeT(hasher, a.index);
+
+	void hash(ref Hasher hasher) scope const {
+		hashSizeT(hasher, index);
+	}
 }
 
 struct LowParamIndex {
@@ -1134,7 +1135,7 @@ struct AllConstantsLow {
 	immutable PointerTypeAndConstantsLow[] pointers;
 }
 
-alias ConcreteFunToLowFunIndex = immutable PtrDict!(ConcreteFun, LowFunIndex);
+alias ConcreteFunToLowFunIndex = immutable Dict!(ConcreteFun*, LowFunIndex);
 
 struct LowProgram {
 	@safe @nogc pure nothrow:

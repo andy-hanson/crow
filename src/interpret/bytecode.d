@@ -2,7 +2,7 @@ module interpret.bytecode;
 
 @safe @nogc nothrow: // not pure
 
-import interpret.extern_ : FunPtr, funPtrEquals, hashFunPtr;
+import interpret.extern_ : FunPtr;
 import model.lowModel : LowFunIndex;
 import util.col.arr : castImmutable;
 import util.col.dict : Dict;
@@ -61,7 +61,7 @@ struct ByteCode {
 	immutable(FullIndexDict!(ByteCodeIndex, ByteCodeSource)) sources() immutable { return operations.sources; }
 }
 
-alias FunPtrToOperationPtr = immutable Dict!(FunPtr, Operation*, funPtrEquals, hashFunPtr);
+alias FunPtrToOperationPtr = immutable Dict!(FunPtr, Operation*);
 
 struct Operations {
 	Operation[] byteCode;

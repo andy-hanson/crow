@@ -7,7 +7,7 @@ import util.col.arr : only;
 import util.col.arrUtil : arrMax, arrMaxIndex, exists, fillArrUninitialized;
 import util.col.arrBuilder : add, ArrBuilder, finishArr;
 import util.comparison : compareSizeT;
-import util.sym : AllSymbols, shortSym, Sym, symEq, symSize, writeSym;
+import util.sym : AllSymbols, shortSym, Sym, symSize, writeSym;
 import util.writer : Writer, writeRed, writeReset, writeStatic;
 import util.writerUtils : writeNlIndent, writeSpaces, writeSymPadded;
 import util.util : max, verify;
@@ -73,7 +73,7 @@ void getMaximumCommonSubsequenceLengths(T)(
 		size_t left = 0;
 		foreach (immutable size_t colI; 1 .. b.length + 1) {
 			immutable size_t curRowValue =
-				symEq(atPossiblyReversed(a, rowI - 1, reversed), atPossiblyReversed(b, colI - 1, reversed))
+				atPossiblyReversed(a, rowI - 1, reversed) == atPossiblyReversed(b, colI - 1, reversed)
 					// if a and b match here, use the diagonal
 					? atPossiblyReversed(result, colI - 1, reversed) + 1
 					// if a and b don't match, use the left or up value.
@@ -121,7 +121,7 @@ void longestCommonSubsequenceRecur(
 		// No output
 	} else if (a.length == 1) {
 		immutable Sym sa = only(a);
-		if (exists!Sym(b, (ref immutable Sym x) => symEq(x, sa)))
+		if (exists!Sym(b, (ref immutable Sym x) => x == sa))
 			add(alloc, res, sa);
 	} else {
 		// Always slice 'a' exactly in half. Then find best way to slice 'b'.
@@ -196,7 +196,7 @@ void printDiff(
 		bi++;
 	}
 	void common() {
-		verify(symEq(a[ai], b[bi]));
+		verify(a[ai] == b[bi]);
 		writeNlIndent(writer);
 		writeSymPadded(writer, allSymbols, a[ai], columnSize);
 		writeSym(writer, allSymbols, b[bi]);
@@ -205,11 +205,11 @@ void printDiff(
 	}
 
 	foreach (immutable Sym commonSym; commonSyms) {
-		while (!symEq(a[ai], commonSym) && !symEq(b[bi], commonSym))
+		while (a[ai] != commonSym && b[bi] != commonSym)
 			misspelling();
-		while (!symEq(a[ai], commonSym))
+		while (a[ai] != commonSym)
 			extraA();
-		while (!symEq(b[bi], commonSym))
+		while (b[bi] != commonSym)
 			extraB();
 		common();
 	}

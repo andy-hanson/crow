@@ -12,8 +12,6 @@ import interpret.extern_ :
 	ExternFunPtrsForLibrary,
 	FunPtr,
 	FunPtrInputs,
-	funPtrEquals,
-	hashFunPtr,
 	WriteError,
 	writeSymToCb;
 import interpret.runBytecode : syntheticCall;
@@ -22,7 +20,7 @@ import lib.compiler : ExitCode;
 import model.lowModel : ExternLibraries, ExternLibrary;
 import util.alloc.alloc : Alloc;
 import util.col.arrUtil : map, mapImpure, zipImpureSystem;
-import util.col.dict : Dict, KeyValuePair, makeDictFromKeys, SymDict, zipToDict;
+import util.col.dict : Dict, KeyValuePair, makeDictFromKeys, Dict, zipToDict;
 import util.col.dictBuilder : DictBuilder, finishDict, tryAddToDict;
 import util.col.mutArr : MutArr, mutArrIsEmpty, push, tempAsArr;
 import util.col.str : CStr, SafeCStr, safeCStr;
@@ -31,17 +29,7 @@ import util.late : Late, late, lateGet, lateSet;
 import util.memory : allocate;
 import util.opt : force, has, Opt, none, some;
 import util.path : AllPaths, childPath, Path, pathToTempStr, TempStrForPath;
-import util.sym :
-	AllSymbols,
-	concatSyms,
-	hashSym,
-	shortSym,
-	shortSymValue,
-	SpecialSym,
-	Sym,
-	symAsTempBuffer,
-	symEq,
-	symForSpecial;
+import util.sym : AllSymbols, concatSyms, shortSym, shortSymValue, SpecialSym, Sym, symAsTempBuffer, symForSpecial;
 import util.util : todo, unreachable, verify;
 
 @trusted immutable(ExitCode) withRealExtern(
@@ -66,7 +54,7 @@ import util.util : todo, unreachable, verify;
 
 private:
 
-alias DebugNames = immutable Dict!(FunPtr, Sym, funPtrEquals, hashFunPtr);
+alias DebugNames = immutable Dict!(FunPtr, Sym);
 
 struct LoadedLibraries {
 	immutable DebugNames debugNames;
@@ -173,14 +161,14 @@ immutable(LoadedLibraries) loadLibrariesInner(
 	immutable DLLib*[] libs,
 	scope WriteError writeError,
 ) {
-	DictBuilder!(FunPtr, Sym, funPtrEquals, hashFunPtr) debugNames;
+	DictBuilder!(FunPtr, Sym) debugNames;
 	MutArr!(immutable KeyValuePair!(Sym, Sym)) failures;
-	immutable ExternFunPtrsForAllLibraries res = zipToDict!(Sym, SymDict!FunPtr, symEq, hashSym, ExternLibrary, DLLib*)(
+	immutable ExternFunPtrsForAllLibraries res = zipToDict!(Sym, Dict!(Sym, FunPtr), ExternLibrary, DLLib*)(
 		alloc,
 		libraries,
 		libs,
 		(ref immutable ExternLibrary x, ref immutable DLLib* lib) @safe @nogc nothrow {
-			immutable ExternFunPtrsForLibrary funPtrs = makeDictFromKeys!(Sym, FunPtr, symEq, hashSym)(
+			immutable ExternFunPtrsForLibrary funPtrs = makeDictFromKeys!(Sym, FunPtr)(
 				alloc,
 				x.importNames,
 				(immutable Sym importName) {

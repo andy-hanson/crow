@@ -20,6 +20,16 @@ struct SafeCStr {
 	}
 
 	immutable CStr ptr;
+
+	immutable(bool) opEquals(scope immutable SafeCStr b) scope immutable {
+		return safeCStrEq(this, b);
+	}
+
+	void hash(ref Hasher hasher) scope immutable {
+		eachChar(this, (immutable char c) {
+			hashUbyte(hasher, c);
+		});
+	}
 }
 
 @trusted immutable(CStr) end(immutable CStr c) {
@@ -81,17 +91,6 @@ immutable(bool) safeCStrEq(immutable SafeCStr a, immutable string b) {
 
 immutable(bool) safeCStrEq(immutable SafeCStr a, immutable SafeCStr b) {
 	return safeCStrEq(a, strOfSafeCStr(b));
-}
-
-void hashStr(ref Hasher hasher, immutable string a) {
-	foreach (immutable char c; a)
-		hashUbyte(hasher, c);
-}
-
-void hashSafeCStr(ref Hasher hasher, immutable SafeCStr a) {
-	eachChar(a, (immutable char c) {
-		hashUbyte(hasher, c);
-	});
 }
 
 @trusted void eachChar(scope immutable SafeCStr a, scope void delegate(immutable char) @safe @nogc pure nothrow cb) {

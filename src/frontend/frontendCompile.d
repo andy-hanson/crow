@@ -45,13 +45,11 @@ import util.path :
 	childPath,
 	concatPaths,
 	firstAndRest,
-	hashPath,
 	matchPathOrRelPath,
 	parent,
 	Path,
 	PathAndRange,
 	PathFirstAndRest,
-	pathEqual,
 	RelPath,
 	resolvePath;
 import util.perf : Perf, PerfMeasure, withMeasure;
@@ -161,7 +159,7 @@ pure immutable(FileIndex) asDone(immutable ParseStatus a) {
 	return a.done_.fileIndex;
 }
 
-alias PathToStatus = MutDict!(immutable Path, immutable ParseStatus, pathEqual, hashPath);
+alias PathToStatus = MutDict!(immutable Path, immutable ParseStatus);
 
 struct ParsedEverything {
 	immutable FilesInfo filesInfo;
@@ -282,7 +280,7 @@ immutable(ParsedEverything) parseEverything(
 	return immutable ParsedEverything(
 		immutable FilesInfo(
 			fullIndexDictOfArr!(FileIndex, Path)(finishArr(modelAlloc, fileIndexToPath)),
-			mapValues!(Path, ParseStatus, FileIndex, pathEqual, hashPath)(
+			mapValues!(Path, ParseStatus, FileIndex)(
 				modelAlloc,
 				moveToDict(astAlloc, statuses),
 				(immutable(Path), ref immutable ParseStatus x) =>

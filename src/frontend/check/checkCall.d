@@ -65,7 +65,6 @@ import model.model :
 	StructInst,
 	Type,
 	typeArgs,
-	typeEquals,
 	TypeParam,
 	typeParams;
 import util.alloc.alloc : Alloc;
@@ -94,7 +93,7 @@ import util.opt : force, has, none, noneMut, Opt, some;
 import util.perf : endMeasure, PerfMeasure, PerfMeasurer, pauseMeasure, resumeMeasure, startMeasure;
 import util.ptr : ptrTrustMe_mut;
 import util.sourceRange : FileAndRange;
-import util.sym : Sym, symEq;
+import util.sym : Sym;
 import util.util : Empty, todo;
 
 immutable(Expr) checkCall(
@@ -282,7 +281,7 @@ void eachFunInScope(
 			(immutable SpecBody.Builtin) {},
 			(immutable SpecDeclSig[] sigs) {
 				foreach (immutable size_t i, ref immutable SpecDeclSig sig; sigs)
-					if (symEq(sig.sig.name, funName)) {
+					if (sig.sig.name == funName) {
 						cb(UsedFun.none, immutable CalledDecl(
 							immutable SpecSig(specInst, &sigs[i], totalIndex + i)));
 					}
@@ -459,7 +458,7 @@ Expected getCommonOverloadParamExpectedForMultipleCandidates(
 	else {
 		// If we get a template candidate and haven't inferred this param type yet, no expected type.
 		immutable Type paramType = getCandidateExpectedParameterType(alloc, programState, candidates[0], argIdx);
-		return has(expected) && !typeEquals(paramType, force(expected))
+		return has(expected) && paramType != force(expected)
 			// Only get an expected type if all candidates expect it.
 			? Expected.infer()
 			: getCommonOverloadParamExpectedForMultipleCandidates(
@@ -622,7 +621,7 @@ immutable(bool) findBuiltinSpecOnType(
 		matchSpecBody!(immutable bool)(
 			inst.body_,
 			(immutable SpecBody.Builtin b) =>
-				b.kind == kind && typeEquals(only(typeArgs(*inst)), type),
+				b.kind == kind && only(typeArgs(*inst)) == type,
 			(immutable SpecDeclSig[]) =>
 				//TODO: might inherit from builtin spec?
 				false));

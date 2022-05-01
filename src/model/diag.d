@@ -28,7 +28,7 @@ import util.col.dict : dictLiteral;
 import util.col.fullIndexDict : fullIndexDictOfArr;
 import util.lineAndColumnGetter : LineAndColumnGetter;
 import util.opt : Opt;
-import util.path : AllPaths, hashPath, Path, pathEqual, PathsInfo, writePath;
+import util.path : AllPaths, Path, PathsInfo, writePath;
 import util.sourceRange : FileAndPos, FileAndRange, FileIndex, FilePaths, PathToFile, RangeWithinFile;
 import util.sym : Sym;
 import util.writer : Writer, writeBold, writeHyperlink, writeChar, writeRed, writeReset, writeStatic;
@@ -858,7 +858,7 @@ immutable(FilesInfo) filesInfoForSingle(
 ) {
 	return immutable FilesInfo(
 		fullIndexDictOfArr!(FileIndex, Path)(arrLiteral!Path(alloc, [path])),
-		dictLiteral!(Path, FileIndex, pathEqual, hashPath)(alloc, path, immutable FileIndex(0)),
+		dictLiteral!(Path, FileIndex)(alloc, path, immutable FileIndex(0)),
 		fullIndexDictOfArr!(FileIndex, LineAndColumnGetter)(
 			arrLiteral!LineAndColumnGetter(alloc, [lineAndColumnGetter])));
 }

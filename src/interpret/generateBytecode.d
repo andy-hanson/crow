@@ -111,14 +111,7 @@ import interpret.bytecodeWriter :
 	writeWrite;
 import interpret.debugging : writeLowType;
 import interpret.extern_ :
-	DynCallType,
-	DynCallSig,
-	ExternFunPtrsForAllLibraries,
-	FunPtr,
-	funPtrEquals,
-	FunPtrInputs,
-	hashFunPtr,
-	MakeSyntheticFunPtrs;
+	DynCallType, DynCallSig, ExternFunPtrsForAllLibraries, FunPtr, FunPtrInputs, MakeSyntheticFunPtrs;
 import interpret.funToReferences :
 	eachFunPtr,
 	finishAt,
@@ -151,7 +144,6 @@ import model.lowModel :
 	asRecordType,
 	asSpecialUnary,
 	asUnionType,
-	hashLowFunIndex,
 	isLocalRef,
 	isParamRef,
 	isRecordType,
@@ -163,7 +155,6 @@ import model.lowModel :
 	LowFun,
 	LowFunBody,
 	LowFunExprBody,
-	lowFunIndexEquals,
 	lowFunRange,
 	LowFunIndex,
 	LowFunPtrType,
@@ -172,7 +163,6 @@ import model.lowModel :
 	LowProgram,
 	LowRecord,
 	LowType,
-	lowTypeEqual,
 	matchLowExprKind,
 	matchLowFunBody,
 	matchLowType,
@@ -193,7 +183,7 @@ import util.col.stackDict : StackDict, stackDictAdd, stackDictMustGet;
 import util.conv : bitsOfFloat32, bitsOfFloat64;
 import util.opt : force, has, none, Opt, some;
 import util.perf : Perf, PerfMeasure, withMeasure;
-import util.ptr : ptrEquals, ptrTrustMe, ptrTrustMe_const, ptrTrustMe_mut;
+import util.ptr : ptrTrustMe, ptrTrustMe_const, ptrTrustMe_mut;
 import util.sourceRange : FileIndex;
 import util.sym : AllSymbols, shortSymValue, Sym;
 import util.util : divRoundUp, todo, unreachable, verify;
@@ -302,13 +292,13 @@ immutable(SyntheticFunPtrs) makeSyntheticFunPtrs(
 	});
 	immutable FunPtrInputs[] inputs = finishArr(alloc, inputsBuilder);
 	immutable FunPtr[] funPtrs = cbMakeSyntheticFunPtrs(inputs);
-	immutable FunToFunPtr funToFunPtr = zipToDict!(LowFunIndex, FunPtr, lowFunIndexEquals, hashLowFunIndex)(
+	immutable FunToFunPtr funToFunPtr = zipToDict!(LowFunIndex, FunPtr)(
 		alloc,
 		inputs,
 		funPtrs,
 		(ref immutable FunPtrInputs inputs, ref immutable FunPtr funPtr) =>
 			immutable KeyValuePair!(LowFunIndex, FunPtr)(inputs.funIndex, funPtr));
-	immutable FunPtrToOperationPtr funPtrToOperationPtr = zipToDict!(FunPtr, Operation*, funPtrEquals, hashFunPtr)(
+	immutable FunPtrToOperationPtr funPtrToOperationPtr = zipToDict!(FunPtr, Operation*)(
 		alloc,
 		inputs,
 		funPtrs,
@@ -321,7 +311,7 @@ struct SyntheticFunPtrs {
 	immutable FunToFunPtr funToFunPtr;
 	immutable FunPtrToOperationPtr funPtrToOperationPtr;
 }
-alias FunToFunPtr = immutable Dict!(LowFunIndex, FunPtr, lowFunIndexEquals, hashLowFunIndex);
+alias FunToFunPtr = immutable Dict!(LowFunIndex, FunPtr);
 alias FunToDefinition = immutable FullIndexDict!(LowFunIndex, ByteCodeIndex);
 
 immutable(DynCallSig) funPtrDynCallSig(
@@ -567,21 +557,9 @@ struct ExprCtx {
 	}
 }
 
-alias Locals = immutable StackDict!(
-	immutable LowLocal*,
-	immutable StackEntries,
-	null,
-	ptrEquals!LowLocal);
-alias addLocal = stackDictAdd!(
-	immutable LowLocal*,
-	immutable StackEntries,
-	null,
-	ptrEquals!LowLocal);
-alias getLocal = stackDictMustGet!(
-	immutable LowLocal*,
-	immutable StackEntries,
-	null,
-	ptrEquals!LowLocal);
+alias Locals = immutable StackDict!(immutable LowLocal*, immutable StackEntries);
+alias addLocal = stackDictAdd!(immutable LowLocal*, immutable StackEntries);
+alias getLocal = stackDictMustGet!(immutable LowLocal*, immutable StackEntries);
 
 void generateExpr(
 	ref ByteCodeWriter writer,
@@ -839,7 +817,7 @@ void generateCreateRecord(
 		source,
 		(immutable size_t fieldIndex, immutable LowType fieldType) {
 			immutable LowExpr arg = it.args[fieldIndex];
-			verify(lowTypeEqual(arg.type, fieldType));
+			verify(arg.type == fieldType);
 			generateExpr(writer, ctx, locals, arg);
 		});
 }

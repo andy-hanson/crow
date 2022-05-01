@@ -26,7 +26,7 @@ import util.col.str : copySafeCStr, freeSafeCStr, SafeCStr, safeCStr, strOfSafeC
 import util.dictReadOnlyStorage : withDictReadOnlyStorage, MutFiles;
 import util.lineAndColumnGetter : LineAndColumnGetter, lineAndColumnGetterForText;
 import util.opt : force, has, Opt;
-import util.path : AllPaths, childPath, emptyPathsInfo, emptyRootPath, hashPath, parsePath, Path, pathEqual, PathsInfo;
+import util.path : AllPaths, childPath, emptyPathsInfo, emptyRootPath, parsePath, Path, PathsInfo;
 import util.perf : Perf;
 import util.readOnlyStorage : ReadOnlyStorage;
 import util.sourceRange : FileIndex, Pos, RangeWithinFile;
@@ -58,7 +58,7 @@ pure void addOrChangeFile(
 	scope immutable SafeCStr content,
 ) {
 	immutable SafeCStr contentCopy = copySafeCStr(server.alloc, content);
-	insertOrUpdate!(immutable Path, immutable SafeCStr, pathEqual, hashPath)(
+	insertOrUpdate!(immutable Path, immutable SafeCStr)(
 		server.alloc,
 		server.files,
 		toPath(server, path),
@@ -106,7 +106,7 @@ immutable(StrParseDiagnostic[]) getParseDiagnostics(
 	//TODO: use 'scope' to avoid allocating things here
 	immutable FilesInfo filesInfo = immutable FilesInfo(
 		fullIndexDictOfArr!(FileIndex, Path)(arrLiteral!Path(alloc, [key])),
-		dictLiteral!(Path, FileIndex, pathEqual, hashPath)(alloc, key, immutable FileIndex(0)),
+		dictLiteral!(Path, FileIndex)(alloc, key, immutable FileIndex(0)),
 		fullIndexDictOfArr!(FileIndex, LineAndColumnGetter)(
 			arrLiteral!LineAndColumnGetter(alloc, [lineAndColumnGetterForText(alloc, text)])));
 	return map!StrParseDiagnostic(

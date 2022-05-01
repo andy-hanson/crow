@@ -6,26 +6,18 @@ import util.alloc.alloc : Alloc;
 import util.col.mutDict : getOrAddAndDidAdd, moveToDict, MutDict, ValueAndDidAdd;
 import util.col.dict : Dict;
 import util.opt : has, none, Opt, some;
-import util.ptr : hashPtr, ptrEquals;
-import util.sym : hashSym, Sym, symEq;
 import util.util : verify;
 
-struct DictBuilder(K, V, alias equal, alias hash) {
+struct DictBuilder(K, V) {
 	@disable this(ref const DictBuilder);
 
 	private:
-	MutDict!(immutable K, immutable V, equal, hash) builder;
+	MutDict!(immutable K, immutable V) builder;
 }
 
-alias PtrDictBuilder(K, V) =
-	DictBuilder!(K*, V, ptrEquals!K, hashPtr!K);
-
-alias SymDictBuilder(V) =
-	DictBuilder!(Sym, V, symEq, hashSym);
-
-void mustAddToDict(K, V, alias equal, alias hash)(
+void mustAddToDict(K, V)(
 	ref Alloc alloc,
-	ref DictBuilder!(K, V, equal, hash) a,
+	ref DictBuilder!(K, V) a,
 	immutable K key,
 	immutable V value,
 ) {
@@ -34,9 +26,9 @@ void mustAddToDict(K, V, alias equal, alias hash)(
 }
 
 // If there is already a value there, does nothing and returns it
-immutable(Opt!V) tryAddToDict(K, V, alias equal, alias hash)(
+immutable(Opt!V) tryAddToDict(K, V)(
 	ref Alloc alloc,
-	ref DictBuilder!(K, V, equal, hash) a,
+	ref DictBuilder!(K, V) a,
 	immutable K key,
 	immutable V value,
 ) {
@@ -44,9 +36,9 @@ immutable(Opt!V) tryAddToDict(K, V, alias equal, alias hash)(
 	return v.didAdd ? none!V : some!V(v.value);
 }
 
-immutable(Dict!(K, V, equal, hash)) finishDict(K, V, alias equal, alias hash)(
+immutable(Dict!(K, V)) finishDict(K, V)(
 	ref Alloc alloc,
-	ref DictBuilder!(K, V, equal, hash) a,
+	ref DictBuilder!(K, V) a,
 ) {
-	return moveToDict!(K, V, equal, hash)(alloc, a.builder);
+	return moveToDict!(K, V)(alloc, a.builder);
 }

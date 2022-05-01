@@ -56,7 +56,7 @@ import util.col.str : copySafeCStr;
 import util.opt : force, has, none, Opt, some, someMut;
 import util.ptr : castImmutable, ptrTrustMe_mut;
 import util.sourceRange : RangeWithinFile;
-import util.sym : shortSym, SpecialSym, Sym, symEq, symForSpecial;
+import util.sym : shortSym, SpecialSym, Sym, symForSpecial;
 import util.util : todo, unreachable;
 
 StructDecl[] checkStructsInitial(ref CheckCtx ctx, scope immutable StructDeclAst[] asts) {
@@ -483,7 +483,7 @@ immutable(StructBody.Record) checkRecord(
 			checkRecordField(
 				ctx, commonTypes, structsAndAliasesDict, delayStructInsts, struct_, forcedByVal, index, field));
 	eachPair!RecordField(fields, (ref immutable RecordField a, ref immutable RecordField b) {
-		if (symEq(a.name, b.name))
+		if (a.name == b.name)
 			addDiag(ctx, b.range, immutable Diag(
 				immutable Diag.DuplicateDeclaration(Diag.DuplicateDeclaration.Kind.recordField, a.name)));
 	});
@@ -545,7 +545,7 @@ immutable(StructBody.Union) checkUnion(
 		map!UnionMember(ctx.alloc, ast.members, (ref immutable StructDeclAst.Body.Union.Member memberAst) =>
 			checkUnionMember(ctx, commonTypes, structsAndAliasesDict, delayStructInsts, struct_, memberAst));
 	eachPair!UnionMember(members, (ref immutable UnionMember a, ref immutable UnionMember b) {
-		if (symEq(a.name, b.name))
+		if (a.name == b.name)
 			addDiag(ctx, b.range, immutable Diag(
 				immutable Diag.DuplicateDeclaration(Diag.DuplicateDeclaration.Kind.unionMember, a.name)));
 	});

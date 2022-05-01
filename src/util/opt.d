@@ -5,6 +5,8 @@ module util.opt;
 import util.util : verify;
 
 struct Opt(T) {
+	@safe @nogc pure nothrow:
+
 	private:
 	static if (is(T == U*, U)) {
 		this(BeNone) immutable {
@@ -16,13 +18,13 @@ struct Opt(T) {
 		this(BeNone) {
 			value_ = null;
 		}
-		@trusted this(immutable T value) immutable {
+		@trusted this(return scope immutable T value) immutable {
 			value_ = value;
 		}
-		@trusted this(const T value) const {
+		@trusted this(return scope const T value) const {
 			value_ = value;
 		}
-		@trusted this(T value) {
+		@trusted this(return scope T value) {
 			value_ = value;
 		}
 		T value_;
@@ -40,21 +42,23 @@ struct Opt(T) {
 		this(BeNone) {
 			has_ = false;
 		}
-		@trusted this(immutable T value) immutable {
+		@trusted this(return scope immutable T value) immutable {
 			has_ = true;
 			value_ = value;
 		}
-		@trusted this(const T value) const {
+		@trusted this(return scope const T value) const {
 			has_ = true;
 			value_ = value;
 		}
-		@trusted this(T value) {
+		@trusted this(return scope T value) {
 			has_ = true;
 			value_ = value;
 		}
 		bool has_;
 		T value_ = void;
 	}
+
+	@disable immutable(bool) opEquals(scope const Opt!T b) scope const;
 }
 
 private struct BeNone {}
@@ -82,7 +86,7 @@ immutable(Opt!(T*)) some(T)(immutable T* value) {
 	return immutable Opt!(T*)(value);
 }
 
-const(Opt!T) someConst(T)(const T value) {
+const(Opt!T) someConst(T)(return scope const T value) {
 	return const Opt!T(value);
 }
 

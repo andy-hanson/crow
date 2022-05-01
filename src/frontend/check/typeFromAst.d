@@ -40,7 +40,7 @@ import util.col.mutArr : MutArr;
 import util.col.mutMaxArr : fillMutMaxArr, mapTo, tempAsArr;
 import util.opt : force, has, none, noneMut, Opt, some;
 import util.sourceRange : RangeWithinFile;
-import util.sym : shortSymValue, Sym, symEq;
+import util.sym : shortSymValue, Sym;
 import util.util : todo;
 
 private immutable(Type) instStructFromAst(
@@ -128,7 +128,7 @@ immutable(TypeParam[]) checkTypeParams(ref CheckCtx ctx, scope immutable NameAnd
 		(immutable size_t index, scope ref immutable NameAndRange ast) =>
 			immutable TypeParam(rangeInFile(ctx, rangeOfNameAndRange(ast, ctx.allSymbols)), ast.name, index));
 	eachPair!TypeParam(res, (ref immutable TypeParam a, ref immutable TypeParam b) {
-		if (symEq(a.name, b.name))
+		if (a.name == b.name)
 			addDiag(ctx, b.range, immutable Diag(
 				immutable Diag.DuplicateDeclaration(Diag.DuplicateDeclaration.Kind.typeParam, b.name)));
 	});
@@ -175,7 +175,7 @@ immutable(Type) typeFromAst(
 
 			immutable Opt!(TypeParam*) found =
 				findPtr!TypeParam(typeParamsScope.innerTypeParams, (immutable TypeParam* it) =>
-					symEq(it.name, iAst.name.name));
+					it.name == iAst.name.name);
 			if (has(found)) {
 				if (!empty(iAst.typeArgs))
 					addDiag(ctx, iAst.range, immutable Diag(immutable Diag.TypeParamCantHaveTypeArgs()));

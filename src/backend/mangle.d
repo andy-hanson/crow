@@ -35,19 +35,19 @@ import model.lowModel :
 	matchLowParamSource;
 import model.model : FunInst, name, Param;
 import util.alloc.alloc : Alloc;
-import util.col.dict : PtrDict;
-import util.col.dictBuilder : finishDict, mustAddToDict, PtrDictBuilder;
+import util.col.dict : Dict;
+import util.col.dictBuilder : finishDict, mustAddToDict, DictBuilder;
 import util.col.fullIndexDict : fullIndexDictEachValue;
-import util.col.mutDict : insertOrUpdate, MutSymDict, setInDict;
+import util.col.mutDict : insertOrUpdate, MutDict, setInDict;
 import util.opt : force, has, none, Opt, some;
-import util.sym : AllSymbols, eachCharInSym, hashSym, shortSym, shortSymValue, Sym, symEq, writeSym;
+import util.sym : AllSymbols, eachCharInSym, shortSym, shortSymValue, Sym, writeSym;
 import util.writer : writeChar, writeNat, Writer, writeStatic;
 
 struct MangledNames {
 	immutable AllSymbols* allSymbols;
-	immutable PtrDict!(ConcreteFun, size_t) funToNameIndex;
+	immutable Dict!(ConcreteFun*, size_t) funToNameIndex;
 	//TODO:PERF we could use separate FullIndexDict for record, union, etc.
-	immutable PtrDict!(ConcreteStruct, size_t) structToNameIndex;
+	immutable Dict!(ConcreteStruct*, size_t) structToNameIndex;
 }
 
 immutable(MangledNames) buildMangledNames(
@@ -57,9 +57,9 @@ immutable(MangledNames) buildMangledNames(
 ) {
 	// First time we see a fun with a name, we'll store the fun-ptr here in case it's not overloaded.
 	// After that, we'll start putting them in funToNameIndex, and store the next index here.
-	MutSymDict!(immutable PrevOrIndex!ConcreteFun) funNameToIndex;
+	MutDict!(immutable Sym, immutable PrevOrIndex!ConcreteFun) funNameToIndex;
 	// This will not have an entry for non-overloaded funs.
-	PtrDictBuilder!(ConcreteFun, size_t) funToNameIndex;
+	DictBuilder!(ConcreteFun*, size_t) funToNameIndex;
 	// HAX: Ensure "main" has that name.
 	setInDict(alloc, funNameToIndex, shortSym("main"), immutable PrevOrIndex!ConcreteFun(0));
 	fullIndexDictEachValue!(LowFunIndex, LowFun)(program.allFuns, (ref immutable LowFun it) {
@@ -80,9 +80,9 @@ immutable(MangledNames) buildMangledNames(
 		)(it.source);
 	});
 
-	MutSymDict!(immutable PrevOrIndex!ConcreteStruct) structNameToIndex;
+	MutDict!(immutable Sym, immutable PrevOrIndex!ConcreteStruct) structNameToIndex;
 	// This will not have an entry for non-overloaded structs.
-	PtrDictBuilder!(ConcreteStruct, size_t) structToNameIndex;
+	DictBuilder!(ConcreteStruct*, size_t) structToNameIndex;
 
 	void build(immutable ConcreteStruct* s) {
 		matchConcreteStructSource!(
@@ -152,7 +152,7 @@ void writeLowFunMangledName(
 		},
 		(ref immutable LowFunSource.Generated it) {
 			writeMangledName(writer, mangledNames, it.name);
-			if (!symEq(it.name, shortSym("main"))) {
+			if (it.name != shortSym("main")) {
 				writeChar(writer, '_');
 				writeNat(writer, funIndex.index);
 			}
@@ -311,12 +311,12 @@ struct PrevOrIndex(T) {
 
 void addToPrevOrIndex(T)(
 	ref Alloc alloc,
-	ref MutSymDict!(immutable PrevOrIndex!T) nameToIndex,
-	ref PtrDictBuilder!(T, size_t) toNameIndex,
+	ref MutDict!(immutable Sym, immutable PrevOrIndex!T) nameToIndex,
+	ref DictBuilder!(T*, size_t) toNameIndex,
 	immutable T* cur,
 	immutable Sym name,
 ) {
-	insertOrUpdate!(immutable Sym, immutable PrevOrIndex!T, symEq, hashSym)(
+	insertOrUpdate!(immutable Sym, immutable PrevOrIndex!T)(
 		alloc,
 		nameToIndex,
 		name,

@@ -12,7 +12,7 @@ import util.hash : Hasher, hashUshort;
 import util.opt : has, force, none, Opt, some;
 import util.ptr : ptrTrustMe_mut;
 import util.sourceRange : RangeWithinFile;
-import util.sym : AllSymbols, eachCharInSym, emptySym, Sym, symEq, symOfStr, symSize, writeSym;
+import util.sym : AllSymbols, eachCharInSym, emptySym, Sym, symOfStr, symSize, writeSym;
 import util.util : todo, verify;
 import util.writer : finishWriterToSafeCStr, writeChar, Writer, writeStatic;
 
@@ -35,7 +35,13 @@ struct AllPaths {
 }
 
 struct Path {
+	@safe @nogc pure nothrow:
+
 	private ushort index;
+
+	void hash(ref Hasher hasher) scope const {
+		hashUshort(hasher, index);
+	}
 }
 
 immutable(Opt!Path) parent(ref const AllPaths allPaths, immutable Path a) {
@@ -76,7 +82,7 @@ private immutable(Path) getOrAddChild(
 	immutable Sym name,
 ) {
 	foreach (immutable Path child; mutArrRange(children))
-		if (symEq(baseName(allPaths, child), name))
+		if (baseName(allPaths, child) == name)
 			return child;
 
 	immutable Path res = immutable Path(safeToUshort(mutArrSize(allPaths.pathToParent)));
@@ -319,7 +325,7 @@ public immutable(SafeCStr) pathToSafeCStrPreferRelative(
 
 @trusted immutable(Path) parsePath(ref AllPaths allPaths, scope immutable SafeCStr str) {
 	immutable PathAndExtension pe = parsePathAndExtension(allPaths, str);
-	verify(symEq(pe.extension, emptySym));
+	verify(pe.extension == emptySym);
 	return pe.path;
 }
 
@@ -398,7 +404,7 @@ private @system immutable(RelPathAndExtension) parseRelPathAndExtensionRecur(
 
 immutable(Path) parseAbsoluteOrRelPath(ref AllPaths allPaths, immutable Path cwd, scope immutable SafeCStr a) {
 	immutable PathAndExtension res = parseAbsoluteOrRelPathAndExtension(allPaths, cwd, a);
-	if (!symEq(res.extension, emptySym))
+	if (res.extension != emptySym)
 		todo!void("!");
 	return res.path;
 }
@@ -439,16 +445,8 @@ private @system immutable(StrAndExtension) removeExtension(ref AllSymbols allSym
 		: immutable StrAndExtension(a[0 .. (ptr - a)], symOfStr(allSymbols, ptr[0 .. (end - ptr)]));
 }
 
-immutable(bool) pathEqual(immutable Path a, immutable Path b) {
-	return a.index == b.index;
-}
-
 immutable(Comparison) comparePath(immutable Path a, immutable Path b) {
 	return compareNat16(a.index, b.index);
-}
-
-void hashPath(ref Hasher hasher, immutable Path a) {
-	hashUshort(hasher, a.index);
 }
 
 struct PathAndRange {
@@ -477,7 +475,7 @@ private immutable(Path) commonAncestorBinary(ref const AllPaths allPaths, immuta
 		: commonAncestorRecur(allPaths, a, removeLastNParts(allPaths, b, bParts - aParts));
 }
 private immutable(Path) commonAncestorRecur(ref const AllPaths allPaths, immutable Path a, immutable Path b) {
-	if (pathEqual(a, b))
+	if (a == b)
 		return a;
 	else {
 		immutable Opt!Path parA = parent(allPaths, a);
@@ -499,7 +497,7 @@ void eachPartPreferRelative(
 			immutable Path cwd = force(pathsInfo.cwd);
 			immutable size_t cwdParts = countPathParts(allPaths, cwd);
 			immutable size_t aParts = countPathParts(allPaths, a);
-			return aParts > cwdParts && pathEqual(cwd, removeLastNParts(allPaths, a, aParts - cwdParts))
+			return aParts > cwdParts && cwd == removeLastNParts(allPaths, a, aParts - cwdParts)
 				? aParts - cwdParts
 				: size_t.max;
 		} else

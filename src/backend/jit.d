@@ -127,7 +127,7 @@ import util.col.stackDict : MutStackDict, mutStackDictAdd, mutStackDictMustGet;
 import util.col.str : CStr, SafeCStr;
 import util.opt : force, has, none, noneMut, Opt, some, someMut;
 import util.perf : Perf, PerfMeasure, withMeasure;
-import util.ptr : castImmutable, ptrEquals, ptrTrustMe, ptrTrustMe_mut;
+import util.ptr : castImmutable, ptrTrustMe, ptrTrustMe_mut;
 import util.sourceRange : FileAndRange;
 import util.sym : AllSymbols, writeSym;
 import util.util : todo, unreachable, verify;
@@ -779,21 +779,9 @@ immutable(ExprResult) emitSwitch(
 		});
 }
 
-alias Locals = MutStackDict!(
-	immutable LowLocal*,
-	gcc_jit_lvalue*,
-	null,
-	ptrEquals!LowLocal);
-alias addLocal = mutStackDictAdd!(
-	immutable LowLocal*,
-	gcc_jit_lvalue*,
-	null,
-	ptrEquals!LowLocal);
-alias getLocal = mutStackDictMustGet!(
-	immutable LowLocal*,
-	gcc_jit_lvalue*,
-	null,
-	ptrEquals!LowLocal);
+alias Locals = MutStackDict!(immutable LowLocal*, gcc_jit_lvalue*);
+alias addLocal = mutStackDictAdd!(immutable LowLocal*, gcc_jit_lvalue*);
+alias getLocal = mutStackDictMustGet!(immutable LowLocal*, gcc_jit_lvalue*);
 
 struct ExprCtx {
 	@safe @nogc pure nothrow:

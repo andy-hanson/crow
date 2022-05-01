@@ -24,7 +24,7 @@ import model.lowModel :
 import util.alloc.alloc : Alloc;
 import util.memory : allocate;
 import util.sourceRange : FileAndRange;
-import util.sym : shortSym, Sym, symEq;
+import util.sym : shortSym, Sym;
 import util.util : unreachable, verify;
 
 immutable LowType boolType = immutable LowType(PrimitiveType.bool_);
@@ -428,7 +428,7 @@ immutable(LowType.PtrRawConst) getElementPtrTypeFromArrType(
 ) {
 	immutable LowRecord arrRecord = allTypes.allRecords[arrType];
 	verify(arrRecord.fields.length == 2);
-	verify(symEq(debugName(arrRecord.fields[0]), shortSym("size")));
-	verify(symEq(debugName(arrRecord.fields[1]), shortSym("begin-ptr")));
+	verify(debugName(arrRecord.fields[0]) == shortSym("size"));
+	verify(debugName(arrRecord.fields[1]) == shortSym("begin-ptr"));
 	return asPtrRawConst(arrRecord.fields[1].type);
 }

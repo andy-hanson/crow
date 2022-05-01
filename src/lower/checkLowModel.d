@@ -20,7 +20,6 @@ import model.lowModel :
 	LowParam,
 	LowProgram,
 	LowType,
-	lowTypeEqual,
 	matchLowExprKind,
 	matchLowFunBody,
 	matchLowType,
@@ -233,7 +232,7 @@ void checkTypeEqual(
 	immutable LowType actual,
 ) {
 	//debug {
-	//	if (!lowTypeEqual(expected, actual)) {
+	//	if (expected != actual) {
 	//		import core.stdc.stdio : printf;
 	//		import util.repr : writeRepr;
 	//		import util.writer : finishWriterToCStr, Writer, writeStatic;
@@ -245,7 +244,7 @@ void checkTypeEqual(
 	//		printf("%s\n", finishWriterToCStr(writer));
 	//	}
 	//}
-	verify(lowTypeEqual(expected, actual));
+	verify(expected == actual);
 }
 
 immutable(Repr) reprOfLowType2(ref Ctx ctx, immutable LowType a) {

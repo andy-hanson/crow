@@ -17,7 +17,6 @@ import model.lowModel :
 	LowProgram,
 	LowRecord,
 	LowType,
-	lowTypeEqual,
 	PointerTypeAndConstantsLow,
 	PrimitiveType;
 import model.typeLayout : sizeOfType;
@@ -216,7 +215,7 @@ void ensureConstant(
 		(immutable Constant.Null) {},
 		(immutable Constant.Pointer it) {
 			immutable PointerTypeAndConstantsLow* ptrs = &ctx.allConstants.pointers[it.typeIndex];
-			verify(lowTypeEqual(ptrs.pointeeType, asPtrGcPointee(t)));
+			verify(ptrs.pointeeType == asPtrGcPointee(t));
 			recurWritePointer(
 				alloc, tempAlloc, ctx,
 				it.typeIndex, ptrs.pointeeType, it.index, ptrs.constants[it.index]);

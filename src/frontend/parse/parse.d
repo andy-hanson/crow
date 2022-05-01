@@ -81,7 +81,7 @@ import util.path : AllPaths, childPath, Path, PathOrRelPath, rootPath;
 import util.perf : Perf, PerfMeasure, withMeasure;
 import util.ptr : ptrTrustMe_mut;
 import util.sourceRange : Pos, RangeWithinFile;
-import util.sym : AllSymbols, Operator, shortSym, shortSymValue, Sym, symEq;
+import util.sym : AllSymbols, Operator, shortSym, shortSymValue, Sym;
 import util.util : todo, unreachable, verify;
 
 immutable(FileAst) parseFile(
@@ -210,7 +210,7 @@ immutable(Opt!(ImportFileType)) toImportFileType(immutable TypeAst a) {
 		(immutable(TypeAst.Fun)) =>
 			none!(ImportFileType),
 		(immutable TypeAst.InstStruct x) =>
-			symEq(x.name.name, shortSym("str")) && empty(x.typeArgs)
+			x.name.name == shortSym("str") && empty(x.typeArgs)
 				? some(ImportFileType.str)
 				: none!(ImportFileType),
 		(immutable TypeAst.Suffix x) =>
@@ -222,7 +222,7 @@ immutable(Opt!(ImportFileType)) toImportFileType(immutable TypeAst a) {
 					(immutable(TypeAst.Fun)) =>
 						none!(ImportFileType),
 					(immutable TypeAst.InstStruct y) =>
-						symEq(y.name.name, shortSym("nat8")) && empty(y.typeArgs)
+						y.name.name == shortSym("nat8") && empty(y.typeArgs)
 							? some(ImportFileType.nat8Array)
 							: none!(ImportFileType),
 					(immutable(TypeAst.Suffix)) =>
@@ -839,7 +839,7 @@ void parseModifiersRecur(scope ref Lexer lexer, ref ArrBuilder!ModifierAst res) 
 immutable(Opt!(ModifierAst.Kind)) tryParseModifierKind(scope ref Lexer lexer) {
 	if (tryTakeToken(lexer, Token.dot)) {
 		immutable Opt!Sym name = tryTakeName(lexer);
-		if (!has(name) || !symEq(force(name), shortSym("new")))
+		if (!(has(name) && force(name) == shortSym("new")))
 			todo!void("diagnostic: expected 'new' after '.'");
 		return some(ModifierAst.Kind.newPrivate);
 	} else {

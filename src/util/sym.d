@@ -6,7 +6,7 @@ import util.alloc.alloc : Alloc;
 import util.col.arr : only;
 import util.col.arrUtil : findIndex;
 import util.col.mutArr : MutArr, mutArrSize, push;
-import util.col.mutDict : addToMutDict, getAt_mut, mutDictSize, MutStringDict;
+import util.col.mutDict : addToMutDict, getAt_mut, MutDict, mutDictSize;
 import util.col.str : copyToSafeCStr, eachChar, SafeCStr, safeCStr, strOfSafeCStr;
 import util.hash : Hasher, hashUlong;
 import util.opt : force, has, Opt, none, some;
@@ -15,7 +15,7 @@ import util.util : drop, verify;
 import util.writer : finishWriterToSafeCStr, writeChar, Writer;
 
 immutable(Opt!size_t) indexOfSym(ref immutable Sym[] a, immutable Sym value) {
-	return findIndex!Sym(a, (ref immutable Sym it) => symEq(it, value));
+	return findIndex!Sym(a, (ref immutable Sym it) => it == value);
 }
 
 struct Sym {
@@ -30,6 +30,10 @@ struct Sym {
 	@disable this();
 	// TODO:PRIVATE
 	immutable this(immutable ulong v) { value = v; }
+
+	void hash(ref Hasher hasher) const {
+		hashUlong(hasher, value);
+	}
 }
 
 struct AllSymbols {
@@ -52,7 +56,7 @@ struct AllSymbols {
 
 	private:
 	Alloc* allocPtr;
-	MutStringDict!(immutable Sym) largeStringToIndex;
+	MutDict!(immutable string, immutable Sym) largeStringToIndex;
 	MutArr!(immutable SafeCStr) largeStringFromIndex;
 
 	ref Alloc alloc() return scope {
@@ -345,10 +349,6 @@ immutable(uint) symSize(ref const AllSymbols allSymbols, immutable Sym a) {
 	return size;
 }
 
-immutable(bool) symEq(immutable Sym a, immutable Sym b) {
-	return a.value == b.value;
-}
-
 immutable(Sym) shortSym(immutable string name) {
 	immutable Opt!Sym opt = tryPackShortSym(name);
 	return force(opt);
@@ -418,10 +418,6 @@ immutable(Opt!Operator) operatorForSym(immutable Sym a) {
 		return some(res);
 	} else
 		return none!Operator;
-}
-
-void hashSym(ref Hasher hasher, immutable Sym a) {
-	hashUlong(hasher, a.value);
 }
 
 private:

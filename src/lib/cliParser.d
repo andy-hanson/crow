@@ -9,7 +9,7 @@ import util.col.arrUtil : findIndex, foldOrStop, mapOrNone;
 import util.col.str : SafeCStr, safeCStr, safeCStrEq, strEq, strOfSafeCStr;
 import util.opt : force, has, none, Opt, some;
 import util.path : AllPaths, parseAbsoluteOrRelPathAndExtension, Path, PathAndExtension;
-import util.sym : emptySym, SpecialSym, Sym, symEq, symForSpecial;
+import util.sym : emptySym, SpecialSym, Sym, symForSpecial;
 import util.util : todo, verify;
 
 @safe @nogc nothrow: // not pure
@@ -249,7 +249,7 @@ immutable(Opt!Path) tryParseCrowPath(
 	scope immutable SafeCStr arg,
 ) {
 	immutable PathAndExtension path = parseAbsoluteOrRelPathAndExtension(allPaths, cwd, arg);
-	return symEq(path.extension, emptySym) || symEq(path.extension, crowExtension)
+	return path.extension == emptySym || path.extension == crowExtension
 		? some(path.path)
 		: none!Path;
 }
@@ -425,11 +425,11 @@ immutable(Opt!BuildOut) parseBuildOut(
 		args,
 		(immutable BuildOut o, ref immutable SafeCStr arg) {
 			immutable PathAndExtension path = parseAbsoluteOrRelPathAndExtension(allPaths, cwd, arg);
-			if (symEq(path.extension, emptySym)) {
+			if (path.extension == emptySym) {
 				return has(o.outExecutable)
 					? none!BuildOut
 					: some(immutable BuildOut(o.outC, some(path)));
-			} else if (symEq(path.extension, symForSpecial(SpecialSym.dotC))) {
+			} else if (path.extension == symForSpecial(SpecialSym.dotC)) {
 				return has(o.outC)
 					? none!BuildOut
 					: some(immutable BuildOut(some(path), o.outExecutable));

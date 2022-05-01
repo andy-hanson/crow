@@ -53,7 +53,7 @@ import util.col.mutArr : MutArr, push;
 import util.col.mutMaxArr : mapTo, MutMaxArr, mutMaxArr, push, tempAsArr;
 import util.memory : allocate, allocateMut;
 import util.opt : force, has, none, noneMut, Opt, some, someConst, someMut;
-import util.ptr : castImmutable, ptrEquals;
+import util.ptr : castImmutable;
 import util.util : verify;
 
 struct TypeParamsScope {
@@ -92,23 +92,23 @@ private immutable(Opt!(T*)) tryGetTypeArg(T)(
 }
 
 const(Opt!(T*)) tryGetTypeArg_const(T)(
-	immutable TypeParam[] typeParams,
-	const T[] typeArgs,
-	immutable TypeParam* typeParam,
+	scope immutable TypeParam[] typeParams,
+	return scope const T[] typeArgs,
+	scope immutable TypeParam* typeParam,
 ) {
 	immutable size_t index = typeParam.index;
-	return index < typeParams.length && ptrEquals(&typeParams[index], typeParam)
+	return index < typeParams.length && &typeParams[index] == typeParam
 		? someConst!(T*)(&typeArgs[index])
 		: none!(T*);
 }
 
 Opt!(T*) tryGetTypeArg_mut(T)(
-	immutable TypeParam[] typeParams,
+	scope immutable TypeParam[] typeParams,
 	T[] typeArgs,
-	immutable TypeParam* typeParam,
+	scope immutable TypeParam* typeParam,
 ) {
 	immutable size_t index = typeParam.index;
-	return index < typeParams.length && ptrEquals(&typeParams[index], typeParam)
+	return index < typeParams.length && &typeParams[index] == typeParam
 		? someMut(&typeArgs[index])
 		: noneMut!(T*);
 }

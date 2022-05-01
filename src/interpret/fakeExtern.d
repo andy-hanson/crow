@@ -23,7 +23,7 @@ import util.col.mutArr : moveToArr, MutArr, mutArrIsEmpty, push, pushAll, tempAs
 import util.col.str : safeCStr;
 import util.memory : memmove, memset;
 import util.opt : force, has, none, Opt, some;
-import util.sym : AllSymbols, hashSym, shortSym, shortSymValue, SpecialSym, specialSymValue, Sym, symEq;
+import util.sym : AllSymbols, shortSym, shortSymValue, SpecialSym, specialSymValue, Sym;
 import util.util : debugLog, todo, unreachable, verify, verifyFail;
 
 struct FakeExternResult {
@@ -71,7 +71,7 @@ immutable(Opt!ExternFunPtrsForAllLibraries) getAllFakeExternFuns(
 	scope WriteError writeError,
 ) {
 	MutArr!(immutable KeyValuePair!(Sym, Sym)) failures;
-	immutable ExternFunPtrsForAllLibraries res = makeDict!(Sym, ExternFunPtrsForLibrary, symEq, hashSym, ExternLibrary)(
+	immutable ExternFunPtrsForAllLibraries res = makeDict!(Sym, ExternFunPtrsForLibrary, ExternLibrary)(
 		alloc,
 		libraries,
 		(scope ref immutable ExternLibrary x) =>
@@ -135,7 +135,7 @@ immutable(ExternFunPtrsForLibrary) fakeExternFunsForLibrary(
 	ref const AllSymbols allSymbols,
 	scope ref immutable ExternLibrary lib,
 ) {
-	return makeDict!(Sym, FunPtr, symEq, hashSym, Sym)(alloc, lib.importNames, (scope ref immutable Sym importName) {
+	return makeDict!(Sym, FunPtr, Sym)(alloc, lib.importNames, (scope ref immutable Sym importName) {
 		immutable Opt!FunPtr res = getFakeExternFun(lib.libraryName, importName);
 		if (!has(res))
 			push(alloc, failures, immutable KeyValuePair!(Sym, Sym)(lib.libraryName, importName));
@@ -144,7 +144,7 @@ immutable(ExternFunPtrsForLibrary) fakeExternFunsForLibrary(
 }
 
 immutable(Opt!FunPtr) getFakeExternFun(immutable Sym libraryName, immutable Sym name) {
-	return symEq(libraryName, shortSym("c"))
+	return libraryName == shortSym("c")
 		? getFakeExternFunC(name)
 		: none!FunPtr;
 }

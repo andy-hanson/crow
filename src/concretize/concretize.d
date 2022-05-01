@@ -33,8 +33,7 @@ import model.model :
 	Program,
 	returnType,
 	Type,
-	typeArgs,
-	typeEquals;
+	typeArgs;
 import util.alloc.alloc : Alloc;
 import util.col.arr : emptyArr, only;
 import util.col.arrBuilder : finishArr_immutable;
@@ -43,8 +42,8 @@ import util.col.mutDict : mapToDict, mutDictIsEmpty;
 import util.opt : force, has, Opt;
 import util.path : AllPaths;
 import util.perf : Perf, PerfMeasure, withMeasure;
-import util.ptr : castNonScope, hashPtr, ptrEquals, ptrTrustMe;
-import util.sym : AllSymbols, shortSym, SpecialSym, Sym, symEq, symForSpecial;
+import util.ptr : castNonScope, ptrTrustMe;
+import util.sym : AllSymbols, shortSym, SpecialSym, Sym, symForSpecial;
 import util.util : todo, verify;
 import versionInfo : VersionInfo;
 
@@ -110,13 +109,7 @@ immutable(ConcreteProgram) concretizeInner(
 			mustBeByVal(staticSymsFun.returnType)),
 		finishArr_immutable(alloc, ctx.allConcreteStructs),
 		allConcreteFuns,
-		mapToDict!(
-			ConcreteStruct*,
-			ConcreteLambdaImpl[],
-			MutArr!(immutable ConcreteLambdaImpl),
-			ptrEquals!ConcreteStruct,
-			hashPtr!ConcreteStruct,
-		)(
+		mapToDict!(ConcreteStruct*, ConcreteLambdaImpl[], MutArr!(immutable ConcreteLambdaImpl))(
 			alloc,
 			ctx.funStructToImpls,
 			(ref MutArr!(immutable ConcreteLambdaImpl) it) =>
@@ -126,27 +119,27 @@ immutable(ConcreteProgram) concretizeInner(
 }
 
 immutable(bool) isNat(ref immutable CommonTypes commonTypes, immutable Type type) {
-	return typeEquals(type, immutable Type(commonTypes.integrals.nat64));
+	return type == immutable Type(commonTypes.integrals.nat64);
 }
 
 immutable(bool) isInt32(ref immutable CommonTypes commonTypes, immutable Type type) {
-	return typeEquals(type, immutable Type(commonTypes.integrals.int32));
+	return type == immutable Type(commonTypes.integrals.int32);
 }
 
 immutable(bool) isStr(ref immutable CommonTypes commonTypes, immutable Type type) {
 	//TODO:better
-	return isStructInst(type) && symEq(decl(*asStructInst(type)).name, shortSym("str"));
+	return isStructInst(type) && decl(*asStructInst(type)).name == shortSym("str");
 }
 
 immutable(bool) isFutNat(ref immutable CommonTypes commonTypes, immutable Type type) {
 	return isStructInst(type) &&
-		ptrEquals(decl(*asStructInst(type)), commonTypes.fut) &&
+		decl(*asStructInst(type)) == commonTypes.fut &&
 		isNat(commonTypes, only(typeArgs(*asStructInst(type))));
 }
 
 immutable(bool) isArrStr(ref immutable CommonTypes commonTypes, immutable Type type) {
 	return isStructInst(type) &&
-		ptrEquals(decl(*asStructInst(type)), commonTypes.arr) &&
+		decl(*asStructInst(type)) == commonTypes.arr &&
 		isStr(commonTypes, only(typeArgs(*asStructInst(type))));
 }
 

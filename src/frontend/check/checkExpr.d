@@ -100,7 +100,6 @@ import model.model :
 	StructInst,
 	Type,
 	typeArgs,
-	typeEquals,
 	TypeParam,
 	UnionMember,
 	VariableRef,
@@ -117,7 +116,7 @@ import util.memory : allocate, initMemory;
 import util.opt : force, has, none, noneMut, Opt, some, someMut;
 import util.ptr : castImmutable, ptrTrustMe_mut;
 import util.sourceRange : FileAndRange, Pos, RangeWithinFile;
-import util.sym : Operator, shortSym, Sym, symEq, symForOperator, symOfStr;
+import util.sym : Operator, shortSym, Sym, symForOperator, symOfStr;
 import util.util : todo;
 
 immutable(Expr) checkFunctionBody(
@@ -450,7 +449,7 @@ immutable(Opt!VariableRefAndType) getIdentifierNonCall(ref Alloc alloc, ref Loca
 }
 
 immutable(Opt!(Local*)) getIdentifierInLocals(ref LocalNode node, immutable Sym name) {
-	if (symEq(node.local.name, name)) {
+	if (node.local.name == name) {
 		node.isUsed = true;
 		return some(node.local);
 	} else if (has(node.prev))
@@ -465,12 +464,12 @@ immutable(Opt!VariableRefAndType) getIdentifierFromFunOrLambda(
 	ref FunOrLambdaInfo info,
 ) {
 	foreach (immutable Param* param; ptrsRange(info.params))
-		if (has(param.name) && symEq(force(param.name), name)) {
+		if (has(param.name) && force(param.name) == name) {
 			info.paramsUsed[param.index] = true;
 			return some(immutable VariableRefAndType(immutable VariableRef(param), param.type));
 		}
 	foreach (immutable size_t index, ref immutable ClosureFieldBuilder field; tempAsArr(info.closureFields))
-		if (symEq(field.name, name))
+		if (field.name == name)
 			return some(immutable VariableRefAndType(
 				immutable VariableRef(immutable Expr.ClosureFieldRef(
 					immutable PtrAndSmallNumber!(Expr.Lambda)(force(info.lambda), safeToUshort(index)))),
@@ -1023,7 +1022,7 @@ immutable(Expr) checkMatchEnum(
 		members,
 		ast.cases,
 		(ref immutable StructBody.Enum.Member member, ref immutable MatchAst.CaseAst caseAst) =>
-			symEq(member.name, caseAst.memberName));
+			member.name == caseAst.memberName);
 	if (!goodCases) {
 		addDiag2(ctx, range, immutable Diag(immutable Diag.MatchCaseNamesDoNotMatch(
 			map!Sym(ctx.alloc, members, (ref immutable StructBody.Enum.Member member) => member.name))));
@@ -1058,7 +1057,7 @@ immutable(Expr) checkMatchUnion(
 		members,
 		ast.cases,
 		(ref immutable UnionMember member, ref immutable MatchAst.CaseAst caseAst) =>
-			symEq(member.name, caseAst.memberName));
+			member.name == caseAst.memberName);
 	if (!goodCases) {
 		addDiag2(ctx, range, immutable Diag(immutable Diag.MatchCaseNamesDoNotMatch(
 			map!Sym(ctx.alloc, members, (ref immutable UnionMember member) => member.name))));
@@ -1176,7 +1175,7 @@ immutable(Expr) checkTyped(
 	immutable Type type = typeFromAst2(ctx, ast.type);
 	immutable Opt!Type inferred = tryGetInferred(expected);
 	// If inferred != type, we'll fail in 'check'
-	if (has(inferred) && typeEquals(force(inferred), type))
+	if (has(inferred) && force(inferred) == type)
 		addDiag2(ctx, range, immutable Diag(immutable Diag.TypeAnnotationUnnecessary(type)));
 	immutable Expr expr = checkAndExpect(ctx, locals, ast.expr, type);
 	return check(ctx, expected, type, expr);

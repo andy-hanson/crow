@@ -75,15 +75,7 @@ import util.col.arrBuilder : add, ArrBuilder, finishArr;
 import util.memory : allocate;
 import util.opt : force, has, none, Opt, some;
 import util.sourceRange : Pos, RangeWithinFile;
-import util.sym :
-	isSymOperator,
-	Operator,
-	operatorForSym,
-	prependSet,
-	shortSym,
-	Sym,
-	symEq,
-	symForOperator;
+import util.sym : isSymOperator, Operator, operatorForSym, prependSet, shortSym, Sym, symForOperator;
 import util.util : max, todo, unreachable, verify;
 
 immutable(ExprAst) parseFunExprBody(scope ref Lexer lexer) {
@@ -387,7 +379,7 @@ immutable(ExprAndDedent) parseMutEquals(
 					case CallAst.Style.subscript:
 						return CallAst.Style.setSubscript;
 					case CallAst.Style.prefixOperator:
-						if (symEq(beforeCall.funName.name, symForOperator(Operator.times)))
+						if (beforeCall.funName.name == symForOperator(Operator.times))
 							return CallAst.Style.setDeref;
 						else
 							// This is `~x := foo` or `-x := foo`. Have a diagnostic for this.

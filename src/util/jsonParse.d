@@ -9,7 +9,7 @@ import util.col.arrUtil : arrEqual;
 import util.col.dict : KeyValuePair;
 import util.col.str : copyToSafeCStr, CStr, SafeCStr, safeCStrEq;
 import util.opt : force, has, none, Opt, some;
-import util.sym : AllSymbols, Sym, symEq, symOfStr;
+import util.sym : AllSymbols, Sym, symOfStr;
 import util.util : verify;
 
 // NOTE: doesn't support number since I don't use that anywhere
@@ -65,7 +65,7 @@ immutable(bool) isString(immutable Json a) {
 					a.object,
 					b.object,
 					(ref immutable KeyValuePair!(Sym, Json) x, ref immutable KeyValuePair!(Sym, Json) y) =>
-						symEq(x.key, y.key) && jsonEqual(x.value, y.value));
+						x.key == y.key && jsonEqual(x.value, y.value));
 		}
 	} else
 		return false;

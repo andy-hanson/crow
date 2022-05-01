@@ -24,12 +24,10 @@ import model.concreteModel :
 	ConcreteParam,
 	ConcreteParamSource,
 	ConcreteType,
-	concreteTypeEqual,
 	ConcreteStruct,
 	ConcreteStructBody,
 	ConcreteStructInfo,
 	ConcreteStructSource,
-	hashConcreteType,
 	hasSizeOrPointerSizeBytes,
 	isSelfMutable,
 	mustBeByVal,
@@ -92,20 +90,13 @@ import util.col.arrUtil :
 	mapPtrsWithIndex,
 	mapWithIndex;
 import util.col.mutArr : MutArr, mutArrIsEmpty, push;
-import util.col.mutDict :
-	addToMutDict,
-	getOrAdd,
-	getOrAddAndDidAdd,
-	mustDelete,
-	MutDict,
-	MutPtrDict,
-	ValueAndDidAdd;
+import util.col.mutDict : addToMutDict, getOrAdd, getOrAddAndDidAdd, mustDelete, MutDict, ValueAndDidAdd;
 import util.col.str : SafeCStr;
 import util.hash : Hasher;
 import util.late : Late, lateGet, lateIsSet, lateSet, lateSetOverwrite, lazilySet;
 import util.memory : allocate, allocateMut;
 import util.opt : force, has, none, Opt, some;
-import util.ptr : castImmutable, castMutable, hashPtr, ptrEquals;
+import util.ptr : castImmutable, castMutable, hashPtr;
 import util.sourceRange : FileAndRange;
 import util.sym : AllSymbols, shortSym, shortSymValue, Sym;
 import util.util : max, roundUp, todo, unreachable, verify;
@@ -143,26 +134,51 @@ struct TypeArgsScope {
 }
 
 private struct ConcreteStructKey {
+	@safe @nogc pure nothrow:
+
 	immutable StructDecl* decl;
 	immutable ConcreteType[] typeArgs;
-}
 
-private immutable(bool) concreteStructKeyEqual(ref const ConcreteStructKey a, ref const ConcreteStructKey b) {
-	return ptrEquals(a.decl, b.decl) && concreteTypeArrEquals(a.typeArgs, b.typeArgs);
-}
+	immutable(bool) opEquals(scope ref immutable ConcreteStructKey b) scope immutable {
+		return decl == b.decl && concreteTypeArrEquals(typeArgs, b.typeArgs);
+	}
 
-private void hashConcreteStructKey(ref Hasher hasher, ref const ConcreteStructKey a) {
-	hashPtr(hasher, a.decl);
-	foreach (immutable ConcreteType t; a.typeArgs)
-		hashConcreteType(hasher, t);
+	void hash(ref Hasher hasher) scope immutable {
+		hashPtr(hasher, decl);
+		foreach (immutable ConcreteType t; typeArgs)
+			t.hash(hasher);
+	}
 }
 
 struct ConcreteFunKey {
+	@safe @nogc pure nothrow:
+
 	// We only need a FunDecl since we have the typeArgs and specImpls.
 	// FunInst is for debug info
 	immutable FunInst* inst;
 	immutable ConcreteType[] typeArgs;
 	immutable ConcreteFun*[] specImpls;
+
+	immutable(bool) opEquals(scope immutable ConcreteFunKey b) scope immutable {
+		// Compare decls, not insts.
+		// Two different FunInsts may concretize to the same thing.
+		// (e.g. f<?t> and f<bool> if ?t = bool)
+		return decl(*inst) == decl(*b.inst) &&
+			concreteTypeArrEquals(typeArgs, b.typeArgs) &&
+			arrEqual!(immutable ConcreteFun*)(
+				specImpls,
+				b.specImpls,
+				(ref immutable ConcreteFun* x, ref immutable ConcreteFun* y) =>
+					x == y);
+	}
+
+	void hash(ref Hasher hasher) scope immutable {
+		hashPtr(hasher, decl(*inst));
+		foreach (ref immutable ConcreteType t; typeArgs)
+			t.hash(hasher);
+		foreach (immutable ConcreteFun* p; specImpls)
+			hashPtr(hasher, p);
+	}
 }
 
 private immutable(ContainingFunInfo) toContainingFunInfo(ref immutable ConcreteFunKey a) {
@@ -182,27 +198,6 @@ struct ContainingFunInfo {
 
 immutable(TypeArgsScope) typeArgsScope(ref immutable ContainingFunInfo a) {
 	return immutable TypeArgsScope(a.typeParams, a.typeArgs);
-}
-
-private immutable(bool) concreteFunKeyEqual(ref immutable ConcreteFunKey a, ref immutable ConcreteFunKey b) {
-	// Compare decls, not insts.
-	// Two different FunInsts may concretize to the same thing.
-	// (e.g. f<?t> and f<bool> if ?t = bool)
-	return ptrEquals(decl(*a.inst), decl(*b.inst)) &&
-		concreteTypeArrEquals(a.typeArgs, b.typeArgs) &&
-		arrEqual!(immutable ConcreteFun*)(
-			a.specImpls,
-			b.specImpls,
-			(ref immutable ConcreteFun* x, ref immutable ConcreteFun* y) =>
-				ptrEquals(x, y));
-}
-
-private void hashConcreteFunKey(ref Hasher hasher, ref immutable ConcreteFunKey a) {
-	hashPtr(hasher, decl(*a.inst));
-	foreach (ref immutable ConcreteType t; a.typeArgs)
-		hashConcreteType(hasher, t);
-	foreach (immutable ConcreteFun* p; a.specImpls)
-		hashPtr(hasher, p);
 }
 
 private struct ConcreteFunBodyInputs {
@@ -244,27 +239,17 @@ struct ConcretizeCtx {
 	immutable CommonTypes* commonTypesPtr;
 	immutable Program* programPtr;
 	AllConstantsBuilder allConstants;
-	MutDict!(
-		immutable ConcreteStructKey,
-		immutable ConcreteStruct*,
-		concreteStructKeyEqual,
-		hashConcreteStructKey,
-	) nonLambdaConcreteStructs;
+	MutDict!(immutable ConcreteStructKey, immutable ConcreteStruct*) nonLambdaConcreteStructs;
 	ArrBuilder!(immutable ConcreteStruct*) allConcreteStructs;
-	MutDict!(
-		immutable ConcreteFunKey,
-		immutable ConcreteFun*,
-		concreteFunKeyEqual,
-		hashConcreteFunKey,
-	) nonLambdaConcreteFuns;
+	MutDict!(immutable ConcreteFunKey, immutable ConcreteFun*) nonLambdaConcreteFuns;
 	MutArr!DeferredRecordBody deferredRecords;
 	MutArr!DeferredUnionBody deferredUnions;
 	ArrBuilder!(immutable ConcreteFun*) allConcreteFuns;
 
 	// This will only have an entry while a ConcreteFun hasn't had it's body filled in yet.
-	MutPtrDict!(ConcreteFun, immutable ConcreteFunBodyInputs) concreteFunToBodyInputs;
+	MutDict!(immutable ConcreteFun*, immutable ConcreteFunBodyInputs) concreteFunToBodyInputs;
 	// Index in the MutArr!(immutable ConcreteLambdaImpl) is the fun ID
-	MutPtrDict!(ConcreteStruct, MutArr!(immutable ConcreteLambdaImpl)) funStructToImpls;
+	MutDict!(immutable ConcreteStruct*, MutArr!(immutable ConcreteLambdaImpl)) funStructToImpls;
 	// TODO: do these eagerly
 	Late!(immutable ConcreteType) _boolType;
 	Late!(immutable ConcreteType) _voidType;
@@ -366,7 +351,7 @@ immutable(ConcreteType) getConcreteType_forStructInst(
 	immutable TypeArgsScope typeArgsScope,
 ) {
 	immutable ConcreteType[] typeArgs = typesToConcreteTypes(ctx, typeArgs(*i), typeArgsScope);
-	if (ptrEquals(decl(*i), ctx.commonTypes.byVal))
+	if (decl(*i) == ctx.commonTypes.byVal)
 		return byVal(only(typeArgs));
 	else {
 		immutable ConcreteStructKey key = immutable ConcreteStructKey(decl(*i), typeArgs);
@@ -538,17 +523,17 @@ immutable(ConcreteFun*) concreteFunForTest(
 	return castImmutable(res);
 }
 
-immutable(bool) concreteTypeArrEquals(ref immutable ConcreteType[] a, ref immutable ConcreteType[] b) {
+immutable(bool) concreteTypeArrEquals(scope immutable ConcreteType[] a, scope immutable ConcreteType[] b) {
 	return arrEqual!ConcreteType(a, b, (ref immutable ConcreteType x, ref immutable ConcreteType y) =>
-		concreteTypeEqual(x, y));
+		x == y);
 }
 
-immutable(bool) canGetUnionSize(ref immutable Opt!ConcreteType[] members) {
+immutable(bool) canGetUnionSize(scope immutable Opt!ConcreteType[] members) {
 	return every!(Opt!ConcreteType)(members, (ref immutable Opt!ConcreteType type) =>
 		!has(type) || hasSizeOrPointerSizeBytes(force(type)));
 }
 
-immutable(TypeSize) unionSize(ref immutable Opt!ConcreteType[] members) {
+immutable(TypeSize) unionSize(scope immutable Opt!ConcreteType[] members) {
 	immutable size_t unionAlign = 8;
 	immutable size_t maxMember = arrMax!(size_t, Opt!ConcreteType)(0, members, (ref immutable Opt!ConcreteType t) =>
 		has(t) ? sizeOrPointerSizeBytes(force(t)).size : 0);

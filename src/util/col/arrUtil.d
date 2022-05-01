@@ -633,7 +633,7 @@ immutable(Opt!T) foldOrStop(T, U)(
 
 immutable(N) arrMax(N, T)(
 	immutable N start,
-	immutable T[] a,
+	scope immutable T[] a,
 	scope immutable(N) delegate(ref immutable T) @safe @nogc pure nothrow cb,
 ) {
 	return empty(a)
@@ -642,7 +642,7 @@ immutable(N) arrMax(N, T)(
 }
 
 immutable(size_t) sum(T)(
-	immutable T[] a,
+	scope immutable T[] a,
 	scope immutable(size_t) delegate(ref immutable T) @safe @nogc pure nothrow cb,
 ) {
 	return fold!(size_t, T)(0, a, (immutable size_t l, ref immutable T t) =>

@@ -10,8 +10,8 @@ import util.alloc.alloc : Alloc;
 import util.col.arr : only;
 import util.col.arrBuilder : add, ArrBuilder, finishArr;
 import util.col.arrUtil : fold;
-import util.col.dict : KeyValuePair, SymDict;
-import util.col.dictBuilder : finishDict, SymDictBuilder, tryAddToDict;
+import util.col.dict : KeyValuePair, Dict;
+import util.col.dictBuilder : finishDict, DictBuilder, tryAddToDict;
 import util.col.str : SafeCStr;
 import util.readOnlyStorage : matchReadFileResult, ReadFileResult, ReadOnlyStorage, withFileText;
 import util.opt : force, has, none, Opt, some;
@@ -139,7 +139,7 @@ immutable(Config) parseConfigRecur(
 	});
 }
 
-immutable(SymDict!Path) parseIncludeOrExtern(
+immutable(Dict!(Sym, Path)) parseIncludeOrExtern(
 	ref Alloc alloc,
 	ref AllSymbols allSymbols,
 	ref AllPaths allPaths,
@@ -147,7 +147,7 @@ immutable(SymDict!Path) parseIncludeOrExtern(
 	ref ArrBuilder!DiagnosticWithinFile diags,
 	immutable Json json,
 ) {
-	SymDictBuilder!Path res;
+	DictBuilder!(Sym, Path) res;
 	if (isObject(json)) {
 		foreach (immutable KeyValuePair!(Sym, Json) field; asObject(json)) {
 			if (isString(field.value)) {

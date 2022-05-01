@@ -83,9 +83,9 @@ import util.col.mutDict : getOrAdd;
 import util.col.stackDict : StackDict, stackDictAdd, stackDictMustGet;
 import util.memory : allocate;
 import util.opt : force, has, none, Opt, some;
-import util.ptr : ptrEquals, ptrTrustMe_mut;
+import util.ptr : ptrTrustMe_mut;
 import util.sourceRange : FileAndRange;
-import util.sym : shortSym, shortSymValue, SpecialSym, specialSymValue, Sym, symEq;
+import util.sym : shortSym, shortSymValue, SpecialSym, specialSymValue, Sym;
 import util.util : todo, unreachable, verify;
 import versionInfo : VersionInfo;
 
@@ -382,9 +382,9 @@ immutable(ConcreteExpr) concretizeLambda(
 		immutable ConcreteField[] fields = asRecord(body_(*concreteStruct)).fields;
 		verify(fields.length == 2);
 		immutable ConcreteField exclusionField = fields[0];
-		verify(symEq(exclusionField.debugName, shortSym("exclusion")));
+		verify(exclusionField.debugName == shortSym("exclusion"));
 		immutable ConcreteField actionField = fields[1];
-		verify(symEq(actionField.debugName, shortSym("action")));
+		verify(actionField.debugName == shortSym("action"));
 		immutable ConcreteType funType = actionField.type;
 		immutable ConcreteExpr exclusion = getGetExclusion(ctx, exclusionField.type, range);
 		return immutable ConcreteExpr(concreteType, range, immutable ConcreteExprKind(
@@ -427,21 +427,9 @@ immutable(ConcreteLocal*) concretizeLocal(ref ConcretizeExprCtx ctx, immutable L
 	return makeLocalWorker(ctx, local, getConcreteType(ctx, local.type));
 }
 
-alias Locals = immutable StackDict!(
-	immutable Local*,
-	immutable LocalOrConstant,
-	null,
-	ptrEquals!Local);
-alias addLocal = stackDictAdd!(
-	immutable Local*,
-	immutable LocalOrConstant,
-	null,
-	ptrEquals!Local);
-alias getLocal = stackDictMustGet!(
-	immutable Local*,
-	immutable LocalOrConstant,
-	null,
-	ptrEquals!Local);
+alias Locals = immutable StackDict!(immutable Local*, immutable LocalOrConstant);
+alias addLocal = stackDictAdd!(immutable Local*, immutable LocalOrConstant);
+alias getLocal = stackDictMustGet!(immutable Local*, immutable LocalOrConstant);
 
 immutable(ConcreteExpr) concretizeWithLocal(
 	ref ConcretizeExprCtx ctx,

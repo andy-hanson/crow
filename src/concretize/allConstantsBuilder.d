@@ -8,38 +8,27 @@ import model.concreteModel :
 	asInst,
 	ConcreteStruct,
 	ConcreteType,
-	concreteTypeEqual,
-	hashConcreteType,
 	PointerTypeAndConstantsConcrete;
 import model.constant : Constant, constantEqual;
 import util.alloc.alloc : Alloc;
 import util.col.arr : empty, only;
 import util.col.arrUtil : arrEqual, arrLiteral, findIndex_const;
 import util.col.mutArr : moveToArr, MutArr, mutArrSize, push, tempAsArr;
-import util.col.mutDict :
-	getOrAdd,
-	mapToArr_mut,
-	MutDict,
-	mustGetAt_mut,
-	mutDictSize,
-	MutPtrDict,
-	MutSafeCStrDict,
-	MutSymDict,
-	valuesArray;
-import util.col.str : hashSafeCStr, SafeCStr, safeCStrEq;
+import util.col.mutDict : getOrAdd, mapToArr_mut, mustGetAt_mut, MutDict, mutDictSize, valuesArray;
+import util.col.str : SafeCStr;
 import util.opt : force, has, Opt;
-import util.ptr : hashPtr, ptrEquals, ptrTrustMe_mut;
-import util.sym : AllSymbols, hashSym, safeCStrOfSym, Sym, symEq;
+import util.ptr : ptrTrustMe_mut;
+import util.sym : AllSymbols, safeCStrOfSym, Sym;
 import util.util : verify;
 
 struct AllConstantsBuilder {
 	private:
 	@disable this(ref const AllConstantsBuilder);
-	MutSafeCStrDict!(immutable Constant.CString) cStrings;
-	MutSymDict!(immutable Constant) syms;
+	MutDict!(immutable SafeCStr, immutable Constant.CString) cStrings;
+	MutDict!(immutable Sym, immutable Constant) syms;
 	MutArr!(immutable SafeCStr) cStringValues;
-	MutDict!(immutable ConcreteType, ArrTypeAndConstants, concreteTypeEqual, hashConcreteType) arrs;
-	MutPtrDict!(ConcreteStruct, PointerTypeAndConstants) pointers;
+	MutDict!(immutable ConcreteType, ArrTypeAndConstants) arrs;
+	MutDict!(immutable ConcreteStruct*, PointerTypeAndConstants) pointers;
 }
 
 private struct ArrTypeAndConstants {
@@ -62,24 +51,19 @@ immutable(AllConstantsConcrete) finishAllConstants(
 ) {
 	immutable Constant staticSyms = getConstantArr(alloc, a, arrSymStruct, valuesArray(alloc, a.syms));
 	immutable ArrTypeAndConstantsConcrete[] arrs =
-		mapToArr_mut!(
-			ArrTypeAndConstantsConcrete,
-			immutable ConcreteType,
-			ArrTypeAndConstants,
-			concreteTypeEqual,
-			hashConcreteType,
-		)(alloc, a.arrs, (immutable(ConcreteType), ref ArrTypeAndConstants value) =>
-			immutable ArrTypeAndConstantsConcrete(
-				value.arrType,
-				value.elementType,
-				moveToArr!(immutable Constant[])(alloc, value.constants)));
+		mapToArr_mut!(ArrTypeAndConstantsConcrete, immutable ConcreteType, ArrTypeAndConstants)(
+			alloc,
+			a.arrs,
+			(immutable(ConcreteType), ref ArrTypeAndConstants value) =>
+				immutable ArrTypeAndConstantsConcrete(
+					value.arrType,
+					value.elementType,
+					moveToArr!(immutable Constant[])(alloc, value.constants)));
 	immutable PointerTypeAndConstantsConcrete[] records =
 		mapToArr_mut!(
 			PointerTypeAndConstantsConcrete,
 			immutable ConcreteStruct*,
 			PointerTypeAndConstants,
-			ptrEquals!ConcreteStruct,
-			hashPtr!ConcreteStruct,
 		)(alloc, a.pointers, (immutable ConcreteStruct* key, ref PointerTypeAndConstants value) =>
 			immutable PointerTypeAndConstantsConcrete(
 				key,
@@ -159,7 +143,7 @@ immutable(Constant) getConstantCStr(
 	ref AllConstantsBuilder allConstants,
 	immutable SafeCStr value,
 ) {
-	return immutable Constant(getOrAdd!(immutable SafeCStr, immutable Constant.CString, safeCStrEq, hashSafeCStr)(
+	return immutable Constant(getOrAdd!(immutable SafeCStr, immutable Constant.CString)(
 		alloc,
 		allConstants.cStrings,
 		value,
@@ -177,13 +161,9 @@ immutable(Constant) getConstantSym(
 	ref const AllSymbols allSymbols,
 	immutable Sym value,
 ) {
-	return getOrAdd!(immutable Sym, immutable Constant, symEq, hashSym)(
-		alloc,
-		allConstants.syms,
-		value,
-		() =>
-			immutable Constant(immutable Constant.Record(arrLiteral!Constant(alloc, [
-				getConstantCStrForSym(alloc, allConstants, allSymbols, value)]))));
+	return getOrAdd!(immutable Sym, immutable Constant)(alloc, allConstants.syms, value, () =>
+		immutable Constant(immutable Constant.Record(arrLiteral!Constant(alloc, [
+			getConstantCStrForSym(alloc, allConstants, allSymbols, value)]))));
 }
 
 private:

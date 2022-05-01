@@ -82,7 +82,6 @@ import model.lowModel :
 	ConcreteFunToLowFunIndex,
 	ExternLibraries,
 	ExternLibrary,
-	hashLowType,
 	isArr,
 	isParamRef,
 	isPtrGc,
@@ -105,7 +104,6 @@ import model.lowModel :
 	LowProgram,
 	LowRecord,
 	LowType,
-	lowTypeEqual,
 	LowUnion,
 	matchLowType,
 	PointerTypeAndConstantsLow,
@@ -124,20 +122,20 @@ import util.col.arrUtil :
 	mapWithIndexAndConcatOne,
 	mapWithOptFirst,
 	mapWithOptFirst2;
-import util.col.dict : mustGetAt, PtrDict;
-import util.col.dictBuilder : finishDict, mustAddToDict, PtrDictBuilder;
+import util.col.dict : mustGetAt, Dict;
+import util.col.dictBuilder : finishDict, mustAddToDict, DictBuilder;
 import util.col.fullIndexDict : FullIndexDict, fullIndexDictOfArr, fullIndexDictSize;
 import util.col.mutIndexDict : getOrAddAndDidAdd, mustGetAt, MutIndexDict, newMutIndexDict;
 import util.col.mutArr : moveToArr, MutArr, push;
-import util.col.mutDict : getAt_mut, getOrAdd, mapToArr_mut, MutDict, MutPtrDict, MutSymDict, ValueAndDidAdd;
+import util.col.mutDict : getAt_mut, getOrAdd, mapToArr_mut, MutDict, MutDict, ValueAndDidAdd;
 import util.col.stackDict : StackDict, stackDictAdd, stackDictMustGet;
 import util.late : Late, late, lateGet, lateIsSet, lateSet;
 import util.memory : allocate;
 import util.opt : asImmutable, force, has, none, Opt, some;
 import util.perf : Perf, PerfMeasure, withMeasure;
-import util.ptr : ptrEquals, ptrTrustMe, ptrTrustMe_mut;
+import util.ptr : ptrTrustMe, ptrTrustMe_mut;
 import util.sourceRange : FileAndRange;
-import util.sym : AllSymbols, hashSym, shortSym, Sym, symEq;
+import util.sym : AllSymbols, shortSym, Sym;
 import util.util : unreachable, verify;
 
 immutable(LowProgram) lower(
@@ -175,7 +173,7 @@ private immutable(LowProgram) lowerInner(
 struct MarkVisitFuns {
 	MutIndexDict!(immutable LowType.Record, immutable LowFunIndex) recordValToVisit;
 	MutIndexDict!(immutable LowType.Union, immutable LowFunIndex) unionToVisit;
-	MutDict!(immutable LowType, immutable LowFunIndex, lowTypeEqual, hashLowType) gcPointeeToVisit;
+	MutDict!(immutable LowType, immutable LowFunIndex) gcPointeeToVisit;
 }
 
 immutable(LowFunIndex) getMarkVisitFun(ref const MarkVisitFuns funs, immutable LowType type) {
@@ -240,8 +238,8 @@ struct GetLowTypeCtx {
 
 	Alloc* allocPtr;
 	const AllSymbols* allSymbolsPtr;
-	immutable PtrDict!(ConcreteStruct, LowType) concreteStructToType;
-	MutPtrDict!(ConcreteStruct, immutable LowType) concreteStructToPtrType;
+	immutable Dict!(ConcreteStruct*, LowType) concreteStructToType;
+	MutDict!(immutable ConcreteStruct*, immutable LowType) concreteStructToPtrType;
 
 	ref Alloc alloc() return scope {
 		return *allocPtr;
@@ -259,7 +257,7 @@ AllLowTypesWithCtx getAllLowTypes(
 ) {
 	ref Alloc alloc() { return *allocPtr; }
 
-	PtrDictBuilder!(ConcreteStruct, LowType) concreteStructToTypeBuilder;
+	DictBuilder!(ConcreteStruct*, LowType) concreteStructToTypeBuilder;
 	ArrBuilder!(ConcreteStruct*) allFunPtrSources;
 	ArrBuilder!LowExternPtrType allExternPtrTypes;
 	ArrBuilder!(ConcreteStruct*) allRecordSources;
@@ -578,7 +576,7 @@ immutable(AllLowFuns) getAllLowFuns(
 ) {
 	immutable LowType ctxType =
 		lowTypeFromConcreteType(getLowTypeCtx, immutable ConcreteType(ReferenceKind.byRef, program.ctxType));
-	PtrDictBuilder!(ConcreteFun, LowFunIndex) concreteFunToLowFunIndexBuilder;
+	DictBuilder!(ConcreteFun*, LowFunIndex) concreteFunToLowFunIndexBuilder;
 	ArrBuilder!LowFunCause lowFunCausesBuilder;
 
 	MarkVisitFuns markVisitFuns = MarkVisitFuns(
@@ -666,7 +664,7 @@ immutable(AllLowFuns) getAllLowFuns(
 
 	Late!(immutable LowType) markCtxTypeLate = late!(immutable LowType);
 
-	MutSymDict!(MutArr!(immutable Sym)) allExternFuns;
+	MutDict!(immutable Sym, MutArr!(immutable Sym)) allExternFuns;
 
 	foreach (immutable ConcreteFun* fun; program.allFuns) {
 		immutable Opt!LowFunIndex opIndex = matchConcreteFunBody!(immutable Opt!LowFunIndex)(
@@ -771,7 +769,7 @@ immutable(AllLowFuns) getAllLowFuns(
 		concreteFunToLowFunIndex,
 		allLowFuns,
 		immutable LowFunIndex(lowFunCauses.length),
-		mapToArr_mut!(ExternLibrary, immutable Sym, MutArr!(immutable Sym), symEq, hashSym)(
+		mapToArr_mut!(ExternLibrary, immutable Sym, MutArr!(immutable Sym))(
 			getLowTypeCtx.alloc,
 			allExternFuns,
 			(immutable Sym libraryName, ref MutArr!(immutable Sym) xs) =>
@@ -1052,21 +1050,9 @@ struct GetLowExprCtx {
 	}
 }
 
-alias Locals = immutable StackDict!(
-	immutable ConcreteLocal*,
-	immutable LowLocal*,
-	null,
-	ptrEquals!ConcreteLocal);
-alias addLocal = stackDictAdd!(
-	immutable ConcreteLocal*,
-	immutable LowLocal*,
-	null,
-	ptrEquals!ConcreteLocal);
-alias getLocal = stackDictMustGet!(
-	immutable ConcreteLocal*,
-	immutable LowLocal*,
-	null,
-	ptrEquals!ConcreteLocal);
+alias Locals = immutable StackDict!(immutable ConcreteLocal*, immutable LowLocal*);
+alias addLocal = stackDictAdd!(immutable ConcreteLocal*, immutable LowLocal*);
+alias getLocal = stackDictMustGet!(immutable ConcreteLocal*, immutable LowLocal*);
 
 immutable(LowExpr) genCtxParamRef(ref const GetLowExprCtx ctx, immutable FileAndRange range) {
 	return genParamRef(range, ctx.ctxType, force(ctx.ctxParam));
@@ -1431,7 +1417,7 @@ immutable(LowExprKind) getCallBuiltinExpr(
 		},
 		(ref immutable BuiltinKind.OptOr) {
 			verify(a.args.length == 2);
-			verify(lowTypeEqual(p0, p1));
+			verify(p0 == p1);
 			immutable LowLocal* lhsLocal = addTempLocal(ctx, p0);
 			immutable LowExpr lhsRef = genLocalRef(ctx.alloc, range, lhsLocal);
 			return immutable LowExprKind(allocate(ctx.alloc, immutable LowExprKind.Let(

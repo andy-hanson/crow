@@ -61,10 +61,6 @@ struct TaggedPtr(E) {
 	return &t;
 }
 
-immutable(bool) ptrEquals(T)(const T* a, const T* b) {
-	return a == b;
-}
-
 void hashPtr(T)(ref Hasher hasher, const T* a) {
 	hashSizeT(hasher, cast(immutable size_t) a);
 }

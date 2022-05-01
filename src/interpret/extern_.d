@@ -4,10 +4,11 @@ module interpret.extern_;
 
 import interpret.bytecode : Operation;
 import model.lowModel : ExternLibraries, LowFunIndex;
-import util.col.dict : SymDict;
+import util.col.dict : Dict;
 import util.col.str : SafeCStr;
-import util.hash : Hasher, hashSizeT;
+import util.hash : Hasher;
 import util.opt : Opt;
+import util.ptr : hashPtr;
 import util.sym : AllSymbols, Sym, symAsTempBuffer;
 
 struct Extern {
@@ -42,15 +43,17 @@ alias WriteError = void delegate(scope immutable SafeCStr) @safe @nogc nothrow;
 	writeError(immutable SafeCStr(buf.ptr));
 }
 
-alias ExternFunPtrsForAllLibraries = SymDict!ExternFunPtrsForLibrary;
-alias ExternFunPtrsForLibrary = SymDict!FunPtr;
+alias ExternFunPtrsForAllLibraries = Dict!(Sym, ExternFunPtrsForLibrary);
+alias ExternFunPtrsForLibrary = Dict!(Sym, FunPtr);
 
-struct FunPtr { immutable void* fn; }
-pure immutable(bool) funPtrEquals(immutable FunPtr a, immutable FunPtr b) {
-	return a == b;
-}
-pure void hashFunPtr(ref Hasher hasher, immutable FunPtr a) {
-	hashSizeT(hasher, cast(immutable size_t) a.fn);
+struct FunPtr {
+	@safe @nogc pure nothrow:
+
+	immutable void* fn;
+
+	void hash(ref Hasher hasher) scope const {
+		hashPtr(hasher, fn);
+	}
 }
 
 struct DynCallSig {
