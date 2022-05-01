@@ -23,9 +23,8 @@ import interpret.runBytecode :
 	opCallFunPtr,
 	opCallFunPtrExtern,
 	opDupBytes,
-	opDupWord,
-	opDupWordVariable,
 	opDupWords,
+	opDupWordsVariable,
 	opFnBinary,
 	opFnUnary,
 	opInterpreterBacktrace,
@@ -42,8 +41,8 @@ import interpret.runBytecode :
 	opReadNat32,
 	opReadWords,
 	opReadWordsVariable,
-	opRemove,
-	opRemoveVariable,
+	opReturnData,
+	opReturnDataVariable,
 	opReturn,
 	opSetjmp,
 	opStackRef,
@@ -211,38 +210,41 @@ void writeDup(
 	verify(offsetBytes < 8);
 
 	if (offsetBytes == 0 && sizeBytes % 8 == 0) {
-		immutable size_t sizeWords = sizeBytes / 8;
-		immutable size_t offset = getStackOffsetTo(writer, start);
-		if (sizeWords == 1) {
-			writeDupWord(writer, source, offset);
-		} else {
-			pushOperationFn(writer, source, &opDupWords);
-			pushSizeT(writer, source, offset);
-			pushSizeT(writer, source, sizeWords);
-		}
+		writeDupWords(writer, source, getStackOffsetTo(writer, start), sizeBytes / 8);
 	} else {
 		pushOperationFn(writer, source, &opDupBytes);
 		pushSizeT(writer, source, getStackOffsetBytes(writer, start, offsetBytes).offsetBytes);
 		pushSizeT(writer, source, sizeBytes);
+		writer.nextStackEntry += divRoundUp(sizeBytes, 8);
 	}
-
-	writer.nextStackEntry += divRoundUp(sizeBytes, 8);
 }
 
-private void writeDupWord(ref ByteCodeWriter writer, immutable ByteCodeSource source, immutable size_t offset) {
-	static foreach (immutable size_t possibleOffset; 0 .. 8)
-		if (offset == possibleOffset) {
-			pushOperationFn(writer, source, &opDupWord!possibleOffset);
-			return;
-		}
+private void writeDupWords(
+	ref ByteCodeWriter writer,
+	immutable ByteCodeSource source,
+	immutable size_t offsetWords,
+	immutable size_t sizeWords,
+) {
+	verify(sizeWords != 0);
+	writer.nextStackEntry += sizeWords;
 
-	pushOperationFn(writer, source, &opDupWordVariable);
-	pushSizeT(writer, source, offset);
+	static foreach (immutable size_t possibleSize; 1 .. 8)
+		static foreach (immutable size_t possibleOffset; possibleSize - 1 .. 16)
+			if (offsetWords == possibleOffset && sizeWords == possibleSize) {
+				pushOperationFn(writer, source, &opDupWords!(possibleOffset, possibleSize));
+				return;
+			}
+
+	pushOperationFn(writer, source, &opDupWordsVariable);
+	pushSizeT(writer, source, offsetWords);
+	pushSizeT(writer, source, sizeWords);
 }
 
 void writeSet(ref ByteCodeWriter writer, immutable ByteCodeSource source, immutable StackEntries entries) {
-	writeSetInner(writer, source, getStackOffsetTo(writer, entries.start), entries.size);
-	writer.nextStackEntry -= entries.size;
+	if (entries.size != 0) {
+		writeSetInner(writer, source, getStackOffsetTo(writer, entries.start), entries.size);
+		writer.nextStackEntry -= entries.size;
+	}
 }
 
 private void writeSetInner(
@@ -251,8 +253,8 @@ private void writeSetInner(
 	immutable size_t offset,
 	immutable size_t size,
 ) {
-	static foreach (immutable size_t possibleOffset; 0 .. 8)
-		static foreach (immutable size_t possibleSize; 0 .. 4)
+	static foreach (immutable size_t possibleSize; 1 .. 8)
+		static foreach (immutable size_t possibleOffset; possibleSize - 1 .. 16)
 			if (offset == possibleOffset && size == possibleSize) {
 				pushOperationFn(writer, source, &opSet!(possibleOffset, possibleSize));
 				return;
@@ -266,51 +268,54 @@ private void writeSetInner(
 void writeRead(
 	ref ByteCodeWriter writer,
 	immutable ByteCodeSource source,
-	immutable size_t offset,
-	immutable size_t size,
+	immutable size_t pointerOffsetBytes,
+	immutable size_t nBytesToRead,
 ) {
-	verify(size != 0);
-	if (offset % 8 == 0 && size % 8 == 0)
-		writeReadWords(writer, source, offset / 8, size / 8);
+	verify(nBytesToRead != 0);
+	if (pointerOffsetBytes % 8 == 0 && nBytesToRead % 8 == 0)
+		writeReadWords(writer, source, pointerOffsetBytes / 8, nBytesToRead / 8);
 	else
-		writeReadBytes(writer, source, offset, size);
-	writer.nextStackEntry += divRoundUp(size, stackEntrySize) - 1;
+		writeReadBytes(writer, source, pointerOffsetBytes, nBytesToRead);
+	writer.nextStackEntry += divRoundUp(nBytesToRead, stackEntrySize) - 1;
 }
 
 private void writeReadWords(
 	ref ByteCodeWriter writer,
 	immutable ByteCodeSource source,
-	immutable size_t offsetWords,
-	immutable size_t sizeWords,
+	immutable size_t pointerOffsetWords,
+	immutable size_t nWordsToRead,
 ) {
-	static foreach (immutable size_t possibleOffsetWords; 0 .. 8)
-		static foreach (immutable size_t possibleSizeWords; 0 .. 4)
-			if (offsetWords == possibleOffsetWords && sizeWords == possibleSizeWords) {
-				pushOperationFn(writer, source, &opReadWords!(possibleOffsetWords, possibleSizeWords));
+	verify(nWordsToRead != 0);
+
+	static foreach (immutable size_t possiblePointerOffsetWords; 0 .. 8)
+		static foreach (immutable size_t possibleNWordsToRead; 1 .. 4)
+			if (pointerOffsetWords == possiblePointerOffsetWords && nWordsToRead == possibleNWordsToRead) {
+				pushOperationFn(writer, source, &opReadWords!(possiblePointerOffsetWords, possibleNWordsToRead));
 				return;
 			}
+
 	pushOperationFn(writer, source, &opReadWordsVariable);
-	pushSizeT(writer, source, offsetWords);
-	pushSizeT(writer, source, sizeWords);
+	pushSizeT(writer, source, pointerOffsetWords);
+	pushSizeT(writer, source, nWordsToRead);
 }
 
 private void writeReadBytes(
 	ref ByteCodeWriter writer,
 	immutable ByteCodeSource source,
-	immutable size_t offsetBytes,
-	immutable size_t sizeBytes,
+	immutable size_t pointerOffsetBytes,
+	immutable size_t nBytesToRead,
 ) {
-	switch (sizeBytes) {
+	switch (nBytesToRead) {
 		case 1:
 			static foreach (immutable size_t possibleOffsetNat8s; 0 .. 8)
-				if (offsetBytes == possibleOffsetNat8s) {
+				if (pointerOffsetBytes == possibleOffsetNat8s) {
 					pushOperationFn(writer, source, &opReadNat8!possibleOffsetNat8s);
 					return;
 				}
 			break;
 		case 2:
-			if (offsetBytes % 2 == 0) {
-				immutable size_t offsetNat16s = offsetBytes / 2;
+			if (pointerOffsetBytes % 2 == 0) {
+				immutable size_t offsetNat16s = pointerOffsetBytes / 2;
 				static foreach (immutable size_t possibleOffsetNat16s; 0 .. 4)
 					if (offsetNat16s == possibleOffsetNat16s) {
 						pushOperationFn(writer, source, &opReadNat16!possibleOffsetNat16s);
@@ -319,8 +324,8 @@ private void writeReadBytes(
 			}
 			break;
 		case 4:
-			if (offsetBytes % 4 == 0) {
-				immutable size_t offsetNat32s = offsetBytes / 2;
+			if (pointerOffsetBytes % 4 == 0) {
+				immutable size_t offsetNat32s = pointerOffsetBytes / 2;
 				static foreach (immutable size_t possibleOffsetNat32s; 0 .. 2)
 					if (offsetNat32s == possibleOffsetNat32s) {
 						pushOperationFn(writer, source, &opReadNat32!possibleOffsetNat32s);
@@ -333,8 +338,8 @@ private void writeReadBytes(
 	}
 
 	pushOperationFn(writer, source, &opReadBytesVariable);
-	pushSizeT(writer, source, offsetBytes);
-	pushSizeT(writer, source, sizeBytes);
+	pushSizeT(writer, source, pointerOffsetBytes);
+	pushSizeT(writer, source, nBytesToRead);
 }
 
 void writeStackRef(
@@ -431,19 +436,23 @@ void writeRemove(ref ByteCodeWriter writer, immutable ByteCodeSource source, imm
 private void writeRemoveInner(
 	ref ByteCodeWriter writer,
 	immutable ByteCodeSource source,
-	immutable size_t offset,
-	immutable size_t nEntries,
+	immutable size_t offsetWords,
+	immutable size_t removedWords,
 ) {
-	static foreach (immutable size_t possibleOffset; 0 .. 4)
-		static foreach (immutable size_t possibleNEntries; 0 .. 4)
-			if (offset == possibleOffset && nEntries == possibleNEntries) {
-				pushOperationFn(writer, source, &opRemove!(possibleOffset, possibleNEntries));
+	verify(removedWords <= offsetWords + 1);
+	immutable size_t returnedWords = offsetWords + 1 - removedWords;
+	verify(returnedWords <= offsetWords);
+
+	static foreach (immutable size_t possibleSize; 0 .. 8)
+		static foreach (immutable size_t possibleOffset; possibleSize .. 16)
+			if (offsetWords == possibleOffset && returnedWords == possibleSize) {
+				pushOperationFn(writer, source, &opReturnData!(possibleOffset, possibleSize));
 				return;
 			}
 
-	pushOperationFn(writer, source, &opRemoveVariable);
-	pushSizeT(writer, source, offset);
-	pushSizeT(writer, source, nEntries);
+	pushOperationFn(writer, source, &opReturnDataVariable);
+	pushSizeT(writer, source, offsetWords);
+	pushSizeT(writer, source, returnedWords);
 }
 
 void writeJump(ref ByteCodeWriter writer, immutable ByteCodeSource source, immutable ByteCodeIndex target) {

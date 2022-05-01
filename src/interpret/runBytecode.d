@@ -7,7 +7,6 @@ import interpret.bytecode :
 import interpret.debugInfo : BacktraceEntry, fillBacktrace, InterpreterDebugInfo, printDebugInfo;
 import interpret.extern_ : DoDynCall, DynCallType, DynCallSig, FunPtr;
 import interpret.stacks :
-	dataDupWord,
 	dataDupWords,
 	dataEnd,
 	dataPeek,
@@ -17,7 +16,7 @@ import interpret.stacks :
 	dataPushUninitialized,
 	dataRef,
 	dataRemove,
-	dataRemoveN,
+	dataReturn,
 	dataStackIsEmpty,
 	dataTempAsArr,
 	dataTop,
@@ -184,11 +183,11 @@ private void operation(alias cb)(
 	immutable(Operation)** stacksReturn,
 	immutable(Operation)* cur,
 ) {
+	Stacks stacks = Stacks(stacksData, stacksReturn);
 	static if (false) {
 		printDebugInfo(debugInfo, dataTempAsArr(stacks), returnTempAsArrReverse(stacks), cur - 1);
 		debugLog(__traits(identifier, cb));
 	}
-	Stacks stacks = Stacks(stacksData, stacksReturn);
 	cb(stacks, cur);
 	version(TailRecursionAvailable) {
 		cur.fn(stacks.dataPtr, stacks.returnPtr, cur + 1);
@@ -223,18 +222,20 @@ private void opStopInterpretationInner(Stacks stacks, immutable Operation* cur) 
 	setNext(stacks, &operationOpStopInterpretation[0]);
 }
 
-alias opRemove(immutable size_t offset, immutable size_t nEntries) = operation!(opRemoveInner!(offset, nEntries));
-private void opRemoveInner(immutable size_t offset, immutable size_t nEntries)(
+alias opReturnData(immutable size_t offsetWords, immutable size_t sizeWords) =
+	operation!(opReturnDataInner!(offsetWords, sizeWords));
+private void opReturnDataInner(immutable size_t offsetWords, immutable size_t sizeWords)(
 	ref Stacks stacks, ref immutable(Operation)* cur,
 ) {
-	dataRemoveN(stacks, offset, nEntries);
+	static assert(sizeWords <= offsetWords + 1);
+	dataReturn(stacks, offsetWords, sizeWords);
 }
 
-alias opRemoveVariable = operation!opRemoveVariableInner;
-private void opRemoveVariableInner(ref Stacks stacks, ref immutable(Operation)* cur) {
-	immutable size_t offset = readStackOffset(cur);
-	immutable size_t nEntries = readSizeT(cur);
-	dataRemoveN(stacks, offset, nEntries);
+alias opReturnDataVariable = operation!opReturnDataVariableInner;
+private void opReturnDataVariableInner(ref Stacks stacks, ref immutable(Operation)* cur) {
+	immutable size_t offsetWords = readStackOffset(cur);
+	immutable size_t sizeWords = readSizeT(cur);
+	dataReturn(stacks, offsetWords, sizeWords);
 }
 
 alias opReturn = operation!opReturnInner;
@@ -264,29 +265,31 @@ private void opStackRefInner(ref Stacks stacks, ref immutable(Operation)* cur) {
 	dataPush(stacks, cast(immutable ulong) dataRef(stacks, offset));
 }
 
-alias opReadWords(immutable size_t offsetWords, immutable size_t sizeWords) =
-	operation!(opReadWordsInner!(offsetWords, sizeWords));
-private void opReadWordsInner(immutable size_t offsetWords, immutable size_t sizeWords)(
+alias opReadWords(immutable size_t pointerOffsetWords, immutable size_t nWordsToRead) =
+	operation!(opReadWordsInner!(pointerOffsetWords, nWordsToRead));
+private void opReadWordsInner(immutable size_t pointerOffsetWords, immutable size_t nWordsToRead)(
 	ref Stacks stacks, ref immutable(Operation)* cur,
 ) {
-	opReadWordsCommon(stacks, cur, offsetWords, sizeWords);
+	static assert(nWordsToRead != 0);
+	opReadWordsCommon(stacks, cur, pointerOffsetWords, nWordsToRead);
 }
 
 alias opReadWordsVariable = operation!opReadWordsVariableInner;
 private void opReadWordsVariableInner(ref Stacks stacks, ref immutable(Operation)* cur) {
-	immutable size_t offsetWords = readSizeT(cur);
-	immutable size_t sizeWords = readSizeT(cur);
-	opReadWordsCommon(stacks, cur, offsetWords, sizeWords);
+	immutable size_t pointerOffsetWords = readSizeT(cur);
+	immutable size_t nWordsToRead = readSizeT(cur);
+	opReadWordsCommon(stacks, cur, pointerOffsetWords, nWordsToRead);
 }
 
 private void opReadWordsCommon(
 	ref Stacks stacks,
 	ref immutable(Operation)* cur,
-	immutable size_t offsetWords,
-	immutable size_t sizeWords,
+	immutable size_t pointerOffsetWords,
+	immutable size_t nWordsToRead,
 ) {
-	immutable ulong* ptr = (cast(immutable ulong*) dataPop(stacks)) + offsetWords;
-	foreach (immutable size_t i; 0 .. sizeWords)
+	debug verify(nWordsToRead != 0);
+	immutable ulong* ptr = (cast(immutable ulong*) dataPop(stacks)) + pointerOffsetWords;
+	foreach (immutable size_t i; 0 .. nWordsToRead)
 		dataPush(stacks, ptr[i]);
 }
 
@@ -519,18 +522,17 @@ private void opDupBytesInner(ref Stacks stacks, ref immutable(Operation)* cur) {
 	readNoCheck(stacks, ptr, sizeBytes);
 }
 
-alias opDupWord(immutable size_t offsetWords) = operation!(opDupWordInner!offsetWords);
-private void opDupWordInner(immutable size_t offsetWords)(ref Stacks stacks, ref immutable(Operation)* cur) {
-	dataDupWord(stacks, offsetWords);
+alias opDupWords(immutable size_t offsetWords, immutable size_t sizeWords) =
+	operation!(opDupWordsInner!(offsetWords, sizeWords));
+private void opDupWordsInner(immutable size_t offsetWords, immutable size_t sizeWords)(
+	ref Stacks stacks, ref immutable(Operation)* cur,
+) {
+	static assert(sizeWords <= offsetWords + 1);
+	dataDupWords(stacks, offsetWords, sizeWords);
 }
 
-alias opDupWordVariable = operation!opDupWordVariableInner;
-private void opDupWordVariableInner(ref Stacks stacks, ref immutable(Operation)* cur) {
-	dataDupWord(stacks, readSizeT(cur));
-}
-
-alias opDupWords = operation!opDupWordsInner;
-private void opDupWordsInner(ref Stacks stacks, ref immutable(Operation)* cur) {
+alias opDupWordsVariable = operation!opDupWordsVariableInner;
+private void opDupWordsVariableInner(ref Stacks stacks, ref immutable(Operation)* cur) {
 	immutable size_t offsetWords = readStackOffset(cur);
 	immutable size_t sizeWords = readSizeT(cur);
 	dataDupWords(stacks, offsetWords, sizeWords);
@@ -541,6 +543,8 @@ alias opSet(immutable size_t offsetWords, immutable size_t sizeWords) = operatio
 private void opSetInner(immutable size_t offsetWords, immutable size_t sizeWords)(
 	ref Stacks stacks, ref immutable(Operation)* cur,
 ) {
+	static assert(sizeWords != 0);
+	static assert(sizeWords <= offsetWords + 1);
 	opSetCommon(stacks, cur, offsetWords, sizeWords);
 }
 
@@ -557,12 +561,14 @@ private void opSetCommon(
 	immutable size_t offsetWords,
 	immutable size_t sizeWords,
 ) {
+	debug verify(sizeWords != 0);
+	debug verify(sizeWords <= offsetWords + 1);
 	// Start at the end of the range and pop in reverse
-	const ulong* begin = dataTop(stacks) - offsetWords;
-	const(ulong)* ptr = begin + sizeWords;
+	ulong* begin = dataTop(stacks) - offsetWords;
+	ulong* ptr = begin + sizeWords;
 	foreach (immutable size_t i; 0 .. sizeWords) {
 		ptr--;
-		overwriteMemory(ptr, dataPop(stacks));
+		*ptr = dataPop(stacks);
 	}
 	verify(ptr == begin);
 }

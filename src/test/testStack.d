@@ -9,20 +9,19 @@ import interpret.stacks :
 	dataPopN,
 	dataPush,
 	dataRemove,
-	dataRemoveN,
+	dataReturn,
 	dataStackIsEmpty,
-	dataTempAsArr,
 	dataTop,
 	returnStackIsEmpty,
 	Stacks,
 	withStacks;
-import test.testUtil : Test;
+import test.testUtil : expectDataStack, Test;
 import util.col.arrUtil : arrEqual;
 import util.util : verify;
 
 void testStack(ref Test test) {
 	testPushPop(test);
-	testRemoveN(test);
+	testDataReturn(test);
 }
 
 private:
@@ -44,7 +43,7 @@ private:
 
 	dataPush(a, 5);
 	dataPush(a, 6);
-	verifyData(a, [5, 6]);
+	expectDataStack(test, a, [5, 6]);
 
 	dataPush(a, 7);
 	verify(dataTop(a) == begin + 2);
@@ -52,22 +51,22 @@ private:
 
 	scope immutable ulong[] popped = dataPopN(a, 2);
 	verify(dataArrEqual(popped, [6, 7]));
-	verifyData(a, [5]);
+	expectDataStack(test, a, [5]);
 
 	dataPush(a, 8);
 	dataPush(a, 9);
-	verifyData(a, [5, 8, 9]);
+	expectDataStack(test, a, [5, 8, 9]);
 	immutable ulong removed = dataRemove(a, 1);
 	verify(removed == 8);
-	verifyData(a, [5, 9]);
+	expectDataStack(test, a, [5, 9]);
 
 	dataPush(a, 11);
 	dataPush(a, 13);
 
-	verifyData(a, [5, 9, 11, 13]);
+	expectDataStack(test, a, [5, 9, 11, 13]);
 
-	dataRemoveN(a, 2, 2);
-	verifyData(a, [5, 13]);
+	dataReturn(a, 2, 1);
+	expectDataStack(test, a, [5, 13]);
 
 	verify(dataPop(a) == 13);
 	verify(dataPop(a) == 5);
@@ -75,26 +74,22 @@ private:
 	verify(returnStackIsEmpty(a));
 }
 
-@trusted void testRemoveN(ref Test test) {
-	withStacks!void((ref Stacks stacks) { testPushPop(test, stacks); });
+@trusted void testDataReturn(ref Test test) {
+	withStacks!void((ref Stacks stacks) { testDataReturn(test, stacks); });
 }
 
-@system void testRemoveN(ref Test test, Stacks a) {
+@system void testDataReturn(ref Test test, Stacks a) {
 	foreach (immutable int i; [1, 2, 3, 4, 5, 6])
 		dataPush(a, i);
 
-	dataRemoveN(a, 0, 1);
-	verifyData(a, [1, 2, 3, 4, 5]);
+	dataReturn(a, 0, 0);
+	expectDataStack(test, a, [1, 2, 3, 4, 5]);
 
-	dataRemoveN(a, 3, 2);
-	verifyData(a, [1, 4, 5]);
+	dataReturn(a, 3, 2);
+	expectDataStack(test, a, [1, 4, 5]);
 
-	dataRemoveN(a, 2, 3);
-	verifyData(a, []);
-}
-
-@trusted void verifyData(ref Stacks a, scope immutable ulong[] expected) {
-	verify(dataArrEqual(dataTempAsArr(a), expected));
+	dataReturn(a, 2, 0);
+	expectDataStack(test, a, []);
 }
 
 immutable(bool) dataArrEqual(scope immutable ulong[] a, scope immutable ulong[] b) {

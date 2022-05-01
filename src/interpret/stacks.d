@@ -10,6 +10,8 @@ private static bool stacksInitialized = false;
 private static Stacks savedStacks;
 private static ulong[stacksStorageSize] stacksStorage = void;
 
+pragma(inline, true):
+
 void saveStacks(Stacks a) {
 	verify(stacksInitialized);
 	savedStacks = a;
@@ -81,11 +83,9 @@ immutable(ulong) dataPeek(ref const Stacks a, immutable size_t offset = 0) {
 	return *(a.dataPtr - offset);
 }
 
-void dataDupWord(ref Stacks a, immutable size_t offsetWords) {
-	dataPush(a, dataPeek(a, offsetWords));
-}
-
 void dataDupWords(ref Stacks a, immutable size_t offsetWords, immutable size_t sizeWords) {
+	debug verify(sizeWords != 0);
+	debug verify(sizeWords <= offsetWords + 1);
 	const(ulong)* ptr = dataTop(a) - offsetWords;
 	foreach (immutable size_t i; 0 .. sizeWords) {
 		dataPush(a, *ptr);
@@ -130,18 +130,22 @@ immutable(ulong[]) dataTempAsArr(ref const Stacks a) {
 
 immutable(ulong) dataRemove(ref Stacks a, immutable size_t offset) {
 	immutable ulong res = dataPeek(a, offset);
-	dataRemoveN(a, offset, 1);
+	dataReturn(a, offset, offset);
 	return res;
 }
 
-void dataRemoveN(ref Stacks a, immutable size_t offset, immutable size_t nToRemove) {
-	// For example, if offset = 0 and nEntries = 1, this pops the last element.
-	debug verify!"dataRemoveN check"(offset + 1 >= nToRemove);
-	ulong* outPtr = a.dataPtr - offset;
-	ulong* inPtr = outPtr + nToRemove;
-	foreach (immutable size_t i; 0 .. offset + 1 - nToRemove)
+/*
+Typically used to remove local variables when returning from a function.
+'offsetWords' is the new location of the first word of the return value.
+'sizeWords' is allowed to be 0, in which case this just removes the top 'offsetWords' entries from the stack.
+*/
+void dataReturn(ref Stacks a, immutable size_t offsetWords, immutable size_t sizeWords) {
+	debug verify(sizeWords <= offsetWords);
+	const ulong* inPtr = a.dataPtr + 1 - sizeWords;
+	ulong* outPtr = a.dataPtr - offsetWords;
+	foreach (immutable size_t i; 0 .. sizeWords)
 		outPtr[i] = inPtr[i];
-	a.dataPtr -= nToRemove;
+	a.dataPtr -= (offsetWords + 1 - sizeWords);
 }
 
 immutable(bool) returnStackIsEmpty(ref const Stacks a) {
