@@ -28,11 +28,11 @@ import frontend.lang : crowExtension;
 import frontend.parse.parse : parseFile;
 import frontend.programState : ProgramState;
 import util.alloc.alloc : Alloc;
-import util.col.arr : empty, emptyArr, ptrAt;
+import util.col.arr : empty, emptyArr;
 import util.col.arrBuilder : add, ArrBuilder, arrBuilderSize, finishArr;
 import util.col.arrUtil : copyArr, map, mapOp, mapOrNoneImpure, mapWithSoFar, prepend;
 import util.col.dict : mapValues;
-import util.col.fullIndexDict : asArray, FullIndexDict, fullIndexDictOfArr, ptrAt;
+import util.col.fullIndexDict : asArray, FullIndexDict, fullIndexDictOfArr;
 import util.col.mutMaxArr : isEmpty, mustPeek, mustPop, MutMaxArr, mutMaxArr, push;
 import util.col.mutDict : addToMutDict, getAt_mut, hasKey_mut, moveToDict, mustGetAt_mut, MutDict, setInDict;
 import util.col.str : copySafeCStr, SafeCStr, safeCStr;
@@ -660,26 +660,26 @@ struct ImportsOrExports {
 
 immutable(ImportsOrExports) mapImportsOrExports(
 	ref Alloc modelAlloc,
-	ref immutable FullyResolvedImport[] paths,
-	ref immutable FullIndexDict!(FileIndex, Module) compiled,
+	immutable FullyResolvedImport[] paths,
+	immutable FullIndexDict!(FileIndex, Module) compiled,
 ) {
 	ArrBuilder!ImportOrExportFile fileImports;
 	immutable ImportOrExport[] moduleImports = mapOp(modelAlloc, paths, (ref immutable FullyResolvedImport x) {
 		immutable Opt!ImportOrExportKind kind = matchFullyResolvedImportKind(
 			x.kind,
-			(immutable FullyResolvedImportKind.ModuleWhole m) {
-				return m.fileIndex == FileIndex.none
+			(immutable FullyResolvedImportKind.ModuleWhole m) @safe =>
+				m.fileIndex == FileIndex.none
 					? none!ImportOrExportKind
 					: some(immutable ImportOrExportKind(
-						immutable ImportOrExportKind.ModuleWhole(ptrAt(compiled, m.fileIndex))));
-			},
-			(immutable FullyResolvedImportKind.ModuleNamed m) {
-				return m.fileIndex == FileIndex.none
+						// TODO: Should just be `&compiled[m.fileIndex]``
+						immutable ImportOrExportKind.ModuleWhole(&compiled.values[m.fileIndex.index]))),
+			(immutable FullyResolvedImportKind.ModuleNamed m) =>
+				m.fileIndex == FileIndex.none
 					? none!ImportOrExportKind
 					: some(immutable ImportOrExportKind(
-						immutable ImportOrExportKind.ModuleNamed(ptrAt(compiled, m.fileIndex), m.names)));
-			},
-			(immutable FullyResolvedImportKind.File f) {
+						// TODO: Should just be `&compiled[m.fileIndex]``
+						immutable ImportOrExportKind.ModuleNamed(&compiled.values[m.fileIndex.index], m.names))),
+			(immutable FullyResolvedImportKind.File f) @safe {
 				//TODO: could be a temp alloc
 				add(modelAlloc, fileImports, immutable ImportOrExportFile(force(x.range), f.name, f.type, f.content));
 				return none!ImportOrExportKind;
@@ -773,17 +773,17 @@ immutable(Program) checkEverything(
 	immutable ModulesAndCommonTypes modulesAndCommonTypes =
 		getModules(modelAlloc, perf, allSymbols, diagsBuilder, programState, moduleIndices.std, allAsts);
 	immutable Module[] modules = modulesAndCommonTypes.modules;
-	immutable Module* bootstrapModule = ptrAt(modules, moduleIndices.bootstrap.index);
+	immutable Module* bootstrapModule = &modules[moduleIndices.bootstrap.index];
 	return immutable Program(
 		filesInfo,
 		config,
 		immutable SpecialModules(
-			ptrAt(modules, moduleIndices.alloc.index),
+			&modules[moduleIndices.alloc.index],
 			bootstrapModule,
-			ptrAt(modules, moduleIndices.runtime.index),
-			ptrAt(modules, moduleIndices.runtimeMain.index),
-			map(modelAlloc, moduleIndices.rootPaths, (ref immutable FileIndex index) =>
-				ptrAt(modules, index.index))),
+			&modules[moduleIndices.runtime.index],
+			&modules[moduleIndices.runtimeMain.index],
+			map!(Module*, FileIndex)(modelAlloc, moduleIndices.rootPaths, (ref immutable FileIndex index) =>
+				&modules[index.index])),
 		modules,
 		modulesAndCommonTypes.commonTypes,
 		finishDiagnostics(modelAlloc, diagsBuilder, filesInfo.filePaths));

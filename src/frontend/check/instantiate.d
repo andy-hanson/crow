@@ -46,7 +46,7 @@ import model.model :
 	UnionMember,
 	withType;
 import util.alloc.alloc : Alloc;
-import util.col.arr : ptrAt, sizeEq;
+import util.col.arr : sizeEq;
 import util.col.arrUtil : copyArr, fold, map;
 import util.col.mutDict : getOrAddPair, getOrAddPairAndDidAdd, KeyValuePair, PairAndDidAdd;
 import util.col.mutArr : MutArr, push;
@@ -87,7 +87,7 @@ private immutable(Opt!(T*)) tryGetTypeArg(T)(
 	immutable size_t index = typeParam.index;
 	immutable bool hasTypeParam = &typeParams[index] == typeParam;
 	return hasTypeParam
-		? some(ptrAt(typeArgs, index))
+		? some(&typeArgs[index])
 		: none!(T*);
 }
 
@@ -97,7 +97,7 @@ const(Opt!(T*)) tryGetTypeArg_const(T)(
 	immutable TypeParam* typeParam,
 ) {
 	immutable size_t index = typeParam.index;
-	return index < typeParams.length && ptrEquals(ptrAt(typeParams, index), typeParam)
+	return index < typeParams.length && ptrEquals(&typeParams[index], typeParam)
 		? someConst!(T*)(&typeArgs[index])
 		: none!(T*);
 }
@@ -108,8 +108,8 @@ Opt!(T*) tryGetTypeArg_mut(T)(
 	immutable TypeParam* typeParam,
 ) {
 	immutable size_t index = typeParam.index;
-	return index < typeParams.length && ptrEquals(ptrAt(typeParams, index), typeParam)
-		? someMut(ptrAt(typeArgs, index))
+	return index < typeParams.length && ptrEquals(&typeParams[index], typeParam)
+		? someMut(&typeArgs[index])
 		: noneMut!(T*);
 }
 

@@ -69,7 +69,7 @@ import model.model :
 	TypeParam,
 	typeParams;
 import util.alloc.alloc : Alloc;
-import util.col.arr : empty, emptyArr, only, only_const, ptrAt;
+import util.col.arr : empty, emptyArr, only, only_const;
 import util.col.arrBuilder : add, ArrBuilder, finishArr;
 import util.col.arrUtil : exists, exists_const, fillArrOrFail, map_const;
 import util.col.mutMaxArr :
@@ -284,7 +284,7 @@ void eachFunInScope(
 				foreach (immutable size_t i, ref immutable SpecDeclSig sig; sigs)
 					if (symEq(sig.sig.name, funName)) {
 						cb(UsedFun.none, immutable CalledDecl(
-							immutable SpecSig(specInst, ptrAt(sigs, i), totalIndex + i)));
+							immutable SpecSig(specInst, &sigs[i], totalIndex + i)));
 					}
 				totalIndex += sigs.length;
 			});

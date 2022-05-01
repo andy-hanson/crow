@@ -4,7 +4,7 @@ module util.path;
 
 import util.alloc.alloc : Alloc, allocateT;
 import util.col.arrUtil : reduce;
-import util.col.mutArr : MutArr, mutArrAt, mutArrRange, mutArrSize, push;
+import util.col.mutArr : MutArr, mutArrRange, mutArrSize, push;
 import util.col.str : end, SafeCStr;
 import util.comparison : compareNat16, Comparison;
 import util.conv : safeToUshort;
@@ -39,7 +39,7 @@ struct Path {
 }
 
 immutable(Opt!Path) parent(ref const AllPaths allPaths, immutable Path a) {
-	return mutArrAt(allPaths.pathToParent, a.index);
+	return allPaths.pathToParent[a.index];
 }
 
 immutable(Path) parentOrEmpty(ref AllPaths allPaths, immutable Path a) {
@@ -48,7 +48,7 @@ immutable(Path) parentOrEmpty(ref AllPaths allPaths, immutable Path a) {
 }
 
 immutable(Sym) baseName(ref const AllPaths allPaths, immutable Path a) {
-	return mutArrAt(allPaths.pathToBaseName, a.index);
+	return allPaths.pathToBaseName[a.index];
 }
 
 struct PathFirstAndRest {
@@ -96,7 +96,7 @@ immutable(Path) rootPath(ref AllPaths allPaths, immutable Sym name) {
 }
 
 immutable(Path) childPath(ref AllPaths allPaths, immutable Path parent, immutable Sym name) {
-	return getOrAddChild(allPaths, mutArrAt(allPaths.pathToChildren, parent.index), some(parent), name);
+	return getOrAddChild(allPaths, allPaths.pathToChildren[parent.index], some(parent), name);
 }
 
 struct PathOrRelPath {

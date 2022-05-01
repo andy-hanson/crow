@@ -115,7 +115,7 @@ import model.model :
 	Visibility,
 	visibility;
 import util.alloc.alloc : Alloc;
-import util.col.arr : castImmutable, empty, emptyArr, emptySmallArray, only, ptrAt, ptrsRange, sizeEq, small;
+import util.col.arr : castImmutable, empty, emptyArr, emptySmallArray, only, ptrsRange, sizeEq, small;
 import util.col.arrBuilder : add, ArrBuilder, finishArr;
 import util.col.arrUtil : cat, eachPair, map, mapOp, mapToMut, mapWithIndex, zipFirstMut, zipMutPtrFirst;
 import util.col.dict : dictEach, hasKey, KeyValuePair, SymDict;
@@ -606,14 +606,14 @@ immutable(StructsAndAliasesDict) buildStructsAndAliasesDict(
 				immutable Diag.DuplicateDeclaration(Diag.DuplicateDeclaration.Kind.structOrAlias, name)));
 	}
 	foreach (immutable size_t index; 0 .. structs.length) {
-		immutable StructDecl* decl = ptrAt(structs, index);
+		immutable StructDecl* decl = &structs[index];
 		immutable Sym name = decl.name;
 		warnOnDup(name, decl.range, tryAddToDict(ctx.alloc, builder, name, immutable StructOrAliasAndIndex(
 			immutable StructOrAlias(decl),
 			immutable ModuleLocalStructOrAliasIndex(index))));
 	}
 	foreach (immutable size_t index; 0 .. aliases.length) {
-		immutable StructAlias* alias_ = ptrAt(aliases, index);
+		immutable StructAlias* alias_ = &aliases[index];
 		immutable Sym name = alias_.name;
 		warnOnDup(name, alias_.range, tryAddToDict(ctx.alloc, builder, name, immutable StructOrAliasAndIndex(
 			immutable StructOrAlias(alias_),
@@ -735,12 +735,12 @@ immutable(FunsAndDict) checkFuns(
 		)(funAst.body_));
 	});
 	foreach (immutable size_t i, ref immutable ImportOrExportFile f; fileImports) {
-		FunDecl* fun = ptrAt(funs, asts.length + i);
+		FunDecl* fun = &funs[asts.length + i];
 		overwriteMemory(&fun.body_, getFileImportFunctionBody(
 			ctx, commonTypes, structsAndAliasesDict, funsDict, usedFuns, *castImmutable(fun), f));
 	}
 	foreach (immutable size_t i, ref immutable ImportOrExportFile f; fileExports) {
-		FunDecl* fun = ptrAt(funs, asts.length + fileImports.length + i);
+		FunDecl* fun = &funs[asts.length + fileImports.length + i];
 		overwriteMemory(&fun.body_, getFileImportFunctionBody(
 			ctx, commonTypes, structsAndAliasesDict, funsDict, usedFuns, *castImmutable(fun), f));
 	}

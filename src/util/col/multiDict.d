@@ -3,7 +3,7 @@ module util.col.multiDict;
 @safe @nogc pure nothrow:
 
 import util.alloc.alloc : Alloc;
-import util.col.arr : emptyArr, ptrAt;
+import util.col.arr : emptyArr;
 import util.col.dict : dictEach, Dict, KeyValuePair;
 import util.col.mutArr : moveToArr, MutArr, push;
 import util.col.mutDict : getOrAdd, mapToDict, MutDict;
@@ -38,7 +38,7 @@ alias SymMultiDict(V) =
 ) {
 	MutDict!(immutable K, MutArr!(immutable V), equal, hash) builder;
 	foreach (immutable size_t i; 0 .. inputs.length) {
-		immutable KeyValuePair!(K, V) pair = getPair(i, ptrAt(inputs, i));
+		immutable KeyValuePair!(K, V) pair = getPair(i, &inputs[i]);
 		push(alloc, getOrAdd(alloc, builder, pair.key, () => MutArr!(immutable V)()), pair.value);
 	}
 	return immutable MultiDict!(K, V, equal, hash)(

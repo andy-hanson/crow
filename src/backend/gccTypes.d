@@ -59,8 +59,7 @@ import util.col.fullIndexDict :
 	fullIndexDictCastImmutable2,
 	fullIndexDictZip3,
 	mapFullIndexDict,
-	mapFullIndexDict_mut,
-	ptrAt_mut;
+	mapFullIndexDict_mut;
 import util.col.str : CStr;
 import util.opt : force, has, none, noneMut, Opt, some, someMut;
 import util.ptr : castImmutable, ptrTrustMe_mut;
@@ -337,7 +336,7 @@ struct GccTypesWip {
 	immutable LowType.FunPtr funPtrIndex,
 	ref immutable LowFunPtrType funPtr,
 ) {
-	Opt!(gcc_jit_type*)* ptr = ptrAt_mut(typesWip.funPtrs, funPtrIndex);
+	Opt!(gcc_jit_type*)* ptr = &typesWip.funPtrs[funPtrIndex];
 	verify(!has(*ptr));
 	const gcc_jit_type* returnType = getGccType(typesWip, funPtr.returnType);
 	//TODO:NO ALLOC

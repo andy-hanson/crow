@@ -7,7 +7,6 @@ import frontend.ide.getHover : getHoverStr;
 import frontend.ide.getPosition : getPosition, Position;
 import model.model : Module, Program;
 import test.testUtil : Test;
-import util.col.arr : lastPtr;
 import util.col.mutDict : addToMutDict;
 import util.col.str : end, SafeCStr, safeCStr, safeCStrEq;
 import util.dictReadOnlyStorage : withDictReadOnlyStorage, MutFiles;
@@ -49,7 +48,7 @@ HoverTest initHoverTest(ref Test test, immutable SafeCStr content) {
 		(scope ref const ReadOnlyStorage storage) @safe =>
 			withNullPerf!(immutable Program, (ref Perf perf) @safe =>
 				frontendCompile(test.alloc, perf, test.alloc, test.allPaths, test.allSymbols, storage, [path])));
-	immutable Module* mainModule = lastPtr(program.allModules);
+	immutable Module* mainModule = &program.allModules[$ - 1];
 	return HoverTest(ptrTrustMe_mut(test), program, mainModule);
 }
 

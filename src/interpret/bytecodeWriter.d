@@ -54,7 +54,7 @@ import util.alloc.alloc : Alloc;
 import util.col.arr : empty;
 import util.col.arrBuilder : add, ArrBuilder, finishArr;
 import util.col.fullIndexDict : fullIndexDictOfArr;
-import util.col.mutArr : moveToArr_mut, MutArr, mutArrEnd, mutArrPtrAt, mutArrSize, push;
+import util.col.mutArr : moveToArr_mut, MutArr, mutArrEnd, mutArrSize, push;
 import util.memory : initMemory, overwriteMemory;
 import util.util : divRoundUp, todo, verify;
 
@@ -547,7 +547,7 @@ private immutable ByteCodeOffsetUnsigned[64] emptyCases;
 	immutable size_t switchEntry,
 ) {
 	ByteCodeOffsetUnsigned* start =
-		cast(ByteCodeOffsetUnsigned*) mutArrPtrAt(writer.operations, delayed.firstCase.index);
+		cast(ByteCodeOffsetUnsigned*) &writer.operations[delayed.firstCase.index];
 	immutable ByteCodeOffsetUnsigned diff =
 		subtractByteCodeIndex(nextByteCodeIndex(writer), delayed.afterCases).unsigned();
 	overwriteMemory(start + switchEntry, diff);
@@ -593,7 +593,7 @@ private @trusted void writeArray(T)(
 		immutable size_t nOperations = divRoundUp(values.length * T.sizeof, Operation.sizeof);
 		foreach (immutable size_t i; 0 .. nOperations)
 			pushOperation(writer, source, immutable Operation(immutable ulong(0)));
-		T* outBegin = cast(T*) mutArrPtrAt(writer.operations, mutArrSize(writer.operations) - nOperations);
+		T* outBegin = cast(T*) &writer.operations[mutArrSize(writer.operations) - nOperations];
 		foreach (immutable size_t i, immutable T value; values)
 			initMemory(outBegin + i, value);
 		verify(outBegin + values.length <= cast(T*) mutArrEnd(writer.operations));

@@ -5,10 +5,9 @@ module util.sym;
 import util.alloc.alloc : Alloc;
 import util.col.arr : only;
 import util.col.arrUtil : findIndex;
-import util.col.mutArr : MutArr, mutArrAt, mutArrSize, push;
+import util.col.mutArr : MutArr, mutArrSize, push;
 import util.col.mutDict : addToMutDict, getAt_mut, mutDictSize, MutStringDict;
 import util.col.str : copyToSafeCStr, eachChar, SafeCStr, safeCStr, strOfSafeCStr;
-import util.conv : safeToSizeT;
 import util.hash : Hasher, hashUlong;
 import util.opt : force, has, Opt, none, some;
 import util.ptr : ptrTrustMe_mut;
@@ -549,7 +548,7 @@ public immutable(bool) isLongSym(immutable Sym a) {
 
 @trusted immutable(SafeCStr) asLongSym(return scope ref const AllSymbols allSymbols, immutable Sym a) {
 	verify(isLongSym(a));
-	return mutArrAt(allSymbols.largeStringFromIndex, safeToSizeT(a.value));
+	return allSymbols.largeStringFromIndex[a.value];
 }
 
 immutable(Sym) getSymFromLongStr(ref AllSymbols allSymbols, scope immutable string str) {

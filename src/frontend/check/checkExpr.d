@@ -109,7 +109,7 @@ import util.alloc.alloc : Alloc, allocateUninitialized;
 import util.col.arr : empty, emptyArr, emptySmallArray, only, PtrAndSmallNumber, ptrsRange, sizeEq;
 import util.col.arrUtil : arrLiteral, arrsCorrespond, map, mapZip, mapZipWithIndex, zipPtrFirst;
 import util.col.fullIndexDict : FullIndexDict;
-import util.col.mutArr : MutArr, mutArrAt, mutArrSize, push, tempAsArr;
+import util.col.mutArr : MutArr, mutArrSize, push, tempAsArr;
 import util.col.mutMaxArr : fillMutMaxArr, initializeMutMaxArr, mutMaxArrSize, push, pushLeft, tempAsArr;
 import util.col.str : copyToSafeCStr;
 import util.conv : safeToUshort, safeToUint;
@@ -775,7 +775,7 @@ immutable(Expr) checkFunPtr(
 	});
 	if (mutArrSize(funsInScope) != 1)
 		todo!void("did not find or found too many");
-	immutable FunDecl* funDecl = mutArrAt(funsInScope, 0);
+	immutable FunDecl* funDecl = funsInScope[0];
 
 	if (isTemplate(*funDecl))
 		todo!void("can't point to template");

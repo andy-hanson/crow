@@ -34,7 +34,7 @@ immutable(bool) lateIsSet(T)(ref const Late!T a) {
 	return a.value_;
 }
 
-@trusted void lateSet(T)(ref Late!T a, T value) {
+@trusted void lateSet(T)(scope ref Late!T a, T value) {
 	verify(!lateIsSet(a));
 	initMemory(&a.value_, value);
 	a.isSet_ = true;

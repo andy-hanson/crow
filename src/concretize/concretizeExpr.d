@@ -76,7 +76,7 @@ import model.model :
 	VariableRef,
 	variableRefType;
 import util.alloc.alloc : Alloc;
-import util.col.arr : empty, emptyArr, only, ptrAt;
+import util.col.arr : empty, emptyArr, only;
 import util.col.arrUtil : arrLiteral, map, mapZip;
 import util.col.mutArr : MutArr, mutArrSize, push;
 import util.col.mutDict : getOrAdd;
@@ -244,7 +244,7 @@ immutable(ConcreteExpr) concretizeClosureFieldRef(
 	immutable ConcreteType closureType = closureParam.type;
 	immutable ConcreteStructBody.Record record = asRecord(body_(*closureType.struct_));
 	immutable ushort index = closureField.index;
-	immutable ConcreteField* field = ptrAt(record.fields, index);
+	immutable ConcreteField* field = &record.fields[index];
 	immutable ConcreteExpr closureParamRef = immutable ConcreteExpr(closureType, range, immutable ConcreteExprKind(
 		immutable ConcreteExprKind.ParamRef(closureParam)));
 	return immutable ConcreteExpr(field.type, range, immutable ConcreteExprKind(
@@ -577,7 +577,7 @@ immutable(ConcreteExpr) concretizeParamRef(
 	immutable size_t paramIndex = param.index;
 	// NOTE: we'll never see a ParamRef to a param from outside of a lambda --
 	// that would be a ClosureFieldRef instead.
-	immutable ConcreteParam* concreteParam = ptrAt(ctx.currentConcreteFun.paramsExcludingCtxAndClosure, paramIndex);
+	immutable ConcreteParam* concreteParam = &ctx.currentConcreteFun.paramsExcludingCtxAndClosure[paramIndex];
 	return immutable ConcreteExpr(concreteParam.type, range, immutable ConcreteExprKind(
 		immutable ConcreteExprKind.ParamRef(concreteParam)));
 }

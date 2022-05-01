@@ -14,29 +14,15 @@ struct MutArr(T) {
 	size_t capacity_;
 
 	public:
+	@trusted ref inout(T) opIndex(immutable ulong index) return scope inout {
+		verify(index < size_);
+		return begin_[safeToSizeT(index)];
+	}
+
 	@trusted void opIndexAssign(T value, immutable ulong index) {
 		verify(index < size_);
 		overwriteMemory(begin_ + safeToSizeT(index), value);
 	}
-}
-
-@system T* mutArrPtrAt(T)(ref MutArr!T a, immutable size_t index) {
-	verify(index < a.size_);
-	return a.begin_ + index;
-}
-static if (!is(size_t == ulong)) {
-	@system T* mutArrPtrAt(T)(ref MutArr!T a, immutable ulong index) {
-		return mutArrPtrAt(a, safeToSizeT(index));
-	}
-}
-
-@trusted ref T mutArrAt(T)(ref MutArr!T a, immutable size_t index) {
-	verify(index < a.size_);
-	return a.begin_[index];
-}
-@trusted ref const(T) mutArrAt(T)(ref const MutArr!T a, immutable size_t index) {
-	verify(index < a.size_);
-	return a.begin_[index];
 }
 
 immutable(size_t) mutArrSize(T)(ref const MutArr!T a) {

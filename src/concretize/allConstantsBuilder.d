@@ -15,7 +15,7 @@ import model.constant : Constant, constantEqual;
 import util.alloc.alloc : Alloc;
 import util.col.arr : empty, only;
 import util.col.arrUtil : arrEqual, arrLiteral, findIndex_const;
-import util.col.mutArr : moveToArr, MutArr, mutArrAt, mutArrSize, push, tempAsArr;
+import util.col.mutArr : moveToArr, MutArr, mutArrSize, push, tempAsArr;
 import util.col.mutDict :
 	getOrAdd,
 	mapToArr_mut,
@@ -88,12 +88,12 @@ immutable(AllConstantsConcrete) finishAllConstants(
 }
 
 ref immutable(Constant) derefConstantPointer(
-	ref AllConstantsBuilder a,
+	return scope ref AllConstantsBuilder a,
 	ref immutable Constant.Pointer pointer,
 	immutable ConcreteStruct* pointeeType,
 ) {
 	verify(mustGetAt_mut(a.pointers, pointeeType).typeIndex == pointer.typeIndex);
-	return mutArrAt(mustGetAt_mut(a.pointers, pointeeType).constants, pointer.index);
+	return mustGetAt_mut(a.pointers, pointeeType).constants[pointer.index];
 }
 
 // TODO: this will be used when creating constant records by-ref.

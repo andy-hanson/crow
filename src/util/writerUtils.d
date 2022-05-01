@@ -14,7 +14,7 @@ private void writeLineAndColumn(ref Writer writer, immutable LineAndColumn lc) {
 	writeNat(writer, lc.column + 1);
 }
 
-void writePos(ref Writer writer, ref immutable LineAndColumnGetter lc, immutable Pos pos) {
+void writePos(ref Writer writer, scope ref immutable LineAndColumnGetter lc, immutable Pos pos) {
 	writeLineAndColumn(writer, lineAndColumnAtPos(lc, pos));
 }
 

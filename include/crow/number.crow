@@ -25,8 +25,11 @@ float alias
 region arithmetic
 
 # `true` iff `b * x == a` for some `x`.
-is-multiple-of bool(a nat64, b nat64)
-	a % b == 0
+is-multiple-of bool(a nat64, b nat64) trusted noctx
+	if b == 0
+		a == 0
+	else
+		(a unsafe-mod b) == 0
 
 ###
 Throws if the result would overflow.

@@ -121,12 +121,6 @@ immutable(bool) empty(T)(const T[] a) {
 	return a.length == 0;
 }
 
-//TOOD:KILL
-@trusted inout(T*) ptrAt(T)(return scope inout T[] a, immutable size_t index) {
-	verify(index < a.length);
-	return &a[index];
-}
-
 ref immutable(T) only(T)(return scope immutable T[] a) {
 	verify(a.length == 1);
 	return a[0];
@@ -134,11 +128,6 @@ ref immutable(T) only(T)(return scope immutable T[] a) {
 ref const(T) only_const(T)(const T[] a) {
 	verify(a.length == 1);
 	return a[0];
-}
-
-immutable(T*) lastPtr(T)(immutable T[] a) {
-	verify(a.length != 0);
-	return ptrAt(a, a.length - 1);
 }
 
 @trusted PtrsRange!T ptrsRange(T)(immutable T[] a) {

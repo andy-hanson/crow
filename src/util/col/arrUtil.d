@@ -1,8 +1,8 @@
 module util.col.arrUtil;
 
 import util.alloc.alloc : Alloc, allocateT;
-import util.col.arr : empty, ptrAt, ptrsRange, sizeEq;
-import util.col.mutArr : mustPop, MutArr, mutArrAt, mutArrSize;
+import util.col.arr : empty, ptrsRange, sizeEq;
+import util.col.mutArr : mustPop, MutArr, mutArrSize;
 import util.comparison : Comparer, Comparison;
 import util.memory : initMemory, initMemory_mut;
 import util.opt : force, has, none, Opt, some;
@@ -240,7 +240,7 @@ immutable(T[]) copyArr(T)(ref Alloc alloc, scope immutable T[] a) {
 	if (has(optFirst1))
 		initMemory(res + (has(optFirst0) ? 1 : 0), force(optFirst1));
 	foreach (immutable size_t i; 0 .. a.length)
-		initMemory(res + offset + i, cb(i, ptrAt(a, i)));
+		initMemory(res + offset + i, cb(i, &a[i]));
 	return cast(immutable) res[0 .. offset + a.length];
 }
 
@@ -371,7 +371,7 @@ immutable(T[]) copyArr(T)(ref Alloc alloc, scope immutable T[] a) {
 ) {
 	Out* res = allocateT!Out(alloc, a.length);
 	foreach (immutable size_t i; 0 .. a.length)
-		initMemory(res + i, cb(i, ptrAt(a, i)));
+		initMemory(res + i, cb(i, &a[i]));
 	return cast(immutable) res[0 .. a.length];
 }
 
@@ -481,7 +481,7 @@ void zipMutPtrFirst(T, U)(
 ) {
 	verify(sizeEq(a, b));
 	foreach (immutable size_t i; 0 .. a.length)
-		cb(ptrAt(a, i), b[i]);
+		cb(&a[i], b[i]);
 }
 
 void zipPtrFirst(T, U)(
@@ -491,7 +491,7 @@ void zipPtrFirst(T, U)(
 ) {
 	verify(sizeEq(a, b));
 	foreach (immutable size_t i; 0 .. a.length)
-		cb(ptrAt(a, i), b[i]);
+		cb(&a[i], b[i]);
 }
 
 @trusted immutable(Out[]) mapZip(Out, In0, In1)(
@@ -518,7 +518,7 @@ void zipPtrFirst(T, U)(
 	immutable size_t sz = in0.length;
 	Out* res = allocateT!Out(alloc, sz);
 	foreach (immutable size_t i; 0 .. sz)
-		initMemory(res + i, cb(ptrAt(in0, i), in1[i]));
+		initMemory(res + i, cb(&in0[i], in1[i]));
 	return cast(immutable) res[0 .. sz];
 }
 
@@ -663,7 +663,7 @@ void filterUnordered(T)(
 ) {
 	size_t i = 0;
 	while (i < mutArrSize(a)) {
-		immutable bool b = pred(mutArrAt(a, i));
+		immutable bool b = pred(a[i]);
 		if (b)
 			i++;
 		else if (i == mutArrSize(a) - 1)

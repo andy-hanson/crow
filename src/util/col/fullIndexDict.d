@@ -111,7 +111,7 @@ void fullIndexDictZipPtrs(K, V0, V1)(
 ) {
 	verify(fullIndexDictSize(a) == fullIndexDictSize(b));
 	foreach (immutable size_t i; 0 .. fullIndexDictSize(a))
-		cb(immutable K(i), a.ptrAt(immutable K(i)), b.ptrAt(immutable K(i)));
+		cb(immutable K(i), &a.values[i], &b.values[i]);
 }
 
 void fullIndexDictZip3(K, V0, V1, V2)(
@@ -124,13 +124,6 @@ void fullIndexDictZip3(K, V0, V1, V2)(
 	verify(fullIndexDictSize(b) == fullIndexDictSize(c));
 	foreach (immutable size_t i; 0 .. fullIndexDictSize(a))
 		cb(immutable K(i), a.values[i], b.values[i], c.values[i]);
-}
-
-immutable(V*) ptrAt(K, V)(immutable FullIndexDict!(K, V) a, immutable K key) {
-	return &a.values[key.index];
-}
-V* ptrAt_mut(K, V)(ref FullIndexDict!(K, V) a, immutable K key) {
-	return &a.values[key.index];
 }
 
 immutable(FullIndexDict!(K, VOut)) mapFullIndexDict(K, VOut, VIn)(

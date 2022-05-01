@@ -22,7 +22,7 @@ import model.lowModel :
 	PrimitiveType;
 import model.typeLayout : sizeOfType;
 import util.alloc.alloc : Alloc, TempAlloc;
-import util.col.arr : castImmutable, empty, emptyArr, ptrAt;
+import util.col.arr : castImmutable, empty, emptyArr;
 import util.col.arrUtil : map, mapToMut, sum, zip;
 import util.col.dict : mustGetAt;
 import util.col.exactSizeArrBuilder :
@@ -121,7 +121,7 @@ immutable(ubyte*) getTextPointerForCString(ref immutable TextInfo info, immutabl
 	});
 
 	foreach (immutable size_t arrTypeIndex; 0 .. allConstants.arrs.length) {
-		scope immutable ArrTypeAndConstantsLow* typeAndConstants = ptrAt(allConstants.arrs, arrTypeIndex);
+		scope immutable ArrTypeAndConstantsLow* typeAndConstants = &allConstants.arrs[arrTypeIndex];
 		foreach (immutable size_t constantIndex, ref immutable Constant[] elements; typeAndConstants.constants)
 			recurWriteArr(
 				alloc,
@@ -133,7 +133,7 @@ immutable(ubyte*) getTextPointerForCString(ref immutable TextInfo info, immutabl
 				elements);
 	}
 	foreach (immutable size_t pointeeTypeIndex; 0 .. allConstants.pointers.length) {
-		immutable PointerTypeAndConstantsLow* typeAndConstants = ptrAt(allConstants.pointers, pointeeTypeIndex);
+		immutable PointerTypeAndConstantsLow* typeAndConstants = &allConstants.pointers[pointeeTypeIndex];
 		foreach (immutable size_t constantIndex, immutable Constant pointee; typeAndConstants.constants)
 			recurWritePointer(
 				alloc,
@@ -195,7 +195,7 @@ void ensureConstant(
 	matchConstant!void(
 		c,
 		(ref immutable Constant.ArrConstant it) {
-			immutable ArrTypeAndConstantsLow* arrs = ptrAt(ctx.allConstants.arrs, it.typeIndex);
+			immutable ArrTypeAndConstantsLow* arrs = &ctx.allConstants.arrs[it.typeIndex];
 			verify(arrs.arrType == asRecordType(t));
 			recurWriteArr(
 				alloc,
@@ -215,7 +215,7 @@ void ensureConstant(
 		(immutable Constant.Integral) {},
 		(immutable Constant.Null) {},
 		(immutable Constant.Pointer it) {
-			immutable PointerTypeAndConstantsLow* ptrs = ptrAt(ctx.allConstants.pointers, it.typeIndex);
+			immutable PointerTypeAndConstantsLow* ptrs = &ctx.allConstants.pointers[it.typeIndex];
 			verify(lowTypeEqual(ptrs.pointeeType, asPtrGcPointee(t)));
 			recurWritePointer(
 				alloc, tempAlloc, ctx,
