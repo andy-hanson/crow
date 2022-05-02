@@ -1,3 +1,12 @@
 no-std
+import
+	./exception: exception, throw
 export
 	./private/bootstrap: err, ok, result
+
+ok-or-throw<a> a(a result<a, exception>)
+	match a
+	as ok v
+		v
+	as err e
+		e throw

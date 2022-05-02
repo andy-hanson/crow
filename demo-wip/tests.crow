@@ -19,6 +19,7 @@ import
 	crow/col/mut-sorted-set: mut-sorted-set, new
 	crow/col/mut-stack: mut-stack, new
 	crow/col/priority-queue: new, priority-queue
+	crow/col/private/arr-util-tests: dummy-arr-util-tests
 	crow/col/private/seq-tests: dummy-seq-tests
 	crow/col/set: new, set
 	crow/col/sorted-set: new, sorted-set
@@ -47,6 +48,7 @@ main fut nat(_ str[]) summon
 	_ = () :: compact-dict<nat, nat>
 	_ = () :: compact-sorted-dict<nat, nat>
 	_ = () :: deque<nat>
+	_ = dummy-arr-util-tests
 	_ = dummy-seq-tests
 	_ = () :: nat[nat]
 	_ = () :: environ

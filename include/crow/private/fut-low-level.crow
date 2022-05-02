@@ -5,11 +5,10 @@ import
 	../ptr: ref-of-val
 	../result: err, ok, result
 	./bootstrap:
-		empty, exception, exclusion, first, forwarded, fut, fut-state, hard-unreachable, last, lk,
-		new, one-task, rejected, resolved, set-last, set-next, set-state, state, task-list,
-		task-node, tasks
+		empty, exception, first, forwarded, fut, fut-state, hard-unreachable, last, lk,
+		new, one-task, rejected, resolved, set-last, set-next, set-state, state, tasks
 	./runtime: add-task, add-tasks, get-global-ctx
-	./task-queue: new
+	./task-queue: exclusion, new, task, task-list, task-node
 	./thread-utils: acquire, init, lock, release, uninit
 
 unresolved<a> fut a() unsafe
@@ -49,9 +48,6 @@ reject<a> void(a fut a, err exception) unsafe
 	direct a
 	forwarded fut b
 
-add-task<a> void(a fut a, exclusion exclusion, action act void()) unsafe
-	a add-task ((exclusion, action),)
-
 # 'a' should be the result of 'unresolved-will-forward'; have it forward to 'target'
 forward-to<a> void(a fut a, target fut a) unsafe
 	a.lock acquire
@@ -72,6 +68,12 @@ forward-to<a> void(a fut a, target fut a) unsafe
 		hard-unreachable
 	as rejected _
 		hard-unreachable
+
+add-task<a> void(a fut a, exclusion exclusion, action act void()) unsafe
+	a add-task (exclusion, action)
+
+add-task<a> void(a fut a, task task) unsafe
+	a add-task (task,)::task-node
 
 .add-task<a> void(a fut a, task task-node) unsafe
 	a.lock acquire

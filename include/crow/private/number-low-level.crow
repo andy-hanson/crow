@@ -1,6 +1,6 @@
 no-std
 import
-	../compare: comparison, equal, greater, less
+	../compare: >=, comparison, equal, greater, less
 	./bool-low-level: !, bool
 export
 	./bootstrap: float32, float64, int8, int16, int32, int64, nat8, nat16, nat32, nat64
@@ -197,3 +197,12 @@ max-nat32 nat32() noctx
 # Greatest possible `nat64`.
 max-nat64 nat64() noctx
 	0xffffffffffffffff
+
+
+round-up-to-power-of-two nat64(n nat64)
+	1 round-up-to-power-of-two-recur n
+.round-up-to-power-of-two-recur nat64(acc nat64, n nat64)
+	if acc >= n
+		acc
+	else
+		acc wrap-mul 2 round-up-to-power-of-two-recur n

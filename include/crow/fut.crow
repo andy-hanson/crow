@@ -1,15 +1,18 @@
 no-std
 import
-	./col/arr: ~, arr, is-empty, new, subscript
-	./col/arr-util: tail
+	./cell: *, cell, new, set-deref
+	./col/arr: arr, is-empty, size, subscript
+	./col/arr-util: each, map, tail
 	./exception: catch, exception
 	./fun-util: subscript
 	./misc: new, void
 	./ptr: ref-of-val
-	./result: result
+	./result: ok-or-throw, result
 	./private/bootstrap: action, exclusion, is-sendable, lk, new, rejected, resolved
 	./private/fut-low-level: add-task, get-result, forward-to, reject, resolve, unresolved
-	./private/runtime: add-task, exception-handler, get-global-ctx, new-exclusion
+	./private/number-low-level: ==, nat64, wrap-sub
+	./private/runtime: add-task, cur-exclusion, exception-handler, get-global-ctx, new-exclusion
+	./private/task-queue: task
 	./private/thread-utils: init, uninit
 export
 	./private/bootstrap: fut
@@ -43,13 +46,15 @@ rejected<a> fut a(err exception) trusted
 # TODO: is-sendable<a[]> should not be necessary
 ###
 Waits for every one of `futures` to be resolved, then returns an array all of their results.
-If one of `futures` resolves with an exception, returns the first one from the left.
+
+If one of `futures` resolves with an exception, this resolves to the leftmost exception (discarding others),
+regardless of which exception happened first.
 
 Use `wait-fold` instead of you intend to iterate over the result anyway.
 ###
-wait-all<a> fut a[](futures fut<a>[]) is-sendable<a> is-sendable<a[]>
-	() wait-fold futures, (acc, x) =>
-		acc ~ x,
+wait-all<a> fut a[](futures fut<a>[]) trusted is-sendable<a> is-sendable<a[]>
+	<- futures wait-all-complete
+	(futures map x => x.get-result ok-or-throw),
 
 ###
 Waits on each of `futures` in turn, calling `f` to get a new accumulator.
@@ -61,6 +66,17 @@ wait-fold<a, b> fut a(acc a, futures fut<b>[], f ref a(a, b)) is-sendable<a> is-
 		cur <- futures[0]
 		new-acc <- f[acc, cur]
 		new-acc wait-fold futures.tail, f
+
+# Returns a future that is resolved once all inputs are resolved.
+.wait-all-complete<a> fut void(futures fut<a>[]) is-sendable<a> trusted
+	res fut void = unresolved
+	count cell nat64 = futures.size,
+	task task = cur-exclusion, () =>
+		*count := *count wrap-sub 1
+		if *count == 0
+			res resolve ()
+	futures each x => x add-task task
+	res
 
 ###
 Fut resolved to `ok` if `a` succeeds and `err` if `a` fails with an exception.

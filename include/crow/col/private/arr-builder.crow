@@ -1,0 +1,49 @@
+no-std
+import
+	../../compare: >
+	../../misc: new, void
+	../../private/alloc: alloc-uninitialized, copy-data-from
+	../../private/number-low-level: ==, round-up-to-power-of-two, wrap-add, wrap-mul
+	../../ptr: ==, <=>, +, -, as-const, mut-ptr, null, set-deref
+	../arr: arr, size
+	./arr-low-level: arr-from-begin-end, begin-ptr
+
+arr-builder<a> record mut
+	.begin mut a mut*
+	.cur mut a mut*
+	.end mut a mut*
+
+new<a> arr-builder a() trusted
+	null, null, null
+
+finish<a> a[](a arr-builder a) noctx trusted
+	res = a.begin.as-const arr-from-begin-end a.cur.as-const
+	a.begin := null
+	a.cur := null
+	a.end := null
+	res
+
+~=<a> void(a arr-builder a, value a) trusted
+	if a.cur == a.end
+		cur-size = a.end - a.begin
+		new-capacity = cur-size == 0 ? 4 : cur-size wrap-mul 2
+		new-begin a mut* = new-capacity alloc-uninitialized
+		new-begin copy-data-from a.begin.as-const, cur-size
+		a.begin := new-begin
+		a.cur := new-begin + cur-size
+		a.end := new-begin + new-capacity
+	*a.cur := value
+	a.cur := a.cur + 1
+
+~~=<a> void(a arr-builder a, values a[]) trusted
+	if a.cur + values.size > a.end
+		cur-size = a.cur - a.begin
+		min-size = cur-size wrap-add values.size
+		new-capacity = min-size.round-up-to-power-of-two
+		new-begin a mut* = new-capacity alloc-uninitialized
+		new-begin copy-data-from a.begin.as-const, cur-size
+		a.begin := new-begin
+		a.cur := new-begin + cur-size
+		a.end := new-begin + new-capacity
+	a.cur copy-data-from values.begin-ptr, values.size
+	a.cur := a.cur + values.size

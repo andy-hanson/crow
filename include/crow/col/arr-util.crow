@@ -14,6 +14,7 @@ import
 	../private/range-low-level: ..
 	./arr: ~, ~~, arr, is-empty, new, size, subscript
 	./iter: new, value-and-rest
+	./private/arr-builder: ~~=, arr-builder, finish, new
 	./private/arr-low-level: arr-from-begin-end, begin-ptr, end-ptr, noctx-at
 
 region basic array operations
@@ -229,10 +230,14 @@ map-with-index<out, in> out[](a in[], f act out(in, nat64))
 		f[a[i], i]
 
 # Like `map`, but `f` can return multiple values, that are all added to the output array>
-flat-map<out, in> out[](a in[], f act out[](in))
-	# TODO:PERF use a mut-arr
-	unless a is-empty
-		f[a[0]] ~~ (a.tail flat-map f)
+flat-map<out, in> out[](a in[], f act out[](in)) trusted
+	() flat-map-recur a.begin-ptr, a.end-ptr, f
+.flat-map-recur<out, in> out[](out arr-builder out, cur in*, end in*, f act out[](in)) unsafe
+	if cur == end
+		out finish
+	else
+		out ~~= f[*cur]
+		out flat-map-recur cur + 1, end, f
 
 # Array containing only the elements of `a` for which `f[a[i]]` returns true.
 filter<a> a[](a a[], f act bool(a))

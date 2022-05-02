@@ -7,7 +7,7 @@ import
 main fut nat(_ str[]) unsafe summon
 	print: "running with {count-processors} processors"
 	# TODO: a module with helpers to do things like filter in parallel
-	tasks fut<pair<nat, bool>>[] = 1_000_000 .. 1_004_000 map x =>
+	tasks fut<pair<nat, bool>>[] = 1_000_000 .. 1_010_000 map x =>
 		launch: () => (x, x.is-prime),
 	pairs <- tasks wait-all
 	primes nat[] = pairs flat-map x => x.b ? x.a,

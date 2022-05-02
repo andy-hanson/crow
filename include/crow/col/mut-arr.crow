@@ -2,7 +2,7 @@ no-std
 import
 	string: memcpy, memmove
 	../bool: &&, bool
-	../compare: <, <=, >, >=, equal
+	../compare: <, <=, >, equal
 	../fun-util: subscript
 	../misc: new, void
 	../opt: new, opt
@@ -13,7 +13,7 @@ import
 		alloc-uninitialized, copy-data-from, set-zero-range, unmanaged-alloc-zeroed-elements
 	../private/bootstrap: hard-assert, new, todo
 	../private/exception-low-level: assert-c-str
-	../private/number-low-level: ==, <=>, nat64, wrap-add, wrap-sub, wrap-mul
+	../private/number-low-level: ==, <=>, nat64, round-up-to-power-of-two, wrap-add, wrap-sub, wrap-mul
 	../private/range-low-level: ..
 	./arr: arr
 	./arr-util: each, each-with-index, exists, find-index, fold, fold-reverse, in, index-of
@@ -325,15 +325,6 @@ reduce-size-if-more-than<a> void(a a mut[], new-size nat64)
 	if new-size < a.size
 		_ = a.pop
 		a reduce-size-if-more-than new-size
-
-# TODO:MOVE
-.round-up-to-power-of-two nat64(n nat64)
-	1 round-up-to-power-of-two-recur n
-.round-up-to-power-of-two-recur nat64(acc nat64, n nat64)
-	if acc >= n
-		acc
-	else
-		acc wrap-mul 2 round-up-to-power-of-two-recur n
 
 # Returns the first index where `a[i] == value`, or returns `none`.
 index-of<a> nat64?(a a mut[], value a) equal<a> trusted

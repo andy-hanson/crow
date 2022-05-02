@@ -156,13 +156,14 @@ run-garbage-collection<a> void(gc gc, gc-root a) noctx unsafe
 		prev-mark-cur = gc.mark-cur
 		gc.mark-cur := gc.mark-begin
 		gc.data-cur := gc.data-begin
-		gc.mark-begin clear-free-mem prev-mark-cur, gc.data-begin
+		if false
+			# Expensive safety check
+			gc.mark-begin clear-free-mem prev-mark-cur, gc.data-begin
 		gc validate-gc
 		gc.needs-gc := false
 	_ = gc.barrier.ref-of-val wait-barrier
 	()
 
-# TODO: use memset
 .clear-free-mem void(mark-ptr bool mut*, mark-end bool mut*, data-ptr nat64 mut*) noctx unsafe
 	unless mark-ptr == mark-end
 		unless *mark-ptr
@@ -210,12 +211,6 @@ get-gc-ctx gc-ctx() unsafe
 get-gc gc() unsafe
 	get-gc-ctx gc
 
-# TODO: use memset
-fill-ptr-range<a> void(cur a mut*, end a mut*, value a) noctx unsafe
-	unless cur == end
-		*cur := value
-		cur + 1 fill-ptr-range end, value
-
 validate-gc void(gc gc) noctx unsafe
 	hard-assert: gc.mark-begin.as-any-mut-ptr is-word-aligned
 	hard-assert: gc.data-begin.as-any-mut-ptr is-word-aligned
@@ -250,24 +245,24 @@ validate-gc void(gc gc) noctx unsafe
 	cur = gc data-cur
 	next = cur + size-words
 	if next < gc.data-end
-		if gc.mark-cur range-free gc.mark-cur + size-words
+		if non-free ?= gc.mark-cur first-non-free gc.mark-cur + size-words
+			gc.data-cur := gc.data-cur + (non-free - gc.mark-cur) + 1
+			gc.mark-cur := non-free + 1
+			gc try-gc-alloc-recur size-bytes
+		else
 			gc.mark-cur := gc.mark-cur + size-words
 			gc.data-cur := next
 			cur.ptr-cast some
-		else
-			gc.mark-cur := gc.mark-cur + 1
-			gc.data-cur := gc.data-cur + 1
-			gc try-gc-alloc-recur size-bytes
 	else
 		none
 
-.range-free bool(mark bool mut*, end bool mut*) noctx unsafe
+.first-non-free bool mut*?(mark bool mut*, end bool mut*) noctx unsafe
 	if mark == end
-		true
+		none
 	elif *mark
-		false
+		mark some
 	else
-		mark + 1 range-free end
+		mark + 1 first-non-free end
 
 gc-alloc any-mut-ptr(gc gc, size nat64) noctx trusted
 	if res ?= gc try-gc-alloc size
@@ -323,6 +318,12 @@ unmanaged-free<a> void(p a mut*) noctx unsafe
 copy-data-from<a> void(to a mut*, from a*, len nat64) unsafe
 	_ = to.as-any-mut-ptr memcpy from.as-any-const-ptr, (len wrap-mul size-of@<a>)
 	()
+
+# TODO: use memset
+fill-ptr-range<a> void(cur a mut*, end a mut*, value a) noctx unsafe
+	unless cur == end
+		*cur := value
+		cur + 1 fill-ptr-range end, value
 
 fill-ptr-range<a> void(begin a mut*, size nat64, f act a(nat64)) unsafe
 	begin fill-ptr-range-recur 0, size, f
