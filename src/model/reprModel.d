@@ -298,6 +298,12 @@ immutable(Repr) reprExpr(ref Alloc alloc, ref Ctx ctx, ref immutable Expr a) {
 			reprRecord(alloc, "sym-lit", [reprSym(it.value)]),
 		(ref immutable Expr.LocalRef it) =>
 			reprRecord(alloc, "local-ref", [reprSym(it.local.name)]),
+		(ref immutable Expr.LocalSet it) =>
+			reprRecord(alloc, "local-set", [reprSym(it.local.name), reprExpr(alloc, ctx, it.value)]),
+		(ref immutable Expr.Loop x) =>
+			reprRecord(alloc, "loop", [reprExpr(alloc, ctx, x.body_)]),
+		(ref immutable Expr.LoopBreak x) =>
+			reprRecord(alloc, "break", [reprExpr(alloc, ctx, x.value)]),
 		(ref immutable Expr.MatchEnum a) =>
 			reprRecord(alloc, "match-enum", [
 				reprExpr(alloc, ctx, a.matched),

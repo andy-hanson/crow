@@ -49,11 +49,29 @@ struct InterpreterDebugInfo {
 	}
 }
 
-// matches `backtrace-entry` from `bootstrap.crow`
+// matches `backtrace-entry` from `bootstrap.crow`.
 struct BacktraceEntry {
-	immutable(char)* functionName;
-	immutable(char)* filePath;
+	@safe @nogc pure nothrow:
+
+	// Making sure pointers look like 64-bit even for a 32-bit WASM build
+	Ptr64!(immutable char) functionName;
+	Ptr64!(immutable char) filePath;
 	uint lineNumber;
+	uint columnNumber;
+}
+
+private struct Ptr64(T) {
+	@safe @nogc pure nothrow:
+
+	this(T* a) { inner = a; }
+
+	version (LittleEndian) {
+		T* inner;
+		byte[ulong.sizeof - (char*).sizeof] padding;
+	} else {
+		byte[ulong.sizeof - (char*).sizeof] padding;
+		T* inner;
+	}
 }
 
 @system BacktraceEntry* fillBacktrace(
@@ -84,7 +102,7 @@ private immutable(BacktraceEntry) getBacktraceEntry(
 	immutable Opt!ByteCodeSource source = nextSource(info, cur);
 	return has(source)
 		? backtraceEntryFromSource(alloc, info, force(source))
-		: immutable BacktraceEntry("", "", 0);
+		: immutable BacktraceEntry(Ptr64!(immutable char)(""), Ptr64!(immutable char)(""), 0, 0);
 }
 
 private @trusted immutable(BacktraceEntry) backtraceEntryFromSource(
@@ -94,17 +112,18 @@ private @trusted immutable(BacktraceEntry) backtraceEntryFromSource(
 ) {
 	Writer writer = Writer(ptrTrustMe_mut(alloc));
 	writeFunName(writer, info.allSymbols, info.lowProgram, source.fun);
-	immutable char* funName = finishWriterToSafeCStr(writer).ptr;
+	immutable Ptr64!(immutable char) funName = Ptr64!(immutable char)(finishWriterToSafeCStr(writer).ptr);
 
 	immutable Opt!FileIndex opFileIndex = getFileIndex(info.allSymbols, info.lowProgram, source.fun);
 	if (has(opFileIndex)) {
 		immutable FileIndex fileIndex = force(opFileIndex);
 		immutable Path path = info.filesInfo.filePaths[fileIndex];
-		immutable char* filePath = pathToSafeCStrPreferRelative(alloc, info.allPaths, info.pathsInfo, path).ptr;
+		immutable Ptr64!(immutable char) filePath =
+			Ptr64!(immutable char)(pathToSafeCStrPreferRelative(alloc, info.allPaths, info.pathsInfo, path).ptr);
 		immutable LineAndColumn lc = lineAndColumnAtPos(info.filesInfo.lineAndColumnGetters[fileIndex], source.pos);
-		return immutable BacktraceEntry(funName, filePath, lc.line + 1);
+		return immutable BacktraceEntry(funName, filePath, lc.line + 1, 0);
 	} else
-		return immutable BacktraceEntry(funName, "", 0);
+		return immutable BacktraceEntry(funName, Ptr64!(immutable char)(""), 0, 0);
 }
 
 pure:

@@ -245,7 +245,6 @@ struct CallAst {
 		prefixOperator, // `-x`, `!x`, `~x`
 		setDeref, // `*a := b`
 		setDot, // a.x := b
-		setSingle, // a := b
 		setSubscript, // `a[b] := c` (or `a[b, c] := d`, etc.)
 		single, // `a<t>` (without the type arg, it would just be an Identifier)
 		subscript, // a[b]
@@ -279,6 +278,12 @@ struct FunPtrAst {
 
 struct IdentifierAst {
 	immutable Sym name;
+}
+
+// 'name := value'
+struct IdentifierSetAst {
+	immutable Sym name;
+	immutable ExprAst value;
 }
 
 struct IfAst {
@@ -333,6 +338,7 @@ struct LambdaAst {
 
 struct LetAst {
 	immutable Opt!Sym name;
+	immutable bool mut;
 	immutable Opt!(TypeAst*) type;
 	immutable ExprAst initializer;
 	immutable ExprAst then;
@@ -373,6 +379,14 @@ struct LiteralAst {
 		immutable Nat nat;
 		immutable string str;
 	}
+}
+
+struct LoopAst {
+	immutable ExprAst body_;
+}
+
+struct LoopBreakAst {
+	immutable Opt!ExprAst value;
 }
 
 @trusted T matchLiteralAst(T, alias cbFloat, alias cbInt, alias cbNat, alias cbStr)(
@@ -506,12 +520,15 @@ struct ExprAstKind {
 		call,
 		funPtr,
 		identifier,
+		identifierSet,
 		if_,
 		ifOption,
 		interpolated,
 		lambda,
 		let,
 		literal,
+		loop,
+		loopBreak,
 		match,
 		parenthesized,
 		seq,
@@ -527,12 +544,15 @@ struct ExprAstKind {
 		immutable CallAst call;
 		immutable FunPtrAst funPtr;
 		immutable IdentifierAst identifier;
+		immutable IdentifierSetAst* identifierSet;
 		immutable IfAst* if_;
 		immutable IfOptionAst* ifOption;
 		immutable InterpolatedAst interpolated;
 		immutable LambdaAst* lambda;
 		immutable LetAst* let;
 		immutable LiteralAst literal;
+		immutable LoopAst* loop;
+		immutable LoopBreakAst* loopBreak;
 		immutable MatchAst* match_;
 		immutable ParenthesizedAst* parenthesized;
 		immutable SeqAst* seq;
@@ -548,12 +568,15 @@ struct ExprAstKind {
 	@trusted immutable this(immutable CallAst a) { kind = Kind.call; call = a; }
 	@trusted immutable this(immutable FunPtrAst a) { kind = Kind.funPtr; funPtr = a; }
 	@trusted immutable this(immutable IdentifierAst a) { kind = Kind.identifier; identifier = a; }
+	@trusted immutable this(immutable IdentifierSetAst* a) { kind = Kind.identifierSet; identifierSet = a; }
 	@trusted immutable this(immutable IfAst* a) { kind = Kind.if_; if_ = a; }
 	@trusted immutable this(immutable IfOptionAst* a) { kind = Kind.ifOption; ifOption = a; }
 	@trusted immutable this(immutable InterpolatedAst a) { kind = Kind.interpolated; interpolated = a; }
 	@trusted immutable this(immutable LambdaAst* a) { kind = Kind.lambda; lambda = a; }
 	@trusted immutable this(immutable LetAst* a) { kind = Kind.let; let = a; }
 	@trusted immutable this(immutable LiteralAst a) { kind = Kind.literal; literal = a; }
+	@trusted immutable this(immutable LoopAst* a) { kind = Kind.loop; loop = a; }
+	@trusted immutable this(immutable LoopBreakAst* a) { kind = Kind.loopBreak; loopBreak = a; }
 	@trusted immutable this(immutable MatchAst* a) { kind = Kind.match; match_ = a; }
 	@trusted immutable this(immutable ParenthesizedAst* a) { kind = Kind.parenthesized; parenthesized = a; }
 	@trusted immutable this(immutable SeqAst* a) { kind = Kind.seq; seq = a; }
@@ -587,12 +610,15 @@ ref immutable(IdentifierAst) asIdentifier(return scope ref immutable ExprAstKind
 	alias cbCall,
 	alias cbFunPtr,
 	alias cbIdentifier,
+	alias cbIdentifierSet,
 	alias cbIf,
 	alias cbIfOption,
 	alias cbInterpolated,
 	alias cbLambda,
 	alias cbLet,
 	alias cbLiteral,
+	alias cbLoop,
+	alias cbLoopBreak,
 	alias cbMatch,
 	alias cbParenthesized,
 	alias cbSeq,
@@ -614,6 +640,8 @@ ref immutable(IdentifierAst) asIdentifier(return scope ref immutable ExprAstKind
 			return cbFunPtr(a.funPtr);
 		case ExprAstKind.Kind.identifier:
 			return cbIdentifier(a.identifier);
+		case ExprAstKind.Kind.identifierSet:
+			return cbIdentifierSet(*a.identifierSet);
 		case ExprAstKind.Kind.if_:
 			return cbIf(*a.if_);
 		case ExprAstKind.Kind.ifOption:
@@ -626,6 +654,10 @@ ref immutable(IdentifierAst) asIdentifier(return scope ref immutable ExprAstKind
 			return cbLet(*a.let);
 		case ExprAstKind.Kind.literal:
 			return cbLiteral(a.literal);
+		case ExprAstKind.Kind.loop:
+			return cbLoop(*a.loop);
+		case ExprAstKind.Kind.loopBreak:
+			return cbLoopBreak(*a.loopBreak);
 		case ExprAstKind.Kind.match:
 			return cbMatch(*a.match_);
 		case ExprAstKind.Kind.parenthesized:
@@ -1443,6 +1475,10 @@ immutable(Repr) reprExprAstKind(ref Alloc alloc, ref immutable ExprAstKind ast) 
 			reprRecord(alloc, "fun-ptr", [reprSym(a.name)]),
 		(ref immutable IdentifierAst a) =>
 			reprSym(a.name),
+		(ref immutable IdentifierSetAst a) =>
+			reprRecord(alloc, "set", [
+				reprSym(a.name),
+				reprExprAst(alloc, a.value)]),
 		(ref immutable IfAst e) =>
 			reprRecord(alloc, "if", [
 				reprExprAst(alloc, e.cond),
@@ -1472,6 +1508,12 @@ immutable(Repr) reprExprAstKind(ref Alloc alloc, ref immutable ExprAstKind ast) 
 				reprExprAst(alloc, a.then)]),
 		(ref immutable LiteralAst a) =>
 			reprLiteralAst(alloc, a),
+		(ref immutable LoopAst a) =>
+			reprRecord(alloc, "loop", [reprExprAst(alloc, a.body_)]),
+		(ref immutable LoopBreakAst e) =>
+			reprRecord(alloc, "break", [
+				reprOpt(alloc, e.value, (ref immutable ExprAst value) =>
+					reprExprAst(alloc, value))]),
 		(ref immutable MatchAst it) =>
 			reprRecord(alloc, "match", [
 				reprExprAst(alloc, it.matched),
@@ -1541,8 +1583,6 @@ immutable(Sym) symOfCallAstStyle(immutable CallAst.Style a) {
 			return shortSym("set-deref");
 		case CallAst.Style.setDot:
 			return shortSym("set-dot");
-		case CallAst.Style.setSingle:
-			return shortSym("set-single");
 		case CallAst.Style.setSubscript:
 			return shortSym("set-at");
 		case CallAst.Style.single:

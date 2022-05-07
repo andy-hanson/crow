@@ -670,6 +670,20 @@ struct LowExprKind {
 		immutable LowLocal* local;
 	}
 
+	struct LocalSet {
+		immutable LowLocal* local;
+		immutable LowExpr value;
+	}
+
+	struct Loop {
+		immutable LowExpr body_;
+	}
+
+	struct LoopBreak {
+		immutable LowExprKind.Loop* loop;
+		immutable LowExpr value;
+	}
+
 	// TODO: compile down to a Switch?
 	struct MatchUnion {
 		struct Case {
@@ -913,6 +927,9 @@ struct LowExprKind {
 		initConstants,
 		let,
 		localRef,
+		localSet,
+		loop,
+		loopBreak,
 		matchUnion,
 		paramRef,
 		ptrCast,
@@ -939,6 +956,9 @@ struct LowExprKind {
 		immutable InitConstants initConstants;
 		immutable Let* let;
 		immutable LocalRef localRef;
+		immutable LocalSet* localSet;
+		immutable Loop* loop;
+		immutable LoopBreak* loopBreak;
 		immutable MatchUnion* matchUnion;
 		immutable ParamRef paramRef;
 		immutable PtrCast* ptrCast;
@@ -965,6 +985,9 @@ struct LowExprKind {
 	immutable this(immutable InitConstants a) { kind = Kind.initConstants; initConstants = a; }
 	@trusted immutable this(immutable Let* a) { kind = Kind.let; let = a; }
 	@trusted immutable this(immutable LocalRef a) { kind = Kind.localRef; localRef = a; }
+	@trusted immutable this(immutable LocalSet* a) { kind = Kind.localSet; localSet = a; }
+	immutable this(immutable Loop* a) { kind = Kind.loop; loop = a; }
+	immutable this(immutable LoopBreak* a) { kind = Kind.loopBreak; loopBreak = a; }
 	@trusted immutable this(immutable MatchUnion* a) { kind = Kind.matchUnion; matchUnion = a; }
 	@trusted immutable this(immutable ParamRef a) { kind = Kind.paramRef; paramRef = a; }
 	@trusted immutable this(immutable PtrCast* a) { kind = Kind.ptrCast; ptrCast = a; }
@@ -993,6 +1016,9 @@ static assert(LowExprKind.sizeof <= 32);
 	alias cbInitConstants,
 	alias cbLet,
 	alias cbLocalRef,
+	alias cbLocalSet,
+	alias cbLoop,
+	alias cbLoopBreak,
 	alias cbMatchUnion,
 	alias cbParamRef,
 	alias cbPtrCast,
@@ -1026,6 +1052,12 @@ static assert(LowExprKind.sizeof <= 32);
 			return cbLet(*a.let);
 		case LowExprKind.Kind.localRef:
 			return cbLocalRef(a.localRef);
+		case LowExprKind.Kind.localSet:
+			return cbLocalSet(*a.localSet);
+		case LowExprKind.Kind.loop:
+			return cbLoop(*a.loop);
+		case LowExprKind.Kind.loopBreak:
+			return cbLoopBreak(*a.loopBreak);
 		case LowExprKind.Kind.matchUnion:
 			return cbMatchUnion(*a.matchUnion);
 		case LowExprKind.Kind.paramRef:

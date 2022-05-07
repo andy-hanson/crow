@@ -7,5 +7,5 @@ main fut nat(_ str[]) summon
 	print: xs[1]
 	ys = xs ~ "raven" ~ "nightingale"
 	print: ys join ", "
-	print: ys[1 .. 3] join ", "
+	print: ys[1 .. 33] join ", "
 	()

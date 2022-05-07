@@ -11,6 +11,7 @@ import frontend.parse.ast :
 	FunBodyAst,
 	FunDeclAst,
 	IdentifierAst,
+	IdentifierSetAst,
 	IfAst,
 	IfOptionAst,
 	ImportOrExportAst,
@@ -20,6 +21,8 @@ import frontend.parse.ast :
 	LambdaAst,
 	LetAst,
 	LiteralAst,
+	LoopAst,
+	LoopBreakAst,
 	MatchAst,
 	matchExprAstKind,
 	matchFunBodyAst,
@@ -434,7 +437,6 @@ void addExprTokens(
 					break;
 				case CallAst.style.prefixOperator:
 				case CallAst.Style.prefix:
-				case CallAst.Style.setSingle:
 				case CallAst.Style.single:
 					addName();
 					addExprsTokens(alloc, tokens, allSymbols, it.args);
@@ -452,6 +454,12 @@ void addExprTokens(
 		},
 		(ref immutable IdentifierAst) {
 			add(alloc, tokens, immutable Token(Token.Kind.identifier, a.range));
+		},
+		(ref immutable IdentifierSetAst x) {
+			add(alloc, tokens, immutable Token(
+				Token.Kind.identifier,
+				rangeOfNameAndRange(immutable NameAndRange(a.range.start, x.name), allSymbols))) ;
+			addExprTokens(alloc, tokens, allSymbols, x.value);
 		},
 		(ref immutable IfAst it) {
 			addExprTokens(alloc, tokens, allSymbols, it.cond);
@@ -532,6 +540,19 @@ void addExprTokens(
 					Token.Kind.literalString,
 			)(literal);
 			add(alloc, tokens, immutable Token(kind, a.range));
+		},
+		(ref immutable LoopAst it) {
+			add(alloc, tokens, immutable Token(
+				Token.Kind.keyword,
+				rangeOfStartAndLength(a.range.start, "loop".length)));
+			addExprTokens(alloc, tokens, allSymbols, it.body_);
+		},
+		(ref immutable LoopBreakAst it) {
+			add(alloc, tokens, immutable Token(
+				Token.Kind.keyword,
+				rangeOfStartAndLength(a.range.start, "break".length)));
+			if (has(it.value))
+				addExprTokens(alloc, tokens, allSymbols, force(it.value));
 		},
 		(ref immutable MatchAst it) {
 			addExprTokens(alloc, tokens, allSymbols, it.matched);

@@ -25,7 +25,7 @@ import
 		new, unw_context_t, unw_cursor_t, unw_getcontext, unw_get_proc_name, unw_init_local,
 		unw_step, unw_word_t
 export
-	./bootstrap: backtrace, backtrace-entry, entries, file-path, function-name, line-number, new
+	./bootstrap: backtrace, backtrace-entry, column-number, entries, file-path, function-name, line-number, new
 
 .new backtrace()
 	(),
@@ -57,12 +57,17 @@ spec
 	unsafe
 	builtin
 
-.copy-strings void(cur backtrace-entry mut*, end backtrace-entry mut*) unsafe
-	if cur == end
-		()
-	else
-		*cur := cur->function-name.copy-c-str-or-empty, cur->file-path.copy-c-str-or-empty, cur->line-number
-		cur + 1 copy-strings end
+.copy-strings void(begin backtrace-entry mut*, end backtrace-entry mut*) unsafe
+	cur mut = begin
+	loop
+		if cur == end
+			break
+		else
+			*cur := cur->copy-c-strs
+			cur := cur + 1
+
+.copy-c-strs backtrace-entry(a backtrace-entry) unsafe
+	a.function-name.copy-c-str-or-empty, a.file-path.copy-c-str-or-empty, a.line-number, a.column-number
 
 .get-native-backtrace-windows backtrace
 	entries backtrace-entry mut*
@@ -143,9 +148,9 @@ body
 			else
 				""
 			*out := if process SymGetLineFromAddr64 frame->AddrPC.Offset, vars.displacement, vars.line
-				name, vars.line->FileName.copy-c-str-or-empty, vars.line->LineNumber
+				name, vars.line->FileName.copy-c-str-or-empty, vars.line->LineNumber, 0
 			else
-				name, "", 0
+				name, "", 0, 0
 			out + 1 windows-walk-backtrace out-end, 0, process, thread, context, frame, vars
 		else
 			out windows-walk-backtrace out-end, (skip wrap-sub 1), process, thread, context, frame, vars
@@ -197,10 +202,10 @@ body
 			err = cursor unw_get_proc_name buf, buf-size, offset.ref-of-val.as-mut-ptr
 			*out-cur := if err == 0
 				# TODO: get filename and line number too
-				buf.as-const, "", 0
+				buf.as-const, "", 0, 0
 			else
-				"", "", 0
+				"", "", 0, 0
 			out-cur + 1 unwind-recur out-end, cursor
 		else
-			*out-cur := "<<out of memory for backtrace>>", "", 0
+			*out-cur := "<<out of memory for backtrace>>", "", 0, 0
 			out-cur + 1

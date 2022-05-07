@@ -128,9 +128,9 @@ import util.col.fullIndexDict : FullIndexDict, fullIndexDictOfArr, fullIndexDict
 import util.col.mutIndexDict : getOrAddAndDidAdd, mustGetAt, MutIndexDict, newMutIndexDict;
 import util.col.mutArr : moveToArr, MutArr, push;
 import util.col.mutDict : getAt_mut, getOrAdd, mapToArr_mut, MutDict, MutDict, ValueAndDidAdd;
-import util.col.stackDict : StackDict, stackDictAdd, stackDictMustGet;
+import util.col.stackDict : StackDict2, stackDict2Add0, stackDict2Add1, stackDict2MustGet0, stackDict2MustGet1;
 import util.late : Late, late, lateGet, lateIsSet, lateSet;
-import util.memory : allocate;
+import util.memory : allocate, allocateMut, overwriteMemory;
 import util.opt : asImmutable, force, has, none, Opt, some;
 import util.perf : Perf, PerfMeasure, withMeasure;
 import util.ptr : ptrTrustMe, ptrTrustMe_mut;
@@ -1050,9 +1050,11 @@ struct GetLowExprCtx {
 	}
 }
 
-alias Locals = immutable StackDict!(immutable ConcreteLocal*, immutable LowLocal*);
-alias addLocal = stackDictAdd!(immutable ConcreteLocal*, immutable LowLocal*);
-alias getLocal = stackDictMustGet!(immutable ConcreteLocal*, immutable LowLocal*);
+alias Locals = immutable StackDict2!(ConcreteLocal*, LowLocal*, ConcreteExprKind.Loop*, LowExprKind.Loop*);
+alias addLocal = stackDict2Add0!(ConcreteLocal*, LowLocal*, ConcreteExprKind.Loop*, LowExprKind.Loop*);
+alias addLoop = stackDict2Add1!(ConcreteLocal*, LowLocal*, ConcreteExprKind.Loop*, LowExprKind.Loop*);
+alias getLocal = stackDict2MustGet0!(ConcreteLocal*, LowLocal*, ConcreteExprKind.Loop*, LowExprKind.Loop*);
+alias getLoop = stackDict2MustGet1!(ConcreteLocal*, LowLocal*, ConcreteExprKind.Loop*, LowExprKind.Loop*);
 
 immutable(LowExpr) genCtxParamRef(ref const GetLowExprCtx ctx, immutable FileAndRange range) {
 	return genParamRef(range, ctx.ctxType, force(ctx.ctxParam));
@@ -1121,8 +1123,18 @@ immutable(LowExprKind) getLowExprKind(
 			getLambdaExpr(ctx, locals, expr.range, it),
 		(ref immutable ConcreteExprKind.Let it) =>
 			getLetExpr(ctx, locals, exprPos, it),
+		//TODO: not @trusted
 		(ref immutable ConcreteExprKind.LocalRef it) @trusted =>
 			immutable LowExprKind(immutable LowExprKind.LocalRef(getLocal(locals, it.local))),
+		//TODO: not @trusted
+		(ref immutable ConcreteExprKind.LocalSet it) @trusted =>
+			immutable LowExprKind(allocate(ctx.alloc, immutable LowExprKind.LocalSet(
+				getLocal(locals, it.local),
+				getLowExpr(ctx, locals, it.value, ExprPos.nonTail)))),
+		(ref immutable ConcreteExprKind.Loop it) =>
+			getLoopExpr(ctx, locals, it),
+		(ref immutable ConcreteExprKind.LoopBreak it) =>
+			getLoopBreakExpr(ctx, locals, it),
 		(ref immutable ConcreteExprKind.MatchEnum it) =>
 			getMatchEnumExpr(ctx, locals, exprPos, it),
 		(ref immutable ConcreteExprKind.MatchUnion it) =>
@@ -1183,6 +1195,30 @@ immutable(LowExprKind) getAllocExpr2(
 		local,
 		allocatePtr,
 		genSeq(ctx.alloc, range, setTemp, getTemp))));
+}
+
+@trusted immutable(LowExprKind) getLoopExpr(
+	ref GetLowExprCtx ctx,
+	scope ref immutable Locals locals,
+	ref immutable ConcreteExprKind.Loop a,
+) {
+	LowExprKind.Loop* res = allocateMut(ctx.alloc, LowExprKind.Loop());
+	immutable Locals newLocals = addLoop(locals, &a, cast(immutable) res);
+	overwriteMemory(&res.body_, getLowExpr(ctx, newLocals, a.body_, ExprPos.nonTail));
+	return immutable LowExprKind(cast(immutable) res);
+}
+
+//TODO: not @trusted
+@trusted immutable(LowExprKind) getLoopBreakExpr(
+	ref GetLowExprCtx ctx,
+	scope ref immutable Locals locals,
+	ref immutable ConcreteExprKind.LoopBreak a,
+) {
+	//TODO: a 'break' is in tail position if the 'loop' is.
+	//but need to make sure nothing else in a loop is considered in tail position, even if it't the tail of the loop
+	return immutable LowExprKind(allocate(ctx.alloc, immutable LowExprKind.LoopBreak(
+		getLoop(locals, a.loop),
+		getLowExpr(ctx, locals, a.value, ExprPos.nonTail))));
 }
 
 immutable(LowExprKind) getCallExpr(

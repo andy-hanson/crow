@@ -1618,8 +1618,11 @@ struct Local {
 	//TODO: use NameAndRange (more compact)
 	immutable FileAndRange range;
 	immutable Sym name;
+	immutable LocalMutability mutability;
 	immutable Type type;
 }
+
+enum LocalMutability { immut, mut }
 
 struct VariableRef {
 	@safe @nogc pure nothrow:
@@ -1763,6 +1766,21 @@ struct Expr {
 		immutable Local* local;
 	}
 
+	struct LocalSet {
+		immutable Local* local;
+		immutable Expr value;
+	}
+
+	struct Loop {
+		immutable Type type;
+		immutable Expr body_;
+	}
+
+	struct LoopBreak {
+		immutable Loop* loop;
+		immutable Expr value;
+	}
+
 	struct MatchEnum {
 		immutable Expr matched;
 		immutable Expr[] cases;
@@ -1805,6 +1823,9 @@ struct Expr {
 		literalCString,
 		literalSymbol,
 		localRef,
+		localSet,
+		loop,
+		loopBreak,
 		matchEnum,
 		matchUnion,
 		paramRef,
@@ -1827,6 +1848,9 @@ struct Expr {
 		immutable LiteralCString literalCString;
 		immutable LiteralSymbol literalSymbol;
 		immutable LocalRef localRef;
+		immutable LocalSet* localSet;
+		immutable Loop* loop;
+		immutable LoopBreak* loopBreak;
 		immutable MatchEnum* matchEnum;
 		immutable MatchUnion* matchUnion;
 		immutable ParamRef paramRef;
@@ -1863,6 +1887,15 @@ struct Expr {
 	@trusted immutable this(immutable FileAndRange r, immutable LocalRef a) {
 		range_ = r; kind = Kind.localRef; localRef = a;
 	}
+	@trusted immutable this(immutable FileAndRange r, immutable LocalSet* a) {
+		range_ = r; kind = Kind.localSet; localSet = a;
+	}
+	immutable this(immutable FileAndRange r, immutable Loop* a) {
+		range_ = r; kind = Kind.loop; loop = a;
+	}
+	immutable this(immutable FileAndRange r, immutable LoopBreak* a) {
+		range_ = r; kind = Kind.loopBreak; loopBreak = a;
+	}
 	@trusted immutable this(immutable FileAndRange r, immutable MatchEnum* a) {
 		range_ = r; kind = Kind.matchEnum; matchEnum = a;
 	}
@@ -1894,6 +1927,9 @@ immutable(FileAndRange) range(scope ref immutable Expr a) {
 	scope immutable(T) delegate(ref immutable Expr.LiteralCString) @safe @nogc pure nothrow cbLiteralCString,
 	scope immutable(T) delegate(ref immutable Expr.LiteralSymbol) @safe @nogc pure nothrow cbLiteralSymbol,
 	scope immutable(T) delegate(ref immutable Expr.LocalRef) @safe @nogc pure nothrow cbLocalRef,
+	scope immutable(T) delegate(ref immutable Expr.LocalSet) @safe @nogc pure nothrow cbLocalSet,
+	scope immutable(T) delegate(ref immutable Expr.Loop) @safe @nogc pure nothrow cbLoop,
+	scope immutable(T) delegate(ref immutable Expr.LoopBreak) @safe @nogc pure nothrow cbLoopBreak,
 	scope immutable(T) delegate(ref immutable Expr.MatchEnum) @safe @nogc pure nothrow cbMatchEnum,
 	scope immutable(T) delegate(ref immutable Expr.MatchUnion) @safe @nogc pure nothrow cbMatchUnion,
 	scope immutable(T) delegate(ref immutable Expr.ParamRef) @safe @nogc pure nothrow cbParamRef,
@@ -1926,6 +1962,12 @@ immutable(FileAndRange) range(scope ref immutable Expr a) {
 			return cbLiteralSymbol(a.literalSymbol);
 		case Expr.Kind.localRef:
 			return cbLocalRef(a.localRef);
+		case Expr.Kind.localSet:
+			return cbLocalSet(*a.localSet);
+		case Expr.Kind.loop:
+			return cbLoop(*a.loop);
+		case Expr.Kind.loopBreak:
+			return cbLoopBreak(*a.loopBreak);
 		case Expr.Kind.matchEnum:
 			return cbMatchEnum(*a.matchEnum);
 		case Expr.Kind.matchUnion:

@@ -285,6 +285,14 @@ immutable(Repr) reprOfConcreteExprKind(ref Alloc alloc, ref immutable ConcreteEx
 				reprOfConcreteExpr(alloc, it.then)]),
 		(ref immutable ConcreteExprKind.LocalRef it) =>
 			reprRecord(alloc, "local-ref", [reprOfConcreteLocalRef(*it.local)]),
+		(ref immutable ConcreteExprKind.LocalSet it) =>
+			reprRecord(alloc, "local-set", [
+				reprOfConcreteLocalRef(*it.local),
+				reprOfConcreteExpr(alloc, it.value)]),
+		(ref immutable ConcreteExprKind.Loop it) =>
+			reprRecord(alloc, "loop", [reprOfConcreteExpr(alloc, it.body_)]),
+		(ref immutable ConcreteExprKind.LoopBreak it) =>
+			reprRecord(alloc, "break", [reprOfConcreteExpr(alloc, it.value)]),
 		(ref immutable ConcreteExprKind.MatchEnum it) =>
 			reprRecord(alloc, "match-enum", [
 				reprOfConcreteExpr(alloc, it.matchedValue),

@@ -199,8 +199,9 @@ void writeLowLocalName(ref Writer writer, ref immutable MangledNames mangledName
 	matchLowLocalSource!(
 		void,
 		(ref immutable ConcreteLocal it) {
+			// Need to distinguish local names from function names
+			writeStatic(writer, "__local");
 			writeMangledName(writer, mangledNames, it.source.name);
-			writeNat(writer, it.index);
 		},
 		(ref immutable LowLocalSource.Generated it) {
 			writeMangledName(writer, mangledNames, it.name);

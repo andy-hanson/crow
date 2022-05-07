@@ -3,7 +3,7 @@ import
 	stdlib: free, malloc
 	string: memcpy, memset
 	../bits: ~, &
-	../bool: !, ||, bool, false, to-nat64, true
+	../bool: !, bool, false, to-nat64, true
 	../compare: !=, <, <=, >
 	../fun-util: subscript
 	../misc: new
@@ -40,7 +40,7 @@ mark bool(ctx mark-ctx, ptr-any any-const-ptr, size-bytes nat64) noctx unsafe su
 		hard-assert: (index wrap-add size-words) <= ctx.memory-size-words
 		mark-start = ctx.marks + index
 		mark-end = mark-start + size-words
-		false mark-range-recur mark-start, mark-end
+		mark-start mark-range mark-end
 	else
 		hard-assert: (index wrap-add size-words) > ctx.memory-size-words
 		false
@@ -56,13 +56,17 @@ words-of-bytes nat64(size-bytes nat64) noctx trusted
 round-up-to-multiple-of-8 nat64(n nat64) noctx
 	(n wrap-add 7) & ~7
 
-mark-range-recur bool(marked-anything bool, cur bool mut*, end bool mut*) noctx unsafe
-	if cur == end
-		marked-anything
-	else
-		new-marked-anything = marked-anything || !*cur
-		*cur := true
-		new-marked-anything mark-range-recur cur + 1, end
+mark-range bool(start bool mut*, end bool mut*) noctx unsafe
+	cur mut = start
+	marked-anything mut = false
+	loop
+		if cur == end
+			break marked-anything
+		else
+			if !*cur
+				*cur := true
+				marked-anything := true
+			cur := cur + 1
 
 mark-visit<a> void(mark-ctx mark-ctx, value a) noctx unsafe builtin
 

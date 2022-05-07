@@ -195,6 +195,12 @@ struct Diag {
 	struct LiteralOverflow {
 		immutable StructInst* type;
 	}
+	struct LocalNotMutable {
+		immutable Local* local;
+	}
+	struct LoopBreakNotAtTail {}
+	struct LoopNeedsExpectedType {}
+	struct LoopWithoutBreak {}
 	struct MatchCaseNamesDoNotMatch {
 		immutable Sym[] expectedNames;
 	}
@@ -290,6 +296,8 @@ struct Diag {
 	}
 	struct UnusedLocal {
 		immutable Local* local;
+		immutable bool usedGet;
+		immutable bool usedSet;
 	}
 	struct UnusedParam {
 		immutable Param* param;
@@ -346,6 +354,10 @@ struct Diag {
 		linkageWorseThanContainingFun,
 		linkageWorseThanContainingType,
 		literalOverflow,
+		localNotMutable,
+		loopBreakNotAtTail,
+		loopNeedsExpectedType,
+		loopWithoutBreak,
 		matchCaseNamesDoNotMatch,
 		matchCaseShouldHaveLocal,
 		matchCaseShouldNotHaveLocal,
@@ -408,6 +420,10 @@ struct Diag {
 		immutable LinkageWorseThanContainingFun linkageWorseThanContainingFun;
 		immutable LinkageWorseThanContainingType linkageWorseThanContainingType;
 		immutable LiteralOverflow literalOverflow;
+		immutable LocalNotMutable localNotMutable;
+		immutable LoopBreakNotAtTail loopBreakNotAtTail;
+		immutable LoopNeedsExpectedType loopNeedsExpectedType;
+		immutable LoopWithoutBreak loopWithoutBreak;
 		immutable MatchCaseNamesDoNotMatch matchCaseNamesDoNotMatch;
 		immutable MatchCaseShouldHaveLocal matchCaseShouldHaveLocal;
 		immutable MatchCaseShouldNotHaveLocal matchCaseShouldNotHaveLocal;
@@ -501,6 +517,10 @@ struct Diag {
 		kind = Kind.linkageWorseThanContainingType; linkageWorseThanContainingType = a;
 	}
 	@trusted immutable this(immutable LiteralOverflow a) { kind = Kind.literalOverflow; literalOverflow = a; }
+	immutable this(immutable LocalNotMutable a) { kind = Kind.localNotMutable; localNotMutable = a; }
+	immutable this(immutable LoopBreakNotAtTail a) { kind = Kind.loopBreakNotAtTail; loopBreakNotAtTail = a; }
+	immutable this(immutable LoopNeedsExpectedType a) { kind = Kind.loopNeedsExpectedType; loopNeedsExpectedType = a; }
+	immutable this(immutable LoopWithoutBreak a) { kind = Kind.loopWithoutBreak; loopWithoutBreak = a; }
 	@trusted immutable this(immutable MatchCaseNamesDoNotMatch a) {
 		kind = Kind.matchCaseNamesDoNotMatch; matchCaseNamesDoNotMatch = a;
 	}
@@ -643,6 +663,12 @@ struct Diag {
 		ref immutable Diag.LinkageWorseThanContainingType
 	) @safe @nogc pure nothrow cbLinkageWorseThanContainingType,
 	scope immutable(Out) delegate(ref immutable Diag.LiteralOverflow) @safe @nogc pure nothrow cbLiteralOverflow,
+	scope immutable(Out) delegate(ref immutable Diag.LocalNotMutable) @safe @nogc pure nothrow cbLocalNotMutable,
+	scope immutable(Out) delegate(ref immutable Diag.LoopBreakNotAtTail) @safe @nogc pure nothrow cbLoopBreakNotAtTail,
+	scope immutable(Out) delegate(
+		ref immutable Diag.LoopNeedsExpectedType
+	) @safe @nogc pure nothrow cbLoopNeedsExpectedType,
+	scope immutable(Out) delegate(ref immutable Diag.LoopWithoutBreak) @safe @nogc pure nothrow cbLoopWithoutBreak,
 	scope immutable(Out) delegate(
 		ref immutable Diag.MatchCaseNamesDoNotMatch
 	) @safe @nogc pure nothrow cbMatchCaseNamesDoNotMatch,
@@ -780,6 +806,14 @@ struct Diag {
 			return cbLinkageWorseThanContainingType(a.linkageWorseThanContainingType);
 		case Diag.Kind.literalOverflow:
 			return cbLiteralOverflow(a.literalOverflow);
+		case Diag.Kind.localNotMutable:
+			return cbLocalNotMutable(a.localNotMutable);
+		case Diag.Kind.loopBreakNotAtTail:
+			return cbLoopBreakNotAtTail(a.loopBreakNotAtTail);
+		case Diag.Kind.loopNeedsExpectedType:
+			return cbLoopNeedsExpectedType(a.loopNeedsExpectedType);
+		case Diag.Kind.loopWithoutBreak:
+			return cbLoopWithoutBreak(a.loopWithoutBreak);
 		case Diag.Kind.matchCaseNamesDoNotMatch:
 			return cbMatchCaseNamesDoNotMatch(a.matchCaseNamesDoNotMatch);
 		case Diag.Kind.matchCaseShouldHaveLocal:

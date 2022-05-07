@@ -218,6 +218,14 @@ immutable(Repr) reprOfLowExprKind(ref Alloc alloc, ref immutable LowExprKind a) 
 				reprOfLowExpr(alloc, it.then)]),
 		(ref immutable LowExprKind.LocalRef it) =>
 			reprRecord(alloc, "local-ref", [reprOfLowLocalSource(alloc, it.local.source)]),
+		(ref immutable LowExprKind.LocalSet it) =>
+			reprRecord(alloc, "local-set", [
+				reprOfLowLocalSource(alloc, it.local.source),
+				reprOfLowExpr(alloc, it.value)]),
+		(ref immutable LowExprKind.Loop it) =>
+			reprRecord(alloc, "loop", [reprOfLowExpr(alloc, it.body_)]),
+		(ref immutable LowExprKind.LoopBreak it) =>
+			reprRecord(alloc, "break", [reprOfLowExpr(alloc, it.value)]),
 		(ref immutable LowExprKind.MatchUnion it) =>
 			reprOfMatchUnion(alloc, it),
 		(ref immutable LowExprKind.ParamRef it) =>

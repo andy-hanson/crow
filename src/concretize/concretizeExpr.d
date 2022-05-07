@@ -62,6 +62,7 @@ import model.model :
 	FunInst,
 	FunKind,
 	Local,
+	LocalMutability,
 	matchCalled,
 	matchExpr,
 	matchVariableRef,
@@ -80,10 +81,10 @@ import util.col.arr : empty, emptyArr, only;
 import util.col.arrUtil : arrLiteral, map, mapZip;
 import util.col.mutArr : MutArr, mutArrSize, push;
 import util.col.mutDict : getOrAdd;
-import util.col.stackDict : StackDict, stackDictAdd, stackDictMustGet;
-import util.memory : allocate;
+import util.col.stackDict : StackDict2, stackDict2Add0, stackDict2Add1, stackDict2MustGet0, stackDict2MustGet1;
+import util.memory : allocate, allocateMut, overwriteMemory;
 import util.opt : force, has, none, Opt, some;
-import util.ptr : ptrTrustMe_mut;
+import util.ptr : castImmutable, castNonScope, ptrTrustMe_mut;
 import util.sourceRange : FileAndRange;
 import util.sym : shortSym, shortSymValue, SpecialSym, specialSymValue, Sym;
 import util.util : todo, unreachable, verify;
@@ -109,7 +110,6 @@ struct ConcretizeExprCtx {
 	immutable ContainingFunInfo containing;
 	immutable ConcreteFun* currentConcreteFunPtr; // This is the ConcreteFun* for a lambda, not its containing fun
 	size_t nextLambdaIndex = 0;
-	size_t nextLocalIndex = 0;
 
 	ref Alloc alloc() return scope {
 		return concretizeCtx.alloc;
@@ -144,6 +144,11 @@ struct LocalOrConstant {
 		immutable ConcreteLocal* local_;
 		immutable TypedConstant typedConstant_;
 	}
+}
+
+@trusted immutable(ConcreteLocal*) asLocal(scope immutable LocalOrConstant a) {
+	verify(a.kind_ == LocalOrConstant.Kind.local);
+	return castNonScope(a.local_);
 }
 
 @trusted T matchLocalOrConstant(T)(
@@ -418,20 +423,23 @@ immutable(ConcreteLocal*) makeLocalWorker(
 	immutable Local* source,
 	immutable ConcreteType type,
 ) {
-	immutable ConcreteLocal* res = allocate(ctx.alloc, immutable ConcreteLocal(source, ctx.nextLocalIndex, type));
-	ctx.nextLocalIndex++;
-	return res;
+	return allocate(ctx.alloc, immutable ConcreteLocal(source, type));
 }
 
 immutable(ConcreteLocal*) concretizeLocal(ref ConcretizeExprCtx ctx, immutable Local* local) {
 	return makeLocalWorker(ctx, local, getConcreteType(ctx, local.type));
 }
 
-alias Locals = immutable StackDict!(immutable Local*, immutable LocalOrConstant);
-alias addLocal = stackDictAdd!(immutable Local*, immutable LocalOrConstant);
-alias getLocal = stackDictMustGet!(immutable Local*, immutable LocalOrConstant);
+alias Locals = immutable StackDict2!(Local*, LocalOrConstant, Expr.Loop*, ConcreteExprKind.Loop*);
+alias addLocal = stackDict2Add0!(Local*, LocalOrConstant, Expr.Loop*, ConcreteExprKind.Loop*);
+alias addLoop = stackDict2Add1!(Local*, LocalOrConstant, Expr.Loop*, ConcreteExprKind.Loop*);
+alias getLocal = stackDict2MustGet0!(Local*, LocalOrConstant, Expr.Loop*, ConcreteExprKind.Loop*);
+//TODO: use an alias
+@trusted immutable(ConcreteExprKind.Loop*) getLoop(return scope ref immutable Locals locals, immutable Expr.Loop* key) {
+	return stackDict2MustGet1!(Local*, LocalOrConstant, Expr.Loop*, ConcreteExprKind.Loop*)(locals, key);
+}
 
-immutable(ConcreteExpr) concretizeWithLocal(
+@trusted immutable(ConcreteExpr) concretizeWithLocal(
 	ref ConcretizeExprCtx ctx,
 	scope ref immutable Locals locals,
 	immutable Local* modelLocal,
@@ -449,7 +457,7 @@ immutable(ConcreteExpr) concretizeLet(
 	ref immutable Expr.Let e,
 ) {
 	immutable ConcreteExpr value = concretizeExpr(ctx, locals, e.value);
-	immutable LocalOrConstant localOrConstant = isConstant(value.kind)
+	immutable LocalOrConstant localOrConstant = e.local.mutability == LocalMutability.immut && isConstant(value.kind)
 		? immutable LocalOrConstant(immutable TypedConstant(value.type, asConstant(value.kind)))
 		: immutable LocalOrConstant(concretizeLocal(ctx, e.local));
 	immutable ConcreteExpr then = concretizeWithLocal(ctx, locals, e.local, localOrConstant, e.then);
@@ -501,6 +509,44 @@ immutable(ConcreteExpr) concretizeLocalRef(
 				immutable ConcreteExprKind.LocalRef(local))),
 		(immutable TypedConstant it) =>
 			immutable ConcreteExpr(it.type, range, immutable ConcreteExprKind(it.value)));
+}
+
+immutable(ConcreteExpr) concretizeLocalSet(
+	ref ConcretizeExprCtx ctx,
+	immutable FileAndRange range,
+	scope ref immutable Locals locals,
+	ref immutable Expr.LocalSet a,
+) {
+	immutable ConcreteLocal* local = asLocal(getLocal(locals, a.local));
+	immutable ConcreteExpr value = concretizeExpr(ctx, locals, a.value);
+	return immutable ConcreteExpr(voidType(ctx.concretizeCtx), range, immutable ConcreteExprKind(
+		allocate(ctx.alloc, immutable ConcreteExprKind.LocalSet(castNonScope(local), value))));
+}
+
+immutable(ConcreteExpr) concretizeLoop(
+	ref ConcretizeExprCtx ctx,
+	immutable FileAndRange range,
+	scope ref immutable Locals locals,
+	ref immutable Expr.Loop a,
+) {
+	ConcreteExprKind.Loop* res = allocateMut(ctx.alloc, ConcreteExprKind.Loop());
+	immutable Locals localsWithLoop = addLoop(locals, &a, castImmutable(res));
+	overwriteMemory(&res.body_, concretizeExpr(ctx, localsWithLoop, a.body_));
+	return immutable ConcreteExpr(getConcreteType(ctx, a.type), range, immutable ConcreteExprKind(castImmutable(res)));
+}
+
+immutable(ConcreteExpr) concretizeLoopBreak(
+	ref ConcretizeExprCtx ctx,
+	immutable FileAndRange range,
+	scope ref immutable Locals locals,
+	ref immutable Expr.LoopBreak a,
+) {
+	immutable ConcreteExprKind.Loop* loop = castNonScope(getLoop(locals, a.loop));
+	immutable ConcreteExpr value = concretizeExpr(ctx, locals, a.value);
+	return immutable ConcreteExpr(
+		voidType(ctx.concretizeCtx),
+		range,
+		immutable ConcreteExprKind(allocate(ctx.alloc, immutable ConcreteExprKind.LoopBreak(loop, value))));
 }
 
 immutable(ConcreteExpr) concretizeMatchEnum(
@@ -639,6 +685,12 @@ immutable(ConcreteExpr) concretizeExpr(
 				immutable ConcreteExprKind(constantSym(ctx.concretizeCtx, e.value))),
 		(ref immutable Expr.LocalRef e) =>
 			concretizeLocalRef(range, locals, e.local),
+		(ref immutable Expr.LocalSet e) =>
+			concretizeLocalSet(ctx, range, locals, e),
+		(ref immutable Expr.Loop e) =>
+			concretizeLoop(ctx, range, locals, e),
+		(ref immutable Expr.LoopBreak e) =>
+			concretizeLoopBreak(ctx, range, locals, e),
 		(ref immutable Expr.MatchEnum e) =>
 			concretizeMatchEnum(ctx, range, locals, e),
 		(ref immutable Expr.MatchUnion e) =>

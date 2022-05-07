@@ -151,6 +151,16 @@ void checkLowExpr(
 		(ref immutable LowExprKind.LocalRef it) {
 			checkTypeEqual(ctx.ctx, type, it.local.type);
 		},
+		(ref immutable LowExprKind.LocalSet it) {
+			checkTypeEqual(ctx.ctx, type, voidType);
+			checkLowExpr(ctx, it.local.type, it.value);
+		},
+		(ref immutable LowExprKind.Loop it) {
+			checkLowExpr(ctx, voidType, it.body_);
+		},
+		(ref immutable LowExprKind.LoopBreak it) {
+			// TODO
+		},
 		(ref immutable LowExprKind.MatchUnion it) {
 			checkLowExpr(ctx, it.matchedValue.type, it.matchedValue);
 			zip!(LowType, LowExprKind.MatchUnion.Case)(

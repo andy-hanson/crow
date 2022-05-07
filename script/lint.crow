@@ -83,7 +83,7 @@ all-files file[]() summon
 
 # for some reason, dscanner doesn't give non-nested unions like Converter64 access:private
 .excluded-unknown-access sym[]()
-	"Converter32", "Converter64", "DCValue", "DoubleToUlong"
+	"Converter32", "Converter64", "DCValue", "DoubleToUlong", "StackDict2Key", "StackDict2Value"
 
 .imports-and-rest record
 	imports set sym

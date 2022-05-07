@@ -196,11 +196,6 @@ private void operation(alias cb)(
 	}
 }
 
-alias opAssertUnreachable = operationWithoutNext!opAssertUnreachableInner;
-private void opAssertUnreachableInner(Stacks, immutable Operation* cur) {
-	unreachable!void();
-}
-
 alias opBreak = operationWithoutNext!opBreakInner;
 private void opBreakInner(Stacks stacks, immutable Operation* cur) {
 	setNext(stacks, cur);

@@ -36,7 +36,7 @@ import util.col.arr : emptyArr, emptyArr_mut, sizeEq;
 import util.col.fullIndexDict : FullIndexDict;
 import util.col.mutArr : MutArr;
 import util.col.mutMaxArr : mapTo, MutMaxArr, push, tempAsArr;
-import util.opt : has, force, none, noneMut, Opt, some;
+import util.opt : has, force, none, noneMut, Opt, some, someMut;
 import util.perf : Perf;
 import util.sourceRange : FileAndRange, RangeWithinFile;
 import util.sym : AllSymbols, Sym;
@@ -70,7 +70,8 @@ immutable(bool) isInLambda(ref LocalsInfo a) {
 
 struct LocalNode {
 	Opt!(LocalNode*) prev;
-	bool isUsed;
+	bool isUsedGet;
+	bool isUsedSet;
 	immutable Local* local;
 }
 
@@ -184,11 +185,19 @@ immutable(bool) matchTypesNoDiagnostic(
 		(immutable(SetTypeResult.Fail)) => false);
 }
 
+struct LoopInfo {
+	immutable Expr.Loop* loop;
+	immutable Type type;
+	bool hasBreak;
+}
+
 struct Expected {
 	@safe @nogc pure nothrow:
 
 	Cell!(immutable Opt!Type) type;
 	InferringTypeArgs inferringTypeArgs;
+	//TODO: in case of a loop, 'type' isn't needed ... so save space by using a union
+	Opt!(LoopInfo*) loop;
 
 	this(immutable Opt!Type init) {
 		type = Cell!(immutable Opt!Type)(init);
@@ -197,6 +206,11 @@ struct Expected {
 	this(immutable Opt!Type init, InferringTypeArgs ita) {
 		type = Cell!(immutable Opt!Type)(init);
 		inferringTypeArgs = ita;
+	}
+	this(immutable Type init, return scope LoopInfo* l) {
+		type = Cell!(immutable Opt!Type)(some(init));
+		inferringTypeArgs = InferringTypeArgs.none;
+		loop = someMut(l);
 	}
 
 	static Expected infer() {
@@ -249,7 +263,9 @@ immutable(Opt!Type) tryGetDeeplyInstantiatedType(
 }
 
 immutable(Expr) bogus(ref Expected expected, immutable FileAndRange range) {
-	cellSet(expected.type, some(immutable Type(immutable Type.Bogus())));
+	immutable Opt!Type t = tryGetInferred(expected);
+	if (!has(t))
+		cellSet(expected.type, some(immutable Type(immutable Type.Bogus())));
 	return immutable Expr(range, immutable Expr.Bogus());
 }
 

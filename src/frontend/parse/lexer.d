@@ -445,6 +445,7 @@ public enum Token {
 	as, // 'as'
 	atLess, // '!<'
 	body, // 'body'
+	break_, // 'break'
 	builtin, // 'builtin'
 	builtinSpec, // 'builtin-spec'
 	braceLeft, // '{'
@@ -475,6 +476,7 @@ public enum Token {
 	import_, // 'import'
 	invalid, // invalid token (e.g. illegal character)
 	literal, // Use getCurLiteral
+	loop, // 'loop'
 	match, // 'match'
 	mut, // 'mut'
 	name, // Any non-keyword, non-operator name; use getCurSym with this
@@ -621,6 +623,8 @@ immutable(Token) tokenForSym(ref Lexer lexer, immutable Sym a) {
 			return Token.as;
 		case shortSymValue("body"):
 			return Token.body;
+		case shortSymValue("break"):
+			return Token.break_;
 		case shortSymValue("builtin"):
 			return Token.builtin;
 		case shortSymValue("builtin-spec"):
@@ -649,6 +653,8 @@ immutable(Token) tokenForSym(ref Lexer lexer, immutable Sym a) {
 			return Token.if_;
 		case shortSymValue("import"):
 			return Token.import_;
+		case shortSymValue("loop"):
+			return Token.loop;
 		case shortSymValue("match"):
 			return Token.match;
 		case shortSymValue("mut"):
@@ -855,8 +861,10 @@ immutable(bool) isExpressionStartToken(immutable Token a) {
 		case Token.unsafe:
 			return false;
 		case Token.bracketLeft:
+		case Token.break_:
 		case Token.if_:
 		case Token.literal:
+		case Token.loop:
 		case Token.match:
 		case Token.name:
 		case Token.operator:

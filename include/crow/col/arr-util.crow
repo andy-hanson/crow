@@ -159,54 +159,72 @@ Equivalent to calling `f[a[0]]`, `f[a[1]]`, etc.
 Calls `f` for each element in `a`.
 ###
 each<a> void(a a[], f act void(a)) trusted
-	a.begin-ptr each-recur a.end-ptr, f
-.each-recur<a> void(cur a*, end a*, f act void(a)) unsafe
-	unless cur == end
-		f[*cur]
-		cur + 1 each-recur end, f
+	cur mut = a begin-ptr
+	end = a end-ptr
+	loop
+		if cur == end
+			break
+		else
+			f[*cur]
+			cur := cur + 1
 
 ###
 Equivalent to calling `f[a[0], 0]`, `f[a[1], 1]`, etc.
 
 Calls `f` for each element in `a`, also providing the index.
 ###
-each-with-index<a> void(a a[], f act void(a, nat64))
-	a each-with-index-recur f, 0
-.each-with-index-recur<a> void(a a[], f act void(a, nat64), n nat64)
-	unless n == a.size
-		f[a[n], n]
-		a each-with-index-recur f, (n wrap-add 1)
+each-with-index<a> void(a a[], f act void(a, nat64)) trusted
+	cur mut = a begin-ptr
+	index mut = 0
+	size = a size
+	loop
+		if index == size
+			break
+		else
+			f[*cur, index]
+			cur := cur + 1
+			index := index wrap-add 1
 
 ###
 This is like `each` but with a state variable that gets transformed by each call to `f`.
 For example, for a 2-element array, this is equivalent to `f[f[val, a[0]], a[1]]`.
 ###
-fold<a, b> a(acc a, a b[], f act a(a, b)) trusted
-	acc fold-recur a.begin-ptr, a.end-ptr, f
-.fold-recur<a, b> a(acc a, cur b*, end b*, f act a(a, b)) unsafe
-	if cur == end
-		acc
-	else
-		f[acc, *cur] fold-recur cur + 1, end, f
+fold<a, b> a(init a, a b[], f act a(a, b)) trusted
+	acc mut = init
+	cur mut = a begin-ptr
+	end = a end-ptr
+	loop
+		if cur == end
+			break acc
+		else
+			acc := f[acc, *cur]
+			cur := cur + 1
 
 # Like `fold`, but provides the array index too.
-fold-with-index<a, b> a(acc a, a b[], f act a(a, b, nat64)) trusted
-	acc fold-with-index-recur 0, a.begin-ptr, a.end-ptr, f
-.fold-with-index-recur<a, b> a(acc a, index nat64, cur b*, end b*, f act a(a, b, nat64)) unsafe
-	if cur == end
-		acc
-	else
-		f[acc, *cur, index] fold-with-index-recur (index wrap-add 1), cur + 1, end, f
+fold-with-index<a, b> a(init a, a b[], f act a(a, b, nat64)) trusted
+	acc mut = init
+	cur mut = a begin-ptr
+	index mut = 0
+	end = a end-ptr
+	loop
+		if cur == end
+			break acc
+		else
+			acc := f[acc, *cur, index]
+			cur := cur + 1
+			index := index wrap-add 1
 
 # Like `fold`, but iterates right-to-left.
-fold-reverse<a, b> a(acc a, a b[], f act a(a, b)) trusted
-	acc fold-reverse-recur a.begin-ptr, a.end-ptr, f
-.fold-reverse-recur<a, b> a(acc a, begin b*, cur b*, f act a(a, b)) unsafe
-	if cur == begin
-		acc
-	else
-		prev = cur - 1
-		f[acc, *prev] fold-reverse-recur begin, prev, f
+fold-reverse<a, b> a(init a, a b[], f act a(a, b)) trusted
+	acc mut = init
+	cur mut = a end-ptr
+	begin = a begin-ptr
+	loop
+		if cur == begin
+			break acc
+		else
+			cur := cur - 1
+			acc := f[acc, *cur]
 
 ###
 Same as `a[0] fold a.tail, f`.
@@ -231,13 +249,15 @@ map-with-index<out, in> out[](a in[], f act out(in, nat64))
 
 # Like `map`, but `f` can return multiple values, that are all added to the output array>
 flat-map<out, in> out[](a in[], f act out[](in)) trusted
-	() flat-map-recur a.begin-ptr, a.end-ptr, f
-.flat-map-recur<out, in> out[](out arr-builder out, cur in*, end in*, f act out[](in)) unsafe
-	if cur == end
-		out finish
-	else
-		out ~~= f[*cur]
-		out flat-map-recur cur + 1, end, f
+	out arr-builder out = ()
+	cur mut = a begin-ptr
+	end = a end-ptr
+	loop
+		if cur == end
+			break out finish
+		else
+			out ~~= f[*cur]
+			cur := cur + 1
 
 # Array containing only the elements of `a` for which `f[a[i]]` returns true.
 filter<a> a[](a a[], f act bool(a))
@@ -246,26 +266,20 @@ filter<a> a[](a a[], f act bool(a))
 # Like `filter`, but also provides the element index.
 filter-with-index<a> a[](a a[], f act bool(a, nat64)) trusted
 	res a mut* = a.size alloc-uninitialized
-	end = res filter-with-index-recur a.begin-ptr, a.end-ptr, 0, f
-	res.as-const arr-from-begin-end end.as-const
-.filter-with-index-recur<a> a mut*
-	out a mut*
-	cur a*
-	end a*
-	index nat64
-	f act bool(a, nat64)
-spec
-	unsafe
-body
-	if cur == end
-		out
-	else
-		new-out = if f[*cur, index]
-			*out := *cur
-			out + 1
+	out mut = res
+	cur mut = a begin-ptr
+	end = a end-ptr
+	index mut = 0
+	loop
+		if cur == end
+			break
 		else
-			out
-		new-out filter-with-index-recur cur + 1, end, (index wrap-add 1), f
+			if f[*cur, index]
+				*out := *cur
+				out := out + 1
+			cur := cur + 1
+			index := index wrap-add 1
+	res.as-const arr-from-begin-end out.as-const
 
 # TODO: move to iter-utiil since this works with any foldable
 # Calls `f` on every element, and returns the number of times `f` returned `true`.
@@ -318,36 +332,46 @@ try-remove<a> a[]?(a a[], value a) equal<a>
 Returns the first element `x` of `a` such that `f[x]` is `true`.
 Returns an empty option iff `f` returns `false` for every element of `a`.
 ###
-find<a> a?(a a[], f act bool(a))
-	unless a is-empty
-		if f[a[0]]
-			a[0],
+find<a> a?(a a[], f act bool(a)) trusted
+	cur mut = a begin-ptr
+	end = a end-ptr
+	loop
+		if cur == end
+			break
+		elif f[*cur]
+			break *cur,
 		else
-			a.tail find f
+			cur := cur + 1
 
 ###
 For each element `x` in `a`, gets `y = f[x]` and returns `y` if it is a non-empty option.
 Returns an empty option iff `f` returns an empty option for every element of `a`.
 ###
-find-and-get<out, in> out?(a in[], f act out?(in))
-	unless a is-empty
-		if x ?= f[a[0]]
-			x,
+find-and-get<out, in> out?(a in[], f act out?(in)) trusted
+	cur mut = a begin-ptr
+	end = a end-ptr
+	loop
+		if cur == end
+			break
+		elif x ?= f[*cur]
+			break x,
 		else
-			a.tail find-and-get f
+			cur := cur + 1
 
 ###
 Returns the first index `i` for which `f[a[i]]` is true.
 Returns an empty option iff `f` returns `false` for every element of `a`.
 ###
-find-index<a> nat64?(a a[], f act bool(a))
-	a find-index-recur 0, f
-.find-index-recur<a> nat64?(a a[], index nat64, f act bool(a))
-	unless index == a.size
-		if f[a[index]]
-			index,
+find-index<a> nat64?(a a[], f act bool(a)) trusted
+	cur mut = a begin-ptr
+	end = a end-ptr
+	loop
+		if cur == end
+			break
+		elif f[*cur]
+			break cur - a.begin-ptr,
 		else
-			a find-index-recur (index wrap-add 1), f
+			cur := cur + 1
 
 # Like `find-index`, but searching starts from the end of `a` and moves left.
 find-index-reverse<a> nat64?(a a[], f act bool(a))

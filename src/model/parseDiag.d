@@ -64,9 +64,11 @@ struct ParseDiag {
 	struct LetMustHaveThen {}
 	struct NeedsBlockCtx {
 		enum Kind {
+			break_,
 			if_,
 			match,
 			lambda,
+			loop,
 			unless,
 		}
 		immutable Kind kind;

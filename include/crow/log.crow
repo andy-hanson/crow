@@ -28,10 +28,10 @@ that task will still have the default log handler.
 with-log-handler<a> a(handler log-handler, cb act a())
 	original-handler = get-log-handler
 	action act a() = () =>
-		log-handler := handler
+		handler set-log-handler
 		res = cb[]
-		log-handler := original-handler
+		original-handler set-log-handler
 		res
 	action catch err =>
-		log-handler := original-handler
+		original-handler set-log-handler
 		err throw

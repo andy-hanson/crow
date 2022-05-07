@@ -17,7 +17,6 @@ import interpret.bytecode :
 	subtractByteCodeIndex;
 import interpret.extern_ : DynCallType, DynCallSig, FunPtr;
 import interpret.runBytecode :
-	opAssertUnreachable,
 	opBreak,
 	opCall,
 	opCallFunPtr,
@@ -52,9 +51,9 @@ import model.model : EnumValue;
 import model.typeLayout : Pack;
 import util.alloc.alloc : Alloc;
 import util.col.arr : empty;
-import util.col.arrBuilder : add, ArrBuilder, finishArr;
+import util.col.arrBuilder : add, ArrBuilder, backUp, finishArr;
 import util.col.fullIndexDict : fullIndexDictOfArr;
-import util.col.mutArr : moveToArr_mut, MutArr, mutArrEnd, mutArrSize, push;
+import util.col.mutArr : moveToArr_mut, mustPop, MutArr, mutArrEnd, mutArrSize, push;
 import util.memory : initMemory, overwriteMemory;
 import util.util : divRoundUp, todo, verify;
 
@@ -107,10 +106,6 @@ void setStackEntryAfterParameters(ref ByteCodeWriter writer, immutable StackEntr
 
 immutable(ByteCodeIndex) nextByteCodeIndex(ref const ByteCodeWriter writer) {
 	return immutable ByteCodeIndex(mutArrSize(writer.operations));
-}
-
-void writeAssertUnreachable(ref ByteCodeWriter writer, immutable ByteCodeSource source) {
-	pushOperationFn(writer, source, &opAssertUnreachable);
 }
 
 // This special instruction returns instead of proceeding to the next operation.
@@ -433,6 +428,21 @@ void writeRemove(ref ByteCodeWriter writer, immutable ByteCodeSource source, imm
 	}
 }
 
+/*
+'returnEntries' is where we want to return value to end up. (It is currently at the end of the stack)
+*/
+void writeReturnData(ref ByteCodeWriter writer, immutable ByteCodeSource source, immutable StackEntries returnEntries) {
+	immutable StackEntry next = getNextStackEntry(writer);
+	immutable StackEntry returnEnd = stackEntriesEnd(returnEntries);
+	verify(stackEntriesEnd(returnEntries).entry <= next.entry);
+	if (returnEnd != next) {
+		immutable size_t offset = getStackOffsetTo(writer, returnEntries.start);
+		writeReturnDataInner(writer, source, offset, returnEntries.size);
+		verify(writer.nextStackEntry - (offset + 1) + returnEntries.size == returnEnd.entry);
+		writer.nextStackEntry = returnEnd.entry;
+	}
+}
+
 private void writeRemoveInner(
 	ref ByteCodeWriter writer,
 	immutable ByteCodeSource source,
@@ -441,10 +451,19 @@ private void writeRemoveInner(
 ) {
 	verify(removedWords <= offsetWords + 1);
 	immutable size_t returnedWords = offsetWords + 1 - removedWords;
-	verify(returnedWords <= offsetWords);
+	writeReturnDataInner(writer, source, offsetWords, returnedWords);
+}
+
+private void writeReturnDataInner(
+	ref ByteCodeWriter writer,
+	immutable ByteCodeSource source,
+	immutable size_t offsetWords,
+	immutable size_t returnedWords,
+) {
+	verify(returnedWords <= offsetWords + 1);
 
 	static foreach (immutable size_t possibleSize; 0 .. 8)
-		static foreach (immutable size_t possibleOffset; possibleSize .. 16)
+		static foreach (immutable size_t possibleOffset; possibleSize + 1 .. 16)
 			if (offsetWords == possibleOffset && returnedWords == possibleSize) {
 				pushOperationFn(writer, source, &opReturnData!(possibleOffset, possibleSize));
 				return;
@@ -473,8 +492,18 @@ immutable(ByteCodeIndex) writeJumpDelayed(ref ByteCodeWriter writer, immutable B
 }
 
 @trusted void fillInJumpDelayed(ref ByteCodeWriter writer, immutable ByteCodeIndex jumpIndex) {
-	immutable ByteCodeOffset offset = getByteCodeOffsetForJumpToCurrent(writer, jumpIndex);
-	writer.operations[jumpIndex.index] = immutable Operation(offset.offset);
+	if (jumpIndex.index == nextByteCodeIndex(writer).index) {
+		todo!void("!"); // I think this will work, but don't have code testing it yet
+		// This happens for a 'break' at the bottom of a loop.
+		// Just back up to remove the jump.
+		immutable Operation popped1 = popOperation(writer);
+		verify(popped1.ulong_ == 0);
+		immutable Operation popped0 = popOperation(writer);
+		verify(popped0.fn == &opJump);
+	} else {
+		immutable ByteCodeOffset offset = getByteCodeOffsetForJumpToCurrent(writer, jumpIndex);
+		writer.operations[jumpIndex.index] = immutable Operation(offset.offset);
+	}
 }
 
 private immutable(ByteCodeOffset) getByteCodeOffsetForJumpToCurrent(
@@ -617,6 +646,12 @@ void writeFnUnary(alias fn)(ref ByteCodeWriter writer, immutable ByteCodeSource 
 private void pushOperation(ref ByteCodeWriter writer, immutable ByteCodeSource source, immutable Operation value) {
 	push(*writer.alloc, writer.operations, value);
 	add(*writer.alloc, writer.sources, source);
+}
+
+private immutable(Operation) popOperation(ref ByteCodeWriter writer) {
+	immutable Operation res = mustPop(writer.operations);
+	backUp(writer.sources);
+	return res;
 }
 
 private void pushOperationFn(ref ByteCodeWriter writer, immutable ByteCodeSource source, immutable Operation.Fn fn) {

@@ -464,6 +464,8 @@ backtrace-entry record extern by-val
 	file-path c-str
 	# 1-indexed. 0 if unknown.
 	line-number nat32
+	# 1-indexed. 0 if unknown.
+	column-number nat32
 
 ###
 Type of a thrown exception.

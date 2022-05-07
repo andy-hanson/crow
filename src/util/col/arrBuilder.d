@@ -3,7 +3,7 @@ module util.col.arrBuilder;
 @safe @nogc pure nothrow:
 
 import util.alloc.alloc : Alloc;
-import util.col.mutArr : moveToArr, MutArr, mutArrClear, mutArrSize, push, pushAll, tempAsArr, tempAsArr_mut;
+import util.col.mutArr : moveToArr, MutArr, mutArrClear, mutArrSize, mustPop, push, pushAll, tempAsArr, tempAsArr_mut;
 import util.col.sortUtil : sortInPlace;
 import util.comparison : Comparer;
 
@@ -13,6 +13,10 @@ struct ArrBuilder(T) {
 
 void add(T)(scope ref Alloc alloc, ref ArrBuilder!T a, immutable T value) {
 	push(alloc, a.data, value);
+}
+
+void backUp(T)(ref ArrBuilder!T a) {
+	mustPop(a.data);
 }
 
 void addAll(T)(ref Alloc alloc, ref ArrBuilder!T a, scope immutable T[] value) {

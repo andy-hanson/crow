@@ -253,17 +253,24 @@ void writeParseDiag(
 		(ref immutable ParseDiag.NeedsBlockCtx it) {
 			writeStatic(writer, () {
 				final switch (it.kind) {
+					case ParseDiag.NeedsBlockCtx.Kind.break_:
+						return "'break'";
 					case ParseDiag.NeedsBlockCtx.Kind.if_:
 						return "'if'";
 					case ParseDiag.NeedsBlockCtx.Kind.match:
 						return "'match'";
 					case ParseDiag.NeedsBlockCtx.Kind.lambda:
 						return "lambda";
+					case ParseDiag.NeedsBlockCtx.Kind.loop:
+						return "loop";
 					case ParseDiag.NeedsBlockCtx.Kind.unless:
 						return "'unless'";
 				}
 			}());
-			writeStatic(writer, " expression must appear in a context where it can be followed by an indented block");
+			writeStatic(writer, " expression must appear ");
+			writeStatic(writer, it.kind == ParseDiag.NeedsBlockCtx.Kind.break_
+				? "on its own line"
+				: "in a context where it can be followed by an indented block");
 		},
 		(ref immutable ParseDiag.RelativeImportReachesPastRoot d) {
 			writeStatic(writer, "importing ");
@@ -688,6 +695,21 @@ void writeDiag(
 			writeStatic(writer, "literal exceeds the range of a ");
 			writeStructInst(writer, allSymbols, *d.type);
 		},
+		(ref immutable Diag.LocalNotMutable d) {
+			writeStatic(writer, "local variable ");
+			writeName(writer, allSymbols, d.local.name);
+			writeStatic(writer, " was not marked 'mut'");
+		},
+		(ref immutable Diag.LoopBreakNotAtTail d) {
+			writeStatic(writer, "'break' must be appear at the tail of a loop");
+		},
+		(ref immutable Diag.LoopNeedsExpectedType d) {
+			writeStatic(writer, "can not infer type of loop; provide an expected type");
+			writeStatic(writer, " (for example, by making it the return expression of a function)");
+		},
+		(ref immutable Diag.LoopWithoutBreak d) {
+			writeStatic(writer, "'loop' has no 'break'");
+		},
 		(ref immutable Diag.MatchCaseNamesDoNotMatch d) {
 			writeStatic(writer, "expected the case names to be: ");
 			writeWithCommas!Sym(writer, d.expectedNames, (ref immutable Sym name) {
@@ -857,7 +879,9 @@ void writeDiag(
 		(ref immutable Diag.UnusedLocal it) {
 			writeStatic(writer, "local ");
 			writeSym(writer, allSymbols, it.local.name);
-			writeStatic(writer, " is unused");
+			writeStatic(writer, it.usedGet
+				? " is mutable but never reassigned"
+				: (it.usedSet ? " is assigned to but unused" : " is unused"));
 		},
 		(ref immutable Diag.UnusedParam it) {
 			writeStatic(writer, "parameter ");
@@ -990,6 +1014,8 @@ immutable(string) describeTokenForUnexpected(immutable Token token) {
 			return "unexpected '@<'";
 		case Token.body:
 			return "unexpected keyword 'body'";
+		case Token.break_:
+			return "unexpected keyword 'break'";
 		case Token.builtin:
 			return "unexpected keyword 'builtin'";
 		case Token.builtinSpec:
@@ -1049,6 +1075,8 @@ immutable(string) describeTokenForUnexpected(immutable Token token) {
 			return unreachable!string;
 		case Token.literal:
 			return "unexpected literal expression";
+		case Token.loop:
+			return "unexpected keyword 'loop'";
 		case Token.match:
 			return "unexpected keyword 'match'";
 		case Token.mut:

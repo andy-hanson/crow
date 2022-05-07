@@ -79,6 +79,7 @@ src_files_common = src\concretize\allConstantsBuilder.d \
 	src\interpret\fakeExtern.d \
 	src\interpret\funToReferences.d \
 	src\interpret\generateBytecode.d \
+	src\interpret\generateExpr.d \
 	src\interpret\generateText.d \
 	src\interpret\runBytecode.d \
 	src\interpret\stacks.d \

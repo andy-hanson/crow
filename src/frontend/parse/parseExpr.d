@@ -12,6 +12,7 @@ import frontend.parse.ast :
 	ExprAstKind,
 	FunPtrAst,
 	IdentifierAst,
+	IdentifierSetAst,
 	IfAst,
 	IfOptionAst,
 	InterpolatedAst,
@@ -21,6 +22,8 @@ import frontend.parse.ast :
 	LambdaAst,
 	LetAst,
 	LiteralAst,
+	LoopAst,
+	LoopBreakAst,
 	MatchAst,
 	NameAndRange,
 	NameOrUnderscoreOrNone,
@@ -46,6 +49,7 @@ import frontend.parse.lexer :
 	lookaheadWillTakeEqualsOrThen,
 	lookaheadWillTakeArrow,
 	nextToken,
+	peekToken,
 	peekTokenExpression,
 	QuoteKind,
 	range,
@@ -352,71 +356,77 @@ immutable(ExprAndDedent) parseMutEquals(
 	immutable uint curIndent,
 ) {
 	immutable ExprAndDedent initAndDedent = parseExprNoLet(lexer, curIndent);
-	struct FromBefore {
-		immutable Sym name;
-		immutable ExprAst[] args;
-		immutable TypeAst[] typeArgs;
-		immutable CallAst.Style style;
+	if (isIdentifier(before.kind))
+		return immutable ExprAndDedent(
+			immutable ExprAst(
+				range(lexer, start),
+				immutable ExprAstKind(allocate(lexer.alloc, immutable IdentifierSetAst(
+					asIdentifier(before.kind).name,
+					initAndDedent.expr)))),
+			initAndDedent.dedents);
+	else if (isCall(before.kind)) {
+		immutable CallAst beforeCall = asCall(before.kind);
+		immutable CallAst.Style style = () {
+			final switch (beforeCall.style) {
+				case CallAst.Style.dot:
+					return CallAst.Style.setDot;
+				case CallAst.style.emptyParens:
+					// `() := foo` is a syntax error
+					return todo!(immutable CallAst.Style)("!");
+				case CallAst.Style.single:
+					// `a@<t> := foo` is a syntax error
+					return todo!(immutable CallAst.Style)("!");
+				case CallAst.Style.subscript:
+					return CallAst.Style.setSubscript;
+				case CallAst.Style.prefixOperator:
+					if (beforeCall.funName.name == symForOperator(Operator.times))
+						return CallAst.Style.setDeref;
+					else
+						// This is `~x := foo` or `-x := foo`. Have a diagnostic for this.
+						return todo!(immutable CallAst.Style)("!");
+				case CallAst.Style.suffixOperator:
+					// `x! := foo`
+					return todo!(immutable CallAst.Style)("!");
+				case CallAst.Style.comma:
+				case CallAst.Style.infix:
+				case CallAst.Style.prefix:
+				case CallAst.Style.setDeref:
+				case CallAst.Style.setDot:
+				case CallAst.Style.setSubscript:
+					// We did parseExprBeforeCall before this, which can't parse any of these
+					return unreachable!(immutable CallAst.Style)();
+			}
+		}();
+		return makeCall(
+			lexer, start, initAndDedent, beforeCall.funNameName, beforeCall.args, beforeCall.typeArgs, style);
+	} else {
+		addDiag(lexer, range(lexer, start), immutable ParseDiag(immutable ParseDiag.CantPrecedeMutEquals()));
+		return makeCall(
+			lexer, start, initAndDedent, shortSym("bogus"), emptyArr!ExprAst, emptyArr!TypeAst, CallAst.Style.setDot);
 	}
-	immutable FromBefore fromBefore = () {
-		if (isIdentifier(before.kind))
-			return immutable FromBefore(
-				asIdentifier(before.kind).name,
-				emptyArr!ExprAst,
-				emptyArr!TypeAst,
-				CallAst.Style.setSingle);
-		else if (isCall(before.kind)) {
-			immutable CallAst beforeCall = asCall(before.kind);
-			immutable CallAst.Style style = () {
-				final switch (beforeCall.style) {
-					case CallAst.Style.dot:
-						return CallAst.Style.setDot;
-					case CallAst.style.emptyParens:
-						// `() := foo` is a syntax error
-						return todo!(immutable CallAst.Style)("!");
-					case CallAst.Style.single:
-						return CallAst.Style.setSingle;
-					case CallAst.Style.subscript:
-						return CallAst.Style.setSubscript;
-					case CallAst.Style.prefixOperator:
-						if (beforeCall.funName.name == symForOperator(Operator.times))
-							return CallAst.Style.setDeref;
-						else
-							// This is `~x := foo` or `-x := foo`. Have a diagnostic for this.
-							return todo!(immutable CallAst.Style)("!");
-					case CallAst.Style.suffixOperator:
-						// `x! := foo`
-						return todo!(immutable CallAst.Style)("!");
-					case CallAst.Style.comma:
-					case CallAst.Style.infix:
-					case CallAst.Style.prefix:
-					case CallAst.Style.setDeref:
-					case CallAst.Style.setDot:
-					case CallAst.Style.setSingle:
-					case CallAst.Style.setSubscript:
-						// We did parseExprBeforeCall before this, which can't parse any of these
-						return unreachable!(immutable CallAst.Style)();
-				}
-			}();
-			return immutable FromBefore(beforeCall.funNameName, beforeCall.args, beforeCall.typeArgs, style);
-		} else {
-			addDiag(lexer, range(lexer, start), immutable ParseDiag(immutable ParseDiag.CantPrecedeMutEquals()));
-			return immutable FromBefore(shortSym("bogus"), emptyArr!ExprAst, emptyArr!TypeAst, CallAst.Style.setSingle);
-		}
-	}();
+}
+
+immutable(ExprAndDedent) makeCall(
+	scope ref Lexer lexer,
+	immutable Pos start,
+	immutable ExprAndDedent initAndDedent,
+	immutable Sym name,
+	immutable ExprAst[] args,
+	immutable TypeAst[] typeArgs,
+	immutable CallAst.Style style,
+) {
 	// TODO: range is wrong..
 	immutable ExprAst call = immutable ExprAst(
 		range(lexer, start),
 		immutable ExprAstKind(immutable CallAst(
-			fromBefore.style,
+			style,
 			immutable NameAndRange(
-				before.range.start,
-				fromBefore.style == CallAst.Style.setDeref
-					? shortSym("set-deref")
-					: prependSet(lexer.allSymbols, fromBefore.name)),
-			fromBefore.typeArgs,
-			append(lexer.alloc, fromBefore.args, initAndDedent.expr))));
+				start,
+				style == CallAst.Style.setDeref ? shortSym("set-deref") : prependSet(lexer.allSymbols, name)),
+			typeArgs,
+			append(lexer.alloc, args, initAndDedent.expr))));
 	return immutable ExprAndDedent(call, initAndDedent.dedents);
+
 }
 
 immutable(ExprAndDedent) mustParseNextLines(
@@ -828,6 +838,27 @@ immutable(ExprAndDedent) parseUnless(scope ref Lexer lexer, immutable Pos start,
 		thenAndDedent.dedents);
 }
 
+immutable(ExprAndDedent) parseLoop(scope ref Lexer lexer, immutable Pos start, immutable uint curIndent) {
+	immutable ExprAndDedent bodyAndDedent = takeIndentOrFail_ExprAndDedent(lexer, curIndent, () =>
+		parseStatementsAndExtraDedents(lexer, curIndent + 1));
+	return immutable ExprAndDedent(
+		immutable ExprAst(
+			range(lexer, start),
+			immutable ExprAstKind(allocate(lexer.alloc, immutable LoopAst(bodyAndDedent.expr)))),
+		bodyAndDedent.dedents);
+}
+
+immutable(ExprAndDedent) parseLoopBreak(scope ref Lexer lexer, immutable Pos start, immutable uint curIndent) {
+	immutable OptExprAndDedent valueAndDedent = peekToken(lexer, Token.newline)
+		? immutable OptExprAndDedent(none!ExprAst, takeNewlineOrDedentAmount(lexer, curIndent))
+		: toOptExprAndDedent(parseExprNoLet(lexer, curIndent));
+	return immutable ExprAndDedent(
+		immutable ExprAst(
+			range(lexer, start),
+			immutable ExprAstKind(allocate(lexer.alloc, immutable LoopBreakAst(valueAndDedent.expr)))),
+		valueAndDedent.dedents);
+}
+
 immutable(ExprAndDedent) takeIndentOrFail_ExprAndDedent(
 	scope ref Lexer lexer,
 	immutable uint curIndent,
@@ -976,6 +1007,10 @@ immutable(ExprAndMaybeDedent) parseExprBeforeCall(scope ref Lexer lexer, immutab
 					immutable ExprAst interpolated = takeInterpolated(lexer, start, part.text, quoteKind);
 					return noDedent(tryParseDotsAndSubscripts(lexer, interpolated));
 			}
+		case Token.break_:
+			return isAllowBlock(allowedBlock)
+				? toMaybeDedent(parseLoopBreak(lexer, start, asAllowBlock(allowedBlock).curIndent))
+				: exprBlockNotAllowed(lexer, start, ParseDiag.NeedsBlockCtx.Kind.break_);
 		case Token.if_:
 			return isAllowBlock(allowedBlock)
 				? toMaybeDedent(parseIf(lexer, start, asAllowBlock(allowedBlock).curIndent))
@@ -1001,6 +1036,10 @@ immutable(ExprAndMaybeDedent) parseExprBeforeCall(scope ref Lexer lexer, immutab
 				return handlePrefixOperator(lexer, allowedBlock, start, getCurOperator(lexer));
 		case Token.literal:
 			return handleLiteral(lexer, start, getCurLiteral(lexer));
+		case Token.loop:
+			return isAllowBlock(allowedBlock)
+				? toMaybeDedent(parseLoop(lexer, start, asAllowBlock(allowedBlock).curIndent))
+				: exprBlockNotAllowed(lexer, start, ParseDiag.NeedsBlockCtx.Kind.loop);
 		case Token.underscore:
 			return tryTakeToken(lexer, Token.arrowLambda)
 				? parseLambdaAfterArrow(lexer, start, allowedBlock, none!Sym)
@@ -1170,18 +1209,20 @@ immutable(ExprAndDedent) parseSingleStatementLine(scope ref Lexer lexer, immutab
 immutable(ExprAndDedent) parseEqualsOrThen(scope ref Lexer lexer, immutable uint curIndent) {
 	immutable Pos start = curPos(lexer);
 	immutable OptNameAndRange name = takeOptNameAndRange(lexer);
+	immutable bool mut = tryTakeToken(lexer, Token.mut);
 	immutable TypeAndEqualsOrThen te = parseTypeAndEqualsOrThen(lexer);
 	immutable ExprAndDedent initAndDedent = parseExprNoLet(lexer, curIndent);
 	immutable ExprAndDedent thenAndDedent =
 		mustParseNextLines(lexer, start, initAndDedent.dedents, curIndent);
 	immutable ExprAstKind exprKind =
-		letOrThen(lexer.alloc, name, te.type, te.equalsOrThen, initAndDedent.expr, thenAndDedent.expr);
+		letOrThen(lexer.alloc, name, mut, te.type, te.equalsOrThen, initAndDedent.expr, thenAndDedent.expr);
 	return immutable ExprAndDedent(immutable ExprAst(range(lexer, start), exprKind), thenAndDedent.dedents);
 }
 
 immutable(ExprAstKind) letOrThen(
 	scope ref Alloc alloc,
 	immutable OptNameAndRange name,
+	immutable bool mut,
 	immutable Opt!(TypeAst*) type,
 	immutable EqualsOrThen kind,
 	immutable ExprAst init,
@@ -1189,8 +1230,9 @@ immutable(ExprAstKind) letOrThen(
 ) {
 	final switch (kind) {
 		case EqualsOrThen.equals:
-			return immutable ExprAstKind(allocate(alloc, immutable LetAst(name.name, type, init, then)));
+			return immutable ExprAstKind(allocate(alloc, immutable LetAst(name.name, mut, type, init, then)));
 		case EqualsOrThen.then:
+			if (mut) todo!void("no 'mut' for 'then'");
 			// TODO: use the type (need lambda parameter types)
 			return immutable ExprAstKind(allocate(alloc, immutable ThenAst(name, init, then)));
 	}

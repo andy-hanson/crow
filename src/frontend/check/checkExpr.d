@@ -19,10 +19,12 @@ import frontend.check.inferringType :
 	isBogus,
 	LocalNode,
 	LocalsInfo,
+	LoopInfo,
 	mustSetType,
 	programState,
 	rangeInFile2,
 	shallowInstantiateType,
+	tryGetDeeplyInstantiatedType,
 	tryGetDeeplyInstantiatedTypeFor,
 	tryGetInferred,
 	typeFromAst2,
@@ -37,6 +39,7 @@ import frontend.parse.ast :
 	ExprAstKind,
 	FunPtrAst,
 	IdentifierAst,
+	IdentifierSetAst,
 	IfAst,
 	IfOptionAst,
 	InterpolatedAst,
@@ -44,6 +47,8 @@ import frontend.parse.ast :
 	LambdaAst,
 	LetAst,
 	LiteralAst,
+	LoopAst,
+	LoopBreakAst,
 	MatchAst,
 	matchExprAstKind,
 	matchInterpolatedPart,
@@ -83,6 +88,7 @@ import model.model :
 	isStructInst,
 	isTemplate,
 	Local,
+	LocalMutability,
 	matchArity,
 	matchCalledDecl,
 	matchStructBody,
@@ -112,12 +118,12 @@ import util.col.mutArr : MutArr, mutArrSize, push, tempAsArr;
 import util.col.mutMaxArr : fillMutMaxArr, initializeMutMaxArr, mutMaxArrSize, push, pushLeft, tempAsArr;
 import util.col.str : copyToSafeCStr;
 import util.conv : safeToUshort, safeToUint;
-import util.memory : allocate, initMemory;
+import util.memory : allocate, allocateMut, initMemory, overwriteMemory;
 import util.opt : force, has, none, noneMut, Opt, some, someMut;
 import util.ptr : castImmutable, ptrTrustMe_mut;
 import util.sourceRange : FileAndRange, Pos, RangeWithinFile;
 import util.sym : Operator, shortSym, Sym, symForOperator, symOfStr;
-import util.util : todo;
+import util.util : todo, verify;
 
 immutable(Expr) checkFunctionBody(
 	ref CheckCtx checkCtx,
@@ -192,7 +198,8 @@ immutable(Expr) checkAndExpect(
 	scope ref immutable ExprAst ast,
 	immutable Type expected,
 ) {
-	return checkAndExpect(ctx, locals, ast, some(expected)).expr;
+	Expected et = Expected(some(expected));
+	return checkExpr(ctx, locals, ast, et);
 }
 
 immutable(Expr) checkAndExpect(
@@ -251,6 +258,17 @@ immutable(Expr) checkUnless(
 	return immutable Expr(range, allocate(ctx.alloc, immutable Expr.Cond(inferred(expected), cond, then, else_)));
 }
 
+immutable(Expr) checkExprOrEmptyNewAndExpect(
+	ref ExprCtx ctx,
+	ref LocalsInfo locals,
+	immutable FileAndRange range,
+	ref immutable Opt!ExprAst ast,
+	immutable Type expected,
+) {
+	Expected e = Expected(some(expected));
+	return checkExprOrEmptyNew(ctx, locals, range, ast, e);
+}
+
 immutable(Expr) checkExprOrEmptyNew(
 	ref ExprCtx ctx,
 	ref LocalsInfo locals,
@@ -300,6 +318,7 @@ immutable(Expr) checkIfOption(
 		immutable Local* local = allocate(ctx.alloc, immutable Local(
 			rangeInFile2(ctx, rangeOfNameAndRange(ast.name, ctx.allSymbols)),
 			ast.name.name,
+			LocalMutability.immut,
 			innerType));
 		immutable Expr then = checkWithLocal(ctx, locals, local, ast.then, expected);
 		immutable Expr else_ = checkExprOrEmptyNew(ctx, locals, range, ast.else_, expected);
@@ -439,21 +458,39 @@ struct VariableRefAndType {
 	immutable Type type;
 }
 
-immutable(Opt!VariableRefAndType) getIdentifierNonCall(ref Alloc alloc, ref LocalsInfo locals, immutable Sym name) {
+immutable(Opt!VariableRefAndType) getIdentifierNonCall(
+	ref Alloc alloc,
+	ref LocalsInfo locals,
+	immutable Sym name,
+	immutable LocalAccessKind accessKind,
+) {
 	immutable Opt!(Local*) fromLocals = has(locals.locals)
-		? getIdentifierInLocals(*force(locals.locals), name)
+		? getIdentifierInLocals(*force(locals.locals), name, accessKind)
 		: none!(Local*);
 	return has(fromLocals)
 		? some(immutable VariableRefAndType(immutable VariableRef(force(fromLocals)), force(fromLocals).type))
-		: getIdentifierFromFunOrLambda(alloc, name, *locals.funOrLambda);
+		: getIdentifierFromFunOrLambda(alloc, name, *locals.funOrLambda, accessKind);
 }
 
-immutable(Opt!(Local*)) getIdentifierInLocals(ref LocalNode node, immutable Sym name) {
+enum LocalAccessKind { get, set }
+
+immutable(Opt!(Local*)) getIdentifierInLocals(
+	ref LocalNode node,
+	immutable Sym name,
+	immutable LocalAccessKind accessKind,
+) {
 	if (node.local.name == name) {
-		node.isUsed = true;
+		final switch (accessKind) {
+			case LocalAccessKind.get:
+				node.isUsedGet = true;
+				break;
+			case LocalAccessKind.set:
+				node.isUsedSet = true;
+				break;
+		}
 		return some(node.local);
 	} else if (has(node.prev))
-		return getIdentifierInLocals(*force(node.prev), name);
+		return getIdentifierInLocals(*force(node.prev), name, accessKind);
 	else
 		return none!(Local*);
 }
@@ -462,6 +499,7 @@ immutable(Opt!VariableRefAndType) getIdentifierFromFunOrLambda(
 	ref Alloc alloc,
 	immutable Sym name,
 	ref FunOrLambdaInfo info,
+	immutable LocalAccessKind accessKind,
 ) {
 	foreach (immutable Param* param; ptrsRange(info.params))
 		if (has(param.name) && force(param.name) == name) {
@@ -476,7 +514,7 @@ immutable(Opt!VariableRefAndType) getIdentifierFromFunOrLambda(
 				field.type));
 
 	immutable(Opt!VariableRefAndType) optOuter = has(info.outer)
-		? getIdentifierNonCall(alloc, *force(info.outer), name)
+		? getIdentifierNonCall(alloc, *force(info.outer), name, accessKind)
 		: none!VariableRefAndType;
 	if (has(optOuter)) {
 		immutable VariableRefAndType outer = force(optOuter);
@@ -491,7 +529,7 @@ immutable(Opt!VariableRefAndType) getIdentifierFromFunOrLambda(
 }
 
 immutable(bool) nameIsParameterOrLocalInScope(ref Alloc alloc, ref LocalsInfo locals, immutable Sym name) {
-	immutable Opt!VariableRefAndType var = getIdentifierNonCall(alloc, locals, name);
+	immutable Opt!VariableRefAndType var = getIdentifierNonCall(alloc, locals, name, LocalAccessKind.get);
 	return has(var);
 }
 
@@ -502,13 +540,60 @@ immutable(Expr) checkIdentifier(
 	ref immutable IdentifierAst ast,
 	ref Expected expected,
 ) {
-	immutable Sym name = ast.name;
-	immutable Opt!VariableRefAndType res = getIdentifierNonCall(ctx.alloc, locals, name);
+	immutable Opt!VariableRefAndType res = getIdentifierNonCall(ctx.alloc, locals, ast.name, LocalAccessKind.get);
 	if (has(res)) {
 		immutable Expr expr = toExpr(range, force(res).variableRef);
 		return check(ctx, expected, force(res).type, expr);
 	} else
-		return checkIdentifierCall(ctx, locals, range, name, expected);
+		return checkIdentifierCall(ctx, locals, range, ast.name, expected);
+}
+
+immutable(Expr) checkIdentifierSet(
+	ref ExprCtx ctx,
+	ref LocalsInfo locals,
+	immutable FileAndRange range,
+	ref immutable IdentifierSetAst ast,
+	ref Expected expected,
+) {
+	immutable Opt!(Local*) optLocal = getLocalForSet(ctx, locals, range, ast.name);
+	if (has(optLocal)) {
+		immutable Local* local = force(optLocal);
+		immutable Expr value = checkAndExpect(ctx, locals, ast.value, local.type);
+		immutable Expr expr = immutable Expr(range, allocate(ctx.alloc, immutable Expr.LocalSet(local, value)));
+		return check(ctx, expected, immutable Type(ctx.commonTypes.void_), expr);
+	} else
+		return bogus(expected, range);
+}
+
+immutable(Opt!(Local*)) getLocalForSet(
+	ref ExprCtx ctx,
+	ref LocalsInfo locals,
+	immutable FileAndRange range,
+	immutable Sym name,
+) {
+	immutable Opt!VariableRefAndType res = getIdentifierNonCall(ctx.alloc, locals, name, LocalAccessKind.set);
+	if (has(res)) {
+		return matchVariableRef!(immutable Opt!(Local*))(
+			force(res).variableRef,
+			(immutable Param*) {
+				todo!void("diag: can't mutate param");
+				return none!(Local*);
+			},
+			(immutable Local* local) {
+				final switch (local.mutability) {
+					case LocalMutability.immut:
+						addDiag2(ctx, range, immutable Diag(immutable Diag.LocalNotMutable(local)));
+						return none!(Local*);
+					case LocalMutability.mut:
+						return some(local);
+				}
+			},
+			(immutable Expr.ClosureFieldRef) {
+				todo!void("can't mutate closure");
+				return none!(Local*);
+			});
+	} else
+		return none!(Local*);
 }
 
 immutable(Expr) toExpr(immutable FileAndRange range, immutable VariableRef a) {
@@ -718,13 +803,17 @@ immutable(Expr) checkWithLocal(
 			immutable Diag.DuplicateDeclaration(Diag.DuplicateDeclaration.Kind.paramOrLocal, local.name)));
 		return bogus(expected, rangeInFile2(ctx, ast.range));
 	} else {
-		LocalNode localNode = LocalNode(locals.locals, false, local);
+		LocalNode localNode = LocalNode(locals.locals, false, false, local);
 		LocalsInfo newLocals = LocalsInfo(locals.funOrLambda, someMut(ptrTrustMe_mut(localNode)));
 		immutable Expr res = checkExpr(ctx, newLocals, ast, expected);
-		if (!localNode.isUsed)
-			addDiag2(ctx, local.range, immutable Diag(immutable Diag.UnusedLocal(local)));
+		addUnusedLocalDiags(ctx, local, localNode);
 		return res;
 	}
+}
+
+void addUnusedLocalDiags(ref ExprCtx ctx, immutable Local* local, scope ref LocalNode node) {
+	if (!node.isUsedGet || (!node.isUsedSet && local.mutability != LocalMutability.immut))
+		addDiag2(ctx, local.range, immutable Diag(immutable Diag.UnusedLocal(local, node.isUsedGet, node.isUsedSet)));
 }
 
 immutable(Param[]) checkParamsForLambda(
@@ -896,10 +985,12 @@ immutable(Expr) checkLet(
 		immutable Local* local = allocate(ctx.alloc, immutable Local(
 			rangeInFile2(ctx, rangeOfOptNameAndRange(immutable OptNameAndRange(range.start, ast.name), ctx.allSymbols)),
 			force(ast.name),
+			ast.mut ? LocalMutability.mut : LocalMutability.immut,
 			init.type));
 		immutable Expr then = checkWithLocal(ctx, locals, local, ast.then, expected);
 		return immutable Expr(range, allocate(ctx.alloc, immutable Expr.Let(local, init.expr, then)));
 	} else {
+		if (ast.mut) todo!void("'mut' makes no sense for nameless local");
 		immutable Expr then = checkExpr(ctx, locals, ast.then, expected);
 		return immutable Expr(range,
 			allocate(ctx.alloc, immutable Expr.Seq(
@@ -983,6 +1074,51 @@ immutable(Opt!EnumOrUnionAndMembers) getEnumOrUnionBody(immutable Type a) {
 					none!EnumOrUnionAndMembers,
 				(ref immutable StructBody.Union it) =>
 					some(immutable EnumOrUnionAndMembers(immutable UnionAndMembers(structInst, it.members)))));
+}
+
+immutable(Expr) checkLoop(
+	ref ExprCtx ctx,
+	ref LocalsInfo locals,
+	immutable FileAndRange range,
+	ref immutable LoopAst ast,
+	ref Expected expected,
+) {
+	immutable Opt!Type expectedType = tryGetInferred(expected);
+	if (has(expectedType)) {
+		immutable Type type = force(expectedType);
+		Expr.Loop* loop =
+			allocateMut(ctx.alloc, Expr.Loop(type, immutable Expr(FileAndRange.empty, immutable Expr.Bogus())));
+		LoopInfo info = LoopInfo(castImmutable(loop), type, false);
+		scope Expected bodyExpected = Expected(immutable Type(ctx.commonTypes.void_), &info);
+		immutable Expr body_ = checkExpr(ctx, locals, ast.body_, bodyExpected);
+		overwriteMemory(&loop.body_, body_);
+		if (!info.hasBreak)
+			addDiag2(ctx, range, immutable Diag(immutable Diag.LoopWithoutBreak()));
+		return immutable Expr(range, castImmutable(loop));
+	} else {
+		addDiag2(ctx, range, immutable Diag(immutable Diag.LoopNeedsExpectedType()));
+		return bogus(expected, range);
+	}
+}
+
+immutable(Expr) checkLoopBreak(
+	ref ExprCtx ctx,
+	ref LocalsInfo locals,
+	immutable FileAndRange range,
+	ref immutable LoopBreakAst ast,
+	ref Expected expected,
+) {
+	if (!has(expected.loop)) {
+		addDiag2(ctx, range, immutable Diag(immutable Diag.LoopBreakNotAtTail()));
+		return bogus(expected, range);
+	} else {
+		LoopInfo* loop = force(expected.loop);
+		loop.hasBreak = true;
+		immutable Expr value = checkExprOrEmptyNewAndExpect(ctx, locals, range, ast.value, loop.type);
+		immutable Opt!Type expectedType = tryGetDeeplyInstantiatedType(ctx.alloc, ctx.programState, expected);
+		verify(force(expectedType) == immutable Type(ctx.commonTypes.void_));
+		return immutable Expr(range, allocate(ctx.alloc, immutable Expr.LoopBreak(loop.loop, value)));
+	}
 }
 
 immutable(Expr) checkMatch(
@@ -1087,7 +1223,9 @@ immutable(Expr.MatchUnion.Case) checkMatchCase(
 		immutable Opt!(Local*),
 		(immutable Sym name) {
 			if (has(member.type))
-				return some(allocate(ctx.alloc, immutable Local(localRange, name, force(member.type))));
+				return some(allocate(
+					ctx.alloc,
+					immutable Local(localRange, name, LocalMutability.immut, force(member.type))));
 			else {
 				addDiag2(ctx, localRange, immutable Diag(
 					immutable Diag.MatchCaseShouldNotHaveLocal(name)));
@@ -1200,6 +1338,8 @@ public immutable(Expr) checkExpr(
 			checkFunPtr(ctx, range, a, expected),
 		(ref immutable IdentifierAst a) =>
 			checkIdentifier(ctx, locals, range, a, expected),
+		(ref immutable IdentifierSetAst a) =>
+			checkIdentifierSet(ctx, locals, range, a, expected),
 		(ref immutable IfAst a) =>
 			checkIf(ctx, locals, range, a, expected),
 		(ref immutable IfOptionAst a) =>
@@ -1212,6 +1352,10 @@ public immutable(Expr) checkExpr(
 			checkLet(ctx, locals, range, a, expected),
 		(ref immutable LiteralAst a) =>
 			checkLiteral(ctx, range, ast, a, expected),
+		(ref immutable LoopAst a) =>
+			checkLoop(ctx, locals, range, a, expected),
+		(ref immutable LoopBreakAst a) =>
+			checkLoopBreak(ctx, locals, range, a, expected),
 		(ref immutable MatchAst a) =>
 			checkMatch(ctx, locals, range, a, expected),
 		(ref immutable ParenthesizedAst a) =>

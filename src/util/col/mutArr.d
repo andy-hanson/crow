@@ -25,6 +25,13 @@ struct MutArr(T) {
 	}
 }
 
+@trusted void clearAndFree(T)(ref Alloc alloc, ref MutArr!T a) {
+	freeT(alloc, a.begin_, a.capacity_);
+	a.begin_ = null;
+	a.size_ = 0;
+	a.capacity_ = 0;
+}
+
 immutable(size_t) mutArrSize(T)(ref const MutArr!T a) {
 	return a.size_;
 }

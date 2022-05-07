@@ -463,8 +463,6 @@ struct ConcreteParam {
 
 struct ConcreteLocal {
 	immutable Local* source;
-	// Needed to distinguish two locals with the same name when compiling to C
-	immutable size_t index;
 	immutable ConcreteType type;
 }
 
@@ -833,6 +831,20 @@ struct ConcreteExprKind {
 		immutable ConcreteLocal* local;
 	}
 
+	struct LocalSet {
+		immutable ConcreteLocal* local;
+		immutable ConcreteExpr value;
+	}
+
+	struct Loop {
+		immutable ConcreteExpr body_;
+	}
+
+	struct LoopBreak {
+		immutable ConcreteExprKind.Loop* loop;
+		immutable ConcreteExpr value;
+	}
+
 	struct MatchEnum {
 		immutable ConcreteExpr matchedValue;
 		immutable ConcreteExpr[] cases;
@@ -876,6 +888,9 @@ struct ConcreteExprKind {
 		lambda,
 		let,
 		localRef,
+		localSet,
+		loop,
+		loopBreak,
 		matchEnum,
 		matchUnion,
 		paramRef,
@@ -895,6 +910,9 @@ struct ConcreteExprKind {
 		immutable Lambda lambda;
 		immutable Let* let;
 		immutable LocalRef localRef;
+		immutable LocalSet* localSet;
+		immutable Loop* loop;
+		immutable LoopBreak* loopBreak;
 		immutable MatchEnum* matchEnum;
 		immutable MatchUnion* matchUnion;
 		immutable ParamRef paramRef;
@@ -914,6 +932,9 @@ struct ConcreteExprKind {
 	@trusted immutable this(immutable Lambda a) { kind = Kind.lambda; lambda = a; }
 	@trusted immutable this(immutable Let* a) { kind = Kind.let; let = a; }
 	@trusted immutable this(immutable LocalRef a) { kind = Kind.localRef; localRef = a; }
+	@trusted immutable this(immutable LocalSet* a) { kind = Kind.localSet; localSet = a; }
+	@trusted immutable this(immutable Loop* a) { kind = Kind.loop; loop = a; }
+	@trusted immutable this(immutable LoopBreak* a) { kind = Kind.loopBreak; loopBreak = a; }
 	@trusted immutable this(immutable MatchEnum* a) { kind = Kind.matchEnum; matchEnum = a; }
 	@trusted immutable this(immutable MatchUnion* a) { kind = Kind.matchUnion; matchUnion = a; }
 	@trusted immutable this(immutable ParamRef a) { kind = Kind.paramRef; paramRef = a; }
@@ -951,6 +972,9 @@ immutable(bool) isConstant(ref immutable ConcreteExprKind a) {
 	scope immutable(T) delegate(ref immutable ConcreteExprKind.Lambda) @safe @nogc pure nothrow cbLambda,
 	scope immutable(T) delegate(ref immutable ConcreteExprKind.Let) @safe @nogc pure nothrow cbLet,
 	scope immutable(T) delegate(ref immutable ConcreteExprKind.LocalRef) @safe @nogc pure nothrow cbLocalRef,
+	scope immutable(T) delegate(ref immutable ConcreteExprKind.LocalSet) @safe @nogc pure nothrow cbLocalSet,
+	scope immutable(T) delegate(ref immutable ConcreteExprKind.Loop) @safe @nogc pure nothrow cbLoop,
+	scope immutable(T) delegate(ref immutable ConcreteExprKind.LoopBreak) @safe @nogc pure nothrow cbLoopBreak,
 	scope immutable(T) delegate(ref immutable ConcreteExprKind.MatchEnum) @safe @nogc pure nothrow cbMatchEnum,
 	scope immutable(T) delegate(ref immutable ConcreteExprKind.MatchUnion) @safe @nogc pure nothrow cbMatchUnion,
 	scope immutable(T) delegate(ref immutable ConcreteExprKind.ParamRef) @safe @nogc pure nothrow cbParamRef,
@@ -982,6 +1006,12 @@ immutable(bool) isConstant(ref immutable ConcreteExprKind a) {
 			return cbLet(*a.let);
 		case ConcreteExprKind.Kind.localRef:
 			return cbLocalRef(a.localRef);
+		case ConcreteExprKind.Kind.localSet:
+			return cbLocalSet(*a.localSet);
+		case ConcreteExprKind.Kind.loop:
+			return cbLoop(*a.loop);
+		case ConcreteExprKind.Kind.loopBreak:
+			return cbLoopBreak(*a.loopBreak);
 		case ConcreteExprKind.Kind.matchEnum:
 			return cbMatchEnum(*a.matchEnum);
 		case ConcreteExprKind.Kind.matchUnion:

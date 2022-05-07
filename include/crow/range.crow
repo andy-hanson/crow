@@ -1,12 +1,12 @@
 no-std
 import
-	./bool: ||, bool, new
+	./bool: !, bool
 	./col/arr: arr
 	./col/arr-util: make-arr
 	./fun-util: subscript
 	./misc: new, void
 	./number: ==, <=>, nat64
-	./opt: new, opt
+	./opt: is-empty, new, opt
 	./private/number-low-level: wrap-add, wrap-sub
 export
 	./private/range-low-level: .., low, high, range, size
@@ -16,6 +16,9 @@ to-arr nat64[](a range nat64)
 
 region iteration
 
+is-empty bool(a range nat64) noctx
+	a.low == a.high
+
 # Calls `f` for each value in the range, from `a.low` to `a.high - 1`.
 each void(a range nat64, f act void(nat64))
 	unless a.low == a.high
@@ -24,12 +27,15 @@ each void(a range nat64, f act void(nat64))
 
 # Calls `f` for each value in the range, from `a.high - 1` to `a.low`.
 each-reverse void(a range nat64, f act void(nat64))
-	unless a.low == a.high
-		a.low each-reverse-recur (a.high wrap-sub 1), f
-.each-reverse-recur void(low nat64, cur nat64, f act void(nat64))
-	f[cur]
-	unless cur == low
-		low each-reverse-recur (cur wrap-sub 1), f
+	unless a is-empty
+		low = a low
+		cur mut = a.high wrap-sub 1
+		loop
+			f[cur]
+			if cur == low
+				break
+			else
+				cur := cur wrap-sub 1
 
 map<a> a[](a range nat64, f act a(nat64))
 	(a.high wrap-sub a.low) make-arr i =>
@@ -37,13 +43,16 @@ map<a> a[](a range nat64, f act a(nat64))
 
 # `true` iff `f` is `true` for some value in the range.
 exists bool(a range nat64, f act bool(nat64))
-	unless a.low == a.high
-		f[a low] || (a.low wrap-add 1) .. a.high exists f
+	!(a find f is-empty)
 
 # Returns the first value in the range for which `f` returns true.
 find nat64?(a range nat64, f act bool(nat64))
-	unless a.low == a.high
-		if f[a low]
-			a.low,
+	cur mut = a low
+	high = a high
+	loop
+		if cur == high
+			break
+		elif f[cur]
+			break cur,
 		else
-			(a.low wrap-add 1) .. a.high find f
+			cur := cur wrap-add 1

@@ -282,25 +282,16 @@ immutable(T[]) copyArr(T)(ref Alloc alloc, scope immutable T[] a) {
 	scope immutable In[] a,
 	scope immutable(Opt!Out) delegate(ref immutable In) @safe @nogc pure nothrow cb,
 ) {
-	return mapOpWithIndex!(Out, In)(alloc, a, (immutable size_t, ref immutable In x) =>
-		cb(x));
-}
-
-@trusted immutable(Out[]) mapOpWithIndex(Out, In)(
-	ref Alloc alloc,
-	immutable In[] a,
-	scope immutable(Opt!Out) delegate(immutable size_t, ref immutable In) @safe @nogc pure nothrow cb,
-) {
 	Out* res = allocateT!Out(alloc, a.length);
-	size_t resI = 0;
-	foreach (immutable size_t i, ref immutable In x; a) {
-		immutable Opt!Out o = cb(i, x);
+	Out* resOut = res;
+	foreach (ref immutable In x; a) {
+		immutable Opt!Out o = cb(x);
 		if (has(o)) {
-			initMemory(res + resI, force(o));
-			resI++;
+			initMemory(resOut, force(o));
+			resOut++;
 		}
 	}
-	return cast(immutable) res[0 .. resI];
+	return cast(immutable) res[0 .. (resOut - res)];
 }
 
 @trusted immutable(Opt!(Out[])) mapOrNone(Out, In)(
