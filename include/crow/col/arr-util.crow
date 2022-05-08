@@ -1,20 +1,21 @@
 no-std
 import
 	../bool: !, &&, ||, bool, to-nat64
+	../cell: *, cell, new, set-deref
 	../compare: !=, <, <=, >=, equal, max, min
 	../fun-util: subscript
 	../misc: new, void
 	../opt: is-empty, new, opt
 	../ptr: ==, +, -, *, as-const, const-ptr, mut-ptr, set-deref
+	../range: for-loop
 	../tuple: new, pair
-	../private/alloc: alloc-uninitialized, fill-ptr-range
+	../private/alloc: alloc-uninitialized
 	../private/bootstrap: hard-assert, new
 	../private/exception-low-level: assert-c-str, forbid-c-str
 	../private/number-low-level: ==, <=>, nat64, unsafe-div, unsafe-mod, wrap-add, wrap-sub, wrap-mul
 	../private/range-low-level: ..
-	./arr: ~, ~~, arr, is-empty, new, size, subscript
+	./arr: ~, ~~, arr, for-loop, is-empty, new, size, subscript
 	./iter: new, value-and-rest
-	./private/arr-builder: ~~=, arr-builder, finish, new
 	./private/arr-low-level: arr-from-begin-end, begin-ptr, end-ptr, noctx-at
 
 region basic array operations
@@ -68,7 +69,7 @@ update-at-with-default<a> a[](a a[], index nat64, new-value a, default a) no-doc
 	if index < a.size
 		a update-at index, new-value
 	else
-		index wrap-add 1 make-arr i =>
+		for i : 0 .. (index wrap-add 1)
 			if i < a.size
 				a[i]
 			elif i == index
@@ -101,7 +102,7 @@ with-max-size<a> a[](a a[], max-size nat64)
 pad-left<a> a[](pad a, a a[], min-size nat64)
 	if a.size < min-size
 		diff = min-size wrap-sub a.size
-		min-size make-arr index =>
+		for index : 0 .. min-size
 			if index < diff
 				pad
 			else
@@ -112,7 +113,7 @@ pad-left<a> a[](pad a, a a[], min-size nat64)
 # While the array is shorter than `min-size`, add an element `pad` on the right.
 pad-right<a> a[](a a[], pad a, min-size nat64)
 	if a.size < min-size
-		min-size make-arr index =>
+		for index : 0 .. min-size
 			if index < a.size
 				a[index]
 			else
@@ -123,50 +124,15 @@ pad-right<a> a[](a a[], pad a, min-size nat64)
 # Concatenate `n` copies of `a`.
 repeat<a> a[](a a[], n nat64) trusted
 	# TODO: watch out for overflow
-	a.size wrap-mul n make-arr i =>
+	for i : 0 .. (a.size wrap-mul n)
 		a[i unsafe-mod a.size]
 
 # Array where the leftmost element of `a` becomes the rightmost element, etc.
 reverse<a> a[](a a[])
-	a.size make-arr i =>
+	for i : 0 .. a.size
 		a[a.size wrap-sub 1 wrap-sub i]
 
-region creation
-
-###
-Equivalent to `f[0], f[1], ..., f[size - 1]`.
-
-Calls `f` for each number from 0 to `size` (exclusive) and returns an array of the results.
-###
-make-arr<a> a[](size nat64, f act a(nat64)) trusted
-	res a mut* = size alloc-uninitialized
-	res fill-ptr-range size, f
-	size, res.as-const
-
-###
-Equivalent to `value, value, ...` or `size make-arr () => value`.
-
-Array with the given `size` where every element is `value`.
-###
-fill-arr<a> a[](size nat64, value a)
-	size make-arr _ => value
-
 region iteration
-
-###
-Equivalent to calling `f[a[0]]`, `f[a[1]]`, etc.
-
-Calls `f` for each element in `a`.
-###
-each<a> void(a a[], f act void(a)) trusted
-	cur mut = a begin-ptr
-	end = a end-ptr
-	loop
-		if cur == end
-			break
-		else
-			f[*cur]
-			cur := cur + 1
 
 ###
 Equivalent to calling `f[a[0], 0]`, `f[a[1], 1]`, etc.
@@ -234,30 +200,10 @@ Throws if `a` is empty.
 reduce<a> a(a a[], f act a(a, a))
 	a[0] fold a.tail, f
 
-###
-Equivalent to `f[a[0]], f[a[1]], ...`.
-Array containing `f[x]` for each `x` in `a`.
-###
-map<out, in> out[](a in[], f act out(in))
-	a.size make-arr i =>
-		f[a[i]]
-
-# Like `map`, but also provides the element index.
+# Like a `for` loop, but also provides the element index.
 map-with-index<out, in> out[](a in[], f act out(in, nat64))
-	a.size make-arr i =>
+	for i : 0 .. a.size
 		f[a[i], i]
-
-# Like `map`, but `f` can return multiple values, that are all added to the output array>
-flat-map<out, in> out[](a in[], f act out[](in)) trusted
-	out arr-builder out = ()
-	cur mut = a begin-ptr
-	end = a end-ptr
-	loop
-		if cur == end
-			break out finish
-		else
-			out ~~= f[*cur]
-			cur := cur + 1
 
 # Array containing only the elements of `a` for which `f[a[i]]` returns true.
 filter<a> a[](a a[], f act bool(a))
@@ -418,8 +364,18 @@ ptr-of<a> a*?(a a[], value a) no-doc unsafe equal<a>
 Concatenates many arrays into a single array.
 Equivalent to `a[0] ~ a[1] ~ ...`.
 ###
-flatten<a> a[](a a[][])
-	a flat-map (x => x)
+flatten<a> a[](a a[][]) trusted
+	total-size = 0 fold a, (acc, xs) => acc wrap-add xs.size
+	res a mut* = total-size alloc-uninitialized
+	# TODO: NOT CELL
+	cur cell a mut* = res,
+	for xs : a
+		for x : xs
+			ptr = *cur
+			*ptr := x
+			*cur := ptr + 1
+	hard-assert: *cur == res + total-size
+	res.as-const arr-from-begin-end cur->as-const
 
 zip-each<a, b> void(a a[], b b[], f act void(a, b))
 	"zipped arrays must have same size" assert-c-str a.size == b.size
@@ -434,7 +390,7 @@ Throws if the `a` and `b` have different sizes.
 ###
 zip<out, a, b> out[](a a[], b b[], f act out(a, b))
 	"zipped arrays must have same size" assert-c-str a.size == b.size
-	a.size make-arr i =>
+	for i : 0 .. a.size
 		f[a[i], b[i]]
 
 # Like `zip`, but when one array is larger, it is sliced to the smaller one's size before zipping.
@@ -453,7 +409,7 @@ This never calls `f[(), ()]` with two empty options.
 The output size is the size of the larger array.
 ###
 zip-larger<out, a, b> out[](a a[], b b[], f act out(a?, b?))
-	a.size max b.size make-arr i =>
+	for i : 0 .. (a.size max b.size)
 		f[(a opt-subscript i), (b opt-subscript i)]
 
 .opt-subscript<a> a?(a a[], index nat64)
@@ -639,6 +595,6 @@ groups-of<a> a[][](a a[], group-size nat64) trusted
 	"group-size can't be 0" forbid-c-str group-size == 0
 	div = a.size unsafe-div group-size
 	out-size = (div wrap-mul group-size) == a.size ? div : div wrap-add 1
-	out-size make-arr group-index =>
+	for group-index : 0 .. out-size
 		start = group-index wrap-mul group-size
 		a[start .. (start wrap-add group-size min a.size)]

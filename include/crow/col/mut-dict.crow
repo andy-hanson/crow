@@ -14,14 +14,13 @@ import
 	../tuple: from, new, pair, to
 	../writer: ~=, ~~=, backup, move-to-str, new, writer
 	../private/number-low-level: ==, <=>, nat64, unsafe-mod, wrap-add, wrap-mul, wrap-sub
-	./arr: ==, arr, arr-equal, new, size
-	./arr-util: each, map
+	./arr: ==, arr, arr-equal, for-loop, new, size
 	./dict: dict, to-dict
 	./fix-arr:
-		begin-ptr, cast-immutable, each, end-ptr, fill, fill-fix-arr, fix-arr, fold, is-empty,
-		map, new, set-subscript, size, subscript, uninitialized-fix-arr
+		begin-ptr, cast-immutable, end-ptr, fill, fill-fix-arr, fix-arr, fold, for-loop, is-empty,
+		new, set-subscript, size, subscript, uninitialized-fix-arr
 	./mut-arr:
-		~=, copy, each, find-index, fold, is-at-capacity, is-empty, mut-arr, new,
+		~=, copy, find-index, fold, for-loop, is-at-capacity, is-empty, mut-arr, new,
 		remove-unordered-at, set-filter, set-map, set-subscript, size, subscript
 
 ###
@@ -53,7 +52,7 @@ Later pairs overwrite earlier pairs with the same key.
 ###
 to-mut-dict<k, v> v mut[k](a pair<k, v>[]) is-data<k> compare<k> hash-mix<k>
 	res v mut[k] = a.size mut-dict-with-capacity
-	a each pair =>
+	for pair : a
 		res[pair from] := pair to
 	res
 
@@ -79,7 +78,7 @@ move-to-arr<k, v> pair<k, v>[](a v mut[k]) is-data<k> compare<k> hash-mix<k>
 
 # Copy pairs to a new dictionary.
 copy<k, v> v mut[k](a v mut[k]) is-data<k> compare<k> hash-mix<k>
-	entries fix-arr entry<k, v> = a.entries map entry =>
+	entries fix-arr entry<k, v> = for entry : a entries
 		match entry
 		as none
 			none
@@ -224,7 +223,7 @@ Returns the old value (if it exists).
 
 # This is the same as calling `a ~= x` for every `x` in `b`.
 ~~= <k, v> void(a v mut[k], b pair<k, v>[]) is-data<k> compare<k> hash-mix<k>
-	b each pair =>
+	for pair : b
 		a ~= pair
 
 # Called when we're about to allocate a bigger bucket -- maybe we should expand the table instead
@@ -332,7 +331,7 @@ set-map-values<k, v> void(a v mut[k], f act v(k, v)) trusted is-data<k> compare<
 
 .dbg str(a str mut[nat64])
 	out writer = ()
-	a.entries each entry =>
+	for entry : a entries
 		match entry
 		as none
 			out ~= "_"
@@ -344,7 +343,7 @@ set-map-values<k, v> void(a v mut[k], f act v(k, v)) trusted is-data<k> compare<
 			out ~= ")"
 		as many m
 			out ~= "["
-			m each pair =>
+			for pair : m
 				out ~~= pair.from to-str
 				out ~~= " -> "
 				out ~~= pair to
@@ -366,8 +365,8 @@ test
 	a[6] is ("6",)
 	a.size is 1
 	# TODO: a.arr is ((6, "6"),)
-	a.to-arr map (pair => pair from) is (6,)
-	a.to-arr map (pair => pair to) is ("6",)
+	(for pair : a to-arr; pair from)::nat64[] is (6,)
+	(for pair : a to-arr; pair to)::str[] is ("6",)
 
 	a verify "(6 -> 6)"
 
@@ -388,8 +387,8 @@ test
 	a[5] is ()
 
 	# TODO: a.to-arr is ((4, "4"), (8, "8"), (6, "six"), (3, "3"))
-	a.to-arr map (pair => pair from) is (4, 8, 6, 3)
-	a.to-arr map (pair => pair to) is ("4", "8", "six", "3")
+	(for pair : a to-arr; pair from)::nat64[] is (4, 8, 6, 3)
+	(for pair : a to-arr; pair to)::str[] is ("4", "8", "six", "3")
 
 	a[12] := "12"
 	a verify "(8 -> 8) _ _ (3 -> 3) [4 -> 4, 12 -> 12] _ (6 -> six) _"

@@ -1,5 +1,5 @@
 import
-	crow/col/arr-util: flat-map, map
+	crow/col/arr-util: flatten
 	crow/io/print: print
 	crow/private/thread-utils: count-processors
 	crow/str-util: join
@@ -7,12 +7,25 @@ import
 main fut nat(_ str[]) unsafe summon
 	print: "running with {count-processors} processors"
 	# TODO: a module with helpers to do things like filter in parallel
-	tasks fut<pair<nat, bool>>[] = 1_000_000 .. 1_010_000 map x =>
-		launch: () => (x, x.is-prime),
-	pairs <- tasks wait-all
-	primes nat[] = pairs flat-map x => x.b ? x.a,
-	print: "primes: {primes map (x => x to-str) join ", "}"
+	primes <- for x : 1_000_000 .. 1_010_000 parallel
+		if x is-prime
+			(x,),
+	print: "primes: {(for x : primes.flatten; x to-str) join ", "}"
 	()
+
+
+parallel-range<a> record
+	.inner range a
+
+parallel<a> parallel-range a(a range a)
+	a,
+
+# TODO: be generic!
+for-loop fut nat64[][](a parallel-range nat64, f fun fut nat64[](nat64))
+	tasks fut<nat64[]>[] = for x : a.inner
+		launch: () =>
+			f[x]
+	tasks wait-all
 
 # intentionally inefficient to demonstrate parallel speedup
 is-prime bool(a nat)

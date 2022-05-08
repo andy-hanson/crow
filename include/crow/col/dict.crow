@@ -17,10 +17,10 @@ import
 	../writer: ~=, ~~=, backup, move-to-str, new, writer
 	../private/bootstrap: hard-assert, todo
 	../private/number-low-level: ==, <=>, nat64, wrap-add, wrap-sub
-	./arr: ~, arr, arr-equal, is-empty, new, size, subscript
+	./arr: ~, arr, arr-equal, for-loop, is-empty, new, size, subscript
 	./arr-util:
-		each, each-with-index, every, find-index, fold, fold-with-index,
-		remove-at, rtail, tail, update-at, update-at-with-default
+		each-with-index, every, find-index, fold, fold-with-index, remove-at, rtail, tail,
+		update-at, update-at-with-default
 	./fix-arr:
 		begin-ptr, cast-immutable, copy-from, end-ptr, fill-fix-arr, fix-arr, set-subscript, size,
 		subscript, uninitialized-fix-arr
@@ -388,7 +388,7 @@ body
 	res fix-arr node<k, v> = max-hash wrap-add 1 fill-fix-arr empty-leaf-node
 	# TODO: avoid allocating the same leaf twice...
 	res[key-hash] := ((key, value),) leaf-node
-	a each pair =>
+	for pair : a
 		x = pair.from.hash unsafe-bit-shift-right hash-shift low-bits
 		res[x] := match res[x]
 		as inner-node _
@@ -453,7 +453,7 @@ map-to-arr<a, k, v> a[](a v[k], f act a(k, v)) trusted is-data<k> compare<k> has
 	as leaf-node l
 		out ~~= path
 		out ~= "["
-		l each pair =>
+		for pair : l
 			out ~~= pair from
 			out ~~= " -> "
 			out ~~= pair to
@@ -475,7 +475,7 @@ map-to-arr<a, k, v> a[](a v[k], f act a(k, v)) trusted is-data<k> compare<k> has
 	as leaf-node l
 		out ~~= path
 		out ~= "["
-		l each pair =>
+		for pair : l
 			out ~~= pair from
 			out ~~= ", "
 		if l is-empty

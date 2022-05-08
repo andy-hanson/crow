@@ -10,7 +10,7 @@ import
 	../../misc: new, void
 	../../opt: ??, is-empty, new, opt
 	../../ptr: ==, +, *, const-ptr, ptr-to, set-deref
-	../../range: .., each
+	../../range: .., for-loop
 	../../str: ==, literal, str
 	../../str-conv: to-hex, to-str
 	../../test-util: is
@@ -80,8 +80,9 @@ size nat64(a index-set)
 	as empty
 		acc
 
-arr nat64[](a index-set)
-	a map-to-arr (x => x)
+to-arr nat64[](a index-set)
+	for x : a
+		x
 
 in bool(index nat64, a index-set) trusted
 	index < a.capacity && index in a.root, a.capacity
@@ -391,7 +392,7 @@ filter-less index-set(a index-set, limit nat64) trusted
 to-str str(a index-set)
 	out writer = ()
 	out ~= "["
-	a each x =>
+	for x : a
 		out ~~= x to-str
 		out ~~= ", "
 	unless a is-empty
@@ -401,7 +402,7 @@ to-str str(a index-set)
 
 region iteration
 
-each void(a index-set, f act void(nat64))
+for-loop void(a index-set, f act void(nat64))
 	() fold a, (_, x) => f[x]
 
 fold<a> a(acc a, a index-set, f act a(a, nat64)) trusted
@@ -434,10 +435,10 @@ filter index-set(a index-set, f act bool(nat64))
 			f[bit-index-offset wrap-add bit-index]
 ###
 
-map index-set(a index-set, f act nat64(nat64))
-	a map-to-arr f to-index-set
+for-loop index-set(a index-set, f act nat64(nat64))
+	a for-loop f to-index-set
 
-map-to-arr<a> a[](a index-set, f act a(nat64)) trusted
+for-loop<a> a[](a index-set, f act a(nat64)) trusted
 	res fix-arr a = a.size uninitialized-fix-arr
 	end = res.begin-ptr fold a, (cur, x) =>
 		*cur := f[x]
@@ -484,10 +485,10 @@ map-to-arr<a> a[](a index-set, f act a(nat64)) trusted
 		info log expected
 		a.dbg is expected
 	actual is expected
-	r = a arr
+	r = a to-arr
 	r is expected-arr
 	_ = 0 fold a, (prev, cur) =>
-		prev .. cur each x =>
+		for x : prev .. cur
 			x in a is false
 		cur in a is true
 		cur wrap-add 1
@@ -526,7 +527,8 @@ test
 	# filtered = c filter it => it != 8
 	# filtered verify "[x210]", (4, 9)
 
-	mapped = c map it => 10 wrap-sub it
+	mapped index-set = for x : c
+		10 wrap-sub x
 	mapped verify "[46 0 0 0]", (1, 2, 6)
 
 test

@@ -13,10 +13,10 @@ import
 	../writer: ~=, ~~=, backup, move-to-str, new, writer
 	../private/bootstrap: hard-assert, hard-forbid, hard-unreachable
 	../private/number-low-level: ==, <=>, nat64, wrap-add, wrap-mul, wrap-sub
-	./arr: arr, is-empty, new, size, subscript
-	./arr-util: each, tail
+	./arr: arr, for-loop, is-empty, new, size, subscript
+	./arr-util: tail
 	./experimental/index-set:
-		~, count-greater-or-equal, count-range, each, filter-less, in, index-set, is-empty, new,
+		~, count-greater-or-equal, count-range, filter-less, for-loop, in, index-set, is-empty, new,
 		size, try-remove
 	./fix-arr:
 		begin-ptr, cast-immutable, end-ptr, is-empty, fix-arr, set-subscript, size, subscript,
@@ -50,7 +50,8 @@ to-sorted-set<a> sorted-set a(a a[]) is-data<a> compare<a>
 
 # Copies elements to an array.
 to-arr<a> a[](a sorted-set a) is-data<a> compare<a>
-	a map-to-arr x => x
+	for x : a
+		x
 
 # `true` iff `a.size == 0`.
 is-empty<a> bool(a sorted-set a)
@@ -387,10 +388,10 @@ body
 # TODO: filter
 
 # Returns a set containing `f[x]` for every element `x` in `a`.
-map<out, in> sorted-set out(a sorted-set in, f act out(in)) is-data<out> compare<out> is-data<in> compare<in>
-	a map-to-arr f to-sorted-set
+for-loop<out, in> sorted-set out(a sorted-set in, f act out(in)) is-data<out> compare<out> is-data<in> compare<in>
+	a for-loop f to-sorted-set
 
-map-to-arr<out, in> out[](a sorted-set in, f act out(in)) trusted is-data<in> compare<in>
+for-loop<out, in> out[](a sorted-set in, f act out(in)) trusted is-data<in> compare<in>
 	out fix-arr out = a.size uninitialized-fix-arr
 	end = out.begin-ptr fold a, (cur, x) =>
 		*cur := f[x]
@@ -403,7 +404,7 @@ map-to-arr<out, in> out[](a sorted-set in, f act out(in)) trusted is-data<in> co
 	out dbg-add-recur a.add
 	unless a.remove is-empty
 		out ~~= " - ["
-		a.remove each i =>
+		for i : a remove
 			out ~~= i to-str
 			out ~= " "
 		out backup
@@ -419,7 +420,7 @@ map-to-arr<out, in> out[](a sorted-set in, f act out(in)) trusted is-data<in> co
 		out ~~= "[]"
 	else
 		out ~= "["
-		a.values each x =>
+		for x : a values
 			out ~~= x to-str
 			out ~= " "
 		out backup
@@ -457,7 +458,7 @@ test
 
 	# TODO: test filter
 
-	dm = d map x =>
+	dm sorted-set str = for x : d
 		if x == "c"
 			"sea"
 		elif x == "r"

@@ -1,5 +1,4 @@
 import
-	crow/col/arr-util: map
 	crow/col/dict: dict, keys, new, subscript
 	crow/io/path: get-extension
 	crow/io/print: print
@@ -22,7 +21,7 @@ main fut nat(args str[]) summon unsafe
 	()
 
 .describe-out-exts str()
-	supported = default-file-types.keys map (cur => cur to-str) join ", "
+	supported = (for key : default-file-types keys; key to-str) join ", "
 	"Supported output file extensions: {supported}"
 
 .default-file-types sound-file-format[sym]()

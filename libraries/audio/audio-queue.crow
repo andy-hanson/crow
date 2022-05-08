@@ -38,13 +38,13 @@ new audio-queue(format sound-format) trusted
 .entry record by-ref force-sendable
 	samples float32[]
 	cur mut float32*
-	loop bool
+	looping bool
 
 .reset-position void(a entry)
 	a.cur := a.samples begin-ptr
 
 .is-over bool(a entry) noctx trusted
-	!a.loop && a.cur == a.samples.end-ptr
+	!a.looping && a.cur == a.samples.end-ptr
 
 clear void(a audio-queue) noctx trusted
 	a.lock acquire
@@ -80,7 +80,7 @@ pull void(a audio-queue, out fix-arr float32) noctx unsafe
 	else
 		out-mid = out.begin-ptr + n-remaining
 		out.begin-ptr fix-arr-from-begin-end out-mid add (a.cur arr-from-begin-end a.samples.end-ptr)
-		if a loop
+		if a looping
 			a.cur := a.samples begin-ptr
 			a add-to (out-mid fix-arr-from-begin-end out.end-ptr)
 		else
@@ -94,13 +94,13 @@ pull void(a audio-queue, out fix-arr float32) noctx unsafe
 		*out := *out + *read
 		out + 1 add-recur out-end, read + 1
 
-.play-common playing-sound(a audio-queue, sound sound, loop bool) trusted
+.play-common playing-sound(a audio-queue, sound sound, looping bool) trusted
 	if sound.format != a.format
 		"sound format mismatch: expected {a format}, got {sound format}" throw
 	a.lock acquire
 	# Can't use 'set-filter' in 'noctx' code, so do it here
 	a.playing.filter := x => !x.is-over
-	entry entry = sound.samples, sound.samples.begin-ptr, loop
+	entry entry = sound.samples, sound.samples.begin-ptr, looping
 	a.playing ~= entry
 	a.lock release
 	reset fun void() = () =>

@@ -3,8 +3,8 @@ import
 	../../bool: ==, false, true
 	../../compare: <
 	../../number: ==, <=>, nat64
-	../arr: ==, arr, new
-	../arr-util: flat-map, in, repeat, strip-left-while
+	../arr: ==, arr, for-loop, new
+	../arr-util: flatten, in, repeat, strip-left-while
 	../../test-util: is
 
 dummy-arr-util-tests nat64()
@@ -21,4 +21,4 @@ test
 
 test
 	a nat64[] = 5, 3, 1
-	(a flat-map x => (x,)::nat64[] repeat x) is (5, 5, 5, 5, 5, 3, 3, 3, 1)
+	(for x : a; (x,) repeat x)::nat64[][].flatten is (5, 5, 5, 5, 5, 3, 3, 3, 1)

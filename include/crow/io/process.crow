@@ -20,8 +20,8 @@ import
 	../bool: &&, ||, bool, to-nat64, true
 	../bytes-types: new
 	../cell: *, as-const-ptr, as-mut-ptr, cell, new
-	../col/arr: ~, arr
-	../col/arr-util: each, fold
+	../col/arr: ~, arr, for-loop
+	../col/arr-util: fold
 	../col/fix-arr: begin-ptr, fix-arr, new, ref-of-val-at, size
 	../col/mut-arr: ~=, begin-ptr, end-ptr, move-to-arr, mut-arr, new, size, unsafe-set-size
 	../col/private/arr-low-level: begin-ptr
@@ -116,13 +116,13 @@ shell-exec str(command str) trusted summon
 .convert-args c-str*(exe-c-str c-str, args str[]) unsafe
 	res c-str mut[] = ()
 	res ~= exe-c-str
-	args each x =>
+	for x : args
 		res ~= x to-c-str
 	res ~= null
 	res.move-to-arr begin-ptr
 
 .spawn-and-wait-result-windows process-result(exe c-str, args str[]) summon unsafe
-	all-args = (exe.to-str ~ args) join " " to-c-str
+	all-args = " " join (exe.to-str ~ args) to-c-str
 
 	stdout-read cell HANDLE = (),
 	stdout-write cell HANDLE = (),

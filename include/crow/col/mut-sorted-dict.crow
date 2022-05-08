@@ -13,12 +13,11 @@ import
 	../test-util: is
 	../tuple: from, new, pair, to
 	../writer: ~=, ~~=, backup, move-to-str, new, writer
-	./arr: arr, new
-	./arr-util: each
+	./arr: arr, for-loop, new
 	./iter: rest
 	./mut-arr:
-		~=, begin-ptr, clear, each, end-ptr, filter, fold, is-empty, map, map-to-arr, mut-arr, new,
-		remove-at, set-filter, set-map, set-subscript, size, subscript
+		~=, begin-ptr, clear, end-ptr, filter, fold, for-loop, is-empty, mut-arr, new, remove-at,
+		set-filter, set-map, set-subscript, size, subscript
 	./sort: set-sort-by
 	./private/sort-utils:
 		binary-search-exact-ptr, binary-search-insert-ptr, hard-assert-comparison-not-equal,
@@ -49,7 +48,7 @@ new<k, v> mut-sorted-dict<k, v>(...a pair<k, v>[]) is-data<k> compare<k>
 # Copies pairs to a new dictionary.
 to-mut-sorted-dict<k, v> mut-sorted-dict<k, v>(a pair<k, v>[]) is-data<k> compare<k>
 	res mut-sorted-dict<k, v> = ()::pair<k, v?> mut[], 0, ()
-	a each pair =>
+	for pair : a
 		res[pair from] := pair to
 	res
 
@@ -98,7 +97,7 @@ Adds many key-value pairs, replacing existing ones with the same keys.
 Equivalent to adding each element of `b` separately.
 ###
 ~~= <k, v> void(a mut-sorted-dict<k, v>, b pair<k, v>[]) is-data<k> compare<k>
-	b each pair =>
+	for pair : b
 		a[pair from] := pair to
 
 ###
@@ -266,7 +265,7 @@ spec
 	compare<k>
 body
 	a compact
-	from-sorted-pairs: a.pairs map pair =>
+	from-sorted-pairs: for pair : a pairs
 		# TODO: 'as' should be unnecessary
 		pair.from, (f[pair.from, pair.to!],)
 
@@ -275,7 +274,7 @@ body
 
 map-to-arr<out, k, v> out[](a mut-sorted-dict<k, v>, f act out(k, v)) is-data<k> compare<k>
 	a compact
-	a.pairs map-to-arr pair =>
+	for pair : a pairs
 		f[pair.from, pair.to!]
 
 region mutating iteration
@@ -312,7 +311,7 @@ set-map-values<k, v> void(a mut-sorted-dict<k, v>, f act v(k, v)) is-data<k> com
 
 .dbg-recur void(out writer, a mut-sorted-dict<nat64, str>)
 	out ~= "["
-	a.pairs each pair =>
+	for pair : a pairs
 		out ~~= pair from
 		out ~~= " -> "
 		out ~~= pair.to ?? "_"

@@ -8,8 +8,10 @@ import frontend.parse.ast :
 	CallAst,
 	ExprAst,
 	FileAst,
+	ForAst,
 	FunBodyAst,
 	FunDeclAst,
+	FunPtrAst,
 	IdentifierAst,
 	IdentifierSetAst,
 	IfAst,
@@ -449,10 +451,18 @@ void addExprTokens(
 					break;
 			}
 		},
-		(ref immutable FunPtrAst) {
+		(ref immutable ForAst x) {
+			add(alloc, tokens, immutable Token(
+				Token.Kind.keyword,
+				rangeOfStartAndLength(a.range.start, "for".length)));
+			addLambdaAstParam(alloc, tokens, allSymbols, x.param);
+			addExprTokens(alloc, tokens, allSymbols, x.collection);
+			addExprTokens(alloc, tokens, allSymbols, x.body_);
+		},
+		(ref immutable(FunPtrAst)) {
 			add(alloc, tokens, immutable Token(Token.Kind.identifier, a.range));
 		},
-		(ref immutable IdentifierAst) {
+		(ref immutable(IdentifierAst)) {
 			add(alloc, tokens, immutable Token(Token.Kind.identifier, a.range));
 		},
 		(ref immutable IdentifierSetAst x) {

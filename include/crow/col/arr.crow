@@ -7,14 +7,14 @@ import
 	../bool: &&, bool
 	../compare: !=, >, >=, compare, comparison, equal, greater, less
 	../fun-util: subscript
-	../misc: new
+	../misc: new, void
 	../private/alloc: alloc-uninitialized, copy-data-from
-	../private/bootstrap: new
+	../private/bootstrap: hard-assert, new
 	../private/exception-low-level: throw-c-str
 	../private/number-low-level: ==, <=>, nat8, nat64, wrap-add, wrap-sub
 	../private/range-low-level: low, high, range
-	../ptr: *, ==, +, as-const, const-ptr, mut-ptr
-	./private/arr-low-level: begin-ptr, end-ptr, unsafe-at
+	../ptr: *, ==, +, as-const, const-ptr, mut-ptr, set-deref
+	./private/arr-low-level: arr-from-begin-end, begin-ptr, end-ptr, unsafe-at
 export
 	../private/bootstrap: arr, size
 	./private/arr-low-level: new
@@ -114,3 +114,39 @@ arr-compare<a> comparison(a a[], b a[]) no-doc trusted noctx compare<a>
 	a arr-equal b
 <=> comparison(a nat64[], b nat64[]) no-doc noctx
 	a arr-compare b
+
+region 'for'
+
+###
+Equivalent to calling `f[a[0]]`, `f[a[1]]`, etc.
+
+Calls `f` for each element in `a`.
+###
+for-loop<a> void(a a[], f act void(a)) trusted
+	cur mut = a begin-ptr
+	end = a end-ptr
+	loop
+		if cur == end
+			break
+		else
+			f[*cur]
+			cur := cur + 1
+
+###
+Equivalent to `f[a[0]], f[a[1]], ...`.
+Array containing `f[x]` for each `x` in `a`.
+###
+for-loop<out, in> out[](a in[], f act out(in)) trusted
+	in-cur mut = a begin-ptr
+	in-end = a end-ptr
+	out-begin out mut* = a.size alloc-uninitialized
+	out-cur mut = out-begin
+	loop
+		if in-cur == in-end
+			out-end = out-begin + a.size
+			hard-assert: out-cur == out-end
+			break out-begin.as-const arr-from-begin-end out-end.as-const
+		else
+			*out-cur := f[*in-cur]
+			out-cur := out-cur + 1
+			in-cur := in-cur + 1

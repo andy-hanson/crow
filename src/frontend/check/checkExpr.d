@@ -37,6 +37,7 @@ import frontend.parse.ast :
 	CallAst,
 	ExprAst,
 	ExprAstKind,
+	ForAst,
 	FunPtrAst,
 	IdentifierAst,
 	IdentifierSetAst,
@@ -1263,6 +1264,28 @@ immutable(Expr) checkSeq(
 	return immutable Expr(range, allocate(ctx.alloc, immutable Expr.Seq(first, then)));
 }
 
+immutable(Expr) checkFor(
+	ref ExprCtx ctx,
+	ref LocalsInfo locals,
+	immutable FileAndRange range,
+	ref immutable ForAst ast,
+	ref Expected expected,
+) {
+
+	// TODO: NEATER (don't create a synthetic AST)
+	immutable ExprAst lambda = immutable ExprAst(
+		range.range,
+		immutable ExprAstKind(allocate(ctx.alloc, immutable LambdaAst(
+			arrLiteral!(LambdaAst.Param)(ctx.alloc, [ast.param]),
+			ast.body_))));
+	immutable CallAst call = immutable CallAst(
+		CallAst.Style.infix,
+		immutable NameAndRange(range.range.start, shortSym("for-loop")),
+		emptyArr!TypeAst,
+		arrLiteral!ExprAst(ctx.alloc, [ast.collection, lambda]));
+	return checkCall(ctx, locals, range, call, expected);
+}
+
 immutable(Expr) checkThen(
 	ref ExprCtx ctx,
 	ref LocalsInfo locals,
@@ -1334,6 +1357,8 @@ public immutable(Expr) checkExpr(
 			bogus(expected, range),
 		(ref immutable CallAst a) =>
 			checkCall(ctx, locals, range, a, expected),
+		(ref immutable ForAst a) =>
+			checkFor(ctx, locals, range, a, expected),
 		(ref immutable FunPtrAst a) =>
 			checkFunPtr(ctx, range, a, expected),
 		(ref immutable IdentifierAst a) =>

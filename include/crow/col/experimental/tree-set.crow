@@ -15,8 +15,8 @@ import
 	../../writer: ~=, ~~=, backup, move-to-str, new, writer
 	../../private/bootstrap: hard-assert
 	../../private/number-low-level: ==, <=>, nat64, new, unsafe-div, wrap-add, wrap-sub
-	../arr: arr, is-empty, size, subscript
-	../arr-util: each, fold, insert-at-ptr, last, rtail, tail, try-remove
+	../arr: arr, for-loop, is-empty, size, subscript
+	../arr-util: fold, insert-at-ptr, last, rtail, tail, try-remove
 	../fix-arr: begin-ptr, cast-immutable, end-ptr, fix-arr, subscript, uninitialized-fix-arr
 	../iter: rest
 	../mut-stack: ~=, mut-stack, new, peek, pop
@@ -420,16 +420,16 @@ try-remove<a> tree-set<a>?(a tree-set a, b a) is-data<a> compare<a>
 
 region iteration
 
-each<a> void(a tree-set a, f act void(a)) is-data<a> compare<a>
-	a.root each-recur f
-.each-recur<a> void(a node a, f act void(a))
+for-loop<a> void(a tree-set a, f act void(a)) is-data<a> compare<a>
+	a.root for-loop-recur f
+.for-loop-recur<a> void(a node a, f act void(a))
 	match a
 	as inner i
-		i.left each-recur f
+		i.left for-loop-recur f
 		f[i.value]
-		i.right each-recur f
+		i.right for-loop-recur f
 	as leaf l
-		l each f
+		l for-loop f
 
 fold<a, b> a(acc a, a tree-set b, f act a(a, b)) is-data<b> compare<b>
 	acc fold-recur a.root, f
@@ -482,7 +482,7 @@ map<out, in> tree-set out(a tree-set in, f act out(in)) is-data<in> compare<in> 
 			res ~~= "[]"
 		else
 			res ~= "["
-			l each x =>
+			for x : l
 				res ~~= x to-str
 				res ~= " "
 			res backup

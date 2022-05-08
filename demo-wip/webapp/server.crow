@@ -1,5 +1,5 @@
 import
-	crow/col/arr-util: each, index-of
+	crow/col/arr-util: index-of
 	crow/col/dict: new, subscript
 	crow/col/fix-arr: fill-fix-arr, fix-arr, map-to-arr-with-index, set-subscript
 	crow/io/file: read-file
@@ -101,7 +101,7 @@ split-url url(url-str str)
 # Extra cookies are ignored
 parse-cookies str[](s str, cookie-names str[])
 	res fix-arr str? = cookie-names.size fill-fix-arr ()
-	s split-by "; " each part =>
+	for part : s split-by "; "
 		if pair ?= part try-split-once "="
 			if index ?= cookie-names index-of pair.a
 				res[index] := pair.b,
@@ -110,7 +110,7 @@ parse-cookies str[](s str, cookie-names str[])
 
 parse-query str[](s str, arg-names str[])
 	res fix-arr str? = arg-names.size fill-fix-arr ()
-	s split-by "&" each part =>
+	for part : s split-by "&"
 		if pair ?= part try-split-once "="
 			if index ?= arg-names index-of pair.a
 				res[index] := pair.b,

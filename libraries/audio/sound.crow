@@ -1,12 +1,12 @@
 no-std
 import
 	crow/bool: &&, bool
-	crow/col/arr: arr, size, subscript
-	crow/col/arr-util: map, make-arr
+	crow/col/arr: arr, for-loop, size, subscript
 	crow/compare: >
 	crow/exception: assert, throw
 	crow/misc: new, void
 	crow/number: ==, <=>, +, *, /, %, float32, nat64, round-down-to-multiple
+	crow/range: .., for-loop
 	crow/str: literal, str
 	crow/str-conv: finish, interp, to-str, with-str, with-value
 
@@ -40,7 +40,7 @@ to-str str(a sound-format)
 	"{a n-channels}×{a sample-rate}Hz"
 
 * sound(a sound, b float32)
-	a.format, a.samples map x => x * b
+	a.format, for x : a samples; x * b
 
 with-sample-rate sound(a sound, new-sample-rate nat64)
 	# TODO: use interpolation
@@ -48,7 +48,7 @@ with-sample-rate sound(a sound, new-sample-rate nat64)
 	n-channels = a.format n-channels
 	old-sample-rate = a.format sample-rate
 	new-n-samples = a.samples.size * new-sample-rate / old-sample-rate round-down-to-multiple n-channels
-	new-samples float32[] = new-n-samples make-arr i =>
+	new-samples float32[] = for i : 0 .. new-n-samples
 		channel = i % n-channels
 		out-frame = i / n-channels
 		in-frame = out-frame * old-sample-rate / new-sample-rate

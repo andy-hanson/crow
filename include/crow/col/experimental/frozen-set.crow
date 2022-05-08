@@ -9,10 +9,10 @@ import
 	../../ptr: ==, <=>, +, -, *, const-ptr, mut-ptr, set-deref, swap
 	../../test-util: is
 	../../private/number-low-level: ==, <=>, nat64, unsafe-div, unsafe-mod, wrap-add, wrap-sub
-	../arr: ==, arr, is-empty, new, size
-	../arr-util: fold, fold-with-index, in, index-of, map, ptr-of
+	../arr: ==, arr, for-loop, is-empty, new, size
+	../arr-util: fold, fold-with-index, in, index-of, ptr-of
 	../fix-arr:
-		begin-ptr, cast-immutable, each, end-ptr, fill, fill-fix-arr, fix-arr,
+		begin-ptr, cast-immutable, end-ptr, fill, fill-fix-arr, fix-arr, for-loop,
 		size, temp-as-arr, to-fix-arr, uninitialized-fix-arr, unsafe-at, unsafe-set-at
 	../private/arr-low-level: arr-cast, arr-from-begin-end, begin-ptr, end-ptr, unsafe-at
 
@@ -95,7 +95,7 @@ body
 
 .get-bucket-counts<a> fix-arr nat64(a fix-arr a, n-buckets nat64) unsafe hash-mix<a>
 	res = n-buckets fill-fix-arr 0
-	a each value =>
+	for value : a
 		bucket-index = value get-bucket-index n-buckets
 		res unsafe-set-at bucket-index, (res unsafe-at bucket-index wrap-add 1)
 	res
@@ -145,7 +145,7 @@ body
 
 region iteration
 
-each<a> void(a frozen-set a, f act void(a))
+for-loop<a> void(a frozen-set a, f act void(a))
 	() fold a, (_, x) =>
 		f[x]
 
@@ -157,7 +157,7 @@ fold-with-index<a, b> a(acc a, a frozen-set b, f act a(a, b, nat64))
 
 .verify void(a frozen-set nat64, values nat64[], bucket-starts nat64[]) unsafe
 	a.values is values
-	a.bucket-starts map (ptr => ptr - a.values.begin-ptr) is bucket-starts
+	(for ptr : a bucket-starts; ptr - a.values.begin-ptr)::nat64[] is bucket-starts
 
 test
 	a frozen-set nat64 = ()

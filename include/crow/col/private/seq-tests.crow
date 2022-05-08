@@ -12,8 +12,7 @@ import
 	../../test-util: is
 	../../tuple: a, b
 	../../writer: ~=, ~~=, backup, move-to-str, new, writer
-	../arr: arr, is-empty
-	../arr-util: each
+	../arr: arr, for-loop, is-empty
 	../seq: ~, ~~, down, get-root, left, l0, l1, l2, new, node, nodes, right, seq, try-split-once-by-subseq
 
 dummy-seq-tests nat64()
@@ -53,7 +52,7 @@ dummy-seq-tests nat64()
 .dbg-arr<a> void(out writer, a a[]) to-str<a>
 	out ~= "["
 	unless a is-empty
-		a each x =>
+		for x : a
 			out ~~= x to-str
 			out ~= " "
 		out backup
@@ -62,7 +61,7 @@ dummy-seq-tests nat64()
 .dbg-arr2d<a> void(out writer, a a[][]) to-str<a>
 	out ~= "["
 	unless a is-empty
-		a each x =>
+		for x : a
 			out dbg-arr x
 			out ~= " "
 		out backup
@@ -71,7 +70,7 @@ dummy-seq-tests nat64()
 .dbg-arr3d<a> void(out writer, a a[][][]) to-str<a>
 	out ~= "["
 	unless a is-empty
-		a each x =>
+		for x : a
 			out dbg-arr2d x
 			out ~= " "
 		out backup
@@ -97,13 +96,13 @@ dummy-seq-tests nat64()
 
 .check-structure<a> void(xs a[][]) unsafe
 	forbid: xs is-empty
-	xs each ys =>
+	for ys : xs
 		forbid: ys is-empty
 
 .check-structure<a> void(a l2 a) unsafe
-	a.nodes each ys =>
+	for ys : a nodes
 		forbid: ys is-empty
-		ys each zs =>
+		for zs : ys
 			forbid: zs is-empty
 
 test

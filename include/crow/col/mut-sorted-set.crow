@@ -7,8 +7,7 @@ import
 	../number: nat64
 	../opt: is-empty
 	../tuple: from, new
-	./arr: arr
-	./arr-util: each, map
+	./arr: arr, for-loop
 	./mut-sorted-dict:
 		clear, each, filter, fold, in, is-empty, map, move-to-arr,
 		mut-sorted-dict, new, remove-key, set-filter, set-map, set-subscript, size, subscript, to-mut-sorted-dict
@@ -32,7 +31,7 @@ Copies the arr to a new mut-sorted-set.
 Result won't include any duplicated elements.
 ###
 mut-sorted-set<a> mut-sorted-set a(a a[]) is-data<a> compare<a>
-	(a map (x => x, ()) to-mut-sorted-dict),
+	((for x : a; x, ()) to-mut-sorted-dict),
 
 # True iff the set has no elements.
 is-empty<a> bool(a mut-sorted-set a) is-data<a> compare<a>
@@ -62,7 +61,7 @@ Does nothing if the value is already in the set.
 
 # Adds multiple values to the set.
 ~~= <a> void(a mut-sorted-set a, values a[]) is-data<a> compare<a>
-	values each value =>
+	for value : values
 		a ~= value
 
 try-add<a> bool(a mut-sorted-set a, value a) is-data<a> compare<a>
@@ -81,7 +80,8 @@ remove<a> bool(a mut-sorted-set a, value a) is-data<a> compare<a>
 
 # Convert to an `arr`, clearing the original `mut-sorted-set` in the process.
 move-to-arr<a> a[](a mut-sorted-set a) is-data<a> compare<a>
-	a.inner.move-to-arr map pair => pair from
+	for pair : a.inner move-to-arr
+		pair from
 
 # Convert to a `sorted-set`, clearning the original `mut-sorted-set` in the process.
 move-to-sorted-set<a> sorted-set a(a mut-sorted-set a) is-data<a> compare<a>

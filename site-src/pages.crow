@@ -1,5 +1,5 @@
 import
-	crow/col/arr-util: map, map-with-index
+	crow/col/arr-util: map-with-index
 	crow/io/file: read-file
 	crow/str-util: join, split-by, strip, try-split-once
 	./page-template: page-template
@@ -18,7 +18,7 @@ tutorial-pages path-and-content[]() summon
 		meta.path tutorial-template meta.title, "site-src/tutorial/{meta key}.html".read-file, next
 
 .tutorial-metas tutorial-meta[]()
-	"""index: hello, world!
+	lines = """index: hello, world!
 	if: functions, 'if', and locals
 	types: basic types
 	infer: type inference
@@ -33,7 +33,8 @@ tutorial-pages path-and-content[]() summon
 	spec: specs
 	module: modules
 	extern: extern functions
-	next: where from here?""" split-by "\n" map line =>
+	next: where from here?""" split-by "\n"
+	for line : lines
 		pair = (line.strip try-split-once ":")!
 		pair.a.strip.str-to-sym, pair.b.strip
 
@@ -45,13 +46,13 @@ path str(a tutorial-meta)
 	"tutorial/{a key}.html"
 
 tutorial-nav str(cur-path str)
-	lines = tutorial-metas map x =>
+	lines = "" join for x : tutorial-metas
 		key = x key
 		path = x path
 		name sym = key == "index" ? "syntax" : key
 		cur = path == cur-path ? " class=\"current\""
 		"""<li><a href="/{path}"{cur}>{name}</a></li>"""
-	"<nav><ul>{lines join ""}</ul></nav>"
+	"<nav><ul>{lines}</ul></nav>"
 
 .tutorial-template path-and-content(page-path str, title str, content str, next tutorial-meta?)
 	next-link = if n ?= next

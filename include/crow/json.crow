@@ -1,8 +1,7 @@
 no-std
 import
 	./bool: ==, bool, false, new, true
-	./col/arr: arr, arr-equal, is-empty, new
-	./col/arr-util: each, map
+	./col/arr: arr, arr-equal, for-loop, is-empty, new
 	./col/dict: dict, dict-equal, each, is-empty, new, subscript, to-dict
 	./col/mut-dict: move-to-dict, mut-dict, new, set-subscript
 	./col/mut-arr: ~=, move-to-arr, mut-arr, new
@@ -45,7 +44,7 @@ json json(a float64)
 json json(a str)
 	a json-str
 json<a> json(a a[]) json<a>
-	a map (x => x json) json-arr
+	(for x : a; x json) json-arr
 
 ###
 True iff the two values are deeply equal.
@@ -182,7 +181,7 @@ to-str str(a json)
 		out write-quoted-str s
 	as json-arr xs
 		out ~= "["
-		xs each x =>
+		for x : xs
 			out to-str-recur x
 			out ~= ","
 		unless xs is-empty

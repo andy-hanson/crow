@@ -17,8 +17,7 @@ import
 	../bytes-types: new
 	../bool: !, ||, bool, false, new, to-nat64, true
 	../cell: *, as-mut-ptr, cell, new
-	../col/arr: arr, new, size, subscript
-	../col/arr-util: each, map
+	../col/arr: arr, for-loop, new, size, subscript
 	../col/fix-arr: cast-immutable, begin-ptr, fix-arr, size, uninitialized-fix-arr
 	../col/mut-arr: ~=, move-to-arr, mut-arr, new
 	../col/private/arr-low-level: begin-ptr
@@ -117,7 +116,7 @@ Returns all children of the directory `path`, as full paths.
 Use `names-in-dir` if you just want their names.
 ###
 paths-in-dir str[](path str) summon
-	path.names-in-dir map x =>
+	for x : path names-in-dir
 		path child-path x
 
 ###
@@ -313,9 +312,9 @@ and skips them if `filter` returns false.
 ###
 each-child-recursive void(path str, filter act bool(str), f act void(str)) summon
 	if path is-dir
-		path.names-in-dir each child_name =>
-			if filter[child_name]
-				path child-path child_name each-child-recursive filter, f
+		for child-name : path names-in-dir
+			if filter[child-name]
+				path child-path child-name each-child-recursive filter, f
 	else
 		f[path]
 
@@ -382,5 +381,5 @@ remove-directory-and-contents-non-recursive void(path str) no-doc summon
 	path remove-directory
 
 remove-directory-contents-non-recursive void(path str) no-doc summon
-	path.names-in-dir each child =>
+	for child : path names-in-dir
 		"{path}/{child}" remove-file

@@ -13,11 +13,11 @@ import
 	../writer: ~=, ~~=, backup, move-to-str, new, writer
 	../private/bootstrap: hard-assert
 	../private/number-low-level: ==, <=>, is-even, nat64, wrap-add
-	./arr: ==, arr, is-empty, new, size
-	./arr-util: each, first, fold, last, rtail, tail
+	./arr: ==, arr, for-loop, is-empty, new, size
+	./arr-util: first, fold, last, rtail, tail
 	./fix-arr: begin-ptr, cast-immutable, end-ptr, fix-arr, subscript, uninitialized-fix-arr
 	./stack:
-		~, each, each-reverse, is-empty, fold, fold-reverse, new, pop, rest, size, stack, to-arr,
+		~, each-reverse, is-empty, fold, fold-reverse, for-loop, new, pop, rest, size, stack, to-arr,
 		to-arr-reverse, value
 
 # Immutable double-ended queue.
@@ -106,10 +106,10 @@ pop-right<a> popped<a>?(a deque a)
 
 region iteration
 
-each<a> void(a deque a, f act void(a))
+for-loop<a> void(a deque a, f act void(a))
 	a.left each-reverse f
-	a.mid each f
-	a.right each f
+	a.mid for-loop f
+	a.right for-loop f
 
 fold<a, b> a(acc a, a deque b, f act a(a, b))
 	acc fold-reverse a.left, f fold a.mid, f fold a.right, f
@@ -141,12 +141,12 @@ map<out, in> deque out(a deque in, f act out(in)) trusted
 	if a.mid is-empty
 		out ~= "]"
 	else
-		a.mid each x =>
+		for x : a mid
 			out ~~= x to-str
 			out ~= " "
 		out backup
 		out ~= "]"
-	a.right each x =>
+	for x : a right
 		out ~= " "
 		out ~~= x
 	out move-to-str

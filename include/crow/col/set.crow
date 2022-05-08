@@ -16,10 +16,10 @@ import
 	../private/number-low-level: ==, <=>, nat64, wrap-add, wrap-sub, wrap-mul
 	./arr: ==, arr, new
 	./experimental/index-set:
-		count-greater-or-equal, each, filter-less, is-empty, in, index-set, new, size, try-remove
+		count-greater-or-equal, filter-less, for-loop, is-empty, in, index-set, new, size, try-remove
 	./experimental/frozen-set:
-		begin-ptr, each, end-ptr, fold-with-index, frozen-set, is-empty, new, size, to-frozen-set,
-		try-get-unordered-index, unsafe-frozen-set-from-fix-arr-cast-immutable
+		begin-ptr, end-ptr, fold-with-index, for-loop, frozen-set, is-empty, new, size,
+		to-frozen-set, try-get-unordered-index, unsafe-frozen-set-from-fix-arr-cast-immutable
 	./fix-arr: begin-ptr, cast-immutable, end-ptr, fix-arr, fix-arr-from-begin-end, uninitialized-fix-arr
 	./mut-arr: ~=, move-to-arr, mut-arr, new
 
@@ -55,7 +55,8 @@ to-set<a> set a(a a[]) is-data<a> compare<a> hash-mix<a>
 # Copies set elements to an array.
 to-arr<a> a[](a set a) is-data<a> compare<a> hash-mix<a>
 	# TODO: If a has a single add node and no remove, just return that
-	a map-to-arr x => x
+	for x : a
+		x
 
 # `true` iff `a.size == 0`.
 is-empty<a> bool(a set a) is-data<a> compare<a> hash-mix<a>
@@ -231,7 +232,7 @@ body
 
 region iteration
 
-each<a> void(a set a, f act void(a)) is-data<a> compare<a> hash-mix<a>
+for-loop<a> void(a set a, f act void(a)) is-data<a> compare<a> hash-mix<a>
 	() fold a, (_, x) => f[x]
 
 fold<a, b> a(acc a, a set b, f act a(a, b)) is-data<b> compare<b> hash-mix<b>
@@ -253,12 +254,12 @@ fold<a, b> a(acc a, a set b, f act a(a, b)) is-data<b> compare<b> hash-mix<b>
 filter<a> set a(a set a, f act bool(a)) is-data<a> compare<a> hash-mix<a>
 	# TODO:PERF
 	res a mut[] = ()
-	a each x =>
+	for x : a
 		if f[x]
 			res ~= x
 	res.move-to-arr to-set
 
-map-to-arr<out, in> out[](a set in, f act out(in)) trusted is-data<in> compare<in> hash-mix<in>
+for-loop<out, in> out[](a set in, f act out(in)) trusted is-data<in> compare<in> hash-mix<in>
 	out fix-arr out = a.size uninitialized-fix-arr
 	end = out.begin-ptr fold a, (cur, x) =>
 		*cur := f[x]
@@ -271,7 +272,7 @@ map-to-arr<out, in> out[](a set in, f act out(in)) trusted is-data<in> compare<i
 	out dbg-add-recur a.add
 	unless a.remove is-empty
 		out ~~= " - ["
-		a.remove each i =>
+		for i : a remove
 			out ~~= i to-str
 			out ~= " "
 		out backup
@@ -287,7 +288,7 @@ map-to-arr<out, in> out[](a set in, f act out(in)) trusted is-data<in> compare<i
 		out ~~= "[]"
 	else
 		out ~= "["
-		a.here each x =>
+		for x : a here
 			out ~~= x to-str
 			out ~= " "
 		out backup

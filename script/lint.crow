@@ -1,11 +1,11 @@
 import
-	crow/col/arr-util: each, in, map
+	crow/col/arr-util: flatten, in
 	crow/col/dict: dict, each-key, subscript
 	crow/col/mut-arr: ~=, is-empty, move-to-arr, mut-arr, new
 	crow/col/mut-dict: move-to-dict, mut-dict, new, subscript, set-subscript
-	crow/col/set: each, in, set
-	crow/col/seq: each
-	crow/col/mut-set: ~=, each, move-to-arr, move-to-set, mut-set, new, to-mut-set, try-remove
+	crow/col/set: in, set, to-arr, to-set
+	crow/col/seq: for-loop
+	crow/col/mut-set: ~=, for-loop, move-to-arr, move-to-set, mut-set, new, to-mut-set, try-remove
 	crow/io/file: read-file
 	crow/io/print: print-err
 	crow/io/process: shell-exec
@@ -15,30 +15,27 @@ import
 main fut nat(_ str[]) summon
 	files = all-files
 	failures = files lint-files
-	failures each x => x print-err
+	for x : failures
+		x print-err
 	failures.size,
 
 .lint-files str[](files file[]) summon
 	failures str mut[] = ()
 	all-imports = files get-all-imports
-	files each file =>
-		file.members.public each public-export =>
+	for file : files
+		for public-export : file.members public
 			unless public-export in all-imports || public-export in excluded-public
 				failures ~= "{file path} export not used: {public-export}"
-	files each file =>
-		file.members.private each private-member =>
+	for file : files
+		for private-member : file.members private
 			if file.uses[private-member]! < 2
 				failures ~= "{file path} private member not used: {private-member}"
-	files each file =>
+	for file : files
 		failures lint-imports-in-file file
 	failures move-to-arr
 
 .get-all-imports set sym(files file[])
-	res mut-set sym = ()
-	files each file =>
-		file.imports each x =>
-			res ~= x
-	res move-to-set
+	(for file : files; file.imports to-arr).flatten to-set
 
 .excluded-public sym[]()
 	"derefConstantPointer", "diffSymbols", "main"
@@ -54,7 +51,8 @@ main fut nat(_ str[]) summon
 	private sym[]
 
 all-files file[]() summon
-	"src".search-dir-recursive map path => path get-file
+	for path : "src" search-dir-recursive
+		path get-file
 
 .get-file file(path str) summon
 	imports-and-rest = path.read-file find-imports
@@ -68,7 +66,7 @@ all-files file[]() summon
 
 	look-for = "!_TAG_PROGRAM_URL	https://github.com/dlang-community/D-Scanner/\n"
 	rest = (stdout try-split-once look-for)!.b
-	rest.lines each line =>
+	for line : rest lines
 		unless line == "" || line contains-substr "enum:" || line contains-substr "struct:"
 			name = line.try-split-once-by-whitespace!.a str-to-sym
 			if line contains-substr "access:public"
@@ -97,7 +95,7 @@ all-files file[]() summon
 			rest = pair b
 			after-colon = (rest try-split-once ":")!.b
 			split-semi = (after-colon try-split-once ";")!
-			split-semi.a each-word word =>
+			for word : split-semi.a words
 				res ~= word
 			res find-imports-recur split-semi.b, split-semi.b
 		else
@@ -109,13 +107,17 @@ all-files file[]() summon
 
 .get-uses nat[sym](a str)
 	res nat mut[sym] = ()
-	a each-word x =>
+	for x : a words
 		res[x] := (res[x] ?? 0) + 1
 	res move-to-dict
 
-.each-word void(a str, cb act void(sym))
+words record
+	inner str
+.words words(a str)
+	a,
+.for-loop void(a words, cb act void(sym))
 	word char8 mut[] = ()
-	a.char8s each x =>
+	for x : a.inner char8s
 		if x is-identifier-char
 			word ~= x
 		else
@@ -132,5 +134,5 @@ all-files file[]() summon
 	a.uses each-key x =>
 		_ = not-used try-remove x
 		()
-	not-used each x =>
+	for x : not-used
 		failures ~= "{a path}: unused import {x}"

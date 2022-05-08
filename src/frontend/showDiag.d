@@ -157,6 +157,9 @@ void writeParseDiag(
 				case ParseDiag.Expected.Kind.closingParen:
 					writeStatic(writer, "expected ')'");
 					break;
+				case ParseDiag.Expected.Kind.colon:
+					writeStatic(writer, "expected ':'");
+					break;
 				case ParseDiag.Expected.Kind.comma:
 					writeStatic(writer, "expected ', '");
 					break;
@@ -255,6 +258,8 @@ void writeParseDiag(
 				final switch (it.kind) {
 					case ParseDiag.NeedsBlockCtx.Kind.break_:
 						return "'break'";
+					case ParseDiag.NeedsBlockCtx.Kind.for_:
+						return "'for'";
 					case ParseDiag.NeedsBlockCtx.Kind.if_:
 						return "'if'";
 					case ParseDiag.NeedsBlockCtx.Kind.match:
@@ -1060,6 +1065,8 @@ immutable(string) describeTokenForUnexpected(immutable Token token) {
 			return "unexpected end of file";
 		case Token.flags:
 			return "unexpected keyword 'flags'";
+		case Token.for_:
+			return "unexpected keyword 'for'";
 		case Token.forceSendable:
 			return "unexpected keyword 'force-sendable'";
 		case Token.fun:
@@ -1110,6 +1117,8 @@ immutable(string) describeTokenForUnexpected(immutable Token token) {
 			return "unexpected keyword 'record'";
 		case Token.ref_:
 			return "unexpected keyword 'ref'";
+		case Token.semicolon:
+			return "unexpected ';'";
 		case Token.sendable:
 			return "unexpected keyword 'sendable'";
 		case Token.spec:

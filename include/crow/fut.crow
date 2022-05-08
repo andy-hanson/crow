@@ -1,8 +1,8 @@
 no-std
 import
 	./cell: *, cell, new, set-deref
-	./col/arr: arr, is-empty, size, subscript
-	./col/arr-util: each, map, tail
+	./col/arr: arr, for-loop, is-empty, size, subscript
+	./col/arr-util: tail
 	./exception: catch, exception
 	./fun-util: subscript
 	./misc: new, void
@@ -54,7 +54,7 @@ Use `wait-fold` instead of you intend to iterate over the result anyway.
 ###
 wait-all<a> fut a[](futures fut<a>[]) trusted is-sendable<a> is-sendable<a[]>
 	<- futures wait-all-complete
-	(futures map x => x.get-result ok-or-throw),
+	(for x : futures; x.get-result ok-or-throw),
 
 ###
 Waits on each of `futures` in turn, calling `f` to get a new accumulator.
@@ -75,7 +75,8 @@ wait-fold<a, b> fut a(acc a, futures fut<b>[], f ref a(a, b)) is-sendable<a> is-
 		*count := *count wrap-sub 1
 		if *count == 0
 			res resolve ()
-	futures each x => x add-task task
+	for x : futures
+		x add-task task
 	res
 
 ###

@@ -1,17 +1,16 @@
 import
-	crow/col/arr-util: make-arr, map
 	crow/cell
 	crow/io/print: print
 	crow/str-util: join
 
 main fut nat(_ str[]) summon
 	adder <- 0 make-store
-	tasks = 10 make-arr x =>
+	tasks fut<nat>[] = for x : 0 .. 10
 		launch: () =>
 			adder.get-and-set[x + 1]
 	values <- tasks wait-all
 	final-value <- adder.get[]
-	print: "values: {values map (x => x to-str) join ", "}"
+	print: "values: {(for x : values; x to-str) join ", "}"
 	print: "final value: {final-value}"
 	()
 

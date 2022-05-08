@@ -14,7 +14,7 @@ import
 	../test-util: is
 	../writer: ~=, ~~=, backup, move-to-str, new, write, writer
 	./fix-arr:
-		begin-ptr, copy, each, end-ptr, exists, fix-arr, fold, is-empty, new, set-map,
+		begin-ptr, copy, end-ptr, exists, fix-arr, fold, for-loop, is-empty, new, set-map,
 		set-subscript, size, subscript, uninitialized-fix-arr
 
 ###
@@ -131,7 +131,7 @@ This makes no attempt to add padding to ensure columns line up. (TODO?)
 to-str<a> str(a mut-grid a) write<a>
 	res writer = ()
 	a each-row row =>
-		row each value =>
+		for value : row
 			res ~~= value
 			res ~= " "
 		unless row is-empty
@@ -143,7 +143,7 @@ to-str<a> str(a mut-grid a) write<a>
 
 region iteration
 
-each<a> void(a mut-grid a, f act void(a))
+for-loop<a> void(a mut-grid a, f act void(a))
 	() fold a, (_, value) => f[value]
 
 each-row<a> void(a mut-grid a, f act void(fix-arr a))

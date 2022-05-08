@@ -1,8 +1,8 @@
 no-std
 import
 	../cell: as-cell
-	../col/arr: arr
-	../col/arr-util: map, tail
+	../col/arr: arr, for-loop
+	../col/arr-util: tail
 	../col/private/arr-low-level: subscript
 	../fun-util: fun-ptr2, subscript
 	../fut: delay, fut, handle-exceptions, then-void
@@ -107,7 +107,7 @@ body
 	res = delay then-void () =>
 		get-global-ctx init-symbol-table
 		# First argument is the path to this executable; omit from crow main
-		main-ptr[get-ctx, all-args.tail map arg => arg to-str]
+		main-ptr[get-ctx, for arg : all-args tail; arg to-str]
 	res handle-exceptions
 	res
 

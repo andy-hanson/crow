@@ -9,14 +9,14 @@ import
 	../ptr:
 		==, <=>, +, -, *, as-any-const-ptr, as-any-mut-ptr, as-const, as-mut, by-val, mut-ptr,
 		ptr-cast, ref-of-ptr, set-deref, set-subscript, size-of, subscript, swap
-	../private/alloc: alloc-uninitialized, fill-ptr-range, set-zero-range
+	../private/alloc: alloc-uninitialized, set-zero-range
 	../private/bootstrap: hard-assert
 	../private/exception-low-level: assert, forbid
-	../private/number-low-level: ==, <=>, nat64, unsafe-div, unsafe-mod, wrap-mul, wrap-sub
+	../private/number-low-level: ==, <=>, nat64, unsafe-div, unsafe-mod, wrap-add, wrap-mul, wrap-sub
 	../private/range-low-level: .., range
-	./arr: arr, new, size, subscript
+	./arr: arr, for-loop, new, size, subscript
 	./private/arr-low-level: arr-from-begin-end, begin-ptr, subscript
-	./arr-util: each, each-with-index, exists, find-index, fold, fold-reverse
+	./arr-util: each-with-index, exists, find-index, fold, fold-reverse
 
 ###
 `fix-arr` is a low-level type mostly useful for implementing other collections.
@@ -134,7 +134,8 @@ Copies the elements to a new `fix-arr`.
 This is O(n).
 ###
 copy<a> fix-arr a(a fix-arr a)
-	a.size make-fix-arr i => a[i]
+	for x : a
+		x
 
 ###
 Copies elements from `source` to `dest`.
@@ -196,10 +197,18 @@ set-zero-elements<a> void(a fix-arr a) noctx unsafe
 `fix-arr` where each element is `f[i]`.
 Equivalent to `f[0], f[1], ...`.
 ###
-make-fix-arr<a> fix-arr a(size nat64, f act a(nat64)) trusted
+.make-fix-arr<a> fix-arr a(size nat64, f act a(nat64)) trusted
 	res fix-arr a = size uninitialized-fix-arr
-	res.begin-ptr fill-ptr-range size, f
-	res
+	out mut = res begin-ptr
+	i mut = 0
+	loop
+		if i == size
+			hard-assert: out == res.end-ptr
+			break res
+		else
+			*out := f[i]
+			out := out + 1
+			i := i wrap-add 1
 
 ###
 `fix-arr` where every element is `value`.
@@ -272,8 +281,8 @@ exists<a> bool(a fix-arr a, f act bool(a)) trusted
 	a.temp-as-arr exists f
 
 # Calls 'f' on each element in the fix-arr.
-each<a> void(a fix-arr a, f act void(a)) trusted
-	a.temp-as-arr each f
+for-loop<a> void(a fix-arr a, f act void(a)) trusted
+	a.temp-as-arr for-loop f
 
 each-with-index<a> void(a fix-arr a, f act void(a, nat64)) trusted
 	a.temp-as-arr each-with-index f
@@ -290,7 +299,7 @@ set-map<a> void(a fix-arr a, f act a(a)) trusted
 		*cur := f[*cur]
 		cur + 1 set-map-recur end, f
 
-map<out, in> fix-arr out(a fix-arr in, f act out(in)) trusted
+for-loop<out, in> fix-arr out(a fix-arr in, f act out(in)) trusted
 	a.size make-fix-arr i => f[a[i]]
 
 map-with-index<out, in> fix-arr out(a fix-arr in, f act out(in, nat64)) trusted
@@ -307,8 +316,8 @@ cast-fix-arr<out, in> fix-arr out(a fix-arr in) noctx unsafe
 	size-out = size-bytes unsafe-div size-of@<out>
 	a.begin-ptr.ptr-cast@<out, in>[0 .. size-out]
 
-map-to-arr<out, in> out[](a fix-arr in, f act out(in)) trusted
-	a map f cast-immutable
+for-loop<out, in> out[](a fix-arr in, f act out(in)) trusted
+	a for-loop f cast-immutable
 
 map-to-arr-with-index<out, in> out[](a fix-arr in, f act out(in, nat64)) trusted
 	a map-with-index f cast-immutable

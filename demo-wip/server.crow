@@ -20,5 +20,5 @@ main fut nat(args str[]) unsafe summon
 		1,
 
 .describe-request str(a http-request) trusted
-	h = a.headers map-to-arr (k, v) => "{k}: {v}"
-	"{a method} {a url}\n{h join "\n"}\n\n{a.request-body as-str}"
+	h = "\n" join (a.headers map-to-arr (k, v) => "{k}: {v}")
+	"{a method} {a url}\n{h}\n\n{a.request-body as-str}"

@@ -10,6 +10,7 @@ import frontend.parse.ast :
 	CallAst,
 	ExprAst,
 	ExprAstKind,
+	ForAst,
 	FunPtrAst,
 	IdentifierAst,
 	IdentifierSetAst,
@@ -838,6 +839,38 @@ immutable(ExprAndDedent) parseUnless(scope ref Lexer lexer, immutable Pos start,
 		thenAndDedent.dedents);
 }
 
+immutable(ExprAndMaybeDedent) parseFor(
+	scope ref Lexer lexer,
+	immutable Pos start,
+	immutable AllowedBlock allowedBlock,
+) {
+	immutable OptNameAndRange param = takeOptNameAndRange(lexer);
+	if (takeOrAddDiagExpectedToken(lexer, Token.colon, ParseDiag.Expected.Kind.colon)) {
+		immutable ExprAst col = parseExprNoBlock(lexer);
+		immutable ExprAndMaybeDedent bodyAndDedent = () {
+			immutable bool semi = tryTakeToken(lexer, Token.semicolon);
+			if (isAllowBlock(allowedBlock)) {
+				immutable uint curIndent = asAllowBlock(allowedBlock).curIndent;
+				return toMaybeDedent(semi
+					? parseExprNoLet(lexer, curIndent)
+					: takeIndentOrFail_ExprAndDedent(lexer, curIndent, () =>
+						parseStatementsAndExtraDedents(lexer, curIndent + 1)));
+			} else {
+				if (semi)
+					return noDedent(parseExprNoBlock(lexer));
+				else
+					return exprBlockNotAllowed(lexer, start, ParseDiag.NeedsBlockCtx.Kind.for_);
+			}
+		}();
+		return immutable ExprAndMaybeDedent(
+			immutable ExprAst(
+				range(lexer, start),
+				immutable ExprAstKind(allocate(lexer.alloc, immutable ForAst(param, col, bodyAndDedent.expr)))),
+			bodyAndDedent.dedents);
+	} else
+		return skipRestOfLineAndReturnBogusNoDiag(lexer, start);
+}
+
 immutable(ExprAndDedent) parseLoop(scope ref Lexer lexer, immutable Pos start, immutable uint curIndent) {
 	immutable ExprAndDedent bodyAndDedent = takeIndentOrFail_ExprAndDedent(lexer, curIndent, () =>
 		parseStatementsAndExtraDedents(lexer, curIndent + 1));
@@ -1015,6 +1048,8 @@ immutable(ExprAndMaybeDedent) parseExprBeforeCall(scope ref Lexer lexer, immutab
 			return isAllowBlock(allowedBlock)
 				? toMaybeDedent(parseIf(lexer, start, asAllowBlock(allowedBlock).curIndent))
 				: exprBlockNotAllowed(lexer, start, ParseDiag.NeedsBlockCtx.Kind.if_);
+		case Token.for_:
+			return parseFor(lexer, start, allowedBlock);
 		case Token.match:
 			return isAllowBlock(allowedBlock)
 				? toMaybeDedent(parseMatch(lexer, start, asAllowBlock(allowedBlock).curIndent))

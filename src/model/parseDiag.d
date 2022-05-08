@@ -23,6 +23,7 @@ struct ParseDiag {
 			closeInterpolated,
 			closingBracket,
 			closingParen,
+			colon,
 			comma,
 			dedent,
 			endOfLine,
@@ -65,6 +66,7 @@ struct ParseDiag {
 	struct NeedsBlockCtx {
 		enum Kind {
 			break_,
+			for_,
 			if_,
 			match,
 			lambda,

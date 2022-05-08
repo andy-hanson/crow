@@ -106,11 +106,11 @@ pop<a> popped<a>?(a stack a)
 
 region iteration
 
-each<a> void(a stack a, f act void(a))
-	a.last-node each-recur f
-.each-recur<a> void(a node<a>?, f act void(a))
+for-loop<a> void(a stack a, f act void(a))
+	a.last-node for-loop-recur f
+.for-loop-recur<a> void(a node<a>?, f act void(a))
 	if node ?= a
-		node.prev each-recur f
+		node.prev for-loop-recur f
 		f[node value]
 
 each-reverse<a> void(a stack a, f act void(a))
@@ -185,12 +185,12 @@ test
 	d = c ~ 3
 	d.to-arr is (1, 2, 3)
 
-	each-spy spy-act1<void, nat64> = new: _ => ()
-	d each each-spy.fn
-	each-spy.calls is (1, 2, 3)
+	for-loop-spy spy-act1<void, nat64> = new: _ => ()
+	d for-loop for-loop-spy.fn
+	for-loop-spy.calls is (1, 2, 3)
 
-	d each-reverse each-spy.fn
-	each-spy.calls is (3, 2, 1)
+	d each-reverse for-loop-spy.fn
+	for-loop-spy.calls is (3, 2, 1)
 
 	d2 = d map x => x wrap-add 10
 	d2.to-arr is (11, 12, 13)

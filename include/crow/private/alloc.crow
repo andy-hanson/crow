@@ -5,12 +5,11 @@ import
 	../bits: ~, &
 	../bool: !, bool, false, to-nat64, true
 	../compare: !=, <, <=, >
-	../fun-util: subscript
 	../misc: new
 	../ptr:
 		==, <=>, +, -, *, any-const-ptr, any-mut-ptr, as-any-const-ptr, as-any-mut-ptr, as-const,
 		as-mut, as-ref, by-val, const-ptr, mut-ptr, null, ptr-cast, ref-of-val, set-deref,
-		set-subscript, size-of, to-nat64
+		size-of, to-nat64
 	./bootstrap:
 		gc-ctx-ptr, get-ctx, hard-assert, lock, nat64, none, opt, some, todo, void
 	./number-low-level: ==, <=>, nat8, unsafe-div, wrap-add, wrap-mul, wrap-sub
@@ -322,17 +321,3 @@ unmanaged-free<a> void(p a mut*) noctx unsafe
 copy-data-from<a> void(to a mut*, from a*, len nat64) unsafe
 	_ = to.as-any-mut-ptr memcpy from.as-any-const-ptr, (len wrap-mul size-of@<a>)
 	()
-
-# TODO: use memset
-fill-ptr-range<a> void(cur a mut*, end a mut*, value a) noctx unsafe
-	unless cur == end
-		*cur := value
-		cur + 1 fill-ptr-range end, value
-
-fill-ptr-range<a> void(begin a mut*, size nat64, f act a(nat64)) unsafe
-	begin fill-ptr-range-recur 0, size, f
-
-.fill-ptr-range-recur<a> void(begin a mut*, i nat64, size nat64, f act a(nat64)) unsafe
-	unless i == size
-		begin[i] := f[i]
-		begin fill-ptr-range-recur (i wrap-add 1), size, f

@@ -2,7 +2,7 @@ import
 	crow/io/print: print
 
 main fut nat(_ str[]) summon
-	1 .. 20 each x =>
+	for x : 1 .. 20
 		m3 = x is-multiple-of 3
 		m5 = x is-multiple-of 5
 		print: m3 && m5 ? "FizzBuzz" : m3 ? "Fizz" : m5 ? "Buzz" : "{x}"

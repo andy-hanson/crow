@@ -1,5 +1,4 @@
 import
-	crow/col/arr-util: each
 	crow/io/print: print
 	crow/private/bootstrap: static-syms
 
@@ -11,7 +10,7 @@ main fut nat(_ str[]) summon
 	fosho = "fosho" str-to-sym
 	print: fosho to-str
 
-	static-syms each s =>
+	for s : static-syms
 		print: s.to-str
 
 	print: (fosho == "fosho".str-to-sym).to-str

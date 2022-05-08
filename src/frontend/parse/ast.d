@@ -272,6 +272,12 @@ struct CallAst {
 	}
 }
 
+struct ForAst {
+	immutable LambdaAst.Param param;
+	immutable ExprAst collection;
+	immutable ExprAst body_;
+}
+
 struct FunPtrAst {
 	immutable Sym name;
 }
@@ -518,6 +524,7 @@ struct ExprAstKind {
 		arrowAccess,
 		bogus,
 		call,
+		for_,
 		funPtr,
 		identifier,
 		identifierSet,
@@ -542,6 +549,7 @@ struct ExprAstKind {
 		immutable ArrowAccessAst* arrowAccess;
 		immutable BogusAst bogus;
 		immutable CallAst call;
+		immutable ForAst* for_;
 		immutable FunPtrAst funPtr;
 		immutable IdentifierAst identifier;
 		immutable IdentifierSetAst* identifierSet;
@@ -566,6 +574,7 @@ struct ExprAstKind {
 	@trusted immutable this(immutable ArrowAccessAst* a) { kind = Kind.arrowAccess; arrowAccess = a; }
 	@trusted immutable this(immutable BogusAst a) { kind = Kind.bogus; bogus = a; }
 	@trusted immutable this(immutable CallAst a) { kind = Kind.call; call = a; }
+	immutable this(immutable ForAst* a) { kind = Kind.for_; for_ = a; }
 	@trusted immutable this(immutable FunPtrAst a) { kind = Kind.funPtr; funPtr = a; }
 	@trusted immutable this(immutable IdentifierAst a) { kind = Kind.identifier; identifier = a; }
 	@trusted immutable this(immutable IdentifierSetAst* a) { kind = Kind.identifierSet; identifierSet = a; }
@@ -608,6 +617,7 @@ ref immutable(IdentifierAst) asIdentifier(return scope ref immutable ExprAstKind
 	alias cbArrowAccess,
 	alias cbBogus,
 	alias cbCall,
+	alias cbFor,
 	alias cbFunPtr,
 	alias cbIdentifier,
 	alias cbIdentifierSet,
@@ -636,6 +646,8 @@ ref immutable(IdentifierAst) asIdentifier(return scope ref immutable ExprAstKind
 			return cbBogus(a.bogus);
 		case ExprAstKind.Kind.call:
 			return cbCall(a.call);
+		case ExprAstKind.Kind.for_:
+			return cbFor(*a.for_);
 		case ExprAstKind.Kind.funPtr:
 			return cbFunPtr(a.funPtr);
 		case ExprAstKind.Kind.identifier:
@@ -1471,6 +1483,11 @@ immutable(Repr) reprExprAstKind(ref Alloc alloc, ref immutable ExprAstKind ast) 
 					reprTypeAst(alloc, it)),
 				reprArr(alloc, e.args, (ref immutable ExprAst it) =>
 					reprExprAst(alloc, it))]),
+		(ref immutable ForAst x) =>
+			reprRecord(alloc, "for", [
+				reprLambdaParamAst(alloc, x.param),
+				reprExprAst(alloc, x.collection),
+				reprExprAst(alloc, x.body_)]),
 		(ref immutable FunPtrAst a) =>
 			reprRecord(alloc, "fun-ptr", [reprSym(a.name)]),
 		(ref immutable IdentifierAst a) =>

@@ -1,5 +1,5 @@
 import
-	crow/col/arr-util: in, map, tail
+	crow/col/arr-util: in, tail
 	crow/str-util:
 		join, left, middle, replace, right, strip-left, try-remove-start, try-split-once,
 		try-split-once-by-fn
@@ -11,7 +11,8 @@ import
 		type-ref, union-member, value, variadic
 
 module-content str(a module)
-	exports = a.exports map (x => x export-content) join ""
+	exports = "" join for x : a exports
+		x export-content
 	doc = unless a.doc-comment is-empty
 		"""\n<section class="module-doc">{a.doc-comment format-comment}</section>"""
 	"{a.path module-top}{doc}\n{exports}"
@@ -75,10 +76,9 @@ module-top str(path str)
 
 .type-params-content str(a type-param[])
 	unless a is-empty
-		"""<span class="type-params">{a map (x => x type-param-content) join ","}</span>"""
-
-.type-param-content str(a type-param)
-	"""<code class="type-param">{a name}</code>"""
+		type-params = "," join for x : a
+			"""<code class="type-param">{x name}</code>"""
+		"""<span class="type-params">{type-params}</span>"""
 
 .export-header-extra str(a module-export-value)
 	match a
@@ -131,21 +131,25 @@ module-top str(path str)
 	as record-decl r
 		pre = if r.has-private-fields
 			"""<p class="has-private">(has private fields)</p>"""
-		fields = r.fields map (x => x field-content) join ""
+		fields = "" join for x : r fields
+			x field-content
 		"""{pre}<ul class="members">{fields}</ul>"""
 	as spec-decl s
 		match s body_
 		as spec-builtin
 			""
 		as spec-sigs sigs
-			sigs-content = sigs map (x => x spec-sig-li) join ""
+			sigs-content = "" join for x : sigs
+				x spec-sig-li
 			"""<ul class="sigs">{sigs-content}</ul>"""
 	as union-decl u
-		members = u.members map (x => x union-member-content) join ""
+		members = "" join for x : u members
+			x union-member-content
 		"""<ul class="members">{members}</ul>"""
 
 .enum-flags-members-content str(a sym[])
-	members = a map (x => """<li><code class="member">{x}</code></li>""") join ""
+	members = "" join for x : a
+		"""<li><code class="member">{x}</code></li>"""
 	"""<ul class="members">{members}</ul>"""
 
 .field-content str(a record-field)
@@ -164,10 +168,13 @@ module-top str(path str)
 	"""<li class="sig"><code class="fun">{a name}</code> {rt}</li>"""
 
 .return-type-and-params-and-specs str(return-type type-ref, variadic bool, params param[], specs spec-ref[])
-	params-content = params map (x => x param-content variadic) join ","
-	specs-ul = unless specs is-empty
-		"""<span class="specs">{specs map (x => x spec-ref-content) join ""}</span>"""
-	"""{return-type type-ref-content}<span class="params">{params-content}</span>{specs-ul}"""
+	params-content = "," join for x : params
+		x param-content variadic
+	specs-span = unless specs is-empty
+		contents = "" join for x : specs
+			x spec-ref-content
+		"""<span class="specs">{contents}</span>"""
+	"""{return-type type-ref-content}<span class="params">{params-content}</span>{specs-span}"""
 
 .param-content str(a param, variadic bool)
 	var = variadic ? """<code class="keyword">...</code>"""
@@ -213,7 +220,8 @@ module-top str(path str)
 		"""<code class="struct">{inner}</code>"""
 
 .fun-type str(a type-ref, type str)
-	params = a.type-args.tail map (x => x type-ref-content) join ", "
+	params = ", " join for x : a.type-args tail
+		x type-ref-content
 	kw = " {type}" keyword
 	"{a.type-args[0] type-ref-with-subscript}{kw}({params})"
 
@@ -222,7 +230,9 @@ module-top str(path str)
 
 .type-args-content str(a type-ref[])
 	unless a is-empty
-		"&lt;{a map (x => x type-ref-content) join ","}&gt;"
+		args = "," join for x : a
+			x type-ref-content
+		"&lt;{args}&gt;"
 
 .keyword str(a str)
 	"""<code class="keyword">{a}</code>"""

@@ -10,10 +10,10 @@ import
 	../ptr: ==, +, -, set-deref
 	../test-util: is
 	../range: ..
-	./arr: ==, arr, is-empty, new, size
-	./arr-util: each, first, fold, tail
+	./arr: ==, arr, for-loop, is-empty, new, size
+	./arr-util: first, fold, tail
 	./fix-arr: begin-ptr, cast-immutable, end-ptr, fix-arr, subscript, uninitialized-fix-arr
-	./stack: ~, each, fold, is-empty, new, size, stack, to-arr
+	./stack: ~, fold, for-loop, is-empty, new, size, stack, to-arr
 
 ###
 Immutable queue.
@@ -79,9 +79,9 @@ dequeue<a> dequeued<a>?(a queue a)
 
 region iteration
 
-each<a> void(a queue a, f act void(a))
-	a.left each f
-	a.right each f
+for-loop<a> void(a queue a, f act void(a))
+	a.left for-loop f
+	a.right for-loop f
 
 fold<a, b> a(acc a, a queue b, f act a(a, b))
 	acc fold a.left, f fold a.right, f

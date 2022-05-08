@@ -1,5 +1,5 @@
 import
-	crow/col/arr-util: in, map
+	crow/col/arr-util: in
 	crow/col/sort: sort
 	crow/io/file: read-file
 	crow/io/path: child-path
@@ -14,8 +14,8 @@ import
 documentation path-and-content[]() summon
 	all-module-paths = "include/crow" search-dir-recursive (x => !x.ignore-dir), (x => x != "std.crow")
 	all-modules = all-module-paths get-modules
-	all-paths = all-module-paths map (x => x remove-include-and-crow) sort-paths
-	modules = all-modules map module =>
+	all-paths = (for x : all-module-paths; x remove-include-and-crow) sort-paths
+	modules path-and-content[] = for module : all-modules
 		module.path document-template "module {module.path}", module.module-content, all-paths
 	index-content = "site-src/doc/index.html" read-file
 	index = "index" document-template "documentation", index-content, all-paths
@@ -49,7 +49,9 @@ documentation path-and-content[]() summon
 	out-path page-template title, full
 
 .generate-nav str(all-paths str[], cur-path str)
-	"""<nav><ul>{all-paths map (x => x nav-part x == cur-path) join ""}</ul></nav>"""
+	parts = "" join for x : all-paths
+		x nav-part x == cur-path
+	"""<nav><ul>{parts}</ul></nav>"""
 .nav-part str(a str, is-current bool)
 	cur = is-current ? " class=\"current\""
 	"""<li><a href="/doc/{a}.html"{cur}>{a}</a></li>"""

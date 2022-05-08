@@ -18,8 +18,8 @@ import
 	../../private/alloc: mem-copy
 	../../private/bootstrap: hard-assert
 	../../private/number-low-level: wrap-add
-	../arr: arr, is-empty, new, size, subscript
-	../arr-util: each, filter, fold, map, tail
+	../arr: arr, for-loop, is-empty, new, size, subscript
+	../arr-util: filter, fold, tail
 	../fix-arr:
 		begin-ptr, cast-immutable, is-empty, fold, fix-arr, set-subscript, size, subscript, tail,
 		uninitialized-fix-arr
@@ -80,7 +80,7 @@ to-arr<k, v> pair<k, v>[](a compact-sorted-dict<k, v>) is-data<k> compare<k>
 		b to-compact-sorted-dict
 	else
 		# TODO: 'pair<k, v?>[]' should be unnecessary
-		pairs pair<k, v?>[] = b map (x => x.from, (x.to,)) sort-by it => it from
+		pairs pair<k, v?>[] = (for x : b; x.from, (x.to,)) sort-by it => it from
 		# TODO: should not need type annotation
 		(pairs, a.impl)::overlay<k, v>.merge-as-needed,
 
@@ -393,7 +393,8 @@ keys<k, v> k[](a compact-sorted-dict<k, v>) is-data<k> compare<k>
 	a map-to-arr (k, _) => k
 
 map-to-arr<out, k, v> out[](a compact-sorted-dict<k, v>, f act out(k, v)) is-data<k> compare<k>
-	a.to-arr map pair => f[pair.from, pair.to]
+	for pair : a to-arr
+		f[pair.from, pair.to]
 
 map-values<v-out, k, v-in> compact-sorted-dict<k, v-out>
 	a compact-sorted-dict<k, v-in>
@@ -403,7 +404,9 @@ spec
 	compare<k>
 body
 	# No need to re-sort
-	((a.to-arr map pair => pair.from, f[pair.from, pair.to]) end-node),
+	new-pairs pair<k, v-out>[] = for pair : a to-arr
+		pair.from, f[pair.from, pair.to]
+	(new-pairs end-node),
 
 # TODO:PRIVATE
 dbg<k, v> str(a compact-sorted-dict<k, v>) to-str<k> to-str<v>
@@ -416,7 +419,7 @@ dbg<k, v> str(a compact-sorted-dict<k, v>) to-str<k> to-str<v>
 	as overlay o
 		out dbg-recur o.prev
 		out ~~= ", ["
-		o.pairs each pair =>
+		for pair : o pairs
 			out ~~= pair.from to-str
 			out ~~= " -> "
 			out ~~= if t ?= pair.to
@@ -429,7 +432,7 @@ dbg<k, v> str(a compact-sorted-dict<k, v>) to-str<k> to-str<v>
 		out ~= "]"
 	as end-node e
 		out ~= "["
-		e each pair =>
+		for pair : e
 			out ~~= pair.from to-str
 			out ~~= " -> "
 			out ~~= pair.to to-str

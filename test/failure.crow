@@ -1,5 +1,4 @@
 import
-	crow/col/arr-util: each
 	crow/col/mut-arr: ~~=, move-to-arr, mut-arr, new, reduce-size-if-more-than, size
 	crow/io/file: try-read-file, write-file
 	crow/io/path: base-name
@@ -32,7 +31,7 @@ body
 
 flat-map-with-max-size<out, in> out[](a in[], max-size nat, mapper act out[](in)) trusted
 	res out mut[] = ()
-	a each x =>
+	for x : a
 		if res.size < max-size
 			res ~~= mapper[x]
 			res reduce-size-if-more-than max-size
@@ -65,7 +64,8 @@ print-failures nat(failures result<str, failure[]>, options test-options) summon
 		print: o
 		0
 	as err e
-		e each failure => failure print-failure
+		for failure : e
+			failure print-failure
 		n-failures = e size
 		print: if n-failures == options.max-failures
 			"hit maximum of {options max-failures} failures"

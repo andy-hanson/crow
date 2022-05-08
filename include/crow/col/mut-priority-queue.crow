@@ -14,7 +14,7 @@ import
 	./arr: new, arr, arr-equal
 	./fix-arr: begin-ptr, cast-immutable, copy, fix-arr, set-reverse, uninitialized-fix-arr
 	./mut-arr:
-		~=, ~~=, begin-ptr, clear, each, each-with-index, fold, fold-reverse, is-empty, mut-arr,
+		~=, ~~=, begin-ptr, clear, each-with-index, fold, fold-reverse, for-loop, is-empty, mut-arr,
 		new, pop, size, subscript, to-mut-arr
 	./sort: set-sort-by, set-sort-by-reverse
 	./private/sort-utils: binary-search-insert-ptr
@@ -162,7 +162,7 @@ body
 			bucket = a.buckets[index]
 			unless bucket is-empty
 				out ~~= " ["
-				bucket each pair =>
+				for pair : bucket
 					out write-pair pair
 					out ~~= ", "
 				out backup 2

@@ -1,5 +1,4 @@
 import
-	crow/col/arr-util: each
 	crow/crypto/experimental/login-cookie:
 		cookie, cookie-matches, from-bytes, generate-login-cookie, login-cookie,
 		parse-login-cookie, to-bytes, to-str
@@ -35,10 +34,10 @@ main fut nat(_ str[]) unsafe summon
 			print: "{pi user-name} ({pi user}): {pi content}"
 
 			print: "users:"
-			db.list-users each user =>
+			for user : db list-users
 				print: user.to-str
 			print: "posts:"
-			db.list-posts each post =>
+			for post : db list-posts
 				print: post.to-str
 	()
 

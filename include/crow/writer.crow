@@ -2,7 +2,7 @@ no-std
 import
 	./bool: bool
 	./col/mut-arr: ~=, move-to-arr, mut-arr, new, pop-n
-	./col/seq: each
+	./col/seq: for-loop
 	./misc: void
 	./number: float64, int64, nat64
 	./str: ==, char8, char8s, c-str, literal, str
@@ -45,7 +45,7 @@ backup void(a writer, n nat64)
 	a ~~= b to-str
 
 ~~= void(a writer, b str)
-	b.char8s each x =>
+	for x : b char8s
 		a.chars ~= x
 
 ~~= void(a writer, b bool)
@@ -63,7 +63,7 @@ backup void(a writer, n nat64)
 # Unlike `out ~= a`, this encloses `a` in quotes and escapes special characters.
 write-quoted-str void(out writer, a str)
 	out ~= "\""
-	a.char8s each x =>
+	for x : a char8s
 		if x == "\""
 			out ~~= "\\\""
 		elif x == "\n"

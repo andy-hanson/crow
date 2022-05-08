@@ -6,8 +6,8 @@ import
 	../opt: new, opt
 	./arr: arr
 	./mut-arr:
-		~=, ~~=, to-arr, copy, each, fold, is-empty, last, mut-arr, new, pop, set-filter, set-map,
-		size, to-mut-arr
+		~=, ~~=, to-arr, copy, fold, for-loop, is-empty, last, mut-arr, new, pop, set-filter,
+		set-map, size, to-mut-arr
 
 ###
 Mutable stack.
@@ -74,7 +74,7 @@ pop<a> a?(a mut-stack a)
 region iteration
 
 each<a> void(a mut-stack a, f act void(a))
-	a.inner each f
+	a.inner for-loop f
 
 fold<a, b> a(acc a, a mut-stack b, f act a(a, b))
 	acc fold a.inner, f

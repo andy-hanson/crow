@@ -1,21 +1,21 @@
 no-std
 import
 	./bool: ||, bool
-	./col/arr: arr
+	./cell: *, cell, new, set-deref
+	./col/arr: arr, for-loop
 	./col/private/arr-low-level: arr-cast, begin-ptr
-	./col/arr-util: fold
 	./col/iter: new, rest, value, value-and-rest
 	./col/mut-arr: copy, move-to-arr, to-mut-arr
 	./col/seq:
-		contains-subseq, copy, drop-right-while, drop-while, end-iter, ends-with, iter,
-		left, map, map-to-arr, middle, mut-iter, mut-seq-iter, next, peek, prev, repeat, reverse,
-		right, seq-iter, slice-left, slice-right, split-by-subseq, starts-with, to-arr, to-seq,
+		contains-subseq, copy, drop-right-while, drop-while, end-iter, ends-with, for-loop, iter,
+		left, middle, mut-iter, mut-seq-iter, next, peek, prev, repeat, reverse,
+		right, seq, seq-iter, slice-left, slice-right, split-by-subseq, starts-with, to-arr, to-seq,
 		try-remove-end, try-remove-start, try-split-once-by-fn, try-split-once-by-subseq,
 		try-split-once-by-subseq-right
 	./compare: <
 	./number: ==, <=>, nat8, nat64
-	./opt: new, opt
-	./str: ==, ~, ~~, char8, char8s, c-str, is-empty, literal, str, to-char8, to-nat8
+	./opt: ??, new, opt
+	./str: ==, ~, ~~, char8, char8s, c-str, literal, str, to-char8, to-nat8
 	./tuple: a, b, new, pair
 	./private/number-low-level: wrap-add, wrap-sub
 
@@ -110,7 +110,7 @@ Removes every occurrence of the substring `b` in `a` and return the remaining pa
 The result may include empty strings.
 ###
 split-by str[](a str, b str)
-	a.char8s split-by-subseq b.char8s map-to-arr x => x str
+	(for x : a.char8s split-by-subseq b.char8s; x str) to-arr
 
 lines str[](a str)
 	a split-by "\n"
@@ -135,18 +135,21 @@ try-split-once-by-whitespace pair<str, str>?(a str)
 
 ###
 Returns a string containing each element of `a`, with `b` as a separator.
-This is `a[0] ~ b ~ a[1] ~ b ~ ... ~ a[a.size - 1]`.
+This is `parts[0] ~ joiner ~ parts[1] ~ joiner ~ ... ~ parts[parts.size - 1]`.
 ###
-join str(a str[], b str)
-	"" fold a, (cur, x) =>
-		if cur is-empty
-			x
+join str(joiner str, parts str[])
+	# TODO: NO CELl
+	res cell str? = (),
+	for part : parts
+		*res := if cur ?= *res
+			(cur ~~ joiner ~~ part),
 		else
-			cur ~~ b ~~ x
+			part,
+	*res ?? ""
 
 # Lower cases every character in `a`.
 lower-case str(a str)
-	a.char8s map (it => it lower-case-char) str
+	(for x : a char8s; x lower-case-char)::seq<char8> str
 
 .lower-case-char char8(a char8) noctx
 	diff = a.to-nat8 wrap-sub "A".to-nat8
@@ -157,7 +160,7 @@ lower-case str(a str)
 
 # Capitalizes every character in `a`.
 upper-case str(a str)
-	a.char8s map (it => it upper-case-char) str
+	(for x : a char8s; x upper-case-char)::seq<char8> str
 
 .upper-case-char char8(a char8) noctx
 	diff = a.to-nat8 wrap-sub "a".to-nat8
@@ -226,7 +229,7 @@ Converts to an array of UTF-8 bytes.
 This is O(n).
 ###
 to-bytes nat8[](a str)
-	a.char8s map-to-arr x => x to-nat8
+	(for x : a char8s; x to-nat8) to-arr
 
 ###
 Converts a str to a c-str by appending "\0".

@@ -469,6 +469,7 @@ public enum Token {
 	EOF, // end of file
 	export_, // 'export'
 	flags, // 'flags'
+	for_, // 'for'
 	forceSendable, // 'force-sendable'
 	fun, // 'fun'
 	global, // 'global'
@@ -493,6 +494,7 @@ public enum Token {
 	quoteDouble3, // '"""'
 	record, // 'record'
 	ref_, // 'ref'
+	semicolon, // ';'
 	sendable, // 'sendable'
 	spec, // 'spec'
 	summon, // 'summon'
@@ -569,6 +571,8 @@ public enum Token {
 				: tryTakeChar(lexer, ':')
 				? Token.colon2
 				: Token.colon;
+		case ';':
+			return Token.semicolon;
 		case '"':
 			return tryTakeCStr(lexer, "\"\"")
 				? Token.quoteDouble3
@@ -645,6 +649,10 @@ immutable(Token) tokenForSym(ref Lexer lexer, immutable Sym a) {
 			return Token.externPtr;
 		case shortSymValue("flags"):
 			return Token.flags;
+		case shortSymValue("for"):
+			return Token.for_;
+		case specialSymValue(SpecialSym.force_sendable):
+			return Token.forceSendable;
 		case shortSymValue("fun"):
 			return Token.fun;
 		case shortSymValue("global"):
@@ -687,8 +695,6 @@ immutable(Token) tokenForSym(ref Lexer lexer, immutable Sym a) {
 			return Token.unsafe;
 		case shortSymValue("_"):
 			return Token.underscore;
-		case specialSymValue(SpecialSym.force_sendable):
-			return Token.forceSendable;
 		default:
 			return nameToken(lexer, a);
 	}
@@ -852,6 +858,7 @@ immutable(bool) isExpressionStartToken(immutable Token a) {
 		case Token.questionEqual:
 		case Token.record:
 		case Token.ref_:
+		case Token.semicolon:
 		case Token.sendable:
 		case Token.spec:
 		case Token.summon:
@@ -863,6 +870,7 @@ immutable(bool) isExpressionStartToken(immutable Token a) {
 		case Token.bracketLeft:
 		case Token.break_:
 		case Token.if_:
+		case Token.for_:
 		case Token.literal:
 		case Token.loop:
 		case Token.match:

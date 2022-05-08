@@ -1,7 +1,7 @@
 no-std
 import
 	./bool: bool
-	./col/arr-util: each, map
+	./col/arr: for-loop
 	./fun-util: subscript
 	./misc: new, void
 	./str: ~~, is-empty, literal, str
@@ -65,13 +65,14 @@ to-str str(a exception) unsafe
 	res writer = ()
 	message = a.message to-str
 	res ~~= (message.is-empty ? "<<empty message>>" : message)
-	a.backtrace.entries each x =>
+	for x : a.backtrace entries
 		res ~~= "\n\tat "
 		res ~~= x.to-str
 	res move-to-str
 
 to-str str(a backtrace)
-	a.entries map (x => "\n\tat " ~~ x.to-str) join ""
+	"" join for x : a entries
+		"\n\tat " ~~ x.to-str
 
 to-str str(a backtrace-entry) trusted
 	name = a.function-name to-str

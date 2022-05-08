@@ -1,6 +1,6 @@
 import
 	crow/cell: *, as-const-ptr, as-mut-ptr, cell, new
-	crow/col/arr-util: flat-map, groups-of, map
+	crow/col/arr-util: flatten, groups-of
 	crow/col/private/arr-low-level: begin-ptr, subscript
 	crow/c-types: c-int
 	crow/io/duration: msec
@@ -107,10 +107,10 @@ main fut nat(_ str[]) summon trusted
 
 .make-cube vertex[]()
 	front = I.cube-side ~~ (up rotation pi / 2 cube-side) ~~ (right rotation pi / 2 cube-side)
-	back vertex[] = front groups-of 3 flat-map xs =>
+	back vertex[][] = for xs : front groups-of 3
 		# Change order so that the triangles have reverse winding
 		xs[1].invert, xs[0].invert, xs[2].invert
-	front ~~ back map v =>
+	for v : front ~~ back.flatten
 		v.pos, v.normal, (v.pos + (1, 1, 1)) * 0.5, v.tex-coord
 
 .cube-side vertex[](mat mat3-32)
@@ -127,7 +127,7 @@ main fut nat(_ str[]) summon trusted
 	(dl, dr, ul, ul, dr, ur) apply mat
 
 .apply vertex[](a vertex[], m mat3-32)
-	a map x =>
+	for x : a
 		m * x.pos, m * x.normal, x.color, x.tex-coord
 
 .vertex record extern by-val

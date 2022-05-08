@@ -12,11 +12,12 @@ import
 	../tuple: a, b, new, pair
 	./arr: ~, ~~, arr, arr-equal, is-empty, new, size, subscript
 	./arr-util:
-		arr-iter, end-iter, find-and-get, fold, iter, new, next, prev, repeat, reverse, rtail,
+		arr-iter, end-iter, find-and-get, flatten, fold, iter, new, next, prev, repeat, reverse, rtail,
 		slice-left, slice-right, tail
 	./fix-arr: begin-ptr, cast-immutable, end-ptr, fix-arr, uninitialized-fix-arr
 	./iter: new, rest, value, value-and-rest
 	./mut-arr: ~=, move-to-arr, mut-arr, new
+	./private/arr-builder: ~=, arr-builder, finish, new
 
 ###
 Immutable sequence type.
@@ -176,7 +177,7 @@ This is O(n).
 This is O(1) if the seq came from to-seq of an array, meaning a round trip is free.
 ###
 to-arr<a> a[](a seq a)
-	a.try-as-l0-leaf ?? a map-to-arr x => x
+	a.try-as-l0-leaf ?? for x : a; x
 
 ###
 `true` iff `a.size == 0`.
@@ -762,7 +763,7 @@ slice-right<a> seq a(a seq-iter a) trusted
 
 region iteration
 
-each<a> void(a seq a, f act void(a))
+for-loop<a> void(a seq a, f act void(a))
 	() fold a, (_, x) => f[x]
 
 fold<a, b> a(acc a, a seq b, f act a(a, b))
@@ -783,9 +784,11 @@ find-and-get<out, in> out?(a seq in, f act out?(in))
 		chunk find-and-get f
 
 filter<a> seq a(a seq a, f act bool(a))
-	a flat-map x =>
+	out arr-builder a = ()
+	for x : a
 		if f[x]
-			x,
+			out ~= x
+	out.finish to-seq
 
 drop-while<a> seq a(a seq a, f act bool(a))
 	a.iter drop-while-recur f
@@ -805,23 +808,20 @@ drop-right-while<a> seq a(a seq a, f act bool(a))
 		else
 			a slice-left
 
-map<out, in> seq out(a seq in, f act out(in))
-	a map-to-arr f to-seq
+for-loop<out, in> seq out(a seq in, f act out(in))
+	a for-loop f to-seq
 
-flat-map<out, in> seq out(a seq in, f act seq out(in))
-	res out mut[] = ()
-	a each in =>
-		f[in] each out =>
-			res ~= out
-	res.move-to-arr to-seq
-
-map-to-arr<out, in> out[](a seq in, f act out(in)) trusted
+for-loop<out, in> out[](a seq in, f act out(in)) trusted
 	res fix-arr out = a.size uninitialized-fix-arr
 	end = res.begin-ptr fold a, (out, x) =>
 		*out := f[x]
 		out + 1
 	hard-assert: end == res.end-ptr
 	res cast-immutable
+
+flatten<a> seq a(a seq a[])
+	# TODO:PERF
+	a.to-arr.flatten to-seq
 
 .fold-chunks<a, b> a(acc a, xs seq b, f act a(a, b[]))
 	match xs.root node

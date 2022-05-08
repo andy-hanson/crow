@@ -122,16 +122,16 @@ empty-board board()
 
 to-str str(a board, cur-player color, last-column nat?)
 	res writer = ()
-	0 .. width each x =>
+	for x : 0 .. width
 		text = " {x letter-of-alphabet}"
 		res ~~= if last-column == (x,)
 			"{bold}{text}{reset}"
 		else
 			text
 	res ~= "\n"
-	0 .. height each-reverse y =>
+	for y : 0 .. height reverse
 		res ~~= "│"
-		0 .. width each x =>
+		for x : 0 .. width
 			res ~~= a[x, y, cur-player] to-short-str
 			res ~~= "│"
 		res ~= "\n"

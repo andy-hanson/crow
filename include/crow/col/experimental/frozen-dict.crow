@@ -12,11 +12,11 @@ import
 	../../tuple: from, new, pair, to
 	../../private/alloc: alloc-uninitialized
 	../../private/number-low-level: ==, <=>, nat64, unsafe-div, unsafe-mod, wrap-add, wrap-sub
-	../arr: ==, arr, is-empty, new, size
-	../arr-util: each, fold, fold-with-index, map
+	../arr: ==, arr, for-loop, is-empty, new, size
+	../arr-util: fold, fold-with-index
 	../fix-arr:
-		begin-ptr, cast-immutable, each, end-ptr, fill, fill-fix-arr, fix-arr,
-		fix-arr-from-begin-end, size, temp-as-arr, to-fix-arr, uninitialized-fix-arr, unsafe-at,
+		begin-ptr, cast-immutable, end-ptr, fill, fill-fix-arr, fix-arr, fix-arr-from-begin-end,
+		for-loop, size, temp-as-arr, to-fix-arr, uninitialized-fix-arr, unsafe-at,
 		unsafe-set-at
 	../private/arr-low-level: arr-cast, arr-from-begin-end, begin-ptr, end-ptr, unsafe-at
 
@@ -205,7 +205,7 @@ body
 
 .get-bucket-counts<k, v> fix-arr nat64(a fix-arr pair<k, v>, n-buckets nat64) unsafe hash-mix<k>
 	res = n-buckets fill-fix-arr 0
-	a each pair =>
+	for pair : a
 		bucket-index = pair.from get-bucket-index n-buckets
 		res unsafe-set-at bucket-index, (res unsafe-at bucket-index wrap-add 1)
 	res
@@ -256,7 +256,7 @@ body
 region iteration
 
 each<k, v> void(a frozen-dict<k, v>, f act void(k, v))
-	a.pairs each pair =>
+	for pair : a pairs
 		f[pair from, pair to]
 
 fold<a, k, v> a(acc a, a frozen-dict<k, v>, f act a(a, k, v))
@@ -268,8 +268,8 @@ fold-with-index<a, k, v> a(acc a, a frozen-dict<k, v>, f act a(a, k, v, nat64))
 		f[inner-acc, pair from, pair to, index]
 
 .verify void(a frozen-dict<nat64, str>, keys-order nat64[], bucket-starts nat64[]) unsafe
-	a.pairs map (pair => pair from) is keys-order
-	a.bucket-starts map (ptr => ptr - a.pairs.begin-ptr) is bucket-starts
+	(for pair : a pairs; pair from)::nat64[] is keys-order
+	(for ptr : a bucket-starts; ptr - a.pairs.begin-ptr)::nat64[] is bucket-starts
 
 .== bool(a str?, b str?)
 	a opt-equal b

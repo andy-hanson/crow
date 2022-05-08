@@ -9,7 +9,7 @@ import
 	./compare: comparison
 	./col/arr: arr
 	./col/private/arr-low-level: arr-from-begin-end
-	./col/seq: ~, ~~, each, is-empty, seq, seq-compare, seq-equal, to-seq
+	./col/seq: ~, ~~, for-loop, is-empty, seq, seq-compare, seq-equal, to-seq
 	./hash: hasher, hash-mix
 	./misc: void
 	./private/number-low-level: ==, <=>, to-nat64
@@ -80,5 +80,5 @@ is-empty bool(a str)
 	a.to-nat8 <=> b.to-nat8
 
 hash-mix void(hasher hasher, a str)
-	a.char8s each c =>
+	for c : a char8s
 		hasher hash-mix c.to-nat8.to-nat64

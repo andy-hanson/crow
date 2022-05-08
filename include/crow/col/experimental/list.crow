@@ -13,8 +13,8 @@ import
 	../../writer: ~=, ~~=, backup, move-to-str, new, writer
 	../../private/bootstrap: hard-assert
 	../../private/number-low-level: ==, <=>, nat64, wrap-add, wrap-sub
-	../arr: ==, arr, is-empty, new, size
-	../arr-util: each, each-with-index, find-and-get, first, fold, last, rtail
+	../arr: ==, arr, for-loop, is-empty, new, size
+	../arr-util: each-with-index, find-and-get, first, fold, last, rtail
 	../fix-arr:
 		begin-ptr, cast-immutable, copy-from, end-ptr, fix-arr, fix-arr-from-begin-end,
 		set-subscript, size, subscript, uninitialized-fix-arr
@@ -146,10 +146,10 @@ This is O(n).
 region iteration
 
 # Call a function for each element in the list.
-each<a> void(a list a, f act void(a))
+for-loop<a> void(a list a, f act void(a))
 	if prev ?= a prev
-		prev each f
-	a.values each f
+		prev for-loop f
+	a.values for-loop f
 
 # Call a function for each element in the list and accumulate.
 fold<a, b> a(acc a, a list b, f act a(a, b))
@@ -216,7 +216,7 @@ find-and-get<out, in> out?(a list in, f act out?(in))
 	if a.values is-empty
 		out ~= "]"
 	else
-		a.values each x =>
+		for x : a values
 			out ~~= x
 			out ~= " "
 		out backup

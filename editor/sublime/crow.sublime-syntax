@@ -316,10 +316,10 @@ contexts:
       scope: comment
 
     # Keywords that are followed by a space
-    - match: '(\?|\:|break|elif|if|loop|match|unless)\s+'
+    - match: '(\?|\:|\;|break|elif|for|if|loop|match|unless)\s+'
       scope: keyword
     # Other keywords
-    - match: '(as|else|it)(?=$|<|\,|\s|\}|\.)'
+    - match: '(else)(?=$|<|\,|\s|\}|\.)'
       scope: keyword
     - match: '{{name}}'
       scope: identifier

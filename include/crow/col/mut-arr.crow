@@ -15,10 +15,10 @@ import
 	../private/exception-low-level: assert-c-str
 	../private/number-low-level: ==, <=>, nat64, round-up-to-power-of-two, wrap-add, wrap-sub, wrap-mul
 	../private/range-low-level: ..
-	./arr: arr
-	./arr-util: each, each-with-index, exists, find-index, fold, fold-reverse, in, index-of
+	./arr: arr, for-loop
+	./arr-util: each-with-index, exists, find-index, fold, fold-reverse, in, index-of
 	./fix-arr:
-		begin-ptr, cast-immutable, each, empty-fix-arr, fill-fix-arr, fix-arr, make-fix-arr,
+		begin-ptr, cast-immutable, empty-fix-arr, fill-fix-arr, fix-arr, for-loop,
 		set-map, set-reverse, set-zero-elements, size, subscript, temp-as-arr, uninitialized-fix-arr
 
 ###
@@ -239,11 +239,14 @@ pop-n<a> void(a a mut[], n nat64) trusted
 # TODO: Use an 'each' spec..
 # Push multiple values onto the end of the list.
 ~~= <a> void(a a mut[], values a[])
-	values each x => a ~= x
+	for x : values
+		a ~= x
 ~~= <a> void(a a mut[], values fix-arr a)
-	values each x => a ~= x
+	for x : values
+		a ~= x
 ~~= <a> void(a a mut[], values a mut[])
-	values each x => a ~= x
+	for x : values
+		a ~= x
 
 .incr-capacity<a> void(a a mut[]) unsafe
 	a ensure-capacity (a.size wrap-add 1 round-up-to-power-of-two)
@@ -380,8 +383,8 @@ find-index<a> nat64?(a a mut[], f act bool(a)) trusted
 	a.temp-as-arr find-index f
 
 # Calls `f` for each element in `a`.
-each<a> void(a a mut[], f act void(a)) trusted
-	a.temp-as-arr each f
+for-loop<a> void(a a mut[], f act void(a)) trusted
+	a.temp-as-arr for-loop f
 
 each-with-index<a> void(a a mut[], f act void(a, nat64)) trusted
 	a.temp-as-arr each-with-index f
@@ -400,14 +403,15 @@ filter<a> a mut[](a a mut[], f act bool(a)) trusted
 	res set-filter f
 	res
 
-map<out, in> out mut[](a in mut[], f act out(in)) trusted
+for-loop<out, in> out mut[](a in mut[], f act out(in)) trusted
 	a map-to-fix-arr f as-mut-arr
 
-map-to-arr<out, in> out[](a in mut[], f act out(in)) trusted
+for-loop<out, in> out[](a in mut[], f act out(in)) trusted
 	a map-to-fix-arr f cast-immutable
 
-map-to-fix-arr<out, in> fix-arr out(a in mut[], f act out(in))
-	a.size make-fix-arr i => f[a[i]]
+.map-to-fix-arr<out, in> fix-arr out(a in mut[], f act out(in))
+	for x : a.backing[0 .. a.size]
+		f[x]
 
 map-opt<out, in> out mut[](a in mut[], f act out?(in)) trusted
 	a map-opt-to-fix-arr f as-mut-arr
