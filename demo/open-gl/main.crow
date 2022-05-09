@@ -5,7 +5,7 @@ import
 	crow/c-types: c-int
 	crow/io/duration: msec
 	crow/io/print: print
-	crow/io/time: continue, continue-or-quit, get-monotime-msec, quit, repeat-interval
+	crow/io/time: again, again-or-quit, get-monotime-msec, quit, repeat-interval
 	crow/math/mat: *, I, mat3-32, rotation, to-arr
 	crow/math/trig: pi
 	crow/math/vec: +, -, *, new, right, up, vec2-32, vec3-32
@@ -177,7 +177,7 @@ main fut nat(_ str[]) summon trusted
 	gl glActiveTexture GL_TEXTURE0
 	gl glBindTexture GL_TEXTURE_2D, renderer.texture
 
-.main-loop-body fut continue-or-quit(renderer renderer) summon trusted
+.main-loop-body fut again-or-quit(renderer renderer) summon trusted
 	SDL_PumpEvents
 	if look-for-quit-event
 		quit,
@@ -188,7 +188,7 @@ main fut nat(_ str[]) summon trusted
 			print: "return is pressed"
 		<- renderer.render-thread-id run-with-thread-id () =>
 			renderer render
-		continue,
+		again,
 .render void(renderer renderer) summon unsafe
 	gl = renderer gl
 	gl glClearColor 0.5, 0.5, 0.5, 1

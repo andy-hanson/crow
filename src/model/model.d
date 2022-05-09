@@ -1781,6 +1781,10 @@ struct Expr {
 		immutable Expr value;
 	}
 
+	struct LoopContinue {
+		immutable Loop* loop;
+	}
+
 	struct MatchEnum {
 		immutable Expr matched;
 		immutable Expr[] cases;
@@ -1826,6 +1830,7 @@ struct Expr {
 		localSet,
 		loop,
 		loopBreak,
+		loopContinue,
 		matchEnum,
 		matchUnion,
 		paramRef,
@@ -1851,6 +1856,7 @@ struct Expr {
 		immutable LocalSet* localSet;
 		immutable Loop* loop;
 		immutable LoopBreak* loopBreak;
+		immutable LoopContinue* loopContinue;
 		immutable MatchEnum* matchEnum;
 		immutable MatchUnion* matchUnion;
 		immutable ParamRef paramRef;
@@ -1896,6 +1902,9 @@ struct Expr {
 	immutable this(immutable FileAndRange r, immutable LoopBreak* a) {
 		range_ = r; kind = Kind.loopBreak; loopBreak = a;
 	}
+	immutable this(immutable FileAndRange r, immutable LoopContinue* a) {
+		range_ = r; kind = Kind.loopContinue; loopContinue = a;
+	}
 	@trusted immutable this(immutable FileAndRange r, immutable MatchEnum* a) {
 		range_ = r; kind = Kind.matchEnum; matchEnum = a;
 	}
@@ -1930,6 +1939,7 @@ immutable(FileAndRange) range(scope ref immutable Expr a) {
 	scope immutable(T) delegate(ref immutable Expr.LocalSet) @safe @nogc pure nothrow cbLocalSet,
 	scope immutable(T) delegate(ref immutable Expr.Loop) @safe @nogc pure nothrow cbLoop,
 	scope immutable(T) delegate(ref immutable Expr.LoopBreak) @safe @nogc pure nothrow cbLoopBreak,
+	scope immutable(T) delegate(ref immutable Expr.LoopContinue) @safe @nogc pure nothrow cbLoopContinue,
 	scope immutable(T) delegate(ref immutable Expr.MatchEnum) @safe @nogc pure nothrow cbMatchEnum,
 	scope immutable(T) delegate(ref immutable Expr.MatchUnion) @safe @nogc pure nothrow cbMatchUnion,
 	scope immutable(T) delegate(ref immutable Expr.ParamRef) @safe @nogc pure nothrow cbParamRef,
@@ -1968,6 +1978,8 @@ immutable(FileAndRange) range(scope ref immutable Expr a) {
 			return cbLoop(*a.loop);
 		case Expr.Kind.loopBreak:
 			return cbLoopBreak(*a.loopBreak);
+		case Expr.Kind.loopContinue:
+			return cbLoopContinue(*a.loopContinue);
 		case Expr.Kind.matchEnum:
 			return cbMatchEnum(*a.matchEnum);
 		case Expr.Kind.matchUnion:

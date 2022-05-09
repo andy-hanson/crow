@@ -31,6 +31,7 @@ for-loop void(a range nat64, f act void(nat64))
 		else
 			f[cur]
 			cur := cur wrap-add 1
+			continue
 
 range-reverse<a> record
 	low a
@@ -53,6 +54,7 @@ for-loop void(a range-reverse nat64, f act void(nat64))
 				break
 			else
 				cur := cur wrap-sub 1
+				continue
 
 for-loop<a> a[](a range nat64, f act a(nat64)) trusted
 	size = a.high wrap-sub a.low
@@ -68,6 +70,7 @@ for-loop<a> a[](a range nat64, f act a(nat64)) trusted
 			*cur := f[n]
 			cur := cur + 1
 			n := n wrap-add 1
+			continue
 
 # `true` iff `f` is `true` for some value in the range.
 exists bool(a range nat64, f act bool(nat64))
@@ -84,3 +87,4 @@ find nat64?(a range nat64, f act bool(nat64))
 			break cur,
 		else
 			cur := cur wrap-add 1
+			continue

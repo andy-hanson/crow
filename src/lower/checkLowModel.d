@@ -159,6 +159,9 @@ void checkLowExpr(
 			checkLowExpr(ctx, voidType, it.body_);
 		},
 		(ref immutable LowExprKind.LoopBreak it) {
+			checkLowExpr(ctx, it.loop.type, it.value);
+		},
+		(ref immutable LowExprKind.LoopContinue) {
 			// TODO
 		},
 		(ref immutable LowExprKind.MatchUnion it) {

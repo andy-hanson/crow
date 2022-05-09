@@ -209,6 +209,7 @@ Equivalent to `f[0], f[1], ...`.
 			*out := f[i]
 			out := out + 1
 			i := i wrap-add 1
+			continue
 
 ###
 `fix-arr` where every element is `value`.

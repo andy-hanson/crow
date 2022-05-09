@@ -456,6 +456,7 @@ public enum Token {
 	colon2, // '::'
 	colonEqual, // ':='
 	comma, // ','
+	continue_, // 'continue'
 	data, // 'data'
 	dot, // '.'
 	// '..' is Operator.range
@@ -633,6 +634,8 @@ immutable(Token) tokenForSym(ref Lexer lexer, immutable Sym a) {
 			return Token.builtin;
 		case shortSymValue("builtin-spec"):
 			return Token.builtinSpec;
+		case shortSymValue("continue"):
+			return Token.continue_;
 		case shortSymValue("data"):
 			return Token.data;
 		case shortSymValue("elif"):
@@ -869,6 +872,7 @@ immutable(bool) isExpressionStartToken(immutable Token a) {
 			return false;
 		case Token.bracketLeft:
 		case Token.break_:
+		case Token.continue_:
 		case Token.if_:
 		case Token.for_:
 		case Token.literal:

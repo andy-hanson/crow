@@ -32,15 +32,16 @@ import model.model :
 	VariableRef;
 import util.alloc.alloc : Alloc;
 import util.cell : Cell, cellGet, cellSet;
-import util.col.arr : emptyArr, emptyArr_mut, sizeEq;
+import util.col.arr : sizeEq;
 import util.col.fullIndexDict : FullIndexDict;
 import util.col.mutArr : MutArr;
 import util.col.mutMaxArr : mapTo, MutMaxArr, push, tempAsArr;
+import util.memory : overwriteMemory;
 import util.opt : has, force, none, noneMut, Opt, some, someMut;
 import util.perf : Perf;
 import util.sourceRange : FileAndRange, RangeWithinFile;
 import util.sym : AllSymbols, Sym;
-import util.util : verify;
+import util.util : unreachable, verify;
 
 struct ClosureFieldBuilder {
 	immutable Sym name; // Redundant to the variableRef, but it's faster to keep this close
@@ -164,10 +165,6 @@ struct InferringTypeArgs {
 
 	immutable TypeParam[] params;
 	SingleInferringType[] args;
-
-	static InferringTypeArgs none() {
-		return InferringTypeArgs(emptyArr!TypeParam, emptyArr_mut!SingleInferringType);
-	}
 }
 
 // Inferring type args are in 'a', not 'b'
@@ -186,6 +183,7 @@ immutable(bool) matchTypesNoDiagnostic(
 }
 
 struct LoopInfo {
+	immutable Type voidType;
 	immutable Expr.Loop* loop;
 	immutable Type type;
 	bool hasBreak;
@@ -194,32 +192,63 @@ struct LoopInfo {
 struct Expected {
 	@safe @nogc pure nothrow:
 
-	Cell!(immutable Opt!Type) type;
-	InferringTypeArgs inferringTypeArgs;
-	//TODO: in case of a loop, 'type' isn't needed ... so save space by using a union
-	Opt!(LoopInfo*) loop;
+	struct Infer {}
 
-	this(immutable Opt!Type init) {
-		type = Cell!(immutable Opt!Type)(init);
-		inferringTypeArgs = InferringTypeArgs.none;
+	InferringTypeArgs inferringTypeArgs; //TODO: only used with 'type'
+	private:
+	enum Kind { infer, type, loop }
+	Kind kind;
+	union {
+		Infer infer_;
+		Type type_;
+		LoopInfo* loop_;
 	}
-	this(immutable Opt!Type init, InferringTypeArgs ita) {
-		type = Cell!(immutable Opt!Type)(init);
+
+	public:
+	@disable this();
+	this(immutable Infer a) {
+		kind = Kind.infer;
+		infer_ = a;
+	}
+	this(immutable Type a) {
+		kind = Kind.type;
+		type_ = a;
+	}
+	this(immutable Type type, InferringTypeArgs ita) {
+		kind = Kind.type;
+		type_ = type;
 		inferringTypeArgs = ita;
 	}
-	this(immutable Type init, return scope LoopInfo* l) {
-		type = Cell!(immutable Opt!Type)(some(init));
-		inferringTypeArgs = InferringTypeArgs.none;
-		loop = someMut(l);
-	}
-
-	static Expected infer() {
-		return Expected(none!Type);
+	this(return scope LoopInfo* a) {
+		kind = Kind.loop;
+		loop_ = a;
 	}
 }
 
+private @trusted immutable(T) matchExpected(T)(
+	ref Expected a,
+	scope immutable(T) delegate(immutable Expected.Infer) @safe @nogc pure nothrow cbInfer,
+	scope immutable(T) delegate(immutable Type) @safe @nogc pure nothrow cbType,
+	scope immutable(T) delegate(LoopInfo*) @safe @nogc pure nothrow cbLoop,
+) {
+	final switch (a.kind) {
+		case Expected.Kind.infer:
+			return cbInfer(a.infer_);
+		case Expected.Kind.type:
+			return cbType(a.type_);
+		case Expected.Kind.loop:
+			return cbLoop(a.loop_);
+	}
+}
+
+@trusted Opt!(LoopInfo*) tryGetLoop(ref Expected expected) {
+	return expected.kind == Expected.Kind.loop
+		? someMut(expected.loop_)
+		: noneMut!(LoopInfo*);
+}
+
 immutable(Opt!Type) tryGetInferred(ref const Expected expected) {
-	return cellGet(expected.type);
+	return expected.kind == Expected.Kind.type ? some(expected.type_) : none!Type;
 }
 
 // TODO: if we have a bogus expected type we should probably not be doing any more checking at all?
@@ -229,11 +258,11 @@ immutable(bool) isBogus(ref const Expected expected) {
 }
 
 Expected copyWithNewExpectedType(ref Expected expected, immutable Type type) {
-	return Expected(some!Type(type), expected.inferringTypeArgs);
+	return Expected(type, expected.inferringTypeArgs);
 }
 
 immutable(Opt!Type) shallowInstantiateType(ref const Expected expected) {
-	immutable Opt!Type t = cellGet(expected.type);
+	immutable Opt!Type t = tryGetInferred(expected);
 	if (has(t) && isTypeParam(force(t))) {
 		const Opt!(SingleInferringType*) typeArg =
 			tryGetTypeArgFromInferringTypeArgs_const(expected.inferringTypeArgs, asTypeParam(force(t)));
@@ -263,15 +292,26 @@ immutable(Opt!Type) tryGetDeeplyInstantiatedType(
 }
 
 immutable(Expr) bogus(ref Expected expected, immutable FileAndRange range) {
-	immutable Opt!Type t = tryGetInferred(expected);
-	if (!has(t))
-		cellSet(expected.type, some(immutable Type(immutable Type.Bogus())));
+	matchExpected!void(
+		expected,
+		(immutable Expected.Infer) {
+			overwriteMemory(&expected, Expected(immutable Type(immutable Type.Bogus())));
+		},
+		(immutable(Type)) {},
+		(LoopInfo*) {});
 	return immutable Expr(range, immutable Expr.Bogus());
 }
 
-immutable(Type) inferred(ref const Expected expected) {
-	immutable Opt!Type opt = tryGetInferred(expected);
-	return force(opt);
+immutable(Type) inferred(ref Expected expected) {
+	return matchExpected!(immutable Type)(
+		expected,
+		(immutable Expected.Infer) =>
+			unreachable!(immutable Type),
+		(immutable Type x) =>
+			x,
+		(LoopInfo* x) =>
+			// Just treat loop body as 'void'
+			x.voidType);
 }
 
 immutable(Expr) check(
@@ -283,9 +323,14 @@ immutable(Expr) check(
 	if (setTypeNoDiagnostic(ctx.alloc, ctx.programState, expected, exprType))
 		return expr;
 	else {
-		// Failed to set type. This happens if there was already an inferred type.
-		immutable Opt!Type t = tryGetInferred(expected);
-		addDiag2(ctx, range(expr), immutable Diag(immutable Diag.TypeConflict(force(t), exprType)));
+		addDiag2(ctx, range(expr), matchExpected!(immutable Diag)(
+			expected,
+			(immutable Expected.Infer) =>
+				unreachable!(immutable Diag),
+			(immutable Type t) =>
+				immutable Diag(immutable Diag.TypeConflict(t, exprType)),
+			(LoopInfo*) =>
+				immutable Diag(immutable Diag.LoopNeedsBreakOrContinue())));
 		return bogus(expected, range(expr));
 	}
 }
@@ -302,15 +347,24 @@ private immutable(bool) setTypeNoDiagnostic(
 	ref Expected expected,
 	immutable Type setType,
 ) {
-	return matchSetTypeResult!(immutable bool)(
-		checkAssignabilityOpt(alloc, programState, tryGetInferred(expected), setType, expected.inferringTypeArgs),
-		(immutable SetTypeResult.Set s) {
-			cellSet(expected.type, some(s.type));
+	return matchExpected!(immutable bool)(
+		expected,
+		(immutable Expected.Infer) {
+			overwriteMemory(&expected, Expected(setType));
 			return true;
 		},
-		(immutable SetTypeResult.Keep) =>
-			true,
-		(immutable SetTypeResult.Fail) =>
+		(immutable Type expectedType) =>
+			matchSetTypeResult!(immutable bool)(
+				checkAssignability(alloc, programState, expectedType, setType, expected.inferringTypeArgs),
+				(immutable SetTypeResult.Set s) {
+					overwriteMemory(&expected, Expected(s.type));
+					return true;
+				},
+				(immutable SetTypeResult.Keep) =>
+					true,
+				(immutable SetTypeResult.Fail) =>
+					false),
+		(LoopInfo* loop) =>
 			false);
 }
 
@@ -473,7 +527,7 @@ immutable(SetTypeResult) setTypeNoDiagnosticWorker_forSingleInferringType(
 	ref SingleInferringType sit,
 	immutable Type setType,
 ) {
-	InferringTypeArgs inferring = InferringTypeArgs.none();
+	InferringTypeArgs inferring = InferringTypeArgs();
 	immutable SetTypeResult res = checkAssignabilityOpt(alloc, programState, tryGetInferred(sit), setType, inferring);
 	matchSetTypeResult!void(
 		res,

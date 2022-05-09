@@ -65,6 +65,7 @@ spec
 		else
 			*cur := cur->copy-c-strs
 			cur := cur + 1
+			continue
 
 .copy-c-strs backtrace-entry(a backtrace-entry) unsafe
 	a.function-name.copy-c-str-or-empty, a.file-path.copy-c-str-or-empty, a.line-number, a.column-number

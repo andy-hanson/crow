@@ -3,7 +3,7 @@ import
 	crow/col/private/arr-low-level: begin-ptr, subscript
 	crow/io/duration: msec
 	crow/io/print: print
-	crow/io/time: continue, continue-or-quit, get-monotime-msec, quit, repeat-interval
+	crow/io/time: again, again-or-quit, get-monotime-msec, quit, repeat-interval
 	crow/ptr: ==, as-any-const-ptr, null
 	crow/str-util: to-str
 	crow/c-types: c-int
@@ -48,7 +48,7 @@ main fut nat(_ str[]) summon trusted
 .image-height int32()
 	200
 
-.main-loop-body fut continue-or-quit(renderer SDL_Renderer, texture SDL_Texture) summon trusted
+.main-loop-body fut again-or-quit(renderer SDL_Renderer, texture SDL_Texture) summon trusted
 	SDL_PumpEvents
 	if look-for-quit-event
 		quit,
@@ -65,7 +65,7 @@ main fut nat(_ str[]) summon trusted
 		if x + image-width > window-width
 			renderer draw-image texture, x - window-width
 		renderer SDL_RenderPresent
-		continue,
+		again,
 
 .draw-image void(renderer SDL_Renderer, texture SDL_Texture, x int32) summon trusted
 	dest cell SDL_Rect = (x, (window-height - image-height) / 2, image-width, image-height),

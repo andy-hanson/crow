@@ -131,6 +131,7 @@ for-loop<a> void(a a[], f act void(a)) trusted
 		else
 			f[*cur]
 			cur := cur + 1
+			continue
 
 ###
 Equivalent to `f[a[0]], f[a[1]], ...`.
@@ -150,3 +151,4 @@ for-loop<out, in> out[](a in[], f act out(in)) trusted
 			*out-cur := f[*in-cur]
 			out-cur := out-cur + 1
 			in-cur := in-cur + 1
+			continue

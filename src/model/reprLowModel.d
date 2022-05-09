@@ -226,6 +226,8 @@ immutable(Repr) reprOfLowExprKind(ref Alloc alloc, ref immutable LowExprKind a) 
 			reprRecord(alloc, "loop", [reprOfLowExpr(alloc, it.body_)]),
 		(ref immutable LowExprKind.LoopBreak it) =>
 			reprRecord(alloc, "break", [reprOfLowExpr(alloc, it.value)]),
+		(ref immutable LowExprKind.LoopContinue) =>
+			reprSym("continue"),
 		(ref immutable LowExprKind.MatchUnion it) =>
 			reprOfMatchUnion(alloc, it),
 		(ref immutable LowExprKind.ParamRef it) =>

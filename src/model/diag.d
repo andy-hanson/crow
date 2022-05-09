@@ -199,6 +199,7 @@ struct Diag {
 		immutable Local* local;
 	}
 	struct LoopBreakNotAtTail {}
+	struct LoopNeedsBreakOrContinue {}
 	struct LoopNeedsExpectedType {}
 	struct LoopWithoutBreak {}
 	struct MatchCaseNamesDoNotMatch {
@@ -356,6 +357,7 @@ struct Diag {
 		literalOverflow,
 		localNotMutable,
 		loopBreakNotAtTail,
+		loopNeedsBreakOrContinue,
 		loopNeedsExpectedType,
 		loopWithoutBreak,
 		matchCaseNamesDoNotMatch,
@@ -422,6 +424,7 @@ struct Diag {
 		immutable LiteralOverflow literalOverflow;
 		immutable LocalNotMutable localNotMutable;
 		immutable LoopBreakNotAtTail loopBreakNotAtTail;
+		immutable LoopNeedsBreakOrContinue loopNeedsBreakOrContinue;
 		immutable LoopNeedsExpectedType loopNeedsExpectedType;
 		immutable LoopWithoutBreak loopWithoutBreak;
 		immutable MatchCaseNamesDoNotMatch matchCaseNamesDoNotMatch;
@@ -519,6 +522,9 @@ struct Diag {
 	@trusted immutable this(immutable LiteralOverflow a) { kind = Kind.literalOverflow; literalOverflow = a; }
 	immutable this(immutable LocalNotMutable a) { kind = Kind.localNotMutable; localNotMutable = a; }
 	immutable this(immutable LoopBreakNotAtTail a) { kind = Kind.loopBreakNotAtTail; loopBreakNotAtTail = a; }
+	immutable this(immutable LoopNeedsBreakOrContinue a) {
+		kind = Kind.loopNeedsBreakOrContinue; loopNeedsBreakOrContinue = a;
+	}
 	immutable this(immutable LoopNeedsExpectedType a) { kind = Kind.loopNeedsExpectedType; loopNeedsExpectedType = a; }
 	immutable this(immutable LoopWithoutBreak a) { kind = Kind.loopWithoutBreak; loopWithoutBreak = a; }
 	@trusted immutable this(immutable MatchCaseNamesDoNotMatch a) {
@@ -666,6 +672,9 @@ struct Diag {
 	scope immutable(Out) delegate(ref immutable Diag.LocalNotMutable) @safe @nogc pure nothrow cbLocalNotMutable,
 	scope immutable(Out) delegate(ref immutable Diag.LoopBreakNotAtTail) @safe @nogc pure nothrow cbLoopBreakNotAtTail,
 	scope immutable(Out) delegate(
+		ref immutable Diag.LoopNeedsBreakOrContinue
+	) @safe @nogc pure nothrow cbLoopNeedsBreakOrContinue,
+	scope immutable(Out) delegate(
 		ref immutable Diag.LoopNeedsExpectedType
 	) @safe @nogc pure nothrow cbLoopNeedsExpectedType,
 	scope immutable(Out) delegate(ref immutable Diag.LoopWithoutBreak) @safe @nogc pure nothrow cbLoopWithoutBreak,
@@ -810,6 +819,8 @@ struct Diag {
 			return cbLocalNotMutable(a.localNotMutable);
 		case Diag.Kind.loopBreakNotAtTail:
 			return cbLoopBreakNotAtTail(a.loopBreakNotAtTail);
+		case Diag.Kind.loopNeedsBreakOrContinue:
+			return cbLoopNeedsBreakOrContinue(a.loopNeedsBreakOrContinue);
 		case Diag.Kind.loopNeedsExpectedType:
 			return cbLoopNeedsExpectedType(a.loopNeedsExpectedType);
 		case Diag.Kind.loopWithoutBreak:

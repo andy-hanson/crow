@@ -150,6 +150,7 @@ each-with-index<a> void(a a[], f act void(a, nat64)) trusted
 			f[*cur, index]
 			cur := cur + 1
 			index := index wrap-add 1
+			continue
 
 ###
 This is like `each` but with a state variable that gets transformed by each call to `f`.
@@ -165,6 +166,7 @@ fold<a, b> a(init a, a b[], f act a(a, b)) trusted
 		else
 			acc := f[acc, *cur]
 			cur := cur + 1
+			continue
 
 # Like `fold`, but provides the array index too.
 fold-with-index<a, b> a(init a, a b[], f act a(a, b, nat64)) trusted
@@ -179,6 +181,7 @@ fold-with-index<a, b> a(init a, a b[], f act a(a, b, nat64)) trusted
 			acc := f[acc, *cur, index]
 			cur := cur + 1
 			index := index wrap-add 1
+			continue
 
 # Like `fold`, but iterates right-to-left.
 fold-reverse<a, b> a(init a, a b[], f act a(a, b)) trusted
@@ -191,6 +194,7 @@ fold-reverse<a, b> a(init a, a b[], f act a(a, b)) trusted
 		else
 			cur := cur - 1
 			acc := f[acc, *cur]
+			continue
 
 ###
 Same as `a[0] fold a.tail, f`.
@@ -225,6 +229,7 @@ filter-with-index<a> a[](a a[], f act bool(a, nat64)) trusted
 				out := out + 1
 			cur := cur + 1
 			index := index wrap-add 1
+			continue
 	res.as-const arr-from-begin-end out.as-const
 
 # TODO: move to iter-utiil since this works with any foldable
@@ -288,6 +293,7 @@ find<a> a?(a a[], f act bool(a)) trusted
 			break *cur,
 		else
 			cur := cur + 1
+			continue
 
 ###
 For each element `x` in `a`, gets `y = f[x]` and returns `y` if it is a non-empty option.
@@ -303,6 +309,7 @@ find-and-get<out, in> out?(a in[], f act out?(in)) trusted
 			break x,
 		else
 			cur := cur + 1
+			continue
 
 ###
 Returns the first index `i` for which `f[a[i]]` is true.
@@ -318,6 +325,7 @@ find-index<a> nat64?(a a[], f act bool(a)) trusted
 			break cur - a.begin-ptr,
 		else
 			cur := cur + 1
+			continue
 
 # Like `find-index`, but searching starts from the end of `a` and moves left.
 find-index-reverse<a> nat64?(a a[], f act bool(a))

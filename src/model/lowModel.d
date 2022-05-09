@@ -676,12 +676,17 @@ struct LowExprKind {
 	}
 
 	struct Loop {
+		immutable LowType type; // TODO: this is redundant
 		immutable LowExpr body_;
 	}
 
 	struct LoopBreak {
 		immutable LowExprKind.Loop* loop;
 		immutable LowExpr value;
+	}
+
+	struct LoopContinue {
+		immutable LowExprKind.Loop* loop;
 	}
 
 	// TODO: compile down to a Switch?
@@ -930,6 +935,7 @@ struct LowExprKind {
 		localSet,
 		loop,
 		loopBreak,
+		loopContinue,
 		matchUnion,
 		paramRef,
 		ptrCast,
@@ -959,6 +965,7 @@ struct LowExprKind {
 		immutable LocalSet* localSet;
 		immutable Loop* loop;
 		immutable LoopBreak* loopBreak;
+		immutable LoopContinue loopContinue;
 		immutable MatchUnion* matchUnion;
 		immutable ParamRef paramRef;
 		immutable PtrCast* ptrCast;
@@ -988,6 +995,7 @@ struct LowExprKind {
 	@trusted immutable this(immutable LocalSet* a) { kind = Kind.localSet; localSet = a; }
 	immutable this(immutable Loop* a) { kind = Kind.loop; loop = a; }
 	immutable this(immutable LoopBreak* a) { kind = Kind.loopBreak; loopBreak = a; }
+	immutable this(immutable LoopContinue a) { kind = Kind.loopContinue; loopContinue = a; }
 	@trusted immutable this(immutable MatchUnion* a) { kind = Kind.matchUnion; matchUnion = a; }
 	@trusted immutable this(immutable ParamRef a) { kind = Kind.paramRef; paramRef = a; }
 	@trusted immutable this(immutable PtrCast* a) { kind = Kind.ptrCast; ptrCast = a; }
@@ -1019,6 +1027,7 @@ static assert(LowExprKind.sizeof <= 32);
 	alias cbLocalSet,
 	alias cbLoop,
 	alias cbLoopBreak,
+	alias cbLoopContinue,
 	alias cbMatchUnion,
 	alias cbParamRef,
 	alias cbPtrCast,
@@ -1058,6 +1067,8 @@ static assert(LowExprKind.sizeof <= 32);
 			return cbLoop(*a.loop);
 		case LowExprKind.Kind.loopBreak:
 			return cbLoopBreak(*a.loopBreak);
+		case LowExprKind.Kind.loopContinue:
+			return cbLoopContinue(a.loopContinue);
 		case LowExprKind.Kind.matchUnion:
 			return cbMatchUnion(*a.matchUnion);
 		case LowExprKind.Kind.paramRef:

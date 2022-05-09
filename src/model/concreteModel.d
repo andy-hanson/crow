@@ -845,6 +845,10 @@ struct ConcreteExprKind {
 		immutable ConcreteExpr value;
 	}
 
+	struct LoopContinue {
+		immutable ConcreteExprKind.Loop* loop;
+	}
+
 	struct MatchEnum {
 		immutable ConcreteExpr matchedValue;
 		immutable ConcreteExpr[] cases;
@@ -891,6 +895,7 @@ struct ConcreteExprKind {
 		localSet,
 		loop,
 		loopBreak,
+		loopContinue,
 		matchEnum,
 		matchUnion,
 		paramRef,
@@ -913,6 +918,7 @@ struct ConcreteExprKind {
 		immutable LocalSet* localSet;
 		immutable Loop* loop;
 		immutable LoopBreak* loopBreak;
+		immutable LoopContinue loopContinue;
 		immutable MatchEnum* matchEnum;
 		immutable MatchUnion* matchUnion;
 		immutable ParamRef paramRef;
@@ -935,6 +941,7 @@ struct ConcreteExprKind {
 	@trusted immutable this(immutable LocalSet* a) { kind = Kind.localSet; localSet = a; }
 	@trusted immutable this(immutable Loop* a) { kind = Kind.loop; loop = a; }
 	@trusted immutable this(immutable LoopBreak* a) { kind = Kind.loopBreak; loopBreak = a; }
+	immutable this(immutable LoopContinue a) { kind = Kind.loopContinue; loopContinue = a; }
 	@trusted immutable this(immutable MatchEnum* a) { kind = Kind.matchEnum; matchEnum = a; }
 	@trusted immutable this(immutable MatchUnion* a) { kind = Kind.matchUnion; matchUnion = a; }
 	@trusted immutable this(immutable ParamRef a) { kind = Kind.paramRef; paramRef = a; }
@@ -975,6 +982,7 @@ immutable(bool) isConstant(ref immutable ConcreteExprKind a) {
 	scope immutable(T) delegate(ref immutable ConcreteExprKind.LocalSet) @safe @nogc pure nothrow cbLocalSet,
 	scope immutable(T) delegate(ref immutable ConcreteExprKind.Loop) @safe @nogc pure nothrow cbLoop,
 	scope immutable(T) delegate(ref immutable ConcreteExprKind.LoopBreak) @safe @nogc pure nothrow cbLoopBreak,
+	scope immutable(T) delegate(ref immutable ConcreteExprKind.LoopContinue) @safe @nogc pure nothrow cbLoopContinue,
 	scope immutable(T) delegate(ref immutable ConcreteExprKind.MatchEnum) @safe @nogc pure nothrow cbMatchEnum,
 	scope immutable(T) delegate(ref immutable ConcreteExprKind.MatchUnion) @safe @nogc pure nothrow cbMatchUnion,
 	scope immutable(T) delegate(ref immutable ConcreteExprKind.ParamRef) @safe @nogc pure nothrow cbParamRef,
@@ -1012,6 +1020,8 @@ immutable(bool) isConstant(ref immutable ConcreteExprKind a) {
 			return cbLoop(*a.loop);
 		case ConcreteExprKind.Kind.loopBreak:
 			return cbLoopBreak(*a.loopBreak);
+		case ConcreteExprKind.Kind.loopContinue:
+			return cbLoopContinue(a.loopContinue);
 		case ConcreteExprKind.Kind.matchEnum:
 			return cbMatchEnum(*a.matchEnum);
 		case ConcreteExprKind.Kind.matchUnion:

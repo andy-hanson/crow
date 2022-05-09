@@ -66,6 +66,8 @@ immutable(DiagSeverity) getDiagnosticSeverity(ref immutable Diag a) {
 			DiagSeverity.checkWarning,
 		(ref immutable Diag.LoopBreakNotAtTail) =>
 			DiagSeverity.checkError,
+		(ref immutable Diag.LoopNeedsBreakOrContinue) =>
+			DiagSeverity.checkError,
 		(ref immutable Diag.LoopNeedsExpectedType) =>
 			DiagSeverity.checkError,
 		(ref immutable Diag.LoopWithoutBreak) =>

@@ -549,6 +549,19 @@ immutable(ConcreteExpr) concretizeLoopBreak(
 		immutable ConcreteExprKind(allocate(ctx.alloc, immutable ConcreteExprKind.LoopBreak(loop, value))));
 }
 
+immutable(ConcreteExpr) concretizeLoopContinue(
+	ref ConcretizeExprCtx ctx,
+	immutable FileAndRange range,
+	scope ref immutable Locals locals,
+	ref immutable Expr.LoopContinue a,
+) {
+	immutable ConcreteExprKind.Loop* loop = castNonScope(getLoop(locals, a.loop));
+	return immutable ConcreteExpr(
+		voidType(ctx.concretizeCtx),
+		range,
+		immutable ConcreteExprKind(immutable ConcreteExprKind.LoopContinue(loop)));
+}
+
 immutable(ConcreteExpr) concretizeMatchEnum(
 	ref ConcretizeExprCtx ctx,
 	immutable FileAndRange range,
@@ -691,6 +704,8 @@ immutable(ConcreteExpr) concretizeExpr(
 			concretizeLoop(ctx, range, locals, e),
 		(ref immutable Expr.LoopBreak e) =>
 			concretizeLoopBreak(ctx, range, locals, e),
+		(ref immutable Expr.LoopContinue e) =>
+			concretizeLoopContinue(ctx, range, locals, e),
 		(ref immutable Expr.MatchEnum e) =>
 			concretizeMatchEnum(ctx, range, locals, e),
 		(ref immutable Expr.MatchUnion e) =>

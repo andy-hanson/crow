@@ -1132,9 +1132,12 @@ immutable(LowExprKind) getLowExprKind(
 				getLocal(locals, it.local),
 				getLowExpr(ctx, locals, it.value, ExprPos.nonTail)))),
 		(ref immutable ConcreteExprKind.Loop it) =>
-			getLoopExpr(ctx, locals, it),
+			getLoopExpr(ctx, locals, exprPos, type, it),
 		(ref immutable ConcreteExprKind.LoopBreak it) =>
-			getLoopBreakExpr(ctx, locals, it),
+			getLoopBreakExpr(ctx, locals, exprPos, it),
+		(ref immutable ConcreteExprKind.LoopContinue it) =>
+			// Ignore exprPos, this is always non-tail
+			getLoopContinueExpr(ctx, locals, it),
 		(ref immutable ConcreteExprKind.MatchEnum it) =>
 			getMatchEnumExpr(ctx, locals, exprPos, it),
 		(ref immutable ConcreteExprKind.MatchUnion it) =>
@@ -1200,11 +1203,14 @@ immutable(LowExprKind) getAllocExpr2(
 @trusted immutable(LowExprKind) getLoopExpr(
 	ref GetLowExprCtx ctx,
 	scope ref immutable Locals locals,
+	immutable ExprPos exprPos,
+	immutable LowType type,
 	ref immutable ConcreteExprKind.Loop a,
 ) {
-	LowExprKind.Loop* res = allocateMut(ctx.alloc, LowExprKind.Loop());
+	LowExprKind.Loop* res = allocateMut(ctx.alloc, LowExprKind.Loop(type));
 	immutable Locals newLocals = addLoop(locals, &a, cast(immutable) res);
-	overwriteMemory(&res.body_, getLowExpr(ctx, newLocals, a.body_, ExprPos.nonTail));
+	// Go ahead and give the body the same 'exprPos'. 'continue' will know it's non-tail.
+	overwriteMemory(&res.body_, getLowExpr(ctx, newLocals, a.body_, exprPos));
 	return immutable LowExprKind(cast(immutable) res);
 }
 
@@ -1212,13 +1218,20 @@ immutable(LowExprKind) getAllocExpr2(
 @trusted immutable(LowExprKind) getLoopBreakExpr(
 	ref GetLowExprCtx ctx,
 	scope ref immutable Locals locals,
+	immutable ExprPos exprPos,
 	ref immutable ConcreteExprKind.LoopBreak a,
 ) {
-	//TODO: a 'break' is in tail position if the 'loop' is.
-	//but need to make sure nothing else in a loop is considered in tail position, even if it't the tail of the loop
 	return immutable LowExprKind(allocate(ctx.alloc, immutable LowExprKind.LoopBreak(
 		getLoop(locals, a.loop),
-		getLowExpr(ctx, locals, a.value, ExprPos.nonTail))));
+		getLowExpr(ctx, locals, a.value, exprPos))));
+}
+
+@trusted immutable(LowExprKind) getLoopContinueExpr(
+	ref GetLowExprCtx ctx,
+	scope ref immutable Locals locals,
+	ref immutable ConcreteExprKind.LoopContinue a,
+) {
+	return immutable LowExprKind(immutable LowExprKind.LoopContinue(getLoop(locals, a.loop)));
 }
 
 immutable(LowExprKind) getCallExpr(

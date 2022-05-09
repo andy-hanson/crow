@@ -867,6 +867,11 @@ immutable(WriteExprResult) writeExpr(
 			writeLoop(writer, tempAlloc, indent, ctx, locals, writeKind, type, it),
 		(ref immutable LowExprKind.LoopBreak it) =>
 			writeLoopBreak(writer, tempAlloc, indent, ctx, locals, writeKind, it),
+		(ref immutable LowExprKind.LoopContinue it) {
+			// Do nothing, continuing the loop is implicit in C
+			verify(isVoid(writeKind));
+			return immutable WriteExprResult(immutable WriteExprResult.Done());
+		},
 		(ref immutable LowExprKind.MatchUnion it) =>
 			writeMatchUnion(writer, tempAlloc, indent, ctx, locals, writeKind, type, it),
 		(ref immutable LowExprKind.ParamRef it) =>
@@ -1578,6 +1583,7 @@ void writeLValue(ref Writer writer, ref const FunBodyCtx ctx, ref immutable LowE
 		(ref immutable LowExprKind.LocalSet) => unreachable!void(),
 		(ref immutable LowExprKind.Loop) => unreachable!void(),
 		(ref immutable LowExprKind.LoopBreak) => unreachable!void(),
+		(ref immutable LowExprKind.LoopContinue) => unreachable!void(),
 		(ref immutable LowExprKind.MatchUnion) => unreachable!void(),
 		(ref immutable LowExprKind.ParamRef it) {
 			writeParamRef(writer, ctx, it);

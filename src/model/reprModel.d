@@ -304,6 +304,8 @@ immutable(Repr) reprExpr(ref Alloc alloc, ref Ctx ctx, ref immutable Expr a) {
 			reprRecord(alloc, "loop", [reprExpr(alloc, ctx, x.body_)]),
 		(ref immutable Expr.LoopBreak x) =>
 			reprRecord(alloc, "break", [reprExpr(alloc, ctx, x.value)]),
+		(ref immutable Expr.LoopContinue x) =>
+			reprRecord(alloc, "continue", []),
 		(ref immutable Expr.MatchEnum a) =>
 			reprRecord(alloc, "match-enum", [
 				reprExpr(alloc, ctx, a.matched),

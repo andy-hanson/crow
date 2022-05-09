@@ -454,13 +454,13 @@ Expected getCommonOverloadParamExpectedForMultipleCandidates(
 	immutable Opt!Type expected,
 ) {
 	if (empty(candidates))
-		return Expected(expected);
+		return has(expected) ? Expected(force(expected)) : Expected(immutable Expected.Infer());
 	else {
 		// If we get a template candidate and haven't inferred this param type yet, no expected type.
 		immutable Type paramType = getCandidateExpectedParameterType(alloc, programState, candidates[0], argIdx);
 		return has(expected) && paramType != force(expected)
 			// Only get an expected type if all candidates expect it.
-			? Expected.infer()
+			? Expected(immutable Expected.Infer())
 			: getCommonOverloadParamExpectedForMultipleCandidates(
 				alloc,
 				programState,
@@ -478,11 +478,11 @@ CommonOverloadExpected getCommonOverloadParamExpected(
 ) {
 	switch (candidates.length) {
 		case 0:
-			return CommonOverloadExpected(Expected.infer(), false);
+			return CommonOverloadExpected(Expected(immutable Expected.Infer()), false);
 		case 1:
 			return CommonOverloadExpected(
 				Expected(
-					some(getCandidateExpectedParameterType(alloc, programState, candidates[0], argIdx)),
+					getCandidateExpectedParameterType(alloc, programState, candidates[0], argIdx),
 					inferringTypeArgs(candidates[0])),
 				true);
 		default:

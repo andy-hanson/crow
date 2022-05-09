@@ -25,6 +25,7 @@ import frontend.parse.ast :
 	LiteralAst,
 	LoopAst,
 	LoopBreakAst,
+	LoopContinueAst,
 	MatchAst,
 	NameAndRange,
 	NameOrUnderscoreOrNone,
@@ -1044,6 +1045,8 @@ immutable(ExprAndMaybeDedent) parseExprBeforeCall(scope ref Lexer lexer, immutab
 			return isAllowBlock(allowedBlock)
 				? toMaybeDedent(parseLoopBreak(lexer, start, asAllowBlock(allowedBlock).curIndent))
 				: exprBlockNotAllowed(lexer, start, ParseDiag.NeedsBlockCtx.Kind.break_);
+		case Token.continue_:
+			return noDedent(immutable ExprAst(range(lexer, start), immutable ExprAstKind(immutable LoopContinueAst())));
 		case Token.if_:
 			return isAllowBlock(allowedBlock)
 				? toMaybeDedent(parseIf(lexer, start, asAllowBlock(allowedBlock).curIndent))

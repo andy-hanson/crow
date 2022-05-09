@@ -41,7 +41,7 @@ immutable(Opt!V) stackDictLastAdded(K, V)(
 	return a.key == invalid!K ? none!V : some(a.value);
 }
 
-private struct MutStackDict(K, V) {
+struct MutStackDict(K, V) {
 	private:
 	@disable this(ref const MutStackDict);
 	immutable K key = invalid!K;
@@ -49,14 +49,14 @@ private struct MutStackDict(K, V) {
 	MutStackDict!(K, V)* next = void;
 }
 
-private ref inout(V) mutStackDictMustGet(K, V)(return ref inout(MutStackDict!(K, V)) a, scope immutable K key) {
+ref inout(V) mutStackDictMustGet(K, V)(return ref inout(MutStackDict!(K, V)) a, scope immutable K key) {
 	verify(a.key != invalid!K);
 	return a.key == key
 		? a.value
 		: mutStackDictMustGet!(K, V)(*a.next, key);
 }
 
-private @trusted MutStackDict!(K, V) mutStackDictAdd(K, V)(
+@trusted MutStackDict!(K, V) mutStackDictAdd(K, V)(
 	return scope ref MutStackDict!(K, V) a,
 	immutable K key,
 	V value,

@@ -66,6 +66,7 @@ mark-range bool(start bool mut*, end bool mut*) noctx unsafe
 				*cur := true
 				marked-anything := true
 			cur := cur + 1
+			continue
 
 mark-visit<a> void(mark-ctx mark-ctx, value a) noctx unsafe builtin
 

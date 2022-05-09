@@ -395,6 +395,8 @@ struct LoopBreakAst {
 	immutable Opt!ExprAst value;
 }
 
+struct LoopContinueAst {}
+
 @trusted T matchLiteralAst(T, alias cbFloat, alias cbInt, alias cbNat, alias cbStr)(
 	ref immutable LiteralAst a,
 ) {
@@ -536,6 +538,7 @@ struct ExprAstKind {
 		literal,
 		loop,
 		loopBreak,
+		loopContinue,
 		match,
 		parenthesized,
 		seq,
@@ -561,6 +564,7 @@ struct ExprAstKind {
 		immutable LiteralAst literal;
 		immutable LoopAst* loop;
 		immutable LoopBreakAst* loopBreak;
+		immutable LoopContinueAst loopContinue;
 		immutable MatchAst* match_;
 		immutable ParenthesizedAst* parenthesized;
 		immutable SeqAst* seq;
@@ -586,6 +590,7 @@ struct ExprAstKind {
 	@trusted immutable this(immutable LiteralAst a) { kind = Kind.literal; literal = a; }
 	@trusted immutable this(immutable LoopAst* a) { kind = Kind.loop; loop = a; }
 	@trusted immutable this(immutable LoopBreakAst* a) { kind = Kind.loopBreak; loopBreak = a; }
+	@trusted immutable this(immutable LoopContinueAst a) { kind = Kind.loopContinue; loopContinue = a; }
 	@trusted immutable this(immutable MatchAst* a) { kind = Kind.match; match_ = a; }
 	@trusted immutable this(immutable ParenthesizedAst* a) { kind = Kind.parenthesized; parenthesized = a; }
 	@trusted immutable this(immutable SeqAst* a) { kind = Kind.seq; seq = a; }
@@ -629,6 +634,7 @@ ref immutable(IdentifierAst) asIdentifier(return scope ref immutable ExprAstKind
 	alias cbLiteral,
 	alias cbLoop,
 	alias cbLoopBreak,
+	alias cbLoopContinue,
 	alias cbMatch,
 	alias cbParenthesized,
 	alias cbSeq,
@@ -670,6 +676,8 @@ ref immutable(IdentifierAst) asIdentifier(return scope ref immutable ExprAstKind
 			return cbLoop(*a.loop);
 		case ExprAstKind.Kind.loopBreak:
 			return cbLoopBreak(*a.loopBreak);
+		case ExprAstKind.Kind.loopContinue:
+			return cbLoopContinue(a.loopContinue);
 		case ExprAstKind.Kind.match:
 			return cbMatch(*a.match_);
 		case ExprAstKind.Kind.parenthesized:
@@ -1531,6 +1539,8 @@ immutable(Repr) reprExprAstKind(ref Alloc alloc, ref immutable ExprAstKind ast) 
 			reprRecord(alloc, "break", [
 				reprOpt(alloc, e.value, (ref immutable ExprAst value) =>
 					reprExprAst(alloc, value))]),
+		(ref immutable(LoopContinueAst)) =>
+			reprSym("continue"),
 		(ref immutable MatchAst it) =>
 			reprRecord(alloc, "match", [
 				reprExprAst(alloc, it.matched),

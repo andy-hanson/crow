@@ -133,7 +133,7 @@ import util.col.arrBuilder : add;
 import util.col.dict : mustGetAt;
 import util.col.mutArr : clearAndFree, MutArr, push, tempAsArr;
 import util.col.mutMaxArr : push, tempAsArr;
-import util.col.stackDict : StackDict2, stackDict2Add0, stackDict2Add1, stackDict2MustGet0, stackDict2MustGet1;
+import util.col.stackDict : StackDict, stackDictAdd, stackDictMustGet;
 import util.conv : bitsOfFloat32, bitsOfFloat64;
 import util.opt : force, has, Opt;
 import util.ptr : ptrTrustMe, ptrTrustMe_const, ptrTrustMe_mut;
@@ -164,7 +164,7 @@ import util.writer : finishWriter, writeChar, Writer, writeStatic;
 		ptrTrustMe_mut(funToReferences),
 		nextByteCodeIndex(writer),
 		parameters);
-	Locals locals;
+	immutable Locals locals;
 	immutable StackEntries returnStackEntries = immutable StackEntries(immutable StackEntry(0), returnEntries);
 	ExprAfter after = ExprAfter(returnStackEntries, ExprAfterKind(immutable ExprAfterKind.Return()));
 	generateExpr(writer, ctx, locals, after, body_.expr);
@@ -183,29 +183,34 @@ struct ExprAfterKind {
 	@safe @nogc pure nothrow:
 
 	// Continue means: Just leave the value on the stack. (Still make sure to pop to 'toStackDepth')
+	// No relation to loop 'continue'!
 	struct Continue {}
 	struct JumpDelayed { MutArr!ByteCodeIndex* delayedJumps; }
-	struct JumpTo { immutable ByteCodeIndex to; }
+	struct Loop {
+		immutable ByteCodeIndex loopTop; // used by 'continue'
+		ExprAfter* afterBreak;
+	}
 	struct Return {}
 
 	this(immutable Continue a) { kind = Kind.continue_; continue_ = a; }
 	this(JumpDelayed a) { kind = Kind.jumpDelayed; jumpDelayed = a; }
-	this(immutable JumpTo a) { kind = Kind.jumpTo; jumpTo = a; }
+	this(Loop a) { kind = Kind.loop; loop = a; }
 	this(immutable Return a) { kind = Kind.return_; return_ = a; }
 
 	private:
-	enum Kind { continue_, jumpDelayed, jumpTo, return_, }
+	enum Kind { continue_, jumpDelayed, loop, return_, }
 	immutable Kind kind;
 	union {
 		immutable Continue continue_;
 		JumpDelayed jumpDelayed;
-		immutable JumpTo jumpTo;
+		Loop loop;
 		immutable Return return_;
 	}
 }
 
-immutable(bool) isJumpTo(scope ref const ExprAfterKind a) {
-	return a.kind == ExprAfterKind.Kind.jumpTo;
+@trusted ExprAfterKind.Loop asLoop(ExprAfterKind a) {
+	verify(a.kind == ExprAfterKind.Kind.loop);
+	return a.loop;
 }
 
 immutable(bool) isReturn(scope ref const ExprAfterKind a) {
@@ -216,7 +221,7 @@ immutable(bool) isReturn(scope ref const ExprAfterKind a) {
 	ref ExprAfterKind a,
 	scope immutable(T) delegate(immutable ExprAfterKind.Continue) @safe @nogc pure nothrow cbContinue,
 	scope immutable(T) delegate(ref ExprAfterKind.JumpDelayed) @safe @nogc pure nothrow cbJumpDelayed,
-	scope immutable(T) delegate(immutable ExprAfterKind.JumpTo) @safe @nogc pure nothrow cbJumpTo,
+	scope immutable(T) delegate(ExprAfterKind.Loop) @safe @nogc pure nothrow cbLoop,
 	scope immutable(T) delegate(immutable ExprAfterKind.Return) @safe @nogc pure nothrow cbReturn,
 ) {
 	final switch (a.kind) {
@@ -224,16 +229,15 @@ immutable(bool) isReturn(scope ref const ExprAfterKind a) {
 			return cbContinue(a.continue_);
 		case ExprAfterKind.Kind.jumpDelayed:
 			return cbJumpDelayed(a.jumpDelayed);
-		case ExprAfterKind.Kind.jumpTo:
-			return cbJumpTo(a.jumpTo);
+		case ExprAfterKind.Kind.loop:
+			return cbLoop(a.loop);
 		case ExprAfterKind.Kind.return_:
 			return cbReturn(a.return_);
 	}
 }
 
 void handleAfter(ref ByteCodeWriter writer, ref ExprCtx ctx, immutable ByteCodeSource source, ref ExprAfter after) {
-	writeReturnData(writer, source, after.returnValueStackEntries);
-	verify(getNextStackEntry(writer) == stackEntriesEnd(after.returnValueStackEntries));
+	handleAfterReturnData(writer, source, after);
 	matchExprAfterKind!void(
 		after.kind,
 		(immutable ExprAfterKind.Continue) {},
@@ -241,12 +245,18 @@ void handleAfter(ref ByteCodeWriter writer, ref ExprCtx ctx, immutable ByteCodeS
 			immutable ByteCodeIndex delayed = writeJumpDelayed(writer, source);
 			push(ctx.tempAlloc, *x.delayedJumps, delayed);
 		},
-		(immutable ExprAfterKind.JumpTo x) {
-			writeJump(writer, source, x.to);
+		(ExprAfterKind.Loop) {
+			// Only 'break' or 'continue' possible here, and they don't call 'handleAfter' normally
+			unreachable!void();
 		},
 		(immutable ExprAfterKind.Return) {
 			writeReturn(writer, source);
 		});
+}
+
+void handleAfterReturnData(ref ByteCodeWriter writer, immutable ByteCodeSource source, ref const ExprAfter after) {
+	writeReturnData(writer, source, after.returnValueStackEntries);
+	verify(getNextStackEntry(writer) == stackEntriesEnd(after.returnValueStackEntries));
 }
 
 struct ExprCtx {
@@ -300,18 +310,14 @@ immutable(size_t) nStackEntriesForUnionType(ref const ExprCtx ctx, immutable Low
 	return nStackEntriesForType(ctx, type);
 }
 
-alias Locals = StackDict2!(immutable LowLocal*, immutable StackEntries, immutable LowExprKind.Loop*, ExprAfter*);
-alias addLocal = stackDict2Add0!(immutable LowLocal*, immutable StackEntries, immutable LowExprKind.Loop*, ExprAfter*);
-alias addLoop = stackDict2Add1!(immutable LowLocal*, immutable StackEntries, immutable LowExprKind.Loop*, ExprAfter*);
-alias getLocal =
-	stackDict2MustGet0!(immutable LowLocal*, immutable StackEntries, immutable LowExprKind.Loop*, ExprAfter*);
-alias getLoop =
-	stackDict2MustGet1!(immutable LowLocal*, immutable StackEntries, immutable LowExprKind.Loop*, ExprAfter*);
+alias Locals = StackDict!(immutable LowLocal*, immutable StackEntries);
+alias addLocal = stackDictAdd!(immutable LowLocal*, immutable StackEntries);
+alias getLocal = stackDictMustGet!(immutable LowLocal*, immutable StackEntries);
 
 void generateExpr(
 	ref ByteCodeWriter writer,
 	ref ExprCtx ctx,
-	scope ref Locals locals,
+	scope ref immutable Locals locals,
 	ref ExprAfter after,
 	ref immutable LowExpr expr,
 ) {
@@ -374,10 +380,13 @@ void generateExpr(
 			handleAfter(writer, ctx, source, after);
 		},
 		(ref immutable LowExprKind.Loop it) {
-			generateLoop(writer, ctx, source, locals, after, it);
+			generateLoop(writer, ctx, locals, after, it);
 		},
 		(ref immutable LowExprKind.LoopBreak it) {
 			generateLoopBreak(writer, ctx, locals, after, it);
+		},
+		(ref immutable LowExprKind.LoopContinue it) {
+			generateLoopContinue(writer, ctx, source, locals, after, it);
 		},
 		(ref immutable LowExprKind.MatchUnion it) {
 			generateMatchUnion(writer, ctx, source, locals, after, it);
@@ -447,7 +456,7 @@ void generateExpr(
 void generateExprAndContinue(
 	ref ByteCodeWriter writer,
 	ref ExprCtx ctx,
-	scope ref Locals locals,
+	scope ref immutable Locals locals,
 	ref immutable LowExpr expr,
 ) {
 	ExprAfter after = ExprAfter(
@@ -459,7 +468,7 @@ void generateExprAndContinue(
 void generateLet(
 	ref ByteCodeWriter writer,
 	ref ExprCtx ctx,
-	scope ref Locals locals,
+	scope ref immutable Locals locals,
 	ref ExprAfter after,
 	ref immutable LowExprKind.Let a,
 ) {
@@ -467,30 +476,25 @@ void generateLet(
 		immutable StackEntries(getNextStackEntry(writer), nStackEntriesForType(ctx, a.local.type));
 	generateExprAndContinue(writer, ctx, locals, a.value);
 	verify(getNextStackEntry(writer) == stackEntriesEnd(localEntries));
-	scope Locals newLocals = addLocal(locals, a.local, localEntries);
+	scope immutable Locals newLocals = addLocal(locals, a.local, localEntries);
 	generateExpr(writer, ctx, newLocals, after, a.then);
 }
 
 @trusted void generateLoop(
 	ref ByteCodeWriter writer,
 	ref ExprCtx ctx,
-	immutable ByteCodeSource source,
-	scope ref Locals locals,
+	scope ref immutable Locals locals,
 	ref ExprAfter after,
 	ref immutable LowExprKind.Loop a,
 ) {
 	immutable StackEntry stackBeforeLoop = getNextStackEntry(writer);
 	withBranching(writer, ctx, after, (ref ExprAfter afterBranch, ref ExprAfter afterLastBranch) {
 		immutable ByteCodeIndex loopTop = nextByteCodeIndex(writer);
-		// NOTE: We don't know whether the 'break' will appear at the bottom of the loop or not.
-		// If it is at the bottom, it won't need a jump.
-		Locals newLocals = addLoop(locals, &a, &afterBranch);
-		// 'continue' should restore to state before loop
-		ExprAfter continueAfter = ExprAfter(
+		ExprAfter loopAfter = ExprAfter(
 			immutable StackEntries(stackBeforeLoop, 0),
-			ExprAfterKind(immutable ExprAfterKind.JumpTo(loopTop)));
-		generateExpr(writer, ctx, newLocals, continueAfter, a.body_);
-		writeJump(writer, source, loopTop);
+			ExprAfterKind(ExprAfterKind.Loop(loopTop, &afterBranch)));
+		// the loop always ends in a 'break' or 'continue' which will know what to do
+		generateExpr(writer, ctx, locals, loopAfter, a.body_);
 	});
 	// We're after the 'break' now, so the loop result is on the stack
 	setNextStackEntry(writer, stackEntriesEnd(after.returnValueStackEntries));
@@ -499,22 +503,35 @@ void generateLet(
 void generateLoopBreak(
 	ref ByteCodeWriter writer,
 	ref ExprCtx ctx,
-	scope ref Locals locals,
+	scope ref immutable Locals locals,
 	ref ExprAfter after,
 	ref immutable LowExprKind.LoopBreak a,
 ) {
 	verify(after.returnValueStackEntries.size == 0);
-	verify(isJumpTo(after.kind));
-	ExprAfter* breakAfter = getLoop(locals, a.loop);
-	generateExpr(writer, ctx, locals, *breakAfter, a.value);
+	ExprAfterKind.Loop loop = asLoop(after.kind);
+	generateExpr(writer, ctx, locals, *loop.afterBreak, a.value);
 	setNextStackEntry(writer, after.returnValueStackEntries.start);
+}
+
+void generateLoopContinue(
+	ref ByteCodeWriter writer,
+	ref ExprCtx ctx,
+	immutable ByteCodeSource source,
+	scope ref immutable Locals locals,
+	ref ExprAfter after,
+	ref immutable LowExprKind.LoopContinue a,
+) {
+	verify(after.returnValueStackEntries.size == 0);
+	ExprAfterKind.Loop loop = asLoop(after.kind);
+	handleAfterReturnData(writer, source, after);
+	writeJump(writer, source, loop.loopTop);
 }
 
 void generateMatchUnion(
 	ref ByteCodeWriter writer,
 	ref ExprCtx ctx,
 	immutable ByteCodeSource source,
-	scope ref Locals locals,
+	scope ref immutable Locals locals,
 	ref ExprAfter after,
 	ref immutable LowExprKind.MatchUnion a,
 ) {
@@ -539,7 +556,7 @@ void generateMatchUnion(
 			if (has(case_.local)) {
 				immutable size_t nEntries = nStackEntriesForType(ctx, force(case_.local).type);
 				verify(nEntries <= matchedEntriesWithoutKind.size);
-				scope Locals newLocals = addLocal(
+				scope immutable Locals newLocals = addLocal(
 					locals,
 					force(case_.local),
 					immutable StackEntries(matchedEntriesWithoutKind.start, nEntries));
@@ -557,7 +574,7 @@ void generateSwitch0ToN(
 	ref ByteCodeWriter writer,
 	ref ExprCtx ctx,
 	immutable ByteCodeSource source,
-	scope ref Locals locals,
+	scope ref immutable Locals locals,
 	ref ExprAfter after,
 	ref immutable LowExprKind.Switch0ToN it,
  ) {
@@ -577,7 +594,7 @@ void generateSwitchWithValues(
 	ref ByteCodeWriter writer,
 	ref ExprCtx ctx,
 	immutable ByteCodeSource source,
-	scope ref Locals locals,
+	scope ref immutable Locals locals,
 	ref ExprAfter after,
 	ref immutable LowExprKind.SwitchWithValues it,
 ) {
@@ -596,7 +613,7 @@ void generateSwitchWithValues(
 void writeSwitchCases(
 	ref ByteCodeWriter writer,
 	ref ExprCtx ctx,
-	scope ref Locals locals,
+	scope ref immutable Locals locals,
 	ref ExprAfter after,
 	immutable StackEntry stackBefore,
 	immutable SwitchDelayed switchDelayed,
@@ -617,7 +634,7 @@ void generateTailRecur(
 	ref ByteCodeWriter writer,
 	ref ExprCtx ctx,
 	immutable ByteCodeSource source,
-	scope ref Locals locals,
+	scope ref immutable Locals locals,
 	ref ExprAfter after,
 	ref immutable LowExprKind.TailRecur a,
 ) {
@@ -645,7 +662,7 @@ void generateTailRecur(
 void generateArgsAndContinue(
 	ref ByteCodeWriter writer,
 	ref ExprCtx ctx,
-	scope ref Locals locals,
+	scope ref immutable Locals locals,
 	immutable LowExpr[] args,
 ) {
 	foreach (ref immutable LowExpr arg; args)
@@ -657,7 +674,7 @@ void generateCreateRecord(
 	ref ExprCtx ctx,
 	immutable LowType.Record type,
 	immutable ByteCodeSource source,
-	scope ref Locals locals,
+	scope ref immutable Locals locals,
 	ref immutable LowExprKind.CreateRecord it,
 ) {
 	generateCreateRecordOrConstantRecord(
@@ -697,7 +714,7 @@ void generateCreateUnion(
 	ref ExprCtx ctx,
 	immutable LowType.Union type,
 	immutable ByteCodeSource source,
-	scope ref Locals locals,
+	scope ref immutable Locals locals,
 	ref immutable LowExprKind.CreateUnion it,
 ) {
 	generateCreateUnionOrConstantUnion(
@@ -840,7 +857,7 @@ void generateSpecialUnary(
 	ref ByteCodeWriter writer,
 	ref ExprCtx ctx,
 	immutable ByteCodeSource source,
-	scope ref Locals locals,
+	scope ref immutable Locals locals,
 	ref ExprAfter after,
 	immutable LowType type,
 	ref immutable LowExprKind.SpecialUnary a,
@@ -944,7 +961,7 @@ void generateRefOfVal(
 	ref ByteCodeWriter writer,
 	ref ExprCtx ctx,
 	immutable ByteCodeSource source,
-	scope ref Locals locals,
+	scope ref immutable Locals locals,
 	ref ExprAfter after,
 	ref immutable LowExpr arg,
 ) {
@@ -981,7 +998,7 @@ void generateRecordFieldGet(
 	ref ByteCodeWriter writer,
 	ref ExprCtx ctx,
 	immutable ByteCodeSource source,
-	scope ref Locals locals,
+	scope ref immutable Locals locals,
 	ref immutable LowExprKind.RecordFieldGet it,
 ) {
 	immutable StackEntry targetEntry = getNextStackEntry(writer);
@@ -1014,7 +1031,7 @@ void generatePtrToRecordFieldGet(
 	ref ByteCodeWriter writer,
 	ref ExprCtx ctx,
 	immutable ByteCodeSource source,
-	scope ref Locals locals,
+	scope ref immutable Locals locals,
 	ref ExprAfter after,
 	immutable LowType.Record record,
 	immutable size_t fieldIndex,
@@ -1048,7 +1065,7 @@ void generateSpecialTernary(
 	ref ByteCodeWriter writer,
 	ref ExprCtx ctx,
 	immutable ByteCodeSource source,
-	scope ref Locals locals,
+	scope ref immutable Locals locals,
 	ref ExprAfter after,
 	ref immutable LowExprKind.SpecialTernary a,
 ) {
@@ -1065,7 +1082,7 @@ void generateSpecialBinary(
 	ref ByteCodeWriter writer,
 	ref ExprCtx ctx,
 	immutable ByteCodeSource source,
-	scope ref Locals locals,
+	scope ref immutable Locals locals,
 	ref ExprAfter after,
 	ref immutable LowExprKind.SpecialBinary a,
 ) {
@@ -1293,7 +1310,7 @@ void generateIf(
 	ref ByteCodeWriter writer,
 	ref ExprCtx ctx,
 	immutable ByteCodeSource source,
-	scope ref Locals locals,
+	scope ref immutable Locals locals,
 	ref ExprAfter after,
 	ref immutable LowExpr cond,
 	scope void delegate(ref ExprAfter) @safe @nogc pure nothrow cbThen,
@@ -1322,7 +1339,7 @@ void generateIf(
 		after.kind,
 		(immutable ExprAfterKind.Continue) => true,
 		(ref ExprAfterKind.JumpDelayed) => false,
-		(immutable ExprAfterKind.JumpTo) => false,
+		(ExprAfterKind.Loop) => false,
 		(immutable ExprAfterKind.Return) => false);
 	if (needsJumps) {
 		MutArr!ByteCodeIndex delayedJumps;

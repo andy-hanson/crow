@@ -24,9 +24,9 @@ import frontend.check.inferringType :
 	programState,
 	rangeInFile2,
 	shallowInstantiateType,
-	tryGetDeeplyInstantiatedType,
 	tryGetDeeplyInstantiatedTypeFor,
 	tryGetInferred,
+	tryGetLoop,
 	typeFromAst2,
 	typeFromOptAst;
 import frontend.check.instantiate : instantiateFun, instantiateStructNeverDelay, TypeArgsArray, typeArgsArray;
@@ -50,6 +50,7 @@ import frontend.parse.ast :
 	LiteralAst,
 	LoopAst,
 	LoopBreakAst,
+	LoopContinueAst,
 	MatchAst,
 	matchExprAstKind,
 	matchInterpolatedPart,
@@ -124,7 +125,7 @@ import util.opt : force, has, none, noneMut, Opt, some, someMut;
 import util.ptr : castImmutable, ptrTrustMe_mut;
 import util.sourceRange : FileAndRange, Pos, RangeWithinFile;
 import util.sym : Operator, shortSym, Sym, symForOperator, symOfStr;
-import util.util : todo, verify;
+import util.util : todo;
 
 immutable(Expr) checkFunctionBody(
 	ref CheckCtx checkCtx,
@@ -177,18 +178,18 @@ struct ExprAndType {
 }
 
 immutable(ExprAndType) checkAndInfer(ref ExprCtx ctx, ref LocalsInfo locals, ref immutable ExprAst ast) {
-	Expected expected = Expected.infer();
+	Expected expected = Expected(immutable Expected.Infer());
 	immutable Expr expr = checkExpr(ctx, locals, ast, expected);
 	return immutable ExprAndType(expr, inferred(expected));
 }
 
-immutable(ExprAndType) checkAndExpect(
+immutable(ExprAndType) checkAndExpectOrInfer(
 	scope ref ExprCtx ctx,
 	scope ref LocalsInfo locals,
 	scope ref immutable ExprAst ast,
-	immutable Opt!Type expected,
+	immutable Opt!Type optExpected,
 ) {
-	Expected et = Expected(expected);
+	Expected et = has(optExpected) ? Expected(force(optExpected)) : Expected(immutable Expected.Infer());
 	immutable Expr expr = checkExpr(ctx, locals, ast, et);
 	return immutable ExprAndType(expr, inferred(et));
 }
@@ -199,7 +200,7 @@ immutable(Expr) checkAndExpect(
 	scope ref immutable ExprAst ast,
 	immutable Type expected,
 ) {
-	Expected et = Expected(some(expected));
+	Expected et = Expected(expected);
 	return checkExpr(ctx, locals, ast, et);
 }
 
@@ -266,7 +267,7 @@ immutable(Expr) checkExprOrEmptyNewAndExpect(
 	ref immutable Opt!ExprAst ast,
 	immutable Type expected,
 ) {
-	Expected e = Expected(some(expected));
+	Expected e = Expected(expected);
 	return checkExprOrEmptyNew(ctx, locals, range, ast, e);
 }
 
@@ -981,7 +982,7 @@ immutable(Expr) checkLet(
 	ref immutable LetAst ast,
 	ref Expected expected,
 ) {
-	immutable ExprAndType init = checkAndExpect(ctx, locals, ast.initializer, typeFromOptAst(ctx, ast.type));
+	immutable ExprAndType init = checkAndExpectOrInfer(ctx, locals, ast.initializer, typeFromOptAst(ctx, ast.type));
 	if (has(ast.name)) {
 		immutable Local* local = allocate(ctx.alloc, immutable Local(
 			rangeInFile2(ctx, rangeOfOptNameAndRange(immutable OptNameAndRange(range.start, ast.name), ctx.allSymbols)),
@@ -1089,8 +1090,8 @@ immutable(Expr) checkLoop(
 		immutable Type type = force(expectedType);
 		Expr.Loop* loop =
 			allocateMut(ctx.alloc, Expr.Loop(type, immutable Expr(FileAndRange.empty, immutable Expr.Bogus())));
-		LoopInfo info = LoopInfo(castImmutable(loop), type, false);
-		scope Expected bodyExpected = Expected(immutable Type(ctx.commonTypes.void_), &info);
+		LoopInfo info = LoopInfo(immutable Type(ctx.commonTypes.void_), castImmutable(loop), type, false);
+		scope Expected bodyExpected = Expected(&info);
 		immutable Expr body_ = checkExpr(ctx, locals, ast.body_, bodyExpected);
 		overwriteMemory(&loop.body_, body_);
 		if (!info.hasBreak)
@@ -1109,16 +1110,31 @@ immutable(Expr) checkLoopBreak(
 	ref immutable LoopBreakAst ast,
 	ref Expected expected,
 ) {
-	if (!has(expected.loop)) {
+	Opt!(LoopInfo*) optLoop = tryGetLoop(expected);
+	if (!has(optLoop)) {
 		addDiag2(ctx, range, immutable Diag(immutable Diag.LoopBreakNotAtTail()));
 		return bogus(expected, range);
 	} else {
-		LoopInfo* loop = force(expected.loop);
+		LoopInfo* loop = force(optLoop);
 		loop.hasBreak = true;
 		immutable Expr value = checkExprOrEmptyNewAndExpect(ctx, locals, range, ast.value, loop.type);
-		immutable Opt!Type expectedType = tryGetDeeplyInstantiatedType(ctx.alloc, ctx.programState, expected);
-		verify(force(expectedType) == immutable Type(ctx.commonTypes.void_));
 		return immutable Expr(range, allocate(ctx.alloc, immutable Expr.LoopBreak(loop.loop, value)));
+	}
+}
+
+immutable(Expr) checkLoopContinue(
+	ref ExprCtx ctx,
+	ref LocalsInfo locals,
+	immutable FileAndRange range,
+	ref Expected expected,
+) {
+	Opt!(LoopInfo*) optLoop = tryGetLoop(expected);
+	if (!has(optLoop)) {
+		addDiag2(ctx, range, immutable Diag(immutable Diag.LoopBreakNotAtTail())); //TODO: LoopContinueNotAtTail
+		return bogus(expected, range);
+	} else {
+		LoopInfo* loop = force(optLoop);
+		return immutable Expr(range, allocate(ctx.alloc, immutable Expr.LoopContinue(loop.loop)));
 	}
 }
 
@@ -1271,7 +1287,6 @@ immutable(Expr) checkFor(
 	ref immutable ForAst ast,
 	ref Expected expected,
 ) {
-
 	// TODO: NEATER (don't create a synthetic AST)
 	immutable ExprAst lambda = immutable ExprAst(
 		range.range,
@@ -1381,6 +1396,8 @@ public immutable(Expr) checkExpr(
 			checkLoop(ctx, locals, range, a, expected),
 		(ref immutable LoopBreakAst a) =>
 			checkLoopBreak(ctx, locals, range, a, expected),
+		(ref immutable(LoopContinueAst)) =>
+			checkLoopContinue(ctx, locals, range, expected),
 		(ref immutable MatchAst a) =>
 			checkMatch(ctx, locals, range, a, expected),
 		(ref immutable ParenthesizedAst a) =>

@@ -708,7 +708,10 @@ void writeDiag(
 		(ref immutable Diag.LoopBreakNotAtTail d) {
 			writeStatic(writer, "'break' must be appear at the tail of a loop");
 		},
-		(ref immutable Diag.LoopNeedsExpectedType d) {
+		(ref immutable Diag.LoopNeedsBreakOrContinue) {
+			writeStatic(writer, "a loop must end in 'break' or 'continue'");
+		},
+		(ref immutable Diag.LoopNeedsExpectedType) {
 			writeStatic(writer, "can not infer type of loop; provide an expected type");
 			writeStatic(writer, " (for example, by making it the return expression of a function)");
 		},
@@ -1041,6 +1044,8 @@ immutable(string) describeTokenForUnexpected(immutable Token token) {
 			return "unexpected ':='";
 		case Token.comma:
 			return "unexpected ','";
+		case Token.continue_:
+			return "unexpected 'continue'";
 		case Token.data:
 			return "unexpected keyword 'data'";
 		case Token.dot:

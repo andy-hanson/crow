@@ -293,6 +293,8 @@ immutable(Repr) reprOfConcreteExprKind(ref Alloc alloc, ref immutable ConcreteEx
 			reprRecord(alloc, "loop", [reprOfConcreteExpr(alloc, it.body_)]),
 		(ref immutable ConcreteExprKind.LoopBreak it) =>
 			reprRecord(alloc, "break", [reprOfConcreteExpr(alloc, it.value)]),
+		(ref immutable ConcreteExprKind.LoopContinue it) =>
+			reprSym("continue"),
 		(ref immutable ConcreteExprKind.MatchEnum it) =>
 			reprRecord(alloc, "match-enum", [
 				reprOfConcreteExpr(alloc, it.matchedValue),
