@@ -318,7 +318,7 @@ immutable(Expr) check(
 	ref ExprCtx ctx,
 	ref Expected expected,
 	immutable Type exprType,
-	ref immutable Expr expr,
+	immutable Expr expr,
 ) {
 	if (setTypeNoDiagnostic(ctx.alloc, ctx.programState, expected, exprType))
 		return expr;

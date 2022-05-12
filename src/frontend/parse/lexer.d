@@ -505,6 +505,8 @@ public enum Token {
 	union_, // 'union'
 	unless, // 'unless'
 	unsafe, // 'unsafe'
+	until, // 'until'
+	while_, // 'while'
 }
 
 @trusted public immutable(Token) nextToken(ref Lexer lexer) {
@@ -696,6 +698,10 @@ immutable(Token) tokenForSym(ref Lexer lexer, immutable Sym a) {
 			return Token.union_;
 		case shortSymValue("unsafe"):
 			return Token.unsafe;
+		case shortSymValue("until"):
+			return Token.until;
+		case shortSymValue("while"):
+			return Token.while_;
 		case shortSymValue("_"):
 			return Token.underscore;
 		default:
@@ -885,6 +891,8 @@ immutable(bool) isExpressionStartToken(immutable Token a) {
 		case Token.quoteDouble3:
 		case Token.underscore:
 		case Token.unless:
+		case Token.until:
+		case Token.while_:
 			return true;
 	}
 }

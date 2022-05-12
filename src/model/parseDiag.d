@@ -72,6 +72,8 @@ struct ParseDiag {
 			lambda,
 			loop,
 			unless,
+			until,
+			while_,
 		}
 		immutable Kind kind;
 	}

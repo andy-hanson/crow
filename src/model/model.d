@@ -1785,6 +1785,16 @@ struct Expr {
 		immutable Loop* loop;
 	}
 
+	struct LoopUntil {
+		immutable Expr condition;
+		immutable Expr body_;
+	}
+
+	struct LoopWhile {
+		immutable Expr condition;
+		immutable Expr body_;
+	}
+
 	struct MatchEnum {
 		immutable Expr matched;
 		immutable Expr[] cases;
@@ -1831,6 +1841,8 @@ struct Expr {
 		loop,
 		loopBreak,
 		loopContinue,
+		loopUntil,
+		loopWhile,
 		matchEnum,
 		matchUnion,
 		paramRef,
@@ -1857,6 +1869,8 @@ struct Expr {
 		immutable Loop* loop;
 		immutable LoopBreak* loopBreak;
 		immutable LoopContinue* loopContinue;
+		immutable LoopUntil* loopUntil;
+		immutable LoopWhile* loopWhile;
 		immutable MatchEnum* matchEnum;
 		immutable MatchUnion* matchUnion;
 		immutable ParamRef paramRef;
@@ -1905,6 +1919,12 @@ struct Expr {
 	immutable this(immutable FileAndRange r, immutable LoopContinue* a) {
 		range_ = r; kind = Kind.loopContinue; loopContinue = a;
 	}
+	immutable this(immutable FileAndRange r, immutable LoopUntil* a) {
+		range_ = r; kind = Kind.loopUntil; loopUntil = a;
+	}
+	immutable this(immutable FileAndRange r, immutable LoopWhile* a) {
+		range_ = r; kind = Kind.loopWhile; loopWhile = a;
+	}
 	@trusted immutable this(immutable FileAndRange r, immutable MatchEnum* a) {
 		range_ = r; kind = Kind.matchEnum; matchEnum = a;
 	}
@@ -1940,6 +1960,8 @@ immutable(FileAndRange) range(scope ref immutable Expr a) {
 	scope immutable(T) delegate(ref immutable Expr.Loop) @safe @nogc pure nothrow cbLoop,
 	scope immutable(T) delegate(ref immutable Expr.LoopBreak) @safe @nogc pure nothrow cbLoopBreak,
 	scope immutable(T) delegate(ref immutable Expr.LoopContinue) @safe @nogc pure nothrow cbLoopContinue,
+	scope immutable(T) delegate(ref immutable Expr.LoopUntil) @safe @nogc pure nothrow cbLoopUntil,
+	scope immutable(T) delegate(ref immutable Expr.LoopWhile) @safe @nogc pure nothrow cbLoopWhile,
 	scope immutable(T) delegate(ref immutable Expr.MatchEnum) @safe @nogc pure nothrow cbMatchEnum,
 	scope immutable(T) delegate(ref immutable Expr.MatchUnion) @safe @nogc pure nothrow cbMatchUnion,
 	scope immutable(T) delegate(ref immutable Expr.ParamRef) @safe @nogc pure nothrow cbParamRef,
@@ -1980,6 +2002,10 @@ immutable(FileAndRange) range(scope ref immutable Expr a) {
 			return cbLoopBreak(*a.loopBreak);
 		case Expr.Kind.loopContinue:
 			return cbLoopContinue(*a.loopContinue);
+		case Expr.Kind.loopUntil:
+			return cbLoopUntil(*a.loopUntil);
+		case Expr.Kind.loopWhile:
+			return cbLoopWhile(*a.loopWhile);
 		case Expr.Kind.matchEnum:
 			return cbMatchEnum(*a.matchEnum);
 		case Expr.Kind.matchUnion:

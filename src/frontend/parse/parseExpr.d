@@ -26,6 +26,8 @@ import frontend.parse.ast :
 	LoopAst,
 	LoopBreakAst,
 	LoopContinueAst,
+	LoopUntilAst,
+	LoopWhileAst,
 	MatchAst,
 	NameAndRange,
 	NameOrUnderscoreOrNone,
@@ -829,15 +831,26 @@ immutable(ExprAndDedent) parseIfRecur(
 	return immutable ExprAndDedent(immutable ExprAst(range(lexer, start), kind), else_.dedents);
 }
 
-immutable(ExprAndDedent) parseUnless(scope ref Lexer lexer, immutable Pos start, immutable uint curIndent) {
+struct ConditionAndBody {
+	immutable ExprAst condition;
+	immutable ExprAst body_;
+	immutable uint dedents;
+}
+
+immutable(ConditionAndBody) parseConditionAndBody(scope ref Lexer lexer, immutable uint curIndent) {
 	immutable ExprAst cond = parseExprNoBlock(lexer);
-	immutable ExprAndDedent thenAndDedent = takeIndentOrFail_ExprAndDedent(lexer, curIndent, () =>
+	immutable ExprAndDedent bodyAndDedent = takeIndentOrFail_ExprAndDedent(lexer, curIndent, () =>
 		parseStatementsAndExtraDedents(lexer, curIndent + 1));
+	return immutable ConditionAndBody(cond, bodyAndDedent.expr, bodyAndDedent.dedents);
+}
+
+immutable(ExprAndDedent) parseUnless(scope ref Lexer lexer, immutable Pos start, immutable uint curIndent) {
+	immutable ConditionAndBody cb = parseConditionAndBody(lexer, curIndent);
 	return immutable ExprAndDedent(
 		immutable ExprAst(
 			range(lexer, start),
-			immutable ExprAstKind(allocate(lexer.alloc, immutable UnlessAst(cond, thenAndDedent.expr)))),
-		thenAndDedent.dedents);
+			immutable ExprAstKind(allocate(lexer.alloc, immutable UnlessAst(cb.condition, cb.body_)))),
+		cb.dedents);
 }
 
 immutable(ExprAndMaybeDedent) parseFor(
@@ -891,6 +904,24 @@ immutable(ExprAndDedent) parseLoopBreak(scope ref Lexer lexer, immutable Pos sta
 			range(lexer, start),
 			immutable ExprAstKind(allocate(lexer.alloc, immutable LoopBreakAst(valueAndDedent.expr)))),
 		valueAndDedent.dedents);
+}
+
+immutable(ExprAndDedent) parseLoopUntil(scope ref Lexer lexer, immutable Pos start, immutable uint curIndent) {
+	immutable ConditionAndBody cb = parseConditionAndBody(lexer, curIndent);
+	return immutable ExprAndDedent(
+		immutable ExprAst(
+			range(lexer, start),
+			immutable ExprAstKind(allocate(lexer.alloc, immutable LoopUntilAst(cb.condition, cb.body_)))),
+		cb.dedents);
+}
+
+immutable(ExprAndDedent) parseLoopWhile(scope ref Lexer lexer, immutable Pos start, immutable uint curIndent) {
+	immutable ConditionAndBody cb = parseConditionAndBody(lexer, curIndent);
+	return immutable ExprAndDedent(
+		immutable ExprAst(
+			range(lexer, start),
+			immutable ExprAstKind(allocate(lexer.alloc, immutable LoopWhileAst(cb.condition, cb.body_)))),
+		cb.dedents);
 }
 
 immutable(ExprAndDedent) takeIndentOrFail_ExprAndDedent(
@@ -1086,6 +1117,14 @@ immutable(ExprAndMaybeDedent) parseExprBeforeCall(scope ref Lexer lexer, immutab
 			return isAllowBlock(allowedBlock)
 				? toMaybeDedent(parseUnless(lexer, start, asAllowBlock(allowedBlock).curIndent))
 				: exprBlockNotAllowed(lexer, start, ParseDiag.NeedsBlockCtx.Kind.unless);
+		case Token.until:
+			return isAllowBlock(allowedBlock)
+				? toMaybeDedent(parseLoopUntil(lexer, start, asAllowBlock(allowedBlock).curIndent))
+				: exprBlockNotAllowed(lexer, start, ParseDiag.NeedsBlockCtx.Kind.until);
+		case Token.while_:
+			return isAllowBlock(allowedBlock)
+				? toMaybeDedent(parseLoopWhile(lexer, start, asAllowBlock(allowedBlock).curIndent))
+				: exprBlockNotAllowed(lexer, start, ParseDiag.NeedsBlockCtx.Kind.while_);
 		default:
 			return badToken(lexer, start, token);
 	}

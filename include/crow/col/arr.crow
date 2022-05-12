@@ -125,13 +125,9 @@ Calls `f` for each element in `a`.
 for-loop<a> void(a a[], f act void(a)) trusted
 	cur mut = a begin-ptr
 	end = a end-ptr
-	loop
-		if cur == end
-			break
-		else
-			f[*cur]
-			cur := cur + 1
-			continue
+	until cur == end
+		f[*cur]
+		cur := cur + 1
 
 ###
 Equivalent to `f[a[0]], f[a[1]], ...`.

@@ -58,15 +58,12 @@ round-up-to-multiple-of-8 nat64(n nat64) noctx
 mark-range bool(start bool mut*, end bool mut*) noctx unsafe
 	cur mut = start
 	marked-anything mut = false
-	loop
-		if cur == end
-			break marked-anything
-		else
-			if !*cur
-				*cur := true
-				marked-anything := true
-			cur := cur + 1
-			continue
+	until cur == end
+		if !*cur
+			*cur := true
+			marked-anything := true
+		cur := cur + 1
+	marked-anything
 
 mark-visit<a> void(mark-ctx mark-ctx, value a) noctx unsafe builtin
 

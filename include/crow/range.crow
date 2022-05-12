@@ -25,13 +25,9 @@ is-empty bool(a range nat64) noctx
 for-loop void(a range nat64, f act void(nat64))
 	cur mut = a low
 	high = a high
-	loop
-		if cur == high
-			break
-		else
-			f[cur]
-			cur := cur wrap-add 1
-			continue
+	until cur == high
+		f[cur]
+		cur := cur wrap-add 1
 
 range-reverse<a> record
 	low a

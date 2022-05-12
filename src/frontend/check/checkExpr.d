@@ -51,6 +51,8 @@ import frontend.parse.ast :
 	LoopAst,
 	LoopBreakAst,
 	LoopContinueAst,
+	LoopUntilAst,
+	LoopWhileAst,
 	MatchAst,
 	matchExprAstKind,
 	matchInterpolatedPart,
@@ -204,13 +206,12 @@ immutable(Expr) checkAndExpect(
 	return checkExpr(ctx, locals, ast, et);
 }
 
-immutable(Expr) checkAndExpect(
-	scope ref ExprCtx ctx,
-	scope ref LocalsInfo locals,
-	scope ref immutable ExprAst ast,
-	immutable StructInst* expected,
-) {
-	return checkAndExpect(ctx, locals, ast, immutable Type(expected));
+immutable(Expr) checkAndExpectBool(ref ExprCtx ctx, scope ref LocalsInfo locals, scope ref immutable ExprAst ast) {
+	return checkAndExpect(ctx, locals, ast, immutable Type(ctx.commonTypes.bool_));
+}
+
+immutable(Expr) checkAndExpectVoid(ref ExprCtx ctx, scope ref LocalsInfo locals, scope ref immutable ExprAst ast) {
+	return checkAndExpect(ctx, locals, ast, immutable Type(ctx.commonTypes.void_));
 }
 
 immutable(Expr) checkArrowAccess(
@@ -241,7 +242,7 @@ immutable(Expr) checkIf(
 	ref immutable IfAst ast,
 	ref Expected expected,
 ) {
-	immutable Expr cond = checkAndExpect(ctx, locals, ast.cond, ctx.commonTypes.bool_);
+	immutable Expr cond = checkAndExpectBool(ctx, locals, ast.cond);
 	immutable Expr then = checkExpr(ctx, locals, ast.then, expected);
 	immutable Expr else_ = checkExprOrEmptyNew(ctx, locals, range, ast.else_, expected);
 	return immutable Expr(range, allocate(ctx.alloc, immutable Expr.Cond(inferred(expected), cond, then, else_)));
@@ -254,7 +255,7 @@ immutable(Expr) checkUnless(
 	ref immutable UnlessAst ast,
 	ref Expected expected,
 ) {
-	immutable Expr cond = checkAndExpect(ctx, locals, ast.cond, ctx.commonTypes.bool_);
+	immutable Expr cond = checkAndExpectBool(ctx, locals, ast.cond);
 	immutable Expr else_ = checkExpr(ctx, locals, ast.body_, expected);
 	immutable Expr then = checkEmptyNew(ctx, locals, range, expected);
 	return immutable Expr(range, allocate(ctx.alloc, immutable Expr.Cond(inferred(expected), cond, then, else_)));
@@ -1138,6 +1139,34 @@ immutable(Expr) checkLoopContinue(
 	}
 }
 
+immutable(Expr) checkLoopUntil(
+	ref ExprCtx ctx,
+	ref LocalsInfo locals,
+	immutable FileAndRange range,
+	ref immutable LoopUntilAst ast,
+	ref Expected expected,
+) {
+	return check(ctx, expected, immutable Type(ctx.commonTypes.void_), immutable Expr(
+		range,
+		allocate(ctx.alloc, immutable Expr.LoopUntil(
+			checkAndExpectBool(ctx, locals, ast.condition),
+			checkAndExpectVoid(ctx, locals, ast.body_)))));
+}
+
+immutable(Expr) checkLoopWhile(
+	ref ExprCtx ctx,
+	ref LocalsInfo locals,
+	immutable FileAndRange range,
+	ref immutable LoopWhileAst ast,
+	ref Expected expected,
+) {
+	return check(ctx, expected, immutable Type(ctx.commonTypes.void_), immutable Expr(
+		range,
+		allocate(ctx.alloc, immutable Expr.LoopWhile(
+			checkAndExpectBool(ctx, locals, ast.condition),
+			checkAndExpectVoid(ctx, locals, ast.body_)))));
+}
+
 immutable(Expr) checkMatch(
 	ref ExprCtx ctx,
 	ref LocalsInfo locals,
@@ -1275,7 +1304,7 @@ immutable(Expr) checkSeq(
 	ref immutable SeqAst ast,
 	ref Expected expected,
 ) {
-	immutable Expr first = checkAndExpect(ctx, locals, ast.first, ctx.commonTypes.void_);
+	immutable Expr first = checkAndExpectVoid(ctx, locals, ast.first);
 	immutable Expr then = checkExpr(ctx, locals, ast.then, expected);
 	return immutable Expr(range, allocate(ctx.alloc, immutable Expr.Seq(first, then)));
 }
@@ -1398,6 +1427,10 @@ public immutable(Expr) checkExpr(
 			checkLoopBreak(ctx, locals, range, a, expected),
 		(ref immutable(LoopContinueAst)) =>
 			checkLoopContinue(ctx, locals, range, expected),
+		(ref immutable LoopUntilAst a) =>
+			checkLoopUntil(ctx, locals, range, a, expected),
+		(ref immutable LoopWhileAst a) =>
+			checkLoopWhile(ctx, locals, range, a, expected),
 		(ref immutable MatchAst a) =>
 			checkMatch(ctx, locals, range, a, expected),
 		(ref immutable ParenthesizedAst a) =>

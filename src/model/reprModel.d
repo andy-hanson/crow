@@ -259,8 +259,11 @@ immutable(Repr) reprExpr(ref Alloc alloc, ref Ctx ctx, ref immutable Expr a) {
 					reprExpr(alloc, ctx, arg))]),
 		(ref immutable Expr.ClosureFieldRef a) =>
 			reprRecord(alloc, "closure-rf", [reprNat(a.index)]),
-		(ref immutable Expr.Cond) =>
-			todo!(immutable Repr)("cond"),
+		(ref immutable Expr.Cond e) =>
+			reprRecord(alloc, "cond", [
+				reprExpr(alloc, ctx, e.cond),
+				reprExpr(alloc, ctx, e.then),
+				reprExpr(alloc, ctx, e.else_)]),
 		(ref immutable Expr.Drop x) =>
 			reprRecord(alloc, "drop", [reprExpr(alloc, ctx, x.arg)]),
 		(ref immutable Expr.FunPtr it) =>
@@ -306,6 +309,14 @@ immutable(Repr) reprExpr(ref Alloc alloc, ref Ctx ctx, ref immutable Expr a) {
 			reprRecord(alloc, "break", [reprExpr(alloc, ctx, x.value)]),
 		(ref immutable Expr.LoopContinue x) =>
 			reprRecord(alloc, "continue", []),
+		(ref immutable Expr.LoopUntil x) =>
+			reprRecord(alloc, "until", [
+				reprExpr(alloc, ctx, x.condition),
+				reprExpr(alloc, ctx, x.body_)]),
+		(ref immutable Expr.LoopWhile x) =>
+			reprRecord(alloc, "while", [
+				reprExpr(alloc, ctx, x.condition),
+				reprExpr(alloc, ctx, x.body_)]),
 		(ref immutable Expr.MatchEnum a) =>
 			reprRecord(alloc, "match-enum", [
 				reprExpr(alloc, ctx, a.matched),

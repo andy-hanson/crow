@@ -270,6 +270,10 @@ void writeParseDiag(
 						return "loop";
 					case ParseDiag.NeedsBlockCtx.Kind.unless:
 						return "'unless'";
+					case ParseDiag.NeedsBlockCtx.Kind.until:
+						return "'until'";
+					case ParseDiag.NeedsBlockCtx.Kind.while_:
+						return "'while'";
 				}
 			}());
 			writeStatic(writer, " expression must appear ");
@@ -1138,9 +1142,13 @@ immutable(string) describeTokenForUnexpected(immutable Token token) {
 			return "unexpected '_'";
 		case Token.union_:
 			return "unexpected keyword 'union'";
-		case Token.unsafe:
-			return "unexpected keyword 'unsafe'";
 		case Token.unless:
 			return "unexpected keyword 'unless'";
+		case Token.unsafe:
+			return "unexpected keyword 'unsafe'";
+		case Token.until:
+			return "unexpected keyword 'until'";
+		case Token.while_:
+			return "unexpected keyword 'while'";
 	}
 }

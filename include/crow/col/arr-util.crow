@@ -143,14 +143,10 @@ each-with-index<a> void(a a[], f act void(a, nat64)) trusted
 	cur mut = a begin-ptr
 	index mut = 0
 	size = a size
-	loop
-		if index == size
-			break
-		else
-			f[*cur, index]
-			cur := cur + 1
-			index := index wrap-add 1
-			continue
+	until index == size
+		f[*cur, index]
+		cur := cur + 1
+		index := index wrap-add 1
 
 ###
 This is like `each` but with a state variable that gets transformed by each call to `f`.
@@ -222,7 +218,7 @@ filter-with-index<a> a[](a a[], f act bool(a, nat64)) trusted
 	index mut = 0
 	loop
 		if cur == end
-			break
+			break res.as-const arr-from-begin-end out.as-const
 		else
 			if f[*cur, index]
 				*out := *cur
@@ -230,7 +226,6 @@ filter-with-index<a> a[](a a[], f act bool(a, nat64)) trusted
 			cur := cur + 1
 			index := index wrap-add 1
 			continue
-	res.as-const arr-from-begin-end out.as-const
 
 # TODO: move to iter-utiil since this works with any foldable
 # Calls `f` on every element, and returns the number of times `f` returned `true`.

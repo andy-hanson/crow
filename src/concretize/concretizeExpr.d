@@ -310,9 +310,17 @@ immutable(ConcreteExpr) concretizeDrop(
 ) {
 	immutable ConcreteExpr arg = concretizeExpr(ctx, locals, e.arg);
 	immutable ConcreteExprKind kind = isConstant(arg.kind)
-		? immutable ConcreteExprKind(immutable Constant(immutable Constant.Void()))
+		? constantVoidKind()
 		: immutable ConcreteExprKind(allocate(ctx.alloc, immutable ConcreteExprKind.Drop(arg)));
 	return immutable ConcreteExpr(voidType(ctx.concretizeCtx), range, kind);
+}
+
+immutable(ConcreteExpr) constantVoid(ref ConcretizeCtx ctx, immutable FileAndRange range) {
+	return immutable ConcreteExpr(voidType(ctx), range, constantVoidKind());
+}
+
+immutable(ConcreteExprKind) constantVoidKind() {
+	return immutable ConcreteExprKind(immutable Constant(immutable Constant.Void()));
 }
 
 immutable(ConcreteExpr) concretizeFunPtr(
@@ -562,6 +570,60 @@ immutable(ConcreteExpr) concretizeLoopContinue(
 		immutable ConcreteExprKind(immutable ConcreteExprKind.LoopContinue(loop)));
 }
 
+immutable(ConcreteExpr) concretizeLoopUntil(
+	ref ConcretizeExprCtx ctx,
+	immutable FileAndRange range,
+	scope ref immutable Locals locals,
+	ref immutable Expr.LoopUntil a,
+) {
+	return concretizeLoopUntilOrWhile(ctx, range, locals, a.condition, a.body_, true);
+}
+
+immutable(ConcreteExpr) concretizeLoopWhile(
+	ref ConcretizeExprCtx ctx,
+	immutable FileAndRange range,
+	scope ref immutable Locals locals,
+	ref immutable Expr.LoopWhile a,
+) {
+	return concretizeLoopUntilOrWhile(ctx, range, locals, a.condition, a.body_, false);
+}
+
+immutable(ConcreteExpr) concretizeLoopUntilOrWhile(
+	ref ConcretizeExprCtx ctx,
+	immutable FileAndRange range,
+	scope ref immutable Locals locals,
+	ref immutable Expr conditionExpr,
+	ref immutable Expr bodyExpr,
+	immutable bool isUntil,
+) {
+	ConcreteExprKind.Loop* res = allocateMut(ctx.alloc, ConcreteExprKind.Loop());
+	immutable ConcreteExpr breakVoid = immutable ConcreteExpr(
+		voidType(ctx.concretizeCtx),
+		range,
+		immutable ConcreteExprKind(allocate(ctx.alloc, immutable ConcreteExprKind.LoopBreak(
+			castImmutable(res),
+			constantVoid(ctx.concretizeCtx, range)))));
+	immutable ConcreteExpr doAndContinue = immutable ConcreteExpr(
+		voidType(ctx.concretizeCtx),
+		range,
+		immutable ConcreteExprKind(allocate(ctx.alloc, immutable ConcreteExprKind.Seq(
+			concretizeExpr(ctx, locals, bodyExpr),
+			immutable ConcreteExpr(
+				voidType(ctx.concretizeCtx),
+				range,
+				immutable ConcreteExprKind(immutable ConcreteExprKind.LoopContinue(castImmutable(res))))))));
+	immutable ConcreteExpr condition = concretizeExpr(ctx, locals, conditionExpr);
+	immutable ConcreteExprKind.Cond cond = isUntil
+		? immutable ConcreteExprKind.Cond(condition, breakVoid, doAndContinue)
+		: immutable ConcreteExprKind.Cond(condition, doAndContinue, breakVoid);
+	immutable ConcreteExpr body_ = immutable ConcreteExpr(
+		voidType(ctx.concretizeCtx),
+		range,
+		immutable ConcreteExprKind(allocate(ctx.alloc, cond)));
+	overwriteMemory(&res.body_, body_);
+	return immutable ConcreteExpr(voidType(ctx.concretizeCtx), range, immutable ConcreteExprKind(castImmutable(res)));
+}
+
 immutable(ConcreteExpr) concretizeMatchEnum(
 	ref ConcretizeExprCtx ctx,
 	immutable FileAndRange range,
@@ -706,6 +768,10 @@ immutable(ConcreteExpr) concretizeExpr(
 			concretizeLoopBreak(ctx, range, locals, e),
 		(ref immutable Expr.LoopContinue e) =>
 			concretizeLoopContinue(ctx, range, locals, e),
+		(ref immutable Expr.LoopUntil e) =>
+			concretizeLoopUntil(ctx, range, locals, e),
+		(ref immutable Expr.LoopWhile e) =>
+			concretizeLoopWhile(ctx, range, locals, e),
 		(ref immutable Expr.MatchEnum e) =>
 			concretizeMatchEnum(ctx, range, locals, e),
 		(ref immutable Expr.MatchUnion e) =>

@@ -1,0 +1,21 @@
+import
+	crow/io/print: print
+
+main fut nat(_ str[]) summon
+	x mut = 0
+	y nat = loop
+		if x == 5
+			break x * 2
+		else
+			x := x + 1
+			continue
+	print: "x is {x}, y is {y}"
+
+	until x == 15
+		x := x + 1
+	print: "x is {x}"
+
+	while x > 10
+		x := x - 1
+	print: "x is {x}"
+	()

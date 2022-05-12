@@ -26,6 +26,8 @@ import frontend.parse.ast :
 	LoopAst,
 	LoopBreakAst,
 	LoopContinueAst,
+	LoopUntilAst,
+	LoopWhileAst,
 	MatchAst,
 	matchExprAstKind,
 	matchFunBodyAst,
@@ -569,6 +571,20 @@ void addExprTokens(
 			add(alloc, tokens, immutable Token(
 				Token.Kind.keyword,
 				rangeOfStartAndLength(a.range.start, "continue".length)));
+		},
+		(ref immutable LoopUntilAst it) {
+			add(alloc, tokens, immutable Token(
+				Token.Kind.keyword,
+				rangeOfStartAndLength(a.range.start, "until".length)));
+			addExprTokens(alloc, tokens, allSymbols, it.condition);
+			addExprTokens(alloc, tokens, allSymbols, it.body_);
+		},
+		(ref immutable LoopWhileAst it) {
+			add(alloc, tokens, immutable Token(
+				Token.Kind.keyword,
+				rangeOfStartAndLength(a.range.start, "while".length)));
+			addExprTokens(alloc, tokens, allSymbols, it.condition);
+			addExprTokens(alloc, tokens, allSymbols, it.body_);
 		},
 		(ref immutable MatchAst it) {
 			addExprTokens(alloc, tokens, allSymbols, it.matched);

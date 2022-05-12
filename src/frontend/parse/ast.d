@@ -397,6 +397,16 @@ struct LoopBreakAst {
 
 struct LoopContinueAst {}
 
+struct LoopUntilAst {
+	immutable ExprAst condition;
+	immutable ExprAst body_;
+}
+
+struct LoopWhileAst {
+	immutable ExprAst condition;
+	immutable ExprAst body_;
+}
+
 @trusted T matchLiteralAst(T, alias cbFloat, alias cbInt, alias cbNat, alias cbStr)(
 	ref immutable LiteralAst a,
 ) {
@@ -539,6 +549,8 @@ struct ExprAstKind {
 		loop,
 		loopBreak,
 		loopContinue,
+		loopUntil,
+		loopWhile,
 		match,
 		parenthesized,
 		seq,
@@ -565,6 +577,8 @@ struct ExprAstKind {
 		immutable LoopAst* loop;
 		immutable LoopBreakAst* loopBreak;
 		immutable LoopContinueAst loopContinue;
+		immutable LoopUntilAst* loopUntil;
+		immutable LoopWhileAst* loopWhile;
 		immutable MatchAst* match_;
 		immutable ParenthesizedAst* parenthesized;
 		immutable SeqAst* seq;
@@ -591,6 +605,8 @@ struct ExprAstKind {
 	@trusted immutable this(immutable LoopAst* a) { kind = Kind.loop; loop = a; }
 	@trusted immutable this(immutable LoopBreakAst* a) { kind = Kind.loopBreak; loopBreak = a; }
 	@trusted immutable this(immutable LoopContinueAst a) { kind = Kind.loopContinue; loopContinue = a; }
+	immutable this(immutable LoopUntilAst* a) { kind = Kind.loopUntil; loopUntil = a; }
+	immutable this(immutable LoopWhileAst* a) { kind = Kind.loopWhile; loopWhile = a; }
 	@trusted immutable this(immutable MatchAst* a) { kind = Kind.match; match_ = a; }
 	@trusted immutable this(immutable ParenthesizedAst* a) { kind = Kind.parenthesized; parenthesized = a; }
 	@trusted immutable this(immutable SeqAst* a) { kind = Kind.seq; seq = a; }
@@ -635,6 +651,8 @@ ref immutable(IdentifierAst) asIdentifier(return scope ref immutable ExprAstKind
 	alias cbLoop,
 	alias cbLoopBreak,
 	alias cbLoopContinue,
+	alias cbLoopUntil,
+	alias cbLoopWhile,
 	alias cbMatch,
 	alias cbParenthesized,
 	alias cbSeq,
@@ -678,6 +696,10 @@ ref immutable(IdentifierAst) asIdentifier(return scope ref immutable ExprAstKind
 			return cbLoopBreak(*a.loopBreak);
 		case ExprAstKind.Kind.loopContinue:
 			return cbLoopContinue(a.loopContinue);
+		case ExprAstKind.Kind.loopUntil:
+			return cbLoopUntil(*a.loopUntil);
+		case ExprAstKind.Kind.loopWhile:
+			return cbLoopWhile(*a.loopWhile);
 		case ExprAstKind.Kind.match:
 			return cbMatch(*a.match_);
 		case ExprAstKind.Kind.parenthesized:
@@ -1541,6 +1563,14 @@ immutable(Repr) reprExprAstKind(ref Alloc alloc, ref immutable ExprAstKind ast) 
 					reprExprAst(alloc, value))]),
 		(ref immutable(LoopContinueAst)) =>
 			reprSym("continue"),
+		(ref immutable LoopUntilAst e) =>
+			reprRecord(alloc, "until", [
+				reprExprAst(alloc, e.condition),
+				reprExprAst(alloc, e.body_)]),
+		(ref immutable LoopWhileAst e) =>
+			reprRecord(alloc, "while", [
+				reprExprAst(alloc, e.condition),
+				reprExprAst(alloc, e.body_)]),
 		(ref immutable MatchAst it) =>
 			reprRecord(alloc, "match", [
 				reprExprAst(alloc, it.matched),
