@@ -11,7 +11,7 @@ import
 	../../col/mut-arr: ~~=, index-of, move-to-arr, mut-arr, new, pop-n-from-start, size
 	../../col/private/arr-low-level: begin-ptr
 	../../compare: <=, >
-	../../exception: assert, forbid, throw, to-str
+	../../exception: assert, forbid, to-str
 	../../fut: delay, fut, fut-catch, new, subscript, then, then-void
 	../../hash: hash-mix
 	../../log: error, log, warn
@@ -95,11 +95,10 @@ start-http-server fut http-server(port str, handler http-handler) trusted summon
 		unless wrote == content.size.to-int64
 			if wrote == -1
 				err = errno
-				if err == EAGAIN
-					<- delay
-					sock write-until-finished content
-				else
-					"can't write to socket, errno {err}" throw
+				unless err == EAGAIN
+					throw "can't write to socket, errno {err}"
+				<- delay
+				sock write-until-finished content
 			else
 				assert: wrote > 0
 				<- delay

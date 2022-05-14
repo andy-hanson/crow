@@ -28,7 +28,7 @@ main fut nat(_ str[]) unsafe summon
 			as ok o
 				o
 			as err _
-				throw: "TODO"
+				throw "TODO"
 			first-post = db add-post cookie, "hello world"
 			pi = db get-post-info first-post
 			print: "{pi user-name} ({pi user}): {pi content}"
@@ -202,7 +202,7 @@ add-post post(db db, cookie user-cookie, content str) summon
 	if db try-authenticate txn, cookie
 		cookie user
 	else
-		"Login cookie invalid (may have expired)" throw
+		throw "Login cookie invalid (may have expired)"
 
 .try-authenticate bool(db db, txn lmdb-txn, cookie user-cookie) summon
 	if login-cookie ?= txn get db.user-login-cookie, cookie.user
@@ -232,7 +232,7 @@ test
 			as ok o
 				o
 			as err _
-				"TODO" throw
+				throw "TODO"
 			info log "D"
 			post = db add-post alice-login, "Curiouser and curiouser!"
 

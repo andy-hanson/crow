@@ -1,14 +1,8 @@
-no-std
 import
 	crow/c-types: c-int
-	crow/exception: throw
-	crow/misc: new, void
-	crow/number: ==
-	crow/str: literal
-	crow/str-conv: finish, interp, to-str, with-str, with-value
 	crow/str-util: to-str
 	./headers: sf_error_number
 
 check-sndfile-error void(err c-int) trusted
 	unless err == 0
-		"libsndfile error {err}: {err sf_error_number}" throw
+		throw "libsndfile error {err}: {err sf_error_number}"

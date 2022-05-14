@@ -108,6 +108,8 @@ immutable(DiagSeverity) getDiagnosticSeverity(ref immutable Diag a) {
 			DiagSeverity.checkError,
 		(ref immutable Diag.SpecImplNotFound) =>
 			DiagSeverity.checkError,
+		(ref immutable Diag.ThrowNeedsExpectedType) =>
+			DiagSeverity.checkError,
 		(ref immutable Diag.TypeAnnotationUnnecessary) =>
 			DiagSeverity.checkWarning,
 		(ref immutable Diag.TypeConflict) =>

@@ -879,6 +879,10 @@ struct ConcreteExprKind {
 		immutable ConcreteExpr then;
 	}
 
+	struct Throw {
+		immutable ConcreteExpr thrown;
+	}
+
 	private:
 	enum Kind {
 		alloc,
@@ -901,6 +905,7 @@ struct ConcreteExprKind {
 		paramRef,
 		recordFieldGet,
 		seq,
+		throw_,
 	}
 	immutable Kind kind;
 	union {
@@ -924,6 +929,7 @@ struct ConcreteExprKind {
 		immutable ParamRef paramRef;
 		immutable RecordFieldGet* recordFieldGet;
 		immutable Seq* seq;
+		immutable Throw* throw_;
 	}
 
 	public:
@@ -947,6 +953,7 @@ struct ConcreteExprKind {
 	@trusted immutable this(immutable ParamRef a) { kind = Kind.paramRef; paramRef = a; }
 	@trusted immutable this(immutable RecordFieldGet* a) { kind = Kind.recordFieldGet; recordFieldGet = a; }
 	@trusted immutable this(immutable Seq* a) { kind = Kind.seq; seq = a; }
+	immutable this(immutable Throw* a) { kind = Kind.throw_; throw_ = a; }
 }
 
 immutable(ConcreteType) elementType(return scope ref immutable ConcreteExprKind.CreateArr a) {
@@ -990,6 +997,7 @@ immutable(bool) isConstant(ref immutable ConcreteExprKind a) {
 		ref immutable ConcreteExprKind.RecordFieldGet,
 	) @safe @nogc pure nothrow cbRecordFieldGet,
 	scope immutable(T) delegate(ref immutable ConcreteExprKind.Seq) @safe @nogc pure nothrow cbSeq,
+	scope immutable(T) delegate(ref immutable ConcreteExprKind.Throw) @safe @nogc pure nothrow cbThrow,
 ) {
 	final switch (a.kind) {
 		case ConcreteExprKind.Kind.alloc:
@@ -1032,6 +1040,8 @@ immutable(bool) isConstant(ref immutable ConcreteExprKind a) {
 			return cbRecordFieldGet(*a.recordFieldGet);
 		case ConcreteExprKind.Kind.seq:
 			return cbSeq(*a.seq);
+		case ConcreteExprKind.Kind.throw_:
+			return cbThrow(*a.throw_);
 	}
 }
 
@@ -1070,6 +1080,7 @@ struct ConcreteProgram {
 	immutable(ConcreteFun*) rtMain() immutable { return commonFuns.rtMain; }
 	immutable(ConcreteFun*) userMain() immutable { return commonFuns.userMain; }
 	immutable(ConcreteFun*) allocFun() immutable { return commonFuns.allocFun; }
+	immutable(ConcreteFun*) throwImplFun() immutable { return commonFuns.throwImpl; }
 }
 
 struct ConcreteCommonFuns {
@@ -1077,6 +1088,7 @@ struct ConcreteCommonFuns {
 	immutable ConcreteFun* rtMain;
 	immutable ConcreteFun* userMain;
 	immutable ConcreteFun* allocFun;
+	immutable ConcreteFun* throwImpl;
 }
 
 struct ConcreteLambdaImpl {

@@ -75,7 +75,7 @@ all-files file[]() summon
 				private ~= name
 			else
 				unless path == "src/wasm.d" || name in excluded-unknown-access
-					"Unexpected non-public, non-private member {name} in {path}" throw
+					throw "Unexpected non-public, non-private member {name} in {path}"
 
 	public.move-to-arr, private.move-to-arr
 

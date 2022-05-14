@@ -333,7 +333,9 @@ immutable(Repr) reprExpr(ref Alloc alloc, ref Ctx ctx, ref immutable Expr a) {
 		(ref immutable Expr.Seq a) =>
 			reprRecord(alloc, "seq", [
 				reprExpr(alloc, ctx, a.first),
-				reprExpr(alloc, ctx, a.then)]));
+				reprExpr(alloc, ctx, a.then)]),
+		(ref immutable Expr.Throw a) =>
+			reprRecord(alloc, "throw", [reprExpr(alloc, ctx, a.thrown)]));
 }
 
 immutable(Sym) symOfFunKind(immutable FunKind a) {

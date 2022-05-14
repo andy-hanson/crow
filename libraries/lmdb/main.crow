@@ -230,7 +230,7 @@ set<k, v> void(txn lmdb-txn, db lmdb-db<k, v>, key k, value v) summon lmdb-key<k
 # Like `set`, but throws if `key` is already in the `db`.
 add<k, v> void(txn lmdb-txn, db lmdb-db<k, v>, key k, value v) summon lmdb-key<k> serialize<v>
 	unless txn try-add db, key, value
-		throw: "key already exists"
+		throw "key already exists"
 
 ###
 If `key` is already in `db`, returns `false`.
@@ -444,7 +444,7 @@ body
 
 .check-lmdb-error void(a err-t)
 	unless a == MDB_SUCCESS
-		throw: "LMDB error code: {a} ({a error-name})"
+		throw "LMDB error code: {a} ({a error-name})"
 
 .error-name str(a err-t)
 	if a == MDB_KEYEXIST

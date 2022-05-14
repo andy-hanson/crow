@@ -35,7 +35,7 @@ load-texture-from-bmp GLuint(gl gl-ext, bmp-raw nat8[]) unsafe summon
 	err = gl glGetError
 	unless err == GL_NO_ERROR
 		print: "error in {step}: {err to-str}"
-		"Error loading image (in {step}): code {err to-str}" throw
+		throw "Error loading image (in {step}): code {err to-str}"
 
 free-texture void(gl gl-ext, tex-name GLuint) unsafe summon
 	gl glDeleteTextures 1, tex-name.ptr-to

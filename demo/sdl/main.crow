@@ -96,5 +96,5 @@ main fut nat(_ str[]) summon trusted
 		description fail-sdl-error
 
 .fail-sdl-error void(description str) summon trusted
-	throw: "sdl error in {description}: {SDL_GetError}"
+	throw "sdl error in {description}: {SDL_GetError}"
 	SDL_Quit

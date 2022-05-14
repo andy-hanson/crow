@@ -1,6 +1,6 @@
 no-std
 import
-	./exception: exception, throw
+	./exception: exception, rethrow
 export
 	./private/bootstrap: err, ok, result
 
@@ -9,4 +9,4 @@ ok-or-throw<a> a(a result<a, exception>)
 	as ok v
 		v
 	as err e
-		e throw
+		e rethrow

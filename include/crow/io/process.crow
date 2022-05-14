@@ -26,7 +26,7 @@ import
 	../col/mut-arr: ~=, begin-ptr, end-ptr, move-to-arr, mut-arr, new, size, unsafe-set-size
 	../col/private/arr-low-level: begin-ptr
 	../compare: <=
-	../exception: assert, throw
+	../exception: assert
 	../extra-types: fd-t
 	../misc: new, void
 	../number: ==, <=>, int32, nat8, nat32, to-int32, to-int64, to-nat32, to-nat64
@@ -63,14 +63,13 @@ spawn-and-wait-result process-result(exe str, args str[]) trusted summon
 		"{a} {b}"
 
 	# TODO: kill, handle that error properly
-	if exe is-file
-		exe-c-str = exe to-c-str
-		if is-windows
-			exe-c-str spawn-and-wait-result-windows args
-		else
-			exe-c-str spawn-and-wait-result-posix (exe-c-str convert-args args)
+	unless exe is-file
+		throw "{exe} is not a file"
+	exe-c-str = exe to-c-str
+	if is-windows
+		exe-c-str spawn-and-wait-result-windows args
 	else
-		"{exe} is not a file" throw
+		exe-c-str spawn-and-wait-result-posix (exe-c-str convert-args args)
 
 .keep-reading void(res char8 mut[], file FILE) unsafe summon
 	read-at-a-time = 0x1000
@@ -93,13 +92,12 @@ The child process shares stdout and stderr with the parent process.
 ###
 spawn-and-wait int32(exe str, args str[]) trusted summon
 	# TODO: kill, handle that error properly
-	if exe is-file
-		# First argument should be the executable path
-		# TODO: &to-c-str
-		exe-c-str = exe.to-c-str
-		exe-c-str spawn-and-wait (exe-c-str convert-args args)
-	else
-		throw: "{exe} is not a file"
+	unless exe is-file
+		throw "{exe} is not a file"
+	# First argument should be the executable path
+	# TODO: &to-c-str
+	exe-c-str = exe.to-c-str
+	exe-c-str spawn-and-wait (exe-c-str convert-args args)
 
 # Executes a shell command and returns its output.
 shell-exec str(command str) trusted summon
@@ -186,7 +184,7 @@ shell-exec str(command str) trusted summon
 		res unsafe-set-size old-size
 		err = GetLastError
 		unless err == ERROR_BROKEN_PIPE
-			"Error reading from pipe: {err show-win32-error}" throw
+			throw "Error reading from pipe: {err show-win32-error}"
 
 .spawn-and-wait-result-posix process-result(exe c-str, args c-str*) summon unsafe
 	stdout-pipes = make-pipes

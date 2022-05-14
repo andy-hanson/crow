@@ -23,7 +23,7 @@ import
 	../col/private/arr-low-level: begin-ptr
 	../col/sort: sort
 	../compare: !=
-	../exception: assert, finally, forbid, throw
+	../exception: assert, finally, forbid
 	../flags-util: is-in
 	../fun-util: subscript
 	../misc: new, void
@@ -83,7 +83,7 @@ is-file bool(path str) trusted summon
 		if attr == INVALID_FILE_ATTRIBUTES
 			err = GetLastError
 			unless err == ERROR_FILE_NOT_FOUND || err == ERROR_PATH_NOT_FOUND
-				"error {err} while testing path {path}: {err show-win32-error}" throw
+				throw "error {err} while testing path {path}: {err show-win32-error}"
 		else
 			if FILE_ATTRIBUTE_DIRECTORY is-in attr
 				directory,
@@ -103,7 +103,7 @@ is-file bool(path str) trusted summon
 			assert: err == -1
 			unless errno == ENOENT
 				# TODO: show error message
-				"error while testing path {path}" throw
+				throw "error while testing path {path}"
 
 .get-dirent-name str(d dirent) unsafe
 	# TODO: this is offsetof(d, d_name)
@@ -133,18 +133,18 @@ names-in-dir str[](path str) summon trusted
 		file-data cell WIN32_FIND_DATAA = (),
 		file = path-search FindFirstFileA file-data.as-mut-ptr
 		if file == INVALID_HANDLE_VALUE
-			"failed to open dir {path}" throw
+			throw "failed to open dir {path}"
 		else
 			res str mut[] = ()
 			res names-in-dir-recur path, file
 			ok = file FindClose
 			unless ok
-				"failed to close dir {path}" throw
+				throw "failed to close dir {path}"
 			res.move-to-arr sort
 	else
 		dirp = path opendir
 		if dirp.ptr-cast-from-extern::any-const-ptr mut* == null
-			"failed to open dir {path}" throw
+			throw "failed to open dir {path}"
 		res str mut[] = ()
 		res names-in-dir-recur dirp
 		res.move-to-arr sort
@@ -160,7 +160,7 @@ names-in-dir str[](path str) summon trusted
 	else
 		err = GetLastError
 		if err != ERROR_NO_MORE_FILES
-			"Error while reading directory {dir-path}: {err show-win32-error}" throw
+			throw "Error while reading directory {dir-path}: {err show-win32-error}"
 
 .names-in-dir-recur void(out str mut[], dirp dir) unsafe summon
 	# Initial value of entry / result should not matter
@@ -191,7 +191,7 @@ make-symlink-to void(link str, target str) summon trusted
 		link-flags = SYMBOLIC_LINK_FLAG_ALLOW_UNPRIVILEGED_CREATE | (target.is-dir ? SYMBOLIC_LINK_FLAG_DIRECTORY : ())
 		ok = link.to-c-str CreateSymbolicLinkA target.to-c-str, link-flags
 		unless ok
-			"Error creating link {link}: {GetLastError show-win32-error}" throw
+			throw "Error creating link {link}: {GetLastError show-win32-error}"
 	else
 		err = target.to-c-str symlink link.to-c-str
 		unless err == 0
@@ -215,7 +215,7 @@ read-file-binary nat8[](path str) summon
 	if res ?= path try-read-file-binary
 		res
 	else
-		"file does not exist: {path}" throw
+		throw "file does not exist: {path}"
 
 ###
 Writes the full contents of the file as a string.
@@ -227,14 +227,13 @@ write-file void(path str, content str) summon trusted
 .write-file void(path c-str, content str) summon unsafe
 	fd = path fopen "wb"
 	if fd.as-any-const-ptr == null
-		"failed to open file for write: {path}" throw
-	else
-		(() => fd close-fd path) finally () => fd write-fd path, content.to-bytes
+		throw "failed to open file for write: {path}"
+	(() => fd close-fd path) finally () => fd write-fd path, content.to-bytes
 
 .write-fd void(fd FILE, path c-str, bytes nat8[]) summon unsafe
 	wrote-bytes = bytes.begin-ptr fwrite size-of@<nat8>, bytes.size, fd
 	unless wrote-bytes == bytes.size
-		"error writing file {path}" throw
+		throw "error writing file {path}"
 
 ###
 Like `read-file`, but returns an empty option if the file does not exist.
@@ -263,7 +262,7 @@ try-read-file-binary nat8[]?(path str) summon trusted
 .read-fd nat8[](fd FILE, path c-str) summon unsafe
 	err = fd fseek 0, SEEK_END
 	if err != 0
-		"Error reading {path}" throw
+		throw "Error reading {path}"
 
 	file-size = fd ftell
 	# TODO: handle errors
@@ -282,12 +281,12 @@ try-read-file-binary nat8[]?(path str) summon trusted
 		n-bytes-read = res.begin-ptr.ptr-cast fread size-of@<nat8>, file-size-nat, fd
 		assert: n-bytes-read == file-size-nat
 		if fd ferror
-			"Error reading {path}" throw
+			throw "Error reading {path}"
 		res cast-immutable
 
 .close-fd void(fd FILE, path c-str) summon unsafe
 	if fd.fclose != 0
-		"Error closing {path}" throw
+		throw "Error closing {path}"
 
 # Gets the current directory (of the user that ran the program).
 current-directory str() summon trusted
@@ -365,7 +364,7 @@ remove-file void(path str) trusted summon
 	if is-windows
 		ok = path.to-c-str DeleteFileA
 		unless ok
-			"error removing file at {path}: {GetLastError show-win32-error}" throw
+			throw "error removing file at {path}: {GetLastError show-win32-error}"
 	else
 		check-posix-error: path.to-c-str unlink
 

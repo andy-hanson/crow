@@ -271,6 +271,7 @@ struct Diag {
 	struct SpecImplNotFound {
 		immutable Sym sigName;
 	}
+	struct ThrowNeedsExpectedType {}
 	struct TypeAnnotationUnnecessary {
 		immutable Type type;
 	}
@@ -378,6 +379,7 @@ struct Diag {
 		specImplFoundMultiple,
 		specImplHasSpecs,
 		specImplNotFound,
+		throwNeedsExpectedType,
 		typeAnnotationUnnecessary,
 		typeConflict,
 		typeParamCantHaveTypeArgs,
@@ -445,6 +447,7 @@ struct Diag {
 		immutable SpecImplFoundMultiple specImplFoundMultiple;
 		immutable SpecImplHasSpecs specImplHasSpecs;
 		immutable SpecImplNotFound specImplNotFound;
+		immutable ThrowNeedsExpectedType throwNeedsExpectedType;
 		immutable TypeAnnotationUnnecessary typeAnnotationUnnecessary;
 		immutable TypeConflict typeConflict;
 		immutable TypeParamCantHaveTypeArgs typeParamCantHaveTypeArgs;
@@ -577,6 +580,9 @@ struct Diag {
 	}
 	@trusted immutable this(immutable SpecImplHasSpecs a) { kind = Kind.specImplHasSpecs; specImplHasSpecs = a; }
 	@trusted immutable this(immutable SpecImplNotFound a) { kind = Kind.specImplNotFound; specImplNotFound = a; }
+	immutable this(immutable ThrowNeedsExpectedType a) {
+		kind = Kind.throwNeedsExpectedType; throwNeedsExpectedType = a;
+	}
 	immutable this(immutable TypeAnnotationUnnecessary a) {
 		kind = Kind.typeAnnotationUnnecessary; typeAnnotationUnnecessary = a;
 	}
@@ -727,6 +733,9 @@ struct Diag {
 		ref immutable Diag.SpecImplNotFound
 	) @safe @nogc pure nothrow cbSpecImplNotFound,
 	scope immutable(Out) delegate(
+		ref immutable Diag.ThrowNeedsExpectedType
+	) @safe @nogc pure nothrow cbThrowNeedsExpectedType,
+	scope immutable(Out) delegate(
 		ref immutable Diag.TypeAnnotationUnnecessary
 	) @safe @nogc pure nothrow cbTypeAnnotationUnnecessary,
 	scope immutable(Out) delegate(
@@ -861,6 +870,8 @@ struct Diag {
 			return cbSpecImplHasSpecs(a.specImplHasSpecs);
 		case Diag.Kind.specImplNotFound:
 			return cbSpecImplNotFound(a.specImplNotFound);
+		case Diag.Kind.throwNeedsExpectedType:
+			return cbThrowNeedsExpectedType(a.throwNeedsExpectedType);
 		case Diag.Kind.typeAnnotationUnnecessary:
 			return cbTypeAnnotationUnnecessary(a.typeAnnotationUnnecessary);
 		case Diag.Kind.typeConflict:

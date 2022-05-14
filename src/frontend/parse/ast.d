@@ -517,6 +517,10 @@ struct ThenVoidAst {
 	immutable ExprAst then;
 }
 
+struct ThrowAst {
+	immutable ExprAst thrown;
+}
+
 // expr :: t
 struct TypedAst {
 	immutable ExprAst expr;
@@ -556,6 +560,7 @@ struct ExprAstKind {
 		seq,
 		then,
 		thenVoid,
+		throw_,
 		typed,
 		unless,
 	}
@@ -584,6 +589,7 @@ struct ExprAstKind {
 		immutable SeqAst* seq;
 		immutable ThenAst* then;
 		immutable ThenVoidAst* thenVoid;
+		immutable ThrowAst* throw_;
 		immutable TypedAst* typed;
 		immutable UnlessAst* unless;
 	}
@@ -612,6 +618,7 @@ struct ExprAstKind {
 	@trusted immutable this(immutable SeqAst* a) { kind = Kind.seq; seq = a; }
 	@trusted immutable this(immutable ThenAst* a) { kind = Kind.then; then = a; }
 	@trusted immutable this(immutable ThenVoidAst* a) { kind = Kind.thenVoid; thenVoid = a; }
+	immutable this(immutable ThrowAst* a) { kind = Kind.throw_; throw_ = a; }
 	immutable this(immutable TypedAst* a) { kind = Kind.typed; typed = a; }
 	immutable this(immutable UnlessAst* a) { kind = Kind.unless; unless = a; }
 }
@@ -658,6 +665,7 @@ ref immutable(IdentifierAst) asIdentifier(return scope ref immutable ExprAstKind
 	alias cbSeq,
 	alias cbThen,
 	alias cbThenVoid,
+	alias cbThrow,
 	alias cbTyped,
 	alias cbUnless,
 )(
@@ -710,6 +718,8 @@ ref immutable(IdentifierAst) asIdentifier(return scope ref immutable ExprAstKind
 			return cbThen(*a.then);
 		case ExprAstKind.Kind.thenVoid:
 			return cbThenVoid(*a.thenVoid);
+		case ExprAstKind.Kind.throw_:
+			return cbThrow(*a.throw_);
 		case ExprAstKind.Kind.typed:
 			return cbTyped(*a.typed);
 		case ExprAstKind.Kind.unless:
@@ -1603,6 +1613,8 @@ immutable(Repr) reprExprAstKind(ref Alloc alloc, ref immutable ExprAstKind ast) 
 			reprRecord(alloc, "then-void", [
 				reprExprAst(alloc, it.futExpr),
 				reprExprAst(alloc, it.then)]),
+		(ref immutable ThrowAst it) =>
+			reprRecord(alloc, "throw", [reprExprAst(alloc, it.thrown)]),
 		(ref immutable TypedAst it) =>
 			reprRecord(alloc, "typed", [
 				reprExprAst(alloc, it.expr),

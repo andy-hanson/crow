@@ -1,11 +1,10 @@
 no-std
 import
 	crow/cell: cell
-	crow/exception: throw
 	crow/fun-util: fun-ptr0, fun-ptr1, fun-ptr2, fun-ptr3, fun-ptr4, fun-ptr6, fun-ptr9, subscript
 	crow/misc: void
 	crow/ptr: ==, any-const-ptr, as-fun-ptr, const-ptr, mut-ptr, null
-	crow/str: c-str, literal
+	crow/str: c-str, literal, str
 	crow/str-conv: finish, interp, with-str, with-value
 	crow/str-util: to-str
 	SDL2/SDL_video: SDL_GL_GetProcAddress
@@ -282,6 +281,6 @@ new gl-ext() unsafe summon
 .load any-const-ptr(name c-str) unsafe summon
 	proc = name SDL_GL_GetProcAddress
 	if proc == null
-		"Could not find {name}" throw
+		throw "Could not find {name}"
 	else
 		proc

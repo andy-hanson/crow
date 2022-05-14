@@ -8,7 +8,7 @@ import
 
 main fut nat(args str[]) summon unsafe
 	if args.size != 1
-		"Usage: crow run play-file.crow -- [IN]" throw
+		throw "Usage: crow run play-file.crow -- [IN]"
 	audio = start-sdl-audio
 	sound = args[0].read-sound-file with-sample-rate audio.format.sample-rate
 	_ = audio play-loop sound

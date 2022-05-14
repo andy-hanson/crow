@@ -219,7 +219,7 @@ main fut nat(_ str[]) summon trusted
 		description fail-sdl-error
 
 .fail-sdl-error void(description str) summon trusted
-	throw: "sdl error in {description}: {SDL_GetError}"
+	throw "sdl error in {description}: {SDL_GetError}"
 	SDL_Quit
 
 .vbo-create GLuint(gl gl-ext, vertices vertex[]) summon unsafe
@@ -233,7 +233,7 @@ main fut nat(_ str[]) summon trusted
 	err = gl glGetError
 	unless err == GL_NO_ERROR
 		gl glDeleteBuffers n-buffers, vbo-cell.as-const-ptr
-		"Creating VBO failed: Code {err}" throw
+		throw "Creating VBO failed: Code {err}"
 	vbo
 
 size-bytes nat(vertices vertex[]) unsafe
@@ -245,4 +245,4 @@ size-bytes nat(vertices vertex[]) unsafe
 .gl-check-error void(gl gl-ext, desc str) summon
 	err = gl glGetError
 	unless err == GL_NO_ERROR
-		"Gl error at {desc}: code {err}" throw
+		throw "Gl error at {desc}: code {err}"

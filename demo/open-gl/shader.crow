@@ -33,7 +33,7 @@ shader-prog-load GLuint(gl gl-ext, vert-shader-source str, frag-shader-source st
 		err-log fix-arr GLchar = log-length->to-nat64 uninitialized-fix-arr
 		gl glGetProgramInfoLog shader-prog, *log-length, log-length, err-log.begin-ptr
 		gl glDeleteProgram shader-prog
-		err-log.to-arr.str throw
+		throw "Error loading shaders: {err-log.to-arr.str}"
 
 shader-prog-destroy void(gl gl-ext, shader-prog GLuint) summon unsafe
 	gl glDeleteProgram shader-prog
@@ -51,7 +51,7 @@ shader-prog-destroy void(gl gl-ext, shader-prog GLuint) summon unsafe
 		err-log fix-arr GLchar = log-length->to-nat64 uninitialized-fix-arr
 		gl glGetShaderInfoLog shader, *log-length, log-length, err-log.begin-ptr
 		gl glDeleteShader shader
-		"error compiling GLSL {name}: {err-log.to-arr.str}" throw
+		throw "error compiling GLSL {name}: {err-log.to-arr.str}"
 
 .create-shader-from-source GLuint(gl gl-ext, source str, shader-type GLenum) summon unsafe
 	shader = gl glCreateShader shader-type

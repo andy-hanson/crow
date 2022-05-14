@@ -67,6 +67,7 @@ import frontend.parse.ast :
 	SeqAst,
 	ThenAst,
 	ThenVoidAst,
+	ThrowAst,
 	TypeAst,
 	TypedAst,
 	UnlessAst;
@@ -210,6 +211,15 @@ immutable(Expr) checkAndExpectBool(ref ExprCtx ctx, scope ref LocalsInfo locals,
 	return checkAndExpect(ctx, locals, ast, immutable Type(ctx.commonTypes.bool_));
 }
 
+immutable(Expr) checkAndExpectStr(
+	ref ExprCtx ctx,
+	scope ref LocalsInfo locals,
+	immutable FileAndRange range,
+	scope ref immutable ExprAst ast,
+) {
+	return checkAndExpect(ctx, locals, ast, getStrType(ctx, range));
+}
+
 immutable(Expr) checkAndExpectVoid(ref ExprCtx ctx, scope ref LocalsInfo locals, scope ref immutable ExprAst ast) {
 	return checkAndExpect(ctx, locals, ast, immutable Type(ctx.commonTypes.void_));
 }
@@ -246,6 +256,23 @@ immutable(Expr) checkIf(
 	immutable Expr then = checkExpr(ctx, locals, ast.then, expected);
 	immutable Expr else_ = checkExprOrEmptyNew(ctx, locals, range, ast.else_, expected);
 	return immutable Expr(range, allocate(ctx.alloc, immutable Expr.Cond(inferred(expected), cond, then, else_)));
+}
+
+immutable(Expr) checkThrow(
+	ref ExprCtx ctx,
+	ref LocalsInfo locals,
+	immutable FileAndRange range,
+	ref immutable ThrowAst ast,
+	ref Expected expected,
+) {
+	immutable Opt!Type inferred = tryGetInferred(expected);
+	if (has(inferred)) {
+		immutable Expr thrown = checkAndExpectStr(ctx, locals, range, ast.thrown);
+		return immutable Expr(range, allocate(ctx.alloc, immutable Expr.Throw(force(inferred), thrown)));
+	} else {
+		addDiag2(ctx, range, immutable Diag(immutable Diag.ThrowNeedsExpectedType()));
+		return bogus(expected, range);
+	}
 }
 
 immutable(Expr) checkUnless(
@@ -745,7 +772,7 @@ immutable(Expr) checkStringLiteral(
 		? immutable Expr(range, immutable Expr.LiteralSymbol(symOfStr(ctx.allSymbols, value)))
 		: has(expectedStruct) && force(expectedStruct) == ctx.commonTypes.cStr
 		? immutable Expr(range, immutable Expr.LiteralCString(copyToSafeCStr(ctx.alloc, value)))
-		: checkStringExpressionTypedAsOther(ctx, curAst, range, expected, expectedStruct);
+		: checkStringExpressionTypedAsOther(ctx, curAst, range, expected);
 }
 
 immutable(Expr) checkStringLiteralTypedAsChar(
@@ -772,9 +799,9 @@ immutable(Expr) checkStringExpressionTypedAsOther(
 	ref immutable ExprAst curAst,
 	immutable FileAndRange range,
 	ref Expected expected,
-	immutable Opt!(StructInst*) expectedStruct,
 ) {
-	if (!has(expectedStruct))
+	immutable Opt!Type inferred = tryGetInferred(expected);
+	if (!has(inferred))
 		mustSetType(ctx.alloc, ctx.programState, expected, getStrType(ctx, range));
 	// TODO: NEATER (don't create a synthetic AST)
 	immutable CallAst ast = immutable CallAst(
@@ -1441,6 +1468,8 @@ public immutable(Expr) checkExpr(
 			checkThen(ctx, locals, range, a, expected),
 		(ref immutable ThenVoidAst a) =>
 			checkThenVoid(ctx, locals, range, a, expected),
+		(ref immutable ThrowAst a) =>
+			checkThrow(ctx, locals, range, a, expected),
 		(ref immutable TypedAst a) =>
 			checkTyped(ctx, locals, range, a, expected),
 		(ref immutable UnlessAst a) =>

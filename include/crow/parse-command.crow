@@ -7,7 +7,6 @@ import
 	./col/dict: dict, each, new
 	./col/mut-dict: move-to-dict, mut-dict, new, set-subscript
 	./col/mut-arr: fill-mut-arr, move-to-arr, mut-arr, set-subscript, subscript
-	./exception: throw
 	./misc: void
 	./number: ==, <=>, +
 	./opt: !, ??, new, opt
@@ -84,11 +83,11 @@ single-str-or-throw str(a str[]?, option-name str)
 		if strs.size == 1
 			strs[0]
 		elif strs.size == 0
-			throw: "{option-name} needs a value"
+			throw "{option-name} needs a value"
 		else
-			throw: "{option-name} got too many values"
+			throw "{option-name} got too many values"
 	else
-		throw: "Need {option-name}"
+		throw "Need {option-name}"
 
 .parse-named-args str[][str](args str[])
 	res str[] mut[str] = ()

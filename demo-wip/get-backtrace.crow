@@ -1,8 +1,6 @@
 import
-	crow/col/arr-util: each
 	crow/io/print: print
-	crow/private/backtrace: get-backtrace, return-stack
-	crow/str-util: to-str
+	crow/private/backtrace: entries, get-backtrace
 
 main fut nat(_ str[]) summon unsafe
 	gonna-do-it
@@ -15,6 +13,5 @@ really-gonna-do-it void() summon unsafe
 	do-it
 
 do-it void() summon unsafe
-	bt = get-backtrace
-	bt.return-stack each s =>
-		print: s.to-str
+	for entry : 0.get-backtrace entries
+		print: entry to-str

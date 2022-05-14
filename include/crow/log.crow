@@ -3,7 +3,7 @@ import
 	./fun-util: subscript
 	./misc: void
 	./str: str
-	./private/exception-low-level: catch, throw
+	./private/exception-low-level: catch, rethrow
 	./private/log-low-level: set-log-handler
 export
 	./private/log-low-level:
@@ -32,6 +32,7 @@ with-log-handler<a> a(handler log-handler, cb act a())
 		res = cb[]
 		original-handler set-log-handler
 		res
+	# TODO: 'finally'
 	action catch err =>
 		original-handler set-log-handler
-		err throw
+		err rethrow

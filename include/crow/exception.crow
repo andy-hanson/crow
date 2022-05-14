@@ -12,22 +12,22 @@ import
 	./private/number-low-level: ==
 	./str-util: join, to-c-str, to-str
 export
-	./private/exception-low-level: assert, catch, exception, forbid, message, throw
+	./private/exception-low-level: assert, catch, exception, forbid, message, rethrow
 
 assert void(message str, condition bool)
 	unless condition
-		message throw
+		throw message
 
 forbid void(message str, condition bool)
 	if condition
-		message throw
+		throw message
 
 ###
 Create amd throw an exception with the given message.
 
 This gets the current backtrace to use in the exception.
 ###
-throw<a> a(message str) trusted
+throw-impl void(message str) trusted
 	message.to-c-str throw-c-str 2
 
 ###
@@ -35,7 +35,7 @@ Fail unconditionally.
 This function is used to mark part of an `if` or `match` that should not be possible.
 ###
 unreachable<a> a()
-	"should be unreachable" throw
+	throw "should be unreachable"
 
 region handling
 
@@ -58,7 +58,7 @@ This is like `finally`, but does not run in the successful case.
 do-if-error<a> a(on-error act void(), try act a())
 	try catch err =>
 		on-error[]
-		err throw
+		err rethrow
 
 # Outputs the exception's message and backtrace to a string.
 to-str str(a exception) unsafe

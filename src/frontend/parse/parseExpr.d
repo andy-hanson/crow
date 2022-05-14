@@ -36,6 +36,7 @@ import frontend.parse.ast :
 	SeqAst,
 	ThenAst,
 	ThenVoidAst,
+	ThrowAst,
 	TypeAst,
 	TypedAst,
 	UnlessAst;
@@ -853,6 +854,19 @@ immutable(ExprAndDedent) parseUnless(scope ref Lexer lexer, immutable Pos start,
 		cb.dedents);
 }
 
+immutable(ExprAndMaybeDedent) parseThrow(
+	scope ref Lexer lexer,
+	immutable Pos start,
+	immutable AllowedBlock allowedBlock,
+) {
+	immutable ExprAndMaybeDedent thrown = parseExprAndAllCalls(lexer, allowedBlock);
+	return immutable ExprAndMaybeDedent(
+		immutable ExprAst(
+			range(lexer, start),
+			immutable ExprAstKind(allocate(lexer.alloc, immutable ThrowAst(thrown.expr)))),
+		thrown.dedents);
+}
+
 immutable(ExprAndMaybeDedent) parseFor(
 	scope ref Lexer lexer,
 	immutable Pos start,
@@ -1109,6 +1123,8 @@ immutable(ExprAndMaybeDedent) parseExprBeforeCall(scope ref Lexer lexer, immutab
 			return isAllowBlock(allowedBlock)
 				? toMaybeDedent(parseLoop(lexer, start, asAllowBlock(allowedBlock).curIndent))
 				: exprBlockNotAllowed(lexer, start, ParseDiag.NeedsBlockCtx.Kind.loop);
+		case Token.throw_:
+			return parseThrow(lexer, start, allowedBlock);
 		case Token.underscore:
 			return tryTakeToken(lexer, Token.arrowLambda)
 				? parseLambdaAfterArrow(lexer, start, allowedBlock, none!Sym)

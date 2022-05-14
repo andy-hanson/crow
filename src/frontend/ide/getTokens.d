@@ -59,6 +59,7 @@ import frontend.parse.ast :
 	suffixRange,
 	ThenAst,
 	ThenVoidAst,
+	ThrowAst,
 	TypeAst,
 	TypedAst,
 	UnlessAst;
@@ -616,6 +617,12 @@ void addExprTokens(
 		(ref immutable ThenVoidAst it) {
 			addExprTokens(alloc, tokens, allSymbols, it.futExpr);
 			addExprTokens(alloc, tokens, allSymbols, it.then);
+		},
+		(ref immutable ThrowAst it) {
+			add(alloc, tokens, immutable Token(
+				Token.Kind.keyword,
+				rangeOfStartAndLength(a.range.start, "throw".length)));
+			addExprTokens(alloc, tokens, allSymbols, it.thrown);
 		},
 		(ref immutable TypedAst it) {
 			addExprTokens(alloc, tokens, allSymbols, it.expr);

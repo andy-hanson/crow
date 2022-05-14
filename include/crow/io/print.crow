@@ -8,7 +8,6 @@ import
 	../cell: *, as-mut-ptr, cell, new
 	../col/arr: size
 	../col/private/arr-low-level: begin-ptr
-	../exception: throw
 	../extra-types: fd-t
 	../misc: new, void
 	../ptr: null, size-of
@@ -49,7 +48,7 @@ print-err-no-newline void(a str) summon trusted
 	size32 = bytes.size unsafe-to-nat32
 	ok = console WriteFile bytes.begin-ptr, size32, written.as-mut-ptr, null
 	unless ok
-		"{GetLastError show-win32-error}" throw
+		throw "{GetLastError show-win32-error}"
 	unless *written == size32
 		# TODO: maybe retry
 		todo

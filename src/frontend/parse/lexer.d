@@ -500,6 +500,7 @@ public enum Token {
 	spec, // 'spec'
 	summon, // 'summon'
 	test, // 'test'
+	throw_, // 'throw'
 	trusted, // 'trusted'
 	underscore, // '_'
 	union_, // 'union'
@@ -690,6 +691,8 @@ immutable(Token) tokenForSym(ref Lexer lexer, immutable Sym a) {
 			return Token.summon;
 		case shortSymValue("test"):
 			return Token.test;
+		case shortSymValue("throw"):
+			return Token.throw_;
 		case shortSymValue("trusted"):
 			return Token.trusted;
 		case shortSymValue("unless"):
@@ -889,6 +892,7 @@ immutable(bool) isExpressionStartToken(immutable Token a) {
 		case Token.parenLeft:
 		case Token.quoteDouble:
 		case Token.quoteDouble3:
+		case Token.throw_:
 		case Token.underscore:
 		case Token.unless:
 		case Token.until:

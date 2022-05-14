@@ -67,11 +67,11 @@ link record
 
 .to-links link[](targets str[], remove-prefix str)
 	for target : targets
-		target, target try-remove-start remove-prefix ?? "{target} didn't start with {remove-prefix}".throw
+		target, target try-remove-start remove-prefix ?? throw "{target} didn't start with {remove-prefix}"
 
 .to-paths-and-contents path-and-content[](paths str[], remove-prefix str) summon
 	for path : paths
 		if rel-path ?= path try-remove-start remove-prefix
 			rel-path, path.read-file
 		else
-			"{path} didn't start with {remove-prefix}" throw
+			throw "{path} didn't start with {remove-prefix}"

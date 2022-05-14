@@ -315,5 +315,7 @@ immutable(Repr) reprOfConcreteExprKind(ref Alloc alloc, ref immutable ConcreteEx
 				reprOfConcreteExpr(alloc, it.target),
 				reprNat(it.fieldIndex)]),
 		(ref immutable ConcreteExprKind.Seq it) =>
-			reprRecord(alloc, "seq", [reprOfConcreteExpr(alloc, it.first), reprOfConcreteExpr(alloc, it.then)]));
+			reprRecord(alloc, "seq", [reprOfConcreteExpr(alloc, it.first), reprOfConcreteExpr(alloc, it.then)]),
+		(ref immutable ConcreteExprKind.Throw it) =>
+			reprRecord(alloc, "throw", [reprOfConcreteExpr(alloc, it.thrown)]));
 }

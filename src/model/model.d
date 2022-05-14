@@ -1609,6 +1609,7 @@ immutable(bool) hasDiags(ref immutable Program a) {
 struct SpecialModules {
 	immutable Module* allocModule;
 	immutable Module* bootstrapModule;
+	immutable Module* exceptionModule;
 	immutable Module* runtimeModule;
 	immutable Module* runtimeMainModule;
 	immutable Module*[] rootModules;
@@ -1822,6 +1823,11 @@ struct Expr {
 		immutable Expr then;
 	}
 
+	struct Throw {
+		immutable Type type;
+		immutable Expr thrown;
+	}
+
 	private:
 	enum Kind {
 		bogus,
@@ -1847,6 +1853,7 @@ struct Expr {
 		matchUnion,
 		paramRef,
 		seq,
+		throw_,
 	}
 
 	immutable FileAndRange range_;
@@ -1875,6 +1882,7 @@ struct Expr {
 		immutable MatchUnion* matchUnion;
 		immutable ParamRef paramRef;
 		immutable Seq* seq;
+		immutable Throw* throw_;
 	}
 
 	public:
@@ -1935,6 +1943,7 @@ struct Expr {
 		range_ = r; kind = Kind.paramRef; paramRef = a;
 	}
 	@trusted immutable this(immutable FileAndRange r, immutable Seq* a) { range_ = r; kind = Kind.seq; seq = a; }
+	immutable this(immutable FileAndRange r, immutable Throw* a) { range_ = r; kind = Kind.throw_; throw_ = a; }
 }
 
 immutable(FileAndRange) range(scope ref immutable Expr a) {
@@ -1966,6 +1975,7 @@ immutable(FileAndRange) range(scope ref immutable Expr a) {
 	scope immutable(T) delegate(ref immutable Expr.MatchUnion) @safe @nogc pure nothrow cbMatchUnion,
 	scope immutable(T) delegate(ref immutable Expr.ParamRef) @safe @nogc pure nothrow cbParamRef,
 	scope immutable(T) delegate(ref immutable Expr.Seq) @safe @nogc pure nothrow cbSeq,
+	scope immutable(T) delegate(ref immutable Expr.Throw) @safe @nogc pure nothrow cbThrow,
 ) {
 	final switch (a.kind) {
 		case Expr.Kind.bogus:
@@ -2014,6 +2024,8 @@ immutable(FileAndRange) range(scope ref immutable Expr a) {
 			return cbParamRef(a.paramRef);
 		case Expr.Kind.seq:
 			return cbSeq(*a.seq);
+		case Expr.Kind.throw_:
+			return cbThrow(*a.throw_);
 	}
 }
 

@@ -15,8 +15,8 @@ import concretize.concretizeCtx :
 	getConcreteType_fromConcretizeCtx = getConcreteType,
 	getConcreteType_forStructInst_fromConcretizeCtx = getConcreteType_forStructInst,
 	getCurExclusionFun,
-	getOrAddConcreteFunAndFillBody,
 	getConcreteFunForLambdaAndFillBody,
+	getOrAddConcreteFunAndFillBody,
 	cStrType,
 	symType,
 	typeArgsScope,
@@ -707,6 +707,16 @@ immutable(ConcreteExpr) concretizeVariableRef(
 			concretizeClosureFieldRef(ctx, range, x));
 }
 
+immutable(ConcreteExpr) concretizeThrow(
+	ref ConcretizeExprCtx ctx,
+	immutable FileAndRange range,
+	scope ref immutable Locals locals,
+	ref immutable Expr.Throw a,
+) {
+	return immutable ConcreteExpr(getConcreteType(ctx, a.type), range, immutable ConcreteExprKind(
+		allocate(ctx.alloc, immutable ConcreteExprKind.Throw(concretizeExpr(ctx, locals, a.thrown)))));
+}
+
 immutable(ConcreteExpr) concretizeExpr(
 	ref ConcretizeExprCtx ctx,
 	scope ref immutable Locals locals,
@@ -785,7 +795,9 @@ immutable(ConcreteExpr) concretizeExpr(
 				? then
 				: immutable ConcreteExpr(then.type, range, immutable ConcreteExprKind(
 					allocate(ctx.alloc, immutable ConcreteExprKind.Seq(first, then))));
-		});
+		},
+		(ref immutable Expr.Throw e) =>
+			concretizeThrow(ctx, range, locals, e));
 }
 
 immutable(ConstantsOrExprs) constantsOrExprsArr(

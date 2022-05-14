@@ -9,11 +9,11 @@ import
 
 main fut nat(args str[]) summon unsafe
 	if args.size != 2
-		"Usage: crow run convert-file.crow -- [IN] [OUT]" throw
+		throw "Usage: crow run convert-file.crow -- [IN] [OUT]"
 	in-path = args[0]
 	out-path = args[1]
-	ext = out-path.get-extension ?? "Output file needs extension" throw
-	format sound-file-format = default-file-types[ext str-to-sym] ?? describe-out-exts throw
+	ext = out-path.get-extension ?? throw "Output file needs extension"
+	format sound-file-format = default-file-types[ext str-to-sym] ?? throw describe-out-exts
 
 	sound = in-path.read-sound-file with-sample-rate 48000
 	print: "sound format is {sound format}"

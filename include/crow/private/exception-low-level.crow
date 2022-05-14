@@ -59,7 +59,7 @@ throw-c-str<a> a(message c-str) trusted
 	message throw-c-str 2
 
 throw-c-str<a> a(message c-str, skip nat64) trusted
-	(message, skip get-backtrace) throw
+	(message, skip get-backtrace) rethrow
 
 ###
 Throw an existing exception object.
@@ -67,7 +67,7 @@ Throw an existing exception object.
 This is useful for rethrowing an exception that was already caught.
 Throwing an exception does not modify its backtrace.
 ###
-throw<a> a(e exception) trusted
+rethrow<a> a(e exception) trusted
 	exn-ctx = get-exception-ctx
 	hard-assert: exn-ctx.jmp-buf-ptr != null
 	exn-ctx.thrown-exception := e

@@ -842,6 +842,9 @@ void writeDiag(
 			writeStatic(writer, "no implementation was found for spec signature ");
 			writeName(writer, allSymbols, d.sigName);
 		},
+		(ref immutable Diag.ThrowNeedsExpectedType) {
+			writeStatic(writer, "can't infer type of 'throw'");
+		},
 		(ref immutable Diag.TypeAnnotationUnnecessary d) {
 			writeStatic(writer, "type ");
 			writeTypeQuoted(writer, allSymbols, d.type);
@@ -1136,6 +1139,8 @@ immutable(string) describeTokenForUnexpected(immutable Token token) {
 			return "unexpected keyword 'summon'";
 		case Token.test:
 			return "unexpected keyword 'test'";
+		case Token.throw_:
+			return "unexpected keyword 'throw'";
 		case Token.trusted:
 			return "unexpected keyword 'trusted'";
 		case Token.underscore:

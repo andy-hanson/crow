@@ -92,6 +92,8 @@ immutable(ConcreteProgram) concretizeInner(
 		getOrAddNonTemplateConcreteFunAndFillBody(ctx, getUserMainFun(alloc, program, mainModule));
 	immutable ConcreteFun* allocFun =
 		getOrAddNonTemplateConcreteFunAndFillBody(ctx, getAllocFun(alloc, program));
+	immutable ConcreteFun* throwImplFun =
+		getOrAddNonTemplateConcreteFunAndFillBody(ctx, getThrowImplFun(alloc, program));
 	immutable ConcreteFun* staticSymsFun =
 		getOrAddNonTemplateConcreteFunAndFillBody(ctx, getStaticSymsFun(alloc, program));
 	// We remove items from these dicts when we process them.
@@ -114,7 +116,7 @@ immutable(ConcreteProgram) concretizeInner(
 			ctx.funStructToImpls,
 			(ref MutArr!(immutable ConcreteLambdaImpl) it) =>
 				moveToArr(alloc, it)),
-		immutable ConcreteCommonFuns(markConcreteFun, rtMainConcreteFun, userMainConcreteFun, allocFun),
+		immutable ConcreteCommonFuns(markConcreteFun, rtMainConcreteFun, userMainConcreteFun, allocFun, throwImplFun),
 		ctxStruct);
 }
 
@@ -207,6 +209,13 @@ immutable(FunInst*) getAllocFun(ref Alloc alloc, ref immutable Program program) 
 	immutable FunDecl* allocFun = only(allocFuns);
 	// TODO: check the signature!
 	return nonTemplateFunInst(alloc, allocFun);
+}
+
+immutable(FunInst*) getThrowImplFun(ref Alloc alloc, ref immutable Program program) {
+	immutable FunDecl*[] funs = getFuns(*program.specialModules.exceptionModule, shortSym("throw-impl"));
+	if (funs.length != 1)
+		todo!void("wrong number throw-impl funs");
+	return nonTemplateFunInst(alloc, only(funs));
 }
 
 immutable(FunInst*) getStaticSymsFun(ref Alloc alloc, ref immutable Program program) {

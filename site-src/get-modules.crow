@@ -11,7 +11,7 @@ import
 get-modules module[](paths str[]) summon
 	result = crow-path spawn-and-wait-result "doc" ~ paths
 	unless result.exit-code == 0 && result.stderr.is-empty
-		"Could not get documentation: exit code {result exit-code}, stderr: {result stderr}" throw
+		throw "Could not get documentation: exit code {result exit-code}, stderr: {result stderr}"
 	result.stdout.parse-json! to-modules
 
 .crow-path str() trusted
@@ -66,7 +66,7 @@ get-modules module[](paths str[]) summon
 	elif type == "union"
 		a.to-union-decl union-decl
 	else
-		"unexpected export type {type}" throw
+		throw "unexpected export type {type}"
 
 .to-alias-decl alias-decl(a json)
 	target = a["target"]! to-type-ref
@@ -145,7 +145,7 @@ get-modules module[](paths str[]) summon
 		spec-sigs: for x : body-json["sigs"]!.as-arr!
 			x to-sig
 	else
-		"unexpected spec type {type}" throw
+		throw "unexpected spec type {type}"
 	body_,
 
 .to-sig spec-sig(a json)
