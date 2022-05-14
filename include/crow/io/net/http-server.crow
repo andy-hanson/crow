@@ -11,7 +11,7 @@ import
 	../../col/mut-arr: ~~=, index-of, move-to-arr, mut-arr, new, pop-n-from-start, size
 	../../col/private/arr-low-level: begin-ptr
 	../../compare: <=, >
-	../../exception: assert, forbid, to-str
+	../../exception: to-str
 	../../fut: delay, fut, fut-catch, new, subscript, then, then-void
 	../../hash: hash-mix
 	../../log: error, log, warn
@@ -71,7 +71,7 @@ start-http-server fut http-server(port str, handler http-handler) trusted summon
 	finished-request = if state.content-length == 0
 		state handle-http-initial
 	else
-		assert: state.unparsed.size <= state.content-length
+		assert state.unparsed.size <= state.content-length
 		state.unparsed.size == state.content-length
 
 	if finished-request
@@ -95,12 +95,11 @@ start-http-server fut http-server(port str, handler http-handler) trusted summon
 		unless wrote == content.size.to-int64
 			if wrote == -1
 				err = errno
-				unless err == EAGAIN
-					throw "can't write to socket, errno {err}"
+				assert err == EAGAIN : "can't write to socket, errno {err}"
 				<- delay
 				sock write-until-finished content
 			else
-				assert: wrote > 0
+				assert wrote > 0
 				<- delay
 				sock write-until-finished content[wrote.to-nat64 .. content.size]
 
@@ -112,18 +111,18 @@ start-http-server fut http-server(port str, handler http-handler) trusted summon
 	res ~~= "HTTP/1.1 "
 	res ~~= a.status to-str
 	res ~= " "
-	forbid: a.status-desc contains-substr "\n"
+	forbid a.status-desc contains-substr "\n"
 	res ~~= "\r\n"
 	res ~~= a status-desc
 	# TODO: headers are case insensitive, maybe forbid any upper-case letters in headers to be consistent
 	a.headers each (k, v) =>
 		res ~~= "\r\n"
-		forbid: k contains-substr "\n"
-		forbid: v contains-substr "\n"
+		forbid k contains-substr "\n"
+		forbid v contains-substr "\n"
 		res ~~= k
 		res ~~= ": "
 		res ~~= v
-	forbid: "Content-Length" in a.headers
+	forbid "Content-Length" in a.headers
 	unless a.response-body is-empty
 		res ~~= "\r\n"
 		res ~~= "Content-Length: "
@@ -148,15 +147,15 @@ start-http-server fut http-server(port str, handler http-handler) trusted summon
 		elif state.url is-empty
 			# Expect something like "GET / HTTP/1.1"
 			parts = line split-by " "
-			assert: parts.size == 3
+			assert parts.size == 3
 			state.method := parts[0] parse-method
 			state.url := parts[1]
-			assert: parts[2] == "HTTP/1.1"
-			forbid: state.url is-empty
+			assert parts[2] == "HTTP/1.1"
+			forbid state.url is-empty
 			state handle-http-initial
 		else
 			parts = line split-by ": "
-			assert: parts.size == 2
+			assert parts.size == 2
 			key = parts[0]
 			value = parts[1]
 			state.headers[key] := value

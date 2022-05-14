@@ -2,7 +2,7 @@ no-std
 import
 	../../bool: !, &&, bool, false, new, true
 	../../compare: !=, <, <=, >, >=, compare
-	../../exception: assert, forbid, unreachable
+	../../exception: unreachable
 	../../fun-util: subscript
 	../../misc: is-data, void
 	../../opt: !, new, opt
@@ -332,8 +332,8 @@ try-remove<a> tree-set<a>?(a tree-set a, b a) is-data<a> compare<a>
 		hard-assert: mid-index < a.size
 		left-arr = a[0 .. mid-index]
 		right-arr = a[(mid-index wrap-add 1) .. a.size]
-		forbid: left-arr is-empty
-		forbid: right-arr is-empty
+		forbid left-arr is-empty
+		forbid right-arr is-empty
 		if insert-ptr < mid-ptr
 			# TODO:PERF: This redundantly finds insert-ptr again
 			match left-arr add-to-arr value, (max-height wrap-sub 1)
@@ -512,7 +512,7 @@ test
 	s4 = s3 ~ "j"
 	s4 verify "[h i j k]"
 
-	assert: "h" in s4
+	assert "h" in s4
 	s4 ~ "i" verify "[h i j k]"
 
 	s5 = s4 ~ "l"

@@ -1,34 +1,16 @@
 no-std
 import
-	./bool: bool
 	./col/arr: for-loop
 	./fun-util: subscript
-	./misc: new, void
+	./misc: void
 	./str: ~~, is-empty, literal, str
 	./str-conv: finish, interp, to-str, with-str, with-value
 	./writer: ~~=, move-to-str, new, writer
 	./private/backtrace: backtrace, backtrace-entry, entries, file-path, function-name, line-number
-	./private/exception-low-level: throw-c-str
 	./private/number-low-level: ==
-	./str-util: join, to-c-str, to-str
+	./str-util: join, to-str
 export
-	./private/exception-low-level: assert, catch, exception, forbid, message, rethrow
-
-assert void(message str, condition bool)
-	unless condition
-		throw message
-
-forbid void(message str, condition bool)
-	if condition
-		throw message
-
-###
-Create amd throw an exception with the given message.
-
-This gets the current backtrace to use in the exception.
-###
-throw-impl void(message str) trusted
-	message.to-c-str throw-c-str 2
+	./private/exception-low-level: catch, exception, message, rethrow
 
 ###
 Fail unconditionally.

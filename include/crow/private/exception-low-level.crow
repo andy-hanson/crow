@@ -1,11 +1,10 @@
 no-std
 import
 	setjmp: jmp_buf, __jmp_buf_tag, longjmp, new, setjmp, _setjmp
-	../bool: bool
 	../col/private/arr-low-level: new
 	../compare: !=
 	../fun-util: subscript
-	../misc: new, void
+	../misc: void
 	../ptr: ==, as-ref, by-val, null, ptr-to
 	../version: is-interpreted, is-windows
 	./backtrace: get-backtrace
@@ -55,10 +54,10 @@ catch-with-exception-ctx<a> a(ec exception-ctx, try act a(), catcher act a(excep
 		ec.thrown-exception := old-thrown-exception
 		catcher[thrown-exception]
 
-throw-c-str<a> a(message c-str) trusted
-	message throw-c-str 2
+throw-impl void(message c-str) trusted
+	message throw-with-skip 2
 
-throw-c-str<a> a(message c-str, skip nat64) trusted
+throw-with-skip void(message c-str, skip nat64) trusted
 	(message, skip get-backtrace) rethrow
 
 ###
@@ -76,36 +75,6 @@ rethrow<a> a(e exception) trusted
 
 .number-to-throw int32()
 	7
-
-# Throw iff the condition is `false`.
-assert void(condition bool)
-	unless condition
-		"assert failed" throw-c-str
-
-###
-Iff the condition is `false`, throw `message`.
-
-`message` is eagerly evaluated, so it should be a string literal;
-use `unless` and `throw` for a computed message.
-###
-assert-c-str void(message c-str, condition bool)
-	unless condition
-		message throw-c-str
-
-# Throw iff the condition is `true`.
-forbid void(condition bool)
-	if condition
-		"forbid failed" throw-c-str
-
-###
-Iff the condition is `true`, throw `message`.
-
-The message is eagerly evaluated, so it should be a string literal;
-use `if` and `throw` for a computed message.
-###
-forbid-c-str void(message c-str, condition bool)
-	if condition
-		message throw-c-str
 
 ###
 Run `try` and return `ok` containing its return value,

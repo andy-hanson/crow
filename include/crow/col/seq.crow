@@ -6,7 +6,6 @@ import
 	../misc: new, void
 	../opt: ??, ||, is-empty, new, opt
 	../private/bootstrap: hard-assert, hard-forbid, hard-unreachable
-	../private/exception-low-level: forbid-c-str
 	../private/number-low-level: ==, <=>, nat64, wrap-add, wrap-sub, wrap-mul
 	../ptr: ==, +, set-deref, size-of
 	../tuple: a, b, new, pair
@@ -763,6 +762,14 @@ slice-right<a> seq a(a seq-iter a) trusted
 
 region iteration
 
+first<a> a?(a seq a)
+	if i ?= a.iter next
+		i.value,
+
+last<a> a?(a seq a)
+	if i ?= a.end-iter prev
+		i.value,
+
 for-loop<a> void(a seq a, f act void(a))
 	() fold a, (_, x) => f[x]
 
@@ -903,17 +910,17 @@ and returns slices of `a` to the left and right of that.
 Returns an empty option iff `b` is not a subsequence of `a`.
 ###
 try-split-once-by-subseq<a> pair<seq a, seq a>?(a seq a, b seq a) equal<a>
-	"can't split by empty sequence" forbid-c-str b.is-empty
+	forbid b is-empty : "can't split by empty sequence"
 	if pair ?= a iters-of-subseq b
 		(pair.a.slice-left, pair.b.slice-right),
 
 try-split-once-by-subseq-right<a> pair<seq a, seq a>?(a seq a, b seq a) equal<a>
-	"can't split by empty sequence" forbid-c-str b.is-empty
+	forbid b is-empty : "can't split by empty sequence"
 	if pair ?= a iters-of-subseq-right b
 		(pair.a.slice-left, pair.b.slice-right),
 
 split-by-subseq<a> seq seq a(a seq a, b seq a) equal<a>
-	"can't split by empty sequence" forbid-c-str b.is-empty
+	forbid b is-empty : "can't split by empty sequence"
 	out seq<a> mut[] = ()
 	out split-by-subseq-recur a, b
 	out.move-to-arr to-seq

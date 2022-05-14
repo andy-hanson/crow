@@ -18,15 +18,15 @@ main fut nat(args str[]) summon
 		should-print-tests = !print-tests-strs.is-empty
 		overwrite-output = if strs ?= overwrite-output-strs
 			# TODO: handle it..
-			assert: strs is-empty
+			assert strs is-empty
 			true
 		max-failures = if strs ?= max-failures-strs
-			assert: strs.size == 1
+			assert strs.size == 1
 			strs[0].parse-nat!
 		else
 			100
 		match-test = if strs ?= match-test-strs
-			assert: strs.size == 1
+			assert strs.size == 1
 			strs[0]
 		(should-print-tests, overwrite-output, max-failures, match-test).do-test,
 	else

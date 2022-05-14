@@ -3,8 +3,8 @@ import
 
 main fut nat(_ str[]) summon
 	m my-record = 1, 2
-	assert: m.x == 1
-	assert: m.y == 2
+	assert m.x == 1
+	assert m.y == 2
 	print: m.x.to-str
 	print: m.y.to-str
 	()

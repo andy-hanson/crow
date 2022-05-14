@@ -56,6 +56,7 @@ import model.concreteModel :
 	returnType;
 import model.constant : asBool, asRecord, asUnion, Constant;
 import model.model :
+	AssertOrForbidKind,
 	Called,
 	debugName,
 	Expr,
@@ -82,6 +83,7 @@ import util.col.arrUtil : arrLiteral, map, mapZip;
 import util.col.mutArr : MutArr, mutArrSize, push;
 import util.col.mutDict : getOrAdd;
 import util.col.stackDict : StackDict2, stackDict2Add0, stackDict2Add1, stackDict2MustGet0, stackDict2MustGet1;
+import util.col.str : SafeCStr, safeCStr;
 import util.memory : allocate, allocateMut, overwriteMemory;
 import util.opt : force, has, none, Opt, some;
 import util.ptr : castImmutable, castNonScope, ptrTrustMe_mut;
@@ -717,6 +719,50 @@ immutable(ConcreteExpr) concretizeThrow(
 		allocate(ctx.alloc, immutable ConcreteExprKind.Throw(concretizeExpr(ctx, locals, a.thrown)))));
 }
 
+immutable(ConcreteExpr) cStrConcreteExpr(
+	ref ConcretizeCtx ctx,
+	immutable FileAndRange range,
+	immutable SafeCStr value,
+) {
+	return immutable ConcreteExpr(cStrType(ctx), range, immutable ConcreteExprKind(constantCStr(ctx, value)));
+}
+
+immutable(ConcreteExpr) concretizeAssertOrForbid(
+	ref ConcretizeExprCtx ctx,
+	immutable FileAndRange range,
+	scope ref immutable Locals locals,
+	ref immutable Expr.AssertOrForbid a,
+) {
+	immutable ConcreteExpr condition = concretizeExpr(ctx, locals, a.condition);
+	immutable ConcreteExpr thrown = has(a.thrown)
+		? concretizeExpr(ctx, locals, force(a.thrown))
+		: cStrConcreteExpr(ctx.concretizeCtx, range, defaultAssertOrForbidMessage(a.kind));
+	immutable ConcreteExpr void_ = constantVoid(ctx.concretizeCtx, range);
+	immutable ConcreteType voidType = voidType(ctx.concretizeCtx);
+	immutable ConcreteExpr throw_ = immutable ConcreteExpr(
+		voidType,
+		range,
+		immutable ConcreteExprKind(allocate(ctx.alloc, immutable ConcreteExprKind.Throw(thrown))));
+	immutable ConcreteExprKind.Cond cond = () {
+		final switch (a.kind) {
+			case AssertOrForbidKind.assert_:
+				return immutable ConcreteExprKind.Cond(condition, void_, throw_);
+			case AssertOrForbidKind.forbid:
+				return immutable ConcreteExprKind.Cond(condition, throw_, void_);
+		}
+	}();
+	return immutable ConcreteExpr(voidType, range, immutable ConcreteExprKind(allocate(ctx.alloc, cond)));
+}
+
+immutable(SafeCStr) defaultAssertOrForbidMessage(immutable AssertOrForbidKind a) {
+	final switch (a) {
+		case AssertOrForbidKind.assert_:
+			return safeCStr!"assert failed";
+		case AssertOrForbidKind.forbid:
+			return safeCStr!"forbid failed";
+	}
+}
+
 immutable(ConcreteExpr) concretizeExpr(
 	ref ConcretizeExprCtx ctx,
 	scope ref immutable Locals locals,
@@ -725,6 +771,8 @@ immutable(ConcreteExpr) concretizeExpr(
 	immutable FileAndRange range = range(e);
 	return matchExpr!(immutable ConcreteExpr)(
 		e,
+		(ref immutable Expr.AssertOrForbid x) =>
+			concretizeAssertOrForbid(ctx, range, locals, x),
 		(ref immutable Expr.Bogus) =>
 			unreachable!(immutable ConcreteExpr),
 		(ref immutable Expr.Call e) =>
@@ -759,10 +807,7 @@ immutable(ConcreteExpr) concretizeExpr(
 				range,
 				immutable ConcreteExprKind(e.value)),
 		(ref immutable Expr.LiteralCString e) =>
-			immutable ConcreteExpr(
-				cStrType(ctx.concretizeCtx),
-				range,
-				immutable ConcreteExprKind(constantCStr(ctx.concretizeCtx, e.value))),
+			cStrConcreteExpr(ctx.concretizeCtx, range, e.value),
 		(ref immutable Expr.LiteralSymbol e) =>
 			immutable ConcreteExpr(
 				symType(ctx.concretizeCtx),

@@ -2,9 +2,7 @@ no-std
 import
 	crow/cell: as-const-ptr, as-mut-ptr, cell, new
 	crow/col/fix-arr: cast-fix-arr, subscript
-	crow/compare: !=
 	crow/c-types: c-int
-	crow/exception: assert
 	crow/fut: new
 	crow/misc: new, void
 	crow/number: ==, <=>, float32, nat8, nat16, to-int32, to-int64, to-nat8
@@ -21,7 +19,7 @@ import
 
 start-sdl-audio audio() summon trusted
 	err = SDL_INIT_AUDIO SDL_Init
-	assert: err == 0
+	assert err == 0
 
 	samples nat16 = 4096
 	format sound-format = 2, 48000
@@ -35,7 +33,7 @@ start-sdl-audio audio() summon trusted
 	desired cell SDL_AudioSpec = aspec,
 	obtained cell SDL_AudioSpec = (),
 	device = null SDL_OpenAudioDevice 0, desired.as-const-ptr, obtained.as-mut-ptr, 0
-	assert: device != 0
+	forbid device == 0
 
 	device SDL_PauseAudioDevice 0
 

@@ -213,7 +213,7 @@ get<k, v> v?(txn lmdb-txn, db lmdb-db<k, v>, key k) trusted summon lmdb-key<k> s
 	# TODO: this check should be unnecessary...
 	unless (txn count db) == 0
 		lmdb-key = key to-lmdb-key
-		"empty key is not allowed" forbid lmdb-key.is-empty
+		forbid lmdb-key is-empty : "empty key is not allowed"
 		err = txn.txn mdb_get db.dbi, lmdb-key.val-of-bytes, value
 		unless err == MDB_NOTFOUND
 			err check-lmdb-error
@@ -316,7 +316,7 @@ map<out, k, v> out[](txn lmdb-txn, db lmdb-db<k, v>, f act out(k, v)) trusted su
 	end = out.begin-ptr fold txn, db, (cur, key, value) =>
 		*cur := f[key, value]
 		cur + 1
-	assert: end == out.end-ptr
+	assert end == out.end-ptr
 	out cast-immutable
 
 ###
@@ -339,13 +339,13 @@ spec
 body
 	db0-count = txn count db0
 	db1-count = txn count db1
-	assert: db0-count == db1-count
+	assert db0-count == db1-count
 	unless db0-count == 0
 		res fix-arr out = db0-count uninitialized-fix-arr
 		end = res.begin-ptr zip-fold-non-empty txn, db0, db1, (cur, key, value0, value1) =>
 			*cur := f[key, value0, value1]
 			cur + 1
-		assert: end == res.end-ptr
+		assert end == res.end-ptr
 		res cast-immutable
 
 # Like `zip`, but passes along an accumulator.
@@ -365,7 +365,7 @@ spec
 body
 	db0-count = txn count db0
 	db1-count = txn count db1
-	assert: db0-count == db1-count
+	assert db0-count == db1-count
 	if db0-count == 0
 		acc
 	else
@@ -413,16 +413,16 @@ body
 	check-lmdb-error: cursor1 mdb_cursor_get key1-val, value1-val, MDB_GET_CURRENT
 	key1 k = key1-val.bytes-of-val.from-lmdb-key
 	value1 v1 = value1-val.bytes-of-val.from-bytes
-	assert: key0 == key1
+	assert key0 == key1
 	new-acc = f[acc, key0, value0, value1]
 	err0 = cursor0 mdb_cursor_get empty-val, empty-val, MDB_NEXT
 	err1 = cursor1 mdb_cursor_get empty-val, empty-val, MDB_NEXT
 	if err0 == MDB_NOTFOUND || err1 == MDB_NOTFOUND
-		assert: err0 == MDB_NOTFOUND && err1 == MDB_NOTFOUND
+		assert err0 == MDB_NOTFOUND && err1 == MDB_NOTFOUND
 		new-acc
 	else
-		check-lmdb-error: err0
-		check-lmdb-error: err1
+		err0 check-lmdb-error
+		err1 check-lmdb-error
 		new-acc zip-fold-recur cursor0, cursor1, f
 
 .with-cursor<a, k, v> a(txn lmdb-txn, db lmdb-db<k, v>, f act a(MDB_cursor)) unsafe summon
@@ -443,8 +443,7 @@ body
 	a.mv_data fix-arr-from-begin-end a.mv_data + a.mv_size to-arr
 
 .check-lmdb-error void(a err-t)
-	unless a == MDB_SUCCESS
-		throw "LMDB error code: {a} ({a error-name})"
+	assert a == MDB_SUCCESS : "LMDB error code: {a} ({a error-name})"
 
 .error-name str(a err-t)
 	if a == MDB_KEYEXIST

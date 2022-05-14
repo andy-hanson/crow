@@ -6,7 +6,6 @@ import
 		unsafe-add, unsafe-div, unsafe-mod, unsafe-mul, unsafe-sub, unsafe-to-int64,
 		unsafe-to-int8, unsafe-to-int16, unsafe-to-int32, unsafe-to-nat8, unsafe-to-nat32,
 		unsafe-to-nat64, wrap-add, wrap-mul, wrap-sub
-	./private/exception-low-level: assert-c-str, forbid-c-str
 	./str: literal
 	./test-util: is, throws
 export
@@ -38,33 +37,33 @@ Throws if the result would overflow.
 ###
 + nat8(a nat8, b nat8)
 	res = a wrap-add b
-	"integer overflow" assert-c-str (res >= a && res >= b)
+	assert res >= a && res >= b : "integer overflow"
 	res
 + nat16(a nat16, b nat16)
 	res = a wrap-add b
-	"integer overflow" assert-c-str (res >= a && res >= b)
+	assert res >= a && res >= b : "integer overflow"
 	res
 + nat32(a nat32, b nat32)
 	res = a wrap-add b
-	"integer overflow" assert-c-str (res >= a && res >= b)
+	assert res >= a && res >= b : "integer overflow"
 	res
 + nat64(a nat64, b nat64)
 	res = a wrap-add b
-	"integer overflow" assert-c-str (res >= a && res >= b)
+	assert res >= a && res >= b : "integer overflow"
 	res
 
 # Throws if the result would be negative.
 - nat8(a nat8, b nat8)
-	"integer overflow" assert-c-str a >= b
+	assert a >= b : "integer overflow"
 	a wrap-sub b
 - nat16(a nat16, b nat16)
-	"integer overflow" assert-c-str a >= b
+	assert a >= b : "integer overflow"
 	a wrap-sub b
 - nat32(a nat32, b nat32)
-	"integer overflow" assert-c-str a >= b
+	assert a >= b : "integer overflow"
 	a wrap-sub b
 - nat64(a nat64, b nat64)
-	"integer overflow" assert-c-str a >= b
+	assert a >= b : "integer overflow"
 	a wrap-sub b
 
 # Throws if the result would overflow.
@@ -72,8 +71,8 @@ Throws if the result would overflow.
 	# TODO: better safety check
 	if a != 0 && b != 0
 		res = a wrap-mul b
-		"integer overflow" assert-c-str res / b == a
-		"integer overflow" assert-c-str res / a == b
+		assert res / b == a : "integer overflow"
+		assert res / a == b : "integer overflow"
 		res
 
 
@@ -82,7 +81,7 @@ Flooring division of `a` divided by `b`.
 Throws if `b == 0`.
 ###
 / nat64(a nat64, b nat64) trusted
-	"divide by 0" forbid-c-str b == 0
+	forbid b == 0 : "divide by 0"
 	a unsafe-div b
 
 # Like 'a / b' but takes the ceil instead of the floor.
@@ -96,12 +95,12 @@ Result will be in the range `0 .. b`.
 Throws if `b == 0`.
 ###
 % nat64(a nat64, b nat64) trusted
-	"modulo by 0" forbid-c-str b == 0
+	forbid b == 0 : "modulo by 0"
 	a unsafe-mod b
 
 # This returns a `nat64` since modulo always returns a non-negative number.
 % nat64(a int64, b nat64)
-	"modulo by 0" forbid-c-str b == 0
+	forbid b == 0 : "modulo by 0"
 	if a < 0
 		abs-mod = a.abs % b
 		if abs-mod != 0
@@ -121,10 +120,7 @@ Be less than the least possible value or greater than the greatest possible valu
 + int32(a int32, b int32) trusted
 	a.to-int64 unsafe-add b.to-int64 to-int32
 + int64(a int64, b int64) trusted
-	"integer overflow" forbid-c-str if b > 0
-		a > (max-int64 unsafe-sub b)
-	else
-		a < (min-int64 unsafe-sub b)
+	forbid (b > 0 ? a > (max-int64 unsafe-sub b) : a < (min-int64 unsafe-sub b)) : "integer overflow"
 	a unsafe-add b
 test
 	+1 + 1 is 2
@@ -135,10 +131,11 @@ test
 - int32(a int32, b int32) trusted
 	a.to-int64 unsafe-sub b.to-int64 to-int32
 - int64(a int64, b int64) trusted
-	"integer overflow" forbid-c-str if b > 0
+	overflow = if b > 0
 		a < (min-int64 unsafe-add b)
 	else
 		a > (max-int64 unsafe-add b)
+	forbid overflow : "integer overflow"
 	a unsafe-sub b
 test
 	+1 - 2 is -1
@@ -153,7 +150,7 @@ test
 * int32(a int32, b int32) trusted
 	a.to-int64 unsafe-mul b.to-int64 to-int32
 * int64(a int64, b int64) trusted
-	"integer overflow" forbid-c-str if a == -1
+	overflow = if a == -1
 		b == min-int64
 	elif b == -1
 		a == min-int64
@@ -163,6 +160,7 @@ test
 		true
 	elif a < min-int64 / b
 		true
+	forbid overflow : "integer overflow"
 	a unsafe-mul b
 test
 	max-int64 * 0 is 0
@@ -194,12 +192,12 @@ Throws if the result would overflow, which only happens if
 `a` is the least possible value and `b` is `-1`.
 ###
 / int32(a int32, b int32) trusted
-	"divide by 0" forbid-c-str b == 0
-	"integer overflow" forbid-c-str (a == min-int32 && b == -1)
+	forbid b == 0 : "divide by 0"
+	forbid a == min-int32 && b == -1 : "integer overflow"
 	a unsafe-div b
 / int64(a int64, b int64) trusted
-	"divide by 0" forbid-c-str b == 0
-	"integer overflow" forbid-c-str (a == min-int64 && b == -1)
+	forbid b == 0 : "divide by 0"
+	forbid a == min-int64 && b == -1 : "integer overflow"
 	a unsafe-div b
 
 region misc
@@ -249,10 +247,10 @@ unsafe-div float64(a float64, b float64) no-doc noctx unsafe builtin
 
 # Throws if `b == 0`.
 / float32(a float32, b float32) trusted
-	"divide by 0" forbid-c-str b == 0.0
+	forbid b == 0 : "divide by 0"
 	a unsafe-div b
 / float64(a float64, b float64) trusted
-	"divide by 0" forbid-c-str b == 0.0
+	forbid b == 0 : "divide by 0"
 	a unsafe-div b
 
 # `a` to the power of `b`. Never throws.
@@ -303,23 +301,23 @@ to-nat64 nat64(a float64)
 
 # Throws if the result would overflow.
 to-int64 int64(a nat64) trusted
-	"integer overflow" assert-c-str a < max-int64.to-nat64
+	assert a < max-int64.to-nat64 : "integer overflow"
 	a unsafe-to-int64
 
 to-int8 int8(a int64) trusted
-	"integer overflow" assert-c-str a >= min-int8.to-int64
-	"integer overflow" assert-c-str a <= max-int8.to-int64
+	assert a >= min-int8.to-int64 : "integer overflow"
+	assert a <= max-int8.to-int64 : "integer overflow"
 	a unsafe-to-int8
 
 to-int16 int16(a int64) trusted
-	"integer overflow" assert-c-str a >= min-int16.to-int64
-	"integer overflow" assert-c-str a <= max-int16.to-int64
+	assert a >= min-int16.to-int64 : "integer overflow"
+	assert a <= max-int16.to-int64 : "integer overflow"
 	a unsafe-to-int16
 
 # Convert an int to 32 bits. Fail if the result would overflow.
 to-int32 int32(a int64) trusted
-	"integer overflow" assert-c-str a >= min-int32.to-int64
-	"integer overflow" assert-c-str a <= max-int32.to-int64
+	assert a >= min-int32.to-int64 : "integer overflow"
+	assert a <= max-int32.to-int64 : "integer overflow"
 	a unsafe-to-int32
 to-int32 int32(a nat32)
 	a.to-nat64 to-int32
@@ -354,18 +352,18 @@ clamp-add int32(a int32, b int32) noctx trusted
 
 # Throws if `a` is negative.
 to-nat64 nat64(a int64) trusted
-	"integer overflow" forbid-c-str a < 0
+	assert a >= 0 : "integer overflow"
 	a unsafe-to-nat64
 to-nat64 nat64(a int32)
 	a.to-int64 to-nat64
 
 to-nat8 nat8(a nat64) trusted
-	"integer overflow" assert-c-str a <= max-nat8.to-nat64
+	assert a <= max-nat8.to-nat64 : "integer overflow"
 	a unsafe-to-nat8
 to-nat32 nat32(a nat16) noctx trusted
 	a.to-nat64 unsafe-to-nat32
 
 # Convert a nat to 32 bits. Fail if the result would overflow.
 to-nat32 nat32(a nat64) trusted
-	"integer overflow" assert-c-str a < max-nat32.to-nat64
+	assert a < max-nat32.to-nat64 : "integer overflow"
 	a unsafe-to-nat32

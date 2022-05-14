@@ -47,8 +47,7 @@ print-err-no-newline void(a str) summon trusted
 	written cell DWORD = 0,
 	size32 = bytes.size unsafe-to-nat32
 	ok = console WriteFile bytes.begin-ptr, size32, written.as-mut-ptr, null
-	unless ok
-		throw "{GetLastError show-win32-error}"
+	assert ok : "{GetLastError show-win32-error}"
 	unless *written == size32
 		# TODO: maybe retry
 		todo

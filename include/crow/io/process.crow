@@ -26,7 +26,6 @@ import
 	../col/mut-arr: ~=, begin-ptr, end-ptr, move-to-arr, mut-arr, new, size, unsafe-set-size
 	../col/private/arr-low-level: begin-ptr
 	../compare: <=
-	../exception: assert
 	../extra-types: fd-t
 	../misc: new, void
 	../number: ==, <=>, int32, nat8, nat32, to-int32, to-int64, to-nat32, to-nat64
@@ -63,8 +62,7 @@ spawn-and-wait-result process-result(exe str, args str[]) trusted summon
 		"{a} {b}"
 
 	# TODO: kill, handle that error properly
-	unless exe is-file
-		throw "{exe} is not a file"
+	assert exe is-file : "{exe} is not a file"
 	exe-c-str = exe to-c-str
 	if is-windows
 		exe-c-str spawn-and-wait-result-windows args
@@ -92,8 +90,7 @@ The child process shares stdout and stderr with the parent process.
 ###
 spawn-and-wait int32(exe str, args str[]) trusted summon
 	# TODO: kill, handle that error properly
-	unless exe is-file
-		throw "{exe} is not a file"
+	assert exe is-file : "{exe} is not a file"
 	# First argument should be the executable path
 	# TODO: &to-c-str
 	exe-c-str = exe.to-c-str
@@ -108,7 +105,7 @@ shell-exec str(command str) trusted summon
 	res char8 mut[] = ()
 	res keep-reading pipe
 	err = is-windows ? pipe _pclose : pipe pclose
-	assert: err == 0
+	assert err == 0
 	res.move-to-arr str
 
 .convert-args c-str*(exe-c-str c-str, args str[]) unsafe
@@ -177,14 +174,13 @@ shell-exec str(command str) trusted summon
 	ok = pipe ReadFile old-end, read-at-a-time.to-nat32, n-read-cell.as-mut-ptr, null
 	if ok
 		n-read = n-read-cell->to-nat64
-		assert: n-read <= read-at-a-time
+		assert n-read <= read-at-a-time
 		res unsafe-set-size (old-size wrap-add n-read)
 		res read-from-pipe-windows-recur pipe
 	else
 		res unsafe-set-size old-size
 		err = GetLastError
-		unless err == ERROR_BROKEN_PIPE
-			throw "Error reading from pipe: {err show-win32-error}"
+		assert err == ERROR_BROKEN_PIPE : "Error reading from pipe: {err show-win32-error}"
 
 .spawn-and-wait-result-posix process-result(exe c-str, args c-str*) summon unsafe
 	stdout-pipes = make-pipes
@@ -246,7 +242,7 @@ body
 	else
 		a = stdout-pollfd handle-revents stdout-builder
 		b = stderr-pollfd handle-revents stderr-builder
-		assert: (a.any.to-nat64 wrap-add b.any.to-nat64) == n-pollfds-with-events.to-nat64
+		assert (a.any.to-nat64 wrap-add b.any.to-nat64) == n-pollfds-with-events.to-nat64
 		# Apparently stdout and stderr can hang up at slightly different times.
 		unless a.hung-up && b.hung-up
 			stdout-pipe keep-polling stderr-pipe, stdout-builder, stderr-builder
@@ -282,7 +278,7 @@ body
 		# EOF, done
 		buffer unsafe-set-size old-size
 	else
-		assert: n-bytes-read.to-nat64 <= read-max
+		assert n-bytes-read.to-nat64 <= read-max
 		new-size = old-size wrap-add n-bytes-read.to-nat64
 		buffer unsafe-set-size new-size
 		fd read-to-buffer-until-eof buffer
@@ -299,7 +295,7 @@ body
 	wait-status-cell cell status-t = 0,
 	res-pid = pid waitpid wait-status-cell, 0
 	wait-status = *wait-status-cell
-	assert: res-pid == pid
+	assert res-pid == pid
 	if wait-status WIFEXITED
 		wait-status WEXITSTATUS
 	elif wait-status WIFSIGNALED

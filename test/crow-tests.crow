@@ -79,7 +79,7 @@ body
 	if !output-failures.is-empty
 		true, output-failures
 	elif res.exit-code == 0
-		assert: res.stderr == ""
+		assert res.stderr == ""
 		false, ()
 	elif res.exit-code == 1
 		stderr-no-color = res.stderr remove-colors

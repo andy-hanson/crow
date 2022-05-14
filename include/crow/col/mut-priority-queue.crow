@@ -2,7 +2,6 @@ no-std
 import
 	../bool: &&, ==, bool, false, true
 	../compare: <, compare
-	../exception: assert
 	../misc: is-data, new, void
 	../opt: !, is-empty, new, opt
 	../ptr: +, -, mut-ptr, set-deref
@@ -85,7 +84,7 @@ This is amortized O(log n).
 pop<k, v> pair<k, v>?(a mut-priority-queue<k, v>) is-data<k> compare<k>
 	res = a.mins pop
 	if a.mins.size < a.buckets.size
-		assert: (a.mins.size wrap-add 1) == a.buckets.size
+		assert (a.mins.size wrap-add 1) == a.buckets.size
 		bucket = a.buckets.pop!
 		# Mins are popped off from the right.
 		# This preserves insertion order: 'sort-by' doesn't change that,

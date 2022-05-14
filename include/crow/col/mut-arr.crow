@@ -12,7 +12,6 @@ import
 	../private/alloc:
 		alloc-uninitialized, copy-data-from, set-zero-range, unmanaged-alloc-zeroed-elements
 	../private/bootstrap: hard-assert, new, todo
-	../private/exception-low-level: assert-c-str
 	../private/number-low-level: ==, <=>, nat64, round-up-to-power-of-two, wrap-add, wrap-sub, wrap-mul
 	../private/range-low-level: ..
 	./arr: arr, for-loop
@@ -126,7 +125,7 @@ swap<a> void(a a mut[], b a mut[])
 	b.size := a-size
 
 .check-index<a> void(a a mut[], index nat64)
-	"index out of boudns" assert-c-str index < a.size
+	assert index < a.size : "index out of bounds"
 
 ###
 Gets the element at the index.
@@ -185,7 +184,7 @@ in<a> bool(value a, a a mut[]) noctx trusted equal<a>
 
 copy-range-to-arr<a> a[](a a mut[], begin nat64, size nat64) trusted
 	# check `size <= a.size` to avoid overflow in 'wrap-add'
-	"range out of bounds" assert-c-str (size <= a.size && (begin wrap-add size) <= a.size)
+	assert size <= a.size && (begin wrap-add size) <= a.size : "range out of bounds"
 	res a mut* = size alloc-uninitialized
 	src = a.begin-ptr + begin
 	_ = res.as-any-mut-ptr memcpy src.as-any-const-ptr, (size wrap-mul size-of@<a>)
@@ -197,7 +196,7 @@ This is O(a.size - n) because of the cost of copying, and all remaining elements
 Throws if `n > a.size`.
 ###
 pop-n-from-start<a> a[](a a mut[], n nat64) trusted
-	"can't pop more than size of array" assert-c-str n <= a.size
+	assert n <= a.size : "can't pop more than size of array"
 	res = a copy-range-to-arr 0, n
 	dest = a.begin-ptr as-any-mut-ptr
 	src = a.begin-ptr + n as-any-const-ptr
@@ -224,7 +223,7 @@ Pops `n` times, discarding the result.
 Throws if `n > a.size`.
 ###
 pop-n<a> void(a a mut[], n nat64) trusted
-	"can't pop more than size of array" assert-c-str n <= a.size
+	assert n <= a.size : "can't pop more than size of array"
 	new-size = a.size wrap-sub n
 	a.begin-ptr + new-size set-zero-range n
 	a.size := new-size
@@ -340,7 +339,7 @@ This is O(a.size - index) due to having to move other elements.
 Throws if `index > a.size`.
 ###
 insert-at<a> void(a a mut[], index nat64, value a) trusted
-	"index out of bounds" assert-c-str index <= a.size
+	assert index <= a.size : "index out of bounds"
 	a incr-capacity
 	dest = a.begin-ptr + index + 1
 	src = a.begin-ptr + index

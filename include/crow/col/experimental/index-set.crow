@@ -4,7 +4,6 @@ import
 		&, <<, >>, add-bit, has-bit, count-ones, fold-one-bits, high-n-bits, low-n-bits, sub-bit
 	../../bool: !, &&, ||, ==, bool, false, true
 	../../compare: !=, <, <=, >, >=, min
-	../../exception: assert
 	../../fun-util: subscript
 	../../log: info, log
 	../../misc: new, void
@@ -181,7 +180,7 @@ try-remove index-set?(a index-set, index nat64) trusted
 	hard-assert: index < n
 	match a
 	as inner i
-		assert: n > bits-in-leaf-node
+		hard-assert: n > bits-in-leaf-node
 		half = n unsafe-div 2
 		quarter = half unsafe-div 2
 		opt-new-node inner-node? = if index < half
@@ -205,7 +204,7 @@ try-remove index-set?(a index-set, index nat64) trusted
 			else
 				new-node.inner,
 	as leaf l
-		assert: n == bits-in-leaf-node
+		hard-assert: n == bits-in-leaf-node
 		word-index = index word-index
 		bit-index = index bit-index
 		word = l.values[word-index]

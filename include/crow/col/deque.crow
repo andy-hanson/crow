@@ -1,7 +1,6 @@
 no-std
 import
 	../bool: &&, ==, bool, true
-	../exception: assert
 	../fun-util: subscript
 	../misc: void
 	../opt: !, is-empty, new, opt
@@ -153,7 +152,7 @@ map<out, in> deque out(a deque in, f act out(in)) trusted
 
 test
 	a deque nat64 = ()
-	assert: a is-empty
+	assert a is-empty
 	a.dbg is "[]"
 	a.to-arr is ()
 	# TODO: 'a.pop-left is ()'

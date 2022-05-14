@@ -14,7 +14,7 @@ import
 	crow/private/bootstrap: hard-assert
 	crow/private/thread-utils: acquire, init, lock, release, uninit
 	crow/ptr: ==, +, -, *, by-val, const-ptr, mut-ptr, ref-eq, ref-of-val, set-deref
-	crow/str: literal, str
+	crow/str: literal
 	crow/str-conv: finish, interp, with-str, with-value
 	crow/test-util: is
 	./audio: new, playing-sound
@@ -94,8 +94,7 @@ pull void(a audio-queue, out fix-arr float32) noctx unsafe
 		out + 1 add-recur out-end, read + 1
 
 .play-common playing-sound(a audio-queue, sound sound, looping bool) trusted
-	if sound.format != a.format
-		throw "sound format mismatch: expected {a format}, got {sound format}"
+	assert sound.format == a.format : "sound format mismatch: expected {a format}, got {sound format}"
 	a.lock acquire
 	# Can't use 'set-filter' in 'noctx' code, so do it here
 	a.playing.filter := x => !x.is-over

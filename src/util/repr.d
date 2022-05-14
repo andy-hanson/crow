@@ -33,6 +33,10 @@ immutable(Repr) reprRecord(immutable string name) {
 	return reprRecord(name, emptyArr!Repr);
 }
 
+immutable(Repr) reprRecord(ref Alloc alloc, immutable Sym name, scope immutable Repr[] children) {
+	return reprRecord(name, arrLiteral(alloc, children));
+}
+
 immutable(Repr) reprRecord(ref Alloc alloc, immutable string name, scope immutable Repr[] children) {
 	return reprRecord(name, arrLiteral(alloc, children));
 }

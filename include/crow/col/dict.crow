@@ -3,7 +3,7 @@ import
 	../bits: &, unsafe-bit-shift-right
 	../bool: !, &&, ==, bool, false, true
 	../compare: !=, <, <=, >=, compare, equal, max
-	../exception: assert, unreachable
+	../exception: unreachable
 	../fun-util: subscript
 	../hash: hash, hash-mix
 	../misc: is-data, new, void
@@ -324,7 +324,7 @@ body
 				new-out-index = out-index wrap-add l.size
 				out[out-index .. new-out-index] copy-from l
 				new-out-index
-		assert: end == out.size
+		hard-assert: end == out.size
 		out.cast-immutable.leaf-node,
 
 .find-only-non-empty-child<k, v> node<k, v>?(children node<k, v>[])

@@ -238,7 +238,7 @@ module-top str(path str)
 	"""<code class="keyword">{a}</code>"""
 
 .only<a> a(a a[])
-	assert: a.size == 1
+	assert a.size == 1
 	a[0]
 
 .format-comment str(a str)
@@ -271,7 +271,7 @@ module-top str(path str)
 				out ~~= "<br />"
 				out format-comment-recur state, split.right
 		else
-			assert: mid == "`"
+			assert mid == "`"
 			if rest ?= split.right try-remove-start "``"
 				match state
 				as text

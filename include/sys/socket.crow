@@ -2,7 +2,6 @@ no-std
 import
 	crow/cell: cell
 	crow/c-types: c-int, size_t
-	crow/exception: forbid
 	crow/extra-types: err-t, fd-t
 	crow/number: int32, max-nat64, nat16, nat64, to-int32, to-int64
 	crow/private/number-low-level: unsafe-to-nat64
@@ -24,10 +23,10 @@ SOCKET alias
 	nat64
 # To call on POSIX
 as-fd fd-t(a SOCKET) unsafe
-	forbid: is-windows
+	forbid is-windows
 	a.to-int64 to-int32
 as-socket SOCKET(a fd-t) unsafe
-	forbid: is-windows
+	forbid is-windows
 	a.to-int64 unsafe-to-nat64
 
 INVALID_SOCKET SOCKET() unsafe

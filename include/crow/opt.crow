@@ -3,7 +3,6 @@ import
 	./bool: bool, false, new, true
 	./compare: equal
 	./private/bootstrap: none, some
-	./private/exception-low-level: throw-c-str
 	./private/number-low-level: ==, int64, nat64, new
 export
 	./private/bootstrap: opt
@@ -59,4 +58,4 @@ Else, returns `b`.
 
 # If `a` is non-empty, returns its value; else throws.
 !<a> a(a a?)
-	a ?? "tried to force empty option" throw-c-str
+	a ?? throw "tried to force empty option"

@@ -8,8 +8,7 @@ import
 	audio/sound: format, to-str, with-sample-rate
 
 main fut nat(args str[]) summon unsafe
-	if args.size != 2
-		throw "Usage: crow run convert-file.crow -- [IN] [OUT]"
+	assert args.size == 2 : "Usage: crow run convert-file.crow -- [IN] [OUT]"
 	in-path = args[0]
 	out-path = args[1]
 	ext = out-path.get-extension ?? throw "Output file needs extension"

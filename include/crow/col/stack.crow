@@ -2,7 +2,6 @@ no-std
 import
 	../bool: bool
 	../compare: !=
-	../exception: assert, forbid
 	../fun-util: subscript
 	../misc: new, void
 	../opt: !, ==, is-empty, new, opt, opt-equal
@@ -51,7 +50,7 @@ to-arr<a> a[](a stack a) trusted
 		new-out = out - 1
 		*new-out := x
 		new-out
-	assert: begin == res.begin-ptr
+	assert begin == res.begin-ptr
 	res cast-immutable
 
 # Copy elements to an array, from top to bottom.
@@ -60,7 +59,7 @@ to-arr-reverse<a> a[](a stack a) trusted
 	end = res.begin-ptr fold-reverse a, (out, x) =>
 		*out := x
 		out + 1
-	assert: end == res.end-ptr
+	assert end == res.end-ptr
 	res cast-immutable
 
 # `true` iff `a.size == 0`.
@@ -167,7 +166,7 @@ find-and-get<out, in> out?(a stack in, f act out?(in))
 
 test
 	a stack nat64 = ()
-	assert: a is-empty
+	assert a is-empty
 	a.to-arr is ()
 	a.peek is ()
 
@@ -175,7 +174,7 @@ test
 	b.to-arr is (1,)
 	b.peek is (1,)
 	b.pop!.rest.to-arr is ()
-	forbid: b is-empty
+	forbid b is-empty
 
 	c = b ~ 2
 	c.to-arr is (1, 2)

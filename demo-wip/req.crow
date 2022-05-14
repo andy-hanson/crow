@@ -26,38 +26,39 @@ main fut nat(_ str[]) unsafe summon
 
 .get-tcp-socket fd-t() unsafe summon
 	protoent = "tcp" getprotobyname
-	assert: protoent.as-any-const-ptr != null
+	forbid protoent.as-any-const-ptr == null
 	socket-file-descriptor = AF_INET socket SOCK_STREAM, protoent.p_proto
-	forbid: socket-file-descriptor == -1
+	forbid socket-file-descriptor == -1
 	socket-file-descriptor
 
 .connect-socket void(socket fd-t, hostname str, server-port nat16) unsafe summon
 	hostent = hostname.to-c-str gethostbyname
-	assert: hostent.as-any-const-ptr != null
+	forbid hostent.as-any-const-ptr == null
 	in_addr0 in_addr* = hostent.h_addr_list->ptr-cast
 	in_addr = in_addr0->inet_ntoa inet_addr
 
 	sockaddr_in sockaddr_in = AF_INET, server-port.htons, (in_addr,)
 	sockaddr = sockaddr_in.ptr-to ptr-cast-to-extern@<sockaddr, sockaddr_in>
-	assert: (socket connect sockaddr, (size-of@<sockaddr_in> to-nat32)) == 0
+	err = socket connect sockaddr, (size-of@<sockaddr_in> to-nat32)
+	assert err == 0
 
 .send-request void(socket fd-t, request str) unsafe summon
-	forbid: request is-empty
+	forbid request is-empty
 	socket send-request-recur request.to-bytes
 .send-request-recur void(socket fd-t, bytes nat8[])
 	bytes-sent = socket write bytes.begin-ptr, bytes.size
 	# TODO: might be 0 if the socket is overloaded -- delay and try again
-	assert: bytes-sent > 0
+	assert bytes-sent > 0
 	if bytes-sent < bytes.size.to-int64
 		socket send-request-recur bytes[bytes-sent.to-nat64 .. bytes.size]
 	else
-		assert: bytes-sent == bytes.size.to-int64
+		assert bytes-sent == bytes.size.to-int64
 
 .receive-response void(socket fd-t) unsafe summon
 	buffer fix-arr nat8 = 0x2000 uninitialized-fix-arr
 	# TODO: use epoll like we did in the server, for a non-blocking read.
 	bytes-read = socket read buffer.begin-ptr, buffer.size
-	assert: bytes-read >= 0
+	assert bytes-read >= 0
 	if bytes-read > 0
 		print: "Read (possibly partial) response:"
 		print: buffer[0 .. bytes-read.to-nat64].cast-immutable as-str

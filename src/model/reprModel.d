@@ -39,6 +39,7 @@ import model.model :
 	StructDecl,
 	StructInst,
 	summon,
+	symOfAssertOrForbidKind,
 	symOfPurity,
 	symOfVisibility,
 	trusted,
@@ -250,6 +251,11 @@ immutable(Repr) reprStructInst(ref Alloc alloc, ref Ctx ctx, ref immutable Struc
 immutable(Repr) reprExpr(ref Alloc alloc, ref Ctx ctx, ref immutable Expr a) {
 	return matchExpr!(immutable Repr)(
 		a,
+		(ref immutable Expr.AssertOrForbid x) =>
+			reprRecord(alloc, symOfAssertOrForbidKind(x.kind), [
+				reprExpr(alloc, ctx, x.condition),
+				reprOpt(alloc, x.thrown, (ref immutable Expr thrown) =>
+					reprExpr(alloc, ctx, thrown))]),
 		(ref immutable Expr.Bogus) =>
 			reprSym("bogus"),
 		(ref immutable Expr.Call e) =>

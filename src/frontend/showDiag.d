@@ -1025,6 +1025,8 @@ immutable(string) describeTokenForUnexpected(immutable Token token) {
 			return "unexpected '<-'";
 		case Token.as:
 			return "unexpected keyword 'as'";
+		case Token.assert_:
+			return "unexpected keyword 'assert'";
 		case Token.atLess:
 			return "unexpected '@<'";
 		case Token.body:
@@ -1079,6 +1081,8 @@ immutable(string) describeTokenForUnexpected(immutable Token token) {
 			return "unexpected keyword 'flags'";
 		case Token.for_:
 			return "unexpected keyword 'for'";
+		case Token.forbid:
+			return "unexpected keyword 'forbid'";
 		case Token.forceSendable:
 			return "unexpected keyword 'force-sendable'";
 		case Token.fun:

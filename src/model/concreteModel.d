@@ -880,6 +880,7 @@ struct ConcreteExprKind {
 	}
 
 	struct Throw {
+		// a `c-str`
 		immutable ConcreteExpr thrown;
 	}
 

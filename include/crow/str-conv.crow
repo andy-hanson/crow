@@ -7,8 +7,8 @@ import
 	./number:
 		==, <=>, *, /, %, abs, float64, float32, int8, int16, int32, int64, is-nan, min-int64,
 		nat8, nat16, nat32, nat64, to-float64, to-int64, to-nat64, truncate-to-int64
-	./str: ==, ~~, char8, literal, str
-	./str-util: strip-right
+	./str: ==, ~~, char8, c-str, literal, str
+	./str-util: strip-right, to-c-str
 	./test-util: is
 
 # Returns `"void"`.
@@ -164,6 +164,10 @@ with-str interp(a interp, b str)
 
 with-value<a> interp(a interp, b a) to-str<a>
 	a with-str b.to-str
+
+# TODO: not trusted
+finish c-str(a interp) trusted
+	a.inner to-c-str
 
 finish str(a interp)
 	a inner

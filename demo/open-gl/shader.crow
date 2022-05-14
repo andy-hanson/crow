@@ -16,7 +16,7 @@ shader-prog-load GLuint(gl gl-ext, vert-shader-source str, frag-shader-source st
 	vert-shader = gl shader-load "vertex shader", vert-shader-source, GL_VERTEX_SHADER
 	frag-shader = gl shader-load "fragment shader", frag-shader-source, GL_FRAGMENT_SHADER
 	shader-prog = gl glCreateProgram
-	assert: shader-prog != 0
+	assert shader-prog != 0
 	gl glAttachShader shader-prog, vert-shader
 	gl glAttachShader shader-prog, frag-shader
 	gl glLinkProgram shader-prog

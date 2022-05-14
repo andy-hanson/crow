@@ -2,7 +2,6 @@ no-std
 import
 	../bool: !, &&, bool, new, true
 	../compare: !=, <, >, <=, compare
-	../exception: assert
 	../fun-util: subscript
 	../misc: is-data, new, void
 	../number: ==, <=>, +, -, *, nat64
@@ -120,12 +119,12 @@ Returns true if it succeeded.
 		if inserted
 			true
 		elif can-insert && insert-ptr->to.is-empty
-			assert: key < insert-ptr->from
+			assert key < insert-ptr->from
 			a.node-size := a.node-size + 1
 			*insert-ptr := key, (value,)
 			true
 		elif can-insert && insert-ptr != a.pairs.begin-ptr && (insert-ptr - 1)->to.is-empty
-			assert: key < insert-ptr->from
+			assert key < insert-ptr->from
 			# overwrite empty slot even though key doesn't match
 			a.node-size := a.node-size + 1
 			*(insert-ptr - 1) := key, (value,)
@@ -204,7 +203,7 @@ remove-key<k, v> v?(a mut-sorted-dict<k, v>, key k) trusted is-data<k> compare<k
 	physical-size = a total-pairs-size
 	if a.node-size * 2 <= physical-size
 		a compact
-		assert: a.node-size == a.total-pairs-size
+		assert a.node-size == a.total-pairs-size
 
 .total-pairs-size<k, v> nat64(a mut-sorted-dict<k, v>)
 	0 total-pairs-size-recur a

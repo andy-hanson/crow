@@ -17,7 +17,6 @@ import
 	../../col/fix-arr: cast-immutable, begin-ptr, fix-arr, size, uninitialized-fix-arr
 	../../compare: !=, <
 	../../c-types: c-int
-	../../exception: assert
 	../../extra-types: fd-t
 	../../fut: fut, handle-exceptions, then-void, new, subscript
 	../../misc: new, void
@@ -90,7 +89,7 @@ start-tcp-server tcp-server(port str, handler tcp-handler) unsafe summon
 # Close a TCP client.
 close-client void(client SOCKET) unsafe summon
 	sd-err = client shutdown SHUT_RDWR
-	assert: sd-err == 0
+	assert sd-err == 0
 	client close-socket
 
 .tcp-server-state record mut by-ref
@@ -116,13 +115,13 @@ close-client void(client SOCKET) unsafe summon
 			<- 100.msec delay
 			state tcp-server-loop-linux
 		else
-			assert: num-events == 1
+			assert num-events == 1
 			event-flags = event events
 			fd = event.event_data.to-int64 to-int32
 			if event-flags bits-intersect EPOLLERR | EPOLLHUP || !(event-flags bits-intersect EPOLLIN)
 				print: "SOME KINDA ERROR"
 				err = fd close
-				assert: err == 0
+				assert err == 0
 			elif fd == state.port-fd
 				state.port-fd.as-socket accept-clients state.epoll-fd, state.handler.on-accepted-client
 			else
@@ -144,7 +143,7 @@ close-client void(client SOCKET) unsafe summon
 		client-fd set-non-blocking
 		client-event epoll_event = EPOLLIN | EPOLLET, client-fd.to-int64.to-nat64
 		err = epoll-fd epoll_ctl EPOLL_CTL_ADD, client-fd, client-event.ptr-to
-		assert: err == 0
+		assert err == 0
 		on-accepted-client[client-fd as-socket] handle-exceptions
 		listen-fd accept-clients epoll-fd, on-accepted-client
 

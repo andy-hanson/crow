@@ -11,7 +11,6 @@ import
 	./col/arr-util: fold, strip-left-while
 	./col/private/arr-low-level: arr-cast
 	./compare: <, <=
-	./exception: assert
 	./number: to-int64, to-nat32, to-nat64
 	./range: ..
 	./str: char8, str
@@ -60,7 +59,7 @@ to-8-bytes nat8[](a nat64)
 	b7, b6, b5, b4, b3, b2, b1, b0
 # This works for the result of either `to-bytes` or `to-8-bytes`.
 from-bytes nat64(a nat8[])
-	assert: a.size <= 8
+	assert a.size <= 8
 	0 fold a, (cur, x) =>
 		cur << 8 | x.to-nat64
 test

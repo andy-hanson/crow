@@ -514,7 +514,7 @@ test
 		k is-even
 	h-filtered verify "[10 -> 10b, 20 -> 20]"
 
-	h-mapped = h map-values (_, v) =>
+	h-mapped compact-sorted-dict<nat64, str> = h map-values (_, v) =>
 		"{v.end-iter.prev! value}"
 	h-mapped verify "[5 -> 5, 10 -> b, 20 -> 0]"
 

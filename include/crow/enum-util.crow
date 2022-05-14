@@ -6,7 +6,7 @@ import
 	./misc: name, named-val, val
 	./opt: ??, new, opt
 	./private/sym-low-level: ==, sym, to-str
-	./str: ==, literal, str
+	./str: ==, str
 
 # TODO: inherit from 'compare' spec
 ###

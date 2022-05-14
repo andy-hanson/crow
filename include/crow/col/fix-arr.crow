@@ -11,7 +11,6 @@ import
 		ptr-cast, ref-of-ptr, set-deref, set-subscript, size-of, subscript, swap
 	../private/alloc: alloc-uninitialized, set-zero-range
 	../private/bootstrap: hard-assert
-	../private/exception-low-level: assert, forbid
 	../private/number-low-level: ==, <=>, nat64, unsafe-div, unsafe-mod, wrap-add, wrap-mul, wrap-sub
 	../private/range-low-level: .., range
 	./arr: arr, for-loop, new, size, subscript
@@ -78,7 +77,7 @@ Gets the element at the index.
 Throws if `index >= a.size`.
 ###
 subscript<a> a(a fix-arr a, index nat64) trusted
-	assert: index < a.size
+	assert index < a.size
 	a unsafe-at index
 
 # Like `subscript` but does not check the index.
@@ -102,7 +101,7 @@ Write to a single element.
 Throws if `index >= a.size`.
 ###
 set-subscript<a> void(a fix-arr a, index nat64, value a) trusted
-	assert: index < a.size
+	assert index < a.size
 	a unsafe-set-at index, value
 
 # Like `set-subscript` but does not check the index.
@@ -146,7 +145,7 @@ Throws if `dest` and `source` are not the same size.
 This is O(n).
 ###
 copy-from<a> void(dest fix-arr a, source a[]) trusted
-	assert: dest.size == source.size
+	assert dest.size == source.size
 	_ = dest.begin-ptr.as-any-mut-ptr memcpy source.begin-ptr.as-any-const-ptr, (dest.size wrap-mul size-of@<a>)
 	()
 
@@ -241,11 +240,11 @@ last<a> a?(a fix-arr a)
 		a[0],
 
 tail<a> fix-arr a(a fix-arr a)
-	forbid: a is-empty
+	forbid a is-empty
 	a[1 .. a.size]
 
 rtail<a> fix-arr a(a fix-arr a)
-	forbid: a is-empty
+	forbid a is-empty
 	a[0 .. (a.size wrap-sub 1)]
 
 ###
@@ -324,5 +323,5 @@ map-to-arr-with-index<out, in> out[](a fix-arr in, f act out(in, nat64)) trusted
 	a map-with-index f cast-immutable
 
 ref-of-val-at<a> a(a fix-arr by-val a, index nat64) no-doc unsafe
-	assert: index < a.size
+	assert index < a.size
 	a.begin-ptr + index ref-of-ptr

@@ -4,6 +4,7 @@ module frontend.ide.getTokens;
 
 import frontend.parse.ast :
 	ArrowAccessAst,
+	AssertOrForbidAst,
 	BogusAst,
 	CallAst,
 	ExprAst,
@@ -423,6 +424,12 @@ void addExprTokens(
 			addExprTokens(alloc, tokens, allSymbols, it.left);
 			add(alloc, tokens, immutable Token(Token.Kind.fun, rangeOfNameAndRange(it.name, allSymbols)));
 			addTypeArgsTokens(alloc, tokens, allSymbols, it.typeArgs);
+		},
+		(ref immutable AssertOrForbidAst it) {
+			add(alloc, tokens, immutable Token(
+				Token.Kind.keyword,
+				// Only the length matters, and "assert" is same length as "forbid"
+				rangeOfNameAndRange(immutable NameAndRange(a.range.start, shortSym("assert")), allSymbols)));
 		},
 		(ref immutable BogusAst) {},
 		(ref immutable CallAst it) {

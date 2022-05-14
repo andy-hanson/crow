@@ -2,7 +2,6 @@ no-std
 import
 	../../bool: bool
 	../../compare: !=, >
-	../../exception: assert, forbid
 	../../fun-util: subscript
 	../../misc: new, void
 	../../opt: ==, is-empty, new, opt, opt-equal
@@ -107,7 +106,7 @@ This is O(1).
 Throws if the list is empty.
 ###
 rtail<a> list a(a list a)
-	forbid: a.values.size == 0
+	forbid a.values.size == 0
 	if a.values.size == 1
 		if prev ?= a prev
 			prev
@@ -224,7 +223,7 @@ find-and-get<out, in> out?(a list in, f act out?(in))
 
 test
 	a list nat64 = ()
-	assert: a is-empty
+	assert a is-empty
 	a.to-arr is ()
 	a.dbg is "[]"
 	a.last is ()
@@ -233,7 +232,7 @@ test
 	b.dbg is "[1]"
 	b.last is (1,)
 	b.rtail.to-arr is ()
-	forbid: b is-empty
+	forbid b is-empty
 
 	c = b ~ 2
 	c.dbg is "[1 2]"

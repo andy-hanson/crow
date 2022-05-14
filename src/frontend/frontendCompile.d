@@ -56,7 +56,7 @@ import util.perf : Perf, PerfMeasure, withMeasure;
 import util.readOnlyStorage :
 	asOption, matchReadFileResult, ReadFileResult, ReadOnlyStorage, withFileBinary, withFileText;
 import util.sourceRange : FileIndex, RangeWithinFile;
-import util.sym : AllSymbols, emptySym, shortSym, Sym;
+import util.sym : AllSymbols, emptySym, shortSym, SpecialSym, Sym, symForSpecial;
 import util.util : verify;
 
 immutable(Program) frontendCompile(
@@ -170,7 +170,7 @@ struct ParsedEverything {
 struct CommonModuleIndices {
 	immutable FileIndex alloc;
 	immutable FileIndex bootstrap;
-	immutable FileIndex exception;
+	immutable FileIndex exceptionLowLevel;
 	immutable FileIndex std;
 	immutable FileIndex runtime;
 	immutable FileIndex runtimeMain;
@@ -222,7 +222,7 @@ immutable(ParsedEverything) parseEverything(
 	immutable Path private_ = childPath(allPaths, includeCrow, shortSym("private"));
 	immutable Path bootstrapPath = childPath(allPaths, private_, shortSym("bootstrap"));
 	immutable Path allocPath = childPath(allPaths, private_, shortSym("alloc"));
-	immutable Path exceptionPath = childPath(allPaths, includeCrow, shortSym("exception"));
+	immutable Path exceptionLowLevelPath = childPath(allPaths, private_, symForSpecial(SpecialSym.exception_low_level));
 	immutable Path stdPath = childPath(allPaths, includeCrow, shortSym("std"));
 	immutable Path runtimePath = childPath(allPaths, private_, shortSym("runtime"));
 	immutable Path runtimeMainPath = childPath(allPaths, private_, shortSym("rt-main"));
@@ -259,7 +259,9 @@ immutable(ParsedEverything) parseEverything(
 			process();
 		}
 	}
-	foreach (immutable Path path; [bootstrapPath, allocPath, exceptionPath, stdPath, runtimePath, runtimeMainPath])
+	immutable Path[6] commonPaths =
+		[bootstrapPath, allocPath, exceptionLowLevelPath, stdPath, runtimePath, runtimeMainPath];
+	foreach (immutable Path path; commonPaths)
 		processRootPath(path);
 	foreach (immutable Path path; rootPaths)
 		processRootPath(path);
@@ -273,7 +275,7 @@ immutable(ParsedEverything) parseEverything(
 	immutable CommonModuleIndices commonModuleIndices = immutable CommonModuleIndices(
 		getIndex(allocPath),
 		getIndex(bootstrapPath),
-		getIndex(exceptionPath),
+		getIndex(exceptionLowLevelPath),
 		getIndex(stdPath),
 		getIndex(runtimePath),
 		getIndex(runtimeMainPath),
@@ -781,7 +783,7 @@ immutable(Program) checkEverything(
 		immutable SpecialModules(
 			&modules[moduleIndices.alloc.index],
 			bootstrapModule,
-			&modules[moduleIndices.exception.index],
+			&modules[moduleIndices.exceptionLowLevel.index],
 			&modules[moduleIndices.runtime.index],
 			&modules[moduleIndices.runtimeMain.index],
 			map!(Module*, FileIndex)(modelAlloc, moduleIndices.rootPaths, (ref immutable FileIndex index) =>

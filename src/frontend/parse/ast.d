@@ -2,7 +2,14 @@ module frontend.parse.ast;
 
 @safe @nogc nothrow:
 
-import model.model : FieldMutability, ImportFileType, symOfFieldMutability, symOfImportFileType, Visibility;
+import model.model :
+	AssertOrForbidKind,
+	FieldMutability,
+	ImportFileType,
+	symOfAssertOrForbidKind,
+	symOfFieldMutability,
+	symOfImportFileType,
+	Visibility;
 import model.reprModel : reprVisibility;
 import util.alloc.alloc : Alloc;
 import util.col.arr : empty, emptyArr, emptySmallArray, SmallArray;
@@ -229,6 +236,12 @@ struct ArrowAccessAst {
 	immutable ExprAst left;
 	immutable NameAndRange name;
 	immutable SmallArray!TypeAst typeArgs;
+}
+
+struct AssertOrForbidAst {
+	immutable AssertOrForbidKind kind;
+	immutable ExprAst condition;
+	immutable Opt!ExprAst thrown;
 }
 
 struct BogusAst {}
@@ -538,6 +551,7 @@ struct ExprAstKind {
 	private:
 	enum Kind {
 		arrowAccess,
+		assertOrForbid,
 		bogus,
 		call,
 		for_,
@@ -567,6 +581,7 @@ struct ExprAstKind {
 	immutable Kind kind;
 	union {
 		immutable ArrowAccessAst* arrowAccess;
+		immutable AssertOrForbidAst* assertOrForbid;
 		immutable BogusAst bogus;
 		immutable CallAst call;
 		immutable ForAst* for_;
@@ -596,6 +611,7 @@ struct ExprAstKind {
 
 	public:
 	@trusted immutable this(immutable ArrowAccessAst* a) { kind = Kind.arrowAccess; arrowAccess = a; }
+	immutable this(immutable AssertOrForbidAst* a) { kind = Kind.assertOrForbid; assertOrForbid = a; }
 	@trusted immutable this(immutable BogusAst a) { kind = Kind.bogus; bogus = a; }
 	@trusted immutable this(immutable CallAst a) { kind = Kind.call; call = a; }
 	immutable this(immutable ForAst* a) { kind = Kind.for_; for_ = a; }
@@ -643,6 +659,7 @@ ref immutable(IdentifierAst) asIdentifier(return scope ref immutable ExprAstKind
 @trusted T matchExprAstKind(
 	T,
 	alias cbArrowAccess,
+	alias cbAssertOrForbid,
 	alias cbBogus,
 	alias cbCall,
 	alias cbFor,
@@ -674,6 +691,8 @@ ref immutable(IdentifierAst) asIdentifier(return scope ref immutable ExprAstKind
 	final switch (a.kind) {
 		case ExprAstKind.Kind.arrowAccess:
 			return cbArrowAccess(*a.arrowAccess);
+		case ExprAstKind.Kind.assertOrForbid:
+			return cbAssertOrForbid(*a.assertOrForbid);
 		case ExprAstKind.Kind.bogus:
 			return cbBogus(a.bogus);
 		case ExprAstKind.Kind.call:
@@ -1513,6 +1532,11 @@ immutable(Repr) reprExprAstKind(ref Alloc alloc, ref immutable ExprAstKind ast) 
 				reprNameAndRange(alloc, e.name),
 				reprArr(alloc, e.typeArgs, (ref immutable TypeAst it) =>
 					reprTypeAst(alloc, it))]),
+		(ref immutable AssertOrForbidAst e) =>
+			reprRecord(alloc, symOfAssertOrForbidKind(e.kind), [
+				reprExprAst(alloc, e.condition),
+				reprOpt(alloc, e.thrown, (ref immutable ExprAst thrown) =>
+					reprExprAst(alloc, thrown))]),
 		(ref immutable BogusAst e) =>
 			reprSym("bogus"),
 		(ref immutable CallAst e) =>

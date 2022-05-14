@@ -1,7 +1,8 @@
 import
-	crow/col/arr-util: in
+	crow/col/arr-util: flatten, in
+	crow/col/seq: first, for-loop
 	crow/io/print: print
-	crow/str-util: head, join, tail
+	crow/str-util: join
 
 main fut nat(_ str[]) summon
 	print: "crow" describe
@@ -9,15 +10,16 @@ main fut nat(_ str[]) summon
 	()
 
 describe str(a str)
-	"{a a-an} says {a.vowels join "-"}"
+	"{a a-an} says {"-" join a.vowels}"
 
 vowels str[](a str)
-	unless a is-empty
-		# (a.head.to-str,) creates an array
-		(a.head.is-vowel ? (a.head.to-str,)) ~~ a.tail.vowels
+	flatten: for c : a char8s
+		if c is-vowel
+			c.to-str,
 
 a-an str(a str)
-	a.head.is-vowel ? "an {a}" : "a {a}"
+	starts-with-vowel = (a.char8s.first ?? "a") is-vowel
+	starts-with-vowel ? "an {a}" : "a {a}"
 
-is-vowel bool(a char)
+is-vowel bool(a char8)
 	a in ("a", "e", "i", "o", "u")

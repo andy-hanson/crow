@@ -1,7 +1,6 @@
 no-std
 import
 	../../bool: &&, bool
-	../../exception: assert, forbid
 	../../fun-util: subscript
 	../../misc: new, void
 	../../number: ==, nat64
@@ -81,8 +80,8 @@ dummy-seq-tests nat64()
 	as leaf _
 		()
 	as branch b
-		forbid: b.left.is-empty
-		forbid: b.right.is-empty
+		forbid b.left is-empty
+		forbid b.right is-empty
 		b.down check-structure 
 
 .check-structure<a> void(a l1 a) unsafe
@@ -95,15 +94,15 @@ dummy-seq-tests nat64()
 		b.right check-structure
 
 .check-structure<a> void(xs a[][]) unsafe
-	forbid: xs is-empty
+	forbid xs is-empty
 	for ys : xs
-		forbid: ys is-empty
+		forbid ys is-empty
 
 .check-structure<a> void(a l2 a) unsafe
 	for ys : a nodes
-		forbid: ys is-empty
+		forbid ys is-empty
 		for zs : ys
-			forbid: zs is-empty
+			forbid zs is-empty
 
 test
 	a seq nat64 = ()
@@ -151,7 +150,7 @@ test
 	a.a to-str
 
 test
-	assert: size-of@<big-nat> == 24
+	assert size-of@<big-nat> == 24
 	a seq big-nat = 5.big, 6.big
 	b seq big-nat = 4.big ~ a
 	b verify "([4] [] [5 6])"

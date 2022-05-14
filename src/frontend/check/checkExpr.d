@@ -33,6 +33,7 @@ import frontend.check.instantiate : instantiateFun, instantiateStructNeverDelay,
 import frontend.check.typeFromAst : makeFutType;
 import frontend.parse.ast :
 	ArrowAccessAst,
+	AssertOrForbidAst,
 	BogusAst,
 	CallAst,
 	ExprAst,
@@ -211,13 +212,8 @@ immutable(Expr) checkAndExpectBool(ref ExprCtx ctx, scope ref LocalsInfo locals,
 	return checkAndExpect(ctx, locals, ast, immutable Type(ctx.commonTypes.bool_));
 }
 
-immutable(Expr) checkAndExpectStr(
-	ref ExprCtx ctx,
-	scope ref LocalsInfo locals,
-	immutable FileAndRange range,
-	scope ref immutable ExprAst ast,
-) {
-	return checkAndExpect(ctx, locals, ast, getStrType(ctx, range));
+immutable(Expr) checkAndExpectCStr(ref ExprCtx ctx, scope ref LocalsInfo locals, scope ref immutable ExprAst ast) {
+	return checkAndExpect(ctx, locals, ast, immutable Type(ctx.commonTypes.cStr));
 }
 
 immutable(Expr) checkAndExpectVoid(ref ExprCtx ctx, scope ref LocalsInfo locals, scope ref immutable ExprAst ast) {
@@ -267,12 +263,28 @@ immutable(Expr) checkThrow(
 ) {
 	immutable Opt!Type inferred = tryGetInferred(expected);
 	if (has(inferred)) {
-		immutable Expr thrown = checkAndExpectStr(ctx, locals, range, ast.thrown);
+		immutable Expr thrown = checkAndExpectCStr(ctx, locals, ast.thrown);
 		return immutable Expr(range, allocate(ctx.alloc, immutable Expr.Throw(force(inferred), thrown)));
 	} else {
 		addDiag2(ctx, range, immutable Diag(immutable Diag.ThrowNeedsExpectedType()));
 		return bogus(expected, range);
 	}
+}
+
+immutable(Expr) checkAssertOrForbid(
+	ref ExprCtx ctx,
+	ref LocalsInfo locals,
+	immutable FileAndRange range,
+	ref immutable AssertOrForbidAst ast,
+	ref Expected expected,
+) {
+	immutable Expr condition = checkAndExpectBool(ctx, locals, ast.condition);
+	immutable Opt!Expr thrown = has(ast.thrown)
+		? some(checkAndExpectCStr(ctx, locals, force(ast.thrown)))
+		: none!Expr;
+	return check(ctx, expected, immutable Type(ctx.commonTypes.void_), immutable Expr(
+		range,
+		allocate(ctx.alloc, immutable Expr.AssertOrForbid(ast.kind, condition, thrown))));
 }
 
 immutable(Expr) checkUnless(
@@ -365,6 +377,7 @@ immutable(Expr) checkInterpolated(
 	ref immutable InterpolatedAst ast,
 	ref Expected expected,
 ) {
+	defaultExpectedToString(ctx, range, expected);
 	// TODO: NEATER (don't create a synthetic AST)
 	// "a{b}c" ==> interp with-text "a" with-value b with-text "c" finish
 	immutable CallAst firstCall = immutable CallAst(
@@ -800,9 +813,7 @@ immutable(Expr) checkStringExpressionTypedAsOther(
 	immutable FileAndRange range,
 	ref Expected expected,
 ) {
-	immutable Opt!Type inferred = tryGetInferred(expected);
-	if (!has(inferred))
-		mustSetType(ctx.alloc, ctx.programState, expected, getStrType(ctx, range));
+	defaultExpectedToString(ctx, range, expected);
 	// TODO: NEATER (don't create a synthetic AST)
 	immutable CallAst ast = immutable CallAst(
 		CallAst.Style.emptyParens,
@@ -811,6 +822,12 @@ immutable(Expr) checkStringExpressionTypedAsOther(
 		// TODO: allocating should be unnecessary, do on stack
 		arrLiteral!ExprAst(ctx.alloc, [curAst]));
 	return checkCallNoLocals(ctx, range, ast, expected);
+}
+
+void defaultExpectedToString(ref ExprCtx ctx, immutable FileAndRange range, ref Expected expected) {
+	immutable Opt!Type inferred = tryGetInferred(expected);
+	if (!has(inferred))
+		mustSetType(ctx.alloc, ctx.programState, expected, getStrType(ctx, range));
 }
 
 immutable(Type) getStrType(ref ExprCtx ctx, immutable FileAndRange range) {
@@ -1424,6 +1441,8 @@ public immutable(Expr) checkExpr(
 		immutable Expr,
 		(ref immutable ArrowAccessAst a) =>
 			checkArrowAccess(ctx, locals, range, a, expected),
+		(ref immutable AssertOrForbidAst a) =>
+			checkAssertOrForbid(ctx, locals, range, a, expected),
 		(ref immutable(BogusAst)) =>
 			bogus(expected, range),
 		(ref immutable CallAst a) =>

@@ -2,7 +2,6 @@ no-std
 import
 	../bool: !, &&, ||, bool
 	../compare: >, >=, compare
-	../exception: assert, forbid
 	../fun-util: subscript
 	../hash: hash, hash-mix
 	../misc: is-data, new, void
@@ -231,13 +230,13 @@ Returns the old value (if it exists).
 	a.total-size >= a.entries.size
 
 .expand<k, v> void(a v mut[k]) is-data<k> compare<k> hash-mix<k>
-	forbid: a.entries.size == 0
+	forbid a.entries.size == 0
 	new-size = a.entries.size wrap-mul 2
 	bigger v mut[k] = new-size mut-dict-with-capacity
 	a each (key, value) =>
 		bigger[key] := value
 	a swap bigger
-	assert: a.entries.size == new-size
+	assert a.entries.size == new-size
 
 region iteration
 
@@ -301,7 +300,7 @@ map-to-arr<out, k, v> out[](a v mut[k], f act out(k, v)) trusted is-data<k> comp
 	end = out.begin-ptr fold a, (cur, key, value) =>
 		*cur := f[key, value]
 		cur + 1
-	assert: end == out.end-ptr
+	assert end == out.end-ptr
 	out cast-immutable
 
 ###

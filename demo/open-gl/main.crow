@@ -71,13 +71,13 @@ main fut nat(_ str[]) summon trusted
 
 	tex-sampler-uniform-loc = gl glGetUniformLocation shader-prog, "texSampler"
 	gl gl-check-error "after tex-sampler-uniform-loc"
-	assert: tex-sampler-uniform-loc >= 0
+	assert tex-sampler-uniform-loc >= 0
 	gl glUniform1i tex-sampler-uniform-loc, 0
 	gl gl-check-error "after glUniform1i"
 
 	rotation-uniform-loc = gl glGetUniformLocation shader-prog, "rotation"
 	gl gl-check-error "after rotation-uniform-loc"
-	assert: tex-sampler-uniform-loc >= 0
+	assert tex-sampler-uniform-loc >= 0
 	gl glUniform1i tex-sampler-uniform-loc, 0
 	gl gl-check-error "after glUniform1i"
 	gl glUniformMatrix3fv rotation-uniform-loc, 1, false, I.to-arr.begin-ptr
@@ -87,7 +87,7 @@ main fut nat(_ str[]) summon trusted
 
 	vertices vertex[] = make-cube
 	triangle-vbo = gl vbo-create vertices
-	assert: triangle-vbo != 0
+	forbid triangle-vbo == 0
 
 	renderer renderer = gl, cur-thread-id, window, shader-prog, vertices, triangle-vbo, texture, rotation-uniform-loc
 	renderer set-up-renderer
@@ -244,5 +244,4 @@ size-bytes nat(vertices vertex[]) unsafe
 
 .gl-check-error void(gl gl-ext, desc str) summon
 	err = gl glGetError
-	unless err == GL_NO_ERROR
-		throw "Gl error at {desc}: code {err}"
+	assert err == GL_NO_ERROR : "Gl error at {desc}: code {err}"

@@ -2,7 +2,6 @@ no-std
 import
 	../bool: bool
 	../compare: ==, <, <=, >, compare, comparison, equal, less
-	../exception: assert, forbid
 	../fun-util: subscript
 	../misc: new, void
 	../number: ==, <=>, +, -, /, nat64
@@ -97,7 +96,7 @@ set-sort-by<a, b> void(a fix-arr a, f act b(a)) compare<b>
 		begin insertion-sort-recur cur + 1, end, comparer
 
 .insert<a> void(begin a mut*, cur a mut*, value a, comparer act comparison(a, a)) unsafe
-	forbid: begin == cur
+	forbid begin == cur
 	prev = cur - 1
 	if comparer[value, *prev] == less
 		*cur := *prev
@@ -170,7 +169,7 @@ set-sort-by-first<a, b> void(a a mut[], b b mut[]) compare<a> trusted
 
 # Sort `a` in place, and move elements of `b` in the same permutation as `a`.
 set-sort-by-first<a, b> void(a fix-arr a, b fix-arr b) compare<a>
-	assert: a.size == b.size
+	assert a.size == b.size
 	if a.size > 1
 		a swap 0, a.size / 2
 		pivot = a[0]
@@ -181,8 +180,8 @@ set-sort-by-first<a, b> void(a fix-arr a, b fix-arr b) compare<a>
 		a[new-pivot-index + 1 .. a.size] set-sort-by-first b[new-pivot-index + 1 .. b.size]
 
 .set-partition-by-first<a, b> nat64(a fix-arr a, b fix-arr b, pivot a, l nat64, r nat64) compare<a>
-	assert: l <= a.size
-	assert: r < a.size
+	assert l <= a.size
+	assert r < a.size
 	if l <= r
 		if a[l] < pivot
 			a set-partition-by-first b, pivot, (l + 1), r

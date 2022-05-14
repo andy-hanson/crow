@@ -2,7 +2,6 @@ no-std
 import
 	../bool: &&, ==, bool, true
 	../compare: !=
-	../exception: assert
 	../fun-util: subscript
 	../misc: void
 	../opt: !, is-empty, new, opt
@@ -46,7 +45,7 @@ to-arr<a> a[](a queue a) trusted
 	end = res.begin-ptr fold a, (out, x) =>
 		*out := x
 		out + 1
-	assert: end == res.end-ptr
+	assert end == res.end-ptr
 	res cast-immutable
 
 # `true` iff `a.size == 0`.
@@ -101,12 +100,12 @@ map<out, in> queue out(a queue in, f act out(in)) trusted
 	end = res.begin-ptr fold a, (out, x) =>
 		*out := f[x]
 		out + 1
-	assert: end == res.end-ptr
+	assert end == res.end-ptr
 	res.cast-immutable queue
 
 test
 	a queue nat64 = ()
-	assert: a is-empty
+	assert a is-empty
 	a.to-arr is ()
 	a.dequeue.is-empty is true
 
@@ -114,7 +113,7 @@ test
 	b.to-arr is (1,)
 	bd = b.dequeue!
 	bd.value is 1
-	assert: bd.rest is-empty
+	assert bd.rest is-empty
 
 	c = b ~ 2
 	c.to-arr is (1, 2)
@@ -125,7 +124,7 @@ test
 	cdr.to-arr is (2,)
 	cdd = cdr.dequeue!
 	cdd.value is 2
-	assert: cdd.rest is-empty
+	assert cdd.rest is-empty
 
 	d = c ~ 3
 	d.to-arr is (1, 2, 3)

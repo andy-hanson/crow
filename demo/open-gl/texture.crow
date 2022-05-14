@@ -1,6 +1,5 @@
 import
 	crow/cell: *, as-mut-ptr, cell, new
-	crow/io/print: print
 	crow/ptr: as-const, ptr-to
 	OpenGL/gl:
 		glBindTexture, glDeleteTextures, gl-ext, glGenTextures, glGetError, glTexImage2D,
@@ -33,9 +32,7 @@ load-texture-from-bmp GLuint(gl gl-ext, bmp-raw nat8[]) unsafe summon
 
 .check-error void(gl gl-ext, step str) unsafe summon
 	err = gl glGetError
-	unless err == GL_NO_ERROR
-		print: "error in {step}: {err to-str}"
-		throw "Error loading image (in {step}): code {err to-str}"
+	assert err == GL_NO_ERROR : "Error loading image (in {step}): code {err to-str}"
 
 free-texture void(gl gl-ext, tex-name GLuint) unsafe summon
 	gl glDeleteTextures 1, tex-name.ptr-to

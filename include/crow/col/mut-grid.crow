@@ -2,7 +2,6 @@ no-std
 import
 	../bool: &&, bool
 	../compare: <
-	../exception: assert
 	../fun-util: subscript
 	../misc: new, void
 	../number: *
@@ -63,7 +62,7 @@ This is O(1).
 Throws if `y` is out of range.
 ###
 row<a> fix-arr a(a mut-grid a, y nat64)
-	assert: y < a.height
+	assert y < a.height
 	begin = y wrap-mul a.width
 	a.elements[begin .. (begin wrap-add a.width)]
 
@@ -116,10 +115,10 @@ set-subscript<a> void(a mut-grid a, coord coord, value a)
 	a[coord.x, coord.y] := value
 
 .index-for<a> nat64(a mut-grid a, x nat64, y nat64)
-	assert: x < a.width
-	assert: y < a.height
+	assert x < a.width
+	assert y < a.height
 	res = y wrap-mul a.width wrap-add x
-	assert: res < a.elements.size
+	assert res < a.elements.size
 	res
 
 ###
@@ -198,7 +197,7 @@ set-map-with-coords<a> void(a mut-grid a, f act a(a, coord)) trusted
 		new-x, a.y
 
 test
-	a = 3 make-mut-grid 2, (x, y) => "{x}|{y}"
+	a mut-grid str = 3 make-mut-grid 2, (x, y) => "{x}|{y}"
 	a.to-str is "0|0 1|0 2|0\n0|1 1|1 2|1"
 
 	folded = "S" fold-with-coords a, (acc, value, coord) => "{acc} {value}/{coord}"

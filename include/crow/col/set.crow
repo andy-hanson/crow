@@ -2,7 +2,6 @@ no-std
 import
 	../bool: !, ==, bool, false, new, true
 	../compare: <=, >, >=, compare
-	../exception: assert
 	../fun-util: subscript
 	../hash: hash-mix
 	../log: info, log
@@ -184,7 +183,7 @@ spec
 	compare<a>
 	hash-mix<a>
 body
-	assert: plan.compacted-size > 1
+	assert plan.compacted-size > 1
 	compacted fix-arr a = plan.compacted-size uninitialized-fix-arr
 	*compacted.begin-ptr := value
 	compactor compactor a = compacted.begin-ptr, compacted.begin-ptr + 1, compacted.end-ptr
@@ -208,7 +207,7 @@ spec
 	hash-mix<a>
 body
 	compactor push a.here, add-size-here-and-left, remove
-	assert: compactor.cur <= compactor.end
+	assert compactor.cur <= compactor.end
 	if compactor.cur == compactor.end
 		compactor.finish, a.left
 	else
@@ -227,7 +226,7 @@ body
 
 
 .finish<a> frozen-set a(a compactor a) unsafe is-data<a> compare<a> hash-mix<a>
-	assert: a.cur == a.end
+	assert a.cur == a.end
 	a.begin fix-arr-from-begin-end a.end unsafe-frozen-set-from-fix-arr-cast-immutable
 
 region iteration
@@ -264,7 +263,7 @@ for-loop<out, in> out[](a set in, f act out(in)) trusted is-data<in> compare<in>
 	end = out.begin-ptr fold a, (cur, x) =>
 		*cur := f[x]
 		cur + 1
-	assert: end == out.end-ptr
+	assert end == out.end-ptr
 	out cast-immutable
 
 .dbg<a> str(a set a) to-str<a>

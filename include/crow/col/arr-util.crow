@@ -11,7 +11,6 @@ import
 	../tuple: new, pair
 	../private/alloc: alloc-uninitialized
 	../private/bootstrap: hard-assert, new
-	../private/exception-low-level: assert-c-str, forbid-c-str
 	../private/number-low-level: ==, <=>, nat64, unsafe-div, unsafe-mod, wrap-add, wrap-sub, wrap-mul
 	../private/range-low-level: ..
 	./arr: ~, ~~, arr, for-loop, is-empty, new, size, subscript
@@ -36,7 +35,7 @@ Same as `a[1 .. a.size]`.
 Throws if `a` is empty.
 ###
 tail<a> a[](a a[])
-	"tail of empty array" forbid-c-str a.is-empty
+	forbid a is-empty : "tail of empty array"
 	a[1 .. a.size]
 
 ###
@@ -45,11 +44,11 @@ Same as `a[0 .. a.size - 1]`.
 Throws if `a` is empty.
 ###
 rtail<a> a[](a a[])
-	"rtail of empty array" forbid-c-str a.is-empty
+	forbid a is-empty : "rtail of empty array"
 	a[0 .. (a.size wrap-sub 1)]
 
 .check-index<a> void(a a[], index nat64)
-	"index out of bounds" assert-c-str index < a.size
+	assert index < a.size : "index out of bounds"
 
 ###
 Returns a new array like `a` but where `a[index]` is `new-value`.
@@ -82,7 +81,7 @@ Inserts an element at index `index`, all elements there and after to the right.
 Unlike for `update-at`, `index` can be `a.size`, though it still can't be higher.
 ###
 insert-at<a> a[](a a[], index nat64, value a)
-	"index out of bounds" assert-c-str index <= a.size
+	assert index <= a.size : "index out of bounds"
 	# TODO:PERF (only concat once)
 	a[0 .. index] ~ value ~~ a[index .. a.size]
 
@@ -381,7 +380,7 @@ flatten<a> a[](a a[][]) trusted
 	res.as-const arr-from-begin-end cur->as-const
 
 zip-each<a, b> void(a a[], b b[], f act void(a, b))
-	"zipped arrays must have same size" assert-c-str a.size == b.size
+	assert a.size == b.size : "zipped arrays must have same size"
 	a each-with-index (x, i) =>
 		f[x, b[i]]
 
@@ -392,7 +391,7 @@ Calls `f` for corresponding elements `a[i]` and `b[i]` and returns an array of t
 Throws if the `a` and `b` have different sizes.
 ###
 zip<out, a, b> out[](a a[], b b[], f act out(a, b))
-	"zipped arrays must have same size" assert-c-str a.size == b.size
+	assert a.size == b.size : "zipped arrays must have same size"
 	for i : 0 .. a.size
 		f[a[i], b[i]]
 
@@ -595,7 +594,7 @@ slice-right<a> a[](a arr-iter a)
 	a.xs[a.index .. a.xs.size]
 
 groups-of<a> a[][](a a[], group-size nat64) trusted
-	"group-size can't be 0" forbid-c-str group-size == 0
+	forbid group-size == 0 : "group-size can't be 0"
 	div = a.size unsafe-div group-size
 	out-size = (div wrap-mul group-size) == a.size ? div : div wrap-add 1
 	for group-index : 0 .. out-size

@@ -443,6 +443,7 @@ public enum Token {
 	arrowLambda, // '=>'
 	arrowThen, // '<-'
 	as, // 'as'
+	assert_, // 'assert'
 	atLess, // '!<'
 	body, // 'body'
 	break_, // 'break'
@@ -471,6 +472,7 @@ public enum Token {
 	export_, // 'export'
 	flags, // 'flags'
 	for_, // 'for'
+	forbid, // 'forbid'
 	forceSendable, // 'force-sendable'
 	fun, // 'fun'
 	global, // 'global'
@@ -629,6 +631,8 @@ immutable(Token) tokenForSym(ref Lexer lexer, immutable Sym a) {
 			return Token.alias_;
 		case shortSymValue("as"):
 			return Token.as;
+		case shortSymValue("assert"):
+			return Token.assert_;
 		case shortSymValue("body"):
 			return Token.body;
 		case shortSymValue("break"):
@@ -657,6 +661,8 @@ immutable(Token) tokenForSym(ref Lexer lexer, immutable Sym a) {
 			return Token.flags;
 		case shortSymValue("for"):
 			return Token.for_;
+		case shortSymValue("forbid"):
+			return Token.forbid;
 		case specialSymValue(SpecialSym.force_sendable):
 			return Token.forceSendable;
 		case shortSymValue("fun"):
@@ -879,9 +885,11 @@ immutable(bool) isExpressionStartToken(immutable Token a) {
 		case Token.union_:
 		case Token.unsafe:
 			return false;
+		case Token.assert_:
 		case Token.bracketLeft:
 		case Token.break_:
 		case Token.continue_:
+		case Token.forbid:
 		case Token.if_:
 		case Token.for_:
 		case Token.literal:

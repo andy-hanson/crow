@@ -212,7 +212,7 @@ immutable(FunInst*) getAllocFun(ref Alloc alloc, ref immutable Program program) 
 }
 
 immutable(FunInst*) getThrowImplFun(ref Alloc alloc, ref immutable Program program) {
-	immutable FunDecl*[] funs = getFuns(*program.specialModules.exceptionModule, shortSym("throw-impl"));
+	immutable FunDecl*[] funs = getFuns(*program.specialModules.exceptionLowLevelModule, shortSym("throw-impl"));
 	if (funs.length != 1)
 		todo!void("wrong number throw-impl funs");
 	return nonTemplateFunInst(alloc, only(funs));

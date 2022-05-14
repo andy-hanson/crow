@@ -6,7 +6,6 @@ import
 	crow/col/mut-arr: begin-ptr, move-to-arr, mut-arr, size, uninitialized-mut-arr
 	crow/col/private/arr-low-level: begin-ptr, end-ptr
 	crow/compare: <=, min
-	crow/exception: assert
 	crow/number: ==, <=>, *, float32, nat8, to-nat64
 	crow/private/alloc: mem-copy
 	crow/private/bootstrap: hard-assert, hard-unreachable
@@ -39,7 +38,7 @@ sound-from-file-content sound(content nat8[]) trusted
 	samples float32 mut[] = info.frames * n-channels uninitialized-mut-arr
 	n-read = f sf_read_float samples.begin-ptr, samples.size
 	f.sf_close check-sndfile-error
-	assert: n-read == samples.size
+	assert n-read == samples.size
 	(n-channels, sample-rate), samples.move-to-arr
 
 .get_filelen sf_count_t(user-data-ptr any-mut-ptr) noctx unsafe

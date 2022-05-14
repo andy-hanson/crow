@@ -9,7 +9,6 @@ import
 	./str: ==, char8, literal, str
 	./str-util: copy, mut-iter, mut-str-iter, next, peek
 	./test-util: is
-	./private/exception-low-level: throw-c-str
 
 ###
 Stateful type used for simple parsers that read strictly left-to-right.
@@ -45,14 +44,14 @@ Gets the next character without advancing.
 Throws if the reader has reached the end.
 ###
 peek char8(a reader) trusted
-	a.iter.peek ?? "reader empty".throw-c-str
+	a.iter.peek ?? throw "reader empty"
 
 ###
 Gets the next character and advances.
 Throws if the reader had already reached the end before calling `next`.
 ###
 next char8(a reader) trusted
-	a.iter.next ?? "reader empty".throw-c-str
+	a.iter.next ?? throw "reader empty"
 
 ###
 Iff the next character is `c`, advances and returns `true`.

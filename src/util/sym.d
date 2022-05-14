@@ -147,6 +147,7 @@ enum Operator {
 enum SpecialSym {
 	// all below are hyphenated
 	as_any_mut_ptr,
+	exception_low_level,
 	init_constants,
 	ptr_cast_from_extern,
 	ptr_cast_to_extern,
@@ -257,6 +258,8 @@ private immutable(SafeCStr) strOfSpecial(immutable SpecialSym a) {
 	final switch (a) {
 		case SpecialSym.as_any_mut_ptr:
 			return safeCStr!"as-any-mut-ptr";
+		case SpecialSym.exception_low_level:
+			return safeCStr!"exception-low-level";
 		case SpecialSym.init_constants:
 			return safeCStr!"init-constants";
 		case SpecialSym.ptr_cast_from_extern:

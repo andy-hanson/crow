@@ -5,12 +5,11 @@ More functions on arrays are in the `crow/arr-util` module.
 no-std
 import
 	../bool: &&, bool
-	../compare: !=, >, >=, compare, comparison, equal, greater, less
+	../compare: !=, <, <=, compare, comparison, equal, greater, less
 	../fun-util: subscript
-	../misc: new, void
+	../misc: void
 	../private/alloc: alloc-uninitialized, copy-data-from
 	../private/bootstrap: hard-assert, new
-	../private/exception-low-level: throw-c-str
 	../private/number-low-level: ==, <=>, nat8, nat64, wrap-add, wrap-sub
 	../private/range-low-level: low, high, range
 	../ptr: *, ==, +, as-const, const-ptr, mut-ptr, set-deref
@@ -28,8 +27,7 @@ Gets the element at the index.
 Throws if `index >= a.size`.
 ###
 subscript<a> a(a a[], index nat64) trusted
-	if index >= a.size
-		"index out of bounds" throw-c-str
+	assert index < a.size : "index out of bounds"
 	a unsafe-at index
 
 ###
@@ -38,8 +36,7 @@ This works in O(1) without copying any elements.
 Throws if the slice would exceed the bounds of the arr.
 ###
 subscript<a> a[](a a[], range range nat64) trusted
-	if range.high > a.size
-		"slice out of bounds" throw-c-str
+	assert range.high <= a.size : "slice out of bounds"
 	(range.high wrap-sub range.low), a.begin-ptr + range.low
 
 ###

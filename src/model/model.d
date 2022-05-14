@@ -1609,7 +1609,7 @@ immutable(bool) hasDiags(ref immutable Program a) {
 struct SpecialModules {
 	immutable Module* allocModule;
 	immutable Module* bootstrapModule;
-	immutable Module* exceptionModule;
+	immutable Module* exceptionLowLevelModule;
 	immutable Module* runtimeModule;
 	immutable Module* runtimeMainModule;
 	immutable Module*[] rootModules;
@@ -1683,6 +1683,13 @@ immutable(Type) variableRefType(immutable VariableRef a) {
 
 struct Expr {
 	@safe @nogc pure nothrow:
+
+	struct AssertOrForbid {
+		immutable AssertOrForbidKind kind;
+		immutable Expr condition;
+		immutable Opt!Expr thrown;
+	}
+
 	struct Bogus {}
 
 	struct Call {
@@ -1830,6 +1837,7 @@ struct Expr {
 
 	private:
 	enum Kind {
+		assertOrForbid,
 		bogus,
 		call,
 		closureFieldRef,
@@ -1859,6 +1867,7 @@ struct Expr {
 	immutable FileAndRange range_;
 	immutable Kind kind;
 	union {
+		immutable AssertOrForbid* assertOrForbid;
 		immutable Bogus bogus;
 		immutable Call call;
 		immutable ClosureFieldRef closureFieldRef;
@@ -1886,6 +1895,9 @@ struct Expr {
 	}
 
 	public:
+	immutable this(immutable FileAndRange r, immutable AssertOrForbid* a) {
+		range_ = r; kind = Kind.assertOrForbid; assertOrForbid = a;
+	}
 	immutable this(immutable FileAndRange r, immutable Bogus a) { range_ = r; kind = Kind.bogus; bogus = a; }
 	@trusted immutable this(immutable FileAndRange r, immutable Call a) { range_ = r; kind = Kind.call; call = a; }
 	@trusted immutable this(immutable FileAndRange r, immutable ClosureFieldRef a) {
@@ -1952,6 +1964,7 @@ immutable(FileAndRange) range(scope ref immutable Expr a) {
 
 @trusted immutable(T) matchExpr(T)(
 	ref immutable Expr a,
+	scope immutable(T) delegate(ref immutable Expr.AssertOrForbid) @safe @nogc pure nothrow cbAssertOrForbid,
 	scope immutable(T) delegate(ref immutable Expr.Bogus) @safe @nogc pure nothrow cbBogus,
 	scope immutable(T) delegate(ref immutable Expr.Call) @safe @nogc pure nothrow cbCall,
 	scope immutable(T) delegate(ref immutable Expr.ClosureFieldRef) @safe @nogc pure nothrow cbClosureFieldRef,
@@ -1978,6 +1991,8 @@ immutable(FileAndRange) range(scope ref immutable Expr a) {
 	scope immutable(T) delegate(ref immutable Expr.Throw) @safe @nogc pure nothrow cbThrow,
 ) {
 	final switch (a.kind) {
+		case Expr.Kind.assertOrForbid:
+			return cbAssertOrForbid(*a.assertOrForbid);
 		case Expr.Kind.bogus:
 			return cbBogus(a.bogus);
 		case Expr.Kind.call:
@@ -2026,6 +2041,17 @@ immutable(FileAndRange) range(scope ref immutable Expr a) {
 			return cbSeq(*a.seq);
 		case Expr.Kind.throw_:
 			return cbThrow(*a.throw_);
+	}
+}
+
+enum AssertOrForbidKind { assert_, forbid }
+
+immutable(Sym) symOfAssertOrForbidKind(immutable AssertOrForbidKind a) {
+	final switch (a) {
+		case AssertOrForbidKind.assert_:
+			return shortSym("assert");
+		case AssertOrForbidKind.forbid:
+			return shortSym("forbid");
 	}
 }
 
