@@ -19,7 +19,7 @@ import
 		set-filter, set-map, set-subscript, size, subscript
 	./sort: set-sort-by
 	./private/sort-utils:
-		binary-search-exact-ptr, binary-search-insert-ptr, hard-assert-comparison-not-equal,
+		binary-search-exact-ptr, binary-search-insert-ptr, assert-comparison-not-equal,
 		merge-no-duplicates
 
 ###
@@ -219,7 +219,7 @@ remove-key<k, v> v?(a mut-sorted-dict<k, v>, key k) trusted is-data<k> compare<k
 		next compact
 		a.pairs set-filter pair => !pair.to.is-empty
 		a.pairs merge-no-duplicates next.pairs, (x, y) =>
-			x.from <=> y.from hard-assert-comparison-not-equal
+			x.from <=> y.from assert-comparison-not-equal
 		a.next := ()
 		a.node-size := a.pairs.size
 

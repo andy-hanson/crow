@@ -13,7 +13,6 @@ import
 	../../str-util: iter, next, slice-left, starts-with
 	../../test-util: is
 	../../writer: ~=, ~~=, backup, move-to-str, new, writer
-	../../private/bootstrap: hard-assert
 	../../private/number-low-level: ==, <=>, nat64, new, unsafe-div, wrap-add, wrap-sub
 	../arr: arr, for-loop, is-empty, size, subscript
 	../arr-util: fold, insert-at-ptr, last, rtail, tail, try-remove
@@ -320,8 +319,8 @@ try-remove<a> tree-set<a>?(a tree-set a, b a) is-data<a> compare<a>
 		a break-up-arr value, insert-ptr, max-height
 
 .break-up-arr<a> add-result a(a a[], value a, insert-ptr a*, max-height nat64) unsafe compare<a>
-	hard-assert: a.begin-ptr <= insert-ptr
-	hard-assert: insert-ptr <= a.end-ptr
+	assert a.begin-ptr <= insert-ptr
+	assert insert-ptr <= a.end-ptr
 	# Break it up into nodes, adding to height
 	mid-ptr = a.begin-ptr + ((a.end-ptr - a.begin-ptr) unsafe-div 2)
 	mid-index = mid-ptr - a.begin-ptr
@@ -329,7 +328,7 @@ try-remove<a> tree-set<a>?(a tree-set a, b a) is-data<a> compare<a>
 		(value, a[0 .. mid-index].leaf, a[mid-index .. a.size].leaf).inner inserted
 	else
 		mid = *mid-ptr
-		hard-assert: mid-index < a.size
+		assert mid-index < a.size
 		left-arr = a[0 .. mid-index]
 		right-arr = a[(mid-index wrap-add 1) .. a.size]
 		forbid left-arr is-empty
@@ -370,12 +369,12 @@ try-remove<a> tree-set<a>?(a tree-set a, b a) is-data<a> compare<a>
 .tree-to-arr<a> a[](a inner-node a, value a, size nat64) trusted compare<a>
 	out fix-arr a = size uninitialized-fix-arr
 	end = out.begin-ptr tree-to-arr-recur a.inner, value
-	hard-assert: end == out.end-ptr
+	assert end == out.end-ptr
 	out cast-immutable
 .tree-to-arr<a> a[](a inner-node a, size nat64) trusted compare<a>
 	out fix-arr a = size uninitialized-fix-arr
 	end = out.begin-ptr tree-to-arr-recur a.inner
-	hard-assert: end == out.end-ptr
+	assert end == out.end-ptr
 	out cast-immutable
 .tree-to-arr-recur<a> a mut*(out a mut*, a node a, value a) compare<a> unsafe
 	match a
@@ -460,7 +459,7 @@ map<out, in> tree-set out(a tree-set in, f act out(in)) is-data<in> compare<in> 
 	end = out.begin-ptr fold a, (cur, value) =>
 		*cur := f[value]
 		cur + 1
-	hard-assert: end == out.end-ptr
+	assert end == out.end-ptr
 	out[0 .. end - out.begin-ptr].set-sort-unique.cast-immutable to-tree-set
 
 .dbg<a> str(a tree-set a) to-str<a>

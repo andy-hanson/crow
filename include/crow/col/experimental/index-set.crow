@@ -2,8 +2,9 @@ no-std
 import
 	../../bits:
 		&, <<, >>, add-bit, has-bit, count-ones, fold-one-bits, high-n-bits, low-n-bits, sub-bit
-	../../bool: !, &&, ||, ==, bool, false, true
-	../../compare: !=, <, <=, >, >=, min
+	../../bool: &&, ==, bool, false, true
+	../../compare: <, <=, >, >=, min
+	../../exception: unreachable
 	../../fun-util: subscript
 	../../log: info, log
 	../../misc: new, void
@@ -14,7 +15,6 @@ import
 	../../str-conv: to-hex, to-str
 	../../test-util: is
 	../../writer: ~=, ~~=, backup, move-to-str, new, writer
-	../../private/bootstrap: hard-assert, hard-unreachable
 	../../private/number-low-level:
 		==, <=>, max-nat64, nat64, new, unsafe-div, unsafe-mod, wrap-add, wrap-mul, wrap-sub
 	../arr: ==, arr, new, size, subscript
@@ -87,10 +87,10 @@ in bool(index nat64, a index-set) trusted
 	index < a.capacity && index in a.root, a.capacity
 # n = capacity of this node
 .in bool(index nat64, a node, n nat64) unsafe
-	hard-assert: index < n
+	assert index < n
 	match a
 	as inner i
-		hard-assert: n > bits-in-leaf-node
+		assert n > bits-in-leaf-node
 		half = n unsafe-div 2
 		quarter = half unsafe-div 2
 		if index < half
@@ -105,7 +105,7 @@ in bool(index nat64, a index-set) trusted
 			else
 				index2 wrap-sub quarter in i.d, quarter
 	as leaf l
-		hard-assert: n == bits-in-leaf-node
+		assert n == bits-in-leaf-node
 		l.values[index word-index] has-bit index.bit-index
 	as empty
 		false
@@ -130,10 +130,10 @@ try-add index-set?(a index-set, index nat64) trusted
 	elif res ?= a.root try-add index, a.capacity
 		(a.capacity, res),
 .try-add node?(a node, index nat64, n nat64) unsafe
-	hard-assert: index < n
+	assert index < n
 	match a
 	as inner i
-		hard-assert: n > bits-in-leaf-node
+		assert n > bits-in-leaf-node
 		half = n unsafe-div 2
 		quarter = half unsafe-div 2
 		if index < half
@@ -152,7 +152,7 @@ try-add index-set?(a index-set, index nat64) trusted
 				if res ?= i.d try-add (index2 wrap-sub quarter), quarter
 					(i with-d res).inner,
 	as leaf l
-		hard-assert: n == bits-in-leaf-node
+		assert n == bits-in-leaf-node
 		word-index = index word-index
 		bit-index = index bit-index
 		word = l.values[word-index]
@@ -177,10 +177,10 @@ try-remove index-set?(a index-set, index nat64) trusted
 		if removed ?= a.root try-remove index, a.capacity
 			(removed simplify-after-remove-or-filter a.capacity),
 .try-remove node?(a node, index nat64, n nat64) unsafe
-	hard-assert: index < n
+	assert index < n
 	match a
 	as inner i
-		hard-assert: n > bits-in-leaf-node
+		assert n > bits-in-leaf-node
 		half = n unsafe-div 2
 		quarter = half unsafe-div 2
 		opt-new-node inner-node? = if index < half
@@ -204,7 +204,7 @@ try-remove index-set?(a index-set, index nat64) trusted
 			else
 				new-node.inner,
 	as leaf l
-		hard-assert: n == bits-in-leaf-node
+		assert n == bits-in-leaf-node
 		word-index = index word-index
 		bit-index = index bit-index
 		word = l.values[word-index]
@@ -220,13 +220,13 @@ try-remove index-set?(a index-set, index nat64) trusted
 	match node
 	as inner i
 		if i.b.is-empty && i.c.is-empty && i.d.is-empty
-			hard-assert: !i.a.is-empty
+			forbid i.a is-empty
 			i.a simplify-after-remove-or-filter (capacity unsafe-div 4)
 		else
 			capacity, i.inner
 	as leaf l
-		hard-assert: capacity == bits-in-leaf-node
-		hard-assert: l.a != 0 || l.b != 0 || l.c != 0 || l.d != 0
+		assert capacity == bits-in-leaf-node
+		forbid l.a == 0 && l.b == 0 && l.c == 0 && l.d == 0
 		capacity, l.leaf
 	as empty
 		0, empty
@@ -254,7 +254,7 @@ try-remove index-set?(a index-set, index nat64) trusted
 	elif word-index == 3
 		a.a, a.b, a.c, new-word
 	else
-		hard-unreachable
+		unreachable
 
 ###
 # TODO: ~ index-set(a index-set, b index-set)
@@ -286,7 +286,7 @@ count-range nat64(a index-set, low nat64, high nat64) trusted
 	if low <= n
 		match a
 		as inner i
-			hard-assert: n > bits-in-leaf-node
+			assert n > bits-in-leaf-node
 			half = n unsafe-div 2
 			quarter = half unsafe-div 2
 			three-quarters = quarter wrap-add half
@@ -297,7 +297,7 @@ count-range nat64(a index-set, low nat64, high nat64) trusted
 			cd = i.d count-range quarter, (low wrap-sub three-quarters), len
 			ca wrap-add cb wrap-add cc wrap-add cd
 		as leaf l
-			hard-assert: n == bits-in-leaf-node
+			assert n == bits-in-leaf-node
 			high = low wrap-add len min (bits-in-leaf-node wrap-sub 1)
 			low-word-index = low word-index
 			high-word-index = high word-index
@@ -347,7 +347,7 @@ filter-less index-set(a index-set, limit nat64) trusted
 .filter-less-recur node(a node, n nat64, limit nat64) unsafe
 	match a
 	as inner i
-		hard-assert: n > bits-in-leaf-node
+		assert n > bits-in-leaf-node
 		half = n unsafe-div 2
 		quarter = half unsafe-div 2
 		new-a = i.a filter-less-recur quarter, limit, 0
@@ -360,7 +360,7 @@ filter-less index-set(a index-set, limit nat64) trusted
 		else
 			new-node inner
 	as leaf l
-		hard-assert: n == bits-in-leaf-node
+		assert n == bits-in-leaf-node
 		new-a = l.a filter-less-word limit, 0
 		new-b = l.b filter-less-word limit, 0x40
 		new-c = l.c filter-less-word limit, 0x80
@@ -442,7 +442,7 @@ for-loop<a> a[](a index-set, f act a(nat64)) trusted
 	end = res.begin-ptr fold a, (cur, x) =>
 		*cur := f[x]
 		cur + 1
-	hard-assert: end == res.end-ptr
+	assert end == res.end-ptr
 	res cast-immutable
 
 .dbg str(a index-set)

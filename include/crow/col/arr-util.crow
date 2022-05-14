@@ -10,12 +10,11 @@ import
 	../range: for-loop
 	../tuple: new, pair
 	../private/alloc: alloc-uninitialized
-	../private/bootstrap: hard-assert, new
 	../private/number-low-level: ==, <=>, nat64, unsafe-div, unsafe-mod, wrap-add, wrap-sub, wrap-mul
 	../private/range-low-level: ..
 	./arr: ~, ~~, arr, for-loop, is-empty, new, size, subscript
 	./iter: new, value-and-rest
-	./private/arr-low-level: arr-from-begin-end, begin-ptr, end-ptr, noctx-at
+	./private/arr-low-level: arr-from-begin-end, arr-from-begin-size, begin-ptr, end-ptr
 
 region basic array operations
 
@@ -258,7 +257,7 @@ Also equivalent to `a exists it => it == value`.
 in<a> bool(value a, a a[]) noctx equal<a>
 	value in-recur a, 0
 .in-recur<a> bool(value a, a a[], i nat64) noctx trusted equal<a>
-	i != a.size && ((a noctx-at i) == value || (value in-recur a, (i wrap-add 1)))
+	i != a.size && (a[i] == value || (value in-recur a, (i wrap-add 1)))
 
 ###
 If `value` is in `a`, returns `a` with the first instance of `value` removed.
@@ -337,7 +336,7 @@ Returns the first index `i` where `a[i] == value`.
 Equivalent to `a find-index x => x == value`.
 Returns an empty option iff `value` is not in the array.
 ###
-index-of<a> nat64?(a a[], value a) trusted equal<a>
+index-of<a> nat64?(a a[], value a) noctx trusted equal<a>
 	if v ?= a ptr-of value
 		v - a.begin-ptr,
 
@@ -353,9 +352,9 @@ index-of-reverse<a> nat64?(a a[], value a) equal<a>
 Returns a pointer to the first element equal to `value`.
 Returns an empty option iff `value` is not in the array.
 ###
-ptr-of<a> a*?(a a[], value a) no-doc unsafe equal<a>
+ptr-of<a> a*?(a a[], value a) no-doc noctx unsafe equal<a>
 	a.begin-ptr ptr-of-recur a.end-ptr, value
-.ptr-of-recur<a> a*?(cur a*, end a*, value a) unsafe equal<a>
+.ptr-of-recur<a> a*?(cur a*, end a*, value a) noctx unsafe equal<a>
 	unless cur == end
 		if *cur == value
 			cur,
@@ -376,7 +375,7 @@ flatten<a> a[](a a[][]) trusted
 			ptr = *cur
 			*ptr := x
 			*cur := ptr + 1
-	hard-assert: *cur == res + total-size
+	assert *cur == res + total-size
 	res.as-const arr-from-begin-end cur->as-const
 
 zip-each<a, b> void(a a[], b b[], f act void(a, b))
@@ -526,7 +525,7 @@ split-by-subseq<a> a[][](a a[], splitter a[]) equal<a> equal<a[]> trusted
 	size = a count-subseqs splitter wrap-add 1
 	res a[] mut* = size alloc-uninitialized
 	res split-by-subseq-recur a, splitter
-	size, res.as-const
+	res.as-const arr-from-begin-size size
 # TODO: equal<a[]> should be unnecessary
 .split-by-subseq-recur<a> void(out a[] mut*, a a[], splitter a[]) equal<a> equal<a[]> unsafe
 	if index ?= a index-of-subseq splitter
@@ -577,15 +576,15 @@ end-iter<a> arr-iter<a>(a a[]) noctx
 	a, a.size
 
 next<a> value-and-rest<a, arr-iter a>?(a arr-iter a) trusted noctx
-	hard-assert: a.index <= a.xs.size
+	assert a.index <= a.xs.size
 	if a.index != a.xs.size
-		((a.xs noctx-at a.index), (a.xs, a.index wrap-add 1)),
+		(a.xs[a index], (a.xs, a.index wrap-add 1)),
 
 prev<a> value-and-rest<a, arr-iter a>?(a arr-iter a) trusted noctx
-	hard-assert: a.index <= a.xs.size
+	assert a.index <= a.xs.size
 	if a.index != 0
 		prev-index = a.index wrap-sub 1
-		((a.xs noctx-at prev-index), (a.xs, prev-index)),
+		(a.xs[prev-index], (a.xs, prev-index)),
 
 slice-left<a> a[](a arr-iter a)
 	a.xs[0 .. a.index]

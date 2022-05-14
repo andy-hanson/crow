@@ -11,7 +11,7 @@ import
 		as-mut, as-ref, by-val, const-ptr, mut-ptr, null, ptr-cast, ref-of-val, set-deref,
 		size-of, to-nat64
 	./bootstrap:
-		gc-ctx-ptr, get-ctx, hard-assert, lock, nat64, none, opt, some, todo, void
+		ctx, gc-ctx-ptr, get-ctx, hard-assert, lock, nat64, none, opt, some, todo, void
 	./number-low-level: ==, <=>, nat8, unsafe-div, wrap-add, wrap-mul, wrap-sub
 	./thread-utils: acquire, barrier, init, release, wait-barrier, uninit
 
@@ -207,7 +207,10 @@ return-gc-ctx void(gc-ctx gc-ctx) noctx unsafe
 	gc.lk.ref-of-val release
 
 get-gc-ctx gc-ctx() unsafe
-	get-ctx.gc-ctx-ptr as-ref
+	get-ctx get-gc-ctx
+
+get-gc-ctx gc-ctx(a ctx) noctx unsafe
+	a.gc-ctx-ptr as-ref
 
 get-gc gc() unsafe
 	get-gc-ctx gc
@@ -226,11 +229,11 @@ validate-gc void(gc gc) noctx unsafe
 	hard-assert: gc.data-end - gc.data-begin == gc.size-words
 	hard-assert: mark-idx == data-idx
 
-.try-gc-alloc any-mut-ptr?(gc gc, size-bytes nat64) noctx trusted
-	gc.lk.ref-of-val acquire
-	res = gc try-gc-alloc-recur size-bytes
-	gc maybe-set-needs-gc
-	gc.lk.ref-of-val release
+.try-gc-alloc any-mut-ptr?(gc gc-ctx, size-bytes nat64) noctx trusted
+	gc.gc.lk.ref-of-val acquire
+	res = gc.gc try-gc-alloc-recur size-bytes
+	gc.gc maybe-set-needs-gc
+	gc.gc.lk.ref-of-val release
 	res
 
 .maybe-set-needs-gc void(gc gc) noctx unsafe
@@ -265,7 +268,7 @@ validate-gc void(gc gc) noctx unsafe
 	else
 		mark + 1 first-non-free end
 
-gc-alloc any-mut-ptr(gc gc, size nat64) noctx trusted
+gc-alloc any-mut-ptr(gc gc-ctx, size nat64) noctx trusted
 	if res ?= gc try-gc-alloc size
 		res
 	else
@@ -273,28 +276,31 @@ gc-alloc any-mut-ptr(gc gc, size nat64) noctx trusted
 		todo
 
 alloc any-mut-ptr(size-bytes nat64) unsafe
-	get-gc gc-alloc size-bytes
-
-try-alloc any-mut-ptr?(size-bytes nat64) unsafe
-	get-gc try-gc-alloc size-bytes
+	get-gc-ctx gc-alloc size-bytes
 
 alloc-uninitialized<a> a mut*(count nat64) unsafe
-	get-gc alloc-uninitialized count
+	get-gc-ctx alloc-uninitialized count
 
-alloc-uninitialized<a> a mut*(gc gc, count nat64) noctx unsafe
+alloc-uninitialized<a> a mut*(gc gc-ctx, count nat64) noctx unsafe
 	gc gc-alloc (count wrap-mul size-of@<a>) ptr-cast
 
-alloc-uninitialized<a> a mut*(gc gc) noctx unsafe
+alloc-uninitialized<a> a mut*(gc gc-ctx) noctx unsafe
 	gc alloc-uninitialized 1
 
 try-alloc-uninitialized<a> a mut*?(size nat64) unsafe
-	if res ?= size wrap-mul size-of@<a> try-alloc
+	get-gc-ctx try-alloc-uninitialized size
+
+try-alloc-uninitialized<a> a mut*?(gc gc-ctx, size nat64) noctx unsafe
+	if res ?= gc try-gc-alloc (size wrap-mul size-of@<a>)
 		res.ptr-cast some
 	else
 		none
 
 try-alloc-uninitialized<a> a mut*?() unsafe
 	1 try-alloc-uninitialized
+
+try-alloc-uninitialized<a> a mut*?(gc gc-ctx) noctx unsafe
+	gc try-alloc-uninitialized 1
 
 unmanaged-alloc-uninitialized<a> a mut*() noctx unsafe
 	1 unmanaged-alloc-elements
@@ -316,6 +322,6 @@ unmanaged-alloc-elements<a> a mut*(size-elements nat64) noctx unsafe
 unmanaged-free<a> void(p a mut*) noctx unsafe
 	p.as-any-mut-ptr free
 
-copy-data-from<a> void(to a mut*, from a*, len nat64) unsafe
+copy-data-from<a> void(to a mut*, from a*, len nat64) noctx unsafe
 	_ = to.as-any-mut-ptr memcpy from.as-any-const-ptr, (len wrap-mul size-of@<a>)
 	()

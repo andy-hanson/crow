@@ -15,7 +15,7 @@ import
 	../test-util: is
 	../tuple: from, new, pair, to
 	../writer: ~=, ~~=, backup, move-to-str, new, writer
-	../private/bootstrap: hard-assert, todo
+	../private/bootstrap: todo
 	../private/number-low-level: ==, <=>, nat64, wrap-add, wrap-sub
 	./arr: ~, arr, arr-equal, for-loop, is-empty, new, size, subscript
 	./arr-util:
@@ -317,7 +317,7 @@ try-remove<k, v> try-remove-result<k, v>?(a v[k], key k) is-data<k> compare<k> h
 				new-out-index = out-index wrap-add l.size
 				out[out-index .. new-out-index] copy-from l
 				new-out-index
-		hard-assert: end == out.size
+		assert end == out.size
 		out.cast-immutable.leaf-node,
 
 .find-only-non-empty-child<k, v> node<k, v>?(children node<k, v>[])
@@ -421,7 +421,7 @@ map-to-arr<a, k, v> a[](a v[k], f act a(k, v)) trusted is-data<k> compare<k> has
 	end = res.begin-ptr fold a, (cur, k, v) =>
 		*cur := f[k, v]
 		cur + 1
-	hard-assert: end == res.end-ptr
+	assert end == res.end-ptr
 	res cast-immutable
 
 .dbg str(a str[nat64])

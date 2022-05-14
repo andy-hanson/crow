@@ -16,7 +16,6 @@ import
 	../../tuple: from, new, pair, to
 	../../writer: ~=, ~~=, backup, move-to-str, new, writer
 	../../private/alloc: mem-copy
-	../../private/bootstrap: hard-assert
 	../../private/number-low-level: wrap-add
 	../arr: arr, for-loop, is-empty, new, size, subscript
 	../arr-util: filter, fold, tail
@@ -149,8 +148,8 @@ in<k, v> bool(key k, a compact-sorted-dict<k, v>) is-data<k> compare<k>
 	r pair<k, v>*,
 	r-end pair<k, v>*,
 ) noctx unsafe compare<k>
-	hard-assert: l < l-end
-	hard-assert: r < r-end
+	assert l < l-end
+	assert r < r-end
 	match l->from <=> r->from
 	as less
 		*out := *l
@@ -188,8 +187,8 @@ in<k, v> bool(key k, a compact-sorted-dict<k, v>) is-data<k> compare<k>
 	r pair<k, v?>*,
 	r-end pair<k, v?>*,
 ) unsafe noctx is-data<k> compare<k>
-	hard-assert: l < l-end
-	hard-assert: r < r-end
+	assert l < l-end
+	assert r < r-end
 	match l->from <=> r->from
 	as less
 		*out := *l

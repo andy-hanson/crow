@@ -13,7 +13,6 @@ import
 	../../test-util: is
 	../../tuple: from, new, pair, to
 	../../writer: ~=, ~~=, backup, move-to-str, new, writer
-	../../private/bootstrap: hard-assert
 	../../private/number-low-level: ==, <=>, nat64, wrap-add
 	../arr: arr, new
 	../arr-util: fold
@@ -199,7 +198,7 @@ map-to-arr<a, k, v> a[](a compact-dict<k, v>, f act a(k, v)) trusted is-data<k> 
 	end = res.begin-ptr fold a, (cur, k, v) =>
 		*cur := f[k, v]
 		cur + 1
-	hard-assert: end == res.end-ptr
+	assert end == res.end-ptr
 	res cast-immutable
 
 .dbg<k, v> str(a compact-dict<k, v>) to-str<k> to-str<v>

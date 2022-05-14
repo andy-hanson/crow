@@ -339,4 +339,4 @@ join-one-thread void(a thread-handle) noctx unsafe summon
 				todo
 			else
 				todo
-		hard-assert: *thread-return.ref-of-val == null
+		assert *thread-return.ref-of-val == null

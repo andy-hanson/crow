@@ -150,11 +150,11 @@ unsafe-div int32(a int32, b int32) noctx unsafe builtin
 unsafe-div int64(a int64, b int64) noctx unsafe builtin
 
 # Equivlaent to `a is-multiple-of 2`.
-is-even bool(a nat64) trusted
+is-even bool(a nat64) noctx trusted
 	(a unsafe-mod 2) == 0
 
 # Equivalent to `!a.is-even`.
-is-odd bool(a nat64)
+is-odd bool(a nat64) noctx
 	!a.is-even
 
 region constants
@@ -199,9 +199,9 @@ max-nat64 nat64() noctx
 	0xffffffffffffffff
 
 
-round-up-to-power-of-two nat64(n nat64)
+round-up-to-power-of-two nat64(n nat64) noctx
 	1 round-up-to-power-of-two-recur n
-.round-up-to-power-of-two-recur nat64(acc nat64, n nat64)
+.round-up-to-power-of-two-recur nat64(acc nat64, n nat64) noctx
 	if acc >= n
 		acc
 	else

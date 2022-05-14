@@ -6,7 +6,7 @@ import
 	crow/fun-util: fun-ptr1
 	crow/misc: new
 	crow/ptr: any-const-ptr, any-mut-ptr, by-val, const-ptr, mut-ptr, ref-of-val, zeroed
-	crow/private/bootstrap: int32
+	crow/private/number-low-level: int32
 	time: __clockid_t, timespec
 
 pthread_t alias

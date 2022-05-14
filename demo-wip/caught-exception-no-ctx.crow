@@ -1,0 +1,15 @@
+import
+	crow/ptr: any-mut-ptr, null, ptr-to
+	pthread: pthread_create, pthread_t
+
+main fut nat(_ str[]) summon unsafe
+	thread mut pthread_t = ()
+	# avoid 'mutable but never reassigned' error
+	thread := 0
+	err = thread.ptr-to pthread_create null, &thread-fun, null
+	assert err == 0
+	()
+
+.thread-fun any-mut-ptr(a any-mut-ptr) noctx
+	assert 1 + 1 == 3
+	a

@@ -6,7 +6,6 @@ import
 	./misc: new, void
 	./opt: is-empty, new, opt
 	./private/alloc: alloc-uninitialized
-	./private/bootstrap: hard-assert
 	./private/number-low-level: ==, nat64, wrap-add, wrap-sub
 	./ptr: ==, +, as-const, mut-ptr, set-deref
 export
@@ -60,7 +59,7 @@ for-loop<a> a[](a range nat64, f act a(nat64)) trusted
 	n mut = a low
 	loop
 		if cur == end
-			hard-assert: n == a.high
+			assert n == a.high
 			break out.as-const arr-from-begin-end end.as-const
 		else
 			*cur := f[n]

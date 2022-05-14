@@ -8,7 +8,6 @@ import
 	crow/compare: <=, min
 	crow/number: ==, <=>, *, float32, nat8, to-nat64
 	crow/private/alloc: mem-copy
-	crow/private/bootstrap: hard-assert, hard-unreachable
 	crow/ptr: ==, <=>, +, -, any-mut-ptr, as-any-mut-ptr, as-ref, const-ptr, mut-ptr
 	crow/str: str
 	crow/str-util: to-c-str
@@ -55,7 +54,7 @@ sound-from-file-content sound(content nat8[]) trusted
 	as SEEK_END
 		a.content end-ptr
 	pos = start + offset
-	hard-assert: a.content.begin-ptr <= pos && pos <= a.content.end-ptr
+	assert a.content.begin-ptr <= pos && pos <= a.content.end-ptr
 	a.cur := pos
 	pos - a.content.begin-ptr
 
@@ -67,7 +66,7 @@ sound-from-file-content sound(content nat8[]) trusted
 	n-to-read
 
 .write sf_count_t(_ nat8*, _ sf_count_t, _ any-mut-ptr) noctx unsafe
-	hard-unreachable
+	unreachable
 
 .tell sf_count_t(user-data-ptr any-mut-ptr) noctx unsafe
 	a user-data = user-data-ptr as-ref

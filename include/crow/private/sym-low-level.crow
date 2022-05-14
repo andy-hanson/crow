@@ -11,7 +11,7 @@ import
 	../str-util: to-str
 	../tuple: a, b, new
 	./alloc: unmanaged-alloc-elements
-	./bootstrap: hard-assert, new-sym, static-syms
+	./bootstrap: new-sym, static-syms
 	./number-low-level: wrap-add
 	./runtime: get-global-ctx, global-ctx, set-syms-table, syms-lock, syms-table
 	./thread-utils: with-lock
@@ -53,6 +53,6 @@ str-to-sym sym(a str) trusted
 	end = res fold a.char8s, (cur, x) =>
 		*cur := x
 		cur + 1
-	hard-assert: end == res + a.char8s.size
+	assert end == res + a.char8s.size
 	*end := "\0"
 	res as-const

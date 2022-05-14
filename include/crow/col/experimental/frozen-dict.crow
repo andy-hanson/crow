@@ -12,13 +12,12 @@ import
 	../../tuple: from, new, pair, to
 	../../private/alloc: alloc-uninitialized
 	../../private/number-low-level: ==, <=>, nat64, unsafe-div, unsafe-mod, wrap-add, wrap-sub
-	../arr: ==, arr, for-loop, is-empty, new, size
+	../arr: ==, arr, for-loop, is-empty, new, size, subscript
 	../arr-util: fold, fold-with-index
 	../fix-arr:
 		begin-ptr, cast-immutable, end-ptr, fill, fill-fix-arr, fix-arr, fix-arr-from-begin-end,
-		for-loop, size, temp-as-arr, to-fix-arr, uninitialized-fix-arr, unsafe-at,
-		unsafe-set-at
-	../private/arr-low-level: arr-cast, arr-from-begin-end, begin-ptr, end-ptr, unsafe-at
+		for-loop, size, temp-as-arr, to-fix-arr, set-subscript, subscript, uninitialized-fix-arr
+	../private/arr-low-level: arr-cast, arr-from-begin-end, begin-ptr, end-ptr
 
 ###
 Immutable dictionary that is not efficient to update.
@@ -67,11 +66,11 @@ try-get-unordered-index<k, v> nat64?(a frozen-dict<k, v>, key k) trusted is-data
 		a pairs
 	else
 		bucket-index = key.hash unsafe-mod a.bucket-starts.size
-		bucket-start = a.bucket-starts unsafe-at bucket-index
+		bucket-start = a.bucket-starts[bucket-index]
 		bucket-end = if bucket-index == (a.bucket-starts.size wrap-sub 1)
 			a.pairs end-ptr
 		else
-			a.bucket-starts unsafe-at (bucket-index wrap-add 1)
+			a.bucket-starts[bucket-index wrap-add 1]
 		bucket-start arr-from-begin-end bucket-end
 
 	bucket.begin-ptr find-ptr bucket.end-ptr, key
@@ -188,7 +187,7 @@ fix-arr-to-frozen-dict-promise-no-duplicates<k, v> frozen-dict<k, v>(
 	res = n-buckets fill-fix-arr 0
 	for pair : a
 		bucket-index = pair.from get-bucket-index n-buckets
-		res unsafe-set-at bucket-index, (res unsafe-at bucket-index wrap-add 1)
+		res[bucket-index] := res[bucket-index] wrap-add 1
 	res
 
 .move-values-to-buckets-recur<k, v> void(
@@ -199,15 +198,15 @@ fix-arr-to-frozen-dict-promise-no-duplicates<k, v> frozen-dict<k, v>(
 ) unsafe hash-mix<k>
 	unless cur == end
 		bucket-index = cur->from get-bucket-index bucket-counts.size
-		bucket-count = bucket-counts unsafe-at bucket-index
-		bucket-start = bucket-starts unsafe-at bucket-index
+		bucket-count = bucket-counts[bucket-index]
+		bucket-start = bucket-starts[bucket-index]
 		bucket-cur-end = bucket-start + bucket-count
 		new-cur = if bucket-start <= cur && cur <= bucket-cur-end
 			if cur == bucket-cur-end
-				bucket-counts unsafe-set-at bucket-index, (bucket-count wrap-add 1)
+				bucket-counts[bucket-index] := bucket-count wrap-add 1
 			cur + 1
 		else
-			bucket-counts unsafe-set-at bucket-index, (bucket-count wrap-add 1)
+			bucket-counts[bucket-index] := bucket-count wrap-add 1
 			cur swap bucket-cur-end
 			cur
 		new-cur move-values-to-buckets-recur end, bucket-counts, bucket-starts

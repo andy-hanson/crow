@@ -224,21 +224,24 @@ For flags: 0.
 ###
 safe-value<a> a() builtin
 
-hard-unreachable<a> a() unsafe noctx
-	abort
-	zeroed
-
 todo<a> a() trusted noctx
 	## TODO: soft-fail, remove 'trusted noctx' above
 	abort
 	zeroed
 
+# Used in low-level code that should always abort on failure instead of throwing an exception
+hard-unreachable<a> a() unsafe noctx
+	abort
+	zeroed
+
+# Used in low-level code that should always abort on failure instead of throwing an exception
 hard-assert void(condition bool) noctx unsafe
 	if condition
 		new-void
 	else
 		abort
 
+# Used in low-level code that should always abort on failure instead of throwing an exception
 hard-forbid void(condition bool) noctx unsafe
 	if condition
 		abort
@@ -283,7 +286,6 @@ ctx record mut by-ref
 thread-local-stuff record mut by-ref
 	thread-id nat64
 	print-lock lock
-	exception-ctx-ptr any-mut-ptr
 	log-ctx-ptr any-mut-ptr
 	perf-ctx-ptr any-mut-ptr
 

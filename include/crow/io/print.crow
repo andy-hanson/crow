@@ -15,7 +15,7 @@ import
 	../str-conv: finish, interp, to-str, with-str, with-value
 	../str-util: to-bytes
 	../version: is-windows
-	../private/bootstrap: hard-assert, todo
+	../private/bootstrap: todo
 	../private/number-low-level: ==, nat8, unsafe-to-int64, unsafe-to-nat32
 	./win32-util: show-win32-error
 
@@ -53,7 +53,7 @@ print-err-no-newline void(a str) summon trusted
 		todo
 
 .write-posix void(fd fd-t, a str) summon unsafe
-	hard-assert: size-of@<char8> == size-of@<nat8>
+	assert size-of@<char8> == size-of@<nat8>
 	bytes = a to-bytes
 	res = fd write bytes.begin-ptr, bytes.size
 	unless res == bytes.size.unsafe-to-int64

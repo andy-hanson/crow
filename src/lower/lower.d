@@ -1474,7 +1474,7 @@ immutable(LowExprKind) getCallBuiltinExpr(
 				getLowExpr(ctx, locals, a.args[0], ExprPos.nonTail),
 				getArgs(ctx, locals, a.args[1 .. $])))),
 		(ref immutable BuiltinKind.GetCtx) =>
-			getGetCtxExpr(ctx),
+			immutable LowExprKind(immutable LowExprKind.ParamRef(force(ctx.ctxParam))),
 		(ref immutable Constant it) =>
 			immutable LowExprKind(it),
 		(ref immutable BuiltinKind.InitConstants) =>
@@ -1545,14 +1545,6 @@ immutable(LowExprKind) getCallBuiltinExpr(
 			immutable LowExprKind(ctx.staticSyms),
 		(ref immutable BuiltinKind.Zeroed) =>
 			immutable LowExprKind(immutable LowExprKind.Zeroed()));
-}
-
-immutable(LowExpr) getGetCtxLowExpr(ref const GetLowExprCtx ctx, immutable FileAndRange range) {
-	return immutable LowExpr(ctx.ctxType, range, getGetCtxExpr(ctx));
-}
-
-immutable(LowExprKind) getGetCtxExpr(ref const GetLowExprCtx ctx) {
-	return immutable LowExprKind(immutable LowExprKind.ParamRef(force(ctx.ctxParam)));
 }
 
 immutable(LowExprKind) getCreateArrExpr(
@@ -1713,10 +1705,7 @@ immutable(LowExprKind) getThrowExpr(
 ) {
 	immutable LowExprKind callThrow = immutable LowExprKind(immutable LowExprKind.Call(
 		ctx.throwImplFunIndex,
-		arrLiteral!LowExpr(ctx.alloc, [
-			getGetCtxLowExpr(ctx, range),
-			// This also needs the ctx!
-			getLowExpr(ctx, locals, a.thrown, ExprPos.nonTail)])));
+		arrLiteral!LowExpr(ctx.alloc, [getLowExpr(ctx, locals, a.thrown, ExprPos.nonTail)])));
 	return type == voidType
 		? callThrow
 		: immutable LowExprKind(allocate(ctx.alloc, immutable LowExprKind.Seq(

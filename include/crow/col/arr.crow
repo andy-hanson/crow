@@ -9,11 +9,10 @@ import
 	../fun-util: subscript
 	../misc: void
 	../private/alloc: alloc-uninitialized, copy-data-from
-	../private/bootstrap: hard-assert, new
-	../private/number-low-level: ==, <=>, nat8, nat64, wrap-add, wrap-sub
+	../private/number-low-level: ==, <=>, nat8, nat64, wrap-add
 	../private/range-low-level: low, high, range
-	../ptr: *, ==, +, as-const, const-ptr, mut-ptr, set-deref
-	./private/arr-low-level: arr-from-begin-end, begin-ptr, end-ptr, unsafe-at
+	../ptr: *, ==, +, as-const, const-ptr, mut-ptr, set-deref, subscript
+	./private/arr-low-level: arr-from-begin-end, arr-from-begin-size, begin-ptr, end-ptr
 export
 	../private/bootstrap: arr, size
 	./private/arr-low-level: new
@@ -26,18 +25,18 @@ is-empty<a> bool(a a[]) noctx
 Gets the element at the index.
 Throws if `index >= a.size`.
 ###
-subscript<a> a(a a[], index nat64) trusted
+subscript<a> a(a a[], index nat64) noctx trusted
 	assert index < a.size : "index out of bounds"
-	a unsafe-at index
+	a.begin-ptr[index]
 
 ###
 Gets an array elements from 'range.low' (inclusive) to 'range.height' (exclusive).
 This works in O(1) without copying any elements.
 Throws if the slice would exceed the bounds of the arr.
 ###
-subscript<a> a[](a a[], range range nat64) trusted
+subscript<a> a[](a a[], range range nat64) noctx trusted
 	assert range.high <= a.size : "slice out of bounds"
-	(range.high wrap-sub range.low), a.begin-ptr + range.low
+	a.begin-ptr + range.low arr-from-begin-end a.begin-ptr + range.high
 
 ###
 Prepend an element to an array.
@@ -64,7 +63,7 @@ If you need concatenate many arrays, use a `mut[]` to accumulate elements, then 
 	res a mut* = res-size alloc-uninitialized
 	res copy-data-from a.begin-ptr, a.size
 	res + a.size copy-data-from b.begin-ptr, b.size
-	res-size, res.as-const
+	res.as-const arr-from-begin-size res-size
 
 # TODO: arr comparison should be generic
 arr-equal<a> bool(a a[], b a[]) no-doc trusted noctx equal<a>
@@ -138,7 +137,7 @@ for-loop<out, in> out[](a in[], f act out(in)) trusted
 	loop
 		if in-cur == in-end
 			out-end = out-begin + a.size
-			hard-assert: out-cur == out-end
+			assert out-cur == out-end
 			break out-begin.as-const arr-from-begin-end out-end.as-const
 		else
 			*out-cur := f[*in-cur]

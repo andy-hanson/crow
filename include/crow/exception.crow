@@ -10,14 +10,7 @@ import
 	./private/number-low-level: ==
 	./str-util: join, to-str
 export
-	./private/exception-low-level: catch, exception, message, rethrow
-
-###
-Fail unconditionally.
-This function is used to mark part of an `if` or `match` that should not be possible.
-###
-unreachable<a> a()
-	throw "should be unreachable"
+	./private/exception-low-level: catch, exception, message, rethrow, unreachable
 
 region handling
 

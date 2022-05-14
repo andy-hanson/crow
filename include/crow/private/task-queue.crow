@@ -2,8 +2,8 @@ no-std
 import
 	../bool: !, &&, bool
 	../col/mut-arr:
-		in, mut-arr, mut-arr-by-val-with-capacity-from-unmanaged-memory,
-		noctx-must-remove-unordered, push-capacity-must-be-sufficient
+		in, index-of, mut-arr, mut-arr-by-val-with-capacity-from-unmanaged-memory,
+		remove-unordered-at, push-capacity-must-be-sufficient
 	../compare: <, <=
 	../io/private/time-low-level: timestamp
 	../misc: new, void
@@ -97,7 +97,12 @@ pop-task pop-task-result(a task-queue, cur-time timestamp) noctx unsafe
 			task,
 
 return-task void(a task-queue, task task) noctx unsafe
-	a.currently-running-exclusions.ref-of-val noctx-must-remove-unordered task.exclusion
+	exclusions = a.currently-running-exclusions ref-of-val
+	if index ?= exclusions index-of task.exclusion
+		_ = exclusions remove-unordered-at index
+		()
+	else
+		hard-unreachable
 
 add-timed-task void(a task-queue, task task-node-with-time) noctx unsafe
 	a.timed-sentinel add-timed-task-recur task
