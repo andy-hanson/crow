@@ -5,7 +5,7 @@ import
 	../fun-util: subscript
 	../misc: new, void
 	../opt: ??, ||, is-empty, new, opt
-	../private/bootstrap: hard-assert, hard-forbid, hard-unreachable
+	../private/exception-low-level: unreachable
 	../private/number-low-level: ==, <=>, nat64, wrap-add, wrap-sub, wrap-mul
 	../ptr: ==, +, set-deref, size-of
 	../tuple: a, b, new, pair
@@ -97,7 +97,7 @@ branch<a, lower> record
 .as-branch<a, lower> branch<a, lower>(a node<a, lower>) unsafe noctx
 	match a
 	as leaf _
-		hard-unreachable
+		unreachable
 	as branch b
 		b
 
@@ -241,7 +241,7 @@ This is O(log n), amortized O(1).
 		match r
 		as leaf _
 			# 'r' should be bigger
-			hard-unreachable
+			unreachable
 		as branch br
 			down1 = cat-left-array-lower[bl.right ~~ br.left, br.down]
 			down2 = cat-left-node-lower[bl.down, down1]
@@ -261,7 +261,7 @@ This is O(log n), amortized O(1).
 		match l
 		as leaf _
 			# 'l' should be bigger
-			hard-unreachable
+			unreachable
 		as branch bl
 			down1 = cat-right-array-lower[bl.down, bl.right ~~ br.left]
 			down2 = cat-right-node-lower[down1, br.down]
@@ -540,7 +540,7 @@ slice-right<a> seq a(a seq-iter a) trusted
 		else
 			left ~~ right leaf
 	else
-		hard-forbid: left.is-empty && right.is-empty
+		forbid left.is-empty && right.is-empty
 		if left is-empty
 			pair = down pop-left
 			if pair.b is-empty
@@ -639,12 +639,12 @@ slice-right<a> seq a(a seq-iter a) trusted
 	(), (), ()
 
 .as-2d<a> arr-2d-iter a(a arr-3d-iter a) trusted
-	hard-assert: a.cur-3d.prev.is-empty && a.cur-3d.next.is-empty
+	assert a.cur-3d.prev.is-empty && a.cur-3d.next.is-empty
 	a.cur-1d, a.cur-2d
 
 .as-1d<a> arr-iter a(a arr-3d-iter a) trusted
-	hard-assert: a.cur-2d.prev.is-empty && a.cur-2d.next.is-empty
-	hard-assert: a.cur-3d.prev.is-empty && a.cur-3d.next.is-empty
+	assert a.cur-2d.prev.is-empty && a.cur-2d.next.is-empty
+	assert a.cur-3d.prev.is-empty && a.cur-3d.next.is-empty
 	a cur-1d
 
 .to-iter3d<a> arr-3d-iter a(a arr-iter a) noctx
@@ -813,7 +813,7 @@ for-loop<out, in> out[](a seq in, f act out(in)) trusted
 	end = res.begin-ptr fold a, (out, x) =>
 		*out := f[x]
 		out + 1
-	hard-assert: end == res.end-ptr
+	assert end == res.end-ptr
 	res cast-immutable
 
 flatten<a> seq a(a seq a[])
@@ -964,4 +964,4 @@ reverse<a> seq a(a seq a)
 	if x ?= a
 		x
 	else
-		hard-unreachable
+		unreachable

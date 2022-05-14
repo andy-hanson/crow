@@ -10,7 +10,6 @@ import
 	../str-conv: to-str
 	../test-util: is
 	../writer: ~=, ~~=, backup, move-to-str, new, writer
-	../private/bootstrap: hard-assert
 	../private/number-low-level: ==, <=>, is-even, nat64, wrap-add
 	./arr: ==, arr, for-loop, is-empty, new, size
 	./arr-util: first, fold, last, rtail, tail
@@ -45,7 +44,7 @@ to-arr<a> a[](a deque a) trusted
 	end = res.begin-ptr fold a, (out, x) =>
 		*out := x
 		out + 1
-	hard-assert: end == res.end-ptr
+	assert end == res.end-ptr
 	res cast-immutable
 
 ###
@@ -128,7 +127,7 @@ map<out, in> deque out(a deque in, f act out(in)) trusted
 	end = res.begin-ptr fold a, (out, x) =>
 		*out := f[x]
 		out + 1
-	hard-assert: end == res.end-ptr
+	assert end == res.end-ptr
 	res.cast-immutable to-deque
 
 .dbg str(a deque nat64)

@@ -10,7 +10,6 @@ import
 		==, <=>, +, -, *, as-any-const-ptr, as-any-mut-ptr, as-const, as-mut, by-val, mut-ptr,
 		ptr-cast, ref-of-ptr, set-deref, set-subscript, size-of, subscript, swap
 	../private/alloc: alloc-uninitialized, set-zero-range
-	../private/bootstrap: hard-assert
 	../private/number-low-level: ==, <=>, nat64, unsafe-div, unsafe-mod, wrap-add, wrap-mul, wrap-sub
 	../private/range-low-level: .., range
 	./arr: arr, for-loop, new, size, subscript
@@ -69,7 +68,7 @@ subscript<a> fix-arr a(a a mut*, range range nat64) noctx unsafe
 
 # Creates a `fix-arr` from a range of pointers.
 fix-arr-from-begin-end<a> fix-arr a(begin a mut*, end a mut*) no-doc unsafe noctx
-	hard-assert: begin <= end
+	assert begin <= end
 	(begin.as-const arr-from-begin-end end.as-const),
 
 ###
@@ -202,7 +201,7 @@ Equivalent to `f[0], f[1], ...`.
 	i mut = 0
 	loop
 		if i == size
-			hard-assert: out == res.end-ptr
+			assert out == res.end-ptr
 			break res
 		else
 			*out := f[i]
@@ -310,9 +309,9 @@ Casts elements to a different type.
 If the element type is different, adjusts the size so that the number of bytes is the same.
 ###
 cast-fix-arr<out, in> fix-arr out(a fix-arr in) noctx unsafe
-	hard-assert: size-of@<in> != 0 && size-of@<out> != 0
+	assert size-of@<in> != 0 && size-of@<out> != 0
 	size-bytes = a.size wrap-mul size-of@<in>
-	hard-assert: (size-bytes unsafe-mod size-of@<out>) == 0
+	assert (size-bytes unsafe-mod size-of@<out>) == 0
 	size-out = size-bytes unsafe-div size-of@<out>
 	a.begin-ptr.ptr-cast@<out, in>[0 .. size-out]
 

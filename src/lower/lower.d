@@ -1713,10 +1713,7 @@ immutable(LowExprKind) getThrowExpr(
 ) {
 	immutable LowExprKind callThrow = immutable LowExprKind(immutable LowExprKind.Call(
 		ctx.throwImplFunIndex,
-		arrLiteral!LowExpr(ctx.alloc, [
-			getGetCtxLowExpr(ctx, range),
-			// This also needs the ctx!
-			getLowExpr(ctx, locals, a.thrown, ExprPos.nonTail)])));
+		arrLiteral!LowExpr(ctx.alloc, [getLowExpr(ctx, locals, a.thrown, ExprPos.nonTail)])));
 	return type == voidType
 		? callThrow
 		: immutable LowExprKind(allocate(ctx.alloc, immutable LowExprKind.Seq(

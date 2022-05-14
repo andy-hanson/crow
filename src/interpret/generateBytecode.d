@@ -250,7 +250,7 @@ void generateBytecodeForFun(
 	verify(threadLocalsInfo.totalSizeWords < maxThreadLocalsSizeWords);
 
 	debug {
-		if (false) {
+		if (true) {
 			import util.writer : finishWriterToCStr;
 			import core.stdc.stdio : printf;
 			import interpret.debugging : writeFunName;

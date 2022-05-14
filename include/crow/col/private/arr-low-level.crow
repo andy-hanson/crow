@@ -2,7 +2,7 @@ no-std
 import
 	../../compare: <, <=
 	../../ptr: ==, <=>, +, -, const-ptr, ptr-cast, size-of, subscript
-	../../private/bootstrap: hard-assert, new
+	../../private/bootstrap: new
 	../../private/number-low-level: ==, <=>, nat64, wrap-sub
 	../../private/range-low-level: high, low, range
 export
@@ -22,18 +22,18 @@ Arr or the range from begin to end.
 UB if begin > end.
 ###
 arr-from-begin-end<a> a[](begin a*, end a*) unsafe noctx
-	hard-assert: begin <= end
+	assert begin <= end
 	begin arr-from-begin-size (end - begin)
 
 arr-from-begin-size<a> a[](begin a*, size nat64) unsafe noctx
 	size, begin
 
 arr-cast<out, in> out[](a in[]) no-doc unsafe noctx
-	hard-assert: size-of@<out> == size-of@<in>
+	assert size-of@<out> == size-of@<in>
 	a.size, a.begin-ptr.ptr-cast
 
 noctx-at<a> a(a a[], index nat64) no-doc unsafe noctx
-	hard-assert: index < a.size
+	assert index < a.size
 	a unsafe-at index
 
 unsafe-at<a> a(a a[], index nat64) no-doc unsafe noctx

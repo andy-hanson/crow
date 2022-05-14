@@ -11,7 +11,6 @@ import
 	crow/compare: !=, >
 	crow/misc: new, void
 	crow/number: +, ==, <=>, float32
-	crow/private/bootstrap: hard-assert
 	crow/private/thread-utils: acquire, init, lock, release, uninit
 	crow/ptr: ==, +, -, *, by-val, const-ptr, mut-ptr, ref-eq, ref-of-val, set-deref
 	crow/str: literal
@@ -86,7 +85,7 @@ pull void(a audio-queue, out fix-arr float32) noctx unsafe
 			a.cur := a.samples end-ptr
 
 .add void(a fix-arr float32, b float32[]) noctx unsafe
-	hard-assert: a.size == b.size
+	assert a.size == b.size
 	a.begin-ptr add-recur a.end-ptr, b.begin-ptr
 .add-recur void(out float32 mut*, out-end float32 mut*, read float32*) noctx unsafe
 	unless out == out-end

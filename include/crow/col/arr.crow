@@ -9,7 +9,7 @@ import
 	../fun-util: subscript
 	../misc: void
 	../private/alloc: alloc-uninitialized, copy-data-from
-	../private/bootstrap: hard-assert, new
+	../private/bootstrap: new
 	../private/number-low-level: ==, <=>, nat8, nat64, wrap-add, wrap-sub
 	../private/range-low-level: low, high, range
 	../ptr: *, ==, +, as-const, const-ptr, mut-ptr, set-deref
@@ -138,7 +138,7 @@ for-loop<out, in> out[](a in[], f act out(in)) trusted
 	loop
 		if in-cur == in-end
 			out-end = out-begin + a.size
-			hard-assert: out-cur == out-end
+			assert out-cur == out-end
 			break out-begin.as-const arr-from-begin-end out-end.as-const
 		else
 			*out-cur := f[*in-cur]

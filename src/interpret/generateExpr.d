@@ -1004,8 +1004,13 @@ void generateRefOfVal(
 			generateExpr(writer, ctx, locals, after, it.arg);
 		else
 			todo!void("!");
-	} else
+	} else {
+		debug {
+			import core.stdc.stdio : printf;
+			printf("Can't generate ref to a %d\n", arg.kind.kind);
+		}
 		todo!void("!");
+	}
 }
 
 void generateRecordFieldGet(

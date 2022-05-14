@@ -13,7 +13,6 @@ import
 	../test-util/spy: calls, fn, new, spy-act2
 	../tuple: from, new, pair, to
 	../writer: ~=, ~~=, backup, move-to-str, new, writer
-	../private/bootstrap: hard-assert
 	../private/number-low-level: ==, <=>, nat64, wrap-add, wrap-sub
 	./arr: ==, arr, arr-equal, for-loop, is-empty, new, size
 	./arr-util: first, fold, tail
@@ -203,7 +202,7 @@ pop<k, v> popped<k, v>?(a priority-queue<k, v>) is-data<k> compare<k>
 	compacted fix-arr pair<k, v> = n-to-compact uninitialized-fix-arr
 	mid = compacted.begin-ptr compact-non-singles nodes-to-compact
 	end = mid compact-singles root
-	hard-assert: end == compacted.end-ptr
+	assert end == compacted.end-ptr
 	compacted set-sort-by pair => pair from
 	arr = compacted cast-immutable
 	arr.first!, arr.tail, ()
@@ -267,7 +266,7 @@ fold<a, k, v> a(acc a, a priority-queue<k, v>, f act a(a, k, v)) is-data<k> comp
 .each-arr<k, v> fix-arr each-part<k, v>(a priority-queue<k, v>) trusted compare<k>
 	res fix-arr each-part<k, v> = a.node-count uninitialized-fix-arr
 	end = res.begin-ptr fill-each-arr a.root
-	hard-assert: end == res.end-ptr
+	assert end == res.end-ptr
 	res set-sort-by it => it.min from
 	res
 
@@ -330,7 +329,7 @@ map-to-arr<out, k, v> out[](a priority-queue<k, v>, f act out(k, v)) is-data<k> 
 	end = out.begin-ptr fold a, (cur, k, v) =>
 		*cur := f[k, v]
 		cur + 1
-	hard-assert: end == out.end-ptr
+	assert end == out.end-ptr
 	arr = out.cast-immutable
 	arr
 

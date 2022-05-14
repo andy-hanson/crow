@@ -10,7 +10,7 @@ import
 	../range: for-loop
 	../tuple: new, pair
 	../private/alloc: alloc-uninitialized
-	../private/bootstrap: hard-assert, new
+	../private/bootstrap: new
 	../private/number-low-level: ==, <=>, nat64, unsafe-div, unsafe-mod, wrap-add, wrap-sub, wrap-mul
 	../private/range-low-level: ..
 	./arr: ~, ~~, arr, for-loop, is-empty, new, size, subscript
@@ -376,7 +376,7 @@ flatten<a> a[](a a[][]) trusted
 			ptr = *cur
 			*ptr := x
 			*cur := ptr + 1
-	hard-assert: *cur == res + total-size
+	assert *cur == res + total-size
 	res.as-const arr-from-begin-end cur->as-const
 
 zip-each<a, b> void(a a[], b b[], f act void(a, b))
@@ -577,12 +577,12 @@ end-iter<a> arr-iter<a>(a a[]) noctx
 	a, a.size
 
 next<a> value-and-rest<a, arr-iter a>?(a arr-iter a) trusted noctx
-	hard-assert: a.index <= a.xs.size
+	assert a.index <= a.xs.size
 	if a.index != a.xs.size
 		((a.xs noctx-at a.index), (a.xs, a.index wrap-add 1)),
 
 prev<a> value-and-rest<a, arr-iter a>?(a arr-iter a) trusted noctx
-	hard-assert: a.index <= a.xs.size
+	assert a.index <= a.xs.size
 	if a.index != 0
 		prev-index = a.index wrap-sub 1
 		((a.xs noctx-at prev-index), (a.xs, prev-index)),

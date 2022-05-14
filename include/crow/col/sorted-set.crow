@@ -2,6 +2,7 @@ no-std
 import
 	../bool: !, &&, ==, bool, false, new, true
 	../compare: <, <=, >, >=, compare
+	../exception: unreachable
 	../fun-util: subscript
 	../misc: is-data, new, void
 	../opt: !, ??, new, opt
@@ -11,7 +12,6 @@ import
 	../str-conv: finish, interp, to-str, with-str, with-value
 	../test-util: is
 	../writer: ~=, ~~=, backup, move-to-str, new, writer
-	../private/bootstrap: hard-assert, hard-forbid, hard-unreachable
 	../private/number-low-level: ==, <=>, nat64, wrap-add, wrap-mul, wrap-sub
 	./arr: arr, for-loop, is-empty, new, size, subscript
 	./arr-util: tail
@@ -186,7 +186,7 @@ Or a combination of the two.
 	(size-right wrap-add (removals-here-and-right wrap-mul 2) wrap-mul 2) >= size-here
 
 .add-and-compact<a> sorted-set a(a sorted-set a, add-size nat64, plan compact-plan, value a) unsafe compare<a>
-	hard-assert: plan.compacted-size > 1
+	assert plan.compacted-size > 1
 	compacted fix-arr a = plan.compacted-size uninitialized-fix-arr
 	*compacted.begin-ptr := value
 	compactor compactor a = compacted.begin-ptr.as-const, compacted.begin-ptr + 1, compacted.end-ptr.as-const
@@ -220,7 +220,7 @@ Or a combination of the two.
 	remove index-set,
 ) unsafe compare<a>
 	compactor merge a.values, add-size-here-and-left, remove
-	hard-assert: compactor.cur.as-const <= compactor.end
+	assert compactor.cur.as-const <= compactor.end
 	if compactor.cur.as-const == compactor.end
 		compactor.finish, a.left
 	else
@@ -250,9 +250,9 @@ Or a combination of the two.
 	b-remove-index nat64,
 	b-remove index-set,
 ) unsafe compare<a>
-	hard-forbid: a-read < a-begin
-	hard-forbid: b-read < b-begin
-	hard-forbid: a-write.as-const < a-begin
+	forbid a-read < a-begin
+	forbid b-read < b-begin
+	forbid a-write.as-const < a-begin
 	# merging from right, so take the greater value
 	match *a-read <=> *b-read
 	as less
@@ -266,7 +266,7 @@ Or a combination of the two.
 		# Else -- done, everything from 'a' is in place
 	as equal
 		# We shouldn't store the same value twice.
-		hard-unreachable
+		unreachable
 	as greater
 		*a-write := *a-read
 		if a-read == a-begin
@@ -290,7 +290,7 @@ Or a combination of the two.
 		new-a-write copy-from-b-recur b-begin, b-read - 1, (b-remove-index wrap-sub 1), b-remove
 
 .finish<a> a[](a compactor a) unsafe
-	hard-assert: a.cur.as-const == a.end
+	assert a.cur.as-const == a.end
 	a.begin arr-from-begin-end a.end
 
 region iteration
@@ -386,7 +386,7 @@ for-loop<out, in> out[](a sorted-set in, f act out(in)) trusted is-data<in> comp
 	end = out.begin-ptr fold a, (cur, x) =>
 		*cur := f[x]
 		cur + 1
-	hard-assert: end == out.end-ptr
+	assert end == out.end-ptr
 	out cast-immutable
 
 .dbg<a> str(a sorted-set a) to-str<a>

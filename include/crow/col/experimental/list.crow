@@ -10,7 +10,6 @@ import
 	../../str: ==, literal, str
 	../../test-util: is
 	../../writer: ~=, ~~=, backup, move-to-str, new, writer
-	../../private/bootstrap: hard-assert
 	../../private/number-low-level: ==, <=>, nat64, wrap-add, wrap-sub
 	../arr: ==, arr, for-loop, is-empty, new, size
 	../arr-util: each-with-index, find-and-get, first, fold, last, rtail
@@ -80,7 +79,7 @@ every 4 steps it allocates an array of size 4, etc.
 is-empty<a> bool(a list a) trusted
 	res = a.values is-empty
 	if res
-		hard-assert: a.prev is-empty
+		assert a.prev is-empty
 	res
 
 ###
@@ -162,7 +161,7 @@ fold<a, b> a(acc a, a list b, f act a(a, b))
 map<out, in> list out(a list in, f act out(in)) trusted
 	res fix-arr out = a.size uninitialized-fix-arr
 	end = res.begin-ptr map-recur a, f
-	hard-assert: end == res.end-ptr
+	assert end == res.end-ptr
 	res.cast-immutable to-list
 .map-recur<out, in> out mut*(out out mut*, a list in, f act out(in)) unsafe
 	next-out = if prev ?= a prev

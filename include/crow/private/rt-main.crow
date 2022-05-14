@@ -15,7 +15,7 @@ import
 	../str-util: to-str
 	./alloc: unmanaged-alloc-elements, unmanaged-free
 	./bootstrap: call-with-ctx, ctx, get-ctx, new, thread-local-stuff
-	./exception-low-level: exception-ctx
+	./exception-low-level: global-init-exceptions
 	./fut-low-level: get-result
 	./log-low-level: log-ctx
 	./number-low-level:
@@ -34,6 +34,7 @@ import
 # Treated specially by the compiler
 rt-main int32(argc int32, argv c-str*, main-ptr main-ptr) trusted noctx summon
 	do-init-constants
+	global-init-exceptions
 	n-threads = count-processors
 	gctx-by-val by-val global-ctx = n-threads uninit
 	gctx = gctx-by-val ref-of-val
@@ -75,14 +76,12 @@ init-constants void() unsafe noctx summon builtin
 ) trusted noctx
 	# Before we start the engine, add a task.
 	# Create a ctx manually so we can call functions that need it when creating the task
-	ectx = exception-ctx
 	log-ctx = log-ctx
 	perf-ctx = perf-ctx
-	ectx-ptr = ectx.ref-of-val as-any-mut-ptr
 	log-ctx-ptr = log-ctx.ref-of-val as-any-mut-ptr
 	perf-ptr = perf-ctx.ref-of-val as-any-mut-ptr
 	print-lock = gctx.print-lock.ref-of-val
-	tls by-val thread-local-stuff = thread-id, print-lock, ectx-ptr, log-ctx-ptr, perf-ptr
+	tls by-val thread-local-stuff = thread-id, print-lock, log-ctx-ptr, perf-ptr
 	ctx-by-val = gctx new-ctx tls.ref-of-val, 0
 	ctx = ctx-by-val ref-of-val
 
