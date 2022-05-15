@@ -42,7 +42,7 @@ immutable(SafeCStr) getHoverStr(
 
 void getHover(
 	ref TempAlloc tempAlloc,
-	ref Writer writer,
+	scope ref Writer writer,
 	ref const AllSymbols allSymbols,
 	ref const AllPaths allPaths,
 	ref immutable PathsInfo pathsInfo,

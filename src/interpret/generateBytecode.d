@@ -70,7 +70,7 @@ import util.col.fullIndexDict :
 import util.col.mutMaxArr : initializeMutMaxArr, MutMaxArr, push, tempAsArr;
 import util.opt : force, has, Opt;
 import util.perf : Perf, PerfMeasure, withMeasure;
-import util.ptr : ptrTrustMe_mut;
+import util.ptr : castNonScope_mut, ptrTrustMe_mut;
 import util.sourceRange : FileIndex;
 import util.sym : AllSymbols, shortSymValue, Sym;
 import util.util : unreachable, verify;
@@ -110,7 +110,7 @@ private immutable(ByteCode) generateBytecodeInner(
 	FunToReferences funToReferences =
 		initFunToReferences(tempAlloc, funPtrTypeToDynCallSig, fullIndexDictSize(program.allFuns));
 	TextAndInfo text = generateText(codeAlloc, tempAlloc, &program, &program.allConstants, funToReferences);
-	ByteCodeWriter writer = newByteCodeWriter(ptrTrustMe_mut(codeAlloc));
+	ByteCodeWriter writer = newByteCodeWriter(castNonScope_mut(&codeAlloc));
 
 	immutable FullIndexDict!(LowFunIndex, ByteCodeIndex) funToDefinition =
 		mapFullIndexDict!(LowFunIndex, ByteCodeIndex, LowFun)(
@@ -232,7 +232,7 @@ immutable(FileToFuns) fileToFuns(
 
 void generateBytecodeForFun(
 	ref TempAlloc tempAlloc,
-	ref ByteCodeWriter writer,
+	scope ref ByteCodeWriter writer,
 	ref const AllSymbols allSymbols,
 	ref FunToReferences funToReferences,
 	ref immutable TextInfo textInfo,

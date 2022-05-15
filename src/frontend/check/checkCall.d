@@ -98,7 +98,7 @@ import util.util : Empty, todo;
 
 immutable(Expr) checkCall(
 	ref ExprCtx ctx,
-	ref LocalsInfo locals,
+	scope ref LocalsInfo locals,
 	immutable FileAndRange range,
 	scope ref immutable CallAst ast,
 	ref Expected expected,
@@ -127,7 +127,7 @@ immutable(Expr) checkCallNoLocals(
 
 private immutable(Expr) checkCallInner(
 	ref ExprCtx ctx,
-	ref LocalsInfo locals,
+	scope ref LocalsInfo locals,
 	immutable FileAndRange range,
 	scope ref immutable CallAst ast,
 	ref Expected expected,

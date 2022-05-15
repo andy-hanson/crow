@@ -133,7 +133,7 @@ import util.late : Late, late, lateGet, lateIsSet, lateSet;
 import util.memory : allocate, allocateMut, overwriteMemory;
 import util.opt : asImmutable, force, has, none, Opt, some;
 import util.perf : Perf, PerfMeasure, withMeasure;
-import util.ptr : ptrTrustMe, ptrTrustMe_mut;
+import util.ptr : castNonScope_mut, ptrTrustMe, ptrTrustMe_mut;
 import util.sourceRange : FileAndRange;
 import util.sym : AllSymbols, shortSym, Sym;
 import util.util : unreachable, verify;
@@ -156,7 +156,7 @@ private immutable(LowProgram) lowerInner(
 	scope ref immutable ConfigExternPaths configExtern,
 	ref immutable ConcreteProgram a,
 ) {
-	AllLowTypesWithCtx allTypes = getAllLowTypes(&alloc, &allSymbols, a);
+	AllLowTypesWithCtx allTypes = getAllLowTypes(castNonScope_mut(&alloc), castNonScope_mut(&allSymbols), a);
 	immutable AllLowFuns allFuns = getAllLowFuns(allTypes.allTypes, allTypes.getLowTypeCtx, configExtern, a);
 	immutable AllConstantsLow allConstants = convertAllConstants(allTypes.getLowTypeCtx, a.allConstants);
 	immutable LowProgram res = immutable LowProgram(

@@ -68,7 +68,7 @@ immutable(Repr) reprArr(immutable Repr[] elements) {
 
 immutable(Repr) reprArr(T)(
 	ref Alloc alloc,
-	immutable T[] xs,
+	scope immutable T[] xs,
 	scope immutable(Repr) delegate(ref immutable T) @safe @nogc pure nothrow cb,
 ) {
 	return reprArr(map(alloc, xs, cb));
@@ -76,7 +76,7 @@ immutable(Repr) reprArr(T)(
 
 immutable(Repr) reprArr(T)(
 	ref Alloc alloc,
-	immutable T[] xs,
+	scope immutable T[] xs,
 	scope immutable(Repr) delegate(immutable size_t, ref immutable T) @safe @nogc pure nothrow cb,
 ) {
 	return immutable Repr(immutable ReprArr(false, mapWithIndex(alloc, xs, cb)), true);
@@ -84,7 +84,7 @@ immutable(Repr) reprArr(T)(
 
 immutable(Repr) reprFullIndexDict(K, V)(
 	ref Alloc alloc,
-	ref immutable FullIndexDict!(K, V) a,
+	scope immutable FullIndexDict!(K, V) a,
 	scope immutable(Repr) delegate(ref immutable V) @safe @nogc pure nothrow cb,
 ) {
 	return immutable Repr(immutable ReprArr(true, map(alloc, a.values, cb)), true);

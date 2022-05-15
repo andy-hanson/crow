@@ -499,7 +499,7 @@ void writeCallNoMatch(
 
 void writeDiag(
 	ref TempAlloc tempAlloc,
-	ref Writer writer,
+	scope ref Writer writer,
 	ref const AllSymbols allSymbols,
 	ref const AllPaths allPaths,
 	ref immutable PathsInfo pathsInfo,
@@ -941,7 +941,7 @@ void writeDiag(
 
 void showDiagnostic(
 	ref TempAlloc tempAlloc,
-	ref Writer writer,
+	scope ref Writer writer,
 	ref const AllSymbols allSymbols,
 	ref const AllPaths allPaths,
 	ref immutable PathsInfo pathsInfo,

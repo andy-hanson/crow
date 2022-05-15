@@ -22,10 +22,10 @@ import test.testWriter : testWriter;
 import util.alloc.alloc : Alloc;
 import util.col.str : strEq;
 import util.opt : force, has, Opt;
-import util.ptr : ptrTrustMe_mut;
+import util.ptr : castNonScope_mut;
 
 immutable(ExitCode) test(ref Alloc alloc, immutable Opt!string name) {
-	Test test = Test(ptrTrustMe_mut(alloc));
+	Test test = Test(castNonScope_mut(&alloc));
 	foreach (ref immutable NameAndTest it; allTests)
 		if (!has(name) || strEq(force(name), it.name))
 			it.test(test);

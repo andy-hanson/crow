@@ -124,7 +124,7 @@ struct Ctx {
 	immutable Module* curModule;
 }
 
-immutable(Repr) reprStructDecl(ref Alloc alloc, ref Ctx ctx, ref immutable StructDecl a) {
+immutable(Repr) reprStructDecl(ref Alloc alloc, scope ref Ctx ctx, ref immutable StructDecl a) {
 	ArrBuilder!NameAndRepr fields;
 	add(alloc, fields, nameAndRepr("range", reprFileAndRange(alloc, a.range)));
 	if (!safeCStrIsEmpty(a.docComment))
@@ -141,11 +141,11 @@ immutable(Repr) reprStructDecl(ref Alloc alloc, ref Ctx ctx, ref immutable Struc
 	return reprNamedRecord("struct", finishArr(alloc, fields));
 }
 
-immutable(Repr) reprSpecDecl(ref Alloc alloc, ref Ctx ctx, ref immutable SpecDecl a) {
+immutable(Repr) reprSpecDecl(ref Alloc alloc, scope ref Ctx ctx, ref immutable SpecDecl a) {
 	return todo!(immutable Repr)("reprSpecDecl");
 }
 
-immutable(Repr) reprFunDecl(ref Alloc alloc, ref Ctx ctx, ref immutable FunDecl a) {
+immutable(Repr) reprFunDecl(ref Alloc alloc, scope ref Ctx ctx, ref immutable FunDecl a) {
 	ArrBuilder!NameAndRepr fields;
 	if (!safeCStrIsEmpty(a.docComment))
 		add(alloc, fields, nameAndRepr("doc", reprStr(a.docComment)));
@@ -175,7 +175,7 @@ immutable(Repr) reprTypeParam(ref Alloc alloc, immutable TypeParam) {
 	return todo!(immutable Repr)("reprTypeParam");
 }
 
-immutable(Repr) reprSig(ref Alloc alloc, ref Ctx ctx, ref immutable Sig a) {
+immutable(Repr) reprSig(ref Alloc alloc, scope ref Ctx ctx, ref immutable Sig a) {
 	return reprRecord(alloc, "sig", [
 		reprFileAndPos(alloc, a.fileAndPos),
 		reprSym(a.name),
@@ -189,7 +189,7 @@ immutable(Repr) reprSig(ref Alloc alloc, ref Ctx ctx, ref immutable Sig a) {
 				reprRecord(alloc, "varargs", [reprParam(alloc, ctx, v.param)]))]);
 }
 
-immutable(Repr) reprParam(ref Alloc alloc, ref Ctx ctx, ref immutable Param a) {
+immutable(Repr) reprParam(ref Alloc alloc, scope ref Ctx ctx, ref immutable Param a) {
 	return reprRecord(alloc, "param", [
 		reprFileAndRange(alloc, a.range),
 		reprOpt(alloc, a.name, (ref immutable Sym it) =>
@@ -197,11 +197,11 @@ immutable(Repr) reprParam(ref Alloc alloc, ref Ctx ctx, ref immutable Param a) {
 		reprType(alloc, ctx, a.type)]);
 }
 
-immutable(Repr) reprSpecInst(ref Alloc alloc, ref Ctx ctx, ref immutable SpecInst a) {
+immutable(Repr) reprSpecInst(ref Alloc alloc, scope ref Ctx ctx, ref immutable SpecInst a) {
 	return todo!(immutable Repr)("reprSpecInst");
 }
 
-immutable(Repr) reprFunBody(ref Alloc alloc, ref Ctx ctx, ref immutable FunBody a) {
+immutable(Repr) reprFunBody(ref Alloc alloc, scope ref Ctx ctx, ref immutable FunBody a) {
 	return matchFunBody!(
 		immutable Repr,
 		(ref immutable FunBody.Builtin) =>
@@ -230,7 +230,7 @@ immutable(Repr) reprFunBody(ref Alloc alloc, ref Ctx ctx, ref immutable FunBody 
 	)(a);
 }
 
-immutable(Repr) reprType(ref Alloc alloc, ref Ctx ctx, immutable Type a) {
+immutable(Repr) reprType(ref Alloc alloc, scope ref Ctx ctx, immutable Type a) {
 	return matchType!(immutable Repr)(
 		a,
 		(immutable Type.Bogus) =>
@@ -241,14 +241,14 @@ immutable(Repr) reprType(ref Alloc alloc, ref Ctx ctx, immutable Type a) {
 			reprStructInst(alloc, ctx, *a));
 }
 
-immutable(Repr) reprStructInst(ref Alloc alloc, ref Ctx ctx, ref immutable StructInst a) {
+immutable(Repr) reprStructInst(ref Alloc alloc, scope ref Ctx ctx, ref immutable StructInst a) {
 	return reprRecord(
 		a.declAndArgs.decl.name,
 		map(alloc, a.declAndArgs.typeArgs, (ref immutable Type it) =>
 			reprType(alloc, ctx, it)));
 }
 
-immutable(Repr) reprExpr(ref Alloc alloc, ref Ctx ctx, ref immutable Expr a) {
+immutable(Repr) reprExpr(ref Alloc alloc, scope ref Ctx ctx, ref immutable Expr a) {
 	return matchExpr!(immutable Repr)(
 		a,
 		(ref immutable Expr.AssertOrForbid x) =>
@@ -355,21 +355,21 @@ immutable(Sym) symOfFunKind(immutable FunKind a) {
 	}
 }
 
-immutable(Repr) reprMatchUnionCase(ref Alloc alloc, ref Ctx ctx, ref immutable Expr.MatchUnion.Case a) {
+immutable(Repr) reprMatchUnionCase(ref Alloc alloc, scope ref Ctx ctx, ref immutable Expr.MatchUnion.Case a) {
 	return reprRecord(alloc, "case", [
 		reprOpt!(Local*)(alloc, a.local, (ref immutable Local* local) =>
 			reprLocal(alloc, ctx, *local)),
 		reprExpr(alloc, ctx, a.then)]);
 }
 
-immutable(Repr) reprLocal(ref Alloc alloc, ref Ctx ctx, ref immutable Local a) {
+immutable(Repr) reprLocal(ref Alloc alloc, scope ref Ctx ctx, ref immutable Local a) {
 	return reprRecord(alloc, "local", [
 		reprFileAndRange(alloc, a.range),
 		reprSym(a.name),
 		reprType(alloc, ctx, a.type)]);
 }
 
-immutable(Repr) reprCalled(ref Alloc alloc, ref Ctx ctx, ref immutable Called a) {
+immutable(Repr) reprCalled(ref Alloc alloc, scope ref Ctx ctx, ref immutable Called a) {
 	return matchCalled!(
 		immutable Repr,
 		(immutable FunInst* it) =>
@@ -379,7 +379,7 @@ immutable(Repr) reprCalled(ref Alloc alloc, ref Ctx ctx, ref immutable Called a)
 	)(a);
 }
 
-immutable(Repr) reprFunInst(ref Alloc alloc, ref Ctx ctx, ref immutable FunInst a) {
+immutable(Repr) reprFunInst(ref Alloc alloc, scope ref Ctx ctx, ref immutable FunInst a) {
 	ArrBuilder!NameAndRepr args;
 	add(alloc, args, nameAndRepr("name", reprSym(name(*decl(a)))));
 	if (!empty(typeArgs(a)))
@@ -391,7 +391,7 @@ immutable(Repr) reprFunInst(ref Alloc alloc, ref Ctx ctx, ref immutable FunInst 
 	return reprNamedRecord("fun-inst", finishArr(alloc, args));
 }
 
-immutable(Repr) reprSpecSig(ref Alloc alloc, ref Ctx ctx, ref immutable SpecSig a) {
+immutable(Repr) reprSpecSig(ref Alloc alloc, scope ref Ctx ctx, ref immutable SpecSig a) {
 	return reprRecord(alloc, "spec-sig", [
 		reprSym(name(*a.specInst)),
 		reprSym(a.sig.sig.name)]);

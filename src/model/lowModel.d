@@ -38,7 +38,7 @@ struct LowRecord {
 	immutable LowField[] fields;
 
 	//TODO:MOVE
-	immutable(bool) packed() immutable {
+	immutable(bool) packed() scope immutable {
 		return matchConcreteStructSource!(
 			immutable bool,
 			(ref immutable ConcreteStructSource.Inst it) =>
@@ -292,7 +292,7 @@ private immutable(bool) isPtrGcOrRaw(immutable LowType a) {
 	return isPtrGc(a) || isPtrRawConst(a) || isPtrRawMut(a);
 }
 
-@trusted immutable(LowType) asGcOrRawPointee(immutable LowType a) {
+@trusted immutable(LowType) asGcOrRawPointee(scope return immutable LowType a) {
 	verify(isPtrGcOrRaw(a));
 	return matchLowTypeCombinePtr!(
 		immutable LowType,
@@ -713,18 +713,6 @@ struct LowExprKind {
 
 		immutable LowExpr target;
 		immutable size_t fieldIndex;
-
-		//TODO:NOT INSTANCE
-		immutable(bool) targetIsPointer() immutable {
-			return isPtrGcOrRaw(target.type);
-		}
-
-		//TODO:NOT INSTANCE
-		immutable(LowType.Record) record() immutable {
-			return asRecordType(isPtrGcOrRaw(target.type)
-				? asGcOrRawPointee(target.type)
-				: target.type);
-		}
 	}
 
 	struct RecordFieldSet {
@@ -733,16 +721,6 @@ struct LowExprKind {
 		immutable LowExpr target;
 		immutable size_t fieldIndex;
 		immutable LowExpr value;
-
-		//TODO:NOT INSTANCE
-		immutable(bool) targetIsPointer() immutable {
-			return isPtrGcOrRaw(target.type);
-		}
-
-		//TODO:NOT INSTANCE
-		immutable(LowType.Record) record() immutable {
-			return asRecordType(asGcOrRawPointee(target.type));
-		}
 	}
 
 	struct Seq {
@@ -1102,6 +1080,25 @@ static assert(LowExprKind.sizeof <= 32);
 	}
 }
 
+immutable(bool) targetIsPointer(scope ref immutable LowExprKind.RecordFieldGet a) {
+	return isPtrGcOrRaw(a.target.type);
+}
+
+immutable(LowType.Record) targetRecordType(scope ref immutable LowExprKind.RecordFieldGet a) {
+	return asRecordType(isPtrGcOrRaw(a.target.type)
+		? asGcOrRawPointee(a.target.type)
+		: a.target.type);
+}
+
+//TODO: this is always true
+immutable(bool) targetIsPointer(scope ref immutable LowExprKind.RecordFieldSet a) {
+	return isPtrGcOrRaw(a.target.type);
+}
+
+immutable(LowType.Record) targetRecordType(scope ref immutable LowExprKind.RecordFieldSet a) {
+	return asRecordType(asGcOrRawPointee(a.target.type));
+}
+
 struct UpdateParam {
 	immutable LowParamIndex param;
 	immutable LowExpr newValue;
@@ -1111,7 +1108,7 @@ immutable(bool) isLocalRef(ref immutable LowExprKind a) {
 	return a.kind == LowExprKind.Kind.localRef;
 }
 
-@trusted ref immutable(LowExprKind.LocalRef) asLocalRef(return scope ref immutable LowExprKind a) {
+@trusted ref immutable(LowExprKind.LocalRef) asLocalRef(scope return ref immutable LowExprKind a) {
 	verify(isLocalRef(a));
 	return a.localRef;
 }
@@ -1120,7 +1117,7 @@ immutable(bool) isParamRef(ref immutable LowExprKind a) {
 	return a.kind == LowExprKind.Kind.paramRef;
 }
 
-ref immutable(LowExprKind.ParamRef) asParamRef(return scope ref immutable LowExprKind a) {
+ref immutable(LowExprKind.ParamRef) asParamRef(scope return ref immutable LowExprKind a) {
 	verify(isParamRef(a));
 	return a.paramRef;
 }
@@ -1129,7 +1126,7 @@ immutable(bool) isRecordFieldGet(ref immutable LowExprKind a) {
 	return a.kind == LowExprKind.Kind.recordFieldGet;
 }
 
-@trusted ref immutable(LowExprKind.RecordFieldGet) asRecordFieldGet(return scope ref immutable LowExprKind a) {
+@trusted ref immutable(LowExprKind.RecordFieldGet) asRecordFieldGet(scope return ref immutable LowExprKind a) {
 	verify(isRecordFieldGet(a));
 	return *a.recordFieldGet;
 }
@@ -1138,7 +1135,7 @@ immutable(bool) isSpecialUnary(ref immutable LowExprKind a) {
 	return a.kind == LowExprKind.Kind.specialUnary;
 }
 
-@trusted ref immutable(LowExprKind.SpecialUnary) asSpecialUnary(return scope ref immutable LowExprKind a) {
+@trusted ref immutable(LowExprKind.SpecialUnary) asSpecialUnary(scope return ref immutable LowExprKind a) {
 	verify(isSpecialUnary(a));
 	return *a.specialUnary;
 }
@@ -1191,19 +1188,19 @@ struct LowProgram {
 	immutable ExternLibraries externLibraries;
 
 	//TODO: NOT INSTANCE
-	ref immutable(FullIndexDict!(LowType.ExternPtr, LowExternPtrType)) allExternPtrTypes() return scope immutable {
+	ref immutable(FullIndexDict!(LowType.ExternPtr, LowExternPtrType)) allExternPtrTypes() scope return immutable {
 		return allTypes.allExternPtrTypes;
 	}
 
-	ref immutable(FullIndexDict!(LowType.FunPtr, LowFunPtrType)) allFunPtrTypes() return scope immutable {
+	ref immutable(FullIndexDict!(LowType.FunPtr, LowFunPtrType)) allFunPtrTypes() scope return immutable {
 		return allTypes.allFunPtrTypes;
 	}
 
-	ref immutable(FullIndexDict!(LowType.Record, LowRecord)) allRecords() return scope immutable {
+	ref immutable(FullIndexDict!(LowType.Record, LowRecord)) allRecords() scope return immutable {
 		return allTypes.allRecords;
 	}
 
-	ref immutable(FullIndexDict!(LowType.Union, LowUnion)) allUnions() return scope immutable {
+	ref immutable(FullIndexDict!(LowType.Union, LowUnion)) allUnions() scope return immutable {
 		return allTypes.allUnions;
 	}
 }

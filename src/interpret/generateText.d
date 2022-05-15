@@ -86,8 +86,8 @@ immutable(ubyte*) getTextPointerForCString(ref immutable TextInfo info, immutabl
 @trusted TextAndInfo generateText(
 	ref Alloc alloc,
 	ref TempAlloc tempAlloc,
-	immutable LowProgram* programPtr,
-	immutable AllConstantsLow* allConstantsPtr,
+	scope immutable LowProgram* programPtr,
+	scope immutable AllConstantsLow* allConstantsPtr,
 	ref FunToReferences funToReferences,
 ) {
 	ref immutable(AllConstantsLow) allConstants() { return *allConstantsPtr; }

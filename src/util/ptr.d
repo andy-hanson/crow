@@ -81,3 +81,12 @@ void hashPtr(T)(ref Hasher hasher, const T* a) {
 		return x;
 	}
 }
+
+@trusted T castNonScope_mut(T)(scope T x) {
+	static if (is(T == P*, P)) {
+		size_t res = cast(size_t) x;
+		return cast(T) res;
+	} else {
+		return x;
+	}
+}

@@ -124,6 +124,8 @@ import model.lowModel :
 	LowType,
 	matchLowExprKind,
 	PrimitiveType,
+	targetIsPointer,
+	targetRecordType,
 	UpdateParam;
 import model.model : range;
 import model.typeLayout : nStackEntriesForType, optPack, Pack, sizeOfType;
@@ -194,7 +196,7 @@ struct ExprAfterKind {
 
 	this(immutable Continue a) { kind = Kind.continue_; continue_ = a; }
 	this(JumpDelayed a) { kind = Kind.jumpDelayed; jumpDelayed = a; }
-	this(Loop a) { kind = Kind.loop; loop = a; }
+	this(scope return Loop a) { kind = Kind.loop; loop = a; }
 	this(immutable Return a) { kind = Kind.return_; return_ = a; }
 
 	private:
@@ -318,7 +320,7 @@ void generateExpr(
 	ref ByteCodeWriter writer,
 	ref ExprCtx ctx,
 	scope ref immutable Locals locals,
-	ref ExprAfter after,
+	scope ref ExprAfter after,
 	ref immutable LowExpr expr,
 ) {
 	verify(after.returnValueStackEntries.size == nStackEntriesForType(ctx, expr.type));
@@ -406,11 +408,12 @@ void generateExpr(
 		},
 		(ref immutable LowExprKind.RecordFieldSet it) {
 			immutable StackEntry before = getNextStackEntry(writer);
-			verify(it.targetIsPointer);
+			verify(targetIsPointer(it));
 			generateExprAndContinue(writer, ctx, locals, it.target);
 			immutable StackEntry mid = getNextStackEntry(writer);
 			generateExprAndContinue(writer, ctx, locals, it.value);
-			immutable FieldOffsetAndSize offsetAndSize = getFieldOffsetAndSize(ctx, it.record, it.fieldIndex);
+			immutable FieldOffsetAndSize offsetAndSize =
+				getFieldOffsetAndSize(ctx, targetRecordType(it), it.fieldIndex);
 			verify(mid.entry + divRoundUp(offsetAndSize.size, stackEntrySize) == getNextStackEntry(writer).entry);
 			writeWrite(writer, source, offsetAndSize.offset, offsetAndSize.size);
 			verify(getNextStackEntry(writer) == before);
@@ -490,7 +493,7 @@ void generateLet(
 	immutable StackEntry stackBeforeLoop = getNextStackEntry(writer);
 	withBranching(writer, ctx, after, (ref ExprAfter afterBranch, ref ExprAfter afterLastBranch) {
 		immutable ByteCodeIndex loopTop = nextByteCodeIndex(writer);
-		ExprAfter loopAfter = ExprAfter(
+		scope ExprAfter loopAfter = ExprAfter(
 			immutable StackEntries(stackBeforeLoop, 0),
 			ExprAfterKind(ExprAfterKind.Loop(loopTop, &afterBranch)));
 		// the loop always ends in a 'break' or 'continue' which will know what to do
@@ -979,9 +982,9 @@ void generateRefOfVal(
 			source,
 			locals,
 			after,
-			rfa.record,
+			targetRecordType(rfa),
 			rfa.fieldIndex,
-			rfa.targetIsPointer,
+			targetIsPointer(rfa),
 			rfa.target);
 	} else if (isSpecialUnary(arg.kind)) {
 		immutable LowExprKind.SpecialUnary it = asSpecialUnary(arg.kind);
@@ -1006,8 +1009,8 @@ void generateRecordFieldGet(
 	immutable StackEntries targetEntries = immutable StackEntries(
 		targetEntry,
 		getNextStackEntry(writer).entry - targetEntry.entry);
-	immutable FieldOffsetAndSize offsetAndSize = getFieldOffsetAndSize(ctx, it.record, it.fieldIndex);
-	if (it.targetIsPointer) {
+	immutable FieldOffsetAndSize offsetAndSize = getFieldOffsetAndSize(ctx, targetRecordType(it), it.fieldIndex);
+	if (targetIsPointer(it)) {
 		if (offsetAndSize.size == 0)
 			writeRemove(writer, source, targetEntries);
 		else

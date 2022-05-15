@@ -132,7 +132,7 @@ import util.util : castImmutableRef, todo, unreachable, verify;
 import util.writer : finishWriterToSafeCStr, writeChar, Writer, writeSafeCStr, writeStatic;
 import versionInfo : versionInfoForJIT;
 
-@system extern(C) immutable(int) main(immutable size_t argc, immutable CStr* argv) {
+@system extern(C) immutable(int) main(immutable int argc, immutable CStr* argv) {
 	immutable size_t memorySizeBytes = 1536 * 1024 * 1024; // 1.5 GB
 	ubyte* mem = cast(ubyte*) pureMalloc(memorySizeBytes);
 	scope(exit) pureFree(mem);
@@ -941,6 +941,7 @@ version (Windows) {
 		immutable long size = readlink("/proc/self/exe", res.ptr, res.length);
 	}
 	verify(size > 0 && size < res.length);
+	res[size] = '\0';
 	return parsePathAndExtension(allPaths, immutable SafeCStr(cast(immutable) res.ptr));
 }
 

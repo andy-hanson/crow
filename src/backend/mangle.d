@@ -121,8 +121,8 @@ immutable(MangledNames) buildMangledNames(
 }
 
 void writeStructMangledName(
-	ref Writer writer,
-	ref immutable MangledNames mangledNames,
+	scope ref Writer writer,
+	scope ref immutable MangledNames mangledNames,
 	scope immutable ConcreteStruct* source,
 ) {
 	matchConcreteStructSource!(
@@ -140,10 +140,10 @@ void writeStructMangledName(
 }
 
 void writeLowFunMangledName(
-	ref Writer writer,
-	ref immutable MangledNames mangledNames,
+	scope ref Writer writer,
+	scope ref immutable MangledNames mangledNames,
 	immutable LowFunIndex funIndex,
-	ref immutable LowFun fun,
+	scope ref immutable LowFun fun,
 ) {
 	matchLowFunSource!(
 		void,
@@ -161,8 +161,8 @@ void writeLowFunMangledName(
 }
 
 private void writeConcreteFunMangledName(
-	ref Writer writer,
-	ref immutable MangledNames mangledNames,
+	scope ref Writer writer,
+	scope ref immutable MangledNames mangledNames,
 	immutable ConcreteFun* source,
 ) {
 	matchConcreteFunSource!(
@@ -188,14 +188,18 @@ private void writeConcreteFunMangledName(
 	)(source.source);
 }
 
-private void maybeWriteIndexSuffix(ref Writer writer, immutable Opt!size_t index) {
+private void maybeWriteIndexSuffix(scope ref Writer writer, immutable Opt!size_t index) {
 	if (has(index)) {
 		writeChar(writer, '_');
 		writeNat(writer, force(index));
 	}
 }
 
-void writeLowLocalName(ref Writer writer, ref immutable MangledNames mangledNames, ref immutable LowLocal a) {
+void writeLowLocalName(
+	scope ref Writer writer,
+	scope ref immutable MangledNames mangledNames,
+	scope ref immutable LowLocal a,
+) {
 	matchLowLocalSource!(
 		void,
 		(ref immutable ConcreteLocal it) {
@@ -211,7 +215,7 @@ void writeLowLocalName(ref Writer writer, ref immutable MangledNames mangledName
 }
 
 void writeLowParamName(
-	ref Writer writer,
+	scope ref Writer writer,
 	scope ref immutable MangledNames mangledNames,
 	scope ref immutable LowParam a,
 ) {
@@ -243,9 +247,9 @@ void writeLowParamName(
 }
 
 void writeConstantArrStorageName(
-	ref Writer writer,
-	ref immutable MangledNames mangledNames,
-	ref immutable LowProgram program,
+	scope ref Writer writer,
+	scope ref immutable MangledNames mangledNames,
+	scope ref immutable LowProgram program,
 	immutable LowType.Record arrType,
 	immutable size_t index,
 ) {
@@ -256,9 +260,9 @@ void writeConstantArrStorageName(
 }
 
 void writeConstantPointerStorageName(
-	ref Writer writer,
-	ref immutable MangledNames mangledNames,
-	ref immutable LowProgram program,
+	scope ref Writer writer,
+	scope ref immutable MangledNames mangledNames,
+	scope ref immutable LowProgram program,
 	scope immutable LowType pointeeType,
 	immutable size_t index,
 ) {
@@ -269,9 +273,9 @@ void writeConstantPointerStorageName(
 }
 
 void writeRecordName(
-	ref Writer writer,
-	ref immutable MangledNames mangledNames,
-	ref immutable LowProgram program,
+	scope ref Writer writer,
+	scope ref immutable MangledNames mangledNames,
+	scope ref immutable LowProgram program,
 	immutable LowType.Record a,
 ) {
 	writeStructMangledName(writer, mangledNames, program.allRecords[a].source);

@@ -237,12 +237,10 @@ immutable(Repr) reprOfLowExprKind(ref Alloc alloc, ref immutable LowExprKind a) 
 		(ref immutable LowExprKind.RecordFieldGet it) =>
 			reprRecord(alloc, "get-field", [
 				reprOfLowExpr(alloc, it.target),
-				reprBool(it.targetIsPointer),
 				reprNat(it.fieldIndex)]),
 		(ref immutable LowExprKind.RecordFieldSet it) =>
 			reprRecord(alloc, "set-field", [
 				reprOfLowExpr(alloc, it.target),
-				reprBool(it.targetIsPointer),
 				reprNat(it.fieldIndex),
 				reprOfLowExpr(alloc, it.value)]),
 		(ref immutable LowExprKind.Seq it) =>

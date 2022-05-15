@@ -183,7 +183,7 @@ private size_t pathToStrLength(
 alias TempStrForPath = char[0x1000];
 
 @trusted immutable(SafeCStr) pathToTempStr(
-	ref TempStrForPath temp,
+	scope return ref TempStrForPath temp,
 	scope ref const AllPaths allPaths,
 	immutable PathAndExtension path,
 ) {
@@ -191,7 +191,7 @@ alias TempStrForPath = char[0x1000];
 }
 
 @trusted immutable(SafeCStr) pathToTempStr(
-	ref TempStrForPath temp,
+	scope return ref TempStrForPath temp,
 	scope ref const AllPaths allPaths,
 	immutable Path path,
 	scope immutable Sym extension = emptySym,

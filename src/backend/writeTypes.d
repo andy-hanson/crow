@@ -21,7 +21,7 @@ import util.util : verify;
 
 void writeTypes(
 	ref Alloc alloc,
-	ref immutable LowProgram program,
+	scope ref immutable LowProgram program,
 	scope ref immutable TypeWriters writers,
 ) {
 	// Write extern-ptr types first
@@ -32,7 +32,7 @@ void writeTypes(
 		});
 
 	// TODO: use a temp alloc...
-	StructStates structStates = StructStates(
+	scope StructStates structStates = StructStates(
 		makeFullIndexDict_mut!(LowType.FunPtr, bool)(
 			alloc, fullIndexDictSize(program.allFunPtrTypes), (immutable(LowType.FunPtr)) => false),
 		makeFullIndexDict_mut!(LowType.Record, StructState)(

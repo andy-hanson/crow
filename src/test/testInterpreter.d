@@ -83,7 +83,7 @@ import util.col.str : SafeCStr;
 import util.lineAndColumnGetter : lineAndColumnGetterForEmptyFile;
 import util.memory : allocate;
 import util.path : emptyPathsInfo, Path, PathsInfo, rootPath;
-import util.ptr : castImmutable, castNonScope, ptrTrustMe_mut;
+import util.ptr : castImmutable, castNonScope, castNonScope_mut;
 import util.sourceRange : FileIndex, Pos;
 import util.sym : shortSym;
 import util.util : verify;
@@ -110,7 +110,7 @@ immutable(ByteCode) makeByteCode(
 	ref Alloc alloc,
 	scope void delegate(ref ByteCodeWriter, immutable ByteCodeSource source) @safe @nogc nothrow writeBytecode,
 ) {
-	ByteCodeWriter writer = newByteCodeWriter(ptrTrustMe_mut(alloc));
+	ByteCodeWriter writer = newByteCodeWriter(castNonScope_mut(&alloc));
 	writeBytecode(writer, emptyByteCodeSource);
 	return dummyByteCode(castImmutable(finishOperations(writer)));
 }

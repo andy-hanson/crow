@@ -238,7 +238,7 @@ private immutable(size_t) walkDistance(K, V)(
 
 private @trusted immutable(Out[]) mapToArr_const(Out, K, V)(
 	ref Alloc alloc,
-	ref const MutDict!(K, V) a,
+	scope ref const MutDict!(K, V) a,
 	scope immutable(Out) delegate(immutable K, ref const V) @safe @nogc pure nothrow cb,
 ) {
 	Out* res = allocateT!Out(alloc, a.size);
@@ -274,7 +274,7 @@ private @trusted immutable(Out[]) mapToArr_const(Out, K, V)(
 
 immutable(Dict!(K, VOut)) mapToDict(K, VOut, VIn)(
 	ref Alloc alloc,
-	ref MutDict!(immutable K, VIn) a,
+	scope ref MutDict!(immutable K, VIn) a,
 	scope immutable(VOut) delegate(ref VIn) @safe @nogc pure nothrow cb,
 ) {
 	immutable Opt!(KeyValuePair!(K, VOut))[] outPairs =
@@ -290,7 +290,7 @@ immutable(Dict!(K, VOut)) mapToDict(K, VOut, VIn)(
 
 immutable(V[]) valuesArray(K, V)(
 	ref Alloc alloc,
-	ref const MutDict!(K, V) a,
+	scope ref const MutDict!(K, V) a,
 ) {
 	return mapToArr_const!(V, K, V)(alloc, a, (immutable(K), ref V v) => v);
 }

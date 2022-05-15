@@ -643,7 +643,7 @@ static assert(ExprAstKind.sizeof <= 40);
 immutable(bool) isCall(ref immutable ExprAstKind a) {
 	return a.kind == ExprAstKind.Kind.call;
 }
-@trusted ref immutable(CallAst) asCall(return scope ref immutable ExprAstKind a) {
+@trusted ref immutable(CallAst) asCall(scope return ref immutable ExprAstKind a) {
 	verify(isCall(a));
 	return a.call;
 }
@@ -651,7 +651,7 @@ immutable(bool) isCall(ref immutable ExprAstKind a) {
 immutable(bool) isIdentifier(ref immutable ExprAstKind a) {
 	return a.kind == ExprAstKind.Kind.identifier;
 }
-ref immutable(IdentifierAst) asIdentifier(return scope ref immutable ExprAstKind a) {
+ref immutable(IdentifierAst) asIdentifier(scope return ref immutable ExprAstKind a) {
 	verify(isIdentifier(a));
 	return a.identifier;
 }

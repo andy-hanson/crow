@@ -25,6 +25,8 @@ import model.lowModel :
 	matchLowType,
 	PrimitiveType,
 	symOfPrimitiveType,
+	targetIsPointer,
+	targetRecordType,
 	UpdateParam;
 import model.reprConcreteModel : reprOfConcreteStructRef;
 import util.alloc.alloc : Alloc;
@@ -183,21 +185,21 @@ void checkLowExpr(
 			checkLowExpr(ctx, it.target.type, it.target);
 		},
 		(ref immutable LowExprKind.RecordFieldGet it) {
-			immutable LowType targetTypeNonPtr = immutable LowType(it.record);
-			immutable LowType targetType = it.targetIsPointer
+			immutable LowType targetTypeNonPtr = immutable LowType(targetRecordType(it));
+			immutable LowType targetType = targetIsPointer(it)
 				? immutable LowType(immutable LowType.PtrGc(ptrTrustMe(targetTypeNonPtr)))
 				: targetTypeNonPtr;
 			checkLowExpr(ctx, targetType, it.target);
-			immutable LowType fieldType = ctx.ctx.program.allRecords[it.record].fields[it.fieldIndex].type;
+			immutable LowType fieldType = ctx.ctx.program.allRecords[targetRecordType(it)].fields[it.fieldIndex].type;
 			checkTypeEqual(ctx.ctx, type, fieldType);
 		},
 		(ref immutable LowExprKind.RecordFieldSet it) {
-			immutable LowType targetTypeNonPtr = immutable LowType(it.record);
-			immutable LowType targetType = it.targetIsPointer
+			immutable LowType targetTypeNonPtr = immutable LowType(targetRecordType(it));
+			immutable LowType targetType = targetIsPointer(it)
 				? immutable LowType(immutable LowType.PtrGc(ptrTrustMe(targetTypeNonPtr)))
 				: targetTypeNonPtr;
 			checkLowExpr(ctx, targetType, it.target);
-			immutable LowType fieldType = ctx.ctx.program.allRecords[it.record].fields[it.fieldIndex].type;
+			immutable LowType fieldType = ctx.ctx.program.allRecords[targetRecordType(it)].fields[it.fieldIndex].type;
 			checkLowExpr(ctx, fieldType, it.value);
 			checkTypeEqual(ctx.ctx, type, voidType);
 		},

@@ -153,14 +153,14 @@ struct LocalOrConstant {
 	return castNonScope(a.local_);
 }
 
-@trusted T matchLocalOrConstant(T)(
+@trusted immutable(T) matchLocalOrConstant(T)(
 	scope ref immutable LocalOrConstant a,
-	scope T delegate(immutable ConcreteLocal*) @safe @nogc pure nothrow cbLocal,
-	scope T delegate(immutable TypedConstant) @safe @nogc pure nothrow cbTypedConstant,
+	scope immutable(T) delegate(immutable ConcreteLocal*) @safe @nogc pure nothrow cbLocal,
+	scope immutable(T) delegate(immutable TypedConstant) @safe @nogc pure nothrow cbTypedConstant,
 ) {
 	final switch (a.kind_) {
 		case LocalOrConstant.Kind.local:
-			return cbLocal(a.local_);
+			return cbLocal(castNonScope(a.local_));
 		case LocalOrConstant.Kind.typedConstant:
 			return cbTypedConstant(a.typedConstant_);
 	}
@@ -467,17 +467,17 @@ immutable(ConcreteExpr) concretizeLet(
 	ref immutable Expr.Let e,
 ) {
 	immutable ConcreteExpr value = concretizeExpr(ctx, locals, e.value);
-	immutable LocalOrConstant localOrConstant = e.local.mutability == LocalMutability.immut && isConstant(value.kind)
-		? immutable LocalOrConstant(immutable TypedConstant(value.type, asConstant(value.kind)))
-		: immutable LocalOrConstant(concretizeLocal(ctx, e.local));
-	immutable ConcreteExpr then = concretizeWithLocal(ctx, locals, e.local, localOrConstant, e.then);
-	return matchLocalOrConstant!(immutable ConcreteExpr)(
-		localOrConstant,
-		(immutable ConcreteLocal* local) =>
-			immutable ConcreteExpr(then.type, range, immutable ConcreteExprKind(
-				allocate(ctx.alloc, immutable ConcreteExprKind.Let(local, value, then)))),
-		(immutable TypedConstant) =>
-			then);
+	if (e.local.mutability == LocalMutability.immut && isConstant(value.kind)) {
+		immutable LocalOrConstant lc =
+			immutable LocalOrConstant(immutable TypedConstant(value.type, asConstant(value.kind)));
+		return concretizeWithLocal(ctx, locals, e.local, lc, e.then);
+	} else {
+		immutable ConcreteLocal* local = concretizeLocal(ctx, e.local);
+		immutable LocalOrConstant lc = immutable LocalOrConstant(local);
+		immutable ConcreteExpr then = concretizeWithLocal(ctx, locals, e.local, lc, e.then);
+		return immutable ConcreteExpr(then.type, range, immutable ConcreteExprKind(
+			allocate(ctx.alloc, immutable ConcreteExprKind.Let(local, value, then))));
+	}
 }
 
 immutable(ConcreteExpr) concretizeIfOption(
@@ -507,7 +507,8 @@ immutable(ConcreteExpr) concretizeIfOption(
 	}
 }
 
-immutable(ConcreteExpr) concretizeLocalRef(
+// TODO: not @trusted
+@trusted immutable(ConcreteExpr) concretizeLocalRef(
 	immutable FileAndRange range,
 	scope ref immutable Locals locals,
 	immutable Local* local,
@@ -540,7 +541,7 @@ immutable(ConcreteExpr) concretizeLoop(
 	ref immutable Expr.Loop a,
 ) {
 	ConcreteExprKind.Loop* res = allocateMut(ctx.alloc, ConcreteExprKind.Loop());
-	immutable Locals localsWithLoop = addLoop(locals, &a, castImmutable(res));
+	scope immutable Locals localsWithLoop = addLoop(locals, castNonScope(&a), castImmutable(res));
 	overwriteMemory(&res.body_, concretizeExpr(ctx, localsWithLoop, a.body_));
 	return immutable ConcreteExpr(getConcreteType(ctx, a.type), range, immutable ConcreteExprKind(castImmutable(res)));
 }

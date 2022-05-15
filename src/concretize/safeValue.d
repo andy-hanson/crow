@@ -36,7 +36,7 @@ import util.alloc.alloc : Alloc;
 import util.col.arrUtil : map, mapWithIndex;
 import util.memory : allocate, allocateMut;
 import util.opt : force, has, none, some;
-import util.ptr : castImmutable, ptrTrustMe_mut;
+import util.ptr : castImmutable, castNonScope_mut;
 import util.sourceRange : FileAndRange;
 
 immutable(ConcreteFunBody) bodyForSafeValue(
@@ -45,7 +45,7 @@ immutable(ConcreteFunBody) bodyForSafeValue(
 	immutable FileAndRange range,
 	immutable ConcreteType type,
 ) {
-	Ctx ctx = Ctx(ptrTrustMe_mut(concretizeCtx), containingFun);
+	Ctx ctx = Ctx(castNonScope_mut(&concretizeCtx), containingFun);
 	return immutable ConcreteFunBody(safeValueForType(ctx, range, type));
 }
 

@@ -45,7 +45,7 @@ private struct PointerTypeAndConstants {
 
 immutable(AllConstantsConcrete) finishAllConstants(
 	ref Alloc alloc,
-	ref AllConstantsBuilder a,
+	scope ref AllConstantsBuilder a,
 	ref const AllSymbols allSymbols,
 	immutable ConcreteStruct* arrSymStruct,
 ) {
@@ -98,7 +98,7 @@ immutable(Constant) getConstantPtr(
 
 immutable(Constant) getConstantArr(
 	ref Alloc alloc,
-	ref AllConstantsBuilder allConstants,
+	scope ref AllConstantsBuilder allConstants,
 	immutable ConcreteStruct* arrStruct,
 	immutable Constant[] elements,
 ) {

@@ -116,6 +116,8 @@ import model.lowModel :
 	name,
 	PointerTypeAndConstantsLow,
 	PrimitiveType,
+	targetIsPointer,
+	targetRecordType,
 	UpdateParam;
 import model.typeLayout : sizeOfType;
 import util.alloc.alloc : Alloc;
@@ -964,65 +966,65 @@ struct ExprCtx {
 // NOTE: For ExprEmit
 immutable(ExprResult) toGccExpr(
 	ref ExprCtx ctx,
-	ref Locals locals,
+	scope ref Locals locals,
 	ref ExprEmit emit,
 	scope ref immutable LowExpr a,
 ) {
 	return matchLowExprKind!(
 		immutable ExprResult,
-		(ref immutable LowExprKind.Call it) =>
+		(scope ref immutable LowExprKind.Call it) =>
 			callToGcc(ctx, locals, emit, a.type, it),
-		(ref immutable LowExprKind.CallFunPtr it) =>
+		(scope ref immutable LowExprKind.CallFunPtr it) =>
 			callFunPtrToGcc(ctx, locals, emit, a, it),
-		(ref immutable LowExprKind.CreateRecord it) =>
+		(scope ref immutable LowExprKind.CreateRecord it) =>
 			createRecordToGcc(ctx, locals, emit, a, it),
-		(ref immutable LowExprKind.CreateUnion it) =>
+		(scope ref immutable LowExprKind.CreateUnion it) =>
 			createUnionToGcc(ctx, locals, emit, a, it),
-		(ref immutable LowExprKind.If it) =>
+		(scope ref immutable LowExprKind.If it) =>
 			ifToGcc(ctx, locals, emit, a.type, it.cond, it.then, it.else_),
-		(ref immutable LowExprKind.InitConstants) =>
+		(scope ref immutable LowExprKind.InitConstants) =>
 			initConstantsToGcc(ctx, emit),
-		(ref immutable LowExprKind.Let it) =>
+		(scope ref immutable LowExprKind.Let it) =>
 			letToGcc(ctx, locals, emit, it),
-		(ref immutable LowExprKind.LocalRef it) =>
+		(scope ref immutable LowExprKind.LocalRef it) =>
 			localRefToGcc(ctx, locals, emit, it),
-		(ref immutable LowExprKind.LocalSet it) =>
+		(scope ref immutable LowExprKind.LocalSet it) =>
 			localSetToGcc(ctx, locals, emit, it),
-		(ref immutable LowExprKind.Loop it) =>
+		(scope ref immutable LowExprKind.Loop it) =>
 			loopToGcc(ctx, locals, emit, a.type, it),
-		(ref immutable LowExprKind.LoopBreak it) =>
+		(scope ref immutable LowExprKind.LoopBreak it) =>
 			loopBreakToGcc(ctx, locals, emit, it),
-		(ref immutable LowExprKind.LoopContinue it) =>
+		(scope ref immutable LowExprKind.LoopContinue it) =>
 			loopContinueToGcc(ctx, locals, emit, it),
-		(ref immutable LowExprKind.MatchUnion it) =>
+		(scope ref immutable LowExprKind.MatchUnion it) =>
 			matchUnionToGcc(ctx, locals, emit, a, it),
-		(ref immutable LowExprKind.ParamRef it) =>
+		(scope ref immutable LowExprKind.ParamRef it) =>
 			paramRefToGcc(ctx, emit, it),
-		(ref immutable LowExprKind.PtrCast it) =>
+		(scope ref immutable LowExprKind.PtrCast it) =>
 			ptrCastToGcc(ctx, locals, emit, a, it),
-		(ref immutable LowExprKind.RecordFieldGet it) =>
+		(scope ref immutable LowExprKind.RecordFieldGet it) =>
 			recordFieldGetToGcc(ctx, locals, emit, it),
-		(ref immutable LowExprKind.RecordFieldSet it) =>
+		(scope ref immutable LowExprKind.RecordFieldSet it) =>
 			recordFieldSetToGcc(ctx, locals, emit, it),
-		(ref immutable LowExprKind.Seq it) =>
+		(scope ref immutable LowExprKind.Seq it) =>
 			seqToGcc(ctx, locals, emit, it),
-		(ref immutable LowExprKind.SizeOf it) =>
+		(scope ref immutable LowExprKind.SizeOf it) =>
 			sizeOfToGcc(ctx, emit, it),
-		(ref immutable Constant it) =>
+		(scope ref immutable Constant it) =>
 			constantToGcc(ctx, emit, a.type, it),
-		(ref immutable LowExprKind.SpecialUnary it) =>
+		(scope ref immutable LowExprKind.SpecialUnary it) =>
 			unaryToGcc(ctx, locals, emit, a, it),
-		(ref immutable LowExprKind.SpecialBinary it) =>
+		(scope ref immutable LowExprKind.SpecialBinary it) =>
 			binaryToGcc(ctx, locals, emit, a, it),
-		(ref immutable LowExprKind.SpecialTernary) =>
+		(scope ref immutable LowExprKind.SpecialTernary) =>
 			unreachable!ExprResult,
-		(ref immutable LowExprKind.Switch0ToN it) =>
+		(scope ref immutable LowExprKind.Switch0ToN it) =>
 			switch0ToNToGcc(ctx, locals, emit, a, it),
-		(ref immutable LowExprKind.SwitchWithValues) =>
+		(scope ref immutable LowExprKind.SwitchWithValues) =>
 			todo!(immutable ExprResult)("!"),
-		(ref immutable LowExprKind.TailRecur it) =>
+		(scope ref immutable LowExprKind.TailRecur it) =>
 			tailRecurToGcc(ctx, locals, emit, it),
-		(ref immutable LowExprKind.Zeroed) =>
+		(scope ref immutable LowExprKind.Zeroed) =>
 			zeroedToGcc(ctx, emit, a.type),
 	)(a.kind);
 }
@@ -1397,8 +1399,8 @@ immutable(ExprResult) recordFieldGetToGcc(
 	ref immutable LowExprKind.RecordFieldGet a,
 ) {
 	immutable gcc_jit_rvalue* target = emitToRValue(ctx, locals, a.target);
-	immutable gcc_jit_field* field = ctx.types.recordFields[a.record][a.fieldIndex];
-	return emitSimpleNoSideEffects(ctx, emit, a.targetIsPointer
+	immutable gcc_jit_field* field = ctx.types.recordFields[targetRecordType(a)][a.fieldIndex];
+	return emitSimpleNoSideEffects(ctx, emit, targetIsPointer(a)
 		? gcc_jit_lvalue_as_rvalue(gcc_jit_rvalue_dereference_field(target, null, field))
 		: gcc_jit_rvalue_access_field(target, null, field));
 }
@@ -1408,8 +1410,8 @@ gcc_jit_lvalue* recordFieldGetToLValue(
 	ref Locals locals,
 	ref immutable LowExprKind.RecordFieldGet a,
 ) {
-	immutable gcc_jit_field* field = ctx.types.recordFields[a.record][a.fieldIndex];
-	return a.targetIsPointer
+	immutable gcc_jit_field* field = ctx.types.recordFields[targetRecordType(a)][a.fieldIndex];
+	return targetIsPointer(a)
 		? gcc_jit_rvalue_dereference_field(emitToRValue(ctx, locals, a.target), null, field)
 		: gcc_jit_lvalue_access_field(getLValue(ctx, locals, a.target), null, field);
 }
@@ -1421,8 +1423,8 @@ immutable(ExprResult) recordFieldSetToGcc(
 	ref immutable LowExprKind.RecordFieldSet a,
 ) {
 	immutable gcc_jit_rvalue* target = emitToRValue(ctx, locals, a.target);
-	immutable gcc_jit_field* field = ctx.types.recordFields[a.record][a.fieldIndex];
-	verify(a.targetIsPointer); // TODO: make if this is always true, don't have it...
+	immutable gcc_jit_field* field = ctx.types.recordFields[targetRecordType(a)][a.fieldIndex];
+	verify(targetIsPointer(a)); // TODO: make if this is always true, don't have it...
 	immutable gcc_jit_rvalue* value = emitToRValue(ctx, locals, a.value);
 	gcc_jit_block_add_assignment(ctx.curBlock, null, gcc_jit_rvalue_dereference_field(target, null, field), value);
 	return emitVoid(ctx, emit);

@@ -1439,59 +1439,59 @@ public immutable(Expr) checkExpr(
 	immutable FileAndRange range = rangeInFile2(ctx, ast.range);
 	return matchExprAstKind!(
 		immutable Expr,
-		(ref immutable ArrowAccessAst a) =>
+		(scope ref immutable ArrowAccessAst a) =>
 			checkArrowAccess(ctx, locals, range, a, expected),
-		(ref immutable AssertOrForbidAst a) =>
+		(scope ref immutable AssertOrForbidAst a) =>
 			checkAssertOrForbid(ctx, locals, range, a, expected),
-		(ref immutable(BogusAst)) =>
+		(scope ref immutable(BogusAst)) =>
 			bogus(expected, range),
-		(ref immutable CallAst a) =>
+		(scope ref immutable CallAst a) =>
 			checkCall(ctx, locals, range, a, expected),
-		(ref immutable ForAst a) =>
+		(scope ref immutable ForAst a) =>
 			checkFor(ctx, locals, range, a, expected),
-		(ref immutable FunPtrAst a) =>
+		(scope ref immutable FunPtrAst a) =>
 			checkFunPtr(ctx, range, a, expected),
-		(ref immutable IdentifierAst a) =>
+		(scope ref immutable IdentifierAst a) =>
 			checkIdentifier(ctx, locals, range, a, expected),
-		(ref immutable IdentifierSetAst a) =>
+		(scope ref immutable IdentifierSetAst a) =>
 			checkIdentifierSet(ctx, locals, range, a, expected),
-		(ref immutable IfAst a) =>
+		(scope ref immutable IfAst a) =>
 			checkIf(ctx, locals, range, a, expected),
-		(ref immutable IfOptionAst a) =>
+		(scope ref immutable IfOptionAst a) =>
 			checkIfOption(ctx, locals, range, a, expected),
-		(ref immutable InterpolatedAst a) =>
+		(scope ref immutable InterpolatedAst a) =>
 			checkInterpolated(ctx, locals, range, a, expected),
-		(ref immutable LambdaAst a) =>
+		(scope ref immutable LambdaAst a) =>
 			checkLambda(ctx, locals, range, a, expected),
-		(ref immutable LetAst a) =>
+		(scope ref immutable LetAst a) =>
 			checkLet(ctx, locals, range, a, expected),
-		(ref immutable LiteralAst a) =>
+		(scope ref immutable LiteralAst a) =>
 			checkLiteral(ctx, range, ast, a, expected),
-		(ref immutable LoopAst a) =>
+		(scope ref immutable LoopAst a) =>
 			checkLoop(ctx, locals, range, a, expected),
-		(ref immutable LoopBreakAst a) =>
+		(scope ref immutable LoopBreakAst a) =>
 			checkLoopBreak(ctx, locals, range, a, expected),
-		(ref immutable(LoopContinueAst)) =>
+		(scope ref immutable(LoopContinueAst)) =>
 			checkLoopContinue(ctx, locals, range, expected),
-		(ref immutable LoopUntilAst a) =>
+		(scope ref immutable LoopUntilAst a) =>
 			checkLoopUntil(ctx, locals, range, a, expected),
-		(ref immutable LoopWhileAst a) =>
+		(scope ref immutable LoopWhileAst a) =>
 			checkLoopWhile(ctx, locals, range, a, expected),
-		(ref immutable MatchAst a) =>
+		(scope ref immutable MatchAst a) =>
 			checkMatch(ctx, locals, range, a, expected),
-		(ref immutable ParenthesizedAst a) =>
+		(scope ref immutable ParenthesizedAst a) =>
 			checkExpr(ctx, locals, a.inner, expected),
-		(ref immutable SeqAst a) =>
+		(scope ref immutable SeqAst a) =>
 			checkSeq(ctx, locals, range, a, expected),
-		(ref immutable ThenAst a) =>
+		(scope ref immutable ThenAst a) =>
 			checkThen(ctx, locals, range, a, expected),
-		(ref immutable ThenVoidAst a) =>
+		(scope ref immutable ThenVoidAst a) =>
 			checkThenVoid(ctx, locals, range, a, expected),
-		(ref immutable ThrowAst a) =>
+		(scope ref immutable ThrowAst a) =>
 			checkThrow(ctx, locals, range, a, expected),
-		(ref immutable TypedAst a) =>
+		(scope ref immutable TypedAst a) =>
 			checkTyped(ctx, locals, range, a, expected),
-		(ref immutable UnlessAst a) =>
+		(scope ref immutable UnlessAst a) =>
 			checkUnless(ctx, locals, range, a, expected),
 	)(ast.kind);
 }

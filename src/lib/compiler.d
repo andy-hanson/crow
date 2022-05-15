@@ -361,7 +361,7 @@ public struct ProgramsAndFilesInfo {
 	immutable Program program;
 	immutable Opt!ConcreteAndLowProgram concreteAndLowProgram;
 
-	ref immutable(LowProgram) lowProgram() return scope const {
+	ref immutable(LowProgram) lowProgram() scope return const {
 		return force(concreteAndLowProgram).lowProgram;
 	}
 }

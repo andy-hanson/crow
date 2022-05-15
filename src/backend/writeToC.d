@@ -58,6 +58,8 @@ import model.lowModel :
 	matchLowTypeCombinePtr,
 	PointerTypeAndConstantsLow,
 	PrimitiveType,
+	targetIsPointer,
+	targetRecordType,
 	UpdateParam;
 import model.model : EnumValue, name;
 import model.typeLayout : sizeOfType;
@@ -124,7 +126,11 @@ immutable(SafeCStr) writeToC(
 
 private:
 
-void writeConstants(ref Writer writer, ref immutable Ctx ctx, ref immutable AllConstantsLow allConstants) {
+void writeConstants(
+	scope ref Writer writer,
+	scope ref immutable Ctx ctx,
+	scope ref immutable AllConstantsLow allConstants,
+) {
 	foreach (ref immutable ArrTypeAndConstantsLow a; allConstants.arrs) {
 		foreach (immutable size_t i, immutable Constant[] elements; a.constants) {
 			declareConstantArrStorage(writer, ctx, a.arrType, a.elementType, i, elements.length);
@@ -176,8 +182,8 @@ void writeConstants(ref Writer writer, ref immutable Ctx ctx, ref immutable AllC
 }
 
 void declareConstantArrStorage(
-	ref Writer writer,
-	ref immutable Ctx ctx,
+	scope ref Writer writer,
+	scope ref immutable Ctx ctx,
 	immutable LowType.Record arrType,
 	immutable LowType elementType,
 	immutable size_t index,
@@ -192,8 +198,8 @@ void declareConstantArrStorage(
 }
 
 void declareConstantPointerStorage(
-	ref Writer writer,
-	ref immutable Ctx ctx,
+	scope ref Writer writer,
+	scope ref immutable Ctx ctx,
 	immutable LowType pointeeType,
 	immutable size_t index,
 ) {
@@ -240,7 +246,7 @@ immutable(Temp) getNextTemp(ref FunBodyCtx ctx) {
 	return temp;
 }
 
-void writeType(ref Writer writer, ref immutable Ctx ctx, scope immutable LowType t) {
+void writeType(scope ref Writer writer, scope ref immutable Ctx ctx, scope immutable LowType t) {
 	return matchLowTypeCombinePtr!(
 		void,
 		(immutable LowType.ExternPtr it) {
@@ -268,34 +274,34 @@ void writeType(ref Writer writer, ref immutable Ctx ctx, scope immutable LowType
 	)(t);
 }
 
-void writeRecordType(ref Writer writer, ref immutable Ctx ctx, immutable LowType.Record a) {
+void writeRecordType(scope ref Writer writer, scope ref immutable Ctx ctx, immutable LowType.Record a) {
 	writeStatic(writer, "struct ");
 	writeRecordName(writer, ctx.mangledNames, ctx.program, a);
 }
 
-void writeCastToType(ref Writer writer, ref immutable Ctx ctx, scope immutable LowType type) {
+void writeCastToType(scope ref Writer writer, scope ref immutable Ctx ctx, scope immutable LowType type) {
 	writeChar(writer, '(');
 	writeType(writer, ctx, type);
 	writeStatic(writer, ") ");
 }
 
-void writeParamDecl(ref Writer writer, ref immutable Ctx ctx, scope ref immutable LowParam a) {
+void writeParamDecl(scope ref Writer writer, scope ref immutable Ctx ctx, scope ref immutable LowParam a) {
 	writeType(writer, ctx, a.type);
 	writeChar(writer, ' ');
 	writeLowParamName(writer, ctx.mangledNames, a);
 }
 
-void writeStructHead(ref Writer writer, ref immutable Ctx ctx, immutable ConcreteStruct* source) {
+void writeStructHead(scope ref Writer writer, scope ref immutable Ctx ctx, scope immutable ConcreteStruct* source) {
 	writeStatic(writer, "struct ");
 	writeStructMangledName(writer, ctx.mangledNames, source);
 	writeStatic(writer, " {");
 }
 
-void writeStructEnd(ref Writer writer) {
+void writeStructEnd(scope ref Writer writer) {
 	writeStatic(writer, "\n};\n");
 }
 
-void writeRecord(ref Writer writer, ref immutable Ctx ctx, ref immutable LowRecord a) {
+void writeRecord(scope ref Writer writer, scope ref immutable Ctx ctx, scope ref immutable LowRecord a) {
 	if (a.packed) {
 		version (Windows) {
 			writeStatic(writer, "__pragma(pack(push, 1))\n");
@@ -322,7 +328,7 @@ void writeRecord(ref Writer writer, ref immutable Ctx ctx, ref immutable LowReco
 	writeStatic(writer, ";\n");
 }
 
-void writeUnion(ref Writer writer, ref immutable Ctx ctx, ref immutable LowUnion a) {
+void writeUnion(scope ref Writer writer, scope ref immutable Ctx ctx, scope ref immutable LowUnion a) {
 	writeStructHead(writer, ctx, a.source);
 	writeStatic(writer, "\n\tuint64_t kind;");
 	immutable bool isBuiltin = matchConcreteStructBody!(immutable bool)(
@@ -356,16 +362,16 @@ void writeUnion(ref Writer writer, ref immutable Ctx ctx, ref immutable LowUnion
 	writeStructEnd(writer);
 }
 
-void declareStruct(ref Writer writer, ref immutable Ctx ctx, immutable ConcreteStruct* source) {
+void declareStruct(scope ref Writer writer, scope ref immutable Ctx ctx, scope immutable ConcreteStruct* source) {
 	writeStatic(writer, "struct ");
 	writeStructMangledName(writer, ctx.mangledNames, source);
 	writeStatic(writer, ";\n");
 }
 
 void staticAssertStructSize(
-	ref Writer writer,
-	ref immutable Ctx ctx,
-	immutable LowType type,
+	scope ref Writer writer,
+	scope ref immutable Ctx ctx,
+	scope immutable LowType type,
 	immutable TypeSize size,
 ) {
 	writeStatic(writer, "_Static_assert(sizeof(");
@@ -381,7 +387,7 @@ void staticAssertStructSize(
 	writeStatic(writer, ", \"\");\n");
 }
 
-void writeStructs(ref Alloc alloc, ref Writer writer, ref immutable Ctx ctx) {
+void writeStructs(ref Alloc alloc, scope ref Writer writer, scope ref immutable Ctx ctx) {
 	scope immutable TypeWriters writers = immutable TypeWriters(
 		(immutable ConcreteStruct* it) {
 			declareStruct(writer, ctx, it);
@@ -432,10 +438,10 @@ void writeStructs(ref Alloc alloc, ref Writer writer, ref immutable Ctx ctx) {
 }
 
 void writeFunReturnTypeNameAndParams(
-	ref Writer writer,
-	ref immutable Ctx ctx,
+	scope ref Writer writer,
+	scope ref immutable Ctx ctx,
 	immutable LowFunIndex funIndex,
-	ref immutable LowFun fun,
+	scope ref immutable LowFun fun,
 ) {
 	if (isVoid(fun.returnType))
 		writeStatic(writer, "void");
@@ -461,10 +467,10 @@ void writeFunReturnTypeNameAndParams(
 }
 
 void writeFunDeclaration(
-	ref Writer writer,
-	ref immutable Ctx ctx,
+	scope ref Writer writer,
+	scope ref immutable Ctx ctx,
 	immutable LowFunIndex funIndex,
-	ref immutable LowFun fun,
+	scope ref immutable LowFun fun,
 ) {
 	if (isExtern(fun.body_))
 		writeStatic(writer, "extern ");
@@ -473,11 +479,11 @@ void writeFunDeclaration(
 }
 
 void writeFunDefinition(
-	ref Writer writer,
+	scope ref Writer writer,
 	ref TempAlloc tempAlloc,
-	ref immutable Ctx ctx,
+	scope ref immutable Ctx ctx,
 	immutable LowFunIndex funIndex,
-	ref immutable LowFun fun,
+	scope ref immutable LowFun fun,
 ) {
 	matchLowFunBody!(
 		void,
@@ -577,7 +583,12 @@ immutable(Temp) asTemp(ref immutable WriteExprResult a) {
 	}
 }
 
-void writeTempDeclare(ref Writer writer, ref FunBodyCtx ctx, immutable LowType type, immutable Temp temp) {
+void writeTempDeclare(
+	scope ref Writer writer,
+	scope ref FunBodyCtx ctx,
+	scope immutable LowType type,
+	immutable Temp temp,
+) {
 	writeType(writer, ctx.ctx, type);
 	writeChar(writer, ' ');
 	writeTempRef(writer, temp);
@@ -589,9 +600,9 @@ void writeTempRef(ref Writer writer, ref immutable Temp a) {
 }
 
 void writeTempOrInline(
-	ref Writer writer,
-	ref TempAlloc tempAlloc,
-	ref FunBodyCtx ctx,
+	scope ref Writer writer,
+	scope ref TempAlloc tempAlloc,
+	scope ref FunBodyCtx ctx,
 	scope ref immutable Locals locals,
 	scope ref immutable LowExpr e,
 	scope ref immutable WriteExprResult a,
@@ -609,9 +620,9 @@ void writeTempOrInline(
 }
 
 void writeTempOrInlines(
-	ref Writer writer,
-	ref TempAlloc tempAlloc,
-	ref FunBodyCtx ctx,
+	scope ref Writer writer,
+	scope ref TempAlloc tempAlloc,
+	scope ref FunBodyCtx ctx,
 	scope ref immutable Locals locals,
 	scope immutable LowExpr[] exprs,
 	scope immutable WriteExprResult[] args,
@@ -629,10 +640,10 @@ void writeTempOrInlines(
 }
 
 void writeDeclareLocal(
-	ref Writer writer,
+	scope ref Writer writer,
 	immutable size_t indent,
-	ref FunBodyCtx ctx,
-	ref immutable LowLocal local,
+	scope ref FunBodyCtx ctx,
+	scope ref immutable LowLocal local,
 ) {
 	writeNewline(writer, indent);
 	writeType(writer, ctx.ctx, local.type);
@@ -686,40 +697,40 @@ struct WriteKind {
 	}
 }
 
-immutable(bool) isInline(ref immutable WriteKind a) {
+immutable(bool) isInline(scope ref immutable WriteKind a) {
 	return a.kind == WriteKind.Kind.inline;
 }
 
-@trusted immutable(WriteKind.Inline) asInline(ref immutable WriteKind a) {
+@trusted immutable(WriteKind.Inline) asInline(scope ref immutable WriteKind a) {
 	verify(isInline(a));
 	return a.inline;
 }
 
-immutable(bool) isInlineOrTemp(ref immutable WriteKind a) {
+immutable(bool) isInlineOrTemp(scope ref immutable WriteKind a) {
 	return a.kind == WriteKind.Kind.inlineOrTemp;
 }
 
-immutable(bool) isMakeTemp(ref immutable WriteKind a) {
+immutable(bool) isMakeTemp(scope ref immutable WriteKind a) {
 	return a.kind == WriteKind.Kind.makeTemp;
 }
 
-immutable(bool) isReturn(ref immutable WriteKind a) {
+immutable(bool) isReturn(scope ref immutable WriteKind a) {
 	return a.kind == WriteKind.Kind.return_;
 }
 
-immutable(bool) isVoid(ref immutable WriteKind a) {
+immutable(bool) isVoid(scope ref immutable WriteKind a) {
 	return a.kind == WriteKind.Kind.void_;
 }
 
 @trusted T matchWriteKind(T)(
-	ref immutable WriteKind a,
-	scope T delegate(ref immutable WriteKind.Inline) @safe @nogc pure nothrow cbInline,
-	scope T delegate(ref immutable WriteKind.InlineOrTemp) @safe @nogc pure nothrow cbInlineOrTemp,
-	scope T delegate(immutable LowLocal*) @safe @nogc pure nothrow cbLocal,
-	scope T delegate(ref immutable WriteKind.MakeTemp) @safe @nogc pure nothrow cbMakeTemp,
-	scope T delegate(ref immutable WriteKind.Return) @safe @nogc pure nothrow cbReturn,
-	scope T delegate(ref immutable WriteKind.UseTemp) @safe @nogc pure nothrow cbUseTemp,
-	scope T delegate(ref immutable WriteKind.Void) @safe @nogc pure nothrow cbVoid,
+	scope ref immutable WriteKind a,
+	scope T delegate(scope ref immutable WriteKind.Inline) @safe @nogc pure nothrow cbInline,
+	scope T delegate(scope ref immutable WriteKind.InlineOrTemp) @safe @nogc pure nothrow cbInlineOrTemp,
+	scope T delegate(scope immutable LowLocal*) @safe @nogc pure nothrow cbLocal,
+	scope T delegate(scope ref immutable WriteKind.MakeTemp) @safe @nogc pure nothrow cbMakeTemp,
+	scope T delegate(scope ref immutable WriteKind.Return) @safe @nogc pure nothrow cbReturn,
+	scope T delegate(scope ref immutable WriteKind.UseTemp) @safe @nogc pure nothrow cbUseTemp,
+	scope T delegate(scope ref immutable WriteKind.Void) @safe @nogc pure nothrow cbVoid,
 ) {
 	final switch (a.kind) {
 		case WriteKind.Kind.inline:
@@ -740,10 +751,10 @@ immutable(bool) isVoid(ref immutable WriteKind a) {
 }
 
 immutable(WriteExprResult[]) writeExprsTempOrInline(
-	ref Writer writer,
+	scope ref Writer writer,
 	ref TempAlloc tempAlloc,
 	immutable size_t indent,
-	ref FunBodyCtx ctx,
+	scope ref FunBodyCtx ctx,
 	scope ref immutable Locals locals,
 	scope immutable LowExpr[] args,
 ) {
@@ -752,12 +763,12 @@ immutable(WriteExprResult[]) writeExprsTempOrInline(
 }
 
 immutable(Temp) writeExprTemp(
-	ref Writer writer,
-	ref TempAlloc tempAlloc,
+	scope ref Writer writer,
+	scope ref TempAlloc tempAlloc,
 	immutable size_t indent,
-	ref FunBodyCtx ctx,
+	scope ref FunBodyCtx ctx,
 	scope ref immutable Locals locals,
-	ref immutable LowExpr expr,
+	scope ref immutable LowExpr expr,
 ) {
 	immutable WriteKind writeKind = immutable WriteKind(immutable WriteKind.MakeTemp());
 	immutable WriteExprResult res = writeExpr(writer, tempAlloc, indent, ctx, locals, writeKind, expr);
@@ -765,24 +776,24 @@ immutable(Temp) writeExprTemp(
 }
 
 void writeExprVoid(
-	ref Writer writer,
-	ref TempAlloc tempAlloc,
+	scope ref Writer writer,
+	scope ref TempAlloc tempAlloc,
 	immutable size_t indent,
-	ref FunBodyCtx ctx,
+	scope ref FunBodyCtx ctx,
 	scope ref immutable Locals locals,
-	ref immutable LowExpr expr,
+	scope ref immutable LowExpr expr,
 ) {
 	immutable WriteKind writeKind = immutable WriteKind(immutable WriteKind.Void());
 	drop(writeExpr(writer, tempAlloc, indent, ctx, locals, writeKind, expr));
 }
 
 immutable(WriteExprResult) writeExprTempOrInline(
-	ref Writer writer,
-	ref TempAlloc tempAlloc,
+	scope ref Writer writer,
+	scope ref TempAlloc tempAlloc,
 	immutable size_t indent,
-	ref FunBodyCtx ctx,
+	scope ref FunBodyCtx ctx,
 	scope ref immutable Locals locals,
-	ref immutable LowExpr expr,
+	scope ref immutable LowExpr expr,
 ) {
 	immutable WriteKind writeKind = immutable WriteKind(immutable WriteKind.InlineOrTemp());
 	return writeExpr(writer, tempAlloc, indent, ctx, locals, writeKind, expr);
@@ -803,12 +814,12 @@ immutable(uint) nextLoopIndex(scope ref immutable Locals locals) {
 }
 
 immutable(WriteExprResult) writeExpr(
-	ref Writer writer,
-	ref TempAlloc tempAlloc,
+	scope ref Writer writer,
+	scope ref TempAlloc tempAlloc,
 	immutable size_t indent,
-	ref FunBodyCtx ctx,
+	scope ref FunBodyCtx ctx,
 	scope ref immutable Locals locals,
-	ref immutable WriteKind writeKind,
+	scope ref immutable WriteKind writeKind,
 	scope ref immutable LowExpr expr,
 ) {
 	immutable LowType type = expr.type;
@@ -833,52 +844,52 @@ immutable(WriteExprResult) writeExpr(
 
 	return matchLowExprKind!(
 		immutable WriteExprResult,
-		(ref immutable LowExprKind.Call it) =>
+		(scope ref immutable LowExprKind.Call it) =>
 			writeCallExpr(writer, tempAlloc, indent, ctx, locals, writeKind, type, it),
-		(ref immutable LowExprKind.CallFunPtr it) =>
+		(scope ref immutable LowExprKind.CallFunPtr it) =>
 			writeCallFunPtr(writer, tempAlloc, indent, ctx, locals, writeKind, type, it),
-		(ref immutable LowExprKind.CreateRecord it) =>
+		(scope ref immutable LowExprKind.CreateRecord it) =>
 			inlineable(it.args, (scope ref immutable WriteExprResult[] args) {
 				writeCastToType(writer, ctx.ctx, type);
 				writeChar(writer, '{');
 				writeTempOrInlines(writer, tempAlloc, ctx, locals, it.args, args);
 				writeChar(writer, '}');
 			}),
-		(ref immutable LowExprKind.CreateUnion it) =>
+		(scope ref immutable LowExprKind.CreateUnion it) =>
 			inlineableSingleArg(it.arg, (scope ref immutable WriteExprResult arg) {
 				writeCreateUnion(writer, ctx.ctx, ConstantRefPos.outer, type, it.memberIndex, () {
 					writeTempOrInline(writer, tempAlloc, ctx, locals, it.arg, arg);
 				});
 			}),
-		(ref immutable LowExprKind.If it) =>
+		(scope ref immutable LowExprKind.If it) =>
 			writeIf(writer, tempAlloc, indent, ctx, locals, writeKind, type, it),
-		(ref immutable LowExprKind.InitConstants) =>
+		(scope ref immutable LowExprKind.InitConstants) =>
 			// writeToC doesn't need to do anything in 'init-constants'
 			writeReturnVoid(writer, indent, ctx, writeKind),
-		(ref immutable LowExprKind.Let it) =>
+		(scope ref immutable LowExprKind.Let it) =>
 			writeLet(writer, tempAlloc, indent, ctx, locals, writeKind, it),
-		(ref immutable LowExprKind.LocalRef it) =>
+		(scope ref immutable LowExprKind.LocalRef it) =>
 			inlineableSimple(() {
 				writeLowLocalName(writer, ctx.mangledNames, *it.local);
 			}),
-		(ref immutable LowExprKind.LocalSet it) =>
+		(scope ref immutable LowExprKind.LocalSet it) =>
 			writeLocalSet(writer, tempAlloc, indent, ctx, locals, writeKind, it),
-		(ref immutable LowExprKind.Loop it) =>
+		(scope ref immutable LowExprKind.Loop it) =>
 			writeLoop(writer, tempAlloc, indent, ctx, locals, writeKind, type, it),
-		(ref immutable LowExprKind.LoopBreak it) =>
+		(scope ref immutable LowExprKind.LoopBreak it) =>
 			writeLoopBreak(writer, tempAlloc, indent, ctx, locals, writeKind, it),
-		(ref immutable LowExprKind.LoopContinue it) {
+		(scope ref immutable LowExprKind.LoopContinue it) {
 			// Do nothing, continuing the loop is implicit in C
 			verify(isVoid(writeKind));
 			return immutable WriteExprResult(immutable WriteExprResult.Done());
 		},
-		(ref immutable LowExprKind.MatchUnion it) =>
+		(scope ref immutable LowExprKind.MatchUnion it) =>
 			writeMatchUnion(writer, tempAlloc, indent, ctx, locals, writeKind, type, it),
-		(ref immutable LowExprKind.ParamRef it) =>
+		(scope ref immutable LowExprKind.ParamRef it) =>
 			inlineableSimple(() {
 				writeParamRef(writer, ctx, it);
 			}),
-		(ref immutable LowExprKind.PtrCast it) {
+		(scope ref immutable LowExprKind.PtrCast it) {
 			return inlineableSingleArg(it.target, (ref immutable WriteExprResult arg) {
 				writeChar(writer, '(');
 				writeCastToType(writer, ctx.ctx, type);
@@ -886,60 +897,60 @@ immutable(WriteExprResult) writeExpr(
 				writeChar(writer, ')');
 			});
 		},
-		(ref immutable LowExprKind.RecordFieldGet it) =>
-			inlineableSingleArg(it.target, (ref immutable WriteExprResult recordValue) {
+		(scope ref immutable LowExprKind.RecordFieldGet it) =>
+			inlineableSingleArg(it.target, (scope ref immutable WriteExprResult recordValue) @safe {
 				if (!isVoid(expr.type)) {
 					writeTempOrInline(writer, tempAlloc, ctx, locals, it.target, recordValue);
-					writeRecordFieldRef(writer, ctx, it.targetIsPointer, it.record, it.fieldIndex);
+					writeRecordFieldRef(writer, ctx, targetIsPointer(it), targetRecordType(it), it.fieldIndex);
 				}
 			}),
-		(ref immutable LowExprKind.RecordFieldSet it) {
+		(scope ref immutable LowExprKind.RecordFieldSet it) {
 			immutable WriteExprResult recordValue =
 				writeExprTempOrInline(writer, tempAlloc, indent, ctx, locals, it.target);
 			immutable WriteExprResult fieldValue =
 				writeExprTempOrInline(writer, tempAlloc, indent, ctx, locals, it.value);
 			return writeReturnVoid(writer, indent, ctx, writeKind, () {
 				writeTempOrInline(writer, tempAlloc, ctx, locals, it.target, recordValue);
-				writeRecordFieldRef(writer, ctx, it.targetIsPointer, it.record, it.fieldIndex);
+				writeRecordFieldRef(writer, ctx, targetIsPointer(it), targetRecordType(it), it.fieldIndex);
 				writeStatic(writer, " = ");
 				writeTempOrInline(writer, tempAlloc, ctx, locals, it.value, fieldValue);
 			});
 		},
-		(ref immutable LowExprKind.Seq it) {
+		(scope ref immutable LowExprKind.Seq it) {
 			if (!isInline(writeKind))
 				writeExprVoid(writer, tempAlloc, indent, ctx, locals, it.first);
 			return writeExpr(writer, tempAlloc, indent, ctx, locals, writeKind, it.then);
 		},
-		(ref immutable LowExprKind.SizeOf it) =>
+		(scope ref immutable LowExprKind.SizeOf it) =>
 			inlineableSimple(() {
 				writeStatic(writer, "sizeof(");
 				writeType(writer, ctx.ctx, it.type);
 				writeChar(writer, ')');
 			}),
-		(ref immutable Constant it) =>
+		(scope ref immutable Constant it) =>
 			inlineableSimple(() {
 				writeConstantRef(writer, ctx.ctx, ConstantRefPos.outer, type, it);
 			}),
-		(ref immutable LowExprKind.SpecialUnary it) =>
+		(scope ref immutable LowExprKind.SpecialUnary it) =>
 			writeSpecialUnary(writer, tempAlloc, indent, ctx, locals, writeKind, type, it),
-		(ref immutable LowExprKind.SpecialBinary it) =>
+		(scope ref immutable LowExprKind.SpecialBinary it) =>
 			writeSpecialBinary(writer, tempAlloc, indent, ctx, locals, writeKind, type, it),
-		(ref immutable LowExprKind.SpecialTernary) =>
+		(scope ref immutable LowExprKind.SpecialTernary) =>
 			unreachable!(immutable WriteExprResult),
-		(ref immutable LowExprKind.Switch0ToN it) =>
+		(scope ref immutable LowExprKind.Switch0ToN it) =>
 			writeSwitch(
 				writer, tempAlloc, indent, ctx, locals, writeKind, type, it.value, it.cases,
 				(immutable size_t i) => immutable EnumValue(i)),
-		(ref immutable LowExprKind.SwitchWithValues it) =>
+		(scope ref immutable LowExprKind.SwitchWithValues it) =>
 			writeSwitch(
 				writer, tempAlloc, indent, ctx, locals, writeKind, type, it.value, it.cases,
 				(immutable size_t i) => it.values[i]),
-		(ref immutable LowExprKind.TailRecur it) {
+		(scope ref immutable LowExprKind.TailRecur it) {
 			verify(isReturn(writeKind));
 			writeTailRecur(writer, tempAlloc, indent, ctx, locals, it);
 			return writeExprDone();
 		},
-		(ref immutable LowExprKind.Zeroed) =>
+		(scope ref immutable LowExprKind.Zeroed) =>
 			inlineableSimple(() {
 				writeZeroedValue(writer, ctx.ctx, type);
 			}),
@@ -947,10 +958,10 @@ immutable(WriteExprResult) writeExpr(
 }
 
 immutable(WriteExprResult) writeNonInlineable(
-	ref Writer writer,
+	scope ref Writer writer,
 	immutable size_t indent,
-	ref FunBodyCtx ctx,
-	ref immutable WriteKind writeKind,
+	scope ref FunBodyCtx ctx,
+	scope ref immutable WriteKind writeKind,
 	immutable LowType type,
 	scope void delegate() @safe @nogc pure nothrow cb,
 ) {
@@ -1162,8 +1173,8 @@ void writeTailRecur(
 }
 
 void writeCreateUnion(
-	ref Writer writer,
-	ref immutable Ctx ctx,
+	scope ref Writer writer,
+	scope ref immutable Ctx ctx,
 	immutable ConstantRefPos pos,
 	scope immutable LowType type,
 	immutable size_t memberIndex,
@@ -1183,23 +1194,23 @@ void writeCreateUnion(
 	writeChar(writer, '}');
 }
 
-void writeFunPtr(ref Writer writer, ref immutable Ctx ctx, immutable LowFunIndex a) {
+void writeFunPtr(scope ref Writer writer, scope ref immutable Ctx ctx, immutable LowFunIndex a) {
 	writeLowFunMangledName(writer, ctx.mangledNames, a, ctx.program.allFuns[a]);
 }
 
-void writeParamRef(ref Writer writer, ref const FunBodyCtx ctx, ref immutable LowExprKind.ParamRef a) {
+void writeParamRef(scope ref Writer writer, scope ref const FunBodyCtx ctx, ref immutable LowExprKind.ParamRef a) {
 	writeLowParamName(writer, ctx.mangledNames, ctx.ctx.program.allFuns[ctx.curFun].params[a.index.index]);
 }
 
 immutable(WriteExprResult) writeMatchUnion(
-	ref Writer writer,
+	scope ref Writer writer,
 	ref TempAlloc tempAlloc,
 	immutable size_t indent,
-	ref FunBodyCtx ctx,
+	scope ref FunBodyCtx ctx,
 	scope ref immutable Locals locals,
 	ref immutable WriteKind writeKind,
 	immutable LowType type,
-	ref immutable LowExprKind.MatchUnion a,
+	scope ref immutable LowExprKind.MatchUnion a,
 ) {
 	immutable Temp matchedValue = writeExprTemp(writer, tempAlloc, indent, ctx, locals, a.matchedValue);
 	immutable WriteExprResultAndNested nested = getNestedWriteKind(writer, indent, ctx, type, writeKind);
@@ -1236,12 +1247,12 @@ immutable(WriteExprResult) writeMatchUnion(
 }
 
 void writeDefaultAbort(
-	ref Writer writer,
+	scope ref Writer writer,
 	ref TempAlloc tempAlloc,
 	immutable size_t indent,
-	ref FunBodyCtx ctx,
+	scope ref FunBodyCtx ctx,
 	scope ref immutable Locals locals,
-	ref immutable WriteKind writeKind,
+	scope ref immutable WriteKind writeKind,
 	immutable LowType type,
 ) {
 	writeNewline(writer, indent + 1);
@@ -1328,8 +1339,8 @@ immutable(bool) isSignedIntegral(immutable PrimitiveType a) {
 }
 
 void writeRecordFieldRef(
-	ref Writer writer,
-	ref const FunBodyCtx ctx,
+	scope ref Writer writer,
+	scope ref const FunBodyCtx ctx,
 	immutable bool targetIsPointer,
 	immutable LowType.Record record,
 	immutable size_t fieldIndex,
@@ -1349,8 +1360,8 @@ enum ConstantRefPos {
 }
 
 void writeConstantRef(
-	ref Writer writer,
-	ref immutable Ctx ctx,
+	scope ref Writer writer,
+	scope ref immutable Ctx ctx,
 	immutable ConstantRefPos pos,
 	scope immutable LowType type,
 	scope immutable Constant a,
@@ -1593,7 +1604,7 @@ void writeLValue(ref Writer writer, ref const FunBodyCtx ctx, ref immutable LowE
 		(ref immutable LowExprKind.PtrCast) => todo!void("!"),
 		(ref immutable LowExprKind.RecordFieldGet it) {
 			writeLValue(writer, ctx, it.target);
-			writeRecordFieldRef(writer, ctx, it.targetIsPointer, it.record, it.fieldIndex);
+			writeRecordFieldRef(writer, ctx, targetIsPointer(it), targetRecordType(it), it.fieldIndex);
 		},
 		(ref immutable LowExprKind.RecordFieldSet) => unreachable!void(),
 		(ref immutable LowExprKind.Seq) => unreachable!void(),
@@ -1625,7 +1636,7 @@ void writeLValue(ref Writer writer, ref const FunBodyCtx ctx, ref immutable LowE
 	)(expr.kind);
 }
 
-void writeZeroedValue(ref Writer writer, ref immutable Ctx ctx, scope immutable LowType type) {
+void writeZeroedValue(scope ref Writer writer, scope ref immutable Ctx ctx, scope immutable LowType type) {
 	return matchLowTypeCombinePtr!(
 		void,
 		(immutable LowType.ExternPtr) {
@@ -1852,10 +1863,10 @@ struct WriteExprResultAndNested {
 
 // If we need to make a temporary, have to do that in an outer scope and write to it in an inner scope
 immutable(WriteExprResultAndNested) getNestedWriteKind(
-	ref Writer writer,
+	scope ref Writer writer,
 	immutable size_t indent,
-	ref FunBodyCtx ctx,
-	immutable LowType type,
+	scope ref FunBodyCtx ctx,
+	scope immutable LowType type,
 	ref immutable WriteKind writeKind,
 ) {
 	if (isVoid(type)) {
@@ -1874,15 +1885,15 @@ immutable(WriteExprResultAndNested) getNestedWriteKind(
 }
 
 immutable(WriteExprResult) writeLogicalOperator(
-	ref Writer writer,
+	scope ref Writer writer,
 	ref TempAlloc tempAlloc,
 	immutable size_t indent,
-	ref FunBodyCtx ctx,
+	scope ref FunBodyCtx ctx,
 	scope ref immutable Locals locals,
 	immutable WriteKind writeKind,
 	immutable LogicalOperator operator,
-	ref immutable LowExpr left,
-	ref immutable LowExpr right,
+	scope ref immutable LowExpr left,
+	scope ref immutable LowExpr right,
 ) {
 	/*
 	`a && b` ==> `if (a) { return b; } else { return 0; }`

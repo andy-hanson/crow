@@ -329,7 +329,8 @@ immutable(Repr) documentNameAndTypeArgs(
 	ref Alloc alloc,
 	immutable Sym nodeType,
 	immutable Sym name,
-	immutable Type[] typeArgs) {
+	scope immutable Type[] typeArgs,
+) {
 	return empty(typeArgs)
 		? reprNamedRecord(alloc, nodeType, [nameAndRepr("name", reprSym(name))])
 		: reprNamedRecord(alloc, nodeType, [
@@ -338,7 +339,7 @@ immutable(Repr) documentNameAndTypeArgs(
 				documentTypeRef(alloc, typeArg)))]);
 }
 
-immutable(Repr) documentTypeParams(ref Alloc alloc, immutable TypeParam[] xs) {
+immutable(Repr) documentTypeParams(ref Alloc alloc, scope immutable TypeParam[] xs) {
 	verify(!empty(xs));
 	return reprArr(alloc, xs, (ref immutable TypeParam x) =>
 		reprNamedRecord(alloc, "type-param", [nameAndRepr("name", reprSym(x.name))]));

@@ -179,27 +179,27 @@ struct ConcreteStructBody {
 	}
 }
 
-@trusted ref immutable(ConcreteStructBody.Builtin) asBuiltin(return scope ref immutable ConcreteStructBody a) {
+@trusted ref immutable(ConcreteStructBody.Builtin) asBuiltin(scope return ref immutable ConcreteStructBody a) {
 	verify(a.kind == ConcreteStructBody.Kind.builtin);
 	return a.builtin;
 }
 
-@trusted ref immutable(ConcreteStructBody.Enum) asEnum(return scope ref immutable ConcreteStructBody a) {
+@trusted ref immutable(ConcreteStructBody.Enum) asEnum(scope return ref immutable ConcreteStructBody a) {
 	verify(a.kind == ConcreteStructBody.Kind.enum_);
 	return a.enum_;
 }
 
-@trusted ref immutable(ConcreteStructBody.Flags) asFlags(return scope ref immutable ConcreteStructBody a) {
+@trusted ref immutable(ConcreteStructBody.Flags) asFlags(scope return ref immutable ConcreteStructBody a) {
 	verify(a.kind == ConcreteStructBody.Kind.flags);
 	return a.flags;
 }
 
-@trusted ref immutable(ConcreteStructBody.Record) asRecord(return scope ref immutable ConcreteStructBody a) {
+@trusted ref immutable(ConcreteStructBody.Record) asRecord(scope return ref immutable ConcreteStructBody a) {
 	verify(a.kind == ConcreteStructBody.Kind.record);
 	return a.record;
 }
 
-@trusted ref immutable(ConcreteStructBody.Union) asUnion(return scope ref immutable ConcreteStructBody a) {
+@trusted ref immutable(ConcreteStructBody.Union) asUnion(scope return ref immutable ConcreteStructBody a) {
 	verify(a.kind == ConcreteStructBody.Kind.union_);
 	return a.union_;
 }
@@ -303,7 +303,7 @@ struct ConcreteStructSource {
 	}
 }
 
-@trusted ref immutable(ConcreteStructSource.Inst) asInst(return scope ref immutable ConcreteStructSource a) {
+@trusted ref immutable(ConcreteStructSource.Inst) asInst(scope return ref immutable ConcreteStructSource a) {
 	verify(a.kind_ == ConcreteStructSource.Kind.inst);
 	return a.inst_;
 }
@@ -340,11 +340,11 @@ immutable(bool) isArr(ref immutable ConcreteStruct a) {
 	)(a.source);
 }
 
-private ref immutable(ConcreteStructInfo) info(return scope ref const ConcreteStruct a) {
+private ref immutable(ConcreteStructInfo) info(scope return ref const ConcreteStruct a) {
 	return lateGet(a.info_);
 }
 
-ref immutable(ConcreteStructBody) body_(return scope ref immutable ConcreteStruct a) {
+ref immutable(ConcreteStructBody) body_(scope return ref immutable ConcreteStruct a) {
 	return info(a).body_;
 }
 
@@ -352,7 +352,7 @@ immutable(TypeSize) typeSize(ref immutable ConcreteStruct a) {
 	return lateGet(a.typeSize_);
 }
 
-ref immutable(size_t[]) fieldOffsets(return scope ref immutable ConcreteStruct a) {
+ref immutable(size_t[]) fieldOffsets(scope return ref immutable ConcreteStruct a) {
 	return lateGet(a.fieldOffsets_);
 }
 
@@ -540,12 +540,12 @@ immutable(bool) isExtern(ref immutable ConcreteFunBody a) {
 	return a.kind == ConcreteFunBody.Kind.extern_;
 }
 
-@trusted ref immutable(ConcreteFunBody.Builtin) asBuiltin(return scope ref immutable ConcreteFunBody a) {
+@trusted ref immutable(ConcreteFunBody.Builtin) asBuiltin(scope return ref immutable ConcreteFunBody a) {
 	verify(a.kind == ConcreteFunBody.Kind.builtin);
 	return a.builtin;
 }
 
-private @trusted ref immutable(ConcreteFunBody.Extern) asExtern(return scope ref immutable ConcreteFunBody a) {
+private @trusted ref immutable(ConcreteFunBody.Extern) asExtern(scope return ref immutable ConcreteFunBody a) {
 	verify(isExtern(a));
 	return a.extern_;
 }
@@ -746,7 +746,7 @@ immutable(bool) isMarkVisitFun(ref immutable ConcreteFun a) {
 	)(a.source);
 }
 
-ref immutable(ConcreteFunBody) body_(return scope ref const ConcreteFun a) {
+ref immutable(ConcreteFunBody) body_(scope return ref const ConcreteFun a) {
 	return lateGet(a._body_);
 }
 
@@ -969,7 +969,7 @@ immutable(bool) isConstant(ref immutable ConcreteExprKind a) {
 	return a.kind == ConcreteExprKind.Kind.constant;
 }
 
-@trusted ref immutable(Constant) asConstant(return scope ref immutable ConcreteExprKind a) {
+@trusted ref immutable(Constant) asConstant(scope return ref immutable ConcreteExprKind a) {
 	verify(isConstant(a));
 	return a.constant;
 }

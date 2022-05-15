@@ -516,14 +516,14 @@ immutable(bool) isBogus(ref immutable StructBody a) {
 private immutable(bool) isRecord(ref const StructBody a) {
 	return a.kind == StructBody.Kind.record;
 }
-@trusted ref const(StructBody.Record) asRecord(return scope ref const StructBody a) {
+@trusted ref const(StructBody.Record) asRecord(scope return ref const StructBody a) {
 	verify(isRecord(a));
 	return a.record;
 }
 private immutable(bool) isUnion(ref immutable StructBody a) {
 	return a.kind == StructBody.Kind.union_;
 }
-@trusted ref immutable(StructBody.Union) asUnion(return scope ref immutable StructBody a) {
+@trusted ref immutable(StructBody.Union) asUnion(scope return ref immutable StructBody a) {
 	verify(isUnion(a));
 	return a.union_;
 }
@@ -624,10 +624,10 @@ immutable(bool) bodyIsSet(ref const StructDecl a) {
 	return lateIsSet(a._body_);
 }
 
-ref const(StructBody) body_(return scope ref const StructDecl a) {
+ref const(StructBody) body_(scope return ref const StructDecl a) {
 	return lateGet(a._body_);
 }
-ref immutable(StructBody) body_(return scope ref immutable StructDecl a) {
+ref immutable(StructBody) body_(scope return ref immutable StructDecl a) {
 	return lateGet(a._body_);
 }
 
@@ -684,11 +684,11 @@ immutable(StructDecl*) decl(ref immutable StructInst i) {
 	return i.declAndArgs.decl;
 }
 
-ref immutable(Type[]) typeArgs(return scope ref immutable StructInst i) {
+ref immutable(Type[]) typeArgs(scope return ref immutable StructInst i) {
 	return i.declAndArgs.typeArgs;
 }
 
-ref immutable(StructBody) body_(return scope ref immutable StructInst a) {
+ref immutable(StructBody) body_(scope return ref immutable StructInst a) {
 	return lateGet(a._body_);
 }
 
@@ -775,7 +775,7 @@ immutable(SpecDecl*) decl(ref immutable SpecInst a) {
 	return a.declAndArgs.decl;
 }
 
-immutable(Type[]) typeArgs(return scope ref immutable SpecInst a) {
+immutable(Type[]) typeArgs(scope return ref immutable SpecInst a) {
 	return a.declAndArgs.typeArgs;
 }
 
@@ -1048,11 +1048,11 @@ immutable(Sym) name(ref const FunDecl a) {
 	return a.sig.name;
 }
 
-ref immutable(Type) returnType(return scope ref immutable FunDecl a) {
+ref immutable(Type) returnType(scope return ref immutable FunDecl a) {
 	return a.sig.returnType;
 }
 
-ref immutable(Params) params(return scope ref immutable FunDecl a) {
+ref immutable(Params) params(scope return ref immutable FunDecl a) {
 	return a.sig.params;
 }
 
@@ -1129,11 +1129,11 @@ immutable(Sym) name(ref immutable FunInst a) {
 	return a.sig.name;
 }
 
-ref immutable(Type) returnType(return scope ref immutable FunInst a) {
+ref immutable(Type) returnType(scope return ref immutable FunInst a) {
 	return a.sig.returnType;
 }
 
-ref immutable(Params) params(return scope ref immutable FunInst a) {
+ref immutable(Params) params(scope return ref immutable FunInst a) {
 	return a.sig.params;
 }
 
@@ -1210,7 +1210,7 @@ struct CalledDecl {
 	}
 }
 
-@trusted ref immutable(Sig) sig(return scope ref immutable CalledDecl a) {
+@trusted ref immutable(Sig) sig(scope return ref immutable CalledDecl a) {
 	final switch (a.kind) {
 		case CalledDecl.Kind.funDecl:
 			return a.funDecl.sig;
@@ -1223,15 +1223,15 @@ immutable(Sym) name(ref immutable CalledDecl a) {
 	return a.sig.name;
 }
 
-ref immutable(Type) returnType(return scope ref immutable CalledDecl a) {
+ref immutable(Type) returnType(scope return ref immutable CalledDecl a) {
 	return a.sig.returnType;
 }
 
-ref immutable(Params) params(return scope ref immutable CalledDecl a) {
+ref immutable(Params) params(scope return ref immutable CalledDecl a) {
 	return a.sig.params;
 }
 
-immutable(TypeParam[]) typeParams(return scope ref immutable CalledDecl a) {
+immutable(TypeParam[]) typeParams(scope return ref immutable CalledDecl a) {
 	return matchCalledDecl!(
 		immutable TypeParam[],
 		(immutable FunDecl* f) => f.typeParams,
@@ -1305,7 +1305,7 @@ struct Called {
 	}
 }
 
-@trusted ref immutable(Sig) sig(return scope ref immutable Called a) {
+@trusted ref immutable(Sig) sig(scope return ref immutable Called a) {
 	final switch (a.kind) {
 		case Called.Kind.funInst:
 			return a.funInst.sig;
@@ -1322,11 +1322,11 @@ immutable(Sym) name(ref immutable Called a) {
 	)(a);
 }
 
-ref immutable(Type) returnType(return scope ref immutable Called a) {
+ref immutable(Type) returnType(scope return ref immutable Called a) {
 	return sig(a).returnType;
 }
 
-ref immutable(Params) params(return scope ref immutable Called a) {
+ref immutable(Params) params(scope return ref immutable Called a) {
 	return sig(a).params;
 }
 
@@ -1445,7 +1445,7 @@ struct ImportOrExportKind {
 		@safe @nogc pure nothrow:
 		immutable Module* modulePtr;
 
-		ref immutable(Module) module_() return scope immutable {
+		ref immutable(Module) module_() scope return immutable {
 			return *modulePtr;
 		}
 	}
@@ -1454,7 +1454,7 @@ struct ImportOrExportKind {
 		immutable Module* modulePtr;
 		immutable Sym[] names;
 
-		ref immutable(Module) module_() return scope immutable {
+		ref immutable(Module) module_() scope return immutable {
 			return *modulePtr;
 		}
 	}

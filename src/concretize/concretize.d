@@ -42,7 +42,7 @@ import util.col.mutDict : mapToDict, mutDictIsEmpty;
 import util.opt : force, has, Opt;
 import util.path : AllPaths;
 import util.perf : Perf, PerfMeasure, withMeasure;
-import util.ptr : castNonScope, ptrTrustMe;
+import util.ptr : castNonScope;
 import util.sym : AllSymbols, shortSym, SpecialSym, Sym, symForSpecial;
 import util.util : todo, verify;
 import versionInfo : VersionInfo;
@@ -79,8 +79,8 @@ immutable(ConcreteProgram) concretizeInner(
 		allSymbolsPtr,
 		getCurExclusionFun(alloc, program),
 		castNonScope(program.commonTypes.ctx),
-		ptrTrustMe(program.commonTypes),
-		ptrTrustMe(program));
+		castNonScope(&program.commonTypes),
+		castNonScope(&program));
 	immutable ConcreteStruct* ctxStruct = ctxType(ctx).struct_;
 	immutable ConcreteFun* markConcreteFun =
 		getOrAddNonTemplateConcreteFunAndFillBody(ctx, getMarkFun(alloc, program));

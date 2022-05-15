@@ -149,7 +149,7 @@ immutable(Opt!size_t) findIndex_const(T)(
 }
 
 immutable(Opt!T) find(T)(
-	immutable T[] arr,
+	scope immutable T[] arr,
 	scope immutable(bool) delegate(ref immutable T) @safe @nogc pure nothrow cb,
 ) {
 	foreach (ref immutable T x; arr)
@@ -195,7 +195,7 @@ immutable(T[]) copyArr(T)(ref Alloc alloc, scope immutable T[] a) {
 }
 @trusted immutable(Out[]) map_const(Out, In)(
 	ref Alloc alloc,
-	const In[] a,
+	scope const In[] a,
 	scope immutable(Out) delegate(ref const In) @safe @nogc pure nothrow cb,
 ) {
 	Out* res = allocateT!Out(alloc, a.length);
@@ -205,7 +205,7 @@ immutable(T[]) copyArr(T)(ref Alloc alloc, scope immutable T[] a) {
 }
 @trusted immutable(Out[]) map_mut(Out, In)(
 	ref Alloc alloc,
-	In[] a,
+	scope In[] a,
 	scope immutable(Out) delegate(ref In) @safe @nogc pure nothrow cb,
 ) {
 	Out* res = allocateT!Out(alloc, a.length);

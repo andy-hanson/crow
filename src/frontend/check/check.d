@@ -131,7 +131,7 @@ import util.col.str : copySafeCStr, SafeCStr, safeCStr, strOfSafeCStr;
 import util.memory : allocate, allocateMut, overwriteMemory;
 import util.opt : force, has, none, noneMut, Opt, some, someMut;
 import util.perf : Perf;
-import util.ptr : castImmutable, ptrTrustMe, ptrTrustMe_mut;
+import util.ptr : castImmutable, castNonScope_mut, ptrTrustMe, ptrTrustMe_mut;
 import util.sourceRange : FileAndPos, FileAndRange, FileIndex, RangeWithinFile;
 import util.sym : AllSymbols, shortSym, shortSymValue, Sym;
 import util.util : todo, verify;
@@ -156,11 +156,11 @@ immutable(BootstrapCheck) checkBootstrap(
 ) {
 	static immutable ImportsAndExports emptyImportsAndExports = immutable ImportsAndExports([], [], [], []);
 	return checkWorker(
-		&alloc,
-		&perf,
-		&allSymbols,
+		castNonScope_mut(&alloc),
+		castNonScope_mut(&perf),
+		castNonScope_mut(&allSymbols),
 		diagsBuilder,
-		&programState,
+		castNonScope_mut(&programState),
 		emptyImportsAndExports,
 		pathAndAst,
 		(ref CheckCtx ctx,
@@ -194,11 +194,11 @@ immutable(Module) check(
 	ref immutable CommonTypes commonTypes,
 ) {
 	return checkWorker(
-		&alloc,
-		&perf,
-		&allSymbols,
+		castNonScope_mut(&alloc),
+		castNonScope_mut(&perf),
+		castNonScope_mut(&allSymbols),
 		diagsBuilder,
-		&programState,
+		castNonScope_mut(&programState),
 		importsAndExports,
 		pathAndAst,
 		(ref CheckCtx, ref immutable(StructsAndAliasesDict), ref MutArr!(StructInst*)) => commonTypes,
@@ -261,7 +261,7 @@ immutable(StructInst*) instantiateNonTemplateStructDecl(
 	ref MutArr!(StructInst*) delayedStructInsts,
 	immutable StructDecl* structDecl,
 ) {
-	return instantiateStruct(alloc, programState, structDecl, [], someMut(ptrTrustMe_mut(delayedStructInsts)));
+	return instantiateStruct(alloc, programState, structDecl, [], someMut(castNonScope_mut(&delayedStructInsts)));
 }
 
 immutable(CommonTypes) getCommonTypes(
@@ -350,7 +350,7 @@ immutable(CommonTypes) getCommonTypes(
 
 	immutable StructDecl* constPtr = com("const-ptr", 1);
 	immutable StructInst* cStr = instantiateStruct(
-		ctx.alloc, ctx.programState, constPtr, [immutable Type(char8)], someMut(ptrTrustMe_mut(delayedStructInsts)));
+		ctx.alloc, ctx.programState, constPtr, [immutable Type(char8)], someMut(castNonScope_mut(&delayedStructInsts)));
 
 	immutable string[] missingArr = finishArr(ctx.alloc, missing);
 
@@ -950,7 +950,7 @@ immutable(Module) checkWorkerAfterCommonTypes(
 			ctx.alloc,
 			ctx.programState,
 			i.declAndArgs,
-			someMut(ptrTrustMe_mut(delayStructInsts))));
+			someMut(castNonScope_mut(&delayStructInsts))));
 	}
 
 	immutable SpecDecl[] specs = checkSpecDecls(ctx, commonTypes, structsAndAliasesDict, ast.specs);
@@ -1119,7 +1119,7 @@ immutable(BootstrapCheck) checkWorker(
 		// TODO: use temp alloc
 		makeFullIndexDict_mut!(ModuleLocalSpecIndex, bool)(
 			alloc, ast.specs.length, (immutable(ModuleLocalSpecIndex)) => false),
-		ptrTrustMe_mut(diagsBuilder));
+		castNonScope_mut(&diagsBuilder));
 
 	// Since structs may refer to each other, first get a structsAndAliasesDict, *then* fill in bodies
 	StructDecl[] structs = checkStructsInitial(ctx, ast.structs);

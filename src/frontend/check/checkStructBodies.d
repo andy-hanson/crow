@@ -54,7 +54,7 @@ import util.col.arrUtil : eachPair, fold, map, mapAndFold, MapAndFold, mapToMut,
 import util.col.mutArr : MutArr;
 import util.col.str : copySafeCStr;
 import util.opt : force, has, none, Opt, some, someMut;
-import util.ptr : castImmutable, ptrTrustMe_mut;
+import util.ptr : castImmutable, castNonScope_mut;
 import util.sourceRange : RangeWithinFile;
 import util.sym : shortSym, SpecialSym, Sym, symForSpecial;
 import util.util : todo, unreachable;
@@ -320,7 +320,7 @@ immutable(EnumOrFlagsTypeAndMembers) checkEnumOrFlagsMembers(
 	immutable Type implementationType = has(typeArg)
 		? typeFromAst(
 			ctx, commonTypes, *force(typeArg), structsAndAliasesDict, typeParamsScope,
-			someMut(ptrTrustMe_mut(delayStructInsts)))
+			someMut(castNonScope_mut(&delayStructInsts)))
 		: immutable Type(commonTypes.integrals.nat32);
 	immutable EnumBackingType enumType = getEnumTypeFromType(ctx, range, commonTypes, implementationType);
 
@@ -511,7 +511,7 @@ immutable(RecordField) checkRecordField(
 		ast.type,
 		structsAndAliasesDict,
 		TypeParamsScope(struct_.typeParams),
-		someMut(ptrTrustMe_mut(delayStructInsts)));
+		someMut(castNonScope_mut(&delayStructInsts)));
 	checkReferenceLinkageAndPurity(ctx, struct_, ast.range, fieldType);
 	if (ast.mutability != FieldMutability.const_) {
 		immutable Opt!(Diag.MutFieldNotAllowed.Reason) reason =
@@ -566,7 +566,7 @@ immutable(UnionMember) checkUnionMember(
 		force(ast.type),
 		structsAndAliasesDict,
 		TypeParamsScope(struct_.typeParams),
-		someMut(ptrTrustMe_mut(delayStructInsts))));
+		someMut(castNonScope_mut(&delayStructInsts))));
 	if (has(type))
 		checkReferencePurity(ctx, struct_, ast.range, force(type));
 	return immutable UnionMember(rangeInFile(ctx, ast.range), ast.name, type);
