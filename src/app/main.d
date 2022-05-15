@@ -674,10 +674,10 @@ immutable(SafeCStr[]) cCompilerArgs(ref immutable CCompileOptions options) {
 			return clErr;
 		scope immutable SafeCStr executable = immutable SafeCStr(cast(immutable) clPath.ptr);
 	} else {
-		immutable SafeCStr executable = safeCStr!"/usr/bin/cc";
+		scope immutable SafeCStr executable = safeCStr!"/usr/bin/cc";
 	}
 
-	immutable int err = withMeasure!(immutable int, () =>
+	immutable int err = withMeasure!(immutable int, () @safe =>
 		spawnAndWait(alloc, allPaths, executable, args)
 	)(alloc, perf, PerfMeasure.cCompile);
 	return immutable ExitCode(err);
@@ -949,7 +949,7 @@ version (Windows) {
 @trusted immutable(int) spawnAndWait(
 	ref TempAlloc tempAlloc,
 	ref const AllPaths allPaths,
-	immutable SafeCStr executablePath,
+	scope immutable SafeCStr executablePath,
 	immutable SafeCStr[] args,
 ) {
 	version (Windows) {

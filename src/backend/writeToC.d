@@ -1229,7 +1229,7 @@ immutable(WriteExprResult) writeMatchUnion(
 		writeNewline(writer, indent + 1);
 		writeChar(writer, '}');
 	}
-	writeDefaultAbort(writer, tempAlloc, indent, ctx, nested.writeKind, type);
+	writeDefaultAbort(writer, tempAlloc, indent, ctx, locals, nested.writeKind, type);
 	writeNewline(writer, indent);
 	writeChar(writer, '}');
 	return nested.result;
@@ -1240,6 +1240,7 @@ void writeDefaultAbort(
 	ref TempAlloc tempAlloc,
 	immutable size_t indent,
 	ref FunBodyCtx ctx,
+	scope ref immutable Locals locals,
 	ref immutable WriteKind writeKind,
 	immutable LowType type,
 ) {
@@ -1254,6 +1255,7 @@ void writeDefaultAbort(
 				tempAlloc,
 				indent,
 				ctx,
+				locals,
 				writeKind,
 				type,
 				() {
@@ -1298,7 +1300,7 @@ immutable(WriteExprResult) writeSwitch(
 		writeNewline(writer, indent + 1);
 		writeChar(writer, '}');
 	}
-	writeDefaultAbort(writer, tempAlloc, indent, ctx, writeKind, type);
+	writeDefaultAbort(writer, tempAlloc, indent, ctx, locals, writeKind, type);
 	writeNewline(writer, indent);
 	writeChar(writer, '}');
 	return nested.result;

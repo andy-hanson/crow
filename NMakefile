@@ -125,7 +125,6 @@ src_files_common = src\concretize\allConstantsBuilder.d \
 	src\util\conv.d \
 	src\util\dictReadOnlyStorage.d \
 	src\util\diff.d \
-	src\util\fn.d \
 	src\util\hash.d \
 	src\util\jsonParse.d \
 	src\util\late.d \
