@@ -77,10 +77,6 @@ Throws if `index >= a.size`.
 ###
 subscript<a> a(a fix-arr a, index nat64) trusted
 	assert index < a.size
-	a unsafe-at index
-
-# Like `subscript` but does not check the index.
-unsafe-at<a> a(a fix-arr a, index nat64) noctx unsafe
 	a.begin-ptr[index]
 
 ###
@@ -99,12 +95,8 @@ subscript<a> fix-arr a(a fix-arr a, range range nat64)
 Write to a single element.
 Throws if `index >= a.size`.
 ###
-set-subscript<a> void(a fix-arr a, index nat64, value a) trusted
+set-subscript<a> void(a fix-arr a, index nat64, value a) noctx trusted
 	assert index < a.size
-	a unsafe-set-at index, value
-
-# Like `set-subscript` but does not check the index.
-unsafe-set-at<a> void(a fix-arr a, index nat64, value a) noctx unsafe
 	a.begin-ptr[index] := value
 
 # `true` iff `a.size == 0`.
