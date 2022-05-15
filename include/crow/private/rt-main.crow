@@ -15,7 +15,6 @@ import
 	../str-util: to-str
 	./alloc: unmanaged-alloc-elements, unmanaged-free
 	./bootstrap: call-with-ctx, ctx, get-ctx, new, thread-local-stuff
-	./exception-low-level: global-init-exceptions
 	./fut-low-level: get-result
 	./log-low-level: log-ctx
 	./number-low-level:
@@ -34,7 +33,6 @@ import
 # Treated specially by the compiler
 rt-main int32(argc int32, argv c-str*, main-ptr main-ptr) trusted noctx summon
 	do-init-constants
-	global-init-exceptions
 	n-threads = count-processors
 	gctx-by-val by-val global-ctx = n-threads uninit
 	gctx = gctx-by-val ref-of-val

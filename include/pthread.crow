@@ -1,12 +1,12 @@
 no-std
 import
 	crow/bytes-types: bytes4, bytes32, bytes40, bytes48
-	crow/c-types: c-int, u-int, u-long
+	crow/c-types: u-int, u-long
 	crow/extra-types: err-t
 	crow/fun-util: fun-ptr1
-	crow/misc: new, void
+	crow/misc: new
 	crow/ptr: any-const-ptr, any-mut-ptr, by-val, const-ptr, mut-ptr, ref-of-val, zeroed
-	crow/private/number-low-level: int32, nat32
+	crow/private/number-low-level: int32
 	time: __clockid_t, timespec
 
 pthread_t alias
@@ -79,14 +79,6 @@ PTHREAD_BARRIER_SERIAL_THREAD err-t() unsafe noctx
 
 pthread_barrierattr_init err-t(attr pthread_barrierattr_t mut*) extern<c>
 pthread_barrierattr_destroy err-t(attr pthread_barrierattr_t mut*) extern<c>
-
-pthread_key_t alias
-	nat32
-
-pthread_key_create c-int(key pthread_key_t mut*, destroy fun-ptr1<void, any-mut-ptr>) unsafe extern<c> noctx
-pthread_key_delete c-int(key pthread_key_t) unsafe extern<c> noctx
-pthread_getspecific any-mut-ptr(key pthread_key_t) unsafe extern<c> noctx
-pthread_setspecific c-int(key pthread_key_t, value any-mut-ptr) unsafe extern<c> noctx
 
 test
 	mutex by-val pthread_mutex_t = zeroed

@@ -1,79 +1,21 @@
 no-std
 import
-	pthread: pthread_getspecific, pthread_key_create, pthread_key_t, pthread_setspecific
 	setjmp: jmp_buf, __jmp_buf_tag, longjmp, new, setjmp, _setjmp
-	stdlib: free, malloc
 	../col/private/arr-low-level: new
 	../fun-util: subscript
 	../misc: void
-	../ptr:
-		*, ==, as-any-mut-ptr, as-ref, mut-ptr, null, ptr-cast, ptr-to, set-deref, size-of, zeroed
+	../ptr: *, ==, mut-ptr, null, ptr-to, set-deref, zeroed
 	../version: is-interpreted, is-windows
 	./alloc: gc-ctx, get-gc-ctx
 	./backtrace: get-backtrace
-	./bootstrap:
-		abort, c-str, err, hard-assert, hard-forbid, new, none, opt, ok, result, some
+	./bootstrap: abort, c-str, err, hard-assert, new, opt, ok, result, some
 	./number-low-level: ==, int32, nat64
 export
 	./bootstrap: exception, message
 
-global-init-exceptions void() unsafe noctx
-	key mut pthread_key_t = 0 
-	err0 = key.ptr-to pthread_key_create null
-	hard-assert: err0 == 0
-	hard-assert: key == cur-gc-ctx-key
-	key := 0
-	err1 = key.ptr-to pthread_key_create null
-	hard-assert: err1 == 0
-	hard-assert: key == jmp-buf-key
-	key := 0
-	err2 = key.ptr-to pthread_key_create null
-	hard-assert: err2 == 0
-	hard-assert: key == thrown-key
-
-.cur-gc-ctx-key pthread_key_t() unsafe noctx
-	0
-.jmp-buf-key pthread_key_t() unsafe noctx
-	1
-.thrown-key pthread_key_t() unsafe noctx
-	2
-
-.get-cur-gc-ctx gc-ctx?() unsafe noctx
-	ptr = cur-gc-ctx-key pthread_getspecific
-	if ptr == null
-		none
-	else
-		ptr.as-ref some
-.set-cur-gc-ctx void(a gc-ctx?) unsafe noctx
-	ptr = if x ?= a
-		x as-any-mut-ptr
-	else
-		null
-	err = cur-gc-ctx-key pthread_setspecific ptr
-	hard-assert: err == 0
-
-# Might be null!
-.get-jmp-buf jmp_buf() unsafe noctx
-	jmp-buf-key.pthread_getspecific ptr-cast
-.set-jmp-buf void(value jmp_buf) unsafe noctx
-	err = jmp-buf-key pthread_setspecific value.as-any-mut-ptr
-	hard-assert: err == 0
-
-# Gets and sets to null
-.exctract-thrown exception() unsafe noctx
-	thrown exception mut* = thrown-key.pthread_getspecific ptr-cast
-	hard-forbid: thrown == null
-	res = *thrown
-	thrown.as-any-mut-ptr free
-	err = thrown-key pthread_setspecific null
-	hard-assert: err == 0
-	res
-
-.set-thrown void(a exception) unsafe noctx
-	ptr exception mut* = (size-of@<exception> malloc) ptr-cast
-	*ptr := a
-	err = thrown-key pthread_setspecific ptr.as-any-mut-ptr
-	hard-assert: err == 0
+.cur-gc-ctx gc-ctx? mut*() thread-local
+.cur-jmp-buf jmp_buf mut*() thread-local
+.cur-thrown exception mut*() thread-local
 
 ###
 Fail unconditionally.
@@ -90,8 +32,8 @@ Run `try` and return what it returns, or return the result of `catcher` if `try`
 (An exception thrown by `catcher` will not be caught.)
 ###
 catch<a> a(try act a(), catcher act a(exception)) trusted
-	old-jmp-buf = get-jmp-buf
-	old-gc-ctx = get-cur-gc-ctx
+	old-jmp-buf = *cur-jmp-buf
+	old-gc-ctx = *cur-gc-ctx
 	store __jmp_buf_tag = ()
 	setjmp-result = if is-interpreted
 		store.ptr-to setjmp
@@ -101,27 +43,28 @@ catch<a> a(try act a(), catcher act a(exception)) trusted
 		store.ptr-to setjmp
 	if setjmp-result == 0
 		# Get here after setting the jump
-		store.ptr-to set-jmp-buf
-		get-gc-ctx.some set-cur-gc-ctx
+		*cur-jmp-buf := store ptr-to
+		*cur-gc-ctx := get-gc-ctx some
 		# If it throws, we'll go to the above branch.
 		res = try[]
-		old-jmp-buf set-jmp-buf
-		old-gc-ctx set-cur-gc-ctx
+		*cur-jmp-buf := old-jmp-buf
+		*cur-gc-ctx := old-gc-ctx
 		res
 	else
 		# Get here after throwing from inside `try[]`
 		hard-assert: setjmp-result == number-to-throw
-		thrown-exception = exctract-thrown
-		old-jmp-buf set-jmp-buf
-		old-gc-ctx set-cur-gc-ctx
-		catcher[thrown-exception]
+		thrown = *cur-thrown
+		*cur-thrown := zeroed
+		*cur-jmp-buf := old-jmp-buf
+		*cur-gc-ctx := old-gc-ctx
+		catcher[thrown]
 
 # THis is called by the compiler on 'throw'
 throw-impl void(message c-str) noctx trusted
 	message throw-with-skip 2
 
 throw-with-skip void(message c-str, skip nat64) noctx trusted
-	backtrace = if ctx ?= get-cur-gc-ctx
+	backtrace = if ctx ?= *cur-gc-ctx
 		ctx get-backtrace skip
 	else
 		(),
@@ -134,11 +77,11 @@ This is useful for rethrowing an exception that was already caught.
 Throwing an exception does not modify its backtrace.
 ###
 rethrow<a> a(e exception) noctx trusted
-	jmp-buf = get-jmp-buf
+	jmp-buf = *cur-jmp-buf
 	if jmp-buf == null
 		abort
 	else
-		e set-thrown 
+		*cur-thrown := e 
 		jmp-buf longjmp number-to-throw
 	# unreachable
 	zeroed

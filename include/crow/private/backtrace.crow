@@ -120,7 +120,7 @@ Result c-str are temporary, must copy!
 	none
 
 .windows-walk-backtrace backtrace-entry mut*(
-	gc gc-ctx
+	gc gc-ctx,
 	out backtrace-entry mut*,
 	out-end backtrace-entry mut*,
 	skip nat64,
@@ -157,15 +157,12 @@ Result c-str are temporary, must copy!
 	else
 		""
 
-.get-native-backtrace-libunwind backtrace
-	gc gc-ctx
-	entries backtrace-entry mut*
-	max-entries nat64
-	skip nat64
-spec
-	noctx
-	unsafe
-body
+.get-native-backtrace-libunwind backtrace(
+	gc gc-ctx,
+	entries backtrace-entry mut*,
+	max-entries nat64,
+	skip nat64,
+) noctx unsafe
 	cursor-val by-val unw_cursor_t = (),
 	cursor = cursor-val ref-of-val
 	context-val by-val unw_context_t = (),
