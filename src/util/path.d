@@ -334,7 +334,7 @@ struct PathAndExtension {
 	immutable Sym extension;
 }
 
-@trusted immutable(PathAndExtension) parsePathAndExtension(
+private @trusted immutable(PathAndExtension) parsePathAndExtension(
 	ref AllPaths allPaths,
 	scope immutable SafeCStr str,
 ) {

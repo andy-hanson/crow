@@ -106,7 +106,6 @@ import util.path :
 	parent,
 	parentOrEmpty,
 	parsePath,
-	parsePathAndExtension,
 	PathsInfo,
 	pathToSafeCStr,
 	pathToTempStr,
@@ -140,11 +139,10 @@ import versionInfo : versionInfoForJIT;
 	Alloc alloc = Alloc(mem, memorySizeBytes);
 	AllSymbols allSymbols = AllSymbols(ptrTrustMe_mut(alloc));
 	AllPaths allPaths = AllPaths(ptrTrustMe_mut(alloc), ptrTrustMe_mut(allSymbols));
-	immutable CommandLineArgs args = parseCommandLineArgs(allPaths, argc, argv);
 	immutable immutable(ulong) function() @safe @nogc pure nothrow getTimeNanosPure =
 		cast(immutable(ulong) function() @safe @nogc pure nothrow) &getTimeNanos;
 	scope Perf perf = Perf(() => getTimeNanosPure());
-	immutable int res = go(alloc, perf, allSymbols, allPaths, args).value;
+	immutable int res = go(alloc, perf, allSymbols, allPaths, cast(immutable SafeCStr[]) argv[1 .. argc]).value;
 	if (perfEnabled)
 		logPerf(perf);
 	return res;
@@ -186,9 +184,9 @@ immutable(ExitCode) go(
 	ref Perf perf,
 	ref AllSymbols allSymbols,
 	ref AllPaths allPaths,
-	ref immutable CommandLineArgs args,
+	scope immutable SafeCStr[] args,
 ) {
-	immutable Path crowDir = parentOrEmpty(allPaths, parentOrEmpty(allPaths, args.pathToThisExecutable.path));
+	immutable Path crowDir = getCrowDir(allPaths);
 	immutable Path includeDir = childPath(allPaths, crowDir, shortSym("include"));
 	immutable Path tempDir = childPath(allPaths, crowDir, shortSym("temp"));
 	immutable ExitCode setupTempExitCode = setupTempDir(allSymbols, allPaths, tempDir);
@@ -197,18 +195,18 @@ immutable(ExitCode) go(
 
 	immutable Path cwd = getCwd(allPaths);
 	immutable PathsInfo pathsInfo = immutable PathsInfo(some(cwd));
-	immutable Command command = parseCommand(alloc, allPaths, cwd, args.args);
+	immutable Command command = parseCommand(alloc, allSymbols, allPaths, cwd, args);
 	immutable ShowDiagOptions showDiagOptions = immutable ShowDiagOptions(true);
 
 	return matchCommand!(immutable ExitCode)(
 		command,
-		(ref immutable Command.Build it) =>
+		(scope immutable Command.Build it) =>
 			runBuild(alloc, perf, allSymbols, allPaths, pathsInfo, includeDir, tempDir, it.mainPath, it.options),
-		(ref immutable Command.Document it) =>
+		(scope immutable Command.Document it) =>
 			runDocument(alloc, perf, allSymbols, allPaths, pathsInfo, includeDir, it.rootPaths),
-		(ref immutable Command.Help it) =>
+		(scope immutable Command.Help it) =>
 			help(it),
-		(ref immutable Command.Print it) =>
+		(scope immutable Command.Print it) =>
 			withReadOnlyStorage!(immutable ExitCode)(
 				allPaths,
 				includeDir,
@@ -229,7 +227,7 @@ immutable(ExitCode) go(
 					if (!safeCStrIsEmpty(printed.result)) print(printed.result);
 					return safeCStrIsEmpty(printed.diagnostics) ? ExitCode.ok : ExitCode.error;
 			}),
-		(ref immutable Command.Run run) =>
+		(scope immutable Command.Run run) =>
 			withReadOnlyStorage(
 				allPaths,
 				includeDir,
@@ -245,7 +243,7 @@ immutable(ExitCode) go(
 								pathsInfo,
 								storage,
 								extern_,
-								(scope immutable SafeCStr x) @safe {
+								(scope immutable SafeCStr x) {
 									printErr(x);
 								},
 								showDiagOptions,
@@ -268,13 +266,13 @@ immutable(ExitCode) go(
 									getAllArgs(alloc, allPaths, storage, run.mainPath, run.programArgs));
 							}
 						})),
-		(ref immutable Command.Test it) {
+		(scope immutable Command.Test it) {
 			version(Test) {
 				return test(alloc, it.name);
 			} else
 				return printErr(safeCStr!"Did not compile with tests");
 		},
-		(ref immutable Command.Version) =>
+		(scope immutable Command.Version) =>
 			printVersion());
 }
 
@@ -283,7 +281,7 @@ immutable(SafeCStr[]) getAllArgs(
 	ref const AllPaths allPaths,
 	scope ref immutable ReadOnlyStorage storage,
 	immutable Path main,
-	immutable SafeCStr[] programArgs,
+	scope immutable SafeCStr[] programArgs,
 ) {
 	return prepend(alloc, pathToSafeCStr(alloc, allPaths, main, symForSpecial(SpecialSym.dotCrow)), programArgs);
 }
@@ -480,7 +478,7 @@ immutable(ExitCode) runDocument(
 	ref AllPaths allPaths,
 	ref immutable PathsInfo pathsInfo,
 	immutable Path includeDir,
-	immutable Path[] rootPaths,
+	scope immutable Path[] rootPaths,
 ) {
 	return withReadOnlyStorage(allPaths, includeDir, (scope ref immutable ReadOnlyStorage storage) {
 		immutable DocumentResult result =
@@ -607,7 +605,7 @@ version (Windows) { } else { immutable(ExitCode) buildAndJit(
 			jitAndRun(alloc, perf, castImmutableRef(allSymbols), programs.lowProgram, jitOptions, programArgs));
 } }
 
-immutable(ExitCode) help(ref immutable Command.Help a) {
+immutable(ExitCode) help(scope immutable Command.Help a) {
 	println(a.helpText);
 	final switch (a.kind) {
 		case Command.Help.Kind.requested:
@@ -900,21 +898,6 @@ enum NulTerminate { no, yes }
 	return fd;
 }
 
-struct CommandLineArgs {
-	immutable PathAndExtension pathToThisExecutable;
-	immutable SafeCStr[] args;
-}
-
-@trusted immutable(CommandLineArgs) parseCommandLineArgs(
-	ref AllPaths allPaths,
-	immutable size_t argc,
-	immutable CStr* argv,
-) {
-	immutable SafeCStr[] allArgs = cast(immutable SafeCStr[]) argv[0 .. argc];
-	// Take the tail because the first one is 'crow'
-	return immutable CommandLineArgs(getPathToThisExecutable(allPaths), allArgs[1 .. $]);
-}
-
 version (Windows) {
 	extern(C) char* _getcwd(char* buffer, int maxlen);
 	extern(C) immutable(int) _mkdir(scope const char*, immutable uint);
@@ -931,7 +914,11 @@ version (Windows) {
 		: parsePath(allPaths, immutable SafeCStr(cast(immutable) cwd));
 }
 
-@trusted immutable(PathAndExtension) getPathToThisExecutable(ref AllPaths allPaths) {
+immutable(Path) getCrowDir(ref AllPaths allPaths) {
+	return parentOrEmpty(allPaths, parentOrEmpty(allPaths, getPathToThisExecutable(allPaths)));
+}
+
+@trusted immutable(Path) getPathToThisExecutable(ref AllPaths allPaths) {
 	TempStrForPath res = void;
 	version(Windows) {
 		HMODULE mod = GetModuleHandle(null);
@@ -942,7 +929,7 @@ version (Windows) {
 	}
 	verify(size > 0 && size < res.length);
 	res[size] = '\0';
-	return parsePathAndExtension(allPaths, immutable SafeCStr(cast(immutable) res.ptr));
+	return parsePath(allPaths, immutable SafeCStr(cast(immutable) res.ptr));
 }
 
 // Returns the child process' error code.

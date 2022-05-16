@@ -77,6 +77,9 @@ void hashPtr(T)(ref Hasher hasher, const T* a) {
 	static if (is(T == P*, P)) {
 		immutable size_t res = cast(immutable size_t) x;
 		return cast(immutable T) res;
+	} else static if (is(T == P[], P)) {
+		immutable size_t res = cast(immutable size_t) x.ptr;
+		return (cast(immutable P*) res)[0 .. x.length];
 	} else {
 		return x;
 	}

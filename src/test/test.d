@@ -20,14 +20,14 @@ import test.testTokens : testTokens;
 import test.testUtil : Test;
 import test.testWriter : testWriter;
 import util.alloc.alloc : Alloc;
-import util.col.str : strEq;
 import util.opt : force, has, Opt;
 import util.ptr : castNonScope_mut;
+import util.sym : shortSym, SpecialSym, Sym, symForSpecial;
 
-immutable(ExitCode) test(ref Alloc alloc, immutable Opt!string name) {
+immutable(ExitCode) test(ref Alloc alloc, scope immutable Opt!Sym name) {
 	Test test = Test(castNonScope_mut(&alloc));
 	foreach (ref immutable NameAndTest it; allTests)
-		if (!has(name) || strEq(force(name), it.name))
+		if (!has(name) || force(name) == it.name)
 			it.test(test);
 	return ExitCode.ok;
 }
@@ -35,24 +35,24 @@ immutable(ExitCode) test(ref Alloc alloc, immutable Opt!string name) {
 private:
 
 immutable(NameAndTest[]) allTests = [
-	immutable NameAndTest("apply-fn", &testApplyFn),
-	immutable NameAndTest("dict", &testDict),
-	immutable NameAndTest("fake-extern", &testFakeExtern),
-	immutable NameAndTest("hover", &testHover),
-	immutable NameAndTest("interpreter", &testInterpreter),
-	immutable NameAndTest("json", &testJson),
-	immutable NameAndTest("line-and-column-getter", &testLineAndColumnGetter),
-	immutable NameAndTest("memory", &testMemory),
-	immutable NameAndTest("path", &testPath),
-	immutable NameAndTest("server", &testServer),
-	immutable NameAndTest("sort-util", &testSortUtil),
-	immutable NameAndTest("stack", &testStack),
-	immutable NameAndTest("sym", &testSym),
-	immutable NameAndTest("tokens", &testTokens),
-	immutable NameAndTest("writer", &testWriter),
+	immutable NameAndTest(shortSym("apply-fn"), &testApplyFn),
+	immutable NameAndTest(shortSym("dict"), &testDict),
+	immutable NameAndTest(shortSym("fake-extern"), &testFakeExtern),
+	immutable NameAndTest(shortSym("hover"), &testHover),
+	immutable NameAndTest(shortSym("interpreter"), &testInterpreter),
+	immutable NameAndTest(shortSym("json"), &testJson),
+	immutable NameAndTest(symForSpecial(SpecialSym.line_and_column_getter), &testLineAndColumnGetter),
+	immutable NameAndTest(shortSym("memory"), &testMemory),
+	immutable NameAndTest(shortSym("path"), &testPath),
+	immutable NameAndTest(shortSym("server"), &testServer),
+	immutable NameAndTest(shortSym("sort-util"), &testSortUtil),
+	immutable NameAndTest(shortSym("stack"), &testStack),
+	immutable NameAndTest(shortSym("sym"), &testSym),
+	immutable NameAndTest(shortSym("tokens"), &testTokens),
+	immutable NameAndTest(shortSym("writer"), &testWriter),
 ];
 
 struct NameAndTest {
-	immutable string name;
+	immutable Sym name;
 	immutable void function(ref Test) @safe @nogc nothrow test; // not pure
 }

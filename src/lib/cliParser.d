@@ -6,23 +6,25 @@ import util.alloc.alloc : Alloc;
 import util.col.arr : empty, emptyArr, only;
 import util.col.arrBuilder : add, ArrBuilder, finishArr;
 import util.col.arrUtil : findIndex, foldOrStop, mapOrNone;
-import util.col.str : SafeCStr, safeCStr, safeCStrEq, strEq, strOfSafeCStr;
+import util.col.str : SafeCStr, safeCStr, safeCStrEq, strOfSafeCStr;
 import util.opt : force, has, none, Opt, some;
 import util.path : AllPaths, parseAbsoluteOrRelPathAndExtension, Path, PathAndExtension;
-import util.sym : emptySym, SpecialSym, Sym, symForSpecial;
+import util.ptr : castNonScope;
+import util.sym :
+	AllSymbols, emptySym, shortSymValue, SpecialSym, specialSymValue, Sym, symForSpecial, symOfSafeCStr, symOfStr;
 import util.util : todo, verify;
 
 @safe @nogc nothrow: // not pure
 
 @trusted immutable(Out) matchCommand(Out)(
-	ref immutable Command a,
-	scope immutable(Out) delegate(ref immutable Command.Build) @safe @nogc nothrow cbBuild,
-	scope immutable(Out) delegate(ref immutable Command.Document) @safe @nogc nothrow cbDocument,
-	scope immutable(Out) delegate(ref immutable Command.Help) @safe @nogc nothrow cbHelp,
-	scope immutable(Out) delegate(ref immutable Command.Print) @safe @nogc nothrow cbPrint,
-	scope immutable(Out) delegate(ref immutable Command.Run) @safe @nogc nothrow cbRun,
-	scope immutable(Out) delegate(ref immutable Command.Test) @safe @nogc nothrow cbTest,
-	scope immutable(Out) delegate(ref immutable Command.Version) @safe @nogc nothrow cbVersion,
+	scope immutable Command a,
+	scope immutable(Out) delegate(scope immutable Command.Build) @safe @nogc nothrow cbBuild,
+	scope immutable(Out) delegate(scope immutable Command.Document) @safe @nogc nothrow cbDocument,
+	scope immutable(Out) delegate(scope immutable Command.Help) @safe @nogc nothrow cbHelp,
+	scope immutable(Out) delegate(scope immutable Command.Print) @safe @nogc nothrow cbPrint,
+	scope immutable(Out) delegate(scope immutable Command.Run) @safe @nogc nothrow cbRun,
+	scope immutable(Out) delegate(scope immutable Command.Test) @safe @nogc nothrow cbTest,
+	scope immutable(Out) delegate(scope immutable Command.Version) @safe @nogc nothrow cbVersion,
 ) {
 	final switch (a.kind) {
 		case Command.Kind.build:
@@ -85,7 +87,7 @@ struct Command {
 		immutable SafeCStr[] programArgs;
 	}
 	struct Test {
-		immutable Opt!string name;
+		immutable Opt!Sym name;
 	}
 	struct Version {}
 
@@ -169,30 +171,34 @@ immutable(bool) hasAnyOut(ref immutable BuildOut a) {
 
 immutable(Command) parseCommand(
 	ref Alloc alloc,
+	ref AllSymbols allSymbols,
 	ref AllPaths allPaths,
 	immutable Path cwd,
-	immutable SafeCStr[] args,
+	scope return immutable SafeCStr[] args,
 ) {
 	if (empty(args))
 		return immutable Command(immutable Command.Help(helpAllText, Command.Help.Kind.error));
 	else {
-		immutable string arg0 = strOfSafeCStr(args[0]);
+		immutable Sym arg0 = symOfStr(allSymbols, strOfSafeCStr(args[0]));
 		immutable SafeCStr[] cmdArgs = args[1 .. $];
-		return isHelp(arg0)
-			? immutable Command(immutable Command.Help(helpAllText, Command.Help.Kind.requested))
-			: isSpecialArg(arg0, "version")
-			? immutable Command(immutable Command.Version())
-			: strEq(arg0, "print")
-			? parsePrintCommand(alloc, allPaths, cwd, cmdArgs)
-			: strEq(arg0, "build")
-			? parseBuildCommand(alloc, allPaths, cwd, cmdArgs)
-			: strEq(arg0, "doc")
-			? parseDocumentCommand(alloc, allPaths, cwd, cmdArgs)
-			: strEq(arg0, "run")
-			? parseRunCommand(alloc, allPaths, cwd, cmdArgs)
-			: strEq(arg0, "test")
-			? parseTestCommand(alloc, cmdArgs)
-			: immutable Command(immutable Command.Help(helpAllText, Command.Help.Kind.error));
+		switch (arg0.value) {
+			case shortSymValue("build"):
+				return parseBuildCommand(alloc, allSymbols, allPaths, cwd, cmdArgs);
+			case shortSymValue("doc"):
+				return parseDocumentCommand(alloc, allSymbols, allPaths, cwd, cmdArgs);
+			case shortSymValue("print"):
+				return parsePrintCommand(alloc, allSymbols, allPaths, cwd, cmdArgs);
+			case shortSymValue("run"):
+				return parseRunCommand(alloc, allSymbols, allPaths, cwd, cmdArgs);
+			case shortSymValue("test"):
+				return parseTestCommand(alloc, allSymbols, cmdArgs);
+			case shortSymValue("version"):
+				return immutable Command(immutable Command.Version());
+			default:
+				return immutable Command(immutable Command.Help(
+					helpAllText,
+					isHelp(arg0) ? Command.Help.Kind.requested : Command.Help.Kind.error));
+		}
 	}
 }
 
@@ -208,12 +214,15 @@ immutable(BuildOut) emptyBuildOut() {
 	return immutable BuildOut(none!PathAndExtension, none!PathAndExtension);
 }
 
-immutable(bool) isSpecialArg(immutable string a, immutable string expected) {
-	return empty(a) ? true : (a[0] == '-' ? isSpecialArg(a[1 .. $], expected) : strEq(a, expected));
-}
-
-immutable(bool) isHelp(immutable string a) {
-	return isSpecialArg(a, "help");
+immutable(bool) isHelp(immutable Sym a) {
+	switch (a.value) {
+		case shortSymValue("help"):
+		case shortSymValue("-help"):
+		case shortSymValue("--help"):
+			return true;
+		default:
+			return false;
+	}
 }
 
 immutable(Command) withMainPath(
@@ -233,7 +242,7 @@ immutable(Command) withRootPaths(
 	ref Alloc alloc,
 	ref AllPaths allPaths,
 	immutable Path cwd,
-	immutable SafeCStr[] args,
+	scope immutable SafeCStr[] args,
 	scope immutable(Command) delegate(immutable Path[]) @safe pure @nogc nothrow cb,
 ) {
 	immutable Opt!(Path[]) p = tryParseRootPaths(alloc, allPaths, cwd, args);
@@ -258,7 +267,7 @@ immutable(Opt!(Path[])) tryParseRootPaths(
 	ref Alloc alloc,
 	ref AllPaths allPaths,
 	immutable Path cwd,
-	immutable SafeCStr[] args,
+	scope immutable SafeCStr[] args,
 ) {
 	verify(!empty(args));
 	return mapOrNone(alloc, args, (ref immutable SafeCStr arg) =>
@@ -267,39 +276,47 @@ immutable(Opt!(Path[])) tryParseRootPaths(
 
 immutable(Command) parsePrintCommand(
 	ref Alloc alloc,
+	ref AllSymbols allSymbols,
 	ref AllPaths allPaths,
 	immutable Path cwd,
-	immutable SafeCStr[] args,
+	scope immutable SafeCStr[] args,
 ) {
-	return args.length != 2
-		? todo!Command("Command.HelpPrint")
-		: withMainPath(alloc, allPaths, cwd, args[1], (immutable Path path) =>
-			immutable Command(immutable Command.Print(parsePrintKind(args[0]), path)));
+	immutable Opt!PrintKind kind = args.length == 2
+		? parsePrintKind(symOfSafeCStr(allSymbols, args[0]))
+		: none!PrintKind;
+	return has(kind)
+		? withMainPath(alloc, allPaths, cwd, args[1], (immutable Path path) =>
+			immutable Command(immutable Command.Print(force(kind), path)))
+		: todo!Command("Command.HelpPrint");
 }
 
-immutable(PrintKind) parsePrintKind(immutable SafeCStr a) {
-	return safeCStrEq(a, "tokens")
-		? PrintKind.tokens
-		: safeCStrEq(a, "ast")
-		? PrintKind.ast
-		: safeCStrEq(a, "model")
-		? PrintKind.model
-		: safeCStrEq(a, "concrete-model")
-		? PrintKind.concreteModel
-		: safeCStrEq(a, "low-model")
-		? PrintKind.lowModel
-		: todo!(immutable PrintKind)("parsePrintKind");
+immutable(Opt!PrintKind) parsePrintKind(immutable Sym a) {
+	switch (a.value) {
+		case shortSymValue("tokens"):
+			return some(PrintKind.tokens);
+		case shortSymValue("ast"):
+			return some(PrintKind.ast);
+		case shortSymValue("model"):
+			return some(PrintKind.model);
+		case specialSymValue(SpecialSym.concrete_model):
+			return some(PrintKind.concreteModel);
+		case shortSymValue("low-model"):
+			return some(PrintKind.lowModel);
+		default:
+			return none!PrintKind;
+	}
 }
 
 immutable(Command) parseDocumentCommand(
 	ref Alloc alloc,
+	ref AllSymbols allSymbols,
 	ref AllPaths allPaths,
 	immutable Path cwd,
-	immutable SafeCStr[] args,
+	scope immutable SafeCStr[] args,
 ) {
 	immutable Command helpDocument = immutable Command(
 		immutable Command.Help(helpDocumentText, Command.Help.Kind.error));
-	immutable SplitArgs split = splitArgs(alloc, args);
+	scope immutable SplitArgs split = splitArgs(alloc, allSymbols, args);
 	return withRootPaths(
 		alloc,
 		allPaths,
@@ -313,12 +330,13 @@ immutable(Command) parseDocumentCommand(
 
 immutable(Command) parseBuildCommand(
 	ref Alloc alloc,
+	ref AllSymbols allSymbols,
 	ref AllPaths allPaths,
 	immutable Path cwd,
-	immutable SafeCStr[] args,
+	scope immutable SafeCStr[] args,
 ) {
 	immutable Command helpBuild = immutable Command(immutable Command.Help(helpBuildText, Command.Help.Kind.error));
-	immutable SplitArgs split = splitArgs(alloc, args);
+	immutable SplitArgs split = splitArgs(alloc, allSymbols, args);
 	return split.beforeFirstPart.length != 1
 		? helpBuild
 		: withMainPath(
@@ -336,14 +354,15 @@ immutable(Command) parseBuildCommand(
 
 immutable(Command) parseRunCommand(
 	ref Alloc alloc,
+	ref AllSymbols allSymbols,
 	ref AllPaths allPaths,
 	immutable Path cwd,
-	immutable SafeCStr[] args,
+	scope return immutable SafeCStr[] args,
 ) {
-	if (args.length == 1 && isHelp(strOfSafeCStr(only(args))))
+	if (args.length == 1 && isHelp(symOfSafeCStr(allSymbols, only(args))))
 		return immutable Command(immutable Command.Help(helpRunText, Command.Help.Kind.requested));
 	else {
-		immutable SplitArgs split = splitArgs(alloc, args);
+		immutable SplitArgs split = splitArgs(alloc, allSymbols, args);
 		immutable Opt!RunOptions options = parseRunOptions(alloc, allPaths, split.parts);
 		return split.beforeFirstPart.length == 1 && has(options)
 			? withMainPath(
@@ -351,8 +370,8 @@ immutable(Command) parseRunCommand(
 				allPaths,
 				cwd,
 				only(split.beforeFirstPart),
-				(immutable Path it) =>
-					immutable Command(immutable Command.Run(it, force(options), split.afterDashDash)))
+				(immutable Path it) @safe =>
+					immutable Command(immutable Command.Run(it, force(options), castNonScope(split.afterDashDash))))
 			: immutable Command(immutable Command.Help(helpRunText, Command.Help.Kind.error));
 	}
 }
@@ -373,12 +392,16 @@ immutable(Opt!RunOptions) parseRunOptions(
 		return none!RunOptions;
 	else {
 		immutable ArgsPart part = only(argParts);
-		if (safeCStrEq(part.tag, "--interpret"))
-			return empty(part.args) ? some(immutable RunOptions(immutable RunOptions.Interpret())) : none!RunOptions;
-		else if (safeCStrEq(part.tag, "--optimize"))
-			return some(immutable RunOptions(immutable RunOptions.Jit(immutable JitOptions(OptimizationLevel.o2))));
-		else
-			return none!RunOptions;
+		switch (part.tag.value) {
+			case shortSymValue("--interpret"):
+				return empty(part.args)
+					? some(immutable RunOptions(immutable RunOptions.Interpret()))
+					: none!RunOptions;
+			case shortSymValue("--optimize"):
+				return some(immutable RunOptions(immutable RunOptions.Jit(immutable JitOptions(OptimizationLevel.o2))));
+			default:
+				return none!RunOptions;
+		}
 	}
 }
 
@@ -398,19 +421,21 @@ immutable(Opt!BuildOptions) parseBuildOptions(
 			immutable CCompileOptions(OptimizationLevel.none)),
 		argParts,
 		(immutable BuildOptions cur, ref immutable ArgsPart part) {
-			if (safeCStrEq(part.tag, "--out")) {
-				immutable Opt!BuildOut buildOut = parseBuildOut(alloc, allPaths, cwd, part.args);
-				return has(buildOut) ? some(withBuildOut(cur, force(buildOut))) : none!BuildOptions;
-			} else if (safeCStrEq(part.tag, "--no-out")) {
-				return empty(part.args)
-					? some(withBuildOut(cur, immutable BuildOut(none!PathAndExtension, none!PathAndExtension)))
-					: none!BuildOptions;
-			} else if (safeCStrEq(part.tag, "--optimize")) {
-				return empty(part.args)
-					? some(withCCompileOptions(cur, immutable CCompileOptions(OptimizationLevel.o2)))
-					: none!BuildOptions;
-			} else
-				return none!BuildOptions;
+			switch (part.tag.value) {
+				case shortSymValue("--out"):
+					immutable Opt!BuildOut buildOut = parseBuildOut(alloc, allPaths, cwd, part.args);
+					return has(buildOut) ? some(withBuildOut(cur, force(buildOut))) : none!BuildOptions;
+				case shortSymValue("--no-out"):
+					return empty(part.args)
+						? some(withBuildOut(cur, immutable BuildOut(none!PathAndExtension, none!PathAndExtension)))
+						: none!BuildOptions;
+				case shortSymValue("--optimize"):
+					return empty(part.args)
+						? some(withCCompileOptions(cur, immutable CCompileOptions(OptimizationLevel.o2)))
+						: none!BuildOptions;
+				default:
+					return none!BuildOptions;
+			}
 		});
 }
 
@@ -439,7 +464,7 @@ immutable(Opt!BuildOut) parseBuildOut(
 }
 
 struct ArgsPart {
-	immutable SafeCStr tag; // includes the "--"
+	immutable Sym tag; // includes the "--"
 	immutable SafeCStr[] args;
 }
 
@@ -450,7 +475,7 @@ struct SplitArgs {
 	immutable SafeCStr[] afterDashDash;
 }
 
-immutable(SplitArgs) splitArgs(ref Alloc alloc, immutable SafeCStr[] args) {
+immutable(SplitArgs) splitArgs(ref Alloc alloc, ref AllSymbols allSymbols, scope return immutable SafeCStr[] args) {
 	immutable Opt!size_t optFirstArgIndex = findIndex!SafeCStr(args, (ref immutable SafeCStr arg) =>
 		startsWithDashDash(arg));
 	if (!has(optFirstArgIndex))
@@ -463,7 +488,7 @@ immutable(SplitArgs) splitArgs(ref Alloc alloc, immutable SafeCStr[] args) {
 		else {
 			ArrBuilder!ArgsPart parts;
 			immutable size_t firstAfterDashDash =
-				splitArgsRecur(alloc, parts, args, firstArgIndex, firstArgIndex + 1);
+				splitArgsRecur(alloc, allSymbols, parts, args, firstArgIndex, firstArgIndex + 1);
 			return immutable SplitArgs(beforeFirstPart, finishArr(alloc, parts), args[firstAfterDashDash .. $]);
 		}
 	}
@@ -475,32 +500,37 @@ immutable(SplitArgs) splitArgs(ref Alloc alloc, immutable SafeCStr[] args) {
 
 immutable(size_t) splitArgsRecur(
 	ref Alloc alloc,
+	ref AllSymbols allSymbols,
 	ref ArrBuilder!ArgsPart parts,
-	immutable SafeCStr[] args,
+	scope immutable SafeCStr[] args,
 	immutable size_t curPartStart,
 	immutable size_t index,
 ) {
 	if (index == args.length) {
-		add(alloc, parts, immutable ArgsPart(args[curPartStart], args[curPartStart + 1 .. index]));
+		add(alloc, parts, immutable ArgsPart(
+			symOfSafeCStr(allSymbols, args[curPartStart]),
+			args[curPartStart + 1 .. index]));
 		return index;
 	} else {
 		immutable SafeCStr arg = args[index];
 		if (startsWithDashDash(arg)) {
-			add(alloc, parts, immutable ArgsPart(args[curPartStart], args[curPartStart + 1 .. index]));
+			add(alloc, parts, immutable ArgsPart(
+				symOfSafeCStr(allSymbols, args[curPartStart]),
+				args[curPartStart + 1 .. index]));
 			return safeCStrEq(arg, "--")
 				? index + 1
 				// Using `index + 0` to avoid dscanner warning about 'index' not being parameter 3
-				: splitArgsRecur(alloc, parts, args, index + 0, index + 1);
+				: splitArgsRecur(alloc, allSymbols, parts, args, index + 0, index + 1);
 		} else
-			return splitArgsRecur(alloc, parts, args, curPartStart, index + 1);
+			return splitArgsRecur(alloc, allSymbols, parts, args, curPartStart, index + 1);
 	}
 }
 
-immutable(Command) parseTestCommand(ref Alloc alloc, immutable SafeCStr[] args) {
+immutable(Command) parseTestCommand(ref Alloc alloc, ref AllSymbols allSymbols, scope immutable SafeCStr[] args) {
 	if (empty(args))
-		return immutable Command(immutable Command.Test(none!string));
+		return immutable Command(immutable Command.Test(none!Sym));
 	else if (args.length == 1)
-		return immutable Command(immutable Command.Test(some(strOfSafeCStr(args[0]))));
+		return immutable Command(immutable Command.Test(some(symOfSafeCStr(allSymbols, args[0]))));
 	else
 		return immutable Command(immutable Command.Help(helpAllText, Command.Help.Kind.error));
 }

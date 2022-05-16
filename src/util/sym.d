@@ -114,6 +114,10 @@ immutable(Sym) symOfStr(ref AllSymbols allSymbols, scope immutable string str) {
 	return has(packed) ? force(packed) : getSymFromLongStr(allSymbols, str);
 }
 
+immutable(Sym) symOfSafeCStr(ref AllSymbols allSymbols, scope immutable SafeCStr a) {
+	return symOfStr(allSymbols, strOfSafeCStr(a));
+}
+
 enum Operator {
 	or2,
 	and2,
@@ -147,8 +151,10 @@ enum Operator {
 enum SpecialSym {
 	// all below are hyphenated
 	as_any_mut_ptr,
+	concrete_model,
 	exception_low_level,
 	init_constants,
+	line_and_column_getter,
 	ptr_cast_from_extern,
 	ptr_cast_to_extern,
 	truncate_to_int64,
@@ -258,10 +264,14 @@ private immutable(SafeCStr) strOfSpecial(immutable SpecialSym a) {
 	final switch (a) {
 		case SpecialSym.as_any_mut_ptr:
 			return safeCStr!"as-any-mut-ptr";
+		case SpecialSym.concrete_model:
+			return safeCStr!"concrete-model";
 		case SpecialSym.exception_low_level:
 			return safeCStr!"exception-low-level";
 		case SpecialSym.init_constants:
 			return safeCStr!"init-constants";
+		case SpecialSym.line_and_column_getter:
+			return safeCStr!"line-and-column-getter";
 		case SpecialSym.ptr_cast_from_extern:
 			return safeCStr!"ptr-cast-from-extern";
 		case SpecialSym.ptr_cast_to_extern:

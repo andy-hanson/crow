@@ -425,7 +425,7 @@ private immutable(Acc) each(Acc, T)(
 	return (cast(immutable) res)[0 .. resSize];
 }
 
-@trusted immutable(T[]) prepend(T)(scope ref Alloc alloc, immutable T a, immutable T[] b) {
+@trusted immutable(T[]) prepend(T)(scope ref Alloc alloc, immutable T a, scope immutable T[] b) {
 	immutable size_t resSize = 1 + b.length;
 	T* res = allocateT!T(alloc, resSize);
 	initMemory(res + 0, a);
