@@ -21,8 +21,6 @@ import model.model :
 	Params,
 	Purity,
 	range,
-	sig,
-	Sig,
 	SpecBody,
 	SpecSig,
 	symOfPurity,
@@ -334,15 +332,21 @@ void writePurity(ref Writer writer, immutable Purity p) {
 	writeChar(writer, '\'');
 }
 
-void writeSig(ref Writer writer, ref const AllSymbols allSymbols, ref immutable Sig s) {
-	writeSym(writer, allSymbols, s.name);
+void writeSig(
+	scope ref Writer writer,
+	scope ref const AllSymbols allSymbols,
+	immutable Sym name,
+	scope immutable Type returnType,
+	scope immutable Params params,
+) {
+	writeSym(writer, allSymbols, name);
 	writeChar(writer, ' ');
-	writeTypeUnquoted(writer, allSymbols, s.returnType);
+	writeTypeUnquoted(writer, allSymbols, returnType);
 	writeChar(writer, '(');
 	matchParams!void(
-		s.params,
-		(immutable Param[] params) {
-			writeWithCommas!Param(writer, params, (ref immutable Param p) {
+		params,
+		(immutable Param[] paramsArray) {
+			writeWithCommas!Param(writer, paramsArray, (ref immutable Param p) {
 				writeTypeUnquoted(writer, allSymbols, p.type);
 			});
 		},
@@ -362,7 +366,7 @@ void writeCalledDecl(
 	ref immutable FilesInfo fi,
 	immutable CalledDecl c,
 ) {
-	writeSig(writer, allSymbols, c.sig);
+	writeSig(writer, allSymbols, c.name, c.returnType, c.params);
 	return matchCalledDecl!(
 		void,
 		(immutable FunDecl* funDecl) {
@@ -537,7 +541,7 @@ void writeDiag(
 			}();
 			writeStatic(writer, descr);
 			writeChar(writer, ' ');
-			writeName(writer, allSymbols, name(*it.callee));
+			writeName(writer, allSymbols, it.callee.name);
 		},
 		(ref immutable Diag.CantInferTypeArguments) {
 			writeStatic(writer, "can't infer type arguments");
@@ -630,7 +634,7 @@ void writeDiag(
 		},
 		(ref immutable Diag.ExternFunForbidden d) {
 			writeStatic(writer, "'extern' function ");
-			writeName(writer, allSymbols, name(*d.fun));
+			writeName(writer, allSymbols, d.fun.name);
 			writeStatic(writer, () {
 				final switch (d.reason) {
 					case Diag.ExternFunForbidden.Reason.hasSpecs:
@@ -683,7 +687,7 @@ void writeDiag(
 		},
 		(ref immutable Diag.LinkageWorseThanContainingFun d) {
 			writeStatic(writer, "'extern' function ");
-			writeName(writer, allSymbols, name(*d.containingFun));
+			writeName(writer, allSymbols, d.containingFun.name);
 			if (has(d.param)) {
 				immutable Opt!Sym paramName = force(d.param).name;
 				if (has(paramName)) {
@@ -811,7 +815,7 @@ void writeDiag(
 		},
 		(ref immutable Diag.SpecBuiltinNotSatisfied d) {
 			writeStatic(writer, "trying to call ");
-			writeName(writer, allSymbols, name(*d.called));
+			writeName(writer, allSymbols, d.called.name);
 			writeStatic(writer, ", but ");
 			writeTypeQuoted(writer, allSymbols, d.type);
 			immutable string message = () {
@@ -832,9 +836,9 @@ void writeDiag(
 		},
 		(ref immutable Diag.SpecImplHasSpecs d) {
 			writeStatic(writer, "calling ");
-			writeName(writer, allSymbols, name(*d.outerCalled));
+			writeName(writer, allSymbols, d.outerCalled.name);
 			writeStatic(writer, ", spec implementation for ");
-			writeName(writer, allSymbols, name(*d.specImpl));
+			writeName(writer, allSymbols, d.specImpl.name);
 			writeFunDeclLocation(writer, allSymbols, allPaths, pathsInfo, options, fi, *d.specImpl);
 			writeStatic(writer, " has specs itself; currently this is not allowed");
 		},
@@ -905,7 +909,7 @@ void writeDiag(
 		},
 		(ref immutable Diag.UnusedPrivateFun it) {
 			writeStatic(writer, "private function ");
-			writeSym(writer, allSymbols, name(*it.fun));
+			writeSym(writer, allSymbols, it.fun.name);
 			writeStatic(writer, " is unused");
 		},
 		(ref immutable Diag.UnusedPrivateSpec it) {

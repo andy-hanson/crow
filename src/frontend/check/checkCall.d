@@ -52,12 +52,8 @@ import model.model :
 	NameReferents,
 	Param,
 	Params,
-	params,
 	Purity,
 	purityRange,
-	returnType,
-	sig,
-	Sig,
 	SpecBody,
 	SpecDeclSig,
 	SpecInst,
@@ -281,7 +277,7 @@ void eachFunInScope(
 			(immutable SpecBody.Builtin) {},
 			(immutable SpecDeclSig[] sigs) {
 				foreach (immutable size_t i, ref immutable SpecDeclSig sig; sigs)
-					if (sig.sig.name == funName) {
+					if (sig.name == funName) {
 						cb(UsedFun.none, immutable CalledDecl(
 							immutable SpecSig(specInst, &sigs[i], totalIndex + i)));
 					}
@@ -342,10 +338,10 @@ void overwriteCandidate(ref Candidate a, ref const Candidate b) {
 }
 
 InferringTypeArgs inferringTypeArgs(return ref Candidate a) {
-	return InferringTypeArgs(typeParams(a.called), tempAsArr_mut(a.typeArgs));
+	return InferringTypeArgs(a.called.typeParams, tempAsArr_mut(a.typeArgs));
 }
 const(InferringTypeArgs) inferringTypeArgs_const(return ref const Candidate a) {
-	return const InferringTypeArgs(typeParams(a.called), tempAsArr_const(a.typeArgs));
+	return const InferringTypeArgs(a.called.typeParams, tempAsArr_const(a.typeArgs));
 }
 
 immutable(T) withCandidates(T)(
@@ -368,7 +364,7 @@ void getInitialCandidates(
 	immutable size_t actualArity,
 ) {
 	eachFunInScope(ctx, funName, (immutable UsedFun used, immutable CalledDecl called) @trusted {
-		immutable size_t nTypeParams = typeParams(called).length;
+		immutable size_t nTypeParams = called.typeParams.length;
 		immutable bool typeArgsMatch = empty(explicitTypeArgs) || nTypeParams == explicitTypeArgs.length;
 		if (arityMatches(arity(called), actualArity) && typeArgsMatch) {
 			Candidate* candidate = pushUninitialized(candidates);
@@ -428,10 +424,10 @@ immutable(Type) getCandidateExpectedParameterType(
 		alloc,
 		programState,
 		candidate,
-		paramTypeAt(params(candidate.called), argIdx));
+		paramTypeAt(candidate.called.params, argIdx));
 }
 
-immutable(Type) paramTypeAt(ref immutable Params params, immutable size_t argIdx) {
+immutable(Type) paramTypeAt(scope immutable Params params, immutable size_t argIdx) {
 	return matchParams!(immutable Type)(
 		params,
 		(immutable Param[] params) =>
@@ -556,7 +552,7 @@ void filterByReturnType(
 	// Filter by return type. Also does type argument inference on the candidate.
 	filterCandidates(candidates, (ref Candidate candidate) {
 		InferringTypeArgs ta = inferringTypeArgs(candidate);
-		return matchTypesNoDiagnostic(alloc, programState, returnType(candidate.called), expectedReturnType, ta);
+		return matchTypesNoDiagnostic(alloc, programState, candidate.called.returnType, expectedReturnType, ta);
 	});
 }
 
@@ -579,7 +575,7 @@ immutable(Opt!Called) findSpecSigImplementation(
 	ref ExprCtx ctx,
 	immutable bool isInLambda,
 	immutable FileAndRange range,
-	ref immutable Sig specSig,
+	scope ref immutable SpecDeclSig specSig,
 	immutable FunDecl* outerCalled,
 ) {
 	immutable size_t nParams = matchArity!(
@@ -675,7 +671,7 @@ immutable(bool) checkSpecImpls(
 							immutable Diag.SpecImplHasSpecs(force(outerCalled), called)));
 						return false;
 					}
-					immutable Opt!Called impl = findSpecSigImplementation(ctx, isInLambda, range, sig.sig, called);
+					immutable Opt!Called impl = findSpecSigImplementation(ctx, isInLambda, range, sig, called);
 					if (!has(impl))
 						return false;
 					push(res, force(impl));
@@ -744,7 +740,7 @@ immutable(Expr) checkCallAfterChoosingOverload(
 		immutable Expr calledExpr = immutable Expr(range, Expr.Call(called, args));
 		//TODO: PERF second return type check may be unnecessary
 		// if we already filtered by return type at the beginning
-		return check(ctx, expected, returnType(called), calledExpr);
+		return check(ctx, expected, called.returnType, calledExpr);
 	} else
 		return bogus(expected, range);
 }

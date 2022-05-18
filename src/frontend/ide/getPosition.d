@@ -21,7 +21,6 @@ import model.model :
 	paramsArray,
 	range,
 	RecordField,
-	Sig,
 	SpecDecl,
 	StructBody,
 	StructDecl,
@@ -156,11 +155,24 @@ immutable(Opt!Position) getPosition(ref const AllSymbols allSymbols, ref immutab
 private:
 
 immutable(Opt!Position) positionInFun(immutable FunDecl* a, immutable Pos pos, ref const AllSymbols allSymbols) {
-	immutable Opt!Position fromSig = positionInSig(a.sig, pos, immutable Position(a), allSymbols);
-	if (has(fromSig))
-		return fromSig;
+	immutable RangeWithinFile nameRange = a.nameRange(allSymbols);
+	if (hasPos(nameRange, pos))
+		return some(immutable Position(a));
+
+	immutable Param[] params = paramsArray(a.params);
+	//TODO: have a way to get return type range if there are no parameters
+	if (!empty(params) && betweenRanges(nameRange, pos, params[0].range.range))
+		return some(immutable Position(a.returnType));
+	foreach (immutable Param* x; ptrsRange(params))
+		if (hasPos(x.range.range, pos))
+			return some(hasPos(x.nameRange(allSymbols), pos)
+				? immutable Position(x)
+				: immutable Position(x.type));
+	// TODO: specs
 	return matchFunBody!(
 		immutable Opt!Position,
+		(ref immutable FunBody.Bogus) =>
+			none!Position,
 		(ref immutable FunBody.Builtin) =>
 			none!Position,
 		(ref immutable FunBody.CreateEnum) =>
@@ -187,29 +199,6 @@ immutable(Opt!Position) positionInFun(immutable FunDecl* a, immutable Pos pos, r
 		(ref immutable FunBody.RecordFieldSet) =>
 			none!Position,
 	)(a.body_);
-}
-
-immutable(Opt!Position) positionInSig(
-	ref immutable Sig a,
-	immutable Pos pos,
-	immutable Position atName,
-	ref const AllSymbols allSymbols,
-) {
-	immutable RangeWithinFile nameRange = a.nameRange(allSymbols);
-	if (hasPos(nameRange, pos))
-		return some(atName);
-
-	immutable Param[] params = paramsArray(a.params);
-	//TODO: have a way to get return type range if there are no parameters
-	if (!empty(params) && betweenRanges(nameRange, pos, params[0].range.range))
-		return some(immutable Position(a.returnType));
-	foreach (immutable Param* x; ptrsRange(params))
-		if (hasPos(x.range.range, pos))
-			return some(hasPos(x.nameRange(allSymbols), pos)
-				? immutable Position(x)
-				: immutable Position(x.type));
-	// TODO: specs
-	return none!Position;
 }
 
 immutable(Opt!Position) positionInImportsOrExports(

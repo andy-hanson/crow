@@ -31,7 +31,6 @@ import model.model :
 	Param,
 	Params,
 	Purity,
-	Sig,
 	SpecDecl,
 	specImpls,
 	SpecInst,
@@ -150,6 +149,13 @@ immutable(Repr) reprFunDecl(ref Alloc alloc, scope ref Ctx ctx, ref immutable Fu
 	if (!safeCStrIsEmpty(a.docComment))
 		add(alloc, fields, nameAndRepr("doc", reprStr(a.docComment)));
 	add(alloc, fields, nameAndRepr("visibility", reprVisibility(a.visibility)));
+	add(alloc, fields, nameAndRepr("pos", reprFileAndPos(alloc, a.fileAndPos)));
+	add(alloc, fields, nameAndRepr("name", reprSym(a.name)));
+	add(alloc, fields, nameAndRepr("type", reprType(alloc, ctx, a.returnType)));
+	add(alloc, fields, nameAndRepr("params", reprParams(alloc, ctx, a.params)));
+	if (!empty(a.typeParams))
+		add(alloc, fields, nameAndRepr("typeparams", reprArr(alloc, a.typeParams, (ref immutable TypeParam it) =>
+			reprTypeParam(alloc, it))));
 	if (noCtx(a))
 		add(alloc, fields, nameAndRepr("no-ctx", reprBool(true)));
 	if (summon(a))
@@ -160,10 +166,6 @@ immutable(Repr) reprFunDecl(ref Alloc alloc, scope ref Ctx ctx, ref immutable Fu
 		add(alloc, fields, nameAndRepr("trusted", reprBool(true)));
 	if (a.flags.preferred)
 		add(alloc, fields, nameAndRepr("preferred", reprBool(true)));
-	add(alloc, fields, nameAndRepr("sig", reprSig(alloc, ctx, a.sig)));
-	if (!empty(a.typeParams))
-		add(alloc, fields, nameAndRepr("typeparams", reprArr(alloc, a.typeParams, (ref immutable TypeParam it) =>
-			reprTypeParam(alloc, it))));
 	if (!empty(a.specs))
 		add(alloc, fields, nameAndRepr("specs", reprArr(alloc, a.specs, (ref immutable SpecInst* it) =>
 			reprSpecInst(alloc, ctx, *it))));
@@ -175,18 +177,14 @@ immutable(Repr) reprTypeParam(ref Alloc alloc, immutable TypeParam) {
 	return todo!(immutable Repr)("reprTypeParam");
 }
 
-immutable(Repr) reprSig(ref Alloc alloc, scope ref Ctx ctx, ref immutable Sig a) {
-	return reprRecord(alloc, "sig", [
-		reprFileAndPos(alloc, a.fileAndPos),
-		reprSym(a.name),
-		reprType(alloc, ctx, a.returnType),
-		matchParams!(immutable Repr)(
-			a.params,
-			(immutable Param[] params) =>
-				reprArr(alloc, params, (ref immutable Param it) =>
-					reprParam(alloc, ctx, it)),
-			(ref immutable Params.Varargs v) =>
-				reprRecord(alloc, "varargs", [reprParam(alloc, ctx, v.param)]))]);
+immutable(Repr) reprParams(ref Alloc alloc, scope ref Ctx ctx, scope ref immutable Params a) {
+	return matchParams!(immutable Repr)(
+		a,
+		(immutable Param[] params) =>
+			reprArr(alloc, params, (ref immutable Param it) =>
+				reprParam(alloc, ctx, it)),
+		(ref immutable Params.Varargs v) =>
+			reprRecord(alloc, "varargs", [reprParam(alloc, ctx, v.param)]));
 }
 
 immutable(Repr) reprParam(ref Alloc alloc, scope ref Ctx ctx, ref immutable Param a) {
@@ -204,6 +202,8 @@ immutable(Repr) reprSpecInst(ref Alloc alloc, scope ref Ctx ctx, ref immutable S
 immutable(Repr) reprFunBody(ref Alloc alloc, scope ref Ctx ctx, ref immutable FunBody a) {
 	return matchFunBody!(
 		immutable Repr,
+		(ref immutable FunBody.Bogus) =>
+			reprSym("bogus"),
 		(ref immutable FunBody.Builtin) =>
 			reprSym("builtin"),
 		(ref immutable FunBody.CreateEnum it) =>
@@ -381,7 +381,7 @@ immutable(Repr) reprCalled(ref Alloc alloc, scope ref Ctx ctx, ref immutable Cal
 
 immutable(Repr) reprFunInst(ref Alloc alloc, scope ref Ctx ctx, ref immutable FunInst a) {
 	ArrBuilder!NameAndRepr args;
-	add(alloc, args, nameAndRepr("name", reprSym(name(*decl(a)))));
+	add(alloc, args, nameAndRepr("name", reprSym(decl(a).name)));
 	if (!empty(typeArgs(a)))
 		add(alloc, args, nameAndRepr("type-args", reprArr(alloc, typeArgs(a), (ref immutable Type it) =>
 			reprType(alloc, ctx, it))));
@@ -394,7 +394,7 @@ immutable(Repr) reprFunInst(ref Alloc alloc, scope ref Ctx ctx, ref immutable Fu
 immutable(Repr) reprSpecSig(ref Alloc alloc, scope ref Ctx ctx, ref immutable SpecSig a) {
 	return reprRecord(alloc, "spec-sig", [
 		reprSym(name(*a.specInst)),
-		reprSym(a.sig.sig.name)]);
+		reprSym(a.sig.name)]);
 }
 
 public immutable(Repr) reprVisibility(immutable Visibility a) {

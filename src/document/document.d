@@ -17,12 +17,10 @@ import model.model :
 	noCtx,
 	noDoc,
 	Param,
-	params,
 	paramsArray,
 	Program,
 	Purity,
 	RecordField,
-	returnType,
 	SpecBody,
 	SpecDecl,
 	SpecDeclSig,
@@ -262,17 +260,17 @@ immutable(Repr) documentSpecDeclSig(ref Alloc alloc, ref immutable SpecDeclSig a
 	ArrBuilder!NameAndRepr fields;
 	if (!safeCStrIsEmpty(a.docComment))
 		add(alloc, fields, nameAndRepr("comment", reprStr(a.docComment)));
-	add(alloc, fields, nameAndRepr("name", reprSym(a.sig.name)));
-	add(alloc, fields, nameAndRepr("return-type", documentTypeRef(alloc, a.sig.returnType)));
-	add(alloc, fields, nameAndRepr("params", reprArr(alloc, paramsArray(a.sig.params), (ref immutable Param x) =>
+	add(alloc, fields, nameAndRepr("name", reprSym(a.name)));
+	add(alloc, fields, nameAndRepr("return-type", documentTypeRef(alloc, a.returnType)));
+	add(alloc, fields, nameAndRepr("params", reprArr(alloc, paramsArray(a.params), (ref immutable Param x) =>
 		documentParam(alloc, x))));
 	return reprNamedRecord("sig", finishArr(alloc, fields));
 }
 
 immutable(DocExport) documentFun(ref Alloc alloc, ref immutable FunDecl a) {
 	ArrBuilder!NameAndRepr fields;
-	add(alloc, fields, nameAndRepr("return-type", documentTypeRef(alloc, returnType(a))));
-	add(alloc, fields, nameAndRepr("params", reprArr(alloc, paramsArray(params(a)), (ref immutable Param x) =>
+	add(alloc, fields, nameAndRepr("return-type", documentTypeRef(alloc, a.returnType)));
+	add(alloc, fields, nameAndRepr("params", reprArr(alloc, paramsArray(a.params), (ref immutable Param x) =>
 			documentParam(alloc, x))));
 	if (isVariadic(a))
 		add(alloc, fields, nameAndRepr("variadic", reprBool(true)));

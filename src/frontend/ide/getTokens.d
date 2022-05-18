@@ -50,7 +50,6 @@ import frontend.parse.ast :
 	rangeOfNameAndRange,
 	rangeOfOptNameAndRange,
 	SeqAst,
-	SigAst,
 	SpecBodyAst,
 	SpecDeclAst,
 	SpecSigAst,
@@ -191,8 +190,8 @@ void addSpecTokens(
 			foreach (ref immutable SpecSigAst sig; sigs) {
 				add(alloc, tokens, immutable Token(
 					Token.Kind.fun,
-					rangeAtName(allSymbols, sig.sig.range.start, sig.sig.name)));
-				addSigReturnTypeAndParamsTokens(alloc, tokens, allSymbols, sig.sig);
+					rangeAtName(allSymbols, sig.range.start, sig.name)));
+				addSigReturnTypeAndParamsTokens(alloc, tokens, allSymbols, sig.returnType, sig.params);
 			}
 		},
 	)(a.body_);
@@ -202,9 +201,10 @@ void addSigReturnTypeAndParamsTokens(
 	ref Alloc alloc,
 	ref ArrBuilder!Token tokens,
 	ref const AllSymbols allSymbols,
-	scope ref immutable SigAst a,
+	scope immutable TypeAst returnType,
+	scope immutable ParamsAst params,
 ) {
-	addTypeTokens(alloc, tokens, allSymbols, a.returnType);
+	addTypeTokens(alloc, tokens, allSymbols, returnType);
 	matchParamsAst!(
 		void,
 		(immutable ParamAst[] params) {
@@ -214,7 +214,7 @@ void addSigReturnTypeAndParamsTokens(
 		(ref immutable ParamsAst.Varargs v) {
 			addParamTokens(alloc, tokens, allSymbols, v.param);
 		},
-	)(a.params);
+	)(params);
 }
 
 void addTypeTokens(
@@ -395,9 +395,9 @@ void addFunTokens(
 ) {
 	add(alloc, tokens, immutable Token(
 		Token.Kind.fun,
-		rangeAtName(allSymbols, a.visibility, a.range.start, a.sig.name)));
+		rangeAtName(allSymbols, a.visibility, a.range.start, a.name)));
 	addTypeParamsTokens(alloc, tokens, allSymbols, a.typeParams);
-	addSigReturnTypeAndParamsTokens(alloc, tokens, allSymbols, a.sig);
+	addSigReturnTypeAndParamsTokens(alloc, tokens, allSymbols, a.returnType, a.params);
 	foreach (ref immutable SpecUseAst specUse; a.specUses) {
 		add(alloc, tokens, immutable Token(Token.Kind.spec, rangeOfNameAndRange(specUse.spec, allSymbols)));
 		addTypeArgsTokens(alloc, tokens, allSymbols, specUse.typeArgs);

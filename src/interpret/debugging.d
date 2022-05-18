@@ -149,7 +149,7 @@ private void writeConcreteFunName(ref Writer writer, ref const AllSymbols allSym
 	matchConcreteFunSource!(
 		void,
 		(ref immutable FunInst it) {
-			writeSym(writer, allSymbols, name(it));
+			writeSym(writer, allSymbols, it.name);
 			if (!empty(typeArgs(it))) {
 				writeChar(writer, '<');
 				writeWithCommas!Type(writer, typeArgs(it), (ref immutable Type typeArg) {

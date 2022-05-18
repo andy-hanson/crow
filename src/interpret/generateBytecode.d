@@ -227,7 +227,7 @@ immutable(FileToFuns) fileToFuns(
 		modulesDict,
 		(immutable FileIndex, ref immutable Module module_) =>
 			map(alloc, module_.funs, (ref immutable FunDecl it) =>
-				immutable FunNameAndPos(name(it), it.fileAndPos.pos)));
+				immutable FunNameAndPos(it.name, it.fileAndPos.pos)));
 }
 
 void generateBytecodeForFun(

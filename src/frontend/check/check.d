@@ -43,7 +43,6 @@ import frontend.parse.ast :
 	NameAndRange,
 	ParamAst,
 	ParamsAst,
-	SigAst,
 	SpecBodyAst,
 	SpecDeclAst,
 	SpecSigAst,
@@ -89,14 +88,11 @@ import model.model :
 	okIfUnused,
 	Param,
 	Params,
-	params,
 	paramsArray,
 	Purity,
 	range,
-	returnType,
 	setBody,
 	setTarget,
-	Sig,
 	SpecBody,
 	SpecDecl,
 	SpecDeclSig,
@@ -473,10 +469,16 @@ immutable(Param) checkParam(
 	return immutable Param(rangeInFile(ctx, ast.range), ast.name, type, index);
 }
 
-immutable(Sig) checkSig(
+
+struct ReturnTypeAndParams {
+	immutable Type returnType;
+	immutable Params params;
+}
+immutable(ReturnTypeAndParams) checkReturnTypeAndParams(
 	ref CheckCtx ctx,
 	ref immutable CommonTypes commonTypes,
-	scope ref immutable SigAst ast,
+	scope immutable TypeAst returnTypeAst,
+	scope immutable ParamsAst paramsAst,
 	immutable TypeParam[] typeParams,
 	scope ref immutable StructsAndAliasesDict structsAndAliasesDict,
 	DelayStructInsts delayStructInsts
@@ -485,13 +487,13 @@ immutable(Sig) checkSig(
 	immutable Params params = checkParams(
 		ctx,
 		commonTypes,
-		ast.params,
+		paramsAst,
 		structsAndAliasesDict,
 		typeParamsScope,
 		delayStructInsts);
 	immutable Type returnType =
-		typeFromAst(ctx, commonTypes, ast.returnType, structsAndAliasesDict, typeParamsScope, delayStructInsts);
-	return immutable Sig(posInFile(ctx, ast.range.start), ast.name, returnType, params);
+		typeFromAst(ctx, commonTypes, returnTypeAst, structsAndAliasesDict, typeParamsScope, delayStructInsts);
+	return immutable ReturnTypeAndParams(returnType, params);
 }
 
 immutable(SpecBody.Builtin.Kind) getSpecBodyBuiltinKind(
@@ -524,14 +526,22 @@ immutable(SpecBody) checkSpecBody(
 		(ref immutable SpecBodyAst.Builtin) =>
 			immutable SpecBody(SpecBody.Builtin(getSpecBodyBuiltinKind(ctx, range, name))),
 		(ref immutable SpecSigAst[] sigs) =>
-			immutable SpecBody(map!SpecDeclSig(ctx.alloc, sigs, (ref immutable SpecSigAst it) =>
-				immutable SpecDeclSig(it.docComment, checkSig(
+			immutable SpecBody(map!SpecDeclSig(ctx.alloc, sigs, (ref immutable SpecSigAst it) {
+				immutable ReturnTypeAndParams rp = checkReturnTypeAndParams(
 					ctx,
 					commonTypes,
-					it.sig,
+					it.returnType,
+					it.params,
 					typeParams,
 					structsAndAliasesDict,
-					noneMut!(MutArr!(StructInst*)*))))),
+					noneMut!(MutArr!(StructInst*)*));
+				return immutable SpecDeclSig(
+					it.docComment,
+					posInFile(ctx, it.range.start),
+					it.name,
+					rp.returnType,
+					rp.params);
+			})),
 	)(ast);
 }
 
@@ -631,9 +641,9 @@ struct FunsAndDict {
 immutable(SpecInst*[]) checkSpecUses(
 	ref CheckCtx ctx,
 	ref immutable CommonTypes commonTypes,
-	scope ref immutable SpecUseAst[] asts,
-	scope ref immutable StructsAndAliasesDict structsAndAliasesDict,
-	scope ref immutable SpecsDict specsDict,
+	scope immutable SpecUseAst[] asts,
+	scope immutable StructsAndAliasesDict structsAndAliasesDict,
+	scope immutable SpecsDict specsDict,
 	immutable TypeParamsScope typeParamsScope,
 ) {
 	return mapOp!(SpecInst*)(ctx.alloc, asts, (scope ref immutable SpecUseAst ast) {
@@ -679,10 +689,11 @@ immutable(FunsAndDict) checkFuns(
 		asts.length + fileImports.length + fileExports.length + countFunsForStruct(structs));
 	foreach (ref immutable FunDeclAst funAst; asts) {
 		immutable TypeParam[] typeParams = checkTypeParams(ctx, funAst.typeParams);
-		immutable Sig sig = checkSig(
+		immutable ReturnTypeAndParams rp = checkReturnTypeAndParams(
 			ctx,
 			commonTypes,
-			funAst.sig,
+			funAst.returnType,
+			funAst.params,
 			typeParams,
 			structsAndAliasesDict,
 			noneMut!(MutArr!(StructInst*)*));
@@ -696,7 +707,17 @@ immutable(FunsAndDict) checkFuns(
 		immutable FunFlags flags = flagsFromAst(funAst.flags);
 		exactSizeArrBuilderAdd(
 			funsBuilder,
-			FunDecl(copySafeCStr(ctx.alloc, funAst.docComment), funAst.visibility, flags, sig, typeParams, specUses));
+			FunDecl(
+				copySafeCStr(ctx.alloc, funAst.docComment),
+				funAst.visibility,
+				posInFile(ctx, funAst.range.start),
+				funAst.name,
+				typeParams,
+				rp.returnType,
+				rp.params,
+				flags,
+				specUses,
+				immutable FunBody(immutable FunBody.Bogus())));
 	}
 	foreach (ref immutable ImportOrExportFile f; fileImports)
 		exactSizeArrBuilderAdd(
@@ -718,7 +739,7 @@ immutable(FunsAndDict) checkFuns(
 		castImmutable(funs),
 		(immutable size_t index, immutable FunDecl* it) =>
 			immutable KeyValuePair!(Sym, FunDeclAndIndex)(
-				name(*it),
+				it.name,
 				immutable FunDeclAndIndex(immutable ModuleLocalFunIndex(index), it)));
 
 	FunDecl[] funsWithAsts = funs[0 .. asts.length];
@@ -815,9 +836,9 @@ immutable(Expr) getExprFunctionBody(
 		commonTypes,
 		funsDict,
 		usedFuns,
-		returnType(f),
+		f.returnType,
 		f.typeParams,
-		paramsArray(params(f)),
+		paramsArray(f.params),
 		f.specs,
 		f.flags,
 		e);
@@ -833,14 +854,14 @@ FunDecl funDeclForFileImportOrExport(
 	return FunDecl(
 		safeCStr!"",
 		visibility,
-		FunFlags.generatedNoCtx,
-		immutable Sig(
-			immutable FileAndPos(ctx.fileIndex, a.range.start),
-			a.name,
-			typeForFileImport(ctx, commonTypes, structsAndAliasesDict, a.range, a.type),
-			immutable Params(emptyArr!Param)),
+		immutable FileAndPos(ctx.fileIndex, a.range.start),
+		a.name,
 		emptyArr!TypeParam,
-		emptyArr!(SpecInst*));
+		typeForFileImport(ctx, commonTypes, structsAndAliasesDict, a.range, a.type),
+		immutable Params(emptyArr!Param),
+		FunFlags.generatedNoCtx,
+		emptyArr!(SpecInst*),
+		immutable FunBody(immutable FunBody.Bogus()));
 }
 
 immutable(Type) typeForFileImport(
@@ -888,11 +909,11 @@ immutable(FunBody.Extern) checkExternFun(
 		addDiag(ctx, fun.range, immutable Diag(
 			immutable Diag.ExternFunForbidden(fun, Diag.ExternFunForbidden.Reason.needsNoCtx)));
 
-	if (!isLinkageAlwaysCompatible(funLinkage, linkageRange(returnType(*fun))))
+	if (!isLinkageAlwaysCompatible(funLinkage, linkageRange(fun.returnType)))
 		addDiag(ctx, fun.range, immutable Diag(
-			immutable Diag.LinkageWorseThanContainingFun(fun, returnType(*fun), none!(Param*))));
+			immutable Diag.LinkageWorseThanContainingFun(fun, fun.returnType, none!(Param*))));
 	matchParams!void(
-		params(*fun),
+		fun.params,
 		(immutable Param[] params) {
 			foreach (immutable Param* p; ptrsRange(params)) {
 				if (!isLinkageAlwaysCompatible(funLinkage, linkageRange(p.type)))

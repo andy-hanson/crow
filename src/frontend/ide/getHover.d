@@ -56,7 +56,7 @@ void getHover(
 		},
 		(ref immutable FunDecl it) {
 			writeStatic(writer, "fun ");
-			writeSym(writer, allSymbols, name(it));
+			writeSym(writer, allSymbols, it.name);
 		},
 		(ref immutable Position.ImportedModule it) {
 			writeStatic(writer, "import module ");

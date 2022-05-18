@@ -1416,7 +1416,7 @@ immutable(LowExprKind) getCallBuiltinExpr(
 	immutable Sym name = matchConcreteFunSource!(
 		immutable Sym,
 		(ref immutable FunInst it) =>
-			name(*decl(it)),
+			decl(it).name,
 		(ref immutable(ConcreteFunSource.Lambda)) =>
 			unreachable!(immutable Sym)(),
 		(ref immutable(ConcreteFunSource.Test)) =>

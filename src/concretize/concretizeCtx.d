@@ -57,13 +57,11 @@ import model.model :
 	name,
 	noCtx,
 	Param,
-	params,
 	paramsArray,
 	Program,
 	Purity,
 	range,
 	RecordField,
-	returnType,
 	StructBody,
 	StructDecl,
 	StructInst,
@@ -474,8 +472,8 @@ immutable(ConcreteFun*) getOrAddConcreteFunWithoutFillingBody(ref ConcretizeCtx 
 immutable(ConcreteFun*) getConcreteFunFromKey(ref ConcretizeCtx ctx, ref immutable ConcreteFunKey key) {
 	immutable FunDecl* decl = decl(*key.inst);
 	immutable TypeArgsScope typeScope = typeArgsScope(key);
-	immutable ConcreteType returnType = getConcreteType(ctx, returnType(*decl), typeScope);
-	immutable ConcreteParam[] params = concretizeParams(ctx, paramsArray(params(*decl)), typeScope);
+	immutable ConcreteType returnType = getConcreteType(ctx, decl.returnType, typeScope);
+	immutable ConcreteParam[] params = concretizeParams(ctx, paramsArray(decl.params), typeScope);
 	ConcreteFun* res = allocateMut(ctx.alloc, ConcreteFun(
 		immutable ConcreteFunSource(key.inst),
 		returnType,
@@ -774,9 +772,11 @@ void fillInConcreteFunBody(ref ConcretizeCtx ctx, ConcreteFun* cf) {
 		immutable ConcreteFunBodyInputs inputs = mustDelete(ctx.concreteFunToBodyInputs, castImmutable(cf));
 		immutable ConcreteFunBody body_ = matchFunBody!(
 			immutable ConcreteFunBody,
+			(ref immutable FunBody.Bogus) =>
+				unreachable!(immutable ConcreteFunBody),
 			(ref immutable FunBody.Builtin) {
 				immutable FunInst* inst = asFunInst(cf.source);
-				switch (name(*inst).value) {
+				switch (inst.name.value) {
 					case shortSymValue("all-tests"):
 						return bodyForAllTests(ctx, castImmutable(cf).returnType);
 					case shortSymValue("safe-value"):

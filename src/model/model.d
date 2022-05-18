@@ -270,6 +270,15 @@ struct Params {
 	}
 }
 
+immutable(bool) isVarargs(scope immutable Params a) {
+	return matchParams!(immutable bool)(
+		a,
+		(immutable Param[]) =>
+			false,
+		(ref immutable Params.Varargs) =>
+			true);
+}
+
 @trusted immutable(Param[]) paramsArray(return scope ref immutable Params a) {
 	return matchParams!(immutable Param[])(
 		a,
@@ -339,7 +348,7 @@ immutable(bool) arityMatches(immutable Arity sigArity, immutable size_t nArgs) {
 	)(sigArity);
 }
 
-immutable(Arity) arity(ref immutable Params a) {
+immutable(Arity) arity(scope immutable Params a) {
 	return matchParams!(immutable Arity)(
 		a,
 		(immutable Param[] params) =>
@@ -349,29 +358,16 @@ immutable(Arity) arity(ref immutable Params a) {
 }
 
 struct SpecDeclSig {
-	immutable SafeCStr docComment;
-	immutable Sig sig;
-}
-
-struct Sig {
 	@safe @nogc pure nothrow:
 
+	immutable SafeCStr docComment;
 	immutable FileAndPos fileAndPos;
 	immutable Sym name;
 	immutable Type returnType;
 	immutable Params params;
-
-	immutable(RangeWithinFile) nameRange(ref const AllSymbols allSymbols) immutable {
-		return rangeOfStartAndName(fileAndPos.pos, name, allSymbols);
-	}
-
-	immutable(FileAndRange) nameFileAndRange(ref const AllSymbols allSymbols) immutable {
-		return immutable FileAndRange(fileAndPos.fileIndex, nameRange(allSymbols));
-	}
 }
-static assert(Sig.sizeof <= 48);
 
-immutable(Arity) arity(ref const Sig a) {
+immutable(Arity) arity(scope ref immutable SpecDeclSig a) {
 	return arity(a.params);
 }
 
@@ -826,6 +822,7 @@ immutable(Sym) flagsFunctionName(immutable FlagsFunction a) {
 struct FunBody {
 	@safe @nogc pure nothrow:
 
+	struct Bogus {}
 	struct Builtin {}
 	struct CreateEnum {
 		immutable EnumValue value;
@@ -850,6 +847,7 @@ struct FunBody {
 
 	private:
 	enum Kind {
+		bogus,
 		builtin,
 		createEnum,
 		createRecord,
@@ -864,6 +862,7 @@ struct FunBody {
 	}
 	immutable Kind kind;
 	union {
+		immutable Bogus bogus;
 		immutable Builtin builtin;
 		immutable CreateEnum createEnum;
 		immutable CreateRecord createRecord;
@@ -878,6 +877,7 @@ struct FunBody {
 	}
 
 	public:
+	immutable this(immutable Bogus a) { kind = Kind.bogus; bogus = a; }
 	immutable this(immutable Builtin a) { kind = Kind.builtin; builtin = a; }
 	immutable this(immutable CreateEnum a) { kind = Kind.createEnum; createEnum = a; }
 	immutable this(immutable CreateRecord a) { kind = Kind.createRecord; createRecord = a; }
@@ -897,6 +897,7 @@ immutable(bool) isExtern(ref immutable FunBody a) {
 
 @trusted T matchFunBody(
 	T,
+	alias cbBogus,
 	alias cbBuiltin,
 	alias cbCreateEnum,
 	alias cbCreateRecord,
@@ -912,6 +913,8 @@ immutable(bool) isExtern(ref immutable FunBody a) {
 	ref immutable FunBody a,
 ) {
 	final switch (a.kind) {
+		case FunBody.Kind.bogus:
+			return cbBogus(a.bogus);
 		case FunBody.Kind.builtin:
 			return cbBuiltin(a.builtin);
 		case FunBody.Kind.createEnum:
@@ -965,35 +968,26 @@ struct FunDecl {
 	@safe @nogc pure nothrow:
 
 	@disable this(ref const FunDecl);
+
 	this(
 		immutable SafeCStr dc,
 		immutable Visibility v,
-		immutable FunFlags f,
-		immutable Sig s,
+		immutable FileAndPos fp,
+		immutable Sym n,
 		immutable TypeParam[] tps,
-		immutable SpecInst*[] sps,
-	) {
-		docComment = dc;
-		visibility = v;
-		flags = f;
-		sig = s;
-		typeParams = small(tps);
-		specs = sps;
-		body_ = immutable FunBody(immutable FunBody.Builtin());
-	}
-	this(
-		immutable SafeCStr dc,
-		immutable Visibility v,
+		immutable Type rt,
+		immutable Params pms,
 		immutable FunFlags f,
-		immutable Sig s,
-		immutable TypeParam[] tps,
 		immutable SpecInst*[] sps,
 		immutable FunBody b,
 	) {
 		docComment = dc;
 		visibility = v;
+		fileAndPos = fp;
+		name = n;
 		flags = f;
-		sig = s;
+		returnType = rt;
+		params = pms;
 		typeParams = small(tps);
 		specs = sps;
 		body_ = b;
@@ -1001,19 +995,22 @@ struct FunDecl {
 
 	immutable SafeCStr docComment;
 	immutable Visibility visibility;
+	immutable FileAndPos fileAndPos;
+	immutable Sym name;
 	immutable FunFlags flags;
-	immutable Sig sig;
+	immutable Type returnType;
+	immutable Params params;
 	immutable SmallArray!TypeParam typeParams;
 	immutable SmallArray!(SpecInst*) specs;
 	FunBody body_;
 
-	immutable(FileAndPos) fileAndPos() immutable {
-		return sig.fileAndPos;
-	}
-
 	immutable(FileAndRange) range() immutable {
 		// TODO: end position
 		return fileAndRangeFromFileAndPos(fileAndPos);
+	}
+
+	immutable(RangeWithinFile) nameRange(ref const AllSymbols allSymbols) immutable {
+		return rangeOfStartAndName(fileAndPos.pos, name, allSymbols);
 	}
 }
 
@@ -1044,23 +1041,8 @@ immutable(bool) okIfUnused(ref immutable FunDecl a) {
 	return a.flags.okIfUnused;
 }
 
-immutable(Sym) name(ref const FunDecl a) {
-	return a.sig.name;
-}
-
-ref immutable(Type) returnType(scope return ref immutable FunDecl a) {
-	return a.sig.returnType;
-}
-
-ref immutable(Params) params(scope return ref immutable FunDecl a) {
-	return a.sig.params;
-}
-
 immutable(bool) isVariadic(ref immutable FunDecl a) {
-	return matchParams!(immutable bool)(
-		params(a),
-		(immutable Param[]) => false,
-		(ref immutable Params.Varargs) => true);
+	return isVarargs(a.params);
 }
 
 immutable(bool) isTemplate(ref immutable FunDecl a) {
@@ -1068,7 +1050,7 @@ immutable(bool) isTemplate(ref immutable FunDecl a) {
 }
 
 immutable(Arity) arity(ref const FunDecl a) {
-	return arity(a.sig);
+	return arity(a.params);
 }
 
 struct Test {
@@ -1100,44 +1082,40 @@ struct FunDeclAndArgs {
 }
 
 struct FunInst {
+	@safe @nogc pure nothrow:
+
 	immutable FunDeclAndArgs funDeclAndArgs;
-	immutable Sig sig;
+	immutable Type returnType;
+	immutable Params params;
+
+	immutable(Sym) name() scope immutable {
+		return decl(this).name;
+	}
 }
 
 immutable(bool) isCallWithCtxFun(ref immutable FunInst a) {
 	// TODO: only do this for the call-with-ctx in bootstrap
-	return name(*decl(a)) == symForSpecial(SpecialSym.call_with_ctx);
+	return decl(a).name == symForSpecial(SpecialSym.call_with_ctx);
 }
 
 immutable(bool) isCompareFun(ref immutable FunInst a) {
 	// TODO: only do this for the '<=>' in bootstrap
-	return name(*decl(a)) == symForOperator(Operator.compare);
+	return decl(a).name == symForOperator(Operator.compare);
 }
 
 immutable(bool) isMarkVisitFun(ref immutable FunInst a) {
 	// TODO: only do this for the 'mark-visit' in bootstrap
-	return name(*decl(a)) == shortSym("mark-visit");
+	return decl(a).name == shortSym("mark-visit");
 }
 
 immutable(FunInst*) nonTemplateFunInst(ref Alloc alloc, immutable FunDecl* decl) {
 	return allocate(alloc, immutable FunInst(
 		immutable FunDeclAndArgs(decl, emptyArr!Type, emptyArr!Called),
-		decl.sig));
+		decl.returnType,
+		decl.params));
 }
 
-immutable(Sym) name(ref immutable FunInst a) {
-	return a.sig.name;
-}
-
-ref immutable(Type) returnType(scope return ref immutable FunInst a) {
-	return a.sig.returnType;
-}
-
-ref immutable(Params) params(scope return ref immutable FunInst a) {
-	return a.sig.params;
-}
-
-immutable(FunDecl*) decl(ref immutable FunInst a) {
+immutable(FunDecl*) decl(scope return ref immutable FunInst a) {
 	return a.funDeclAndArgs.decl;
 }
 
@@ -1178,7 +1156,7 @@ struct SpecSig {
 }
 
 immutable(Sym) name(ref immutable SpecSig a) {
-	return a.sig.sig.name;
+	return a.sig.name;
 }
 
 // Like 'Called', but we haven't fully instantiated yet. (This is used for Candidate when checking a call expr.)
@@ -1199,6 +1177,38 @@ struct CalledDecl {
 	public:
 	@trusted immutable this(immutable FunDecl* a) { kind = Kind.funDecl; funDecl = a; }
 	@trusted immutable this(immutable SpecSig a) { kind = Kind.specSig; specSig = a; }
+
+	immutable(Sym) name() scope immutable {
+		return matchCalledDecl!(
+			immutable Sym,
+			(immutable FunDecl* f) => f.name,
+			(ref immutable SpecSig s) => s.name,
+		)(this);
+	}
+
+	immutable(TypeParam[]) typeParams() scope immutable {
+		return matchCalledDecl!(
+			immutable TypeParam[],
+			(immutable FunDecl* f) => f.typeParams,
+			(ref immutable SpecSig) => emptyArr!TypeParam,
+		)(this);
+	}
+
+	immutable(Type) returnType() scope immutable {
+		return matchCalledDecl!(
+			immutable Type,
+			(immutable FunDecl* f) => f.returnType,
+			(ref immutable SpecSig s) => s.sig.returnType,
+		)(this);
+	}
+
+	immutable(Params) params() scope immutable {
+		return matchCalledDecl!(
+			immutable Params,
+			(immutable FunDecl* f) => f.params,
+			(ref immutable SpecSig s) => s.sig.params,
+		)(this);
+	}
 }
 
 @trusted T matchCalledDecl(T, alias cbFunDecl, alias cbSpecSig)(ref immutable CalledDecl a) {
@@ -1210,41 +1220,12 @@ struct CalledDecl {
 	}
 }
 
-@trusted ref immutable(Sig) sig(scope return ref immutable CalledDecl a) {
-	final switch (a.kind) {
-		case CalledDecl.Kind.funDecl:
-			return a.funDecl.sig;
-		case CalledDecl.Kind.specSig:
-			return a.specSig.sig.sig;
-	}
-}
-
-immutable(Sym) name(ref immutable CalledDecl a) {
-	return a.sig.name;
-}
-
-ref immutable(Type) returnType(scope return ref immutable CalledDecl a) {
-	return a.sig.returnType;
-}
-
-ref immutable(Params) params(scope return ref immutable CalledDecl a) {
-	return a.sig.params;
-}
-
-immutable(TypeParam[]) typeParams(scope return ref immutable CalledDecl a) {
-	return matchCalledDecl!(
-		immutable TypeParam[],
-		(immutable FunDecl* f) => f.typeParams,
-		(ref immutable SpecSig) => emptyArr!TypeParam,
-	)(a);
-}
-
 immutable(Arity) arity(ref immutable CalledDecl a) {
-	return arity(params(a));
+	return arity(a.params);
 }
 
 immutable(size_t) nTypeParams(ref immutable CalledDecl a) {
-	return typeParams(a).length;
+	return a.typeParams.length;
 }
 
 struct Called {
@@ -1294,7 +1275,36 @@ struct Called {
 			},
 		)(this);
 	}
+
+	immutable(Sym) name() scope immutable {
+		return matchCalled!(
+			immutable Sym,
+			(immutable FunInst* f) => f.name,
+			(ref immutable SpecSig s) => s.name,
+		)(this);
+	}
+
+	immutable(Type) returnType() scope immutable {
+		return matchCalled!(
+			immutable Type,
+			(immutable FunInst* f) => f.returnType,
+			(ref immutable SpecSig s) => s.sig.returnType,
+		)(this);
+	}
+
+	immutable(Params) params() scope immutable {
+		return matchCalled!(
+			immutable Params,
+			(immutable FunInst* f) => f.params,
+			(ref immutable SpecSig s) => s.sig.params,
+		)(this);
+	}
 }
+
+immutable(Arity) arity(scope immutable Called a) {
+	return arity(a.params);
+}
+
 
 @trusted T matchCalled(T, alias cbFunInst, alias cbSpecSig)(ref immutable Called a) {
 	final switch (a.kind) {
@@ -1303,35 +1313,6 @@ struct Called {
 		case Called.Kind.specSig:
 			return cbSpecSig(a.specSig);
 	}
-}
-
-@trusted ref immutable(Sig) sig(scope return ref immutable Called a) {
-	final switch (a.kind) {
-		case Called.Kind.funInst:
-			return a.funInst.sig;
-		case Called.Kind.specSig:
-			return a.specSig.sig.sig;
-	}
-}
-
-immutable(Sym) name(ref immutable Called a) {
-	return matchCalled!(
-		immutable Sym,
-		(immutable FunInst*) => a.name,
-		(ref immutable SpecSig s) => a.name,
-	)(a);
-}
-
-ref immutable(Type) returnType(scope return ref immutable Called a) {
-	return sig(a).returnType;
-}
-
-ref immutable(Params) params(scope return ref immutable Called a) {
-	return sig(a).params;
-}
-
-immutable(Arity) arity(ref immutable Called a) {
-	return arity(sig(a));
 }
 
 struct StructOrAlias {
@@ -2055,12 +2036,12 @@ immutable(Sym) symOfAssertOrForbidKind(immutable AssertOrForbidKind a) {
 	}
 }
 
-void writeStructDecl(ref Writer writer, ref const AllSymbols allSymbols, ref immutable StructDecl a) {
+void writeStructDecl(scope ref Writer writer, scope ref const AllSymbols allSymbols, scope ref immutable StructDecl a) {
 	writeSym(writer, allSymbols, a.name);
 }
 
-void writeStructInst(ref Writer writer, ref const AllSymbols allSymbols, ref immutable StructInst s) {
-	writeStructDecl(writer, allSymbols, *decl(s));
+void writeStructInst(scope ref Writer writer, scope ref const AllSymbols allSymbols, scope ref immutable StructInst s) {
+	writeStructDecl(writer, allSymbols, *s.declAndArgs.decl);
 	if (!empty(s.typeArgs)) {
 		writeChar(writer, '<');
 		writeWithCommas!Type(writer, s.typeArgs, (ref immutable Type t) {
@@ -2077,7 +2058,7 @@ void writeTypeQuoted(ref Writer writer, ref const AllSymbols allSymbols, immutab
 }
 
 //TODO:MOVE
-void writeTypeUnquoted(ref Writer writer, ref const AllSymbols allSymbols, immutable Type a) {
+void writeTypeUnquoted(ref Writer writer, scope ref const AllSymbols allSymbols, immutable Type a) {
 	matchType!void(
 		a,
 		(immutable Type.Bogus) {

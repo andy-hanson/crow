@@ -29,9 +29,7 @@ import model.model :
 	NameReferents,
 	noCtx,
 	Param,
-	params,
 	Program,
-	returnType,
 	Type,
 	typeArgs;
 import util.alloc.alloc : Alloc;
@@ -150,9 +148,9 @@ void checkRtMainSignature(ref immutable CommonTypes commonTypes, ref immutable F
 		todo!void("rt main must be noctx");
 	if (isTemplate(mainFun))
 		todo!void("rt main is template?");
-	if (!isInt32(commonTypes, returnType(mainFun)))
+	if (!isInt32(commonTypes, mainFun.returnType))
 		todo!void("checkRtMainSignature doesn't return int");
-	immutable Param[] params = assertNonVariadic(params(mainFun));
+	immutable Param[] params = assertNonVariadic(mainFun.params);
 	if (params.length != 3)
 		todo!void("checkRtMainSignature wrong number params");
 	if (!isInt32(commonTypes, params[0].type))
@@ -166,9 +164,9 @@ void checkUserMainSignature(ref immutable CommonTypes commonTypes, ref immutable
 		todo!void("main is noctx?");
 	if (isTemplate(mainFun))
 		todo!void("main is template?");
-	if (!isFutNat(commonTypes, returnType(mainFun)))
+	if (!isFutNat(commonTypes, mainFun.returnType))
 		todo!void("checkUserMainSignature doesn't return fut nat");
-	immutable Param[] params = assertNonVariadic(params(mainFun));
+	immutable Param[] params = assertNonVariadic(mainFun.params);
 	if (params.length != 1)
 		todo!void("checkUserMainSignature should take 1 param");
 	if (!isArrStr(commonTypes, only(params).type))

@@ -32,7 +32,6 @@ import model.model :
 	linkageRange,
 	matchType,
 	name,
-	params,
 	Purity,
 	purityRange,
 	range,

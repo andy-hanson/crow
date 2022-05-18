@@ -164,7 +164,7 @@ immutable(Repr) reprOfConcreteFunSource(ref Alloc alloc, ref immutable ConcreteF
 	return matchConcreteFunSource!(
 		immutable Repr,
 		(ref immutable FunInst it) =>
-			reprSym(name(it)),
+			reprSym(it.name),
 		(ref immutable ConcreteFunSource.Lambda it) =>
 			reprRecord(alloc, "lambda", [
 				reprOfConcreteFunRef(alloc, *it.containingFun),

@@ -29,7 +29,6 @@ import model.model :
 	purityRange,
 	RecordField,
 	setBody,
-	Sig,
 	SpecBody,
 	SpecDecl,
 	SpecDeclAndArgs,
@@ -162,13 +161,11 @@ immutable(FunInst*) instantiateFun(
 	return getOrAddPair(alloc, programState.funInsts, tempKey, () {
 		immutable FunDeclAndArgs key =
 			immutable FunDeclAndArgs(decl, copyArr(alloc, typeArgs), copyArr(alloc, specImpls));
+		immutable TypeParamsAndArgs typeParamsAndArgs = immutable TypeParamsAndArgs(decl.typeParams, key.typeArgs);
 		return KeyValuePair!(immutable FunDeclAndArgs, immutable FunInst*)(key, allocate(alloc, immutable FunInst(
 			key,
-			instantiateSig(
-				alloc,
-				programState,
-				decl.sig,
-				immutable TypeParamsAndArgs(decl.typeParams, key.typeArgs)))));
+			instantiateTypeNoDelay(alloc, programState, decl.returnType, typeParamsAndArgs),
+			instantiateParams(alloc, programState, decl.params, typeParamsAndArgs))));
 	}).value;
 }
 
@@ -324,12 +321,16 @@ immutable(SpecInst*) instantiateSpec(
 			(immutable SpecBody.Builtin b) =>
 				immutable SpecBody(SpecBody.Builtin(b.kind)),
 			(immutable SpecDeclSig[] sigs) =>
-				immutable SpecBody(map!SpecDeclSig(alloc, sigs, (ref immutable SpecDeclSig sig) =>
-					immutable SpecDeclSig(sig.docComment, instantiateSig(
-						alloc,
-						programState,
-						sig.sig,
-						immutable TypeParamsAndArgs(decl.typeParams, key.typeArgs))))));
+				immutable SpecBody(map!SpecDeclSig(alloc, sigs, (ref immutable SpecDeclSig sig) {
+					immutable TypeParamsAndArgs typeParamsAndArgs =
+						immutable TypeParamsAndArgs(decl.typeParams, key.typeArgs);
+					return immutable SpecDeclSig(
+						sig.docComment,
+						sig.fileAndPos,
+						sig.name,
+						instantiateTypeNoDelay(alloc, programState, sig.returnType, typeParamsAndArgs),
+						instantiateParams(alloc, programState, sig.params, typeParamsAndArgs));
+		 		})));
 		return KeyValuePair!(immutable SpecDeclAndArgs, immutable SpecInst*)(
 			key, allocate(alloc, immutable SpecInst(key, body_)));
 	}).value;
@@ -349,24 +350,21 @@ immutable(SpecInst*) instantiateSpecInst(
 
 private:
 
-immutable(Sig) instantiateSig(
+immutable(Params) instantiateParams(
 	ref Alloc alloc,
 	ref ProgramState programState,
-	ref immutable Sig sig,
+	ref immutable Params params,
 	immutable TypeParamsAndArgs typeParamsAndArgs,
 ) {
-	immutable Type returnType = instantiateType(
-		alloc, programState, sig.returnType, typeParamsAndArgs, noneMut!(MutArr!(StructInst*)*));
-	immutable Params params = matchParams!(immutable Params)(
-		sig.params,
-		(immutable Param[] params) =>
-			immutable Params(map(alloc, params, (ref immutable Param p) =>
+	return matchParams!(immutable Params)(
+		params,
+		(immutable Param[] paramsArray) =>
+			immutable Params(map(alloc, paramsArray, (ref immutable Param p) =>
 				instantiateParam(alloc, programState, typeParamsAndArgs, p))),
 		(ref immutable Params.Varargs v) =>
 			immutable Params(allocate(alloc, immutable Params.Varargs(
 				instantiateParam(alloc, programState, typeParamsAndArgs, v.param),
 				instantiateTypeNoDelay(alloc, programState, v.elementType, typeParamsAndArgs)))));
-	return immutable Sig(sig.fileAndPos, sig.name, returnType, params);
 }
 
 immutable(Param) instantiateParam(

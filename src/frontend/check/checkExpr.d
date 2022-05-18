@@ -102,10 +102,8 @@ import model.model :
 	matchVariableRef,
 	noCtx,
 	Param,
-	params,
 	Purity,
 	range,
-	returnType,
 	SpecInst,
 	StructBody,
 	StructDecl,
@@ -929,8 +927,8 @@ immutable(Expr) checkFunPtr(
 	immutable FunInst* funInst = instantiateFun(ctx.alloc, ctx.programState, funDecl, [], []);
 	immutable StructDecl* funPtrStruct = ctx.commonTypes.funPtrStructs[nParams];
 	scope TypeArgsArray returnTypeAndParamTypes = typeArgsArray();
-	push(returnTypeAndParamTypes, returnType(*funDecl));
-	foreach (ref immutable Param x; assertNonVariadic(params(*funInst)))
+	push(returnTypeAndParamTypes, funDecl.returnType);
+	foreach (ref immutable Param x; assertNonVariadic(funInst.params))
 		push(returnTypeAndParamTypes, x.type);
 	immutable StructInst* structInst =
 		instantiateStructNeverDelay(ctx.alloc, ctx.programState, funPtrStruct, tempAsArr(returnTypeAndParamTypes));

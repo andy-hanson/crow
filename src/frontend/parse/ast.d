@@ -798,12 +798,8 @@ struct ParamsAst {
 
 struct SpecSigAst {
 	immutable SafeCStr docComment;
-	immutable SigAst sig;
-}
-
-struct SigAst {
 	immutable RangeWithinFile range;
-	immutable Sym name; // Range starts at sig.range.start
+	immutable Sym name;
 	immutable TypeAst returnType;
 	immutable ParamsAst params;
 }
@@ -1051,10 +1047,12 @@ struct FunBodyAst {
 struct FunDeclAst {
 	immutable RangeWithinFile range;
 	immutable SafeCStr docComment;
-	immutable SmallArray!NameAndRange typeParams;
-	immutable SigAst sig;
-	immutable SpecUseAst[] specUses;
 	immutable Visibility visibility;
+	immutable Sym name; // Range starts at sig.range.start
+	immutable SmallArray!NameAndRange typeParams;
+	immutable TypeAst returnType;
+	immutable ParamsAst params;
+	immutable SmallArray!SpecUseAst specUses;
 	immutable FunDeclAstFlags flags;
 	immutable FunBodyAst body_;
 }
@@ -1239,10 +1237,23 @@ immutable(Repr) reprSpecBodyAst(ref Alloc alloc, ref immutable SpecBodyAst a) {
 			reprSym("builtin"),
 		(ref immutable SpecSigAst[] sigs) =>
 			reprArr(alloc, sigs, (ref immutable SpecSigAst sig) =>
-				reprRecord(alloc, "spec-sig", [
-					reprStr(sig.docComment),
-					reprSig(alloc, sig.sig)])),
+				reprSpecSig(alloc, sig)),
 	)(a);
+}
+
+immutable(Repr) reprSpecSig(ref Alloc alloc, ref immutable SpecSigAst a) {
+	return reprRecord(alloc, "spec-sig", [
+		reprRangeWithinFile(alloc, a.range),
+		reprStr(a.docComment),
+		reprSym(a.name),
+		reprTypeAst(alloc, a.returnType),
+		matchParamsAst!(
+			immutable Repr,
+			(immutable ParamAst[] params) =>
+				reprArr(alloc, params, (ref immutable ParamAst p) => reprParamAst(alloc, p)),
+			(ref immutable ParamsAst.Varargs v) =>
+				reprRecord(alloc, "varargs", [reprParamAst(alloc, v.param)]),
+		)(a.params)]);
 }
 
 immutable(Repr) reprStructAliasAst(ref Alloc alloc, ref immutable StructAliasAst a) {
@@ -1404,8 +1415,11 @@ immutable(Repr) reprFunDeclAst(ref Alloc alloc, ref immutable FunDeclAst a) {
 	if (!safeCStrIsEmpty(a.docComment))
 		add(alloc, fields, nameAndRepr("doc", reprStr(a.docComment)));
 	add(alloc, fields, nameAndRepr("visibility", reprVisibility(a.visibility)));
+	add(alloc, fields, nameAndRepr("range", reprRangeWithinFile(alloc, a.range)));
+	add(alloc, fields, nameAndRepr("name", reprSym(a.name)));
 	maybeAddTypeParams(alloc, fields, a.typeParams);
-	add(alloc, fields, nameAndRepr("sig", reprSig(alloc, a.sig)));
+	add(alloc, fields, nameAndRepr("return", reprTypeAst(alloc, a.returnType)));
+	add(alloc, fields, nameAndRepr("params", reprParamsAst(alloc, a.params)));
 	if (!empty(a.specUses))
 		add(alloc, fields, nameAndRepr("spec-uses", reprArr(alloc, a.specUses, (ref immutable SpecUseAst s) =>
 			reprSpecUseAst(alloc, s))));
@@ -1423,18 +1437,14 @@ immutable(Repr) reprFunDeclAst(ref Alloc alloc, ref immutable FunDeclAst a) {
 	return reprNamedRecord("fun-decl", finishArr(alloc, fields));
 }
 
-immutable(Repr) reprSig(ref Alloc alloc, ref immutable SigAst a) {
-	return reprRecord(alloc, "sig-ast", [
-		reprRangeWithinFile(alloc, a.range),
-		reprSym(a.name),
-		reprTypeAst(alloc, a.returnType),
-		matchParamsAst!(
-			immutable Repr,
-			(immutable ParamAst[] params) =>
-				reprArr(alloc, params, (ref immutable ParamAst p) => reprParamAst(alloc, p)),
-			(ref immutable ParamsAst.Varargs v) =>
-				reprRecord(alloc, "varargs", [reprParamAst(alloc, v.param)]),
-		)(a.params)]);
+immutable(Repr) reprParamsAst(ref Alloc alloc, scope immutable ParamsAst a) {
+	return matchParamsAst!(
+		immutable Repr,
+		(immutable ParamAst[] params) =>
+			reprArr(alloc, params, (ref immutable ParamAst p) => reprParamAst(alloc, p)),
+		(ref immutable ParamsAst.Varargs v) =>
+			reprRecord(alloc, "varargs", [reprParamAst(alloc, v.param)]),
+	)(a);
 }
 
 immutable(Repr) reprSpecUseAst(ref Alloc alloc, ref immutable SpecUseAst a) {

@@ -70,7 +70,7 @@ immutable(MangledNames) buildMangledNames(
 					void,
 					(ref immutable FunInst i) {
 						//TODO: use temp alloc
-						addToPrevOrIndex!ConcreteFun(alloc, funNameToIndex, funToNameIndex, cf, name(i));
+						addToPrevOrIndex!ConcreteFun(alloc, funNameToIndex, funToNameIndex, cf, i.name);
 					},
 					(ref immutable ConcreteFunSource.Lambda) {},
 					(ref immutable ConcreteFunSource.Test) {},
@@ -168,11 +168,10 @@ private void writeConcreteFunMangledName(
 	matchConcreteFunSource!(
 		void,
 		(ref immutable FunInst it) {
-			immutable Sym name = name(it);
 			if (isExtern(body_(*source)))
-				writeSym(writer, *mangledNames.allSymbols, name);
+				writeSym(writer, *mangledNames.allSymbols, it.name);
 			else {
-				writeMangledName(writer, mangledNames, name);
+				writeMangledName(writer, mangledNames, it.name);
 				maybeWriteIndexSuffix(writer, mangledNames.funToNameIndex[source]);
 			}
 		},

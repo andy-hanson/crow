@@ -15,12 +15,12 @@ import model.model :
 	isCallWithCtxFun,
 	isCompareFun,
 	isMarkVisitFun,
+	isVarargs,
 	Local,
 	matchParams,
 	name,
 	Param,
 	Params,
-	params,
 	Purity,
 	range,
 	StructInst,
@@ -660,12 +660,7 @@ immutable(bool) isVariadic(ref immutable ConcreteFun a) {
 	return matchConcreteFunSource!(
 		immutable bool,
 		(ref immutable FunInst i) =>
-			matchParams!(immutable bool)(
-				params(i),
-				(immutable Param[]) =>
-					false,
-				(ref immutable Params.Varargs) =>
-					true),
+			isVarargs(i.params),
 		(ref immutable ConcreteFunSource.Lambda) =>
 			false,
 		(ref immutable ConcreteFunSource.Test) =>
@@ -677,7 +672,7 @@ immutable(Opt!Sym) name(ref immutable ConcreteFun a) {
 	return matchConcreteFunSource!(
 		immutable Opt!Sym,
 		(ref immutable FunInst it) =>
-			some(name(it)),
+			some(it.name),
 		(ref immutable ConcreteFunSource.Lambda) =>
 			none!Sym,
 		(ref immutable ConcreteFunSource.Test) =>

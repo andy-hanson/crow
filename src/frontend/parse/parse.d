@@ -17,7 +17,6 @@ import frontend.parse.ast :
 	NameAndRange,
 	ParamAst,
 	ParamsAst,
-	SigAst,
 	SpecBodyAst,
 	SpecDeclAst,
 	SpecSigAst,
@@ -364,7 +363,8 @@ immutable(ParamsAndMaybeDedent) parseParams(scope ref Lexer lexer) {
 }
 
 struct SigAstAndMaybeDedent {
-	immutable SigAst sig;
+	immutable TypeAst returnType;
+	immutable ParamsAst params;
 	immutable Opt!size_t dedents;
 }
 
@@ -378,11 +378,12 @@ struct SpecSigAstAndDedent {
 	immutable size_t dedents;
 }
 
-immutable(SigAstAndMaybeDedent) parseSigAfterName(scope ref Lexer lexer, immutable Pos start, immutable Sym name) {
+immutable(SigAstAndMaybeDedent) parseSigAfterName(scope ref Lexer lexer) {
 	immutable TypeAst returnType = parseType(lexer);
 	immutable ParamsAndMaybeDedent params = parseParams(lexer);
 	return immutable SigAstAndMaybeDedent(
-		immutable SigAst(range(lexer, start), name, returnType, params.params),
+		returnType,
+		params.params,
 		params.dedents);
 }
 
@@ -395,7 +396,7 @@ immutable(SpecSigAstAndMaybeDedent) parseSpecSigAfterName(
 	immutable TypeAst returnType = parseType(lexer);
 	immutable ParamsAndMaybeDedent params = parseParams(lexer);
 	return immutable SpecSigAstAndMaybeDedent(
-		immutable SpecSigAst(comment, immutable SigAst(range(lexer, start), name, returnType, params.params)),
+		immutable SpecSigAst(comment, range(lexer, start), name, returnType, params.params),
 		params.dedents);
 }
 
@@ -406,7 +407,7 @@ immutable(SpecSigAstAndDedent) parseSpecSig(scope ref Lexer lexer, immutable uin
 	immutable Sym sigName = takeNameOrOperator(lexer);
 	immutable SpecSigAstAndMaybeDedent s = parseSpecSigAfterName(lexer, comment, start, sigName);
 	immutable size_t dedents = has(s.dedents) ? force(s.dedents) : takeNewlineOrDedentAmount(lexer, curIndent);
-	return SpecSigAstAndDedent(s.sig, dedents);
+	return immutable SpecSigAstAndDedent(s.sig, dedents);
 }
 
 immutable(SpecSigAst[]) parseIndentedSigs(scope ref Lexer lexer) {
@@ -656,7 +657,7 @@ immutable(FunDeclAst) parseFun(
 	immutable Sym name,
 	immutable NameAndRange[] typeParams,
 ) {
-	immutable SigAstAndMaybeDedent sig = parseSigAfterName(lexer, start, name);
+	immutable SigAstAndMaybeDedent sig = parseSigAfterName(lexer);
 	immutable FunDeclStuff stuff = () {
 		if (has(sig.dedents)) {
 			// Started at indent of 0
@@ -681,10 +682,12 @@ immutable(FunDeclAst) parseFun(
 	return immutable FunDeclAst(
 		range(lexer, start),
 		docComment,
-		small(typeParams),
-		sig.sig,
-		extra.specUses,
 		visibility,
+		name,
+		small(typeParams),
+		sig.returnType,
+		sig.params,
+		small(extra.specUses),
 		extra.flags,
 		stuff.body_);
 }
