@@ -264,18 +264,17 @@ private immutable(Type) typeFromFunAst(
 
 immutable(Opt!(SpecDecl*)) tryFindSpec(
 	ref CheckCtx ctx,
-	immutable Sym name,
-	immutable RangeWithinFile range,
+	scope immutable NameAndRange name,
 	scope ref immutable SpecsDict specsDict,
 ) {
-	immutable Opt!SpecDeclAndIndex opDeclFromHere = specsDict[name];
+	immutable Opt!SpecDeclAndIndex opDeclFromHere = specsDict[name.name];
 	if (has(opDeclFromHere))
 		markUsedSpec(ctx, force(opDeclFromHere).index);
 	immutable Opt!(SpecDecl*) here = has(opDeclFromHere) ? some(force(opDeclFromHere).decl) : none!(SpecDecl*);
 	return tryFindT!(SpecDecl*)(
 		ctx,
-		name,
-		range,
+		name.name,
+		rangeOfNameAndRange(name, ctx.allSymbols),
 		here,
 		Diag.DuplicateImports.Kind.spec,
 		Diag.NameNotFound.Kind.spec,

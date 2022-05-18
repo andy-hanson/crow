@@ -576,7 +576,7 @@ immutable(SpecUsesAndSigFlagsAndKwBody) parseNextSpec(
 		case Token.name:
 			immutable NameAndRange name = getCurNameAndRange(lexer, start);
 			immutable TypeAst[] typeArgs = tryParseTypeArgsBracketed(lexer);
-			add(lexer.alloc, specUses, immutable SpecUseAst(range(lexer, start), name, small(typeArgs)));
+			add(lexer.alloc, specUses, immutable SpecUseAst(name, small(typeArgs)));
 			return nextSpecOrStop(lexer, specUses, flags, builtin, extern_, canTakeNext);
 		default:
 			addDiagUnexpectedCurToken(lexer, start, token);

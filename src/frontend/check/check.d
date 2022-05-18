@@ -43,6 +43,7 @@ import frontend.parse.ast :
 	NameAndRange,
 	ParamAst,
 	ParamsAst,
+	rangeOfNameAndRange,
 	SpecBodyAst,
 	SpecDeclAst,
 	SpecSigAst,
@@ -647,7 +648,7 @@ immutable(SpecInst*[]) checkSpecUses(
 	immutable TypeParamsScope typeParamsScope,
 ) {
 	return mapOp!(SpecInst*)(ctx.alloc, asts, (scope ref immutable SpecUseAst ast) {
-		immutable Opt!(SpecDecl*) opSpec = tryFindSpec(ctx, ast.spec.name, ast.range, specsDict);
+		immutable Opt!(SpecDecl*) opSpec = tryFindSpec(ctx, ast.spec, specsDict);
 		if (has(opSpec)) {
 			immutable SpecDecl* spec = force(opSpec);
 			TypeArgsArray typeArgs = typeArgsArray();
@@ -660,7 +661,7 @@ immutable(SpecInst*[]) checkSpecUses(
 				typeParamsScope,
 				noneMut!(MutArr!(StructInst*)*));
 			if (!sizeEq(tempAsArr(typeArgs), spec.typeParams)) {
-				addDiag(ctx, ast.range, immutable Diag(
+				addDiag(ctx, rangeOfNameAndRange(ast.spec, ctx.allSymbols), immutable Diag(
 					immutable Diag.WrongNumberTypeArgsForSpec(
 						spec,
 						spec.typeParams.length,

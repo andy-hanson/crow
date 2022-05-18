@@ -759,7 +759,6 @@ struct ParamAst {
 }
 
 struct SpecUseAst {
-	immutable RangeWithinFile range;
 	immutable NameAndRange spec;
 	immutable SmallArray!TypeAst typeArgs;
 }
@@ -1449,8 +1448,7 @@ immutable(Repr) reprParamsAst(ref Alloc alloc, scope immutable ParamsAst a) {
 
 immutable(Repr) reprSpecUseAst(ref Alloc alloc, ref immutable SpecUseAst a) {
 	return reprRecord(alloc, "spec-use", [
-		reprRangeWithinFile(alloc, a.range),
-		reprSym(a.spec.name),
+		reprNameAndRange(alloc, a.spec),
 		reprArr(alloc, a.typeArgs, (ref immutable TypeAst it) =>
 			reprTypeAst(alloc, it))]);
 }
