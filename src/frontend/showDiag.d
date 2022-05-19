@@ -143,9 +143,6 @@ void writeParseDiag(
 				case ParseDiag.Expected.Kind.blockCommentEnd:
 					writeStatic(writer, "Expected '###' (then a newline)");
 					break;
-				case ParseDiag.Expected.Kind.bodyKeyword:
-					writeStatic(writer, "expected 'body'");
-					break;
 				case ParseDiag.Expected.Kind.closeInterpolated:
 					writeStatic(writer, "expected '}'");
 					break;
@@ -658,6 +655,14 @@ void writeDiag(
 		},
 		(ref immutable Diag.ExternUnion d) {
 			writeStatic(writer, "a union can't be 'extern'");
+		},
+		(ref immutable Diag.FunMissingBody) {
+			writeStatic(writer, "this function needs a body");
+		},
+		(ref immutable Diag.FunModifierTypeArgs d) {
+			writeStatic(writer, "function modifier ");
+			writeName(writer, allSymbols, d.modifier);
+			writeStatic(writer, " can not have type arguments");
 		},
 		(ref immutable Diag.IfNeedsOpt d) {
 			writeStatic(writer, "Expected an option type, but got ");

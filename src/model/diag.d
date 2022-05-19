@@ -167,6 +167,10 @@ struct Diag {
 		immutable StructDecl* struct_;
 	}
 	struct ExternUnion {}
+	struct FunMissingBody {}
+	struct FunModifierTypeArgs {
+		immutable Sym modifier;
+	}
 	struct IfNeedsOpt {
 		immutable Type actualType;
 	}
@@ -348,6 +352,8 @@ struct Diag {
 		externPtrHasTypeParams,
 		externRecordMustBeByRefOrVal,
 		externUnion,
+		funMissingBody,
+		funModifierTypeArgs,
 		ifNeedsOpt,
 		importRefersToNothing,
 		lambdaCantInferParamTypes,
@@ -416,6 +422,8 @@ struct Diag {
 		immutable ExternPtrHasTypeParams externPtrHasTypeParams;
 		immutable ExternRecordMustBeByRefOrVal externRecordMustBeByRefOrVal;
 		immutable ExternUnion externUnion;
+		immutable FunMissingBody funMissingBody;
+		immutable FunModifierTypeArgs funModifierTypeArgs;
 		immutable IfNeedsOpt ifNeedsOpt;
 		immutable ImportRefersToNothing importRefersToNothing;
 		immutable LambdaCantInferParamTypes lambdaCantInferParamTypes;
@@ -504,6 +512,12 @@ struct Diag {
 	}
 	immutable this(immutable ExternUnion a) {
 		kind = Kind.externUnion; externUnion = a;
+	}
+	immutable this(immutable FunMissingBody a) {
+		kind = Kind.funMissingBody; funMissingBody = a;
+	}
+	immutable this(immutable FunModifierTypeArgs a) {
+		kind = Kind.funModifierTypeArgs; funModifierTypeArgs = a;
 	}
 	@trusted immutable this(immutable IfNeedsOpt a) { kind = Kind.ifNeedsOpt; ifNeedsOpt = a; }
 	immutable this(immutable ImportRefersToNothing a) { kind = Kind.importRefersToNothing; importRefersToNothing = a; }
@@ -655,6 +669,10 @@ struct Diag {
 		ref immutable Diag.ExternRecordMustBeByRefOrVal
 	) @safe @nogc pure nothrow cbExternRecordMustBeByRefOrVal,
 	scope immutable(Out) delegate(ref immutable Diag.ExternUnion) @safe @nogc pure nothrow cbExternUnion,
+	scope immutable(Out) delegate(ref immutable Diag.FunMissingBody) @safe @nogc pure nothrow cbFunMissingBody,
+	scope immutable(Out) delegate(
+		ref immutable Diag.FunModifierTypeArgs
+	) @safe @nogc pure nothrow cbFunModifierTypeArgs,
 	scope immutable(Out) delegate(ref immutable Diag.IfNeedsOpt) @safe @nogc pure nothrow cbIfNeedsOpt,
 	scope immutable(Out) delegate(
 		ref immutable Diag.ImportRefersToNothing
@@ -808,6 +826,10 @@ struct Diag {
 			return cbExternRecordMustBeByRefOrVal(a.externRecordMustBeByRefOrVal);
 		case Diag.Kind.externUnion:
 			return cbExternUnion(a.externUnion);
+		case Diag.Kind.funMissingBody:
+			return cbFunMissingBody(a.funMissingBody);
+		case Diag.Kind.funModifierTypeArgs:
+			return cbFunModifierTypeArgs(a.funModifierTypeArgs);
 		case Diag.Kind.ifNeedsOpt:
 			return cbIfNeedsOpt(a.ifNeedsOpt);
 		case Diag.Kind.importRefersToNothing:

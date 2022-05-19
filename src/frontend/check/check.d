@@ -33,13 +33,12 @@ import frontend.parse.ast :
 	ExprAst,
 	ExprAstKind,
 	FileAst,
-	FunBodyAst,
 	FunDeclAst,
-	FunDeclAstFlags,
+	FunModifierAst,
 	LiteralAst,
-	matchFunBodyAst,
 	matchParamsAst,
 	matchSpecBodyAst,
+	matchTypeAst,
 	NameAndRange,
 	ParamAst,
 	ParamsAst,
@@ -47,7 +46,6 @@ import frontend.parse.ast :
 	SpecBodyAst,
 	SpecDeclAst,
 	SpecSigAst,
-	SpecUseAst,
 	StructAliasAst,
 	TestAst,
 	TypeAst;
@@ -131,7 +129,7 @@ import util.perf : Perf;
 import util.ptr : castImmutable, castNonScope_mut, ptrTrustMe, ptrTrustMe_mut;
 import util.sourceRange : FileAndPos, FileAndRange, FileIndex, RangeWithinFile;
 import util.sym : AllSymbols, shortSym, shortSymValue, Sym;
-import util.util : todo, verify;
+import util.util : unreachable, todo, verify;
 
 struct PathAndAst { //TODO:RENAME
 	immutable FileIndex fileIndex;
@@ -639,39 +637,87 @@ struct FunsAndDict {
 	immutable FunsDict funsDict;
 }
 
-immutable(SpecInst*[]) checkSpecUses(
+struct FunFlagsAndSpecs {
+	immutable FunFlags flags;
+	immutable SpecInst*[] specs;
+}
+
+immutable(FunFlagsAndSpecs) checkFunModifiers(
 	ref CheckCtx ctx,
 	ref immutable CommonTypes commonTypes,
-	scope immutable SpecUseAst[] asts,
+	scope immutable FunModifierAst[] asts,
 	scope immutable StructsAndAliasesDict structsAndAliasesDict,
 	scope immutable SpecsDict specsDict,
 	immutable TypeParamsScope typeParamsScope,
 ) {
-	return mapOp!(SpecInst*)(ctx.alloc, asts, (scope ref immutable SpecUseAst ast) {
-		immutable Opt!(SpecDecl*) opSpec = tryFindSpec(ctx, ast.spec, specsDict);
-		if (has(opSpec)) {
-			immutable SpecDecl* spec = force(opSpec);
-			TypeArgsArray typeArgs = typeArgsArray();
-			typeArgsFromAsts(
-				typeArgs,
-				ctx,
-				commonTypes,
-				ast.typeArgs,
-				structsAndAliasesDict,
-				typeParamsScope,
-				noneMut!(MutArr!(StructInst*)*));
-			if (!sizeEq(tempAsArr(typeArgs), spec.typeParams)) {
-				addDiag(ctx, rangeOfNameAndRange(ast.spec, ctx.allSymbols), immutable Diag(
-					immutable Diag.WrongNumberTypeArgsForSpec(
-						spec,
-						spec.typeParams.length,
-						tempAsArr(typeArgs).length)));
-				return none!(SpecInst*);
+	FunModifierAst.SpecialFlags allFlags = FunModifierAst.SpecialFlags.none;
+	immutable SpecInst*[] specs = mapOp!(SpecInst*)(ctx.alloc, asts, (scope ref immutable FunModifierAst ast) {
+		immutable FunModifierAst.SpecialFlags flag = ast.specialFlags;
+		if (flag == FunModifierAst.SpecialFlags.none) {
+			immutable Opt!(SpecDecl*) opSpec = tryFindSpec(ctx, ast.name, specsDict);
+			if (has(opSpec)) {
+				immutable SpecDecl* spec = force(opSpec);
+				TypeArgsArray typeArgs = typeArgsArray();
+				typeArgsFromAsts(
+					typeArgs,
+					ctx,
+					commonTypes,
+					ast.typeArgs,
+					structsAndAliasesDict,
+					typeParamsScope,
+					noneMut!(MutArr!(StructInst*)*));
+				if (!sizeEq(tempAsArr(typeArgs), spec.typeParams)) {
+					addDiag(ctx, rangeOfNameAndRange(ast.name, ctx.allSymbols), immutable Diag(
+						immutable Diag.WrongNumberTypeArgsForSpec(
+							spec,
+							spec.typeParams.length,
+							tempAsArr(typeArgs).length)));
+					return none!(SpecInst*);
+				} else
+					return some(instantiateSpec(ctx.alloc, ctx.programState, spec, tempAsArr(typeArgs)));
 			} else
-				return some(instantiateSpec(ctx.alloc, ctx.programState, spec, tempAsArr(typeArgs)));
-		} else
+				return none!(SpecInst*);
+		} else {
+			if (!empty(ast.typeArgs) &&
+				flag != FunModifierAst.SpecialFlags.extern_ &&
+				flag != FunModifierAst.SpecialFlags.global)
+				addDiag(ctx, rangeOfNameAndRange(ast.name, ctx.allSymbols), immutable Diag(
+					immutable Diag.FunModifierTypeArgs(ast.name.name)));
+			if (allFlags & flag)
+				todo!void("diag: duplicate flag");
+			allFlags |= flag;
 			return none!(SpecInst*);
+		}
 	});
+	return immutable FunFlagsAndSpecs(checkFunFlags(ctx, allFlags), specs);
+}
+
+immutable(FunFlags) checkFunFlags(ref CheckCtx ctx, immutable FunModifierAst.SpecialFlags flags) {
+	immutable bool builtin = (flags & FunModifierAst.SpecialFlags.builtin) != 0;
+	immutable bool extern_ = (flags & FunModifierAst.SpecialFlags.extern_) != 0;
+	immutable bool global = (flags & FunModifierAst.SpecialFlags.global) != 0;
+	immutable bool noctx = (flags & FunModifierAst.SpecialFlags.noctx) != 0;
+	immutable bool noDoc = (flags & FunModifierAst.SpecialFlags.no_doc) != 0;
+	immutable bool summon = (flags & FunModifierAst.SpecialFlags.summon) != 0;
+	immutable bool trusted = (flags & FunModifierAst.SpecialFlags.trusted) != 0;
+	immutable bool unsafe = (flags & FunModifierAst.SpecialFlags.unsafe) != 0;
+	immutable FunFlags.Safety safety = unsafe
+		? FunFlags.Safety.unsafe
+		: trusted
+		? FunFlags.Safety.trusted
+		: FunFlags.Safety.safe;
+	if (unsafe && trusted)
+		todo!void("diag: fun can't be 'unsafe' and 'trusted'");
+	immutable FunFlags.SpecialBody specialBody = builtin
+		? FunFlags.SpecialBody.builtin
+		: extern_
+		? FunFlags.SpecialBody.extern_
+		: global
+		? FunFlags.SpecialBody.global
+		: FunFlags.SpecialBody.none;
+	if (builtin + extern_ + global > 1)
+		todo!void("diag: fun can only be one of 'builtin', 'extern', 'global'");
+	return immutable FunFlags(noctx, noDoc, summon, safety, false, false, specialBody);
 }
 
 immutable(FunsAndDict) checkFuns(
@@ -698,14 +744,13 @@ immutable(FunsAndDict) checkFuns(
 			typeParams,
 			structsAndAliasesDict,
 			noneMut!(MutArr!(StructInst*)*));
-		immutable SpecInst*[] specUses = checkSpecUses(
+		immutable FunFlagsAndSpecs flagsAndSpecs = checkFunModifiers(
 			ctx,
 			commonTypes,
-			funAst.specUses,
+			funAst.modifiers,
 			structsAndAliasesDict,
 			specsDict,
 			immutable TypeParamsScope(typeParams));
-		immutable FunFlags flags = flagsFromAst(funAst.flags);
 		exactSizeArrBuilderAdd(
 			funsBuilder,
 			FunDecl(
@@ -716,8 +761,8 @@ immutable(FunsAndDict) checkFuns(
 				typeParams,
 				rp.returnType,
 				rp.params,
-				flags,
-				specUses,
+				flagsAndSpecs.flags,
+				flagsAndSpecs.specs,
 				immutable FunBody(immutable FunBody.Bogus())));
 	}
 	foreach (ref immutable ImportOrExportFile f; fileImports)
@@ -745,16 +790,41 @@ immutable(FunsAndDict) checkFuns(
 
 	FunDecl[] funsWithAsts = funs[0 .. asts.length];
 	zipMutPtrFirst!(FunDecl, FunDeclAst)(funsWithAsts, asts, (FunDecl* fun, ref immutable FunDeclAst funAst) {
-		overwriteMemory(&fun.body_, matchFunBodyAst!(
-			immutable FunBody,
-			(ref immutable FunBodyAst.Builtin) =>
-				immutable FunBody(immutable FunBody.Builtin()),
-			(ref immutable FunBodyAst.Extern e) =>
-				immutable FunBody(checkExternFun(ctx, castImmutable(fun), e)),
-			(ref immutable ExprAst e) =>
-				immutable FunBody(getExprFunctionBody(
-					ctx, commonTypes, structsAndAliasesDict, funsDict, usedFuns, *castImmutable(fun), e)),
-		)(funAst.body_));
+		overwriteMemory(&fun.body_, () {
+			final switch (fun.flags.specialBody) {
+				case FunFlags.SpecialBody.none:
+					if (!has(funAst.body_)) {
+						addDiag(ctx, funAst.range, immutable Diag(immutable Diag.FunMissingBody()));
+						return immutable FunBody(immutable FunBody.Bogus());
+					} else
+						return immutable FunBody(getExprFunctionBody(
+							ctx,
+							commonTypes,
+							structsAndAliasesDict,
+							funsDict,
+							usedFuns,
+							*castImmutable(fun),
+							force(funAst.body_)));
+				case FunFlags.SpecialBody.builtin:
+					if (has(funAst.body_))
+						todo!void("diag: builtin fun can't have body");
+					return immutable FunBody(immutable FunBody.Builtin());
+				case FunFlags.SpecialBody.extern_:
+					if (has(funAst.body_))
+						todo!void("diag: builtin fun can't have body");
+					return immutable FunBody(checkExternOrGlobalBody(
+						ctx,
+						castImmutable(fun),
+						getExternTypeArgs(funAst, FunModifierAst.SpecialFlags.extern_),
+						false));
+				case FunFlags.SpecialBody.global:
+					return immutable FunBody(checkExternOrGlobalBody(
+						ctx,
+						castImmutable(fun),
+						getExternTypeArgs(funAst, FunModifierAst.SpecialFlags.global),
+						true));
+			}
+		}());
 	});
 	foreach (immutable size_t i, ref immutable ImportOrExportFile f; fileImports) {
 		FunDecl* fun = &funs[asts.length + i];
@@ -769,6 +839,8 @@ immutable(FunsAndDict) checkFuns(
 
 	immutable Test[] tests = map!(Test, TestAst)(ctx.alloc, testAsts, (scope ref immutable TestAst ast) {
 		immutable Type voidType = immutable Type(commonTypes.void_);
+		if (!has(ast.body_))
+			todo!void("diag: test needs body");
 		return immutable Test(checkFunctionBody(
 			ctx,
 			structsAndAliasesDict,
@@ -780,7 +852,7 @@ immutable(FunsAndDict) checkFuns(
 			emptyArr!Param,
 			emptyArr!(SpecInst*),
 			FunFlags.unsafeSummon,
-			ast.body_));
+			force(ast.body_)));
 	});
 
 	fullIndexDictZipPtrs!(ModuleLocalFunIndex, FunDecl, bool)(
@@ -798,6 +870,13 @@ immutable(FunsAndDict) checkFuns(
 		});
 
 	return immutable FunsAndDict(castImmutable(funs), tests, funsDict);
+}
+
+immutable(TypeAst[]) getExternTypeArgs(scope ref immutable FunDeclAst a, immutable FunModifierAst.SpecialFlags flags) {
+	foreach (ref immutable FunModifierAst modifier; a.modifiers)
+		if (modifier.specialFlags == flags)
+			return modifier.typeArgs;
+	return unreachable!(immutable TypeAst[]);
 }
 
 immutable(FunBody) getFileImportFunctionBody(
@@ -893,10 +972,11 @@ immutable(Type) typeForFileImport(
 	}
 }
 
-immutable(FunBody.Extern) checkExternFun(
+immutable(FunBody.Extern) checkExternOrGlobalBody(
 	ref CheckCtx ctx,
 	immutable FunDecl* fun,
-	ref immutable FunBodyAst.Extern ast,
+	immutable TypeAst[] typeArgs,
+	immutable bool isGlobal,
 ) {
 	immutable Linkage funLinkage = Linkage.extern_;
 
@@ -927,14 +1007,23 @@ immutable(FunBody.Extern) checkExternFun(
 				immutable Diag.ExternFunForbidden(fun, Diag.ExternFunForbidden.Reason.variadic)));
 		});
 
-	if (ast.isGlobal && arityIsNonZero(arity(*fun)))
+	if (isGlobal && arityIsNonZero(arity(*fun)))
 		todo!void("'global' fun has parameters");
 
-	return immutable FunBody.Extern(ast.isGlobal, ast.libraryName);
-}
-
-immutable(FunFlags) flagsFromAst(immutable FunDeclAstFlags a) {
-	return immutable FunFlags(a.noDoc, a.noCtx, a.summon, a.unsafe, a.trusted, false, false, false);
+	immutable Opt!Sym libraryName = typeArgs.length != 1 ? none!Sym : matchTypeAst!(
+		immutable Opt!Sym,
+		(immutable TypeAst.Dict) =>
+			none!Sym,
+		(immutable TypeAst.Fun) =>
+			none!Sym,
+		(immutable TypeAst.InstStruct i) =>
+			empty(i.typeArgs) ? some(i.name.name) : none!Sym,
+		(immutable TypeAst.Suffix) =>
+			none!Sym,
+	)(only(typeArgs));
+	if (!has(libraryName))
+		todo!void("diag: need library name");
+	return immutable FunBody.Extern(isGlobal, has(libraryName) ? force(libraryName) : shortSym("bogus"));
 }
 
 immutable(SpecsDict) buildSpecsDict(ref CheckCtx ctx, immutable SpecDecl[] specs) {

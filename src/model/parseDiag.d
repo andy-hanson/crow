@@ -19,7 +19,6 @@ struct ParseDiag {
 		enum Kind {
 			afterMut,
 			blockCommentEnd,
-			bodyKeyword,
 			closeInterpolated,
 			closingBracket,
 			closingParen,

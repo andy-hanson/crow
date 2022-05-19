@@ -943,26 +943,31 @@ immutable(bool) isExtern(ref immutable FunBody a) {
 struct FunFlags {
 	@safe @nogc pure nothrow:
 
-	immutable bool noDoc;
 	immutable bool noCtx;
+	immutable bool noDoc;
 	immutable bool summon;
-	immutable bool unsafe;
-	immutable bool trusted;
-	immutable bool generated;
+	enum Safety : ubyte { safe, unsafe, trusted }
+	immutable Safety safety;
 	immutable bool preferred;
 	immutable bool okIfUnused;
+	// generated functions like record field getters are also builtins
+	enum SpecialBody : ubyte { none, builtin, extern_, global }
+	immutable SpecialBody specialBody;
 
 	immutable(FunFlags) withOkIfUnused() immutable {
-		return immutable FunFlags(noDoc, noCtx, summon, unsafe, trusted, generated, preferred, true);
+		return immutable FunFlags(noDoc, noCtx, summon, safety, preferred, true, specialBody);
 	}
 
-	static immutable FunFlags none = immutable FunFlags(false, false, false, false, false, false, false, false);
-	static immutable FunFlags generatedNoCtx = immutable FunFlags(true, true, false, false, false, true, false, false);
+	static immutable FunFlags none =
+		immutable FunFlags(false, false, false, Safety.safe, false, false, SpecialBody.none);
+	static immutable FunFlags generatedNoCtx =
+		immutable FunFlags(true, true, false, Safety.safe, false, true, SpecialBody.builtin);
 	static immutable FunFlags generatedPreferred =
-		immutable FunFlags(true, false, false, false, false, true, true, false);
-	static immutable FunFlags unsafeSummon = immutable FunFlags(false, false, true, true, false, false, false, false);
+		immutable FunFlags(false, true, false, Safety.safe, true, true, SpecialBody.builtin);
+	static immutable FunFlags unsafeSummon =
+		immutable FunFlags(false, false, true, Safety.unsafe, false, false, SpecialBody.none);
 }
-static assert(FunFlags.sizeof == 8);
+static assert(FunFlags.sizeof == 7);
 
 struct FunDecl {
 	@safe @nogc pure nothrow:
@@ -1032,10 +1037,7 @@ immutable(bool) summon(ref immutable FunDecl a) {
 	return a.flags.summon;
 }
 immutable(bool) unsafe(ref immutable FunDecl a) {
-	return a.flags.unsafe;
-}
-immutable(bool) trusted(ref immutable FunDecl a) {
-	return a.flags.trusted;
+	return a.flags.safety == FunFlags.Safety.unsafe;
 }
 immutable(bool) okIfUnused(ref immutable FunDecl a) {
 	return a.flags.okIfUnused;

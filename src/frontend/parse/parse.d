@@ -4,10 +4,10 @@ module frontend.parse.parse;
 
 import frontend.parse.ast :
 	bogusTypeAst,
+	ExprAst,
 	FileAst,
-	FunBodyAst,
 	FunDeclAst,
-	FunDeclAstFlags,
+	FunModifierAst,
 	ImportOrExportAst,
 	ImportOrExportAstKind,
 	ImportsOrExportsAst,
@@ -20,7 +20,6 @@ import frontend.parse.ast :
 	SpecBodyAst,
 	SpecDeclAst,
 	SpecSigAst,
-	SpecUseAst,
 	StructAliasAst,
 	StructDeclAst,
 	TestAst,
@@ -33,7 +32,6 @@ import frontend.parse.lexer :
 	allSymbols,
 	createLexer,
 	curPos,
-	getCurNameAndRange,
 	getCurSym,
 	getPeekToken,
 	Lexer,
@@ -508,145 +506,9 @@ immutable(StructDeclAst.Body.Union.Member[]) parseUnionMembers(scope ref Lexer l
 	return finishArr(lexer.alloc, res);
 }
 
-struct SpecUsesAndSigFlagsAndKwBody {
-	immutable SpecUseAst[] specUses;
-	immutable FunDeclAstFlags flags;
-	immutable Opt!FunBodyAst body_; // none for 'builtin' or 'extern'
-}
-
-immutable(SpecUsesAndSigFlagsAndKwBody) emptySpecUsesAndSigFlagsAndKwBody =
-	immutable SpecUsesAndSigFlagsAndKwBody(
-		[],
-		immutable FunDeclAstFlags(),
-		none!FunBodyAst);
-
-immutable(FunBodyAst.Extern) takeExternName(scope ref Lexer lexer, immutable bool isGlobal) {
-	immutable Sym name = () {
-		if (takeOrAddDiagExpectedOperator(lexer, Operator.less, ParseDiag.Expected.Kind.less)) {
-			immutable Sym res = takeName(lexer);
-			takeTypeArgsEnd(lexer);
-			return res;
-		} else
-			return shortSym("bogus");
-	}();
-	return immutable FunBodyAst.Extern(isGlobal, name);
-}
-
-immutable(SpecUsesAndSigFlagsAndKwBody) parseNextSpec(
-	scope ref Lexer lexer,
-	ref ArrBuilder!SpecUseAst specUses,
-	immutable FunDeclAstFlags flags,
-	immutable bool builtin,
-	immutable Opt!(FunBodyAst.Extern) extern_,
-	scope immutable(bool) delegate() @safe @nogc pure nothrow canTakeNext,
-) {
-	immutable Pos start = curPos(lexer);
-	immutable Token token = nextToken(lexer);
-
-	scope immutable(SpecUsesAndSigFlagsAndKwBody) setExtern(immutable bool isGlobal) {
-		if (has(extern_))
-			todo!void("duplicate");
-		immutable Opt!(FunBodyAst.Extern) extern2 = some(takeExternName(lexer, isGlobal));
-		return nextSpecOrStop(lexer, specUses, flags, builtin, extern2, canTakeNext);
-	}
-
-	switch (token) {
-		case Token.noCtx:
-			if (flags.noCtx) todo!void("duplicate");
-			return nextSpecOrStop(lexer, specUses, flags.withNoCtx(), builtin, extern_, canTakeNext);
-		case Token.noDoc:
-			if (flags.noDoc) todo!void("duplicate");
-			return nextSpecOrStop(lexer, specUses, flags.withNoDoc(), builtin, extern_, canTakeNext);
-		case Token.summon:
-			if (flags.summon) todo!void("duplicate");
-			return nextSpecOrStop(lexer, specUses, flags.withSummon(), builtin, extern_, canTakeNext);
-		case Token.unsafe:
-			if (flags.unsafe) todo!void("duplicate");
-			return nextSpecOrStop(lexer, specUses, flags.withUnsafe(), builtin, extern_, canTakeNext);
-		case Token.trusted:
-			if (flags.trusted) todo!void("duplicate");
-			return nextSpecOrStop(lexer, specUses, flags.withTrusted(), builtin, extern_, canTakeNext);
-		case Token.builtin:
-			if (builtin) todo!void("duplicate");
-			return nextSpecOrStop(lexer, specUses, flags, true, extern_, canTakeNext);
-		case Token.extern_:
-			return setExtern(false);
-		case Token.global:
-			return setExtern(true);
-		case Token.name:
-			immutable NameAndRange name = getCurNameAndRange(lexer, start);
-			immutable TypeAst[] typeArgs = tryParseTypeArgsBracketed(lexer);
-			add(lexer.alloc, specUses, immutable SpecUseAst(name, small(typeArgs)));
-			return nextSpecOrStop(lexer, specUses, flags, builtin, extern_, canTakeNext);
-		default:
-			addDiagUnexpectedCurToken(lexer, start, token);
-			return nextSpecOrStop(lexer, specUses, flags, builtin, extern_, canTakeNext);
-	}
-}
-
-immutable(SpecUsesAndSigFlagsAndKwBody) nextSpecOrStop(
-	scope ref Lexer lexer,
-	ref ArrBuilder!SpecUseAst specUses,
-	immutable FunDeclAstFlags flags,
-	immutable bool builtin,
-	immutable Opt!(FunBodyAst.Extern) extern_,
-	scope immutable(bool) delegate() @safe @nogc pure nothrow canTakeNext,
-) {
-	if (canTakeNext())
-		return parseNextSpec(lexer, specUses, flags, builtin, extern_, canTakeNext);
-	else {
-		if (flags.unsafe && flags.trusted)
-			todo!void("'unsafe trusted' is redundant");
-		if (builtin && flags.trusted)
-			todo!void("'builtin trusted' is silly as builtin fun has no body");
-		if (has(extern_) && flags.trusted)
-			todo!void("'extern trusted' is silly as extern fun has no body");
-
-		//TODO: assert 'builtin' and 'extern' and 'extern-global' can't be set together.
-		//Also, 'extern-global' should always be 'unsafe noctx'
-		immutable Opt!FunBodyAst body_ = builtin
-			? some(immutable FunBodyAst(immutable FunBodyAst.Builtin()))
-			: has(extern_)
-			? some(immutable FunBodyAst(extern_.force))
-			: none!FunBodyAst;
-		return SpecUsesAndSigFlagsAndKwBody(finishArr(lexer.alloc, specUses), flags, body_);
-	}
-}
-
-// TODO: handle 'noctx' and friends too! (share code with parseSpecUsesAndSigFlagsAndKwBody)
-immutable(SpecUsesAndSigFlagsAndKwBody) parseIndentedSpecUses(scope ref Lexer lexer) {
-	if (takeIndentOrDiagTopLevel(lexer)) {
-		ArrBuilder!SpecUseAst builder;
-		return parseNextSpec(
-			lexer,
-			builder,
-			immutable FunDeclAstFlags(),
-			false,
-			none!(FunBodyAst.Extern),
-			() => takeNewlineOrSingleDedent(lexer) == NewlineOrDedent.newline);
-	} else
-		return immutable SpecUsesAndSigFlagsAndKwBody(
-			emptyArr!SpecUseAst,
-			immutable FunDeclAstFlags(),
-			none!FunBodyAst);
-}
-
-immutable(SpecUsesAndSigFlagsAndKwBody) parseSpecUsesAndSigFlagsAndKwBody(scope ref Lexer lexer) {
-	// Unlike indented specs, we check for a separator on first spec, so use nextSpecOrStop instead of parseNextSpec
-	ArrBuilder!SpecUseAst builder;
-	return nextSpecOrStop(
-		lexer,
-		builder,
-		immutable FunDeclAstFlags(),
-		false,
-		none!(FunBodyAst.Extern),
-		() => !peekToken(lexer, Token.newline) && !peekToken(lexer, Token.EOF));
-}
-
-//TODO:RENAME
-struct FunDeclStuff {
-	immutable SpecUsesAndSigFlagsAndKwBody extra;
-	immutable FunBodyAst body_;
+struct FunModifiersAndBody {
+	immutable FunModifierAst[] modifiers;
+	immutable Opt!ExprAst body_;
 }
 
 immutable(FunDeclAst) parseFun(
@@ -658,27 +520,23 @@ immutable(FunDeclAst) parseFun(
 	immutable NameAndRange[] typeParams,
 ) {
 	immutable SigAstAndMaybeDedent sig = parseSigAfterName(lexer);
-	immutable FunDeclStuff stuff = () {
+	immutable FunModifiersAndBody modAndBod = () @safe {
 		if (has(sig.dedents)) {
 			// Started at indent of 0
 			verify(force(sig.dedents) == 0);
-			immutable SpecUsesAndSigFlagsAndKwBody extra = tryTakeToken(lexer, Token.spec)
-				? parseIndentedSpecUses(lexer)
-				: emptySpecUsesAndSigFlagsAndKwBody;
-			immutable FunBodyAst body_ = has(extra.body_) ? force(extra.body_) : () {
-				takeOrAddDiagExpectedToken(lexer, Token.body, ParseDiag.Expected.Kind.bodyKeyword);
-				return immutable FunBodyAst(parseFunExprBody(lexer));
-			}();
-			return immutable FunDeclStuff(extra, body_);
+			immutable FunModifierAst[] modifiers = tryTakeToken(lexer, Token.spec)
+				? parseIndentedFunModifiers(lexer.alloc, lexer)
+				: emptyArr!FunModifierAst;
+			immutable Opt!ExprAst body_ = tryTakeToken(lexer, Token.body)
+				? parseFunExprBody(lexer)
+				: none!ExprAst;
+			return immutable FunModifiersAndBody(modifiers, body_);
 		} else {
-			immutable SpecUsesAndSigFlagsAndKwBody extra = parseSpecUsesAndSigFlagsAndKwBody(lexer);
-			immutable FunBodyAst body_ = has(extra.body_)
-				? force(extra.body_)
-				: immutable FunBodyAst(parseFunExprBody(lexer));
-			return immutable FunDeclStuff(extra, body_);
+			immutable FunModifierAst[] modifiers = parseFunModifiers(lexer.alloc, lexer);
+			immutable Opt!ExprAst body_ = parseFunExprBody(lexer);
+			return immutable FunModifiersAndBody(modifiers, body_);
 		}
 	}();
-	immutable SpecUsesAndSigFlagsAndKwBody extra = stuff.extra;
 	return immutable FunDeclAst(
 		range(lexer, start),
 		docComment,
@@ -687,9 +545,70 @@ immutable(FunDeclAst) parseFun(
 		small(typeParams),
 		sig.returnType,
 		sig.params,
-		small(extra.specUses),
-		extra.flags,
-		stuff.body_);
+		small(modAndBod.modifiers),
+		modAndBod.body_);
+}
+
+//TODO: use alloc from lexer
+immutable(FunModifierAst[]) parseFunModifiers(scope ref Alloc alloc, scope ref Lexer lexer) {
+	ArrBuilder!FunModifierAst res;
+	while (!peekToken(lexer, Token.newline) && !peekToken(lexer, Token.EOF)) {
+		parseFunModifier(lexer, res);
+	}
+	return finishArr(lexer.alloc, res);
+}
+
+//TODO: use alloc from lexer
+immutable(FunModifierAst[]) parseIndentedFunModifiers(scope ref Alloc alloc, scope ref Lexer lexer) {
+	if (takeIndentOrDiagTopLevel(lexer)) {
+		ArrBuilder!FunModifierAst res;
+		while (true) {
+			parseFunModifier(lexer, res);
+			final switch (takeNewlineOrSingleDedent(lexer)) {
+				case NewlineOrDedent.newline:
+					break;
+				case NewlineOrDedent.dedent:
+					return finishArr(alloc, res);
+			}
+		}
+	} else
+		return emptyArr!FunModifierAst;
+}
+
+void parseFunModifier(scope ref Lexer lexer, scope ref ArrBuilder!FunModifierAst res) {
+	immutable Pos start = curPos(lexer);
+	immutable Token token = nextToken(lexer);
+	immutable Opt!Sym name = () {
+		switch (token) {
+			case Token.builtin:
+				return some(shortSym("builtin"));
+			case Token.extern_:
+				return some(shortSym("extern"));
+			case Token.global:
+				return some(shortSym("global"));
+			case Token.noCtx:
+				return some(shortSym("noctx"));
+			case Token.noDoc:
+				return some(shortSym("no-doc"));
+			case Token.summon:
+				return some(shortSym("summon"));
+			case Token.unsafe:
+				return some(shortSym("unsafe"));
+			case Token.trusted:
+				return some(shortSym("trusted"));
+			case Token.name:
+				return some(getCurSym(lexer));
+			default:
+				addDiagUnexpectedCurToken(lexer, start, token);
+				return none!Sym;
+		}
+	}();
+	if (has(name)) {
+		immutable TypeAst[] typeArgs = tryParseTypeArgsBracketed(lexer);
+		return add(lexer.alloc, res, immutable FunModifierAst(
+			immutable NameAndRange(start, force(name)),
+			small(typeArgs)));
+	}
 }
 
 void parseSpecOrStructOrFunOrTest(

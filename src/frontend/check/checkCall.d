@@ -499,7 +499,7 @@ immutable(Opt!(Diag.CantCall.Reason)) getCantCallReason(
 		? some(Diag.CantCall.Reason.nonNoCtx)
 		: calledFlags.summon && !callerFlags.summon
 		? some(Diag.CantCall.Reason.summon)
-		: calledFlags.unsafe && !callerFlags.trusted && !callerFlags.unsafe
+		: calledFlags.safety == FunFlags.Safety.unsafe && callerFlags.safety == FunFlags.Safety.safe
 		? some(Diag.CantCall.Reason.unsafe)
 		: calledIsVariadicNonEmpty && callerFlags.noCtx
 		? some(Diag.CantCall.Reason.variadicFromNoctx)

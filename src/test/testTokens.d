@@ -30,6 +30,7 @@ void testTokens(ref Test test) {
 		immutable Token(Token.Kind.param, immutable RangeWithinFile(31, 35)),
 		immutable Token(Token.Kind.struct_, immutable RangeWithinFile(36, 39)),
 		immutable Token(Token.Kind.struct_, immutable RangeWithinFile(40, 43)),
+		immutable Token(Token.Kind.modifier, immutable RangeWithinFile(45, 51)),
 		immutable Token(Token.Kind.literalNumber, immutable RangeWithinFile(53, 55)),
 		immutable Token(Token.Kind.fun, immutable RangeWithinFile(55, 63))]));
 

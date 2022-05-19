@@ -34,7 +34,7 @@ import util.repr :
 	reprStr,
 	reprSym;
 import util.sourceRange : Pos, rangeOfStartAndLength, rangeOfStartAndName, RangeWithinFile, reprRangeWithinFile;
-import util.sym : AllSymbols, shortSym, SpecialSym, Sym, symForSpecial, symSize;
+import util.sym : AllSymbols, shortSym, shortSymValue, SpecialSym, Sym, symForSpecial, symSize;
 import util.util : verify;
 
 @trusted immutable(T) matchImportOrExportAstKindImpure(T)(
@@ -758,11 +758,6 @@ struct ParamAst {
 	immutable TypeAst type;
 }
 
-struct SpecUseAst {
-	immutable NameAndRange spec;
-	immutable SmallArray!TypeAst typeArgs;
-}
-
 struct ParamsAst {
 	@safe @nogc pure nothrow:
 
@@ -1004,45 +999,6 @@ struct SpecDeclAst {
 	immutable SpecBodyAst body_;
 }
 
-struct FunBodyAst {
-	@safe @nogc pure nothrow:
-
-	struct Builtin {}
-	struct Extern {
-		immutable bool isGlobal;
-		immutable Sym libraryName;
-	}
-
-	private:
-	enum Kind {
-		builtin,
-		extern_,
-		exprAst,
-	}
-	immutable Kind kind;
-	union {
-		immutable Builtin builtin;
-		immutable Extern extern_;
-		immutable ExprAst exprAst;
-	}
-
-	public:
-	immutable this(immutable Builtin a) { kind = Kind.builtin; builtin = a; }
-	@trusted immutable this(immutable Extern a) { kind = Kind.extern_; extern_ = a; }
-	@trusted immutable this(immutable ExprAst a) { kind = Kind.exprAst; exprAst = a; }
-}
-
-@trusted T matchFunBodyAst(T, alias cbBuiltin, alias cbExtern, alias cbExprAst)(ref immutable FunBodyAst a) {
-	final switch (a.kind) {
-		case FunBodyAst.Kind.builtin:
-			return cbBuiltin(a.builtin);
-		case FunBodyAst.Kind.extern_:
-			return cbExtern(a.extern_);
-		case FunBodyAst.Kind.exprAst:
-			return cbExprAst(a.exprAst);
-	}
-}
-
 struct FunDeclAst {
 	immutable RangeWithinFile range;
 	immutable SafeCStr docComment;
@@ -1051,39 +1007,59 @@ struct FunDeclAst {
 	immutable SmallArray!NameAndRange typeParams;
 	immutable TypeAst returnType;
 	immutable ParamsAst params;
-	immutable SmallArray!SpecUseAst specUses;
-	immutable FunDeclAstFlags flags;
-	immutable FunBodyAst body_;
+	immutable SmallArray!FunModifierAst modifiers;
+	immutable Opt!ExprAst body_;
 }
 
-struct FunDeclAstFlags {
+struct FunModifierAst {
 	@safe @nogc pure nothrow:
 
-	immutable bool noCtx;
-	immutable bool noDoc;
-	immutable bool summon;
-	immutable bool trusted;
-	immutable bool unsafe;
+	// keywords like 'extern' are changed to symbols here
+	immutable NameAndRange name;
+	immutable SmallArray!TypeAst typeArgs;
 
-	immutable(FunDeclAstFlags) withNoCtx() immutable {
-		return immutable FunDeclAstFlags(true, noDoc, summon, trusted, unsafe);
+	enum SpecialFlags : ubyte {
+		none = 0,
+		builtin = 1,
+		extern_ = 0b10,
+		global = 0b100,
+		noctx = 0b1000,
+		no_doc = 0b10000,
+		summon = 0b100000,
+		trusted = 0b1000000,
+		unsafe = 0b10000000
 	}
-	immutable(FunDeclAstFlags) withNoDoc() immutable {
-		return immutable FunDeclAstFlags(noCtx, true, summon, trusted, unsafe);
+
+	immutable(bool) isSpecial() scope immutable {
+		return specialFlags() != SpecialFlags.none;
 	}
-	immutable(FunDeclAstFlags) withSummon() immutable {
-		return immutable FunDeclAstFlags(noCtx, noDoc, true, trusted, unsafe);
-	}
-	immutable(FunDeclAstFlags) withTrusted() immutable {
-		return immutable FunDeclAstFlags(noCtx, noDoc, summon, true, unsafe);
-	}
-	immutable(FunDeclAstFlags) withUnsafe() immutable {
-		return immutable FunDeclAstFlags(noCtx, noDoc, summon, trusted, true);
+
+	immutable(SpecialFlags) specialFlags() scope immutable {
+		switch (name.name.value) {
+			case shortSymValue("builtin"):
+				return SpecialFlags.builtin;
+			case shortSymValue("extern"):
+				return SpecialFlags.extern_;
+			case shortSymValue("global"):
+				return SpecialFlags.global;
+			case shortSymValue("noctx"):
+				return SpecialFlags.noctx;
+			case shortSymValue("no-doc"):
+				return SpecialFlags.no_doc;
+			case shortSymValue("summon"):
+				return SpecialFlags.summon;
+			case shortSymValue("trusted"):
+				return SpecialFlags.trusted;
+			case shortSymValue("unsafe"):
+				return SpecialFlags.unsafe;
+			default:
+				return SpecialFlags.none;
+		}
 	}
 }
 
 struct TestAst {
-	immutable ExprAst body_;
+	immutable Opt!ExprAst body_;
 }
 
 struct ImportOrExportAst {
@@ -1419,20 +1395,11 @@ immutable(Repr) reprFunDeclAst(ref Alloc alloc, ref immutable FunDeclAst a) {
 	maybeAddTypeParams(alloc, fields, a.typeParams);
 	add(alloc, fields, nameAndRepr("return", reprTypeAst(alloc, a.returnType)));
 	add(alloc, fields, nameAndRepr("params", reprParamsAst(alloc, a.params)));
-	if (!empty(a.specUses))
-		add(alloc, fields, nameAndRepr("spec-uses", reprArr(alloc, a.specUses, (ref immutable SpecUseAst s) =>
-			reprSpecUseAst(alloc, s))));
-	if (a.flags.noDoc)
-		add(alloc, fields, nameAndRepr("nodoc", reprBool(true)));
-	if (a.flags.noCtx)
-		add(alloc, fields, nameAndRepr("noctx", reprBool(true)));
-	if (a.flags.summon)
-		add(alloc, fields, nameAndRepr("summon", reprBool(true)));
-	if (a.flags.unsafe)
-		add(alloc, fields, nameAndRepr("unsafe", reprBool(true)));
-	if (a.flags.trusted)
-		add(alloc, fields, nameAndRepr("trusted", reprBool(true)));
-	add(alloc, fields, nameAndRepr("body", reprFunBodyAst(alloc, a.body_)));
+	if (!empty(a.modifiers))
+		add(alloc, fields, nameAndRepr("modifiers", reprArr(alloc, a.modifiers, (ref immutable FunModifierAst s) =>
+			reprFunModifierAst(alloc, s))));
+	if (has(a.body_))
+		add(alloc, fields, nameAndRepr("body", reprExprAst(alloc, force(a.body_))));
 	return reprNamedRecord("fun-decl", finishArr(alloc, fields));
 }
 
@@ -1446,9 +1413,9 @@ immutable(Repr) reprParamsAst(ref Alloc alloc, scope immutable ParamsAst a) {
 	)(a);
 }
 
-immutable(Repr) reprSpecUseAst(ref Alloc alloc, ref immutable SpecUseAst a) {
-	return reprRecord(alloc, "spec-use", [
-		reprNameAndRange(alloc, a.spec),
+immutable(Repr) reprFunModifierAst(ref Alloc alloc, scope immutable FunModifierAst a) {
+	return reprRecord(alloc, "modifier", [
+		reprNameAndRange(alloc, a.name),
 		reprArr(alloc, a.typeArgs, (ref immutable TypeAst it) =>
 			reprTypeAst(alloc, it))]);
 }
@@ -1503,18 +1470,6 @@ immutable(Repr) reprParamAst(ref Alloc alloc, ref immutable ParamAst a) {
 		reprOpt(alloc, a.name, (ref immutable Sym it) =>
 			reprSym(it)),
 		reprTypeAst(alloc, a.type)]);
-}
-
-immutable(Repr) reprFunBodyAst(ref Alloc alloc, ref immutable FunBodyAst a) {
-	return matchFunBodyAst!(
-		immutable Repr,
-		(ref immutable FunBodyAst.Builtin) =>
-			reprRecord("builtin"),
-		(ref immutable FunBodyAst.Extern x) =>
-			reprRecord(alloc, "extern", [reprBool(x.isGlobal), reprSym(x.libraryName)]),
-		(ref immutable ExprAst e) =>
-			reprExprAst(alloc, e),
-	)(a);
 }
 
 immutable(Repr) reprExprAst(ref Alloc alloc, ref immutable ExprAst ast) {

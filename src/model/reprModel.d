@@ -14,6 +14,7 @@ import model.model :
 	flagsFunctionName,
 	FunBody,
 	FunDecl,
+	FunFlags,
 	FunInst,
 	FunKind,
 	ImportOrExport,
@@ -41,12 +42,10 @@ import model.model :
 	symOfAssertOrForbidKind,
 	symOfPurity,
 	symOfVisibility,
-	trusted,
 	Type,
 	typeArgs,
 	TypeParam,
 	typeParams,
-	unsafe,
 	VariableRef,
 	Visibility;
 import model.reprConstant : reprOfConstant;
@@ -156,21 +155,52 @@ immutable(Repr) reprFunDecl(ref Alloc alloc, scope ref Ctx ctx, ref immutable Fu
 	if (!empty(a.typeParams))
 		add(alloc, fields, nameAndRepr("typeparams", reprArr(alloc, a.typeParams, (ref immutable TypeParam it) =>
 			reprTypeParam(alloc, it))));
-	if (noCtx(a))
-		add(alloc, fields, nameAndRepr("no-ctx", reprBool(true)));
-	if (summon(a))
-		add(alloc, fields, nameAndRepr("summon", reprBool(true)));
-	if (unsafe(a))
-		add(alloc, fields, nameAndRepr("unsafe", reprBool(true)));
-	if (trusted(a))
-		add(alloc, fields, nameAndRepr("trusted", reprBool(true)));
-	if (a.flags.preferred)
-		add(alloc, fields, nameAndRepr("preferred", reprBool(true)));
+	addFunFlags(alloc, fields, a.flags);
 	if (!empty(a.specs))
 		add(alloc, fields, nameAndRepr("specs", reprArr(alloc, a.specs, (ref immutable SpecInst* it) =>
 			reprSpecInst(alloc, ctx, *it))));
 	add(alloc, fields, nameAndRepr("body", reprFunBody(alloc, ctx, a.body_)));
 	return reprNamedRecord("fun", finishArr(alloc, fields));
+}
+
+void addFunFlags(ref Alloc alloc, scope ref ArrBuilder!NameAndRepr fields, scope ref immutable FunFlags a) {
+	void addFlag(immutable string a) {
+		add(alloc, fields, nameAndRepr(a, reprBool(true)));
+	}
+
+	if (a.noCtx)
+		addFlag("no-ctx");
+	if (a.noDoc)
+		addFlag("no-doc");
+	if (a.summon)
+		addFlag("summon");
+	final switch (a.safety) {
+		case FunFlags.Safety.safe:
+			break;
+		case FunFlags.Safety.unsafe:
+			addFlag("unsafe");
+			break;
+		case FunFlags.Safety.trusted:
+			addFlag("trusted");
+			break;
+	}
+	if (a.preferred)
+		addFlag("preferred");
+	if (a.okIfUnused)
+		addFlag("ok-unused");
+	final switch (a.specialBody) {
+		case FunFlags.SpecialBody.none:
+			break;
+		case FunFlags.SpecialBody.builtin:
+			addFlag("builtin");
+			break;
+		case FunFlags.SpecialBody.extern_:
+			addFlag("extern");
+			break;
+		case FunFlags.SpecialBody.global:
+			addFlag("global");
+			break;
+	}
 }
 
 immutable(Repr) reprTypeParam(ref Alloc alloc, immutable TypeParam) {

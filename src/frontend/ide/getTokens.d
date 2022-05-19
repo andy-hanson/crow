@@ -10,8 +10,8 @@ import frontend.parse.ast :
 	ExprAst,
 	FileAst,
 	ForAst,
-	FunBodyAst,
 	FunDeclAst,
+	FunModifierAst,
 	FunPtrAst,
 	IdentifierAst,
 	IdentifierSetAst,
@@ -31,7 +31,6 @@ import frontend.parse.ast :
 	LoopWhileAst,
 	MatchAst,
 	matchExprAstKind,
-	matchFunBodyAst,
 	matchInterpolatedPart,
 	matchLiteralAst,
 	matchNameOrUnderscoreOrNone,
@@ -53,7 +52,6 @@ import frontend.parse.ast :
 	SpecBodyAst,
 	SpecDeclAst,
 	SpecSigAst,
-	SpecUseAst,
 	StructAliasAst,
 	StructDeclAst,
 	suffixRange,
@@ -398,25 +396,20 @@ void addFunTokens(
 		rangeAtName(allSymbols, a.visibility, a.range.start, a.name)));
 	addTypeParamsTokens(alloc, tokens, allSymbols, a.typeParams);
 	addSigReturnTypeAndParamsTokens(alloc, tokens, allSymbols, a.returnType, a.params);
-	foreach (ref immutable SpecUseAst specUse; a.specUses) {
-		add(alloc, tokens, immutable Token(Token.Kind.spec, rangeOfNameAndRange(specUse.spec, allSymbols)));
-		addTypeArgsTokens(alloc, tokens, allSymbols, specUse.typeArgs);
+	foreach (ref immutable FunModifierAst modifier; a.modifiers) {
+		immutable Token.Kind kind = modifier.isSpecial() ? Token.Kind.modifier : Token.Kind.spec;
+		add(alloc, tokens, immutable Token(kind, rangeOfNameAndRange(modifier.name, allSymbols)));
+		addTypeArgsTokens(alloc, tokens, allSymbols, modifier.typeArgs);
 	}
-	matchFunBodyAst!(
-		void,
-		(ref immutable FunBodyAst.Builtin) {},
-		(ref immutable FunBodyAst.Extern) {},
-		(ref immutable ExprAst it) {
-			addExprTokens(alloc, tokens, allSymbols, it);
-		},
-	)(a.body_);
+	if (has(a.body_))
+		addExprTokens(alloc, tokens, allSymbols, force(a.body_));
 }
 
 void addExprTokens(
 	ref Alloc alloc,
 	ref ArrBuilder!Token tokens,
 	ref const AllSymbols allSymbols,
-	ref immutable ExprAst a,
+	scope ref immutable ExprAst a,
 ) {
 	matchExprAstKind!(
 		void,

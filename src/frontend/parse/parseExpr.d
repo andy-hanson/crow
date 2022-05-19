@@ -54,6 +54,7 @@ import frontend.parse.lexer :
 	Lexer,
 	lookaheadWillTakeEqualsOrThen,
 	lookaheadWillTakeArrow,
+	NewlineOrIndent,
 	nextToken,
 	peekToken,
 	peekTokenExpression,
@@ -61,13 +62,13 @@ import frontend.parse.lexer :
 	range,
 	skipUntilNewlineNoDiag,
 	StringPart,
-	takeIndentOrDiagTopLevel,
 	takeIndentOrFailGeneric,
 	takeName,
 	takeNameAndRange,
 	takeNameOrOperator,
 	takeNameOrUnderscore,
 	takeNameOrUnderscoreOrNone,
+	takeNewlineOrIndent_topLevel,
 	takeNewlineOrDedentAmount,
 	takeOptNameAndRange,
 	takeOrAddDiagExpectedToken,
@@ -89,14 +90,15 @@ import util.sourceRange : Pos, RangeWithinFile;
 import util.sym : isSymOperator, Operator, operatorForSym, prependSet, shortSym, Sym, symForOperator;
 import util.util : max, todo, unreachable, verify;
 
-immutable(ExprAst) parseFunExprBody(scope ref Lexer lexer) {
-	immutable Pos start = curPos(lexer);
-	if (takeIndentOrDiagTopLevel(lexer)) {
-		immutable ExprAndDedent ed = parseStatementsAndExtraDedents(lexer, 1);
-		verify(ed.dedents == 0); // Since we started at the root, can't dedent more
-		return ed.expr;
-	} else
-		return bogusExpr(range(lexer, start));
+immutable(Opt!ExprAst) parseFunExprBody(scope ref Lexer lexer) {
+	final switch (takeNewlineOrIndent_topLevel(lexer)) {
+		case NewlineOrIndent.newline:
+			return none!ExprAst;
+		case NewlineOrIndent.indent:			
+			immutable ExprAndDedent ed = parseStatementsAndExtraDedents(lexer, 1);
+			verify(ed.dedents == 0); // Since we started at the root, can't dedent more
+			return some(ed.expr);
+	}
 }
 
 private:

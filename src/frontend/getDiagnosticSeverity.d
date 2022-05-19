@@ -46,6 +46,10 @@ immutable(DiagSeverity) getDiagnosticSeverity(ref immutable Diag a) {
 			DiagSeverity.checkError,
 		(ref immutable Diag.ExternUnion) =>
 			DiagSeverity.checkError,
+		(ref immutable Diag.FunMissingBody) =>
+			DiagSeverity.checkError,
+		(ref immutable Diag.FunModifierTypeArgs) =>
+			DiagSeverity.checkError,
 		(ref immutable Diag.IfNeedsOpt) =>
 			DiagSeverity.checkError,
 		(ref immutable Diag.ImportRefersToNothing) =>
