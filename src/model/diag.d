@@ -158,7 +158,7 @@ struct Diag {
 		immutable Opt!Type expectedType;
 	}
 	struct ExternFunForbidden {
-		enum Reason { hasSpecs, hasTypeParams, needsNoCtx, variadic }
+		enum Reason { hasSpecs, hasTypeParams, missingLibraryName, variadic }
 		immutable FunDecl* fun;
 		immutable Reason reason;
 	}
@@ -170,6 +170,21 @@ struct Diag {
 	struct FunMissingBody {}
 	struct FunModifierTypeArgs {
 		immutable Sym modifier;
+	}
+	struct FunModifierWarning {
+		enum Kind {
+			externNoctx,
+			externUnsafe,
+			globalNoctx,
+			globalTrusted,
+			globalUnsafe,
+			trustedUnsafe,
+		}
+		immutable Kind kind;
+	}
+	struct FunMultipleBodyModifiers {
+		immutable Sym modifier0;
+		immutable Sym modifier1;
 	}
 	struct IfNeedsOpt {
 		immutable Type actualType;
@@ -354,6 +369,8 @@ struct Diag {
 		externUnion,
 		funMissingBody,
 		funModifierTypeArgs,
+		funModifierWarning,
+		funMultipleBodyModifiers,
 		ifNeedsOpt,
 		importRefersToNothing,
 		lambdaCantInferParamTypes,
@@ -424,6 +441,8 @@ struct Diag {
 		immutable ExternUnion externUnion;
 		immutable FunMissingBody funMissingBody;
 		immutable FunModifierTypeArgs funModifierTypeArgs;
+		immutable FunModifierWarning funModifierWarning;
+		immutable FunMultipleBodyModifiers funMultipleBodyModifiers;
 		immutable IfNeedsOpt ifNeedsOpt;
 		immutable ImportRefersToNothing importRefersToNothing;
 		immutable LambdaCantInferParamTypes lambdaCantInferParamTypes;
@@ -518,6 +537,10 @@ struct Diag {
 	}
 	immutable this(immutable FunModifierTypeArgs a) {
 		kind = Kind.funModifierTypeArgs; funModifierTypeArgs = a;
+	}
+	immutable this(immutable FunModifierWarning a) { kind = Kind.funModifierWarning; funModifierWarning = a; }
+	immutable this(immutable FunMultipleBodyModifiers a) {
+		kind = Kind.funMultipleBodyModifiers; funMultipleBodyModifiers = a;
 	}
 	@trusted immutable this(immutable IfNeedsOpt a) { kind = Kind.ifNeedsOpt; ifNeedsOpt = a; }
 	immutable this(immutable ImportRefersToNothing a) { kind = Kind.importRefersToNothing; importRefersToNothing = a; }
@@ -673,6 +696,10 @@ struct Diag {
 	scope immutable(Out) delegate(
 		ref immutable Diag.FunModifierTypeArgs
 	) @safe @nogc pure nothrow cbFunModifierTypeArgs,
+	scope immutable(Out) delegate(ref immutable Diag.FunModifierWarning) @safe @nogc pure nothrow cbFunModifierWarning,
+	scope immutable(Out) delegate(
+		ref immutable Diag.FunMultipleBodyModifiers
+	) @safe @nogc pure nothrow cbFunMultipleBodyModifiers,
 	scope immutable(Out) delegate(ref immutable Diag.IfNeedsOpt) @safe @nogc pure nothrow cbIfNeedsOpt,
 	scope immutable(Out) delegate(
 		ref immutable Diag.ImportRefersToNothing
@@ -830,6 +857,10 @@ struct Diag {
 			return cbFunMissingBody(a.funMissingBody);
 		case Diag.Kind.funModifierTypeArgs:
 			return cbFunModifierTypeArgs(a.funModifierTypeArgs);
+		case Diag.Kind.funModifierWarning:
+			return cbFunModifierWarning(a.funModifierWarning);
+		case Diag.Kind.funMultipleBodyModifiers:
+			return cbFunMultipleBodyModifiers(a.funMultipleBodyModifiers);
 		case Diag.Kind.ifNeedsOpt:
 			return cbIfNeedsOpt(a.ifNeedsOpt);
 		case Diag.Kind.importRefersToNothing:

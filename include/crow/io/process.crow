@@ -213,7 +213,7 @@ shell-exec str(command str) trusted summon
 
 	exit-code, stdout-builder.move-to-arr.str, stderr-builder.move-to-arr.str
 
-.make-pipes pipes() summon
+.make-pipes pipes() summon unsafe
 	res pipes = 0, 0
 	check-posix-error: res pipe
 	res

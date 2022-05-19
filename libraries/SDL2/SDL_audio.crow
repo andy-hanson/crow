@@ -33,7 +33,7 @@ SDL_AudioSpec record extern by-val mut
 new SDL_AudioSpec() noctx unsafe
 	0, 0, 0, 0, 0, 0, 0, null, null
 
-SDL_GetAudioDeviceName c-str(index c-int, iscapture c-int) extern<SDL2> noctx summon unsafe
+SDL_GetAudioDeviceName c-str(index c-int, iscapture c-int) extern<SDL2> summon
 
 SDL_OpenAudioDevice SDL_AudioDeviceID
 	device c-str
@@ -43,10 +43,8 @@ SDL_OpenAudioDevice SDL_AudioDeviceID
 	allowed_changes c-int
 spec
 	extern<SDL2>
-	noctx
 	summon
-	unsafe
 
-SDL_PauseAudioDevice void(dev SDL_AudioDeviceID, pause_on c-int) extern<SDL2> noctx summon unsafe
+SDL_PauseAudioDevice void(dev SDL_AudioDeviceID, pause_on c-int) extern<SDL2> summon
 
-SDL_CloseAudioDevice void(dev SDL_AudioDeviceID) extern<SDL2> noctx summon unsafe
+SDL_CloseAudioDevice void(dev SDL_AudioDeviceID) extern<SDL2> summon

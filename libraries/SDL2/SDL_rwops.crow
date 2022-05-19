@@ -6,7 +6,6 @@ import
 
 SDL_RWops extern-ptr
 
-SDL_RWFromFile SDL_RWops(file c-str, mode c-str) extern<SDL2> noctx summon unsafe
-
-SDL_RWFromMem SDL_RWops(mem any-mut-ptr, size c-int) extern<SDL2> noctx summon unsafe
-SDL_RWFromConstMem SDL_RWops(mem any-const-ptr, size c-int) extern<SDL2> noctx summon unsafe
+SDL_RWFromFile SDL_RWops(file c-str, mode c-str) extern<SDL2> summon
+SDL_RWFromMem SDL_RWops(mem any-mut-ptr, size c-int) extern<SDL2> summon
+SDL_RWFromConstMem SDL_RWops(mem any-const-ptr, size c-int) extern<SDL2> summon

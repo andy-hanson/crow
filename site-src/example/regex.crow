@@ -1,6 +1,5 @@
 import
 	crow/cell: as-const-ptr, as-mut-ptr, cell, new
-	crow/col/arr-util: each
 	crow/col/mut-arr
 	crow/c-types: c-int, size_t, u-long
 	crow/io/print: print
@@ -15,7 +14,7 @@ main fut nat(_ str[]) summon
 test-regex void(source str, candidates str[]) summon trusted
 	match source parse
 	as ok regex
-		candidates each x =>
+		for x : candidates
 			print: "{source} matches {x}? {regex matches x}"
 		regex free
 	as err e
@@ -48,7 +47,7 @@ matches bool(a regex, candidate str) trusted
 	else
 		buf char8 mut[] = 1000 fill-mut-arr "\0"
 		_ = err regerror a.wrapped.as-const-ptr, buf.begin-ptr, buf.size
-		throw buf.begin-ptr.as-const to-str
+		throw buf.begin-ptr.as-const
 
 regex_t record mut by-val extern
 	buffer void mut*
@@ -92,11 +91,9 @@ regcomp reg_errcode_t
 	pattern c-str
 	cflags c-int
 spec
-	unsafe
-	noctx
 	extern<c>
 
-regfree void(preg regex_t mut*) unsafe noctx extern<c>
+regfree void(preg regex_t mut*) extern<c>
 
 regexec reg_errcode_t
 	preg regex_t*
@@ -105,8 +102,6 @@ regexec reg_errcode_t
 	pmatch regmatch_t mut*
 	eflags c-int
 spec
-	unsafe
-	noctx
 	extern<c>
 
 regerror size_t
@@ -115,6 +110,4 @@ regerror size_t
 	errbuff char8 mut*
 	errbuf_size size_t
 spec
-	unsafe
-	noctx
 	extern<c>

@@ -10,7 +10,7 @@ import
 	./SDL_rect: SDL_Rect
 	./SDL_rwops: SDL_RWFromFile, SDL_RWops
 
-SDL_FreeSurface void(surface SDL_Surface) extern<SDL2> noctx summon unsafe
+SDL_FreeSurface void(surface SDL_Surface) extern<SDL2> summon
 
 SDL_Surface record mut by-ref extern
 	surface-flags nat32
@@ -27,7 +27,7 @@ SDL_Surface record mut by-ref extern
 	map any-mut-ptr
 	refcount c-int
 
-SDL_LoadBMP_RW SDL_Surface(src SDL_RWops, freesrc c-int) extern<SDL2> noctx summon unsafe
+SDL_LoadBMP_RW SDL_Surface(src SDL_RWops, freesrc c-int) extern<SDL2> summon
 
 SDL_LoadBMP SDL_Surface(file str) summon unsafe
 	file.to-c-str SDL_RWFromFile "rb" SDL_LoadBMP_RW 1
@@ -38,6 +38,4 @@ SDL_ConvertSurfaceFormat SDL_Surface
 	flags_ nat32
 spec
 	extern<SDL2>
-	noctx
 	summon
-	unsafe

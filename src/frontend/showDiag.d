@@ -638,8 +638,8 @@ void writeDiag(
 						return " can't have specs";
 					case Diag.ExternFunForbidden.Reason.hasTypeParams:
 						return " can't have type parameters";
-					case Diag.ExternFunForbidden.Reason.needsNoCtx:
-						return " must be 'noctx'";
+					case Diag.ExternFunForbidden.Reason.missingLibraryName:
+						return " is missing the library name";
 					case Diag.ExternFunForbidden.Reason.variadic:
 						return " can't be variadic";
 				}
@@ -663,6 +663,30 @@ void writeDiag(
 			writeStatic(writer, "function modifier ");
 			writeName(writer, allSymbols, d.modifier);
 			writeStatic(writer, " can not have type arguments");
+		},
+		(ref immutable Diag.FunModifierWarning d) {
+			writeStatic(writer, () {
+				final switch (d.kind) {
+					case Diag.FunModifierWarning.Kind.externNoctx:
+						return "'noctx' is redundant for an 'extern' function";
+					case Diag.FunModifierWarning.Kind.externUnsafe:
+						return "'unsafe' is redundant for an 'extern' function";
+					case Diag.FunModifierWarning.Kind.globalNoctx:
+						return "'noctx' is redundant for a 'global'";
+					case Diag.FunModifierWarning.Kind.globalTrusted:
+						return "'global' can not be 'trusted'";
+					case Diag.FunModifierWarning.Kind.globalUnsafe:
+						return "'unsafe' is redundant for a 'global'";
+					case Diag.FunModifierWarning.Kind.trustedUnsafe:
+						return "function can't be both 'unsafe' and 'trusted'";
+				}
+			}());
+		},
+		(ref immutable Diag.FunMultipleBodyModifiers d) {
+			writeStatic(writer, "function can't be both ");
+			writeName(writer, allSymbols, d.modifier0);
+			writeStatic(writer, " and ");
+			writeName(writer, allSymbols, d.modifier1);
 		},
 		(ref immutable Diag.IfNeedsOpt d) {
 			writeStatic(writer, "Expected an option type, but got ");

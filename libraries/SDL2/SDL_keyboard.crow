@@ -3,4 +3,4 @@ import
 	crow/number: int, nat8
 	crow/ptr: const-ptr, mut-ptr
 
-SDL_GetKeyboardState nat8*(num-keys int mut*) extern<SDL2> noctx summon
+SDL_GetKeyboardState nat8*(num-keys int mut*) extern<SDL2> summon

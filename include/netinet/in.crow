@@ -27,4 +27,4 @@ new sockaddr_in(sin_family sa_family_t, sin_port in_port_t, sin_addr in_addr) no
 new sockaddr_in() noctx
 	0, 0, (0,)
 
-htons nat16(hostshort nat16) unsafe extern<c> noctx
+htons nat16(hostshort nat16) extern<c>

@@ -83,7 +83,6 @@ import model.model :
 	Module,
 	name,
 	NameReferents,
-	noCtx,
 	okIfUnused,
 	Param,
 	Params,
@@ -645,6 +644,7 @@ struct FunFlagsAndSpecs {
 immutable(FunFlagsAndSpecs) checkFunModifiers(
 	ref CheckCtx ctx,
 	ref immutable CommonTypes commonTypes,
+	immutable RangeWithinFile range,
 	scope immutable FunModifierAst[] asts,
 	scope immutable StructsAndAliasesDict structsAndAliasesDict,
 	scope immutable SpecsDict specsDict,
@@ -689,25 +689,43 @@ immutable(FunFlagsAndSpecs) checkFunModifiers(
 			return none!(SpecInst*);
 		}
 	});
-	return immutable FunFlagsAndSpecs(checkFunFlags(ctx, allFlags), specs);
+	return immutable FunFlagsAndSpecs(checkFunFlags(ctx, range, allFlags), specs);
 }
 
-immutable(FunFlags) checkFunFlags(ref CheckCtx ctx, immutable FunModifierAst.SpecialFlags flags) {
+immutable(FunFlags) checkFunFlags(
+	ref CheckCtx ctx,
+	immutable RangeWithinFile range,
+	immutable FunModifierAst.SpecialFlags flags,
+) {
+	void warn(immutable Diag.FunModifierWarning.Kind kind) {
+		addDiag(ctx, range, immutable Diag(immutable Diag.FunModifierWarning(kind)));
+	}
 	immutable bool builtin = (flags & FunModifierAst.SpecialFlags.builtin) != 0;
 	immutable bool extern_ = (flags & FunModifierAst.SpecialFlags.extern_) != 0;
 	immutable bool global = (flags & FunModifierAst.SpecialFlags.global) != 0;
-	immutable bool noctx = (flags & FunModifierAst.SpecialFlags.noctx) != 0;
+	immutable bool explicitNoctx = (flags & FunModifierAst.SpecialFlags.noctx) != 0;
 	immutable bool noDoc = (flags & FunModifierAst.SpecialFlags.no_doc) != 0;
 	immutable bool summon = (flags & FunModifierAst.SpecialFlags.summon) != 0;
 	immutable bool trusted = (flags & FunModifierAst.SpecialFlags.trusted) != 0;
 	immutable bool unsafe = (flags & FunModifierAst.SpecialFlags.unsafe) != 0;
-	immutable FunFlags.Safety safety = unsafe
-		? FunFlags.Safety.unsafe
-		: trusted
+	immutable bool noctx = explicitNoctx || extern_ || global;
+	immutable FunFlags.Safety safety = trusted
 		? FunFlags.Safety.trusted
+		: extern_ || global || unsafe
+		? FunFlags.Safety.unsafe
 		: FunFlags.Safety.safe;
-	if (unsafe && trusted)
-		todo!void("diag: fun can't be 'unsafe' and 'trusted'");
+	if (trusted && unsafe)
+		warn(Diag.FunModifierWarning.Kind.trustedUnsafe);
+	if (extern_ && explicitNoctx)
+		warn(Diag.FunModifierWarning.Kind.externNoctx);
+	if (global && explicitNoctx)
+		warn(Diag.FunModifierWarning.Kind.globalNoctx);
+	if (extern_ && unsafe)
+		warn(Diag.FunModifierWarning.Kind.externUnsafe);
+	if (global && trusted)
+		warn(Diag.FunModifierWarning.Kind.globalTrusted);
+	if (global && unsafe)
+		warn(Diag.FunModifierWarning.Kind.globalUnsafe);
 	immutable FunFlags.SpecialBody specialBody = builtin
 		? FunFlags.SpecialBody.builtin
 		: extern_
@@ -715,8 +733,11 @@ immutable(FunFlags) checkFunFlags(ref CheckCtx ctx, immutable FunModifierAst.Spe
 		: global
 		? FunFlags.SpecialBody.global
 		: FunFlags.SpecialBody.none;
-	if (builtin + extern_ + global > 1)
-		todo!void("diag: fun can only be one of 'builtin', 'extern', 'global'");
+	if (builtin + extern_ + global > 1) {
+		immutable Sym modifier0 = builtin ? shortSym("builtin") : shortSym("extern");
+		immutable Sym modifier1 = builtin && extern_ ? shortSym("extern") : shortSym("global"); 
+		addDiag(ctx, range, immutable Diag(immutable Diag.FunMultipleBodyModifiers(modifier0, modifier1)));
+	}
 	return immutable FunFlags(noctx, noDoc, summon, safety, false, false, specialBody);
 }
 
@@ -747,6 +768,7 @@ immutable(FunsAndDict) checkFuns(
 		immutable FunFlagsAndSpecs flagsAndSpecs = checkFunModifiers(
 			ctx,
 			commonTypes,
+			funAst.range,
 			funAst.modifiers,
 			structsAndAliasesDict,
 			specsDict,
@@ -986,9 +1008,6 @@ immutable(FunBody.Extern) checkExternOrGlobalBody(
 	if (!empty(fun.specs))
 		addDiag(ctx, fun.range, immutable Diag(
 			immutable Diag.ExternFunForbidden(fun, Diag.ExternFunForbidden.Reason.hasSpecs)));
-	if (!noCtx(*fun))
-		addDiag(ctx, fun.range, immutable Diag(
-			immutable Diag.ExternFunForbidden(fun, Diag.ExternFunForbidden.Reason.needsNoCtx)));
 
 	if (!isLinkageAlwaysCompatible(funLinkage, linkageRange(fun.returnType)))
 		addDiag(ctx, fun.range, immutable Diag(
@@ -1022,7 +1041,8 @@ immutable(FunBody.Extern) checkExternOrGlobalBody(
 			none!Sym,
 	)(only(typeArgs));
 	if (!has(libraryName))
-		todo!void("diag: need library name");
+		addDiag(ctx, fun.range, immutable Diag(
+			immutable Diag.ExternFunForbidden(fun, Diag.ExternFunForbidden.Reason.missingLibraryName)));
 	return immutable FunBody.Extern(isGlobal, has(libraryName) ? force(libraryName) : shortSym("bogus"));
 }
 

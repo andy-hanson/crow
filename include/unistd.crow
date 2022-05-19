@@ -6,31 +6,31 @@ import
 	crow/private/bootstrap: char8, c-str, int32, int64, nat32
 	sys/types: off_t
 
-getcwd char8 mut*(buf char8 mut*, size size_t) unsafe extern<c> noctx summon
+getcwd char8 mut*(buf char8 mut*, size size_t) extern<c> summon
 
-readlink ssize_t(path c-str, buf char8 mut*, len size_t) unsafe summon extern<c> noctx
-symlink c-int(target c-str, linkpath c-str) unsafe summon extern<c> noctx
+readlink ssize_t(path c-str, buf char8 mut*, len size_t) extern<c> summon
+symlink c-int(target c-str, linkpath c-str) extern<c> summon
 
-close err-t(fd fd-t) summon extern<c> noctx
-lseek off_t(f fd-t, offset off_t, whence int32) summon extern<c> noctx
-read ssize_t(fd fd-t, buff any-mut-ptr, n-bytes size_t) summon extern<c> noctx
+close err-t(fd fd-t) extern<c> summon
+lseek off_t(f fd-t, offset off_t, whence int32) extern<c>
+read ssize_t(fd fd-t, buff any-mut-ptr, n-bytes size_t) extern<c> summon
 # TODO: summon
-write ssize_t(fd fd-t, buf any-const-ptr, n-bytes size_t) extern<c> noctx
+write ssize_t(fd fd-t, buf any-const-ptr, n-bytes size_t) extern<c>
 
-pipe err-t(pipes pipes) summon extern<c> noctx
+pipe err-t(pipes pipes) extern<c> summon
 
 # The headers just use int[2], but this is easier to use from crow
 pipes record mut by-ref extern
 	write-pipe mut fd-t
 	read-pipe mut fd-t
 
-__environ c-str*() unsafe global<c> noctx
+__environ c-str*() global<c>
 
-usleep c-int(micro-seconds nat32) unsafe extern<c> noctx
+usleep c-int(micro-seconds nat32) extern<c>
 
 ssize_t alias
 	int64
 
-rmdir err-t(path c-str) unsafe extern<c> noctx
+rmdir err-t(path c-str) extern<c>
 
-unlink err-t(path c-str) unsafe extern<c> noctx
+unlink err-t(path c-str) extern<c>

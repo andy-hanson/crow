@@ -19,8 +19,8 @@ SF_VIRTUAL_IO record extern by-ref mut
 	write fun-ptr3<sf_count_t, nat8*, sf_count_t, any-mut-ptr>
 	tell fun-ptr1<sf_count_t, any-mut-ptr>
 
-sf_error c-int(sndfile SNDFILE) extern<sndfile> noctx unsafe
-sf_error_number c-str(errnum c-int) extern<sndfile> noctx
+sf_error c-int(sndfile SNDFILE) extern<sndfile>
+sf_error_number c-str(errnum c-int) extern<sndfile>
 
 SF_INFO record extern by-val
 	frames sf_count_t
@@ -33,7 +33,7 @@ SF_INFO record extern by-val
 new SF_INFO() noctx
 	0, 0, 0, (), 0, 0
 
-sf_open SNDFILE(path c-str, mode SndFileMode, sfinfo SF_INFO mut*) extern<sndfile> noctx summon unsafe
+sf_open SNDFILE(path c-str, mode SndFileMode, sfinfo SF_INFO mut*) extern<sndfile> summon
 sf_open_virtual SNDFILE
 	sfvirtual SF_VIRTUAL_IO
 	mode SndFileMode
@@ -41,20 +41,18 @@ sf_open_virtual SNDFILE
 	user_data any-mut-ptr
 spec
 	extern<sndfile>
-	noctx
-	unsafe
-sf_close c-int(SNDFILE SNDFILE) extern<sndfile> noctx unsafe
+sf_close c-int(SNDFILE SNDFILE) extern<sndfile>
 
 SndFileMode enum<c-int> extern
 	SFM_READ = 0x10
 	SFM_WRITE = 0x20
 	SFM_RDWR = 0x30
 
-sf_read_short sf_count_t(sndfile SNDFILE, ptr short mut*, items sf_count_t) extern<sndfile> noctx unsafe
-sf_write_short sf_count_t(sndfile SNDFILE, ptr short*, items sf_count_t) extern<sndfile> noctx unsafe
+sf_read_short sf_count_t(sndfile SNDFILE, ptr short mut*, items sf_count_t) extern<sndfile>
+sf_write_short sf_count_t(sndfile SNDFILE, ptr short*, items sf_count_t) extern<sndfile>
 
-sf_read_float sf_count_t(sndfile SNDFILE, ptr float32 mut*, items sf_count_t) extern<sndfile> noctx unsafe
-sf_write_float sf_count_t(sndfile SNDFILE, ptr float32*, items sf_count_t) extern<sndfile> noctx unsafe
+sf_read_float sf_count_t(sndfile SNDFILE, ptr float32 mut*, items sf_count_t) extern<sndfile>
+sf_write_float sf_count_t(sndfile SNDFILE, ptr float32*, items sf_count_t) extern<sndfile>
 
 # WARN: This is not a true flags type; can only be mixed in certain ways
 SF_FORMAT flags<u-int> extern

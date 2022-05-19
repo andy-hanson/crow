@@ -13,24 +13,20 @@ SDL_CreateRenderer SDL_Renderer
 	render-flags SDL_RendererFlags
 spec
 	extern<SDL2>
-	noctx
 	summon
-	unsafe
 
 SDL_CreateTextureFromSurface SDL_Texture
 	renderer SDL_Renderer
 	surface SDL_Surface
 spec
 	extern<SDL2>
-	noctx
 	summon
-	unsafe
 
-SDL_DestroyRenderer void(renderer SDL_Renderer) extern<SDL2> noctx summon unsafe
+SDL_DestroyRenderer void(renderer SDL_Renderer) extern<SDL2> summon
 
-SDL_DestroyTexture void(texture SDL_Texture) extern<SDL2> noctx summon unsafe
+SDL_DestroyTexture void(texture SDL_Texture) extern<SDL2> summon
 
-SDL_RenderClear c-int(renderer SDL_Renderer) extern<SDL2> noctx summon unsafe
+SDL_RenderClear c-int(renderer SDL_Renderer) extern<SDL2> summon
 
 SDL_RenderCopy c-int
 	renderer SDL_Renderer
@@ -39,9 +35,7 @@ SDL_RenderCopy c-int
 	dest-rect SDL_Rect*
 spec
 	extern<SDL2>
-	noctx
 	summon
-	unsafe
 
 SDL_Renderer extern-ptr
 
@@ -51,6 +45,6 @@ SDL_RendererFlags flags<u-int> extern
 	SDL_RENDERER_PRESENTVSYNC = 4
 	SDL_RENDERER_TARGETTEXTURE = 8
 
-SDL_RenderPresent void(renderer SDL_Renderer) extern<SDL2> noctx summon unsafe
+SDL_RenderPresent void(renderer SDL_Renderer) extern<SDL2> summon
 
 SDL_Texture extern-ptr

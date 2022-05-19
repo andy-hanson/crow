@@ -6,14 +6,14 @@ import
 	crow/ptr: const-ptr, mut-ptr
 	crow/str: char8, c-str
 
-sodium_init err-t() noctx extern<sodium> unsafe
+sodium_init err-t() extern<sodium>
 
-crypto_pwhash_strbytes size_t() noctx extern<sodium>
+crypto_pwhash_strbytes size_t() extern<sodium>
 
-crypto_pwhash_opslimit_moderate size_t() noctx extern<sodium>
-crypto_pwhash_opslimit_sensitive size_t() noctx extern<sodium>
-crypto_pwhash_memlimit_moderate size_t() noctx extern<sodium>
-crypto_pwhash_memlimit_sensitive size_t() noctx extern<sodium>
+crypto_pwhash_opslimit_moderate size_t() extern<sodium>
+crypto_pwhash_opslimit_sensitive size_t() extern<sodium>
+crypto_pwhash_memlimit_moderate size_t() extern<sodium>
+crypto_pwhash_memlimit_sensitive size_t() extern<sodium>
 
 crypto_pwhash_str err-t
 	# Length should be crypto_pwhash_strbytes
@@ -23,9 +23,7 @@ crypto_pwhash_str err-t
 	opslimit u-long-long
 	memlimit size_t
 spec
-	noctx
 	extern<sodium>
-	unsafe
 
 crypto_pwhash_str_verify err-t
 	# Length should be crypto_pwhash_strbytes
@@ -33,8 +31,6 @@ crypto_pwhash_str_verify err-t
 	passwd c-str
 	passwdlen u-long-long
 spec
-	noctx
 	extern<sodium>
-	unsafe
 
-randombytes_random nat32() noctx extern<sodium> unsafe
+randombytes_random nat32() extern<sodium>

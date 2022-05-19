@@ -21,30 +21,28 @@ CRITICAL_SECTION record by-ref extern
 	n3 nat64
 	n4 nat64
 
-InitializeCriticalSection void(a CRITICAL_SECTION) noctx unsafe extern<kernel32>
+InitializeCriticalSection void(a CRITICAL_SECTION) extern<kernel32>
 
-EnterCriticalSection void(a CRITICAL_SECTION) noctx unsafe extern<kernel32>
+EnterCriticalSection void(a CRITICAL_SECTION) extern<kernel32>
 
-LeaveCriticalSection void(a CRITICAL_SECTION) noctx unsafe extern<kernel32>
+LeaveCriticalSection void(a CRITICAL_SECTION) extern<kernel32>
 
-DeleteCriticalSection void(a CRITICAL_SECTION) noctx unsafe extern<kernel32>
+DeleteCriticalSection void(a CRITICAL_SECTION) extern<kernel32>
 
 CONDITION_VARIABLE record mut by-ref extern
 	n nat64
 
-InitializeConditionVariable void(a CONDITION_VARIABLE) noctx unsafe extern<kernel32>
+InitializeConditionVariable void(a CONDITION_VARIABLE) extern<kernel32>
 
 SleepConditionVariableCS bool
 	a CONDITION_VARIABLE
 	crit CRITICAL_SECTION
 	millis DWORD
 spec
-	noctx
-	unsafe
-	summon
 	extern<kernel32>
+	summon
 
-WakeAllConditionVariable void(a CONDITION_VARIABLE) noctx unsafe extern<kernel32>
+WakeAllConditionVariable void(a CONDITION_VARIABLE) extern<kernel32>
 
 INFINITE DWORD() noctx
 	0xffffffff
@@ -62,18 +60,14 @@ InitializeSynchronizationBarrier bool
 	lTotalThreads long
 	lSpinCount long
 spec
-	noctx
-	unsafe
 	extern<kernel32>
 
-DeleteSynchronizationBarrier bool(lpBarrier SYNCHRONIZATION_BARRIER mut*) noctx unsafe extern<kernel32>
+DeleteSynchronizationBarrier bool(lpBarrier SYNCHRONIZATION_BARRIER mut*) extern<kernel32>
 
 EnterSynchronizationBarrier bool
 	lpBarrier SYNCHRONIZATION_BARRIER mut*
 	dwFlags EnterSynchronizationBarrierFlags
 spec
-	noctx
-	unsafe
 	extern<kernel32>
 
 EnterSynchronizationBarrierFlags flags<DWORD> extern
@@ -90,8 +84,8 @@ DWORD64 alias
 ULONG_PTR alias
 	nat64
 
-GetLastError DWORD() noctx unsafe summon extern<kernel32>
-SetLastError void(err-code DWORD) noctx unsafe summon extern<kernel32>
+GetLastError DWORD() extern<kernel32> summon
+SetLastError void(err-code DWORD) extern<kernel32> summon
 
 ERROR_BROKEN_PIPE DWORD() noctx
 	109
@@ -104,9 +98,9 @@ HANDLE alias
 INVALID_HANDLE_VALUE HANDLE() noctx unsafe
 	max-nat64 to-mut-ptr
 
-WaitForSingleObject DWORD(handle HANDLE, milliseconds DWORD) noctx unsafe summon extern<kernel32>
+WaitForSingleObject DWORD(handle HANDLE, milliseconds DWORD) extern<kernel32> summon
 
-CloseHandle bool(a HANDLE) noctx unsafe extern<kernel32>
+CloseHandle bool(a HANDLE) extern<kernel32>
 
 _beginthreadex HANDLE
 	security any-mut-ptr
@@ -116,14 +110,12 @@ _beginthreadex HANDLE
 	initflag u-int
 	thrdaddr u-int mut*
 spec
-	noctx
-	unsafe
 	extern<c>
 
 WAIT_OBJECT_0 DWORD() noctx
 	0
 
-GetStdHandle HANDLE(stdHandle std-handle) noctx unsafe summon extern<kernel32>
+GetStdHandle HANDLE(stdHandle std-handle) extern<kernel32> summon
 
 std-handle enum<DWORD> extern
 	# In winbase.h these are -10, -11, -12 even though DWORD is unsigned
@@ -138,10 +130,8 @@ WriteFile bool
 	lpNumberOfBytesWritten DWORD mut*
 	lpOverlapped any-mut-ptr
 spec
-	noctx
-	unsafe
-	summon
 	extern<kernel32>
+	summon
 
 WIN32_FIND_DATAA record by-val extern
 	dwFileAttributes DWORD
@@ -168,9 +158,9 @@ FILETIME record by-val extern
 new FILETIME() noctx
 	(), ()
 
-DeleteFileA bool(lpFileName c-str) noctx unsafe summon extern<kernel32>
+DeleteFileA bool(lpFileName c-str) extern<kernel32> summon
 
-GetFileAttributesA FileAttributes(lpFileName c-str) noctx unsafe summon extern<kernel32>
+GetFileAttributesA FileAttributes(lpFileName c-str) extern<kernel32> summon
 
 FileAttributes flags<nat32> extern
 	FILE_ATTRIBUTE_READONLY = 0x1
@@ -196,14 +186,14 @@ FileAttributes flags<nat32> extern
 	FILE_ATTRIBUTE_RECALL_ON_DATA_ACCESS = 0x400000
 	INVALID_FILE_ATTRIBUTES = 0xffffffff
 
-FindFirstFileA HANDLE(lpFileName c-str, lpFindFileData WIN32_FIND_DATAA mut*) noctx unsafe summon extern<kernel32>
-FindNextFileA bool(hFindFile HANDLE, lpFindFileData WIN32_FIND_DATAA mut*) noctx unsafe summon extern<kernel32>
-FindClose bool(hFindFile HANDLE) noctx unsafe summon extern<kernel32>
+FindFirstFileA HANDLE(lpFileName c-str, lpFindFileData WIN32_FIND_DATAA mut*) extern<kernel32> summon
+FindNextFileA bool(hFindFile HANDLE, lpFindFileData WIN32_FIND_DATAA mut*) extern<kernel32> summon
+FindClose bool(hFindFile HANDLE) extern<kernel32> summon
 
-_getcwd c-char mut*(buffer c-char mut*, size size_t) noctx unsafe summon extern<c>
-_mkdir err-t(path c-str, mode mode_t) noctx unsafe summon extern<c>
-_pclose err-t(stream FILE) noctx unsafe summon extern<c>
-_popen FILE(command c-str, mode c-str) noctx unsafe summon extern<c>
+_getcwd c-char mut*(buffer c-char mut*, size size_t) extern<c> summon
+_mkdir err-t(path c-str, mode mode_t) extern<c> summon
+_pclose err-t(stream FILE) extern<c> summon
+_popen FILE(command c-str, mode c-str) extern<c> summon
 
 ERROR_FILE_NOT_FOUND DWORD() noctx
 	2
@@ -221,10 +211,8 @@ FormatMessageA DWORD
 	nSize DWORD
 	arguments any-mut-ptr
 spec
-	noctx
-	unsafe
-	summon
 	extern<kernel32>
+	summon
 
 FORMAT_MESSAGE_IGNORE_INSERTS DWORD() noctx
 	0x200
@@ -304,26 +292,22 @@ CreatePipe bool
 	lpPipeAttributes SECURITY_ATTRIBUTES*
 	nSize DWORD
 spec
-	noctx
-	unsafe
-	summon
 	extern<kernel32>
+	summon
 
 CreateSymbolicLinkA bool
 	lpSymlinkFileName c-str
 	lpTargetFileName c-str
 	dwFlags link-flags
 spec
-	noctx
-	unsafe
-	summon
 	extern<kernel32>
+	summon
 
 link-flags flags<DWORD> extern
 	SYMBOLIC_LINK_FLAG_DIRECTORY = 1
 	SYMBOLIC_LINK_FLAG_ALLOW_UNPRIVILEGED_CREATE = 2
 
-SetHandleInformation bool(hObject HANDLE, dwMask DWORD, dwFlags DWORD) noctx unsafe summon extern<kernel32>
+SetHandleInformation bool(hObject HANDLE, dwMask DWORD, dwFlags DWORD) extern<kernel32> summon
 
 HANDLE_FLAG_INHERIT DWORD() noctx
 	1
@@ -342,12 +326,10 @@ CreateProcessA bool
 	lpStartupInfo STARTUPINFOA*
 	lpProcessInformation PROCESS_INFORMATION mut*
 spec
-	noctx
-	unsafe
-	summon
 	extern<kernel32>
+	summon
 
-GetExitCodeProcess bool(hProcess HANDLE, lpExitCode DWORD mut*) noctx unsafe summon extern<kernel32>
+GetExitCodeProcess bool(hProcess HANDLE, lpExitCode DWORD mut*) extern<kernel32> summon
 
 ReadFile bool
 	hFile HANDLE
@@ -357,15 +339,13 @@ ReadFile bool
 	# TODO: Overlapped type
 	lpOverlapped any-mut-ptr
 spec
-	noctx
-	unsafe
-	summon
 	extern<kernel32>
+	summon
 
 MAKEWORD WORD(a nat8, b nat8) trusted
 	(a.to-nat16 | (b.to-nat16 << 8))
 
-WSAStartup c-int(wVersionRequested WORD, lpWSAData WSADATA mut*) noctx unsafe summon extern<kernel32>
+WSAStartup c-int(wVersionRequested WORD, lpWSAData WSADATA mut*) extern<kernel32> summon
 
 WSADATA record mut by-val extern
 	wVersion WORD
@@ -379,7 +359,7 @@ WSADATA record mut by-val extern
 new WSADATA() noctx unsafe
 	(), (), (), (), (), (), ()
 
-GetSystemInfo void(lpSystemInfo SYSTEM_INFO mut*) noctx unsafe summon extern<kernel32>
+GetSystemInfo void(lpSystemInfo SYSTEM_INFO mut*) summon extern<kernel32>
 
 SYSTEM_INFO record mut by-val extern
 	DUMMYUNIONNAME DWORD
@@ -397,9 +377,9 @@ new SYSTEM_INFO() noctx unsafe
 	(), (), (), (), (), (), (), (), (), ()
 
 # TODO: should be 'summon'
-GetTickCount DWORD() noctx extern<kernel32>
+GetTickCount DWORD() extern<kernel32>
 
-Sleep void(dwMilliseconds DWORD) noctx summon extern<kernel32>
+Sleep void(dwMilliseconds DWORD) summon extern<kernel32>
 
 CONTEXT record extern by-val
 	P1Home DWORD64
@@ -449,7 +429,7 @@ new CONTEXT(ContextFlags DWORD) noctx
 	cf = ContextFlags
 	0, 0, 0, 0, 0, 0, cf, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, ()
 
-RtlCaptureContext void(context CONTEXT mut*) noctx unsafe extern<kernel32>
+RtlCaptureContext void(context CONTEXT mut*) extern<kernel32>
 
 # TODO: use a flags enum
 CONTEXT_AMD64 DWORD() noctx
@@ -471,8 +451,8 @@ CONTEXT_ALL DWORD() noctx
 CONTEXT_XSTATE DWORD() noctx
 	CONTEXT_AMD64 | 0x00000040
 
-GetCurrentProcess HANDLE() noctx unsafe extern<kernel32>
-GetCurrentThread HANDLE() noctx unsafe extern<kernel32>
+GetCurrentProcess HANDLE() extern<kernel32>
+GetCurrentThread HANDLE() extern<kernel32>
 
 IMAGE_FILE_MACHINE_AMD64 DWORD() noctx
 	0x8664

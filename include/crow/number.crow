@@ -268,7 +268,7 @@ unsafe-div float64(a float64, b float64) no-doc noctx unsafe builtin
 
 square-root float64(a float64) noctx
 	a sqrt
-.sqrt float64(a float64) noctx extern<m>
+.sqrt float64(a float64) extern<m> trusted
 square-root float32(a float32) noctx
 	a.to-float64.sqrt to-float32
 

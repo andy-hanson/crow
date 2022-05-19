@@ -50,6 +50,10 @@ immutable(DiagSeverity) getDiagnosticSeverity(ref immutable Diag a) {
 			DiagSeverity.checkError,
 		(ref immutable Diag.FunModifierTypeArgs) =>
 			DiagSeverity.checkError,
+		(ref immutable Diag.FunModifierWarning) =>
+			DiagSeverity.checkWarning,
+		(ref immutable Diag.FunMultipleBodyModifiers) =>
+			DiagSeverity.checkError,
 		(ref immutable Diag.IfNeedsOpt) =>
 			DiagSeverity.checkError,
 		(ref immutable Diag.ImportRefersToNothing) =>

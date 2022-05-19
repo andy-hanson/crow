@@ -5,9 +5,9 @@ r record extern
 u union extern
 	a str
 
-f void() noctx extern<c>
+f void() extern
 
-f void() extern<c>
+f void() noctx extern<c>
 
 f str() noctx extern<c>
 
@@ -20,4 +20,18 @@ f void(...a nat64[]) noctx extern<c>
 some-spec spec
 	foo void()
 
-f void() noctx extern<c> some-spec
+f void() extern<c> some-spec
+
+f void() extern<c> noctx
+
+f void() extern<c> unsafe
+
+g nat() extern<c> global<c>
+
+g nat() global
+
+g nat() global<c> noctx
+
+g nat() global<c> unsafe
+
+g nat() global<c> trusted

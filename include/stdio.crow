@@ -8,7 +8,7 @@ import
 	crow/private/number-low-level: nat8, nat32
 	crow/ptr: const-ptr, mut-ptr
 
-perror void(s c-str) unsafe summon extern<c> noctx
+perror void(s c-str) extern<c> summon
 
 stdin fd-t() noctx
 	0
@@ -17,40 +17,36 @@ stdout fd-t() noctx
 stderr fd-t() noctx
 	2
 
-popen FILE(command c-str, modes c-str) unsafe summon extern<c> noctx
-pclose c-int(stream FILE) unsafe summon extern<c> noctx
+popen FILE(command c-str, modes c-str) extern<c> summon
+pclose c-int(stream FILE) extern<c> summon
 
-feof bool(stream FILE) unsafe summon extern<c> noctx
-fgets char8 mut*(s char8 mut*, n c-int, stream FILE) unsafe summon extern<c> noctx
+feof bool(stream FILE) extern<c> summon
+fgets char8 mut*(s char8 mut*, n c-int, stream FILE) extern<c> summon
 
 
 FILE extern-ptr
 
-fopen FILE(filename c-str, mode c-str) unsafe summon extern<c> noctx
-fclose c-int(stream FILE) unsafe summon extern<c> noctx
-fseek c-int(stream FILE, offset long, whence SEEK) unsafe summon extern<c> noctx
-ftell long(stream FILE) unsafe summon extern<c> noctx
-ferror bool(stream FILE) unsafe summon extern<c> noctx
+fopen FILE(filename c-str, mode c-str) extern<c> summon
+fclose c-int(stream FILE) extern<c> summon
+fseek c-int(stream FILE, offset long, whence SEEK) extern<c> summon
+ftell long(stream FILE) extern<c> summon
+ferror bool(stream FILE) extern<c> summon
 fread size_t
 	_Buffer nat8 mut*
 	_ElementSize size_t
 	_ElementCount size_t
 	_Stream FILE
 spec
-	unsafe
-	summon
 	extern<c>
-	noctx
+	summon
 fwrite size_t
 	_Buffer nat8*
 	_ElementSize size_t
 	_ElementCount size_t
 	_Stream FILE
 spec
-	unsafe
-	summon
 	extern<c>
-	noctx
+	summon
 
 SEEK enum<nat32> extern
 	SEEK_SET

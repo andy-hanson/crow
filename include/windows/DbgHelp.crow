@@ -151,17 +151,15 @@ StackWalk64 bool
 	GetModuleBaseRoutine PGET_MODULE_BASE_ROUTINE64
 	TranslateAddress PTRANSLATE_ADDRESS_ROUTINE64
 spec
-	noctx
-	unsafe
 	extern<DbgHelp>
 
-SymFunctionTableAccess64 any-const-ptr(hProcess HANDLE, AddrBase DWORD64) noctx unsafe extern<DbgHelp>
+SymFunctionTableAccess64 any-const-ptr(hProcess HANDLE, AddrBase DWORD64) extern<DbgHelp>
 
 # A process that calls SymInitialize should not call it again unless it calls SymCleanup first
-SymInitialize bool(hProcess HANDLE, UserSearchPath c-str, fInvadeProcess bool) noctx unsafe extern<DbgHelp>
-SymCleanup bool(hProcess HANDLE) noctx unsafe extern<DbgHelp>
+SymInitialize bool(hProcess HANDLE, UserSearchPath c-str, fInvadeProcess bool) extern<DbgHelp>
+SymCleanup bool(hProcess HANDLE) extern<DbgHelp>
 
-SymSetOptions DWORD(SymOptions SymOptions) noctx unsafe extern<DbgHelp>
+SymSetOptions DWORD(SymOptions SymOptions) extern<DbgHelp>
 
 SymOptions flags<nat32> extern
 	SYMOPT_CASE_INSENSITIVE = 0x00000001
@@ -203,8 +201,6 @@ SymGetSymFromAddr64 bool
 	pdwDisplacement DWORD64 mut*
 	Symbol IMAGEHLP_SYMBOL64 mut*
 spec
-	noctx
-	unsafe
 	extern<DbgHelp>
 
 SymGetLineFromAddr64 bool
@@ -213,6 +209,4 @@ SymGetLineFromAddr64 bool
 	pdwDisplacement DWORD mut*
 	Line64 IMAGEHLP_LINE64 mut*
 spec
-	noctx
-	unsafe
 	extern<DbgHelp>
