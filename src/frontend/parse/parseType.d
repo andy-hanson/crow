@@ -20,7 +20,7 @@ import frontend.parse.lexer :
 	tryTakeOperator,
 	tryTakeToken;
 import model.parseDiag : ParseDiag;
-import util.col.arr : emptyArr, small;
+import util.col.arr : small;
 import util.col.arrBuilder : add, ArrBuilder, finishArr;
 import util.col.arrUtil : arrLiteral;
 import util.memory : allocate;
@@ -44,7 +44,7 @@ immutable(TypeAst[]) tryParseTypeArgsForExpr(scope ref Lexer lexer) {
 		takeTypeArgsEnd(lexer);
 		return res;
 	} else
-		return emptyArr!TypeAst;
+		return [];
 }
 
 immutable(TypeAst[]) tryParseTypeArgsBracketed(scope ref Lexer lexer) {
@@ -53,7 +53,7 @@ immutable(TypeAst[]) tryParseTypeArgsBracketed(scope ref Lexer lexer) {
 		takeTypeArgsEnd(lexer);
 		return res;
 	} else
-		return emptyArr!TypeAst;
+		return [];
 }
 
 private void parseTypesWithCommas(Builder)(scope ref Lexer lexer, ref Builder output) {

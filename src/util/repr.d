@@ -3,7 +3,6 @@ module util.repr;
 @safe @nogc pure nothrow:
 
 import util.alloc.alloc : Alloc;
-import util.col.arr : emptyArr;
 import util.col.arrUtil : arrLiteral, map, mapWithIndex;
 import util.col.fullIndexDict : FullIndexDict;
 import util.col.str : SafeCStr, strOfSafeCStr;
@@ -30,7 +29,7 @@ immutable(Repr) reprRecord(immutable string name, immutable Repr[] children) {
 }
 
 immutable(Repr) reprRecord(immutable string name) {
-	return reprRecord(name, emptyArr!Repr);
+	return reprRecord(name, []);
 }
 
 immutable(Repr) reprRecord(ref Alloc alloc, immutable Sym name, scope immutable Repr[] children) {

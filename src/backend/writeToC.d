@@ -64,7 +64,7 @@ import model.lowModel :
 import model.model : EnumValue, name;
 import model.typeLayout : sizeOfType;
 import util.alloc.alloc : Alloc, TempAlloc;
-import util.col.arr : empty, emptyArr, only, sizeEq;
+import util.col.arr : empty, only, sizeEq;
 import util.col.arrUtil : arrLiteral, every, exists, map, zip;
 import util.col.dict : mustGetAt;
 import util.col.fullIndexDict : fullIndexDictEach, fullIndexDictEachKey;
@@ -553,7 +553,7 @@ struct WriteExprResult {
 }
 
 immutable(WriteExprResult) writeExprDone() {
-	return immutable WriteExprResult(immutable WriteExprResult.Done(emptyArr!WriteExprResult()));
+	return immutable WriteExprResult(immutable WriteExprResult.Done([]));
 }
 
 immutable(bool) isDone(ref immutable WriteExprResult a) {
@@ -1071,7 +1071,7 @@ immutable(WriteExprResult) writeInlineableSimple(
 		locals,
 		writeKind,
 		type,
-		emptyArr!LowExpr,
+		[],
 		(ref immutable WriteExprResult[]) {
 			if (!isVoid(type))
 				inline();

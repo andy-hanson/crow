@@ -21,7 +21,7 @@ import model.lowModel :
 	PrimitiveType;
 import model.typeLayout : sizeOfType;
 import util.alloc.alloc : Alloc, TempAlloc;
-import util.col.arr : castImmutable, empty, emptyArr;
+import util.col.arr : castImmutable, empty;
 import util.col.arrUtil : map, mapToMut, sum, zip;
 import util.col.dict : mustGetAt;
 import util.col.exactSizeArrBuilder :
@@ -98,7 +98,7 @@ immutable(ubyte*) getTextPointerForCString(ref immutable TextInfo info, immutabl
 		// '1 +' because we add a dummy byte at 0
 		newExactSizeArrBuilder!ubyte(alloc, 1 + getAllConstantsSize(*programPtr, allConstants)),
 		ptrTrustMe_mut(funToReferences),
-		emptyArr!size_t, // cStringIndexToTextIndex will be overwritten just below this
+		[], // cStringIndexToTextIndex will be overwritten just below this
 		mapToMut!(size_t[], ArrTypeAndConstantsLow)(
 			alloc,
 			allConstants.arrs,

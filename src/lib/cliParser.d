@@ -3,7 +3,7 @@ module lib.cliParser;
 import frontend.lang : crowExtension, JitOptions, OptimizationLevel;
 import lib.compiler : PrintKind;
 import util.alloc.alloc : Alloc;
-import util.col.arr : empty, emptyArr, only;
+import util.col.arr : empty, only;
 import util.col.arrBuilder : add, ArrBuilder, finishArr;
 import util.col.arrUtil : findIndex, foldOrStop, mapOrNone;
 import util.col.str : SafeCStr, safeCStr, safeCStrEq, strOfSafeCStr;
@@ -479,12 +479,12 @@ immutable(SplitArgs) splitArgs(ref Alloc alloc, ref AllSymbols allSymbols, scope
 	immutable Opt!size_t optFirstArgIndex = findIndex!SafeCStr(args, (ref immutable SafeCStr arg) =>
 		startsWithDashDash(arg));
 	if (!has(optFirstArgIndex))
-		return immutable SplitArgs(args, emptyArr!ArgsPart, emptyArr!SafeCStr);
+		return immutable SplitArgs(args, [], []);
 	else {
 		immutable size_t firstArgIndex = force(optFirstArgIndex);
 		immutable SafeCStr[] beforeFirstPart = args[0 .. firstArgIndex];
 		if (safeCStrEq(args[firstArgIndex], "--"))
-			return immutable SplitArgs(beforeFirstPart, emptyArr!ArgsPart, args[firstArgIndex + 1 .. $]);
+			return immutable SplitArgs(beforeFirstPart, [], args[firstArgIndex + 1 .. $]);
 		else {
 			ArrBuilder!ArgsPart parts;
 			immutable size_t firstAfterDashDash =

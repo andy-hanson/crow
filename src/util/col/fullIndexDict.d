@@ -4,7 +4,7 @@ module util.col.fullIndexDict;
 
 import util.alloc.alloc : Alloc;
 import util.conv : safeToUint, safeToUshort;
-import util.col.arr : castImmutable, emptyArr;
+import util.col.arr : castImmutable;
 import util.col.arrUtil : fillArr_mut, mapWithIndex, mapWithIndex_mut;
 import util.memory : overwriteMemory;
 import util.util : verify;
@@ -39,7 +39,7 @@ immutable(FullIndexDict!(K, V)) fullIndexDictCastImmutable2(K, V)(const FullInde
 }
 
 immutable(FullIndexDict!(K, V)) emptyFullIndexDict(K, V)() {
-	return fullIndexDictOfArr!(K, V)(emptyArr!V);
+	return fullIndexDictOfArr!(K, V)([]);
 }
 
 immutable(size_t) fullIndexDictSize(K, V)(const FullIndexDict!(K, V) a) {

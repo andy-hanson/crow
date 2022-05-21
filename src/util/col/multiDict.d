@@ -3,7 +3,6 @@ module util.col.multiDict;
 @safe @nogc pure nothrow:
 
 import util.alloc.alloc : Alloc;
-import util.col.arr : emptyArr;
 import util.col.dict : dictEach, Dict, KeyValuePair;
 import util.col.mutArr : moveToArr, MutArr, push;
 import util.col.mutDict : getOrAdd, mapToDict, MutDict;
@@ -14,7 +13,7 @@ struct MultiDict(K, V) {
 
 	immutable(V[]) opIndex(immutable K key) immutable {
 		immutable Opt!(V[]) res = inner[key];
-		return has(res) ? force(res) : emptyArr!V;
+		return has(res) ? force(res) : [];
 	}
 }
 

@@ -78,7 +78,7 @@ immutable(SmallArray!T) small(T)(immutable T[] values) {
 }
 
 immutable(SmallArray!T) emptySmallArray(T)() {
-	return small(emptyArr!T);
+	return small!T([]);
 }
 
 @system void freeArr(T)(ref Alloc alloc, immutable T[] a) {
@@ -101,16 +101,6 @@ immutable(SmallArray!T) emptySmallArray(T)() {
 @system T[] arrOfRange_mut(T)(T* begin, T* end) {
 	verify(begin <= end);
 	return begin[0 .. end - begin];
-}
-
-@trusted immutable(T[]) emptyArr(T)() {
-	immutable T* begin = null;
-	return begin[0 .. 0];
-}
-
-@trusted T[] emptyArr_mut(T)() {
-	T* begin = null;
-	return begin[0 .. 0];
 }
 
 immutable(bool) sizeEq(T, U)(scope const T[] a, scope const U[] b) {

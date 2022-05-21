@@ -91,7 +91,6 @@ version(Test) {
 	import test.test : test;
 }
 import util.alloc.alloc : Alloc, TempAlloc;
-import util.col.arr : emptyArr;
 import util.col.arrBuilder : add, addAll, ArrBuilder, finishArr;
 import util.col.arrUtil : prepend;
 import util.col.str : CStr, SafeCStr, safeCStr, safeCStrIsEmpty, safeCStrSize, strEq, strOfCStr;
@@ -837,7 +836,7 @@ enum NulTerminate { no, yes }
 			static immutable ubyte[] bytes = [0];
 			cb(immutable ReadFileResult!(ubyte[])(bytes));
 		} else
-			cb(immutable ReadFileResult!(ubyte[])(emptyArr!ubyte));
+			cb(immutable ReadFileResult!(ubyte[])([]));
 	} else {
 		withBufferPossiblyOnStack!0x100000(fileSize + (nulTerminate ? 1 : 0), (scope ubyte* contentBuf) {
 			// Go back to the beginning so we can read

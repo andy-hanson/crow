@@ -25,7 +25,6 @@ import model.model :
 	Params,
 	range,
 	RecordField,
-	SpecInst,
 	StructBody,
 	StructDecl,
 	StructInst,
@@ -37,7 +36,7 @@ import model.model :
 	Visibility,
 	visibility;
 import util.alloc.alloc : Alloc;
-import util.col.arr : empty, emptyArr, ptrsRange;
+import util.col.arr : empty, ptrsRange;
 import util.col.arrUtil : arrLiteral, count, map, sum;
 import util.col.exactSizeArrBuilder : ExactSizeArrBuilder, exactSizeArrBuilderAdd;
 import util.col.mutArr : MutArr;
@@ -188,11 +187,11 @@ FunDecl enumOrFlagsConstructor(
 		visibility,
 		fileAndPosFromFileAndRange(member.range),
 		member.name,
-		emptyArr!TypeParam,
+		[],
 		enumType,
-		immutable Params(emptyArr!Param),
+		immutable Params([]),
 		FunFlags.generatedNoCtx,
-		emptyArr!(SpecInst*),
+		[],
 		immutable FunBody(immutable FunBody.CreateEnum(member.value)));
 }
 
@@ -208,13 +207,13 @@ FunDecl enumEqualFunction(
 		visibility,
 		fileAndPosFromFileAndRange(fileAndRange),
 		symForOperator(Operator.equal),
-		emptyArr!TypeParam,
+		[],
 		immutable Type(commonTypes.bool_),
 		immutable Params(arrLiteral!Param(alloc, [
 			immutable Param(fileAndRange, some(shortSym("a")), enumType, 0),
 			immutable Param(fileAndRange, some(shortSym("b")), enumType, 1)])),
 		FunFlags.generatedNoCtx.withOkIfUnused(),
-		emptyArr!(SpecInst*),
+		[],
 		immutable FunBody(EnumFunction.equal));
 }
 
@@ -229,11 +228,11 @@ FunDecl flagsNewFunction(
 		visibility,
 		fileAndPosFromFileAndRange(fileAndRange),
 		shortSym("new"),
-		emptyArr!TypeParam,
+		[],
 		enumType,
-		immutable Params(emptyArr!Param),
+		immutable Params([]),
 		FunFlags.generatedNoCtx.withOkIfUnused(),
-		emptyArr!(SpecInst*),
+		[],
 		immutable FunBody(FlagsFunction.new_));
 }
 
@@ -248,11 +247,11 @@ FunDecl flagsAllFunction(
 		visibility,
 		fileAndPosFromFileAndRange(fileAndRange),
 		shortSym("all"),
-		emptyArr!TypeParam,
+		[],
 		enumType,
-		immutable Params(emptyArr!Param),
+		immutable Params([]),
 		FunFlags.generatedNoCtx.withOkIfUnused(),
-		emptyArr!(SpecInst*),
+		[],
 		immutable FunBody(FlagsFunction.all));
 }
 
@@ -267,12 +266,12 @@ FunDecl flagsNegateFunction(
 		visibility,
 		fileAndPosFromFileAndRange(fileAndRange),
 		symForOperator(Operator.tilde),
-		emptyArr!TypeParam,
+		[],
 		enumType,
 		immutable Params(arrLiteral!Param(alloc, [
 			immutable Param(fileAndRange, some(shortSym("a")), enumType, 0)])),
 		FunFlags.generatedNoCtx.withOkIfUnused(),
-		emptyArr!(SpecInst*),
+		[],
 		immutable FunBody(FlagsFunction.negate));
 }
 
@@ -289,12 +288,12 @@ FunDecl enumToIntegralFunction(
 		visibility,
 		fileAndPosFromFileAndRange(fileAndRange),
 		enumToIntegralName(enumBackingType),
-		emptyArr!TypeParam,
+		[],
 		immutable Type(getBackingTypeFromEnumType(enumBackingType, commonTypes)),
 		immutable Params(arrLiteral!Param(alloc, [
 			immutable Param(fileAndRange, some(shortSym("a")), enumType, 0)])),
 		FunFlags.generatedNoCtx.withOkIfUnused(),
-		emptyArr!(SpecInst*),
+		[],
 		immutable FunBody(EnumFunction.toIntegral));
 }
 
@@ -337,15 +336,15 @@ FunDecl enumOrFlagsMembersFunction(
 		visibility,
 		fileAndPosFromFileAndRange(fileAndRange),
 		name,
-		emptyArr!TypeParam,
+		[],
 		immutable Type(makeArrayType(
 			alloc,
 			programState,
 			commonTypes,
 			immutable Type(makeNamedValType(alloc, programState, commonTypes, enumType)))),
-		immutable Params(emptyArr!Param),
+		immutable Params([]),
 		FunFlags.generatedNoCtx.withOkIfUnused(),
-		emptyArr!(SpecInst*),
+		[],
 		immutable FunBody(EnumFunction.members));
 }
 
@@ -362,13 +361,13 @@ FunDecl flagsUnionOrIntersectFunction(
 		visibility,
 		fileAndPosFromFileAndRange(fileAndRange),
 		symForOperator(operator),
-		emptyArr!TypeParam,
+		[],
 		enumType,
 		immutable Params(arrLiteral!Param(alloc, [
 			immutable Param(fileAndRange, some(shortSym("a")), enumType, 0),
 			immutable Param(fileAndRange, some(shortSym("b")), enumType, 0)])),
 		FunFlags.generatedNoCtx.withOkIfUnused(),
-		emptyArr!(SpecInst*),
+		[],
 		immutable FunBody(fn));
 }
 
@@ -422,7 +421,7 @@ void addFunsForRecord(
 			returnType,
 			immutable Params(ctorParams),
 			flags.withOkIfUnused(),
-			emptyArr!(SpecInst*),
+			[],
 			immutable FunBody(immutable FunBody.CreateRecord()));
 	}
 
@@ -447,7 +446,7 @@ void addFunsForRecord(
 			immutable Params(arrLiteral!Param(ctx.alloc, [
 				immutable Param(field.range, some(shortSym("a")), structType, 0)])),
 			FunFlags.generatedNoCtx,
-			emptyArr!(SpecInst*),
+			[],
 			immutable FunBody(immutable FunBody.RecordFieldGet(fieldIndex))));
 
 		immutable Opt!Visibility mutVisibility = visibilityOfFieldMutability(field.mutability);
@@ -463,7 +462,7 @@ void addFunsForRecord(
 					immutable Param(field.range, some(shortSym("a")), structType, 0),
 					immutable Param(field.range, some(field.name), field.type, 1)])),
 				FunFlags.generatedNoCtx,
-				emptyArr!(SpecInst*),
+				[],
 				immutable FunBody(immutable FunBody.RecordFieldSet(fieldIndex))));
 	}
 }
@@ -496,7 +495,7 @@ void addFunsForUnion(
 		immutable Param[] params = has(member.type)
 			? arrLiteral!Param(ctx.alloc, [
 				immutable Param(member.range, some(shortSym("a")), force(member.type), 0)])
-			: emptyArr!Param;
+			: [];
 		exactSizeArrBuilderAdd(funsBuilder, FunDecl(
 			safeCStr!"",
 			struct_.visibility,
@@ -506,7 +505,7 @@ void addFunsForUnion(
 			structType,
 			immutable Params(params),
 			FunFlags.generatedNoCtx,
-			emptyArr!(SpecInst*),
+			[],
 			immutable FunBody(immutable FunBody.CreateUnion(memberIndex))));
 	}
 }

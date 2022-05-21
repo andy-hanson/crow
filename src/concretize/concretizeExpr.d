@@ -78,7 +78,7 @@ import model.model :
 	VariableRef,
 	variableRefType;
 import util.alloc.alloc : Alloc;
-import util.col.arr : empty, emptyArr, only;
+import util.col.arr : empty, only;
 import util.col.arrUtil : arrLiteral, map, mapZip;
 import util.col.mutArr : MutArr, mutArrSize, push;
 import util.col.mutDict : getOrAdd;
@@ -289,7 +289,7 @@ immutable(ConcreteExpr) getGetExclusion(
 	immutable FileAndRange range,
 ) {
 	return immutable ConcreteExpr(type, range, immutable ConcreteExprKind(
-		immutable ConcreteExprKind.Call(getCurExclusionFun(ctx.concretizeCtx), emptyArr!ConcreteExpr)));
+		immutable ConcreteExprKind.Call(getCurExclusionFun(ctx.concretizeCtx), [])));
 }
 
 immutable(ConcreteField[]) concretizeClosureFields(

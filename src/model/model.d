@@ -5,7 +5,7 @@ module model.model;
 import model.constant : Constant;
 import model.diag : Diagnostics, FilesInfo; // TODO: move FilesInfo here?
 import util.alloc.alloc : Alloc;
-import util.col.arr : empty, emptyArr, only, PtrAndSmallNumber, small, SmallArray;
+import util.col.arr : empty, only, PtrAndSmallNumber, small, SmallArray;
 import util.col.arrUtil : arrEqual;
 import util.col.dict : Dict;
 import util.col.fullIndexDict : FullIndexDict;
@@ -26,7 +26,7 @@ import util.sourceRange :
 	rangeOfStartAndName,
 	RangeWithinFile;
 import util.sym : AllSymbols, Operator, shortSym, SpecialSym, Sym, symForOperator, symForSpecial, writeSym;
-import util.util : max, min, unreachable, verify;
+import util.util : as, max, min, unreachable, verify;
 import util.writer : writeChar, Writer, writeStatic, writeWithCommas;
 
 alias LineAndColumnGetters = immutable FullIndexDict!(FileIndex, LineAndColumnGetter);
@@ -1111,10 +1111,7 @@ immutable(bool) isMarkVisitFun(ref immutable FunInst a) {
 }
 
 immutable(FunInst*) nonTemplateFunInst(ref Alloc alloc, immutable FunDecl* decl) {
-	return allocate(alloc, immutable FunInst(
-		immutable FunDeclAndArgs(decl, emptyArr!Type, emptyArr!Called),
-		decl.returnType,
-		decl.params));
+	return allocate(alloc, immutable FunInst(immutable FunDeclAndArgs(decl, [], []), decl.returnType, decl.params));
 }
 
 immutable(FunDecl*) decl(scope return ref immutable FunInst a) {
@@ -1192,7 +1189,7 @@ struct CalledDecl {
 		return matchCalledDecl!(
 			immutable TypeParam[],
 			(immutable FunDecl* f) => f.typeParams,
-			(ref immutable SpecSig) => emptyArr!TypeParam,
+			(ref immutable SpecSig) => as!(immutable TypeParam[])([]),
 		)(this);
 	}
 

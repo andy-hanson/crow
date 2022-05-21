@@ -3,13 +3,12 @@ module test.testJson;
 @safe @nogc pure nothrow:
 
 import test.testUtil : Test;
-import util.col.arr : emptyArr;
 import util.col.dict : KeyValuePair;
 import util.col.str : SafeCStr, safeCStr;
 import util.jsonParse : Json, jsonEqual, matchJson, parseJson;
 import util.opt : force, has, Opt;
 import util.sym : AllSymbols, shortSym, Sym, writeQuotedSym;
-import util.util : debugLog, verify, verifyFail;
+import util.util : as, debugLog, verify, verifyFail;
 import util.writer : finishWriterToSafeCStr, writeChar, Writer, writeSafeCStr, writeStatic, writeWithCommas;
 
 void testJson(ref Test test) {
@@ -34,20 +33,20 @@ void testString(ref Test test) {
 }
 
 @trusted void testArray(ref Test test) {
-	verifyParseJson(test, safeCStr!"[ ]", immutable Json(emptyArr!Json));
+	verifyParseJson(test, safeCStr!"[ ]", immutable Json(as!(immutable Json[])([])));
 	scope immutable Json[1] valuesA = [immutable Json(false)];
 	verifyParseJson(test, safeCStr!"[ false , ]", immutable Json(valuesA));
 	scope immutable Json[4] valuesB = [
 		immutable Json(true),
 		immutable Json(safeCStr!"foo"),
 		immutable Json(valuesA),
-		immutable Json(emptyArr!(KeyValuePair!(Sym, Json))),
+		immutable Json(as!(immutable KeyValuePair!(Sym, Json)[])([])),
 	];
 	verifyParseJson(test, safeCStr!"[true, \"foo\", [false], {}]", immutable Json(valuesB));
 }
 
 @trusted void testObject(ref Test test) {
-	verifyParseJson(test, safeCStr!"{ }", immutable Json(emptyArr!(KeyValuePair!(Sym, Json))));
+	verifyParseJson(test, safeCStr!"{ }", immutable Json(as!(immutable KeyValuePair!(Sym, Json)[])([])));
 	scope immutable KeyValuePair!(Sym, Json)[1] fieldsA = [
 		immutable KeyValuePair!(Sym, Json)(shortSym("x"), immutable Json(false)),
 	];

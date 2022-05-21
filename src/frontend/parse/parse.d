@@ -68,7 +68,7 @@ import model.diag : DiagnosticWithinFile;
 import model.model : FieldMutability, ImportFileType, Visibility;
 import model.parseDiag : ParseDiag;
 import util.alloc.alloc : Alloc;
-import util.col.arr : empty, emptyArr, emptySmallArray, small;
+import util.col.arr : empty, emptySmallArray, small;
 import util.col.arrBuilder : add, ArrBuilder, finishArr;
 import util.col.str : SafeCStr;
 import util.conv : safeToUshort;
@@ -110,7 +110,7 @@ immutable(NameAndRange[]) parseTypeParams(scope ref Lexer lexer) {
 		takeTypeArgsEnd(lexer);
 		return finishArr(lexer.alloc, res);
 	} else
-		return emptyArr!NameAndRange;
+		return [];
 }
 
 struct ImportAndDedent {
@@ -354,7 +354,7 @@ immutable(ParamsAndMaybeDedent) parseParams(scope ref Lexer lexer) {
 	else
 		final switch (takeNewlineOrIndent_topLevel(lexer)) {
 			case NewlineOrIndent.newline:
-				return immutable ParamsAndMaybeDedent(immutable ParamsAst(emptyArr!ParamAst), some!size_t(0));
+				return immutable ParamsAndMaybeDedent(immutable ParamsAst([]), some!size_t(0));
 			case NewlineOrIndent.indent:
 				return parseIndentedParams(lexer);
 		}
@@ -411,7 +411,7 @@ immutable(SpecSigAstAndDedent) parseSpecSig(scope ref Lexer lexer, immutable uin
 immutable(SpecSigAst[]) parseIndentedSigs(scope ref Lexer lexer) {
 	final switch (takeNewlineOrIndent_topLevel(lexer)) {
 		case NewlineOrIndent.newline:
-			return emptyArr!SpecSigAst;
+			return [];
 		case NewlineOrIndent.indent:
 			ArrBuilder!SpecSigAst res;
 			for (;;) {
@@ -430,7 +430,7 @@ immutable(SpecSigAst[]) parseIndentedSigs(scope ref Lexer lexer) {
 immutable(StructDeclAst.Body.Enum.Member[]) parseEnumOrFlagsMembers(scope ref Lexer lexer) {
 	final switch (takeNewlineOrIndent_topLevel(lexer)) {
 		case NewlineOrIndent.newline:
-			return emptyArr!(StructDeclAst.Body.Enum.Member);
+			return [];
 		case NewlineOrIndent.indent:
 			ArrBuilder!(StructDeclAst.Body.Enum.Member) res;
 			immutable(StructDeclAst.Body.Enum.Member[]) recur() {
@@ -526,7 +526,7 @@ immutable(FunDeclAst) parseFun(
 			verify(force(sig.dedents) == 0);
 			immutable FunModifierAst[] modifiers = tryTakeToken(lexer, Token.spec)
 				? parseIndentedFunModifiers(lexer.alloc, lexer)
-				: emptyArr!FunModifierAst;
+				: [];
 			immutable Opt!ExprAst body_ = tryTakeToken(lexer, Token.body)
 				? parseFunExprBody(lexer)
 				: none!ExprAst;
@@ -572,7 +572,7 @@ immutable(FunModifierAst[]) parseIndentedFunModifiers(scope ref Alloc alloc, sco
 			}
 		}
 	} else
-		return emptyArr!FunModifierAst;
+		return [];
 }
 
 void parseFunModifier(scope ref Lexer lexer, scope ref ArrBuilder!FunModifierAst res) {
@@ -724,23 +724,23 @@ void parseSpecOrStructOrFun(
 		case Token.union_:
 			nextToken(lexer);
 			addStruct(() {
-				immutable StructDeclAst.Body.Union.Member[] members = () {
-					final switch (takeNewlineOrIndent_topLevel(lexer)) {
-						case NewlineOrIndent.newline:
-							//TODO: this should be a checker error, not parse error
-							addDiagAtChar(lexer, immutable ParseDiag(
-								immutable ParseDiag.UnionCantBeEmpty()));
-							return emptyArr!(StructDeclAst.Body.Union.Member);
-						case NewlineOrIndent.indent:
-							return parseUnionMembers(lexer);
-					}
-				}();
-				return immutable StructDeclAst.Body(immutable StructDeclAst.Body.Union(members));
+				return immutable StructDeclAst.Body(immutable StructDeclAst.Body.Union(parseUnionMembersOrDiag(lexer)));
 			});
 			break;
 		default:
 			add(lexer.alloc, funs, parseFun(lexer, docComment, visibility, start, name, typeParams));
 			break;
+	}
+}
+
+immutable(StructDeclAst.Body.Union.Member[]) parseUnionMembersOrDiag(scope ref Lexer lexer) {
+	final switch (takeNewlineOrIndent_topLevel(lexer)) {
+		case NewlineOrIndent.newline:
+			//TODO: this should be a checker error, not parse error
+			addDiagAtChar(lexer, immutable ParseDiag(immutable ParseDiag.UnionCantBeEmpty()));
+			return [];
+		case NewlineOrIndent.indent:
+			return parseUnionMembers(lexer);
 	}
 }
 

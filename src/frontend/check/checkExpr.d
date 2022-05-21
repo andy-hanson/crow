@@ -115,7 +115,7 @@ import model.model :
 	VariableRef,
 	worstCasePurity;
 import util.alloc.alloc : Alloc, allocateUninitialized;
-import util.col.arr : empty, emptyArr, emptySmallArray, only, PtrAndSmallNumber, ptrsRange, sizeEq;
+import util.col.arr : empty, emptySmallArray, only, PtrAndSmallNumber, ptrsRange, sizeEq;
 import util.col.arrUtil : arrLiteral, arrsCorrespond, map, mapZip, mapZipWithIndex, zipPtrFirst;
 import util.col.fullIndexDict : FullIndexDict;
 import util.col.mutArr : MutArr, mutArrSize, push, tempAsArr;
@@ -229,7 +229,7 @@ immutable(Expr) checkArrowAccess(
 	immutable CallAst callDeref = immutable CallAst(
 		CallAst.style.single,
 		immutable NameAndRange(range.range.start, symForOperator(Operator.times)),
-		emptyArr!TypeAst,
+		[],
 		arrLiteral!ExprAst(ctx.alloc, [ast.left]));
 	immutable CallAst callName = immutable CallAst(
 		CallAst.style.infix,
@@ -327,10 +327,8 @@ immutable(Expr) checkEmptyNew(
 	immutable FileAndRange range,
 	ref Expected expected,
 ) {
-	immutable CallAst ast = immutable CallAst(CallAst.style.emptyParens,
-		immutable NameAndRange(range.start, shortSym("new")),
-		emptyArr!TypeAst,
-		emptyArr!ExprAst);
+	immutable CallAst ast =
+		immutable CallAst(CallAst.style.emptyParens, immutable NameAndRange(range.start, shortSym("new")), [], []);
 	return checkCallNoLocals(ctx, range, ast, expected);
 }
 
@@ -378,11 +376,8 @@ immutable(Expr) checkInterpolated(
 	defaultExpectedToString(ctx, range, expected);
 	// TODO: NEATER (don't create a synthetic AST)
 	// "a{b}c" ==> interp with-text "a" with-value b with-text "c" finish
-	immutable CallAst firstCall = immutable CallAst(
-		CallAst.style.single,
-		immutable NameAndRange(range.range.start, shortSym("interp")),
-		emptyArr!TypeAst,
-		emptyArr!ExprAst);
+	immutable CallAst firstCall =
+		immutable CallAst(CallAst.style.single, immutable NameAndRange(range.range.start, shortSym("interp")), [], []);
 	immutable ExprAst firstCallExpr = immutable ExprAst(
 		immutable RangeWithinFile(range.range.start, range.range.start),
 		immutable ExprAstKind(firstCall));
@@ -400,7 +395,7 @@ immutable(CallAst) checkInterpolatedRecur(
 		return immutable CallAst(
 			CallAst.Style.infix,
 			immutable NameAndRange(pos, shortSym("finish")),
-			emptyArr!TypeAst,
+			[],
 			arrLiteral!ExprAst(ctx.alloc, [left]));
 	else {
 		immutable CallAst c = matchInterpolatedPart!(
@@ -413,14 +408,14 @@ immutable(CallAst) checkInterpolatedRecur(
 				return immutable CallAst(
 					CallAst.Style.infix,
 					immutable NameAndRange(pos, shortSym("with-str")),
-					emptyArr!TypeAst,
+					[],
 					arrLiteral!ExprAst(ctx.alloc, [left, right]));
 			},
 			(ref immutable ExprAst e) =>
 				immutable CallAst(
 					CallAst.Style.infix,
 					immutable NameAndRange(pos, shortSym("with-value")),
-					emptyArr!TypeAst,
+					[],
 					arrLiteral!ExprAst(ctx.alloc, [left, e])),
 		)(parts[0]);
 		immutable Pos newPos = matchInterpolatedPart!(
@@ -816,7 +811,7 @@ immutable(Expr) checkStringExpressionTypedAsOther(
 	immutable CallAst ast = immutable CallAst(
 		CallAst.Style.emptyParens,
 		immutable NameAndRange(range.start, shortSym("literal")),
-		emptyArr!TypeAst,
+		[],
 		// TODO: allocating should be unnecessary, do on stack
 		arrLiteral!ExprAst(ctx.alloc, [curAst]));
 	return checkCallNoLocals(ctx, range, ast, expected);
@@ -1367,7 +1362,7 @@ immutable(Expr) checkFor(
 	immutable CallAst call = immutable CallAst(
 		CallAst.Style.infix,
 		immutable NameAndRange(range.range.start, shortSym("for-loop")),
-		emptyArr!TypeAst,
+		[],
 		arrLiteral!ExprAst(ctx.alloc, [ast.collection, lambda]));
 	return checkCall(ctx, locals, range, call, expected);
 }
@@ -1388,7 +1383,7 @@ immutable(Expr) checkThen(
 	immutable CallAst call = immutable CallAst(
 		CallAst.Style.infix,
 		immutable NameAndRange(range.range.start, shortSym("then")),
-		emptyArr!TypeAst,
+		[],
 		arrLiteral!ExprAst(ctx.alloc, [ast.futExpr, lambda]));
 	return checkCall(ctx, locals, range, call, expected);
 }
@@ -1403,11 +1398,11 @@ immutable(Expr) checkThenVoid(
 	// TODO: NEATER (don't create a synthetic AST)
 	immutable ExprAst lambda = immutable ExprAst(
 		range.range,
-		immutable ExprAstKind(allocate(ctx.alloc, immutable LambdaAst(emptyArr!(LambdaAst.Param), ast.then))));
+		immutable ExprAstKind(allocate(ctx.alloc, immutable LambdaAst([], ast.then))));
 	immutable CallAst call = immutable CallAst(
 		CallAst.Style.infix,
 		immutable NameAndRange(range.range.start, shortSym("then-void")),
-		emptyArr!TypeAst,
+		[],
 		arrLiteral!ExprAst(ctx.alloc, [ast.futExpr, lambda]));
 	return checkCall(ctx, locals, range, call, expected);
 }

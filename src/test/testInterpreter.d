@@ -58,9 +58,7 @@ import model.diag : FilesInfo, filesInfoForSingle;
 import model.lowModel :
 	AllConstantsLow,
 	AllLowTypes,
-	ArrTypeAndConstantsLow,
 	ConcreteFunToLowFunIndex,
-	ExternLibrary,
 	LowExternPtrType,
 	LowFun,
 	LowFunBody,
@@ -68,18 +66,15 @@ import model.lowModel :
 	LowFunParamsKind,
 	LowFunPtrType,
 	LowFunSource,
-	LowParam,
 	LowProgram,
 	LowRecord,
 	LowType,
-	LowUnion,
-	PointerTypeAndConstantsLow;
+	LowUnion;
 import model.typeLayout : Pack, PackField;
 import test.testUtil : expectDataStack, expectReturnStack, Test;
 import util.alloc.alloc : Alloc;
-import util.col.arr : castImmutable, emptyArr;
+import util.col.arr : castImmutable;
 import util.col.fullIndexDict : emptyFullIndexDict, fullIndexDictOfArr;
-import util.col.str : SafeCStr;
 import util.lineAndColumnGetter : lineAndColumnGetterForEmptyFile;
 import util.memory : allocate;
 import util.path : emptyPathsInfo, Path, PathsInfo, rootPath;
@@ -120,7 +115,7 @@ immutable(ByteCode) dummyByteCode(immutable Operations operations) {
 		operations,
 		immutable FunPtrToOperationPtr(),
 		dummyFileToFuns(),
-		emptyArr!ubyte,
+		[],
 		immutable ByteCodeIndex(0));
 }
 
@@ -139,18 +134,14 @@ void doInterpret(
 		emptyPath,
 		lineAndColumnGetterForEmptyFile(test.alloc));
 	immutable LowFun[1] lowFun = [immutable LowFun(
-		immutable LowFunSource(allocate(test.alloc, immutable LowFunSource.Generated(
-			shortSym("test"), emptyArr!LowType))),
+		immutable LowFunSource(allocate(test.alloc, immutable LowFunSource.Generated(shortSym("test"), []))),
 		nat64Type,
 		immutable LowFunParamsKind(false, false),
-		emptyArr!LowParam,
+		[],
 		immutable LowFunBody(immutable LowFunBody.Extern(false, shortSym("bogus"))))];
 	immutable LowProgram lowProgram = immutable LowProgram(
 		ConcreteFunToLowFunIndex(),
-		immutable AllConstantsLow(
-			emptyArr!SafeCStr,
-			emptyArr!ArrTypeAndConstantsLow,
-			emptyArr!PointerTypeAndConstantsLow),
+		immutable AllConstantsLow([], [], []),
 		immutable AllLowTypes(
 			emptyFullIndexDict!(LowType.ExternPtr, LowExternPtrType),
 			emptyFullIndexDict!(LowType.FunPtr, LowFunPtrType),
@@ -158,7 +149,7 @@ void doInterpret(
 			emptyFullIndexDict!(LowType.Union, LowUnion)),
 		fullIndexDictOfArr!(LowFunIndex, LowFun)(lowFun),
 		immutable LowFunIndex(0),
-		emptyArr!ExternLibrary);
+		[]);
 	withFakeExtern(test.alloc, test.allSymbols, (scope ref Extern extern_, scope ref FakeStdOutput _) @trusted {
 		immutable PathsInfo pathsInfo = emptyPathsInfo;
 		withInterpreter!void(

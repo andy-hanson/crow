@@ -2,6 +2,10 @@ module util.util;
 
 @safe @nogc pure nothrow:
 
+immutable(T) as(T)(immutable T a) {
+	return a;
+}
+
 T todo(T)(immutable char* s) {
 	debugLog(s);
 	assert(0);

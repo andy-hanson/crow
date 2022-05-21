@@ -3,7 +3,7 @@ module util.col.mutDict;
 @safe @nogc pure nothrow:
 
 import util.alloc.alloc : Alloc, allocateT;
-import util.col.arr : empty, emptyArr_mut;
+import util.col.arr : empty;
 import util.col.arrUtil : map_mut;
 import util.col.dict : Dict;
 import util.hash : Hasher, hashSizeT, hashUbyte;
@@ -265,10 +265,9 @@ private @trusted immutable(Out[]) mapToArr_const(Out, K, V)(
 	ref Alloc alloc,
 	ref MutDict!(immutable K, immutable V) a,
 ) {
-	immutable Dict!(K, V) res = immutable Dict!(K, V)(
-		cast(immutable MutDict!(K, V)) a);
+	immutable Dict!(K, V) res = immutable Dict!(K, V)(cast(immutable MutDict!(K, V)) a);
 	a.size = 0;
-	a.pairs = emptyArr_mut!(Opt!(KeyValuePair!(immutable K, immutable V)));
+	a.pairs = [];
 	return res;
 }
 

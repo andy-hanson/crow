@@ -12,7 +12,7 @@ import model.model :
 	Visibility;
 import model.reprModel : reprVisibility;
 import util.alloc.alloc : Alloc;
-import util.col.arr : empty, emptyArr, emptySmallArray, SmallArray;
+import util.col.arr : empty, emptySmallArray, SmallArray;
 import util.col.arrBuilder : add, ArrBuilder, finishArr;
 import util.col.arrUtil : arrLiteral;
 import util.col.str : SafeCStr, safeCStr, safeCStrIsEmpty;
@@ -1128,18 +1128,9 @@ struct FileAst {
 	immutable TestAst[] tests;
 }
 
-private immutable ImportsOrExportsAst emptyImportsOrExports =
-	immutable ImportsOrExportsAst(RangeWithinFile.empty, emptyArr!ImportOrExportAst);
-immutable FileAst emptyFileAst = immutable FileAst(
-	safeCStr!"",
-	true,
-	some(emptyImportsOrExports),
-	some(emptyImportsOrExports),
-	emptyArr!SpecDeclAst,
-	emptyArr!StructAliasAst,
-	emptyArr!StructDeclAst,
-	emptyArr!FunDeclAst,
-	emptyArr!TestAst);
+private immutable ImportsOrExportsAst emptyImportsOrExports = immutable ImportsOrExportsAst(RangeWithinFile.empty, []);
+immutable FileAst emptyFileAst =
+	immutable FileAst(safeCStr!"", true, some(emptyImportsOrExports), some(emptyImportsOrExports), [], [], [], [], []);
 
 immutable(Repr) reprAst(
 	ref Alloc alloc,

@@ -109,7 +109,7 @@ import model.model :
 	Visibility,
 	visibility;
 import util.alloc.alloc : Alloc;
-import util.col.arr : castImmutable, empty, emptyArr, emptySmallArray, only, ptrsRange, sizeEq, small;
+import util.col.arr : castImmutable, empty, emptySmallArray, only, ptrsRange, sizeEq, small;
 import util.col.arrBuilder : add, ArrBuilder, finishArr;
 import util.col.arrUtil : cat, eachPair, map, mapOp, mapToMut, mapWithIndex, zipFirstMut, zipMutPtrFirst;
 import util.col.dict : Dict, dictEach, hasKey, KeyValuePair;
@@ -870,9 +870,9 @@ immutable(FunsAndDict) checkFuns(
 			funsDict,
 			usedFuns,
 			voidType,
-			emptyArr!TypeParam,
-			emptyArr!Param,
-			emptyArr!(SpecInst*),
+			[],
+			[],
+			[],
 			FunFlags.unsafeSummon,
 			force(ast.body_)));
 	});
@@ -958,11 +958,11 @@ FunDecl funDeclForFileImportOrExport(
 		visibility,
 		immutable FileAndPos(ctx.fileIndex, a.range.start),
 		a.name,
-		emptyArr!TypeParam,
+		[],
 		typeForFileImport(ctx, commonTypes, structsAndAliasesDict, a.range, a.type),
-		immutable Params(emptyArr!Param),
+		immutable Params([]),
 		FunFlags.generatedNoCtx,
-		emptyArr!(SpecInst*),
+		[],
 		immutable FunBody(immutable FunBody.Bogus()));
 }
 
@@ -1170,7 +1170,7 @@ immutable(Dict!(Sym, NameReferents)) getAllExportedNames(
 				case Visibility.public_:
 					addExport(
 						name,
-						immutable NameReferents(some(it.structOrAlias), none!(SpecDecl*), emptyArr!(FunDecl*)),
+						immutable NameReferents(some(it.structOrAlias), none!(SpecDecl*), []),
 						range(it.structOrAlias));
 					break;
 				case Visibility.private_:
@@ -1180,10 +1180,7 @@ immutable(Dict!(Sym, NameReferents)) getAllExportedNames(
 	dictEach!(Sym, SpecDeclAndIndex)(specsDict, (immutable Sym name, ref immutable SpecDeclAndIndex it) {
 		final switch (it.decl.visibility) {
 			case Visibility.public_:
-				addExport(
-					name,
-					immutable NameReferents(none!StructOrAlias, some(it.decl), emptyArr!(FunDecl*)),
-					it.decl.range);
+				addExport(name, immutable NameReferents(none!StructOrAlias, some(it.decl), []), it.decl.range);
 				break;
 			case Visibility.private_:
 				break;

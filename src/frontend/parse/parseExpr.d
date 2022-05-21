@@ -81,7 +81,7 @@ import frontend.parse.parseType : parseType, parseTypeRequireBracket, tryParseTy
 import model.model : AssertOrForbidKind;
 import model.parseDiag : ParseDiag;
 import util.alloc.alloc : Alloc;
-import util.col.arr : empty, emptyArr, only, small;
+import util.col.arr : empty, only, small;
 import util.col.arrUtil : append, arrLiteral, prepend;
 import util.col.arrBuilder : add, ArrBuilder, finishArr;
 import util.memory : allocate;
@@ -298,7 +298,7 @@ immutable(ExprAndMaybeDedent) toMaybeDedent(immutable ExprAndDedent a) {
 immutable(ExprAst[]) parseSubscriptArgs(scope ref Lexer lexer) {
 	if (tryTakeToken(lexer, Token.bracketRight))
 		//TODO: syntax error
-		return emptyArr!ExprAst;
+		return [];
 	else {
 		ArrBuilder!ExprAst builder;
 		immutable ArgCtx argCtx = immutable ArgCtx(AllowedPrefixCall.no, noBlock(), allowAllCallsExceptComma());
@@ -318,17 +318,17 @@ immutable(ArgsAndMaybeNameOrDedent) parseArgsForOperator(scope ref Lexer lexer, 
 immutable(ArgsAndMaybeNameOrDedent) parseArgs(scope ref Lexer lexer, immutable ArgCtx ctx) {
 	if (tryTakeToken(lexer, Token.comma))
 		return immutable ArgsAndMaybeNameOrDedent(
-			emptyArr!ExprAst,
+			[],
 			immutable OptNameOrDedent(immutable OptNameOrDedent.Comma()));
 	else if (tryTakeToken(lexer, Token.colon))
 		return immutable ArgsAndMaybeNameOrDedent(
-			emptyArr!ExprAst,
+			[],
 			immutable OptNameOrDedent(immutable OptNameOrDedent.Colon()));
 	else if (peekTokenExpression(lexer)) {
 		ArrBuilder!ExprAst builder;
 		return parseArgsRecur(lexer, ctx, builder);
 	} else
-		return immutable ArgsAndMaybeNameOrDedent(emptyArr!ExprAst, noNameOrDedent());
+		return immutable ArgsAndMaybeNameOrDedent([], noNameOrDedent());
 }
 
 immutable(ArgsAndMaybeNameOrDedent) parseArgsRecur(
@@ -411,7 +411,7 @@ immutable(ExprAndDedent) parseMutEquals(
 	} else {
 		addDiag(lexer, range(lexer, start), immutable ParseDiag(immutable ParseDiag.CantPrecedeMutEquals()));
 		return makeCall(
-			lexer, start, initAndDedent, shortSym("bogus"), emptyArr!ExprAst, emptyArr!TypeAst, CallAst.Style.setDot);
+			lexer, start, initAndDedent, shortSym("bogus"), [], [], CallAst.Style.setDot);
 	}
 }
 
@@ -577,7 +577,7 @@ immutable(ExprAndMaybeNameOrDedent) parseCallsAfterComma(
 				CallAst.Style.comma,
 				//TODO: range is wrong..
 				immutable NameAndRange(range.start, shortSym("new")),
-				emptyArr!TypeAst,
+				[],
 				args.args))),
 		args.nameOrDedent);
 }
@@ -693,14 +693,9 @@ immutable(ExprAndMaybeNameOrDedent) parseCallsAfterSimpleExpr(
 			immutable NameAndRange name;
 			immutable TypeAst[] typeArgs;
 		}
-		immutable NameAndTypeArgs nameAndTypeArgs = () {
-			if (isCall(kind))
-				return immutable NameAndTypeArgs(asCall(kind).funName, asCall(kind).typeArgs);
-			else
-				return immutable NameAndTypeArgs(
-					immutable NameAndRange(lhs.range.start, asIdentifier(kind).name),
-					emptyArr!TypeAst);
-		}();
+		immutable NameAndTypeArgs nameAndTypeArgs = isCall(kind)
+			? immutable NameAndTypeArgs(asCall(kind).funName, asCall(kind).typeArgs)
+			: immutable NameAndTypeArgs(immutable NameAndRange(lhs.range.start, asIdentifier(kind).name), []);
 		immutable ArgsAndMaybeNameOrDedent ad = parseArgs(lexer, requirePrecedenceGtComma(argCtx));
 		immutable CallAst call = immutable CallAst(
 			CallAst.Style.prefix,
@@ -740,7 +735,7 @@ immutable(ExprAst) tryParseDotsAndSubscripts(scope ref Lexer lexer, immutable Ex
 			//TODO: the range is wrong..
 			CallAst.Style.subscript,
 			immutable NameAndRange(start, shortSym("subscript")),
-			emptyArr!TypeAst,
+			[],
 			prepend(lexer.alloc, initial, args));
 		return tryParseDotsAndSubscripts(lexer, immutable ExprAst(range(lexer, start), immutable ExprAstKind(call)));
 	} else if (tryTakeToken(lexer, Token.colon2)) {
@@ -752,7 +747,7 @@ immutable(ExprAst) tryParseDotsAndSubscripts(scope ref Lexer lexer, immutable Ex
 		immutable CallAst call = immutable CallAst(
 			CallAst.Style.suffixOperator,
 			immutable NameAndRange(start, symForOperator(Operator.not)),
-			emptyArr!TypeAst,
+			[],
 			arrLiteral!ExprAst(lexer.alloc, [initial]));
 		return tryParseDotsAndSubscripts(lexer, immutable ExprAst(range(lexer, start), immutable ExprAstKind(call)));
 	} else
@@ -1005,7 +1000,7 @@ immutable(ExprAndMaybeDedent) parseLambdaWithParenthesizedParameters(
 
 immutable(LambdaAst.Param[]) parseParenthesizedLambdaParameters(scope ref Lexer lexer) {
 	if (tryTakeToken(lexer, Token.parenRight))
-		return emptyArr!(LambdaAst.Param);
+		return [];
 	else {
 		ArrBuilder!(LambdaAst.Param) parameters;
 		return parseParenthesizedLambdaParametersRecur(lexer, parameters);
@@ -1104,8 +1099,8 @@ immutable(ExprAndMaybeDedent) parseExprBeforeCall(scope ref Lexer lexer, immutab
 						CallAst.Style.emptyParens,
 						//TODO: range is wrong..
 						immutable NameAndRange(start, shortSym("new")),
-						emptyArr!TypeAst,
-						emptyArr!ExprAst)));
+						[],
+						[])));
 				return noDedent(tryParseDotsAndSubscripts(lexer, expr));
 			} else {
 				immutable ExprAst inner = parseExprNoBlock(lexer);
@@ -1206,7 +1201,7 @@ immutable(ExprAndMaybeDedent) handlePrefixOperator(
 		immutable CallAst(
 			CallAst.Style.prefixOperator,
 			immutable NameAndRange(start, symForOperator(operator)),
-			emptyArr!TypeAst,
+			[],
 			arrLiteral!ExprAst(lexer.alloc, [arg.expr]))));
 	return immutable ExprAndMaybeDedent(expr, arg.dedents);
 }
@@ -1225,8 +1220,7 @@ immutable(ExprAndMaybeDedent) handleName(scope ref Lexer lexer, immutable Pos st
 	if (!empty(typeArgs)) {
 		return noDedent(immutable ExprAst(
 			range(lexer, start),
-			immutable ExprAstKind(
-				immutable CallAst(CallAst.Style.single, name, typeArgs, emptyArr!ExprAst))));
+			immutable ExprAstKind(immutable CallAst(CallAst.Style.single, name, typeArgs, []))));
 	} else {
 		immutable ExprAst expr = immutable ExprAst(
 			range(lexer, start),

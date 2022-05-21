@@ -7,7 +7,6 @@ import frontend.parse.ast : FileAst, reprAst;
 import frontend.parse.parse : parseFile;
 import model.diag : DiagnosticWithinFile;
 import test.testUtil : Test;
-import util.col.arr : emptyArr;
 import util.col.arrBuilder : ArrBuilder;
 import util.col.arrUtil : arrEqual, arrLiteral;
 import util.col.str : SafeCStr, safeCStr;
@@ -19,7 +18,7 @@ import util.util : verifyFail;
 import util.writer : finishWriterToSafeCStr, Writer, writeStatic;
 
 void testTokens(ref Test test) {
-	testOne(test, safeCStr!"", emptyArr!Token);
+	testOne(test, safeCStr!"", []);
 
 	testOne(test, testSource, arrLiteral!Token(test.alloc, [
 		immutable Token(Token.Kind.keyword, immutable RangeWithinFile(0, 6)),

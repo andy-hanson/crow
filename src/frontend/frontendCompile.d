@@ -28,7 +28,7 @@ import frontend.lang : crowExtension;
 import frontend.parse.parse : parseFile;
 import frontend.programState : ProgramState;
 import util.alloc.alloc : Alloc;
-import util.col.arr : empty, emptyArr;
+import util.col.arr : empty;
 import util.col.arrBuilder : add, ArrBuilder, arrBuilderSize, finishArr;
 import util.col.arrUtil : copyArr, map, mapOp, mapOrNoneImpure, mapWithSoFar, prepend;
 import util.col.dict : mapValues;
@@ -57,7 +57,7 @@ import util.readOnlyStorage :
 	asOption, matchReadFileResult, ReadFileResult, ReadOnlyStorage, withFileBinary, withFileText;
 import util.sourceRange : FileIndex, RangeWithinFile;
 import util.sym : AllSymbols, emptySym, shortSym, SpecialSym, Sym, symForSpecial;
-import util.util : verify;
+import util.util : as, verify;
 
 immutable(Program) frontendCompile(
 	ref Alloc modelAlloc,
@@ -403,7 +403,7 @@ immutable(FileContent) readFileContent(
 					handleReadFileResult!(immutable ubyte[], ubyte[])(
 						modelAlloc, diags, importedFrom, res,
 						(scope immutable ubyte[] content) => copyArr(modelAlloc, content),
-						() => emptyArr!ubyte)));
+						() => as!(immutable ubyte[])([]))));
 		case ImportFileType.str:
 			return immutable FileContent(withFileText!(immutable SafeCStr)(
 				storage, path, emptySym,
@@ -564,9 +564,7 @@ immutable(ResolvedImport[]) resolveImportOrExportPaths(
 	immutable Path fromPath,
 	ref immutable Opt!ImportsOrExportsAst importsOrExports,
 ) {
-	immutable ImportOrExportAst[] paths = has(importsOrExports)
-		? force(importsOrExports).paths
-		: emptyArr!ImportOrExportAst;
+	immutable ImportOrExportAst[] paths = has(importsOrExports) ? force(importsOrExports).paths : [];
 	return map(astAlloc, paths, (ref immutable ImportOrExportAst i) =>
 		tryResolveImport(modelAlloc, allPaths, diagnosticsBuilder, includeDir, config, fromPath, i));
 }
@@ -594,8 +592,9 @@ struct AstAndResolvedImports {
 	immutable FullyResolvedImport[] resolvedImports;
 	immutable FullyResolvedImport[] resolvedExports;
 
-	static immutable AstAndResolvedImports empty =
-		immutable AstAndResolvedImports(emptyFileAst, emptyArr!FullyResolvedImport, emptyArr!FullyResolvedImport);
+	static immutable(AstAndResolvedImports) empty() {
+		return immutable AstAndResolvedImports(emptyFileAst, [], []);
+	}
 }
 
 struct FullyResolvedImport {

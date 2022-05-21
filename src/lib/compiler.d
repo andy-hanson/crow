@@ -15,13 +15,13 @@ import interpret.generateBytecode : generateBytecode;
 import interpret.runBytecode : runBytecode;
 import lower.lower : lower;
 import model.concreteModel : ConcreteProgram;
-import model.lowModel : ExternLibraries, ExternLibrary, LowProgram;
+import model.lowModel : ExternLibraries, LowProgram;
 import model.model : hasDiags, Module, Program;
 import model.reprConcreteModel : reprOfConcreteProgram;
 import model.reprLowModel : reprOfLowProgram;
 import model.reprModel : reprModule;
 import util.alloc.alloc : Alloc;
-import util.col.arr : emptyArr, only;
+import util.col.arr : only;
 import util.col.str : SafeCStr, safeCStr;
 import util.opt : force, has, none, Opt, some;
 import util.path : AllPaths, Path, PathsInfo;
@@ -319,7 +319,7 @@ version (WebAssembly) {} else {
 					showDiagOptions,
 					programs.program.filesInfo,
 					programs.program.diagnostics),
-				emptyArr!ExternLibrary);
+				[]);
 	}
 }
 

@@ -112,7 +112,7 @@ import model.lowModel :
 import model.model :
 	decl, ConfigExternPaths, EnumBackingType, EnumFunction, EnumValue, FlagsFunction, FunInst, name, range;
 import util.alloc.alloc : Alloc;
-import util.col.arr : empty, emptyArr, only;
+import util.col.arr : empty, only;
 import util.col.arrBuilder : add, ArrBuilder, arrBuilderSize, finishArr;
 import util.col.arrUtil :
 	arrLiteral,
@@ -686,7 +686,7 @@ immutable(AllLowFuns) getAllLowFuns(
 					immutable Opt!(ConcreteLambdaImpl[]) optImpls = program.funStructToImpls[funStruct];
 					immutable ConcreteLambdaImpl[] impls = has(optImpls)
 						? force(optImpls)
-						: emptyArr!ConcreteLambdaImpl;
+						: [];
 					return some(addLowFun(immutable LowFunCause(
 						immutable LowFunCause.CallWithCtx(funType, returnType, nonFunNonCtxParamTypes, impls))));
 				} else if (isMarkVisitFun(*fun)) {
@@ -933,8 +933,7 @@ immutable(LowFun) mainFun(
 				userMainFunPtr]))));
 	immutable LowFunBody body_ = immutable LowFunBody(immutable LowFunExprBody(false, call));
 	return immutable LowFun(
-		immutable LowFunSource(
-			allocate(ctx.alloc, immutable LowFunSource.Generated(shortSym("main"), emptyArr!LowType))),
+		immutable LowFunSource(allocate(ctx.alloc, immutable LowFunSource.Generated(shortSym("main"), []))),
 		int32Type,
 		immutable LowFunParamsKind(false, false),
 		params,

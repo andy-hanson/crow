@@ -73,7 +73,7 @@ import model.model :
 	UnionMember,
 	worsePurity;
 import util.alloc.alloc : Alloc;
-import util.col.arr : empty, emptyArr, only, sizeEq;
+import util.col.arr : empty, only, sizeEq;
 import util.col.arrBuilder : add, addAll, ArrBuilder, finishArr;
 import util.col.arrUtil :
 	arrEqual,
@@ -127,7 +127,7 @@ struct TypeArgsScope {
 	}
 
 	static immutable(TypeArgsScope) empty() {
-		return immutable TypeArgsScope(emptyArr!TypeParam, emptyArr!ConcreteType);
+		return immutable TypeArgsScope([], []);
 	}
 }
 
@@ -339,8 +339,7 @@ immutable(ConcreteFun*) getOrAddNonTemplateConcreteFunAndFillBody(
 	ref ConcretizeCtx ctx,
 	immutable FunInst* decl,
 ) {
-	immutable ConcreteFunKey key = immutable ConcreteFunKey(decl, emptyArr!ConcreteType, emptyArr!(ConcreteFun*));
-	return getOrAddConcreteFunAndFillBody(ctx, key);
+	return getOrAddConcreteFunAndFillBody(ctx, immutable ConcreteFunKey(decl, [], []));
 }
 
 immutable(ConcreteType) getConcreteType_forStructInst(
@@ -509,13 +508,9 @@ immutable(ConcreteFun*) concreteFunForTest(
 		voidType(ctx),
 		NeedsCtx.yes,
 		none!(ConcreteParam*),
-		emptyArr!ConcreteParam));
-	immutable ContainingFunInfo containing = immutable ContainingFunInfo(
-		emptyArr!TypeParam,
-		emptyArr!ConcreteType,
-		emptyArr!(ConcreteFun*));
-	immutable ConcreteExpr body_ =
-		concretizeExpr(ctx, containing, castImmutable(res), test.body_);
+		[]));
+	immutable ContainingFunInfo containing = immutable ContainingFunInfo([], [], []);
+	immutable ConcreteExpr body_ = concretizeExpr(ctx, containing, castImmutable(res), test.body_);
 	lateSet(res._body_, immutable ConcreteFunBody(body_));
 	addConcreteFun(ctx, castImmutable(res));
 	return castImmutable(res);

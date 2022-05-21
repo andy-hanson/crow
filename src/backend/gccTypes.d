@@ -51,7 +51,7 @@ import model.lowModel :
 	PrimitiveType;
 import util.alloc.alloc : Alloc;
 import util.cell : Cell, cellGet, cellSet;
-import util.col.arr : empty, emptyArr;
+import util.col.arr : empty;
 import util.col.arrUtil : map, mapWithIndex, zip;
 import util.col.fullIndexDict :
 	FullIndexDict,
@@ -64,7 +64,7 @@ import util.col.str : CStr;
 import util.opt : force, has, none, noneMut, Opt, some, someMut;
 import util.ptr : castImmutable, ptrTrustMe_mut;
 import util.sym : AllSymbols, writeSym;
-import util.util : verify;
+import util.util : as, verify;
 import util.writer : finishWriterToCStr, writeNat, Writer, writeStatic;
 
 struct GccTypes {
@@ -107,8 +107,8 @@ immutable(GccTypes) getGccTypes(
 		mapFullIndexDict_mut!(LowType.Record, immutable gcc_jit_field*[], LowRecord)(
 			alloc,
 			program.allRecords,
-			(immutable LowType.Record, ref immutable LowRecord record) =>
-				emptyArr!(gcc_jit_field*)),
+			(immutable LowType.Record, ref immutable LowRecord record) => 
+				as!(immutable gcc_jit_field*[])([])),
 		mapFullIndexDict_mut!(LowType.Union, gcc_jit_struct*, LowUnion)(
 			alloc,
 			program.allUnions,

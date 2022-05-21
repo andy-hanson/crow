@@ -48,7 +48,7 @@ import model.model :
 	UnionMember,
 	Visibility,
 	visibility;
-import util.col.arr : castImmutable, empty, emptyArr, small;
+import util.col.arr : castImmutable, empty, small;
 import util.col.arrUtil : eachPair, fold, map, mapAndFold, MapAndFold, mapToMut, mapWithIndex, zipMutPtrFirst;
 import util.col.mutArr : MutArr;
 import util.col.str : copySafeCStr;
@@ -315,7 +315,7 @@ immutable(EnumOrFlagsTypeAndMembers) checkEnumOrFlagsMembers(
 		immutable EnumBackingType,
 	) @safe @nogc pure nothrow cbGetNextValue,
 ) {
-	immutable TypeParamsScope typeParamsScope = immutable TypeParamsScope(emptyArr!TypeParam);
+	immutable TypeParamsScope typeParamsScope = immutable TypeParamsScope([]);
 	immutable Type implementationType = has(typeArg)
 		? typeFromAst(
 			ctx, commonTypes, *force(typeArg), structsAndAliasesDict, typeParamsScope,

@@ -27,7 +27,7 @@ import frontend.check.inferringType :
 	typeArgsFromAsts;
 import frontend.check.instantiate :
 	instantiateFun, instantiateSpecInst, instantiateStructNeverDelay, TypeArgsArray, typeArgsArray, TypeParamsAndArgs;
-import frontend.parse.ast : CallAst, ExprAst, NameAndRange, rangeOfNameAndRange, TypeAst;
+import frontend.parse.ast : CallAst, NameAndRange, rangeOfNameAndRange;
 import frontend.programState : ProgramState;
 import model.diag : Diag;
 import model.model :
@@ -64,7 +64,7 @@ import model.model :
 	TypeParam,
 	typeParams;
 import util.alloc.alloc : Alloc;
-import util.col.arr : empty, emptyArr, only, only_const;
+import util.col.arr : empty, only, only_const;
 import util.col.arrBuilder : add, ArrBuilder, finishArr;
 import util.col.arrUtil : exists, exists_const, fillArrOrFail, map_const;
 import util.col.mutMaxArr :
@@ -115,8 +115,7 @@ immutable(Expr) checkCallNoLocals(
 	scope ref immutable CallAst ast,
 	ref Expected expected,
 ) {
-	FunOrLambdaInfo emptyFunInfo =
-		FunOrLambdaInfo(noneMut!(LocalsInfo*), emptyArr!Param, none!(Expr.Lambda*));
+	FunOrLambdaInfo emptyFunInfo = FunOrLambdaInfo(noneMut!(LocalsInfo*), [], none!(Expr.Lambda*));
 	LocalsInfo emptyLocals = LocalsInfo(ptrTrustMe_mut(emptyFunInfo), noneMut!(LocalNode*));
 	return checkCall(ctx, emptyLocals, range, ast, expected);
 }
@@ -204,11 +203,8 @@ immutable(Expr) checkIdentifierCall(
 	ref Expected expected,
 ) {
 	//TODO:NEATER (don't make a synthetic AST, just directly call an appropriate function)
-	immutable CallAst callAst = immutable CallAst(
-		CallAst.Style.single,
-		immutable NameAndRange(range.range.start, name),
-		emptyArr!TypeAst,
-		emptyArr!ExprAst);
+	immutable CallAst callAst =
+		immutable CallAst(CallAst.Style.single, immutable NameAndRange(range.range.start, name), [], []);
 	return checkCallNoLocals(ctx, range, callAst, expected);
 }
 
