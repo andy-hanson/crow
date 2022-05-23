@@ -17,61 +17,36 @@ MDB_val record mut by-ref extern
 	mv_data mut any-mut-ptr
 
 mdb_env_create err-t(env cell MDB_env) extern<lmdb> summon
-mdb_env_open err-t
-	env MDB_env
-	path c-str
-	flats c-int
-	mode mode_t
-spec
-	extern<lmdb>
-	summon
+mdb_env_open err-t(
+	env MDB_env,
+	path c-str,
+	flats c-int,
+	mode mode_t,
+) extern<lmdb> summon
 mdb_env_close void(env MDB_env) extern<lmdb> summon
 mdb_env_set_mapsize err-t(env MDB_env, size size_t) extern<lmdb> summon
 mdb_env_set_maxdbs err-t(env MDB_env, dbs u-int) extern<lmdb> summon
 
 MDB_txn extern-ptr
-mdb_txn_begin err-t
-	env MDB_env
-	parent MDB_txn
-	mdb-flags u-int
-	txn cell MDB_txn
-spec
-	extern<lmdb>
-	summon
+mdb_txn_begin err-t(
+	env MDB_env,
+	parent MDB_txn,
+	mdb-flags u-int,
+	txn cell MDB_txn,
+) extern<lmdb> summon
 mdb_txn_abort void(txn MDB_txn) extern<lmdb> summon
 mdb_txn_commit err-t(txn MDB_txn) extern<lmdb> summon
-mdb_dbi_open err-t
-	txn MDB_txn
-	name c-str
-	mdb-flags u-int
-	dbi cell MDB_dbi
-spec
-	extern<lmdb>
-	summon
-mdb_dbi_close void
-	env MDB_env
-	dbi MDB_dbi
-spec
-	extern<lmdb>
-	summon
+mdb_dbi_open err-t(txn MDB_txn, name c-str, mdb-flags u-int, dbi cell MDB_dbi) extern<lmdb> summon
+mdb_dbi_close void(env MDB_env, dbi MDB_dbi) extern<lmdb> summon
 
-mdb_get err-t
-	txn MDB_txn
-	dbi MDB_dbi
-	key MDB_val
-	value MDB_val
-spec
-	extern<lmdb>
-	summon
-mdb_put err-t
-	txn MDB_txn
-	dbi MDB_dbi
-	key MDB_val
-	value MDB_val
-	mdb-flags u-int
-spec
-	extern<lmdb>
-	summon
+mdb_get err-t(txn MDB_txn, dbi MDB_dbi, key MDB_val, value MDB_val) extern<lmdb> summon
+mdb_put err-t(
+	txn MDB_txn,
+	dbi MDB_dbi,
+	key MDB_val,
+	value MDB_val,
+	mdb-flags u-int,
+) extern<lmdb> summon
 
 mdb_stat record mut by-ref extern
 	ms_psize mut u-int
@@ -83,34 +58,20 @@ mdb_stat record mut by-ref extern
 mdb_stat err-t(txn MDB_txn, dbi MDB_dbi, stat mdb_stat) extern<lmdb> summon
 
 MDB_cursor extern-ptr
-mdb_cursor_open err-t
-	txn MDB_txn
-	dbi MDB_dbi
-	cursor cell MDB_cursor
-spec
-	extern<lmdb>
-	summon
-mdb_cursor_close void
-	cursor MDB_cursor
-spec
-	extern<lmdb>
-	summon
-mdb_cursor_get err-t
-	cursor MDB_cursor
-	key MDB_val
-	value MDB_val
-	op MDB_cursor_op
-spec
-	extern<lmdb>
-	summon
-mdb_cursor_put err-t
-	cursor MDB_cursor
-	key MDB_val
-	value MDB_val
-	mdb-flags u-int
-spec
-	extern<lmdb>
-	summon
+mdb_cursor_open err-t(txn MDB_txn, dbi MDB_dbi, cursor cell MDB_cursor) extern<lmdb> summon
+mdb_cursor_close void(cursor MDB_cursor) extern<lmdb> summon
+mdb_cursor_get err-t(
+	cursor MDB_cursor,
+	key MDB_val,
+	value MDB_val,
+	op MDB_cursor_op,
+) extern<lmdb> summon
+mdb_cursor_put err-t(
+	cursor MDB_cursor,
+	key MDB_val,
+	value MDB_val,
+	mdb-flags u-int,
+) extern<lmdb> summon
 
 region MDB_cursor_op
 

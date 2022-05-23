@@ -394,6 +394,11 @@ immutable(NameOrUnderscoreOrNone) takeNameOrUnderscoreOrNone(ref Lexer lexer) {
 		lexer.ptr++;
 }
 
+void skipNewlinesIgnoreIndentation(ref Lexer lexer) {
+	while (tryTakeToken(lexer, Token.newline))
+		drop(skipBlankLinesAndGetIndentDelta(lexer, 0));
+}
+
 private:
 
 @trusted immutable(SafeCStr) takeRestOfLineAndNewline(scope ref Lexer lexer) {
@@ -445,7 +450,6 @@ public enum Token {
 	as, // 'as'
 	assert_, // 'assert'
 	atLess, // '!<'
-	body, // 'body'
 	break_, // 'break'
 	builtin, // 'builtin'
 	builtinSpec, // 'builtin-spec'
@@ -633,8 +637,6 @@ immutable(Token) tokenForSym(ref Lexer lexer, immutable Sym a) {
 			return Token.as;
 		case shortSymValue("assert"):
 			return Token.assert_;
-		case shortSymValue("body"):
-			return Token.body;
 		case shortSymValue("break"):
 			return Token.break_;
 		case shortSymValue("builtin"):
@@ -839,7 +841,6 @@ immutable(bool) isExpressionStartToken(immutable Token a) {
 		case Token.arrowThen:
 		case Token.as:
 		case Token.atLess:
-		case Token.body:
 		case Token.builtin:
 		case Token.builtinSpec:
 		case Token.braceLeft:

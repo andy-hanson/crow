@@ -12,16 +12,14 @@ SDL_Window extern-ptr
 
 SDL_GLContext extern-ptr
 
-SDL_CreateWindow SDL_Window
-	title c-str
-	x c-int
-	y c-int
-	w c-int
-	h c-int
-	window-flags SDL_WindowFlags
-spec
-	extern<SDL2>
-	summon
+SDL_CreateWindow SDL_Window(
+	title c-str,
+	x c-int,
+	y c-int,
+	w c-int,
+	h c-int,
+	window-flags SDL_WindowFlags,
+) extern<SDL2> summon
 
 SDL_WindowFlags flags<nat32> extern
 	SDL_WINDOW_FULLSCREEN = 0x00000001

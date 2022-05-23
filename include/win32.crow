@@ -34,13 +34,11 @@ CONDITION_VARIABLE record mut by-ref extern
 
 InitializeConditionVariable void(a CONDITION_VARIABLE) extern<kernel32>
 
-SleepConditionVariableCS bool
-	a CONDITION_VARIABLE
-	crit CRITICAL_SECTION
-	millis DWORD
-spec
-	extern<kernel32>
-	summon
+SleepConditionVariableCS bool(
+	a CONDITION_VARIABLE,
+	crit CRITICAL_SECTION,
+	millis DWORD,
+) extern<kernel32> summon
 
 WakeAllConditionVariable void(a CONDITION_VARIABLE) extern<kernel32>
 
@@ -55,20 +53,18 @@ SYNCHRONIZATION_BARRIER record mut by-val extern
 	Reserved4 DWORD
 	Reserved5 DWORD
 
-InitializeSynchronizationBarrier bool
-	lpBarrier SYNCHRONIZATION_BARRIER mut*
-	lTotalThreads long
-	lSpinCount long
-spec
-	extern<kernel32>
+InitializeSynchronizationBarrier bool(
+	lpBarrier SYNCHRONIZATION_BARRIER mut*,
+	lTotalThreads long,
+	lSpinCount long,
+) extern<kernel32>
 
 DeleteSynchronizationBarrier bool(lpBarrier SYNCHRONIZATION_BARRIER mut*) extern<kernel32>
 
-EnterSynchronizationBarrier bool
-	lpBarrier SYNCHRONIZATION_BARRIER mut*
-	dwFlags EnterSynchronizationBarrierFlags
-spec
-	extern<kernel32>
+EnterSynchronizationBarrier bool(
+	lpBarrier SYNCHRONIZATION_BARRIER mut*,
+	dwFlags EnterSynchronizationBarrierFlags,
+) extern<kernel32>
 
 EnterSynchronizationBarrierFlags flags<DWORD> extern
 	SYNCHRONIZATION_BARRIER_FLAGS_SPIN_ONLY = 1
@@ -102,15 +98,14 @@ WaitForSingleObject DWORD(handle HANDLE, milliseconds DWORD) extern<kernel32> su
 
 CloseHandle bool(a HANDLE) extern<kernel32>
 
-_beginthreadex HANDLE
-	security any-mut-ptr
-	stack_size u-int
-	start-address fun-ptr1<any-mut-ptr, any-mut-ptr>
-	arglist any-mut-ptr
-	initflag u-int
-	thrdaddr u-int mut*
-spec
-	extern<c>
+_beginthreadex HANDLE(
+	security any-mut-ptr,
+	stack_size u-int,
+	start-address fun-ptr1<any-mut-ptr, any-mut-ptr>,
+	arglist any-mut-ptr,
+	initflag u-int,
+	thrdaddr u-int mut*,
+) extern<c>
 
 WAIT_OBJECT_0 DWORD() noctx
 	0
@@ -123,15 +118,13 @@ std-handle enum<DWORD> extern
 	STD_OUTPUT_HANDLE = 0xfffffff5
 	STD_ERROR_HANDLE = 0xfffffff4
 
-WriteFile bool
-	hFile HANDLE
-	lpBuffer any-const-ptr
-	nNumberOfBytesToWrite DWORD
-	lpNumberOfBytesWritten DWORD mut*
-	lpOverlapped any-mut-ptr
-spec
-	extern<kernel32>
-	summon
+WriteFile bool(
+	hFile HANDLE,
+	lpBuffer any-const-ptr,
+	nNumberOfBytesToWrite DWORD,
+	lpNumberOfBytesWritten DWORD mut*,
+	lpOverlapped any-mut-ptr,
+) extern<kernel32> summon
 
 WIN32_FIND_DATAA record by-val extern
 	dwFileAttributes DWORD
@@ -202,17 +195,15 @@ ERROR_PATH_NOT_FOUND DWORD() noctx
 ERROR_NO_MORE_FILES DWORD() noctx
 	18
 
-FormatMessageA DWORD
-	dwFlags DWORD
-	lpSource any-const-ptr
-	dwMessageId DWORD
-	dwLanguageId DWORD
-	lpBuffer c-char mut*
-	nSize DWORD
-	arguments any-mut-ptr
-spec
-	extern<kernel32>
-	summon
+FormatMessageA DWORD(
+	dwFlags DWORD,
+	lpSource any-const-ptr,
+	dwMessageId DWORD,
+	dwLanguageId DWORD,
+	lpBuffer c-char mut*,
+	nSize DWORD,
+	arguments any-mut-ptr,
+) extern<kernel32> summon
 
 FORMAT_MESSAGE_IGNORE_INSERTS DWORD() noctx
 	0x200
@@ -286,22 +277,18 @@ PROCESS_INFORMATION record mut by-val extern
 new PROCESS_INFORMATION() unsafe noctx
 	(), (), (), ()
 
-CreatePipe bool
-	hReadPipe HANDLE mut*
-	hWritePipe HANDLE mut*
-	lpPipeAttributes SECURITY_ATTRIBUTES*
-	nSize DWORD
-spec
-	extern<kernel32>
-	summon
+CreatePipe bool(
+	hReadPipe HANDLE mut*,
+	hWritePipe HANDLE mut*,
+	lpPipeAttributes SECURITY_ATTRIBUTES*,
+	nSize DWORD,
+) extern<kernel32> summon
 
-CreateSymbolicLinkA bool
-	lpSymlinkFileName c-str
-	lpTargetFileName c-str
-	dwFlags link-flags
-spec
-	extern<kernel32>
-	summon
+CreateSymbolicLinkA bool(
+	lpSymlinkFileName c-str,
+	lpTargetFileName c-str,
+	dwFlags link-flags,
+) extern<kernel32> summon
 
 link-flags flags<DWORD> extern
 	SYMBOLIC_LINK_FLAG_DIRECTORY = 1
@@ -314,33 +301,29 @@ HANDLE_FLAG_INHERIT DWORD() noctx
 HANDLE_FLAG_PROTECT_FROM_CLOSE DWORD() noctx
 	2
 
-CreateProcessA bool
-	lpApplicationName c-str
-	lpCommandLine c-str
-	lpProcessAttributes SECURITY_ATTRIBUTES*
-	lpThreadAttributes SECURITY_ATTRIBUTES*
-	bInheritHandles bool
-	dwCreationFlags DWORD
-	lpEnvironment any-mut-ptr
-	lpCurrentDirectory c-str
-	lpStartupInfo STARTUPINFOA*
-	lpProcessInformation PROCESS_INFORMATION mut*
-spec
-	extern<kernel32>
-	summon
+CreateProcessA bool(
+	lpApplicationName c-str,
+	lpCommandLine c-str,
+	lpProcessAttributes SECURITY_ATTRIBUTES*,
+	lpThreadAttributes SECURITY_ATTRIBUTES*,
+	bInheritHandles bool,
+	dwCreationFlags DWORD,
+	lpEnvironment any-mut-ptr,
+	lpCurrentDirectory c-str,
+	lpStartupInfo STARTUPINFOA*,
+	lpProcessInformation PROCESS_INFORMATION mut*,
+) extern<kernel32> summon
 
 GetExitCodeProcess bool(hProcess HANDLE, lpExitCode DWORD mut*) extern<kernel32> summon
 
-ReadFile bool
-	hFile HANDLE
-	lpBuffer nat8 mut*
-	nNumberOfBytesToRead nat32
-	lpNumberOfBytesRead nat32 mut*
+ReadFile bool(
+	hFile HANDLE,
+	lpBuffer nat8 mut*,
+	nNumberOfBytesToRead nat32,
+	lpNumberOfBytesRead nat32 mut*,
 	# TODO: Overlapped type
-	lpOverlapped any-mut-ptr
-spec
-	extern<kernel32>
-	summon
+	lpOverlapped any-mut-ptr,
+) extern<kernel32> summon
 
 MAKEWORD WORD(a nat8, b nat8) trusted
 	(a.to-nat16 | (b.to-nat16 << 8))

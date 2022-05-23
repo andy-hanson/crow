@@ -60,30 +60,22 @@ glBindBuffer void(a gl-ext, target GLenum, buffer GLuint) noctx summon unsafe
 glBindTexture void(a gl-ext, target GLenum, texture GLuint) noctx summon unsafe
 	a.glBindTexture_[target, texture]
 
-glBufferData void
-	a gl-ext
-	target GLenum
-	size GLsizeiptr
-	buffer-data any-const-ptr
-	usage GLenum
-spec
-	noctx
-	summon
-	unsafe
-body
+glBufferData void(
+	a gl-ext,
+	target GLenum,
+	size GLsizeiptr,
+	buffer-data any-const-ptr,
+	usage GLenum,
+) noctx summon unsafe
 	a.glBufferData_[target, size, buffer-data, usage]
 
-glBufferSubData void
-	a gl-ext
-	target GLenum
-	offset GLintptr
-	size GLsizeiptr
-	buffer-data any-const-ptr
-spec
-	noctx
-	summon
-	unsafe
-body
+glBufferSubData void(
+	a gl-ext,
+	target GLenum,
+	offset GLintptr,
+	size GLsizeiptr,
+	buffer-data any-const-ptr,
+) noctx summon unsafe
 	a.glBufferSubData_[target, offset, size, buffer-data]
 
 glClear void(a gl-ext, mask GLbitfield) noctx summon unsafe
@@ -134,33 +126,25 @@ glGenTextures void(a gl-ext, n GLsizei, textures GLuint mut*) noctx summon unsaf
 glGetError GLenum(a gl-ext) noctx summon
 	a.glGetError_[]
 
-glGetProgramInfoLog void
-	a gl-ext
-	program GLuint
-	bufSize GLsizei
-	length cell GLsizei
-	infoLog GLchar mut*
-spec
-	noctx
-	summon
-	unsafe
-body
+glGetProgramInfoLog void(
+	a gl-ext,
+	program GLuint,
+	bufSize GLsizei,
+	length cell GLsizei,
+	infoLog GLchar mut*,
+) noctx summon unsafe
 	a.glGetProgramInfoLog_[program, bufSize, length, infoLog]
 
 glGetProgramiv void(a gl-ext, program GLuint, pname GLenum, params cell GLint) noctx summon unsafe
 	a.glGetProgramiv_[program, pname, params]
 
-glGetShaderInfoLog void
-	a gl-ext
-	shader GLuint
-	bufSize GLsizei
-	length cell GLsizei
-	infoLog GLchar mut*
-spec
-	noctx
-	summon
-	unsafe
-body
+glGetShaderInfoLog void(
+	a gl-ext,
+	shader GLuint,
+	bufSize GLsizei,
+	length cell GLsizei,
+	infoLog GLchar mut*,
+) noctx summon unsafe
 	a.glGetShaderInfoLog_[shader, bufSize, length, infoLog]
 
 glGetShaderiv void(a gl-ext, reader GLuint, pname GLenum, params cell GLint) noctx summon unsafe
@@ -172,35 +156,27 @@ glGetUniformLocation GLint(a gl-ext, program GLuint, name GLchar*) noctx summon 
 glLinkProgram void(a gl-ext, program GLuint) noctx summon unsafe
 	a.glLinkProgram_[program]
 
-glShaderSource void
-	a gl-ext
-	shader GLuint
-	count GLsizei
-	string GLchar**
-	length GLint*
-spec
-	noctx
-	summon
-	unsafe
-body
+glShaderSource void(
+	a gl-ext,
+	shader GLuint,
+	count GLsizei,
+	string GLchar**,
+	length GLint*,
+) noctx summon unsafe
 	a.glShaderSource_[shader, count, string, length]
 
-glTexImage2D void
-	a gl-ext
-	target GLenum
-	level GLint
-	internalformat GLenum
-	width GLsizei
-	height GLsizei
-	border GLint
-	format GLenum
-	type GLenum
-	pixels any-const-ptr
-spec
-	noctx
-	summon
-	unsafe
-body
+glTexImage2D void(
+	a gl-ext,
+	target GLenum,
+	level GLint,
+	internalformat GLenum,
+	width GLsizei,
+	height GLsizei,
+	border GLint,
+	format GLenum,
+	type GLenum,
+	pixels any-const-ptr,
+) noctx summon unsafe
 	a.glTexImage2D_[target, level, internalformat, width, height, border, format, type, pixels]
 
 glTexParameteri void(a gl-ext, target GLenum, pname GLenum, param GLenum) noctx summon unsafe
@@ -209,35 +185,27 @@ glTexParameteri void(a gl-ext, target GLenum, pname GLenum, param GLenum) noctx 
 glUniform1i void(a gl-ext, location GLint, v0 GLint) noctx summon unsafe
 	a.glUniform1i_[location, v0]
 
-glUniformMatrix3fv void
-	a gl-ext
-	location GLint
-	count GLsizei
-	transpose GLboolean
-	value GLfloat*
-spec
-	noctx
-	summon
-	unsafe
-body
+glUniformMatrix3fv void(
+	a gl-ext,
+	location GLint,
+	count GLsizei,
+	transpose GLboolean,
+	value GLfloat*,
+) noctx summon unsafe
 	a.glUniformMatrix3fv_[location, count, transpose, value]
 
 glUseProgram void(a gl-ext, program GLuint) noctx summon unsafe
 	a.glUseProgram_[program]
 
-glVertexAttribPointer void
-	a gl-ext
-	index GLuint
-	size GLint
-	type GLenum
-	normalized GLboolean
-	stride GLsizei
-	pointer any-const-ptr
-spec
-	noctx
-	summon
-	unsafe
-body
+glVertexAttribPointer void(
+	a gl-ext,
+	index GLuint,
+	size GLint,
+	type GLenum,
+	normalized GLboolean,
+	stride GLsizei,
+	pointer any-const-ptr,
+) noctx summon unsafe
 	a.glVertexAttribPointer_[index, size, type, normalized, stride, pointer]
 
 new gl-ext() unsafe summon

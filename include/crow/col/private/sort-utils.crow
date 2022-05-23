@@ -173,16 +173,14 @@ merge-no-duplicates<a> void(a a mut[], b a mut[], compare act unique-comparison(
 Merge right-to-left so we never overwrite anything we still have to read.
 In condition: a-read, a-write, b-read are all valid pointers.
 ###
-.merge-reverse-recur<a> void
-	a-begin a mut*
-	a-read a*
-	a-write a mut*
-	b-begin a*
-	b-read a*
-	compare act unique-comparison(a, a)
-spec
-	unsafe
-body
+.merge-reverse-recur<a> void(
+	a-begin a mut*,
+	a-read a*,
+	a-write a mut*,
+	b-begin a*,
+	b-read a*,
+	compare act unique-comparison(a, a),
+) unsafe
 	match compare[*a-read, *b-read]
 	as less
 		*a-write := *b-read

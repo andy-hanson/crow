@@ -10,7 +10,7 @@ main fut nat(_ str[]) unsafe summon
 	primes <- for x : 1_000_000 .. 1_010_000 parallel
 		if x is-prime
 			(x,),
-	print: "primes: {(for x : primes.flatten; x to-str) join ", "}"
+	print: "primes: {", " join (for x : primes.flatten; x to-str)}"
 	()
 
 

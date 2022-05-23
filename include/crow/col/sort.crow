@@ -122,15 +122,13 @@ set-sort-unique<a> fix-arr a(a fix-arr a, comparer act comparison(a, a)) trusted
 		a[0 .. end - a.begin-ptr]
 set-sort-unique-by<a, b> fix-arr a(a fix-arr a, f act b(a)) compare<b>
 	a set-sort-unique (x, y) => f[x] <=> f[y]
-.set-unique-recur<a> a mut*
-	prev a
-	read a mut*
-	write a mut*
-	end a mut*
-	comparer act comparison(a, a)
-spec
-	unsafe
-body
+.set-unique-recur<a> a mut*(
+	prev a,
+	read a mut*,
+	write a mut*,
+	end a mut*,
+	comparer act comparison(a, a),
+) unsafe
 	if read == end
 		write
 	else

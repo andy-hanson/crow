@@ -299,15 +299,11 @@ thread-handle record mut by-val
 .as-pthread pthread_t(a thread-handle) noctx unsafe
 	a.storage to-nat64
 
-create-one-thread void
-	out cell thread-handle
-	thread-arg any-mut-ptr
-	thread-fun fun-ptr1<any-mut-ptr, any-mut-ptr>
-spec
-	noctx
-	unsafe
-	summon
-body
+create-one-thread void(
+	out cell thread-handle,
+	thread-arg any-mut-ptr,
+	thread-fun fun-ptr1<any-mut-ptr, any-mut-ptr>,
+) noctx unsafe summon
 	if is-single-threaded
 		hard-unreachable
 	elif is-windows

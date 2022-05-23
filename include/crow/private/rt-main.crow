@@ -66,16 +66,13 @@ nat64-to-int64 int64(a nat64) unsafe noctx
 
 init-constants void() unsafe noctx summon builtin
 
-.add-main-task fut nat64
-	gctx global-ctx
-	thread-id nat64
-	argc int32
-	argv c-str*
-	main-ptr main-ptr
-spec
-	trusted
-	noctx
-body
+.add-main-task fut nat64(
+	gctx global-ctx,
+	thread-id nat64,
+	argc int32,
+	argv c-str*,
+	main-ptr main-ptr,
+) trusted noctx
 	# Before we start the engine, add a task.
 	# Create a ctx manually so we can call functions that need it when creating the task
 	ectx = exception-ctx
@@ -125,17 +122,13 @@ body
 	threads unmanaged-free
 	thread-args unmanaged-free
 
-.start-threads-recur void
-	i nat64
-	n-threads nat64
-	threads thread-handle mut*
-	thread-args-begin by-val<thread-args> mut*
-	gctx global-ctx
-spec
-	noctx
-	unsafe
-	summon
-body
+.start-threads-recur void(
+	i nat64,
+	n-threads nat64,
+	threads thread-handle mut*,
+	thread-args-begin by-val<thread-args> mut*,
+	gctx global-ctx,
+) noctx unsafe summon
 	unless i == n-threads
 		thread-arg-ptr = thread-args-begin + i
 		*thread-arg-ptr := i, gctx

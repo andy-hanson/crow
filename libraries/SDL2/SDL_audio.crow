@@ -35,15 +35,13 @@ new SDL_AudioSpec() noctx unsafe
 
 SDL_GetAudioDeviceName c-str(index c-int, iscapture c-int) extern<SDL2> summon
 
-SDL_OpenAudioDevice SDL_AudioDeviceID
-	device c-str
-	iscapture c-int
-	desired SDL_AudioSpec*
-	obtained SDL_AudioSpec mut*
-	allowed_changes c-int
-spec
-	extern<SDL2>
-	summon
+SDL_OpenAudioDevice SDL_AudioDeviceID(
+	device c-str,
+	iscapture c-int,
+	desired SDL_AudioSpec*,
+	obtained SDL_AudioSpec mut*,
+	allowed_changes c-int,
+) extern<SDL2> summon
 
 SDL_PauseAudioDevice void(dev SDL_AudioDeviceID, pause_on c-int) extern<SDL2> summon
 

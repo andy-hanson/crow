@@ -15,22 +15,20 @@ crypto_pwhash_opslimit_sensitive size_t() extern<sodium>
 crypto_pwhash_memlimit_moderate size_t() extern<sodium>
 crypto_pwhash_memlimit_sensitive size_t() extern<sodium>
 
-crypto_pwhash_str err-t
+crypto_pwhash_str err-t(
 	# Length should be crypto_pwhash_strbytes
-	output char8 mut*
-	passwd c-str
-	passwdlen u-long-long
-	opslimit u-long-long
-	memlimit size_t
-spec
-	extern<sodium>
+	output char8 mut*,
+	passwd c-str,
+	passwdlen u-long-long,
+	opslimit u-long-long,
+	memlimit size_t,
+) extern<sodium>
 
-crypto_pwhash_str_verify err-t
+crypto_pwhash_str_verify err-t(
 	# Length should be crypto_pwhash_strbytes
-	str char8*
-	passwd c-str
-	passwdlen u-long-long
-spec
-	extern<sodium>
+	str char8*,
+	passwd c-str,
+	passwdlen u-long-long,
+) extern<sodium>
 
 randombytes_random nat32() extern<sodium>

@@ -41,6 +41,7 @@ import frontend.parse.lexer :
 	peekToken,
 	range,
 	skipBlankLinesAndGetDocComment,
+	skipNewlinesIgnoreIndentation,
 	skipUntilNewlineNoDiag,
 	takeDedentFromIndent1,
 	takeIndentOrDiagTopLevel,
@@ -79,7 +80,7 @@ import util.perf : Perf, PerfMeasure, withMeasure;
 import util.ptr : ptrTrustMe_mut;
 import util.sourceRange : Pos, RangeWithinFile;
 import util.sym : AllSymbols, Operator, shortSym, shortSymValue, Sym;
-import util.util : todo, unreachable, verify;
+import util.util : todo, unreachable;
 
 immutable(FileAst) parseFile(
 	ref Alloc alloc,
@@ -301,12 +302,6 @@ immutable(TrailingComma) takeCommaSeparatedNames(scope ref Lexer lexer, ref ArrB
 		: TrailingComma.no;
 }
 
-struct ParamsAndMaybeDedent {
-	immutable ParamsAst params;
-	// 0 if we took a newline but it didn't change the indent level from before parsing params.
-	immutable Opt!size_t dedents;
-}
-
 immutable(ParamAst) parseSingleParam(scope ref Lexer lexer) {
 	immutable Pos start = curPos(lexer);
 	immutable Opt!Sym name = takeNameOrUnderscore(lexer);
@@ -314,8 +309,11 @@ immutable(ParamAst) parseSingleParam(scope ref Lexer lexer) {
 	return immutable ParamAst(range(lexer, start), name, type);
 }
 
-immutable(ParamsAst) parseParenthesizedParams(scope ref Lexer lexer) {
-	if (tryTakeToken(lexer, Token.parenRight))
+immutable(ParamsAst) parseParams(scope ref Lexer lexer) {
+	if (!takeOrAddDiagExpectedToken(lexer, Token.parenLeft, ParseDiag.Expected.Kind.openParen)) {
+		skipUntilNewlineNoDiag(lexer);
+		return immutable ParamsAst([]);
+	} else if (tryTakeToken(lexer, Token.parenRight))
 		return immutable ParamsAst(emptySmallArray!ParamAst);
 	else if (tryTakeToken(lexer, Token.dot3)) {
 		immutable ParamAst param = parseSingleParam(lexer);
@@ -324,6 +322,7 @@ immutable(ParamsAst) parseParenthesizedParams(scope ref Lexer lexer) {
 	} else {
 		ArrBuilder!ParamAst res;
 		for (;;) {
+			skipNewlinesIgnoreIndentation(lexer);
 			add(lexer.alloc, res, parseSingleParam(lexer));
 			if (tryTakeToken(lexer, Token.parenRight))
 				break;
@@ -331,81 +330,23 @@ immutable(ParamsAst) parseParenthesizedParams(scope ref Lexer lexer) {
 				skipUntilNewlineNoDiag(lexer);
 				break;
 			}
+			// allow trailing comma
+			skipNewlinesIgnoreIndentation(lexer);
+			if (tryTakeToken(lexer, Token.parenRight))
+				break;
 		}
 		return immutable ParamsAst(finishArr(lexer.alloc, res));
 	}
 }
 
-immutable(ParamsAndMaybeDedent) parseIndentedParams(scope ref Lexer lexer) {
-	ArrBuilder!ParamAst res;
-	for (;;) {
-		add(lexer.alloc, res, parseSingleParam(lexer));
-		immutable size_t dedents = takeNewlineOrDedentAmount(lexer, 1);
-		if (dedents != 0)
-			return immutable ParamsAndMaybeDedent(
-				immutable ParamsAst(finishArr(lexer.alloc, res)),
-				some(dedents - 1));
-	}
-}
-
-immutable(ParamsAndMaybeDedent) parseParams(scope ref Lexer lexer) {
-	if (tryTakeToken(lexer, Token.parenLeft))
-		return ParamsAndMaybeDedent(parseParenthesizedParams(lexer), none!size_t);
-	else
-		final switch (takeNewlineOrIndent_topLevel(lexer)) {
-			case NewlineOrIndent.newline:
-				return immutable ParamsAndMaybeDedent(immutable ParamsAst([]), some!size_t(0));
-			case NewlineOrIndent.indent:
-				return parseIndentedParams(lexer);
-		}
-}
-
-struct SigAstAndMaybeDedent {
-	immutable TypeAst returnType;
-	immutable ParamsAst params;
-	immutable Opt!size_t dedents;
-}
-
-struct SpecSigAstAndMaybeDedent {
-	immutable SpecSigAst sig;
-	immutable Opt!size_t dedents;
-}
-
-struct SpecSigAstAndDedent {
-	immutable SpecSigAst sig;
-	immutable size_t dedents;
-}
-
-immutable(SigAstAndMaybeDedent) parseSigAfterName(scope ref Lexer lexer) {
-	immutable TypeAst returnType = parseType(lexer);
-	immutable ParamsAndMaybeDedent params = parseParams(lexer);
-	return immutable SigAstAndMaybeDedent(
-		returnType,
-		params.params,
-		params.dedents);
-}
-
-immutable(SpecSigAstAndMaybeDedent) parseSpecSigAfterName(
-	scope ref Lexer lexer,
-	immutable SafeCStr comment,
-	immutable Pos start,
-	immutable Sym name,
-) {
-	immutable TypeAst returnType = parseType(lexer);
-	immutable ParamsAndMaybeDedent params = parseParams(lexer);
-	return immutable SpecSigAstAndMaybeDedent(
-		immutable SpecSigAst(comment, range(lexer, start), name, returnType, params.params),
-		params.dedents);
-}
-
-immutable(SpecSigAstAndDedent) parseSpecSig(scope ref Lexer lexer, immutable uint curIndent) {
+immutable(SpecSigAst) parseSpecSig(scope ref Lexer lexer) {
 	// TODO: this doesn't work because the lexer already skipped comments
 	immutable SafeCStr comment = skipBlankLinesAndGetDocComment(lexer);
 	immutable Pos start = curPos(lexer);
-	immutable Sym sigName = takeNameOrOperator(lexer);
-	immutable SpecSigAstAndMaybeDedent s = parseSpecSigAfterName(lexer, comment, start, sigName);
-	immutable size_t dedents = has(s.dedents) ? force(s.dedents) : takeNewlineOrDedentAmount(lexer, curIndent);
-	return immutable SpecSigAstAndDedent(s.sig, dedents);
+	immutable Sym name = takeNameOrOperator(lexer);
+	immutable TypeAst returnType = parseType(lexer);
+	immutable ParamsAst params = parseParams(lexer);
+	return immutable SpecSigAst(comment, range(lexer, start), name, returnType, params);
 }
 
 immutable(SpecSigAst[]) parseIndentedSigs(scope ref Lexer lexer) {
@@ -415,15 +356,15 @@ immutable(SpecSigAst[]) parseIndentedSigs(scope ref Lexer lexer) {
 		case NewlineOrIndent.indent:
 			ArrBuilder!SpecSigAst res;
 			for (;;) {
-				immutable SpecSigAstAndDedent sd = parseSpecSig(lexer, 1);
-				add(lexer.alloc, res, sd.sig);
-				if (sd.dedents != 0) {
-					// We started at in indent level of only 1, so can't go down more than 1.
-					verify(sd.dedents == 1);
-					return finishArr(lexer.alloc, res);
+				immutable SpecSigAst sig = parseSpecSig(lexer);
+				add(lexer.alloc, res, sig);
+				final switch (takeNewlineOrSingleDedent(lexer)) {
+					case NewlineOrDedent.newline:
+						break;
+					case NewlineOrDedent.dedent:
+						return finishArr(lexer.alloc, res);
 				}
 			}
-
 	}
 }
 
@@ -506,11 +447,6 @@ immutable(StructDeclAst.Body.Union.Member[]) parseUnionMembers(scope ref Lexer l
 	return finishArr(lexer.alloc, res);
 }
 
-struct FunModifiersAndBody {
-	immutable FunModifierAst[] modifiers;
-	immutable Opt!ExprAst body_;
-}
-
 immutable(FunDeclAst) parseFun(
 	scope ref Lexer lexer,
 	immutable SafeCStr docComment,
@@ -519,60 +455,28 @@ immutable(FunDeclAst) parseFun(
 	immutable Sym name,
 	immutable NameAndRange[] typeParams,
 ) {
-	immutable SigAstAndMaybeDedent sig = parseSigAfterName(lexer);
-	immutable FunModifiersAndBody modAndBod = () @safe {
-		if (has(sig.dedents)) {
-			// Started at indent of 0
-			verify(force(sig.dedents) == 0);
-			immutable FunModifierAst[] modifiers = tryTakeToken(lexer, Token.spec)
-				? parseIndentedFunModifiers(lexer.alloc, lexer)
-				: [];
-			immutable Opt!ExprAst body_ = tryTakeToken(lexer, Token.body)
-				? parseFunExprBody(lexer)
-				: none!ExprAst;
-			return immutable FunModifiersAndBody(modifiers, body_);
-		} else {
-			immutable FunModifierAst[] modifiers = parseFunModifiers(lexer.alloc, lexer);
-			immutable Opt!ExprAst body_ = parseFunExprBody(lexer);
-			return immutable FunModifiersAndBody(modifiers, body_);
-		}
-	}();
+	immutable TypeAst returnType = parseType(lexer);
+	immutable ParamsAst params = parseParams(lexer);
+	immutable FunModifierAst[] modifiers = parseFunModifiers(lexer.alloc, lexer);
+	immutable Opt!ExprAst body_ = parseFunExprBody(lexer);
 	return immutable FunDeclAst(
 		range(lexer, start),
 		docComment,
 		visibility,
 		name,
 		small(typeParams),
-		sig.returnType,
-		sig.params,
-		small(modAndBod.modifiers),
-		modAndBod.body_);
+		returnType,
+		params,
+		small(modifiers),
+		body_);
 }
 
 //TODO: use alloc from lexer
 immutable(FunModifierAst[]) parseFunModifiers(scope ref Alloc alloc, scope ref Lexer lexer) {
 	ArrBuilder!FunModifierAst res;
-	while (!peekToken(lexer, Token.newline) && !peekToken(lexer, Token.EOF)) {
+	while (!peekToken(lexer, Token.newline) && !peekToken(lexer, Token.EOF))
 		parseFunModifier(lexer, res);
-	}
 	return finishArr(lexer.alloc, res);
-}
-
-//TODO: use alloc from lexer
-immutable(FunModifierAst[]) parseIndentedFunModifiers(scope ref Alloc alloc, scope ref Lexer lexer) {
-	if (takeIndentOrDiagTopLevel(lexer)) {
-		ArrBuilder!FunModifierAst res;
-		while (true) {
-			parseFunModifier(lexer, res);
-			final switch (takeNewlineOrSingleDedent(lexer)) {
-				case NewlineOrDedent.newline:
-					break;
-				case NewlineOrDedent.dedent:
-					return finishArr(alloc, res);
-			}
-		}
-	} else
-		return [];
 }
 
 void parseFunModifier(scope ref Lexer lexer, scope ref ArrBuilder!FunModifierAst res) {

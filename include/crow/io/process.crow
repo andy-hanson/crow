@@ -218,15 +218,12 @@ shell-exec str(command str) trusted summon
 	check-posix-error: res pipe
 	res
 
-.keep-polling void
-	stdout-pipe fd-t
-	stderr-pipe fd-t
-	stdout-builder char8 mut[]
-	stderr-builder char8 mut[]
-spec
-	summon
-	unsafe
-body
+.keep-polling void(
+	stdout-pipe fd-t,
+	stderr-pipe fd-t,
+	stdout-builder char8 mut[],
+	stderr-builder char8 mut[],
+) summon unsafe
 	# TODO: type annotation should be unnecessary
 	# (It is because currently fix-arr exposes the constructor, which should be private)
 	pfd1 = (stdout-pipe, POLLIN, 0) :: by-val<pollfd>

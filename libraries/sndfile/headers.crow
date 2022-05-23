@@ -34,13 +34,12 @@ new SF_INFO() noctx
 	0, 0, 0, (), 0, 0
 
 sf_open SNDFILE(path c-str, mode SndFileMode, sfinfo SF_INFO mut*) extern<sndfile> summon
-sf_open_virtual SNDFILE
-	sfvirtual SF_VIRTUAL_IO
-	mode SndFileMode
-	sfinfo SF_INFO mut*
-	user_data any-mut-ptr
-spec
-	extern<sndfile>
+sf_open_virtual SNDFILE(
+	sfvirtual SF_VIRTUAL_IO,
+	mode SndFileMode,
+	sfinfo SF_INFO mut*,
+	user_data any-mut-ptr,
+) extern<sndfile>
 sf_close c-int(SNDFILE SNDFILE) extern<sndfile>
 
 SndFileMode enum<c-int> extern

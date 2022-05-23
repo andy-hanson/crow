@@ -34,14 +34,11 @@ again-or-quit enum
 # Call `action` now and on every `interval`.
 repeat-interval fut void(interval duration, action ref again-or-quit()) trusted summon
 	get-monotime-nsec repeat-interval-recur interval.nsec.to-nat64, action
-.repeat-interval-recur fut void
-	start-nsec nat64
-	interval-nsec nat64
-	action ref again-or-quit()
-spec
-	trusted
-	summon
-body
+.repeat-interval-recur fut void(
+	start-nsec nat64,
+	interval-nsec nat64,
+	action ref again-or-quit(),
+) trusted summon
 	choice <- action[]
 	match choice
 	as again

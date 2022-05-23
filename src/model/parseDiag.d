@@ -32,6 +32,7 @@ struct ParseDiag {
 			less,
 			name,
 			nameOrOperator,
+			openParen,
 			quoteDouble,
 			quoteDouble3,
 			slash,

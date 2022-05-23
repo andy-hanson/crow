@@ -16,38 +16,30 @@ posix_spawn_file_actions_t record mut by-ref extern
 
 # TODO: type file-actions and attrp, currently these are always null
 # /usr/include/spawn.h
-posix_spawn err-t
-	pid cell pid_t
-	executable-path c-str
-	file-actions posix_spawn_file_actions_t
-	attrp any-const-ptr
-	argv c-str*
-	environ c-str*
-spec
-	extern<c>
-	summon
+posix_spawn err-t(
+	pid cell pid_t,
+	executable-path c-str,
+	file-actions posix_spawn_file_actions_t,
+	attrp any-const-ptr,
+	argv c-str*,
+	environ c-str*,
+) extern<c> summon
 
 posix_spawn_file_actions_init err-t(file-actions posix_spawn_file_actions_t) extern<c> summon
 posix_spawn_file_actions_destroy err-t(file-actions posix_spawn_file_actions_t) extern<c> summon
-posix_spawn_file_actions_addopen err-t
-	file-actions posix_spawn_file_actions_t
-	fd fd-t
-	path c-str
-	oflag int32
-	mode mode_t
-spec
-	extern<c>
-	summon
-posix_spawn_file_actions_addclose err-t
-	file-actions posix_spawn_file_actions_t
-	fd fd-t
-spec
-	extern<c>
-	summon
-posix_spawn_file_actions_adddup2 err-t
-	file-actions posix_spawn_file_actions_t
-	fd fd-t
-	new-fd fd-t
-spec
-	extern<c>
-	summon
+posix_spawn_file_actions_addopen err-t(
+	file-actions posix_spawn_file_actions_t,
+	fd fd-t,
+	path c-str,
+	oflag int32,
+	mode mode_t,
+) extern<c> summon
+posix_spawn_file_actions_addclose err-t(
+	file-actions posix_spawn_file_actions_t,
+	fd fd-t,
+) extern<c> summon
+posix_spawn_file_actions_adddup2 err-t(
+	file-actions posix_spawn_file_actions_t,
+	fd fd-t,
+	new-fd fd-t,
+) extern<c> summon

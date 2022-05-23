@@ -182,6 +182,9 @@ void writeParseDiag(
 				case ParseDiag.Expected.Kind.nameOrOperator:
 					writeStatic(writer, "expected a name or operator");
 					break;
+				case ParseDiag.Expected.Kind.openParen:
+					writeStatic(writer, "expected '('");
+					break;
 				case ParseDiag.Expected.Kind.quoteDouble:
 					writeStatic(writer, "expected '\"'");
 					break;
@@ -1062,8 +1065,6 @@ immutable(string) describeTokenForUnexpected(immutable Token token) {
 			return "unexpected keyword 'assert'";
 		case Token.atLess:
 			return "unexpected '@<'";
-		case Token.body:
-			return "unexpected keyword 'body'";
 		case Token.break_:
 			return "unexpected keyword 'break'";
 		case Token.builtin:

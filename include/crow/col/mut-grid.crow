@@ -161,16 +161,14 @@ fold<a, b> a(acc a, a mut-grid b, f act a(a, b))
 
 fold-with-coords<a, b> a(acc a, a mut-grid b, f act a(a, b, coord)) trusted
 	acc fold-with-coords-recur a.elements.begin-ptr.as-const, a.elements.end-ptr.as-const, (), a.width, f
-.fold-with-coords-recur<a, b> a
-	acc a
-	cur b*
-	end b*
-	coord coord
-	width nat64
-	f act a(a, b, coord)
-spec
-	unsafe
-body
+.fold-with-coords-recur<a, b> a(
+	acc a,
+	cur b*,
+	end b*,
+	coord coord,
+	width nat64,
+	f act a(a, b, coord),
+) unsafe
 	if cur == end
 		acc
 	else

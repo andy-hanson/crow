@@ -228,15 +228,12 @@ This is O(log n), amortized O(1).
 	(a.root cat-right-array-l0 (b,)),
 
 # 'r' is bigger, add 'l' to the left
-.cat-left-node-level<a, lower> node<a, lower>
-	l node<a, lower>
-	r node<a, lower>
-	cat-left-array-lower act lower(a[], lower)
-	cat-left-node-lower act lower(lower, lower)
-spec
-	trusted
-	new<lower>
-body
+.cat-left-node-level<a, lower> node<a, lower>(
+	l node<a, lower>,
+	r node<a, lower>,
+	cat-left-array-lower act lower(a[], lower),
+	cat-left-node-lower act lower(lower, lower),
+) trusted new<lower>
 	match l
 	as leaf xs
 		xs cat-left-array-level r, cat-left-array-lower
@@ -251,15 +248,12 @@ body
 			(bl.left, down2, br.right) branch
 
 # 'l' is bigger, add 'r' to right
-.cat-right-node-level<a, lower> node<a, lower>
-	l node<a, lower>
-	r node<a, lower>
-	cat-right-array-lower act lower(lower, a[])
-	cat-right-node-lower act lower(lower, lower)
-spec
-	trusted
-	new<lower>
-body
+.cat-right-node-level<a, lower> node<a, lower>(
+	l node<a, lower>,
+	r node<a, lower>,
+	cat-right-array-lower act lower(lower, a[]),
+	cat-right-node-lower act lower(lower, lower),
+) trusted new<lower>
 	match r
 	as leaf xs
 		l cat-right-array-level xs, cat-right-array-lower
@@ -274,13 +268,11 @@ body
 			(bl.left, down2, br.right) branch
 
 # 'r' is bigger
-.cat-left-array-level<a, lower> node<a, lower>
-	l a[]
-	r node<a, lower>
-	cat-left-lower act lower(a[], lower)
-spec
-	new<lower>
-body
+.cat-left-array-level<a, lower> node<a, lower>(
+	l a[],
+	r node<a, lower>,
+	cat-left-lower act lower(a[], lower),
+) new<lower>
 	match r
 	as leaf xs
 		if (l.size-bytes wrap-add xs.size-bytes) <= max-leaf-bytes
@@ -293,13 +285,11 @@ body
 		else
 			(l, cat-left-lower[br.left, br.down], br.right) branch
 
-.cat-right-array-level<a, lower> node<a, lower>
-	l node<a, lower>
-	r a[]
-	cat-right-lower act lower(lower, a[])
-spec
-	new<lower>
-body
+.cat-right-array-level<a, lower> node<a, lower>(
+	l node<a, lower>,
+	r a[],
+	cat-right-lower act lower(lower, a[]),
+) new<lower>
 	match l
 	as leaf xs
 		if (xs.size-bytes wrap-add r.size-bytes) <= max-leaf-bytes

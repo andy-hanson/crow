@@ -51,15 +51,13 @@ SDL_PIXELFORMAT_RGBA32 nat32() noctx unsafe
 .SDL_PIXELFORMAT_ABGR8888 nat32() noctx unsafe
 	SDL_PIXELTYPE_PACKED32 SDL_DEFINE_PIXELFORMAT SDL_PACKEDORDER_ABGR, SDL_PACKEDLAYOUT_8888, 32, 4
 
-.SDL_DEFINE_PIXELFORMAT nat32
-	type SDL_PixelType
-	order SDL_PackedOrder
-	layout SDL_PackedLayout
-	bits nat32
-	bytes nat32
-spec
-	noctx
-body
+.SDL_DEFINE_PIXELFORMAT nat32(
+	type SDL_PixelType,
+	order SDL_PackedOrder,
+	layout SDL_PackedLayout,
+	bits nat32,
+	bytes nat32,
+) noctx
 	format = (type.to-nat32 << 24) | (order.to-nat32 << 20) | (layout.to-nat32 << 16)
 	(1 << 28) | format | (bits << 8) | bytes
 

@@ -161,16 +161,11 @@ subscript<r, p0> fut r(f ref r(p0), p0 p0) trusted is-sendable<r> is-sendable<p0
 	res
 
 # Calls a `ref` with two arguments.
-subscript<r, p0, p1> fut r
-	f ref r(p0, p1)
-	p0 p0
-	p1 p1
-spec
-	trusted
-	is-sendable<r>
-	is-sendable<p0>
-	is-sendable<p1>
-body
+subscript<r, p0, p1> fut r(
+	f ref r(p0, p1),
+	p0 p0,
+	p1 p1,
+) trusted is-sendable<r> is-sendable<p0> is-sendable<p1>
 	res fut r = unresolved
 	get-global-ctx add-task f.exclusion, () =>
 		(() => res forward-to f.action[p0, p1]) catch err => res reject err

@@ -121,16 +121,11 @@ lmdb-db<k, v> record mut
 	.dbi MDB_dbi
 
 # Calls `open-db`, then `f`, then `close-db` (in a `finally`).
-with-db<a, k, v> a
-	env lmdb-env
-	db-name str
-	f act a(lmdb-db<k, v>)
-spec
-	trusted
-	summon
-	lmdb-key<k>
-	serialize<v>
-body
+with-db<a, k, v> a(
+	env lmdb-env,
+	db-name str,
+	f act a(lmdb-db<k, v>),
+) trusted summon lmdb-key<k> serialize<v>
 	db lmdb-db<k, v> = env open-db db-name
 	(() => env close-db db) finally () => f[db]
 
@@ -242,18 +237,13 @@ try-add<k, v> bool(txn lmdb-txn, db lmdb-db<k, v>, key k, value v) summon lmdb-k
 		check-lmdb-error: err
 		true
 
-.put-inner<k, v> err-t
-	txn lmdb-txn
-	db lmdb-db<k, v>
-	key k
-	value v
-	mdb-flags u-int
-spec
-	trusted
-	summon
-	lmdb-key<k>
-	serialize<v>
-body
+.put-inner<k, v> err-t(
+	txn lmdb-txn,
+	db lmdb-db<k, v>,
+	key k,
+	value v,
+	mdb-flags u-int,
+) trusted summon lmdb-key<k> serialize<v>
 	txn.txn mdb_put db.dbi, key.to-lmdb-key.val-of-bytes, value.to-bytes.val-of-bytes, mdb-flags
 
 region stat
@@ -324,19 +314,12 @@ map<out, k, v> out[](txn lmdb-txn, db lmdb-db<k, v>, f act out(k, v)) trusted su
 Iterates `db0` and `db1` in order, calling `f` with each key and with the values from both dbs.
 Returns an array of the results.
 ###
-zip<out, k, v0, v1> out[]
-	txn lmdb-txn
-	db0 lmdb-db<k, v0>
-	db1 lmdb-db<k, v1>
-	f act out(k, v0, v1)
-spec
-	trusted
-	summon
-	is-data<k>
-	lmdb-key<k>
-	serialize<v0>
-	serialize<v1>
-body
+zip<out, k, v0, v1> out[](
+	txn lmdb-txn,
+	db0 lmdb-db<k, v0>,
+	db1 lmdb-db<k, v1>,
+	f act out(k, v0, v1),
+) trusted summon is-data<k> lmdb-key<k> serialize<v0> serialize<v1>
 	db0-count = txn count db0
 	db1-count = txn count db1
 	assert db0-count == db1-count
@@ -349,20 +332,13 @@ body
 		res cast-immutable
 
 # Like `zip`, but passes along an accumulator.
-zip-fold<a, k, v0, v1> a
-	acc a
-	txn lmdb-txn
-	db0 lmdb-db<k, v0>
-	db1 lmdb-db<k, v1>
-	f act a(a, k, v0, v1)
-spec
-	trusted
-	summon
-	is-data<k>
-	lmdb-key<k>
-	serialize<v0>
-	serialize<v1>
-body
+zip-fold<a, k, v0, v1> a(
+	acc a,
+	txn lmdb-txn,
+	db0 lmdb-db<k, v0>,
+	db1 lmdb-db<k, v1>,
+	f act a(a, k, v0, v1),
+) trusted summon is-data<k> lmdb-key<k> serialize<v0> serialize<v1>
 	db0-count = txn count db0
 	db1-count = txn count db1
 	assert db0-count == db1-count
@@ -371,38 +347,24 @@ body
 	else
 		acc zip-fold-non-empty txn, db0, db1, f
 
-.zip-fold-non-empty<a, k, v0, v1> a
-	acc a
-	txn lmdb-txn
-	db0 lmdb-db<k, v0>
-	db1 lmdb-db<k, v1>
-	f act a(a, k, v0, v1)
-spec
-	trusted
-	summon
-	is-data<k>
-	lmdb-key<k>
-	serialize<v0>
-	serialize<v1>
-body
+.zip-fold-non-empty<a, k, v0, v1> a(
+	acc a,
+	txn lmdb-txn,
+	db0 lmdb-db<k, v0>,
+	db1 lmdb-db<k, v1>,
+	f act a(a, k, v0, v1),
+) trusted summon is-data<k> lmdb-key<k> serialize<v0> serialize<v1>
 	txn with-cursor db0, cursor0 =>
 		txn with-cursor db1, cursor1 =>
 			check-lmdb-error: cursor0 mdb_cursor_get empty-val, empty-val, MDB_FIRST
 			check-lmdb-error: cursor1 mdb_cursor_get empty-val, empty-val, MDB_FIRST
 			acc zip-fold-recur cursor0, cursor1, f
-.zip-fold-recur<a, k, v0, v1> a
-	acc a
-	cursor0 MDB_cursor
-	cursor1 MDB_cursor
-	f act a(a, k, v0, v1)
-spec
-	unsafe
-	summon
-	is-data<k>
-	lmdb-key<k>
-	serialize<v0>
-	serialize<v1>
-body
+.zip-fold-recur<a, k, v0, v1> a(
+	acc a,
+	cursor0 MDB_cursor,
+	cursor1 MDB_cursor,
+	f act a(a, k, v0, v1),
+) unsafe summon is-data<k> lmdb-key<k> serialize<v0> serialize<v1>
 	key0-val = empty-val
 	value0-val = empty-val
 	check-lmdb-error: cursor0 mdb_cursor_get key0-val, value0-val, MDB_GET_CURRENT

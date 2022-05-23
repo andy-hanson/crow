@@ -172,17 +172,12 @@ try-add<a> set<a>?(a set a, value a) is-data<a> compare<a> hash-mix<a>
 .should-compact bool(size-here nat64, size-right nat64, removals-here-and-right nat64)
 	(size-right wrap-add (removals-here-and-right wrap-mul 2)) >= size-here
 
-.add-and-compact<a> set a
-	a set a
-	add-size nat64
-	plan compact-plan
-	value a
-spec
-	unsafe
-	is-data<a>
-	compare<a>
-	hash-mix<a>
-body
+.add-and-compact<a> set a(
+	a set a,
+	add-size nat64,
+	plan compact-plan,
+	value a,
+) unsafe is-data<a> compare<a> hash-mix<a>
 	assert plan.compacted-size > 1
 	compacted fix-arr a = plan.compacted-size uninitialized-fix-arr
 	*compacted.begin-ptr := value
@@ -195,17 +190,12 @@ body
 	cur mut a mut*
 	end a mut*
 
-.do-compact-recur<a> add-node a
-	compactor compactor a
-	a add-node a
-	add-size-here-and-left nat64
-	remove index-set
-spec
-	unsafe
-	is-data<a>
-	compare<a>
-	hash-mix<a>
-body
+.do-compact-recur<a> add-node a(
+	compactor compactor a,
+	a add-node a,
+	add-size-here-and-left nat64,
+	remove index-set,
+) unsafe is-data<a> compare<a> hash-mix<a>
 	compactor push a.here, add-size-here-and-left, remove
 	assert compactor.cur <= compactor.end
 	if compactor.cur == compactor.end

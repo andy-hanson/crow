@@ -59,14 +59,12 @@ run-crow-tests result<str, failure[]>(path str, path-to-crow str, options test-o
 	should-stop bool
 	failures failure[]
 
-.run-print-test print-test-result
-	print-kind str
-	path-to-crow str
-	path str
-	overwrite-output bool
-spec
-	summon
-body
+.run-print-test print-test-result(
+	print-kind str,
+	path-to-crow str,
+	path str,
+	overwrite-output bool,
+) summon
 	res = path-to-crow spawn-and-wait-result ("print", print-kind, path)
 	output-path = "{path}.{print-kind}.json"
 	# NOTE: compiler may have both stderr and stdout!
@@ -89,14 +87,12 @@ body
 		message = "unexpected exit code: {res exit-code}"
 		true, ((path, message),)
 
-.run-single-runnable-test failure[]
-	path-to-crow str
-	path str
-	interpret bool
-	overwrite-output bool
-spec
-	summon
-body
+.run-single-runnable-test failure[](
+	path-to-crow str,
+	path str,
+	interpret bool,
+	overwrite-output bool,
+) summon
 	args str[] = if interpret
 		"run", path, "--interpret"
 	else

@@ -366,56 +366,48 @@ subscript<r, p0, p1> r(a fun-ptr2<r, p0, p1>, p0 p0, p1 p1) noctx builtin
 subscript<r, p0, p1, p2> r(a fun-ptr3<r, p0, p1, p2>, p0 p0, p1 p1, p2 p2) noctx builtin
 subscript<r, p0, p1, p2, p3> r(a fun-ptr4<r, p0, p1, p2, p3>, p0 p0, p1 p1, p2 p2, p3 p3) noctx builtin
 subscript<r, p0, p1, p2, p3, p4> r(a fun-ptr5<r, p0, p1, p2, p3, p4>, p0 p0, p1 p1, p2 p2, p3 p3, p4 p4) noctx builtin
-subscript<r, p0, p1, p2, p3, p4, p5> r
-	a fun-ptr6<r, p0, p1, p2, p3, p4, p5>
-	p0 p0
-	p1 p1
-	p2 p2
-	p3 p3
-	p4 p4
-	p5 p5
-spec
-	noctx
-	builtin
-subscript<r, p0, p1, p2, p3, p4, p5, p6> r
-	a fun-ptr7<r, p0, p1, p2, p3, p4, p5, p6>
-	p0 p0
-	p1 p1
-	p2 p2
-	p3 p3
-	p4 p4
-	p5 p5
-	p6 p6
-spec
-	noctx
-	builtin
-subscript<r, p0, p1, p2, p3, p4, p5, p6, p7> r
-	a fun-ptr8<r, p0, p1, p2, p3, p4, p5, p6, p7>
-	p0 p0
-	p1 p1
-	p2 p2
-	p3 p3
-	p4 p4
-	p5 p5
-	p6 p6
-	p7 p7
-spec
-	noctx
-	builtin
-subscript<r, p0, p1, p2, p3, p4, p5, p6, p7, p8> r
-	a fun-ptr9<r, p0, p1, p2, p3, p4, p5, p6, p7, p8>
-	p0 p0
-	p1 p1
-	p2 p2
-	p3 p3
-	p4 p4
-	p5 p5
-	p6 p6
-	p7 p7
-	p8 p8
-spec
-	noctx
-	builtin
+subscript<r, p0, p1, p2, p3, p4, p5> r(
+	a fun-ptr6<r, p0, p1, p2, p3, p4, p5>,
+	p0 p0,
+	p1 p1,
+	p2 p2,
+	p3 p3,
+	p4 p4,
+	p5 p5,
+) noctx builtin
+subscript<r, p0, p1, p2, p3, p4, p5, p6> r(
+	a fun-ptr7<r, p0, p1, p2, p3, p4, p5, p6>,
+	p0 p0,
+	p1 p1,
+	p2 p2,
+	p3 p3,
+	p4 p4,
+	p5 p5,
+	p6 p6,
+) noctx builtin
+subscript<r, p0, p1, p2, p3, p4, p5, p6, p7> r(
+	a fun-ptr8<r, p0, p1, p2, p3, p4, p5, p6, p7>,
+	p0 p0,
+	p1 p1,
+	p2 p2,
+	p3 p3,
+	p4 p4,
+	p5 p5,
+	p6 p6,
+	p7 p7,
+) noctx builtin
+subscript<r, p0, p1, p2, p3, p4, p5, p6, p7, p8> r(
+	a fun-ptr9<r, p0, p1, p2, p3, p4, p5, p6, p7, p8>,
+	p0 p0,
+	p1 p1,
+	p2 p2,
+	p3 p3,
+	p4 p4,
+	p5 p5,
+	p6 p6,
+	p7 p7,
+	p8 p8,
+) noctx builtin
 
 # Calls the function and returns its return value.
 subscript<r> r(a fun r()) trusted

@@ -127,14 +127,11 @@ to-fix-arr<k, v> fix-arr pair<k, v>(a mut-priority-queue<k, v>) no-doc is-data<k
 	new-mins fix-arr pair<k, v> = a.size uninitialized-fix-arr
 	new-mins.begin-ptr spread-all-buckets-recur a, 0
 	new-mins
-.spread-all-buckets-recur<k, v> void
-	out pair<k, v> mut*
-	a mut-priority-queue<k, v>
-	index nat64
-spec
-	unsafe
-	compare<k>
-body
+.spread-all-buckets-recur<k, v> void(
+	out pair<k, v> mut*,
+	a mut-priority-queue<k, v>,
+	index nat64,
+) unsafe compare<k>
 	if index < a.mins.size
 		mid = if index < a.buckets.size
 			a.buckets[index].sort-by := it => it from

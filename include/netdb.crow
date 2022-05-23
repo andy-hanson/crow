@@ -25,14 +25,12 @@ ai-passive int32()
 Remember to call 'freeaddrinfo'!
 And cast the result to an enum 'getaddrinfo_error_posix' or 'getaddrinfo_error_windows'
 ###
-getaddrinfo c-int
-	name c-str
-	service c-str
-	req addrinfo*
-	pai addrinfo mut* mut*
-spec
-	extern<c>
-	summon
+getaddrinfo c-int(
+	name c-str,
+	service c-str,
+	req addrinfo*,
+	pai addrinfo mut* mut*,
+) extern<c> summon
 freeaddrinfo void(ai addrinfo mut*) extern<c>
 gai_strerror c-str(ecode int32) extern<c>
 

@@ -86,28 +86,21 @@ reg_errcode_t enum<c-int> extern
 	_REG_ESPACE
 	_REG_BADRPT
 
-regcomp reg_errcode_t
-	regex regex_t mut*
-	pattern c-str
-	cflags c-int
-spec
-	extern<c>
+regcomp reg_errcode_t(regex regex_t mut*, pattern c-str, cflags c-int) extern<c>
 
 regfree void(preg regex_t mut*) extern<c>
 
-regexec reg_errcode_t
-	preg regex_t*
-	string c-str
-	nmatch size_t
-	pmatch regmatch_t mut*
-	eflags c-int
-spec
-	extern<c>
+regexec reg_errcode_t(
+	preg regex_t*,
+	string c-str,
+	nmatch size_t,
+	pmatch regmatch_t mut*,
+	eflags c-int,
+) extern<c>
 
-regerror size_t
-	errcode reg_errcode_t
-	preg regex_t*
-	errbuff char8 mut*
-	errbuf_size size_t
-spec
-	extern<c>
+regerror size_t(
+	errcode reg_errcode_t,
+	preg regex_t*,
+	errbuff char8 mut*,
+	errbuf_size size_t,
+) extern<c>

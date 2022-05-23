@@ -129,15 +129,10 @@ in<k, v> bool(key k, a compact-dict<k, v>) is-data<k> compare<k> hash-mix<k>
 .should-merge bool(prev-size nat64, overlay-size nat64)
 	prev-size <= (overlay-size max 3)
 
-.merge-overlays<k, v> frozen-dict<k, v?>
-	l frozen-dict<k, v?>
-	r frozen-dict<k, v?>
-spec
-	trusted
-	is-data<k>
-	compare<k>
-	hash-mix<k>
-body
+.merge-overlays<k, v> frozen-dict<k, v?>(
+	l frozen-dict<k, v?>,
+	r frozen-dict<k, v?>,
+) trusted is-data<k> compare<k> hash-mix<k>
 	res fix-arr pair<k, v?> = l.size wrap-add r.size uninitialized-fix-arr
 	begin = res begin-ptr
 	mid = begin fold l, (cur, k, vl) =>
@@ -151,15 +146,10 @@ body
 		cur + 1
 	begin fix-arr-from-begin-end end fix-arr-to-frozen-dict-promise-no-duplicates
 
-.merge-to-end<k, v> frozen-dict<k, v>
-	l frozen-dict<k, v>
-	r frozen-dict<k, v?>
-spec
-	trusted
-	is-data<k>
-	compare<k>
-	hash-mix<k>
-body
+.merge-to-end<k, v> frozen-dict<k, v>(
+	l frozen-dict<k, v>,
+	r frozen-dict<k, v?>,
+) trusted is-data<k> compare<k> hash-mix<k>
 	res fix-arr pair<k, v> = l.size wrap-add r.size uninitialized-fix-arr
 	begin = res begin-ptr
 	mid = begin fold l, (cur, k, vl) =>

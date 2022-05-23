@@ -14,14 +14,12 @@ pthread_t alias
 
 # writes to `thread`
 # TODO: attr -- not typing this as currently I only pass null
-pthread_create err-t
-	thread pthread_t mut*
-	attr any-const-ptr
-	start-routine fun-ptr1<any-mut-ptr, any-mut-ptr>
-	arg any-mut-ptr
-spec
-	extern<pthread>
-	summon
+pthread_create err-t(
+	thread pthread_t mut*,
+	attr any-const-ptr,
+	start-routine fun-ptr1<any-mut-ptr, any-mut-ptr>,
+	arg any-mut-ptr,
+) extern<pthread> summon
 
 pthread_join err-t(thread pthread_t, thread-return any-mut-ptr mut*) extern<pthread> summon
 

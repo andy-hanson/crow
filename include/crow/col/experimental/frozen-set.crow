@@ -75,14 +75,9 @@ try-get-unordered-index<a> nat64?(a frozen-set a, value a) trusted is-data<a> co
 		if ptr ?= bucket-start arr-from-begin-end bucket-end ptr-of value
 			ptr - a.begin-ptr,
 
-unsafe-frozen-set-from-fix-arr-cast-immutable<a> frozen-set a
-	a fix-arr a
-spec
-	unsafe
-	is-data<a>
-	compare<a>
-	hash-mix<a>
-body
+unsafe-frozen-set-from-fix-arr-cast-immutable<a> frozen-set a(
+	a fix-arr a,
+) unsafe is-data<a> compare<a> hash-mix<a>
 	if a.size <= 4
 		a.cast-immutable, ()
 	else
@@ -100,15 +95,12 @@ body
 		res unsafe-set-at bucket-index, (res unsafe-at bucket-index wrap-add 1)
 	res
 
-.move-values-to-buckets-recur<a> void
-	cur a mut*
-	end a mut*
-	bucket-counts fix-arr nat64
-	bucket-starts a mut*[]
-spec
-	unsafe
-	hash-mix<a>
-body
+.move-values-to-buckets-recur<a> void(
+	cur a mut*,
+	end a mut*,
+	bucket-counts fix-arr nat64,
+	bucket-starts a mut*[],
+) unsafe hash-mix<a>
 	unless cur == end
 		bucket-index = *cur get-bucket-index bucket-counts.size
 		bucket-count = bucket-counts unsafe-at bucket-index
@@ -131,14 +123,12 @@ body
 	out fix-arr a mut* = a.size uninitialized-fix-arr
 	acc running-sum-recur out.begin-ptr, out.end-ptr, a.begin-ptr
 	out cast-immutable
-.running-sum-recur<a> void
-	acc a mut*
-	out a mut* mut*
-	out-end a mut* mut*
-	read nat64*
-spec
-	unsafe
-body
+.running-sum-recur<a> void(
+	acc a mut*,
+	out a mut* mut*,
+	out-end a mut* mut*,
+	read nat64*,
+) unsafe
 	*out := acc
 	unless out + 1 == out-end
 		acc + *read running-sum-recur out + 1, out-end, read + 1

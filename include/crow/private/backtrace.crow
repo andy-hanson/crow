@@ -48,14 +48,11 @@ Implemented by interpreter only.
 Returns the pointer to after the last entry written.
 Result c-str are temporary, must copy!
 ###
-.interpreter-backtrace backtrace-entry mut*
-	out backtrace-entry mut*
-	max-entries nat64
-	skip nat64
-spec
-	noctx
-	unsafe
-	builtin
+.interpreter-backtrace backtrace-entry mut*(
+	out backtrace-entry mut*,
+	max-entries nat64,
+	skip nat64,
+) noctx unsafe builtin
 
 .copy-strings void(begin backtrace-entry mut*, end backtrace-entry mut*) unsafe
 	cur mut = begin
@@ -66,24 +63,20 @@ spec
 .copy-c-strs backtrace-entry(a backtrace-entry) unsafe
 	a.function-name.copy-c-str-or-empty, a.file-path.copy-c-str-or-empty, a.line-number, a.column-number
 
-.get-native-backtrace-windows backtrace
-	entries backtrace-entry mut*
-	max-entries nat64
-	skip nat64
-spec
-	unsafe
-body
+.get-native-backtrace-windows backtrace(
+	entries backtrace-entry mut*,
+	max-entries nat64,
+	skip nat64,
+) unsafe
 	if vars ?= try-alloc-windows-backtrace-vars
 		entries get-windows-backtrace-with-vars max-entries, (skip wrap-add 1), vars
 
-.get-windows-backtrace-with-vars backtrace
-	entries backtrace-entry mut*
-	max-entries nat64
-	skip nat64
-	vars windows-backtrace-vars
-spec
-	unsafe
-body
+.get-windows-backtrace-with-vars backtrace(
+	entries backtrace-entry mut*,
+	max-entries nat64,
+	skip nat64,
+	vars windows-backtrace-vars,
+) unsafe
 	process = GetCurrentProcess
 	thread = GetCurrentThread
 
@@ -123,18 +116,16 @@ body
 .new<a> a?() noctx
 	none
 
-.windows-walk-backtrace backtrace-entry mut*
-	out backtrace-entry mut*
-	out-end backtrace-entry mut*
-	skip nat64
-	process HANDLE
-	thread HANDLE
-	context CONTEXT mut*
-	frame STACKFRAME64 mut*
-	vars windows-backtrace-vars
-spec
-	unsafe
-body
+.windows-walk-backtrace backtrace-entry mut*(
+	out backtrace-entry mut*,
+	out-end backtrace-entry mut*,
+	skip nat64,
+	process HANDLE,
+	thread HANDLE,
+	context CONTEXT mut*,
+	frame STACKFRAME64 mut*,
+	vars windows-backtrace-vars,
+) unsafe
 	ctx = context as-any-const-ptr
 	if out == out-end
 		out
@@ -182,13 +173,11 @@ body
 		cursor unwind-skip (skip wrap-sub 1)
 
 # Returns one past the last entry written to
-.unwind-recur backtrace-entry mut*
-	out-cur backtrace-entry mut*
-	out-end backtrace-entry mut*
-	cursor unw_cursor_t
-spec
-	unsafe
-body
+.unwind-recur backtrace-entry mut*(
+	out-cur backtrace-entry mut*,
+	out-end backtrace-entry mut*,
+	cursor unw_cursor_t,
+) unsafe
 	if out-cur == out-end || cursor.unw_step <= 0
 		out-cur
 	else

@@ -142,17 +142,13 @@ in<k, v> bool(key k, a compact-sorted-dict<k, v>) is-data<k> compare<k>
 	end = res.begin-ptr merge-keep-right l.begin-ptr, l.end-ptr, r.begin-ptr, r.end-ptr
 	res[0 .. end - res.begin-ptr] cast-immutable
 
-.merge-keep-right<k, v> pair<k, v> mut*
-	out pair<k, v> mut*
-	l pair<k, v>*
-	l-end pair<k, v>*
-	r pair<k, v>*
-	r-end pair<k, v>*
-spec
-	noctx
-	unsafe
-	compare<k>
-body
+.merge-keep-right<k, v> pair<k, v> mut*(
+	out pair<k, v> mut*,
+	l pair<k, v>*,
+	l-end pair<k, v>*,
+	r pair<k, v>*,
+	r-end pair<k, v>*,
+) noctx unsafe compare<k>
 	hard-assert: l < l-end
 	hard-assert: r < r-end
 	match l->from <=> r->from
@@ -185,18 +181,13 @@ body
 		res.begin-ptr merge-to-end-recur l.begin-ptr, l.end-ptr, r.begin-ptr, r.end-ptr
 	res[0 .. end - res.begin-ptr] cast-immutable
 
-.merge-to-end-recur<k, v> pair<k, v> mut*
-	out pair<k, v> mut*
-	l pair<k, v>*
-	l-end pair<k, v>*
-	r pair<k, v?>*
-	r-end pair<k, v?>*
-spec
-	unsafe
-	noctx
-	is-data<k>
-	compare<k>
-body
+.merge-to-end-recur<k, v> pair<k, v> mut*(
+	out pair<k, v> mut*,
+	l pair<k, v>*,
+	l-end pair<k, v>*,
+	r pair<k, v?>*,
+	r-end pair<k, v?>*,
+) unsafe noctx is-data<k> compare<k>
 	hard-assert: l < l-end
 	hard-assert: r < r-end
 	match l->from <=> r->from
@@ -236,14 +227,11 @@ body
 	out mem-copy cur, rest-size
 	out + rest-size
 
-.finish-rest-ignore-none<k, v> pair<k, v> mut*
-	out pair<k, v> mut*
-	r pair<k, v?>*
-	r-end pair<k, v?>*
-spec
-	unsafe
-	noctx
-body
+.finish-rest-ignore-none<k, v> pair<k, v> mut*(
+	out pair<k, v> mut*,
+	r pair<k, v?>*,
+	r-end pair<k, v?>*,
+) unsafe noctx
 	if r == r-end
 		out
 	else
@@ -272,15 +260,12 @@ fold<a, k, v> a(acc a, a compact-sorted-dict<k, v>, f act a(a, k, v)) is-data<k>
 	iters = a init-iters
 	acc fold-recur iters.end-pairs, iters.overlays, f
 
-.fold-recur<a, k, v> a
-	acc a
-	end-node pair<k, v>[]
-	overlays fix-arr pair<k, v?>[]
-	f act a(a, k, v)
-spec
-	is-data<k>
-	compare<k>
-body
+.fold-recur<a, k, v> a(
+	acc a,
+	end-node pair<k, v>[],
+	overlays fix-arr pair<k, v?>[],
+	f act a(a, k, v),
+) is-data<k> compare<k>
 	if overlays is-empty
 		acc fold end-node, (cur, pair) => f[cur, pair.from, pair.to]
 	else
@@ -318,15 +303,12 @@ Returns the rightmost value associated with that key.
 ###
 .take-key<k, v> took-key<k, v>(overlays fix-arr pair<k, v?>[], key k) is-data<k> compare<k>
 	overlays take-key-recur key, 0, ()
-.take-key-recur<k, v> took-key<k, v>
-	overlays fix-arr pair<k, v?>[]
-	key k
-	index nat64
-	rightmost-value v?
-spec
-	is-data<k>
-	compare<k>
-body
+.take-key-recur<k, v> took-key<k, v>(
+	overlays fix-arr pair<k, v?>[],
+	key k,
+	index nat64,
+	rightmost-value v?,
+) is-data<k> compare<k>
 	# Index can overshoot due to removing overlays
 	if index >= overlays.size
 		rightmost-value, overlays
@@ -378,15 +360,10 @@ filter<k, v> compact-sorted-dict<k, v>(a compact-sorted-dict<k, v>, f act bool(k
 	# No need to re-sort
 	(a.to-arr filter (pair => f[pair.from, pair.to]) end-node),
 
-map<k-out, v-out, k-in, v-in> compact-sorted-dict<k-out, v-out>
-	a compact-sorted-dict<k-in, v-in>
-	f act pair<k-out, v-out>(k-in, v-in)
-spec
-	is-data<k-in>
-	compare<k-in>
-	is-data<k-out>
-	compare<k-out>
-body
+map<k-out, v-out, k-in, v-in> compact-sorted-dict<k-out, v-out>(
+	a compact-sorted-dict<k-in, v-in>,
+	f act pair<k-out, v-out>(k-in, v-in),
+) is-data<k-in> compare<k-in> is-data<k-out> compare<k-out>
 	a map-to-arr f to-compact-sorted-dict
 
 keys<k, v> k[](a compact-sorted-dict<k, v>) is-data<k> compare<k>
@@ -396,13 +373,10 @@ map-to-arr<out, k, v> out[](a compact-sorted-dict<k, v>, f act out(k, v)) is-dat
 	for pair : a to-arr
 		f[pair.from, pair.to]
 
-map-values<v-out, k, v-in> compact-sorted-dict<k, v-out>
-	a compact-sorted-dict<k, v-in>
-	f act v-out(k, v-in)
-spec
-	is-data<k>
-	compare<k>
-body
+map-values<v-out, k, v-in> compact-sorted-dict<k, v-out>(
+	a compact-sorted-dict<k, v-in>,
+	f act v-out(k, v-in),
+) is-data<k> compare<k>
 	# No need to re-sort
 	new-pairs pair<k, v-out>[] = for pair : a to-arr
 		pair.from, f[pair.from, pair.to]

@@ -5,14 +5,12 @@ import
 	crow/io/print: print, print-no-newline
 	crow/str-util: normalize-newlines
 
-handle-output failure[]
-	original-path str
-	output-path str
-	actual str
-	overwrite-output bool
-spec
-	summon
-body
+handle-output failure[](
+	original-path str,
+	output-path str,
+	actual str,
+	overwrite-output bool,
+) summon
 	actual-normalized = actual normalize-newlines
 	if text ?= output-path try-read-file
 		if text == actual-normalized

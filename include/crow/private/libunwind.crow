@@ -25,10 +25,9 @@ unw_get_proc_name c-int(cursor unw_cursor_t, begin c-char mut*, size size_t, off
 ._Ux86_64_getcontext c-int(context unw_context_t) extern<unwind>
 ._ULx86_64_init_local c-int(cursor unw_cursor_t, context unw_context_t) extern<unwind>
 ._ULx86_64_step c-int(cursor unw_cursor_t) extern<unwind>
-._ULx86_64_get_proc_name c-int
-	cursor unw_cursor_t
-	begin c-char mut*
-	size size_t
-	offset unw_word_t mut*
-spec
-	extern<unwind>
+._ULx86_64_get_proc_name c-int(
+	cursor unw_cursor_t,
+	begin c-char mut*,
+	size size_t,
+	offset unw_word_t mut*,
+) extern<unwind>

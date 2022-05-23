@@ -319,15 +319,10 @@ filter<k, v> priority-queue<k, v>(a priority-queue<k, v>, f act bool(k, v)) trus
 			cur
 	out[0 .. end - out.begin-ptr].cast-immutable to-priority-queue
 
-map<k-out, v-out, k-in, v-in> priority-queue<k-out, v-out>
-	a priority-queue<k-in, v-in>
-	f act pair<k-out, v-out>(k-in, v-in)
-spec
-	is-data<k-in>
-	compare<k-in>
-	is-data<k-out>
-	compare<k-out>
-body
+map<k-out, v-out, k-in, v-in> priority-queue<k-out, v-out>(
+	a priority-queue<k-in, v-in>,
+	f act pair<k-out, v-out>(k-in, v-in),
+) is-data<k-in> compare<k-in> is-data<k-out> compare<k-out>
 	a map-to-arr f to-priority-queue
 
 map-to-arr<out, k, v> out[](a priority-queue<k, v>, f act out(k, v)) is-data<k> compare<k> trusted

@@ -13,14 +13,12 @@ epoll_event record by-val packed extern
 
 epoll_ctl err-t(epfd fd-t, op c-int, fd fd-t, event epoll_event mut*) extern<c> summon
 
-epoll_wait err-t
-	epfd fd-t
-	events epoll_event mut*
-	max-events c-int
-	timeout c-int
-spec
-	extern<c>
-	summon
+epoll_wait err-t(
+	epfd fd-t,
+	events epoll_event mut*,
+	max-events c-int,
+	timeout c-int,
+) extern<c> summon
 
 EPOLLIN nat32() noctx
 	1

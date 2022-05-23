@@ -213,15 +213,12 @@ Or a combination of the two.
 	end a*
 
 # NOTE: size-here-and-left is the old size, used to index into remove
-.do-compact-recur<a> add-node a
-	compactor compactor a
-	a add-node a
-	add-size-here-and-left nat64
-	remove index-set
-spec
-	unsafe
-	compare<a>
-body
+.do-compact-recur<a> add-node a(
+	compactor compactor a,
+	a add-node a,
+	add-size-here-and-left nat64,
+	remove index-set,
+) unsafe compare<a>
 	compactor merge a.values, add-size-here-and-left, remove
 	hard-assert: compactor.cur.as-const <= compactor.end
 	if compactor.cur.as-const == compactor.end
@@ -244,18 +241,15 @@ body
 			a.begin merge-recur a-read, new-cur - 1, values.begin-ptr, values.end-ptr - 1, remove-index, remove
 		a.cur := new-cur
 
-.merge-recur<a> void
-	a-begin a*
-	a-read a*
-	a-write a mut*
-	b-begin a*
-	b-read a*
-	b-remove-index nat64
-	b-remove index-set
-spec
-	unsafe
-	compare<a>
-body
+.merge-recur<a> void(
+	a-begin a*,
+	a-read a*,
+	a-write a mut*,
+	b-begin a*,
+	b-read a*,
+	b-remove-index nat64,
+	b-remove index-set,
+) unsafe compare<a>
 	hard-forbid: a-read < a-begin
 	hard-forbid: b-read < b-begin
 	hard-forbid: a-write.as-const < a-begin
@@ -280,15 +274,13 @@ body
 		else
 			a-begin merge-recur a-read - 1, a-write - 1, b-begin, b-read, b-remove-index, b-remove
 
-.copy-from-b-recur<a> void
-	a-write a mut*
-	b-begin a*
-	b-read a*
-	b-remove-index nat64
-	b-remove index-set
-spec
-	unsafe
-body
+.copy-from-b-recur<a> void(
+	a-write a mut*,
+	b-begin a*,
+	b-read a*,
+	b-remove-index nat64,
+	b-remove index-set,
+) unsafe
 	new-a-write = if b-remove-index in b-remove
 		a-write
 	else
@@ -322,14 +314,12 @@ fold<a, b> a(acc a, a sorted-set b, f act a(a, b)) is-data<b> compare<b>
 			iters
 		f[acc, least-value] fold-recur new-iters, remove, f
 
-.find-least-iter<a> nat64
-	current-least a
-	current-least-index nat64
-	iter-index nat64
-	iters fix-arr iter-part a
-spec
-	compare<a>
-body
+.find-least-iter<a> nat64(
+	current-least a,
+	current-least-index nat64,
+	iter-index nat64,
+	iters fix-arr iter-part a,
+) compare<a>
 	if iter-index == iters.size
 		current-least-index
 	else

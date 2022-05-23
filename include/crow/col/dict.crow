@@ -229,14 +229,11 @@ try-remove<k, v> try-remove-result<k, v>?(a v[k], key k) is-data<k> compare<k> h
 ###
 `f` takes the old value and returns the new value, or 'none' to choose to preserve the old value.
 ###
-.get-or-update<k, v> get-or-update-result<k, v>
-	a v[k]
-	key k
-	f act get-or-update-action v(v?)
-spec
-	compare<k>
-	hash-mix<k>
-body
+.get-or-update<k, v> get-or-update-result<k, v>(
+	a v[k],
+	key k,
+	f act get-or-update-action v(v?),
+) compare<k> hash-mix<k>
 	hash = key hash
 	match a root
 	as inner-node _
@@ -244,17 +241,13 @@ body
 	as leaf-node l
 		l get-or-update-leaf key, hash, 0, f
 
-.get-or-update-recur<k, v> get-or-update-result<k, v>
-	a node<k, v>
-	key k
-	remaining-hash nat64
-	hash-shift nat64
-	f act get-or-update-action v(v?)
-spec
-	trusted
-	compare<k>
-	hash-mix<k>
-body
+.get-or-update-recur<k, v> get-or-update-result<k, v>(
+	a node<k, v>,
+	key k,
+	remaining-hash nat64,
+	hash-shift nat64,
+	f act get-or-update-action v(v?),
+) trusted compare<k> hash-mix<k>
 	match a
 	as inner-node i
 		which = remaining-hash low-bits
@@ -332,16 +325,13 @@ body
 	if children[(first-non-empty-index wrap-add 1) .. children.size] every it => it node-is-empty
 		children[first-non-empty-index],
 
-.get-or-update-leaf<k, v> get-or-update-result<k, v>
-	a pair<k, v>[]
-	key k
-	remaining-hash nat64
-	hash-shift nat64
-	f act get-or-update-action v(v?)
-spec
-	compare<k>
-	hash-mix<k>
-body
+.get-or-update-leaf<k, v> get-or-update-result<k, v>(
+	a pair<k, v>[],
+	key k,
+	remaining-hash nat64,
+	hash-shift nat64,
+	f act get-or-update-action v(v?),
+) compare<k> hash-mix<k>
 	if index ?= a find-index it => it.from == key
 		old-value = a[index] to
 		match f[(old-value,)]
@@ -372,16 +362,13 @@ body
 			(new-node,), (), (ins,)
 
 # In order to get the hash, we need to know the shift amount
-.new-inner-node<k, v> node<k, v>
-	a pair<k, v>[]
-	key k
-	value v
-	hash nat64
-	hash-shift nat64
-spec
-	trusted
-	hash-mix<k>
-body
+.new-inner-node<k, v> node<k, v>(
+	a pair<k, v>[],
+	key k,
+	value v,
+	hash nat64,
+	hash-shift nat64,
+) trusted hash-mix<k>
 	key-hash = hash low-bits
 	max-hash = key-hash fold a, (cur, pair) =>
 		cur max (pair.from.hash unsafe-bit-shift-right hash-shift low-bits)
