@@ -16,10 +16,12 @@ import model.lowModel :
 	LowFunIndex,
 	LowProgram,
 	LowRecord,
+	LowThreadLocal,
+	LowThreadLocalIndex,
 	LowType,
 	PointerTypeAndConstantsLow,
 	PrimitiveType;
-import model.typeLayout : sizeOfType;
+import model.typeLayout : nStackEntriesForType, sizeOfType;
 import util.alloc.alloc : Alloc, TempAlloc;
 import util.col.arr : castImmutable, empty;
 import util.col.arrUtil : map, mapToMut, sum, zip;
@@ -37,10 +39,28 @@ import util.col.exactSizeArrBuilder :
 	finish,
 	newExactSizeArrBuilder,
 	padTo;
+import util.col.fullIndexDict : FullIndexDict, mapFullIndexDict;
 import util.col.str : SafeCStr, safeCStrSize;
 import util.conv : bitsOfFloat32, bitsOfFloat64;
 import util.ptr : ptrTrustMe_mut;
 import util.util : todo, unreachable, verify;
+
+struct ThreadLocalsInfo {
+	// Thread locals can't take up a fraction of a word
+	immutable FullIndexDict!(LowThreadLocalIndex, size_t) offsetsInWords;
+	immutable size_t totalSizeWords;
+}
+
+immutable(ThreadLocalsInfo) generateThreadLocalsInfo(ref Alloc alloc, scope ref immutable LowProgram program) {
+	size_t curWord = 0;
+	immutable FullIndexDict!(LowThreadLocalIndex, size_t) offsetsInWords =
+		mapFullIndexDict(alloc, program.threadLocals, (immutable(LowThreadLocalIndex), ref immutable LowThreadLocal x) {
+			immutable size_t res = curWord;
+			curWord += nStackEntriesForType(program, x.type);
+			return res;
+		});
+	return immutable ThreadLocalsInfo(offsetsInWords, curWord);
+}
 
 struct TextIndex {
 	immutable size_t index;

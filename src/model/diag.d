@@ -168,23 +168,17 @@ struct Diag {
 	}
 	struct ExternUnion {}
 	struct FunMissingBody {}
-	struct FunModifierTypeArgs {
-		immutable Sym modifier;
-	}
-	struct FunModifierWarning {
-		enum Kind {
-			externNoctx,
-			externUnsafe,
-			globalNoctx,
-			globalTrusted,
-			globalUnsafe,
-			trustedUnsafe,
-		}
-		immutable Kind kind;
-	}
-	struct FunMultipleBodyModifiers {
+	struct FunModifierConflict {
 		immutable Sym modifier0;
 		immutable Sym modifier1;
+	}
+	struct FunModifierRedundant {
+		immutable Sym modifier;
+		// This is implied by the first modifier
+		immutable Sym redundantModifier;
+	}
+	struct FunModifierTypeArgs {
+		immutable Sym modifier;
 	}
 	struct IfNeedsOpt {
 		immutable Type actualType;
@@ -290,6 +284,11 @@ struct Diag {
 	struct SpecImplNotFound {
 		immutable Sym sigName;
 	}
+	struct ThreadLocalError {
+		immutable FunDecl* fun;
+		enum Kind { hasParams, hasSpecs, hasTypeParams, mustReturnPtrMut }
+		immutable Kind kind;
+	}
 	struct ThrowNeedsExpectedType {}
 	struct TypeAnnotationUnnecessary {
 		immutable Type type;
@@ -368,9 +367,9 @@ struct Diag {
 		externRecordMustBeByRefOrVal,
 		externUnion,
 		funMissingBody,
+		funModifierConflict,
+		funModifierRedundant,
 		funModifierTypeArgs,
-		funModifierWarning,
-		funMultipleBodyModifiers,
 		ifNeedsOpt,
 		importRefersToNothing,
 		lambdaCantInferParamTypes,
@@ -402,6 +401,7 @@ struct Diag {
 		specImplFoundMultiple,
 		specImplHasSpecs,
 		specImplNotFound,
+		threadLocalError,
 		throwNeedsExpectedType,
 		typeAnnotationUnnecessary,
 		typeConflict,
@@ -440,9 +440,9 @@ struct Diag {
 		immutable ExternRecordMustBeByRefOrVal externRecordMustBeByRefOrVal;
 		immutable ExternUnion externUnion;
 		immutable FunMissingBody funMissingBody;
+		immutable FunModifierConflict funModifierConflict;
+		immutable FunModifierRedundant funModifierRedundant;
 		immutable FunModifierTypeArgs funModifierTypeArgs;
-		immutable FunModifierWarning funModifierWarning;
-		immutable FunMultipleBodyModifiers funMultipleBodyModifiers;
 		immutable IfNeedsOpt ifNeedsOpt;
 		immutable ImportRefersToNothing importRefersToNothing;
 		immutable LambdaCantInferParamTypes lambdaCantInferParamTypes;
@@ -474,6 +474,7 @@ struct Diag {
 		immutable SpecImplFoundMultiple specImplFoundMultiple;
 		immutable SpecImplHasSpecs specImplHasSpecs;
 		immutable SpecImplNotFound specImplNotFound;
+		immutable ThreadLocalError threadLocalError;
 		immutable ThrowNeedsExpectedType throwNeedsExpectedType;
 		immutable TypeAnnotationUnnecessary typeAnnotationUnnecessary;
 		immutable TypeConflict typeConflict;
@@ -535,12 +536,10 @@ struct Diag {
 	immutable this(immutable FunMissingBody a) {
 		kind = Kind.funMissingBody; funMissingBody = a;
 	}
+	immutable this(immutable FunModifierConflict a) { kind = Kind.funModifierConflict; funModifierConflict = a; }
+	immutable this(immutable FunModifierRedundant a) { kind = Kind.funModifierRedundant; funModifierRedundant = a; }
 	immutable this(immutable FunModifierTypeArgs a) {
 		kind = Kind.funModifierTypeArgs; funModifierTypeArgs = a;
-	}
-	immutable this(immutable FunModifierWarning a) { kind = Kind.funModifierWarning; funModifierWarning = a; }
-	immutable this(immutable FunMultipleBodyModifiers a) {
-		kind = Kind.funMultipleBodyModifiers; funMultipleBodyModifiers = a;
 	}
 	@trusted immutable this(immutable IfNeedsOpt a) { kind = Kind.ifNeedsOpt; ifNeedsOpt = a; }
 	immutable this(immutable ImportRefersToNothing a) { kind = Kind.importRefersToNothing; importRefersToNothing = a; }
@@ -617,6 +616,7 @@ struct Diag {
 	}
 	@trusted immutable this(immutable SpecImplHasSpecs a) { kind = Kind.specImplHasSpecs; specImplHasSpecs = a; }
 	@trusted immutable this(immutable SpecImplNotFound a) { kind = Kind.specImplNotFound; specImplNotFound = a; }
+	immutable this(immutable ThreadLocalError a) { kind = Kind.threadLocalError; threadLocalError = a; }
 	immutable this(immutable ThrowNeedsExpectedType a) {
 		kind = Kind.throwNeedsExpectedType; throwNeedsExpectedType = a;
 	}
@@ -694,12 +694,14 @@ struct Diag {
 	scope immutable(Out) delegate(ref immutable Diag.ExternUnion) @safe @nogc pure nothrow cbExternUnion,
 	scope immutable(Out) delegate(ref immutable Diag.FunMissingBody) @safe @nogc pure nothrow cbFunMissingBody,
 	scope immutable(Out) delegate(
+		ref immutable Diag.FunModifierConflict,
+	) @safe @nogc pure nothrow cbFunModifierConflict,
+	scope immutable(Out) delegate(
+		ref immutable Diag.FunModifierRedundant,
+	) @safe @nogc pure nothrow cbFunModifierRedundant,
+	scope immutable(Out) delegate(
 		ref immutable Diag.FunModifierTypeArgs
 	) @safe @nogc pure nothrow cbFunModifierTypeArgs,
-	scope immutable(Out) delegate(ref immutable Diag.FunModifierWarning) @safe @nogc pure nothrow cbFunModifierWarning,
-	scope immutable(Out) delegate(
-		ref immutable Diag.FunMultipleBodyModifiers
-	) @safe @nogc pure nothrow cbFunMultipleBodyModifiers,
 	scope immutable(Out) delegate(ref immutable Diag.IfNeedsOpt) @safe @nogc pure nothrow cbIfNeedsOpt,
 	scope immutable(Out) delegate(
 		ref immutable Diag.ImportRefersToNothing
@@ -777,6 +779,7 @@ struct Diag {
 	scope immutable(Out) delegate(
 		ref immutable Diag.SpecImplNotFound
 	) @safe @nogc pure nothrow cbSpecImplNotFound,
+	scope immutable(Out) delegate(ref immutable Diag.ThreadLocalError) @safe @nogc pure nothrow cbThreadLocalError,
 	scope immutable(Out) delegate(
 		ref immutable Diag.ThrowNeedsExpectedType
 	) @safe @nogc pure nothrow cbThrowNeedsExpectedType,
@@ -855,12 +858,12 @@ struct Diag {
 			return cbExternUnion(a.externUnion);
 		case Diag.Kind.funMissingBody:
 			return cbFunMissingBody(a.funMissingBody);
+		case Diag.Kind.funModifierConflict:
+			return cbFunModifierConflict(a.funModifierConflict);
+		case Diag.Kind.funModifierRedundant:
+			return cbFunModifierRedundant(a.funModifierRedundant);
 		case Diag.Kind.funModifierTypeArgs:
 			return cbFunModifierTypeArgs(a.funModifierTypeArgs);
-		case Diag.Kind.funModifierWarning:
-			return cbFunModifierWarning(a.funModifierWarning);
-		case Diag.Kind.funMultipleBodyModifiers:
-			return cbFunMultipleBodyModifiers(a.funMultipleBodyModifiers);
 		case Diag.Kind.ifNeedsOpt:
 			return cbIfNeedsOpt(a.ifNeedsOpt);
 		case Diag.Kind.importRefersToNothing:
@@ -923,6 +926,8 @@ struct Diag {
 			return cbSpecImplHasSpecs(a.specImplHasSpecs);
 		case Diag.Kind.specImplNotFound:
 			return cbSpecImplNotFound(a.specImplNotFound);
+		case Diag.Kind.threadLocalError:
+			return cbThreadLocalError(a.threadLocalError);
 		case Diag.Kind.throwNeedsExpectedType:
 			return cbThrowNeedsExpectedType(a.throwNeedsExpectedType);
 		case Diag.Kind.typeAnnotationUnnecessary:

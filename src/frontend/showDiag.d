@@ -662,34 +662,22 @@ void writeDiag(
 		(ref immutable Diag.FunMissingBody) {
 			writeStatic(writer, "this function needs a body");
 		},
+		(ref immutable Diag.FunModifierConflict d) {
+			writeStatic(writer, "a function can't be both ");
+			writeName(writer, allSymbols, d.modifier0);
+			writeStatic(writer, " and ");
+			writeName(writer, allSymbols, d.modifier1);
+		},
+		(ref immutable Diag.FunModifierRedundant d) {
+			writeStatic(writer, "redundant; ");
+			writeName(writer, allSymbols, d.modifier);
+			writeStatic(writer, " function is implicitly ");
+			writeName(writer, allSymbols, d.redundantModifier);
+		},
 		(ref immutable Diag.FunModifierTypeArgs d) {
 			writeStatic(writer, "function modifier ");
 			writeName(writer, allSymbols, d.modifier);
 			writeStatic(writer, " can not have type arguments");
-		},
-		(ref immutable Diag.FunModifierWarning d) {
-			writeStatic(writer, () {
-				final switch (d.kind) {
-					case Diag.FunModifierWarning.Kind.externNoctx:
-						return "'noctx' is redundant for an 'extern' function";
-					case Diag.FunModifierWarning.Kind.externUnsafe:
-						return "'unsafe' is redundant for an 'extern' function";
-					case Diag.FunModifierWarning.Kind.globalNoctx:
-						return "'noctx' is redundant for a 'global'";
-					case Diag.FunModifierWarning.Kind.globalTrusted:
-						return "'global' can not be 'trusted'";
-					case Diag.FunModifierWarning.Kind.globalUnsafe:
-						return "'unsafe' is redundant for a 'global'";
-					case Diag.FunModifierWarning.Kind.trustedUnsafe:
-						return "function can't be both 'unsafe' and 'trusted'";
-				}
-			}());
-		},
-		(ref immutable Diag.FunMultipleBodyModifiers d) {
-			writeStatic(writer, "function can't be both ");
-			writeName(writer, allSymbols, d.modifier0);
-			writeStatic(writer, " and ");
-			writeName(writer, allSymbols, d.modifier1);
 		},
 		(ref immutable Diag.IfNeedsOpt d) {
 			writeStatic(writer, "Expected an option type, but got ");
@@ -877,6 +865,22 @@ void writeDiag(
 		(ref immutable Diag.SpecImplNotFound d) {
 			writeStatic(writer, "no implementation was found for spec signature ");
 			writeName(writer, allSymbols, d.sigName);
+		},
+		(ref immutable Diag.ThreadLocalError d) {
+			writeStatic(writer, "thread-local ");
+			writeName(writer, allSymbols, d.fun.name);
+			writeStatic(writer, () {
+				final switch (d.kind) {
+					case Diag.ThreadLocalError.Kind.hasParams:
+						return " can't have parameters";
+					case Diag.ThreadLocalError.Kind.hasSpecs:
+						return "can't have specs";
+					case Diag.ThreadLocalError.Kind.hasTypeParams:
+						return " can't have type parameters";
+					case Diag.ThreadLocalError.Kind.mustReturnPtrMut:
+						return " return type must be a 'mut*'";
+				}
+			}());
 		},
 		(ref immutable Diag.ThrowNeedsExpectedType) {
 			writeStatic(writer, "can't infer type of 'throw'");
@@ -1177,6 +1181,8 @@ immutable(string) describeTokenForUnexpected(immutable Token token) {
 			return "unexpected keyword 'summon'";
 		case Token.test:
 			return "unexpected keyword 'test'";
+		case Token.thread_local:
+			return "unexpected keyword 'thread-local'";
 		case Token.throw_:
 			return "unexpected keyword 'throw'";
 		case Token.trusted:

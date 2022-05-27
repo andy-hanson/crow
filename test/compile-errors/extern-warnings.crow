@@ -1,0 +1,7 @@
+f void() extern<c> noctx
+
+f void() extern<c> unsafe
+
+g nat() global<c> noctx
+
+g nat() global<c> unsafe

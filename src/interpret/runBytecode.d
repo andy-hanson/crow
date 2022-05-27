@@ -32,6 +32,7 @@ import interpret.stacks :
 import model.diag : FilesInfo; // TODO: FilesInfo probably belongs elsewhere
 import model.lowModel : LowProgram;
 import model.typeLayout : PackField;
+import util.alloc.alloc : Alloc;
 import util.col.str : SafeCStr;
 import util.conv : safeToSizeT;
 import util.memory : memcpy, memmove, overwriteMemory;
@@ -44,6 +45,7 @@ import util.util : debugLog, divRoundUp, drop, unreachable, verify;
 
 @trusted immutable(int) runBytecode(
 	scope ref Perf perf,
+	ref Alloc alloc, // for thread locals
 	ref const AllSymbols allSymbols,
 	ref const AllPaths allPaths,
 	ref immutable PathsInfo pathsInfo,
@@ -54,7 +56,7 @@ import util.util : debugLog, divRoundUp, drop, unreachable, verify;
 	scope immutable SafeCStr[] allArgs,
 ) {
 	return withInterpreter!(immutable int)(
-		doDynCall, lowProgram, byteCode, allSymbols, allPaths, pathsInfo, filesInfo,
+		alloc, doDynCall, lowProgram, byteCode, allSymbols, allPaths, pathsInfo, filesInfo,
 		(ref Stacks stacks) {
 			dataPush(stacks, allArgs.length);
 			dataPush(stacks, cast(immutable ulong) allArgs.ptr);
@@ -114,6 +116,7 @@ void stepUntilBreak(ref Stacks stacks, ref immutable(Operation)* operation) {
 }
 
 immutable(T) withInterpreter(T)(
+	ref Alloc alloc,
 	scope DoDynCall doDynCall_,
 	scope ref immutable LowProgram lowProgram,
 	ref immutable ByteCode byteCode,
@@ -259,6 +262,14 @@ private void opStackRefInner(ref Stacks stacks, ref immutable(Operation)* cur) {
 	immutable size_t offset = readStackOffset(cur);
 	dataPush(stacks, cast(immutable ulong) dataRef(stacks, offset));
 }
+
+alias opThreadLocalPtr = operation!opThreadLocalPtrInner;
+private void opThreadLocalPtrInner(ref Stacks stacks, ref immutable(Operation)* cur) {
+	immutable size_t offset = readSizeT(cur);
+	dataPush(stacks, cast(immutable ulong) (threadLocalsStorage.ptr + offset));
+}
+immutable ulong maxThreadLocalsSizeWords = 256;
+private static ulong[maxThreadLocalsSizeWords] threadLocalsStorage;
 
 alias opReadWords(immutable size_t pointerOffsetWords, immutable size_t nWordsToRead) =
 	operation!(opReadWordsInner!(pointerOffsetWords, nWordsToRead));

@@ -498,6 +498,8 @@ void parseFunModifier(scope ref Lexer lexer, scope ref ArrBuilder!FunModifierAst
 				return some(shortSym("summon"));
 			case Token.unsafe:
 				return some(shortSym("unsafe"));
+			case Token.thread_local:
+				return some(shortSym("thread-local"));
 			case Token.trusted:
 				return some(shortSym("trusted"));
 			case Token.name:

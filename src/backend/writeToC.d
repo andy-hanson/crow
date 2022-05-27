@@ -10,6 +10,7 @@ import backend.mangle :
 	writeLowFunMangledName,
 	writeLowLocalName,
 	writeLowParamName,
+	writeLowThreadLocalMangledName,
 	writeMangledName,
 	writeRecordName,
 	writeStructMangledName;
@@ -50,6 +51,8 @@ import model.lowModel :
 	LowPtrCombine,
 	LowProgram,
 	LowRecord,
+	LowThreadLocal,
+	LowThreadLocalIndex,
 	LowType,
 	LowUnion,
 	matchLowExprKind,
@@ -67,7 +70,7 @@ import util.alloc.alloc : Alloc, TempAlloc;
 import util.col.arr : empty, only, sizeEq;
 import util.col.arrUtil : arrLiteral, every, exists, map, zip;
 import util.col.dict : mustGetAt;
-import util.col.fullIndexDict : fullIndexDictEach, fullIndexDictEachKey;
+import util.col.fullIndexDict : FullIndexDict, fullIndexDictEach, fullIndexDictEachKey, fullIndexDictEachValue;
 import util.col.stackDict : StackDict, stackDictAdd, stackDictLastAdded, stackDictMustGet;
 import util.col.str : eachChar, SafeCStr;
 import util.opt : force, has, Opt, some;
@@ -114,6 +117,7 @@ immutable(SafeCStr) writeToC(
 		});
 
 	writeConstants(writer, ctx, program.allConstants);
+	writeThreadLocals(writer, ctx, program.threadLocals);
 
 	fullIndexDictEach!(LowFunIndex, LowFun)(
 		program.allFuns,
@@ -181,6 +185,20 @@ void writeConstants(
 	}
 }
 
+void writeThreadLocals(
+	scope ref Writer writer,
+	scope ref immutable Ctx ctx,
+	scope immutable FullIndexDict!(LowThreadLocalIndex, LowThreadLocal) threadLocals,
+) {
+	fullIndexDictEachValue!(LowThreadLocalIndex, LowThreadLocal)(threadLocals, (ref immutable LowThreadLocal x) {
+		writeStatic(writer, "static _Thread_local ");
+		writeType(writer, ctx, x.type);
+		writeChar(writer, ' ');
+		writeLowThreadLocalMangledName(writer, ctx.mangledNames, x);
+		writeStatic(writer, ";\n");
+	});
+}
+
 void declareConstantArrStorage(
 	scope ref Writer writer,
 	scope ref immutable Ctx ctx,
@@ -233,6 +251,10 @@ struct FunBodyCtx {
 
 	ref immutable(Ctx) ctx() return scope const {
 		return *ctxPtr;
+	}
+
+	ref immutable(LowProgram) program() return scope const {
+		return ctx.program;
 	}
 
 	ref immutable(MangledNames) mangledNames() return scope const {
@@ -950,6 +972,11 @@ immutable(WriteExprResult) writeExpr(
 			writeTailRecur(writer, tempAlloc, indent, ctx, locals, it);
 			return writeExprDone();
 		},
+		(scope ref immutable LowExprKind.ThreadLocalPtr x) =>
+			inlineableSimple(() {
+				writeChar(writer, '&');
+				writeLowThreadLocalMangledName(writer, ctx.mangledNames, ctx.program.threadLocals[x.threadLocalIndex]);
+			}),
 		(scope ref immutable LowExprKind.Zeroed) =>
 			inlineableSimple(() {
 				writeZeroedValue(writer, ctx.ctx, type);
@@ -1133,7 +1160,7 @@ immutable(WriteExprResult) writeCallExpr(
 ) {
 	immutable WriteExprResult[] args = writeExprsTempOrInline(writer, tempAlloc, indent, ctx, locals, a.args);
 	return writeNonInlineable(writer, indent, ctx, writeKind, type, () {
-		immutable LowFun* called = &ctx.ctx.program.allFuns[a.called];
+		immutable LowFun* called = &ctx.program.allFuns[a.called];
 		writeLowFunMangledName(writer, ctx.mangledNames, a.called, *called);
 		if (!isGlobal(called.body_)) {
 			writeChar(writer, '(');
@@ -1151,7 +1178,7 @@ void writeTailRecur(
 	scope ref immutable Locals locals,
 	ref immutable LowExprKind.TailRecur a,
 ) {
-	immutable LowParam[] params = ctx.ctx.program.allFuns[ctx.curFun].params;
+	immutable LowParam[] params = ctx.program.allFuns[ctx.curFun].params;
 	immutable WriteExprResult[] newValues =
 		map!WriteExprResult(tempAlloc, a.updateParams, (ref immutable UpdateParam updateParam) =>
 			writeExprTempOrInline(writer, tempAlloc, indent, ctx, locals, updateParam.newValue));
@@ -1199,7 +1226,7 @@ void writeFunPtr(scope ref Writer writer, scope ref immutable Ctx ctx, immutable
 }
 
 void writeParamRef(scope ref Writer writer, scope ref const FunBodyCtx ctx, ref immutable LowExprKind.ParamRef a) {
-	writeLowParamName(writer, ctx.mangledNames, ctx.ctx.program.allFuns[ctx.curFun].params[a.index.index]);
+	writeLowParamName(writer, ctx.mangledNames, ctx.program.allFuns[ctx.curFun].params[a.index.index]);
 }
 
 immutable(WriteExprResult) writeMatchUnion(
@@ -1349,7 +1376,7 @@ void writeRecordFieldRef(
 	writeMangledName(
 		writer,
 		ctx.mangledNames,
-		debugName(ctx.ctx.program.allRecords[record].fields[fieldIndex]));
+		debugName(ctx.program.allRecords[record].fields[fieldIndex]));
 }
 
 // For some reason, providing a type for a record makes it non-constant.
@@ -1632,6 +1659,7 @@ void writeLValue(ref Writer writer, ref const FunBodyCtx ctx, ref immutable LowE
 		(ref immutable LowExprKind.Switch0ToN) => unreachable!void(),
 		(ref immutable LowExprKind.SwitchWithValues) => unreachable!void(),
 		(ref immutable LowExprKind.TailRecur) => unreachable!void(),
+		(ref immutable LowExprKind.ThreadLocalPtr) => unreachable!void(),
 		(ref immutable LowExprKind.Zeroed) => unreachable!void(),
 	)(expr.kind);
 }

@@ -28,6 +28,7 @@ import model.lowModel :
 	LowParamSource,
 	LowProgram,
 	LowRecord,
+	LowThreadLocal,
 	LowType,
 	LowUnion,
 	matchLowFunSource,
@@ -160,10 +161,18 @@ void writeLowFunMangledName(
 	)(fun.source);
 }
 
+void writeLowThreadLocalMangledName(
+	scope ref Writer writer,
+	scope ref immutable MangledNames mangledNames,
+	scope ref immutable LowThreadLocal threadLocal,
+) {
+	writeConcreteFunMangledName(writer, mangledNames, threadLocal.source);
+}
+
 private void writeConcreteFunMangledName(
 	scope ref Writer writer,
 	scope ref immutable MangledNames mangledNames,
-	immutable ConcreteFun* source,
+	scope immutable ConcreteFun* source,
 ) {
 	matchConcreteFunSource!(
 		void,

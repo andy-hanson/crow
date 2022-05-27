@@ -109,6 +109,7 @@ immutable(ExitCode) buildAndInterpret(
 				programs.program, lowProgram, force(externFunPtrs), extern_.makeSyntheticFunPtrs);
 			return immutable ExitCode(runBytecode(
 				perf,
+				alloc,
 				allSymbols,
 				allPaths,
 				pathsInfo,

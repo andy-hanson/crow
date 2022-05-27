@@ -237,6 +237,10 @@ void checkLowExpr(
 			foreach (ref immutable UpdateParam update; it.updateParams)
 				checkLowExpr(ctx, ctx.fun.params[update.param.index].type, update.newValue);
 		},
+		(ref immutable LowExprKind.ThreadLocalPtr it) {
+			immutable LowType pointee = ctx.ctx.program.threadLocals[it.threadLocalIndex].type;
+			checkTypeEqual(ctx.ctx, type, immutable LowType(immutable LowType.PtrRawMut(&pointee)));
+		},
 		(ref immutable LowExprKind.Zeroed) {},
 	)(expr.kind);
 }

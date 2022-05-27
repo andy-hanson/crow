@@ -887,7 +887,8 @@ immutable(Opt!Constant) tryEvalConstant(
 				: none!Constant,
 		(ref immutable ConcreteFunBody.FlagsFn) => none!Constant,
 		(ref immutable ConcreteFunBody.RecordFieldGet) => none!Constant,
-		(ref immutable ConcreteFunBody.RecordFieldSet) => none!Constant);
+		(ref immutable ConcreteFunBody.RecordFieldSet) => none!Constant,
+		(ref immutable ConcreteFunBody.ThreadLocal) => none!Constant);
 }
 
 immutable(Opt!Constant) tryEvalConstantBuiltin(immutable Sym name, ref immutable VersionInfo versionInfo) {

@@ -1018,16 +1018,17 @@ struct FunModifierAst {
 	immutable NameAndRange name;
 	immutable SmallArray!TypeAst typeArgs;
 
-	enum SpecialFlags : ubyte {
+	enum SpecialFlags {
 		none = 0,
 		builtin = 1,
 		extern_ = 0b10,
 		global = 0b100,
 		noctx = 0b1000,
-		no_doc = 0b10000,
-		summon = 0b100000,
-		trusted = 0b1000000,
-		unsafe = 0b10000000
+		no_doc = 0b1_0000,
+		summon = 0b10_0000,
+		thread_local = 0b100_0000,
+		trusted = 0b1000_0000,
+		unsafe = 0b10000_0000,
 	}
 
 	immutable(bool) isSpecial() scope immutable {
@@ -1048,6 +1049,8 @@ struct FunModifierAst {
 				return SpecialFlags.no_doc;
 			case shortSymValue("summon"):
 				return SpecialFlags.summon;
+			case shortSymValue("thread-local"):
+				return SpecialFlags.thread_local;
 			case shortSymValue("trusted"):
 				return SpecialFlags.trusted;
 			case shortSymValue("unsafe"):

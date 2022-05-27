@@ -198,6 +198,8 @@ immutable(Opt!Position) positionInFun(immutable FunDecl* a, immutable Pos pos, r
 			none!Position,
 		(ref immutable FunBody.RecordFieldSet) =>
 			none!Position,
+		(ref immutable FunBody.ThreadLocal) =>
+			none!Position,
 	)(a.body_);
 }
 

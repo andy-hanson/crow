@@ -32,7 +32,7 @@ import util.util : verify;
 immutable(LowFun) generateCallWithCtxFun(
 	ref Alloc alloc,
 	ref immutable AllLowTypes allTypes,
-	ref immutable ConcreteFunToLowFunIndex concreteFunToLowFunIndex,
+	scope ref immutable ConcreteFunToLowFunIndex concreteFunToLowFunIndex,
 	immutable LowType returnType,
 	immutable LowType funType,
 	immutable LowType ctxType,

@@ -98,6 +98,11 @@ void mapTo_mut(size_t maxSize, Out, In)(
 	overwriteMemory(pushUninitialized(a), value);
 }
 
+void pushIfUnderMaxSize(size_t maxSize, T)(ref MutMaxArr!(maxSize, T) a, immutable T value) {
+	if (a.size_ < maxSize)
+		push(a, value);
+}
+
 void pushLeft(size_t maxSize, T)(ref MutMaxArr!(maxSize, T) a, T value) {
 	verify(a.size_ != maxSize);
 	a.size_++;

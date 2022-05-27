@@ -285,6 +285,9 @@ immutable(Repr) reprOfLowExprKind(ref Alloc alloc, ref immutable LowExprKind a) 
 						reprNat(updateParam.param.index),
 						reprOfLowExpr(alloc, updateParam.newValue),
 					]))]),
+		(ref immutable LowExprKind.ThreadLocalPtr it) =>
+			reprRecord(alloc, "thread-local", [
+				reprNat(it.threadLocalIndex.index)]),
 		(ref immutable LowExprKind.Zeroed) =>
 			reprSym("uninit"),
 	)(a);

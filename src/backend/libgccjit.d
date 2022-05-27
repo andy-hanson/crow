@@ -167,6 +167,14 @@ extern(C) {
 		GCC_JIT_FUNCTION_ALWAYS_INLINE,
 	}
 
+	enum gcc_jit_tls_model {
+		GCC_JIT_TLS_MODEL_NONE,
+		GCC_JIT_TLS_MODEL_GLOBAL_DYNAMIC,
+		GCC_JIT_TLS_MODEL_LOCAL_DYNAMIC,
+		GCC_JIT_TLS_MODEL_INITIAL_EXEC,
+		GCC_JIT_TLS_MODEL_LOCAL_EXEC,
+	}
+
 	gcc_jit_function* gcc_jit_context_new_function(
 		ref gcc_jit_context ctxt,
 		gcc_jit_location* loc,
@@ -197,6 +205,8 @@ extern(C) {
 		gcc_jit_global_kind kind,
 		immutable gcc_jit_type* type,
 		const char *name);
+	
+
 
 	immutable(gcc_jit_rvalue*) gcc_jit_lvalue_as_rvalue(const gcc_jit_lvalue* lvalue);
 
@@ -316,13 +326,11 @@ extern(C) {
 		gcc_jit_location* loc,
 		immutable gcc_jit_field* field);
 
-	gcc_jit_lvalue* gcc_jit_rvalue_dereference(
-		immutable gcc_jit_rvalue* rvalue,
-		gcc_jit_location* loc);
+	gcc_jit_lvalue* gcc_jit_rvalue_dereference(immutable gcc_jit_rvalue* rvalue, gcc_jit_location* loc);
 
-	immutable(gcc_jit_rvalue*) gcc_jit_lvalue_get_address(
-		gcc_jit_lvalue* lvalue,
-		gcc_jit_location* loc);
+	immutable(gcc_jit_rvalue*) gcc_jit_lvalue_get_address(gcc_jit_lvalue* lvalue, gcc_jit_location* loc);
+
+	void gcc_jit_lvalue_set_tls_model(gcc_jit_lvalue *lvalue, gcc_jit_tls_model mode);
 
 	gcc_jit_lvalue* gcc_jit_function_new_local(
 		gcc_jit_function* func,

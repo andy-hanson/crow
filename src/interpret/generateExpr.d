@@ -90,12 +90,13 @@ import interpret.bytecodeWriter :
 	writeSet,
 	writeSwitch0ToNDelay,
 	writeSwitchWithValuesDelay,
+	writeThreadLocalPtr,
 	writeWrite;
 import interpret.debugging : writeLowType;
 import interpret.extern_ : FunPtr;
 import interpret.funToReferences : FunPtrTypeToDynCallSig, FunToReferences, registerCall, registerFunPtrReference;
 import interpret.generateText :
-	getTextInfoForArray, getTextPointer, getTextPointerForCString, TextArrInfo, TextInfo;
+	getTextInfoForArray, getTextPointer, getTextPointerForCString, TextArrInfo, TextInfo, ThreadLocalsInfo;
 import model.concreteModel : TypeSize;
 import model.constant : Constant, matchConstant;
 import model.lowModel :
@@ -150,6 +151,7 @@ import util.writer : finishWriter, writeChar, Writer, writeStatic;
 	ref const AllSymbols allSymbols,
 	ref immutable LowProgram program,
 	ref immutable TextInfo textInfo,
+	ref immutable ThreadLocalsInfo threadLocalsInfo,
 	immutable LowFunIndex funIndex,
 	ref FunToReferences funToReferences,
 	immutable StackEntries[] parameters,
@@ -160,6 +162,7 @@ import util.writer : finishWriter, writeChar, Writer, writeStatic;
 		ptrTrustMe_const(allSymbols),
 		ptrTrustMe(program),
 		ptrTrustMe(textInfo),
+		ptrTrustMe(threadLocalsInfo),
 		funIndex,
 		returnEntries,
 		ptrTrustMe_mut(tempAlloc),
@@ -267,6 +270,7 @@ struct ExprCtx {
 	const AllSymbols* allSymbolsPtr;
 	immutable LowProgram* programPtr;
 	immutable TextInfo* textInfoPtr;
+	immutable ThreadLocalsInfo* threadLocalsInfoPtr;
 	immutable LowFunIndex curFunIndex;
 	immutable size_t returnTypeSizeInStackEntries;
 	TempAlloc* tempAllocPtr;
@@ -282,6 +286,9 @@ struct ExprCtx {
 	}
 	ref immutable(TextInfo) textInfo() return scope const {
 		return *textInfoPtr;
+	}
+	ref immutable(ThreadLocalsInfo) threadLocalsInfo() return scope const {
+		return *threadLocalsInfoPtr;
 	}
 	ref TempAlloc tempAlloc() return scope {
 		return *tempAllocPtr;
@@ -448,6 +455,10 @@ void generateExpr(
 		},
 		(ref immutable LowExprKind.TailRecur it) {
 			generateTailRecur(writer, ctx, source, locals, after, it);
+		},
+		(ref immutable LowExprKind.ThreadLocalPtr x) {
+			writeThreadLocalPtr(writer, source, ctx.threadLocalsInfo.offsetsInWords[x.threadLocalIndex]);
+			handleAfter(writer, ctx, source, after);
 		},
 		(ref immutable LowExprKind.Zeroed) {
 			writePushEmptySpace(writer, source, after.returnValueStackEntries.size);

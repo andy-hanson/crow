@@ -491,6 +491,7 @@ struct ConcreteFunBody {
 	struct RecordFieldSet {
 		immutable size_t fieldIndex;
 	}
+	struct ThreadLocal {}
 
 	private:
 	enum Kind {
@@ -504,6 +505,7 @@ struct ConcreteFunBody {
 		concreteExpr,
 		recordFieldGet,
 		recordFieldSet,
+		threadLocal,
 	}
 	immutable Kind kind;
 	union {
@@ -517,6 +519,7 @@ struct ConcreteFunBody {
 		immutable ConcreteExpr concreteExpr;
 		immutable RecordFieldGet recordFieldGet;
 		immutable RecordFieldSet recordFieldSet;
+		immutable ThreadLocal threadLocal;
 	}
 
 	public:
@@ -532,6 +535,7 @@ struct ConcreteFunBody {
 	immutable this(immutable FlagsFn a) { kind = Kind.flagsFn; flagsFn = a; }
 	immutable this(immutable RecordFieldGet a) { kind = Kind.recordFieldGet; recordFieldGet = a; }
 	immutable this(immutable RecordFieldSet a) { kind = Kind.recordFieldSet; recordFieldSet = a; }
+	immutable this(immutable ThreadLocal a) { kind = Kind.threadLocal; threadLocal = a; }
 }
 
 immutable(bool) isExtern(ref immutable ConcreteFunBody a) {
@@ -560,6 +564,7 @@ private @trusted ref immutable(ConcreteFunBody.Extern) asExtern(scope return ref
 	scope immutable(T) delegate(ref immutable ConcreteFunBody.FlagsFn) @safe @nogc pure nothrow cbFlagsFn,
 	scope immutable(T) delegate(ref immutable ConcreteFunBody.RecordFieldGet) @safe @nogc pure nothrow cbRecordFieldGet,
 	scope immutable(T) delegate(ref immutable ConcreteFunBody.RecordFieldSet) @safe @nogc pure nothrow cbRecordFieldSet,
+	scope immutable(T) delegate(ref immutable ConcreteFunBody.ThreadLocal) @safe @nogc pure nothrow cbThreadLocal,
 ) {
 	final switch (a.kind) {
 		case ConcreteFunBody.Kind.builtin:
@@ -582,6 +587,8 @@ private @trusted ref immutable(ConcreteFunBody.Extern) asExtern(scope return ref
 			return cbRecordFieldGet(a.recordFieldGet);
 		case ConcreteFunBody.Kind.recordFieldSet:
 			return cbRecordFieldSet(a.recordFieldSet);
+		case ConcreteFunBody.Kind.threadLocal:
+			return cbThreadLocal(a.threadLocal);
 	}
 }
 

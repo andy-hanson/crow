@@ -844,6 +844,7 @@ struct FunBody {
 	struct RecordFieldSet {
 		immutable size_t fieldIndex;
 	}
+	struct ThreadLocal {}
 
 	private:
 	enum Kind {
@@ -859,6 +860,7 @@ struct FunBody {
 		flagsFunction,
 		recordFieldGet,
 		recordFieldSet,
+		threadLocal,
 	}
 	immutable Kind kind;
 	union {
@@ -874,6 +876,7 @@ struct FunBody {
 		immutable FlagsFunction flagsFunction;
 		immutable RecordFieldGet recordFieldGet;
 		immutable RecordFieldSet recordFieldSet;
+		immutable ThreadLocal threadLocal;
 	}
 
 	public:
@@ -889,6 +892,7 @@ struct FunBody {
 	immutable this(immutable FlagsFunction a) { kind = Kind.flagsFunction; flagsFunction = a; }
 	immutable this(immutable RecordFieldGet a) { kind = Kind.recordFieldGet; recordFieldGet = a; }
 	immutable this(immutable RecordFieldSet a) { kind = Kind.recordFieldSet; recordFieldSet = a; }
+	immutable this(immutable ThreadLocal a) { kind = Kind.threadLocal; threadLocal = a; }
 }
 
 immutable(bool) isExtern(ref immutable FunBody a) {
@@ -909,6 +913,7 @@ immutable(bool) isExtern(ref immutable FunBody a) {
 	alias cbFlagsFunction,
 	alias cbRecordFieldGet,
 	alias cbRecordFieldSet,
+	alias cbThreadLocal,
 )(
 	ref immutable FunBody a,
 ) {
@@ -937,6 +942,8 @@ immutable(bool) isExtern(ref immutable FunBody a) {
 			return cbRecordFieldGet(a.recordFieldGet);
 		case FunBody.Kind.recordFieldSet:
 			return cbRecordFieldSet(a.recordFieldSet);
+		case FunBody.Kind.threadLocal:
+			return cbThreadLocal(a.threadLocal);
 	}
 }
 
@@ -951,7 +958,7 @@ struct FunFlags {
 	immutable bool preferred;
 	immutable bool okIfUnused;
 	// generated functions like record field getters are also builtins
-	enum SpecialBody : ubyte { none, builtin, extern_, global }
+	enum SpecialBody : ubyte { none, builtin, extern_, global, threadLocal }
 	immutable SpecialBody specialBody;
 
 	immutable(FunFlags) withOkIfUnused() immutable {
@@ -1539,6 +1546,7 @@ struct CommonTypes {
 	immutable StructDecl* fut;
 	immutable StructDecl* namedVal;
 	immutable StructDecl* opt;
+	immutable StructDecl* ptrMut;
 	immutable StructDecl*[10] funPtrStructs; // Indexed by arity
 	immutable FunKindAndStructs[3] funKindsAndStructs;
 }

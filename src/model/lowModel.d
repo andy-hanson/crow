@@ -288,6 +288,11 @@ private immutable(bool) isPtrRawConstOrMut(immutable LowType a) {
 	return a.ptrRawConst_;
 }
 
+@trusted immutable(LowType.PtrRawMut) asPtrRawMut(immutable LowType a) {
+	verify(isPtrRawMut(a));
+	return a.ptrRawMut_;
+}
+
 private immutable(bool) isPtrGcOrRaw(immutable LowType a) {
 	return isPtrGc(a) || isPtrRawConst(a) || isPtrRawMut(a);
 }
@@ -898,6 +903,10 @@ struct LowExprKind {
 		immutable UpdateParam[] updateParams;
 	}
 
+	struct ThreadLocalPtr {
+		immutable LowThreadLocalIndex threadLocalIndex;
+	}
+
 	struct Zeroed {}
 
 	private:
@@ -928,6 +937,7 @@ struct LowExprKind {
 		switchWithValues,
 		switch0ToN,
 		tailRecur,
+		threadLocalPtr,
 		zeroed,
 	}
 	public immutable Kind kind; //TODO:PRIVATE
@@ -958,6 +968,7 @@ struct LowExprKind {
 		immutable Switch0ToN* switch0ToN;
 		immutable SwitchWithValues* switchWithValues;
 		immutable TailRecur tailRecur;
+		immutable ThreadLocalPtr threadLocalPtr;
 		immutable Zeroed zeroed;
 	}
 
@@ -988,7 +999,8 @@ struct LowExprKind {
 	@trusted immutable this(immutable Switch0ToN* a) { kind = Kind.switch0ToN; switch0ToN = a; }
 	@trusted immutable this(immutable SwitchWithValues* a) { kind = Kind.switchWithValues; switchWithValues = a; }
 	@trusted immutable this(immutable TailRecur a) { kind = Kind.tailRecur; tailRecur = a; }
-	@trusted immutable this(immutable Zeroed a) { kind = Kind.zeroed; zeroed = a; }
+	immutable this(immutable ThreadLocalPtr a) { kind = Kind.threadLocalPtr; threadLocalPtr = a; }
+	immutable this(immutable Zeroed a) { kind = Kind.zeroed; zeroed = a; }
 }
 static assert(LowExprKind.sizeof <= 32);
 
@@ -1020,6 +1032,7 @@ static assert(LowExprKind.sizeof <= 32);
 	alias cbSwitch0ToN,
 	alias cbSwitchWithValues,
 	alias cbTailRecur,
+	alias cbThreadLocalPtr,
 	alias cbZeroed,
 )(scope ref immutable LowExprKind a) {
 	final switch (a.kind) {
@@ -1075,6 +1088,8 @@ static assert(LowExprKind.sizeof <= 32);
 			return cbSwitchWithValues(*a.switchWithValues);
 		case LowExprKind.Kind.tailRecur:
 			return cbTailRecur(a.tailRecur);
+		case LowExprKind.Kind.threadLocalPtr:
+			return cbThreadLocalPtr(a.threadLocalPtr);
 		case LowExprKind.Kind.zeroed:
 			return cbZeroed(a.zeroed);
 	}
@@ -1177,11 +1192,21 @@ struct AllConstantsLow {
 
 alias ConcreteFunToLowFunIndex = immutable Dict!(ConcreteFun*, LowFunIndex);
 
+struct LowThreadLocalIndex {
+	immutable size_t index;
+}
+
+struct LowThreadLocal {
+	immutable ConcreteFun* source;
+	immutable LowType type;
+}
+
 struct LowProgram {
 	@safe @nogc pure nothrow:
 
 	immutable ConcreteFunToLowFunIndex concreteFunToLowFunIndex;
 	immutable AllConstantsLow allConstants;
+	immutable FullIndexDict!(LowThreadLocalIndex, LowThreadLocal) threadLocals;
 	immutable AllLowTypes allTypes;
 	immutable FullIndexDict!(LowFunIndex, LowFun) allFuns;
 	immutable LowFunIndex main;

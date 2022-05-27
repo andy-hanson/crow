@@ -120,7 +120,7 @@ import util.col.fullIndexDict :
 import util.col.multiDict : buildMultiDict, multiDictEach;
 import util.col.mutArr : mustPop, MutArr, mutArrIsEmpty;
 import util.col.mutDict : insertOrUpdate, moveToDict, MutDict;
-import util.col.mutMaxArr : tempAsArr;
+import util.col.mutMaxArr : MutMaxArr, mutMaxArr, mutMaxArrSize, pushIfUnderMaxSize, tempAsArr;
 import util.col.str : copySafeCStr, SafeCStr, safeCStr, strOfSafeCStr;
 import util.memory : allocate, allocateMut, overwriteMemory;
 import util.opt : force, has, none, noneMut, Opt, some, someMut;
@@ -316,6 +316,7 @@ immutable(CommonTypes) getCommonTypes(
 	immutable StructDecl* fut = com("fut", 1);
 	immutable StructDecl* namedVal = com("named-val", 1);
 	immutable StructDecl* opt = com("opt", 1);
+	immutable StructDecl* ptrMut = com("mut-ptr", 1);
 	immutable StructDecl* fun0 = com("fun0", 1);
 	immutable StructDecl* fun1 = com("fun1", 2);
 	immutable StructDecl* fun2 = com("fun2", 3);
@@ -376,6 +377,7 @@ immutable(CommonTypes) getCommonTypes(
 		fut,
 		namedVal,
 		opt,
+		ptrMut,
 		[funPtr0, funPtr1, funPtr2, funPtr3, funPtr4, funPtr5, funPtr6, funPtr7, funPtr8, funPtr9],
 		[
 			immutable FunKindAndStructs(FunKind.plain, [fun0, fun1, fun2, fun3, fun4]),
@@ -697,46 +699,70 @@ immutable(FunFlags) checkFunFlags(
 	immutable RangeWithinFile range,
 	immutable FunModifierAst.SpecialFlags flags,
 ) {
-	void warn(immutable Diag.FunModifierWarning.Kind kind) {
-		addDiag(ctx, range, immutable Diag(immutable Diag.FunModifierWarning(kind)));
+	void warnConflict(immutable Sym modifier0, immutable Sym modifier1) {
+		addDiag(ctx, range, immutable Diag(immutable Diag.FunModifierConflict(modifier0, modifier1)));
 	}
+	void warnRedundant(immutable Sym modifier, immutable Sym redundantModifier) {
+		addDiag(ctx, range, immutable Diag(immutable Diag.FunModifierRedundant(modifier, redundantModifier)));
+	}
+
 	immutable bool builtin = (flags & FunModifierAst.SpecialFlags.builtin) != 0;
 	immutable bool extern_ = (flags & FunModifierAst.SpecialFlags.extern_) != 0;
 	immutable bool global = (flags & FunModifierAst.SpecialFlags.global) != 0;
 	immutable bool explicitNoctx = (flags & FunModifierAst.SpecialFlags.noctx) != 0;
 	immutable bool noDoc = (flags & FunModifierAst.SpecialFlags.no_doc) != 0;
 	immutable bool summon = (flags & FunModifierAst.SpecialFlags.summon) != 0;
+	immutable bool threadLocal = (flags & FunModifierAst.SpecialFlags.thread_local) != 0;
 	immutable bool trusted = (flags & FunModifierAst.SpecialFlags.trusted) != 0;
-	immutable bool unsafe = (flags & FunModifierAst.SpecialFlags.unsafe) != 0;
-	immutable bool noctx = explicitNoctx || extern_ || global;
+	immutable bool explicitUnsafe = (flags & FunModifierAst.SpecialFlags.unsafe) != 0;
+
+	immutable bool implicitUnsafe = extern_ || global || threadLocal;
+	immutable bool unsafe = explicitUnsafe || implicitUnsafe;
+	immutable bool implicitNoctx = extern_ || global || threadLocal;
+	immutable bool noctx = explicitNoctx || implicitNoctx;
+
+	immutable(Sym) bodyModifier() {
+		return builtin
+			? shortSym("builtin")
+			: extern_
+			? shortSym("extern")
+			: global
+			? shortSym("global")
+			: threadLocal
+			? shortSym("thread-local")
+			: unreachable!(immutable Sym);
+	}
+
 	immutable FunFlags.Safety safety = trusted
 		? FunFlags.Safety.trusted
-		: extern_ || global || unsafe
+		: unsafe
 		? FunFlags.Safety.unsafe
 		: FunFlags.Safety.safe;
-	if (trusted && unsafe)
-		warn(Diag.FunModifierWarning.Kind.trustedUnsafe);
-	if (extern_ && explicitNoctx)
-		warn(Diag.FunModifierWarning.Kind.externNoctx);
-	if (global && explicitNoctx)
-		warn(Diag.FunModifierWarning.Kind.globalNoctx);
-	if (extern_ && unsafe)
-		warn(Diag.FunModifierWarning.Kind.externUnsafe);
-	if (global && trusted)
-		warn(Diag.FunModifierWarning.Kind.globalTrusted);
-	if (global && unsafe)
-		warn(Diag.FunModifierWarning.Kind.globalUnsafe);
+	if (trusted && explicitUnsafe)
+		warnConflict(shortSym("trusted"), shortSym("unsafe"));
+	if (implicitNoctx && explicitNoctx)
+		warnRedundant(bodyModifier(), shortSym("noctx"));
+	if (implicitUnsafe && explicitUnsafe)
+		warnRedundant(bodyModifier(), shortSym("unsafe"));
+	if (implicitUnsafe && trusted && !extern_)
+		warnConflict(bodyModifier(), shortSym("trusted"));
 	immutable FunFlags.SpecialBody specialBody = builtin
 		? FunFlags.SpecialBody.builtin
 		: extern_
 		? FunFlags.SpecialBody.extern_
 		: global
 		? FunFlags.SpecialBody.global
+		: threadLocal
+		? FunFlags.SpecialBody.threadLocal
 		: FunFlags.SpecialBody.none;
-	if (builtin + extern_ + global > 1) {
-		immutable Sym modifier0 = builtin ? shortSym("builtin") : shortSym("extern");
-		immutable Sym modifier1 = builtin && extern_ ? shortSym("extern") : shortSym("global"); 
-		addDiag(ctx, range, immutable Diag(immutable Diag.FunMultipleBodyModifiers(modifier0, modifier1)));
+	if (builtin + extern_ + global + threadLocal > 1) {
+		MutMaxArr!(2, Sym) bodyModifiers = mutMaxArr!(2, Sym);
+		if (builtin) pushIfUnderMaxSize(bodyModifiers, shortSym("builtin"));
+		if (extern_) pushIfUnderMaxSize(bodyModifiers, shortSym("extern"));
+		if (global) pushIfUnderMaxSize(bodyModifiers, shortSym("global"));
+		if (threadLocal) pushIfUnderMaxSize(bodyModifiers, shortSym("thread-local"));
+		verify(mutMaxArrSize(bodyModifiers) == 2);
+		addDiag(ctx, range, immutable Diag(immutable Diag.FunModifierConflict(bodyModifiers[0], bodyModifiers[1])));
 	}
 	return immutable FunFlags(noctx, noDoc, summon, safety, false, false, specialBody);
 }
@@ -840,11 +866,17 @@ immutable(FunsAndDict) checkFuns(
 						getExternTypeArgs(funAst, FunModifierAst.SpecialFlags.extern_),
 						false));
 				case FunFlags.SpecialBody.global:
+					if (has(funAst.body_))
+						todo!void("diag: global fun can't have body");
 					return immutable FunBody(checkExternOrGlobalBody(
 						ctx,
 						castImmutable(fun),
 						getExternTypeArgs(funAst, FunModifierAst.SpecialFlags.global),
 						true));
+				case FunFlags.SpecialBody.threadLocal:
+					if (has(funAst.body_))
+						todo!void("diag: thraed-local fun can't have body");
+					return immutable FunBody(checkThreadLocalBody(ctx, commonTypes, castImmutable(fun)));
 			}
 		}());
 	});
@@ -1044,6 +1076,33 @@ immutable(FunBody.Extern) checkExternOrGlobalBody(
 		addDiag(ctx, fun.range, immutable Diag(
 			immutable Diag.ExternFunForbidden(fun, Diag.ExternFunForbidden.Reason.missingLibraryName)));
 	return immutable FunBody.Extern(isGlobal, has(libraryName) ? force(libraryName) : shortSym("bogus"));
+}
+
+immutable(FunBody.ThreadLocal) checkThreadLocalBody(
+	ref CheckCtx ctx,
+	scope ref immutable CommonTypes commonTypes,
+	immutable FunDecl* fun,
+) {
+	void err(immutable Diag.ThreadLocalError.Kind kind) {
+		addDiag(ctx, fun.range, immutable Diag(immutable Diag.ThreadLocalError(fun, kind)));
+	}
+	if (!empty(fun.typeParams))
+		err(Diag.ThreadLocalError.Kind.hasTypeParams);
+	if (!isPtrMutType(commonTypes, fun.returnType))
+		err(Diag.ThreadLocalError.Kind.mustReturnPtrMut);
+	if (!paramsIsEmpty(fun.params))
+		err(Diag.ThreadLocalError.Kind.hasParams);
+	if (!empty(fun.specs))
+		err(Diag.ThreadLocalError.Kind.hasSpecs);
+	return immutable FunBody.ThreadLocal();
+}
+
+immutable(bool) isPtrMutType(scope ref immutable CommonTypes commonTypes, immutable Type a) {
+	return isStructInst(a) && decl(*asStructInst(a)) == commonTypes.ptrMut;
+}
+
+immutable(bool) paramsIsEmpty(scope immutable Params a) {
+	return empty(paramsArray(a));
 }
 
 immutable(SpecsDict) buildSpecsDict(ref CheckCtx ctx, immutable SpecDecl[] specs) {

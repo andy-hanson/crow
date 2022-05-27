@@ -822,6 +822,8 @@ void fillInConcreteFunBody(ref ConcretizeCtx ctx, ConcreteFun* cf) {
 				immutable ConcreteFunBody(immutable ConcreteFunBody.RecordFieldGet(it.fieldIndex)),
 			(ref immutable FunBody.RecordFieldSet it) =>
 				immutable ConcreteFunBody(immutable ConcreteFunBody.RecordFieldSet(it.fieldIndex)),
+			(ref immutable FunBody.ThreadLocal) =>
+				immutable ConcreteFunBody(immutable ConcreteFunBody.ThreadLocal()),
 		)(inputs.body_);
 		lateSetOverwrite(cf._body_, body_);
 	}

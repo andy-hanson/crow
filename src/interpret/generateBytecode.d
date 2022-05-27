@@ -39,7 +39,9 @@ import interpret.funToReferences :
 	FunToReferences,
 	initFunToReferences;
 import interpret.generateExpr : generateFunFromExpr;
-import interpret.generateText : generateText, TextAndInfo, TextIndex, TextInfo;
+import interpret.generateText :
+	generateText, generateThreadLocalsInfo, TextAndInfo, TextIndex, TextInfo, ThreadLocalsInfo;
+import interpret.runBytecode : maxThreadLocalsSizeWords;
 import model.lowModel :
 	asRecordType,
 	asRecordType,
@@ -110,6 +112,7 @@ private immutable(ByteCode) generateBytecodeInner(
 	FunToReferences funToReferences =
 		initFunToReferences(tempAlloc, funPtrTypeToDynCallSig, fullIndexDictSize(program.allFuns));
 	TextAndInfo text = generateText(codeAlloc, tempAlloc, &program, &program.allConstants, funToReferences);
+	immutable ThreadLocalsInfo threadLocals = generateThreadLocalsInfo(codeAlloc, program);
 	ByteCodeWriter writer = newByteCodeWriter(castNonScope_mut(&codeAlloc));
 
 	immutable FullIndexDict!(LowFunIndex, ByteCodeIndex) funToDefinition =
@@ -124,6 +127,7 @@ private immutable(ByteCode) generateBytecodeInner(
 					allSymbols,
 					funToReferences,
 					text.info,
+					threadLocals,
 					program,
 					externFunPtrs,
 					funIndex,
@@ -159,6 +163,7 @@ private immutable(ByteCode) generateBytecodeInner(
 		syntheticFunPtrs.funPtrToOperationPtr,
 		fileToFuns(codeAlloc, allSymbols, modelProgram),
 		castImmutable(text.text),
+		threadLocals.totalSizeWords,
 		funToDefinition[program.main]);
 }
 
@@ -236,11 +241,14 @@ void generateBytecodeForFun(
 	ref const AllSymbols allSymbols,
 	ref FunToReferences funToReferences,
 	ref immutable TextInfo textInfo,
+	ref immutable ThreadLocalsInfo threadLocalsInfo,
 	scope ref immutable LowProgram program,
 	scope immutable ExternFunPtrsForAllLibraries externFunPtrs,
 	immutable LowFunIndex funIndex,
 	scope ref immutable LowFun fun,
 ) {
+	verify(threadLocalsInfo.totalSizeWords < maxThreadLocalsSizeWords);
+
 	debug {
 		if (false) {
 			import util.writer : finishWriterToCStr;
@@ -275,7 +283,7 @@ void generateBytecodeForFun(
 		},
 		(ref immutable LowFunExprBody body_) {
 			generateFunFromExpr(
-				tempAlloc, writer, allSymbols, program, textInfo, funIndex,
+				tempAlloc, writer, allSymbols, program, textInfo, threadLocalsInfo, funIndex,
 				funToReferences, parameters, returnEntries, body_);
 		},
 	)(fun.body_);

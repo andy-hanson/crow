@@ -68,6 +68,8 @@ import model.lowModel :
 	LowFunSource,
 	LowProgram,
 	LowRecord,
+	LowThreadLocal,
+	LowThreadLocalIndex,
 	LowType,
 	LowUnion;
 import model.typeLayout : Pack, PackField;
@@ -116,6 +118,7 @@ immutable(ByteCode) dummyByteCode(immutable Operations operations) {
 		immutable FunPtrToOperationPtr(),
 		dummyFileToFuns(),
 		[],
+		0,
 		immutable ByteCodeIndex(0));
 }
 
@@ -142,6 +145,7 @@ void doInterpret(
 	immutable LowProgram lowProgram = immutable LowProgram(
 		ConcreteFunToLowFunIndex(),
 		immutable AllConstantsLow([], [], []),
+		emptyFullIndexDict!(LowThreadLocalIndex, LowThreadLocal),
 		immutable AllLowTypes(
 			emptyFullIndexDict!(LowType.ExternPtr, LowExternPtrType),
 			emptyFullIndexDict!(LowType.FunPtr, LowFunPtrType),
@@ -153,7 +157,7 @@ void doInterpret(
 	withFakeExtern(test.alloc, test.allSymbols, (scope ref Extern extern_, scope ref FakeStdOutput _) @trusted {
 		immutable PathsInfo pathsInfo = emptyPathsInfo;
 		withInterpreter!void(
-			extern_.doDynCall, lowProgram, byteCode, test.allSymbols, test.allPaths, pathsInfo, filesInfo,
+			test.alloc, extern_.doDynCall, lowProgram, byteCode, test.allSymbols, test.allPaths, pathsInfo, filesInfo,
 			(ref Stacks stacks) {
 				runInterpreter(stacks, initialOperationPointer(byteCode));
 			});

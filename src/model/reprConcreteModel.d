@@ -221,7 +221,9 @@ immutable(Repr) reprOfConcreteFunBody(ref Alloc alloc, ref immutable ConcreteFun
 		(ref immutable ConcreteFunBody.RecordFieldGet it) =>
 			reprRecord(alloc, "field-get", [reprNat(it.fieldIndex)]),
 		(ref immutable ConcreteFunBody.RecordFieldSet it) =>
-			reprRecord(alloc, "field-set", [reprNat(it.fieldIndex)]));
+			reprRecord(alloc, "field-set", [reprNat(it.fieldIndex)]),
+		(ref immutable ConcreteFunBody.ThreadLocal it) =>
+			reprSym("thread-local"));
 }
 
 immutable(Repr) reprOfConcreteFunBodyBuiltin(ref Alloc alloc, ref immutable ConcreteFunBody.Builtin a) {

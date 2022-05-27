@@ -55,6 +55,7 @@ struct ByteCode {
 	immutable FunPtrToOperationPtr funPtrToOperationPtr;
 	immutable FileToFuns fileToFuns; // Look up in 'sources' first, then can find the corresponding function here
 	immutable ubyte[] text;
+	immutable size_t threadLocalsSizeWords;
 	immutable ByteCodeIndex main;
 
 	immutable(Operation[]) byteCode() immutable { return operations.byteCode; }

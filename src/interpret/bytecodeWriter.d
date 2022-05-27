@@ -46,6 +46,7 @@ import interpret.runBytecode :
 	opSetjmp,
 	opStackRef,
 	opSwitch0ToN,
+	opThreadLocalPtr,
 	opWrite;
 import model.model : EnumValue;
 import model.typeLayout : Pack;
@@ -350,6 +351,12 @@ void writeStackRef(
 
 	if (byteOffset != 0)
 		writeAddConstantNat64(writer, source, byteOffset);
+}
+
+void writeThreadLocalPtr(ref ByteCodeWriter writer, immutable ByteCodeSource source, immutable size_t offset) {
+	pushOperationFn(writer, source, &opThreadLocalPtr);
+	pushSizeT(writer, source, offset);	
+	writer.nextStackEntry += 1;
 }
 
 void writeWrite(

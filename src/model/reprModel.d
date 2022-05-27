@@ -200,11 +200,14 @@ void addFunFlags(ref Alloc alloc, scope ref ArrBuilder!NameAndRepr fields, scope
 		case FunFlags.SpecialBody.global:
 			addFlag("global");
 			break;
+		case FunFlags.SpecialBody.threadLocal:
+			addFlag("thread-local");
+			break;
 	}
 }
 
-immutable(Repr) reprTypeParam(ref Alloc alloc, immutable TypeParam) {
-	return todo!(immutable Repr)("reprTypeParam");
+immutable(Repr) reprTypeParam(ref Alloc alloc, immutable TypeParam a) {
+	return reprRecord(alloc, "type-param", [reprSym(a.name)]);
 }
 
 immutable(Repr) reprParams(ref Alloc alloc, scope ref Ctx ctx, scope ref immutable Params a) {
@@ -257,6 +260,8 @@ immutable(Repr) reprFunBody(ref Alloc alloc, scope ref Ctx ctx, ref immutable Fu
 			reprRecord(alloc, "field-get", [reprNat(it.fieldIndex)]),
 		(ref immutable FunBody.RecordFieldSet it) =>
 			reprRecord(alloc, "field-set", [reprNat(it.fieldIndex)]),
+		(ref immutable FunBody.ThreadLocal) =>
+			reprSym("thread-local"),
 	)(a);
 }
 

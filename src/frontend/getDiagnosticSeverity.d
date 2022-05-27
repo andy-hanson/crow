@@ -48,11 +48,11 @@ immutable(DiagSeverity) getDiagnosticSeverity(ref immutable Diag a) {
 			DiagSeverity.checkError,
 		(ref immutable Diag.FunMissingBody) =>
 			DiagSeverity.checkError,
-		(ref immutable Diag.FunModifierTypeArgs) =>
+		(ref immutable Diag.FunModifierConflict) =>
 			DiagSeverity.checkError,
-		(ref immutable Diag.FunModifierWarning) =>
+		(ref immutable Diag.FunModifierRedundant) =>
 			DiagSeverity.checkWarning,
-		(ref immutable Diag.FunMultipleBodyModifiers) =>
+		(ref immutable Diag.FunModifierTypeArgs) =>
 			DiagSeverity.checkError,
 		(ref immutable Diag.IfNeedsOpt) =>
 			DiagSeverity.checkError,
@@ -115,6 +115,8 @@ immutable(DiagSeverity) getDiagnosticSeverity(ref immutable Diag a) {
 		(ref immutable Diag.SpecImplHasSpecs) =>
 			DiagSeverity.checkError,
 		(ref immutable Diag.SpecImplNotFound) =>
+			DiagSeverity.checkError,
+		(ref immutable Diag.ThreadLocalError) =>
 			DiagSeverity.checkError,
 		(ref immutable Diag.ThrowNeedsExpectedType) =>
 			DiagSeverity.checkError,
