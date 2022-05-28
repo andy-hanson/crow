@@ -3,11 +3,11 @@ import
 	./col/arr: for-loop
 	./fun-util: subscript
 	./misc: void
+	./number: ==
 	./str: ~~, is-empty, literal, str
 	./str-conv: finish, interp, to-str, with-str, with-value
 	./writer: ~~=, move-to-str, new, writer
 	./private/backtrace: backtrace, backtrace-entry, entries, file-path, function-name, line-number
-	./private/number-low-level: ==
 	./str-util: join, to-str
 export
 	./private/exception-low-level: catch, exception, message, rethrow, unreachable

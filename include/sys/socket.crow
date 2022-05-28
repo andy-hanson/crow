@@ -27,6 +27,7 @@ as-fd fd-t(a SOCKET) unsafe
 	a.to-int64 to-int32
 as-socket SOCKET(a fd-t) unsafe
 	forbid is-windows
+	# TODO: wrap-to-nat64
 	a.to-int64 unsafe-to-nat64
 
 INVALID_SOCKET SOCKET() unsafe

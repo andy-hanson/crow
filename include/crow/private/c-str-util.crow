@@ -1,8 +1,8 @@
 no-std
 import
+	../number: ==, +, nat64
 	../ptr: +, -, *, as-const, as-mut, mut-ptr
 	./bootstrap: char8, c-str, none, opt, some, to-nat8
-	./number-low-level: ==, nat64, wrap-add
 
 ###
 Walk a c-str and return a pointer to the first occurrence of `c`.
@@ -37,4 +37,4 @@ c-str-size nat64(a c-str) unsafe noctx
 	a.find-c-str-end - a
 
 c-str-size-incl-nul nat64(a c-str) unsafe noctx
-	a.c-str-size wrap-add 1
+	a.c-str-size + 1

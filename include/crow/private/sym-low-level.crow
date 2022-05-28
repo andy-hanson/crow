@@ -6,13 +6,13 @@ import
 	../col/seq: fold, size
 	../compare: comparison
 	../misc: void
+	../number: +
 	../ptr: ==, +, as-const, mut-ptr, ref-of-val, set-deref
 	../str: ==, <=>, char8, char8s, c-str, hash-mix, str
 	../str-util: to-str
 	../tuple: a, b, new
 	./alloc: unmanaged-alloc-elements
 	./bootstrap: new-sym, static-syms
-	./number-low-level: wrap-add
 	./runtime: get-global-ctx, global-ctx, set-syms-table, syms-lock, syms-table
 	./thread-utils: with-lock
 export
@@ -49,7 +49,7 @@ str-to-sym sym(a str) trusted
 			pair b
 
 .to-malloced-c-str c-str(a str) unsafe
-	res char8 mut* = a.char8s.size wrap-add 1 unmanaged-alloc-elements
+	res char8 mut* = a.char8s.size + 1 unmanaged-alloc-elements
 	end = res fold a.char8s, (cur, x) =>
 		*cur := x
 		cur + 1

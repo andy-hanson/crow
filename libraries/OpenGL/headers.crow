@@ -38,23 +38,19 @@ glBindBuffer void(target GLenum, buffer GLuint) extern<GL> summon
 
 glBindTexture void(target GLenum, texture GLuint) extern<GL> summon
 
-glBufferData void
-	target GLenum
-	size GLsizeiptr
-	buffer-data any-const-ptr
-	usage GLenum
-spec
-	extern<GL>
-	summon
+glBufferData void(
+	target GLenum,
+	size GLsizeiptr,
+	buffer-data any-const-ptr,
+	usage GLenum,
+) extern<GL> summon
 
-glBufferSubData void
-	target GLenum
-	offset GLintptr
-	size GLsizeiptr
-	buffer-data any-const-ptr
-spec
-	extern<GL>
-	summon
+glBufferSubData void(
+	target GLenum,
+	offset GLintptr,
+	size GLsizeiptr,
+	buffer-data any-const-ptr,
+) extern<GL> summon
 
 glClear void(mask GLbitfield) extern<GL> summon
 
@@ -87,25 +83,21 @@ glGenTextures void(n GLsizei, textures GLuint mut*) extern<GL> summon
 
 glGetError GLenum() extern<GL> summon
 
-glGetProgramInfoLog void
-	program GLuint
-	bufSize GLsizei
-	length cell GLsizei
-	infoLog GLchar mut*
-spec
-	extern<GL>
-	summon
+glGetProgramInfoLog void(
+	program GLuint,
+	bufSize GLsizei,
+	length cell GLsizei,
+	infoLog GLchar mut*,
+) extern<GL> summon
 
 glGetProgramiv void(program GLuint, pname GLenum, params cell GLint) extern<GL> summon
 
-glGetShaderInfoLog void
-	shader GLuint
-	bufSize GLsizei
-	length cell GLsizei
-	infoLog GLchar mut*
-spec
-	extern<GL>
-	summon
+glGetShaderInfoLog void(
+	shader GLuint,
+	bufSize GLsizei,
+	length cell GLsizei,
+	infoLog GLchar mut*,
+) extern<GL> summon
 
 glGetShaderiv void(reader GLuint, pname GLenum, params cell GLint) extern<GL> summon
 
@@ -115,54 +107,46 @@ glGetUniformLocation GLint(program GLuint, name GLchar*) extern<GL> summon
 
 glLinkProgram void(program GLuint) extern<GL> summon
 
-glShaderSource void
-	shader GLuint
-	count GLsizei
-	string GLchar**
-	length GLint*
-spec
-	extern<GL>
-	summon
+glShaderSource void(
+	shader GLuint,
+	count GLsizei,
+	string GLchar**,
+	length GLint*,
+) extern<GL> summon
 
-glTexImage2D void
-	target GLenum
-	level GLint
-	internalformat GLenum
-	width GLsizei
-	height GLsizei
-	border GLint
-	format GLenum
-	type GLenum
-	pixels any-const-ptr
-spec
-	extern<GL>
-	summon
+glTexImage2D void(
+	target GLenum,
+	level GLint,
+	internalformat GLenum,
+	width GLsizei,
+	height GLsizei,
+	border GLint,
+	format GLenum,
+	type GLenum,
+	pixels any-const-ptr,
+) extern<GL> summon
 
 glTexParameteri void(target GLenum, pname GLenum, param GLenum) extern<GL> summon
 
 glUniform1i void(location GLint, v0 GLint) extern<GL> summon
 
-glUniformMatrix3fv void
-	location GLint
-	count GLsizei
-	transpose GLboolean
-	value GLfloat*
-spec
-	extern<GL>
-	summon
+glUniformMatrix3fv void(
+	location GLint,
+	count GLsizei,
+	transpose GLboolean,
+	value GLfloat*,
+) extern<GL> summon
 
 glUseProgram void(program GLuint) extern<GL> summon
 
-glVertexAttribPointer void
-	index GLuint
-	size GLint
-	type GLenum
-	normalized GLboolean
-	stride GLsizei
-	pointer any-const-ptr
-spec
-	extern<GL>
-	summon
+glVertexAttribPointer void(
+	index GLuint,
+	size GLint,
+	type GLenum,
+	normalized GLboolean,
+	stride GLsizei,
+	pointer any-const-ptr,
+) extern<GL> summon
 
 GL_FALSE GLint() noctx
 	0

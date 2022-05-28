@@ -5,6 +5,7 @@ import
 	../fun-util: subscript
 	../hash: hash, hash-mix
 	../misc: is-data, new, void
+	../number: ==, <=>, +, -, *, %, nat64
 	../opt: is-empty, new, opt, opt-equal
 	../ptr: ==, +, *, mut-ptr, set-deref
 	../str: ==, literal, str
@@ -12,7 +13,6 @@ import
 	../test-util: is
 	../tuple: from, new, pair, to
 	../writer: ~=, ~~=, backup, move-to-str, new, writer
-	../private/number-low-level: ==, <=>, nat64, unsafe-mod, wrap-add, wrap-mul, wrap-sub
 	./arr: ==, arr, arr-equal, for-loop, new, size
 	./dict: dict, to-dict
 	./fix-arr:
@@ -112,7 +112,7 @@ Returns an empty option if the key is not in the dictionary.
 ###
 subscript<k, v> v?(a v mut[k], key k) trusted is-data<k> compare<k> hash-mix<k>
 	unless a is-empty
-		match a.entries[key.hash unsafe-mod a.entries.size]
+		match a.entries[key.hash % a.entries.size]
 		as none
 			()
 		as one ar
@@ -167,19 +167,19 @@ Returns the old value (if it exists).
 			a.total-size := 1
 		()
 	else
-		entry-index = key.hash unsafe-mod a.entries.size
+		entry-index = key.hash % a.entries.size
 		match a.entries[entry-index]
 		as none
 			if value ?= new-value
 				a.entries[entry-index] := (key, value) one
-				a.total-size := a.total-size wrap-add 1
+				a.total-size := a.total-size + 1
 			()
 		as one ar
 			if ar.from == key
 				a.entries[entry-index] := if value ?= new-value
 					(key, value) one
 				else
-					a.total-size := a.total-size wrap-sub 1
+					a.total-size := a.total-size - 1
 					none
 				ar.to,
 			else
@@ -189,7 +189,7 @@ Returns the old value (if it exists).
 						a[key] := value
 					else
 						a.entries[entry-index] := (ar, (key, value)) many
-						a.total-size := a.total-size wrap-add 1
+						a.total-size := a.total-size + 1
 				()
 		as many m
 			if index ?= m find-index pair => pair.from == key
@@ -204,7 +204,7 @@ Returns the old value (if it exists).
 						# TODO: should not need a local
 						z = m[0]
 						a.entries[entry-index] := z one
-					a.total-size := a.total-size wrap-sub 1
+					a.total-size := a.total-size - 1
 				old-value,
 			else
 				if value ?= new-value
@@ -213,7 +213,7 @@ Returns the old value (if it exists).
 						a[key] := value
 					else
 						m ~= (key, value)
-						a.total-size := a.total-size wrap-add 1
+						a.total-size := a.total-size + 1
 				()
 
 # This is the same as calling `a[b a] := b b`.
@@ -231,7 +231,7 @@ Returns the old value (if it exists).
 
 .expand<k, v> void(a v mut[k]) is-data<k> compare<k> hash-mix<k>
 	forbid a.entries.size == 0
-	new-size = a.entries.size wrap-mul 2
+	new-size = a.entries.size * 2
 	bigger v mut[k] = new-size mut-dict-with-capacity
 	a each (key, value) =>
 		bigger[key] := value

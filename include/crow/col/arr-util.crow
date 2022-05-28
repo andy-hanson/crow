@@ -5,12 +5,12 @@ import
 	../compare: !=, <, <=, >=, equal, max, min
 	../fun-util: subscript
 	../misc: new, void
+	../number: ==, <=>, +, -, *, /, %, nat64
 	../opt: is-empty, new, opt
 	../ptr: ==, +, -, *, as-const, const-ptr, mut-ptr, set-deref
 	../range: for-loop
 	../tuple: new, pair
 	../private/alloc: alloc-uninitialized
-	../private/number-low-level: ==, <=>, nat64, unsafe-div, unsafe-mod, wrap-add, wrap-sub, wrap-mul
 	../private/range-low-level: ..
 	./arr: ~, ~~, arr, for-loop, is-empty, new, size, subscript
 	./iter: new, value-and-rest
@@ -26,7 +26,7 @@ first<a> a?(a a[])
 # Same as `a[a.size - 1]`, but returns an empty option if `a` is empty.
 last<a> a?(a a[])
 	unless a is-empty
-		a[a.size wrap-sub 1],
+		a[a.size - 1],
 
 ###
 All but the first element.
@@ -44,7 +44,7 @@ Throws if `a` is empty.
 ###
 rtail<a> a[](a a[])
 	forbid a is-empty : "rtail of empty array"
-	a[0 .. (a.size wrap-sub 1)]
+	a[0 .. a.size - 1]
 
 .check-index<a> void(a a[], index nat64)
 	assert index < a.size : "index out of bounds"
@@ -57,7 +57,7 @@ Returns a new array like `a` but where `a[index]` is `new-value`.
 update-at<a> a[](a a[], index nat64, new-value a)
 	a check-index index
 	# TODO:PERF (only concat once)
-	a[0 .. index] ~ new-value ~~ a[(index wrap-add 1) .. a.size]
+	a[0 .. index] ~ new-value ~~ a[index + 1 .. a.size]
 
 ###
 Unlike `update-at`, `index` doesn't need to be a valid index.
@@ -67,7 +67,7 @@ update-at-with-default<a> a[](a a[], index nat64, new-value a, default a) no-doc
 	if index < a.size
 		a update-at index, new-value
 	else
-		for i : 0 .. (index wrap-add 1)
+		for i : 0 .. index + 1
 			if i < a.size
 				a[i]
 			elif i == index
@@ -90,7 +90,7 @@ insert-at-ptr<a> a[](a a[], ptr a*, value a) no-doc unsafe
 # Removes the element at index `index`, shifting all later elements to the left.
 remove-at<a> a[](a a[], index nat64)
 	a check-index index
-	a[0 .. index] ~~ a[(index wrap-add 1) .. a.size]
+	a[0 .. index] ~~ a[index + 1 .. a.size]
 
 # If the array is longer than `max-size`, slice it to that size.
 with-max-size<a> a[](a a[], max-size nat64)
@@ -99,12 +99,12 @@ with-max-size<a> a[](a a[], max-size nat64)
 # While the array is shorter than `min-size`, add an element `pad` on the left.
 pad-left<a> a[](pad a, a a[], min-size nat64)
 	if a.size < min-size
-		diff = min-size wrap-sub a.size
+		diff = min-size - a.size
 		for index : 0 .. min-size
 			if index < diff
 				pad
 			else
-				a[index wrap-sub diff]
+				a[index - diff]
 	else
 		a
 
@@ -120,15 +120,15 @@ pad-right<a> a[](a a[], pad a, min-size nat64)
 		a
 
 # Concatenate `n` copies of `a`.
-repeat<a> a[](a a[], n nat64) trusted
+repeat<a> a[](a a[], n nat64)
 	# TODO: watch out for overflow
-	for i : 0 .. (a.size wrap-mul n)
-		a[i unsafe-mod a.size]
+	for i : 0 .. a.size * n
+		a[i % a.size]
 
 # Array where the leftmost element of `a` becomes the rightmost element, etc.
 reverse<a> a[](a a[])
 	for i : 0 .. a.size
-		a[a.size wrap-sub 1 wrap-sub i]
+		a[a.size - 1 - i]
 
 region iteration
 
@@ -144,7 +144,7 @@ each-with-index<a> void(a a[], f act void(a, nat64)) trusted
 	until index == size
 		f[*cur, index]
 		cur := cur + 1
-		index := index wrap-add 1
+		index := index + 1
 
 ###
 This is like `each` but with a state variable that gets transformed by each call to `f`.
@@ -174,7 +174,7 @@ fold-with-index<a, b> a(init a, a b[], f act a(a, b, nat64)) trusted
 		else
 			acc := f[acc, *cur, index]
 			cur := cur + 1
-			index := index wrap-add 1
+			index := index + 1
 			continue
 
 # Like `fold`, but iterates right-to-left.
@@ -222,14 +222,14 @@ filter-with-index<a> a[](a a[], f act bool(a, nat64)) trusted
 				*out := *cur
 				out := out + 1
 			cur := cur + 1
-			index := index wrap-add 1
+			index := index + 1
 			continue
 
 # TODO: move to iter-utiil since this works with any foldable
 # Calls `f` on every element, and returns the number of times `f` returned `true`.
 count<a> nat64(a a[], f act bool(a))
 	0 fold a, (cur, x) =>
-		cur wrap-add f[x].to-nat64
+		cur + f[x].to-nat64
 
 ###
 Equivalent to `f[a[0]] || f[a[1]] || ... || f[a[a.size - 1]]`
@@ -256,8 +256,8 @@ Also equivalent to `a exists it => it == value`.
 ###
 in<a> bool(value a, a a[]) noctx equal<a>
 	value in-recur a, 0
-.in-recur<a> bool(value a, a a[], i nat64) noctx trusted equal<a>
-	i != a.size && (a[i] == value || (value in-recur a, (i wrap-add 1)))
+.in-recur<a> bool(value a, a a[], i nat64) noctx equal<a>
+	i != a.size && (a[i] == value || (value in-recur a, i + 1))
 
 ###
 If `value` is in `a`, returns `a` with the first instance of `value` removed.
@@ -270,7 +270,7 @@ try-remove<a> a[]?(a a[], value a) equal<a>
 		if a[index] == value
 			(a remove-at index),
 		else
-			a try-remove-recur (index wrap-add 1), value
+			a try-remove-recur index + 1, value
 
 ###
 Returns the first element `x` of `a` such that `f[x]` is `true`.
@@ -323,12 +323,12 @@ find-index<a> nat64?(a a[], f act bool(a)) trusted
 # Like `find-index`, but searching starts from the end of `a` and moves left.
 find-index-reverse<a> nat64?(a a[], f act bool(a))
 	unless a is-empty
-		a find-index-reverse-recur (a.size wrap-sub 1), f
+		a find-index-reverse-recur a.size - 1, f
 .find-index-reverse-recur<a> nat64?(a a[], index nat64, f act bool(a))
 	if f[a[index]]
 		index,
 	elif index != 0
-		a find-index-reverse-recur (index wrap-sub 1), f
+		a find-index-reverse-recur index - 1, f
 
 ###
 Returns the first index `i` where `a[i] == value`.
@@ -366,7 +366,7 @@ Concatenates many arrays into a single array.
 Equivalent to `a[0] ~ a[1] ~ ...`.
 ###
 flatten<a> a[](a a[][]) trusted
-	total-size = 0 fold a, (acc, xs) => acc wrap-add xs.size
+	total-size = 0 fold a, (acc, xs) => acc + xs.size
 	res a mut* = total-size alloc-uninitialized
 	# TODO: NOT CELL
 	cur cell a mut* = res,
@@ -427,7 +427,7 @@ strip-left-while<a> a[](a a[], f act bool(a))
 		a.tail strip-left-while f
 
 strip-right-while<a> a[](a a[], f act bool(a))
-	if a.is-empty || !f[a[a.size wrap-sub 1]]
+	if a.is-empty || !f[a[a.size - 1]]
 		a
 	else
 		a.rtail strip-right-while f
@@ -457,7 +457,7 @@ index-of-subseq<a> nat64?(a a[], subseq a[]) equal<a> equal<a[]>
 		if a[i .. a.size] starts-with subseq
 			i,
 		else
-			a index-of-subseq-recur subseq, (i wrap-sub 1)
+			a index-of-subseq-recur subseq, i - 1
 
 # TODO: equal<a[]> should be unnecessary
 # Returns the number of non-overlapping occurences of the subsequence.
@@ -466,7 +466,7 @@ count-subseqs<a> nat64(a a[], subseq a[]) equal<a> equal<a[]>
 # TODO: equal<a[]> should be unnecessary
 .count-subseqs-recur<a> nat64(a a[], subseq a[], acc nat64) equal<a> equal<a[]>
 	if index ?= a index-of-subseq subseq
-		a[(index wrap-sub subseq.size) .. a.size] count-subseqs-recur subseq, (acc wrap-add 1)
+		a[index - subseq.size .. a.size] count-subseqs-recur subseq, acc + 1
 	else
 		acc
 
@@ -478,7 +478,7 @@ Returns an empty option iff `splitter` is not in the array.
 ###
 try-split-once<a> pair<a[], a[]>?(a a[], splitter a) equal<a>
 	if index ?= a index-of splitter
-		(a[0 .. index], a[(index wrap-add 1) .. a.size]),
+		(a[0 .. index], a[index + 1 .. a.size]),
 
 split<a> record
 	left a[]
@@ -491,7 +491,7 @@ Returns an empty option iff `splitter` is `false` for every element in the array
 ###
 try-split-once-by-fn<a> split<a>?(a a[], splitter act bool(a))
 	if index ?= a find-index splitter
-		(a[0 .. index], a[index], a[(index wrap-add 1) .. a.size]),
+		(a[0 .. index], a[index], a[index + 1 .. a.size]),
 
 # TODO: equal<a[]> should be unnecessary
 ###
@@ -517,12 +517,12 @@ split-by-fn<a> a[][](a a[], splitter act bool(a)) trusted
 # Like `try-split-once`, but the splitter is a subsequence instead of a single element.
 try-split-once-by-subseq<a> pair<a[], a[]>?(a a[], splitter a[]) equal<a> equal<a[]> trusted
 	if index ?= a index-of-subseq splitter
-		(a[0 .. index], a[(index wrap-add splitter.size) .. a.size]),
+		(a[0 .. index], a[index + splitter.size .. a.size]),
 
 # TODO: equal<a[]> should be unnecessary
 # This is like `split-by`, but the splitter is a subsequence instead of a single element.
 split-by-subseq<a> a[][](a a[], splitter a[]) equal<a> equal<a[]> trusted
-	size = a count-subseqs splitter wrap-add 1
+	size = (a count-subseqs splitter) + 1
 	res a[] mut* = size alloc-uninitialized
 	res split-by-subseq-recur a, splitter
 	res.as-const arr-from-begin-size size
@@ -530,7 +530,7 @@ split-by-subseq<a> a[][](a a[], splitter a[]) equal<a> equal<a[]> trusted
 .split-by-subseq-recur<a> void(out a[] mut*, a a[], splitter a[]) equal<a> equal<a[]> unsafe
 	if index ?= a index-of-subseq splitter
 		*out := a[0 .. index]
-		rest = a[(index wrap-add splitter.size) .. a.size]
+		rest = a[index + splitter.size .. a.size]
 		out + 1 split-by-subseq-recur rest, splitter
 	else
 		*out := a
@@ -543,7 +543,7 @@ starts-with<a> bool(a a[], start a[]) equal<a> equal<a[]>
 # TODO: equal<a[]> should be unnecessary
 # `true` iff the last elements of `a` are `end`, meaning `a[a.size - end.size .. a.size] == end`.
 ends-with<a> bool(a a[], end a[]) equal<a> equal<a[]>
-	a.size >= end.size && a[(a.size wrap-sub end.size) .. a.size] == end
+	a.size >= end.size && a[a.size - end.size .. a.size] == end
 
 # TODO: equal<a[]> should be unnecessary
 # If `a` starts with `start`, returns the remaining elements, else returns an empty option.
@@ -555,7 +555,7 @@ try-remove-start<a> a[]?(a a[], start a[]) equal<a> equal<a[]>
 # If `a` ends with `end`, returns the preceding elements, else returns an empty option.
 try-remove-end<a> a[]?(a a[], end a[]) equal<a> equal<a[]>
 	if a ends-with end
-		a[0 .. (a.size wrap-sub end.size)],
+		a[0 .. a.size - end.size],
 
 region iter
 
@@ -578,12 +578,12 @@ end-iter<a> arr-iter<a>(a a[]) noctx
 next<a> value-and-rest<a, arr-iter a>?(a arr-iter a) trusted noctx
 	assert a.index <= a.xs.size
 	if a.index != a.xs.size
-		(a.xs[a index], (a.xs, a.index wrap-add 1)),
+		(a.xs[a index], (a.xs, a.index + 1)),
 
 prev<a> value-and-rest<a, arr-iter a>?(a arr-iter a) trusted noctx
 	assert a.index <= a.xs.size
 	if a.index != 0
-		prev-index = a.index wrap-sub 1
+		prev-index = a.index - 1
 		(a.xs[prev-index], (a.xs, prev-index)),
 
 slice-left<a> a[](a arr-iter a)
@@ -592,10 +592,10 @@ slice-left<a> a[](a arr-iter a)
 slice-right<a> a[](a arr-iter a)
 	a.xs[a.index .. a.xs.size]
 
-groups-of<a> a[][](a a[], group-size nat64) trusted
+groups-of<a> a[][](a a[], group-size nat64)
 	forbid group-size == 0 : "group-size can't be 0"
-	div = a.size unsafe-div group-size
-	out-size = (div wrap-mul group-size) == a.size ? div : div wrap-add 1
+	div = a.size / group-size
+	out-size = div * group-size == a.size ? div : div + 1
 	for group-index : 0 .. out-size
-		start = group-index wrap-mul group-size
-		a[start .. (start wrap-add group-size min a.size)]
+		start = group-index * group-size
+		a[start .. (start + group-size min a.size)]

@@ -4,9 +4,9 @@ import
 	../compare: ==, <, <=, compare, comparison, equal, greater, less
 	../fun-util: subscript
 	../misc: new, void
+	../number: +, -, *, ==, <=>, nat64
 	../opt: ??, ||, is-empty, new, opt
 	../private/exception-low-level: unreachable
-	../private/number-low-level: ==, <=>, nat64, wrap-add, wrap-sub, wrap-mul
 	../ptr: ==, +, set-deref, size-of
 	../tuple: a, b, new, pair
 	./arr: ~, ~~, arr, arr-equal, is-empty, new, size, subscript
@@ -194,7 +194,7 @@ Number of elements in the sequence.
 This is O(n).
 ###
 size<a> nat64(a seq a)
-	0 fold-chunks a, (acc, xs) => acc wrap-add xs.size
+	0 fold-chunks a, (acc, xs) => acc + xs.size
 
 ###
 Concatenate two sequences.
@@ -275,12 +275,12 @@ This is O(log n), amortized O(1).
 ) new<lower>
 	match r
 	as leaf xs
-		if (l.size-bytes wrap-add xs.size-bytes) <= max-leaf-bytes
+		if l.size-bytes + xs.size-bytes <= max-leaf-bytes
 			l ~~ xs leaf
 		else
 			(l, (), xs) branch
 	as branch br
-		if (l.size-bytes wrap-add br.left.size-bytes) <= max-leaf-bytes
+		if l.size-bytes + br.left.size-bytes <= max-leaf-bytes
 			(l ~~ br.left, br.down, br.right) branch
 		else
 			(l, cat-left-lower[br.left, br.down], br.right) branch
@@ -292,12 +292,12 @@ This is O(log n), amortized O(1).
 ) new<lower>
 	match l
 	as leaf xs
-		if (xs.size-bytes wrap-add r.size-bytes) <= max-leaf-bytes
+		if xs.size-bytes + r.size-bytes <= max-leaf-bytes
 			xs ~~ r leaf
 		else
 			(xs, (), r) branch
 	as branch br
-		if (br.right.size-bytes wrap-add r.size-bytes) <= max-leaf-bytes
+		if br.right.size-bytes + r.size-bytes <= max-leaf-bytes
 			(br.left, br.down, br.right ~~ r) branch
 		else
 			(br.left, cat-right-lower[br.down, br.right], r) branch
@@ -348,7 +348,7 @@ This is O(log n), amortized O(1).
 
 # 'trusted' since we are just using it to guide branch sizes (which should have no observable effect)
 .size-bytes<a> nat64(a a[]) trusted
-	a.size wrap-mul size-of@<a>
+	a.size * size-of@<a>
 
 region iter and slice
 
@@ -581,9 +581,9 @@ slice-right<a> seq a(a seq-iter a) trusted
 .pop-right<a> pair<l1 a, a[]>(a l1 a)
 	match a node
 	as leaf xs
-		(xs.rtail.leaf,), xs[xs.size wrap-sub 1]
+		(xs.rtail.leaf,), xs[xs.size - 1]
 	as branch b
-		popped = b.right[b.right.size wrap-sub 1]
+		popped = b.right[b.right.size - 1]
 		rest l1 a = if b.right.rtail is-empty
 			if b.down is-empty
 				b.left.leaf,
@@ -598,7 +598,7 @@ slice-right<a> seq a(a seq-iter a) trusted
 	a.nodes[0], (a.nodes.tail,)
 
 .pop-right<a> pair<l2 a, a[][]>(a l2 a)
-	(a.nodes.rtail,), a.nodes[a.nodes.size wrap-sub 1]
+	(a.nodes.rtail,), a.nodes[a.nodes.size - 1]
 
 .slice-left-update-l1<a> seq a(a seq a, f act l1 a(l1 a)) unsafe
 	old-l0 = a get-l0-branch

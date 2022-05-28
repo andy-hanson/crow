@@ -10,13 +10,13 @@ import
 	../col/private/arr-low-level: begin-ptr
 	../extra-types: fd-t
 	../misc: new, void
+	../number: ==, nat8, to-int64, to-nat32
 	../ptr: null, size-of
 	../str: char8, literal, str
 	../str-conv: finish, interp, to-str, with-str, with-value
 	../str-util: to-bytes
 	../version: is-windows
 	../private/bootstrap: todo
-	../private/number-low-level: ==, nat8, unsafe-to-int64, unsafe-to-nat32
 	./win32-util: show-win32-error
 
 # Print to stdout, including a newline.
@@ -45,7 +45,7 @@ print-err-no-newline void(a str) summon trusted
 .write-windows void(console HANDLE, a str) summon unsafe
 	bytes = a to-bytes
 	written cell DWORD = 0,
-	size32 = bytes.size unsafe-to-nat32
+	size32 = bytes.size to-nat32
 	ok = console WriteFile bytes.begin-ptr, size32, written.as-mut-ptr, null
 	assert ok : "{GetLastError show-win32-error}"
 	unless *written == size32
@@ -56,7 +56,7 @@ print-err-no-newline void(a str) summon trusted
 	assert size-of@<char8> == size-of@<nat8>
 	bytes = a to-bytes
 	res = fd write bytes.begin-ptr, bytes.size
-	unless res == bytes.size.unsafe-to-int64
+	unless res == bytes.size.to-int64
 		# TODO: Maybe retry
 		todo
 

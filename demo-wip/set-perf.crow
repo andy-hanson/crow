@@ -16,7 +16,6 @@ import
 	crow/log: info, log
 	crow/private/alloc: force-needs-gc, gc, get-gc, get-stats, words-used
 	crow/private/bootstrap: todo
-	crow/private/number-low-level: wrap-add
 	crow/reader: parse-nat
 
 main fut nat(args str[]) summon unsafe
@@ -310,61 +309,61 @@ This ensures the collection is kept in memory.
 	if iters == 0
 		acc
 	else
-		acc wrap-add (max-value.rand-nat in a).to-nat64 get-test a, iters - 1, max-value
+		acc + (max-value.rand-nat in a).to-nat64 get-test a, iters - 1, max-value
 
 .get-test nat(acc nat, a compact-sorted-dict<nat, void>, iters nat, max-value nat) summon
 	if iters == 0
 		acc
 	else
-		acc wrap-add (max-value.rand-nat in a).to-nat64 get-test a, iters - 1, max-value
+		acc + (max-value.rand-nat in a).to-nat64 get-test a, iters - 1, max-value
 
 .get-test nat(acc nat, a void[nat], iters nat, max-value nat) summon
 	if iters == 0
 		acc
 	else
-		acc wrap-add (max-value.rand-nat in a).to-nat64 get-test a, iters - 1, max-value
+		acc + (max-value.rand-nat in a).to-nat64 get-test a, iters - 1, max-value
 
 .get-test nat(acc nat, a frozen-dict<nat, void>, iters nat, max-value nat) summon
 	if iters == 0
 		acc
 	else
-		acc wrap-add (max-value.rand-nat in a).to-nat64 get-test a, iters - 1, max-value
+		acc + (max-value.rand-nat in a).to-nat64 get-test a, iters - 1, max-value
 
 .get-test nat(acc nat, a frozen-set nat, iters nat, max-value nat) summon
 	if iters == 0
 		acc
 	else
-		acc wrap-add (max-value.rand-nat in a).to-nat64 get-test a, iters - 1, max-value
+		acc + (max-value.rand-nat in a).to-nat64 get-test a, iters - 1, max-value
 
 .get-test nat(acc nat, a hamt-set nat, iters nat, max-value nat) summon
 	if iters == 0
 		acc
 	else
-		acc wrap-add (max-value.rand-nat in a).to-nat64 get-test a, iters - 1, max-value
+		acc + (max-value.rand-nat in a).to-nat64 get-test a, iters - 1, max-value
 
 .get-test nat(acc nat, a index-set, iters nat, max-value nat) summon
 	if iters == 0
 		acc
 	else
-		acc wrap-add (max-value.rand-nat in a).to-nat64 get-test a, iters - 1, max-value
+		acc + (max-value.rand-nat in a).to-nat64 get-test a, iters - 1, max-value
 
 .get-test nat(acc nat, a set nat, iters nat, max-value nat) summon
 	if iters == 0
 		acc
 	else
-		acc wrap-add (max-value.rand-nat in a).to-nat64 get-test a, iters - 1, max-value
+		acc + (max-value.rand-nat in a).to-nat64 get-test a, iters - 1, max-value
 
 .get-test nat(acc nat, a sorted-set nat, iters nat, max-value nat) summon
 	if iters == 0
 		acc
 	else
-		acc wrap-add (max-value.rand-nat in a).to-nat64 get-test a, iters - 1, max-value
+		acc + (max-value.rand-nat in a).to-nat64 get-test a, iters - 1, max-value
 
 .get-test nat(acc nat, a tree-set nat, iters nat, max-value nat) summon
 	if iters == 0
 		acc
 	else
-		acc wrap-add (max-value.rand-nat in a).to-nat64 get-test a, iters - 1, max-value
+		acc + (max-value.rand-nat in a).to-nat64 get-test a, iters - 1, max-value
 
 .rand-nat nat(max nat) summon
 	rand.to-nat64 % max

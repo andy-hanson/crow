@@ -28,10 +28,9 @@ import
 	../compare: <=
 	../extra-types: fd-t
 	../misc: new, void
-	../number: ==, <=>, int32, nat8, nat32, to-int32, to-int64, to-nat32, to-nat64
+	../number: ==, <=>, +, int32, nat8, nat32, to-int32, to-int64, to-nat32, to-nat64
 	../private/bootstrap: todo
 	../private/c-str-util: find-c-str-end
-	../private/number-low-level: wrap-add
 	../ptr:
 		==, +, -, any-const-ptr, as-any-const-ptr, as-any-mut-ptr, as-ref, by-val, const-ptr, new,
 		null
@@ -72,7 +71,7 @@ spawn-and-wait-result process-result(exe str, args str[]) trusted summon
 .keep-reading void(res char8 mut[], file FILE) unsafe summon
 	read-at-a-time = 0x1000
 	old-size = res size
-	res unsafe-set-size (old-size wrap-add read-at-a-time)
+	res unsafe-set-size old-size + read-at-a-time
 	old-end = res.end-ptr - read-at-a-time
 	err = old-end fgets read-at-a-time.to-int32, file
 	if err == null
@@ -168,14 +167,14 @@ shell-exec str(command str) trusted summon
 .read-from-pipe-windows-recur void(res nat8 mut[], pipe HANDLE) summon unsafe
 	read-at-a-time = 0x1000
 	old-size = res size
-	res unsafe-set-size (old-size wrap-add read-at-a-time)
+	res unsafe-set-size old-size + read-at-a-time
 	old-end = res.end-ptr - read-at-a-time
 	n-read-cell cell nat32 = 0,
 	ok = pipe ReadFile old-end, read-at-a-time.to-nat32, n-read-cell.as-mut-ptr, null
 	if ok
 		n-read = n-read-cell->to-nat64
 		assert n-read <= read-at-a-time
-		res unsafe-set-size (old-size wrap-add n-read)
+		res unsafe-set-size old-size + n-read
 		res read-from-pipe-windows-recur pipe
 	else
 		res unsafe-set-size old-size
@@ -239,7 +238,7 @@ shell-exec str(command str) trusted summon
 	else
 		a = stdout-pollfd handle-revents stdout-builder
 		b = stderr-pollfd handle-revents stderr-builder
-		assert (a.any.to-nat64 wrap-add b.any.to-nat64) == n-pollfds-with-events.to-nat64
+		assert a.any.to-nat64 + b.any.to-nat64 == n-pollfds-with-events.to-nat64
 		# Apparently stdout and stderr can hang up at slightly different times.
 		unless a.hung-up && b.hung-up
 			stdout-pipe keep-polling stderr-pipe, stdout-builder, stderr-builder
@@ -265,7 +264,7 @@ shell-exec str(command str) trusted summon
 	read-max = 1024
 	# It will write to the end of the buffer. So we must ensure that it has enough space at the end.
 	old-size = buffer.size
-	buffer unsafe-set-size (old-size wrap-add read-max)
+	buffer unsafe-set-size old-size + read-max
 	add-data-to = buffer.begin-ptr + old-size
 	n-bytes-read = fd read add-data-to.as-any-mut-ptr, read-max
 	if n-bytes-read == -1
@@ -276,7 +275,7 @@ shell-exec str(command str) trusted summon
 		buffer unsafe-set-size old-size
 	else
 		assert n-bytes-read.to-nat64 <= read-max
-		new-size = old-size wrap-add n-bytes-read.to-nat64
+		new-size = old-size + n-bytes-read.to-nat64
 		buffer unsafe-set-size new-size
 		fd read-to-buffer-until-eof buffer
 

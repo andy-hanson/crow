@@ -6,6 +6,7 @@ import
 	../../hash: hash-mix
 	../../log: info, log
 	../../misc: is-data, new, void
+	../../number: ==, <=>, +, nat64
 	../../opt: is-empty, new, opt, opt-equal
 	../../ptr: ==, +, bits-equal, ref-eq, set-deref
 	../../str: ==, literal, str
@@ -13,7 +14,6 @@ import
 	../../test-util: is
 	../../tuple: from, new, pair, to
 	../../writer: ~=, ~~=, backup, move-to-str, new, writer
-	../../private/number-low-level: ==, <=>, nat64, wrap-add
 	../arr: arr, new
 	../arr-util: fold
 	../fix-arr: begin-ptr, cast-immutable, end-ptr, fix-arr, fix-arr-from-begin-end, uninitialized-fix-arr
@@ -32,9 +32,9 @@ node-count<k, v> nat64(a compact-dict<k, v>)
 .node-count<k, v> nat64(acc nat64, a impl<k, v>)
 	match a
 	as overlay o
-		acc wrap-add 1 node-count o.prev
+		acc + 1 node-count o.prev
 	as end-node _
-		acc wrap-add 1
+		acc + 1
 
 .impl<k, v> union
 	overlay overlay<k, v>
@@ -69,7 +69,7 @@ This is O(n).
 ###
 
 size<k, v> nat64(a compact-dict<k, v>) is-data<k> compare<k> hash-mix<k>
-	0 fold a, (acc, _, _) => acc wrap-add 1
+	0 fold a, (acc, _, _) => acc + 1
 
 ~ <k, v> compact-dict<k, v>(a compact-dict<k, v>, pair pair<k, v>) is-data<k> compare<k> hash-mix<k>
 	a add-or-remove pair.from, (pair.to,)
@@ -132,7 +132,7 @@ in<k, v> bool(key k, a compact-dict<k, v>) is-data<k> compare<k> hash-mix<k>
 	l frozen-dict<k, v?>,
 	r frozen-dict<k, v?>,
 ) trusted is-data<k> compare<k> hash-mix<k>
-	res fix-arr pair<k, v?> = l.size wrap-add r.size uninitialized-fix-arr
+	res fix-arr pair<k, v?> = l.size + r.size uninitialized-fix-arr
 	begin = res begin-ptr
 	mid = begin fold l, (cur, k, vl) =>
 		if k in r
@@ -149,7 +149,7 @@ in<k, v> bool(key k, a compact-dict<k, v>) is-data<k> compare<k> hash-mix<k>
 	l frozen-dict<k, v>,
 	r frozen-dict<k, v?>,
 ) trusted is-data<k> compare<k> hash-mix<k>
-	res fix-arr pair<k, v> = l.size wrap-add r.size uninitialized-fix-arr
+	res fix-arr pair<k, v> = l.size + r.size uninitialized-fix-arr
 	begin = res begin-ptr
 	mid = begin fold l, (cur, k, vl) =>
 		if k in r

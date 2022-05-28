@@ -3,6 +3,7 @@ import
 	../bool: bool
 	../compare: !=, <
 	../misc: new, void
+	../number: ==, <=>, +, *, nat64, new
 	../opt: ==, new, opt
 	../ptr: ==, <=>, +, -, *, as-const, each-ptr, mut-ptr, null, set-deref, zeroed
 	../range: ..
@@ -10,7 +11,6 @@ import
 	../str-conv: to-str
 	../test-util: is
 	../writer: ~=, ~~=, backup, move-to-str, new, writer
-	../private/number-low-level: ==, <=>, nat64, new, wrap-add, wrap-mul
 	./arr: ==, arr, new, size
 	./arr-util: first, last
 	./fix-arr:
@@ -63,7 +63,7 @@ size<a> nat64(a mut-deque a) trusted
 		unless a.left == null
 			a.inner size
 	as greater
-		a.inner.end-ptr - a.left wrap-add a.right - a.inner.begin-ptr
+		(a.inner.end-ptr - a.left) + (a.right - a.inner.begin-ptr)
 
 # Push a value to the left.
 push<a> void(value a, a mut-deque a) trusted
@@ -152,7 +152,7 @@ pop-right<a> a?(a mut-deque a) trusted
 		if a.left == a.right
 			old-inner = a inner
 			old-capacity = old-inner size
-			new-capacity = old-capacity wrap-mul 2
+			new-capacity = old-capacity * 2
 			new-inner fix-arr a = new-capacity uninitialized-fix-arr
 			new-inner[0 .. old-capacity] copy-from-deque a
 			new-inner[old-capacity .. new-capacity] set-zero-elements

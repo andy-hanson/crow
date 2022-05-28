@@ -4,12 +4,12 @@ import
 	../col/private/arr-low-level: new
 	../fun-util: subscript
 	../misc: void
+	../number: ==, int32, nat64
 	../ptr: *, ==, mut-ptr, null, ptr-to, set-deref, zeroed
 	../version: is-interpreted, is-windows
 	./alloc: gc-ctx, get-gc-ctx
 	./backtrace: get-backtrace
 	./bootstrap: abort, c-str, err, hard-assert, new, opt, ok, result, some
-	./number-low-level: ==, int32, nat64
 export
 	./bootstrap: exception, message
 

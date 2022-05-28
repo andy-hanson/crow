@@ -4,6 +4,7 @@ import
 	../compare: <, >, <=, compare
 	../fun-util: subscript
 	../misc: is-data, new, void
+	../number: ==, <=>, +, -, nat64
 	../opt: !, is-empty, new, opt
 	../ptr: ==, +, -, mut-ptr, set-deref
 	../range: ..
@@ -13,7 +14,6 @@ import
 	../test-util/spy: calls, fn, new, spy-act2
 	../tuple: from, new, pair, to
 	../writer: ~=, ~~=, backup, move-to-str, new, writer
-	../private/number-low-level: ==, <=>, nat64, wrap-add, wrap-sub
 	./arr: ==, arr, arr-equal, for-loop, is-empty, new, size
 	./arr-util: first, fold, tail
 	./fix-arr:
@@ -83,12 +83,15 @@ Number of pairs in the priority queue.
 This is O(n).
 ###
 size<k, v> nat64(a priority-queue<k, v>) is-data<k> compare<k>
-	0 size-recur a.root
-.size-recur<k, v> nat64(acc nat64, a node<k, v>?)
-	if node ?= a
-		acc wrap-add 1 wrap-add node.pairs.size size-recur node.next
-	else
-		acc
+	acc mut = 0
+	cur mut = a root
+	loop
+		if node ?= cur
+			acc := acc + 1 + node.pairs.size
+			cur := node next
+			continue
+		else
+			break acc
 
 ###
 Adds a pair to the queue.
@@ -170,7 +173,7 @@ pop<k, v> popped<k, v>?(a priority-queue<k, v>) is-data<k> compare<k>
 .find-mid<k, v> found-mid<k, v>(a node<k, v>?, n-before nat64)
 	if node ?= a
 		if node.pairs is-empty
-			node.next find-mid (n-before wrap-add 1)
+			node.next find-mid n-before + 1
 		else
 			(node,), n-before
 	else
@@ -189,9 +192,9 @@ pop<k, v> popped<k, v>?(a priority-queue<k, v>) is-data<k> compare<k>
 		as plan-did-compact compacted
 			(node.min, node.pairs, (compacted,)) plan-did-compact
 		as plan-will-compact n-elements-to-compact
-			node-size-here = 1 wrap-add node.pairs.size
+			node-size-here = 1 + node.pairs.size
 			if node-size-here <= n-elements-to-compact
-				n-elements-to-compact wrap-add node-size-here plan-will-compact
+				n-elements-to-compact + node-size-here plan-will-compact
 			else
 				compacted = root do-compact n-elements-to-compact, node.next
 				(node.min, node.pairs, (compacted,)) plan-did-compact
@@ -275,7 +278,7 @@ fold<a, k, v> a(acc a, a priority-queue<k, v>, f act a(a, k, v)) is-data<k> comp
 
 .node-count<k, v> nat64(acc nat64, a node<k, v>?)
 	if node ?= a
-		acc wrap-add 1 node-count node.next
+		acc + 1 node-count node.next
 	else
 		acc
 
@@ -389,8 +392,7 @@ test
 	filter-calls is p6-pairs
 	filtered.dbg is "6 6 [6 6b, 6 6c]"
 
-	map-order spy-act2<pair<nat64, str>, nat64, str> = new: (k, v) =>
-		(10 wrap-sub k), "{v}x"
+	map-order spy-act2<pair<nat64, str>, nat64, str> = ((k, v) => (10 - k), "{v}x"),
 	mapped = p6 map map-order.fn
 	map-calls = map-order calls
 	map-calls is p6-pairs

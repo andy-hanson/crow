@@ -3,13 +3,13 @@ import
 	../bool: &&, ==, bool, false, true
 	../compare: <, compare
 	../misc: is-data, new, void
+	../number: ==, <=>, +, nat64
 	../opt: !, is-empty, new, opt
 	../ptr: +, -, mut-ptr, set-deref
 	../str: ==, literal, str
 	../test-util: is
 	../tuple: from, new, pair, pair-equal, to
 	../writer: ~=, ~~=, backup, move-to-str, new, writer
-	../private/number-low-level: ==, <=>, nat64, wrap-add
 	./arr: new, arr, arr-equal
 	./fix-arr: begin-ptr, cast-immutable, copy, fix-arr, set-reverse, uninitialized-fix-arr
 	./mut-arr:
@@ -57,9 +57,8 @@ Number of pairs in the queue.
 This is O(n).
 ###
 size<k, v> nat64(a mut-priority-queue<k, v>) is-data<k> compare<k>
-	n-in-buckets = 0 fold a.buckets, (acc, b) =>
-		acc wrap-add b.size
-	a.mins.size wrap-add n-in-buckets
+	a.mins.size fold a.buckets, (acc, b) =>
+		acc + b.size
 
 ###
 Adds a pair to the queue.
@@ -84,7 +83,7 @@ This is amortized O(log n).
 pop<k, v> pair<k, v>?(a mut-priority-queue<k, v>) is-data<k> compare<k>
 	res = a.mins pop
 	if a.mins.size < a.buckets.size
-		assert (a.mins.size wrap-add 1) == a.buckets.size
+		assert a.mins.size + 1 == a.buckets.size
 		bucket = a.buckets.pop!
 		# Mins are popped off from the right.
 		# This preserves insertion order: 'sort-by' doesn't change that,
@@ -141,7 +140,7 @@ to-fix-arr<k, v> fix-arr pair<k, v>(a mut-priority-queue<k, v>) no-doc is-data<k
 		else
 			out
 		*mid := a.mins[index]
-		mid + 1 spread-all-buckets-recur a, (index wrap-add 1)
+		mid + 1 spread-all-buckets-recur a, index + 1
 
 .add-to-bucket<k, v> void(buckets pair<k, v> mut[] mut[], index nat64, pair pair<k, v>)
 	if index < buckets.size

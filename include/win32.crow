@@ -7,9 +7,8 @@ import
 	crow/extra-types: err-t
 	crow/fun-util: fun-ptr1
 	crow/misc: new, void
+	crow/number: int64, max-nat64, nat8, nat16, nat32, nat64, new, to-nat16, to-nat32
 	crow/private/bootstrap: c-str
-	crow/private/number-low-level:
-		int64, max-nat64, nat8, nat16, nat32, nat64, new, to-nat16, to-nat32, unsafe-to-nat32
 	crow/ptr: *, any-const-ptr, any-mut-ptr, const-ptr, mut-ptr, new, ptr-cast, ptr-to, size-of, to-mut-ptr
 	stdio: FILE
 	sys/types: mode_t
@@ -256,7 +255,7 @@ startup-flags enum<DWORD> extern
 	STARTF_USESTDHANDLES = 0x100
 
 new STARTUPINFOA(dwFlags startup-flags, hStdInput HANDLE, hStdOutput HANDLE, hStdError HANDLE) unsafe noctx
-	size = size-of@<STARTUPINFOA> unsafe-to-nat32
+	size = size-of@<STARTUPINFOA> to-nat32
 	size, (), (), (), (), (), (), (), (), (), (), dwFlags, (), (), (), hStdInput, hStdOutput, hStdError
 
 SECURITY_ATTRIBUTES record mut by-val extern
@@ -266,7 +265,7 @@ SECURITY_ATTRIBUTES record mut by-val extern
 
 new SECURITY_ATTRIBUTES(lpSecurityDescriptor any-mut-ptr, bInheritHandle bool) unsafe noctx
 	# TODO: shouldn't need parens
-	(size-of@<SECURITY_ATTRIBUTES>).unsafe-to-nat32, lpSecurityDescriptor, bInheritHandle ? 1 : 0
+	(size-of@<SECURITY_ATTRIBUTES>).to-nat32, lpSecurityDescriptor, bInheritHandle ? 1 : 0
 
 PROCESS_INFORMATION record mut by-val extern
 	hProcess HANDLE

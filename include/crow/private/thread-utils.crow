@@ -26,14 +26,13 @@ import
 	../fun-util: fun-ptr1, subscript
 	../io/private/time-low-level: get-monotime-nsec, nsec-to-msec, timestamp, to-timespec
 	../misc: new, void
+	../number: ==, <=>, nat32, nat64, to-int64, to-nat64
+	./number-low-level: unsafe-to-int64, unsafe-to-nat32, wrap-add, wrap-sub
 	../ptr:
 		==, any-mut-ptr, as-any-mut-ptr, as-ref, by-val, null, ptr-cast, ptr-to,
 		ref-of-val, size-of, to-nat64, zeroed
 	../version: is-single-threaded, is-windows
 	./bootstrap: hard-assert, hard-forbid, hard-unreachable, opt, todo
-	./number-low-level:
-		==, <=>, nat32, nat64, to-int64, to-nat64, unsafe-to-int64, unsafe-to-nat32, unsafe-to-nat64,
-		wrap-add, wrap-sub
 export
 	./bootstrap: lock
 
@@ -45,7 +44,7 @@ count-processors nat64() unsafe noctx summon
 		res.ptr-to GetSystemInfo
 		res.dwNumberOfProcessors to-nat64
 	else
-		get_nprocs.to-int64 unsafe-to-nat64
+		get_nprocs.to-int64 to-nat64
 
 uninit by-val lock() noctx unsafe
 	zeroed

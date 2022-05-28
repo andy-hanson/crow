@@ -6,11 +6,11 @@ import
 	./exception: catch, exception
 	./fun-util: subscript
 	./misc: new, void
+	./number: ==, -, nat64
 	./ptr: ref-of-val
 	./result: ok-or-throw, result
 	./private/bootstrap: action, exclusion, is-sendable, lk, new, rejected, resolved
 	./private/fut-low-level: add-task, get-result, forward-to, reject, resolve, unresolved
-	./private/number-low-level: ==, nat64, wrap-sub
 	./private/runtime: add-task, cur-exclusion, exception-handler, get-global-ctx, new-exclusion
 	./private/task-queue: task
 	./private/thread-utils: init, uninit
@@ -72,7 +72,7 @@ wait-fold<a, b> fut a(acc a, futures fut<b>[], f ref a(a, b)) is-sendable<a> is-
 	res fut void = unresolved
 	count cell nat64 = futures.size,
 	task task = cur-exclusion, () =>
-		*count := *count wrap-sub 1
+		*count := *count - 1
 		if *count == 0
 			res resolve ()
 	for x : futures

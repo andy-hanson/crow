@@ -5,6 +5,7 @@ import
 	../exception: unreachable
 	../fun-util: subscript
 	../misc: is-data, new, void
+	../number: ==, <=>, +, -, *, nat64
 	../opt: !, ??, new, opt
 	../ptr: ==, <=>, +, -, *, as-const, const-ptr, mut-ptr, set-deref
 	../range: ..
@@ -12,7 +13,6 @@ import
 	../str-conv: finish, interp, to-str, with-str, with-value
 	../test-util: is
 	../writer: ~=, ~~=, backup, move-to-str, new, writer
-	../private/number-low-level: ==, <=>, nat64, wrap-add, wrap-mul, wrap-sub
 	./arr: arr, for-loop, is-empty, new, size, subscript
 	./arr-util: tail
 	./experimental/index-set:
@@ -64,7 +64,7 @@ size<a> nat64(a sorted-set a)
 .add-size<a> nat64(a add-node a)
 	0 add-size-recur a
 .add-size-recur<a> nat64(acc nat64, a add-node a)
-	acc wrap-add a.values.size add-size-left-recur a
+	acc + a.values.size add-size-left-recur a
 .add-size-left<a> nat64(a add-node a)
 	0 add-size-left-recur a
 .add-size-left-recur<a> nat64(acc nat64, a add-node a)
@@ -80,7 +80,7 @@ in<a> bool(value a, a sorted-set a) is-data<a> compare<a>
 
 .find-in-add<a> nat64?(a add-node a, value a) compare<a>
 	if index ?= a.values binary-search-exact-index value
-		(a.add-size-left wrap-add index),
+		a.add-size-left + index,
 	elif left ?= a left
 		left find-in-add value
 
@@ -93,10 +93,10 @@ in<a> bool(value a, a sorted-set a) is-data<a> compare<a>
 .find-in-add-for-remove<a> find-in-add-for-remove-result?(a add-node a, value a, size-right nat64) compare<a>
 	if index ?= a.values binary-search-exact-index value
 		sl = a add-size-left
-		((sl wrap-add index), sl, a.values.size, size-right),
+		(sl + index, sl, a.values.size, size-right),
 	elif left ?= a left
 		# TODO: should be able to write this inline
-		new-size-right = size-right wrap-add a.values.size
+		new-size-right = size-right + a.values.size
 		left find-in-add-for-remove value, new-size-right
 
 ###
@@ -133,9 +133,9 @@ Else, returns an empty option.
 ###
 try-remove<a> sorted-set<a>?(a sorted-set a, value a) trusted is-data<a> compare<a>
 	if r ?= a.add find-in-add-for-remove value, 0
-		removals-here-and-right = 1 wrap-add (a.remove count-greater-or-equal r.size-left)
+		removals-here-and-right = 1 + (a.remove count-greater-or-equal r.size-left)
 		if r.size-here should-compact r.size-right, removals-here-and-right
-			compacted-size = r.size-here wrap-add r.size-right wrap-sub 1
+			compacted-size = r.size-here + r.size-right - 1
 			(a remove-and-compact (r.size-left, compacted-size), r.value-index),
 		else
 			(a.add, a.remove ~ r.value-index),
@@ -171,10 +171,10 @@ Or a combination of the two.
 ###
 .add-and-compact-plan<a> compact-plan(size-here-and-left nat64, a add-node a, remove index-set, size-right nat64)
 	size-here = a.values size
-	size-left = size-here-and-left wrap-sub size-here
+	size-left = size-here-and-left - size-here
 	removals-here-and-right = remove count-greater-or-equal size-left
 	if size-here should-compact size-right, removals-here-and-right
-		size-here-and-right = size-here wrap-add size-right
+		size-here-and-right = size-here + size-right
 		if left ?= a left
 			size-left add-and-compact-plan left, remove, size-here-and-right
 		else
@@ -183,7 +183,7 @@ Or a combination of the two.
 		size-here-and-left, size-right
 
 .should-compact bool(size-here nat64, size-right nat64, removals-here-and-right nat64)
-	(size-right wrap-add (removals-here-and-right wrap-mul 2) wrap-mul 2) >= size-here
+	(size-right + removals-here-and-right * 2) * 2 >= size-here
 
 .add-and-compact<a> sorted-set a(a sorted-set a, add-size nat64, plan compact-plan, value a) unsafe compare<a>
 	assert plan.compacted-size > 1
@@ -203,7 +203,7 @@ Or a combination of the two.
 	else
 		compacted fix-arr a = plan.compacted-size uninitialized-fix-arr
 		compactor compactor a = compacted.begin-ptr.as-const, compacted.begin-ptr, compacted.end-ptr.as-const
-		old-size = plan.add-size-left wrap-add plan.compacted-size wrap-add 1
+		old-size = plan.add-size-left + plan.compacted-size + 1
 		new-add = compactor do-compact-recur a.add, old-size, a.remove ~ extra-removal
 		new-add, new-remove
 
@@ -225,15 +225,15 @@ Or a combination of the two.
 		compactor.finish, a.left
 	else
 		# TODO: should be able to write this inline
-		new-l = add-size-here-and-left wrap-sub a.values.size
+		new-l = add-size-here-and-left - a.values.size
 		compactor do-compact-recur a.left!, new-l, remove
 
 .merge<a> void(a compactor a, values a[], add-size-here-and-left nat64, remove index-set) unsafe compare<a>
-	n-remove = remove count-range (add-size-here-and-left wrap-sub values.size), add-size-here-and-left
-	n-added = values.size wrap-sub n-remove
+	n-remove = remove count-range (add-size-here-and-left - values.size), add-size-here-and-left
+	n-added = values.size - n-remove
 	unless n-added == 0
 		new-cur = a.cur + n-added
-		remove-index = add-size-here-and-left wrap-sub 1
+		remove-index = add-size-here-and-left - 1
 		if a.cur.as-const == a.begin
 			new-cur - 1 copy-from-b-recur values.begin-ptr, values.end-ptr - 1, remove-index, remove
 		else
@@ -262,7 +262,7 @@ Or a combination of the two.
 			*a-write := *b-read
 			a-write - 1
 		unless b-read == b-begin
-			a-begin merge-recur a-read, new-a-write, b-begin, b-read - 1, (b-remove-index wrap-sub 1), b-remove
+			a-begin merge-recur a-read, new-a-write, b-begin, b-read - 1, b-remove-index - 1, b-remove
 		# Else -- done, everything from 'a' is in place
 	as equal
 		# We shouldn't store the same value twice.
@@ -287,7 +287,7 @@ Or a combination of the two.
 		*a-write := *b-read
 		a-write - 1
 	unless b-read == b-begin
-		new-a-write copy-from-b-recur b-begin, b-read - 1, (b-remove-index wrap-sub 1), b-remove
+		new-a-write copy-from-b-recur b-begin, b-read - 1, b-remove-index - 1, b-remove
 
 .finish<a> a[](a compactor a) unsafe
 	assert a.cur.as-const == a.end
@@ -308,8 +308,8 @@ fold<a, b> a(acc a, a sorted-set b, f act a(a, b)) is-data<b> compare<b>
 		least-value = iters[least-iter-index].values[0]
 		iters[least-iter-index] := iters[least-iter-index] tail remove
 		new-iters = if iters[least-iter-index] is-empty
-			iters[least-iter-index] := iters[iters.size wrap-sub 1]
-			iters[0 .. (iters.size wrap-sub 1)]
+			iters[least-iter-index] := iters[iters.size - 1]
+			iters[0 .. iters.size - 1]
 		else
 			iters
 		f[acc, least-value] fold-recur new-iters, remove, f
@@ -325,9 +325,9 @@ fold<a, b> a(acc a, a sorted-set b, f act a(a, b)) is-data<b> compare<b>
 	else
 		value = iters[iter-index].values[0]
 		if value < current-least
-			value find-least-iter iter-index, (iter-index wrap-add 1), iters
+			value find-least-iter iter-index, iter-index + 1, iters
 		else
-			current-least find-least-iter current-least-index, (iter-index wrap-add 1), iters
+			current-least find-least-iter current-least-index, iter-index + 1, iters
 
 .iter-part<a> record by-val
 	values a[]
@@ -337,7 +337,7 @@ fold<a, b> a(acc a, a sorted-set b, f act a(a, b)) is-data<b> compare<b>
 	a.values is-empty
 
 .tail<a> iter-part a(a iter-part a, remove index-set)
-	(a.values.tail, (a.remove-index wrap-add 1)) remove-from-front remove
+	(a.values.tail, a.remove-index + 1) remove-from-front remove
 
 .init-iters<a> fix-arr iter-part a(a sorted-set a) trusted
 	iters fix-arr iter-part a = a.add-node-count uninitialized-fix-arr
@@ -348,9 +348,9 @@ fold<a, b> a(acc a, a sorted-set b, f act a(a, b)) is-data<b> compare<b>
 	0 add-node-count-recur a.add
 .add-node-count-recur<a> nat64(acc nat64, a add-node a)
 	if left ?= a left
-		acc wrap-add 1 add-node-count-recur left
+		acc + 1 add-node-count-recur left
 	else
-		acc wrap-add 1
+		acc + 1
 
 .init-iters-result<a> record mut by-val
 	next-remove-index nat64
@@ -367,11 +367,11 @@ fold<a, b> a(acc a, a sorted-set b, f act a(a, b)) is-data<b> compare<b>
 	else
 		*prev.out := here
 		prev.out + 1
-	(prev.next-remove-index wrap-add a.values.size), new-out
+	(prev.next-remove-index + a.values.size), new-out
 
 .remove-from-front<a> iter-part a(a iter-part a, remove index-set)
 	if !a.values.is-empty && a.remove-index in remove
-		(a.values.tail, (a.remove-index wrap-add 1)) remove-from-front remove
+		(a.values.tail, a.remove-index + 1) remove-from-front remove
 	else
 		a
 

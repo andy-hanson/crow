@@ -6,6 +6,7 @@ import
 	crow/col/mut-arr: begin-ptr, move-to-arr, mut-arr, size, uninitialized-mut-arr
 	crow/col/private/arr-low-level: begin-ptr, end-ptr
 	crow/compare: <=, min
+	crow/exception: unreachable
 	crow/number: ==, <=>, *, float32, nat8, to-nat64
 	crow/private/alloc: mem-copy
 	crow/ptr: ==, <=>, +, -, any-mut-ptr, as-any-mut-ptr, as-ref, const-ptr, mut-ptr

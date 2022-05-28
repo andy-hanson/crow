@@ -12,7 +12,7 @@ import
 	./col/seq: ~, ~~, for-loop, is-empty, seq, seq-compare, seq-equal, to-seq
 	./hash: hasher, hash-mix
 	./misc: void
-	./private/number-low-level: ==, <=>, to-nat64
+	./number: ==, <=>, to-nat64
 	./private/c-str-util: find-c-str-end
 export
 	./private/bootstrap: char8, c-str, to-char8, to-nat8

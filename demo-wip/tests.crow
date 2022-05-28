@@ -36,6 +36,7 @@ import
 	crow/math/vec: new, vec2-32
 	crow/parse-command: parse-named-args
 	crow/perf: measure-total, new
+	crow/private/number-tests: dummy-number-tests
 	crow/reader: new, reader
 	crow/serialize: from-bytes
 	crow/str-util: strip
@@ -49,6 +50,7 @@ main fut nat(_ str[]) summon
 	_ = () :: compact-sorted-dict<nat, nat>
 	_ = () :: deque<nat>
 	_ = dummy-arr-util-tests
+	_ = dummy-number-tests
 	_ = dummy-seq-tests
 	_ = () :: nat[nat]
 	_ = () :: environ

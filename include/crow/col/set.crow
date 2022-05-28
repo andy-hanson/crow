@@ -6,13 +6,13 @@ import
 	../hash: hash-mix
 	../log: info, log
 	../misc: is-data, new, void
+	../number: ==, <=>, +, -, *, nat64
 	../opt: !, ??, new, opt
 	../ptr: ==, <=>, +, *, const-ptr, mut-ptr, set-deref
 	../str: ==, literal, str
 	../str-conv: to-str
 	../test-util: is
 	../writer: ~=, ~~=, backup, move-to-str, new, writer
-	../private/number-low-level: ==, <=>, nat64, wrap-add, wrap-sub, wrap-mul
 	./arr: ==, arr, new
 	./experimental/index-set:
 		count-greater-or-equal, filter-less, for-loop, is-empty, in, index-set, new, size, try-remove
@@ -34,9 +34,9 @@ node-count<a> nat64(a set<a>) no-doc
 	0 node-count a.add
 .node-count<a> nat64(acc nat64, a add-node<a>)
 	if left ?= a.left
-		acc wrap-add 1 node-count left
+		acc + 1 node-count left
 	else
-		acc wrap-add 1
+		acc + 1
 
 .add-node<a> record
 	here frozen-set a
@@ -68,7 +68,7 @@ size<a> nat64(a set a) is-data<a> compare<a> hash-mix<a>
 .add-size<a> nat64(a add-node a)
 	0 add-size-recur a
 .add-size-recur<a> nat64(acc nat64, a add-node a)
-	acc wrap-add a.here.size add-size-left-recur a
+	acc + a.here.size add-size-left-recur a
 .add-size-left<a> nat64(a add-node a)
 	0 add-size-left-recur a
 .add-size-left-recur<a> nat64(acc nat64, a add-node a)
@@ -84,7 +84,7 @@ in<a> bool(value a, a set a) is-data<a> compare<a> hash-mix<a>
 
 .find-in-add<a> nat64?(a add-node a, value a) is-data<a> compare<a> hash-mix<a>
 	if index ?= a.here try-get-unordered-index value
-		(a.add-size-left wrap-add index),
+		a.add-size-left + index,
 	elif left ?= a left
 		left find-in-add value
 
@@ -158,10 +158,10 @@ try-add<a> set<a>?(a set a, value a) is-data<a> compare<a> hash-mix<a>
 
 .add-and-compact-plan<a> compact-plan(size-here-and-left nat64, a add-node a, remove index-set, size-right nat64)
 	size-here = a.here size
-	size-left = size-here-and-left wrap-sub size-here
+	size-left = size-here-and-left - size-here
 	removals-here-and-right = remove count-greater-or-equal size-left
 	if size-here should-compact size-right, removals-here-and-right
-		size-here-and-right = size-here wrap-add size-right
+		size-here-and-right = size-here + size-right
 		if left ?= a left
 			size-left add-and-compact-plan left, remove, size-here-and-right
 		else
@@ -170,7 +170,7 @@ try-add<a> set<a>?(a set a, value a) is-data<a> compare<a> hash-mix<a>
 		size-here-and-left, size-right
 
 .should-compact bool(size-here nat64, size-right nat64, removals-here-and-right nat64)
-	(size-right wrap-add (removals-here-and-right wrap-mul 2)) >= size-here
+	size-right + removals-here-and-right * 2 >= size-here
 
 .add-and-compact<a> set a(
 	a set a,
@@ -202,7 +202,7 @@ try-add<a> set<a>?(a set a, value a) is-data<a> compare<a> hash-mix<a>
 		compactor.finish, a.left
 	else
 		# TODO: should be able to write this inline
-		new-l = add-size-here-and-left wrap-sub a.here.size
+		new-l = add-size-here-and-left - a.here.size
 		compactor do-compact-recur a.left!, new-l, remove
 
 .push<a> void(a compactor a, here frozen-set a, add-size-here-and-left nat64, remove index-set) unsafe
@@ -212,7 +212,7 @@ try-add<a> set<a>?(a set a, value a) is-data<a> compare<a> hash-mix<a>
 		unless remove-index in remove
 			*a.cur := *cur
 			a.cur := a.cur + 1
-		a push-recur cur + 1, end, (remove-index wrap-add 1), remove
+		a push-recur cur + 1, end, remove-index + 1, remove
 
 
 .finish<a> frozen-set a(a compactor a) unsafe is-data<a> compare<a> hash-mix<a>
@@ -229,13 +229,13 @@ fold<a, b> a(acc a, a set b, f act a(a, b)) is-data<b> compare<b> hash-mix<b>
 
 .fold-recur<a, b> a(acc a, a add-node b, add-size-left nat64, remove index-set, f act a(a, b))
 	mid = acc fold-with-index a.here, (cur, x, index) =>
-		if add-size-left wrap-add index in remove
+		if add-size-left + index in remove
 			cur
 		else
 			f[cur, x]
 	if left ?= a left
 		# TODO: should not need a local
-		l = add-size-left wrap-sub a.here.size
+		l = add-size-left - a.here.size
 		mid fold-recur left, l, remove, f
 	else
 		mid

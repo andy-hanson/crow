@@ -5,9 +5,8 @@ import
 	crow/c-types: c-int
 	crow/fut: new
 	crow/misc: new, void
-	crow/number: ==, <=>, float32, nat8, nat16, to-int32, to-int64, to-nat8
+	crow/number: ==, <=>, float32, nat8, nat16, to-int32, to-nat8, to-nat64
 	crow/ptr: any-mut-ptr, as-any-mut-ptr, as-ref, mut-ptr, null
-	crow/private/number-low-level: unsafe-to-nat64
 	crow/range: ..
 	SDL2/SDL: SDL_Init, SDL_INIT_AUDIO, SDL_Quit
 	SDL2/SDL_audio:
@@ -49,5 +48,5 @@ start-sdl-audio audio() summon trusted
 .audio-callback void(userdata any-mut-ptr, stream nat8 mut*, len c-int) noctx unsafe
 	write-ctx write-ctx = userdata as-ref
 	queue = write-ctx queue
-	floats = stream[0 .. len.to-int64.unsafe-to-nat64] cast-fix-arr@<float32, nat8>
+	floats = stream[0 .. len.to-nat64] cast-fix-arr@<float32, nat8>
 	queue pull floats

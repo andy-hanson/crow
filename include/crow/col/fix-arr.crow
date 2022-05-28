@@ -5,12 +5,12 @@ import
 	../compare: !=, <, <=, equal
 	../fun-util: subscript
 	../misc: new, void
+	../number: ==, <=>, +, -, *, /, %, nat64
 	../opt: new, opt
 	../ptr:
 		==, <=>, +, -, *, as-any-const-ptr, as-any-mut-ptr, as-const, as-mut, by-val, mut-ptr,
 		ptr-cast, ref-of-ptr, set-deref, set-subscript, size-of, subscript, swap
 	../private/alloc: alloc-uninitialized, set-zero-range
-	../private/number-low-level: ==, <=>, nat64, unsafe-div, unsafe-mod, wrap-add, wrap-mul, wrap-sub
 	../private/range-low-level: .., range
 	./arr: arr, for-loop, new, size, subscript
 	./private/arr-low-level: arr-from-begin-end, begin-ptr, subscript
@@ -137,7 +137,7 @@ This is O(n).
 ###
 copy-from<a> void(dest fix-arr a, source a[]) trusted
 	assert dest.size == source.size
-	_ = dest.begin-ptr.as-any-mut-ptr memcpy source.begin-ptr.as-any-const-ptr, (dest.size wrap-mul size-of@<a>)
+	_ = dest.begin-ptr.as-any-mut-ptr memcpy source.begin-ptr.as-any-const-ptr, dest.size * size-of@<a>
 	()
 
 ###
@@ -198,7 +198,7 @@ Equivalent to `f[0], f[1], ...`.
 		else
 			*out := f[i]
 			out := out + 1
-			i := i wrap-add 1
+			i := i + 1
 			continue
 
 ###
@@ -236,7 +236,7 @@ tail<a> fix-arr a(a fix-arr a)
 
 rtail<a> fix-arr a(a fix-arr a)
 	forbid a is-empty
-	a[0 .. (a.size wrap-sub 1)]
+	a[0 .. a.size - 1]
 
 ###
 Unsafe cast to immutable array.
@@ -302,9 +302,9 @@ If the element type is different, adjusts the size so that the number of bytes i
 ###
 cast-fix-arr<out, in> fix-arr out(a fix-arr in) noctx unsafe
 	assert size-of@<in> != 0 && size-of@<out> != 0
-	size-bytes = a.size wrap-mul size-of@<in>
-	assert (size-bytes unsafe-mod size-of@<out>) == 0
-	size-out = size-bytes unsafe-div size-of@<out>
+	size-bytes = a.size * size-of@<in>
+	assert size-bytes % size-of@<out> == 0
+	size-out = size-bytes / size-of@<out>
 	a.begin-ptr.ptr-cast@<out, in>[0 .. size-out]
 
 for-loop<out, in> out[](a fix-arr in, f act out(in)) trusted

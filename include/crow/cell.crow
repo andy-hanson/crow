@@ -1,8 +1,8 @@
 no-std
 import
 	./misc: new, void
+	./number: nat64
 	./ptr: as-any-mut-ptr, as-const, as-ref, by-val, const-ptr, mut-ptr, ptr-cast
-	./private/number-low-level: nat64
 
 ###
 Mutable reference to a single value.

@@ -7,6 +7,7 @@ import
 	../fun-util: subscript
 	../hash: hash, hash-mix
 	../misc: is-data, new, void
+	../number: ==, <=>, +, -, nat64
 	../opt: !, is-empty, new, opt, opt-equal
 	../ptr: ==, +, set-deref
 	../range: ..
@@ -16,7 +17,6 @@ import
 	../tuple: from, new, pair, to
 	../writer: ~=, ~~=, backup, move-to-str, new, writer
 	../private/bootstrap: todo
-	../private/number-low-level: ==, <=>, nat64, wrap-add, wrap-sub
 	./arr: ~, arr, arr-equal, for-loop, is-empty, new, size, subscript
 	./arr-util:
 		each-with-index, every, find-index, fold, fold-with-index, remove-at, rtail, tail,
@@ -118,7 +118,7 @@ size<k, v> nat64(a v[k]) is-data<k> compare<k> hash-mix<k>
 	as inner-node i
 		acc fold i, (cur, child) => cur size-recur child
 	as leaf-node l
-		acc wrap-add l.size
+		acc + l.size
 
 ###
 Gets the value associated with a key.
@@ -253,7 +253,7 @@ try-remove<k, v> try-remove-result<k, v>?(a v[k], key k) is-data<k> compare<k> h
 		which = remaining-hash low-bits
 		if which < i.size
 			next-hash = remaining-hash unsafe-bit-shift-right 3
-			child-res = i[which] get-or-update-recur key, next-hash, (hash-shift wrap-add 3), f
+			child-res = i[which] get-or-update-recur key, next-hash, hash-shift + 3, f
 			if node ?= child-res new-node
 				new-inner = i update-child which, node
 				(new-inner,), child-res.old-value, child-res.new-value
@@ -278,7 +278,7 @@ try-remove<k, v> try-remove-result<k, v>?(a v[k], key k) is-data<k> compare<k> h
 	if leaf ?= a inner-node-to-leaf which, new-child
 		leaf
 	elif new-child node-is-empty
-		if which == (a.size wrap-sub 1)
+		if which == a.size - 1
 			new-children = a rtail
 			new-children.size == 1 ? new-children[0] : new-children.inner-node
 		else
@@ -301,7 +301,7 @@ try-remove<k, v> try-remove-result<k, v>?(a v[k], key k) is-data<k> compare<k> h
 		as inner-node _
 			99
 		as leaf-node l
-			cur wrap-add l.size
+			cur + l.size
 	if total-size <= leaf-max-size
 		# TODO: if only one non-empty leaf, don't copy..
 		out fix-arr pair<k, v> = total-size uninitialized-fix-arr
@@ -314,7 +314,7 @@ try-remove<k, v> try-remove-result<k, v>?(a v[k], key k) is-data<k> compare<k> h
 			as inner-node _
 				unreachable
 			as leaf-node l
-				new-out-index = out-index wrap-add l.size
+				new-out-index = out-index + l.size
 				out[out-index .. new-out-index] copy-from l
 				new-out-index
 		assert end == out.size
@@ -322,7 +322,7 @@ try-remove<k, v> try-remove-result<k, v>?(a v[k], key k) is-data<k> compare<k> h
 
 .find-only-non-empty-child<k, v> node<k, v>?(children node<k, v>[])
 	first-non-empty-index = (children find-index it => !it.node-is-empty)!
-	if children[(first-non-empty-index wrap-add 1) .. children.size] every it => it node-is-empty
+	if children[first-non-empty-index + 1 .. children.size] every it => it node-is-empty
 		children[first-non-empty-index],
 
 .get-or-update-leaf<k, v> get-or-update-result<k, v>(
@@ -372,7 +372,7 @@ try-remove<k, v> try-remove-result<k, v>?(a v[k], key k) is-data<k> compare<k> h
 	key-hash = hash low-bits
 	max-hash = key-hash fold a, (cur, pair) =>
 		cur max (pair.from.hash unsafe-bit-shift-right hash-shift low-bits)
-	res fix-arr node<k, v> = max-hash wrap-add 1 fill-fix-arr empty-leaf-node
+	res fix-arr node<k, v> = max-hash + 1 fill-fix-arr empty-leaf-node
 	# TODO: avoid allocating the same leaf twice...
 	res[key-hash] := ((key, value),) leaf-node
 	for pair : a

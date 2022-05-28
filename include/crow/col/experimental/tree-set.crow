@@ -5,6 +5,7 @@ import
 	../../exception: unreachable
 	../../fun-util: subscript
 	../../misc: is-data, void
+	../../number: ==, <=>, +, -, /, nat64, new
 	../../opt: !, new, opt
 	../../ptr: ==, <=>, +, -, *, const-ptr, mut-ptr, set-deref
 	../../range: ..
@@ -13,7 +14,6 @@ import
 	../../str-util: iter, next, slice-left, starts-with
 	../../test-util: is
 	../../writer: ~=, ~~=, backup, move-to-str, new, writer
-	../../private/number-low-level: ==, <=>, nat64, new, unsafe-div, wrap-add, wrap-sub
 	../arr: arr, for-loop, is-empty, size, subscript
 	../arr-util: fold, insert-at-ptr, last, rtail, tail, try-remove
 	../fix-arr: begin-ptr, cast-immutable, end-ptr, fix-arr, subscript, uninitialized-fix-arr
@@ -90,12 +90,12 @@ No effect if the value is already in the set.
 This is O(a.size ln)
 ###
 ~ <a> tree-set a(a tree-set a, value a) is-data<a> compare<a>
-	new-size = a.size wrap-add 1
+	new-size = a.size + 1
 	match a.root add-recur value, new-size.get-max-height
 	as none
 		a
 	as inserted i
-		i, (a.size wrap-add 1)
+		i, a.size + 1
 	as find-scapegoat _
 		unreachable
 
@@ -104,7 +104,7 @@ Union of two sets.
 This is O(n).
 ###
 ~~ <a> tree-set a(a tree-set a, b tree-set a) trusted is-data<a> compare<a>
-	out fix-arr a = a.size wrap-add b.size uninitialized-fix-arr
+	out fix-arr a = a.size + b.size uninitialized-fix-arr
 	b-iter = b iter
 	end = out.begin-ptr fold a, (cur, value) =>
 		cur walk-iter-union value, b-iter
@@ -165,7 +165,7 @@ This is O(a.size ln).
 ###
 try-remove<a> tree-set<a>?(a tree-set a, b a) is-data<a> compare<a>
 	if node ?= a.root try-remove-recur b
-		(node, (a.size wrap-sub 1)),
+		(node, a.size - 1),
 
 .try-remove-recur<a> node<a>?(a node a, b a) compare<a>
 	match a
@@ -288,7 +288,7 @@ try-remove<a> tree-set<a>?(a tree-set a, b a) is-data<a> compare<a>
 .add-to-inner<a> add-result a(a inner-node a, value a, max-height nat64) compare<a>
 	match value <=> a.value
 	as less
-		match a.left add-recur value, (max-height wrap-sub 1)
+		match a.left add-recur value, max-height - 1
 		as none
 			none
 		as inserted new-left
@@ -298,7 +298,7 @@ try-remove<a> tree-set<a>?(a tree-set a, b a) is-data<a> compare<a>
 	as equal
 		none
 	as greater
-		match a.right add-recur value, (max-height wrap-sub 1)
+		match a.right add-recur value, max-height - 1
 		as none
 			none
 		as inserted new-right
@@ -314,7 +314,7 @@ try-remove<a> tree-set<a>?(a tree-set a, b a) is-data<a> compare<a>
 		(a insert-at-ptr insert-ptr, value).leaf inserted
 	elif max-height == 0
 		# Can't add new nodes
-		((a.size wrap-add 1), 1) find-scapegoat
+		(a.size + 1, 1) find-scapegoat
 	else
 		a break-up-arr value, insert-ptr, max-height
 
@@ -322,7 +322,7 @@ try-remove<a> tree-set<a>?(a tree-set a, b a) is-data<a> compare<a>
 	assert a.begin-ptr <= insert-ptr
 	assert insert-ptr <= a.end-ptr
 	# Break it up into nodes, adding to height
-	mid-ptr = a.begin-ptr + ((a.end-ptr - a.begin-ptr) unsafe-div 2)
+	mid-ptr = a.begin-ptr + (a.end-ptr - a.begin-ptr) / 2
 	mid-index = mid-ptr - a.begin-ptr
 	if insert-ptr == mid-ptr
 		(value, a[0 .. mid-index].leaf, a[mid-index .. a.size].leaf).inner inserted
@@ -330,30 +330,30 @@ try-remove<a> tree-set<a>?(a tree-set a, b a) is-data<a> compare<a>
 		mid = *mid-ptr
 		assert mid-index < a.size
 		left-arr = a[0 .. mid-index]
-		right-arr = a[(mid-index wrap-add 1) .. a.size]
+		right-arr = a[mid-index + 1 .. a.size]
 		forbid left-arr is-empty
 		forbid right-arr is-empty
 		if insert-ptr < mid-ptr
 			# TODO:PERF: This redundantly finds insert-ptr again
-			match left-arr add-to-arr value, (max-height wrap-sub 1)
+			match left-arr add-to-arr value, max-height - 1
 			as none
 				unreachable
 			as inserted i
 				(mid, i, right-arr.leaf).inner inserted
 			as find-scapegoat f
-				((a.size wrap-add 1), (f.height wrap-add 1)) find-scapegoat
+				(a.size + 1, f.height + 1) find-scapegoat
 		else
-			match right-arr add-to-arr value, (max-height wrap-sub 1)
+			match right-arr add-to-arr value, max-height - 1
 			as none
 				unreachable
 			as inserted i
 				(mid, left-arr.leaf, i).inner inserted
 			as find-scapegoat f
-				((a.size wrap-add 1), (f.height wrap-add 1)) find-scapegoat
+				(a.size + 1, f.height + 1) find-scapegoat
 
 .handle-scapegoat<a> add-result a(a inner-node a, value a, other-subtree node a, f find-scapegoat) compare<a>
-	size-here = f.size wrap-add 1 wrap-add other-subtree.walk-size
-	height-here = f.height wrap-add 1
+	size-here = f.size + 1 + other-subtree.walk-size
+	height-here = f.height + 1
 	if height-here > size-here.get-max-height
 		(a tree-to-arr value, size-here).leaf inserted
 	else
@@ -362,7 +362,7 @@ try-remove<a> tree-set<a>?(a tree-set a, b a) is-data<a> compare<a>
 .walk-size<a> nat64(a node a)
 	match a
 	as inner i
-		i.left.walk-size wrap-add 1 wrap-add i.right.walk-size
+		i.left.walk-size + 1 + i.right.walk-size
 	as leaf l
 		l size
 
@@ -415,7 +415,7 @@ try-remove<a> tree-set<a>?(a tree-set a, b a) is-data<a> compare<a>
 # TODO:PERF
 .get-max-height nat64(size nat64) trusted
 	if size >= 4
-		(size unsafe-div 2).get-max-height wrap-add 1
+		(size / 2).get-max-height + 1
 
 region iteration
 

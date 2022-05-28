@@ -5,10 +5,10 @@ import
 	../../fun-util: subscript
 	../../hash: hash, hash-mix
 	../../misc: is-data, new, void
+	../../number: ==, <=>, +, -, /, %, nat64
 	../../opt: new, opt
 	../../ptr: ==, <=>, +, -, *, const-ptr, mut-ptr, set-deref, swap
 	../../test-util: is
-	../../private/number-low-level: ==, <=>, nat64, unsafe-div, unsafe-mod, wrap-add, wrap-sub
 	../arr: ==, arr, for-loop, is-empty, new, size, subscript
 	../arr-util: fold, fold-with-index, in, index-of, ptr-of
 	../fix-arr:
@@ -51,12 +51,12 @@ in<a> bool(value a, a frozen-set a) is-data<a> compare<a> hash-mix<a>
 	if a.bucket-starts is-empty
 		a values
 	else
-		bucket-index = value.hash unsafe-mod a.bucket-starts.size
+		bucket-index = value.hash % a.bucket-starts.size
 		bucket-start = a.bucket-starts[bucket-index]
-		bucket-end = if bucket-index == (a.bucket-starts.size wrap-sub 1)
+		bucket-end = if bucket-index == a.bucket-starts.size - 1
 			a.values end-ptr
 		else
-			a.bucket-starts[bucket-index wrap-add 1]
+			a.bucket-starts[bucket-index + 1]
 		bucket-start arr-from-begin-end bucket-end
 
 # TODO: no-doc
@@ -66,12 +66,12 @@ try-get-unordered-index<a> nat64?(a frozen-set a, value a) trusted is-data<a> co
 	if a.bucket-starts is-empty
 		a.values index-of value
 	else
-		bucket-index = value.hash unsafe-mod a.bucket-starts.size
+		bucket-index = value.hash % a.bucket-starts.size
 		bucket-start = a.bucket-starts[bucket-index]
-		bucket-end = if bucket-index == (a.bucket-starts.size wrap-sub 1)
+		bucket-end = if bucket-index == a.bucket-starts.size - 1
 			a.values end-ptr
 		else
-			a.bucket-starts[bucket-index wrap-add 1]
+			a.bucket-starts[bucket-index + 1]
 		if ptr ?= bucket-start arr-from-begin-end bucket-end ptr-of value
 			ptr - a.begin-ptr,
 
@@ -81,7 +81,7 @@ unsafe-frozen-set-from-fix-arr-cast-immutable<a> frozen-set a(
 	if a.size <= 4
 		a.cast-immutable, ()
 	else
-		n-buckets = a.size unsafe-div 2
+		n-buckets = a.size / 2
 		bucket-counts = a get-bucket-counts n-buckets
 		bucket-starts = a.begin-ptr running-sum bucket-counts.temp-as-arr
 		bucket-counts fill 0
@@ -92,7 +92,7 @@ unsafe-frozen-set-from-fix-arr-cast-immutable<a> frozen-set a(
 	res = n-buckets fill-fix-arr 0
 	for value : a
 		bucket-index = value get-bucket-index n-buckets
-		res[bucket-index] := res[bucket-index] wrap-add 1
+		res[bucket-index] := res[bucket-index] + 1
 	res
 
 .move-values-to-buckets-recur<a> void(
@@ -108,16 +108,16 @@ unsafe-frozen-set-from-fix-arr-cast-immutable<a> frozen-set a(
 		bucket-cur-end = bucket-start + bucket-count
 		new-cur = if bucket-start <= cur && cur <= bucket-cur-end
 			if cur == bucket-cur-end
-				bucket-counts[bucket-index] := bucket-count wrap-add 1
+				bucket-counts[bucket-index] := bucket-count + 1
 			cur + 1
 		else
-			bucket-counts[bucket-index] := bucket-count wrap-add 1
+			bucket-counts[bucket-index] := bucket-count + 1
 			cur swap bucket-cur-end
 			cur
 		new-cur move-values-to-buckets-recur end, bucket-counts, bucket-starts
 
 .get-bucket-index<a> nat64(value a, n-buckets nat64) unsafe hash-mix<a>
-	value.hash unsafe-mod n-buckets
+	value.hash % n-buckets
 
 .running-sum<a> a mut*[](acc a mut*, a nat64[]) trusted
 	out fix-arr a mut* = a.size uninitialized-fix-arr

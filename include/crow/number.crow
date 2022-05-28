@@ -6,13 +6,11 @@ import
 		unsafe-add, unsafe-div, unsafe-mod, unsafe-mul, unsafe-sub, unsafe-to-int64,
 		unsafe-to-int8, unsafe-to-int16, unsafe-to-int32, unsafe-to-nat8, unsafe-to-nat32,
 		unsafe-to-nat64, wrap-add, wrap-mul, wrap-sub
-	./str: literal
-	./test-util: is, throws
 export
 	./private/number-low-level:
 		==, <=>, float32, float64, int8, int16, int32, int64, is-even, is-odd, max-int8, max-int16,
 		max-int32, max-int64, max-nat8, max-nat16, max-nat32, max-nat64, min-int8, min-int16,
-		min-int32, min-int64, nat8, nat16, nat32, nat64, new, to-int64, to-nat64
+		min-int32, min-int64, nat8, nat16, nat32, nat64, new, to-int64, to-nat16, to-nat64
 
 int alias
 	int64
@@ -122,11 +120,6 @@ Be less than the least possible value or greater than the greatest possible valu
 + int64(a int64, b int64) noctx trusted
 	forbid (b > 0 ? a > (max-int64 unsafe-sub b) : a < (min-int64 unsafe-sub b)) : "integer overflow"
 	a unsafe-add b
-test
-	+1 + 1 is 2
-	(() => max-int64 + 1) throws "integer overflow"
-	(() => min-int64 + -1) throws "integer overflow"
-	(() => min-int64 + min-int64) throws "integer overflow"
 
 - int32(a int32, b int32) noctx trusted
 	a.to-int64 unsafe-sub b.to-int64 to-int32
@@ -137,11 +130,6 @@ test
 		a > (max-int64 unsafe-add b)
 	forbid overflow : "integer overflow"
 	a unsafe-sub b
-test
-	+1 - 2 is -1
-	(() => max-int64 - -1) throws "integer overflow"
-	(() => min-int64 - 1) throws "integer overflow"
-	min-int64 - min-int64 is 0
 
 * int8(a int8, b int8) noctx trusted
 	a.to-int64 unsafe-mul b.to-int64 to-int8
@@ -162,13 +150,6 @@ test
 		true
 	forbid overflow : "integer overflow"
 	a unsafe-mul b
-test
-	max-int64 * 0 is 0
-	-1 * -1 is 1
-	(() => (max-int64 / 3) * 4) throws "integer overflow"
-	(() => +4 * (max-int64 / 3)) throws "integer overflow"
-	(() => min-int64 * -1) throws "integer overflow"
-	(() => -1 * min-int64) throws "integer overflow"
 
 ###
 Negates a number.

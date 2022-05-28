@@ -11,12 +11,11 @@ import
 	./col/arr-util: fold, strip-left-while
 	./col/private/arr-low-level: arr-cast
 	./compare: <, <=
-	./number: to-int64, to-nat32, to-nat64
+	./number: ==, <=>, int64, max-int64, nat8, nat32, nat64, to-nat8, to-int64, to-nat32, to-nat64
 	./range: ..
 	./str: char8, str
 	./test-util: is
 	./private/bootstrap: todo
-	./private/number-low-level: ==, <=>, int64, max-int64, nat8, nat32, nat64, unsafe-to-nat8
 export
 	./str-util: to-bytes
 
@@ -71,10 +70,10 @@ test
 	0x500.to-bytes is (5, 0)
 
 # TODO:MOVE
-.wrap-to-nat8 nat8(a nat64) trusted
+.wrap-to-nat8 nat8(a nat64) noctx trusted
 	# TODO: gccjit has a bug if I inline 'masked'
 	masked = a & 0xff
-	masked unsafe-to-nat8
+	masked to-nat8
 
 to-bytes nat8[](a nat32)
 	a.to-nat64 to-bytes

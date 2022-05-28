@@ -4,9 +4,8 @@ import
 	../compare: <
 	../fun-util: subscript
 	../misc: new, void
-	../number: *
+	../number: +, *, ==, <=>, nat64
 	../ptr: ==, +, *, as-const, const-ptr, mut-ptr, set-deref
-	../private/number-low-level: ==, <=>, nat64, wrap-add, wrap-mul
 	../range: ..
 	../str: ==, literal, str
 	../str-conv: interp, finish, to-str, with-str, with-value
@@ -63,8 +62,8 @@ Throws if `y` is out of range.
 ###
 row<a> fix-arr a(a mut-grid a, y nat64)
 	assert y < a.height
-	begin = y wrap-mul a.width
-	a.elements[begin .. (begin wrap-add a.width)]
+	begin = y * a.width
+	a.elements[begin .. begin + a.width]
 
 # New empty grid with width and height 0.
 new<a> mut-grid a()
@@ -117,7 +116,7 @@ set-subscript<a> void(a mut-grid a, coord coord, value a)
 .index-for<a> nat64(a mut-grid a, x nat64, y nat64)
 	assert x < a.width
 	assert y < a.height
-	res = y wrap-mul a.width wrap-add x
+	res = y * a.width + x
 	assert res < a.elements.size
 	res
 
@@ -154,7 +153,7 @@ fold-rows<a, b> a(acc a, a mut-grid b, f act a(a, fix-arr b))
 	if y == a.height
 		acc
 	else
-		f[acc, a row y] fold-rows-recur a, (y wrap-add 1), f
+		f[acc, a row y] fold-rows-recur a, y + 1, f
 
 fold<a, b> a(acc a, a mut-grid b, f act a(a, b))
 	acc fold a.elements, f
@@ -188,9 +187,9 @@ set-map-with-coords<a> void(a mut-grid a, f act a(a, coord)) trusted
 		cur + 1 set-map-with-coords-recur end, (coord next-coord width), width, f
 
 .next-coord coord(a coord, width nat64)
-	new-x = a.x wrap-add 1
+	new-x = a.x + 1
 	if new-x == width
-		0, (a.y wrap-add 1)
+		0, a.y + 1
 	else
 		new-x, a.y
 

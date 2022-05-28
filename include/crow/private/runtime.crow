@@ -5,6 +5,7 @@ import
 	../io/print: print-err, print-err-no-newline
 	../io/private/time-low-level: get-monotime-nsec, timestamp
 	../misc: void
+	../number: ==, nat64
 	../opt: new, opt
 	../ptr: as-any-mut-ptr, as-ref, by-val, ref-of-val
 	../str: literal, str
@@ -17,7 +18,6 @@ import
 		call-with-ctx, ctx, gc-ctx-ptr, gctx-ptr, get-ctx, hard-assert, log-ctx-ptr,
 		new, sym, thread-id, thread-local-stuff
 	./log-low-level: default-log-handler, log-ctx, log-handler, set-handler
-	./number-low-level: ==, nat64
 	./perf-low-level: perf-ctx
 	./task-queue:
 		action, add-task, add-tasks, add-timed-task, any-tasks, exclusion, first-task-time, init,

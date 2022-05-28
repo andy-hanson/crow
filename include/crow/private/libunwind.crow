@@ -2,8 +2,8 @@ no-std
 import
 	../c-types: c-char, c-int, size_t
 	../bytes-types: bytes1024
+	../number: nat64
 	../ptr: mut-ptr
-	./number-low-level: nat64
 
 unw_word_t alias
 	nat64

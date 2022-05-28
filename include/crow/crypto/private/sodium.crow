@@ -3,8 +3,8 @@ import
 	sodium: sodium_init
 	../../bool: ||
 	../../misc: void
+	../../number: ==
 	../../ptr: ref-of-val
-	../../private/number-low-level: ==
 	../../private/runtime: get-global-ctx, print-lock
 	../../private/thread-utils: with-lock
 

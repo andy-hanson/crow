@@ -8,15 +8,15 @@ import
 	../../fun-util: subscript
 	../../log: info, log
 	../../misc: new, void
+	../../number: ==, <=>, +, -, *, /, %, max-nat64, nat64, new
 	../../opt: ??, is-empty, new, opt
 	../../ptr: ==, +, *, const-ptr, ptr-to, set-deref
+	../../private/number-low-level: wrap-sub
 	../../range: .., for-loop
 	../../str: ==, literal, str
 	../../str-conv: to-hex, to-str
 	../../test-util: is
 	../../writer: ~=, ~~=, backup, move-to-str, new, writer
-	../../private/number-low-level:
-		==, <=>, max-nat64, nat64, new, unsafe-div, unsafe-mod, wrap-add, wrap-mul, wrap-sub
 	../arr: ==, arr, new, size, subscript
 	../arr-util: fold, fold-with-index
 	../fix-arr: begin-ptr, cast-immutable, end-ptr, fix-arr, uninitialized-fix-arr
@@ -75,7 +75,7 @@ size nat64(a index-set)
 	as inner i
 		acc size-recur i.a size-recur i.b size-recur i.c size-recur i.d
 	as leaf l
-		acc wrap-add l.a.count-ones wrap-add l.b.count-ones wrap-add l.c.count-ones wrap-add l.d.count-ones
+		acc + l.a.count-ones + l.b.count-ones + l.c.count-ones + l.d.count-ones
 	as empty
 		acc
 
@@ -91,19 +91,19 @@ in bool(index nat64, a index-set) trusted
 	match a
 	as inner i
 		assert n > bits-in-leaf-node
-		half = n unsafe-div 2
-		quarter = half unsafe-div 2
+		half = n / 2
+		quarter = half / 2
 		if index < half
 			if index < quarter
 				index in i.a, quarter
 			else
-				index wrap-sub quarter in i.b, quarter
+				index - quarter in i.b, quarter
 		else
-			index2 = index wrap-sub half
+			index2 = index - half
 			if index2 < quarter
 				index2 in i.c, quarter
 			else
-				index2 wrap-sub quarter in i.d, quarter
+				index2 - quarter in i.d, quarter
 	as leaf l
 		assert n == bits-in-leaf-node
 		l.values[index word-index] has-bit index.bit-index
@@ -117,7 +117,7 @@ in bool(index nat64, a index-set) trusted
 	if a.capacity == 0
 		bits-in-leaf-node, empty-leaf-node.leaf
 	else
-		(a.capacity wrap-mul 4), (a.root, empty, empty, empty).inner
+		a.capacity * 4, (a.root, empty, empty, empty).inner
 
 .empty-inner-node inner-node()
 	empty, empty, empty, empty
@@ -134,22 +134,22 @@ try-add index-set?(a index-set, index nat64) trusted
 	match a
 	as inner i
 		assert n > bits-in-leaf-node
-		half = n unsafe-div 2
-		quarter = half unsafe-div 2
+		half = n / 2
+		quarter = half / 2
 		if index < half
 			if index < quarter
 				if res ?= i.a try-add index, quarter
 					(i with-a res).inner,
 			else
-				if res ?= i.b try-add (index wrap-sub quarter), quarter
+				if res ?= i.b try-add index - quarter, quarter
 					(i with-b res).inner,
 		else
-			index2 = index wrap-sub half
+			index2 = index - half
 			if index2 < quarter
 				if res ?= i.c try-add index2, quarter
 					(i with-c res).inner,
 			else
-				if res ?= i.d try-add (index2 wrap-sub quarter), quarter
+				if res ?= i.d try-add index2 - quarter, quarter
 					(i with-d res).inner,
 	as leaf l
 		assert n == bits-in-leaf-node
@@ -181,22 +181,22 @@ try-remove index-set?(a index-set, index nat64) trusted
 	match a
 	as inner i
 		assert n > bits-in-leaf-node
-		half = n unsafe-div 2
-		quarter = half unsafe-div 2
+		half = n / 2
+		quarter = half / 2
 		opt-new-node inner-node? = if index < half
 			if index < quarter
 				if res ?= i.a try-remove index, quarter
 					(i with-a res),
 			else
-				if res ?= i.b try-remove (index wrap-sub quarter), quarter
+				if res ?= i.b try-remove index - quarter, quarter
 					(i with-b res),
 		else
-			index2 = index wrap-sub half
+			index2 = index - half
 			if index2 < quarter
 				if res ?= i.c try-remove index2, quarter
 					(i with-c res),
 			else
-				if res ?= i.d try-remove (index2 wrap-sub quarter), quarter
+				if res ?= i.d try-remove index2 - quarter, quarter
 					(i with-d res),
 		if new-node ?= opt-new-node
 			if new-node is-all-empty
@@ -221,7 +221,7 @@ try-remove index-set?(a index-set, index nat64) trusted
 	as inner i
 		if i.b.is-empty && i.c.is-empty && i.d.is-empty
 			forbid i.a is-empty
-			i.a simplify-after-remove-or-filter (capacity unsafe-div 4)
+			i.a simplify-after-remove-or-filter capacity / 4
 		else
 			capacity, i.inner
 	as leaf l
@@ -281,24 +281,24 @@ intersect index-set(a index-set, b index-set)
 # TODO: use 'range' type
 count-range nat64(a index-set, low nat64, high nat64) trusted
 	if low <= high
-		a.root count-range a.capacity, low, (high wrap-sub low)
+		a.root count-range a.capacity, low, high - low
 .count-range nat64(a node, n nat64, low nat64, len nat64) unsafe
 	if low <= n
 		match a
 		as inner i
 			assert n > bits-in-leaf-node
-			half = n unsafe-div 2
-			quarter = half unsafe-div 2
-			three-quarters = quarter wrap-add half
+			half = n / 2
+			quarter = half / 2
+			three-quarters = quarter + half
 			# If low < quarter, wrap-sub will give an impossibly high value and the recursive call will return 0.
 			ca = i.a count-range quarter, low, len
 			cb = i.b count-range quarter, (low wrap-sub quarter), len
 			cc = i.c count-range quarter, (low wrap-sub half), len
 			cd = i.d count-range quarter, (low wrap-sub three-quarters), len
-			ca wrap-add cb wrap-add cc wrap-add cd
+			ca + cb + cc + cd
 		as leaf l
 			assert n == bits-in-leaf-node
-			high = low wrap-add len min (bits-in-leaf-node wrap-sub 1)
+			high = low + len min (bits-in-leaf-node - 1)
 			low-word-index = low word-index
 			high-word-index = high word-index
 			low-bit-index = low bit-index
@@ -308,9 +308,9 @@ count-range nat64(a index-set, low nat64, high nat64) trusted
 				values[low-word-index] count-range-in-nat64 low-bit-index, high-bit-index
 			else
 				first-word = values[low-word-index] count-gte-in-nat64 low-bit-index
-				mid-words = values[(low-word-index wrap-add 1) .. high-word-index] count-ones-in-arr
+				mid-words = values[(low-word-index + 1) .. high-word-index] count-ones-in-arr
 				last-word = values[high-word-index] count-less-in-nat64 high-bit-index
-				first-word wrap-add mid-words wrap-add last-word
+				first-word + mid-words + last-word
 		as empty
 			0
 
@@ -321,10 +321,10 @@ count-greater-or-equal nat64(a index-set, n nat64)
 	a count-range n, max-nat64
 
 .count-range-in-nat64 nat64(a nat64, lo-bit-index nat64, hi-bit-index nat64)
-	a >> lo-bit-index count-less-in-nat64 (hi-bit-index wrap-sub lo-bit-index)
+	a >> lo-bit-index count-less-in-nat64 (hi-bit-index - lo-bit-index)
 
 .count-less-in-nat64 nat64(a nat64, bit-index nat64)
-	a << (64 wrap-sub bit-index) count-ones
+	a << (64 - bit-index) count-ones
 
 .count-gte-in-nat64 nat64(a nat64, bit-index nat64)
 	a >> bit-index count-ones
@@ -335,7 +335,7 @@ count-greater-or-equal nat64(a index-set, n nat64)
 	if cur == end
 		acc
 	else
-		acc wrap-add cur->count-ones count-ones-in-arr-recur cur + 1, end
+		acc + cur->count-ones count-ones-in-arr-recur cur + 1, end
 
 # Gets the set with only values < limit
 filter-less index-set(a index-set, limit nat64) trusted
@@ -348,8 +348,8 @@ filter-less index-set(a index-set, limit nat64) trusted
 	match a
 	as inner i
 		assert n > bits-in-leaf-node
-		half = n unsafe-div 2
-		quarter = half unsafe-div 2
+		half = n / 2
+		quarter = half / 2
 		new-a = i.a filter-less-recur quarter, limit, 0
 		new-b = i.b filter-less-recur quarter, limit, 0x40
 		new-c = i.c filter-less-recur quarter, limit, 0x80
@@ -371,22 +371,22 @@ filter-less index-set(a index-set, limit nat64) trusted
 .filter-less-recur node(a node, n nat64, limit nat64, offset nat64) unsafe
 	if limit < offset
 		empty
-	elif limit > (offset wrap-add n)
+	elif limit > offset + n
 		a
 	else
-		a filter-less-recur n, (limit wrap-sub offset)
+		a filter-less-recur n, limit - offset
 
 .filter-less-word nat64(a nat64, limit nat64, offset nat64)
 	if limit >= offset
-		if limit > (offset wrap-add 64)
+		if limit > offset + 64
 			a
 		else
-			a & (limit wrap-sub offset low-n-bits)
+			a & (limit - offset low-n-bits)
 
 .word-index nat64(a nat64) trusted
-	a unsafe-div 64
+	a / 64
 .bit-index nat64(a nat64) trusted
-	a unsafe-mod 64
+	a % 64
 
 to-str str(a index-set)
 	out writer = ()
@@ -410,18 +410,18 @@ fold<a> a(acc a, a index-set, f act a(a, nat64)) trusted
 .fold<a> a(acc a, node node, offset nat64, n nat64, f act a(a, nat64)) unsafe
 	match node
 	as inner i
-		half = n unsafe-div 2
-		quarter = half unsafe-div 2
-		three-quarters = half wrap-add quarter
+		half = n / 2
+		quarter = half / 2
+		three-quarters = half + quarter
 		acc-a = acc fold i.a, offset, quarter, f
-		acc-b = acc-a fold i.b, (offset wrap-add quarter), quarter, f
-		acc-c = acc-b fold i.c, (offset wrap-add half), quarter, f
-		acc-c fold i.d, (offset wrap-add three-quarters), quarter, f
+		acc-b = acc-a fold i.b, offset + quarter, quarter, f
+		acc-c = acc-b fold i.c, offset + half, quarter, f
+		acc-c fold i.d, offset + three-quarters, quarter, f
 	as leaf l
 		acc fold-with-index l.values, (cur, value, word-index) =>
-			bit-index-offset = offset wrap-add (word-index wrap-mul 64)
+			bit-index-offset = offset + word-index * 64
 			cur fold-one-bits value, (inner-acc, bit-index) =>
-				f[inner-acc, bit-index-offset wrap-add bit-index]
+				f[inner-acc, bit-index-offset + bit-index]
 	as empty
 		acc
 
@@ -429,9 +429,9 @@ fold<a> a(acc a, a index-set, f act a(a, nat64)) trusted
 TODO
 filter index-set(a index-set, f act bool(nat64))
 	strip-trailing-zeroes: a.values map-with-index (value, nat64-index) =>
-		bit-index-offset = nat64-index wrap-mul 64
+		bit-index-offset = nat64-index + 64
 		value filter-bits bit-index =>
-			f[bit-index-offset wrap-add bit-index]
+			f[bit-index-offset + bit-index]
 ###
 
 for-loop index-set(a index-set, f act nat64(nat64))
@@ -490,7 +490,7 @@ for-loop<a> a[](a index-set, f act a(nat64)) trusted
 		for x : prev .. cur
 			x in a is false
 		cur in a is true
-		cur wrap-add 1
+		cur + 1
 	a.size is r.size
 
 test
@@ -519,7 +519,7 @@ test
 	e = c filter-less 9
 	e verify "[110 0 0 0]", (4, 8)
 
-	folded = 1 fold d, (cur, x) => cur wrap-add x
+	folded = 1 fold d, (cur, x) => cur + x
 	folded is 14
 
 	# TODO
@@ -527,7 +527,7 @@ test
 	# filtered verify "[x210]", (4, 9)
 
 	mapped index-set = for x : c
-		10 wrap-sub x
+		10 - x
 	mapped verify "[46 0 0 0]", (1, 2, 6)
 
 test

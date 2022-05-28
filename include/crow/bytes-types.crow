@@ -6,8 +6,7 @@ This is useful for external libraries where the size of a type matters but not i
 no-std
 import
 	./misc: new
-	./private/bootstrap: nat16, nat32, nat64
-	./private/number-low-level: new
+	./number: nat16, nat32, nat64, new
 
 # 2-byte type.
 bytes2 record by-val extern

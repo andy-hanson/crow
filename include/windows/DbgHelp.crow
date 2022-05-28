@@ -3,8 +3,8 @@ import
 	crow/bool: bool, false
 	crow/c-types: c-char
 	crow/fun-util: fun-ptr2, fun-ptr3, fun-ptr5
+	crow/number: nat32, to-nat32
 	crow/private/bootstrap: c-str
-	crow/private/number-low-level: nat32, unsafe-to-nat32
 	crow/ptr: *, any-const-ptr, any-mut-ptr, const-ptr, mut-ptr, null, size-of
 	win32: CONTEXT, DWORD, DWORD64, HANDLE, Rbp, Rip, Rsp, WORD
 
@@ -80,7 +80,7 @@ IMAGEHLP_SYMBOL64 record extern by-val
 
 new IMAGEHLP_SYMBOL64(max-name-length DWORD) noctx unsafe
 	# TODO: should not need parentheses
-	(size-of@<IMAGEHLP_LINE64>).unsafe-to-nat32, 0, 0, 0, max-name-length, "\0"
+	(size-of@<IMAGEHLP_LINE64>).to-nat32, 0, 0, 0, max-name-length, "\0"
 
 IMAGEHLP_LINE64 record extern by-val
 	SizeOfStruct DWORD
@@ -91,7 +91,7 @@ IMAGEHLP_LINE64 record extern by-val
 
 new IMAGEHLP_LINE64() noctx unsafe
 	# TODO: should not need parentheses
-	(size-of@<IMAGEHLP_LINE64>).unsafe-to-nat32, null, 0, null, 0
+	(size-of@<IMAGEHLP_LINE64>).to-nat32, null, 0, null, 0
 
 IMAGEHLP_SYMBOL_TYPE_INFO enum<nat32> extern
 	TI_GET_SYMTAG

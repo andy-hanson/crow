@@ -3,6 +3,7 @@ import
 	../bool: &&, ==, bool, true
 	../fun-util: subscript
 	../misc: void
+	../number: ==, <=>, +, is-even, nat64
 	../opt: !, is-empty, new, opt
 	../ptr: ==, +, -, set-deref
 	../range: ..
@@ -10,7 +11,6 @@ import
 	../str-conv: to-str
 	../test-util: is
 	../writer: ~=, ~~=, backup, move-to-str, new, writer
-	../private/number-low-level: ==, <=>, is-even, nat64, wrap-add
 	./arr: ==, arr, for-loop, is-empty, new, size
 	./arr-util: first, fold, last, rtail, tail
 	./fix-arr: begin-ptr, cast-immutable, end-ptr, fix-arr, subscript, uninitialized-fix-arr
@@ -59,7 +59,7 @@ Number of elements in the deque.
 This is O(n).
 ###
 size<a> nat64(a deque a)
-	a.left.size wrap-add a.mid.size wrap-add a.right.size
+	a.left.size + a.mid.size + a.right.size
 
 # Pushes an element on the right.
 ~ <a> deque a(a deque a, value a)
@@ -205,7 +205,7 @@ test
 
 	six = 1 ~ (2 ~ (3, 4)) ~ 5 ~ 6
 	six.dbg is "1 2 [3 4] 5 6"
-	folded = 10 fold six, (x, y) => x wrap-add y
+	folded = 10 fold six, (x, y) => x + y
 	folded is 31
 	(six filter it => it is-even).to-arr is (2, 4, 6)
-	(six map it => it wrap-add 10).to-arr is (11, 12, 13, 14, 15, 16)
+	(six map it => it + 10).to-arr is (11, 12, 13, 14, 15, 16)

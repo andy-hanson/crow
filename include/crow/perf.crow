@@ -17,14 +17,13 @@ import
 	./io/duration: duration, new, nsec, to-str
 	./io/private/time-low-level: get-monotime-nsec
 	./misc: new, void
-	./number: to-float64
+	./number: +, -, to-float64
 	./opt: new, opt
 	./ptr: as-ref
 	./str: literal, str
 	./str-conv: finish, interp, to-str, with-str, with-value
 	./sym: ==, sym
 	./private/bootstrap: get-ctx, nat64, perf-ctx-ptr, thread-local-stuff
-	./private/number-low-level: wrap-add, wrap-sub
 	./private/perf-low-level:
 		count, measure-names, measure-values, new, ns, perf-ctx, perf-measure-value, perf-time,
 		set-measure-names, set-measure-values, total-nsec
@@ -53,9 +52,9 @@ with-perf-measure<a> a(measure-name sym, f act a())
 	res = f[]
 	perf = get-perf-ctx
 	if index ?= perf.measure-names index-of measure-name
-		ns = perf-now.ns wrap-sub start.ns
+		ns = perf-now.ns - start.ns
 		cur = perf.measure-values[index]
-		perf.measure-values[index] := (cur.count wrap-add 1), (cur.total-nsec wrap-add ns)
+		perf.measure-values[index] := (cur.count + 1), (cur.total-nsec + ns)
 	res
 
 # Count and total duration of all measurements with the same name.

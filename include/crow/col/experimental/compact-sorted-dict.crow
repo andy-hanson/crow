@@ -16,7 +16,6 @@ import
 	../../tuple: from, new, pair, to
 	../../writer: ~=, ~~=, backup, move-to-str, new, writer
 	../../private/alloc: mem-copy
-	../../private/number-low-level: wrap-add
 	../arr: arr, for-loop, is-empty, new, size, subscript
 	../arr-util: filter, fold, tail
 	../fix-arr:
@@ -342,7 +341,7 @@ Returns the rightmost value associated with that key.
 .overlay-count<k, v> nat64(acc nat64, a impl<k, v>) noctx
 	match a
 	as overlay o
-		acc wrap-add 1 overlay-count o.prev
+		acc + 1 overlay-count o.prev
 	as end-node _
 		acc
 

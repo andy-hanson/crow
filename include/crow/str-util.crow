@@ -13,11 +13,11 @@ import
 		try-remove-end, try-remove-start, try-split-once-by-fn, try-split-once-by-subseq,
 		try-split-once-by-subseq-right
 	./compare: <
-	./number: ==, <=>, nat8, nat64
+	./number: ==, <=>, +, nat8, nat64
 	./opt: ??, new, opt
+	./private/number-low-level: wrap-sub
 	./str: ==, ~, ~~, char8, char8s, c-str, literal, str, to-char8, to-nat8
 	./tuple: a, b, new, pair
-	./private/number-low-level: wrap-add, wrap-sub
 
 region iterator
 
@@ -154,7 +154,7 @@ lower-case str(a str)
 .lower-case-char char8(a char8) noctx
 	diff = a.to-nat8 wrap-sub "A".to-nat8
 	if diff < 26
-		"a".to-nat8 wrap-add diff to-char8
+		"a".to-nat8 + diff to-char8
 	else
 		a
 
@@ -165,7 +165,7 @@ upper-case str(a str)
 .upper-case-char char8(a char8) noctx
 	diff = a.to-nat8 wrap-sub "a".to-nat8
 	if diff < 26
-		"A".to-nat8 wrap-add diff to-char8
+		"A".to-nat8 + diff to-char8
 	else
 		a
 

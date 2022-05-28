@@ -5,12 +5,12 @@ import
 	../../exception: unreachable
 	../../fun-util: subscript
 	../../misc: new, void
+	../../number: ==, <=>, +, /
 	../../opt: new, opt
 	../../ptr: ==, +, -, *, as-const, as-mut, const-ptr, mut-ptr, null, set-deref
 	../../test-util: is
 	../../tuple: from, pair, to
 	../../private/bootstrap: nat64
-	../../private/number-low-level: ==, <=>, unsafe-div, wrap-add
 	../arr: ==, arr, new
 	../fix-arr:
 		begin-ptr, cast-immutable, copy-from, end-ptr, fix-arr, fix-arr-from-begin-end, new
@@ -29,7 +29,7 @@ binary-search-key<k, v> v?(a pair<k, v>[], key k) trusted compare<k>
 	if diff < 4
 		left linear-search-key-recur right, key
 	else
-		mid = left + (diff unsafe-div 2)
+		mid = left + diff / 2
 		match key <=> mid->from
 		as less
 			left binary-search-key-recur mid, key
@@ -98,7 +98,7 @@ test
 	if diff < 4
 		left linear-search-exact-ptr-recur right, value
 	else
-		mid = left + (diff unsafe-div 2)
+		mid = left + diff / 2
 		match value <=> *mid
 		as less
 			left binary-search-exact-ptr-recur mid, value
@@ -120,7 +120,7 @@ test
 	if left == right
 		left
 	else
-		mid = left + ((right - left) unsafe-div 2)
+		mid = left + (right - left) / 2
 		match value <=> *mid
 		as less
 			left binary-search-insert-ptr-recur mid, value
@@ -135,7 +135,7 @@ test
 	if left == right
 		left
 	else
-		mid = left + ((right - left) unsafe-div 2)
+		mid = left + (right - left) / 2
 		match compare[*mid]
 		as less
 			left binary-search-compare-recur mid, compare
@@ -164,7 +164,7 @@ merge-no-duplicates<a> void(a a mut[], b a mut[], compare act unique-comparison(
 	assert a.size >= b.size
 	unless b is-empty
 		a-old-size = a size
-		a unsafe-set-size (a-old-size wrap-add b.size)
+		a unsafe-set-size a-old-size + b.size
 		a-read = a.begin-ptr.as-const + a-old-size - 1
 		a-write = a.end-ptr - 1
 		a.begin-ptr merge-reverse-recur a-read, a-write, b.begin-ptr.as-const, b.end-ptr.as-const - 1, compare

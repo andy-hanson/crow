@@ -11,8 +11,9 @@ import
 		fun-ptr0, fun-ptr1, fun-ptr2, fun-ptr3, fun-ptr4, fun-ptr5, fun-ptr6, fun-ptr7, fun-ptr8,
 		fun-ptr9, subscript
 	./misc: new
+	./number: ==, /
 	./private/bootstrap: arr, begin-ptr, nat64, size, void
-	./private/number-low-level: ==, unsafe-div, wrap-sub
+	./private/number-low-level: wrap-sub
 export
 	./private/bootstrap: any-const-ptr, any-mut-ptr, by-val, const-ptr, mut-ptr, zeroed
 
@@ -95,8 +96,7 @@ This is undefined behavior if `a < b` or if `size-of@<a> == 0`.
 - <a> nat64(a a*, b a*) noctx unsafe
 	a.as-mut - b.as-mut
 - <a> nat64(a a mut*, b a mut*) noctx unsafe
-	# TODO: what if a is an empty type ?
-	a.to-nat64 wrap-sub b.to-nat64 unsafe-div size-of@<a>
+	(a.to-nat64 wrap-sub b.to-nat64) / size-of@<a>
 
 # True iff `a.to-nat64 < b.to-nat64`.
 .is-less<a> bool(a a mut*, b a mut*) noctx unsafe builtin

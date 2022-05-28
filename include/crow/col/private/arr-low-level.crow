@@ -1,9 +1,9 @@
 no-std
 import
 	../../compare: <=
+	../../number: ==, -, nat64
 	../../ptr: ==, <=>, +, -, const-ptr, ptr-cast, size-of
 	../../private/bootstrap: new
-	../../private/number-low-level: ==, nat64, wrap-sub
 	../../private/range-low-level: high, low, range
 export
 	../../private/bootstrap: arr, begin-ptr, size
@@ -34,7 +34,7 @@ arr-cast<out, in> out[](a in[]) no-doc unsafe noctx
 
 # Create an array from a range of pointers.
 subscript<a> a[](a a*, r range nat64) noctx unsafe
-	(r.high wrap-sub r.low), a + r.low
+	r.high - r.low, a + r.low
 
 unsafe-slice<a> a[](a a[], begin nat64, end nat64) no-doc unsafe noctx
 	a.begin-ptr + begin arr-from-begin-end a.begin-ptr + end

@@ -10,11 +10,12 @@ import
 	./bool: &&, bool
 	./compare: !=, <, >
 	./fun-util: subscript
+	./number: ==, <=>, new, to-int64, to-nat64
 	./private/bootstrap:
 		int8, int16, int32, int64, nat8, nat16, nat32, nat64, todo
 	./private/number-low-level:
-		==, <=>, new, to-int64, to-nat64, unsafe-mul, unsafe-to-int32, unsafe-to-int64,
-		unsafe-to-nat8, unsafe-to-nat64, unsafe-to-nat16, unsafe-to-nat32, wrap-add, wrap-sub
+		unsafe-mul, unsafe-to-int32, unsafe-to-int64, unsafe-to-nat8, unsafe-to-nat64,
+		unsafe-to-nat16, unsafe-to-nat32, wrap-add, wrap-sub
 
 ###
 Negates every bit.

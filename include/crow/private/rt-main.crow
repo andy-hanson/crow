@@ -7,6 +7,7 @@ import
 	../fun-util: fun-ptr2, subscript
 	../fut: delay, fut, handle-exceptions, then-void
 	../misc: new, void
+	../number: ==, <=>, +, -, int32, nat64, to-int32, to-int64, to-nat64
 	../ptr:
 		+, any-mut-ptr, as-any-mut-ptr, as-const, as-ref, by-val, const-ptr, mut-ptr, null,
 		ref-of-val, set-deref, subscript
@@ -17,9 +18,6 @@ import
 	./bootstrap: call-with-ctx, ctx, get-ctx, new, thread-local-stuff
 	./fut-low-level: get-result
 	./log-low-level: log-ctx
-	./number-low-level:
-		==, <=>, int32, int64, nat64, to-int64, unsafe-to-int32, unsafe-to-int64, unsafe-to-nat64,
-		wrap-add, wrap-sub
 	./perf-low-level: perf-ctx
 	./runtime:
 		any-unhandled-exceptions, free, get-global-ctx, global-ctx, init, new-ctx, print-lock,
@@ -37,7 +35,7 @@ rt-main int32(argc int32, argv c-str*, main-ptr main-ptr) trusted noctx summon
 	gctx-by-val by-val global-ctx = n-threads uninit
 	gctx = gctx-by-val ref-of-val
 	gctx init
-	main-fut = gctx add-main-task (n-threads wrap-sub 1), argc, argv, main-ptr
+	main-fut = gctx add-main-task n-threads - 1, argc, argv, main-ptr
 	n-threads run-threads gctx
 	res = gctx exit-code-from-main-fut main-fut
 	gctx free
@@ -50,14 +48,10 @@ rt-main int32(argc int32, argv c-str*, main-ptr main-ptr) trusted noctx summon
 		if gctx any-unhandled-exceptions
 			1
 		else
-			v.nat64-to-int64 unsafe-to-int32
+			v.to-int64 to-int32
 	as err _
 		# 'handle-exceptions' should have logged the error
 		1
-
-# TODO:INLINE
-nat64-to-int64 int64(a nat64) unsafe noctx
-	a unsafe-to-int64
 
 # TODO:KILL (using this to narrow down scope of error)
 .do-init-constants void() unsafe noctx summon
@@ -85,7 +79,7 @@ init-constants void() unsafe noctx summon builtin
 
 	add act fut nat64(c-str[], main-ptr) = (all-args, main-ptr-2) =>
 		all-args add-first-task main-ptr-2
-	all-args = argv[0 .. argc.to-int64.unsafe-to-nat64]
+	all-args = argv[0 .. argc.to-int64.to-nat64]
 	add call-with-ctx ctx, all-args, main-ptr
 
 .thread-args record mut by-ref
@@ -110,7 +104,7 @@ init-constants void() unsafe noctx summon builtin
 	threads thread-handle mut* = n-threads unmanaged-alloc-elements
 	thread-args by-val<thread-args> mut* = n-threads unmanaged-alloc-elements
 
-	actual-n-threads = n-threads wrap-sub 1
+	actual-n-threads = n-threads - 1
 
 	0 start-threads-recur actual-n-threads, threads, thread-args, gctx
 	actual-n-threads thread-function gctx
@@ -131,7 +125,7 @@ init-constants void() unsafe noctx summon builtin
 		*thread-arg-ptr := i, gctx
 		thread-ptr = threads + i
 		thread-ptr.as-cell create-one-thread thread-arg-ptr.as-any-mut-ptr, &thread-fun
-		i wrap-add 1 start-threads-recur n-threads, threads, thread-args-begin, gctx
+		i + 1 start-threads-recur n-threads, threads, thread-args-begin, gctx
 
 .thread-fun any-mut-ptr(args-ptr any-mut-ptr) noctx unsafe summon
 	args thread-args = args-ptr as-ref
@@ -141,4 +135,4 @@ init-constants void() unsafe noctx summon builtin
 .join-threads-recur void(i nat64, n-threads nat64, threads thread-handle*) noctx unsafe summon
 	unless i == n-threads
 		threads[i] join-one-thread
-		i wrap-add 1 join-threads-recur n-threads, threads
+		i + 1 join-threads-recur n-threads, threads

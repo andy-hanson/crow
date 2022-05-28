@@ -2,8 +2,8 @@ no-std
 import
 	./bool: bool, false, new, true
 	./compare: equal
+	./number: ==, int64, nat64, new
 	./private/bootstrap: none, some
-	./private/number-low-level: ==, int64, nat64, new
 export
 	./private/bootstrap: opt
 

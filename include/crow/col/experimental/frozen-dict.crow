@@ -5,13 +5,13 @@ import
 	../../fun-util: subscript
 	../../hash: hash, hash-mix
 	../../misc: is-data, new, void
+	../../number: ==, <=>, +, -, /, %, nat64
 	../../opt: is-empty, new, opt, opt-equal
 	../../ptr: ==, <=>, +, -, *, const-ptr, mut-ptr, set-deref, swap
 	../../str: ==, literal, str
 	../../test-util: is
 	../../tuple: from, new, pair, to
 	../../private/alloc: alloc-uninitialized
-	../../private/number-low-level: ==, <=>, nat64, unsafe-div, unsafe-mod, wrap-add, wrap-sub
 	../arr: ==, arr, for-loop, is-empty, new, size, subscript
 	../arr-util: fold, fold-with-index
 	../fix-arr:
@@ -65,12 +65,12 @@ try-get-unordered-index<k, v> nat64?(a frozen-dict<k, v>, key k) trusted is-data
 	bucket = if a.bucket-starts is-empty
 		a pairs
 	else
-		bucket-index = key.hash unsafe-mod a.bucket-starts.size
+		bucket-index = key.hash % a.bucket-starts.size
 		bucket-start = a.bucket-starts[bucket-index]
-		bucket-end = if bucket-index == (a.bucket-starts.size wrap-sub 1)
+		bucket-end = if bucket-index == a.bucket-starts.size - 1
 			a.pairs end-ptr
 		else
-			a.bucket-starts[bucket-index wrap-add 1]
+			a.bucket-starts[bucket-index + 1]
 		bucket-start arr-from-begin-end bucket-end
 
 	bucket.begin-ptr find-ptr bucket.end-ptr, key
@@ -93,7 +93,7 @@ fix-arr-to-frozen-dict-promise-no-duplicates<k, v> frozen-dict<k, v>(
 	if a.size <= 4
 		a.cast-immutable, ()
 	else
-		n-buckets = a.size unsafe-div 2
+		n-buckets = a.size / 2
 		bucket-counts = a get-bucket-counts n-buckets
 		bucket-starts = a.begin-ptr running-sum bucket-counts.temp-as-arr
 		bucket-counts fill 0
@@ -187,7 +187,7 @@ fix-arr-to-frozen-dict-promise-no-duplicates<k, v> frozen-dict<k, v>(
 	res = n-buckets fill-fix-arr 0
 	for pair : a
 		bucket-index = pair.from get-bucket-index n-buckets
-		res[bucket-index] := res[bucket-index] wrap-add 1
+		res[bucket-index] := res[bucket-index] + 1
 	res
 
 .move-values-to-buckets-recur<k, v> void(
@@ -203,16 +203,16 @@ fix-arr-to-frozen-dict-promise-no-duplicates<k, v> frozen-dict<k, v>(
 		bucket-cur-end = bucket-start + bucket-count
 		new-cur = if bucket-start <= cur && cur <= bucket-cur-end
 			if cur == bucket-cur-end
-				bucket-counts[bucket-index] := bucket-count wrap-add 1
+				bucket-counts[bucket-index] := bucket-count + 1
 			cur + 1
 		else
-			bucket-counts[bucket-index] := bucket-count wrap-add 1
+			bucket-counts[bucket-index] := bucket-count + 1
 			cur swap bucket-cur-end
 			cur
 		new-cur move-values-to-buckets-recur end, bucket-counts, bucket-starts
 
-.get-bucket-index<k> nat64(key k, n-buckets nat64) unsafe hash-mix<k>
-	key.hash unsafe-mod n-buckets
+.get-bucket-index<k> nat64(key k, n-buckets nat64) hash-mix<k>
+	key.hash % n-buckets
 
 .running-sum<k, v> pair<k, v> mut*[](acc pair<k, v> mut*, a nat64[]) trusted
 	out fix-arr pair<k, v> mut* = a.size uninitialized-fix-arr

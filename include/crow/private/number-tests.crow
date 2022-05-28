@@ -1,0 +1,29 @@
+no-std
+import
+	../number: ==, +, -, *, /, max-int64, min-int64, nat64
+	../str: literal
+	../test-util: is, throws
+
+dummy-number-tests nat64()
+	0
+
+test
+	+1 + 1 is 2
+	(() => max-int64 + 1) throws "integer overflow"
+	(() => min-int64 + -1) throws "integer overflow"
+	(() => min-int64 + min-int64) throws "integer overflow"
+
+test
+	+1 - 2 is -1
+	(() => max-int64 - -1) throws "integer overflow"
+	(() => min-int64 - 1) throws "integer overflow"
+	min-int64 - min-int64 is 0
+
+test
+	max-int64 * 0 is 0
+	-1 * -1 is 1
+	(() => (max-int64 / 3) * 4) throws "integer overflow"
+	(() => +4 * (max-int64 / 3)) throws "integer overflow"
+	(() => min-int64 * -1) throws "integer overflow"
+	(() => -1 * min-int64) throws "integer overflow"
+
