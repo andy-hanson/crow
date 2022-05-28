@@ -329,6 +329,10 @@ public immutable(SafeCStr) pathToSafeCStrPreferRelative(
 	return pe.path;
 }
 
+immutable(Path) parsePathDropExtension(ref AllPaths allPaths, scope immutable SafeCStr str) {
+	return parsePathAndExtension(allPaths, str).path;
+}
+
 struct PathAndExtension {
 	immutable Path path;
 	immutable Sym extension;

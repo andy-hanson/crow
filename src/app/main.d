@@ -105,6 +105,7 @@ import util.path :
 	parent,
 	parentOrEmpty,
 	parsePath,
+	parsePathDropExtension,
 	PathsInfo,
 	pathToSafeCStr,
 	pathToTempStr,
@@ -928,7 +929,7 @@ immutable(Path) getCrowDir(ref AllPaths allPaths) {
 	}
 	verify(size > 0 && size < res.length);
 	res[size] = '\0';
-	return parsePath(allPaths, immutable SafeCStr(cast(immutable) res.ptr));
+	return parsePathDropExtension(allPaths, immutable SafeCStr(cast(immutable) res.ptr));
 }
 
 // Returns the child process' error code.

@@ -1031,12 +1031,12 @@ immutable(WriteExprResult) writeNonInlineable(
 }
 
 immutable(WriteExprResult) writeInlineable(
-	ref Writer writer,
+	scope ref Writer writer,
 	ref TempAlloc tempAlloc,
 	immutable size_t indent,
-	ref FunBodyCtx ctx,
+	scope ref FunBodyCtx ctx,
 	scope ref immutable Locals locals,
-	ref immutable WriteKind writeKind,
+	scope ref immutable WriteKind writeKind,
 	immutable LowType type,
 	scope immutable LowExpr[] args,
 	scope void delegate(ref immutable WriteExprResult[]) @safe @nogc pure nothrow inline,
@@ -1081,12 +1081,12 @@ immutable(WriteExprResult) writeInlineableSingleArg(
 }
 
 immutable(WriteExprResult) writeInlineableSimple(
-	ref Writer writer,
+	scope ref Writer writer,
 	ref TempAlloc tempAlloc,
 	immutable size_t indent,
-	ref FunBodyCtx ctx,
+	scope ref FunBodyCtx ctx,
 	scope ref immutable Locals locals,
-	ref immutable WriteKind writeKind,
+	scope ref immutable WriteKind writeKind,
 	immutable LowType type,
 	scope void delegate() @safe @nogc pure nothrow inline,
 ) {
