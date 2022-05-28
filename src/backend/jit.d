@@ -124,7 +124,7 @@ import model.lowModel :
 	targetIsPointer,
 	targetRecordType,
 	UpdateParam;
-import model.typeLayout : sizeOfType;
+import model.typeLayout : typeSizeBytes;
 import util.alloc.alloc : Alloc;
 import util.col.arr : empty;
 import util.col.arrUtil : makeArr, map, mapToMut, mapWithIndex, mapWithIndex_mut, zip, zipFirstMut;
@@ -528,7 +528,7 @@ GlobalsForThreadLocals generateGlobalsForThreadLocals(
 			: gcc_jit_function_kind.GCC_JIT_FUNCTION_IMPORTED,
 		(ref immutable(LowFunExprBody)) {
 			// TODO: A GCC but breaks functions that return more than 16 bytes.
-			return funIndex == program.main || sizeOfType(program, fun.returnType).size > 16
+			return funIndex == program.main || typeSizeBytes(program, fun.returnType) > 16
 			? gcc_jit_function_kind.GCC_JIT_FUNCTION_EXPORTED
 			: gcc_jit_function_kind.GCC_JIT_FUNCTION_INTERNAL;
 		},
@@ -1500,7 +1500,7 @@ immutable(ExprResult) sizeOfToGcc(
 	return emitSimpleNoSideEffects(
 		ctx,
 		emit,
-		gcc_jit_context_new_rvalue_from_long(ctx.gcc, ctx.nat64Type, sizeOfType(ctx.program, a.type).size));
+		gcc_jit_context_new_rvalue_from_long(ctx.gcc, ctx.nat64Type, typeSizeBytes(ctx.program, a.type)));
 }
 
 immutable(ExprResult) constantToGcc(

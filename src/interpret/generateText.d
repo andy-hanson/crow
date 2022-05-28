@@ -21,7 +21,7 @@ import model.lowModel :
 	LowType,
 	PointerTypeAndConstantsLow,
 	PrimitiveType;
-import model.typeLayout : nStackEntriesForType, sizeOfType;
+import model.typeLayout : nStackEntriesForType, typeSizeBytes;
 import util.alloc.alloc : Alloc, TempAlloc;
 import util.col.arr : castImmutable, empty;
 import util.col.arrUtil : map, mapToMut, sum, zip;
@@ -305,10 +305,10 @@ immutable(size_t) getAllConstantsSize(ref immutable LowProgram program, ref immu
 	immutable size_t cStringsSize = sum(allConstants.cStrings, (ref immutable SafeCStr x) =>
 		safeCStrSize(x) + 1);
 	immutable size_t arrsSize = sum(allConstants.arrs, (ref immutable ArrTypeAndConstantsLow arrs) =>
-		sizeOfType(program, arrs.elementType).size *
+		typeSizeBytes(program, arrs.elementType) *
 		sum(arrs.constants, (ref immutable Constant[] elements) => elements.length));
 	immutable size_t pointersSize = sum(allConstants.pointers, (ref immutable PointerTypeAndConstantsLow pointers) =>
-		sizeOfType(program, pointers.pointeeType).size * pointers.constants.length);
+		typeSizeBytes(program, pointers.pointeeType) * pointers.constants.length);
 	return cStringsSize + arrsSize + pointersSize;
 }
 
@@ -320,7 +320,7 @@ void writeConstant(
 	ref immutable Constant constant,
 ) {
 	immutable size_t sizeBefore = exactSizeArrBuilderCurSize(ctx.text);
-	immutable size_t typeSize = sizeOfType(ctx.program, type).size;
+	immutable size_t typeSize = typeSizeBytes(ctx.program, type);
 
 	matchConstant!void(
 		constant,
@@ -411,8 +411,8 @@ void writeConstant(
 			add64(ctx.text, it.memberIndex);
 			immutable LowType memberType = unionMemberType(ctx.program, asUnionType(type), it.memberIndex);
 			writeConstant(alloc, tempAlloc, ctx, memberType, it.arg);
-			immutable size_t unionSize = sizeOfType(ctx.program, type).size;
-			immutable size_t memberSize = sizeOfType(ctx.program, memberType).size;
+			immutable size_t unionSize = typeSizeBytes(ctx.program, type);
+			immutable size_t memberSize = typeSizeBytes(ctx.program, memberType);
 			immutable size_t padding = unionSize - 8 - memberSize;
 			add0Bytes(ctx.text, padding);
 		},

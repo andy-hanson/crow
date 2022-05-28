@@ -65,7 +65,7 @@ import model.lowModel :
 	targetRecordType,
 	UpdateParam;
 import model.model : EnumValue, name;
-import model.typeLayout : sizeOfType;
+import model.typeLayout : sizeOfType, typeSizeBytes;
 import util.alloc.alloc : Alloc, TempAlloc;
 import util.col.arr : empty, only, sizeEq;
 import util.col.arrUtil : arrLiteral, every, exists, map, zip;
@@ -377,7 +377,7 @@ void writeUnion(scope ref Writer writer, scope ref immutable Ctx ctx, scope ref 
 		}
 		// Fun types must be 16 bytes
 		if (isBuiltin &&
-			every!LowType(a.members, (ref immutable LowType member) => sizeOfType(ctx.program, member).size < 8))
+			every!LowType(a.members, (ref immutable LowType member) => typeSizeBytes(ctx.program, member) < 8))
 			writeStatic(writer, "\n\t\tuint64_t __ensureSizeIs16;");
 		writeStatic(writer, "\n\t};");
 	}
@@ -399,13 +399,13 @@ void staticAssertStructSize(
 	writeStatic(writer, "_Static_assert(sizeof(");
 	writeType(writer, ctx, type);
 	writeStatic(writer, ") == ");
-	writeNat(writer, size.size);
+	writeNat(writer, size.sizeBytes);
 	writeStatic(writer, ", \"\");\n");
 
 	writeStatic(writer, "_Static_assert(_Alignof(");
 	writeType(writer, ctx, type);
 	writeStatic(writer, ") == ");
-	writeNat(writer, size.alignment);
+	writeNat(writer, size.alignmentBytes);
 	writeStatic(writer, ", \"\");\n");
 }
 

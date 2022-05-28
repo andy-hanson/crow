@@ -529,7 +529,7 @@ immutable(bool) canGetUnionSize(scope immutable Opt!ConcreteType[] members) {
 immutable(TypeSize) unionSize(scope immutable Opt!ConcreteType[] members) {
 	immutable size_t unionAlign = 8;
 	immutable size_t maxMember = arrMax!(size_t, Opt!ConcreteType)(0, members, (ref immutable Opt!ConcreteType t) =>
-		has(t) ? sizeOrPointerSizeBytes(force(t)).size : 0);
+		has(t) ? sizeOrPointerSizeBytes(force(t)).sizeBytes : 0);
 	immutable size_t sizeBytes = roundUp(8 + maxMember, unionAlign);
 	return immutable TypeSize(sizeBytes, unionAlign);
 }
@@ -547,7 +547,7 @@ immutable(ReferenceKind) getDefaultReferenceKindForFields(
 				return 8 * 2;
 		}
 	}();
-	return isSelfMutable || typeSize.size > maxSize ? ReferenceKind.byRef : ReferenceKind.byVal;
+	return isSelfMutable || typeSize.sizeBytes > maxSize ? ReferenceKind.byRef : ReferenceKind.byVal;
 }
 
 enum FieldsType { record, closure }
@@ -576,19 +576,19 @@ immutable(TypeSizeAndFieldOffsets) recordSize(
 ) {
 	size_t maxFieldSize = 1;
 	size_t maxFieldAlignment = 1;
-	size_t offset = 0;
+	size_t offsetBytes = 0;
 	immutable size_t[] fieldOffsets = map(alloc, fields, (ref immutable ConcreteField field) {
 		immutable TypeSize fieldSize = sizeOrPointerSizeBytes(field.type);
-		maxFieldSize = max(maxFieldSize, fieldSize.size);
+		maxFieldSize = max(maxFieldSize, fieldSize.sizeBytes);
 		if (!packed) {
-			maxFieldAlignment = max(maxFieldAlignment, fieldSize.alignment);
-			offset = roundUp(offset, fieldSize.alignment);
+			maxFieldAlignment = max(maxFieldAlignment, fieldSize.alignmentBytes);
+			offsetBytes = roundUp(offsetBytes, fieldSize.alignmentBytes);
 		}
-		immutable size_t fieldOffset = offset;
-		offset += fieldSize.size;
+		immutable size_t fieldOffset = offsetBytes;
+		offsetBytes += fieldSize.sizeBytes;
 		return fieldOffset;
 	});
-	immutable TypeSize typeSize = immutable TypeSize(roundUp(offset, maxFieldAlignment), maxFieldAlignment);
+	immutable TypeSize typeSize = immutable TypeSize(roundUp(offsetBytes, maxFieldAlignment), maxFieldAlignment);
 	return immutable TypeSizeAndFieldOffsets(typeSize, fieldOffsets);
 }
 

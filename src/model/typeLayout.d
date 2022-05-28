@@ -17,7 +17,11 @@ import util.col.arrUtil : every, map;
 import util.opt : none, Opt, some;
 import util.util : divRoundUp;
 
-immutable(TypeSize) sizeOfType(ref immutable LowProgram program, immutable LowType a) {
+immutable(size_t) typeSizeBytes(scope ref immutable LowProgram program, scope immutable LowType a) {
+	return sizeOfType(program, a).sizeBytes;
+}
+
+immutable(TypeSize) sizeOfType(scope ref immutable LowProgram program, scope immutable LowType a) {
 	return matchLowTypeCombinePtr!(
 		immutable TypeSize,
 		(immutable LowType.ExternPtr) =>
@@ -36,7 +40,7 @@ immutable(TypeSize) sizeOfType(ref immutable LowProgram program, immutable LowTy
 }
 
 immutable(size_t) nStackEntriesForType(ref immutable LowProgram program, immutable LowType a) {
-	return nStackEntriesForBytes(sizeOfType(program, a).size);
+	return nStackEntriesForBytes(typeSizeBytes(program, a));
 }
 
 private immutable(size_t) nStackEntriesForBytes(immutable size_t bytes) {
@@ -68,7 +72,7 @@ immutable(Opt!Pack) optPack(TempAlloc)(
 		size_t inOffsetEntries = 0;
 		immutable PackField[] fields = map!(PackField)(tempAlloc, record.fields, (ref immutable LowField field) {
 			immutable size_t fieldInOffsetBytes = inOffsetEntries * 8;
-			immutable size_t fieldSizeBytes = sizeOfType(program, field.type).size;
+			immutable size_t fieldSizeBytes = typeSizeBytes(program, field.type);
 			inOffsetEntries += nStackEntriesForBytes(fieldSizeBytes);
 			return immutable PackField(fieldInOffsetBytes, field.offset, fieldSizeBytes);
 		});

@@ -97,7 +97,6 @@ import interpret.extern_ : FunPtr;
 import interpret.funToReferences : FunPtrTypeToDynCallSig, FunToReferences, registerCall, registerFunPtrReference;
 import interpret.generateText :
 	getTextInfoForArray, getTextPointer, getTextPointerForCString, TextArrInfo, TextInfo, ThreadLocalsInfo;
-import model.concreteModel : TypeSize;
 import model.constant : Constant, matchConstant;
 import model.lowModel :
 	asFunPtrType,
@@ -129,7 +128,7 @@ import model.lowModel :
 	targetRecordType,
 	UpdateParam;
 import model.model : range;
-import model.typeLayout : nStackEntriesForType, optPack, Pack, sizeOfType;
+import model.typeLayout : nStackEntriesForType, optPack, Pack, typeSizeBytes;
 import util.alloc.alloc : TempAlloc;
 import util.col.arr : empty, only;
 import util.col.arrBuilder : add;
@@ -301,8 +300,8 @@ struct ExprCtx {
 	}
 }
 
-immutable(TypeSize) sizeOfType(ref const ExprCtx ctx, immutable LowType t) {
-	return sizeOfType(ctx.program, t);
+immutable(size_t) typeSizeBytes(ref const ExprCtx ctx, immutable LowType t) {
+	return typeSizeBytes(ctx.program, t);
 }
 
 immutable(size_t) nStackEntriesForType(ref const ExprCtx ctx, immutable LowType t) {
@@ -431,7 +430,7 @@ void generateExpr(
 			generateExpr(writer, ctx, locals, after, it.then);
 		},
 		(ref immutable LowExprKind.SizeOf it) {
-			writePushConstant(writer, source, sizeOfType(ctx, it.type).size);
+			writePushConstant(writer, source, typeSizeBytes(ctx, it.type));
 			handleAfter(writer, ctx, source, after);
 		},
 		(ref immutable Constant it) {
@@ -774,8 +773,7 @@ immutable(FieldOffsetAndSize) getFieldOffsetAndSize(
 	immutable size_t fieldIndex,
 ) {
 	immutable LowField field = ctx.program.allRecords[record].fields[fieldIndex];
-	immutable size_t size = sizeOfType(ctx, field.type).size;
-	return immutable FieldOffsetAndSize(field.offset, size);
+	return immutable FieldOffsetAndSize(field.offset, typeSizeBytes(ctx, field.type));
 }
 
 void generateConstant(
@@ -946,7 +944,7 @@ void generateSpecialUnary(
 			break;
 		case LowExprKind.SpecialUnary.Kind.deref:
 			generateArg();
-			writeRead(writer, source, 0, sizeOfType(ctx, type).size);
+			writeRead(writer, source, 0, typeSizeBytes(ctx, type));
 			handleAfter(writer, ctx, source, after);
 			break;
 		case LowExprKind.SpecialUnary.Kind.ptrTo:
@@ -1113,7 +1111,7 @@ void generateSpecialBinary(
 			immutable LowType pointee = asPtrRawPointee(a.left.type);
 			generateExprAndContinue(writer, ctx, locals, a.left);
 			generateExprAndContinue(writer, ctx, locals, a.right);
-			immutable size_t pointeeSize = sizeOfType(ctx, pointee).size;
+			immutable size_t pointeeSize = typeSizeBytes(ctx, pointee);
 			if (pointeeSize != 1)
 				writeMulConstantNat64(writer, source, pointeeSize);
 			if (a.kind == LowExprKind.SpecialBinary.Kind.addPtrAndNat64)
@@ -1314,7 +1312,7 @@ void generateSpecialBinary(
 		case LowExprKind.SpecialBinary.Kind.writeToPtr:
 			generateExprAndContinue(writer, ctx, locals, a.left);
 			generateExprAndContinue(writer, ctx, locals, a.right);
-			writeWrite(writer, source, 0, sizeOfType(ctx, a.right.type).size);
+			writeWrite(writer, source, 0, typeSizeBytes(ctx, a.right.type));
 			handleAfter(writer, ctx, source, after);
 			break;
 	}

@@ -255,8 +255,8 @@ immutable(Sym) symOfReferenceKind(immutable ReferenceKind a) {
 }
 
 struct TypeSize {
-	immutable size_t size;
-	immutable size_t alignment;
+	immutable size_t sizeBytes;
+	immutable size_t alignmentBytes;
 }
 
 immutable(Purity) purity(immutable ConcreteType a) {

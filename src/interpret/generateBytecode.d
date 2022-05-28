@@ -26,6 +26,8 @@ import interpret.bytecodeWriter :
 	StackEntry,
 	writeCallFunPtrExtern,
 	writeLongjmp,
+	writePushConstant,
+	writeRead,
 	writeReturn,
 	writeSetjmp;
 import interpret.extern_ :
@@ -61,7 +63,7 @@ import model.lowModel :
 	name,
 	PrimitiveType;
 import model.model : FunDecl, Module, name, Program, range;
-import model.typeLayout : nStackEntriesForType;
+import model.typeLayout : nStackEntriesForType, typeSizeBytes;
 import util.alloc.alloc : Alloc, TempAlloc;
 import util.col.arr : castImmutable;
 import util.col.arrBuilder : add, ArrBuilder, finishArr;
@@ -296,7 +298,7 @@ void generateExternCall(
 	ref const AllSymbols allSymbols,
 	ref immutable LowProgram program,
 	immutable LowFunIndex funIndex,
-	ref immutable LowFun fun,
+	scope ref immutable LowFun fun,
 	ref immutable LowFunBody.Extern a,
 	ref immutable ExternFunPtrsForAllLibraries externFunPtrs,
 ) {
@@ -312,17 +314,42 @@ void generateExternCall(
 			break;
 		default:
 			immutable FunPtr funPtr = mustGetAt(mustGetAt(externFunPtrs, a.libraryName), name);
-			MutMaxArr!(16, DynCallType) sigTypes = void;
-			initializeMutMaxArr(sigTypes);
-			push(sigTypes, toDynCallType(fun.returnType));
-			foreach (ref immutable LowParam x; fun.params)
-				toDynCallTypes(program, x.type, (immutable DynCallType x) {
-					push(sigTypes, x);
-				});
-			writeCallFunPtrExtern(writer, source, funPtr, immutable DynCallSig(tempAsArr(sigTypes)));
+			if (a.isGlobal)
+				generateExternGetGlobal(writer, source, program, fun.returnType, funPtr.fn);
+			else
+				generateExternCallFunPtr(writer, source, program, fun, funPtr);
 			break;
 	}
 	writeReturn(writer, source);
+}
+
+void generateExternGetGlobal(
+	scope ref ByteCodeWriter writer,
+	immutable ByteCodeSource source,
+	scope ref immutable LowProgram program,
+	scope ref immutable LowType type,
+	// TODO: not really immutable
+	immutable void* ptr,
+) {
+	writePushConstant(writer, source, cast(immutable ulong) ptr);
+	writeRead(writer, source, 0, typeSizeBytes(program, type));
+}
+
+void generateExternCallFunPtr(
+	scope ref ByteCodeWriter writer,
+	immutable ByteCodeSource source,
+	scope ref immutable LowProgram program,
+	scope ref immutable LowFun fun,
+	immutable FunPtr funPtr,
+) {
+	MutMaxArr!(16, DynCallType) sigTypes = void;
+	initializeMutMaxArr(sigTypes);
+	push(sigTypes, toDynCallType(fun.returnType));
+	foreach (ref immutable LowParam x; fun.params)
+		toDynCallTypes(program, x.type, (immutable DynCallType x) {
+		push(sigTypes, x);
+	});
+	writeCallFunPtrExtern(writer, source, funPtr, immutable DynCallSig(tempAsArr(sigTypes)));
 }
 
 immutable(DynCallType) toDynCallType(scope immutable LowType a) {
