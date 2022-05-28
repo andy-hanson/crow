@@ -94,9 +94,9 @@ run-crow-tests result<str, failure[]>(path str, path-to-crow str, options test-o
 	overwrite-output bool,
 ) summon
 	args str[] = if interpret
-		"run", path, "--interpret"
-	else
 		"run", path
+	else
+		"run", path, "--jit"
 	res = path-to-crow spawn-and-wait-result args
 	stdout-failures = path handle-output "{path}.stdout", res.stdout, overwrite-output
 	stderr-failures failure[] = if res.exit-code != 0 || res.stderr != ""

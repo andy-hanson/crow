@@ -381,28 +381,27 @@ immutable(Opt!RunOptions) parseRunOptions(
 	ref AllPaths allPaths,
 	scope immutable ArgsPart[] argParts,
 ) {
-	if (empty(argParts)) {
-		version (Windows) {
-			return some(immutable RunOptions(immutable RunOptions.Interpret()));
-		} else {
-			return some(immutable RunOptions(immutable RunOptions.Jit()));
-		}
-	} else if (argParts.length != 1)
-		// TODO: better message -- can't combine '--interpret' with build options
-		return none!RunOptions;
-	else {
-		immutable ArgsPart part = only(argParts);
+	bool jit = false;
+	bool optimize = false;
+	foreach (immutable ArgsPart part; argParts) {
 		switch (part.tag.value) {
-			case shortSymValue("--interpret"):
-				return empty(part.args)
-					? some(immutable RunOptions(immutable RunOptions.Interpret()))
-					: none!RunOptions;
+			case shortSymValue("--jit"):
+				jit = true;
+				break;
 			case shortSymValue("--optimize"):
-				return some(immutable RunOptions(immutable RunOptions.Jit(immutable JitOptions(OptimizationLevel.o2))));
+				optimize = true;
+				break;
 			default:
 				return none!RunOptions;
 		}
 	}
+	return jit
+		? some(immutable RunOptions(immutable RunOptions.Jit(optimize
+			? immutable JitOptions(OptimizationLevel.o2)
+			: immutable JitOptions())))
+		: optimize
+			? none!RunOptions
+			: some(immutable RunOptions(immutable RunOptions.Interpret()));
 }
 
 immutable(Opt!BuildOptions) parseBuildOptions(
@@ -546,11 +545,16 @@ immutable SafeCStr helpDocumentText =
 	"\tGenerates JSON documentation for the module at PATH.\n");
 
 immutable SafeCStr helpBuildText =
-	safeCStr!("Command: crow build PATH --out OUT [--optimize]\n" ~
-	"\tCompiles the program at PATH to an executable OUT.\n" ~
-	"\tIf OUT has a '.c' extension, it will be C source code instead.\n");
+	safeCStr!("Command: crow build PATH --out OUT [options]\n" ~
+	"Compiles the program at PATH. The '.crow' extension is optional.\n" ~
+	"Writes an executable to OUT. If OUT has a '.c' extension, it will be C source code instead.\n" ~
+	"Options are:\n" ~
+	"\t--optimize : Enables optimizations.\n");
 
 immutable SafeCStr helpRunText =
-	safeCStr!("Command: crow run [PATH] [build args] -- [programArgs]\n" ~
-	"\tBuild args are same as for 'crow build'.\n" ~
-	"Arguments after '--' will be sent to the program.");
+	safeCStr!("Command: crow run PATH [options] -- [program-args]\n" ~
+	"Runs the program at PATH. The '.crow' extension is optional." ~
+	"Arguments after '--' will be sent to the program.\n" ~
+	"Options are:\n" ~
+	"\t--jit : Just-In-Time compile the code (instead of the default interpreter).\n" ~
+	"\t--optimize : Use with '--jit'. Enables optimizations.\n");
