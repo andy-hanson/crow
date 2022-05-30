@@ -1,6 +1,5 @@
 no-std
 import
-	crow/cell: cell
 	crow/c-types: c-int, size_t, long
 	crow/extra-types: err-t
 	crow/private/bootstrap: char8, c-str
@@ -10,12 +9,15 @@ timespec record by-val extern
 	tv_sec long
 	tv_nsec long
 
+new timespec() noctx
+	0, 0
+
 tm extern-ptr
 
 nanosleep err-t(requested_time timespec*, remaining timespec mut*) extern<c>
 
 # TODO:SUMMON
-clock_gettime err-t(clock-id __clockid_t, timespec cell timespec) extern<c>
+clock_gettime err-t(clock-id __clockid_t, timespec timespec mut*) extern<c>
 
 gmtime tm(timer time_t*) extern<c> summon
 

@@ -38,7 +38,7 @@ run-crow-tests result<str, failure[]>(path str, path-to-crow str, options test-o
 	if ext ?= a.base-name get-extension
 		ext == "crow"
 
-.run-single-crow-test failure[](path-to-crow str, path str, options test-options) summon
+.run-single-crow-test failure[](path-to-crow str, path str, options test-options) summon trusted
 	op failure[]? = ("ast", "model")::str[] find-and-get print-kind =>
 		if options print-tests
 			print: "crow print {print-kind} {path}"
@@ -49,9 +49,9 @@ run-crow-tests result<str, failure[]>(path str, path-to-crow str, options test-o
 	else
 		if options print-tests
 			print: "crow run {path}"
-		interpret-failures = path-to-crow run-single-runnable-test path, true, options.overwrite-output
-		if interpret-failures is-empty
-			path-to-crow run-single-runnable-test path, false, options.overwrite-output
+		interpret-failures = path-to-crow run-single-runnable-test path, interpret, options.overwrite-output
+		if interpret-failures.is-empty && !is-windows
+			path-to-crow run-single-runnable-test path, jit, options.overwrite-output
 		else
 			interpret-failures
 
@@ -87,21 +87,33 @@ run-crow-tests result<str, failure[]>(path str, path-to-crow str, options test-o
 		message = "unexpected exit code: {res exit-code}"
 		true, ((path, message),)
 
+run-kind enum
+	interpret
+	jit
+
 .run-single-runnable-test failure[](
 	path-to-crow str,
 	path str,
-	interpret bool,
+	run-kind run-kind,
 	overwrite-output bool,
 ) summon
-	args str[] = if interpret
+	args str[] = match run-kind
+	as interpret
 		"run", path
-	else
+	as jit
 		"run", path, "--jit"
 	res = path-to-crow spawn-and-wait-result args
 	stdout-failures = path handle-output "{path}.stdout", res.stdout, overwrite-output
 	stderr-failures failure[] = if res.exit-code != 0 || res.stderr != ""
 		# Exceptions differ between interpreter and JIT
-		err-path = path ends-with "/fail.crow" && !interpret ? "{path}.jit.stderr" : "{path}.stderr"
+		err-path = if path ends-with "/fail.crow"
+			match run-kind
+			as interpret
+				"{path}.stderr"
+			as jit
+				"{path}.jit.stderr"
+		else
+			"{path}.stderr"
 		path handle-output err-path, res.stderr, overwrite-output
 	stdout-failures ~~ stderr-failures
 

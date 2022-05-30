@@ -1,16 +1,16 @@
 no-std
 import
 	string: memcpy
-	../bool: &&, bool
+	../bool: &&, bool, false, true
 	../compare: !=, <, <=, equal
 	../fun-util: subscript
 	../misc: new, void
 	../number: ==, <=>, +, -, *, /, %, nat64
 	../opt: new, opt
 	../ptr:
-		==, <=>, +, -, *, as-any-const-ptr, as-any-mut-ptr, as-const, as-mut, by-val, mut-ptr,
-		ptr-cast, ref-of-ptr, set-deref, set-subscript, size-of, subscript, swap
-	../private/alloc: alloc-uninitialized, set-zero-range
+		==, <=>, +, -, *, as-any-const-ptr, as-any-mut-ptr, as-const, as-mut, mut-ptr, ptr-cast,
+		set-deref, set-subscript, size-of, subscript, swap
+	../private/alloc: alloc-uninitialized, set-zero-range, unmanaged-alloc-elements
 	../private/range-low-level: .., range
 	./arr: arr, for-loop, new, size, subscript
 	./private/arr-low-level: arr-from-begin-end, begin-ptr, subscript
@@ -164,6 +164,10 @@ uninitialized-fix-arr<a> fix-arr a(size nat64) unsafe
 	ptr a mut* = size alloc-uninitialized
 	ptr[0 .. size]
 
+unmanaged-uninitialized-fix-arr<a> fix-arr a(size nat64) no-doc noctx unsafe
+	ptr a mut* = size unmanaged-alloc-elements
+	ptr[0 .. size]
+
 ###
 This is like `uninitialized-fix-arr` but fills memory with zeroes.
 
@@ -213,6 +217,18 @@ fill<a> void(a fix-arr a, value a) noctx trusted
 	unless a is-empty
 		*a.begin-ptr := value
 		a.begin-ptr + 1 fix-arr-from-begin-end a.end-ptr fill value
+
+in<a> bool(value a, a fix-arr a) noctx trusted equal<a>
+	cur mut = a.begin-ptr as-const
+	end = a.end-ptr as-const
+	loop
+		if cur == end
+			break false
+		elif *cur == value
+			break true
+		else
+			cur := cur + 1
+			continue
 
 ###
 Unsafe cast a fix-arr to arr.
@@ -312,7 +328,3 @@ for-loop<out, in> out[](a fix-arr in, f act out(in)) trusted
 
 map-to-arr-with-index<out, in> out[](a fix-arr in, f act out(in, nat64)) trusted
 	a map-with-index f cast-immutable
-
-ref-of-val-at<a> a(a fix-arr by-val a, index nat64) no-doc unsafe
-	assert index < a.size
-	a.begin-ptr + index ref-of-ptr

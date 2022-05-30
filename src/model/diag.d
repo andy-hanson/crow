@@ -254,6 +254,13 @@ struct Diag {
 		immutable Kind kind;
 		immutable Sym name;
 	}
+	struct PtrIsUnsafe {}
+	struct PtrMutToConst {
+		enum Kind { field, local }
+		immutable Kind kind;
+	}
+	struct PtrNeedsExpectedType {}
+	struct PtrUnsupported {}
 	struct PurityWorseThanParent {
 		immutable StructDecl* parent;
 		immutable Type child;
@@ -393,6 +400,10 @@ struct Diag {
 		mutFieldNotAllowed,
 		nameNotFound,
 		parseDiag,
+		ptrIsUnsafe,
+		ptrMutToConst,
+		ptrNeedsExpectedType,
+		ptrUnsupported,
 		purityWorseThanParent,
 		puritySpecifierRedundant,
 		recordNewVisibilityIsRedundant,
@@ -466,6 +477,10 @@ struct Diag {
 		immutable MutFieldNotAllowed mutFieldNotAllowed;
 		immutable NameNotFound nameNotFound;
 		immutable ParseDiag parseDiag;
+		immutable PtrIsUnsafe ptrIsUnsafe;
+		immutable PtrMutToConst ptrMutToConst;
+		immutable PtrNeedsExpectedType ptrNeedsExpectedType;
+		immutable PtrUnsupported ptrUnsupported;
 		immutable PurityWorseThanParent purityWorseThanParent;
 		immutable PuritySpecifierRedundant puritySpecifierRedundant;
 		immutable RecordNewVisibilityIsRedundant recordNewVisibilityIsRedundant;
@@ -595,6 +610,18 @@ struct Diag {
 	}
 	@trusted immutable this(immutable ParseDiag a) {
 		kind = Kind.parseDiag; parseDiag = a;
+	}
+	immutable this(immutable PtrIsUnsafe a) {
+		kind = Kind.ptrIsUnsafe; ptrIsUnsafe = a;
+	}
+	immutable this(immutable PtrMutToConst a) {
+		kind = kind.ptrMutToConst; ptrMutToConst = a;
+	}
+	immutable this(immutable PtrNeedsExpectedType a) {
+		kind = Kind.ptrNeedsExpectedType; ptrNeedsExpectedType = a;
+	}
+	immutable this(immutable PtrUnsupported a) {
+		kind = Kind.ptrUnsupported; ptrUnsupported = a;
 	}
 	@trusted immutable this(immutable PurityWorseThanParent a) {
 		kind = Kind.purityWorseThanParent; purityWorseThanParent = a;
@@ -752,9 +779,13 @@ struct Diag {
 	scope immutable(Out) delegate(
 		ref immutable Diag.NameNotFound
 	) @safe @nogc pure nothrow cbNameNotFound,
+	scope immutable(Out) delegate(ref immutable ParseDiag) @safe @nogc pure nothrow cbParseDiag,
+	scope immutable(Out) delegate(ref immutable Diag.PtrIsUnsafe) @safe @nogc pure nothrow cbPtrIsUnsafe,
+	scope immutable(Out) delegate(ref immutable Diag.PtrMutToConst) @safe @nogc pure nothrow cbPtrMutToConst,
 	scope immutable(Out) delegate(
-		ref immutable ParseDiag)
-	 @safe @nogc pure nothrow cbParseDiag,
+		ref immutable Diag.PtrNeedsExpectedType
+	) @safe @nogc pure nothrow cbPtrNeedsExpectedType,
+	scope immutable(Out) delegate(ref immutable Diag.PtrUnsupported) @safe @nogc pure nothrow cbPtrUnsupported,
 	scope immutable(Out) delegate(
 		ref immutable Diag.PurityWorseThanParent
 	) @safe @nogc pure nothrow cbPurityWorseThanParent,
@@ -910,6 +941,14 @@ struct Diag {
 			return cbNameNotFound(a.nameNotFound);
 		case Diag.Kind.parseDiag:
 			return cbParseDiag(a.parseDiag);
+		case Diag.Kind.ptrIsUnsafe:
+			return cbPtrIsUnsafe(a.ptrIsUnsafe);
+		case Diag.Kind.ptrMutToConst:
+			return cbPtrMutToConst(a.ptrMutToConst);
+		case Diag.Kind.ptrNeedsExpectedType:
+			return cbPtrNeedsExpectedType(a.ptrNeedsExpectedType);
+		case Diag.Kind.ptrUnsupported:
+			return cbPtrUnsupported(a.ptrUnsupported);
 		case Diag.Kind.purityWorseThanParent:
 			return cbPurityWorseThanParent(a.purityWorseThanParent);
 		case Diag.Kind.puritySpecifierRedundant:

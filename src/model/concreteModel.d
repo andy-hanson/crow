@@ -868,6 +868,19 @@ struct ConcreteExprKind {
 		immutable ConcreteParam* param;
 	}
 
+	struct PtrToField {
+		immutable ConcreteExpr target;
+		immutable size_t fieldIndex;
+	}
+
+	struct PtrToLocal {
+		immutable ConcreteLocal* local;
+	}
+
+	struct PtrToParam {
+		immutable ConcreteParam* param;
+	}
+
 	// TODO: this is only used for closure field accesses now. At least rename.
 	struct RecordFieldGet {
 		immutable ConcreteExpr target;
@@ -904,6 +917,9 @@ struct ConcreteExprKind {
 		matchEnum,
 		matchUnion,
 		paramRef,
+		ptrToField,
+		ptrToLocal,
+		ptrToParam,
 		recordFieldGet,
 		seq,
 		throw_,
@@ -928,6 +944,9 @@ struct ConcreteExprKind {
 		immutable MatchEnum* matchEnum;
 		immutable MatchUnion* matchUnion;
 		immutable ParamRef paramRef;
+		immutable PtrToField* ptrToField;
+		immutable PtrToLocal ptrToLocal;
+		immutable PtrToParam ptrToParam;
 		immutable RecordFieldGet* recordFieldGet;
 		immutable Seq* seq;
 		immutable Throw* throw_;
@@ -952,6 +971,9 @@ struct ConcreteExprKind {
 	@trusted immutable this(immutable MatchEnum* a) { kind = Kind.matchEnum; matchEnum = a; }
 	@trusted immutable this(immutable MatchUnion* a) { kind = Kind.matchUnion; matchUnion = a; }
 	@trusted immutable this(immutable ParamRef a) { kind = Kind.paramRef; paramRef = a; }
+	immutable this(immutable PtrToField* a) { kind = Kind.ptrToField; ptrToField = a; }
+	immutable this(immutable PtrToLocal a) { kind = Kind.ptrToLocal; ptrToLocal = a; }
+	immutable this(immutable PtrToParam a) { kind = Kind.ptrToParam; ptrToParam = a; }
 	@trusted immutable this(immutable RecordFieldGet* a) { kind = Kind.recordFieldGet; recordFieldGet = a; }
 	@trusted immutable this(immutable Seq* a) { kind = Kind.seq; seq = a; }
 	immutable this(immutable Throw* a) { kind = Kind.throw_; throw_ = a; }
@@ -994,6 +1016,9 @@ immutable(bool) isConstant(ref immutable ConcreteExprKind a) {
 	scope immutable(T) delegate(ref immutable ConcreteExprKind.MatchEnum) @safe @nogc pure nothrow cbMatchEnum,
 	scope immutable(T) delegate(ref immutable ConcreteExprKind.MatchUnion) @safe @nogc pure nothrow cbMatchUnion,
 	scope immutable(T) delegate(ref immutable ConcreteExprKind.ParamRef) @safe @nogc pure nothrow cbParamRef,
+	scope immutable(T) delegate(ref immutable ConcreteExprKind.PtrToField) @safe @nogc pure nothrow cbPtrToField,
+	scope immutable(T) delegate(ref immutable ConcreteExprKind.PtrToLocal) @safe @nogc pure nothrow cbPtrToLocal,
+	scope immutable(T) delegate(ref immutable ConcreteExprKind.PtrToParam) @safe @nogc pure nothrow cbPtrToParam,
 	scope immutable(T) delegate(
 		ref immutable ConcreteExprKind.RecordFieldGet,
 	) @safe @nogc pure nothrow cbRecordFieldGet,
@@ -1037,6 +1062,12 @@ immutable(bool) isConstant(ref immutable ConcreteExprKind a) {
 			return cbMatchUnion(*a.matchUnion);
 		case ConcreteExprKind.Kind.paramRef:
 			return cbParamRef(a.paramRef);
+		case ConcreteExprKind.Kind.ptrToField:
+			return cbPtrToField(*a.ptrToField);
+		case ConcreteExprKind.Kind.ptrToLocal:
+			return cbPtrToLocal(a.ptrToLocal);
+		case ConcreteExprKind.Kind.ptrToParam:
+			return cbPtrToParam(a.ptrToParam);
 		case ConcreteExprKind.Kind.recordFieldGet:
 			return cbRecordFieldGet(*a.recordFieldGet);
 		case ConcreteExprKind.Kind.seq:

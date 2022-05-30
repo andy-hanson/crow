@@ -10,7 +10,7 @@ import
 	../../misc: new, void
 	../../number: ==, <=>, +, -, *, /, %, max-nat64, nat64, new
 	../../opt: ??, is-empty, new, opt
-	../../ptr: ==, +, *, const-ptr, ptr-to, set-deref
+	../../ptr: ==, +, *, const-ptr, set-deref
 	../../private/number-low-level: wrap-sub
 	../../range: .., for-loop
 	../../str: ==, literal, str
@@ -44,8 +44,7 @@ index-set record by-ref
 	d nat64
 
 .values nat64[](a leaf-node) trusted
-	# TODO: should not need type annotation
-	(a.a.ptr-to::nat64*)[0 .. 4]
+	((&a.a)::nat64*)[0 .. 4]
 .bits-in-leaf-node nat64()
 	# 64 * 4
 	256

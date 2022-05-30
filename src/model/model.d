@@ -6,7 +6,7 @@ import model.constant : Constant;
 import model.diag : Diagnostics, FilesInfo; // TODO: move FilesInfo here?
 import util.alloc.alloc : Alloc;
 import util.col.arr : empty, only, PtrAndSmallNumber, small, SmallArray;
-import util.col.arrUtil : arrEqual;
+import util.col.arrUtil : arrEqual, exists;
 import util.col.dict : Dict;
 import util.col.fullIndexDict : FullIndexDict;
 import util.col.mutArr : MutArr;
@@ -664,6 +664,17 @@ struct StructInst {
 	Late!(immutable StructBody) _body_;
 }
 
+immutable(bool) hasMutableField(scope ref immutable StructInst a) {
+	return isRecord(body_(*decl(a))) &&
+		exists!RecordField(asRecord(body_(*decl(a))).fields, (scope ref immutable RecordField x) =>
+			x.mutability != FieldMutability.const_);
+}
+
+immutable(bool) isDefinitelyByRef(scope ref immutable StructInst a) {
+	return isRecord(body_(*decl(a))) &&
+		asRecord(body_(*decl(a))).flags.forcedByValOrRef == ForcedByValOrRefOrNone.byRef;
+}
+
 immutable(bool) isArr(ref immutable StructInst i) {
 	// TODO: only do this for the arr in bootstrap, not anything named 'arr'
 	return decl(i).name == shortSym("arr");
@@ -895,8 +906,21 @@ struct FunBody {
 	immutable this(immutable ThreadLocal a) { kind = Kind.threadLocal; threadLocal = a; }
 }
 
-immutable(bool) isExtern(ref immutable FunBody a) {
+immutable(bool) isBuiltin(scope ref immutable FunBody a) {
+	return a.kind == FunBody.Kind.builtin;
+}
+
+immutable(bool) isExtern(scope ref immutable FunBody a) {
 	return a.kind == FunBody.Kind.extern_;
+}
+
+immutable(bool) isRecordFieldGet(scope ref immutable FunBody a) {
+	return a.kind == FunBody.Kind.recordFieldGet;
+}
+
+immutable(FunBody.RecordFieldGet) asRecordFieldGet(ref immutable FunBody a) {
+	verify(isRecordFieldGet(a));
+	return a.recordFieldGet;
 }
 
 @trusted T matchFunBody(
@@ -1311,7 +1335,6 @@ immutable(Arity) arity(scope immutable Called a) {
 	return arity(a.params);
 }
 
-
 @trusted T matchCalled(T, alias cbFunInst, alias cbSpecSig)(ref immutable Called a) {
 	final switch (a.kind) {
 		case Called.Kind.funInst:
@@ -1319,6 +1342,15 @@ immutable(Arity) arity(scope immutable Called a) {
 		case Called.Kind.specSig:
 			return cbSpecSig(a.specSig);
 	}
+}
+
+immutable(bool) isFunInst(scope ref immutable Called a) {
+	return a.kind == Called.Kind.funInst;
+}
+
+@trusted immutable(FunInst*) asFunInst(ref immutable Called a) {
+	verify(isFunInst(a));
+	return a.funInst;
 }
 
 struct StructOrAlias {
@@ -1546,6 +1578,7 @@ struct CommonTypes {
 	immutable StructDecl* fut;
 	immutable StructDecl* namedVal;
 	immutable StructDecl* opt;
+	immutable StructDecl* ptrConst;
 	immutable StructDecl* ptrMut;
 	immutable StructDecl*[10] funPtrStructs; // Indexed by arity
 	immutable FunKindAndStructs[3] funKindsAndStructs;
@@ -1813,6 +1846,22 @@ struct Expr {
 		immutable Param* param;
 	}
 
+	struct PtrToField {
+		immutable Type pointerType;
+		immutable Expr target; // This will be a pointer or by-ref type
+		immutable size_t fieldIndex;
+	}
+
+	struct PtrToLocal {
+		immutable Type ptrType;
+		immutable Local* local;
+	}
+
+	struct PtrToParam {
+		immutable Type ptrType;
+		immutable Param* param;
+	}
+
 	struct Seq {
 		immutable Expr first;
 		immutable Expr then;
@@ -1848,6 +1897,9 @@ struct Expr {
 		matchEnum,
 		matchUnion,
 		paramRef,
+		ptrToField,
+		ptrToLocal,
+		ptrToParam,
 		seq,
 		throw_,
 	}
@@ -1878,6 +1930,9 @@ struct Expr {
 		immutable MatchEnum* matchEnum;
 		immutable MatchUnion* matchUnion;
 		immutable ParamRef paramRef;
+		immutable PtrToField* ptrToField;
+		immutable PtrToLocal ptrToLocal;
+		immutable PtrToParam ptrToParam;
 		immutable Seq* seq;
 		immutable Throw* throw_;
 	}
@@ -1942,6 +1997,15 @@ struct Expr {
 	@trusted immutable this(immutable FileAndRange r, immutable ParamRef a) {
 		range_ = r; kind = Kind.paramRef; paramRef = a;
 	}
+	immutable this(immutable FileAndRange r, immutable PtrToField* a) {
+		range_ = r; kind = Kind.ptrToField; ptrToField = a;
+	}
+	immutable this(immutable FileAndRange r, immutable PtrToLocal a) {
+		range_ = r; kind = Kind.ptrToLocal; ptrToLocal = a;
+	}
+	immutable this(immutable FileAndRange r, immutable PtrToParam a) {
+		range_ = r; kind = Kind.ptrToParam; ptrToParam = a;
+	}
 	@trusted immutable this(immutable FileAndRange r, immutable Seq* a) { range_ = r; kind = Kind.seq; seq = a; }
 	immutable this(immutable FileAndRange r, immutable Throw* a) { range_ = r; kind = Kind.throw_; throw_ = a; }
 }
@@ -1975,6 +2039,9 @@ immutable(FileAndRange) range(scope ref immutable Expr a) {
 	scope immutable(T) delegate(ref immutable Expr.MatchEnum) @safe @nogc pure nothrow cbMatchEnum,
 	scope immutable(T) delegate(ref immutable Expr.MatchUnion) @safe @nogc pure nothrow cbMatchUnion,
 	scope immutable(T) delegate(ref immutable Expr.ParamRef) @safe @nogc pure nothrow cbParamRef,
+	scope immutable(T) delegate(ref immutable Expr.PtrToField) @safe @nogc pure nothrow cbPtrToField,
+	scope immutable(T) delegate(ref immutable Expr.PtrToLocal) @safe @nogc pure nothrow cbPtrToLocal,
+	scope immutable(T) delegate(ref immutable Expr.PtrToParam) @safe @nogc pure nothrow cbPtrToParam,
 	scope immutable(T) delegate(ref immutable Expr.Seq) @safe @nogc pure nothrow cbSeq,
 	scope immutable(T) delegate(ref immutable Expr.Throw) @safe @nogc pure nothrow cbThrow,
 ) {
@@ -2025,11 +2092,45 @@ immutable(FileAndRange) range(scope ref immutable Expr a) {
 			return cbMatchUnion(*a.matchUnion);
 		case Expr.Kind.paramRef:
 			return cbParamRef(a.paramRef);
+		case Expr.Kind.ptrToField:
+			return cbPtrToField(*a.ptrToField);
+		case Expr.Kind.ptrToLocal:
+			return cbPtrToLocal(a.ptrToLocal);
+		case Expr.Kind.ptrToParam:
+			return cbPtrToParam(a.ptrToParam);
 		case Expr.Kind.seq:
 			return cbSeq(*a.seq);
 		case Expr.Kind.throw_:
 			return cbThrow(*a.throw_);
 	}
+}
+
+immutable(bool) isBogus(scope ref immutable Expr a) {
+	return a.kind == Expr.Kind.bogus;
+}
+
+immutable(bool) isCall(scope ref immutable Expr a) {
+	return a.kind == Expr.Kind.call;
+}
+@trusted ref immutable(Expr.Call) asCall(scope return ref immutable Expr a) {
+	verify(isCall(a));
+	return a.call;
+}
+
+immutable(bool) isLocalRef(scope ref immutable Expr a) {
+	return a.kind == Expr.Kind.localRef;
+}
+@trusted ref immutable(Expr.LocalRef) asLocalRef(scope return ref immutable Expr a) {
+	verify(isLocalRef(a));
+	return a.localRef;
+}
+
+immutable(bool) isParamRef(scope ref immutable Expr a) {
+	return a.kind == Expr.Kind.paramRef;
+}
+@trusted ref immutable(Expr.ParamRef) asParamRef(scope return ref immutable Expr a) {
+	verify(isParamRef(a));
+	return a.paramRef;
 }
 
 enum AssertOrForbidKind { assert_, forbid }

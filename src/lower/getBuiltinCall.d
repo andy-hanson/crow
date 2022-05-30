@@ -7,6 +7,7 @@ import model.lowModel :
 	asPrimitive,
 	isFunPtrType,
 	isPrimitive,
+	isPtrRawConstOrMut,
 	isPtrRawMut,
 	LowExprKind,
 	LowType,
@@ -165,7 +166,7 @@ immutable(BuiltinKind) getBuiltinKind(
 				? LowExprKind.SpecialBinary.Kind.addFloat32
 				: isFloat64(rt)
 				? LowExprKind.SpecialBinary.Kind.addFloat64
-				: isPtrRawMut(rt) && isPtrRawMut(p0) && isNat64(p1)
+				: isPtrRawConstOrMut(rt) && isPtrRawConstOrMut(p0) && isNat64(p1)
 				? LowExprKind.SpecialBinary.Kind.addPtrAndNat64
 				: failBinary());
 		case operatorSymValue(Operator.minus):
@@ -173,11 +174,11 @@ immutable(BuiltinKind) getBuiltinKind(
 				? LowExprKind.SpecialBinary.Kind.subFloat32
 				: isFloat64(rt)
 				? LowExprKind.SpecialBinary.Kind.subFloat64
-				: isPtrRawMut(rt) && isPtrRawMut(p0) && isNat64(p1)
+				: isPtrRawConstOrMut(rt) && isPtrRawConstOrMut(p0) && isNat64(p1)
 				? LowExprKind.SpecialBinary.Kind.subPtrAndNat64
 				: failBinary());
 		case operatorSymValue(Operator.times):
-			return isPtrRawMut(p0)
+			return isPtrRawConstOrMut(p0)
 				? unary(LowExprKind.SpecialUnary.Kind.deref)
 				: binary(isFloat32(rt)
 					? LowExprKind.SpecialBinary.Kind.mulFloat32
@@ -196,7 +197,7 @@ immutable(BuiltinKind) getBuiltinKind(
 				isInt64(p0) ? LowExprKind.SpecialBinary.Kind.eqInt64 :
 				isFloat32(p0) ? LowExprKind.SpecialBinary.Kind.eqFloat32 :
 				isFloat64(p0) ? LowExprKind.SpecialBinary.Kind.eqFloat64 :
-				isPtrRawMut(p0) ? LowExprKind.SpecialBinary.Kind.eqPtr :
+				isPtrRawConstOrMut(p0) ? LowExprKind.SpecialBinary.Kind.eqPtr :
 				failBinary());
 		case operatorSymValue(Operator.and2):
 			return binary(LowExprKind.SpecialBinary.Kind.and);
@@ -298,7 +299,7 @@ immutable(BuiltinKind) getBuiltinKind(
 				isNat64(p0) ? LowExprKind.SpecialBinary.Kind.lessNat64 :
 				isFloat32(p0) ? LowExprKind.SpecialBinary.Kind.lessFloat32 :
 				isFloat64(p0) ? LowExprKind.SpecialBinary.Kind.lessFloat64 :
-				isPtrRawMut(p0) ? LowExprKind.SpecialBinary.Kind.lessPtr :
+				isPtrRawConstOrMut(p0) ? LowExprKind.SpecialBinary.Kind.lessPtr :
 				failBinary());
 		case shortSymValue("new-void"):
 			return isVoid(rt)
@@ -306,10 +307,6 @@ immutable(BuiltinKind) getBuiltinKind(
 				: fail();
 		case shortSymValue("null"):
 			return constant(immutable Constant(immutable Constant.Null()));
-		case shortSymValue("ptr-to"):
-			return unary(LowExprKind.SpecialUnary.Kind.ptrTo);
-		case shortSymValue("ref-of-val"):
-			return unary(LowExprKind.SpecialUnary.Kind.refOfVal);
 		case shortSymValue("set-deref"):
 			return binary(isPtrRawMut(p0) ? LowExprKind.SpecialBinary.Kind.writeToPtr : failBinary());
 		case shortSymValue("size-of"):
@@ -349,7 +346,7 @@ immutable(BuiltinKind) getBuiltinKind(
 				? LowExprKind.SpecialUnary.Kind.toNat64FromNat16
 				: isNat32(p0)
 				? LowExprKind.SpecialUnary.Kind.toNat64FromNat32
-				: isPtrRawMut(p0)
+				: isPtrRawConstOrMut(p0)
 				? LowExprKind.SpecialUnary.Kind.toNat64FromPtr
 				: failUnary());
 		case shortSymValue("to-nat8"):

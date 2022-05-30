@@ -127,7 +127,7 @@ import util.sym :
 	symForSpecial,
 	symOfStr,
 	writeSym;
-import util.util : castImmutableRef, todo, unreachable, verify;
+import util.util : castImmutableRef, todo, verify;
 import util.writer : finishWriterToSafeCStr, writeChar, Writer, writeSafeCStr, writeStatic;
 import versionInfo : versionInfoForJIT;
 
@@ -251,7 +251,8 @@ immutable(ExitCode) go(
 								getAllArgs(alloc, allPaths, storage, run.mainPath, run.programArgs))),
 						(ref immutable RunOptions.Jit it) {
 							version (Windows) {
-								return unreachable!(immutable ExitCode);
+								printErr(safeCStr!"'--jit' is not supported on Windows");
+								return ExitCode.error;
 							} else {
 								return buildAndJit(
 									alloc,

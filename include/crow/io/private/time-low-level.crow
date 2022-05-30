@@ -2,9 +2,7 @@ no-std
 import
 	time: clock_gettime, CLOCK_MONOTONIC, new, timespec, tv_nsec, tv_sec
 	win32: GetTickCount
-	../../cell: *, cell, new
 	../../number: ==, +, *, /, %, to-int64, to-nat64
-	../../ptr: by-val, ref-of-val
 	../../private/bootstrap: nat64, todo
 	../../version: is-windows
 
@@ -20,10 +18,9 @@ get-monotime-nsec timestamp() noctx trusted
 	if is-windows
 		GetTickCount.to-nat64 msec-to-nsec
 	else
-		time-cell by-val cell timespec = (0, 0),
-		err = CLOCK_MONOTONIC clock_gettime time-cell.ref-of-val
+		time mut timespec = ()
+		err = CLOCK_MONOTONIC clock_gettime &time
 		if err == 0
-			time = *time-cell.ref-of-val
 			time.tv_sec.to-nat64 * 1000000000 + time.tv_nsec.to-nat64
 		else
 			todo

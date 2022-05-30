@@ -100,25 +100,18 @@ import interpret.generateText :
 import model.constant : Constant, matchConstant;
 import model.lowModel :
 	asFunPtrType,
-	asLocalRef,
-	asParamRef,
 	asPrimitiveType,
 	asPtrRawPointee,
 	asRecordType,
-	asRecordFieldGet,
 	asRecordType,
-	asSpecialUnary,
 	asUnionType,
-	isLocalRef,
-	isParamRef,
-	isRecordFieldGet,
-	isSpecialUnary,
 	LowExpr,
 	LowExprKind,
 	LowField,
 	LowFunExprBody,
 	LowFunIndex,
 	LowLocal,
+	LowParamIndex,
 	LowProgram,
 	LowRecord,
 	LowType,
@@ -130,7 +123,7 @@ import model.lowModel :
 import model.model : range;
 import model.typeLayout : nStackEntriesForType, optPack, Pack, typeSizeBytes;
 import util.alloc.alloc : TempAlloc;
-import util.col.arr : empty, only;
+import util.col.arr : empty;
 import util.col.arrBuilder : add;
 import util.col.dict : mustGetAt;
 import util.col.mutArr : clearAndFree, MutArr, push, tempAsArr;
@@ -140,7 +133,7 @@ import util.conv : bitsOfFloat32, bitsOfFloat64;
 import util.opt : force, has, Opt;
 import util.ptr : ptrTrustMe, ptrTrustMe_const, ptrTrustMe_mut;
 import util.sym : AllSymbols;
-import util.util : divRoundUp, todo, unreachable, verify;
+import util.util : divRoundUp, unreachable, verify;
 import util.writer : finishWriter, writeChar, Writer, writeStatic;
 
 //TODO: not @trusted
@@ -408,6 +401,12 @@ void generateExpr(
 		(ref immutable LowExprKind.PtrCast it) {
 			generateExpr(writer, ctx, locals, after, it.target);
 		},
+		(ref immutable LowExprKind.PtrToField x) =>
+			generatePtrToField(writer, ctx, source, locals, after, x),
+		(ref immutable LowExprKind.PtrToLocal x) =>
+			generatePtrToLocal(writer, ctx, source, locals, after, x.local),
+		(ref immutable LowExprKind.PtrToParam x) =>
+			generatePtrToParam(writer, ctx, source, after, x.index),
 		(ref immutable LowExprKind.RecordFieldGet it) {
 			generateRecordFieldGet(writer, ctx, source, locals, it);
 			handleAfter(writer, ctx, source, after);
@@ -947,10 +946,6 @@ void generateSpecialUnary(
 			writeRead(writer, source, 0, typeSizeBytes(ctx, type));
 			handleAfter(writer, ctx, source, after);
 			break;
-		case LowExprKind.SpecialUnary.Kind.ptrTo:
-		case LowExprKind.SpecialUnary.Kind.refOfVal:
-			generateRefOfVal(writer, ctx, source, locals, after, a.arg);
-			break;
 		case LowExprKind.SpecialUnary.Kind.toFloat32FromFloat64:
 			fn!fnFloat32FromFloat64();
 			break;
@@ -969,41 +964,44 @@ void generateSpecialUnary(
 	}
 }
 
-void generateRefOfVal(
+void generatePtrToLocal(
 	ref ByteCodeWriter writer,
 	ref ExprCtx ctx,
 	immutable ByteCodeSource source,
 	scope ref immutable Locals locals,
 	ref ExprAfter after,
-	ref immutable LowExpr arg,
+	immutable LowLocal* local,
 ) {
-	if (isLocalRef(arg.kind)) {
-		writeStackRef(writer, source, getLocal(locals, asLocalRef(arg.kind).local).start);
+	writeStackRef(writer, source, getLocal(locals, local).start);
+	handleAfter(writer, ctx, source, after);
+}
+
+void generatePtrToParam(
+	ref ByteCodeWriter writer,
+	ref ExprCtx ctx,
+	immutable ByteCodeSource source,
+	ref ExprAfter after,
+	immutable LowParamIndex index,
+) {
+	writeStackRef(writer, source, ctx.parameterEntries[index.index].start);
+	handleAfter(writer, ctx, source, after);
+}
+
+void generatePtrToField(
+	ref ByteCodeWriter writer,
+	ref ExprCtx ctx,
+	immutable ByteCodeSource source,
+	scope ref immutable Locals locals,
+	ref ExprAfter after,
+	ref immutable LowExprKind.PtrToField a,
+) {
+	immutable size_t offset = ctx.program.allRecords[targetRecordType(a)].fields[a.fieldIndex].offset;
+	if (offset != 0) {
+		generateExprAndContinue(writer, ctx, locals, a.target);
+		writeAddConstantNat64(writer, source, offset);
 		handleAfter(writer, ctx, source, after);
-	} else if (isParamRef(arg.kind)) {
-		writeStackRef(writer, source, ctx.parameterEntries[asParamRef(arg.kind).index.index].start);
-		handleAfter(writer, ctx, source, after);
-	} else if (isRecordFieldGet(arg.kind)) {
-		immutable LowExprKind.RecordFieldGet rfa = asRecordFieldGet(arg.kind);
-		generatePtrToRecordFieldGet(
-			writer,
-			ctx,
-			source,
-			locals,
-			after,
-			targetRecordType(rfa),
-			rfa.fieldIndex,
-			targetIsPointer(rfa),
-			rfa.target);
-	} else if (isSpecialUnary(arg.kind)) {
-		immutable LowExprKind.SpecialUnary it = asSpecialUnary(arg.kind);
-		if (it.kind == LowExprKind.SpecialUnary.Kind.deref)
-			// Ref of deref just changes the type
-			generateExpr(writer, ctx, locals, after, it.arg);
-		else
-			todo!void("!");
 	} else
-		todo!void("!");
+		generateExpr(writer, ctx, locals, after, a.target);
 }
 
 void generateRecordFieldGet(
@@ -1036,40 +1034,6 @@ void generateRecordFieldGet(
 				offsetAndSize.size);
 		}
 		writeRemove(writer, source, targetEntries);
-	}
-}
-
-void generatePtrToRecordFieldGet(
-	ref ByteCodeWriter writer,
-	ref ExprCtx ctx,
-	immutable ByteCodeSource source,
-	scope ref immutable Locals locals,
-	ref ExprAfter after,
-	immutable LowType.Record record,
-	immutable size_t fieldIndex,
-	immutable bool targetIsPointer,
-	ref immutable LowExpr target,
-) {
-	immutable size_t offset = ctx.program.allRecords[record].fields[fieldIndex].offset;
-	if (targetIsPointer) {
-		if (offset != 0) {
-			generateExprAndContinue(writer, ctx, locals, target);
-			writeAddConstantNat64(writer, source, offset);
-			handleAfter(writer, ctx, source, after);
-		} else
-			generateExpr(writer, ctx, locals, after, target);
-	} else if (isSpecialUnary(target.kind) && asSpecialUnary(target.kind).kind == LowExprKind.SpecialUnary.Kind.deref) {
-		immutable LowExpr arg = asSpecialUnary(target.kind).arg;
-		if (offset != 0) {
-			generateExprAndContinue(writer, ctx, locals, arg);
-			writeAddConstantNat64(writer, source, offset);
-			handleAfter(writer, ctx, source, after);
-		} else
-			generateExpr(writer, ctx, locals, after, arg);
-	} else {
-		// Also allow: dereference ptr, get field, and get ptr of that
-		// This only works if it's a local .. or another RecordFieldGet
-		todo!void("ptr-to-record-field-get");
 	}
 }
 

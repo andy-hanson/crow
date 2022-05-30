@@ -20,6 +20,7 @@ import frontend.check.inferringType :
 	LocalNode,
 	LocalsInfo,
 	LoopInfo,
+	markIsUsedSet,
 	mustSetType,
 	programState,
 	rangeInFile2,
@@ -32,6 +33,7 @@ import frontend.check.inferringType :
 import frontend.check.instantiate : instantiateFun, instantiateStructNeverDelay, TypeArgsArray, typeArgsArray;
 import frontend.check.typeFromAst : makeFutType;
 import frontend.parse.ast :
+	asIdentifier,
 	ArrowAccessAst,
 	AssertOrForbidAst,
 	BogusAst,
@@ -39,13 +41,13 @@ import frontend.parse.ast :
 	ExprAst,
 	ExprAstKind,
 	ForAst,
-	FunPtrAst,
 	IdentifierAst,
 	IdentifierSetAst,
 	IfAst,
 	IfOptionAst,
 	InterpolatedAst,
 	InterpolatedPart,
+	isIdentifier,
 	LambdaAst,
 	LetAst,
 	LiteralAst,
@@ -63,6 +65,7 @@ import frontend.parse.ast :
 	NameOrUnderscoreOrNone,
 	OptNameAndRange,
 	ParenthesizedAst,
+	PtrAst,
 	rangeOfNameAndRange,
 	rangeOfOptNameAndRange,
 	SeqAst,
@@ -77,6 +80,12 @@ import model.diag : Diag;
 import model.model :
 	Arity,
 	arity,
+	asCall,
+	asFunInst,
+	asLocalRef,
+	asParamRef,
+	asRecord,
+	asRecordFieldGet,
 	assertNonVariadic,
 	asStructInst,
 	body_,
@@ -84,13 +93,22 @@ import model.model :
 	CommonTypes,
 	decl,
 	Expr,
+	FunBody,
 	FunDecl,
 	FunFlags,
 	FunInst,
 	FunKind,
 	FunKindAndStructs,
+	hasMutableField,
 	IntegralTypes,
 	isBogus,
+	isBuiltin,
+	isCall,
+	isDefinitelyByRef,
+	isFunInst,
+	isLocalRef,
+	isParamRef,
+	isRecordFieldGet,
 	isStructInst,
 	isTemplate,
 	Local,
@@ -100,10 +118,12 @@ import model.model :
 	matchStructBody,
 	matchType,
 	matchVariableRef,
+	name,
 	noCtx,
 	Param,
 	Purity,
 	range,
+	RecordField,
 	SpecInst,
 	StructBody,
 	StructDecl,
@@ -116,7 +136,7 @@ import model.model :
 	worstCasePurity;
 import util.alloc.alloc : Alloc, allocateUninitialized;
 import util.col.arr : empty, emptySmallArray, only, PtrAndSmallNumber, ptrsRange, sizeEq;
-import util.col.arrUtil : arrLiteral, arrsCorrespond, map, mapZip, mapZipWithIndex, zipPtrFirst;
+import util.col.arrUtil : arrLiteral, arrsCorrespond, contains, map, mapZip, mapZipWithIndex, zipPtrFirst;
 import util.col.fullIndexDict : FullIndexDict;
 import util.col.mutArr : MutArr, mutArrSize, push, tempAsArr;
 import util.col.mutMaxArr : fillMutMaxArr, initializeMutMaxArr, mutMaxArrSize, push, pushLeft, tempAsArr;
@@ -127,7 +147,7 @@ import util.opt : force, has, none, noneMut, Opt, some, someMut;
 import util.ptr : castImmutable, ptrTrustMe_mut;
 import util.sourceRange : FileAndRange, Pos, RangeWithinFile;
 import util.sym : Operator, shortSym, Sym, symForOperator, symOfStr;
-import util.util : todo;
+import util.util : max, todo, verify;
 
 immutable(Expr) checkFunctionBody(
 	ref CheckCtx checkCtx,
@@ -882,14 +902,185 @@ immutable(Param[]) checkParamsForLambda(
 		});
 }
 
+immutable(Expr) checkPtr(
+	ref ExprCtx ctx,
+	ref LocalsInfo locals,
+	immutable FileAndRange range,
+	scope ref immutable PtrAst ast,
+	ref Expected expected,
+) {
+	if (ctx.outermostFunFlags.safety == FunFlags.Safety.safe)
+		addDiag2(ctx, range, immutable Diag(immutable Diag.PtrIsUnsafe()));
+	return matchExpectedPointee!(immutable Expr)(
+		getExpectedPointee(ctx, expected),
+		(immutable ExpectedPointee.None) {
+			addDiag2(ctx, range, immutable Diag(immutable Diag.PtrNeedsExpectedType()));
+			return bogus(expected, range);
+		},
+		(immutable ExpectedPointee.FunPtr) =>
+			checkFunPtr(ctx, range, ast, expected),
+		(immutable ExpectedPointee.Ptr x) =>
+			checkPtrInner(ctx, locals, range, ast, x.pointer, x.pointee, x.mutability));
+}
+
+struct ExpectedPointee {
+	@safe @nogc pure nothrow:
+
+	struct None {}
+	struct FunPtr {}
+	struct Ptr { immutable Type pointer; immutable Type pointee; immutable LocalMutability mutability; }
+
+	immutable this(immutable None a) { kind = Kind.none; none = a; }
+	immutable this(immutable FunPtr a) { kind = Kind.funPtr; funPtr = a; }
+	immutable this(immutable Ptr a) { kind = Kind.ptr; ptr = a; }
+
+	private:
+	enum Kind { none, funPtr, ptr }
+	immutable Kind kind;
+	union {
+		immutable None none;
+		immutable FunPtr funPtr;
+		immutable Ptr ptr;
+	}
+}
+
+immutable(T) matchExpectedPointee(T)(
+	immutable ExpectedPointee a,
+	scope immutable(T) delegate(immutable ExpectedPointee.None) @safe @nogc pure nothrow cbNone,
+	scope immutable(T) delegate(immutable ExpectedPointee.FunPtr) @safe @nogc pure nothrow cbFunPtr,
+	scope immutable(T) delegate(immutable ExpectedPointee.Ptr) @safe @nogc pure nothrow cbPtr,
+) {
+	final switch (a.kind) {
+		case ExpectedPointee.Kind.none:
+			return cbNone(a.none);
+		case ExpectedPointee.Kind.funPtr:
+			return cbFunPtr(a.funPtr);
+		case ExpectedPointee.Kind.ptr:
+			return cbPtr(a.ptr);
+	}
+}
+
+immutable(ExpectedPointee) getExpectedPointee(ref ExprCtx ctx, ref const Expected expected) {
+	immutable Opt!Type expectedType = tryGetInferred(expected);
+	if (has(expectedType) && isStructInst(force(expectedType))) {
+		immutable StructInst* inst = asStructInst(force(expectedType));
+		immutable StructDecl* decl = decl(*inst);
+		if (decl == ctx.commonTypes.ptrConst)
+			return immutable ExpectedPointee(immutable ExpectedPointee.Ptr(
+				immutable Type(inst), only(typeArgs(*inst)), LocalMutability.immut));
+		else if (decl == ctx.commonTypes.ptrMut)
+			return immutable ExpectedPointee(immutable ExpectedPointee.Ptr(
+				immutable Type(inst), only(typeArgs(*inst)), LocalMutability.mut));
+		else if (contains(ctx.commonTypes.funPtrStructs, decl))
+			return immutable ExpectedPointee(immutable ExpectedPointee.FunPtr());
+		else if (isDefinitelyByRef(*inst))
+			return immutable ExpectedPointee(immutable ExpectedPointee.Ptr(
+				immutable Type(inst),
+				immutable Type(instantiateStructNeverDelay(
+					ctx.alloc, ctx.programState, ctx.commonTypes.byVal, [immutable Type(inst)])),
+				hasMutableField(*inst) ? LocalMutability.mut : LocalMutability.immut));
+		else
+			return immutable ExpectedPointee(immutable ExpectedPointee.None());
+	} else
+		return immutable ExpectedPointee(immutable ExpectedPointee.None());
+}
+
+immutable(Expr) checkPtrInner(
+	ref ExprCtx ctx,
+	ref LocalsInfo locals,
+	immutable FileAndRange range,
+	scope ref immutable PtrAst ast,
+	immutable Type pointerType,
+	immutable Type pointeeType,
+	immutable LocalMutability pointerMutability,
+) {
+	immutable Expr inner = checkAndExpect(ctx, locals, ast.inner, pointeeType);
+	if (isLocalRef(inner)) {
+		immutable Local* local = asLocalRef(inner).local;
+		if (local.mutability < pointerMutability)
+			addDiag2(ctx, range, immutable Diag(immutable Diag.PtrMutToConst(Diag.PtrMutToConst.Kind.local)));
+		if (pointerMutability == LocalMutability.mut)
+			markIsUsedSet(locals, local);
+		return immutable Expr(range, immutable Expr.PtrToLocal(pointerType, local));
+	} else if (isParamRef(inner))
+		return immutable Expr(range, immutable Expr.PtrToParam(pointerType, asParamRef(inner).param));
+	else if (isCall(inner))
+		return checkPtrOfCall(ctx, range, asCall(inner), pointerType, pointerMutability);
+	else {
+		addDiag2(ctx, range, immutable Diag(immutable Diag.PtrUnsupported()));
+		return immutable Expr(range, immutable Expr.Bogus());
+	}
+}
+
+immutable(Expr) checkPtrOfCall(
+	ref ExprCtx ctx,
+	immutable FileAndRange range,
+	immutable Expr.Call call,
+	immutable Type pointerType,
+	immutable LocalMutability pointerMutability,
+) {
+	immutable(Expr) fail() {
+		addDiag2(ctx, range, immutable Diag(immutable Diag.PtrUnsupported()));
+		return immutable Expr(range, immutable Expr.Bogus());
+	}
+
+	if (isFunInst(call.called)) {
+		immutable FunInst* getFieldFun = asFunInst(call.called);
+		if (isRecordFieldGet(decl(*getFieldFun).body_)) {
+			immutable FunBody.RecordFieldGet rfg = asRecordFieldGet(decl(*getFieldFun).body_);
+			immutable Expr target = only(call.args);
+			immutable StructInst* recordType = asStructInst(only(assertNonVariadic(getFieldFun.params)).type);
+			immutable RecordField field = asRecord(body_(*recordType)).fields[rfg.fieldIndex];
+			if (isDefinitelyByRef(*recordType)) {
+				if (field.mutability < pointerMutability)
+					addDiag2(ctx, range, immutable Diag(immutable Diag.PtrMutToConst(Diag.PtrMutToConst.Kind.field)));
+				return immutable Expr(range, allocate(ctx.alloc,
+					immutable Expr.PtrToField(pointerType, target, rfg.fieldIndex)));
+			} else if (isCall(target)) {
+				immutable Expr.Call targetCall = asCall(target);
+				immutable FunInst* derefFun = asFunInst(targetCall.called);
+				if (isFunInst(targetCall.called) && isDerefFunction(ctx, derefFun)) {
+					immutable StructInst* ptrStructInst = asStructInst(only(assertNonVariadic(derefFun.params)).type);
+					immutable Expr targetPtr = only(targetCall.args);
+					if (max(field.mutability, mutabilityForPtrDecl(ctx, decl(*ptrStructInst))) < pointerMutability)
+						todo!void("diag: can't get mut* to immutable field");
+					return immutable Expr(range, allocate(ctx.alloc,
+						immutable Expr.PtrToField(pointerType, targetPtr, rfg.fieldIndex)));
+				} else
+					return fail();
+			} else
+				return fail();
+		} else
+			return fail();
+	} else
+		return fail();
+}
+
+immutable(bool) isDerefFunction(ref ExprCtx ctx, immutable FunInst* a) {
+	immutable FunBody body_ = decl(*a).body_;
+	return isBuiltin(body_) && decl(*a).name == symForOperator(Operator.times) && arity(*a) == immutable Arity(1);
+}
+
+immutable(LocalMutability) mutabilityForPtrDecl(scope ref const ExprCtx ctx, scope immutable StructDecl* a) {
+	if (a == ctx.commonTypes.ptrConst)
+		return LocalMutability.immut;
+	else {
+		verify(a == ctx.commonTypes.ptrMut);
+		return LocalMutability.mut;
+	}
+}
+
 immutable(Expr) checkFunPtr(
 	ref ExprCtx ctx,
 	immutable FileAndRange range,
-	ref immutable FunPtrAst ast,
+	scope ref immutable PtrAst ast,
 	ref Expected expected,
 ) {
+	if (!isIdentifier(ast.inner.kind))
+		todo!void("diag: fun-ptr ast should just be an identifier");
+	immutable Sym name = asIdentifier(ast.inner.kind).name;
 	MutArr!(immutable FunDecl*) funsInScope = MutArr!(immutable FunDecl*)();
-	eachFunInScope(ctx, ast.name, (immutable UsedFun used, immutable CalledDecl cd) {
+	eachFunInScope(ctx, name, (immutable UsedFun used, immutable CalledDecl cd) {
 		matchCalledDecl!(
 			void,
 			(immutable FunDecl* it) {
@@ -1442,8 +1633,6 @@ public immutable(Expr) checkExpr(
 			checkCall(ctx, locals, range, a, expected),
 		(scope ref immutable ForAst a) =>
 			checkFor(ctx, locals, range, a, expected),
-		(scope ref immutable FunPtrAst a) =>
-			checkFunPtr(ctx, range, a, expected),
 		(scope ref immutable IdentifierAst a) =>
 			checkIdentifier(ctx, locals, range, a, expected),
 		(scope ref immutable IdentifierSetAst a) =>
@@ -1474,6 +1663,8 @@ public immutable(Expr) checkExpr(
 			checkMatch(ctx, locals, range, a, expected),
 		(scope ref immutable ParenthesizedAst a) =>
 			checkExpr(ctx, locals, a.inner, expected),
+		(scope ref immutable PtrAst a) =>
+			checkPtr(ctx, locals, range, a, expected),
 		(scope ref immutable SeqAst a) =>
 			checkSeq(ctx, locals, range, a, expected),
 		(scope ref immutable ThenAst a) =>

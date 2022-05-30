@@ -8,19 +8,19 @@ import
 	../../misc: is-data, new, void
 	../../number: ==, <=>, +, nat64
 	../../opt: is-empty, new, opt, opt-equal
-	../../ptr: ==, +, bits-equal, ref-eq, set-deref
+	../../ptr: ==, +, ref-eq, set-deref
 	../../str: ==, literal, str
 	../../str-conv: to-str
 	../../test-util: is
-	../../tuple: from, new, pair, to
+	../../tuple: from, new, pair, pair-equal, to
 	../../writer: ~=, ~~=, backup, move-to-str, new, writer
 	../arr: arr, new
-	../arr-util: fold
+	../arr-util: every, fold, zip
 	../fix-arr: begin-ptr, cast-immutable, end-ptr, fix-arr, fix-arr-from-begin-end, uninitialized-fix-arr
 	../mut-set: in, mut-set, new, try-add
 	./frozen-dict:
-		each, frozen-dict, fold, in, is-empty, fix-arr-to-frozen-dict-promise-no-duplicates, new,
-		size, subscript, to-frozen-dict
+		each, frozen-dict, fold, get-pairs, in, is-empty,
+		fix-arr-to-frozen-dict-promise-no-duplicates, new, size, subscript, to-frozen-dict
 	
 compact-dict<k, v> record by-val
 	ignore void
@@ -247,7 +247,7 @@ verify void(a compact-dict<nat64, str>, expected str)
 .== bool(a str?, b str?)
 	a opt-equal b
 
-.exact-eq<k, v> bool(a compact-dict<k, v>, b compact-dict<k, v>) unsafe
+.exact-eq bool(a compact-dict<nat64, str>, b compact-dict<nat64, str>) unsafe
 	match a impl
 	as overlay oa
 		match b impl
@@ -260,7 +260,11 @@ verify void(a compact-dict<nat64, str>, expected str)
 		as overlay _
 			false
 		as end-node eb
-			ea bits-equal eb
+			# TODO: ea.get-pairs::pair<nat64, str>[] arr-equal@<pair<nat64, str>> eb.get-pairs::pair<nat64, str>[]
+			pa = ea get-pairs
+			pb = eb get-pairs
+			bs bool[] = pa zip@<bool, pair<nat64, str>, pair<nat64, str>> pb, ((x, y) => x pair-equal y)
+			bs every x => x
 
 test
 	a compact-dict<nat64, str> = ()

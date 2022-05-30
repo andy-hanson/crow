@@ -7,7 +7,7 @@ import
 	../number: +, -, *, ==, <=>, nat64
 	../opt: ??, ||, is-empty, new, opt
 	../private/exception-low-level: unreachable
-	../ptr: ==, +, set-deref, size-of
+	../ptr: ==, +, *, set-deref, size-of
 	../tuple: a, b, new, pair
 	./arr: ~, ~~, arr, arr-equal, is-empty, new, size, subscript
 	./arr-util:
@@ -17,6 +17,7 @@ import
 	./iter: new, rest, value, value-and-rest
 	./mut-arr: ~=, move-to-arr, mut-arr, new
 	./private/arr-builder: ~=, arr-builder, finish, new
+	./private/arr-low-level: begin-ptr, end-ptr
 
 ###
 Immutable sequence type.
@@ -101,7 +102,7 @@ branch<a, lower> record
 	as branch b
 		b
 
-.try-as-l0-leaf<a> a[]?(a seq a)
+.try-as-l0-leaf<a> a[]?(a seq a) noctx
 	match a.root node
 	as leaf xs
 		xs,
@@ -139,7 +140,7 @@ to-seq<a> seq a(a a[]) noctx
 	l l0 a = a.leaf,
 	l,
 
-seq-equal<a> bool(a seq a, b seq a) equal<a>
+seq-equal<a> bool(a seq a, b seq a) noctx equal<a>
 	if la ?= a try-as-l0-leaf
 		if lb ?= b try-as-l0-leaf
 			la arr-equal lb
@@ -147,7 +148,7 @@ seq-equal<a> bool(a seq a, b seq a) equal<a>
 			a.iter seq-equal-recur b.iter
 	else
 		a.size == b.size && a.iter seq-equal-recur b.iter
-.seq-equal-recur<a> bool(a seq-iter a, b seq-iter a) equal<a>
+.seq-equal-recur<a> bool(a seq-iter a, b seq-iter a) noctx equal<a>
 	if na ?= a next
 		if nb ?= b next
 			if na.value == nb.value
@@ -155,9 +156,9 @@ seq-equal<a> bool(a seq a, b seq a) equal<a>
 	else
 		b.next is-empty
 
-seq-compare<a> comparison(a seq a, b seq a) compare<a>
+seq-compare<a> comparison(a seq a, b seq a) noctx compare<a>
 	a.iter seq-compare-recur b.iter
-.seq-compare-recur<a> comparison(a seq-iter a, b seq-iter a) compare<a>
+.seq-compare-recur<a> comparison(a seq-iter a, b seq-iter a) noctx compare<a>
 	if na ?= a next
 		if nb ?= b next
 			cmp = na.value <=> nb.value
@@ -182,7 +183,7 @@ to-arr<a> a[](a seq a)
 `true` iff `a.size == 0`.
 This is O(1).
 ###
-is-empty<a> bool(a seq a)
+is-empty<a> bool(a seq a) noctx
 	match a.root node
 	as leaf xs
 		xs is-empty
@@ -193,8 +194,37 @@ is-empty<a> bool(a seq a)
 Number of elements in the sequence.
 This is O(n).
 ###
-size<a> nat64(a seq a)
-	0 fold-chunks a, (acc, xs) => acc + xs.size
+size<a> nat64(a seq a) noctx
+	match a.root node
+	as leaf l
+		l.size
+	as branch b
+		b.left.size + b.down.size + b.right.size
+.size<a> nat64(a l1 a) noctx
+	match a node
+	as leaf l
+		l.size-2d
+	as branch b
+		b.left.size-2d + b.down.size + b.right.size-2d
+.size<a> nat64(a l2 a) noctx
+	a.nodes.size-3d
+.size-2d<a> nat64(a a[][]) noctx trusted
+	cur mut = a begin-ptr
+	end = a end-ptr
+	res mut = 0
+	until cur == end
+		res := res + cur->size
+		cur := cur + 1
+	res
+
+.size-3d<a> nat64(a a[][][]) noctx trusted
+	cur mut = a begin-ptr
+	end = a end-ptr
+	res mut = 0
+	until cur == end
+		res := res + cur->size-2d
+		cur := cur + 1
+	res
 
 ###
 Concatenate two sequences.
@@ -368,7 +398,7 @@ seq-iter<a> record by-val
 	l2-leaf
 
 # New iterator at the beginning of the sequence.
-iter<a> seq-iter<a>(a seq a)
+iter<a> seq-iter<a>(a seq a) noctx
 	match a.root node
 	as leaf xs
 		a, xs.iter.to-iter3d, l0-leaf

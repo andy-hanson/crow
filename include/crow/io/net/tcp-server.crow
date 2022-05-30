@@ -22,7 +22,7 @@ import
 	../../misc: new, void
 	../../number: ==, <=>, int32, nat8, nat16, nat32, to-int32, to-int64, to-nat32, to-nat64
 	../../private/bootstrap: todo
-	../../ptr: by-val, mut-ptr, ptr-cast-to-extern, ptr-to, ref-of-val, size-of
+	../../ptr: by-val, mut-ptr, ptr-cast-to-extern, size-of
 	../../range: ..
 	../../str: literal, str
 	../../version: is-windows
@@ -66,8 +66,8 @@ start-tcp-server tcp-server(port str, handler tcp-handler) unsafe summon
 		todo
 	else
 		event-flags = EPOLLIN | EPOLLET
-		accept-event epoll_event = event-flags, port-fd.to-int64.to-nat64
-		ctl-err = epoll-fd epoll_ctl EPOLL_CTL_ADD, port-fd, accept-event.ptr-to
+		accept-event mut epoll_event = event-flags, port-fd.to-int64.to-nat64
+		ctl-err = epoll-fd epoll_ctl EPOLL_CTL_ADD, port-fd, &accept-event
 		unless ctl-err == 0
 			perror: "epoll_ctl failed"
 			todo
@@ -105,9 +105,9 @@ close-client void(client SOCKET) unsafe summon
 
 .tcp-server-loop-linux fut void(state tcp-server-state) unsafe summon
 	unless state should-stop
-		event epoll_event = 0, 0
+		event mut epoll_event = ()
 		timeout c-int = 0
-		num-events = state.epoll-fd epoll_wait event.ptr-to, 1, timeout
+		num-events = state.epoll-fd epoll_wait &event, 1, timeout
 		if num-events < 0
 			print: "error in epoll_wait"
 			todo
@@ -129,11 +129,12 @@ close-client void(client SOCKET) unsafe summon
 			state tcp-server-loop-linux
 
 .accept-clients void(listen-fd SOCKET, epoll-fd fd-t, on-accepted-client ref void(SOCKET)) unsafe summon
-	clientaddr sockaddr_in = ()
-	clientaddr-as-sockaddr sockaddr = clientaddr.ptr-to::sockaddr_in mut* ptr-cast-to-extern
+	clientaddr mut sockaddr_in = ()
+	# TODO: should not need parens
+	clientaddr-as-sockaddr sockaddr = (&clientaddr)::sockaddr_in mut* ptr-cast-to-extern
 	# TODO: should be able to write `size-of@<sockaddr_in>.to-nat32`
-	addrlen by-val cell socklen_t = (size-of@<sockaddr_in>).to-nat32,
-	client-fd = listen-fd accept clientaddr-as-sockaddr, addrlen.ref-of-val
+	addrlen mut by-val cell socklen_t = (size-of@<sockaddr_in>).to-nat32,
+	client-fd = listen-fd accept clientaddr-as-sockaddr, &addrlen
 	if client-fd < 0
 		e = errno
 		unless e == EAGAIN || e == EWOULDBLOCK
@@ -141,8 +142,8 @@ close-client void(client SOCKET) unsafe summon
 			todo
 	else
 		client-fd set-non-blocking
-		client-event epoll_event = EPOLLIN | EPOLLET, client-fd.to-int64.to-nat64
-		err = epoll-fd epoll_ctl EPOLL_CTL_ADD, client-fd, client-event.ptr-to
+		client-event mut epoll_event = EPOLLIN | EPOLLET, client-fd.to-int64.to-nat64
+		err = epoll-fd epoll_ctl EPOLL_CTL_ADD, client-fd, &client-event
 		assert err == 0
 		on-accepted-client[client-fd as-socket] handle-exceptions
 		listen-fd accept-clients epoll-fd, on-accepted-client

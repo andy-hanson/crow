@@ -1,12 +1,12 @@
 no-std
 import
-	crow/bytes-types: bytes4, bytes32, bytes40, bytes48
+	crow/bytes-types: bytes4, bytes32, bytes40, bytes48, new
 	crow/c-types: u-int, u-long
 	crow/extra-types: err-t
 	crow/fun-util: fun-ptr1
 	crow/misc: new
 	crow/number: int32
-	crow/ptr: any-const-ptr, any-mut-ptr, by-val, const-ptr, mut-ptr, ref-of-val, zeroed
+	crow/ptr: any-const-ptr, any-mut-ptr, const-ptr, mut-ptr
 	time: __clockid_t, timespec
 
 pthread_t alias
@@ -81,15 +81,14 @@ pthread_barrierattr_init err-t(attr pthread_barrierattr_t mut*) extern<c>
 pthread_barrierattr_destroy err-t(attr pthread_barrierattr_t mut*) extern<c>
 
 test
-	mutex by-val pthread_mutex_t = zeroed
-	_ = mutex.ref-of-val sizer
-	mutex-attr by-val pthread_mutexattr_t = zeroed
-	_ = mutex-attr.ref-of-val sizer
-	cond by-val pthread_cond_t = zeroed
-	_ = cond.ref-of-val sizer
-	cond-attr by-val pthread_condattr_t = zeroed
-	_ = cond-attr.ref-of-val sizer
-	barrier by-val pthread_barrier_t = zeroed
-	_ = barrier.ref-of-val sizer
-	_ = zeroed::pthread_barrierattr_t.sizer
+	mutex pthread_mutex_t = (),
+	_ = mutex sizer
+	mutex-attr pthread_mutexattr_t = (),
+	_ = mutex-attr sizer
+	cond pthread_cond_t = (),
+	_ = cond sizer
+	cond-attr pthread_condattr_t = (),
+	_ = cond-attr sizer
+	barrier pthread_barrier_t = (),
+	_ = barrier sizer
 	()

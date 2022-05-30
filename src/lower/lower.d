@@ -139,7 +139,7 @@ import util.perf : Perf, PerfMeasure, withMeasure;
 import util.ptr : castNonScope_mut, ptrTrustMe, ptrTrustMe_mut;
 import util.sourceRange : FileAndRange;
 import util.sym : AllSymbols, shortSym, Sym;
-import util.util : unreachable, verify;
+import util.util : todo, unreachable, verify;
 
 immutable(LowProgram) lower(
 	ref Alloc alloc,
@@ -1181,6 +1181,12 @@ immutable(LowExprKind) getLowExprKind(
 			getMatchUnionExpr(ctx, locals, exprPos, it),
 		(ref immutable ConcreteExprKind.ParamRef it) =>
 			getParamRefExpr(ctx, it),
+		(ref immutable ConcreteExprKind.PtrToField it) =>
+			getPtrToFieldExpr(ctx, locals, it),
+		(ref immutable ConcreteExprKind.PtrToLocal it) @safe =>
+			immutable LowExprKind(immutable LowExprKind.PtrToLocal(getLocal(locals, it.local))),
+		(ref immutable ConcreteExprKind.PtrToParam it) =>
+			getPtrToParam(ctx, it),
 		(ref immutable ConcreteExprKind.RecordFieldGet it) =>
 			getRecordFieldGetExpr(ctx, locals, it),
 		(ref immutable ConcreteExprKind.Seq it) =>
@@ -1686,12 +1692,30 @@ immutable(LowExprKind) getParamRefExpr(ref GetLowExprCtx ctx, ref immutable Conc
 			ctx.firstRegularParam.index + force(a.param.index))));
 }
 
+immutable(LowExprKind) getPtrToParam(ref GetLowExprCtx ctx, ref immutable ConcreteExprKind.PtrToParam a) {
+	if (!has(a.param.index))
+		return todo!(immutable LowExprKind)("ptr to param without index");
+	else
+		return immutable LowExprKind(immutable LowExprKind.PtrToParam(immutable LowParamIndex(
+			ctx.firstRegularParam.index + force(a.param.index))));
+}
+
 immutable(LowExprKind) getRecordFieldGetExpr(
 	ref GetLowExprCtx ctx,
 	scope ref immutable Locals locals,
 	ref immutable ConcreteExprKind.RecordFieldGet a,
 ) {
 	return immutable LowExprKind(allocate(ctx.alloc, immutable LowExprKind.RecordFieldGet(
+		getLowExpr(ctx, locals, a.target, ExprPos.nonTail),
+		a.fieldIndex)));
+}
+
+immutable(LowExprKind) getPtrToFieldExpr(
+	ref GetLowExprCtx ctx,
+	scope ref immutable Locals locals,
+	ref immutable ConcreteExprKind.PtrToField a,
+) {
+	return immutable LowExprKind(allocate(ctx.alloc, immutable LowExprKind.PtrToField(
 		getLowExpr(ctx, locals, a.target, ExprPos.nonTail),
 		a.fieldIndex)));
 }

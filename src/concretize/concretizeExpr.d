@@ -2,7 +2,7 @@ module concretize.concretizeExpr;
 
 @safe @nogc pure nothrow:
 
-import concretize.allConstantsBuilder : getConstantArr;
+import concretize.allConstantsBuilder : AllConstantsBuilder, getConstantArr, getConstantPtr;
 import concretize.concretizeCtx :
 	ConcretizeCtx,
 	ConcreteFunKey,
@@ -122,6 +122,10 @@ struct ConcretizeExprCtx {
 	}
 	ref immutable(ConcreteFun) currentConcreteFun() return scope const {
 		return *currentConcreteFunPtr;
+	}
+
+	ref inout(AllConstantsBuilder) allConstants() return scope inout {
+		return concretizeCtx.allConstants;
 	}
 }
 
@@ -522,6 +526,37 @@ immutable(ConcreteExpr) concretizeIfOption(
 			immutable ConcreteExpr(it.type, range, immutable ConcreteExprKind(it.value)));
 }
 
+// TODO: not @trusted
+@trusted immutable(ConcreteExpr) concretizePtrToLocal(
+	ref ConcretizeExprCtx ctx,
+	immutable FileAndRange range,
+	scope ref immutable Locals locals,
+	immutable Expr.PtrToLocal a,
+) {
+	immutable ConcreteExprKind kind = matchLocalOrConstant!(immutable ConcreteExprKind)(
+		getLocal(locals, a.local),
+		(immutable ConcreteLocal* local) =>
+			immutable ConcreteExprKind(immutable ConcreteExprKind.PtrToLocal(local)),
+		(immutable TypedConstant it) =>
+			//TODO: what if pointee is a reference?
+			immutable ConcreteExprKind(getConstantPtr(ctx.alloc, ctx.allConstants, mustBeByVal(it.type), it.value)));
+	return immutable ConcreteExpr(getConcreteType(ctx, a.ptrType), range, kind);
+}
+
+immutable(ConcreteExpr) concretizePtrToField(
+	ref ConcretizeExprCtx ctx,
+	immutable FileAndRange range,
+	scope ref immutable Locals locals,
+	immutable Expr.PtrToField a,
+) {
+	immutable ConcreteExpr target = concretizeExpr(ctx, locals, a.target);
+	immutable ConcreteType pointerType = getConcreteType(ctx, a.pointerType);
+	return immutable ConcreteExpr(
+		pointerType,
+		range,
+		immutable ConcreteExprKind(allocate(ctx.alloc, immutable ConcreteExprKind.PtrToField(target, a.fieldIndex))));
+}
+
 immutable(ConcreteExpr) concretizeLocalSet(
 	ref ConcretizeExprCtx ctx,
 	immutable FileAndRange range,
@@ -686,12 +721,23 @@ immutable(ConcreteExpr) concretizeParamRef(
 	immutable FileAndRange range,
 	immutable Param* param,
 ) {
-	immutable size_t paramIndex = param.index;
 	// NOTE: we'll never see a ParamRef to a param from outside of a lambda --
 	// that would be a ClosureFieldRef instead.
-	immutable ConcreteParam* concreteParam = &ctx.currentConcreteFun.paramsExcludingCtxAndClosure[paramIndex];
+	immutable ConcreteParam* concreteParam = &ctx.currentConcreteFun.paramsExcludingCtxAndClosure[param.index];
 	return immutable ConcreteExpr(concreteParam.type, range, immutable ConcreteExprKind(
 		immutable ConcreteExprKind.ParamRef(concreteParam)));
+}
+
+immutable(ConcreteExpr) concretizePtrToParam(
+	ref ConcretizeExprCtx ctx,
+	immutable FileAndRange range,
+	immutable Expr.PtrToParam a,
+) {
+	immutable ConcreteParam* concreteParam = &ctx.currentConcreteFun.paramsExcludingCtxAndClosure[a.param.index];
+	return immutable ConcreteExpr(
+		getConcreteType(ctx, a.ptrType),
+		range,
+		immutable ConcreteExprKind(immutable ConcreteExprKind.PtrToParam(concreteParam)));
 }
 
 immutable(ConcreteExpr) concretizeVariableRef(
@@ -834,6 +880,12 @@ immutable(ConcreteExpr) concretizeExpr(
 			concretizeMatchUnion(ctx, range, locals, e),
 		(ref immutable Expr.ParamRef e) =>
 			concretizeParamRef(ctx, range, e.param),
+		(ref immutable Expr.PtrToField e) =>
+			concretizePtrToField(ctx, range, locals, e),
+		(ref immutable Expr.PtrToLocal e) =>
+			concretizePtrToLocal(ctx, range, locals, e),
+		(ref immutable Expr.PtrToParam e) =>
+			concretizePtrToParam(ctx, range, e),
 		(ref immutable Expr.Seq e) {
 			immutable ConcreteExpr first = concretizeExpr(ctx, locals, e.first);
 			immutable ConcreteExpr then = concretizeExpr(ctx, locals, e.then);
@@ -857,7 +909,7 @@ immutable(ConstantsOrExprs) constantsOrExprsArr(
 		args,
 		(ref immutable Constant[] constants) =>
 			immutable ConstantsOrExprs(arrLiteral!Constant(ctx.alloc, [
-				getConstantArr(ctx.alloc, ctx.concretizeCtx.allConstants, arrayStruct, constants)])),
+				getConstantArr(ctx.alloc, ctx.allConstants, arrayStruct, constants)])),
 		(ref immutable ConcreteExpr[] exprs) =>
 			immutable ConstantsOrExprs(arrLiteral!ConcreteExpr(ctx.alloc, [
 				immutable ConcreteExpr(arrayType, range, immutable ConcreteExprKind(

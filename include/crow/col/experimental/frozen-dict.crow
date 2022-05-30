@@ -33,6 +33,9 @@ new<k, v> frozen-dict<k, v>(...a pair<k, v>[]) is-data<k> compare<k> hash-mix<k>
 to-frozen-dict<k, v> frozen-dict<k, v>(a pair<k, v>[]) trusted is-data<k> compare<k> hash-mix<k>
 	a.to-fix-arr.fix-arr-to-frozen-dict-promise-no-duplicates remove-duplicates
 
+get-pairs<k, v> pair<k, v>[](a frozen-dict<k, v>) no-doc noctx
+	a pairs
+
 # TODO:INTERNAL
 begin-ptr<k, v> pair<k, v>*(a frozen-dict<k, v>) unsafe
 	a.pairs begin-ptr

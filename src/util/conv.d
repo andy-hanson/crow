@@ -14,6 +14,11 @@ immutable(ushort) safeToUshort(immutable size_t a) {
 	return cast(immutable ushort) a;
 }
 
+immutable(int) safeToInt(immutable size_t a) {
+	verify(a <= int.max);
+	return cast(immutable int) a;
+}
+
 immutable(uint) safeToUint(immutable size_t a) {
 	verify(a <= uint.max);
 	return cast(immutable uint) a;

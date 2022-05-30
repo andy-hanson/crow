@@ -291,10 +291,6 @@ struct ForAst {
 	immutable ExprAst body_;
 }
 
-struct FunPtrAst {
-	immutable Sym name;
-}
-
 struct IdentifierAst {
 	immutable Sym name;
 }
@@ -514,6 +510,10 @@ struct ParenthesizedAst {
 	immutable ExprAst inner;
 }
 
+struct PtrAst {
+	immutable ExprAst inner;
+}
+
 struct SeqAst {
 	immutable ExprAst first;
 	immutable ExprAst then;
@@ -555,7 +555,6 @@ struct ExprAstKind {
 		bogus,
 		call,
 		for_,
-		funPtr,
 		identifier,
 		identifierSet,
 		if_,
@@ -571,6 +570,7 @@ struct ExprAstKind {
 		loopWhile,
 		match,
 		parenthesized,
+		ptr,
 		seq,
 		then,
 		thenVoid,
@@ -585,7 +585,6 @@ struct ExprAstKind {
 		immutable BogusAst bogus;
 		immutable CallAst call;
 		immutable ForAst* for_;
-		immutable FunPtrAst funPtr;
 		immutable IdentifierAst identifier;
 		immutable IdentifierSetAst* identifierSet;
 		immutable IfAst* if_;
@@ -601,6 +600,7 @@ struct ExprAstKind {
 		immutable LoopWhileAst* loopWhile;
 		immutable MatchAst* match_;
 		immutable ParenthesizedAst* parenthesized;
+		immutable PtrAst* ptr;
 		immutable SeqAst* seq;
 		immutable ThenAst* then;
 		immutable ThenVoidAst* thenVoid;
@@ -615,7 +615,6 @@ struct ExprAstKind {
 	@trusted immutable this(immutable BogusAst a) { kind = Kind.bogus; bogus = a; }
 	@trusted immutable this(immutable CallAst a) { kind = Kind.call; call = a; }
 	immutable this(immutable ForAst* a) { kind = Kind.for_; for_ = a; }
-	@trusted immutable this(immutable FunPtrAst a) { kind = Kind.funPtr; funPtr = a; }
 	@trusted immutable this(immutable IdentifierAst a) { kind = Kind.identifier; identifier = a; }
 	@trusted immutable this(immutable IdentifierSetAst* a) { kind = Kind.identifierSet; identifierSet = a; }
 	@trusted immutable this(immutable IfAst* a) { kind = Kind.if_; if_ = a; }
@@ -631,6 +630,7 @@ struct ExprAstKind {
 	immutable this(immutable LoopWhileAst* a) { kind = Kind.loopWhile; loopWhile = a; }
 	@trusted immutable this(immutable MatchAst* a) { kind = Kind.match; match_ = a; }
 	@trusted immutable this(immutable ParenthesizedAst* a) { kind = Kind.parenthesized; parenthesized = a; }
+	immutable this(immutable PtrAst* a) { kind = Kind.ptr; ptr = a; }
 	@trusted immutable this(immutable SeqAst* a) { kind = Kind.seq; seq = a; }
 	@trusted immutable this(immutable ThenAst* a) { kind = Kind.then; then = a; }
 	@trusted immutable this(immutable ThenVoidAst* a) { kind = Kind.thenVoid; thenVoid = a; }
@@ -663,7 +663,6 @@ ref immutable(IdentifierAst) asIdentifier(scope return ref immutable ExprAstKind
 	alias cbBogus,
 	alias cbCall,
 	alias cbFor,
-	alias cbFunPtr,
 	alias cbIdentifier,
 	alias cbIdentifierSet,
 	alias cbIf,
@@ -679,6 +678,7 @@ ref immutable(IdentifierAst) asIdentifier(scope return ref immutable ExprAstKind
 	alias cbLoopWhile,
 	alias cbMatch,
 	alias cbParenthesized,
+	alias cbPtr,
 	alias cbSeq,
 	alias cbThen,
 	alias cbThenVoid,
@@ -699,8 +699,6 @@ ref immutable(IdentifierAst) asIdentifier(scope return ref immutable ExprAstKind
 			return cbCall(a.call);
 		case ExprAstKind.Kind.for_:
 			return cbFor(*a.for_);
-		case ExprAstKind.Kind.funPtr:
-			return cbFunPtr(a.funPtr);
 		case ExprAstKind.Kind.identifier:
 			return cbIdentifier(a.identifier);
 		case ExprAstKind.Kind.identifierSet:
@@ -731,6 +729,8 @@ ref immutable(IdentifierAst) asIdentifier(scope return ref immutable ExprAstKind
 			return cbMatch(*a.match_);
 		case ExprAstKind.Kind.parenthesized:
 			return cbParenthesized(*a.parenthesized);
+		case ExprAstKind.Kind.ptr:
+			return cbPtr(*a.ptr);
 		case ExprAstKind.Kind.seq:
 			return cbSeq(*a.seq);
 		case ExprAstKind.Kind.then:
@@ -1509,8 +1509,6 @@ immutable(Repr) reprExprAstKind(ref Alloc alloc, ref immutable ExprAstKind ast) 
 				reprLambdaParamAst(alloc, x.param),
 				reprExprAst(alloc, x.collection),
 				reprExprAst(alloc, x.body_)]),
-		(ref immutable FunPtrAst a) =>
-			reprRecord(alloc, "fun-ptr", [reprSym(a.name)]),
 		(ref immutable IdentifierAst a) =>
 			reprSym(a.name),
 		(ref immutable IdentifierSetAst a) =>
@@ -1581,6 +1579,8 @@ immutable(Repr) reprExprAstKind(ref Alloc alloc, ref immutable ExprAstKind ast) 
 						reprExprAst(alloc, case_.then)]))]),
 		(ref immutable ParenthesizedAst it) =>
 			reprRecord(alloc, "paren", [reprExprAst(alloc, it.inner)]),
+		(ref immutable PtrAst a) =>
+			reprRecord(alloc, "ptr", [reprExprAst(alloc, a.inner)]),
 		(ref immutable SeqAst a) =>
 			reprRecord(alloc, "seq-ast", [
 				reprExprAst(alloc, a.first),

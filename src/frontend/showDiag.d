@@ -807,6 +807,25 @@ void writeDiag(
 		(ref immutable ParseDiag pd) {
 			writeParseDiag(writer, allPaths, pathsInfo, pd);
 		},
+		(ref immutable Diag.PtrIsUnsafe) {
+			writeStatic(writer, "can only get pointer in an 'unsafe' or 'trusted' function");
+		},
+		(ref immutable Diag.PtrMutToConst d) {
+			final switch (d.kind) {
+				case Diag.PtrMutToConst.Kind.field:
+					writeStatic(writer, "can't get a mutable pointer to a non-'mut' field");
+					break;
+				case Diag.PtrMutToConst.Kind.local:
+					writeStatic(writer, "can't get a mutable pointer to a non-'mut' local");
+					break;
+			}
+		},
+		(ref immutable Diag.PtrNeedsExpectedType) {
+			writeStatic(writer, "pointer expression needs an expected type");
+		},
+		(ref immutable Diag.PtrUnsupported) {
+			writeStatic(writer, "can't get a pointer to this kind of expression");
+		},
 		(ref immutable Diag.PurityWorseThanParent d) {
 			writeStatic(writer, "struct ");
 			writeName(writer, allSymbols, d.parent.name);

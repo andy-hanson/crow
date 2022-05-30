@@ -234,6 +234,14 @@ immutable(Repr) reprOfLowExprKind(ref Alloc alloc, ref immutable LowExprKind a) 
 			reprRecord(alloc, "param-ref", [reprNat(it.index.index)]),
 		(ref immutable LowExprKind.PtrCast it) =>
 			reprRecord(alloc, "ptr-cast", [reprOfLowExpr(alloc, it.target)]),
+		(ref immutable LowExprKind.PtrToField it) =>
+			reprRecord(alloc, "ptr-to-field", [
+				reprOfLowExpr(alloc, it.target),
+				reprNat(it.fieldIndex)]),
+		(ref immutable LowExprKind.PtrToLocal it) =>
+			reprRecord(alloc, "ptr-to-local", [reprOfLowLocalSource(alloc, it.local.source)]),
+		(ref immutable LowExprKind.PtrToParam it) =>
+			reprRecord(alloc, "ptr-to-param", [reprNat(it.index.index)]),
 		(ref immutable LowExprKind.RecordFieldGet it) =>
 			reprRecord(alloc, "get-field", [
 				reprOfLowExpr(alloc, it.target),
@@ -323,10 +331,6 @@ immutable(string) strOfSpecialUnaryKind(immutable LowExprKind.SpecialUnary.Kind 
 			return "deref";
 		case LowExprKind.SpecialUnary.Kind.enumToIntegral:
 			return "to integral (from enum)";
-		case LowExprKind.SpecialUnary.Kind.ptrTo:
-			return "ptr-to";
-		case LowExprKind.SpecialUnary.Kind.refOfVal:
-			return "ref-of-val";
 		case LowExprKind.SpecialUnary.Kind.toCharFromNat8:
 			return "to-char8 (from nat8)";
 		case LowExprKind.SpecialUnary.Kind.toFloat32FromFloat64:

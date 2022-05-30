@@ -3,7 +3,7 @@ import
 	crow/col/private/arr-low-level: begin-ptr
 	crow/extra-types: fd-t
 	crow/io/print: print
-	crow/ptr: ==, *, as-any-const-ptr, const-ptr, null, ptr-cast, ptr-cast-to-extern, ptr-to, size-of
+	crow/ptr: ==, *, as-any-const-ptr, const-ptr, null, ptr-cast, ptr-cast-to-extern, size-of
 	crow/str-util: as-str, to-bytes, to-c-str
 	arpa/inet: inet_addr, inet_ntoa
 	netdb: gethostbyname, getprotobyname, h_addr_list, p_proto
@@ -38,7 +38,7 @@ main fut nat(_ str[]) unsafe summon
 	in_addr = in_addr0->inet_ntoa inet_addr
 
 	sockaddr_in sockaddr_in = AF_INET, server-port.htons, (in_addr,)
-	sockaddr = sockaddr_in.ptr-to ptr-cast-to-extern@<sockaddr, sockaddr_in>
+	sockaddr = &sockaddr_in ptr-cast-to-extern@<sockaddr, sockaddr_in>
 	err = socket connect sockaddr, (size-of@<sockaddr_in> to-nat32)
 	assert err == 0
 

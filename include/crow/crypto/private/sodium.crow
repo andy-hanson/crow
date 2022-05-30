@@ -4,13 +4,12 @@ import
 	../../bool: ||
 	../../misc: void
 	../../number: ==
-	../../ptr: ref-of-val
 	../../private/runtime: get-global-ctx, print-lock
 	../../private/thread-utils: with-lock
 
 ensure-sodium-initialized void() trusted
 	gctx = get-global-ctx
 	# TODO: rename 'print-lock'. We just want a generic global lock for rare uses.
-	gctx.print-lock.ref-of-val with-lock () =>
+	&gctx.print-lock with-lock () =>
 		err = sodium_init
 		assert err == 0 || err == 1

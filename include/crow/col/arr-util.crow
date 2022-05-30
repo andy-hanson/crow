@@ -1,6 +1,6 @@
 no-std
 import
-	../bool: !, &&, ||, bool, to-nat64
+	../bool: !, &&, ||, bool, false, to-nat64, true
 	../cell: *, cell, new, set-deref
 	../compare: !=, <, <=, >=, equal, max, min
 	../fun-util: subscript
@@ -254,10 +254,17 @@ every<a> bool(a a[], f act bool(a))
 Equivalent to `a[0] == value || a[1] == value || ... || a[a.size - 1] == value`.
 Also equivalent to `a exists it => it == value`.
 ###
-in<a> bool(value a, a a[]) noctx equal<a>
-	value in-recur a, 0
-.in-recur<a> bool(value a, a a[], i nat64) noctx equal<a>
-	i != a.size && (a[i] == value || (value in-recur a, i + 1))
+in<a> bool(value a, a a[]) noctx trusted equal<a>
+	cur mut = a begin-ptr
+	end = a end-ptr
+	loop
+		if cur == end
+			break false
+		elif *cur == value
+			break true
+		else
+			cur := cur + 1
+			continue
 
 ###
 If `value` is in `a`, returns `a` with the first instance of `value` removed.

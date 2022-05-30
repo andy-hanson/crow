@@ -6,6 +6,7 @@ import lower.lowExprHelpers : boolType, nat64Type, voidType;
 import model.constant : Constant;
 import model.lowModel :
 	asFunPtrType,
+	asGcOrRawPointee,
 	asRecordType,
 	asUnionType,
 	isVoid,
@@ -184,22 +185,29 @@ void checkLowExpr(
 			// TODO: there are some limitations on target...
 			checkLowExpr(ctx, it.target.type, it.target);
 		},
-		(ref immutable LowExprKind.RecordFieldGet it) {
-			immutable LowType targetTypeNonPtr = immutable LowType(targetRecordType(it));
-			immutable LowType targetType = targetIsPointer(it)
-				? immutable LowType(immutable LowType.PtrGc(ptrTrustMe(targetTypeNonPtr)))
-				: targetTypeNonPtr;
-			checkLowExpr(ctx, targetType, it.target);
+		(ref immutable LowExprKind.PtrToField it) {
+			checkLowExpr(ctx, it.target.type, it.target);
 			immutable LowType fieldType = ctx.ctx.program.allRecords[targetRecordType(it)].fields[it.fieldIndex].type;
+			checkTypeEqual(ctx.ctx, asGcOrRawPointee(type), fieldType);
+		},
+		(ref immutable LowExprKind.PtrToLocal it) {
+			checkTypeEqual(ctx.ctx, asGcOrRawPointee(type), it.local.type);
+		},
+		(ref immutable LowExprKind.PtrToParam it) {
+			checkTypeEqual(ctx.ctx, type, immutable LowType(
+				immutable LowType.PtrRawConst(&ctx.fun.params[it.index.index].type)));
+		},
+		(ref immutable LowExprKind.RecordFieldGet it) {
+			immutable LowType.Record recordType = targetRecordType(it);
+			checkLowExpr(ctx, it.target.type, it.target);
+			immutable LowType fieldType = ctx.ctx.program.allRecords[recordType].fields[it.fieldIndex].type;
 			checkTypeEqual(ctx.ctx, type, fieldType);
 		},
 		(ref immutable LowExprKind.RecordFieldSet it) {
-			immutable LowType targetTypeNonPtr = immutable LowType(targetRecordType(it));
-			immutable LowType targetType = targetIsPointer(it)
-				? immutable LowType(immutable LowType.PtrGc(ptrTrustMe(targetTypeNonPtr)))
-				: targetTypeNonPtr;
-			checkLowExpr(ctx, targetType, it.target);
-			immutable LowType fieldType = ctx.ctx.program.allRecords[targetRecordType(it)].fields[it.fieldIndex].type;
+			immutable LowType.Record recordType = targetRecordType(it);
+			verify(targetIsPointer(it)); // TODO: then this function doesn't need to exist
+			checkLowExpr(ctx, it.target.type, it.target);
+			immutable LowType fieldType = ctx.ctx.program.allRecords[recordType].fields[it.fieldIndex].type;
 			checkLowExpr(ctx, fieldType, it.value);
 			checkTypeEqual(ctx.ctx, type, voidType);
 		},

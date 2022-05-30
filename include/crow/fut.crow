@@ -7,15 +7,17 @@ import
 	./fun-util: subscript
 	./misc: new, void
 	./number: ==, -, nat64
-	./ptr: ref-of-val
 	./result: ok-or-throw, result
 	./private/bootstrap: action, exclusion, is-sendable, lk, new, rejected, resolved
 	./private/fut-low-level: add-task, get-result, forward-to, reject, resolve, unresolved
 	./private/runtime: add-task, cur-exclusion, exception-handler, get-global-ctx, new-exclusion
 	./private/task-queue: task
-	./private/thread-utils: init, uninit
+	./private/thread-utils: init, lock, uninit
 export
 	./private/bootstrap: fut
+
+lock<a> lock(a fut a) unsafe
+	&a.lk
 
 ###
 A future already resolved to void.
@@ -30,7 +32,7 @@ delay fut void()
 # Converts a value to a `fut` resolved with that value.
 new<a> fut a(value a) trusted
 	res fut a = uninit, value.resolved
-	res.lk.ref-of-val init
+	res.lock init
 	res
 
 # `fut` resolved to `()`.
@@ -40,7 +42,7 @@ new<a> fut a() new<a>
 # `fut` resolved with an exception.
 rejected<a> fut a(err exception) trusted
 	res fut a = uninit, err.rejected
-	res.lk.ref-of-val init
+	res.lock init
 	res
 
 # TODO: is-sendable<a[]> should not be necessary

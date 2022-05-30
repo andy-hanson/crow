@@ -84,10 +84,10 @@ ref immutable(Constant) derefConstantPointer(
 immutable(Constant) getConstantPtr(
 	ref Alloc alloc,
 	ref AllConstantsBuilder allConstants,
-	immutable ConcreteStruct* struct_,
+	immutable ConcreteStruct* pointee,
 	ref immutable Constant value,
 ) {
-	PointerTypeAndConstants* d = ptrTrustMe_mut(getOrAdd(alloc, allConstants.pointers, struct_, () =>
+	PointerTypeAndConstants* d = ptrTrustMe_mut(getOrAdd(alloc, allConstants.pointers, pointee, () =>
 		PointerTypeAndConstants(mutDictSize(allConstants.pointers), MutArr!(immutable Constant)())));
 	return immutable Constant(immutable Constant.Pointer(d.typeIndex, findOrPush!(immutable Constant)(
 		alloc,

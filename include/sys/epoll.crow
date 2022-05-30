@@ -11,6 +11,9 @@ epoll_event record by-val packed extern
 	events nat32
 	event_data nat64
 
+new epoll_event() noctx
+	0, 0
+
 epoll_ctl err-t(epfd fd-t, op c-int, fd fd-t, event epoll_event mut*) extern<c> summon
 
 epoll_wait err-t(

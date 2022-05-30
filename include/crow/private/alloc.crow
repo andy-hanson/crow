@@ -8,8 +8,7 @@ import
 	../misc: new
 	../ptr:
 		==, <=>, +, -, *, any-const-ptr, any-mut-ptr, as-any-const-ptr, as-any-mut-ptr, as-const,
-		as-mut, as-ref, by-val, const-ptr, mut-ptr, null, ptr-cast, ref-of-val, set-deref,
-		size-of, to-nat64
+		as-mut, as-ref, by-val, const-ptr, mut-ptr, null, ptr-cast, set-deref, size-of, to-nat64
 	./bootstrap:
 		ctx, gc-ctx-ptr, get-ctx, hard-assert, lock, nat64, none, opt, some, todo, void
 	./number-low-level: ==, <=>, nat8, unsafe-div, wrap-add, wrap-mul, wrap-sub
@@ -24,7 +23,7 @@ set-zero-range<a> void(begin a mut*, size nat64) noctx unsafe
 	_ = begin.as-any-mut-ptr memset 0, (size wrap-mul size-of@<a>)
 	()
 
-mark-ctx record mut
+mark-ctx record mut by-ref
 	memory-size-words nat64
 	marks bool mut*
 	memory-start nat64 mut*
@@ -67,9 +66,9 @@ mark-range bool(start bool mut*, end bool mut*) noctx unsafe
 
 mark-visit<a> void(mark-ctx mark-ctx, value a) noctx unsafe builtin
 
-gc record mut
-	.lk by-val lock
-	.barrier by-val barrier
+gc record mut by-ref
+	.lk mut by-val lock
+	.barrier mut by-val barrier
 	.gc-count mut nat64
 	.context-head mut gc-ctx?
 	needs-gc .mut bool
@@ -108,12 +107,12 @@ set-hard-limit void(gc gc, size-words nat64) noctx unsafe
 # WARN: this locks up the GC for a long time
 get-stats gc-stats(gc gc) noctx unsafe
 	gc validate-gc
-	gc.lk.ref-of-val acquire
+	&gc.lk acquire
 	gc-count = gc gc-count
 	cur-word = gc.mark-cur - gc.mark-begin
 	used-words-remaining = 0 words-used-in-range gc.mark-cur, gc.mark-end
 	total-words = gc.mark-end - gc.mark-begin
-	gc.lk.ref-of-val release
+	&gc.lk release
 	gc-count, cur-word, total-words, (cur-word wrap-add used-words-remaining)
 
 words-used-in-range nat64(acc nat64, cur bool mut*, end bool mut*) noctx unsafe
@@ -138,22 +137,22 @@ uninit by-val gc() noctx unsafe
 
 	_ = mark.as-any-mut-ptr memset 0, size-words
 
-	res by-val gc = uninit, uninit, 0, none, false, size-words, mark, mark, mark-end, bytes, bytes, bytes-end
-	res.ref-of-val validate-gc
+	res mut by-val gc = uninit, uninit, 0, none, false, size-words, mark, mark, mark-end, bytes, bytes, bytes-end
+	&res validate-gc
 	res
 
 init void(a gc, n-threads nat64) noctx unsafe
-	a.lk.ref-of-val init
-	a.barrier.ref-of-val init n-threads
+	(&a.lk)::lock init
+	(&a.barrier)::barrier init n-threads
 
 # WARN: This should be called by all threads.
 run-garbage-collection<a> void(gc gc, gc-root a) noctx unsafe
 	hard-assert: gc needs-gc
-	if gc.barrier.ref-of-val wait-barrier
+	if &gc.barrier wait-barrier
 		gc.gc-count := gc.gc-count wrap-add 1
 		_ = gc.mark-begin.as-any-mut-ptr memset 0, gc.size-words
 		mark-ctx by-val mark-ctx = gc.size-words, gc.mark-begin, gc.data-begin
-		mark-ctx.ref-of-val mark-visit gc-root
+		&mark-ctx mark-visit gc-root
 		prev-mark-cur = gc.mark-cur
 		gc.mark-cur := gc.mark-begin
 		gc.data-cur := gc.data-begin
@@ -162,7 +161,7 @@ run-garbage-collection<a> void(gc gc, gc-root a) noctx unsafe
 			gc.mark-begin clear-free-mem prev-mark-cur, gc.data-begin
 		gc validate-gc
 		gc.needs-gc := false
-	_ = gc.barrier.ref-of-val wait-barrier
+	_ = &gc.barrier wait-barrier
 	()
 
 .clear-free-mem void(mark-ptr bool mut*, mark-end bool mut*, data-ptr nat64 mut*) noctx unsafe
@@ -175,7 +174,7 @@ run-garbage-collection<a> void(gc gc, gc-root a) noctx unsafe
 GC info specific to a ctx.
 Currently they all share the common GC and must take a lock every time they allocate.
 ###
-gc-ctx record mut
+gc-ctx record mut by-ref
 	gc mut gc
 	next-ctx mut gc-ctx?
 
@@ -183,7 +182,7 @@ force-needs-gc void(gc gc) unsafe
 	gc.needs-gc := true
 
 get-gc-ctx gc-ctx(gc gc) noctx unsafe
-	gc.lk.ref-of-val acquire
+	&gc.lk acquire
 	res = if c ?= gc.context-head
 		gc.context-head := c next-ctx
 		c.next-ctx := none
@@ -196,15 +195,15 @@ get-gc-ctx gc-ctx(gc gc) noctx unsafe
 		c.gc := gc
 		c.next-ctx := none
 		c
-	gc.lk.ref-of-val release
+	&gc.lk release
 	res
 
 return-gc-ctx void(gc-ctx gc-ctx) noctx unsafe
 	gc = gc-ctx.gc
-	gc.lk.ref-of-val acquire
+	&gc.lk acquire
 	gc-ctx.next-ctx := gc context-head
 	gc.context-head := gc-ctx some
-	gc.lk.ref-of-val release
+	&gc.lk release
 
 get-gc-ctx gc-ctx() unsafe
 	get-ctx get-gc-ctx
@@ -230,10 +229,10 @@ validate-gc void(gc gc) noctx unsafe
 	hard-assert: mark-idx == data-idx
 
 .try-gc-alloc any-mut-ptr?(gc gc-ctx, size-bytes nat64) noctx trusted
-	gc.gc.lk.ref-of-val acquire
+	&gc.gc.lk acquire
 	res = gc.gc try-gc-alloc-recur size-bytes
 	gc.gc maybe-set-needs-gc
-	gc.gc.lk.ref-of-val release
+	&gc.gc.lk release
 	res
 
 .maybe-set-needs-gc void(gc gc) noctx unsafe

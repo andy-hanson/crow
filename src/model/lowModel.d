@@ -274,7 +274,7 @@ immutable(bool) isPtrRawMut(immutable LowType a) {
 	return a.kind_ == LowType.Kind.ptrRawMut;
 }
 
-private immutable(bool) isPtrRawConstOrMut(immutable LowType a) {
+immutable(bool) isPtrRawConstOrMut(immutable LowType a) {
 	return isPtrRawConst(a) || isPtrRawMut(a);
 }
 
@@ -713,16 +713,25 @@ struct LowExprKind {
 		immutable LowExpr target;
 	}
 
-	struct RecordFieldGet {
-		@safe @nogc pure nothrow:
+	struct PtrToField {
+		immutable LowExpr target;
+		immutable size_t fieldIndex;
+	}
 
+	struct PtrToLocal {
+		immutable LowLocal* local;
+	}
+
+	struct PtrToParam {
+		immutable LowParamIndex index;
+	}
+
+	struct RecordFieldGet {
 		immutable LowExpr target;
 		immutable size_t fieldIndex;
 	}
 
 	struct RecordFieldSet {
-		@safe @nogc pure nothrow:
-
 		immutable LowExpr target;
 		immutable size_t fieldIndex;
 		immutable LowExpr value;
@@ -748,8 +757,6 @@ struct LowExprKind {
 			countOnesNat64,
 			deref,
 			enumToIntegral,
-			ptrTo,
-			refOfVal,
 			toCharFromNat8,
 			toFloat32FromFloat64,
 			toFloat64FromFloat32,
@@ -926,6 +933,9 @@ struct LowExprKind {
 		matchUnion,
 		paramRef,
 		ptrCast,
+		ptrToField,
+		ptrToLocal,
+		ptrToParam,
 		recordFieldGet,
 		recordFieldSet,
 		seq,
@@ -957,6 +967,9 @@ struct LowExprKind {
 		immutable MatchUnion* matchUnion;
 		immutable ParamRef paramRef;
 		immutable PtrCast* ptrCast;
+		immutable PtrToField* ptrToField;
+		immutable PtrToLocal ptrToLocal;
+		immutable PtrToParam ptrToParam;
 		immutable RecordFieldGet* recordFieldGet;
 		immutable RecordFieldSet* recordFieldSet;
 		immutable Seq* seq;
@@ -988,6 +1001,9 @@ struct LowExprKind {
 	@trusted immutable this(immutable MatchUnion* a) { kind = Kind.matchUnion; matchUnion = a; }
 	@trusted immutable this(immutable ParamRef a) { kind = Kind.paramRef; paramRef = a; }
 	@trusted immutable this(immutable PtrCast* a) { kind = Kind.ptrCast; ptrCast = a; }
+	immutable this(immutable PtrToField* a) { kind = Kind.ptrToField; ptrToField = a; }
+	immutable this(immutable PtrToLocal a) { kind = Kind.ptrToLocal; ptrToLocal = a; }
+	immutable this(immutable PtrToParam a) { kind = Kind.ptrToParam; ptrToParam = a; }
 	@trusted immutable this(immutable RecordFieldGet* a) { kind = Kind.recordFieldGet; recordFieldGet = a; }
 	@trusted immutable this(immutable RecordFieldSet* a) { kind = Kind.recordFieldSet; recordFieldSet = a; }
 	@trusted immutable this(immutable Seq* a) { kind = Kind.seq; seq = a; }
@@ -1021,6 +1037,9 @@ static assert(LowExprKind.sizeof <= 32);
 	alias cbMatchUnion,
 	alias cbParamRef,
 	alias cbPtrCast,
+	alias cbPtrToField,
+	alias cbPtrToLocal,
+	alias cbPtrToParam,
 	alias cbRecordFieldGet,
 	alias cbRecordFieldSet,
 	alias cbSeq,
@@ -1066,6 +1085,12 @@ static assert(LowExprKind.sizeof <= 32);
 			return cbParamRef(a.paramRef);
 		case LowExprKind.Kind.ptrCast:
 			return cbPtrCast(*a.ptrCast);
+		case LowExprKind.Kind.ptrToField:
+			return cbPtrToField(*a.ptrToField);
+		case LowExprKind.Kind.ptrToLocal:
+			return cbPtrToLocal(a.ptrToLocal);
+		case LowExprKind.Kind.ptrToParam:
+			return cbPtrToParam(a.ptrToParam);
 		case LowExprKind.Kind.recordFieldGet:
 			return cbRecordFieldGet(*a.recordFieldGet);
 		case LowExprKind.Kind.recordFieldSet:
@@ -1095,6 +1120,10 @@ static assert(LowExprKind.sizeof <= 32);
 	}
 }
 
+immutable(LowType.Record) targetRecordType(scope ref immutable LowExprKind.PtrToField a) {
+	return asRecordType(asGcOrRawPointee(a.target.type));
+}
+
 immutable(bool) targetIsPointer(scope ref immutable LowExprKind.RecordFieldGet a) {
 	return isPtrGcOrRaw(a.target.type);
 }
@@ -1119,15 +1148,6 @@ struct UpdateParam {
 	immutable LowExpr newValue;
 }
 
-immutable(bool) isLocalRef(ref immutable LowExprKind a) {
-	return a.kind == LowExprKind.Kind.localRef;
-}
-
-@trusted ref immutable(LowExprKind.LocalRef) asLocalRef(scope return ref immutable LowExprKind a) {
-	verify(isLocalRef(a));
-	return a.localRef;
-}
-
 immutable(bool) isParamRef(ref immutable LowExprKind a) {
 	return a.kind == LowExprKind.Kind.paramRef;
 }
@@ -1135,24 +1155,6 @@ immutable(bool) isParamRef(ref immutable LowExprKind a) {
 ref immutable(LowExprKind.ParamRef) asParamRef(scope return ref immutable LowExprKind a) {
 	verify(isParamRef(a));
 	return a.paramRef;
-}
-
-immutable(bool) isRecordFieldGet(ref immutable LowExprKind a) {
-	return a.kind == LowExprKind.Kind.recordFieldGet;
-}
-
-@trusted ref immutable(LowExprKind.RecordFieldGet) asRecordFieldGet(scope return ref immutable LowExprKind a) {
-	verify(isRecordFieldGet(a));
-	return *a.recordFieldGet;
-}
-
-immutable(bool) isSpecialUnary(ref immutable LowExprKind a) {
-	return a.kind == LowExprKind.Kind.specialUnary;
-}
-
-@trusted ref immutable(LowExprKind.SpecialUnary) asSpecialUnary(scope return ref immutable LowExprKind a) {
-	verify(isSpecialUnary(a));
-	return *a.specialUnary;
 }
 
 struct ArrTypeAndConstantsLow {

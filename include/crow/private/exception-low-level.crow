@@ -5,7 +5,7 @@ import
 	../fun-util: subscript
 	../misc: void
 	../number: ==, int32, nat64
-	../ptr: *, ==, mut-ptr, null, ptr-to, set-deref, zeroed
+	../ptr: *, ==, mut-ptr, null, set-deref, zeroed
 	../version: is-interpreted, is-windows
 	./alloc: gc-ctx, get-gc-ctx
 	./backtrace: get-backtrace
@@ -34,16 +34,16 @@ Run `try` and return what it returns, or return the result of `catcher` if `try`
 catch<a> a(try act a(), catcher act a(exception)) trusted
 	old-jmp-buf = *cur-jmp-buf
 	old-gc-ctx = *cur-gc-ctx
-	store __jmp_buf_tag = ()
+	store mut __jmp_buf_tag = ()
 	setjmp-result = if is-interpreted
-		store.ptr-to setjmp
+		&store setjmp
 	elif is-windows
-		store.ptr-to _setjmp
+		&store _setjmp
 	else
-		store.ptr-to setjmp
+		&store setjmp
 	if setjmp-result == 0
 		# Get here after setting the jump
-		*cur-jmp-buf := store ptr-to
+		*cur-jmp-buf := &store
 		*cur-gc-ctx := get-gc-ctx some
 		# If it throws, we'll go to the above branch.
 		res = try[]

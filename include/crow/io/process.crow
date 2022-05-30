@@ -22,7 +22,7 @@ import
 	../cell: *, as-const-ptr, as-mut-ptr, cell, new
 	../col/arr: ~, arr, for-loop
 	../col/arr-util: fold
-	../col/fix-arr: begin-ptr, fix-arr, new, ref-of-val-at, size
+	../col/fix-arr: begin-ptr, fix-arr, new, size, subscript
 	../col/mut-arr: ~=, begin-ptr, end-ptr, move-to-arr, mut-arr, new, size, unsafe-set-size
 	../col/private/arr-low-level: begin-ptr
 	../compare: <=
@@ -31,9 +31,7 @@ import
 	../number: ==, <=>, +, int32, nat8, nat32, to-int32, to-int64, to-nat32, to-nat64
 	../private/bootstrap: todo
 	../private/c-str-util: find-c-str-end
-	../ptr:
-		==, +, -, any-const-ptr, as-any-const-ptr, as-any-mut-ptr, as-ref, by-val, const-ptr, new,
-		null
+	../ptr: ==, +, -, any-const-ptr, as-any-const-ptr, as-any-mut-ptr, as-ref, const-ptr, new, null
 	../str: char8, c-str, literal, str
 	../str-conv: finish, interp, to-str, with-str, with-value
 	../str-util: as-str, join, to-c-str, to-str
@@ -223,21 +221,15 @@ shell-exec str(command str) trusted summon
 	stdout-builder char8 mut[],
 	stderr-builder char8 mut[],
 ) summon unsafe
-	# TODO: type annotation should be unnecessary
-	# (It is because currently fix-arr exposes the constructor, which should be private)
-	pfd1 = (stdout-pipe, POLLIN, 0) :: by-val<pollfd>
-	pfd2 = (stderr-pipe, POLLIN, 0) :: by-val<pollfd>
-	poll-fds fix-arr by-val pollfd = pfd1, pfd2
-	stdout-pollfd = poll-fds ref-of-val-at 0
-	stderr-pollfd = poll-fds ref-of-val-at 1
+	poll-fds fix-arr pollfd = (stdout-pipe, POLLIN, 0), (stderr-pipe, POLLIN, 0)
 	# timeout == -1 means we block
 	n-pollfds-with-events = to-int64: poll-fds.begin-ptr poll poll-fds.size, -1
 	if n-pollfds-with-events == 0
 		# TODO: is this even possible to reach ? I think we always get has-POLLHUP instead.
 		()
 	else
-		a = stdout-pollfd handle-revents stdout-builder
-		b = stderr-pollfd handle-revents stderr-builder
+		a = poll-fds[0] handle-revents stdout-builder
+		b = poll-fds[1] handle-revents stderr-builder
 		assert a.any.to-nat64 + b.any.to-nat64 == n-pollfds-with-events.to-nat64
 		# Apparently stdout and stderr can hang up at slightly different times.
 		unless a.hung-up && b.hung-up

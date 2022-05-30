@@ -100,6 +100,14 @@ immutable(DiagSeverity) getDiagnosticSeverity(ref immutable Diag a) {
 			DiagSeverity.nameNotFound,
 		(ref immutable(ParseDiag)) =>
 			DiagSeverity.parseError,
+		(ref immutable Diag.PtrIsUnsafe) =>
+			DiagSeverity.checkError,
+		(ref immutable Diag.PtrMutToConst) =>
+			DiagSeverity.checkError,
+		(ref immutable Diag.PtrNeedsExpectedType) =>
+			DiagSeverity.checkError,
+		(ref immutable Diag.PtrUnsupported) =>
+			DiagSeverity.checkError,
 		(ref immutable Diag.PurityWorseThanParent) =>
 			DiagSeverity.checkError,
 		(ref immutable Diag.PuritySpecifierRedundant) =>

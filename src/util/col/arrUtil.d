@@ -128,6 +128,13 @@ immutable(bool) everyWithIndex(T)(
 	return true;
 }
 
+immutable(bool) contains(T)(scope immutable T[] xs, scope immutable T value) {
+	foreach (immutable T x; xs)
+		if (x == value)
+			return true;
+	return false;
+}
+
 immutable(Opt!size_t) findIndex(T)(
 	scope immutable T[] a,
 	scope immutable(bool) delegate(ref immutable T) @safe @nogc pure nothrow cb,

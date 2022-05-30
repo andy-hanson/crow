@@ -1,6 +1,5 @@
 no-std
 import
-	../cell: as-cell
 	../col/arr: arr, for-loop
 	../col/arr-util: tail
 	../col/private/arr-low-level: subscript
@@ -10,7 +9,7 @@ import
 	../number: ==, <=>, +, -, int32, nat64, to-int32, to-int64, to-nat64
 	../ptr:
 		+, any-mut-ptr, as-any-mut-ptr, as-const, as-ref, by-val, const-ptr, mut-ptr, null,
-		ref-of-val, set-deref, subscript
+		set-deref, set-subscript, subscript
 	../range: ..
 	../str: c-str, str
 	../str-util: to-str
@@ -23,7 +22,7 @@ import
 		any-unhandled-exceptions, free, get-global-ctx, global-ctx, init, new-ctx, print-lock,
 		thread-function, uninit
 	./sym-low-level: init-symbol-table
-	./thread-utils: count-processors, create-one-thread, join-one-thread, thread-handle
+	./thread-utils: count-processors, create-one-thread, join-one-thread, lock, thread-handle
 
 .main-ptr alias
 	fun-ptr2<fut nat64, ctx, str[]>
@@ -32,8 +31,8 @@ import
 rt-main int32(argc int32, argv c-str*, main-ptr main-ptr) trusted noctx summon
 	do-init-constants
 	n-threads = count-processors
-	gctx-by-val by-val global-ctx = n-threads uninit
-	gctx = gctx-by-val ref-of-val
+	gctx-by-val mut by-val global-ctx = n-threads uninit
+	gctx global-ctx = &gctx-by-val
 	gctx init
 	main-fut = gctx add-main-task n-threads - 1, argc, argv, main-ptr
 	n-threads run-threads gctx
@@ -68,14 +67,14 @@ init-constants void() unsafe noctx summon builtin
 ) trusted noctx
 	# Before we start the engine, add a task.
 	# Create a ctx manually so we can call functions that need it when creating the task
-	log-ctx = log-ctx
-	perf-ctx = perf-ctx
-	log-ctx-ptr = log-ctx.ref-of-val as-any-mut-ptr
-	perf-ptr = perf-ctx.ref-of-val as-any-mut-ptr
-	print-lock = gctx.print-lock.ref-of-val
+	log-ctx mut = log-ctx
+	perf-ctx mut = perf-ctx
+	log-ctx-ptr = (&log-ctx)::log-ctx as-any-mut-ptr
+	perf-ptr = (&perf-ctx)::perf-ctx as-any-mut-ptr
+	print-lock lock = &gctx.print-lock
 	tls by-val thread-local-stuff = thread-id, print-lock, log-ctx-ptr, perf-ptr
-	ctx-by-val = gctx new-ctx tls.ref-of-val, 0
-	ctx = ctx-by-val ref-of-val
+	ctx-by-val = gctx new-ctx &tls, 0
+	ctx ctx = &ctx-by-val
 
 	add act fut nat64(c-str[], main-ptr) = (all-args, main-ptr-2) =>
 		all-args add-first-task main-ptr-2
@@ -123,8 +122,7 @@ init-constants void() unsafe noctx summon builtin
 	unless i == n-threads
 		thread-arg-ptr = thread-args-begin + i
 		*thread-arg-ptr := i, gctx
-		thread-ptr = threads + i
-		thread-ptr.as-cell create-one-thread thread-arg-ptr.as-any-mut-ptr, &thread-fun
+		threads[i] := thread-arg-ptr.as-any-mut-ptr create-one-thread &thread-fun
 		i + 1 start-threads-recur n-threads, threads, thread-args-begin, gctx
 
 .thread-fun any-mut-ptr(args-ptr any-mut-ptr) noctx unsafe summon

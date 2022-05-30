@@ -69,7 +69,7 @@ new str() noctx
 is-empty bool(a str)
 	a.inner is-empty
 
-== bool(a str, b str) trusted
+== bool(a str, b str) noctx trusted
 	a.inner seq-equal b.inner
 == bool(a char8, b char8) noctx
 	a.to-nat8 == b.to-nat8

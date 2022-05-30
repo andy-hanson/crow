@@ -76,6 +76,17 @@ struct LocalNode {
 	immutable Local* local;
 }
 
+void markIsUsedSet(scope ref LocalsInfo locals, immutable Local* local) {
+	LocalNode* node = force(locals.locals);
+	while (true) {
+		if (node.local == local) {
+			node.isUsedSet = true;
+			break;
+		}
+		node = force(node.prev);
+	}
+}
+
 struct ExprCtx {
 	@safe @nogc pure nothrow:
 

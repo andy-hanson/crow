@@ -316,6 +316,7 @@ immutable(CommonTypes) getCommonTypes(
 	immutable StructDecl* fut = com("fut", 1);
 	immutable StructDecl* namedVal = com("named-val", 1);
 	immutable StructDecl* opt = com("opt", 1);
+	immutable StructDecl* ptrConst = com("const-ptr", 1);
 	immutable StructDecl* ptrMut = com("mut-ptr", 1);
 	immutable StructDecl* fun0 = com("fun0", 1);
 	immutable StructDecl* fun1 = com("fun1", 2);
@@ -377,6 +378,7 @@ immutable(CommonTypes) getCommonTypes(
 		fut,
 		namedVal,
 		opt,
+		ptrConst,
 		ptrMut,
 		[funPtr0, funPtr1, funPtr2, funPtr3, funPtr4, funPtr5, funPtr6, funPtr7, funPtr8, funPtr9],
 		[

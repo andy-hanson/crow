@@ -7,12 +7,11 @@ import
 	../misc: void
 	../number: ==, nat64
 	../opt: new, opt
-	../ptr: as-any-mut-ptr, as-ref, by-val, ref-of-val
+	../ptr: as-any-mut-ptr, as-ref, by-val
 	../str: literal, str
 	../version: is-wasm
 	./alloc:
-		gc, get-gc-ctx, init, needs-gc, return-gc-ctx, run-garbage-collection,
-		uninit
+		gc, gc-ctx, get-gc-ctx, init, needs-gc, return-gc-ctx, run-garbage-collection, uninit
 	./bool-low-level: !, &&, ||, bool, false, true
 	./bootstrap:
 		call-with-ctx, ctx, gc-ctx-ptr, gctx-ptr, get-ctx, hard-assert, log-ctx-ptr,
@@ -34,23 +33,23 @@ get-global-ctx global-ctx() unsafe
 cur-exclusion exclusion() unsafe
 	get-ctx exclusion
 
-global-ctx record mut
-	print-lock by-val lock
-	may-be-work-to-do by-val condition
+global-ctx record mut by-ref
+	print-lock mut by-val lock
+	may-be-work-to-do mut by-val condition
 	# Set to true the first time the default exception handler is invoked.
 	# Can never be unset.
 	any-unhandled-exceptions mut bool
 
-	gc by-val gc
-	gc-root by-val gc-root
+	gc mut by-val gc
+	gc-root mut by-val gc-root
 	# All below must not be GC allocated
 
-	syms-lock by-val lock
+	syms-lock mut by-val lock
 	# protects 'gc-root.tasks'
-	.tasks-lock by-val lock
+	.tasks-lock mut by-val lock
 	.n-threads nat64
-	.n-waiting-threads by-val thread-safe-counter
-	.next-exclusion by-val thread-safe-counter
+	.n-waiting-threads mut by-val thread-safe-counter
+	.next-exclusion mut by-val thread-safe-counter
 	.is-shut-down mut bool
 
 cur-thread-id nat64() unsafe
@@ -63,21 +62,21 @@ uninit by-val global-ctx(n-threads nat64) noctx unsafe summon
 	uninit, uninit, false, uninit, gc-root, uninit, uninit, n-threads, uninit, uninit, false
 
 init void(a global-ctx) noctx unsafe
-	a.print-lock.ref-of-val init
-	a.may-be-work-to-do.ref-of-val init
-	a.gc.ref-of-val init a.n-threads
-	a.syms-lock.ref-of-val init
-	a.tasks-lock.ref-of-val init
-	a.gc-root.ref-of-val init
-	a.n-waiting-threads.ref-of-val init
-	a.next-exclusion.ref-of-val init
+	(&a.print-lock)::lock init
+	(&a.may-be-work-to-do)::condition init
+	(&a.gc)::gc init a.n-threads
+	(&a.syms-lock)::lock init
+	(&a.tasks-lock)::lock init
+	(&a.gc-root)::gc-root init
+	(&a.n-waiting-threads)::thread-safe-counter init
+	(&a.next-exclusion)::thread-safe-counter init
 
 free void(a global-ctx) noctx unsafe
-	a.may-be-work-to-do.ref-of-val destroy-condition
+	&a.may-be-work-to-do destroy-condition
 
-gc-root record mut
+gc-root record mut by-ref
 	# protected by 'tasks-lock' on the global ctx
-	tasks by-val task-queue
+	tasks mut by-val task-queue
 	syms-table mut sym[str]
 	# If there's an uncaught exception (e.g. in 'call-ref-and-drop'), we'll call this.
 	# Default is to print it and set `gctx.any-unhandled-exceptions`
@@ -85,21 +84,21 @@ gc-root record mut
 	log-handler mut log-handler
 
 .init void(a gc-root) noctx unsafe
-	a.tasks.ref-of-val init
+	(&a.tasks)::task-queue init
 
 syms-table sym[str](a global-ctx) trusted noctx
-	a.gc-root.ref-of-val syms-table
+	(&a.gc-root)::gc-root syms-table
 set-syms-table void(a global-ctx, value sym[str]) trusted noctx
-	a.gc-root.ref-of-val.syms-table := value
+	(&a.gc-root)::gc-root.syms-table := value
 
 .tasks task-queue(a global-ctx) noctx unsafe
-	a.gc-root.ref-of-val.tasks ref-of-val
+	&(&a.gc-root).tasks
 
 exception-handler fun void(exception)(a global-ctx) trusted
-	a.gc-root.ref-of-val exception-handler
+	(&a.gc-root)::gc-root exception-handler
 
 new-exclusion exclusion(v global-ctx) noctx trusted
-	v.next-exclusion.ref-of-val get-and-increment
+	&v.next-exclusion get-and-increment
 
 default-exception-handler void(e exception) summon unsafe
 	print-err-no-newline: "uncaught exception: "
@@ -108,74 +107,75 @@ default-exception-handler void(e exception) summon unsafe
 
 # TODO: move to exception.crow ?
 set-exception-handler void(exception-handler fun void(exception)) summon trusted
-	get-global-ctx.gc-root.ref-of-val.exception-handler := exception-handler
+	(&get-global-ctx.gc-root).exception-handler := exception-handler
 
 add-task void(a global-ctx, exclusion exclusion, action act void()) unsafe
 	a add-task ((exclusion, action), ())
 
 add-task void(a global-ctx, task task-node) noctx unsafe
-	a.tasks-lock.ref-of-val acquire
+	&a.tasks-lock acquire
 	a.tasks add-task task
-	a.tasks-lock.ref-of-val release
-	a.may-be-work-to-do.ref-of-val broadcast
+	&a.tasks-lock release
+	&a.may-be-work-to-do broadcast
 
 add-tasks void(a global-ctx, task-list task-list) noctx unsafe
-	a.tasks-lock.ref-of-val acquire
+	&a.tasks-lock acquire
 	a.tasks add-tasks task-list
-	a.tasks-lock.ref-of-val release
-	a.may-be-work-to-do.ref-of-val broadcast
+	&a.tasks-lock release
+	&a.may-be-work-to-do broadcast
 
 add-timed-task void(a global-ctx, time timestamp, exclusion exclusion, action act void()) unsafe
 	node task-node-with-time = (exclusion, action), (), time
-	a.tasks-lock.ref-of-val acquire
+	&a.tasks-lock acquire
 	a.tasks add-timed-task node
-	a.tasks-lock.ref-of-val release
-	a.may-be-work-to-do.ref-of-val broadcast
+	&a.tasks-lock release
+	&a.may-be-work-to-do broadcast
 
 thread-function void(thread-id nat64, gctx global-ctx) noctx unsafe summon
-	log-ctx = log-ctx
-	perf-ctx = perf-ctx
-	print-lock = gctx.print-lock ref-of-val
-	log-ctx-ptr = log-ctx.ref-of-val as-any-mut-ptr
-	perf-ptr = perf-ctx.ref-of-val as-any-mut-ptr
+	log-ctx mut = log-ctx
+	perf-ctx mut = perf-ctx
+	print-lock lock = &gctx.print-lock
+	log-ctx-ptr = (&log-ctx)::log-ctx as-any-mut-ptr
+	perf-ptr = (&perf-ctx)::perf-ctx as-any-mut-ptr
 	tls by-val thread-local-stuff = thread-id, print-lock, log-ctx-ptr, perf-ptr
-	gctx thread-function-recur tls.ref-of-val
+	gctx thread-function-recur &tls
 
 .thread-function-recur void(gctx global-ctx, tls thread-local-stuff) noctx unsafe summon
 	# Get a task to do; or sleep.
-	last-checked = gctx.may-be-work-to-do.ref-of-val get-sequence
-	match gctx choose-task
+	last-checked = &gctx.may-be-work-to-do get-sequence
+	match gctx choose-task tls.thread-id
 	as task t
 		gctx do-task tls, t
 		gctx thread-function-recur tls
 	as gc
-		gctx.may-be-work-to-do.ref-of-val broadcast
-		gctx.gc.ref-of-val run-garbage-collection gctx.gc-root
+		&gctx.may-be-work-to-do broadcast
+		&gctx.gc run-garbage-collection gctx.gc-root
 		gctx thread-function-recur tls
 	as wait-for-task wait-until-time
-		gctx.may-be-work-to-do.ref-of-val wait-on wait-until-time, last-checked
-		gctx.n-waiting-threads.ref-of-val decrement
+		&gctx.may-be-work-to-do wait-on wait-until-time, last-checked
+		&gctx.n-waiting-threads decrement
 		gctx thread-function-recur tls
 	as shut-down
 		gctx thread-shut-down
 
 .do-task void(gctx global-ctx, tls thread-local-stuff, task task) noctx unsafe summon
 	ctx = gctx new-ctx tls, task.exclusion
-	task.action call-with-ctx ctx.ref-of-val
-	gctx.tasks-lock.ref-of-val acquire
-	gctx.tasks return-task task
-	gctx.tasks-lock.ref-of-val release
-	ctx.ref-of-val return-ctx
+	task.action call-with-ctx &ctx
+	&gctx.tasks-lock acquire
+	gctx.tasks return-task task, tls.thread-id
+	&gctx.tasks-lock release
+	&ctx return-ctx
 
 .thread-shut-down void(gctx global-ctx) noctx unsafe summon
-	gctx.may-be-work-to-do.ref-of-val broadcast
-	gctx.tasks-lock.ref-of-val acquire
+	&gctx.may-be-work-to-do broadcast
+	&gctx.tasks-lock acquire
 	hard-assert: gctx.tasks is-empty
-	gctx.tasks-lock.ref-of-val release
+	&gctx.tasks-lock release
 
 new-ctx by-val ctx(gctx global-ctx, tls thread-local-stuff, exclusion exclusion) noctx unsafe
-	gc-ctx = gctx.gc.ref-of-val get-gc-ctx
-	tls.log-ctx-ptr.as-ref.handler := gctx.gc-root.ref-of-val log-handler
+	gc gc = &gctx.gc
+	gc-ctx gc-ctx = gc get-gc-ctx
+	tls.log-ctx-ptr.as-ref.handler := &gctx.gc-root log-handler
 	gctx.as-any-mut-ptr, exclusion, gc-ctx.as-any-mut-ptr, tls
 
 .return-ctx void(c ctx) noctx unsafe
@@ -190,22 +190,21 @@ new-ctx by-val ctx(gctx global-ctx, tls thread-local-stuff, exclusion exclusion)
 	# No task to do now or ever, so shut down
 	shut-down
 
-.choose-task choose-task-result(gctx global-ctx) noctx unsafe summon
+.choose-task choose-task-result(gctx global-ctx, thread-id nat64) noctx unsafe summon
 	cur-time = if is-wasm
 		0
 	else
 		get-monotime-nsec
-	gctx.tasks-lock.ref-of-val acquire
+	&gctx.tasks-lock acquire
 
-	# TODO: ref-of-val should be unnecessary for property access ?
-	res = if gctx.gc.ref-of-val needs-gc
+	res = if &gctx.gc needs-gc
 		gc
 	else
-		match gctx.tasks pop-task cur-time
+		match gctx.tasks pop-task cur-time, thread-id
 		as task t
 			t task
 		as no-task n
-			n-waiting = gctx.n-waiting-threads.ref-of-val increment-and-get
+			n-waiting = &gctx.n-waiting-threads increment-and-get
 			if (n-waiting == gctx.n-threads && !n.any-tasks) || gctx.is-shut-down
 				# Can't possibly be any more tasks: No timed tasks, no threads doing work to add tasks.
 				gctx.is-shut-down := true
@@ -213,5 +212,5 @@ new-ctx by-val ctx(gctx global-ctx, tls thread-local-stuff, exclusion exclusion)
 			else
 				n.first-task-time wait-for-task
 
-	gctx.tasks-lock.ref-of-val release
+	&gctx.tasks-lock release
 	res

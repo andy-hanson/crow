@@ -7,7 +7,7 @@ import
 	../compare: comparison
 	../misc: void
 	../number: +
-	../ptr: ==, +, as-const, mut-ptr, ref-of-val, set-deref
+	../ptr: ==, +, as-const, mut-ptr, set-deref
 	../str: ==, <=>, char8, char8s, c-str, hash-mix, str
 	../str-util: to-str
 	../tuple: a, b, new
@@ -40,7 +40,7 @@ This is O(log n), where 'n' is the number of unique syms that exist.
 ###
 str-to-sym sym(a str) trusted
 	gctx = get-global-ctx
-	gctx.syms-lock.ref-of-val with-lock () =>
+	&gctx.syms-lock with-lock () =>
 		match gctx.syms-table get-or-add a, () => a.to-malloced-c-str new-sym
 		as got x
 			x

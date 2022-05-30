@@ -2,7 +2,6 @@ no-std
 import
 	../opt: new
 	../misc: new, void
-	../ptr: ref-of-val
 	../result: err, ok, result
 	./bootstrap:
 		empty, exception, first, forwarded, fut, fut-state, hard-unreachable, last, lk,
@@ -17,7 +16,7 @@ unresolved<a> fut a() unsafe
 	res
 
 .lock<a> lock(a fut a) noctx unsafe
-	a.lk ref-of-val
+	&a.lk
 
 resolve<a> void(a fut a, value a) unsafe
 	a resolve-or-reject value.resolved

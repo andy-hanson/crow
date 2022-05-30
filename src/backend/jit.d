@@ -109,6 +109,7 @@ import model.lowModel :
 	LowFunIndex,
 	LowLocal,
 	LowParam,
+	LowParamIndex,
 	LowProgram,
 	LowPtrCombine,
 	LowThreadLocal,
@@ -132,6 +133,7 @@ import util.col.dict : mustGetAt;
 import util.col.fullIndexDict : FullIndexDict, fullIndexDictZip, mapFullIndexDict_mut;
 import util.col.stackDict : MutStackDict, mutStackDictAdd, mutStackDictMustGet;
 import util.col.str : CStr, SafeCStr;
+import util.conv : safeToInt;
 import util.opt : force, has, none, noneMut, Opt, some, someMut;
 import util.perf : Perf, PerfMeasure, withMeasure;
 import util.ptr : castImmutable, ptrTrustMe, ptrTrustMe_mut;
@@ -1040,6 +1042,12 @@ immutable(ExprResult) toGccExpr(
 			paramRefToGcc(ctx, emit, it),
 		(scope ref immutable LowExprKind.PtrCast it) =>
 			ptrCastToGcc(ctx, locals, emit, a, it),
+		(scope ref immutable LowExprKind.PtrToField it) =>
+			ptrToFieldToGcc(ctx, locals, emit, a, it),
+		(scope ref immutable LowExprKind.PtrToLocal it) =>
+			ptrToLocalToGcc(ctx, locals, emit, it),
+		(scope ref immutable LowExprKind.PtrToParam it) =>
+			ptrToParamToGcc(ctx, locals, emit, it),
 		(scope ref immutable LowExprKind.RecordFieldGet it) =>
 			recordFieldGetToGcc(ctx, locals, emit, it),
 		(scope ref immutable LowExprKind.RecordFieldSet it) =>
@@ -1152,7 +1160,7 @@ void emitToLValue(ref ExprCtx ctx, ref Locals locals, gcc_jit_lvalue* lvalue, sc
 		updateParamLocals,
 		a.updateParams,
 		(ref gcc_jit_lvalue* local, ref immutable UpdateParam updateParam) {
-			gcc_jit_param* param = getParam(ctx, immutable LowExprKind.ParamRef(updateParam.param));
+			gcc_jit_param* param = getParam(ctx, updateParam.param);
 			gcc_jit_block_add_assignment(
 				ctx.curBlock,
 				null,
@@ -1417,11 +1425,11 @@ immutable(ExprResult) paramRefToGcc(
 	ref ExprEmit emit,
 	ref immutable LowExprKind.ParamRef a,
 ) {
-	return emitSimpleNoSideEffects(ctx, emit, gcc_jit_param_as_rvalue(getParam(ctx, a)));
+	return emitSimpleNoSideEffects(ctx, emit, gcc_jit_param_as_rvalue(getParam(ctx, a.index)));
 }
 
-gcc_jit_param* getParam(ref ExprCtx ctx, immutable LowExprKind.ParamRef a) {
-	return gcc_jit_function_get_param(ctx.curFun, cast(int) a.index.index);
+gcc_jit_param* getParam(ref ExprCtx ctx, immutable LowParamIndex a) {
+	return gcc_jit_function_get_param(ctx.curFun, safeToInt(a.index));
 }
 
 immutable(ExprResult) ptrCastToGcc(
@@ -1442,6 +1450,41 @@ immutable(ExprResult) ptrCastToGcc(
 			getGccType(ctx.types, expr.type)));
 }
 
+immutable(ExprResult) ptrToFieldToGcc(
+	ref ExprCtx ctx,
+	ref Locals locals,
+	ref ExprEmit emit,
+	ref immutable LowExpr expr,
+	ref immutable LowExprKind.PtrToField a,
+) {
+	immutable gcc_jit_field* field = ctx.types.recordFields[targetRecordType(a)][a.fieldIndex];
+	return emitSimpleYesSideEffects(
+		ctx, emit, expr.type,
+		gcc_jit_lvalue_get_address(
+			gcc_jit_rvalue_dereference_field(emitToRValue(ctx, locals, a.target), null, field),
+			null));
+}
+
+immutable(ExprResult) ptrToLocalToGcc(
+	ref ExprCtx ctx,
+	ref Locals locals,
+	ref ExprEmit emit,
+	ref immutable LowExprKind.PtrToLocal a,
+) {
+	return emitSimpleNoSideEffects(ctx, emit, gcc_jit_lvalue_get_address(getLocal(locals, a.local), null));
+}
+
+immutable(ExprResult) ptrToParamToGcc(
+	ref ExprCtx ctx,
+	ref Locals locals,
+	ref ExprEmit emit,
+	ref immutable LowExprKind.PtrToParam a,
+) {
+	return emitSimpleNoSideEffects(ctx, emit, gcc_jit_lvalue_get_address(
+		gcc_jit_param_as_lvalue(getParam(ctx, a.index)),
+		null));	
+}
+
 immutable(ExprResult) recordFieldGetToGcc(
 	ref ExprCtx ctx,
 	ref Locals locals,
@@ -1453,17 +1496,6 @@ immutable(ExprResult) recordFieldGetToGcc(
 	return emitSimpleNoSideEffects(ctx, emit, targetIsPointer(a)
 		? gcc_jit_lvalue_as_rvalue(gcc_jit_rvalue_dereference_field(target, null, field))
 		: gcc_jit_rvalue_access_field(target, null, field));
-}
-
-gcc_jit_lvalue* recordFieldGetToLValue(
-	ref ExprCtx ctx,
-	ref Locals locals,
-	ref immutable LowExprKind.RecordFieldGet a,
-) {
-	immutable gcc_jit_field* field = ctx.types.recordFields[targetRecordType(a)][a.fieldIndex];
-	return targetIsPointer(a)
-		? gcc_jit_rvalue_dereference_field(emitToRValue(ctx, locals, a.target), null, field)
-		: gcc_jit_lvalue_access_field(getLValue(ctx, locals, a.target), null, field);
 }
 
 immutable(ExprResult) recordFieldSetToGcc(
@@ -1616,9 +1648,6 @@ immutable(ExprResult) constantToGcc(
 		case LowExprKind.SpecialUnary.Kind.deref:
 			return emitSimpleNoSideEffects(ctx, emit, gcc_jit_lvalue_as_rvalue(
 				gcc_jit_rvalue_dereference(emitToRValue(ctx, locals, a.arg), null)));
-		case LowExprKind.SpecialUnary.Kind.ptrTo:
-		case LowExprKind.SpecialUnary.Kind.refOfVal:
-			return emitSimpleNoSideEffects(ctx, emit, gcc_jit_lvalue_get_address(getLValue(ctx, locals, a.arg), null));
 		case LowExprKind.SpecialUnary.Kind.asAnyPtr:
 		case LowExprKind.SpecialUnary.Kind.asRef:
 		case LowExprKind.SpecialUnary.Kind.enumToIntegral:
@@ -2067,46 +2096,6 @@ immutable(gcc_jit_rvalue*) arbitraryValue(ref ExprCtx ctx, immutable LowType typ
 		(immutable LowType.Union) =>
 			getRValueUsingLocal(ctx, type, (gcc_jit_lvalue*) {}),
 	)(type);
-}
-
-gcc_jit_lvalue* getLValue(ref ExprCtx ctx, ref Locals locals, ref immutable LowExpr expr) {
-	return matchLowExprKind!(
-		gcc_jit_lvalue*,
-		(ref immutable LowExprKind.Call) => unreachable!(gcc_jit_lvalue*)(),
-		(ref immutable LowExprKind.CallFunPtr) => unreachable!(gcc_jit_lvalue*)(),
-		(ref immutable LowExprKind.CreateRecord) => unreachable!(gcc_jit_lvalue*)(),
-		(ref immutable LowExprKind.CreateUnion) => unreachable!(gcc_jit_lvalue*)(),
-		(ref immutable LowExprKind.If) => unreachable!(gcc_jit_lvalue*)(),
-		(ref immutable LowExprKind.InitConstants) => unreachable!(gcc_jit_lvalue*)(),
-		(ref immutable LowExprKind.Let) => unreachable!(gcc_jit_lvalue*)(),
-		(ref immutable LowExprKind.LocalRef it) =>
-			getLocal(locals, it.local),
-		(ref immutable LowExprKind.LocalSet) => unreachable!(gcc_jit_lvalue*)(),
-		(ref immutable LowExprKind.Loop) => unreachable!(gcc_jit_lvalue*)(),
-		(ref immutable LowExprKind.LoopBreak) => unreachable!(gcc_jit_lvalue*)(),
-		(ref immutable LowExprKind.LoopContinue) => unreachable!(gcc_jit_lvalue*)(),
-		(ref immutable LowExprKind.MatchUnion) => unreachable!(gcc_jit_lvalue*)(),
-		(ref immutable LowExprKind.ParamRef it) =>
-			gcc_jit_param_as_lvalue(getParam(ctx, it)),
-		(ref immutable LowExprKind.PtrCast) => todo!(gcc_jit_lvalue*)("!"),
-		(ref immutable LowExprKind.RecordFieldGet it) =>
-			recordFieldGetToLValue(ctx, locals, it),
-		(ref immutable LowExprKind.RecordFieldSet) => unreachable!(gcc_jit_lvalue*)(),
-		(ref immutable LowExprKind.Seq) => unreachable!(gcc_jit_lvalue*)(),
-		(ref immutable LowExprKind.SizeOf) => unreachable!(gcc_jit_lvalue*)(),
-		(ref immutable Constant) => unreachable!(gcc_jit_lvalue*)(),
-		(ref immutable LowExprKind.SpecialUnary it) =>
-			it.kind == LowExprKind.SpecialUnary.Kind.deref
-				? gcc_jit_rvalue_dereference(emitToRValue(ctx, locals, it.arg), null)
-				: todo!(gcc_jit_lvalue*)("!"),
-		(ref immutable LowExprKind.SpecialBinary) => unreachable!(gcc_jit_lvalue*)(),
-		(ref immutable LowExprKind.SpecialTernary) => unreachable!(gcc_jit_lvalue*)(),
-		(ref immutable LowExprKind.Switch0ToN) => unreachable!(gcc_jit_lvalue*)(),
-		(ref immutable LowExprKind.SwitchWithValues) => unreachable!(gcc_jit_lvalue*)(),
-		(ref immutable LowExprKind.TailRecur) => unreachable!(gcc_jit_lvalue*)(),
-		(ref immutable LowExprKind.ThreadLocalPtr) => unreachable!(gcc_jit_lvalue*)(),
-		(ref immutable LowExprKind.Zeroed) => unreachable!(gcc_jit_lvalue*)(),
-	)(expr.kind);
 }
 
 immutable(ExprResult) initConstantsToGcc(ref ExprCtx ctx, ref ExprEmit emit) {

@@ -12,7 +12,6 @@ import frontend.parse.ast :
 	ForAst,
 	FunDeclAst,
 	FunModifierAst,
-	FunPtrAst,
 	IdentifierAst,
 	IdentifierSetAst,
 	IfAst,
@@ -44,6 +43,7 @@ import frontend.parse.ast :
 	ParamAst,
 	ParamsAst,
 	ParenthesizedAst,
+	PtrAst,
 	range,
 	rangeOfModifierAst,
 	rangeOfNameAndRange,
@@ -463,9 +463,6 @@ void addExprTokens(
 			addExprTokens(alloc, tokens, allSymbols, x.collection);
 			addExprTokens(alloc, tokens, allSymbols, x.body_);
 		},
-		(ref immutable(FunPtrAst)) {
-			add(alloc, tokens, immutable Token(Token.Kind.identifier, a.range));
-		},
 		(ref immutable(IdentifierAst)) {
 			add(alloc, tokens, immutable Token(Token.Kind.identifier, a.range));
 		},
@@ -604,6 +601,9 @@ void addExprTokens(
 		},
 		(ref immutable ParenthesizedAst it) {
 			addExprTokens(alloc, tokens, allSymbols, it.inner);
+		},
+		(ref immutable(PtrAst)) {
+			add(alloc, tokens, immutable Token(Token.Kind.identifier, a.range));
 		},
 		(ref immutable SeqAst it) {
 			addExprTokens(alloc, tokens, allSymbols, it.first);

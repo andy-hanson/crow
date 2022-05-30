@@ -9,7 +9,7 @@ import
 	crow/misc: new, void
 	crow/number: int64, max-nat64, nat8, nat16, nat32, nat64, new, to-nat16, to-nat32
 	crow/private/bootstrap: c-str
-	crow/ptr: *, any-const-ptr, any-mut-ptr, const-ptr, mut-ptr, new, ptr-cast, ptr-to, size-of, to-mut-ptr
+	crow/ptr: *, any-const-ptr, any-mut-ptr, const-ptr, mut-ptr, new, ptr-cast, size-of, to-mut-ptr
 	stdio: FILE
 	sys/types: mode_t
 
@@ -141,7 +141,7 @@ new WIN32_FIND_DATAA() noctx
 	(), (), (), (), () , (), (), (), (), ()
 
 cFileName c-char mut*(a WIN32_FIND_DATAA mut*) unsafe
-	a->cFileName_STORAGE.ptr-to::chars-max-path mut* ptr-cast
+	(&a->cFileName_STORAGE)::chars-max-path mut* ptr-cast
 
 FILETIME record by-val extern
 	dwLowDateTime DWORD

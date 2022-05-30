@@ -9,14 +9,12 @@ import
 		SymFunctionTableAccess64, SymInitialize, SYMOPT_LOAD_LINES, SymSetOptions
 	../bool: ||, true
 	../bytes-types: new
-	../cell: as-mut-ptr, cell, new
 	../col/private/arr-low-level: arr-from-begin-end, new
 	../compare: <=
 	../misc: new, void
 	../private/number-low-level: ==, <=>, nat8, nat32, nat64, unsafe-to-nat32, wrap-add, wrap-sub
 	../ptr:
-		==, +, *, as-any-const-ptr, as-const, by-val, mut-ptr, null, ptr-cast, ptr-to, ref-of-val,
-		set-deref, size-of
+		==, +, *, as-any-const-ptr, as-const, by-val, mut-ptr, null, ptr-cast, set-deref, size-of
 	../version: is-interpreted, is-windows
 	./alloc: copy-data-from, gc-ctx, try-alloc-uninitialized
 	./bootstrap: char8, c-str, hard-assert, none, opt, some
@@ -87,13 +85,13 @@ Result c-str are temporary, must copy!
 	hard-assert: ok0
 
 	# For some reason this has to be on the stack. Failed when in 'windows-backtrace-vars'
-	context CONTEXT = CONTEXT_FULL,
-	context.ptr-to RtlCaptureContext
-	frame STACKFRAME64 = context.ptr-to,
+	context mut CONTEXT = CONTEXT_FULL,
+	&context RtlCaptureContext
+	frame mut STACKFRAME64 = &context,
 
 	_ = SYMOPT_LOAD_LINES SymSetOptions
 	max-end = entries + max-entries
-	end = gc windows-walk-backtrace entries, max-end, skip, process, thread, context.ptr-to, frame.ptr-to, vars
+	end = gc windows-walk-backtrace entries, max-end, skip, process, thread, &context, &frame, vars
 	ok1 = process SymCleanup
 	hard-assert: ok1
 	(entries.as-const arr-from-begin-end end.as-const),
@@ -136,7 +134,7 @@ Result c-str are temporary, must copy!
 	elif IMAGE_FILE_MACHINE_AMD64 StackWalk64 process, thread, frame, ctx, null, &SymFunctionTableAccess64, null, null
 		if skip == 0
 			name c-str = if process SymGetSymFromAddr64 frame->AddrPC.Offset, vars.offset, vars.symbol
-				gc copy-c-str-or-empty vars.symbol->Name.ptr-to
+				gc copy-c-str-or-empty &vars.symbol->Name
 			else
 				""
 			*out := if process SymGetLineFromAddr64 frame->AddrPC.Offset, vars.displacement, vars.line
@@ -164,9 +162,9 @@ Result c-str are temporary, must copy!
 	skip nat64,
 ) noctx unsafe
 	cursor-val by-val unw_cursor_t = (),
-	cursor = cursor-val ref-of-val
+	cursor unw_cursor_t = &cursor-val
 	context-val by-val unw_context_t = (),
-	context = context-val ref-of-val
+	context unw_context_t = &context-val
 	err0 = context unw_getcontext
 	hard-assert: err0 == 0
 	err1 = cursor unw_init_local context
@@ -191,11 +189,11 @@ Result c-str are temporary, must copy!
 	if out-cur == out-end || cursor.unw_step <= 0
 		out-cur
 	else
-		offset by-val cell unw_word_t = 0,
+		offset mut unw_word_t = 0
 		buf-size = 256
 		buf-try char8 mut*? = gc try-alloc-uninitialized buf-size
 		if buf ?= buf-try
-			err = cursor unw_get_proc_name buf, buf-size, offset.ref-of-val.as-mut-ptr
+			err = cursor unw_get_proc_name buf, buf-size, &offset
 			*out-cur := if err == 0
 				# TODO: get filename and line number too
 				buf.as-const, "", 0, 0

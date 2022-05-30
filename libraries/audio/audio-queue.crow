@@ -12,21 +12,21 @@ import
 	crow/misc: new, void
 	crow/number: +, ==, <=>, float32
 	crow/private/thread-utils: acquire, init, lock, release, uninit
-	crow/ptr: ==, +, -, *, by-val, const-ptr, mut-ptr, ref-eq, ref-of-val, set-deref
+	crow/ptr: ==, +, -, *, by-val, const-ptr, mut-ptr, ref-eq, set-deref
 	crow/str: literal
 	crow/str-conv: finish, interp, with-str, with-value
 	crow/test-util: is
 	./audio: new, playing-sound
 	./sound: ==, format, new, samples, sound, sound-format, to-str
 
-audio-queue record force-sendable
+audio-queue record force-sendable by-ref
 	format sound-format
 	.lock-by-val by-val lock
 	# All sounds normalized to `format`
 	.playing entry mut[]
 
 .lock lock(a audio-queue) noctx unsafe
-	a.lock-by-val ref-of-val
+	&a.lock-by-val
 
 new audio-queue(format sound-format) trusted
 	res audio-queue = format, uninit, ()

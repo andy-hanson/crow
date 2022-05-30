@@ -262,8 +262,8 @@ contexts:
     - match: '{{unindented_line}}'
       pop: true
 
-    # '!' in '!x' or '-' in '-x' or '~' in '~x'
-    - match: '\!|-|~|\*'
+    # '&' in '&x' or '!' in '!x' or '-' in '-x' or '~' in '~x'
+    - match: '\&|\!|-|~|\*'
       scope: variable.function.crow
     # Lambda () =>
     - match: '\(\) =>'

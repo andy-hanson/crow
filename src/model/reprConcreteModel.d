@@ -312,6 +312,12 @@ immutable(Repr) reprOfConcreteExprKind(ref Alloc alloc, ref immutable ConcreteEx
 						reprOfConcreteExpr(alloc, case_.then)]))]),
 		(ref immutable ConcreteExprKind.ParamRef it) =>
 			reprRecord(alloc, "param-ref", [reprOfConcreteParamRef(*it.param)]),
+		(ref immutable ConcreteExprKind.PtrToField it) =>
+			reprRecord(alloc, "ptr-to-field", [reprOfConcreteExpr(alloc, it.target), reprNat(it.fieldIndex)]),
+		(ref immutable ConcreteExprKind.PtrToLocal it) =>
+			reprRecord(alloc, "ptr-to-local", [reprOfConcreteLocalRef(*it.local)]),
+		(ref immutable ConcreteExprKind.PtrToParam it) =>
+			reprRecord(alloc, "ptr-to-param", [reprOfConcreteParamRef(*it.param)]),
 		(ref immutable ConcreteExprKind.RecordFieldGet it) =>
 			reprRecord(alloc, "get-field", [
 				reprOfConcreteExpr(alloc, it.target),

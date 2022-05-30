@@ -1,36 +1,37 @@
 no-std
 import
 	../bool: !, &&, bool
-	../col/mut-arr:
-		in, index-of, mut-arr, mut-arr-by-val-with-capacity-from-unmanaged-memory,
-		remove-unordered-at, push-capacity-must-be-sufficient
+	../col/fix-arr: fill, fix-arr, in, set-subscript, unmanaged-uninitialized-fix-arr
 	../compare: <, <=
 	../io/private/time-low-level: timestamp
 	../misc: new, void
-	../number: ==, <=>, nat64
+	../number: ==, <=>, max-nat64, nat64
 	../opt: is-empty, new, opt
-	../ptr: by-val, ref-cast, ref-of-val, zeroed
+	../ptr: by-val, ref-cast, zeroed
 	./bootstrap: hard-unreachable, first, last, new, next, set-next, time
 export
 	./bootstrap: action, exclusion, task, task-list, task-node, task-node-with-time
 
 # WARN: `task-queue` is not thread-safe; acquire `tasks-lock` on `global-ctx` first.
 
-task-queue record mut
+task-queue record mut by-ref
 	# sorted by time
 	# TODO: use a heap
 	# First node is an ignored sentinel.
-	.timed-sentinel-val by-val<task-node-with-time>
-	.non-timed-sentinel-val by-val<task-node>
+	.timed-sentinel-val .mut by-val<task-node-with-time>
+	.non-timed-sentinel-val .mut by-val<task-node>
 	.non-timed-last .mut task-node
 	# This is allocated with max-threads capacity on init, so never needs further allocation
-	.currently-running-exclusions by-val<exclusion mut[]>
+	.currently-running-exclusions fix-arr exclusion
+
+.nil-exclusion exclusion() noctx
+	max-nat64
 
 .timed-sentinel task-node-with-time(a task-queue) noctx trusted
-	a.timed-sentinel-val ref-of-val
+	&a.timed-sentinel-val
 
 .non-timed-sentinel task-node(a task-queue) noctx trusted
-	a.non-timed-sentinel-val ref-of-val
+	&a.non-timed-sentinel-val
 
 is-empty bool(a task-queue) noctx
 	a.timed-sentinel.next.is-empty && a.non-timed-sentinel.next.is-empty
@@ -38,10 +39,11 @@ is-empty bool(a task-queue) noctx
 uninit by-val task-queue(max-threads nat64) noctx unsafe
 	timed-sentinel by-val task-node-with-time = (0, () => hard-unreachable), (), 0
 	non-timed-sentinel by-val task-node = (0, () => hard-unreachable), ()
-	timed-sentinel, non-timed-sentinel, zeroed, max-threads.mut-arr-by-val-with-capacity-from-unmanaged-memory
+	timed-sentinel, non-timed-sentinel, zeroed, max-threads.unmanaged-uninitialized-fix-arr
 
 init void(a task-queue) noctx unsafe
 	a.non-timed-last := a non-timed-sentinel
+	a.currently-running-exclusions fill nil-exclusion
 
 # Expose construction of nodes, because it's better to do this outside of a lock
 new task-node(task task)
@@ -58,12 +60,12 @@ no-task record by-val
 	first-task-time timestamp?
 
 # Caller should call 'return-task' after running the task
-pop-task pop-task-result(a task-queue, cur-time timestamp) noctx unsafe
+pop-task pop-task-result(a task-queue, cur-time timestamp, thread-id nat64) noctx unsafe
 	a move-timed-tasks cur-time
-	exclusions = a.currently-running-exclusions ref-of-val
+	exclusions = a currently-running-exclusions
 	task = a try-pop-task exclusions
 	if t ?= task
-		exclusions push-capacity-must-be-sufficient t.exclusion
+		exclusions[thread-id] := t exclusion
 		t task
 	else
 		first-task-time timestamp? = if head ?= a.timed-sentinel next
@@ -82,10 +84,10 @@ pop-task pop-task-result(a task-queue, cur-time timestamp) noctx unsafe
 .as-task-node task-node(a task-node-with-time) noctx trusted
 	a ref-cast
 
-.try-pop-task task?(a task-queue, exclusions exclusion mut[]) noctx unsafe
+.try-pop-task task?(a task-queue, exclusions fix-arr exclusion) noctx unsafe
 	a try-pop-task-recur a.non-timed-sentinel, exclusions
 
-.try-pop-task-recur task?(a task-queue, prev task-node, exclusions exclusion mut[]) noctx unsafe
+.try-pop-task-recur task?(a task-queue, prev task-node, exclusions fix-arr exclusion) noctx unsafe
 	if cur ?= prev next
 		task task = cur task
 		if task.exclusion in exclusions
@@ -96,13 +98,8 @@ pop-task pop-task-result(a task-queue, cur-time timestamp) noctx unsafe
 				a.non-timed-last := prev
 			task,
 
-return-task void(a task-queue, task task) noctx unsafe
-	exclusions = a.currently-running-exclusions ref-of-val
-	if index ?= exclusions index-of task.exclusion
-		_ = exclusions remove-unordered-at index
-		()
-	else
-		hard-unreachable
+return-task void(a task-queue, _ task, thread-index nat64) noctx unsafe
+	a.currently-running-exclusions[thread-index] := nil-exclusion
 
 add-timed-task void(a task-queue, task task-node-with-time) noctx unsafe
 	a.timed-sentinel add-timed-task-recur task

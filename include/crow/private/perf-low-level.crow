@@ -9,7 +9,7 @@ perf-time record by-val
 	# TODO:PRIVATE
 	ns nat64
 
-perf-ctx record mut
+perf-ctx record mut by-ref
 	measure-names mut sym[]
 	measure-values mut fix-arr perf-measure-value
 

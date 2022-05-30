@@ -12,7 +12,6 @@ import frontend.parse.ast :
 	ExprAst,
 	ExprAstKind,
 	ForAst,
-	FunPtrAst,
 	IdentifierAst,
 	IdentifierSetAst,
 	IfAst,
@@ -34,6 +33,7 @@ import frontend.parse.ast :
 	NameOrUnderscoreOrNone,
 	OptNameAndRange,
 	ParenthesizedAst,
+	PtrAst,
 	SeqAst,
 	ThenAst,
 	ThenVoidAst,
@@ -65,7 +65,6 @@ import frontend.parse.lexer :
 	takeIndentOrFailGeneric,
 	takeName,
 	takeNameAndRange,
-	takeNameOrOperator,
 	takeNameOrUnderscore,
 	takeNameOrUnderscoreOrNone,
 	takeNewlineOrIndent_topLevel,
@@ -1147,13 +1146,14 @@ immutable(ExprAndMaybeDedent) parseExprBeforeCall(scope ref Lexer lexer, immutab
 				? parseLambdaAfterArrow(lexer, start, allowedBlock, some(name))
 				: handleName(lexer, start, immutable NameAndRange(start, name));
 		case Token.operator:
-			// '&' can't be used as a prefix operator, instead it makes a fun-ptr
 			immutable Operator operator = getCurOperator(lexer);
 			if (operator == Operator.and1) {
-				immutable Sym name = takeNameOrOperator(lexer);
-				return noDedent(immutable ExprAst(
-					range(lexer, start),
-					immutable ExprAstKind(immutable FunPtrAst(name))));
+				immutable ExprAndMaybeDedent inner = parseExprBeforeCall(lexer, noBlock());
+				return immutable ExprAndMaybeDedent(
+					immutable ExprAst(
+						range(lexer, start),
+						immutable ExprAstKind(allocate(lexer.alloc, immutable PtrAst(inner.expr)))),
+					inner.dedents);
 			} else
 				return handlePrefixOperator(lexer, allowedBlock, start, getCurOperator(lexer));
 		case Token.literal:

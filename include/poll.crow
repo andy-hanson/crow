@@ -5,13 +5,12 @@ import
 	crow/c-types: u-long
 	crow/extra-types: fd-t
 	crow/number: int16, int32
-	crow/ptr: by-val, mut-ptr
+	crow/ptr: mut-ptr
 
-pollfd record mut by-ref extern
+pollfd record by-val extern
 	fd fd-t
 	events int16
-	# mut, written to by 'poll'
-	revents mut int16
+	revents int16
 
 POLLIN int16()
 	1
@@ -26,7 +25,7 @@ POLLHUP int16()
 POLLNVAL int16()
 	0x20
 
-poll int32(fds by-val<pollfd> mut*, nfds u-long, timeout int32) extern<c> summon
+poll int32(fds pollfd mut*, nfds u-long, timeout int32) extern<c> summon
 
 has-POLLIN bool(revents int16)
 	revents bits-intersect POLLIN

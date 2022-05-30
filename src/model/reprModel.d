@@ -371,6 +371,15 @@ immutable(Repr) reprExpr(ref Alloc alloc, scope ref Ctx ctx, ref immutable Expr 
 					reprMatchUnionCase(alloc, ctx, case_))]),
 		(ref immutable Expr.ParamRef it) =>
 			reprRecord(alloc, "param-ref", [reprSym(force(it.param.name))]),
+		(ref immutable Expr.PtrToField it) =>
+			reprRecord(alloc, "ptr-to-field", [
+				reprType(alloc, ctx, it.pointerType),
+				reprExpr(alloc, ctx, it.target),
+				reprNat(it.fieldIndex)]),
+		(ref immutable Expr.PtrToLocal it) =>
+			reprRecord(alloc, "ptr-to-local", [reprSym(it.local.name)]),
+		(ref immutable Expr.PtrToParam it) =>
+			reprRecord(alloc, "ptr-to-param", [reprSym(force(it.param.name))]),
 		(ref immutable Expr.Seq a) =>
 			reprRecord(alloc, "seq", [
 				reprExpr(alloc, ctx, a.first),

@@ -1,13 +1,14 @@
 import
-	crow/ptr: any-mut-ptr, null, ptr-to
+	crow/io/duration: sec
+	crow/io/time: delay
+	crow/ptr: any-mut-ptr, null
 	pthread: pthread_create, pthread_t
 
 main fut nat(_ str[]) summon unsafe
 	thread mut pthread_t = ()
-	# avoid 'mutable but never reassigned' error
-	thread := 0
-	err = thread.ptr-to pthread_create null, &thread-fun, null
+	err = &thread pthread_create null, &thread-fun, null
 	assert err == 0
+	<- 1.sec delay
 	()
 
 .thread-fun any-mut-ptr(a any-mut-ptr) noctx

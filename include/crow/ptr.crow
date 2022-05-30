@@ -4,14 +4,13 @@ Functions dealing with pointers and low-level memory issues.
 
 no-std
 import
-	string: memcmp
 	./bool: bool
 	./compare: comparison, less, equal, greater
 	./fun-util:
 		fun-ptr0, fun-ptr1, fun-ptr2, fun-ptr3, fun-ptr4, fun-ptr5, fun-ptr6, fun-ptr7, fun-ptr8,
 		fun-ptr9, subscript
 	./misc: new
-	./number: ==, /
+	./number: /
 	./private/bootstrap: arr, begin-ptr, nat64, size, void
 	./private/number-low-level: wrap-sub
 export
@@ -49,8 +48,7 @@ new<a> a mut*() noctx unsafe
 	null
 
 # `*a` reads from the pointee, like in C.
-* <a> a(a a*) noctx unsafe
-	*a.as-mut
+* <a> a(a a*) noctx unsafe builtin
 * <a> a(a a mut*) noctx unsafe builtin
 
 # `*a := value` writes to the pointee, like in C.
@@ -70,8 +68,7 @@ set-subscript<a> void(a a mut*, n nat64, value a) noctx unsafe
 `true` iff the two pointers are identical.
 (That means: `false` if they point to equal values but are different pointers.)
 ###
-== <a> bool(a a*, b a*) noctx unsafe
-	a.as-mut == b.as-mut
+== <a> bool(a a*, b a*) noctx unsafe builtin
 == <a> bool(a a mut*, b a mut*) noctx unsafe builtin
 
 ###
@@ -79,13 +76,11 @@ Advance the pointer past `offset` values of type `a`.
 
 Like in C, the raw address increases by `offset * size-of@<a>`.
 ###
-+ <a> a*(a a*, offset nat64) noctx unsafe
-	a.as-mut + offset as-const
++ <a> a*(a a*, offset nat64) noctx unsafe builtin
 + <a> a mut*(a a mut*, offset nat64) noctx unsafe builtin
 
 # Back up the pointer by `offset` values of type `a`.
-- <a> a*(a a*, offset nat64) noctx unsafe
-	a.as-mut - offset as-const
+- <a> a*(a a*, offset nat64) noctx unsafe builtin
 - <a> a mut*(a a mut*, offset nat64) noctx unsafe builtin
 
 ###
@@ -98,11 +93,16 @@ This is undefined behavior if `a < b` or if `size-of@<a> == 0`.
 - <a> nat64(a a mut*, b a mut*) noctx unsafe
 	(a.to-nat64 wrap-sub b.to-nat64) / size-of@<a>
 
-# True iff `a.to-nat64 < b.to-nat64`.
+.is-less<a> bool(a a*, b a*) noctx unsafe builtin
 .is-less<a> bool(a a mut*, b a mut*) noctx unsafe builtin
 # Same as `a.to-nat64 <=> b.to-nat64`.
 <=> <a> comparison(a a*, b a*) noctx unsafe
-	a.as-mut <=> b.as-mut
+	if a is-less b
+		less
+	elif a == b
+		equal
+	else
+		greater
 <=> <a> comparison(a a mut*, b a mut*) noctx unsafe
 	if a is-less b
 		less
@@ -134,8 +134,7 @@ ref-cast<out, in> out(a in) no-doc noctx unsafe
 	a.as-any-mut-ptr as-ref
 
 # Raw address of a pointer.
-to-nat64<a> nat64(a a*) noctx unsafe
-	a.as-mut to-nat64
+to-nat64<a> nat64(a a*) noctx unsafe builtin
 to-nat64<a> nat64(a a mut*) noctx unsafe builtin
 # Get a pointer from a raw address.
 to-const-ptr<a> a*(a nat64) noctx unsafe
@@ -154,15 +153,6 @@ max-ptr<a> a*() noctx unsafe
 max-ptr<a> a mut*() noctx unsafe
 	null + 0xffffffffffffffff
 
-###
-True iff the bits of two values are equal.
-For reference types, this is true if the pointers are equal.
-###
-bits-equal<a> bool(a a, b a) no-doc noctx unsafe
-	ap a* = a ptr-to
-	bp a* = b ptr-to
-	(ap.as-any-const-ptr memcmp bp.as-any-const-ptr, size-of@<a>) == 0
-
 each-ptr<a> void(a a[], f act void(a*)) no-doc unsafe
 	a.begin-ptr each-ptr-recur a.begin-ptr + a.size, f
 .each-ptr-recur<a> void(cur a*, end a*, f act void(a*)) unsafe
@@ -171,29 +161,6 @@ each-ptr<a> void(a a[], f act void(a*)) no-doc unsafe
 		cur + 1 each-ptr-recur end, f
 
 region Conversion between pointers and pointer-like types
-
-###
-Reinterpret a pointer to a ref.
-Does nothing at runtime, just changes the type.
-###
-ref-of-ptr<a> a(p by-val<a>*) no-doc noctx unsafe
-	*p ref-of-val
-ref-of-ptr<a> a(p by-val<a> mut*) no-doc noctx unsafe
-	*p ref-of-val
-
-###
-Get a reference to a value stored by-val.
-
-Unsafe because the reference will only be valid as long as `a`is valid and does not move.
-###
-ref-of-val<a> a(a by-val a) no-doc noctx unsafe builtin
-
-###
-Gets a pointer to something stored on the stack.
-WARN: If 'a' is a reference type already, this is a pointer to a pointer!
-###
-ptr-to<a> a*(a a) no-doc noctx unsafe builtin
-ptr-to<a> a mut*(a a) no-doc noctx unsafe builtin
 
 # TODO: this function only works for by-ref types -- currently that is not checked by the type checker
 # Convert a reference to `any-ptr`.

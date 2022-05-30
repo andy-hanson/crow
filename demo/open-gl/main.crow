@@ -10,7 +10,7 @@ import
 	crow/math/trig: pi
 	crow/math/vec: +, -, *, new, right, up, vec2-32, vec3-32
 	crow/private/runtime: cur-thread-id
-	crow/ptr: ==, as-any-const-ptr, to-const-ptr, null, ptr-cast, ptr-to, size-of
+	crow/ptr: ==, as-any-const-ptr, to-const-ptr, null, ptr-cast, size-of
 	crow/str-util: to-str
 	OpenGL/gl:
 		glActiveTexture, glBindBuffer, glBindTexture, glBufferData, glBufferSubData, glClear,
@@ -240,7 +240,7 @@ size-bytes nat(vertices vertex[]) unsafe
 	vertices.size * size-of@<vertex>
 
 .vbo-free void(gl gl-ext, vbo GLuint) summon unsafe
-	gl glDeleteBuffers 1, vbo.ptr-to
+	gl glDeleteBuffers 1, &vbo
 
 .gl-check-error void(gl gl-ext, desc str) summon
 	err = gl glGetError

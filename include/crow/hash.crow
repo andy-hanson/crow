@@ -10,7 +10,6 @@ import
 	./bool: bool, to-nat64
 	./misc: void
 	./number: int8, int16, int32, int64, nat8, nat16, nat32, nat64, to-int64, to-nat64
-	./ptr: by-val, ref-of-val
 	./private/number-low-level: unsafe-to-nat64, wrap-add
 
 ###
@@ -27,9 +26,9 @@ hash-mix<a> spec
 
 # Get a hash code for any value.
 hash<a> nat64(a a) trusted hash-mix<a>
-	hasher by-val hasher = 0,
-	hasher.ref-of-val hash-mix a
-	hasher.ref-of-val cur
+	hasher hasher = 0,
+	hasher hash-mix a
+	hasher cur
 
 # Type that stores the state of hashing.
 hasher record mut
