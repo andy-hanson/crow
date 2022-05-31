@@ -27,7 +27,7 @@ import model.lowModel :
 import model.model : decl, FunInst, name, Param, Type, typeArgs, writeTypeUnquoted;
 import util.col.arr : empty;
 import util.opt : force, has;
-import util.writer : Writer, writeChar, writeNat, writeStatic, writeWithCommas;
+import util.writer : Writer, writeWithCommas;
 import util.sym : AllSymbols, writeSym;
 
 void writeFunName(
@@ -53,13 +53,13 @@ void writeFunName(
 		(ref immutable LowFunSource.Generated it) {
 			writeSym(writer, allSymbols, it.name);
 			if (!empty(it.typeArgs)) {
-				writeChar(writer, '<');
+				writer ~= '<';
 				writeWithCommas!LowType(writer, it.typeArgs, (scope ref immutable LowType it) {
 					writeLowType(writer, allSymbols, lowProgram.allTypes, it);
 				});
-				writeChar(writer, '>');
+				writer ~= '>';
 			}
-			writeStatic(writer, " (generated)");
+			writer ~= " (generated)";
 		},
 	)(a.source);
 }
@@ -74,7 +74,7 @@ void writeFunSig(
 		void,
 		(immutable ConcreteFun* it) {
 			writeConcreteType(writer, allSymbols, it.returnType);
-			writeChar(writer, '(');
+			writer ~= '(';
 			writeWithCommas!ConcreteParam(
 				writer,
 				it.paramsExcludingCtxAndClosure,
@@ -82,24 +82,24 @@ void writeFunSig(
 					matchConcreteParamSource!void(
 						param.source,
 						(scope ref immutable ConcreteParamSource.Closure) {
-							writeStatic(writer, "<closure>");
+							writer ~= "<closure>";
 						},
 						(scope ref immutable Param p) {
 							if (has(p.name))
 								writeSym(writer, allSymbols, force(p.name));
 							else
-								writeChar(writer, '_');
+								writer ~= '_';
 						},
 						(scope ref immutable ConcreteParamSource.Synthetic) {
-							writeChar(writer, '_');
+							writer ~= '_';
 						});
-					writeChar(writer, ' ');
+					writer ~= ' ';
 					writeConcreteType(writer, allSymbols, param.type);
 				});
-			writeChar(writer, ')');
+			writer ~= ')';
 		},
 		(ref immutable LowFunSource.Generated) {
-			writeStatic(writer, "(generated)");
+			writer ~= "(generated)";
 		},
 	)(a.source);
 }
@@ -113,28 +113,28 @@ void writeLowType(
 	matchLowType!(
 		void,
 		(immutable LowType.ExternPtr) {
-			writeStatic(writer, "some extern-ptr type"); // TODO: more detail
+			writer ~= "some extern-ptr type"; // TODO: more detail
 		},
 		(immutable LowType.FunPtr) {
-			writeStatic(writer, "some fun ptr type"); // TODO: more detail
+			writer ~= "some fun ptr type"; // TODO: more detail
 		},
 		(immutable PrimitiveType it) {
 			writeSym(writer, allSymbols, symOfPrimitiveType(it));
 		},
 		(immutable LowType.PtrGc it) {
-			writeStatic(writer, "gc-ptr(");
+			writer ~= "gc-ptr(";
 			writeLowType(writer, allSymbols, lowTypes, *it.pointee);
-			writeChar(writer, ')');
+			writer ~= ')';
 		},
 		(immutable LowType.PtrRawConst it) {
-			writeStatic(writer, "raw-ptr-const(");
+			writer ~= "raw-ptr-const(";
 			writeLowType(writer, allSymbols, lowTypes, *it.pointee);
-			writeChar(writer, ')');
+			writer ~= ')';
 		},
 		(immutable LowType.PtrRawMut it) {
-			writeStatic(writer, "raw-ptr-mut(");
+			writer ~= "raw-ptr-mut(";
 			writeLowType(writer, allSymbols, lowTypes, *it.pointee);
-			writeChar(writer, ')');
+			writer ~= ')';
 		},
 		(immutable LowType.Record it) {
 			writeConcreteStruct(writer, allSymbols, *lowTypes.allRecords[it].source);
@@ -151,21 +151,21 @@ private void writeConcreteFunName(ref Writer writer, ref const AllSymbols allSym
 		(ref immutable FunInst it) {
 			writeSym(writer, allSymbols, it.name);
 			if (!empty(typeArgs(it))) {
-				writeChar(writer, '<');
+				writer ~= '<';
 				writeWithCommas!Type(writer, typeArgs(it), (ref immutable Type typeArg) {
 					writeTypeUnquoted(writer, allSymbols, typeArg);
 				});
-				writeChar(writer, '>');
+				writer ~= '>';
 			}
 		},
 		(ref immutable ConcreteFunSource.Lambda it) {
 			writeConcreteFunName(writer, allSymbols, *it.containingFun);
-			writeStatic(writer, ".lambda");
-			writeNat(writer, it.index);
+			writer ~= ".lambda";
+			writer ~= it.index;
 		},
 		(ref immutable(ConcreteFunSource.Test)) {
 			//TODO: more unique name for each test
-			writeStatic(writer, "test");
+			writer ~= "test";
 		},
 	)(a.source);
 }
@@ -182,17 +182,17 @@ void writeConcreteStruct(
 		(ref immutable ConcreteStructSource.Inst it) {
 			writeSym(writer, allSymbols, decl(*it.inst).name);
 			if (!empty(it.typeArgs)) {
-				writeChar(writer, '<');
+				writer ~= '<';
 				writeWithCommas!ConcreteType(writer, it.typeArgs, (ref immutable ConcreteType t) {
 					writeConcreteType(writer, allSymbols, t);
 				});
-				writeChar(writer, '>');
+				writer ~= '>';
 			}
 		},
 		(ref immutable ConcreteStructSource.Lambda it) {
 			writeConcreteFunName(writer, allSymbols, *it.containingFun);
-			writeStatic(writer, ".lambda");
-			writeNat(writer, it.index);
+			writer ~= ".lambda";
+			writer ~= it.index;
 		},
 	)(a.source);
 }

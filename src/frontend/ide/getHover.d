@@ -24,7 +24,7 @@ import util.col.str : SafeCStr;
 import util.path : AllPaths, PathsInfo;
 import util.ptr : ptrTrustMe_mut;
 import util.sym : AllSymbols, writeSym;
-import util.writer : finishWriterToSafeCStr, writeChar, Writer, writeStatic;
+import util.writer : finishWriterToSafeCStr, Writer;
 
 immutable(SafeCStr) getHoverStr(
 	ref TempAlloc tempAlloc,
@@ -55,73 +55,66 @@ void getHover(
 			getExprHover(writer, it);
 		},
 		(ref immutable FunDecl it) {
-			writeStatic(writer, "fun ");
+			writer ~= "fun ";
 			writeSym(writer, allSymbols, it.name);
 		},
 		(ref immutable Position.ImportedModule it) {
-			writeStatic(writer, "import module ");
+			writer ~= "import module ";
 			writeFile(writer, allPaths, pathsInfo, program.filesInfo, it.module_.fileIndex);
 		},
 		(ref immutable Position.ImportedName it) {
 			getImportedNameHover(writer, it);
 		},
 		(ref immutable Param it) {
-			writeStatic(writer, "param ");
+			writer ~= "param ";
 			writeSym(writer, allSymbols, it.nameOrUnderscore);
 		},
 		(ref immutable Position.RecordFieldPosition it) {
-			writeStatic(writer, "field ");
+			writer ~= "field ";
 			writeStructDecl(writer, allSymbols, *it.struct_);
-			writeChar(writer, '.');
+			writer ~= '.';
 			writeSym(writer, allSymbols, it.field.name);
-			writeStatic(writer, " (");
+			writer ~= " (";
 			writeTypeUnquoted(writer, allSymbols, it.field.type);
-			writeChar(writer, ')');
+			writer ~= ')';
 		},
 		(ref immutable SpecDecl) {
-			writeStatic(writer, "TODO: spec hover");
+			writer ~= "TODO: spec hover";
 		},
 		(ref immutable StructDecl it) {
-			matchStructBody!void(
+			writer ~= matchStructBody!(immutable string)(
 				body_(it),
-				(ref immutable StructBody.Bogus) {
-					writeStatic(writer, "type ");
-				},
-				(ref immutable StructBody.Builtin) {
-					writeStatic(writer, "builtin type ");
-				},
-				(ref immutable StructBody.Enum) {
-					writeStatic(writer, "enum type ");
-				},
-				(ref immutable StructBody.Flags) {
-					writeStatic(writer, "flags type ");
-				},
-				(ref immutable StructBody.ExternPtr) {
-					writeStatic(writer, "extern type ");
-				},
-				(ref immutable StructBody.Record) {
-					writeStatic(writer, "record ");
-				},
-				(ref immutable StructBody.Union) {
-					writeStatic(writer, "union ");
-				});
+				(ref immutable StructBody.Bogus) =>
+					"type ",
+				(ref immutable StructBody.Builtin) =>
+					"builtin type ",
+				(ref immutable StructBody.Enum) =>
+					"enum type ",
+				(ref immutable StructBody.Flags) =>
+					"flags type ",
+				(ref immutable StructBody.ExternPtr) =>
+					"extern type ",
+				(ref immutable StructBody.Record) =>
+					"record ",
+				(ref immutable StructBody.Union) =>
+					"union ");
 			writeSym(writer, allSymbols, it.name);
 		},
 		(ref immutable Type a) {
-			writeStatic(writer, "TODO: hover for type");
+			writer ~= "TODO: hover for type";
 		},
 		(ref immutable(TypeParam)) {
-			writeStatic(writer, "TODO: type param");
+			writer ~= "TODO: hover for type param";
 		});
 }
 
 private:
 
 void getImportedNameHover(ref Writer writer, ref immutable Position.ImportedName) {
-	writeStatic(writer, "TODO: getImportedNameHover");
+	writer ~= "TODO: getImportedNameHover";
 }
 
 void getExprHover(ref Writer writer, ref immutable Expr) {
-	writeStatic(writer, "TODO: getExprHover");
+	writer ~= "TODO: getExprHover";
 }
 

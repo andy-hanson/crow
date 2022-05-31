@@ -14,7 +14,7 @@ import util.ptr : ptrTrustMe_mut;
 import util.sourceRange : RangeWithinFile;
 import util.sym : AllSymbols, eachCharInSym, emptySym, Sym, symOfStr, symSize, writeSym;
 import util.util : todo, verify;
-import util.writer : finishWriterToSafeCStr, writeChar, Writer, writeStatic;
+import util.writer : finishWriterToSafeCStr, Writer;
 
 struct AllPaths {
 	@safe @nogc pure nothrow:
@@ -562,7 +562,7 @@ void eachPartRecur(
 	}
 }
 
-void writePathPlain(
+public void writePathPlain(
 	ref Writer writer,
 	ref const AllPaths allPaths,
 	immutable Path p,
@@ -570,7 +570,7 @@ void writePathPlain(
 	immutable Opt!Path par = parent(allPaths, p);
 	if (has(par)) {
 		writePathPlain(writer, allPaths, force(par));
-		writeChar(writer, '/');
+		writer ~= '/';
 	}
 	writeSym(writer, allPaths.allSymbols, baseName(allPaths, p));
 }
@@ -585,7 +585,7 @@ public void writePath(
 	eachPartPreferRelative(allPaths, pathsInfo, a, (immutable Sym part, immutable bool isLast) {
 		writeSym(writer, allPaths.allSymbols, part);
 		if (!isLast)
-			writeChar(writer, '/');
+			writer ~= '/';
 	});
 	writeSym(writer, allPaths.allSymbols, extension);
 }
@@ -597,7 +597,7 @@ public void writeRelPath(
 	immutable Sym extension,
 ) {
 	foreach (immutable ushort i; 0 .. p.nParents)
-		writeStatic(writer, "../");
+		writer ~= "../";
 	writePathPlain(writer, allPaths, p.path);
 	writeSym(writer, allPaths.allSymbols, extension);
 }

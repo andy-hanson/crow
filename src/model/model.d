@@ -27,7 +27,7 @@ import util.sourceRange :
 	RangeWithinFile;
 import util.sym : AllSymbols, Operator, shortSym, SpecialSym, Sym, symForOperator, symForSpecial, writeSym;
 import util.util : as, max, min, unreachable, verify;
-import util.writer : writeChar, Writer, writeStatic, writeWithCommas;
+import util.writer : Writer, writeWithCommas;
 
 alias LineAndColumnGetters = immutable FullIndexDict!(FileIndex, LineAndColumnGetter);
 
@@ -2151,18 +2151,18 @@ void writeStructDecl(scope ref Writer writer, scope ref const AllSymbols allSymb
 void writeStructInst(scope ref Writer writer, scope ref const AllSymbols allSymbols, scope ref immutable StructInst s) {
 	writeStructDecl(writer, allSymbols, *s.declAndArgs.decl);
 	if (!empty(s.typeArgs)) {
-		writeChar(writer, '<');
+		writer ~= '<';
 		writeWithCommas!Type(writer, s.typeArgs, (ref immutable Type t) {
 			writeTypeUnquoted(writer, allSymbols, t);
 		});
-		writeChar(writer, '>');
+		writer ~= '>';
 	}
 }
 
 void writeTypeQuoted(ref Writer writer, ref const AllSymbols allSymbols, immutable Type a) {
-	writeChar(writer, '\'');
+	writer ~= '\'';
 	writeTypeUnquoted(writer, allSymbols, a);
-	writeChar(writer, '\'');
+	writer ~= '\'';
 }
 
 //TODO:MOVE
@@ -2170,7 +2170,7 @@ void writeTypeUnquoted(ref Writer writer, scope ref const AllSymbols allSymbols,
 	matchType!void(
 		a,
 		(immutable Type.Bogus) {
-			writeStatic(writer, "<<bogus>>");
+			writer ~= "<<bogus>>";
 		},
 		(immutable TypeParam* p) {
 			writeSym(writer, allSymbols, p.name);

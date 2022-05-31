@@ -109,7 +109,8 @@ import util.path :
 	PathsInfo,
 	pathToSafeCStr,
 	pathToTempStr,
-	TempStrForPath;
+	TempStrForPath,
+	writePathPlain;
 import util.perf : eachMeasure, Perf, perfEnabled, PerfMeasure, PerfMeasureResult, withMeasure;
 import util.ptr : ptrTrustMe_mut;
 import util.readOnlyStorage : matchReadFileResult, ReadFileResult, ReadOnlyStorage;
@@ -128,7 +129,7 @@ import util.sym :
 	symOfStr,
 	writeSym;
 import util.util : castImmutableRef, todo, verify;
-import util.writer : finishWriterToSafeCStr, writeChar, Writer, writeSafeCStr, writeStatic;
+import util.writer : finishWriterToSafeCStr, Writer;
 import versionInfo : versionInfoForJIT;
 
 @system extern(C) immutable(int) main(immutable int argc, immutable CStr* argv) {
@@ -728,7 +729,7 @@ immutable(SafeCStr[]) cCompileArgs(
 				todo!void("link to library at custom path on Posix");
 			else {
 				Writer writer = Writer(ptrTrustMe_mut(alloc));
-				writeStatic(writer, "-l");
+				writer ~= "-l";
 				writeSym(writer, allSymbols, x.libraryName);
 				add(alloc, args, finishWriterToSafeCStr(writer));
 			}
@@ -737,8 +738,8 @@ immutable(SafeCStr[]) cCompileArgs(
 	version (Windows) {
 		add(alloc, args, safeCStr!"/DEBUG");
 		Writer writer = Writer(ptrTrustMe_mut(alloc));
-		writeStatic(writer, "/out:");
-		writeSafeCStr(writer, pathToSafeCStr(alloc, allPaths, exePath));
+		writer ~= "/out:";
+		writePathPlain(writer, allPaths, exePath);
 		add(alloc, args, finishWriterToSafeCStr(writer));
 	} else {
 		addAll(alloc, args, [
@@ -1050,12 +1051,12 @@ version (Windows) {
 		scope immutable SafeCStr[] args,
 	) {
 		Writer writer = Writer(ptrTrustMe_mut(tempAlloc));
-		writeChar(writer, '"');
-		writeSafeCStr(writer, executablePath);
-		writeChar(writer, '"');
+		writer ~= '"';
+		writer ~= executablePath;
+		writer ~= '"';
 		foreach (immutable SafeCStr arg; args) {
-			writeChar(writer, ' ');
-			writeSafeCStr(writer, arg);
+			writer ~= ' ';
+			writer ~= arg;
 		}
 		return finishWriterToSafeCStr(writer).ptr;
 	}

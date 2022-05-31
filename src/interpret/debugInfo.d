@@ -18,7 +18,7 @@ import util.ptr : ptrTrustMe_mut;
 import util.sourceRange : FileAndPos, FileIndex;
 import util.sym : AllSymbols;
 import util.util : min, verify;
-import util.writer : finishWriterToSafeCStr, writeChar, writeHex, writeNat, Writer, writeStatic;
+import util.writer : finishWriterToSafeCStr, writeHex, Writer;
 
 struct InterpreterDebugInfo {
 	@safe @nogc pure nothrow:
@@ -151,28 +151,28 @@ void printDebugInfo(
 			ubyte[10_000] mem;
 			scope Alloc dbgAlloc = Alloc(&mem[0], mem.length);
 			scope Writer writer = Writer(ptrTrustMe_mut(dbgAlloc));
-			writeStatic(writer, "STEP: ");
+			writer ~= "STEP: ";
 			immutable ShowDiagOptions showDiagOptions = immutable ShowDiagOptions(false);
 			if (has(source)) {
 				writeByteCodeSource(
 					writer, a.allSymbols, a.allPaths, a.pathsInfo, showDiagOptions,
 					a.lowProgram, a.filesInfo, force(source));
 			} else
-				writeStatic(writer, "opStopInterpretation");
+				writer ~= "opStopInterpretation";
 			printf("%s\n", finishWriterToSafeCStr(writer).ptr);
 		}
 	}
 }
 
 void showDataArr(scope ref Writer writer, scope immutable ulong[] values) {
-	writeStatic(writer, "data (");
-	writeNat(writer, values.length);
-	writeStatic(writer, "): ");
+	writer ~= "data (";
+	writer ~= values.length;
+	writer ~= "): ";
 	foreach (immutable ulong value; values) {
-		writeChar(writer, ' ');
+		writer ~= ' ';
 		writeHex(writer, value);
 	}
-	writeChar(writer, '\n');
+	writer ~= '\n';
 }
 
 private:
@@ -183,14 +183,14 @@ void showReturnStack(
 	scope const immutable(Operation)*[] returnStackReverse,
 	immutable(Operation)* cur,
 ) {
-	writeStatic(writer, "call stack (");
-	writeNat(writer, returnStackReverse.length);
-	writeStatic(writer, "): ");
+	writer ~= "call stack (";
+	writer ~= returnStackReverse.length;
+	writer ~= "): ";
 	foreach_reverse (immutable Operation* ptr; returnStackReverse) {
-		writeChar(writer, ' ');
+		writer ~= ' ';
 		writeFunNameAtByteCodePtr(writer, debugInfo, ptr);
 	}
-	writeChar(writer, ' ');
+	writer ~= ' ';
 	writeFunNameAtByteCodePtr(writer, debugInfo, cur);
 }
 
@@ -205,7 +205,7 @@ void writeByteCodeSource(
 	immutable ByteCodeSource source,
 ) {
 	writeFunName(writer, allSymbols, lowProgram, source.fun);
-	writeChar(writer, ' ');
+	writer ~= ' ';
 	immutable Opt!FileIndex where = getFileIndex(allSymbols, lowProgram, source.fun);
 	if (has(where))
 		writeFileAndPos(
@@ -244,7 +244,7 @@ void writeFunNameAtIndex(
 	if (has(index))
 		writeFunNameAtIndex(writer, debugInfo, force(index));
 	else
-		writeStatic(writer, "opStopInterpretation");
+		writer ~= "opStopInterpretation";
 }
 
 @system immutable(bool) ptrInRange(T)(immutable T[] xs, immutable T* x) {

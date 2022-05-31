@@ -10,15 +10,7 @@ import util.memory : allocate;
 import util.opt : force, has, none, Opt, some;
 import util.ptr : ptrTrustMe_mut;
 import util.sym : AllSymbols, shortSym, Sym, writeQuotedSym;
-import util.writer :
-	finishWriterToSafeCStr,
-	writeChar,
-	writeFloatLiteral,
-	writeInt,
-	writeJoin,
-	Writer,
-	writeQuotedStr,
-	writeStatic;
+import util.writer : finishWriterToSafeCStr, writeFloatLiteral, writeJoin, Writer, writeQuotedStr;
 
 immutable(Repr) reprRecord(immutable Sym name, immutable Repr[] children) {
 	return immutable Repr(immutable ReprRecord(name, children));
@@ -231,49 +223,49 @@ void writeReprJSON(ref Writer writer, ref const AllSymbols allSymbols, immutable
 	matchRepr!void(
 		a,
 		(ref immutable ReprArr it) {
-			writeChar(writer, '[');
+			writer ~= '[';
 			writeJoin!Repr(writer, it.arr, ",", (ref immutable Repr em) {
 				writeReprJSON(writer, allSymbols, em);
 			});
-			writeChar(writer, ']');
+			writer ~= ']';
 		},
 		(immutable bool it) {
-			writeStatic(writer, it ? "true" : "false");
+			writer ~= it ? "true" : "false";
 		},
 		(immutable double it) {
 			writeFloatLiteral(writer, it);
 		},
 		(immutable long it) {
-			writeInt(writer, it);
+			writer ~= it;
 		},
 		(ref immutable ReprNamedRecord it) {
-			writeStatic(writer, "{\"_type\":");
+			writer ~= "{\"_type\":";
 			writeQuotedSym(writer, allSymbols, it.name);
 			foreach (ref immutable NameAndRepr pair; it.children) {
-				writeChar(writer, ',');
+				writer ~= ',';
 				writeQuotedSym(writer, allSymbols, pair.name);
-				writeChar(writer, ':');
+				writer ~= ':';
 				writeReprJSON(writer, allSymbols, pair.value);
 			}
-			writeChar(writer,'}');
+			writer ~= '}';
 		},
 		(immutable Opt!(Repr*) it) {
 			if (has(it)) {
-				writeStatic(writer, "{\"_type\":\"some\",\"value\":");
+				writer ~= "{\"_type\":\"some\",\"value\":";
 				writeReprJSON(writer, allSymbols, *force(it));
-				writeChar(writer, '}');
+				writer ~= '}';
 			} else {
-				writeStatic(writer, "{\"_type\":\"none\"}");
+				writer ~= "{\"_type\":\"none\"}";
 			}
 		},
 		(ref immutable ReprRecord it) {
-			writeStatic(writer, "{\"_type\":");
+			writer ~= "{\"_type\":";
 			writeQuotedSym(writer, allSymbols, it.name);
-			writeStatic(writer, ",\"args\":[");
+			writer ~= ",\"args\":[";
 			writeJoin!Repr(writer, it.children, ",", (ref immutable Repr child) {
 				writeReprJSON(writer, allSymbols, child);
 			});
-			writeStatic(writer, "]}");
+			writer ~= "]}";
 		},
 		(ref immutable string it) {
 			writeQuotedStr(writer, it);
