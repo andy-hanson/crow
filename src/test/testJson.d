@@ -9,7 +9,7 @@ import util.jsonParse : Json, jsonEqual, matchJson, parseJson;
 import util.opt : force, has, Opt;
 import util.sym : AllSymbols, shortSym, Sym, writeQuotedSym;
 import util.util : as, debugLog, verify, verifyFail;
-import util.writer : finishWriterToSafeCStr, writeChar, Writer, writeSafeCStr, writeStatic, writeWithCommas;
+import util.writer : finishWriterToSafeCStr, Writer, writeWithCommas;
 
 void testJson(ref Test test) {
 	testBoolean(test);
@@ -69,9 +69,9 @@ void verifyParseJson(ref Test test, immutable SafeCStr source, scope immutable J
 	verify(has(actual));
 	if (!jsonEqual(force(actual), expected)) {
 		Writer writer = test.writer;
-		writeStatic(writer, "actual: ");
+		writer ~= "actual: ";
 		writeJson(writer, test.allSymbols, force(actual));
-		writeStatic(writer, "\nexpected: ");
+		writer ~= "\nexpected: ";
 		writeJson(writer, test.allSymbols, expected);
 		debugLog(finishWriterToSafeCStr(writer).ptr);
 		verifyFail();
@@ -82,23 +82,23 @@ void writeJson(ref Writer writer, ref const AllSymbols allSymbols, scope immutab
 	matchJson!void(
 		a,
 		(immutable bool x) {
-			writeStatic(writer, x ? "true" : "false");
+			writer ~= x ? "true" : "false";
 		},
 		(immutable SafeCStr x) {
-			writeSafeCStr(writer, x);
+			writer ~= x;
 		},
 		(immutable Json[] x) {
-			writeChar(writer, '[');
+			writer ~= '[';
 			writeWithCommas!Json(writer, x, (scope ref immutable Json y) {
 				writeJson(writer, allSymbols, y);
 			});
-			writeChar(writer, ']');
+			writer ~= ']';
 		},
 		(immutable KeyValuePair!(Sym, Json)[] x) {
-		writeChar(writer, '{');
+			writer ~= '{';
 			writeWithCommas!(KeyValuePair!(Sym, Json))(writer, x, (scope ref immutable KeyValuePair!(Sym, Json) y) {
 				writeQuotedSym(writer, allSymbols, y.key);
-				writeChar(writer, ':');
+				writer ~= ':';
 				writeJson(writer, allSymbols, y.value);
 			});
 		});

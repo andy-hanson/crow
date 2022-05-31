@@ -42,7 +42,7 @@ import util.col.fullIndexDict : fullIndexDictEachValue;
 import util.col.mutDict : insertOrUpdate, MutDict, setInDict;
 import util.opt : force, has, none, Opt, some;
 import util.sym : AllSymbols, eachCharInSym, shortSym, shortSymValue, Sym, writeSym;
-import util.writer : writeChar, writeNat, Writer, writeStatic;
+import util.writer : Writer;
 
 struct MangledNames {
 	immutable AllSymbols* allSymbols;
@@ -134,8 +134,8 @@ void writeStructMangledName(
 		},
 		(ref immutable ConcreteStructSource.Lambda it) {
 			writeConcreteFunMangledName(writer, mangledNames, it.containingFun);
-			writeStatic(writer, "__lambda");
-			writeNat(writer, it.index);
+			writer ~= "__lambda";
+			writer ~= it.index;
 		},
 	)(source.source);
 }
@@ -154,8 +154,8 @@ void writeLowFunMangledName(
 		(ref immutable LowFunSource.Generated it) {
 			writeMangledName(writer, mangledNames, it.name);
 			if (it.name != shortSym("main")) {
-				writeChar(writer, '_');
-				writeNat(writer, funIndex.index);
+				writer ~= '_';
+				writer ~= funIndex.index;
 			}
 		},
 	)(fun.source);
@@ -186,20 +186,20 @@ private void writeConcreteFunMangledName(
 		},
 		(ref immutable ConcreteFunSource.Lambda it) {
 			writeConcreteFunMangledName(writer, mangledNames, it.containingFun);
-			writeStatic(writer, "__lambda");
-			writeNat(writer, it.index);
+			writer ~= "__lambda";
+			writer ~= it.index;
 		},
 		(ref immutable ConcreteFunSource.Test it) {
-			writeStatic(writer, "__test");
-			writeNat(writer, it.testIndex);
+			writer ~= "__test";
+			writer ~= it.testIndex;
 		},
 	)(source.source);
 }
 
 private void maybeWriteIndexSuffix(scope ref Writer writer, immutable Opt!size_t index) {
 	if (has(index)) {
-		writeChar(writer, '_');
-		writeNat(writer, force(index));
+		writer ~= '_';
+		writer ~= force(index);
 	}
 }
 
@@ -212,12 +212,12 @@ void writeLowLocalName(
 		void,
 		(ref immutable ConcreteLocal it) {
 			// Need to distinguish local names from function names
-			writeStatic(writer, "__local");
+			writer ~= "__local";
 			writeMangledName(writer, mangledNames, it.source.name);
 		},
 		(ref immutable LowLocalSource.Generated it) {
 			writeMangledName(writer, mangledNames, it.name);
-			writeNat(writer, it.index);
+			writer ~= it.index;
 		},
 	)(a.source);
 }
@@ -233,19 +233,19 @@ void writeLowParamName(
 			matchConcreteParamSource!void(
 				cp.source,
 				(ref immutable ConcreteParamSource.Closure) {
-					writeStatic(writer, "_closure");
+					writer ~= "_closure";
 				},
 				(ref immutable Param p) {
 					if (has(p.name))
 						writeMangledName(writer, mangledNames, force(p.name));
 					else {
-						writeStatic(writer, "_p");
-						writeNat(writer, p.index);
+						writer ~= "_p";
+						writer ~= p.index;
 					}
 				},
 				(ref immutable ConcreteParamSource.Synthetic it) {
-					writeStatic(writer, "_p");
-					writeNat(writer, force(cp.index));
+					writer ~= "_p";
+					writer ~= force(cp.index);
 				});
 		},
 		(ref immutable LowParamSource.Generated it) {
@@ -261,10 +261,10 @@ void writeConstantArrStorageName(
 	immutable LowType.Record arrType,
 	immutable size_t index,
 ) {
-	writeStatic(writer, "constant");
+	writer ~= "constant";
 	writeRecordName(writer, mangledNames, program, arrType);
-	writeChar(writer, '_');
-	writeNat(writer, index);
+	writer ~= '_';
+	writer ~= index;
 }
 
 void writeConstantPointerStorageName(
@@ -274,10 +274,10 @@ void writeConstantPointerStorageName(
 	scope immutable LowType pointeeType,
 	immutable size_t index,
 ) {
-	writeStatic(writer, "constant");
+	writer ~= "constant";
 	writeRecordName(writer, mangledNames, program, asRecordType(pointeeType));
-	writeChar(writer, '_');
-	writeNat(writer, index);
+	writer ~= '_';
+	writer ~= index;
 }
 
 void writeRecordName(
@@ -352,18 +352,18 @@ void addToPrevOrIndex(T)(
 public void writeMangledName(ref Writer writer, scope ref immutable MangledNames mangledNames, immutable Sym a) {
 	//TODO: this applies to any C function. Maybe crow functions should have a common prefix.
 	if (a == shortSym("errno")) {
-		writeStatic(writer, "_crow_errno");
+		writer ~= "_crow_errno";
 		return;
 	}
 
 	if (conflictsWithCName(a))
-		writeChar(writer, '_');
+		writer ~= '_';
 	eachCharInSym(*mangledNames.allSymbols, a, (immutable char c) {
 		immutable Opt!string mangled = mangleChar(c);
 		if (has(mangled))
-			writeStatic(writer, force(mangled));
+			writer ~= force(mangled);
 		else
-			writeChar(writer, c);
+			writer ~= c;
 	});
 }
 

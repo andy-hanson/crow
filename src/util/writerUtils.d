@@ -6,12 +6,12 @@ import util.lineAndColumnGetter : LineAndColumn, lineAndColumnAtPos, LineAndColu
 import util.sourceRange : Pos, RangeWithinFile;
 import util.sym : AllSymbols, Sym, writeSym, writeSymAndGetSize;
 import util.util : todo;
-import util.writer : writeChar, writeNat, Writer, writeStatic;
+import util.writer : Writer;
 
 private void writeLineAndColumn(ref Writer writer, immutable LineAndColumn lc) {
-	writeNat(writer, lc.line + 1);
-	writeChar(writer, ':');
-	writeNat(writer, lc.column + 1);
+	writer ~= lc.line + 1;
+	writer ~= ':';
+	writer ~= lc.column + 1;
 }
 
 void writePos(ref Writer writer, scope ref immutable LineAndColumnGetter lc, immutable Pos pos) {
@@ -24,40 +24,40 @@ void writeRangeWithinFile(
 	immutable RangeWithinFile range,
 ) {
 	writePos(writer, lc, range.start);
-	writeChar(writer, '-');
+	writer ~= '-';
 	writePos(writer, lc, range.end);
 }
 
 void showChar(ref Writer writer, immutable char c) {
 	switch (c) {
 		case '\0':
-			writeStatic(writer, "\\0");
+			writer ~= "\\0";
 			break;
 		case '\n':
-			writeStatic(writer, "\\n");
+			writer ~= "\\n";
 			break;
 		case '\t':
-			writeStatic(writer, "\\t");
+			writer ~= "\\t";
 			break;
 		default:
-			writeChar(writer, c);
+			writer ~= c;
 			break;
 	}
 }
 
 void writeName(ref Writer writer, ref const AllSymbols allSymbols, immutable Sym name) {
-	writeChar(writer, '\'');
+	writer ~= '\'';
 	writeSym(writer, allSymbols, name);
-	writeChar(writer, '\'');
+	writer ~= '\'';
 }
 
 void writeNl(ref Writer writer) {
-	writeChar(writer, '\n');
+	writer ~= '\n';
 }
 
 void writeSpaces(ref Writer writer, immutable size_t nSpaces) {
 	foreach (immutable size_t i; 0 .. nSpaces)
-		writeChar(writer, ' ');
+		writer ~= ' ';
 }
 
 void writeNlIndent(ref Writer writer) {

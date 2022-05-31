@@ -45,15 +45,9 @@ import util.writer :
 	finishWriter,
 	finishWriterToSafeCStr,
 	writeBold,
-	writeChar,
 	writeEscapedChar,
-	writeInt,
-	writeNat,
 	writeQuotedStr,
 	writeReset,
-	writeSafeCStr,
-	writeStatic,
-	writeStr,
 	writeWithCommas,
 	writeWithNewlines,
 	Writer;
@@ -107,12 +101,12 @@ void writeLineNumber(
 	if (options.color)
 		writeBold(writer);
 	writePath(writer, allPaths, pathsInfo, where, crowExtension);
-	writeStatic(writer, ".crow");
+	writer ~= ".crow";
 	if (options.color)
 		writeReset(writer);
-	writeStatic(writer, " line ");
+	writer ~= " line ";
 	immutable size_t line = lineAndColumnAtPos(fi.lineAndColumnGetters[pos.fileIndex], pos.pos).line;
-	writeNat(writer, line + 1);
+	writer ~= line + 1;
 }
 
 void writeParseDiag(
@@ -124,135 +118,133 @@ void writeParseDiag(
 	matchParseDiag!void(
 		d,
 		(ref immutable ParseDiag.CantPrecedeMutEquals) {
-			writeStatic(writer, "this expression can't appear in front of ':='");
+			writer ~= "this expression can't appear in front of ':='";
 		},
 		(ref immutable ParseDiag.CantPrecedeOptEquals) {
-			writeStatic(writer, "only a plain identifier can appear in front of '?='");
+			writer ~= "only a plain identifier can appear in front of '?='";
 		},
 		(ref immutable ParseDiag.CircularImport it) {
-			writeStatic(writer, "circular import from ");
+			writer ~= "circular import from ";
 			writePath(writer, allPaths, pathsInfo, it.from, crowExtension);
-			writeStatic(writer, " to ");
+			writer ~= " to ";
 			writePath(writer, allPaths, pathsInfo, it.to, crowExtension);
 		},
 		(ref immutable ParseDiag.Expected it) {
 			final switch (it.kind) {
 				case ParseDiag.Expected.Kind.afterMut:
-					writeStatic(writer, "expected '[' or '*' after 'mut'");
+					writer ~= "expected '[' or '*' after 'mut'";
 					break;
 				case ParseDiag.Expected.Kind.blockCommentEnd:
-					writeStatic(writer, "Expected '###' (then a newline)");
+					writer ~= "Expected '###' (then a newline)";
 					break;
 				case ParseDiag.Expected.Kind.closeInterpolated:
-					writeStatic(writer, "expected '}'");
+					writer ~= "expected '}'";
 					break;
 				case ParseDiag.Expected.Kind.closingBracket:
-					writeStatic(writer, "expected ']'");
+					writer ~= "expected ']'";
 					break;
 				case ParseDiag.Expected.Kind.closingParen:
-					writeStatic(writer, "expected ')'");
+					writer ~= "expected ')'";
 					break;
 				case ParseDiag.Expected.Kind.colon:
-					writeStatic(writer, "expected ':'");
+					writer ~= "expected ':'";
 					break;
 				case ParseDiag.Expected.Kind.comma:
-					writeStatic(writer, "expected ', '");
+					writer ~= "expected ', '";
 					break;
 				case ParseDiag.Expected.Kind.dedent:
-					writeStatic(writer, "expected a dedent");
+					writer ~= "expected a dedent";
 					break;
 				case ParseDiag.Expected.Kind.endOfLine:
-					writeStatic(writer, "expected end of line");
+					writer ~= "expected end of line";
 					break;
 				case ParseDiag.Expected.Kind.equalsOrThen:
-					writeStatic(writer, "expected '=' or '<-'");
+					writer ~= "expected '=' or '<-'";
 					break;
 				case ParseDiag.Expected.Kind.indent:
-					writeStatic(writer, "expected an indent");
+					writer ~= "expected an indent";
 					break;
 				case ParseDiag.Expected.Kind.lambdaArrow:
-					writeStatic(writer, "expected ' =>' after lambda parameters");
+					writer ~= "expected ' =>' after lambda parameters";
 					break;
 				case ParseDiag.Expected.Kind.less:
-					writeStatic(writer, "expected '<'");
+					writer ~= "expected '<'";
 					break;
 				case ParseDiag.Expected.Kind.name:
-					writeStatic(writer, "expected a name (non-operator)");
+					writer ~= "expected a name (non-operator)";
 					break;
 				case ParseDiag.Expected.Kind.nameOrOperator:
-					writeStatic(writer, "expected a name or operator");
+					writer ~= "expected a name or operator";
 					break;
 				case ParseDiag.Expected.Kind.openParen:
-					writeStatic(writer, "expected '('");
+					writer ~= "expected '('";
 					break;
 				case ParseDiag.Expected.Kind.quoteDouble:
-					writeStatic(writer, "expected '\"'");
+					writer ~= "expected '\"'";
 					break;
 				case ParseDiag.Expected.Kind.quoteDouble3:
-					writeStatic(writer, "expected '\"\"\"'");
+					writer ~= "expected '\"\"\"'";
 					break;
 				case ParseDiag.Expected.Kind.slash:
-					writeStatic(writer, "expected '/'");
+					writer ~= "expected '/'";
 					break;
 				case ParseDiag.Expected.Kind.typeArgsEnd:
-					writeStatic(writer, "expected '>'");
+					writer ~= "expected '>'";
 					break;
 			}
 		},
 		(ref immutable ParseDiag.FileDoesNotExist d) {
-			writeStatic(writer, "file does not exist");
+			writer ~= "file does not exist";
 			if (has(d.importedFrom)) {
-				writeStatic(writer, " (imported from ");
+				writer ~= " (imported from ";
 				writePath(writer, allPaths, pathsInfo, force(d.importedFrom).path, crowExtension);
-				writeChar(writer, ')');
+				writer ~= ')';
 			}
 		},
 		(ref immutable ParseDiag.FileReadError d) {
-			writeStatic(writer, "unable to read file");
+			writer ~= "unable to read file";
 			if (has(d.importedFrom)) {
-				writeStatic(writer, " (imported from ");
+				writer ~= " (imported from ";
 				writePath(writer, allPaths, pathsInfo, force(d.importedFrom).path, crowExtension);
-				writeChar(writer, ')');
+				writer ~= ')';
 			}
 		},
 		(ref immutable ParseDiag.FunctionTypeMissingParens) {
-			writeStatic(writer, "function type missing parentheses");
+			writer ~= "function type missing parentheses";
 		},
 		(ref immutable ParseDiag.ImportFileTypeNotSupported) {
-			writeStatic(writer, "import file type not allowed; the only supported types are 'nat8[]' and 'str'");
+			writer ~= "import file type not allowed; the only supported types are 'nat8[]' and 'str'";
 		},
 		(ref immutable ParseDiag.IndentNotDivisible d) {
-			writeStatic(writer, "expected indentation by ");
-			writeNat(writer, d.nSpacesPerIndent);
-			writeStatic(writer, " spaces per level, but got ");
-			writeNat(writer, d.nSpaces);
-			writeStatic(writer, " which is not divisible");
+			writer ~= "expected indentation by ";
+			writer ~= d.nSpacesPerIndent;
+			writer ~= " spaces per level, but got ";
+			writer ~= d.nSpaces;
+			writer ~= " which is not divisible";
 		},
 		(ref immutable ParseDiag.IndentTooMuch it) {
-			writeStatic(writer, "indented too far");
+			writer ~= "indented too far";
 		},
 		(ref immutable ParseDiag.IndentWrongCharacter d) {
-			writeStatic(writer, "expected indentation by ");
-			writeStatic(writer, d.expectedTabs ? "tabs" : "spaces");
-			writeStatic(writer, " (based on first indented line), but here there is a ");
-			writeStatic(writer, d.expectedTabs ? "space" : "tab");
+			writer ~= "expected indentation by ";
+			writer ~= d.expectedTabs ? "tabs" : "spaces";
+			writer ~= " (based on first indented line), but here there is a ";
+			writer ~= d.expectedTabs ? "space" : "tab";
 		},
 		(ref immutable ParseDiag.InvalidName it) {
 			writeQuotedStr(writer, it.actual);
-			writeStatic(writer, " is not a valid name");
+			writer ~= " is not a valid name";
 		},
 		(ref immutable ParseDiag.InvalidStringEscape it) {
-			writeStatic(writer, "invalid escape character '");
+			writer ~= "invalid escape character '";
 			writeEscapedChar(writer, it.actual);
-			writeChar(writer, '\'');
+			writer ~= '\'';
 		},
 		(ref immutable ParseDiag.LetMustHaveThen) {
-			writeStatic(
-				writer,
-				"the final line of a block can not be 'x = y'\n(hint: remove 'x =', or add another line)");
+			writer ~= "the final line of a block can not be 'x = y'\n(hint: remove 'x =', or add another line)";
 		},
 		(ref immutable ParseDiag.NeedsBlockCtx it) {
-			writeStatic(writer, () {
+			writer ~= () {
 				final switch (it.kind) {
 					case ParseDiag.NeedsBlockCtx.Kind.break_:
 						return "'break'";
@@ -273,63 +265,53 @@ void writeParseDiag(
 					case ParseDiag.NeedsBlockCtx.Kind.while_:
 						return "'while'";
 				}
-			}());
-			writeStatic(writer, " expression must appear ");
-			writeStatic(writer, it.kind == ParseDiag.NeedsBlockCtx.Kind.break_
+			}();
+			writer ~= " expression must appear ";
+			writer ~= it.kind == ParseDiag.NeedsBlockCtx.Kind.break_
 				? "on its own line"
-				: "in a context where it can be followed by an indented block");
+				: "in a context where it can be followed by an indented block";
 		},
 		(ref immutable ParseDiag.RelativeImportReachesPastRoot d) {
-			writeStatic(writer, "importing ");
+			writer ~= "importing ";
 			writeRelPath(writer, allPaths, d.imported, crowExtension);
-			writeStatic(writer, " reaches above the source directory");
+			writer ~= " reaches above the source directory";
 			//TODO: recommend a compiler option to fix this
 		},
 		(ref immutable ParseDiag.Unexpected it) {
 			final switch (it.kind) {
 				case ParseDiag.Unexpected.Kind.dedent:
-					writeStatic(writer, "unexpected dedent");
+					writer ~= "unexpected dedent";
 					break;
 				case ParseDiag.Unexpected.Kind.indent:
-					writeStatic(writer, "unexpected indent");
+					writer ~= "unexpected indent";
 					break;
 			}
 		},
 		(ref immutable ParseDiag.UnexpectedCharacter u) {
-			writeStatic(writer, "unexpected character '");
+			writer ~= "unexpected character '";
 			showChar(writer, u.ch);
-			writeStatic(writer, "'");
+			writer ~= "'";
 		},
 		(ref immutable ParseDiag.UnexpectedOperator u) {
-			writeStatic(writer, "unexpected '");
-			writeSafeCStr(writer, strOfOperator(u.operator));
-			writeChar(writer, '\'');
+			writer ~= "unexpected '";
+			writer ~= strOfOperator(u.operator);
+			writer ~= '\'';
 		},
 		(ref immutable ParseDiag.UnexpectedToken u) {
-			writeStatic(writer, describeTokenForUnexpected(u.token));
+			writer ~= describeTokenForUnexpected(u.token);
 		},
 		(ref immutable ParseDiag.UnionCantBeEmpty) {
-			writeStatic(writer, "union type can't be empty");
+			writer ~= "union type can't be empty";
 		},
 		(ref immutable ParseDiag.WhenMustHaveElse) {
-			writeStatic(writer, "'if' expression must end in 'else'");
+			writer ~= "'if' expression must end in 'else'";
 		});
 }
 
-void writePurity(ref Writer writer, immutable Purity p) {
-	writeChar(writer, '\'');
-	final switch (p) {
-		case Purity.data:
-			writeStatic(writer, "data");
-			break;
-		case Purity.sendable:
-			writeStatic(writer, "sendable");
-			break;
-		case Purity.mut:
-			writeStatic(writer, "mut");
-			break;
-	}
-	writeChar(writer, '\'');
+void writePurity(ref Writer writer, scope ref const AllSymbols allSymbols, immutable Purity p) {
+	writer ~= '\'';
+	writeSym(writer, allSymbols, symOfPurity(p));
+	writer ~= '\'';
 }
 
 void writeSig(
@@ -340,9 +322,9 @@ void writeSig(
 	scope immutable Params params,
 ) {
 	writeSym(writer, allSymbols, name);
-	writeChar(writer, ' ');
+	writer ~= ' ';
 	writeTypeUnquoted(writer, allSymbols, returnType);
-	writeChar(writer, '(');
+	writer ~= '(';
 	matchParams!void(
 		params,
 		(immutable Param[] paramsArray) {
@@ -351,10 +333,10 @@ void writeSig(
 			});
 		},
 		(ref immutable Params.Varargs varargs) {
-			writeStatic(writer, "...");
+			writer ~= "...";
 			writeTypeUnquoted(writer, allSymbols, varargs.param.type);
 		});
-	writeChar(writer, ')');
+	writer ~= ')';
 }
 
 void writeCalledDecl(
@@ -373,9 +355,9 @@ void writeCalledDecl(
 			writeFunDeclLocation(writer, allSymbols, allPaths, pathsInfo, options, fi, *funDecl);
 		},
 		(ref immutable SpecSig specSig) {
-			writeStatic(writer, " (from spec ");
+			writer ~= " (from spec ";
 			writeName(writer, allSymbols, name(*specSig.specInst));
-			writeChar(writer, ')');
+			writer ~= ')';
 		},
 	)(c);
 }
@@ -389,9 +371,9 @@ void writeFunDeclLocation(
 	ref immutable FilesInfo fi,
 	ref immutable FunDecl funDecl,
 ) {
-	writeStatic(writer, " (from ");
+	writer ~= " (from ";
 	writeLineNumber(writer, allPaths, pathsInfo, options, fi, funDecl.fileAndPos);
-	writeChar(writer, ')');
+	writer ~= ')';
 }
 
 void writeCalledDecls(
@@ -407,7 +389,7 @@ void writeCalledDecls(
 	foreach (ref immutable CalledDecl c; cs)
 		if (filter(c)) {
 			writeNl(writer);
-			writeChar(writer, '\t');
+			writer ~= '\t';
 			writeCalledDecl(writer, allSymbols, allPaths, pathsInfo, options, fi, c);
 		}
 }
@@ -442,58 +424,58 @@ void writeCallNoMatch(
 		arityMatches(arity(c), d.actualArity));
 
 	if (empty(d.allCandidates)) {
-		writeStatic(writer, "there is no function ");
+		writer ~= "there is no function ";
 		if (d.actualArity == 0)
 			// If there is no local variable by that name we try a call,
 			// but message should reflect that the user might not have wanted a call.
-			writeStatic(writer, "or variable ");
+			writer ~= "or variable ";
 		else if (d.actualArity == 1)
-			writeStatic(writer, "or field ");
-		writeStatic(writer, "named ");
+			writer ~= "or field ";
+		writer ~= "named ";
 		writeName(writer, allSymbols, d.funName);
 
 		if (d.actualArgTypes.length == 1) {
-			writeStatic(writer, "\nargument type: ");
+			writer ~= "\nargument type: ";
 			writeTypeQuoted(writer, allSymbols, only(d.actualArgTypes));
 		}
 	} else if (!someCandidateHasCorrectArity) {
-		writeStatic(writer, "there are functions named ");
+		writer ~= "there are functions named ";
 		writeName(writer, allSymbols, d.funName);
-		writeStatic(writer, ", but none takes ");
+		writer ~= ", but none takes ";
 		if (someCandidateHasCorrectNTypeArgs) {
-			writeNat(writer, d.actualArity);
+			writer ~= d.actualArity;
 		} else {
-			writeNat(writer, d.actualNTypeArgs);
-			writeStatic(writer, " type");
+			writer ~= d.actualNTypeArgs;
+			writer ~= " type";
 		}
-		writeStatic(writer, " arguments. candidates:");
+		writer ~= " arguments. candidates:";
 		writeCalledDecls(writer, allSymbols, allPaths, pathsInfo, options, fi, d.allCandidates);
 	} else {
-		writeStatic(writer, "there are functions named ");
+		writer ~= "there are functions named ";
 		writeName(writer, allSymbols, d.funName);
-		writeStatic(writer, ", but they do not match the ");
+		writer ~= ", but they do not match the ";
 		immutable bool hasRet = has(d.expectedReturnType);
 		immutable bool hasArgs = empty(d.actualArgTypes);
 		immutable string descr = hasRet
 			? hasArgs ? "expected return type and actual argument types" : "expected return type"
 			: "actual argument types";
-		writeStatic(writer, descr);
-		writeStatic(writer, ".");
+		writer ~= descr;
+		writer ~= '.';
 		if (hasRet) {
-			writeStatic(writer, "\nexpected return type: ");
+			writer ~= "\nexpected return type: ";
 			writeTypeQuoted(writer, allSymbols, force(d.expectedReturnType));
 		}
 		if (hasArgs) {
-			writeStatic(writer, "\nactual argument types: ");
+			writer ~= "\nactual argument types: ";
 			writeWithCommas!Type(writer, d.actualArgTypes, (ref immutable Type t) {
 				writeTypeQuoted(writer, allSymbols, t);
 			});
 			if (d.actualArgTypes.length < d.actualArity)
-				writeStatic(writer, " (other arguments not checked, gave up early)");
+				writer ~= " (other arguments not checked, gave up early)";
 		}
-		writeStatic(writer, "\ncandidates (with ");
-		writeNat(writer, d.actualArity);
-		writeStatic(writer, " arguments):");
+		writer ~= "\ncandidates (with ";
+		writer ~= d.actualArity;
+		writer ~= " arguments):";
 		writeCalledDecls(
 			writer, allSymbols, allPaths, pathsInfo, options, fi, d.allCandidates,
 			(ref immutable CalledDecl c) =>
@@ -514,13 +496,13 @@ void writeDiag(
 	matchDiag!void(
 		d,
 		(ref immutable Diag.BuiltinUnsupported d) {
-			writeStatic(writer, "the compiler does not implement a builtin named ");
+			writer ~= "the compiler does not implement a builtin named ";
 			writeName(writer, allSymbols, d.name);
 		},
 		(ref immutable Diag.CallMultipleMatches d) {
-			writeStatic(writer, "cannot choose an overload of ");
+			writer ~= "cannot choose an overload of ";
 			writeName(writer, allSymbols, d.funName);
-			writeStatic(writer, ". multiple functions match:");
+			writer ~= ". multiple functions match:";
 			writeCalledDecls(writer, allSymbols, allPaths, pathsInfo, options, fi, d.matches);
 		},
 		(ref immutable Diag.CallNoMatch d) {
@@ -539,26 +521,26 @@ void writeDiag(
 						return "a 'noctx' function can't call a variadic function";
 				}
 			}();
-			writeStatic(writer, descr);
-			writeChar(writer, ' ');
+			writer ~= descr;
+			writer ~= ' ';
 			writeName(writer, allSymbols, it.callee.name);
 		},
 		(ref immutable Diag.CantInferTypeArguments) {
-			writeStatic(writer, "can't infer type arguments");
+			writer ~= "can't infer type arguments";
 		},
 		(ref immutable Diag.CharLiteralMustBeOneChar) {
-			writeStatic(writer, "value of 'char' type must be a single character");
+			writer ~= "value of 'char' type must be a single character";
 		},
 		(ref immutable Diag.CommonFunMissing it) {
-			writeStatic(writer, "common function ");
+			writer ~= "common function ";
 			writeName(writer, allSymbols, it.name);
-			writeStatic(writer, " is missing from 'bootstrap.crow'");
+			writer ~= " is missing from 'bootstrap.crow'";
 		},
 		(ref immutable Diag.CommonTypesMissing d) {
-			writeStatic(writer, "common types are missing from 'bootstrap.crow':");
+			writer ~= "common types are missing from 'bootstrap.crow':";
 			foreach (immutable string s; d.missing) {
-				writeStatic(writer, "\n\t");
-				writeStr(writer, s);
+				writer ~= "\n\t";
+				writer ~= s;
 			}
 		},
 		(ref immutable Diag.DuplicateDeclaration d) {
@@ -582,60 +564,60 @@ void writeDiag(
 						return "union member";
 				}
 			}();
-			writeStatic(writer, desc);
-			writeStatic(writer, " name ");
+			writer ~= desc;
+			writer ~= " name ";
 			writeName(writer, allSymbols, d.name);
-			writeStatic(writer, " is already used");
+			writer ~= " is already used";
 		},
 		(ref immutable Diag.DuplicateExports d) {
-			writeStatic(writer, "there are multiple exported ");
-			writeStatic(writer, () {
+			writer ~= "there are multiple exported ";
+			writer ~= () {
 				final switch (d.kind) {
 					case Diag.DuplicateExports.Kind.spec:
 						return "specs";
 					case Diag.DuplicateExports.Kind.type:
 						return "types";
 				}
-			}());
-			writeStatic(writer, " named ");
+			}();
+			writer ~= " named ";
 			writeName(writer, allSymbols, d.name);
 		},
 		(ref immutable Diag.DuplicateImports d) {
 			//TODO: use d.kind
-			writeStatic(writer, "the symbol ");
+			writer ~= "the symbol ";
 			writeName(writer, allSymbols, d.name);
-			writeStatic(writer, " appears in multiple modules");
+			writer ~= " appears in multiple modules";
 		},
 		(ref immutable Diag.EnumBackingTypeInvalid d) {
-			writeStatic(writer, "type ");
+			writer ~= "type ";
 			writeStructInst(writer, allSymbols, *d.actual);
-			writeStatic(writer, " cannot be used to back an enum");
+			writer ~= " cannot be used to back an enum";
 		},
 		(ref immutable Diag.EnumDuplicateValue d) {
-			writeStatic(writer, "duplicate enum value ");
+			writer ~= "duplicate enum value ";
 			if (d.signed)
-				writeInt(writer, d.value);
+				writer ~= d.value;
 			else
-				writeNat(writer, cast(ulong) d.value);
+				writer ~= cast(ulong) d.value;
 		},
 		(ref immutable Diag.EnumMemberOverflows d) {
-			writeStatic(writer, "enum member is not in the allowed range ");
-			writeInt(writer, minValue(d.backingType));
-			writeStatic(writer, " to ");
-			writeNat(writer, maxValue(d.backingType));
+			writer ~= "enum member is not in the allowed range ";
+			writer ~= minValue(d.backingType);
+			writer ~= " to ";
+			writer ~= maxValue(d.backingType);
 		},
 		(ref immutable Diag.ExpectedTypeIsNotALambda d) {
 			if (has(d.expectedType)) {
-				writeStatic(writer, "the expected type at the lambda is ");
+				writer ~= "the expected type at the lambda is ";
 				writeTypeQuoted(writer, allSymbols, force(d.expectedType));
-				writeStatic(writer, ", which is not a lambda type");
+				writer ~= ", which is not a lambda type";
 			} else
-				writeStatic(writer, "there is no expected type at this location; lambdas need an expected type");
+				writer ~= "there is no expected type at this location; lambdas need an expected type";
 		},
 		(ref immutable Diag.ExternFunForbidden d) {
-			writeStatic(writer, "'extern' function ");
+			writer ~= "'extern' function ";
 			writeName(writer, allSymbols, d.fun.name);
-			writeStatic(writer, () {
+			writer ~= () {
 				final switch (d.reason) {
 					case Diag.ExternFunForbidden.Reason.hasSpecs:
 						return " can't have specs";
@@ -646,142 +628,142 @@ void writeDiag(
 					case Diag.ExternFunForbidden.Reason.variadic:
 						return " can't be variadic";
 				}
-			}());
+			}();
 		},
 		(ref immutable Diag.ExternPtrHasTypeParams) {
-			writeStatic(writer, "an 'extern-ptr' type should not be a template");
+			writer ~= "an 'extern-ptr' type should not be a template";
 		},
 		(ref immutable Diag.ExternRecordMustBeByRefOrVal d) {
-			writeStatic(writer, "'extern' record ");
+			writer ~= "'extern' record ";
 			writeName(writer, allSymbols, d.struct_.name);
-			writeStatic(writer, " must be explicitly 'by-ref' or 'by-val'");
+			writer ~= " must be explicitly 'by-ref' or 'by-val'";
 		},
 		(ref immutable Diag.ExternUnion d) {
-			writeStatic(writer, "a union can't be 'extern'");
+			writer ~= "a union can't be 'extern'";
 		},
 		(ref immutable Diag.FunMissingBody) {
-			writeStatic(writer, "this function needs a body");
+			writer ~= "this function needs a body";
 		},
 		(ref immutable Diag.FunModifierConflict d) {
-			writeStatic(writer, "a function can't be both ");
+			writer ~= "a function can't be both ";
 			writeName(writer, allSymbols, d.modifier0);
-			writeStatic(writer, " and ");
+			writer ~= " and ";
 			writeName(writer, allSymbols, d.modifier1);
 		},
 		(ref immutable Diag.FunModifierRedundant d) {
-			writeStatic(writer, "redundant; ");
+			writer ~= "redundant; ";
 			writeName(writer, allSymbols, d.modifier);
-			writeStatic(writer, " function is implicitly ");
+			writer ~= " function is implicitly ";
 			writeName(writer, allSymbols, d.redundantModifier);
 		},
 		(ref immutable Diag.FunModifierTypeArgs d) {
-			writeStatic(writer, "function modifier ");
+			writer ~= "function modifier ";
 			writeName(writer, allSymbols, d.modifier);
-			writeStatic(writer, " can not have type arguments");
+			writer ~= " can not have type arguments";
 		},
 		(ref immutable Diag.IfNeedsOpt d) {
-			writeStatic(writer, "Expected an option type, but got ");
+			writer ~= "Expected an option type, but got ";
 			writeTypeQuoted(writer, allSymbols, d.actualType);
 		},
 		(ref immutable Diag.ImportRefersToNothing it) {
-			writeStatic(writer, "imported name ");
+			writer ~= "imported name ";
 			writeName(writer, allSymbols, it.name);
-			writeStatic(writer, " does not refer to anything");
+			writer ~= " does not refer to anything";
 		},
 		(ref immutable Diag.LambdaCantInferParamTypes) {
-			writeStatic(writer, "lambda expression needs an expected type");
+			writer ~= "lambda expression needs an expected type";
 		},
 		(ref immutable Diag.LambdaClosesOverMut d) {
-			writeStatic(writer, "lambda is a plain 'fun' but closes over ");
+			writer ~= "lambda is a plain 'fun' but closes over ";
 			writeName(writer, allSymbols, d.name);
-			writeStatic(writer, " of 'mut' type ");
+			writer ~= " of 'mut' type ";
 			writeTypeQuoted(writer, allSymbols, d.type);
-			writeStatic(writer, " (should it be an 'act' or 'ref' fun?)");
+			writer ~= " (should it be an 'act' or 'ref' fun?)";
 		},
 		(ref immutable Diag.LambdaWrongNumberParams d) {
-			writeStatic(writer, "expected a ");
+			writer ~= "expected a ";
 			writeStructInst(writer, allSymbols, *d.expectedLambdaType);
-			writeStatic(writer, " but lambda has ");
-			writeNat(writer, d.actualNParams);
-			writeStatic(writer, " parameters");
+			writer ~= " but lambda has ";
+			writer ~= d.actualNParams;
+			writer ~= " parameters";
 		},
 		(ref immutable Diag.LinkageWorseThanContainingFun d) {
-			writeStatic(writer, "'extern' function ");
+			writer ~= "'extern' function ";
 			writeName(writer, allSymbols, d.containingFun.name);
 			if (has(d.param)) {
 				immutable Opt!Sym paramName = force(d.param).name;
 				if (has(paramName)) {
-					writeStatic(writer, " parameter ");
+					writer ~= " parameter ";
 					writeName(writer, allSymbols, force(paramName));
 				}
 			}
-			writeStatic(writer, " can't reference non-extern type ");
+			writer ~= " can't reference non-extern type ";
 			writeTypeQuoted(writer, allSymbols, d.referencedType);
 		},
 		(ref immutable Diag.LinkageWorseThanContainingType d) {
-			writeStatic(writer, "extern type ");
+			writer ~= "extern type ";
 			writeName(writer, allSymbols, d.containingType.name);
-			writeStatic(writer, " can't reference non-extern type ");
+			writer ~= " can't reference non-extern type ";
 			writeTypeQuoted(writer, allSymbols, d.referencedType);
 		},
 		(ref immutable Diag.LiteralOverflow d) {
-			writeStatic(writer, "literal exceeds the range of a ");
+			writer ~= "literal exceeds the range of a ";
 			writeStructInst(writer, allSymbols, *d.type);
 		},
 		(ref immutable Diag.LocalNotMutable d) {
-			writeStatic(writer, "local variable ");
+			writer ~= "local variable ";
 			writeName(writer, allSymbols, d.local.name);
-			writeStatic(writer, " was not marked 'mut'");
+			writer ~= " was not marked 'mut'";
 		},
 		(ref immutable Diag.LoopBreakNotAtTail d) {
-			writeStatic(writer, "'break' must be appear at the tail of a loop");
+			writer ~= "'break' must be appear at the tail of a loop";
 		},
 		(ref immutable Diag.LoopNeedsBreakOrContinue) {
-			writeStatic(writer, "a loop must end in 'break' or 'continue'");
+			writer ~= "a loop must end in 'break' or 'continue'";
 		},
 		(ref immutable Diag.LoopNeedsExpectedType) {
-			writeStatic(writer, "can not infer type of loop; provide an expected type");
-			writeStatic(writer, " (for example, by making it the return expression of a function)");
+			writer ~= "can not infer type of loop; provide an expected type";
+			writer ~= " (for example, by making it the return expression of a function)";
 		},
 		(ref immutable Diag.LoopWithoutBreak d) {
-			writeStatic(writer, "'loop' has no 'break'");
+			writer ~= "'loop' has no 'break'";
 		},
 		(ref immutable Diag.MatchCaseNamesDoNotMatch d) {
-			writeStatic(writer, "expected the case names to be: ");
+			writer ~= "expected the case names to be: ";
 			writeWithCommas!Sym(writer, d.expectedNames, (ref immutable Sym name) {
 				writeName(writer, allSymbols, name);
 			});
 		},
 		(ref immutable Diag.MatchCaseShouldHaveLocal d) {
-			writeStatic(writer, "union member ");
+			writer ~= "union member ";
 			writeName(writer, allSymbols, d.name);
-			writeStatic(writer, " has an associated value that should be declared (or use '_')");
+			writer ~= " has an associated value that should be declared (or use '_')";
 		},
 		(ref immutable Diag.MatchCaseShouldNotHaveLocal d) {
-			writeStatic(writer, "union member ");
+			writer ~= "union member ";
 			writeName(writer, allSymbols, d.name);
-			writeStatic(writer, " has no associated value");
+			writer ~= " has no associated value";
 		},
 		(ref immutable Diag.MatchOnNonUnion d) {
-			writeStatic(writer, "can't match on non-union type ");
+			writer ~= "can't match on non-union type ";
 			writeTypeQuoted(writer, allSymbols, d.type);
 		},
 		(ref immutable Diag.ModifierConflict d) {
 			writeName(writer, allSymbols, d.curModifier);
-			writeStatic(writer, " conflicts with ");
+			writer ~= " conflicts with ";
 			writeName(writer, allSymbols, d.prevModifier);
 		},
 		(ref immutable Diag.ModifierDuplicate d) {
-			writeStatic(writer, "redundant ");
+			writer ~= "redundant ";
 			writeName(writer, allSymbols, d.modifier);
 		},
 		(ref immutable Diag.ModifierInvalid d) {
 			writeName(writer, allSymbols, d.modifier);
-			writeStatic(writer, " is not supported for ");
-			writeStatic(writer, aOrAnTypeKind(d.typeKind));
+			writer ~= " is not supported for ";
+			writer ~= aOrAnTypeKind(d.typeKind);
 		},
 		(ref immutable Diag.MutFieldNotAllowed d) {
-			immutable string message = () {
+			writer ~= () {
 				final switch (d.reason) {
 					case Diag.MutFieldNotAllowed.Reason.recordIsNotMut:
 						return "field is mut, but containing record was not marked mut";
@@ -789,10 +771,9 @@ void writeDiag(
 						return "field is mut, but containing record was forced by-val";
 				}
 			}();
-			writeStatic(writer, message);
 		},
 		(ref immutable Diag.NameNotFound d) {
-			immutable string kind = () {
+			writer ~= () {
 				final switch (d.kind) {
 					case Diag.NameNotFound.Kind.spec:
 						return "spec";
@@ -800,62 +781,61 @@ void writeDiag(
 						return "type";
 				}
 			}();
-			writeStatic(writer, kind);
-			writeStatic(writer, " name not found: ");
+			writer ~= " name not found: ";
 			writeName(writer, allSymbols, d.name);
 		},
 		(ref immutable ParseDiag pd) {
 			writeParseDiag(writer, allPaths, pathsInfo, pd);
 		},
 		(ref immutable Diag.PtrIsUnsafe) {
-			writeStatic(writer, "can only get pointer in an 'unsafe' or 'trusted' function");
+			writer ~= "can only get pointer in an 'unsafe' or 'trusted' function";
 		},
 		(ref immutable Diag.PtrMutToConst d) {
-			final switch (d.kind) {
-				case Diag.PtrMutToConst.Kind.field:
-					writeStatic(writer, "can't get a mutable pointer to a non-'mut' field");
-					break;
-				case Diag.PtrMutToConst.Kind.local:
-					writeStatic(writer, "can't get a mutable pointer to a non-'mut' local");
-					break;
-			}
+			writer ~= () {
+				final switch (d.kind) {
+					case Diag.PtrMutToConst.Kind.field:
+						return "can't get a mutable pointer to a non-'mut' field";
+					case Diag.PtrMutToConst.Kind.local:
+						return "can't get a mutable pointer to a non-'mut' local";
+				}
+			}();
 		},
 		(ref immutable Diag.PtrNeedsExpectedType) {
-			writeStatic(writer, "pointer expression needs an expected type");
+			writer ~= "pointer expression needs an expected type";
 		},
 		(ref immutable Diag.PtrUnsupported) {
-			writeStatic(writer, "can't get a pointer to this kind of expression");
+			writer ~= "can't get a pointer to this kind of expression";
 		},
 		(ref immutable Diag.PurityWorseThanParent d) {
-			writeStatic(writer, "struct ");
+			writer ~= "struct ";
 			writeName(writer, allSymbols, d.parent.name);
-			writeStatic(writer, " has purity ");
-			writePurity(writer, d.parent.purity);
-			writeStatic(writer, ", but member of type ");
+			writer ~= " has purity ";
+			writePurity(writer, allSymbols, d.parent.purity);
+			writer ~= ", but member of type ";
 			writeTypeQuoted(writer, allSymbols, d.child);
-			writeStatic(writer, " has purity ");
-			writePurity(writer, bestCasePurity(d.child));
+			writer ~= " has purity ";
+			writePurity(writer, allSymbols, bestCasePurity(d.child));
 		},
 		(ref immutable Diag.PuritySpecifierRedundant d) {
-			writeStatic(writer, "redundant purity specifier of ");
-			writeName(writer, allSymbols, symOfPurity(d.purity));
-			writeStatic(writer, " is already the default for ");
-			writeStatic(writer, aOrAnTypeKind(d.typeKind));
-			writeStatic(writer, " type");
+			writer ~= "redundant purity specifier of ";
+			writePurity(writer, allSymbols, d.purity);
+			writer ~= " is already the default for ";
+			writer ~= aOrAnTypeKind(d.typeKind);
+			writer ~= " type";
 		},
 		(ref immutable Diag.RecordNewVisibilityIsRedundant d) {
-			writeStatic(writer, "the 'new' function for this record is already ");
+			writer ~= "the 'new' function for this record is already ";
 			writeName(writer, allSymbols, symOfVisibility(d.visibility));
-			writeStatic(writer, " by default");
+			writer ~= " by default";
 		},
 		(ref immutable Diag.SendFunDoesNotReturnFut d) {
-			writeStatic(writer, "a 'ref' should return a 'fut', but this returns ");
+			writer ~= "a 'ref' should return a 'fut', but this returns ";
 			writeTypeQuoted(writer, allSymbols, d.actualReturnType);
 		},
 		(ref immutable Diag.SpecBuiltinNotSatisfied d) {
-			writeStatic(writer, "trying to call ");
+			writer ~= "trying to call ";
 			writeName(writer, allSymbols, d.called.name);
-			writeStatic(writer, ", but ");
+			writer ~= ", but ";
 			writeTypeQuoted(writer, allSymbols, d.type);
 			immutable string message = () {
 				final switch (d.kind) {
@@ -865,30 +845,30 @@ void writeDiag(
 						return " is not 'send'";
 				}
 			}();
-			writeStatic(writer, message);
+			writer ~= message;
 		},
 		(ref immutable Diag.SpecImplFoundMultiple d) {
-			writeStatic(writer, "multiple implementations found for spec signature ");
+			writer ~= "multiple implementations found for spec signature ";
 			writeName(writer, allSymbols, d.sigName);
-			writeChar(writer, ':');
+			writer ~= ':';
 			writeCalledDecls(writer, allSymbols, allPaths, pathsInfo, options, fi, d.matches);
 		},
 		(ref immutable Diag.SpecImplHasSpecs d) {
-			writeStatic(writer, "calling ");
+			writer ~= "calling ";
 			writeName(writer, allSymbols, d.outerCalled.name);
-			writeStatic(writer, ", spec implementation for ");
+			writer ~= ", spec implementation for ";
 			writeName(writer, allSymbols, d.specImpl.name);
 			writeFunDeclLocation(writer, allSymbols, allPaths, pathsInfo, options, fi, *d.specImpl);
-			writeStatic(writer, " has specs itself; currently this is not allowed");
+			writer ~= " has specs itself; currently this is not allowed";
 		},
 		(ref immutable Diag.SpecImplNotFound d) {
-			writeStatic(writer, "no implementation was found for spec signature ");
+			writer ~= "no implementation was found for spec signature ";
 			writeName(writer, allSymbols, d.sigName);
 		},
 		(ref immutable Diag.ThreadLocalError d) {
-			writeStatic(writer, "thread-local ");
+			writer ~= "thread-local ";
 			writeName(writer, allSymbols, d.fun.name);
-			writeStatic(writer, () {
+			writer ~= () {
 				final switch (d.kind) {
 					case Diag.ThreadLocalError.Kind.hasParams:
 						return " can't have parameters";
@@ -899,27 +879,27 @@ void writeDiag(
 					case Diag.ThreadLocalError.Kind.mustReturnPtrMut:
 						return " return type must be a 'mut*'";
 				}
-			}());
+			}();
 		},
 		(ref immutable Diag.ThrowNeedsExpectedType) {
-			writeStatic(writer, "can't infer type of 'throw'");
+			writer ~= "'throw' needs an expected type";
 		},
 		(ref immutable Diag.TypeAnnotationUnnecessary d) {
-			writeStatic(writer, "type ");
+			writer ~= "type ";
 			writeTypeQuoted(writer, allSymbols, d.type);
-			writeStatic(writer, " was already inferred");
+			writer ~= " was already inferred";
 		},
 		(ref immutable Diag.TypeConflict d) {
-			writeStatic(writer, "the type of the expression conflicts with its expected type.\n\texpected: ");
+			writer ~= "the type of the expression conflicts with its expected type.\n\texpected: ";
 			writeTypeQuoted(writer, allSymbols, d.expected);
-			writeStatic(writer, "\n\tactual: ");
+			writer ~= "\n\tactual: ";
 			writeTypeQuoted(writer, allSymbols, d.actual);
 		},
 		(ref immutable Diag.TypeParamCantHaveTypeArgs) {
-			writeStatic(writer, "a type parameter can't take type arguments");
+			writer ~= "a type parameter can't take type arguments";
 		},
 		(ref immutable Diag.TypeShouldUseSyntax it) {
-			writeStatic(writer, () {
+			writer ~= () {
 				final switch (it.kind) {
 					case Diag.TypeShouldUseSyntax.Kind.arr:
 						return "prefer to write 'a[]' instead of 'arr a'";
@@ -936,65 +916,65 @@ void writeDiag(
 					case Diag.TypeShouldUseSyntax.Kind.ptrMut:
 						return "prefer to write 'a mut*' instead of 'mut-ptr a'";
 				}
-			}());
+			}();
 		},
 		(ref immutable Diag.UnusedImport it) {
 			if (has(it.importedName)) {
-				writeStatic(writer, "imported name ");
+				writer ~= "imported name ";
 				writeSym(writer, allSymbols, force(it.importedName));
 			} else {
-				writeStatic(writer, "imported module ");
+				writer ~= "imported module ";
 				// TODO: helper fn
 				immutable Sym moduleName = baseName(allPaths, fi.filePaths[it.importedModule.fileIndex]);
 				writeSym(writer, allSymbols, moduleName);
 			}
-			writeStatic(writer, " is unused");
+			writer ~= " is unused";
 		},
 		(ref immutable Diag.UnusedLocal it) {
-			writeStatic(writer, "local ");
+			writer ~= "local ";
 			writeSym(writer, allSymbols, it.local.name);
-			writeStatic(writer, it.usedGet
+			writer ~= it.usedGet
 				? " is mutable but never reassigned"
-				: (it.usedSet ? " is assigned to but unused" : " is unused"));
+				: (it.usedSet ? " is assigned to but unused" : " is unused");
 		},
 		(ref immutable Diag.UnusedParam it) {
-			writeStatic(writer, "parameter ");
+			writer ~= "parameter ";
 			writeSym(writer, allSymbols, force(it.param.name));
-			writeStatic(writer, " is unused");
+			writer ~= " is unused";
 		},
 		(ref immutable Diag.UnusedPrivateFun it) {
-			writeStatic(writer, "private function ");
+			writer ~= "private function ";
 			writeSym(writer, allSymbols, it.fun.name);
-			writeStatic(writer, " is unused");
+			writer ~= " is unused";
 		},
 		(ref immutable Diag.UnusedPrivateSpec it) {
-			writeStatic(writer, "private spec ");
+			writer ~= "private spec ";
 			writeSym(writer, allSymbols, it.spec.name);
-			writeStatic(writer, " is unused");
+			writer ~= " is unused";
 		},
 		(ref immutable Diag.UnusedPrivateStruct it) {
-			writeStatic(writer, "private type ");
+			writer ~= "private type ";
 			writeSym(writer, allSymbols, it.struct_.name);
-			writeStatic(writer, " is unused");
+			writer ~= " is unused";
 		},
 		(ref immutable Diag.UnusedPrivateStructAlias it) {
-			writeStatic(writer, "private type ");
+			writer ~= "private type ";
 			writeSym(writer, allSymbols, it.alias_.name);
-			writeStatic(writer, " is unused");
+			writer ~= " is unused";
 		},
 		(ref immutable Diag.WrongNumberTypeArgsForSpec d) {
 			writeName(writer, allSymbols, d.decl.name);
-			writeStatic(writer, " expected to get ");
-			writeNat(writer, d.nExpectedTypeArgs);
-			writeStatic(writer, " type args, but got ");
-			writeNat(writer, d.nActualTypeArgs);
+			writer ~= " expected to get ";
+			writer ~= d.nExpectedTypeArgs;
+			writer ~= " type args, but got ";
+			writer ~= d.nActualTypeArgs;
 		},
 		(ref immutable Diag.WrongNumberTypeArgsForStruct d) {
 			writeName(writer, allSymbols, d.decl.name);
-			writeStatic(writer, " expected to get ");
-			writeNat(writer, d.nExpectedTypeArgs);
-			writeStatic(writer, " type args, but got ");
-			writeNat(writer, d.nActualTypeArgs);
+			writer ~= " expected to get ";
+			writer ~= d.nExpectedTypeArgs;
+			writer ~= " type args, but got ";
+			writer ~= d.nActualTypeArgs;
 		});
 }
 
@@ -1009,7 +989,7 @@ void showDiagnostic(
 	ref immutable Diagnostic d,
 ) {
 	writeFileAndRange(writer, allPaths, pathsInfo, options, fi, d.where);
-	writeChar(writer, ' ');
+	writer ~= ' ';
 	writeDiag(tempAlloc, writer, allSymbols, allPaths, pathsInfo, options, fi, d.diag);
 	writeNl(writer);
 }

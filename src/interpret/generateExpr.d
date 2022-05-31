@@ -134,7 +134,7 @@ import util.opt : force, has, Opt;
 import util.ptr : ptrTrustMe, ptrTrustMe_const, ptrTrustMe_mut;
 import util.sym : AllSymbols;
 import util.util : divRoundUp, unreachable, verify;
-import util.writer : finishWriter, writeChar, Writer, writeStatic;
+import util.writer : finishWriter, Writer;
 
 //TODO: not @trusted
 @trusted void generateFunFromExpr(
@@ -785,9 +785,9 @@ void generateConstant(
 	debug {
 		if (false) {
 			Writer w = Writer(ptrTrustMe_mut(ctx.tempAlloc));
-			writeStatic(w, "generateConstant of type ");
+			w ~= "generateConstant of type ";
 			writeLowType(w, ctx.allSymbols, ctx.program.allTypes, type);
-			writeChar(w, '\n');
+			w ~= '\n';
 			//print()
 			finishWriter(w);
 		}

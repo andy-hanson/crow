@@ -8,7 +8,7 @@ import util.col.arrUtil : arrMax, arrMaxIndex, exists, fillArrUninitialized;
 import util.col.arrBuilder : add, ArrBuilder, finishArr;
 import util.comparison : compareSizeT;
 import util.sym : AllSymbols, shortSym, Sym, symSize, writeSym;
-import util.writer : Writer, writeRed, writeReset, writeStatic;
+import util.writer : Writer, writeRed, writeReset;
 import util.writerUtils : writeNlIndent, writeSpaces, writeSymPadded;
 import util.util : max, verify;
 
@@ -159,7 +159,7 @@ void printDiff(
 
 	writeNlIndent(writer);
 	writeSymPadded(writer, allSymbols, expected, columnSize);
-	writeStatic(writer, "you wrote\n");
+	writer ~= "you wrote\n";
 
 	// This gave us the list of symbols that they have in common.
 	// New just walk them together.

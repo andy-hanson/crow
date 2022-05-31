@@ -11,7 +11,7 @@ import util.col.arrUtil : eachCorresponds, makeArr;
 import util.path : AllPaths;
 import util.sym : AllSymbols;
 import util.util : verify;
-import util.writer : finishWriter, writeChar, writeNat, Writer, writeStatic;
+import util.writer : finishWriter, Writer;
 
 struct Test {
 	@safe @nogc pure nothrow:
@@ -50,9 +50,9 @@ struct Test {
 	if (!eq) {
 		debug {
 			Writer writer = test.writer();
-			writeStatic(writer, "expected:\n");
+			writer ~= "expected:\n";
 			showDataArr(writer, expected);
-			writeStatic(writer, "\nactual:\n");
+			writer ~= "\nactual:\n";
 			showDataArr(writer, stack);
 			test.fail(finishWriter(writer));
 		}
@@ -76,17 +76,17 @@ struct Test {
 	if (!eq) {
 		debug {
 			Writer writer = test.writer();
-			writeStatic(writer, "expected:\nreturn:");
+			writer ~= "expected:\nreturn:";
 			foreach (immutable ByteCodeIndex index; expected) {
-				writeChar(writer, ' ');
-				writeNat(writer, index.index);
+				writer ~= ' ';
+				writer ~= index.index;
 			}
-			writeStatic(writer, "\nactual:\nreturn:");
+			writer ~= "\nactual:\nreturn:";
 			foreach (immutable Operation* ptr; stack) {
-				writeChar(writer, ' ');
-				writeNat(writer, ptr - byteCode.byteCode.ptr);
+				writer ~= ' ';
+				writer ~= ptr - byteCode.byteCode.ptr;
 			}
-			writeChar(writer, '\n');
+			writer ~= '\n';
 			test.fail(finishWriter(writer));
 		}
 		verify(false);

@@ -12,7 +12,7 @@ import util.hash : Hasher, hashUlong;
 import util.opt : force, has, Opt, none, some;
 import util.ptr : ptrTrustMe_mut;
 import util.util : drop, verify;
-import util.writer : finishWriterToSafeCStr, writeChar, Writer;
+import util.writer : finishWriterToSafeCStr, Writer;
 
 immutable(Opt!size_t) indexOfSym(ref immutable Sym[] a, immutable Sym value) {
 	return findIndex!Sym(a, (ref immutable Sym it) => it == value);
@@ -404,7 +404,7 @@ immutable(char[bufferSize]) symAsTempBuffer(size_t bufferSize)(ref const AllSymb
 immutable(size_t) writeSymAndGetSize(scope ref Writer writer, scope ref const AllSymbols allSymbols, immutable Sym a) {
 	size_t size = 0;
 	eachCharInSym(allSymbols, a, (immutable char c) {
-		writeChar(writer, c);
+		writer ~= c;
 		size++;
 	});
 	return size;
@@ -415,9 +415,9 @@ void writeSym(scope ref Writer writer, scope ref const AllSymbols allSymbols, im
 }
 
 void writeQuotedSym(ref Writer writer, ref const AllSymbols allSymbols, immutable Sym a) {
-	writeChar(writer, '"');
+	writer ~= '"';
 	writeSym(writer, allSymbols, a);
-	writeChar(writer, '"');
+	writer ~= '"';
 }
 
 immutable(bool) isSymOperator(immutable Sym a) {

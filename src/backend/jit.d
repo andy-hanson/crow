@@ -140,7 +140,7 @@ import util.ptr : castImmutable, ptrTrustMe, ptrTrustMe_mut;
 import util.sourceRange : FileAndRange;
 import util.sym : AllSymbols, writeSym;
 import util.util : todo, unreachable, verify;
-import util.writer : finishWriterToCStr, writeChar, Writer, writeStatic;
+import util.writer : finishWriterToCStr, Writer;
 
 @trusted immutable(int) jitAndRun(
 	ref Alloc alloc,
@@ -221,7 +221,7 @@ GccProgram getGccProgram(
 	foreach (ref immutable ExternLibrary x; program.externLibraries) {
 		//TODO:NO ALLOC
 		Writer writer = Writer(ptrTrustMe_mut(alloc));
-		writeStatic(writer, "-l");
+		writer ~= "-l";
 		writeSym(writer, allSymbols, x.libraryName);
 		gcc_jit_context_add_driver_option(*ctx, finishWriterToCStr(writer));
 	}
@@ -325,7 +325,7 @@ extern(C) {
 						import interpret.debugging : writeFunName, writeFunSig;
 						Writer writer = Writer(ptrTrustMe_mut(alloc));
 						writeFunName(writer, allSymbols, program, funIndex);
-						writeChar(writer, ' ');
+						writer ~= ' ';
 						writeFunSig(writer, allSymbols, program, fun);
 						printf("Stub %llu %s\n", funIndex.index, finishWriterToCStr(writer));
 					}
@@ -337,7 +337,7 @@ extern(C) {
 							import interpret.debugging : writeFunName, writeFunSig;
 							Writer writer = Writer(ptrTrustMe_mut(alloc));
 							writeFunName(writer, allSymbols, program, funIndex);
-							writeChar(writer, ' ');
+							writer ~= ' ';
 							writeFunSig(writer, allSymbols, program, fun);
 							printf("Generate %llu %s\n", funIndex.index, finishWriterToCStr(writer));
 						}
@@ -556,7 +556,7 @@ GlobalsForThreadLocals generateGlobalsForThreadLocals(
 	writeLowFunMangledName(writer, mangledNames, funIndex, fun);
 	if (isGlobal(fun.body_))
 		// The function name needs to be different from the global name, else libgccjit gets confused.
-		writeStatic(writer, "__getter");
+		writer ~= "__getter";
 	immutable CStr name = finishWriterToCStr(writer);
 	gcc_jit_function* res =
 		gcc_jit_context_new_function(ctx, null, kind, returnType, name, cast(int) params.length, params.ptr, false);

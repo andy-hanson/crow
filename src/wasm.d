@@ -19,7 +19,7 @@ import util.perf : eachMeasure, Perf, PerfMeasureResult, withNullPerf;
 import util.ptr : castNonScope_mut;
 import util.repr : Repr, jsonStrOfRepr, nameAndRepr, reprArr, reprNamedRecord, reprStr;
 import util.sourceRange : Pos, reprRangeWithinFile;
-import util.writer : finishWriterToCStr, writeChar, writeNat, writeQuotedStr, Writer, writeStatic;
+import util.writer : finishWriterToCStr, writeQuotedStr, Writer;
 
 // seems to be the required entry point
 extern(C) void _start() {}
@@ -160,12 +160,12 @@ immutable(Repr) reprParseDiagnostics(ref Alloc alloc, ref immutable StrParseDiag
 
 immutable(CStr) writeRunResult(ref Alloc alloc, ref immutable FakeExternResult result) {
 	Writer writer = Writer(castNonScope_mut(&alloc));
-	writeStatic(writer, "{\"err\":");
-	writeNat(writer, result.err.value);
-	writeStatic(writer, ",\"stdout\":");
+	writer ~= "{\"err\":";
+	writer ~= result.err.value;
+	writer ~= ",\"stdout\":";
 	writeQuotedStr(writer, result.stdout);
-	writeStatic(writer, ",\"stderr\":");
+	writer ~= ",\"stderr\":";
 	writeQuotedStr(writer, result.stderr);
-	writeChar(writer, '}');
+	writer ~= '}';
 	return finishWriterToCStr(writer);
 }

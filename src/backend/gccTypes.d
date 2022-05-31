@@ -65,7 +65,7 @@ import util.opt : force, has, none, noneMut, Opt, some, someMut;
 import util.ptr : castImmutable, ptrTrustMe_mut;
 import util.sym : AllSymbols, writeSym;
 import util.util : as, verify;
-import util.writer : finishWriterToCStr, writeNat, Writer, writeStatic;
+import util.writer : finishWriterToCStr, Writer;
 
 struct GccTypes {
 	private:
@@ -391,7 +391,7 @@ struct GccTypesWip {
 	immutable CStr mangledNameInner = () {
 		Writer writer = Writer(ptrTrustMe_mut(alloc));
 		writeStructMangledName(writer, mangledNames, union_.source);
-		writeStatic(writer, "_inner");
+		writer ~= "_inner";
 		return finishWriterToCStr(writer);
 	}();
 
@@ -401,8 +401,8 @@ struct GccTypesWip {
 		(immutable size_t memberIndex, ref immutable LowType memberType) {
 			//TODO:NO ALLOC
 			Writer writer = Writer(ptrTrustMe_mut(alloc));
-			writeStatic(writer, "as");
-			writeNat(writer, memberIndex);
+			writer ~= "as";
+			writer ~= memberIndex;
 			return gcc_jit_context_new_field(ctx, null, getGccType(typesWip, memberType), finishWriterToCStr(writer));
 		});
 	immutable gcc_jit_type* innerUnion = gcc_jit_context_new_union_type(

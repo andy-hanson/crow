@@ -13,6 +13,26 @@ struct Writer {
 	//TODO:PRIVATE
 	public Alloc* alloc;
 	ArrBuilder!char res;
+
+	void opOpAssign(string op, T)(scope immutable T a) scope if (op == "~") {
+		static if (is(T == char))
+			add(*alloc, res, a);
+		else static if (is(T == string)) {
+			foreach (immutable char c; a)
+				this ~= c;
+		} else static if (is(T == SafeCStr))
+			eachChar(a, (immutable char c) {
+				this ~= c;
+			});
+		else static if (is(T == int) || is(T == long)) {
+			if (a < 0)
+				this ~= '-';
+			this ~= abs(a);
+		} else static if (is(T == uint) || is(T == ulong))
+			writeNat(this, a);
+		else
+			static assert(false, "not writeable");
+	}
 }
 
 immutable(string) finishWriter(scope ref Writer writer) {
@@ -20,40 +40,20 @@ immutable(string) finishWriter(scope ref Writer writer) {
 }
 
 @trusted immutable(CStr) finishWriterToCStr(ref Writer writer) {
-	writeChar(writer, '\0');
+	writer ~= '\0';
 	return finishWriter(writer).ptr;
 }
 
 @trusted immutable(SafeCStr) finishWriterToSafeCStr(scope ref Writer writer) {
 	return immutable SafeCStr(finishWriterToCStr(writer));
 }
-
-void writeChar(ref Writer writer, immutable char c) {
-	add(*writer.alloc, writer.res, c);
-}
-
-void writeSafeCStr(ref Writer writer, scope immutable SafeCStr a) {
-	eachChar(a, (immutable char c) {
-		writeChar(writer, c);
-	});
-}
-
-void writeStr(ref Writer writer, scope immutable string s) {
-	foreach (immutable char c; s)
-		writeChar(writer, c);
-}
-
-void writeStatic(ref Writer writer, scope immutable string c) {
-	writeStr(writer, c);
-}
-
 void writeHex(ref Writer writer, immutable ulong a) {
 	writeNat(writer, a, 16);
 }
 
 void writeHex(scope ref Writer writer, immutable long a) {
 	if (a < 0)
-		writeChar(writer, '-');
+		writer ~= '-';
 	writeHex(writer, cast(immutable ulong) (a < 0 ? -a : a));
 }
 
@@ -64,13 +64,13 @@ void writeFloatLiteral(ref Writer writer, immutable double a) {
 	if ((cast(double) (cast(long) a)) == a) {
 		// Being careful to handle -0
 		if (1.0 / a < 0)
-			writeChar(writer, '-');
-		writeNat(writer, abs(cast(long) a));
-		writeStatic(writer, ".0");
+			writer ~= '-';
+		writer ~= abs(cast(long) a);
+		writer ~= ".0";
 	} else if ((cast(double) (cast(long) (a * 10.0))) == a * 10.0) {
-		writeInt(writer, cast(long) a);
-		writeChar(writer, '.');
-		writeNat(writer, (cast(long) (abs(a) * 10)) % 10);
+		writer ~= cast(long) a;
+		writer ~= '.';
+		writer ~= (cast(long) (abs(a) * 10)) % 10;
 	} else {
 		DoubleToUlong conv;
 		conv.double_ = a;
@@ -79,11 +79,12 @@ void writeFloatLiteral(ref Writer writer, immutable double a) {
 		immutable ulong exponentPlus1023 = (u >> (64 - 1 - 11)) & ((1 << 11) - 1);
 		immutable ulong fraction = u & ((1uL << 52) - 1);
 		immutable long exponent = (cast(long) exponentPlus1023) - 1023;
-		if (isNegative) writeChar(writer, '-');
-		writeStatic(writer, "0x1.");
+		if (isNegative)
+			writer ~= '-';
+		writer ~= "0x1.";
 		writeHex(writer, fraction);
-		writeChar(writer, 'p');
-		writeInt(writer, exponent);
+		writer ~= 'p';
+		writer ~= exponent;
 	}
 }
 
@@ -92,21 +93,15 @@ private union DoubleToUlong {
 	ulong ulong_;
 }
 
-void writeNat(ref Writer writer, immutable ulong n, immutable ulong base = 10) {
+private void writeNat(ref Writer writer, immutable ulong n, immutable ulong base = 10) {
 	if (n >= base)
 		writeNat(writer, n / base, base);
-	writeChar(writer, digitChar(n % base));
+	writer ~= digitChar(n % base);
 }
 
 private immutable(char) digitChar(immutable ulong digit) {
 	verify(digit < 16);
 	return digit < 10 ? cast(char) ('0' + digit) : cast(char) ('a' + (digit - 10));
-}
-
-void writeInt(ref Writer writer, immutable long i, immutable ulong base = 10) {
-	if (i < 0)
-		writeChar(writer, '-');
-	writeNat(writer, abs(i), base);
 }
 
 void writeJoin(T)(
@@ -117,7 +112,7 @@ void writeJoin(T)(
 ) {
 	foreach (immutable size_t i, ref immutable T x; a) {
 		if (i != 0)
-			writeStatic(writer, joiner);
+			writer ~= joiner;
 		cb(x);
 	}
 }
@@ -140,7 +135,7 @@ void writeWithCommas(T)(
 	foreach (ref immutable T x; a) {
 		if (filter(x)) {
 			if (needsComma)
-				writeStatic(writer, ", ");
+				writer ~= ", ";
 			else
 				needsComma = true;
 			cb(x);
@@ -159,7 +154,7 @@ void writeWithCommasZip(T, U)(
 	zip!(T, U)(a, b, (ref immutable T x, ref immutable U y) {
 		if (filter(x, y)) {
 			if (needsComma)
-				writeStatic(writer, ", ");
+				writer ~= ", ";
 			else
 				needsComma = true;
 			cb(x, y);
@@ -174,21 +169,21 @@ void writeWithNewlines(T)(
 ) {
 	foreach (immutable size_t i, ref immutable T x; a) {
 		if (i != 0)
-			writeStatic(writer, "\n");
+			writer ~= "\n";
 		cb(x);
 	}
 }
 
 void writeQuotedStr(ref Writer writer, ref immutable string s) {
-	writeChar(writer, '"');
+	writer ~= '"';
 	foreach (immutable char c; s)
 		writeEscapedChar_inner(writer, c);
-	writeChar(writer, '"');
+	writer ~= '"';
 }
 
 void writeEscapedChar(ref Writer writer, immutable char c) {
 	if (c == '\'')
-		writeStatic(writer, "\\\'");
+		writer ~= "\\\'";
 	else
 		writeEscapedChar_inner(writer, c);
 }
@@ -196,51 +191,51 @@ void writeEscapedChar(ref Writer writer, immutable char c) {
 void writeEscapedChar_inner(ref Writer writer, immutable char c) {
 	switch (c) {
 		case '\n':
-			writeStatic(writer, "\\n");
+			writer ~= "\\n";
 			break;
 		case '\r':
-			writeStatic(writer, "\\r");
+			writer ~= "\\r";
 			break;
 		case '\t':
-			writeStatic(writer, "\\t");
+			writer ~= "\\t";
 			break;
 		case '"':
-			writeStatic(writer, "\\\"");
+			writer ~= "\\\"";
 			break;
 		case '\\':
-			writeStatic(writer, "\\\\");
+			writer ~= "\\\\";
 			break;
 		case '\0':
-			writeStatic(writer, "\\0");
+			writer ~= "\\0";
 			break;
 		// TODO: handle other special characters like this one
 		case '\x1b':
 			// NOTE: need two adjacent concatenated strings
 			// in case the next character is a valid hex digit
-			writeStatic(writer, "\\x1b\"\"");
+			writer ~= "\\x1b\"\"";
 			break;
 		default:
-			writeChar(writer, c);
+			writer ~= c;
 			break;
 	}
 }
 
 void writeBold(ref Writer writer) {
 	version (Windows) { } else {
-		writeStatic(writer, "\x1b[1m");
+		writer ~= "\x1b[1m";
 	}
 }
 
 void writeRed(ref Writer writer) {
 	version (Windows) { } else {
-		writeStatic(writer, "\x1b[31m");
+		writer ~= "\x1b[31m";
 	}
 }
 
 // Undo bold, color, etc
 void writeReset(ref Writer writer) {
 	version (Windows) { } else {
-		writeStatic(writer, "\x1b[m");
+		writer ~= "\x1b[m";
 	}
 }
 
@@ -252,11 +247,11 @@ void writeHyperlink(
 	// documentation: https://gist.github.com/egmontkob/eb114294efbcd5adb1944c9f3cb5feda
 	// https://purpleidea.com/blog/2018/06/29/hyperlinks-in-gnome-terminal/
 	if (canWriteHyperlink()) {
-		writeStatic(writer, "\x1b]8;;");
+		writer ~= "\x1b]8;;";
 		writeUrl();
-		writeStatic(writer, "\x1b\\");
+		writer ~= "\x1b\\";
 		writeText();
-		writeStatic(writer, "\x1b]8;;\x1b\\");
+		writer ~= "\x1b]8;;\x1b\\";
 	} else {
 		writeText();
 	}
@@ -272,7 +267,7 @@ private immutable(bool) canWriteHyperlink() {
 }
 
 void writeNewline(ref Writer writer, immutable size_t indent) {
-	writeChar(writer, '\n');
+	writer ~= '\n';
 	foreach (immutable size_t _; 0 .. indent)
-		writeChar(writer, '\t');
+		writer ~= '\t';
 }

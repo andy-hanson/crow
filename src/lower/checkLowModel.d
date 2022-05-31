@@ -262,11 +262,11 @@ void checkTypeEqual(
 	//	if (expected != actual) {
 	//		import core.stdc.stdio : printf;
 	//		import util.repr : writeRepr;
-	//		import util.writer : finishWriterToCStr, Writer, writeStatic;
+	//		import util.writer : finishWriterToCStr, Writer;
 	//		Writer writer = Writer(ptrTrustMe_mut(alloc));
-	//		writeStatic(writer, "Type is not as expected. Expected:\n");
+	//		writer ~= "Type is not as expected. Expected:\n";
 	//		writeRepr(writer, allSymbols, reprOfLowType2(alloc, ctx, expected));
-	//		writeStatic(writer, "Actual:\n");
+	//		writer ~= "Actual:\n";
 	//		writeRepr(writer, allSymbols, reprOfLowType2(alloc, ctx, actual));
 	//		printf("%s\n", finishWriterToCStr(writer));
 	//	}

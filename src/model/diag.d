@@ -31,7 +31,7 @@ import util.opt : Opt;
 import util.path : AllPaths, Path, PathsInfo, writePath;
 import util.sourceRange : FileAndPos, FileAndRange, FileIndex, FilePaths, PathToFile, RangeWithinFile;
 import util.sym : Sym;
-import util.writer : Writer, writeBold, writeHyperlink, writeChar, writeRed, writeReset, writeStatic;
+import util.writer : Writer, writeBold, writeHyperlink, writeRed, writeReset;
 import util.writerUtils : writePos, writeRangeWithinFile;
 
 enum DiagSeverity {
@@ -1069,7 +1069,7 @@ private void writeFileNoResetWriter(
 	if (options.color)
 		writeBold(writer);
 	if (fileIndex == FileIndex.none) {
-		writeStatic(writer, "<generated code> ");
+		writer ~= "<generated code> ";
 	} else {
 		immutable Path path = fi.filePaths[fileIndex];
 		if (options.color) {
@@ -1080,6 +1080,6 @@ private void writeFileNoResetWriter(
 			writeRed(writer);
 		} else
 			writePath(writer, allPaths, pathsInfo, path, crowExtension);
-		writeChar(writer, ' ');
+		writer ~= ' ';
 	}
 }
