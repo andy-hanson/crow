@@ -7,13 +7,13 @@ import
 	../misc: void
 	../number: ==, nat64
 	../opt: new, opt
-	../ptr: *, as-any-mut-ptr, as-ref, by-val, mut-ptr, set-deref
+	../ptr: *, by-val, mut-ptr, set-deref
 	../str: literal, str
 	../version: is-wasm
 	./alloc:
-		gc, gc-ctx, get-gc-ctx, init, needs-gc, return-gc-ctx, run-garbage-collection, uninit
+		gc, init, needs-gc, return-gc-ctx, run-garbage-collection, set-gc-ctx-for-thread, uninit
 	./bool-low-level: !, &&, ||, bool, false, true
-	./bootstrap: call-with-ctx, ctx, gc-ctx-ptr, gctx-ptr, get-ctx, hard-assert, new, sym
+	./bootstrap: call-with-ctx, ctx, hard-assert, new, sym
 	./log-low-level: default-log-handler, set-log-handler, log-handler
 	./task-queue:
 		action, add-task, add-tasks, add-timed-task, any-tasks, exclusion, first-task-time, init,
@@ -24,11 +24,16 @@ import
 		get-sequence, increment-and-get, init, lock, release, thread-safe-counter, uninit, wait-on
 
 get-global-ctx global-ctx() unsafe
-	get-ctx.gctx-ptr as-ref
+	*global-ctx-var
+
+# TODO: this should be a global instead
+.global-ctx-var global-ctx mut*() thread-local
 
 # This fun is required by the compiler.
 cur-exclusion exclusion() unsafe
-	get-ctx exclusion
+	*cur-exclusion-var
+
+.cur-exclusion-var exclusion mut*() thread-local
 
 global-ctx record mut by-ref
 	global-lock mut by-val lock
@@ -171,13 +176,14 @@ thread-function void(thread-id nat64, gctx global-ctx) noctx unsafe summon
 	&gctx.tasks-lock release
 
 new-ctx by-val ctx(gctx global-ctx, exclusion exclusion) noctx unsafe
-	gc gc = &gctx.gc
-	gc-ctx gc-ctx = gc get-gc-ctx
+	*global-ctx-var := gctx
+	*cur-exclusion-var := exclusion
+	&gctx.gc set-gc-ctx-for-thread
 	(&gctx.gc-root).default-log-handler set-log-handler
-	gctx.as-any-mut-ptr, exclusion, gc-ctx.as-any-mut-ptr
+	0,
 
-.return-ctx void(c ctx) noctx unsafe
-	c.gc-ctx-ptr.as-ref return-gc-ctx
+.return-ctx void(_ ctx) noctx unsafe
+	return-gc-ctx
 
 .choose-task-result union mut
 	task task

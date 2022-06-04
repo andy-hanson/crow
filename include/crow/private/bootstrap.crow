@@ -278,9 +278,7 @@ get-ctx ctx() unsafe builtin
 
 # The ctx only exists temporarily, so can use 'any-mut-ptr' without worrying about GC
 ctx record mut by-ref
-	gctx-ptr any-mut-ptr
-	exclusion exclusion
-	gc-ctx-ptr any-mut-ptr
+	dummy nat64
 
 exclusion alias
 	nat64

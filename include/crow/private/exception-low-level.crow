@@ -7,13 +7,12 @@ import
 	../number: ==, int32, nat64
 	../ptr: *, ==, mut-ptr, null, set-deref, zeroed
 	../version: is-interpreted, is-windows
-	./alloc: gc-ctx, get-gc-ctx
+	./alloc: try-get-cur-gc-ctx
 	./backtrace: get-backtrace
-	./bootstrap: abort, c-str, err, hard-assert, new, opt, ok, result, some
+	./bootstrap: abort, c-str, err, hard-assert, new, ok, result
 export
 	./bootstrap: exception, message
 
-.cur-gc-ctx gc-ctx? mut*() thread-local
 .cur-jmp-buf jmp_buf mut*() thread-local
 .cur-thrown exception mut*() thread-local
 
@@ -33,7 +32,6 @@ Run `try` and return what it returns, or return the result of `catcher` if `try`
 ###
 catch<a> a(try act a(), catcher act a(exception)) trusted
 	old-jmp-buf = *cur-jmp-buf
-	old-gc-ctx = *cur-gc-ctx
 	store mut __jmp_buf_tag = ()
 	setjmp-result = if is-interpreted
 		&store setjmp
@@ -44,11 +42,9 @@ catch<a> a(try act a(), catcher act a(exception)) trusted
 	if setjmp-result == 0
 		# Get here after setting the jump
 		*cur-jmp-buf := &store
-		*cur-gc-ctx := get-gc-ctx some
 		# If it throws, we'll go to the above branch.
 		res = try[]
 		*cur-jmp-buf := old-jmp-buf
-		*cur-gc-ctx := old-gc-ctx
 		res
 	else
 		# Get here after throwing from inside `try[]`
@@ -56,7 +52,6 @@ catch<a> a(try act a(), catcher act a(exception)) trusted
 		thrown = *cur-thrown
 		*cur-thrown := zeroed
 		*cur-jmp-buf := old-jmp-buf
-		*cur-gc-ctx := old-gc-ctx
 		catcher[thrown]
 
 # THis is called by the compiler on 'throw'
@@ -64,7 +59,7 @@ throw-impl void(message c-str) noctx trusted
 	message throw-with-skip 2
 
 throw-with-skip void(message c-str, skip nat64) noctx trusted
-	backtrace = if ctx ?= *cur-gc-ctx
+	backtrace = if ctx ?= try-get-cur-gc-ctx
 		ctx get-backtrace skip
 	else
 		(),
