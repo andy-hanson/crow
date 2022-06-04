@@ -1,11 +1,10 @@
 no-std
 import
 	../io/print: print
-	../ptr: as-ref, by-val
+	../ptr: *, set-deref
 	../misc: void
-	../ptr: zeroed
+	../ptr: mut-ptr
 	../str: ~~, literal, str
-	./bootstrap: get-ctx, log-ctx-ptr, thread-local-stuff
 
 ###
 Log severity.
@@ -45,13 +44,6 @@ logged record
 	level log-level
 	message str
 
-log-ctx record mut by-ref
-	handler mut log-handler
-
-log-ctx by-val log-ctx() noctx unsafe
-	# Handler is set when creating 'ctx'
-	zeroed,
-
 ###
 Function that handles a log message.
 
@@ -63,8 +55,8 @@ log-handler alias
 default-log-handler void(a logged) summon
 	print: a.level.to-str ~~ ": " ~~ a.message
 
-.get-log-ctx log-ctx() trusted
-	get-ctx.thread-local-stuff.log-ctx-ptr as-ref
+# GC doesn't trace thread-locals, but won't outlive a task anyway.
+.cur-log-handler log-handler mut*() thread-local
 
 ###
 This gets the current log handler.
@@ -73,8 +65,8 @@ then fall back to the original log handler.
 
 If you just want to call the curent log handler, you could just use `log`.
 ###
-get-log-handler log-handler()
-	get-log-ctx handler
+get-log-handler log-handler() noctx trusted
+	*cur-log-handler
 
-set-log-handler void(handler log-handler) trusted
-	get-log-ctx.handler := handler
+set-log-handler void(handler log-handler) noctx unsafe
+	*cur-log-handler := handler

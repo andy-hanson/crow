@@ -318,6 +318,9 @@ unmanaged-alloc-elements<a> a mut*(size-elements nat64) noctx unsafe
 	# TODO: wrap-mul is unsafe!
 	ptr-cast: size-elements wrap-mul size-of@<a> unmanaged-alloc-bytes
 
+unmanaged-free-elements<a> void(begin a mut*, _ nat64) noctx unsafe
+	begin.as-any-mut-ptr free
+
 unmanaged-free<a> void(p a mut*) noctx unsafe
 	p.as-any-mut-ptr free
 

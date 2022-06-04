@@ -281,13 +281,6 @@ ctx record mut by-ref
 	gctx-ptr any-mut-ptr
 	exclusion exclusion
 	gc-ctx-ptr any-mut-ptr
-	thread-local-stuff thread-local-stuff
-
-thread-local-stuff record mut by-ref
-	thread-id nat64
-	print-lock lock
-	log-ctx-ptr any-mut-ptr
-	perf-ctx-ptr any-mut-ptr
 
 exclusion alias
 	nat64

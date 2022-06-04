@@ -1,12 +1,13 @@
 import
+	crow/col/dict: each
 	crow/io/print: print
 	crow/perf
 
 main fut nat(_ str[]) summon
 	("foo",) perf-enable
-	1 .. 10 each x =>
+	for x : 1 .. 10
 		"foo" with-perf-measure () =>
 			print: x to-str
-	perf-each-measure: (name, value) =>
+	get-measured-perf each (name, value) =>
 		print: "{name}: {value}"
 	()

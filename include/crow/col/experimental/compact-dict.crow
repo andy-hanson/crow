@@ -238,7 +238,7 @@ verify void(a compact-dict<nat64, str>, expected str)
 	unless dbg == expected
 		info log "expected:"
 		info log expected
-		info log "but wss:"
+		info log "but was:"
 		info log dbg
 	dbg is expected
 	a each (k, v) =>

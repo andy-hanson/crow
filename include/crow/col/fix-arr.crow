@@ -10,11 +10,11 @@ import
 	../ptr:
 		==, <=>, +, -, *, as-any-const-ptr, as-any-mut-ptr, as-const, as-mut, mut-ptr, ptr-cast,
 		set-deref, set-subscript, size-of, subscript, swap
-	../private/alloc: alloc-uninitialized, set-zero-range, unmanaged-alloc-elements
+	../private/alloc: alloc-uninitialized, set-zero-range, unmanaged-alloc-elements, unmanaged-free-elements
 	../private/range-low-level: .., range
 	./arr: arr, for-loop, new, size, subscript
 	./private/arr-low-level: arr-from-begin-end, begin-ptr, subscript
-	./arr-util: each-with-index, exists, find-index, fold, fold-reverse
+	./arr-util: each-with-index, exists, find-index, fold, fold-reverse, index-of
 
 ###
 `fix-arr` is a low-level type mostly useful for implementing other collections.
@@ -75,7 +75,7 @@ fix-arr-from-begin-end<a> fix-arr a(begin a mut*, end a mut*) no-doc unsafe noct
 Gets the element at the index.
 Throws if `index >= a.size`.
 ###
-subscript<a> a(a fix-arr a, index nat64) trusted
+subscript<a> a(a fix-arr a, index nat64) noctx trusted
 	assert index < a.size
 	a.begin-ptr[index]
 
@@ -167,6 +167,9 @@ uninitialized-fix-arr<a> fix-arr a(size nat64) unsafe
 unmanaged-uninitialized-fix-arr<a> fix-arr a(size nat64) no-doc noctx unsafe
 	ptr a mut* = size unmanaged-alloc-elements
 	ptr[0 .. size]
+
+free-unmanaged-fix-arr<a> void(a fix-arr a) no-doc noctx unsafe
+	a.begin-ptr unmanaged-free-elements a.size
 
 ###
 This is like `uninitialized-fix-arr` but fills memory with zeroes.
@@ -266,8 +269,8 @@ temp-as-arr<a> a[](a fix-arr a) noctx unsafe
 	a inner
 
 # Equivalent to `a.temp-as-arr index-of value`.
-index-of<a> nat64?(a fix-arr a, value a) equal<a>
-	a find-index x => x == value
+index-of<a> nat64?(a fix-arr a, value a) trusted noctx equal<a>
+	a.temp-as-arr index-of value
 
 # Equivalent to `a.temp-as-arr find-index f`.
 find-index<a> nat64?(a fix-arr a, f act bool(a)) trusted

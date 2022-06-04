@@ -6,38 +6,27 @@ Even non-`summon` code is can measure perf, but only `summon` code can access th
 To measure performance:
 * First call `perf-enable`.
 * Then wrap the code you want to measure in `with-perf-measure`.
-* Then call `perf-each-measure` or `perf-get-measure` and output the results.
+* Then call `get-measured-perf` and output the results.
 ###
 no-std
 import
-	./col/arr: arr, new, size
-	./col/arr-util: index-of, zip-each
-	./col/fix-arr: fill-fix-arr, set-subscript, subscript, temp-as-arr
+	./col/arr: arr, new
+	./col/dict: dict
+	./col/mut-dict: move-to-dict, mut-dict, new, set-subscript
 	./fun-util: subscript
 	./io/duration: duration, new, nsec, to-str
 	./io/private/time-low-level: get-monotime-nsec
-	./misc: new, void
-	./number: +, -, to-float64
-	./opt: new, opt
-	./ptr: as-ref
+	./misc: void
+	./number: -, nat64, to-float64
 	./str: literal, str
 	./str-conv: finish, interp, to-str, with-str, with-value
-	./sym: ==, sym
-	./private/bootstrap: get-ctx, nat64, perf-ctx-ptr, thread-local-stuff
+	./sym: ==, <=>, hash-mix, sym
 	./private/perf-low-level:
-		count, measure-names, measure-values, new, ns, perf-ctx, perf-measure-value, perf-time,
-		set-measure-names, set-measure-values, total-nsec
+		add-measure-value-at-index, count, each-measure, get-measure-index, perf-enable-low-level,
+		perf-measure-value, total-nsec
 
-###
-Enables performance measurement.
-Only names in `names` will be measured; others will be ignored.
-
-If measurement was already enabled, this sets all measurements to 0 (and may change measured names)
-###
 perf-enable void(measure-names sym[]) summon
-	perf = get-perf-ctx
-	perf.measure-names := measure-names
-	perf.measure-values := measure-names.size fill-fix-arr (0, 0)
+	measure-names perf-enable-low-level
 
 # Disables performance measurement and clears all measurements.
 perf-disable void() summon
@@ -47,15 +36,14 @@ perf-disable void() summon
 Run `f` and measure its time.
 This will be added to the total time for this measure name.
 ###
-with-perf-measure<a> a(measure-name sym, f act a())
-	start = perf-now
-	res = f[]
-	perf = get-perf-ctx
-	if index ?= perf.measure-names index-of measure-name
-		ns = perf-now.ns - start.ns
-		cur = perf.measure-values[index]
-		perf.measure-values[index] := (cur.count + 1), (cur.total-nsec + ns)
-	res
+with-perf-measure<a> a(measure-name sym, f act a()) trusted
+	if index ?= measure-name get-measure-index
+		start = perf-now
+		res = f[]
+		index add-measure-value-at-index perf-now.nsec - start.nsec
+		res
+	else
+		f[]
 
 # Count and total duration of all measurements with the same name.
 measure-total record
@@ -76,20 +64,11 @@ Calls `f` for each performance measurement and its total.
 
 This must be called before `perf-disable`.
 ###
-perf-each-measure void(f act void(sym, measure-total)) summon trusted
-	perf = get-perf-ctx
-	perf.measure-names zip-each perf.measure-values.temp-as-arr, (name, value) =>
-		f[name, value to-measure-total]
-
-###
-Gets the measure total for a particular name.
-
-This must be called before `perf-disable`.
-###
-perf-get-measure measure-total?(name sym) summon
-	perf = get-perf-ctx
-	if index ?= perf.measure-names index-of name
-		perf.measure-values[index].to-measure-total,
+get-measured-perf measure-total[sym]() summon trusted
+	res measure-total mut[sym] = ()
+	each-measure: (name, value) =>
+		res[name] := value to-measure-total
+	res move-to-dict
 
 .to-measure-total measure-total(a perf-measure-value)
 	a.count, a.total-nsec.to-float64.nsec
@@ -97,5 +76,5 @@ perf-get-measure measure-total?(name sym) summon
 .perf-now perf-time() noctx
 	get-monotime-nsec,
 
-.get-perf-ctx perf-ctx() trusted
-	get-ctx.thread-local-stuff.perf-ctx-ptr as-ref
+perf-time record
+	.nsec nat64

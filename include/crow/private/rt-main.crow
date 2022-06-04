@@ -14,15 +14,12 @@ import
 	../str: c-str, str
 	../str-util: to-str
 	./alloc: unmanaged-alloc-elements, unmanaged-free
-	./bootstrap: call-with-ctx, ctx, get-ctx, new, thread-local-stuff
+	./bootstrap: call-with-ctx, ctx, get-ctx
 	./fut-low-level: get-result
-	./log-low-level: log-ctx
-	./perf-low-level: perf-ctx
 	./runtime:
-		any-unhandled-exceptions, free, get-global-ctx, global-ctx, init, new-ctx, print-lock,
-		thread-function, uninit
+		any-unhandled-exceptions, free, get-global-ctx, global-ctx, init, new-ctx, thread-function, uninit
 	./sym-low-level: init-symbol-table
-	./thread-utils: count-processors, create-one-thread, join-one-thread, lock, thread-handle
+	./thread-utils: count-processors, create-one-thread, join-one-thread, thread-handle
 
 .main-ptr alias
 	fun-ptr2<fut nat64, ctx, str[]>
@@ -34,7 +31,7 @@ rt-main int32(argc int32, argv c-str*, main-ptr main-ptr) trusted noctx summon
 	gctx-by-val mut by-val global-ctx = n-threads uninit
 	gctx global-ctx = &gctx-by-val
 	gctx init
-	main-fut = gctx add-main-task n-threads - 1, argc, argv, main-ptr
+	main-fut = gctx add-main-task argc, argv, main-ptr
 	n-threads run-threads gctx
 	res = gctx exit-code-from-main-fut main-fut
 	gctx free
@@ -60,20 +57,12 @@ init-constants void() unsafe noctx summon builtin
 
 .add-main-task fut nat64(
 	gctx global-ctx,
-	thread-id nat64,
 	argc int32,
 	argv c-str*,
 	main-ptr main-ptr,
 ) trusted noctx
-	# Before we start the engine, add a task.
 	# Create a ctx manually so we can call functions that need it when creating the task
-	log-ctx mut = log-ctx
-	perf-ctx mut = perf-ctx
-	log-ctx-ptr = (&log-ctx)::log-ctx as-any-mut-ptr
-	perf-ptr = (&perf-ctx)::perf-ctx as-any-mut-ptr
-	print-lock lock = &gctx.print-lock
-	tls by-val thread-local-stuff = thread-id, print-lock, log-ctx-ptr, perf-ptr
-	ctx-by-val = gctx new-ctx &tls, 0
+	ctx-by-val = gctx new-ctx 0
 	ctx ctx = &ctx-by-val
 
 	add act fut nat64(c-str[], main-ptr) = (all-args, main-ptr-2) =>

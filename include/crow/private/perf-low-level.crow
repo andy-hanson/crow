@@ -1,21 +1,46 @@
 no-std
 import
-	../col/fix-arr: empty-fix-arr, fix-arr
-	../col/private/arr-low-level: new
-	../ptr: by-val
-	./bootstrap: arr, nat64, sym
+	../col/arr: arr, size
+	../col/arr-util: zip-each
+	../col/fix-arr:
+		copy-from, fill, fix-arr, free-unmanaged-fix-arr, index-of, set-subscript,
+		subscript, temp-as-arr, unmanaged-uninitialized-fix-arr
+	../fun-util: subscript
+	../misc: void
+	../number: +, nat64
+	../opt: opt
+	../ptr: *, mut-ptr, set-deref
+	./sym-low-level: ==, sym
 
-perf-time record by-val
-	# TODO:PRIVATE
-	ns nat64
+###
+Enables performance measurement.
+Only names in `names` will be measured; others will be ignored.
 
-perf-ctx record mut by-ref
-	measure-names mut sym[]
-	measure-values mut fix-arr perf-measure-value
+If measurement was already enabled, this sets all measurements to 0 (and may change measured names)
+###
+perf-enable-low-level void(measure-names sym[]) summon trusted
+	*measure-names-var free-unmanaged-fix-arr
+	*measure-values-var free-unmanaged-fix-arr
+	*measure-names-var := measure-names.size unmanaged-uninitialized-fix-arr
+	*measure-names-var copy-from measure-names
+	*measure-values-var := measure-names.size unmanaged-uninitialized-fix-arr
+	*measure-values-var fill (0, 0)
 
-perf-ctx by-val perf-ctx() noctx
-	(), empty-fix-arr
+.measure-names-var fix-arr<sym> mut*() thread-local
+.measure-values-var fix-arr<perf-measure-value> mut*() thread-local
+
+get-measure-index nat64?(measure-name sym) noctx unsafe
+	*measure-names-var index-of measure-name
+
+add-measure-value-at-index void(index nat64, nsec nat64) noctx unsafe
+	values = *measure-values-var
+	cur = values[index]
+	values[index] := cur.count + 1, cur.total-nsec + nsec
 
 perf-measure-value record by-val
 	count nat64
 	total-nsec nat64
+
+each-measure void(f act void(sym, perf-measure-value)) unsafe
+	measure-names-var->temp-as-arr zip-each measure-values-var->temp-as-arr, (name, value) =>
+		f[name, value]

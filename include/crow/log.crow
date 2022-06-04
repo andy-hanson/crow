@@ -25,7 +25,7 @@ Temporarily replaces the log handler.
 Only applies within this task. Even if you launch a task inside `with-log-handler`,
 that task will still have the default log handler.
 ###
-with-log-handler<a> a(handler log-handler, cb act a())
+with-log-handler<a> a(handler log-handler, cb act a()) trusted
 	original-handler = get-log-handler
 	action act a() = () =>
 		handler set-log-handler
