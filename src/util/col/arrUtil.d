@@ -367,23 +367,6 @@ immutable(T[]) copyArr(T)(ref Alloc alloc, scope immutable T[] a) {
 	return cast(immutable) res[0 .. inputs.length];
 }
 
-immutable(Acc) eachCat(Acc, T)(
-	immutable Acc acc,
-	scope immutable T[] a,
-	scope immutable T[] b,
-	scope immutable(Acc) delegate(immutable Acc, ref immutable T) @safe @nogc pure nothrow cb,
-) {
-	return each(each(acc, a, cb), b, cb);
-}
-
-private immutable(Acc) each(Acc, T)(
-	immutable Acc acc,
-	scope immutable T[] a,
-	scope immutable(Acc) delegate(immutable Acc, ref immutable T) @safe @nogc pure nothrow cb,
-) {
-	return empty(a) ? acc : each!(Acc, T)(cb(acc, a[0]), a[1 .. $], cb);
-}
-
 @trusted immutable(T[]) cat(T)(ref Alloc alloc, immutable T[] a, immutable T[] b) {
 	if (empty(a))
 		return b;

@@ -34,6 +34,7 @@ import model.model :
 	TypeParam,
 	typeParams;
 import util.alloc.alloc : Alloc;
+import util.cell : Cell, cellGet, cellSet;
 import util.col.arr : empty;
 import util.col.arrUtil : eachPair, find, findPtr, mapWithIndex_scope;
 import util.col.mutArr : MutArr;
@@ -315,23 +316,19 @@ immutable(Opt!T) tryFindT(T)(
 	immutable Diag.NameNotFound.Kind nameNotFoundKind,
 	scope immutable(Opt!T) delegate(ref immutable NameReferents) @safe @nogc pure nothrow getFromNameReferents,
 ) {
-	immutable Opt!T res = eachImportAndReExport!(immutable Opt!T)(
-		ctx,
-		name,
-		fromThisModule,
-		(immutable Opt!T acc, immutable ImportIndex index, ref immutable NameReferents referents) {
-			immutable Opt!T got = getFromNameReferents(referents);
-			if (has(got)) {
-				markUsedImport(ctx, index);
-				if (has(acc))
-					// TODO: include both modules in the diag
-					addDiag(ctx, range, immutable Diag(
-						immutable Diag.DuplicateImports(duplicateImportKind, name)));
-				return got;
-			} else
-				return acc;
-		});
-	if (!has(res))
+	Cell!(immutable Opt!T) res = Cell!(immutable Opt!T)(fromThisModule);
+	eachImportAndReExport(ctx, name, (immutable ImportIndex index, ref immutable NameReferents referents) {
+		immutable Opt!T got = getFromNameReferents(referents);
+		if (has(got)) {
+			markUsedImport(ctx, index);
+			if (has(cellGet(res)))
+				// TODO: include both modules in the diag
+				addDiag(ctx, range, immutable Diag(immutable Diag.DuplicateImports(duplicateImportKind, name)));
+			else
+				cellSet(res, got);
+		}
+	});
+	if (!has(cellGet(res)))
 		addDiag(ctx, range, immutable Diag(immutable Diag.NameNotFound(nameNotFoundKind, name)));
-	return res;
+	return cellGet(res);
 }

@@ -50,7 +50,6 @@ import model.lowModel :
 	matchLowTypeCombinePtr,
 	PrimitiveType;
 import util.alloc.alloc : Alloc;
-import util.cell : Cell, cellGet, cellSet;
 import util.col.arr : empty;
 import util.col.arrUtil : map, mapWithIndex, zip;
 import util.col.fullIndexDict :
@@ -181,9 +180,7 @@ immutable(gcc_jit_function*) generateAssertFieldOffsetsFunction(
 		null,
 		false);
 
-	Cell!(immutable gcc_jit_rvalue*) accum = Cell!(immutable gcc_jit_rvalue*)(
-		gcc_jit_context_new_rvalue_from_long(ctx, boolType, 1));
-
+	immutable(gcc_jit_rvalue)* accum = gcc_jit_context_new_rvalue_from_long(ctx, boolType, 1);
 	fullIndexDictZip3!(LowType.Record, LowRecord, gcc_jit_struct*, gcc_jit_field*[])(
 		program.allRecords,
 		types.records,
@@ -223,18 +220,13 @@ immutable(gcc_jit_function*) generateAssertFieldOffsetsFunction(
 						gcc_jit_comparison.GCC_JIT_COMPARISON_EQ,
 						actualOffset,
 						expectedOffset);
-					cellSet(accum, gcc_jit_context_new_binary_op(
-						ctx,
-						null,
-						gcc_jit_binary_op.GCC_JIT_BINARY_OP_LOGICAL_OR,
-						boolType,
-						cellGet(accum),
-						eq));
+					accum = gcc_jit_context_new_binary_op(
+						ctx, null, gcc_jit_binary_op.GCC_JIT_BINARY_OP_LOGICAL_OR, boolType, accum, eq);
 				});
 		});
 
 	gcc_jit_block* block = gcc_jit_function_new_block(fn, null);
-	gcc_jit_block_end_with_return(block, null, cellGet(accum));
+	gcc_jit_block_end_with_return(block, null, accum);
 
 	return castImmutable(fn);
 }

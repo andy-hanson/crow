@@ -90,7 +90,7 @@ import util.perf : endMeasure, PerfMeasure, PerfMeasurer, pauseMeasure, resumeMe
 import util.ptr : ptrTrustMe_mut;
 import util.sourceRange : FileAndRange;
 import util.sym : Sym;
-import util.util : Empty, todo;
+import util.util : todo;
 
 immutable(Expr) checkCall(
 	ref ExprCtx ctx,
@@ -280,20 +280,13 @@ void eachFunInScope(
 				totalIndex += sigs.length;
 			});
 
-	foreach (ref immutable FunDeclAndIndex f; ctx.funsDict[funName]) {
+	foreach (ref immutable FunDeclAndIndex f; ctx.funsDict[funName])
 		cb(immutable UsedFun(f.index), immutable CalledDecl(f.decl));
-	}
 
-	eachImportAndReExport!Empty(
-		ctx.checkCtx,
-		funName,
-		immutable Empty(),
-		(immutable(Empty), immutable ImportIndex index, ref immutable NameReferents it) {
-			foreach (immutable FunDecl* f; it.funs) {
-				cb(immutable UsedFun(index), immutable CalledDecl(f));
-			}
-			return immutable Empty();
-		});
+	eachImportAndReExport(ctx.checkCtx, funName, (immutable ImportIndex index, ref immutable NameReferents it) {
+		foreach (immutable FunDecl* f; it.funs)
+			cb(immutable UsedFun(index), immutable CalledDecl(f));
+	});
 }
 
 private:

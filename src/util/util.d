@@ -116,5 +116,3 @@ void drop(T)(T) {}
 @trusted ref immutable(T) castImmutableRef(T)(ref const(T) a) {
 	return cast(immutable) a;
 }
-
-struct Empty {}
