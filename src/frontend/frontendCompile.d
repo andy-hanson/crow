@@ -454,7 +454,7 @@ immutable(Opt!FullyResolvedImportKind) fullyResolveImportModule(
 
 pure:
 
-alias LineAndColumnGettersBuilder = ArrBuilder!LineAndColumnGetter; // TODO: OrderedFullIndexDictBuilder?
+alias LineAndColumnGettersBuilder = ArrBuilder!LineAndColumnGetter;
 
 immutable(LineAndColumnGetter) lineAndColumnGetterForOptText(
 	ref Alloc modelAlloc,

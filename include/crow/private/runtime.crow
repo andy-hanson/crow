@@ -59,6 +59,7 @@ get-global-lock lock() unsafe
 
 .thread-id-var nat64 mut*() thread-local
 
+# This is not 'noctx' since a non-crow thread won't have an ID
 cur-thread-id nat64() unsafe
 	*thread-id-var
 
@@ -141,31 +142,31 @@ add-timed-task void(a global-ctx, time timestamp, exclusion exclusion, action ac
 
 thread-function void(thread-id nat64, gctx global-ctx) noctx unsafe summon
 	*thread-id-var := thread-id
-	gctx thread-function-recur thread-id
+	gctx thread-function-recur
 
-.thread-function-recur void(gctx global-ctx, thread-id nat64) noctx unsafe summon
+.thread-function-recur void(gctx global-ctx) noctx unsafe summon
 	# Get a task to do; or sleep.
 	last-checked = &gctx.may-be-work-to-do get-sequence
-	match gctx choose-task thread-id
+	match gctx choose-task
 	as task t
-		gctx do-task thread-id, t
-		gctx thread-function-recur thread-id
+		gctx do-task t
+		gctx thread-function-recur
 	as gc
 		&gctx.may-be-work-to-do broadcast
 		&gctx.gc run-garbage-collection gctx.gc-root
-		gctx thread-function-recur thread-id
+		gctx thread-function-recur
 	as wait-for-task wait-until-time
 		&gctx.may-be-work-to-do wait-on wait-until-time, last-checked
 		&gctx.n-waiting-threads decrement
-		gctx thread-function-recur thread-id
+		gctx thread-function-recur
 	as shut-down
 		gctx thread-shut-down
 
-.do-task void(gctx global-ctx, thread-id nat64, task task) noctx unsafe summon
+.do-task void(gctx global-ctx, task task) noctx unsafe summon
 	gctx before-task task.exclusion
 	task.action call-with-ctx
 	&gctx.tasks-lock acquire
-	gctx.tasks return-task task, thread-id
+	gctx.tasks return-task task, *thread-id-var
 	&gctx.tasks-lock release
 	after-task
 
@@ -193,7 +194,7 @@ after-task void() noctx unsafe
 	# No task to do now or ever, so shut down
 	shut-down
 
-.choose-task choose-task-result(gctx global-ctx, thread-id nat64) noctx unsafe summon
+.choose-task choose-task-result(gctx global-ctx) noctx unsafe summon
 	cur-time = if is-wasm
 		0
 	else
@@ -203,7 +204,7 @@ after-task void() noctx unsafe
 	res = if &gctx.gc needs-gc
 		gc
 	else
-		match gctx.tasks pop-task cur-time, thread-id
+		match gctx.tasks pop-task cur-time, *thread-id-var
 		as task t
 			t task
 		as no-task n

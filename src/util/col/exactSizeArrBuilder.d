@@ -8,7 +8,6 @@ import util.col.str : eachChar, SafeCStr, safeCStrSize;
 import util.memory : initMemory_mut, memset;
 import util.util : verify;
 
-//TODO:MOVE
 struct ExactSizeArrBuilder(T) {
 	private:
 	T* begin;
