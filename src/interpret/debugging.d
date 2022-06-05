@@ -77,7 +77,7 @@ void writeFunSig(
 			writer ~= '(';
 			writeWithCommas!ConcreteParam(
 				writer,
-				it.paramsExcludingCtxAndClosure,
+				it.paramsExcludingClosure,
 				(scope ref immutable ConcreteParam param) {
 					matchConcreteParamSource!void(
 						param.source,

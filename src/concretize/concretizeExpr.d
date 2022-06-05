@@ -201,7 +201,7 @@ immutable(ConcreteExpr) concretizeCall(
 			? getConstantsOrExprs(ctx, locals, e.args)
 			: immutable ConstantsOrExprs(getArgs(ctx, locals, e.args));
 	immutable ConstantsOrExprs args2 = isVariadic(*concreteCalled)
-		? constantsOrExprsArr(ctx, range, args, only(concreteCalled.paramsExcludingCtxAndClosure).type)
+		? constantsOrExprsArr(ctx, range, args, only(concreteCalled.paramsExcludingClosure).type)
 		: args;
 	immutable ConcreteExprKind kind = matchConstantsOrExprs!(immutable ConcreteExprKind)(
 		args2,
@@ -214,7 +214,7 @@ immutable(ConcreteExpr) concretizeCall(
 					concreteCalled,
 					mapZip(
 						ctx.alloc,
-						concreteCalled.paramsExcludingCtxAndClosure,
+						concreteCalled.paramsExcludingClosure,
 						constants,
 						(ref immutable ConcreteParam p, ref immutable Constant x) =>
 							immutable ConcreteExpr(p.type, FileAndRange.empty, immutable ConcreteExprKind(x)))));
@@ -723,7 +723,7 @@ immutable(ConcreteExpr) concretizeParamRef(
 ) {
 	// NOTE: we'll never see a ParamRef to a param from outside of a lambda --
 	// that would be a ClosureFieldRef instead.
-	immutable ConcreteParam* concreteParam = &ctx.currentConcreteFun.paramsExcludingCtxAndClosure[param.index];
+	immutable ConcreteParam* concreteParam = &ctx.currentConcreteFun.paramsExcludingClosure[param.index];
 	return immutable ConcreteExpr(concreteParam.type, range, immutable ConcreteExprKind(
 		immutable ConcreteExprKind.ParamRef(concreteParam)));
 }
@@ -733,7 +733,7 @@ immutable(ConcreteExpr) concretizePtrToParam(
 	immutable FileAndRange range,
 	immutable Expr.PtrToParam a,
 ) {
-	immutable ConcreteParam* concreteParam = &ctx.currentConcreteFun.paramsExcludingCtxAndClosure[a.param.index];
+	immutable ConcreteParam* concreteParam = &ctx.currentConcreteFun.paramsExcludingClosure[a.param.index];
 	return immutable ConcreteExpr(
 		getConcreteType(ctx, a.ptrType),
 		range,

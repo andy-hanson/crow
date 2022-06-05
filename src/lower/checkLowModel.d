@@ -35,12 +35,13 @@ import util.col.arr : sizeEq;
 import util.col.arrUtil : zip;
 import util.col.fullIndexDict : fullIndexDictEachValue;
 import util.opt : force, has;
-import util.ptr : ptrTrustMe, ptrTrustMe_mut;
+import util.ptr : ptrTrustMe, ptrTrustMe_const, ptrTrustMe_mut;
 import util.repr : Repr, reprRecord, reprSym;
+import util.sym : AllSymbols;
 import util.util : verify;
 
-void checkLowProgram(ref Alloc alloc, scope ref immutable LowProgram a) {
-	Ctx ctx = Ctx(ptrTrustMe_mut(alloc), ptrTrustMe(a));
+void checkLowProgram(ref Alloc alloc, ref const AllSymbols allSymbols, scope ref immutable LowProgram a) {
+	Ctx ctx = Ctx(ptrTrustMe_mut(alloc), ptrTrustMe_const(allSymbols), ptrTrustMe(a));
 	fullIndexDictEachValue!(LowFunIndex, LowFun)(a.allFuns, (ref immutable LowFun fun) {
 		checkLowFun(ctx, fun);
 	});
@@ -52,10 +53,15 @@ struct Ctx {
 	@safe @nogc pure nothrow:
 
 	Alloc* allocPtr;
+	const AllSymbols* allSymbolsPtr;
 	immutable LowProgram* programPtr;
 
 	ref Alloc alloc() return scope {
 		return *allocPtr;
+	}
+
+	ref const(AllSymbols) allSymbols() return scope const {
+		return *allSymbolsPtr;
 	}
 
 	ref immutable(LowProgram) program() return scope const {
@@ -79,15 +85,15 @@ struct FunCtx {
 }
 
 void checkLowFun(ref Ctx ctx, ref immutable LowFun fun) {
-	//debug {
-	//	import core.stdc.stdio : printf;
-	//	import interpret.debugging : writeFunName;
-	//	import util.writer : Writer, finishWriterToCStr;
-	//
-	//	Writer writer = Writer(ptrTrustMe_mut(alloc));
-	//	writeFunName(writer, ctx.program, fun);
-	//	printf("Will check function %s\n", finishWriterToCStr(writer));
-	//}
+	static if (false) debug {
+		import core.stdc.stdio : printf;
+		import interpret.debugging : writeFunName;
+		import util.writer : Writer, finishWriterToCStr;
+	
+		Writer writer = Writer(ctx.allocPtr);
+		writeFunName(writer, ctx.allSymbols, ctx.program, fun);
+		printf("Will check function %s\n", finishWriterToCStr(writer));
+	}
 
 	matchLowFunBody!(
 		void,
@@ -258,19 +264,19 @@ void checkTypeEqual(
 	immutable LowType expected,
 	immutable LowType actual,
 ) {
-	//debug {
-	//	if (expected != actual) {
-	//		import core.stdc.stdio : printf;
-	//		import util.repr : writeRepr;
-	//		import util.writer : finishWriterToCStr, Writer;
-	//		Writer writer = Writer(ptrTrustMe_mut(alloc));
-	//		writer ~= "Type is not as expected. Expected:\n";
-	//		writeRepr(writer, allSymbols, reprOfLowType2(alloc, ctx, expected));
-	//		writer ~= "Actual:\n";
-	//		writeRepr(writer, allSymbols, reprOfLowType2(alloc, ctx, actual));
-	//		printf("%s\n", finishWriterToCStr(writer));
-	//	}
-	//}
+	static if (false) debug {
+		if (expected != actual) {
+			import core.stdc.stdio : printf;
+			import util.repr : writeReprJSON;
+			import util.writer : finishWriterToCStr, Writer;
+			Writer writer = Writer(ctx.allocPtr);
+			writer ~= "Type is not as expected. Expected:\n";
+			writeReprJSON(writer, ctx.allSymbols, reprOfLowType2(ctx, expected));
+			writer ~= "\nActual:\n";
+			writeReprJSON(writer, ctx.allSymbols, reprOfLowType2(ctx, actual));
+			printf("%s\n", finishWriterToCStr(writer));
+		}
+	}
 	verify(expected == actual);
 }
 
@@ -278,7 +284,7 @@ immutable(Repr) reprOfLowType2(ref Ctx ctx, immutable LowType a) {
 	return matchLowType!(
 		immutable Repr,
 		(immutable LowType.ExternPtr) =>
-			reprSym("a-extern-ptr"), //TODO: more detail
+			reprSym("some-extern-ptr"), //TODO: more detail
 		(immutable LowType.FunPtr) =>
 			reprSym("some-fun-ptr"), //TODO: more detail
 		(immutable PrimitiveType it) =>

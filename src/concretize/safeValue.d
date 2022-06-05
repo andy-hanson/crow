@@ -27,7 +27,6 @@ import model.concreteModel :
 	isSelfMutable,
 	matchConcreteStructBody,
 	matchEnum,
-	NeedsCtx,
 	ReferenceKind,
 	setBody;
 import model.constant : Constant;
@@ -187,7 +186,6 @@ immutable(ConcreteExpr) safeFunValue(ref Ctx ctx, immutable FileAndRange range, 
 		immutable ConcreteFunSource(
 			allocate(ctx.alloc, immutable ConcreteFunSource.Lambda(range, ctx.containingFun, lambdaIndex))),
 		returnType,
-		NeedsCtx.yes,
 		none!(ConcreteParam*),
 		params));
 	setBody(*fun, immutable ConcreteFunBody(safeValueForType(ctx, range, returnType)));

@@ -647,17 +647,14 @@ static assert(ConcreteFunSource.sizeof <= 16);
 	}
 }
 
-enum NeedsCtx { yes, no }
-
 // We generate a ConcreteFun for:
 // Each instantiation of a FunDecl
 // Each lambda inside an instantiation of a FunDecl
 struct ConcreteFun {
 	immutable ConcreteFunSource source;
 	immutable ConcreteType returnType;
-	immutable NeedsCtx needsCtx;
 	immutable Opt!(ConcreteParam*) closureParam;
-	immutable ConcreteParam[] paramsExcludingCtxAndClosure;
+	immutable ConcreteParam[] paramsExcludingClosure;
 	Late!(immutable ConcreteFunBody) _body_;
 }
 
@@ -1105,7 +1102,6 @@ struct ConcreteProgram {
 	immutable ConcreteFun*[] allFuns;
 	immutable Dict!(ConcreteStruct*, ConcreteLambdaImpl[]) funStructToImpls;
 	immutable ConcreteCommonFuns commonFuns;
-	immutable ConcreteStruct* ctxType;
 
 	//TODO:NOT INSTANCE
 	immutable(ConcreteFun*) markFun() immutable { return commonFuns.markFun; }

@@ -4,10 +4,7 @@ module concretize.concretize;
 
 import concretize.allConstantsBuilder : finishAllConstants;
 import concretize.concretizeCtx :
-	ConcretizeCtx,
-	ctxType,
-	deferredFillRecordAndUnionBodies,
-	getOrAddNonTemplateConcreteFunAndFillBody;
+	ConcretizeCtx, deferredFillRecordAndUnionBodies, getOrAddNonTemplateConcreteFunAndFillBody;
 import model.concreteModel :
 	ConcreteCommonFuns,
 	ConcreteFun,
@@ -76,10 +73,8 @@ immutable(ConcreteProgram) concretizeInner(
 		versionInfo,
 		allSymbolsPtr,
 		getCurExclusionFun(alloc, program),
-		castNonScope(program.commonTypes.ctx),
 		castNonScope(&program.commonTypes),
 		castNonScope(&program));
-	immutable ConcreteStruct* ctxStruct = ctxType(ctx).struct_;
 	immutable ConcreteFun* markConcreteFun =
 		getOrAddNonTemplateConcreteFunAndFillBody(ctx, getMarkFun(alloc, program));
 	immutable ConcreteFun* rtMainConcreteFun =
@@ -114,8 +109,7 @@ immutable(ConcreteProgram) concretizeInner(
 			ctx.funStructToImpls,
 			(ref MutArr!(immutable ConcreteLambdaImpl) it) =>
 				moveToArr(alloc, it)),
-		immutable ConcreteCommonFuns(markConcreteFun, rtMainConcreteFun, userMainConcreteFun, allocFun, throwImplFun),
-		ctxStruct);
+		immutable ConcreteCommonFuns(markConcreteFun, rtMainConcreteFun, userMainConcreteFun, allocFun, throwImplFun));
 }
 
 immutable(bool) isNat(ref immutable CommonTypes commonTypes, immutable Type type) {

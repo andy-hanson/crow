@@ -67,7 +67,6 @@ import model.concreteModel :
 	matchEnum,
 	mustBeByVal,
 	name,
-	NeedsCtx,
 	PointerTypeAndConstantsConcrete,
 	ReferenceKind;
 import model.constant : Constant;
@@ -121,10 +120,9 @@ import util.col.arrUtil :
 	arrLiteral,
 	exists,
 	map,
+	mapPtrsWithOptFirst,
 	mapZipPtrFirst,
-	mapWithIndexAndConcatOne,
-	mapWithOptFirst,
-	mapWithOptFirst2;
+	mapWithIndexAndConcatOne;
 import util.col.dict : mustGetAt, Dict;
 import util.col.dictBuilder : finishDict, mustAddToDict, DictBuilder;
 import util.col.fullIndexDict : FullIndexDict, fullIndexDictOfArr, fullIndexDictSize;
@@ -170,7 +168,7 @@ private immutable(LowProgram) lowerInner(
 		allFuns.allLowFuns,
 		allFuns.main,
 		allFuns.allExternFuns);
-	checkLowProgram(alloc, res);
+	checkLowProgram(alloc, allSymbols, res);
 	return res;
 }
 
@@ -477,7 +475,7 @@ struct LowFunCause {
 	struct CallWithCtx {
 		immutable LowType funType;
 		immutable LowType returnType;
-		immutable LowType[] nonFunNonCtxParamTypes;
+		immutable LowType[] nonFunParamTypes;
 		immutable ConcreteLambdaImpl[] impls;
 	}
 	struct MarkVisitArrInner {
@@ -579,8 +577,6 @@ immutable(AllLowFuns) getAllLowFuns(
 	scope ref immutable ConfigExternPaths configExtern,
 	ref immutable ConcreteProgram program,
 ) {
-	immutable LowType ctxType =
-		lowTypeFromConcreteType(getLowTypeCtx, immutable ConcreteType(ReferenceKind.byRef, program.ctxType));
 	DictBuilder!(ConcreteFun*, LowFunIndex) concreteFunToLowFunIndexBuilder;
 	ArrBuilder!LowFunCause lowFunCausesBuilder;
 
@@ -680,14 +676,13 @@ immutable(AllLowFuns) getAllLowFuns(
 			(ref immutable ConcreteFunBody.Builtin it) {
 				if (isCallWithCtxFun(*fun)) {
 					immutable ConcreteStruct* funStruct =
-						mustBeByVal(fun.paramsExcludingCtxAndClosure[0].type);
+						mustBeByVal(fun.paramsExcludingClosure[0].type);
 					immutable LowType funType = lowTypeFromConcreteStruct(getLowTypeCtx, funStruct);
 					immutable LowType returnType =
 						lowTypeFromConcreteType(getLowTypeCtx, fun.returnType);
-					// NOTE: 'paramsExcludingCtxAndClosure' includes the *explicit* ctx param on this function
-					immutable LowType[] nonFunNonCtxParamTypes = map(
+					immutable LowType[] nonFunParamTypes = map(
 						getLowTypeCtx.alloc,
-						fun.paramsExcludingCtxAndClosure[2 .. $],
+						fun.paramsExcludingClosure[1 .. $],
 						(ref immutable ConcreteParam it) =>
 							lowTypeFromConcreteType(getLowTypeCtx, it.type));
 					// TODO: is it possible that we call a fun type but it's not implemented anywhere?
@@ -696,12 +691,12 @@ immutable(AllLowFuns) getAllLowFuns(
 						? force(optImpls)
 						: [];
 					return some(addLowFun(immutable LowFunCause(
-						immutable LowFunCause.CallWithCtx(funType, returnType, nonFunNonCtxParamTypes, impls))));
+						immutable LowFunCause.CallWithCtx(funType, returnType, nonFunParamTypes, impls))));
 				} else if (isMarkVisitFun(*fun)) {
 					if (!lateIsSet(markCtxTypeLate))
 						lateSet(markCtxTypeLate, lowTypeFromConcreteType(
 							getLowTypeCtx,
-							fun.paramsExcludingCtxAndClosure[0].type));
+							fun.paramsExcludingClosure[0].type));
 					immutable LowFunIndex res =
 						generateMarkVisitForType(lowTypeFromConcreteType(getLowTypeCtx, only(it.typeArgs)));
 					return some(res);
@@ -755,7 +750,7 @@ immutable(AllLowFuns) getAllLowFuns(
 		finishDict(getLowTypeCtx.alloc, threadLocalIndicesBuilder);
 
 	immutable LowType userMainFunPtrType =
-		lowTypeFromConcreteType(getLowTypeCtx, program.rtMain.paramsExcludingCtxAndClosure[2].type);
+		lowTypeFromConcreteType(getLowTypeCtx, program.rtMain.paramsExcludingClosure[2].type);
 
 	immutable LowFunIndex markFunIndex = mustGetAt(concreteFunToLowFunIndex, program.markFun);
 	immutable LowFunIndex allocFunIndex = mustGetAt(concreteFunToLowFunIndex, program.allocFun);
@@ -771,7 +766,6 @@ immutable(AllLowFuns) getAllLowFuns(
 					getLowTypeCtx,
 					allocFunIndex,
 					throwImplFunIndex,
-					ctxType,
 					concreteFunToLowFunIndex,
 					concreteFunToThreadLocalIndex,
 					lowFunCauses,
@@ -836,7 +830,6 @@ immutable(LowFun) lowFunFromCause(
 	ref GetLowTypeCtx getLowTypeCtx,
 	immutable LowFunIndex allocFunIndex,
 	immutable LowFunIndex throwImplFunIndex,
-	immutable LowType ctxType,
 	scope ref immutable ConcreteFunToLowFunIndex concreteFunToLowFunIndex,
 	scope ref immutable ConcreteFunToThreadLocalIndex concreteFunToThreadLocalIndex,
 	ref immutable LowFunCause[] lowFunCauses,
@@ -855,42 +848,21 @@ immutable(LowFun) lowFunFromCause(
 				concreteFunToLowFunIndex,
 				it.returnType,
 				it.funType,
-				ctxType,
-				it.nonFunNonCtxParamTypes,
+				it.nonFunParamTypes,
 				it.impls),
 		(immutable ConcreteFun* cf) {
 			immutable LowType returnType = lowTypeFromConcreteType(getLowTypeCtx, cf.returnType);
-			immutable Opt!LowParam ctxParam = () {
-				final switch (cf.needsCtx) {
-					case NeedsCtx.no:
-						return none!LowParam;
-					case NeedsCtx.yes:
-						return some(immutable LowParam(
-							immutable LowParamSource(immutable LowParamSource.Generated(shortSym("ctx"))),
-							ctxType));
-				}
-			}();
 			immutable Opt!LowParam closureParam = has(cf.closureParam)
 				? some(getLowParam(getLowTypeCtx, force(cf.closureParam)))
 				: none!LowParam;
-			immutable LowParam[] params = mapWithOptFirst2!(LowParam, ConcreteParam)(
+			immutable LowParam[] params = mapPtrsWithOptFirst!(LowParam, ConcreteParam)(
 				getLowTypeCtx.alloc,
-				ctxParam,
 				closureParam,
-				cf.paramsExcludingCtxAndClosure,
-				(immutable(size_t), immutable ConcreteParam* it) =>
+				cf.paramsExcludingClosure,
+				(immutable ConcreteParam* it) =>
 					getLowParam(getLowTypeCtx, it));
-			immutable Opt!LowParamIndex ctxParamIndex = has(ctxParam)
-				? some(immutable LowParamIndex(0))
-				: none!LowParamIndex;
-			immutable Opt!LowParamIndex closureParamIndex = has(cf.closureParam)
-				? some(immutable LowParamIndex(() {
-					final switch (cf.needsCtx) {
-						case NeedsCtx.no: return immutable ubyte(0);
-						case NeedsCtx.yes: return immutable ubyte(1);
-					}
-				}()))
-				: none!LowParamIndex;
+			immutable Opt!LowParamIndex closureParamIndex =
+				has(cf.closureParam) ? some(immutable LowParamIndex(0)) : none!LowParamIndex;
 			immutable LowFunBody body_ = getLowFunBody(
 				allTypes,
 				staticSyms,
@@ -899,17 +871,15 @@ immutable(LowFun) lowFunFromCause(
 				concreteFunToThreadLocalIndex,
 				allocFunIndex,
 				throwImplFunIndex,
-				ctxType,
-				ctxParamIndex,
 				closureParamIndex,
-				immutable LowParamIndex((has(ctxParamIndex) ? 1 : 0) + (has(closureParamIndex) ? 1 : 0)),
+				immutable LowParamIndex(has(closureParamIndex) ? 1 : 0),
 				thisFunIndex,
 				*cf,
 				body_(*cf));
 			return immutable LowFun(
 				immutable LowFunSource(cf),
 				returnType,
-				immutable LowFunParamsKind(has(ctxParam), has(closureParam)),
+				immutable LowFunParamsKind(has(closureParam)),
 				params,
 				body_);
 		},
@@ -961,7 +931,7 @@ immutable(LowFun) mainFun(
 	return immutable LowFun(
 		immutable LowFunSource(allocate(ctx.alloc, immutable LowFunSource.Generated(shortSym("main"), []))),
 		int32Type,
-		immutable LowFunParamsKind(false, false),
+		immutable LowFunParamsKind(false),
 		params,
 		body_);
 }
@@ -1005,8 +975,6 @@ immutable(LowFunBody) getLowFunBody(
 	scope ref immutable ConcreteFunToThreadLocalIndex concreteFunToThreadLocalIndex,
 	immutable LowFunIndex allocFunIndex,
 	immutable LowFunIndex throwImplFunIndex,
-	immutable LowType ctxType,
-	immutable Opt!LowParamIndex ctxParam,
 	immutable Opt!LowParamIndex closureParam,
 	immutable LowParamIndex firstRegularParam,
 	immutable LowFunIndex thisFunIndex,
@@ -1037,8 +1005,6 @@ immutable(LowFunBody) getLowFunBody(
 				concreteFunToThreadLocalIndex,
 				allocFunIndex,
 				throwImplFunIndex,
-				ctxType,
-				ctxParam,
 				closureParam,
 				firstRegularParam,
 				false);
@@ -1067,8 +1033,6 @@ struct GetLowExprCtx {
 	immutable ConcreteFunToThreadLocalIndex concreteFunToThreadLocalIndex;
 	immutable LowFunIndex allocFunIndex;
 	immutable LowFunIndex throwImplFunIndex;
-	immutable LowType ctxType;
-	immutable Opt!LowParamIndex ctxParam;
 	immutable Opt!LowParamIndex closureParam;
 	immutable LowParamIndex firstRegularParam;
 	bool hasTailRecur;
@@ -1092,10 +1056,6 @@ alias addLocal = stackDict2Add0!(ConcreteLocal*, LowLocal*, ConcreteExprKind.Loo
 alias addLoop = stackDict2Add1!(ConcreteLocal*, LowLocal*, ConcreteExprKind.Loop*, LowExprKind.Loop*);
 alias getLocal = stackDict2MustGet0!(ConcreteLocal*, LowLocal*, ConcreteExprKind.Loop*, LowExprKind.Loop*);
 alias getLoop = stackDict2MustGet1!(ConcreteLocal*, LowLocal*, ConcreteExprKind.Loop*, LowExprKind.Loop*);
-
-immutable(LowExpr) genCtxParamRef(ref const GetLowExprCtx ctx, immutable FileAndRange range) {
-	return genParamRef(range, ctx.ctxType, force(ctx.ctxParam));
-}
 
 immutable(Opt!LowFunIndex) tryGetLowFunIndex(ref const GetLowExprCtx ctx, immutable ConcreteFun* it) {
 	return ctx.concreteFunToLowFunIndex[it];
@@ -1200,8 +1160,6 @@ immutable(LowExprKind) getLowExprKind(
 immutable(LowExpr) getAllocateExpr(
 	ref Alloc alloc,
 	immutable LowFunIndex allocFunIndex,
-	immutable LowType ctxType,
-	immutable LowParamIndex ctxParam,
 	immutable FileAndRange range,
 	immutable LowType ptrType,
 	ref immutable LowExpr size,
@@ -1209,9 +1167,7 @@ immutable(LowExpr) getAllocateExpr(
 	immutable LowExpr allocate = immutable LowExpr(
 		anyPtrMutType, //TODO: ensure this will definitely be the return type of allocFunIndex
 		range,
-		immutable LowExprKind(immutable LowExprKind.Call(
-			allocFunIndex,
-			arrLiteral!LowExpr(alloc, [genParamRef(range, ctxType, ctxParam), size]))));
+		immutable LowExprKind(immutable LowExprKind.Call(allocFunIndex, arrLiteral!LowExpr(alloc, [size]))));
 	return genPtrCast(alloc, ptrType, range, allocate);
 }
 
@@ -1235,8 +1191,7 @@ immutable(LowExprKind) getAllocExpr2(
 ) {
 	immutable LowLocal* local = addTempLocal(ctx, ptrType);
 	immutable LowExpr sizeofT = genSizeOf(range, asPtrGcPointee(ptrType));
-	immutable LowExpr allocatePtr =
-		getAllocateExpr(ctx.alloc, ctx.allocFunIndex, ctx.ctxType, force(ctx.ctxParam), range, ptrType, sizeofT);
+	immutable LowExpr allocatePtr = getAllocateExpr(ctx.alloc, ctx.allocFunIndex, range, ptrType, sizeofT);
 	immutable LowExpr getTemp = genLocalRef(ctx.alloc, range, local);
 	immutable LowExpr setTemp = genWriteToPtr(ctx.alloc, range, getTemp, inner);
 	return immutable LowExprKind(allocate(ctx.alloc, immutable LowExprKind.Let(
@@ -1289,7 +1244,7 @@ immutable(LowExprKind) getCallExpr(
 ) {
 	immutable Opt!LowFunIndex opCalled = tryGetLowFunIndex(ctx, a.called);
 	return has(opCalled)
-		? getCallRegular(ctx, locals, exprPos, range, a, force(opCalled))
+		? getCallRegular(ctx, locals, exprPos, a, force(opCalled))
 		: getCallSpecial(ctx, locals, exprPos, range, type, a);
 }
 
@@ -1297,41 +1252,24 @@ immutable(LowExprKind) getCallRegular(
 	ref GetLowExprCtx ctx,
 	scope ref immutable Locals locals,
 	immutable ExprPos exprPos,
-	immutable FileAndRange range,
 	ref immutable ConcreteExprKind.Call a,
 	immutable LowFunIndex called,
 ) {
 	if (called == ctx.currentFun && exprPos == ExprPos.tail) {
 		ctx.hasTailRecur = true;
 		ArrBuilder!UpdateParam updateParams;
-		immutable size_t p0 = () {
-			final switch (a.called.needsCtx) {
-				case NeedsCtx.no:
-					return 0;
-				case NeedsCtx.yes:
-					return 1;
-			}
-		}();
 		foreach (immutable size_t argIndex, ref immutable ConcreteExpr it; a.args) {
 			immutable LowExpr arg = getLowExpr(ctx, locals, it, ExprPos.nonTail);
-			immutable LowParamIndex paramIndex = immutable LowParamIndex(p0 + argIndex);
+			immutable LowParamIndex paramIndex = immutable LowParamIndex(argIndex);
 			if (!(isParamRef(arg.kind) && asParamRef(arg.kind).index == paramIndex))
 				add(ctx.alloc, updateParams, immutable UpdateParam(paramIndex, arg));
 		}
 		return immutable LowExprKind(immutable LowExprKind.TailRecur(finishArr(ctx.alloc, updateParams)));
-	} else {
-		immutable Opt!LowExpr ctxArg = () {
-			final switch (a.called.needsCtx) {
-				case NeedsCtx.no:
-					return none!LowExpr;
-				case NeedsCtx.yes:
-					return some(genCtxParamRef(ctx, range));
-			}
-		}();
-		immutable LowExpr[] args = mapWithOptFirst(ctx.alloc, ctxArg, a.args, (ref immutable ConcreteExpr it) =>
-			getLowExpr(ctx, locals, it, ExprPos.nonTail));
-		return immutable LowExprKind(immutable LowExprKind.Call(called, args));
-	}
+	} else
+		return immutable LowExprKind(immutable LowExprKind.Call(
+			called,
+			map(ctx.alloc, a.args, (ref immutable ConcreteExpr it) =>
+				getLowExpr(ctx, locals, it, ExprPos.nonTail))));
 }
 
 immutable(LowExprKind) getCallSpecial(
@@ -1464,7 +1402,7 @@ immutable(LowExprKind) getCallBuiltinExpr(
 	)(a.called.source);
 	immutable(LowType) paramType(immutable size_t index) {
 		return index < a.args.length
-			? lowTypeFromConcreteType(ctx.typeCtx, a.called.paramsExcludingCtxAndClosure[index].type)
+			? lowTypeFromConcreteType(ctx.typeCtx, a.called.paramsExcludingClosure[index].type)
 			: voidType;
 	}
 	immutable LowType p0 = paramType(0);
@@ -1479,8 +1417,6 @@ immutable(LowExprKind) getCallBuiltinExpr(
 			immutable LowExprKind(allocate(ctx.alloc, immutable LowExprKind.CallFunPtr(
 				getLowExpr(ctx, locals, a.args[0], ExprPos.nonTail),
 				getArgs(ctx, locals, a.args[1 .. $])))),
-		(ref immutable BuiltinKind.GetCtx) =>
-			immutable LowExprKind(immutable LowExprKind.ParamRef(force(ctx.ctxParam))),
 		(ref immutable Constant it) =>
 			immutable LowExprKind(it),
 		(ref immutable BuiltinKind.InitConstants) =>
@@ -1569,14 +1505,7 @@ immutable(LowExprKind) getCreateArrExpr(
 	immutable LowExpr elementSize = genSizeOf(range, elementType);
 	immutable LowExpr nElements = genConstantNat64(range, a.args.length);
 	immutable LowExpr sizeBytes = genWrapMulNat64(ctx.alloc, range, elementSize, nElements);
-	immutable LowExpr allocatePtr = getAllocateExpr(
-		ctx.alloc,
-		ctx.allocFunIndex,
-		ctx.ctxType,
-		force(ctx.ctxParam),
-		range,
-		elementPtrType,
-		sizeBytes);
+	immutable LowExpr allocatePtr = getAllocateExpr(ctx.alloc, ctx.allocFunIndex, range, elementPtrType, sizeBytes);
 	immutable LowLocal* temp = addTempLocal(ctx, elementPtrType);
 	immutable LowExpr getTemp = genLocalRef(ctx.alloc, range, temp);
 	immutable(LowExpr) recur(immutable LowExpr cur, immutable size_t prevIndex) {

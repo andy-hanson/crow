@@ -133,9 +133,7 @@ immutable(Repr) reprOfLowFun(ref Alloc alloc, ref immutable LowFun a) {
 }
 
 immutable(Repr) reprOfLowFunParamsKind(ref Alloc alloc, ref immutable LowFunParamsKind a) {
-	return reprNamedRecord(alloc, "param-kind", [
-		nameAndRepr("ctx", reprBool(a.hasCtx)),
-		nameAndRepr("closure", reprBool(a.hasClosure))]);
+	return reprNamedRecord(alloc, "param-kind", [nameAndRepr("closure", reprBool(a.hasClosure))]);
 }
 
 immutable(Repr) reprOfLowFunSource(ref Alloc alloc, ref immutable LowFunSource a) {

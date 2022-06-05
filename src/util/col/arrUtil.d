@@ -233,55 +233,32 @@ immutable(T[]) copyArr(T)(ref Alloc alloc, scope immutable T[] a) {
 	return res[0 .. a.length];
 }
 
-@trusted immutable(Out[]) mapWithOptFirst2(Out, In)(
-	ref Alloc alloc,
-	ref immutable Opt!Out optFirst0,
-	ref immutable Opt!Out optFirst1,
-	ref immutable In[] a,
-	scope immutable(Out) delegate(immutable size_t, immutable In*) @safe @nogc pure nothrow cb,
-) {
-	immutable size_t offset = (has(optFirst0) ? 1 : 0) + (has(optFirst1) ? 1 : 0);
-	Out* res = allocateT!Out(alloc, (offset + a.length));
-	if (has(optFirst0))
-		initMemory(res, force(optFirst0));
-	if (has(optFirst1))
-		initMemory(res + (has(optFirst0) ? 1 : 0), force(optFirst1));
-	foreach (immutable size_t i; 0 .. a.length)
-		initMemory(res + offset + i, cb(i, &a[i]));
-	return cast(immutable) res[0 .. offset + a.length];
-}
-
-@trusted immutable(Out[]) mapWithOptFirst(Out, In)(
+@trusted immutable(Out[]) mapPtrsWithOptFirst(Out, In)(
 	ref Alloc alloc,
 	ref immutable Opt!Out optFirst,
-	ref immutable In[] a,
-	scope immutable(Out) delegate(ref immutable In) @safe @nogc pure nothrow cb,
+	immutable In[] a,
+	scope immutable(Out) delegate(immutable In*) @safe @nogc pure nothrow cb,
 ) {
 	immutable size_t offset = has(optFirst) ? 1 : 0;
-	Out* res = allocateT!Out(alloc, (offset + a.length));
+	Out* res = allocateT!Out(alloc, offset + a.length);
 	if (has(optFirst))
 		initMemory(res, force(optFirst));
-	foreach (immutable size_t i, ref immutable In x; a)
-		initMemory(res + offset + i, cb(x));
+	foreach (immutable size_t i; 0 .. a.length)
+		initMemory(res + offset + i, cb(&a[i]));
 	return cast(immutable) res[0 .. offset + a.length];
 }
 
-@trusted immutable(Out[]) mapWithFirst2(Out, In)(
+@trusted immutable(Out[]) mapWithFirst(Out, In)(
 	ref Alloc alloc,
 	immutable Out first,
-	immutable Out second,
-	ref immutable In[] a,
+	scope immutable In[] a,
 	scope immutable(Out) delegate(immutable size_t, ref immutable In) @safe @nogc pure nothrow cb,
 ) {
-	immutable Opt!Out someFirst = some!Out(first);
-	immutable Opt!Out someSecond = some!Out(second);
-	return mapWithOptFirst2!(Out, In)(
-		alloc,
-		someFirst,
-		someSecond,
-		a,
-		(immutable size_t i, immutable In* it) =>
-			cb(i, *it));
+	Out* res = allocateT!Out(alloc, 1 + a.length);
+	initMemory(res, first);
+	foreach (immutable size_t i, ref immutable In x; a)
+		initMemory(res + 1 + i, cb(i, x));
+	return cast(immutable) res[0 .. 1 + a.length];
 }
 
 @trusted immutable(Out[]) mapOp(Out, In)(

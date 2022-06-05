@@ -26,7 +26,6 @@ import model.concreteModel :
 	matchConcreteParamSource,
 	matchConcreteStructBody,
 	matchConcreteStructSource,
-	NeedsCtx,
 	returnType,
 	symOfBuiltinStructKind,
 	symOfConcreteMutability,
@@ -51,7 +50,6 @@ import util.repr :
 	reprStr,
 	reprSym;
 import util.sourceRange : reprFileAndRange;
-import util.sym : shortSym;
 import util.util : todo;
 
 immutable(Repr) reprOfConcreteProgram(ref Alloc alloc, ref immutable ConcreteProgram a) {
@@ -61,8 +59,7 @@ immutable(Repr) reprOfConcreteProgram(ref Alloc alloc, ref immutable ConcretePro
 		reprArr(alloc, a.allFuns, (ref immutable ConcreteFun* it) =>
 			reprOfConcreteFun(alloc, *it)),
 		reprOfConcreteFunRef(alloc, *a.rtMain),
-		reprOfConcreteFunRef(alloc, *a.userMain),
-		reprOfConcreteStructRef(alloc, *a.ctxType)]);
+		reprOfConcreteFunRef(alloc, *a.userMain)]);
 }
 
 private:
@@ -143,19 +140,11 @@ immutable(Repr) reprOfConcreteStructBodyUnion(ref Alloc alloc, ref immutable Con
 
 immutable(Repr) reprOfConcreteFun(ref Alloc alloc, ref immutable ConcreteFun a) {
 	return reprRecord(alloc, "fun", [
-		reprSym(() {
-			final switch (a.needsCtx) {
-				case NeedsCtx.no:
-					return shortSym("noctx");
-				case NeedsCtx.yes:
-					return shortSym("ctx");
-			}
-		}()),
 		reprOfConcreteFunSource(alloc, a.source),
 		reprOfConcreteType(alloc, a.returnType),
 		reprOpt!(ConcreteParam*)(alloc, a.closureParam, (ref immutable ConcreteParam* it) =>
 			reprOfParam(alloc, *it)),
-		reprArr(alloc, a.paramsExcludingCtxAndClosure, (ref immutable ConcreteParam it) =>
+		reprArr(alloc, a.paramsExcludingClosure, (ref immutable ConcreteParam it) =>
 			reprOfParam(alloc, it)),
 		reprOfConcreteFunBody(alloc, body_(a))]);
 }

@@ -273,13 +273,6 @@ task-node-with-time record mut by-ref
 	next mut task-node-with-time?
 	time nat64
 
-# Since this fun is not marked 'noctx', it simply returns the ctx that already exists.
-get-ctx ctx() unsafe builtin
-
-# The ctx only exists temporarily, so can use 'any-mut-ptr' without worrying about GC
-ctx record mut by-ref
-	dummy nat64
-
 exclusion alias
 	nat64
 
@@ -404,38 +397,38 @@ subscript<r, p0, p1, p2, p3, p4, p5, p6, p7, p8> r(
 
 # Calls the function and returns its return value.
 subscript<r> r(a fun r()) trusted
-	a call-with-ctx get-ctx
+	a call-with-ctx
 subscript<r, p0> r(a fun r(p0), p0 p0) trusted
-	a call-with-ctx get-ctx, p0
+	a call-with-ctx p0
 subscript<r, p0, p1> r(a fun r(p0, p1), p0 p0, p1 p1) trusted
-	a call-with-ctx get-ctx, p0, p1
+	a call-with-ctx p0, p1
 subscript<r, p0, p1, p2> r(a fun r(p0, p1, p2), p0 p0, p1 p1, p2 p2) trusted
-	a call-with-ctx get-ctx, p0, p1, p2
+	a call-with-ctx p0, p1, p2
 subscript<r, p0, p1, p2, p3> r(a fun r(p0, p1, p2, p3), p0 p0, p1 p1, p2 p2, p3 p3) trusted
-	a call-with-ctx get-ctx, p0, p1, p2, p3
+	a call-with-ctx p0, p1, p2, p3
 
 # Calls the function and returns its return value.
 subscript<r> r(a act r()) trusted
-	a call-with-ctx get-ctx
+	a call-with-ctx
 subscript<r, p0> r(a act r(p0), p0 p0) trusted
-	a call-with-ctx get-ctx, p0
+	a call-with-ctx p0
 subscript<r, p0, p1> r(a act r(p0, p1), p0 p0, p1 p1) trusted
-	a call-with-ctx get-ctx, p0, p1
+	a call-with-ctx p0, p1
 subscript<r, p0, p1, p2> r(a act r(p0, p1, p2), p0 p0, p1 p1, p2 p2) trusted
-	a call-with-ctx get-ctx, p0, p1, p2
+	a call-with-ctx p0, p1, p2
 subscript<r, p0, p1, p2, p3> r(a act r(p0, p1, p2, p3), p0 p0, p1 p1, p2 p2, p3 p3) trusted
-	a call-with-ctx get-ctx, p0, p1, p2, p3
+	a call-with-ctx p0, p1, p2, p3
 
-call-with-ctx<r> r(f fun r(), c ctx) noctx builtin
-call-with-ctx<r> r(f act r(), c ctx) noctx builtin
-call-with-ctx<r, p0> r(f fun r(p0), c ctx, p0 p0) noctx builtin
-call-with-ctx<r, p0> r(f act r(p0), c ctx, p0 p0) noctx builtin
-call-with-ctx<r, p0, p1> r(f fun r(p0, p1), c ctx, p0 p0, p1 p1) noctx builtin
-call-with-ctx<r, p0, p1> r(f act r(p0, p1), c ctx, p0 p0, p1 p1) noctx builtin
-call-with-ctx<r, p0, p1, p2> r(f fun r(p0, p1, p2), c ctx, p0 p0, p1 p1, p2 p2) noctx builtin
-call-with-ctx<r, p0, p1, p2> r(f act r(p0, p1, p2), c ctx, p0 p0, p1 p1, p2 p2) noctx builtin
-call-with-ctx<r, p0, p1, p2, p3> r(f fun r(p0, p1, p2, p3), c ctx, p0 p0, p1 p1, p2 p2, p3 p3) noctx builtin
-call-with-ctx<r, p0, p1, p2, p3> r(f act r(p0, p1, p2, p3), c ctx, p0 p0, p1 p1, p2 p2, p3 p3) noctx builtin
+call-with-ctx<r> r(f fun r()) noctx builtin
+call-with-ctx<r> r(f act r()) noctx builtin
+call-with-ctx<r, p0> r(f fun r(p0), p0 p0) noctx builtin
+call-with-ctx<r, p0> r(f act r(p0), p0 p0) noctx builtin
+call-with-ctx<r, p0, p1> r(f fun r(p0, p1), p0 p0, p1 p1) noctx builtin
+call-with-ctx<r, p0, p1> r(f act r(p0, p1), p0 p0, p1 p1) noctx builtin
+call-with-ctx<r, p0, p1, p2> r(f fun r(p0, p1, p2), p0 p0, p1 p1, p2 p2) noctx builtin
+call-with-ctx<r, p0, p1, p2> r(f act r(p0, p1, p2), p0 p0, p1 p1, p2 p2) noctx builtin
+call-with-ctx<r, p0, p1, p2, p3> r(f fun r(p0, p1, p2, p3), p0 p0, p1 p1, p2 p2, p3 p3) noctx builtin
+call-with-ctx<r, p0, p1, p2, p3> r(f act r(p0, p1, p2, p3), p0 p0, p1 p1, p2 p2, p3 p3) noctx builtin
 
 region fut
 

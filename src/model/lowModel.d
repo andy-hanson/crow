@@ -571,7 +571,6 @@ static assert(LowFunSource.sizeof <= 16);
 }
 
 struct LowFunParamsKind {
-	immutable bool hasCtx;
 	immutable bool hasClosure;
 }
 

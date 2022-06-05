@@ -13,7 +13,7 @@ import
 	./alloc:
 		gc, init, needs-gc, return-gc-ctx, run-garbage-collection, set-gc-ctx-for-thread, uninit
 	./bool-low-level: !, &&, ||, bool, false, true
-	./bootstrap: call-with-ctx, ctx, hard-assert, new, sym
+	./bootstrap: call-with-ctx, hard-assert, new, sym
 	./log-low-level: default-log-handler, set-log-handler, log-handler
 	./task-queue:
 		action, add-task, add-tasks, add-timed-task, any-tasks, exclusion, first-task-time, init,
@@ -162,12 +162,12 @@ thread-function void(thread-id nat64, gctx global-ctx) noctx unsafe summon
 		gctx thread-shut-down
 
 .do-task void(gctx global-ctx, thread-id nat64, task task) noctx unsafe summon
-	ctx = gctx new-ctx task.exclusion
-	task.action call-with-ctx &ctx
+	gctx before-task task.exclusion
+	task.action call-with-ctx
 	&gctx.tasks-lock acquire
 	gctx.tasks return-task task, thread-id
 	&gctx.tasks-lock release
-	&ctx return-ctx
+	after-task
 
 .thread-shut-down void(gctx global-ctx) noctx unsafe summon
 	&gctx.may-be-work-to-do broadcast
@@ -175,14 +175,13 @@ thread-function void(thread-id nat64, gctx global-ctx) noctx unsafe summon
 	hard-assert: gctx.tasks is-empty
 	&gctx.tasks-lock release
 
-new-ctx by-val ctx(gctx global-ctx, exclusion exclusion) noctx unsafe
+before-task void(gctx global-ctx, exclusion exclusion) noctx unsafe
 	*global-ctx-var := gctx
 	*cur-exclusion-var := exclusion
 	&gctx.gc set-gc-ctx-for-thread
 	(&gctx.gc-root).default-log-handler set-log-handler
-	0,
 
-.return-ctx void(_ ctx) noctx unsafe
+after-task void() noctx unsafe
 	return-gc-ctx
 
 .choose-task-result union mut

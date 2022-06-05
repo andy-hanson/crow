@@ -3,7 +3,7 @@ import
 	../col/arr: arr, for-loop
 	../col/arr-util: tail
 	../col/private/arr-low-level: subscript
-	../fun-util: fun-ptr2, subscript
+	../fun-util: fun-ptr1, subscript
 	../fut: delay, fut, handle-exceptions, then-void
 	../misc: new, void
 	../number: ==, <=>, +, -, int32, nat64, to-int32, to-int64, to-nat64
@@ -14,15 +14,16 @@ import
 	../str: c-str, str
 	../str-util: to-str
 	./alloc: unmanaged-alloc-elements, unmanaged-free
-	./bootstrap: call-with-ctx, ctx, get-ctx
+	./bootstrap: call-with-ctx
 	./fut-low-level: get-result
 	./runtime:
-		any-unhandled-exceptions, free, get-global-ctx, global-ctx, init, new-ctx, thread-function, uninit
+		after-task, any-unhandled-exceptions, before-task, free, get-global-ctx, global-ctx, init,
+		thread-function, uninit
 	./sym-low-level: init-symbol-table
 	./thread-utils: count-processors, create-one-thread, join-one-thread, thread-handle
 
 .main-ptr alias
-	fun-ptr2<fut nat64, ctx, str[]>
+	fun-ptr1<fut nat64, str[]>
 
 # Treated specially by the compiler
 rt-main int32(argc int32, argv c-str*, main-ptr main-ptr) trusted noctx summon
@@ -62,13 +63,13 @@ init-constants void() unsafe noctx summon builtin
 	main-ptr main-ptr,
 ) trusted noctx
 	# Create a ctx manually so we can call functions that need it when creating the task
-	ctx-by-val = gctx new-ctx 0
-	ctx ctx = &ctx-by-val
-
+	gctx before-task 0
 	add act fut nat64(c-str[], main-ptr) = (all-args, main-ptr-2) =>
 		all-args add-first-task main-ptr-2
 	all-args = argv[0 .. argc.to-int64.to-nat64]
-	add call-with-ctx ctx, all-args, main-ptr
+	res = add call-with-ctx all-args, main-ptr
+	after-task
+	res
 
 .thread-args record mut by-ref
 	thread-id nat64
@@ -77,13 +78,13 @@ init-constants void() unsafe noctx summon builtin
 # TODO: if mut-bag-node is in unmanaged memory, don't need ctx for this
 # We want main-fut to be available immediately, not after having run some user code.
 # So we create main-fut now, and forward the result of 'main' to that.
-.add-first-task fut nat64(all-args c-str[], main-ptr fun-ptr2<fut nat64, ctx, str[]>) unsafe
+.add-first-task fut nat64(all-args c-str[], main-ptr fun-ptr1<fut nat64, str[]>) unsafe
 	# 'then' is useful here -- it handles any errors in 'main' and gets us main-fut immediately.
 	# TODO: 'then' overload for fut<void> taking lambda with 0 params
 	res = delay then-void () =>
 		get-global-ctx init-symbol-table
 		# First argument is the path to this executable; omit from crow main
-		main-ptr[get-ctx, for arg : all-args tail; arg to-str]
+		main-ptr[for arg : all-args tail; arg to-str]
 	res handle-exceptions
 	res
 

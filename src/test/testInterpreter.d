@@ -139,7 +139,7 @@ void doInterpret(
 	immutable LowFun[1] lowFun = [immutable LowFun(
 		immutable LowFunSource(allocate(test.alloc, immutable LowFunSource.Generated(shortSym("test"), []))),
 		nat64Type,
-		immutable LowFunParamsKind(false, false),
+		immutable LowFunParamsKind(false),
 		[],
 		immutable LowFunBody(immutable LowFunBody.Extern(false, shortSym("bogus"))))];
 	immutable LowProgram lowProgram = immutable LowProgram(

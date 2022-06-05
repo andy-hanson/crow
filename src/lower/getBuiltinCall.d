@@ -21,7 +21,6 @@ struct BuiltinKind {
 	@safe @nogc pure nothrow:
 
 	struct CallFunPtr {}
-	struct GetCtx {}
 	struct InitConstants {}
 	struct OptOr {}
 	struct OptQuestion2 {}
@@ -31,7 +30,6 @@ struct BuiltinKind {
 	struct Zeroed {}
 
 	immutable this(immutable CallFunPtr a) { kind_ = Kind.callFunPtr; callFunPtr_ = a; }
-	immutable this(immutable GetCtx a) { kind_ = Kind.getCtx; getCtx_ = a; }
 	@trusted immutable this(immutable Constant a) { kind_ = Kind.constant; constant_ = a; }
 	immutable this(immutable InitConstants a) { kind_ = Kind.initConstants; initConstants_ = a; }
 	immutable this(immutable OptOr a) { kind_ = Kind.optOr; optOr_ = a; }
@@ -47,7 +45,6 @@ struct BuiltinKind {
 	private:
 	enum Kind {
 		callFunPtr,
-		getCtx,
 		constant,
 		initConstants,
 		unary,
@@ -63,7 +60,6 @@ struct BuiltinKind {
 	immutable Kind kind_;
 	union {
 		immutable CallFunPtr callFunPtr_;
-		immutable GetCtx getCtx_;
 		immutable Constant constant_;
 		immutable InitConstants initConstants_;
 		immutable LowExprKind.SpecialUnary.Kind unary_;
@@ -81,7 +77,6 @@ struct BuiltinKind {
 @trusted immutable(T) matchBuiltinKind(T)(
 	ref immutable BuiltinKind a,
 	scope immutable(T) delegate(ref immutable BuiltinKind.CallFunPtr) @safe @nogc pure nothrow cbCallFunPtr,
-	scope immutable(T) delegate(ref immutable BuiltinKind.GetCtx) @safe @nogc pure nothrow cbGetCtx,
 	scope immutable(T) delegate(ref immutable Constant) @safe @nogc pure nothrow cbConstant,
 	scope immutable(T) delegate(ref immutable BuiltinKind.InitConstants) @safe @nogc pure nothrow cbInitConstants,
 	scope immutable(T) delegate(immutable LowExprKind.SpecialUnary.Kind) @safe @nogc pure nothrow cbUnary,
@@ -97,8 +92,6 @@ struct BuiltinKind {
 	final switch (a.kind_) {
 		case BuiltinKind.Kind.callFunPtr:
 			return cbCallFunPtr(a.callFunPtr_);
-		case BuiltinKind.Kind.getCtx:
-			return cbGetCtx(a.getCtx_);
 		case BuiltinKind.Kind.constant:
 			return cbConstant(a.constant_);
 		case BuiltinKind.Kind.initConstants:
@@ -283,8 +276,6 @@ immutable(BuiltinKind) getBuiltinKind(
 				: failUnary());
 		case shortSymValue("false"):
 			return constantBool(false);
-		case shortSymValue("get-ctx"):
-			return immutable BuiltinKind(immutable BuiltinKind.GetCtx());
 		case specialSymValue(SpecialSym.interpreter_backtrace):
 			return immutable BuiltinKind(LowExprKind.SpecialTernary.Kind.interpreterBacktrace);
 		case shortSymValue("is-less"):

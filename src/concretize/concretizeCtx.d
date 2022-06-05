@@ -31,7 +31,6 @@ import model.concreteModel :
 	hasSizeOrPointerSizeBytes,
 	isSelfMutable,
 	mustBeByVal,
-	NeedsCtx,
 	purity,
 	ReferenceKind,
 	sizeOrPointerSizeBytes,
@@ -55,7 +54,6 @@ import model.model :
 	matchType,
 	Module,
 	name,
-	noCtx,
 	Param,
 	paramsArray,
 	Program,
@@ -233,7 +231,6 @@ struct ConcretizeCtx {
 	immutable VersionInfo versionInfo;
 	const AllSymbols* allSymbolsPtr;
 	immutable FunInst* curExclusionFun;
-	immutable StructInst* ctxStructInst;
 	immutable CommonTypes* commonTypesPtr;
 	immutable Program* programPtr;
 	AllConstantsBuilder allConstants;
@@ -290,13 +287,6 @@ immutable(ConcreteType) symType(ref ConcretizeCtx a) {
 		getConcreteType_forStructInst(a, a.commonTypes.sym, TypeArgsScope.empty));
 }
 
-immutable(ConcreteType) ctxType(ref ConcretizeCtx a) {
-	immutable ConcreteType res = lazilySet(a._ctxType, () =>
-		getConcreteType_forStructInst(a, a.ctxStructInst, TypeArgsScope.empty));
-	verify(res.reference == ReferenceKind.byRef);
-	return res;
-}
-
 immutable(Constant) constantCStr(ref ConcretizeCtx a, immutable SafeCStr value) {
 	return getConstantCStr(a.alloc, a.allConstants, value);
 }
@@ -325,7 +315,6 @@ immutable(ConcreteFun*) getConcreteFunForLambdaAndFillBody(
 		immutable ConcreteFunSource(
 			allocate(ctx.alloc, immutable ConcreteFunSource.Lambda(body_.range, containingConcreteFun, index))),
 		returnType,
-		NeedsCtx.yes,
 		some(closureParam),
 		params));
 	immutable ConcreteFunBodyInputs bodyInputs = immutable ConcreteFunBodyInputs(containing, immutable FunBody(body_));
@@ -473,25 +462,13 @@ immutable(ConcreteFun*) getConcreteFunFromKey(ref ConcretizeCtx ctx, ref immutab
 	immutable TypeArgsScope typeScope = typeArgsScope(key);
 	immutable ConcreteType returnType = getConcreteType(ctx, decl.returnType, typeScope);
 	immutable ConcreteParam[] params = concretizeParams(ctx, paramsArray(decl.params), typeScope);
-	ConcreteFun* res = allocateMut(ctx.alloc, ConcreteFun(
-		immutable ConcreteFunSource(key.inst),
-		returnType,
-		getNeedsCtx(*decl, key.specImpls),
-		none!(ConcreteParam*),
-		params));
+	ConcreteFun* res = allocateMut(ctx.alloc,
+		ConcreteFun(immutable ConcreteFunSource(key.inst), returnType, none!(ConcreteParam*), params));
 	immutable ConcreteFunBodyInputs bodyInputs = ConcreteFunBodyInputs(
 		toContainingFunInfo(key),
 		decl.body_);
 	addToMutDict(ctx.alloc, ctx.concreteFunToBodyInputs, castImmutable(res), bodyInputs);
 	return castImmutable(res);
-}
-
-immutable(NeedsCtx) getNeedsCtx(ref immutable FunDecl decl, immutable ConcreteFun*[] specImpls) {
-	immutable bool res = !noCtx(decl) || exists!(immutable ConcreteFun*)(
-		specImpls,
-		(ref immutable ConcreteFun* impl) =>
-			impl.needsCtx == NeedsCtx.yes);
-	return res ? NeedsCtx.yes : NeedsCtx.no;
 }
 
 void addConcreteFun(ref ConcretizeCtx ctx, immutable ConcreteFun* fun) {
@@ -506,7 +483,6 @@ immutable(ConcreteFun*) concreteFunForTest(
 	ConcreteFun* res = allocateMut(ctx.alloc, ConcreteFun(
 		immutable ConcreteFunSource(allocate(ctx.alloc, immutable ConcreteFunSource.Test(test.body_.range, testIndex))),
 		voidType(ctx),
-		NeedsCtx.yes,
 		none!(ConcreteParam*),
 		[]));
 	immutable ContainingFunInfo containing = immutable ContainingFunInfo([], [], []);

@@ -1157,10 +1157,6 @@ immutable(Called[]) specImpls(ref immutable FunInst a) {
 	return a.funDeclAndArgs.specImpls;
 }
 
-immutable(bool) noCtx(ref immutable FunInst a) {
-	return noCtx(*decl(a));
-}
-
 immutable(Arity) arity(ref immutable FunInst a) {
 	return arity(*decl(a));
 }
@@ -1572,7 +1568,6 @@ struct CommonTypes {
 	immutable IntegralTypes integrals;
 	immutable StructInst* sym;
 	immutable StructInst* void_;
-	immutable StructInst* ctx;
 	immutable StructDecl* byVal;
 	immutable StructDecl* arr;
 	immutable StructDecl* fut;

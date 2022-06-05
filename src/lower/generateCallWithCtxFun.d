@@ -21,7 +21,7 @@ import model.lowModel :
 	LowParamSource,
 	LowType;
 import util.alloc.alloc : Alloc;
-import util.col.arrUtil : mapWithFirst2, mapZip, prepend;
+import util.col.arrUtil : mapWithFirst, mapZip, prepend;
 import util.col.dict : mustGetAt;
 import util.memory : allocate;
 import util.opt : some;
@@ -35,13 +35,11 @@ immutable(LowFun) generateCallWithCtxFun(
 	scope ref immutable ConcreteFunToLowFunIndex concreteFunToLowFunIndex,
 	immutable LowType returnType,
 	immutable LowType funType,
-	immutable LowType ctxType,
-	immutable LowType[] nonFunNonCtxParamTypes,
+	immutable LowType[] nonFunParamTypes,
 	immutable ConcreteLambdaImpl[] impls,
 ) {
 	immutable FileAndRange range = FileAndRange.empty;
 	immutable LowExpr funParamRef = genParamRef(range, funType, immutable LowParamIndex(0));
-	immutable LowExpr ctxParamRef = genParamRef(range, ctxType, immutable LowParamIndex(1));
 
 	size_t localIndex = 0;
 
@@ -53,13 +51,12 @@ immutable(LowFun) generateCallWithCtxFun(
 			immutable LowLocal* closureLocal =
 				genLocal(alloc, shortSym("closure"), localIndex, closureType);
 			localIndex = localIndex + 1;
-			immutable LowExpr[] args = mapWithFirst2!(LowExpr, LowType)(
+			immutable LowExpr[] args = mapWithFirst!(LowExpr, LowType)(
 				alloc,
-				ctxParamRef,
 				genLocalRef(alloc, range, closureLocal),
-				nonFunNonCtxParamTypes,
+				nonFunParamTypes,
 				(immutable size_t i, ref immutable LowType paramType) =>
-					genParamRef(range, paramType, immutable LowParamIndex(i + 2)));
+					genParamRef(range, paramType, immutable LowParamIndex(i + 1)));
 			immutable LowExpr then = immutable LowExpr(returnType, range, immutable LowExprKind(
 				immutable LowExprKind.Call(mustGetAt(concreteFunToLowFunIndex, impl.impl), args)));
 			return immutable LowExprKind.MatchUnion.Case(some(closureLocal), then);
@@ -67,15 +64,12 @@ immutable(LowFun) generateCallWithCtxFun(
 
 	immutable LowExpr expr = immutable LowExpr(returnType, range, immutable LowExprKind(
 		allocate(alloc, immutable LowExprKind.MatchUnion(funParamRef, cases))));
-	immutable LowParam[] params = mapWithFirst2!(LowParam, LowType)(
+	immutable LowParam[] params = mapWithFirst!(LowParam, LowType)(
 		alloc,
 		immutable LowParam(
 			immutable LowParamSource(immutable LowParamSource.Generated(shortSym("a"))),
 			funType),
-		immutable LowParam(
-			immutable LowParamSource(immutable LowParamSource.Generated(shortSym("ctx"))),
-			ctxType),
-		nonFunNonCtxParamTypes,
+		nonFunParamTypes,
 		(immutable size_t i, ref immutable LowType paramType) {
 			verify(i < paramNames.length);
 			return immutable LowParam(
@@ -87,9 +81,9 @@ immutable(LowFun) generateCallWithCtxFun(
 		//Or rename it in bootstrap.crow
 		immutable LowFunSource(allocate(alloc, immutable LowFunSource.Generated(
 			shortSym("call-w-ctx"),
-			prepend(alloc, returnType, nonFunNonCtxParamTypes)))),
+			prepend(alloc, returnType, nonFunParamTypes)))),
 		returnType,
-		immutable LowFunParamsKind(true, false),
+		immutable LowFunParamsKind(false),
 		params,
 		immutable LowFunBody(immutable LowFunExprBody(false, expr)));
 }
