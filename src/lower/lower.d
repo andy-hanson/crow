@@ -93,7 +93,6 @@ import model.lowModel :
 	LowFunBody,
 	LowFunExprBody,
 	LowFunIndex,
-	LowFunParamsKind,
 	LowFunPtrType,
 	LowFunSource,
 	LowLocal,
@@ -876,12 +875,7 @@ immutable(LowFun) lowFunFromCause(
 				thisFunIndex,
 				*cf,
 				body_(*cf));
-			return immutable LowFun(
-				immutable LowFunSource(cf),
-				returnType,
-				immutable LowFunParamsKind(has(closureParam)),
-				params,
-				body_);
+			return immutable LowFun(immutable LowFunSource(cf), returnType, params, body_);
 		},
 		(ref immutable LowFunCause.MarkVisitArrInner it) =>
 			generateMarkVisitArrInner(getLowTypeCtx.alloc, markVisitFuns, markCtxType, it.elementPtrType),
@@ -931,7 +925,6 @@ immutable(LowFun) mainFun(
 	return immutable LowFun(
 		immutable LowFunSource(allocate(ctx.alloc, immutable LowFunSource.Generated(shortSym("main"), []))),
 		int32Type,
-		immutable LowFunParamsKind(false),
 		params,
 		body_);
 }

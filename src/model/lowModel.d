@@ -570,10 +570,6 @@ static assert(LowFunSource.sizeof <= 16);
 	}
 }
 
-struct LowFunParamsKind {
-	immutable bool hasClosure;
-}
-
 struct LowFun {
 	@safe @nogc pure nothrow:
 
@@ -581,7 +577,6 @@ struct LowFun {
 
 	immutable LowFunSource source;
 	immutable LowType returnType;
-	immutable LowFunParamsKind paramsKind;
 	// Includes ctx and closure params
 	immutable LowParam[] params;
 	immutable LowFunBody body_;

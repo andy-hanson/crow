@@ -13,7 +13,6 @@ import model.lowModel :
 	LowFun,
 	LowFunBody,
 	LowFunExprBody,
-	LowFunParamsKind,
 	LowFunPtrType,
 	LowFunSource,
 	LowLocal,
@@ -45,7 +44,6 @@ import util.repr :
 	nameAndRepr,
 	Repr,
 	reprArr,
-	reprBool,
 	reprFullIndexDict,
 	reprInt,
 	reprNamedRecord,
@@ -126,14 +124,9 @@ immutable(Repr) reprOfLowFun(ref Alloc alloc, ref immutable LowFun a) {
 	return reprRecord(alloc, "fun", [
 		reprOfLowFunSource(alloc, a.source),
 		reprOfLowType(alloc, a.returnType),
-		reprOfLowFunParamsKind(alloc, a.paramsKind),
 		reprArr(alloc, a.params, (ref immutable LowParam it) =>
 			reprRecord(alloc, "param", [reprOfLowParamSource(it.source), reprOfLowType(alloc, it.type)])),
 		reprOfLowFunBody(alloc, a.body_)]);
-}
-
-immutable(Repr) reprOfLowFunParamsKind(ref Alloc alloc, ref immutable LowFunParamsKind a) {
-	return reprNamedRecord(alloc, "param-kind", [nameAndRepr("closure", reprBool(a.hasClosure))]);
 }
 
 immutable(Repr) reprOfLowFunSource(ref Alloc alloc, ref immutable LowFunSource a) {
