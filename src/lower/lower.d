@@ -136,7 +136,7 @@ import util.perf : Perf, PerfMeasure, withMeasure;
 import util.ptr : castNonScope_mut, ptrTrustMe, ptrTrustMe_mut;
 import util.sourceRange : FileAndRange;
 import util.sym : AllSymbols, shortSym, Sym;
-import util.util : todo, unreachable, verify;
+import util.util : unreachable, verify;
 
 immutable(LowProgram) lower(
 	ref Alloc alloc,
@@ -860,8 +860,6 @@ immutable(LowFun) lowFunFromCause(
 				cf.paramsExcludingClosure,
 				(immutable ConcreteParam* it) =>
 					getLowParam(getLowTypeCtx, it));
-			immutable Opt!LowParamIndex closureParamIndex =
-				has(cf.closureParam) ? some(immutable LowParamIndex(0)) : none!LowParamIndex;
 			immutable LowFunBody body_ = getLowFunBody(
 				allTypes,
 				staticSyms,
@@ -870,8 +868,7 @@ immutable(LowFun) lowFunFromCause(
 				concreteFunToThreadLocalIndex,
 				allocFunIndex,
 				throwImplFunIndex,
-				closureParamIndex,
-				immutable LowParamIndex(has(closureParamIndex) ? 1 : 0),
+				has(cf.closureParam),
 				thisFunIndex,
 				*cf,
 				body_(*cf));
@@ -968,8 +965,7 @@ immutable(LowFunBody) getLowFunBody(
 	scope ref immutable ConcreteFunToThreadLocalIndex concreteFunToThreadLocalIndex,
 	immutable LowFunIndex allocFunIndex,
 	immutable LowFunIndex throwImplFunIndex,
-	immutable Opt!LowParamIndex closureParam,
-	immutable LowParamIndex firstRegularParam,
+	immutable bool hasClosure,
 	immutable LowFunIndex thisFunIndex,
 	ref immutable ConcreteFun cf,
 	ref immutable ConcreteFunBody a,
@@ -998,8 +994,7 @@ immutable(LowFunBody) getLowFunBody(
 				concreteFunToThreadLocalIndex,
 				allocFunIndex,
 				throwImplFunIndex,
-				closureParam,
-				firstRegularParam,
+				hasClosure,
 				false);
 			immutable Locals locals;
 			immutable LowExpr expr = getLowExpr(exprCtx, locals, it, ExprPos.tail);
@@ -1026,8 +1021,7 @@ struct GetLowExprCtx {
 	immutable ConcreteFunToThreadLocalIndex concreteFunToThreadLocalIndex;
 	immutable LowFunIndex allocFunIndex;
 	immutable LowFunIndex throwImplFunIndex;
-	immutable Opt!LowParamIndex closureParam;
-	immutable LowParamIndex firstRegularParam;
+	immutable bool hasClosure;
 	bool hasTailRecur;
 	size_t tempLocalIndex;
 
@@ -1607,19 +1601,16 @@ immutable(LowExprKind) getMatchUnionExpr(
 immutable(LowExprKind) getParamRefExpr(ref GetLowExprCtx ctx, ref immutable ConcreteExprKind.ParamRef a) {
 	if (!has(a.param.index)) {
 		//TODO: don't generate ParamRef in ConcreteModel for closure field access. Do that in lowering.
-		verify(isClosure(a.param.source));
-		return immutable LowExprKind(immutable LowExprKind.ParamRef(force(ctx.closureParam)));
+		verify(isClosure(a.param.source) && ctx.hasClosure);
+		return immutable LowExprKind(immutable LowExprKind.ParamRef(immutable LowParamIndex(0)));
 	} else
 		return immutable LowExprKind(immutable LowExprKind.ParamRef(immutable LowParamIndex(
-			ctx.firstRegularParam.index + force(a.param.index))));
+			(ctx.hasClosure ? 1 : 0) + force(a.param.index))));
 }
 
 immutable(LowExprKind) getPtrToParam(ref GetLowExprCtx ctx, ref immutable ConcreteExprKind.PtrToParam a) {
-	if (!has(a.param.index))
-		return todo!(immutable LowExprKind)("ptr to param without index");
-	else
-		return immutable LowExprKind(immutable LowExprKind.PtrToParam(immutable LowParamIndex(
-			ctx.firstRegularParam.index + force(a.param.index))));
+	return immutable LowExprKind(immutable LowExprKind.PtrToParam(immutable LowParamIndex(
+		(ctx.hasClosure ? 1 : 0) + force(a.param.index))));
 }
 
 immutable(LowExprKind) getRecordFieldGetExpr(
