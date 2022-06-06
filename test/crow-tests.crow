@@ -1,14 +1,12 @@
 import
 	crow/col/arr-util: find-and-get
-	crow/col/iter: rest, value
 	crow/col/mut-arr: ~=, move-to-arr, mut-arr, new
 	crow/io/file: each-child-recursive
 	crow/io/path: base-name, get-extension
 	crow/io/print: print
 	crow/io/process: exit-code, spawn-and-wait-result, stderr, stdout
-	crow/str-util: contains-substr, ends-with, iter, next, slice-right, str-iter, try-remove-start
+	crow/str-util: contains-substr, ends-with, try-split-once
 	crow/version: is-windows
-	crow/writer: ~=, move-to-str, new, writer
 	./failure:
 		failure, flat-map-with-max-size, handle-output, max-failures, match-test, new,
 		overwrite-output, print-tests, test-options
@@ -117,22 +115,9 @@ run-kind enum
 		path handle-output err-path, res.stderr, overwrite-output
 	stdout-failures ~~ stderr-failures
 
-.remove-colors str(s str)
-	res writer = ()
-	s remove-colors-recur res
-	res move-to-str
-
-.remove-colors-recur void(s str, out writer)
-	unless s is-empty
-		if rest ?= s try-remove-start "\x1b"
-			rest.iter remove-colors-recur-2 out
-		elif n ?= s.iter next
-			out ~= n.value
-			n.rest.slice-right remove-colors-recur out
-
-.remove-colors-recur-2 void(s str-iter, out writer)
-	if n ?= s next
-		if n.value == "m"
-			n.rest.slice-right remove-colors-recur out
-		else
-			n.rest remove-colors-recur-2 out
+remove-colors str(a str)
+	if pair ?= a try-split-once "\x1b"
+		pair.a ~~ if pair2 ?= pair.b try-split-once "m"
+			pair2.b remove-colors
+	else
+		a

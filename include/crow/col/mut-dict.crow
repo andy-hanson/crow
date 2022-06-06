@@ -10,9 +10,9 @@ import
 	../ptr: ==, +, *, mut-ptr, set-deref
 	../str: ==, literal, str
 	../str-conv: finish, interp, to-str, with-str, with-value
+	../str-util: join
 	../test-util: is
 	../tuple: from, new, pair, to
-	../writer: ~=, ~~=, backup, move-to-str, new, writer
 	./arr: ==, arr, arr-equal, for-loop, new, size
 	./dict: dict, to-dict
 	./fix-arr:
@@ -328,30 +328,17 @@ set-map-values<k, v> void(a v mut[k], f act v(k, v)) trusted is-data<k> compare<
 			m set-map pair => pair.from, f[pair.from, pair.to]
 		entry-ptr + 1 set-map-values-recur entry-end, f
 
-.dbg str(a str mut[nat64])
-	out writer = ()
-	for entry : a entries
+.dbg<k, v> str(a v mut[k]) to-str<k> to-str<v>
+	" " join for entry : a entries
 		match entry
 		as none
-			out ~= "_"
+			"_"
 		as one ar
-			out ~= "("
-			out ~~= ar.from to-str
-			out ~~= " -> "
-			out ~~= ar to
-			out ~= ")"
+			"({ar dbg})"
 		as many m
-			out ~= "["
-			for pair : m
-				out ~~= pair.from to-str
-				out ~~= " -> "
-				out ~~= pair to
-				out ~~= ", "
-			out backup 2
-			out ~= "]"
-		out ~= " "
-	out backup
-	out move-to-str
+			"[{", " join for pair : m; pair dbg}]"
+.dbg<k, v> str(a pair<k, v>) to-str<k> to-str<v>
+	"{a from} -> {a to}"
 
 .verify void(a str mut[nat64], expected str)
 	a.dbg is expected

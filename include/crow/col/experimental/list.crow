@@ -8,9 +8,10 @@ import
 	../../opt: ==, is-empty, new, opt, opt-equal
 	../../ptr: ==, +, -, *, const-ptr, mut-ptr, set-deref, set-subscript
 	../../range: ..
-	../../str: ==, literal, str
+	../../str: ==, literal, new, str
+	../../str-conv: interp, finish, to-str, with-str, with-value
+	../../str-util: join
 	../../test-util: is
-	../../writer: ~=, ~~=, backup, move-to-str, new, writer
 	../arr: ==, arr, for-loop, is-empty, new, size
 	../arr-util: each-with-index, find-and-get, first, fold, last, rtail
 	../fix-arr:
@@ -202,23 +203,11 @@ find-and-get<out, in> out?(a list in, f act out?(in))
 	else
 		before
 
-.dbg str(a list nat64)
-	res writer = ()
-	res dbg-recur a
-	res move-to-str
-.dbg-recur void(out writer, a list nat64)
-	if prev ?= a prev
-		out dbg-recur prev
-		out ~= " "
-	out ~= "["
-	if a.values is-empty
-		out ~= "]"
-	else
-		for x : a values
-			out ~~= x
-			out ~= " "
-		out backup
-		out ~= "]"
+.dbg<a> str(a list a) to-str<a>
+	pre = if prev ?= a prev
+		"{prev dbg} "
+	mid = " " join for x : a values; "{x}"
+	"{pre}[{mid}]"
 
 test
 	a list nat64 = ()

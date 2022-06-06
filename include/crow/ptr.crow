@@ -8,10 +8,9 @@ import
 	./compare: comparison, less, equal, greater
 	./fun-util:
 		fun-ptr0, fun-ptr1, fun-ptr2, fun-ptr3, fun-ptr4, fun-ptr5, fun-ptr6, fun-ptr7, fun-ptr8,
-		fun-ptr9, subscript
-	./misc: new
-	./number: /
-	./private/bootstrap: arr, begin-ptr, nat64, size, void
+		fun-ptr9
+	./misc: void
+	./number: /, nat64
 	./private/number-low-level: wrap-sub
 export
 	./private/bootstrap: any-const-ptr, any-mut-ptr, by-val, const-ptr, mut-ptr, zeroed
@@ -152,13 +151,6 @@ max-ptr<a> a*() noctx unsafe
 	max-ptr as-const
 max-ptr<a> a mut*() noctx unsafe
 	null + 0xffffffffffffffff
-
-each-ptr<a> void(a a[], f act void(a*)) no-doc unsafe
-	a.begin-ptr each-ptr-recur a.begin-ptr + a.size, f
-.each-ptr-recur<a> void(cur a*, end a*, f act void(a*)) unsafe
-	unless cur == end
-		f[cur]
-		cur + 1 each-ptr-recur end, f
 
 region Conversion between pointers and pointer-like types
 

@@ -5,7 +5,7 @@ import
 	crow/io/terminal-color: bold, blue, foreground, red, reset
 	crow/ptr: zeroed
 	crow/private/number-low-level: wrap-to-nat32
-	crow/writer: ~=, ~~=, move-to-str, new, writer
+	crow/str-util: join
 
 ###
 Board representation is bits: 7 bits for a column (max of 6 entries), over 6 rows.
@@ -121,22 +121,17 @@ empty-board board()
 			cur-player.opposite,
 
 to-str str(a board, cur-player color, last-column nat?)
-	res writer = ()
-	for x : 0 .. width
+	header = "" join for x : 0 .. width
 		text = " {x letter-of-alphabet}"
-		res ~~= if last-column == (x,)
+		if last-column == (x,)
 			"{bold}{text}{reset}"
 		else
 			text
-	res ~= "\n"
-	for y : 0 .. height reverse
-		res ~~= "│"
-		for x : 0 .. width
-			res ~~= a[x, y, cur-player] to-short-str
-			res ~~= "│"
-		res ~= "\n"
-	res ~~= "╰─┴─┴─┴─┴─┴─┴─╯"
-	res move-to-str
+	rows = "\n" join for y : 0 .. height reverse
+		parts = "│" join for x : 0 .. width
+			a[x, y, cur-player] to-short-str
+		"│{parts}│"
+	"{header}\n{rows}\n╰─┴─┴─┴─┴─┴─┴─╯"
 
 .letter-of-alphabet str(a nat)
 	# TODO: type annotation should be unnecessary

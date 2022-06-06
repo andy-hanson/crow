@@ -1,19 +1,20 @@
 no-std
 import
 	./bool: ==, bool, false, new, true
-	./col/arr: arr, arr-equal, for-loop, is-empty, new
-	./col/dict: dict, dict-equal, each, is-empty, new, subscript, to-dict
+	./col/arr: arr, arr-equal, for-loop, new
+	./col/dict: dict, dict-equal, for-loop, new, subscript, to-dict
 	./col/mut-dict: move-to-dict, mut-dict, new, set-subscript
 	./col/mut-arr: ~=, move-to-arr, mut-arr, new
-	./misc: new, void
+	./misc: void
 	./number: ==, float64, int64, nat64, to-float64
 	./opt: new, opt
 	./reader:
 		reader, skip-whitespace, try-take-char, take-float, take-quoted-str, try-take-str, with-reader
 	./str: ==, <=>, hash-mix, literal, str
+	./str-conv: finish, interp, to-str, with-str, with-value
+	./str-util: join, quote
 	./test-util: is
-	./tuple: new, pair
-	./writer: ~=, ~~=, backup, move-to-str, new, writer, write-quoted-str
+	./tuple: a, b, new, pair
 
 ###
 JSON data.
@@ -167,36 +168,20 @@ parse-json json?(a str)
 
 # Renders a json value to JSON.
 to-str str(a json)
-	res writer = ()
-	res to-str-recur a
-	res move-to-str
-
-.to-str-recur void(out writer, a json)
 	match a
 	as json-bool b
-		out ~~= b
+		"{b}"
 	as json-number f
-		out ~~= f
+		"{f}"
 	as json-str s
-		out write-quoted-str s
+		s quote
 	as json-arr xs
-		out ~= "["
-		for x : xs
-			out to-str-recur x
-			out ~= ","
-		unless xs is-empty
-			out backup
-		out ~= "]"
+		parts = "," join for x : xs; "{x}"
+		"[{parts}]"
 	as json-object o
-		out ~= "\{"
-		o each (key, value) =>
-			out write-quoted-str key
-			out ~= ":"
-			out to-str-recur value
-			out ~= ","
-		unless o is-empty
-			out backup
-		out ~= "}"
+		parts = "," join for pair : o
+			"{pair.a quote}:{pair.b}"
+		"\{{parts}}"
 
 ###
 Takes a JSON value from the start of a reader.

@@ -3,7 +3,6 @@ import
 	crow/str-util:
 		join, left, middle, replace, right, strip-left, try-remove-start, try-split-once,
 		try-split-once-by-fn
-	crow/writer: ~~=, move-to-str, new, writer
 	./module:
 		body_, doc-comment, exports, fields, has-private-fields, is-mut, members, module,
 		module-export, module-export-value, name, param, params, path, purity, record-field,
@@ -242,11 +241,7 @@ module-top str(path str)
 	a[0]
 
 .format-comment str(a str)
-	out writer = ()
-	out ~~= "<p>"
-	new-state = out format-comment-recur text, a
-	out ~~= new-state close-state
-	out move-to-str
+	"<p>" format-comment-recur text, a
 
 .comment-state enum
 	text
@@ -259,34 +254,27 @@ module-top str(path str)
 	as code-block
 		"</div>"
 
-.format-comment-recur comment-state(out writer, state comment-state, a str)
+.format-comment-recur str(acc str, state comment-state, a str)
 	if split ?= a try-split-once-by-fn x => x == "\n" || x == "`"
-		out ~~= split.left
-		mid = split middle
-		if mid == "\n"
+		acc2 = "{acc}{split left}"
+		if split.middle == "\n"
 			if rest ?= state == text ? split.right try-remove-start "\n"
-				out ~~= "</p><p>"
-				out format-comment-recur state, rest
+				"{acc2}</p><p>" format-comment-recur state, rest
 			else
-				out ~~= "<br />"
-				out format-comment-recur state, split.right
+				"{acc2}<br />" format-comment-recur state, split.right
 		else
-			assert mid == "`"
+			assert split.middle == "`"
 			if rest ?= split.right try-remove-start "``"
 				match state
 				as text
-					out ~~= """</p><div class="code-block">"""
-					out format-comment-recur code-block, rest.strip-left
+					acc3 = """{acc2}</p><div class="code-block">"""
+					acc3 format-comment-recur code-block, rest.strip-left
 				as code-block
-					out ~~= "</div>"
-					out format-comment-recur text, rest.strip-left
+					"{acc2}</div>" format-comment-recur text, rest.strip-left
 			elif pair ?= split.right try-split-once "`"
-				out ~~= "<code>"
-				out ~~= pair.a replace "<", "&lt;"
-				out ~~= "</code>"
-				out format-comment-recur state, pair.b
+				code = pair.a replace "<", "&lt;"
+				"{acc2}<code>{code}</code>" format-comment-recur state, pair.b
 			else
-				out format-comment-recur state, split.right
+				acc2 format-comment-recur state, split.right
 	else
-		out ~~= a
-		state
+		"{acc}{a}{state close-state}"

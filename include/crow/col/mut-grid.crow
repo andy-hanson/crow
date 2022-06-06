@@ -6,13 +6,14 @@ import
 	../misc: new, void
 	../number: +, *, ==, <=>, nat64
 	../ptr: ==, +, *, as-const, const-ptr, mut-ptr, set-deref
-	../range: ..
+	../range: .., for-loop
 	../str: ==, literal, str
 	../str-conv: interp, finish, to-str, with-str, with-value
+	../str-util: join
 	../test-util: is
-	../writer: ~=, ~~=, backup, move-to-str, new, write, writer
+	./arr: arr
 	./fix-arr:
-		begin-ptr, copy, end-ptr, exists, fix-arr, fold, for-loop, is-empty, new, set-map,
+		begin-ptr, copy, end-ptr, exists, fix-arr, fold, for-loop, new, set-map,
 		set-subscript, size, subscript, uninitialized-fix-arr
 
 ###
@@ -126,34 +127,28 @@ Each row will have a space in between columns.
 
 This makes no attempt to add padding to ensure columns line up. (TODO?)
 ###
-to-str<a> str(a mut-grid a) write<a>
-	res writer = ()
-	a each-row row =>
-		for value : row
-			res ~~= value
-			res ~= " "
-		unless row is-empty
-			res backup
-		res ~= "\n"
-	unless a.height == 0
-		res backup
-	res move-to-str
+to-str<a> str(a mut-grid a) to-str<a>
+	"\n" join for row : a.rows
+		" " join for value : row; "{value}"
 
 region iteration
 
 for-loop<a> void(a mut-grid a, f act void(a))
 	() fold a, (_, value) => f[value]
 
-each-row<a> void(a mut-grid a, f act void(fix-arr a))
-	() fold-rows a, (_, row) => f[row]
+mut-grid-rows<a> record mut
+	.inner mut-grid a
 
-fold-rows<a, b> a(acc a, a mut-grid b, f act a(a, fix-arr b))
-	acc fold-rows-recur a, 0, f
-.fold-rows-recur<a, b> a(acc a, a mut-grid b, y nat64, f act a(a, fix-arr b))
-	if y == a.height
-		acc
-	else
-		f[acc, a row y] fold-rows-recur a, y + 1, f
+rows<a> mut-grid-rows a(a mut-grid a)
+	a,
+
+for-loop<a> void(a mut-grid-rows a, f act void(fix-arr a))
+	for y : 0 .. a.inner.height
+		f[a.inner row y]
+
+for-loop<out, in> out[](a mut-grid-rows in, f act out(fix-arr in))
+	for y : 0 .. a.inner.height
+		f[a.inner row y]
 
 fold<a, b> a(acc a, a mut-grid b, f act a(a, b))
 	acc fold a.elements, f

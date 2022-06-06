@@ -14,9 +14,9 @@ import
 	../../private/number-low-level: wrap-sub
 	../../range: .., for-loop
 	../../str: ==, literal, str
-	../../str-conv: to-hex, to-str
+	../../str-conv: finish, interp, to-hex, to-str, with-str, with-value
+	../../str-util: join
 	../../test-util: is
-	../../writer: ~=, ~~=, backup, move-to-str, new, writer
 	../arr: ==, arr, new, size, subscript
 	../arr-util: fold, fold-with-index
 	../fix-arr: begin-ptr, cast-immutable, end-ptr, fix-arr, uninitialized-fix-arr
@@ -388,15 +388,7 @@ filter-less index-set(a index-set, limit nat64) trusted
 	a % 64
 
 to-str str(a index-set)
-	out writer = ()
-	out ~= "["
-	for x : a
-		out ~~= x to-str
-		out ~~= ", "
-	unless a is-empty
-		out backup 2
-	out ~= "]"
-	out move-to-str
+	", " join for x : a; "{x}"
 
 region iteration
 
@@ -445,34 +437,15 @@ for-loop<a> a[](a index-set, f act a(nat64)) trusted
 	res cast-immutable
 
 .dbg str(a index-set)
-	out writer = ()
-	out dbg-recur a.root
-	out move-to-str
-
-.dbg-recur void(out writer, a node)
+	a.root dbg
+.dbg str(a node)
 	match a
 	as inner i
-		out ~= "("
-		out dbg-recur i.a
-		out ~= " "
-		out dbg-recur i.b
-		out ~= " "
-		out dbg-recur i.c
-		out ~= " "
-		out dbg-recur i.d
-		out ~= ")"
+		"({i.a dbg} {i.b dbg} {i.c dbg} {i.d dbg})"
 	as leaf l
-		out ~= "["
-		out ~~= l.a to-hex
-		out ~= " "
-		out ~~= l.b to-hex
-		out ~= " "
-		out ~~= l.c to-hex
-		out ~= " "
-		out ~~= l.d to-hex
-		out ~= "]"
+		"[{l.a to-hex} {l.b to-hex} {l.c to-hex} {l.d to-hex}]"
 	as empty
-		out ~= "_"
+		"_"
 
 .verify void(a index-set, expected str, expected-arr nat64[])
 	actual = a.dbg

@@ -9,10 +9,10 @@ import
 	../opt: !, ??, new, opt
 	../ptr: ==, <=>, +, -, *, as-const, const-ptr, mut-ptr, set-deref
 	../range: ..
-	../str: ==, <=>, literal, str
+	../str: ==, <=>, literal, new, str
 	../str-conv: finish, interp, to-str, with-str, with-value
+	../str-util: join
 	../test-util: is
-	../writer: ~=, ~~=, backup, move-to-str, new, writer
 	./arr: arr, for-loop, is-empty, new, size, subscript
 	./arr-util: tail
 	./experimental/index-set:
@@ -390,31 +390,18 @@ for-loop<out, in> out[](a sorted-set in, f act out(in)) trusted is-data<in> comp
 	out cast-immutable
 
 .dbg<a> str(a sorted-set a) to-str<a>
-	out writer = ()
-	out dbg-add-recur a.add
-	unless a.remove is-empty
-		out ~~= " - ["
-		for i : a remove
-			out ~~= i to-str
-			out ~= " "
-		out backup
-		out ~= "]"
-	out move-to-str
-
-.dbg-add-recur<a> void(out writer, a add-node a) to-str<a>
-	if left ?= a left
-		out dbg-add-recur left
-		out ~~= ", "
-
-	if a.values is-empty
-		out ~~= "[]"
+	add = a.add dbg
+	if a.remove is-empty
+		add
 	else
-		out ~= "["
-		for x : a values
-			out ~~= x to-str
-			out ~= " "
-		out backup
-		out ~= "]"
+		parts = " " join for i : a remove; "{i}"
+		"{add} - [{parts}]"
+
+.dbg<a> str(a add-node a) to-str<a>
+	left = if left ?= a left
+		"{left dbg}, "
+	values = " " join for x : a values; "{x}"
+	"{left}[{values}]"
 
 .verify void(a sorted-set str, expected str)
 	a.dbg is expected

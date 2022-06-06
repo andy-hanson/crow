@@ -6,7 +6,6 @@ import
 	./number: ==
 	./str: ~~, is-empty, literal, str
 	./str-conv: finish, interp, to-str, with-str, with-value
-	./writer: ~~=, move-to-str, new, writer
 	./private/backtrace: backtrace, backtrace-entry, entries, file-path, function-name, line-number
 	./str-util: join, to-str
 export
@@ -37,13 +36,9 @@ do-if-error<a> a(on-error act void(), try act a())
 
 # Outputs the exception's message and backtrace to a string.
 to-str str(a exception) unsafe
-	res writer = ()
-	message = a.message to-str
-	res ~~= (message.is-empty ? "<<empty message>>" : message)
-	for x : a.backtrace entries
-		res ~~= "\n\tat "
-		res ~~= x.to-str
-	res move-to-str
+	message = a.message.to-str
+	trace str = "" join for x : a.backtrace.entries; "\n\tat {x}"
+	"{message.is-empty ? "<<empty message>>" : message}{trace}"
 
 to-str str(a backtrace)
 	"" join for x : a entries

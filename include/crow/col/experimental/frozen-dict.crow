@@ -233,9 +233,11 @@ fix-arr-to-frozen-dict-promise-no-duplicates<k, v> frozen-dict<k, v>(
 
 region iteration
 
-each<k, v> void(a frozen-dict<k, v>, f act void(k, v))
-	for pair : a pairs
-		f[pair from, pair to]
+for-loop<k, v> void(a frozen-dict<k, v>, f act void(pair<k, v>))
+	a.pairs for-loop f
+
+for-loop<out, k, v> out[](a frozen-dict<k, v>, f act out(pair<k, v>))
+	a.pairs for-loop f
 
 fold<a, k, v> a(acc a, a frozen-dict<k, v>, f act a(a, k, v))
 	acc fold a.pairs, (inner-acc, pair) =>

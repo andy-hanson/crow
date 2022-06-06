@@ -10,16 +10,16 @@ import
 	../number: ==, <=>, +, -, nat64
 	../opt: !, is-empty, new, opt, opt-equal
 	../ptr: ==, +, set-deref
-	../range: ..
-	../str: ==, ~~, literal, str
-	../str-conv: to-str
+	../range: .., for-loop
+	../str: ==, literal, str
+	../str-conv: interp, finish, to-str, with-str, with-value
+	../str-util: join
 	../test-util: is
 	../tuple: from, new, pair, to
-	../writer: ~=, ~~=, backup, move-to-str, new, writer
 	../private/bootstrap: todo
 	./arr: ~, arr, arr-equal, for-loop, is-empty, new, size, subscript
 	./arr-util:
-		each-with-index, every, find-index, fold, fold-with-index, remove-at, rtail, tail,
+		every, find-index, flatten, fold, fold-with-index, remove-at, rtail, tail,
 		update-at, update-at-with-default
 	./fix-arr:
 		begin-ptr, cast-immutable, copy-from, end-ptr, fill-fix-arr, fix-arr, set-subscript, size,
@@ -91,7 +91,7 @@ to-dict<k, v> v[k](a pair<k, v>[]) is-data<k> compare<k> hash-mix<k>
 
 # Returns all pairs in the dictionary.
 to-arr<k, v> pair<k, v>[](a v[k]) is-data<k> compare<k> hash-mix<k>
-	a map-to-arr (k, v) => k, v
+	for x : a; x
 
 .no-duplicate-keys<k, v> bool(a pair<k, v>[]) compare<k>
 	if a.size <= 1
@@ -409,67 +409,36 @@ fold-keys<a, k, v> a(acc a, a v[k], f act a(a, k)) is-data<k> compare<k> hash-mi
 
 # Array of every key in the dictionary.
 keys<k, v> k[](a v[k]) is-data<k> compare<k> hash-mix<k>
-	a map-to-arr (k, _) => k
+	for pair : a; pair from
 
 # Array of every value in the dictionary.
 values<k, v> v[](a v[k]) is-data<k> compare<k> hash-mix<k>
-	a map-to-arr (_, v) => v
+	for pair : a; pair to
 
 # Calls `f` on every pair in the dictionary and returns an array of the results.
-map-to-arr<a, k, v> a[](a v[k], f act a(k, v)) trusted is-data<k> compare<k> hash-mix<k>
-	res fix-arr a = a.size uninitialized-fix-arr
+for-loop<out, k, v> out[](a v[k], f act out(pair<k, v>)) trusted is-data<k> compare<k> hash-mix<k>
+	res fix-arr out = a.size uninitialized-fix-arr
 	end = res.begin-ptr fold a, (cur, k, v) =>
-		*cur := f[k, v]
+		*cur := f[(k, v)]
 		cur + 1
 	assert end == res.end-ptr
 	res cast-immutable
 
-.dbg str(a str[nat64])
-	res writer = ()
-	res dbg-recur a.root, ""
-	res move-to-str
+.dbg<k, v> str(a v[k]) to-str<k> to-str<v>
+	a.root dbg ""
 
-.dbg-recur void(out writer, a node<nat64, str>, path str)
+.dbg<k, v> str(a node<k, v>, path str) to-str<k> to-str<v>
 	match a
-	as inner-node i
-		i each-with-index (child, index) =>
+	as inner-node node
+		parts str[][] = for index : 0 .. node.size
+			child = node[index]
 			unless child node-is-empty
-				out dbg-recur child, path ~~ index.to-str
-				out ~= " "
-		out backup
+				(child dbg "{path}{index}"),
+		" " join parts.flatten
 	as leaf-node l
-		out ~~= path
-		out ~= "["
-		for pair : l
-			out ~~= pair from
-			out ~~= " -> "
-			out ~~= pair to
-			out ~~= ", "
-		if l is-empty
-			out ~= "]"
-		else
-			out backup 2
-			out ~= "]"
-
-.dbg-recur void(out writer, a node<nat64, void>, path str)
-	match a
-	as inner-node i
-		i each-with-index (child, index) =>
-			unless child node-is-empty
-				out dbg-recur child, path ~~ index.to-str
-				out ~= " "
-		out backup
-	as leaf-node l
-		out ~~= path
-		out ~= "["
-		for pair : l
-			out ~~= pair from
-			out ~~= ", "
-		if l is-empty
-			out ~= "]"
-		else
-			out backup 2
-			out ~= "]"
+		parts = ", " join for pair : l
+			"{pair from} -> {pair to}"
+		"{path}[{parts}]"
 
 verify void(a str[nat64], expected str)
 	a.dbg is expected

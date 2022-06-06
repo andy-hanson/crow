@@ -1,12 +1,13 @@
 no-std
 import
 	../bool: bool
+	../cell: *, cell, new, set-deref
 	../compare: !=
 	../fun-util: subscript
 	../misc: new, void
 	../number: ==, +, nat64
 	../opt: !, ==, is-empty, new, opt, opt-equal
-	../ptr: ==, +, -, set-deref
+	../ptr: ==, +, mut-ptr, set-deref
 	../str: ==, literal, str
 	../test-util: is
 	../test-util/spy: calls, fn, new, spy-act1
@@ -45,22 +46,7 @@ to-stack<a> stack a(a a[])
 
 # Copy elements an arrary.
 to-arr<a> a[](a stack a) trusted
-	res fix-arr a = a.size uninitialized-fix-arr
-	begin = res.end-ptr fold-reverse a, (out, x) =>
-		new-out = out - 1
-		*new-out := x
-		new-out
-	assert begin == res.begin-ptr
-	res cast-immutable
-
-# Copy elements to an array, from top to bottom.
-to-arr-reverse<a> a[](a stack a) trusted
-	res fix-arr a = a.size uninitialized-fix-arr
-	end = res.begin-ptr fold-reverse a, (out, x) =>
-		*out := x
-		out + 1
-	assert end == res.end-ptr
-	res cast-immutable
+	for x : a; x
 
 # `true` iff `a.size == 0`.
 is-empty<a> bool(a stack a)
@@ -111,12 +97,42 @@ for-loop<a> void(a stack a, f act void(a))
 		node.prev for-loop-recur f
 		f[node value]
 
-each-reverse<a> void(a stack a, f act void(a))
-	a.last-node each-reverse-recur f
-.each-reverse-recur<a> void(a node<a>?, f act void(a))
+
+reversed-stack<a> record
+	.inner stack a
+reversed<a> reversed-stack a(a stack a)
+	a,
+
+for-loop<a> void(a reversed-stack a, f act void(a))
+	cur mut = a.inner last-node
+	loop
+		if node ?= cur
+			f[node value]
+			cur := node prev
+			continue
+		else
+			break
+
+for-loop<out, in> out[](a reversed-stack in, f act out(in)) trusted
+	res fix-arr out = a.inner.size uninitialized-fix-arr
+	out cell out mut* = res.begin-ptr,
+	for x : a
+		*(*out) := f[x]
+		*out := *out + 1
+	assert *out == res.end-ptr
+	res cast-immutable
+
+# Copy elements to an array, from top to bottom.
+to-arr<a> a[](a reversed-stack a) trusted
+	for x : a; x
+
+fold<a, b> a(acc a, a reversed-stack b, f act a(a, b))
+	acc fold-reverse-recur a.inner.last-node, f
+.fold-reverse-recur<a, b> a(acc a, a node<b>?, f act a(a, b))
 	if node ?= a
-		f[node value]
-		node.prev each-reverse-recur f
+		f[acc, node.value] fold-reverse-recur node.prev, f
+	else
+		acc
 
 # Call a function for each element in the stack and accumulate.
 fold<a, b> a(acc a, a stack b, f act a(a, b))
@@ -128,17 +144,17 @@ fold<a, b> a(acc a, a stack b, f act a(a, b))
 	else
 		acc
 
-fold-reverse<a, b> a(acc a, a stack b, f act a(a, b))
-	acc fold-reverse-recur a.last-node, f
-.fold-reverse-recur<a, b> a(acc a, a node<b>?, f act a(a, b))
-	if node ?= a
-		f[acc, node.value] fold-reverse-recur node.prev, f
-	else
-		acc
-
+for-loop<out, in> out[](a stack in, f act out(in)) trusted
+	res fix-arr out = a.size uninitialized-fix-arr
+	out cell out mut* = res.begin-ptr,
+	for x : a
+		*(*out) := f[x]
+		*out := *out + 1
+	assert *out == res.end-ptr
+	res cast-immutable
 
 # Produce a stack with `f[x]` applied to each element `x` in the input.
-map<out, in> stack out(a stack in, f act out(in))
+for-loop<out, in> stack out(a stack in, f act out(in))
 	(a.last-node map-recur f),
 .map-recur<out, in> node<out>?(a node<in>?, f act out(in))
 	if node ?= a
@@ -187,11 +203,10 @@ test
 	d for-loop for-loop-spy.fn
 	for-loop-spy.calls is (1, 2, 3)
 
-	d each-reverse for-loop-spy.fn
+	for x : d.reversed; for-loop-spy.fn[x]
 	for-loop-spy.calls is (3, 2, 1)
 
-	d2 = d map x => x + 10
-	d2.to-arr is (11, 12, 13)
+	(for x : d; x + 10)::nat64[] is (11, 12, 13)
 
 	d3 = d filter x => x != 2
 	d3.to-arr is (1, 3)

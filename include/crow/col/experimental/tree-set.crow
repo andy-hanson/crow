@@ -11,9 +11,8 @@ import
 	../../range: ..
 	../../str: ==, <=>, literal, str
 	../../str-conv: interp, finish, to-str, with-str, with-value
-	../../str-util: iter, next, slice-left, starts-with
+	../../str-util: iter, next, join, slice-left, starts-with
 	../../test-util: is
-	../../writer: ~=, ~~=, backup, move-to-str, new, writer
 	../arr: arr, for-loop, is-empty, size, subscript
 	../arr-util: fold, insert-at-ptr, last, rtail, tail, try-remove
 	../fix-arr: begin-ptr, cast-immutable, end-ptr, fix-arr, subscript, uninitialized-fix-arr
@@ -463,29 +462,14 @@ map<out, in> tree-set out(a tree-set in, f act out(in)) is-data<in> compare<in> 
 	out[0 .. end - out.begin-ptr].set-sort-unique.cast-immutable to-tree-set
 
 .dbg<a> str(a tree-set a) to-str<a>
-	res writer = ()
-	res dbg-recur a.root
-	res move-to-str
-.dbg-recur<a> void(res writer, a node a) to-str<a>
+	a.root dbg
+.dbg<a> str(a node a) to-str<a>
 	match a
 	as inner i
-		res ~= "("
-		res dbg-recur i.left
-		res ~= " "
-		res ~~= i.value to-str
-		res ~= " "
-		res dbg-recur i.right
-		res ~= ")"
+		"({i.left dbg} {i value} {i.right dbg})"
 	as leaf l
-		if l is-empty
-			res ~~= "[]"
-		else
-			res ~= "["
-			for x : l
-				res ~~= x to-str
-				res ~= " "
-			res backup
-			res ~= "]"
+		parts = " " join for x : l; "{x}"
+		"[{parts}]"
 
 .verify void(a tree-set str, expected str)
 	a.size is a.root.walk-size

@@ -10,16 +10,16 @@ import
 	../../opt: is-empty, new, opt, opt-equal
 	../../ptr: ==, +, ref-eq, set-deref
 	../../str: ==, literal, str
-	../../str-conv: to-str
+	../../str-conv: finish, interp, to-str, with-str, with-value
+	../../str-util: join
 	../../test-util: is
 	../../tuple: from, new, pair, pair-equal, to
-	../../writer: ~=, ~~=, backup, move-to-str, new, writer
 	../arr: arr, new
 	../arr-util: every, fold, zip
 	../fix-arr: begin-ptr, cast-immutable, end-ptr, fix-arr, fix-arr-from-begin-end, uninitialized-fix-arr
 	../mut-set: in, mut-set, new, try-add
 	./frozen-dict:
-		each, frozen-dict, fold, get-pairs, in, is-empty,
+		for-loop, frozen-dict, fold, get-pairs, in, is-empty,
 		fix-arr-to-frozen-dict-promise-no-duplicates, new, size, subscript, to-frozen-dict
 	
 compact-dict<k, v> record by-val
@@ -202,36 +202,21 @@ map-to-arr<a, k, v> a[](a compact-dict<k, v>, f act a(k, v)) trusted is-data<k> 
 	res cast-immutable
 
 .dbg<k, v> str(a compact-dict<k, v>) to-str<k> to-str<v>
-	out writer = ()
-	out dbg-recur a.impl
-	out move-to-str
-
-.dbg-recur<k, v> void(out writer, a impl<k, v>) to-str<k> to-str<v>
+	a.impl dbg
+.dbg<k, v> str(a impl<k, v>) to-str<k> to-str<v>
 	match a
 	as overlay o
-		out dbg-recur o.prev
-		out ~~= ", ["
-		o.pairs each (k, v) =>
-			out ~~= k to-str
-			out ~~= " -> "
-			if val ?= v
-				out ~~= val to-str
+		parts = ", " join for pair : o pairs
+			v = if val ?= pair to
+				"{val}"
 			else
-				out ~= "_"
-			out ~~= ", "
-		unless o.pairs is-empty
-			out backup 2
-		out ~= "]"
+				"_"
+			"{pair from} -> {v}"
+		"{o.prev dbg}, [{parts}]"
 	as end-node e
-		out ~= "["
-		e each (k, v) =>
-			out ~~= k to-str
-			out ~~= " -> "
-			out ~~= v to-str
-			out ~~= ", "
-		unless e is-empty
-			out backup 2
-		out ~= "]"
+		parts = ", " join for pair : e
+			"{pair from} -> {pair to}"
+		"[{parts}]"
 
 verify void(a compact-dict<nat64, str>, expected str)
 	dbg = a dbg

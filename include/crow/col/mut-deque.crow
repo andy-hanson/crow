@@ -5,12 +5,12 @@ import
 	../misc: new, void
 	../number: ==, <=>, +, *, nat64, new
 	../opt: ==, new, opt
-	../ptr: ==, <=>, +, -, *, as-const, each-ptr, mut-ptr, null, set-deref, zeroed
-	../range: ..
-	../str: ==, literal, str
-	../str-conv: to-str
+	../ptr: ==, <=>, +, -, *, as-const, mut-ptr, null, set-deref, zeroed
+	../range: .., for-loop
+	../str: ==, literal, new, str
+	../str-conv: finish, interp, to-str, with-value
+	../str-util: join
 	../test-util: is
-	../writer: ~=, ~~=, backup, move-to-str, new, writer
 	./arr: ==, arr, new, size
 	./arr-util: first, last
 	./fix-arr:
@@ -170,17 +170,11 @@ pop-right<a> a?(a mut-deque a) trusted
 		dest[left-to-end-size .. dest.size] copy-from (a.inner.begin-ptr.as-const arr-from-begin-end a.right.as-const)
 
 .dbg str(a mut-deque nat64) trusted
-	out writer = ()
-	a.inner.begin-ptr.as-const arr-from-begin-end a.inner.end-ptr.as-const each-ptr ptr =>
-		if ptr == a.right.as-const
-			out ~~= "<-R "
-		if ptr == a.left.as-const
-			out ~~= "L-> "
-		out ~~= *ptr to-str
-		out ~= " "
-	unless a.inner is-empty
-		out backup
-	out move-to-str
+	right = a.right - a.inner.begin-ptr
+	left = a.left - a.inner.begin-ptr
+	# Note: can come in any order...
+	" " join for i : 0 .. a.inner.size
+		"{i == right ? "<-R "}{i == left ? "L-> "}{a.inner[i]}"
 
 .verify void(a mut-deque nat64, arr nat64[], expected str)
 	a.peek-left is arr.first

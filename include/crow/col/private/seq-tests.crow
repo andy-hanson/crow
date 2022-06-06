@@ -8,9 +8,9 @@ import
 	../../ptr: size-of
 	../../str: ==, literal, str
 	../../str-conv: finish, interp, to-str, with-str, with-value
+	../../str-util: join
 	../../test-util: is
 	../../tuple: a, b
-	../../writer: ~=, ~~=, backup, move-to-str, new, writer
 	../arr: arr, for-loop, is-empty
 	../seq: ~, ~~, down, get-root, left, l0, l1, l2, new, node, nodes, right, seq, try-split-once-by-subseq
 
@@ -22,58 +22,28 @@ dummy-seq-tests nat64()
 	a.get-root check-structure
 
 .dbg<a> str(a seq a) to-str<a> no-doc
-	out writer = ()
-	out dbg-l0 a.get-root
-	out move-to-str
-
-.dbg-l0<a> void(out writer, a l0 a) to-str<a>
-	out dbg-node a.node, (x => out dbg-arr x), (x => out dbg-l1 x)
-
-.dbg-l1<a> void(out writer, a l1 a) to-str<a>
-	out dbg-node a.node, (x => out dbg-arr2d x), (x => out dbg-l2 x)
-
-.dbg-l2<a> void(out writer, a l2 a) to-str<a>
-	out dbg-arr3d a.nodes
-
-.dbg-node<a, lower> void(out writer, a node<a, lower>, dbg-a act void(a[]), dbg-lower act void(lower))
+	a.get-root dbg-l0
+.dbg-l0<a> str(a l0 a) to-str<a>
+	a.node dbg-node (x => x dbg-arr), (x => x dbg-l1)
+.dbg-l1<a> str(a l1 a) to-str<a>
+	a.node dbg-node (x => x dbg-arr2d), (x => x dbg-l2)
+.dbg-l2<a> str(a l2 a) to-str<a>
+	a.nodes dbg-arr3d
+.dbg-node<a, lower> str(a node<a, lower>, dbg-a act str(a[]), dbg-lower act str(lower))
 	match a
 	as leaf l
 		dbg-a[l]
 	as branch b
-		out ~= "("
-		dbg-a[b left]
-		out ~= " "
-		dbg-lower[b down]
-		out ~= " "
-		dbg-a[b right]
-		out ~= ")"
-
-.dbg-arr<a> void(out writer, a a[]) to-str<a>
-	out ~= "["
-	unless a is-empty
-		for x : a
-			out ~~= x to-str
-			out ~= " "
-		out backup
-	out ~= "]"
-
-.dbg-arr2d<a> void(out writer, a a[][]) to-str<a>
-	out ~= "["
-	unless a is-empty
-		for x : a
-			out dbg-arr x
-			out ~= " "
-		out backup
-	out ~= "]"
-
-.dbg-arr3d<a> void(out writer, a a[][][]) to-str<a>
-	out ~= "["
-	unless a is-empty
-		for x : a
-			out dbg-arr2d x
-			out ~= " "
-		out backup
-	out ~= "]"
+		"({dbg-a[b left]} {dbg-lower[b down]} {dbg-a[b right]})"
+.dbg-arr<a> str(a a[]) to-str<a>
+	parts = " " join for x : a; "{x}"
+	"[{parts}]"
+.dbg-arr2d<a> str(a a[][]) to-str<a>
+	parts = " " join for x : a; x dbg-arr
+	"[{parts}]"
+.dbg-arr3d<a> str(a a[][][]) to-str<a>
+	parts = " " join for x : a; x dbg-arr2d
+	"[{parts}]"
 
 .check-structure<a> void(a l0 a) unsafe
 	match a node

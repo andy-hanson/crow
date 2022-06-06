@@ -1,6 +1,6 @@
 no-std
 import
-	../bool: &&, bool, false, true
+	../bool: &&, bool
 	../compare: <, >, <=, compare
 	../fun-util: subscript
 	../misc: is-data, new, void
@@ -8,12 +8,12 @@ import
 	../opt: !, is-empty, new, opt
 	../ptr: ==, +, -, mut-ptr, set-deref
 	../range: ..
-	../str: ==, literal, str
+	../str: ==, literal, new, str
 	../str-conv: finish, interp, to-str, with-str, with-value
+	../str-util: join
 	../test-util: is
 	../test-util/spy: calls, fn, new, spy-act2
 	../tuple: from, new, pair, to
-	../writer: ~=, ~~=, backup, move-to-str, new, writer
 	./arr: ==, arr, arr-equal, for-loop, is-empty, new, size
 	./arr-util: first, fold, tail
 	./fix-arr:
@@ -233,26 +233,12 @@ pop<k, v> popped<k, v>?(a priority-queue<k, v>) is-data<k> compare<k>
 		out
 
 .dbg str(a priority-queue<nat64, str>)
-	res writer = ()
-	res dbg-recur a.root, true
-	res move-to-str
-.dbg-recur void(out writer, a node<nat64, str>?, first bool)
+	a.root dbg
+.dbg str(a node<nat64, str>?)
 	if node ?= a
-		unless first
-			out ~~= "; "
-		out ~~= node.min from
-		out ~= " "
-		out ~~= node.min to
-		out ~~= " ["
-		unless node.pairs is-empty
-			for pair : node pairs
-				out ~~= pair from
-				out ~= " "
-				out ~~= pair to
-				out ~~= ", "
-			out backup 2
-		out ~= "]"
-		out dbg-recur node.next, false
+		pairs = ", " join for pair : node pairs; "{pair from} {pair to}"
+		rest = node.next.is-empty ? "" : "; {node.next dbg}"
+		"{node.min from} {node.min to} [{pairs}]{rest}"
 
 region iteration
 

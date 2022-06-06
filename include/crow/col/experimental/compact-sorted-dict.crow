@@ -11,10 +11,9 @@ import
 	../../range: ..
 	../../str: ==, is-empty, literal, str
 	../../str-conv: interp, finish, to-str, with-str, with-value
-	../../str-util: end-iter, prev
+	../../str-util: end-iter, join, prev
 	../../test-util: is
 	../../tuple: from, new, pair, to
-	../../writer: ~=, ~~=, backup, move-to-str, new, writer
 	../../private/alloc: mem-copy
 	../arr: arr, for-loop, is-empty, new, size, subscript
 	../arr-util: filter, fold, tail
@@ -382,38 +381,21 @@ map-values<v-out, k, v-in> compact-sorted-dict<k, v-out>(
 
 # TODO:PRIVATE
 dbg<k, v> str(a compact-sorted-dict<k, v>) to-str<k> to-str<v>
-	out writer = ()
-	out dbg-recur a.impl
-	out move-to-str
-
-.dbg-recur<k, v> void(out writer, a impl<k, v>) to-str<k> to-str<v>
+	a.impl dbg
+.dbg<k, v> str(a impl<k, v>) to-str<k> to-str<v>
 	match a
 	as overlay o
-		out dbg-recur o.prev
-		out ~~= ", ["
-		for pair : o pairs
-			out ~~= pair.from to-str
-			out ~~= " -> "
-			out ~~= if t ?= pair.to
+		pairs = ", " join for x : o pairs
+			to = if t ?= x to
 				t to-str
 			else
 				"_"
-			out ~~= ", "
-		unless o.pairs is-empty
-			out backup 2
-		out ~= "]"
+			"{x from} -> {to}"
+		"{o.prev dbg}, [{pairs}]"
 	as end-node e
-		out ~= "["
-		for pair : e
-			out ~~= pair.from to-str
-			out ~~= " -> "
-			out ~~= pair.to to-str
-			out ~~= ", "
-		if e is-empty
-			out ~= "]"
-		else
-			out backup 2
-			out ~= "]"
+		pairs = ", " join for x : e
+			"{x from} -> {x to}"
+		"[{pairs}]"
 
 verify void(a compact-sorted-dict<nat64, str>, expected str)
 	a.dbg is expected

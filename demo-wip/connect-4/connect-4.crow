@@ -12,7 +12,7 @@ main fut nat(_ str[]) summon
 	print: "Select a game:\n(If using hard CPU, compile with --optimize)\n"
 	print: "2: 2-player game\nE: Easy\nM: Medium\nH: Hard\nH2: Hard and CPU goes first\nCPU: CPU vs CPU\n"
 	#settings = "Invalid option" read-stdin-until-parse it => it parse-settings
-	settings ai-settings = (11,), (11,)
+	settings ai-settings = (7,), (7,)
 	empty-board print-board red, ()
 	winner <- empty-board play-recur red, settings
 	print: winner show-winner

@@ -1,6 +1,7 @@
 no-std
 import
 	./bool: !, bool
+	./cell: *, cell, new, set-deref
 	./col/private/arr-low-level: arr, arr-from-begin-end
 	./fun-util: subscript
 	./misc: new, void
@@ -51,9 +52,20 @@ for-loop void(a range-reverse nat64, f act void(nat64))
 				cur := cur - 1
 				continue
 
-for-loop<a> a[](a range nat64, f act a(nat64)) trusted
+for-loop<out> out[](a range-reverse nat64, f act out(nat64)) trusted
 	size = a.high - a.low
-	out a mut* = size alloc-uninitialized
+	out out mut* = size alloc-uninitialized
+	cur cell out mut* = out,
+	for x : a
+		*(*cur) := f[x]
+		*cur := *cur + 1
+	end = out + size
+	assert *cur == end
+	out.as-const arr-from-begin-end end.as-const
+
+for-loop<out> out[](a range nat64, f act out(nat64)) trusted
+	size = a.high - a.low
+	out out mut* = size alloc-uninitialized
 	cur mut = out
 	end = out + size
 	n mut = a low

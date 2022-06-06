@@ -1,20 +1,22 @@
 no-std
 import
 	../bool: &&, ==, bool, false, true
+	../col/arr-util: zip-larger
 	../compare: <, compare
 	../misc: is-data, new, void
 	../number: ==, <=>, +, nat64
 	../opt: !, is-empty, new, opt
 	../ptr: +, -, mut-ptr, set-deref
-	../str: ==, literal, str
+	../str: ==, literal, new, str
+	../str-conv: interp, finish, to-str, with-str, with-value
+	../str-util: join
 	../test-util: is
 	../tuple: from, new, pair, pair-equal, to
-	../writer: ~=, ~~=, backup, move-to-str, new, writer
 	./arr: new, arr, arr-equal
 	./fix-arr: begin-ptr, cast-immutable, copy, fix-arr, set-reverse, uninitialized-fix-arr
 	./mut-arr:
-		~=, ~~=, begin-ptr, clear, each-with-index, fold, fold-reverse, for-loop, is-empty, mut-arr,
-		new, pop, size, subscript, to-mut-arr
+		~=, ~~=, begin-ptr, clear, fold, fold-reverse, for-loop, is-empty, mut-arr, new, pop, size,
+		subscript, temp-as-arr, to-mut-arr
 	./sort: set-sort-by, set-sort-by-reverse
 	./private/sort-utils: binary-search-insert-ptr
 
@@ -149,28 +151,21 @@ to-fix-arr<k, v> fix-arr pair<k, v>(a mut-priority-queue<k, v>) no-doc is-data<k
 		buckets ~= ()
 		buckets add-to-bucket index, pair
 
-.dbg str(a mut-priority-queue<nat64, str>)
-	out writer = ()
-	a.mins each-with-index (min, index) =>
-		out write-pair min
-		if index < a.buckets.size
-			bucket = a.buckets[index]
+.dbg<k, v> str(a mut-priority-queue<k, v>) to-str<k> to-str<v> trusted
+	# TODO: should be able to infer type arguments
+	mins = a.mins temp-as-arr
+	buckets = a.buckets temp-as-arr
+	parts = mins zip-larger@<str, pair<k, v>, pair<k, v> mut[]> buckets, (opt-min, opt-bucket) =>
+		min = opt-min!
+		show-bucket = if bucket ?= opt-bucket
 			unless bucket is-empty
-				out ~~= " ["
-				for pair : bucket
-					out write-pair pair
-					out ~~= ", "
-				out backup 2
-				out ~= "]"
-		out ~~= ", "
-	unless a.mins is-empty
-		out backup 2
-	out move-to-str
+				parts = ", " join for pair : bucket; pair dbg
+				" [{parts}]"
+		"{min dbg}{show-bucket}"
+	", " join parts
 
-.write-pair void(out writer, pair pair<nat64, str>)
-	out ~~= pair from
-	out ~~= " -> "
-	out ~~= pair to
+.dbg<k, v> str(a pair<k, v>) to-str<k> to-str<v>
+	"{a from} -> {a to}"
 
 .verify void(a mut-priority-queue<nat64, str>, expected str)
 	a.dbg is expected

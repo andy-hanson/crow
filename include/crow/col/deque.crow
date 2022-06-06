@@ -8,15 +8,14 @@ import
 	../ptr: ==, +, -, set-deref
 	../range: ..
 	../str: ==, literal, str
-	../str-conv: to-str
+	../str-conv: interp, finish, to-str, with-str, with-value
+	../str-util: join
 	../test-util: is
-	../writer: ~=, ~~=, backup, move-to-str, new, writer
 	./arr: ==, arr, for-loop, is-empty, new, size
 	./arr-util: first, fold, last, rtail, tail
 	./fix-arr: begin-ptr, cast-immutable, end-ptr, fix-arr, subscript, uninitialized-fix-arr
 	./stack:
-		~, each-reverse, is-empty, fold, fold-reverse, for-loop, new, pop, rest, size, stack, to-arr,
-		to-arr-reverse, value
+		~, is-empty, fold, for-loop, new, pop, rest, reversed, size, stack, to-arr, value
 
 # Immutable double-ended queue.
 deque<a> record
@@ -98,19 +97,19 @@ pop-right<a> popped<a>?(a deque a)
 	elif last ?= a.mid last
 		(last, (a.left, a.mid.rtail, ())),
 	else
-		left-arr = a.left to-arr-reverse
+		left-arr = a.left.reversed to-arr
 		if last ?= left-arr last
 			(last, left-arr.rtail.to-deque),
 
 region iteration
 
 for-loop<a> void(a deque a, f act void(a))
-	a.left each-reverse f
+	a.left.reversed for-loop f
 	a.mid for-loop f
 	a.right for-loop f
 
 fold<a, b> a(acc a, a deque b, f act a(a, b))
-	acc fold-reverse a.left, f fold a.mid, f fold a.right, f
+	acc fold a.left.reversed, f fold a.mid, f fold a.right, f
 
 filter<a> deque a(a deque a, f act bool(a)) trusted
 	res fix-arr a = a.size uninitialized-fix-arr
@@ -122,32 +121,22 @@ filter<a> deque a(a deque a, f act bool(a)) trusted
 			out
 	res[0 .. end - res.begin-ptr].cast-immutable to-deque
 
-map<out, in> deque out(a deque in, f act out(in)) trusted
+for-loop<out, in> out[](a deque in, f act out(in)) trusted
 	res fix-arr out = a.size uninitialized-fix-arr
 	end = res.begin-ptr fold a, (out, x) =>
 		*out := f[x]
 		out + 1
 	assert end == res.end-ptr
-	res.cast-immutable to-deque
+	res cast-immutable
+
+for-loop<out, in> deque out(a deque in, f act out(in))
+	a for-loop f to-deque
 
 .dbg str(a deque nat64)
-	out writer = ()
-	a.left each-reverse x =>
-		out ~~= x
-		out ~= " "
-	out ~= "["
-	if a.mid is-empty
-		out ~= "]"
-	else
-		for x : a mid
-			out ~~= x to-str
-			out ~= " "
-		out backup
-		out ~= "]"
-	for x : a right
-		out ~= " "
-		out ~~= x
-	out move-to-str
+	left = "" join for x : a.left.reversed; "{x} "
+	mid = " " join for x : a.mid; "{x}"
+	right = "" join for x : a.right; " {x}"
+	"{left}[{mid}]{right}"
 
 test
 	a deque nat64 = ()
@@ -208,4 +197,4 @@ test
 	folded = 10 fold six, (x, y) => x + y
 	folded is 31
 	(six filter it => it is-even).to-arr is (2, 4, 6)
-	(six map it => it + 10).to-arr is (11, 12, 13, 14, 15, 16)
+	(for x : six; x + 10)::nat64[] is (11, 12, 13, 14, 15, 16)

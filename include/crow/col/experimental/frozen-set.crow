@@ -1,6 +1,7 @@
 no-std
 import
 	../../bool: &&, ==, bool, false, true
+	../../cell: *, cell, new, set-deref
 	../../compare: <=, compare
 	../../fun-util: subscript
 	../../hash: hash, hash-mix
@@ -138,6 +139,15 @@ region iteration
 for-loop<a> void(a frozen-set a, f act void(a))
 	() fold a, (_, x) =>
 		f[x]
+
+for-loop<out, in> out[](a frozen-set in, f act out(in)) trusted
+	res fix-arr out = a.size uninitialized-fix-arr
+	out cell out mut* = res.begin-ptr,
+	for x : a
+		*(*out) := f[x]
+		*out := *out + 1
+	assert *out == res.end-ptr
+	res cast-immutable
 
 fold<a, b> a(acc a, a frozen-set b, f act a(a, b))
 	acc fold a.values, f

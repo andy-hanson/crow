@@ -5,13 +5,13 @@ import
 	../fun-util: subscript
 	../misc: is-data, new, void
 	../number: ==, <=>, +, -, *, nat64
-	../opt: !, ??, is-empty, new, opt, opt-equal, size
+	../opt: !, is-empty, new, opt, opt-equal, size
 	../ptr: ==, -, *, mut-ptr, set-deref
 	../str: ==, literal, str
-	../str-util: iter, next, slice-left
+	../str-conv: finish, interp, to-str, with-str, with-value
+	../str-util: iter, join, next, slice-left
 	../test-util: is
 	../tuple: from, new, pair, to
-	../writer: ~=, ~~=, backup, move-to-str, new, writer
 	./arr: arr, for-loop, new
 	./iter: rest
 	./mut-arr:
@@ -294,28 +294,17 @@ set-map-values<k, v> void(a mut-sorted-dict<k, v>, f act v(k, v)) is-data<k> com
 	a.pairs set-map pair =>
 		pair.from, (f[pair.from, pair.to!],)
 
-
-.dbg str(a mut-sorted-dict<nat64, str>)
-	out writer = ()
-	out dbg-recur a
-	out move-to-str
-
-.dbg-recur void(out writer, a mut-sorted-dict<nat64, str>)
-	out ~= "["
-	for pair : a pairs
-		out ~~= pair from
-		out ~~= " -> "
-		out ~~= pair.to ?? "_"
-		out ~~= ", "
-	if a.pairs is-empty
-		out ~= "]"
-	else
-		out backup 2
-		out ~= "]"
-
+.dbg<k, v> str(a mut-sorted-dict<k, v>) to-str<k> to-str<v>
+	pairs = ", " join for pair : a pairs
+		to = if v ?= pair to
+			"{v}"
+		else
+			"_"
+		"{pair from} -> {to}"
 	if next ?= a next
-		out ~~= ", "
-		out dbg-recur next
+		"[{pairs}], {next dbg}"
+	else
+		"[{pairs}]"
 
 .verify void(a mut-sorted-dict<nat64, str>, expected str)
 	a.dbg is expected
