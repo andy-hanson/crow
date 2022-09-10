@@ -149,7 +149,7 @@ private:
 
 // declaring as ulong[] to ensure it's word aligned
 // Almost 2GB (which is size limit for a global array)
-ulong[2047 * 1024 * 1024 / ulong.sizeof] globalBuffer;
+ulong[2000 * 1024 * 1024 / ulong.sizeof] globalBuffer;
 
 immutable(Repr) reprParseDiagnostics(ref Alloc alloc, ref immutable StrParseDiagnostic[] a) {
 	return reprArr(alloc, a, (ref immutable StrParseDiagnostic it) =>
