@@ -67,9 +67,8 @@ struct ByteCodeWriter {
 	size_t nextStackEntry = 0;
 }
 
-ByteCodeWriter newByteCodeWriter(Alloc* alloc) {
-	return ByteCodeWriter(alloc);
-}
+ByteCodeWriter newByteCodeWriter(Alloc* alloc) =>
+	ByteCodeWriter(alloc);
 
 struct StackEntry {
 	immutable size_t entry;
@@ -80,21 +79,18 @@ struct StackEntries {
 	immutable size_t size; // Number of entries
 }
 
-immutable(StackEntry) stackEntriesEnd(immutable StackEntries a) {
-	return immutable StackEntry(a.start.entry + a.size);
-}
+immutable(StackEntry) stackEntriesEnd(immutable StackEntries a) =>
+	immutable StackEntry(a.start.entry + a.size);
 
 Operations finishOperations(
 	ref ByteCodeWriter writer,
-) {
-	return Operations(
+) =>
+	Operations(
 		moveToArr_mut!Operation(*writer.alloc, writer.operations),
 		fullIndexDictOfArr!(ByteCodeIndex, ByteCodeSource)(finishArr(*writer.alloc, writer.sources)));
-}
 
-immutable(StackEntry) getNextStackEntry(ref const ByteCodeWriter writer) {
-	return immutable StackEntry(writer.nextStackEntry);
-}
+immutable(StackEntry) getNextStackEntry(ref const ByteCodeWriter writer) =>
+	immutable StackEntry(writer.nextStackEntry);
 
 void setNextStackEntry(ref ByteCodeWriter writer, immutable StackEntry entry) {
 	writer.nextStackEntry = entry.entry;
@@ -105,9 +101,8 @@ void setStackEntryAfterParameters(ref ByteCodeWriter writer, immutable StackEntr
 	writer.nextStackEntry = entry.entry;
 }
 
-immutable(ByteCodeIndex) nextByteCodeIndex(ref const ByteCodeWriter writer) {
-	return immutable ByteCodeIndex(mutArrSize(writer.operations));
-}
+immutable(ByteCodeIndex) nextByteCodeIndex(ref const ByteCodeWriter writer) =>
+	immutable ByteCodeIndex(mutArrSize(writer.operations));
 
 // This special instruction returns instead of proceeding to the next operation.
 // (Though in non-tail-recursive builds, all operations return.)
@@ -594,7 +589,6 @@ immutable(SwitchDelayed) writeSwitchWithValuesDelay(
 	immutable ByteCodeSource,
 	immutable EnumValue[],
 ) {
-	return todo!(immutable SwitchDelayed)("!");
 	/*
 	pushOperation(writer, source, &opSwitchWithValues);
 	pushNat64(writer, source, sizeNat(values));
@@ -608,6 +602,7 @@ immutable(SwitchDelayed) writeSwitchWithValuesDelay(
 	}
 	return addresses;
 	*/
+	return todo!(immutable SwitchDelayed)("!");
 }
 
 void writeSetjmp(ref ByteCodeWriter writer, immutable ByteCodeSource source) {

@@ -96,9 +96,9 @@ immutable(LibraryAndError) getLibrary(
 	immutable Opt!(DLLib*) fromPath = has(configuredPath)
 		? tryLoadLibraryFromPath(allPaths, childPath(allPaths, force(configuredPath), fileName))
 		: none!(DLLib*);
-	if (has(fromPath)) {
+	if (has(fromPath))
 		return immutable LibraryAndError(force(fromPath), false);
-	} else {
+	else {
 		switch (libraryName.value) {
 			case shortSymValue("c"):
 			case shortSymValue("m"):
@@ -317,10 +317,9 @@ struct UserData {
 	immutable Operation* operationPtr;
 }
 
-pure immutable(FunPtr[]) makeSyntheticFunPtrs(ref Alloc alloc, scope immutable FunPtrInputs[] inputs) {
-	return map(alloc, inputs, (ref immutable FunPtrInputs x) =>
+pure immutable(FunPtr[]) makeSyntheticFunPtrs(ref Alloc alloc, scope immutable FunPtrInputs[] inputs) =>
+	map(alloc, inputs, (ref immutable FunPtrInputs x) =>
 		syntheticFunPtrForSig(alloc, x.sig, x.operationPtr));
-}
 
 @trusted pure immutable(FunPtr) syntheticFunPtrForSig(
 	ref Alloc alloc,

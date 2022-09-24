@@ -175,8 +175,7 @@ immutable(FakeExternResult) run(
 
 private:
 
-pure immutable(Path) toPath(ref Server server, scope immutable SafeCStr path) {
-	return parsePath(server.allPaths, path);
-}
+pure immutable(Path) toPath(ref Server server, scope immutable SafeCStr path) =>
+	parsePath(server.allPaths, path);
 
 immutable ShowDiagOptions showDiagOptions = immutable ShowDiagOptions(false);

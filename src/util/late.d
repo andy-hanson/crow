@@ -11,13 +11,11 @@ struct Late(T) {
 	T value_ = void;
 }
 
-@trusted Late!T late(T)() {
-	return Late!T();
-}
+@trusted Late!T late(T)() =>
+	Late!T();
 
-immutable(bool) lateIsSet(T)(ref const Late!T a) {
-	return a.isSet_;
-}
+immutable(bool) lateIsSet(T)(ref const Late!T a) =>
+	a.isSet_;
 
 @trusted ref immutable(T) lateGet(T)(ref immutable Late!T a) {
 	verify(lateIsSet(a));

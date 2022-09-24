@@ -5,8 +5,8 @@ module frontend.getDiagnosticSeverity;
 import model.diag : Diag, DiagSeverity, matchDiag;
 import model.parseDiag : ParseDiag;
 
-immutable(DiagSeverity) getDiagnosticSeverity(ref immutable Diag a) {
-	return matchDiag!(immutable DiagSeverity)(
+immutable(DiagSeverity) getDiagnosticSeverity(ref immutable Diag a) =>
+	matchDiag!(immutable DiagSeverity)(
 		a,
 		(ref immutable Diag.BuiltinUnsupported) =>
 			DiagSeverity.checkError,
@@ -154,5 +154,3 @@ immutable(DiagSeverity) getDiagnosticSeverity(ref immutable Diag a) {
 			DiagSeverity.checkError,
 		(ref immutable Diag.WrongNumberTypeArgsForStruct) =>
 			DiagSeverity.checkError);
-}
-

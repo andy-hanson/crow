@@ -58,8 +58,8 @@ struct ReadFileResult(T) {
 	}
 }
 
-pure immutable(Opt!T) asOption(T)(immutable ReadFileResult!T a) {
-	return matchReadFileResult!(immutable Opt!T, T)(
+pure immutable(Opt!T) asOption(T)(immutable ReadFileResult!T a) =>
+	matchReadFileResult!(immutable Opt!T, T)(
 		a,
 		(immutable SafeCStr x) =>
 			some(x),
@@ -67,7 +67,6 @@ pure immutable(Opt!T) asOption(T)(immutable ReadFileResult!T a) {
 			none!SafeCStr,
 		(immutable(ReadFileResult!T.Error)) =>
 			none!SafeCStr);
-}
 
 immutable(T) withFileBinary(T)(
 	scope ref const ReadOnlyStorage storage,

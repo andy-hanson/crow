@@ -210,9 +210,8 @@ struct ExprAfterKind {
 	return a.loop;
 }
 
-immutable(bool) isReturn(scope ref const ExprAfterKind a) {
-	return a.kind == ExprAfterKind.Kind.return_;
-}
+immutable(bool) isReturn(scope ref const ExprAfterKind a) =>
+	a.kind == ExprAfterKind.Kind.return_;
 
 @trusted immutable(T) matchExprAfterKind(T)(
 	ref ExprAfterKind a,
@@ -270,36 +269,27 @@ struct ExprCtx {
 	immutable ByteCodeIndex startOfCurrentFun;
 	immutable StackEntries[] parameterEntries;
 
-	ref const(AllSymbols) allSymbols() return scope const {
-		return *allSymbolsPtr;
-	}
-	ref immutable(LowProgram) program() return scope const {
-		return *programPtr;
-	}
-	ref immutable(TextInfo) textInfo() return scope const {
-		return *textInfoPtr;
-	}
-	ref immutable(ThreadLocalsInfo) threadLocalsInfo() return scope const {
-		return *threadLocalsInfoPtr;
-	}
-	ref TempAlloc tempAlloc() return scope {
-		return *tempAllocPtr;
-	}
-	ref FunToReferences funToReferences() return scope {
-		return *funToReferencesPtr;
-	}
-	immutable(FunPtrTypeToDynCallSig) funPtrTypeToDynCallSig() {
-		return funToReferences.funPtrTypeToDynCallSig;
-	}
+	ref const(AllSymbols) allSymbols() return scope const =>
+		*allSymbolsPtr;
+	ref immutable(LowProgram) program() return scope const =>
+		*programPtr;
+	ref immutable(TextInfo) textInfo() return scope const =>
+		*textInfoPtr;
+	ref immutable(ThreadLocalsInfo) threadLocalsInfo() return scope const =>
+		*threadLocalsInfoPtr;
+	ref TempAlloc tempAlloc() return scope =>
+		*tempAllocPtr;
+	ref FunToReferences funToReferences() return scope =>
+		*funToReferencesPtr;
+	immutable(FunPtrTypeToDynCallSig) funPtrTypeToDynCallSig() =>
+		funToReferences.funPtrTypeToDynCallSig;
 }
 
-immutable(size_t) typeSizeBytes(ref const ExprCtx ctx, immutable LowType t) {
-	return typeSizeBytes(ctx.program, t);
-}
+immutable(size_t) typeSizeBytes(ref const ExprCtx ctx, immutable LowType t) =>
+	typeSizeBytes(ctx.program, t);
 
-immutable(size_t) nStackEntriesForType(ref const ExprCtx ctx, immutable LowType t) {
-	return nStackEntriesForType(ctx.program, t);
-}
+immutable(size_t) nStackEntriesForType(ref const ExprCtx ctx, immutable LowType t) =>
+	nStackEntriesForType(ctx.program, t);
 
 immutable(size_t) nStackEntriesForRecordType(ref const ExprCtx ctx, immutable LowType.Record t) {
 	immutable LowType type = immutable LowType(t);

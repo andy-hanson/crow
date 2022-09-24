@@ -148,13 +148,11 @@ struct BuildOptions {
 	immutable CCompileOptions cCompileOptions;
 }
 
-private immutable(BuildOptions) withBuildOut(immutable BuildOptions a, immutable BuildOut value) {
-	return immutable BuildOptions(value, a.cCompileOptions);
-}
+private immutable(BuildOptions) withBuildOut(immutable BuildOptions a, immutable BuildOut value) =>
+	immutable BuildOptions(value, a.cCompileOptions);
 
-private immutable(BuildOptions) withCCompileOptions(immutable BuildOptions a, immutable CCompileOptions value) {
-	return immutable BuildOptions(a.out_, value);
-}
+private immutable(BuildOptions) withCCompileOptions(immutable BuildOptions a, immutable CCompileOptions value) =>
+	immutable BuildOptions(a.out_, value);
 
 struct CCompileOptions {
 	immutable OptimizationLevel optimizationLevel;
@@ -165,9 +163,8 @@ private struct BuildOut {
 	immutable Opt!PathAndExtension outExecutable;
 }
 
-immutable(bool) hasAnyOut(ref immutable BuildOut a) {
-	return has(a.outC) || has(a.outExecutable);
-}
+immutable(bool) hasAnyOut(ref immutable BuildOut a) =>
+	has(a.outC) || has(a.outExecutable);
 
 immutable(Command) parseCommand(
 	ref Alloc alloc,
@@ -210,9 +207,8 @@ version (Windows) {
 
 private:
 
-immutable(BuildOut) emptyBuildOut() {
-	return immutable BuildOut(none!PathAndExtension, none!PathAndExtension);
-}
+immutable(BuildOut) emptyBuildOut() =>
+	immutable BuildOut(none!PathAndExtension, none!PathAndExtension);
 
 immutable(bool) isHelp(immutable Sym a) {
 	switch (a.value) {
@@ -410,8 +406,8 @@ immutable(Opt!BuildOptions) parseBuildOptions(
 	immutable Path cwd,
 	scope immutable ArgsPart[] argParts,
 	immutable Path mainPath,
-) {
-	return foldOrStop!(BuildOptions, ArgsPart)(
+) =>
+	foldOrStop!(BuildOptions, ArgsPart)(
 		// Default: unoptimized, compiled next to the source file
 		immutable BuildOptions(
 			immutable BuildOut(
@@ -436,31 +432,28 @@ immutable(Opt!BuildOptions) parseBuildOptions(
 					return none!BuildOptions;
 			}
 		});
-}
 
 immutable(Opt!BuildOut) parseBuildOut(
 	ref Alloc alloc,
 	ref AllPaths allPaths,
 	immutable Path cwd,
 	immutable SafeCStr[] args,
-) {
-	return foldOrStop(
+) =>
+	foldOrStop(
 		emptyBuildOut(),
 		args,
 		(immutable BuildOut o, ref immutable SafeCStr arg) {
 			immutable PathAndExtension path = parseAbsoluteOrRelPathAndExtension(allPaths, cwd, arg);
-			if (path.extension == emptySym) {
-				return has(o.outExecutable)
+			return path.extension == emptySym
+				? has(o.outExecutable)
 					? none!BuildOut
-					: some(immutable BuildOut(o.outC, some(path)));
-			} else if (path.extension == symForSpecial(SpecialSym.dotC)) {
-				return has(o.outC)
-					? none!BuildOut
-					: some(immutable BuildOut(some(path), o.outExecutable));
-			} else
-				return none!BuildOut;
+					: some(immutable BuildOut(o.outC, some(path)))
+				: path.extension == symForSpecial(SpecialSym.dotC)
+					? has(o.outC)
+						? none!BuildOut
+						: some(immutable BuildOut(some(path), o.outExecutable))
+				: none!BuildOut;
 		});
-}
 
 struct ArgsPart {
 	immutable Sym tag; // includes the "--"
@@ -493,9 +486,8 @@ immutable(SplitArgs) splitArgs(ref Alloc alloc, ref AllSymbols allSymbols, scope
 	}
 }
 
-@trusted immutable(bool) startsWithDashDash(immutable SafeCStr a) {
-	return a.ptr[0] == '-' && a.ptr[1] == '-';
-}
+@trusted immutable(bool) startsWithDashDash(immutable SafeCStr a) =>
+	a.ptr[0] == '-' && a.ptr[1] == '-';
 
 immutable(size_t) splitArgsRecur(
 	ref Alloc alloc,

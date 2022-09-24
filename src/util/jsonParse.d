@@ -32,18 +32,16 @@ struct Json {
 	}
 }
 
-immutable(bool) isObject(immutable Json a) {
-	return a.kind == Json.Kind.object;
-}
+immutable(bool) isObject(immutable Json a) =>
+	a.kind == Json.Kind.object;
 
 @trusted immutable(KeyValuePair!(Sym, Json)[]) asObject(immutable Json a) {
 	verify(isObject(a));
 	return a.object;
 }
 
-immutable(bool) isString(immutable Json a) {
-	return a.kind == Json.Kind.string_;
-}
+immutable(bool) isString(immutable Json a) =>
+	a.kind == Json.Kind.string_;
 
 @trusted immutable(SafeCStr) asString(immutable Json a) {
 	verify(isString(a));

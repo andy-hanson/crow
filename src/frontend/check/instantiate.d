@@ -74,9 +74,8 @@ struct TypeParamsAndArgs {
 }
 
 alias TypeArgsArray = MutMaxArr!(maxTypeParams, Type);
-TypeArgsArray typeArgsArray() {
-	return mutMaxArr!(maxTypeParams, Type);
-}
+TypeArgsArray typeArgsArray() =>
+	mutMaxArr!(maxTypeParams, Type);
 
 private immutable(Opt!(T*)) tryGetTypeArg(T)(
 	immutable TypeParam[] typeParams,
@@ -128,8 +127,8 @@ private immutable(Type) instantiateType(
 	immutable Type type,
 	immutable TypeParamsAndArgs typeParamsAndArgs,
 	DelayStructInsts delayStructInsts,
-) {
-	return matchType!(immutable Type)(
+) =>
+	matchType!(immutable Type)(
 		type,
 		(immutable Type.Bogus) =>
 			immutable Type(Type.Bogus()),
@@ -139,16 +138,14 @@ private immutable(Type) instantiateType(
 		},
 		(immutable StructInst* i) =>
 			immutable Type(instantiateStructInst(alloc, programState, i, typeParamsAndArgs, delayStructInsts)));
-}
 
 private immutable(Type) instantiateTypeNoDelay(
 	ref Alloc alloc,
 	ref ProgramState programState,
 	immutable Type type,
 	immutable TypeParamsAndArgs typeParamsAndArgs,
-) {
-	return instantiateType(alloc, programState, type, typeParamsAndArgs, noneMut!(MutArr!(StructInst*)*));
-}
+) =>
+	instantiateType(alloc, programState, type, typeParamsAndArgs, noneMut!(MutArr!(StructInst*)*));
 
 immutable(FunInst*) instantiateFun(
 	ref Alloc alloc,
@@ -285,27 +282,24 @@ immutable(StructInst*) instantiateStructNeverDelay(
 	ref ProgramState programState,
 	immutable StructDecl* decl,
 	scope immutable Type[] typeArgs,
-) {
-	return instantiateStruct(alloc, programState, decl, typeArgs, noneMut!(MutArr!(StructInst*)*));
-}
+) =>
+	instantiateStruct(alloc, programState, decl, typeArgs, noneMut!(MutArr!(StructInst*)*));
 
 immutable(StructInst*) makeNamedValType(
 	ref Alloc alloc,
 	ref ProgramState programState,
 	ref immutable CommonTypes commonTypes,
 	immutable Type valueType,
-) {
-	return instantiateStructNeverDelay(alloc, programState, commonTypes.namedVal, [valueType]);
-}
+) =>
+	instantiateStructNeverDelay(alloc, programState, commonTypes.namedVal, [valueType]);
 
 immutable(StructInst*) makeArrayType(
 	ref Alloc alloc,
 	ref ProgramState programState,
 	ref immutable CommonTypes commonTypes,
 	immutable Type elementType,
-) {
-	return instantiateStructNeverDelay(alloc, programState, commonTypes.arr, [elementType]);
-}
+) =>
+	instantiateStructNeverDelay(alloc, programState, commonTypes.arr, [elementType]);
 
 immutable(SpecInst*) instantiateSpec(
 	ref Alloc alloc,
@@ -355,8 +349,8 @@ immutable(Params) instantiateParams(
 	ref ProgramState programState,
 	ref immutable Params params,
 	immutable TypeParamsAndArgs typeParamsAndArgs,
-) {
-	return matchParams!(immutable Params)(
+) =>
+	matchParams!(immutable Params)(
 		params,
 		(immutable Param[] paramsArray) =>
 			immutable Params(map(alloc, paramsArray, (ref immutable Param p) =>
@@ -365,13 +359,11 @@ immutable(Params) instantiateParams(
 			immutable Params(allocate(alloc, immutable Params.Varargs(
 				instantiateParam(alloc, programState, typeParamsAndArgs, v.param),
 				instantiateTypeNoDelay(alloc, programState, v.elementType, typeParamsAndArgs)))));
-}
 
 immutable(Param) instantiateParam(
 	ref Alloc alloc,
 	ref ProgramState programState,
 	immutable TypeParamsAndArgs typeParamsAndArgs,
 	ref immutable Param a,
-) {
-	return withType(a, instantiateTypeNoDelay(alloc, programState, a.type, typeParamsAndArgs));
-}
+) =>
+	withType(a, instantiateTypeNoDelay(alloc, programState, a.type, typeParamsAndArgs));

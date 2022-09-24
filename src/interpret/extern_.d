@@ -61,13 +61,11 @@ struct DynCallSig {
 
 	immutable DynCallType[] returnTypeAndParameterTypes;
 
-	immutable(DynCallType) returnType() scope immutable {
-		return returnTypeAndParameterTypes[0];
-	}
+	immutable(DynCallType) returnType() scope immutable =>
+		returnTypeAndParameterTypes[0];
 
-	immutable(DynCallType[]) parameterTypes() return scope immutable {
-		return returnTypeAndParameterTypes[1 .. $];
-	}
+	immutable(DynCallType[]) parameterTypes() return scope immutable =>
+		returnTypeAndParameterTypes[1 .. $];
 }
 
 // These should all fit in a single stack entry (except 'void')

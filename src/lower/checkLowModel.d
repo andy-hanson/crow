@@ -56,17 +56,14 @@ struct Ctx {
 	const AllSymbols* allSymbolsPtr;
 	immutable LowProgram* programPtr;
 
-	ref Alloc alloc() return scope {
-		return *allocPtr;
-	}
+	ref Alloc alloc() return scope =>
+		*allocPtr;
 
-	ref const(AllSymbols) allSymbols() return scope const {
-		return *allSymbolsPtr;
-	}
+	ref const(AllSymbols) allSymbols() return scope const =>
+		*allSymbolsPtr;
 
-	ref immutable(LowProgram) program() return scope const {
-		return *programPtr;
-	}
+	ref immutable(LowProgram) program() return scope const =>
+		*programPtr;
 }
 
 struct FunCtx {
@@ -75,13 +72,11 @@ struct FunCtx {
 	Ctx* ctxPtr;
 	immutable LowFun* funPtr;
 
-	ref Ctx ctx() return scope {
-		return *ctxPtr;
-	}
+	ref Ctx ctx() return scope =>
+		*ctxPtr;
 
-	ref immutable(LowFun) fun() return scope const {
-		return *funPtr;
-	}
+	ref immutable(LowFun) fun() return scope const =>
+		*funPtr;
 }
 
 void checkLowFun(ref Ctx ctx, ref immutable LowFun fun) {
@@ -280,8 +275,8 @@ void checkTypeEqual(
 	verify(expected == actual);
 }
 
-immutable(Repr) reprOfLowType2(ref Ctx ctx, immutable LowType a) {
-	return matchLowType!(
+immutable(Repr) reprOfLowType2(ref Ctx ctx, immutable LowType a) =>
+	matchLowType!(
 		immutable Repr,
 		(immutable LowType.ExternPtr) =>
 			reprSym("some-extern-ptr"), //TODO: more detail
@@ -300,4 +295,3 @@ immutable(Repr) reprOfLowType2(ref Ctx ctx, immutable LowType a) {
 		(immutable LowType.Union it) =>
 			reprOfConcreteStructRef(ctx.alloc, *ctx.program.allUnions[it].source),
 	)(a);
-}

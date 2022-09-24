@@ -29,9 +29,8 @@ struct Opt(T) {
 		}
 		T value_;
 
-		immutable(bool) has_() const {
-			return value_ != null;
-		}
+		immutable(bool) has_() const =>
+			value_ != null;
 	} else {
 		this(BeNone) immutable {
 			has_ = false;
@@ -63,40 +62,31 @@ struct Opt(T) {
 
 private struct BeNone {}
 
-immutable(Opt!T) none(T)() {
-	return immutable Opt!T(BeNone());
-}
+immutable(Opt!T) none(T)() =>
+	immutable Opt!T(BeNone());
 
-immutable(Opt!T) asImmutable(T)(immutable Opt!(immutable T) a) {
-	return has(a) ? some(force(a)) : none!T;
-}
+immutable(Opt!T) asImmutable(T)(immutable Opt!(immutable T) a) =>
+	has(a) ? some(force(a)) : none!T;
 
-const(Opt!T) noneConst(T)() {
-	return const Opt!T(BeNone());
-}
+const(Opt!T) noneConst(T)() =>
+	const Opt!T(BeNone());
 
-Opt!T noneMut(T)() {
-	return Opt!T(BeNone());
-}
+Opt!T noneMut(T)() =>
+	Opt!T(BeNone());
 
-immutable(Opt!T) some(T)(immutable T value) if (!is(T == U*, U)) {
-	return immutable Opt!T(value);
-}
-immutable(Opt!(T*)) some(T)(immutable T* value) {
-	return immutable Opt!(T*)(value);
-}
+immutable(Opt!T) some(T)(immutable T value) if (!is(T == U*, U)) =>
+	immutable Opt!T(value);
+immutable(Opt!(T*)) some(T)(immutable T* value) =>
+	immutable Opt!(T*)(value);
 
-const(Opt!T) someConst(T)(return scope const T value) {
-	return const Opt!T(value);
-}
+const(Opt!T) someConst(T)(return scope const T value) =>
+	const Opt!T(value);
 
-Opt!T someMut(T)(T value) {
-	return Opt!T(value);
-}
+Opt!T someMut(T)(T value) =>
+	Opt!T(value);
 
-immutable(bool) has(T)(ref const Opt!T a) {
-	return a.has_;
-}
+immutable(bool) has(T)(ref const Opt!T a) =>
+	a.has_;
 
 @trusted ref T force(T)(ref Opt!T a) {
 	verify!"force"(has(a));

@@ -15,9 +15,8 @@ struct ExactSizeArrBuilder(T) {
 	T* end;
 }
 
-immutable(size_t) exactSizeArrBuilderCurSize(T)(ref const ExactSizeArrBuilder!T a) {
-	return a.cur - a.begin;
-}
+immutable(size_t) exactSizeArrBuilderCurSize(T)(ref const ExactSizeArrBuilder!T a) =>
+	a.cur - a.begin;
 
 @trusted ExactSizeArrBuilder!T newExactSizeArrBuilder(T)(ref Alloc alloc, immutable size_t size) {
 	T* begin = allocateT!T(alloc, size);

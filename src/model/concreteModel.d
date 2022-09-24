@@ -233,9 +233,8 @@ struct ConcreteType {
 	immutable ReferenceKind reference;
 	immutable ConcreteStruct* struct_;
 
-	immutable(bool) opEquals(scope immutable ConcreteType b) scope immutable {
-		return struct_ == b.struct_ && reference == reference;
-	}
+	immutable(bool) opEquals(scope immutable ConcreteType b) scope immutable =>
+		struct_ == b.struct_ && reference == reference;
 
 	void hash(ref Hasher hasher) scope immutable {
 		hashPtr(hasher, struct_);
@@ -259,9 +258,8 @@ struct TypeSize {
 	immutable size_t alignmentBytes;
 }
 
-immutable(Purity) purity(immutable ConcreteType a) {
-	return a.struct_.purity;
-}
+immutable(Purity) purity(immutable ConcreteType a) =>
+	a.struct_.purity;
 
 immutable(ConcreteStruct*) mustBeByVal(immutable ConcreteType a) {
 	verify(a.reference == ReferenceKind.byVal);
@@ -328,39 +326,32 @@ struct ConcreteStruct {
 	Late!(immutable size_t[]) fieldOffsets_;
 }
 
-immutable(bool) isArr(ref immutable ConcreteStruct a) {
-	return matchConcreteStructSource!(
+immutable(bool) isArr(ref immutable ConcreteStruct a) =>
+	matchConcreteStructSource!(
 		immutable bool,
 		(ref immutable ConcreteStructSource.Inst it) =>
 			isArr(*it.inst),
 		(ref immutable ConcreteStructSource.Lambda it) =>
 			false,
 	)(a.source);
-}
 
-private ref immutable(ConcreteStructInfo) info(scope return ref const ConcreteStruct a) {
-	return lateGet(a.info_);
-}
+private ref immutable(ConcreteStructInfo) info(scope return ref const ConcreteStruct a) =>
+	lateGet(a.info_);
 
-ref immutable(ConcreteStructBody) body_(scope return ref immutable ConcreteStruct a) {
-	return info(a).body_;
-}
+ref immutable(ConcreteStructBody) body_(scope return ref immutable ConcreteStruct a) =>
+	info(a).body_;
 
-immutable(TypeSize) typeSize(ref immutable ConcreteStruct a) {
-	return lateGet(a.typeSize_);
-}
+immutable(TypeSize) typeSize(ref immutable ConcreteStruct a) =>
+	lateGet(a.typeSize_);
 
-ref immutable(size_t[]) fieldOffsets(scope return ref immutable ConcreteStruct a) {
-	return lateGet(a.fieldOffsets_);
-}
+ref immutable(size_t[]) fieldOffsets(scope return ref immutable ConcreteStruct a) =>
+	lateGet(a.fieldOffsets_);
 
-immutable(bool) isSelfMutable(ref immutable ConcreteStruct a) {
-	return info(a).isSelfMutable;
-}
+immutable(bool) isSelfMutable(ref immutable ConcreteStruct a) =>
+	info(a).isSelfMutable;
 
-immutable(ReferenceKind) defaultReferenceKind(ref immutable ConcreteStruct a) {
-	return lateGet(a.defaultReferenceKind_);
-}
+immutable(ReferenceKind) defaultReferenceKind(ref immutable ConcreteStruct a) =>
+	lateGet(a.defaultReferenceKind_);
 
 //TODO: this is only useful during concretize, move
 immutable(bool) hasSizeOrPointerSizeBytes(ref immutable ConcreteType a) {
@@ -381,13 +372,11 @@ immutable(TypeSize) sizeOrPointerSizeBytes(ref immutable ConcreteType a) {
 	}
 }
 
-immutable(ConcreteType) byRef(immutable ConcreteType t) {
-	return immutable ConcreteType(ReferenceKind.byRef, t.struct_);
-}
+immutable(ConcreteType) byRef(immutable ConcreteType t) =>
+	immutable ConcreteType(ReferenceKind.byRef, t.struct_);
 
-immutable(ConcreteType) byVal(ref immutable ConcreteType t) {
-	return immutable ConcreteType(ReferenceKind.byVal, t.struct_);
-}
+immutable(ConcreteType) byVal(ref immutable ConcreteType t) =>
+	immutable ConcreteType(ReferenceKind.byVal, t.struct_);
 
 enum ConcreteMutability {
 	const_,
@@ -433,9 +422,8 @@ struct ConcreteParamSource {
 	}
 }
 
-immutable(bool) isClosure(ref immutable ConcreteParamSource a) {
-	return a.kind_ == ConcreteParamSource.Kind.closure;
-}
+immutable(bool) isClosure(ref immutable ConcreteParamSource a) =>
+	a.kind_ == ConcreteParamSource.Kind.closure;
 
 @trusted immutable(T) matchConcreteParamSource(T)(
 	ref immutable ConcreteParamSource a,
@@ -538,9 +526,8 @@ struct ConcreteFunBody {
 	immutable this(immutable ThreadLocal a) { kind = Kind.threadLocal; threadLocal = a; }
 }
 
-immutable(bool) isExtern(ref immutable ConcreteFunBody a) {
-	return a.kind == ConcreteFunBody.Kind.extern_;
-}
+immutable(bool) isExtern(ref immutable ConcreteFunBody a) =>
+	a.kind == ConcreteFunBody.Kind.extern_;
 
 @trusted ref immutable(ConcreteFunBody.Builtin) asBuiltin(scope return ref immutable ConcreteFunBody a) {
 	verify(a.kind == ConcreteFunBody.Kind.builtin);
@@ -592,9 +579,8 @@ private @trusted ref immutable(ConcreteFunBody.Extern) asExtern(scope return ref
 	}
 }
 
-immutable(bool) isGlobal(ref immutable ConcreteFunBody a) {
-	return isExtern(a) && asExtern(a).isGlobal;
-}
+immutable(bool) isGlobal(ref immutable ConcreteFunBody a) =>
+	isExtern(a) && asExtern(a).isGlobal;
 
 struct ConcreteFunSource {
 	@safe @nogc pure nothrow:
@@ -658,8 +644,8 @@ struct ConcreteFun {
 	Late!(immutable ConcreteFunBody) _body_;
 }
 
-immutable(bool) isVariadic(ref immutable ConcreteFun a) {
-	return matchConcreteFunSource!(
+immutable(bool) isVariadic(ref immutable ConcreteFun a) =>
+	matchConcreteFunSource!(
 		immutable bool,
 		(ref immutable FunInst i) =>
 			isVarargs(i.params),
@@ -668,10 +654,9 @@ immutable(bool) isVariadic(ref immutable ConcreteFun a) {
 		(ref immutable ConcreteFunSource.Test) =>
 			false,
 	)(a.source);
-}
 
-immutable(Opt!Sym) name(ref immutable ConcreteFun a) {
-	return matchConcreteFunSource!(
+immutable(Opt!Sym) name(ref immutable ConcreteFun a) =>
+	matchConcreteFunSource!(
 		immutable Opt!Sym,
 		(ref immutable FunInst it) =>
 			some(it.name),
@@ -680,10 +665,9 @@ immutable(Opt!Sym) name(ref immutable ConcreteFun a) {
 		(ref immutable ConcreteFunSource.Test) =>
 			none!Sym,
 	)(a.source);
-}
 
-immutable(bool) isSummon(ref immutable ConcreteFun a) {
-	return matchConcreteFunSource!(
+immutable(bool) isSummon(ref immutable ConcreteFun a) =>
+	matchConcreteFunSource!(
 		immutable bool,
 		(ref immutable FunInst it) =>
 			summon(*decl(it)),
@@ -693,10 +677,9 @@ immutable(bool) isSummon(ref immutable ConcreteFun a) {
 			// 'isSummon' is called for direct calls, but tests are never called directly
 			unreachable!(immutable bool)(),
 	)(a.source);
-}
 
-immutable(FileAndRange) concreteFunRange(ref immutable ConcreteFun a, ref const AllSymbols allSymbols) {
-	return matchConcreteFunSource!(
+immutable(FileAndRange) concreteFunRange(ref immutable ConcreteFun a, ref const AllSymbols allSymbols) =>
+	matchConcreteFunSource!(
 		immutable FileAndRange,
 		(ref immutable FunInst it) =>
 			decl(it).range,
@@ -705,10 +688,9 @@ immutable(FileAndRange) concreteFunRange(ref immutable ConcreteFun a, ref const 
 		(ref immutable ConcreteFunSource.Test it) =>
 			it.range,
 	)(a.source);
-}
 
-immutable(bool) isCallWithCtxFun(ref immutable ConcreteFun a) {
-	return matchConcreteFunSource!(
+immutable(bool) isCallWithCtxFun(ref immutable ConcreteFun a) =>
+	matchConcreteFunSource!(
 		immutable bool,
 		(ref immutable FunInst it) =>
 			isCallWithCtxFun(it),
@@ -717,10 +699,9 @@ immutable(bool) isCallWithCtxFun(ref immutable ConcreteFun a) {
 		(ref immutable ConcreteFunSource.Test) =>
 			false,
 	)(a.source);
-}
 
-immutable(bool) isCompareFun(ref immutable ConcreteFun a) {
-	return matchConcreteFunSource!(
+immutable(bool) isCompareFun(ref immutable ConcreteFun a) =>
+	matchConcreteFunSource!(
 		immutable bool,
 		(ref immutable FunInst it) =>
 			isCompareFun(it),
@@ -729,10 +710,9 @@ immutable(bool) isCompareFun(ref immutable ConcreteFun a) {
 		(ref immutable ConcreteFunSource.Test) =>
 			false,
 	)(a.source);
-}
 
-immutable(bool) isMarkVisitFun(ref immutable ConcreteFun a) {
-	return matchConcreteFunSource!(
+immutable(bool) isMarkVisitFun(ref immutable ConcreteFun a) =>
+	matchConcreteFunSource!(
 		immutable bool,
 		(ref immutable FunInst it) =>
 			isMarkVisitFun(it),
@@ -741,23 +721,19 @@ immutable(bool) isMarkVisitFun(ref immutable ConcreteFun a) {
 		(ref immutable ConcreteFunSource.Test) =>
 			false,
 	)(a.source);
-}
 
-ref immutable(ConcreteFunBody) body_(scope return ref const ConcreteFun a) {
-	return lateGet(a._body_);
-}
+ref immutable(ConcreteFunBody) body_(scope return ref const ConcreteFun a) =>
+	lateGet(a._body_);
 
 void setBody(ref ConcreteFun a, immutable ConcreteFunBody value) {
 	lateSet(a._body_, value);
 }
 
-immutable(bool) isExtern(ref immutable ConcreteFun a) {
-	return isExtern(body_(a));
-}
+immutable(bool) isExtern(ref immutable ConcreteFun a) =>
+	isExtern(body_(a));
 
-immutable(bool) isGlobal(ref immutable ConcreteFun a) {
-	return isGlobal(body_(a));
-}
+immutable(bool) isGlobal(ref immutable ConcreteFun a) =>
+	isGlobal(body_(a));
 
 struct ConcreteExpr {
 	immutable ConcreteType type;
@@ -976,17 +952,14 @@ struct ConcreteExprKind {
 	immutable this(immutable Throw* a) { kind = Kind.throw_; throw_ = a; }
 }
 
-immutable(ConcreteType) elementType(return scope ref immutable ConcreteExprKind.CreateArr a) {
-	return only(asInst(a.arrType.source).typeArgs);
-}
+immutable(ConcreteType) elementType(return scope ref immutable ConcreteExprKind.CreateArr a) =>
+	only(asInst(a.arrType.source).typeArgs);
 
-immutable(ConcreteType) returnType(return scope ref immutable ConcreteExprKind.Call a) {
-	return a.called.returnType;
-}
+immutable(ConcreteType) returnType(return scope ref immutable ConcreteExprKind.Call a) =>
+	a.called.returnType;
 
-immutable(bool) isConstant(ref immutable ConcreteExprKind a) {
-	return a.kind == ConcreteExprKind.Kind.constant;
-}
+immutable(bool) isConstant(ref immutable ConcreteExprKind a) =>
+	a.kind == ConcreteExprKind.Kind.constant;
 
 @trusted ref immutable(Constant) asConstant(scope return ref immutable ConcreteExprKind a) {
 	verify(isConstant(a));

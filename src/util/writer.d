@@ -35,18 +35,17 @@ struct Writer {
 	}
 }
 
-immutable(string) finishWriter(scope ref Writer writer) {
-	return finishArr(*writer.alloc, writer.res);
-}
+immutable(string) finishWriter(scope ref Writer writer) =>
+	finishArr(*writer.alloc, writer.res);
 
 @trusted immutable(CStr) finishWriterToCStr(ref Writer writer) {
 	writer ~= '\0';
 	return finishWriter(writer).ptr;
 }
 
-@trusted immutable(SafeCStr) finishWriterToSafeCStr(scope ref Writer writer) {
-	return immutable SafeCStr(finishWriterToCStr(writer));
-}
+@trusted immutable(SafeCStr) finishWriterToSafeCStr(scope ref Writer writer) =>
+	immutable SafeCStr(finishWriterToCStr(writer));
+
 void writeHex(ref Writer writer, immutable ulong a) {
 	writeNat(writer, a, 16);
 }

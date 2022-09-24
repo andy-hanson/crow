@@ -8,9 +8,8 @@ struct VersionInfo {
 	immutable bool isInterpreted;
 	immutable bool isJit;
 
-	immutable(bool) isSingleThreaded() immutable {
-		return isWasm();
-	}
+	immutable(bool) isSingleThreaded() immutable =>
+		isWasm();
 
 	immutable(bool) isWasm() immutable {
 		version (WebAssembly) {
@@ -38,16 +37,13 @@ struct VersionInfo {
 	}
 }
 
-immutable(VersionInfo) versionInfoForInterpret() {
-	return immutable VersionInfo(true, false);
-}
+immutable(VersionInfo) versionInfoForInterpret() =>
+	immutable VersionInfo(true, false);
 
 version (WebAssembly) {} else {
-	immutable(VersionInfo) versionInfoForJIT() {
-		return immutable VersionInfo(false, true);
-	}
+	immutable(VersionInfo) versionInfoForJIT() =>
+		immutable VersionInfo(false, true);
 
-	immutable(VersionInfo) versionInfoForBuildToC() {
-		return immutable VersionInfo(false, false);
-	}
+	immutable(VersionInfo) versionInfoForBuildToC() =>
+		immutable VersionInfo(false, false);
 }

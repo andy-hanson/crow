@@ -57,13 +57,11 @@ struct Ctx {
 	immutable ConcreteFun* containingFun;
 	size_t nextLambdaIndex;
 
-	ref Alloc alloc() return scope {
-		return concretizeCtx.alloc;
-	}
+	ref Alloc alloc() return scope =>
+		concretizeCtx.alloc;
 
-	ref ConcretizeCtx concretizeCtx() return scope {
-		return *concretizeCtxPtr;
-	}
+	ref ConcretizeCtx concretizeCtx() return scope =>
+		*concretizeCtxPtr;
 }
 
 immutable(ConcreteExpr) safeValueForType(ref Ctx ctx, immutable FileAndRange range, immutable ConcreteType type) {
@@ -88,12 +86,11 @@ immutable(ConcreteExpr) safeValueForStruct(
 	immutable ConcreteStruct* struct_,
 ) {
 	immutable ConcreteType type = immutable ConcreteType(ReferenceKind.byVal, struct_);
-	immutable(ConcreteExpr) fromConstant(immutable Constant constant) {
-		return immutable ConcreteExpr(
+	immutable(ConcreteExpr) fromConstant(immutable Constant constant) =>
+		immutable ConcreteExpr(
 			type,
 			range,
 			immutable ConcreteExprKind(constant));
-	}
 
 	return matchConcreteStructBody!(immutable ConcreteExpr)(
 		body_(*struct_),

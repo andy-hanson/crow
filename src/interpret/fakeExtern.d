@@ -57,10 +57,9 @@ immutable(FakeExternResult) withFakeExtern(
 	return immutable FakeExternResult(err, moveToArr(alloc, std.stdout), moveToArr(alloc, std.stderr));
 }
 
-pure immutable(FunPtr[]) fakeSyntheticFunPtrs(ref Alloc alloc, scope immutable FunPtrInputs[] inputs) {
-	return map(alloc, inputs, (ref immutable FunPtrInputs x) =>
+pure immutable(FunPtr[]) fakeSyntheticFunPtrs(ref Alloc alloc, scope immutable FunPtrInputs[] inputs) =>
+	map(alloc, inputs, (ref immutable FunPtrInputs x) =>
 		immutable FunPtr(x.operationPtr));
-}
 
 private:
 
@@ -134,20 +133,18 @@ immutable(ExternFunPtrsForLibrary) fakeExternFunsForLibrary(
 	ref MutArr!(immutable KeyValuePair!(Sym, Sym)) failures,
 	ref const AllSymbols allSymbols,
 	scope ref immutable ExternLibrary lib,
-) {
-	return makeDict!(Sym, FunPtr, Sym)(alloc, lib.importNames, (scope ref immutable Sym importName) {
+) =>
+	makeDict!(Sym, FunPtr, Sym)(alloc, lib.importNames, (scope ref immutable Sym importName) {
 		immutable Opt!FunPtr res = getFakeExternFun(lib.libraryName, importName);
 		if (!has(res))
 			push(alloc, failures, immutable KeyValuePair!(Sym, Sym)(lib.libraryName, importName));
 		return immutable KeyValuePair!(Sym, FunPtr)(importName, has(res) ? force(res) : immutable FunPtr(null));
 	});
-}
 
-immutable(Opt!FunPtr) getFakeExternFun(immutable Sym libraryName, immutable Sym name) {
-	return libraryName == shortSym("c")
+immutable(Opt!FunPtr) getFakeExternFun(immutable Sym libraryName, immutable Sym name) =>
+	libraryName == shortSym("c")
 		? getFakeExternFunC(name)
 		: none!FunPtr;
-}
 
 immutable(Opt!FunPtr) getFakeExternFunC(immutable Sym name) {
 	switch (name.value) {
@@ -187,10 +184,8 @@ void abort() {
 	verifyFail();
 }
 
-immutable(int) clockGetTime(immutable(int), const(void*)) {
-	return todo!(immutable int)("");
-}
+immutable(int) clockGetTime(immutable(int), const(void*)) =>
+	todo!(immutable int)("");
 
-immutable(int) nanosleep(const(void*), void*) {
-	return todo!(immutable int)("!");
-}
+immutable(int) nanosleep(const(void*), void*) =>
+	todo!(immutable int)("!");

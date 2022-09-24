@@ -26,9 +26,8 @@ struct Test {
 		allPaths = AllPaths(ap, &allSymbols);
 	}
 
-	Writer writer() {
-		return Writer(allocPtr);
-	}
+	Writer writer() =>
+		Writer(allocPtr);
 
 	void fail(immutable string s) {
 		debug {
@@ -38,9 +37,8 @@ struct Test {
 		verify(false);
 	}
 
-	ref Alloc alloc() return scope {
-		return *allocPtr;
-	}
+	ref Alloc alloc() return scope =>
+		*allocPtr;
 }
 
 @trusted void expectDataStack(ref Test test, scope const Stacks stacks, scope immutable ulong[] expected) {
@@ -93,7 +91,6 @@ struct Test {
 	}
 }
 
-private immutable(T[]) reverse(T)(ref Alloc alloc, scope T[] xs) {
-	return makeArr(alloc, xs.length, (immutable size_t i) =>
+private immutable(T[]) reverse(T)(ref Alloc alloc, scope T[] xs) =>
+	makeArr(alloc, xs.length, (immutable size_t i) =>
 		xs[xs.length - 1 - i]);
-}

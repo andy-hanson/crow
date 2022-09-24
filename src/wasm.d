@@ -39,21 +39,17 @@ extern(C) @system pure int memcmp(scope const ubyte* s1, scope const ubyte* s2, 
 	return 0;
 }
 
-extern(C) @system pure void* memcpy(return scope ubyte* dest, scope const ubyte* src, immutable size_t n) {
-	return utilMemcpy(dest, src, n);
-}
+extern(C) @system pure void* memcpy(return scope ubyte* dest, scope const ubyte* src, immutable size_t n) =>
+	utilMemcpy(dest, src, n);
 
-extern(C) @system pure void* memmove(return scope ubyte* dest, scope const ubyte* src, immutable size_t n) {
-	return utilMemmove(dest, src, n);
-}
+extern(C) @system pure void* memmove(return scope ubyte* dest, scope const ubyte* src, immutable size_t n) =>
+	utilMemmove(dest, src, n);
 
-extern(C) immutable(size_t) getGlobalBufferSizeBytes() {
-	return globalBuffer.length * globalBuffer[0].sizeof;
-}
+extern(C) immutable(size_t) getGlobalBufferSizeBytes() =>
+	globalBuffer.length * globalBuffer[0].sizeof;
 
-@system extern(C) ubyte* getGlobalBufferPtr() {
-	return cast(ubyte*) globalBuffer.ptr;
-}
+@system extern(C) ubyte* getGlobalBufferPtr() =>
+	cast(ubyte*) globalBuffer.ptr;
 
 @system extern(C) Server* newServer(ubyte* allocStart, immutable size_t allocLength) {
 	Alloc alloc = Alloc(allocStart, allocLength);
@@ -70,9 +66,8 @@ extern(C) immutable(size_t) getGlobalBufferSizeBytes() {
 	deleteFile(*server, immutable SafeCStr(path));
 }
 
-@system extern(C) immutable(CStr) getFile(Server* server, scope immutable CStr path) {
-	return getFile(*server, immutable SafeCStr(path)).ptr;
-}
+@system extern(C) immutable(CStr) getFile(Server* server, scope immutable CStr path) =>
+	getFile(*server, immutable SafeCStr(path)).ptr;
 
 @system extern(C) immutable(CStr) getTokens(
 	ubyte* resultStart, immutable size_t resultLength,
@@ -151,12 +146,11 @@ private:
 // Almost 2GB (which is size limit for a global array)
 ulong[2000 * 1024 * 1024 / ulong.sizeof] globalBuffer;
 
-immutable(Repr) reprParseDiagnostics(ref Alloc alloc, ref immutable StrParseDiagnostic[] a) {
-	return reprArr(alloc, a, (ref immutable StrParseDiagnostic it) =>
+immutable(Repr) reprParseDiagnostics(ref Alloc alloc, ref immutable StrParseDiagnostic[] a) =>
+	reprArr(alloc, a, (ref immutable StrParseDiagnostic it) =>
 		reprNamedRecord(alloc, "diagnostic", [
 			nameAndRepr("range", reprRangeWithinFile(alloc, it.range)),
 			nameAndRepr("message", reprStr(it.message))]));
-}
 
 immutable(CStr) writeRunResult(ref Alloc alloc, ref immutable FakeExternResult result) {
 	Writer writer = Writer(castNonScope_mut(&alloc));

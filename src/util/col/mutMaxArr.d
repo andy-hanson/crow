@@ -29,13 +29,11 @@ void copyToFrom(size_t maxSize, T)(ref MutMaxArr!(maxSize, T) a, ref const MutMa
 		overwriteMemory(&a.values[i], x);
 }
 
-immutable(bool) isEmpty(size_t maxSize, T)(ref MutMaxArr!(maxSize, T) a) {
-	return a.size_ == 0;
-}
+immutable(bool) isEmpty(size_t maxSize, T)(ref MutMaxArr!(maxSize, T) a) =>
+	a.size_ == 0;
 
-immutable(size_t) mutMaxArrSize(size_t maxSize, T)(ref MutMaxArr!(maxSize, T) a) {
-	return a.size_;
-}
+immutable(size_t) mutMaxArrSize(size_t maxSize, T)(ref MutMaxArr!(maxSize, T) a) =>
+	a.size_;
 
 void initializeMutMaxArr(size_t maxSize, T)(ref MutMaxArr!(maxSize, T) a) {
 	a.size_ = 0;
@@ -127,15 +125,12 @@ ref const(T) only_const(size_t maxSize, T)(ref const MutMaxArr!(maxSize, T) a) {
 	return a.values[0];
 }
 
-@trusted immutable(T[]) tempAsArr(size_t maxSize, T)(return ref const MutMaxArr!(maxSize, T) a) {
-	return cast(immutable) tempAsArr_const(a);
-}
-@trusted T[] tempAsArr_mut(size_t maxSize, T)(return ref MutMaxArr!(maxSize, T) a) {
-	return a.values[0 .. a.size_];
-}
-@trusted const(T[]) tempAsArr_const(size_t maxSize, T)(return ref const MutMaxArr!(maxSize, T) a) {
-	return a.values[0 .. a.size_];
-}
+@trusted immutable(T[]) tempAsArr(size_t maxSize, T)(return ref const MutMaxArr!(maxSize, T) a) =>
+	cast(immutable) tempAsArr_const(a);
+@trusted T[] tempAsArr_mut(size_t maxSize, T)(return ref MutMaxArr!(maxSize, T) a) =>
+	a.values[0 .. a.size_];
+@trusted const(T[]) tempAsArr_const(size_t maxSize, T)(return ref const MutMaxArr!(maxSize, T) a) =>
+	a.values[0 .. a.size_];
 
 @trusted void filterUnordered(size_t maxSize, T)(
 	scope ref MutMaxArr!(maxSize, T) a,

@@ -17,12 +17,11 @@ import util.col.arrUtil : every, map;
 import util.opt : none, Opt, some;
 import util.util : divRoundUp;
 
-immutable(size_t) typeSizeBytes(scope ref immutable LowProgram program, scope immutable LowType a) {
-	return sizeOfType(program, a).sizeBytes;
-}
+immutable(size_t) typeSizeBytes(scope ref immutable LowProgram program, scope immutable LowType a) =>
+	sizeOfType(program, a).sizeBytes;
 
-immutable(TypeSize) sizeOfType(scope ref immutable LowProgram program, scope immutable LowType a) {
-	return matchLowTypeCombinePtr!(
+immutable(TypeSize) sizeOfType(scope ref immutable LowProgram program, scope immutable LowType a) =>
+	matchLowTypeCombinePtr!(
 		immutable TypeSize,
 		(immutable LowType.ExternPtr) =>
 			externPtrSize,
@@ -37,15 +36,12 @@ immutable(TypeSize) sizeOfType(scope ref immutable LowProgram program, scope imm
 		(immutable LowType.Union index) =>
 			typeSize(program.allUnions[index]),
 	)(a);
-}
 
-immutable(size_t) nStackEntriesForType(ref immutable LowProgram program, immutable LowType a) {
-	return nStackEntriesForBytes(typeSizeBytes(program, a));
-}
+immutable(size_t) nStackEntriesForType(ref immutable LowProgram program, immutable LowType a) =>
+	nStackEntriesForBytes(typeSizeBytes(program, a));
 
-private immutable(size_t) nStackEntriesForBytes(immutable size_t bytes) {
-	return divRoundUp(bytes, stackEntrySize);
-}
+private immutable(size_t) nStackEntriesForBytes(immutable size_t bytes) =>
+	divRoundUp(bytes, stackEntrySize);
 
 struct Pack {
 	immutable size_t inEntries;

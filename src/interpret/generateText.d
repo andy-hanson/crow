@@ -98,9 +98,8 @@ immutable(ubyte*) getTextPointer(ref immutable TextInfo info, immutable Constant
 	return &info.text[textIndex];
 }
 
-immutable(ubyte*) getTextPointerForCString(ref immutable TextInfo info, immutable Constant.CString a) {
-	return &info.text[info.cStringIndexToTextIndex[a.index]];
-}
+immutable(ubyte*) getTextPointerForCString(ref immutable TextInfo info, immutable Constant.CString a) =>
+	&info.text[info.cStringIndexToTextIndex[a.index]];
 
 // TODO: not @trusted
 @trusted TextAndInfo generateText(
@@ -175,9 +174,8 @@ immutable(ubyte*) getTextPointerForCString(ref immutable TextInfo info, immutabl
 
 private:
 
-T[] castNonScope(T)(scope T[] a) {
-	return a;
-}
+T[] castNonScope(T)(scope T[] a) =>
+	a;
 
 struct Ctx {
 	@safe @nogc pure nothrow:
@@ -190,17 +188,14 @@ struct Ctx {
 	size_t[][] arrTypeIndexToConstantIndexToTextIndex;
 	size_t[][] pointeeTypeIndexToIndexToTextIndex;
 
-	ref immutable(LowProgram) program() return scope const {
-		return *programPtr;
-	}
+	ref immutable(LowProgram) program() return scope const =>
+		*programPtr;
 
-	ref immutable(AllConstantsLow) allConstants() return scope const {
-		return *allConstantsPtr;
-	}
+	ref immutable(AllConstantsLow) allConstants() return scope const =>
+		*allConstantsPtr;
 
-	ref FunToReferences funToReferences() return scope {
-		return *funToReferencesPtr;
-	}
+	ref FunToReferences funToReferences() return scope =>
+		*funToReferencesPtr;
 }
 
 // Write out any constants that this points to.
@@ -259,9 +254,8 @@ ref immutable(LowType) unionMemberType(
 	ref immutable LowProgram program,
 	immutable LowType.Union t,
 	immutable size_t memberIndex,
-) {
-	return program.allUnions[t].members[memberIndex];
-}
+) =>
+	program.allUnions[t].members[memberIndex];
 
 void recurWriteArr(
 	ref Alloc alloc,

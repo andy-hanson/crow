@@ -110,8 +110,8 @@ struct StructStates {
 	FullIndexDict!(LowType.Union, StructState) unionStates;
 }
 
-immutable(bool) canReferenceTypeAsValue(ref const StructStates states, immutable LowType a) {
-	return matchLowTypeCombinePtr!(
+immutable(bool) canReferenceTypeAsValue(ref const StructStates states, immutable LowType a) =>
+	matchLowTypeCombinePtr!(
 		immutable bool,
 		(immutable LowType.ExternPtr) =>
 			// Declared all up front
@@ -127,10 +127,9 @@ immutable(bool) canReferenceTypeAsValue(ref const StructStates states, immutable
 		(immutable LowType.Union it) =>
 			states.unionStates[it] == StructState.defined,
 	)(a);
-}
 
-immutable(bool) canReferenceTypeAsPointee(ref const StructStates states, immutable LowType a) {
-	return matchLowTypeCombinePtr!(
+immutable(bool) canReferenceTypeAsPointee(ref const StructStates states, immutable LowType a) =>
+	matchLowTypeCombinePtr!(
 		immutable bool,
 		(immutable LowType.ExternPtr) =>
 			// Declared all up front
@@ -146,7 +145,6 @@ immutable(bool) canReferenceTypeAsPointee(ref const StructStates states, immutab
 		(immutable LowType.Union it) =>
 			states.unionStates[it] != StructState.none,
 	)(a);
-}
 
 immutable(StructState) writeRecordDeclarationOrDefinition(
 	ref immutable LowProgram program,

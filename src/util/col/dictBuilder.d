@@ -39,6 +39,5 @@ immutable(Opt!V) tryAddToDict(K, V)(
 immutable(Dict!(K, V)) finishDict(K, V)(
 	ref Alloc alloc,
 	ref DictBuilder!(K, V) a,
-) {
-	return moveToDict!(K, V)(alloc, a.builder);
-}
+) =>
+	moveToDict!(K, V)(alloc, a.builder);

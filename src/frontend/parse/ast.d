@@ -68,18 +68,16 @@ struct NameAndRange {
 	}
 }
 
-immutable(RangeWithinFile) rangeOfNameAndRange(immutable NameAndRange a, ref const AllSymbols allSymbols) {
-	return rangeOfStartAndName(a.start, a.name, allSymbols);
-}
+immutable(RangeWithinFile) rangeOfNameAndRange(immutable NameAndRange a, ref const AllSymbols allSymbols) =>
+	rangeOfStartAndName(a.start, a.name, allSymbols);
 
 struct OptNameAndRange {
 	immutable Pos start;
 	immutable Opt!Sym name;
 }
 
-immutable(RangeWithinFile) rangeOfOptNameAndRange(immutable OptNameAndRange a, ref const AllSymbols allSymbols) {
-	return rangeOfStartAndName(a.start, has(a.name) ? force(a.name) : shortSym("_"), allSymbols);
-}
+immutable(RangeWithinFile) rangeOfOptNameAndRange(immutable OptNameAndRange a, ref const AllSymbols allSymbols) =>
+	rangeOfStartAndName(a.start, has(a.name) ? force(a.name) : shortSym("_"), allSymbols);
 
 struct TypeAst {
 	@safe @nogc pure nothrow:
@@ -163,26 +161,23 @@ static assert(TypeAst.sizeof <= 40);
 	}
 }
 
-immutable(TypeAst) bogusTypeAst(immutable RangeWithinFile range) {
-	return immutable TypeAst(immutable TypeAst.InstStruct(
+immutable(TypeAst) bogusTypeAst(immutable RangeWithinFile range) =>
+	immutable TypeAst(immutable TypeAst.InstStruct(
 		range,
 		immutable NameAndRange(range.start, shortSym("bogus")),
 		emptySmallArray!TypeAst));
-}
 
-immutable(RangeWithinFile) range(immutable TypeAst a) {
-	return matchTypeAst!(
+immutable(RangeWithinFile) range(immutable TypeAst a) =>
+	matchTypeAst!(
 		immutable RangeWithinFile,
 		(immutable TypeAst.Dict it) => range(it),
 		(immutable TypeAst.Fun it) => it.range,
 		(immutable TypeAst.InstStruct it) => it.range,
 		(immutable TypeAst.Suffix it) => range(it),
 	)(a);
-}
 
-immutable(RangeWithinFile) range(immutable TypeAst.Dict a) {
-	return immutable RangeWithinFile(range(a.v).start, safeToUint(range(a.k).end + "]".length));
-}
+immutable(RangeWithinFile) range(immutable TypeAst.Dict a) =>
+	immutable RangeWithinFile(range(a.v).start, safeToUint(range(a.k).end + "]".length));
 
 immutable(RangeWithinFile) range(immutable TypeAst.Suffix a) {
 	immutable RangeWithinFile leftRange = range(a.left);
@@ -280,9 +275,8 @@ struct CallAst {
 		args = a;
 	}
 
-	immutable(NameAndRange) funName() immutable {
-		return immutable NameAndRange(funNameStart, funNameName);
-	}
+	immutable(NameAndRange) funName() immutable =>
+		immutable NameAndRange(funNameStart, funNameName);
 }
 
 struct ForAst {
@@ -472,14 +466,13 @@ struct NameOrUnderscoreOrNone {
 private immutable(size_t) nameOrUnderscoreOrNoneSize(
 	ref const AllSymbols allSymbols,
 	ref immutable NameOrUnderscoreOrNone a,
-) {
-	return matchNameOrUnderscoreOrNone!(
+) =>
+	matchNameOrUnderscoreOrNone!(
 		size_t,
 		(immutable Sym s) => 1 + symSize(allSymbols, s),
 		(ref immutable NameOrUnderscoreOrNone.Underscore) => immutable size_t(2),
 		(ref immutable NameOrUnderscoreOrNone.None) => immutable size_t(0),
 	)(a);
-}
 
 struct MatchAst {
 	struct CaseAst {
@@ -491,15 +484,13 @@ struct MatchAst {
 		immutable ExprAst then;
 
 		//TODO: NOT INSTANCE
-		immutable(RangeWithinFile) memberNameRange(ref const AllSymbols allSymbols) immutable {
-			return rangeOfStartAndName(safeToUint(range.start + "as ".length), memberName, allSymbols);
-		}
+		immutable(RangeWithinFile) memberNameRange(ref const AllSymbols allSymbols) immutable =>
+			rangeOfStartAndName(safeToUint(range.start + "as ".length), memberName, allSymbols);
 
-		immutable(RangeWithinFile) localRange(ref const AllSymbols allSymbols) immutable {
-			return rangeOfStartAndLength(
+		immutable(RangeWithinFile) localRange(ref const AllSymbols allSymbols) immutable =>
+			rangeOfStartAndLength(
 				memberNameRange(allSymbols).end,
 				nameOrUnderscoreOrNoneSize(allSymbols, local));
-		}
 	}
 
 	immutable ExprAst matched;
@@ -640,17 +631,15 @@ struct ExprAstKind {
 }
 static assert(ExprAstKind.sizeof <= 40);
 
-immutable(bool) isCall(ref immutable ExprAstKind a) {
-	return a.kind == ExprAstKind.Kind.call;
-}
+immutable(bool) isCall(ref immutable ExprAstKind a) =>
+	a.kind == ExprAstKind.Kind.call;
 @trusted ref immutable(CallAst) asCall(scope return ref immutable ExprAstKind a) {
 	verify(isCall(a));
 	return a.call;
 }
 
-immutable(bool) isIdentifier(ref immutable ExprAstKind a) {
-	return a.kind == ExprAstKind.Kind.identifier;
-}
+immutable(bool) isIdentifier(ref immutable ExprAstKind a) =>
+	a.kind == ExprAstKind.Kind.identifier;
 ref immutable(IdentifierAst) asIdentifier(scope return ref immutable ExprAstKind a) {
 	verify(isIdentifier(a));
 	return a.identifier;
@@ -825,9 +814,8 @@ struct ModifierAst {
 	immutable Kind kind;
 }
 
-immutable(RangeWithinFile) rangeOfModifierAst(immutable ModifierAst a, ref const AllSymbols allSymbols) {
-	return rangeOfStartAndName(a.pos, symOfModifierKind(a.kind), allSymbols);
-}
+immutable(RangeWithinFile) rangeOfModifierAst(immutable ModifierAst a, ref const AllSymbols allSymbols) =>
+	rangeOfStartAndName(a.pos, symOfModifierKind(a.kind), allSymbols);
 
 struct LiteralIntOrNat {
 	@safe @nogc pure nothrow:
@@ -1031,9 +1019,8 @@ struct FunModifierAst {
 		unsafe = 0b10000_0000,
 	}
 
-	immutable(bool) isSpecial() scope immutable {
-		return specialFlags() != SpecialFlags.none;
-	}
+	immutable(bool) isSpecial() scope immutable =>
+		specialFlags() != SpecialFlags.none;
 
 	immutable(SpecialFlags) specialFlags() scope immutable {
 		switch (name.name.value) {
@@ -1162,19 +1149,18 @@ immutable(Repr) reprImportsOrExports(
 	ref Alloc alloc,
 	ref const AllPaths allPaths,
 	ref immutable ImportsOrExportsAst a,
-) {
-	return reprRecord(alloc, "ports", [
+) =>
+	reprRecord(alloc, "ports", [
 		reprRangeWithinFile(alloc, a.range),
 		reprArr(alloc, a.paths, (ref immutable ImportOrExportAst a) =>
 			reprImportOrExportAst(alloc, allPaths, a))]);
-}
 
 immutable(Repr) reprImportOrExportAst(
 	ref Alloc alloc,
 	ref const AllPaths allPaths,
 	ref immutable ImportOrExportAst a,
-) {
-	return reprRecord(alloc, "port", [
+) =>
+	reprRecord(alloc, "port", [
 		reprStr(pathOrRelPathToStr(alloc, allPaths, a.path)),
 		matchImportOrExportAstKind(
 			a.kind,
@@ -1187,20 +1173,18 @@ immutable(Repr) reprImportOrExportAst(
 				reprRecord(alloc, "file", [
 					reprSym(f.name),
 					reprSym(symOfImportFileType(f.type))]))]);
-}
 
-immutable(Repr) reprSpecDeclAst(ref Alloc alloc, ref immutable SpecDeclAst a) {
-	return reprRecord(alloc, "spec-decl", [
+immutable(Repr) reprSpecDeclAst(ref Alloc alloc, ref immutable SpecDeclAst a) =>
+	reprRecord(alloc, "spec-decl", [
 		reprRangeWithinFile(alloc, a.range),
 		reprStr(a.docComment),
 		reprVisibility(a.visibility),
 		reprSym(a.name),
 		reprTypeParams(alloc, a.typeParams),
 		reprSpecBodyAst(alloc, a.body_)]);
-}
 
-immutable(Repr) reprSpecBodyAst(ref Alloc alloc, ref immutable SpecBodyAst a) {
-	return matchSpecBodyAst!(
+immutable(Repr) reprSpecBodyAst(ref Alloc alloc, ref immutable SpecBodyAst a) =>
+	matchSpecBodyAst!(
 		immutable Repr,
 		(ref immutable SpecBodyAst.Builtin) =>
 			reprSym("builtin"),
@@ -1208,10 +1192,9 @@ immutable(Repr) reprSpecBodyAst(ref Alloc alloc, ref immutable SpecBodyAst a) {
 			reprArr(alloc, sigs, (ref immutable SpecSigAst sig) =>
 				reprSpecSig(alloc, sig)),
 	)(a);
-}
 
-immutable(Repr) reprSpecSig(ref Alloc alloc, ref immutable SpecSigAst a) {
-	return reprRecord(alloc, "spec-sig", [
+immutable(Repr) reprSpecSig(ref Alloc alloc, ref immutable SpecSigAst a) =>
+	reprRecord(alloc, "spec-sig", [
 		reprRangeWithinFile(alloc, a.range),
 		reprStr(a.docComment),
 		reprSym(a.name),
@@ -1223,17 +1206,15 @@ immutable(Repr) reprSpecSig(ref Alloc alloc, ref immutable SpecSigAst a) {
 			(ref immutable ParamsAst.Varargs v) =>
 				reprRecord(alloc, "varargs", [reprParamAst(alloc, v.param)]),
 		)(a.params)]);
-}
 
-immutable(Repr) reprStructAliasAst(ref Alloc alloc, ref immutable StructAliasAst a) {
-	return reprRecord(alloc, "alias", [
+immutable(Repr) reprStructAliasAst(ref Alloc alloc, ref immutable StructAliasAst a) =>
+	reprRecord(alloc, "alias", [
 		reprRangeWithinFile(alloc, a.range),
 		reprStr(a.docComment),
 		reprVisibility(a.visibility),
 		reprSym(a.name),
 		reprTypeParams(alloc, a.typeParams),
 		reprTypeAst(alloc, a.target)]);
-}
 
 
 immutable(Repr) reprEnumOrFlags(
@@ -1241,24 +1222,22 @@ immutable(Repr) reprEnumOrFlags(
 	immutable string name,
 	immutable Opt!(TypeAst*) typeArg,
 	immutable StructDeclAst.Body.Enum.Member[] members,
-) {
-	return reprRecord(alloc, name, [
+) =>
+	reprRecord(alloc, name, [
 		reprOpt!(TypeAst*)(alloc, typeArg, (ref immutable TypeAst* it) =>
 			reprTypeAst(alloc, *it)),
 		reprArr(alloc, members, (ref immutable StructDeclAst.Body.Enum.Member it) =>
 			reprEnumMember(alloc, it))]);
-}
 
-immutable(Repr) reprEnumMember(ref Alloc alloc, ref immutable StructDeclAst.Body.Enum.Member a) {
-	return reprRecord(alloc, "member", [
+immutable(Repr) reprEnumMember(ref Alloc alloc, ref immutable StructDeclAst.Body.Enum.Member a) =>
+	reprRecord(alloc, "member", [
 		reprRangeWithinFile(alloc, a.range),
 		reprSym(a.name),
 		reprOpt(alloc, a.value, (ref immutable LiteralIntOrNat v) =>
 			reprLiteralIntOrNat(alloc, v))]);
-}
 
-immutable(Repr) reprLiteralAst(ref Alloc alloc, ref immutable LiteralAst a) {
-	return reprRecord(alloc, "literal", [
+immutable(Repr) reprLiteralAst(ref Alloc alloc, ref immutable LiteralAst a) =>
+	reprRecord(alloc, "literal", [
 		matchLiteralAst!(
 			immutable Repr,
 			(immutable LiteralAst.Float it) =>
@@ -1270,39 +1249,33 @@ immutable(Repr) reprLiteralAst(ref Alloc alloc, ref immutable LiteralAst a) {
 			(immutable string it) =>
 				reprStr(it),
 		)(a)]);
-}
 
-immutable(Repr) reprLiteralInt(ref Alloc alloc, ref immutable LiteralAst.Int a) {
-	return reprRecord(alloc, "int", [reprInt(a.value), reprBool(a.overflow)]);
-}
+immutable(Repr) reprLiteralInt(ref Alloc alloc, ref immutable LiteralAst.Int a) =>
+	reprRecord(alloc, "int", [reprInt(a.value), reprBool(a.overflow)]);
 
-immutable(Repr) reprLiteralNat(ref Alloc alloc, ref immutable LiteralAst.Nat a) {
-	return reprRecord(alloc, "nat", [reprNat(a.value), reprBool(a.overflow)]);
-}
+immutable(Repr) reprLiteralNat(ref Alloc alloc, ref immutable LiteralAst.Nat a) =>
+	reprRecord(alloc, "nat", [reprNat(a.value), reprBool(a.overflow)]);
 
-immutable(Repr) reprLiteralIntOrNat(ref Alloc alloc, ref immutable LiteralIntOrNat a) {
-	return matchLiteralIntOrNat!(
+immutable(Repr) reprLiteralIntOrNat(ref Alloc alloc, ref immutable LiteralIntOrNat a) =>
+	matchLiteralIntOrNat!(
 		immutable Repr,
 		(ref immutable LiteralAst.Int it) =>
 			reprLiteralInt(alloc, it),
 		(ref immutable LiteralAst.Nat it) =>
 			reprLiteralNat(alloc, it),
 	)(a);
-}
 
-immutable(Repr) reprField(ref Alloc alloc, ref immutable StructDeclAst.Body.Record.Field a) {
-	return reprRecord(alloc, "field", [
+immutable(Repr) reprField(ref Alloc alloc, ref immutable StructDeclAst.Body.Record.Field a) =>
+	reprRecord(alloc, "field", [
 		reprRangeWithinFile(alloc, a.range),
 		reprSym(symOfFieldMutability(a.mutability)),
 		reprSym(a.name),
 		reprTypeAst(alloc, a.type)]);
-}
 
-immutable(Repr) reprRecord(ref Alloc alloc, ref immutable StructDeclAst.Body.Record a) {
-	return reprRecord(alloc, "record", [
+immutable(Repr) reprRecord(ref Alloc alloc, ref immutable StructDeclAst.Body.Record a) =>
+	reprRecord(alloc, "record", [
 		reprArr(alloc, a.fields, (ref immutable StructDeclAst.Body.Record.Field it) =>
 			reprField(alloc, it))]);
-}
 
 public immutable(Sym) symOfModifierKind(immutable ModifierAst.Kind a) {
 	final switch (a) {
@@ -1329,17 +1302,16 @@ public immutable(Sym) symOfModifierKind(immutable ModifierAst.Kind a) {
 	}
 }
 
-immutable(Repr) reprUnion(ref Alloc alloc, ref immutable StructDeclAst.Body.Union a) {
-	return reprRecord(alloc, "union", [
+immutable(Repr) reprUnion(ref Alloc alloc, ref immutable StructDeclAst.Body.Union a) =>
+	reprRecord(alloc, "union", [
 		reprArr(alloc, a.members, (ref immutable StructDeclAst.Body.Union.Member it) =>
 			reprRecord(alloc, "member", [
 				reprSym(it.name),
 				reprOpt(alloc, it.type, (ref immutable TypeAst t) =>
 					reprTypeAst(alloc, t))]))]);
-}
 
-immutable(Repr) reprStructBodyAst(ref Alloc alloc, ref immutable StructDeclAst.Body a) {
-	return matchStructDeclAstBody!(
+immutable(Repr) reprStructBodyAst(ref Alloc alloc, ref immutable StructDeclAst.Body a) =>
+	matchStructDeclAstBody!(
 		immutable Repr,
 		(ref immutable StructDeclAst.Body.Builtin) =>
 			reprSym("builtin"),
@@ -1354,7 +1326,6 @@ immutable(Repr) reprStructBodyAst(ref Alloc alloc, ref immutable StructDeclAst.B
 		(ref immutable StructDeclAst.Body.Union a) =>
 			reprUnion(alloc, a),
 	)(a);
-}
 
 immutable(Repr) reprStructDeclAst(ref Alloc alloc, ref immutable StructDeclAst a) {
 	ArrBuilder!NameAndRepr fields;
@@ -1375,9 +1346,8 @@ void maybeAddTypeParams(ref Alloc alloc, ref ArrBuilder!NameAndRepr fields, immu
 		add(alloc, fields, nameAndRepr("type-params", reprTypeParams(alloc, typeParams)));
 }
 
-immutable(Repr) reprModifierAst(ref Alloc alloc, immutable ModifierAst a) {
-	return reprRecord(alloc, "modifier", [reprNat(a.pos), reprSym(symOfModifierKind(a.kind))]);
-}
+immutable(Repr) reprModifierAst(ref Alloc alloc, immutable ModifierAst a) =>
+	reprRecord(alloc, "modifier", [reprNat(a.pos), reprSym(symOfModifierKind(a.kind))]);
 
 immutable(Repr) reprFunDeclAst(ref Alloc alloc, ref immutable FunDeclAst a) {
 	ArrBuilder!NameAndRepr fields;
@@ -1397,25 +1367,23 @@ immutable(Repr) reprFunDeclAst(ref Alloc alloc, ref immutable FunDeclAst a) {
 	return reprNamedRecord("fun-decl", finishArr(alloc, fields));
 }
 
-immutable(Repr) reprParamsAst(ref Alloc alloc, scope immutable ParamsAst a) {
-	return matchParamsAst!(
+immutable(Repr) reprParamsAst(ref Alloc alloc, scope immutable ParamsAst a) =>
+	matchParamsAst!(
 		immutable Repr,
 		(immutable ParamAst[] params) =>
 			reprArr(alloc, params, (ref immutable ParamAst p) => reprParamAst(alloc, p)),
 		(ref immutable ParamsAst.Varargs v) =>
 			reprRecord(alloc, "varargs", [reprParamAst(alloc, v.param)]),
 	)(a);
-}
 
-immutable(Repr) reprFunModifierAst(ref Alloc alloc, scope immutable FunModifierAst a) {
-	return reprRecord(alloc, "modifier", [
+immutable(Repr) reprFunModifierAst(ref Alloc alloc, scope immutable FunModifierAst a) =>
+	reprRecord(alloc, "modifier", [
 		reprNameAndRange(alloc, a.name),
 		reprArr(alloc, a.typeArgs, (ref immutable TypeAst it) =>
 			reprTypeAst(alloc, it))]);
-}
 
-immutable(Repr) reprTypeAst(ref Alloc alloc, immutable TypeAst a) {
-	return matchTypeAst!(
+immutable(Repr) reprTypeAst(ref Alloc alloc, immutable TypeAst a) =>
+	matchTypeAst!(
 		immutable Repr,
 		(immutable TypeAst.Dict it) =>
 			reprRecord(alloc, "dict", [
@@ -1434,7 +1402,6 @@ immutable(Repr) reprTypeAst(ref Alloc alloc, immutable TypeAst a) {
 				reprTypeAst(alloc, it.left),
 				reprSym(symForTypeAstSuffix(it.kind))]),
 	)(a);
-}
 
 immutable(Sym) symOfFunKind(immutable TypeAst.Fun.Kind a) {
 	final switch (a) {
@@ -1458,30 +1425,26 @@ immutable(Repr) reprInstStructAst(ref Alloc alloc, immutable TypeAst.InstStruct 
 		: arrLiteral!Repr(alloc, [range, name]));
 }
 
-immutable(Repr) reprParamAst(ref Alloc alloc, ref immutable ParamAst a) {
-	return reprRecord(alloc, "param", [
+immutable(Repr) reprParamAst(ref Alloc alloc, ref immutable ParamAst a) =>
+	reprRecord(alloc, "param", [
 		reprRangeWithinFile(alloc, a.range),
 		reprOpt(alloc, a.name, (ref immutable Sym it) =>
 			reprSym(it)),
 		reprTypeAst(alloc, a.type)]);
-}
 
-immutable(Repr) reprExprAst(ref Alloc alloc, ref immutable ExprAst ast) {
-	return reprExprAstKind(alloc, ast.kind);
-}
+immutable(Repr) reprExprAst(ref Alloc alloc, ref immutable ExprAst ast) =>
+	reprExprAstKind(alloc, ast.kind);
 
-immutable(Repr) reprNameAndRange(ref Alloc alloc, immutable NameAndRange a) {
-	return reprRecord(alloc, "name-range", [reprNat(a.start), reprSym(a.name)]);
-}
+immutable(Repr) reprNameAndRange(ref Alloc alloc, immutable NameAndRange a) =>
+	reprRecord(alloc, "name-range", [reprNat(a.start), reprSym(a.name)]);
 
-immutable(Repr) reprLambdaParamAst(ref Alloc alloc, immutable LambdaAst.Param a) {
-	return reprRecord(alloc, "param", [
+immutable(Repr) reprLambdaParamAst(ref Alloc alloc, immutable LambdaAst.Param a) =>
+	reprRecord(alloc, "param", [
 		reprNat(a.start),
 		reprSym(has(a.name) ? force(a.name) : shortSym("_"))]);
-}
 
-immutable(Repr) reprExprAstKind(ref Alloc alloc, ref immutable ExprAstKind ast) {
-	return matchExprAstKind!(
+immutable(Repr) reprExprAstKind(ref Alloc alloc, ref immutable ExprAstKind ast) =>
+	matchExprAstKind!(
 		immutable Repr,
 		(ref immutable ArrowAccessAst e) =>
 			reprRecord(alloc, "arrow-access", [
@@ -1605,15 +1568,13 @@ immutable(Repr) reprExprAstKind(ref Alloc alloc, ref immutable ExprAstKind ast) 
 				reprExprAst(alloc, it.cond),
 				reprExprAst(alloc, it.body_)]),
 	)(ast);
-}
 
-immutable(Repr) reprInterpolatedPart(ref Alloc alloc, ref immutable InterpolatedPart a) {
-	return matchInterpolatedPart!(
+immutable(Repr) reprInterpolatedPart(ref Alloc alloc, ref immutable InterpolatedPart a) =>
+	matchInterpolatedPart!(
 		immutable Repr,
 		(ref immutable string it) => reprStr(it),
 		(ref immutable ExprAst it) => reprExprAst(alloc, it),
 	)(a);
-}
 
 immutable(Sym) symOfCallAstStyle(immutable CallAst.Style a) {
 	final switch (a) {
@@ -1644,7 +1605,6 @@ immutable(Sym) symOfCallAstStyle(immutable CallAst.Style a) {
 	}
 }
 
-immutable(Repr) reprTypeParams(ref Alloc alloc, immutable NameAndRange[] typeParams) {
-	return reprArr(alloc, typeParams, (ref immutable NameAndRange a) =>
+immutable(Repr) reprTypeParams(ref Alloc alloc, immutable NameAndRange[] typeParams) =>
+	reprArr(alloc, typeParams, (ref immutable NameAndRange a) =>
 		reprNameAndRange(alloc, a));
-}

@@ -26,12 +26,10 @@ struct AllPaths {
 	MutArr!(MutArr!Path) pathToChildren;
 	MutArr!Path rootChildren;
 
-	ref const(AllSymbols) allSymbols() return scope const {
-		return *allSymbolsPtr;
-	}
-	ref AllSymbols allSymbols() return scope {
-		return *allSymbolsPtr;
-	}
+	ref const(AllSymbols) allSymbols() return scope const =>
+		*allSymbolsPtr;
+	ref AllSymbols allSymbols() return scope =>
+		*allSymbolsPtr;
 }
 
 struct Path {
@@ -44,18 +42,16 @@ struct Path {
 	}
 }
 
-immutable(Opt!Path) parent(ref const AllPaths allPaths, immutable Path a) {
-	return allPaths.pathToParent[a.index];
-}
+immutable(Opt!Path) parent(ref const AllPaths allPaths, immutable Path a) =>
+	allPaths.pathToParent[a.index];
 
 immutable(Path) parentOrEmpty(ref AllPaths allPaths, immutable Path a) {
 	immutable Opt!Path res = parent(allPaths, a);
 	return has(res) ? force(res) : emptyRootPath(allPaths);
 }
 
-immutable(Sym) baseName(ref const AllPaths allPaths, immutable Path a) {
-	return allPaths.pathToBaseName[a.index];
-}
+immutable(Sym) baseName(ref const AllPaths allPaths, immutable Path a) =>
+	allPaths.pathToBaseName[a.index];
 
 struct PathFirstAndRest {
 	immutable Sym first;
@@ -93,17 +89,14 @@ private immutable(Path) getOrAddChild(
 	return res;
 }
 
-immutable(Path) emptyRootPath(ref AllPaths allPaths) {
-	return rootPath(allPaths, emptySym);
-}
+immutable(Path) emptyRootPath(ref AllPaths allPaths) =>
+	rootPath(allPaths, emptySym);
 
-immutable(Path) rootPath(ref AllPaths allPaths, immutable Sym name) {
-	return getOrAddChild(allPaths, allPaths.rootChildren, none!Path, name);
-}
+immutable(Path) rootPath(ref AllPaths allPaths, immutable Sym name) =>
+	getOrAddChild(allPaths, allPaths.rootChildren, none!Path, name);
 
-immutable(Path) childPath(ref AllPaths allPaths, immutable Path parent, immutable Sym name) {
-	return getOrAddChild(allPaths, allPaths.pathToChildren[parent.index], some(parent), name);
-}
+immutable(Path) childPath(ref AllPaths allPaths, immutable Path parent, immutable Sym name) =>
+	getOrAddChild(allPaths, allPaths.pathToChildren[parent.index], some(parent), name);
 
 struct PathOrRelPath {
 	private:
@@ -115,11 +108,10 @@ immutable(T) matchPathOrRelPath(T)(
 	ref immutable PathOrRelPath a,
 	scope immutable(T) delegate(immutable Path) @safe @nogc pure nothrow cbGlobal,
 	scope immutable(T) delegate(immutable RelPath) @safe @nogc pure nothrow cbRel,
-) {
-	return has(a.nParents_)
+) =>
+	has(a.nParents_)
 		? cbRel(immutable RelPath(force(a.nParents_), a.path_))
 		: cbGlobal(a.path_);
-}
 
 struct RelPath {
 	private immutable ushort nParents;
@@ -130,8 +122,8 @@ immutable(Opt!Path) resolvePath(
 	ref AllPaths allPaths,
 	immutable Opt!Path path,
 	immutable RelPath relPath,
-) {
-	return relPath.nParents == 0
+) =>
+	relPath.nParents == 0
 		? some(has(path)
 			? concatPaths(allPaths, force(path), relPath.path)
 			: relPath.path)
@@ -141,11 +133,9 @@ immutable(Opt!Path) resolvePath(
 				parent(allPaths, force(path)),
 				immutable RelPath(cast(ushort) (relPath.nParents - 1), relPath.path))
 			: none!Path;
-}
 
-immutable(Opt!Path) resolvePath(ref AllPaths allPaths, immutable Path path, immutable RelPath relPath) {
-	return resolvePath(allPaths, some(path), relPath);
-}
+immutable(Opt!Path) resolvePath(ref AllPaths allPaths, immutable Path path, immutable RelPath relPath) =>
+	resolvePath(allPaths, some(path), relPath);
 
 immutable(Path) concatPaths(ref AllPaths allPaths, immutable Path a, immutable Path b) {
 	immutable Opt!Path bParent = parent(allPaths, b);
@@ -186,9 +176,8 @@ alias TempStrForPath = char[0x1000];
 	scope return ref TempStrForPath temp,
 	scope ref const AllPaths allPaths,
 	immutable PathAndExtension path,
-) {
-	return pathToTempStr(temp, allPaths, path.path, path.extension);
-}
+) =>
+	pathToTempStr(temp, allPaths, path.path, path.extension);
 
 @trusted immutable(SafeCStr) pathToTempStr(
 	scope return ref TempStrForPath temp,
@@ -207,9 +196,8 @@ private immutable(string) pathToStrWorker(
 	scope ref const AllPaths allPaths,
 	immutable Path path,
 	immutable Sym extension,
-) {
-	return pathToStrWorker(alloc, allPaths, "", 0, path, extension);
-}
+) =>
+	pathToStrWorker(alloc, allPaths, "", 0, path, extension);
 
 private @trusted immutable(string) pathToStrWorker(
 	ref Alloc alloc,
@@ -276,41 +264,37 @@ immutable(SafeCStr) pathOrRelPathToStr(
 	ref Alloc alloc,
 	ref const AllPaths allPaths,
 	scope ref immutable PathOrRelPath a,
-) {
-	return matchPathOrRelPath(
+) =>
+	matchPathOrRelPath(
 		a,
 		(immutable Path global) =>
 			pathToSafeCStr(alloc, allPaths, global, emptySym),
 		(immutable RelPath relPath) =>
 			relPathToSafeCStr(alloc, allPaths, relPath));
-}
 
 private @trusted immutable(SafeCStr) relPathToSafeCStr(
 	ref Alloc alloc,
 	ref const AllPaths allPaths,
 	immutable RelPath a,
-) {
-	return immutable SafeCStr(a.nParents == 0
+) =>
+	immutable SafeCStr(a.nParents == 0
 		? pathToStrWorker(alloc, allPaths, "./", 1, a.path, emptySym).ptr
 		: pathToStrWorker(alloc, allPaths, "../", a.nParents, a.path, emptySym).ptr);
-}
 
 immutable(SafeCStr) pathToSafeCStr(
 	ref Alloc alloc,
 	scope ref const AllPaths allPaths,
 	immutable PathAndExtension path,
-) {
-	return pathToSafeCStr(alloc, allPaths, path.path, path.extension);
-}
+) =>
+	pathToSafeCStr(alloc, allPaths, path.path, path.extension);
 
 @trusted immutable(SafeCStr) pathToSafeCStr(
 	ref Alloc alloc,
 	scope ref const AllPaths allPaths,
 	immutable Path path,
 	scope immutable Sym extension = emptySym,
-) {
-	return immutable SafeCStr(pathToStrWorker(alloc, allPaths, path, extension).ptr);
-}
+) =>
+	immutable SafeCStr(pathToStrWorker(alloc, allPaths, path, extension).ptr);
 
 public immutable(SafeCStr) pathToSafeCStrPreferRelative(
 	ref Alloc alloc,
@@ -329,9 +313,8 @@ public immutable(SafeCStr) pathToSafeCStrPreferRelative(
 	return pe.path;
 }
 
-immutable(Path) parsePathDropExtension(ref AllPaths allPaths, scope immutable SafeCStr str) {
-	return parsePathAndExtension(allPaths, str).path;
-}
+immutable(Path) parsePathDropExtension(ref AllPaths allPaths, scope immutable SafeCStr str) =>
+	parsePathAndExtension(allPaths, str).path;
 
 struct PathAndExtension {
 	immutable Path path;
@@ -388,9 +371,8 @@ private struct RelPathAndExtension {
 	immutable Sym extension;
 }
 
-private @trusted immutable(RelPathAndExtension) parseRelPathAndExtension(ref AllPaths allPaths, immutable SafeCStr a) {
-	return parseRelPathAndExtensionRecur(allPaths, 0, a);
-}
+private @trusted immutable(RelPathAndExtension) parseRelPathAndExtension(ref AllPaths allPaths, immutable SafeCStr a) =>
+	parseRelPathAndExtensionRecur(allPaths, 0, a);
 private @system immutable(RelPathAndExtension) parseRelPathAndExtensionRecur(
 	ref AllPaths allPaths,
 	immutable size_t nParents,
@@ -430,9 +412,8 @@ immutable(Path) parseAbsoluteOrRelPath(ref AllPaths allPaths, immutable Path cwd
 	}
 }
 
-private @trusted immutable(bool) looksLikeAbsolutePath(immutable SafeCStr a) {
-	return *a.ptr == '/' || (a.ptr[0] == 'C' && a.ptr[1] == ':' && isSlash(a.ptr[2]));
-}
+private @trusted immutable(bool) looksLikeAbsolutePath(immutable SafeCStr a) =>
+	*a.ptr == '/' || (a.ptr[0] == 'C' && a.ptr[1] == ':' && isSlash(a.ptr[2]));
 
 private struct StrAndExtension {
 	immutable string withoutExtension;
@@ -449,9 +430,8 @@ private @system immutable(StrAndExtension) removeExtension(ref AllSymbols allSym
 		: immutable StrAndExtension(a[0 .. (ptr - a)], symOfStr(allSymbols, ptr[0 .. (end - ptr)]));
 }
 
-immutable(Comparison) comparePath(immutable Path a, immutable Path b) {
-	return compareNat16(a.index, b.index);
-}
+immutable(Comparison) comparePath(immutable Path a, immutable Path b) =>
+	compareNat16(a.index, b.index);
 
 struct PathAndRange {
 	immutable Path path;
@@ -463,14 +443,12 @@ struct PathsInfo {
 	immutable Opt!Path cwd;
 }
 
-immutable(PathsInfo) emptyPathsInfo() {
-	return immutable PathsInfo(none!Path);
-}
+immutable(PathsInfo) emptyPathsInfo() =>
+	immutable PathsInfo(none!Path);
 
-immutable(Path) commonAncestor(ref const AllPaths allPaths, scope immutable Path[] paths) {
-	return reduce(paths, (immutable Path x, immutable Path y) =>
+immutable(Path) commonAncestor(ref const AllPaths allPaths, scope immutable Path[] paths) =>
+	reduce(paths, (immutable Path x, immutable Path y) =>
 		commonAncestorBinary(allPaths, x, y));
-}
 private immutable(Path) commonAncestorBinary(ref const AllPaths allPaths, immutable Path a, immutable Path b) {
 	immutable size_t aParts = countPathParts(allPaths, a);
 	immutable size_t bParts = countPathParts(allPaths, b);
@@ -510,17 +488,14 @@ void eachPartPreferRelative(
 	eachPart(allPaths, a, maxParts, cb);
 }
 
-immutable(bool) isSlash(immutable char a) {
-	return a == '/' || a == '\\';
-}
+immutable(bool) isSlash(immutable char a) =>
+	a == '/' || a == '\\';
 
-public immutable(size_t) TEST_countPathParts(ref const AllPaths allPaths, immutable Path a) {
-	return countPathParts(allPaths, a);
-}
+public immutable(size_t) TEST_countPathParts(ref const AllPaths allPaths, immutable Path a) =>
+	countPathParts(allPaths, a);
 
-immutable(size_t) countPathParts(ref const AllPaths allPaths, immutable Path a) {
-	return countPathPartsRecur(1, allPaths, a);
-}
+immutable(size_t) countPathParts(ref const AllPaths allPaths, immutable Path a) =>
+	countPathPartsRecur(1, allPaths, a);
 immutable(size_t) countPathPartsRecur(immutable size_t acc, ref const AllPaths allPaths, immutable Path a) {
 	immutable Opt!Path par = parent(allPaths, a);
 	return has(par) ? countPathPartsRecur(acc + 1, allPaths, force(par)) : acc;

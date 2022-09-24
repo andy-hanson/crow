@@ -284,9 +284,8 @@ immutable(SafeCStr[]) getAllArgs(
 	scope ref immutable ReadOnlyStorage storage,
 	immutable Path main,
 	scope immutable SafeCStr[] programArgs,
-) {
-	return prepend(alloc, pathToSafeCStr(alloc, allPaths, main, symForSpecial(SpecialSym.dotCrow)), programArgs);
-}
+) =>
+	prepend(alloc, pathToSafeCStr(alloc, allPaths, main, symForSpecial(SpecialSym.dotCrow)), programArgs);
 
 @trusted immutable(ExitCode) setupTempDir(
 	ref AllSymbols allSymbols,
@@ -481,13 +480,12 @@ immutable(ExitCode) runDocument(
 	ref immutable PathsInfo pathsInfo,
 	immutable Path includeDir,
 	scope immutable Path[] rootPaths,
-) {
-	return withReadOnlyStorage(allPaths, includeDir, (scope ref immutable ReadOnlyStorage storage) {
+) =>
+	withReadOnlyStorage(allPaths, includeDir, (scope ref immutable ReadOnlyStorage storage) {
 		immutable DocumentResult result =
 			compileAndDocument(alloc, perf, allSymbols, allPaths, pathsInfo, storage, showDiagOptions, rootPaths);
 		return safeCStrIsEmpty(result.diagnostics) ? println(result.document) : printErr(result.diagnostics);
 	});
-}
 
 struct RunBuildResult {
 	immutable ExitCode err;
@@ -504,14 +502,13 @@ immutable(ExitCode) runBuild(
 	immutable Path tempDir,
 	immutable Path mainPath,
 	ref immutable BuildOptions options,
-) {
-	return hasAnyOut(options.out_)
+) =>
+	hasAnyOut(options.out_)
 		? runBuildInner(
 			alloc, perf, allSymbols, allPaths, pathsInfo, includeDir, tempDir,
 			mainPath, options, ExeKind.allowNoExe).err
 		: withReadOnlyStorage(allPaths, includeDir, (scope ref immutable ReadOnlyStorage storage) =>
 			justTypeCheck(alloc, perf, allSymbols, allPaths, storage, mainPath));
-}
 
 enum ExeKind { ensureExe, allowNoExe }
 immutable(RunBuildResult) runBuildInner(
@@ -564,8 +561,8 @@ immutable(ExitCode) buildToCAndCompile(
 	immutable PathAndExtension cPath,
 	immutable Opt!PathAndExtension exePath,
 	ref immutable CCompileOptions cCompileOptions,
-) {
-	return withReadOnlyStorage(allPaths, includeDir, (scope ref immutable ReadOnlyStorage storage) {
+) =>
+	withReadOnlyStorage(allPaths, includeDir, (scope ref immutable ReadOnlyStorage storage) {
 		immutable BuildToCResult result =
 			buildToC(alloc, perf, allSymbols, allPaths, pathsInfo, storage, showDiagOptions, mainPath);
 		if (safeCStrIsEmpty(result.diagnostics)) {
@@ -578,7 +575,6 @@ immutable(ExitCode) buildToCAndCompile(
 		} else
 			return printErr(result.diagnostics);
 	});
-}
 
 version (Windows) { } else { immutable(ExitCode) buildAndJit(
 	ref Alloc alloc,
@@ -916,9 +912,8 @@ version (Windows) {
 		: parsePath(allPaths, immutable SafeCStr(cast(immutable) cwd));
 }
 
-immutable(Path) getCrowDir(ref AllPaths allPaths) {
-	return parentOrEmpty(allPaths, parentOrEmpty(allPaths, getPathToThisExecutable(allPaths)));
-}
+immutable(Path) getCrowDir(ref AllPaths allPaths) =>
+	parentOrEmpty(allPaths, parentOrEmpty(allPaths, getPathToThisExecutable(allPaths)));
 
 @trusted immutable(Path) getPathToThisExecutable(ref AllPaths allPaths) {
 	TempStrForPath res = void;

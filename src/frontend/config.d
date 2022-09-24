@@ -79,17 +79,14 @@ immutable(Config) getConfigRecur(
 
 pure:
 
-immutable(Config) emptyConfig() {
-	return immutable Config(immutable ConfigImportPaths(), immutable ConfigExternPaths());
-}
+immutable(Config) emptyConfig() =>
+	immutable Config(immutable ConfigImportPaths(), immutable ConfigExternPaths());
 
-immutable(Config) withInclude(immutable Config a, immutable ConfigImportPaths include) {
-	return immutable Config(include, a.extern_);
-}
+immutable(Config) withInclude(immutable Config a, immutable ConfigImportPaths include) =>
+	immutable Config(include, a.extern_);
 
-immutable(Config) withExtern(immutable Config a, immutable ConfigExternPaths extern_) {
-	return immutable Config(a.include, extern_);
-}
+immutable(Config) withExtern(immutable Config a, immutable ConfigExternPaths extern_) =>
+	immutable Config(a.include, extern_);
 
 immutable(Config) parseConfig(
 	ref Alloc alloc,
@@ -120,8 +117,8 @@ immutable(Config) parseConfigRecur(
 	immutable Path dirContainingConfig,
 	ref ArrBuilder!DiagnosticWithinFile diags,
 	immutable KeyValuePair!(Sym, Json)[] fields,
-) {
-	return fold(emptyConfig, fields, (immutable Config cur, ref immutable KeyValuePair!(Sym, Json) field) {
+) =>
+	fold(emptyConfig, fields, (immutable Config cur, ref immutable KeyValuePair!(Sym, Json) field) {
 		immutable Json value = field.value;
 		switch (field.key.value) {
 			case shortSymValue("include"):
@@ -137,7 +134,6 @@ immutable(Config) parseConfigRecur(
 				return cur;
 		}
 	});
-}
 
 immutable(Dict!(Sym, Path)) parseIncludeOrExtern(
 	ref Alloc alloc,

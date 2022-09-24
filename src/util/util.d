@@ -2,30 +2,25 @@ module util.util;
 
 @safe @nogc pure nothrow:
 
-immutable(T) as(T)(immutable T a) {
-	return a;
-}
+immutable(T) as(T)(immutable T a) =>
+	a;
 
 T todo(T)(immutable char* s) {
 	debugLog(s);
 	assert(0);
 }
 
-immutable(T) min(T)(immutable T a, immutable T b) {
-	return a < b ? a : b;
-}
+immutable(T) min(T)(immutable T a, immutable T b) =>
+	a < b ? a : b;
 
-immutable(T) max(T)(immutable T a, immutable T b) {
-	return a > b ? a : b;
-}
+immutable(T) max(T)(immutable T a, immutable T b) =>
+	a > b ? a : b;
 
-immutable(ulong) abs(immutable long a) {
-	return a < 0 ? -a : a;
-}
+immutable(ulong) abs(immutable long a) =>
+	a < 0 ? -a : a;
 
-immutable(double) abs(immutable double a) {
-	return a < 0 ? -a : a;
-}
+immutable(double) abs(immutable double a) =>
+	a < 0 ? -a : a;
 
 immutable(T) roundUp(T)(immutable T a, immutable T b) {
 	immutable T res = roundUpRecur(a, b);
@@ -113,6 +108,5 @@ T unreachable(T)() {
 
 void drop(T)(T) {}
 
-@trusted ref immutable(T) castImmutableRef(T)(ref const(T) a) {
-	return cast(immutable) a;
-}
+@trusted ref immutable(T) castImmutableRef(T)(ref const(T) a) =>
+	cast(immutable) a;

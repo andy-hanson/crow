@@ -184,15 +184,14 @@ immutable(Expr) checkFunctionBody(
 
 private:
 
-void checkUnusedParams(ref CheckCtx checkCtx, immutable Param[] params, scope immutable bool[] paramsUsed) {
-	return zipPtrFirst!(Param, bool)(
+void checkUnusedParams(ref CheckCtx checkCtx, immutable Param[] params, scope immutable bool[] paramsUsed) =>
+	zipPtrFirst!(Param, bool)(
 		params,
 		paramsUsed,
 		(immutable Param* param, ref immutable bool used) {
 			if (!used && has(param.name))
 				addDiag(checkCtx, param.range, immutable Diag(immutable Diag.UnusedParam(param)));
 		});
-}
 
 struct ExprAndType {
 	immutable Expr expr;
@@ -226,17 +225,14 @@ immutable(Expr) checkAndExpect(
 	return checkExpr(ctx, locals, ast, et);
 }
 
-immutable(Expr) checkAndExpectBool(ref ExprCtx ctx, scope ref LocalsInfo locals, scope ref immutable ExprAst ast) {
-	return checkAndExpect(ctx, locals, ast, immutable Type(ctx.commonTypes.bool_));
-}
+immutable(Expr) checkAndExpectBool(ref ExprCtx ctx, scope ref LocalsInfo locals, scope ref immutable ExprAst ast) =>
+	checkAndExpect(ctx, locals, ast, immutable Type(ctx.commonTypes.bool_));
 
-immutable(Expr) checkAndExpectCStr(ref ExprCtx ctx, scope ref LocalsInfo locals, scope ref immutable ExprAst ast) {
-	return checkAndExpect(ctx, locals, ast, immutable Type(ctx.commonTypes.cStr));
-}
+immutable(Expr) checkAndExpectCStr(ref ExprCtx ctx, scope ref LocalsInfo locals, scope ref immutable ExprAst ast) =>
+	checkAndExpect(ctx, locals, ast, immutable Type(ctx.commonTypes.cStr));
 
-immutable(Expr) checkAndExpectVoid(ref ExprCtx ctx, scope ref LocalsInfo locals, scope ref immutable ExprAst ast) {
-	return checkAndExpect(ctx, locals, ast, immutable Type(ctx.commonTypes.void_));
-}
+immutable(Expr) checkAndExpectVoid(ref ExprCtx ctx, scope ref LocalsInfo locals, scope ref immutable ExprAst ast) =>
+	checkAndExpect(ctx, locals, ast, immutable Type(ctx.commonTypes.void_));
 
 immutable(Expr) checkArrowAccess(
 	ref ExprCtx ctx,
@@ -335,11 +331,10 @@ immutable(Expr) checkExprOrEmptyNew(
 	immutable FileAndRange range,
 	ref immutable Opt!ExprAst ast,
 	ref Expected expected,
-) {
-	return has(ast)
+) =>
+	has(ast)
 		? checkExpr(ctx, locals, force(ast), expected)
 		: checkEmptyNew(ctx, locals, range, expected);
-}
 
 immutable(Expr) checkEmptyNew(
 	ref ExprCtx ctx,
@@ -628,8 +623,8 @@ immutable(Opt!(Local*)) getLocalForSet(
 	immutable Sym name,
 ) {
 	immutable Opt!VariableRefAndType res = getIdentifierNonCall(ctx.alloc, locals, name, LocalAccessKind.set);
-	if (has(res)) {
-		return matchVariableRef!(immutable Opt!(Local*))(
+	return has(res)
+		? matchVariableRef!(immutable Opt!(Local*))(
 			force(res).variableRef,
 			(immutable Param*) {
 				todo!void("diag: can't mutate param");
@@ -647,13 +642,12 @@ immutable(Opt!(Local*)) getLocalForSet(
 			(immutable Expr.ClosureFieldRef) {
 				todo!void("can't mutate closure");
 				return none!(Local*);
-			});
-	} else
-		return none!(Local*);
+			})
+		: none!(Local*);
 }
 
-immutable(Expr) toExpr(immutable FileAndRange range, immutable VariableRef a) {
-	return matchVariableRef(
+immutable(Expr) toExpr(immutable FileAndRange range, immutable VariableRef a) =>
+	matchVariableRef(
 		a,
 		(immutable Param* x) =>
 			immutable Expr(range, immutable Expr.ParamRef(x)),
@@ -661,7 +655,6 @@ immutable(Expr) toExpr(immutable FileAndRange range, immutable VariableRef a) {
 			immutable Expr(range, immutable Expr.LocalRef(x)),
 		(immutable Expr.ClosureFieldRef x) =>
 			immutable Expr(range, x));
-}
 
 struct IntRange {
 	immutable long min;
@@ -679,9 +672,8 @@ immutable(Expr) checkLiteral(
 	immutable Opt!(StructInst*) expectedStruct = has(expectedType) && isStructInst(force(expectedType))
 		? some(asStructInst(force(expectedType)))
 		: none!(StructInst*);
-	immutable(bool) expectedStructIs(immutable StructInst* x) {
-		return has(expectedStruct) && force(expectedStruct) == x;
-	}
+	immutable(bool) expectedStructIs(immutable StructInst* x) =>
+		has(expectedStruct) && force(expectedStruct) == x;
 	immutable IntegralTypes integrals = ctx.commonTypes.integrals;
 
 	immutable(Expr) asFloat32(immutable float value) {
@@ -791,15 +783,14 @@ immutable(Expr) checkStringLiteral(
 	ref Expected expected,
 	immutable Opt!(StructInst*) expectedStruct,
 	immutable string value,
-) {
-	return has(expectedStruct) && force(expectedStruct) == ctx.commonTypes.char8
+) =>
+	has(expectedStruct) && force(expectedStruct) == ctx.commonTypes.char8
 		? checkStringLiteralTypedAsChar(ctx, range, value)
 		: has(expectedStruct) && force(expectedStruct) == ctx.commonTypes.sym
 		? immutable Expr(range, immutable Expr.LiteralSymbol(symOfStr(ctx.allSymbols, value)))
 		: has(expectedStruct) && force(expectedStruct) == ctx.commonTypes.cStr
 		? immutable Expr(range, immutable Expr.LiteralCString(copyToSafeCStr(ctx.alloc, value)))
 		: checkStringExpressionTypedAsOther(ctx, curAst, range, expected);
-}
 
 immutable(Expr) checkStringLiteralTypedAsChar(
 	ref ExprCtx ctx,
@@ -843,12 +834,11 @@ void defaultExpectedToString(ref ExprCtx ctx, immutable FileAndRange range, ref 
 		mustSetType(ctx.alloc, ctx.programState, expected, getStrType(ctx, range));
 }
 
-immutable(Type) getStrType(ref ExprCtx ctx, immutable FileAndRange range) {
-	return typeFromAst2(ctx, immutable TypeAst(immutable TypeAst.InstStruct(
+immutable(Type) getStrType(ref ExprCtx ctx, immutable FileAndRange range) =>
+	typeFromAst2(ctx, immutable TypeAst(immutable TypeAst.InstStruct(
 		range.range,
 		immutable NameAndRange(range.start, shortSym("str")),
 		emptySmallArray!TypeAst)));
-}
 
 immutable(Expr) checkWithLocal(
 	ref ExprCtx ctx,
@@ -881,8 +871,8 @@ immutable(Param[]) checkParamsForLambda(
 	ref LocalsInfo locals,
 	scope immutable LambdaAst.Param[] paramAsts,
 	scope immutable Type[] expectedParamTypes,
-) {
-	return mapZipWithIndex!(Param, LambdaAst.Param, Type)(
+) =>
+	mapZipWithIndex!(Param, LambdaAst.Param, Type)(
 		ctx.alloc,
 		paramAsts,
 		expectedParamTypes,
@@ -900,7 +890,6 @@ immutable(Param[]) checkParamsForLambda(
 			}();
 			return immutable Param(rangeInFile2(ctx, range), name, type, index);
 		});
-}
 
 immutable(Expr) checkPtr(
 	ref ExprCtx ctx,
@@ -1236,11 +1225,10 @@ immutable(Expr) checkWithOptLocal(
 	immutable Opt!(Local*) local,
 	ref immutable ExprAst ast,
 	ref Expected expected,
-) {
-	return has(local)
+) =>
+	has(local)
 		? checkWithLocal(ctx, locals, force(local), ast, expected)
 		: checkExpr(ctx, locals, ast, expected);
-}
 
 struct EnumAndMembers {
 	immutable StructBody.Enum.Member[] members;
@@ -1283,8 +1271,8 @@ struct EnumOrUnionAndMembers {
 	}
 }
 
-immutable(Opt!EnumOrUnionAndMembers) getEnumOrUnionBody(immutable Type a) {
-	return matchType!(immutable Opt!EnumOrUnionAndMembers)(
+immutable(Opt!EnumOrUnionAndMembers) getEnumOrUnionBody(immutable Type a) =>
+	matchType!(immutable Opt!EnumOrUnionAndMembers)(
 		a,
 		(immutable Type.Bogus) => none!EnumOrUnionAndMembers,
 		(immutable TypeParam*) => none!EnumOrUnionAndMembers,
@@ -1305,7 +1293,6 @@ immutable(Opt!EnumOrUnionAndMembers) getEnumOrUnionBody(immutable Type a) {
 					none!EnumOrUnionAndMembers,
 				(ref immutable StructBody.Union it) =>
 					some(immutable EnumOrUnionAndMembers(immutable UnionAndMembers(structInst, it.members)))));
-}
 
 immutable(Expr) checkLoop(
 	ref ExprCtx ctx,
@@ -1373,13 +1360,12 @@ immutable(Expr) checkLoopUntil(
 	immutable FileAndRange range,
 	ref immutable LoopUntilAst ast,
 	ref Expected expected,
-) {
-	return check(ctx, expected, immutable Type(ctx.commonTypes.void_), immutable Expr(
+) =>
+	check(ctx, expected, immutable Type(ctx.commonTypes.void_), immutable Expr(
 		range,
 		allocate(ctx.alloc, immutable Expr.LoopUntil(
 			checkAndExpectBool(ctx, locals, ast.condition),
 			checkAndExpectVoid(ctx, locals, ast.body_)))));
-}
 
 immutable(Expr) checkLoopWhile(
 	ref ExprCtx ctx,
@@ -1387,13 +1373,12 @@ immutable(Expr) checkLoopWhile(
 	immutable FileAndRange range,
 	ref immutable LoopWhileAst ast,
 	ref Expected expected,
-) {
-	return check(ctx, expected, immutable Type(ctx.commonTypes.void_), immutable Expr(
+) =>
+	check(ctx, expected, immutable Type(ctx.commonTypes.void_), immutable Expr(
 		range,
 		allocate(ctx.alloc, immutable Expr.LoopWhile(
 			checkAndExpectBool(ctx, locals, ast.condition),
 			checkAndExpectVoid(ctx, locals, ast.body_)))));
-}
 
 immutable(Expr) checkMatch(
 	ref ExprCtx ctx,

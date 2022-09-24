@@ -14,9 +14,8 @@ import util.ptr : ptrTrustMe_mut;
 import util.util : drop, verify;
 import util.writer : finishWriterToSafeCStr, Writer;
 
-immutable(Opt!size_t) indexOfSym(ref immutable Sym[] a, immutable Sym value) {
-	return findIndex!Sym(a, (ref immutable Sym it) => it == value);
-}
+immutable(Opt!size_t) indexOfSym(ref immutable Sym[] a, immutable Sym value) =>
+	findIndex!Sym(a, (ref immutable Sym it) => it == value);
 
 struct Sym {
 	@safe @nogc pure nothrow:
@@ -59,9 +58,8 @@ struct AllSymbols {
 	MutDict!(immutable string, immutable Sym) largeStringToIndex;
 	MutArr!(immutable SafeCStr) largeStringFromIndex;
 
-	ref Alloc alloc() return scope {
-		return *allocPtr;
-	}
+	ref Alloc alloc() return scope =>
+		*allocPtr;
 }
 
 // WARN: 'value' must have been allocated by a.alloc
@@ -91,9 +89,8 @@ private @trusted immutable(Sym) prependToLongStr(immutable string prepend)(ref A
 	return getSymFromLongStr(allSymbols, cast(immutable) temp[0 .. i]);
 }
 
-immutable(Sym) concatSymsWithDot(ref AllSymbols allSymbols, immutable Sym a, immutable Sym b) {
-	return concatSyms(allSymbols, [a, symForSpecial(SpecialSym.dot), b]);
-}
+immutable(Sym) concatSymsWithDot(ref AllSymbols allSymbols, immutable Sym a, immutable Sym b) =>
+	concatSyms(allSymbols, [a, symForSpecial(SpecialSym.dot), b]);
 
 @trusted immutable(Sym) concatSyms(ref AllSymbols allSymbols, scope immutable Sym[] syms) {
 	char[0x100] temp = void;
@@ -114,9 +111,8 @@ immutable(Sym) symOfStr(ref AllSymbols allSymbols, scope immutable string str) {
 	return has(packed) ? force(packed) : getSymFromLongStr(allSymbols, str);
 }
 
-immutable(Sym) symOfSafeCStr(ref AllSymbols allSymbols, scope immutable SafeCStr a) {
-	return symOfStr(allSymbols, strOfSafeCStr(a));
-}
+immutable(Sym) symOfSafeCStr(ref AllSymbols allSymbols, scope immutable SafeCStr a) =>
+	symOfStr(allSymbols, strOfSafeCStr(a));
 
 enum Operator {
 	or2,
@@ -193,13 +189,11 @@ enum SpecialSym {
 	clock_gettime,
 }
 
-immutable(Sym) symForOperator(immutable Operator a) {
-	return immutable Sym(a);
-}
+immutable(Sym) symForOperator(immutable Operator a) =>
+	immutable Sym(a);
 
-immutable(Sym) symForSpecial(immutable SpecialSym a) {
-	return immutable Sym(Operator.max + 1 + a);
-}
+immutable(Sym) symForSpecial(immutable SpecialSym a) =>
+	immutable Sym(Operator.max + 1 + a);
 
 immutable(SafeCStr) strOfOperator(immutable Operator a) {
 	final switch (a) {
@@ -367,17 +361,14 @@ immutable(Sym) shortSym(immutable string name) {
 	return force(opt);
 }
 
-immutable(ulong) shortSymValue(immutable string name) {
-	return shortSym(name).value;
-}
+immutable(ulong) shortSymValue(immutable string name) =>
+	shortSym(name).value;
 
-immutable(ulong) operatorSymValue(immutable Operator a) {
-	return symForOperator(a).value;
-}
+immutable(ulong) operatorSymValue(immutable Operator a) =>
+	symForOperator(a).value;
 
-immutable(ulong) specialSymValue(immutable SpecialSym a) {
-	return symForSpecial(a).value;
-}
+immutable(ulong) specialSymValue(immutable SpecialSym a) =>
+	symForSpecial(a).value;
 
 immutable(SafeCStr) safeCStrOfSym(ref Alloc alloc, ref const AllSymbols allSymbols, immutable Sym a) {
 	if (isLongSym(a))
@@ -420,9 +411,8 @@ void writeQuotedSym(ref Writer writer, ref const AllSymbols allSymbols, immutabl
 	writer ~= '"';
 }
 
-immutable(bool) isSymOperator(immutable Sym a) {
-	return a.value <= Operator.max;
-}
+immutable(bool) isSymOperator(immutable Sym a) =>
+	a.value <= Operator.max;
 
 immutable(Opt!Operator) operatorForSym(immutable Sym a) {
 	if (isSymOperator(a)) {
@@ -546,14 +536,12 @@ void eachCharInShortSym(
 }
 
 // Public for test only
-public immutable(bool) isShortSym(immutable Sym a) {
-	return (a.value & shortSymTag) != 0;
-}
+public immutable(bool) isShortSym(immutable Sym a) =>
+	(a.value & shortSymTag) != 0;
 
 // Public for test only
-public immutable(bool) isLongSym(immutable Sym a) {
-	return !isShortSym(a);
-}
+public immutable(bool) isLongSym(immutable Sym a) =>
+	!isShortSym(a);
 
 @trusted immutable(SafeCStr) asLongSym(return scope ref const AllSymbols allSymbols, immutable Sym a) {
 	verify(isLongSym(a));

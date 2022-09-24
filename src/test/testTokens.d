@@ -73,18 +73,15 @@ void testOne(ref Test test, immutable SafeCStr source, immutable Token[] expecte
 	}
 }
 
-immutable(bool) tokensEq(ref immutable Token[] a, ref immutable Token[] b) {
-	return arrEqual!Token(a, b, (ref immutable Token x, ref immutable Token y) =>
+immutable(bool) tokensEq(ref immutable Token[] a, ref immutable Token[] b) =>
+	arrEqual!Token(a, b, (ref immutable Token x, ref immutable Token y) =>
 		tokenEq(x, y));
-}
 
-immutable(bool) tokenEq(ref immutable Token a, ref immutable Token b) {
-	return a.kind == b.kind && rangeEq(a.range, b.range);
-}
+immutable(bool) tokenEq(ref immutable Token a, ref immutable Token b) =>
+	a.kind == b.kind && rangeEq(a.range, b.range);
 
-immutable(bool) rangeEq(ref immutable RangeWithinFile a, ref immutable RangeWithinFile b) {
-	return a.start == b.start && a.end == b.end;
-}
+immutable(bool) rangeEq(ref immutable RangeWithinFile a, ref immutable RangeWithinFile b) =>
+	a.start == b.start && a.end == b.end;
 
 immutable SafeCStr testSource = safeCStr!`import
 	io

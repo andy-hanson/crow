@@ -22,13 +22,11 @@ struct ModuleLocalStructOrAliasIndex {
 
 	immutable size_t index;
 
-	immutable(ModuleLocalAliasIndex) asAlias() immutable {
-		return immutable ModuleLocalAliasIndex(index);
-	}
+	immutable(ModuleLocalAliasIndex) asAlias() immutable =>
+		immutable ModuleLocalAliasIndex(index);
 
-	immutable(ModuleLocalStructIndex) asStruct() immutable {
-		return immutable ModuleLocalStructIndex(index);
-	}
+	immutable(ModuleLocalStructIndex) asStruct() immutable =>
+		immutable ModuleLocalStructIndex(index);
 }
 
 struct ModuleLocalAliasIndex { immutable size_t index; }

@@ -29,24 +29,18 @@ struct InterpreterDebugInfo {
 	immutable PathsInfo* pathsInfoPtr;
 	immutable FilesInfo* filesInfoPtr;
 
-	ref immutable(ByteCode) byteCode() const return scope pure {
-		return *byteCodePtr;
-	}
-	ref immutable(LowProgram) lowProgram() const return scope pure {
-		return *lowProgramPtr;
-	}
-	ref immutable(AllSymbols) allSymbols() const return scope pure {
-		return *allSymbolsPtr;
-	}
-	ref immutable(AllPaths) allPaths() const return scope pure {
-		return *allPathsPtr;
-	}
-	ref immutable(PathsInfo) pathsInfo() const return scope pure {
-		return *pathsInfoPtr;
-	}
-	ref immutable(FilesInfo) filesInfo() const return scope pure {
-		return *filesInfoPtr;
-	}
+	ref immutable(ByteCode) byteCode() const return scope pure =>
+		*byteCodePtr;
+	ref immutable(LowProgram) lowProgram() const return scope pure =>
+		*lowProgramPtr;
+	ref immutable(AllSymbols) allSymbols() const return scope pure =>
+		*allSymbolsPtr;
+	ref immutable(AllPaths) allPaths() const return scope pure =>
+		*allPathsPtr;
+	ref immutable(PathsInfo) pathsInfo() const return scope pure =>
+		*pathsInfoPtr;
+	ref immutable(FilesInfo) filesInfo() const return scope pure =>
+		*filesInfoPtr;
 }
 
 // matches `backtrace-entry` from `bootstrap.crow`.
@@ -217,15 +211,14 @@ immutable(Opt!FileIndex) getFileIndex(
 	scope ref const AllSymbols allSymbols,
 	scope ref immutable LowProgram lowProgram,
 	immutable LowFunIndex fun,
-) {
-	return matchLowFunSource!(
+) =>
+	matchLowFunSource!(
 		immutable Opt!FileIndex,
 		(immutable ConcreteFun* it) =>
 			some(concreteFunRange(*it, allSymbols).fileIndex),
 		(ref immutable LowFunSource.Generated) =>
 			none!FileIndex,
 	)(lowProgram.allFuns[fun].source);
-}
 
 void writeFunNameAtIndex(
 	scope ref Writer writer,
@@ -247,13 +240,11 @@ void writeFunNameAtIndex(
 		writer ~= "opStopInterpretation";
 }
 
-@system immutable(bool) ptrInRange(T)(immutable T[] xs, immutable T* x) {
-	return xs.ptr <= x && x < (xs.ptr + xs.length);
-}
+@system immutable(bool) ptrInRange(T)(immutable T[] xs, immutable T* x) =>
+	xs.ptr <= x && x < (xs.ptr + xs.length);
 
-immutable(ByteCodeSource) byteCodeSourceAtIndex(ref const InterpreterDebugInfo a, immutable ByteCodeIndex index) {
-	return a.byteCode.sources[index];
-}
+immutable(ByteCodeSource) byteCodeSourceAtIndex(ref const InterpreterDebugInfo a, immutable ByteCodeIndex index) =>
+	a.byteCode.sources[index];
 
 immutable(Opt!ByteCodeSource) byteCodeSourceAtByteCodePtr(
 	ref const InterpreterDebugInfo a,
@@ -278,6 +269,5 @@ immutable(Opt!ByteCodeSource) byteCodeSourceAtByteCodePtr(
 	}
 }
 
-immutable(Opt!ByteCodeSource) nextSource(ref const InterpreterDebugInfo a, immutable Operation* cur) {
-	return byteCodeSourceAtByteCodePtr(a, cur);
-}
+immutable(Opt!ByteCodeSource) nextSource(ref const InterpreterDebugInfo a, immutable Operation* cur) =>
+	byteCodeSourceAtByteCodePtr(a, cur);

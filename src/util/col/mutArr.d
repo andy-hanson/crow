@@ -32,17 +32,14 @@ struct MutArr(T) {
 	a.capacity_ = 0;
 }
 
-immutable(size_t) mutArrSize(T)(ref const MutArr!T a) {
-	return a.size_;
-}
+immutable(size_t) mutArrSize(T)(ref const MutArr!T a) =>
+	a.size_;
 
-immutable(bool) mutArrIsEmpty(T)(ref const MutArr!T a) {
-	return a.size_ == 0;
-}
+immutable(bool) mutArrIsEmpty(T)(ref const MutArr!T a) =>
+	a.size_ == 0;
 
-@system T* mutArrEnd(T)(ref MutArr!T a) {
-	return a.begin_ + a.size_;
-}
+@system T* mutArrEnd(T)(ref MutArr!T a) =>
+	a.begin_ + a.size_;
 
 @trusted void push(T)(scope ref Alloc alloc, scope ref MutArr!T a, T value) {
 	if (a.size_ == a.capacity_) {
@@ -74,13 +71,11 @@ void mutArrClear(T)(ref MutArr!T a) {
 	return a.begin_[a.size_];
 }
 
-@trusted const(T[]) mutArrRange(T)(ref const MutArr!T a) {
-	return a.begin_[0 .. a.size_];
-}
+@trusted const(T[]) mutArrRange(T)(ref const MutArr!T a) =>
+	a.begin_[0 .. a.size_];
 
-@trusted immutable(T[]) moveToArr(T)(ref Alloc alloc, scope ref MutArr!(immutable T) a) {
-	return cast(immutable) moveToArr_mut(alloc, a);
-}
+@trusted immutable(T[]) moveToArr(T)(ref Alloc alloc, scope ref MutArr!(immutable T) a) =>
+	cast(immutable) moveToArr_mut(alloc, a);
 @trusted T[] moveToArr_mut(T)(ref Alloc alloc, ref MutArr!T a) {
 	T[] res = a.begin_[0 .. a.size_];
 	freeTPartial(alloc, a.begin_ + a.size_, a.capacity_ - a.size_);
@@ -90,9 +85,7 @@ void mutArrClear(T)(ref MutArr!T a) {
 	return res;
 }
 
-@trusted const(T[]) tempAsArr(T)(ref const MutArr!T a) {
-	return a.begin_[0 .. a.size_];
-}
-@trusted T[] tempAsArr_mut(T)(ref MutArr!T a) {
-	return a.begin_[0 .. a.size_];
-}
+@trusted const(T[]) tempAsArr(T)(ref const MutArr!T a) =>
+	a.begin_[0 .. a.size_];
+@trusted T[] tempAsArr_mut(T)(ref MutArr!T a) =>
+	a.begin_[0 .. a.size_];

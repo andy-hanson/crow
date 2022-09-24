@@ -15,9 +15,8 @@ import util.alloc.alloc : Alloc, allocateUninitialized;
 	*(cast(byte[T.sizeof]*) ptr) = *(cast(const byte[T.sizeof]*) &value);
 }
 
-@system ubyte* memcpy(return scope ubyte* dest, scope const ubyte* src, immutable size_t length) {
-	return memmove(dest, src, length);
-}
+@system ubyte* memcpy(return scope ubyte* dest, scope const ubyte* src, immutable size_t length) =>
+	memmove(dest, src, length);
 
 @system ubyte* memmove(return scope ubyte* dest, scope const ubyte* src, immutable size_t length) {
 	if (dest < src) {

@@ -127,21 +127,17 @@ void testApplyFn(ref Test test) {
 
 private:
 
-immutable(ulong) u64OfI8Bits(immutable byte a) {
-	return cast(ulong) (cast(ubyte) a);
-}
+immutable(ulong) u64OfI8Bits(immutable byte a) =>
+	cast(ulong) (cast(ubyte) a);
 
-immutable(ulong) u64OfI16Bits(immutable short a) {
-	return cast(ulong) (cast(ushort) a);
-}
+immutable(ulong) u64OfI16Bits(immutable short a) =>
+	cast(ulong) (cast(ushort) a);
 
-immutable(ulong) u64OfI32Bits(immutable int a) {
-	return cast(ulong) (cast(uint) a);
-}
+immutable(ulong) u64OfI32Bits(immutable int a) =>
+	cast(ulong) (cast(uint) a);
 
-immutable(ulong) u64OfI64Bits(immutable long a) {
-	return cast(ulong) a;
-}
+immutable(ulong) u64OfI64Bits(immutable long a) =>
+	cast(ulong) a;
 
 @trusted void testFnBinary(alias fn)(ref Test test, scope immutable ulong[2] stackIn, immutable ulong stackOut) {
 	interpreterTest(

@@ -210,12 +210,11 @@ immutable(ParsedEverything) parseEverything(
 		ref ArrBuilder!DiagnosticWithinFile diags,
 		immutable Path fromPath,
 		immutable ResolvedImport[] importsOrExports,
-	) {
-		return mapOrNoneImpure(modelAlloc, importsOrExports, (ref immutable ResolvedImport import_) =>
+	) =>
+		mapOrNoneImpure(modelAlloc, importsOrExports, (ref immutable ResolvedImport import_) =>
 			fullyResolveImport(
 				modelAlloc, astAlloc, perf, allSymbols, allPaths, storage, config,
 				statuses, stack, diags, fromPath, import_));
-	}
 
 	immutable Path includeDir = storage.includeDir;
 	immutable Path includeCrow = childPath(allPaths, includeDir, shortSym("crow"));
@@ -268,9 +267,8 @@ immutable(ParsedEverything) parseEverything(
 
 	verify(isEmpty(stack));
 
-	immutable(FileIndex) getIndex(immutable Path path) pure {
-		return asDone(mustGetAt_mut(statuses, path));
-	}
+	immutable(FileIndex) getIndex(immutable Path path) pure =>
+		asDone(mustGetAt_mut(statuses, path));
 
 	immutable CommonModuleIndices commonModuleIndices = immutable CommonModuleIndices(
 		getIndex(allocPath),
@@ -360,8 +358,8 @@ immutable(Opt!FullyResolvedImportKind) fullyResolveImportKind(
 	immutable Path fromPath,
 	ref immutable ResolvedImport import_,
 	immutable Path resolvedPath,
-) {
-	return matchImportOrExportAstKindImpure!(immutable Opt!FullyResolvedImportKind)(
+) =>
+	matchImportOrExportAstKindImpure!(immutable Opt!FullyResolvedImportKind)(
 		import_.kind,
 		(immutable ImportOrExportAstKind.ModuleWhole m) =>
 			fullyResolveImportModule(
@@ -385,7 +383,6 @@ immutable(Opt!FullyResolvedImportKind) fullyResolveImportKind(
 						modelAlloc, diags, storage,
 						some(immutable PathAndRange(fromPath, import_.importedFrom)),
 						resolvedPath, f.type)))));
-}
 
 immutable(FileContent) readFileContent(
 	ref Alloc modelAlloc,
@@ -459,11 +456,10 @@ alias LineAndColumnGettersBuilder = ArrBuilder!LineAndColumnGetter;
 immutable(LineAndColumnGetter) lineAndColumnGetterForOptText(
 	ref Alloc modelAlloc,
 	immutable Opt!SafeCStr opFileContent,
-) {
-	return has(opFileContent)
+) =>
+	has(opFileContent)
 		? lineAndColumnGetterForText(modelAlloc, force(opFileContent))
 		: lineAndColumnGetterForEmptyFile(modelAlloc);
-}
 
 immutable(FileAst) parseSingle(
 	ref Alloc modelAlloc,
@@ -474,15 +470,14 @@ immutable(FileAst) parseSingle(
 	ref ArrBuilder!DiagnosticWithinFile diags,
 	immutable Opt!PathAndRange importedFrom,
 	immutable ReadFileResult!SafeCStr fileContent,
-) {
-	return handleReadFileResult!(immutable FileAst, SafeCStr)(
+) =>
+	handleReadFileResult!(immutable FileAst, SafeCStr)(
 		modelAlloc,
 		diags,
 		importedFrom,
 		fileContent,
 		(scope immutable SafeCStr content) => parseFile(astAlloc, perf, allPaths, allSymbols, diags, content),
 		() => emptyFileAst);
-}
 
 immutable(T) handleReadFileResult(T, Content)(
 	ref Alloc modelAlloc,
@@ -491,8 +486,8 @@ immutable(T) handleReadFileResult(T, Content)(
 	immutable ReadFileResult!Content result,
 	scope immutable(T) delegate(scope immutable Content) @safe @nogc pure nothrow cbSuccess,
 	scope immutable(T) delegate() @safe @nogc pure nothrow cbFail,
-) {
-	return matchReadFileResult!(immutable T, Content)(
+) =>
+	matchReadFileResult!(immutable T, Content)(
 		result,
 		(immutable Content content) =>
 			cbSuccess(content),
@@ -506,7 +501,6 @@ immutable(T) handleReadFileResult(T, Content)(
 				immutable ParseDiag(immutable ParseDiag.FileReadError(importedFrom)))));
 			return cbFail();
 		});
-}
 
 struct ResolvedImport {
 	// This is arbitrarily the first module we saw to import this.
@@ -525,9 +519,8 @@ immutable(ResolvedImport) tryResolveImport(
 	immutable Path fromPath,
 	ref immutable ImportOrExportAst ast,
 ) {
-	immutable(ResolvedImport) resolved(immutable Path pk) {
-		return immutable ResolvedImport(ast.range, some(pk), ast.kind);
-	}
+	immutable(ResolvedImport) resolved(immutable Path pk) =>
+		immutable ResolvedImport(ast.range, some(pk), ast.kind);
 	return matchPathOrRelPath!(immutable ResolvedImport)(
 		ast.path,
 		(immutable Path global) {
@@ -579,22 +572,20 @@ immutable(ImportAndExportPaths) resolveImportAndExportPaths(
 	immutable Path fromPath,
 	ref immutable Opt!ImportsOrExportsAst imports,
 	ref immutable Opt!ImportsOrExportsAst exports,
-) {
-	return immutable ImportAndExportPaths(
+) =>
+	immutable ImportAndExportPaths(
 		resolveImportOrExportPaths(
 			modelAlloc, astAlloc, allPaths, diagnosticsBuilder, includeDir, config, fromPath, imports),
 		resolveImportOrExportPaths(
 			modelAlloc, astAlloc, allPaths, diagnosticsBuilder, includeDir, config, fromPath, exports));
-}
 
 struct AstAndResolvedImports {
 	immutable FileAst ast;
 	immutable FullyResolvedImport[] resolvedImports;
 	immutable FullyResolvedImport[] resolvedExports;
 
-	static immutable(AstAndResolvedImports) empty() {
-		return immutable AstAndResolvedImports(emptyFileAst, [], []);
-	}
+	static immutable(AstAndResolvedImports) empty() =>
+		immutable AstAndResolvedImports(emptyFileAst, [], []);
 }
 
 struct FullyResolvedImport {
@@ -714,11 +705,11 @@ immutable(ModulesAndCommonTypes) getModules(
 		(ref immutable AstAndResolvedImports ast, ref immutable Module[] soFar, immutable size_t index) {
 			immutable FullIndexDict!(FileIndex, Module) compiled = fullIndexDictOfArr!(FileIndex, Module)(soFar);
 			immutable PathAndAst pathAndAst = immutable PathAndAst(immutable FileIndex(safeToUshort(index)), ast.ast);
-			if (lateIsSet(commonTypes)) {
+			if (lateIsSet(commonTypes))
 				return checkNonBootstrapModule(
 					modelAlloc, perf, allSymbols, diagsBuilder, programState, stdIndex,
 					ast, compiled, pathAndAst, lateGet(commonTypes));
-			} else {
+			else {
 				// The first module to check is always 'bootstrap.crow'
 				verify(ast.resolvedImports.empty);
 				immutable BootstrapCheck res =

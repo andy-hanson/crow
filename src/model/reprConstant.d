@@ -8,8 +8,8 @@ import util.alloc.alloc : Alloc;
 import util.sym : Sym;
 import util.repr : Repr, reprArr, reprBool, reprFloat, reprNat, reprOpt, reprRecord, reprSym;
 
-immutable(Repr) reprOfConstant(ref Alloc alloc, ref immutable Constant a) {
-	return matchConstant!(immutable Repr)(
+immutable(Repr) reprOfConstant(ref Alloc alloc, ref immutable Constant a) =>
+	matchConstant!(immutable Repr)(
 		a,
 		(ref immutable Constant.ArrConstant it) =>
 			reprRecord(alloc, "arr", [reprNat(it.typeIndex), reprNat(it.index)]),
@@ -35,4 +35,3 @@ immutable(Repr) reprOfConstant(ref Alloc alloc, ref immutable Constant a) {
 			reprRecord(alloc, "union", [reprNat(it.memberIndex), reprOfConstant(alloc, it.arg)]),
 		(immutable Constant.Void) =>
 			reprSym("void"));
-}

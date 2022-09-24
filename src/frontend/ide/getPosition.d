@@ -208,8 +208,8 @@ immutable(Opt!Position) positionInImportsOrExports(
 	immutable ImportOrExport[] importsOrExports,
 	immutable Pos pos,
 ) {
-	foreach (immutable ImportOrExport* im; ptrsRange(importsOrExports)) {
-		if (has(im.importSource) && hasPos(force(im.importSource), pos)) {
+	foreach (immutable ImportOrExport* im; ptrsRange(importsOrExports))
+		if (has(im.importSource) && hasPos(force(im.importSource), pos))
 			return matchImportOrExportKind!(immutable Opt!Position)(
 				im.kind,
 				(immutable ImportOrExportKind.ModuleWhole m) =>
@@ -224,8 +224,6 @@ immutable(Opt!Position) positionInImportsOrExports(
 					}
 					return some(immutable Position(immutable Position.ImportedModule(im, m.modulePtr)));
 				});
-		}
-	}
 	return none!Position;
 }
 
@@ -258,23 +256,20 @@ immutable(Position) positionInStruct(ref const AllSymbols allSymbols, immutable 
 	return has(specific) ? force(specific) : immutable Position(a);
 }
 
-immutable(Opt!Position) positionOfType(immutable Type a) {
-	return matchType!(immutable Opt!Position)(
+immutable(Opt!Position) positionOfType(immutable Type a) =>
+	matchType!(immutable Opt!Position)(
 		a,
 		(immutable Type.Bogus) => none!Position,
 		(immutable TypeParam* it) => some(immutable Position(it)),
 		(immutable StructInst* it) => some(immutable Position(decl(*it))));
-}
 
 immutable(bool) nameHasPos(
 	ref const AllSymbols allSymbols,
 	immutable Pos start,
 	immutable Sym name,
 	immutable Pos pos,
-) {
-	return start <= pos && pos < start + symSize(allSymbols, name);
-}
+) =>
+	start <= pos && pos < start + symSize(allSymbols, name);
 
-immutable(bool) betweenRanges(immutable RangeWithinFile left, immutable Pos pos, immutable RangeWithinFile right) {
-	return left.end <= pos && pos < right.start;
-}
+immutable(bool) betweenRanges(immutable RangeWithinFile left, immutable Pos pos, immutable RangeWithinFile right) =>
+	left.end <= pos && pos < right.start;

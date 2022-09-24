@@ -11,19 +11,16 @@ import util.opt : force, has, noneMut, Opt, someMut;
 struct MutIndexDict(K, V) {
 	private Opt!V[] values_;
 
-	ref const(Opt!V) opIndex(immutable K key) const {
-		return values_[key.index];
-	}
+	ref const(Opt!V) opIndex(immutable K key) const =>
+		values_[key.index];
 }
 
-MutIndexDict!(K, V) newMutIndexDict(K, V)(ref Alloc alloc, immutable size_t size) {
-	return MutIndexDict!(K, V)(fillArr_mut!(Opt!V)(alloc, size, (immutable size_t) =>
+MutIndexDict!(K, V) newMutIndexDict(K, V)(ref Alloc alloc, immutable size_t size) =>
+	MutIndexDict!(K, V)(fillArr_mut!(Opt!V)(alloc, size, (immutable size_t) =>
 		noneMut!V));
-}
 
-ref const(V) mustGetAt(K, V)(ref const MutIndexDict!(K, V) a, immutable K key) {
-	return force(getAt(a, key));
-}
+ref const(V) mustGetAt(K, V)(ref const MutIndexDict!(K, V) a, immutable K key) =>
+	force(getAt(a, key));
 
 immutable(ValueAndDidAdd!V) getOrAddAndDidAdd(K, V)(
 	ref MutIndexDict!(K, V) a,

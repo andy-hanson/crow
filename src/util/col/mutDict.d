@@ -24,13 +24,11 @@ struct KeyValuePair(K, V) {
 	V value;
 }
 
-immutable(bool) mutDictIsEmpty(K, V)(ref const MutDict!(K, V) a) {
-	return a.size == 0;
-}
+immutable(bool) mutDictIsEmpty(K, V)(ref const MutDict!(K, V) a) =>
+	a.size == 0;
 
-immutable(size_t) mutDictSize(K, V)(ref const MutDict!(K, V) a) {
-	return a.size;
-}
+immutable(size_t) mutDictSize(K, V)(ref const MutDict!(K, V) a) =>
+	a.size;
 
 immutable(bool) hasKey_mut(K, V)(ref const MutDict!(K, V) a, const K key) {
 	immutable Opt!V value = getAt_mut(a, key);
@@ -83,9 +81,8 @@ ref KeyValuePair!(K, V) setInDict(K, V)(
 	scope ref MutDict!(K, V) a,
 	K key,
 	V value,
-) {
-	return insertOrUpdate!(K, V)(alloc, a, key, () => value, (ref const(V)) => value);
-}
+) =>
+	insertOrUpdate!(K, V)(alloc, a, key, () => value, (ref const(V)) => value);
 
 struct ValueAndDidAdd(V) {
 	V value;
@@ -129,9 +126,8 @@ ref V getOrAdd(K, V)(
 	return scope ref MutDict!(K, V) a,
 	K key,
 	scope V delegate() @safe @nogc pure nothrow getValue,
-) {
-	return getOrAddPair(alloc, a, key, () => KeyValuePair!(K, V)(key, getValue())).value;
-}
+) =>
+	getOrAddPair(alloc, a, key, () => KeyValuePair!(K, V)(key, getValue())).value;
 
 ref KeyValuePair!(K, V) getOrAddPair(K, V)(
 	ref Alloc alloc,
@@ -230,11 +226,10 @@ private immutable(size_t) walkDistance(K, V)(
 	ref const MutDict!(K, V) a,
 	immutable size_t i0,
 	immutable size_t i1,
-) {
-	return i0 <= i1
+) =>
+	i0 <= i1
 		? i1 - i0
 		: a.pairs.length + i1 - i0;
-}
 
 private @trusted immutable(Out[]) mapToArr_const(Out, K, V)(
 	ref Alloc alloc,
@@ -256,10 +251,9 @@ private @trusted immutable(Out[]) mapToArr_const(Out, K, V)(
 	ref Alloc alloc,
 	ref MutDict!(K, V) a,
 	scope immutable(Out) delegate(immutable K, ref V) @safe @nogc pure nothrow cb,
-) {
-	return mapToArr_const!(Out, K, V)(alloc, a, (immutable K k, ref const V v) =>
+) =>
+	mapToArr_const!(Out, K, V)(alloc, a, (immutable K k, ref const V v) =>
 		cb(k, cast(V) v));
-}
 
 @trusted immutable(Dict!(K, V)) moveToDict(K, V)(
 	ref Alloc alloc,
@@ -290,9 +284,8 @@ immutable(Dict!(K, VOut)) mapToDict(K, VOut, VIn)(
 immutable(V[]) valuesArray(K, V)(
 	ref Alloc alloc,
 	scope ref const MutDict!(K, V) a,
-) {
-	return mapToArr_const!(V, K, V)(alloc, a, (immutable(K), ref V v) => v);
-}
+) =>
+	mapToArr_const!(V, K, V)(alloc, a, (immutable(K), ref V v) => v);
 
 void mutDictEach(K, V)(
 	scope ref const MutDict!(K, V) a,
@@ -336,11 +329,10 @@ ref KeyValuePair!(K, V) addAt(K, V)(
 	}
 }
 
-immutable(bool) shouldExpand(K, V)(ref const MutDict!(K, V) a) {
-	return a.size <= 8
+immutable(bool) shouldExpand(K, V)(ref const MutDict!(K, V) a) =>
+	a.size <= 8
 		? a.size + 1 >= a.pairs.length
 		: a.size * 9 / 8 >= a.pairs.length;
-}
 
 @trusted void doExpand(K, V)(ref Alloc alloc, scope ref MutDict!(K, V) a) {
 	immutable size_t newSize = a.pairs.length < 2 ? 2 : a.pairs.length * 2;

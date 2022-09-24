@@ -45,13 +45,11 @@ struct Alloc {
 
 alias TempAlloc = Alloc;
 
-size_t curBytes(ref Alloc alloc) {
-	return (alloc.cur - alloc.end) * word.sizeof;
-}
+size_t curBytes(ref Alloc alloc) =>
+	(alloc.cur - alloc.end) * word.sizeof;
 
-ubyte* allocateBytes(ref Alloc alloc, immutable size_t size) {
-	return cast(ubyte*) allocateWords(alloc, divRoundUp(size, word.sizeof));
-}
+ubyte* allocateBytes(ref Alloc alloc, immutable size_t size) =>
+	cast(ubyte*) allocateWords(alloc, divRoundUp(size, word.sizeof));
 
 private word* allocateWords(ref Alloc alloc, immutable size_t nWords) {
 	word* res = alloc.cur;
@@ -60,13 +58,11 @@ private word* allocateWords(ref Alloc alloc, immutable size_t nWords) {
 	return res;
 }
 
-T* allocateT(T)(ref Alloc alloc, immutable size_t count) {
-	return cast(T*) allocateBytes(alloc, T.sizeof * count);
-}
+T* allocateT(T)(ref Alloc alloc, immutable size_t count) =>
+	cast(T*) allocateBytes(alloc, T.sizeof * count);
 
-T* allocateUninitialized(T)(ref Alloc alloc) {
-	return allocateT!T(alloc, 1);
-}
+T* allocateUninitialized(T)(ref Alloc alloc) =>
+	allocateT!T(alloc, 1);
 
 private void freeBytes(ref Alloc alloc, ubyte* ptr, immutable(size_t)) {
 	// do nothing
@@ -88,6 +84,5 @@ private:
 
 alias word = ulong;
 
-immutable(bool) isWordAligned(const ubyte* a) {
-	return (cast(immutable size_t) a) % word.sizeof == 0;
-}
+immutable(bool) isWordAligned(const ubyte* a) =>
+	(cast(immutable size_t) a) % word.sizeof == 0;

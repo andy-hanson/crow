@@ -68,25 +68,21 @@ private immutable(TypeAst[]) parseTypesWithCommas(scope ref Lexer lexer) {
 	return finishArr(lexer.alloc, res);
 }
 
-private immutable(TypeAst[]) tryParseTypeArgsAllowSpace(scope ref Lexer lexer) {
-	return peekToken(lexer, Token.name)
+private immutable(TypeAst[]) tryParseTypeArgsAllowSpace(scope ref Lexer lexer) =>
+	peekToken(lexer, Token.name)
 		? arrLiteral(lexer.alloc, [parseType(lexer)])
 		: tryParseTypeArgsBracketed(lexer);
-}
 
-immutable(TypeAst) parseType(scope ref Lexer lexer) {
-	return parseType(lexer, RequireBracket.no);
-}
+immutable(TypeAst) parseType(scope ref Lexer lexer) =>
+	parseType(lexer, RequireBracket.no);
 
-immutable(TypeAst) parseTypeRequireBracket(scope ref Lexer lexer) {
-	return parseType(lexer, RequireBracket.yes);
-}
+immutable(TypeAst) parseTypeRequireBracket(scope ref Lexer lexer) =>
+	parseType(lexer, RequireBracket.yes);
 
 private enum RequireBracket { no, yes }
 
-private immutable(TypeAst) parseType(scope ref Lexer lexer, immutable RequireBracket requireBracket) {
-	return parseTypeSuffixes(lexer, parseTypeBeforeSuffixes(lexer, requireBracket));
-}
+private immutable(TypeAst) parseType(scope ref Lexer lexer, immutable RequireBracket requireBracket) =>
+	parseTypeSuffixes(lexer, parseTypeBeforeSuffixes(lexer, requireBracket));
 
 private immutable(TypeAst) parseTypeBeforeSuffixes(scope ref Lexer lexer, immutable RequireBracket requireBracket) {
 	immutable Pos start = curPos(lexer);
@@ -135,17 +131,14 @@ private immutable(TypeAst) parseFunType(scope ref Lexer lexer, immutable Pos sta
 }
 
 private immutable(TypeAst) parseTypeSuffixes(scope ref Lexer lexer, immutable TypeAst ast) {
-	immutable(TypeAst) doSuffix(immutable TypeAst inner, immutable TypeAst.Suffix.Kind kind) {
-		return immutable TypeAst(allocate(lexer.alloc, immutable TypeAst.Suffix(kind, inner)));
-	}
+	immutable(TypeAst) doSuffix(immutable TypeAst inner, immutable TypeAst.Suffix.Kind kind) =>
+		immutable TypeAst(allocate(lexer.alloc, immutable TypeAst.Suffix(kind, inner)));
 
-	immutable(TypeAst) handleSuffix(immutable TypeAst.Suffix.Kind kind) {
-		return parseTypeSuffixes(lexer, doSuffix(ast, kind));
-	}
+	immutable(TypeAst) handleSuffix(immutable TypeAst.Suffix.Kind kind) =>
+		parseTypeSuffixes(lexer, doSuffix(ast, kind));
 
-	immutable(TypeAst) handleDoubleSuffix(immutable TypeAst.Suffix.Kind kind1, immutable TypeAst.Suffix.Kind kind2) {
-		return parseTypeSuffixes(lexer, doSuffix(doSuffix(ast, kind1), kind2));
-	}
+	immutable(TypeAst) handleDoubleSuffix(immutable TypeAst.Suffix.Kind kind1, immutable TypeAst.Suffix.Kind kind2) =>
+		parseTypeSuffixes(lexer, doSuffix(doSuffix(ast, kind1), kind2));
 
 	immutable(TypeAst) handleDictLike(immutable TypeAst.Dict.Kind kind) {
 		immutable TypeAst inner = parseType(lexer);
@@ -156,20 +149,20 @@ private immutable(TypeAst) parseTypeSuffixes(scope ref Lexer lexer, immutable Ty
 
 	if (tryTakeToken(lexer, Token.question))
 		return handleSuffix(TypeAst.Suffix.Kind.opt);
-	else if (tryTakeToken(lexer, Token.bracketLeft)) {
+	else if (tryTakeToken(lexer, Token.bracketLeft))
 		return tryTakeToken(lexer, Token.bracketRight)
 			? handleSuffix(TypeAst.Suffix.Kind.arr)
 			: handleDictLike(TypeAst.Dict.Kind.data);
-	} else if (tryTakeOperator(lexer, Operator.times))
+	else if (tryTakeOperator(lexer, Operator.times))
 		return handleSuffix(TypeAst.Suffix.Kind.ptr);
 	else if (tryTakeOperator(lexer, Operator.exponent))
 		return handleDoubleSuffix(TypeAst.Suffix.Kind.ptr, TypeAst.Suffix.Kind.ptr);
 	else if (tryTakeToken(lexer, Token.mut)) {
-		if (tryTakeToken(lexer, Token.bracketLeft)) {
+		if (tryTakeToken(lexer, Token.bracketLeft))
 			return tryTakeToken(lexer, Token.bracketRight)
 				? handleSuffix(TypeAst.Suffix.Kind.arrMut)
 				: handleDictLike(TypeAst.Dict.Kind.mut);
-		} else if (tryTakeOperator(lexer, Operator.times))
+		else if (tryTakeOperator(lexer, Operator.times))
 			return handleSuffix(TypeAst.Suffix.kind.ptrMut);
 		else if (tryTakeOperator(lexer, Operator.exponent))
 			return handleDoubleSuffix(TypeAst.Suffix.Kind.ptrMut, TypeAst.Suffix.Kind.ptr);

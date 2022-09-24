@@ -48,9 +48,8 @@ struct LineAndColumnGetter {
 	return immutable LineAndColumnGetter(finishArr(alloc, lineToPos), finishArr(alloc, lineToNTabs));
 }
 
-immutable(LineAndColumnGetter) lineAndColumnGetterForEmptyFile(ref Alloc alloc) {
-	return lineAndColumnGetterForText(alloc, safeCStr!"");
-}
+immutable(LineAndColumnGetter) lineAndColumnGetterForEmptyFile(ref Alloc alloc) =>
+	lineAndColumnGetterForText(alloc, safeCStr!"");
 
 immutable(LineAndColumn) lineAndColumnAtPos(ref immutable LineAndColumnGetter lc, immutable Pos pos) {
 	ushort lowLine = 0; // inclusive
@@ -85,9 +84,8 @@ private:
 
 immutable uint TAB_SIZE = 4; // TODO: configurable
 
-ushort mid(immutable ushort a, immutable ushort b) {
-	return (a + b) / 2;
-}
+ushort mid(immutable ushort a, immutable ushort b) =>
+	(a + b) / 2;
 
 @system ubyte advanceAndGetNTabs(ref immutable(char)* a) {
 	immutable char* begin = a;

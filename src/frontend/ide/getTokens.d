@@ -94,10 +94,9 @@ struct Token {
 	immutable RangeWithinFile range;
 }
 
-immutable(Repr) reprTokens(ref Alloc alloc, ref immutable Token[] tokens) {
-	return reprArr(alloc, tokens, (ref immutable Token it) =>
+immutable(Repr) reprTokens(ref Alloc alloc, ref immutable Token[] tokens) =>
+	reprArr(alloc, tokens, (ref immutable Token it) =>
 		reprToken(alloc, it));
-}
 
 immutable(Token[]) tokensOfAst(ref Alloc alloc, ref const AllSymbols allSymbols, scope ref immutable FileAst ast) {
 	ArrBuilder!Token tokens;
@@ -149,9 +148,8 @@ immutable(RangeWithinFile) rangeAtName(
 	return immutable RangeWithinFile(afterDot, afterDot + symSize(allSymbols, name));
 }
 
-immutable(RangeWithinFile) rangeAtName(ref const AllSymbols allSymbols, immutable Pos start, immutable Sym name) {
-	return rangeAtName(allSymbols, Visibility.public_, start, name);
-}
+immutable(RangeWithinFile) rangeAtName(ref const AllSymbols allSymbols, immutable Pos start, immutable Sym name) =>
+	rangeAtName(allSymbols, Visibility.public_, start, name);
 
 void addImportTokens(
 	ref Alloc alloc,
@@ -635,9 +633,8 @@ void addExprTokens(
 	)(a.kind);
 }
 
-immutable(Token) localDefOfNameAndRange(ref const AllSymbols allSymbols, immutable NameAndRange a) {
-	return immutable Token(Token.Kind.local, rangeOfNameAndRange(a, allSymbols));
-}
+immutable(Token) localDefOfNameAndRange(ref const AllSymbols allSymbols, immutable NameAndRange a) =>
+	immutable Token(Token.Kind.local, rangeOfNameAndRange(a, allSymbols));
 
 void addLambdaAstParam(
 	ref Alloc alloc,
@@ -666,9 +663,8 @@ void assertTokensSorted(ref immutable Token[] tokens) {
 		todo!void("tokens not sorted!");
 }
 
-immutable(Comparison) compareRangeWithinFile(ref immutable RangeWithinFile a, ref immutable RangeWithinFile b) {
-	return compareNat32(a.start, b.start);
-}
+immutable(Comparison) compareRangeWithinFile(ref immutable RangeWithinFile a, ref immutable RangeWithinFile b) =>
+	compareNat32(a.start, b.start);
 
 immutable(Sym) symOfTokenKind(immutable Token.Kind kind) {
 	final switch (kind) {
@@ -701,8 +697,7 @@ immutable(Sym) symOfTokenKind(immutable Token.Kind kind) {
 	}
 }
 
-immutable(Repr) reprToken(ref Alloc alloc, ref immutable Token token) {
-	return reprNamedRecord(alloc, "token", [
+immutable(Repr) reprToken(ref Alloc alloc, ref immutable Token token) =>
+	reprNamedRecord(alloc, "token", [
 		nameAndRepr("kind", reprSym(symOfTokenKind(token.kind))),
 		nameAndRepr("range", reprRangeWithinFile(alloc, token.range))]);
-}

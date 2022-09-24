@@ -58,8 +58,8 @@ import util.sourceRange : RangeWithinFile;
 import util.sym : shortSym, SpecialSym, Sym, symForSpecial;
 import util.util : todo, unreachable;
 
-StructDecl[] checkStructsInitial(ref CheckCtx ctx, scope immutable StructDeclAst[] asts) {
-	return mapToMut!StructDecl(ctx.alloc, asts, (scope ref immutable StructDeclAst ast) {
+StructDecl[] checkStructsInitial(ref CheckCtx ctx, scope immutable StructDeclAst[] asts) =>
+	mapToMut!StructDecl(ctx.alloc, asts, (scope ref immutable StructDeclAst ast) {
 		immutable LinkageAndPurity p = getStructModifiers(ctx, getTypeKind(ast.body_), ast.modifiers);
 		return StructDecl(
 			rangeInFile(ctx, ast.range),
@@ -71,7 +71,6 @@ StructDecl[] checkStructsInitial(ref CheckCtx ctx, scope immutable StructDeclAst
 			p.purityAndForced.purity,
 			p.purityAndForced.forced);
 	});
-}
 
 void checkStructBodies(
 	ref CheckCtx ctx,
@@ -148,8 +147,8 @@ immutable(LinkageAndPurity) getStructModifiers(
 	ref CheckCtx ctx,
 	immutable TypeKind typeKind,
 	scope immutable ModifierAst[] modifiers,
-) {
-	return fold(
+) =>
+	fold(
 		immutable LinkageAndPurity(defaultLinkage(typeKind), immutable PurityAndForced(defaultPurity(typeKind), false)),
 		modifiers,
 		(immutable LinkageAndPurity cur, ref immutable ModifierAst mod) {
@@ -174,7 +173,6 @@ immutable(LinkageAndPurity) getStructModifiers(
 					return cur;
 			}
 		});
-}
 
 immutable(Linkage) defaultLinkage(immutable TypeKind a) {
 	final switch (a) {
@@ -202,8 +200,8 @@ immutable(Purity) defaultPurity(immutable TypeKind a) {
 	}
 }
 
-immutable(TypeKind) getTypeKind(ref immutable StructDeclAst.Body a) {
-	return matchStructDeclAstBody!(
+immutable(TypeKind) getTypeKind(ref immutable StructDeclAst.Body a) =>
+	matchStructDeclAstBody!(
 		immutable TypeKind,
 		(ref immutable StructDeclAst.Body.Builtin) => TypeKind.builtin,
 		(ref immutable StructDeclAst.Body.Enum) => TypeKind.enum_,
@@ -212,7 +210,6 @@ immutable(TypeKind) getTypeKind(ref immutable StructDeclAst.Body a) {
 		(ref immutable StructDeclAst.Body.Record) => TypeKind.record,
 		(ref immutable StructDeclAst.Body.Union) => TypeKind.union_,
 	)(a);
-}
 
 immutable(Opt!PurityAndForced) purityAndForcedFromModifier(immutable ModifierAst.Kind a) {
 	final switch (a) {
@@ -392,8 +389,8 @@ immutable(bool) valueOverflows(immutable EnumBackingType type, immutable EnumVal
 	}
 }
 
-immutable(EnumValue) maxValue(immutable EnumBackingType type) {
-	return immutable EnumValue(() {
+immutable(EnumValue) maxValue(immutable EnumBackingType type) =>
+	immutable EnumValue(() {
 		final switch (type) {
 			case EnumBackingType.int8: return byte.max;
 			case EnumBackingType.int16: return short.max;
@@ -405,7 +402,6 @@ immutable(EnumValue) maxValue(immutable EnumBackingType type) {
 			case EnumBackingType.nat64: return ulong.max;
 		}
 	}());
-}
 
 immutable(bool) isSignedEnumBackingType(immutable EnumBackingType a) {
 	final switch (a) {
@@ -627,8 +623,8 @@ immutable(RecordModifiers) withPacked(
 	return immutable RecordModifiers(cur.byValOrRefOrNone, cur.newVisibility, true);
 }
 
-immutable(RecordModifiers) checkRecordModifiers(ref CheckCtx ctx, immutable ModifierAst[] modifiers) {
-	return fold(
+immutable(RecordModifiers) checkRecordModifiers(ref CheckCtx ctx, immutable ModifierAst[] modifiers) =>
+	fold(
 		immutable RecordModifiers(ForcedByValOrRefOrNone.none, none!Visibility, false),
 		modifiers,
 		(immutable RecordModifiers cur, ref immutable ModifierAst modifier) {
@@ -653,7 +649,6 @@ immutable(RecordModifiers) checkRecordModifiers(ref CheckCtx ctx, immutable Modi
 					return cur;
 			}
 		});
-}
 
 void checkReferenceLinkageAndPurity(
 	ref CheckCtx ctx,

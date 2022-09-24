@@ -183,11 +183,10 @@ import util.writer : finishWriterToCStr, Writer;
 
 private:
 
-immutable(int) runMain(ref Alloc alloc, ref Perf perf, immutable SafeCStr[] allArgs, immutable MainType main) {
-	return withMeasure!(immutable int, () @trusted =>
+immutable(int) runMain(ref Alloc alloc, ref Perf perf, immutable SafeCStr[] allArgs, immutable MainType main) =>
+	withMeasure!(immutable int, () @trusted =>
 		main(cast(int) allArgs.length, cast(immutable CStr*) allArgs.ptr)
 	)(alloc, perf, PerfMeasure.run);
-}
 
 pure:
 
@@ -366,9 +365,8 @@ extern(C) {
 }
 
 //TODO:KILL
-immutable(bool) isStubFunction(immutable(LowFunIndex)) {
-	return false;
-}
+immutable(bool) isStubFunction(immutable(LowFunIndex)) =>
+	false;
 
 struct ConversionFunctions {
 	immutable gcc_jit_function* ptrToNat64;
@@ -497,8 +495,8 @@ GlobalsForThreadLocals generateGlobalsForThreadLocals(
 	ref immutable LowProgram program,
 	ref immutable GccTypes types,
 	ref immutable MangledNames mangledNames,
-) {
-	return mapFullIndexDict_mut!(LowThreadLocalIndex, gcc_jit_lvalue*, LowThreadLocal)(
+) =>
+	mapFullIndexDict_mut!(LowThreadLocalIndex, gcc_jit_lvalue*, LowThreadLocal)(
 		alloc,
 		program.threadLocals,
 		(immutable(LowThreadLocalIndex), scope ref immutable LowThreadLocal x) {
@@ -512,7 +510,6 @@ GlobalsForThreadLocals generateGlobalsForThreadLocals(
 			gcc_jit_lvalue_set_tls_model(res, gcc_jit_tls_model.GCC_JIT_TLS_MODEL_LOCAL_DYNAMIC);
 			return res;
 		});
-}
 
 @trusted gcc_jit_function* toGccFunctionSignature(
 	ref Alloc alloc,
@@ -655,17 +652,14 @@ struct ExprEmit {
 	}
 }
 
-immutable(bool) isValue(ref ExprEmit a) {
-	return a.kind == ExprEmit.Kind.value;
-}
+immutable(bool) isValue(ref const ExprEmit a) =>
+	a.kind == ExprEmit.Kind.value;
 
-immutable(bool) isVoid(ref const ExprEmit a) {
-	return a.kind == ExprEmit.Kind.void_;
-}
+immutable(bool) isVoid(ref const ExprEmit a) =>
+	a.kind == ExprEmit.Kind.void_;
 
-immutable(bool) isReturn(ref const ExprEmit a) {
-	return a.kind == ExprEmit.Kind.return_;
-}
+immutable(bool) isReturn(ref const ExprEmit a) =>
+	a.kind == ExprEmit.Kind.return_;
 
 immutable(bool) isLoopOrReturn(ref const ExprEmit a) {
 	final switch (a.kind) {
@@ -691,8 +685,8 @@ struct ExprResult {
 	immutable this(immutable gcc_jit_rvalue* a) { kind = Kind.rvalue; rvalue = a; }
 	immutable this(immutable Void a) { kind = Kind.void_; void_ = a; }
 
-	immutable(bool) opEquals(scope immutable ExprResult b) scope immutable {
-		return kind == b.kind && matchExprResult!(immutable bool)(
+	immutable(bool) opEquals(scope immutable ExprResult b) scope immutable =>
+		kind == b.kind && matchExprResult!(immutable bool)(
 			this,
 			(immutable ExprResult.BreakContinueOrReturn) =>
 				true,
@@ -700,7 +694,6 @@ struct ExprResult {
 				b.rvalue == x,
 			(immutable ExprResult.Void) =>
 				true);
-	}
 
 	private:
 	enum Kind { breakContinueOrReturn, rvalue, void_ }
@@ -712,13 +705,11 @@ struct ExprResult {
 	}
 }
 
-immutable(bool) isBreakContinueOrReturn(immutable ExprResult a) {
-	return a.kind == ExprResult.Kind.breakContinueOrReturn;
-}
+immutable(bool) isBreakContinueOrReturn(immutable ExprResult a) =>
+	a.kind == ExprResult.Kind.breakContinueOrReturn;
 
-immutable(bool) isVoid(immutable ExprResult a) {
-	return a.kind == ExprResult.Kind.void_;
-}
+immutable(bool) isVoid(immutable ExprResult a) =>
+	a.kind == ExprResult.Kind.void_;
 
 @trusted immutable(gcc_jit_rvalue*) asRValue(immutable ExprResult a) {
 	verify(a.kind == ExprResult.Kind.rvalue);
@@ -775,13 +766,12 @@ immutable(ExprResult) emitSimpleYesSideEffects(
 	ref ExprEmit emit,
 	immutable LowType type,
 	immutable gcc_jit_rvalue* value,
-) {
-	return isValue(emit)
+) =>
+	isValue(emit)
 		? immutable ExprResult(getRValueUsingLocal(ctx, type, (gcc_jit_lvalue* local) {
 			gcc_jit_block_add_assignment(ctx.curBlock, null, local, value);
 		}))
 		: emitSimpleNoSideEffects(ctx, emit, value);
-}
 
 immutable(gcc_jit_rvalue*) getRValueUsingLocal(
 	ref ExprCtx ctx,
@@ -798,8 +788,8 @@ immutable(ExprResult) emitWriteToLValue(
 	ref ExprEmit emit,
 	immutable LowType type,
 	scope void delegate(gcc_jit_lvalue*) @safe @nogc pure nothrow cb,
-) {
-	return matchExprEmit!(immutable ExprResult)(
+) =>
+	matchExprEmit!(immutable ExprResult)(
 		emit,
 		(ExprEmit.Loop) =>
 			unreachable!(immutable ExprResult),
@@ -816,13 +806,12 @@ immutable(ExprResult) emitWriteToLValue(
 			cb(it.lvalue);
 			return immutable ExprResult(immutable ExprResult.Void());
 		});
-}
 
 immutable(ExprResult) emitVoid(
 	ref ExprCtx ctx,
 	ref ExprEmit emit,
-) {
-	return matchExprEmit!(immutable ExprResult)(
+) =>
+	matchExprEmit!(immutable ExprResult)(
 		emit,
 		(ExprEmit.Loop) =>
 			unreachable!(immutable ExprResult),
@@ -839,7 +828,6 @@ immutable(ExprResult) emitVoid(
 			gcc_jit_block_add_assignment(ctx.curBlock, null, it.lvalue, ctx.globalVoid);
 			return immutable ExprResult(immutable ExprResult.Void());
 		});
-}
 
 immutable(ExprResult) emitWithBranching(
 	ref ExprCtx ctx,
@@ -894,8 +882,8 @@ immutable(ExprResult) emitSwitch(
 	immutable gcc_jit_rvalue* switchedValue,
 	immutable size_t nCases,
 	scope immutable(ExprResult) delegate(ref ExprEmit, immutable size_t) @safe @nogc pure nothrow cbCase,
-) {
-	return emitWithBranching(
+) =>
+	emitWithBranching(
 		ctx, emit, type, "switchEnd",
 		(
 			gcc_jit_block* originalBlock,
@@ -947,7 +935,6 @@ immutable(ExprResult) emitSwitch(
 				cast(int) cases.length,
 				cases.ptr);
 		});
-}
 
 alias Locals = MutStackDict!(immutable LowLocal*, gcc_jit_lvalue*);
 alias addLocal = mutStackDictAdd!(immutable LowLocal*, gcc_jit_lvalue*);
@@ -974,33 +961,26 @@ struct ExprCtx {
 	immutable gcc_jit_function* builtinPopcountlFunction;
 	immutable gcc_jit_rvalue* globalVoid;
 
-	ref Alloc alloc() return scope {
-		return *allocPtr;
-	}
+	ref Alloc alloc() return scope =>
+		*allocPtr;
 
-	ref immutable(LowProgram) program() const return scope {
-		return *programPtr;
-	}
+	ref immutable(LowProgram) program() const return scope =>
+		*programPtr;
 
-	ref immutable(MangledNames) mangledNames() const return scope {
-		return *mangledNamesPtr;
-	}
+	ref immutable(MangledNames) mangledNames() const return scope =>
+		*mangledNamesPtr;
 
-	ref immutable(GccTypes) types() const return scope {
-		return *typesPtr;
-	}
+	ref immutable(GccTypes) types() const return scope =>
+		*typesPtr;
 
-	ref GlobalsForConstants globalsForConstants() return scope {
-		return *globalsForConstantsPtr;
-	}
+	ref GlobalsForConstants globalsForConstants() return scope =>
+		*globalsForConstantsPtr;
 
-	ref GlobalsForThreadLocals globalsForThreadLocals() return scope {
-		return *GlobalsForThreadLocalsPtr;
-	}
+	ref GlobalsForThreadLocals globalsForThreadLocals() return scope =>
+		*GlobalsForThreadLocalsPtr;
 
-	ref gcc_jit_context gcc() return scope {
-		return *gccPtr;
-	}
+	ref gcc_jit_context gcc() return scope =>
+		*gccPtr;
 }
 
 // NOTE: For ExprEmit
@@ -1009,8 +989,8 @@ immutable(ExprResult) toGccExpr(
 	scope ref Locals locals,
 	ref ExprEmit emit,
 	scope ref immutable LowExpr a,
-) {
-	return matchLowExprKind!(
+) =>
+	matchLowExprKind!(
 		immutable ExprResult,
 		(scope ref immutable LowExprKind.Call it) =>
 			callToGcc(ctx, locals, emit, a.type, it),
@@ -1075,7 +1055,6 @@ immutable(ExprResult) toGccExpr(
 		(scope ref immutable LowExprKind.Zeroed) =>
 			zeroedToGcc(ctx, emit, a.type),
 	)(a.kind);
-}
 
 immutable(gcc_jit_rvalue*) emitToRValueCb(
 	scope immutable(ExprResult) delegate(ref ExprEmit) @safe @nogc pure nothrow cbEmit,
@@ -1085,10 +1064,9 @@ immutable(gcc_jit_rvalue*) emitToRValueCb(
 	return asRValue(res);
 }
 
-immutable(gcc_jit_rvalue*) emitToRValue(ref ExprCtx ctx, ref Locals locals, ref immutable LowExpr a) {
-	return emitToRValueCb((ref ExprEmit emit) =>
+immutable(gcc_jit_rvalue*) emitToRValue(ref ExprCtx ctx, ref Locals locals, ref immutable LowExpr a) =>
+	emitToRValueCb((ref ExprEmit emit) =>
 		toGccExpr(ctx, locals, emit, a));
-}
 
 void emitToLValueCb(
 	gcc_jit_lvalue* lvalue,
@@ -1186,8 +1164,8 @@ immutable(ExprResult) emitRecordCb(
 	ref ExprEmit emit,
 	immutable LowType type,
 	scope immutable(ExprResult) delegate(immutable size_t, ref ExprEmit) @safe @nogc pure nothrow cbEmitArg,
-) {
-	return emitWriteToLValue(ctx, emit, type, (gcc_jit_lvalue* lvalue) {
+) =>
+	emitWriteToLValue(ctx, emit, type, (gcc_jit_lvalue* lvalue) {
 		immutable gcc_jit_field*[] fields = ctx.types.recordFields[asRecordType(type)];
 		foreach (immutable size_t i, immutable gcc_jit_field* field; fields) {
 			immutable gcc_jit_rvalue* value = emitToRValueCb((ref ExprEmit emitArg) =>
@@ -1195,7 +1173,6 @@ immutable(ExprResult) emitRecordCb(
 			gcc_jit_block_add_assignment(ctx.curBlock, null, gcc_jit_lvalue_access_field(lvalue, null, field), value);
 		}
 	});
-}
 
 immutable(ExprResult) emitRecordCbWithArgs(T)(
 	ref ExprCtx ctx,
@@ -1207,10 +1184,9 @@ immutable(ExprResult) emitRecordCbWithArgs(T)(
 		ref ExprEmit,
 		ref immutable T,
 	) @safe @nogc pure nothrow cbEmitArg,
-) {
-	return emitRecordCb(ctx, emit, type, (immutable size_t argIndex, ref ExprEmit emitArg) =>
+) =>
+	emitRecordCb(ctx, emit, type, (immutable size_t argIndex, ref ExprEmit emitArg) =>
 		cbEmitArg(argIndex, emitArg, args[argIndex]));
-}
 
 immutable(ExprResult) createRecordToGcc(
 	ref ExprCtx ctx,
@@ -1218,12 +1194,11 @@ immutable(ExprResult) createRecordToGcc(
 	ref ExprEmit emit,
 	ref immutable LowExpr expr,
 	ref immutable LowExprKind.CreateRecord a,
-) {
-	return emitRecordCbWithArgs(
+) =>
+	emitRecordCbWithArgs(
 		ctx, emit, expr.type, a.args,
 		(immutable(size_t), ref ExprEmit emitArg, ref immutable LowExpr arg) =>
 			toGccExpr(ctx, locals, emitArg, arg));
-}
 
 immutable(ExprResult) emitUnion(
 	ref ExprCtx ctx,
@@ -1231,8 +1206,8 @@ immutable(ExprResult) emitUnion(
 	immutable LowType type,
 	immutable size_t memberIndex,
 	scope immutable(ExprResult) delegate(ref ExprEmit) @safe @nogc pure nothrow cbEmitArg,
-) {
-	return emitWriteToLValue(ctx, emit, type, (gcc_jit_lvalue* lvalue) {
+) =>
+	emitWriteToLValue(ctx, emit, type, (gcc_jit_lvalue* lvalue) {
 		immutable UnionFields unionFields = ctx.types.unionFields[asUnionType(type)];
 		gcc_jit_block_add_assignment(
 			ctx.curBlock,
@@ -1246,21 +1221,23 @@ immutable(ExprResult) emitUnion(
 		emitToLValueCb(memberLValue, cbEmitArg);
 	});
 
-}
-
 immutable(ExprResult) createUnionToGcc(
 	ref ExprCtx ctx,
 	ref Locals locals,
 	ref ExprEmit emit,
 	ref immutable LowExpr expr,
 	ref immutable LowExprKind.CreateUnion a,
-) {
-	return emitUnion(ctx, emit, expr.type, a.memberIndex, (ref ExprEmit emitArg) =>
+) =>
+	emitUnion(ctx, emit, expr.type, a.memberIndex, (ref ExprEmit emitArg) =>
 		toGccExpr(ctx, locals, emitArg, a.arg));
-}
 
-immutable(ExprResult) letToGcc(ref ExprCtx ctx, ref Locals locals, ref ExprEmit emit, ref immutable LowExprKind.Let a) {
-	return emitWithLocal(
+immutable(ExprResult) letToGcc(
+	ref ExprCtx ctx,
+	ref Locals locals,
+	ref ExprEmit emit,
+	ref immutable LowExprKind.Let a,
+) =>
+	emitWithLocal(
 		ctx,
 		locals,
 		emit,
@@ -1268,7 +1245,6 @@ immutable(ExprResult) letToGcc(ref ExprCtx ctx, ref Locals locals, ref ExprEmit 
 		(ref ExprEmit valueEmit) =>
 			toGccExpr(ctx, locals, valueEmit, a.value),
 		a.then);
-}
 
 immutable(ExprResult) emitWithLocal(
 	ref ExprCtx ctx,
@@ -1297,9 +1273,8 @@ immutable(ExprResult) localRefToGcc(
 	ref Locals locals,
 	ref ExprEmit emit,
 	ref immutable LowExprKind.LocalRef a,
-) {
-	return emitSimpleNoSideEffects(ctx, emit, gcc_jit_lvalue_as_rvalue(getLocal(locals, a.local)));
-}
+) =>
+	emitSimpleNoSideEffects(ctx, emit, gcc_jit_lvalue_as_rvalue(getLocal(locals, a.local)));
 
 immutable(ExprResult) localSetToGcc(
 	ref ExprCtx ctx,
@@ -1317,8 +1292,8 @@ immutable(ExprResult) loopToGcc(
 	ref ExprEmit emit,
 	immutable LowType type,
 	ref immutable LowExprKind.Loop a,
-) {
-	return emitWithBranching(
+) =>
+	emitWithBranching(
 		ctx, emit, type, "loopEnd",
 		(
 			gcc_jit_block* originalBlock,
@@ -1337,7 +1312,6 @@ immutable(ExprResult) loopToGcc(
 			immutable ExprResult innerResult = toGccExpr(ctx, locals, innerEmit, a.body_);
 			verify(isBreakContinueOrReturn(innerResult));
 		});
-}
 
 immutable(ExprResult) loopBreakToGcc(
 	ref ExprCtx ctx,
@@ -1424,13 +1398,11 @@ immutable(ExprResult) paramRefToGcc(
 	ref ExprCtx ctx,
 	ref ExprEmit emit,
 	ref immutable LowExprKind.ParamRef a,
-) {
-	return emitSimpleNoSideEffects(ctx, emit, gcc_jit_param_as_rvalue(getParam(ctx, a.index)));
-}
+) =>
+	emitSimpleNoSideEffects(ctx, emit, gcc_jit_param_as_rvalue(getParam(ctx, a.index)));
 
-gcc_jit_param* getParam(ref ExprCtx ctx, immutable LowParamIndex a) {
-	return gcc_jit_function_get_param(ctx.curFun, safeToInt(a.index));
-}
+gcc_jit_param* getParam(ref ExprCtx ctx, immutable LowParamIndex a) =>
+	gcc_jit_function_get_param(ctx.curFun, safeToInt(a.index));
 
 immutable(ExprResult) ptrCastToGcc(
 	ref ExprCtx ctx,
@@ -1470,20 +1442,18 @@ immutable(ExprResult) ptrToLocalToGcc(
 	ref Locals locals,
 	ref ExprEmit emit,
 	ref immutable LowExprKind.PtrToLocal a,
-) {
-	return emitSimpleNoSideEffects(ctx, emit, gcc_jit_lvalue_get_address(getLocal(locals, a.local), null));
-}
+) =>
+	emitSimpleNoSideEffects(ctx, emit, gcc_jit_lvalue_get_address(getLocal(locals, a.local), null));
 
 immutable(ExprResult) ptrToParamToGcc(
 	ref ExprCtx ctx,
 	ref Locals locals,
 	ref ExprEmit emit,
 	ref immutable LowExprKind.PtrToParam a,
-) {
-	return emitSimpleNoSideEffects(ctx, emit, gcc_jit_lvalue_get_address(
+) =>
+	emitSimpleNoSideEffects(ctx, emit, gcc_jit_lvalue_get_address(
 		gcc_jit_param_as_lvalue(getParam(ctx, a.index)),
-		null));	
-}
+		null));
 
 immutable(ExprResult) recordFieldGetToGcc(
 	ref ExprCtx ctx,
@@ -1528,20 +1498,19 @@ immutable(ExprResult) sizeOfToGcc(
 	ref ExprCtx ctx,
 	ref ExprEmit emit,
 	ref immutable LowExprKind.SizeOf a,
-) {
-	return emitSimpleNoSideEffects(
+) =>
+	emitSimpleNoSideEffects(
 		ctx,
 		emit,
 		gcc_jit_context_new_rvalue_from_long(ctx.gcc, ctx.nat64Type, typeSizeBytes(ctx.program, a.type)));
-}
 
 immutable(ExprResult) constantToGcc(
 	ref ExprCtx ctx,
 	ref ExprEmit emit,
 	immutable LowType type,
 	ref immutable Constant a,
-) {
-	return matchConstant!(immutable ExprResult)(
+) =>
+	matchConstant!(immutable ExprResult)(
 		a,
 		(ref immutable Constant.ArrConstant it) {
 			immutable size_t arrSize = ctx.program.allConstants.arrs[it.typeIndex].constants[it.index].length;
@@ -1623,7 +1592,6 @@ immutable(ExprResult) constantToGcc(
 		},
 		(immutable Constant.Void) =>
 			emitVoid(ctx, emit));
-}
 
 @trusted immutable(ExprResult) unaryToGcc(
 	ref ExprCtx ctx,
@@ -1714,18 +1682,16 @@ immutable(ExprResult) binaryToGcc(
 	ref immutable LowExpr expr,
 	ref immutable LowExprKind.SpecialBinary a,
 ) {
-	immutable(ExprResult) operator(immutable gcc_jit_binary_op op) {
-		return binaryOperator(ctx, locals, emit, expr.type, op, a.left, a.right);
-	}
+	immutable(ExprResult) operator(immutable gcc_jit_binary_op op) =>
+		binaryOperator(ctx, locals, emit, expr.type, op, a.left, a.right);
 
-	immutable(ExprResult) comparison(immutable gcc_jit_comparison cmp) {
-		return emitSimpleNoSideEffects(ctx, emit, gcc_jit_context_new_comparison(
+	immutable(ExprResult) comparison(immutable gcc_jit_comparison cmp) =>
+		emitSimpleNoSideEffects(ctx, emit, gcc_jit_context_new_comparison(
 			ctx.gcc,
 			null,
 			cmp,
 			emitToRValue(ctx, locals, a.left),
 			emitToRValue(ctx, locals, a.right)));
-	}
 
 	final switch (a.kind) {
 		case LowExprKind.SpecialBinary.Kind.addFloat32:
@@ -1858,9 +1824,8 @@ immutable(ExprResult) binaryOperator(
 	immutable gcc_jit_binary_op op,
 	ref immutable LowExpr left,
 	ref immutable LowExpr right,
-) {
-	return operatorForLhsRhs(ctx, emit, type, op, emitToRValue(ctx, locals, left), emitToRValue(ctx, locals, right));
-}
+) =>
+	operatorForLhsRhs(ctx, emit, type, op, emitToRValue(ctx, locals, left), emitToRValue(ctx, locals, right));
 
 immutable(ExprResult) operatorForLhsRhs(
 	ref ExprCtx ctx,
@@ -1869,15 +1834,14 @@ immutable(ExprResult) operatorForLhsRhs(
 	immutable gcc_jit_binary_op op,
 	immutable gcc_jit_rvalue* lhs,
 	immutable gcc_jit_rvalue* rhs,
-) {
-	return emitSimpleNoSideEffects(ctx, emit, gcc_jit_context_new_binary_op(
+) =>
+	emitSimpleNoSideEffects(ctx, emit, gcc_jit_context_new_binary_op(
 		ctx.gcc,
 		null,
 		op,
 		getGccType(ctx.types, type),
 		lhs,
 		rhs));
-}
 
 enum LogicalOperator { and, or }
 
@@ -1914,16 +1878,14 @@ immutable(ExprResult) logicalOperatorToGcc(
 	}
 }
 
-immutable(LowType) boolType() {
-	return immutable LowType(PrimitiveType.bool_);
-}
+immutable(LowType) boolType() =>
+	immutable LowType(PrimitiveType.bool_);
 
-immutable(LowExpr) boolExpr(immutable bool value) {
-	return immutable LowExpr(
+immutable(LowExpr) boolExpr(immutable bool value) =>
+	immutable LowExpr(
 		boolType(),
 		FileAndRange.empty,
 		immutable LowExprKind(immutable Constant(immutable Constant.BoolConstant(value))));
-}
 
 enum PtrArith { addNat, subtractNat }
 
@@ -2012,8 +1974,8 @@ immutable(ExprResult) switch0ToNToGcc(
 	ref ExprEmit emit,
 	ref immutable LowExpr expr,
 	ref immutable LowExprKind.Switch0ToN a,
-) {
-	return emitSwitch(
+) =>
+	emitSwitch(
 		ctx,
 		emit,
 		expr.type,
@@ -2021,7 +1983,6 @@ immutable(ExprResult) switch0ToNToGcc(
 		a.cases.length,
 		(ref ExprEmit caseEmit, immutable size_t caseIndex) =>
 			toGccExpr(ctx, locals, caseEmit, a.cases[caseIndex]));
-}
 
 immutable(ExprResult) zeroedToGcc(
 	ref ExprCtx ctx,
@@ -2077,9 +2038,8 @@ immutable(ExprResult) zeroedToGcc(
 }
 
 immutable(gcc_jit_rvalue*) arbitraryValue(ref ExprCtx ctx, immutable LowType type) {
-	immutable(gcc_jit_rvalue*) nullValue() {
-		return gcc_jit_context_null(ctx.gcc, getGccType(ctx.types, type));
-	}
+	immutable(gcc_jit_rvalue*) nullValue() =>
+		gcc_jit_context_null(ctx.gcc, getGccType(ctx.types, type));
 	return matchLowTypeCombinePtr!(
 		immutable gcc_jit_rvalue*,
 		(immutable LowType.ExternPtr) =>

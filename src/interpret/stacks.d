@@ -79,9 +79,8 @@ void dataPushUninitialized(ref Stacks a, immutable size_t n) {
 	debug verify!"dataPushUninitialized check"(a.dataPtr < cast(ulong*) a.returnPtr);
 }
 
-immutable(ulong) dataPeek(ref const Stacks a, immutable size_t offset = 0) {
-	return *(a.dataPtr - offset);
-}
+immutable(ulong) dataPeek(ref const Stacks a, immutable size_t offset = 0) =>
+	*(a.dataPtr - offset);
 
 void dataDupWords(ref Stacks a, immutable size_t offsetWords, immutable size_t sizeWords) {
 	debug verify(sizeWords != 0);
@@ -99,9 +98,8 @@ immutable(ulong) dataPop(ref Stacks a) {
 	return res;
 }
 
-ulong* dataRef(ref Stacks a, immutable size_t offset) {
-	return a.dataPtr - offset;
-}
+ulong* dataRef(ref Stacks a, immutable size_t offset) =>
+	a.dataPtr - offset;
 
 // WARN: result is temporary!
 immutable(ulong[]) dataPopN(return ref Stacks a, immutable size_t n) {
@@ -110,23 +108,19 @@ immutable(ulong[]) dataPopN(return ref Stacks a, immutable size_t n) {
 }
 
 // pointer to the last data value pushed
-ulong* dataTop(ref Stacks a) {
-	return a.dataPtr;
-}
+ulong* dataTop(ref Stacks a) =>
+	a.dataPtr;
 
 // Pointer to the value at the bottom of the data stack
-const(ulong*) dataBegin(ref const Stacks a) {
-	return stacksStorage.ptr;
-}
+const(ulong*) dataBegin(ref const Stacks a) =>
+	stacksStorage.ptr;
 
 // One past the last data value pushed
-ulong* dataEnd(ref Stacks a) {
-	return a.dataPtr + 1;
-}
+ulong* dataEnd(ref Stacks a) =>
+	a.dataPtr + 1;
 
-immutable(ulong[]) dataTempAsArr(ref const Stacks a) {
-	return cast(immutable) stacksStorage.ptr[0 .. a.dataPtr + 1 - stacksStorage.ptr];
-}
+immutable(ulong[]) dataTempAsArr(ref const Stacks a) =>
+	cast(immutable) stacksStorage.ptr[0 .. a.dataPtr + 1 - stacksStorage.ptr];
 
 immutable(ulong) dataRemove(ref Stacks a, immutable size_t offset) {
 	immutable ulong res = dataPeek(a, offset);
@@ -153,9 +147,8 @@ immutable(bool) returnStackIsEmpty(ref const Stacks a) {
 	return a.returnPtr == storageEnd(a);
 }
 
-immutable(size_t) returnStackSize(ref const Stacks a) {
-	return storageEnd(a) - a.returnPtr;
-}
+immutable(size_t) returnStackSize(ref const Stacks a) =>
+	storageEnd(a) - a.returnPtr;
 
 void returnPush(ref Stacks a, immutable Operation* value) {
 	const ulong* begin = dataBegin(a);
@@ -168,9 +161,8 @@ void returnPush(ref Stacks a, immutable Operation* value) {
 	*a.returnPtr = value;
 }
 
-immutable(Operation*) returnPeek(ref const Stacks a, immutable size_t offset = 0) {
-	return *(a.returnPtr + offset);
-}
+immutable(Operation*) returnPeek(ref const Stacks a, immutable size_t offset = 0) =>
+	*(a.returnPtr + offset);
 
 void setReturnPeek(ref Stacks a, immutable Operation* value) {
 	*a.returnPtr = value;
@@ -182,6 +174,5 @@ immutable(Operation*) returnPop(ref Stacks a) {
 	return res;
 }
 
-immutable(Operation*[]) returnTempAsArrReverse(ref const Stacks a) {
-	return cast(immutable) a.returnPtr[0 .. returnStackSize(a)];
-}
+immutable(Operation*[]) returnTempAsArrReverse(ref const Stacks a) =>
+	cast(immutable) a.returnPtr[0 .. returnStackSize(a)];

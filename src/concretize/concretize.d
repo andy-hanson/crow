@@ -50,11 +50,10 @@ immutable(ConcreteProgram) concretize(
 	ref const AllPaths allPaths,
 	ref immutable Program program,
 	immutable Module* mainModule,
-) {
-	return withMeasure!(immutable ConcreteProgram, () =>
+) =>
+	withMeasure!(immutable ConcreteProgram, () =>
 		concretizeInner(&alloc, versionInfo, &allSymbols, allPaths, program, mainModule)
 	)(alloc, perf, PerfMeasure.concretize);
-}
 
 private:
 
@@ -66,8 +65,8 @@ immutable(ConcreteProgram) concretizeInner(
 	ref immutable Program program,
 	immutable Module* mainModule,
 ) {
-	ref Alloc alloc() { return *allocPtr; }
-
+	ref Alloc alloc() =>
+		*allocPtr;
 	ConcretizeCtx ctx = ConcretizeCtx(
 		allocPtr,
 		versionInfo,
@@ -112,30 +111,25 @@ immutable(ConcreteProgram) concretizeInner(
 		immutable ConcreteCommonFuns(markConcreteFun, rtMainConcreteFun, userMainConcreteFun, allocFun, throwImplFun));
 }
 
-immutable(bool) isNat(ref immutable CommonTypes commonTypes, immutable Type type) {
-	return type == immutable Type(commonTypes.integrals.nat64);
-}
+immutable(bool) isNat(ref immutable CommonTypes commonTypes, immutable Type type) =>
+	type == immutable Type(commonTypes.integrals.nat64);
 
-immutable(bool) isInt32(ref immutable CommonTypes commonTypes, immutable Type type) {
-	return type == immutable Type(commonTypes.integrals.int32);
-}
+immutable(bool) isInt32(ref immutable CommonTypes commonTypes, immutable Type type) =>
+	type == immutable Type(commonTypes.integrals.int32);
 
-immutable(bool) isStr(ref immutable CommonTypes commonTypes, immutable Type type) {
+immutable(bool) isStr(ref immutable CommonTypes commonTypes, immutable Type type) =>
 	//TODO:better
-	return isStructInst(type) && decl(*asStructInst(type)).name == shortSym("str");
-}
+	isStructInst(type) && decl(*asStructInst(type)).name == shortSym("str");
 
-immutable(bool) isFutNat(ref immutable CommonTypes commonTypes, immutable Type type) {
-	return isStructInst(type) &&
+immutable(bool) isFutNat(ref immutable CommonTypes commonTypes, immutable Type type) =>
+	isStructInst(type) &&
 		decl(*asStructInst(type)) == commonTypes.fut &&
 		isNat(commonTypes, only(typeArgs(*asStructInst(type))));
-}
 
-immutable(bool) isArrStr(ref immutable CommonTypes commonTypes, immutable Type type) {
-	return isStructInst(type) &&
+immutable(bool) isArrStr(ref immutable CommonTypes commonTypes, immutable Type type) =>
+	isStructInst(type) &&
 		decl(*asStructInst(type)) == commonTypes.arr &&
 		isStr(commonTypes, only(typeArgs(*asStructInst(type))));
-}
 
 void checkRtMainSignature(ref immutable CommonTypes commonTypes, ref immutable FunDecl mainFun) {
 	if (!noCtx(mainFun))

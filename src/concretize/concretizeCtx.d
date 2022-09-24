@@ -124,9 +124,8 @@ struct TypeArgsScope {
 		verify(sizeEq(typeParams, typeArgs));
 	}
 
-	static immutable(TypeArgsScope) empty() {
-		return immutable TypeArgsScope([], []);
-	}
+	static immutable(TypeArgsScope) empty() =>
+		immutable TypeArgsScope([], []);
 }
 
 private struct ConcreteStructKey {
@@ -135,9 +134,8 @@ private struct ConcreteStructKey {
 	immutable StructDecl* decl;
 	immutable ConcreteType[] typeArgs;
 
-	immutable(bool) opEquals(scope ref immutable ConcreteStructKey b) scope immutable {
-		return decl == b.decl && concreteTypeArrEquals(typeArgs, b.typeArgs);
-	}
+	immutable(bool) opEquals(scope ref immutable ConcreteStructKey b) scope immutable =>
+		decl == b.decl && concreteTypeArrEquals(typeArgs, b.typeArgs);
 
 	void hash(ref Hasher hasher) scope immutable {
 		hashPtr(hasher, decl);
@@ -177,9 +175,8 @@ struct ConcreteFunKey {
 	}
 }
 
-private immutable(ContainingFunInfo) toContainingFunInfo(ref immutable ConcreteFunKey a) {
-	return immutable ContainingFunInfo(decl(*a.inst).typeParams, a.typeArgs, a.specImpls);
-}
+private immutable(ContainingFunInfo) toContainingFunInfo(ref immutable ConcreteFunKey a) =>
+	immutable ContainingFunInfo(decl(*a.inst).typeParams, a.typeArgs, a.specImpls);
 
 immutable(TypeArgsScope) typeArgsScope(ref immutable ConcreteFunKey a) {
 	immutable ContainingFunInfo info = toContainingFunInfo(a);
@@ -192,9 +189,8 @@ struct ContainingFunInfo {
 	immutable ConcreteFun*[] specImpls;
 }
 
-immutable(TypeArgsScope) typeArgsScope(ref immutable ContainingFunInfo a) {
-	return immutable TypeArgsScope(a.typeParams, a.typeArgs);
-}
+immutable(TypeArgsScope) typeArgsScope(ref immutable ContainingFunInfo a) =>
+	immutable TypeArgsScope(a.typeParams, a.typeArgs);
 
 private struct ConcreteFunBodyInputs {
 	// NOTE: for a lambda, these are for the *outermost* fun (the one with type args and spec impls).
@@ -203,13 +199,11 @@ private struct ConcreteFunBodyInputs {
 	immutable FunBody body_;
 }
 
-ref immutable(ConcreteType[]) typeArgs(scope return ref immutable ConcreteFunBodyInputs a) {
-	return a.containing.typeArgs;
-}
+ref immutable(ConcreteType[]) typeArgs(scope return ref immutable ConcreteFunBodyInputs a) =>
+	a.containing.typeArgs;
 
-immutable(TypeArgsScope) typeArgsScope(ref immutable ConcreteFunBodyInputs a) {
-	return typeArgsScope(a.containing);
-}
+immutable(TypeArgsScope) typeArgsScope(ref immutable ConcreteFunBodyInputs a) =>
+	typeArgsScope(a.containing);
 
 private struct DeferredRecordBody {
 	ConcreteStruct* struct_;
@@ -252,48 +246,38 @@ struct ConcretizeCtx {
 	Late!(immutable ConcreteType) _cStrType;
 	Late!(immutable ConcreteType) _symType;
 
-	ref Alloc alloc() return scope {
-		return *allocPtr;
-	}
+	ref Alloc alloc() return scope =>
+		*allocPtr;
 
-	ref const(AllSymbols) allSymbols() return scope const {
-		return *allSymbolsPtr;
-	}
-	ref immutable(CommonTypes) commonTypes() return scope const {
-		return *commonTypesPtr;
-	}
-	ref immutable(Program) program() return scope const {
-		return *programPtr;
-	}
+	ref const(AllSymbols) allSymbols() return scope const =>
+		*allSymbolsPtr;
+	ref immutable(CommonTypes) commonTypes() return scope const =>
+		*commonTypesPtr;
+	ref immutable(Program) program() return scope const =>
+		*programPtr;
 }
 
-immutable(ConcreteType) boolType(ref ConcretizeCtx a) {
-	return lazilySet(a._boolType, () =>
+immutable(ConcreteType) boolType(ref ConcretizeCtx a) =>
+	lazilySet(a._boolType, () =>
 		getConcreteType_forStructInst(a, a.commonTypes.bool_, TypeArgsScope.empty));
-}
 
-immutable(ConcreteType) voidType(ref ConcretizeCtx a) {
-	return lazilySet(a._voidType, () =>
+immutable(ConcreteType) voidType(ref ConcretizeCtx a) =>
+	lazilySet(a._voidType, () =>
 		getConcreteType_forStructInst(a, a.commonTypes.void_, TypeArgsScope.empty));
-}
 
-immutable(ConcreteType) cStrType(ref ConcretizeCtx a) {
-	return lazilySet(a._cStrType, () =>
+immutable(ConcreteType) cStrType(ref ConcretizeCtx a) =>
+	lazilySet(a._cStrType, () =>
 		getConcreteType_forStructInst(a, a.commonTypes.cStr, TypeArgsScope.empty));
-}
 
-immutable(ConcreteType) symType(ref ConcretizeCtx a) {
-	return lazilySet(a._symType, () =>
+immutable(ConcreteType) symType(ref ConcretizeCtx a) =>
+	lazilySet(a._symType, () =>
 		getConcreteType_forStructInst(a, a.commonTypes.sym, TypeArgsScope.empty));
-}
 
-immutable(Constant) constantCStr(ref ConcretizeCtx a, immutable SafeCStr value) {
-	return getConstantCStr(a.alloc, a.allConstants, value);
-}
+immutable(Constant) constantCStr(ref ConcretizeCtx a, immutable SafeCStr value) =>
+	getConstantCStr(a.alloc, a.allConstants, value);
 
-immutable(Constant) constantSym(ref ConcretizeCtx a, immutable Sym value) {
-	return getConstantSym(a.alloc, a.allConstants, a.allSymbols, value);
-}
+immutable(Constant) constantSym(ref ConcretizeCtx a, immutable Sym value) =>
+	getConstantSym(a.alloc, a.allConstants, a.allSymbols, value);
 
 immutable(ConcreteFun*) getOrAddConcreteFunAndFillBody(ref ConcretizeCtx ctx, immutable ConcreteFunKey key) {
 	ConcreteFun* cf = castMutable(getOrAddConcreteFunWithoutFillingBody(ctx, key));
@@ -327,9 +311,8 @@ immutable(ConcreteFun*) getConcreteFunForLambdaAndFillBody(
 immutable(ConcreteFun*) getOrAddNonTemplateConcreteFunAndFillBody(
 	ref ConcretizeCtx ctx,
 	immutable FunInst* decl,
-) {
-	return getOrAddConcreteFunAndFillBody(ctx, immutable ConcreteFunKey(decl, [], []));
-}
+) =>
+	getOrAddConcreteFunAndFillBody(ctx, immutable ConcreteFunKey(decl, [], []));
 
 immutable(ConcreteType) getConcreteType_forStructInst(
 	ref ConcretizeCtx ctx,
@@ -368,8 +351,8 @@ immutable(ConcreteType) getConcreteType(
 	ref ConcretizeCtx ctx,
 	immutable Type t,
 	immutable TypeArgsScope typeArgsScope,
-) {
-	return matchType!(immutable ConcreteType)(
+) =>
+	matchType!(immutable ConcreteType)(
 		t,
 		(immutable Type.Bogus) =>
 			unreachable!(immutable ConcreteType),
@@ -380,16 +363,14 @@ immutable(ConcreteType) getConcreteType(
 		},
 		(immutable StructInst* i) =>
 			getConcreteType_forStructInst(ctx, i, typeArgsScope));
-}
 
 immutable(ConcreteType[]) typesToConcreteTypes(
 	ref ConcretizeCtx ctx,
 	immutable Type[] types,
 	immutable TypeArgsScope typeArgsScope,
-) {
-	return map!ConcreteType(ctx.alloc, types, (ref immutable Type t) =>
+) =>
+	map!ConcreteType(ctx.alloc, types, (ref immutable Type t) =>
 		getConcreteType(ctx, t, typeArgsScope));
-}
 
 immutable(ConcreteType) concreteTypeFromClosure(
 	ref ConcretizeCtx ctx,
@@ -443,19 +424,17 @@ private void setConcreteStructRecordSize(ref Alloc alloc, DeferredRecordBody a) 
 }
 
 //TODO: do eagerly?
-immutable(ConcreteFun*) getCurExclusionFun(ref ConcretizeCtx ctx) {
-	return getOrAddNonTemplateConcreteFunAndFillBody(ctx, ctx.curExclusionFun);
-}
+immutable(ConcreteFun*) getCurExclusionFun(ref ConcretizeCtx ctx) =>
+	getOrAddNonTemplateConcreteFunAndFillBody(ctx, ctx.curExclusionFun);
 
 private:
 
-immutable(ConcreteFun*) getOrAddConcreteFunWithoutFillingBody(ref ConcretizeCtx ctx, immutable ConcreteFunKey key) {
-	return getOrAdd(ctx.alloc, ctx.nonLambdaConcreteFuns, key, () {
+immutable(ConcreteFun*) getOrAddConcreteFunWithoutFillingBody(ref ConcretizeCtx ctx, immutable ConcreteFunKey key) =>
+	getOrAdd(ctx.alloc, ctx.nonLambdaConcreteFuns, key, () {
 		immutable ConcreteFun* res = getConcreteFunFromKey(ctx, key);
 		addConcreteFun(ctx, res);
 		return res;
 	});
-}
 
 immutable(ConcreteFun*) getConcreteFunFromKey(ref ConcretizeCtx ctx, ref immutable ConcreteFunKey key) {
 	immutable FunDecl* decl = decl(*key.inst);
@@ -492,15 +471,13 @@ immutable(ConcreteFun*) concreteFunForTest(
 	return castImmutable(res);
 }
 
-immutable(bool) concreteTypeArrEquals(scope immutable ConcreteType[] a, scope immutable ConcreteType[] b) {
-	return arrEqual!ConcreteType(a, b, (ref immutable ConcreteType x, ref immutable ConcreteType y) =>
+immutable(bool) concreteTypeArrEquals(scope immutable ConcreteType[] a, scope immutable ConcreteType[] b) =>
+	arrEqual!ConcreteType(a, b, (ref immutable ConcreteType x, ref immutable ConcreteType y) =>
 		x == y);
-}
 
-immutable(bool) canGetUnionSize(scope immutable Opt!ConcreteType[] members) {
-	return every!(Opt!ConcreteType)(members, (ref immutable Opt!ConcreteType type) =>
+immutable(bool) canGetUnionSize(scope immutable Opt!ConcreteType[] members) =>
+	every!(Opt!ConcreteType)(members, (ref immutable Opt!ConcreteType type) =>
 		!has(type) || hasSizeOrPointerSizeBytes(force(type)));
-}
 
 immutable(TypeSize) unionSize(scope immutable Opt!ConcreteType[] members) {
 	immutable size_t unionAlign = 8;
@@ -528,17 +505,15 @@ immutable(ReferenceKind) getDefaultReferenceKindForFields(
 
 enum FieldsType { record, closure }
 
-immutable(bool) canGetRecordSize(immutable ConcreteField[] fields) {
-	return every!ConcreteField(fields, (ref immutable ConcreteField field) =>
+immutable(bool) canGetRecordSize(immutable ConcreteField[] fields) =>
+	every!ConcreteField(fields, (ref immutable ConcreteField field) =>
 		hasSizeOrPointerSizeBytes(field.type));
-}
 
-immutable(ConcreteStructInfo) getConcreteStructInfoForFields(immutable ConcreteField[] fields) {
-	return immutable ConcreteStructInfo(
+immutable(ConcreteStructInfo) getConcreteStructInfoForFields(immutable ConcreteField[] fields) =>
+	immutable ConcreteStructInfo(
 		immutable ConcreteStructBody(immutable ConcreteStructBody.Record(fields)),
 		exists!ConcreteField(fields, (ref immutable ConcreteField field) =>
 			field.mutability != ConcreteMutability.const_));
-}
 
 struct TypeSizeAndFieldOffsets {
 	immutable TypeSize typeSize;
@@ -703,12 +678,11 @@ immutable(ConcreteStructBody.Enum) getConcreteStructBodyForEnum(
 immutable(ConcreteStructBody.Flags) getConcreteStructBodyForFlags(
 	ref Alloc alloc,
 	ref immutable StructBody.Flags a,
-) {
-	return immutable ConcreteStructBody.Flags(
+) =>
+	immutable ConcreteStructBody.Flags(
 		a.backingType,
 		map!ulong(alloc, a.members, (ref immutable StructBody.Enum.Member member) =>
 			member.value.asUnsigned()));
-}
 
 public void deferredFillRecordAndUnionBodies(ref ConcretizeCtx ctx) {
 	if (!mutArrIsEmpty(ctx.deferredRecords) || !mutArrIsEmpty(ctx.deferredUnions)) {
@@ -805,10 +779,9 @@ void fillInConcreteFunBody(ref ConcretizeCtx ctx, ConcreteFun* cf) {
 	}
 }
 
-immutable(ulong) getAllValue(ref immutable ConcreteStructBody.Flags flags) {
-	return fold(0, flags.values, (immutable ulong a, ref immutable ulong b) =>
+immutable(ulong) getAllValue(ref immutable ConcreteStructBody.Flags flags) =>
+	fold(0, flags.values, (immutable ulong a, ref immutable ulong b) =>
 		a | b);
-}
 
 immutable(ConcreteFunBody) bodyForEnumOrFlagsMembers(ref ConcretizeCtx ctx, immutable ConcreteType returnType) {
 	immutable ConcreteStruct* arrayStruct = mustBeByVal(returnType);
@@ -826,8 +799,8 @@ immutable(ConcreteFunBody) bodyForEnumOrFlagsMembers(ref ConcretizeCtx ctx, immu
 		immutable ConcreteExpr(returnType, FileAndRange.empty, immutable ConcreteExprKind(arr)));
 }
 
-immutable(StructBody.Enum.Member[]) enumOrFlagsMembers(immutable ConcreteType type) {
-	return matchStructBody!(immutable StructBody.Enum.Member[])(
+immutable(StructBody.Enum.Member[]) enumOrFlagsMembers(immutable ConcreteType type) =>
+	matchStructBody!(immutable StructBody.Enum.Member[])(
 		body_(*decl(*asInst(mustBeByVal(type).source).inst)),
 		(ref immutable StructBody.Bogus) =>
 			unreachable!(immutable StructBody.Enum.Member[]),
@@ -843,7 +816,6 @@ immutable(StructBody.Enum.Member[]) enumOrFlagsMembers(immutable ConcreteType ty
 			unreachable!(immutable StructBody.Enum.Member[]),
 		(ref immutable StructBody.Union) =>
 			unreachable!(immutable StructBody.Enum.Member[]));
-}
 
 immutable(ConcreteFunBody) bodyForAllTests(ref ConcretizeCtx ctx, immutable ConcreteType returnType) {
 	immutable Test[] allTests = () {
@@ -868,13 +840,12 @@ immutable(ConcreteParam[]) concretizeParams(
 	ref ConcretizeCtx ctx,
 	immutable Param[] params,
 	immutable TypeArgsScope typeArgsScope,
-) {
-	return mapPtrsWithIndex!ConcreteParam(ctx.alloc, params, (immutable size_t index, immutable Param* p) =>
+) =>
+	mapPtrsWithIndex!ConcreteParam(ctx.alloc, params, (immutable size_t index, immutable Param* p) =>
 		immutable ConcreteParam(
 			immutable ConcreteParamSource(p),
 			some!size_t(index),
 			getConcreteType(ctx, p.type, typeArgsScope)));
-}
 
 immutable(BuiltinStructKind) getBuiltinStructKind(immutable Sym name) {
 	switch (name.value) {

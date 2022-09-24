@@ -46,8 +46,8 @@ import util.opt : force, has, none, noneMut, Opt, some;
 import util.sourceRange : fileAndPosFromFileAndRange, FileAndRange;
 import util.sym : Operator, prependSet, shortSym, SpecialSym, Sym, symForOperator, symForSpecial;
 
-immutable(size_t) countFunsForStruct(immutable StructDecl[] structs) {
-	return sum!StructDecl(structs, (ref immutable StructDecl s) =>
+immutable(size_t) countFunsForStruct(immutable StructDecl[] structs) =>
+	sum!StructDecl(structs, (ref immutable StructDecl s) =>
 		matchStructBody!(immutable size_t)(
 			body_(s),
 			(ref immutable StructBody.Bogus) =>
@@ -71,7 +71,6 @@ immutable(size_t) countFunsForStruct(immutable StructDecl[] structs) {
 			},
 			(ref immutable StructBody.Union it) =>
 				it.members.length));
-}
 
 void addFunsForStruct(
 	ref CheckCtx ctx,
@@ -104,13 +103,11 @@ immutable(StructInst*) instantiateNonTemplateStructDeclNeverDelay(
 	ref Alloc alloc,
 	ref ProgramState programState,
 	immutable StructDecl* structDecl,
-) {
-	return instantiateStruct(alloc, programState, structDecl, [], noneMut!(MutArr!(StructInst*)*));
-}
+) =>
+	instantiateStruct(alloc, programState, structDecl, [], noneMut!(MutArr!(StructInst*)*));
 
-immutable(bool) recordIsAlwaysByVal(ref immutable StructBody.Record record) {
-	return empty(record.fields) || record.flags.forcedByValOrRef == ForcedByValOrRefOrNone.byVal;
-}
+immutable(bool) recordIsAlwaysByVal(ref immutable StructBody.Record record) =>
+	empty(record.fields) || record.flags.forcedByValOrRef == ForcedByValOrRefOrNone.byVal;
 
 void addFunsForEnum(
 	ref CheckCtx ctx,
@@ -181,8 +178,8 @@ FunDecl enumOrFlagsConstructor(
 	immutable Visibility visibility,
 	immutable Type enumType,
 	ref immutable StructBody.Enum.Member member,
-) {
-	return FunDecl(
+) =>
+	FunDecl(
 		safeCStr!"",
 		visibility,
 		fileAndPosFromFileAndRange(member.range),
@@ -193,7 +190,6 @@ FunDecl enumOrFlagsConstructor(
 		FunFlags.generatedNoCtx,
 		[],
 		immutable FunBody(immutable FunBody.CreateEnum(member.value)));
-}
 
 FunDecl enumEqualFunction(
 	ref Alloc alloc,
@@ -201,8 +197,8 @@ FunDecl enumEqualFunction(
 	immutable FileAndRange fileAndRange,
 	immutable Type enumType,
 	ref immutable CommonTypes commonTypes,
-) {
-	return FunDecl(
+) =>
+	FunDecl(
 		safeCStr!"",
 		visibility,
 		fileAndPosFromFileAndRange(fileAndRange),
@@ -215,15 +211,14 @@ FunDecl enumEqualFunction(
 		FunFlags.generatedNoCtx.withOkIfUnused(),
 		[],
 		immutable FunBody(EnumFunction.equal));
-}
 
 FunDecl flagsNewFunction(
 	ref Alloc alloc,
 	immutable Visibility visibility,
 	immutable FileAndRange fileAndRange,
 	immutable Type enumType,
-) {
-	return FunDecl(
+) =>
+	FunDecl(
 		safeCStr!"",
 		visibility,
 		fileAndPosFromFileAndRange(fileAndRange),
@@ -234,15 +229,14 @@ FunDecl flagsNewFunction(
 		FunFlags.generatedNoCtx.withOkIfUnused(),
 		[],
 		immutable FunBody(FlagsFunction.new_));
-}
 
 FunDecl flagsAllFunction(
 	ref Alloc alloc,
 	immutable Visibility visibility,
 	immutable FileAndRange fileAndRange,
 	immutable Type enumType,
-) {
-	return FunDecl(
+) =>
+	FunDecl(
 		safeCStr!"",
 		visibility,
 		fileAndPosFromFileAndRange(fileAndRange),
@@ -253,15 +247,14 @@ FunDecl flagsAllFunction(
 		FunFlags.generatedNoCtx.withOkIfUnused(),
 		[],
 		immutable FunBody(FlagsFunction.all));
-}
 
 FunDecl flagsNegateFunction(
 	ref Alloc alloc,
 	immutable Visibility visibility,
 	immutable FileAndRange fileAndRange,
 	immutable Type enumType,
-) {
-	return FunDecl(
+) =>
+	FunDecl(
 		safeCStr!"",
 		visibility,
 		fileAndPosFromFileAndRange(fileAndRange),
@@ -273,7 +266,6 @@ FunDecl flagsNegateFunction(
 		FunFlags.generatedNoCtx.withOkIfUnused(),
 		[],
 		immutable FunBody(FlagsFunction.negate));
-}
 
 FunDecl enumToIntegralFunction(
 	ref Alloc alloc,
@@ -282,8 +274,8 @@ FunDecl enumToIntegralFunction(
 	immutable EnumBackingType enumBackingType,
 	immutable Type enumType,
 	ref immutable CommonTypes commonTypes,
-) {
-	return FunDecl(
+) =>
+	FunDecl(
 		safeCStr!"",
 		visibility,
 		fileAndPosFromFileAndRange(fileAndRange),
@@ -295,7 +287,6 @@ FunDecl enumToIntegralFunction(
 		FunFlags.generatedNoCtx.withOkIfUnused(),
 		[],
 		immutable FunBody(EnumFunction.toIntegral));
-}
 
 immutable(StructInst*) getBackingTypeFromEnumType(
 	immutable EnumBackingType a,
@@ -330,8 +321,8 @@ FunDecl enumOrFlagsMembersFunction(
 	immutable Sym name,
 	immutable Type enumType,
 	ref immutable CommonTypes commonTypes,
-) {
-	return FunDecl(
+) =>
+	FunDecl(
 		safeCStr!"",
 		visibility,
 		fileAndPosFromFileAndRange(fileAndRange),
@@ -346,7 +337,6 @@ FunDecl enumOrFlagsMembersFunction(
 		FunFlags.generatedNoCtx.withOkIfUnused(),
 		[],
 		immutable FunBody(EnumFunction.members));
-}
 
 FunDecl flagsUnionOrIntersectFunction(
 	ref Alloc alloc,
@@ -355,8 +345,8 @@ FunDecl flagsUnionOrIntersectFunction(
 	immutable Type enumType,
 	immutable Operator operator,
 	immutable EnumFunction fn,
-) {
-	return FunDecl(
+) =>
+	FunDecl(
 		safeCStr!"",
 		visibility,
 		fileAndPosFromFileAndRange(fileAndRange),
@@ -369,12 +359,11 @@ FunDecl flagsUnionOrIntersectFunction(
 		FunFlags.generatedNoCtx.withOkIfUnused(),
 		[],
 		immutable FunBody(fn));
-}
 
 //TODO: actually, we should record the type name used,
 //so if they had 'e enum<size_t>' we should have 'to-size_t' not 'to-nat64'
-immutable(Sym) enumToIntegralName(immutable EnumBackingType a) {
-	return shortSym(() {
+immutable(Sym) enumToIntegralName(immutable EnumBackingType a) =>
+	shortSym(() {
 		final switch (a) {
 			case EnumBackingType.int8:
 				return "to-int8";
@@ -394,7 +383,6 @@ immutable(Sym) enumToIntegralName(immutable EnumBackingType a) {
 				return "to-nat64";
 		}
 	}());
-}
 
 void addFunsForRecord(
 	ref CheckCtx ctx,
@@ -411,8 +399,8 @@ void addFunsForRecord(
 		instantiateStructNeverDelay(ctx.alloc, ctx.programState, struct_, tempAsArr(typeArgs)));
 	immutable Param[] ctorParams = map(ctx.alloc, record.fields, (ref immutable RecordField it) =>
 		immutable Param(it.range, some(it.name), it.type, it.index));
-	FunDecl constructor(immutable Type returnType, immutable FunFlags flags) {
-		return FunDecl(
+	immutable(FunDecl) constructor(immutable Type returnType, immutable FunFlags flags) =>
+		FunDecl(
 			safeCStr!"",
 			record.flags.newVisibility,
 			fileAndPosFromFileAndRange(struct_.range),
@@ -423,7 +411,6 @@ void addFunsForRecord(
 			flags.withOkIfUnused(),
 			[],
 			immutable FunBody(immutable FunBody.CreateRecord()));
-	}
 
 	if (recordIsAlwaysByVal(record)) {
 		exactSizeArrBuilderAdd(funsBuilder, constructor(structType, FunFlags.generatedNoCtx));

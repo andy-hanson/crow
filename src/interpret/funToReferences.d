@@ -47,12 +47,11 @@ FunToReferences initFunToReferences(
 	ref TempAlloc tempAlloc,
 	return scope immutable FunPtrTypeToDynCallSig funPtrTypeToDynCallSig,
 	immutable size_t nLowFuns,
-) {
-	return FunToReferences(
+) =>
+	FunToReferences(
 		funPtrTypeToDynCallSig,
 		makeFullIndexDict_mut!(LowFunIndex, FunReferencesBuilder)(tempAlloc, nLowFuns, (immutable(LowFunIndex)) =>
 			FunReferencesBuilder()));
-}
 
 immutable(FunReferences) finishAt(
 	ref TempAlloc tempAlloc,

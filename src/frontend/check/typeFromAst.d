@@ -154,8 +154,8 @@ immutable(Type) typeFromAst(
 	scope ref immutable StructsAndAliasesDict structsAndAliasesDict,
 	immutable TypeParamsScope typeParamsScope,
 	DelayStructInsts delayStructInsts,
-) {
-	return matchTypeAst!(
+) =>
+	matchTypeAst!(
 		immutable Type,
 		(immutable TypeAst.Dict it) =>
 			instStructFromAst(
@@ -203,7 +203,6 @@ immutable(Type) typeFromAst(
 				typeParamsScope,
 				delayStructInsts),
 	)(ast);
-}
 
 private immutable(Opt!(Diag.TypeShouldUseSyntax.Kind)) typeSyntaxKind(immutable Sym a) {
 	switch (a.value) {
@@ -226,9 +225,8 @@ private immutable(Opt!(Diag.TypeShouldUseSyntax.Kind)) typeSyntaxKind(immutable 
 	}
 }
 
-private immutable(Type) typeFromOptInst(immutable Opt!(StructInst*) a) {
-	return has(a) ? immutable Type(force(a)) : immutable Type(Type.Bogus());
-}
+private immutable(Type) typeFromOptInst(immutable Opt!(StructInst*) a) =>
+	has(a) ? immutable Type(force(a)) : immutable Type(Type.Bogus());
 
 private immutable(Type) typeFromFunAst(
 	ref CheckCtx ctx,
@@ -301,9 +299,8 @@ immutable(Type) makeFutType(
 	ref ProgramState programState,
 	ref immutable CommonTypes commonTypes,
 	immutable Type type,
-) {
-	return immutable Type(instantiateStructNeverDelay(alloc, programState, commonTypes.fut, [type]));
-}
+) =>
+	immutable Type(instantiateStructNeverDelay(alloc, programState, commonTypes.fut, [type]));
 
 private:
 

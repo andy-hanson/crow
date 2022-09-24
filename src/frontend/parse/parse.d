@@ -89,8 +89,8 @@ immutable(FileAst) parseFile(
 	ref AllSymbols allSymbols,
 	ref ArrBuilder!DiagnosticWithinFile diagsBuilder,
 	scope immutable SafeCStr source,
-) {
-	return withMeasure!(immutable FileAst, () {
+) =>
+	withMeasure!(immutable FileAst, () {
 		scope Lexer lexer = createLexer(
 			ptrTrustMe_mut(alloc),
 			ptrTrustMe_mut(allSymbols),
@@ -98,7 +98,6 @@ immutable(FileAst) parseFile(
 			source);
 		return parseFileInner(allPaths, lexer);
 	})(alloc, perf, PerfMeasure.parseFile);
-}
 
 private:
 
@@ -149,11 +148,10 @@ immutable(size_t) takeDotDotSlashes(scope ref Lexer lexer, immutable size_t acc)
 		return acc;
 }
 
-immutable(Path) addPathComponents(ref AllPaths allPaths, scope ref Lexer lexer, immutable Path acc) {
-	return tryTakeOperator(lexer, Operator.divide)
+immutable(Path) addPathComponents(ref AllPaths allPaths, scope ref Lexer lexer, immutable Path acc) =>
+	tryTakeOperator(lexer, Operator.divide)
 		? addPathComponents(allPaths, lexer, childPath(allPaths, acc, takePathComponent(lexer)))
 		: acc;
-}
 
 immutable(ImportAndDedent) parseSingleModuleImportOnOwnLine(ref AllPaths allPaths, scope ref Lexer lexer) {
 	immutable Pos start = curPos(lexer);
@@ -200,8 +198,8 @@ immutable(ImportFileType) parseImportFileType(scope ref Lexer lexer) {
 	}
 }
 
-immutable(Opt!(ImportFileType)) toImportFileType(immutable TypeAst a) {
-	return matchTypeAst!(
+immutable(Opt!(ImportFileType)) toImportFileType(immutable TypeAst a) =>
+	matchTypeAst!(
 		immutable Opt!(ImportFileType),
 		(immutable(TypeAst.Dict)) =>
 			none!(ImportFileType),
@@ -228,7 +226,6 @@ immutable(Opt!(ImportFileType)) toImportFileType(immutable TypeAst a) {
 					)(x.left)
 				: none!(ImportFileType),
 	)(a);
-}
 
 immutable(ImportOrExportKindAndDedent) parseIndentedImportNames(scope ref Lexer lexer, immutable Pos start) {
 	ArrBuilder!Sym names;
@@ -629,9 +626,8 @@ void parseSpecOrStructOrFun(
 			break;
 		case Token.union_:
 			nextToken(lexer);
-			addStruct(() {
-				return immutable StructDeclAst.Body(immutable StructDeclAst.Body.Union(parseUnionMembersOrDiag(lexer)));
-			});
+			addStruct(() =>
+				immutable StructDeclAst.Body(immutable StructDeclAst.Body.Union(parseUnionMembersOrDiag(lexer))));
 			break;
 		default:
 			add(lexer.alloc, funs, parseFun(lexer, docComment, visibility, start, name, typeParams));
@@ -714,9 +710,9 @@ immutable(Opt!(ModifierAst.Kind)) modifierKindFromSym(immutable Sym a) {
 	}
 }
 
-immutable(Visibility) tryTakePrivate(scope ref Lexer lexer) {
-	return tryTakeToken(lexer, Token.dot) ? Visibility.private_ : Visibility.public_;
-}
+immutable(Visibility) tryTakePrivate(scope ref Lexer lexer) =>
+	tryTakeToken(lexer, Token.dot) ? Visibility.private_ : Visibility.public_;
+
 immutable(Opt!ImportsOrExportsAst) parseImportsOrExports(
 	ref AllPaths allPaths,
 	scope ref Lexer lexer,

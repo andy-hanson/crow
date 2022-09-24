@@ -352,8 +352,8 @@ void generateExternCallFunPtr(
 	writeCallFunPtrExtern(writer, source, funPtr, immutable DynCallSig(tempAsArr(sigTypes)));
 }
 
-immutable(DynCallType) toDynCallType(scope immutable LowType a) {
-	return matchLowType!(
+immutable(DynCallType) toDynCallType(scope immutable LowType a) =>
+	matchLowType!(
 		immutable DynCallType,
 		(immutable LowType.ExternPtr) =>
 			DynCallType.pointer,
@@ -400,7 +400,6 @@ immutable(DynCallType) toDynCallType(scope immutable LowType a) {
 		(immutable LowType.Union) =>
 			unreachable!(immutable DynCallType),
 	)(a);
-}
 
 void toDynCallTypes(
 	scope ref immutable LowProgram program,

@@ -25,12 +25,10 @@ void diffSymbols(
 
 private:
 
-ref immutable(T) atPossiblyReversed(T)(ref immutable T[] a, immutable size_t i, immutable bool reversed) {
-	return a[reversed ? a.length - 1 - i : i];
-}
-ref const(T) atPossiblyReversed(T)(ref const T[] a, immutable size_t i, immutable bool reversed) {
-	return a[reversed ? a.length - 1 - i : i];
-}
+ref immutable(T) atPossiblyReversed(T)(ref immutable T[] a, immutable size_t i, immutable bool reversed) =>
+	a[reversed ? a.length - 1 - i : i];
+ref const(T) atPossiblyReversed(T)(ref const T[] a, immutable size_t i, immutable bool reversed) =>
+	a[reversed ? a.length - 1 - i : i];
 void setAtPossiblyReversed(T)(
 	ref T[] a,
 	immutable size_t i,

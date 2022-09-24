@@ -51,48 +51,40 @@ struct CheckCtx {
 
 	public:
 
-	@trusted ref Alloc alloc() return scope {
-		return *allocPtr;
-	}
+	@trusted ref Alloc alloc() return scope =>
+		*allocPtr;
 
-	ref const(AllSymbols) allSymbols() return scope const {
-		return *allSymbolsPtr;
-	}
-	ref AllSymbols allSymbols() return scope {
-		return *allSymbolsPtr;
-	}
+	ref const(AllSymbols) allSymbols() return scope const =>
+		*allSymbolsPtr;
+	ref AllSymbols allSymbols() return scope =>
+		*allSymbolsPtr;
 
-	ref Perf perf() return scope {
-		return *perfPtr;
-	}
+	ref Perf perf() return scope =>
+		*perfPtr;
 
-	@trusted ref ProgramState programState() return scope {
-		return *programStatePtr;
-	}
+	@trusted ref ProgramState programState() return scope =>
+		*programStatePtr;
 
-	ref DiagnosticsBuilder diagsBuilder() return scope {
-		return *diagsBuilderPtr;
-	}
+	ref DiagnosticsBuilder diagsBuilder() return scope =>
+		*diagsBuilderPtr;
 }
 
 FullIndexDict!(ImportIndex, bool) newUsedImportsAndReExports(
 	ref Alloc alloc,
 	immutable ImportOrExport[] imports,
 	immutable ImportOrExport[] reExports,
-) {
-	return makeFullIndexDict_mut!(ImportIndex, bool)(
+) =>
+	makeFullIndexDict_mut!(ImportIndex, bool)(
 		alloc,
 		sum(imports, (ref immutable ImportOrExport x) => countImportsForUsed(x)) +
 			sum(reExports, (ref immutable ImportOrExport x) => countImportsForUsed(x)),
 		(immutable(ImportIndex)) => false);
-}
 
-private immutable(size_t) countImportsForUsed(scope ref immutable ImportOrExport a) {
-	return matchImportOrExportKind!(immutable size_t)(
+private immutable(size_t) countImportsForUsed(scope ref immutable ImportOrExport a) =>
+	matchImportOrExportKind!(immutable size_t)(
 		a.kind,
 		(immutable(ImportOrExportKind.ModuleWhole)) => 1,
 		(immutable ImportOrExportKind.ModuleNamed m) => m.names.length);
-}
 
 void checkForUnused(
 	ref CheckCtx ctx,
@@ -238,13 +230,11 @@ private struct ImportIndexAndReferents {
 	immutable NameReferents referents;
 }
 
-immutable(FileAndPos) posInFile(scope ref const CheckCtx ctx, ref immutable Pos pos) {
-	return immutable FileAndPos(ctx.fileIndex, pos);
-}
+immutable(FileAndPos) posInFile(scope ref const CheckCtx ctx, ref immutable Pos pos) =>
+	immutable FileAndPos(ctx.fileIndex, pos);
 
-immutable(FileAndRange) rangeInFile(scope ref const CheckCtx ctx, immutable RangeWithinFile range) {
-	return immutable FileAndRange(ctx.fileIndex, range);
-}
+immutable(FileAndRange) rangeInFile(scope ref const CheckCtx ctx, immutable RangeWithinFile range) =>
+	immutable FileAndRange(ctx.fileIndex, range);
 
 void addDiag(ref CheckCtx ctx, immutable FileAndRange range, immutable Diag diag) {
 	addDiagnostic(ctx.alloc, ctx.diagsBuilder, range, diag);

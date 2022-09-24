@@ -125,33 +125,26 @@ immutable(BuiltinKind) getBuiltinKind(
 	immutable LowType p0,
 	immutable LowType p1,
 ) {
-	immutable(BuiltinKind) constant(immutable Constant kind) {
-		return immutable BuiltinKind(kind);
-	}
-	immutable(BuiltinKind) constantBool(immutable bool value) {
-		return constant(immutable Constant(immutable Constant.BoolConstant(value)));
-	}
-	immutable(BuiltinKind) unary(immutable LowExprKind.SpecialUnary.Kind kind) {
-		return immutable BuiltinKind(kind);
-	}
-	immutable(BuiltinKind) binary(immutable LowExprKind.SpecialBinary.Kind kind) {
-		return immutable BuiltinKind(kind);
-	}
+	immutable(BuiltinKind) constant(immutable Constant kind) =>
+		immutable BuiltinKind(kind);
+	immutable(BuiltinKind) constantBool(immutable bool value) =>
+		constant(immutable Constant(immutable Constant.BoolConstant(value)));
+	immutable(BuiltinKind) unary(immutable LowExprKind.SpecialUnary.Kind kind) =>
+		immutable BuiltinKind(kind);
+	immutable(BuiltinKind) binary(immutable LowExprKind.SpecialBinary.Kind kind) =>
+		immutable BuiltinKind(kind);
 
 	immutable(T) failT(T)() {
 		debugLog("Unsupported builtin function:");
 		debugLog(safeCStrOfSym(alloc, allSymbols, name).ptr);
 		return todo!T("not a builtin fun");
 	}
-	immutable(BuiltinKind) fail() {
-		return failT!(immutable BuiltinKind);
-	}
-	immutable(LowExprKind.SpecialUnary.Kind) failUnary() {
-		return failT!(immutable LowExprKind.SpecialUnary.Kind);
-	}
-	immutable(LowExprKind.SpecialBinary.Kind) failBinary() {
-		return failT!(immutable LowExprKind.SpecialBinary.Kind);
-	}
+	immutable(BuiltinKind) fail() =>
+		failT!(immutable BuiltinKind);
+	immutable(LowExprKind.SpecialUnary.Kind) failUnary() =>
+		failT!(immutable LowExprKind.SpecialUnary.Kind);
+	immutable(LowExprKind.SpecialBinary.Kind) failBinary() =>
+		failT!(immutable LowExprKind.SpecialBinary.Kind);
 
 	switch (name.value) {
 		case operatorSymValue(Operator.plus):
@@ -480,58 +473,44 @@ immutable(BuiltinKind) getBuiltinKind(
 
 private:
 
-immutable(bool) isPrimitiveType(immutable LowType a, immutable PrimitiveType p) {
-	return isPrimitive(a) && asPrimitive(a) == p;
-}
+immutable(bool) isPrimitiveType(immutable LowType a, immutable PrimitiveType p) =>
+	isPrimitive(a) && asPrimitive(a) == p;
 
-immutable(bool) isBool(immutable LowType a) {
-	return isPrimitiveType(a, PrimitiveType.bool_);
-}
+immutable(bool) isBool(immutable LowType a) =>
+	isPrimitiveType(a, PrimitiveType.bool_);
 
-immutable(bool) isChar(immutable LowType a) {
-	return isPrimitiveType(a, PrimitiveType.char8);
-}
+immutable(bool) isChar(immutable LowType a) =>
+	isPrimitiveType(a, PrimitiveType.char8);
 
-immutable(bool) isInt8(immutable LowType a) {
-	return isPrimitiveType(a, PrimitiveType.int8);
-}
+immutable(bool) isInt8(immutable LowType a) =>
+	isPrimitiveType(a, PrimitiveType.int8);
 
-immutable(bool) isInt16(immutable LowType a) {
-	return isPrimitiveType(a, PrimitiveType.int16);
-}
+immutable(bool) isInt16(immutable LowType a) =>
+	isPrimitiveType(a, PrimitiveType.int16);
 
-immutable(bool) isInt32(immutable LowType a) {
-	return isPrimitiveType(a, PrimitiveType.int32);
-}
+immutable(bool) isInt32(immutable LowType a) =>
+	isPrimitiveType(a, PrimitiveType.int32);
 
-immutable(bool) isInt64(immutable LowType a) {
-	return isPrimitiveType(a, PrimitiveType.int64);
-}
+immutable(bool) isInt64(immutable LowType a) =>
+	isPrimitiveType(a, PrimitiveType.int64);
 
-immutable(bool) isNat8(immutable LowType a) {
-	return isPrimitiveType(a, PrimitiveType.nat8);
-}
+immutable(bool) isNat8(immutable LowType a) =>
+	isPrimitiveType(a, PrimitiveType.nat8);
 
-immutable(bool) isNat16(immutable LowType a) {
-	return isPrimitiveType(a, PrimitiveType.nat16);
-}
+immutable(bool) isNat16(immutable LowType a) =>
+	isPrimitiveType(a, PrimitiveType.nat16);
 
-immutable(bool) isNat32(immutable LowType a) {
-	return isPrimitiveType(a, PrimitiveType.nat32);
-}
+immutable(bool) isNat32(immutable LowType a) =>
+	isPrimitiveType(a, PrimitiveType.nat32);
 
-immutable(bool) isNat64(immutable LowType a) {
-	return isPrimitiveType(a, PrimitiveType.nat64);
-}
+immutable(bool) isNat64(immutable LowType a) =>
+	isPrimitiveType(a, PrimitiveType.nat64);
 
-immutable(bool) isFloat32(immutable LowType a) {
-	return isPrimitiveType(a, PrimitiveType.float32);
-}
+immutable(bool) isFloat32(immutable LowType a) =>
+	isPrimitiveType(a, PrimitiveType.float32);
 
-immutable(bool) isFloat64(immutable LowType a) {
-	return isPrimitiveType(a, PrimitiveType.float64);
-}
+immutable(bool) isFloat64(immutable LowType a) =>
+	isPrimitiveType(a, PrimitiveType.float64);
 
-immutable(bool) isVoid(immutable LowType a) {
-	return isPrimitiveType(a, PrimitiveType.void_);
-}
+immutable(bool) isVoid(immutable LowType a) =>
+	isPrimitiveType(a, PrimitiveType.void_);

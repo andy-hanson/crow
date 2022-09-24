@@ -68,13 +68,11 @@ struct Operations {
 	Operation[] byteCode;
 	immutable FullIndexDict!(ByteCodeIndex, ByteCodeSource) sources; // parallel to byteCode
 }
-immutable(Operations) castImmutable(Operations a) {
-	return immutable Operations(castImmutable(a.byteCode), a.sources);
-}
+immutable(Operations) castImmutable(Operations a) =>
+	immutable Operations(castImmutable(a.byteCode), a.sources);
 
-@trusted immutable(Operation*) initialOperationPointer(return scope ref immutable ByteCode a) {
-	return a.byteCode.ptr + a.main.index;
-}
+@trusted immutable(Operation*) initialOperationPointer(return scope ref immutable ByteCode a) =>
+	a.byteCode.ptr + a.main.index;
 
 struct StackOffset {
 	// In words.
@@ -96,13 +94,11 @@ struct ByteCodeIndex {
 	immutable size_t index;
 }
 
-immutable(ByteCodeIndex) addByteCodeIndex(immutable ByteCodeIndex a, immutable size_t b) {
-	return immutable ByteCodeIndex(a.index + b);
-}
+immutable(ByteCodeIndex) addByteCodeIndex(immutable ByteCodeIndex a, immutable size_t b) =>
+	immutable ByteCodeIndex(a.index + b);
 
-immutable(ByteCodeOffset) subtractByteCodeIndex(immutable ByteCodeIndex a, immutable ByteCodeIndex b) {
-	return immutable ByteCodeOffset((cast(long) a.index) - (cast(long) b.index));
-}
+immutable(ByteCodeOffset) subtractByteCodeIndex(immutable ByteCodeIndex a, immutable ByteCodeIndex b) =>
+	immutable ByteCodeOffset((cast(long) a.index) - (cast(long) b.index));
 
 struct ByteCodeOffsetUnsigned {
 	immutable ulong offset;
@@ -113,9 +109,8 @@ struct ByteCodeOffset {
 
 	immutable long offset;
 
-	immutable(ByteCodeOffsetUnsigned) unsigned() const {
-		return immutable ByteCodeOffsetUnsigned(cast(ulong) offset);
-	}
+	immutable(ByteCodeOffsetUnsigned) unsigned() const =>
+		immutable ByteCodeOffsetUnsigned(cast(ulong) offset);
 }
 
 immutable size_t stackEntrySize = 8;

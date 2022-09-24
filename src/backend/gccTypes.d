@@ -418,14 +418,13 @@ immutable(FullIndexDict!(LowType.ExternPtr, gcc_jit_type*)) gccExternPtrTypes(
 	ref gcc_jit_context ctx,
 	ref immutable LowProgram program,
 	ref immutable MangledNames mangledNames,
-) {
-	return mapFullIndexDict!(LowType.ExternPtr, gcc_jit_type*, LowExternPtrType)(
+) =>
+	mapFullIndexDict!(LowType.ExternPtr, gcc_jit_type*, LowExternPtrType)(
 		alloc,
 		program.allExternPtrTypes,
 		(immutable LowType.ExternPtr, ref immutable LowExternPtrType extern_) =>
 			gcc_jit_type_get_pointer(gcc_jit_struct_as_type(
 				castImmutable(structStub(alloc, ctx, mangledNames, extern_.source)))));
-}
 
 gcc_jit_struct* structStub(
 	ref Alloc alloc,

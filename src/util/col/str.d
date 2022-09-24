@@ -21,9 +21,8 @@ struct SafeCStr {
 
 	immutable CStr ptr;
 
-	immutable(bool) opEquals(scope immutable SafeCStr b) scope immutable {
-		return safeCStrEq(this, b);
-	}
+	immutable(bool) opEquals(scope immutable SafeCStr b) scope immutable =>
+		safeCStrEq(this, b);
 
 	void hash(ref Hasher hasher) scope immutable {
 		eachChar(this, (immutable char c) {
@@ -56,42 +55,34 @@ struct SafeCStr {
 	}
 }
 
-immutable(bool) strEq(immutable string a, immutable string b) {
-	return a.length == b.length && (a.length == 0 || (a[0] == b[0] && strEq(a[1 .. $], b[1 .. $])));
-}
+immutable(bool) strEq(immutable string a, immutable string b) =>
+	a.length == b.length && (a.length == 0 || (a[0] == b[0] && strEq(a[1 .. $], b[1 .. $])));
 
-@trusted immutable(SafeCStr) safeCStr(immutable char* content)() {
-	return immutable SafeCStr(content);
-}
+@trusted immutable(SafeCStr) safeCStr(immutable char* content)() =>
+	immutable SafeCStr(content);
 
-@trusted immutable(size_t) safeCStrSize(immutable SafeCStr a) {
-	return end(a.ptr) - a.ptr;
-}
+@trusted immutable(size_t) safeCStrSize(immutable SafeCStr a) =>
+	end(a.ptr) - a.ptr;
 
 @system void freeSafeCStr(ref Alloc alloc, immutable SafeCStr a) {
 	// + 1 to free the '\0' too
 	freeArr(alloc, a.ptr[0 .. safeCStrSize(a) + 1]);
 }
 
-immutable(bool) safeCStrIsEmpty(immutable SafeCStr a) {
-	return *a.ptr == '\0';
-}
+immutable(bool) safeCStrIsEmpty(immutable SafeCStr a) =>
+	*a.ptr == '\0';
 
-immutable(string) strOfSafeCStr(return scope immutable SafeCStr a) {
-	return strOfCStr(a.ptr);
-}
+immutable(string) strOfSafeCStr(return scope immutable SafeCStr a) =>
+	strOfCStr(a.ptr);
 
-immutable(SafeCStr) copySafeCStr(ref Alloc alloc, scope immutable SafeCStr a) {
-	return copyToSafeCStr(alloc, strOfSafeCStr(a));
-}
+immutable(SafeCStr) copySafeCStr(ref Alloc alloc, scope immutable SafeCStr a) =>
+	copyToSafeCStr(alloc, strOfSafeCStr(a));
 
-immutable(bool) safeCStrEq(immutable SafeCStr a, immutable string b) {
-	return strEq(strOfSafeCStr(a), b);
-}
+immutable(bool) safeCStrEq(immutable SafeCStr a, immutable string b) =>
+	strEq(strOfSafeCStr(a), b);
 
-immutable(bool) safeCStrEq(immutable SafeCStr a, immutable SafeCStr b) {
-	return safeCStrEq(a, strOfSafeCStr(b));
-}
+immutable(bool) safeCStrEq(immutable SafeCStr a, immutable SafeCStr b) =>
+	safeCStrEq(a, strOfSafeCStr(b));
 
 @trusted void eachChar(scope immutable SafeCStr a, scope void delegate(immutable char) @safe @nogc pure nothrow cb) {
 	for (immutable(char)* p = a.ptr; *p != '\0'; p++)

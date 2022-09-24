@@ -37,9 +37,8 @@ ref immutable(V) stackDictMustGet(K, V)(scope return ref immutable StackDict!(K,
 
 immutable(Opt!V) stackDictLastAdded(K, V)(
 	return scope ref immutable StackDict!(K, V) a,
-) {
-	return a.key == invalid!K ? none!V : some(a.value);
-}
+) =>
+	a.key == invalid!K ? none!V : some(a.value);
 
 struct MutStackDict(K, V) {
 	private:
@@ -81,9 +80,8 @@ private union StackDict2Key(K0, K1) {
 	immutable this(immutable K0 a) { k0 = a; }
 	immutable this(immutable K1 a) { k1 = a; }
 
-	static immutable(StackDict2Key!(K0, K1)) INVALID() {
-		return immutable StackDict2Key!(K0, K1)(cast(immutable K0) null);
-	}
+	static immutable(StackDict2Key!(K0, K1)) INVALID() =>
+		immutable StackDict2Key!(K0, K1)(cast(immutable K0) null);
 }
 private union StackDict2Value(V0, V1) {
 	@safe @nogc pure nothrow:
@@ -99,38 +97,34 @@ private union StackDict2Value(V0, V1) {
 	scope return ref inout StackDict2!(K0, V0, K1, V1) a,
 	scope return immutable K0 key,
 	scope return inout V0 value,
-) {
-	return cast(inout(StackDict2!(K0, V0, K1, V1))) mutStackDictAdd!(StackDict2Key!(K0, K1), StackDict2Value!(V0, V1))(
+) =>
+	cast(inout(StackDict2!(K0, V0, K1, V1))) mutStackDictAdd!(StackDict2Key!(K0, K1), StackDict2Value!(V0, V1))(
 		cast(StackDict2!(K0, V0, K1, V1)) a,
 		immutable StackDict2Key!(K0, K1)(key),
 		cast(StackDict2Value!(V0, V1)) inout StackDict2Value!(V0, V1)(value));
-}
 
 @trusted inout(StackDict2!(K0, V0, K1, V1)) stackDict2Add1(K0, V0, K1, V1)(
 	scope return ref inout StackDict2!(K0, V0, K1, V1) a,
 	scope return immutable K1 key,
 	scope return inout V1 value,
-) {
-	return cast(inout(StackDict2!(K0, V0, K1, V1))) mutStackDictAdd!(StackDict2Key!(K0, K1), StackDict2Value!(V0, V1))(
+) =>
+	cast(inout(StackDict2!(K0, V0, K1, V1))) mutStackDictAdd!(StackDict2Key!(K0, K1), StackDict2Value!(V0, V1))(
 		cast(StackDict2!(K0, V0, K1, V1)) a,
 		immutable StackDict2Key!(K0, K1)(key),
 		cast(StackDict2Value!(V0, V1)) inout StackDict2Value!(V0, V1)(value));
-}
 
 @trusted ref inout(V0) stackDict2MustGet0(K0, V0, K1, V1)(
 	scope return ref inout(StackDict2!(K0, V0, K1, V1)) a,
 	scope immutable K0 key,
-) {
-	return mutStackDictMustGet!(StackDict2Key!(K0, K1), StackDict2Value!(V0, V1))(
+) =>
+	mutStackDictMustGet!(StackDict2Key!(K0, K1), StackDict2Value!(V0, V1))(
 		a,
 		immutable StackDict2Key!(K0, K1)(key)).v0;
-}
 
 @trusted inout(V1) stackDict2MustGet1(K0, V0, K1, V1)(
 	return scope ref inout(StackDict2!(K0, V0, K1, V1)) a,
 	scope immutable K1 key,
-) {
-	return mutStackDictMustGet!(StackDict2Key!(K0, K1), StackDict2Value!(V0, V1))(
+) =>
+	mutStackDictMustGet!(StackDict2Key!(K0, K1), StackDict2Value!(V0, V1))(
 		a,
 		immutable StackDict2Key!(K0, K1)(key)).v1;
-}

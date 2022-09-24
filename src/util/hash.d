@@ -7,9 +7,8 @@ struct Hasher {
 
 	private ulong value;
 
-	ulong finish() {
-		return value;
-	}
+	ulong finish() =>
+		value;
 
 	private:
 

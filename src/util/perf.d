@@ -61,9 +61,8 @@ private struct PerfMeasurerNoAlloc {
 	ulong nsecBefore;
 }
 
-private pure PerfMeasurerNoAlloc startMeasureNoAlloc(ref Perf perf, immutable PerfMeasure measure) {
-	return perfEnabled ? PerfMeasurerNoAlloc(measure, perf.cbGetTimeNSec()) : PerfMeasurerNoAlloc(measure, 0);
-}
+private pure PerfMeasurerNoAlloc startMeasureNoAlloc(ref Perf perf, immutable PerfMeasure measure) =>
+	perfEnabled ? PerfMeasurerNoAlloc(measure, perf.cbGetTimeNSec()) : PerfMeasurerNoAlloc(measure, 0);
 
 private void endMeasureNoAlloc(ref Perf perf, ref PerfMeasurerNoAlloc measurer) {
 	if (perfEnabled)
@@ -167,12 +166,11 @@ pure void addToMeasure(ref Perf perf, immutable PerfMeasure measure, immutable P
 	perf.measures[measure] = add(perf.measures[measure], result);
 }
 
-pure immutable(PerfMeasureResult) add(immutable PerfMeasureResult a, immutable PerfMeasureResult b) {
-	return immutable PerfMeasureResult(
+pure immutable(PerfMeasureResult) add(immutable PerfMeasureResult a, immutable PerfMeasureResult b) =>
+	immutable PerfMeasureResult(
 		a.count + b.count,
 		a.bytesAllocated + b.bytesAllocated,
 		a.nanoseconds + b.nanoseconds);
-}
 
 pure immutable(SafeCStr) perfMeasureName(immutable PerfMeasure a) {
 	final switch (a) {

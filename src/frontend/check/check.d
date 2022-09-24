@@ -186,8 +186,8 @@ immutable(Module) check(
 	ref immutable ImportsAndExports importsAndExports,
 	scope ref immutable PathAndAst pathAndAst,
 	ref immutable CommonTypes commonTypes,
-) {
-	return checkWorker(
+) =>
+	checkWorker(
 		castNonScope_mut(&alloc),
 		castNonScope_mut(&perf),
 		castNonScope_mut(&allSymbols),
@@ -197,7 +197,6 @@ immutable(Module) check(
 		pathAndAst,
 		(ref CheckCtx, ref immutable(StructsAndAliasesDict), ref MutArr!(StructInst*)) => commonTypes,
 	).module_;
-}
 
 private:
 
@@ -254,9 +253,8 @@ immutable(StructInst*) instantiateNonTemplateStructDecl(
 	ref ProgramState programState,
 	ref MutArr!(StructInst*) delayedStructInsts,
 	immutable StructDecl* structDecl,
-) {
-	return instantiateStruct(alloc, programState, structDecl, [], someMut(castNonScope_mut(&delayedStructInsts)));
-}
+) =>
+	instantiateStruct(alloc, programState, structDecl, [], someMut(castNonScope_mut(&delayedStructInsts)));
 
 immutable(CommonTypes) getCommonTypes(
 	ref CheckCtx ctx,
@@ -411,8 +409,8 @@ immutable(Params) checkParams(
 	scope ref immutable StructsAndAliasesDict structsAndAliasesDict,
 	immutable TypeParamsScope typeParamsScope,
 	ref DelayStructInsts delayStructInsts,
-) {
-	return matchParamsAst!(
+) =>
+	matchParamsAst!(
 		immutable Params,
 		(immutable ParamAst[] asts) {
 			immutable Param[] params = mapWithIndex!(Param, ParamAst)(
@@ -439,16 +437,14 @@ immutable(Params) checkParams(
 				(immutable TypeParam*) =>
 					todo!(immutable Type)("diagnostic"),
 				(immutable StructInst* si) {
-					if (decl(*si) == commonTypes.arr) {
+					if (decl(*si) == commonTypes.arr)
 						return only(typeArgs(*si));
-					} else {
+					else
 						return todo!(immutable Type)("diagnostic");
-					}
 				});
 			return immutable Params(allocate(ctx.alloc, immutable Params.Varargs(param, elementType)));
 		},
 	)(ast);
-}
 
 immutable(Param) checkParam(
 	ref CheckCtx ctx,
@@ -520,8 +516,8 @@ immutable(SpecBody) checkSpecBody(
 	immutable RangeWithinFile range,
 	immutable Sym name,
 	ref immutable SpecBodyAst ast,
-) {
-	return matchSpecBodyAst!(
+) =>
+	matchSpecBodyAst!(
 		immutable SpecBody,
 		(ref immutable SpecBodyAst.Builtin) =>
 			immutable SpecBody(SpecBody.Builtin(getSpecBodyBuiltinKind(ctx, range, name))),
@@ -543,15 +539,14 @@ immutable(SpecBody) checkSpecBody(
 					rp.params);
 			})),
 	)(ast);
-}
 
 immutable(SpecDecl[]) checkSpecDecls(
 	ref CheckCtx ctx,
 	ref immutable CommonTypes commonTypes,
 	ref immutable StructsAndAliasesDict structsAndAliasesDict,
 	scope immutable SpecDeclAst[] asts,
-) {
-	return map!SpecDecl(ctx.alloc, asts, (ref immutable SpecDeclAst ast) {
+) =>
+	map!SpecDecl(ctx.alloc, asts, (ref immutable SpecDeclAst ast) {
 		immutable TypeParam[] typeParams = checkTypeParams(ctx, ast.typeParams);
 		immutable SpecBody body_ =
 			checkSpecBody(ctx, commonTypes, typeParams, structsAndAliasesDict, ast.range, ast.name, ast.body_);
@@ -563,17 +558,15 @@ immutable(SpecDecl[]) checkSpecDecls(
 			small(typeParams),
 			body_);
 	});
-}
 
-StructAlias[] checkStructAliasesInitial(ref CheckCtx ctx, scope immutable StructAliasAst[] asts) {
-	return mapToMut!(StructAlias, StructAliasAst)(ctx.alloc, asts, (scope ref immutable StructAliasAst ast) @safe =>
+StructAlias[] checkStructAliasesInitial(ref CheckCtx ctx, scope immutable StructAliasAst[] asts) =>
+	mapToMut!(StructAlias, StructAliasAst)(ctx.alloc, asts, (scope ref immutable StructAliasAst ast) @safe =>
 		StructAlias(
 			rangeInFile(ctx, ast.range),
 			copySafeCStr(ctx.alloc, ast.docComment),
 			ast.visibility,
 			ast.name,
 			small(checkTypeParams(ctx, ast.typeParams))));
-}
 
 void checkStructAliasTargets(
 	ref CheckCtx ctx,
@@ -721,8 +714,8 @@ immutable(FunFlags) checkFunFlags(
 	immutable bool implicitNoctx = extern_ || global || threadLocal;
 	immutable bool noctx = explicitNoctx || implicitNoctx;
 
-	immutable(Sym) bodyModifier() {
-		return builtin
+	immutable(Sym) bodyModifier() =>
+		builtin
 			? shortSym("builtin")
 			: extern_
 			? shortSym("extern")
@@ -731,7 +724,6 @@ immutable(FunFlags) checkFunFlags(
 			: threadLocal
 			? shortSym("thread-local")
 			: unreachable!(immutable Sym);
-	}
 
 	immutable FunFlags.Safety safety = trusted
 		? FunFlags.Safety.trusted
@@ -941,8 +933,8 @@ immutable(FunBody) getFileImportFunctionBody(
 	ref FullIndexDict!(ModuleLocalFunIndex, bool) usedFuns,
 	ref immutable FunDecl f,
 	ref immutable ImportOrExportFile ie,
-) {
-	return matchFileContent!(immutable FunBody)(
+) =>
+	matchFileContent!(immutable FunBody)(
 		ie.content,
 		(immutable ubyte[] bytes) =>
 			immutable FunBody(immutable FunBody.FileBytes(bytes)),
@@ -953,7 +945,6 @@ immutable(FunBody) getFileImportFunctionBody(
 			return immutable FunBody(
 				getExprFunctionBody(ctx, commonTypes, structsAndAliasesDict, funsDict, usedFuns, f, ast));
 		});
-}
 
 immutable(Expr) getExprFunctionBody(
 	ref CheckCtx ctx,
@@ -963,8 +954,8 @@ immutable(Expr) getExprFunctionBody(
 	ref FullIndexDict!(ModuleLocalFunIndex, bool) usedFuns,
 	ref immutable FunDecl f,
 	ref immutable ExprAst e,
-) {
-	return checkFunctionBody(
+) =>
+	checkFunctionBody(
 		ctx,
 		structsAndAliasesDict,
 		commonTypes,
@@ -976,7 +967,6 @@ immutable(Expr) getExprFunctionBody(
 		f.specs,
 		f.flags,
 		e);
-}
 
 FunDecl funDeclForFileImportOrExport(
 	ref CheckCtx ctx,
@@ -984,8 +974,8 @@ FunDecl funDeclForFileImportOrExport(
 	scope ref immutable StructsAndAliasesDict structsAndAliasesDict,
 	ref immutable ImportOrExportFile a,
 	immutable Visibility visibility,
-) {
-	return FunDecl(
+) =>
+	FunDecl(
 		safeCStr!"",
 		visibility,
 		immutable FileAndPos(ctx.fileIndex, a.range.start),
@@ -996,7 +986,6 @@ FunDecl funDeclForFileImportOrExport(
 		FunFlags.generatedNoCtx,
 		[],
 		immutable FunBody(immutable FunBody.Bogus()));
-}
 
 immutable(Type) typeForFileImport(
 	ref CheckCtx ctx,
@@ -1097,13 +1086,11 @@ immutable(FunBody.ThreadLocal) checkThreadLocalBody(
 	return immutable FunBody.ThreadLocal();
 }
 
-immutable(bool) isPtrMutType(scope ref immutable CommonTypes commonTypes, immutable Type a) {
-	return isStructInst(a) && decl(*asStructInst(a)) == commonTypes.ptrMut;
-}
+immutable(bool) isPtrMutType(scope ref immutable CommonTypes commonTypes, immutable Type a) =>
+	isStructInst(a) && decl(*asStructInst(a)) == commonTypes.ptrMut;
 
-immutable(bool) paramsIsEmpty(scope immutable Params a) {
-	return empty(paramsArray(a));
-}
+immutable(bool) paramsIsEmpty(scope immutable Params a) =>
+	empty(paramsArray(a));
 
 immutable(SpecsDict) buildSpecsDict(ref CheckCtx ctx, immutable SpecDecl[] specs) {
 	DictBuilder!(Sym, SpecDeclAndIndex) res;
@@ -1282,7 +1269,8 @@ immutable(BootstrapCheck) checkWorker(
 		ref MutArr!(StructInst*),
 	) @safe @nogc pure nothrow getCommonTypes,
 ) {
-	ref Alloc alloc() { return *allocPtr; }
+	ref Alloc alloc() =>
+		*allocPtr;
 
 	checkImportsOrExports(alloc, diagsBuilder, pathAndAst.fileIndex, importsAndExports.moduleImports);
 	checkImportsOrExports(alloc, diagsBuilder, pathAndAst.fileIndex, importsAndExports.moduleExports);

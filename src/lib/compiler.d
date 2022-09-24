@@ -248,32 +248,28 @@ immutable(SafeCStr) showAst(
 	ref const AllSymbols allSymbols,
 	ref const AllPaths allPaths,
 	ref immutable FileAst ast,
-) {
-	return jsonStrOfRepr(alloc, allSymbols, reprAst(alloc, allPaths, ast));
-}
+) =>
+	jsonStrOfRepr(alloc, allSymbols, reprAst(alloc, allPaths, ast));
 
 //TODO:INLINE
 immutable(SafeCStr) showModule(
 	ref Alloc alloc,
 	ref const AllSymbols allSymbols,
 	ref immutable Module a,
-) {
-	return jsonStrOfRepr(alloc, allSymbols, reprModule(alloc, a));
-}
+) =>
+	jsonStrOfRepr(alloc, allSymbols, reprModule(alloc, a));
 
 //TODO:INLINE
 immutable(SafeCStr) showConcreteProgram(
 	ref Alloc alloc,
 	ref const AllSymbols allSymbols,
 	ref immutable ConcreteProgram a,
-) {
-	return jsonStrOfRepr(alloc, allSymbols, reprOfConcreteProgram(alloc, a));
-}
+) =>
+	jsonStrOfRepr(alloc, allSymbols, reprOfConcreteProgram(alloc, a));
 
 //TODO:INLINE
-immutable(SafeCStr) showLowProgram(ref Alloc alloc, ref const AllSymbols allSymbols, ref immutable LowProgram a) {
-	return jsonStrOfRepr(alloc, allSymbols, reprOfLowProgram(alloc, a));
-}
+immutable(SafeCStr) showLowProgram(ref Alloc alloc, ref const AllSymbols allSymbols, ref immutable LowProgram a) =>
+	jsonStrOfRepr(alloc, allSymbols, reprOfLowProgram(alloc, a));
 
 public immutable(ExitCode) justTypeCheck(
 	ref Alloc alloc,
@@ -362,9 +358,8 @@ public struct ProgramsAndFilesInfo {
 	immutable Program program;
 	immutable Opt!ConcreteAndLowProgram concreteAndLowProgram;
 
-	ref immutable(LowProgram) lowProgram() scope return const {
-		return force(concreteAndLowProgram).lowProgram;
-	}
+	ref immutable(LowProgram) lowProgram() scope return const =>
+		force(concreteAndLowProgram).lowProgram;
 }
 
 public immutable(ProgramsAndFilesInfo) buildToLowProgram(

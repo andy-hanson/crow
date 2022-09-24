@@ -54,8 +54,8 @@ import util.repr :
 	reprSym;
 import util.sourceRange : reprFileAndRange;
 
-immutable(Repr) reprOfLowProgram(ref Alloc alloc, ref immutable LowProgram a) {
-	return reprNamedRecord(alloc, "program", [
+immutable(Repr) reprOfLowProgram(ref Alloc alloc, ref immutable LowProgram a) =>
+	reprNamedRecord(alloc, "program", [
 		nameAndRepr("extern-ptrs", reprFullIndexDict(alloc, a.allExternPtrTypes, (ref immutable LowExternPtrType it) =>
 			reprOfExternPtrType(alloc, it))),
 		nameAndRepr("fun-ptrs", reprFullIndexDict(alloc, a.allFunPtrTypes, (ref immutable LowFunPtrType it) =>
@@ -67,12 +67,11 @@ immutable(Repr) reprOfLowProgram(ref Alloc alloc, ref immutable LowProgram a) {
 		nameAndRepr("funs", reprFullIndexDict(alloc, a.allFuns, (ref immutable LowFun it) =>
 			reprOfLowFun(alloc, it))),
 		nameAndRepr("main", reprNat(a.main.index))]);
-}
 
 private:
 
-immutable(Repr) reprOfLowType(ref Alloc alloc, immutable LowType a) {
-	return matchLowType!(
+immutable(Repr) reprOfLowType(ref Alloc alloc, immutable LowType a) =>
+	matchLowType!(
 		immutable Repr,
 		(immutable LowType.ExternPtr it) =>
 			reprRecord(alloc, "extern-ptr", [reprNat(it.index)]),
@@ -91,93 +90,82 @@ immutable(Repr) reprOfLowType(ref Alloc alloc, immutable LowType a) {
 		(immutable LowType.Union it) =>
 			reprRecord(alloc, "union", [reprNat(it.index)]),
 	)(a);
-}
 
-immutable(Repr) reprOfExternPtrType(ref Alloc alloc, ref immutable LowExternPtrType a) {
-	return reprRecord(alloc, "extern-ptr", [
+immutable(Repr) reprOfExternPtrType(ref Alloc alloc, ref immutable LowExternPtrType a) =>
+	reprRecord(alloc, "extern-ptr", [
 		reprOfConcreteStructRef(alloc, *a.source)]);
-}
 
-immutable(Repr) reprOfLowFunPtrType(ref Alloc alloc, ref immutable LowFunPtrType a) {
-	return reprRecord(alloc, "fun-ptr", [
+immutable(Repr) reprOfLowFunPtrType(ref Alloc alloc, ref immutable LowFunPtrType a) =>
+	reprRecord(alloc, "fun-ptr", [
 		reprOfConcreteStructRef(alloc, *a.source),
 		reprOfLowType(alloc, a.returnType),
 		reprArr(alloc, a.paramTypes, (ref immutable LowType it) =>
 			reprOfLowType(alloc, it))]);
-}
 
-immutable(Repr) reprOfLowRecord(ref Alloc alloc, ref immutable LowRecord a) {
-	return reprRecord(alloc, "record", [
+immutable(Repr) reprOfLowRecord(ref Alloc alloc, ref immutable LowRecord a) =>
+	reprRecord(alloc, "record", [
 		reprOfConcreteStructRef(alloc, *a.source),
 		reprArr(alloc, a.fields, (ref immutable LowField field) =>
 			reprRecord(alloc, "field", [reprSym(debugName(field)), reprOfLowType(alloc, field.type)]))]);
-}
 
-immutable(Repr) reprOfLowUnion(ref Alloc alloc, ref immutable LowUnion a){
-	return reprRecord(alloc, "union", [
+immutable(Repr) reprOfLowUnion(ref Alloc alloc, ref immutable LowUnion a) =>
+	reprRecord(alloc, "union", [
 		reprOfConcreteStructRef(alloc, *a.source),
 		reprArr(alloc, a.members, (ref immutable LowType it) =>
 			reprOfLowType(alloc, it))]);
-}
 
-immutable(Repr) reprOfLowFun(ref Alloc alloc, ref immutable LowFun a) {
-	return reprRecord(alloc, "fun", [
+immutable(Repr) reprOfLowFun(ref Alloc alloc, ref immutable LowFun a) =>
+	reprRecord(alloc, "fun", [
 		reprOfLowFunSource(alloc, a.source),
 		reprOfLowType(alloc, a.returnType),
 		reprArr(alloc, a.params, (ref immutable LowParam it) =>
 			reprRecord(alloc, "param", [reprOfLowParamSource(it.source), reprOfLowType(alloc, it.type)])),
 		reprOfLowFunBody(alloc, a.body_)]);
-}
 
-immutable(Repr) reprOfLowFunSource(ref Alloc alloc, ref immutable LowFunSource a) {
-	return matchLowFunSource!(
+immutable(Repr) reprOfLowFunSource(ref Alloc alloc, ref immutable LowFunSource a) =>
+	matchLowFunSource!(
 		immutable Repr,
 		(immutable ConcreteFun* it) =>
 			reprOfConcreteFunRef(alloc, *it),
 		(ref immutable LowFunSource.Generated it) =>
 			reprRecord(alloc, "generated", [reprSym(it.name)]),
 	)(a);
-}
 
-immutable(Repr) reprOfLowParamSource(ref immutable LowParamSource a) {
-	return matchLowParamSource!(
+immutable(Repr) reprOfLowParamSource(ref immutable LowParamSource a) =>
+	matchLowParamSource!(
 		immutable Repr,
 		(ref immutable ConcreteParam it) =>
 			reprOfConcreteParamRef(it),
 		(ref immutable LowParamSource.Generated it) =>
 			reprSym(it.name),
 	)(a);
-}
 
-immutable(Repr) reprOfLowFunBody(ref Alloc alloc, ref immutable LowFunBody a) {
-	return matchLowFunBody!(
+immutable(Repr) reprOfLowFunBody(ref Alloc alloc, ref immutable LowFunBody a) =>
+	matchLowFunBody!(
 		immutable Repr,
 		(ref immutable LowFunBody.Extern it) =>
 			reprSym("extern"),
 		(ref immutable LowFunExprBody it) =>
 			reprRecord(alloc, "expr-body", [reprOfLowExpr(alloc, it.expr)]),
 	)(a);
-}
 
-immutable(Repr) reprOfLowLocalSource(ref Alloc alloc, ref immutable LowLocalSource a) {
-	return matchLowLocalSource!(
+immutable(Repr) reprOfLowLocalSource(ref Alloc alloc, ref immutable LowLocalSource a) =>
+	matchLowLocalSource!(
 		immutable Repr,
 		(ref immutable ConcreteLocal it) =>
 			reprOfConcreteLocalRef(it),
 		(ref immutable LowLocalSource.Generated it) =>
 			reprRecord(alloc, "generated", [reprSym(it.name), reprNat(it.index)]),
 	)(a);
-}
 
-immutable(Repr) reprOfLowExpr(ref Alloc alloc, ref immutable LowExpr a) {
-	return reprRecord(alloc, "expr", [
+immutable(Repr) reprOfLowExpr(ref Alloc alloc, ref immutable LowExpr a) =>
+	reprRecord(alloc, "expr", [
 		reprOfLowType(alloc, a.type),
 		reprFileAndRange(alloc, a.source),
 		reprOfLowExprKind(alloc, a.kind)]);
-}
 
-immutable(Repr) reprOfLowExprKind(ref Alloc alloc, ref immutable LowExprKind a) {
-	return matchLowExprKind!(
+immutable(Repr) reprOfLowExprKind(ref Alloc alloc, ref immutable LowExprKind a) =>
+	matchLowExprKind!(
 		immutable Repr,
 		(ref immutable LowExprKind.Call it) =>
 			reprRecord(alloc, "call", [
@@ -290,17 +278,15 @@ immutable(Repr) reprOfLowExprKind(ref Alloc alloc, ref immutable LowExprKind a) 
 		(ref immutable LowExprKind.Zeroed) =>
 			reprSym("uninit"),
 	)(a);
-}
 
-immutable(Repr) reprOfMatchUnion(ref Alloc alloc, ref immutable LowExprKind.MatchUnion a) {
-	return reprRecord(alloc, "match", [
+immutable(Repr) reprOfMatchUnion(ref Alloc alloc, ref immutable LowExprKind.MatchUnion a) =>
+	reprRecord(alloc, "match", [
 		reprOfLowExpr(alloc, a.matchedValue),
 		reprArr(alloc, a.cases, (ref immutable LowExprKind.MatchUnion.Case case_) =>
 			reprRecord(alloc, "case", [
 				reprOpt!(LowLocal*)(alloc, case_.local, (ref immutable LowLocal* it) =>
 					reprOfLowLocalSource(alloc, it.source)),
 				reprOfLowExpr(alloc, case_.then)]))]);
-}
 
 immutable(string) strOfSpecialUnaryKind(immutable LowExprKind.SpecialUnary.Kind a) {
 	final switch (a) {

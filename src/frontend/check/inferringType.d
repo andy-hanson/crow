@@ -65,9 +65,8 @@ struct LocalsInfo {
 	Opt!(LocalNode*) locals;
 }
 
-immutable(bool) isInLambda(ref LocalsInfo a) {
-	return has(a.funOrLambda.outer);
-}
+immutable(bool) isInLambda(ref LocalsInfo a) =>
+	has(a.funOrLambda.outer);
 
 struct LocalNode {
 	Opt!(LocalNode*) prev;
@@ -100,38 +99,33 @@ struct ExprCtx {
 	immutable FunFlags outermostFunFlags;
 	FullIndexDict!(ModuleLocalFunIndex, bool) funsUsed;
 
-	ref Alloc alloc() return scope {
-		return checkCtx().alloc();
-	}
+	ref Alloc alloc() return scope =>
+		checkCtx().alloc();
 
-	ref const(AllSymbols) allSymbols() return scope const {
-		return checkCtx().allSymbols();
-	}
-	ref AllSymbols allSymbols() return scope {
-		return checkCtx().allSymbols();
-	}
-	ref Perf perf() return scope {
-		return checkCtx().perf();
-	}
-	ref CheckCtx checkCtx() return scope {
-		return *checkCtxPtr;
-	}
-	ref const(CheckCtx) checkCtx() return scope const {
-		return *checkCtxPtr;
-	}
+	ref const(AllSymbols) allSymbols() return scope const =>
+		checkCtx().allSymbols();
+	ref AllSymbols allSymbols() return scope =>
+		checkCtx().allSymbols();
+
+	ref Perf perf() return scope =>
+		checkCtx().perf();
+
+	ref CheckCtx checkCtx() return scope =>
+		*checkCtxPtr;
+
+	ref const(CheckCtx) checkCtx() return scope const =>
+		*checkCtxPtr;
 }
 
 void markUsedLocalFun(ref ExprCtx a, immutable ModuleLocalFunIndex index) {
 	a.funsUsed[index] = true;
 }
 
-immutable(FileAndRange) rangeInFile2(ref const ExprCtx ctx, immutable RangeWithinFile range) {
-	return rangeInFile(ctx.checkCtx, range);
-}
+immutable(FileAndRange) rangeInFile2(ref const ExprCtx ctx, immutable RangeWithinFile range) =>
+	rangeInFile(ctx.checkCtx, range);
 
-ref ProgramState programState(return scope ref ExprCtx ctx) {
-	return ctx.checkCtx.programState;
-}
+ref ProgramState programState(return scope ref ExprCtx ctx) =>
+	ctx.checkCtx.programState;
 
 void addDiag2(ref ExprCtx ctx, immutable FileAndRange range, immutable Diag diag) {
 	addDiag(ctx.checkCtx, range, diag);
@@ -143,19 +137,17 @@ TypeArgsArray typeArgsFromAsts(ref ExprCtx ctx, scope immutable TypeAst[] typeAs
 	return res;
 }
 
-immutable(Opt!Type) typeFromOptAst(ref ExprCtx ctx, immutable Opt!(TypeAst*) ast) {
-	return has(ast) ? some(typeFromAst2(ctx, *force(ast))) : none!Type;
-}
+immutable(Opt!Type) typeFromOptAst(ref ExprCtx ctx, immutable Opt!(TypeAst*) ast) =>
+	has(ast) ? some(typeFromAst2(ctx, *force(ast))) : none!Type;
 
-immutable(Type) typeFromAst2(ref ExprCtx ctx, scope immutable TypeAst ast) {
-	return typeFromAst(
+immutable(Type) typeFromAst2(ref ExprCtx ctx, scope immutable TypeAst ast) =>
+	typeFromAst(
 		ctx.checkCtx,
 		ctx.commonTypes,
 		ast,
 		ctx.structsAndAliasesDict,
 		immutable TypeParamsScope(ctx.outermostFunTypeParams),
 		noneMut!(MutArr!(StructInst*)*));
-}
 
 struct SingleInferringType {
 	@safe @nogc pure nothrow:
@@ -167,9 +159,8 @@ struct SingleInferringType {
 	}
 }
 
-immutable(Opt!Type) tryGetInferred(ref const SingleInferringType a) {
-	return cellGet!(immutable Opt!Type)(a.type);
-}
+immutable(Opt!Type) tryGetInferred(ref const SingleInferringType a) =>
+	cellGet!(immutable Opt!Type)(a.type);
 
 struct InferringTypeArgs {
 	@safe @nogc pure nothrow:
@@ -185,13 +176,12 @@ immutable(bool) matchTypesNoDiagnostic(
 	immutable Type expectedType,
 	immutable Type setType,
 	scope ref InferringTypeArgs aInferringTypeArgs
-) {
-	return matchSetTypeResult!(immutable bool)(
+) =>
+	matchSetTypeResult!(immutable bool)(
 		checkAssignability(alloc, programState, expectedType, setType, aInferringTypeArgs),
 		(immutable(SetTypeResult.Set)) => true,
 		(immutable(SetTypeResult.Keep)) => true,
 		(immutable(SetTypeResult.Fail)) => false);
-}
 
 struct LoopInfo {
 	immutable Type voidType;
@@ -252,15 +242,13 @@ private @trusted immutable(T) matchExpected(T)(
 	}
 }
 
-@trusted Opt!(LoopInfo*) tryGetLoop(ref Expected expected) {
-	return expected.kind == Expected.Kind.loop
+@trusted Opt!(LoopInfo*) tryGetLoop(ref Expected expected) =>
+	expected.kind == Expected.Kind.loop
 		? someMut(expected.loop_)
 		: noneMut!(LoopInfo*);
-}
 
-immutable(Opt!Type) tryGetInferred(ref const Expected expected) {
-	return expected.kind == Expected.Kind.type ? some(expected.type_) : none!Type;
-}
+immutable(Opt!Type) tryGetInferred(ref const Expected expected) =>
+	expected.kind == Expected.Kind.type ? some(expected.type_) : none!Type;
 
 // TODO: if we have a bogus expected type we should probably not be doing any more checking at all?
 immutable(bool) isBogus(ref const Expected expected) {
@@ -268,9 +256,8 @@ immutable(bool) isBogus(ref const Expected expected) {
 	return has(t) && isBogus(force(t));
 }
 
-Expected copyWithNewExpectedType(ref Expected expected, immutable Type type) {
-	return Expected(type, expected.inferringTypeArgs);
-}
+Expected copyWithNewExpectedType(ref Expected expected, immutable Type type) =>
+	Expected(type, expected.inferringTypeArgs);
 
 immutable(Opt!Type) shallowInstantiateType(ref const Expected expected) {
 	immutable Opt!Type t = tryGetInferred(expected);
@@ -287,9 +274,8 @@ immutable(Opt!Type) tryGetDeeplyInstantiatedTypeFor(
 	ref ProgramState programState,
 	ref const Expected expected,
 	immutable Type t,
-) {
-	return tryGetDeeplyInstantiatedTypeWorker(alloc, programState, t, expected.inferringTypeArgs);
-}
+) =>
+	tryGetDeeplyInstantiatedTypeWorker(alloc, programState, t, expected.inferringTypeArgs);
 
 immutable(Opt!Type) tryGetDeeplyInstantiatedType(
 	ref Alloc alloc,
@@ -313,8 +299,8 @@ immutable(Expr) bogus(ref Expected expected, immutable FileAndRange range) {
 	return immutable Expr(range, immutable Expr.Bogus());
 }
 
-immutable(Type) inferred(ref Expected expected) {
-	return matchExpected!(immutable Type)(
+immutable(Type) inferred(ref Expected expected) =>
+	matchExpected!(immutable Type)(
 		expected,
 		(immutable Expected.Infer) =>
 			unreachable!(immutable Type),
@@ -323,7 +309,6 @@ immutable(Type) inferred(ref Expected expected) {
 		(LoopInfo* x) =>
 			// Just treat loop body as 'void'
 			x.voidType);
-}
 
 immutable(Expr) check(
 	ref ExprCtx ctx,
@@ -357,8 +342,8 @@ private immutable(bool) setTypeNoDiagnostic(
 	ref ProgramState programState,
 	ref Expected expected,
 	immutable Type setType,
-) {
-	return matchExpected!(immutable bool)(
+) =>
+	matchExpected!(immutable bool)(
 		expected,
 		(immutable Expected.Infer) {
 			overwriteMemory(&expected, Expected(setType));
@@ -377,21 +362,18 @@ private immutable(bool) setTypeNoDiagnostic(
 					false),
 		(LoopInfo* loop) =>
 			false);
-}
 
 private Opt!(SingleInferringType*) tryGetTypeArgFromInferringTypeArgs_mut(
 	return scope ref InferringTypeArgs inferringTypeArgs,
 	immutable TypeParam* typeParam,
-) {
-	return tryGetTypeArg_mut!SingleInferringType(inferringTypeArgs.params, inferringTypeArgs.args, typeParam);
-}
+) =>
+	tryGetTypeArg_mut!SingleInferringType(inferringTypeArgs.params, inferringTypeArgs.args, typeParam);
 
 const(Opt!(SingleInferringType*)) tryGetTypeArgFromInferringTypeArgs_const(
 	return scope ref const InferringTypeArgs inferringTypeArgs,
 	immutable TypeParam* typeParam,
-) {
-	return tryGetTypeArg_const!SingleInferringType(inferringTypeArgs.params, inferringTypeArgs.args, typeParam);
-}
+) =>
+	tryGetTypeArg_const!SingleInferringType(inferringTypeArgs.params, inferringTypeArgs.args, typeParam);
 
 private:
 
@@ -496,8 +478,8 @@ immutable(Opt!Type) tryGetDeeplyInstantiatedTypeWorker(
 	ref ProgramState programState,
 	immutable Type a,
 	ref const InferringTypeArgs inferringTypeArgs,
-) {
-	return matchType!(immutable Opt!Type)(
+) =>
+	matchType!(immutable Opt!Type)(
 		a,
 		(immutable Type.Bogus) =>
 			some(immutable Type(Type.Bogus())),
@@ -518,7 +500,6 @@ immutable(Opt!Type) tryGetDeeplyInstantiatedTypeWorker(
 			return some(immutable Type(
 				instantiateStructNeverDelay(alloc, programState, decl(*i), tempAsArr(newTypeArgs))));
 		});
-}
 
 immutable(SetTypeResult) checkAssignabilityOpt(
 	ref Alloc alloc,
@@ -526,11 +507,10 @@ immutable(SetTypeResult) checkAssignabilityOpt(
 	immutable Opt!Type a,
 	immutable Type b,
 	ref InferringTypeArgs aInferringTypeArgs,
-) {
-	return has(a)
+) =>
+	has(a)
 		? checkAssignability(alloc, programState, force(a), b, aInferringTypeArgs)
 		: immutable SetTypeResult(immutable SetTypeResult.Set(b));
-}
 
 immutable(SetTypeResult) setTypeNoDiagnosticWorker_forSingleInferringType(
 	ref Alloc alloc,
@@ -562,8 +542,8 @@ immutable(SetTypeResult) checkAssignability(
 	immutable Type a,
 	immutable Type b,
 	scope ref InferringTypeArgs aInferringTypeArgs,
-) {
-	return matchType!(immutable SetTypeResult)(
+) =>
+	matchType!(immutable SetTypeResult)(
 		a,
 		(immutable Type.Bogus) =>
 			// TODO: make sure to infer type params in this case!
@@ -600,4 +580,3 @@ immutable(SetTypeResult) checkAssignability(
 						*ai,
 						*bi,
 						aInferringTypeArgs)));
-}

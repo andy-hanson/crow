@@ -25,21 +25,17 @@ struct PtrAndSmallNumber(T) {
 		return ((cast(ulong) number) << 48) | val;
 	}
 
-	@system immutable(ulong) asUlong() immutable {
-		return value;
-	}
+	@system immutable(ulong) asUlong() immutable =>
+		value;
 
-	static immutable(PtrAndSmallNumber!T) decode(immutable ulong value) {
-		return immutable PtrAndSmallNumber!T(value);
-	}
+	static immutable(PtrAndSmallNumber!T) decode(immutable ulong value) =>
+		immutable PtrAndSmallNumber!T(value);
 
-	@trusted immutable(T*) ptr() immutable {
-		return cast(immutable T*) (value & 0x0000_ffff_ffff_ffff);
-	}
+	@trusted immutable(T*) ptr() immutable =>
+		cast(immutable T*) (value & 0x0000_ffff_ffff_ffff);
 
-	immutable(ushort) number() immutable {
-		return (value & 0xffff_0000_0000_0000) >> 48;
-	}
+	immutable(ushort) number() immutable =>
+		(value & 0xffff_0000_0000_0000) >> 48;
 }
 
 struct SmallArray(T) {
@@ -51,13 +47,11 @@ struct SmallArray(T) {
 		sizeAndBegin = v;
 	}
 
-	@system static immutable(ulong) encode(immutable T[] values) {
-		return (immutable SmallArray!T(values)).sizeAndBegin.value;
-	}
+	@system static immutable(ulong) encode(immutable T[] values) =>
+		(immutable SmallArray!T(values)).sizeAndBegin.value;
 
-	@system static immutable(T[]) decode(immutable ulong value) {
-		return (immutable SmallArray!T(PtrAndSmallNumber!T.decode(value))).toArray();
-	}
+	@system static immutable(T[]) decode(immutable ulong value) =>
+		(immutable SmallArray!T(PtrAndSmallNumber!T.decode(value))).toArray();
 
 	@trusted immutable this(immutable T[] values) {
 		sizeAndBegin = immutable PtrAndSmallNumber!T(values.ptr, safeToUshort(values.length));
@@ -73,25 +67,21 @@ struct SmallArray(T) {
 	immutable PtrAndSmallNumber!T sizeAndBegin;
 }
 
-immutable(SmallArray!T) small(T)(immutable T[] values) {
-	return immutable SmallArray!T(values);
-}
+immutable(SmallArray!T) small(T)(immutable T[] values) =>
+	immutable SmallArray!T(values);
 
-immutable(SmallArray!T) emptySmallArray(T)() {
-	return small!T([]);
-}
+immutable(SmallArray!T) emptySmallArray(T)() =>
+	small!T([]);
 
 @system void freeArr(T)(ref Alloc alloc, immutable T[] a) {
 	freeT!T(alloc, cast(T*) a.ptr, a.length);
 }
 
-@trusted T[] castMutable(T)(immutable T[] a) {
-	return cast(T[]) a;
-}
+@trusted T[] castMutable(T)(immutable T[] a) =>
+	cast(T[]) a;
 
-@trusted immutable(T[]) castImmutable(T)(T[] a) {
-	return cast(immutable) a;
-}
+@trusted immutable(T[]) castImmutable(T)(T[] a) =>
+	cast(immutable) a;
 
 @system immutable(T[]) arrOfRange(T)(immutable T* begin, immutable T* end) {
 	verify(begin <= end);
@@ -103,13 +93,11 @@ immutable(SmallArray!T) emptySmallArray(T)() {
 	return begin[0 .. end - begin];
 }
 
-immutable(bool) sizeEq(T, U)(scope const T[] a, scope const U[] b) {
-	return a.length == b.length;
-}
+immutable(bool) sizeEq(T, U)(scope const T[] a, scope const U[] b) =>
+	a.length == b.length;
 
-immutable(bool) empty(T)(const T[] a) {
-	return a.length == 0;
-}
+immutable(bool) empty(T)(const T[] a) =>
+	a.length == 0;
 
 ref immutable(T) only(T)(return scope immutable T[] a) {
 	verify(a.length == 1);
@@ -120,21 +108,18 @@ ref const(T) only_const(T)(const T[] a) {
 	return a[0];
 }
 
-@trusted PtrsRange!T ptrsRange(T)(immutable T[] a) {
-	return PtrsRange!T(a.ptr, a.ptr + a.length);
-}
+@trusted PtrsRange!T ptrsRange(T)(immutable T[] a) =>
+	PtrsRange!T(a.ptr, a.ptr + a.length);
 
 private struct PtrsRange(T) {
 	immutable(T)* begin;
 	immutable(T)* end;
 
-	bool empty() const {
-		return begin >= end;
-	}
+	bool empty() const =>
+		begin >= end;
 
-	immutable(T*) front() const {
-		return begin;
-	}
+	immutable(T*) front() const =>
+		begin;
 
 	@trusted void popFront() {
 		begin++;

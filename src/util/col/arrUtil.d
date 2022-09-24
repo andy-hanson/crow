@@ -56,9 +56,8 @@ pure:
 	return cast(immutable) ptr[0 .. values.length];
 }
 
-@system Out[] fillArrUninitialized(Out)(ref Alloc alloc, immutable size_t size) {
-	return allocateT!Out(alloc, size)[0 .. size];
-}
+@system Out[] fillArrUninitialized(Out)(ref Alloc alloc, immutable size_t size) =>
+	allocateT!Out(alloc, size)[0 .. size];
 @trusted Out[] fillArr_mut(Out)(
 	ref Alloc alloc,
 	immutable size_t size,
@@ -175,9 +174,8 @@ immutable(Opt!(T*)) findPtr(T)(
 	return none!(T*);
 }
 
-immutable(T[]) copyArr(T)(ref Alloc alloc, scope immutable T[] a) {
-	return map(alloc, a, (ref immutable T it) => it);
-}
+immutable(T[]) copyArr(T)(ref Alloc alloc, scope immutable T[] a) =>
+	map(alloc, a, (ref immutable T it) => it);
 
 @trusted immutable(Out[]) makeArr(Out)(
 	ref Alloc alloc,
@@ -510,17 +508,15 @@ immutable(bool) arrsCorrespond(T, U)(
 	scope immutable T[] a,
 	scope immutable U[] b,
 	scope immutable(bool) delegate(ref immutable T, ref immutable U) @safe @nogc pure nothrow elementsCorrespond,
-) {
-	return sizeEq(a, b) && eachCorresponds!(T, U)(a, b, elementsCorrespond);
-}
+) =>
+	sizeEq(a, b) && eachCorresponds!(T, U)(a, b, elementsCorrespond);
 
 immutable(bool) arrEqual(T)(
 	scope immutable T[] a,
 	scope immutable T[] b,
 	scope immutable(bool) delegate(ref immutable T, ref immutable T) @safe @nogc pure nothrow elementEqual,
-) {
-	return arrsCorrespond!(T, T)(a, b, elementEqual);
-}
+) =>
+	arrsCorrespond!(T, T)(a, b, elementEqual);
 
 private struct MapAndFoldResult(Out, State) {
 	immutable Out[] output;
@@ -561,20 +557,18 @@ private @system immutable(State) mapAndFoldRecur(Out, State, In)(
 immutable(T) reduce(T)(
 	scope immutable T[] values,
 	scope immutable(T) delegate(immutable T, immutable T) @safe @nogc pure nothrow cb,
-) {
-	return fold(values[0], values[1 .. $], (immutable T a, ref immutable T b) =>
+) =>
+	fold(values[0], values[1 .. $], (immutable T a, ref immutable T b) =>
 		cb(a, b));
-}
 
 immutable(T) fold(T, U)(
 	immutable T start,
 	scope immutable U[] arr,
 	scope immutable(T) delegate(immutable T a, ref immutable U b) @safe @nogc pure nothrow cb,
-) {
-	return empty(arr)
+) =>
+	empty(arr)
 		? start
 		: fold!(T, U)(cb(start, arr[0]), arr[1 .. $], cb);
-}
 
 immutable(Opt!T) foldOrStop(T, U)(
 	immutable T start,
@@ -593,27 +587,24 @@ immutable(N) arrMax(N, T)(
 	immutable N start,
 	scope immutable T[] a,
 	scope immutable(N) delegate(ref immutable T) @safe @nogc pure nothrow cb,
-) {
-	return empty(a)
+) =>
+	empty(a)
 		? start
 		: arrMax!(N, T)(max(start, cb(a[0])), a[1 .. $], cb);
-}
 
 immutable(size_t) sum(T)(
 	scope immutable T[] a,
 	scope immutable(size_t) delegate(ref immutable T) @safe @nogc pure nothrow cb,
-) {
-	return fold!(size_t, T)(0, a, (immutable size_t l, ref immutable T t) =>
+) =>
+	fold!(size_t, T)(0, a, (immutable size_t l, ref immutable T t) =>
 		l + cb(t));
-}
 
 immutable(size_t) count(T)(
 	ref immutable T[] a,
 	scope immutable(bool) delegate(ref immutable T) @safe @nogc pure nothrow pred,
-) {
-	return sum(a, (ref immutable T it) =>
+) =>
+	sum(a, (ref immutable T it) =>
 		immutable size_t(pred(it) ? 1 : 0));
-}
 
 void filterUnordered(T)(
 	ref MutArr!T a,
@@ -636,9 +627,8 @@ immutable(size_t) arrMaxIndex(T, U)(
 	const U[] a,
 	scope immutable(T) delegate(ref const U, immutable size_t) @safe @nogc pure nothrow cb,
 	Comparer!T compare,
-) {
-	return arrMaxIndexRecur!(T, U)(0, cb(a[0], 0), a, 1, cb, compare);
-}
+) =>
+	arrMaxIndexRecur!(T, U)(0, cb(a[0], 0), a, 1, cb, compare);
 
 private immutable(size_t) arrMaxIndexRecur(T, U)(
 	immutable size_t indexOfMax,

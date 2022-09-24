@@ -54,8 +54,8 @@ import util.util : debugLog, divRoundUp, drop, unreachable, verify;
 	ref immutable ByteCode byteCode,
 	ref immutable FilesInfo filesInfo,
 	scope immutable SafeCStr[] allArgs,
-) {
-	return withInterpreter!(immutable int)(
+) =>
+	withInterpreter!(immutable int)(
 		alloc, doDynCall, lowProgram, byteCode, allSymbols, allPaths, pathsInfo, filesInfo,
 		(ref Stacks stacks) {
 			dataPush(stacks, allArgs.length);
@@ -64,7 +64,6 @@ import util.util : debugLog, divRoundUp, drop, unreachable, verify;
 				runBytecodeInner(stacks, initialOperationPointer(byteCode))
 			)(perf, PerfMeasure.run);
 		});
-}
 
 private immutable(int) runBytecodeInner(ref Stacks stacks, immutable(Operation)* operation) {
 	stepUntilExit(stacks, operation);
@@ -78,15 +77,14 @@ immutable(ulong) syntheticCall(
 	immutable DynCallSig sig,
 	immutable Operation* operationPtr,
 	scope void delegate(ref Stacks stacks) @nogc nothrow cbPushArgs,
-) {
-	return withStacks!(immutable ulong)((ref Stacks stacks) {
+) =>
+	withStacks!(immutable ulong)((ref Stacks stacks) {
 		returnPush(stacks, operationOpStopInterpretation.ptr);
 		cbPushArgs(stacks);
 		immutable(Operation)* op = operationPtr;
 		stepUntilExit(stacks, op);
 		return sig.returnType == DynCallType.void_ ? 0 : dataPop(stacks);
 	});
-}
 
 // This only works if you did 'returnPush(stacks, operationOpStopInterpretation.ptr);'
 void stepUntilExit(ref Stacks stacks, ref immutable(Operation)* operation) {
@@ -169,9 +167,8 @@ private struct InterpreterGlobals {
 }
 private __gshared InterpreterGlobals globals = void;
 
-private ref immutable(InterpreterDebugInfo) debugInfo() {
-	return *globals.debugInfoPtr;
-}
+private ref immutable(InterpreterDebugInfo) debugInfo() =>
+	*globals.debugInfoPtr;
 
 pragma(inline, true):
 
@@ -397,9 +394,8 @@ private void opCallFunPtrExternInner(ref Stacks stacks, ref immutable(Operation)
 		dataPush(stacks, value);
 }
 
-private immutable(DynCallSig) readDynCallSig(ref immutable(Operation)* cur) {
-	return immutable DynCallSig(readArray!DynCallType(cur));
-}
+private immutable(DynCallSig) readDynCallSig(ref immutable(Operation)* cur) =>
+	immutable DynCallSig(readArray!DynCallType(cur));
 
 alias opSetjmp = operation!opSetjmpInner;
 private void opSetjmpInner(ref Stacks stacks, ref immutable(Operation)* cur) {
@@ -455,25 +451,20 @@ private immutable(Operation) readOperation(scope ref immutable(Operation)* cur) 
 	return res;
 }
 
-private immutable(size_t) readStackOffset(ref immutable(Operation)* cur) {
-	return readSizeT(cur);
-}
+private immutable(size_t) readStackOffset(ref immutable(Operation)* cur) =>
+	readSizeT(cur);
 
-private immutable(long) readInt64(ref immutable(Operation)* cur) {
-	return readOperation(cur).long_;
-}
+private immutable(long) readInt64(ref immutable(Operation)* cur) =>
+	readOperation(cur).long_;
 
-private immutable(ulong) readNat64(ref immutable(Operation)* cur) {
-	return readOperation(cur).ulong_;
-}
+private immutable(ulong) readNat64(ref immutable(Operation)* cur) =>
+	readOperation(cur).ulong_;
 
-private immutable(size_t) readSizeT(ref immutable(Operation)* cur) {
-	return safeToSizeT(readNat64(cur));
-}
+private immutable(size_t) readSizeT(ref immutable(Operation)* cur) =>
+	safeToSizeT(readNat64(cur));
 
-private immutable(Operation*) readOperationPtr(ref immutable(Operation)* cur) {
-	return cast(immutable Operation*) readSizeT(cur);
-}
+private immutable(Operation*) readOperationPtr(ref immutable(Operation)* cur) =>
+	cast(immutable Operation*) readSizeT(cur);
 
 private immutable(T[]) readArray(T)(ref immutable(Operation)* cur) {
 	immutable size_t size = readSizeT(cur);

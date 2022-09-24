@@ -13,9 +13,8 @@ struct FullIndexDict(K, V) {
 	@disable this();
 	this(inout V[] vs) inout { values = vs; }
 
-	ref inout(V) opIndex(immutable K key) inout {
-		return values[key.index];
-	}
+	ref inout(V) opIndex(immutable K key) inout =>
+		values[key.index];
 
 	static if ( __traits(isCopyable, V)) {
 		void opIndexAssign(V value, immutable K key) {
@@ -27,40 +26,32 @@ struct FullIndexDict(K, V) {
 	V[] values;
 }
 
-immutable(V[]) asArray(K, V)(immutable FullIndexDict!(K, V) a) {
-	return a.values;
-}
+immutable(V[]) asArray(K, V)(immutable FullIndexDict!(K, V) a) =>
+	a.values;
 
-immutable(FullIndexDict!(K, V)) fullIndexDictCastImmutable(K, V)(const FullIndexDict!(K, V) a) {
-	return immutable FullIndexDict!(K, V)(castImmutable(a.values));
-}
-immutable(FullIndexDict!(K, V)) fullIndexDictCastImmutable2(K, V)(const FullIndexDict!(K, immutable V) a) {
-	return immutable FullIndexDict!(K, V)(castImmutable(a.values));
-}
+immutable(FullIndexDict!(K, V)) fullIndexDictCastImmutable(K, V)(const FullIndexDict!(K, V) a) =>
+	immutable FullIndexDict!(K, V)(castImmutable(a.values));
+immutable(FullIndexDict!(K, V)) fullIndexDictCastImmutable2(K, V)(const FullIndexDict!(K, immutable V) a) =>
+	immutable FullIndexDict!(K, V)(castImmutable(a.values));
 
-immutable(FullIndexDict!(K, V)) emptyFullIndexDict(K, V)() {
-	return fullIndexDictOfArr!(K, V)([]);
-}
+immutable(FullIndexDict!(K, V)) emptyFullIndexDict(K, V)() =>
+	fullIndexDictOfArr!(K, V)([]);
 
-immutable(size_t) fullIndexDictSize(K, V)(const FullIndexDict!(K, V) a) {
-	return a.values.length;
-}
+immutable(size_t) fullIndexDictSize(K, V)(const FullIndexDict!(K, V) a) =>
+	a.values.length;
 
-immutable(FullIndexDict!(K, V)) fullIndexDictOfArr(K, V)(return scope immutable V[] values) {
-	return immutable FullIndexDict!(K, V)(values);
-}
-private FullIndexDict!(K, V) fullIndexDictOfArr_mut(K, V)(V[] values) {
-	return FullIndexDict!(K, V)(values);
-}
+immutable(FullIndexDict!(K, V)) fullIndexDictOfArr(K, V)(return scope immutable V[] values) =>
+	immutable FullIndexDict!(K, V)(values);
+private FullIndexDict!(K, V) fullIndexDictOfArr_mut(K, V)(V[] values) =>
+	FullIndexDict!(K, V)(values);
 
 FullIndexDict!(K, V) makeFullIndexDict_mut(K, V)(
 	ref Alloc alloc,
 	immutable size_t size,
 	scope V delegate(immutable K) @safe @nogc pure nothrow cb,
-) {
-	return fullIndexDictOfArr_mut!(K, V)(fillArr_mut(alloc, size, (immutable size_t i) =>
+) =>
+	fullIndexDictOfArr_mut!(K, V)(fillArr_mut(alloc, size, (immutable size_t i) =>
 		cb(immutable K(i))));
-}
 
 void fullIndexDictEachKey(K, V)(
 	scope immutable FullIndexDict!(K, V) a,
@@ -130,18 +121,16 @@ immutable(FullIndexDict!(K, VOut)) mapFullIndexDict(K, VOut, VIn)(
 	ref Alloc alloc,
 	scope immutable FullIndexDict!(K, VIn) a,
 	scope immutable(VOut) delegate(immutable K, scope ref immutable VIn) @safe @nogc pure nothrow cb,
-) {
-	return fullIndexDictOfArr!(K, VOut)(
+) =>
+	fullIndexDictOfArr!(K, VOut)(
 		mapWithIndex(alloc, a.values, (immutable size_t index, scope ref immutable VIn v) =>
 			cb(immutable K(K.sizeof == 4 ? safeToUint(index) : safeToUshort(index)), v)));
-}
 
 FullIndexDict!(K, VOut) mapFullIndexDict_mut(K, VOut, VIn)(
 	ref Alloc alloc,
 	immutable FullIndexDict!(K, VIn) a,
 	scope VOut delegate(immutable K, scope ref immutable VIn) @safe @nogc pure nothrow cb,
-) {
-	return fullIndexDictOfArr_mut!(K, VOut)(
+) =>
+	fullIndexDictOfArr_mut!(K, VOut)(
 		mapWithIndex_mut!(VOut, VIn)(alloc, a.values, (immutable size_t index, scope ref immutable VIn v) =>
 			cb(immutable K(K.sizeof == 4 ? safeToUint(index) : safeToUshort(index)), v)));
-}

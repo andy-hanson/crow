@@ -111,15 +111,14 @@ immutable(ByteCode) makeByteCode(
 	return dummyByteCode(castImmutable(finishOperations(writer)));
 }
 
-immutable(ByteCode) dummyByteCode(immutable Operations operations) {
-	return immutable ByteCode(
+immutable(ByteCode) dummyByteCode(immutable Operations operations) =>
+	immutable ByteCode(
 		operations,
 		immutable FunPtrToOperationPtr(),
 		dummyFileToFuns(),
 		[],
 		0,
 		immutable ByteCodeIndex(0));
-}
 
 immutable(FileToFuns) dummyFileToFuns() {
 	static immutable FunNameAndPos[][] dummy = [[immutable FunNameAndPos(shortSym("a"), immutable Pos(0))]];
@@ -661,6 +660,5 @@ public @trusted void stepUntilExitAndExpect(
 		dataPop(stacks);
 }
 
-@trusted immutable(ByteCodeIndex) curByteCodeIndex(scope ref immutable ByteCode a, immutable Operation* operation) {
-	return immutable ByteCodeIndex(operation - a.byteCode.ptr);
-}
+@trusted immutable(ByteCodeIndex) curByteCodeIndex(scope ref immutable ByteCode a, immutable Operation* operation) =>
+	immutable ByteCodeIndex(operation - a.byteCode.ptr);

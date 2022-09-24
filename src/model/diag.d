@@ -1008,13 +1008,12 @@ immutable(FilesInfo) filesInfoForSingle(
 	ref Alloc alloc,
 	immutable Path path,
 	immutable LineAndColumnGetter lineAndColumnGetter,
-) {
-	return immutable FilesInfo(
+) =>
+	immutable FilesInfo(
 		fullIndexDictOfArr!(FileIndex, Path)(arrLiteral!Path(alloc, [path])),
 		dictLiteral!(Path, FileIndex)(alloc, path, immutable FileIndex(0)),
 		fullIndexDictOfArr!(FileIndex, LineAndColumnGetter)(
 			arrLiteral!LineAndColumnGetter(alloc, [lineAndColumnGetter])));
-}
 
 void writeFileAndRange(
 	ref Writer writer,

@@ -216,9 +216,8 @@ struct UsedFun {
 	immutable this(immutable ImportIndex a) { kind = Kind.import_; import_ = a; }
 	immutable this(immutable ModuleLocalFunIndex a) { kind = Kind.moduleLocal; moduleLocal = a; }
 
-	static immutable(UsedFun) none() {
-		return immutable UsedFun(immutable None());
-	}
+	static immutable(UsedFun) none() =>
+		immutable UsedFun(immutable None());
 
 	private:
 	enum Kind {
@@ -294,20 +293,18 @@ private:
 immutable size_t maxCandidates = 64;
 alias Candidates = MutMaxArr!(maxCandidates, Candidate);
 
-immutable(CalledDecl[]) candidatesForDiag(ref Alloc alloc, ref const Candidates candidates) {
-	return map_const!(CalledDecl, Candidate)(alloc, tempAsArr_const(candidates), (ref const Candidate c) =>
+immutable(CalledDecl[]) candidatesForDiag(ref Alloc alloc, ref const Candidates candidates) =>
+	map_const!(CalledDecl, Candidate)(alloc, tempAsArr_const(candidates), (ref const Candidate c) =>
 		c.called);
-}
 
-immutable(bool) candidateIsPreferred(ref const Candidate a) {
-	return matchCalledDecl!(
+immutable(bool) candidateIsPreferred(ref const Candidate a) =>
+	matchCalledDecl!(
 		immutable bool,
 		(immutable FunDecl* it) =>
 			it.flags.preferred,
 		(ref immutable SpecSig) =>
 			false,
 	)(a.called);
-}
 
 struct Candidate {
 	immutable UsedFun used;
@@ -326,12 +323,10 @@ void overwriteCandidate(ref Candidate a, ref const Candidate b) {
 	copyToFrom(a.typeArgs, b.typeArgs);
 }
 
-InferringTypeArgs inferringTypeArgs(return ref Candidate a) {
-	return InferringTypeArgs(a.called.typeParams, tempAsArr_mut(a.typeArgs));
-}
-const(InferringTypeArgs) inferringTypeArgs_const(return ref const Candidate a) {
-	return const InferringTypeArgs(a.called.typeParams, tempAsArr_const(a.typeArgs));
-}
+InferringTypeArgs inferringTypeArgs(return ref Candidate a) =>
+	InferringTypeArgs(a.called.typeParams, tempAsArr_mut(a.typeArgs));
+const(InferringTypeArgs) inferringTypeArgs_const(return ref const Candidate a) =>
+	const InferringTypeArgs(a.called.typeParams, tempAsArr_const(a.typeArgs));
 
 immutable(T) withCandidates(T)(
 	ref ExprCtx ctx,
@@ -383,8 +378,8 @@ immutable(Type) getCandidateExpectedParameterTypeRecur(
 	ref ProgramState programState,
 	ref const Candidate candidate,
 	immutable Type candidateParamType,
-) {
-	return matchType!(immutable Type)(
+) =>
+	matchType!(immutable Type)(
 		candidateParamType,
 		(immutable Type.Bogus) =>
 			immutable Type(Type.Bogus()),
@@ -401,29 +396,26 @@ immutable(Type) getCandidateExpectedParameterTypeRecur(
 			return immutable Type(
 				instantiateStructNeverDelay(alloc, programState, decl(*i), tempAsArr(outTypeArgs)));
 		});
-}
 
 immutable(Type) getCandidateExpectedParameterType(
 	ref Alloc alloc,
 	ref ProgramState programState,
 	ref const Candidate candidate,
 	immutable size_t argIdx,
-) {
-	return getCandidateExpectedParameterTypeRecur(
+) =>
+	getCandidateExpectedParameterTypeRecur(
 		alloc,
 		programState,
 		candidate,
 		paramTypeAt(candidate.called.params, argIdx));
-}
 
-immutable(Type) paramTypeAt(scope immutable Params params, immutable size_t argIdx) {
-	return matchParams!(immutable Type)(
+immutable(Type) paramTypeAt(scope immutable Params params, immutable size_t argIdx) =>
+	matchParams!(immutable Type)(
 		params,
 		(immutable Param[] params) =>
 			params[argIdx].type,
 		(ref immutable Params.Varargs varargs) =>
 			varargs.elementType);
-}
 
 struct CommonOverloadExpected {
 	Expected expected;
@@ -482,8 +474,8 @@ immutable(Opt!(Diag.CantCall.Reason)) getCantCallReason(
 	immutable FunFlags calledFlags,
 	immutable FunFlags callerFlags,
 	immutable bool callerInLambda,
-) {
-	return !calledFlags.noCtx && callerFlags.noCtx && !callerInLambda
+) =>
+	!calledFlags.noCtx && callerFlags.noCtx && !callerInLambda
 		// TODO: need to explain this better in the case where noCtx is due to the lambda
 		? some(Diag.CantCall.Reason.nonNoCtx)
 		: calledFlags.summon && !callerFlags.summon
@@ -493,7 +485,6 @@ immutable(Opt!(Diag.CantCall.Reason)) getCantCallReason(
 		: calledIsVariadicNonEmpty && callerFlags.noCtx
 		? some(Diag.CantCall.Reason.variadicFromNoctx)
 		: none!(Diag.CantCall.Reason);
-}
 
 enum ArgsKind { empty, nonEmpty }
 
@@ -601,8 +592,8 @@ immutable(bool) findBuiltinSpecOnType(
 	ref ExprCtx ctx,
 	immutable SpecBody.Builtin.Kind kind,
 	immutable Type type,
-) {
-	return exists!(SpecInst*)(ctx.outermostFunSpecs, (ref immutable SpecInst* inst) =>
+) =>
+	exists!(SpecInst*)(ctx.outermostFunSpecs, (ref immutable SpecInst* inst) =>
 		matchSpecBody!(immutable bool)(
 			inst.body_,
 			(immutable SpecBody.Builtin b) =>
@@ -610,7 +601,6 @@ immutable(bool) findBuiltinSpecOnType(
 			(immutable SpecDeclSig[]) =>
 				//TODO: might inherit from builtin spec?
 				false));
-}
 
 immutable(bool) checkBuiltinSpec(
 	ref ExprCtx ctx,

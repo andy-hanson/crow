@@ -134,16 +134,15 @@ private immutable(Constant) getConstantCStrForSym(
 	ref AllConstantsBuilder allConstants,
 	ref const AllSymbols allSymbols,
 	immutable Sym value,
-) {
-	return getConstantCStr(alloc, allConstants, safeCStrOfSym(alloc, allSymbols, value));
-}
+) =>
+	getConstantCStr(alloc, allConstants, safeCStrOfSym(alloc, allSymbols, value));
 
 immutable(Constant) getConstantCStr(
 	ref Alloc alloc,
 	ref AllConstantsBuilder allConstants,
 	immutable SafeCStr value,
-) {
-	return immutable Constant(getOrAdd!(immutable SafeCStr, immutable Constant.CString)(
+) =>
+	immutable Constant(getOrAdd!(immutable SafeCStr, immutable Constant.CString)(
 		alloc,
 		allConstants.cStrings,
 		value,
@@ -153,25 +152,22 @@ immutable(Constant) getConstantCStr(
 			push(alloc, allConstants.cStringValues, value);
 			return immutable Constant.CString(index);
 		}));
-}
 
 immutable(Constant) getConstantSym(
 	ref Alloc alloc,
 	ref AllConstantsBuilder allConstants,
 	ref const AllSymbols allSymbols,
 	immutable Sym value,
-) {
-	return getOrAdd!(immutable Sym, immutable Constant)(alloc, allConstants.syms, value, () =>
+) =>
+	getOrAdd!(immutable Sym, immutable Constant)(alloc, allConstants.syms, value, () =>
 		immutable Constant(immutable Constant.Record(arrLiteral!Constant(alloc, [
 			getConstantCStrForSym(alloc, allConstants, allSymbols, value)]))));
-}
 
 private:
 
-immutable(bool) constantArrEqual(ref immutable Constant[] a, ref immutable Constant[] b) {
-	return arrEqual!Constant(a, b, (ref immutable Constant x, ref immutable Constant y) =>
+immutable(bool) constantArrEqual(ref immutable Constant[] a, ref immutable Constant[] b) =>
+	arrEqual!Constant(a, b, (ref immutable Constant x, ref immutable Constant y) =>
 		constantEqual(x, y));
-}
 
 immutable(size_t) findOrPush(T)(
 	ref Alloc alloc,

@@ -24,26 +24,21 @@ immutable(Comparison) oppositeComparison(immutable Comparison a) {
 	}
 }
 
-immutable(Comparison) compareNat16(immutable ushort a, immutable ushort b) {
-	return compareT(a, b);
-}
+immutable(Comparison) compareNat16(immutable ushort a, immutable ushort b) =>
+	compareT(a, b);
 
-immutable(Comparison) compareNat32(immutable uint a, immutable uint b) {
-	return compareT(a, b);
-}
+immutable(Comparison) compareNat32(immutable uint a, immutable uint b) =>
+	compareT(a, b);
 
-immutable(Comparison) compareSizeT(immutable size_t a, immutable size_t b) {
-	return compareT(a, b);
-}
+immutable(Comparison) compareSizeT(immutable size_t a, immutable size_t b) =>
+	compareT(a, b);
 
-immutable(Comparison) compareUlong(immutable ulong a, immutable ulong b) {
-	return compareT(a, b);
-}
+immutable(Comparison) compareUlong(immutable ulong a, immutable ulong b) =>
+	compareT(a, b);
 
-private immutable(Comparison) compareT(T)(immutable T a, immutable T b) {
-	return a < b
+private immutable(Comparison) compareT(T)(immutable T a, immutable T b) =>
+	a < b
 			? Comparison.less
 		: a > b
 			? Comparison.greater
 		: Comparison.equal;
-}

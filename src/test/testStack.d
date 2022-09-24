@@ -92,6 +92,5 @@ private:
 	expectDataStack(test, a, []);
 }
 
-immutable(bool) dataArrEqual(scope immutable ulong[] a, scope immutable ulong[] b) {
-	return arrEqual!(immutable ulong)(a, b, (ref immutable ulong x, ref immutable ulong y) => x == y);
-}
+immutable(bool) dataArrEqual(scope immutable ulong[] a, scope immutable ulong[] b) =>
+	arrEqual!(immutable ulong)(a, b, (ref immutable ulong x, ref immutable ulong y) => x == y);

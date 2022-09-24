@@ -48,8 +48,8 @@ void getHover(
 	ref immutable PathsInfo pathsInfo,
 	ref immutable Program program,
 	ref immutable Position pos,
-) {
-	return matchPosition!void(
+) =>
+	matchPosition!void(
 		pos,
 		(ref immutable Expr it) {
 			getExprHover(writer, it);
@@ -106,7 +106,6 @@ void getHover(
 		(ref immutable(TypeParam)) {
 			writer ~= "TODO: hover for type param";
 		});
-}
 
 private:
 
