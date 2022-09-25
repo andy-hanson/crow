@@ -1,13 +1,13 @@
 import
-	crow/io/print: print
+	crow/io/print: out, print
 
 main fut nat(_ str[]) summon
 	a nat = 3
-	print: a / 2 to-str
+	out print (a / 2).to-str
 	b int = 3
-	print: b / -2 to-str
+	out print (b / -2).to-str
 	c float = 3
-	print: c / 2 to-str
+	out print (c / 2).to-str
 
-	print: a.to-int64 + b to-str
+	out print (a.to-int64 + b).to-str
 	()

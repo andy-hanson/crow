@@ -24,7 +24,7 @@ import util.col.dict : Dict, KeyValuePair, makeDictFromKeys, Dict, zipToDict;
 import util.col.dictBuilder : DictBuilder, finishDict, tryAddToDict;
 import util.col.mutArr : MutArr, mutArrIsEmpty, push, tempAsArr;
 import util.col.str : CStr, SafeCStr, safeCStr;
-import util.conv : bitsOfFloat32, bitsOfFloat64, float32OfBits, float64OfBits;
+import util.conv : bitsOfFloat32, bitsOfFloat64, float32OfBits, float64OfBits, safeToUshort;
 import util.late : Late, late, lateGet, lateSet;
 import util.memory : allocate;
 import util.opt : force, has, Opt, none, some;
@@ -259,7 +259,7 @@ immutable(LoadedLibraries) loadLibrariesInner(
 					todo!void("handle this type");
 					break;
 				case DynCallType.nat16:
-					todo!void("handle this type");
+					dcArgShort(dcVm, cast(ushort) value);
 					break;
 				case DynCallType.nat32:
 					dcArgInt(dcVm, cast(uint) value);
@@ -298,7 +298,7 @@ immutable(LoadedLibraries) loadLibrariesInner(
 			case DynCallType.nat8:
 				return todo!(immutable ulong)("handle this type");
 			case DynCallType.nat16:
-				return todo!(immutable ulong)("handle this type");
+				return safeToUshort(dcCallShort(dcVm, ptr));
 			case DynCallType.nat32:
 				return cast(uint) dcCallInt(dcVm, ptr);
 			case DynCallType.pointer:
@@ -553,7 +553,7 @@ extern(C) {
 	void dcCallVoid (DCCallVM* vm, DCpointer funcptr);
 	DCbool dcCallBool (DCCallVM* vm, DCpointer funcptr);
 	//DCchar dcCallChar (DCCallVM* vm, DCpointer funcptr);
-	//DCshort dcCallShort (DCCallVM* vm, DCpointer funcptr);
+	DCshort dcCallShort (DCCallVM* vm, DCpointer funcptr);
 	DCint dcCallInt (DCCallVM* vm, DCpointer funcptr);
 	//DClong dcCallLong (DCCallVM* vm, DCpointer funcptr);
 	DClonglong dcCallLongLong (DCCallVM* vm, DCpointer funcptr);

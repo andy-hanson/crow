@@ -1,10 +1,9 @@
 import
-	crow/col/arr-util: each
-	crow/io/print: print
+	crow/io/print: out, print
 
 main fut nat(_ str[]) summon
-	enum-members::named-val<e>[] each v =>
-		print: v.name.to-str
+	for v : enum-members::named-val<e>[]
+		out print v.name.to-str
 	()
 
 e enum

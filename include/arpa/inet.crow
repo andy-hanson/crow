@@ -3,6 +3,6 @@ import
 	crow/str: c-str
 	netinet/in: in_addr, in_addr_t
 
-inet_addr in_addr_t(cp c-str) unsafe extern noctx summon
+inet_addr in_addr_t(cp c-str) extern<c> summon
 
-inet_ntoa c-str(in in_addr) unsafe extern noctx summon
+inet_ntoa c-str(in in_addr) extern<c> summon

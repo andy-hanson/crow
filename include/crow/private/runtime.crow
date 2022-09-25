@@ -2,7 +2,7 @@ no-std
 import
 	../col/dict: dict, empty-dict
 	../exception: exception, to-str
-	../io/print: print-err, print-err-no-newline
+	../io/print: err, print, print-no-newline
 	../io/private/time-low-level: get-monotime-nsec, timestamp
 	../misc: void
 	../number: ==, nat64
@@ -110,8 +110,8 @@ new-exclusion exclusion(v global-ctx) noctx trusted
 	&v.next-exclusion get-and-increment
 
 default-exception-handler void(e exception) summon unsafe
-	print-err-no-newline: "uncaught exception: "
-	print-err: e to-str
+	err print-no-newline "uncaught exception: "
+	err print e.to-str
 	get-global-ctx.any-unhandled-exceptions := true
 
 # TODO: move to exception.crow ?

@@ -4,8 +4,7 @@ import
 	crow/col/arr: size
 	crow/col/private/arr-low-level: begin-ptr
 	crow/flags-util: flags-to-str
-	crow/io/print: print
-	crow/exception: assert
+	crow/io/print: out, print
 	crow/misc: void
 	crow/number: ==, /, to-nat32
 	crow/str: literal, str
@@ -27,17 +26,17 @@ write-sound-file void(path str, sound sound, format sound-file-format) trusted s
 	n-channels = sound.format n-channels
 	n-frames = sound.samples.size / n-channels
 	sf-format = format to-sf-format
-	print: "sf-format is {sf-format to-nat32} = {sf-format flags-to-str}"
+	out print "sf-format is {sf-format to-nat32} = {sf-format flags-to-str}"
 	info SF_INFO = n-frames, sound.format.sample-rate.to-nat32, n-channels.to-nat32, sf-format, 1, 1
 	info-cell cell SF_INFO = info,
 	f = path.to-c-str sf_open SFM_WRITE, info-cell.as-mut-ptr
-	print: "f.sf_error is {f sf_error}"
+	out print "f.sf_error is {f sf_error}"
 	f.sf_error check-sndfile-error
-	print: "write {sound.samples.size} samples"
+	out print "write {sound.samples.size} samples"
 	n-written = f sf_write_float sound.samples.begin-ptr, sound.samples.size
 	f.sf_close check-sndfile-error
-	print: "n-written is {n-written}; samples size is {sound.samples.size}"
-	assert: n-written == sound.samples.size
+	out print "n-written is {n-written}; samples size is {sound.samples.size}"
+	assert n-written == sound.samples.size
 
 .to-sf-format SF_FORMAT(a sound-file-format) summon
 	match a

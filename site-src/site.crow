@@ -2,7 +2,7 @@ import
 	crow/col/dict: to-dict
 	crow/io/file: current-directory, make-directory, make-symlink-to, path-exists, read-file, try-read-file, write-file
 	crow/io/path: child-path, parent-path
-	crow/io/print: print
+	crow/io/print: out, print
 	crow/json: json-object, json-str, to-str
 	crow/str-util: ends-with, try-remove-start
 	./document: documentation
@@ -31,7 +31,7 @@ main fut nat(_ str[]) summon
 	unless full-out-path path-exists
 		full-out-path.parent-path ensure-directory-recursive
 		full-target = cwd child-path a.target
-		print: "link {full-out-path} -> {full-target}"
+		out print "link {full-out-path} -> {full-target}"
 		full-out-path make-symlink-to full-target
 
 .is-up-to-date bool(path str, content str) summon

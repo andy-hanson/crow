@@ -1,15 +1,15 @@
 import
 	crow/col/mut-arr
-	crow/io/print: print
+	crow/io/print: out, print
 	crow/str-util: join
 
 main fut nat(_ str[]) summon
 	xs str mut[] = "crow", "raven", "swan"
 	if popped ?= xs pop
-		print: "popped {popped}"
+		out print "popped {popped}"
 	xs ~= "crow"
 	xs[1] := "crow"
 	a = xs move-to-arr
-	print: "{xs is-empty}"
-	print: a join " "
+	out print "{xs is-empty}"
+	out print (" " join a)
 	()

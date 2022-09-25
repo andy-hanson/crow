@@ -281,3 +281,6 @@ quote str(a str)
 			(x,)::seq<char8> str
 	# TODO: "\"{inner}\""
 	"\"" ~~ inner ~~ "\""
+
+unindent str(a str)
+	a replace "\t", ""

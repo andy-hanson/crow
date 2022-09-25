@@ -28,7 +28,7 @@ import
 	../../version: is-windows
 	../duration: msec
 	../posix-util: check-posix-error
-	../print: print
+	../print: err, out, print
 	../time: delay
 	./net: bind-to-port, close-socket
 
@@ -69,7 +69,7 @@ start-tcp-server tcp-server(port str, handler tcp-handler) unsafe summon
 		accept-event mut epoll_event = event-flags, port-fd.to-int64.to-nat64
 		ctl-err = epoll-fd epoll_ctl EPOLL_CTL_ADD, port-fd, &accept-event
 		unless ctl-err == 0
-			perror: "epoll_ctl failed"
+			"epoll_ctl failed" perror
 			todo
 
 		state tcp-server-state = false, false, 0, port-fd, epoll-fd, 0, handler
@@ -77,12 +77,12 @@ start-tcp-server tcp-server(port str, handler tcp-handler) unsafe summon
 		_ = state pad-1
 		_ = state pad-2
 
-		print: "starting the server loop"
+		out print "starting the server loop"
 		done = state tcp-server-loop-linux
 		done handle-exceptions
 
 		new: () =>
-			print: "STOP CALLED"
+			out print "STOP CALLED"
 			state.should-stop := true
 			done
 
@@ -109,7 +109,7 @@ close-client void(client SOCKET) unsafe summon
 		timeout c-int = 0
 		num-events = state.epoll-fd epoll_wait &event, 1, timeout
 		if num-events < 0
-			print: "error in epoll_wait"
+			err print "error in epoll_wait"
 			todo
 		elif num-events == 0
 			<- 100.msec delay
@@ -119,7 +119,7 @@ close-client void(client SOCKET) unsafe summon
 			event-flags = event events
 			fd = event.event_data.to-int64 to-int32
 			if event-flags bits-intersect EPOLLERR | EPOLLHUP || !(event-flags bits-intersect EPOLLIN)
-				print: "SOME KINDA ERROR"
+				err print "SOME KINDA ERROR"
 				err = fd close
 				assert err == 0
 			elif fd == state.port-fd

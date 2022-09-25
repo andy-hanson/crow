@@ -1,10 +1,10 @@
 import
-	crow/io/print: print
+	crow/io/print: out, print
 	crow/reader: parse-nat
 
 main fut nat(_ str[]) summon
-	print: "2" double
-	print: "X" double
+	out print "2".double
+	out print "X".double
 	()
 
 double str(a str)

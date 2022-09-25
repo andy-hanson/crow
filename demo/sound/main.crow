@@ -1,6 +1,6 @@
 import
 	crow/io/duration: sec
-	crow/io/print: print
+	crow/io/print: out, print
 	crow/io/time: delay
 	audio/audio: clear, format, pause, play, play-loop, restart, resume, shut-down
 	audio/sdl-audio: start-sdl-audio
@@ -11,35 +11,35 @@ import
 
 main fut nat(_ str[]) summon unsafe
 	audio = start-sdl-audio
-	print: "Sound device format is {audio format}"
+	out print "Sound device format is {audio format}"
 	music = toccata.sound-from-file-content with-sample-rate audio.format.sample-rate
 	crow-sound = crow-wav.sound-from-file-content with-sample-rate audio.format.sample-rate
 
 	<- 1.sec delay
-	print: "start music"
+	out print "start music"
 	playing = audio play-loop music
 
 	<- 3.sec delay
-	print: "pause"
+	out print "pause"
 	playing pause
 
 	<- 3.sec delay
-	print: "crow!"
+	out print "crow!"
 	cr = audio play crow-sound * 0.1
 
 	<- 3.sec delay
-	print: "resume"
+	out print "resume"
 	playing resume
 
 	<- 3.sec delay
-	print: "crow!"
+	out print "crow!"
 	cr restart
 
 	<- 3.sec delay
-	print: "clear"
+	out print "clear"
 	audio clear
 
 	<- 3.sec delay
-	print: "shut down"
+	out print "shut down"
 	<- audio shut-down
 	()

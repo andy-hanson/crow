@@ -2,7 +2,7 @@ import
 	crow/col/fix-arr: begin-ptr, cast-immutable, fix-arr, size, subscript, uninitialized-fix-arr
 	crow/col/private/arr-low-level: begin-ptr
 	crow/extra-types: fd-t
-	crow/io/print: print
+	crow/io/print: out, print
 	crow/ptr: ==, *, as-any-const-ptr, const-ptr, null, ptr-cast, ptr-cast-to-extern, size-of
 	crow/str-util: as-str, to-bytes, to-c-str
 	arpa/inet: inet_addr, inet_ntoa
@@ -21,15 +21,15 @@ main fut nat(_ str[]) unsafe summon
 	socket send-request request
 	socket receive-response
 
-	print: "hello, world!"
+	out print "hello, world!"
 	()
 
 .get-tcp-socket fd-t() unsafe summon
 	protoent = "tcp" getprotobyname
 	forbid protoent.as-any-const-ptr == null
 	socket-file-descriptor = AF_INET socket SOCK_STREAM, protoent.p_proto
-	forbid socket-file-descriptor == -1
-	socket-file-descriptor
+	forbid socket-file-descriptor == max-nat64
+	socket-file-descriptor to-int32
 
 .connect-socket void(socket fd-t, hostname str, server-port nat16) unsafe summon
 	hostent = hostname.to-c-str gethostbyname
@@ -37,15 +37,15 @@ main fut nat(_ str[]) unsafe summon
 	in_addr0 in_addr* = hostent.h_addr_list->ptr-cast
 	in_addr = in_addr0->inet_ntoa inet_addr
 
-	sockaddr_in sockaddr_in = AF_INET, server-port.htons, (in_addr,)
+	sockaddr_in mut sockaddr_in = AF_INET, server-port.htons, (in_addr,)
 	sockaddr = &sockaddr_in ptr-cast-to-extern@<sockaddr, sockaddr_in>
-	err = socket connect sockaddr, (size-of@<sockaddr_in> to-nat32)
+	err = socket.to-nat64 connect sockaddr, (size-of@<sockaddr_in> to-nat32)
 	assert err == 0
 
 .send-request void(socket fd-t, request str) unsafe summon
 	forbid request is-empty
 	socket send-request-recur request.to-bytes
-.send-request-recur void(socket fd-t, bytes nat8[])
+.send-request-recur void(socket fd-t, bytes nat8[]) unsafe
 	bytes-sent = socket write bytes.begin-ptr, bytes.size
 	# TODO: might be 0 if the socket is overloaded -- delay and try again
 	assert bytes-sent > 0
@@ -60,7 +60,7 @@ main fut nat(_ str[]) unsafe summon
 	bytes-read = socket read buffer.begin-ptr, buffer.size
 	assert bytes-read >= 0
 	if bytes-read > 0
-		print: "Read (possibly partial) response:"
-		print: buffer[0 .. bytes-read.to-nat64].cast-immutable as-str
+		out print "Read (possibly partial) response:"
+		out print buffer[0 .. bytes-read.to-nat64].cast-immutable.as-str
 		# TODO: Response might be partial. The parser will have to tell us that.
 

@@ -1,8 +1,8 @@
 import
-	crow/io/print: print
+	crow/io/print: out, print
 
 main fut nat(_ str[]) summon
 	greet ref nat(str) = name =>
-		print: "hello, {name}!"
+		out print "hello, {name}!"
 		()
 	greet["crow"]

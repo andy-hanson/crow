@@ -1,12 +1,12 @@
 import
-	crow/io/print: print
+	crow/io/print: out, print
 
 main fut nat(_ str[]) summon
 	a bird = "crow", "cap"
 	b bird = "seagull", "stetson"
-	print: a to-str
-	print: b to-str
-	print: a mix b to-str
+	out print a.to-str
+	out print b.to-str
+	out print (a mix b).to-str
 	()
 
 bird record

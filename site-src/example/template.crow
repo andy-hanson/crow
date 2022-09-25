@@ -1,11 +1,11 @@
 import
-	crow/io/print: print
+	crow/io/print: out, print
 
 main fut nat(_ str[]) summon
 	nats list nat = 1 ~ (2 ~ ())
 	floats list float = 0.5 ~ ()
-	print: "nats size: {nats size}"
-	print: "floats size: {floats size}"
+	out print "nats size: {nats size}"
+	out print "floats size: {floats size}"
 	0,
 
 list<a> record

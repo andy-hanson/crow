@@ -1,5 +1,5 @@
 import
-	crow/io/print: print
+	crow/io/print: out, print
 	crow/private/alloc: get-gc-ctx
 	crow/private/backtrace: entries, get-backtrace
 
@@ -15,4 +15,4 @@ really-gonna-do-it void() summon unsafe
 
 do-it void() summon unsafe
 	for entry : get-gc-ctx get-backtrace 0 entries
-		print: entry to-str
+		out print entry.to-str

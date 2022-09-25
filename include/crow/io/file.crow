@@ -40,7 +40,7 @@ import
 	../version: is-windows
 	./path: child-path
 	./posix-util: check-errno, check-posix-error
-	./print: print
+	./print: err, print
 	./win32-util: show-win32-error
 
 # `true` iff anything (like a file or directory) exists at the path.
@@ -247,7 +247,7 @@ try-read-file-binary nat8[]?(path str) summon trusted
 		fd = path fopen "rb"
 		if fd.as-any-const-ptr == null
 			unless errno == ENOENT
-				print: "failed to open file {path}"
+				err print "failed to open file {path}"
 				todo
 		else
 			(() => fd close-fd path) finally () => (fd read-fd path),

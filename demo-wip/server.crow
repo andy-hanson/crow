@@ -1,24 +1,24 @@
 import
-	crow/str-util: join
-	crow/col/dict: map-to-arr, new
+	crow/col/dict: for-loop, new
 	crow/io/net/http-server: http-handler, start-http-server
 	crow/io/net/http-types: request-body, headers, http-request, method, new, to-str, url
-	crow/io/print: print
-	crow/str-util: as-str, to-bytes
+	crow/io/print: err, out, print
+	crow/str-util: as-str, join, to-bytes
 
 main fut nat(args str[]) unsafe summon
 	if args.size == 1
 		port = args[0]
 		handler http-handler = req =>
 			descr = req describe-request
-			print: descr
+			out print descr
 			(200, "OK", (), "Your request:\n{descr}".to-bytes),
 		_ = port start-http-server handler
 		()
 	else
-		print: "Usage: server PORT"
+		err print "Usage: server PORT"
 		1,
 
 .describe-request str(a http-request) trusted
-	h = "\n" join (a.headers map-to-arr (k, v) => "{k}: {v}")
+	h = "\n" join for header : a headers
+		"{header.a}: {header.b}"
 	"{a method} {a url}\n{h}\n\n{a.request-body as-str}"

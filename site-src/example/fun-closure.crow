@@ -1,11 +1,11 @@
 import
-	crow/io/print: print
+	crow/io/print: out, print
 
 main fut nat(_ str[]) summon
 	fryer = "fried" make-cooker
 	baker = "baked" make-cooker
-	print: fryer["plaintain"]
-	print: baker["potato"]
+	out print fryer["plaintain"]
+	out print baker["potato"]
 	()
 
 make-cooker fun str(str)(type str)

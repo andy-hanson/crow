@@ -2,13 +2,13 @@ import
 	crow/io/print: print
 
 main fut nat(_ str[]) summon
-	print: "Hello world"
+	out print "Hello world"
 
 	my-fun ref void() = () =>
 		throw "I am error"
 
 	my-fun[] handle-exceptions
-	print: "got here"
+	out print: "got here"
 	throw "I, too, am error"
 
 	()

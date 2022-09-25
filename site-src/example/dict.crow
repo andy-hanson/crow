@@ -1,11 +1,11 @@
 import
 	crow/col/dict
-	crow/io/print: print
+	crow/io/print: out, print
 
 main fut nat(_ str[]) summon
 	a str[nat] = (10, "ten"), (1, "one")
-	print: a[1] ?? "n/a"
-	print: a[3] ?? "n/a"
+	out print (a[1] ?? "n/a")
+	out print (a[3] ?? "n/a")
 	b = a ~ (3, "three")
-	print: b[3] ?? "n/a"
+	out print (b[3] ?? "n/a")
 	()

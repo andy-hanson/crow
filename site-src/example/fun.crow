@@ -1,5 +1,5 @@
 import
-	crow/io/print: print
+	crow/io/print: out, print
 	crow/str-util: join
 
 main fut nat(_ str[]) summon
@@ -7,7 +7,7 @@ main fut nat(_ str[]) summon
 	ys = xs map-pairs (x, y) => "{x}-{y}"
 	zs = ys map-pairs (x, y) =>
 		"{x}, {y}"
-	print: zs join "; "
+	out print ("; " join zs)
 	()
 
 # converts (a, b, c, d, ...) to (f[a, b], f[c, d], ...)

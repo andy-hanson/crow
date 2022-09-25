@@ -1,9 +1,9 @@
 import
-	crow/io/print: print
+	crow/io/print: out, print
 	crow/ptr: const-ptr, size-of
 
 main fut nat(_ str[]) trusted summon
-	print: "{size-of@<t>}"
+	out print "{size-of@<t>}"
 	()
 
 t record by-val

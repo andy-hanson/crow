@@ -2,7 +2,7 @@ no-std
 import
 	../col/arr: arr, for-loop, size
 	../fun-util: fun-ptr0, subscript
-	../io/print: print
+	../io/print: out, print
 	../misc: void
 	../str: literal
 	../str-conv: finish, interp, to-str, with-str, with-value
@@ -10,9 +10,9 @@ import
 # Run every `test` from all source files included in the compilation.
 run-all-tests void() summon trusted
 	tests = all-tests
-	print: "Running {tests size} tests"
+	out print "Running {tests size} tests"
 	for x : tests
 		x[]
-	print: "Done running tests"
+	out print "Done running tests"
 
 .all-tests fun-ptr0<void>[]() builtin

@@ -11,16 +11,17 @@ import
 	crow/col/mut-arr: ~=, move-to-arr, move-to-fix-arr, mut-arr, new
 	crow/col/set: ~, in, new, node-count, set, size
 	crow/col/sorted-set: -, ~, in, new, sorted-set, size
-	crow/io/print: print
+	crow/io/print: err, out, print
 	crow/io/private/time-low-level: get-monotime-nsec
 	crow/log: info, log
 	crow/private/alloc: force-needs-gc, gc, get-gc, get-stats, words-used
 	crow/private/bootstrap: todo
 	crow/reader: parse-nat
+	crow/str-util: strip, unindent
 
 main fut nat(args str[]) summon unsafe
 	if args.size < 4
-		print: "Usage: set-perf dict add iters max-value"
+		err print "Usage: set-perf dict add iters max-value"
 		()
 	else
 		col-kind col-kind = args[0].str-to-sym.to-enum!
@@ -37,14 +38,16 @@ main fut nat(args str[]) summon unsafe
 		end-us = get-monotime-nsec
 
 
-		print: "result is {result}"
-		print: "took {(end-us - start-us) / 1000000}ms"
-		print: "allocated {gc current-kb}KB"
+		out print """
+			result is {result}
+			took {(end-us - start-us) / 1000000}ms
+			allocated {gc current-kb}KB
+		""".strip.unindent
 
 		gc force-needs-gc
 		<- delay
 
-		print: "size after GC is {gc current-kb}KB"
+		out print "size after GC is {gc current-kb}KB"
 		assert result == get-result[]
 
 		()

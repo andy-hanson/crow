@@ -1,8 +1,8 @@
 import
 	crow/col/dict: dict, keys, new, subscript
 	crow/io/path: get-extension
-	crow/io/print: print
-	crow/str-util: join
+	crow/io/print: out, print
+	crow/str-util: join, to-c-str
 	audio/read-sound-file: read-sound-file
 	audio/write-sound-file: flac, ogg-vorbis, sound-file-format, wav, write-sound-file
 	audio/sound: format, to-str, with-sample-rate
@@ -12,15 +12,15 @@ main fut nat(args str[]) summon unsafe
 	in-path = args[0]
 	out-path = args[1]
 	ext = out-path.get-extension ?? throw "Output file needs extension"
-	format sound-file-format = default-file-types[ext str-to-sym] ?? throw describe-out-exts
+	format sound-file-format = default-file-types[ext str-to-sym] ?? throw describe-out-exts.to-c-str
 
 	sound = in-path.read-sound-file with-sample-rate 48000
-	print: "sound format is {sound format}"
+	out print "sound format is {sound format}"
 	out-path write-sound-file sound, format
 	()
 
 .describe-out-exts str()
-	supported = (for key : default-file-types keys; key to-str) join ", "
+	supported = ", " join for key : default-file-types keys; key to-str
 	"Supported output file extensions: {supported}"
 
 .default-file-types sound-file-format[sym]()

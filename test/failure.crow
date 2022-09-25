@@ -2,7 +2,7 @@ import
 	crow/col/mut-arr: ~~=, move-to-arr, mut-arr, new, reduce-size-if-more-than, size
 	crow/io/file: try-read-file, write-file
 	crow/io/path: base-name
-	crow/io/print: print, print-no-newline
+	crow/io/print: out, print, print-no-newline
 	crow/str-util: normalize-newlines
 
 handle-output failure[](
@@ -59,13 +59,13 @@ first-failures result<str, failure[]>(a result<str, failure[]>, b fun result<str
 print-failures nat(failures result<str, failure[]>, options test-options) summon
 	match failures
 	as ok o
-		print: o
+		out print o
 		0
 	as err e
 		for failure : e
 			failure print-failure
 		n-failures = e size
-		print: if n-failures == options.max-failures
+		out print if n-failures == options.max-failures
 			"hit maximum of {options max-failures} failures"
 		else
 			"{n-failures} failures"
@@ -73,14 +73,14 @@ print-failures nat(failures result<str, failure[]>, options test-options) summon
 
 .print-failure void(failure failure) summon
 	print-bold
-	print-no-newline: failure path
+	out print-no-newline failure.path
 	print-reset
-	print-no-newline: " "
-	print: failure message
+	out print-no-newline " "
+	out print failure.message
 
 # TODO:MOVE
 .print-bold void() summon
-	print-no-newline: "\x1b[1m"
+	out print-no-newline "\x1b[1m"
 
 .print-reset void() summon
-	print-no-newline: "\x1b[m"
+	out print-no-newline "\x1b[m"

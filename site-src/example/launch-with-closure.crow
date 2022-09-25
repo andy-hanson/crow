@@ -1,6 +1,6 @@
 import
 	crow/cell
-	crow/io/print: print
+	crow/io/print: out, print
 	crow/str-util: join
 
 main fut nat(_ str[]) summon
@@ -10,8 +10,8 @@ main fut nat(_ str[]) summon
 			adder.get-and-set[x + 1]
 	values <- tasks wait-all
 	final-value <- adder.get[]
-	print: "values: {(for x : values; x to-str) join ", "}"
-	print: "final value: {final-value}"
+	out print "values: {", " join for x : values; x to-str}"
+	out print "final value: {final-value}"
 	()
 
 store record sendable

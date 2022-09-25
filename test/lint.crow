@@ -5,7 +5,7 @@ import
 	crow/col/set: in, new, set
 	crow/io/file: each-child-recursive, read-file
 	crow/io/path: base-name, get-extension
-	crow/io/print: print
+	crow/io/print: out, print
 	crow/str-util: contains-substr, lines, starts-with, try-remove-start
 	./failure: failure, flat-map-with-max-size, max-failures, new, print-tests, test-options
 
@@ -13,7 +13,7 @@ lint result<str, failure[]>(path str, options test-options) summon
 	files = path list-lintable-files
 	failures = files flat-map-with-max-size options.max-failures, file =>
 		if options print-tests
-			print: "lint {file}"
+			out print "lint {file}"
 		file lint-file
 	if failures is-empty
 		ok: "linted {files size} files"

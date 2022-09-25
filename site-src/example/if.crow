@@ -1,12 +1,12 @@
 import
 	crow/col/arr-util: flatten, in
 	crow/col/seq: first, for-loop
-	crow/io/print: print
+	crow/io/print: out, print
 	crow/str-util: join
 
 main fut nat(_ str[]) summon
-	print: "crow" describe
-	print: "ermisepillo" describe
+	out print "crow".describe
+	out print "ermisepillo".describe
 	()
 
 describe str(a str)

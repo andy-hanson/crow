@@ -24,7 +24,7 @@ import
 	../../str-util: to-c-str
 	../../private/bootstrap: todo
 	../posix-util: check-posix-error
-	../print: print, print-err
+	../print: err, out, print
 
 # Parsed Uniform Resource Identifier
 uri record
@@ -51,7 +51,7 @@ connect-to-uri SOCKET(u uri) trusted summon
 .wsa-init void() unsafe summon
 	wsa-data cell WSADATA = (), 
 	err = 2 MAKEWORD 2 WSAStartup wsa-data.as-mut-ptr
-	print: "initialized WSA, err is {err}"
+	out print "initialized WSA, err is {err}"
 	if err != 0
 		todo
 
@@ -63,14 +63,14 @@ connect-to-uri SOCKET(u uri) trusted summon
 			# Ignore error and try again
 			a.ai_next find-and-connect-working-socket
 		else
-			err = sock connect a.ai_addr, a.ai_addrlen
-			if err == -1
-				print-err: "connect() failed: "
+			error = sock connect a.ai_addr, a.ai_addrlen
+			if error == -1
+				err print "connect() failed: "
 				sock close-socket
 				# Ignore error and try again
 				a.ai_next find-and-connect-working-socket
 			else
-				assert err == 0
+				assert error == 0
 				sock,
 
 # Returns a file descriptor bound to the given port.
@@ -87,7 +87,7 @@ bind-to-port SOCKET(port str) unsafe summon
 	if res ?= op-sock
 		res
 	else
-		print-err: "Failed to bind to port {port}"
+		err print "Failed to bind to port {port}"
 		todo
 
 close-socket void(sock SOCKET) unsafe summon
@@ -106,7 +106,7 @@ close-socket void(sock SOCKET) unsafe summon
 			a.ai_next find-and-bind-working-socket
 		else
 			if (listen-fd bind a.ai_addr, a.ai_addrlen) == 0
-				print: "Connected!"
+				out print "Connected!"
 				listen-fd,
 			else
 				listen-fd close-socket

@@ -1,6 +1,6 @@
 import
-	crow/io/print: print
+	crow/io/print: out, print
 
 main fut nat(_ str[]) summon
-	print: "hello, world!"
+	out print "hello, world!"
 	()

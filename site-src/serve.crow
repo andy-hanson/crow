@@ -4,13 +4,13 @@ import
 	crow/io/net/http-server: http-handler, start-http-server
 	crow/io/net/http-types: http-not-found, http-request, http-response, new, status, url
 	crow/io/path: child-path
-	crow/io/print: print, print-err
+	crow/io/print: err, out, print
 	crow/log: info, log
 	crow/str-util: ends-with
 
 main fut nat(args str[]) unsafe summon
 	if args.size != 1
-		print-err: "usage: serve [PORT]"
+		err print "usage: serve [PORT]"
 		1,
 	else
 		port = args[0]
@@ -19,7 +19,7 @@ main fut nat(args str[]) unsafe summon
 			info log "{req url} {res status}"
 			res,
 		_ = port start-http-server handler
-		print: "serving on http://localhost:{port}/"
+		out print "serving on http://localhost:{port}/"
 		()
 
 .handle-request http-response(a http-request) summon

@@ -1,11 +1,11 @@
 import
 	crow/str-util: join
-	crow/io/print: print
+	crow/io/print: out, print
 
 main fut nat(_ str[]) summon
 	xs str[] = "swan", "crow"
-	print: xs[1]
+	out print xs[1]
 	ys = xs ~ "raven" ~ "nightingale"
-	print: ", " join ys
-	print: ", " join ys[1 .. 3]
+	out print (", " join ys)
+	out print (", " join ys[1 .. 3])
 	()

@@ -1,31 +1,28 @@
 import
 	crow/str-util: lower-case, replace, reverse, try-remove-start
-	crow/io/print: print
+	crow/io/print: out, print
 
 main fut nat(_ str[]) summon
-	# print("crow")
-	print: "crow"
+	# print(out, "crow")
+	out print "crow"
 
-	# print("crow")
-	"crow" print
+	# print(out, reverse("worc"))
+	out print "worc".reverse
 
-	# print(reverse("worc"))
-	"worc".reverse print
+	# print(out, concat("cr", "ow"))
+	out print "cr" ~~ "ow"
 
-	# print(concat("cr", "ow"))
-	"cr" ~~ "ow" print
+	# print(out, replace("craw", "a", "o"))
+	out print ("craw" replace "a", "o")
 
-	# print(replace("craw", "a", "o"))
-	print: "craw" replace "a", "o"
+	# print(out, to_str(max(4, 2 * 3)))
+	out print (4 max 2 * 3).to-str
 
-	# print(to_str(max(4, 2 * 3)))
-	(4 max 2 * 3).to-str print
-
-	# print(or_default(try_remove_start("escrow", "crow"), reverse("dove"))
-	print: "escrow" try-remove-start "es" ?? "dove" reverse
+	# print(out, or_default(try_remove_start("escrow", "crow"), reverse("dove")))
+	out print ("escrow" try-remove-start "es" ?? "dove" reverse)
 
 	# print(lower_case(replace(replace("SNOW", "S", "C"), "N", "R")))
-	print: "SNOW" replace "S", "C" replace "N", "R" lower-case
+	out print ("SNOW" replace "S", "C" replace "N", "R" lower-case)
 
 	# new()
 	()

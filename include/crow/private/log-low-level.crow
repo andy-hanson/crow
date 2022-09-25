@@ -1,6 +1,6 @@
 no-std
 import
-	../io/print: print
+	../io/print: out, print
 	../ptr: *, set-deref
 	../misc: void
 	../ptr: mut-ptr
@@ -53,7 +53,7 @@ log-handler alias
 	fun void(logged)
 
 default-log-handler void(a logged) summon
-	print: a.level.to-str ~~ ": " ~~ a.message
+	out print a.level.to-str ~~ ": " ~~ a.message
 
 # GC doesn't trace thread-locals, but won't outlive a task anyway.
 .cur-log-handler log-handler mut*() thread-local

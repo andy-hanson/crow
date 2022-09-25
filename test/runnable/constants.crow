@@ -1,11 +1,11 @@
 import
-	crow/io/print: print
+	crow/io/print: out, print
 
 main fut nat(_ str[]) summon
 	r my-record = "a", "b"
 	foo: r
-	print: r a
-	print: r b
+	out print r.a
+	out print r.b
 	()
 
 my-record record
@@ -13,5 +13,5 @@ my-record record
 	b str
 
 foo void(r my-record) summon
-	print: r a
-	print: r b
+	out print r.a
+	out print r.b

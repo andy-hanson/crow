@@ -1,10 +1,10 @@
 import
-	crow/io/print: print
+	crow/io/print: out, print
 
 main fut nat(_ str[]) summon
-	print: up.opposite enum-to-str
-	print: up == up to-str
-	print: up == down to-str
+	out print up.opposite.enum-to-str
+	out print (up == up).to-str
+	out print (up == down).to-str
 	()
 
 direction enum

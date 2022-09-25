@@ -1,5 +1,5 @@
 import
-	crow/io/print: print
+	crow/io/print: out, print
 	crow/private/bootstrap: static-syms
 
 main fut nat(_ str[]) summon
@@ -8,16 +8,16 @@ main fut nat(_ str[]) summon
 	_ = "pop"::sym
 
 	fosho = "fosho" str-to-sym
-	print: fosho to-str
+	out print fosho.to-str
 
 	for s : static-syms
-		print: s.to-str
+		out print s.to-str
 
-	print: (fosho == "fosho".str-to-sym).to-str
-	print: (fosho == "foshoe".str-to-sym).to-str
+	out print (fosho == "fosho".str-to-sym).to-str
+	out print (fosho == "foshoe".str-to-sym).to-str
 
 	#enum-members each m =>
-	#	print: "{m name} = {m.val to-sym}"
+	#	out print "{m name} = {m.val to-sym}"
 
 	#f0 = a
 	#f1 = b

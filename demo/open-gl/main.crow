@@ -4,7 +4,7 @@ import
 	crow/col/private/arr-low-level: begin-ptr, subscript
 	crow/c-types: c-int
 	crow/io/duration: msec
-	crow/io/print: print
+	crow/io/print: out, print
 	crow/io/time: again, again-or-quit, get-monotime-msec, quit, repeat-interval
 	crow/math/mat: *, I, mat3-32, rotation, to-arr
 	crow/math/trig: pi
@@ -185,7 +185,7 @@ main fut nat(_ str[]) summon trusted
 		key-states-ptr = null SDL_GetKeyboardState
 		key-states = key-states-ptr[0 .. SDL_NUM_SCANCODES.to-nat32.to-nat64]
 		if key-states[SDL_SCANCODE_RETURN.to-nat32 to-nat64] != 0
-			print: "return is pressed"
+			out print "return is pressed"
 		<- renderer.render-thread-id run-with-thread-id () =>
 			renderer render
 		again,

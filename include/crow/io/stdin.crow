@@ -11,7 +11,7 @@ import
 	../str: str
 	../str-util: as-str, strip
 	../private/bootstrap: todo
-	./print: print
+	./print: out, print
 
 ###
 Reads from stdin.
@@ -36,5 +36,5 @@ read-stdin-until-parse<a> a(error-message str, parse act a?(str)) summon
 	if res ?= parse[read-stdin]
 		res
 	else
-		error-message print
+		out print error-message
 		error-message read-stdin-until-parse parse

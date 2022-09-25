@@ -1,8 +1,8 @@
 import
-	crow/io/print: print
+	crow/io/print: out, print
 
 main fut nat(_ str[]) summon
-	print: saturday.to-nat8 to-str
+	out print saturday.to-nat8.to-str
 	0,
 
 lucky-numbers enum<nat8>

@@ -1,5 +1,5 @@
 import
-	crow/io/print: print
+	crow/io/print: out, print
 	crow/private/alloc:
 		cur-word, gc-count, gc-stats, get-gc, get-stats, force-needs-gc, set-hard-limit, words-free, words-used
 	crow/ptr: -, as-any-const-ptr, by-val, size-of
@@ -15,17 +15,17 @@ main fut nat(_ str[]) summon unsafe
 	assert size-of@<by-val<r>> == 24
 	assert b.as-any-const-ptr - a.as-any-const-ptr == 24
 
-	print: "stats: {gc get-stats}"
-	print: "a: {a}"
-	print: "stats (after print): {gc get-stats}"
+	out print "stats: {gc get-stats}"
+	out print "a: {a}"
+	out print "stats (after print): {gc get-stats}"
 
 	gc force-needs-gc
 	<- delay
 
-	print: "-- after gc --"
-	print: "stats: {gc get-stats}"
-	print: "a: {a}"
-	print: "stats (after print): {gc get-stats}"
+	out print "-- after gc --"
+	out print "stats: {gc get-stats}"
+	out print "a: {a}"
+	out print "stats (after print): {gc get-stats}"
 	()
 
 r record

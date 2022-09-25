@@ -2,7 +2,7 @@
 
 import
 	crow/col/arr-util: tail
-	crow/io/print: print
+	crow/io/print: out, print
 	crow/parse-command: parse-named-args, single-str-or-throw
 	crow/serialize: from-bytes, to-bytes
 	lmdb/main:
@@ -20,8 +20,9 @@ main fut nat(args str[]) unsafe summon
 			key = named-args[2] single-str-or-throw "key"
 			db-path with-env (true,), env =>
 				env with-db@<void, str, str> db-name, db =>
-					print: env with-read-transaction txn =>
+					value = env with-read-transaction txn =>
 						txn get db, key ?? "none"
+					out print value
 		as set
 			named-args = (args.tail parse-named-args ("db-path", "db-name", "key", "value"))!
 			db-path = named-args[0] single-str-or-throw "db-path"
@@ -38,11 +39,12 @@ main fut nat(args str[]) unsafe summon
 			db-name = named-args[1] single-str-or-throw "db-name"
 			db-path with-env (true,), env =>
 				env with-db@<void, str, str> db-name, db =>
-					print: env with-read-transaction txn =>
+					stats = env with-read-transaction txn =>
 						txn stat db to-str
+					out print stats
 		()
 	else
-		print: usage
+		out print usage
 		1,
 
 .usage str()

@@ -1,15 +1,15 @@
 import
-	crow/io/print: print
+	crow/io/print: out, print
 
 main fut nat(_ str[]) summon
 	x = 1 plus one
-	print: x to-str
+	out print x.to-str
 	y = "one" plus one
-	print: y to-str
+	out print y.to-str
 	# won't compile:
 	# z = one plus 1
 	z nat = one plus one
-	print: z to-str
+	out print z.to-str
 	()
 
 plus nat(a nat, b nat)

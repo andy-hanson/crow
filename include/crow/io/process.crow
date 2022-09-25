@@ -39,7 +39,7 @@ import
 	./environ: get-environ-raw
 	./file: is-file
 	./posix-util: check-errno, check-posix-error
-	./print: print
+	./print: err, out, print
 	./win32-util: show-win32-error
 
 # Represents the output of running a process.
@@ -55,8 +55,7 @@ not to the parent's stdout and stderr.
 EXE should be a file path and not just a name; this does not search the system path for `exe`.
 ###
 spawn-and-wait-result process-result(exe str, args str[]) trusted summon
-	print: "spawn-and-wait-result: {exe}" fold args, (a, b) =>
-		"{a} {b}"
+	out print ("spawn-and-wait-result: {exe}" fold args, (a, b) => "{a} {b}")
 
 	# TODO: kill, handle that error properly
 	assert exe is-file : "{exe} is not a file"
@@ -288,12 +287,12 @@ shell-exec str(command str) trusted summon
 		wait-status WEXITSTATUS
 	elif wait-status WIFSIGNALED
 		signal = wait-status WTERMSIG
-		print: "Subprocess terminated with signal {signal}"
+		err print "Subprocess terminated with signal {signal}"
 		todo
 		# use `wait-status WTERMSIG`
 		# and `wait-status WCOREDUMP`
 	elif wait-status WIFSTOPPED
-		print: "WAIT STOPPED"
+		err print "WAIT STOPPED"
 		todo
 		# use `wait-status w-stop-sig`
 	elif wait-status WIFCONTINUED

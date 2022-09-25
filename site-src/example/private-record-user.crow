@@ -1,19 +1,19 @@
 import
-	crow/io/print: print
+	crow/io/print: out, print
 	./private-record
 
 main fut nat(_ str[]) summon
 	r r = ()
-	print: r.public
+	out print r.public
 	r.public-mutable := "updated {r public-mutable}"
-	print: r public-mutable
+	out print r.public-mutable
 	r call-private-setters
-	print: r public-readonly
+	out print r.public-readonly
 	# won't compile:
 	#r.private-mutable := "updated"
 
 	r2 r2 = ()
-	print: r2.r2-field
+	out print r2.r2-field
 	# won't compile:
 	#s r2 = "construct-me",
 

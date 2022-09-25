@@ -1,5 +1,5 @@
 import
-	crow/io/print: print
+	crow/io/print: out, print
 	crow/io/stdin: read-stdin
 	audio/audio: format, play-loop, shut-down
 	audio/sdl-audio: start-sdl-audio
@@ -11,7 +11,7 @@ main fut nat(args str[]) summon unsafe
 	audio = start-sdl-audio
 	sound = args[0].read-sound-file with-sample-rate audio.format.sample-rate
 	_ = audio play-loop sound
-	print: "Press enter to exit"
+	out print "Press enter to exit"
 	_ = read-stdin
 	<- audio shut-down
 	()

@@ -1,18 +1,17 @@
 import
 	crow/col/arr-util: flatten
-	crow/io/print: print
+	crow/io/print: out, print
 	crow/private/thread-utils: count-processors
 	crow/str-util: join
 
 main fut nat(_ str[]) unsafe summon
-	print: "running with {count-processors} processors"
+	out print "running with {count-processors} processors"
 	# TODO: a module with helpers to do things like filter in parallel
 	primes <- for x : 1_000_000 .. 1_010_000 parallel
 		if x is-prime
 			(x,),
-	print: "primes: {", " join (for x : primes.flatten; x to-str)}"
+	out print "primes: {", " join (for x : primes.flatten; x to-str)}"
 	()
-
 
 parallel-range<a> record
 	.inner range a

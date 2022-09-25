@@ -7,7 +7,7 @@ import
 	crow/io/net/http-types:
 		headers, http-bad-query, http-forbidden, http-not-found, http-ok, http-request,
 		http-response, method, request-body-str, url
-	crow/io/print: print
+	crow/io/print: err, print
 	crow/json: json, new, to-str
 	crow/reader: parse-nat
 	crow/str-util: split-by, try-split-once
@@ -28,7 +28,7 @@ main fut nat(args str[]) unsafe summon
 			db close-real-db
 		()
 	else
-		print: "Usage: server PORT"
+		err print "Usage: server PORT"
 		1,
 
 .handle-request http-response(req http-request, db db) summon

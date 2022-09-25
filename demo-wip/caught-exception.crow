@@ -1,10 +1,10 @@
 import
-	crow/io/print: print
+	crow/io/print: out, print
 
 main fut nat(_ str[]) summon unsafe
 	match (() => 1 - 2).catch :: result<nat64, exception>
 	as ok _
 		unreachable
 	as err e
-		print: "caught the error: {e}"
+		out print "caught the error: {e}"
 	()

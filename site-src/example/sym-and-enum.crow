@@ -1,11 +1,11 @@
 import
-	crow/io/print: print
+	crow/io/print: out, print
 
 main fut nat(_ str[]) summon
 	if piece ?= "bishop" to-chess-piece
-		print: "bishop as chess-piece is {piece to-nat32}"
+		out print "bishop as chess-piece is {piece to-nat32}"
 	if face ?= queen::chess-piece to-face-card
-		print: "queen as face-card is {face to-nat32}"
+		out print "queen as face-card is {face to-nat32}"
 	()
 
 to-chess-piece chess-piece?(a sym)

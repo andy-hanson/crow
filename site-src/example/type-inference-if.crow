@@ -1,5 +1,5 @@
 import
-	crow/io/print: print
+	crow/io/print: out, print
 
 main fut nat(_ str[]) summon
 	x = if false
@@ -7,5 +7,5 @@ main fut nat(_ str[]) summon
 	else
 		# expects a 'str' because the branch above was a 'str'
 		()
-	print: "x is '{x}'"
+	out print "x is '{x}'"
 	()

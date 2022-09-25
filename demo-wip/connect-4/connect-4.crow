@@ -1,7 +1,7 @@
 import
 	crow/col/iter: value
 	crow/col/seq: iter, next, size
-	crow/io/print: clear-screen, print
+	crow/io/print: clear-screen, out, print
 	crow/io/stdin: read-stdin-until-parse
 	crow/str-util: repeat, strip
 	./board:
@@ -9,13 +9,13 @@ import
 		place, red, set-subscript, subscript, to-str, width
 
 main fut nat(_ str[]) summon
-	print: "Select a game:\n(If using hard CPU, compile with --optimize)\n"
-	print: "2: 2-player game\nE: Easy\nM: Medium\nH: Hard\nH2: Hard and CPU goes first\nCPU: CPU vs CPU\n"
+	out print "Select a game:\n(If using hard CPU, compile with --optimize)\n"
+	out print "2: 2-player game\nE: Easy\nM: Medium\nH: Hard\nH2: Hard and CPU goes first\nCPU: CPU vs CPU\n"
 	#settings = "Invalid option" read-stdin-until-parse it => it parse-settings
 	settings ai-settings = (7,), (7,)
 	empty-board print-board red, ()
 	winner <- empty-board play-recur red, settings
-	print: winner show-winner
+	out print winner.show-winner
 	0,
 
 # TODO:PRIVATE
@@ -67,17 +67,17 @@ parse-settings ai-settings?(a str)
 
 .print-board void(a board, cur-player color, last-x nat?) summon
 	clear-screen
-	print: a to-str cur-player, last-x
+	out print (a to-str cur-player, last-x)
 
 .human-player-move nat(board board, color color) summon
-	print: "{color} player, where will you go? (Type a letter A-G and hit enter)"
+	out print "{color} player, where will you go? (Type a letter A-G and hit enter)"
 	board human-player-move-recur
 .human-player-move-recur nat(board board) summon
 	column = "Not a valid column." read-stdin-until-parse it => it column-of-str
 	if board can-place column
 		column
 	else
-		print: "Can't, column is full."
+		out print "Can't, column is full."
 		board human-player-move-recur
 
 .column-of-str nat?(a str)

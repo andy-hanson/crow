@@ -3,7 +3,7 @@ import
 		cookie, cookie-matches, from-bytes, generate-login-cookie, login-cookie,
 		parse-login-cookie, to-bytes, to-str
 	crow/crypto/password-hash: password-hash, password-matches-hash, quality-moderate
-	crow/io/print: print
+	crow/io/print: err, out, print
 	crow/log: info, log
 	crow/reader: parse-nat
 	crow/serialize: from-bytes, to-bytes
@@ -20,9 +20,9 @@ main fut nat(_ str[]) unsafe summon
 			if false
 				match db register-user "alice", "swordfish"
 				as register-user-success user-id
-					print: "Success: user is {user-id}"
+					out print "Success: user is {user-id}"
 				as user-already-exists
-					print: "That user already exists"
+					err print "That user already exists"
 
 			cookie = match db login "alice", "swordfish"
 			as ok o
@@ -31,14 +31,14 @@ main fut nat(_ str[]) unsafe summon
 				throw "TODO"
 			first-post = db add-post cookie, "hello world"
 			pi = db get-post-info first-post
-			print: "{pi user-name} ({pi user}): {pi content}"
+			out print "{pi user-name} ({pi user}): {pi content}"
 
-			print: "users:"
+			out print "users:"
 			for user : db list-users
-				print: user.to-str
-			print: "posts:"
+				out print user.to-str
+			out print "posts:"
 			for post : db list-posts
-				print: post.to-str
+				out print post.to-str
 	()
 
 user alias

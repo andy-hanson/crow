@@ -1,8 +1,8 @@
 import
-	crow/io/print: print
+	crow/io/print: out, print
 
 main fut nat(_ str[]) summon
-	print: """
+	out print """
 Am I a string?
 "Yes," apparently.
 """

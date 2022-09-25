@@ -7,7 +7,7 @@ import
 	crow/col/seq: for-loop
 	crow/col/mut-set: ~=, for-loop, move-to-arr, move-to-set, mut-set, new, to-mut-set, try-remove
 	crow/io/file: read-file
-	crow/io/print: print-err
+	crow/io/print: err, print
 	crow/io/process: shell-exec
 	crow/str-util: contains-substr, ends-with, lines, try-split-once, try-split-once-by-whitespace
 	../site-src/search-dir-recursive: search-dir-recursive
@@ -16,7 +16,7 @@ main fut nat(_ str[]) summon
 	files = all-files
 	failures = files lint-files
 	for x : failures
-		x print-err
+		err print x
 	failures.size,
 
 .lint-files str[](files file[]) summon

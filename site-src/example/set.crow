@@ -1,28 +1,31 @@
 import
-	crow/col/arr-util
 	crow/col/mut-set
 	crow/col/set
-	crow/io/print: print
+	crow/io/print: out, print
 	crow/str-util: join
 
 main fut nat(_ str[]) summon
 	chili set sym = "beans", "pepper", "onion", "beans"
-	print: "size: {chili size}"
-	print: "has pepper? {chili["pepper"]}"
-	print: "has potato? {chili["potato"]}"
+	out print "size: {chili size}"
+	# TODO: should not need type annotation
+	out print "has pepper? {"pepper"::sym in chili}"
+	# TODO: should not need type annotation
+	out print "has potato? {"potato"::sym in chili}"
 
 	pepper-spray set sym = "pepper", "onion", "spray bottle"
-	print: "union: {chili | pepper-spray}"
-	print: "intersection: {chili & pepper-spray}"
-	print: "difference: {chili - pepper-spray}"
+	out print "union: {chili | pepper-spray}"
+	out print "intersection: {chili & pepper-spray}"
+	out print "difference: {chili - pepper-spray}"
 
 	m mut-set sym = "beans", "pepper", "onion"
-	print: "has pepper? {"pepper"::sym in m}"
-	print: "remove pepper? {m try-remove "pepper"}"
-	print: "remove pepper again? {m try-remove "pepper"}"
-	m ~= ("spray bottle", "cumin")::sym[]
-	print: "after concat: {m move-to-set}"
+	# TODO: should not need type annotation
+	out print "has pepper? {"pepper"::sym in m}"
+	out print "remove pepper? {m try-remove "pepper"}"
+	out print "remove pepper again? {m try-remove "pepper"}"
+	m ~~= ("spray bottle", "cumin")
+	out print "after concat: {m move-to-set}"
 	()
 
 to-str str(a set sym)
-	a.to-arr map (x => x to-str) join ", "
+	", " join for x : a
+		x to-str

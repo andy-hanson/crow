@@ -1,9 +1,9 @@
 import
-	crow/io/print: print
+	crow/io/print: out, print
 	crow/io/stdin: read-stdin
 
 main fut nat(_ str[]) summon
-	print: "What's your name?"
+	out print "What's your name?"
 	name = read-stdin
-	print: "hello, {name}"
+	out print "hello, {name}"
 	()

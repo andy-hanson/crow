@@ -19,28 +19,30 @@ import
 	../private/bootstrap: todo
 	./win32-util: show-win32-error
 
-# Print to stdout, including a newline.
-print void(a str) summon
-	"{a}\n" print-no-newline
+pipe enum
+	out
+	err
 
-# Print to stdout, without appending a newline.
-print-no-newline void(a str) summon trusted
+# Print to stdout or stderr, including a newline.
+print void(pipe pipe, message str) summon
+	pipe print-no-newline "{message}\n"
+
+# Print to stdout or stderr, without appending a newline.
+print-no-newline void(pipe pipe, message str) summon trusted
 	if is-windows
-		STD_OUTPUT_HANDLE.GetStdHandle write-windows a
+		handle = match out
+		as out
+			STD_OUTPUT_HANDLE
+		as err
+			STD_ERROR_HANDLE
+		handle.GetStdHandle write-windows message
 	else
-		stdout write-posix a
-
-# Print to stderr, including a newline.
-print-err void(a str) summon
-	a print-err-no-newline
-	"\n" print-err-no-newline
-
-# Print to stderr, without appending a newline.
-print-err-no-newline void(a str) summon trusted
-	if is-windows
-		STD_ERROR_HANDLE.GetStdHandle write-windows a
-	else
-		stderr write-posix a
+		output = match pipe
+		as out
+			stdout
+		as err
+			stderr
+		output write-posix message
 
 .write-windows void(console HANDLE, a str) summon unsafe
 	bytes = a to-bytes
@@ -62,4 +64,4 @@ print-err-no-newline void(a str) summon trusted
 
 # Clear the terminal.
 clear-screen void() summon
-	"\x1bc" print-no-newline
+	out print-no-newline "\x1bc"

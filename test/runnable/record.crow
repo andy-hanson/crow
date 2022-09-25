@@ -1,12 +1,12 @@
 import
-	crow/io/print: print
+	crow/io/print: out, print
 
 main fut nat(_ str[]) summon
 	m my-record = 1, 2
 	assert m.x == 1
 	assert m.y == 2
-	print: m.x.to-str
-	print: m.y.to-str
+	out print m.x.to-str
+	out print m.y.to-str
 	()
 
 my-record record

@@ -1,14 +1,14 @@
 import
-	crow/io/print: print
+	crow/io/print: out, print
 	crow/math/vec
 
 main fut nat(_ str[]) summon
 	a rect = 0.0, 1.0, 0.0, 1.0
 	b rect = 0.75, 1.75, 0.5, 1.5
 	c rect = 1.5, 2.5, 0.0, 1.0
-	print: a intersection-or-distance b to-str
-	print: b intersection-or-distance c to-str
-	print: a intersection-or-distance c to-str
+	out print (a intersection-or-distance b).to-str
+	out print (b intersection-or-distance c).to-str
+	out print (a intersection-or-distance c).to-str
 	()
 
 to-str str(a result<rect, float>)
@@ -34,7 +34,7 @@ intersection-or-distance result<rect, float>(a rect, b rect)
 			0.0
 		as err e
 			e
-		d vec2 = dx, dy
+		d vec2-64 = dx, dy
 		d.length err
 
 intersection-or-distance result<float-range, float>(a float-range, b float-range)
@@ -58,10 +58,10 @@ float-range record
 new rect(x-range float-range, y-range float-range)
 	x-range.min, x-range.max, y-range.min, y-range.max
 
-bottom-left vec2(a rect)
+bottom-left vec2-64(a rect)
 	a.left, a.bottom
 
-top-right vec2(a rect)
+top-right vec2-64(a rect)
 	a.right, a.top
 
 x-range float-range(a rect)

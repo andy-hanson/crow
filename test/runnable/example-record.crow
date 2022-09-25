@@ -1,5 +1,5 @@
 import
-	crow/io/print: print
+	crow/io/print: out, print
 
 rect record
 	width float
@@ -10,5 +10,5 @@ area float(a rect)
 
 main fut nat(_ str[]) summon
 	r rect = 1.5, 2.5
-	print: r.area to-str
+	out print r.area.to-str
 	()
