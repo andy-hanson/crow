@@ -350,7 +350,8 @@ make-directory void(path str, permissions file-permissions) summon
 
 make-directory void(path str, permissions mode_t) trusted summon
 	path-c-str = path to-c-str
-	check-posix-error: is-windows ? path-c-str _mkdir permissions : path-c-str mkdir permissions
+	err = is-windows ? path-c-str _mkdir permissions : path-c-str mkdir permissions
+	err check-posix-error
 
 # Deletes the file at `path`.
 remove-file void(path str) trusted summon
@@ -358,14 +359,14 @@ remove-file void(path str) trusted summon
 		ok = path.to-c-str DeleteFileA
 		assert ok : "error removing file at {path}: {GetLastError show-win32-error}"
 	else
-		check-posix-error: path.to-c-str unlink
+		path.to-c-str.unlink check-posix-error
 
 ###
 Deletes the directory at `path`.
 It should be empty.
 ###
 remove-directory void(path str) trusted summon
-	check-posix-error: path.to-c-str rmdir
+	path.to-c-str.rmdir check-posix-error
 
 remove-directory-and-contents-non-recursive void(path str) no-doc summon
 	path remove-directory-contents-non-recursive

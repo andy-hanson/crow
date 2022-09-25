@@ -241,11 +241,12 @@ in<k, v> bool(key k, a compact-sorted-dict<k, v>) is-data<k> compare<k>
 
 # Returns an equal dictionary that takes up less space.
 compact<k, v> compact-sorted-dict<k, v>(a compact-sorted-dict<k, v>) is-data<k> compare<k>
-	new: match a.impl
+	node = match a.impl
 	as overlay o
 		o.merge-unconditionally end-node
 	as end-node e
 		e end-node
+	node,
 
 region iteration
 

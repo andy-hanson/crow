@@ -22,8 +22,8 @@ test/compile-errors/duplicate-declaration.crow 29:5-29:6 variable name 'a' is al
 
 test/compile-errors/duplicate-declaration.crow 34:9-34:10 variable name 'a' is already used
 
-test/compile-errors/duplicate-declaration.crow 40:13-40:14 variable name 'b' is already used
+test/compile-errors/duplicate-declaration.crow 40:14-40:15 variable name 'b' is already used
 
 test/compile-errors/duplicate-declaration.crow 41:13-41:14 variable name 'a' is already used
 
-test/compile-errors/duplicate-declaration.crow 46:13-46:14 variable name 'a' is already used
+test/compile-errors/duplicate-declaration.crow 46:14-46:15 variable name 'a' is already used

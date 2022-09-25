@@ -48,11 +48,11 @@ uninit by-val lock() noctx unsafe
 	zeroed
 
 .as-critical-section CRITICAL_SECTION(a lock) noctx unsafe
-	hard-assert: size-of@<by-val CRITICAL_SECTION> <= size-of@<by-val lock>
+	size-of@<by-val CRITICAL_SECTION> <= size-of@<by-val lock> hard-assert
 	a.as-any-mut-ptr as-ref
 
 .as-mutex pthread_mutex_t(a lock) noctx unsafe
-	hard-assert: size-of@<by-val pthread_mutex_t> <= size-of@<by-val lock>
+	size-of@<by-val pthread_mutex_t> <= size-of@<by-val lock> hard-assert
 	a.as-any-mut-ptr as-ref
 
 init void(a lock) noctx unsafe
@@ -62,7 +62,7 @@ init void(a lock) noctx unsafe
 		a.as-critical-section InitializeCriticalSection
 	else
 		attr by-val pthread_mutexattr_t = zeroed
-		hard-assert-posix-error: a.as-mutex pthread_mutex_init &attr
+		a.as-mutex pthread_mutex_init &attr hard-assert-posix-error
 
 acquire void(a lock) noctx unsafe
 	if is-single-threaded
@@ -70,7 +70,7 @@ acquire void(a lock) noctx unsafe
 	elif is-windows
 		a.as-critical-section EnterCriticalSection
 	else
-		hard-assert-posix-error: a.as-mutex pthread_mutex_lock
+		a.as-mutex.pthread_mutex_lock hard-assert-posix-error
 
 release void(a lock) noctx unsafe
 	if is-single-threaded
@@ -78,7 +78,7 @@ release void(a lock) noctx unsafe
 	elif is-windows
 		a.as-critical-section LeaveCriticalSection
 	else
-		hard-assert-posix-error: a.as-mutex pthread_mutex_unlock
+		a.as-mutex.pthread_mutex_unlock hard-assert-posix-error
 
 with-lock<a> a(a lock, f act a()) trusted
 	a acquire
@@ -115,11 +115,11 @@ init void(a condition) noctx unsafe
 		&a.windows-condition InitializeConditionVariable
 		&a.windows-critical-section InitializeCriticalSection
 	else
-		hard-assert-posix-error: &a.posix-mutex-attr pthread_mutexattr_init
-		hard-assert-posix-error: &a.posix-mutex pthread_mutex_init &a.posix-mutex-attr
-		hard-assert-posix-error: &a.posix-cond-attr pthread_condattr_init
-		hard-assert-posix-error: &a.posix-cond-attr pthread_condattr_setclock CLOCK_MONOTONIC
-		hard-assert-posix-error: &a.posix-cond pthread_cond_init &a.posix-cond-attr
+		(&a.posix-mutex-attr).pthread_mutexattr_init hard-assert-posix-error
+		&a.posix-mutex pthread_mutex_init &a.posix-mutex-attr hard-assert-posix-error
+		(&a.posix-cond-attr).pthread_condattr_init hard-assert-posix-error
+		&a.posix-cond-attr pthread_condattr_setclock CLOCK_MONOTONIC hard-assert-posix-error
+		&a.posix-cond pthread_cond_init &a.posix-cond-attr hard-assert-posix-error
 
 destroy-condition void(a condition) noctx unsafe
 	if is-single-threaded
@@ -127,13 +127,13 @@ destroy-condition void(a condition) noctx unsafe
 	elif is-windows
 		&a.windows-critical-section DeleteCriticalSection
 	else
-		hard-assert-posix-error: &a.posix-mutex-attr pthread_mutexattr_destroy
-		hard-assert-posix-error: &a.posix-mutex pthread_mutex_destroy
-		hard-assert-posix-error: &a.posix-cond-attr pthread_condattr_destroy
-		hard-assert-posix-error: &a.posix-cond pthread_cond_destroy
+		(&a.posix-mutex-attr).pthread_mutexattr_destroy hard-assert-posix-error
+		(&a.posix-mutex).pthread_mutex_destroy hard-assert-posix-error
+		(&a.posix-cond-attr).pthread_condattr_destroy hard-assert-posix-error
+		(&a.posix-cond).pthread_cond_destroy hard-assert-posix-error
 	
 .hard-assert-posix-error void(err err-t) noctx unsafe
-	hard-assert: err == 0
+	err == 0 hard-assert
 
 broadcast void(a condition) noctx trusted
 	if is-single-threaded
@@ -144,10 +144,10 @@ broadcast void(a condition) noctx trusted
 		&a.windows-condition WakeAllConditionVariable
 		&a.windows-critical-section LeaveCriticalSection
 	else
-		hard-assert-posix-error: &a.posix-mutex pthread_mutex_lock
+		(&a.posix-mutex).pthread_mutex_lock hard-assert-posix-error
 		a.sequence := a.sequence wrap-add 1
-		hard-assert-posix-error: &a.posix-cond pthread_cond_broadcast
-		hard-assert-posix-error: &a.posix-mutex pthread_mutex_unlock
+		(&a.posix-cond).pthread_cond_broadcast hard-assert-posix-error
+		(&a.posix-mutex).pthread_mutex_unlock hard-assert-posix-error
 
 sequence-id alias
 	nat64
@@ -161,9 +161,9 @@ get-sequence sequence-id(a condition) noctx unsafe
 		&a.windows-critical-section LeaveCriticalSection
 		res
 	else
-		hard-assert-posix-error: &a.posix-mutex pthread_mutex_lock
+		(&a.posix-mutex).pthread_mutex_lock hard-assert-posix-error
 		res = a sequence
-		hard-assert-posix-error: &a.posix-mutex pthread_mutex_unlock
+		(&a.posix-mutex).pthread_mutex_unlock hard-assert-posix-error
 		res
 
 ###
@@ -203,18 +203,16 @@ wait-on void(a condition, until-time timestamp?, last-sequence sequence-id) noct
 					todo
 		&a.windows-critical-section LeaveCriticalSection
 	else
-		hard-assert-posix-error: &a.posix-mutex pthread_mutex_lock
+		(&a.posix-mutex).pthread_mutex_lock hard-assert-posix-error
 		if a.sequence == last-sequence
-			hard-assert-posix-error: if t ?= until-time
+			if t ?= until-time
 				abstime = t to-timespec
 				err = &a.posix-cond pthread_cond_timedwait &a.posix-mutex, &abstime
-				if err == ETIMEDOUT
-					0
-				else
-					err
+				if err != ETIMEDOUT
+					err hard-assert-posix-error
 			else
-				&a.posix-cond pthread_cond_wait &a.posix-mutex
-		hard-assert-posix-error: &a.posix-mutex pthread_mutex_unlock
+				&a.posix-cond pthread_cond_wait &a.posix-mutex hard-assert-posix-error
+		(&a.posix-mutex).pthread_mutex_unlock hard-assert-posix-error
 
 barrier record mut by-ref
 	# TODO: use union to save space instead of storing posix/windows side-by-side
@@ -226,19 +224,19 @@ uninit by-val barrier() noctx unsafe
 
 init void(a barrier, n-threads nat64) noctx unsafe
 	if is-single-threaded
-		hard-assert: n-threads == 1
+		n-threads == 1 hard-assert
 	elif is-windows
-		hard-assert: &a.windows InitializeSynchronizationBarrier n-threads.unsafe-to-int64, 0
+		&a.windows InitializeSynchronizationBarrier n-threads.unsafe-to-int64, 0 hard-assert
 	else
-		hard-assert-posix-error: &a.posix pthread_barrier_init null, n-threads.unsafe-to-nat32
+		&a.posix pthread_barrier_init null, n-threads.unsafe-to-nat32 hard-assert-posix-error
 
 free void(a barrier) noctx unsafe
 	if is-single-threaded
 		()
 	elif is-windows
-		hard-assert: &a.windows DeleteSynchronizationBarrier
+		(&a.windows).DeleteSynchronizationBarrier hard-assert
 	else
-		hard-assert-posix-error: &a.posix pthread_barrier_destroy
+		(&a.posix).pthread_barrier_destroy hard-assert-posix-error
 
 # Returns true for one of the threads.
 wait-barrier bool(a barrier) noctx unsafe
@@ -284,7 +282,7 @@ decrement void(a thread-safe-counter) noctx unsafe
 get-and-decrement nat64(t thread-safe-counter) noctx unsafe
 	&t.lk acquire
 	old = t value
-	hard-forbid: old == 0
+	old == 0 hard-forbid
 	t.value := old wrap-sub 1
 	&t.lk release
 	old
@@ -326,7 +324,7 @@ join-one-thread void(a thread-handle) noctx unsafe summon
 		if res != WAIT_OBJECT_0
 			todo
 		ok = a.as-windows-handle CloseHandle
-		hard-assert: ok
+		ok hard-assert
 	else
 		thread-return mut any-mut-ptr = null
 		err = a.as-pthread pthread_join &thread-return

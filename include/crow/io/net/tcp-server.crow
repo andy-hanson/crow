@@ -51,18 +51,18 @@ Once the function returns, it is already serving requests.
 start-tcp-server tcp-server(port str, handler tcp-handler) unsafe summon
 	sock = port bind-to-port
 	max-connections int32 = 1000
-	check-posix-error: sock listen max-connections
+	sock listen max-connections check-posix-error
 	if is-windows
 		todo
 	else
 		sock.as-fd start-tcp-server-linux handler
 
 .start-tcp-server-linux tcp-server(port-fd fd-t, handler tcp-handler) unsafe summon
-	set-non-blocking: port-fd
+	port-fd set-non-blocking
 
 	epoll-fd = 0 epoll_create1
 	if epoll-fd < 0
-		perror: "epoll-create1 failed"
+		"epoll-create1 failed" perror
 		todo
 	else
 		event-flags = EPOLLIN | EPOLLET
@@ -81,10 +81,11 @@ start-tcp-server tcp-server(port str, handler tcp-handler) unsafe summon
 		done = state tcp-server-loop-linux
 		done handle-exceptions
 
-		new: () =>
+		stop ref void() = () =>
 			out print "STOP CALLED"
 			state.should-stop := true
 			done
+		stop,
 
 # Close a TCP client.
 close-client void(client SOCKET) unsafe summon
@@ -138,7 +139,7 @@ close-client void(client SOCKET) unsafe summon
 	if client-fd < 0
 		e = errno
 		unless e == EAGAIN || e == EWOULDBLOCK
-			perror: "accept() error"
+			"accept() error" perror
 			todo
 	else
 		client-fd set-non-blocking
@@ -154,7 +155,7 @@ close-client void(client SOCKET) unsafe summon
 	if count < 0
 		err = errno
 		unless err == EAGAIN
-			perror: "read() failed"
+			"read() failed" perror
 	elif count != 0
 		chunk = buf.cast-immutable[0 .. count.to-nat64]
 		on-received-chunk[fd.as-socket, chunk] handle-exceptions
@@ -163,10 +164,10 @@ close-client void(client SOCKET) unsafe summon
 .set-non-blocking void(fd fd-t) noctx unsafe summon
 	file-flags = fd fcntl F_GETFL, 0
 	if file-flags < 0
-		perror: "fcntl() error"
+		"fcntl() error" perror
 		todo
 	else
 		err = fd fcntl F_SETFL, file-flags | O_NONBLOCK
 		if err < 0
-			perror: "fcntl() error"
+			"fcntl() error" perror
 			todo

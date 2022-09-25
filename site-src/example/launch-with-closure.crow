@@ -6,7 +6,7 @@ import
 main fut nat(_ str[]) summon
 	adder <- 0 make-store
 	tasks fut<nat>[] = for x : 0 .. 10
-		launch: () =>
+		launch do () =>
 			adder.get-and-set[x + 1]
 	values <- tasks wait-all
 	final-value <- adder.get[]
@@ -19,7 +19,7 @@ store record sendable
 	get-and-set ref nat(nat)
 
 make-store fut store(initial-value nat)
-	launch: () =>
+	launch do () =>
 		cur cell nat = initial-value,
 		get ref nat() = () => *cur,
 		get-and-set ref nat(nat) = x =>

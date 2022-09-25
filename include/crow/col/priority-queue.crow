@@ -372,7 +372,7 @@ test
 	folded = "init" fold p6, (acc, k, v) => "{acc}, {k} -> {v}"
 	folded is "init, 6 -> 6, 6 -> 6b, 6 -> 6c, 7 -> 7, 7 -> 7b, 8 -> 8"
 
-	filter-order spy-act2<bool, nat64, str> = new: (k, _) => k == 6
+	filter-order spy-act2<bool, nat64, str> = ((k, _) => k == 6),
 	filtered = p6 filter filter-order.fn
 	filter-calls = filter-order calls
 	filter-calls is p6-pairs

@@ -333,32 +333,36 @@ This is O(log n), amortized O(1).
 			(br.left, cat-right-lower[br.down, br.right], r) branch
 
 .cat-left-node-l0<a> l0 a(l l0 a, r l0 a)
-	new: l.node cat-left-node-level r.node, ((xs, lower) => (xs,) cat-left-array-l1 lower), (x, y) =>
+	node = l.node cat-left-node-level r.node, ((xs, lower) => (xs,) cat-left-array-l1 lower), (x, y) =>
 		x cat-left-node-l1 y
+	node,
 
 .cat-right-node-l0<a> l0 a(l l0 a, r l0 a)
-	new: l.node cat-right-node-level r.node, ((lower, xs) => lower cat-right-array-l1 (xs,)), (x, y) =>
+	node = l.node cat-right-node-level r.node, ((lower, xs) => lower cat-right-array-l1 (xs,)), (x, y) =>
 		x cat-right-node-l1 y
+	node,
 
 .cat-left-array-l0<a> l0 a(l a[], r l0 a)
-	new: l cat-left-array-level r.node, (xs, lower) => (xs,) cat-left-array-l1 lower
+	(l cat-left-array-level r.node, (xs, lower) => (xs,) cat-left-array-l1 lower),
 
 .cat-right-array-l0<a> l0 a(l l0 a, r a[])
-	new: l.node cat-right-array-level r, (lower, xs) => lower cat-right-array-l1 (xs,)
+	(l.node cat-right-array-level r, (lower, xs) => lower cat-right-array-l1 (xs,)),
 
 .cat-left-node-l1<a> l1 a(l l1 a, r l1 a)
-	new: l.node cat-left-node-level r.node, ((xs, lower) => (xs,) cat-left-array-l2 lower), (x, y) =>
+	node = l.node cat-left-node-level r.node, ((xs, lower) => (xs,) cat-left-array-l2 lower), (x, y) =>
 		x cat-left-node-l2 y
+	node,
 
 .cat-right-node-l1<a> l1 a(l l1 a, r l1 a)
-	new: l.node cat-right-node-level r.node, ((lower, xs) => lower cat-right-array-l2 (xs,)), (x, y) =>
+	node = l.node cat-right-node-level r.node, ((lower, xs) => lower cat-right-array-l2 (xs,)), (x, y) =>
 		x cat-right-node-l2 y
+	node,
 
 .cat-left-array-l1<a> l1 a(l a[][], r l1 a)
-	new: l cat-left-array-level r.node, (xs, lower) => (xs,) cat-left-array-l2 lower
+	(l cat-left-array-level r.node, (xs, lower) => (xs,) cat-left-array-l2 lower),
 
 .cat-right-array-l1<a> l1 a(l l1 a, r a[][])
-	new: l.node cat-right-array-level r, (lower, xs) => lower cat-right-array-l2 (xs,)
+	(l.node cat-right-array-level r, (lower, xs) => lower cat-right-array-l2 (xs,)),
 
 .cat-left-node-l2<a> l2 a(l l2 a, r l2 a)
 	l.nodes ~~ r.nodes,

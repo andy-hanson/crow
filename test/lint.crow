@@ -16,9 +16,9 @@ lint result<str, failure[]>(path str, options test-options) summon
 			out print "lint {file}"
 		file lint-file
 	if failures is-empty
-		ok: "linted {files size} files"
+		"linted {files size} files" ok
 	else
-		err: failures
+		failures err
 
 .list-lintable-files str[](path str) summon
 	res str mut[] = ()

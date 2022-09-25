@@ -142,8 +142,9 @@ get-modules module[](paths str[]) summon
 	body_ = if type == "builtin"
 		spec-builtin
 	elif type == "sigs"
-		spec-sigs: for x : body-json["sigs"]!.as-arr!
+		sigs spec-sig[] = for x : body-json["sigs"]!.as-arr!
 			x to-sig
+		sigs spec-sigs
 	else
 		throw "unexpected spec type {type}"
 	body_,

@@ -30,21 +30,21 @@ f nat(a nat)
 	a
 
 f nat()
-	do: a =>
+	1 do a =>
 		a = 1
 		a
 
 f nat()
-	do: a =>
+	1 do a =>
 		b = 1
-		do: b =>
+		1 do b =>
 			a = 2
 			b
 
 f nat()
-	do: a =>
-		do: a =>
+	1 do a =>
+		1 do a =>
 			a
 
-do nat(f fun nat(nat))
+do nat(_ nat, f fun nat(nat))
 	f[0]

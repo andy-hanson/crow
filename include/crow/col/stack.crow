@@ -199,7 +199,7 @@ test
 	d = c ~ 3
 	d.to-arr is (1, 2, 3)
 
-	for-loop-spy spy-act1<void, nat64> = new: _ => ()
+	for-loop-spy spy-act1<void, nat64> = (_ => ()),
 	d for-loop for-loop-spy.fn
 	for-loop-spy.calls is (1, 2, 3)
 

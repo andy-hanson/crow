@@ -3,7 +3,7 @@ import
 
 main fut nat(_ str[]) summon
 	r my-record = "a", "b"
-	foo: r
+	r foo
 	out print r.a
 	out print r.b
 	()

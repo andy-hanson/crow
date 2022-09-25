@@ -22,7 +22,7 @@ parallel<a> parallel-range a(a range a)
 # TODO: be generic!
 for-loop fut nat64[][](a parallel-range nat64, f fun fut nat64[](nat64))
 	tasks fut<nat64[]>[] = for x : a.inner
-		launch: () =>
+		launch do () =>
 			f[x]
 	tasks wait-all
 

@@ -2,7 +2,7 @@ no-std
 import
 	./bool: bool
 	./col/arr: arr, for-loop, new
-	./col/arr-util: flatten
+	./col/arr-util: join
 	./misc: name, named-val, val
 	./str: literal, str
 	./str-util: join
@@ -35,7 +35,7 @@ is-in<a> bool(a a, b a) min-flags-like<a>
 
 # Returns an array of the name of every flag set in `a`.
 to-syms<a> sym[](a a) flags-like<a>
-	flatten: for member : flags-members
+	() join for member : flags-members
 		if member.val is-in a
 			member.name,
 

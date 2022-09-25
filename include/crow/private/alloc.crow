@@ -34,13 +34,13 @@ mark bool(ctx mark-ctx, ptr-any any-const-ptr, size-bytes nat64) noctx unsafe su
 	ptr nat64* = ptr-any ptr-cast
 	index = ptr - ctx.memory-start.as-const
 	if index < ctx.memory-size-words
-		hard-assert: ptr-any is-word-aligned
-		hard-assert: (index wrap-add size-words) <= ctx.memory-size-words
+		ptr-any.is-word-aligned hard-assert
+		(index wrap-add size-words) <= ctx.memory-size-words hard-assert
 		mark-start = ctx.marks + index
 		mark-end = mark-start + size-words
 		mark-start mark-range mark-end
 	else
-		hard-assert: (index wrap-add size-words) > ctx.memory-size-words
+		(index wrap-add size-words) > ctx.memory-size-words hard-assert
 		false
 
 .is-word-aligned bool(a any-const-ptr) noctx unsafe
@@ -96,9 +96,9 @@ words-free nat64(a gc-stats) noctx
 # WARN: Unfortunately this doesn't prevent the original allocation in new-gc, just forbids us to use it
 set-hard-limit void(gc gc, size-words nat64) noctx unsafe
 	gc validate-gc
-	hard-assert: size-words <= gc.size-words
+	size-words <= gc.size-words hard-assert
 	cur-index = gc.mark-cur - gc.mark-begin
-	hard-assert: cur-index < size-words
+	cur-index < size-words hard-assert
 	gc.size-words := size-words
 	gc.mark-end := gc.mark-begin + size-words
 	gc.data-end := gc.data-begin + size-words
@@ -128,11 +128,11 @@ uninit by-val gc() noctx unsafe
 	size-words = 0x3000000
 	# 8 GB
 	#size-words = 0x40000000
-	hard-assert: size-of@<bool> == size-of@<nat8>
+	size-of@<bool> == size-of@<nat8> hard-assert
 	mark bool mut* = size-words.malloc ptr-cast@<bool, nat8>
 	mark-end = mark + size-words
 	bytes nat64 mut* = (size-words wrap-mul size-of@<nat64>).malloc ptr-cast@<nat64, nat8>
-	hard-assert: bytes.as-any-mut-ptr is-word-aligned
+	bytes.as-any-mut-ptr.is-word-aligned hard-assert
 	bytes-end = bytes + size-words
 
 	_ = mark.as-any-mut-ptr memset 0, size-words
@@ -147,7 +147,7 @@ init void(a gc, n-threads nat64) noctx unsafe
 
 # WARN: This should be called by all threads.
 run-garbage-collection<a> void(gc gc, gc-root a) noctx unsafe
-	hard-assert: gc needs-gc
+	gc.needs-gc hard-assert
 	if &gc.barrier wait-barrier
 		gc.gc-count := gc.gc-count wrap-add 1
 		_ = gc.mark-begin.as-any-mut-ptr memset 0, gc.size-words
@@ -228,18 +228,18 @@ get-gc gc() unsafe
 	get-gc-ctx gc
 
 validate-gc void(gc gc) noctx unsafe
-	hard-assert: gc.mark-begin.as-any-mut-ptr is-word-aligned
-	hard-assert: gc.data-begin.as-any-mut-ptr is-word-aligned
-	hard-assert: gc.data-cur.as-any-mut-ptr is-word-aligned
-	hard-assert: gc.mark-begin <= gc.mark-cur
-	hard-assert: gc.mark-cur <= gc.mark-end
-	hard-assert: gc.data-begin <= gc.data-cur
-	hard-assert: gc.data-cur <= gc.data-end
+	gc.mark-begin.as-any-mut-ptr.is-word-aligned hard-assert
+	gc.data-begin.as-any-mut-ptr.is-word-aligned hard-assert
+	gc.data-cur.as-any-mut-ptr.is-word-aligned hard-assert
+	gc.mark-begin <= gc.mark-cur hard-assert
+	gc.mark-cur <= gc.mark-end hard-assert
+	gc.data-begin <= gc.data-cur hard-assert
+	gc.data-cur <= gc.data-end hard-assert
 	mark-idx = gc.mark-cur - gc.mark-begin
 	data-idx = gc.data-cur - gc.data-begin
-	hard-assert: gc.mark-end - gc.mark-begin == gc.size-words
-	hard-assert: gc.data-end - gc.data-begin == gc.size-words
-	hard-assert: mark-idx == data-idx
+	gc.mark-end - gc.mark-begin == gc.size-words hard-assert
+	gc.data-end - gc.data-begin == gc.size-words hard-assert
+	mark-idx == data-idx hard-assert
 
 .try-gc-alloc any-mut-ptr?(gc gc-ctx, size-bytes nat64) noctx trusted
 	&gc.gc.lk acquire
@@ -255,7 +255,7 @@ validate-gc void(gc gc) noctx unsafe
 
 .try-gc-alloc-recur any-mut-ptr?(gc gc, size-bytes nat64) noctx unsafe
 	# TODO: support larger allocations than 256MB
-	hard-assert: size-bytes < 0x10000000
+	size-bytes < 0x10000000 hard-assert
 	# gc validate-gc
 	size-words = size-bytes words-of-bytes
 	cur = gc data-cur
@@ -319,7 +319,7 @@ unmanaged-alloc-uninitialized<a> a mut*() noctx unsafe
 
 unmanaged-alloc-bytes any-mut-ptr(size nat64) noctx unsafe
 	res = size malloc
-	hard-assert: res != null
+	res != null hard-assert
 	res
 
 unmanaged-alloc-zeroed-elements<a> a mut*(size-elements nat64) noctx unsafe
@@ -329,7 +329,7 @@ unmanaged-alloc-zeroed-elements<a> a mut*(size-elements nat64) noctx unsafe
 
 unmanaged-alloc-elements<a> a mut*(size-elements nat64) noctx unsafe
 	# TODO: wrap-mul is unsafe!
-	ptr-cast: size-elements wrap-mul size-of@<a> unmanaged-alloc-bytes
+	(size-elements wrap-mul size-of@<a>).unmanaged-alloc-bytes ptr-cast
 
 unmanaged-free-elements<a> void(begin a mut*, _ nat64) noctx unsafe
 	begin.as-any-mut-ptr free

@@ -82,7 +82,7 @@ Result c-str are temporary, must copy!
 	thread = GetCurrentThread
 
 	ok0 = process SymInitialize null, true
-	hard-assert: ok0
+	ok0 hard-assert
 
 	# For some reason this has to be on the stack. Failed when in 'windows-backtrace-vars'
 	context mut CONTEXT = CONTEXT_FULL,
@@ -93,7 +93,7 @@ Result c-str are temporary, must copy!
 	max-end = entries + max-entries
 	end = gc windows-walk-backtrace entries, max-end, skip, process, thread, &context, &frame, vars
 	ok1 = process SymCleanup
-	hard-assert: ok1
+	ok1 hard-assert
 	(entries.as-const arr-from-begin-end end.as-const),
 
 .windows-backtrace-vars record by-val mut
@@ -166,9 +166,9 @@ Result c-str are temporary, must copy!
 	context-val by-val unw_context_t = (),
 	context unw_context_t = &context-val
 	err0 = context unw_getcontext
-	hard-assert: err0 == 0
+	err0 == 0 hard-assert
 	err1 = cursor unw_init_local context
-	hard-assert: err1 == 0
+	err1 == 0 hard-assert
 	# omit 'get-native-backtrace' in addition to other skipped
 	cursor unwind-skip (skip wrap-add 1)
 	end = gc unwind-recur entries, entries + max-entries, cursor

@@ -173,7 +173,7 @@ thread-function void(thread-id nat64, gctx global-ctx) noctx unsafe summon
 .thread-shut-down void(gctx global-ctx) noctx unsafe summon
 	&gctx.may-be-work-to-do broadcast
 	&gctx.tasks-lock acquire
-	hard-assert: gctx.tasks is-empty
+	gctx.tasks.is-empty hard-assert
 	&gctx.tasks-lock release
 
 before-task void(gctx global-ctx, exclusion exclusion) noctx unsafe

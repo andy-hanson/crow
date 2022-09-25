@@ -242,8 +242,7 @@ fold<a, k, v> a(acc a, a mut-sorted-dict<k, v>, f act a(a, k, v)) is-data<k> com
 
 filter<k, v> mut-sorted-dict<k, v>(a mut-sorted-dict<k, v>, f act bool(k, v)) is-data<k> compare<k>
 	a compact
-	from-sorted-pairs: a.pairs filter pair =>
-		f[pair.from, pair.to!]
+	(a.pairs filter pair => f[pair.from, pair.to!]) from-sorted-pairs
 
 map<k-out, v-out, k-in, v-in> mut-sorted-dict<k-out, v-out>(
 	a mut-sorted-dict<k-in, v-in>,
@@ -256,9 +255,10 @@ map-values<v-out, k, v-in> mut-sorted-dict<k, v-out>(
 	f act v-out(k, v-in),
 ) is-data<k> compare<k>
 	a compact
-	from-sorted-pairs: for pair : a pairs
+	pairs pair<k, v-out?> mut[] = for pair : a pairs
 		# TODO: 'as' should be unnecessary
 		pair.from, (f[pair.from, pair.to!],)
+	pairs from-sorted-pairs
 
 .from-sorted-pairs<k, v> mut-sorted-dict<k, v>(a pair<k, v?> mut[])
 	a, a.size, ()

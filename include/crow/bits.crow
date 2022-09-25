@@ -112,7 +112,7 @@ Does not rotate.
 	elif b < 0
 		todo
 	elif b < 32
-		unsafe-to-int32: a.unsafe-to-nat64 unsafe-bit-shift-right b.unsafe-to-nat64
+		a.unsafe-to-nat64 unsafe-bit-shift-right b.unsafe-to-nat64 unsafe-to-int32
 	else
 		todo
 

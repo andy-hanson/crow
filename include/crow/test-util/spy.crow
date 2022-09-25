@@ -44,7 +44,7 @@ calls<out, in0, in1> pair<in0, in1>[](a spy-act2<out, in0, in1>)
 	a.calls-builder move-to-arr
 
 test
-	spy spy-act2<nat64, nat64, nat64> = new: (x, y) => x + y
+	spy spy-act2<nat64, nat64, nat64> = ((x, y) => x + y),
 	spy.fn[1, 2] is 3
 	spy.fn[3, 4] is 7
 	spy.calls is ((1, 2), (3, 4))

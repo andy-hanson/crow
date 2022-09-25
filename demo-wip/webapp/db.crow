@@ -11,8 +11,8 @@ import
 	lmdb/main:
 		add, close-db, close-env, count, from-lmdb-key, get, lmdb-db, lmdb-env,
 		lmdb-key-flags, lmdb-txn, map, new, open-db, open-env, set, to-lmdb-key,
-		transaction-abort, transaction-commit, try-add, with-abortable-write-transaction, with-env,
-		with-read-transaction, with-test-env, with-write-transaction, zip
+		transaction-abort, transaction-commit, try-add, with-abortable-write-transaction, with, with-env,
+		with-read-transaction, test-env, with-write-transaction, zip
 
 main fut nat(_ str[]) unsafe summon
 	db-path with-env (true,), env =>
@@ -216,14 +216,14 @@ cookie-expire-seconds nat()
 
 test
 	info log "GONNA TEST"
-	with-test-env: env =>
+	test-env with env =>
 		env with-db db =>
 			# TODO: way more tests
 
 			info log "A"
-			db register-user "alice", "swordfish" is register-user-success: 0
+			db register-user "alice", "swordfish" is 0.register-user-success
 			info log "B"
-			db register-user "bob", "gunfish" is register-user-success: 1
+			db register-user "bob", "gunfish" is 1.register-user-success
 			# TODO: test failed register
 
 			# TODO: test failed login

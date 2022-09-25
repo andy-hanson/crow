@@ -48,7 +48,7 @@ catch<a> a(try act a(), catcher act a(exception)) trusted
 		res
 	else
 		# Get here after throwing from inside `try[]`
-		hard-assert: setjmp-result == number-to-throw
+		setjmp-result == number-to-throw hard-assert
 		thrown = *cur-thrown
 		*cur-thrown := zeroed
 		*cur-jmp-buf := old-jmp-buf

@@ -17,7 +17,7 @@
 		<br />
 		<code>crow/io/print: print</code> is part of the <code class="keyword">import</code>.
 		<br />
-		<code>print: "Hello, world!"</code> and <code>()</code> are nested under <code>main</code>.
+		<code>out print "Hello, world!"</code> and <code>()</code> are nested under <code>main</code>.
 		<br />
 		Indents may be one tab, two spaces, or four spaces, but must be consistent.
 	</p>
@@ -25,7 +25,8 @@
 	Here's what each part does:
 	<ul class="bullets">
 		<li>
-			<code class="keyword">import</code> imports the function <code class="fun">print</code>
+			<code class="keyword">import</code> imports the functions
+			<code class="fun">out</code> and <code class="fun">print</code>
 			from the module <a href="doc/crow/io/print.html"><code class="import">crow/io/print</code></a>.
 			<br />
 			Other names like <code class="struct">fut</code> are imported due to
@@ -52,7 +53,7 @@
 		<li>
 			<code>"Hello, world!"</code> is a string literal.
 			<br />
-			<code>print: "Hello, world!"</code> is a function call.
+			<code>out print "Hello, world!"</code> is a function call.
 			<br />
 			Since this is not the last line of the function, it must be of type <code class="struct">void</code>.
 		</li>

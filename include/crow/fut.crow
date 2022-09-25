@@ -121,13 +121,16 @@ then-void<out> fut out(a fut void, f ref out()) is-sendable<out>
 	a then _ =>
 		f[]
 
+launch record
+launch launch()
+	()
 ###
 Run `f` in a task with a new exclusion and return a `fut` for its result.
 
 `f` must be a `fun` and not an `act` so that it can have a new exclusion,
 which allows it to run in parallel.
 ###
-launch<a> fut a(f fun fut a()) trusted
+do<a> fut a(_ launch, f fun fut a()) trusted
 	res fut a = unresolved
 	gctx = get-global-ctx
 	gctx add-task gctx.new-exclusion, () =>

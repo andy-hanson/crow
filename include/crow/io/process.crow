@@ -184,21 +184,21 @@ shell-exec str(command str) trusted summon
 
 	# TODO: Neater, move to own function
 	actions posix_spawn_file_actions_t = 0, 0, null, ()
-	check-posix-error: actions posix_spawn_file_actions_init
-	check-posix-error: actions posix_spawn_file_actions_addclose stdout-pipes.write-pipe
-	check-posix-error: actions posix_spawn_file_actions_addclose stderr-pipes.write-pipe
-	check-posix-error: actions posix_spawn_file_actions_adddup2 stdout-pipes.read-pipe, stdout
-	check-posix-error: actions posix_spawn_file_actions_adddup2 stderr-pipes.read-pipe, stderr
-	check-posix-error: actions posix_spawn_file_actions_addclose stdout-pipes.read-pipe
-	check-posix-error: actions posix_spawn_file_actions_addclose stderr-pipes.read-pipe
+	actions.posix_spawn_file_actions_init check-posix-error
+	actions posix_spawn_file_actions_addclose stdout-pipes.write-pipe check-posix-error
+	actions posix_spawn_file_actions_addclose stderr-pipes.write-pipe check-posix-error
+	actions posix_spawn_file_actions_adddup2 stdout-pipes.read-pipe, stdout check-posix-error
+	actions posix_spawn_file_actions_adddup2 stderr-pipes.read-pipe, stderr check-posix-error
+	actions posix_spawn_file_actions_addclose stdout-pipes.read-pipe check-posix-error
+	actions posix_spawn_file_actions_addclose stderr-pipes.read-pipe check-posix-error
 
 	pid-cell cell pid_t = 0,
-	check-posix-error: pid-cell posix_spawn exe, actions, null, args, get-environ-raw
+	pid-cell posix_spawn exe, actions, null, args, get-environ-raw check-posix-error
 	pid = *pid-cell
 
 	# Close child-side of pipes (from this process, child still has them)
-	check-posix-error: stdout-pipes.read-pipe close
-	check-posix-error: stderr-pipes.read-pipe close
+	stdout-pipes.read-pipe.close check-posix-error
+	stderr-pipes.read-pipe.close check-posix-error
 
 	# Read from pipes
 	stdout-builder char8 mut[] = ()
@@ -211,7 +211,7 @@ shell-exec str(command str) trusted summon
 
 .make-pipes pipes() summon unsafe
 	res pipes = 0, 0
-	check-posix-error: res pipe
+	res.pipe check-posix-error
 	res
 
 .keep-polling void(
@@ -222,7 +222,7 @@ shell-exec str(command str) trusted summon
 ) summon unsafe
 	poll-fds fix-arr pollfd = (stdout-pipe, POLLIN, 0), (stderr-pipe, POLLIN, 0)
 	# timeout == -1 means we block
-	n-pollfds-with-events = to-int64: poll-fds.begin-ptr poll poll-fds.size, -1
+	n-pollfds-with-events = poll-fds.begin-ptr poll poll-fds.size, -1 to-int64
 	if n-pollfds-with-events == 0
 		# TODO: is this even possible to reach ? I think we always get has-POLLHUP instead.
 		()
@@ -275,7 +275,7 @@ shell-exec str(command str) trusted summon
 .spawn-and-wait int32(exe c-str, args c-str*) summon unsafe
 	pid-cell cell pid_t = 0,
 	# TODO: null.as-ref is bad. If it's nullable it shouldn't be a ref.
-	check-posix-error: pid-cell posix_spawn exe, null::any-const-ptr.as-ref, null, args, get-environ-raw
+	pid-cell posix_spawn exe, null::any-const-ptr.as-ref, null, args, get-environ-raw check-posix-error
 	*pid-cell wait-and-get-exit-code
 
 .wait-and-get-exit-code int32(pid pid_t) summon unsafe

@@ -66,8 +66,9 @@ This must be called before `perf-disable`.
 ###
 get-measured-perf measure-total[sym]() summon trusted
 	res measure-total mut[sym] = ()
-	each-measure: (name, value) =>
+	f act void(sym, perf-measure-value) = (name, value) =>
 		res[name] := value to-measure-total
+	f each-measure
 	res move-to-dict
 
 .to-measure-total measure-total(a perf-measure-value)

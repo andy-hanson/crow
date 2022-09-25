@@ -385,6 +385,17 @@ flatten<a> a[](a a[][]) trusted
 	assert *cur == res + total-size
 	res.as-const arr-from-begin-end cur->as-const
 
+join<a> a[](joiner a[], parts a[][])
+	# TODO:PERF
+	if joiner is-empty
+		parts flatten
+	elif parts is-empty
+		()
+	elif parts.size == 1
+		parts[0]
+	else
+		parts[0] ~~ joiner ~~ (joiner join parts.tail)
+
 zip-each<a, b> void(a a[], b b[], f act void(a, b))
 	assert a.size == b.size : "zipped arrays must have same size"
 	a each-with-index (x, i) =>
