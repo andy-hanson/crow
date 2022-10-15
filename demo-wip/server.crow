@@ -1,8 +1,9 @@
 import
 	crow/col/dict: for-loop, new
-	crow/io/net/http-server: http-handler, start-http-server
+	crow/io/net/http-server: http-handler, http-server, with-block
 	crow/io/net/http-types: request-body, headers, http-request, method, new, to-str, url
 	crow/io/print: err, out, print
+	crow/io/stdin: read-stdin
 	crow/str-util: as-str, join, to-bytes
 
 main fut nat(args str[]) unsafe summon
@@ -12,8 +13,10 @@ main fut nat(args str[]) unsafe summon
 			descr = req describe-request
 			out print descr
 			(200, "OK", (), "Your request:\n{descr}".to-bytes),
-		_ = port start-http-server handler
-		()
+		with _ : port http-server handler
+			out print "Press enter to stop"
+			_ <- read-stdin
+			()
 	else
 		err print "Usage: server PORT"
 		1,

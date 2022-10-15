@@ -74,7 +74,8 @@ import frontend.parse.ast :
 	ThrowAst,
 	TypeAst,
 	TypedAst,
-	UnlessAst;
+	UnlessAst,
+	WithAst;
 import model.constant : Constant;
 import model.diag : Diag;
 import model.model :
@@ -1087,8 +1088,8 @@ immutable(Expr) checkFunPtr(
 
 	if (isTemplate(*funDecl))
 		todo!void("can't point to template");
-	if (!noCtx(*funDecl))
-		todo!void("fun-ptr can't take ctx");
+	//if (!noCtx(*funDecl))
+	//	todo!void("fun-ptr can't take ctx");
 	immutable size_t nParams = matchArity!(
 		immutable size_t,
 		(immutable size_t n) =>
@@ -1543,6 +1544,27 @@ immutable(Expr) checkFor(
 	return checkCall(ctx, locals, range, call, expected);
 }
 
+immutable(Expr) checkWith(
+	ref ExprCtx ctx,
+	ref LocalsInfo locals,
+	immutable FileAndRange range,
+	ref immutable WithAst ast,
+	ref Expected expected,
+) {
+	// TODO: NEATER (don't create a synthetic AST)
+	immutable ExprAst lambda = immutable ExprAst(
+		range.range,
+		immutable ExprAstKind(allocate(ctx.alloc, immutable LambdaAst(
+			arrLiteral!(LambdaAst.Param)(ctx.alloc, [ast.param]),
+			ast.body_))));
+	immutable CallAst call = immutable CallAst(
+		CallAst.Style.infix,
+		immutable NameAndRange(range.range.start, shortSym("with-block")),
+		[],
+		arrLiteral!ExprAst(ctx.alloc, [ast.arg, lambda]));
+	return checkCall(ctx, locals, range, call, expected);
+}
+
 immutable(Expr) checkThen(
 	ref ExprCtx ctx,
 	ref LocalsInfo locals,
@@ -1662,5 +1684,7 @@ public immutable(Expr) checkExpr(
 			checkTyped(ctx, locals, range, a, expected),
 		(scope ref immutable UnlessAst a) =>
 			checkUnless(ctx, locals, range, a, expected),
+		(scope ref immutable WithAst a) =>
+			checkWith(ctx, locals, range, a, expected),
 	)(ast.kind);
 }

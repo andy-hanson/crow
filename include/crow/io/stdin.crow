@@ -5,6 +5,8 @@ import
 	../col/fix-arr: begin-ptr, cast-immutable, fix-arr, size, subscript, uninitialized-fix-arr
 	../compare: >=
 	../fun-util: subscript
+	../fut: do, fut, launch, new, then
+	../misc: is-sendable
 	../number: ==, <=>, nat8, to-nat64
 	../opt: opt
 	../range: ..
@@ -18,23 +20,26 @@ Reads from stdin.
 If that comes from the user typing at the terminal, this will block until they hit enter.
 Result will not have leading or trailing whitespace.
 ###
-read-stdin str() trusted summon
-	buffer fix-arr nat8 = 0x2000 uninitialized-fix-arr
-	bytes-read-or-err = stdin read buffer.begin-ptr, buffer.size
-	assert bytes-read-or-err >= 0
-	bytes-read = bytes-read-or-err to-nat64
-	if bytes-read >= buffer.size
-		todo
-	else
-		buffer[0 .. bytes-read].cast-immutable.as-str strip
+read-stdin fut str() trusted summon
+	launch do () =>
+		buffer fix-arr nat8 = 0x2000 uninitialized-fix-arr
+		# TODO: use a non-blocking API
+		bytes-read-or-err = stdin read buffer.begin-ptr, buffer.size
+		assert bytes-read-or-err >= 0
+		bytes-read = bytes-read-or-err to-nat64
+		if bytes-read >= buffer.size
+			todo
+		else
+			buffer[0 .. bytes-read].cast-immutable.as-str.strip,
 
 ###
 Keep reading from stdin until `parse` returns a non-empty option.
 Print `error-message` after every failure.
 ###
-read-stdin-until-parse<a> a(error-message str, parse act a?(str)) summon
-	if res ?= parse[read-stdin]
-		res
+read-stdin-until-parse<a> fut a(error-message str, parse act a?(str)) summon is-sendable<a>
+	text <- read-stdin
+	if res ?= parse[text]
+		res,
 	else
 		out print error-message
 		error-message read-stdin-until-parse parse

@@ -243,19 +243,11 @@ to-c-str c-str(a str) unsafe
 
 ###
 Treats a c-str as a str by walking to the end.
-This does not copy the memory.
+This copies the memory, so the result is safe to use immutably.
 
-Unsafe because:
-* `a` must end in a `"\0"` character somewhere.
-* The resulting string should not be used longer than `a` lives.
+Unsafe because `a` must end in a `"\0"` character somewhere.
 ###
-to-str str(a c-str) unsafe noctx
-	a literal
-
-###
-Like `to-str`, but takes a copy (in case `a` is temporary)
-###
-copy-to-str str(a c-str) unsafe
+to-str str(a c-str) unsafe
 	a.literal.char8s.to-arr.to-mut-arr.copy.move-to-arr.to-seq str
 
 region other

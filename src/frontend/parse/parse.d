@@ -240,7 +240,8 @@ immutable(ImportOrExportKindAndDedent) parseIndentedImportNames(scope ref Lexer 
 			case 0:
 				final switch (trailingComma) {
 					case TrailingComma.no:
-						todo!void("!");
+						addDiag(lexer, range(lexer, start), immutable ParseDiag(
+							immutable ParseDiag.Expected(ParseDiag.Expected.Kind.comma)));
 						break;
 					case TrailingComma.yes:
 						break;

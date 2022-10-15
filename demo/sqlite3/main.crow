@@ -1,0 +1,22 @@
+import
+	crow/col/iter: again
+	crow/io/file: remove-file
+	crow/io/print: out, print
+	crow/str-util: join
+	sqlite3/main: open-sqlite3, query, run, with-block
+
+main fut nat(_ str[]) summon unsafe
+	file-name = "test.db"
+	<- with db : file-name open-sqlite3
+		db run "create table foo (name varchar(255));"
+		db run "insert into foo (name) values (\"tomato\")"
+		db run "select * from foo", (columns, values) =>
+			out print "COLUMNS ARE: {", " join columns}"
+			out print "VALUES ARE: {", " join values}"
+			again
+		tuples = db query "select * from foo"
+		out print ("\n" join for tuple : tuples; ", " join tuple)
+		db run "drop table foo"
+		()
+	file-name remove-file
+	()

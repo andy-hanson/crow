@@ -536,6 +536,12 @@ struct UnlessAst {
 	immutable ExprAst body_;
 }
 
+struct WithAst {
+	immutable LambdaAst.Param param;
+	immutable ExprAst arg;
+	immutable ExprAst body_;
+}
+
 struct ExprAstKind {
 	@safe @nogc pure nothrow:
 
@@ -568,6 +574,7 @@ struct ExprAstKind {
 		throw_,
 		typed,
 		unless,
+		with_,
 	}
 	immutable Kind kind;
 	union {
@@ -598,6 +605,7 @@ struct ExprAstKind {
 		immutable ThrowAst* throw_;
 		immutable TypedAst* typed;
 		immutable UnlessAst* unless;
+		immutable WithAst* with_;
 	}
 
 	public:
@@ -628,6 +636,7 @@ struct ExprAstKind {
 	immutable this(immutable ThrowAst* a) { kind = Kind.throw_; throw_ = a; }
 	immutable this(immutable TypedAst* a) { kind = Kind.typed; typed = a; }
 	immutable this(immutable UnlessAst* a) { kind = Kind.unless; unless = a; }
+	immutable this(immutable WithAst* a) { kind = Kind.with_; with_ = a; }
 }
 static assert(ExprAstKind.sizeof <= 40);
 
@@ -674,6 +683,7 @@ ref immutable(IdentifierAst) asIdentifier(scope return ref immutable ExprAstKind
 	alias cbThrow,
 	alias cbTyped,
 	alias cbUnless,
+	alias cbWith,
 )(
 	scope ref immutable ExprAstKind a,
 ) {
@@ -732,6 +742,8 @@ ref immutable(IdentifierAst) asIdentifier(scope return ref immutable ExprAstKind
 			return cbTyped(*a.typed);
 		case ExprAstKind.Kind.unless:
 			return cbUnless(*a.unless);
+		case ExprAstKind.Kind.with_:
+			return cbWith(*a.with_);
 	}
 }
 
@@ -1567,6 +1579,11 @@ immutable(Repr) reprExprAstKind(ref Alloc alloc, ref immutable ExprAstKind ast) 
 			reprRecord(alloc, "unless", [
 				reprExprAst(alloc, it.cond),
 				reprExprAst(alloc, it.body_)]),
+		(ref immutable WithAst x) =>
+			reprRecord(alloc, "with", [
+				reprLambdaParamAst(alloc, x.param),
+				reprExprAst(alloc, x.arg),
+				reprExprAst(alloc, x.body_)]),
 	)(ast);
 
 immutable(Repr) reprInterpolatedPart(ref Alloc alloc, ref immutable InterpolatedPart a) =>

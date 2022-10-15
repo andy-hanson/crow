@@ -20,8 +20,6 @@ main fut nat(_ str[]) unsafe summon
 
 	socket send-request request
 	socket receive-response
-
-	out print "hello, world!"
 	()
 
 .get-tcp-socket fd-t() unsafe summon

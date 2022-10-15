@@ -1,9 +1,10 @@
 import
 	crow/cell: as-const-ptr, cell, new
+	crow/col/iter: again, again-or-stop, stop
 	crow/col/private/arr-low-level: begin-ptr, subscript
 	crow/io/duration: msec
 	crow/io/print: out, print
-	crow/io/time: again, again-or-quit, get-monotime-msec, quit, repeat-interval
+	crow/io/time: get-monotime-msec, repeat-interval
 	crow/ptr: ==, as-any-const-ptr, null
 	crow/str-util: to-str
 	crow/c-types: c-int
@@ -48,10 +49,10 @@ main fut nat(_ str[]) summon trusted
 .image-height int32()
 	200
 
-.main-loop-body fut again-or-quit(renderer SDL_Renderer, texture SDL_Texture) summon trusted
+.main-loop-body fut again-or-stop(renderer SDL_Renderer, texture SDL_Texture) summon trusted
 	SDL_PumpEvents
 	if look-for-quit-event
-		quit,
+		stop,
 	else
 		key-states-ptr = null SDL_GetKeyboardState
 		# TODO: use a mut-enum-lookup type

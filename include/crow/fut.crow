@@ -90,6 +90,28 @@ fut-catch<a> fut result<a, exception>(a fut a) trusted is-sendable<a>
 		res resolve a.get-result
 	res
 
+.fut-finally record mut
+	cleanup ref void()
+fut-finally fut-finally(cleanup ref void())
+	cleanup,
+with-block<a> fut a(a fut-finally, f ref a(void)) trusted is-sendable<a>
+	fut = f[()]
+	res fut a = unresolved
+	fut add-task get-global-ctx.new-exclusion, () =>
+		result = fut get-result
+		cleanup-fut = a.cleanup[]
+		cleanup-fut add-task get-global-ctx.new-exclusion, () =>
+			match result
+			as ok value
+				match cleanup-fut get-result
+				as ok _
+					res resolve value
+				as err e
+					res reject e
+			as err e
+				res reject e
+	res
+
 ###
 Calls `f` once `a` is resolved.
 Returns a fut for the result of `f`.

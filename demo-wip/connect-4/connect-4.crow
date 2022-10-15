@@ -54,7 +54,7 @@ parse-settings ai-settings?(a str)
 	x <- if depth ?= cur-player ai-depth-for-color ai-settings
 		board ai-best-x depth
 	else
-		(board human-player-move cur-player),
+		board human-player-move cur-player
 	new-board = board place x
 	other-player = cur-player opposite
 	new-board print-board other-player, (x,)
@@ -69,13 +69,13 @@ parse-settings ai-settings?(a str)
 	clear-screen
 	out print (a to-str cur-player, last-x)
 
-.human-player-move nat(board board, color color) summon
+.human-player-move fut nat(board board, color color) summon
 	out print "{color} player, where will you go? (Type a letter A-G and hit enter)"
 	board human-player-move-recur
-.human-player-move-recur nat(board board) summon
-	column = "Not a valid column." read-stdin-until-parse it => it column-of-str
+.human-player-move-recur fut nat(board board) summon
+	column <- "Not a valid column." read-stdin-until-parse it => it column-of-str
 	if board can-place column
-		column
+		column,
 	else
 		out print "Can't, column is full."
 		board human-player-move-recur

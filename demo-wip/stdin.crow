@@ -4,6 +4,6 @@ import
 
 main fut nat(_ str[]) summon
 	out print "What's your name?"
-	name = read-stdin
+	name <- read-stdin
 	out print "hello, {name}"
 	()

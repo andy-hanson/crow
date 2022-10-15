@@ -4,6 +4,10 @@ import
 	../fun-util: subscript
 	../opt: opt
 
+again-or-stop enum
+	again
+	stop
+
 value-and-rest<a, iter> record by-val
 	value a
 	rest iter

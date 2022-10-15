@@ -8,8 +8,7 @@ import
 	../misc: void
 	../number: +
 	../ptr: ==, +, as-const, mut-ptr, set-deref
-	../str: ==, <=>, char8, char8s, c-str, hash-mix, str
-	../str-util: to-str
+	../str: ==, <=>, char8, char8s, c-str, hash-mix, literal, str
 	../tuple: a, b, new
 	./alloc: unmanaged-alloc-elements
 	./bootstrap: new-sym, static-syms
@@ -28,7 +27,7 @@ export
 	a.to-str <=> b.to-str
 
 to-str str(a sym) noctx trusted
-	a.to-c-str to-str
+	a.to-c-str literal
 
 init-symbol-table void(a global-ctx)
 	a.syms-table := (for x : static-syms; (x.to-str, x)) to-dict

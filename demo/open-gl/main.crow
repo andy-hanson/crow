@@ -5,7 +5,8 @@ import
 	crow/c-types: c-int
 	crow/io/duration: msec
 	crow/io/print: out, print
-	crow/io/time: again, again-or-quit, get-monotime-msec, quit, repeat-interval
+	crow/col/iter: again, again-or-stop, stop
+	crow/io/time: get-monotime-msec, repeat-interval
 	crow/math/mat: *, I, mat3-32, rotation, to-arr
 	crow/math/trig: pi
 	crow/math/vec: +, -, *, new, right, up, vec2-32, vec3-32
@@ -159,7 +160,7 @@ main fut nat(_ str[]) summon trusted
 
 	gl glBindBuffer GL_ARRAY_BUFFER, renderer.triangle-vbo
 	gl glBufferSubData GL_ARRAY_BUFFER, 0, renderer.vertices.size-bytes.to-int64, renderer.vertices.begin-ptr.ptr-cast
-	stride = (to-int32: size-of@<vertex>)
+	stride = size-of@<vertex> to-int32
 	# pos
 	gl glVertexAttribPointer 0, 3, GL_FLOAT, false, stride, 0.to-const-ptr
 	gl glEnableVertexAttribArray 0
@@ -177,10 +178,10 @@ main fut nat(_ str[]) summon trusted
 	gl glActiveTexture GL_TEXTURE0
 	gl glBindTexture GL_TEXTURE_2D, renderer.texture
 
-.main-loop-body fut again-or-quit(renderer renderer) summon trusted
+.main-loop-body fut again-or-stop(renderer renderer) summon trusted
 	SDL_PumpEvents
 	if look-for-quit-event
-		quit,
+		stop,
 	else
 		key-states-ptr = null SDL_GetKeyboardState
 		key-states = key-states-ptr[0 .. SDL_NUM_SCANCODES.to-nat32.to-nat64]

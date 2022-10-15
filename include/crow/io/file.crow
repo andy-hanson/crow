@@ -23,7 +23,7 @@ import
 	../col/private/arr-low-level: begin-ptr
 	../col/sort: sort
 	../compare: !=
-	../exception: finally
+	../exception: finally, with-block
 	../flags-util: is-in
 	../fun-util: subscript
 	../misc: new, void
@@ -36,7 +36,7 @@ import
 	../range: ..
 	../str: ==, <=>, char8, c-str, literal, str
 	../str-conv: finish, interp, to-str, with-str, with-value
-	../str-util: as-str, copy-to-str, to-bytes, to-c-str, to-str
+	../str-util: as-str, to-bytes, to-c-str, to-str
 	../version: is-windows
 	./path: child-path
 	./posix-util: check-errno, check-posix-error
@@ -109,7 +109,7 @@ is-file bool(path str) trusted summon
 	# TODO: this is offsetof(d, d_name)
 	name-offset = size-of@<ino_t> + size-of@<off_t> + size-of@<nat16> + size-of@<char8>
 	name-ptr char8* = d.as-any-const-ptr + name-offset ptr-cast
-	name-ptr copy-to-str
+	name-ptr to-str
 
 ###
 Returns all children of the directory `path`, as full paths.
@@ -151,7 +151,7 @@ names-in-dir str[](path str) summon trusted
 	file-data cell WIN32_FIND_DATAA = (),
 	ok = file FindNextFileA file-data.as-mut-ptr
 	if ok
-		s = file-data.as-mut-ptr.cFileName.as-const copy-to-str
+		s = file-data.as-mut-ptr.cFileName.as-const to-str
 		if s != ".."
 			out ~= s
 		out names-in-dir-recur dir-path, file
@@ -224,7 +224,8 @@ write-file void(path str, content str) summon trusted
 .write-file void(path c-str, content str) summon unsafe
 	fd = path fopen "wb"
 	forbid fd.as-any-const-ptr == null : "failed to open file for write: {path}"
-	(() => fd close-fd path) finally () => fd write-fd path, content.to-bytes
+	with _ : (() => fd close-fd path) finally
+		fd write-fd path, content.to-bytes
 
 .write-fd void(fd FILE, path c-str, bytes nat8[]) summon unsafe
 	wrote-bytes = bytes.begin-ptr fwrite size-of@<nat8>, bytes.size, fd
@@ -250,7 +251,8 @@ try-read-file-binary nat8[]?(path str) summon trusted
 				err print "failed to open file {path}"
 				todo
 		else
-			(() => fd close-fd path) finally () => (fd read-fd path),
+			with _ : (() => fd close-fd path) finally
+				(fd read-fd path),
 	else
 		()
 

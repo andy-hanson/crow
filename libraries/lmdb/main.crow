@@ -13,7 +13,7 @@ import
 	crow/col/private/arr-low-level: begin-ptr
 	crow/c-types: u-int
 	crow/extra-types: err-t
-	crow/io/file: make-directory, path-exists, remove-directory-and-contents-non-recursive
+	crow/io/file: make-directory, path-exists
 	crow/log: info, log
 	crow/ptr: ==, +, as-mut, mut-ptr, null, ptr-cast-to-extern, set-deref, zeroed
 	crow/serialize: from-bytes, serialize, to-4-bytes, to-8-bytes, to-bytes
@@ -36,26 +36,18 @@ region env
 lmdb-env record mut
 	.env MDB_env
 
-lmdb-open-options record
+.open-lmdb-env record
+	db-dir str
 	create-if-not-exists bool
-
+open-lmdb-env open-lmdb-env(db-dir str, create-if-not-exists bool)
+	db-dir, create-if-not-exists
 # Calls `open-env`, then `f`, then `close-env` (in a `finally`).
-with-env<a> a(db-dir str, options lmdb-open-options, f act a(lmdb-env)) trusted summon
-	env = db-dir open-env options
-	(() => env close-env) finally () => f[env]
+with-block<a> fut a(options open-lmdb-env, f act fut a(lmdb-env)) trusted summon is-sendable<a>
+	env = options open-env
+	with _ : (() => env.close-env,) fut-finally
+		f[env]
 
-test-env record
-test-env test-env()
-	()
-
-with<a> a(_ test-env, f act a(lmdb-env)) no-doc trusted summon
-	test-path = "TEST-LMDB"
-	test-path make-directory
-	(() => test-path remove-directory-and-contents-non-recursive) finally () =>
-		test-path with-env (true,), f
-
-# Remember to call `close-env` when done.
-open-env lmdb-env(db-dir str, options lmdb-open-options) unsafe summon
+.open-env lmdb-env(options open-lmdb-env) unsafe summon
 	env-cell cell MDB_env = null-extern-ptr,
 	env-cell.mdb_env_create check-lmdb-error
 	env = *env-cell
@@ -63,6 +55,7 @@ open-env lmdb-env(db-dir str, options lmdb-open-options) unsafe summon
 	mapsize = 1024 * 1024 * 100000
 	env mdb_env_set_mapsize mapsize check-lmdb-error
 
+	db-dir = options db-dir
 	if options.create-if-not-exists && !db-dir.path-exists
 		info log "Creating database directory {db-dir}"
 		db-dir make-directory
@@ -73,7 +66,7 @@ open-env lmdb-env(db-dir str, options lmdb-open-options) unsafe summon
 		err check-lmdb-error
 	env,
 
-close-env void(env lmdb-env) unsafe summon
+.close-env void(env lmdb-env) unsafe summon
 	env.env mdb_env_close
 
 region lmdb-key
@@ -124,33 +117,33 @@ region db
 lmdb-db<k, v> record mut
 	.dbi MDB_dbi
 
-# Calls `open-db`, then `f`, then `close-db` (in a `finally`).
-with-db<a, k, v> a(
-	env lmdb-env,
-	db-name str,
-	f act a(lmdb-db<k, v>),
-) trusted summon lmdb-key<k> serialize<v>
-	db lmdb-db<k, v> = env open-db db-name
-	(() => env close-db db) finally () => f[db]
+database<k, v> record mut
+	env lmdb-env
+	db-name str
+database<k, v> database<k, v>(env lmdb-env, db-name str)
+	env, db-name
 
-###
-Remember to call `close-db` when done.
+with-block<a, k, v> fut a(
+	a database<k, v>,
+	f act fut a(lmdb-db<k, v>),
+) trusted summon is-sendable<a> lmdb-key<k> serialize<v>
+	db lmdb-db<k, v> = a open-db
+	with _ : (() => (a.env close-db db),) fut-finally
+		f[db]
 
-The same `db-name` should always be opened using the same key and value types.
-###
-open-db<k, v> lmdb-db<k, v>(env lmdb-env, db-name str) unsafe summon lmdb-key<k> serialize<v>
+.open-db<k, v> lmdb-db<k, v>(a database<k, v>) unsafe summon lmdb-key<k> serialize<v>
 	transaction-cell cell MDB_txn = null-extern-ptr,
-	env.env mdb_txn_begin null-extern-ptr, 0, transaction-cell check-lmdb-error
+	a.env.env mdb_txn_begin null-extern-ptr, 0, transaction-cell check-lmdb-error
 	transaction = *transaction-cell
 
 	dbi-cell cell MDB_dbi = zeroed,
 	mdb-flags = MDB_CREATE | zeroed::k.lmdb-key-flags
-	transaction mdb_dbi_open db-name.to-c-str, mdb-flags, dbi-cell check-lmdb-error
+	transaction mdb_dbi_open a.db-name.to-c-str, mdb-flags, dbi-cell check-lmdb-error
 
 	transaction.mdb_txn_commit check-lmdb-error
 	*dbi-cell,
 
-close-db<k, v> void(env lmdb-env, db lmdb-db<k, v>) unsafe summon
+.close-db<k, v> void(env lmdb-env, db lmdb-db<k, v>) unsafe summon
 	env.env mdb_dbi_close db.dbi
 
 region transaction
@@ -159,34 +152,39 @@ region transaction
 lmdb-txn record mut
 	.txn MDB_txn
 
+read-transaction record mut
+	env lmdb-env
 ###
 Open a read-only transaction, then call `f`, then commit the transaction.
 
 Aborts the transaction iff `f` throws an exception.
 ###
-with-read-transaction<a> a(env lmdb-env, f act a(lmdb-txn)) trusted summon
-	env with-transaction MDB_RDONLY, txn =>
+read-transaction read-transaction(env lmdb-env)
+	env,
+with-block<a> a(a read-transaction, f act a(lmdb-txn)) trusted summon
+	a.env with-transaction MDB_RDONLY, txn =>
 		f[txn], transaction-abort
 
-# Like `with-read-transaction`, but the transaction can perform writes.
-with-write-transaction<a> a(env lmdb-env, f act a(lmdb-txn)) trusted summon
-	env with-abortable-write-transaction txn =>
+write-transaction record mut
+	env lmdb-env
+# Like `write-transaction`, but the transaction can perform writes.
+write-transaction write-transaction(env lmdb-env)
+	env,
+with-block<a> a(a write-transaction, f act a(lmdb-txn)) trusted summon
+	with txn : a.env abortable-write-transaction
 		f[txn], transaction-commit
 
 transaction-result enum
 	transaction-abort
 	transaction-commit
 
-###
-Like `with-read-transaction`, but `f` returns a pair of the result and whether to commit the transaction.
-(The first part of the pair returned by `f` is becomes the result of `with-abortable-read-transaction`.)
-###
-with-abortable-read-transaction<a> a(env lmdb-env, f act pair<a, transaction-result>(lmdb-txn)) trusted summon
-	env with-transaction MDB_RDONLY, f
-
-# Like `with-abortable-read-transaction`, but the transaction can perform writes.
-with-abortable-write-transaction<a> a(env lmdb-env, f act pair<a, transaction-result>(lmdb-txn)) trusted summon
-	env with-transaction 0, f
+abortable-write-transaction record mut
+	env lmdb-env
+# Like `with-write-transaction`, but `f` returns a pair of the result and whether to commit the transaction.
+abortable-write-transaction abortable-write-transaction(env lmdb-env)
+	env,
+with-block<a> a(a abortable-write-transaction, f act pair<a, transaction-result>(lmdb-txn)) trusted summon
+	a.env with-transaction 0, f
 
 .with-transaction<a> a(env lmdb-env, mdb-flags u-int, f act pair<a, transaction-result>(lmdb-txn)) unsafe summon
 	transaction-cell cell MDB_txn = null-extern-ptr,
@@ -395,7 +393,7 @@ zip-fold<a, k, v0, v1> a(
 	cursor-cell cell MDB_cursor = null-extern-ptr,
 	open-err = txn.txn mdb_cursor_open db.dbi, cursor-cell
 	cursor = *cursor-cell
-	(() => cursor mdb_cursor_close) finally () =>
+	with _ : (() => cursor mdb_cursor_close) finally
 		open-err check-lmdb-error
 		f[cursor]
 

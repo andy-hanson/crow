@@ -60,7 +60,8 @@ import frontend.parse.ast :
 	ThrowAst,
 	TypeAst,
 	TypedAst,
-	UnlessAst;
+	UnlessAst,
+	WithAst;
 import model.model : Visibility;
 import util.alloc.alloc : Alloc;
 import util.col.arr : empty;
@@ -629,6 +630,14 @@ void addExprTokens(
 		(ref immutable UnlessAst it) {
 			addExprTokens(alloc, tokens, allSymbols, it.cond);
 			addExprTokens(alloc, tokens, allSymbols, it.body_);
+		},
+		(ref immutable WithAst x) {
+			add(alloc, tokens, immutable Token(
+				Token.Kind.keyword,
+				rangeOfStartAndLength(a.range.start, "with".length)));
+			addLambdaAstParam(alloc, tokens, allSymbols, x.param);
+			addExprTokens(alloc, tokens, allSymbols, x.arg);
+			addExprTokens(alloc, tokens, allSymbols, x.body_);
 		},
 	)(a.kind);
 }

@@ -264,6 +264,8 @@ void writeParseDiag(
 						return "'until'";
 					case ParseDiag.NeedsBlockCtx.Kind.while_:
 						return "'while'";
+					case ParseDiag.NeedsBlockCtx.Kind.with_:
+						return "'with'";
 				}
 			}();
 			writer ~= " expression must appear ";
@@ -1198,5 +1200,7 @@ immutable(string) describeTokenForUnexpected(immutable Token token) {
 			return "unexpected keyword 'until'";
 		case Token.while_:
 			return "unexpected keyword 'while'";
+		case Token.with_:
+			return "unexpected keyword 'with'";
 	}
 }

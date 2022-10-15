@@ -4,18 +4,18 @@ import
 	sys/socket: as-fd, SOCKET
 	unistd: write
 	../../bool: bool, false, true
-	../../col/arr: ~~, arr, is-empty, new, size, subscript
+	../../col/arr: ~~, arr, is-empty, size, subscript
 	../../col/arr-util: rtail
-	../../col/dict: for-loop, in, new
+	../../col/dict: for-loop, in
 	../../col/mut-dict: move-to-dict, mut-dict, new, try-remove, set-subscript, subscript
 	../../col/mut-arr: ~~=, index-of, move-to-arr, mut-arr, new, pop-n-from-start, size
 	../../col/private/arr-low-level: begin-ptr
 	../../compare: <=, >
 	../../exception: to-str
-	../../fut: delay, fut, fut-catch, new, subscript, then, then-void
+	../../fut: delay, fut, fut-catch, fut-finally, new, subscript, then, then-void, with-block
 	../../hash: hash-mix
 	../../log: error, log, warn
-	../../misc: new, void
+	../../misc: is-sendable, new, void
 	../../number: ==, <=>, +, nat8, nat64, to-int64, to-nat64
 	../../opt: ??, new, opt
 	../../range: ..
@@ -31,18 +31,22 @@ import
 	./tcp-server: close-client, new, start-tcp-server, stop
 
 # Reference to a running server.
-http-server record sendable
-	stop ref void()
+http-server record
 
 # Type of a function that can respond to HTTP requests.
 http-handler alias
 	ref http-response(http-request)
 
+http-server-options record sendable
+	port str
+	handler http-handler
+http-server http-server-options(port str, handler http-handler)
+	port, handler
+
 ###
-Starts running an HTTP server on the given port.
-The server will be running by the time the returned future is resolved.
+Starts running an HTTP server. Stops it when `cb` returns.
 ###
-start-http-server fut http-server(port str, handler http-handler) trusted summon
+with-block<a> fut a(a http-server-options, cb ref a(http-server)) is-sendable<a> trusted summon
 	client-states http-parse-state mut[SOCKET] = ()
 
 	on-accepted-client ref void(SOCKET) = sock =>
@@ -50,7 +54,7 @@ start-http-server fut http-server(port str, handler http-handler) trusted summon
 		()
 	on-received-chunk ref void(SOCKET, nat8[]) = (sock, bytes) =>
 		if state ?= client-states[sock]
-			closed <- sock handle-chunk state, bytes, handler
+			closed <- sock handle-chunk state, bytes, a.handler
 			if closed
 				_ = client-states try-remove sock
 				()
@@ -58,12 +62,13 @@ start-http-server fut http-server(port str, handler http-handler) trusted summon
 		else
 			warn log "Ignoring unrecognized client"
 			()
-	tcp-server = port start-tcp-server (on-accepted-client, on-received-chunk)
+	tcp-server = a.port start-tcp-server (on-accepted-client, on-received-chunk)
 
 	# TODO: KILL
-	_ <- handler[(http-get, "", (), ())]
+	#_ <- a.handler[(http-get, "", (), ())]
 
-	(tcp-server.stop,),
+	with _ : tcp-server.stop fut-finally
+		cb[()]
 
 # Returns true when closed client
 .handle-chunk fut bool(sock SOCKET, state http-parse-state, chunk nat8[], handler http-handler) summon trusted

@@ -3,30 +3,30 @@ import
 	crow/col/dict: new, subscript
 	crow/col/fix-arr: fill-fix-arr, fix-arr, map-to-arr-with-index, set-subscript
 	crow/io/file: read-file
-	crow/io/net/http-server: http-handler, start-http-server
+	crow/io/net/http-server: http-handler, http-server, with-block
 	crow/io/net/http-types:
 		headers, http-bad-query, http-forbidden, http-not-found, http-ok, http-request,
 		http-response, method, request-body-str, url
-	crow/io/print: err, print
+	crow/io/print: err, out, print
+	crow/io/stdin: read-stdin
 	crow/json: json, new, to-str
 	crow/reader: parse-nat
 	crow/str-util: split-by, try-split-once
 	./db:
-		add-post, close-real-db, content, cookie-expire-seconds, db, list-posts, list-users,
-		login, post, post-info, open-real-db, parse-user-cookie, register-user, to-str, user,
-		user-info, user-name
+		add-post, content, cookie-expire-seconds, db, list-posts, list-users, login, open-real-db,
+		post, post-info, parse-user-cookie, register-user, to-str, user, user-info, user-name,
+		with-block
 
 main fut nat(args str[]) unsafe summon
 	if args.size == 1
 		port = args[0]
-		db = open-real-db
-		handler http-handler = req =>
-			(req handle-request db),
-		_ = port start-http-server handler
-		# TODO: do this after we've stopped the server
-		if false
-			db close-real-db
-		()
+		with db : open-real-db
+			handler http-handler = req =>
+				(req handle-request db),
+			with _ : port http-server handler
+				out print "Press enter to stop"
+				_ <- read-stdin
+				()
 	else
 		err print "Usage: server PORT"
 		1,
@@ -58,7 +58,7 @@ main fut nat(args str[]) unsafe summon
 			match db register-user user-name, password
 			as register-user-success user-id
 				# We need to get: user-name and password
-				"\{\"userId\":{user-id}}" http-ok
+				(("userId", user-id.json),)::json.to-str http-ok
 			as user-already-exists
 				"User already exists" http-bad-query
 		elif path == "/login"
@@ -80,7 +80,7 @@ main fut nat(args str[]) unsafe summon
 			if cookie ?= req.headers["Cookie"]
 				user-cookie = (cookie parse-cookies ("login",))[0].parse-user-cookie!
 				post = db add-post user-cookie, req.request-body-str
-				"\{\"postId\":{post}}" http-ok
+				(("postId", post.json),)::json.to-str http-ok
 			else
 				"No login cookie" http-forbidden
 		else

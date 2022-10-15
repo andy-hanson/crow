@@ -432,7 +432,7 @@ pure immutable(char) dynCallSigChar(immutable DynCallType a) {
 			todo!void("!");
 			break;
 		case DynCallType.int32:
-			todo!void("!");
+			result.i = cast(int) value;
 			break;
 		case DynCallType.int64:
 			todo!void("!");

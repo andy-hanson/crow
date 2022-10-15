@@ -40,7 +40,8 @@ import frontend.parse.ast :
 	ThrowAst,
 	TypeAst,
 	TypedAst,
-	UnlessAst;
+	UnlessAst,
+	WithAst;
 import frontend.parse.lexer :
 	addDiag,
 	addDiagAtChar,
@@ -846,6 +847,38 @@ immutable(ExprAndMaybeDedent) parseFor(
 	immutable Pos start,
 	immutable AllowedBlock allowedBlock,
 ) {
+	return parseForOrWith(
+		lexer,
+		start,
+		allowedBlock,
+		ParseDiag.NeedsBlockCtx.Kind.for_,
+		(immutable OptNameAndRange param, immutable ExprAst col, immutable ExprAst body_) =>
+			immutable ExprAstKind(allocate(lexer.alloc, immutable ForAst(param, col, body_))));
+}
+
+immutable(ExprAndMaybeDedent) parseWith(
+	scope ref Lexer lexer,
+	immutable Pos start,
+	immutable AllowedBlock allowedBlock,
+) {
+	return parseForOrWith(
+		lexer,
+		start,
+		allowedBlock,
+		ParseDiag.NeedsBlockCtx.Kind.with_,
+		(immutable OptNameAndRange param, immutable ExprAst col, immutable ExprAst body_) =>
+			immutable ExprAstKind(allocate(lexer.alloc, immutable WithAst(param, col, body_))));
+}
+
+immutable(ExprAndMaybeDedent) parseForOrWith(
+	scope ref Lexer lexer,
+	immutable Pos start,
+	immutable AllowedBlock allowedBlock,
+	immutable ParseDiag.NeedsBlockCtx.Kind blockKind,
+	scope immutable(ExprAstKind) delegate(
+		immutable OptNameAndRange, immutable ExprAst, immutable ExprAst
+	) @safe @nogc pure nothrow cbMakeExprKind,
+) {
 	immutable OptNameAndRange param = takeOptNameAndRange(lexer);
 	if (takeOrAddDiagExpectedToken(lexer, Token.colon, ParseDiag.Expected.Kind.colon)) {
 		immutable ExprAst col = parseExprNoBlock(lexer);
@@ -861,13 +894,11 @@ immutable(ExprAndMaybeDedent) parseFor(
 				if (semi)
 					return noDedent(parseExprNoBlock(lexer));
 				else
-					return exprBlockNotAllowed(lexer, start, ParseDiag.NeedsBlockCtx.Kind.for_);
+					return exprBlockNotAllowed(lexer, start, blockKind);
 			}
 		}();
 		return immutable ExprAndMaybeDedent(
-			immutable ExprAst(
-				range(lexer, start),
-				immutable ExprAstKind(allocate(lexer.alloc, immutable ForAst(param, col, bodyAndDedent.expr)))),
+			immutable ExprAst(range(lexer, start), cbMakeExprKind(param, col, bodyAndDedent.expr)),
 			bodyAndDedent.dedents);
 	} else
 		return skipRestOfLineAndReturnBogusNoDiag(lexer, start);
@@ -1117,6 +1148,8 @@ immutable(ExprAndMaybeDedent) parseExprBeforeCall(scope ref Lexer lexer, immutab
 			return isAllowBlock(allowedBlock)
 				? toMaybeDedent(parseLoopWhile(lexer, start, asAllowBlock(allowedBlock).curIndent))
 				: exprBlockNotAllowed(lexer, start, ParseDiag.NeedsBlockCtx.Kind.while_);
+		case Token.with_:
+			return parseWith(lexer, start, allowedBlock);
 		default:
 			return badToken(lexer, start, token);
 	}
