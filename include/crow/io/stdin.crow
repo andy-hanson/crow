@@ -3,6 +3,7 @@ import
 	stdio: stdin
 	unistd: read
 	../col/fix-arr: begin-ptr, cast-immutable, fix-arr, size, subscript, uninitialized-fix-arr
+	../col/list: to-list
 	../compare: >=
 	../fun-util: subscript
 	../fut: do, fut, launch, new, then
@@ -30,7 +31,7 @@ read-stdin fut str() trusted summon
 		if bytes-read >= buffer.size
 			todo
 		else
-			buffer[0 .. bytes-read].cast-immutable.as-str.strip,
+			buffer[0 .. bytes-read].cast-immutable.to-list.as-str.strip,
 
 ###
 Keep reading from stdin until `parse` returns a non-empty option.

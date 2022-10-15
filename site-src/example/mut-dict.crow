@@ -1,9 +1,7 @@
 import
-	crow/col/dict
-	crow/col/mut-dict
 	crow/io/print: out, print
 
-main fut nat(_ str[]) summon
+main fut nat(_ arr str) summon
 	x str mut[nat] = (1, "one"), (2, "two")
 	out print (x try-remove 1 ?? "n/a")
 	out print (x try-remove 1 ?? "n/a")

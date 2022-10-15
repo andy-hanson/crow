@@ -10,30 +10,33 @@ import
 	../../opt: new, opt
 	../../ptr: ==, <=>, +, -, *, const-ptr, mut-ptr, set-deref, swap
 	../../test-util: is
-	../arr: ==, arr, for-loop, is-empty, new, size, subscript
+	../arr: arr, is-empty, new, size, subscript
 	../arr-util: fold, fold-with-index, in, index-of, ptr-of
 	../fix-arr:
 		begin-ptr, cast-immutable, end-ptr, fill, fill-fix-arr, fix-arr, for-loop,
 		size, temp-as-arr, to-fix-arr, set-subscript, subscript, uninitialized-fix-arr
+	../list: ==, for-loop, list, new, to-array, to-list
 	../private/arr-low-level: arr-cast, arr-from-begin-end, begin-ptr, end-ptr
 
 frozen-set<a> record
-	.values a[]
+	.values arr a
 	# These are pointers into 'values', so it's fine that 'ptr' isn't GC traced.
-	.bucket-starts a*[]
+	.bucket-starts arr a*
 
-new<a> frozen-set a(...a a[]) is-data<a> compare<a> hash-mix<a>
-	a to-frozen-set
+new<a> frozen-set a(...a arr a) is-data<a> compare<a> hash-mix<a>
+	a.to-list to-frozen-set
 
-to-frozen-set<a> frozen-set a(a a[]) trusted is-data<a> compare<a> hash-mix<a>
-	a.to-fix-arr unsafe-frozen-set-from-fix-arr-cast-immutable
+to-frozen-set<a> frozen-set a(a list a) trusted is-data<a> compare<a> hash-mix<a>
+	a.to-array.to-fix-arr unsafe-frozen-set-from-fix-arr-cast-immutable
 
-# TODO:INTERNAL
-# Values are stored as a contiguous array; order is arbitrary.
-begin-ptr<a> a*(a frozen-set a) unsafe
+# This is O(1).
+to-list<a> list a(a frozen-set a)
+	a.values to-list
+
+begin-ptr<a> a*(a frozen-set a) no-doc unsafe
 	a.values begin-ptr
 
-end-ptr<a> a*(a frozen-set a) unsafe
+end-ptr<a> a*(a frozen-set a) no-doc unsafe
 	a.values end-ptr
 
 is-empty<a> bool(a frozen-set a)
@@ -42,13 +45,10 @@ is-empty<a> bool(a frozen-set a)
 size<a> nat64(a frozen-set a)
 	a.values size
 
-to-arr<a> a[](a frozen-set a)
-	a values
-
 in<a> bool(value a, a frozen-set a) is-data<a> compare<a> hash-mix<a>
 	value in (a bucket-for value)
 
-.bucket-for<a> a[](a frozen-set a, value a) trusted is-data<a> compare<a> hash-mix<a>
+.bucket-for<a> arr a(a frozen-set a, value a) trusted is-data<a> compare<a> hash-mix<a>
 	if a.bucket-starts is-empty
 		a values
 	else
@@ -100,7 +100,7 @@ unsafe-frozen-set-from-fix-arr-cast-immutable<a> frozen-set a(
 	cur a mut*,
 	end a mut*,
 	bucket-counts fix-arr nat64,
-	bucket-starts a mut*[],
+	bucket-starts arr a mut*,
 ) unsafe hash-mix<a>
 	unless cur == end
 		bucket-index = *cur get-bucket-index bucket-counts.size
@@ -120,7 +120,7 @@ unsafe-frozen-set-from-fix-arr-cast-immutable<a> frozen-set a(
 .get-bucket-index<a> nat64(value a, n-buckets nat64) unsafe hash-mix<a>
 	value.hash % n-buckets
 
-.running-sum<a> a mut*[](acc a mut*, a nat64[]) trusted
+.running-sum<a> arr a mut*(acc a mut*, a arr nat64) trusted
 	out fix-arr a mut* = a.size uninitialized-fix-arr
 	acc running-sum-recur out.begin-ptr, out.end-ptr, a.begin-ptr
 	out cast-immutable
@@ -140,14 +140,14 @@ for-loop<a> void(a frozen-set a, f act void(a))
 	() fold a, (_, x) =>
 		f[x]
 
-for-loop<out, in> out[](a frozen-set in, f act out(in)) trusted
+for-loop<out, in> list out(a frozen-set in, f act out(in)) trusted
 	res fix-arr out = a.size uninitialized-fix-arr
 	out cell out mut* = res.begin-ptr,
 	for x : a
 		*(*out) := f[x]
 		*out := *out + 1
 	assert *out == res.end-ptr
-	res cast-immutable
+	res.cast-immutable to-list
 
 fold<a, b> a(acc a, a frozen-set b, f act a(a, b))
 	acc fold a.values, f
@@ -155,9 +155,9 @@ fold<a, b> a(acc a, a frozen-set b, f act a(a, b))
 fold-with-index<a, b> a(acc a, a frozen-set b, f act a(a, b, nat64))
 	acc fold-with-index a.values, f
 
-.verify void(a frozen-set nat64, values nat64[], bucket-starts nat64[]) unsafe
-	a.values is values
-	(for ptr : a bucket-starts; ptr - a.values.begin-ptr)::nat64[] is bucket-starts
+.verify void(a frozen-set nat64, values list nat64, bucket-starts list nat64) unsafe
+	a.values.to-list is values
+	(for ptr : a.bucket-starts to-list; ptr - a.values.begin-ptr)::list<nat64> is bucket-starts
 
 test
 	a frozen-set nat64 = ()

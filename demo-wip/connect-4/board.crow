@@ -5,7 +5,6 @@ import
 	crow/io/terminal-color: bold, blue, foreground, red, reset
 	crow/ptr: zeroed
 	crow/private/number-low-level: wrap-to-nat32
-	crow/str-util: join
 
 ###
 Board representation is bits: 7 bits for a column (max of 6 entries), over 6 rows.

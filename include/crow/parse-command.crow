@@ -2,15 +2,15 @@ no-std
 import
 	./bool: !, &&, bool, false, true
 	./cell: *, cell, new, set-deref
-	./col/arr: ~~, arr, is-empty, new, size, subscript
-	./col/arr-util: find-index, index-of, tail
 	./col/dict: dict, each, new
+	./col/list:
+		~, ~~, index-of, is-empty, left, list, middle, new, right, size, subscript, tail,
+		try-split-once-by-fn
 	./col/mut-dict: move-to-dict, mut-dict, new, set-subscript
-	./col/mut-arr: fill-mut-arr, move-to-arr, mut-arr, set-subscript, subscript
+	./col/mut-arr: fill-mut-arr, move-to-list, mut-arr, set-subscript, subscript
 	./misc: void
-	./number: ==, <=>, +
+	./number: ==
 	./opt: !, ??, new, opt
-	./range: ..
 	./str: ==, <=>, hash-mix, literal, str
 	./str-conv: interp, finish, to-str, with-str, with-value
 	./str-util: starts-with, try-remove-start
@@ -27,24 +27,23 @@ For example, if the command is: `foo bar --a 1 --b 2 3 -- x y z`:
 `after` will be: `"x", "y", "z"`
 ###
 parsed-command record
-	nameless str[]
-	named str[][str]
-	after str[]
+	nameless list str
+	named list<str>[str]
+	after list str
 
 ###
 See comment on `parsed-command` for syntax.
 Parse errors aren't possible with this syntax.
 ###
-parse-command parsed-command(args str[])
-	# Find the location of the first name beginning in '--'
-	if first-named-arg-index ?= args find-index arg => arg starts-with "--"
-		nameless = args[0 .. first-named-arg-index]
-		rest = args[first-named-arg-index .. args.size]
-		if sep-index ?= rest find-index arg => arg == "--"
-			named-args = rest[0 .. sep-index] parse-named-args
-			nameless, named-args, rest[sep-index + 1 .. rest.size]
+parse-command parsed-command(args list str)
+	if split ?= args try-split-once-by-fn arg => arg starts-with "--"
+		nameless = split.left
+		rest = split.middle ~ split.right
+		if split2 ?= rest try-split-once-by-fn arg => arg == "--"
+			named-args = split2.left parse-named-args-dict
+			nameless, named-args, split2.right
 		else
-			nameless, rest.parse-named-args, ()
+			nameless, rest.parse-named-args-dict, ()
 	else
 		args, (), ()
 
@@ -61,9 +60,9 @@ This will return `((),) (), (("d",),)`.
 
 If the argument syntax is invalid, returns an empty option.
 ###
-parse-named-args str[]?[]?(args str[], arg-names str[])
+parse-named-args list<list<str>?>?(args list str, arg-names list str)
 	parsed = args parse-command
-	values str[]? mut[] = arg-names.size fill-mut-arr ()
+	values list<str>? mut[] = arg-names.size fill-mut-arr ()
 	err cell bool = false,
 	parsed.named each (key, value) =>
 		if index ?= arg-names index-of key
@@ -71,14 +70,14 @@ parse-named-args str[]?[]?(args str[], arg-names str[])
 		else
 			*err := true
 	if parsed.nameless.is-empty && parsed.after.is-empty && !*err
-		values.move-to-arr,
+		values.move-to-list,
 
 ###
 If `a` as a single element, returns that; else throws an exception.
 
 Useful for arguments that should have a single string as their value.
 ###
-single-str-or-throw str(a str[]?, option-name str)
+single-str-or-throw str(a list<str>?, option-name str)
 	if strs ?= a
 		if strs.size == 1
 			strs[0]
@@ -89,16 +88,16 @@ single-str-or-throw str(a str[]?, option-name str)
 	else
 		throw "Need {option-name}"
 
-.parse-named-args str[][str](args str[])
-	res str[] mut[str] = ()
-	args parse-named-args-recur res
+.parse-named-args-dict list<str>[str](args list str)
+	res list<str> mut[str] = ()
+	args parse-named-args-dict-recur res
 	res move-to-dict
 
-.parse-named-args-recur void(args str[], builder str[] mut[str])
+.parse-named-args-dict-recur void(args list str, builder list<str> mut[str])
 	first-name = (args[0] try-remove-start "--")!
 	tl = args tail
-	if next-named-arg-index ?= tl find-index arg => arg starts-with "--"
-		builder[first-name] := tl[0 .. next-named-arg-index]
-		tl[next-named-arg-index .. tl.size] parse-named-args-recur builder
+	if split ?= tl try-split-once-by-fn arg => arg starts-with "--"
+		builder[first-name] := split.left
+		(split.middle ~ split.right) parse-named-args-dict-recur builder
 	else
 		builder[first-name] := tl

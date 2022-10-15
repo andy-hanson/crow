@@ -1,5 +1,4 @@
 import
-	crow/str-util: starts-with
 	./path-and-content: new, path-and-content
 
 page-template path-and-content(path str, title str, content str)

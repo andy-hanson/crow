@@ -1,7 +1,4 @@
 import
-	crow/col/arr-util: index-of
-	crow/col/dict: new, subscript
-	crow/col/fix-arr: fill-fix-arr, fix-arr, map-to-arr-with-index, set-subscript
 	crow/io/file: read-file
 	crow/io/net/http-server: http-handler, http-server, with-block
 	crow/io/net/http-types:
@@ -11,13 +8,12 @@ import
 	crow/io/stdin: read-stdin
 	crow/json: json, new, to-str
 	crow/reader: parse-nat
-	crow/str-util: split-by, try-split-once
 	./db:
 		add-post, content, cookie-expire-seconds, db, list-posts, list-users, login, open-real-db,
 		post, post-info, parse-user-cookie, register-user, to-str, user, user-info, user-name,
 		with-block
 
-main fut nat(args str[]) unsafe summon
+main fut nat(args arr str) unsafe summon
 	if args.size == 1
 		port = args[0]
 		with db : open-real-db
@@ -78,7 +74,7 @@ main fut nat(args str[]) unsafe summon
 					"Wrong password" http-forbidden
 		elif path == "/post"
 			if cookie ?= req.headers["Cookie"]
-				user-cookie = (cookie parse-cookies ("login",))[0].parse-user-cookie!
+				user-cookie = (cookie parse-cookie "login").parse-user-cookie!
 				post = db add-post user-cookie, req.request-body-str
 				(("postId", post.json),)::json.to-str http-ok
 			else
@@ -99,17 +95,21 @@ split-url url(url-str str)
 		url-str, ""
 
 # Extra cookies are ignored
-parse-cookies str[](s str, cookie-names str[])
-	res fix-arr str? = cookie-names.size fill-fix-arr ()
-	for part : s split-by "; "
+parse-cookies list str(cookies-str str, cookie-names list str)
+	res str? mut[] = cookie-names.size fill-mut-arr ()
+	for part : cookies-str split-by "; "
 		if pair ?= part try-split-once "="
 			if index ?= cookie-names index-of pair.a
 				res[index] := pair.b,
-	res map-to-arr-with-index (x, index) =>
-		x ?? throw "Did not get cookie value for {cookie-names[index]}"
+	# TODO: for x, index : res
+	for index : 0 .. res.size
+		res[index] ?? throw "Did not get cookie value for {cookie-names[index]}"
 
-parse-query str[](s str, arg-names str[])
-	res fix-arr str? = arg-names.size fill-fix-arr ()
+parse-cookie str(cookies-str str, cookie-name str)
+	(cookies-str parse-cookies (cookie-name,))[0]
+
+parse-query list str(s str, arg-names list str)
+	res str? mut[] = arg-names.size fill-mut-arr ()
 	for part : s split-by "&"
 		if pair ?= part try-split-once "="
 			if index ?= arg-names index-of pair.a
@@ -118,8 +118,9 @@ parse-query str[](s str, arg-names str[])
 				throw "Unexpected key {pair a}"
 		else
 			throw "Invalid part: {part}"
-	res map-to-arr-with-index (x, index) =>
-		x ?? throw "Did not get argument for {arg-names[index]}"
+	# TODO: for x, index : res
+	for index : 0 .. res.size
+		res[index] ?? throw "Did not get argument for {arg-names[index]}"
 
 .json json(a user-info)
 	("user", a.user.json), ("userName", a.user-name.json)

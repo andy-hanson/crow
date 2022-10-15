@@ -1,15 +1,11 @@
 import
-	crow/col/arr-util: each-with-index, in
-	crow/col/mut-arr: ~=, move-to-arr, mut-arr, new
-	crow/col/seq: size
 	crow/col/set: in, new, set
 	crow/io/file: each-child-recursive, read-file
 	crow/io/path: base-name, get-extension
 	crow/io/print: out, print
-	crow/str-util: contains-substr, lines, starts-with, try-remove-start
 	./failure: failure, flat-map-with-max-size, max-failures, new, print-tests, test-options
 
-lint result<str, failure[]>(path str, options test-options) summon
+lint result<str, list failure>(path str, options test-options) summon
 	files = path list-lintable-files
 	failures = files flat-map-with-max-size options.max-failures, file =>
 		if options print-tests
@@ -20,12 +16,12 @@ lint result<str, failure[]>(path str, options test-options) summon
 	else
 		failures err
 
-.list-lintable-files str[](path str) summon
+.list-lintable-files list str(path str) summon
 	res str mut[] = ()
 	path each-child-recursive (child => !child.excluded-from-lint), child =>
 		unless child.base-name should-ignore-extension-of-name
 			res ~= child
-	res move-to-arr
+	res move-to-list
 
 .excluded-from-lint bool(name str)
 	if name starts-with "." || name in exclude-names
@@ -39,13 +35,16 @@ lint result<str, failure[]>(path str, options test-options) summon
 	# TODO: gl.crow needs a multi-line call syntax
 	"bin", "COPYING.txt", "dyncall", "gl.crow", "node_modules", "package-lock.json", "site"
 
-# Returns numner of errors
-.lint-file failure[](path str) summon
+# Returns number of errors
+.lint-file list failure(path str) summon
 	text = path read-file
 	res failure mut[] = ()
 	ext = path.get-extension!
 	allow-double-space = ext == "err" || ext == "sublime-syntax"
-	text.lines each-with-index (line, line-num) =>
+	# TODO: for line, line-num in text.lines
+	lines = text lines
+	for line-num : 0 .. lines.size
+		line = lines[line-num]
 		ln = line-num + 1 to-str
 		space-space = " " ~~ " "
 		if !allow-double-space && line contains-substr space-space
@@ -55,9 +54,9 @@ lint result<str, failure[]>(path str, options test-options) summon
 		if width > max-line-length
 			message = "line {ln} is {width} columns long, should be <= {max-line-length}"
 			res ~= (path, message)
-	res move-to-arr
+	res move-to-list
 
-.ignored-extensions str[]()
+.ignored-extensions list str()
 	"c", "data", "json", "o", "out", "repr", "tmLanguage"
 
 .should-ignore-extension bool(ext str)

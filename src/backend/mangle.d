@@ -410,6 +410,7 @@ immutable(bool) conflictsWithCName(immutable Sym a) {
 		case shortSymValue("break"):
 		case shortSymValue("continue"):
 		case shortSymValue("default"):
+		case shortSymValue("do"):
 		case shortSymValue("double"):
 		case shortSymValue("float"):
 		case shortSymValue("for"):

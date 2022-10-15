@@ -11,40 +11,42 @@ import
 	../str-conv: interp, finish, to-str, with-str, with-value
 	../str-util: join
 	../test-util: is
-	./arr: ==, arr, for-loop, is-empty, new, size
+	./arr: arr, for-loop, is-empty, size
 	./arr-util: first, fold, last, rtail, tail
 	./fix-arr: begin-ptr, cast-immutable, end-ptr, fix-arr, subscript, uninitialized-fix-arr
+	./list: ==, for-loop, list, new, to-array, to-list
 	./stack:
-		~, is-empty, fold, for-loop, new, pop, rest, reversed, size, stack, to-arr, value
+		~, is-empty, fold, for-loop, new, pop, rest, reversed, size, stack, to-list, value
 
 # Immutable double-ended queue.
 deque<a> record
 	# NOTE: This is in reverse (top of the stack furthest left)
 	.left stack a
-	.mid a[]
+	.mid arr a
 	.right stack a
 
 ###
 Deque containing the given elements.
 ###
-new<a> deque a(...a a[])
-	a to-deque
+new<a> deque a(...a arr a)
+	a.to-list to-deque
 
 ###
-Convert an array to a deque. 
+Convert a list to a deque. 
 This is O(1).
 ###
-to-deque<a> deque a(a a[])
-	()::stack<a>, a, ()
+to-deque<a> deque a(a list a)
+	# TODO: should not need type annotation
+	()::stack<a>, a.to-array, ()
 
-# Copy elements to an array.
-to-arr<a> a[](a deque a) trusted
+# Copy elements to a list.
+to-list<a> list a(a deque a) trusted
 	res fix-arr a = a.size uninitialized-fix-arr
 	end = res.begin-ptr fold a, (out, x) =>
 		*out := x
 		out + 1
 	assert end == res.end-ptr
-	res cast-immutable
+	res.cast-immutable to-list
 
 ###
 `true` iff `a.size == 0`.
@@ -83,9 +85,9 @@ pop-left<a> popped<a>?(a deque a)
 	elif first ?= a.mid first
 		(first, (()::stack<a>, a.mid.tail, a.right)),
 	else
-		right-arr = a.right to-arr
+		right-arr = a.right.to-list to-array
 		if first ?= right-arr first
-			(first, right-arr.tail.to-deque),
+			(first, right-arr.tail.to-list.to-deque),
 
 ###
 Remove a value from the right.
@@ -97,9 +99,9 @@ pop-right<a> popped<a>?(a deque a)
 	elif last ?= a.mid last
 		(last, (a.left, a.mid.rtail, ())),
 	else
-		left-arr = a.left.reversed to-arr
+		left-arr = a.left.reversed.to-list to-array
 		if last ?= left-arr last
-			(last, left-arr.rtail.to-deque),
+			(last, left-arr.rtail.to-list.to-deque),
 
 region iteration
 
@@ -119,22 +121,22 @@ filter<a> deque a(a deque a, f act bool(a)) trusted
 			out + 1
 		else
 			out
-	res[0 .. end - res.begin-ptr].cast-immutable to-deque
+	res[0 .. end - res.begin-ptr].cast-immutable.to-list to-deque
 
-for-loop<out, in> out[](a deque in, f act out(in)) trusted
+for-loop<out, in> list out(a deque in, f act out(in)) trusted
 	res fix-arr out = a.size uninitialized-fix-arr
 	end = res.begin-ptr fold a, (out, x) =>
 		*out := f[x]
 		out + 1
 	assert end == res.end-ptr
-	res cast-immutable
+	res.cast-immutable to-list
 
 for-loop<out, in> deque out(a deque in, f act out(in))
 	a for-loop f to-deque
 
 .dbg str(a deque nat64)
 	left = "" join for x : a.left.reversed; "{x} "
-	mid = " " join for x : a.mid; "{x}"
+	mid = " " join for x : a.mid.to-list; "{x}"
 	right = "" join for x : a.right; " {x}"
 	"{left}[{mid}]{right}"
 
@@ -142,31 +144,31 @@ test
 	a deque nat64 = ()
 	assert a is-empty
 	a.dbg is "[]"
-	a.to-arr is ()
+	a.to-list is ()
 	# TODO: 'a.pop-left is ()'
 	a.pop-left.is-empty is true
 	a.pop-right.is-empty is true
 
 	bl = 1 ~ a
 	bl.dbg is "1 []"
-	bl.to-arr is (1,)
+	bl.to-list is (1,)
 	bl-pop-left = bl.pop-left!
 	bl-pop-left.value is 1
 	# TODO: 'is deque'
-	bl-pop-left.rest.to-arr is ()
+	bl-pop-left.rest.to-list is ()
 	bl-pop-right = bl.pop-right!
 	bl-pop-right.value is 1
-	bl-pop-right.rest.to-arr is ()
+	bl-pop-right.rest.to-list is ()
 
 	br = a ~ 1
 	br.dbg is "[] 1"
-	br.to-arr is bl.to-arr
+	br.to-list is bl.to-list
 	br-pop-left = br.pop-left!
 	br-pop-left.value is 1
-	br-pop-left.rest.to-arr is ()
+	br-pop-left.rest.to-list is ()
 	br-pop-right = br.pop-right!
 	br-pop-right.value is 1
-	br-pop-right.rest.to-arr is ()
+	br-pop-right.rest.to-list is ()
 
 	c = bl ~ 2 ~ 3
 	c.dbg is "1 [] 2 3"
@@ -178,7 +180,7 @@ test
 	d.dbg is "[] 2 3"
 	d-pop-left = d.pop-left!
 	d-pop-left.value is 2
-	d-pop-left.rest.to-arr is (3,)
+	d-pop-left.rest.to-list is (3,)
 
 	d-pop = d.pop-left!
 	d-pop.value is 2
@@ -186,15 +188,15 @@ test
 
 	# Test converting right stack to array
 	e = 1 ~ (2 ~ (3 ~ ()))
-	e.to-arr is (1, 2, 3)
+	e.to-list is (1, 2, 3)
 	e.dbg is "1 2 3 []"
 	e-pop = e.pop-right!
 	e-pop.value is 3
 	e-pop.rest.dbg is "[1 2]"
 
-	six = 1 ~ (2 ~ (3, 4)) ~ 5 ~ 6
+	six deque nat64 = 1 ~ (2 ~ (3, 4)) ~ 5 ~ 6
 	six.dbg is "1 2 [3 4] 5 6"
 	folded = 10 fold six, (x, y) => x + y
 	folded is 31
-	(six filter it => it is-even).to-arr is (2, 4, 6)
-	(for x : six; x + 10)::nat64[] is (11, 12, 13, 14, 15, 16)
+	(six filter it => it is-even).to-list is (2, 4, 6)
+	(for x : six; x + 10)::list<nat64> is (11, 12, 13, 14, 15, 16)

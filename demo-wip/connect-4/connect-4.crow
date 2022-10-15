@@ -1,14 +1,12 @@
 import
 	crow/col/iter: value
-	crow/col/seq: iter, next, size
 	crow/io/print: clear-screen, out, print
 	crow/io/stdin: read-stdin-until-parse
-	crow/str-util: repeat, strip
 	./board:
 		board, board-cache, can-place, color, empty-board, has-empty, just-won, new, opposite,
 		place, red, set-subscript, subscript, to-str, width
 
-main fut nat(_ str[]) summon
+main fut nat(_ arr str) summon
 	out print "Select a game:\n(If using hard CPU, compile with --optimize)\n"
 	out print "2: 2-player game\nE: Easy\nM: Medium\nH: Hard\nH2: Hard and CPU goes first\nCPU: CPU vs CPU\n"
 	#settings = "Invalid option" read-stdin-until-parse it => it parse-settings

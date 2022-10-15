@@ -1,9 +1,8 @@
 no-std
 import
 	../bool: bool
-	../col/arr: for-loop
 	../col/dict: get-or-add, to-dict
-	../col/seq: fold, size
+	../col/list: fold, for-loop, size, to-list
 	../compare: comparison
 	../misc: void
 	../number: +
@@ -30,7 +29,7 @@ to-str str(a sym) noctx trusted
 	a.to-c-str literal
 
 init-symbol-table void(a global-ctx)
-	a.syms-table := (for x : static-syms; (x.to-str, x)) to-dict
+	a.syms-table := (for x : static-syms.to-list; (x.to-str, x)) to-dict
 
 # TODO: name 'to-sym'
 ###

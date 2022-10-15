@@ -17,9 +17,10 @@ import
 	../../str-conv: finish, interp, to-hex, to-str, with-str, with-value
 	../../str-util: join
 	../../test-util: is
-	../arr: ==, arr, new, size, subscript
+	../arr: arr, new, subscript
 	../arr-util: fold, fold-with-index
 	../fix-arr: begin-ptr, cast-immutable, end-ptr, fix-arr, uninitialized-fix-arr
+	../list: ==, fold, list, new, size, to-list
 	../private/arr-low-level: begin-ptr, end-ptr, subscript
 
 index-set record by-ref
@@ -43,16 +44,16 @@ index-set record by-ref
 	c nat64
 	d nat64
 
-.values nat64[](a leaf-node) trusted
+.values arr nat64(a leaf-node) trusted
 	((&a.a)::nat64*)[0 .. 4]
 .bits-in-leaf-node nat64()
 	# 64 * 4
 	256
 
-new index-set(...a nat64[])
-	a to-index-set
+new index-set(...a arr nat64)
+	a.to-list to-index-set
 
-to-index-set index-set(a nat64[])
+to-index-set index-set(a list nat64)
 	(0, empty) fold a, (acc, x) => acc ~ x
 
 is-empty bool(a index-set)
@@ -78,7 +79,7 @@ size nat64(a index-set)
 	as empty
 		acc
 
-to-arr nat64[](a index-set)
+to-list list nat64(a index-set)
 	for x : a
 		x
 
@@ -165,7 +166,7 @@ try-add index-set?(a index-set, index nat64) trusted
 			empty-inner-node inner
 		new-node try-add index, n
 
-~~ index-set(a index-set, indices nat64[])
+~~ index-set(a index-set, indices arr nat64)
 	a fold indices, (cur, index) => cur ~ index
 
 - index-set(a index-set, index nat64)
@@ -266,9 +267,9 @@ intersect index-set(a index-set, b index-set)
 	strip-trailing-zeroes: a.values zip-larger b.values, (x, y) =>
 		(x ?? 0) & ~(y ?? 0)
 
-.strip-trailing-zeroes index-set(a nat64[])
+.strip-trailing-zeroes index-set(a arr nat64)
 	index-set: void, a.strip-trailing-zeroes
-.strip-trailing-zeroes nat64[](a nat64[])
+.strip-trailing-zeroes arr nat64(a arr nat64)
 	if last ?= a last
 		if last == 0
 			a.rtail strip-trailing-zeroes
@@ -328,7 +329,7 @@ count-greater-or-equal nat64(a index-set, n nat64)
 .count-gte-in-nat64 nat64(a nat64, bit-index nat64)
 	a >> bit-index count-ones
 
-.count-ones-in-arr nat64(a nat64[]) trusted
+.count-ones-in-arr nat64(a arr nat64) trusted
 	0 count-ones-in-arr-recur a.begin-ptr, a.end-ptr
 .count-ones-in-arr-recur nat64(acc nat64, cur nat64*, end nat64*) unsafe
 	if cur == end
@@ -428,13 +429,13 @@ filter index-set(a index-set, f act bool(nat64))
 for-loop index-set(a index-set, f act nat64(nat64))
 	a for-loop f to-index-set
 
-for-loop<a> a[](a index-set, f act a(nat64)) trusted
+for-loop<a> list a(a index-set, f act a(nat64)) trusted
 	res fix-arr a = a.size uninitialized-fix-arr
 	end = res.begin-ptr fold a, (cur, x) =>
 		*cur := f[x]
 		cur + 1
 	assert end == res.end-ptr
-	res cast-immutable
+	res.cast-immutable to-list
 
 .dbg str(a index-set)
 	a.root dbg
@@ -447,7 +448,7 @@ for-loop<a> a[](a index-set, f act a(nat64)) trusted
 	as empty
 		"_"
 
-.verify void(a index-set, expected str, expected-arr nat64[])
+.verify void(a index-set, expected str, expected-list list nat64)
 	actual = a.dbg
 	unless actual == expected
 		info log "a.dbg is"
@@ -456,8 +457,8 @@ for-loop<a> a[](a index-set, f act a(nat64)) trusted
 		info log expected
 		a.dbg is expected
 	actual is expected
-	r = a to-arr
-	r is expected-arr
+	r = a to-list
+	r is expected-list
 	_ = 0 fold a, (prev, cur) =>
 		for x : prev .. cur
 			x in a is false

@@ -1,8 +1,8 @@
 no-std
 import
 	./bool: bool
-	./col/arr: arr, for-loop, new
-	./col/arr-util: join
+	./col/arr: arr
+	./col/list: for-loop, join, list, new, to-list
 	./misc: name, named-val, val
 	./str: literal, str
 	./str-util: join
@@ -17,7 +17,7 @@ Functions in this spec will be generated when you declare a `flags` type.
 flags-like<a> spec
 	new a()
 	all a()
-	flags-members named-val<a>[]()
+	flags-members arr<named-val<a>>()
 	== bool(a a, b a)
 	~ a(a a)
 	& a(a a, b a)
@@ -33,9 +33,9 @@ True if every flag set in `a` is set in `b`.
 is-in<a> bool(a a, b a) min-flags-like<a>
 	a & b == a
 
-# Returns an array of the name of every flag set in `a`.
-to-syms<a> sym[](a a) flags-like<a>
-	() join for member : flags-members
+# Returns the names of every flag set in `a`.
+to-syms<a> list sym(a a) flags-like<a>
+	() join for member : flags-members.to-list
 		if member.val is-in a
 			member.name,
 

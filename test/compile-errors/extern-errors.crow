@@ -1,6 +1,6 @@
 r record extern
 	a str
-	b nat64[]
+	b list nat64
 
 u union extern
 	a str
@@ -15,7 +15,7 @@ f void(a str) extern<c>
 
 f<a> void(a a) extern<c>
 
-f void(...a nat64[]) extern<c>
+f void(...a arr nat64) extern<c>
 
 some-spec spec
 	foo void()

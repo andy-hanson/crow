@@ -2,16 +2,15 @@ no-std
 import
 	./bool: ||, bool
 	./cell: *, cell, new, set-deref
-	./col/arr: arr, for-loop
-	./col/private/arr-low-level: arr-cast, begin-ptr
+	./col/private/arr-low-level: begin-ptr
 	./col/iter: new, rest, value, value-and-rest
-	./col/mut-arr: copy, move-to-arr, to-mut-arr
-	./col/seq:
-		contains-subseq, copy, drop-right-while, drop-while, end-iter, ends-with, for-loop, iter,
-		left, middle, mut-iter, mut-seq-iter, new, next, peek, prev, repeat, reverse,
-		right, seq, seq-iter, slice-left, slice-right, split-by-subseq, starts-with, to-arr, to-seq,
-		try-remove-end, try-remove-start, try-split-once-by-fn, try-split-once-by-subseq,
-		try-split-once-by-subseq-right
+	./col/list:
+		contains-sublist, copy, drop-right-while, drop-while, end-iter, ends-with, for-loop, iter,
+		left, list, list-cast, list-iter, middle, mut-iter, mut-list-iter, new, next, peek, prev, repeat,
+		reverse, right, slice-left, slice-right, split-by-sublist, starts-with, to-array,
+		try-remove-end, try-remove-start, try-split-once-by-fn, try-split-once-by-sublist,
+		try-split-once-by-sublist-right
+	./col/mut-arr: copy, move-to-list, to-mut-arr
 	./compare: <
 	./number: ==, <=>, +, nat8, nat64
 	./opt: ??, new, opt
@@ -22,7 +21,7 @@ import
 region iterator
 
 str-iter record by-val
-	.inner seq-iter char8
+	.inner list-iter char8
 
 iter str-iter(a str)
 	a.char8s.iter,
@@ -45,7 +44,7 @@ slice-right str(a str-iter)
 	a.inner.slice-right str
 
 mut-str-iter record mut
-	.inner mut-seq-iter char8
+	.inner mut-list-iter char8
 
 mut-iter mut-str-iter(a str)
 	a.char8s.mut-iter,
@@ -67,7 +66,7 @@ region split
 That means: The characters in `b` appear in `a`, in order, without interruptions.
 ###
 contains-substr bool(a str, b str)
-	a.char8s contains-subseq b.char8s
+	a.char8s contains-sublist b.char8s
 
 # `true` iff the first characters of `a` are `b`.
 starts-with bool(a str, b str)
@@ -97,22 +96,22 @@ try-remove-end str?(a str, b str)
 If `b` is a substring of `a`, removes it and return the parts of `a` before and after it.
 ###
 try-split-once pair<str, str>?(a str, b str)
-	if res ?= a.char8s try-split-once-by-subseq b.char8s
+	if res ?= a.char8s try-split-once-by-sublist b.char8s
 		(res.a.str, res.b.str),
 
 # Like `try-split-once`, but splits on the rightmost occurrence of `b`.
 try-split-once-right pair<str, str>?(a str, b str)
-	if res ?= a.char8s try-split-once-by-subseq-right b.char8s
+	if res ?= a.char8s try-split-once-by-sublist-right b.char8s
 		(res.a.str, res.b.str),
 
 ###
 Removes every occurrence of the substring `b` in `a` and return the remaining parts as an array.
 The result may include empty strings.
 ###
-split-by str[](a str, b str)
-	(for x : a.char8s split-by-subseq b.char8s; x str) to-arr
+split-by list str(a str, b str)
+	for x : a.char8s split-by-sublist b.char8s; x str
 
-lines str[](a str)
+lines list str(a str)
 	a split-by "\n"
 
 split-str record by-val
@@ -137,7 +136,7 @@ try-split-once-by-whitespace pair<str, str>?(a str)
 Returns a string containing each element of `a`, with `b` as a separator.
 This is `parts[0] ~ joiner ~ parts[1] ~ joiner ~ ... ~ parts[parts.size - 1]`.
 ###
-join str(joiner str, parts str[])
+join str(joiner str, parts list str)
 	# TODO: NO CELl
 	res cell str? = (),
 	for part : parts
@@ -149,7 +148,7 @@ join str(joiner str, parts str[])
 
 # Lower cases every character in `a`.
 lower-case str(a str)
-	(for x : a char8s; x lower-case-char)::seq<char8> str
+	(for x : a char8s; x lower-case-char) str
 
 .lower-case-char char8(a char8) noctx
 	diff = a.to-nat8 wrap-sub "A".to-nat8
@@ -160,7 +159,7 @@ lower-case str(a str)
 
 # Capitalizes every character in `a`.
 upper-case str(a str)
-	(for x : a char8s; x upper-case-char)::seq<char8> str
+	(for x : a char8s; x upper-case-char) str
 
 .upper-case-char char8(a char8) noctx
 	diff = a.to-nat8 wrap-sub "a".to-nat8
@@ -221,15 +220,15 @@ region Conversion
 Treats UTF-8 bytes as a string.
 This is O(1).
 ###
-as-str str(bytes nat8[]) unsafe noctx
-	bytes.arr-cast@<char8, nat8> str
+as-str str(bytes list nat8) unsafe
+	bytes.list-cast@<char8, nat8> str
 
 ###
-Converts to an array of UTF-8 bytes.
-This is O(n).
+Treats a string as a list of UTF-8 bytes.
+This is O(1).
 ###
-to-bytes nat8[](a str)
-	(for x : a char8s; x to-nat8) to-arr
+to-bytes list nat8(a str) trusted
+	a.char8s list-cast@<nat8, char8>
 
 ###
 Converts a str to a c-str by appending "\0".
@@ -239,7 +238,7 @@ WARN: The resulting string is allocated from GC memory but isn't traced by the g
 so it may be freed after the current task.
 ###
 to-c-str c-str(a str) unsafe
-	(a ~ "\0").char8s.to-arr begin-ptr
+	(a ~ "\0").char8s.to-array begin-ptr
 
 ###
 Treats a c-str as a str by walking to the end.
@@ -248,7 +247,8 @@ This copies the memory, so the result is safe to use immutably.
 Unsafe because `a` must end in a `"\0"` character somewhere.
 ###
 to-str str(a c-str) unsafe
-	a.literal.char8s.to-arr.to-mut-arr.copy.move-to-arr.to-seq str
+	# TODO: 'copy' seems unnecessary since 'to-mut-arr' should do that?
+	a.literal.char8s.to-mut-arr.copy.move-to-list str
 
 region other
 
@@ -270,7 +270,7 @@ quote str(a str)
 			"\\\\"
 		else
 			# TODO: "{x}"
-			(x,)::seq<char8> str
+			(x,) str
 	# TODO: "\"{inner}\""
 	"\"" ~~ inner ~~ "\""
 

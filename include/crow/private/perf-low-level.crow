@@ -18,7 +18,7 @@ Only names in `names` will be measured; others will be ignored.
 
 If measurement was already enabled, this sets all measurements to 0 (and may change measured names)
 ###
-perf-enable-low-level void(measure-names sym[]) summon trusted
+perf-enable-low-level void(measure-names arr sym) summon trusted
 	*measure-names-var free-unmanaged-fix-arr
 	*measure-values-var free-unmanaged-fix-arr
 	*measure-names-var := measure-names.size unmanaged-uninitialized-fix-arr

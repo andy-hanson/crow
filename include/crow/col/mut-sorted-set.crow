@@ -6,10 +6,10 @@ import
 	../misc: is-data, new, void
 	../number: nat64
 	../opt: is-empty
-	../tuple: from, new
-	./arr: arr, for-loop
+	../tuple: from, new, pair
+	./list: for-loop, list
 	./mut-sorted-dict:
-		clear, each, filter, fold, in, is-empty, map, move-to-arr,
+		clear, each, filter, fold, in, is-empty, map, move-to-list,
 		mut-sorted-dict, new, remove-key, set-filter, set-map, set-subscript, size, subscript, to-mut-sorted-dict
 	./sorted-set: sorted-set, to-sorted-set
 
@@ -26,12 +26,10 @@ mut-sorted-set<a> record mut
 new<a> mut-sorted-set a() is-data<a> compare<a>
 	(),
 
-###
-Copies the arr to a new mut-sorted-set.
-Result won't include any duplicated elements.
-###
-mut-sorted-set<a> mut-sorted-set a(a a[]) is-data<a> compare<a>
-	((for x : a; x, ()) to-mut-sorted-dict),
+to-mut-sorted-set<a> mut-sorted-set a(a list a) is-data<a> compare<a>
+	pairs list pair<a, void> = for x : a
+		x, ()
+	pairs.to-mut-sorted-dict,
 
 # True iff the set has no elements.
 is-empty<a> bool(a mut-sorted-set a) is-data<a> compare<a>
@@ -60,7 +58,7 @@ Does nothing if the value is already in the set.
 	a.inner[value] := ()
 
 # Adds multiple values to the set.
-~~= <a> void(a mut-sorted-set a, values a[]) is-data<a> compare<a>
+~~= <a> void(a mut-sorted-set a, values list a) is-data<a> compare<a>
 	for value : values
 		a ~= value
 
@@ -78,15 +76,15 @@ If the value was not present, does nothing and returns `false`.
 remove<a> bool(a mut-sorted-set a, value a) is-data<a> compare<a>
 	!(a.inner remove-key value is-empty)
 
-# Convert to an `arr`, clearing the original `mut-sorted-set` in the process.
-move-to-arr<a> a[](a mut-sorted-set a) is-data<a> compare<a>
-	for pair : a.inner move-to-arr
+# Convert to a list, clearing the original `mut-sorted-set` in the process.
+move-to-list<a> list a(a mut-sorted-set a) is-data<a> compare<a>
+	for pair : a.inner move-to-list
 		pair from
 
 # Convert to a `sorted-set`, clearning the original `mut-sorted-set` in the process.
 move-to-sorted-set<a> sorted-set a(a mut-sorted-set a) is-data<a> compare<a>
 	# TODO:PERF avoid a copy: return a 'mut-arr' which the sorted-set can move into to itself
-	a.move-to-arr to-sorted-set
+	a.move-to-list to-sorted-set
 
 region iteration
 

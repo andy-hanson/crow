@@ -7,6 +7,7 @@ import
 		WriteFile
 	../cell: *, as-mut-ptr, cell, new
 	../col/arr: size
+	../col/list: to-array
 	../col/private/arr-low-level: begin-ptr
 	../extra-types: fd-t
 	../misc: new, void
@@ -45,7 +46,7 @@ print-no-newline void(pipe pipe, message str) summon trusted
 		output write-posix message
 
 .write-windows void(console HANDLE, a str) summon unsafe
-	bytes = a to-bytes
+	bytes = a.to-bytes to-array
 	written cell DWORD = 0,
 	size32 = bytes.size to-nat32
 	ok = console WriteFile bytes.begin-ptr, size32, written.as-mut-ptr, null
@@ -56,7 +57,7 @@ print-no-newline void(pipe pipe, message str) summon trusted
 
 .write-posix void(fd fd-t, a str) summon unsafe
 	assert size-of@<char8> == size-of@<nat8>
-	bytes = a to-bytes
+	bytes = a.to-bytes to-array
 	res = fd write bytes.begin-ptr, bytes.size
 	unless res == bytes.size.to-int64
 		# TODO: Maybe retry

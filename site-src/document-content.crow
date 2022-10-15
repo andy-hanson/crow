@@ -1,8 +1,4 @@
 import
-	crow/col/arr-util: in, tail
-	crow/str-util:
-		join, left, middle, replace, right, strip-left, try-remove-start, try-split-once,
-		try-split-once-by-fn
 	./module:
 		body_, doc-comment, exports, fields, has-private-fields, is-mut, members, module,
 		module-export, module-export-value, name, param, params, path, purity, record-field,
@@ -73,7 +69,7 @@ module-top str(path str)
 	as union-decl _
 		"struct"
 
-.type-params-content str(a type-param[])
+.type-params-content str(a list type-param)
 	unless a is-empty
 		type-params = "," join for x : a
 			"""<code class="type-param">{x name}</code>"""
@@ -146,7 +142,7 @@ module-top str(path str)
 			x union-member-content
 		"""<ul class="members">{members}</ul>"""
 
-.enum-flags-members-content str(a sym[])
+.enum-flags-members-content str(a list sym)
 	members = "" join for x : a
 		"""<li><code class="member">{x}</code></li>"""
 	"""<ul class="members">{members}</ul>"""
@@ -166,7 +162,7 @@ module-top str(path str)
 	rt = a.return-type return-type-and-params-and-specs false, a.params, ()
 	"""<li class="sig"><code class="fun">{a name}</code> {rt}</li>"""
 
-.return-type-and-params-and-specs str(return-type type-ref, variadic bool, params param[], specs spec-ref[])
+.return-type-and-params-and-specs str(return-type type-ref, variadic bool, params list param, specs list spec-ref)
 	params-content = "," join for x : params
 		x param-content variadic
 	specs-span = unless specs is-empty
@@ -205,11 +201,11 @@ module-top str(path str)
 		"{a.type-args.only type-ref-with-subscript}{"*" keyword}"
 	elif name == "mut-ptr"
 		"{a.type-args.only type-ref-with-subscript}{" mut*" keyword}"
-	elif name in ("fun0", "fun1", "fun2", "fun3", "fun4", "fun5")
+	elif name in ("fun0", "fun1", "fun2", "fun3", "fun4", "fun5")::list<sym>
 		a fun-type "fun"
-	elif name in ("fun-act0", "fun-act1", "fun-act2", "fun-act3", "fun-act4", "fun-act5")
+	elif name in ("fun-act0", "fun-act1", "fun-act2", "fun-act3", "fun-act4", "fun-act5")::list<sym>
 		a fun-type "act"
-	elif name in ("fun-ref0", "fun-ref1", "fun-ref2", "fun-ref3", "fun-ref4", "fun-ref5")
+	elif name in ("fun-ref0", "fun-ref1", "fun-ref2", "fun-ref3", "fun-ref4", "fun-ref5")::list<sym>
 		a fun-type "ref"
 	else
 		inner = if a.type-args.size == 1 && !has-subscript
@@ -227,7 +223,7 @@ module-top str(path str)
 .spec-ref-content str(a spec-ref)
 	"""<span class="spec"><code class="spec">{a name}</code>{a.type-args type-args-content}</span>"""
 
-.type-args-content str(a type-ref[])
+.type-args-content str(a list type-ref)
 	unless a is-empty
 		args = "," join for x : a
 			x type-ref-content
@@ -236,7 +232,7 @@ module-top str(path str)
 .keyword str(a str)
 	"""<code class="keyword">{a}</code>"""
 
-.only<a> a(a a[])
+.only<a> a(a list a)
 	assert a.size == 1
 	a[0]
 

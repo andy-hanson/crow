@@ -34,7 +34,7 @@ new audio-queue(format sound-format) trusted
 	res
 
 .entry record by-ref force-sendable
-	samples float32[]
+	samples arr float32
 	cur mut float32*
 	looping bool
 
@@ -84,7 +84,7 @@ pull void(a audio-queue, out fix-arr float32) noctx unsafe
 		else
 			a.cur := a.samples end-ptr
 
-.add void(a fix-arr float32, b float32[]) noctx unsafe
+.add void(a fix-arr float32, b arr float32) noctx unsafe
 	assert a.size == b.size
 	a.begin-ptr add-recur a.end-ptr, b.begin-ptr
 .add-recur void(out float32 mut*, out-end float32 mut*, read float32*) noctx unsafe
@@ -139,5 +139,5 @@ test
 	a pull buf
 	buf.temp-as-arr is (0, 0, 0)
 
-.== bool(a float32[], b float32[])
+.== bool(a arr float32, b arr float32)
 	a arr-equal b, (x, y) => x == y

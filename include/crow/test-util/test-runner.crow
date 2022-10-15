@@ -15,4 +15,4 @@ run-all-tests void() summon trusted
 		x[]
 	out print "Done running tests"
 
-.all-tests fun-ptr0<void>[]() builtin
+.all-tests arr fun-ptr0<void>() builtin

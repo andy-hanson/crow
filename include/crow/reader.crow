@@ -1,7 +1,7 @@
 no-std
 import
 	./bool: !, &&, ||, bool, false, new, true
-	./col/mut-arr: ~=, move-to-arr, mut-arr, new
+	./col/mut-arr: ~=, move-to-list, mut-arr, new
 	./fun-util: subscript
 	./misc: new, void
 	./number: +, *, **, float64, int64, nat64, to-float64, to-int64
@@ -185,7 +185,7 @@ take-quoted-str str?(a reader)
 .take-quoted-str-recur str?(a reader, res char8 mut[])
 	unless a is-empty
 		if a try-take-char "\""
-			res.move-to-arr.str,
+			res.move-to-list.str,
 		elif a try-take-char "\\"
 			if esc ?= a.next escape
 				res ~= esc

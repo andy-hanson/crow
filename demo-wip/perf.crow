@@ -1,9 +1,8 @@
 import
-	crow/col/dict: each
 	crow/io/print: out, print
 	crow/perf
 
-main fut nat(_ str[]) summon
+main fut nat(_ arr str) summon
 	("foo",) perf-enable
 	for x : 1 .. 10
 		"foo" with-perf-measure () =>

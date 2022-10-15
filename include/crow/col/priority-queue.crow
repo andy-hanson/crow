@@ -14,11 +14,12 @@ import
 	../test-util: is
 	../test-util/spy: calls, fn, new, spy-act2
 	../tuple: from, new, pair, to
-	./arr: ==, arr, arr-equal, for-loop, is-empty, new, size
+	./arr: arr, is-empty, new, size
 	./arr-util: first, fold, tail
 	./fix-arr:
 		begin-ptr, cast-immutable, end-ptr, first, fix-arr, set-subscript, size, subscript,
 		tail, uninitialized-fix-arr
+	./list: ==, first, for-loop, is-empty, list, list-equal, new, tail, to-array, to-list
 	./sort: set-sort-by, sort-by
 
 ###
@@ -52,26 +53,26 @@ then with the `4` to size 10, then with the `8` to size 18, leaving only one nod
 
 .node<k, v> record
 	min pair<k, v>
-	pairs pair<k, v>[]
+	pairs arr pair<k, v>
 	next node<k, v>?
 
 # New priority queue containing the given pairs.
-new<k, v> priority-queue<k, v>(...a pair<k, v>[]) is-data<k> compare<k>
-	a to-priority-queue
+new<k, v> priority-queue<k, v>(...a arr pair<k, v>) is-data<k> compare<k>
+	a.to-list to-priority-queue
 
 # New priority queue containing the given pairs.
-to-priority-queue<k, v> priority-queue<k, v>(a pair<k, v>[]) is-data<k> compare<k>
+to-priority-queue<k, v> priority-queue<k, v>(a list pair<k, v>) is-data<k> compare<k>
 	if a is-empty
 		# TODO: type annotation should not be necessary
 		()::node<k, v>?,
 	else
 		sorted = a sort-by pair => pair from
-		root node<k, v> = sorted.first!, sorted.tail, ()
+		root node<k, v> = sorted.first!, sorted.tail.to-array, ()
 		# TODO: type annotation should not be necessary
 		(root,)::node<k, v>?,
 
-to-arr<k, v> pair<k, v>[](a priority-queue<k, v>) is-data<k> compare<k>
-	a map-to-arr (k, v) => k, v
+to-list<k, v> list pair<k, v>(a priority-queue<k, v>) is-data<k> compare<k>
+	a map-to-list (k, v) => k, v
 
 # True iff `a.size == 0`.
 is-empty<k, v> bool(a priority-queue<k, v>) is-data<k> compare<k>
@@ -236,7 +237,8 @@ pop<k, v> popped<k, v>?(a priority-queue<k, v>) is-data<k> compare<k>
 	a.root dbg
 .dbg str(a node<nat64, str>?)
 	if node ?= a
-		pairs = ", " join for pair : node pairs; "{pair from} {pair to}"
+		pairs = ", " join for pair : node.pairs to-list
+			"{pair from} {pair to}"
 		rest = node.next.is-empty ? "" : "; {node.next dbg}"
 		"{node.min from} {node.min to} [{pairs}]{rest}"
 
@@ -250,7 +252,7 @@ fold<a, k, v> a(acc a, a priority-queue<k, v>, f act a(a, k, v)) is-data<k> comp
 
 .each-part<k, v> record mut
 	min mut pair<k, v>
-	pairs mut pair<k, v>[]
+	pairs mut arr pair<k, v>
 
 .each-arr<k, v> fix-arr each-part<k, v>(a priority-queue<k, v>) trusted compare<k>
 	res fix-arr each-part<k, v> = a.node-count uninitialized-fix-arr
@@ -305,28 +307,28 @@ filter<k, v> priority-queue<k, v>(a priority-queue<k, v>, f act bool(k, v)) trus
 			cur + 1
 		else
 			cur
-	out[0 .. end - out.begin-ptr].cast-immutable to-priority-queue
+	out[0 .. end - out.begin-ptr].cast-immutable.to-list to-priority-queue
 
 map<k-out, v-out, k-in, v-in> priority-queue<k-out, v-out>(
 	a priority-queue<k-in, v-in>,
 	f act pair<k-out, v-out>(k-in, v-in),
 ) is-data<k-in> compare<k-in> is-data<k-out> compare<k-out>
-	a map-to-arr f to-priority-queue
+	a map-to-list f to-priority-queue
 
-map-to-arr<out, k, v> out[](a priority-queue<k, v>, f act out(k, v)) is-data<k> compare<k> trusted
+# TODO: use 'for-loop'
+map-to-list<out, k, v> list out(a priority-queue<k, v>, f act out(k, v)) is-data<k> compare<k> trusted
 	out fix-arr out = a.size uninitialized-fix-arr
 	end = out.begin-ptr fold a, (cur, k, v) =>
 		*cur := f[k, v]
 		cur + 1
 	assert end == out.end-ptr
-	arr = out.cast-immutable
-	arr
+	out.cast-immutable to-list
 
-keys<k, v> k[](a priority-queue<k, v>) is-data<k> compare<k>
-	a map-to-arr (k, _) => k
+keys<k, v> list k(a priority-queue<k, v>) is-data<k> compare<k>
+	a map-to-list (k, _) => k
 
-values<k, v> v[](a priority-queue<k, v>) is-data<k> compare<k>
-	a map-to-arr (_, v) => v
+values<k, v> list v(a priority-queue<k, v>) is-data<k> compare<k>
+	a map-to-list (_, v) => v
 
 test
 	p priority-queue<nat64, str> = ()
@@ -361,8 +363,8 @@ test
 	p6 = p5pop.rest ~ (7, "7b") ~ (8, "8")
 	p6.dbg is "8 8 []; 7 7b []; 6 6 [7 7]; 6 6b [6 6c]"
 	p6.size is 6
-	p6-pairs pair<nat64, str>[] = (6, "6"), (6, "6b"), (6, "6c"), (7, "7"), (7, "7b"), (8, "8")
-	p6.to-arr is p6-pairs
+	p6-pairs list pair<nat64, str> = (6, "6"), (6, "6b"), (6, "6c"), (7, "7"), (7, "7b"), (8, "8")
+	p6.to-list is p6-pairs
 	p6.keys is (6, 6, 6, 7, 7, 8)
 	p6.values is ("6", "6b", "6c", "7", "7b", "8")
 
@@ -384,12 +386,12 @@ test
 	map-calls is p6-pairs
 	mapped.dbg is "2 8x [3 7x, 3 7bx, 4 6x, 4 6bx, 4 6cx]"
 
-.== bool(a pair<nat64, str>[], b pair<nat64, str>[])
-	a arr-equal b
+.== bool(a list pair<nat64, str>, b list pair<nat64, str>)
+	a list-equal b
 
 # TODO: pair should be equatable
 .== bool(a pair<nat64, str>, b pair<nat64, str>)
 	a.from == b.from && a.to == b.to
 
-.== bool(a str[], b str[])
-	a arr-equal b
+.== bool(a list str, b list str)
+	a list-equal b

@@ -1,17 +1,15 @@
 import
 	crow/cell: as-const-ptr, as-mut-ptr, cell, new
-	crow/col/mut-arr
 	crow/c-types: c-int, size_t, u-long
 	crow/io/print: out, print
 	crow/ptr: as-const, const-ptr, mut-ptr, new
-	crow/str-util: to-c-str, to-str
 
-main fut nat(_ str[]) summon
+main fut nat(_ arr str) summon
 	"cro\\+w" test-regex ("crow", "crooow", "duck")
 	"[0-9" test-regex ("42",)
 	()
 
-test-regex void(source str, candidates str[]) summon trusted
+test-regex void(source str, candidates list str) summon trusted
 	match source parse
 	as ok regex
 		for x : candidates

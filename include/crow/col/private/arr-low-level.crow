@@ -9,11 +9,11 @@ export
 	../../private/bootstrap: arr, begin-ptr, size
 
 # Create an array with the given elements.
-new<a> a[](...a a[]) noctx
+new<a> arr a(...a arr a) noctx
 	a
 
 # Pointer to the end of an array.
-end-ptr<a> a*(a a[]) noctx unsafe
+end-ptr<a> a*(a arr a) noctx unsafe
 	a.begin-ptr + a.size
 
 ###
@@ -21,20 +21,20 @@ Arr or the range from begin to end.
 `begin` is inclusive and `end` is exclusive.
 UB if begin > end.
 ###
-arr-from-begin-end<a> a[](begin a*, end a*) unsafe noctx
+arr-from-begin-end<a> arr a(begin a*, end a*) unsafe noctx
 	assert begin <= end
 	begin arr-from-begin-size (end - begin)
 
-arr-from-begin-size<a> a[](begin a*, size nat64) unsafe noctx
+arr-from-begin-size<a> arr a(begin a*, size nat64) unsafe noctx
 	size, begin
 
-arr-cast<out, in> out[](a in[]) no-doc unsafe noctx
+arr-cast<out, in> arr out(a arr in) no-doc unsafe noctx
 	assert size-of@<out> == size-of@<in>
 	a.size, a.begin-ptr.ptr-cast
 
 # Create an array from a range of pointers.
-subscript<a> a[](a a*, r range nat64) noctx unsafe
+subscript<a> arr a(a a*, r range nat64) noctx unsafe
 	r.high - r.low, a + r.low
 
-unsafe-slice<a> a[](a a[], begin nat64, end nat64) no-doc unsafe noctx
+unsafe-slice<a> arr a(a arr a, begin nat64, end nat64) no-doc unsafe noctx
 	a.begin-ptr + begin arr-from-begin-end a.begin-ptr + end

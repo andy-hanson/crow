@@ -17,7 +17,7 @@ Functions in this spec will be generated when you declare an `enum`.
 ###
 enum-like<a> spec
 	# Returns every name and value in the enum.
-	enum-members named-val<a>[]()
+	enum-members arr<named-val<a>>()
 	== bool(a a, b a)
 
 # Convert an enum value to name that was used to declare it.

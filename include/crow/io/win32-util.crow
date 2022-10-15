@@ -3,6 +3,7 @@ import
 	../bits: |
 	../col/arr: subscript
 	../col/fix-arr: begin-ptr, cast-immutable, fix-arr, size, uninitialized-fix-arr
+	../col/list: to-list
 	../number: ==, <=>, to-nat32, to-nat64
 	../ptr: null
 	../range: ..
@@ -20,4 +21,4 @@ show-win32-error str(err DWORD) unsafe summon
 	if size == 0
 		"<<unknown error {err}>>"
 	else
-		res.cast-immutable[0 .. size.to-nat64] str
+		res.cast-immutable[0 .. size.to-nat64].to-list str

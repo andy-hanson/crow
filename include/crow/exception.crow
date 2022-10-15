@@ -1,10 +1,10 @@
 no-std
 import
-	./col/arr: for-loop
+	./col/list: for-loop, to-list
 	./fun-util: subscript
 	./misc: new, void
 	./number: ==
-	./str: ~~, is-empty, literal, str
+	./str: is-empty, literal, str
 	./str-conv: finish, interp, to-str, with-str, with-value
 	./private/backtrace: backtrace, backtrace-entry, entries, file-path, function-name, line-number
 	./str-util: join, to-str
@@ -41,12 +41,11 @@ do-if-error<a> a(on-error act void(), try act a())
 # Outputs the exception's message and backtrace to a string.
 to-str str(a exception) unsafe
 	message = a.message to-str
-	trace str = "" join for x : a.backtrace.entries; "\n\tat {x}"
-	"{message.is-empty ? "<<empty message>>" : message}{trace}"
+	"{message.is-empty ? "<<empty message>>" : message}{a.backtrace to-str}"
 
 to-str str(a backtrace)
-	"" join for x : a entries
-		"\n\tat " ~~ x.to-str
+	"" join for x : a.entries.to-list
+		"\n\tat {x}"
 
 to-str str(a backtrace-entry) trusted
 	name = a.function-name to-str

@@ -192,8 +192,8 @@ immutable(Type) typeFromAst(
 					typeParamsScope,
 					delayStructInsts);
 		},
-		(immutable TypeAst.Suffix it) =>
-			instStructFromAst(
+		(immutable TypeAst.Suffix it) {
+			return instStructFromAst(
 				ctx,
 				commonTypes,
 				symForTypeAstSuffix(it.kind),
@@ -201,13 +201,14 @@ immutable(Type) typeFromAst(
 				[it.left],
 				structsAndAliasesDict,
 				typeParamsScope,
-				delayStructInsts),
+				delayStructInsts);
+		},
 	)(ast);
 
 private immutable(Opt!(Diag.TypeShouldUseSyntax.Kind)) typeSyntaxKind(immutable Sym a) {
 	switch (a.value) {
-		case shortSymValue("arr"):
-			return some(Diag.TypeShouldUseSyntax.Kind.arr);
+		//case shortSymValue("arr"):
+		//	return some(Diag.TypeShouldUseSyntax.Kind.arr);
 		case shortSymValue("const-ptr"):
 			return some(Diag.TypeShouldUseSyntax.Kind.ptr);
 		case shortSymValue("dict"):

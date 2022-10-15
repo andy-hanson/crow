@@ -17,6 +17,7 @@ import
 	../arr-util: fold, insert-at-ptr, last, rtail, tail, try-remove
 	../fix-arr: begin-ptr, cast-immutable, end-ptr, fix-arr, subscript, uninitialized-fix-arr
 	../iter: rest
+	../list: for-loop, list, size, to-array, to-list
 	../mut-stack: ~=, mut-stack, new, peek, pop
 	../sort: sort-unique, set-sort-unique
 	../private/arr-low-level: begin-ptr, end-ptr
@@ -32,7 +33,7 @@ tree-set<a> record
 
 .node<a> union
 	inner inner-node a
-	leaf a[]
+	leaf arr a
 
 .inner-node<a> record by-ref
 	value a
@@ -48,24 +49,24 @@ size<a> nat64(a tree-set a) is-data<a> compare<a>
 	a total-size
 
 # Empty `tree-set`.
-new<a> tree-set a(...a a[]) is-data<a> compare<a>
-	a to-tree-set
+new<a> tree-set a(...a arr a) is-data<a> compare<a>
+	a.to-list to-tree-set
 
-# Copy an `arr` to a `tree-set`.
-to-tree-set<a> tree-set a(a a[]) is-data<a> compare<a>
+# Copy a list to a `tree-set`.
+to-tree-set<a> tree-set a(a list a) is-data<a> compare<a>
 	values = a sort-unique
-	values.leaf, values.size
+	values.to-array.leaf, values.size
 
 ###
-Array of all values in the set, in sorted order.
+List of all values in the set, in sorted order.
 This is O(n).
 ###
-to-arr<a> a[](a tree-set a) is-data<a> compare<a>
+to-list<a> list a(a tree-set a) is-data<a> compare<a>
 	match a.root
 	as inner i
-		i tree-to-arr a.size
+		i tree-to-arr a.size to-list
 	as leaf l
-		l
+		l to-list
 
 # True iff the value is in the set.
 in<a> bool(value a, a tree-set a) is-data<a> compare<a>
@@ -110,7 +111,7 @@ This is O(n).
 	end2 = end fold-iter b-iter, (cur, value) =>
 		*cur := value
 		cur + 1
-	out[0 .. end2 - out.begin-ptr].cast-immutable to-tree-set
+	out[0 .. end2 - out.begin-ptr].cast-immutable.to-list to-tree-set
 
 .walk-iter-union<a> a mut*(out a mut*, value a, a iter a) unsafe is-data<a> compare<a>
 	if peek ?= a peek
@@ -218,7 +219,7 @@ try-remove<a> tree-set<a>?(a tree-set a, b a) is-data<a> compare<a>
 	a filter x => !(b-iter walk-iter-has x)
 
 .iter<a> record mut
-	cur mut a[]
+	cur mut arr a
 	# If a node is on the stack, we have yet to write out the middle and right.
 	# TODO:PERF use a fix-arr, initialized to the tree's height
 	stack mut-stack inner-node a
@@ -227,7 +228,7 @@ try-remove<a> tree-set<a>?(a tree-set a, b a) is-data<a> compare<a>
 	stack mut-stack inner-node a = ()
 	cur = stack init-iter-recur a.root
 	cur, stack
-.init-iter-recur<a> a[](stack mut-stack inner-node a, node node a)
+.init-iter-recur<a> arr a(stack mut-stack inner-node a, node node a)
 	match node
 	as inner i
 		stack ~= i
@@ -305,7 +306,7 @@ try-remove<a> tree-set<a>?(a tree-set a, b a) is-data<a> compare<a>
 		as find-scapegoat f
 			a handle-scapegoat value, a.left, f
 
-.add-to-arr<a> add-result a(a a[], value a, max-height nat64) trusted compare<a>
+.add-to-arr<a> add-result a(a arr a, value a, max-height nat64) trusted compare<a>
 	insert-ptr = a binary-search-insert-ptr value
 	if insert-ptr != a.end-ptr && *insert-ptr == value
 		none
@@ -317,7 +318,7 @@ try-remove<a> tree-set<a>?(a tree-set a, b a) is-data<a> compare<a>
 	else
 		a break-up-arr value, insert-ptr, max-height
 
-.break-up-arr<a> add-result a(a a[], value a, insert-ptr a*, max-height nat64) unsafe compare<a>
+.break-up-arr<a> add-result a(a arr a, value a, insert-ptr a*, max-height nat64) unsafe compare<a>
 	assert a.begin-ptr <= insert-ptr
 	assert insert-ptr <= a.end-ptr
 	# Break it up into nodes, adding to height
@@ -365,12 +366,12 @@ try-remove<a> tree-set<a>?(a tree-set a, b a) is-data<a> compare<a>
 	as leaf l
 		l size
 
-.tree-to-arr<a> a[](a inner-node a, value a, size nat64) trusted compare<a>
+.tree-to-arr<a> arr a(a inner-node a, value a, size nat64) trusted compare<a>
 	out fix-arr a = size uninitialized-fix-arr
 	end = out.begin-ptr tree-to-arr-recur a.inner, value
 	assert end == out.end-ptr
 	out cast-immutable
-.tree-to-arr<a> a[](a inner-node a, size nat64) trusted compare<a>
+.tree-to-arr<a> arr a(a inner-node a, size nat64) trusted compare<a>
 	out fix-arr a = size uninitialized-fix-arr
 	end = out.begin-ptr tree-to-arr-recur a.inner
 	assert end == out.end-ptr
@@ -406,7 +407,7 @@ try-remove<a> tree-set<a>?(a tree-set a, b a) is-data<a> compare<a>
 		out copy-out l
 
 # TODO:PERF (use memcpy)
-.copy-out<a> a mut*(out a mut*, a a[]) unsafe
+.copy-out<a> a mut*(out a mut*, a arr a) unsafe
 	out fold a, (cur, x) =>
 		*cur := x
 		cur + 1
@@ -449,7 +450,7 @@ filter<a> tree-set a(a tree-set a, f act bool(a)) trusted is-data<a> compare<a>
 			cur + 1
 		else
 			cur
-	out[0 .. end - out.begin-ptr].cast-immutable to-tree-set
+	out[0 .. end - out.begin-ptr].cast-immutable.to-list to-tree-set
 
 # TODO: find-and-get
 
@@ -459,7 +460,7 @@ map<out, in> tree-set out(a tree-set in, f act out(in)) is-data<in> compare<in> 
 		*cur := f[value]
 		cur + 1
 	assert end == out.end-ptr
-	out[0 .. end - out.begin-ptr].set-sort-unique.cast-immutable to-tree-set
+	out[0 .. end - out.begin-ptr].set-sort-unique.cast-immutable.to-list to-tree-set
 
 .dbg<a> str(a tree-set a) to-str<a>
 	a.root dbg
@@ -468,7 +469,7 @@ map<out, in> tree-set out(a tree-set in, f act out(in)) is-data<in> compare<in> 
 	as inner i
 		"({i.left dbg} {i value} {i.right dbg})"
 	as leaf l
-		parts = " " join for x : l; "{x}"
+		parts = " " join for x : l.to-list; "{x}"
 		"[{parts}]"
 
 .verify void(a tree-set str, expected str)

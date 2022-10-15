@@ -1,7 +1,7 @@
 no-std
 import
 	./bool: bool
-	./col/arr: new
+	./col/list: new
 	./compare: <
 	./misc: void
 	./number:

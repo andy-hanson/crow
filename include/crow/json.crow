@@ -1,10 +1,11 @@
 no-std
 import
 	./bool: ==, bool, false, new, true
-	./col/arr: arr, arr-equal, for-loop, new
+	./col/arr: arr
 	./col/dict: dict, dict-equal, for-loop, new, subscript, to-dict
+	./col/list: for-loop, list, list-equal, new, to-list
 	./col/mut-dict: move-to-dict, mut-dict, new, set-subscript
-	./col/mut-arr: ~=, move-to-arr, mut-arr, new
+	./col/mut-arr: ~=, move-to-list, mut-arr, new
 	./misc: void
 	./number: ==, float64, int64, nat64, to-float64
 	./opt: new, opt
@@ -25,11 +26,11 @@ json union
 	json-bool bool
 	json-number float64
 	json-str str
-	json-arr json[]
+	json-list list json
 	json-object json[str]
 
-new json(...pairs pair<str, json>[])
-	pairs.to-dict json-object
+new json(...pairs arr<pair<str, json>>)
+	pairs.to-list.to-dict json-object
 
 json<a> spec
 	json json(a a)
@@ -44,8 +45,8 @@ json json(a float64)
 	a json-number
 json json(a str)
 	a json-str
-json<a> json(a a[]) json<a>
-	(for x : a; x json) json-arr
+json<a> json(a list a) json<a>
+	(for x : a; x json) json-list
 
 ###
 True iff the two values are deeply equal.
@@ -63,10 +64,9 @@ This is equivalent to `a.to-str == b.to-str`.
 	as json-str sa
 		if sb ?= b as-str
 			sa == sb
-	as json-arr aa
-		if ab ?= b as-arr
-			aa arr-equal ab, (x, y) =>
-				x == y
+	as json-list aa
+		if ab ?= b as-list
+			aa list-equal ab
 	as json-object oa
 		if ob ?= b as-object
 			oa dict-equal ob
@@ -86,7 +86,7 @@ as-bool bool?(a json) noctx
 		()
 	as json-str _
 		()
-	as json-arr _
+	as json-list _
 		()
 	as json-object _
 		()
@@ -99,7 +99,7 @@ as-number float64?(a json) noctx
 		n,
 	as json-str _
 		()
-	as json-arr _
+	as json-list _
 		()
 	as json-object _
 		()
@@ -116,12 +116,12 @@ as-str str?(a json) noctx
 		()
 	as json-str s
 		s,
-	as json-arr _
+	as json-list _
 		()
 	as json-object _
 		()
-# If `a` is an array, returns that, else returns an empty option.
-as-arr json[]?(a json) noctx
+# If `a` is a list, returns that, else returns an empty option.
+as-list list<json>?(a json) noctx
 	match a
 	as json-bool _
 		()
@@ -129,7 +129,7 @@ as-arr json[]?(a json) noctx
 		()
 	as json-str _
 		()
-	as json-arr arr
+	as json-list arr
 		arr,
 	as json-object _
 		()
@@ -142,7 +142,7 @@ as-object json[str]?(a json) noctx
 		()
 	as json-str _
 		()
-	as json-arr _
+	as json-list _
 		()
 	as json-object o
 		o,
@@ -175,7 +175,7 @@ to-str str(a json)
 		"{f}"
 	as json-str s
 		s quote
-	as json-arr xs
+	as json-list xs
 		parts = "," join for x : xs; "{x}"
 		"[{parts}]"
 	as json-object o
@@ -203,7 +203,7 @@ take-json json?(a reader)
 	elif a try-take-char "["
 		a skip-whitespace
 		if a try-take-char "]"
-			().json-arr,
+			().json-list,
 		else
 			a take-arr-recur ()
 	elif a try-take-char "\{"
@@ -221,7 +221,7 @@ take-json json?(a reader)
 			a skip-whitespace
 			a take-arr-recur res
 		elif a try-take-char "]"
-			res.move-to-arr.json-arr,
+			res.move-to-list.json-list,
 
 .take-object-recur json?(a reader, res json mut[str])
 	if key ?= a take-quoted-str
@@ -252,9 +252,9 @@ test
 	"a\nb".json-str verify "\"a\\nb\""
 	"a\\nb".json-str verify "\"a\\\\nb\""
 
-	().json-arr verify "[]"
-	(1.0.json-number,).json-arr verify "[1]"
-	(1.0.json-number, true.json-bool).json-arr verify "[1,true]"
+	().json-list verify "[]"
+	(1.0.json-number,).json-list verify "[1]"
+	(1.0.json-number, true.json-bool).json-list verify "[1,true]"
 
 	().json-object verify "\{}"
 	(("a", 1.0.json-number),).json-object verify "\{\"a\":1}"

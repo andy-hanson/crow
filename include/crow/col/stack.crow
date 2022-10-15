@@ -11,9 +11,9 @@ import
 	../str: ==, literal, str
 	../test-util: is
 	../test-util/spy: calls, fn, new, spy-act1
-	./arr: ==, arr, new
-	./arr-util: fold
+	./arr: arr
 	./fix-arr: begin-ptr, cast-immutable, end-ptr, fix-arr, uninitialized-fix-arr
+	./list: ==, fold, list, new, to-list
 
 ###
 Immutable stack type.
@@ -31,21 +31,21 @@ Stack containing the given elements.
 
 The first element of `a` goes on the bottom and the last element of `a` goes on the top.
 ###
-new<a> stack a(...a a[])
-	a to-stack
+new<a> stack a(...a arr a)
+	a.to-list to-stack
 
 ###
 Stack containing the given elements.
 
 The first element of `a` goes on the bottom and the last element of `a` goes on the top.
 ###
-to-stack<a> stack a(a a[])
+to-stack<a> stack a(a list a)
 	# TODO: type annotation should not be necessary
 	empty stack a = (()::node<a>?,)
 	empty fold a, (stack, x) => stack ~ x
 
-# Copy elements an arrary.
-to-arr<a> a[](a stack a) trusted
+# Copy elements a list.
+to-list<a> list a(a stack a) trusted
 	for x : a; x
 
 # `true` iff `a.size == 0`.
@@ -113,17 +113,17 @@ for-loop<a> void(a reversed-stack a, f act void(a))
 		else
 			break
 
-for-loop<out, in> out[](a reversed-stack in, f act out(in)) trusted
+for-loop<out, in> list out(a reversed-stack in, f act out(in)) trusted
 	res fix-arr out = a.inner.size uninitialized-fix-arr
 	out cell out mut* = res.begin-ptr,
 	for x : a
 		*(*out) := f[x]
 		*out := *out + 1
 	assert *out == res.end-ptr
-	res cast-immutable
+	res.cast-immutable to-list
 
-# Copy elements to an array, from top to bottom.
-to-arr<a> a[](a reversed-stack a) trusted
+# Copy elements to a list, from top to bottom.
+to-list<a> list a(a reversed-stack a) trusted
 	for x : a; x
 
 fold<a, b> a(acc a, a reversed-stack b, f act a(a, b))
@@ -144,14 +144,14 @@ fold<a, b> a(acc a, a stack b, f act a(a, b))
 	else
 		acc
 
-for-loop<out, in> out[](a stack in, f act out(in)) trusted
+for-loop<out, in> list out(a stack in, f act out(in)) trusted
 	res fix-arr out = a.size uninitialized-fix-arr
 	out cell out mut* = res.begin-ptr,
 	for x : a
 		*(*out) := f[x]
 		*out := *out + 1
 	assert *out == res.end-ptr
-	res cast-immutable
+	res.cast-immutable to-list
 
 # Produce a stack with `f[x]` applied to each element `x` in the input.
 for-loop<out, in> stack out(a stack in, f act out(in))
@@ -182,22 +182,22 @@ find-and-get<out, in> out?(a stack in, f act out?(in))
 test
 	a stack nat64 = ()
 	assert a is-empty
-	a.to-arr is ()
+	a.to-list is ()
 	a.peek is ()
 
 	b = a ~ 1
-	b.to-arr is (1,)
+	b.to-list is (1,)
 	b.peek is (1,)
-	b.pop!.rest.to-arr is ()
+	b.pop!.rest.to-list is ()
 	forbid b is-empty
 
 	c = b ~ 2
-	c.to-arr is (1, 2)
+	c.to-list is (1, 2)
 	c.peek is (2,)
-	c.pop!.rest.to-arr is (1,)
+	c.pop!.rest.to-list is (1,)
 
 	d = c ~ 3
-	d.to-arr is (1, 2, 3)
+	d.to-list is (1, 2, 3)
 
 	for-loop-spy spy-act1<void, nat64> = (_ => ()),
 	d for-loop for-loop-spy.fn
@@ -206,10 +206,10 @@ test
 	for x : d.reversed; for-loop-spy.fn[x]
 	for-loop-spy.calls is (3, 2, 1)
 
-	(for x : d; x + 10)::nat64[] is (11, 12, 13)
+	(for x : d; x + 10)::list<nat64> is (11, 12, 13)
 
 	d3 = d filter x => x != 2
-	d3.to-arr is (1, 3)
+	d3.to-list is (1, 3)
 
 	folded = 5 fold d, (x, y) => x + y
 	folded is 11

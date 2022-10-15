@@ -10,8 +10,8 @@ To measure performance:
 ###
 no-std
 import
-	./col/arr: arr, new
 	./col/dict: dict
+	./col/list: list, new, to-array
 	./col/mut-dict: move-to-dict, mut-dict, new, set-subscript
 	./fun-util: subscript
 	./io/duration: duration, new, nsec, to-str
@@ -25,8 +25,8 @@ import
 		add-measure-value-at-index, count, each-measure, get-measure-index, perf-enable-low-level,
 		perf-measure-value, total-nsec
 
-perf-enable void(measure-names sym[]) summon
-	measure-names perf-enable-low-level
+perf-enable void(measure-names list sym) summon
+	measure-names.to-array perf-enable-low-level
 
 # Disables performance measurement and clears all measurements.
 perf-disable void() summon

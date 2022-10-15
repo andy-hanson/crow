@@ -11,11 +11,10 @@ import
 	../str-conv: finish, interp, to-str, with-value
 	../str-util: join
 	../test-util: is
-	./arr: ==, arr, new, size
-	./arr-util: first, last
 	./fix-arr:
 		begin-ptr, cast-immutable, copy-from, end-ptr, fix-arr, is-empty, new, set-zero-elements,
 		size, subscript, uninitialized-fix-arr, zeroed-fix-arr
+	./list: ==, first, last, list, new, size, to-list
 	./private/arr-low-level: arr-from-begin-end
 
 # Mutable double-ended queue.
@@ -32,14 +31,14 @@ new<a> mut-deque a() trusted
 	(), null, null
 
 ###
-Copy elements to an array.
+Copy elements to a list.
 
 This is O(n).
 ###
-to-arr<a> a[](a mut-deque a) trusted
-	a.to-fix-arr cast-immutable
+to-list<a> list a(a mut-deque a) trusted
+	a.to-fix-arr.cast-immutable to-list
 
-to-fix-arr<a> fix-arr a(a mut-deque a) no-doc trusted
+.to-fix-arr<a> fix-arr a(a mut-deque a) no-doc trusted
 	unless a is-empty
 		res fix-arr a = a.size uninitialized-fix-arr
 		res copy-from-deque a
@@ -176,12 +175,12 @@ pop-right<a> a?(a mut-deque a) trusted
 	" " join for i : 0 .. a.inner.size
 		"{i == right ? "<-R "}{i == left ? "L-> "}{a.inner[i]}"
 
-.verify void(a mut-deque nat64, arr nat64[], expected str)
-	a.peek-left is arr.first
-	a.peek-right is arr.last
-	a.size is arr.size
-	a.to-arr is arr
-	a.dbg is expected
+.verify void(a mut-deque nat64, expected list nat64, expected-dbg str)
+	a.peek-left is expected.first
+	a.peek-right is expected.last
+	a.size is expected.size
+	a.to-list is expected
+	a.dbg is expected-dbg
 
 test
 	a mut-deque nat64 = ()

@@ -12,16 +12,18 @@ import
 	../../test-util: is
 	../../tuple: a, b
 	../arr: arr, for-loop, is-empty
-	../seq: ~, ~~, down, get-root, left, l0, l1, l2, new, node, nodes, right, seq, try-split-once-by-subseq
+	../list:
+		~, ~~, down, for-loop, get-root, left, l0, l1, l2, list, new, node, nodes, right, to-list,
+		try-split-once-by-sublist
 
-dummy-seq-tests nat64()
+dummy-list-tests nat64()
 	0
 
-.verify<a> void(a seq a, expected str) no-doc trusted to-str<a>
+.verify<a> void(a list a, expected str) no-doc trusted to-str<a>
 	a.dbg is expected
 	a.get-root check-structure
 
-.dbg<a> str(a seq a) to-str<a> no-doc
+.dbg<a> str(a list a) to-str<a> no-doc
 	a.get-root dbg-l0
 .dbg-l0<a> str(a l0 a) to-str<a>
 	a.node dbg-node (x => x dbg-arr), (x => x dbg-l1)
@@ -29,20 +31,20 @@ dummy-seq-tests nat64()
 	a.node dbg-node (x => x dbg-arr2d), (x => x dbg-l2)
 .dbg-l2<a> str(a l2 a) to-str<a>
 	a.nodes dbg-arr3d
-.dbg-node<a, lower> str(a node<a, lower>, dbg-a act str(a[]), dbg-lower act str(lower))
+.dbg-node<a, lower> str(a node<a, lower>, dbg-a act str(arr a), dbg-lower act str(lower))
 	match a
 	as leaf l
 		dbg-a[l]
 	as branch b
 		"({dbg-a[b left]} {dbg-lower[b down]} {dbg-a[b right]})"
-.dbg-arr<a> str(a a[]) to-str<a>
-	parts = " " join for x : a; "{x}"
+.dbg-arr<a> str(a arr a) to-str<a>
+	parts = " " join for x : a.to-list; "{x}"
 	"[{parts}]"
-.dbg-arr2d<a> str(a a[][]) to-str<a>
-	parts = " " join for x : a; x dbg-arr
+.dbg-arr2d<a> str(a arr arr a) to-str<a>
+	parts = " " join for x : a.to-list; x dbg-arr
 	"[{parts}]"
-.dbg-arr3d<a> str(a a[][][]) to-str<a>
-	parts = " " join for x : a; x dbg-arr2d
+.dbg-arr3d<a> str(a arr arr arr a) to-str<a>
+	parts = " " join for x : a.to-list; x dbg-arr2d
 	"[{parts}]"
 
 .check-structure<a> void(a l0 a) unsafe
@@ -63,7 +65,7 @@ dummy-seq-tests nat64()
 		b.down check-structure
 		b.right check-structure
 
-.check-structure<a> void(xs a[][]) unsafe
+.check-structure<a> void(xs arr arr a) unsafe
 	forbid xs is-empty
 	for ys : xs
 		forbid ys is-empty
@@ -75,16 +77,16 @@ dummy-seq-tests nat64()
 			forbid zs is-empty
 
 test
-	a seq nat64 = ()
+	a list nat64 = ()
 	b = 1 ~ a
 	b verify "[1]"
 
 test
-	a seq nat64 = 1, 2, 3, 4, 5, 6, 7, 8
+	a list nat64 = 1, 2, 3, 4, 5, 6, 7, 8
 	a verify "[1 2 3 4 5 6 7 8]"
 	b = 1 ~ a
 	b verify "([1] [] [1 2 3 4 5 6 7 8])"
-	c seq nat64 = (8, 7, 6, 5, 4, 3, 2) ~~ b
+	c list nat64 = (8, 7, 6, 5, 4, 3, 2) ~~ b
 	c verify "([8 7 6 5 4 3 2 1] [] [1 2 3 4 5 6 7 8])"
 	d = 9 ~ c
 	d verify "([9] [[8 7 6 5 4 3 2 1]] [1 2 3 4 5 6 7 8])"
@@ -92,7 +94,7 @@ test
 	e verify "([9] [[8 7 6 5 4 3 2 1] [1 2 3 4 5 6 7 8]] [1 2 3 4 5])"
 
 test
-	a seq nat64 = 1, 2, 3, 4, 5
+	a list nat64 = 1, 2, 3, 4, 5
 	a verify "[1 2 3 4 5]"
 	b = a ~~ (9, 8, 7, 6)
 	b verify "([1 2 3 4 5] [] [9 8 7 6])"
@@ -121,35 +123,35 @@ test
 
 test
 	assert size-of@<big-nat> == 24
-	a seq big-nat = 5.big, 6.big
-	b seq big-nat = 4.big ~ a
+	a list big-nat = 5.big, 6.big
+	b list big-nat = 4.big ~ a
 	b verify "([4] [] [5 6])"
 	
-	#b-split = (b try-split-once-by-subseq (5.big,))!
+	#b-split = (b try-split-once-by-sublist (5.big,))!
 	#b-split.a verify "[4]"
 	#b-split.b verify "[6]"
 
-	c seq big-nat = b ~ 7.big
+	c list big-nat = b ~ 7.big
 	c verify "([4] [[5 6]] [7])"
 
-	#c-split = (c try-split-once-by-subseq (5.big,))!
+	#c-split = (c try-split-once-by-sublist (5.big,))!
 	#c-split.a verify "[4]"
 	#c-split.b verify "[6 7]"
 
-	d seq big-nat = c ~ 8.big ~ 9.big ~ 10.big ~ 11.big
+	d list big-nat = c ~ 8.big ~ 9.big ~ 10.big ~ 11.big
 	d verify "([4] [[5 6] [7 8] [9 10]] [11])"
 
-	d-split = (d try-split-once-by-subseq (6.big, 7.big))!
+	d-split = (d try-split-once-by-sublist (6.big, 7.big))!
 	d-split.a verify "[4 5]"
 	d-split.b verify "([8] [[9 10]] [11])"
 
 	###
-	e seq big-nat = 0.big ~ (1.big ~ (2.big ~ (3.big ~ d)))
+	e list big-nat = 0.big ~ (1.big ~ (2.big ~ (3.big ~ d)))
 	e verify "([0] ([[1 2]] [] [[3 4] [5 6] [7 8] [9 10]]) [11])"
-	f seq big-nat = e ~ 12.big ~ 13.big
+	f list big-nat = e ~ 12.big ~ 13.big
 	f verify "([0] ([[1 2]] [[[3 4] [5 6] [7 8] [9 10]]] [[11 12]]) [13])"
 
-	f-split = (f try-split-once-by-subseq (4.big, 5.big))!
+	f-split = (f try-split-once-by-sublist (4.big, 5.big))!
 	f-split.a verify "([0] [[1 2]] [3])"
 	f-split.b verify "([6] ([[7 8] [9 10]] [] [[11 12]]) [13])"
 	###

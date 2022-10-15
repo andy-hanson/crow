@@ -205,26 +205,34 @@ immutable(Opt!(ImportFileType)) toImportFileType(immutable TypeAst a) =>
 			none!(ImportFileType),
 		(immutable(TypeAst.Fun)) =>
 			none!(ImportFileType),
-		(immutable TypeAst.InstStruct x) =>
-			x.name.name == shortSym("str") && empty(x.typeArgs)
-				? some(ImportFileType.str)
-				: none!(ImportFileType),
+		(immutable TypeAst.InstStruct x) {
+			switch (x.name.name.value) {
+				case shortSymValue("str"):
+					return empty(x.typeArgs)
+						? some(ImportFileType.str)
+						: none!ImportFileType;
+				case shortSymValue("arr"):
+					return x.typeArgs.length == 1
+						? matchTypeAst!(
+							immutable Opt!(ImportFileType),
+							(immutable(TypeAst.Dict)) =>
+								none!(ImportFileType),
+							(immutable(TypeAst.Fun)) =>
+								none!(ImportFileType),
+							(immutable TypeAst.InstStruct y) =>
+								y.name.name == shortSym("nat8") && empty(y.typeArgs)
+									? some(ImportFileType.nat8Array)
+									: none!(ImportFileType),
+							(immutable(TypeAst.Suffix)) =>
+								none!(ImportFileType)
+							)(x.typeArgs[0])
+						: none!ImportFileType;
+				default:
+					return none!ImportFileType;
+			}
+		},
 		(immutable TypeAst.Suffix x) =>
-			x.kind == TypeAst.Suffix.Kind.arr
-				? matchTypeAst!(
-					immutable Opt!(ImportFileType),
-					(immutable(TypeAst.Dict)) =>
-						none!(ImportFileType),
-					(immutable(TypeAst.Fun)) =>
-						none!(ImportFileType),
-					(immutable TypeAst.InstStruct y) =>
-						y.name.name == shortSym("nat8") && empty(y.typeArgs)
-							? some(ImportFileType.nat8Array)
-							: none!(ImportFileType),
-					(immutable(TypeAst.Suffix)) =>
-						none!(ImportFileType)
-					)(x.left)
-				: none!(ImportFileType),
+			none!(ImportFileType),
 	)(a);
 
 immutable(ImportOrExportKindAndDedent) parseIndentedImportNames(scope ref Lexer lexer, immutable Pos start) {

@@ -1,18 +1,16 @@
 import
 	crow/cell: *, as-const-ptr, as-mut-ptr, cell, new
-	crow/col/arr-util: flatten, groups-of
 	crow/col/private/arr-low-level: begin-ptr, subscript
 	crow/c-types: c-int
 	crow/io/duration: msec
 	crow/io/print: out, print
 	crow/col/iter: again, again-or-stop, stop
 	crow/io/time: get-monotime-msec, repeat-interval
-	crow/math/mat: *, I, mat3-32, rotation, to-arr
+	crow/math/mat: *, I, mat3-32, rotation, to-array
 	crow/math/trig: pi
 	crow/math/vec: +, -, *, new, right, up, vec2-32, vec3-32
 	crow/private/runtime: cur-thread-id
 	crow/ptr: ==, as-any-const-ptr, to-const-ptr, null, ptr-cast, size-of
-	crow/str-util: to-str
 	OpenGL/gl:
 		glActiveTexture, glBindBuffer, glBindTexture, glBufferData, glBufferSubData, glClear,
 		glClearColor, glCullFace, glDeleteBuffers, glDrawArrays, glEnable,
@@ -35,11 +33,11 @@ import
 		SDL_WINDOWPOS_UNDEFINED, SDL_WINDOW_SHOWN, to-int32
 	./shader: shader-prog-destroy, shader-prog-load
 	./texture: load-texture-from-bmp, free-texture
-	./crow.bmp as crow-bmp nat8[]
+	./crow.bmp as crow-bmp arr nat8
 	./fragment.frag.essl as fragment-shader str
 	./vertex.vert.essl as vertex-shader str
 
-main fut nat(_ str[]) summon trusted
+main fut nat(_ arr str) summon trusted
 	SDL_INIT_VIDEO.SDL_Init handle-sdl-error "SDL_INIT_VIDEO"
 
 	# TODO: is this redundant?
@@ -81,12 +79,12 @@ main fut nat(_ str[]) summon trusted
 	assert tex-sampler-uniform-loc >= 0
 	gl glUniform1i tex-sampler-uniform-loc, 0
 	gl gl-check-error "after glUniform1i"
-	gl glUniformMatrix3fv rotation-uniform-loc, 1, false, I.to-arr.begin-ptr
+	gl glUniformMatrix3fv rotation-uniform-loc, 1, false, I::mat3-32.to-array.begin-ptr
 	gl gl-check-error "after set rotation-uniform-loc"
 
-	texture = gl load-texture-from-bmp crow-bmp
+	texture = gl load-texture-from-bmp crow-bmp.to-list
 
-	vertices vertex[] = make-cube
+	vertices arr vertex = make-cube
 	triangle-vbo = gl vbo-create vertices
 	forbid triangle-vbo == 0
 
@@ -106,15 +104,15 @@ main fut nat(_ str[]) summon trusted
 		SDL_Quit
 		()
 
-.make-cube vertex[]()
+.make-cube arr vertex()
 	front = I.cube-side ~~ (up rotation pi / 2 cube-side) ~~ (right rotation pi / 2 cube-side)
-	back vertex[][] = for xs : front groups-of 3
+	back list vertex = () join for xs : front groups-of 3
 		# Change order so that the triangles have reverse winding
 		xs[1].invert, xs[0].invert, xs[2].invert
-	for v : front ~~ back.flatten
+	for v : front ~~ back to-array
 		v.pos, v.normal, (v.pos + (1, 1, 1)) * 0.5, v.tex-coord
 
-.cube-side vertex[](mat mat3-32)
+.cube-side list vertex(mat mat3-32)
 	t0 vec2-32 = 0.0, 1.0
 	t1 vec2-32 = 1.0, 1.0
 	t2 vec2-32 = 0.0, 0.0
@@ -127,7 +125,7 @@ main fut nat(_ str[]) summon trusted
 	ur vertex = (1, 1, -1), n, black, t3
 	(dl, dr, ul, ul, dr, ur) apply mat
 
-.apply vertex[](a vertex[], m mat3-32)
+.apply list vertex(a list vertex, m mat3-32)
 	for x : a
 		m * x.pos, m * x.normal, x.color, x.tex-coord
 
@@ -146,7 +144,7 @@ main fut nat(_ str[]) summon trusted
 	render-thread-id nat
 	window SDL_Window
 	shader-prog GLuint
-	vertices vertex[]
+	vertices arr vertex
 	triangle-vbo GLuint
 	texture GLuint
 	rotation-uniform-loc GLint
@@ -197,7 +195,7 @@ main fut nat(_ str[]) summon trusted
 
 	t = get-monotime-msec.to-float32 * 0.0003::float32
 	mat mat3-32 = (0.5::float32) * ((1, 2, 3) rotation t)
-	gl glUniformMatrix3fv renderer.rotation-uniform-loc, 1, false, mat.to-arr.begin-ptr
+	gl glUniformMatrix3fv renderer.rotation-uniform-loc, 1, false, mat.to-array.begin-ptr
 
 	gl glDrawArrays GL_TRIANGLES, 0, renderer.vertices.size.to-int32
 	gl gl-check-error "after render"
@@ -223,7 +221,7 @@ main fut nat(_ str[]) summon trusted
 	throw "sdl error in {description}: {SDL_GetError}"
 	SDL_Quit
 
-.vbo-create GLuint(gl gl-ext, vertices vertex[]) summon unsafe
+.vbo-create GLuint(gl gl-ext, vertices arr vertex) summon unsafe
 	vbo-cell cell GLuint = 0,
 	n-buffers = 1 to-int32
 	gl glGenBuffers n-buffers, vbo-cell.as-mut-ptr
@@ -237,7 +235,7 @@ main fut nat(_ str[]) summon trusted
 		throw "Creating VBO failed: Code {err}"
 	vbo
 
-size-bytes nat(vertices vertex[]) unsafe
+size-bytes nat(vertices arr vertex) unsafe
 	vertices.size * size-of@<vertex>
 
 .vbo-free void(gl gl-ext, vbo GLuint) summon unsafe

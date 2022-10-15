@@ -1,4 +1,4 @@
-main fut nat(_ str[]) summon trusted
+main fut nat(_ arr str) summon trusted
 	a r = (),
 	_ = a
 	()

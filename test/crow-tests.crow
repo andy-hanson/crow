@@ -1,17 +1,14 @@
 import
-	crow/col/arr-util: find-and-get
-	crow/col/mut-arr: ~=, move-to-arr, mut-arr, new
 	crow/io/file: each-child-recursive
 	crow/io/path: base-name, get-extension
 	crow/io/print: out, print
 	crow/io/process: exit-code, spawn-and-wait-result, stderr, stdout
-	crow/str-util: contains-substr, ends-with, try-split-once
 	crow/version: is-windows
 	./failure:
 		failure, flat-map-with-max-size, handle-output, max-failures, match-test, new,
 		overwrite-output, print-tests, test-options
 
-run-crow-tests result<str, failure[]>(path str, path-to-crow str, options test-options) summon
+run-crow-tests result<str, list failure>(path str, path-to-crow str, options test-options) summon
 	tests = path list-tests options.match-test
 	failures = tests flat-map-with-max-size options.max-failures, x =>
 		path-to-crow run-single-crow-test x, options
@@ -20,12 +17,12 @@ run-crow-tests result<str, failure[]>(path str, path-to-crow str, options test-o
 	else
 		failures err
 
-.list-tests str[](path str, match-test str) summon
+.list-tests list str(path str, match-test str) summon
 	res str mut[] = ()
 	path each-child-recursive child =>
 		if child contains-substr match-test && child.ext-is-crow && !child.is-excluded
 			res ~= child
-	res move-to-arr
+	res move-to-list
 
 # Some tests have different output on Windows
 .is-excluded bool(a str) trusted
@@ -36,8 +33,8 @@ run-crow-tests result<str, failure[]>(path str, path-to-crow str, options test-o
 	if ext ?= a.base-name get-extension
 		ext == "crow"
 
-.run-single-crow-test failure[](path-to-crow str, path str, options test-options) summon trusted
-	op failure[]? = ("ast", "model")::str[] find-and-get print-kind =>
+.run-single-crow-test list failure(path-to-crow str, path str, options test-options) summon trusted
+	op list<failure>? = ("ast", "model")::list<str> find-and-get print-kind =>
 		if options print-tests
 			out print "crow print {print-kind} {path}"
 		res = print-kind run-print-test path-to-crow, path, options.overwrite-output
@@ -55,7 +52,7 @@ run-crow-tests result<str, failure[]>(path str, path-to-crow str, options test-o
 
 .print-test-result record
 	should-stop bool
-	failures failure[]
+	failures list failure
 
 .run-print-test print-test-result(
 	print-kind str,
@@ -66,7 +63,7 @@ run-crow-tests result<str, failure[]>(path str, path-to-crow str, options test-o
 	res = path-to-crow spawn-and-wait-result ("print", print-kind, path)
 	output-path = "{path}.{print-kind}.json"
 	# NOTE: compiler may have both stderr and stdout!
-	output-failures failure[] = if res.stdout.is-empty && res.exit-code != 0
+	output-failures list failure = if res.stdout.is-empty && res.exit-code != 0
 		# Just have a file for the err
 		()
 	else
@@ -89,20 +86,20 @@ run-kind enum
 	interpret
 	jit
 
-.run-single-runnable-test failure[](
+.run-single-runnable-test list failure(
 	path-to-crow str,
 	path str,
 	run-kind run-kind,
 	overwrite-output bool,
 ) summon
-	args str[] = match run-kind
+	args list str = match run-kind
 	as interpret
 		"run", path
 	as jit
 		"run", path, "--jit"
 	res = path-to-crow spawn-and-wait-result args
 	stdout-failures = path handle-output "{path}.stdout", res.stdout, overwrite-output
-	stderr-failures failure[] = if res.exit-code != 0 || res.stderr != ""
+	stderr-failures list failure = if res.exit-code != 0 || res.stderr != ""
 		# Exceptions differ between interpreter and JIT
 		err-path = if path ends-with "/fail.crow"
 			match run-kind

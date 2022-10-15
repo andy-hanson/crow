@@ -1,8 +1,7 @@
 import
-	crow/str-util: lower-case, replace, reverse, try-remove-start
 	crow/io/print: out, print
 
-main fut nat(_ str[]) summon
+main fut nat(_ arr str) summon
 	# print(out, "crow")
 	out print "crow"
 

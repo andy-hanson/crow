@@ -14,14 +14,15 @@ import
 	../../str-util: join
 	../../test-util: is
 	../../tuple: from, new, pair, pair-equal, to
-	../arr: arr, new
-	../arr-util: every, fold, zip
+	../arr: arr
+	../arr-util: every, zip
 	../fix-arr: begin-ptr, cast-immutable, end-ptr, fix-arr, fix-arr-from-begin-end, uninitialized-fix-arr
+	../list: fold, list, new, to-list
 	../mut-set: in, mut-set, new, try-add
 	./frozen-dict:
-		for-loop, frozen-dict, fold, get-pairs, in, is-empty,
-		fix-arr-to-frozen-dict-promise-no-duplicates, new, size, subscript, to-frozen-dict
-	
+		for-loop, frozen-dict, fold, in, is-empty, fix-arr-to-frozen-dict-promise-no-duplicates,
+		new, size, subscript, to-array, to-frozen-dict
+
 compact-dict<k, v> record by-val
 	ignore void
 	impl impl<k, v>
@@ -47,14 +48,14 @@ node-count<k, v> nat64(a compact-dict<k, v>)
 new<k, v> compact-dict<k, v>() is-data<k> compare<k> hash-mix<k>
 	(), ().end-node
 
-compact-dict<k, v> compact-dict<k, v>(a pair<k, v>[]) is-data<k> compare<k> hash-mix<k>
+compact-dict<k, v> compact-dict<k, v>(a list pair<k, v>) is-data<k> compare<k> hash-mix<k>
 	(), a.to-frozen-dict.end-node
 
-keys<k, v> k[](a compact-dict<k, v>) is-data<k> compare<k> hash-mix<k>
-	a map-to-arr (k, _) => k
+keys<k, v> list k(a compact-dict<k, v>) is-data<k> compare<k> hash-mix<k>
+	a map-to-list (k, _) => k
 
-values<k, v> v[](a compact-dict<k, v>) is-data<k> compare<k> hash-mix<k>
-	a map-to-arr (_, v) => v
+values<k, v> list v(a compact-dict<k, v>) is-data<k> compare<k> hash-mix<k>
+	a map-to-list (_, v) => v
 
 is-empty<k, v> bool(a compact-dict<k, v>) is-data<k> compare<k> hash-mix<k>
 	match a impl
@@ -80,7 +81,7 @@ TODO
 	a ~ b.arr
 ###
 
-~~ <k, v> compact-dict<k, v>(a compact-dict<k, v>, b pair<k, v>[]) is-data<k> compare<k> hash-mix<k>
+~~ <k, v> compact-dict<k, v>(a compact-dict<k, v>, b list pair<k, v>) is-data<k> compare<k> hash-mix<k>
 	a fold b, (cur, pair) => cur ~ pair
 
 - <k, v> compact-dict<k, v>(a compact-dict<k, v>, key k) is-data<k> compare<k> hash-mix<k>
@@ -88,10 +89,6 @@ TODO
 		a add-or-remove key, ()
 	else
 		a
-
-- <k, v> compact-dict<k, v>(a compact-dict<k, v>, keys k[]) is-data<k> compare<k> hash-mix<k>
-	a fold keys, (cur, key) =>
-		cur - key
 
 subscript<k, v> v?(a compact-dict<k, v>, key k) is-data<k> compare<k> hash-mix<k>
 	a.impl subscript-recur key
@@ -193,13 +190,13 @@ fold<a, k, v> a(acc a, a compact-dict<k, v>, f act a(a, k, v)) is-data<k> compar
 				# Don't need to add to 'seen' because this is the last node.
 				f[cur, k, v]
 
-map-to-arr<a, k, v> a[](a compact-dict<k, v>, f act a(k, v)) trusted is-data<k> compare<k> hash-mix<k>
+map-to-list<a, k, v> list a(a compact-dict<k, v>, f act a(k, v)) trusted is-data<k> compare<k> hash-mix<k>
 	res fix-arr a = a.size uninitialized-fix-arr
 	end = res.begin-ptr fold a, (cur, k, v) =>
 		*cur := f[k, v]
 		cur + 1
 	assert end == res.end-ptr
-	res cast-immutable
+	res.cast-immutable to-list
 
 .dbg<k, v> str(a compact-dict<k, v>) to-str<k> to-str<v>
 	a.impl dbg
@@ -245,10 +242,11 @@ verify void(a compact-dict<nat64, str>, expected str)
 		as overlay _
 			false
 		as end-node eb
-			# TODO: ea.get-pairs::pair<nat64, str>[] arr-equal@<pair<nat64, str>> eb.get-pairs::pair<nat64, str>[]
-			pa = ea get-pairs
-			pb = eb get-pairs
-			bs bool[] = pa zip@<bool, pair<nat64, str>, pair<nat64, str>> pb, ((x, y) => x pair-equal y)
+			# TODO: ea.to-array::array<pair<nat64, str>> arr-equal@<pair<nat64, str>> \
+			# eb.to-array::array<pair<nat64, str>>
+			pa = ea to-array
+			pb = eb to-array
+			bs arr bool = pa zip@<bool, pair<nat64, str>, pair<nat64, str>> pb, ((x, y) => x pair-equal y)
 			bs every x => x
 
 test
@@ -287,8 +285,7 @@ test
 	g = f ~ (10, "10b")
 	g verify "[10 -> 10, 15 -> 15, 5 -> 5, 20 -> 20], [11 -> 11, 15 -> _, 10 -> 10b]"
 
-	# TODO: type annotation should be unnecessary
-	h = g - (11, 12)::nat64[]
+	h = g - 11 - 12
 	h verify "[10 -> 10, 15 -> 15, 5 -> 5, 20 -> 20], [15 -> _, 10 -> 10b, 11 -> _]"
 
 	i = h ~~ ((11, "11"), (25, "25"))

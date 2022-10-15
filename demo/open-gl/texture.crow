@@ -10,7 +10,7 @@ import
 	./load-bmp: height, image-data, width, with-bmp
 
 # Remember to call 'free-texture'
-load-texture-from-bmp GLuint(gl gl-ext, bmp-raw nat8[]) unsafe summon
+load-texture-from-bmp GLuint(gl gl-ext, bmp-raw list nat8) unsafe summon
 	bmp-raw with-bmp image =>
 		texture-cell cell GLuint = 0,
 		gl glGenTextures 1, texture-cell.as-mut-ptr

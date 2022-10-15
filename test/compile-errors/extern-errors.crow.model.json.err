@@ -2,7 +2,7 @@ test/compile-errors/extern-errors.crow 1:1-5:1 'extern' record 'r' must be expli
 
 test/compile-errors/extern-errors.crow 2:5-2:10 extern type 'r' can't reference non-extern type 'str'
 
-test/compile-errors/extern-errors.crow 3:5-3:14 extern type 'r' can't reference non-extern type 'arr<nat64>'
+test/compile-errors/extern-errors.crow 3:5-3:17 extern type 'r' can't reference non-extern type 'list<nat64>'
 
 test/compile-errors/extern-errors.crow 5:1-8:1 a union can't be 'extern'
 

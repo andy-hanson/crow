@@ -30,18 +30,18 @@ Like an immutable array, and unlike a `mut[]`, it's cheap to take a slice of a `
 Taking a slice aliases the elements, so writing to the slice writes to the original.
 ###
 fix-arr<a> record mut by-val
-	.inner a[]
+	.inner arr a
 
 # TODO:INTERNAL (or fix-arr-low-level)
 empty-fix-arr<a> fix-arr a() no-doc noctx
 	# TODO: should not need type annotation
-	inner a[] = ()
+	inner arr a = ()
 	inner,
 
 ###
 Creates a new `fix-arr` with the given elements.
 ###
-new<a> fix-arr a(...a a[])
+new<a> fix-arr a(...a arr a)
 	a to-fix-arr
 
 ###
@@ -49,7 +49,7 @@ Copies the array elements to a new `fix-arr`.
 
 This is O(n).
 ###
-to-fix-arr<a> fix-arr a(a a[])
+to-fix-arr<a> fix-arr a(a arr a)
 	a.size make-fix-arr i => a[i]
 
 ###
@@ -59,7 +59,7 @@ This is O(n).
 
 There is no `move-to-arr` possible for `fix-arr` there might be slices that still refer to its elements.
 ###
-to-arr<a> a[](a fix-arr a)
+to-arr<a> arr a(a fix-arr a)
 	a.copy.inner
 
 # Get a `fix-arr` from a poitner and range of indices.
@@ -135,7 +135,7 @@ Throws if `dest` and `source` are not the same size.
 
 This is O(n).
 ###
-copy-from<a> void(dest fix-arr a, source a[]) trusted
+copy-from<a> void(dest fix-arr a, source arr a) trusted
 	assert dest.size == source.size
 	_ = dest.begin-ptr.as-any-mut-ptr memcpy source.begin-ptr.as-any-const-ptr, dest.size * size-of@<a>
 	()
@@ -238,7 +238,7 @@ Unsafe cast a fix-arr to arr.
 Equivalent to `temp-as-arr`, but the implication is that
 the `fix-arr` will never be written to again, so the `arr` can be used forever.
 ###
-cast-immutable<a> a[](a fix-arr a) noctx unsafe
+cast-immutable<a> arr a(a fix-arr a) noctx unsafe
 	a inner
 
 first<a> a?(a fix-arr a)
@@ -265,7 +265,7 @@ This is O(1).
 Unsafe because an array is expected to be fully immutable (meaning: no mutable references exist),
 so this value should only be used temporarily.
 ###
-temp-as-arr<a> a[](a fix-arr a) noctx unsafe
+temp-as-arr<a> arr a(a fix-arr a) noctx unsafe
 	a inner
 
 # Equivalent to `a.temp-as-arr index-of value`.
@@ -326,8 +326,8 @@ cast-fix-arr<out, in> fix-arr out(a fix-arr in) noctx unsafe
 	size-out = size-bytes / size-of@<out>
 	a.begin-ptr.ptr-cast@<out, in>[0 .. size-out]
 
-for-loop<out, in> out[](a fix-arr in, f act out(in)) trusted
+for-loop<out, in> arr out(a fix-arr in, f act out(in)) trusted
 	a for-loop f cast-immutable
 
-map-to-arr-with-index<out, in> out[](a fix-arr in, f act out(in, nat64)) trusted
+map-to-arr-with-index<out, in> arr out(a fix-arr in, f act out(in, nat64)) trusted
 	a map-with-index f cast-immutable

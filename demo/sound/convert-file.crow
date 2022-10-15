@@ -1,13 +1,11 @@
 import
-	crow/col/dict: dict, keys, new, subscript
 	crow/io/path: get-extension
 	crow/io/print: out, print
-	crow/str-util: join, to-c-str
 	audio/read-sound-file: read-sound-file
 	audio/write-sound-file: flac, ogg-vorbis, sound-file-format, wav, write-sound-file
 	audio/sound: format, to-str, with-sample-rate
 
-main fut nat(args str[]) summon unsafe
+main fut nat(args arr str) summon unsafe
 	assert args.size == 2 : "Usage: crow run convert-file.crow -- [IN] [OUT]"
 	in-path = args[0]
 	out-path = args[1]

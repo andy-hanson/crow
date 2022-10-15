@@ -1,25 +1,19 @@
 import
-	crow/col/arr-util: flatten, in
-	crow/col/dict: dict, each-key, subscript
-	crow/col/mut-arr: ~=, is-empty, move-to-arr, mut-arr, new
-	crow/col/mut-dict: move-to-dict, mut-dict, new, subscript, set-subscript
-	crow/col/set: in, set, to-arr, to-set
-	crow/col/seq: for-loop
-	crow/col/mut-set: ~=, for-loop, move-to-arr, move-to-set, mut-set, new, to-mut-set, try-remove
+	crow/col/set: in, set, to-list, to-set
+	crow/col/mut-set: ~=, for-loop, move-to-list, move-to-set, mut-set, new, to-mut-set, try-remove
 	crow/io/file: read-file
 	crow/io/print: err, print
 	crow/io/process: shell-exec
-	crow/str-util: contains-substr, ends-with, lines, try-split-once, try-split-once-by-whitespace
 	../site-src/search-dir-recursive: search-dir-recursive
 
-main fut nat(_ str[]) summon
+main fut nat(_ arr str) summon
 	files = all-files
 	failures = files lint-files
 	for x : failures
 		err print x
 	failures.size,
 
-.lint-files str[](files file[]) summon
+.lint-files list str(files list file) summon
 	failures str mut[] = ()
 	all-imports = files get-all-imports
 	for file : files
@@ -32,12 +26,12 @@ main fut nat(_ str[]) summon
 				failures ~= "{file path} private member not used: {private-member}"
 	for file : files
 		failures lint-imports-in-file file
-	failures move-to-arr
+	failures move-to-list
 
-.get-all-imports set sym(files file[])
-	(for file : files; file.imports to-arr).flatten to-set
+.get-all-imports set sym(files list file)
+	(for file : files; file.imports to-list).flatten to-set
 
-.excluded-public sym[]()
+.excluded-public list sym()
 	"derefConstantPointer", "diffSymbols", "main"
 
 .file record
@@ -47,10 +41,10 @@ main fut nat(_ str[]) summon
 	uses nat[sym]
 
 .members record
-	public sym[]
-	private sym[]
+	public list sym
+	private list sym
 
-all-files file[]() summon
+all-files list file() summon
 	for path : "src" search-dir-recursive
 		path get-file
 
@@ -77,10 +71,10 @@ all-files file[]() summon
 				unless path == "src/wasm.d" || name in excluded-unknown-access
 					throw "Unexpected non-public, non-private member {name} in {path}"
 
-	public.move-to-arr, private.move-to-arr
+	public.move-to-list, private.move-to-list
 
 # for some reason, dscanner doesn't give non-nested unions like Converter64 access:private
-.excluded-unknown-access sym[]()
+.excluded-unknown-access list sym()
 	"Converter32", "Converter64", "DCValue", "DoubleToUlong", "StackDict2Key", "StackDict2Value"
 
 .imports-and-rest record
@@ -122,9 +116,9 @@ words record
 			word ~= x
 		else
 			unless word is-empty
-				cb[word.move-to-arr.str str-to-sym]
+				cb[word.move-to-list.str str-to-sym]
 	unless word is-empty
-		cb[word.move-to-arr.str str-to-sym]
+		cb[word.move-to-list.str str-to-sym]
 
 .is-identifier-char bool(a char8)
 	"a"::char8 <= a && a <= "z" || "A"::char8 <= a && a <= "Z" || "0"::char8 <= a && a <= "9" || a == "_"

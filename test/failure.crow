@@ -1,11 +1,9 @@
 import
-	crow/col/mut-arr: ~~=, move-to-arr, mut-arr, new, reduce-size-if-more-than, size
 	crow/io/file: try-read-file, write-file
 	crow/io/path: base-name
 	crow/io/print: out, print, print-no-newline
-	crow/str-util: normalize-newlines
 
-handle-output failure[](
+handle-output list failure(
 	original-path str,
 	output-path str,
 	actual str,
@@ -27,13 +25,13 @@ handle-output failure[](
 	else
 		(original-path, "{output-path base-name} does not exist. actual was:\n{actual-normalized}"),
 
-flat-map-with-max-size<out, in> out[](a in[], max-size nat, mapper act out[](in)) trusted
+flat-map-with-max-size<out, in> list out(a list in, max-size nat, mapper act list out(in)) trusted
 	res out mut[] = ()
 	for x : a
 		if res.size < max-size
 			res ~~= mapper[x]
 			res reduce-size-if-more-than max-size
-	res move-to-arr
+	res move-to-list
 
 test-options record
 	print-tests bool
@@ -45,7 +43,7 @@ failure record
 	path str
 	message str
 
-first-failures result<str, failure[]>(a result<str, failure[]>, b fun result<str, failure[]>())
+first-failures result<str, list failure>(a result<str, list failure>, b fun result<str, list failure>())
 	match a
 	as ok ok-a
 		match b[]
@@ -56,7 +54,7 @@ first-failures result<str, failure[]>(a result<str, failure[]>, b fun result<str
 	as err e
 		e err
 
-print-failures nat(failures result<str, failure[]>, options test-options) summon
+print-failures nat(failures result<str, list failure>, options test-options) summon
 	match failures
 	as ok o
 		out print o

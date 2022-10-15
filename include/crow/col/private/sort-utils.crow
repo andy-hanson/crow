@@ -11,18 +11,19 @@ import
 	../../test-util: is
 	../../tuple: from, pair, to
 	../../private/bootstrap: nat64
-	../arr: ==, arr, new
+	../arr: arr
 	../fix-arr:
 		begin-ptr, cast-immutable, copy-from, end-ptr, fix-arr, fix-arr-from-begin-end, new
+	../list: ==, list, new
 	../mut-arr:
-		begin-ptr, clear, end-ptr, is-empty, mut-arr, size, swap, temp-as-fix-arr, to-arr,
+		begin-ptr, clear, end-ptr, is-empty, move-to-list, mut-arr, size, swap, temp-as-fix-arr,
 		to-mut-arr, unsafe-set-size
 	./arr-low-level: arr-from-begin-end, begin-ptr, end-ptr
 
-binary-search-has<a> bool(a a[], value a) compare<a> trusted
+binary-search-has<a> bool(a arr a, value a) compare<a> trusted
 	(a.begin-ptr binary-search-exact-ptr-recur a.end-ptr, value) != null
 
-binary-search-key<k, v> v?(a pair<k, v>[], key k) trusted compare<k>
+binary-search-key<k, v> v?(a arr pair<k, v>, key k) trusted compare<k>
 	a.begin-ptr binary-search-key-recur a.end-ptr, key
 .binary-search-key-recur<k, v> v?(left pair<k, v>*, right pair<k, v>*, key k) trusted compare<k>
 	diff = right - left
@@ -45,7 +46,7 @@ binary-search-key<k, v> v?(a pair<k, v>[], key k) trusted compare<k>
 	else
 		left + 1 linear-search-key-recur right, key
 
-binary-search-exact-index<a> nat64?(a a[], value a) trusted compare<a>
+binary-search-exact-index<a> nat64?(a arr a, value a) trusted compare<a>
 	ptr = a.begin-ptr binary-search-exact-ptr-recur a.end-ptr, value
 	unless ptr == null
 		ptr - a.begin-ptr,
@@ -57,12 +58,12 @@ binary-search-exact-ptr<a> a mut*?(a fix-arr a, compare act comparison(a)) unsaf
 	if x ?= a.cast-immutable binary-search-exact-ptr compare
 		x.as-mut,
 
-binary-search-exact-ptr<a> a*?(a a[], value a) compare<a> unsafe
+binary-search-exact-ptr<a> a*?(a arr a, value a) compare<a> unsafe
 	res = a.begin-ptr binary-search-exact-ptr-recur a.end-ptr, value
 	unless res == null
 		res,
 
-binary-search-exact-ptr<a> a*?(a a[], compare act comparison(a)) unsafe
+binary-search-exact-ptr<a> a*?(a arr a, compare act comparison(a)) unsafe
 	ptr = a.begin-ptr binary-search-compare-recur a.end-ptr, compare
 	if ptr == a.end-ptr
 		()
@@ -79,7 +80,7 @@ Returns `a end-ptr` if all values compare less.
 binary-search-insert-ptr<a> a mut*(a fix-arr a, compare act comparison(a)) unsafe
 	a.begin-ptr.as-const binary-search-compare-recur a.end-ptr.as-const, compare as-mut
 
-binary-search-insert-ptr<a> a*(a a[], value a) unsafe compare<a>
+binary-search-insert-ptr<a> a*(a arr a, value a) unsafe compare<a>
 	a.begin-ptr binary-search-insert-ptr-recur a.end-ptr, value
 
 test
@@ -197,12 +198,12 @@ In condition: a-read, a-write, b-read are all valid pointers.
 		else
 			a-begin merge-reverse-recur a-read - 1, a-write - 1, b-begin, b-read, compare
 
-.test-one void(a nat64[], b nat64[], expected nat64[]) unsafe
+.test-one void(a list nat64, b list nat64, expected list nat64) unsafe
 	a-mut = a to-mut-arr
 	b-mut = b to-mut-arr
 	a-mut merge-no-duplicates b-mut, (x, y) =>
 		x <=> y assert-comparison-not-equal
-	a-mut.to-arr is expected
+	a-mut.move-to-list is expected
 
 test
 	(1, 2, 3) test-one (4, 5, 6), (1, 2, 3, 4, 5, 6)

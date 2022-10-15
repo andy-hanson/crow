@@ -190,13 +190,13 @@ to-vec3-32 vec3-32(a vec3-64) noctx
 to-vec3-64 vec3-64(a vec3-32) noctx
 	a.x.to-float64, a.y.to-float64, a.z.to-float64
 
-to-arr float32[](a vec2-32)
+to-array arr float32(a vec2-32)
 	a.x, a.y
-to-arr float64[](a vec2-64)
+to-array arr float64(a vec2-64)
 	a.x, a.y
-to-arr float32[](a vec3-32)
+to-array arr float32(a vec3-32)
 	a.x, a.y, a.z
-to-arr float64[](a vec3-64)
+to-array arr float64(a vec3-64)
 	a.x, a.y, a.z
 
 # `"<x, y>"`

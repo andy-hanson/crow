@@ -1,10 +1,7 @@
 import
-	crow/col/arr-util: flatten, in
-	crow/col/seq: first, for-loop
 	crow/io/print: out, print
-	crow/str-util: join
 
-main fut nat(_ str[]) summon
+main fut nat(_ arr str) summon
 	out print "crow".describe
 	out print "ermisepillo".describe
 	()
@@ -12,8 +9,8 @@ main fut nat(_ str[]) summon
 describe str(a str)
 	"{a a-an} says {"-" join a.vowels}"
 
-vowels str[](a str)
-	flatten: for c : a char8s
+vowels list str(a str)
+	() join for c : a char8s
 		if c is-vowel
 			c.to-str,
 

@@ -7,9 +7,8 @@ no-std
 import
 	./bool: bool
 	./compare: comparison
-	./col/arr: arr
+	./col/list: ~, ~~, for-loop, is-empty, list, list-compare, list-equal, to-list
 	./col/private/arr-low-level: arr-from-begin-end
-	./col/seq: ~, ~~, for-loop, is-empty, seq, seq-compare, seq-equal, to-seq
 	./hash: hasher, hash-mix
 	./misc: void
 	./number: ==, <=>, to-nat64
@@ -24,27 +23,20 @@ Strings are optimized for fast concatenation and splitting.
 They don't support efficient access by index, so use iterators instead.
 ###
 str record by-val
-	.inner seq char8
+	.inner list char8
 
-char8s seq char8(a str)
+char8s list char8(a str)
 	a inner
 
 ###
-Treat a seq of UTF-8 character codes as a string.
+Treat a list of UTF-8 character codes as a string.
 This is O(1).
 ###
-str str(a seq char8)
+str str(a list char8) noctx
 	a,
 
-###
-Treat an array of UTF-8 character codes as a string.
-This is O(1).
-###
-str str(a char8[]) noctx
-	a.to-seq,
-
 literal str(a c-str) noctx trusted
-	a arr-from-begin-end a.find-c-str-end str
+	(a arr-from-begin-end a.find-c-str-end).to-list str
 
 ###
 Concatenate two strings.
@@ -70,12 +62,12 @@ is-empty bool(a str)
 	a.inner is-empty
 
 == bool(a str, b str) noctx trusted
-	a.inner seq-equal b.inner
+	a.inner list-equal b.inner
 == bool(a char8, b char8) noctx
 	a.to-nat8 == b.to-nat8
 
 <=> comparison(a str, b str) trusted
-	a.inner seq-compare b.inner
+	a.inner list-compare b.inner
 <=> comparison(a char8, b char8) noctx
 	a.to-nat8 <=> b.to-nat8
 

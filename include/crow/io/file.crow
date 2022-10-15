@@ -17,9 +17,10 @@ import
 	../bytes-types: new
 	../bool: !, ||, bool, false, new, to-nat64, true
 	../cell: *, as-mut-ptr, cell, new
-	../col/arr: arr, for-loop, new, size, subscript
+	../col/arr: arr, size, subscript
 	../col/fix-arr: cast-immutable, begin-ptr, fix-arr, size, uninitialized-fix-arr
-	../col/mut-arr: ~=, move-to-arr, mut-arr, new
+	../col/list: for-loop, list, new, to-array, to-list
+	../col/mut-arr: ~=, move-to-list, mut-arr, new
 	../col/private/arr-low-level: begin-ptr
 	../col/sort: sort
 	../compare: !=
@@ -115,7 +116,7 @@ is-file bool(path str) trusted summon
 Returns all children of the directory `path`, as full paths.
 Use `names-in-dir` if you just want their names.
 ###
-paths-in-dir str[](path str) summon
+paths-in-dir list str(path str) summon
 	for x : path names-in-dir
 		path child-path x
 
@@ -124,10 +125,10 @@ Returns the basename of all children of the directory.
 Does not include ".." or ".".
 Use `paths-in-dir` if you want full paths.
 ###
-names-in-dir str[](path str) summon trusted
+names-in-dir list str(path str) summon trusted
 	path.to-c-str names-in-dir
 
-.names-in-dir str[](path c-str) trusted summon
+.names-in-dir list str(path c-str) trusted summon
 	if is-windows
 		path-search = "{path}\\*" to-c-str
 		file-data cell WIN32_FIND_DATAA = (),
@@ -139,13 +140,13 @@ names-in-dir str[](path str) summon trusted
 			res names-in-dir-recur path, file
 			ok = file FindClose
 			assert ok : "failed to close dir {path}"
-			res.move-to-arr sort
+			res.move-to-list sort
 	else
 		dirp = path opendir
 		forbid dirp.ptr-cast-from-extern::any-const-ptr mut* == null : "failed to open dir {path}"
 		res str mut[] = ()
 		res names-in-dir-recur dirp
-		res.move-to-arr sort
+		res.move-to-list sort
 
 .names-in-dir-recur void(out str mut[], dir-path c-str, file HANDLE) unsafe summon
 	file-data cell WIN32_FIND_DATAA = (),
@@ -180,7 +181,7 @@ read-link str(path str) summon trusted
 	size = path.to-c-str readlink buff.begin-ptr, buff.size
 	if size == -1
 		check-errno
-	buff.cast-immutable[0 .. size.to-nat64] str
+	buff.cast-immutable[0 .. size.to-nat64].to-list str
 
 # Create a symbolic link at `link` with the target `target`.
 make-symlink-to void(link str, target str) summon trusted
@@ -207,8 +208,8 @@ current-executable-path str() summon trusted
 read-file str(path str) summon trusted
 	path.read-file-binary as-str
 
-# Reads the full contents of the file as a `nat8[]`.
-read-file-binary nat8[](path str) summon
+# Reads the full contents of the file as bytes.
+read-file-binary list nat8(path str) summon
 	if res ?= path try-read-file-binary
 		res
 	else
@@ -225,9 +226,9 @@ write-file void(path str, content str) summon trusted
 	fd = path fopen "wb"
 	forbid fd.as-any-const-ptr == null : "failed to open file for write: {path}"
 	with _ : (() => fd close-fd path) finally
-		fd write-fd path, content.to-bytes
+		fd write-fd path, content.to-bytes.to-array
 
-.write-fd void(fd FILE, path c-str, bytes nat8[]) summon unsafe
+.write-fd void(fd FILE, path c-str, bytes arr nat8) summon unsafe
 	wrote-bytes = bytes.begin-ptr fwrite size-of@<nat8>, bytes.size, fd
 	assert wrote-bytes == bytes.size : "error writing file {path}"
 
@@ -240,10 +241,10 @@ try-read-file str?(path str) summon trusted
 		bytes.as-str,
 
 # Like `try-read-file` but returns binary data.
-try-read-file-binary nat8[]?(path str) summon trusted
+try-read-file-binary list<nat8>?(path str) summon trusted
 	path.to-c-str try-read-file-binary
 
-.try-read-file-binary nat8[]?(path c-str) summon trusted
+.try-read-file-binary list<nat8>?(path c-str) summon trusted
 	if path is-file
 		fd = path fopen "rb"
 		if fd.as-any-const-ptr == null
@@ -256,16 +257,14 @@ try-read-file-binary nat8[]?(path str) summon trusted
 	else
 		()
 
-.read-fd nat8[](fd FILE, path c-str) summon unsafe
+.read-fd list nat8(fd FILE, path c-str) summon unsafe
 	err = fd fseek 0, SEEK_END
 	assert err == 0 : "Error reading {path}"
 
 	file-size = fd ftell
 	# TODO: handle errors
 	forbid file-size == -1
-	if file-size == 0
-		()
-	else
+	if file-size != 0
 		# Go back to beginning
 		err2 = fd fseek 0, SEEK_SET
 		# TODO: handle errors
@@ -277,7 +276,7 @@ try-read-file-binary nat8[]?(path str) summon trusted
 		n-bytes-read = res.begin-ptr.ptr-cast fread size-of@<nat8>, file-size-nat, fd
 		assert n-bytes-read == file-size-nat
 		forbid fd ferror : "Error reading {path}"
-		res cast-immutable
+		res.cast-immutable to-list
 
 .close-fd void(fd FILE, path c-str) summon unsafe
 	err = fd fclose

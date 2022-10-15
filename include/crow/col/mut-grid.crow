@@ -11,10 +11,10 @@ import
 	../str-conv: interp, finish, to-str, with-str, with-value
 	../str-util: join
 	../test-util: is
-	./arr: arr
 	./fix-arr:
-		begin-ptr, copy, end-ptr, exists, fix-arr, fold, for-loop, new, set-map,
-		set-subscript, size, subscript, uninitialized-fix-arr
+		begin-ptr, copy, end-ptr, exists, fix-arr, fold, new, set-map,
+		set-subscript, size, subscript, to-arr, uninitialized-fix-arr
+	./list: for-loop, list, to-list
 
 ###
 Mutable grid (matrix) type.
@@ -129,7 +129,8 @@ This makes no attempt to add padding to ensure columns line up. (TODO?)
 ###
 to-str<a> str(a mut-grid a) to-str<a>
 	"\n" join for row : a.rows
-		" " join for value : row; "{value}"
+		" " join for value : row.to-arr.to-list
+			"{value}"
 
 region iteration
 
@@ -146,7 +147,7 @@ for-loop<a> void(a mut-grid-rows a, f act void(fix-arr a))
 	for y : 0 .. a.inner.height
 		f[a.inner row y]
 
-for-loop<out, in> out[](a mut-grid-rows in, f act out(fix-arr in))
+for-loop<out, in> list out(a mut-grid-rows in, f act out(fix-arr in))
 	for y : 0 .. a.inner.height
 		f[a.inner row y]
 

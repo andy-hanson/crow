@@ -3,7 +3,7 @@ import
 	crow/bool: &&
 	crow/cell: *, as-mut-ptr, cell, new
 	crow/col/arr: arr, size
-	crow/col/mut-arr: begin-ptr, move-to-arr, mut-arr, size, uninitialized-mut-arr
+	crow/col/mut-arr: begin-ptr, move-to-array, mut-arr, size, uninitialized-mut-arr
 	crow/col/private/arr-low-level: begin-ptr, end-ptr
 	crow/compare: <=, min
 	crow/exception: unreachable
@@ -24,7 +24,7 @@ read-sound-file sound(path str) trusted summon
 	f = path.to-c-str sf_open SFM_READ, info.as-mut-ptr
 	f common *info
 
-sound-from-file-content sound(content nat8[]) trusted
+sound-from-file-content sound(content arr nat8) trusted
 	info cell SF_INFO = (),
 	user-data = content, content.begin-ptr
 	virtual SF_VIRTUAL_IO = &get_filelen, &seek, &read, &write, &tell
@@ -39,7 +39,7 @@ sound-from-file-content sound(content nat8[]) trusted
 	n-read = f sf_read_float samples.begin-ptr, samples.size
 	f.sf_close check-sndfile-error
 	assert n-read == samples.size
-	(n-channels, sample-rate), samples.move-to-arr
+	(n-channels, sample-rate), samples.move-to-array
 
 .get_filelen sf_count_t(user-data-ptr any-mut-ptr) noctx unsafe
 	a user-data = user-data-ptr as-ref
@@ -74,5 +74,5 @@ sound-from-file-content sound(content nat8[]) trusted
 	a.cur - a.content.begin-ptr
 
 .user-data record by-ref mut
-	content nat8[]
+	content arr nat8
 	cur mut nat8*

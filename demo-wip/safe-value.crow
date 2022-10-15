@@ -2,7 +2,7 @@ import
 	crow/io/print: out, print
 	crow/private/bootstrap: safe-value
 
-main fut nat(_ str[]) summon
+main fut nat(_ arr str) summon
 	s = safe-value::act nat(str)
 	out print s["hello"].to-str
 	()

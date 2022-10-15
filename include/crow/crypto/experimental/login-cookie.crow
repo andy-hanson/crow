@@ -1,7 +1,7 @@
 no-std
 import
 	../../bool: &&, bool
-	../../col/arr: ~~, arr, size, subscript
+	../../col/list: ~~, list, size, subscript
 	../../compare: <
 	../../io/time: get-unix-time, new, seconds-since-epoch, unix-time
 	../../log: info, log
@@ -33,10 +33,10 @@ cookie-matches bool(a login-cookie, cookie nat64, expire-seconds nat64) summon
 generate-login-cookie login-cookie() summon
 	get-unix-time, random-nat64
 
-to-bytes nat8[](a login-cookie)
+to-bytes list nat8(a login-cookie)
 	a.timestamp.seconds-since-epoch.to-8-bytes ~~ a.cookie.to-8-bytes
 
-from-bytes login-cookie(a nat8[])
+from-bytes login-cookie(a list nat8)
 	assert a.size == 16
 	(a[0 .. 8].from-bytes,), a[8 .. 16].from-bytes
 

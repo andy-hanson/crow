@@ -17,7 +17,7 @@ arr-builder<a> record mut
 new<a> arr-builder a() trusted
 	null, null, null
 
-finish<a> a[](a arr-builder a) noctx trusted
+finish<a> arr a(a arr-builder a) noctx trusted
 	res = a.begin.as-const arr-from-begin-end a.cur.as-const
 	a.begin := null
 	a.cur := null
@@ -36,7 +36,7 @@ finish<a> a[](a arr-builder a) noctx trusted
 	*a.cur := value
 	a.cur := a.cur + 1
 
-~~=<a> void(a arr-builder a, values a[]) trusted
+~~=<a> void(a arr-builder a, values arr a) trusted
 	if a.cur + values.size > a.end
 		cur-size = a.cur - a.begin
 		min-size = cur-size + values.size

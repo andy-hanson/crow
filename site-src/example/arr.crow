@@ -1,9 +1,8 @@
 import
-	crow/str-util: join
 	crow/io/print: out, print
 
-main fut nat(_ str[]) summon
-	xs str[] = "swan", "crow"
+main fut nat(_ arr str) summon
+	xs list str = "swan", "crow"
 	out print xs[1]
 	ys = xs ~ "raven" ~ "nightingale"
 	out print (", " join ys)

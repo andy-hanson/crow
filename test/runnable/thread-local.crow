@@ -1,12 +1,14 @@
 import
+	crow/io/print: out, print
 	crow/ptr: *, mut-ptr, set-deref
 
-main fut nat(_ str[]) summon unsafe
+main fut nat(_ arr str) summon unsafe
 	results <- for x : 0 .. 100 parallel
 		*foo := x
 		*foo := *foo + 1
 		*foo,
-	results is (1 .. 101).to-arr
+	results is (1 .. 101).to-list
+	out print "{results[99]}"
 	()
 
 foo nat64 mut*() thread-local
@@ -15,7 +17,7 @@ foo nat64 mut*() thread-local
 	.inner range a
 .parallel<a> parallel-range a(a range a)
 	a,
-.for-loop fut nat64[](a parallel-range nat64, f fun fut nat64(nat64))
-	tasks fut<nat64>[] = for x : a.inner
+.for-loop fut list nat64(a parallel-range nat64, f fun fut nat64(nat64))
+	tasks list fut<nat64> = for x : a.inner
 		launch do () => f[x]
 	tasks wait-all

@@ -1,6 +1,5 @@
 import
 	crow/c-types: c-int
-	crow/str-util: to-str
 	./headers: sf_error_number
 
 check-sndfile-error void(err c-int) trusted

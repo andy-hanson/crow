@@ -5,7 +5,7 @@ import
 	../str: literal, str
 	../str-conv: finish, interp, with-str, with-value
 	./trig: cos, sin
-	./vec: +, *, dot, new, normalize, to-arr, to-str, vec3-32, vec3-64, x, y, z
+	./vec: +, *, dot, new, normalize, to-array, to-str, vec3-32, vec3-64, x, y, z
 
 mat3-32 record extern by-val
 	row0 vec3-32
@@ -28,10 +28,10 @@ I mat3-32() noctx
 I mat3-64() noctx
 	(1, 0, 0), (0, 1, 0), (0, 0, 1)
 
-to-arr float32[](a mat3-32)
-	a.row0.to-arr ~~ a.row1.to-arr ~~ a.row2.to-arr
-to-arr float64[](a mat3-64)
-	a.row0.to-arr ~~ a.row1.to-arr ~~ a.row2.to-arr
+to-array arr float32(a mat3-32)
+	a.row0.to-array ~~ a.row1.to-array ~~ a.row2.to-array
+to-array arr float64(a mat3-64)
+	a.row0.to-array ~~ a.row1.to-array ~~ a.row2.to-array
 
 col0 vec3-32(a mat3-32) noctx
 	a.row0.x, a.row1.x, a.row2.x

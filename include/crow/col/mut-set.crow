@@ -6,8 +6,9 @@ import
 	../misc: is-data, new, void
 	../opt: is-empty
 	../tuple: a, new, pair
-	./arr: arr, for-loop
-	./mut-dict: ~=, clear, each-key, move-to-arr, mut-dict, in, try-remove, to-mut-dict
+	./arr: arr
+	./list: for-loop, list, to-list
+	./mut-dict: ~=, clear, each-key, move-to-list, mut-dict, in, try-remove, to-mut-dict
 	./set: for-loop, set, to-set
 
 ###
@@ -19,9 +20,9 @@ mut-set<a> record mut
 	.inner void mut[a]
 
 # New set with the given elements (with duplicates removed).
-new<a> mut-set a(...a a[]) is-data<a> compare<a> hash-mix<a>
+new<a> mut-set a(...a arr a) is-data<a> compare<a> hash-mix<a>
 	# TODO: should not need type annotation
-	(for x : a; (x, ()))::pair<a, void>[].to-mut-dict,
+	(for x : a.to-list; (x, ()))::list<pair<a, void>>.to-mut-dict,
 
 # Copies an immutable set to a mutable set.
 to-mut-set<a> mut-set a(a set a) is-data<a> compare<a> hash-mix<a>
@@ -34,14 +35,14 @@ to-mut-set<a> mut-set a(a set a) is-data<a> compare<a> hash-mix<a>
 clear<a> void(a mut-set a) is-data<a> compare<a> hash-mix<a>
 	a.inner clear
 
-# Copies elements to an array, and clears the `a`.
-move-to-arr<a> a[](a mut-set a) is-data<a> compare<a> hash-mix<a>
-	for x : a.inner move-to-arr
+# Copies elements to a list, and clears the `a`.
+move-to-list<a> list a(a mut-set a) is-data<a> compare<a> hash-mix<a>
+	for x : a.inner move-to-list
 		x a
 
 # Copies elements to an immuttable set, and clears `a`.
 move-to-set<a> set a(a mut-set a) is-data<a> compare<a> hash-mix<a>
-	a.move-to-arr to-set
+	a.move-to-list to-set
 
 ###
 Adds an element to the set.
@@ -54,7 +55,7 @@ Does nothing if `value` is already in the set.
 Adds many elements to the set.
 Ignores values already in the set.
 ###
-~~= <a> void(a mut-set a, values a[]) is-data<a> compare<a> hash-mix<a>
+~~= <a> void(a mut-set a, values list a) is-data<a> compare<a> hash-mix<a>
 	for x : values
 		a ~= x
 

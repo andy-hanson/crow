@@ -12,11 +12,12 @@ import
 	../../test-util: is
 	../../tuple: from, new, pair, to
 	../../private/alloc: alloc-uninitialized
-	../arr: ==, arr, for-loop, is-empty, new, size, subscript
+	../arr: arr, is-empty, new, size, subscript
 	../arr-util: fold, fold-with-index
 	../fix-arr:
 		begin-ptr, cast-immutable, end-ptr, fill, fill-fix-arr, fix-arr, fix-arr-from-begin-end,
 		for-loop, size, temp-as-arr, to-fix-arr, set-subscript, subscript, uninitialized-fix-arr
+	../list: ==, for-loop, list, new, to-array, to-list
 	../private/arr-low-level: arr-cast, arr-from-begin-end, begin-ptr, end-ptr
 
 ###
@@ -24,17 +25,22 @@ Immutable dictionary that is not efficient to update.
 However, this is more compact than `dict` and has faster lookups.
 ###
 frozen-dict<k, v> record by-val
-	.pairs pair<k, v>[]
-	.bucket-starts pair<k, v>*[]
+	.pairs arr pair<k, v>
+	.bucket-starts arr pair<k, v>*
 
-new<k, v> frozen-dict<k, v>(...a pair<k, v>[]) is-data<k> compare<k> hash-mix<k>
-	a to-frozen-dict
+new<k, v> frozen-dict<k, v>(...a arr pair<k, v>) is-data<k> compare<k> hash-mix<k>
+	a.to-list to-frozen-dict
 
-to-frozen-dict<k, v> frozen-dict<k, v>(a pair<k, v>[]) trusted is-data<k> compare<k> hash-mix<k>
-	a.to-fix-arr.fix-arr-to-frozen-dict-promise-no-duplicates remove-duplicates
+to-frozen-dict<k, v> frozen-dict<k, v>(a list pair<k, v>) trusted is-data<k> compare<k> hash-mix<k>
+	a.to-array.to-fix-arr.fix-arr-to-frozen-dict-promise-no-duplicates remove-duplicates
 
-get-pairs<k, v> pair<k, v>[](a frozen-dict<k, v>) no-doc noctx
+# This is O(1).
+to-array<k, v> arr pair<k, v>(a frozen-dict<k, v>) noctx
 	a pairs
+
+# This is O(1).
+to-list<k, v> list pair<k, v>(a frozen-dict<k, v>) noctx
+	a.to-array to-list
 
 # TODO:INTERNAL
 begin-ptr<k, v> pair<k, v>*(a frozen-dict<k, v>) unsafe
@@ -48,9 +54,6 @@ is-empty<k, v> bool(a frozen-dict<k, v>)
 
 size<k, v> nat64(a frozen-dict<k, v>)
 	a.pairs size
-
-to-arr<k, v> pair<k, v>[](a frozen-dict<k, v>)
-	a pairs
 
 subscript<k, v> v?(a frozen-dict<k, v>, key k) trusted is-data<k> compare<k> hash-mix<k>
 	if ptr ?= a find-ptr key
@@ -78,7 +81,7 @@ try-get-unordered-index<k, v> nat64?(a frozen-dict<k, v>, key k) trusted is-data
 
 	bucket.begin-ptr find-ptr bucket.end-ptr, key
 
-find-index<k, v> nat64?(pairs pair<k, v>[], key k) unsafe is-data<k> compare<k> hash-mix<k>
+find-index<k, v> nat64?(pairs arr pair<k, v>, key k) unsafe is-data<k> compare<k> hash-mix<k>
 	if ptr ?= pairs.begin-ptr find-ptr pairs.end-ptr, key
 		ptr - pairs.begin-ptr,
 
@@ -197,7 +200,7 @@ fix-arr-to-frozen-dict-promise-no-duplicates<k, v> frozen-dict<k, v>(
 	cur pair<k, v> mut*,
 	end pair<k, v> mut*,
 	bucket-counts fix-arr nat64,
-	bucket-starts pair<k, v> mut*[],
+	bucket-starts arr pair<k, v> mut*,
 ) unsafe hash-mix<k>
 	unless cur == end
 		bucket-index = cur->from get-bucket-index bucket-counts.size
@@ -217,7 +220,7 @@ fix-arr-to-frozen-dict-promise-no-duplicates<k, v> frozen-dict<k, v>(
 .get-bucket-index<k> nat64(key k, n-buckets nat64) hash-mix<k>
 	key.hash % n-buckets
 
-.running-sum<k, v> pair<k, v> mut*[](acc pair<k, v> mut*, a nat64[]) trusted
+.running-sum<k, v> arr pair<k, v> mut*(acc pair<k, v> mut*, a arr nat64) trusted
 	out fix-arr pair<k, v> mut* = a.size uninitialized-fix-arr
 	acc running-sum-recur out.begin-ptr, out.end-ptr, a.begin-ptr
 	out cast-immutable
@@ -234,10 +237,10 @@ fix-arr-to-frozen-dict-promise-no-duplicates<k, v> frozen-dict<k, v>(
 region iteration
 
 for-loop<k, v> void(a frozen-dict<k, v>, f act void(pair<k, v>))
-	a.pairs for-loop f
+	a.pairs.to-list for-loop f
 
-for-loop<out, k, v> out[](a frozen-dict<k, v>, f act out(pair<k, v>))
-	a.pairs for-loop f
+for-loop<out, k, v> list out(a frozen-dict<k, v>, f act out(pair<k, v>))
+	a.pairs.to-list for-loop f
 
 fold<a, k, v> a(acc a, a frozen-dict<k, v>, f act a(a, k, v))
 	acc fold a.pairs, (inner-acc, pair) =>
@@ -247,9 +250,9 @@ fold-with-index<a, k, v> a(acc a, a frozen-dict<k, v>, f act a(a, k, v, nat64))
 	acc fold-with-index a.pairs, (inner-acc, pair, index) =>
 		f[inner-acc, pair from, pair to, index]
 
-.verify void(a frozen-dict<nat64, str>, keys-order nat64[], bucket-starts nat64[]) unsafe
-	(for pair : a pairs; pair from)::nat64[] is keys-order
-	(for ptr : a bucket-starts; ptr - a.pairs.begin-ptr)::nat64[] is bucket-starts
+.verify void(a frozen-dict<nat64, str>, keys-order list nat64, bucket-starts list nat64) unsafe
+	(for pair : a.pairs to-list; pair from)::list<nat64> is keys-order
+	(for ptr : a.bucket-starts to-list; ptr - a.pairs.begin-ptr)::list<nat64> is bucket-starts
 
 .== bool(a str?, b str?)
 	a opt-equal b

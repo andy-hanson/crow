@@ -3,7 +3,7 @@ import
 	../../bool: ==, bool, false, true
 	../../compare: <
 	../../number: ==, <=>, nat64
-	../arr: ==, arr, arr-equal, for-loop, new
+	../arr: arr, arr-equal, for-loop, new
 	../arr-util: flatten, groups-of, in, repeat, strip-left-while
 	../../test-util: is
 
@@ -17,15 +17,17 @@ test
 test
 	(3, 2, 1) strip-left-while (x => x < 3) is (3, 2, 1)
 	# TODO: should not need type annotation
-	(1, 3, 5, 3, 1)::nat64[] strip-left-while (x => x < 5) is (5, 3, 1)
+	(1, 3, 5, 3, 1)::arr<nat64> strip-left-while (x => x < 5) is (5, 3, 1)
 
 test
-	a nat64[] = 5, 3, 1
-	(for x : a; (x,) repeat x)::nat64[][].flatten is (5, 5, 5, 5, 5, 3, 3, 3, 1)
+	a arr nat64 = 5, 3, 1
+	(for x : a; (x,) repeat x)::arr<arr<nat64>>.flatten is (5, 5, 5, 5, 5, 3, 3, 3, 1)
 
 test
-	a nat64[] = 1, 2, 3, 4, 5, 6, 7
+	a arr nat64 = 1, 2, 3, 4, 5, 6, 7
 	a groups-of 3 is ((1, 2, 3), (4, 5, 6), (7,))
 
-.== bool(a nat64[][], b nat64[][])
+.== bool(a arr nat64, b arr nat64) no-doc noctx
+	a arr-equal b
+.== bool(a arr arr nat64, b arr arr nat64) no-doc noctx
 	a arr-equal b

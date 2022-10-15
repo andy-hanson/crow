@@ -1,17 +1,15 @@
 no-std
 import
 	unistd: __environ
-	../col/dict: dict, each
+	../col/dict: dict
 	../col/mut-dict: move-to-dict, mut-dict, new, set-subscript
-	../col/mut-arr: ~=, move-to-arr, mut-arr, new
-	../col/private/arr-low-level: begin-ptr, arr-from-begin-end
+	../col/list: to-list
+	../col/private/arr-low-level: arr-from-begin-end
 	../misc: new, void
 	../private/bootstrap: todo
 	../private/c-str-util: find-char-in-c-str, find-c-str-end
 	../ptr: ==, +, *, const-ptr, null
-	../str: ==, <=>, c-str, hash-mix, literal, str
-	../str-conv: finish, interp, to-str, with-str, with-value
-	../str-util: to-c-str
+	../str: ==, <=>, c-str, hash-mix, str
 	../tuple: from, new, pair, to
 
 # Represents the environment variables available to this process.
@@ -35,18 +33,10 @@ get-environ environ() summon trusted
 
 .parse-environ-entry pair<str, str>(entry c-str) unsafe
 	if key-end ?= entry find-char-in-c-str "="
-		key = entry arr-from-begin-end key-end str
+		key = (entry arr-from-begin-end key-end).to-list str
 		value-begin = key-end + 1
 		value-end = value-begin find-c-str-end
-		value = value-begin arr-from-begin-end value-end str
+		value = (value-begin arr-from-begin-end value-end).to-list str
 		key, value
 	else
 		todo
-
-# Get an environment string from environment variables.
-convert-environ c-str*(environ environ) unsafe
-	res c-str mut[] = ()
-	environ each (key, value) =>
-		res ~= "{key}={value}" to-c-str
-	res ~= null
-	res.move-to-arr begin-ptr

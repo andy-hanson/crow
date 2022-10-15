@@ -125,7 +125,7 @@ import util.col.str : copySafeCStr, SafeCStr, safeCStr, strOfSafeCStr;
 import util.memory : allocate, allocateMut, overwriteMemory;
 import util.opt : force, has, none, noneMut, Opt, some, someMut;
 import util.perf : Perf;
-import util.ptr : castImmutable, castNonScope_mut, ptrTrustMe, ptrTrustMe_mut;
+import util.ptr : castImmutable, castNonScope_mut, ptrTrustMe_mut;
 import util.sourceRange : FileAndPos, FileAndRange, FileIndex, RangeWithinFile;
 import util.sym : AllSymbols, shortSym, shortSymValue, Sym;
 import util.util : unreachable, todo, verify;
@@ -1000,11 +1000,11 @@ immutable(Type) typeForFileImport(
 				range,
 				immutable NameAndRange(range.start, shortSym("nat8")),
 				emptySmallArray!TypeAst));
-			immutable TypeAst.Suffix suffix = immutable TypeAst.Suffix(
-				TypeAst.Suffix.Kind.arr,
-				nat8);
-			immutable TypeAst nat8Array = immutable TypeAst(ptrTrustMe(suffix));
-			return typeFromAstNoTypeParamsNeverDelay(ctx, commonTypes, nat8Array, structsAndAliasesDict);
+			scope immutable TypeAst arrayNat8 = immutable TypeAst(immutable TypeAst.InstStruct(
+				range,
+				immutable NameAndRange(range.start, shortSym("arr")),
+				small([nat8])));
+			return typeFromAstNoTypeParamsNeverDelay(ctx, commonTypes, arrayNat8, structsAndAliasesDict);
 		case ImportFileType.str:
 			//TODO: this sort of duplicates 'getStrType'
 			scope immutable TypeAst ast = immutable TypeAst(immutable TypeAst.InstStruct(

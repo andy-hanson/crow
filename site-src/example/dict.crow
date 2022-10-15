@@ -1,8 +1,7 @@
 import
-	crow/col/dict
 	crow/io/print: out, print
 
-main fut nat(_ str[]) summon
+main fut nat(_ arr str) summon
 	a str[nat] = (10, "ten"), (1, "one")
 	out print (a[1] ?? "n/a")
 	out print (a[3] ?? "n/a")

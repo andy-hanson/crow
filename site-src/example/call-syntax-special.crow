@@ -1,11 +1,10 @@
 import
 	crow/cell
-	crow/col/mut-arr
 	crow/io/print: out, print
 
-main fut nat(_ str[]) summon
+main fut nat(_ arr str) summon
 	# "crow" new "duck"
-	xs str[] = "crow", "duck"
+	xs list str = "crow", "duck"
 	# xs subscript 0
 	out print xs[0]
 

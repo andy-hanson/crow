@@ -79,12 +79,14 @@ immutable(TypeAst) parseType(scope ref Lexer lexer) =>
 immutable(TypeAst) parseTypeRequireBracket(scope ref Lexer lexer) =>
 	parseType(lexer, RequireBracket.yes);
 
-private enum RequireBracket { no, yes }
+private:
 
-private immutable(TypeAst) parseType(scope ref Lexer lexer, immutable RequireBracket requireBracket) =>
+enum RequireBracket { no, yes }
+
+immutable(TypeAst) parseType(scope ref Lexer lexer, immutable RequireBracket requireBracket) =>
 	parseTypeSuffixes(lexer, parseTypeBeforeSuffixes(lexer, requireBracket));
 
-private immutable(TypeAst) parseTypeBeforeSuffixes(scope ref Lexer lexer, immutable RequireBracket requireBracket) {
+immutable(TypeAst) parseTypeBeforeSuffixes(scope ref Lexer lexer, immutable RequireBracket requireBracket) {
 	immutable Pos start = curPos(lexer);
 	immutable Token token = nextToken(lexer);
 	switch (token) {
@@ -112,7 +114,7 @@ private immutable(TypeAst) parseTypeBeforeSuffixes(scope ref Lexer lexer, immuta
 	}
 }
 
-private immutable(TypeAst) parseFunType(scope ref Lexer lexer, immutable Pos start, immutable TypeAst.Fun.Kind kind) {
+immutable(TypeAst) parseFunType(scope ref Lexer lexer, immutable Pos start, immutable TypeAst.Fun.Kind kind) {
 	ArrBuilder!TypeAst returnAndParamTypes;
 	add(lexer.alloc, returnAndParamTypes, parseType(lexer));
 	if (tryTakeToken(lexer, Token.parenLeft)) {
@@ -130,7 +132,7 @@ private immutable(TypeAst) parseFunType(scope ref Lexer lexer, immutable Pos sta
 		finishArr(lexer.alloc, returnAndParamTypes)));
 }
 
-private immutable(TypeAst) parseTypeSuffixes(scope ref Lexer lexer, immutable TypeAst ast) {
+immutable(TypeAst) parseTypeSuffixes(scope ref Lexer lexer, immutable TypeAst ast) {
 	immutable(TypeAst) doSuffix(immutable TypeAst inner, immutable TypeAst.Suffix.Kind kind) =>
 		immutable TypeAst(allocate(lexer.alloc, immutable TypeAst.Suffix(kind, inner)));
 
@@ -150,9 +152,9 @@ private immutable(TypeAst) parseTypeSuffixes(scope ref Lexer lexer, immutable Ty
 	if (tryTakeToken(lexer, Token.question))
 		return handleSuffix(TypeAst.Suffix.Kind.opt);
 	else if (tryTakeToken(lexer, Token.bracketLeft))
-		return tryTakeToken(lexer, Token.bracketRight)
-			? handleSuffix(TypeAst.Suffix.Kind.arr)
-			: handleDictLike(TypeAst.Dict.Kind.data);
+		//return tryTakeToken(lexer, Token.bracketRight)
+		//	? handleSuffix(TypeAst.Suffix.Kind.arr)
+		return handleDictLike(TypeAst.Dict.Kind.data);
 	else if (tryTakeOperator(lexer, Operator.times))
 		return handleSuffix(TypeAst.Suffix.Kind.ptr);
 	else if (tryTakeOperator(lexer, Operator.exponent))

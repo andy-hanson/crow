@@ -2,6 +2,10 @@ no-std
 export
 	./bool
 	./col/arr
+	./col/dict
+	./col/list
+	./col/mut-arr
+	./col/mut-dict
 	./compare
 	./enum-util
 	./exception
@@ -16,6 +20,7 @@ export
 	./result
 	./str
 	./str-conv
+	./str-util
 	./sym
 	./test-util
 	./tuple

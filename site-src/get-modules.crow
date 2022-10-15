@@ -1,6 +1,6 @@
 import
 	crow/io/process: exit-code, spawn-and-wait-result, stderr, stdout
-	crow/json: as-arr, as-bool, as-str, json, parse-json, subscript
+	crow/json: as-bool, as-list, as-str, json, parse-json, subscript
 	crow/version: is-windows
 	./module:
 		alias-decl, builtin-decl, enum-decl, extern-ptr-decl, flags-decl, fun-decl, module,
@@ -8,7 +8,7 @@ import
 		spec-decl, spec-ref, type-param, type-ref, record-decl, record-field, spec-builtin,
 		spec-sig, spec-sigs, union-decl, union-member
 
-get-modules module[](paths str[]) summon
+get-modules list module(paths list str) summon
 	result = crow-path spawn-and-wait-result "doc" ~ paths
 	unless result.exit-code == 0 && result.stderr.is-empty
 		throw "Could not get documentation: exit code {result exit-code}, stderr: {result stderr}"
@@ -20,14 +20,14 @@ get-modules module[](paths str[]) summon
 	else
 		"bin/crow"
 
-.to-modules module[](a json)
+.to-modules list module(a json)
 	a.get-node-type is "root"
-	for x : a["modules"]!.as-arr!
+	for x : a["modules"]!.as-list!
 		x to-module
 
 .to-module module(a json)
 	a.get-node-type is "module"
-	a["path"]!.as-str!, a.get-comment, for x : a["exports"]!.as-arr!
+	a["path"]!.as-str!, a.get-comment, for x : a["exports"]!.as-list!
 		x to-export
 
 .get-comment str(a json)
@@ -39,8 +39,8 @@ get-modules module[](paths str[]) summon
 
 .to-export module-export(a json)
 	a.get-node-type is "export"
-	type-params type-param[] = if t ?= a["type-params"]
-		for x : t.as-arr!
+	type-params list type-param = if t ?= a["type-params"]
+		for x : t.as-list!
 			x to-type-param
 	value = a["value"]! to-export-value
 	a.get-name, a.get-comment, type-params, value
@@ -78,14 +78,14 @@ get-modules module[](paths str[]) summon
 .to-flags-decl flags-decl(a json)
 	a.get-enum-flags-members,
 
-.get-enum-flags-members sym[](a json)
-	for x : a["members"]!.as-arr!
+.get-enum-flags-members list sym(a json)
+	for x : a["members"]!.as-list!
 		x.as-str! str-to-sym
 
 .to-record-decl record-decl(a json)
 	has-private = if h ?= a["has-private"]
 		h.as-bool!
-	a.get-purity, has-private, for x : a["fields"]!.as-arr!
+	a.get-purity, has-private, for x : a["fields"]!.as-list!
 		x to-record-field
 
 .get-purity purity(a json)
@@ -106,7 +106,7 @@ get-modules module[](paths str[]) summon
 	a.get-name, a.get-type, is-mut
 
 .to-union-decl union-decl(a json)
-	a.get-purity, for x : a["members"]!.as-arr!
+	a.get-purity, for x : a["members"]!.as-list!
 		x to-union-member
 
 .to-union-member union-member(a json)
@@ -124,16 +124,16 @@ get-modules module[](paths str[]) summon
 .get-type type-ref(a json)
 	a["type"]! to-type-ref
 
-.get-type-args type-ref[](a json)
+.get-type-args list type-ref(a json)
 	if args ?= a["type-args"]
-		for x : args.as-arr!
+		for x : args.as-list!
 			x to-type-ref
 
 .to-fun-decl fun-decl(a json)
 	variadic = if v ?= a["variadic"]
 		v.as-bool!
 	a.get-return-type, variadic, a.get-params, if s ?= a["specs"]
-		for x : s.as-arr!
+		for x : s.as-list!
 			x to-spec-ref
 
 .to-spec-decl spec-decl(a json)
@@ -142,7 +142,7 @@ get-modules module[](paths str[]) summon
 	body_ = if type == "builtin"
 		spec-builtin
 	elif type == "sigs"
-		sigs spec-sig[] = for x : body-json["sigs"]!.as-arr!
+		sigs list spec-sig = for x : body-json["sigs"]!.as-list!
 			x to-sig
 		sigs spec-sigs
 	else
@@ -155,8 +155,8 @@ get-modules module[](paths str[]) summon
 .get-return-type type-ref(a json)
 	a["return-type"]! to-type-ref
 
-.get-params param[](a json)
-	for x : a["params"]!.as-arr!
+.get-params list param(a json)
+	for x : a["params"]!.as-list!
 		x to-param
 
 .to-param param(a json)

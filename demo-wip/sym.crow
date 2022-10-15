@@ -1,8 +1,8 @@
 import
 	crow/io/print: out, print
 
-main fut nat(_ str[]) summon
-	for v : enum-members::named-val<e>[]
+main fut nat(_ arr str) summon
+	for v : enum-members::arr<named-val<e>>
 		out print v.name.to-str
 	()
 

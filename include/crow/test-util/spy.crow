@@ -5,13 +5,13 @@ Spies record each call and output to an array.
 
 no-std
 import
-	../bool: &&, bool
-	../col/arr: arr, arr-equal, new
-	../col/mut-arr: ~=, move-to-arr, mut-arr, new
+	../bool: bool
+	../col/list: list, list-equal, new
+	../col/mut-arr: ~=, move-to-list, mut-arr, new
 	../fun-util: subscript
 	../number: ==, +, nat64
 	../test-util: is
-	../tuple: a, b, new, pair
+	../tuple: new, pair, pair-equal
 
 spy-act1<out, in> record mut
 	.calls-builder in mut[]
@@ -25,8 +25,8 @@ new<out, in> spy-act1<out, in>(f act out(in))
 		f[in]
 
 # Returns the argument to every call since the last time `calls` was called.
-calls<out, in> in[](a spy-act1<out, in>)
-	a.calls-builder move-to-arr
+calls<out, in> list in(a spy-act1<out, in>)
+	a.calls-builder move-to-list
 
 spy-act2<out, in0, in1> record mut
 	.calls-builder pair<in0, in1> mut[]
@@ -40,8 +40,8 @@ new<out, in0, in1> spy-act2<out, in0, in1>(f act out(in0, in1))
 		f[a, b]
 
 # Returns the arguments to every call since the last time `calls` was called.
-calls<out, in0, in1> pair<in0, in1>[](a spy-act2<out, in0, in1>)
-	a.calls-builder move-to-arr
+calls<out, in0, in1> list pair<in0, in1>(a spy-act2<out, in0, in1>)
+	a.calls-builder move-to-list
 
 test
 	spy spy-act2<nat64, nat64, nat64> = ((x, y) => x + y),
@@ -50,7 +50,9 @@ test
 	spy.calls is ((1, 2), (3, 4))
 	spy.calls is ()
 
-# TODO: array equality should be generic
-== bool(a pair<nat64, nat64>[], b pair<nat64, nat64>[])
-	a arr-equal b, (x, y) =>
-		x.a == y.a && x.b == y.b
+# TODO: list equality should be generic
+.== bool(a list pair<nat64, nat64>, b list pair<nat64, nat64>)
+	a list-equal b
+
+.== bool(a pair<nat64, nat64>, b pair<nat64, nat64>)
+	a pair-equal b

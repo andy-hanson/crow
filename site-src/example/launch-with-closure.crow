@@ -1,11 +1,10 @@
 import
 	crow/cell
 	crow/io/print: out, print
-	crow/str-util: join
 
-main fut nat(_ str[]) summon
+main fut nat(_ arr str) summon
 	adder <- 0 make-store
-	tasks fut<nat>[] = for x : 0 .. 10
+	tasks list fut<nat> = for x : 0 .. 10
 		launch do () =>
 			adder.get-and-set[x + 1]
 	values <- tasks wait-all

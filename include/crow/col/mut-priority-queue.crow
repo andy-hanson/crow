@@ -6,17 +6,18 @@ import
 	../misc: is-data, new, void
 	../number: ==, <=>, +, nat64
 	../opt: !, is-empty, new, opt
-	../ptr: +, -, mut-ptr, set-deref
+	../ptr: -
+	../range: .., for-loop
 	../str: ==, literal, new, str
 	../str-conv: interp, finish, to-str, with-str, with-value
 	../str-util: join
 	../test-util: is
 	../tuple: from, new, pair, pair-equal, to
-	./arr: new, arr, arr-equal
-	./fix-arr: begin-ptr, cast-immutable, copy, fix-arr, set-reverse, uninitialized-fix-arr
+	./arr: arr, size, subscript
 	./mut-arr:
-		~=, ~~=, begin-ptr, clear, fold, fold-reverse, for-loop, is-empty, mut-arr, new, pop, size,
-		subscript, temp-as-arr, to-mut-arr
+		~=, ~~=, begin-ptr, clear, copy, fold, for-loop, is-empty, move-to-array, mut-arr, new,
+		pop, reversed, size, subscript, temp-as-array, to-list, to-mut-arr
+	./list: list, list-equal, new, reverse, to-list
 	./sort: set-sort-by, set-sort-by-reverse
 	./private/sort-utils: binary-search-insert-ptr
 
@@ -36,11 +37,11 @@ mut-priority-queue<k, v> record mut by-ref
 	.buckets pair<k, v> mut[] mut[]
 
 # New priority queue containing the given pairs.
-new<k, v> mut-priority-queue<k, v>(...a pair<k, v>[]) is-data<k> compare<k>
-	a to-mut-priority-queue
+new<k, v> mut-priority-queue<k, v>(...a arr pair<k, v>) is-data<k> compare<k>
+	a.to-list to-mut-priority-queue
 
-# Copies an array to a new priority queue.
-to-mut-priority-queue<k, v> mut-priority-queue<k, v>(a pair<k, v>[]) is-data<k> compare<k>
+# Copies a list to a new priority queue.
+to-mut-priority-queue<k, v> mut-priority-queue<k, v>(a list pair<k, v>) is-data<k> compare<k>
 	mins = a to-mut-arr
 	mins.sort-by-reverse := pair => pair from
 	mins, ()
@@ -104,45 +105,23 @@ Copy pairs to a new priority queue.
 This is O(n).
 ###
 copy<k, v> mut-priority-queue<k, v>(a mut-priority-queue<k, v>) is-data<k> compare<k>
-	mins = a spread-all-buckets
-	a.mins clear
-	a.mins ~~= mins
+	a spread-all-buckets
+	a.mins.copy, ()
+
+to-list<k, v> list pair<k, v>(a mut-priority-queue<k, v>) trusted is-data<k> compare<k>
+	a spread-all-buckets
+	a.mins.to-list reverse
+
+.spread-all-buckets<k, v> void(a mut-priority-queue<k, v>) is-data<k> compare<k>
+	old-mins = a.mins move-to-array
+	for index : 0 .. old-mins.size
+		if index < a.buckets.size
+			bucket = a.buckets[index]
+			bucket.sort-by := it => it from
+			for x : bucket reversed
+				a.mins ~= x
+		a.mins ~= old-mins[index]
 	a.buckets clear
-	mins.mut-arr, ()
-
-# Copy pairs to an array.
-to-arr<k, v> pair<k, v>[](a mut-priority-queue<k, v>) trusted is-data<k> compare<k>
-	a.to-fix-arr cast-immutable
-
-to-fix-arr<k, v> fix-arr pair<k, v>(a mut-priority-queue<k, v>) no-doc is-data<k> compare<k>
-	mins = a spread-all-buckets
-	a.mins clear
-	a.mins ~~= mins
-	a.buckets clear
-	res = mins copy
-	res set-reverse
-	res
-
-# Output is high-to-low
-.spread-all-buckets<k, v> fix-arr pair<k, v>(a mut-priority-queue<k, v>) trusted is-data<k> compare<k>
-	new-mins fix-arr pair<k, v> = a.size uninitialized-fix-arr
-	new-mins.begin-ptr spread-all-buckets-recur a, 0
-	new-mins
-.spread-all-buckets-recur<k, v> void(
-	out pair<k, v> mut*,
-	a mut-priority-queue<k, v>,
-	index nat64,
-) unsafe compare<k>
-	if index < a.mins.size
-		mid = if index < a.buckets.size
-			a.buckets[index].sort-by := it => it from
-			out fold-reverse a.buckets[index], (cur, x) =>
-				*cur := x
-				cur + 1
-		else
-			out
-		*mid := a.mins[index]
-		mid + 1 spread-all-buckets-recur a, index + 1
 
 .add-to-bucket<k, v> void(buckets pair<k, v> mut[] mut[], index nat64, pair pair<k, v>)
 	if index < buckets.size
@@ -153,8 +132,8 @@ to-fix-arr<k, v> fix-arr pair<k, v>(a mut-priority-queue<k, v>) no-doc is-data<k
 
 .dbg<k, v> str(a mut-priority-queue<k, v>) to-str<k> to-str<v> trusted
 	# TODO: should be able to infer type arguments
-	mins = a.mins temp-as-arr
-	buckets = a.buckets temp-as-arr
+	mins = a.mins temp-as-array
+	buckets = a.buckets temp-as-array
 	parts = mins zip-larger@<str, pair<k, v>, pair<k, v> mut[]> buckets, (opt-min, opt-bucket) =>
 		min = opt-min!
 		show-bucket = if bucket ?= opt-bucket
@@ -162,7 +141,7 @@ to-fix-arr<k, v> fix-arr pair<k, v>(a mut-priority-queue<k, v>) no-doc is-data<k
 				parts = ", " join for pair : bucket; pair dbg
 				" [{parts}]"
 		"{min dbg}{show-bucket}"
-	", " join parts
+	", " join parts.to-list
 
 .dbg<k, v> str(a pair<k, v>) to-str<k> to-str<v>
 	"{a from} -> {a to}"
@@ -205,7 +184,7 @@ test
 	a.pop is ((4, "4"),)
 	a verify "5 -> 5 [6 -> 6], 4 -> 4b"
 
-	a.to-arr is ((4, "4b"), (5, "5"), (6, "6"))
+	a.to-list is ((4, "4b"), (5, "5"), (6, "6"))
 	a verify "6 -> 6, 5 -> 5, 4 -> 4b"
 	a is ((4, "4b"), (5, "5"), (6, "6"))
 
@@ -228,10 +207,10 @@ test
 		b is-empty
 
 .== bool(a mut-priority-queue<nat64, str>, b mut-priority-queue<nat64, str>)
-	a.to-arr == b.to-arr
+	a.to-list == b.to-list
 
-.== bool(a pair<nat64, str>[], b pair<nat64, str>[])
-	a arr-equal b
+.== bool(a list pair<nat64, str>, b list pair<nat64, str>)
+	a list-equal b
 
 .== bool(a pair<nat64, str>, b pair<nat64, str>)
 	a pair-equal b

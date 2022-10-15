@@ -1,23 +1,22 @@
 import
-	crow/col/arr-util: map-with-index
 	crow/io/file: read-file
-	crow/str-util: join, split-by, strip, try-split-once
 	./page-template: page-template
 	./path-and-content: path-and-content
 
-pages path-and-content[]() summon
+pages list path-and-content() summon
 	index path-and-content = "index.html" page-template "index", "site-src/index.html".read-file
 	download path-and-content = "download.html" page-template "download", "site-src/download.html".read-file
 	(index, download) ~~ tutorial-pages
 
-tutorial-pages path-and-content[]() summon
+tutorial-pages list path-and-content() summon
 	metas = tutorial-metas
-	metas map-with-index (meta, index) =>
+	for index : 0 .. metas.size
+		meta = metas[index]
 		next tutorial-meta? = unless index + 1 == metas.size
 			metas[index + 1],
 		meta.path tutorial-template meta.title, "site-src/tutorial/{meta key}.html".read-file, next
 
-.tutorial-metas tutorial-meta[]()
+.tutorial-metas list tutorial-meta()
 	lines = """index: hello, world!
 	if: functions, 'if', and locals
 	types: basic types

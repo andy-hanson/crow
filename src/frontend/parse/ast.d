@@ -113,7 +113,7 @@ struct TypeAst {
 		@safe @nogc pure nothrow:
 
 		enum Kind {
-			arr,
+			//arr,
 			arrMut,
 			opt,
 			ptr,
@@ -190,8 +190,6 @@ immutable(RangeWithinFile) suffixRange(immutable TypeAst.Suffix a) {
 
 private immutable(uint) suffixLength(immutable TypeAst.Suffix.Kind a) {
 	final switch (a) {
-		case TypeAst.Suffix.Kind.arr:
-			return cast(uint) "[]".length;
 		case TypeAst.Suffix.Kind.arrMut:
 			return cast(uint) "mut[]".length;
 		case TypeAst.Suffix.Kind.opt:
@@ -214,8 +212,6 @@ immutable(Sym) symForTypeAstDict(immutable TypeAst.Dict.Kind a) {
 
 immutable(Sym) symForTypeAstSuffix(immutable TypeAst.Suffix.Kind a) {
 	final switch (a) {
-		case TypeAst.Suffix.Kind.arr:
-			return shortSym("arr");
 		case TypeAst.Suffix.Kind.arrMut:
 			return shortSym("mut-arr");
 		case TypeAst.Suffix.Kind.opt:

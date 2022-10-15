@@ -10,6 +10,7 @@ import
 	../bool: bool, false, true
 	../col/arr: subscript
 	../col/fix-arr: cast-immutable, begin-ptr, fix-arr, size, uninitialized-fix-arr
+	../col/list: to-list
 	../number: ==, <=>, +, nat64
 	../range: ..
 	../str: char8, literal, str
@@ -127,4 +128,4 @@ second str(locale time-locale, time unix-time) summon
 		&seconds gmtime
 	res fix-arr char8 = max-size + 1 uninitialized-fix-arr
 	len = res.begin-ptr strftime res.size, format.to-c-str, tm
-	res.cast-immutable[0 .. len] str
+	res.cast-immutable[0 .. len].to-list str

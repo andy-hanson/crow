@@ -4,11 +4,11 @@ import
 	sys/socket: as-fd, SOCKET
 	unistd: write
 	../../bool: bool, false, true
-	../../col/arr: ~~, arr, is-empty, size, subscript
-	../../col/arr-util: rtail
+	../../col/arr: arr, is-empty, size, subscript
 	../../col/dict: for-loop, in
+	../../col/list: ~~, is-empty, rtail, size, subscript, to-array
 	../../col/mut-dict: move-to-dict, mut-dict, new, try-remove, set-subscript, subscript
-	../../col/mut-arr: ~~=, index-of, move-to-arr, mut-arr, new, pop-n-from-start, size
+	../../col/mut-arr: ~~=, index-of, move-to-list, mut-arr, new, pop-n-from-start, size
 	../../col/private/arr-low-level: begin-ptr
 	../../compare: <=, >
 	../../exception: to-str
@@ -52,7 +52,7 @@ with-block<a> fut a(a http-server-options, cb ref a(http-server)) is-sendable<a>
 	on-accepted-client ref void(SOCKET) = sock =>
 		client-states[sock] := ()
 		()
-	on-received-chunk ref void(SOCKET, nat8[]) = (sock, bytes) =>
+	on-received-chunk ref void(SOCKET, arr nat8) = (sock, bytes) =>
 		if state ?= client-states[sock]
 			closed <- sock handle-chunk state, bytes, a.handler
 			if closed
@@ -71,7 +71,7 @@ with-block<a> fut a(a http-server-options, cb ref a(http-server)) is-sendable<a>
 		cb[()]
 
 # Returns true when closed client
-.handle-chunk fut bool(sock SOCKET, state http-parse-state, chunk nat8[], handler http-handler) summon trusted
+.handle-chunk fut bool(sock SOCKET, state http-parse-state, chunk arr nat8, handler http-handler) summon trusted
 	state.unparsed ~~= chunk
 	finished-request = if state.content-length == 0
 		state handle-http-initial
@@ -94,7 +94,7 @@ with-block<a> fut a(a http-server-options, cb ref a(http-server)) is-sendable<a>
 	else
 		false,
 
-.write-until-finished fut void(sock SOCKET, content nat8[]) summon trusted
+.write-until-finished fut void(sock SOCKET, content arr nat8) summon trusted
 	unless content is-empty
 		wrote = sock.as-fd write content.begin-ptr, content.size
 		unless wrote == content.size.to-int64
@@ -109,9 +109,9 @@ with-block<a> fut a(a http-server-options, cb ref a(http-server)) is-sendable<a>
 				sock write-until-finished content[wrote.to-nat64 .. content.size]
 
 .finish-request http-request(state http-parse-state) trusted
-	state.method, state.url, state.headers.move-to-dict, state.unparsed move-to-arr
+	state.method, state.url, state.headers.move-to-dict, state.unparsed.move-to-list
 
-.response-to-arr nat8[](a http-response)
+.response-to-arr arr nat8(a http-response)
 	forbid a.status-desc contains-substr "\n"
 	# TODO: headers are case insensitive, maybe forbid any upper-case letters in headers to be consistent
 	forbid "Content-Length" in a.headers
@@ -121,9 +121,9 @@ with-block<a> fut a(a http-server-options, cb ref a(http-server)) is-sendable<a>
 		"\r\n{pair a}: {pair b}"
 	head = "HTTP/1.1 {a status} \r\n{a status-desc}{headers}"
 	if a.response-body is-empty
-		"{head}\r\n\r\n".to-bytes
+		"{head}\r\n\r\n".to-bytes to-array
 	else
-		"{head}\r\nContent-Length:{a.response-body size}\r\n\r\n".to-bytes ~~ a.response-body
+		"{head}\r\nContent-Length:{a.response-body size}\r\n\r\n".to-bytes ~~ a.response-body to-array
 
 # returns true if ready to call handler
 .handle-http-initial bool(state http-parse-state)
