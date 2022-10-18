@@ -31,7 +31,7 @@ frozen-dict<k, v> record by-val
 new<k, v> frozen-dict<k, v>(...a arr pair<k, v>) is-data<k> compare<k> hash-mix<k>
 	a.to-list to-frozen-dict
 
-to-frozen-dict<k, v> frozen-dict<k, v>(a list pair<k, v>) trusted is-data<k> compare<k> hash-mix<k>
+to-frozen-dict<k, v> frozen-dict<k, v>(a pair<k, v>[]) trusted is-data<k> compare<k> hash-mix<k>
 	a.to-array.to-fix-arr.fix-arr-to-frozen-dict-promise-no-duplicates remove-duplicates
 
 # This is O(1).
@@ -39,7 +39,7 @@ to-array<k, v> arr pair<k, v>(a frozen-dict<k, v>) noctx
 	a pairs
 
 # This is O(1).
-to-list<k, v> list pair<k, v>(a frozen-dict<k, v>) noctx
+to-list<k, v> pair<k, v>[](a frozen-dict<k, v>) noctx
 	a.to-array to-list
 
 # TODO:INTERNAL
@@ -239,7 +239,7 @@ region iteration
 for-loop<k, v> void(a frozen-dict<k, v>, f act void(pair<k, v>))
 	a.pairs.to-list for-loop f
 
-for-loop<out, k, v> list out(a frozen-dict<k, v>, f act out(pair<k, v>))
+for-loop<out, k, v> out[](a frozen-dict<k, v>, f act out(pair<k, v>))
 	a.pairs.to-list for-loop f
 
 fold<a, k, v> a(acc a, a frozen-dict<k, v>, f act a(a, k, v))
@@ -250,9 +250,9 @@ fold-with-index<a, k, v> a(acc a, a frozen-dict<k, v>, f act a(a, k, v, nat64))
 	acc fold-with-index a.pairs, (inner-acc, pair, index) =>
 		f[inner-acc, pair from, pair to, index]
 
-.verify void(a frozen-dict<nat64, str>, keys-order list nat64, bucket-starts list nat64) unsafe
-	(for pair : a.pairs to-list; pair from)::list<nat64> is keys-order
-	(for ptr : a.bucket-starts to-list; ptr - a.pairs.begin-ptr)::list<nat64> is bucket-starts
+.verify void(a frozen-dict<nat64, str>, keys-order nat64[], bucket-starts nat64[]) unsafe
+	(for pair : a.pairs to-list; pair from)::nat64[] is keys-order
+	(for ptr : a.bucket-starts to-list; ptr - a.pairs.begin-ptr)::nat64[] is bucket-starts
 
 .== bool(a str?, b str?)
 	a opt-equal b

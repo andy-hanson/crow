@@ -17,7 +17,7 @@ foo nat64 mut*() thread-local
 	.inner range a
 .parallel<a> parallel-range a(a range a)
 	a,
-.for-loop fut list nat64(a parallel-range nat64, f fun fut nat64(nat64))
-	tasks list fut<nat64> = for x : a.inner
+.for-loop fut nat64[](a parallel-range nat64, f fun fut nat64(nat64))
+	tasks fut<nat64>[] = for x : a.inner
 		launch do () => f[x]
 	tasks wait-all

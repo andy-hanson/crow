@@ -25,7 +25,7 @@ import
 		add-measure-value-at-index, count, each-measure, get-measure-index, perf-enable-low-level,
 		perf-measure-value, total-nsec
 
-perf-enable void(measure-names list sym) summon
+perf-enable void(measure-names sym[]) summon
 	measure-names.to-array perf-enable-low-level
 
 # Disables performance measurement and clears all measurements.

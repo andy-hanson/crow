@@ -3,12 +3,12 @@ import
 	./page-template: page-template
 	./path-and-content: path-and-content
 
-pages list path-and-content() summon
+pages path-and-content[]() summon
 	index path-and-content = "index.html" page-template "index", "site-src/index.html".read-file
 	download path-and-content = "download.html" page-template "download", "site-src/download.html".read-file
 	(index, download) ~~ tutorial-pages
 
-tutorial-pages list path-and-content() summon
+tutorial-pages path-and-content[]() summon
 	metas = tutorial-metas
 	for index : 0 .. metas.size
 		meta = metas[index]
@@ -16,7 +16,7 @@ tutorial-pages list path-and-content() summon
 			metas[index + 1],
 		meta.path tutorial-template meta.title, "site-src/tutorial/{meta key}.html".read-file, next
 
-.tutorial-metas list tutorial-meta()
+.tutorial-metas tutorial-meta[]()
 	lines = """index: hello, world!
 	if: functions, 'if', and locals
 	types: basic types

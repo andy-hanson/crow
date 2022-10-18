@@ -5,7 +5,7 @@ import
 	crow/io/print: out, print
 	./failure: failure, flat-map-with-max-size, max-failures, new, print-tests, test-options
 
-lint result<str, list failure>(path str, options test-options) summon
+lint result<str, failure[]>(path str, options test-options) summon
 	files = path list-lintable-files
 	failures = files flat-map-with-max-size options.max-failures, file =>
 		if options print-tests
@@ -16,7 +16,7 @@ lint result<str, list failure>(path str, options test-options) summon
 	else
 		failures err
 
-.list-lintable-files list str(path str) summon
+.list-lintable-files str[](path str) summon
 	res str mut[] = ()
 	path each-child-recursive (child => !child.excluded-from-lint), child =>
 		unless child.base-name should-ignore-extension-of-name
@@ -36,7 +36,7 @@ lint result<str, list failure>(path str, options test-options) summon
 	"bin", "COPYING.txt", "dyncall", "gl.crow", "node_modules", "package-lock.json", "site"
 
 # Returns number of errors
-.lint-file list failure(path str) summon
+.lint-file failure[](path str) summon
 	text = path read-file
 	res failure mut[] = ()
 	ext = path.get-extension!
@@ -56,7 +56,7 @@ lint result<str, list failure>(path str, options test-options) summon
 			res ~= (path, message)
 	res move-to-list
 
-.ignored-extensions list str()
+.ignored-extensions str[]()
 	"c", "data", "json", "o", "out", "repr", "tmLanguage"
 
 .should-ignore-extension bool(ext str)

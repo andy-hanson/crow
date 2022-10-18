@@ -18,7 +18,7 @@ hamt-set<a> record
 new<a> hamt-set a() is-data<a> compare<a> hash-mix<a>
 	(),
 
-to-hamt-set<a> hamt-set a(a list a) is-data<a> compare<a> hash-mix<a>
+to-hamt-set<a> hamt-set a(a a[]) is-data<a> compare<a> hash-mix<a>
 	((for x : a; x, ()) to-dict),
 
 is-empty<a> bool(a hamt-set a) is-data<a> compare<a> hash-mix<a>

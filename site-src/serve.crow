@@ -34,7 +34,7 @@ main fut nat(args arr str) unsafe summon
 		else
 			http-not-found
 
-file-response http-response(path str, content list nat8)
+file-response http-response(path str, content nat8[])
 	200, "OK", (("Content-Type", path.content-type),), content
 
 content-type str(path str)

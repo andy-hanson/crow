@@ -48,12 +48,12 @@ new<a> set a(...a arr a) is-data<a> compare<a> hash-mix<a>
 	a.to-list to-set
 
 # Set containing the given elements (with duplicates removed).
-to-set<a> set a(a list a) is-data<a> compare<a> hash-mix<a>
+to-set<a> set a(a a[]) is-data<a> compare<a> hash-mix<a>
 	# TODO: type annotation should be unnecessary
 	(a.to-frozen-set, ())::add-node<a>, ()
 
 # Copies set elements to a list.
-to-list<a> list a(a set a) is-data<a> compare<a> hash-mix<a>
+to-list<a> a[](a set a) is-data<a> compare<a> hash-mix<a>
 	# TODO: If a has a single add node and no remove, just return that
 	for x : a
 		x
@@ -249,7 +249,7 @@ filter<a> set a(a set a, f act bool(a)) is-data<a> compare<a> hash-mix<a>
 			res ~= x
 	res.move-to-list to-set
 
-for-loop<out, in> list out(a set in, f act out(in)) trusted is-data<in> compare<in> hash-mix<in>
+for-loop<out, in> out[](a set in, f act out(in)) trusted is-data<in> compare<in> hash-mix<in>
 	out fix-arr out = a.size uninitialized-fix-arr
 	end = out.begin-ptr fold a, (cur, x) =>
 		*cur := f[x]

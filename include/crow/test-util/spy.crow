@@ -25,7 +25,7 @@ new<out, in> spy-act1<out, in>(f act out(in))
 		f[in]
 
 # Returns the argument to every call since the last time `calls` was called.
-calls<out, in> list in(a spy-act1<out, in>)
+calls<out, in> in[](a spy-act1<out, in>)
 	a.calls-builder move-to-list
 
 spy-act2<out, in0, in1> record mut
@@ -40,7 +40,7 @@ new<out, in0, in1> spy-act2<out, in0, in1>(f act out(in0, in1))
 		f[a, b]
 
 # Returns the arguments to every call since the last time `calls` was called.
-calls<out, in0, in1> list pair<in0, in1>(a spy-act2<out, in0, in1>)
+calls<out, in0, in1> pair<in0, in1>[](a spy-act2<out, in0, in1>)
 	a.calls-builder move-to-list
 
 test
@@ -51,7 +51,7 @@ test
 	spy.calls is ()
 
 # TODO: list equality should be generic
-.== bool(a list pair<nat64, nat64>, b list pair<nat64, nat64>)
+.== bool(a pair<nat64, nat64>[], b pair<nat64, nat64>[])
 	a list-equal b
 
 .== bool(a pair<nat64, nat64>, b pair<nat64, nat64>)

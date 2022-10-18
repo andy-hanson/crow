@@ -76,7 +76,7 @@ db record mut
 	.env lmdb-env
 	.user-from-name lmdb-db<str, user>
 	.user-name lmdb-db<user, str>
-	.user-password-hash lmdb-db<user, list nat8>
+	.user-password-hash lmdb-db<user, nat8[]>
 	.user-login-cookie lmdb-db<user, login-cookie>
 	.post-user lmdb-db<post, user>
 	.post-content lmdb-db<post, str>
@@ -93,13 +93,13 @@ with-block<a> fut a(a open-db, f act fut a(db)) unsafe summon is-sendable<a>
 	with env : a.db-path open-lmdb-env true
 		with user-from-name : env database@<str, user> "user-from-name"
 			with user-name : env database@<user, str> "user-name"
-				with user-pw-hash : env database@<user, list nat8> "user-password-hash"
+				with user-pw-hash : env database@<user, nat8[]> "user-password-hash"
 					with user-login : env database@<user, login-cookie> "user-login-cookie"
 						with post-user : env database@<post, user> "post-user"
 							with post-content : env database@<post, str> "post-content"
 								f[(env, user-from-name, user-name, user-pw-hash, user-login, post-user, post-content)]
 
-list-users list user-info(db db) summon
+list-users user-info[](db db) summon
 	with txn : db.env read-transaction
 		txn map db.user-name, (user, name) =>
 			user, name
@@ -108,7 +108,7 @@ user-name str(db db, user user) summon
 	with txn : db.env read-transaction
 		(txn get db.user-name, user)!
 
-list-posts list post-info(db db) summon
+list-posts post-info[](db db) summon
 	with txn : db.env read-transaction
 		txn zip db.post-user, db.post-content, (post, user, content) =>
 			user-name = (txn get db.user-name, user)!

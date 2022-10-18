@@ -53,7 +53,7 @@ new<a> tree-set a(...a arr a) is-data<a> compare<a>
 	a.to-list to-tree-set
 
 # Copy a list to a `tree-set`.
-to-tree-set<a> tree-set a(a list a) is-data<a> compare<a>
+to-tree-set<a> tree-set a(a a[]) is-data<a> compare<a>
 	values = a sort-unique
 	values.to-array.leaf, values.size
 
@@ -61,7 +61,7 @@ to-tree-set<a> tree-set a(a list a) is-data<a> compare<a>
 List of all values in the set, in sorted order.
 This is O(n).
 ###
-to-list<a> list a(a tree-set a) is-data<a> compare<a>
+to-list<a> a[](a tree-set a) is-data<a> compare<a>
 	match a.root
 	as inner i
 		i tree-to-arr a.size to-list

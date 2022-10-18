@@ -35,7 +35,7 @@ Copy elements to a list.
 
 This is O(n).
 ###
-to-list<a> list a(a mut-deque a) trusted
+to-list<a> a[](a mut-deque a) trusted
 	a.to-fix-arr.cast-immutable to-list
 
 .to-fix-arr<a> fix-arr a(a mut-deque a) no-doc trusted
@@ -175,7 +175,7 @@ pop-right<a> a?(a mut-deque a) trusted
 	" " join for i : 0 .. a.inner.size
 		"{i == right ? "<-R "}{i == left ? "L-> "}{a.inner[i]}"
 
-.verify void(a mut-deque nat64, expected list nat64, expected-dbg str)
+.verify void(a mut-deque nat64, expected nat64[], expected-dbg str)
 	a.peek-left is expected.first
 	a.peek-right is expected.last
 	a.size is expected.size

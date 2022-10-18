@@ -26,7 +26,7 @@ json union
 	json-bool bool
 	json-number float64
 	json-str str
-	json-list list json
+	json-list json[]
 	json-object json[str]
 
 new json(...pairs arr<pair<str, json>>)
@@ -45,7 +45,7 @@ json json(a float64)
 	a json-number
 json json(a str)
 	a json-str
-json<a> json(a list a) json<a>
+json<a> json(a a[]) json<a>
 	(for x : a; x json) json-list
 
 ###
@@ -121,7 +121,7 @@ as-str str?(a json) noctx
 	as json-object _
 		()
 # If `a` is a list, returns that, else returns an empty option.
-as-list list<json>?(a json) noctx
+as-list json[]?(a json) noctx
 	match a
 	as json-bool _
 		()

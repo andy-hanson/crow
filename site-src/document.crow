@@ -9,17 +9,17 @@ import
 	./path-and-content: path-and-content
 	./search-dir-recursive: remove-include-and-crow, search-dir-recursive
 
-documentation list path-and-content() summon
+documentation path-and-content[]() summon
 	all-module-paths = "include/crow" search-dir-recursive (x => !x.ignore-dir), (x => x != "std.crow")
 	all-modules = all-module-paths get-modules
 	all-paths = (for x : all-module-paths; x remove-include-and-crow) sort-paths
-	modules list path-and-content = for module : all-modules
+	modules path-and-content[] = for module : all-modules
 		module.path document-template "module {module.path}", module.module-content, all-paths
 	index-content = "site-src/doc/index.html" read-file
 	index = "index" document-template "documentation", index-content, all-paths
 	index ~ modules
 
-.sort-paths list str(a list str)
+.sort-paths str[](a str[])
 	a sort (x, y) => x compare-paths y
 
 .compare-paths comparison(a str, b str)
@@ -38,15 +38,15 @@ documentation list path-and-content() summon
 		less
 
 .ignore-dir bool(a str)
-	a in ("experimental", "private")::list<str>
+	a in ("experimental", "private")::str[]
 
-.document-template path-and-content(path str, title str, content str, all-paths list str)
+.document-template path-and-content(path str, title str, content str, all-paths str[])
 	out-path = "doc" child-path "{path}.html"
 	nav = all-paths generate-nav path
 	full = """<div class="documentation" id="side-nav-wrapper">{nav}<main>{content}</main></div>"""
 	out-path page-template title, full
 
-.generate-nav str(all-paths list str, cur-path str)
+.generate-nav str(all-paths str[], cur-path str)
 	parts = "" join for x : all-paths
 		x nav-part x == cur-path
 	"""<nav><ul>{parts}</ul></nav>"""

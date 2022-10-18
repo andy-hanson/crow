@@ -307,10 +307,10 @@ struct Diag {
 	struct TypeParamCantHaveTypeArgs {}
 	struct TypeShouldUseSyntax {
 		enum Kind {
-			arr,
 			arrMut,
 			dict,
 			dictMut,
+			list,
 			opt,
 			ptr,
 			ptrMut,

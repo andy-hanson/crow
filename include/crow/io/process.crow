@@ -53,7 +53,7 @@ The child process' stdout and stderr will be sent to the `process-result`,
 not to the parent's stdout and stderr.
 EXE should be a file path and not just a name; this does not search the system path for `exe`.
 ###
-spawn-and-wait-result process-result(exe str, args list str) trusted summon
+spawn-and-wait-result process-result(exe str, args str[]) trusted summon
 	out print ("spawn-and-wait-result: {exe}" fold args, (a, b) => "{a} {b}")
 
 	# TODO: kill, handle that error properly
@@ -83,7 +83,7 @@ spawn-and-wait-result process-result(exe str, args list str) trusted summon
 Launches a process and synchronously waits on the result.
 The child process shares stdout and stderr with the parent process.
 ###
-spawn-and-wait int32(exe str, args list str) trusted summon
+spawn-and-wait int32(exe str, args str[]) trusted summon
 	# TODO: kill, handle that error properly
 	assert exe is-file : "{exe} is not a file"
 	# First argument should be the executable path
@@ -103,10 +103,10 @@ shell-exec str(command str) trusted summon
 	assert err == 0
 	res.move-to-list str
 
-.convert-args list c-str(exe-c-str c-str, args list str) unsafe
+.convert-args c-str[](exe-c-str c-str, args str[]) unsafe
 	exe-c-str ~ (for x : args; x to-c-str) ~ null
 
-.spawn-and-wait-result-windows process-result(exe c-str, args list str) summon unsafe
+.spawn-and-wait-result-windows process-result(exe c-str, args str[]) summon unsafe
 	all-args = " " join (exe.to-str ~ args) to-c-str
 
 	stdout-read cell HANDLE = (),
@@ -172,7 +172,7 @@ shell-exec str(command str) trusted summon
 		err = GetLastError
 		assert err == ERROR_BROKEN_PIPE : "Error reading from pipe: {err show-win32-error}"
 
-.spawn-and-wait-result-posix process-result(exe c-str, args list c-str) summon unsafe
+.spawn-and-wait-result-posix process-result(exe c-str, args c-str[]) summon unsafe
 	stdout-pipes = make-pipes
 	stderr-pipes = make-pipes
 
@@ -266,7 +266,7 @@ shell-exec str(command str) trusted summon
 
 # Args should be terminated by null.
 # TODO: option to get stdout/stderr as a string rather than having them go to the terminal
-.spawn-and-wait int32(exe c-str, args list c-str) summon unsafe
+.spawn-and-wait int32(exe c-str, args c-str[]) summon unsafe
 	pid-cell cell pid_t = 0,
 	args-ptr = args.to-array begin-ptr
 	# TODO: null.as-ref is bad. If it's nullable it shouldn't be a ref.

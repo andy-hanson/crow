@@ -116,7 +116,7 @@ is-file bool(path str) trusted summon
 Returns all children of the directory `path`, as full paths.
 Use `names-in-dir` if you just want their names.
 ###
-paths-in-dir list str(path str) summon
+paths-in-dir str[](path str) summon
 	for x : path names-in-dir
 		path child-path x
 
@@ -125,10 +125,10 @@ Returns the basename of all children of the directory.
 Does not include ".." or ".".
 Use `paths-in-dir` if you want full paths.
 ###
-names-in-dir list str(path str) summon trusted
+names-in-dir str[](path str) summon trusted
 	path.to-c-str names-in-dir
 
-.names-in-dir list str(path c-str) trusted summon
+.names-in-dir str[](path c-str) trusted summon
 	if is-windows
 		path-search = "{path}\\*" to-c-str
 		file-data cell WIN32_FIND_DATAA = (),
@@ -209,7 +209,7 @@ read-file str(path str) summon trusted
 	path.read-file-binary as-str
 
 # Reads the full contents of the file as bytes.
-read-file-binary list nat8(path str) summon
+read-file-binary nat8[](path str) summon
 	if res ?= path try-read-file-binary
 		res
 	else
@@ -241,10 +241,10 @@ try-read-file str?(path str) summon trusted
 		bytes.as-str,
 
 # Like `try-read-file` but returns binary data.
-try-read-file-binary list<nat8>?(path str) summon trusted
+try-read-file-binary nat8[]?(path str) summon trusted
 	path.to-c-str try-read-file-binary
 
-.try-read-file-binary list<nat8>?(path c-str) summon trusted
+.try-read-file-binary nat8[]?(path c-str) summon trusted
 	if path is-file
 		fd = path fopen "rb"
 		if fd.as-any-const-ptr == null
@@ -257,7 +257,7 @@ try-read-file-binary list<nat8>?(path str) summon trusted
 	else
 		()
 
-.read-fd list nat8(fd FILE, path c-str) summon unsafe
+.read-fd nat8[](fd FILE, path c-str) summon unsafe
 	err = fd fseek 0, SEEK_END
 	assert err == 0 : "Error reading {path}"
 

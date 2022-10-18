@@ -13,7 +13,7 @@ main fut nat(_ arr str) summon
 		err print x
 	failures.size,
 
-.lint-files list str(files list file) summon
+.lint-files str[](files file[]) summon
 	failures str mut[] = ()
 	all-imports = files get-all-imports
 	for file : files
@@ -28,10 +28,10 @@ main fut nat(_ arr str) summon
 		failures lint-imports-in-file file
 	failures move-to-list
 
-.get-all-imports set sym(files list file)
+.get-all-imports set sym(files file[])
 	(for file : files; file.imports to-list).flatten to-set
 
-.excluded-public list sym()
+.excluded-public sym[]()
 	"derefConstantPointer", "diffSymbols", "main"
 
 .file record
@@ -41,10 +41,10 @@ main fut nat(_ arr str) summon
 	uses nat[sym]
 
 .members record
-	public list sym
-	private list sym
+	public sym[]
+	private sym[]
 
-all-files list file() summon
+all-files file[]() summon
 	for path : "src" search-dir-recursive
 		path get-file
 
@@ -74,7 +74,7 @@ all-files list file() summon
 	public.move-to-list, private.move-to-list
 
 # for some reason, dscanner doesn't give non-nested unions like Converter64 access:private
-.excluded-unknown-access list sym()
+.excluded-unknown-access sym[]()
 	"Converter32", "Converter64", "DCValue", "DoubleToUlong", "StackDict2Key", "StackDict2Value"
 
 .imports-and-rest record

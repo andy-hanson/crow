@@ -48,13 +48,13 @@ node-count<k, v> nat64(a compact-dict<k, v>)
 new<k, v> compact-dict<k, v>() is-data<k> compare<k> hash-mix<k>
 	(), ().end-node
 
-compact-dict<k, v> compact-dict<k, v>(a list pair<k, v>) is-data<k> compare<k> hash-mix<k>
+compact-dict<k, v> compact-dict<k, v>(a pair<k, v>[]) is-data<k> compare<k> hash-mix<k>
 	(), a.to-frozen-dict.end-node
 
-keys<k, v> list k(a compact-dict<k, v>) is-data<k> compare<k> hash-mix<k>
+keys<k, v> k[](a compact-dict<k, v>) is-data<k> compare<k> hash-mix<k>
 	a map-to-list (k, _) => k
 
-values<k, v> list v(a compact-dict<k, v>) is-data<k> compare<k> hash-mix<k>
+values<k, v> v[](a compact-dict<k, v>) is-data<k> compare<k> hash-mix<k>
 	a map-to-list (_, v) => v
 
 is-empty<k, v> bool(a compact-dict<k, v>) is-data<k> compare<k> hash-mix<k>
@@ -81,7 +81,7 @@ TODO
 	a ~ b.arr
 ###
 
-~~ <k, v> compact-dict<k, v>(a compact-dict<k, v>, b list pair<k, v>) is-data<k> compare<k> hash-mix<k>
+~~ <k, v> compact-dict<k, v>(a compact-dict<k, v>, b pair<k, v>[]) is-data<k> compare<k> hash-mix<k>
 	a fold b, (cur, pair) => cur ~ pair
 
 - <k, v> compact-dict<k, v>(a compact-dict<k, v>, key k) is-data<k> compare<k> hash-mix<k>
@@ -190,7 +190,7 @@ fold<a, k, v> a(acc a, a compact-dict<k, v>, f act a(a, k, v)) is-data<k> compar
 				# Don't need to add to 'seen' because this is the last node.
 				f[cur, k, v]
 
-map-to-list<a, k, v> list a(a compact-dict<k, v>, f act a(k, v)) trusted is-data<k> compare<k> hash-mix<k>
+map-to-list<a, k, v> a[](a compact-dict<k, v>, f act a(k, v)) trusted is-data<k> compare<k> hash-mix<k>
 	res fix-arr a = a.size uninitialized-fix-arr
 	end = res.begin-ptr fold a, (cur, k, v) =>
 		*cur := f[k, v]

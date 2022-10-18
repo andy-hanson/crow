@@ -11,7 +11,7 @@ http-request record
 	method http-method
 	url str
 	headers str[str]
-	request-body list nat8
+	request-body nat8[]
 
 # TODO: should this be trusted?
 # Request body as as string.
@@ -23,7 +23,7 @@ http-response record
 	status nat64
 	status-desc str
 	headers str[str]
-	response-body list nat8
+	response-body nat8[]
 
 # Creates a 400 response with the message "Bad query".
 http-bad-query http-response()

@@ -903,14 +903,14 @@ void writeDiag(
 		(ref immutable Diag.TypeShouldUseSyntax it) {
 			writer ~= () {
 				final switch (it.kind) {
-					case Diag.TypeShouldUseSyntax.Kind.arr:
-						return "prefer to write 'a[]' instead of 'arr a'";
 					case Diag.TypeShouldUseSyntax.Kind.arrMut:
 						return "prefer to write 'a mut[]' instead of 'mut-arr a'";
 					case Diag.TypeShouldUseSyntax.Kind.dict:
 						return "prefer to write 'v[k]' instead of 'dict<k, v>'";
 					case Diag.TypeShouldUseSyntax.Kind.dictMut:
 						return "prefer to write 'v mut[k]' instead of 'mut-dict<k, v>'";
+					case Diag.TypeShouldUseSyntax.Kind.list:
+						return "prefer to write 'list[]' instead of 'list a'";
 					case Diag.TypeShouldUseSyntax.Kind.opt:
 						return "prefer to write 'a?' instead of 'opt a'";
 					case Diag.TypeShouldUseSyntax.Kind.ptr:

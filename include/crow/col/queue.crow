@@ -28,7 +28,7 @@ queue<a> record
 new<a> queue a()
 	(), ()
 
-to-queue<a> queue a(a list a)
+to-queue<a> queue a(a a[])
 	a.to-array, ()
 
 ###
@@ -36,7 +36,7 @@ Copies queue elements to an array.
 
 This is O(n).
 ###
-to-list<a> list a(a queue a) trusted
+to-list<a> a[](a queue a) trusted
 	res fix-arr a = a.size uninitialized-fix-arr
 	end = res.begin-ptr fold a, (out, x) =>
 		*out := x

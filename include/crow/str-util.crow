@@ -108,10 +108,10 @@ try-split-once-right pair<str, str>?(a str, b str)
 Removes every occurrence of the substring `b` in `a` and return the remaining parts as an array.
 The result may include empty strings.
 ###
-split-by list str(a str, b str)
+split-by str[](a str, b str)
 	for x : a.char8s split-by-sublist b.char8s; x str
 
-lines list str(a str)
+lines str[](a str)
 	a split-by "\n"
 
 split-str record by-val
@@ -136,7 +136,7 @@ try-split-once-by-whitespace pair<str, str>?(a str)
 Returns a string containing each element of `a`, with `b` as a separator.
 This is `parts[0] ~ joiner ~ parts[1] ~ joiner ~ ... ~ parts[parts.size - 1]`.
 ###
-join str(joiner str, parts list str)
+join str(joiner str, parts str[])
 	# TODO: NO CELl
 	res cell str? = (),
 	for part : parts
@@ -220,14 +220,14 @@ region Conversion
 Treats UTF-8 bytes as a string.
 This is O(1).
 ###
-as-str str(bytes list nat8) unsafe
+as-str str(bytes nat8[]) unsafe
 	bytes.list-cast@<char8, nat8> str
 
 ###
 Treats a string as a list of UTF-8 bytes.
 This is O(1).
 ###
-to-bytes list nat8(a str) trusted
+to-bytes nat8[](a str) trusted
 	a.char8s list-cast@<nat8, char8>
 
 ###

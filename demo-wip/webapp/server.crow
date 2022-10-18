@@ -95,7 +95,7 @@ split-url url(url-str str)
 		url-str, ""
 
 # Extra cookies are ignored
-parse-cookies list str(cookies-str str, cookie-names list str)
+parse-cookies str[](cookies-str str, cookie-names str[])
 	res str? mut[] = cookie-names.size fill-mut-arr ()
 	for part : cookies-str split-by "; "
 		if pair ?= part try-split-once "="
@@ -108,7 +108,7 @@ parse-cookies list str(cookies-str str, cookie-names list str)
 parse-cookie str(cookies-str str, cookie-name str)
 	(cookies-str parse-cookies (cookie-name,))[0]
 
-parse-query list str(s str, arg-names list str)
+parse-query str[](s str, arg-names str[])
 	res str? mut[] = arg-names.size fill-mut-arr ()
 	for part : s split-by "&"
 		if pair ?= part try-split-once "="

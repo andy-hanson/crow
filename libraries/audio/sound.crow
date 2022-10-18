@@ -47,7 +47,7 @@ with-sample-rate sound(a sound, new-sample-rate nat64)
 	n-channels = a.format n-channels
 	old-sample-rate = a.format sample-rate
 	new-n-samples = a.samples.size * new-sample-rate / old-sample-rate round-down-to-multiple n-channels
-	new-samples list float32 = for i : 0 .. new-n-samples
+	new-samples float32[] = for i : 0 .. new-n-samples
 		channel = i % n-channels
 		out-frame = i / n-channels
 		in-frame = out-frame * old-sample-rate / new-sample-rate

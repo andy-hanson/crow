@@ -8,7 +8,7 @@ import
 		spec-decl, spec-ref, type-param, type-ref, record-decl, record-field, spec-builtin,
 		spec-sig, spec-sigs, union-decl, union-member
 
-get-modules list module(paths list str) summon
+get-modules module[](paths str[]) summon
 	result = crow-path spawn-and-wait-result "doc" ~ paths
 	unless result.exit-code == 0 && result.stderr.is-empty
 		throw "Could not get documentation: exit code {result exit-code}, stderr: {result stderr}"
@@ -20,7 +20,7 @@ get-modules list module(paths list str) summon
 	else
 		"bin/crow"
 
-.to-modules list module(a json)
+.to-modules module[](a json)
 	a.get-node-type is "root"
 	for x : a["modules"]!.as-list!
 		x to-module
@@ -39,7 +39,7 @@ get-modules list module(paths list str) summon
 
 .to-export module-export(a json)
 	a.get-node-type is "export"
-	type-params list type-param = if t ?= a["type-params"]
+	type-params type-param[] = if t ?= a["type-params"]
 		for x : t.as-list!
 			x to-type-param
 	value = a["value"]! to-export-value
@@ -78,7 +78,7 @@ get-modules list module(paths list str) summon
 .to-flags-decl flags-decl(a json)
 	a.get-enum-flags-members,
 
-.get-enum-flags-members list sym(a json)
+.get-enum-flags-members sym[](a json)
 	for x : a["members"]!.as-list!
 		x.as-str! str-to-sym
 
@@ -124,7 +124,7 @@ get-modules list module(paths list str) summon
 .get-type type-ref(a json)
 	a["type"]! to-type-ref
 
-.get-type-args list type-ref(a json)
+.get-type-args type-ref[](a json)
 	if args ?= a["type-args"]
 		for x : args.as-list!
 			x to-type-ref
@@ -142,7 +142,7 @@ get-modules list module(paths list str) summon
 	body_ = if type == "builtin"
 		spec-builtin
 	elif type == "sigs"
-		sigs list spec-sig = for x : body-json["sigs"]!.as-list!
+		sigs spec-sig[] = for x : body-json["sigs"]!.as-list!
 			x to-sig
 		sigs spec-sigs
 	else
@@ -155,7 +155,7 @@ get-modules list module(paths list str) summon
 .get-return-type type-ref(a json)
 	a["return-type"]! to-type-ref
 
-.get-params list param(a json)
+.get-params param[](a json)
 	for x : a["params"]!.as-list!
 		x to-param
 

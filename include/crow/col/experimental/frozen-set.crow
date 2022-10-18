@@ -26,11 +26,11 @@ frozen-set<a> record
 new<a> frozen-set a(...a arr a) is-data<a> compare<a> hash-mix<a>
 	a.to-list to-frozen-set
 
-to-frozen-set<a> frozen-set a(a list a) trusted is-data<a> compare<a> hash-mix<a>
+to-frozen-set<a> frozen-set a(a a[]) trusted is-data<a> compare<a> hash-mix<a>
 	a.to-array.to-fix-arr unsafe-frozen-set-from-fix-arr-cast-immutable
 
 # This is O(1).
-to-list<a> list a(a frozen-set a)
+to-list<a> a[](a frozen-set a)
 	a.values to-list
 
 begin-ptr<a> a*(a frozen-set a) no-doc unsafe
@@ -140,7 +140,7 @@ for-loop<a> void(a frozen-set a, f act void(a))
 	() fold a, (_, x) =>
 		f[x]
 
-for-loop<out, in> list out(a frozen-set in, f act out(in)) trusted
+for-loop<out, in> out[](a frozen-set in, f act out(in)) trusted
 	res fix-arr out = a.size uninitialized-fix-arr
 	out cell out mut* = res.begin-ptr,
 	for x : a
@@ -155,9 +155,9 @@ fold<a, b> a(acc a, a frozen-set b, f act a(a, b))
 fold-with-index<a, b> a(acc a, a frozen-set b, f act a(a, b, nat64))
 	acc fold-with-index a.values, f
 
-.verify void(a frozen-set nat64, values list nat64, bucket-starts list nat64) unsafe
+.verify void(a frozen-set nat64, values nat64[], bucket-starts nat64[]) unsafe
 	a.values.to-list is values
-	(for ptr : a.bucket-starts to-list; ptr - a.values.begin-ptr)::list<nat64> is bucket-starts
+	(for ptr : a.bucket-starts to-list; ptr - a.values.begin-ptr)::nat64[] is bucket-starts
 
 test
 	a frozen-set nat64 = ()

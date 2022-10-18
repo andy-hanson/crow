@@ -14,7 +14,7 @@ import
 export
 	./private/range-low-level: .., low, high, range, size
 
-to-list list nat64(a range nat64)
+to-list nat64[](a range nat64)
 	for x : a
 		x
 
@@ -54,7 +54,7 @@ for-loop void(a range-reverse nat64, f act void(nat64))
 				cur := cur - 1
 				continue
 
-for-loop<out> list out(a range-reverse nat64, f act out(nat64)) trusted
+for-loop<out> out[](a range-reverse nat64, f act out(nat64)) trusted
 	size = a.high - a.low
 	out out mut* = size alloc-uninitialized
 	cur cell out mut* = out,
@@ -65,7 +65,7 @@ for-loop<out> list out(a range-reverse nat64, f act out(nat64)) trusted
 	assert *cur == end
 	out.as-const arr-from-begin-end end.as-const to-list
 
-for-loop<out> list out(a range nat64, f act out(nat64)) trusted
+for-loop<out> out[](a range nat64, f act out(nat64)) trusted
 	a for-loop f to-list
 
 # `true` iff `f` is `true` for some value in the range.

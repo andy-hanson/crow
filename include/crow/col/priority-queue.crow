@@ -61,7 +61,7 @@ new<k, v> priority-queue<k, v>(...a arr pair<k, v>) is-data<k> compare<k>
 	a.to-list to-priority-queue
 
 # New priority queue containing the given pairs.
-to-priority-queue<k, v> priority-queue<k, v>(a list pair<k, v>) is-data<k> compare<k>
+to-priority-queue<k, v> priority-queue<k, v>(a pair<k, v>[]) is-data<k> compare<k>
 	if a is-empty
 		# TODO: type annotation should not be necessary
 		()::node<k, v>?,
@@ -71,7 +71,7 @@ to-priority-queue<k, v> priority-queue<k, v>(a list pair<k, v>) is-data<k> compa
 		# TODO: type annotation should not be necessary
 		(root,)::node<k, v>?,
 
-to-list<k, v> list pair<k, v>(a priority-queue<k, v>) is-data<k> compare<k>
+to-list<k, v> pair<k, v>[](a priority-queue<k, v>) is-data<k> compare<k>
 	a map-to-list (k, v) => k, v
 
 # True iff `a.size == 0`.
@@ -316,7 +316,7 @@ map<k-out, v-out, k-in, v-in> priority-queue<k-out, v-out>(
 	a map-to-list f to-priority-queue
 
 # TODO: use 'for-loop'
-map-to-list<out, k, v> list out(a priority-queue<k, v>, f act out(k, v)) is-data<k> compare<k> trusted
+map-to-list<out, k, v> out[](a priority-queue<k, v>, f act out(k, v)) is-data<k> compare<k> trusted
 	out fix-arr out = a.size uninitialized-fix-arr
 	end = out.begin-ptr fold a, (cur, k, v) =>
 		*cur := f[k, v]
@@ -324,10 +324,10 @@ map-to-list<out, k, v> list out(a priority-queue<k, v>, f act out(k, v)) is-data
 	assert end == out.end-ptr
 	out.cast-immutable to-list
 
-keys<k, v> list k(a priority-queue<k, v>) is-data<k> compare<k>
+keys<k, v> k[](a priority-queue<k, v>) is-data<k> compare<k>
 	a map-to-list (k, _) => k
 
-values<k, v> list v(a priority-queue<k, v>) is-data<k> compare<k>
+values<k, v> v[](a priority-queue<k, v>) is-data<k> compare<k>
 	a map-to-list (_, v) => v
 
 test
@@ -363,7 +363,7 @@ test
 	p6 = p5pop.rest ~ (7, "7b") ~ (8, "8")
 	p6.dbg is "8 8 []; 7 7b []; 6 6 [7 7]; 6 6b [6 6c]"
 	p6.size is 6
-	p6-pairs list pair<nat64, str> = (6, "6"), (6, "6b"), (6, "6c"), (7, "7"), (7, "7b"), (8, "8")
+	p6-pairs pair<nat64, str>[] = (6, "6"), (6, "6b"), (6, "6c"), (7, "7"), (7, "7b"), (8, "8")
 	p6.to-list is p6-pairs
 	p6.keys is (6, 6, 6, 7, 7, 8)
 	p6.values is ("6", "6b", "6c", "7", "7b", "8")
@@ -386,12 +386,12 @@ test
 	map-calls is p6-pairs
 	mapped.dbg is "2 8x [3 7x, 3 7bx, 4 6x, 4 6bx, 4 6cx]"
 
-.== bool(a list pair<nat64, str>, b list pair<nat64, str>)
+.== bool(a pair<nat64, str>[], b pair<nat64, str>[])
 	a list-equal b
 
 # TODO: pair should be equatable
 .== bool(a pair<nat64, str>, b pair<nat64, str>)
 	a.from == b.from && a.to == b.to
 
-.== bool(a list str, b list str)
+.== bool(a str[], b str[])
 	a list-equal b

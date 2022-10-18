@@ -71,7 +71,7 @@ Writes to the `mut-arr` won't affect the `arr`.
 new<a> a mut[](...a arr a)
 	a.to-list to-mut-arr
 
-to-mut-arr<a> a mut[](a list a)
+to-mut-arr<a> a mut[](a a[])
 	backing fix-arr a = empty-fix-arr
 	res a mut[] = backing, 0
 	res ~~= a
@@ -92,14 +92,14 @@ copy<a> a mut[](a a mut[]) trusted
 Copies a `mut-arr` to a `list`.
 Writes to the `mut-arr` won't affect the `list`.
 ###
-to-list<a> list a(a a mut[])
+to-list<a> a[](a a mut[])
 	a.copy move-to-list
 
 ###
 Convert to a `dict`, clearning the original `mut-arr` in the process.
 (This avoids copying but still ensures that the result is immutable.)
 ###
-move-to-list<a> list a(a a mut[]) noctx trusted
+move-to-list<a> a[](a a mut[]) noctx trusted
 	a.move-to-array to-list
 
 move-to-array<a> arr a(a a mut[]) noctx trusted
@@ -189,7 +189,7 @@ Removes the first `n` elements and returns them as an array.
 This is O(a.size - n) because of the cost of copying, and all remaining elements must be shifted.
 Throws if `n > a.size`.
 ###
-pop-n-from-start<a> list a(a a mut[], n nat64) trusted
+pop-n-from-start<a> a[](a a mut[], n nat64) trusted
 	assert n <= a.size : "can't pop more than size of array"
 	res = a copy-range-to-arr 0, n
 	dest = a.begin-ptr as-any-mut-ptr
@@ -234,7 +234,7 @@ pop-n<a> void(a a mut[], n nat64) trusted
 ~~= <a> void(a a mut[], values arr a)
 	for x : values
 		a ~= x
-~~= <a> void(a a mut[], values list a)
+~~= <a> void(a a mut[], values a[])
 	for x : values
 		a ~= x
 ~~= <a> void(a a mut[], values fix-arr a)
@@ -393,7 +393,7 @@ filter<a> a mut[](a a mut[], f act bool(a)) trusted
 for-loop<out, in> out mut[](a in mut[], f act out(in)) trusted
 	a map-to-fix-arr f as-mut-arr
 
-for-loop<out, in> list out(a in mut[], f act out(in)) trusted
+for-loop<out, in> out[](a in mut[], f act out(in)) trusted
 	(a map-to-fix-arr f).cast-immutable to-list
 
 .map-to-fix-arr<out, in> fix-arr out(a in mut[], f act out(in))

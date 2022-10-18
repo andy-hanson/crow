@@ -80,8 +80,8 @@ lmdb-key<k> spec
 	# NOTE: Parameter is a dummy, don't actually use it
 	lmdb-key-flags u-int(_ k)
 	# Don't use `serialize`, because lmdb expects integers to be fixed size
-	to-lmdb-key list nat8(key k)
-	from-lmdb-key k(a list nat8)
+	to-lmdb-key nat8[](key k)
+	from-lmdb-key k(a nat8[])
 
 lmdb-key-flags u-int(_ nat64)
 	MDB_INTEGERKEY
@@ -90,18 +90,18 @@ lmdb-key-flags u-int(_ nat32)
 lmdb-key-flags u-int(_ str)
 	0
 
-to-lmdb-key list nat8(key nat64)
+to-lmdb-key nat8[](key nat64)
 	key to-8-bytes
-to-lmdb-key list nat8(key nat32)
+to-lmdb-key nat8[](key nat32)
 	key to-4-bytes
-to-lmdb-key list nat8(key str)
+to-lmdb-key nat8[](key str)
 	key to-bytes
 
-from-lmdb-key nat64(a list nat8)
+from-lmdb-key nat64(a nat8[])
 	a from-bytes
-from-lmdb-key nat32(a list nat8)
+from-lmdb-key nat32(a nat8[])
 	a from-bytes
-from-lmdb-key str(a list nat8)
+from-lmdb-key str(a nat8[])
 	a from-bytes
 
 # TODO:MOVE
@@ -302,7 +302,7 @@ fold<a, k, v> a(acc a, txn lmdb-txn, db lmdb-db<k, v>, f act a(a, k, v)) trusted
 		new-acc fold-recur cursor, f
 
 # Calls `f` for each key-value pair in `db` and returns an array of the results.
-map<out, k, v> list out(txn lmdb-txn, db lmdb-db<k, v>, f act out(k, v)) trusted summon lmdb-key<k> serialize<v>
+map<out, k, v> out[](txn lmdb-txn, db lmdb-db<k, v>, f act out(k, v)) trusted summon lmdb-key<k> serialize<v>
 	out fix-arr out = txn count db uninitialized-fix-arr
 	end = out.begin-ptr fold txn, db, (cur, key, value) =>
 		*cur := f[key, value]
@@ -315,7 +315,7 @@ map<out, k, v> list out(txn lmdb-txn, db lmdb-db<k, v>, f act out(k, v)) trusted
 Iterates `db0` and `db1` in order, calling `f` with each key and with the values from both dbs.
 Returns an array of the results.
 ###
-zip<out, k, v0, v1> list out(
+zip<out, k, v0, v1> out[](
 	txn lmdb-txn,
 	db0 lmdb-db<k, v0>,
 	db1 lmdb-db<k, v1>,
@@ -399,11 +399,11 @@ zip-fold<a, k, v0, v1> a(
 .empty-val MDB_val() unsafe
 	0, null
 
-.val-of-bytes MDB_val(a list nat8) unsafe
+.val-of-bytes MDB_val(a nat8[]) unsafe
 	array = a to-array
 	array.size, array.begin-ptr.as-mut
 
-.bytes-of-val list nat8(a MDB_val) unsafe
+.bytes-of-val nat8[](a MDB_val) unsafe
 	(a.mv_data fix-arr-from-begin-end a.mv_data + a.mv_size).to-arr to-list
 
 .check-lmdb-error void(a err-t)

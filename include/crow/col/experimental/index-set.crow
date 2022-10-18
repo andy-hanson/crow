@@ -53,7 +53,7 @@ index-set record by-ref
 new index-set(...a arr nat64)
 	a.to-list to-index-set
 
-to-index-set index-set(a list nat64)
+to-index-set index-set(a nat64[])
 	(0, empty) fold a, (acc, x) => acc ~ x
 
 is-empty bool(a index-set)
@@ -79,7 +79,7 @@ size nat64(a index-set)
 	as empty
 		acc
 
-to-list list nat64(a index-set)
+to-list nat64[](a index-set)
 	for x : a
 		x
 
@@ -429,7 +429,7 @@ filter index-set(a index-set, f act bool(nat64))
 for-loop index-set(a index-set, f act nat64(nat64))
 	a for-loop f to-index-set
 
-for-loop<a> list a(a index-set, f act a(nat64)) trusted
+for-loop<a> a[](a index-set, f act a(nat64)) trusted
 	res fix-arr a = a.size uninitialized-fix-arr
 	end = res.begin-ptr fold a, (cur, x) =>
 		*cur := f[x]
@@ -448,7 +448,7 @@ for-loop<a> list a(a index-set, f act a(nat64)) trusted
 	as empty
 		"_"
 
-.verify void(a index-set, expected str, expected-list list nat64)
+.verify void(a index-set, expected str, expected-list nat64[])
 	actual = a.dbg
 	unless actual == expected
 		info log "a.dbg is"

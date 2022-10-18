@@ -1,12 +1,12 @@
 module record
 	path str
 	doc-comment str
-	exports list module-export
+	exports module-export[]
 
 module-export record
 	name sym
 	doc-comment str
-	type-params list type-param
+	type-params type-param[]
 	value module-export-value
 
 module-export-value union
@@ -24,16 +24,16 @@ alias-decl record
 	target type-ref
 
 enum-decl record
-	members list sym
+	members sym[]
 
 flags-decl record
-	members list sym
+	members sym[]
 
 fun-decl record
 	return-type type-ref
 	variadic bool
-	params list param
-	specs list spec-ref
+	params param[]
+	specs spec-ref[]
 
 param record
 	name sym
@@ -45,7 +45,7 @@ type-param record
 record-decl record
 	purity purity
 	has-private-fields bool
-	fields list record-field
+	fields record-field[]
 
 record-field record
 	name sym
@@ -57,17 +57,17 @@ spec-decl record
 
 spec-body union
 	spec-builtin
-	spec-sigs list spec-sig
+	spec-sigs spec-sig[]
 
 spec-sig record
 	comment str
 	name sym
 	return-type type-ref
-	params list param
+	params param[]
 
 union-decl record
 	purity purity
-	members list union-member
+	members union-member[]
 
 union-member record
 	name sym
@@ -75,11 +75,11 @@ union-member record
 
 type-ref record
 	name sym
-	type-args list type-ref
+	type-args type-ref[]
 
 spec-ref record
 	name sym
-	type-args list type-ref
+	type-args type-ref[]
 
 purity enum
 	p-data

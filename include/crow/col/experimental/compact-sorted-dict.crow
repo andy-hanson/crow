@@ -43,7 +43,7 @@ compact-sorted-dict<k, v> record by-val
 new<k, v> compact-sorted-dict<k, v>(...a arr pair<k, v>) is-data<k> compare<k>
 	a.to-list to-compact-sorted-dict
 
-to-compact-sorted-dict<k, v> compact-sorted-dict<k, v>(a list pair<k, v>) is-data<k> compare<k>
+to-compact-sorted-dict<k, v> compact-sorted-dict<k, v>(a pair<k, v>[]) is-data<k> compare<k>
 	sorted = a sort-by pair => pair from
 	(sorted.to-array end-node),
 
@@ -61,7 +61,7 @@ This is O(n).
 size<k, v> nat64(a compact-sorted-dict<k, v>) is-data<k> compare<k>
 	0 fold a, (acc, _, _) => acc + 1
 
-to-list<k, v> list pair<k, v>(a compact-sorted-dict<k, v>) is-data<k> compare<k>
+to-list<k, v> pair<k, v>[](a compact-sorted-dict<k, v>) is-data<k> compare<k>
 	# TODO:PERF Just use 'fold'?
 	match a.compact.impl
 	as overlay _
@@ -72,14 +72,14 @@ to-list<k, v> list pair<k, v>(a compact-sorted-dict<k, v>) is-data<k> compare<k>
 ~ <k, v> compact-sorted-dict<k, v>(a compact-sorted-dict<k, v>, pair pair<k, v>) is-data<k> compare<k>
 	(a.impl add-or-remove pair.from, (pair.to,)),
 
-~~ <k, v> compact-sorted-dict<k, v>(a compact-sorted-dict<k, v>, b list pair<k, v>) is-data<k> compare<k>
+~~ <k, v> compact-sorted-dict<k, v>(a compact-sorted-dict<k, v>, b pair<k, v>[]) is-data<k> compare<k>
 	if b is-empty
 		a
 	elif a is-empty
 		b to-compact-sorted-dict
 	else
 		# TODO: type annotation be unnecessary
-		pairs list pair<k, v?> = (for x : b; x.from, (x.to,)) sort-by it => it from
+		pairs pair<k, v?>[] = (for x : b; x.from, (x.to,)) sort-by it => it from
 		# TODO: should not need type annotation
 		(pairs.to-array, a.impl)::overlay<k, v>.merge-as-needed,
 
@@ -364,10 +364,10 @@ map<k-out, v-out, k-in, v-in> compact-sorted-dict<k-out, v-out>(
 ) is-data<k-in> compare<k-in> is-data<k-out> compare<k-out>
 	a map-to-list f to-compact-sorted-dict
 
-keys<k, v> list k(a compact-sorted-dict<k, v>) is-data<k> compare<k>
+keys<k, v> k[](a compact-sorted-dict<k, v>) is-data<k> compare<k>
 	a map-to-list (k, _) => k
 
-map-to-list<out, k, v> list out(a compact-sorted-dict<k, v>, f act out(k, v)) is-data<k> compare<k>
+map-to-list<out, k, v> out[](a compact-sorted-dict<k, v>, f act out(k, v)) is-data<k> compare<k>
 	for pair : a to-list
 		f[pair.from, pair.to]
 

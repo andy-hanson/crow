@@ -38,7 +38,7 @@ import
 	crow/test-util/test-runner: run-all-tests
 
 main fut nat(_ arr str) summon
-	_ = ().from-bytes :: list<nat8>
+	_ = ().from-bytes :: nat8[]
 	_ = quality-moderate
 	_ = bold
 	_ = () :: compact-dict<nat, nat>

@@ -35,12 +35,12 @@ new<a> deque a(...a arr a)
 Convert a list to a deque. 
 This is O(1).
 ###
-to-deque<a> deque a(a list a)
+to-deque<a> deque a(a a[])
 	# TODO: should not need type annotation
 	()::stack<a>, a.to-array, ()
 
 # Copy elements to a list.
-to-list<a> list a(a deque a) trusted
+to-list<a> a[](a deque a) trusted
 	res fix-arr a = a.size uninitialized-fix-arr
 	end = res.begin-ptr fold a, (out, x) =>
 		*out := x
@@ -123,7 +123,7 @@ filter<a> deque a(a deque a, f act bool(a)) trusted
 			out
 	res[0 .. end - res.begin-ptr].cast-immutable.to-list to-deque
 
-for-loop<out, in> list out(a deque in, f act out(in)) trusted
+for-loop<out, in> out[](a deque in, f act out(in)) trusted
 	res fix-arr out = a.size uninitialized-fix-arr
 	end = res.begin-ptr fold a, (out, x) =>
 		*out := f[x]
@@ -199,4 +199,4 @@ test
 	folded = 10 fold six, (x, y) => x + y
 	folded is 31
 	(six filter it => it is-even).to-list is (2, 4, 6)
-	(for x : six; x + 10)::list<nat64> is (11, 12, 13, 14, 15, 16)
+	(for x : six; x + 10)::nat64[] is (11, 12, 13, 14, 15, 16)

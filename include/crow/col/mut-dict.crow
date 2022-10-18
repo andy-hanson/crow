@@ -50,7 +50,7 @@ Convert a list of pairs to a dictionary.
 
 Later pairs overwrite earlier pairs with the same key.
 ###
-to-mut-dict<k, v> v mut[k](a list pair<k, v>) is-data<k> compare<k> hash-mix<k>
+to-mut-dict<k, v> v mut[k](a pair<k, v>[]) is-data<k> compare<k> hash-mix<k>
 	res v mut[k] = a.size mut-dict-with-capacity
 	for pair : a
 		res[pair from] := pair to
@@ -67,11 +67,11 @@ mut-dict-with-capacity<k, v> v mut[k](capacity nat64) is-data<k> compare<k> hash
 	(capacity fill-fix-arr none)::fix-arr<entry<k, v>>, 0
 
 # Copy pairs to a list.
-to-list<k, v> list pair<k, v>(a v mut[k]) is-data<k> compare<k> hash-mix<k>
+to-list<k, v> pair<k, v>[](a v mut[k]) is-data<k> compare<k> hash-mix<k>
 	a map-to-list (key, value) => key, value
 
 # Copy pairs to a list and clear the dictionary.
-move-to-list<k, v> list pair<k, v>(a v mut[k]) is-data<k> compare<k> hash-mix<k>
+move-to-list<k, v> pair<k, v>[](a v mut[k]) is-data<k> compare<k> hash-mix<k>
 	res = a to-list
 	a clear
 	res
@@ -222,7 +222,7 @@ Returns the old value (if it exists).
 	a[b from] := b to
 
 # This is the same as calling `a ~= x` for every `x` in `b`.
-~~= <k, v> void(a v mut[k], b list pair<k, v>) is-data<k> compare<k> hash-mix<k>
+~~= <k, v> void(a v mut[k], b pair<k, v>[]) is-data<k> compare<k> hash-mix<k>
 	for pair : b
 		a ~= pair
 
@@ -297,7 +297,7 @@ set-filter<k, v> void(a v mut[k], f act bool(k, v)) trusted is-data<k> compare<k
 ###
 Calls `f` on every key and value and returns a list of the results.
 ###
-map-to-list<out, k, v> list out(a v mut[k], f act out(k, v)) trusted is-data<k> compare<k> hash-mix<k>
+map-to-list<out, k, v> out[](a v mut[k], f act out(k, v)) trusted is-data<k> compare<k> hash-mix<k>
 	out fix-arr out = a.size uninitialized-fix-arr
 	end = out.begin-ptr fold a, (cur, key, value) =>
 		*cur := f[key, value]
@@ -353,8 +353,8 @@ test
 	a[6] is ("6",)
 	a.size is 1
 	# TODO: a.arr is ((6, "6"),)
-	(for pair : a to-list; pair from)::list<nat64> is (6,)
-	(for pair : a to-list; pair to)::list<str> is ("6",)
+	(for pair : a to-list; pair from)::nat64[] is (6,)
+	(for pair : a to-list; pair to)::str[] is ("6",)
 
 	a verify "(6 -> 6)"
 
@@ -375,8 +375,8 @@ test
 	a[5] is ()
 
 	# TODO: a.to-list is ((4, "4"), (8, "8"), (6, "six"), (3, "3"))
-	(for pair : a to-list; pair from)::list<nat64> is (4, 8, 6, 3)
-	(for pair : a to-list; pair to)::list<str> is ("4", "8", "six", "3")
+	(for pair : a to-list; pair from)::nat64[] is (4, 8, 6, 3)
+	(for pair : a to-list; pair to)::str[] is ("4", "8", "six", "3")
 
 	a[12] := "12"
 	a verify "(8 -> 8) _ _ (3 -> 3) [4 -> 4, 12 -> 12] _ (6 -> six) _"
@@ -398,5 +398,5 @@ test
 .== bool(a str?, b str?)
 	a opt-equal b
 
-.== bool(a list str, b list str)
+.== bool(a str[], b str[])
 	a list-equal b

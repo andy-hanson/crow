@@ -45,31 +45,31 @@ link record
 	target str
 	link-path str
 
-.all-to-link list link() summon
+.all-to-link link[]() summon
 	example = "site-src/example".search-dir-recursive to-links "site-src/"
-	in-src-paths list link = for x : ("crow.svg", "index.css")::list<str>
+	in-src-paths link[] = for x : ("crow.svg", "index.css")::str[]
 		("site-src" child-path x), x
 	script = ("site-src/script" search-dir-recursive x => x ends-with ".js") to-links "site-src/"
 	font = "site-src/font".search-dir-recursive to-links "site-src/"
-	other list link = for x : ("bin/crow.wasm", "bin/crow.tar.xz", "crow-js/crow.js")::list<str>
+	other link[] = for x : ("bin/crow.wasm", "bin/crow.tar.xz", "crow-js/crow.js")::str[]
 		x, x
 	example ~~ in-src-paths ~~ script ~~ font ~~ other
 
 .include-all path-and-content() summon
 	include = "include" search-all-with-content ""
-	pairs list<pair<str, json>> = for x : include
+	pairs pair<str, json>[] = for x : include
 		x.out-path.remove-include-and-crow, x.content.json-str
 	content = pairs.to-dict.json-object to-str
 	"include-all.json", content
 
-.search-all-with-content list path-and-content(path str, remove-prefix str) summon
+.search-all-with-content path-and-content[](path str, remove-prefix str) summon
 	path.search-dir-recursive to-paths-and-contents remove-prefix
 
-.to-links list link(targets list str, remove-prefix str)
+.to-links link[](targets str[], remove-prefix str)
 	for target : targets
 		target, target try-remove-start remove-prefix ?? throw "{target} didn't start with {remove-prefix}"
 
-.to-paths-and-contents list path-and-content(paths list str, remove-prefix str) summon
+.to-paths-and-contents path-and-content[](paths str[], remove-prefix str) summon
 	for path : paths
 		if rel-path ?= path try-remove-start remove-prefix
 			rel-path, path.read-file

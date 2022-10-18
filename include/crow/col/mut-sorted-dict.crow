@@ -46,7 +46,7 @@ new<k, v> mut-sorted-dict<k, v>(...a arr pair<k, v>) is-data<k> compare<k>
 	a.to-list to-mut-sorted-dict
 
 # Copies pairs to a new dictionary.
-to-mut-sorted-dict<k, v> mut-sorted-dict<k, v>(a list pair<k, v>) is-data<k> compare<k>
+to-mut-sorted-dict<k, v> mut-sorted-dict<k, v>(a pair<k, v>[]) is-data<k> compare<k>
 	res mut-sorted-dict<k, v> = ()::pair<k, v?> mut[], 0, ()
 	for pair : a
 		res[pair from] := pair to
@@ -96,7 +96,7 @@ in<k, v> bool(key k, a mut-sorted-dict<k, v>) trusted is-data<k> compare<k>
 Adds many key-value pairs, replacing existing ones with the same keys.
 Equivalent to adding each element of `b` separately.
 ###
-~~= <k, v> void(a mut-sorted-dict<k, v>, b list pair<k, v>) is-data<k> compare<k>
+~~= <k, v> void(a mut-sorted-dict<k, v>, b pair<k, v>[]) is-data<k> compare<k>
 	for pair : b
 		a[pair from] := pair to
 
@@ -175,7 +175,7 @@ Returns true if it succeeded.
 			a[index + 1] := a[index]
 
 # Convert to an `arr`, clearning the original `mut-sorted-dict` in the process.
-move-to-list<k, v> list pair<k, v>(a mut-sorted-dict<k, v>) is-data<k> compare<k>
+move-to-list<k, v> pair<k, v>[](a mut-sorted-dict<k, v>) is-data<k> compare<k>
 	res = a map-to-list (key, value) => key, value
 	a clear
 	res
@@ -265,7 +265,7 @@ map-values<v-out, k, v-in> mut-sorted-dict<k, v-out>(
 	a, a.size, ()
 
 # TODO: should be for-loop (but need destructuring)
-map-to-list<out, k, v> list out(a mut-sorted-dict<k, v>, f act out(k, v)) is-data<k> compare<k>
+map-to-list<out, k, v> out[](a mut-sorted-dict<k, v>, f act out(k, v)) is-data<k> compare<k>
 	a compact
 	for pair : a.pairs to-list
 		f[pair.from, pair.to!]

@@ -25,14 +25,14 @@ That means that the result satisfies `res[i] <= res[i + 1]`.
 
 This is O(n * log(n)).
 ###
-sort<a> list a(a list a) compare<a>
+sort<a> a[](a a[]) compare<a>
 	a sort (x, y) => x <=> y
 ###
 Same as `sort`, but uses a custom comparer.
 
 `comparer` should be consistent, meaning always return the same result for the same inputs.
 ###
-sort<a> list a(a list a, comparer act comparison(a, a)) trusted
+sort<a> a[](a a[], comparer act comparison(a, a)) trusted
 	res = a.to-array to-fix-arr
 	res set-sort comparer
 	res.cast-immutable to-list
@@ -42,7 +42,7 @@ Same as `sort`, but uses `f` to get the comparable part of each element.
 
 `f` should be consistent, meaning always return the same `b` for the same `a`.
 ###
-sort-by<a, b> list a(a list a, f act b(a)) compare<b>
+sort-by<a, b> a[](a a[], f act b(a)) compare<b>
 	a sort (x, y) => f[x] <=> f[y]
 
 # TODO: try https://github.com/BonzaiThePenguin/WikiSort
@@ -52,19 +52,19 @@ Sort and remove duplicates.
 That means `res[i] < res[i + 1]` for each element in the result.
 `(2, 1, 2) sort-unique` is `1, 2`.
 ###
-sort-unique<a> list a(a list a) compare<a> trusted
+sort-unique<a> a[](a a[]) compare<a> trusted
 	a.to-array.to-fix-arr.set-sort-unique.cast-immutable to-list
 
 test
-	()::list<nat64>.sort is ()
-	(3, 1, 2)::list<nat64>.sort is (1, 2, 3)
+	()::nat64[].sort is ()
+	(3, 1, 2)::nat64[].sort is (1, 2, 3)
 
 	# Test that it's a stable sort
 	arr fix-arr str = "2a", "2b", "1a", "1b"
 	arr.sort := (x, y) => x.first-char <=> y.first-char
 	arr.to-arr.to-list is ("1a", "1b", "2a", "2b")
 
-.== bool(a list str, b list str)
+.== bool(a str[], b str[])
 	a list-equal b
 
 .first-char str(a str)
@@ -146,8 +146,8 @@ set-sort-unique-by<a, b> fix-arr a(a fix-arr a, f act b(a)) compare<b>
 	a[y] := old-x
 
 sorted-by-first<a, b> record
-	a list a
-	b list b
+	a a[]
+	b b[]
 
 ###
 Sort `a`, and move elements of `b` in the same permutation as `a`.
@@ -156,7 +156,7 @@ This is useful if `a` and `b` are parallel arrays, meaning `a[i]` and `b[i]` bel
 
 Every pair `a[i]` and `b[i]`, will move to `res.a[j]` and `res.b[j]` for some `j`.
 ###
-sort-by-first<a, b> sorted-by-first<a, b>(a list a, b list b) compare<a> trusted
+sort-by-first<a, b> sorted-by-first<a, b>(a a[], b b[]) compare<a> trusted
 	mut-a = a.to-array to-fix-arr
 	mut-b = b.to-array to-fix-arr
 	mut-a set-sort-by-first mut-b

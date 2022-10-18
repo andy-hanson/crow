@@ -45,12 +45,12 @@ new<a> sorted-set a(...a arr a) is-data<a> compare<a>
 	a.to-list to-sorted-set
 
 # Set containing the given elements (with duplicates removed).
-to-sorted-set<a> sorted-set a(a list a) is-data<a> compare<a>
+to-sorted-set<a> sorted-set a(a a[]) is-data<a> compare<a>
 	# TODO: type annotation should be unnecessary
 	(a.sort.to-array, ()) :: add-node<a>, ()
 
 # Copies elements to a list.
-to-list<a> list a(a sorted-set a) is-data<a> compare<a>
+to-list<a> a[](a sorted-set a) is-data<a> compare<a>
 	for x : a
 		x
 
@@ -382,7 +382,7 @@ fold<a, b> a(acc a, a sorted-set b, f act a(a, b)) is-data<b> compare<b>
 for-loop<out, in> sorted-set out(a sorted-set in, f act out(in)) is-data<out> compare<out> is-data<in> compare<in>
 	a for-loop f to-sorted-set
 
-for-loop<out, in> list out(a sorted-set in, f act out(in)) trusted is-data<in> compare<in>
+for-loop<out, in> out[](a sorted-set in, f act out(in)) trusted is-data<in> compare<in>
 	out fix-arr out = a.size uninitialized-fix-arr
 	end = out.begin-ptr fold a, (cur, x) =>
 		*cur := f[x]

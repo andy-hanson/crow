@@ -31,7 +31,7 @@ It does not support efficient access by an index, so iterators should be used in
 list<a> record by-val
 	.root l0 a
 
-get-root<a> l0 a(a list a) no-doc
+get-root<a> l0 a(a a[]) no-doc
 	a.root
 
 # TODO: no-doc
@@ -79,7 +79,7 @@ branch<a, lower> record
 .is-empty<a> bool(a l2 a)
 	a.nodes is-empty
 
-.depth<a> nat64(a list a)
+.depth<a> nat64(a a[])
 	match a.root.node
 	as leaf _
 		0
@@ -103,59 +103,59 @@ branch<a, lower> record
 	as branch b
 		b
 
-.try-as-l0-leaf<a> arr<a>?(a list a) noctx
+.try-as-l0-leaf<a> arr<a>?(a a[]) noctx
 	match a.root node
 	as leaf xs
 		xs,
 	as branch _
 		()
 
-.get-l0-branch<a> branch<a, l1 a>(a list a) unsafe noctx
+.get-l0-branch<a> branch<a, l1 a>(a a[]) unsafe noctx
 	a.root.node as-branch
 
-.try-get-l1<a> l1<a>?(a list a) noctx
+.try-get-l1<a> l1<a>?(a a[]) noctx
 	match a.root node
 	as leaf _
 		()
 	as branch b
 		b.down,
 
-.get-l1<a> l1 a(a list a) unsafe noctx
+.get-l1<a> l1 a(a a[]) unsafe noctx
 	a.try-get-l1 force
 
-.get-l1-branch<a> branch<arr a, l2 a>(a list a) unsafe noctx
+.get-l1-branch<a> branch<arr a, l2 a>(a a[]) unsafe noctx
 	a.get-l0-branch.down.node as-branch
 
-.get-l2<a> l2 a(a list a) unsafe noctx
+.get-l2<a> l2 a(a a[]) unsafe noctx
 	a.get-l1-branch down
 
 # List containing the given elements.
-new<a> list a(...a arr a) noctx
+new<a> a[](...a arr a) noctx
 	a to-list
 
 ###
 Convert an array to a list.
 This is O(1).
 ###
-to-list<a> list a(a arr a) noctx
+to-list<a> a[](a arr a) noctx
 	l l0 a = a.leaf,
 	l,
 
-== bool(a list nat8, b list nat8) no-doc noctx
+== bool(a nat8[], b nat8[]) no-doc noctx
 	a list-equal b
-== bool(a list nat64, b list nat64) no-doc noctx
+== bool(a nat64[], b nat64[]) no-doc noctx
 	a list-equal b
-<=> comparison(a list nat8, b list nat8) no-doc noctx
+<=> comparison(a nat8[], b nat8[]) no-doc noctx
 	a list-compare b
-<=> comparison(a list nat64, b list nat64) no-doc noctx
+<=> comparison(a nat64[], b nat64[]) no-doc noctx
 	a list-compare b
 
-list-cast<out, in> list out(a list in) no-doc unsafe
+list-cast<out, in> out[](a in[]) no-doc unsafe
 	assert size-of@<out> == size-of@<in>
 	# TODO:PERF
 	a.to-array.arr-cast to-list
 
-list-equal<a> bool(a list a, b list a) noctx equal<a>
+list-equal<a> bool(a a[], b a[]) noctx equal<a>
 	if la ?= a try-as-l0-leaf
 		if lb ?= b try-as-l0-leaf
 			la arr-equal lb
@@ -171,7 +171,7 @@ list-equal<a> bool(a list a, b list a) noctx equal<a>
 	else
 		b.next is-empty
 
-list-compare<a> comparison(a list a, b list a) noctx compare<a>
+list-compare<a> comparison(a a[], b a[]) noctx compare<a>
 	a.iter list-compare-recur b.iter
 .list-compare-recur<a> comparison(a list-iter a, b list-iter a) noctx compare<a>
 	if na ?= a next
@@ -191,14 +191,14 @@ Convert a list to an array.
 This is O(n).
 This is O(1) if the list came from to-list of an array, meaning a round trip is free.
 ###
-to-array<a> arr a(a list a)
+to-array<a> arr a(a a[])
 	a.try-as-l0-leaf ?? for x : a; x
 
 ###
 `true` iff `a.size == 0`.
 This is O(1).
 ###
-is-empty<a> bool(a list a) noctx
+is-empty<a> bool(a a[]) noctx
 	match a.root node
 	as leaf xs
 		xs is-empty
@@ -209,7 +209,7 @@ is-empty<a> bool(a list a) noctx
 Number of elements in the list.
 This is O(n).
 ###
-size<a> nat64(a list a) noctx
+size<a> nat64(a a[]) noctx
 	match a.root node
 	as leaf l
 		l.size
@@ -245,7 +245,7 @@ size<a> nat64(a list a) noctx
 Concatenate two lists.
 This is O(log n), where `n` is the size of the smaller list.
 ###
-~~<a> list a(a list a, b list a)
+~~<a> a[](a a[], b a[])
 	# Concatenate the smaller list onto the bigger one.
 	match a.depth <=> b.depth
 	as less
@@ -262,14 +262,14 @@ This is O(log n), where `n` is the size of the smaller list.
 Prepend an element to a list.
 This is O(log n), amortized O(1).
 ###
-~<a> list a(a a, b list a)
+~<a> a[](a a, b a[])
 	((a,)::arr<a> cat-left-array-l0 b.root),
 
 ###
 Appendd an element to a list.
 This is O(log n), amortized O(1).
 ###
-~<a> list a(a list a, b a)
+~<a> a[](a a[], b a)
 	(a.root cat-right-array-l0 (b,)),
 
 # 'r' is bigger, add 'l' to the left
@@ -403,7 +403,7 @@ region iter and slice
 
 # Immutable iterator over a list.
 list-iter<a> record by-val
-	.list list a
+	.list a[]
 	.cur arr-3d-iter a
 	.pos position
 
@@ -417,14 +417,14 @@ list-iter<a> record by-val
 	l2-leaf
 
 # New iterator at the beginning of the list.
-iter<a> list-iter<a>(a list a) noctx
+iter<a> list-iter<a>(a a[]) noctx
 	match a.root node
 	as leaf xs
 		a, xs.iter.to-iter3d, l0-leaf
 	as branch b
 		a, b.left.iter.to-iter3d, l0-left
 
-end-iter<a> list-iter<a>(a list a)
+end-iter<a> list-iter<a>(a a[])
 	match a.root node
 	as leaf xs
 		a, xs.end-iter.to-iter3d, l0-leaf
@@ -440,7 +440,7 @@ next<a> value-and-rest<a, list-iter a>?(a list-iter a) trusted noctx
 		(n.value, (a.list, n.rest, a.pos)),
 	elif pair ?= a.list next-position a.pos
 		(a.list, pair.a, pair.b) next
-.next-position<a> pair<arr-3d-iter a, position>?(a list a, pos position) unsafe noctx
+.next-position<a> pair<arr-3d-iter a, position>?(a a[], pos position) unsafe noctx
 	match pos
 	as l0-leaf
 		()
@@ -462,7 +462,7 @@ prev<a> value-and-rest<a, list-iter a>?(a list-iter a) trusted noctx
 		(p.value, (a.list, p.rest, a.pos)),
 	elif pair ?= a.list prev-position a.pos
 		(a.list, pair.a, pair.b) prev
-.prev-position<a> pair<arr-3d-iter a, position>?(a list a, pos position) unsafe noctx
+.prev-position<a> pair<arr-3d-iter a, position>?(a a[], pos position) unsafe noctx
 	match pos
 	as l0-leaf
 		()
@@ -484,10 +484,10 @@ mut-list-iter<a> record mut
 	.inner mut list-iter a
 
 # New mutable iterator at the beginning of the list.
-mut-iter<a> mut-list-iter a(a list a)
+mut-iter<a> mut-list-iter a(a a[])
 	a.iter,
 
-end-mut-iter<a> mut-list-iter a(a list a)
+end-mut-iter<a> mut-list-iter a(a a[])
 	a.end-iter,
 
 # Copy to an immutable iterator.
@@ -519,7 +519,7 @@ peek<a> a?(a mut-list-iter a)
 	if pair ?= a.inner next
 		pair.value,
 
-groups-of<a> list list a(a list a, group-size nat64)
+groups-of<a> a[][](a a[], group-size nat64)
 	for group : a.to-array groups-of group-size to-list
 		group to-list
 
@@ -527,7 +527,7 @@ groups-of<a> list list a(a list a, group-size nat64)
 List of every element to the left of the iterator.
 This is O(log n).
 ###
-slice-left<a> list a(a list-iter a) trusted
+slice-left<a> a[](a list-iter a) trusted
 	match a pos
 	as l0-leaf
 		a.cur.as-1d.slice-left to-list
@@ -555,7 +555,7 @@ slice-left<a> list a(a list-iter a) trusted
 List of every element to the right of the iterator.
 This is O(log n).
 ###
-slice-right<a> list a(a list-iter a) trusted
+slice-right<a> a[](a list-iter a) trusted
 	match a pos
 	as l0-leaf
 		a.cur.as-1d.slice-right to-list
@@ -653,17 +653,17 @@ slice-right<a> list a(a list-iter a) trusted
 .pop-right<a> pair<l2 a, arr arr a>(a l2 a)
 	(a.nodes.rtail,), a.nodes[a.nodes.size - 1]
 
-.slice-left-update-l1<a> list a(a list a, f act l1 a(l1 a)) unsafe
+.slice-left-update-l1<a> a[](a a[], f act l1 a(l1 a)) unsafe
 	old-l0 = a get-l0-branch
 	new-l1 = f[old-l0 down]
 	(old-l0.left branch-or-leaf-l0 new-l1, ()),
 
-.slice-right-update-l1<a> list a(a list a, f act l1 a(l1 a)) unsafe
+.slice-right-update-l1<a> a[](a a[], f act l1 a(l1 a)) unsafe
 	old-l0 = a get-l0-branch
 	new-l1 = f[old-l0 down]
 	(()::arr<a> branch-or-leaf-l0 new-l1, old-l0.right),
 
-.slice-left-update-l2<a> list a(a list a, f act l2 a(l2 a)) unsafe
+.slice-left-update-l2<a> a[](a a[], f act l2 a(l2 a)) unsafe
 	a slice-left-update-l1 old-l1 =>
 		b = old-l1.node as-branch
 		new-l2 = f[b down]
@@ -673,7 +673,7 @@ slice-right<a> list a(a list-iter a) trusted
 			pair = new-l2 pop-right
 			(b.left, pair.a, pair.b).branch,
 
-.slice-right-update-l2<a> list a(a list a, f act l2 a(l2 a)) unsafe
+.slice-right-update-l2<a> a[](a a[], f act l2 a(l2 a)) unsafe
 	a slice-right-update-l1 old-l1 =>
 		b = old-l1.node as-branch
 		new-l2 = f[b down]
@@ -777,7 +777,7 @@ slice-right<a> list a(a list-iter a) trusted
 	b2 = a1.is-empty ? a2 : a1 ~ a2
 	b2.is-empty ? a3 : b2 ~ a3
 
-.l1-iter<a> pair<arr-3d-iter a, position>(a list a) unsafe noctx
+.l1-iter<a> pair<arr-3d-iter a, position>(a a[]) unsafe noctx
 	match a.get-l1 node
 	as leaf xs
 		if xs is-empty
@@ -787,7 +787,7 @@ slice-right<a> list a(a list-iter a) trusted
 	as branch b
 		b.left.iter2d.to-iter3d, l1-left
 
-.l1-end-iter<a> pair<arr-3d-iter a, position>(a list a) unsafe noctx
+.l1-end-iter<a> pair<arr-3d-iter a, position>(a a[]) unsafe noctx
 	match a.get-l1 node
 	as leaf xs
 		if xs is-empty
@@ -797,83 +797,83 @@ slice-right<a> list a(a list-iter a) trusted
 	as branch b
 		b.right.end-iter2d.to-iter3d, l1-right
 
-.l2-iter<a> pair<arr-3d-iter a, position>(a list a) unsafe noctx
+.l2-iter<a> pair<arr-3d-iter a, position>(a a[]) unsafe noctx
 	a.get-l2.nodes.iter3d, l2-leaf
 
-.l2-end-iter<a> pair<arr-3d-iter a, position>(a list a) unsafe noctx
+.l2-end-iter<a> pair<arr-3d-iter a, position>(a a[]) unsafe noctx
 	a.get-l2.nodes.end-iter3d, l2-leaf
 
 region iteration
 
-first<a> a?(a list a)
+first<a> a?(a a[])
 	if i ?= a.iter next
 		i.value,
 
-tail<a> list a(a list a)
+tail<a> a[](a a[])
 	if i ?= a.iter next
 		i.rest slice-right
 
-last<a> a?(a list a)
+last<a> a?(a a[])
 	if i ?= a.end-iter prev
 		i.value,
 
-rtail<a> list a(a list a)
+rtail<a> a[](a a[])
 	if i ?= a.end-iter prev
 		i.rest slice-left
 
-for-loop<a> void(a list a, f act void(a))
+for-loop<a> void(a a[], f act void(a))
 	() fold a, (_, x) => f[x]
 
-fold<a, b> a(acc a, a list b, f act a(a, b))
+fold<a, b> a(acc a, a b[], f act a(a, b))
 	acc fold-chunks a, (cur, chunk) =>
 		cur fold chunk, f
 
-in<a> bool(value a, a list a) equal<a>
+in<a> bool(value a, a a[]) equal<a>
 	a some x =>
 		x == value
 
-some<a> bool(a list a, f act bool(a))
+some<a> bool(a a[], f act bool(a))
 	v void? = a find-and-get x =>
 		if f[x]
 			(),
 	!v.is-empty
 
-every<a> bool(a list a, f act bool(a))
+every<a> bool(a a[], f act bool(a))
 	!(a some x => !f[x])
 
-find-and-get<out, in> out?(a list in, f act out?(in))
+find-and-get<out, in> out?(a in[], f act out?(in))
 	a find-and-get-chunk chunk =>
 		chunk find-and-get f
 
-filter<a> list a(a list a, f act bool(a))
+filter<a> a[](a a[], f act bool(a))
 	out arr-builder a = ()
 	for x : a
 		if f[x]
 			out ~= x
 	out.finish to-list
 
-drop-while<a> list a(a list a, f act bool(a))
+drop-while<a> a[](a a[], f act bool(a))
 	a.iter drop-while-recur f
-.drop-while-recur<a> list a(a list-iter a, f act bool(a))
+.drop-while-recur<a> a[](a list-iter a, f act bool(a))
 	if n ?= a next
 		if f[n value]
 			n.rest drop-while-recur f
 		else
 			a slice-right
 
-drop-right-while<a> list a(a list a, f act bool(a))
+drop-right-while<a> a[](a a[], f act bool(a))
 	a.end-iter drop-right-while-recur f
-.drop-right-while-recur<a> list a(a list-iter a, f act bool(a))
+.drop-right-while-recur<a> a[](a list-iter a, f act bool(a))
 	if p ?= a prev
 		if f[p value]
 			p.rest drop-right-while-recur f
 		else
 			a slice-left
 
-for-loop<out, in> list out(a list in, f act out(in))
+for-loop<out, in> out[](a in[], f act out(in))
 	a for-loop f to-list
 
-for-loop<out, in> arr out(a list in, f act out(in)) trusted
+for-loop<out, in> arr out(a in[], f act out(in)) trusted
 	res fix-arr out = a.size uninitialized-fix-arr
 	end = res.begin-ptr fold a, (out, x) =>
 		*out := f[x]
@@ -881,10 +881,10 @@ for-loop<out, in> arr out(a list in, f act out(in)) trusted
 	assert end == res.end-ptr
 	res.cast-immutable
 
-flatten<a> list a(a list list a)
+flatten<a> a[](a a[][])
 	() fold a, (acc, x) => acc ~~ x
 
-join<a> list a(joiner list a, parts list list a)
+join<a> a[](joiner a[], parts a[][])
 	first cell bool = true,
 	() fold parts, (acc, x) =>
 		if *first
@@ -893,7 +893,7 @@ join<a> list a(joiner list a, parts list list a)
 		else
 			acc ~~ joiner ~~ x
 
-.fold-chunks<a, b> a(acc a, xs list b, f act a(a, arr b))
+.fold-chunks<a, b> a(acc a, xs b[], f act a(a, arr b))
 	match xs.root node
 	as leaf l
 		f[acc, l]
@@ -912,7 +912,7 @@ join<a> list a(joiner list a, parts list list a)
 	acc fold xs.nodes, (cur, nodes) =>
 		cur fold nodes, f
 
-.find-and-get-chunk<out, in> out?(a list in, f act out?(arr in))
+.find-and-get-chunk<out, in> out?(a in[], f act out?(arr in))
 	match a.root node
 	as leaf l
 		f[l]
@@ -930,29 +930,29 @@ join<a> list a(joiner list a, parts list list a)
 	a.nodes find-and-get xs =>
 		xs find-and-get f
 
-subscript<a> a(a list a, index nat64)
+subscript<a> a(a a[], index nat64)
 	# TODO:PERF
 	a.to-array[index]
 
-subscript<a> list a(a list a, indices range nat64)
+subscript<a> a[](a a[], indices range nat64)
 	# TODO:PERF
 	a.to-array[indices] to-list
 
-index-of<a> nat64?(a list a, value a) equal<a>
+index-of<a> nat64?(a a[], value a) equal<a>
 	# TODO:PERF
 	a.to-array index-of value
 
-starts-with<a> bool(a list a, b list a) equal<a>
+starts-with<a> bool(a a[], b a[]) equal<a>
 	!(a.iter iter-starts-with b.iter).is-empty
 
-ends-with<a> bool(a list a, b list a) equal<a>
+ends-with<a> bool(a a[], b a[]) equal<a>
 	!(a.end-iter iter-ends-with b.end-iter).is-empty
 
-try-remove-start<a> list<a>?(a list a, b list a) equal<a>
+try-remove-start<a> a[]?(a a[], b a[]) equal<a>
 	if iter ?= a.iter iter-starts-with b.iter
 		iter.slice-right,
 
-try-remove-end<a> list<a>?(a list a, b list a) equal<a>
+try-remove-end<a> a[]?(a a[], b a[]) equal<a>
 	if iter ?= a.end-iter iter-ends-with b.end-iter
 		iter.slice-left,
 
@@ -961,21 +961,21 @@ try-remove-end<a> list<a>?(a list a, b list a) equal<a>
 
 That means: The characters in `b` appear in `a`, in order, without interruptions.
 ###
-contains-sublist<a> bool(a list a, b list a) equal<a>
+contains-sublist<a> bool(a a[], b a[]) equal<a>
 	!(a iters-of-sublist b).is-empty
 
 # Removes elements from the left while `f` returns true.
-strip-left-while<a> list a(a list a, f act bool(a))
+strip-left-while<a> a[](a a[], f act bool(a))
 	a.to-array strip-left-while f to-list
-strip-right-while<a> list a(a list a, f act bool(a))
+strip-right-while<a> a[](a a[], f act bool(a))
 	a.to-array strip-right-while f to-list
 
 split-list<a> record
-	left list a
+	left a[]
 	middle a
-	right list a
+	right a[]
 
-try-split-once-by-fn<a> split-list<a>?(a list a, f act bool(a)) equal<a>
+try-split-once-by-fn<a> split-list<a>?(a a[], f act bool(a)) equal<a>
 	a.iter try-split-once-by-fn-recur f
 .try-split-once-by-fn-recur<a> split-list<a>?(a list-iter a, f act bool(a))
 	if n ?= a next
@@ -990,33 +990,33 @@ and returns slices of `a` to the left and right of that.
 
 Returns an empty option iff `b` is not a sublist of `a`.
 ###
-try-split-once-by-sublist<a> pair<list a, list a>?(a list a, b list a) equal<a>
+try-split-once-by-sublist<a> pair<a[], a[]>?(a a[], b a[]) equal<a>
 	forbid b is-empty : "can't split by empty list"
 	if pair ?= a iters-of-sublist b
 		(pair.a.slice-left, pair.b.slice-right),
 
-try-split-once-by-sublist-right<a> pair<list a, list a>?(a list a, b list a) equal<a>
+try-split-once-by-sublist-right<a> pair<a[], a[]>?(a a[], b a[]) equal<a>
 	forbid b is-empty : "can't split by empty list"
 	if pair ?= a iters-of-sublist-right b
 		(pair.a.slice-left, pair.b.slice-right),
 
-split-by-sublist<a> list list a(a list a, b list a) equal<a>
+split-by-sublist<a> a[][](a a[], b a[]) equal<a>
 	if pair ?= a try-split-once-by-sublist b
 		pair.a ~ (pair.b split-by-sublist b)
 	else
 		a,
 
-.iters-of-sublist<a> pair<list-iter a, list-iter a>?(a list a, b list a) equal<a>
+.iters-of-sublist<a> pair<list-iter a, list-iter a>?(a a[], b a[]) equal<a>
 	a.iter iters-of-sublist-recur b
-.iters-of-sublist-recur<a> pair<list-iter a, list-iter a>?(a list-iter a, b list a) equal<a>
+.iters-of-sublist-recur<a> pair<list-iter a, list-iter a>?(a list-iter a, b a[]) equal<a>
 	if end-iter ?= a iter-starts-with b.iter
 		(a, end-iter),
 	elif n ?= a next
 		n.rest iters-of-sublist-recur b
 
-.iters-of-sublist-right<a> pair<list-iter a, list-iter a>?(a list a, b list a) equal<a>
+.iters-of-sublist-right<a> pair<list-iter a, list-iter a>?(a a[], b a[]) equal<a>
 	a.end-iter iters-of-sublist-right-recur b
-.iters-of-sublist-right-recur<a> pair<list-iter a, list-iter a>?(a list-iter a, b list a) equal<a>
+.iters-of-sublist-right-recur<a> pair<list-iter a, list-iter a>?(a list-iter a, b a[]) equal<a>
 	if start-iter ?= a iter-ends-with b.end-iter
 		(start-iter, a),
 	elif p ?= a prev
@@ -1038,10 +1038,10 @@ split-by-sublist<a> list list a(a list a, b list a) equal<a>
 	else
 		a,
 
-repeat<a> list a(a list a, n nat64)
+repeat<a> a[](a a[], n nat64)
 	a.to-array repeat n to-list
 
-reverse<a> list a(a list a)
+reverse<a> a[](a a[])
 	a.to-array.reverse to-list
 
 .force<a> a(a a?) unsafe noctx

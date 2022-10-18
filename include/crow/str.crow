@@ -23,16 +23,16 @@ Strings are optimized for fast concatenation and splitting.
 They don't support efficient access by index, so use iterators instead.
 ###
 str record by-val
-	.inner list char8
+	.inner char8[]
 
-char8s list char8(a str)
+char8s char8[](a str)
 	a inner
 
 ###
 Treat a list of UTF-8 character codes as a string.
 This is O(1).
 ###
-str str(a list char8) noctx
+str str(a char8[]) noctx
 	a,
 
 literal str(a c-str) noctx trusted

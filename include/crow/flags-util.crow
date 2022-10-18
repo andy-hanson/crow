@@ -34,7 +34,7 @@ is-in<a> bool(a a, b a) min-flags-like<a>
 	a & b == a
 
 # Returns the names of every flag set in `a`.
-to-syms<a> list sym(a a) flags-like<a>
+to-syms<a> sym[](a a) flags-like<a>
 	() join for member : flags-members.to-list
 		if member.val is-in a
 			member.name,

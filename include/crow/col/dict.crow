@@ -80,7 +80,7 @@ new<k, v> v[k](...a arr pair<k, v>) is-data<k> compare<k> hash-mix<k>
 Converts a list of pairs to a dictionary.
 Later pairs overwrite earlier pairs with the same key.
 ###
-to-dict<k, v> v[k](a list pair<k, v>) is-data<k> compare<k> hash-mix<k>
+to-dict<k, v> v[k](a pair<k, v>[]) is-data<k> compare<k> hash-mix<k>
 	if a.size <= 4 && a.no-duplicate-keys
 		a.to-array.leaf-node,
 	else
@@ -89,10 +89,10 @@ to-dict<k, v> v[k](a list pair<k, v>) is-data<k> compare<k> hash-mix<k>
 		(empty,) fold a, (cur, x) => cur ~ x
 
 # Returns all pairs in the dictionary.
-to-list<k, v> list pair<k, v>(a v[k]) is-data<k> compare<k> hash-mix<k>
+to-list<k, v> pair<k, v>[](a v[k]) is-data<k> compare<k> hash-mix<k>
 	for x : a; x
 
-.no-duplicate-keys<k, v> bool(a list pair<k, v>) compare<k>
+.no-duplicate-keys<k, v> bool(a pair<k, v>[]) compare<k>
 	# O(n^2) but it doesn't matter since n <= 4
 	if a.size <= 1
 		true
@@ -408,17 +408,17 @@ fold-keys<a, k, v> a(acc a, a v[k], f act a(a, k)) is-data<k> compare<k> hash-mi
 # TODO: map-values
 
 # List of every key in the dictionary.
-keys<k, v> list k(a v[k]) is-data<k> compare<k> hash-mix<k>
+keys<k, v> k[](a v[k]) is-data<k> compare<k> hash-mix<k>
 	for pair : a
 		pair from
 
 # List of every value in the dictionary.
-values<k, v> list v(a v[k]) is-data<k> compare<k> hash-mix<k>
+values<k, v> v[](a v[k]) is-data<k> compare<k> hash-mix<k>
 	for pair : a
 		pair to
 
 # Calls `f` on every pair in the dictionary and returns an array of the results.
-for-loop<out, k, v> list out(a v[k], f act out(pair<k, v>)) trusted is-data<k> compare<k> hash-mix<k>
+for-loop<out, k, v> out[](a v[k], f act out(pair<k, v>)) trusted is-data<k> compare<k> hash-mix<k>
 	res fix-arr out = a.size uninitialized-fix-arr
 	end = res.begin-ptr fold a, (cur, k, v) =>
 		*cur := f[(k, v)]
@@ -432,7 +432,7 @@ for-loop<out, k, v> list out(a v[k], f act out(pair<k, v>)) trusted is-data<k> c
 .dbg<k, v> str(a node<k, v>, path str) to-str<k> to-str<v>
 	match a
 	as inner-node node
-		parts list list str = for index : 0 .. node.size
+		parts str[][] = for index : 0 .. node.size
 			child = node[index]
 			unless child node-is-empty
 				(child dbg "{path}{index}"),

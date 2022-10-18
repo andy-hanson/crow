@@ -198,7 +198,7 @@ In condition: a-read, a-write, b-read are all valid pointers.
 		else
 			a-begin merge-reverse-recur a-read - 1, a-write - 1, b-begin, b-read, compare
 
-.test-one void(a list nat64, b list nat64, expected list nat64) unsafe
+.test-one void(a nat64[], b nat64[], expected nat64[]) unsafe
 	a-mut = a to-mut-arr
 	b-mut = b to-mut-arr
 	a-mut merge-no-duplicates b-mut, (x, y) =>

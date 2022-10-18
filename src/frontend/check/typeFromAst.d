@@ -207,12 +207,12 @@ immutable(Type) typeFromAst(
 
 private immutable(Opt!(Diag.TypeShouldUseSyntax.Kind)) typeSyntaxKind(immutable Sym a) {
 	switch (a.value) {
-		//case shortSymValue("arr"):
-		//	return some(Diag.TypeShouldUseSyntax.Kind.arr);
 		case shortSymValue("const-ptr"):
 			return some(Diag.TypeShouldUseSyntax.Kind.ptr);
 		case shortSymValue("dict"):
 			return some(Diag.TypeShouldUseSyntax.Kind.dict);
+		case shortSymValue("list"):
+			return some(Diag.TypeShouldUseSyntax.Kind.list);
 		case shortSymValue("mut-arr"):
 			return some(Diag.TypeShouldUseSyntax.Kind.arrMut);
 		case shortSymValue("mut-dict"):

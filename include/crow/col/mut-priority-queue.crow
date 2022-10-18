@@ -41,7 +41,7 @@ new<k, v> mut-priority-queue<k, v>(...a arr pair<k, v>) is-data<k> compare<k>
 	a.to-list to-mut-priority-queue
 
 # Copies a list to a new priority queue.
-to-mut-priority-queue<k, v> mut-priority-queue<k, v>(a list pair<k, v>) is-data<k> compare<k>
+to-mut-priority-queue<k, v> mut-priority-queue<k, v>(a pair<k, v>[]) is-data<k> compare<k>
 	mins = a to-mut-arr
 	mins.sort-by-reverse := pair => pair from
 	mins, ()
@@ -108,7 +108,7 @@ copy<k, v> mut-priority-queue<k, v>(a mut-priority-queue<k, v>) is-data<k> compa
 	a spread-all-buckets
 	a.mins.copy, ()
 
-to-list<k, v> list pair<k, v>(a mut-priority-queue<k, v>) trusted is-data<k> compare<k>
+to-list<k, v> pair<k, v>[](a mut-priority-queue<k, v>) trusted is-data<k> compare<k>
 	a spread-all-buckets
 	a.mins.to-list reverse
 
@@ -209,7 +209,7 @@ test
 .== bool(a mut-priority-queue<nat64, str>, b mut-priority-queue<nat64, str>)
 	a.to-list == b.to-list
 
-.== bool(a list pair<nat64, str>, b list pair<nat64, str>)
+.== bool(a pair<nat64, str>[], b pair<nat64, str>[])
 	a list-equal b
 
 .== bool(a pair<nat64, str>, b pair<nat64, str>)

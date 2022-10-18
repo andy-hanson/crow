@@ -113,8 +113,8 @@ struct TypeAst {
 		@safe @nogc pure nothrow:
 
 		enum Kind {
-			//arr,
 			arrMut,
+			list,
 			opt,
 			ptr,
 			ptrMut,
@@ -192,6 +192,8 @@ private immutable(uint) suffixLength(immutable TypeAst.Suffix.Kind a) {
 	final switch (a) {
 		case TypeAst.Suffix.Kind.arrMut:
 			return cast(uint) "mut[]".length;
+		case TypeAst.Suffix.Kind.list:
+			return cast(uint) "[]".length;
 		case TypeAst.Suffix.Kind.opt:
 			return cast(uint) "?".length;
 		case TypeAst.Suffix.Kind.ptr:
@@ -214,6 +216,8 @@ immutable(Sym) symForTypeAstSuffix(immutable TypeAst.Suffix.Kind a) {
 	final switch (a) {
 		case TypeAst.Suffix.Kind.arrMut:
 			return shortSym("mut-arr");
+		case TypeAst.Suffix.Kind.list:
+			return shortSym("list");
 		case TypeAst.Suffix.Kind.opt:
 			return shortSym("opt");
 		case TypeAst.Suffix.Kind.ptr:

@@ -27,15 +27,15 @@ For example, if the command is: `foo bar --a 1 --b 2 3 -- x y z`:
 `after` will be: `"x", "y", "z"`
 ###
 parsed-command record
-	nameless list str
-	named list<str>[str]
-	after list str
+	nameless str[]
+	named str[][str]
+	after str[]
 
 ###
 See comment on `parsed-command` for syntax.
 Parse errors aren't possible with this syntax.
 ###
-parse-command parsed-command(args list str)
+parse-command parsed-command(args str[])
 	if split ?= args try-split-once-by-fn arg => arg starts-with "--"
 		nameless = split.left
 		rest = split.middle ~ split.right
@@ -60,9 +60,9 @@ This will return `((),) (), (("d",),)`.
 
 If the argument syntax is invalid, returns an empty option.
 ###
-parse-named-args list<list<str>?>?(args list str, arg-names list str)
+parse-named-args str[]?[]?(args str[], arg-names str[])
 	parsed = args parse-command
-	values list<str>? mut[] = arg-names.size fill-mut-arr ()
+	values str[]? mut[] = arg-names.size fill-mut-arr ()
 	err cell bool = false,
 	parsed.named each (key, value) =>
 		if index ?= arg-names index-of key
@@ -77,7 +77,7 @@ If `a` as a single element, returns that; else throws an exception.
 
 Useful for arguments that should have a single string as their value.
 ###
-single-str-or-throw str(a list<str>?, option-name str)
+single-str-or-throw str(a str[]?, option-name str)
 	if strs ?= a
 		if strs.size == 1
 			strs[0]
@@ -88,12 +88,12 @@ single-str-or-throw str(a list<str>?, option-name str)
 	else
 		throw "Need {option-name}"
 
-.parse-named-args-dict list<str>[str](args list str)
-	res list<str> mut[str] = ()
+.parse-named-args-dict str[][str](args str[])
+	res str[] mut[str] = ()
 	args parse-named-args-dict-recur res
 	res move-to-dict
 
-.parse-named-args-dict-recur void(args list str, builder list<str> mut[str])
+.parse-named-args-dict-recur void(args str[], builder str[] mut[str])
 	first-name = (args[0] try-remove-start "--")!
 	tl = args tail
 	if split ?= tl try-split-once-by-fn arg => arg starts-with "--"

@@ -147,7 +147,7 @@ for-loop<a> void(a mut-grid-rows a, f act void(fix-arr a))
 	for y : 0 .. a.inner.height
 		f[a.inner row y]
 
-for-loop<out, in> list out(a mut-grid-rows in, f act out(fix-arr in))
+for-loop<out, in> out[](a mut-grid-rows in, f act out(fix-arr in))
 	for y : 0 .. a.inner.height
 		f[a.inner row y]
 

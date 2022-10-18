@@ -106,13 +106,13 @@ main fut nat(_ arr str) summon trusted
 
 .make-cube arr vertex()
 	front = I.cube-side ~~ (up rotation pi / 2 cube-side) ~~ (right rotation pi / 2 cube-side)
-	back list vertex = () join for xs : front groups-of 3
+	back vertex[] = () join for xs : front groups-of 3
 		# Change order so that the triangles have reverse winding
 		xs[1].invert, xs[0].invert, xs[2].invert
 	for v : front ~~ back to-array
 		v.pos, v.normal, (v.pos + (1, 1, 1)) * 0.5, v.tex-coord
 
-.cube-side list vertex(mat mat3-32)
+.cube-side vertex[](mat mat3-32)
 	t0 vec2-32 = 0.0, 1.0
 	t1 vec2-32 = 1.0, 1.0
 	t2 vec2-32 = 0.0, 0.0
@@ -125,7 +125,7 @@ main fut nat(_ arr str) summon trusted
 	ur vertex = (1, 1, -1), n, black, t3
 	(dl, dr, ul, ul, dr, ur) apply mat
 
-.apply list vertex(a list vertex, m mat3-32)
+.apply vertex[](a vertex[], m mat3-32)
 	for x : a
 		m * x.pos, m * x.normal, x.color, x.tex-coord
 

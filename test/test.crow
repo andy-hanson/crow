@@ -9,7 +9,7 @@ import
 	./crow-tests: run-crow-tests
 
 main fut nat(args arr str) summon
-	option-names list str = "print-tests", "overwrite-output", "max-failures", "match"
+	option-names str[] = "print-tests", "overwrite-output", "max-failures", "match"
 	if values ?= args.to-list parse-named-args option-names
 		print-tests-strs = values[0]
 		overwrite-output-strs = values[1]
