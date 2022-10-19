@@ -6,7 +6,7 @@ import
 	crow/io/process: shell-exec
 	../site-src/search-dir-recursive: search-dir-recursive
 
-main fut nat(_ arr str) summon
+main fut nat(_ array str) summon
 	files = all-files
 	failures = files lint-files
 	for x : failures

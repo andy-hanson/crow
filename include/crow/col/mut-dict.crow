@@ -13,11 +13,11 @@ import
 	../str-util: join
 	../test-util: is
 	../tuple: from, new, pair, to
-	./arr: arr
+	./array: array
 	./dict: dict, to-dict
 	./fix-arr:
 		begin-ptr, cast-immutable, end-ptr, fill, fill-fix-arr, fix-arr, fold, for-loop, is-empty,
-		new, set-subscript, size, subscript, to-arr, uninitialized-fix-arr
+		new, set-subscript, size, subscript, to-array, uninitialized-fix-arr
 	./list: ==, for-loop, list, list-equal, new, size, to-list
 	./mut-arr:
 		~=, copy, find-index, fold, for-loop, is-at-capacity, is-empty, mut-arr, new,
@@ -42,7 +42,7 @@ New dictionary containing the given pairs.
 
 Later pairs overwrite earlier pairs with the same key.
 ###
-new<k, v> v mut[k](...a arr pair<k, v>) is-data<k> compare<k> hash-mix<k>
+new<k, v> v mut[k](...a array pair<k, v>) is-data<k> compare<k> hash-mix<k>
 	a.to-list to-mut-dict
 
 ###
@@ -331,7 +331,7 @@ set-map-values<k, v> void(a v mut[k], f act v(k, v)) trusted is-data<k> compare<
 		entry-ptr + 1 set-map-values-recur entry-end, f
 
 .dbg<k, v> str(a v mut[k]) to-str<k> to-str<v>
-	" " join for entry : a.entries.to-arr.to-list
+	" " join for entry : a.entries.to-array.to-list
 		match entry
 		as none
 			"_"

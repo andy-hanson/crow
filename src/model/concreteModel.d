@@ -11,7 +11,7 @@ import model.model :
 	EnumValue,
 	FlagsFunction,
 	FunInst,
-	isArr,
+	isArray,
 	isCallWithCtxFun,
 	isCompareFun,
 	isMarkVisitFun,
@@ -326,11 +326,11 @@ struct ConcreteStruct {
 	Late!(immutable size_t[]) fieldOffsets_;
 }
 
-immutable(bool) isArr(ref immutable ConcreteStruct a) =>
+immutable(bool) isArray(ref immutable ConcreteStruct a) =>
 	matchConcreteStructSource!(
 		immutable bool,
 		(ref immutable ConcreteStructSource.Inst it) =>
-			isArr(*it.inst),
+			isArray(*it.inst),
 		(ref immutable ConcreteStructSource.Lambda it) =>
 			false,
 	)(a.source);

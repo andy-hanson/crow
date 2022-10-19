@@ -17,8 +17,8 @@ import
 	../test-util: is
 	../tuple: from, new, pair, to
 	../private/bootstrap: todo
-	./arr: ~, arr, for-loop, is-empty, new, size, subscript
-	./arr-util:
+	./array: ~, array, for-loop, is-empty, new, size, subscript
+	./array-util:
 		every, find-index, fold, fold-with-index, remove-at, rtail, tail, update-at,
 		update-at-with-default
 	./fix-arr:
@@ -34,7 +34,7 @@ A key can appear at most once, and given a key, you can access the associated va
 There should be `==`, `<=>`, and `hash-mix` functions defined for the key type `k`.
 
 This is unordered;
-functions dealing with multiple elements (like `to-arr` or `each`) work in arbitrary order.
+functions dealing with multiple elements (like `to-list` or `for-loop`) work in arbitrary order.
 ###
 dict<k, v> record by-val
 	.root node<k, v>
@@ -49,8 +49,8 @@ dict-equal<k, v> bool(a v[k], b v[k]) no-doc is-data<k> compare<k> hash-mix<k> e
 			bv == pair.to
 
 .node<k, v> union
-	inner-node arr node<k, v>
-	leaf-node arr pair<k, v>
+	inner-node array node<k, v>
+	leaf-node array pair<k, v>
 
 .empty-leaf-node<k, v> node<k, v>() noctx
 	() leaf-node
@@ -73,7 +73,7 @@ Creates a new dict from the given key-value pairs.
 
 Later pairs overwrite earlier pairs with the same key.
 ###
-new<k, v> v[k](...a arr pair<k, v>) is-data<k> compare<k> hash-mix<k>
+new<k, v> v[k](...a array pair<k, v>) is-data<k> compare<k> hash-mix<k>
 	a.to-list to-dict
 
 ###
@@ -139,7 +139,7 @@ subscript<k, v> v?(a v[k], key k) is-data<k> compare<k> hash-mix<k>
 			i[which] subscript-recur key, (remaining-hash unsafe-bit-shift-right inner-node-n-bits)
 	as leaf-node l
 		l subscript-leaf-recur key
-.subscript-leaf-recur<k, v> v?(a arr pair<k, v>, key k) compare<k>
+.subscript-leaf-recur<k, v> v?(a array pair<k, v>, key k) compare<k>
 	if a is-empty
 		()
 	elif a[0].from == key
@@ -166,7 +166,7 @@ This may overwrite the key if it's already in `a`, or add a new entry.
 ###
 Adds/updates many entries to `a`.
 ###
-~~ <k, v> v[k](a v[k], pairs arr pair<k, v>) is-data<k> compare<k> hash-mix<k>
+~~ <k, v> v[k](a v[k], pairs array pair<k, v>) is-data<k> compare<k> hash-mix<k>
 	a fold pairs, (cur, pair) => cur ~ pair
 
 got-or-added<k, v> union
@@ -274,7 +274,7 @@ try-remove<k, v> try-remove-result<k, v>?(a v[k], key k) is-data<k> compare<k> h
 	as leaf-node l
 		l get-or-update-leaf key, remaining-hash, hash-shift, f
 
-.update-child<k, v> node<k, v>(a arr node<k, v>, which nat64, new-child node<k, v>)
+.update-child<k, v> node<k, v>(a array node<k, v>, which nat64, new-child node<k, v>)
 	if leaf ?= a inner-node-to-leaf which, new-child
 		leaf
 	elif new-child node-is-empty
@@ -291,7 +291,7 @@ try-remove<k, v> try-remove-result<k, v>?(a v[k], key k) is-data<k> compare<k> h
 		a update-at which, new-child inner-node
 
 # Returns 'some' if we should change this to a leaf.
-.inner-node-to-leaf<k, v> node<k, v>?(a arr node<k, v>, which nat64, new-child node<k, v>) trusted
+.inner-node-to-leaf<k, v> node<k, v>?(a array node<k, v>, which nat64, new-child node<k, v>) trusted
 	total-size = 0 fold-with-index a, (cur, child, child-index) =>
 		new-child-here = if child-index == which
 			new-child
@@ -320,13 +320,13 @@ try-remove<k, v> try-remove-result<k, v>?(a v[k], key k) is-data<k> compare<k> h
 		assert end == out.size
 		out.cast-immutable.leaf-node,
 
-.find-only-non-empty-child<k, v> node<k, v>?(children arr node<k, v>)
+.find-only-non-empty-child<k, v> node<k, v>?(children array node<k, v>)
 	first-non-empty-index = (children find-index it => !it.node-is-empty)!
 	if children[first-non-empty-index + 1 .. children.size] every it => it node-is-empty
 		children[first-non-empty-index],
 
 .get-or-update-leaf<k, v> get-or-update-result<k, v>(
-	a arr pair<k, v>,
+	a array pair<k, v>,
 	key k,
 	remaining-hash nat64,
 	hash-shift nat64,
@@ -363,7 +363,7 @@ try-remove<k, v> try-remove-result<k, v>?(a v[k], key k) is-data<k> compare<k> h
 
 # In order to get the hash, we need to know the shift amount
 .new-inner-node<k, v> node<k, v>(
-	a arr pair<k, v>,
+	a array pair<k, v>,
 	key k,
 	value v,
 	hash nat64,

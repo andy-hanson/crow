@@ -107,7 +107,7 @@ This means this is also the type for a slice of an array, and slicing is O(1).
 A slice does not keep the whole array alive, only the elements it can reach;
 elements not reachable by any slice will be garbage collected.
 ###
-arr<a> record by-val
+array<a> record by-val
 	size nat64
 	begin-ptr a*
 
@@ -433,7 +433,7 @@ call-with-ctx<r, p0, p1, p2, p3> r(f act r(p0, p1, p2, p3), p0 p0, p1 p1, p2 p2,
 region fut
 
 backtrace record by-val
-	entries arr backtrace-entry
+	entries array backtrace-entry
 
 # 'extern' because interpreter also declares this type
 backtrace-entry record extern by-val
@@ -501,4 +501,4 @@ named-val<a> record by-val
 	val a
 
 # All symbols that exist in the compiled code, in arbitrary order
-static-syms arr sym() noctx builtin
+static-syms array sym() noctx builtin

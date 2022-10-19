@@ -10,20 +10,20 @@ import
 	../../opt: new, opt
 	../../ptr: ==, <=>, +, -, *, const-ptr, mut-ptr, set-deref, swap
 	../../test-util: is
-	../arr: arr, is-empty, new, size, subscript
-	../arr-util: fold, fold-with-index, in, index-of, ptr-of
+	../array: array, is-empty, new, size, subscript
+	../array-util: fold, fold-with-index, in, index-of, ptr-of
 	../fix-arr:
 		begin-ptr, cast-immutable, end-ptr, fill, fill-fix-arr, fix-arr, for-loop,
-		size, temp-as-arr, to-fix-arr, set-subscript, subscript, uninitialized-fix-arr
+		size, temp-as-array, to-fix-arr, set-subscript, subscript, uninitialized-fix-arr
 	../list: ==, for-loop, list, new, to-array, to-list
-	../private/arr-low-level: arr-cast, arr-from-begin-end, begin-ptr, end-ptr
+	../private/array-low-level: array-cast, array-from-begin-end, begin-ptr, end-ptr
 
 frozen-set<a> record
-	.values arr a
+	.values array a
 	# These are pointers into 'values', so it's fine that 'ptr' isn't GC traced.
-	.bucket-starts arr a*
+	.bucket-starts array a*
 
-new<a> frozen-set a(...a arr a) is-data<a> compare<a> hash-mix<a>
+new<a> frozen-set a(...a array a) is-data<a> compare<a> hash-mix<a>
 	a.to-list to-frozen-set
 
 to-frozen-set<a> frozen-set a(a a[]) trusted is-data<a> compare<a> hash-mix<a>
@@ -48,7 +48,7 @@ size<a> nat64(a frozen-set a)
 in<a> bool(value a, a frozen-set a) is-data<a> compare<a> hash-mix<a>
 	value in (a bucket-for value)
 
-.bucket-for<a> arr a(a frozen-set a, value a) trusted is-data<a> compare<a> hash-mix<a>
+.bucket-for<a> array a(a frozen-set a, value a) trusted is-data<a> compare<a> hash-mix<a>
 	if a.bucket-starts is-empty
 		a values
 	else
@@ -58,7 +58,7 @@ in<a> bool(value a, a frozen-set a) is-data<a> compare<a> hash-mix<a>
 			a.values end-ptr
 		else
 			a.bucket-starts[bucket-index + 1]
-		bucket-start arr-from-begin-end bucket-end
+		bucket-start array-from-begin-end bucket-end
 
 # TODO: no-doc
 # WARN: The order of values is arbitrary,
@@ -73,7 +73,7 @@ try-get-unordered-index<a> nat64?(a frozen-set a, value a) trusted is-data<a> co
 			a.values end-ptr
 		else
 			a.bucket-starts[bucket-index + 1]
-		if ptr ?= bucket-start arr-from-begin-end bucket-end ptr-of value
+		if ptr ?= bucket-start array-from-begin-end bucket-end ptr-of value
 			ptr - a.begin-ptr,
 
 unsafe-frozen-set-from-fix-arr-cast-immutable<a> frozen-set a(
@@ -84,10 +84,10 @@ unsafe-frozen-set-from-fix-arr-cast-immutable<a> frozen-set a(
 	else
 		n-buckets = a.size / 2
 		bucket-counts = a get-bucket-counts n-buckets
-		bucket-starts = a.begin-ptr running-sum bucket-counts.temp-as-arr
+		bucket-starts = a.begin-ptr running-sum bucket-counts.temp-as-array
 		bucket-counts fill 0
 		a.begin-ptr move-values-to-buckets-recur a.end-ptr, bucket-counts, bucket-starts
-		a.cast-immutable, bucket-starts.arr-cast
+		a.cast-immutable, bucket-starts.array-cast
 
 .get-bucket-counts<a> fix-arr nat64(a fix-arr a, n-buckets nat64) unsafe hash-mix<a>
 	res = n-buckets fill-fix-arr 0
@@ -100,7 +100,7 @@ unsafe-frozen-set-from-fix-arr-cast-immutable<a> frozen-set a(
 	cur a mut*,
 	end a mut*,
 	bucket-counts fix-arr nat64,
-	bucket-starts arr a mut*,
+	bucket-starts array a mut*,
 ) unsafe hash-mix<a>
 	unless cur == end
 		bucket-index = *cur get-bucket-index bucket-counts.size
@@ -120,7 +120,7 @@ unsafe-frozen-set-from-fix-arr-cast-immutable<a> frozen-set a(
 .get-bucket-index<a> nat64(value a, n-buckets nat64) unsafe hash-mix<a>
 	value.hash % n-buckets
 
-.running-sum<a> arr a mut*(acc a mut*, a arr nat64) trusted
+.running-sum<a> array a mut*(acc a mut*, a array nat64) trusted
 	out fix-arr a mut* = a.size uninitialized-fix-arr
 	acc running-sum-recur out.begin-ptr, out.end-ptr, a.begin-ptr
 	out cast-immutable

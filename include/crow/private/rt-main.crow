@@ -1,8 +1,8 @@
 no-std
 import
-	../col/arr: arr, for-loop
-	../col/arr-util: tail
-	../col/private/arr-low-level: subscript
+	../col/array: array, for-loop
+	../col/array-util: tail
+	../col/private/array-low-level: subscript
 	../fun-util: fun-ptr1, subscript
 	../fut: delay, fut, handle-exceptions, then-void
 	../misc: new, void
@@ -23,7 +23,7 @@ import
 	./thread-utils: count-processors, create-one-thread, join-one-thread, thread-handle
 
 .main-ptr alias
-	fun-ptr1<fut nat64, arr str>
+	fun-ptr1<fut nat64, array str>
 
 # Treated specially by the compiler
 rt-main int32(argc int32, argv c-str*, main-ptr main-ptr) trusted noctx summon
@@ -64,7 +64,7 @@ init-constants void() unsafe noctx summon builtin
 ) trusted noctx
 	# Create a ctx manually so we can call functions that need it when creating the task
 	gctx before-task 0
-	add act fut nat64(arr c-str, main-ptr) = (all-args, main-ptr-2) =>
+	add act fut nat64(array c-str, main-ptr) = (all-args, main-ptr-2) =>
 		all-args add-first-task main-ptr-2
 	all-args = argv[0 .. argc.to-int64.to-nat64]
 	res = add call-with-ctx all-args, main-ptr
@@ -78,7 +78,7 @@ init-constants void() unsafe noctx summon builtin
 # TODO: if mut-bag-node is in unmanaged memory, don't need ctx for this
 # We want main-fut to be available immediately, not after having run some user code.
 # So we create main-fut now, and forward the result of 'main' to that.
-.add-first-task fut nat64(all-args arr c-str, main-ptr fun-ptr1<fut nat64, arr str>) unsafe
+.add-first-task fut nat64(all-args array c-str, main-ptr fun-ptr1<fut nat64, array str>) unsafe
 	# 'then' is useful here -- it handles any errors in 'main' and gets us main-fut immediately.
 	# TODO: 'then' overload for fut<void> taking lambda with 0 params
 	res = delay then-void () =>

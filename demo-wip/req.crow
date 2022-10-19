@@ -1,6 +1,6 @@
 import
 	crow/col/fix-arr: begin-ptr, cast-immutable, fix-arr, size, subscript, uninitialized-fix-arr
-	crow/col/private/arr-low-level: begin-ptr
+	crow/col/private/array-low-level: begin-ptr
 	crow/extra-types: fd-t
 	crow/io/print: out, print
 	crow/ptr: ==, *, as-any-const-ptr, const-ptr, null, ptr-cast, ptr-cast-to-extern, size-of
@@ -11,7 +11,7 @@ import
 	sys/socket: AF_INET, connect, sockaddr, socket, SOCK_STREAM
 	unistd: read, write
 
-main fut nat(_ arr str) unsafe summon
+main fut nat(_ array str) unsafe summon
 	hostname = "duckduckgo.com"
 	socket = get-tcp-socket
 	socket connect-socket hostname, 80

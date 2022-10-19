@@ -15,7 +15,7 @@ f void(a str) extern<c>
 
 f<a> void(a a) extern<c>
 
-f void(...a arr nat64) extern<c>
+f void(...a array nat64) extern<c>
 
 some-spec spec
 	foo void()

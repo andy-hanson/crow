@@ -2,7 +2,7 @@ import
 	crow/io/print: out, print
 	crow/ptr: *, mut-ptr, set-deref
 
-main fut nat(_ arr str) summon unsafe
+main fut nat(_ array str) summon unsafe
 	results <- for x : 0 .. 100 parallel
 		*foo := x
 		*foo := *foo + 1

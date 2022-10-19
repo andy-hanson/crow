@@ -13,7 +13,7 @@ import
 	../test-util: is
 	./fix-arr:
 		begin-ptr, cast-immutable, end-ptr, is-empty, fix-arr, new, size, set-subscript,
-		subscript, to-arr, to-fix-arr
+		subscript, to-array, to-fix-arr
 	./iter: rest
 	./list: ==, list, list-equal, new, to-array, to-list
 	./mut-arr: mut-arr, set-reverse, temp-as-fix-arr
@@ -62,7 +62,7 @@ test
 	# Test that it's a stable sort
 	arr fix-arr str = "2a", "2b", "1a", "1b"
 	arr.sort := (x, y) => x.first-char <=> y.first-char
-	arr.to-arr.to-list is ("1a", "1b", "2a", "2b")
+	arr.to-array.to-list is ("1a", "1b", "2a", "2b")
 
 .== bool(a str[], b str[])
 	a list-equal b

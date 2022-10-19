@@ -1,7 +1,7 @@
 no-std
 import
 	./bool: ==, bool, false, new, true
-	./col/arr: arr
+	./col/array: array
 	./col/dict: dict, dict-equal, for-loop, new, subscript, to-dict
 	./col/list: for-loop, list, list-equal, new, to-list
 	./col/mut-dict: move-to-dict, mut-dict, new, set-subscript
@@ -29,7 +29,7 @@ json union
 	json-list json[]
 	json-object json[str]
 
-new json(...pairs arr<pair<str, json>>)
+new json(...pairs array pair<str, json>)
 	pairs.to-list.to-dict json-object
 
 json<a> spec
@@ -129,8 +129,8 @@ as-list json[]?(a json) noctx
 		()
 	as json-str _
 		()
-	as json-list arr
-		arr,
+	as json-list x
+		x,
 	as json-object _
 		()
 # If `a` is an object, returns that, else returns an empty option.
@@ -205,7 +205,7 @@ take-json json?(a reader)
 		if a try-take-char "]"
 			().json-list,
 		else
-			a take-arr-recur ()
+			a take-list-recur ()
 	elif a try-take-char "\{"
 		a skip-whitespace
 		if a try-take-char "}"
@@ -213,13 +213,13 @@ take-json json?(a reader)
 		else
 			a take-object-recur ()
 
-.take-arr-recur json?(a reader, res json mut[])
+.take-list-recur json?(a reader, res json mut[])
 	if j ?= a take-json
 		res ~= j
 		a skip-whitespace
 		if a try-take-char ","
 			a skip-whitespace
-			a take-arr-recur res
+			a take-list-recur res
 		elif a try-take-char "]"
 			res.move-to-list.json-list,
 

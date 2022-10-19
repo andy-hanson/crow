@@ -2,9 +2,9 @@ no-std
 import
 	./bool: !, bool
 	./cell: *, cell, new, set-deref
-	./col/arr-util: for-loop
+	./col/array-util: for-loop
 	./col/list: list, to-list
-	./col/private/arr-low-level: arr-from-begin-end
+	./col/private/array-low-level: array-from-begin-end
 	./fun-util: subscript
 	./misc: new, void
 	./number: ==, +, -, nat64
@@ -63,7 +63,7 @@ for-loop<out> out[](a range-reverse nat64, f act out(nat64)) trusted
 		*cur := *cur + 1
 	end = out + size
 	assert *cur == end
-	out.as-const arr-from-begin-end end.as-const to-list
+	out.as-const array-from-begin-end end.as-const to-list
 
 for-loop<out> out[](a range nat64, f act out(nat64)) trusted
 	a for-loop f to-list

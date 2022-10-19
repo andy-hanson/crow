@@ -13,7 +13,7 @@ import
 	../test-util: is
 	./fix-arr:
 		begin-ptr, copy, end-ptr, exists, fix-arr, fold, new, set-map,
-		set-subscript, size, subscript, to-arr, uninitialized-fix-arr
+		set-subscript, size, subscript, to-array, uninitialized-fix-arr
 	./list: for-loop, list, to-list
 
 ###
@@ -129,7 +129,7 @@ This makes no attempt to add padding to ensure columns line up. (TODO?)
 ###
 to-str<a> str(a mut-grid a) to-str<a>
 	"\n" join for row : a.rows
-		" " join for value : row.to-arr.to-list
+		" " join for value : row.to-array.to-list
 			"{value}"
 
 region iteration

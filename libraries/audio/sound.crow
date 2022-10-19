@@ -1,7 +1,7 @@
 no-std
 import
 	crow/bool: &&, bool
-	crow/col/arr: arr, for-loop, size, subscript
+	crow/col/array: array, for-loop, size, subscript
 	crow/col/list: list, to-array
 	crow/compare: >
 	crow/misc: new, void
@@ -14,9 +14,9 @@ import
 sound record
 	.ignore void
 	format sound-format
-	samples arr float32
+	samples array float32
 
-new sound(format sound-format, samples arr float32)
+new sound(format sound-format, samples array float32)
 	nc = format n-channels
 	ns = samples size
 	assert ns % nc == 0 : "Number of samples ({ns}) must be a multiple of number of channels ({nc})"

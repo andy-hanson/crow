@@ -1,6 +1,6 @@
 no-std
 import
-	../col/arr: ~~, arr
+	../col/array: ~~, array
 	../number: -, float32, float64
 	../str: literal, str
 	../str-conv: finish, interp, with-str, with-value
@@ -28,9 +28,9 @@ I mat3-32() noctx
 I mat3-64() noctx
 	(1, 0, 0), (0, 1, 0), (0, 0, 1)
 
-to-array arr float32(a mat3-32)
+to-array array float32(a mat3-32)
 	a.row0.to-array ~~ a.row1.to-array ~~ a.row2.to-array
-to-array arr float64(a mat3-64)
+to-array array float64(a mat3-64)
 	a.row0.to-array ~~ a.row1.to-array ~~ a.row2.to-array
 
 col0 vec3-32(a mat3-32) noctx

@@ -82,7 +82,7 @@ import model.lowModel :
 	ConcreteFunToLowFunIndex,
 	ExternLibraries,
 	ExternLibrary,
-	isArr,
+	isArray,
 	isParamRef,
 	isPtrGc,
 	LowExpr,
@@ -557,7 +557,7 @@ immutable(bool) needsMarkVisitFun(ref immutable AllLowTypes allTypes, immutable 
 			false,
 		(immutable LowType.Record it) {
 			immutable LowRecord record = allTypes.allRecords[it];
-			return isArr(record) || exists!LowField(record.fields, (ref immutable LowField field) =>
+			return isArray(record) || exists!LowField(record.fields, (ref immutable LowField field) =>
 				needsMarkVisitFun(allTypes, field.type));
 		},
 		(immutable LowType.Union it) =>
@@ -616,7 +616,7 @@ immutable(AllLowFuns) getAllLowFuns(
 				unreachable!(immutable LowFunIndex),
 			(immutable LowType.Record it) {
 				immutable LowRecord record = allTypes.allRecords[it];
-				if (isArr(record)) {
+				if (isArray(record)) {
 					immutable LowType.PtrRawConst elementPtrType = getElementPtrTypeFromArrType(allTypes, it);
 					immutable ValueAndDidAdd!(immutable LowFunIndex) outerIndex = getOrAddAndDidAdd(
 						markVisitFuns.recordValToVisit,

@@ -1,7 +1,7 @@
 no-std
 import
 	setjmp: jmp_buf, __jmp_buf_tag, longjmp, new, setjmp, _setjmp
-	../col/private/arr-low-level: new
+	../col/private/array-low-level: new
 	../fun-util: subscript
 	../misc: void
 	../number: ==, int32, nat64

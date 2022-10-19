@@ -17,11 +17,11 @@ import
 	../bytes-types: new
 	../bool: !, ||, bool, false, new, to-nat64, true
 	../cell: *, as-mut-ptr, cell, new
-	../col/arr: arr, size, subscript
+	../col/array: array, size, subscript
 	../col/fix-arr: cast-immutable, begin-ptr, fix-arr, size, uninitialized-fix-arr
 	../col/list: for-loop, list, new, to-array, to-list
 	../col/mut-arr: ~=, move-to-list, mut-arr, new
-	../col/private/arr-low-level: begin-ptr
+	../col/private/array-low-level: begin-ptr
 	../col/sort: sort
 	../compare: !=
 	../exception: finally, with-block
@@ -228,7 +228,7 @@ write-file void(path str, content str) summon trusted
 	with _ : (() => fd close-fd path) finally
 		fd write-fd path, content.to-bytes.to-array
 
-.write-fd void(fd FILE, path c-str, bytes arr nat8) summon unsafe
+.write-fd void(fd FILE, path c-str, bytes array nat8) summon unsafe
 	wrote-bytes = bytes.begin-ptr fwrite size-of@<nat8>, bytes.size, fd
 	assert wrote-bytes == bytes.size : "error writing file {path}"
 

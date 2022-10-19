@@ -299,7 +299,7 @@ immutable(StructInst*) makeArrayType(
 	ref immutable CommonTypes commonTypes,
 	immutable Type elementType,
 ) =>
-	instantiateStructNeverDelay(alloc, programState, commonTypes.arr, [elementType]);
+	instantiateStructNeverDelay(alloc, programState, commonTypes.array, [elementType]);
 
 immutable(SpecInst*) instantiateSpec(
 	ref Alloc alloc,

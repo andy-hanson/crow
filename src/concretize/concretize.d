@@ -126,9 +126,9 @@ immutable(bool) isFutNat(ref immutable CommonTypes commonTypes, immutable Type t
 		decl(*asStructInst(type)) == commonTypes.fut &&
 		isNat(commonTypes, only(typeArgs(*asStructInst(type))));
 
-immutable(bool) isArrStr(ref immutable CommonTypes commonTypes, immutable Type type) =>
+immutable(bool) isArrayStr(ref immutable CommonTypes commonTypes, immutable Type type) =>
 	isStructInst(type) &&
-		decl(*asStructInst(type)) == commonTypes.arr &&
+		decl(*asStructInst(type)) == commonTypes.array &&
 		isStr(commonTypes, only(typeArgs(*asStructInst(type))));
 
 void checkRtMainSignature(ref immutable CommonTypes commonTypes, ref immutable FunDecl mainFun) {
@@ -157,7 +157,7 @@ void checkUserMainSignature(ref immutable CommonTypes commonTypes, ref immutable
 	immutable Param[] params = assertNonVariadic(mainFun.params);
 	if (params.length != 1)
 		todo!void("checkUserMainSignature should take 1 param");
-	if (!isArrStr(commonTypes, only(params).type))
+	if (!isArrayStr(commonTypes, only(params).type))
 		todo!void("checkUserMainSignature doesn't take arr str");
 }
 

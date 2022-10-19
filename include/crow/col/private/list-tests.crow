@@ -11,7 +11,7 @@ import
 	../../str-util: join
 	../../test-util: is
 	../../tuple: a, b
-	../arr: arr, for-loop, is-empty
+	../array: array, for-loop, is-empty
 	../list:
 		~, ~~, down, for-loop, get-root, left, l0, l1, l2, list, new, node, nodes, right, to-list,
 		try-split-once-by-sublist
@@ -31,19 +31,19 @@ dummy-list-tests nat64()
 	a.node dbg-node (x => x dbg-arr2d), (x => x dbg-l2)
 .dbg-l2<a> str(a l2 a) to-str<a>
 	a.nodes dbg-arr3d
-.dbg-node<a, lower> str(a node<a, lower>, dbg-a act str(arr a), dbg-lower act str(lower))
+.dbg-node<a, lower> str(a node<a, lower>, dbg-a act str(array a), dbg-lower act str(lower))
 	match a
 	as leaf l
 		dbg-a[l]
 	as branch b
 		"({dbg-a[b left]} {dbg-lower[b down]} {dbg-a[b right]})"
-.dbg-arr<a> str(a arr a) to-str<a>
+.dbg-arr<a> str(a array a) to-str<a>
 	parts = " " join for x : a.to-list; "{x}"
 	"[{parts}]"
-.dbg-arr2d<a> str(a arr arr a) to-str<a>
+.dbg-arr2d<a> str(a array array a) to-str<a>
 	parts = " " join for x : a.to-list; x dbg-arr
 	"[{parts}]"
-.dbg-arr3d<a> str(a arr arr arr a) to-str<a>
+.dbg-arr3d<a> str(a array array array a) to-str<a>
 	parts = " " join for x : a.to-list; x dbg-arr2d
 	"[{parts}]"
 
@@ -65,7 +65,7 @@ dummy-list-tests nat64()
 		b.down check-structure
 		b.right check-structure
 
-.check-structure<a> void(xs arr arr a) unsafe
+.check-structure<a> void(xs array array a) unsafe
 	forbid xs is-empty
 	for ys : xs
 		forbid ys is-empty

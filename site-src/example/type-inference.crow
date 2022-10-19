@@ -1,4 +1,4 @@
-main fut nat(_ arr str) summon
+main fut nat(_ array str) summon
 	()
 
 infer-from-return-type str()

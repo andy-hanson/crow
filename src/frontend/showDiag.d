@@ -213,7 +213,7 @@ void writeParseDiag(
 			writer ~= "function type missing parentheses";
 		},
 		(ref immutable ParseDiag.ImportFileTypeNotSupported) {
-			writer ~= "import file type not allowed; the only supported types are 'nat8[]' and 'str'";
+			writer ~= "import file type not allowed; the only supported types are 'array nat8' and 'str'";
 		},
 		(ref immutable ParseDiag.IndentNotDivisible d) {
 			writer ~= "expected indentation by ";

@@ -8,9 +8,9 @@ import
 	crow/bits: |
 	crow/cell: *, cell, new
 	crow/col/fix-arr:
-		begin-ptr, cast-immutable, end-ptr, fix-arr, fix-arr-from-begin-end, to-arr,
+		begin-ptr, cast-immutable, end-ptr, fix-arr, fix-arr-from-begin-end, to-array,
 		uninitialized-fix-arr
-	crow/col/private/arr-low-level: begin-ptr
+	crow/col/private/array-low-level: begin-ptr
 	crow/c-types: u-int
 	crow/extra-types: err-t
 	crow/io/file: make-directory, path-exists
@@ -404,7 +404,7 @@ zip-fold<a, k, v0, v1> a(
 	array.size, array.begin-ptr.as-mut
 
 .bytes-of-val nat8[](a MDB_val) unsafe
-	(a.mv_data fix-arr-from-begin-end a.mv_data + a.mv_size).to-arr to-list
+	(a.mv_data fix-arr-from-begin-end a.mv_data + a.mv_size).to-array to-list
 
 .check-lmdb-error void(a err-t)
 	assert a == MDB_SUCCESS : "LMDB error code: {a} ({a error-name})"

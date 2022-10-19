@@ -11,7 +11,7 @@ import
 	../str: ==, literal, str
 	../test-util: is
 	../test-util/spy: calls, fn, new, spy-act1
-	./arr: arr
+	./array: array
 	./fix-arr: begin-ptr, cast-immutable, end-ptr, fix-arr, uninitialized-fix-arr
 	./list: ==, fold, list, new, to-list
 
@@ -31,7 +31,7 @@ Stack containing the given elements.
 
 The first element of `a` goes on the bottom and the last element of `a` goes on the top.
 ###
-new<a> stack a(...a arr a)
+new<a> stack a(...a array a)
 	a.to-list to-stack
 
 ###

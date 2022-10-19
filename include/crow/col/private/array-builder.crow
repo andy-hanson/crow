@@ -6,25 +6,25 @@ import
 	../../private/alloc: alloc-uninitialized, copy-data-from
 	../../private/number-low-level: round-up-to-power-of-two
 	../../ptr: ==, <=>, +, -, as-const, mut-ptr, null, set-deref
-	../arr: arr, size
-	./arr-low-level: arr-from-begin-end, begin-ptr
+	../array: array, size
+	./array-low-level: array-from-begin-end, begin-ptr
 
-arr-builder<a> record mut
+array-builder<a> record mut
 	.begin mut a mut*
 	.cur mut a mut*
 	.end mut a mut*
 
-new<a> arr-builder a() trusted
+new<a> array-builder a() trusted
 	null, null, null
 
-finish<a> arr a(a arr-builder a) noctx trusted
-	res = a.begin.as-const arr-from-begin-end a.cur.as-const
+finish<a> array a(a array-builder a) noctx trusted
+	res = a.begin.as-const array-from-begin-end a.cur.as-const
 	a.begin := null
 	a.cur := null
 	a.end := null
 	res
 
-~=<a> void(a arr-builder a, value a) trusted
+~=<a> void(a array-builder a, value a) trusted
 	if a.cur == a.end
 		cur-size = a.end - a.begin
 		new-capacity = cur-size == 0 ? 4 : cur-size * 2
@@ -36,7 +36,7 @@ finish<a> arr a(a arr-builder a) noctx trusted
 	*a.cur := value
 	a.cur := a.cur + 1
 
-~~=<a> void(a arr-builder a, values arr a) trusted
+~~=<a> void(a array-builder a, values array a) trusted
 	if a.cur + values.size > a.end
 		cur-size = a.cur - a.begin
 		min-size = cur-size + values.size

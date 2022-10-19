@@ -17,11 +17,11 @@ import
 	../../str-conv: finish, interp, to-hex, to-str, with-str, with-value
 	../../str-util: join
 	../../test-util: is
-	../arr: arr, new, subscript
-	../arr-util: fold, fold-with-index
+	../array: array, new, subscript
+	../array-util: fold, fold-with-index
 	../fix-arr: begin-ptr, cast-immutable, end-ptr, fix-arr, uninitialized-fix-arr
 	../list: ==, fold, list, new, size, to-list
-	../private/arr-low-level: begin-ptr, end-ptr, subscript
+	../private/array-low-level: begin-ptr, end-ptr, subscript
 
 index-set record by-ref
 	# This is one more than the highest number that would currently fit in the tree.
@@ -44,13 +44,13 @@ index-set record by-ref
 	c nat64
 	d nat64
 
-.values arr nat64(a leaf-node) trusted
+.values array nat64(a leaf-node) trusted
 	((&a.a)::nat64*)[0 .. 4]
 .bits-in-leaf-node nat64()
 	# 64 * 4
 	256
 
-new index-set(...a arr nat64)
+new index-set(...a array nat64)
 	a.to-list to-index-set
 
 to-index-set index-set(a nat64[])
@@ -166,7 +166,7 @@ try-add index-set?(a index-set, index nat64) trusted
 			empty-inner-node inner
 		new-node try-add index, n
 
-~~ index-set(a index-set, indices arr nat64)
+~~ index-set(a index-set, indices array nat64)
 	a fold indices, (cur, index) => cur ~ index
 
 - index-set(a index-set, index nat64)
@@ -267,9 +267,9 @@ intersect index-set(a index-set, b index-set)
 	strip-trailing-zeroes: a.values zip-larger b.values, (x, y) =>
 		(x ?? 0) & ~(y ?? 0)
 
-.strip-trailing-zeroes index-set(a arr nat64)
+.strip-trailing-zeroes index-set(a array nat64)
 	index-set: void, a.strip-trailing-zeroes
-.strip-trailing-zeroes arr nat64(a arr nat64)
+.strip-trailing-zeroes array nat64(a array nat64)
 	if last ?= a last
 		if last == 0
 			a.rtail strip-trailing-zeroes
@@ -308,7 +308,7 @@ count-range nat64(a index-set, low nat64, high nat64) trusted
 				values[low-word-index] count-range-in-nat64 low-bit-index, high-bit-index
 			else
 				first-word = values[low-word-index] count-gte-in-nat64 low-bit-index
-				mid-words = values[(low-word-index + 1) .. high-word-index] count-ones-in-arr
+				mid-words = values[(low-word-index + 1) .. high-word-index] count-ones-in-array
 				last-word = values[high-word-index] count-less-in-nat64 high-bit-index
 				first-word + mid-words + last-word
 		as empty
@@ -329,13 +329,13 @@ count-greater-or-equal nat64(a index-set, n nat64)
 .count-gte-in-nat64 nat64(a nat64, bit-index nat64)
 	a >> bit-index count-ones
 
-.count-ones-in-arr nat64(a arr nat64) trusted
-	0 count-ones-in-arr-recur a.begin-ptr, a.end-ptr
-.count-ones-in-arr-recur nat64(acc nat64, cur nat64*, end nat64*) unsafe
+.count-ones-in-array nat64(a array nat64) trusted
+	0 count-ones-in-array-recur a.begin-ptr, a.end-ptr
+.count-ones-in-array-recur nat64(acc nat64, cur nat64*, end nat64*) unsafe
 	if cur == end
 		acc
 	else
-		acc + cur->count-ones count-ones-in-arr-recur cur + 1, end
+		acc + cur->count-ones count-ones-in-array-recur cur + 1, end
 
 # Gets the set with only values < limit
 filter-less index-set(a index-set, limit nat64) trusted

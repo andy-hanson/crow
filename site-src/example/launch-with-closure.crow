@@ -2,7 +2,7 @@ import
 	crow/cell
 	crow/io/print: out, print
 
-main fut nat(_ arr str) summon
+main fut nat(_ array str) summon
 	adder <- 0 make-store
 	tasks list fut<nat> = for x : 0 .. 10
 		launch do () =>

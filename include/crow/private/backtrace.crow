@@ -9,7 +9,7 @@ import
 		SymFunctionTableAccess64, SymInitialize, SYMOPT_LOAD_LINES, SymSetOptions
 	../bool: ||, true
 	../bytes-types: new
-	../col/private/arr-low-level: arr-from-begin-end, new
+	../col/private/array-low-level: array-from-begin-end, new
 	../compare: <=
 	../misc: new, void
 	../private/number-low-level: ==, <=>, nat8, nat32, nat64, unsafe-to-nat32, wrap-add, wrap-sub
@@ -36,7 +36,7 @@ get-backtrace backtrace(gc gc-ctx, skip nat64) noctx unsafe
 		if is-interpreted
 			end = entries interpreter-backtrace max-entries, skip
 			gc copy-strings entries, end
-			(entries.as-const arr-from-begin-end end.as-const),
+			(entries.as-const array-from-begin-end end.as-const),
 		elif is-windows
 			gc get-native-backtrace-windows entries, max-entries, (skip wrap-add 2)
 		else
@@ -94,7 +94,7 @@ Result c-str are temporary, must copy!
 	end = gc windows-walk-backtrace entries, max-end, skip, process, thread, &context, &frame, vars
 	ok1 = process SymCleanup
 	ok1 hard-assert
-	(entries.as-const arr-from-begin-end end.as-const),
+	(entries.as-const array-from-begin-end end.as-const),
 
 .windows-backtrace-vars record by-val mut
 	offset nat64 mut*
@@ -172,7 +172,7 @@ Result c-str are temporary, must copy!
 	# omit 'get-native-backtrace' in addition to other skipped
 	cursor unwind-skip (skip wrap-add 1)
 	end = gc unwind-recur entries, entries + max-entries, cursor
-	(entries.as-const arr-from-begin-end end.as-const),
+	(entries.as-const array-from-begin-end end.as-const),
 
 .unwind-skip void(cursor unw_cursor_t, skip nat64) noctx unsafe
 	unless skip == 0

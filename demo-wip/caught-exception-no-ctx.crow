@@ -4,7 +4,7 @@ import
 	crow/ptr: any-mut-ptr, null
 	pthread: pthread_create, pthread_t
 
-main fut nat(_ arr str) summon unsafe
+main fut nat(_ array str) summon unsafe
 	thread mut pthread_t = ()
 	err = &thread pthread_create null, &thread-fun, null
 	assert err == 0

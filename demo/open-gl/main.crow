@@ -1,6 +1,6 @@
 import
 	crow/cell: *, as-const-ptr, as-mut-ptr, cell, new
-	crow/col/private/arr-low-level: begin-ptr, subscript
+	crow/col/private/array-low-level: begin-ptr, subscript
 	crow/c-types: c-int
 	crow/io/duration: msec
 	crow/io/print: out, print
@@ -33,11 +33,11 @@ import
 		SDL_WINDOWPOS_UNDEFINED, SDL_WINDOW_SHOWN, to-int32
 	./shader: shader-prog-destroy, shader-prog-load
 	./texture: load-texture-from-bmp, free-texture
-	./crow.bmp as crow-bmp arr nat8
+	./crow.bmp as crow-bmp array nat8
 	./fragment.frag.essl as fragment-shader str
 	./vertex.vert.essl as vertex-shader str
 
-main fut nat(_ arr str) summon trusted
+main fut nat(_ array str) summon trusted
 	SDL_INIT_VIDEO.SDL_Init handle-sdl-error "SDL_INIT_VIDEO"
 
 	# TODO: is this redundant?
@@ -84,7 +84,7 @@ main fut nat(_ arr str) summon trusted
 
 	texture = gl load-texture-from-bmp crow-bmp.to-list
 
-	vertices arr vertex = make-cube
+	vertices array vertex = make-cube
 	triangle-vbo = gl vbo-create vertices
 	forbid triangle-vbo == 0
 
@@ -104,7 +104,7 @@ main fut nat(_ arr str) summon trusted
 		SDL_Quit
 		()
 
-.make-cube arr vertex()
+.make-cube array vertex()
 	front = I.cube-side ~~ (up rotation pi / 2 cube-side) ~~ (right rotation pi / 2 cube-side)
 	back vertex[] = () join for xs : front groups-of 3
 		# Change order so that the triangles have reverse winding
@@ -144,7 +144,7 @@ main fut nat(_ arr str) summon trusted
 	render-thread-id nat
 	window SDL_Window
 	shader-prog GLuint
-	vertices arr vertex
+	vertices array vertex
 	triangle-vbo GLuint
 	texture GLuint
 	rotation-uniform-loc GLint
@@ -221,7 +221,7 @@ main fut nat(_ arr str) summon trusted
 	throw "sdl error in {description}: {SDL_GetError}"
 	SDL_Quit
 
-.vbo-create GLuint(gl gl-ext, vertices arr vertex) summon unsafe
+.vbo-create GLuint(gl gl-ext, vertices array vertex) summon unsafe
 	vbo-cell cell GLuint = 0,
 	n-buffers = 1 to-int32
 	gl glGenBuffers n-buffers, vbo-cell.as-mut-ptr
@@ -235,7 +235,7 @@ main fut nat(_ arr str) summon trusted
 		throw "Creating VBO failed: Code {err}"
 	vbo
 
-size-bytes nat(vertices arr vertex) unsafe
+size-bytes nat(vertices array vertex) unsafe
 	vertices.size * size-of@<vertex>
 
 .vbo-free void(gl gl-ext, vbo GLuint) summon unsafe

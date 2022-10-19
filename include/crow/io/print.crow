@@ -6,9 +6,9 @@ import
 		DWORD, GetLastError, GetStdHandle, HANDLE, STD_ERROR_HANDLE, STD_OUTPUT_HANDLE,
 		WriteFile
 	../cell: *, as-mut-ptr, cell, new
-	../col/arr: size
+	../col/array: size
 	../col/list: to-array
-	../col/private/arr-low-level: begin-ptr
+	../col/private/array-low-level: begin-ptr
 	../extra-types: fd-t
 	../misc: new, void
 	../number: ==, nat8, to-int64, to-nat32

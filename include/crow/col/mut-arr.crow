@@ -14,13 +14,13 @@ import
 		alloc-uninitialized, copy-data-from, set-zero-range, unmanaged-alloc-zeroed-elements
 	../private/number-low-level: round-up-to-power-of-two
 	../range: .., for-loop, reverse
-	./arr: arr, for-loop
-	./arr-util: each-with-index, exists, find-index, fold, in, index-of
+	./array: array, for-loop
+	./array-util: each-with-index, exists, find-index, fold, in, index-of
 	./fix-arr:
 		begin-ptr, cast-immutable, empty-fix-arr, fill-fix-arr, fix-arr, for-loop,
-		set-map, set-reverse, set-zero-elements, size, subscript, temp-as-arr, uninitialized-fix-arr
+		set-map, set-reverse, set-zero-elements, size, subscript, temp-as-array, uninitialized-fix-arr
 	./list: for-loop, list, to-list
-	./private/arr-low-level: arr-from-begin-size
+	./private/array-low-level: array-from-begin-size
 
 ###
 Mutable array type that can change in size.
@@ -68,7 +68,7 @@ fill-mut-arr<a> a mut[](size nat64, value a)
 Copies an `arr` to a `mut-arr`.
 Writes to the `mut-arr` won't affect the `arr`.
 ###
-new<a> a mut[](...a arr a)
+new<a> a mut[](...a array a)
 	a.to-list to-mut-arr
 
 to-mut-arr<a> a mut[](a a[])
@@ -102,7 +102,7 @@ Convert to a `dict`, clearning the original `mut-arr` in the process.
 move-to-list<a> a[](a a mut[]) noctx trusted
 	a.move-to-array to-list
 
-move-to-array<a> arr a(a a mut[]) noctx trusted
+move-to-array<a> array a(a a mut[]) noctx trusted
 	a.move-to-fix-arr.cast-immutable
 
 move-to-fix-arr<a> fix-arr a(a a mut[]) noctx trusted
@@ -156,8 +156,8 @@ temp-as-fix-arr<a> fix-arr a(a a mut[]) no-doc noctx unsafe
 Converts to an `array`.
 "Temp" because it's UB if the result is used after `a` is written to.
 ###
-temp-as-array<a> arr a(a a mut[]) no-doc noctx unsafe
-	a.temp-as-fix-arr temp-as-arr
+temp-as-array<a> array a(a a mut[]) no-doc noctx unsafe
+	a.temp-as-fix-arr temp-as-array
 
 # True iff `a.size == 0`.
 is-empty<a> bool(a a mut[]) noctx
@@ -177,12 +177,13 @@ True iff `a[i] == value` for some `i`.
 in<a> bool(value a, a a mut[]) noctx trusted equal<a>
 	value in a.temp-as-array
 
-copy-range-to-arr<a> arr a(a a mut[], begin nat64, size nat64) trusted
+# TODO: this should be 'subscript' with a range. And return a list.
+.copy-range-to-array<a> array a(a a mut[], begin nat64, size nat64) trusted
 	assert begin + size <= a.size : "range out of bounds"
 	res a mut* = size alloc-uninitialized
 	src = a.begin-ptr + begin
 	_ = res.as-any-mut-ptr memcpy src.as-any-const-ptr, size * size-of@<a>
-	res.as-const arr-from-begin-size size
+	res.as-const array-from-begin-size size
 
 ###
 Removes the first `n` elements and returns them as an array.
@@ -191,7 +192,7 @@ Throws if `n > a.size`.
 ###
 pop-n-from-start<a> a[](a a mut[], n nat64) trusted
 	assert n <= a.size : "can't pop more than size of array"
-	res = a copy-range-to-arr 0, n
+	res = a copy-range-to-array 0, n
 	dest = a.begin-ptr as-any-mut-ptr
 	src = a.begin-ptr + n as-any-const-ptr
 	new-size = a.size - n
@@ -231,7 +232,7 @@ pop-n<a> void(a a mut[], n nat64) trusted
 
 # TODO: Use an 'each' spec..
 # Push multiple values onto the end of the list.
-~~= <a> void(a a mut[], values arr a)
+~~= <a> void(a a mut[], values array a)
 	for x : values
 		a ~= x
 ~~= <a> void(a a mut[], values a[])

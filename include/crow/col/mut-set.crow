@@ -6,7 +6,7 @@ import
 	../misc: is-data, new, void
 	../opt: is-empty
 	../tuple: a, new, pair
-	./arr: arr
+	./array: array
 	./list: for-loop, list, to-list
 	./mut-dict: ~=, clear, each-key, move-to-list, mut-dict, in, try-remove, to-mut-dict
 	./set: for-loop, set, to-set
@@ -14,13 +14,13 @@ import
 ###
 Mutable unordered set.
 
-This is unordered, so functions like `to-arr` and `each` provide elements in arbitrary order.
+This is unordered, so functions like `to-array` and `each` provide elements in arbitrary order.
 ###
 mut-set<a> record mut
 	.inner void mut[a]
 
 # New set with the given elements (with duplicates removed).
-new<a> mut-set a(...a arr a) is-data<a> compare<a> hash-mix<a>
+new<a> mut-set a(...a array a) is-data<a> compare<a> hash-mix<a>
 	# TODO: should not need type annotation
 	(for x : a.to-list; (x, ()))::pair<a, void>[].to-mut-dict,
 

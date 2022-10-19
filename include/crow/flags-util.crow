@@ -1,7 +1,7 @@
 no-std
 import
 	./bool: bool
-	./col/arr: arr
+	./col/array: array
 	./col/list: for-loop, join, list, new, to-list
 	./misc: name, named-val, val
 	./str: literal, str
@@ -17,7 +17,7 @@ Functions in this spec will be generated when you declare a `flags` type.
 flags-like<a> spec
 	new a()
 	all a()
-	flags-members arr<named-val<a>>()
+	flags-members array named-val a()
 	== bool(a a, b a)
 	~ a(a a)
 	& a(a a, b a)

@@ -1,6 +1,6 @@
 r record
 	f t
-	h arr x
+	h array x
 
 u union
 	t

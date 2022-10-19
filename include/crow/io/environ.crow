@@ -4,7 +4,7 @@ import
 	../col/dict: dict
 	../col/mut-dict: move-to-dict, mut-dict, new, set-subscript
 	../col/list: to-list
-	../col/private/arr-low-level: arr-from-begin-end
+	../col/private/array-low-level: array-from-begin-end
 	../misc: new, void
 	../private/bootstrap: todo
 	../private/c-str-util: find-char-in-c-str, find-c-str-end
@@ -33,10 +33,10 @@ get-environ environ() summon trusted
 
 .parse-environ-entry pair<str, str>(entry c-str) unsafe
 	if key-end ?= entry find-char-in-c-str "="
-		key = (entry arr-from-begin-end key-end).to-list str
+		key = (entry array-from-begin-end key-end).to-list str
 		value-begin = key-end + 1
 		value-end = value-begin find-c-str-end
-		value = (value-begin arr-from-begin-end value-end).to-list str
+		value = (value-begin array-from-begin-end value-end).to-list str
 		key, value
 	else
 		todo

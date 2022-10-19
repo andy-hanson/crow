@@ -1,5 +1,5 @@
 import
-	crow/col/private/arr-low-level: begin-ptr
+	crow/col/private/array-low-level: begin-ptr
 	crow/ptr: mut-ptr
 	SDL2/SDL_pixels: SDL_PIXELFORMAT_RGBA32
 	SDL2/SDL_rwops: SDL_RWFromConstMem

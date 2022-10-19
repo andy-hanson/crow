@@ -15,7 +15,7 @@ import
 	crow/col/mut-sorted-set: mut-sorted-set, new
 	crow/col/mut-stack: mut-stack, new
 	crow/col/priority-queue: new, priority-queue
-	crow/col/private/arr-util-tests: dummy-arr-util-tests
+	crow/col/private/array-util-tests: dummy-array-util-tests
 	crow/col/private/list-tests: dummy-list-tests
 	crow/col/set: new, set
 	crow/col/sorted-set: new, sorted-set
@@ -37,14 +37,14 @@ import
 	crow/serialize: from-bytes
 	crow/test-util/test-runner: run-all-tests
 
-main fut nat(_ arr str) summon
+main fut nat(_ array str) summon
 	_ = ().from-bytes :: nat8[]
 	_ = quality-moderate
 	_ = bold
 	_ = () :: compact-dict<nat, nat>
 	_ = () :: compact-sorted-dict<nat, nat>
 	_ = () :: deque<nat>
-	_ = dummy-arr-util-tests
+	_ = dummy-array-util-tests
 	_ = dummy-list-tests
 	_ = dummy-number-tests
 	_ = () :: nat[nat]

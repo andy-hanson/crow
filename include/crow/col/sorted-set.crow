@@ -13,8 +13,8 @@ import
 	../str-conv: finish, interp, to-str, with-str, with-value
 	../str-util: join
 	../test-util: is
-	./arr: arr, is-empty, new, size, subscript
-	./arr-util: tail
+	./array: array, is-empty, new, size, subscript
+	./array-util: tail
 	./experimental/index-set:
 		~, count-greater-or-equal, count-range, filter-less, for-loop, in, index-set, is-empty, new,
 		size, try-remove
@@ -23,7 +23,7 @@ import
 		uninitialized-fix-arr
 	./list: for-loop, list, to-array, to-list
 	./sort: sort
-	./private/arr-low-level: arr-from-begin-end, begin-ptr, end-ptr
+	./private/array-low-level: array-from-begin-end, begin-ptr, end-ptr
 	./private/sort-utils: binary-search-exact-index
 
 # This is like `set`, but keeps elements in sorted order.
@@ -37,11 +37,11 @@ Add nodes are a linked list where links point to the left. Largest node is on th
 ###
 
 .add-node<a> record
-	values arr a
+	values array a
 	left add-node<a>?
 
 # Set containing the given elements (with duplicates removed).
-new<a> sorted-set a(...a arr a) is-data<a> compare<a>
+new<a> sorted-set a(...a array a) is-data<a> compare<a>
 	a.to-list to-sorted-set
 
 # Set containing the given elements (with duplicates removed).
@@ -229,7 +229,7 @@ Or a combination of the two.
 		new-l = add-size-here-and-left - a.values.size
 		compactor do-compact-recur a.left!, new-l, remove
 
-.merge<a> void(a compactor a, values arr a, add-size-here-and-left nat64, remove index-set) unsafe compare<a>
+.merge<a> void(a compactor a, values array a, add-size-here-and-left nat64, remove index-set) unsafe compare<a>
 	n-remove = remove count-range (add-size-here-and-left - values.size), add-size-here-and-left
 	n-added = values.size - n-remove
 	unless n-added == 0
@@ -290,9 +290,9 @@ Or a combination of the two.
 	unless b-read == b-begin
 		new-a-write copy-from-b-recur b-begin, b-read - 1, b-remove-index - 1, b-remove
 
-.finish<a> arr a(a compactor a) unsafe
+.finish<a> array a(a compactor a) unsafe
 	assert a.cur.as-const == a.end
-	a.begin arr-from-begin-end a.end
+	a.begin array-from-begin-end a.end
 
 region iteration
 
@@ -331,7 +331,7 @@ fold<a, b> a(acc a, a sorted-set b, f act a(a, b)) is-data<b> compare<b>
 			current-least find-least-iter current-least-index, iter-index + 1, iters
 
 .iter-part<a> record by-val
-	values arr a
+	values array a
 	remove-index nat64
 
 .is-empty<a> bool(a iter-part a)

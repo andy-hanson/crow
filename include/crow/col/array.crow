@@ -1,5 +1,5 @@
 ###
-More functions on arrays are in the `crow/arr-util` module.
+More functions on arrays are in the `crow/col/array-util` module.
 ###
 
 no-std
@@ -12,61 +12,61 @@ import
 	../private/alloc: alloc-uninitialized, copy-data-from
 	../private/range-low-level: low, high, range
 	../ptr: *, ==, +, as-const, const-ptr, mut-ptr, set-deref, subscript
-	./private/arr-low-level: arr-from-begin-end, arr-from-begin-size, begin-ptr, end-ptr
+	./private/array-low-level: array-from-begin-end, array-from-begin-size, begin-ptr, end-ptr
 export
-	../private/bootstrap: arr, size
-	./private/arr-low-level: new
+	../private/bootstrap: array, size
+	./private/array-low-level: new
 
 # `true` iff `a.size == 0`.
-is-empty<a> bool(a arr a) noctx
+is-empty<a> bool(a array a) noctx
 	a.size == 0
 
 ###
 Gets the element at the index.
 Throws if `index >= a.size`.
 ###
-subscript<a> a(a arr a, index nat64) noctx trusted
+subscript<a> a(a array a, index nat64) noctx trusted
 	assert index < a.size : "index out of bounds"
 	a.begin-ptr[index]
 
 ###
 Gets an array elements from 'range.low' (inclusive) to 'range.height' (exclusive).
 This works in O(1) without copying any elements.
-Throws if the slice would exceed the bounds of the arr.
+Throws if the slice would exceed the bounds of the array.
 ###
-subscript<a> arr a(a arr a, range range nat64) noctx trusted
+subscript<a> array a(a array a, range range nat64) noctx trusted
 	assert range.high <= a.size : "slice out of bounds"
-	a.begin-ptr + range.low arr-from-begin-end a.begin-ptr + range.high
+	a.begin-ptr + range.low array-from-begin-end a.begin-ptr + range.high
 
 ###
 Prepend an element to an array.
 This is O(n).
 ###
-~ <a> arr a(a a, b arr a)
+~ <a> array a(a a, b array a)
 	(a,) ~~ b
 
 ###
 Append an element to an array.
 This is O(n).
 ###
-~ <a> arr a(a arr a, b a)
+~ <a> array a(a array a, b a)
 	a ~~ (b,)
 
 ###
 Concatenates two arrays.
 This is O(n).
 
-If you need concatenate many arrays, use a `mut[]` to accumulate elements, then call `move-to-arr`.
+If you need concatenate many arrays, use a `mut[]` to accumulate elements, then call `move-to-array`.
 ###
-~~ <a> arr a(a arr a, b arr a) trusted
+~~ <a> array a(a array a, b array a) trusted
 	res-size = a.size + b.size
 	res a mut* = res-size alloc-uninitialized
 	res copy-data-from a.begin-ptr, a.size
 	res + a.size copy-data-from b.begin-ptr, b.size
-	res.as-const arr-from-begin-size res-size
+	res.as-const array-from-begin-size res-size
 
-# TODO: arr comparison should be generic
-arr-equal<a> bool(a arr a, b arr a) no-doc trusted noctx equal<a>
+# TODO: array comparison should be generic
+array-equal<a> bool(a array a, b array a) no-doc trusted noctx equal<a>
 	a.begin-ptr equal-recur a.end-ptr, b.begin-ptr, b.end-ptr
 .equal-recur<a> bool(a a*, a-end a*, b a*, b-end a*) unsafe noctx equal<a>
 	if a == a-end
@@ -74,7 +74,7 @@ arr-equal<a> bool(a arr a, b arr a) no-doc trusted noctx equal<a>
 	else
 		b != b-end && *a == *b && a + 1 equal-recur a-end, b + 1, b-end
 
-arr-equal<a> bool(a arr a, b arr a, eq act bool(a, a)) no-doc trusted
+array-equal<a> bool(a array a, b array a, eq act bool(a, a)) no-doc trusted
 	a.begin-ptr equal-recur a.end-ptr, b.begin-ptr, b.end-ptr, eq
 .equal-recur<a> bool(a a*, a-end a*, b a*, b-end a*, eq act bool(a, a)) unsafe
 	if a == a-end
@@ -82,7 +82,7 @@ arr-equal<a> bool(a arr a, b arr a, eq act bool(a, a)) no-doc trusted
 	else
 		b != b-end && eq[*a, *b] && a + 1 equal-recur a-end, b + 1, b-end, eq
 
-arr-compare<a> comparison(a arr a, b arr a) no-doc trusted noctx compare<a>
+array-compare<a> comparison(a array a, b array a) no-doc trusted noctx compare<a>
 	a.begin-ptr compare-recur a.end-ptr, b.begin-ptr, b.end-ptr
 .compare-recur<a> comparison(a a*, a-end a*, b a*, b-end a*) unsafe noctx compare<a>
 	if a == a-end
@@ -108,7 +108,7 @@ Equivalent to calling `f[a[0]]`, `f[a[1]]`, etc.
 
 Calls `f` for each element in `a`.
 ###
-for-loop<a> void(a arr a, f act void(a)) trusted
+for-loop<a> void(a array a, f act void(a)) trusted
 	cur mut = a begin-ptr
 	end = a end-ptr
 	until cur == end
@@ -119,7 +119,7 @@ for-loop<a> void(a arr a, f act void(a)) trusted
 Equivalent to `f[a[0]], f[a[1]], ...`.
 Array containing `f[x]` for each `x` in `a`.
 ###
-for-loop<out, in> arr out(a arr in, f act out(in)) trusted
+for-loop<out, in> array out(a array in, f act out(in)) trusted
 	in-cur mut = a begin-ptr
 	in-end = a end-ptr
 	out-begin out mut* = a.size alloc-uninitialized
@@ -128,7 +128,7 @@ for-loop<out, in> arr out(a arr in, f act out(in)) trusted
 		if in-cur == in-end
 			out-end = out-begin + a.size
 			assert out-cur == out-end
-			break out-begin.as-const arr-from-begin-end out-end.as-const
+			break out-begin.as-const array-from-begin-end out-end.as-const
 		else
 			*out-cur := f[*in-cur]
 			out-cur := out-cur + 1

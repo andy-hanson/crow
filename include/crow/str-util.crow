@@ -2,7 +2,7 @@ no-std
 import
 	./bool: ||, bool
 	./cell: *, cell, new, set-deref
-	./col/private/arr-low-level: begin-ptr
+	./col/private/array-low-level: begin-ptr
 	./col/iter: new, rest, value, value-and-rest
 	./col/list:
 		contains-sublist, copy, drop-right-while, drop-while, end-iter, ends-with, for-loop, iter,

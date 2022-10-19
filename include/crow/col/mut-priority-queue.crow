@@ -1,7 +1,7 @@
 no-std
 import
 	../bool: &&, ==, bool, false, true
-	../col/arr-util: zip-larger
+	../col/array-util: zip-larger
 	../compare: <, compare
 	../misc: is-data, new, void
 	../number: ==, <=>, +, nat64
@@ -13,7 +13,7 @@ import
 	../str-util: join
 	../test-util: is
 	../tuple: from, new, pair, pair-equal, to
-	./arr: arr, size, subscript
+	./array: array, size, subscript
 	./mut-arr:
 		~=, ~~=, begin-ptr, clear, copy, fold, for-loop, is-empty, move-to-array, mut-arr, new,
 		pop, reversed, size, subscript, temp-as-array, to-list, to-mut-arr
@@ -37,7 +37,7 @@ mut-priority-queue<k, v> record mut by-ref
 	.buckets pair<k, v> mut[] mut[]
 
 # New priority queue containing the given pairs.
-new<k, v> mut-priority-queue<k, v>(...a arr pair<k, v>) is-data<k> compare<k>
+new<k, v> mut-priority-queue<k, v>(...a array pair<k, v>) is-data<k> compare<k>
 	a.to-list to-mut-priority-queue
 
 # Copies a list to a new priority queue.

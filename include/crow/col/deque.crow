@@ -11,8 +11,8 @@ import
 	../str-conv: interp, finish, to-str, with-str, with-value
 	../str-util: join
 	../test-util: is
-	./arr: arr, for-loop, is-empty, size
-	./arr-util: first, fold, last, rtail, tail
+	./array: array, for-loop, is-empty, size
+	./array-util: first, fold, last, rtail, tail
 	./fix-arr: begin-ptr, cast-immutable, end-ptr, fix-arr, subscript, uninitialized-fix-arr
 	./list: ==, for-loop, list, new, to-array, to-list
 	./stack:
@@ -22,13 +22,13 @@ import
 deque<a> record
 	# NOTE: This is in reverse (top of the stack furthest left)
 	.left stack a
-	.mid arr a
+	.mid array a
 	.right stack a
 
 ###
 Deque containing the given elements.
 ###
-new<a> deque a(...a arr a)
+new<a> deque a(...a array a)
 	a.to-list to-deque
 
 ###

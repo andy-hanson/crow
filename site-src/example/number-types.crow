@@ -1,7 +1,7 @@
 import
 	crow/io/print: out, print
 
-main fut nat(_ arr str) summon
+main fut nat(_ array str) summon
 	a nat = 3
 	out print (a / 2).to-str
 	b int = 3

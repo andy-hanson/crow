@@ -2,12 +2,12 @@ no-std
 import
 	crow/bool: !, &&, bool, false, true
 	crow/cell: *, cell, new, set-deref
-	crow/col/arr: arr, arr-equal, new, size
+	crow/col/array: array, array-equal, new, size
 	crow/col/fix-arr:
 		begin-ptr, end-ptr, fill, fix-arr, fix-arr-from-begin-end, size,
 		temp-as-arr, uninitialized-fix-arr
 	crow/col/mut-arr: ~=, begin-ptr, clear, end-ptr, mut-arr, new, set-filter
-	crow/col/private/arr-low-level: arr-from-begin-end, begin-ptr, end-ptr
+	crow/col/private/array-low-level: array-from-begin-end, begin-ptr, end-ptr
 	crow/compare: !=, >
 	crow/misc: new, void
 	crow/number: +, ==, <=>, float32
@@ -34,7 +34,7 @@ new audio-queue(format sound-format) trusted
 	res
 
 .entry record by-ref force-sendable
-	samples arr float32
+	samples array float32
 	cur mut float32*
 	looping bool
 
@@ -73,18 +73,18 @@ pull void(a audio-queue, out fix-arr float32) noctx unsafe
 	n-remaining = a.samples.end-ptr - a.cur
 	if n-remaining > out.size
 		end = a.cur + out.size
-		out add (a.cur arr-from-begin-end end)
+		out add (a.cur array-from-begin-end end)
 		a.cur := end
 	else
 		out-mid = out.begin-ptr + n-remaining
-		out.begin-ptr fix-arr-from-begin-end out-mid add (a.cur arr-from-begin-end a.samples.end-ptr)
+		out.begin-ptr fix-arr-from-begin-end out-mid add (a.cur array-from-begin-end a.samples.end-ptr)
 		if a looping
 			a.cur := a.samples begin-ptr
 			a add-to (out-mid fix-arr-from-begin-end out.end-ptr)
 		else
 			a.cur := a.samples end-ptr
 
-.add void(a fix-arr float32, b arr float32) noctx unsafe
+.add void(a fix-arr float32, b array float32) noctx unsafe
 	assert a.size == b.size
 	a.begin-ptr add-recur a.end-ptr, b.begin-ptr
 .add-recur void(out float32 mut*, out-end float32 mut*, read float32*) noctx unsafe
@@ -139,5 +139,5 @@ test
 	a pull buf
 	buf.temp-as-arr is (0, 0, 0)
 
-.== bool(a arr float32, b arr float32)
-	a arr-equal b, (x, y) => x == y
+.== bool(a array float32, b array float32)
+	a array-equal b, (x, y) => x == y

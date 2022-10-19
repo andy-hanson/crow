@@ -13,7 +13,7 @@ import
 	../../bits: |, bits-intersect
 	../../bool: !, ||, bool, false, true
 	../../cell: cell, new
-	../../col/arr: arr, subscript
+	../../col/array: array, subscript
 	../../col/fix-arr: cast-immutable, begin-ptr, fix-arr, size, uninitialized-fix-arr
 	../../compare: !=, <
 	../../c-types: c-int
@@ -42,7 +42,7 @@ tcp-handler record sendable
 	# Gives the handler a chunk of data.
 	# Handler needs to parse to determine when it has all the chunks, then write a response and call 'close-client'.
 	# WARN: Due to asynchrony, this may be called on a client that was already closed.
-	on-received-chunk ref void(SOCKET, arr nat8)
+	on-received-chunk ref void(SOCKET, array nat8)
 
 ###
 Starts running a TCP server on the given port.
@@ -149,7 +149,7 @@ close-client void(client SOCKET) unsafe summon
 		on-accepted-client[client-fd as-socket] handle-exceptions
 		listen-fd accept-clients epoll-fd, on-accepted-client
 
-.handle-client-linux void(fd fd-t, on-received-chunk ref void(SOCKET, arr nat8)) unsafe summon
+.handle-client-linux void(fd fd-t, on-received-chunk ref void(SOCKET, array nat8)) unsafe summon
 	buf fix-arr nat8 = 0x1000 uninitialized-fix-arr
 	count = fd read buf.begin-ptr, buf.size
 	if count < 0

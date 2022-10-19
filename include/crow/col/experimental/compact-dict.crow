@@ -14,8 +14,8 @@ import
 	../../str-util: join
 	../../test-util: is
 	../../tuple: from, new, pair, pair-equal, to
-	../arr: arr
-	../arr-util: every, zip
+	../array: array
+	../array-util: every, zip
 	../fix-arr: begin-ptr, cast-immutable, end-ptr, fix-arr, fix-arr-from-begin-end, uninitialized-fix-arr
 	../list: fold, list, new, to-list
 	../mut-set: in, mut-set, new, try-add
@@ -246,7 +246,7 @@ verify void(a compact-dict<nat64, str>, expected str)
 			# eb.to-array::array<pair<nat64, str>>
 			pa = ea to-array
 			pb = eb to-array
-			bs arr bool = pa zip@<bool, pair<nat64, str>, pair<nat64, str>> pb, ((x, y) => x pair-equal y)
+			bs array bool = pa zip@<bool, pair<nat64, str>, pair<nat64, str>> pb, ((x, y) => x pair-equal y)
 			bs every x => x
 
 test

@@ -1,7 +1,7 @@
 no-std
 export
 	./bool
-	./col/arr
+	./col/array
 	./col/dict
 	./col/list
 	./col/mut-arr

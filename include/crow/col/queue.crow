@@ -9,8 +9,8 @@ import
 	../ptr: ==, +, -, set-deref
 	../test-util: is
 	../range: ..
-	./arr: arr, for-loop, is-empty, new, size
-	./arr-util: first, fold, tail
+	./array: array, for-loop, is-empty, new, size
+	./array-util: first, fold, tail
 	./fix-arr: begin-ptr, cast-immutable, end-ptr, fix-arr, subscript, uninitialized-fix-arr
 	./list: ==, list, new, to-array, to-list
 	./stack: ~, fold, for-loop, is-empty, new, size, stack, to-list
@@ -21,7 +21,7 @@ Immutable queue.
 Supports efficient removal from the left and insertion to the right.
 ###
 queue<a> record
-	.left arr a
+	.left array a
 	.right stack a
 
 # Empty queue.
@@ -68,9 +68,9 @@ dequeue<a> dequeued<a>?(a queue a)
 	if first ?= a.left first
 		(first, (a.left.tail, a.right)),
 	else
-		right-arr = a.right.to-list to-array
-		if first ?= right-arr first
-			(first, (right-arr.tail, ())),
+		right-array = a.right.to-list to-array
+		if first ?= right-array first
+			(first, (right-array.tail, ())),
 
 region iteration
 

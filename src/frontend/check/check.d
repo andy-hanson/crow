@@ -309,7 +309,7 @@ immutable(CommonTypes) getCommonTypes(
 	}
 
 	immutable StructDecl* byVal = com("by-val", 1);
-	immutable StructDecl* arr = com("arr", 1);
+	immutable StructDecl* array = com("array", 1);
 	immutable StructDecl* fut = com("fut", 1);
 	immutable StructDecl* namedVal = com("named-val", 1);
 	immutable StructDecl* opt = com("opt", 1);
@@ -370,7 +370,7 @@ immutable(CommonTypes) getCommonTypes(
 		sym,
 		void_,
 		byVal,
-		arr,
+		array,
 		fut,
 		namedVal,
 		opt,
@@ -437,7 +437,7 @@ immutable(Params) checkParams(
 				(immutable TypeParam*) =>
 					todo!(immutable Type)("diagnostic"),
 				(immutable StructInst* si) {
-					if (decl(*si) == commonTypes.arr)
+					if (decl(*si) == commonTypes.array)
 						return only(typeArgs(*si));
 					else
 						return todo!(immutable Type)("diagnostic");
@@ -1002,7 +1002,7 @@ immutable(Type) typeForFileImport(
 				emptySmallArray!TypeAst));
 			scope immutable TypeAst arrayNat8 = immutable TypeAst(immutable TypeAst.InstStruct(
 				range,
-				immutable NameAndRange(range.start, shortSym("arr")),
+				immutable NameAndRange(range.start, shortSym("array")),
 				small([nat8])));
 			return typeFromAstNoTypeParamsNeverDelay(ctx, commonTypes, arrayNat8, structsAndAliasesDict);
 		case ImportFileType.str:

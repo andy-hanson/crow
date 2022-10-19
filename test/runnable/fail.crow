@@ -1,4 +1,4 @@
-main fut nat(_ arr str) summon unsafe
+main fut nat(_ array str) summon unsafe
 	foo
 	()
 

@@ -13,19 +13,19 @@ import
 	../../str-conv: interp, finish, to-str, with-str, with-value
 	../../str-util: iter, next, join, slice-left, starts-with
 	../../test-util: is
-	../arr: arr, for-loop, is-empty, size, subscript
-	../arr-util: fold, insert-at-ptr, last, rtail, tail, try-remove
+	../array: array, for-loop, is-empty, size, subscript
+	../array-util: fold, insert-at-ptr, last, rtail, tail, try-remove
 	../fix-arr: begin-ptr, cast-immutable, end-ptr, fix-arr, subscript, uninitialized-fix-arr
 	../iter: rest
 	../list: for-loop, list, size, to-array, to-list
 	../mut-stack: ~=, mut-stack, new, peek, pop
 	../sort: sort-unique, set-sort-unique
-	../private/arr-low-level: begin-ptr, end-ptr
+	../private/array-low-level: begin-ptr, end-ptr
 	../private/sort-utils: binary-search-has, binary-search-insert-ptr
 
 ###
 Set of unique values.
-Unlike `arr`, the values are always in sorted order, and there are never two of the same value.
+Unlike `array`, the values are always in sorted order, and there are never two of the same value.
 ###
 tree-set<a> record
 	.root node a
@@ -33,7 +33,7 @@ tree-set<a> record
 
 .node<a> union
 	inner inner-node a
-	leaf arr a
+	leaf array a
 
 .inner-node<a> record by-ref
 	value a
@@ -49,7 +49,7 @@ size<a> nat64(a tree-set a) is-data<a> compare<a>
 	a total-size
 
 # Empty `tree-set`.
-new<a> tree-set a(...a arr a) is-data<a> compare<a>
+new<a> tree-set a(...a array a) is-data<a> compare<a>
 	a.to-list to-tree-set
 
 # Copy a list to a `tree-set`.
@@ -64,7 +64,7 @@ This is O(n).
 to-list<a> a[](a tree-set a) is-data<a> compare<a>
 	match a.root
 	as inner i
-		i tree-to-arr a.size to-list
+		i tree-to-array a.size to-list
 	as leaf l
 		l to-list
 
@@ -187,7 +187,7 @@ try-remove<a> tree-set<a>?(a tree-set a, b a) is-data<a> compare<a>
 			if new-right ?= i.right try-remove-recur b
 				(i.value, i.left, new-right).inner,
 	as leaf l
-		# TODO: use a binary search (try-remove uses linear search since it's for arbitrary arr)
+		# TODO: use a binary search (try-remove uses linear search since it's for arbitrary array)
 		if l2 ?= l try-remove b
 			l2.leaf,
 
@@ -219,7 +219,7 @@ try-remove<a> tree-set<a>?(a tree-set a, b a) is-data<a> compare<a>
 	a filter x => !(b-iter walk-iter-has x)
 
 .iter<a> record mut
-	cur mut arr a
+	cur mut array a
 	# If a node is on the stack, we have yet to write out the middle and right.
 	# TODO:PERF use a fix-arr, initialized to the tree's height
 	stack mut-stack inner-node a
@@ -228,7 +228,7 @@ try-remove<a> tree-set<a>?(a tree-set a, b a) is-data<a> compare<a>
 	stack mut-stack inner-node a = ()
 	cur = stack init-iter-recur a.root
 	cur, stack
-.init-iter-recur<a> arr a(stack mut-stack inner-node a, node node a)
+.init-iter-recur<a> array a(stack mut-stack inner-node a, node node a)
 	match node
 	as inner i
 		stack ~= i
@@ -283,7 +283,7 @@ try-remove<a> tree-set<a>?(a tree-set a, b a) is-data<a> compare<a>
 	as inner i
 		i add-to-inner value, max-height
 	as leaf l
-		l add-to-arr value, max-height
+		l add-to-array value, max-height
 
 .add-to-inner<a> add-result a(a inner-node a, value a, max-height nat64) compare<a>
 	match value <=> a.value
@@ -306,7 +306,7 @@ try-remove<a> tree-set<a>?(a tree-set a, b a) is-data<a> compare<a>
 		as find-scapegoat f
 			a handle-scapegoat value, a.left, f
 
-.add-to-arr<a> add-result a(a arr a, value a, max-height nat64) trusted compare<a>
+.add-to-array<a> add-result a(a array a, value a, max-height nat64) trusted compare<a>
 	insert-ptr = a binary-search-insert-ptr value
 	if insert-ptr != a.end-ptr && *insert-ptr == value
 		none
@@ -318,7 +318,7 @@ try-remove<a> tree-set<a>?(a tree-set a, b a) is-data<a> compare<a>
 	else
 		a break-up-arr value, insert-ptr, max-height
 
-.break-up-arr<a> add-result a(a arr a, value a, insert-ptr a*, max-height nat64) unsafe compare<a>
+.break-up-arr<a> add-result a(a array a, value a, insert-ptr a*, max-height nat64) unsafe compare<a>
 	assert a.begin-ptr <= insert-ptr
 	assert insert-ptr <= a.end-ptr
 	# Break it up into nodes, adding to height
@@ -335,7 +335,7 @@ try-remove<a> tree-set<a>?(a tree-set a, b a) is-data<a> compare<a>
 		forbid right-arr is-empty
 		if insert-ptr < mid-ptr
 			# TODO:PERF: This redundantly finds insert-ptr again
-			match left-arr add-to-arr value, max-height - 1
+			match left-arr add-to-array value, max-height - 1
 			as none
 				unreachable
 			as inserted i
@@ -343,7 +343,7 @@ try-remove<a> tree-set<a>?(a tree-set a, b a) is-data<a> compare<a>
 			as find-scapegoat f
 				(a.size + 1, f.height + 1) find-scapegoat
 		else
-			match right-arr add-to-arr value, max-height - 1
+			match right-arr add-to-array value, max-height - 1
 			as none
 				unreachable
 			as inserted i
@@ -355,7 +355,7 @@ try-remove<a> tree-set<a>?(a tree-set a, b a) is-data<a> compare<a>
 	size-here = f.size + 1 + other-subtree.walk-size
 	height-here = f.height + 1
 	if height-here > size-here.get-max-height
-		(a tree-to-arr value, size-here).leaf inserted
+		(a tree-to-array value, size-here).leaf inserted
 	else
 		(size-here, height-here) find-scapegoat
 
@@ -366,30 +366,30 @@ try-remove<a> tree-set<a>?(a tree-set a, b a) is-data<a> compare<a>
 	as leaf l
 		l size
 
-.tree-to-arr<a> arr a(a inner-node a, value a, size nat64) trusted compare<a>
+.tree-to-array<a> array a(a inner-node a, value a, size nat64) trusted compare<a>
 	out fix-arr a = size uninitialized-fix-arr
-	end = out.begin-ptr tree-to-arr-recur a.inner, value
+	end = out.begin-ptr tree-to-array-recur a.inner, value
 	assert end == out.end-ptr
 	out cast-immutable
-.tree-to-arr<a> arr a(a inner-node a, size nat64) trusted compare<a>
+.tree-to-array<a> array a(a inner-node a, size nat64) trusted compare<a>
 	out fix-arr a = size uninitialized-fix-arr
-	end = out.begin-ptr tree-to-arr-recur a.inner
+	end = out.begin-ptr tree-to-array-recur a.inner
 	assert end == out.end-ptr
 	out cast-immutable
-.tree-to-arr-recur<a> a mut*(out a mut*, a node a, value a) compare<a> unsafe
+.tree-to-array-recur<a> a mut*(out a mut*, a node a, value a) compare<a> unsafe
 	match a
 	as inner i
 		match value <=> i.value
 		as less
-			mid = out tree-to-arr-recur i.left, value
+			mid = out tree-to-array-recur i.left, value
 			*mid := i.value
-			mid + 1 tree-to-arr-recur i.right
+			mid + 1 tree-to-array-recur i.right
 		as equal
 			unreachable
 		as greater
-			mid = out tree-to-arr-recur i.left
+			mid = out tree-to-array-recur i.left
 			*mid := i.value
-			mid + 1 tree-to-arr-recur i.right, value
+			mid + 1 tree-to-array-recur i.right, value
 	as leaf l
 		# Find first x > value, insert it before there
 		index = (l binary-search-insert-ptr value) - l.begin-ptr
@@ -397,17 +397,17 @@ try-remove<a> tree-set<a>?(a tree-set a, b a) is-data<a> compare<a>
 		*mid := value
 		mid + 1 copy-out l[index .. l.size]
 # Version where we know we don't have to insert value
-.tree-to-arr-recur<a> a mut*(out a mut*, a node a) unsafe
+.tree-to-array-recur<a> a mut*(out a mut*, a node a) unsafe
 	match a
 	as inner i
-		mid = out tree-to-arr-recur i.left
+		mid = out tree-to-array-recur i.left
 		*mid := i.value
-		mid + 1 tree-to-arr-recur i.right
+		mid + 1 tree-to-array-recur i.right
 	as leaf l
 		out copy-out l
 
 # TODO:PERF (use memcpy)
-.copy-out<a> a mut*(out a mut*, a arr a) unsafe
+.copy-out<a> a mut*(out a mut*, a array a) unsafe
 	out fold a, (cur, x) =>
 		*cur := x
 		cur + 1

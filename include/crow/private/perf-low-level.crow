@@ -1,10 +1,10 @@
 no-std
 import
-	../col/arr: arr, size
-	../col/arr-util: zip-each
+	../col/array: array, size
+	../col/array-util: zip-each
 	../col/fix-arr:
 		copy-from, fill, fix-arr, free-unmanaged-fix-arr, index-of, set-subscript,
-		subscript, temp-as-arr, unmanaged-uninitialized-fix-arr
+		subscript, temp-as-array, unmanaged-uninitialized-fix-arr
 	../fun-util: subscript
 	../misc: void
 	../number: +, nat64
@@ -18,7 +18,7 @@ Only names in `names` will be measured; others will be ignored.
 
 If measurement was already enabled, this sets all measurements to 0 (and may change measured names)
 ###
-perf-enable-low-level void(measure-names arr sym) summon trusted
+perf-enable-low-level void(measure-names array sym) summon trusted
 	*measure-names-var free-unmanaged-fix-arr
 	*measure-values-var free-unmanaged-fix-arr
 	*measure-names-var := measure-names.size unmanaged-uninitialized-fix-arr
@@ -42,5 +42,5 @@ perf-measure-value record by-val
 	total-nsec nat64
 
 each-measure void(f act void(sym, perf-measure-value)) unsafe
-	measure-names-var->temp-as-arr zip-each measure-values-var->temp-as-arr, (name, value) =>
+	measure-names-var->temp-as-array zip-each measure-values-var->temp-as-array, (name, value) =>
 		f[name, value]

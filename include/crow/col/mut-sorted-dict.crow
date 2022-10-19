@@ -12,7 +12,7 @@ import
 	../str-util: iter, join, next, slice-left
 	../test-util: is
 	../tuple: from, new, pair, to
-	./arr: arr
+	./array: array
 	./iter: rest
 	./mut-arr:
 		~=, begin-ptr, clear, end-ptr, filter, fold, for-loop, is-empty, mut-arr, new, remove-at,
@@ -42,7 +42,7 @@ New dictionary containing the given pairs.
 
 Later pairs overwrite earlier pairs with the same key.
 ###
-new<k, v> mut-sorted-dict<k, v>(...a arr pair<k, v>) is-data<k> compare<k>
+new<k, v> mut-sorted-dict<k, v>(...a array pair<k, v>) is-data<k> compare<k>
 	a.to-list to-mut-sorted-dict
 
 # Copies pairs to a new dictionary.
@@ -174,7 +174,7 @@ Returns true if it succeeded.
 			a move-right index + 1
 			a[index + 1] := a[index]
 
-# Convert to an `arr`, clearning the original `mut-sorted-dict` in the process.
+# Convert to an `array`, clearning the original `mut-sorted-dict` in the process.
 move-to-list<k, v> pair<k, v>[](a mut-sorted-dict<k, v>) is-data<k> compare<k>
 	res = a map-to-list (key, value) => key, value
 	a clear

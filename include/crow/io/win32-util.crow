@@ -1,7 +1,7 @@
 no-std
 import
 	../bits: |
-	../col/arr: subscript
+	../col/array: subscript
 	../col/fix-arr: begin-ptr, cast-immutable, fix-arr, size, uninitialized-fix-arr
 	../col/list: to-list
 	../number: ==, <=>, to-nat32, to-nat64

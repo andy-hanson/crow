@@ -23,7 +23,7 @@ import
 	../col/fix-arr: begin-ptr, fix-arr, new, size, subscript
 	../col/list: ~, fold, for-loop, to-array, list
 	../col/mut-arr: begin-ptr, end-ptr, move-to-list, mut-arr, new, size, unsafe-set-size
-	../col/private/arr-low-level: begin-ptr
+	../col/private/array-low-level: begin-ptr
 	../compare: <=
 	../extra-types: fd-t
 	../misc: new, void

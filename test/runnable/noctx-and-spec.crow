@@ -3,7 +3,7 @@
 In that case, the particular instance of `<` should actually get a ctx.
 ###
 
-main fut nat(_ arr str) summon
+main fut nat(_ array str) summon
 	x t = ()
 	_ = x < x
 	()

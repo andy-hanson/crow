@@ -211,7 +211,7 @@ immutable(Opt!(ImportFileType)) toImportFileType(immutable TypeAst a) =>
 					return empty(x.typeArgs)
 						? some(ImportFileType.str)
 						: none!ImportFileType;
-				case shortSymValue("arr"):
+				case shortSymValue("array"):
 					return x.typeArgs.length == 1
 						? matchTypeAst!(
 							immutable Opt!(ImportFileType),

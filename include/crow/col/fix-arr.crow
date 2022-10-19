@@ -12,9 +12,9 @@ import
 		set-deref, set-subscript, size-of, subscript, swap
 	../private/alloc: alloc-uninitialized, set-zero-range, unmanaged-alloc-elements, unmanaged-free-elements
 	../private/range-low-level: .., range
-	./arr: arr, for-loop, new, size, subscript
-	./private/arr-low-level: arr-from-begin-end, begin-ptr, subscript
-	./arr-util: each-with-index, exists, find-index, fold, fold-reverse, index-of
+	./array: array, for-loop, new, size, subscript
+	./private/array-low-level: array-from-begin-end, begin-ptr, subscript
+	./array-util: each-with-index, exists, find-index, fold, fold-reverse, index-of
 
 ###
 `fix-arr` is a low-level type mostly useful for implementing other collections.
@@ -30,18 +30,18 @@ Like an immutable array, and unlike a `mut[]`, it's cheap to take a slice of a `
 Taking a slice aliases the elements, so writing to the slice writes to the original.
 ###
 fix-arr<a> record mut by-val
-	.inner arr a
+	.inner array a
 
-# TODO:INTERNAL (or fix-arr-low-level)
+# TODO:INTERNAL (or fix-array-low-level)
 empty-fix-arr<a> fix-arr a() no-doc noctx
 	# TODO: should not need type annotation
-	inner arr a = ()
+	inner array a = ()
 	inner,
 
 ###
 Creates a new `fix-arr` with the given elements.
 ###
-new<a> fix-arr a(...a arr a)
+new<a> fix-arr a(...a array a)
 	a to-fix-arr
 
 ###
@@ -49,7 +49,7 @@ Copies the array elements to a new `fix-arr`.
 
 This is O(n).
 ###
-to-fix-arr<a> fix-arr a(a arr a)
+to-fix-arr<a> fix-arr a(a array a)
 	a.size make-fix-arr i => a[i]
 
 ###
@@ -57,9 +57,9 @@ Copies the elements to an immutable array.
 
 This is O(n).
 
-There is no `move-to-arr` possible for `fix-arr` there might be slices that still refer to its elements.
+There is no `move-to-array` for `fix-arr` since there might be slices that still refer to its elements.
 ###
-to-arr<a> arr a(a fix-arr a)
+to-array<a> array a(a fix-arr a)
 	a.copy.inner
 
 # Get a `fix-arr` from a poitner and range of indices.
@@ -69,7 +69,7 @@ subscript<a> fix-arr a(a a mut*, range range nat64) noctx unsafe
 # Creates a `fix-arr` from a range of pointers.
 fix-arr-from-begin-end<a> fix-arr a(begin a mut*, end a mut*) no-doc unsafe noctx
 	assert begin <= end
-	(begin.as-const arr-from-begin-end end.as-const),
+	(begin.as-const array-from-begin-end end.as-const),
 
 ###
 Gets the element at the index.
@@ -135,7 +135,7 @@ Throws if `dest` and `source` are not the same size.
 
 This is O(n).
 ###
-copy-from<a> void(dest fix-arr a, source arr a) trusted
+copy-from<a> void(dest fix-arr a, source array a) trusted
 	assert dest.size == source.size
 	_ = dest.begin-ptr.as-any-mut-ptr memcpy source.begin-ptr.as-any-const-ptr, dest.size * size-of@<a>
 	()
@@ -146,7 +146,7 @@ Copies elements from `source` to `dest`.
 This is O(n).
 ###
 copy-from<a> void(dest fix-arr a, source fix-arr a) trusted
-	dest copy-from source.temp-as-arr
+	dest copy-from source.temp-as-array
 
 ###
 Allocates a `fix-arr` without initializing any of its elements.
@@ -235,10 +235,10 @@ in<a> bool(value a, a fix-arr a) noctx trusted equal<a>
 
 ###
 Unsafe cast a fix-arr to arr.
-Equivalent to `temp-as-arr`, but the implication is that
+Equivalent to `temp-as-array`, but the implication is that
 the `fix-arr` will never be written to again, so the `arr` can be used forever.
 ###
-cast-immutable<a> arr a(a fix-arr a) noctx unsafe
+cast-immutable<a> array a(a fix-arr a) noctx unsafe
 	a inner
 
 first<a> a?(a fix-arr a)
@@ -265,16 +265,16 @@ This is O(1).
 Unsafe because an array is expected to be fully immutable (meaning: no mutable references exist),
 so this value should only be used temporarily.
 ###
-temp-as-arr<a> arr a(a fix-arr a) noctx unsafe
+temp-as-array<a> array a(a fix-arr a) noctx unsafe
 	a inner
 
-# Equivalent to `a.temp-as-arr index-of value`.
+# Equivalent to `a.temp-as-array index-of value`.
 index-of<a> nat64?(a fix-arr a, value a) trusted noctx equal<a>
-	a.temp-as-arr index-of value
+	a.temp-as-array index-of value
 
-# Equivalent to `a.temp-as-arr find-index f`.
+# Equivalent to `a.temp-as-array find-index f`.
 find-index<a> nat64?(a fix-arr a, f act bool(a)) trusted
-	a.temp-as-arr find-index f
+	a.temp-as-array find-index f
 
 set-reverse<a> void(a fix-arr a) trusted
 	# avoid 'a.end-ptr - 1' overflowing for null arrays
@@ -288,19 +288,19 @@ set-reverse<a> void(a fix-arr a) trusted
 region iteration
 
 exists<a> bool(a fix-arr a, f act bool(a)) trusted
-	a.temp-as-arr exists f
+	a.temp-as-array exists f
 
 # Calls 'f' on each element in the fix-arr.
 for-loop<a> void(a fix-arr a, f act void(a)) trusted
-	a.temp-as-arr for-loop f
+	a.temp-as-array for-loop f
 
 each-with-index<a> void(a fix-arr a, f act void(a, nat64)) trusted
-	a.temp-as-arr each-with-index f
+	a.temp-as-array each-with-index f
 
 fold<a, b> a(acc a, a fix-arr b, f act a(a, b)) trusted
-	acc fold a.temp-as-arr, f
+	acc fold a.temp-as-array, f
 fold-reverse<a, b> a(acc a, a fix-arr b, f act a(a, b)) trusted
-	acc fold-reverse a.temp-as-arr, f
+	acc fold-reverse a.temp-as-array, f
 
 set-map<a> void(a fix-arr a, f act a(a)) trusted
 	a.begin-ptr set-map-recur a.end-ptr, f
@@ -326,8 +326,8 @@ cast-fix-arr<out, in> fix-arr out(a fix-arr in) noctx unsafe
 	size-out = size-bytes / size-of@<out>
 	a.begin-ptr.ptr-cast@<out, in>[0 .. size-out]
 
-for-loop<out, in> arr out(a fix-arr in, f act out(in)) trusted
+for-loop<out, in> array out(a fix-arr in, f act out(in)) trusted
 	a for-loop f cast-immutable
 
-map-to-arr-with-index<out, in> arr out(a fix-arr in, f act out(in, nat64)) trusted
+map-to-array-with-index<out, in> array out(a fix-arr in, f act out(in, nat64)) trusted
 	a map-with-index f cast-immutable

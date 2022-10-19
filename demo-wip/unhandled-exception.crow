@@ -1,7 +1,7 @@
 import
 	crow/io/print: print
 
-main fut nat(_ arr str) summon
+main fut nat(_ array str) summon
 	out print "Hello world"
 
 	my-fun ref void() = () =>

@@ -2,7 +2,7 @@ import
 	crow/io/print: out, print
 	crow/ptr: const-ptr, size-of
 
-main fut nat(_ arr str) trusted summon
+main fut nat(_ array str) trusted summon
 	out print "{size-of@<t>}"
 	()
 

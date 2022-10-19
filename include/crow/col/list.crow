@@ -11,14 +11,14 @@ import
 	../private/range-low-level: range
 	../ptr: ==, +, *, set-deref, size-of
 	../tuple: a, b, new, pair
-	./arr: ~, ~~, arr, arr-equal, is-empty, new, size, subscript
-	./arr-util:
-		arr-iter, end-iter, find-and-get, fold, groups-of, index-of, iter, new, next, prev, repeat,
+	./array: ~, ~~, array, array-equal, is-empty, new, size, subscript
+	./array-util:
+		array-iter, end-iter, find-and-get, fold, groups-of, index-of, iter, new, next, prev, repeat,
 		reverse, rtail, slice-left, slice-right, strip-left-while, strip-right-while, tail
 	./fix-arr: begin-ptr, cast-immutable, end-ptr, fix-arr, uninitialized-fix-arr
 	./iter: new, rest, value, value-and-rest
-	./private/arr-builder: ~=, arr-builder, finish, new
-	./private/arr-low-level: arr-cast, begin-ptr, end-ptr
+	./private/array-builder: ~=, array-builder, finish, new
+	./private/array-low-level: array-cast, begin-ptr, end-ptr
 
 ###
 Immutable list type.
@@ -40,15 +40,15 @@ l0<a> record by-val
 
 # TODO: no-doc
 l1<a> record by-val
-	node node<arr a, l2 a>
+	node node<array a, l2 a>
 
 # TODO: no-doc
 l2<a> record by-val
-	nodes arr arr arr a
+	nodes array array array a
 
 # TODO: no-doc
 node<a, lower> union
-	leaf arr a
+	leaf array a
 	branch branch<a, lower>
 
 ###
@@ -57,9 +57,9 @@ TODO: no-doc
 (Else, this layer should be a leaf. See `branch-or-leaf`.)
 ###
 branch<a, lower> record
-	left arr a
+	left array a
 	down lower
-	right arr a
+	right array a
 
 .new<a, lower> node<a, lower>()
 	() leaf
@@ -103,7 +103,7 @@ branch<a, lower> record
 	as branch b
 		b
 
-.try-as-l0-leaf<a> arr<a>?(a a[]) noctx
+.try-as-l0-leaf<a> array<a>?(a a[]) noctx
 	match a.root node
 	as leaf xs
 		xs,
@@ -123,21 +123,21 @@ branch<a, lower> record
 .get-l1<a> l1 a(a a[]) unsafe noctx
 	a.try-get-l1 force
 
-.get-l1-branch<a> branch<arr a, l2 a>(a a[]) unsafe noctx
+.get-l1-branch<a> branch<array a, l2 a>(a a[]) unsafe noctx
 	a.get-l0-branch.down.node as-branch
 
 .get-l2<a> l2 a(a a[]) unsafe noctx
 	a.get-l1-branch down
 
 # List containing the given elements.
-new<a> a[](...a arr a) noctx
+new<a> a[](...a array a) noctx
 	a to-list
 
 ###
 Convert an array to a list.
 This is O(1).
 ###
-to-list<a> a[](a arr a) noctx
+to-list<a> a[](a array a) noctx
 	l l0 a = a.leaf,
 	l,
 
@@ -153,12 +153,12 @@ to-list<a> a[](a arr a) noctx
 list-cast<out, in> out[](a in[]) no-doc unsafe
 	assert size-of@<out> == size-of@<in>
 	# TODO:PERF
-	a.to-array.arr-cast to-list
+	a.to-array.array-cast to-list
 
 list-equal<a> bool(a a[], b a[]) noctx equal<a>
 	if la ?= a try-as-l0-leaf
 		if lb ?= b try-as-l0-leaf
-			la arr-equal lb
+			la array-equal lb
 		else
 			a.iter list-equal-recur b.iter
 	else
@@ -191,7 +191,7 @@ Convert a list to an array.
 This is O(n).
 This is O(1) if the list came from to-list of an array, meaning a round trip is free.
 ###
-to-array<a> arr a(a a[])
+to-array<a> array a(a a[])
 	a.try-as-l0-leaf ?? for x : a; x
 
 ###
@@ -223,7 +223,7 @@ size<a> nat64(a a[]) noctx
 		b.left.size-2d + b.down.size + b.right.size-2d
 .size<a> nat64(a l2 a) noctx
 	a.nodes.size-3d
-.size-2d<a> nat64(a arr arr a) noctx trusted
+.size-2d<a> nat64(a array array a) noctx trusted
 	cur mut = a begin-ptr
 	end = a end-ptr
 	res mut = 0
@@ -232,7 +232,7 @@ size<a> nat64(a a[]) noctx
 		cur := cur + 1
 	res
 
-.size-3d<a> nat64(a arr arr arr a) noctx trusted
+.size-3d<a> nat64(a array array array a) noctx trusted
 	cur mut = a begin-ptr
 	end = a end-ptr
 	res mut = 0
@@ -263,7 +263,7 @@ Prepend an element to a list.
 This is O(log n), amortized O(1).
 ###
 ~<a> a[](a a, b a[])
-	((a,)::arr<a> cat-left-array-l0 b.root),
+	((a,)::array<a> cat-left-array-l0 b.root),
 
 ###
 Appendd an element to a list.
@@ -276,7 +276,7 @@ This is O(log n), amortized O(1).
 .cat-left-node-level<a, lower> node<a, lower>(
 	l node<a, lower>,
 	r node<a, lower>,
-	cat-left-array-lower act lower(arr a, lower),
+	cat-left-array-lower act lower(array a, lower),
 	cat-left-node-lower act lower(lower, lower),
 ) trusted new<lower>
 	match l
@@ -296,7 +296,7 @@ This is O(log n), amortized O(1).
 .cat-right-node-level<a, lower> node<a, lower>(
 	l node<a, lower>,
 	r node<a, lower>,
-	cat-right-array-lower act lower(lower, arr a),
+	cat-right-array-lower act lower(lower, array a),
 	cat-right-node-lower act lower(lower, lower),
 ) trusted new<lower>
 	match r
@@ -314,9 +314,9 @@ This is O(log n), amortized O(1).
 
 # 'r' is bigger
 .cat-left-array-level<a, lower> node<a, lower>(
-	l arr a,
+	l array a,
 	r node<a, lower>,
-	cat-left-lower act lower(arr a, lower),
+	cat-left-lower act lower(array a, lower),
 ) new<lower>
 	match r
 	as leaf xs
@@ -332,8 +332,8 @@ This is O(log n), amortized O(1).
 
 .cat-right-array-level<a, lower> node<a, lower>(
 	l node<a, lower>,
-	r arr a,
-	cat-right-lower act lower(lower, arr a),
+	r array a,
+	cat-right-lower act lower(lower, array a),
 ) new<lower>
 	match l
 	as leaf xs
@@ -357,10 +357,10 @@ This is O(log n), amortized O(1).
 		x cat-right-node-l1 y
 	node,
 
-.cat-left-array-l0<a> l0 a(l arr a, r l0 a)
+.cat-left-array-l0<a> l0 a(l array a, r l0 a)
 	(l cat-left-array-level r.node, (xs, lower) => (xs,) cat-left-array-l1 lower),
 
-.cat-right-array-l0<a> l0 a(l l0 a, r arr a)
+.cat-right-array-l0<a> l0 a(l l0 a, r array a)
 	(l.node cat-right-array-level r, (lower, xs) => lower cat-right-array-l1 (xs,)),
 
 .cat-left-node-l1<a> l1 a(l l1 a, r l1 a)
@@ -373,10 +373,10 @@ This is O(log n), amortized O(1).
 		x cat-right-node-l2 y
 	node,
 
-.cat-left-array-l1<a> l1 a(l arr arr a, r l1 a)
+.cat-left-array-l1<a> l1 a(l array array a, r l1 a)
 	(l cat-left-array-level r.node, (xs, lower) => (xs,) cat-left-array-l2 lower),
 
-.cat-right-array-l1<a> l1 a(l l1 a, r arr arr a)
+.cat-right-array-l1<a> l1 a(l l1 a, r array array a)
 	(l.node cat-right-array-level r, (lower, xs) => lower cat-right-array-l2 (xs,)),
 
 .cat-left-node-l2<a> l2 a(l l2 a, r l2 a)
@@ -385,10 +385,10 @@ This is O(log n), amortized O(1).
 .cat-right-node-l2<a> l2 a(l l2 a, r l2 a)
 	l.nodes ~~ r.nodes,
 
-.cat-left-array-l2<a> l2 a(l arr arr arr a, r l2 a)
+.cat-left-array-l2<a> l2 a(l array array array a, r l2 a)
 	l ~~ r.nodes,
 
-.cat-right-array-l2<a> l2 a(l l2 a, r arr arr arr a)
+.cat-right-array-l2<a> l2 a(l l2 a, r array array array a)
 	l.nodes ~~ r,
 
 # Leaves are allowed to be arbitrarily long, this is just the limit when we would normally make a branch
@@ -396,7 +396,7 @@ This is O(log n), amortized O(1).
 	64
 
 # 'trusted' since we are just using it to guide branch sizes (which should have no observable effect)
-.size-bytes<a> nat64(a arr a) trusted
+.size-bytes<a> nat64(a array a) trusted
 	a.size * size-of@<a>
 
 region iter and slice
@@ -404,7 +404,7 @@ region iter and slice
 # Immutable iterator over a list.
 list-iter<a> record by-val
 	.list a[]
-	.cur arr-3d-iter a
+	.cur array-3d-iter a
 	.pos position
 
 .position enum
@@ -440,7 +440,7 @@ next<a> value-and-rest<a, list-iter a>?(a list-iter a) trusted noctx
 		(n.value, (a.list, n.rest, a.pos)),
 	elif pair ?= a.list next-position a.pos
 		(a.list, pair.a, pair.b) next
-.next-position<a> pair<arr-3d-iter a, position>?(a a[], pos position) unsafe noctx
+.next-position<a> pair<array-3d-iter a, position>?(a a[], pos position) unsafe noctx
 	match pos
 	as l0-leaf
 		()
@@ -462,7 +462,7 @@ prev<a> value-and-rest<a, list-iter a>?(a list-iter a) trusted noctx
 		(p.value, (a.list, p.rest, a.pos)),
 	elif pair ?= a.list prev-position a.pos
 		(a.list, pair.a, pair.b) prev
-.prev-position<a> pair<arr-3d-iter a, position>?(a a[], pos position) unsafe noctx
+.prev-position<a> pair<array-3d-iter a, position>?(a a[], pos position) unsafe noctx
 	match pos
 	as l0-leaf
 		()
@@ -581,10 +581,10 @@ slice-right<a> a[](a list-iter a) trusted
 
 .level<l, a> spec
 	is-empty bool(level l)
-	pop-left pair<arr a, l>(level l)
-	pop-right pair<l, arr a>(level l)
+	pop-left pair<array a, l>(level l)
+	pop-right pair<l, array a>(level l)
 
-.branch-or-leaf-generic<a, lower> node<a, lower>(left arr a, down lower, right arr a) trusted level<lower, a>
+.branch-or-leaf-generic<a, lower> node<a, lower>(left array a, down lower, right array a) trusted level<lower, a>
 	if down is-empty
 		if left is-empty
 			right leaf
@@ -609,13 +609,13 @@ slice-right<a> a[](a list-iter a) trusted
 		else
 			(left, down, right) branch
 
-.branch-or-leaf-l0<a> l0 a(left arr a, down l1 a, right arr a)
+.branch-or-leaf-l0<a> l0 a(left array a, down l1 a, right array a)
 	(left branch-or-leaf-generic down, right),
 
-.branch-or-leaf-l1<a> l1 a(left arr arr a, down l2 a, right arr arr a)
+.branch-or-leaf-l1<a> l1 a(left array array a, down l2 a, right array array a)
 	(left branch-or-leaf-generic down, right),
 
-.pop-left<a> pair<arr a, l1 a>(a l1 a)
+.pop-left<a> pair<array a, l1 a>(a l1 a)
 	match a node
 	as leaf xs
 		xs[0], (xs.tail.leaf,)
@@ -631,7 +631,7 @@ slice-right<a> a[](a list-iter a) trusted
 			(b.left.tail, b.down, b.right).branch,
 		popped, rest
 
-.pop-right<a> pair<l1 a, arr a>(a l1 a)
+.pop-right<a> pair<l1 a, array a>(a l1 a)
 	match a node
 	as leaf xs
 		(xs.rtail.leaf,), xs[xs.size - 1]
@@ -647,10 +647,10 @@ slice-right<a> a[](a list-iter a) trusted
 			(b.left, b.down, b.right.rtail).branch,
 		rest, popped
 
-.pop-left<a> pair<arr arr a, l2 a>(a l2 a)
+.pop-left<a> pair<array array a, l2 a>(a l2 a)
 	a.nodes[0], (a.nodes.tail,)
 
-.pop-right<a> pair<l2 a, arr arr a>(a l2 a)
+.pop-right<a> pair<l2 a, array array a>(a l2 a)
 	(a.nodes.rtail,), a.nodes[a.nodes.size - 1]
 
 .slice-left-update-l1<a> a[](a a[], f act l1 a(l1 a)) unsafe
@@ -661,7 +661,7 @@ slice-right<a> a[](a list-iter a) trusted
 .slice-right-update-l1<a> a[](a a[], f act l1 a(l1 a)) unsafe
 	old-l0 = a get-l0-branch
 	new-l1 = f[old-l0 down]
-	(()::arr<a> branch-or-leaf-l0 new-l1, old-l0.right),
+	(()::array<a> branch-or-leaf-l0 new-l1, old-l0.right),
 
 .slice-left-update-l2<a> a[](a a[], f act l2 a(l2 a)) unsafe
 	a slice-left-update-l1 old-l1 =>
@@ -683,54 +683,54 @@ slice-right<a> a[](a list-iter a) trusted
 			pair = new-l2 pop-left
 			(pair.a, pair.b, b.right).branch,
 
-# Iterator through an arr arr arr a
-.arr-3d-iter<a> record by-val
-	cur-1d arr-iter a
-	cur-2d arr-iter arr a
-	cur-3d arr-iter arr arr a
-.new<a> arr-3d-iter a() noctx
+# Iterator through an array array array a
+.array-3d-iter<a> record by-val
+	cur-1d array-iter a
+	cur-2d array-iter array a
+	cur-3d array-iter array array a
+.new<a> array-3d-iter a() noctx
 	(), (), ()
 
-.as-2d<a> arr-2d-iter a(a arr-3d-iter a) trusted
+.as-2d<a> array-2d-iter a(a array-3d-iter a) trusted
 	assert a.cur-3d.prev.is-empty && a.cur-3d.next.is-empty
 	a.cur-1d, a.cur-2d
 
-.as-1d<a> arr-iter a(a arr-3d-iter a) trusted
+.as-1d<a> array-iter a(a array-3d-iter a) trusted
 	assert a.cur-2d.prev.is-empty && a.cur-2d.next.is-empty
 	assert a.cur-3d.prev.is-empty && a.cur-3d.next.is-empty
 	a cur-1d
 
-.to-iter3d<a> arr-3d-iter a(a arr-iter a) noctx
+.to-iter3d<a> array-3d-iter a(a array-iter a) noctx
 	a, (), ()
 
-.arr-2d-iter<a> record by-val
-	cur-1d arr-iter a
-	cur-2d arr-iter arr a
-.new<a> arr-2d-iter a() noctx
+.array-2d-iter<a> record by-val
+	cur-1d array-iter a
+	cur-2d array-iter array a
+.new<a> array-2d-iter a() noctx
 	(), ()
 
-.iter2d<a> arr-2d-iter a(a arr arr a) noctx
+.iter2d<a> array-2d-iter a(a array array a) noctx
 	if n2 ?= a.iter next
 		n2.value.iter, n2.rest
 
-.end-iter2d<a> arr-2d-iter a(a arr arr a) noctx
+.end-iter2d<a> array-2d-iter a(a array array a) noctx
 	if p2 ?= a.end-iter prev
 		p2.value.end-iter, p2.rest
 
-.to-iter3d<a> arr-3d-iter a(a arr-2d-iter a) noctx
+.to-iter3d<a> array-3d-iter a(a array-2d-iter a) noctx
 	a.cur-1d, a.cur-2d, ()
 
-.iter3d<a> arr-3d-iter a(a arr arr arr a) unsafe noctx
+.iter3d<a> array-3d-iter a(a array array array a) unsafe noctx
 	if n3 ?= a.iter next
 		n2 = n3.value.iter.next force
 		n2.value.iter, n2.rest, n3.rest
 
-.end-iter3d<a> arr-3d-iter a(a arr arr arr a) unsafe noctx
+.end-iter3d<a> array-3d-iter a(a array array array a) unsafe noctx
 	if n3 ?= a.end-iter prev
 		n2 = n3.value.end-iter.prev force
 		n2.value.end-iter, n2.rest, n3.rest
 
-.next<a> value-and-rest<a, arr-3d-iter a>?(a arr-3d-iter a) trusted noctx
+.next<a> value-and-rest<a, array-3d-iter a>?(a array-3d-iter a) trusted noctx
 	if n1 ?= a.cur-1d next
 		(n1.value, (n1.rest, a.cur-2d, a.cur-3d)),
 	elif n2 ?= a.cur-2d next
@@ -741,7 +741,7 @@ slice-right<a> a[](a list-iter a) trusted
 		n1 = n2.value.iter.next force
 		(n1.value, (n1.rest, n2.rest, n3.rest)),
 
-.prev<a> value-and-rest<a, arr-3d-iter a>?(a arr-3d-iter a) trusted noctx
+.prev<a> value-and-rest<a, array-3d-iter a>?(a array-3d-iter a) trusted noctx
 	if p1 ?= a.cur-1d prev
 		(p1.value, (p1.rest, a.cur-2d, a.cur-3d)),
 	elif p2 ?= a.cur-2d prev
@@ -752,12 +752,12 @@ slice-right<a> a[](a list-iter a) trusted
 		p1 = p2.value.end-iter.prev force
 		(p1.value, (p1.rest, p2.rest, p3.rest)),
 
-.slice-left<a> arr arr a(a arr-2d-iter a)
+.slice-left<a> array array a(a array-2d-iter a)
 	a1 = a.cur-1d slice-left
 	a2 = a.cur-2d.slice-left rtail
 	a1.is-empty ? a2 : a2 ~ a1
 
-.slice-left<a> arr arr arr a(a arr-3d-iter a)
+.slice-left<a> array array array a(a array-3d-iter a)
 	a1 = a.cur-1d slice-left
 	# rtail since 'slice-left' includes the array 'a1' is iterating
 	a2 = a.cur-2d.slice-left rtail
@@ -765,19 +765,19 @@ slice-right<a> a[](a list-iter a) trusted
 	b2 = a1.is-empty ? a2 : a2 ~ a1
 	b2.is-empty ? a3 : a3 ~ b2
 
-.slice-right<a> arr arr a(a arr-2d-iter a)
+.slice-right<a> array array a(a array-2d-iter a)
 	a1 = a.cur-1d slice-right
 	a2 = a.cur-2d slice-right
 	a1.is-empty ? a2 : a1 ~ a2
 
-.slice-right<a> arr arr arr a(a arr-3d-iter a)
+.slice-right<a> array array array a(a array-3d-iter a)
 	a1 = a.cur-1d slice-right
 	a2 = a.cur-2d slice-right
 	a3 = a.cur-3d slice-right
 	b2 = a1.is-empty ? a2 : a1 ~ a2
 	b2.is-empty ? a3 : b2 ~ a3
 
-.l1-iter<a> pair<arr-3d-iter a, position>(a a[]) unsafe noctx
+.l1-iter<a> pair<array-3d-iter a, position>(a a[]) unsafe noctx
 	match a.get-l1 node
 	as leaf xs
 		if xs is-empty
@@ -787,7 +787,7 @@ slice-right<a> a[](a list-iter a) trusted
 	as branch b
 		b.left.iter2d.to-iter3d, l1-left
 
-.l1-end-iter<a> pair<arr-3d-iter a, position>(a a[]) unsafe noctx
+.l1-end-iter<a> pair<array-3d-iter a, position>(a a[]) unsafe noctx
 	match a.get-l1 node
 	as leaf xs
 		if xs is-empty
@@ -797,10 +797,10 @@ slice-right<a> a[](a list-iter a) trusted
 	as branch b
 		b.right.end-iter2d.to-iter3d, l1-right
 
-.l2-iter<a> pair<arr-3d-iter a, position>(a a[]) unsafe noctx
+.l2-iter<a> pair<array-3d-iter a, position>(a a[]) unsafe noctx
 	a.get-l2.nodes.iter3d, l2-leaf
 
-.l2-end-iter<a> pair<arr-3d-iter a, position>(a a[]) unsafe noctx
+.l2-end-iter<a> pair<array-3d-iter a, position>(a a[]) unsafe noctx
 	a.get-l2.nodes.end-iter3d, l2-leaf
 
 region iteration
@@ -846,7 +846,7 @@ find-and-get<out, in> out?(a in[], f act out?(in))
 		chunk find-and-get f
 
 filter<a> a[](a a[], f act bool(a))
-	out arr-builder a = ()
+	out array-builder a = ()
 	for x : a
 		if f[x]
 			out ~= x
@@ -873,7 +873,7 @@ drop-right-while<a> a[](a a[], f act bool(a))
 for-loop<out, in> out[](a in[], f act out(in))
 	a for-loop f to-list
 
-for-loop<out, in> arr out(a in[], f act out(in)) trusted
+for-loop<out, in> array out(a in[], f act out(in)) trusted
 	res fix-arr out = a.size uninitialized-fix-arr
 	end = res.begin-ptr fold a, (out, x) =>
 		*out := f[x]
@@ -893,7 +893,7 @@ join<a> a[](joiner a[], parts a[][])
 		else
 			acc ~~ joiner ~~ x
 
-.fold-chunks<a, b> a(acc a, xs b[], f act a(a, arr b))
+.fold-chunks<a, b> a(acc a, xs b[], f act a(a, array b))
 	match xs.root node
 	as leaf l
 		f[acc, l]
@@ -901,32 +901,32 @@ join<a> a[](joiner a[], parts a[][])
 		mid = f[acc, b left] fold-chunks-l1 b.down, f
 		f[mid, b right]
 
-.fold-chunks-l1<a, b> a(acc a, xs l1 b, f act a(a, arr b))
+.fold-chunks-l1<a, b> a(acc a, xs l1 b, f act a(a, array b))
 	match xs node
 	as leaf l
 		acc fold l, f
 	as branch b
 		acc fold b.left, f fold-chunks-l2 b.down, f fold b.right, f
 
-.fold-chunks-l2<a, b> a(acc a, xs l2 b, f act a(a, arr b))
+.fold-chunks-l2<a, b> a(acc a, xs l2 b, f act a(a, array b))
 	acc fold xs.nodes, (cur, nodes) =>
 		cur fold nodes, f
 
-.find-and-get-chunk<out, in> out?(a in[], f act out?(arr in))
+.find-and-get-chunk<out, in> out?(a in[], f act out?(array in))
 	match a.root node
 	as leaf l
 		f[l]
 	as branch b
 		f[b.left] || b.down find-and-get-chunk-l1 f || f[b.right]
 
-.find-and-get-chunk-l1<out, in> out?(a l1 in, f act out?(arr in))
+.find-and-get-chunk-l1<out, in> out?(a l1 in, f act out?(array in))
 	match a node
 	as leaf l
 		l find-and-get f
 	as branch b
 		b.left find-and-get f || b.down find-and-get-chunk-l2 f || b.right find-and-get f
 
-.find-and-get-chunk-l2<out, in> out?(a l2 in, f act out?(arr in))
+.find-and-get-chunk-l2<out, in> out?(a l2 in, f act out?(array in))
 	a.nodes find-and-get xs =>
 		xs find-and-get f
 

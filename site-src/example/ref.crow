@@ -1,7 +1,7 @@
 import
 	crow/io/print: out, print
 
-main fut nat(_ arr str) summon
+main fut nat(_ array str) summon
 	greet ref nat(str) = name =>
 		out print "hello, {name}!"
 		()

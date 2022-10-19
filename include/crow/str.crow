@@ -8,7 +8,7 @@ import
 	./bool: bool
 	./compare: comparison
 	./col/list: ~, ~~, for-loop, is-empty, list, list-compare, list-equal, to-list
-	./col/private/arr-low-level: arr-from-begin-end
+	./col/private/array-low-level: array-from-begin-end
 	./hash: hasher, hash-mix
 	./misc: void
 	./number: ==, <=>, to-nat64
@@ -36,7 +36,7 @@ str str(a char8[]) noctx
 	a,
 
 literal str(a c-str) noctx trusted
-	(a arr-from-begin-end a.find-c-str-end).to-list str
+	(a array-from-begin-end a.find-c-str-end).to-list str
 
 ###
 Concatenate two strings.

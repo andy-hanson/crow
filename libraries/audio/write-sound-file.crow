@@ -2,7 +2,7 @@ no-std
 import
 	crow/cell: as-mut-ptr, cell, new
 	crow/col/arr: size
-	crow/col/private/arr-low-level: begin-ptr
+	crow/col/private/array-low-level: begin-ptr
 	crow/flags-util: flags-to-str
 	crow/io/print: out, print
 	crow/misc: void

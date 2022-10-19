@@ -8,7 +8,7 @@ import
 	./path-and-content: content, out-path, new, path-and-content
 	./search-dir-recursive: remove-include-and-crow, search-dir-recursive
 
-main fut nat(_ arr str) summon
+main fut nat(_ array str) summon
 	all-content = documentation ~~ pages ~ include-all
 	for content : all-content
 		content ensure-up-to-date

@@ -13,7 +13,7 @@ import
 	../str-conv: finish, interp, to-str, with-str, with-value
 	../str-util: join
 	../test-util: is
-	./arr: arr
+	./array: array
 	./experimental/index-set:
 		count-greater-or-equal, filter-less, for-loop, is-empty, in, index-set, new, size, try-remove
 	./experimental/frozen-set:
@@ -44,7 +44,7 @@ node-count<a> nat64(a set<a>) no-doc
 	left add-node<a>?
 
 # Set containing the given elements (with duplicates removed).
-new<a> set a(...a arr a) is-data<a> compare<a> hash-mix<a>
+new<a> set a(...a array a) is-data<a> compare<a> hash-mix<a>
 	a.to-list to-set
 
 # Set containing the given elements (with duplicates removed).

@@ -637,9 +637,9 @@ immutable(bool) isDefinitelyByRef(scope ref immutable StructInst a) =>
 	isRecord(body_(*decl(a))) &&
 		asRecord(body_(*decl(a))).flags.forcedByValOrRef == ForcedByValOrRefOrNone.byRef;
 
-immutable(bool) isArr(ref immutable StructInst i) {
+immutable(bool) isArray(ref immutable StructInst i) {
 	// TODO: only do this for the arr in bootstrap, not anything named 'arr'
-	return decl(i).name == shortSym("arr");
+	return decl(i).name == shortSym("array");
 }
 
 immutable(Sym) name(ref immutable StructInst i) =>
@@ -1481,7 +1481,7 @@ struct CommonTypes {
 	immutable StructInst* sym;
 	immutable StructInst* void_;
 	immutable StructDecl* byVal;
-	immutable StructDecl* arr;
+	immutable StructDecl* array;
 	immutable StructDecl* fut;
 	immutable StructDecl* namedVal;
 	immutable StructDecl* opt;

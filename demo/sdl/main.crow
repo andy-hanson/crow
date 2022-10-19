@@ -1,7 +1,7 @@
 import
 	crow/cell: as-const-ptr, cell, new
 	crow/col/iter: again, again-or-stop, stop
-	crow/col/private/arr-low-level: begin-ptr, subscript
+	crow/col/private/array-low-level: begin-ptr, subscript
 	crow/io/duration: msec
 	crow/io/print: out, print
 	crow/io/time: get-monotime-msec, repeat-interval
@@ -22,9 +22,9 @@ import
 	SDL2/SDL_scancode: SDL_NUM_SCANCODES, SDL_SCANCODE_RETURN, to-nat32
 	SDL2/SDL_surface: SDL_FreeSurface, SDL_LoadBMP_RW
 	SDL2/SDL_video: SDL_CreateWindow, SDL_DestroyWindow, SDL_Window, SDL_WINDOW_SHOWN
-	./crow.bmp as crow-bmp arr nat8
+	./crow.bmp as crow-bmp array nat8
 
-main fut nat(_ arr str) summon trusted
+main fut nat(_ array str) summon trusted
 	SDL_INIT_VIDEO.SDL_Init handle-sdl-error "SDL_INIT_VIDEO"
 	window = "SDL demo" SDL_CreateWindow 100, 100, window-width, window-height, SDL_WINDOW_SHOWN
 	if window.as-any-const-ptr == null

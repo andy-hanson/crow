@@ -10,7 +10,7 @@ import model.concreteModel :
 	ConcreteParam,
 	ConcreteStruct,
 	ConcreteStructSource,
-	isArr,
+	isArray,
 	matchConcreteStructSource,
 	name,
 	typeSize,
@@ -51,8 +51,8 @@ struct LowRecord {
 immutable(TypeSize) typeSize(ref immutable LowRecord a) =>
 	typeSize(*a.source);
 
-immutable(bool) isArr(ref immutable LowRecord a) =>
-	isArr(*a.source);
+immutable(bool) isArray(ref immutable LowRecord a) =>
+	isArray(*a.source);
 
 struct LowUnion {
 	immutable ConcreteStruct* source;

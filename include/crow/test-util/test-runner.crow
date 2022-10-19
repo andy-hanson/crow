@@ -1,6 +1,6 @@
 no-std
 import
-	../col/arr: arr, for-loop, size
+	../col/array: array, for-loop, size
 	../fun-util: fun-ptr0, subscript
 	../io/print: out, print
 	../misc: void
@@ -15,4 +15,4 @@ run-all-tests void() summon trusted
 		x[]
 	out print "Done running tests"
 
-.all-tests arr fun-ptr0<void>() builtin
+.all-tests array fun-ptr0 void() builtin
