@@ -16,11 +16,11 @@ import
 	../../tuple: from, new, pair, pair-equal, to
 	../array: array
 	../array-util: every, zip
-	../fix-arr: begin-ptr, cast-immutable, end-ptr, fix-arr, fix-arr-from-begin-end, uninitialized-fix-arr
+	../mut-array: begin-ptr, cast-immutable, end-ptr, mut-array, mut-array-from-begin-end, uninitialized-mut-array
 	../list: fold, list, new, to-list
 	../mut-set: in, mut-set, new, try-add
 	./frozen-dict:
-		for-loop, frozen-dict, fold, in, is-empty, fix-arr-to-frozen-dict-promise-no-duplicates,
+		for-loop, frozen-dict, fold, in, is-empty, mut-array-to-frozen-dict-promise-no-duplicates,
 		new, size, subscript, to-array, to-frozen-dict
 
 compact-dict<k, v> record by-val
@@ -129,7 +129,7 @@ in<k, v> bool(key k, a compact-dict<k, v>) is-data<k> compare<k> hash-mix<k>
 	l frozen-dict<k, v?>,
 	r frozen-dict<k, v?>,
 ) trusted is-data<k> compare<k> hash-mix<k>
-	res fix-arr pair<k, v?> = l.size + r.size uninitialized-fix-arr
+	res mut-array pair<k, v?> = l.size + r.size uninitialized-mut-array
 	begin = res begin-ptr
 	mid = begin fold l, (cur, k, vl) =>
 		if k in r
@@ -140,13 +140,13 @@ in<k, v> bool(key k, a compact-dict<k, v>) is-data<k> compare<k> hash-mix<k>
 	end = mid fold r, (cur, k, vr) =>
 		*cur := k, vr
 		cur + 1
-	begin fix-arr-from-begin-end end fix-arr-to-frozen-dict-promise-no-duplicates
+	begin mut-array-from-begin-end end mut-array-to-frozen-dict-promise-no-duplicates
 
 .merge-to-end<k, v> frozen-dict<k, v>(
 	l frozen-dict<k, v>,
 	r frozen-dict<k, v?>,
 ) trusted is-data<k> compare<k> hash-mix<k>
-	res fix-arr pair<k, v> = l.size + r.size uninitialized-fix-arr
+	res mut-array pair<k, v> = l.size + r.size uninitialized-mut-array
 	begin = res begin-ptr
 	mid = begin fold l, (cur, k, vl) =>
 		if k in r
@@ -160,7 +160,7 @@ in<k, v> bool(key k, a compact-dict<k, v>) is-data<k> compare<k> hash-mix<k>
 			cur + 1
 		else
 			cur
-	begin fix-arr-from-begin-end end fix-arr-to-frozen-dict-promise-no-duplicates
+	begin mut-array-from-begin-end end mut-array-to-frozen-dict-promise-no-duplicates
 
 region iteration
 
@@ -191,7 +191,7 @@ fold<a, k, v> a(acc a, a compact-dict<k, v>, f act a(a, k, v)) is-data<k> compar
 				f[cur, k, v]
 
 map-to-list<a, k, v> a[](a compact-dict<k, v>, f act a(k, v)) trusted is-data<k> compare<k> hash-mix<k>
-	res fix-arr a = a.size uninitialized-fix-arr
+	res mut-array a = a.size uninitialized-mut-array
 	end = res.begin-ptr fold a, (cur, k, v) =>
 		*cur := f[k, v]
 		cur + 1

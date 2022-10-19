@@ -18,7 +18,7 @@ import
 	../bool: !, ||, bool, false, new, to-nat64, true
 	../cell: *, as-mut-ptr, cell, new
 	../col/array: array, size, subscript
-	../col/fix-arr: cast-immutable, begin-ptr, fix-arr, size, uninitialized-fix-arr
+	../col/mut-array: cast-immutable, begin-ptr, mut-array, size, uninitialized-mut-array
 	../col/list: for-loop, list, new, to-array, to-list
 	../col/mut-list: ~=, move-to-list, mut-list, new
 	../col/private/array-low-level: begin-ptr
@@ -177,7 +177,7 @@ names-in-dir str[](path str) summon trusted
 # Gets the path a symbolic link refers to.
 read-link str(path str) summon trusted
 	# TODO: smart small and retry if necessAry
-	buff fix-arr char8 = 1000 uninitialized-fix-arr
+	buff mut-array char8 = 1000 uninitialized-mut-array
 	size = path.to-c-str readlink buff.begin-ptr, buff.size
 	if size == -1
 		check-errno
@@ -272,7 +272,7 @@ try-read-file-binary nat8[]?(path str) summon trusted
 
 		# TODO: allocation can fail, then 'fd' is left open. Need finalizers
 		file-size-nat = file-size to-nat64
-		res fix-arr nat8 = file-size-nat uninitialized-fix-arr
+		res mut-array nat8 = file-size-nat uninitialized-mut-array
 		n-bytes-read = res.begin-ptr.ptr-cast fread size-of@<nat8>, file-size-nat, fd
 		assert n-bytes-read == file-size-nat
 		forbid fd ferror : "Error reading {path}"
@@ -284,7 +284,7 @@ try-read-file-binary nat8[]?(path str) summon trusted
 
 # Gets the current directory (of the user that ran the program).
 current-directory str() summon trusted
-	buff fix-arr char8 = 256 uninitialized-fix-arr
+	buff mut-array char8 = 256 uninitialized-mut-array
 	b = is-windows ? buff.begin-ptr _getcwd buff.size : buff.begin-ptr getcwd buff.size
 	if b == null
 		todo

@@ -1,6 +1,6 @@
 import
 	crow/bits: &, ^, |, <<, >>, has-bit, bits-intersect
-	crow/col/fix-arr: fill-fix-arr, fix-arr, set-subscript, size, subscript
+	crow/col/mut-array: fill-mut-array, mut-array, set-subscript, size, subscript
 	crow/col/mut-grid: coord, new, x, y
 	crow/io/terminal-color: bold, blue, foreground, red, reset
 	crow/ptr: zeroed
@@ -24,8 +24,8 @@ board record by-val
 	.both-players nat64
 
 board-cache<a> record mut
-	.keys fix-arr nat32
-	.values fix-arr a
+	.keys mut-array nat32
+	.values mut-array a
 
 new<a> board-cache a() trusted
 	size = 0xccce9
@@ -33,7 +33,7 @@ new<a> board-cache a() trusted
 	# If their product is > the max key, then we know the key.
 	assert 2 ** 32 * size > max-key
 	# Use max-nat as an impossible key
-	(size fill-fix-arr max-nat32), (size fill-fix-arr zeroed)
+	(size fill-mut-array max-nat32), (size fill-mut-array zeroed)
 
 subscript<a> a?(a board-cache a, key board)
 	small-key = key board-key

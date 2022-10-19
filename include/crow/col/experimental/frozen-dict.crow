@@ -14,9 +14,9 @@ import
 	../../private/alloc: alloc-uninitialized
 	../array: array, is-empty, new, size, subscript
 	../array-util: fold, fold-with-index
-	../fix-arr:
-		begin-ptr, cast-immutable, end-ptr, fill, fill-fix-arr, fix-arr, fix-arr-from-begin-end,
-		for-loop, size, temp-as-array, to-fix-arr, set-subscript, subscript, uninitialized-fix-arr
+	../mut-array:
+		begin-ptr, cast-immutable, end-ptr, fill, fill-mut-array, mut-array, mut-array-from-begin-end,
+		for-loop, size, temp-as-array, to-mut-array, set-subscript, subscript, uninitialized-mut-array
 	../list: ==, for-loop, list, new, to-array, to-list
 	../private/array-low-level: array-cast, array-from-begin-end, begin-ptr, end-ptr
 
@@ -32,7 +32,7 @@ new<k, v> frozen-dict<k, v>(...a array pair<k, v>) is-data<k> compare<k> hash-mi
 	a.to-list to-frozen-dict
 
 to-frozen-dict<k, v> frozen-dict<k, v>(a pair<k, v>[]) trusted is-data<k> compare<k> hash-mix<k>
-	a.to-array.to-fix-arr.fix-arr-to-frozen-dict-promise-no-duplicates remove-duplicates
+	a.to-array.to-mut-array.mut-array-to-frozen-dict-promise-no-duplicates remove-duplicates
 
 # This is O(1).
 to-array<k, v> array pair<k, v>(a frozen-dict<k, v>) noctx
@@ -93,8 +93,8 @@ find-ptr<k, v> pair<k, v>*?(cur pair<k, v>*, end pair<k, v>*, key k) unsafe is-d
 	else
 		cur + 1 find-ptr end, key
 
-fix-arr-to-frozen-dict-promise-no-duplicates<k, v> frozen-dict<k, v>(
-	a fix-arr pair<k, v>,
+mut-array-to-frozen-dict-promise-no-duplicates<k, v> frozen-dict<k, v>(
+	a mut-array pair<k, v>,
 ) no-doc unsafe is-data<k> compare<k> hash-mix<k>
 	if a.size <= 4
 		a.cast-immutable, ()
@@ -110,11 +110,11 @@ fix-arr-to-frozen-dict-promise-no-duplicates<k, v> frozen-dict<k, v>(
 	a frozen-dict<k, v>,
 ) unsafe is-data<k> compare<k> hash-mix<k>
 	if a has-duplicates
-		# Write out pairs from each bucket to a fix-arr, omitting a pair if its key appears later in the same bucket.
-		# Then call fix-arr-to-frozen-dict-promise-no-duplicates 
+		# Write out pairs from each bucket to a mut-array, omitting a pair if its key appears later in the same bucket.
+		# Then call mut-array-to-frozen-dict-promise-no-duplicates 
 		out-pairs pair<k, v> mut* = a.size alloc-uninitialized
 		end = out-pairs write-without-duplicates a
-		out-pairs fix-arr-from-begin-end end fix-arr-to-frozen-dict-promise-no-duplicates
+		out-pairs mut-array-from-begin-end end mut-array-to-frozen-dict-promise-no-duplicates
 	else
 		a
 
@@ -189,8 +189,8 @@ fix-arr-to-frozen-dict-promise-no-duplicates<k, v> frozen-dict<k, v>(
 	else
 		key key-in-range begin + 1, end
 
-.get-bucket-counts<k, v> fix-arr nat64(a fix-arr pair<k, v>, n-buckets nat64) unsafe hash-mix<k>
-	res = n-buckets fill-fix-arr 0
+.get-bucket-counts<k, v> mut-array nat64(a mut-array pair<k, v>, n-buckets nat64) unsafe hash-mix<k>
+	res = n-buckets fill-mut-array 0
 	for pair : a
 		bucket-index = pair.from get-bucket-index n-buckets
 		res[bucket-index] := res[bucket-index] + 1
@@ -199,7 +199,7 @@ fix-arr-to-frozen-dict-promise-no-duplicates<k, v> frozen-dict<k, v>(
 .move-values-to-buckets-recur<k, v> void(
 	cur pair<k, v> mut*,
 	end pair<k, v> mut*,
-	bucket-counts fix-arr nat64,
+	bucket-counts mut-array nat64,
 	bucket-starts array pair<k, v> mut*,
 ) unsafe hash-mix<k>
 	unless cur == end
@@ -221,7 +221,7 @@ fix-arr-to-frozen-dict-promise-no-duplicates<k, v> frozen-dict<k, v>(
 	key.hash % n-buckets
 
 .running-sum<k, v> array pair<k, v> mut*(acc pair<k, v> mut*, a array nat64) trusted
-	out fix-arr pair<k, v> mut* = a.size uninitialized-fix-arr
+	out mut-array pair<k, v> mut* = a.size uninitialized-mut-array
 	acc running-sum-recur out.begin-ptr, out.end-ptr, a.begin-ptr
 	out cast-immutable
 .running-sum-recur<k, v> void(

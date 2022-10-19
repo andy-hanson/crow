@@ -2,7 +2,7 @@ no-std
 import
 	stdio: stdin
 	unistd: read
-	../col/fix-arr: begin-ptr, cast-immutable, fix-arr, size, subscript, uninitialized-fix-arr
+	../col/mut-array: begin-ptr, cast-immutable, mut-array, size, subscript, uninitialized-mut-array
 	../col/list: to-list
 	../compare: >=
 	../fun-util: subscript
@@ -23,7 +23,7 @@ Result will not have leading or trailing whitespace.
 ###
 read-stdin fut str() trusted summon
 	launch do () =>
-		buffer fix-arr nat8 = 0x2000 uninitialized-fix-arr
+		buffer mut-array nat8 = 0x2000 uninitialized-mut-array
 		# TODO: use a non-blocking API
 		bytes-read-or-err = stdin read buffer.begin-ptr, buffer.size
 		assert bytes-read-or-err >= 0

@@ -15,9 +15,9 @@ import
 	../tuple: from, new, pair, to
 	./array: array
 	./dict: dict, to-dict
-	./fix-arr:
-		begin-ptr, cast-immutable, end-ptr, fill, fill-fix-arr, fix-arr, fold, for-loop, is-empty,
-		new, set-subscript, size, subscript, to-array, uninitialized-fix-arr
+	./mut-array:
+		begin-ptr, cast-immutable, end-ptr, fill, fill-mut-array, mut-array, fold, for-loop, is-empty,
+		new, set-subscript, size, subscript, to-array, uninitialized-mut-array
 	./list: ==, for-loop, list, list-equal, new, size, to-list
 	./mut-list:
 		~=, copy, find-index, fold, for-loop, is-at-capacity, is-empty, mut-list, new,
@@ -29,7 +29,7 @@ Mutable unordered dictionary.
 Unordered means that iteration functions like `each` reach each entry in arbitrary order.
 ###
 mut-dict<k, v> record mut
-	.entries .mut fix-arr entry<k, v>
+	.entries .mut mut-array entry<k, v>
 	.total-size .mut nat64
 
 .entry<k, v> union mut
@@ -64,7 +64,7 @@ Since hash conflicts are possible, this makes no guarantees about whether more a
 ###
 mut-dict-with-capacity<k, v> v mut[k](capacity nat64) is-data<k> compare<k> hash-mix<k>
 	# TODO: should not need type annotation
-	(capacity fill-fix-arr none)::fix-arr<entry<k, v>>, 0
+	(capacity fill-mut-array none)::mut-array<entry<k, v>>, 0
 
 # Copy pairs to a list.
 to-list<k, v> pair<k, v>[](a v mut[k]) is-data<k> compare<k> hash-mix<k>
@@ -78,7 +78,7 @@ move-to-list<k, v> pair<k, v>[](a v mut[k]) is-data<k> compare<k> hash-mix<k>
 
 # Copy pairs to a new dictionary.
 copy<k, v> v mut[k](a v mut[k]) is-data<k> compare<k> hash-mix<k>
-	entries fix-arr entry<k, v> = for entry : a entries
+	entries mut-array entry<k, v> = for entry : a entries
 		match entry
 		as none
 			none
@@ -298,7 +298,7 @@ set-filter<k, v> void(a v mut[k], f act bool(k, v)) trusted is-data<k> compare<k
 Calls `f` on every key and value and returns a list of the results.
 ###
 map-to-list<out, k, v> out[](a v mut[k], f act out(k, v)) trusted is-data<k> compare<k> hash-mix<k>
-	out fix-arr out = a.size uninitialized-fix-arr
+	out mut-array out = a.size uninitialized-mut-array
 	end = out.begin-ptr fold a, (cur, key, value) =>
 		*cur := f[key, value]
 		cur + 1

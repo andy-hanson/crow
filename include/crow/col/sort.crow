@@ -11,12 +11,12 @@ import
 	../str: ==, <=>, literal, str
 	../str-util: iter, next, slice-left
 	../test-util: is
-	./fix-arr:
-		begin-ptr, cast-immutable, end-ptr, is-empty, fix-arr, new, size, set-subscript,
-		subscript, to-array, to-fix-arr
+	./mut-array:
+		begin-ptr, cast-immutable, end-ptr, is-empty, mut-array, new, size, set-subscript,
+		subscript, to-array, to-mut-array
 	./iter: rest
 	./list: ==, list, list-equal, new, to-array, to-list
-	./mut-list: mut-list, set-reverse, temp-as-fix-arr
+	./mut-list: mut-list, set-reverse, temp-as-mut-array
 
 ###
 Sorts the elements of `a` from least to greatest.
@@ -33,7 +33,7 @@ Same as `sort`, but uses a custom comparer.
 `comparer` should be consistent, meaning always return the same result for the same inputs.
 ###
 sort<a> a[](a a[], comparer act comparison(a, a)) trusted
-	res = a.to-array to-fix-arr
+	res = a.to-array to-mut-array
 	res set-sort comparer
 	res.cast-immutable to-list
 
@@ -53,14 +53,14 @@ That means `res[i] < res[i + 1]` for each element in the result.
 `(2, 1, 2) sort-unique` is `1, 2`.
 ###
 sort-unique<a> a[](a a[]) compare<a> trusted
-	a.to-array.to-fix-arr.set-sort-unique.cast-immutable to-list
+	a.to-array.to-mut-array.set-sort-unique.cast-immutable to-list
 
 test
 	()::nat64[].sort is ()
 	(3, 1, 2)::nat64[].sort is (1, 2, 3)
 
 	# Test that it's a stable sort
-	arr fix-arr str = "2a", "2b", "1a", "1b"
+	arr mut-array str = "2a", "2b", "1a", "1b"
 	arr.sort := (x, y) => x.first-char <=> y.first-char
 	arr.to-array.to-list is ("1a", "1b", "2a", "2b")
 
@@ -72,23 +72,23 @@ test
 
 # Sort the elements of `a` from least to greatest.
 set-sort<a> void(a a mut[]) compare<a> trusted
-	a.temp-as-fix-arr set-sort
+	a.temp-as-mut-array set-sort
 # Like `set-sort`, but uses a custom comparer.
 set-sort<a> void(a a mut[], comparer act comparison(a, a)) trusted
-	a.temp-as-fix-arr set-sort comparer
+	a.temp-as-mut-array set-sort comparer
 # Like `set-sort`, but `f` to get the comparable part of each element.
 set-sort-by<a, b> void(a a mut[], f act b(a)) compare<b> trusted
-	a.temp-as-fix-arr set-sort-by f
+	a.temp-as-mut-array set-sort-by f
 set-sort-by-reverse<a, b> void(a a mut[], f act b(a)) compare<b>
 	a set-sort-by f
 	a set-reverse
 
-set-sort<a> void(a fix-arr a) compare<a>
+set-sort<a> void(a mut-array a) compare<a>
 	a set-sort (x, y) => x <=> y
-set-sort<a> void(a fix-arr a, comparer act comparison(a, a)) trusted
+set-sort<a> void(a mut-array a, comparer act comparison(a, a)) trusted
 	unless a is-empty
 		a.begin-ptr insertion-sort-recur a.begin-ptr + 1, a.end-ptr, comparer
-set-sort-by<a, b> void(a fix-arr a, f act b(a)) compare<b>
+set-sort-by<a, b> void(a mut-array a, f act b(a)) compare<b>
 	a set-sort (x, y) => f[x] <=> f[y]
 
 .insertion-sort-recur<a> void(begin a mut*, cur a mut*, end a mut*, comparer act comparison(a, a)) unsafe
@@ -112,16 +112,16 @@ set-sort-by<a, b> void(a fix-arr a, f act b(a)) compare<b>
 Sort `a` in place and remove unique elements.
 Returns is a slice of the original `a`, which will be shorter if non-unique elements were removed.
 ###
-set-sort-unique<a> fix-arr a(a fix-arr a) compare<a>
+set-sort-unique<a> mut-array a(a mut-array a) compare<a>
 	a set-sort-unique (x, y) => x <=> y
-set-sort-unique<a> fix-arr a(a fix-arr a, comparer act comparison(a, a)) trusted
+set-sort-unique<a> mut-array a(a mut-array a, comparer act comparison(a, a)) trusted
 	if a is-empty
 		a
 	else
 		a set-sort comparer
 		end = *a.begin-ptr set-unique-recur a.begin-ptr + 1, a.begin-ptr + 1, a.end-ptr, comparer
 		a[0 .. end - a.begin-ptr]
-set-sort-unique-by<a, b> fix-arr a(a fix-arr a, f act b(a)) compare<b>
+set-sort-unique-by<a, b> mut-array a(a mut-array a, f act b(a)) compare<b>
 	a set-sort-unique (x, y) => f[x] <=> f[y]
 .set-unique-recur<a> a mut*(
 	prev a,
@@ -140,7 +140,7 @@ set-sort-unique-by<a, b> fix-arr a(a fix-arr a, f act b(a)) compare<b>
 			*write := here
 			here set-unique-recur read + 1, write + 1, end, comparer
 
-.swap<a> void(a fix-arr a, x nat64, y nat64)
+.swap<a> void(a mut-array a, x nat64, y nat64)
 	old-x = a[x]
 	a[x] := a[y]
 	a[y] := old-x
@@ -157,17 +157,17 @@ This is useful if `a` and `b` are parallel arrays, meaning `a[i]` and `b[i]` bel
 Every pair `a[i]` and `b[i]`, will move to `res.a[j]` and `res.b[j]` for some `j`.
 ###
 sort-by-first<a, b> sorted-by-first<a, b>(a a[], b b[]) compare<a> trusted
-	mut-a = a.to-array to-fix-arr
-	mut-b = b.to-array to-fix-arr
+	mut-a = a.to-array to-mut-array
+	mut-b = b.to-array to-mut-array
 	mut-a set-sort-by-first mut-b
 	mut-a.cast-immutable.to-list, mut-b.cast-immutable.to-list
 
 # Sort `a` in place, and move elements of `b` in the same permutation as `a`.
 set-sort-by-first<a, b> void(a a mut[], b b mut[]) compare<a> trusted
-	a.temp-as-fix-arr set-sort-by-first b.temp-as-fix-arr
+	a.temp-as-mut-array set-sort-by-first b.temp-as-mut-array
 
 # Sort `a` in place, and move elements of `b` in the same permutation as `a`.
-set-sort-by-first<a, b> void(a fix-arr a, b fix-arr b) compare<a>
+set-sort-by-first<a, b> void(a mut-array a, b mut-array b) compare<a>
 	assert a.size == b.size
 	if a.size > 1
 		a swap 0, a.size / 2
@@ -178,7 +178,7 @@ set-sort-by-first<a, b> void(a fix-arr a, b fix-arr b) compare<a>
 		a[0 .. new-pivot-index] set-sort-by-first b[0 .. new-pivot-index]
 		a[new-pivot-index + 1 .. a.size] set-sort-by-first b[new-pivot-index + 1 .. b.size]
 
-.set-partition-by-first<a, b> nat64(a fix-arr a, b fix-arr b, pivot a, l nat64, r nat64) compare<a>
+.set-partition-by-first<a, b> nat64(a mut-array a, b mut-array b, pivot a, l nat64, r nat64) compare<a>
 	assert l <= a.size
 	assert r < a.size
 	if l <= r

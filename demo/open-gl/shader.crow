@@ -1,6 +1,6 @@
 import
 	crow/cell: *, cell, new
-	crow/col/fix-arr: begin-ptr, fix-arr, to-array, uninitialized-fix-arr
+	crow/col/mut-array: begin-ptr, mut-array, to-array, uninitialized-mut-array
 	crow/col/private/array-low-level: begin-ptr
 	crow/ptr: null
 	OpenGL/gl:
@@ -29,7 +29,7 @@ shader-prog-load GLuint(gl gl-ext, vert-shader-source str, frag-shader-source st
 	else
 		log-length cell GLint = 0,
 		gl glGetProgramiv shader-prog, GL_INFO_LOG_LENGTH, log-length
-		err-log fix-arr GLchar = log-length->to-nat64 uninitialized-fix-arr
+		err-log mut-array GLchar = log-length->to-nat64 uninitialized-mut-array
 		gl glGetProgramInfoLog shader-prog, *log-length, log-length, err-log.begin-ptr
 		gl glDeleteProgram shader-prog
 		throw "Error loading shaders: {err-log.to-array.to-list.str}"
@@ -47,7 +47,7 @@ shader-prog-destroy void(gl gl-ext, shader-prog GLuint) summon unsafe
 	else
 		log-length cell GLint = 0,
 		gl glGetShaderiv shader, GL_INFO_LOG_LENGTH, log-length
-		err-log fix-arr GLchar = log-length->to-nat64 uninitialized-fix-arr
+		err-log mut-array GLchar = log-length->to-nat64 uninitialized-mut-array
 		gl glGetShaderInfoLog shader, *log-length, log-length, err-log.begin-ptr
 		gl glDeleteShader shader
 		throw "error compiling GLSL {name}: {err-log.to-array.to-list.str}"

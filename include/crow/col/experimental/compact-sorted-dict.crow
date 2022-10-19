@@ -17,9 +17,9 @@ import
 	../../private/alloc: mem-copy
 	../array: array, is-empty, new, size, subscript
 	../array-util: fold, tail
-	../fix-arr:
-		begin-ptr, cast-immutable, is-empty, fold, fix-arr, set-subscript, size, subscript, tail,
-		uninitialized-fix-arr
+	../mut-array:
+		begin-ptr, cast-immutable, is-empty, fold, mut-array, set-subscript, size, subscript, tail,
+		uninitialized-mut-array
 	../iter: value
 	../list: filter, for-loop, is-empty, list, new, to-array, to-list
 	../sort: sort-by
@@ -133,7 +133,7 @@ in<k, v> bool(key k, a compact-sorted-dict<k, v>) is-data<k> compare<k>
 	prev-size <= (overlay-size max 3)
 
 .merge-overlays<k, v> array pair<k, v?>(l array pair<k, v?>, r array pair<k, v?>) trusted is-data<k> compare<k>
-	res fix-arr pair<k, v?> = l.size + r.size uninitialized-fix-arr
+	res mut-array pair<k, v?> = l.size + r.size uninitialized-mut-array
 	end = res.begin-ptr merge-keep-right l.begin-ptr, l.end-ptr, r.begin-ptr, r.end-ptr
 	res[0 .. end - res.begin-ptr] cast-immutable
 
@@ -169,7 +169,7 @@ in<k, v> bool(key k, a compact-sorted-dict<k, v>) is-data<k> compare<k>
 			out + 1 merge-keep-right l, l-end, r + 1, r-end
 
 .merge-to-end<k, v> array pair<k, v>(l array pair<k, v>, r array pair<k, v?>) trusted is-data<k> compare<k>
-	res fix-arr pair<k, v> = l.size + r.size uninitialized-fix-arr
+	res mut-array pair<k, v> = l.size + r.size uninitialized-mut-array
 	end = if l is-empty
 		res.begin-ptr finish-rest-ignore-none r.begin-ptr, r.end-ptr
 	else
@@ -259,7 +259,7 @@ fold<a, k, v> a(acc a, a compact-sorted-dict<k, v>, f act a(a, k, v)) is-data<k>
 .fold-recur<a, k, v> a(
 	acc a,
 	end-node array pair<k, v>,
-	overlays fix-arr array pair<k, v?>,
+	overlays mut-array array pair<k, v?>,
 	f act a(a, k, v),
 ) is-data<k> compare<k>
 	if overlays is-empty
@@ -284,23 +284,23 @@ fold<a, k, v> a(acc a, a compact-sorted-dict<k, v>, f act a(a, k, v)) is-data<k>
 			acc
 		new-acc fold-recur new-end-node, took-from-overlays.overlays, f
 
-.find-least-key<k, v> k(current-least-key k, overlays fix-arr array pair<k, v>) is-data<k> compare<k>
+.find-least-key<k, v> k(current-least-key k, overlays mut-array array pair<k, v>) is-data<k> compare<k>
 	current-least-key fold overlays, (cur, overlay) =>
 		cur min overlay[0].from
 
 .took-key<k, v> record mut
 	rightmost-value v?
-	overlays fix-arr array pair<k, v?>
+	overlays mut-array array pair<k, v?>
 
 ###
 Takes the key from the front of every overlay that has it.
-Removes rightmost overlays from the fix-arr (by returning a new, smaller fix-arr).
+Removes rightmost overlays from the mut-array (by returning a new, smaller mut-array).
 Returns the rightmost value associated with that key.
 ###
-.take-key<k, v> took-key<k, v>(overlays fix-arr array pair<k, v?>, key k) is-data<k> compare<k>
+.take-key<k, v> took-key<k, v>(overlays mut-array array pair<k, v?>, key k) is-data<k> compare<k>
 	overlays take-key-recur key, 0, ()
 .take-key-recur<k, v> took-key<k, v>(
-	overlays fix-arr array pair<k, v?>,
+	overlays mut-array array pair<k, v?>,
 	key k,
 	index nat64,
 	rightmost-value v?,
@@ -329,10 +329,10 @@ Returns the rightmost value associated with that key.
 
 .iters<k, v> record mut
 	end-pairs array pair<k, v>
-	overlays fix-arr array pair<k, v?>
+	overlays mut-array array pair<k, v?>
 
 .init-iters<k, v> iters<k, v>(a compact-sorted-dict<k, v>) trusted
-	overlay-iters fix-arr array pair<k, v?> = 0 overlay-count a.impl uninitialized-fix-arr
+	overlay-iters mut-array array pair<k, v?> = 0 overlay-count a.impl uninitialized-mut-array
 	end-pairs = overlay-iters.begin-ptr init-overlay-iters-recur a.impl
 	end-pairs, overlay-iters
 

@@ -11,15 +11,15 @@ import
 	../str-conv: finish, interp, to-str, with-value
 	../str-util: join
 	../test-util: is
-	./fix-arr:
-		begin-ptr, cast-immutable, copy-from, end-ptr, fix-arr, is-empty, new, set-zero-elements,
-		size, subscript, uninitialized-fix-arr, zeroed-fix-arr
+	./mut-array:
+		begin-ptr, cast-immutable, copy-from, end-ptr, mut-array, is-empty, new, set-zero-elements,
+		size, subscript, uninitialized-mut-array, zeroed-mut-array
 	./list: ==, first, last, list, new, size, to-list
 	./private/array-low-level: array-from-begin-end
 
 # Mutable double-ended queue.
 mut-deque<a> record mut
-	.inner .mut fix-arr a
+	.inner .mut mut-array a
 	# Points to the first element. Null for an empty queue.
 	.left .mut a mut*
 	# Points to the element after the last. Null for an empty queue.
@@ -36,17 +36,17 @@ Copy elements to a list.
 This is O(n).
 ###
 to-list<a> a[](a mut-deque a) trusted
-	a.to-fix-arr.cast-immutable to-list
+	a.to-mut-array.cast-immutable to-list
 
-.to-fix-arr<a> fix-arr a(a mut-deque a) no-doc trusted
+.to-mut-array<a> mut-array a(a mut-deque a) no-doc trusted
 	unless a is-empty
-		res fix-arr a = a.size uninitialized-fix-arr
+		res mut-array a = a.size uninitialized-mut-array
 		res copy-from-deque a
 		res
 
 # Copy elements to a new deque.
 copy<a> mut-deque a(a mut-deque a) trusted
-	inner = a to-fix-arr
+	inner = a to-mut-array
 	inner, inner.begin-ptr, inner.begin-ptr
 
 # `true` iff `a.size == 0`.
@@ -142,7 +142,7 @@ pop-right<a> a?(a mut-deque a) trusted
 	if a.left == null
 		assert a.right == null
 		if a.inner is-empty
-			a.inner := 2 zeroed-fix-arr
+			a.inner := 2 zeroed-mut-array
 		a.left := a.inner begin-ptr
 		a.right := a.left
 	else
@@ -152,14 +152,14 @@ pop-right<a> a?(a mut-deque a) trusted
 			old-inner = a inner
 			old-capacity = old-inner size
 			new-capacity = old-capacity * 2
-			new-inner fix-arr a = new-capacity uninitialized-fix-arr
+			new-inner mut-array a = new-capacity uninitialized-mut-array
 			new-inner[0 .. old-capacity] copy-from-deque a
 			new-inner[old-capacity .. new-capacity] set-zero-elements
 			a.inner := new-inner
 			a.left := a.inner begin-ptr
 			a.right := a.left + old-capacity
 
-.copy-from-deque<a> void(dest fix-arr a, a mut-deque a) trusted
+.copy-from-deque<a> void(dest mut-array a, a mut-deque a) trusted
 	assert dest.size == a.size
 	if a.left < a.right
 		dest copy-from (a.left.as-const array-from-begin-end a.right.as-const)

@@ -18,9 +18,9 @@ import
 	./experimental/index-set:
 		~, count-greater-or-equal, count-range, filter-less, for-loop, in, index-set, is-empty, new,
 		size, try-remove
-	./fix-arr:
-		begin-ptr, cast-immutable, end-ptr, is-empty, fix-arr, set-subscript, size, subscript,
-		uninitialized-fix-arr
+	./mut-array:
+		begin-ptr, cast-immutable, end-ptr, is-empty, mut-array, set-subscript, size, subscript,
+		uninitialized-mut-array
 	./list: for-loop, list, to-array, to-list
 	./sort: sort
 	./private/array-low-level: array-from-begin-end, begin-ptr, end-ptr
@@ -188,7 +188,7 @@ Or a combination of the two.
 
 .add-and-compact<a> sorted-set a(a sorted-set a, add-size nat64, plan compact-plan, value a) unsafe compare<a>
 	assert plan.compacted-size > 1
-	compacted fix-arr a = plan.compacted-size uninitialized-fix-arr
+	compacted mut-array a = plan.compacted-size uninitialized-mut-array
 	*compacted.begin-ptr := value
 	compactor compactor a = compacted.begin-ptr.as-const, compacted.begin-ptr + 1, compacted.end-ptr.as-const
 	new-add = compactor do-compact-recur a.add, add-size, a.remove
@@ -202,7 +202,7 @@ Or a combination of the two.
 		else
 			()
 	else
-		compacted fix-arr a = plan.compacted-size uninitialized-fix-arr
+		compacted mut-array a = plan.compacted-size uninitialized-mut-array
 		compactor compactor a = compacted.begin-ptr.as-const, compacted.begin-ptr, compacted.end-ptr.as-const
 		old-size = plan.add-size-left + plan.compacted-size + 1
 		new-add = compactor do-compact-recur a.add, old-size, a.remove ~ extra-removal
@@ -301,7 +301,7 @@ each<a> void(a sorted-set a, f act void(a)) is-data<a> compare<a>
 
 fold<a, b> a(acc a, a sorted-set b, f act a(a, b)) is-data<b> compare<b>
 	acc fold-recur a.init-iters, a.remove, f
-.fold-recur<a, b> a(acc a, iters fix-arr iter-part b, remove index-set, f act a(a, b)) compare<b>
+.fold-recur<a, b> a(acc a, iters mut-array iter-part b, remove index-set, f act a(a, b)) compare<b>
 	if iters is-empty
 		acc
 	else
@@ -319,7 +319,7 @@ fold<a, b> a(acc a, a sorted-set b, f act a(a, b)) is-data<b> compare<b>
 	current-least a,
 	current-least-index nat64,
 	iter-index nat64,
-	iters fix-arr iter-part a,
+	iters mut-array iter-part a,
 ) compare<a>
 	if iter-index == iters.size
 		current-least-index
@@ -340,8 +340,8 @@ fold<a, b> a(acc a, a sorted-set b, f act a(a, b)) is-data<b> compare<b>
 .tail<a> iter-part a(a iter-part a, remove index-set)
 	(a.values.tail, a.remove-index + 1) remove-from-front remove
 
-.init-iters<a> fix-arr iter-part a(a sorted-set a) trusted
-	iters fix-arr iter-part a = a.add-node-count uninitialized-fix-arr
+.init-iters<a> mut-array iter-part a(a sorted-set a) trusted
+	iters mut-array iter-part a = a.add-node-count uninitialized-mut-array
 	res = iters.begin-ptr init-iters-recur a.add, a.remove
 	iters[0 .. res.out - iters.begin-ptr]
 
@@ -383,7 +383,7 @@ for-loop<out, in> sorted-set out(a sorted-set in, f act out(in)) is-data<out> co
 	a for-loop f to-sorted-set
 
 for-loop<out, in> out[](a sorted-set in, f act out(in)) trusted is-data<in> compare<in>
-	out fix-arr out = a.size uninitialized-fix-arr
+	out mut-array out = a.size uninitialized-mut-array
 	end = out.begin-ptr fold a, (cur, x) =>
 		*cur := f[x]
 		cur + 1

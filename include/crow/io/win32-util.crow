@@ -2,7 +2,7 @@ no-std
 import
 	../bits: |
 	../col/array: subscript
-	../col/fix-arr: begin-ptr, cast-immutable, fix-arr, size, uninitialized-fix-arr
+	../col/mut-array: begin-ptr, cast-immutable, mut-array, size, uninitialized-mut-array
 	../col/list: to-list
 	../number: ==, <=>, to-nat32, to-nat64
 	../ptr: null
@@ -14,7 +14,7 @@ import
 		LANG_NEUTRAL, MAKELANGID, SUBLANG_NEUTRAL
 
 show-win32-error str(err DWORD) unsafe summon
-	res fix-arr char8 = 1024 uninitialized-fix-arr
+	res mut-array char8 = 1024 uninitialized-mut-array
 	fmt = FORMAT_MESSAGE_FROM_SYSTEM | FORMAT_MESSAGE_IGNORE_INSERTS
 	lid = LANG_NEUTRAL MAKELANGID SUBLANG_NEUTRAL
 	size = fmt FormatMessageA null, err, lid, res.begin-ptr, res.size.to-nat32, null

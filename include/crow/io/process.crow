@@ -20,7 +20,7 @@ import
 	../bool: &&, ||, bool, to-nat64, true
 	../bytes-types: new
 	../cell: *, as-const-ptr, as-mut-ptr, cell, new
-	../col/fix-arr: begin-ptr, fix-arr, new, size, subscript
+	../col/mut-array: begin-ptr, mut-array, new, size, subscript
 	../col/list: ~, fold, for-loop, to-array, list
 	../col/mut-list: begin-ptr, end-ptr, move-to-list, mut-list, new, size, unsafe-set-size
 	../col/private/array-low-level: begin-ptr
@@ -214,7 +214,7 @@ shell-exec str(command str) trusted summon
 	stdout-builder char8 mut[],
 	stderr-builder char8 mut[],
 ) summon unsafe
-	poll-fds fix-arr pollfd = (stdout-pipe, POLLIN, 0), (stderr-pipe, POLLIN, 0)
+	poll-fds mut-array pollfd = (stdout-pipe, POLLIN, 0), (stderr-pipe, POLLIN, 0)
 	# timeout == -1 means we block
 	n-pollfds-with-events = poll-fds.begin-ptr poll poll-fds.size, -1 to-int64
 	if n-pollfds-with-events == 0

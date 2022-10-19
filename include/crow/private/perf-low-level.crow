@@ -2,9 +2,9 @@ no-std
 import
 	../col/array: array, size
 	../col/array-util: zip-each
-	../col/fix-arr:
-		copy-from, fill, fix-arr, free-unmanaged-fix-arr, index-of, set-subscript,
-		subscript, temp-as-array, unmanaged-uninitialized-fix-arr
+	../col/mut-array:
+		copy-from, fill, mut-array, free-unmanaged-mut-array, index-of, set-subscript,
+		subscript, temp-as-array, unmanaged-uninitialized-mut-array
 	../fun-util: subscript
 	../misc: void
 	../number: +, nat64
@@ -19,15 +19,15 @@ Only names in `names` will be measured; others will be ignored.
 If measurement was already enabled, this sets all measurements to 0 (and may change measured names)
 ###
 perf-enable-low-level void(measure-names array sym) summon trusted
-	*measure-names-var free-unmanaged-fix-arr
-	*measure-values-var free-unmanaged-fix-arr
-	*measure-names-var := measure-names.size unmanaged-uninitialized-fix-arr
+	*measure-names-var free-unmanaged-mut-array
+	*measure-values-var free-unmanaged-mut-array
+	*measure-names-var := measure-names.size unmanaged-uninitialized-mut-array
 	*measure-names-var copy-from measure-names
-	*measure-values-var := measure-names.size unmanaged-uninitialized-fix-arr
+	*measure-values-var := measure-names.size unmanaged-uninitialized-mut-array
 	*measure-values-var fill (0, 0)
 
-.measure-names-var fix-arr<sym> mut*() thread-local
-.measure-values-var fix-arr<perf-measure-value> mut*() thread-local
+.measure-names-var mut-array<sym> mut*() thread-local
+.measure-values-var mut-array<perf-measure-value> mut*() thread-local
 
 get-measure-index nat64?(measure-name sym) noctx unsafe
 	*measure-names-var index-of measure-name

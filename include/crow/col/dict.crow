@@ -21,9 +21,9 @@ import
 	./array-util:
 		every, find-index, fold, fold-with-index, remove-at, rtail, tail, update-at,
 		update-at-with-default
-	./fix-arr:
-		begin-ptr, cast-immutable, copy-from, end-ptr, fill-fix-arr, fix-arr, set-subscript, size,
-		subscript, uninitialized-fix-arr
+	./mut-array:
+		begin-ptr, cast-immutable, copy-from, end-ptr, fill-mut-array, mut-array, set-subscript, size,
+		subscript, uninitialized-mut-array
 	./list: every, flatten, first, fold, for-loop, list, new, size, tail, to-array, to-list
 
 ###
@@ -304,7 +304,7 @@ try-remove<k, v> try-remove-result<k, v>?(a v[k], key k) is-data<k> compare<k> h
 			cur + l.size
 	if total-size <= leaf-max-size
 		# TODO: if only one non-empty leaf, don't copy..
-		out fix-arr pair<k, v> = total-size uninitialized-fix-arr
+		out mut-array pair<k, v> = total-size uninitialized-mut-array
 		end = 0 fold-with-index a, (out-index, child, child-index) =>
 			new-child-here = if child-index == which
 				new-child
@@ -372,7 +372,7 @@ try-remove<k, v> try-remove-result<k, v>?(a v[k], key k) is-data<k> compare<k> h
 	key-hash = hash low-bits
 	max-hash = key-hash fold a, (cur, pair) =>
 		cur max (pair.from.hash unsafe-bit-shift-right hash-shift low-bits)
-	res fix-arr node<k, v> = max-hash + 1 fill-fix-arr empty-leaf-node
+	res mut-array node<k, v> = max-hash + 1 fill-mut-array empty-leaf-node
 	# TODO: avoid allocating the same leaf twice...
 	res[key-hash] := ((key, value),) leaf-node
 	for pair : a
@@ -419,7 +419,7 @@ values<k, v> v[](a v[k]) is-data<k> compare<k> hash-mix<k>
 
 # Calls `f` on every pair in the dictionary and returns an array of the results.
 for-loop<out, k, v> out[](a v[k], f act out(pair<k, v>)) trusted is-data<k> compare<k> hash-mix<k>
-	res fix-arr out = a.size uninitialized-fix-arr
+	res mut-array out = a.size uninitialized-mut-array
 	end = res.begin-ptr fold a, (cur, k, v) =>
 		*cur := f[(k, v)]
 		cur + 1

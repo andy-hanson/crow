@@ -1,5 +1,5 @@
 import
-	crow/col/fix-arr: begin-ptr, cast-immutable, fix-arr, size, subscript, uninitialized-fix-arr
+	crow/col/mut-array: begin-ptr, cast-immutable, mut-array, size, subscript, uninitialized-mut-array
 	crow/col/private/array-low-level: begin-ptr
 	crow/extra-types: fd-t
 	crow/io/print: out, print
@@ -53,7 +53,7 @@ main fut nat(_ array str) unsafe summon
 		assert bytes-sent == bytes.size.to-int64
 
 .receive-response void(socket fd-t) unsafe summon
-	buffer fix-arr nat8 = 0x2000 uninitialized-fix-arr
+	buffer mut-array nat8 = 0x2000 uninitialized-mut-array
 	# TODO: use epoll like we did in the server, for a non-blocking read.
 	bytes-read = socket read buffer.begin-ptr, buffer.size
 	assert bytes-read >= 0

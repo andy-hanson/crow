@@ -11,9 +11,9 @@ import
 	../str-conv: interp, finish, to-str, with-str, with-value
 	../str-util: join
 	../test-util: is
-	./fix-arr:
-		begin-ptr, copy, end-ptr, exists, fix-arr, fold, new, set-map,
-		set-subscript, size, subscript, to-array, uninitialized-fix-arr
+	./mut-array:
+		begin-ptr, copy, end-ptr, exists, mut-array, fold, new, set-map,
+		set-subscript, size, subscript, to-array, uninitialized-mut-array
 	./list: for-loop, list, to-list
 
 ###
@@ -27,7 +27,7 @@ then the second row left-to-right, etc.
 Grid elements are mutable, but changing the width or height is not supported.
 ###
 mut-grid<a> record mut
-	.elements fix-arr a
+	.elements mut-array a
 	width nat64
 	height nat64
 
@@ -61,7 +61,7 @@ Returns the entire row `y`.
 This is O(1).
 Throws if `y` is out of range.
 ###
-row<a> fix-arr a(a mut-grid a, y nat64)
+row<a> mut-array a(a mut-grid a, y nat64)
 	assert y < a.height
 	begin = y * a.width
 	a.elements[begin .. begin + a.width]
@@ -80,7 +80,7 @@ fill-mut-grid<a> mut-grid a(width nat64, height nat64, value a)
 
 # Creates a new grid with the given width and height, setting every element to `f[x, y]`.
 make-mut-grid<a> mut-grid a(width nat64, height nat64, f act a(nat64, nat64)) trusted
-	res mut-grid a = (width * height).uninitialized-fix-arr, width, height
+	res mut-grid a = (width * height).uninitialized-mut-array, width, height
 	res set-map-with-coords (_, coord) => f[coord.x, coord.y]
 	res
 
@@ -143,11 +143,11 @@ mut-grid-rows<a> record mut
 rows<a> mut-grid-rows a(a mut-grid a)
 	a,
 
-for-loop<a> void(a mut-grid-rows a, f act void(fix-arr a))
+for-loop<a> void(a mut-grid-rows a, f act void(mut-array a))
 	for y : 0 .. a.inner.height
 		f[a.inner row y]
 
-for-loop<out, in> out[](a mut-grid-rows in, f act out(fix-arr in))
+for-loop<out, in> out[](a mut-grid-rows in, f act out(mut-array in))
 	for y : 0 .. a.inner.height
 		f[a.inner row y]
 

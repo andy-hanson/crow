@@ -17,57 +17,57 @@ import
 	./array-util: each-with-index, exists, find-index, fold, fold-reverse, index-of
 
 ###
-`fix-arr` is a low-level type mostly useful for implementing other collections.
+`mut-array` is a low-level type mostly useful for implementing other collections.
 For normal code, a `mut[]` is preferable.
 
-A `fix-arr` is like a `mut[]`, but while a `mut[]` has capacity for pushing elements, `fix-arr` is fixed-size.
+A `mut-array` is like a `mut[]`, but while a `mut[]` has capacity for pushing elements, `mut-array` is fixed-size.
 This has a small performance benefit, since (like an immutable array)
-a `fix-arr` is just a pointer and size which can be stored by value.
+a `mut-array` is just a pointer and size which can be stored by value.
 
-You can't change what range of addresses a `fix-arr` points to, though you can write to its elements.
+You can't change what range of addresses a `mut-array` points to, though you can write to its elements.
 
-Like an immutable array, and unlike a `mut[]`, it's cheap to take a slice of a `fix-arr`.
+Like an immutable array, and unlike a `mut[]`, it's cheap to take a slice of a `mut-array`.
 Taking a slice aliases the elements, so writing to the slice writes to the original.
 ###
-fix-arr<a> record mut by-val
+mut-array<a> record mut by-val
 	.inner array a
 
-# TODO:INTERNAL (or fix-array-low-level)
-empty-fix-arr<a> fix-arr a() no-doc noctx
+# TODO:INTERNAL (or mut-array-low-level)
+empty-mut-array<a> mut-array a() no-doc noctx
 	# TODO: should not need type annotation
 	inner array a = ()
 	inner,
 
 ###
-Creates a new `fix-arr` with the given elements.
+Creates a new `mut-array` with the given elements.
 ###
-new<a> fix-arr a(...a array a)
-	a to-fix-arr
+new<a> mut-array a(...a array a)
+	a to-mut-array
 
 ###
-Copies the array elements to a new `fix-arr`.
+Copies the array elements to a new `mut-array`.
 
 This is O(n).
 ###
-to-fix-arr<a> fix-arr a(a array a)
-	a.size make-fix-arr i => a[i]
+to-mut-array<a> mut-array a(a array a)
+	a.size make-mut-array i => a[i]
 
 ###
 Copies the elements to an immutable array.
 
 This is O(n).
 
-There is no `move-to-array` for `fix-arr` since there might be slices that still refer to its elements.
+There is no `move-to-array` for `mut-array` since there might be slices that still refer to its elements.
 ###
-to-array<a> array a(a fix-arr a)
+to-array<a> array a(a mut-array a)
 	a.copy.inner
 
-# Get a `fix-arr` from a poitner and range of indices.
-subscript<a> fix-arr a(a a mut*, range range nat64) noctx unsafe
+# Get a `mut-array` from a poitner and range of indices.
+subscript<a> mut-array a(a a mut*, range range nat64) noctx unsafe
 	a.as-const[range],
 
-# Creates a `fix-arr` from a range of pointers.
-fix-arr-from-begin-end<a> fix-arr a(begin a mut*, end a mut*) no-doc unsafe noctx
+# Creates a `mut-array` from a range of pointers.
+mut-array-from-begin-end<a> mut-array a(begin a mut*, end a mut*) no-doc unsafe noctx
 	assert begin <= end
 	(begin.as-const array-from-begin-end end.as-const),
 
@@ -75,12 +75,12 @@ fix-arr-from-begin-end<a> fix-arr a(begin a mut*, end a mut*) no-doc unsafe noct
 Gets the element at the index.
 Throws if `index >= a.size`.
 ###
-subscript<a> a(a fix-arr a, index nat64) noctx trusted
+subscript<a> a(a mut-array a, index nat64) noctx trusted
 	assert index < a.size
 	a.begin-ptr[index]
 
 ###
-Slices the fix-arr.
+Slices the mut-array.
 This is O(1).
 
 Slices alias the original: Writes to the slice will affect the original.
@@ -88,42 +88,42 @@ Slices alias the original: Writes to the slice will affect the original.
 
 Throws if the slice would be out of bounds.
 ###
-subscript<a> fix-arr a(a fix-arr a, range range nat64)
+subscript<a> mut-array a(a mut-array a, range range nat64)
 	a.inner[range],
 
 ###
 Write to a single element.
 Throws if `index >= a.size`.
 ###
-set-subscript<a> void(a fix-arr a, index nat64, value a) noctx trusted
+set-subscript<a> void(a mut-array a, index nat64, value a) noctx trusted
 	assert index < a.size
 	a.begin-ptr[index] := value
 
 # `true` iff `a.size == 0`.
-is-empty<a> bool(a fix-arr a) noctx
+is-empty<a> bool(a mut-array a) noctx
 	a.size == 0
 
 # Number of elements.
-size<a> nat64(a fix-arr a) noctx
+size<a> nat64(a mut-array a) noctx
 	a.inner size
 
-# Pointer to the beginning of the `fix-arr`.
-begin-ptr<a> a mut*(a fix-arr a) noctx unsafe
+# Pointer to the beginning of the `mut-array`.
+begin-ptr<a> a mut*(a mut-array a) noctx unsafe
 	a.inner.begin-ptr as-mut
 
 ###
-Pointer to the end of the `fix-arr`.
+Pointer to the end of the `mut-array`.
 This is one past the last valid pointer.
 ###
-end-ptr<a> a mut*(a fix-arr a) noctx unsafe
+end-ptr<a> a mut*(a mut-array a) noctx unsafe
 	a.begin-ptr + a.size
 
 ###
-Copies the elements to a new `fix-arr`.
+Copies the elements to a new `mut-array`.
 
 This is O(n).
 ###
-copy<a> fix-arr a(a fix-arr a)
+copy<a> mut-array a(a mut-array a)
 	for x : a
 		x
 
@@ -135,7 +135,7 @@ Throws if `dest` and `source` are not the same size.
 
 This is O(n).
 ###
-copy-from<a> void(dest fix-arr a, source array a) trusted
+copy-from<a> void(dest mut-array a, source array a) trusted
 	assert dest.size == source.size
 	_ = dest.begin-ptr.as-any-mut-ptr memcpy source.begin-ptr.as-any-const-ptr, dest.size * size-of@<a>
 	()
@@ -145,57 +145,57 @@ Copies elements from `source` to `dest`.
 
 This is O(n).
 ###
-copy-from<a> void(dest fix-arr a, source fix-arr a) trusted
+copy-from<a> void(dest mut-array a, source mut-array a) trusted
 	dest copy-from source.temp-as-array
 
 ###
-Allocates a `fix-arr` without initializing any of its elements.
+Allocates a `mut-array` without initializing any of its elements.
 
-Since `fix-arr` is garbage-collected, this will cause problems unless either:
+Since `mut-array` is garbage-collected, this will cause problems unless either:
 * You write to all the elements before the current task ends.
-* You don't keep a reference to the `fix-arr` or to any uninitialized slice.
+* You don't keep a reference to the `mut-array` or to any uninitialized slice.
 
 Keep exceptions in mind: Don't store a reference to the result until it's initialized,
 since initialization code might throw an exception.
 
-See `zeroed-fix-arr` for a safer alternative, or `make-fix-arr` for a fully safe alternative.
+See `zeroed-mut-array` for a safer alternative, or `make-mut-array` for a fully safe alternative.
 ###
-uninitialized-fix-arr<a> fix-arr a(size nat64) unsafe
+uninitialized-mut-array<a> mut-array a(size nat64) unsafe
 	ptr a mut* = size alloc-uninitialized
 	ptr[0 .. size]
 
-unmanaged-uninitialized-fix-arr<a> fix-arr a(size nat64) no-doc noctx unsafe
+unmanaged-uninitialized-mut-array<a> mut-array a(size nat64) no-doc noctx unsafe
 	ptr a mut* = size unmanaged-alloc-elements
 	ptr[0 .. size]
 
-free-unmanaged-fix-arr<a> void(a fix-arr a) no-doc noctx unsafe
+free-unmanaged-mut-array<a> void(a mut-array a) no-doc noctx unsafe
 	a.begin-ptr unmanaged-free-elements a.size
 
 ###
-This is like `uninitialized-fix-arr` but fills memory with zeroes.
+This is like `uninitialized-mut-array` but fills memory with zeroes.
 
 Zeroed memory is GC-safe, since the GC ignores null pointers,
 but is still not safe to expose to readers (who may try to dereference the null pointers).
 
 This is used by collections like `mut[]` that need some excess capacity that will be GC-safe.
 ###
-zeroed-fix-arr<a> fix-arr a(size nat64) unsafe
-	res fix-arr a = size uninitialized-fix-arr
+zeroed-mut-array<a> mut-array a(size nat64) unsafe
+	res mut-array a = size uninitialized-mut-array
 	res set-zero-elements
 	res
 
 ###
-Sets every element to `zeroed`. See comment on `zeroed-fix-arr` for why this is useful.
+Sets every element to `zeroed`. See comment on `zeroed-mut-array` for why this is useful.
 ###
-set-zero-elements<a> void(a fix-arr a) noctx unsafe
+set-zero-elements<a> void(a mut-array a) noctx unsafe
 	a.begin-ptr set-zero-range a.size
 
 ###
-`fix-arr` where each element is `f[i]`.
+`mut-array` where each element is `f[i]`.
 Equivalent to `f[0], f[1], ...`.
 ###
-.make-fix-arr<a> fix-arr a(size nat64, f act a(nat64)) trusted
-	res fix-arr a = size uninitialized-fix-arr
+.make-mut-array<a> mut-array a(size nat64, f act a(nat64)) trusted
+	res mut-array a = size uninitialized-mut-array
 	out mut = res begin-ptr
 	i mut = 0
 	loop
@@ -209,19 +209,19 @@ Equivalent to `f[0], f[1], ...`.
 			continue
 
 ###
-`fix-arr` where every element is `value`.
+`mut-array` where every element is `value`.
 Equivalent to `value, value, ...`.
 ###
-fill-fix-arr<a> fix-arr a(size nat64, value a)
-	size make-fix-arr _ => value
+fill-mut-array<a> mut-array a(size nat64, value a)
+	size make-mut-array _ => value
 
 # Sets every element to `value`.
-fill<a> void(a fix-arr a, value a) noctx trusted
+fill<a> void(a mut-array a, value a) noctx trusted
 	unless a is-empty
 		*a.begin-ptr := value
-		a.begin-ptr + 1 fix-arr-from-begin-end a.end-ptr fill value
+		a.begin-ptr + 1 mut-array-from-begin-end a.end-ptr fill value
 
-in<a> bool(value a, a fix-arr a) noctx trusted equal<a>
+in<a> bool(value a, a mut-array a) noctx trusted equal<a>
 	cur mut = a.begin-ptr as-const
 	end = a.end-ptr as-const
 	loop
@@ -234,26 +234,26 @@ in<a> bool(value a, a fix-arr a) noctx trusted equal<a>
 			continue
 
 ###
-Unsafe cast a fix-arr to arr.
+Unsafe cast a mut-array to arr.
 Equivalent to `temp-as-array`, but the implication is that
-the `fix-arr` will never be written to again, so the `arr` can be used forever.
+the `mut-array` will never be written to again, so the `arr` can be used forever.
 ###
-cast-immutable<a> array a(a fix-arr a) noctx unsafe
+cast-immutable<a> array a(a mut-array a) noctx unsafe
 	a inner
 
-first<a> a?(a fix-arr a)
+first<a> a?(a mut-array a)
 	unless a is-empty
 		a[0],
 
-last<a> a?(a fix-arr a)
+last<a> a?(a mut-array a)
 	unless a is-empty
 		a[0],
 
-tail<a> fix-arr a(a fix-arr a)
+tail<a> mut-array a(a mut-array a)
 	forbid a is-empty
 	a[1 .. a.size]
 
-rtail<a> fix-arr a(a fix-arr a)
+rtail<a> mut-array a(a mut-array a)
 	forbid a is-empty
 	a[0 .. a.size - 1]
 
@@ -265,18 +265,18 @@ This is O(1).
 Unsafe because an array is expected to be fully immutable (meaning: no mutable references exist),
 so this value should only be used temporarily.
 ###
-temp-as-array<a> array a(a fix-arr a) noctx unsafe
+temp-as-array<a> array a(a mut-array a) noctx unsafe
 	a inner
 
 # Equivalent to `a.temp-as-array index-of value`.
-index-of<a> nat64?(a fix-arr a, value a) trusted noctx equal<a>
+index-of<a> nat64?(a mut-array a, value a) trusted noctx equal<a>
 	a.temp-as-array index-of value
 
 # Equivalent to `a.temp-as-array find-index f`.
-find-index<a> nat64?(a fix-arr a, f act bool(a)) trusted
+find-index<a> nat64?(a mut-array a, f act bool(a)) trusted
 	a.temp-as-array find-index f
 
-set-reverse<a> void(a fix-arr a) trusted
+set-reverse<a> void(a mut-array a) trusted
 	# avoid 'a.end-ptr - 1' overflowing for null arrays
 	unless a is-empty
 		a.begin-ptr set-reverse-recur a.end-ptr - 1
@@ -287,47 +287,47 @@ set-reverse<a> void(a fix-arr a) trusted
 
 region iteration
 
-exists<a> bool(a fix-arr a, f act bool(a)) trusted
+exists<a> bool(a mut-array a, f act bool(a)) trusted
 	a.temp-as-array exists f
 
-# Calls 'f' on each element in the fix-arr.
-for-loop<a> void(a fix-arr a, f act void(a)) trusted
+# Calls 'f' on each element in the mut-array.
+for-loop<a> void(a mut-array a, f act void(a)) trusted
 	a.temp-as-array for-loop f
 
-each-with-index<a> void(a fix-arr a, f act void(a, nat64)) trusted
+each-with-index<a> void(a mut-array a, f act void(a, nat64)) trusted
 	a.temp-as-array each-with-index f
 
-fold<a, b> a(acc a, a fix-arr b, f act a(a, b)) trusted
+fold<a, b> a(acc a, a mut-array b, f act a(a, b)) trusted
 	acc fold a.temp-as-array, f
-fold-reverse<a, b> a(acc a, a fix-arr b, f act a(a, b)) trusted
+fold-reverse<a, b> a(acc a, a mut-array b, f act a(a, b)) trusted
 	acc fold-reverse a.temp-as-array, f
 
-set-map<a> void(a fix-arr a, f act a(a)) trusted
+set-map<a> void(a mut-array a, f act a(a)) trusted
 	a.begin-ptr set-map-recur a.end-ptr, f
 .set-map-recur<a> void(cur a mut*, end a mut*, f act a(a)) unsafe
 	unless cur == end
 		*cur := f[*cur]
 		cur + 1 set-map-recur end, f
 
-for-loop<out, in> fix-arr out(a fix-arr in, f act out(in)) trusted
-	a.size make-fix-arr i => f[a[i]]
+for-loop<out, in> mut-array out(a mut-array in, f act out(in)) trusted
+	a.size make-mut-array i => f[a[i]]
 
-map-with-index<out, in> fix-arr out(a fix-arr in, f act out(in, nat64)) trusted
-	a.size make-fix-arr i => f[a[i], i]
+map-with-index<out, in> mut-array out(a mut-array in, f act out(in, nat64)) trusted
+	a.size make-mut-array i => f[a[i], i]
 
 ###
 Casts elements to a different type.
 If the element type is different, adjusts the size so that the number of bytes is the same.
 ###
-cast-fix-arr<out, in> fix-arr out(a fix-arr in) noctx unsafe
+cast-mut-array<out, in> mut-array out(a mut-array in) noctx unsafe
 	assert size-of@<in> != 0 && size-of@<out> != 0
 	size-bytes = a.size * size-of@<in>
 	assert size-bytes % size-of@<out> == 0
 	size-out = size-bytes / size-of@<out>
 	a.begin-ptr.ptr-cast@<out, in>[0 .. size-out]
 
-for-loop<out, in> array out(a fix-arr in, f act out(in)) trusted
+for-loop<out, in> array out(a mut-array in, f act out(in)) trusted
 	a for-loop f cast-immutable
 
-map-to-array-with-index<out, in> array out(a fix-arr in, f act out(in, nat64)) trusted
+map-to-array-with-index<out, in> array out(a mut-array in, f act out(in, nat64)) trusted
 	a map-with-index f cast-immutable

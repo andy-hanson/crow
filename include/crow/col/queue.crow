@@ -11,7 +11,7 @@ import
 	../range: ..
 	./array: array, for-loop, is-empty, new, size
 	./array-util: first, fold, tail
-	./fix-arr: begin-ptr, cast-immutable, end-ptr, fix-arr, subscript, uninitialized-fix-arr
+	./mut-array: begin-ptr, cast-immutable, end-ptr, mut-array, subscript, uninitialized-mut-array
 	./list: ==, list, new, to-array, to-list
 	./stack: ~, fold, for-loop, is-empty, new, size, stack, to-list
 
@@ -37,7 +37,7 @@ Copies queue elements to an array.
 This is O(n).
 ###
 to-list<a> a[](a queue a) trusted
-	res fix-arr a = a.size uninitialized-fix-arr
+	res mut-array a = a.size uninitialized-mut-array
 	end = res.begin-ptr fold a, (out, x) =>
 		*out := x
 		out + 1
@@ -79,7 +79,7 @@ for-loop<a> void(a queue a, f act void(a))
 	a.right for-loop f
 
 for-loop<out, in> queue out(a queue in, f act out(in)) trusted
-	res fix-arr out = a.size uninitialized-fix-arr
+	res mut-array out = a.size uninitialized-mut-array
 	end = res.begin-ptr fold a, (out, x) =>
 		*out := f[x]
 		out + 1
@@ -90,7 +90,7 @@ fold<a, b> a(acc a, a queue b, f act a(a, b))
 	acc fold a.left, f fold a.right, f
 
 filter<a> queue a(a queue a, f act bool(a)) trusted
-	res fix-arr a = a.size uninitialized-fix-arr
+	res mut-array a = a.size uninitialized-mut-array
 	end = res.begin-ptr fold a, (out, x) =>
 		if f[x]
 			*out := x

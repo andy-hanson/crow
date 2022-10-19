@@ -19,7 +19,7 @@ import
 	../../test-util: is
 	../array: array, new, subscript
 	../array-util: fold, fold-with-index
-	../fix-arr: begin-ptr, cast-immutable, end-ptr, fix-arr, uninitialized-fix-arr
+	../mut-array: begin-ptr, cast-immutable, end-ptr, mut-array, uninitialized-mut-array
 	../list: ==, fold, list, new, size, to-list
 	../private/array-low-level: begin-ptr, end-ptr, subscript
 
@@ -430,7 +430,7 @@ for-loop index-set(a index-set, f act nat64(nat64))
 	a for-loop f to-index-set
 
 for-loop<a> a[](a index-set, f act a(nat64)) trusted
-	res fix-arr a = a.size uninitialized-fix-arr
+	res mut-array a = a.size uninitialized-mut-array
 	end = res.begin-ptr fold a, (cur, x) =>
 		*cur := f[x]
 		cur + 1

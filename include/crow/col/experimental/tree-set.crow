@@ -15,7 +15,7 @@ import
 	../../test-util: is
 	../array: array, for-loop, is-empty, size, subscript
 	../array-util: fold, insert-at-ptr, last, rtail, tail, try-remove
-	../fix-arr: begin-ptr, cast-immutable, end-ptr, fix-arr, subscript, uninitialized-fix-arr
+	../mut-array: begin-ptr, cast-immutable, end-ptr, mut-array, subscript, uninitialized-mut-array
 	../iter: rest
 	../list: for-loop, list, size, to-array, to-list
 	../mut-stack: ~=, mut-stack, new, peek, pop
@@ -104,7 +104,7 @@ Union of two sets.
 This is O(n).
 ###
 ~~ <a> tree-set a(a tree-set a, b tree-set a) trusted is-data<a> compare<a>
-	out fix-arr a = a.size + b.size uninitialized-fix-arr
+	out mut-array a = a.size + b.size uninitialized-mut-array
 	b-iter = b iter
 	end = out.begin-ptr fold a, (cur, value) =>
 		cur walk-iter-union value, b-iter
@@ -221,7 +221,7 @@ try-remove<a> tree-set<a>?(a tree-set a, b a) is-data<a> compare<a>
 .iter<a> record mut
 	cur mut array a
 	# If a node is on the stack, we have yet to write out the middle and right.
-	# TODO:PERF use a fix-arr, initialized to the tree's height
+	# TODO:PERF use a mut-array, initialized to the tree's height
 	stack mut-stack inner-node a
 
 .iter<a> iter a(a tree-set a) trusted
@@ -367,12 +367,12 @@ try-remove<a> tree-set<a>?(a tree-set a, b a) is-data<a> compare<a>
 		l size
 
 .tree-to-array<a> array a(a inner-node a, value a, size nat64) trusted compare<a>
-	out fix-arr a = size uninitialized-fix-arr
+	out mut-array a = size uninitialized-mut-array
 	end = out.begin-ptr tree-to-array-recur a.inner, value
 	assert end == out.end-ptr
 	out cast-immutable
 .tree-to-array<a> array a(a inner-node a, size nat64) trusted compare<a>
-	out fix-arr a = size uninitialized-fix-arr
+	out mut-array a = size uninitialized-mut-array
 	end = out.begin-ptr tree-to-array-recur a.inner
 	assert end == out.end-ptr
 	out cast-immutable
@@ -443,7 +443,7 @@ fold<a, b> a(acc a, a tree-set b, f act a(a, b)) is-data<b> compare<b>
 	f[left-value, a.value] fold-recur a.right, f
 
 filter<a> tree-set a(a tree-set a, f act bool(a)) trusted is-data<a> compare<a>
-	out fix-arr a = a.size uninitialized-fix-arr
+	out mut-array a = a.size uninitialized-mut-array
 	end = out.begin-ptr fold a, (cur, value) =>
 		if f[value]
 			*cur := value
@@ -455,7 +455,7 @@ filter<a> tree-set a(a tree-set a, f act bool(a)) trusted is-data<a> compare<a>
 # TODO: find-and-get
 
 map<out, in> tree-set out(a tree-set in, f act out(in)) is-data<in> compare<in> is-data<out> compare<out> trusted
-	out fix-arr out = a.size uninitialized-fix-arr
+	out mut-array out = a.size uninitialized-mut-array
 	end = out.begin-ptr fold a, (cur, value) =>
 		*cur := f[value]
 		cur + 1

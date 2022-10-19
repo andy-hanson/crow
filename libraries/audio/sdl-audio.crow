@@ -1,7 +1,7 @@
 no-std
 import
 	crow/cell: as-const-ptr, as-mut-ptr, cell, new
-	crow/col/fix-arr: cast-fix-arr, subscript
+	crow/col/mut-array: cast-mut-array, subscript
 	crow/c-types: c-int
 	crow/fut: new
 	crow/misc: new, void
@@ -48,5 +48,5 @@ start-sdl-audio audio() summon trusted
 .audio-callback void(userdata any-mut-ptr, stream nat8 mut*, len c-int) noctx unsafe
 	write-ctx write-ctx = userdata as-ref
 	queue = write-ctx queue
-	floats = stream[0 .. len.to-nat64] cast-fix-arr@<float32, nat8>
+	floats = stream[0 .. len.to-nat64] cast-mut-array@<float32, nat8>
 	queue pull floats

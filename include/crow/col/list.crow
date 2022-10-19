@@ -15,7 +15,7 @@ import
 	./array-util:
 		array-iter, end-iter, find-and-get, fold, groups-of, index-of, iter, new, next, prev, repeat,
 		reverse, rtail, slice-left, slice-right, strip-left-while, strip-right-while, tail
-	./fix-arr: begin-ptr, cast-immutable, end-ptr, fix-arr, uninitialized-fix-arr
+	./mut-array: begin-ptr, cast-immutable, end-ptr, mut-array, uninitialized-mut-array
 	./iter: new, rest, value, value-and-rest
 	./private/array-builder: ~=, array-builder, finish, new
 	./private/array-low-level: array-cast, begin-ptr, end-ptr
@@ -874,7 +874,7 @@ for-loop<out, in> out[](a in[], f act out(in))
 	a for-loop f to-list
 
 for-loop<out, in> array out(a in[], f act out(in)) trusted
-	res fix-arr out = a.size uninitialized-fix-arr
+	res mut-array out = a.size uninitialized-mut-array
 	end = res.begin-ptr fold a, (out, x) =>
 		*out := f[x]
 		out + 1

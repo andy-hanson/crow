@@ -16,22 +16,22 @@ import
 	../range: .., for-loop, reverse
 	./array: array, for-loop
 	./array-util: each-with-index, exists, find-index, fold, in, index-of
-	./fix-arr:
-		begin-ptr, cast-immutable, empty-fix-arr, fill-fix-arr, fix-arr, for-loop,
-		set-map, set-reverse, set-zero-elements, size, subscript, temp-as-array, uninitialized-fix-arr
+	./mut-array:
+		begin-ptr, cast-immutable, empty-mut-array, fill-mut-array, mut-array, for-loop,
+		set-map, set-reverse, set-zero-elements, size, subscript, temp-as-array, uninitialized-mut-array
 	./list: for-loop, list, to-list
 	./private/array-low-level: array-from-begin-size
 
 ###
 Mutable array type that can change in size.
-This is represented as a reference to a `fix-arr` with extra capacity.
+This is represented as a reference to a `mut-array` with extra capacity.
 Appending (or removing) elements to the end is amortized O(1),
 but appending (or removing) from the beginning is always O(N).
 ###
 mut-list<a> record mut
 	# backing.size is the capacity
 	# For the GC's sake, unused parts of backing are filled with 'zeroed'
-	.backing .mut fix-arr a
+	.backing .mut mut-array a
 	size .mut nat64
 
 ###
@@ -52,7 +52,7 @@ capacity<a> nat64(a a mut[]) no-doc noctx unsafe
 	a.backing size
 
 mut-list-by-val<a> by-val a mut[]() no-doc noctx trusted
-	empty-fix-arr, 0
+	empty-mut-array, 0
 
 mut-list-by-val-with-capacity-from-unmanaged-memory<a> by-val<a mut[]>(capacity nat64) no-doc noctx unsafe
 	backing a mut* = capacity unmanaged-alloc-zeroed-elements
@@ -62,7 +62,7 @@ mut-list-by-val-with-capacity-from-unmanaged-memory<a> by-val<a mut[]>(capacity 
 `mut-list` where every element is `value`.
 ###
 fill-mut-list<a> a mut[](size nat64, value a)
-	(size fill-fix-arr value), size
+	(size fill-mut-array value), size
 
 ###
 Creates a new list with the given elements.
@@ -71,7 +71,7 @@ new<a> a mut[](...a array a)
 	a.to-list to-mut-list
 
 to-mut-list<a> a mut[](a a[])
-	backing fix-arr a = empty-fix-arr
+	backing mut-array a = empty-mut-array
 	res a mut[] = backing, 0
 	res ~~= a
 	res
@@ -102,11 +102,11 @@ move-to-list<a> a[](a a mut[]) noctx trusted
 	a.move-to-array to-list
 
 move-to-array<a> array a(a a mut[]) noctx trusted
-	a.move-to-fix-arr.cast-immutable
+	a.move-to-mut-array.cast-immutable
 
-move-to-fix-arr<a> fix-arr a(a a mut[]) noctx trusted
+move-to-mut-array<a> mut-array a(a a mut[]) noctx trusted
 	res = a.begin-ptr[0 .. a.size]
-	a.backing := empty-fix-arr
+	a.backing := empty-mut-array
 	a.size := 0
 	res
 
@@ -145,10 +145,10 @@ set-last<a> void(a a mut[], value a)
 	a[a.size - 1] := value
 
 ###
-Converts to an `fix-arr`.
+Converts to an `mut-array`.
 "Temp" because it's UB if the result is used after ths size of `a` changes.
 ###
-temp-as-fix-arr<a> fix-arr a(a a mut[]) no-doc noctx unsafe
+temp-as-mut-array<a> mut-array a(a a mut[]) no-doc noctx unsafe
 	a.begin-ptr[0 .. a.size]
 
 ###
@@ -156,7 +156,7 @@ Converts to an `array`.
 "Temp" because it's UB if the result is used after `a` is written to.
 ###
 temp-as-array<a> array a(a a mut[]) no-doc noctx unsafe
-	a.temp-as-fix-arr temp-as-array
+	a.temp-as-mut-array temp-as-array
 
 # True iff `a.size == 0`.
 is-empty<a> bool(a a mut[]) noctx
@@ -237,7 +237,7 @@ pop-n<a> void(a a mut[], n nat64) trusted
 ~~= <a> void(a a mut[], values a[])
 	for x : values
 		a ~= x
-~~= <a> void(a a mut[], values fix-arr a)
+~~= <a> void(a a mut[], values mut-array a)
 	for x : values
 		a ~= x
 ~~= <a> void(a a mut[], values a mut[])
@@ -255,7 +255,7 @@ push-capacity-must-be-sufficient<a> void(a a mut[], value a) no-doc noctx unsafe
 .increase-capacity-to<a> void(a a mut[], new-capacity nat64) unsafe
 	assert new-capacity > a.capacity
 	old-begin = a begin-ptr
-	a.backing := new-capacity uninitialized-fix-arr
+	a.backing := new-capacity uninitialized-mut-array
 	a.begin-ptr copy-data-from old-begin.as-const, a.size
 	a.backing[a.size + 1 .. a.backing.size] set-zero-elements
 
@@ -355,7 +355,7 @@ remove-at<a> a(a a mut[], ptr a mut*) unsafe
 	a remove-at ptr - a.begin-ptr
 
 set-reverse<a> void(a a mut[]) trusted
-	a.temp-as-fix-arr set-reverse
+	a.temp-as-mut-array set-reverse
 
 region iteration
 
@@ -391,21 +391,21 @@ filter<a> a mut[](a a mut[], f act bool(a)) trusted
 	res
 
 for-loop<out, in> out mut[](a in mut[], f act out(in)) trusted
-	a map-to-fix-arr f as-mut-list
+	a map-to-mut-array f as-mut-list
 
 for-loop<out, in> out[](a in mut[], f act out(in)) trusted
-	(a map-to-fix-arr f).cast-immutable to-list
+	(a map-to-mut-array f).cast-immutable to-list
 
-.map-to-fix-arr<out, in> fix-arr out(a in mut[], f act out(in))
+.map-to-mut-array<out, in> mut-array out(a in mut[], f act out(in))
 	for x : a.backing[0 .. a.size]
 		f[x]
 
 map-opt<out, in> out mut[](a in mut[], f act out?(in)) trusted
-	a map-opt-to-fix-arr f as-mut-list
+	a map-opt-to-mut-array f as-mut-list
 
 # TODO: this works on anything supporting 'fold' .. don't want to repeat for every collection
-map-opt-to-fix-arr<out, in> fix-arr out(a in mut[], f act out?(in)) trusted
-	out fix-arr out = a.size uninitialized-fix-arr
+map-opt-to-mut-array<out, in> mut-array out(a in mut[], f act out?(in)) trusted
+	out mut-array out = a.size uninitialized-mut-array
 	end = out.begin-ptr fold a, (cur, x) =>
 		if fx ?= f[x]
 			*cur := fx
@@ -414,7 +414,7 @@ map-opt-to-fix-arr<out, in> fix-arr out(a in mut[], f act out?(in)) trusted
 			cur
 	out[0 .. end - out.begin-ptr]
 
-.as-mut-list<a> a mut[](a fix-arr a) unsafe
+.as-mut-list<a> a mut[](a mut-array a) unsafe
 	a, a.size
 
 region mutating iteration
@@ -445,4 +445,4 @@ Overwrites every element `x` with `f[x]`.
 This can be written as `a.map := f`.
 ###
 set-map<a> void(a a mut[], f act a(a)) trusted
-	a.temp-as-fix-arr set-map f
+	a.temp-as-mut-array set-map f

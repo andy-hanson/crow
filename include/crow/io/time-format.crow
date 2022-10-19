@@ -9,7 +9,7 @@ import
 	time: gmtime, localtime, strftime
 	../bool: bool, false, true
 	../col/array: subscript
-	../col/fix-arr: cast-immutable, begin-ptr, fix-arr, size, uninitialized-fix-arr
+	../col/mut-array: cast-immutable, begin-ptr, mut-array, size, uninitialized-mut-array
 	../col/list: to-list
 	../number: ==, <=>, +, nat64
 	../range: ..
@@ -126,6 +126,6 @@ second str(locale time-locale, time unix-time) summon
 		&seconds localtime
 	else
 		&seconds gmtime
-	res fix-arr char8 = max-size + 1 uninitialized-fix-arr
+	res mut-array char8 = max-size + 1 uninitialized-mut-array
 	len = res.begin-ptr strftime res.size, format.to-c-str, tm
 	res.cast-immutable[0 .. len].to-list str

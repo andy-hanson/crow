@@ -7,9 +7,9 @@ For the raw library, import from `lmdb/headers` instead of `lmdb`.
 import
 	crow/bits: |
 	crow/cell: *, cell, new
-	crow/col/fix-arr:
-		begin-ptr, cast-immutable, end-ptr, fix-arr, fix-arr-from-begin-end, to-array,
-		uninitialized-fix-arr
+	crow/col/mut-array:
+		begin-ptr, cast-immutable, end-ptr, mut-array, mut-array-from-begin-end, to-array,
+		uninitialized-mut-array
 	crow/col/private/array-low-level: begin-ptr
 	crow/c-types: u-int
 	crow/extra-types: err-t
@@ -303,7 +303,7 @@ fold<a, k, v> a(acc a, txn lmdb-txn, db lmdb-db<k, v>, f act a(a, k, v)) trusted
 
 # Calls `f` for each key-value pair in `db` and returns an array of the results.
 map<out, k, v> out[](txn lmdb-txn, db lmdb-db<k, v>, f act out(k, v)) trusted summon lmdb-key<k> serialize<v>
-	out fix-arr out = txn count db uninitialized-fix-arr
+	out mut-array out = txn count db uninitialized-mut-array
 	end = out.begin-ptr fold txn, db, (cur, key, value) =>
 		*cur := f[key, value]
 		cur + 1
@@ -325,7 +325,7 @@ zip<out, k, v0, v1> out[](
 	db1-count = txn count db1
 	assert db0-count == db1-count
 	unless db0-count == 0
-		res fix-arr out = db0-count uninitialized-fix-arr
+		res mut-array out = db0-count uninitialized-mut-array
 		end = res.begin-ptr zip-fold-non-empty txn, db0, db1, (cur, key, value0, value1) =>
 			*cur := f[key, value0, value1]
 			cur + 1
@@ -404,7 +404,7 @@ zip-fold<a, k, v0, v1> a(
 	array.size, array.begin-ptr.as-mut
 
 .bytes-of-val nat8[](a MDB_val) unsafe
-	(a.mv_data fix-arr-from-begin-end a.mv_data + a.mv_size).to-array to-list
+	(a.mv_data mut-array-from-begin-end a.mv_data + a.mv_size).to-array to-list
 
 .check-lmdb-error void(a err-t)
 	assert a == MDB_SUCCESS : "LMDB error code: {a} ({a error-name})"

@@ -14,7 +14,7 @@ import
 	../../bool: !, ||, bool, false, true
 	../../cell: cell, new
 	../../col/array: array, subscript
-	../../col/fix-arr: cast-immutable, begin-ptr, fix-arr, size, uninitialized-fix-arr
+	../../col/mut-array: cast-immutable, begin-ptr, mut-array, size, uninitialized-mut-array
 	../../compare: !=, <
 	../../c-types: c-int
 	../../extra-types: fd-t
@@ -150,7 +150,7 @@ close-client void(client SOCKET) unsafe summon
 		listen-fd accept-clients epoll-fd, on-accepted-client
 
 .handle-client-linux void(fd fd-t, on-received-chunk ref void(SOCKET, array nat8)) unsafe summon
-	buf fix-arr nat8 = 0x1000 uninitialized-fix-arr
+	buf mut-array nat8 = 0x1000 uninitialized-mut-array
 	count = fd read buf.begin-ptr, buf.size
 	if count < 0
 		err = errno

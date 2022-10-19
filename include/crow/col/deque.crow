@@ -13,7 +13,7 @@ import
 	../test-util: is
 	./array: array, for-loop, is-empty, size
 	./array-util: first, fold, last, rtail, tail
-	./fix-arr: begin-ptr, cast-immutable, end-ptr, fix-arr, subscript, uninitialized-fix-arr
+	./mut-array: begin-ptr, cast-immutable, end-ptr, mut-array, subscript, uninitialized-mut-array
 	./list: ==, for-loop, list, new, to-array, to-list
 	./stack:
 		~, is-empty, fold, for-loop, new, pop, rest, reversed, size, stack, to-list, value
@@ -41,7 +41,7 @@ to-deque<a> deque a(a a[])
 
 # Copy elements to a list.
 to-list<a> a[](a deque a) trusted
-	res fix-arr a = a.size uninitialized-fix-arr
+	res mut-array a = a.size uninitialized-mut-array
 	end = res.begin-ptr fold a, (out, x) =>
 		*out := x
 		out + 1
@@ -114,7 +114,7 @@ fold<a, b> a(acc a, a deque b, f act a(a, b))
 	acc fold a.left.reversed, f fold a.mid, f fold a.right, f
 
 filter<a> deque a(a deque a, f act bool(a)) trusted
-	res fix-arr a = a.size uninitialized-fix-arr
+	res mut-array a = a.size uninitialized-mut-array
 	end = res.begin-ptr fold a, (out, x) =>
 		if f[x]
 			*out := x
@@ -124,7 +124,7 @@ filter<a> deque a(a deque a, f act bool(a)) trusted
 	res[0 .. end - res.begin-ptr].cast-immutable.to-list to-deque
 
 for-loop<out, in> out[](a deque in, f act out(in)) trusted
-	res fix-arr out = a.size uninitialized-fix-arr
+	res mut-array out = a.size uninitialized-mut-array
 	end = res.begin-ptr fold a, (out, x) =>
 		*out := f[x]
 		out + 1
