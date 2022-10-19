@@ -99,7 +99,7 @@ region arr
 ###
 Array of values.
 
-For a mutable version, see the `mut-arr` module.
+For a mutable version, see the `mut-list` module.
 
 This is implemented as a pointer and a length, also known as a "fat pointer".
 This means this is also the type for a slice of an array, and slicing is O(1).

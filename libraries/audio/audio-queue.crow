@@ -6,7 +6,7 @@ import
 	crow/col/fix-arr:
 		begin-ptr, end-ptr, fill, fix-arr, fix-arr-from-begin-end, size,
 		temp-as-arr, uninitialized-fix-arr
-	crow/col/mut-arr: ~=, begin-ptr, clear, end-ptr, mut-arr, new, set-filter
+	crow/col/mut-list: ~=, begin-ptr, clear, end-ptr, mut-list, new, set-filter
 	crow/col/private/array-low-level: array-from-begin-end, begin-ptr, end-ptr
 	crow/compare: !=, >
 	crow/misc: new, void

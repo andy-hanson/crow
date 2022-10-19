@@ -3,7 +3,7 @@ import
 	crow/bool: &&
 	crow/cell: *, as-mut-ptr, cell, new
 	crow/col/array: array, size
-	crow/col/mut-arr: begin-ptr, move-to-array, mut-arr, size, uninitialized-mut-arr
+	crow/col/mut-list: begin-ptr, move-to-array, mut-list, size, uninitialized-mut-list
 	crow/col/private/array-low-level: begin-ptr, end-ptr
 	crow/compare: <=, min
 	crow/exception: unreachable
@@ -35,7 +35,7 @@ sound-from-file-content sound(content array nat8) trusted
 	f.sf_error check-sndfile-error
 	n-channels = info.channels to-nat64
 	sample-rate = info.samplerate to-nat64
-	samples float32 mut[] = info.frames * n-channels uninitialized-mut-arr
+	samples float32 mut[] = info.frames * n-channels uninitialized-mut-list
 	n-read = f sf_read_float samples.begin-ptr, samples.size
 	f.sf_close check-sndfile-error
 	assert n-read == samples.size

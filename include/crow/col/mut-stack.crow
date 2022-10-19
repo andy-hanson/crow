@@ -5,9 +5,9 @@ import
 	../number: nat64
 	../opt: new, opt
 	./list: list
-	./mut-arr:
-		~=, ~~=, copy, fold, for-loop, is-empty, last, mut-arr, new, pop, set-filter,
-		set-map, size, to-list, to-mut-arr
+	./mut-list:
+		~=, ~~=, copy, fold, for-loop, is-empty, last, mut-list, new, pop, set-filter,
+		set-map, size, to-list, to-mut-list
 
 ###
 Mutable stack.
@@ -28,7 +28,7 @@ copy<a> mut-stack a(a mut-stack a)
 
 # Copy elements to a new stack.
 to-mut-stack<a> mut-stack a(a a[])
-	a.to-mut-arr,
+	a.to-mut-list,
 
 # Copy elements to a list.
 to-list<a> a[](a mut-stack a)

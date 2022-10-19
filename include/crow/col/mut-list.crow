@@ -28,7 +28,7 @@ This is represented as a reference to a `fix-arr` with extra capacity.
 Appending (or removing) elements to the end is amortized O(1),
 but appending (or removing) from the beginning is always O(N).
 ###
-mut-arr<a> record mut
+mut-list<a> record mut
 	# backing.size is the capacity
 	# For the GC's sake, unused parts of backing are filled with 'zeroed'
 	.backing .mut fix-arr a
@@ -36,7 +36,7 @@ mut-arr<a> record mut
 
 ###
 Pointer to the first element.
-Since `mut-arr` changes its underlying data occasionally,
+Since `mut-list` changes its underlying data occasionally,
 it's UB if this is used after the size of `a` changes.
 ###
 begin-ptr<a> a mut*(a a mut[]) no-doc noctx unsafe
@@ -51,27 +51,26 @@ is-at-capacity<a> bool(a a mut[]) no-doc noctx unsafe
 capacity<a> nat64(a a mut[]) no-doc noctx unsafe
 	a.backing size
 
-mut-arr-by-val<a> by-val a mut[]() no-doc noctx trusted
+mut-list-by-val<a> by-val a mut[]() no-doc noctx trusted
 	empty-fix-arr, 0
 
-mut-arr-by-val-with-capacity-from-unmanaged-memory<a> by-val<a mut[]>(capacity nat64) no-doc noctx unsafe
+mut-list-by-val-with-capacity-from-unmanaged-memory<a> by-val<a mut[]>(capacity nat64) no-doc noctx unsafe
 	backing a mut* = capacity unmanaged-alloc-zeroed-elements
 	backing[0 .. capacity], 0
 
 ###
-mut-arr where every element is `value`.
+`mut-list` where every element is `value`.
 ###
-fill-mut-arr<a> a mut[](size nat64, value a)
+fill-mut-list<a> a mut[](size nat64, value a)
 	(size fill-fix-arr value), size
 
 ###
-Copies an `arr` to a `mut-arr`.
-Writes to the `mut-arr` won't affect the `arr`.
+Creates a new list with the given elements.
 ###
 new<a> a mut[](...a array a)
-	a.to-list to-mut-arr
+	a.to-list to-mut-list
 
-to-mut-arr<a> a mut[](a a[])
+to-mut-list<a> a mut[](a a[])
 	backing fix-arr a = empty-fix-arr
 	res a mut[] = backing, 0
 	res ~~= a
@@ -82,21 +81,21 @@ clear<a> void(a a mut[]) noctx trusted
 	a.size := 0
 
 ###
-Copies the `mut-arr`.
+Copies the `mut-list`.
 Writes to the original won't affect the copy.
 ###
 copy<a> a mut[](a a mut[]) trusted
-	a.temp-as-array.to-list to-mut-arr
+	a.temp-as-array.to-list to-mut-list
 
 ###
-Copies a `mut-arr` to a `list`.
-Writes to the `mut-arr` won't affect the `list`.
+Copies a `mut-list` to a `list`.
+Writes to the `mut-list` won't affect the `list`.
 ###
 to-list<a> a[](a a mut[])
 	a.copy move-to-list
 
 ###
-Convert to a `dict`, clearning the original `mut-arr` in the process.
+Convert to a `dict`, clearning the original `mut-list` in the process.
 (This avoids copying but still ensures that the result is immutable.)
 ###
 move-to-list<a> a[](a a mut[]) noctx trusted
@@ -265,7 +264,7 @@ push-capacity-must-be-sufficient<a> void(a a mut[], value a) no-doc noctx unsafe
 		a increase-capacity-to min-capacity
 
 ###
-Ensure that the mut-arr can grow to a size of `reserved` without reallocating.
+Ensure that the mut-list can grow to a size of `reserved` without reallocating.
 Does nothing if the capacity is already sufficient.
 This may reserve more space than requested, so calling `reserve` repeatedly for slowly increasing sizes
 doesn't reallocate every time, and is no worse than pushing repeatedly.
@@ -288,7 +287,7 @@ remove-unordered-at<a> a(a a mut[], index nat64) no-doc noctx trusted
 	a.size := new-size
 	res
 
-uninitialized-mut-arr<a> a mut[](size nat64) unsafe
+uninitialized-mut-list<a> a mut[](size nat64) unsafe
 	res a mut[] = ()
 	res unsafe-set-size size
 	res
@@ -377,11 +376,11 @@ exists<a> bool(a a mut[], f act bool(a)) trusted
 fold<a, b> a(acc a, a b mut[], f act a(a, b)) trusted
 	acc fold a.temp-as-array, f
 
-reversed-mut-arr<a> record mut
+reversed-mut-list<a> record mut
 	.inner a mut[]
-reversed<a> reversed-mut-arr a(a a mut[])
+reversed<a> reversed-mut-list a(a a mut[])
 	a,
-for-loop<a> void(a reversed-mut-arr a, f act void(a))
+for-loop<a> void(a reversed-mut-list a, f act void(a))
 	m = a inner
 	for i : 0 .. m.size reverse
 		f[m[i]]
@@ -392,7 +391,7 @@ filter<a> a mut[](a a mut[], f act bool(a)) trusted
 	res
 
 for-loop<out, in> out mut[](a in mut[], f act out(in)) trusted
-	a map-to-fix-arr f as-mut-arr
+	a map-to-fix-arr f as-mut-list
 
 for-loop<out, in> out[](a in mut[], f act out(in)) trusted
 	(a map-to-fix-arr f).cast-immutable to-list
@@ -402,7 +401,7 @@ for-loop<out, in> out[](a in mut[], f act out(in)) trusted
 		f[x]
 
 map-opt<out, in> out mut[](a in mut[], f act out?(in)) trusted
-	a map-opt-to-fix-arr f as-mut-arr
+	a map-opt-to-fix-arr f as-mut-list
 
 # TODO: this works on anything supporting 'fold' .. don't want to repeat for every collection
 map-opt-to-fix-arr<out, in> fix-arr out(a in mut[], f act out?(in)) trusted
@@ -415,7 +414,7 @@ map-opt-to-fix-arr<out, in> fix-arr out(a in mut[], f act out?(in)) trusted
 			cur
 	out[0 .. end - out.begin-ptr]
 
-.as-mut-arr<a> a mut[](a fix-arr a) unsafe
+.as-mut-list<a> a mut[](a fix-arr a) unsafe
 	a, a.size
 
 region mutating iteration

@@ -10,7 +10,7 @@ import
 		reverse, right, slice-left, slice-right, split-by-sublist, starts-with, to-array,
 		try-remove-end, try-remove-start, try-split-once-by-fn, try-split-once-by-sublist,
 		try-split-once-by-sublist-right
-	./col/mut-arr: copy, move-to-list, to-mut-arr
+	./col/mut-list: copy, move-to-list, to-mut-list
 	./compare: <
 	./number: ==, <=>, +, nat8, nat64
 	./opt: ??, new, opt
@@ -247,8 +247,8 @@ This copies the memory, so the result is safe to use immutably.
 Unsafe because `a` must end in a `"\0"` character somewhere.
 ###
 to-str str(a c-str) unsafe
-	# TODO: 'copy' seems unnecessary since 'to-mut-arr' should do that?
-	a.literal.char8s.to-mut-arr.copy.move-to-list str
+	# TODO: 'copy' seems unnecessary since 'to-mut-list' should do that?
+	a.literal.char8s.to-mut-list.copy.move-to-list str
 
 region other
 

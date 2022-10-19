@@ -187,7 +187,7 @@ module-top str(path str)
 		"{a.type-args.only type-ref-with-subscript}{"?" keyword}"
 	elif name == "arr"
 		"{a.type-args.only type-ref-with-subscript}{"[]" keyword}"
-	elif name == "mut-arr"
+	elif name == "mut-list"
 		"{a.type-args.only type-ref-with-subscript}{" mut[]" keyword}"
 	elif name == "dict"
 		k = a.type-args[0] type-ref-content

@@ -8,7 +8,7 @@ import
 	../../col/dict: for-loop, in
 	../../col/list: ~~, is-empty, rtail, size, subscript, to-array
 	../../col/mut-dict: move-to-dict, mut-dict, new, try-remove, set-subscript, subscript
-	../../col/mut-arr: ~~=, index-of, move-to-list, mut-arr, new, pop-n-from-start, size
+	../../col/mut-list: ~~=, index-of, move-to-list, mut-list, new, pop-n-from-start, size
 	../../col/private/array-low-level: begin-ptr
 	../../compare: <=, >
 	../../exception: to-str

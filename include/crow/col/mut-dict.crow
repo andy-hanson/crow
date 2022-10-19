@@ -19,8 +19,8 @@ import
 		begin-ptr, cast-immutable, end-ptr, fill, fill-fix-arr, fix-arr, fold, for-loop, is-empty,
 		new, set-subscript, size, subscript, to-array, uninitialized-fix-arr
 	./list: ==, for-loop, list, list-equal, new, size, to-list
-	./mut-arr:
-		~=, copy, find-index, fold, for-loop, is-at-capacity, is-empty, mut-arr, new,
+	./mut-list:
+		~=, copy, find-index, fold, for-loop, is-at-capacity, is-empty, mut-list, new,
 		remove-unordered-at, set-filter, set-map, set-subscript, size, subscript
 
 ###

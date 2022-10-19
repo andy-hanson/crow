@@ -15,9 +15,9 @@ import
 	../fix-arr:
 		begin-ptr, cast-immutable, copy-from, end-ptr, fix-arr, fix-arr-from-begin-end, new
 	../list: ==, list, new
-	../mut-arr:
-		begin-ptr, clear, end-ptr, is-empty, move-to-list, mut-arr, size, swap, temp-as-fix-arr,
-		to-mut-arr, unsafe-set-size
+	../mut-list:
+		begin-ptr, clear, end-ptr, is-empty, move-to-list, mut-list, size, swap, temp-as-fix-arr,
+		to-mut-list, unsafe-set-size
 	./array-low-level: array-from-begin-end, begin-ptr, end-ptr
 
 binary-search-has<a> bool(a array a, value a) compare<a> trusted
@@ -199,8 +199,8 @@ In condition: a-read, a-write, b-read are all valid pointers.
 			a-begin merge-reverse-recur a-read - 1, a-write - 1, b-begin, b-read, compare
 
 .test-one void(a nat64[], b nat64[], expected nat64[]) unsafe
-	a-mut = a to-mut-arr
-	b-mut = b to-mut-arr
+	a-mut = a to-mut-list
+	b-mut = b to-mut-list
 	a-mut merge-no-duplicates b-mut, (x, y) =>
 		x <=> y assert-comparison-not-equal
 	a-mut.move-to-list is expected

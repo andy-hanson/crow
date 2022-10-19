@@ -7,7 +7,7 @@ no-std
 import
 	../bool: bool
 	../col/list: list, list-equal, new
-	../col/mut-arr: ~=, move-to-list, mut-arr, new
+	../col/mut-list: ~=, move-to-list, mut-list, new
 	../fun-util: subscript
 	../number: ==, +, nat64
 	../test-util: is

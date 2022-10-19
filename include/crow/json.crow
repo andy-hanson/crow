@@ -5,7 +5,7 @@ import
 	./col/dict: dict, dict-equal, for-loop, new, subscript, to-dict
 	./col/list: for-loop, list, list-equal, new, to-list
 	./col/mut-dict: move-to-dict, mut-dict, new, set-subscript
-	./col/mut-arr: ~=, move-to-list, mut-arr, new
+	./col/mut-list: ~=, move-to-list, mut-list, new
 	./misc: void
 	./number: ==, float64, int64, nat64, to-float64
 	./opt: new, opt

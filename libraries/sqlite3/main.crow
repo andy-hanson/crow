@@ -1,6 +1,6 @@
 import
 	crow/col/iter: again, again-or-stop
-	crow/col/mut-arr: ~=, move-to-list, mut-arr, new
+	crow/col/mut-list: ~=, move-to-list, mut-list, new
 	crow/c-types: c-int
 	crow/ptr:
 		*, any-mut-ptr, as-any-mut-ptr, as-const, const-ptr, null, ptr-cast, ptr-cast-to-extern,

@@ -28,7 +28,7 @@ parse result<regex, str>(source str) unsafe
 	if err == REG_NOERROR
 		res ok
 	else
-		buf char8 mut[] = 1000 fill-mut-arr "\0"
+		buf char8 mut[] = 1000 fill-mut-list "\0"
 		_ = err regerror res.wrapped.as-const-ptr, buf.begin-ptr, buf.size
 		res free
 		buf.begin-ptr.as-const.to-str err
@@ -43,7 +43,7 @@ matches bool(a regex, candidate str) trusted
 	elif err == REG_NOMATCH
 		false
 	else
-		buf char8 mut[] = 1000 fill-mut-arr "\0"
+		buf char8 mut[] = 1000 fill-mut-list "\0"
 		_ = err regerror a.wrapped.as-const-ptr, buf.begin-ptr, buf.size
 		throw buf.begin-ptr.as-const
 

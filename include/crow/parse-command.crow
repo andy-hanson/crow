@@ -7,7 +7,7 @@ import
 		~, ~~, index-of, is-empty, left, list, middle, new, right, size, subscript, tail,
 		try-split-once-by-fn
 	./col/mut-dict: move-to-dict, mut-dict, new, set-subscript
-	./col/mut-arr: fill-mut-arr, move-to-list, mut-arr, set-subscript, subscript
+	./col/mut-list: fill-mut-list, move-to-list, mut-list, set-subscript, subscript
 	./misc: void
 	./number: ==
 	./opt: !, ??, new, opt
@@ -62,7 +62,7 @@ If the argument syntax is invalid, returns an empty option.
 ###
 parse-named-args str[]?[]?(args str[], arg-names str[])
 	parsed = args parse-command
-	values str[]? mut[] = arg-names.size fill-mut-arr ()
+	values str[]? mut[] = arg-names.size fill-mut-list ()
 	err cell bool = false,
 	parsed.named each (key, value) =>
 		if index ?= arg-names index-of key

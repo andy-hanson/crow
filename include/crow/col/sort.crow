@@ -16,7 +16,7 @@ import
 		subscript, to-array, to-fix-arr
 	./iter: rest
 	./list: ==, list, list-equal, new, to-array, to-list
-	./mut-arr: mut-arr, set-reverse, temp-as-fix-arr
+	./mut-list: mut-list, set-reverse, temp-as-fix-arr
 
 ###
 Sorts the elements of `a` from least to greatest.

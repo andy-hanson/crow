@@ -22,7 +22,7 @@ import
 	../cell: *, as-const-ptr, as-mut-ptr, cell, new
 	../col/fix-arr: begin-ptr, fix-arr, new, size, subscript
 	../col/list: ~, fold, for-loop, to-array, list
-	../col/mut-arr: begin-ptr, end-ptr, move-to-list, mut-arr, new, size, unsafe-set-size
+	../col/mut-list: begin-ptr, end-ptr, move-to-list, mut-list, new, size, unsafe-set-size
 	../col/private/array-low-level: begin-ptr
 	../compare: <=
 	../extra-types: fd-t

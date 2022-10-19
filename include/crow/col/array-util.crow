@@ -541,7 +541,7 @@ For each value `a[i]` for which `splitter[a[i]]` is true, splits the array at th
 Returns an array of all remaining parts between the splitters, including empty parts.
 ###
 split-by-fn<a> array array a(a array a, splitter act bool(a)) trusted
-	# TODO:PERF use a mut-array
+	# TODO:PERF use a mut-list
 	if index ?= a find-index splitter
 		a[0 .. index] ~ (a[index .. a.size] split-by-fn splitter)
 	else

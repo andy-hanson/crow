@@ -16,7 +16,7 @@ import
 ###
 Mutable sorted set of unique values.
 This is like a `set` but mutable, or like a `mut-sorted-dict` with no values.
-Unlike `mut-arr`, values are in sorted order, not insertion order,
+Unlike `mut-list`, values are in sorted order, not insertion order,
 and it never stores two of the same value.
 ###
 mut-sorted-set<a> record mut
@@ -83,7 +83,7 @@ move-to-list<a> a[](a mut-sorted-set a) is-data<a> compare<a>
 
 # Convert to a `sorted-set`, clearning the original `mut-sorted-set` in the process.
 move-to-sorted-set<a> sorted-set a(a mut-sorted-set a) is-data<a> compare<a>
-	# TODO:PERF avoid a copy: return a 'mut-arr' which the sorted-set can move into to itself
+	# TODO:PERF avoid a copy: return a 'mut-list' which the sorted-set can move into to itself
 	a.move-to-list to-sorted-set
 
 region iteration

@@ -1,7 +1,7 @@
 no-std
 import
 	./bool: !, &&, ||, bool, false, new, true
-	./col/mut-arr: ~=, move-to-list, mut-arr, new
+	./col/mut-list: ~=, move-to-list, mut-list, new
 	./fun-util: subscript
 	./misc: new, void
 	./number: +, *, **, float64, int64, nat64, to-float64, to-int64

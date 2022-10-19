@@ -162,12 +162,12 @@ immutable(TypeAst) parseTypeSuffixes(scope ref Lexer lexer, immutable TypeAst as
 	else if (tryTakeToken(lexer, Token.mut)) {
 		if (tryTakeToken(lexer, Token.bracketLeft))
 			return tryTakeToken(lexer, Token.bracketRight)
-				? handleSuffix(TypeAst.Suffix.Kind.arrMut)
+				? handleSuffix(TypeAst.Suffix.Kind.mutList)
 				: handleDictLike(TypeAst.Dict.Kind.mut);
 		else if (tryTakeOperator(lexer, Operator.times))
-			return handleSuffix(TypeAst.Suffix.kind.ptrMut);
+			return handleSuffix(TypeAst.Suffix.kind.mutPtr);
 		else if (tryTakeOperator(lexer, Operator.exponent))
-			return handleDoubleSuffix(TypeAst.Suffix.Kind.ptrMut, TypeAst.Suffix.Kind.ptr);
+			return handleDoubleSuffix(TypeAst.Suffix.Kind.mutPtr, TypeAst.Suffix.Kind.ptr);
 		else {
 			addDiagExpected(lexer, ParseDiag.Expected.Kind.afterMut);
 			return ast;

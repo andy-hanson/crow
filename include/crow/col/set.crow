@@ -21,7 +21,7 @@ import
 		to-list, try-get-unordered-index, unsafe-frozen-set-from-fix-arr-cast-immutable
 	./fix-arr: begin-ptr, cast-immutable, end-ptr, fix-arr, fix-arr-from-begin-end, uninitialized-fix-arr
 	./list: ==, for-loop, list, new, to-list
-	./mut-arr: ~=, move-to-list, mut-arr, new
+	./mut-list: ~=, move-to-list, mut-list, new
 
 ###
 Immutable unsorted set.

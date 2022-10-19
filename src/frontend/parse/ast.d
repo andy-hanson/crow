@@ -113,11 +113,11 @@ struct TypeAst {
 		@safe @nogc pure nothrow:
 
 		enum Kind {
-			arrMut,
 			list,
+			mutList,
+			mutPtr,
 			opt,
 			ptr,
-			ptrMut,
 		}
 		immutable Kind kind;
 		immutable TypeAst left;
@@ -190,16 +190,16 @@ immutable(RangeWithinFile) suffixRange(immutable TypeAst.Suffix a) {
 
 private immutable(uint) suffixLength(immutable TypeAst.Suffix.Kind a) {
 	final switch (a) {
-		case TypeAst.Suffix.Kind.arrMut:
-			return cast(uint) "mut[]".length;
 		case TypeAst.Suffix.Kind.list:
 			return cast(uint) "[]".length;
 		case TypeAst.Suffix.Kind.opt:
 			return cast(uint) "?".length;
+		case TypeAst.Suffix.Kind.mutList:
+			return cast(uint) "mut[]".length;
+		case TypeAst.Suffix.Kind.mutPtr:
+			return cast(uint) "mut*".length;
 		case TypeAst.Suffix.Kind.ptr:
 			return cast(uint) "*".length;
-		case TypeAst.Suffix.Kind.ptrMut:
-			return cast(uint) "mut*".length;
 	}
 }
 
@@ -214,16 +214,16 @@ immutable(Sym) symForTypeAstDict(immutable TypeAst.Dict.Kind a) {
 
 immutable(Sym) symForTypeAstSuffix(immutable TypeAst.Suffix.Kind a) {
 	final switch (a) {
-		case TypeAst.Suffix.Kind.arrMut:
-			return shortSym("mut-arr");
 		case TypeAst.Suffix.Kind.list:
 			return shortSym("list");
+		case TypeAst.Suffix.Kind.mutList:
+			return shortSym("mut-list");
+		case TypeAst.Suffix.Kind.mutPtr:
+			return shortSym("mut-ptr");
 		case TypeAst.Suffix.Kind.opt:
 			return shortSym("opt");
 		case TypeAst.Suffix.Kind.ptr:
 			return shortSym("const-ptr");
-		case TypeAst.Suffix.Kind.ptrMut:
-			return shortSym("mut-ptr");
 	}
 }
 

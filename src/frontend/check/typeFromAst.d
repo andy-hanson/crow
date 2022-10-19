@@ -213,14 +213,14 @@ private immutable(Opt!(Diag.TypeShouldUseSyntax.Kind)) typeSyntaxKind(immutable 
 			return some(Diag.TypeShouldUseSyntax.Kind.dict);
 		case shortSymValue("list"):
 			return some(Diag.TypeShouldUseSyntax.Kind.list);
-		case shortSymValue("mut-arr"):
-			return some(Diag.TypeShouldUseSyntax.Kind.arrMut);
 		case shortSymValue("mut-dict"):
-			return some(Diag.TypeShouldUseSyntax.Kind.dictMut);
+			return some(Diag.TypeShouldUseSyntax.Kind.mutDict);
+		case shortSymValue("mut-list"):
+			return some(Diag.TypeShouldUseSyntax.Kind.mutList);
+		case shortSymValue("mut-ptr"):
+			return some(Diag.TypeShouldUseSyntax.Kind.mutPtr);
 		case shortSymValue("opt"):
 			return some(Diag.TypeShouldUseSyntax.Kind.opt);
-		case shortSymValue("mut-ptr"):
-			return some(Diag.TypeShouldUseSyntax.Kind.ptrMut);
 		default:
 			return none!(Diag.TypeShouldUseSyntax.Kind);
 	}

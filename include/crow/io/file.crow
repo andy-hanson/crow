@@ -20,7 +20,7 @@ import
 	../col/array: array, size, subscript
 	../col/fix-arr: cast-immutable, begin-ptr, fix-arr, size, uninitialized-fix-arr
 	../col/list: for-loop, list, new, to-array, to-list
-	../col/mut-arr: ~=, move-to-list, mut-arr, new
+	../col/mut-list: ~=, move-to-list, mut-list, new
 	../col/private/array-low-level: begin-ptr
 	../col/sort: sort
 	../compare: !=

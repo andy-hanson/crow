@@ -14,9 +14,9 @@ import
 	../test-util: is
 	../tuple: from, new, pair, pair-equal, to
 	./array: array, size, subscript
-	./mut-arr:
-		~=, ~~=, begin-ptr, clear, copy, fold, for-loop, is-empty, move-to-array, mut-arr, new,
-		pop, reversed, size, subscript, temp-as-array, to-list, to-mut-arr
+	./mut-list:
+		~=, ~~=, begin-ptr, clear, copy, fold, for-loop, is-empty, move-to-array, mut-list, new,
+		pop, reversed, size, subscript, temp-as-array, to-list, to-mut-list
 	./list: list, list-equal, new, reverse, to-list
 	./sort: set-sort-by, set-sort-by-reverse
 	./private/sort-utils: binary-search-insert-ptr
@@ -42,7 +42,7 @@ new<k, v> mut-priority-queue<k, v>(...a array pair<k, v>) is-data<k> compare<k>
 
 # Copies a list to a new priority queue.
 to-mut-priority-queue<k, v> mut-priority-queue<k, v>(a pair<k, v>[]) is-data<k> compare<k>
-	mins = a to-mut-arr
+	mins = a to-mut-list
 	mins.sort-by-reverse := pair => pair from
 	mins, ()
 
