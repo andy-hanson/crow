@@ -41,7 +41,7 @@ import util.col.mutArr : MutArr;
 import util.col.mutMaxArr : fillMutMaxArr, mapTo, tempAsArr;
 import util.opt : force, has, none, noneMut, Opt, some;
 import util.sourceRange : RangeWithinFile;
-import util.sym : shortSymValue, Sym;
+import util.sym : shortSym, shortSymValue, Sym;
 import util.util : todo;
 
 private immutable(Type) instStructFromAst(
@@ -192,8 +192,8 @@ immutable(Type) typeFromAst(
 					typeParamsScope,
 					delayStructInsts);
 		},
-		(immutable TypeAst.Suffix it) {
-			return instStructFromAst(
+		(immutable TypeAst.Suffix it) =>
+			instStructFromAst(
 				ctx,
 				commonTypes,
 				symForTypeAstSuffix(it.kind),
@@ -201,8 +201,17 @@ immutable(Type) typeFromAst(
 				[it.left],
 				structsAndAliasesDict,
 				typeParamsScope,
-				delayStructInsts);
-		},
+				delayStructInsts),
+		(immutable TypeAst.Tuple it) =>
+			instStructFromAst(
+				ctx,
+				commonTypes,
+				shortSym("pair"),
+				range(it),
+				[it.a, it.b],
+				structsAndAliasesDict,
+				typeParamsScope,
+				delayStructInsts),
 	)(ast);
 
 private immutable(Opt!(Diag.TypeShouldUseSyntax.Kind)) typeSyntaxKind(immutable Sym a) {
@@ -221,6 +230,8 @@ private immutable(Opt!(Diag.TypeShouldUseSyntax.Kind)) typeSyntaxKind(immutable 
 			return some(Diag.TypeShouldUseSyntax.Kind.mutPtr);
 		case shortSymValue("opt"):
 			return some(Diag.TypeShouldUseSyntax.Kind.opt);
+		case shortSymValue("pair"):
+			return some(Diag.TypeShouldUseSyntax.Kind.pair);
 		default:
 			return none!(Diag.TypeShouldUseSyntax.Kind);
 	}

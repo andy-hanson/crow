@@ -52,16 +52,16 @@ then with the `4` to size 10, then with the `8` to size 18, leaving only one nod
 ###
 
 .node<k, v> record
-	min pair<k, v>
-	pairs array pair<k, v>
+	min (k, v)
+	pairs array (k, v)
 	next node<k, v>?
 
 # New priority queue containing the given pairs.
-new<k, v> priority-queue<k, v>(...a array pair<k, v>) is-data<k> compare<k>
+new<k, v> priority-queue<k, v>(...a array (k, v)) is-data<k> compare<k>
 	a.to-list to-priority-queue
 
 # New priority queue containing the given pairs.
-to-priority-queue<k, v> priority-queue<k, v>(a pair<k, v>[]) is-data<k> compare<k>
+to-priority-queue<k, v> priority-queue<k, v>(a (k, v)[]) is-data<k> compare<k>
 	if a is-empty
 		# TODO: type annotation should not be necessary
 		()::node<k, v>?,
@@ -71,7 +71,7 @@ to-priority-queue<k, v> priority-queue<k, v>(a pair<k, v>[]) is-data<k> compare<
 		# TODO: type annotation should not be necessary
 		(root,)::node<k, v>?,
 
-to-list<k, v> pair<k, v>[](a priority-queue<k, v>) is-data<k> compare<k>
+to-list<k, v> (k, v)[](a priority-queue<k, v>) is-data<k> compare<k>
 	a map-to-list (k, v) => k, v
 
 # True iff `a.size == 0`.
@@ -99,13 +99,13 @@ Adds a pair to the queue.
 
 This is O(1), since the work of sorting pairs is actually done in `pop`.
 ###
-~ <k, v> priority-queue<k, v>(a priority-queue<k, v>, b pair<k, v>) is-data<k> compare<k>
+~ <k, v> priority-queue<k, v>(a priority-queue<k, v>, b (k, v)) is-data<k> compare<k>
 	root node<k, v> = b, (), a.root
 	# TODO: type annotation should not be necessary
 	(root,)::node<k, v>?,
 
 popped<k, v> record
-	popped pair<k, v>
+	popped (k, v)
 	rest priority-queue<k, v>
 
 ###
@@ -203,7 +203,7 @@ pop<k, v> popped<k, v>?(a priority-queue<k, v>) is-data<k> compare<k>
 		n-singles plan-will-compact
 
 .do-compact<k, v> node<k, v>(root node<k, v>, n-to-compact nat64, nodes-to-compact node<k, v>?) trusted compare<k>
-	compacted mut-array pair<k, v> = n-to-compact uninitialized-mut-array
+	compacted mut-array (k, v) = n-to-compact uninitialized-mut-array
 	mid = compacted.begin-ptr compact-non-singles nodes-to-compact
 	end = mid compact-singles root
 	assert end == compacted.end-ptr
@@ -211,7 +211,7 @@ pop<k, v> popped<k, v>?(a priority-queue<k, v>) is-data<k> compare<k>
 	arr = compacted cast-immutable
 	arr.first!, arr.tail, ()
 
-.compact-singles<k, v> pair<k, v> mut*(out pair<k, v> mut*, a node<k, v>) unsafe
+.compact-singles<k, v> (k, v) mut*(out (k, v) mut*, a node<k, v>) unsafe
 	if a.pairs is-empty
 		# Output later nodes first to preserve insertion order (since they're inserted to the front)
 		pos = if next ?= a next
@@ -223,7 +223,7 @@ pop<k, v> popped<k, v>?(a priority-queue<k, v>) is-data<k> compare<k>
 	else
 		out
 
-.compact-non-singles<k, v> pair<k, v> mut*(out pair<k, v> mut*, a node<k, v>?) unsafe
+.compact-non-singles<k, v> (k, v) mut*(out (k, v) mut*, a node<k, v>?) unsafe
 	if node ?= a
 		*out := node min
 		out2 = out + 1 fold node.pairs, (cur, x) =>
@@ -251,8 +251,8 @@ fold<a, k, v> a(acc a, a priority-queue<k, v>, f act a(a, k, v)) is-data<k> comp
 	acc walk-fold a.each-arr, f
 
 .each-part<k, v> record mut
-	min mut pair<k, v>
-	pairs mut array pair<k, v>
+	min mut (k, v)
+	pairs mut array (k, v)
 
 .each-arr<k, v> mut-array each-part<k, v>(a priority-queue<k, v>) trusted compare<k>
 	res mut-array each-part<k, v> = a.node-count uninitialized-mut-array
@@ -300,7 +300,7 @@ fold<a, k, v> a(acc a, a priority-queue<k, v>, f act a(a, k, v)) is-data<k> comp
 		a.tail swap-sorted
 
 filter<k, v> priority-queue<k, v>(a priority-queue<k, v>, f act bool(k, v)) trusted is-data<k> compare<k>
-	out mut-array pair<k, v> = a.size uninitialized-mut-array
+	out mut-array (k, v) = a.size uninitialized-mut-array
 	end = out.begin-ptr fold a, (cur, k, v) =>
 		if f[k, v]
 			*cur := k, v
@@ -311,7 +311,7 @@ filter<k, v> priority-queue<k, v>(a priority-queue<k, v>, f act bool(k, v)) trus
 
 map<k-out, v-out, k-in, v-in> priority-queue<k-out, v-out>(
 	a priority-queue<k-in, v-in>,
-	f act pair<k-out, v-out>(k-in, v-in),
+	f act (k-out, v-out)(k-in, v-in),
 ) is-data<k-in> compare<k-in> is-data<k-out> compare<k-out>
 	a map-to-list f to-priority-queue
 
@@ -363,7 +363,7 @@ test
 	p6 = p5pop.rest ~ (7, "7b") ~ (8, "8")
 	p6.dbg is "8 8 []; 7 7b []; 6 6 [7 7]; 6 6b [6 6c]"
 	p6.size is 6
-	p6-pairs pair<nat64, str>[] = (6, "6"), (6, "6b"), (6, "6c"), (7, "7"), (7, "7b"), (8, "8")
+	p6-pairs (nat64, str)[] = (6, "6"), (6, "6b"), (6, "6c"), (7, "7"), (7, "7b"), (8, "8")
 	p6.to-list is p6-pairs
 	p6.keys is (6, 6, 6, 7, 7, 8)
 	p6.values is ("6", "6b", "6c", "7", "7b", "8")
@@ -380,17 +380,17 @@ test
 	filter-calls is p6-pairs
 	filtered.dbg is "6 6 [6 6b, 6 6c]"
 
-	map-order spy-act2<pair<nat64, str>, nat64, str> = ((k, v) => (10 - k), "{v}x"),
+	map-order spy-act2<(nat64, str), nat64, str> = ((k, v) => (10 - k), "{v}x"),
 	mapped = p6 map map-order.fn
 	map-calls = map-order calls
 	map-calls is p6-pairs
 	mapped.dbg is "2 8x [3 7x, 3 7bx, 4 6x, 4 6bx, 4 6cx]"
 
-.== bool(a pair<nat64, str>[], b pair<nat64, str>[])
+.== bool(a (nat64, str)[], b (nat64, str)[])
 	a list-equal b
 
 # TODO: pair should be equatable
-.== bool(a pair<nat64, str>, b pair<nat64, str>)
+.== bool(a (nat64, str), b (nat64, str))
 	a.from == b.from && a.to == b.to
 
 .== bool(a str[], b str[])

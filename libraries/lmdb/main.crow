@@ -182,10 +182,10 @@ abortable-write-transaction record mut
 # Like `with-write-transaction`, but `f` returns a pair of the result and whether to commit the transaction.
 abortable-write-transaction abortable-write-transaction(env lmdb-env)
 	env,
-with-block<a> a(a abortable-write-transaction, f act pair<a, transaction-result>(lmdb-txn)) trusted summon
+with-block<a> a(a abortable-write-transaction, f act (a, transaction-result)(lmdb-txn)) trusted summon
 	a.env with-transaction 0, f
 
-.with-transaction<a> a(env lmdb-env, mdb-flags u-int, f act pair<a, transaction-result>(lmdb-txn)) unsafe summon
+.with-transaction<a> a(env lmdb-env, mdb-flags u-int, f act (a, transaction-result)(lmdb-txn)) unsafe summon
 	transaction-cell cell MDB_txn = null-extern-ptr,
 	env.env mdb_txn_begin null-extern-ptr, mdb-flags, transaction-cell check-lmdb-error
 	transaction = *transaction-cell

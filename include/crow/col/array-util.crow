@@ -510,7 +510,7 @@ region splitting
 Finds the first value `a[i]` equal to `splitter`, and returns the elements left and right of `i`.
 Returns an empty option iff `splitter` is not in the array.
 ###
-try-split-once<a> pair<array a, array a>?(a array a, splitter a) equal<a>
+try-split-once<a> (array a, array a)?(a array a, splitter a) equal<a>
 	if index ?= a index-of splitter
 		(a[0 .. index], a[index + 1 .. a.size]),
 
@@ -549,7 +549,7 @@ split-by-fn<a> array array a(a array a, splitter act bool(a)) trusted
 
 # TODO: equal<array a> should be unnecessary
 # Like `try-split-once`, but the splitter is a subsequence instead of a single element.
-try-split-once-by-subseq<a> pair<array a, array a>?(a array a, splitter array a) equal<a> equal<array a> trusted
+try-split-once-by-subseq<a> (array a, array a)?(a array a, splitter array a) equal<a> equal<array a> trusted
 	if index ?= a index-of-subseq splitter
 		(a[0 .. index], a[index + splitter.size .. a.size]),
 

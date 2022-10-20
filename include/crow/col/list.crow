@@ -440,7 +440,7 @@ next<a> value-and-rest<a, list-iter a>?(a list-iter a) trusted noctx
 		(n.value, (a.list, n.rest, a.pos)),
 	elif pair ?= a.list next-position a.pos
 		(a.list, pair.a, pair.b) next
-.next-position<a> pair<array-3d-iter a, position>?(a a[], pos position) unsafe noctx
+.next-position<a> (array-3d-iter a, position)?(a a[], pos position) unsafe noctx
 	match pos
 	as l0-leaf
 		()
@@ -462,7 +462,7 @@ prev<a> value-and-rest<a, list-iter a>?(a list-iter a) trusted noctx
 		(p.value, (a.list, p.rest, a.pos)),
 	elif pair ?= a.list prev-position a.pos
 		(a.list, pair.a, pair.b) prev
-.prev-position<a> pair<array-3d-iter a, position>?(a a[], pos position) unsafe noctx
+.prev-position<a> (array-3d-iter a, position)?(a a[], pos position) unsafe noctx
 	match pos
 	as l0-leaf
 		()
@@ -581,8 +581,8 @@ slice-right<a> a[](a list-iter a) trusted
 
 .level<l, a> spec
 	is-empty bool(level l)
-	pop-left pair<array a, l>(level l)
-	pop-right pair<l, array a>(level l)
+	pop-left (array a, l)(level l)
+	pop-right (l, array a)(level l)
 
 .branch-or-leaf-generic<a, lower> node<a, lower>(left array a, down lower, right array a) trusted level<lower, a>
 	if down is-empty
@@ -615,7 +615,7 @@ slice-right<a> a[](a list-iter a) trusted
 .branch-or-leaf-l1<a> l1 a(left array array a, down l2 a, right array array a)
 	(left branch-or-leaf-generic down, right),
 
-.pop-left<a> pair<array a, l1 a>(a l1 a)
+.pop-left<a> (array a, l1 a)(a l1 a)
 	match a node
 	as leaf xs
 		xs[0], (xs.tail.leaf,)
@@ -631,7 +631,7 @@ slice-right<a> a[](a list-iter a) trusted
 			(b.left.tail, b.down, b.right).branch,
 		popped, rest
 
-.pop-right<a> pair<l1 a, array a>(a l1 a)
+.pop-right<a> (l1 a, array a)(a l1 a)
 	match a node
 	as leaf xs
 		(xs.rtail.leaf,), xs[xs.size - 1]
@@ -647,10 +647,10 @@ slice-right<a> a[](a list-iter a) trusted
 			(b.left, b.down, b.right.rtail).branch,
 		rest, popped
 
-.pop-left<a> pair<array array a, l2 a>(a l2 a)
+.pop-left<a> (array array a, l2 a)(a l2 a)
 	a.nodes[0], (a.nodes.tail,)
 
-.pop-right<a> pair<l2 a, array array a>(a l2 a)
+.pop-right<a> (l2 a, array array a)(a l2 a)
 	(a.nodes.rtail,), a.nodes[a.nodes.size - 1]
 
 .slice-left-update-l1<a> a[](a a[], f act l1 a(l1 a)) unsafe
@@ -777,7 +777,7 @@ slice-right<a> a[](a list-iter a) trusted
 	b2 = a1.is-empty ? a2 : a1 ~ a2
 	b2.is-empty ? a3 : b2 ~ a3
 
-.l1-iter<a> pair<array-3d-iter a, position>(a a[]) unsafe noctx
+.l1-iter<a> (array-3d-iter a, position)(a a[]) unsafe noctx
 	match a.get-l1 node
 	as leaf xs
 		if xs is-empty
@@ -787,7 +787,7 @@ slice-right<a> a[](a list-iter a) trusted
 	as branch b
 		b.left.iter2d.to-iter3d, l1-left
 
-.l1-end-iter<a> pair<array-3d-iter a, position>(a a[]) unsafe noctx
+.l1-end-iter<a> (array-3d-iter a, position)(a a[]) unsafe noctx
 	match a.get-l1 node
 	as leaf xs
 		if xs is-empty
@@ -797,10 +797,10 @@ slice-right<a> a[](a list-iter a) trusted
 	as branch b
 		b.right.end-iter2d.to-iter3d, l1-right
 
-.l2-iter<a> pair<array-3d-iter a, position>(a a[]) unsafe noctx
+.l2-iter<a> (array-3d-iter a, position)(a a[]) unsafe noctx
 	a.get-l2.nodes.iter3d, l2-leaf
 
-.l2-end-iter<a> pair<array-3d-iter a, position>(a a[]) unsafe noctx
+.l2-end-iter<a> (array-3d-iter a, position)(a a[]) unsafe noctx
 	a.get-l2.nodes.end-iter3d, l2-leaf
 
 region iteration
@@ -990,12 +990,12 @@ and returns slices of `a` to the left and right of that.
 
 Returns an empty option iff `b` is not a sublist of `a`.
 ###
-try-split-once-by-sublist<a> pair<a[], a[]>?(a a[], b a[]) equal<a>
+try-split-once-by-sublist<a> (a[], a[])?(a a[], b a[]) equal<a>
 	forbid b is-empty : "can't split by empty list"
 	if pair ?= a iters-of-sublist b
 		(pair.a.slice-left, pair.b.slice-right),
 
-try-split-once-by-sublist-right<a> pair<a[], a[]>?(a a[], b a[]) equal<a>
+try-split-once-by-sublist-right<a> (a[], a[])?(a a[], b a[]) equal<a>
 	forbid b is-empty : "can't split by empty list"
 	if pair ?= a iters-of-sublist-right b
 		(pair.a.slice-left, pair.b.slice-right),
@@ -1006,17 +1006,17 @@ split-by-sublist<a> a[][](a a[], b a[]) equal<a>
 	else
 		a,
 
-.iters-of-sublist<a> pair<list-iter a, list-iter a>?(a a[], b a[]) equal<a>
+.iters-of-sublist<a> (list-iter a, list-iter a)?(a a[], b a[]) equal<a>
 	a.iter iters-of-sublist-recur b
-.iters-of-sublist-recur<a> pair<list-iter a, list-iter a>?(a list-iter a, b a[]) equal<a>
+.iters-of-sublist-recur<a> (list-iter a, list-iter a)?(a list-iter a, b a[]) equal<a>
 	if end-iter ?= a iter-starts-with b.iter
 		(a, end-iter),
 	elif n ?= a next
 		n.rest iters-of-sublist-recur b
 
-.iters-of-sublist-right<a> pair<list-iter a, list-iter a>?(a a[], b a[]) equal<a>
+.iters-of-sublist-right<a> (list-iter a, list-iter a)?(a a[], b a[]) equal<a>
 	a.end-iter iters-of-sublist-right-recur b
-.iters-of-sublist-right-recur<a> pair<list-iter a, list-iter a>?(a list-iter a, b a[]) equal<a>
+.iters-of-sublist-right-recur<a> (list-iter a, list-iter a)?(a list-iter a, b a[]) equal<a>
 	if start-iter ?= a iter-ends-with b.end-iter
 		(start-iter, a),
 	elif p ?= a prev

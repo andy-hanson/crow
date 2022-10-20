@@ -4,8 +4,7 @@ import
 	./compare: equal
 
 ###
-Generic pair type.
-Could be used for many things.
+Written `(a, b)`. Generic pair type.
 
 This is often used as a key-value pair in a dictionary or priority queue.
 ###
@@ -14,12 +13,12 @@ pair<a, b> record by-val
 	b b
 
 # Same as `a.a`.
-from<a, b> a(a pair<a, b>) noctx
+from<a, b> a(a (a, b)) noctx
 	a a
 
 # Same as `a.b`.
-to<a, b> b(a pair<a, b>) noctx
+to<a, b> b(a (a, b)) noctx
 	a b
 
-pair-equal<a, b> bool(a pair<a, b>, b pair<a, b>) noctx equal<a> equal<b>
+pair-equal<a, b> bool(a (a, b), b (a, b)) noctx equal<a> equal<b>
 	a.a == b.a && a.b == b.b

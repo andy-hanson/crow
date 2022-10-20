@@ -31,7 +31,7 @@ This works like `mut-dict`, but iteration functions like `each` provide elements
 mut-sorted-dict<k, v> record mut by-ref
 	# TODO: by-val
 	# Values are none if they have been deleted.
-	.pairs pair<k, v?> mut[]
+	.pairs (k, v?) mut[]
 	# Number of pairs in this node that are not `none`.
 	# Does not include sizes of other nodes.
 	.node-size .mut nat64
@@ -42,12 +42,12 @@ New dictionary containing the given pairs.
 
 Later pairs overwrite earlier pairs with the same key.
 ###
-new<k, v> mut-sorted-dict<k, v>(...a array pair<k, v>) is-data<k> compare<k>
+new<k, v> mut-sorted-dict<k, v>(...a array (k, v)) is-data<k> compare<k>
 	a.to-list to-mut-sorted-dict
 
 # Copies pairs to a new dictionary.
-to-mut-sorted-dict<k, v> mut-sorted-dict<k, v>(a pair<k, v>[]) is-data<k> compare<k>
-	res mut-sorted-dict<k, v> = ()::pair<k, v?> mut[], 0, ()
+to-mut-sorted-dict<k, v> mut-sorted-dict<k, v>(a (k, v)[]) is-data<k> compare<k>
+	res mut-sorted-dict<k, v> = ()::(k, v?) mut[], 0, ()
 	for pair : a
 		res[pair from] := pair to
 	res
@@ -96,7 +96,7 @@ in<k, v> bool(key k, a mut-sorted-dict<k, v>) trusted is-data<k> compare<k>
 Adds many key-value pairs, replacing existing ones with the same keys.
 Equivalent to adding each element of `b` separately.
 ###
-~~= <k, v> void(a mut-sorted-dict<k, v>, b pair<k, v>[]) is-data<k> compare<k>
+~~= <k, v> void(a mut-sorted-dict<k, v>, b (k, v)[]) is-data<k> compare<k>
 	for pair : b
 		a[pair from] := pair to
 
@@ -150,12 +150,12 @@ Returns true if it succeeded.
 			next add-pair key, value
 			a compact-if-needed
 		else
-			new-pairs pair<k, v?> mut[] = ()
+			new-pairs (k, v?) mut[] = ()
 			new-pairs ~= (key, (value,))
 			a.next := (new-pairs, 1, ()),
 
 # Insert at the last place where the key is < that value.
-.insert-linear<k, v> void(a pair<k, v?> mut[], index nat64, key k, value v) is-data<k> compare<k>
+.insert-linear<k, v> void(a (k, v?) mut[], index nat64, key k, value v) is-data<k> compare<k>
 	if key < a[index].from
 		a move-right index
 		a[index] := key, (value,)
@@ -165,7 +165,7 @@ Returns true if it succeeded.
 		a insert-linear index + 1, key, value
 
 # If there's something here, move it so something else can be inserted.
-.move-right<k, v> void(a pair<k, v?> mut[], index nat64)
+.move-right<k, v> void(a (k, v?) mut[], index nat64)
 	unless a[index].to is-empty
 		# If this is the last value, push it
 		if index == a.size - 1
@@ -175,7 +175,7 @@ Returns true if it succeeded.
 			a[index + 1] := a[index]
 
 # Convert to an `array`, clearning the original `mut-sorted-dict` in the process.
-move-to-list<k, v> pair<k, v>[](a mut-sorted-dict<k, v>) is-data<k> compare<k>
+move-to-list<k, v> (k, v)[](a mut-sorted-dict<k, v>) is-data<k> compare<k>
 	res = a map-to-list (key, value) => key, value
 	a clear
 	res
@@ -224,10 +224,10 @@ remove-key<k, v> v?(a mut-sorted-dict<k, v>, key k) trusted is-data<k> compare<k
 		a.next := ()
 		a.node-size := a.pairs.size
 
-.find-exact-ptr<k, v> pair<k, v?> mut*?(a mut-sorted-dict<k, v>, key k) is-data<k> compare<k> unsafe
+.find-exact-ptr<k, v> (k, v?) mut*?(a mut-sorted-dict<k, v>, key k) is-data<k> compare<k> unsafe
 	a.pairs binary-search-exact-ptr pair => key <=> pair.from
 
-.find-insert-ptr<k, v> pair<k, v?> mut*(a mut-sorted-dict<k, v>, key k) is-data<k> compare<k> unsafe
+.find-insert-ptr<k, v> (k, v?) mut*(a mut-sorted-dict<k, v>, key k) is-data<k> compare<k> unsafe
 	a.pairs binary-search-insert-ptr pair => key <=> pair.from
 
 region iteration
@@ -247,7 +247,7 @@ filter<k, v> mut-sorted-dict<k, v>(a mut-sorted-dict<k, v>, f act bool(k, v)) is
 
 map<k-out, v-out, k-in, v-in> mut-sorted-dict<k-out, v-out>(
 	a mut-sorted-dict<k-in, v-in>,
-	f act pair<k-out, v-out>(k-in, v-in),
+	f act (k-out, v-out)(k-in, v-in),
 ) is-data<k-in> compare<k-in> is-data<k-out> compare<k-out>
 	a map-to-list f to-mut-sorted-dict
 
@@ -256,12 +256,12 @@ map-values<v-out, k, v-in> mut-sorted-dict<k, v-out>(
 	f act v-out(k, v-in),
 ) is-data<k> compare<k>
 	a compact
-	pairs pair<k, v-out?> mut[] = for pair : a pairs
+	pairs (k, v-out?) mut[] = for pair : a pairs
 		# TODO: 'as' should be unnecessary
 		pair.from, (f[pair.from, pair.to!],)
 	pairs from-sorted-pairs
 
-.from-sorted-pairs<k, v> mut-sorted-dict<k, v>(a pair<k, v?> mut[])
+.from-sorted-pairs<k, v> mut-sorted-dict<k, v>(a (k, v?) mut[])
 	a, a.size, ()
 
 # TODO: should be for-loop (but need destructuring)
@@ -277,7 +277,7 @@ set-filter<k, v> void(a mut-sorted-dict<k, v>, f act bool(k, v)) is-data<k> comp
 	a.pairs set-filter pair =>
 		f[pair.from, pair.to!]
 
-set-map<k, v> void(a mut-sorted-dict<k, v>, f act pair<k, v>(k, v)) is-data<k> compare<k>
+set-map<k, v> void(a mut-sorted-dict<k, v>, f act (k, v)(k, v)) is-data<k> compare<k>
 	a compact
 	a.pairs set-map pair =>
 		new-pair = f[pair.from, pair.to!]

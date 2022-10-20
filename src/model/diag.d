@@ -313,6 +313,7 @@ struct Diag {
 			mutList,
 			mutPtr,
 			opt,
+			pair,
 			ptr,
 		}
 		immutable Kind kind;

@@ -27,7 +27,7 @@ new<a> mut-sorted-set a() is-data<a> compare<a>
 	(),
 
 to-mut-sorted-set<a> mut-sorted-set a(a a[]) is-data<a> compare<a>
-	pairs pair<a, void>[] = for x : a
+	pairs (a, void)[] = for x : a
 		x, ()
 	pairs.to-mut-sorted-dict,
 

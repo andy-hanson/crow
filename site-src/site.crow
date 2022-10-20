@@ -57,7 +57,7 @@ link record
 
 .include-all path-and-content() summon
 	include = "include" search-all-with-content ""
-	pairs pair<str, json>[] = for x : include
+	pairs (str, json)[] = for x : include
 		x.out-path.remove-include-and-crow, x.content.json-str
 	content = pairs.to-dict.json-object to-str
 	"include-all.json", content

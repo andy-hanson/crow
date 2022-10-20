@@ -29,7 +29,7 @@ json union
 	json-list json[]
 	json-object json[str]
 
-new json(...pairs array pair<str, json>)
+new json(...pairs array (str, json))
 	pairs.to-list.to-dict json-object
 
 json<a> spec

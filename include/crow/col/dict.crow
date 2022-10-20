@@ -28,7 +28,7 @@ import
 
 ###
 Immutable unordered dictionary type.
-A dictionary is logically a collection of key-value pairs (`pair<k, v>`).
+A dictionary is logically a collection of key-value pairs (`(k, v)`).
 A key can appear at most once, and given a key, you can access the associated value in O(1).
 
 There should be `==`, `<=>`, and `hash-mix` functions defined for the key type `k`.
@@ -50,7 +50,7 @@ dict-equal<k, v> bool(a v[k], b v[k]) no-doc is-data<k> compare<k> hash-mix<k> e
 
 .node<k, v> union
 	inner-node array node<k, v>
-	leaf-node array pair<k, v>
+	leaf-node array<(k, v)>
 
 .empty-leaf-node<k, v> node<k, v>() noctx
 	() leaf-node
@@ -73,14 +73,14 @@ Creates a new dict from the given key-value pairs.
 
 Later pairs overwrite earlier pairs with the same key.
 ###
-new<k, v> v[k](...a array pair<k, v>) is-data<k> compare<k> hash-mix<k>
+new<k, v> v[k](...a array (k, v)) is-data<k> compare<k> hash-mix<k>
 	a.to-list to-dict
 
 ###
 Converts a list of pairs to a dictionary.
 Later pairs overwrite earlier pairs with the same key.
 ###
-to-dict<k, v> v[k](a pair<k, v>[]) is-data<k> compare<k> hash-mix<k>
+to-dict<k, v> v[k](a (k, v)[]) is-data<k> compare<k> hash-mix<k>
 	if a.size <= 4 && a.no-duplicate-keys
 		a.to-array.leaf-node,
 	else
@@ -89,10 +89,10 @@ to-dict<k, v> v[k](a pair<k, v>[]) is-data<k> compare<k> hash-mix<k>
 		(empty,) fold a, (cur, x) => cur ~ x
 
 # Returns all pairs in the dictionary.
-to-list<k, v> pair<k, v>[](a v[k]) is-data<k> compare<k> hash-mix<k>
+to-list<k, v> (k, v)[](a v[k]) is-data<k> compare<k> hash-mix<k>
 	for x : a; x
 
-.no-duplicate-keys<k, v> bool(a pair<k, v>[]) compare<k>
+.no-duplicate-keys<k, v> bool(a (k, v)[]) compare<k>
 	# O(n^2) but it doesn't matter since n <= 4
 	if a.size <= 1
 		true
@@ -139,7 +139,7 @@ subscript<k, v> v?(a v[k], key k) is-data<k> compare<k> hash-mix<k>
 			i[which] subscript-recur key, (remaining-hash unsafe-bit-shift-right inner-node-n-bits)
 	as leaf-node l
 		l subscript-leaf-recur key
-.subscript-leaf-recur<k, v> v?(a array pair<k, v>, key k) compare<k>
+.subscript-leaf-recur<k, v> v?(a array (k, v), key k) compare<k>
 	if a is-empty
 		()
 	elif a[0].from == key
@@ -155,7 +155,7 @@ in<k, v> bool(key k, a v[k]) is-data<k> compare<k> hash-mix<k>
 Associates the key `pair.a` with the value `pair.b`.
 This may overwrite the key if it's already in `a`, or add a new entry.
 ###
-~ <k, v> v[k](a v[k], pair pair<k, v>) is-data<k> compare<k> hash-mix<k>
+~ <k, v> v[k](a v[k], pair (k, v)) is-data<k> compare<k> hash-mix<k>
 	res = a get-or-update pair.from, _ =>
 		pair.to insert
 	if node ?= res new-node
@@ -166,12 +166,12 @@ This may overwrite the key if it's already in `a`, or add a new entry.
 ###
 Adds/updates many entries to `a`.
 ###
-~~ <k, v> v[k](a v[k], pairs array pair<k, v>) is-data<k> compare<k> hash-mix<k>
+~~ <k, v> v[k](a v[k], pairs array (k, v)) is-data<k> compare<k> hash-mix<k>
 	a fold pairs, (cur, pair) => cur ~ pair
 
 got-or-added<k, v> union
 	got v
-	added pair<v[k], v>
+	added (v[k], v)
 
 ###
 If `key` is already in `a`, return `already-has-key` with the old value.
@@ -304,7 +304,7 @@ try-remove<k, v> try-remove-result<k, v>?(a v[k], key k) is-data<k> compare<k> h
 			cur + l.size
 	if total-size <= leaf-max-size
 		# TODO: if only one non-empty leaf, don't copy..
-		out mut-array pair<k, v> = total-size uninitialized-mut-array
+		out mut-array (k, v) = total-size uninitialized-mut-array
 		end = 0 fold-with-index a, (out-index, child, child-index) =>
 			new-child-here = if child-index == which
 				new-child
@@ -326,7 +326,7 @@ try-remove<k, v> try-remove-result<k, v>?(a v[k], key k) is-data<k> compare<k> h
 		children[first-non-empty-index],
 
 .get-or-update-leaf<k, v> get-or-update-result<k, v>(
-	a array pair<k, v>,
+	a array (k, v),
 	key k,
 	remaining-hash nat64,
 	hash-shift nat64,
@@ -363,7 +363,7 @@ try-remove<k, v> try-remove-result<k, v>?(a v[k], key k) is-data<k> compare<k> h
 
 # In order to get the hash, we need to know the shift amount
 .new-inner-node<k, v> node<k, v>(
-	a array pair<k, v>,
+	a array (k, v),
 	key k,
 	value v,
 	hash nat64,
@@ -418,7 +418,7 @@ values<k, v> v[](a v[k]) is-data<k> compare<k> hash-mix<k>
 		pair to
 
 # Calls `f` on every pair in the dictionary and returns an array of the results.
-for-loop<out, k, v> out[](a v[k], f act out(pair<k, v>)) trusted is-data<k> compare<k> hash-mix<k>
+for-loop<out, k, v> out[](a v[k], f act out((k, v))) trusted is-data<k> compare<k> hash-mix<k>
 	res mut-array out = a.size uninitialized-mut-array
 	end = res.begin-ptr fold a, (cur, k, v) =>
 		*cur := f[(k, v)]

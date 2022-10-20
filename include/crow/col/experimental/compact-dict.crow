@@ -48,7 +48,7 @@ node-count<k, v> nat64(a compact-dict<k, v>)
 new<k, v> compact-dict<k, v>() is-data<k> compare<k> hash-mix<k>
 	(), ().end-node
 
-compact-dict<k, v> compact-dict<k, v>(a pair<k, v>[]) is-data<k> compare<k> hash-mix<k>
+compact-dict<k, v> compact-dict<k, v>(a (k, v)[]) is-data<k> compare<k> hash-mix<k>
 	(), a.to-frozen-dict.end-node
 
 keys<k, v> k[](a compact-dict<k, v>) is-data<k> compare<k> hash-mix<k>
@@ -72,7 +72,7 @@ This is O(n).
 size<k, v> nat64(a compact-dict<k, v>) is-data<k> compare<k> hash-mix<k>
 	0 fold a, (acc, _, _) => acc + 1
 
-~ <k, v> compact-dict<k, v>(a compact-dict<k, v>, pair pair<k, v>) is-data<k> compare<k> hash-mix<k>
+~ <k, v> compact-dict<k, v>(a compact-dict<k, v>, pair (k, v)) is-data<k> compare<k> hash-mix<k>
 	a add-or-remove pair.from, (pair.to,)
 
 ###
@@ -81,7 +81,7 @@ TODO
 	a ~ b.arr
 ###
 
-~~ <k, v> compact-dict<k, v>(a compact-dict<k, v>, b pair<k, v>[]) is-data<k> compare<k> hash-mix<k>
+~~ <k, v> compact-dict<k, v>(a compact-dict<k, v>, b (k, v)[]) is-data<k> compare<k> hash-mix<k>
 	a fold b, (cur, pair) => cur ~ pair
 
 - <k, v> compact-dict<k, v>(a compact-dict<k, v>, key k) is-data<k> compare<k> hash-mix<k>
@@ -129,7 +129,7 @@ in<k, v> bool(key k, a compact-dict<k, v>) is-data<k> compare<k> hash-mix<k>
 	l frozen-dict<k, v?>,
 	r frozen-dict<k, v?>,
 ) trusted is-data<k> compare<k> hash-mix<k>
-	res mut-array pair<k, v?> = l.size + r.size uninitialized-mut-array
+	res mut-array (k, v?) = l.size + r.size uninitialized-mut-array
 	begin = res begin-ptr
 	mid = begin fold l, (cur, k, vl) =>
 		if k in r
@@ -146,7 +146,7 @@ in<k, v> bool(key k, a compact-dict<k, v>) is-data<k> compare<k> hash-mix<k>
 	l frozen-dict<k, v>,
 	r frozen-dict<k, v?>,
 ) trusted is-data<k> compare<k> hash-mix<k>
-	res mut-array pair<k, v> = l.size + r.size uninitialized-mut-array
+	res mut-array (k, v) = l.size + r.size uninitialized-mut-array
 	begin = res begin-ptr
 	mid = begin fold l, (cur, k, vl) =>
 		if k in r
@@ -242,11 +242,10 @@ verify void(a compact-dict<nat64, str>, expected str)
 		as overlay _
 			false
 		as end-node eb
-			# TODO: ea.to-array::array<pair<nat64, str>> arr-equal@<pair<nat64, str>> \
-			# eb.to-array::array<pair<nat64, str>>
+			# TODO: ea.to-array::array<(nat64, str)> arr-equal@<(nat64, str)> eb.to-array::array<(nat64, str)>
 			pa = ea to-array
 			pb = eb to-array
-			bs array bool = pa zip@<bool, pair<nat64, str>, pair<nat64, str>> pb, ((x, y) => x pair-equal y)
+			bs array bool = pa zip@<bool, (nat64, str), (nat64, str)> pb, ((x, y) => x pair-equal y)
 			bs every x => x
 
 test

@@ -1060,6 +1060,8 @@ immutable(FunBody.Extern) checkExternOrGlobalBody(
 			empty(i.typeArgs) ? some(i.name.name) : none!Sym,
 		(immutable TypeAst.Suffix) =>
 			none!Sym,
+		(immutable TypeAst.Tuple) =>
+			none!Sym,
 	)(only(typeArgs));
 	if (!has(libraryName))
 		addDiag(ctx, fun.range, immutable Diag(

@@ -915,6 +915,8 @@ void writeDiag(
 						return "prefer to write 'a mut*' instead of 'mut-ptr a'";
 					case Diag.TypeShouldUseSyntax.Kind.opt:
 						return "prefer to write 'a?' instead of 'opt a'";
+					case Diag.TypeShouldUseSyntax.Kind.pair:
+						return "prefer to write '(a, b)' instead of 'pair<a, b>'";
 					case Diag.TypeShouldUseSyntax.Kind.ptr:
 						return "prefer to write 'a*' instead of 'const-ptr a'";
 				}

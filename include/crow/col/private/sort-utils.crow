@@ -23,9 +23,9 @@ import
 binary-search-has<a> bool(a array a, value a) compare<a> trusted
 	(a.begin-ptr binary-search-exact-ptr-recur a.end-ptr, value) != null
 
-binary-search-key<k, v> v?(a array pair<k, v>, key k) trusted compare<k>
+binary-search-key<k, v> v?(a array (k, v), key k) trusted compare<k>
 	a.begin-ptr binary-search-key-recur a.end-ptr, key
-.binary-search-key-recur<k, v> v?(left pair<k, v>*, right pair<k, v>*, key k) trusted compare<k>
+.binary-search-key-recur<k, v> v?(left (k, v)*, right (k, v)*, key k) trusted compare<k>
 	diff = right - left
 	if diff < 4
 		left linear-search-key-recur right, key
@@ -38,7 +38,7 @@ binary-search-key<k, v> v?(a array pair<k, v>, key k) trusted compare<k>
 			mid->to,
 		as greater
 			mid + 1 binary-search-key-recur right, key
-.linear-search-key-recur<k, v> v?(left pair<k, v>*, right pair<k, v>*, key k) trusted compare<k>
+.linear-search-key-recur<k, v> v?(left (k, v)*, right (k, v)*, key k) trusted compare<k>
 	if left == right
 		()
 	elif left->from == key

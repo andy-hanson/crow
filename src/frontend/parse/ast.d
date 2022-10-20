@@ -123,10 +123,16 @@ struct TypeAst {
 		immutable TypeAst left;
 	}
 
+	struct Tuple {
+		immutable TypeAst a;
+		immutable TypeAst b;
+	}
+
 	immutable this(immutable Dict* a) { kind = Kind.dict; dict = a; }
 	@trusted immutable this(immutable Fun a) { kind = Kind.fun; fun = a; }
 	@trusted immutable this(immutable InstStruct a) { kind = Kind.instStruct; instStruct = a; }
 	immutable this(immutable Suffix* a) { kind = Kind.suffix; suffix = a; }
+	immutable this(immutable Tuple* a) { kind = Kind.tuple; tuple = a; }
 
 	private:
 
@@ -135,6 +141,7 @@ struct TypeAst {
 		fun,
 		instStruct,
 		suffix,
+		tuple,
 	}
 	immutable Kind kind;
 	union {
@@ -142,11 +149,12 @@ struct TypeAst {
 		immutable Fun fun;
 		immutable InstStruct instStruct;
 		immutable Suffix* suffix;
+		immutable Tuple* tuple;
 	}
 }
 static assert(TypeAst.sizeof <= 40);
 
-@trusted immutable(T) matchTypeAst(T, alias cbDict, alias cbFun, alias cbInstStruct, alias cbSuffix)(
+@trusted immutable(T) matchTypeAst(T, alias cbDict, alias cbFun, alias cbInstStruct, alias cbSuffix, alias cbTuple)(
 	immutable TypeAst a,
 ) {
 	final switch (a.kind) {
@@ -158,6 +166,8 @@ static assert(TypeAst.sizeof <= 40);
 			return cbInstStruct(a.instStruct);
 		case TypeAst.Kind.suffix:
 			return cbSuffix(*a.suffix);
+		case TypeAst.Kind.tuple:
+			return cbTuple(*a.tuple);
 	}
 }
 
@@ -174,6 +184,7 @@ immutable(RangeWithinFile) range(immutable TypeAst a) =>
 		(immutable TypeAst.Fun it) => it.range,
 		(immutable TypeAst.InstStruct it) => it.range,
 		(immutable TypeAst.Suffix it) => range(it),
+		(immutable TypeAst.Tuple it) => range(it),
 	)(a);
 
 immutable(RangeWithinFile) range(immutable TypeAst.Dict a) =>
@@ -187,6 +198,8 @@ immutable(RangeWithinFile) suffixRange(immutable TypeAst.Suffix a) {
 	immutable uint leftEnd = range(a.left).end;
 	return immutable RangeWithinFile(leftEnd, leftEnd + suffixLength(a.kind));
 }
+immutable(RangeWithinFile) range(immutable TypeAst.Tuple a) =>
+	immutable RangeWithinFile(range(a.a).start, range(a.b).end);
 
 private immutable(uint) suffixLength(immutable TypeAst.Suffix.Kind a) {
 	final switch (a) {
@@ -1413,6 +1426,10 @@ immutable(Repr) reprTypeAst(ref Alloc alloc, immutable TypeAst a) =>
 			reprRecord(alloc, "suffix", [
 				reprTypeAst(alloc, it.left),
 				reprSym(symForTypeAstSuffix(it.kind))]),
+		(immutable TypeAst.Tuple it) =>
+			reprRecord(alloc, "tuple", [
+				reprTypeAst(alloc, it.a),
+				reprTypeAst(alloc, it.b)]),
 	)(a);
 
 immutable(Sym) symOfFunKind(immutable TypeAst.Fun.Kind a) {

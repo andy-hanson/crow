@@ -64,7 +64,7 @@ import frontend.parse.lexer :
 	tryTakeOperator,
 	tryTakeToken;
 import frontend.parse.parseExpr : parseFunExprBody;
-import frontend.parse.parseType : parseType, tryParseTypeArg, tryParseTypeArgsBracketed;
+import frontend.parse.parseType : parseType, parseTypeNoTuple, tryParseTypeArg, tryParseTypeArgsBracketed;
 import model.diag : DiagnosticWithinFile;
 import model.model : FieldMutability, ImportFileType, Visibility;
 import model.parseDiag : ParseDiag;
@@ -224,15 +224,19 @@ immutable(Opt!(ImportFileType)) toImportFileType(immutable TypeAst a) =>
 									? some(ImportFileType.nat8Array)
 									: none!(ImportFileType),
 							(immutable(TypeAst.Suffix)) =>
-								none!(ImportFileType)
+								none!ImportFileType,
+							(immutable TypeAst.Tuple) =>
+								none!ImportFileType,
 							)(x.typeArgs[0])
 						: none!ImportFileType;
 				default:
 					return none!ImportFileType;
 			}
 		},
-		(immutable TypeAst.Suffix x) =>
-			none!(ImportFileType),
+		(immutable TypeAst.Suffix) =>
+			none!ImportFileType,
+		(immutable TypeAst.Tuple) =>
+			none!ImportFileType,
 	)(a);
 
 immutable(ImportOrExportKindAndDedent) parseIndentedImportNames(scope ref Lexer lexer, immutable Pos start) {
@@ -350,7 +354,7 @@ immutable(SpecSigAst) parseSpecSig(scope ref Lexer lexer) {
 	immutable SafeCStr comment = skipBlankLinesAndGetDocComment(lexer);
 	immutable Pos start = curPos(lexer);
 	immutable Sym name = takeNameOrOperator(lexer);
-	immutable TypeAst returnType = parseType(lexer);
+	immutable TypeAst returnType = parseTypeNoTuple(lexer);
 	immutable ParamsAst params = parseParams(lexer);
 	return immutable SpecSigAst(comment, range(lexer, start), name, returnType, params);
 }
@@ -461,7 +465,7 @@ immutable(FunDeclAst) parseFun(
 	immutable Sym name,
 	immutable NameAndRange[] typeParams,
 ) {
-	immutable TypeAst returnType = parseType(lexer);
+	immutable TypeAst returnType = parseTypeNoTuple(lexer);
 	immutable ParamsAst params = parseParams(lexer);
 	immutable FunModifierAst[] modifiers = parseFunModifiers(lexer.alloc, lexer);
 	immutable Opt!ExprAst body_ = parseFunExprBody(lexer);

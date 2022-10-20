@@ -22,7 +22,7 @@ mut-set<a> record mut
 # New set with the given elements (with duplicates removed).
 new<a> mut-set a(...a array a) is-data<a> compare<a> hash-mix<a>
 	# TODO: should not need type annotation
-	(for x : a.to-list; (x, ()))::pair<a, void>[].to-mut-dict,
+	(for x : a.to-list; (x, ()))::(a, void)[].to-mut-dict,
 
 # Copies an immutable set to a mutable set.
 to-mut-set<a> mut-set a(a set a) is-data<a> compare<a> hash-mix<a>

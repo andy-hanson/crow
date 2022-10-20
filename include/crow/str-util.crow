@@ -95,12 +95,12 @@ try-remove-end str?(a str, b str)
 ###
 If `b` is a substring of `a`, removes it and return the parts of `a` before and after it.
 ###
-try-split-once pair<str, str>?(a str, b str)
+try-split-once (str, str)?(a str, b str)
 	if res ?= a.char8s try-split-once-by-sublist b.char8s
 		(res.a.str, res.b.str),
 
 # Like `try-split-once`, but splits on the rightmost occurrence of `b`.
-try-split-once-right pair<str, str>?(a str, b str)
+try-split-once-right (str, str)?(a str, b str)
 	if res ?= a.char8s try-split-once-by-sublist-right b.char8s
 		(res.a.str, res.b.str),
 
@@ -128,7 +128,7 @@ try-split-once-by-fn split-str?(a str, f act bool(char8))
 		(res.left.str, res.middle, res.right.str),
 
 # Finds the first whitespace character in `a` and returns the parts before and after it.
-try-split-once-by-whitespace pair<str, str>?(a str)
+try-split-once-by-whitespace (str, str)?(a str)
 	if x ?= a try-split-once-by-fn x => x is-whitespace
 		(x.left, x.right),
 

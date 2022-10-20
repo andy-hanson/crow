@@ -34,15 +34,15 @@ mut-dict<k, v> record mut
 
 .entry<k, v> union mut
 	none
-	one pair<k, v>
-	many pair<k, v> mut[]
+	one (k, v)
+	many (k, v) mut[]
 
 ###
 New dictionary containing the given pairs.
 
 Later pairs overwrite earlier pairs with the same key.
 ###
-new<k, v> v mut[k](...a array pair<k, v>) is-data<k> compare<k> hash-mix<k>
+new<k, v> v mut[k](...a array (k, v)) is-data<k> compare<k> hash-mix<k>
 	a.to-list to-mut-dict
 
 ###
@@ -50,7 +50,7 @@ Convert a list of pairs to a dictionary.
 
 Later pairs overwrite earlier pairs with the same key.
 ###
-to-mut-dict<k, v> v mut[k](a pair<k, v>[]) is-data<k> compare<k> hash-mix<k>
+to-mut-dict<k, v> v mut[k](a (k, v)[]) is-data<k> compare<k> hash-mix<k>
 	res v mut[k] = a.size mut-dict-with-capacity
 	for pair : a
 		res[pair from] := pair to
@@ -67,11 +67,11 @@ mut-dict-with-capacity<k, v> v mut[k](capacity nat64) is-data<k> compare<k> hash
 	(capacity fill-mut-array none)::mut-array<entry<k, v>>, 0
 
 # Copy pairs to a list.
-to-list<k, v> pair<k, v>[](a v mut[k]) is-data<k> compare<k> hash-mix<k>
+to-list<k, v> (k, v)[](a v mut[k]) is-data<k> compare<k> hash-mix<k>
 	a map-to-list (key, value) => key, value
 
 # Copy pairs to a list and clear the dictionary.
-move-to-list<k, v> pair<k, v>[](a v mut[k]) is-data<k> compare<k> hash-mix<k>
+move-to-list<k, v> (k, v)[](a v mut[k]) is-data<k> compare<k> hash-mix<k>
 	res = a to-list
 	a clear
 	res
@@ -218,11 +218,11 @@ Returns the old value (if it exists).
 				()
 
 # This is the same as calling `a[b a] := b b`.
-~= <k, v> void(a v mut[k], b pair<k, v>) is-data<k> compare<k> hash-mix<k>
+~= <k, v> void(a v mut[k], b (k, v)) is-data<k> compare<k> hash-mix<k>
 	a[b from] := b to
 
 # This is the same as calling `a ~= x` for every `x` in `b`.
-~~= <k, v> void(a v mut[k], b pair<k, v>[]) is-data<k> compare<k> hash-mix<k>
+~~= <k, v> void(a v mut[k], b (k, v)[]) is-data<k> compare<k> hash-mix<k>
 	for pair : b
 		a ~= pair
 
@@ -339,7 +339,7 @@ set-map-values<k, v> void(a v mut[k], f act v(k, v)) trusted is-data<k> compare<
 			"({ar dbg})"
 		as many m
 			"[{", " join for pair : m; pair dbg}]"
-.dbg<k, v> str(a pair<k, v>) to-str<k> to-str<v>
+.dbg<k, v> str(a (k, v)) to-str<k> to-str<v>
 	"{a from} -> {a to}"
 
 .verify void(a str mut[nat64], expected str)

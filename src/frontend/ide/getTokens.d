@@ -246,6 +246,10 @@ void addTypeTokens(
 			addTypeTokens(alloc, tokens, allSymbols, it.left);
 			add(alloc, tokens, immutable Token(Token.Kind.keyword, suffixRange(it)));
 		},
+		(immutable TypeAst.Tuple it) {
+			addTypeTokens(alloc, tokens, allSymbols, it.a);
+			addTypeTokens(alloc, tokens, allSymbols, it.b);
+		},
 	)(a);
 }
 

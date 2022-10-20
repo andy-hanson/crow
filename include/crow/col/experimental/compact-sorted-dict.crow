@@ -31,19 +31,19 @@ compact-sorted-dict<k, v> record by-val
 
 .impl<k, v> union
 	overlay overlay<k, v>
-	end-node array pair<k, v>
+	end-node array (k, v)
 
 .overlay<k, v> record by-ref
 	# TODO: consider tracking the number of keys that are new, or change a value, or remove a value.
 	# We should merge more frequently if removing keys, less frequently if adding keys.
 	# never empty
-	pairs array pair<k, v?>
+	pairs array (k, v?)
 	prev impl<k, v>
 
-new<k, v> compact-sorted-dict<k, v>(...a array pair<k, v>) is-data<k> compare<k>
+new<k, v> compact-sorted-dict<k, v>(...a array (k, v)) is-data<k> compare<k>
 	a.to-list to-compact-sorted-dict
 
-to-compact-sorted-dict<k, v> compact-sorted-dict<k, v>(a pair<k, v>[]) is-data<k> compare<k>
+to-compact-sorted-dict<k, v> compact-sorted-dict<k, v>(a (k, v)[]) is-data<k> compare<k>
 	sorted = a sort-by pair => pair from
 	(sorted.to-array end-node),
 
@@ -61,7 +61,7 @@ This is O(n).
 size<k, v> nat64(a compact-sorted-dict<k, v>) is-data<k> compare<k>
 	0 fold a, (acc, _, _) => acc + 1
 
-to-list<k, v> pair<k, v>[](a compact-sorted-dict<k, v>) is-data<k> compare<k>
+to-list<k, v> (k, v)[](a compact-sorted-dict<k, v>) is-data<k> compare<k>
 	# TODO:PERF Just use 'fold'?
 	match a.compact.impl
 	as overlay _
@@ -69,17 +69,17 @@ to-list<k, v> pair<k, v>[](a compact-sorted-dict<k, v>) is-data<k> compare<k>
 	as end-node e
 		e to-list
 
-~ <k, v> compact-sorted-dict<k, v>(a compact-sorted-dict<k, v>, pair pair<k, v>) is-data<k> compare<k>
+~ <k, v> compact-sorted-dict<k, v>(a compact-sorted-dict<k, v>, pair (k, v)) is-data<k> compare<k>
 	(a.impl add-or-remove pair.from, (pair.to,)),
 
-~~ <k, v> compact-sorted-dict<k, v>(a compact-sorted-dict<k, v>, b pair<k, v>[]) is-data<k> compare<k>
+~~ <k, v> compact-sorted-dict<k, v>(a compact-sorted-dict<k, v>, b (k, v)[]) is-data<k> compare<k>
 	if b is-empty
 		a
 	elif a is-empty
 		b to-compact-sorted-dict
 	else
 		# TODO: type annotation be unnecessary
-		pairs pair<k, v?>[] = (for x : b; x.from, (x.to,)) sort-by it => it from
+		pairs (k, v?)[] = (for x : b; x.from, (x.to,)) sort-by it => it from
 		# TODO: should not need type annotation
 		(pairs.to-array, a.impl)::overlay<k, v>.merge-as-needed,
 
@@ -122,7 +122,7 @@ in<k, v> bool(key k, a compact-sorted-dict<k, v>) is-data<k> compare<k>
 		else
 			a overlay
 
-.merge-unconditionally<k, v> array pair<k, v>(a overlay<k, v>) is-data<k> compare<k>
+.merge-unconditionally<k, v> array<(k, v)>(a overlay<k, v>) is-data<k> compare<k>
 	match a prev
 	as overlay o
 		((o.pairs merge-overlays a.pairs), o.prev) merge-unconditionally
@@ -132,17 +132,17 @@ in<k, v> bool(key k, a compact-sorted-dict<k, v>) is-data<k> compare<k>
 .should-merge bool(prev-size nat64, overlay-size nat64)
 	prev-size <= (overlay-size max 3)
 
-.merge-overlays<k, v> array pair<k, v?>(l array pair<k, v?>, r array pair<k, v?>) trusted is-data<k> compare<k>
-	res mut-array pair<k, v?> = l.size + r.size uninitialized-mut-array
+.merge-overlays<k, v> array<(k, v?)>(l array (k, v?), r array (k, v?)) trusted is-data<k> compare<k>
+	res mut-array (k, v?) = l.size + r.size uninitialized-mut-array
 	end = res.begin-ptr merge-keep-right l.begin-ptr, l.end-ptr, r.begin-ptr, r.end-ptr
 	res[0 .. end - res.begin-ptr] cast-immutable
 
-.merge-keep-right<k, v> pair<k, v> mut*(
-	out pair<k, v> mut*,
-	l pair<k, v>*,
-	l-end pair<k, v>*,
-	r pair<k, v>*,
-	r-end pair<k, v>*,
+.merge-keep-right<k, v> (k, v) mut*(
+	out (k, v) mut*,
+	l (k, v)*,
+	l-end (k, v)*,
+	r (k, v)*,
+	r-end (k, v)*,
 ) noctx unsafe compare<k>
 	assert l < l-end
 	assert r < r-end
@@ -168,20 +168,20 @@ in<k, v> bool(key k, a compact-sorted-dict<k, v>) is-data<k> compare<k>
 		else
 			out + 1 merge-keep-right l, l-end, r + 1, r-end
 
-.merge-to-end<k, v> array pair<k, v>(l array pair<k, v>, r array pair<k, v?>) trusted is-data<k> compare<k>
-	res mut-array pair<k, v> = l.size + r.size uninitialized-mut-array
+.merge-to-end<k, v> array<(k, v)>(l array (k, v), r array (k, v?)) trusted is-data<k> compare<k>
+	res mut-array (k, v) = l.size + r.size uninitialized-mut-array
 	end = if l is-empty
 		res.begin-ptr finish-rest-ignore-none r.begin-ptr, r.end-ptr
 	else
 		res.begin-ptr merge-to-end-recur l.begin-ptr, l.end-ptr, r.begin-ptr, r.end-ptr
 	res[0 .. end - res.begin-ptr] cast-immutable
 
-.merge-to-end-recur<k, v> pair<k, v> mut*(
-	out pair<k, v> mut*,
-	l pair<k, v>*,
-	l-end pair<k, v>*,
-	r pair<k, v?>*,
-	r-end pair<k, v?>*,
+.merge-to-end-recur<k, v> (k, v) mut*(
+	out (k, v) mut*,
+	l (k, v)*,
+	l-end (k, v)*,
+	r (k, v?)*,
+	r-end (k, v?)*,
 ) unsafe noctx is-data<k> compare<k>
 	assert l < l-end
 	assert r < r-end
@@ -222,10 +222,10 @@ in<k, v> bool(key k, a compact-sorted-dict<k, v>) is-data<k> compare<k>
 	out mem-copy cur, rest-size
 	out + rest-size
 
-.finish-rest-ignore-none<k, v> pair<k, v> mut*(
-	out pair<k, v> mut*,
-	r pair<k, v?>*,
-	r-end pair<k, v?>*,
+.finish-rest-ignore-none<k, v> (k, v) mut*(
+	out (k, v) mut*,
+	r (k, v?)*,
+	r-end (k, v?)*,
 ) unsafe noctx
 	if r == r-end
 		out
@@ -258,8 +258,8 @@ fold<a, k, v> a(acc a, a compact-sorted-dict<k, v>, f act a(a, k, v)) is-data<k>
 
 .fold-recur<a, k, v> a(
 	acc a,
-	end-node array pair<k, v>,
-	overlays mut-array array pair<k, v?>,
+	end-node array (k, v),
+	overlays mut-array array (k, v?),
 	f act a(a, k, v),
 ) is-data<k> compare<k>
 	if overlays is-empty
@@ -284,23 +284,23 @@ fold<a, k, v> a(acc a, a compact-sorted-dict<k, v>, f act a(a, k, v)) is-data<k>
 			acc
 		new-acc fold-recur new-end-node, took-from-overlays.overlays, f
 
-.find-least-key<k, v> k(current-least-key k, overlays mut-array array pair<k, v>) is-data<k> compare<k>
+.find-least-key<k, v> k(current-least-key k, overlays mut-array array (k, v)) is-data<k> compare<k>
 	current-least-key fold overlays, (cur, overlay) =>
 		cur min overlay[0].from
 
 .took-key<k, v> record mut
 	rightmost-value v?
-	overlays mut-array array pair<k, v?>
+	overlays mut-array array (k, v?)
 
 ###
 Takes the key from the front of every overlay that has it.
 Removes rightmost overlays from the mut-array (by returning a new, smaller mut-array).
 Returns the rightmost value associated with that key.
 ###
-.take-key<k, v> took-key<k, v>(overlays mut-array array pair<k, v?>, key k) is-data<k> compare<k>
+.take-key<k, v> took-key<k, v>(overlays mut-array array (k, v?), key k) is-data<k> compare<k>
 	overlays take-key-recur key, 0, ()
 .take-key-recur<k, v> took-key<k, v>(
-	overlays mut-array array pair<k, v?>,
+	overlays mut-array array (k, v?),
 	key k,
 	index nat64,
 	rightmost-value v?,
@@ -320,7 +320,7 @@ Returns the rightmost value associated with that key.
 	else
 		overlays take-key-recur key, index + 1, rightmost-value
 
-.get-end<k, v> array pair<k, v>(a impl<k, v>)
+.get-end<k, v> array<(k, v)>(a impl<k, v>)
 	match a
 	as overlay o
 		o.prev get-end
@@ -328,11 +328,11 @@ Returns the rightmost value associated with that key.
 		e
 
 .iters<k, v> record mut
-	end-pairs array pair<k, v>
-	overlays mut-array array pair<k, v?>
+	end-pairs array (k, v)
+	overlays mut-array array (k, v?)
 
 .init-iters<k, v> iters<k, v>(a compact-sorted-dict<k, v>) trusted
-	overlay-iters mut-array array pair<k, v?> = 0 overlay-count a.impl uninitialized-mut-array
+	overlay-iters mut-array array (k, v?) = 0 overlay-count a.impl uninitialized-mut-array
 	end-pairs = overlay-iters.begin-ptr init-overlay-iters-recur a.impl
 	end-pairs, overlay-iters
 
@@ -344,7 +344,7 @@ Returns the rightmost value associated with that key.
 		acc
 
 # incidentally returns the end node pairs
-.init-overlay-iters-recur<k, v> array pair<k, v>(out array<pair<k, v?>> mut*, a impl<k, v>) noctx unsafe
+.init-overlay-iters-recur<k, v> array<(k, v)>(out array<(k, v?)> mut*, a impl<k, v>) noctx unsafe
 	match a
 	as overlay o
 		*out := o pairs
@@ -360,7 +360,7 @@ filter<k, v> compact-sorted-dict<k, v>(a compact-sorted-dict<k, v>, f act bool(k
 
 map<k-out, v-out, k-in, v-in> compact-sorted-dict<k-out, v-out>(
 	a compact-sorted-dict<k-in, v-in>,
-	f act pair<k-out, v-out>(k-in, v-in),
+	f act (k-out, v-out)(k-in, v-in),
 ) is-data<k-in> compare<k-in> is-data<k-out> compare<k-out>
 	a map-to-list f to-compact-sorted-dict
 
@@ -376,7 +376,7 @@ map-values<v-out, k, v-in> compact-sorted-dict<k, v-out>(
 	f act v-out(k, v-in),
 ) is-data<k> compare<k>
 	# No need to re-sort
-	new-pairs array pair<k, v-out> = for pair : a to-list
+	new-pairs array (k, v-out) = for pair : a to-list
 		pair.from, f[pair.from, pair.to]
 	(new-pairs end-node),
 

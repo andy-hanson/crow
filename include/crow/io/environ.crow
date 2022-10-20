@@ -31,7 +31,7 @@ get-environ environ() summon trusted
 		res[entry from] := entry to
 		env + 1 get-environ-recur res
 
-.parse-environ-entry pair<str, str>(entry c-str) unsafe
+.parse-environ-entry (str, str)(entry c-str) unsafe
 	if key-end ?= entry find-char-in-c-str "="
 		key = (entry array-from-begin-end key-end).to-list str
 		value-begin = key-end + 1
