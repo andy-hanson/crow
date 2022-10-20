@@ -37,7 +37,7 @@ import
 	crow/serialize: from-bytes
 	crow/test-util/test-runner: run-all-tests
 
-main fut nat(_ array str) summon
+main fut nat(_ str[]) summon
 	_ = ().from-bytes :: nat8[]
 	_ = quality-moderate
 	_ = bold

@@ -9,7 +9,7 @@ import
 	./toccata.ogg as toccata array nat8
 	./crow.wav as crow-wav array nat8
 
-main fut nat(_ array str) summon unsafe
+main fut nat(_ str[]) summon unsafe
 	audio = start-sdl-audio
 	out print "Sound device format is {audio format}"
 	music = toccata.sound-from-file-content with-sample-rate audio.format.sample-rate

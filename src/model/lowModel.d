@@ -316,8 +316,11 @@ immutable(LowType.Record) asRecordType(immutable LowType a) {
 	return a.record_;
 }
 
+immutable(bool) isUnionType(immutable LowType a) =>
+	a.kind_ == LowType.Kind.union_;
+
 immutable(LowType.Union) asUnionType(immutable LowType a) {
-	verify(a.kind_ == LowType.Kind.union_);
+	verify(isUnionType(a));
 	return a.union_;
 }
 

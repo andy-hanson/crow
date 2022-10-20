@@ -44,10 +44,12 @@ import interpret.generateExpr : generateFunFromExpr;
 import interpret.generateText :
 	generateText, generateThreadLocalsInfo, TextAndInfo, TextIndex, TextInfo, ThreadLocalsInfo;
 import interpret.runBytecode : maxThreadLocalsSizeWords;
+import model.concreteModel : asInst, name;
 import model.lowModel :
 	asRecordType,
-	asRecordType,
+	asUnionType,
 	isRecordType,
+	isUnionType,
 	LowField,
 	LowFun,
 	LowFunBody,
@@ -58,10 +60,12 @@ import model.lowModel :
 	LowParam,
 	LowProgram,
 	LowType,
+	LowUnion,
 	matchLowFunBody,
 	matchLowType,
 	name,
-	PrimitiveType;
+	PrimitiveType,
+	typeSize;
 import model.model : FunDecl, Module, name, Program, range;
 import model.typeLayout : nStackEntriesForType, typeSizeBytes;
 import util.alloc.alloc : Alloc, TempAlloc;
@@ -76,7 +80,7 @@ import util.opt : force, has, Opt;
 import util.perf : Perf, PerfMeasure, withMeasure;
 import util.ptr : castNonScope_mut, ptrTrustMe_mut;
 import util.sourceRange : FileIndex;
-import util.sym : AllSymbols, shortSymValue, Sym;
+import util.sym : AllSymbols, shortSym, shortSymValue, Sym;
 import util.util : unreachable, verify;
 import util.writer : Writer;
 
@@ -409,6 +413,14 @@ void toDynCallTypes(
 	if (isRecordType(a)) {
 		foreach (immutable LowField field; program.allRecords[asRecordType(a)].fields)
 			toDynCallTypes(program, field.type, cb);
+	} else if (isUnionType(a)) {
+		// This should only happen for the 'str[]' in 'main'
+		immutable LowUnion u = program.allUnions[asUnionType(a)];
+		verify(name(*asInst(u.source.source).inst) == shortSym("node"));
+		immutable size_t sizeWords = 3;
+		verify(typeSize(u).sizeBytes == ulong.sizeof * sizeWords);
+		foreach (immutable size_t i; 0 .. sizeWords)
+			cb(DynCallType.nat64);
 	} else
 		cb(toDynCallType(a));
 }

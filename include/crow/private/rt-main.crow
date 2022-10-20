@@ -1,7 +1,7 @@
 no-std
 import
-	../col/array: array, for-loop
-	../col/array-util: tail
+	../col/array: array
+	../col/list: for-loop, list, tail, to-list
 	../col/private/array-low-level: subscript
 	../fun-util: fun-ptr1, subscript
 	../fut: delay, fut, handle-exceptions, then-void
@@ -23,7 +23,7 @@ import
 	./thread-utils: count-processors, create-one-thread, join-one-thread, thread-handle
 
 .main-ptr alias
-	fun-ptr1<fut nat64, array str>
+	fun-ptr1<fut nat64, str[]>
 
 # Treated specially by the compiler
 rt-main int32(argc int32, argv c-str*, main-ptr main-ptr) trusted noctx summon
@@ -78,13 +78,13 @@ init-constants void() unsafe noctx summon builtin
 # TODO: if mut-bag-node is in unmanaged memory, don't need ctx for this
 # We want main-fut to be available immediately, not after having run some user code.
 # So we create main-fut now, and forward the result of 'main' to that.
-.add-first-task fut nat64(all-args array c-str, main-ptr fun-ptr1<fut nat64, array str>) unsafe
+.add-first-task fut nat64(all-args array c-str, main-ptr fun-ptr1<fut nat64, str[]>) unsafe
 	# 'then' is useful here -- it handles any errors in 'main' and gets us main-fut immediately.
 	# TODO: 'then' overload for fut<void> taking lambda with 0 params
 	res = delay then-void () =>
 		get-global-ctx init-symbol-table
 		# First argument is the path to this executable; omit from crow main
-		main-ptr[for arg : all-args tail; arg to-str]
+		main-ptr[for arg : all-args.to-list.tail; arg to-str]
 	res handle-exceptions
 	res
 

@@ -37,7 +37,7 @@ import
 	./fragment.frag.essl as fragment-shader str
 	./vertex.vert.essl as vertex-shader str
 
-main fut nat(_ array str) summon trusted
+main fut nat(_ str[]) summon trusted
 	SDL_INIT_VIDEO.SDL_Init handle-sdl-error "SDL_INIT_VIDEO"
 
 	# TODO: is this redundant?

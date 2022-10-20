@@ -3,7 +3,7 @@ import
 	crow/col/set
 	crow/io/print: out, print
 
-main fut nat(_ array str) summon
+main fut nat(_ str[]) summon
 	chili set sym = "beans", "pepper", "onion", "beans"
 	out print "size: {chili size}"
 	# TODO: should not need type annotation

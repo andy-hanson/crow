@@ -2,7 +2,7 @@ import
 	crow/cell
 	crow/io/print: out, print
 
-main fut nat(_ array str) summon
+main fut nat(_ str[]) summon
 	xs list str = "crow", "raven"
 	count cell nat = 0,
 	ys list str = for x : xs

@@ -1,7 +1,7 @@
 import
 	crow/io/print: out, print
 
-main fut nat(_ array str) summon
+main fut nat(_ str[]) summon
 	if piece ?= "bishop" to-chess-piece
 		out print "bishop as chess-piece is {piece to-nat32}"
 	if face ?= queen::chess-piece to-face-card

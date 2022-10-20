@@ -11,7 +11,7 @@ import
 	sys/socket: AF_INET, connect, sockaddr, socket, SOCK_STREAM
 	unistd: read, write
 
-main fut nat(_ array str) unsafe summon
+main fut nat(_ str[]) unsafe summon
 	hostname = "duckduckgo.com"
 	socket = get-tcp-socket
 	socket connect-socket hostname, 80

@@ -7,7 +7,7 @@ import
 	crow/io/stdin: read-stdin
 	crow/log: info, log
 
-main fut nat(args array str) unsafe summon
+main fut nat(args str[]) unsafe summon
 	if args.size != 1
 		err print "usage: serve [PORT]"
 		1,

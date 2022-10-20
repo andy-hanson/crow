@@ -1,7 +1,7 @@
 import
 	crow/io/print: out, print
 
-main fut nat(_ array str) summon
+main fut nat(_ str[]) summon
 	# print(out, "crow")
 	out print "crow"
 

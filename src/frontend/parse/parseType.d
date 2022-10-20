@@ -68,7 +68,10 @@ private immutable(TypeAst[]) parseTypesWithCommas(scope ref Lexer lexer) {
 	return finishArr(lexer.alloc, res);
 }
 
-private immutable(TypeAst[]) tryParseTypeArgsAllowSpaceNoTuple(scope ref Lexer lexer, immutable RequireBracket requireBracket) =>
+private immutable(TypeAst[]) tryParseTypeArgsAllowSpaceNoTuple(
+	scope ref Lexer lexer,
+	immutable RequireBracket requireBracket,
+) =>
 	peekToken(lexer, Token.name)
 		? arrLiteral(lexer.alloc, [parseType(lexer, requireBracket)])
 		: tryParseTypeArgsBracketed(lexer);

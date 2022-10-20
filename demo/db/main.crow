@@ -8,8 +8,7 @@ import
 		database, from-lmdb-key, get, lmdb-key-flags, open-lmdb-env, read-transaction, set, stat,
 		to-lmdb-key, to-str, with-block, write-transaction
 
-main fut nat(args-arr array str) unsafe summon
-	args = args-arr to-list
+main fut nat(args str[]) unsafe summon
 	command-name = !args.is-empty ? args[0]
 	if command ?= command-name.parse-command_name
 		match command

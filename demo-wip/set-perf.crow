@@ -16,7 +16,7 @@ import
 	crow/private/bootstrap: todo
 	crow/reader: parse-nat
 
-main fut nat(args array str) summon unsafe
+main fut nat(args str[]) summon unsafe
 	if args.size < 4
 		err print "Usage: set-perf dict add iters max-value"
 		()
