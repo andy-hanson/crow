@@ -1,15 +1,15 @@
 no-std
 import
 	../col/array: array, size
-	../col/array-util: zip-each
 	../col/mut-array:
-		copy-from, fill, mut-array, free-unmanaged-mut-array, index-of, set-subscript,
-		subscript, temp-as-array, unmanaged-uninitialized-mut-array
+		copy-from, fill, mut-array, free-unmanaged-mut-array, index-of, set-subscript, size,
+		subscript, unmanaged-uninitialized-mut-array
 	../fun-util: subscript
 	../misc: void
-	../number: +, nat64
+	../number: ==, <=>, +, nat64
 	../opt: opt
 	../ptr: *, mut-ptr, set-deref
+	../range: .., for-loop
 	./sym-low-level: ==, sym
 
 ###
@@ -42,5 +42,7 @@ perf-measure-value record by-val
 	total-nsec nat64
 
 each-measure void(f act void(sym, perf-measure-value)) unsafe
-	measure-names-var->temp-as-array zip-each measure-values-var->temp-as-array, (name, value) =>
-		f[name, value]
+	measure-names = *measure-names-var
+	measure-values = *measure-values-var
+	for i : 0 .. measure-names.size
+		f[measure-names[i], measure-values[i]]

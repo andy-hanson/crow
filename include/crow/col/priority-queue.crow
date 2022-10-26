@@ -14,8 +14,7 @@ import
 	../test-util: is
 	../test-util/spy: calls, fn, new, spy-act2
 	../tuple: from, new, pair, to
-	./array: array, is-empty, new, size
-	./array-util: first, fold, tail
+	./array: array, first, fold, is-empty, new, size, tail
 	./mut-array:
 		begin-ptr, cast-immutable, end-ptr, first, mut-array, set-subscript, size, subscript,
 		tail, uninitialized-mut-array

@@ -2,19 +2,18 @@ no-std
 import
 	../bool: !, &&, bool, false, new, true
 	../cell: *, cell, new, set-deref
-	../compare: ==, <, <=, compare, comparison, equal, greater, less
+	../compare: ==, <, <=, compare, comparison, equal, greater, less, min
 	../fun-util: subscript
 	../misc: new, void
-	../number: +, -, *, ==, <=>, nat8, nat64
+	../number: +, -, *, /, %, ==, <=>, nat8, nat64
 	../opt: ??, ||, is-empty, new, opt
 	../private/exception-low-level: unreachable
-	../private/range-low-level: range
+	../private/range-low-level: .., range
 	../ptr: ==, +, *, set-deref, size-of
 	../tuple: a, b, new, pair
-	./array: ~, ~~, array, array-equal, is-empty, new, size, subscript
-	./array-util:
-		array-iter, end-iter, find-and-get, fold, groups-of, index-of, iter, new, next, prev, repeat,
-		reverse, rtail, slice-left, slice-right, strip-left-while, strip-right-while, tail
+	./array:
+		~, ~~, array, array-equal, array-iter, end-iter, iter, find-and-get, fold, for-loop,
+		index-of, is-empty, new, next, prev, rtail, size, slice-left, slice-right, subscript, tail
 	./mut-array: begin-ptr, cast-immutable, end-ptr, mut-array, uninitialized-mut-array
 	./iter: new, rest, value, value-and-rest
 	./private/array-builder: ~=, array-builder, finish, new
@@ -520,8 +519,12 @@ peek<a> a?(a mut-list-iter a)
 		pair.value,
 
 groups-of<a> a[][](a a[], group-size nat64)
-	for group : a.to-array groups-of group-size to-list
-		group to-list
+	forbid group-size == 0 : "group-size can't be 0"
+	div = a.size / group-size
+	out-size = div * group-size == a.size ? div : div + 1
+	for group-index : 0 .. out-size
+		start = group-index * group-size
+		a[start .. (start + group-size min a.size)]
 
 ###
 List of every element to the left of the iterator.
@@ -966,9 +969,21 @@ contains-sublist<a> bool(a a[], b a[]) equal<a>
 
 # Removes elements from the left while `f` returns true.
 strip-left-while<a> a[](a a[], f act bool(a))
-	a.to-array strip-left-while f to-list
+	a.iter strip-left-while-recur f
+.strip-left-while-recur<a> a[](a list-iter a, f act bool(a))
+	if n ?= a next
+		if f[n value]
+			n.rest strip-left-while-recur f
+		else
+			a slice-right
 strip-right-while<a> a[](a a[], f act bool(a))
-	a.to-array strip-right-while f to-list
+	a.end-iter strip-right-while-recur f
+.strip-right-while-recur<a> a[](a list-iter a, f act bool(a))
+	if n ?= a prev
+		if f[n value]
+			n.rest strip-right-while-recur f
+		else
+			a slice-left
 
 split-list<a> record
 	left a[]
@@ -1038,14 +1053,20 @@ split-by-sublist<a> a[][](a a[], b a[]) equal<a>
 	else
 		a,
 
+# Concatenate `n` copies of `a`.
 repeat<a> a[](a a[], n nat64)
-	a.to-array repeat n to-list
+	for i : 0 .. a.size * n
+		a[i % a.size]
 
 reverse<a> a[](a a[])
-	a.to-array.reverse to-list
+	for i : 0 .. a.size
+		a[a.size - 1 - i]
 
 .force<a> a(a a?) unsafe noctx
 	if x ?= a
 		x
 	else
 		unreachable
+
+.for-loop<out> out[](a range nat64, f act out(nat64))
+	a for-loop f to-list

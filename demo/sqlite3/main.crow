@@ -2,7 +2,6 @@ import
 	crow/col/iter: again
 	crow/io/file: remove-file
 	crow/io/print: out, print
-	crow/str-util: join
 	sqlite3/main: open-sqlite3, query, run, with-block
 
 main fut nat(_ str[]) summon unsafe

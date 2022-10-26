@@ -13,8 +13,7 @@ import
 	../../str-conv: interp, finish, to-str, with-str, with-value
 	../../str-util: iter, next, join, slice-left, starts-with
 	../../test-util: is
-	../array: array, for-loop, is-empty, size, subscript
-	../array-util: fold, insert-at-ptr, last, rtail, tail, try-remove
+	../array: array, fold, for-loop, insert-at, is-empty, last, remove-at, rtail, size, subscript, tail
 	../mut-array: begin-ptr, cast-immutable, end-ptr, mut-array, subscript, uninitialized-mut-array
 	../iter: rest
 	../list: for-loop, list, size, to-array, to-list
@@ -157,6 +156,19 @@ This is O(a.size ln).
 		res
 	else
 		a
+
+###
+If `value` is in `a`, returns `a` with the first instance of `value` removed.
+Else, returns an empty option.
+###
+.try-remove<a> array<a>?(a array a, value a) compare<a>
+	a try-remove-recur 0, value
+.try-remove-recur<a> array<a>?(a array a, index nat64, value a) compare<a>
+	unless index == a.size
+		if a[index] == value
+			(a remove-at index),
+		else
+			a try-remove-recur index + 1, value
 
 ###
 If 'b' is in the set, returns `none~.
@@ -311,7 +323,7 @@ try-remove<a> tree-set<a>?(a tree-set a, b a) is-data<a> compare<a>
 	if insert-ptr != a.end-ptr && *insert-ptr == value
 		none
 	elif a.size < 4
-		(a insert-at-ptr insert-ptr, value).leaf inserted
+		(a insert-at insert-ptr - a.begin-ptr, value).leaf inserted
 	elif max-height == 0
 		# Can't add new nodes
 		(a.size + 1, 1) find-scapegoat

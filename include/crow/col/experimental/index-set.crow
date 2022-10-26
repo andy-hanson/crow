@@ -17,8 +17,7 @@ import
 	../../str-conv: finish, interp, to-hex, to-str, with-str, with-value
 	../../str-util: join
 	../../test-util: is
-	../array: array, new, subscript
-	../array-util: fold, fold-with-index
+	../array: array, fold, fold-with-index, new, subscript
 	../mut-array: begin-ptr, cast-immutable, end-ptr, mut-array, uninitialized-mut-array
 	../list: ==, fold, list, new, size, to-list
 	../private/array-low-level: begin-ptr, end-ptr, subscript

@@ -1,8 +1,7 @@
 no-std
 import
 	./bool: bool
-	./col/array: array
-	./col/array-util: find-and-get
+	./col/array: array, find-and-get
 	./misc: name, named-val, val
 	./opt: ??, new, opt
 	./private/sym-low-level: ==, sym, to-str

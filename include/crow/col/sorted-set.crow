@@ -13,8 +13,7 @@ import
 	../str-conv: finish, interp, to-str, with-str, with-value
 	../str-util: join
 	../test-util: is
-	./array: array, is-empty, new, size, subscript
-	./array-util: tail
+	./array: array, is-empty, new, size, subscript, tail
 	./experimental/index-set:
 		~, count-greater-or-equal, count-range, filter-less, for-loop, in, index-set, is-empty, new,
 		size, try-remove

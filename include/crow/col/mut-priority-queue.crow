@@ -1,7 +1,6 @@
 no-std
 import
 	../bool: &&, ==, bool, false, true
-	../col/array-util: zip-larger
 	../compare: <, compare
 	../misc: is-data, new, void
 	../number: ==, <=>, +, nat64
@@ -134,14 +133,14 @@ to-list<k, v> (k, v)[](a mut-priority-queue<k, v>) trusted is-data<k> compare<k>
 	# TODO: should be able to infer type arguments
 	mins = a.mins temp-as-array
 	buckets = a.buckets temp-as-array
-	parts = mins zip-larger@<str, (k, v), (k, v) mut[]> buckets, (opt-min, opt-bucket) =>
-		min = opt-min!
-		show-bucket = if bucket ?= opt-bucket
+	# TODO: for min, i : 0 .. mins.size
+	", " join for i : 0 .. mins.size
+		show-bucket = if i < buckets.size
+			bucket = buckets[i]
 			unless bucket is-empty
 				parts = ", " join for pair : bucket; pair dbg
 				" [{parts}]"
-		"{min dbg}{show-bucket}"
-	", " join parts.to-list
+		"{mins[i] dbg}{show-bucket}"
 
 .dbg<k, v> str(a (k, v)) to-str<k> to-str<v>
 	"{a from} -> {a to}"

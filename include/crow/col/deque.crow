@@ -11,8 +11,7 @@ import
 	../str-conv: interp, finish, to-str, with-str, with-value
 	../str-util: join
 	../test-util: is
-	./array: array, for-loop, is-empty, size
-	./array-util: first, fold, last, rtail, tail
+	./array: array, first, fold, for-loop, is-empty, last, rtail, size, tail
 	./mut-array: begin-ptr, cast-immutable, end-ptr, mut-array, subscript, uninitialized-mut-array
 	./list: ==, for-loop, list, new, to-array, to-list
 	./stack:

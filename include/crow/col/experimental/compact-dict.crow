@@ -9,13 +9,13 @@ import
 	../../number: ==, <=>, +, nat64
 	../../opt: is-empty, new, opt, opt-equal
 	../../ptr: ==, +, ref-eq, set-deref
+	../../range: ..
 	../../str: ==, literal, str
 	../../str-conv: finish, interp, to-str, with-str, with-value
 	../../str-util: join
 	../../test-util: is
 	../../tuple: from, new, pair, pair-equal, to
-	../array: array
-	../array-util: every, zip
+	../array: array, every, for-loop, size, subscript
 	../mut-array: begin-ptr, cast-immutable, end-ptr, mut-array, mut-array-from-begin-end, uninitialized-mut-array
 	../list: fold, list, new, to-list
 	../mut-set: in, mut-set, new, try-add
@@ -245,7 +245,8 @@ verify void(a compact-dict<nat64, str>, expected str)
 			# TODO: ea.to-array::array<(nat64, str)> arr-equal@<(nat64, str)> eb.to-array::array<(nat64, str)>
 			pa = ea to-array
 			pb = eb to-array
-			bs array bool = pa zip@<bool, (nat64, str), (nat64, str)> pb, ((x, y) => x pair-equal y)
+			bs array bool = for i : 0 .. pa.size
+				pa[i] pair-equal pb[i]
 			bs every x => x
 
 test

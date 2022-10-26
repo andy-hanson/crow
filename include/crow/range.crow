@@ -2,7 +2,7 @@ no-std
 import
 	./bool: !, bool
 	./cell: *, cell, new, set-deref
-	./col/array-util: for-loop
+	./col/array: for-loop
 	./col/list: list, to-list
 	./col/private/array-low-level: array-from-begin-end
 	./fun-util: subscript

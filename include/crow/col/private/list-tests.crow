@@ -13,8 +13,8 @@ import
 	../../tuple: a, b
 	../array: array, for-loop, is-empty
 	../list:
-		~, ~~, down, for-loop, get-root, left, l0, l1, l2, list, new, node, nodes, right, to-list,
-		try-split-once-by-sublist
+		==, ~, ~~, down, for-loop, get-root, groups-of, left, list-equal, l0, l1, l2, list, new,
+		node, nodes, right, to-list, try-split-once-by-sublist
 
 dummy-list-tests nat64()
 	0
@@ -155,3 +155,10 @@ test
 	f-split.a verify "([0] [[1 2]] [3])"
 	f-split.b verify "([6] ([[7 8] [9 10]] [] [[11 12]]) [13])"
 	###
+
+test
+	a nat64[] = 1, 2, 3, 4, 5, 6, 7
+	a groups-of 3 is ((1, 2, 3), (4, 5, 6), (7,))
+
+.== bool(a nat64[][], b nat64[][]) noctx
+	a list-equal b

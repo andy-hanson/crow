@@ -17,10 +17,9 @@ import
 	../test-util: is
 	../tuple: from, new, pair, to
 	../private/bootstrap: todo
-	./array: ~, array, for-loop, is-empty, new, size, subscript
-	./array-util:
-		every, find-index, fold, fold-with-index, remove-at, rtail, tail, update-at,
-		update-at-with-default
+	./array:
+		~, array, every, find-index, fold, fold-with-index, for-loop, is-empty, new, remove-at,
+		rtail, size, subscript, tail, update-at
 	./mut-array:
 		begin-ptr, cast-immutable, copy-from, end-ptr, fill-mut-array, mut-array, set-subscript, size,
 		subscript, uninitialized-mut-array
@@ -273,6 +272,22 @@ try-remove<k, v> try-remove-result<k, v>?(a v[k], key k) is-data<k> compare<k> h
 				(new-node,), (), (ins,)
 	as leaf-node l
 		l get-or-update-leaf key, remaining-hash, hash-shift, f
+
+###
+Unlike `update-at`, `index` doesn't need to be a valid index.
+If `index > a.size`, entries between the and of `a` and the new entries will be `default`.
+###
+.update-at-with-default<a> array a(a array a, index nat64, new-value a, default a) no-doc
+	if index < a.size
+		a update-at index, new-value
+	else
+		for i : 0 .. index + 1
+			if i < a.size
+				a[i]
+			elif i == index
+				new-value
+			else
+				default
 
 .update-child<k, v> node<k, v>(a array node<k, v>, which nat64, new-child node<k, v>)
 	if leaf ?= a inner-node-to-leaf which, new-child

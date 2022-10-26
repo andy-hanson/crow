@@ -1,11 +1,9 @@
 import
 	crow/col/iter: again, again-or-stop
-	crow/col/mut-list: ~=, move-to-list, mut-list, new
 	crow/c-types: c-int
 	crow/ptr:
 		*, any-mut-ptr, as-any-mut-ptr, as-const, const-ptr, null, ptr-cast, ptr-cast-to-extern,
 		subscript
-	crow/str-util: to-c-str, to-str
 	./headers:
 		==, |, enum-members, sqlite3-ptr, sqlite3_close, sqlite3_exec, sqlite3_free, SQLITE_OK,
 		SQLITE_OPEN_CREATE, SQLITE_OPEN_READWRITE, sqlite3_open_v2
@@ -29,8 +27,8 @@ with-block<a> fut a(a open-sqlite3, cb ref a(sqlite3)) summon trusted is-sendabl
 	assert err2 == SQLITE_OK
 	res,
 
-query list<list<str>>(db sqlite3, command str) summon
-	res list<str> mut[] = ()
+query str[][](db sqlite3, command str) summon
+	res str[] mut[] = ()
 	db run command, (_, values) =>
 		res ~= values
 		again
@@ -42,7 +40,7 @@ run void(db sqlite3, command str) summon
 ###
 cb takes column names and values for a single row.
 ###
-run void(db sqlite3, command str, cb-row act again-or-stop(list str, list str)) summon trusted
+run void(db sqlite3, command str, cb-row act again-or-stop(str[], str[])) summon trusted
 	error-message mut c-str = null
 	ctx callback-ctx = cb-row,
 	err = db.raw sqlite3_exec command.to-c-str, &callback, (&ctx)::callback-ctx*.as-any-mut-ptr, &error-message
@@ -53,13 +51,13 @@ run void(db sqlite3, command str, cb-row act again-or-stop(list str, list str)) 
 		throw "ERROR {err.enum-to-str}: {error-str}"
 
 .callback-ctx record by-val mut
-	cb-row act again-or-stop(list str, list str)
+	cb-row act again-or-stop(str[], str[])
 
 .callback c-int(ctx-ptr any-mut-ptr, argc c-int, argv c-str*, col-name c-str*) summon unsafe
 	ctx callback-ctx = *(ctx-ptr.as-const.ptr-cast::callback-ctx*)
-	column-names list str = for i : 0 .. argc.to-nat64
+	column-names str[] = for i : 0 .. argc.to-nat64
 		col-name[i] to-str
-	values list str = for i : 0 .. argc.to-nat64
+	values str[] = for i : 0 .. argc.to-nat64
 		argv[i] to-str
 	match ctx.cb-row[column-names, values]
 	as again

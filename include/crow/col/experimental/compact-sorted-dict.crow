@@ -15,8 +15,7 @@ import
 	../../test-util: is
 	../../tuple: from, new, pair, to
 	../../private/alloc: mem-copy
-	../array: array, is-empty, new, size, subscript
-	../array-util: fold, tail
+	../array: array, fold, is-empty, new, size, subscript, tail
 	../mut-array:
 		begin-ptr, cast-immutable, is-empty, fold, mut-array, set-subscript, size, subscript, tail,
 		uninitialized-mut-array

@@ -1,21 +1,9 @@
-no-std
 import
-	crow/bool: !, &&, bool, false, true
 	crow/cell: *, cell, new, set-deref
-	crow/col/array: array, array-equal, new, size
-	crow/col/mut-array:
-		begin-ptr, end-ptr, fill, mut-array, mut-array-from-begin-end, size,
-		temp-as-arr, uninitialized-mut-array
-	crow/col/mut-list: ~=, begin-ptr, clear, end-ptr, mut-list, new, set-filter
+	crow/col/mut-array: begin-ptr, end-ptr, fill, mut-array, mut-array-from-begin-end, new, size, to-array
 	crow/col/private/array-low-level: array-from-begin-end, begin-ptr, end-ptr
-	crow/compare: !=, >
-	crow/misc: new, void
-	crow/number: +, ==, <=>, float32
 	crow/private/thread-utils: acquire, init, lock, release, uninit
 	crow/ptr: ==, +, -, *, by-val, const-ptr, mut-ptr, ref-eq, set-deref
-	crow/str: literal
-	crow/str-conv: finish, interp, with-str, with-value
-	crow/test-util: is
 	./audio: new, playing-sound
 	./sound: ==, format, new, samples, sound, sound-format, to-str
 
@@ -126,18 +114,18 @@ test
 	format sound-format = 2, 44100
 	a audio-queue = format,
 	sound sound = format, (1, 2, 3, 4, 5, 6, 7, 8)
-	buf mut-array float32 = 3 uninitialized-mut-array
+	buf mut-array float32 = 0, 0, 0
 	a pull buf
-	buf.temp-as-arr is (0, 0, 0)
+	buf.to-array is (0, 0, 0)
 	_ = a play sound
 	a pull buf
-	buf.temp-as-arr is (1, 2, 3)
+	buf.to-array is (1, 2, 3)
 	a pull buf
-	buf.temp-as-arr is (4, 5, 6)
+	buf.to-array is (4, 5, 6)
 	a pull buf
-	buf.temp-as-arr is (7, 8, 0)
+	buf.to-array is (7, 8, 0)
 	a pull buf
-	buf.temp-as-arr is (0, 0, 0)
+	buf.to-array is (0, 0, 0)
 
 .== bool(a array float32, b array float32)
 	a array-equal b, (x, y) => x == y

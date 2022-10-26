@@ -9,8 +9,7 @@ import
 	../ptr: ==, +, -, set-deref
 	../test-util: is
 	../range: ..
-	./array: array, for-loop, is-empty, new, size
-	./array-util: first, fold, tail
+	./array: array, first, fold, for-loop, is-empty, new, size, tail
 	./mut-array: begin-ptr, cast-immutable, end-ptr, mut-array, subscript, uninitialized-mut-array
 	./list: ==, list, new, to-array, to-list
 	./stack: ~, fold, for-loop, is-empty, new, size, stack, to-list

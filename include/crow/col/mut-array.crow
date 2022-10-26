@@ -12,9 +12,8 @@ import
 		set-deref, set-subscript, size-of, subscript, swap
 	../private/alloc: alloc-uninitialized, set-zero-range, unmanaged-alloc-elements, unmanaged-free-elements
 	../private/range-low-level: .., range
-	./array: array, for-loop, new, size, subscript
+	./array: array, each-with-index, exists, find-index, fold, for-loop, index-of, new, size, subscript
 	./private/array-low-level: array-from-begin-end, begin-ptr, subscript
-	./array-util: each-with-index, exists, find-index, fold, fold-reverse, index-of
 
 ###
 `mut-array` is a low-level type mostly useful for implementing other collections.
@@ -299,8 +298,6 @@ each-with-index<a> void(a mut-array a, f act void(a, nat64)) trusted
 
 fold<a, b> a(acc a, a mut-array b, f act a(a, b)) trusted
 	acc fold a.temp-as-array, f
-fold-reverse<a, b> a(acc a, a mut-array b, f act a(a, b)) trusted
-	acc fold-reverse a.temp-as-array, f
 
 set-map<a> void(a mut-array a, f act a(a)) trusted
 	a.begin-ptr set-map-recur a.end-ptr, f

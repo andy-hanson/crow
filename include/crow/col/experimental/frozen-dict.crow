@@ -12,8 +12,7 @@ import
 	../../test-util: is
 	../../tuple: from, new, pair, to
 	../../private/alloc: alloc-uninitialized
-	../array: array, is-empty, new, size, subscript
-	../array-util: fold, fold-with-index
+	../array: array, fold, fold-with-index, is-empty, new, size, subscript
 	../mut-array:
 		begin-ptr, cast-immutable, end-ptr, fill, fill-mut-array, mut-array, mut-array-from-begin-end,
 		for-loop, size, temp-as-array, to-mut-array, set-subscript, subscript, uninitialized-mut-array

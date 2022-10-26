@@ -4,18 +4,37 @@ More functions on arrays are in the `crow/col/array-util` module.
 
 no-std
 import
-	../bool: &&, bool
+	../bool: !, &&, ||, bool, false, true
 	../compare: !=, <, <=, compare, comparison, equal, greater, less
 	../fun-util: subscript
-	../misc: void
-	../number: ==, <=>, +, nat64
+	../misc: new, void
+	../number: ==, <=>, +, -, nat64
+	../opt: new, opt
 	../private/alloc: alloc-uninitialized, copy-data-from
-	../private/range-low-level: low, high, range
-	../ptr: *, ==, +, as-const, const-ptr, mut-ptr, set-deref, subscript
+	../private/range-low-level: .., low, high, range
+	../ptr: ==, +, -, *, as-const, const-ptr, mut-ptr, set-deref, subscript
+	./iter: new, value-and-rest
 	./private/array-low-level: array-from-begin-end, array-from-begin-size, begin-ptr, end-ptr
 export
 	../private/bootstrap: array, size
 	./private/array-low-level: new
+
+# Make an array from a range
+for-loop<out> array out(a range nat64, f act out(nat64)) trusted
+	size = a.high - a.low
+	out out mut* = size alloc-uninitialized
+	cur mut = out
+	end = out + size
+	n mut = a low
+	loop
+		if cur == end
+			assert n == a.high
+			break out.as-const array-from-begin-end end.as-const
+		else
+			*cur := f[n]
+			cur := cur + 1
+			n := n + 1
+			continue
 
 # `true` iff `a.size == 0`.
 is-empty<a> bool(a array a) noctx
@@ -101,7 +120,163 @@ array-compare<a> comparison(a array a, b array a) no-doc trusted noctx compare<a
 		as greater
 			greater
 
-region 'for'
+# region basic array operations
+
+###
+Returns a new array like `a` but where `a[index]` is `new-value`.
+This is O(n).
+
+`index` must be a valid index into `a`. This can't be used to add a value to the end.
+###
+update-at<a> array a(a array a, index nat64, new-value a)
+	assert index < a.size : "index out of bounds"
+	# TODO:PERF (only concat once)
+	a[0 .. index] ~ new-value ~~ a[index + 1 .. a.size]
+
+###
+Inserts an element at index `index`, all elements there and after to the right.
+Unlike for `update-at`, `index` can be `a.size`, though it still can't be higher.
+###
+insert-at<a> array a(a array a, index nat64, value a)
+	assert index <= a.size : "index out of bounds"
+	# TODO:PERF (only concat once)
+	a[0 .. index] ~ value ~~ a[index .. a.size]
+
+# Removes the element at index `index`, shifting all later elements to the left.
+remove-at<a> array a(a array a, index nat64)
+	assert index < a.size : "index out of bounds"
+	a[0 .. index] ~~ a[index + 1 .. a.size]
+
+# Same as `a[0]`, but returns an empty option if `a` is empty.
+first<a> a?(a array a)
+	unless a is-empty
+		a[0],
+
+# Same as `a[a.size - 1]`, but returns an empty option if `a` is empty.
+last<a> a?(a array a)
+	unless a is-empty
+		a[a.size - 1],
+
+###
+All but the first element.
+Same as `a[1 .. a.size]`.
+Throws if `a` is empty.
+###
+tail<a> array a(a array a)
+	forbid a is-empty : "tail of empty array"
+	a[1 .. a.size]
+
+###
+All but the last element.
+Same as `a[0 .. a.size - 1]`.
+Throws if `a` is empty.
+###
+rtail<a> array a(a array a)
+	forbid a is-empty : "rtail of empty array"
+	a[0 .. a.size - 1]
+
+region search
+
+# TODO: only written this way to be `noctx`, else could defer to `exists`
+###
+Equivalent to `a[0] == value || a[1] == value || ... || a[a.size - 1] == value`.
+Also equivalent to `a exists it => it == value`.
+###
+in<a> bool(value a, a array a) noctx trusted equal<a>
+	cur mut = a begin-ptr
+	end = a end-ptr
+	loop
+		if cur == end
+			break false
+		elif *cur == value
+			break true
+		else
+			cur := cur + 1
+			continue
+
+###
+Returns the first index `i` where `a[i] == value`.
+
+Equivalent to `a find-index x => x == value`.
+Returns an empty option iff `value` is not in the array.
+###
+index-of<a> nat64?(a array a, value a) noctx trusted equal<a>
+	if v ?= a ptr-of value
+		v - a.begin-ptr,
+
+###
+Returns the first index `i` for which `f[a[i]]` is true.
+Returns an empty option iff `f` returns `false` for every element of `a`.
+###
+find-index<a> nat64?(a array a, f act bool(a)) no-doc trusted
+	cur mut = a begin-ptr
+	end = a end-ptr
+	loop
+		if cur == end
+			break
+		elif f[*cur]
+			break cur - a.begin-ptr,
+		else
+			cur := cur + 1
+			continue
+
+# TODO: This could just be 'for-break'
+###
+Returns the first element `x` of `a` such that `f[x]` is `true`.
+Returns an empty option iff `f` returns `false` for every element of `a`.
+###
+find<a> a?(a array a, f act bool(a)) trusted
+	a find-and-get x => f[x] ? x,
+
+# TODO: This could just be 'for-break'
+###
+For each element `x` in `a`, gets `y = f[x]` and returns `y` if it is a non-empty option.
+Returns an empty option iff `f` returns an empty option for every element of `a`.
+###
+find-and-get<out, in> out?(a array in, f act out?(in)) trusted
+	cur mut = a begin-ptr
+	end = a end-ptr
+	loop
+		if cur == end
+			break
+		elif x ?= f[*cur]
+			break x,
+		else
+			cur := cur + 1
+			continue
+
+###
+Returns a pointer to the first element equal to `value`.
+Returns an empty option iff `value` is not in the array.
+###
+ptr-of<a> a*?(a array a, value a) no-doc noctx unsafe equal<a>
+	a.begin-ptr ptr-of-recur a.end-ptr, value
+.ptr-of-recur<a> a*?(cur a*, end a*, value a) noctx unsafe equal<a>
+	unless cur == end
+		if *cur == value
+			cur,
+		else
+			cur + 1 ptr-of-recur end, value
+
+region iteration
+
+###
+Equivalent to `f[a[0]] || f[a[1]] || ... || f[a[a.size - 1]]`
+
+Calls `f` on each element of `a` and returns `true` the first time `f` does.
+Returns `false` iff `f` returned `false` every time.
+###
+exists<a> bool(a array a, f act bool(a))
+	!a.is-empty && (f[a[0]] || (a.tail exists f))
+
+###
+Equivalent to `f[a[0]] && f[a[1]] && ... && f[a[a.size - 1]]`.
+
+Calls `f` on each element of `a` and returns `false` the fist time `f` does.
+Returns `true` iff `f` returned `true` every time.
+###
+every<a> bool(a array a, f act bool(a))
+	a.is-empty || (f[a[0]] && (a.tail every f))
 
 ###
 Equivalent to calling `f[a[0]]`, `f[a[1]]`, etc.
@@ -134,3 +309,103 @@ for-loop<out, in> array out(a array in, f act out(in)) trusted
 			out-cur := out-cur + 1
 			in-cur := in-cur + 1
 			continue
+
+# TODO: Name 'for-loop'
+###
+Equivalent to calling `f[a[0], 0]`, `f[a[1], 1]`, etc.
+
+Calls `f` for each element in `a`, also providing the index.
+###
+each-with-index<a> void(a array a, f act void(a, nat64)) trusted
+	cur mut = a begin-ptr
+	index mut = 0
+	size = a size
+	until index == size
+		f[*cur, index]
+		cur := cur + 1
+		index := index + 1
+
+# Array containing only the elements of `a` for which `f[a[i]]` returns true.
+filter<a> array a(a array a, f act bool(a))
+	a filter-with-index (cur, _) => f[cur]
+
+# Like `filter`, but also provides the element index.
+.filter-with-index<a> array a(a array a, f act bool(a, nat64)) trusted
+	res a mut* = a.size alloc-uninitialized
+	out mut = res
+	cur mut = a begin-ptr
+	end = a end-ptr
+	index mut = 0
+	loop
+		if cur == end
+			break res.as-const array-from-begin-end out.as-const
+		else
+			if f[*cur, index]
+				*out := *cur
+				out := out + 1
+			cur := cur + 1
+			index := index + 1
+			continue
+
+# TODO:KILL (just use 'for' loop)
+fold<a, b> a(init a, a array b, f act a(a, b)) no-doc trusted
+	acc mut = init
+	cur mut = a begin-ptr
+	end = a end-ptr
+	loop
+		if cur == end
+			break acc
+		else
+			acc := f[acc, *cur]
+			cur := cur + 1
+			continue
+
+# TODO:KILL (just use 'for' loop)
+fold-with-index<a, b> a(init a, a array b, f act a(a, b, nat64)) no-doc trusted
+	acc mut = init
+	cur mut = a begin-ptr
+	index mut = 0
+	end = a end-ptr
+	loop
+		if cur == end
+			break acc
+		else
+			acc := f[acc, *cur, index]
+			cur := cur + 1
+			index := index + 1
+			continue
+
+region iter
+
+array-iter<a> record by-val
+	.xs array a
+	# Index of the next value to return.
+	# If at the end of the array, this iterator is empty.
+	.index nat64
+
+new<a> array-iter a() noctx
+	(), 0
+
+iter<a> array-iter<a>(a array a) noctx
+	a, 0
+
+# Iterator at the end, suitable for iterating over `a` by calling `prev`.
+end-iter<a> array-iter<a>(a array a) noctx
+	a, a.size
+
+next<a> value-and-rest<a, array-iter a>?(a array-iter a) trusted noctx
+	assert a.index <= a.xs.size
+	if a.index != a.xs.size
+		(a.xs[a index], (a.xs, a.index + 1)),
+
+prev<a> value-and-rest<a, array-iter a>?(a array-iter a) trusted noctx
+	assert a.index <= a.xs.size
+	if a.index != 0
+		prev-index = a.index - 1
+		(a.xs[prev-index], (a.xs, prev-index)),
+
+slice-left<a> array a(a array-iter a)
+	a.xs[0 .. a.index]
+
+slice-right<a> array a(a array-iter a)
+	a.xs[a.index .. a.xs.size]

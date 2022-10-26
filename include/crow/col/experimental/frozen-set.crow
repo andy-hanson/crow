@@ -10,8 +10,7 @@ import
 	../../opt: new, opt
 	../../ptr: ==, <=>, +, -, *, const-ptr, mut-ptr, set-deref, swap
 	../../test-util: is
-	../array: array, is-empty, new, size, subscript
-	../array-util: fold, fold-with-index, in, index-of, ptr-of
+	../array: array, fold, fold-with-index, in, index-of, is-empty, new, ptr-of, size, subscript
 	../mut-array:
 		begin-ptr, cast-immutable, end-ptr, fill, fill-mut-array, mut-array, for-loop,
 		size, temp-as-array, to-mut-array, set-subscript, subscript, uninitialized-mut-array
