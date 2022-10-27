@@ -52,10 +52,12 @@ compact-dict<k, v> compact-dict<k, v>(a (k, v)[]) is-data<k> compare<k> hash-mix
 	(), a.to-frozen-dict.end-node
 
 keys<k, v> k[](a compact-dict<k, v>) is-data<k> compare<k> hash-mix<k>
-	a map-to-list (k, _) => k
+	for k, _ : a
+		k
 
 values<k, v> v[](a compact-dict<k, v>) is-data<k> compare<k> hash-mix<k>
-	a map-to-list (_, v) => v
+	for _, v : a
+		v
 
 is-empty<k, v> bool(a compact-dict<k, v>) is-data<k> compare<k> hash-mix<k>
 	match a impl
@@ -164,10 +166,6 @@ in<k, v> bool(key k, a compact-dict<k, v>) is-data<k> compare<k> hash-mix<k>
 
 region iteration
 
-each<k, v> void(a compact-dict<k, v>, f act void(k, v)) is-data<k> compare<k> hash-mix<k>
-	() fold a, (_, k, v) =>
-		f[k, v]
-
 fold<a, k, v> a(acc a, a compact-dict<k, v>, f act a(a, k, v)) is-data<k> compare<k> hash-mix<k>
 	acc fold-recur a.impl, (), f
 .fold-recur<a, k, v> a(acc a, a impl<k, v>, seen mut-set k, f act a(a, k, v)) is-data<k> compare<k> hash-mix<k>
@@ -190,7 +188,11 @@ fold<a, k, v> a(acc a, a compact-dict<k, v>, f act a(a, k, v)) is-data<k> compar
 				# Don't need to add to 'seen' because this is the last node.
 				f[cur, k, v]
 
-map-to-list<a, k, v> a[](a compact-dict<k, v>, f act a(k, v)) trusted is-data<k> compare<k> hash-mix<k>
+for-loop<k, v> void(a compact-dict<k, v>, f act void(k, v)) is-data<k> compare<k> hash-mix<k>
+	() fold a, (_, k, v) =>
+		f[k, v]
+
+for-loop<a, k, v> a[](a compact-dict<k, v>, f act a(k, v)) trusted is-data<k> compare<k> hash-mix<k>
 	res mut-array a = a.size uninitialized-mut-array
 	end = res.begin-ptr fold a, (cur, k, v) =>
 		*cur := f[k, v]
@@ -203,16 +205,17 @@ map-to-list<a, k, v> a[](a compact-dict<k, v>, f act a(k, v)) trusted is-data<k>
 .dbg<k, v> str(a impl<k, v>) to-str<k> to-str<v>
 	match a
 	as overlay o
-		parts = ", " join for pair : o pairs
-			v = if val ?= pair to
+		parts = ", " join for k, v : o pairs
+			# TODO: v?.to-str ?? "_"
+			v-str = if val ?= v
 				"{val}"
 			else
 				"_"
-			"{pair from} -> {v}"
+			"{k} -> {v-str}"
 		"{o.prev dbg}, [{parts}]"
 	as end-node e
-		parts = ", " join for pair : e
-			"{pair from} -> {pair to}"
+		parts = ", " join for k, v : e
+			"{k} -> {v}"
 		"[{parts}]"
 
 verify void(a compact-dict<nat64, str>, expected str)
@@ -223,7 +226,7 @@ verify void(a compact-dict<nat64, str>, expected str)
 		info log "but was:"
 		info log dbg
 	dbg is expected
-	a each (k, v) =>
+	for k, v : a
 		a[k] is (v,)
 
 .== bool(a str?, b str?)

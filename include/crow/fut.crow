@@ -93,8 +93,8 @@ fut-catch<a> fut result<a, exception>(a fut a) trusted is-sendable<a>
 	cleanup ref void()
 fut-finally fut-finally(cleanup ref void())
 	cleanup,
-with-block<a> fut a(a fut-finally, f ref a(void)) trusted is-sendable<a>
-	fut = f[()]
+with-block<a> fut a(a fut-finally, f ref a()) trusted is-sendable<a>
+	fut = f[]
 	res fut a = unresolved
 	fut add-task get-global-ctx.new-exclusion, () =>
 		result = fut get-result

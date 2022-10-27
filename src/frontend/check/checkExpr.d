@@ -1533,9 +1533,7 @@ immutable(Expr) checkFor(
 	// TODO: NEATER (don't create a synthetic AST)
 	immutable ExprAst lambda = immutable ExprAst(
 		range.range,
-		immutable ExprAstKind(allocate(ctx.alloc, immutable LambdaAst(
-			arrLiteral!(LambdaAst.Param)(ctx.alloc, [ast.param]),
-			ast.body_))));
+		immutable ExprAstKind(allocate(ctx.alloc, immutable LambdaAst(ast.params, ast.body_))));
 	immutable CallAst call = immutable CallAst(
 		CallAst.Style.infix,
 		immutable NameAndRange(range.range.start, shortSym("for-loop")),
@@ -1554,9 +1552,7 @@ immutable(Expr) checkWith(
 	// TODO: NEATER (don't create a synthetic AST)
 	immutable ExprAst lambda = immutable ExprAst(
 		range.range,
-		immutable ExprAstKind(allocate(ctx.alloc, immutable LambdaAst(
-			arrLiteral!(LambdaAst.Param)(ctx.alloc, [ast.param]),
-			ast.body_))));
+		immutable ExprAstKind(allocate(ctx.alloc, immutable LambdaAst(ast.params, ast.body_))));
 	immutable CallAst call = immutable CallAst(
 		CallAst.Style.infix,
 		immutable NameAndRange(range.range.start, shortSym("with-block")),

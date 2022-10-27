@@ -23,7 +23,6 @@ import
 	../../str: ==, <=>, hash-mix, is-empty, literal, str, to-nat8
 	../../str-conv: finish, interp, to-str, with-str, with-value
 	../../str-util: as-str, contains-substr, join, split-by, to-bytes, try-remove-end
-	../../tuple: a, b
 	../../private/bootstrap: todo
 	./http-types:
 		headers, http-get, http-internal-server-error, http-method, http-post, http-request,
@@ -67,7 +66,7 @@ with-block<a> fut a(a http-server-options, cb ref a(http-server)) is-sendable<a>
 	# TODO: KILL
 	#_ <- a.handler[(http-get, "", (), ())]
 
-	with _ : tcp-server.stop fut-finally
+	with : tcp-server.stop fut-finally
 		cb[()]
 
 # Returns true when closed client
@@ -115,10 +114,10 @@ with-block<a> fut a(a http-server-options, cb ref a(http-server)) is-sendable<a>
 	forbid a.status-desc contains-substr "\n"
 	# TODO: headers are case insensitive, maybe forbid any upper-case letters in headers to be consistent
 	forbid "Content-Length" in a.headers
-	headers = "" join for pair : a headers
-		forbid pair.a contains-substr "\n"
-		forbid pair.b contains-substr "\n"
-		"\r\n{pair a}: {pair b}"
+	headers = "" join for k, v : a headers
+		forbid k contains-substr "\n"
+		forbid v contains-substr "\n"
+		"\r\n{k}: {v}"
 	head = "HTTP/1.1 {a status} \r\n{a status-desc}{headers}"
 	if a.response-body is-empty
 		"{head}\r\n\r\n".to-bytes to-array

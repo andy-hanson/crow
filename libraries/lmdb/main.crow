@@ -43,7 +43,7 @@ open-lmdb-env open-lmdb-env(db-dir str, create-if-not-exists bool)
 # Calls `open-env`, then `f`, then `close-env` (in a `finally`).
 with-block<a> fut a(options open-lmdb-env, f act fut a(lmdb-env)) trusted summon is-sendable<a>
 	env = options open-env
-	with _ : (() => env.close-env,) fut-finally
+	with : (() => env.close-env,) fut-finally
 		f[env]
 
 .open-env lmdb-env(options open-lmdb-env) unsafe summon
@@ -127,7 +127,7 @@ with-block<a, k, v> fut a(
 	f act fut a(lmdb-db<k, v>),
 ) trusted summon is-sendable<a> lmdb-key<k> serialize<v>
 	db lmdb-db<k, v> = a open-db
-	with _ : (() => (a.env close-db db),) fut-finally
+	with : (() => (a.env close-db db),) fut-finally
 		f[db]
 
 .open-db<k, v> lmdb-db<k, v>(a database<k, v>) unsafe summon lmdb-key<k> serialize<v>
@@ -281,10 +281,6 @@ count<k, v> nat(txn lmdb-txn, db lmdb-db<k, v>) summon
 
 region iteration
 
-# Calls `f` for each key-value pair in `db`.
-each<k, v> void(txn lmdb-txn, db lmdb-db<k, v>, f act void(k, v)) summon lmdb-key<k> serialize<v>
-	() fold txn, db, (_, key, value) => f[key, value]
-
 fold<a, k, v> a(acc a, txn lmdb-txn, db lmdb-db<k, v>, f act a(a, k, v)) trusted summon lmdb-key<k> serialize<v>
 	txn with-cursor db, cursor =>
 		cursor mdb_cursor_get empty-val, empty-val, MDB_FIRST check-lmdb-error
@@ -301,10 +297,18 @@ fold<a, k, v> a(acc a, txn lmdb-txn, db lmdb-db<k, v>, f act a(a, k, v)) trusted
 		err check-lmdb-error
 		new-acc fold-recur cursor, f
 
+each<k, v> record mut
+	txn lmdb-txn
+	db lmdb-db<k, v>
+each<k, v> each<k, v>(txn lmdb-txn, db lmdb-db<k, v>)
+	txn, db
+# Calls `f` for each key-value pair in `db`.
+for-loop<k, v> void(a each<k, v>, f act void(k, v)) summon lmdb-key<k> serialize<v>
+	() fold a.txn, a.db, (_, key, value) => f[key, value]
 # Calls `f` for each key-value pair in `db` and returns an array of the results.
-map<out, k, v> out[](txn lmdb-txn, db lmdb-db<k, v>, f act out(k, v)) trusted summon lmdb-key<k> serialize<v>
-	out mut-array out = txn count db uninitialized-mut-array
-	end = out.begin-ptr fold txn, db, (cur, key, value) =>
+for-loop<out, k, v> out[](a each<k, v>, f act out(k, v)) trusted summon lmdb-key<k> serialize<v>
+	out mut-array out = a.txn count a.db uninitialized-mut-array
+	end = out.begin-ptr fold a.txn, a.db, (cur, key, value) =>
 		*cur := f[key, value]
 		cur + 1
 	assert end == out.end-ptr
@@ -392,7 +396,7 @@ zip-fold<a, k, v0, v1> a(
 	cursor-cell cell MDB_cursor = null-extern-ptr,
 	open-err = txn.txn mdb_cursor_open db.dbi, cursor-cell
 	cursor = *cursor-cell
-	with _ : (() => cursor mdb_cursor_close) finally
+	with : (() => cursor mdb_cursor_close) finally
 		open-err check-lmdb-error
 		f[cursor]
 

@@ -293,7 +293,7 @@ struct CallAst {
 }
 
 struct ForAst {
-	immutable LambdaAst.Param param;
+	immutable LambdaAst.Param[] params;
 	immutable ExprAst collection;
 	immutable ExprAst body_;
 }
@@ -550,7 +550,7 @@ struct UnlessAst {
 }
 
 struct WithAst {
-	immutable LambdaAst.Param param;
+	immutable LambdaAst.Param[] params;
 	immutable ExprAst arg;
 	immutable ExprAst body_;
 }
@@ -1467,6 +1467,10 @@ immutable(Repr) reprExprAst(ref Alloc alloc, ref immutable ExprAst ast) =>
 immutable(Repr) reprNameAndRange(ref Alloc alloc, immutable NameAndRange a) =>
 	reprRecord(alloc, "name-range", [reprNat(a.start), reprSym(a.name)]);
 
+immutable(Repr) reprLambdaParamAsts(ref Alloc alloc, immutable LambdaAst.Param[] a) =>
+	reprArr(alloc, a, (ref immutable LambdaAst.Param it) =>
+		reprLambdaParamAst(alloc, it));
+
 immutable(Repr) reprLambdaParamAst(ref Alloc alloc, immutable LambdaAst.Param a) =>
 	reprRecord(alloc, "param", [
 		reprNat(a.start),
@@ -1498,7 +1502,7 @@ immutable(Repr) reprExprAstKind(ref Alloc alloc, ref immutable ExprAstKind ast) 
 					reprExprAst(alloc, it))]),
 		(ref immutable ForAst x) =>
 			reprRecord(alloc, "for", [
-				reprLambdaParamAst(alloc, x.param),
+				reprLambdaParamAsts(alloc, x.params),
 				reprExprAst(alloc, x.collection),
 				reprExprAst(alloc, x.body_)]),
 		(ref immutable IdentifierAst a) =>
@@ -1526,8 +1530,7 @@ immutable(Repr) reprExprAstKind(ref Alloc alloc, ref immutable ExprAstKind ast) 
 					reprInterpolatedPart(alloc, part))]),
 		(ref immutable LambdaAst it) =>
 			reprRecord(alloc, "lambda", [
-				reprArr(alloc, it.params, (ref immutable LambdaAst.Param it) =>
-					reprLambdaParamAst(alloc, it)),
+				reprLambdaParamAsts(alloc, it.params),
 				reprExprAst(alloc, it.body_)]),
 		(ref immutable LetAst a) =>
 			reprRecord(alloc, "let", [
@@ -1598,7 +1601,7 @@ immutable(Repr) reprExprAstKind(ref Alloc alloc, ref immutable ExprAstKind ast) 
 				reprExprAst(alloc, it.body_)]),
 		(ref immutable WithAst x) =>
 			reprRecord(alloc, "with", [
-				reprLambdaParamAst(alloc, x.param),
+				reprLambdaParamAsts(alloc, x.params),
 				reprExprAst(alloc, x.arg),
 				reprExprAst(alloc, x.body_)]),
 	)(ast);

@@ -7,6 +7,6 @@ main fut nat(_ str[]) summon
 	for x : 1 .. 10
 		"foo" with-perf-measure () =>
 			out print x.to-str
-	get-measured-perf each (name, value) =>
+	for name, value : get-measured-perf
 		out print "{name}: {value}"
 	()

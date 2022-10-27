@@ -89,7 +89,7 @@ to-dict<k, v> v[k](a (k, v)[]) is-data<k> compare<k> hash-mix<k>
 
 # Returns all pairs in the dictionary.
 to-list<k, v> (k, v)[](a v[k]) is-data<k> compare<k> hash-mix<k>
-	for x : a; x
+	for k, v : a; k, v
 
 .no-duplicate-keys<k, v> bool(a (k, v)[]) compare<k>
 	# O(n^2) but it doesn't matter since n <= 4
@@ -401,12 +401,6 @@ If `index > a.size`, entries between the and of `a` and the new entries will be 
 
 region iteration
 
-each<k, v> void(a v[k], f act void(k, v)) is-data<k> compare<k> hash-mix<k>
-	() fold a, (_, key, value) => f[key, value]
-
-each-key<k, v> void(a v[k], f act void(k)) is-data<k> compare<k> hash-mix<k>
-	() fold-keys a, (_, key) => f[key]
-
 fold<a, k, v> a(acc a, a v[k], f act a(a, k, v)) is-data<k> compare<k> hash-mix<k>
 	acc fold-recur a.root, f
 .fold-recur<a, k, v> a(acc a, a node<k, v>, f act a(a, k, v))
@@ -416,27 +410,27 @@ fold<a, k, v> a(acc a, a v[k], f act a(a, k, v)) is-data<k> compare<k> hash-mix<
 	as leaf-node l
 		acc fold l, (cur, pair) => f[cur, pair.from, pair.to]
 
-fold-keys<a, k, v> a(acc a, a v[k], f act a(a, k)) is-data<k> compare<k> hash-mix<k>
-	acc fold a, (cur, key, _) => f[cur, key]
-
 # TODO: map
 # TODO: map-values
 
 # List of every key in the dictionary.
 keys<k, v> k[](a v[k]) is-data<k> compare<k> hash-mix<k>
-	for pair : a
-		pair from
+	for k, _ : a
+		k
 
 # List of every value in the dictionary.
 values<k, v> v[](a v[k]) is-data<k> compare<k> hash-mix<k>
-	for pair : a
-		pair to
+	for _, v : a
+		v
+
+for-loop<k, v> void(a v[k], f act void(k, v)) is-data<k> compare<k> hash-mix<k>
+	() fold a, (_, key, value) => f[key, value]
 
 # Calls `f` on every pair in the dictionary and returns an array of the results.
-for-loop<out, k, v> out[](a v[k], f act out((k, v))) trusted is-data<k> compare<k> hash-mix<k>
+for-loop<out, k, v> out[](a v[k], f act out(k, v)) trusted is-data<k> compare<k> hash-mix<k>
 	res mut-array out = a.size uninitialized-mut-array
 	end = res.begin-ptr fold a, (cur, k, v) =>
-		*cur := f[(k, v)]
+		*cur := f[k, v]
 		cur + 1
 	assert end == res.end-ptr
 	res.cast-immutable to-list

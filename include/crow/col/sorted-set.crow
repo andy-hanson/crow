@@ -295,9 +295,6 @@ Or a combination of the two.
 
 region iteration
 
-each<a> void(a sorted-set a, f act void(a)) is-data<a> compare<a>
-	() fold a, (_, x) => f[x]
-
 fold<a, b> a(acc a, a sorted-set b, f act a(a, b)) is-data<b> compare<b>
 	acc fold-recur a.init-iters, a.remove, f
 .fold-recur<a, b> a(acc a, iters mut-array iter-part b, remove index-set, f act a(a, b)) compare<b>
@@ -376,6 +373,9 @@ fold<a, b> a(acc a, a sorted-set b, f act a(a, b)) is-data<b> compare<b>
 		a
 
 # TODO: filter
+
+for-loop<a> void(a sorted-set a, f act void(a)) is-data<a> compare<a>
+	() fold a, (_, x) => f[x]
 
 # Returns a set containing `f[x]` for every element `x` in `a`.
 for-loop<out, in> sorted-set out(a sorted-set in, f act out(in)) is-data<out> compare<out> is-data<in> compare<in>

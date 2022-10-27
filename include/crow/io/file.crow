@@ -225,7 +225,7 @@ write-file void(path str, content str) summon trusted
 .write-file void(path c-str, content str) summon unsafe
 	fd = path fopen "wb"
 	forbid fd.as-any-const-ptr == null : "failed to open file for write: {path}"
-	with _ : (() => fd close-fd path) finally
+	with : (() => fd close-fd path) finally
 		fd write-fd path, content.to-bytes.to-array
 
 .write-fd void(fd FILE, path c-str, bytes array nat8) summon unsafe
@@ -252,7 +252,7 @@ try-read-file-binary nat8[]?(path str) summon trusted
 				err print "failed to open file {path}"
 				todo
 		else
-			with _ : (() => fd close-fd path) finally
+			with : (() => fd close-fd path) finally
 				(fd read-fd path),
 	else
 		()

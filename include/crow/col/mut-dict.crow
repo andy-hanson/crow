@@ -68,7 +68,8 @@ mut-dict-with-capacity<k, v> v mut[k](capacity nat64) is-data<k> compare<k> hash
 
 # Copy pairs to a list.
 to-list<k, v> (k, v)[](a v mut[k]) is-data<k> compare<k> hash-mix<k>
-	a map-to-list (key, value) => key, value
+	for k, v : a
+		k, v
 
 # Copy pairs to a list and clear the dictionary.
 move-to-list<k, v> (k, v)[](a v mut[k]) is-data<k> compare<k> hash-mix<k>
@@ -234,24 +235,12 @@ Returns the old value (if it exists).
 	forbid a.entries.size == 0
 	new-size = a.entries.size * 2
 	bigger v mut[k] = new-size mut-dict-with-capacity
-	a each (key, value) =>
+	for key, value : a
 		bigger[key] := value
 	a swap bigger
 	assert a.entries.size == new-size
 
 region iteration
-
-# Calls `f` for every key and value in the dictionary.
-each<k, v> void(a v mut[k], f act void(k, v)) is-data<k> compare<k> hash-mix<k>
-	() fold a, (_, key, value) => f[key, value]
-
-###
-Calls `f` for every key and value in the dictionary.
-
-This is like `each` but without providing values.
-###
-each-key<k, v> void(a v mut[k], f act void(k)) is-data<k> compare<k> hash-mix<k>
-	a each (k, _) => f[k]
 
 ###
 Calls `f` for every key and value in the dictionary.
@@ -293,11 +282,14 @@ set-filter<k, v> void(a v mut[k], f act bool(k, v)) trusted is-data<k> compare<k
 				*entry-ptr := z one
 		entry-ptr + 1 set-filter-recur entry-end, f
 
-# TODO: use 'for-loop'
+# Calls `f` for every key and value in the dictionary.
+for-loop<k, v> void(a v mut[k], f act void(k, v)) is-data<k> compare<k> hash-mix<k>
+	() fold a, (_, key, value) => f[key, value]
+
 ###
 Calls `f` on every key and value and returns a list of the results.
 ###
-map-to-list<out, k, v> out[](a v mut[k], f act out(k, v)) trusted is-data<k> compare<k> hash-mix<k>
+for-loop<out, k, v> out[](a v mut[k], f act out(k, v)) trusted is-data<k> compare<k> hash-mix<k>
 	out mut-array out = a.size uninitialized-mut-array
 	end = out.begin-ptr fold a, (cur, key, value) =>
 		*cur := f[key, value]
@@ -310,7 +302,7 @@ Returns an immutable dictionary with this dictionary's contents.
 In the process, clears the mutable dictionary.
 ###
 move-to-dict<k, v> v[k](a v mut[k]) is-data<k> compare<k> hash-mix<k>
-	res = a map-to-list ((k, v) => k, v) to-dict
+	res = (for k, v : a; k, v)::(k, v)[] to-dict
 	a clear
 	res
 

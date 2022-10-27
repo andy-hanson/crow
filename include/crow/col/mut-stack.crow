@@ -73,7 +73,7 @@ pop<a> a?(a mut-stack a)
 
 region iteration
 
-each<a> void(a mut-stack a, f act void(a))
+for-loop<a> void(a mut-stack a, f act void(a))
 	a.inner for-loop f
 
 fold<a, b> a(acc a, a mut-stack b, f act a(a, b))

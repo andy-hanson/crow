@@ -15,7 +15,7 @@ import
 	./str-conv: finish, interp, to-str, with-str, with-value
 	./str-util: join, quote
 	./test-util: is
-	./tuple: a, b, new, pair
+	./tuple: new, pair
 
 ###
 JSON data.
@@ -179,8 +179,8 @@ to-str str(a json)
 		parts = "," join for x : xs; "{x}"
 		"[{parts}]"
 	as json-object o
-		parts = "," join for pair : o
-			"{pair.a quote}:{pair.b}"
+		parts = "," join for k, v : o
+			"{k quote}:{v}"
 		"\{{parts}}"
 
 ###

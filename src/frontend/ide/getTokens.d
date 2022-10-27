@@ -462,7 +462,7 @@ void addExprTokens(
 			add(alloc, tokens, immutable Token(
 				Token.Kind.keyword,
 				rangeOfStartAndLength(a.range.start, "for".length)));
-			addLambdaAstParam(alloc, tokens, allSymbols, x.param);
+			addLambdaAstParams(alloc, tokens, allSymbols, x.params);
 			addExprTokens(alloc, tokens, allSymbols, x.collection);
 			addExprTokens(alloc, tokens, allSymbols, x.body_);
 		},
@@ -530,8 +530,7 @@ void addExprTokens(
 			}
 		},
 		(ref immutable LambdaAst it) {
-			foreach (ref immutable LambdaAst.Param param; it.params)
-				addLambdaAstParam(alloc, tokens, allSymbols, param);
+			addLambdaAstParams(alloc, tokens, allSymbols, it.params);
 			addExprTokens(alloc, tokens, allSymbols, it.body_);
 		},
 		(ref immutable LetAst it) {
@@ -639,7 +638,7 @@ void addExprTokens(
 			add(alloc, tokens, immutable Token(
 				Token.Kind.keyword,
 				rangeOfStartAndLength(a.range.start, "with".length)));
-			addLambdaAstParam(alloc, tokens, allSymbols, x.param);
+			addLambdaAstParams(alloc, tokens, allSymbols, x.params);
 			addExprTokens(alloc, tokens, allSymbols, x.arg);
 			addExprTokens(alloc, tokens, allSymbols, x.body_);
 		},
@@ -648,6 +647,16 @@ void addExprTokens(
 
 immutable(Token) localDefOfNameAndRange(ref const AllSymbols allSymbols, immutable NameAndRange a) =>
 	immutable Token(Token.Kind.local, rangeOfNameAndRange(a, allSymbols));
+
+void addLambdaAstParams(
+	ref Alloc alloc,
+	ref ArrBuilder!Token tokens,
+	ref const AllSymbols allSymbols,
+	scope immutable LambdaAst.Param[] params,
+) {
+	foreach (ref immutable LambdaAst.Param param; params)
+		addLambdaAstParam(alloc, tokens, allSymbols, param);
+}
 
 void addLambdaAstParam(
 	ref Alloc alloc,

@@ -2,13 +2,14 @@ no-std
 import
 	../bool: !, bool, new, true
 	../compare: compare
+	../fun-util: subscript
 	../hash: hash-mix
 	../misc: is-data, new, void
 	../opt: is-empty
 	../tuple: a, new, pair
 	./array: array
 	./list: for-loop, list, to-list
-	./mut-dict: ~=, clear, each-key, move-to-list, mut-dict, in, try-remove, to-mut-dict
+	./mut-dict: ~=, clear, for-loop, move-to-list, mut-dict, in, try-remove, to-mut-dict
 	./set: for-loop, set, to-set
 
 ###
@@ -82,4 +83,5 @@ try-remove<a> bool(a mut-set a, value a) is-data<a> compare<a> hash-mix<a>
 
 # Calls `f` for every element in the set.
 for-loop<a> void(a mut-set a, f act void(a)) is-data<a> compare<a> hash-mix<a>
-	a.inner each-key f
+	for k, _ : a inner
+		f[k]

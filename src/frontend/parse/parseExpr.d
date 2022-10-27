@@ -852,8 +852,8 @@ immutable(ExprAndMaybeDedent) parseFor(
 		start,
 		allowedBlock,
 		ParseDiag.NeedsBlockCtx.Kind.for_,
-		(immutable OptNameAndRange param, immutable ExprAst col, immutable ExprAst body_) =>
-			immutable ExprAstKind(allocate(lexer.alloc, immutable ForAst(param, col, body_))));
+		(immutable OptNameAndRange[] params, immutable ExprAst col, immutable ExprAst body_) =>
+			immutable ExprAstKind(allocate(lexer.alloc, immutable ForAst(params, col, body_))));
 }
 
 immutable(ExprAndMaybeDedent) parseWith(
@@ -866,8 +866,8 @@ immutable(ExprAndMaybeDedent) parseWith(
 		start,
 		allowedBlock,
 		ParseDiag.NeedsBlockCtx.Kind.with_,
-		(immutable OptNameAndRange param, immutable ExprAst col, immutable ExprAst body_) =>
-			immutable ExprAstKind(allocate(lexer.alloc, immutable WithAst(param, col, body_))));
+		(immutable OptNameAndRange[] params, immutable ExprAst col, immutable ExprAst body_) =>
+			immutable ExprAstKind(allocate(lexer.alloc, immutable WithAst(params, col, body_))));
 }
 
 immutable(ExprAndMaybeDedent) parseForOrWith(
@@ -876,32 +876,29 @@ immutable(ExprAndMaybeDedent) parseForOrWith(
 	immutable AllowedBlock allowedBlock,
 	immutable ParseDiag.NeedsBlockCtx.Kind blockKind,
 	scope immutable(ExprAstKind) delegate(
-		immutable OptNameAndRange, immutable ExprAst, immutable ExprAst
+		immutable LambdaAst.Param[], immutable ExprAst, immutable ExprAst
 	) @safe @nogc pure nothrow cbMakeExprKind,
 ) {
-	immutable OptNameAndRange param = takeOptNameAndRange(lexer);
-	if (takeOrAddDiagExpectedToken(lexer, Token.colon, ParseDiag.Expected.Kind.colon)) {
-		immutable ExprAst col = parseExprNoBlock(lexer);
-		immutable ExprAndMaybeDedent bodyAndDedent = () {
-			immutable bool semi = tryTakeToken(lexer, Token.semicolon);
-			if (isAllowBlock(allowedBlock)) {
-				immutable uint curIndent = asAllowBlock(allowedBlock).curIndent;
-				return toMaybeDedent(semi
-					? parseExprNoLet(lexer, curIndent)
-					: takeIndentOrFail_ExprAndDedent(lexer, curIndent, () =>
-						parseStatementsAndExtraDedents(lexer, curIndent + 1)));
-			} else {
-				if (semi)
-					return noDedent(parseExprNoBlock(lexer));
-				else
-					return exprBlockNotAllowed(lexer, start, blockKind);
-			}
-		}();
-		return immutable ExprAndMaybeDedent(
-			immutable ExprAst(range(lexer, start), cbMakeExprKind(param, col, bodyAndDedent.expr)),
-			bodyAndDedent.dedents);
-	} else
-		return skipRestOfLineAndReturnBogusNoDiag(lexer, start);
+	immutable LambdaAst.Param[] params = parseParametersForForOrWith(lexer);
+	immutable ExprAst col = parseExprNoBlock(lexer);
+	immutable ExprAndMaybeDedent bodyAndDedent = () {
+		immutable bool semi = tryTakeToken(lexer, Token.semicolon);
+		if (isAllowBlock(allowedBlock)) {
+			immutable uint curIndent = asAllowBlock(allowedBlock).curIndent;
+			return toMaybeDedent(semi
+				? parseExprNoLet(lexer, curIndent)
+				: takeIndentOrFail_ExprAndDedent(lexer, curIndent, () =>
+					parseStatementsAndExtraDedents(lexer, curIndent + 1)));
+		} else {
+			if (semi)
+				return noDedent(parseExprNoBlock(lexer));
+			else
+				return exprBlockNotAllowed(lexer, start, blockKind);
+		}
+	}();
+	return immutable ExprAndMaybeDedent(
+		immutable ExprAst(range(lexer, start), cbMakeExprKind(params, col, bodyAndDedent.expr)),
+		bodyAndDedent.dedents);
 }
 
 immutable(ExprAndDedent) parseLoop(scope ref Lexer lexer, immutable Pos start, immutable uint curIndent) {
@@ -967,28 +964,39 @@ immutable(ExprAndMaybeDedent) parseLambdaWithParenthesizedParameters(
 	return parseLambdaAfterArrow(lexer, start, allowedBlock, parameters);
 }
 
-immutable(LambdaAst.Param[]) parseParenthesizedLambdaParameters(scope ref Lexer lexer) {
-	if (tryTakeToken(lexer, Token.parenRight))
+immutable(LambdaAst.Param[]) parseParametersForForOrWith(scope ref Lexer lexer) =>
+	parseForWithOrLambdaParameters(lexer, Token.colon, ParseDiag.Expected.Kind.colon);
+
+immutable(LambdaAst.Param[]) parseParenthesizedLambdaParameters(scope ref Lexer lexer) =>
+	parseForWithOrLambdaParameters(lexer, Token.parenRight, ParseDiag.Expected.Kind.closingParen);
+
+immutable(LambdaAst.Param[]) parseForWithOrLambdaParameters(
+	scope ref Lexer lexer,
+	immutable Token endToken,
+	immutable ParseDiag.Expected.Kind expectedEndToken,
+) {
+	if (tryTakeToken(lexer, endToken))
 		return [];
 	else {
 		ArrBuilder!(LambdaAst.Param) parameters;
-		return parseParenthesizedLambdaParametersRecur(lexer, parameters);
+		return parseLambdaParametersRecur(lexer, parameters, endToken, expectedEndToken);
 	}
 }
 
-immutable(LambdaAst.Param[]) parseParenthesizedLambdaParametersRecur(
+immutable(LambdaAst.Param[]) parseLambdaParametersRecur(
 	scope ref Lexer lexer,
 	ref ArrBuilder!(LambdaAst.Param) parameters,
+	immutable Token endToken,
+	immutable ParseDiag.Expected.Kind expectedEndToken,
 ) {
 	immutable Pos start = curPos(lexer);
 	immutable Opt!Sym name = takeNameOrUnderscore(lexer);
 	add(lexer.alloc, parameters, immutable LambdaAst.Param(start, name));
 	if (tryTakeToken(lexer, Token.comma))
-		return parseParenthesizedLambdaParametersRecur(lexer, parameters);
+		return parseLambdaParametersRecur(lexer, parameters, endToken, expectedEndToken);
 	else {
-		if (!tryTakeToken(lexer, Token.parenRight))
-			addDiagAtChar(lexer, immutable ParseDiag(
-				immutable ParseDiag.Expected(ParseDiag.Expected.Kind.closingParen)));
+		if (!tryTakeToken(lexer, endToken))
+			addDiagAtChar(lexer, immutable ParseDiag(immutable ParseDiag.Expected(expectedEndToken)));
 		return finishArr(lexer.alloc, parameters);
 	}
 }

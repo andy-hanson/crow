@@ -71,7 +71,8 @@ to-priority-queue<k, v> priority-queue<k, v>(a (k, v)[]) is-data<k> compare<k>
 		(root,)::node<k, v>?,
 
 to-list<k, v> (k, v)[](a priority-queue<k, v>) is-data<k> compare<k>
-	a map-to-list (k, v) => k, v
+	for k, v : a
+		k, v
 
 # True iff `a.size == 0`.
 is-empty<k, v> bool(a priority-queue<k, v>) is-data<k> compare<k>
@@ -243,7 +244,7 @@ pop<k, v> popped<k, v>?(a priority-queue<k, v>) is-data<k> compare<k>
 
 region iteration
 
-each<k, v> void(a priority-queue<k, v>, f act void(k, v)) is-data<k> compare<k>
+for-loop<k, v> void(a priority-queue<k, v>, f act void(k, v)) is-data<k> compare<k>
 	() fold a, (_, k, v) => f[k, v]
 
 fold<a, k, v> a(acc a, a priority-queue<k, v>, f act a(a, k, v)) is-data<k> compare<k>
@@ -308,14 +309,13 @@ filter<k, v> priority-queue<k, v>(a priority-queue<k, v>, f act bool(k, v)) trus
 			cur
 	out[0 .. end - out.begin-ptr].cast-immutable.to-list to-priority-queue
 
-map<k-out, v-out, k-in, v-in> priority-queue<k-out, v-out>(
+for-loop<k-out, v-out, k-in, v-in> priority-queue<k-out, v-out>(
 	a priority-queue<k-in, v-in>,
 	f act (k-out, v-out)(k-in, v-in),
 ) is-data<k-in> compare<k-in> is-data<k-out> compare<k-out>
-	a map-to-list f to-priority-queue
+	a for-loop f to-priority-queue
 
-# TODO: use 'for-loop'
-map-to-list<out, k, v> out[](a priority-queue<k, v>, f act out(k, v)) is-data<k> compare<k> trusted
+for-loop<out, k, v> out[](a priority-queue<k, v>, f act out(k, v)) is-data<k> compare<k> trusted
 	out mut-array out = a.size uninitialized-mut-array
 	end = out.begin-ptr fold a, (cur, k, v) =>
 		*cur := f[k, v]
@@ -324,10 +324,12 @@ map-to-list<out, k, v> out[](a priority-queue<k, v>, f act out(k, v)) is-data<k>
 	out.cast-immutable to-list
 
 keys<k, v> k[](a priority-queue<k, v>) is-data<k> compare<k>
-	a map-to-list (k, _) => k
+	for k, _ : a
+		k
 
 values<k, v> v[](a priority-queue<k, v>) is-data<k> compare<k>
-	a map-to-list (_, v) => v
+	for _, v : a
+		v
 
 test
 	p priority-queue<nat64, str> = ()
@@ -380,7 +382,7 @@ test
 	filtered.dbg is "6 6 [6 6b, 6 6c]"
 
 	map-order spy-act2<(nat64, str), nat64, str> = ((k, v) => (10 - k), "{v}x"),
-	mapped = p6 map map-order.fn
+	mapped priority-queue<nat64, str> = p6 for-loop map-order.fn
 	map-calls = map-order calls
 	map-calls is p6-pairs
 	mapped.dbg is "2 8x [3 7x, 3 7bx, 4 6x, 4 6bx, 4 6cx]"

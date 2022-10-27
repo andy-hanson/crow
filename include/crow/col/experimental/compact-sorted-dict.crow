@@ -247,10 +247,6 @@ compact<k, v> compact-sorted-dict<k, v>(a compact-sorted-dict<k, v>) is-data<k> 
 
 region iteration
 
-each<k, v> void(a compact-sorted-dict<k, v>, f act void(k, v)) is-data<k> compare<k>
-	() fold a, (_, k, v) =>
-		f[k, v]
-
 fold<a, k, v> a(acc a, a compact-sorted-dict<k, v>, f act a(a, k, v)) is-data<k> compare<k>
 	iters = a init-iters
 	acc fold-recur iters.end-pairs, iters.overlays, f
@@ -357,16 +353,21 @@ filter<k, v> compact-sorted-dict<k, v>(a compact-sorted-dict<k, v>, f act bool(k
 		f[pair.from, pair.to]
 	(pairs.to-array end-node),
 
-map<k-out, v-out, k-in, v-in> compact-sorted-dict<k-out, v-out>(
+for-loop<k-out, v-out, k-in, v-in> compact-sorted-dict<k-out, v-out>(
 	a compact-sorted-dict<k-in, v-in>,
 	f act (k-out, v-out)(k-in, v-in),
 ) is-data<k-in> compare<k-in> is-data<k-out> compare<k-out>
-	a map-to-list f to-compact-sorted-dict
+	a for-loop f to-compact-sorted-dict
 
 keys<k, v> k[](a compact-sorted-dict<k, v>) is-data<k> compare<k>
-	a map-to-list (k, _) => k
+	for k, _ : a
+		k
 
-map-to-list<out, k, v> out[](a compact-sorted-dict<k, v>, f act out(k, v)) is-data<k> compare<k>
+for-loop<k, v> void(a compact-sorted-dict<k, v>, f act void(k, v)) is-data<k> compare<k>
+	() fold a, (_, k, v) =>
+		f[k, v]
+
+for-loop<out, k, v> out[](a compact-sorted-dict<k, v>, f act out(k, v)) is-data<k> compare<k>
 	for pair : a to-list
 		f[pair.from, pair.to]
 

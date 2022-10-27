@@ -466,7 +466,7 @@ filter<a> tree-set a(a tree-set a, f act bool(a)) trusted is-data<a> compare<a>
 
 # TODO: find-and-get
 
-map<out, in> tree-set out(a tree-set in, f act out(in)) is-data<in> compare<in> is-data<out> compare<out> trusted
+for-loop<out, in> tree-set out(a tree-set in, f act out(in)) is-data<in> compare<in> is-data<out> compare<out> trusted
 	out mut-array out = a.size uninitialized-mut-array
 	end = out.begin-ptr fold a, (cur, value) =>
 		*cur := f[value]
@@ -549,7 +549,8 @@ test
 	filtered = s8 filter x => !(x starts-with "j")
 	filtered verify "[h i k l]"
 
-	mapped = s8 map x => x first-char
+	mapped tree-set str = for x : s8
+		x first-char
 	mapped verify "[h i j k l]"
 
 .first-char str(a str)

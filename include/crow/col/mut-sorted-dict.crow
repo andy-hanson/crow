@@ -26,7 +26,7 @@ import
 ###
 Mutable sorted dictionary.
 
-This works like `mut-dict`, but iteration functions like `each` provide elements in sorted order.
+This works like `mut-dict`, but iterates in sorted order.
 ###
 mut-sorted-dict<k, v> record mut by-ref
 	# TODO: by-val
@@ -176,7 +176,8 @@ Returns true if it succeeded.
 
 # Convert to an `array`, clearning the original `mut-sorted-dict` in the process.
 move-to-list<k, v> (k, v)[](a mut-sorted-dict<k, v>) is-data<k> compare<k>
-	res = a map-to-list (key, value) => key, value
+	res (k, v)[] = for k, v : a
+		k, v
 	a clear
 	res
 
@@ -232,10 +233,6 @@ remove-key<k, v> v?(a mut-sorted-dict<k, v>, key k) trusted is-data<k> compare<k
 
 region iteration
 
-each<k, v> void(a mut-sorted-dict<k, v>, f act void(k, v)) is-data<k> compare<k>
-	() fold a, (_, k, v) =>
-		f[k, v]
-
 fold<a, k, v> a(acc a, a mut-sorted-dict<k, v>, f act a(a, k, v)) is-data<k> compare<k>
 	a compact
 	acc fold a.pairs, (cur, pair) =>
@@ -245,11 +242,15 @@ filter<k, v> mut-sorted-dict<k, v>(a mut-sorted-dict<k, v>, f act bool(k, v)) is
 	a compact
 	(a.pairs filter pair => f[pair.from, pair.to!]) from-sorted-pairs
 
-map<k-out, v-out, k-in, v-in> mut-sorted-dict<k-out, v-out>(
+for-loop<k, v> void(a mut-sorted-dict<k, v>, f act void(k, v)) is-data<k> compare<k>
+	() fold a, (_, k, v) =>
+		f[k, v]
+
+for-loop<k-out, v-out, k-in, v-in> mut-sorted-dict<k-out, v-out>(
 	a mut-sorted-dict<k-in, v-in>,
 	f act (k-out, v-out)(k-in, v-in),
 ) is-data<k-in> compare<k-in> is-data<k-out> compare<k-out>
-	a map-to-list f to-mut-sorted-dict
+	a for-loop f to-mut-sorted-dict
 
 map-values<v-out, k, v-in> mut-sorted-dict<k, v-out>(
 	a mut-sorted-dict<k, v-in>,
@@ -264,8 +265,7 @@ map-values<v-out, k, v-in> mut-sorted-dict<k, v-out>(
 .from-sorted-pairs<k, v> mut-sorted-dict<k, v>(a (k, v?) mut[])
 	a, a.size, ()
 
-# TODO: should be for-loop (but need destructuring)
-map-to-list<out, k, v> out[](a mut-sorted-dict<k, v>, f act out(k, v)) is-data<k> compare<k>
+for-loop<out, k, v> out[](a mut-sorted-dict<k, v>, f act out(k, v)) is-data<k> compare<k>
 	a compact
 	for pair : a.pairs to-list
 		f[pair.from, pair.to!]

@@ -7,8 +7,8 @@ import
 	crow/reader: parse-nat
 	crow/serialize: from-bytes, to-bytes
 	lmdb/main:
-		abortable-write-transaction, add, count, database, from-lmdb-key, get, lmdb-db, lmdb-env,
-		lmdb-key-flags, lmdb-txn, open-lmdb-env, map, read-transaction, set, to-lmdb-key,
+		abortable-write-transaction, add, count, database, each, for-loop, from-lmdb-key, get, lmdb-db,
+		lmdb-env, lmdb-key-flags, lmdb-txn, open-lmdb-env, read-transaction, set, to-lmdb-key,
 		transaction-abort, transaction-commit, try-add, with-block, write-transaction, zip
 
 main fut nat(_ str[]) unsafe summon
@@ -101,7 +101,7 @@ with-block<a> fut a(a open-db, f act fut a(db)) unsafe summon is-sendable<a>
 
 list-users user-info[](db db) summon
 	with txn : db.env read-transaction
-		txn map db.user-name, (user, name) =>
+		for user, name : txn each db.user-name
 			user, name
 
 user-name str(db db, user user) summon

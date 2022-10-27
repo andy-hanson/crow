@@ -2,7 +2,7 @@ no-std
 import
 	./col/list: for-loop, to-list
 	./fun-util: subscript
-	./misc: new, void
+	./misc: void
 	./number: ==
 	./str: is-empty, literal, str
 	./str-conv: finish, interp, to-str, with-str, with-value
@@ -23,8 +23,8 @@ Runs `try`, and then runs `cleanup`, even if `try` threw an exception.
 If there was an exception, it will be rethrown after `after` finishes.
 If `after` throws an exception, the original exception will be lost.
 ###
-with-block<a> a(a finally, try act a(void))
-	res = a.cleanup do-if-error () => try[()]
+with-block<a> a(a finally, try act a())
+	res = a.cleanup do-if-error () => try[]
 	a.cleanup[]
 	res
 

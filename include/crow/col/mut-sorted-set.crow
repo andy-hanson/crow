@@ -9,8 +9,8 @@ import
 	../tuple: from, new, pair
 	./list: for-loop, list
 	./mut-sorted-dict:
-		clear, each, filter, fold, in, is-empty, map, move-to-list,
-		mut-sorted-dict, new, remove-key, set-filter, set-map, set-subscript, size, subscript, to-mut-sorted-dict
+		clear, filter, fold, for-loop, in, is-empty, move-to-list, mut-sorted-dict, new,
+		remove-key, set-filter, set-map, set-subscript, size, subscript, to-mut-sorted-dict
 	./sorted-set: sorted-set, to-sorted-set
 
 ###
@@ -88,8 +88,9 @@ move-to-sorted-set<a> sorted-set a(a mut-sorted-set a) is-data<a> compare<a>
 
 region iteration
 
-each<a> void(a mut-sorted-set a, f act void(a)) is-data<a> compare<a>
-	a.inner each (k, _) => f[k]
+for-loop<a> void(a mut-sorted-set a, f act void(a)) is-data<a> compare<a>
+	for k, _ : a inner
+		f[k]
 
 fold<a, b> a(acc a, a mut-sorted-set b, f act a(a, b)) is-data<b> compare<b>
 	acc fold a.inner, (cur, k, _) => f[cur, k]
@@ -97,8 +98,13 @@ fold<a, b> a(acc a, a mut-sorted-set b, f act a(a, b)) is-data<b> compare<b>
 filter<a> mut-sorted-set a(a mut-sorted-set a, f act bool(a)) is-data<a> compare<a>
 	(a.inner filter (k, _) => f[k]),
 
-map<out, in> mut-sorted-set out(a mut-sorted-set in, f act out(in)) is-data<in> compare<in> is-data<out> compare<out>
-	(a.inner map (k, _) => f[k], ()),
+for-loop<out, in> mut-sorted-set out(
+	a mut-sorted-set in,
+	f act out(in),
+) is-data<in> compare<in> is-data<out> compare<out>
+	inner mut-sorted-dict<out, void> = for k, _ : a.inner
+		f[k], ()
+	inner,
 
 region mutating iteration
 
