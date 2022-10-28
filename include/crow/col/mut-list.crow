@@ -14,10 +14,10 @@ import
 		alloc-uninitialized, copy-data-from, set-zero-range, unmanaged-alloc-zeroed-elements
 	../private/number-low-level: round-up-to-power-of-two
 	../range: .., for-loop, reverse
-	./array: array, each-with-index, exists, fold, find-index, for-loop, in, index-of
+	./array: array, exists, fold, find-index, for-loop, in, index-of
 	./mut-array:
-		begin-ptr, cast-immutable, empty-mut-array, fill-mut-array, mut-array, for-loop,
-		set-map, set-reverse, set-zero-elements, size, subscript, temp-as-array, uninitialized-mut-array
+		begin-ptr, cast-immutable, empty-mut-array, fill-mut-array, mut-array, for-loop, set-map,
+		set-reverse, set-zero-elements, size, subscript, temp-as-array, uninitialized-mut-array
 	./list: for-loop, list, to-list
 	./private/array-low-level: array-from-begin-size
 
@@ -362,13 +362,6 @@ region iteration
 find-index<a> nat64?(a a mut[], f act bool(a)) trusted
 	a.temp-as-array find-index f
 
-# Calls `f` for each element in `a`.
-for-loop<a> void(a a mut[], f act void(a)) trusted
-	a.temp-as-array for-loop f
-
-each-with-index<a> void(a a mut[], f act void(a, nat64)) trusted
-	a.temp-as-array each-with-index f
-
 exists<a> bool(a a mut[], f act bool(a)) trusted
 	a.temp-as-array exists f
 
@@ -389,6 +382,15 @@ filter<a> a mut[](a a mut[], f act bool(a)) trusted
 	res set-filter f
 	res
 
+# Calls `f` for each element in `a`.
+for-loop<a> void(a a mut[], f act void(a)) trusted
+	# TODO: dangerous if mutated while looping
+	a.temp-as-array for-loop f
+
+for-loop<a> void(a a mut[], f act void(a, nat64)) trusted
+	# TODO: dangerous if mutated while looping
+	a.temp-as-array for-loop f
+
 for-loop<out, in> out mut[](a in mut[], f act out(in)) trusted
 	a map-to-mut-array f as-mut-list
 
@@ -396,6 +398,7 @@ for-loop<out, in> out[](a in mut[], f act out(in)) trusted
 	(a map-to-mut-array f).cast-immutable to-list
 
 .map-to-mut-array<out, in> mut-array out(a in mut[], f act out(in))
+	# TODO: dangerous if mutated while looping
 	for x : a.backing[0 .. a.size]
 		f[x]
 
@@ -441,7 +444,6 @@ set-filter<a> void(a a mut[], f act bool(a)) trusted
 
 ###
 Overwrites every element `x` with `f[x]`.
-This can be written as `a.map := f`.
 ###
 set-map<a> void(a a mut[], f act a(a)) trusted
 	a.temp-as-mut-array set-map f

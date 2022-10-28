@@ -17,7 +17,7 @@ import
 	./experimental/index-set:
 		count-greater-or-equal, filter-less, for-loop, is-empty, in, index-set, new, size, try-remove
 	./experimental/frozen-set:
-		begin-ptr, end-ptr, fold-with-index, frozen-set, is-empty, new, size, to-frozen-set,
+		begin-ptr, end-ptr, frozen-set, fold, is-empty, new, size, to-frozen-set,
 		to-list, try-get-unordered-index, unsafe-frozen-set-from-mut-array-cast-immutable
 	./mut-array: begin-ptr, cast-immutable, end-ptr, mut-array, mut-array-from-begin-end, uninitialized-mut-array
 	./list: ==, for-loop, list, new, to-list
@@ -229,7 +229,7 @@ fold<a, b> a(acc a, a set b, f act a(a, b)) is-data<b> compare<b> hash-mix<b>
 	acc fold-recur a.add, a.add.add-size-left, a.remove, f
 
 .fold-recur<a, b> a(acc a, a add-node b, add-size-left nat64, remove index-set, f act a(a, b))
-	mid = acc fold-with-index a.here, (cur, x, index) =>
+	mid a = acc fold a.here, (cur, x, index) =>
 		if add-size-left + index in remove
 			cur
 		else

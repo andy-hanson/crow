@@ -12,12 +12,15 @@ import frontend.parse.ast : TypeAst;
 import frontend.programState : ProgramState;
 import model.diag : Diag;
 import model.model :
+	asStructInst,
 	asTypeParam,
 	CommonTypes,
 	decl,
 	Expr,
 	FunFlags,
+	FunKindAndStructs,
 	isBogus,
+	isStructInst,
 	isTypeParam,
 	Local,
 	matchType,
@@ -167,6 +170,38 @@ struct InferringTypeArgs {
 
 	immutable TypeParam[] params;
 	SingleInferringType[] args;
+}
+
+immutable(bool) mayBeFunTypeWithArity(
+	ref immutable CommonTypes commonTypes,
+	immutable Type type,
+	scope InferringTypeArgs inferringTypeArgs,
+	immutable size_t arity,
+) =>
+	matchType!(immutable bool)(
+		type,
+		(immutable Type.Bogus) =>
+			false,
+		(immutable TypeParam* p) {
+			const Opt!(SingleInferringType*) inferring = tryGetTypeArgFromInferringTypeArgs_const(inferringTypeArgs, p);
+			immutable Opt!Type inferred = has(inferring) ? cellGet(force(inferring).type) : none!Type;
+			return has(inferred) && isStructInst(force(inferred))
+				? isFunTypeWithArity(commonTypes, asStructInst(force(inferred)), arity)
+				: true;
+		},
+		(immutable StructInst* i) =>
+			isFunTypeWithArity(commonTypes, i, arity));
+
+private immutable(bool) isFunTypeWithArity(
+	ref immutable CommonTypes commonTypes,
+	immutable StructInst* a,
+	immutable size_t arity,
+) {
+	immutable StructDecl* actual = decl(*a);
+	foreach (immutable FunKindAndStructs f; commonTypes.funKindsAndStructs)
+		if (arity < f.structs.length && f.structs[arity] == actual)
+			return true;			
+	return false;
 }
 
 // Inferring type args are in 'a', not 'b'

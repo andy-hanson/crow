@@ -1466,6 +1466,7 @@ enum FunKind {
 
 struct FunKindAndStructs {
 	immutable FunKind kind;
+	// indexed by arity
 	immutable StructDecl*[5] structs;
 }
 

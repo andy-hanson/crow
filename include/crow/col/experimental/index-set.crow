@@ -17,7 +17,7 @@ import
 	../../str-conv: finish, interp, to-hex, to-str, with-str, with-value
 	../../str-util: join
 	../../test-util: is
-	../array: array, fold, fold-with-index, new, subscript
+	../array: array, fold, new, subscript
 	../mut-array: begin-ptr, cast-immutable, end-ptr, mut-array, uninitialized-mut-array
 	../list: ==, fold, list, new, size, to-list
 	../private/array-low-level: begin-ptr, end-ptr, subscript
@@ -409,7 +409,7 @@ fold<a> a(acc a, a index-set, f act a(a, nat64)) trusted
 		acc-c = acc-b fold i.c, offset + half, quarter, f
 		acc-c fold i.d, offset + three-quarters, quarter, f
 	as leaf l
-		acc fold-with-index l.values, (cur, value, word-index) =>
+		acc fold l.values, (cur, value, word-index) =>
 			bit-index-offset = offset + word-index * 64
 			cur fold-one-bits value, (inner-acc, bit-index) =>
 				f[inner-acc, bit-index-offset + bit-index]
@@ -419,7 +419,7 @@ fold<a> a(acc a, a index-set, f act a(a, nat64)) trusted
 ###
 TODO
 filter index-set(a index-set, f act bool(nat64))
-	strip-trailing-zeroes: a.values map-with-index (value, nat64-index) =>
+	strip-trailing-zeroes: for value, nat64-index : a.values
 		bit-index-offset = nat64-index + 64
 		value filter-bits bit-index =>
 			f[bit-index-offset + bit-index]

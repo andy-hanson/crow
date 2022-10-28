@@ -12,8 +12,8 @@ import
 	../str-util: join
 	../test-util: is
 	./mut-array:
-		begin-ptr, copy, end-ptr, exists, mut-array, fold, new, set-map,
-		set-subscript, size, subscript, to-array, uninitialized-mut-array
+		begin-ptr, copy, end-ptr, exists, mut-array, fold, new, set-map, set-subscript, size,
+		subscript, to-array, uninitialized-mut-array
 	./list: for-loop, list, to-list
 
 ###

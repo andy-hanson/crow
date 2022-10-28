@@ -12,7 +12,7 @@ import
 		set-deref, set-subscript, size-of, subscript, swap
 	../private/alloc: alloc-uninitialized, set-zero-range, unmanaged-alloc-elements, unmanaged-free-elements
 	../private/range-low-level: .., range
-	./array: array, each-with-index, exists, find-index, fold, for-loop, index-of, new, size, subscript
+	./array: array, exists, find-index, fold, for-loop, index-of, new, size, subscript
 	./private/array-low-level: array-from-begin-end, begin-ptr, subscript
 
 ###
@@ -293,8 +293,8 @@ exists<a> bool(a mut-array a, f act bool(a)) trusted
 for-loop<a> void(a mut-array a, f act void(a)) trusted
 	a.temp-as-array for-loop f
 
-each-with-index<a> void(a mut-array a, f act void(a, nat64)) trusted
-	a.temp-as-array each-with-index f
+for-loop<a> void(a mut-array a, f act void(a, nat64)) trusted
+	a.temp-as-array for-loop f
 
 fold<a, b> a(acc a, a mut-array b, f act a(a, b)) trusted
 	acc fold a.temp-as-array, f
@@ -309,7 +309,7 @@ set-map<a> void(a mut-array a, f act a(a)) trusted
 for-loop<out, in> mut-array out(a mut-array in, f act out(in)) trusted
 	a.size make-mut-array i => f[a[i]]
 
-map-with-index<out, in> mut-array out(a mut-array in, f act out(in, nat64)) trusted
+for-loop<out, in> mut-array out(a mut-array in, f act out(in, nat64)) trusted
 	a.size make-mut-array i => f[a[i], i]
 
 ###
@@ -325,6 +325,3 @@ cast-mut-array<out, in> mut-array out(a mut-array in) noctx unsafe
 
 for-loop<out, in> array out(a mut-array in, f act out(in)) trusted
 	a for-loop f cast-immutable
-
-map-to-array-with-index<out, in> array out(a mut-array in, f act out(in, nat64)) trusted
-	a map-with-index f cast-immutable

@@ -12,7 +12,7 @@ import
 	../../test-util: is
 	../../tuple: from, new, pair, to
 	../../private/alloc: alloc-uninitialized
-	../array: array, fold, fold-with-index, for-loop, is-empty, new, size, subscript
+	../array: array, fold, for-loop, is-empty, new, size, subscript
 	../mut-array:
 		begin-ptr, cast-immutable, end-ptr, fill, fill-mut-array, mut-array, mut-array-from-begin-end,
 		for-loop, size, temp-as-array, to-mut-array, set-subscript, subscript, uninitialized-mut-array
@@ -247,8 +247,8 @@ fold<a, k, v> a(acc a, a frozen-dict<k, v>, f act a(a, k, v))
 	acc fold a.pairs, (inner-acc, pair) =>
 		f[inner-acc, pair from, pair to]
 
-fold-with-index<a, k, v> a(acc a, a frozen-dict<k, v>, f act a(a, k, v, nat64))
-	acc fold-with-index a.pairs, (inner-acc, pair, index) =>
+fold<a, k, v> a(acc a, a frozen-dict<k, v>, f act a(a, k, v, nat64))
+	acc fold a.pairs, (inner-acc, pair, index) =>
 		f[inner-acc, pair from, pair to, index]
 
 .verify void(a frozen-dict<nat64, str>, keys-order nat64[], bucket-starts nat64[]) unsafe

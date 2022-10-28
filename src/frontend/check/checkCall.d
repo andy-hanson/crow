@@ -19,6 +19,7 @@ import frontend.check.inferringType :
 	LocalsInfo,
 	markUsedLocalFun,
 	matchTypesNoDiagnostic,
+	mayBeFunTypeWithArity,
 	programState,
 	SingleInferringType,
 	tryGetDeeplyInstantiatedType,
@@ -27,7 +28,7 @@ import frontend.check.inferringType :
 	typeArgsFromAsts;
 import frontend.check.instantiate :
 	instantiateFun, instantiateSpecInst, instantiateStructNeverDelay, TypeArgsArray, typeArgsArray, TypeParamsAndArgs;
-import frontend.parse.ast : CallAst, NameAndRange, rangeOfNameAndRange;
+import frontend.parse.ast : asLambda, CallAst, ExprAst, isLambda, NameAndRange, rangeOfNameAndRange;
 import frontend.programState : ProgramState;
 import model.diag : Diag;
 import model.model :
@@ -37,6 +38,7 @@ import model.model :
 	body_,
 	Called,
 	CalledDecl,
+	CommonTypes,
 	decl,
 	Expr,
 	FunDecl,
@@ -144,6 +146,8 @@ private immutable(Expr) checkCallInner(
 		if (isEmpty(candidates))
 			// Already certainly failed.
 			return none!Expr;
+
+		filterByLambdaArity(ctx.alloc, ctx.programState, ctx.commonTypes, candidates, ast.args[argIdx], argIdx);
 
 		CommonOverloadExpected common =
 			getCommonOverloadParamExpected(ctx.alloc, ctx.programState, tempAsArr_mut(candidates), argIdx);
@@ -534,6 +538,23 @@ void filterByReturnType(
 		InferringTypeArgs ta = inferringTypeArgs(candidate);
 		return matchTypesNoDiagnostic(alloc, programState, candidate.called.returnType, expectedReturnType, ta);
 	});
+}
+
+void filterByLambdaArity(
+	ref Alloc alloc,
+	ref ProgramState programState,
+	ref immutable CommonTypes commonTypes,
+	ref Candidates candidates,
+	scope ref immutable ExprAst arg,
+	immutable size_t argIdx,
+) {
+	if (isLambda(arg.kind)) {
+		immutable size_t arity = asLambda(arg.kind).params.length;
+		filterCandidates(candidates, (ref Candidate candidate) @safe {
+			immutable Type expectedArgType = getCandidateExpectedParameterType(alloc, programState, candidate, argIdx);
+			return mayBeFunTypeWithArity(commonTypes, expectedArgType, inferringTypeArgs(candidate), arity);
+		});
+	}
 }
 
 void filterByParamType(

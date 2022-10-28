@@ -824,12 +824,18 @@ rtail<a> a[](a a[])
 	if i ?= a.end-iter prev
 		i.rest slice-left
 
-for-loop<a> void(a a[], f act void(a))
-	() fold a, (_, x) => f[x]
-
 fold<a, b> a(acc a, a b[], f act a(a, b))
 	acc fold-chunks a, (cur, chunk) =>
 		cur fold chunk, f
+
+fold<a, b> a(acc a, a b[], f act a(a, b, nat64))
+	start (a, nat64) = acc, 0
+	end = start fold-chunks a, (pair, chunk) =>
+		mid = pair.a fold chunk, (cur, x, i) =>
+			f[cur, x, pair.b + i]
+		mid, pair.b + chunk.size
+	assert end.b == a.size
+	end.a
 
 in<a> bool(value a, a a[]) equal<a>
 	a some x =>
@@ -873,13 +879,30 @@ drop-right-while<a> a[](a a[], f act bool(a))
 		else
 			a slice-left
 
+for-loop<a> void(a a[], f act void(a))
+	() fold a, (_, x) => f[x]
+
+for-loop<a> void(a a[], f act void(a, nat64))
+	() fold a, (_, x, i) => f[x, i]
+
 for-loop<out, in> out[](a in[], f act out(in))
+	a for-loop f to-list
+
+for-loop<out, in> out[](a in[], f act out(in, nat64))
 	a for-loop f to-list
 
 for-loop<out, in> array out(a in[], f act out(in)) trusted
 	res mut-array out = a.size uninitialized-mut-array
 	end = res.begin-ptr fold a, (out, x) =>
 		*out := f[x]
+		out + 1
+	assert end == res.end-ptr
+	res.cast-immutable
+
+for-loop<out, in> array out(a in[], f act out(in, nat64)) trusted
+	res mut-array out = a.size uninitialized-mut-array
+	end = res.begin-ptr fold a, (out, x, i) =>
+		*out := f[x, i]
 		out + 1
 	assert end == res.end-ptr
 	res.cast-immutable

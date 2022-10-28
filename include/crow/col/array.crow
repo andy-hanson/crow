@@ -310,13 +310,12 @@ for-loop<out, in> array out(a array in, f act out(in)) trusted
 			in-cur := in-cur + 1
 			continue
 
-# TODO: Name 'for-loop'
 ###
 Equivalent to calling `f[a[0], 0]`, `f[a[1], 1]`, etc.
 
 Calls `f` for each element in `a`, also providing the index.
 ###
-each-with-index<a> void(a array a, f act void(a, nat64)) trusted
+for-loop<a> void(a array a, f act void(a, nat64)) trusted
 	cur mut = a begin-ptr
 	index mut = 0
 	size = a size
@@ -327,10 +326,10 @@ each-with-index<a> void(a array a, f act void(a, nat64)) trusted
 
 # Array containing only the elements of `a` for which `f[a[i]]` returns true.
 filter<a> array a(a array a, f act bool(a))
-	a filter-with-index (cur, _) => f[cur]
+	a filter (cur, _) => f[cur]
 
 # Like `filter`, but also provides the element index.
-.filter-with-index<a> array a(a array a, f act bool(a, nat64)) trusted
+filter<a> array a(a array a, f act bool(a, nat64)) trusted
 	res a mut* = a.size alloc-uninitialized
 	out mut = res
 	cur mut = a begin-ptr
@@ -361,7 +360,7 @@ fold<a, b> a(init a, a array b, f act a(a, b)) no-doc trusted
 			continue
 
 # TODO:KILL (just use 'for' loop)
-fold-with-index<a, b> a(init a, a array b, f act a(a, b, nat64)) no-doc trusted
+fold<a, b> a(init a, a array b, f act a(a, b, nat64)) no-doc trusted
 	acc mut = init
 	cur mut = a begin-ptr
 	index mut = 0

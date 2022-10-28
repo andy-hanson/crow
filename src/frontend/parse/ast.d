@@ -667,6 +667,13 @@ ref immutable(IdentifierAst) asIdentifier(scope return ref immutable ExprAstKind
 	return a.identifier;
 }
 
+immutable(bool) isLambda(ref immutable ExprAstKind a) =>
+	a.kind == ExprAstKind.Kind.lambda;
+@trusted ref immutable(LambdaAst) asLambda(scope return ref immutable ExprAstKind a) {
+	verify(isLambda(a));
+	return *a.lambda;
+}
+
 @trusted T matchExprAstKind(
 	T,
 	alias cbArrowAccess,

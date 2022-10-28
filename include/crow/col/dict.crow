@@ -18,8 +18,8 @@ import
 	../tuple: from, new, pair, to
 	../private/bootstrap: todo
 	./array:
-		~, array, every, find-index, fold, fold-with-index, for-loop, is-empty, new, remove-at,
-		rtail, size, subscript, tail, update-at
+		~, array, every, find-index, fold, for-loop, is-empty, new, remove-at, rtail, size,
+		subscript, tail, update-at
 	./mut-array:
 		begin-ptr, cast-immutable, copy-from, end-ptr, fill-mut-array, mut-array, set-subscript, size,
 		subscript, uninitialized-mut-array
@@ -307,7 +307,7 @@ If `index > a.size`, entries between the and of `a` and the new entries will be 
 
 # Returns 'some' if we should change this to a leaf.
 .inner-node-to-leaf<k, v> node<k, v>?(a array node<k, v>, which nat64, new-child node<k, v>) trusted
-	total-size = 0 fold-with-index a, (cur, child, child-index) =>
+	total-size = 0 fold a, (cur, child, child-index) =>
 		new-child-here = if child-index == which
 			new-child
 		else
@@ -320,7 +320,7 @@ If `index > a.size`, entries between the and of `a` and the new entries will be 
 	if total-size <= leaf-max-size
 		# TODO: if only one non-empty leaf, don't copy..
 		out mut-array (k, v) = total-size uninitialized-mut-array
-		end = 0 fold-with-index a, (out-index, child, child-index) =>
+		end = 0 fold a, (out-index, child, child-index) =>
 			new-child-here = if child-index == which
 				new-child
 			else
