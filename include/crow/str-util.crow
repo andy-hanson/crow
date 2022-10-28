@@ -230,6 +230,7 @@ This is O(1).
 to-bytes nat8[](a str) trusted
 	a.char8s list-cast@<nat8, char8>
 
+# TODO: this should probably be 'unsafe', but safe functions like "throw" need a c-str
 ###
 Converts a str to a c-str by appending "\0".
 This is O(n).
@@ -237,7 +238,7 @@ This is O(n).
 WARN: The resulting string is allocated from GC memory but isn't traced by the garbage collector,
 so it may be freed after the current task.
 ###
-to-c-str c-str(a str) unsafe
+to-c-str c-str(a str) trusted
 	(a ~ "\0").char8s.to-array begin-ptr
 
 ###

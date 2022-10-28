@@ -35,8 +35,8 @@ import
 		==, +, any-const-ptr, as-any-const-ptr, as-const, const-ptr, mut-ptr, null, ptr-cast,
 		ptr-cast-from-extern, ref-eq, size-of
 	../range: ..
-	../str: ==, <=>, char8, c-str, literal, str
-	../str-conv: finish, interp, to-str, with-str, with-value
+	../str: ==, <=>, ~~, char8, c-str, literal, str
+	../str-conv: to-str
 	../str-util: as-str, to-bytes, to-c-str, to-str
 	../version: is-windows
 	./path: child-path

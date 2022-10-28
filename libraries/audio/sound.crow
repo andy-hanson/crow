@@ -1,15 +1,3 @@
-no-std
-import
-	crow/bool: &&, bool
-	crow/col/array: array, for-loop, size, subscript
-	crow/col/list: list, to-array
-	crow/compare: >
-	crow/misc: new, void
-	crow/number: ==, <=>, +, *, /, %, float32, nat64, round-down-to-multiple
-	crow/range: .., for-loop
-	crow/str: literal, str
-	crow/str-conv: finish, interp, to-str, with-str, with-value
-
 # Represents a single sound.
 sound record
 	.ignore void
@@ -20,7 +8,7 @@ new sound(format sound-format, samples array float32)
 	nc = format n-channels
 	ns = samples size
 	assert ns % nc == 0 : "Number of samples ({ns}) must be a multiple of number of channels ({nc})"
-	res = (), format, samples
+	res sound = (), format, samples
 	_ = res ignore
 	res
 

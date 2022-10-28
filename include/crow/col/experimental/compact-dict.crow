@@ -10,8 +10,8 @@ import
 	../../opt: is-empty, new, opt, opt-equal
 	../../ptr: ==, +, ref-eq, set-deref
 	../../range: ..
-	../../str: ==, literal, str
-	../../str-conv: finish, interp, to-str, with-str, with-value
+	../../str: ==, ~~, literal, str
+	../../str-conv: to-str
 	../../str-util: join
 	../../test-util: is
 	../../tuple: from, new, pair, pair-equal, to

@@ -12,8 +12,6 @@ candidates (with 1 arguments):
 	new mut-dict<k, v>(...array<pair<k, v>>) (from include/crow/col/mut-dict.crow.crow line 45)
 	new fut<a>(a) (from include/crow/fut.crow.crow line 32)
 	new opt<a>(a) (from include/crow/opt.crow.crow line 15)
-	new interp(str) (from include/crow/str-conv.crow.crow line 156)
-	new by-val<interp>(str) (from include/crow/str-conv.crow.crow line 156)
 
 test/compile-errors/record-privacy-b.crow 9:11-9:12 there is no function or field named 'j'
 

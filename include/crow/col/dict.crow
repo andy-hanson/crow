@@ -11,8 +11,8 @@ import
 	../opt: !, is-empty, new, opt, opt-equal
 	../ptr: ==, +, set-deref
 	../range: .., for-loop
-	../str: ==, literal, str
-	../str-conv: interp, finish, to-str, with-str, with-value
+	../str: ==, ~~, literal, str
+	../str-conv: to-str
 	../str-util: join
 	../test-util: is
 	../tuple: from, new, pair, to

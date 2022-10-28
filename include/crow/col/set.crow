@@ -9,8 +9,8 @@ import
 	../number: ==, <=>, +, -, *, nat64
 	../opt: !, ??, new, opt
 	../ptr: ==, <=>, +, *, const-ptr, mut-ptr, set-deref
-	../str: ==, literal, new, str
-	../str-conv: finish, interp, to-str, with-str, with-value
+	../str: ==, ~~, literal, new, str
+	../str-conv: to-str
 	../str-util: join
 	../test-util: is
 	./array: array

@@ -1,11 +1,6 @@
 ###
 Functions for adding colors to terminal output.
 ###
-no-std
-import
-	../number: *, clamp-to-nat8, clamp-to-nat64, float64, nat8, truncate-to-int64
-	../str: literal, str
-	../str-conv: finish, interp, to-str, with-str, with-value
 
 # Resets any color.
 reset str()

@@ -2,8 +2,7 @@ no-std
 import
 	../col/array: ~~, array
 	../number: -, float32, float64
-	../str: literal, str
-	../str-conv: finish, interp, with-str, with-value
+	../str: ~~, literal, str
 	./trig: cos, sin
 	./vec: +, *, dot, new, normalize, to-array, to-str, vec3-32, vec3-64, x, y, z
 

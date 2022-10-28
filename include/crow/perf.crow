@@ -18,8 +18,8 @@ import
 	./io/private/time-low-level: get-monotime-nsec
 	./misc: void
 	./number: -, nat64, to-float64
-	./str: literal, str
-	./str-conv: finish, interp, to-str, with-str, with-value
+	./str: ~~, literal, str
+	./str-conv: to-str
 	./sym: ==, <=>, hash-mix, sym
 	./private/perf-low-level:
 		add-measure-value-at-index, count, each-measure, get-measure-index, perf-enable-low-level,

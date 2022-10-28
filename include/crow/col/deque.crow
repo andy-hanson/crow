@@ -7,8 +7,8 @@ import
 	../opt: !, is-empty, new, opt
 	../ptr: ==, +, -, set-deref
 	../range: ..
-	../str: ==, literal, str
-	../str-conv: interp, finish, to-str, with-str, with-value
+	../str: ==, ~~, literal, str
+	../str-conv: to-str
 	../str-util: join
 	../test-util: is
 	./array: array, first, fold, for-loop, is-empty, last, rtail, size, tail

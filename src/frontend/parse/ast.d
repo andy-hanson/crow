@@ -14,7 +14,7 @@ import model.reprModel : reprVisibility;
 import util.alloc.alloc : Alloc;
 import util.col.arr : empty, emptySmallArray, SmallArray;
 import util.col.arrBuilder : add, ArrBuilder, finishArr;
-import util.col.arrUtil : arrLiteral;
+import util.col.arrUtil : arrLiteral, exists;
 import util.col.str : SafeCStr, safeCStr, safeCStrIsEmpty;
 import util.conv : safeToUint;
 import util.opt : force, has, none, Opt, some;
@@ -322,7 +322,15 @@ struct IfOptionAst {
 }
 
 struct InterpolatedAst {
+	@safe @nogc pure nothrow:
+
 	immutable InterpolatedPart[] parts;
+
+	immutable this(immutable InterpolatedPart[] p) {
+		parts = p;
+		verify(exists!InterpolatedPart(parts, (ref immutable InterpolatedPart part) =>
+			part.kind == InterpolatedPart.Kind.expr));
+	}
 }
 
 struct InterpolatedPart {

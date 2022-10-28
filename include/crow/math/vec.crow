@@ -2,8 +2,8 @@ no-std
 import
 	../col/array: array, new
 	../number: +, -, *, /, float32, float64, square-root, to-float32, to-float64
-	../str: literal, str
-	../str-conv: finish, interp, to-str, with-str, with-value
+	../str: ~~, literal, str
+	../str-conv: to-str
 	../test-util: throws
 
 # 2-dimensional vector with 32-bit elements.

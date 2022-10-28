@@ -19,8 +19,8 @@ import
 	../../number: ==, int32, nat16, to-int32
 	../../opt: !, new, opt
 	../../ptr: ==, *, any-const-ptr, as-const, as-ref, const-ptr, mut-ptr, null
-	../../str: literal, str
-	../../str-conv: finish, interp, to-str, with-str, with-value
+	../../str: ~~, literal, str
+	../../str-conv: to-str
 	../../str-util: to-c-str
 	../../private/bootstrap: todo
 	../posix-util: check-posix-error

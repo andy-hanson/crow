@@ -4,8 +4,8 @@ import
 	./fun-util: subscript
 	./misc: void
 	./number: ==
-	./str: is-empty, literal, str
-	./str-conv: finish, interp, to-str, with-str, with-value
+	./str: ~~, is-empty, literal, str
+	./str-conv: to-str
 	./private/backtrace: backtrace, backtrace-entry, entries, file-path, function-name, line-number
 	./str-util: join, to-str
 export

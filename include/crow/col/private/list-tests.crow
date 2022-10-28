@@ -6,8 +6,8 @@ import
 	../../number: ==, nat64
 	../../opt: !
 	../../ptr: size-of
-	../../str: ==, literal, str
-	../../str-conv: finish, interp, to-str, with-str, with-value
+	../../str: ==, ~~, literal, str
+	../../str-conv: to-str
 	../../str-util: join
 	../../test-util: is
 	../../tuple: a, b

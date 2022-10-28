@@ -7,8 +7,8 @@ import
 	../number: ==, <=>, +, -, *, nat64
 	../opt: !, is-empty, new, opt, opt-equal, size
 	../ptr: ==, -, *, mut-ptr, set-deref
-	../str: ==, literal, str
-	../str-conv: finish, interp, to-str, with-str, with-value
+	../str: ==, ~~, literal, str
+	../str-conv: to-str
 	../str-util: iter, join, next, slice-left
 	../test-util: is
 	../tuple: from, new, pair, to

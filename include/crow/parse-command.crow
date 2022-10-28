@@ -11,9 +11,9 @@ import
 	./misc: void
 	./number: ==
 	./opt: !, ??, new, opt
-	./str: ==, <=>, hash-mix, literal, str
-	./str-conv: interp, finish, to-str, with-str, with-value
-	./str-util: starts-with, try-remove-start
+	./str: ==, <=>, ~~, hash-mix, literal, str
+	./str-conv: to-str
+	./str-util: starts-with, to-c-str, try-remove-start
 
 ###
 In this syntax:

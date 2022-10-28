@@ -33,6 +33,7 @@ import frontend.check.inferringType :
 import frontend.check.instantiate : instantiateFun, instantiateStructNeverDelay, TypeArgsArray, typeArgsArray;
 import frontend.check.typeFromAst : makeFutType;
 import frontend.parse.ast :
+	asCall,
 	asIdentifier,
 	ArrowAccessAst,
 	AssertOrForbidAst,
@@ -391,59 +392,71 @@ immutable(Expr) checkInterpolated(
 ) {
 	defaultExpectedToString(ctx, range, expected);
 	// TODO: NEATER (don't create a synthetic AST)
-	// "a{b}c" ==> interp with-text "a" with-value b with-text "c" finish
-	immutable CallAst firstCall =
-		immutable CallAst(CallAst.style.single, immutable NameAndRange(range.range.start, shortSym("interp")), [], []);
-	immutable ExprAst firstCallExpr = immutable ExprAst(
-		immutable RangeWithinFile(range.range.start, range.range.start),
-		immutable ExprAstKind(firstCall));
-	immutable CallAst call = checkInterpolatedRecur(ctx, ast.parts, range.start + 1, firstCallExpr);
-	return checkCall(ctx, locals, range, call, expected);
+	// "a{b}c" ==> "a" ~~ b.to-str ~~ "c"
+	immutable CallAst call = checkInterpolatedRecur(ctx, ast.parts, range.start + 1, none!ExprAst);
+	immutable Opt!Type inferred = tryGetInferred(expected);
+	immutable CallAst callAndConvert = has(inferred) && isCStr(ctx.commonTypes, force(inferred))
+		? immutable CallAst(
+			//TODO: new kind (not infix)
+			CallAst.Style.infix,
+			immutable NameAndRange(range.start, shortSym("to-c-str")),
+			[],
+			arrLiteral!ExprAst(ctx.alloc, [
+				immutable ExprAst(range.range, immutable ExprAstKind(call))]))
+		: call;
+	return checkCall(ctx, locals, range, callAndConvert, expected);
+}
+
+immutable(bool) isCStr(scope ref immutable CommonTypes commonTypes, immutable Type a) {
+	if (isStructInst(a)) {
+		immutable StructInst* inst = asStructInst(a);
+		return decl(*inst) == commonTypes.ptrConst && only(typeArgs(*inst)) == immutable Type(commonTypes.char8);
+	} else
+		return false;
 }
 
 immutable(CallAst) checkInterpolatedRecur(
 	ref ExprCtx ctx,
 	immutable InterpolatedPart[] parts,
 	immutable Pos pos,
-	ref immutable ExprAst left,
+	immutable Opt!ExprAst left,
 ) {
-	if (empty(parts))
-		return immutable CallAst(
-			CallAst.Style.infix,
-			immutable NameAndRange(pos, shortSym("finish")),
-			[],
-			arrLiteral!ExprAst(ctx.alloc, [left]));
-	else {
-		immutable CallAst c = matchInterpolatedPart!(
-			immutable CallAst,
-			(ref immutable string it) {
-				immutable ExprAst right = immutable ExprAst(
-					// TODO: this length may be wrong in the presence of escapes
-					immutable RangeWithinFile(pos, safeToUint(pos + it.length)),
-					immutable ExprAstKind(immutable LiteralAst(it)));
-				return immutable CallAst(
+	immutable ExprAst right = matchInterpolatedPart!(
+		immutable ExprAst,
+		(ref immutable string it) =>
+			immutable ExprAst(
+				// TODO: this length may be wrong in the presence of escapes
+				immutable RangeWithinFile(pos, safeToUint(pos + it.length)),
+				immutable ExprAstKind(immutable LiteralAst(it))),
+		(ref immutable ExprAst e) =>
+			immutable ExprAst(
+				e.range,
+				immutable ExprAstKind(immutable CallAst(
+					//TODO: new kind (not infix)
 					CallAst.Style.infix,
-					immutable NameAndRange(pos, shortSym("with-str")),
+					immutable NameAndRange(pos, shortSym("to-str")),
 					[],
-					arrLiteral!ExprAst(ctx.alloc, [left, right]));
-			},
-			(ref immutable ExprAst e) =>
-				immutable CallAst(
-					CallAst.Style.infix,
-					immutable NameAndRange(pos, shortSym("with-value")),
-					[],
-					arrLiteral!ExprAst(ctx.alloc, [left, e])),
-		)(parts[0]);
-		immutable Pos newPos = matchInterpolatedPart!(
-			immutable Pos,
-			(ref immutable string it) => safeToUint(pos + it.length),
-			(ref immutable ExprAst e) => e.range.end,
-		)(parts[0]);
-		immutable ExprAst newLeft = immutable ExprAst(
+					arrLiteral!ExprAst(ctx.alloc, [e])))),
+	)(parts[0]);
+	immutable Pos newPos = matchInterpolatedPart!(
+		immutable Pos,
+		(ref immutable string it) => safeToUint(pos + it.length),
+		(ref immutable ExprAst e) => e.range.end + 1,
+	)(parts[0]);
+	immutable ExprAst newLeft = has(left)
+		? immutable ExprAst(
 			immutable RangeWithinFile(pos, newPos),
-			immutable ExprAstKind(c));
-		return checkInterpolatedRecur(ctx, parts[1 .. $], newPos, newLeft);
-	}
+			immutable ExprAstKind(immutable CallAst(
+				//TODO: new kind (not infix)
+				CallAst.Style.infix,
+				immutable NameAndRange(pos, symForOperator(Operator.tilde2)),
+				[],
+				arrLiteral!ExprAst(ctx.alloc, [force(left), right]))))
+		: right;
+	immutable InterpolatedPart[] rest = parts[1 .. $];
+	return empty(rest)
+		? asCall(newLeft.kind)
+		: checkInterpolatedRecur(ctx, rest, newPos, some(newLeft));
 }
 
 struct ExpectedLambdaType {

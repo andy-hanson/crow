@@ -13,8 +13,8 @@ import
 	../../ptr: ==, +, *, const-ptr, set-deref
 	../../private/number-low-level: wrap-sub
 	../../range: .., for-loop
-	../../str: ==, literal, str
-	../../str-conv: finish, interp, to-hex, to-str, with-str, with-value
+	../../str: ==, ~~, literal, str
+	../../str-conv: to-hex, to-str
 	../../str-util: join
 	../../test-util: is
 	../array: array, fold, new, subscript
