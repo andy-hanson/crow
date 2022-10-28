@@ -13,9 +13,7 @@ import
 	../../ptr: ==, +, *, const-ptr, set-deref
 	../../private/number-low-level: wrap-sub
 	../../range: .., for-loop
-	../../str: ==, ~~, literal, str
-	../../str-conv: to-hex, to-str
-	../../str-util: join
+	../../str: ==, ~~, join, literal, str, to-hex, to-str
 	../../test-util: is
 	../array: array, fold, new, subscript
 	../mut-array: begin-ptr, cast-immutable, end-ptr, mut-array, uninitialized-mut-array

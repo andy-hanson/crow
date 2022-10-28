@@ -8,9 +8,7 @@ import
 	../opt: !, is-empty, new, opt
 	../ptr: ==, +, -, mut-ptr, set-deref
 	../range: ..
-	../str: ~~, ==, literal, new, str
-	../str-conv: to-str
-	../str-util: join
+	../str: ~~, ==, join, literal, new, str, to-str
 	../test-util: is
 	../test-util/spy: calls, fn, new, spy-act2
 	../tuple: from, new, pair, to

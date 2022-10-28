@@ -8,9 +8,7 @@ import
 	../number: ==, <=>, +, -, *, %, nat64
 	../opt: is-empty, new, opt, opt-equal
 	../ptr: ==, +, *, mut-ptr, set-deref
-	../str: ==, ~~, literal, str
-	../str-conv: to-str
-	../str-util: join
+	../str: ==, ~~, join, literal, str, to-str
 	../test-util: is
 	../tuple: from, new, pair, to
 	./array: array

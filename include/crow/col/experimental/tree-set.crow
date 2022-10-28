@@ -9,9 +9,7 @@ import
 	../../opt: !, new, opt
 	../../ptr: ==, <=>, +, -, *, const-ptr, mut-ptr, set-deref
 	../../range: ..
-	../../str: ==, <=>, ~~, literal, str
-	../../str-conv: to-str
-	../../str-util: iter, next, join, slice-left, starts-with
+	../../str: ==, <=>, ~~, iter, join, literal, next, slice-left, starts-with, str, to-str
 	../../test-util: is
 	../array: array, fold, for-loop, insert-at, is-empty, last, remove-at, rtail, size, subscript, tail
 	../mut-array: begin-ptr, cast-immutable, end-ptr, mut-array, subscript, uninitialized-mut-array

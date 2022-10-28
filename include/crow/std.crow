@@ -19,8 +19,6 @@ export
 	./range
 	./result
 	./str
-	./str-conv
-	./str-util
 	./sym
 	./test-util
 	./tuple

@@ -4,8 +4,7 @@ import
 	../fun-util: fun-ptr0, subscript
 	../io/print: out, print
 	../misc: void
-	../str: ~~, literal
-	../str-conv: to-str
+	../str: ~~, literal, to-str
 
 # Run every `test` from all source files included in the compilation.
 run-all-tests void() summon trusted

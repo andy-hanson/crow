@@ -4,7 +4,6 @@ import
 	crow/extra-types: fd-t
 	crow/io/print: out, print
 	crow/ptr: ==, *, as-any-const-ptr, const-ptr, null, ptr-cast, ptr-cast-to-extern, size-of
-	crow/str-util: as-str, to-bytes, to-c-str
 	arpa/inet: inet_addr, inet_ntoa
 	netdb: gethostbyname, getprotobyname, h_addr_list, p_proto
 	netinet/in: htons, in_addr, new, sockaddr_in
@@ -42,8 +41,8 @@ main fut nat(_ str[]) unsafe summon
 
 .send-request void(socket fd-t, request str) unsafe summon
 	forbid request is-empty
-	socket send-request-recur request.to-bytes
-.send-request-recur void(socket fd-t, bytes arr nat8) unsafe
+	socket send-request-recur request.to-bytes.to-array
+.send-request-recur void(socket fd-t, bytes array nat8) unsafe
 	bytes-sent = socket write bytes.begin-ptr, bytes.size
 	# TODO: might be 0 if the socket is overloaded -- delay and try again
 	assert bytes-sent > 0
@@ -59,6 +58,6 @@ main fut nat(_ str[]) unsafe summon
 	assert bytes-read >= 0
 	if bytes-read > 0
 		out print "Read (possibly partial) response:"
-		out print buffer[0 .. bytes-read.to-nat64].cast-immutable.as-str
+		out print buffer[0 .. bytes-read.to-nat64].cast-immutable.to-list.as-str
 		# TODO: Response might be partial. The parser will have to tell us that.
 

@@ -4,10 +4,8 @@ import
 	./fun-util: subscript
 	./misc: void
 	./number: ==
-	./str: ~~, is-empty, literal, str
-	./str-conv: to-str
+	./str: ~~, is-empty, join, literal, str, to-str
 	./private/backtrace: backtrace, backtrace-entry, entries, file-path, function-name, line-number
-	./str-util: join, to-str
 export
 	./private/exception-low-level: catch, exception, message, rethrow, unreachable
 

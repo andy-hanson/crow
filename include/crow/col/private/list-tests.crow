@@ -6,9 +6,7 @@ import
 	../../number: ==, nat64
 	../../opt: !
 	../../ptr: size-of
-	../../str: ==, ~~, literal, str
-	../../str-conv: to-str
-	../../str-util: join
+	../../str: ==, ~~, join, literal, str, to-str
 	../../test-util: is
 	../../tuple: a, b
 	../array: array, for-loop, is-empty

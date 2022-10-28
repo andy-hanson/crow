@@ -7,9 +7,7 @@ import
 	../opt: !, is-empty, new, opt
 	../ptr: -
 	../range: .., for-loop
-	../str: ==, ~~, literal, new, str
-	../str-conv: to-str
-	../str-util: join
+	../str: ==, ~~, join, literal, new, str, to-str
 	../test-util: is
 	../tuple: from, new, pair, pair-equal, to
 	./array: array, size, subscript

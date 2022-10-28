@@ -2,7 +2,7 @@ uncaught exception: FOO
 	at bar (test/runnable/fail:9)
 	at foo (test/runnable/fail:6)
 	at main (test/runnable/fail:3)
-	at add-first-task.lambda0 (include/crow/private/rt-main:87)
+	at add-first-task.lambda0 (include/crow/private/rt-main:86)
 	at call-w-ctx<gc-ptr(fut<nat64>)> (generated)
 	at subscript<a> (include/crow/private/bootstrap:412)
 	at catch<fut<out>>.lambda0 (include/crow/private/exception-low-level:92)

@@ -11,9 +11,7 @@ import
 	./opt: new, opt
 	./reader:
 		reader, skip-whitespace, try-take-char, take-float, take-quoted-str, try-take-str, with-reader
-	./str: ==, <=>, ~~, hash-mix, literal, str
-	./str-conv: to-str
-	./str-util: join, quote
+	./str: ==, <=>, ~~, hash-mix, join, literal, quote, str, to-str
 	./test-util: is
 	./tuple: new, pair
 

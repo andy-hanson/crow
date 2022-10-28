@@ -2,8 +2,7 @@ no-std
 import
 	../compare: >=
 	../number: ==, <=>, *, /, float64
-	../str: ~~, literal, str
-	../str-conv: to-str
+	../str: ~~, literal, str, to-str
 
 # Represents an amount of time.
 duration record by-val

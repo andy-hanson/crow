@@ -10,9 +10,7 @@ import
 	../../opt: is-empty, new, opt, opt-equal
 	../../ptr: ==, +, ref-eq, set-deref
 	../../range: ..
-	../../str: ==, ~~, literal, str
-	../../str-conv: to-str
-	../../str-util: join
+	../../str: ==, ~~, join, literal, str, to-str
 	../../test-util: is
 	../../tuple: from, new, pair, pair-equal, to
 	../array: array, every, for-loop, size, subscript

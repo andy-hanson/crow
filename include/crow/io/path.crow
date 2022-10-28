@@ -9,9 +9,7 @@ import
 	../opt: new, opt, opt-equal
 	../str: ==, literal, new, str
 	../tuple: a, b
-	../str: ~~
-	../str-conv: to-str
-	../str-util: try-split-once-right
+	../str: ~~, to-str, try-split-once-right
 	../test-util: is
 
 ###

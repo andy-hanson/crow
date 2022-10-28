@@ -3,8 +3,7 @@ import
 	../../col/dict: dict, new
 	../../col/list: list
 	../../number: nat8, nat64
-	../../str: ==, <=>, hash-mix, literal, str
-	../../str-util: as-str, to-bytes
+	../../str: ==, <=>, as-str, hash-mix, literal, str, to-bytes
 
 # Parsed HTTP request.
 http-request record

@@ -7,9 +7,7 @@ import
 	../number: +, *, ==, <=>, nat64
 	../ptr: ==, +, *, as-const, const-ptr, mut-ptr, set-deref
 	../range: .., for-loop
-	../str: ==, ~~, literal, str
-	../str-conv: to-str
-	../str-util: join
+	../str: ==, ~~, join, literal, str, to-str
 	../test-util: is
 	./mut-array:
 		begin-ptr, copy, end-ptr, exists, mut-array, fold, new, set-map, set-subscript, size,

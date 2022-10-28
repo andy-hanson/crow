@@ -13,8 +13,7 @@ import
 	../col/list: to-list
 	../number: ==, <=>, +, nat64
 	../range: ..
-	../str: char8, literal, str
-	../str-util: to-c-str
+	../str: char8, literal, str, to-c-str
 	./time: seconds-since-epoch, unix-time
 	
 time-locale record

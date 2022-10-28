@@ -11,8 +11,7 @@ import
 	../number: ==, <=>, nat8, to-nat64
 	../opt: opt
 	../range: ..
-	../str: str
-	../str-util: as-str, strip
+	../str: as-str, str, strip
 	../private/bootstrap: todo
 	./print: out, print
 

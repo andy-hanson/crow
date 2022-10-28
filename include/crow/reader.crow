@@ -6,8 +6,7 @@ import
 	./misc: new, void
 	./number: +, *, **, float64, int64, nat64, to-float64, to-int64
 	./opt: ??, is-empty, new, opt
-	./str: ==, char8, literal, str
-	./str-util: copy, mut-iter, mut-str-iter, next, peek
+	./str: ==, char8, copy, literal, mut-iter, mut-str-iter, next, peek, str
 	./test-util: is
 
 ###

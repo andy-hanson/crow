@@ -7,9 +7,7 @@ import
 	../opt: ==, new, opt
 	../ptr: ==, <=>, +, -, *, as-const, mut-ptr, null, set-deref, zeroed
 	../range: .., for-loop
-	../str: ==, ~~, literal, new, str
-	../str-conv: to-str
-	../str-util: join
+	../str: ==, ~~, literal, new, join, str, to-str
 	../test-util: is
 	./mut-array:
 		begin-ptr, cast-immutable, copy-from, end-ptr, mut-array, is-empty, new, set-zero-elements,

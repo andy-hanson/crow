@@ -11,8 +11,7 @@ import
 		+, any-mut-ptr, as-any-mut-ptr, as-const, as-ref, by-val, const-ptr, mut-ptr, null,
 		set-deref, set-subscript, subscript
 	../range: ..
-	../str: c-str, str
-	../str-util: to-str
+	../str: c-str, str, to-str
 	./alloc: unmanaged-alloc-elements, unmanaged-free
 	./bootstrap: call-with-ctx
 	./fut-low-level: get-result

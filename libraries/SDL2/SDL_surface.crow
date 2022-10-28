@@ -4,8 +4,7 @@ import
 	crow/misc: void
 	crow/number: nat32
 	crow/ptr: any-mut-ptr, mut-ptr
-	crow/str: str
-	crow/str-util: to-c-str
+	crow/str: str, to-c-str
 	./SDL_pixels: SDL_PixelFormat
 	./SDL_rect: SDL_Rect
 	./SDL_rwops: SDL_RWFromFile, SDL_RWops

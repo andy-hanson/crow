@@ -4,9 +4,7 @@ import
 	../extra-types: err-t
 	../misc: void
 	../number: ==
-	../str: ~~, literal
-	../str-conv: to-str
-	../str-util: to-c-str
+	../str: ~~, literal, to-c-str, to-str
 
 # Fail if `errno != 0`.
 check-errno void() unsafe

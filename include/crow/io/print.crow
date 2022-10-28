@@ -13,9 +13,7 @@ import
 	../misc: new, void
 	../number: ==, nat8, to-int64, to-nat32
 	../ptr: null, size-of
-	../str: ~~, char8, literal, str
-	../str-conv: to-str
-	../str-util: to-bytes, to-c-str
+	../str: ~~, char8, literal, str, to-bytes, to-c-str, to-str
 	../version: is-windows
 	../private/bootstrap: todo
 	./win32-util: show-win32-error

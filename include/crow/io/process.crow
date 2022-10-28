@@ -31,9 +31,7 @@ import
 	../private/bootstrap: todo
 	../private/c-str-util: find-c-str-end
 	../ptr: ==, +, -, any-const-ptr, as-any-const-ptr, as-any-mut-ptr, as-ref, new, null
-	../str: ~~, char8, c-str, literal, str
-	../str-conv: to-str
-	../str-util: as-str, join, to-c-str, to-str
+	../str: ~~, as-str, char8, c-str, join, literal, str, to-c-str, to-str
 	../version: is-windows
 	./environ: get-environ-raw
 	./file: is-file

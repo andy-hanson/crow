@@ -8,8 +8,7 @@ import
 	../opt: !
 	../ptr: ==, +, -, *, mut-ptr, set-deref
 	../range: ..
-	../str: ==, <=>, literal, str
-	../str-util: iter, next, slice-left
+	../str: ==, <=>, iter, literal, next, slice-left, str
 	../test-util: is
 	./mut-array:
 		begin-ptr, cast-immutable, end-ptr, is-empty, mut-array, new, size, set-subscript,

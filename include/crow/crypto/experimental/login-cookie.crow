@@ -11,9 +11,7 @@ import
 	../../range: ..
 	../../reader: parse-int, parse-nat
 	../../serialize: from-bytes, to-8-bytes
-	../../str: ~~, literal, str
-	../../str-conv: to-str
-	../../str-util: try-split-once
+	../../str: ~~, literal, str, to-str, try-split-once
 	../../tuple: a, b
 	../random: random-nat64
 

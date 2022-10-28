@@ -20,9 +20,9 @@ import
 	../../opt: ??, new, opt
 	../../range: ..
 	../../reader: parse-nat
-	../../str: ==, <=>, ~~, hash-mix, is-empty, literal, str, to-nat8
-	../../str-conv: to-str
-	../../str-util: as-str, contains-substr, join, split-by, to-bytes, to-c-str, try-remove-end
+	../../str:
+		==, <=>, ~~, as-str, contains-substr, hash-mix, is-empty, join, literal, split-by, str,
+		to-bytes, to-c-str, to-nat8, to-str, try-remove-end
 	../../private/bootstrap: todo
 	./http-types:
 		headers, http-get, http-internal-server-error, http-method, http-post, http-request,

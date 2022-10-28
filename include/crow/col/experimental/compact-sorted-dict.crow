@@ -9,9 +9,7 @@ import
 	../../opt: !, ||, is-empty, new, opt, opt-equal
 	../../ptr: ==, <=>, +, -, *, const-ptr, mut-ptr, ref-eq, set-deref
 	../../range: ..
-	../../str: ==, ~~, is-empty, literal, str
-	../../str-conv: to-str
-	../../str-util: end-iter, join, prev
+	../../str: ==, ~~, end-iter, is-empty, join, literal, prev, str, to-str
 	../../test-util: is
 	../../tuple: from, new, pair, to
 	../../private/alloc: mem-copy

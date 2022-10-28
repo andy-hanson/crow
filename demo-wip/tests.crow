@@ -32,6 +32,7 @@ import
 	crow/parse-command: parse-named-args
 	crow/perf: measure-total, new
 	crow/private/number-tests: dummy-number-tests
+	crow/private/str-tests: dummy-str-tests
 	crow/reader: new, reader
 	crow/serialize: from-bytes
 	crow/test-util/test-runner: run-all-tests
@@ -45,6 +46,7 @@ main fut nat(_ str[]) summon
 	_ = () :: deque<nat>
 	_ = dummy-list-tests
 	_ = dummy-number-tests
+	_ = dummy-str-tests
 	_ = () :: nat[nat]
 	_ = () :: environ
 	_ = () :: frozen-dict<nat, nat>

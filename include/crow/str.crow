@@ -5,14 +5,28 @@ Also, `crow/reader` is useful for parsing strings, and `crow-writer` is useful f
 
 no-std
 import
-	./bool: bool
-	./compare: comparison
-	./col/list: ~, ~~, for-loop, is-empty, list, list-compare, list-equal, to-list
-	./col/private/array-low-level: array-from-begin-end
+	./bool: ||, bool
+	./cell: *, cell, new, set-deref
+	./compare: <, comparison
+	./col/iter: new, rest, value, value-and-rest
+	./col/list:
+		~, ~~, contains-sublist, copy, drop-right-while, drop-while, end-iter, ends-with, for-loop,
+		is-empty, iter, left, list, list-cast, list-compare, list-equal, list-iter, middle,
+		mut-iter, mut-list-iter, new, next, peek, prev, repeat, reverse, right, slice-left,
+		slice-right, split-by-sublist, starts-with, to-array, to-list, try-remove-end,
+		try-remove-start, try-split-once-by-fn, try-split-once-by-sublist,
+		try-split-once-by-sublist-right
+	./col/mut-list: copy, move-to-list, to-mut-list
+	./col/private/array-low-level: array-from-begin-end, begin-ptr
 	./hash: hasher, hash-mix
 	./misc: void
-	./number: ==, <=>, to-nat64
+	./number:
+		==, <=>, +, *, /, %, abs, float64, float32, int8, int16, int32, int64, is-nan, min-int64,
+		nat8, nat16, nat32, nat64, to-float64, to-int64, to-nat64, truncate-to-int64
+	./opt: ??, new, opt
 	./private/c-str-util: find-c-str-end
+	./private/number-low-level: wrap-sub
+	./tuple: a, b, new, pair
 export
 	./private/bootstrap: char8, c-str, to-char8, to-nat8
 
@@ -74,3 +88,397 @@ is-empty bool(a str)
 hash-mix void(hasher hasher, a str)
 	for c : a char8s
 		hasher hash-mix c.to-nat8.to-nat64
+
+region conversion
+
+
+# `"true"` or `"false"`.
+to-str str(b bool) noctx
+	if b
+		"true"
+	else
+		"false"
+
+# String containing a single character.
+to-str str(c char8)
+	(c,) str
+
+###
+Converts a nat64 to a str.
+Result is only digits, no punctuation.
+###
+to-str str(a nat64)
+	a to-base 10
+
+.digit-to-str str(a nat64)
+	if a == 0
+		"0"
+	elif a == 1
+		"1"
+	elif a == 2
+		"2"
+	elif a == 3
+		"3"
+	elif a == 4
+		"4"
+	elif a == 5
+		"5"
+	elif a == 6
+		"6"
+	elif a == 7
+		"7"
+	elif a == 8
+		"8"
+	elif a == 9
+		"9"
+	elif a == 10
+		"a"
+	elif a == 11
+		"b"
+	elif a == 12
+		"c"
+	elif a == 13
+		"d"
+	elif a == 14
+		"e"
+	elif a == 15
+		"f"
+	else
+		"?"
+
+to-binary str(a nat64)
+	a to-base 2
+
+to-hex str(a nat64)
+	a to-base 16
+to-hex str(a nat8)
+	a to-base 16
+
+.to-base str(a nat64, base nat64)
+	if a < base
+		a digit-to-str
+	else
+		(a / base to-base base) ~~ (a % base).digit-to-str
+.to-base str(a nat8, base nat64)
+	a.to-nat64 to-base base
+
+# Spec of any type that could be converted to a str.
+to-str<a> spec
+	to-str str(a a)
+
+# Identity function to satisfy the `to-str` spec.
+to-str str(a str)
+	a
+
+to-str str(a nat8)
+	a.to-nat64 to-str
+
+to-str str(a nat16)
+	a.to-nat64 to-str
+
+to-str str(a nat32)
+	a.to-nat64 to-str
+
+to-str str(a int8)
+	a.to-int64 to-str
+
+to-str str(a int16)
+	a.to-int64 to-str
+
+to-str str(a int32)
+	a.to-int64 to-str
+
+to-str str(a int64)
+	if a == min-int64
+		"-9223372036854775808"
+	else
+		s = a.abs to-str
+		a < 0 ? "-{s}" : s
+
+to-str str(a float32)
+	a.to-float64 to-str
+
+to-str str(a float64)
+	if a is-nan
+		"NaN"
+	else
+		pos = a.abs to-str-positive
+		if a < 0
+			"-{pos}"
+		else
+			pos
+
+.to-str-positive str(a float64)
+	# TODO: Use a real float to str algorithm
+	times-1000 = (a * 1000.0).truncate-to-int64
+	thousandths = times-1000 % 1000
+	whole-part = "{times-1000 / 1000}"
+	hundredths = thousandths / 10
+	tenths = hundredths / 10
+	d0 = tenths digit-to-str
+	d1 = hundredths % 10 digit-to-str
+	d2 = thousandths % 10 digit-to-str
+	if thousandths == 0
+		whole-part
+	else
+		"{whole-part}.{d0}{d1}{d2}" strip-right "0"
+
+region iterator
+
+str-iter record by-val
+	.inner list-iter char8
+
+iter str-iter(a str)
+	a.char8s.iter,
+
+end-iter str-iter(a str)
+	a.char8s.end-iter,
+
+next value-and-rest<char8, str-iter>?(a str-iter)
+	if res ?= a.inner next
+		(res.value, (res.rest,)),
+
+prev value-and-rest<char8, str-iter>?(a str-iter)
+	if res ?= a.inner prev
+		(res.value, (res.rest,)),
+
+slice-left str(a str-iter)
+	a.inner.slice-left str
+
+slice-right str(a str-iter)
+	a.inner.slice-right str
+
+mut-str-iter record mut
+	.inner mut-list-iter char8
+
+mut-iter mut-str-iter(a str)
+	a.char8s.mut-iter,
+
+copy mut-str-iter(a mut-str-iter)
+	a.inner.copy,
+
+peek char8?(a mut-str-iter)
+	a.inner peek
+
+next char8?(a mut-str-iter)
+	a.inner next
+
+region split
+
+###
+`true` iff `b` is a subtring of `a`.
+
+That means: The characters in `b` appear in `a`, in order, without interruptions.
+###
+contains-substr bool(a str, b str)
+	a.char8s contains-sublist b.char8s
+
+# `true` iff the first characters of `a` are `b`.
+starts-with bool(a str, b str)
+	a.char8s starts-with b.char8s
+
+# `true` iff the last characters of `a` are `b`.
+ends-with bool(a str, b str)
+	a.char8s ends-with b.char8s
+
+###
+If `a` starts with `b`, returns the rest.
+Else, returns an empty option.
+###
+try-remove-start str?(a str, b str)
+	if res ?= a.char8s try-remove-start b.char8s
+		res.str,
+
+###
+If `a` ends with `b, returns the rest.
+Else, returns an empty option.
+###
+try-remove-end str?(a str, b str)
+	if res ?= a.char8s try-remove-end b.char8s
+		res.str,
+
+###
+If `b` is a substring of `a`, removes it and return the parts of `a` before and after it.
+###
+try-split-once (str, str)?(a str, b str)
+	if res ?= a.char8s try-split-once-by-sublist b.char8s
+		(res.a.str, res.b.str),
+
+# Like `try-split-once`, but splits on the rightmost occurrence of `b`.
+try-split-once-right (str, str)?(a str, b str)
+	if res ?= a.char8s try-split-once-by-sublist-right b.char8s
+		(res.a.str, res.b.str),
+
+###
+Removes every occurrence of the substring `b` in `a` and return the remaining parts as an array.
+The result may include empty strings.
+###
+split-by str[](a str, b str)
+	for x : a.char8s split-by-sublist b.char8s; x str
+
+lines str[](a str)
+	a split-by "\n"
+
+split-str record by-val
+	left str
+	middle char8
+	right str
+
+###
+Find the first character where `f` returns `true`, and return the parts of `a` before and after it.
+Returns an empty option if `f` does not returns `true` for any character in `a`.
+###
+try-split-once-by-fn split-str?(a str, f act bool(char8))
+	if res ?= a.char8s try-split-once-by-fn f
+		(res.left.str, res.middle, res.right.str),
+
+# Finds the first whitespace character in `a` and returns the parts before and after it.
+try-split-once-by-whitespace (str, str)?(a str)
+	if x ?= a try-split-once-by-fn x => x is-whitespace
+		(x.left, x.right),
+
+###
+Returns a string containing each element of `a`, with `b` as a separator.
+This is `parts[0] ~ joiner ~ parts[1] ~ joiner ~ ... ~ parts[parts.size - 1]`.
+###
+join str(joiner str, parts str[])
+	# TODO: NO CELl
+	res cell str? = (),
+	for part : parts
+		*res := if cur ?= *res
+			(cur ~~ joiner ~~ part),
+		else
+			part,
+	*res ?? ""
+
+# Lower cases every character in `a`.
+lower-case str(a str)
+	(for x : a char8s; x lower-case-char) str
+
+.lower-case-char char8(a char8) noctx
+	diff = a.to-nat8 wrap-sub "A".to-nat8
+	if diff < 26
+		"a".to-nat8 + diff to-char8
+	else
+		a
+
+# Capitalizes every character in `a`.
+upper-case str(a str)
+	(for x : a char8s; x upper-case-char) str
+
+.upper-case-char char8(a char8) noctx
+	diff = a.to-nat8 wrap-sub "a".to-nat8
+	if diff < 26
+		"A".to-nat8 + diff to-char8
+	else
+		a
+
+# String with characters in reverse order.
+reverse str(a str)
+	a.char8s.reverse str
+
+# Replaces every instance of the substring `find` with `replace-with`.
+replace str(a str, find str, replace-with str)
+	# TODO:PERF
+	if pair ?= a try-split-once find
+		pair.a ~~ replace-with ~~ (pair.b replace find, replace-with)
+	else
+		a
+
+region strip
+
+# Strips whitespace from both ends.
+strip str(a str)
+	a.strip-left strip-right
+
+# Strips whitespace from the front.
+strip-left str(a str)
+	a.char8s drop-while (x => x is-whitespace) str
+
+# Removes all occurrences of 'b' from the front of 'a'.
+strip-left str(a str, b str)
+	if x ?= a try-remove-start b
+		x strip-left b
+	else
+		a
+
+# Strips whitespace from the end.
+strip-right str(a str)
+	a.char8s drop-right-while (x => x is-whitespace) str
+
+# Removes all occurrences of 'b' from the end of 'a'.
+strip-right str(a str, b str)
+	if x ?= a try-remove-end b
+		x strip-right b
+	else
+		a
+
+.is-whitespace bool(a char8)
+	a == " " || a == "\r" || a == "\n" || a == "\t"
+
+normalize-newlines str(a str)
+	a replace "\r\n", "\n" replace "\r", "\n"
+
+region Conversion
+
+###
+Treats UTF-8 bytes as a string.
+This is O(1).
+###
+as-str str(bytes nat8[]) unsafe
+	bytes.list-cast@<char8, nat8> str
+
+###
+Treats a string as a list of UTF-8 bytes.
+This is O(1).
+###
+to-bytes nat8[](a str) trusted
+	a.char8s list-cast@<nat8, char8>
+
+# TODO: this should probably be 'unsafe', but safe functions like "throw" need a c-str
+###
+Converts a str to a c-str by appending "\0".
+This is O(n).
+
+WARN: The resulting string is allocated from GC memory but isn't traced by the garbage collector,
+so it may be freed after the current task.
+###
+to-c-str c-str(a str) trusted
+	(a ~ "\0").char8s.to-array begin-ptr
+
+###
+Treats a c-str as a str by walking to the end.
+This copies the memory, so the result is safe to use immutably.
+
+Unsafe because `a` must end in a `"\0"` character somewhere.
+###
+to-str str(a c-str) unsafe
+	# TODO: 'copy' seems unnecessary since 'to-mut-list' should do that?
+	a.literal.char8s.to-mut-list.copy.move-to-list str
+
+region other
+
+repeat str(a str, n nat64)
+	a.char8s repeat n str
+
+# Enclose a string in quotes and escape special characters.
+quote str(a str)
+	inner = "" join for x : a char8s
+		if x == "\""
+			"\\\""
+		elif x == "\n"
+			"\\n"
+		elif x == "\r"
+			"\\r"
+		elif x == "\t"
+			"\\t"
+		elif x == "\\"
+			"\\\\"
+		else
+			# TODO: "{x}"
+			(x,) str
+	# TODO: "\"{inner}\""
+	"\"" ~~ inner ~~ "\""
+
+unindent str(a str)
+	a replace "\t", ""

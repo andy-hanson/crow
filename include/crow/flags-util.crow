@@ -4,8 +4,7 @@ import
 	./col/array: array
 	./col/list: for-loop, join, list, new, to-list
 	./misc: name, named-val, val
-	./str: literal, str
-	./str-util: join
+	./str: join, literal, str
 	./sym: sym, to-str
 
 ###
