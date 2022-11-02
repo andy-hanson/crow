@@ -8,12 +8,12 @@ import
 	./number: ==, -, nat64
 	./result: ok-or-throw, result
 	./private/bootstrap: action, exclusion, is-sendable, lk, new, rejected, resolved
-	./private/fut-low-level: add-task, get-result, forward-to, reject, resolve, unresolved
+	./private/future-low-level: add-task, get-result, forward-to, reject, resolve, unresolved
 	./private/runtime: add-task, cur-exclusion, exception-handler, get-global-ctx, new-exclusion
 	./private/task-queue: task
 	./private/thread-utils: init, lock, uninit
 export
-	./private/bootstrap: fut
+	./private/bootstrap: future
 
 lock<a> lock(a a^) unsafe
 	&a.lk
@@ -28,17 +28,17 @@ This can be useful for breaking up big tasks.
 delay void^()
 	()
 
-# Converts a value to a `fut` resolved with that value.
+# Converts a value to a future resolved with that value.
 new<a> a^(value a) trusted
 	res a^ = uninit, value.resolved
 	res.lock init
 	res
 
-# `fut` resolved to `()`.
+# Future resolved to `()`.
 new<a> a^() new<a>
 	(),
 
-# `fut` resolved with an exception.
+# Future resolved with an exception.
 rejected<a> a^(err exception) trusted
 	res a^ = uninit, err.rejected
 	res.lock init
@@ -81,19 +81,19 @@ wait-fold<a, b> a^(acc a, futures b^[], f ref a(a, b)) is-sendable<a> is-sendabl
 	res
 
 ###
-Fut resolved to `ok` if `a` succeeds and `err` if `a` fails with an exception.
+Future resolved to `ok` if `a` succeeds and `err` if `a` fails with an exception.
 ###
-fut-catch<a> result<a, exception>^(a a^) trusted is-sendable<a>
+future-catch<a> result<a, exception>^(a a^) trusted is-sendable<a>
 	res result<a, exception>^ = unresolved
 	a add-task get-global-ctx.new-exclusion, () =>
 		res resolve a.get-result
 	res
 
-.fut-finally record mut
+.future-finally record mut
 	cleanup ref void()
-fut-finally fut-finally(cleanup ref void())
+future-finally future-finally(cleanup ref void())
 	cleanup,
-with-block<a> a^(a fut-finally, f ref a()) trusted is-sendable<a>
+with-block<a> a^(a future-finally, f ref a()) trusted is-sendable<a>
 	fut = f[]
 	res a^ = unresolved
 	fut add-task get-global-ctx.new-exclusion, () =>
@@ -113,7 +113,7 @@ with-block<a> a^(a fut-finally, f ref a()) trusted is-sendable<a>
 
 ###
 Calls `f` once `a` is resolved.
-Returns a fut for the result of `f`.
+Returns a future for the result of `f`.
 
 If `a` is resolved with an exception, this never calls `f`,
 and the result of `then` will have the same exception as `a`.
@@ -146,7 +146,7 @@ launch record
 launch launch()
 	()
 ###
-Run `f` in a task with a new exclusion and return a `fut` for its result.
+Run `f` in a task with a new exclusion and return a future for its result.
 
 `f` must be a `fun` and not an `act` so that it can have a new exclusion,
 which allows it to run in parallel.
@@ -166,7 +166,7 @@ do<a> a^(_ launch, f fun a^()) trusted
 Calls a `ref`.
 
 This enqueues a task with the ref's exclusion for invoking its function,
-and returns a `fut` for the result of that task.
+and returns a future for the result of that task.
 ###
 subscript<r> r^(f ref r()) trusted is-sendable<r>
 	res r^ = unresolved

@@ -12,7 +12,8 @@ import
 	../../col/private/array-low-level: begin-ptr
 	../../compare: <=, >
 	../../exception: to-str
-	../../fut: delay, fut, fut-catch, fut-finally, new, subscript, then, then-void, with-block
+	../../future:
+		delay, future, future-catch, future-finally, new, subscript, then, then-void, with-block
 	../../hash: hash-mix
 	../../log: error, log, warn
 	../../misc: is-sendable, new, void
@@ -66,7 +67,7 @@ with-block<a> a^(a http-server-options, cb ref a(http-server)) is-sendable<a> tr
 	# TODO: KILL
 	#_ <- a.handler[(http-get, "", (), ())]
 
-	with : tcp-server.stop fut-finally
+	with : tcp-server.stop future-finally
 		cb[()]
 
 # Returns true when closed client
@@ -80,7 +81,7 @@ with-block<a> a^(a http-server-options, cb ref a(http-server)) is-sendable<a> tr
 
 	if finished-request
 		request = state finish-request
-		handler-response <- handler[request] fut-catch
+		handler-response <- handler[request] future-catch
 		response = match handler-response
 		as ok o
 			o

@@ -1184,7 +1184,7 @@ immutable(Expr) checkLambda(
 			(immutable TypeParam*) =>
 				none!Type,
 			(immutable StructInst* ap) =>
-				decl(*ap) == ctx.commonTypes.fut
+				decl(*ap) == ctx.commonTypes.future
 					? some!Type(only(typeArgs(*ap)))
 					: none!Type)
 		: some!Type(actualPossiblyFutReturnType);

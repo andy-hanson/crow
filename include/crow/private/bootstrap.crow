@@ -13,7 +13,7 @@ new-void void() noctx builtin
 Specifies that a type must be immutable data.
 
 This includes most types in crow that are not `mut`.
-This does not include `fut` or `ref`, though these types work with `is-sendable`.
+This does not include `future` or `ref`, though these types work with `is-sendable`.
 
 To put it another way, a type works with `is-data` if it is:
 * A primitive like `nat`, an `enum`, or `flags`.
@@ -28,8 +28,8 @@ is-data<a> builtin-spec
 Specifies that a type must be safe to share between tasks that may run in parallel.
 
 Anything that satisfies `is-data` satisfies `is-sendable`.
-In addition, `fut` and `ref` types are sendable if their type arguments are.
-(`fut<cell nat>` is not sendable.)
+In addition, `future` and `ref` types are sendable if their type arguments are.
+(`nat mut[]^` is not sendable.)
 
 In the future, parallel-safe collections may be included here.
 ###
@@ -256,7 +256,7 @@ task record mut by-val
 
 ###
 NOTE: This mutable value is often *shared*.
-If on a fut, the lock on the fut should be held while working with this.
+If on a future, the lock on the future should be held while working with this.
 WARN: Keep in sync with 'task-node-with-time', which casts to this.
 ###
 task-node record mut by-ref
@@ -430,7 +430,7 @@ call-with-ctx<r, p0, p1, p2> r(f act r(p0, p1, p2), p0 p0, p1 p1, p2 p2) noctx b
 call-with-ctx<r, p0, p1, p2, p3> r(f fun r(p0, p1, p2, p3), p0 p0, p1 p1, p2 p2, p3 p3) noctx builtin
 call-with-ctx<r, p0, p1, p2, p3> r(f act r(p0, p1, p2, p3), p0 p0, p1 p1, p2 p2, p3 p3) noctx builtin
 
-region fut
+region future
 
 backtrace record by-val
 	entries array backtrace-entry
@@ -465,19 +465,19 @@ Future type.
 
 Ignore the fields, they should be private.
 ###
-fut<a> record force-sendable by-ref
-	# It's important to make fut by-ref since its lock is by-val 
+future<a> record force-sendable by-ref
+	# It's important to make future by-ref since its lock is by-val 
 	lk by-val lock
-	state mut fut-state a
+	state mut future-state a
 
-fut-state<a> union mut
+future-state<a> union mut
 	# The future hasn't been resolved or forwarded, and no tasks have been added.
 	empty
 	# The future has one task waiting for it to be resolved.
 	one-task task-node
 	# The future has multiple tasks attached.
 	tasks task-list
-	# All operations should be directed to another fut.
+	# All operations should be directed to another future.
 	forwarded a^
 	# The future was resolved successfully.
 	resolved a

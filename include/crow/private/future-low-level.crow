@@ -4,7 +4,7 @@ import
 	../misc: new, void
 	../result: err, ok, result
 	./bootstrap:
-		empty, exception, first, forwarded, fut, fut-state, hard-unreachable, last, lk,
+		empty, exception, first, forwarded, future, future-state, hard-unreachable, last, lk,
 		new, one-task, rejected, resolved, set-last, set-next, set-state, state, tasks
 	./runtime: add-task, add-tasks, get-global-ctx
 	./task-queue: exclusion, new, task, task-list, task-node
@@ -24,7 +24,7 @@ resolve<a> void(a a^, value a) unsafe
 reject<a> void(a a^, err exception) unsafe
 	a resolve-or-reject err.rejected
 
-.resolve-or-reject<a> void(a a^, new-state fut-state a) unsafe
+.resolve-or-reject<a> void(a a^, new-state future-state a) unsafe
 	a.lock acquire
 	old-state = a state
 	a.state := new-state

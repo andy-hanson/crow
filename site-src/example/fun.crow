@@ -2,7 +2,7 @@ import
 	crow/io/print: out, print
 
 main nat^(_ str[]) summon
-	xs list str = "crow", "bar", "sea", "weed"
+	xs str[] = "crow", "bar", "sea", "weed"
 	ys = xs map-pairs (x, y) => "{x}-{y}"
 	zs = ys map-pairs (x, y) =>
 		"{x}, {y}"
@@ -10,6 +10,6 @@ main nat^(_ str[]) summon
 	()
 
 # converts (a, b, c, d, ...) to (f[a, b], f[c, d], ...)
-map-pairs list str(xs list str, f fun str(str, str))
+map-pairs str[](xs str[], f fun str(str, str))
 	if xs.size >= 2
 		f[xs[0], xs[1]] ~ (xs[2 .. xs.size] map-pairs f)

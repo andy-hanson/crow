@@ -104,7 +104,7 @@ parse-settings ai-settings?(a str)
 score-cache alias
 	board-cache int32
 
-# Return a fut as this may do a lot of processing
+# Return a future as this may do a lot of processing
 .ai-best-x nat^(board board, ai-depth nat)
 	<- delay
 	# Use a new cache each time, since each turn we're exploring to a further depth.

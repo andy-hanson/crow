@@ -220,7 +220,7 @@ private immutable(Opt!(Diag.TypeShouldUseSyntax.Kind)) typeSyntaxKind(immutable 
 			return some(Diag.TypeShouldUseSyntax.Kind.ptr);
 		case shortSymValue("dict"):
 			return some(Diag.TypeShouldUseSyntax.Kind.dict);
-		case shortSymValue("fut"):
+		case shortSymValue("future"):
 			return some(Diag.TypeShouldUseSyntax.Kind.future);
 		case shortSymValue("list"):
 			return some(Diag.TypeShouldUseSyntax.Kind.list);
@@ -314,7 +314,7 @@ immutable(Type) makeFutType(
 	ref immutable CommonTypes commonTypes,
 	immutable Type type,
 ) =>
-	immutable Type(instantiateStructNeverDelay(alloc, programState, commonTypes.fut, [type]));
+	immutable Type(instantiateStructNeverDelay(alloc, programState, commonTypes.future, [type]));
 
 private:
 

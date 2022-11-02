@@ -231,7 +231,7 @@ immutable(Sym) symForTypeAstDict(immutable TypeAst.Dict.Kind a) {
 immutable(Sym) symForTypeAstSuffix(immutable TypeAst.Suffix.Kind a) {
 	final switch (a) {
 		case TypeAst.Suffix.Kind.future:
-			return shortSym("fut");
+			return shortSym("future");
 		case TypeAst.Suffix.Kind.list:
 			return shortSym("list");
 		case TypeAst.Suffix.Kind.mutList:

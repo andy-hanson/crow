@@ -1483,7 +1483,7 @@ struct CommonTypes {
 	immutable StructInst* void_;
 	immutable StructDecl* byVal;
 	immutable StructDecl* array;
-	immutable StructDecl* fut;
+	immutable StructDecl* future;
 	immutable StructDecl* namedVal;
 	immutable StructDecl* opt;
 	immutable StructDecl* ptrConst;
@@ -1670,7 +1670,7 @@ struct Expr {
 		// This is the funN type;
 		immutable StructInst* type;
 		immutable FunKind kind;
-		// For FunKind.send this includes 'fut' wrapper
+		// For FunKind.send this includes 'future' wrapper
 		immutable Type returnType;
 	}
 

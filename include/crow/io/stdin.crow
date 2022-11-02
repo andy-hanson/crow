@@ -6,7 +6,7 @@ import
 	../col/list: to-list
 	../compare: >=
 	../fun-util: subscript
-	../fut: do, fut, launch, new, then
+	../future: do, future, launch, new, then
 	../misc: is-sendable
 	../number: ==, <=>, nat8, to-nat64
 	../opt: opt

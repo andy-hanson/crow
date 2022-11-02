@@ -831,7 +831,7 @@ void writeDiag(
 			writer ~= " by default";
 		},
 		(ref immutable Diag.SendFunDoesNotReturnFut d) {
-			writer ~= "a 'ref' should return a 'fut', but this returns ";
+			writer ~= "a 'ref' should return a 'future', but this returns ";
 			writeTypeQuoted(writer, allSymbols, d.actualReturnType);
 		},
 		(ref immutable Diag.SpecBuiltinNotSatisfied d) {

@@ -11,7 +11,7 @@ export
 	./exception
 	./flags-util
 	./fun-util
-	./fut
+	./future
 	./hash
 	./misc
 	./number

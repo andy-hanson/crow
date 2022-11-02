@@ -3,12 +3,12 @@ import
 	time: time, time_t
 	../col/iter: again-or-stop
 	../compare: max
-	../fut: fut, subscript, then
+	../future: future, subscript, then
 	../misc: new, void
 	../number: ==, <=>, +, /, nat64, to-nat64
 	../ptr: null
-	../fut: new
-	../private/fut-low-level: forward-to, resolve, unresolved
+	../future: new
+	../private/future-low-level: forward-to, resolve, unresolved
 	../private/runtime: add-timed-task, get-global-ctx, new-exclusion
 	./duration: duration, nsec
 export
@@ -24,7 +24,7 @@ unix-time record
 get-unix-time unix-time() summon trusted
 	null.time,
 
-# Returns a `fut` that will resolve after `duration` has passed.
+# Returns a future that will resolve after `duration` has passed.
 delay void^(duration duration) trusted summon
 	get-monotime-nsec + duration.nsec.to-nat64 delay-until-time
 

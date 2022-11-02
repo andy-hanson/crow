@@ -3,7 +3,7 @@ import
 	crow/cell: as-const-ptr, as-mut-ptr, cell, new
 	crow/col/mut-array: cast-mut-array, subscript
 	crow/c-types: c-int
-	crow/fut: new
+	crow/future: new
 	crow/misc: new, void
 	crow/number: ==, <=>, float32, nat8, nat16, to-int32, to-nat8, to-nat64
 	crow/ptr: any-mut-ptr, as-any-mut-ptr, as-ref, mut-ptr, null

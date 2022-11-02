@@ -43,7 +43,7 @@ open-lmdb-env open-lmdb-env(db-dir str, create-if-not-exists bool)
 # Calls `open-env`, then `f`, then `close-env` (in a `finally`).
 with-block<a> a^(options open-lmdb-env, f act a^(lmdb-env)) trusted summon is-sendable<a>
 	env = options open-env
-	with : (() => env.close-env,) fut-finally
+	with : (() => env.close-env,) future-finally
 		f[env]
 
 .open-env lmdb-env(options open-lmdb-env) unsafe summon
@@ -127,7 +127,7 @@ with-block<a, k, v> a^(
 	f act a^(lmdb-db<k, v>),
 ) trusted summon is-sendable<a> lmdb-key<k> serialize<v>
 	db lmdb-db<k, v> = a open-db
-	with : (() => (a.env close-db db),) fut-finally
+	with : (() => (a.env close-db db),) future-finally
 		f[db]
 
 .open-db<k, v> lmdb-db<k, v>(a database<k, v>) unsafe summon lmdb-key<k> serialize<v>

@@ -27,7 +27,7 @@ tutorial-pages path-and-content[]() summon
 	enum: enums and flags
 	union: unions
 	fun: function values
-	fut: futures and function references
+	future: futures and function references
 	template: templates
 	spec: specs
 	module: modules
