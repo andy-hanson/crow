@@ -6,18 +6,18 @@ import
 	crow/col/experimental/frozen-set: frozen-set, new
 	crow/col/experimental/hamt-set: hamt-set, new
 	crow/col/experimental/index-set: index-set, new
+	crow/col/experimental/mut-sorted-dict: mut-sorted-dict, new
+	crow/col/experimental/mut-sorted-set: mut-sorted-set, new
+	crow/col/experimental/sorted-set: new, sorted-set
 	crow/col/experimental/tree-set: new, tree-set
 	crow/col/mut-deque: mut-deque, new
 	crow/col/mut-grid: mut-grid, new
 	crow/col/mut-priority-queue: mut-priority-queue, new
 	crow/col/mut-set: mut-set, new
-	crow/col/mut-sorted-dict: mut-sorted-dict, new
-	crow/col/mut-sorted-set: mut-sorted-set, new
 	crow/col/mut-stack: mut-stack, new
 	crow/col/priority-queue: new, priority-queue
 	crow/col/private/list-tests: dummy-list-tests
 	crow/col/set: new, set
-	crow/col/sorted-set: new, sorted-set
 	crow/col/stack: new, stack
 	crow/col/queue: new, queue
 	crow/crypto/password-hash: quality-moderate

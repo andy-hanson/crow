@@ -1,13 +1,13 @@
 no-std
 import
-	../bool: !, bool, new, true
-	../compare: compare
-	../fun-util: subscript
-	../misc: is-data, new, void
-	../number: nat64
-	../opt: is-empty
-	../tuple: from, new, pair
-	./list: for-loop, list
+	../../bool: !, bool, new, true
+	../../compare: compare
+	../../fun-util: subscript
+	../../misc: is-data, new, void
+	../../number: nat64
+	../../opt: is-empty
+	../../tuple: from, new, pair
+	../list: for-loop, list
 	./mut-sorted-dict:
 		clear, filter, fold, for-loop, in, is-empty, move-to-list, mut-sorted-dict, new,
 		remove-key, set-filter, set-map, set-subscript, size, subscript, to-mut-sorted-dict

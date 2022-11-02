@@ -1,23 +1,23 @@
 no-std
 import
-	../bool: !, &&, bool, new, true
-	../compare: !=, <, >, <=, compare
-	../fun-util: subscript
-	../misc: is-data, new, void
-	../number: ==, <=>, +, -, *, nat64
-	../opt: !, is-empty, new, opt, opt-equal, size
-	../ptr: ==, -, *, mut-ptr, set-deref
-	../str: ==, ~~, iter, join, literal, next, slice-left, str, to-str
-	../test-util: is
-	../tuple: from, new, pair, to
-	./array: array
-	./iter: rest
-	./mut-list:
+	../../bool: !, &&, bool, new, true
+	../../compare: !=, <, >, <=, compare
+	../../fun-util: subscript
+	../../misc: is-data, new, void
+	../../number: ==, <=>, +, -, *, nat64
+	../../opt: !, is-empty, new, opt, opt-equal, size
+	../../ptr: ==, -, *, mut-ptr, set-deref
+	../../str: ==, ~~, iter, join, literal, next, slice-left, str, to-str
+	../../test-util: is
+	../../tuple: from, new, pair, to
+	../array: array
+	../iter: rest
+	../mut-list:
 		~=, begin-ptr, clear, end-ptr, filter, fold, for-loop, is-empty, mut-list, new, remove-at,
 		set-filter, set-map, set-subscript, size, subscript, to-list
-	./list: for-loop, list, new, to-list
-	./sort: set-sort-by
-	./private/sort-utils:
+	../list: for-loop, list, new, to-list
+	../sort: set-sort-by
+	../private/sort-utils:
 		binary-search-exact-ptr, binary-search-insert-ptr, assert-comparison-not-equal,
 		merge-no-duplicates
 

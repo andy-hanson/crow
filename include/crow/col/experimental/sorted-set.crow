@@ -1,28 +1,28 @@
 no-std
 import
-	../bool: !, &&, ==, bool, false, new, true
-	../compare: <, <=, >, >=, compare
-	../exception: unreachable
-	../fun-util: subscript
-	../misc: is-data, new, void
-	../number: ==, <=>, +, -, *, nat64
-	../opt: !, ??, new, opt
-	../ptr: ==, <=>, +, -, *, as-const, const-ptr, mut-ptr, set-deref
-	../range: ..
-	../str: ==, <=>, ~~, join, literal, new, str, to-str
-	../test-util: is
-	./array: array, is-empty, new, size, subscript, tail
-	./experimental/index-set:
-		~, count-greater-or-equal, count-range, filter-less, for-loop, in, index-set, is-empty, new,
-		size, try-remove
-	./mut-array:
+	../../bool: !, &&, ==, bool, false, new, true
+	../../compare: <, <=, >, >=, compare
+	../../exception: unreachable
+	../../fun-util: subscript
+	../../misc: is-data, new, void
+	../../number: ==, <=>, +, -, *, nat64
+	../../opt: !, ??, new, opt
+	../../ptr: ==, <=>, +, -, *, as-const, const-ptr, mut-ptr, set-deref
+	../../range: ..
+	../../str: ==, <=>, ~~, join, literal, new, str, to-str
+	../../test-util: is
+	../array: array, is-empty, new, size, subscript, tail
+	../mut-array:
 		begin-ptr, cast-immutable, end-ptr, is-empty, mut-array, set-subscript, size, subscript,
 		uninitialized-mut-array
-	./list: for-loop, list, to-array, to-list
-	./sort: sort
-	./private/array-low-level: array-from-begin-end, begin-ptr, end-ptr
-	./private/sort-utils: binary-search-exact-index
-
+	../list: for-loop, list, to-array, to-list
+	../sort: sort
+	../private/array-low-level: array-from-begin-end, begin-ptr, end-ptr
+	../private/sort-utils: binary-search-exact-index
+	./index-set:
+		~, count-greater-or-equal, count-range, filter-less, for-loop, in, index-set, is-empty, new,
+		size, try-remove
+	
 # This is like `set`, but keeps elements in sorted order.
 sorted-set<a> record
 	.add add-node a
