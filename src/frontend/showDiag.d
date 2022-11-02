@@ -905,6 +905,8 @@ void writeDiag(
 				final switch (it.kind) {
 					case Diag.TypeShouldUseSyntax.Kind.dict:
 						return "prefer to write 'v[k]' instead of 'dict<k, v>'";
+					case Diag.TypeShouldUseSyntax.Kind.future:
+						return "prefer to write 'a$' instead of 'future<a>";
 					case Diag.TypeShouldUseSyntax.Kind.list:
 						return "prefer to write 'a[]' instead of 'list a'";
 					case Diag.TypeShouldUseSyntax.Kind.mutDict:
@@ -1095,7 +1097,7 @@ immutable(string) describeTokenForUnexpected(immutable Token token) {
 		case Token.comma:
 			return "unexpected ','";
 		case Token.continue_:
-			return "unexpected 'continue'";
+			return "unexpected keyword 'continue'";
 		case Token.data:
 			return "unexpected keyword 'data'";
 		case Token.dot:

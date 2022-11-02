@@ -10,21 +10,21 @@ import
 	./task-queue: exclusion, new, task, task-list, task-node
 	./thread-utils: acquire, init, lock, release, uninit
 
-unresolved<a> fut a() unsafe
-	res fut a = uninit, empty
+unresolved<a> a^() unsafe
+	res a^ = uninit, empty
 	res.lock init
 	res
 
-.lock<a> lock(a fut a) noctx unsafe
+.lock<a> lock(a a^) noctx unsafe
 	&a.lk
 
-resolve<a> void(a fut a, value a) unsafe
+resolve<a> void(a a^, value a) unsafe
 	a resolve-or-reject value.resolved
 
-reject<a> void(a fut a, err exception) unsafe
+reject<a> void(a a^, err exception) unsafe
 	a resolve-or-reject err.rejected
 
-.resolve-or-reject<a> void(a fut a, new-state fut-state a) unsafe
+.resolve-or-reject<a> void(a a^, new-state fut-state a) unsafe
 	a.lock acquire
 	old-state = a state
 	a.state := new-state
@@ -45,10 +45,10 @@ reject<a> void(a fut a, err exception) unsafe
 
 .or-forwarded<a, b> union sendable
 	direct a
-	forwarded fut b
+	forwarded b^
 
 # 'a' should be the result of 'unresolved-will-forward'; have it forward to 'target'
-forward-to<a> void(a fut a, target fut a) unsafe
+forward-to<a> void(a a^, target a^) unsafe
 	a.lock acquire
 	old-state = a state
 	a.state := target forwarded
@@ -68,13 +68,13 @@ forward-to<a> void(a fut a, target fut a) unsafe
 	as rejected _
 		hard-unreachable
 
-add-task<a> void(a fut a, exclusion exclusion, action act void()) unsafe
+add-task<a> void(a a^, exclusion exclusion, action act void()) unsafe
 	a add-task (exclusion, action)
 
-add-task<a> void(a fut a, task task) unsafe
+add-task<a> void(a a^, task task) unsafe
 	a add-task (task,)::task-node
 
-.add-task<a> void(a fut a, task task-node) unsafe
+.add-task<a> void(a a^, task task-node) unsafe
 	a.lock acquire
 	choice add-tasks-choice a = match a state
 	as empty
@@ -103,7 +103,7 @@ add-task<a> void(a fut a, task task) unsafe
 	as tasks-are-ready
 		get-global-ctx add-task task
 
-.add-tasks<a> void(a fut a, tasks task-list) unsafe
+.add-tasks<a> void(a a^, tasks task-list) unsafe
 	a.lock acquire
 	choice add-tasks-choice a = match a state
 	as empty
@@ -134,7 +134,7 @@ add-task<a> void(a fut a, task task) unsafe
 
 .add-tasks-choice<a> union sendable
 	added
-	forward fut a
+	forward a^
 	tasks-are-ready
 
 .~= void(a task-list, b task-node) noctx
@@ -146,7 +146,7 @@ add-task<a> void(a fut a, task task) unsafe
 	a.last := b last
 
 # Assuming the future is resolved, get the result.
-get-result<a> result<a, exception>(a fut a) noctx unsafe
+get-result<a> result<a, exception>(a a^) noctx unsafe
 	a.lock acquire
 	res or-forwarded<result<a, exception>, a> = match a state
 	as empty

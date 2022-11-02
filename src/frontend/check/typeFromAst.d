@@ -220,6 +220,8 @@ private immutable(Opt!(Diag.TypeShouldUseSyntax.Kind)) typeSyntaxKind(immutable 
 			return some(Diag.TypeShouldUseSyntax.Kind.ptr);
 		case shortSymValue("dict"):
 			return some(Diag.TypeShouldUseSyntax.Kind.dict);
+		case shortSymValue("fut"):
+			return some(Diag.TypeShouldUseSyntax.Kind.future);
 		case shortSymValue("list"):
 			return some(Diag.TypeShouldUseSyntax.Kind.list);
 		case shortSymValue("mut-dict"):

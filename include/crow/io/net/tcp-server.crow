@@ -104,7 +104,7 @@ close-client void(client SOCKET) unsafe summon
 	pad-2 nat32
 	handler tcp-handler
 
-.tcp-server-loop-linux fut void(state tcp-server-state) unsafe summon
+.tcp-server-loop-linux void^(state tcp-server-state) unsafe summon
 	unless state should-stop
 		event mut epoll_event = ()
 		timeout c-int = 0

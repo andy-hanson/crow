@@ -4,7 +4,7 @@ import
 		cur-word, gc-count, gc-stats, get-gc, get-stats, force-needs-gc, set-hard-limit, words-free, words-used
 	crow/ptr: -, as-any-const-ptr, by-val, size-of
 
-main fut nat(_ str[]) summon unsafe
+main nat^(_ str[]) summon unsafe
 	gc = get-gc
 	# To speed up 'gc.get-stats'
 	gc.hard-limit := 0x10000

@@ -3,7 +3,7 @@ import
 	crow/private/alloc: get-gc-ctx
 	crow/private/backtrace: entries, get-backtrace
 
-main fut nat(_ str[]) summon unsafe
+main nat^(_ str[]) summon unsafe
 	gonna-do-it
 	()
 

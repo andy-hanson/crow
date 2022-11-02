@@ -1,7 +1,7 @@
 import
 	crow/io/print: out, print
 
-main fut nat(_ str[]) summon
+main nat^(_ str[]) summon
 	xs list str = "crow", "bar", "sea", "weed"
 	ys = xs map-pairs (x, y) => "{x}-{y}"
 	zs = ys map-pairs (x, y) =>

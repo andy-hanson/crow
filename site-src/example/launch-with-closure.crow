@@ -2,9 +2,9 @@ import
 	crow/cell
 	crow/io/print: out, print
 
-main fut nat(_ str[]) summon
+main nat^(_ str[]) summon
 	adder <- 0 make-store
-	tasks list fut<nat> = for x : 0 .. 10
+	tasks nat^[] = for x : 0 .. 10
 		launch do () =>
 			adder.get-and-set[x + 1]
 	values <- tasks wait-all
@@ -17,7 +17,7 @@ store record sendable
 	get ref nat()
 	get-and-set ref nat(nat)
 
-make-store fut store(initial-value nat)
+make-store store^(initial-value nat)
 	launch do () =>
 		cur cell nat = initial-value,
 		get ref nat() = () => *cur,

@@ -1,11 +1,11 @@
 import
 	crow/io/print: out, print
 
-main fut nat(_ str[]) summon
-	a fut str = "crow",
+main nat^(_ str[]) summon
+	a str^ = "crow",
 	x <- a
 	out print x
-	b fut str = x.reverse,
+	b str^ = x.reverse,
 	y <- b
 	out print y
 	()

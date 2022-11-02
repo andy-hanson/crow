@@ -2,7 +2,7 @@ import
 	crow/io/print: out, print
 	crow/private/thread-utils: count-processors
 
-main fut nat(_ str[]) unsafe summon
+main nat^(_ str[]) unsafe summon
 	out print "running with {count-processors} processors"
 	# TODO: a module with helpers to do things like filter in parallel
 	primes <- for x : 1_000_000 .. 1_010_000 parallel
@@ -18,8 +18,8 @@ parallel<a> parallel-range a(a range a)
 	a,
 
 # TODO: be generic!
-for-loop fut nat64[][](a parallel-range nat64, f fun fut nat64[](nat64))
-	tasks fut<nat64[]>[] = for x : a.inner
+for-loop nat64[][]^(a parallel-range nat64, f fun nat64[]^(nat64))
+	tasks nat64[]^[] = for x : a.inner
 		launch do () =>
 			f[x]
 	tasks wait-all

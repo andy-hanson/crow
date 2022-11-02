@@ -15,7 +15,7 @@ import
 export
 	./private/bootstrap: fut
 
-lock<a> lock(a fut a) unsafe
+lock<a> lock(a a^) unsafe
 	&a.lk
 
 ###
@@ -25,22 +25,22 @@ This can be useful for breaking up big tasks.
 
 `delay` from `crow/io/time` is useful for delaying for linger times.
 ###
-delay fut void()
+delay void^()
 	()
 
 # Converts a value to a `fut` resolved with that value.
-new<a> fut a(value a) trusted
-	res fut a = uninit, value.resolved
+new<a> a^(value a) trusted
+	res a^ = uninit, value.resolved
 	res.lock init
 	res
 
 # `fut` resolved to `()`.
-new<a> fut a() new<a>
+new<a> a^() new<a>
 	(),
 
 # `fut` resolved with an exception.
-rejected<a> fut a(err exception) trusted
-	res fut a = uninit, err.rejected
+rejected<a> a^(err exception) trusted
+	res a^ = uninit, err.rejected
 	res.lock init
 	res
 
@@ -53,14 +53,14 @@ regardless of which exception happened first.
 
 Use `wait-fold` instead of you intend to iterate over the result anyway.
 ###
-wait-all<a> fut a[](futures fut<a>[]) trusted is-sendable<a> is-sendable<a[]>
+wait-all<a> a[]^(futures a^[]) trusted is-sendable<a> is-sendable<a[]>
 	<- futures wait-all-complete
 	(for x : futures; x.get-result ok-or-throw),
 
 ###
 Waits on each of `futures` in turn, calling `f` to get a new accumulator.
 ###
-wait-fold<a, b> fut a(acc a, futures fut<b>[], f ref a(a, b)) is-sendable<a> is-sendable<b>
+wait-fold<a, b> a^(acc a, futures b^[], f ref a(a, b)) is-sendable<a> is-sendable<b>
 	if futures is-empty
 		acc,
 	else
@@ -69,8 +69,8 @@ wait-fold<a, b> fut a(acc a, futures fut<b>[], f ref a(a, b)) is-sendable<a> is-
 		new-acc wait-fold futures.tail, f
 
 # Returns a future that is resolved once all inputs are resolved.
-.wait-all-complete<a> fut void(futures fut<a>[]) is-sendable<a> trusted
-	res fut void = unresolved
+.wait-all-complete<a> void^(futures a^[]) is-sendable<a> trusted
+	res void^ = unresolved
 	count cell nat64 = futures.size,
 	task task = cur-exclusion, () =>
 		*count := *count - 1
@@ -83,8 +83,8 @@ wait-fold<a, b> fut a(acc a, futures fut<b>[], f ref a(a, b)) is-sendable<a> is-
 ###
 Fut resolved to `ok` if `a` succeeds and `err` if `a` fails with an exception.
 ###
-fut-catch<a> fut result<a, exception>(a fut a) trusted is-sendable<a>
-	res fut result<a, exception> = unresolved
+fut-catch<a> result<a, exception>^(a a^) trusted is-sendable<a>
+	res result<a, exception>^ = unresolved
 	a add-task get-global-ctx.new-exclusion, () =>
 		res resolve a.get-result
 	res
@@ -93,9 +93,9 @@ fut-catch<a> fut result<a, exception>(a fut a) trusted is-sendable<a>
 	cleanup ref void()
 fut-finally fut-finally(cleanup ref void())
 	cleanup,
-with-block<a> fut a(a fut-finally, f ref a()) trusted is-sendable<a>
+with-block<a> a^(a fut-finally, f ref a()) trusted is-sendable<a>
 	fut = f[]
-	res fut a = unresolved
+	res a^ = unresolved
 	fut add-task get-global-ctx.new-exclusion, () =>
 		result = fut get-result
 		cleanup-fut = a.cleanup[]
@@ -118,8 +118,8 @@ Returns a fut for the result of `f`.
 If `a` is resolved with an exception, this never calls `f`,
 and the result of `then` will have the same exception as `a`.
 ###
-then<out, in> fut out(a fut in, f ref out(in)) trusted is-sendable<out> is-sendable<in>
-	res fut out = unresolved
+then<out, in> out^(a in^, f ref out(in)) trusted is-sendable<out> is-sendable<in>
+	res out^ = unresolved
 	action = f action
 	a add-task f.exclusion, () =>
 		match a get-result
@@ -138,7 +138,7 @@ then<out, in> fut out(a fut in, f ref out(in)) trusted is-sendable<out> is-senda
 # and choose just one based on the arity of a lambda.
 
 # Like `then`, but `f` takes no parameter (since it will be `void` anyway.)
-then-void<out> fut out(a fut void, f ref out()) is-sendable<out>
+then-void<out> out^(a void^, f ref out()) is-sendable<out>
 	a then _ =>
 		f[]
 
@@ -151,8 +151,8 @@ Run `f` in a task with a new exclusion and return a `fut` for its result.
 `f` must be a `fun` and not an `act` so that it can have a new exclusion,
 which allows it to run in parallel.
 ###
-do<a> fut a(_ launch, f fun fut a()) trusted
-	res fut a = unresolved
+do<a> a^(_ launch, f fun a^()) trusted
+	res a^ = unresolved
 	gctx = get-global-ctx
 	gctx add-task gctx.new-exclusion, () =>
 		match (() => f[]) catch
@@ -168,8 +168,8 @@ Calls a `ref`.
 This enqueues a task with the ref's exclusion for invoking its function,
 and returns a `fut` for the result of that task.
 ###
-subscript<r> fut r(f ref r()) trusted is-sendable<r>
-	res fut r = unresolved
+subscript<r> r^(f ref r()) trusted is-sendable<r>
+	res r^ = unresolved
 	action = f action
 	get-global-ctx add-task f.exclusion, () =>
 		match action catch
@@ -180,28 +180,28 @@ subscript<r> fut r(f ref r()) trusted is-sendable<r>
 	res
 
 # Calls a `ref` with one argument.
-subscript<r, p0> fut r(f ref r(p0), p0 p0) trusted is-sendable<r> is-sendable<p0>
-	res fut r = unresolved
+subscript<r, p0> r^(f ref r(p0), p0 p0) trusted is-sendable<r> is-sendable<p0>
+	res r^ = unresolved
 	get-global-ctx add-task f.exclusion, () =>
 		(() => res forward-to f.action[p0]) catch err => res reject err
 	res
 
 # Calls a `ref` with two arguments.
-subscript<r, p0, p1> fut r(
+subscript<r, p0, p1> r^(
 	f ref r(p0, p1),
 	p0 p0,
 	p1 p1,
 ) trusted is-sendable<r> is-sendable<p0> is-sendable<p1>
-	res fut r = unresolved
+	res r^ = unresolved
 	get-global-ctx add-task f.exclusion, () =>
 		(() => res forward-to f.action[p0, p1]) catch err => res reject err
 	res
 
 ###
-If the fut resolves successfully, does nothing.
+If the future resolves successfully, does nothing.
 Else, this will call the default exception handler.
 ###
-handle-exceptions<a> void(a fut a) no-doc trusted
+handle-exceptions<a> void(a a^) no-doc trusted
 	a add-task get-global-ctx.new-exclusion, () =>
 		match a get-result
 		as ok _

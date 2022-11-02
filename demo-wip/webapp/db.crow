@@ -11,7 +11,7 @@ import
 		lmdb-env, lmdb-key-flags, lmdb-txn, open-lmdb-env, read-transaction, set, to-lmdb-key,
 		transaction-abort, transaction-commit, try-add, with-block, write-transaction, zip
 
-main fut nat(_ str[]) unsafe summon
+main nat^(_ str[]) unsafe summon
 	with db : open-real-db
 		if true
 			match db register-user "alice", "swordfish"
@@ -89,7 +89,7 @@ open-db record
 open-real-db open-db()
 	db-path open-db
 
-with-block<a> fut a(a open-db, f act fut a(db)) unsafe summon is-sendable<a>
+with-block<a> a^(a open-db, f act a^(db)) unsafe summon is-sendable<a>
 	with env : a.db-path open-lmdb-env true
 		with user-from-name : env database@<str, user> "user-from-name"
 			with user-name : env database@<user, str> "user-name"

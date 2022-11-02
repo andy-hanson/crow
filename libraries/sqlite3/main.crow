@@ -15,7 +15,7 @@ sqlite3 record force-sendable
 	db-path str
 open-sqlite3 open-sqlite3(db-path str)
 	db-path,
-with-block<a> fut a(a open-sqlite3, cb ref a(sqlite3)) summon trusted is-sendable<a>
+with-block<a> a^(a open-sqlite3, cb ref a(sqlite3)) summon trusted is-sendable<a>
 	db mut sqlite3-ptr = null::any-mut-ptr.ptr-cast-to-extern
 	# Create empty file if not exist
 

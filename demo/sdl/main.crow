@@ -24,7 +24,7 @@ import
 	SDL2/SDL_video: SDL_CreateWindow, SDL_DestroyWindow, SDL_Window, SDL_WINDOW_SHOWN
 	./crow.bmp as crow-bmp array nat8
 
-main fut nat(_ str[]) summon trusted
+main nat^(_ str[]) summon trusted
 	SDL_INIT_VIDEO.SDL_Init handle-sdl-error "SDL_INIT_VIDEO"
 	window = "SDL demo" SDL_CreateWindow 100, 100, window-width, window-height, SDL_WINDOW_SHOWN
 	if window.as-any-const-ptr == null
@@ -48,7 +48,7 @@ main fut nat(_ str[]) summon trusted
 .image-height int32()
 	200
 
-.main-loop-body fut again-or-stop(renderer SDL_Renderer, texture SDL_Texture) summon trusted
+.main-loop-body again-or-stop^(renderer SDL_Renderer, texture SDL_Texture) summon trusted
 	SDL_PumpEvents
 	if look-for-quit-event
 		stop,

@@ -187,7 +187,7 @@ contexts:
       pop: true
 
   function:
-    - match: '\[\]'
+    - match: '\^|\?|\[\]'
       scope: keyword
     - match: '\s+{{name}}(\[\])?'
       scope: storage.type

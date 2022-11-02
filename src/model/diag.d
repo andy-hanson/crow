@@ -308,6 +308,7 @@ struct Diag {
 	struct TypeShouldUseSyntax {
 		enum Kind {
 			dict,
+			future,
 			list,
 			mutDict,
 			mutList,

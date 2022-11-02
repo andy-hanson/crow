@@ -328,19 +328,19 @@ instead a task is added that will call the `act` when its exclusion is available
 ###
 fun-ref0<r> record force-sendable by-val
 	exclusion exclusion
-	action act fut r()
+	action act r^()
 fun-ref1<r, p0> record force-sendable by-val
 	exclusion exclusion
-	action act fut r(p0)
+	action act r^(p0)
 fun-ref2<r, p0, p1> record force-sendable by-val
 	exclusion exclusion
-	action act fut r(p0, p1)
+	action act r^(p0, p1)
 fun-ref3<r, p0, p1, p2> record force-sendable by-val
 	exclusion exclusion
-	action act fut r(p0, p1, p2)
+	action act r^(p0, p1, p2)
 fun-ref4<r, p0, p1, p2, p3> record force-sendable by-val
 	exclusion exclusion
-	action act fut r(p0, p1, p2, p3)
+	action act r^(p0, p1, p2, p3)
 
 ###
 `f[x]` calls the function and returns its return value.
@@ -478,7 +478,7 @@ fut-state<a> union mut
 	# The future has multiple tasks attached.
 	tasks task-list
 	# All operations should be directed to another fut.
-	forwarded fut a
+	forwarded a^
 	# The future was resolved successfully.
 	resolved a
 	# The future resolved with an exception.

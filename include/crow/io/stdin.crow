@@ -20,7 +20,7 @@ Reads from stdin.
 If that comes from the user typing at the terminal, this will block until they hit enter.
 Result will not have leading or trailing whitespace.
 ###
-read-stdin fut str() trusted summon
+read-stdin str^() trusted summon
 	launch do () =>
 		buffer mut-array nat8 = 0x2000 uninitialized-mut-array
 		# TODO: use a non-blocking API
@@ -36,7 +36,7 @@ read-stdin fut str() trusted summon
 Keep reading from stdin until `parse` returns a non-empty option.
 Print `error-message` after every failure.
 ###
-read-stdin-until-parse<a> fut a(error-message str, parse act a?(str)) summon is-sendable<a>
+read-stdin-until-parse<a> a^(error-message str, parse act a?(str)) summon is-sendable<a>
 	text <- read-stdin
 	if res ?= parse[text]
 		res,

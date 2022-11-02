@@ -8,7 +8,7 @@ import
 	./lint: lint
 	./crow-tests: run-crow-tests
 
-main fut nat(args str[]) summon
+main nat^(args str[]) summon
 	option-names str[] = "print-tests", "overwrite-output", "max-failures", "match"
 	if values ?= args parse-named-args option-names
 		print-tests-strs = values[0]

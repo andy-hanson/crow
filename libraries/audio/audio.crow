@@ -23,7 +23,7 @@ play playing-sound(a audio, sound sound)
 play-loop playing-sound(a audio, sound sound)
 	a.play-loop[sound]
 
-shut-down fut void(a audio)
+shut-down void^(a audio)
 	cb ref void() = a shut-down
 	cb[]
 

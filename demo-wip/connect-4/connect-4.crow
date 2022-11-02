@@ -6,7 +6,7 @@ import
 		board, board-cache, can-place, color, empty-board, has-empty, just-won, new, opposite,
 		place, red, set-subscript, subscript, to-str, width
 
-main fut nat(_ str[]) summon
+main nat^(_ str[]) summon
 	out print "Select a game:\n(If using hard CPU, compile with --optimize)\n"
 	out print "2: 2-player game\nE: Easy\nM: Medium\nH: Hard\nH2: Hard and CPU goes first\nCPU: CPU vs CPU\n"
 	#settings = "Invalid option" read-stdin-until-parse it => it parse-settings
@@ -48,7 +48,7 @@ parse-settings ai-settings?(a str)
 	as blue
 		ai-settings ai-depth-blue
 
-.play-recur fut color?(board board, cur-player color, ai-settings ai-settings) summon
+.play-recur color?^(board board, cur-player color, ai-settings ai-settings) summon
 	x <- if depth ?= cur-player ai-depth-for-color ai-settings
 		board ai-best-x depth
 	else
@@ -67,10 +67,10 @@ parse-settings ai-settings?(a str)
 	clear-screen
 	out print (a to-str cur-player, last-x)
 
-.human-player-move fut nat(board board, color color) summon
+.human-player-move nat^(board board, color color) summon
 	out print "{color} player, where will you go? (Type a letter A-G and hit enter)"
 	board human-player-move-recur
-.human-player-move-recur fut nat(board board) summon
+.human-player-move-recur nat^(board board) summon
 	column <- "Not a valid column." read-stdin-until-parse it => it column-of-str
 	if board can-place column
 		column,
@@ -105,7 +105,7 @@ score-cache alias
 	board-cache int32
 
 # Return a fut as this may do a lot of processing
-.ai-best-x fut nat(board board, ai-depth nat)
+.ai-best-x nat^(board board, ai-depth nat)
 	<- delay
 	# Use a new cache each time, since each turn we're exploring to a further depth.
 	cache board-cache int32 = ()

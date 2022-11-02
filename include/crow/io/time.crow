@@ -25,13 +25,13 @@ get-unix-time unix-time() summon trusted
 	null.time,
 
 # Returns a `fut` that will resolve after `duration` has passed.
-delay fut void(duration duration) trusted summon
+delay void^(duration duration) trusted summon
 	get-monotime-nsec + duration.nsec.to-nat64 delay-until-time
 
 # Call `action` now and on every `interval`.
-repeat-interval fut void(interval duration, action ref again-or-stop()) trusted summon
+repeat-interval void^(interval duration, action ref again-or-stop()) trusted summon
 	get-monotime-nsec repeat-interval-recur interval.nsec.to-nat64, action
-.repeat-interval-recur fut void(
+.repeat-interval-recur void^(
 	start-nsec nat64,
 	interval-nsec nat64,
 	action ref again-or-stop(),
@@ -41,15 +41,15 @@ repeat-interval fut void(interval duration, action ref again-or-stop()) trusted 
 	as again
 		next-time = get-monotime-nsec max start-nsec + interval-nsec
 		gctx = get-global-ctx
-		res fut void = unresolved
+		res void^ = unresolved
 		gctx add-timed-task next-time, gctx.new-exclusion, () =>
 			res forward-to (next-time repeat-interval-recur interval-nsec, action)
 		res
 	as stop
 		()
 
-.delay-until-time fut void(target-nsec nat64) unsafe summon
-	res fut void = unresolved
+.delay-until-time void^(target-nsec nat64) unsafe summon
+	res void^ = unresolved
 	gctx = get-global-ctx
 	gctx add-timed-task target-nsec, gctx.new-exclusion, () =>
 		res resolve ()

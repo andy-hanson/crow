@@ -37,7 +37,7 @@ import
 	./fragment.frag.essl as fragment-shader str
 	./vertex.vert.essl as vertex-shader str
 
-main fut nat(_ str[]) summon trusted
+main nat^(_ str[]) summon trusted
 	SDL_INIT_VIDEO.SDL_Init handle-sdl-error "SDL_INIT_VIDEO"
 
 	# TODO: is this redundant?
@@ -176,7 +176,7 @@ main fut nat(_ str[]) summon trusted
 	gl glActiveTexture GL_TEXTURE0
 	gl glBindTexture GL_TEXTURE_2D, renderer.texture
 
-.main-loop-body fut again-or-stop(renderer renderer) summon trusted
+.main-loop-body again-or-stop^(renderer renderer) summon trusted
 	SDL_PumpEvents
 	if look-for-quit-event
 		stop,
@@ -202,7 +202,7 @@ main fut nat(_ str[]) summon trusted
 
 	renderer.window SDL_GL_SwapWindow
 
-.run-with-thread-id<a> fut a(thread-id nat, cb act a()) unsafe is-sendable<a>
+.run-with-thread-id<a> a^(thread-id nat, cb act a()) unsafe is-sendable<a>
 	if cur-thread-id == thread-id
 		cb[],
 	else

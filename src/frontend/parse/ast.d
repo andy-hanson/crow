@@ -113,6 +113,7 @@ struct TypeAst {
 		@safe @nogc pure nothrow:
 
 		enum Kind {
+			future,
 			list,
 			mutList,
 			mutPtr,
@@ -203,6 +204,8 @@ immutable(RangeWithinFile) range(immutable TypeAst.Tuple a) =>
 
 private immutable(uint) suffixLength(immutable TypeAst.Suffix.Kind a) {
 	final switch (a) {
+		case TypeAst.Suffix.Kind.future:
+			return cast(uint) "$".length;
 		case TypeAst.Suffix.Kind.list:
 			return cast(uint) "[]".length;
 		case TypeAst.Suffix.Kind.opt:
@@ -227,6 +230,8 @@ immutable(Sym) symForTypeAstDict(immutable TypeAst.Dict.Kind a) {
 
 immutable(Sym) symForTypeAstSuffix(immutable TypeAst.Suffix.Kind a) {
 	final switch (a) {
+		case TypeAst.Suffix.Kind.future:
+			return shortSym("fut");
 		case TypeAst.Suffix.Kind.list:
 			return shortSym("list");
 		case TypeAst.Suffix.Kind.mutList:

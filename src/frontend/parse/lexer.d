@@ -1298,6 +1298,7 @@ public @trusted immutable(bool) lookaheadWillTakeEqualsOrThen(ref Lexer lexer) {
 			case '>':
 			case ',':
 			case '?':
+			case '^':
 			case '*':
 			case '[':
 			case ']':

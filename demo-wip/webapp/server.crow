@@ -13,7 +13,7 @@ import
 		post, post-info, parse-user-cookie, register-user, to-str, user, user-info, user-name,
 		with-block
 
-main fut nat(args str[]) unsafe summon
+main nat^(args str[]) unsafe summon
 	if args.size == 1
 		port = args[0]
 		with db : open-real-db
