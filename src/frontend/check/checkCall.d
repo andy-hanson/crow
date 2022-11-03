@@ -140,14 +140,15 @@ private immutable(Expr) checkCallInner(
 	if (has(expectedReturnType))
 		filterByReturnType(ctx.alloc, ctx.programState, candidates, force(expectedReturnType));
 
+	foreach (immutable size_t argIdx; 0 .. arity)
+		filterByLambdaArity(ctx.alloc, ctx.programState, ctx.commonTypes, candidates, ast.args[argIdx], argIdx);
+
 	ArrBuilder!Type actualArgTypes;
 	bool someArgIsBogus = false;
 	immutable Opt!(Expr[]) args = fillArrOrFail!Expr(ctx.alloc, arity, (immutable size_t argIdx) @safe {
 		if (isEmpty(candidates))
 			// Already certainly failed.
 			return none!Expr;
-
-		filterByLambdaArity(ctx.alloc, ctx.programState, ctx.commonTypes, candidates, ast.args[argIdx], argIdx);
 
 		CommonOverloadExpected common =
 			getCommonOverloadParamExpected(ctx.alloc, ctx.programState, tempAsArr_mut(candidates), argIdx);

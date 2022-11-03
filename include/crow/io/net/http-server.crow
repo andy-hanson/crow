@@ -12,8 +12,7 @@ import
 	../../col/private/array-low-level: begin-ptr
 	../../compare: <=, >
 	../../exception: to-str
-	../../future:
-		delay, future, future-catch, future-finally, new, subscript, then, then-void, with-block
+	../../future: delay, future, future-catch, future-finally, new, subscript, then, with-block
 	../../hash: hash-mix
 	../../log: error, log, warn
 	../../misc: is-sendable, new, void

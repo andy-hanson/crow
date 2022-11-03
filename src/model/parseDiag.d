@@ -26,7 +26,7 @@ struct ParseDiag {
 			comma,
 			dedent,
 			endOfLine,
-			equalsOrThen,
+			equals,
 			indent,
 			lambdaArrow,
 			less,
@@ -36,6 +36,7 @@ struct ParseDiag {
 			quoteDouble,
 			quoteDouble3,
 			slash,
+			then,
 			typeArgsEnd,
 		}
 		immutable Kind kind;

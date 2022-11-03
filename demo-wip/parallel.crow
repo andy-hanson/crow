@@ -11,16 +11,16 @@ main nat^(_ str[]) unsafe summon
 	out print "primes: {", " join (for x : primes.flatten; x to-str)}"
 	()
 
-parallel-range<a> record
-	.inner range a
+parallel-range record
+	.inner range nat64
 
-parallel<a> parallel-range a(a range a)
+parallel parallel-range(a range nat64)
 	a,
 
-# TODO: be generic!
-for-loop nat64[][]^(a parallel-range nat64, f fun nat64[]^(nat64))
-	tasks nat64[]^[] = for x : a.inner
-		launch do () =>
+# TODO: be more generic!
+for-loop nat64[][]^(a parallel-range, f fun nat64[]^(nat64))
+	tasks nat64[]^[] = for x : a inner
+		with : parallel
 			f[x]
 	tasks wait-all
 

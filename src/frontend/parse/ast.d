@@ -537,12 +537,7 @@ struct SeqAst {
 }
 
 struct ThenAst {
-	immutable LambdaAst.Param left;
-	immutable ExprAst futExpr;
-	immutable ExprAst then;
-}
-
-struct ThenVoidAst {
+	immutable LambdaAst.Param[] left;
 	immutable ExprAst futExpr;
 	immutable ExprAst then;
 }
@@ -596,7 +591,6 @@ struct ExprAstKind {
 		ptr,
 		seq,
 		then,
-		thenVoid,
 		throw_,
 		typed,
 		unless,
@@ -627,7 +621,6 @@ struct ExprAstKind {
 		immutable PtrAst* ptr;
 		immutable SeqAst* seq;
 		immutable ThenAst* then;
-		immutable ThenVoidAst* thenVoid;
 		immutable ThrowAst* throw_;
 		immutable TypedAst* typed;
 		immutable UnlessAst* unless;
@@ -658,7 +651,6 @@ struct ExprAstKind {
 	immutable this(immutable PtrAst* a) { kind = Kind.ptr; ptr = a; }
 	@trusted immutable this(immutable SeqAst* a) { kind = Kind.seq; seq = a; }
 	@trusted immutable this(immutable ThenAst* a) { kind = Kind.then; then = a; }
-	@trusted immutable this(immutable ThenVoidAst* a) { kind = Kind.thenVoid; thenVoid = a; }
 	immutable this(immutable ThrowAst* a) { kind = Kind.throw_; throw_ = a; }
 	immutable this(immutable TypedAst* a) { kind = Kind.typed; typed = a; }
 	immutable this(immutable UnlessAst* a) { kind = Kind.unless; unless = a; }
@@ -712,7 +704,6 @@ immutable(bool) isLambda(ref immutable ExprAstKind a) =>
 	alias cbPtr,
 	alias cbSeq,
 	alias cbThen,
-	alias cbThenVoid,
 	alias cbThrow,
 	alias cbTyped,
 	alias cbUnless,
@@ -767,8 +758,6 @@ immutable(bool) isLambda(ref immutable ExprAstKind a) =>
 			return cbSeq(*a.seq);
 		case ExprAstKind.Kind.then:
 			return cbThen(*a.then);
-		case ExprAstKind.Kind.thenVoid:
-			return cbThenVoid(*a.thenVoid);
 		case ExprAstKind.Kind.throw_:
 			return cbThrow(*a.throw_);
 		case ExprAstKind.Kind.typed:
@@ -1601,12 +1590,8 @@ immutable(Repr) reprExprAstKind(ref Alloc alloc, ref immutable ExprAstKind ast) 
 				reprExprAst(alloc, a.first),
 				reprExprAst(alloc, a.then)]),
 		(ref immutable ThenAst it) =>
-			reprRecord(alloc, "then-ast", [
-				reprLambdaParamAst(alloc, it.left),
-				reprExprAst(alloc, it.futExpr),
-				reprExprAst(alloc, it.then)]),
-		(ref immutable ThenVoidAst it) =>
-			reprRecord(alloc, "then-void", [
+			reprRecord(alloc, "then", [
+				reprLambdaParamAsts(alloc, it.left),
 				reprExprAst(alloc, it.futExpr),
 				reprExprAst(alloc, it.then)]),
 		(ref immutable ThrowAst it) =>

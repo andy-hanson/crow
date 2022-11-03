@@ -5,7 +5,7 @@ import
 main nat^(_ str[]) summon
 	adder <- 0 make-store
 	tasks nat^[] = for x : 0 .. 10
-		launch do () =>
+		with : parallel
 			adder.get-and-set[x + 1]
 	values <- tasks wait-all
 	final-value <- adder.get[]
@@ -18,7 +18,7 @@ store record sendable
 	get-and-set ref nat(nat)
 
 make-store store^(initial-value nat)
-	launch do () =>
+	with : parallel
 		cur cell nat = initial-value,
 		get ref nat() = () => *cur,
 		get-and-set ref nat(nat) = x =>

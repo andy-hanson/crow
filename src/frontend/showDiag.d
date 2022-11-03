@@ -158,8 +158,8 @@ void writeParseDiag(
 				case ParseDiag.Expected.Kind.endOfLine:
 					writer ~= "expected end of line";
 					break;
-				case ParseDiag.Expected.Kind.equalsOrThen:
-					writer ~= "expected '=' or '<-'";
+				case ParseDiag.Expected.Kind.equals:
+					writer ~= "expected '='";
 					break;
 				case ParseDiag.Expected.Kind.indent:
 					writer ~= "expected an indent";
@@ -178,6 +178,9 @@ void writeParseDiag(
 					break;
 				case ParseDiag.Expected.Kind.openParen:
 					writer ~= "expected '('";
+					break;
+				case ParseDiag.Expected.Kind.then:
+					writer ~= "expected '<-'";
 					break;
 				case ParseDiag.Expected.Kind.quoteDouble:
 					writer ~= "expected '\"'";

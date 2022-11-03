@@ -71,7 +71,6 @@ import frontend.parse.ast :
 	rangeOfOptNameAndRange,
 	SeqAst,
 	ThenAst,
-	ThenVoidAst,
 	ThrowAst,
 	TypeAst,
 	TypedAst,
@@ -1584,31 +1583,10 @@ immutable(Expr) checkThen(
 	// TODO: NEATER (don't create a synthetic AST)
 	immutable ExprAst lambda = immutable ExprAst(
 		range.range,
-		immutable ExprAstKind(allocate(ctx.alloc, immutable LambdaAst(
-			arrLiteral!(LambdaAst.Param)(ctx.alloc, [ast.left]),
-			ast.then))));
+		immutable ExprAstKind(allocate(ctx.alloc, immutable LambdaAst(ast.left, ast.then))));
 	immutable CallAst call = immutable CallAst(
 		CallAst.Style.infix,
 		immutable NameAndRange(range.range.start, shortSym("then")),
-		[],
-		arrLiteral!ExprAst(ctx.alloc, [ast.futExpr, lambda]));
-	return checkCall(ctx, locals, range, call, expected);
-}
-
-immutable(Expr) checkThenVoid(
-	ref ExprCtx ctx,
-	ref LocalsInfo locals,
-	immutable FileAndRange range,
-	ref immutable ThenVoidAst ast,
-	ref Expected expected,
-) {
-	// TODO: NEATER (don't create a synthetic AST)
-	immutable ExprAst lambda = immutable ExprAst(
-		range.range,
-		immutable ExprAstKind(allocate(ctx.alloc, immutable LambdaAst([], ast.then))));
-	immutable CallAst call = immutable CallAst(
-		CallAst.Style.infix,
-		immutable NameAndRange(range.range.start, shortSym("then-void")),
 		[],
 		arrLiteral!ExprAst(ctx.alloc, [ast.futExpr, lambda]));
 	return checkCall(ctx, locals, range, call, expected);
@@ -1685,8 +1663,6 @@ public immutable(Expr) checkExpr(
 			checkSeq(ctx, locals, range, a, expected),
 		(scope ref immutable ThenAst a) =>
 			checkThen(ctx, locals, range, a, expected),
-		(scope ref immutable ThenVoidAst a) =>
-			checkThenVoid(ctx, locals, range, a, expected),
 		(scope ref immutable ThrowAst a) =>
 			checkThrow(ctx, locals, range, a, expected),
 		(scope ref immutable TypedAst a) =>

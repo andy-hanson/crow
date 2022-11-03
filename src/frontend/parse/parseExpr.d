@@ -36,7 +36,6 @@ import frontend.parse.ast :
 	PtrAst,
 	SeqAst,
 	ThenAst,
-	ThenVoidAst,
 	ThrowAst,
 	TypeAst,
 	TypedAst,
@@ -49,6 +48,7 @@ import frontend.parse.lexer :
 	alloc,
 	allSymbols,
 	curPos,
+	EqualsOrThen,
 	getCurLiteral,
 	getCurOperator,
 	getCurSym,
@@ -80,7 +80,6 @@ import frontend.parse.lexer :
 import frontend.parse.parseType : parseType, parseTypeRequireBracket, tryParseTypeArgsForExpr;
 import model.model : AssertOrForbidKind;
 import model.parseDiag : ParseDiag;
-import util.alloc.alloc : Alloc;
 import util.col.arr : empty, only, small;
 import util.col.arrUtil : append, arrLiteral, prepend;
 import util.col.arrBuilder : add, ArrBuilder, finishArr;
@@ -965,12 +964,12 @@ immutable(ExprAndMaybeDedent) parseLambdaWithParenthesizedParameters(
 }
 
 immutable(LambdaAst.Param[]) parseParametersForForOrWith(scope ref Lexer lexer) =>
-	parseForWithOrLambdaParameters(lexer, Token.colon, ParseDiag.Expected.Kind.colon);
+	parseForThenWithOrLambdaParameters(lexer, Token.colon, ParseDiag.Expected.Kind.colon);
 
 immutable(LambdaAst.Param[]) parseParenthesizedLambdaParameters(scope ref Lexer lexer) =>
-	parseForWithOrLambdaParameters(lexer, Token.parenRight, ParseDiag.Expected.Kind.closingParen);
+	parseForThenWithOrLambdaParameters(lexer, Token.parenRight, ParseDiag.Expected.Kind.closingParen);
 
-immutable(LambdaAst.Param[]) parseForWithOrLambdaParameters(
+immutable(LambdaAst.Param[]) parseForThenWithOrLambdaParameters(
 	scope ref Lexer lexer,
 	immutable Token endToken,
 	immutable ParseDiag.Expected.Kind expectedEndToken,
@@ -1285,17 +1284,10 @@ immutable(ExprAndDedent) parseExprNoLet(scope ref Lexer lexer, immutable uint cu
 
 immutable(ExprAndDedent) parseSingleStatementLine(scope ref Lexer lexer, immutable uint curIndent) {
 	immutable Pos start = curPos(lexer);
-	if (lookaheadWillTakeEqualsOrThen(lexer))
-		return parseEqualsOrThen(lexer, curIndent);
-	else if (tryTakeToken(lexer, Token.arrowThen)) {
-		immutable ExprAndDedent init = parseExprNoLet(lexer, curIndent);
-		immutable ExprAndDedent then = mustParseNextLines(lexer, start, init.dedents, curIndent);
-		return immutable ExprAndDedent(
-			immutable ExprAst(
-				range(lexer, start),
-				immutable ExprAstKind(allocate(lexer.alloc, immutable ThenVoidAst(init.expr, then.expr)))),
-			then.dedents);
-	} else {
+	immutable Opt!EqualsOrThen et = lookaheadWillTakeEqualsOrThen(lexer);
+	if (has(et))
+		return parseEqualsOrThen(lexer, curIndent, force(et));
+	else {
 		immutable ExprAndMaybeDedent expr = parseExprBeforeCall(lexer, allowBlock(curIndent));
 		if (!has(expr.dedents) && tryTakeToken(lexer, Token.colonEqual))
 			return parseMutEquals(lexer, start, expr.expr, curIndent);
@@ -1312,69 +1304,43 @@ immutable(ExprAndDedent) parseSingleStatementLine(scope ref Lexer lexer, immutab
 	}
 }
 
-immutable(ExprAndDedent) parseEqualsOrThen(scope ref Lexer lexer, immutable uint curIndent) {
-	immutable Pos start = curPos(lexer);
-	immutable OptNameAndRange name = takeOptNameAndRange(lexer);
-	immutable bool mut = tryTakeToken(lexer, Token.mut);
-	immutable TypeAndEqualsOrThen te = parseTypeAndEqualsOrThen(lexer);
-	immutable ExprAndDedent initAndDedent = parseExprNoLet(lexer, curIndent);
-	immutable ExprAndDedent thenAndDedent =
-		mustParseNextLines(lexer, start, initAndDedent.dedents, curIndent);
-	immutable ExprAstKind exprKind =
-		letOrThen(lexer.alloc, name, mut, te.type, te.equalsOrThen, initAndDedent.expr, thenAndDedent.expr);
-	return immutable ExprAndDedent(immutable ExprAst(range(lexer, start), exprKind), thenAndDedent.dedents);
-}
-
-immutable(ExprAstKind) letOrThen(
-	scope ref Alloc alloc,
-	immutable OptNameAndRange name,
-	immutable bool mut,
-	immutable Opt!(TypeAst*) type,
+immutable(ExprAndDedent) parseEqualsOrThen(
+	scope ref Lexer lexer,
+	immutable uint curIndent,
 	immutable EqualsOrThen kind,
-	immutable ExprAst init,
-	immutable ExprAst then,
 ) {
+	immutable Pos start = curPos(lexer);
 	final switch (kind) {
 		case EqualsOrThen.equals:
-			return immutable ExprAstKind(allocate(alloc, immutable LetAst(name.name, mut, type, init, then)));
+			immutable OptNameAndRange name = takeOptNameAndRange(lexer);
+			immutable bool mut = tryTakeToken(lexer, Token.mut);
+			immutable Opt!(TypeAst*) type = parseTypeThenEquals(lexer);
+			immutable ExprAndDedent initAndDedent = parseExprNoLet(lexer, curIndent);
+			immutable ExprAndDedent thenAndDedent = mustParseNextLines(lexer, start, initAndDedent.dedents, curIndent);
+			immutable ExprAstKind exprKind = immutable ExprAstKind(
+				allocate(lexer.alloc, immutable LetAst(name.name, mut, type, initAndDedent.expr, thenAndDedent.expr)));
+			return immutable ExprAndDedent(immutable ExprAst(range(lexer, start), exprKind), thenAndDedent.dedents);
 		case EqualsOrThen.then:
-			if (mut) todo!void("no 'mut' for 'then'");
-			// TODO: use the type (need lambda parameter types)
-			return immutable ExprAstKind(allocate(alloc, immutable ThenAst(name, init, then)));
+			immutable LambdaAst.Param[] params =
+				parseForThenWithOrLambdaParameters(lexer, Token.arrowThen, ParseDiag.Expected.Kind.then);
+			immutable ExprAndDedent futureAndDedent = parseExprNoLet(lexer, curIndent);
+			immutable ExprAndDedent thenAndDedent =
+				mustParseNextLines(lexer, start, futureAndDedent.dedents, curIndent);
+			immutable ExprAstKind exprKind = immutable ExprAstKind(
+				allocate(lexer.alloc, immutable ThenAst(params, futureAndDedent.expr, thenAndDedent.expr)));
+			return immutable ExprAndDedent(immutable ExprAst(range(lexer, start), exprKind), thenAndDedent.dedents);
 	}
 }
 
-enum EqualsOrThen { equals, then }
-struct TypeAndEqualsOrThen {
-	immutable Opt!(TypeAst*) type;
-	immutable EqualsOrThen equalsOrThen;
-}
-immutable(TypeAndEqualsOrThen) parseTypeAndEqualsOrThen(scope ref Lexer lexer) {
-	immutable Opt!EqualsOrThen res = tryTakeEqualsOrThen(lexer);
-	if (has(res))
-		return immutable TypeAndEqualsOrThen(none!(TypeAst*), force(res));
+immutable(Opt!(TypeAst*)) parseTypeThenEquals(scope ref Lexer lexer) {
+	if (tryTakeToken(lexer, Token.equal))
+		return none!(TypeAst*);
 	else {
-		immutable TypeAst type = parseType(lexer);
-		immutable Opt!EqualsOrThen optEqualsOrThen = tryTakeEqualsOrThen(lexer);
-		immutable EqualsOrThen equalsOrThen = () {
-			if (has(optEqualsOrThen))
-				return force(optEqualsOrThen);
-			else {
-				addDiagAtChar(lexer, immutable ParseDiag(
-					immutable ParseDiag.Expected(ParseDiag.Expected.Kind.equalsOrThen)));
-				return EqualsOrThen.equals;
-			}
-		}();
-		return immutable TypeAndEqualsOrThen(some(allocate(lexer.alloc, type)), equalsOrThen);
+		immutable TypeAst res = parseType(lexer);
+		takeOrAddDiagExpectedToken(lexer, Token.equal, ParseDiag.Expected.Kind.equals);
+		return some(allocate(lexer.alloc, res));
 	}
 }
-
-immutable(Opt!EqualsOrThen) tryTakeEqualsOrThen(scope ref Lexer lexer) =>
-	tryTakeToken(lexer, Token.equal)
-		? some(EqualsOrThen.equals)
-		: tryTakeToken(lexer, Token.arrowThen)
-		? some(EqualsOrThen.then)
-		: none!EqualsOrThen;
 
 immutable(ExprAndDedent) addDedent(scope ref Lexer lexer, immutable ExprAndMaybeDedent e, immutable uint curIndent) =>
 	immutable ExprAndDedent(

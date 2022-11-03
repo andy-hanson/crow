@@ -1285,13 +1285,18 @@ public immutable(bool) isWhitespace(immutable char a) {
 		return skipRestOfBlockComment(lexer);
 }
 
-public @trusted immutable(bool) lookaheadWillTakeEqualsOrThen(ref Lexer lexer) {
+public enum EqualsOrThen { equals, then }
+public @trusted immutable(Opt!EqualsOrThen) lookaheadWillTakeEqualsOrThen(ref Lexer lexer) {
 	immutable(char)* ptr = lexer.ptr;
+	if (ptr[0] == '<' && ptr[1] == '-' && ptr[2] == ' ')
+		return some(EqualsOrThen.then);
 	while (true) {
 		switch (*ptr) {
 			case ' ':
-				if ((ptr[1] == '=' && ptr[2] == ' ') || (ptr[1] == '<' && ptr[2] == '-' && ptr[3] == ' '))
-					return true;
+				if (ptr[1] == '=' && ptr[2] == ' ')
+					return some(EqualsOrThen.equals);
+				else if (ptr[1] == '<' && ptr[2] == '-' && ptr[3] == ' ')
+					return some(EqualsOrThen.then);
 				break;
 			// characters that appear in types
 			case '<':
@@ -1307,7 +1312,7 @@ public @trusted immutable(bool) lookaheadWillTakeEqualsOrThen(ref Lexer lexer) {
 				break;
 			default:
 				if (!isAlphaIdentifierContinue(*ptr))
-					return false;
+					return none!EqualsOrThen;
 				break;
 		}
 		ptr++;

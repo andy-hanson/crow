@@ -4,7 +4,7 @@ import
 	../col/list: for-loop, list, tail, to-list
 	../col/private/array-low-level: subscript
 	../fun-util: fun-ptr1, subscript
-	../future: delay, future, handle-exceptions, then-void
+	../future: delay, future, handle-exceptions, then
 	../misc: new, void
 	../number: ==, <=>, +, -, int32, nat64, to-int32, to-int64, to-nat64
 	../ptr:
@@ -80,7 +80,7 @@ init-constants void() unsafe noctx summon builtin
 .add-first-task nat64^(all-args array c-str, main-ptr fun-ptr1<nat64^, str[]>) unsafe
 	# 'then' is useful here -- it handles any errors in 'main' and gets us main-fut immediately.
 	# TODO: 'then' overload for void^ taking lambda with 0 params
-	res = delay then-void () =>
+	res = delay then () =>
 		get-global-ctx init-symbol-table
 		# First argument is the path to this executable; omit from crow main
 		main-ptr[for arg : all-args.to-list.tail; arg to-str]

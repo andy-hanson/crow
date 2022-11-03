@@ -56,7 +56,6 @@ import frontend.parse.ast :
 	StructDeclAst,
 	suffixRange,
 	ThenAst,
-	ThenVoidAst,
 	ThrowAst,
 	TypeAst,
 	TypedAst,
@@ -612,11 +611,7 @@ void addExprTokens(
 			addExprTokens(alloc, tokens, allSymbols, it.then);
 		},
 		(ref immutable ThenAst it) {
-			addLambdaAstParam(alloc, tokens, allSymbols, it.left);
-			addExprTokens(alloc, tokens, allSymbols, it.futExpr);
-			addExprTokens(alloc, tokens, allSymbols, it.then);
-		},
-		(ref immutable ThenVoidAst it) {
+			addLambdaAstParams(alloc, tokens, allSymbols, it.left);
 			addExprTokens(alloc, tokens, allSymbols, it.futExpr);
 			addExprTokens(alloc, tokens, allSymbols, it.then);
 		},

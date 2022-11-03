@@ -6,12 +6,13 @@ import
 	./fun-util: subscript
 	./misc: new, void
 	./number: ==, -, nat64
-	./result: ok-or-throw, result
 	./private/bootstrap: action, exclusion, is-sendable, lk, new, rejected, resolved
 	./private/future-low-level: add-task, get-result, forward-to, reject, resolve, unresolved
 	./private/runtime: add-task, cur-exclusion, exception-handler, get-global-ctx, new-exclusion
 	./private/task-queue: task
 	./private/thread-utils: init, lock, uninit
+	./result: ok-or-throw, result
+	./tuple: a, b, new, pair
 export
 	./private/bootstrap: future
 
@@ -133,17 +134,31 @@ then<out, in> out^(a in^, f ref out(in)) trusted is-sendable<out> is-sendable<in
 			res reject e
 	res
 
-# TODO: rename to just 'then'
-# This requires that we be able to handle two expected types at once,
-# and choose just one based on the arity of a lambda.
-
 # Like `then`, but `f` takes no parameter (since it will be `void` anyway.)
-then-void<out> out^(a void^, f ref out()) is-sendable<out>
+then<out> out^(a void^, f ref out()) is-sendable<out>
 	a then _ =>
 		f[]
 
-launch record
-launch launch()
+# TODO: shouldn't need is-sendable<(in0, in1)>
+###
+Use like:
+	x, y <- f | g
+Where 'f' and 'g' are futures.
+###
+then<out, in0, in1> out^(
+	a (in0, in1)^,
+	f ref out(in0, in1),
+) trusted is-sendable<out> is-sendable<in0> is-sendable<in1> is-sendable<(in0, in1)>
+	pair <- a
+	f[pair.a, pair.b]
+
+| <a, b> (a, b)^(a a^, b b^) is-sendable<a> is-sendable<b> is-sendable<(a, b)>
+	x <- a
+	y <- b
+	(x, y),
+
+parallel record
+parallel parallel()
 	()
 ###
 Run `f` in a task with a new exclusion and return a future for its result.
@@ -151,7 +166,7 @@ Run `f` in a task with a new exclusion and return a future for its result.
 `f` must be a `fun` and not an `act` so that it can have a new exclusion,
 which allows it to run in parallel.
 ###
-do<a> a^(_ launch, f fun a^()) trusted
+with-block<a> a^(_ parallel, f fun a^()) trusted
 	res a^ = unresolved
 	gctx = get-global-ctx
 	gctx add-task gctx.new-exclusion, () =>
