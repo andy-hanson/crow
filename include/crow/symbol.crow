@@ -1,0 +1,11 @@
+no-std
+import
+	./hash: hasher, hash-mix
+	./misc: void
+	./private/symbol-low-level: to-c-string
+	./ptr: to-nat64
+export
+	./private/symbol-low-level: ==, <=>, symbol, to-string, string-to-symbol
+
+hash-mix void(hasher hasher, a symbol) trusted
+	hasher hash-mix a.to-c-string.to-nat64

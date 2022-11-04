@@ -4,27 +4,27 @@ import
 	crow/io/print: out, print
 
 main nat^(_ string[]) summon
-	chili set sym = "beans", "pepper", "onion", "beans"
+	chili set symbol = "beans", "pepper", "onion", "beans"
 	out print "size: {chili size}"
 	# TODO: should not need type annotation
-	out print "has pepper? {"pepper"::sym in chili}"
+	out print "has pepper? {"pepper"::symbol in chili}"
 	# TODO: should not need type annotation
-	out print "has potato? {"potato"::sym in chili}"
+	out print "has potato? {"potato"::symbol in chili}"
 
-	pepper-spray set sym = "pepper", "onion", "spray bottle"
+	pepper-spray set symbol = "pepper", "onion", "spray bottle"
 	out print "union: {chili | pepper-spray}"
 	out print "intersection: {chili & pepper-spray}"
 	out print "difference: {chili - pepper-spray}"
 
-	m mut-set sym = "beans", "pepper", "onion"
+	m mut-set symbol = "beans", "pepper", "onion"
 	# TODO: should not need type annotation
-	out print "has pepper? {"pepper"::sym in m}"
+	out print "has pepper? {"pepper"::symbol in m}"
 	out print "remove pepper? {m try-remove "pepper"}"
 	out print "remove pepper again? {m try-remove "pepper"}"
 	m ~~= ("spray bottle", "cumin")
 	out print "after concat: {m move-to-set}"
 	()
 
-to-string string(a set sym)
+to-string string(a set symbol)
 	", " join for x : a
 		x to-string

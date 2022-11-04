@@ -4,7 +4,7 @@ module record
 	exports module-export[]
 
 module-export record
-	name sym
+	name symbol
 	doc-comment string
 	type-params type-param[]
 	value module-export-value
@@ -24,10 +24,10 @@ alias-decl record
 	target type-ref
 
 enum-decl record
-	members sym[]
+	members symbol[]
 
 flags-decl record
-	members sym[]
+	members symbol[]
 
 fun-decl record
 	return-type type-ref
@@ -36,11 +36,11 @@ fun-decl record
 	specs spec-ref[]
 
 param record
-	name sym
+	name symbol
 	type type-ref
 
 type-param record
-	name sym
+	name symbol
 
 record-decl record
 	purity purity
@@ -48,7 +48,7 @@ record-decl record
 	fields record-field[]
 
 record-field record
-	name sym
+	name symbol
 	type type-ref
 	is-mut bool
 
@@ -61,7 +61,7 @@ spec-body union
 
 spec-sig record
 	comment string
-	name sym
+	name symbol
 	return-type type-ref
 	params param[]
 
@@ -70,15 +70,15 @@ union-decl record
 	members union-member[]
 
 union-member record
-	name sym
+	name symbol
 	type type-ref?
 
 type-ref record
-	name sym
+	name symbol
 	type-args type-ref[]
 
 spec-ref record
-	name sym
+	name symbol
 	type-args type-ref[]
 
 purity enum

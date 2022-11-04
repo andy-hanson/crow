@@ -19,6 +19,6 @@ export
 	./range
 	./result
 	./string
-	./sym
+	./symbol
 	./test-util
 	./tuple

@@ -8,14 +8,14 @@ main nat^(_ string[]) summon
 		out print "queen as face-card is {face to-nat32}"
 	()
 
-to-chess-piece chess-piece?(a sym)
+to-chess-piece chess-piece?(a symbol)
 	a to-enum
 
-to-face-card face-card?(a sym)
+to-face-card face-card?(a symbol)
 	a to-enum
 
 to-face-card face-card?(a chess-piece)
-	a.to-sym to-face-card
+	a.to-symbol to-face-card
 
 chess-piece enum
 	pawn

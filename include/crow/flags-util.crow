@@ -5,7 +5,7 @@ import
 	./col/list: for-loop, join, list, new, to-list
 	./misc: name, named-val, val
 	./string: join, literal, string
-	./sym: sym, to-string
+	./symbol: symbol, to-string
 
 ###
 Spec that will be satisfied by generated functions for any `flags` type.
@@ -33,12 +33,12 @@ is-in<a> bool(a a, b a) min-flags-like<a>
 	a & b == a
 
 # Returns the names of every flag set in `a`.
-to-syms<a> sym[](a a) flags-like<a>
+to-symbols<a> symbol[](a a) flags-like<a>
 	() join for member : flags-members.to-list
 		if member.val is-in a
 			member.name,
 
 # Flag names separated by `|`, like `"foo | bar"`.
 flags-to-string<a> string(a a) flags-like<a>
-	" | " join for x : a to-syms
+	" | " join for x : a to-symbols
 		x to-string

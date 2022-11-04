@@ -74,18 +74,18 @@
 </section>
 
 <section>
-	<h2>str and char</h2>
+	<h2>string and char</h2>
 
 	<p>
-		We've been using <code class="struct">str</code> for most of this tuturial so far.
+		We've been using <code class="struct">string</code> for most of this tuturial so far.
 		<br />
-		A <code class="struct">str</code> is sequence of <code class="struct">char</code>s.
+		A <code class="struct">string</code> is sequence of <code class="struct">char</code>s.
 		<br />
 		A <code class="struct">char</code> is an 8-bit value, so a Unicode character might use multiple.
 	</p>
 	<p>
 		Unlike in other languages, <code class="struct">char</code> is not a number type, and
-		<code class="struct">str</code> is not just a <code>char[]</code>;
+		<code class="struct">string</code> is not just a <code>char[]</code>;
 		though conversion functions are available.
 	</p>
 	<p>
@@ -93,41 +93,41 @@
 		so it can be an implicit <code class="keyword">else</code>.
 	</p>
 	<p>
-		Common funcionts for <code class="struct">str</code> and <code class="struct">char</code> are in the
-		<a href="/doc/crow/str.html">crow/str</a> and <a href="/doc/crow/str-util.html">crow/str-util</a> modules.
+		Functions for <code class="struct">string</code> and <code class="struct">char</code> are in the
+		<a href="/doc/crow/string.html">crow/string</a> module.
 	</p>
 </section>
 
 <section>
-	<h2>sym</h2>
+	<h2>symbol</h2>
 
-	<code class="struct">sym</code>s are unique values identified by a string.
+	<code class="struct">symbol</code>s are unique values identified by a string.
 	<br />
-	These are also known as interned strings,
-	since equal <code class="struct">str</code>s convert to identical <code class="struct">sym</code>s.
+	(Other languages may call these interned strings.)
 
-	<crow-runnable src="sym"></crow-runnable>
+	<crow-runnable src="symbol"></crow-runnable>
 
 	<p>
-		The syntax for a <code class="struct">sym</code> is the same as for a <code class="struct">str</code>.
+		The syntax for a <code class="struct">symbol</code> is the same as for a <code class="struct">string</code>.
 	</p>
 
 	<p>
-		Unlike a <code class="struct">str</code>,
-		you can't manipulate the contents of a sym or use string interpolation
-		(except by converting to/from <code class="struct">str</code>).
+		Unlike a <code class="struct">string</code>,
+		you can't manipulate the contents of a symbol or use string interpolation
+		(except by converting to/from <code class="struct">string</code>).
 	</p>
 
 	<p>
-		When a variable is a <code class="struct">sym</code>,
+		When a variable is a <code class="struct">symbol</code>,
 		that indicates that it should belong to a small set of possible values,
 		and will be compared against other values in the set.
 	</p>
 
-	<code class="fun">==</code> is O(1) for <code class="struct">sym</code>
-	and O(n) for <code class="struct">str</code>.
+	<code class="fun">==</code> is O(1) for <code class="struct">symbol</code>
+	and O(n) for <code class="struct">string</code>.
 
 	<p>
-		Functions for <code class="struct">sym</code> are in the <a href="/doc/crow/sym.html">crow/sym</a> module.
+		Functions for <code class="struct">symbol</code> are in the
+		<a href="/doc/crow/symbol.html">crow/symbol</a> module.
 	</p>
 </section>

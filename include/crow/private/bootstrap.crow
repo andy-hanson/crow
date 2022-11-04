@@ -145,16 +145,16 @@ false bool() noctx builtin
 # True boolean value.
 true bool() noctx builtin
 
-region sym.crow
+region symbol.crow
 
-sym record by-val
-	.sym-to-c-string c-string
+symbol record by-val
+	.symbol-to-c-string c-string
 
-new-sym sym(a c-string) noctx unsafe
+new-symbol symbol(a c-string) noctx unsafe
 	a,
 
-to-c-string c-string(a sym) no-doc noctx unsafe
-	a sym-to-c-string
+to-c-string c-string(a symbol) no-doc noctx unsafe
+	a symbol-to-c-string
 
 region bootstrap arithmetic
 
@@ -497,8 +497,8 @@ region reflect
 
 # General-purpose type that stores a name and value.
 named-val<a> record by-val
-	name sym
+	name symbol
 	val a
 
 # All symbols that exist in the compiled code, in arbitrary order
-static-syms array sym() noctx builtin
+static-symbols array symbol() noctx builtin

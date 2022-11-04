@@ -271,7 +271,7 @@ immutable(ConcreteType) cStrType(ref ConcretizeCtx a) =>
 
 immutable(ConcreteType) symType(ref ConcretizeCtx a) =>
 	lazilySet(a._symType, () =>
-		getConcreteType_forStructInst(a, a.commonTypes.sym, TypeArgsScope.empty));
+		getConcreteType_forStructInst(a, a.commonTypes.symbol, TypeArgsScope.empty));
 
 immutable(Constant) constantCStr(ref ConcretizeCtx a, immutable SafeCStr value) =>
 	getConstantCStr(a.alloc, a.allConstants, value);

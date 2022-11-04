@@ -10,7 +10,7 @@ main nat^(args string[]) summon unsafe
 	in-path = args[0]
 	out-path = args[1]
 	ext = out-path.get-extension ?? throw "Output file needs extension"
-	format sound-file-format = default-file-types[ext string-to-sym] ?? throw describe-out-exts.to-c-string
+	format sound-file-format = default-file-types[ext string-to-symbol] ?? throw describe-out-exts.to-c-string
 
 	sound = in-path.read-sound-file with-sample-rate 48000
 	out print "sound format is {sound format}"
@@ -21,5 +21,5 @@ main nat^(args string[]) summon unsafe
 	supported = ", " join for key : default-file-types keys; key to-string
 	"Supported output file extensions: {supported}"
 
-.default-file-types sound-file-format[sym]()
+.default-file-types sound-file-format[symbol]()
 	("flac", flac), ("ogg", ogg-vorbis), ("wav", wav)

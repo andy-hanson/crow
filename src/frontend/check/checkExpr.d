@@ -799,7 +799,7 @@ immutable(Expr) checkStringLiteral(
 ) =>
 	has(expectedStruct) && force(expectedStruct) == ctx.commonTypes.char8
 		? checkStringLiteralTypedAsChar(ctx, range, value)
-		: has(expectedStruct) && force(expectedStruct) == ctx.commonTypes.sym
+		: has(expectedStruct) && force(expectedStruct) == ctx.commonTypes.symbol
 		? immutable Expr(range, immutable Expr.LiteralSymbol(symOfStr(ctx.allSymbols, value)))
 		: has(expectedStruct) && force(expectedStruct) == ctx.commonTypes.cString
 		? immutable Expr(range, immutable Expr.LiteralCString(copyToSafeCStr(ctx.alloc, value)))

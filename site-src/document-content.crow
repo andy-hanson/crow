@@ -141,7 +141,7 @@ module-top string(path string)
 			x union-member-content
 		"""<ul class="members">{members}</ul>"""
 
-.enum-flags-members-content string(a sym[])
+.enum-flags-members-content string(a symbol[])
 	members = "" join for x : a
 		"""<li><code class="member">{x}</code></li>"""
 	"""<ul class="members">{members}</ul>"""
@@ -200,11 +200,11 @@ module-top string(path string)
 		"{a.type-args.only type-ref-with-subscript}{"*" keyword}"
 	elif name == "mut-ptr"
 		"{a.type-args.only type-ref-with-subscript}{" mut*" keyword}"
-	elif name in ("fun0", "fun1", "fun2", "fun3", "fun4", "fun5")::sym[]
+	elif name in ("fun0", "fun1", "fun2", "fun3", "fun4", "fun5")::symbol[]
 		a fun-type "fun"
-	elif name in ("fun-act0", "fun-act1", "fun-act2", "fun-act3", "fun-act4", "fun-act5")::sym[]
+	elif name in ("fun-act0", "fun-act1", "fun-act2", "fun-act3", "fun-act4", "fun-act5")::symbol[]
 		a fun-type "act"
-	elif name in ("fun-ref0", "fun-ref1", "fun-ref2", "fun-ref3", "fun-ref4", "fun-ref5")::sym[]
+	elif name in ("fun-ref0", "fun-ref1", "fun-ref2", "fun-ref3", "fun-ref4", "fun-ref5")::symbol[]
 		a fun-type "ref"
 	else
 		inner = if a.type-args.size == 1 && !has-subscript

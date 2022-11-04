@@ -49,7 +49,7 @@ immutable(AllConstantsConcrete) finishAllConstants(
 	ref const AllSymbols allSymbols,
 	immutable ConcreteStruct* arrSymStruct,
 ) {
-	immutable Constant staticSyms = getConstantArr(alloc, a, arrSymStruct, valuesArray(alloc, a.syms));
+	immutable Constant staticSymbols = getConstantArr(alloc, a, arrSymStruct, valuesArray(alloc, a.syms));
 	immutable ArrTypeAndConstantsConcrete[] arrs =
 		mapToArr_mut!(ArrTypeAndConstantsConcrete, immutable ConcreteType, ArrTypeAndConstants)(
 			alloc,
@@ -68,7 +68,7 @@ immutable(AllConstantsConcrete) finishAllConstants(
 			immutable PointerTypeAndConstantsConcrete(
 				key,
 				moveToArr(alloc, value.constants)));
-	return immutable AllConstantsConcrete(moveToArr(alloc, a.cStringValues), staticSyms, arrs, records);
+	return immutable AllConstantsConcrete(moveToArr(alloc, a.cStringValues), staticSymbols, arrs, records);
 }
 
 ref immutable(Constant) derefConstantPointer(

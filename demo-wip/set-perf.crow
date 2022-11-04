@@ -21,8 +21,8 @@ main nat^(args string[]) summon unsafe
 		err print "Usage: set-perf dict add iters max-value"
 		()
 	else
-		col-kind col-kind = args[0].string-to-sym.to-enum!
-		test-kind test-kind = args[1].string-to-sym.to-enum!
+		col-kind col-kind = args[0].string-to-symbol.to-enum!
+		test-kind test-kind = args[1].string-to-symbol.to-enum!
 		iters = args[2].parse-nat!
 		max-value = args[3].parse-nat!
 

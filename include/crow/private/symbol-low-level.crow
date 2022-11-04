@@ -10,40 +10,40 @@ import
 	../string: ==, <=>, char8, char8s, c-string, hash-mix, literal, string
 	../tuple: a, b, new
 	./alloc: unmanaged-alloc-elements
-	./bootstrap: new-sym, static-syms
-	./runtime: get-global-ctx, global-ctx, set-syms-table, syms-lock, syms-table
+	./bootstrap: new-symbol, static-symbols
+	./runtime: get-global-ctx, global-ctx, set-symbols-table, symbols-lock, symbols-table
 	./thread-utils: with-lock
 export
-	# TODO: ensure that 'sym' constructor from c-string is not exported
-	../private/bootstrap: sym, to-c-string
+	# TODO: ensure that 'symbol' constructor from c-string is not exported
+	../private/bootstrap: symbol, to-c-string
 
-== bool(a sym, b sym) noctx trusted
+== bool(a symbol, b symbol) noctx trusted
 	# (this is pointer equality)
 	a.to-c-string == b.to-c-string
 
 # Same as `a.to-string <=> b.to-string`.
-<=> comparison(a sym, b sym)
+<=> comparison(a symbol, b symbol)
 	a.to-string <=> b.to-string
 
-to-string string(a sym) noctx trusted
+to-string string(a symbol) noctx trusted
 	a.to-c-string literal
 
 init-symbol-table void(a global-ctx)
-	a.syms-table := (for x : static-syms.to-list; (x.to-string, x)) to-dict
+	a.symbols-table := (for x : static-symbols.to-list; (x.to-string, x)) to-dict
 
-# TODO: name 'to-sym'
+# TODO: name 'to-symbol'
 ###
 Interns a string.
-This is O(log n), where 'n' is the number of unique syms that exist.
+This is O(log n), where 'n' is the number of unique symbols that exist.
 ###
-string-to-sym sym(a string) trusted
+string-to-symbol symbol(a string) trusted
 	gctx = get-global-ctx
-	&gctx.syms-lock with-lock () =>
-		match gctx.syms-table get-or-add a, () => a.to-malloced-c-string new-sym
+	&gctx.symbols-lock with-lock () =>
+		match gctx.symbols-table get-or-add a, () => a.to-malloced-c-string new-symbol
 		as got x
 			x
 		as added pair
-			gctx.syms-table := pair a
+			gctx.symbols-table := pair a
 			pair b
 
 .to-malloced-c-string c-string(a string) unsafe

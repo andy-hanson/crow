@@ -1,23 +1,23 @@
 import
 	crow/io/print: out, print
-	crow/private/bootstrap: static-syms
+	crow/private/bootstrap: static-symbols
 
 main nat^(_ string[]) summon
-	_ = "pop"::sym
-	_ = "hop"::sym
-	_ = "pop"::sym
+	_ = "pop"::symbol
+	_ = "hop"::symbol
+	_ = "pop"::symbol
 
-	fosho = "fosho" string-to-sym
+	fosho = "fosho" string-to-symbol
 	out print fosho.to-string
 
-	for s : static-syms
+	for s : static-symbols
 		out print s.to-string
 
-	out print (fosho == "fosho".string-to-sym).to-string
-	out print (fosho == "foshoe".string-to-sym).to-string
+	out print (fosho == "fosho".string-to-symbol).to-string
+	out print (fosho == "foshoe".string-to-symbol).to-string
 
 	#enum-members each m =>
-	#	out print "{m name} = {m.val to-sym}"
+	#	out print "{m name} = {m.val to-symbol}"
 
 	#f0 = a
 	#f1 = b

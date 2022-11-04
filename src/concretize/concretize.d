@@ -86,8 +86,8 @@ immutable(ConcreteProgram) concretizeInner(
 		getOrAddNonTemplateConcreteFunAndFillBody(ctx, getAllocFun(alloc, program));
 	immutable ConcreteFun* throwImplFun =
 		getOrAddNonTemplateConcreteFunAndFillBody(ctx, getThrowImplFun(alloc, program));
-	immutable ConcreteFun* staticSymsFun =
-		getOrAddNonTemplateConcreteFunAndFillBody(ctx, getStaticSymsFun(alloc, program));
+	immutable ConcreteFun* staticSymbolsFun =
+		getOrAddNonTemplateConcreteFunAndFillBody(ctx, getStaticSymbolsFun(alloc, program));
 	// We remove items from these dicts when we process them.
 	verify(mutDictIsEmpty(ctx.concreteFunToBodyInputs));
 
@@ -100,7 +100,7 @@ immutable(ConcreteProgram) concretizeInner(
 			alloc,
 			ctx.allConstants,
 			*allSymbolsPtr,
-			mustBeByVal(staticSymsFun.returnType)),
+			mustBeByVal(staticSymbolsFun.returnType)),
 		finishArr_immutable(alloc, ctx.allConcreteStructs),
 		allConcreteFuns,
 		mapToDict!(ConcreteStruct*, ConcreteLambdaImpl[], MutArr!(immutable ConcreteLambdaImpl))(
@@ -205,8 +205,9 @@ immutable(FunInst*) getThrowImplFun(ref Alloc alloc, ref immutable Program progr
 	return nonTemplateFunInst(alloc, only(funs));
 }
 
-immutable(FunInst*) getStaticSymsFun(ref Alloc alloc, ref immutable Program program) {
-	immutable FunDecl*[] funs = getFuns(*program.specialModules.bootstrapModule, shortSym("static-syms"));
+immutable(FunInst*) getStaticSymbolsFun(ref Alloc alloc, ref immutable Program program) {
+	immutable FunDecl*[] funs =
+		getFuns(*program.specialModules.bootstrapModule, symForSpecial(SpecialSym.static_symbols));
 	if (funs.length != 1)
 		todo!void("wrong number static-syms funs");
 	return nonTemplateFunInst(alloc, only(funs));

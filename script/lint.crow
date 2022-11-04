@@ -28,21 +28,21 @@ main nat^(_ string[]) summon
 		failures lint-imports-in-file file
 	failures move-to-list
 
-.get-all-imports set sym(files file[])
+.get-all-imports set symbol(files file[])
 	(for file : files; file.imports to-list).flatten to-set
 
-.excluded-public sym[]()
+.excluded-public symbol[]()
 	"derefConstantPointer", "diffSymbols", "main"
 
 .file record
 	path string
 	members members
-	imports set sym
-	uses nat[sym]
+	imports set symbol
+	uses nat[symbol]
 
 .members record
-	public sym[]
-	private sym[]
+	public symbol[]
+	private symbol[]
 
 all-files file[]() summon
 	for path : "src" search-dir-recursive
@@ -55,14 +55,14 @@ all-files file[]() summon
 .get-members members(path string) summon
 	stdout = "dub run dscanner -- --ctags {path}" shell-exec
 
-	public mut-set sym = ()
-	private mut-set sym = ()
+	public mut-set symbol = ()
+	private mut-set symbol = ()
 
 	look-for = "!_TAG_PROGRAM_URL	https://github.com/dlang-community/D-Scanner/\n"
 	rest = (stdout try-split-once look-for)!.b
 	for line : rest lines
 		unless line == "" || line contains-substr "enum:" || line contains-substr "struct:"
-			name = line.try-split-once-by-whitespace!.a string-to-sym
+			name = line.try-split-once-by-whitespace!.a string-to-symbol
 			if line contains-substr "access:public"
 				public ~= name
 			elif line contains-substr "access:private"
@@ -74,16 +74,16 @@ all-files file[]() summon
 	public.move-to-list, private.move-to-list
 
 # for some reason, dscanner doesn't give non-nested unions like Converter64 access:private
-.excluded-unknown-access sym[]()
+.excluded-unknown-access symbol[]()
 	"Converter32", "Converter64", "DCValue", "DoubleToUlong", "StackDict2Key", "StackDict2Value"
 
 .imports-and-rest record
-	imports set sym
+	imports set symbol
 	rest string
 
 .find-imports imports-and-rest(a string)
 	() find-imports-recur a, a
-.find-imports-recur imports-and-rest(res mut-set sym, since-last-import string, a string)
+.find-imports-recur imports-and-rest(res mut-set symbol, since-last-import string, a string)
 	if pair ?= a try-split-once "import "
 		if pair.a ends-with "\n" || pair.a ends-with "\n\t"
 			rest = pair b
@@ -99,8 +99,8 @@ all-files file[]() summon
 	else
 		res.move-to-set, since-last-import
 
-.get-uses nat[sym](a string)
-	res nat mut[sym] = ()
+.get-uses nat[symbol](a string)
+	res nat mut[symbol] = ()
 	for x : a words
 		res[x] := (res[x] ?? 0) + 1
 	res move-to-dict
@@ -109,16 +109,16 @@ words record
 	inner string
 .words words(a string)
 	a,
-.for-loop void(a words, cb act void(sym))
+.for-loop void(a words, cb act void(symbol))
 	word char8 mut[] = ()
 	for x : a.inner char8s
 		if x is-identifier-char
 			word ~= x
 		else
 			unless word is-empty
-				cb[word.move-to-list.as-string string-to-sym]
+				cb[word.move-to-list.as-string string-to-symbol]
 	unless word is-empty
-		cb[word.move-to-list.as-string string-to-sym]
+		cb[word.move-to-list.as-string string-to-symbol]
 
 .is-identifier-char bool(a char8)
 	"a"::char8 <= a && a <= "z" || "A"::char8 <= a && a <= "Z" || "0"::char8 <= a && a <= "9" || a == "_"

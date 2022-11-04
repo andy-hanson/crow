@@ -153,6 +153,7 @@ enum SpecialSym {
 	line_and_column_getter,
 	ptr_cast_from_extern,
 	ptr_cast_to_extern,
+	static_symbols,
 	truncate_to_int64,
 	unsafe_bit_shift_left,
 	unsafe_bit_shift_right,
@@ -270,6 +271,8 @@ private immutable(SafeCStr) strOfSpecial(immutable SpecialSym a) {
 			return safeCStr!"ptr-cast-from-extern";
 		case SpecialSym.ptr_cast_to_extern:
 			return safeCStr!"ptr-cast-to-extern";
+		case SpecialSym.static_symbols:
+			return safeCStr!"static-symbols";
 		case SpecialSym.truncate_to_int64:
 			return safeCStr!"truncate-to-int64";
 		case SpecialSym.unsafe_bit_shift_left:

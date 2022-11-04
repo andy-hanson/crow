@@ -294,7 +294,7 @@ immutable(CommonTypes) getCommonTypes(
 	immutable StructInst* nat16 = nonTemplate("nat16");
 	immutable StructInst* nat32 = nonTemplate("nat32");
 	immutable StructInst* nat64 = nonTemplate("nat64");
-	immutable StructInst* sym = nonTemplate("sym");
+	immutable StructInst* symbol = nonTemplate("symbol");
 	immutable StructInst* void_ = nonTemplate("void");
 
 	immutable(StructDecl*) com(immutable string name, immutable size_t nTypeParameters) {
@@ -367,7 +367,7 @@ immutable(CommonTypes) getCommonTypes(
 			nat16,
 			nat32,
 			nat64),
-		sym,
+		symbol,
 		void_,
 		byVal,
 		array,

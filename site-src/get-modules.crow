@@ -8,11 +8,11 @@ import
 		spec-decl, spec-ref, type-param, type-ref, record-decl, record-field, spec-builtin,
 		spec-sig, spec-sigs, union-decl, union-member
 
-get-modules module[](paths string[]) summon
+get-modules module[](paths string[], remove-prefix string) summon
 	result = crow-path spawn-and-wait-result "doc" ~ paths
 	unless result.exit-code == 0 && result.stderr.is-empty
 		throw "Could not get documentation: exit code {result exit-code}, stderr: {result stderr}"
-	result.stdout.parse-json! to-modules
+	result.stdout.parse-json! to-modules remove-prefix
 
 .crow-path string() trusted
 	if is-windows
@@ -20,14 +20,15 @@ get-modules module[](paths string[]) summon
 	else
 		"bin/crow"
 
-.to-modules module[](a json)
+.to-modules module[](a json, remove-prefix string)
 	a.get-node-type is "root"
 	for x : a["modules"]!.as-list!
-		x to-module
+		x to-module remove-prefix
 
-.to-module module(a json)
+.to-module module(a json, remove-prefix string)
 	a.get-node-type is "module"
-	a["path"]!.as-string!, a.get-comment, for x : a["exports"]!.as-list!
+	path = (a["path"]!.as-string! try-remove-start remove-prefix)!
+	path, a.get-comment, for x : a["exports"]!.as-list!
 		x to-export
 
 .get-comment string(a json)
@@ -78,9 +79,9 @@ get-modules module[](paths string[]) summon
 .to-flags-decl flags-decl(a json)
 	a.get-enum-flags-members,
 
-.get-enum-flags-members sym[](a json)
+.get-enum-flags-members symbol[](a json)
 	for x : a["members"]!.as-list!
-		x.as-string! string-to-sym
+		x.as-string! string-to-symbol
 
 .to-record-decl record-decl(a json)
 	has-private = if h ?= a["has-private"]
@@ -115,8 +116,8 @@ get-modules module[](paths string[]) summon
 		t.to-type-ref,
 	a.get-name, type
 
-.get-name sym(a json)
-	a["name"]!.as-string! string-to-sym
+.get-name symbol(a json)
+	a["name"]!.as-string! string-to-symbol
 
 .to-type-param type-param(a json)
 	a.get-name,
@@ -165,7 +166,7 @@ get-modules module[](paths string[]) summon
 
 .to-type-ref type-ref(a json)
 	node-type = a get-node-type
-	name = a["name"]!.as-string! string-to-sym
+	name = a["name"]!.as-string! string-to-symbol
 	if node-type == "type-param"
 		name, ()
 	else
@@ -174,7 +175,7 @@ get-modules module[](paths string[]) summon
 
 .to-spec-ref spec-ref(a json)
 	node-type = a get-node-type
-	name = a["name"]!.as-string! string-to-sym
+	name = a["name"]!.as-string! string-to-symbol
 	if node-type == "special"
 		name, ()
 	else

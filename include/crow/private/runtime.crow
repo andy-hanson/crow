@@ -13,7 +13,7 @@ import
 	./alloc:
 		gc, init, needs-gc, return-gc-ctx, run-garbage-collection, set-gc-ctx-for-thread, uninit
 	./bool-low-level: !, &&, ||, bool, false, true
-	./bootstrap: call-with-ctx, hard-assert, new, sym
+	./bootstrap: call-with-ctx, hard-assert, new, symbol
 	./log-low-level: default-log-handler, set-log-handler, log-handler
 	./task-queue:
 		action, add-task, add-tasks, add-timed-task, any-tasks, exclusion, first-task-time, init,
@@ -46,7 +46,7 @@ global-ctx record mut by-ref
 	gc-root mut by-val gc-root
 	# All below must not be GC allocated
 
-	syms-lock mut by-val lock
+	symbols-lock mut by-val lock
 	# protects 'gc-root.tasks'
 	.tasks-lock mut by-val lock
 	.n-threads nat64
@@ -73,7 +73,7 @@ init void(a global-ctx) noctx unsafe
 	(&a.global-lock)::lock init
 	(&a.may-be-work-to-do)::condition init
 	(&a.gc)::gc init a.n-threads
-	(&a.syms-lock)::lock init
+	(&a.symbols-lock)::lock init
 	(&a.tasks-lock)::lock init
 	(&a.gc-root)::gc-root init
 	(&a.n-waiting-threads)::thread-safe-counter init
@@ -85,7 +85,7 @@ free void(a global-ctx) noctx unsafe
 gc-root record mut by-ref
 	# protected by 'tasks-lock' on the global ctx
 	tasks mut by-val task-queue
-	syms-table mut sym[string]
+	symbols-table mut symbol[string]
 	# If there's an uncaught exception (e.g. in 'call-ref-and-drop'), we'll call this.
 	# Default is to print it and set `gctx.any-unhandled-exceptions`
 	exception-handler mut fun void(exception)
@@ -95,10 +95,10 @@ gc-root record mut by-ref
 .init void(a gc-root) noctx unsafe
 	(&a.tasks)::task-queue init
 
-syms-table sym[string](a global-ctx) trusted noctx
-	(&a.gc-root)::gc-root syms-table
-set-syms-table void(a global-ctx, value sym[string]) trusted noctx
-	(&a.gc-root)::gc-root.syms-table := value
+symbols-table symbol[string](a global-ctx) trusted noctx
+	(&a.gc-root)::gc-root symbols-table
+set-symbols-table void(a global-ctx, value symbol[string]) trusted noctx
+	(&a.gc-root)::gc-root.symbols-table := value
 
 .tasks task-queue(a global-ctx) noctx unsafe
 	&(&a.gc-root).tasks

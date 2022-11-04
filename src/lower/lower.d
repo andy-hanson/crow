@@ -754,7 +754,7 @@ immutable(AllLowFuns) getAllLowFuns(
 			(immutable size_t index, ref immutable LowFunCause cause) =>
 				lowFunFromCause(
 					allTypes,
-					program.allConstants.staticSyms,
+					program.allConstants.staticSymbols,
 					getLowTypeCtx,
 					allocFunIndex,
 					throwImplFunIndex,
@@ -817,7 +817,7 @@ immutable(bool) concreteFunWillBecomeNonExternLowFun()(ref immutable ConcreteFun
 
 immutable(LowFun) lowFunFromCause(
 	ref immutable AllLowTypes allTypes,
-	ref immutable Constant staticSyms,
+	ref immutable Constant staticSymbols,
 	ref GetLowTypeCtx getLowTypeCtx,
 	immutable LowFunIndex allocFunIndex,
 	immutable LowFunIndex throwImplFunIndex,
@@ -854,7 +854,7 @@ immutable(LowFun) lowFunFromCause(
 					getLowParam(getLowTypeCtx, it));
 			immutable LowFunBody body_ = getLowFunBody(
 				allTypes,
-				staticSyms,
+				staticSymbols,
 				getLowTypeCtx,
 				concreteFunToLowFunIndex,
 				concreteFunToThreadLocalIndex,
@@ -948,7 +948,7 @@ immutable(T) withOptLowLocal(T)(
 
 immutable(LowFunBody) getLowFunBody(
 	ref immutable AllLowTypes allTypes,
-	ref immutable Constant staticSyms,
+	ref immutable Constant staticSymbols,
 	ref GetLowTypeCtx getLowTypeCtx,
 	scope ref immutable ConcreteFunToLowFunIndex concreteFunToLowFunIndex,
 	scope ref immutable ConcreteFunToThreadLocalIndex concreteFunToThreadLocalIndex,
@@ -977,7 +977,7 @@ immutable(LowFunBody) getLowFunBody(
 			GetLowExprCtx exprCtx = GetLowExprCtx(
 				thisFunIndex,
 				ptrTrustMe(allTypes),
-				staticSyms,
+				staticSymbols,
 				ptrTrustMe_mut(getLowTypeCtx),
 				concreteFunToLowFunIndex,
 				concreteFunToThreadLocalIndex,
@@ -1003,7 +1003,7 @@ struct GetLowExprCtx {
 
 	immutable LowFunIndex currentFun;
 	immutable AllLowTypes* allTypes;
-	immutable Constant staticSyms;
+	immutable Constant staticSymbols;
 	GetLowTypeCtx* getLowTypeCtxPtr;
 	immutable ConcreteFunToLowFunIndex concreteFunToLowFunIndex;
 	immutable ConcreteFunToThreadLocalIndex concreteFunToThreadLocalIndex;
@@ -1445,8 +1445,8 @@ immutable(LowExprKind) getCallBuiltinExpr(
 				lowTypeFromConcreteType(ctx.typeCtx, only(asBuiltin(body_(*a.called)).typeArgs));
 			return immutable LowExprKind(immutable LowExprKind.SizeOf(typeArg));
 		},
-		(ref immutable BuiltinKind.StaticSyms) =>
-			immutable LowExprKind(ctx.staticSyms),
+		(ref immutable BuiltinKind.StaticSymbols) =>
+			immutable LowExprKind(ctx.staticSymbols),
 		(ref immutable BuiltinKind.Zeroed) =>
 			immutable LowExprKind(immutable LowExprKind.Zeroed()));
 }

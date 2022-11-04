@@ -1061,7 +1061,7 @@ struct PointerTypeAndConstantsConcrete {
 // TODO: rename -- this is not all constants, just the ones by-ref
 struct AllConstantsConcrete {
 	immutable SafeCStr[] cStrings;
-	immutable Constant staticSyms;
+	immutable Constant staticSymbols;
 	immutable ArrTypeAndConstantsConcrete[] arrs;
 	// These are just the by-ref records
 	immutable PointerTypeAndConstantsConcrete[] pointers;

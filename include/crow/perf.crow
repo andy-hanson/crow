@@ -19,12 +19,12 @@ import
 	./misc: void
 	./number: -, nat64, to-float64
 	./string: ~~, literal, string, to-string
-	./sym: ==, <=>, hash-mix, sym
+	./symbol: ==, <=>, hash-mix, symbol
 	./private/perf-low-level:
 		add-measure-value-at-index, count, each-measure, get-measure-index, perf-enable-low-level,
 		perf-measure-value, total-nsec
 
-perf-enable void(measure-names sym[]) summon
+perf-enable void(measure-names symbol[]) summon
 	measure-names.to-array perf-enable-low-level
 
 # Disables performance measurement and clears all measurements.
@@ -35,7 +35,7 @@ perf-disable void() summon
 Run `f` and measure its time.
 This will be added to the total time for this measure name.
 ###
-with-perf-measure<a> a(measure-name sym, f act a()) trusted
+with-perf-measure<a> a(measure-name symbol, f act a()) trusted
 	if index ?= measure-name get-measure-index
 		start = perf-now
 		res = f[]
@@ -63,9 +63,9 @@ Calls `f` for each performance measurement and its total.
 
 This must be called before `perf-disable`.
 ###
-get-measured-perf measure-total[sym]() summon trusted
-	res measure-total mut[sym] = ()
-	f act void(sym, perf-measure-value) = (name, value) =>
+get-measured-perf measure-total[symbol]() summon trusted
+	res measure-total mut[symbol] = ()
+	f act void(symbol, perf-measure-value) = (name, value) =>
 		res[name] := value to-measure-total
 	f each-measure
 	res move-to-dict

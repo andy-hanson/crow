@@ -10,7 +10,7 @@ import
 	../opt: opt
 	../ptr: *, mut-ptr, set-deref
 	../range: .., for-loop
-	./sym-low-level: ==, sym
+	./symbol-low-level: ==, symbol
 
 ###
 Enables performance measurement.
@@ -18,7 +18,7 @@ Only names in `names` will be measured; others will be ignored.
 
 If measurement was already enabled, this sets all measurements to 0 (and may change measured names)
 ###
-perf-enable-low-level void(measure-names array sym) summon trusted
+perf-enable-low-level void(measure-names array symbol) summon trusted
 	*measure-names-var free-unmanaged-mut-array
 	*measure-values-var free-unmanaged-mut-array
 	*measure-names-var := measure-names.size unmanaged-uninitialized-mut-array
@@ -26,10 +26,10 @@ perf-enable-low-level void(measure-names array sym) summon trusted
 	*measure-values-var := measure-names.size unmanaged-uninitialized-mut-array
 	*measure-values-var fill (0, 0)
 
-.measure-names-var mut-array<sym> mut*() thread-local
+.measure-names-var mut-array<symbol> mut*() thread-local
 .measure-values-var mut-array<perf-measure-value> mut*() thread-local
 
-get-measure-index nat64?(measure-name sym) noctx unsafe
+get-measure-index nat64?(measure-name symbol) noctx unsafe
 	*measure-names-var index-of measure-name
 
 add-measure-value-at-index void(index nat64, nsec nat64) noctx unsafe
@@ -41,7 +41,7 @@ perf-measure-value record by-val
 	count nat64
 	total-nsec nat64
 
-each-measure void(f act void(sym, perf-measure-value)) unsafe
+each-measure void(f act void(symbol, perf-measure-value)) unsafe
 	measure-names = *measure-names-var
 	measure-values = *measure-values-var
 	for i : 0 .. measure-names.size

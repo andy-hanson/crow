@@ -1479,7 +1479,7 @@ struct CommonTypes {
 	immutable StructInst* float32;
 	immutable StructInst* float64;
 	immutable IntegralTypes integrals;
-	immutable StructInst* sym;
+	immutable StructInst* symbol;
 	immutable StructInst* void_;
 	immutable StructDecl* byVal;
 	immutable StructDecl* array;

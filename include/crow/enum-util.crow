@@ -4,7 +4,7 @@ import
 	./col/array: array, find-and-get
 	./misc: name, named-val, val
 	./opt: ??, new, opt
-	./private/sym-low-level: ==, sym, to-string
+	./private/symbol-low-level: ==, symbol, to-string
 	./string: ==, string
 
 # TODO: inherit from 'compare' spec
@@ -20,7 +20,7 @@ enum-like<a> spec
 	== bool(a a, b a)
 
 # Convert an enum value to name that was used to declare it.
-to-sym<a> sym(a a) enum-like<a>
+to-symbol<a> symbol(a a) enum-like<a>
 	(enum-members find-and-get x => x.val == a ? x.name,) ?? throw "Invalid enum value"
 
 ###
@@ -28,11 +28,11 @@ Converts a symbol to the enum value that was declared with that name.
 
 Returns an empty option if `a` is not the name of an enum member.
 ###
-to-enum<a> a?(a sym) enum-like<a>
+to-enum<a> a?(a symbol) enum-like<a>
 	enum-members find-and-get member =>
 		member.name == a ? member.val,
 
-# Same as `a.to-sym to-enum`.
+# Same as `a.to-symbol to-enum`.
 to-enum<a> a?(a string) enum-like<a>
 	enum-members find-and-get member =>
 		member.name.to-string == a ? member.val,
@@ -43,9 +43,9 @@ Converts to the output enum value with the same name.
 Returns an empty option if there is no corresponding output value.
 ###
 enum-convert<out, in> out?(a in) enum-like<in> enum-like<out>
-	a.to-sym to-enum
+	a.to-symbol to-enum
 
 # TODO: should just be called to-string, but that requires better overloading
-# Same as `a.to-sym to-string`.
+# Same as `a.to-symbol to-string`.
 enum-to-string<a> string(a a) enum-like<a>
-	a.to-sym to-string
+	a.to-symbol to-string

@@ -35,10 +35,10 @@ tutorial-pages path-and-content[]() summon
 	next: where from here?""" split-by "\n"
 	for line : lines
 		pair = (line.strip try-split-once ":")!
-		pair.a.strip.string-to-sym, pair.b.strip
+		pair.a.strip.string-to-symbol, pair.b.strip
 
 .tutorial-meta record
-	key sym
+	key symbol
 	title string
 
 path string(a tutorial-meta)
@@ -48,7 +48,7 @@ tutorial-nav string(cur-path string)
 	lines = "" join for x : tutorial-metas
 		key = x key
 		path = x path
-		name sym = key == "index" ? "syntax" : key
+		name symbol = key == "index" ? "syntax" : key
 		cur = path == cur-path ? " class=\"current\""
 		"""<li><a href="/{path}"{cur}>{name}</a></li>"""
 	"<nav><ul>{lines}</ul></nav>"

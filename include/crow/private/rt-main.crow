@@ -18,7 +18,7 @@ import
 	./runtime:
 		after-task, any-unhandled-exceptions, before-task, free, get-global-ctx, global-ctx, init,
 		thread-function, uninit
-	./sym-low-level: init-symbol-table
+	./symbol-low-level: init-symbol-table
 	./thread-utils: count-processors, create-one-thread, join-one-thread, thread-handle
 
 .main-ptr alias
