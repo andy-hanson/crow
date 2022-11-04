@@ -2,14 +2,14 @@ import
 	crow/cell
 	crow/io/print: out, print
 
-main nat^(_ str[]) summon
+main nat^(_ string[]) summon
 	adder <- 0 make-store
 	tasks nat^[] = for x : 0 .. 10
 		with : parallel
 			adder.get-and-set[x + 1]
 	values <- tasks wait-all
 	final-value <- adder.get[]
-	out print "values: {", " join for x : values; x to-str}"
+	out print "values: {", " join for x : values; "{x}"}"
 	out print "final value: {final-value}"
 	()
 

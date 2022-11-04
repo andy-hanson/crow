@@ -230,7 +230,7 @@ immutable(Expr) checkAndExpectBool(ref ExprCtx ctx, scope ref LocalsInfo locals,
 	checkAndExpect(ctx, locals, ast, immutable Type(ctx.commonTypes.bool_));
 
 immutable(Expr) checkAndExpectCStr(ref ExprCtx ctx, scope ref LocalsInfo locals, scope ref immutable ExprAst ast) =>
-	checkAndExpect(ctx, locals, ast, immutable Type(ctx.commonTypes.cStr));
+	checkAndExpect(ctx, locals, ast, immutable Type(ctx.commonTypes.cString));
 
 immutable(Expr) checkAndExpectVoid(ref ExprCtx ctx, scope ref LocalsInfo locals, scope ref immutable ExprAst ast) =>
 	checkAndExpect(ctx, locals, ast, immutable Type(ctx.commonTypes.void_));
@@ -398,7 +398,7 @@ immutable(Expr) checkInterpolated(
 		? immutable CallAst(
 			//TODO: new kind (not infix)
 			CallAst.Style.infix,
-			immutable NameAndRange(range.start, shortSym("to-c-str")),
+			immutable NameAndRange(range.start, shortSym("to-c-string")),
 			[],
 			arrLiteral!ExprAst(ctx.alloc, [
 				immutable ExprAst(range.range, immutable ExprAstKind(call))]))
@@ -433,7 +433,7 @@ immutable(CallAst) checkInterpolatedRecur(
 				immutable ExprAstKind(immutable CallAst(
 					//TODO: new kind (not infix)
 					CallAst.Style.infix,
-					immutable NameAndRange(pos, shortSym("to-str")),
+					immutable NameAndRange(pos, shortSym("to-string")),
 					[],
 					arrLiteral!ExprAst(ctx.alloc, [e])))),
 	)(parts[0]);
@@ -801,7 +801,7 @@ immutable(Expr) checkStringLiteral(
 		? checkStringLiteralTypedAsChar(ctx, range, value)
 		: has(expectedStruct) && force(expectedStruct) == ctx.commonTypes.sym
 		? immutable Expr(range, immutable Expr.LiteralSymbol(symOfStr(ctx.allSymbols, value)))
-		: has(expectedStruct) && force(expectedStruct) == ctx.commonTypes.cStr
+		: has(expectedStruct) && force(expectedStruct) == ctx.commonTypes.cString
 		? immutable Expr(range, immutable Expr.LiteralCString(copyToSafeCStr(ctx.alloc, value)))
 		: checkStringExpressionTypedAsOther(ctx, curAst, range, expected);
 
@@ -850,7 +850,7 @@ void defaultExpectedToString(ref ExprCtx ctx, immutable FileAndRange range, ref 
 immutable(Type) getStrType(ref ExprCtx ctx, immutable FileAndRange range) =>
 	typeFromAst2(ctx, immutable TypeAst(immutable TypeAst.InstStruct(
 		range.range,
-		immutable NameAndRange(range.start, shortSym("str")),
+		immutable NameAndRange(range.start, shortSym("string")),
 		emptySmallArray!TypeAst)));
 
 immutable(Expr) checkWithLocal(

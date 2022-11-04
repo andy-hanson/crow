@@ -8,7 +8,7 @@ import
 	../number: ==, +, nat64
 	../opt: !, ==, is-empty, new, opt, opt-equal
 	../ptr: ==, +, mut-ptr, set-deref
-	../str: ==, literal, str
+	../string: ==, literal, string
 	../test-util: is
 	../test-util/spy: calls, fn, new, spy-act1
 	./array: array
@@ -218,9 +218,9 @@ test
 	(d find-and-get x => x if-eq 2, "two") is ("two",)
 	(d find-and-get x => x if-eq 5, "five") is ()
 
-.== bool(a str?, b str?)
+.== bool(a string?, b string?)
 	a opt-equal b
 
-.if-eq str?(actual nat64, expected nat64, result str)
+.if-eq string?(actual nat64, expected nat64, result string)
 	if actual == expected
 		result,

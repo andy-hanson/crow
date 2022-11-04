@@ -18,7 +18,7 @@ import
 		glUniform1i, glUniformMatrix3fv, glUseProgram, glVertexAttribPointer, new
 	OpenGL/headers:
 		==, GL_ARRAY_BUFFER, GL_BACK, GL_COLOR_BUFFER_BIT, GL_CULL_FACE, GL_FLOAT, GLint,
-		GL_NO_ERROR, GL_STATIC_DRAW, GL_TEXTURE0, GL_TEXTURE_2D, GL_TRIANGLES, GLuint, to-str
+		GL_NO_ERROR, GL_STATIC_DRAW, GL_TEXTURE0, GL_TEXTURE_2D, GL_TRIANGLES, GLuint, to-string
 	SDL2/SDL:
 		SDL_GetError, SDL_Init, SDL_INIT_VIDEO, SDL_Quit
 	SDL2/SDL_events:
@@ -34,10 +34,10 @@ import
 	./shader: shader-prog-destroy, shader-prog-load
 	./texture: load-texture-from-bmp, free-texture
 	./crow.bmp as crow-bmp array nat8
-	./fragment.frag.essl as fragment-shader str
-	./vertex.vert.essl as vertex-shader str
+	./fragment.frag.essl as fragment-shader string
+	./vertex.vert.essl as vertex-shader string
 
-main nat^(_ str[]) summon trusted
+main nat^(_ string[]) summon trusted
 	SDL_INIT_VIDEO.SDL_Init handle-sdl-error "SDL_INIT_VIDEO"
 
 	# TODO: is this redundant?
@@ -213,11 +213,11 @@ main nat^(_ str[]) summon trusted
 	e = SDL_Event
 	e.SDL_PollEvent != 0 && (e.type == SDL_Quit || look-for-quit-event)
 
-.handle-sdl-error void(err c-int, description str) summon trusted
+.handle-sdl-error void(err c-int, description string) summon trusted
 	unless err == 0
 		description fail-sdl-error
 
-.fail-sdl-error void(description str) summon trusted
+.fail-sdl-error void(description string) summon trusted
 	throw "sdl error in {description}: {SDL_GetError}"
 	SDL_Quit
 
@@ -241,6 +241,6 @@ size-bytes nat(vertices array vertex) unsafe
 .vbo-free void(gl gl-ext, vbo GLuint) summon unsafe
 	gl glDeleteBuffers 1, &vbo
 
-.gl-check-error void(gl gl-ext, desc str) summon
+.gl-check-error void(gl gl-ext, desc string) summon
 	err = gl glGetError
 	assert err == GL_NO_ERROR : "Gl error at {desc}: code {err}"

@@ -2,11 +2,11 @@ import
 	crow/io/print: out, print
 	crow/perf
 
-main nat^(_ str[]) summon
+main nat^(_ string[]) summon
 	("foo",) perf-enable
 	for x : 1 .. 10
 		"foo" with-perf-measure () =>
-			out print x.to-str
+			out print x.to-string
 	for name, value : get-measured-perf
 		out print "{name}: {value}"
 	()

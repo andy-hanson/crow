@@ -1418,7 +1418,7 @@ immutable(Sym) symOfImportFileType(immutable ImportFileType a) {
 		case ImportFileType.nat8Array:
 			return shortSym("nat8Array");
 		case ImportFileType.str:
-			return shortSym("str");
+			return shortSym("string");
 	}
 }
 
@@ -1475,7 +1475,7 @@ struct CommonTypes {
 
 	immutable StructInst* bool_;
 	immutable StructInst* char8;
-	immutable StructInst* cStr;
+	immutable StructInst* cString;
 	immutable StructInst* float32;
 	immutable StructInst* float64;
 	immutable IntegralTypes integrals;

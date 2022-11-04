@@ -6,7 +6,7 @@ import
 	crow/misc: void
 	crow/number: int32, int64, nat8, nat32, nat64
 	crow/ptr: any-const-ptr, null, const-ptr
-	crow/str: c-str, str
+	crow/string: c-string, string
 
 # /usr/include/openssl/ossl_typ.h
 ssl extern-ptr
@@ -38,7 +38,7 @@ ssl-ctx-set-mode long(s ssl-ctx, op long) unsafe summon
 	s SSL_CTX_ctrl ssl-ctrl-mode, op, null
 
 proto-select-cb alias
-	fun-ptr6<int32, ssl, str*, nat8*, nat8*, nat32, any-const-ptr>
+	fun-ptr6<int32, ssl, string*, nat8*, nat8*, nat32, any-const-ptr>
 
 SSL_CTX_set_next_proto_select_cb void(s ssl-ctx, cb proto-select-cb) extern noctx summon
 
@@ -52,5 +52,5 @@ SSL_CTX_free void(ctx ssl-ctx) extern noctx summon
 
 # /usr/include/openssl/err.h
 ERR_clear_error void() extern noctx summon
-ERR_error_string c-str(e u-long, buf c-str) extern noctx summon
+ERR_error_string c-string(e u-long, buf c-string) extern noctx summon
 ERR_get_error u-long() extern noctx summon

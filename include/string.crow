@@ -1,7 +1,7 @@
 no-std
 import
 	crow/c-types: c-int, size_t
-	crow/private/bootstrap: any-const-ptr, any-mut-ptr, c-str
+	crow/private/bootstrap: any-const-ptr, any-mut-ptr, c-string
 
 memcpy any-mut-ptr(dest any-mut-ptr, src any-const-ptr, size size_t) extern<c>
 
@@ -11,4 +11,4 @@ memset any-mut-ptr(begin any-mut-ptr, value c-int, size size_t) extern<c>
 
 memcmp c-int(s1 any-const-ptr, s2 any-const-ptr, n size_t) extern<c>
 
-strlen size_t(a c-str) extern<c>
+strlen size_t(a c-string) extern<c>

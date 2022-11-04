@@ -14,11 +14,11 @@ import
 	./col/list: list, new, to-array
 	./col/mut-dict: move-to-dict, mut-dict, new, set-subscript
 	./fun-util: subscript
-	./io/duration: duration, new, nsec, to-str
+	./io/duration: duration, new, nsec, to-string
 	./io/private/time-low-level: get-monotime-nsec
 	./misc: void
 	./number: -, nat64, to-float64
-	./str: ~~, literal, str, to-str
+	./string: ~~, literal, string, to-string
 	./sym: ==, <=>, hash-mix, sym
 	./private/perf-low-level:
 		add-measure-value-at-index, count, each-measure, get-measure-index, perf-enable-low-level,
@@ -54,7 +54,7 @@ measure-total record
 new measure-total()
 	0, ()
 
-to-str str(a measure-total)
+to-string string(a measure-total)
 	"{a count} times, totaling {a total-duration}"
 
 # TODO: what if a measurement is taken while this is running?

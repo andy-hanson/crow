@@ -7,7 +7,7 @@ import
 	../opt: !, is-empty, new, opt
 	../ptr: ==, +, -, set-deref
 	../range: ..
-	../str: ==, ~~, join, literal, str, to-str
+	../string: ==, ~~, join, literal, string, to-string
 	../test-util: is
 	./array: array, first, fold, for-loop, is-empty, last, rtail, size, tail
 	./mut-array: begin-ptr, cast-immutable, end-ptr, mut-array, subscript, uninitialized-mut-array
@@ -131,7 +131,7 @@ for-loop<out, in> out[](a deque in, f act out(in)) trusted
 for-loop<out, in> deque out(a deque in, f act out(in))
 	a for-loop f to-deque
 
-.dbg str(a deque nat64)
+.dbg string(a deque nat64)
 	left = "" join for x : a.left.reversed; "{x} "
 	mid = " " join for x : a.mid.to-list; "{x}"
 	right = "" join for x : a.right; " {x}"

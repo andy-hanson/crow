@@ -7,7 +7,7 @@ import
 	../opt: !, is-empty, new, opt
 	../ptr: -
 	../range: .., for-loop
-	../str: ==, ~~, join, literal, new, str, to-str
+	../string: ==, ~~, join, literal, new, string, to-string
 	../test-util: is
 	../tuple: from, new, pair, pair-equal, to
 	./array: array, size, subscript
@@ -127,7 +127,7 @@ to-list<k, v> (k, v)[](a mut-priority-queue<k, v>) trusted is-data<k> compare<k>
 		buckets ~= ()
 		buckets add-to-bucket index, pair
 
-.dbg<k, v> str(a mut-priority-queue<k, v>) to-str<k> to-str<v> trusted
+.dbg<k, v> string(a mut-priority-queue<k, v>) to-string<k> to-string<v> trusted
 	# TODO: should be able to infer type arguments
 	mins = a.mins temp-as-array
 	buckets = a.buckets temp-as-array
@@ -140,14 +140,14 @@ to-list<k, v> (k, v)[](a mut-priority-queue<k, v>) trusted is-data<k> compare<k>
 				" [{parts}]"
 		"{mins[i] dbg}{show-bucket}"
 
-.dbg<k, v> str(a (k, v)) to-str<k> to-str<v>
+.dbg<k, v> string(a (k, v)) to-string<k> to-string<v>
 	"{a from} -> {a to}"
 
-.verify void(a mut-priority-queue<nat64, str>, expected str)
+.verify void(a mut-priority-queue<nat64, string>, expected string)
 	a.dbg is expected
 
 test
-	a mut-priority-queue<nat64, str> = ()
+	a mut-priority-queue<nat64, string> = ()
 	a.is-empty is true
 	a.pop is ()
 	a verify ""
@@ -186,7 +186,7 @@ test
 	a is ((4, "4b"), (5, "5"), (6, "6"))
 
 test
-	a mut-priority-queue<nat64, str> = ()
+	a mut-priority-queue<nat64, string> = ()
 	a ~= (5, "5")
 	a ~= (5, "five")
 	a.pop is ((5, "5"),)
@@ -194,7 +194,7 @@ test
 	a.is-empty is true
 
 # TODO: opt should have generic ==
-.== bool(a (nat64, str)?, b (nat64, str)?)
+.== bool(a (nat64, string)?, b (nat64, string)?)
 	if va ?= a
 		if vb ?= b
 			va.from == vb.from && va.to == vb.to
@@ -203,11 +203,11 @@ test
 	else
 		b is-empty
 
-.== bool(a mut-priority-queue<nat64, str>, b mut-priority-queue<nat64, str>)
+.== bool(a mut-priority-queue<nat64, string>, b mut-priority-queue<nat64, string>)
 	a.to-list == b.to-list
 
-.== bool(a (nat64, str)[], b (nat64, str)[])
+.== bool(a (nat64, string)[], b (nat64, string)[])
 	a list-equal b
 
-.== bool(a (nat64, str), b (nat64, str))
+.== bool(a (nat64, string), b (nat64, string))
 	a pair-equal b

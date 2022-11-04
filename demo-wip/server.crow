@@ -1,10 +1,10 @@
 import
 	crow/io/net/http-server: http-handler, http-server, with-block
-	crow/io/net/http-types: request-body, headers, http-request, method, new, to-str, url
+	crow/io/net/http-types: request-body, headers, http-request, method, new, to-string, url
 	crow/io/print: err, out, print
 	crow/io/stdin: read-stdin
 
-main nat^(args str[]) unsafe summon
+main nat^(args string[]) unsafe summon
 	if args.size == 1
 		port = args[0]
 		handler http-handler = req =>
@@ -19,7 +19,7 @@ main nat^(args str[]) unsafe summon
 		err print "Usage: server PORT"
 		1,
 
-.describe-request str(a http-request) trusted
-	h = "\n" join for header : a headers
-		"{header.a}: {header.b}"
-	"{a method} {a url}\n{h}\n\n{a.request-body as-str}"
+.describe-request string(a http-request) trusted
+	h = "\n" join for k, v : a headers
+		"{k}: {v}"
+	"{a method} {a url}\n{h}\n\n{a.request-body as-string}"

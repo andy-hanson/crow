@@ -8,7 +8,7 @@ import
 	../opt: !
 	../ptr: ==, +, -, *, mut-ptr, set-deref
 	../range: ..
-	../str: ==, <=>, iter, literal, next, slice-left, str
+	../string: ==, <=>, iter, literal, next, slice-left, string
 	../test-util: is
 	./mut-array:
 		begin-ptr, cast-immutable, end-ptr, is-empty, mut-array, new, size, set-subscript,
@@ -59,14 +59,14 @@ test
 	(3, 1, 2)::nat64[].sort is (1, 2, 3)
 
 	# Test that it's a stable sort
-	arr mut-array str = "2a", "2b", "1a", "1b"
+	arr mut-array string = "2a", "2b", "1a", "1b"
 	arr.sort := (x, y) => x.first-char <=> y.first-char
 	arr.to-array.to-list is ("1a", "1b", "2a", "2b")
 
-.== bool(a str[], b str[])
+.== bool(a string[], b string[])
 	a list-equal b
 
-.first-char str(a str)
+.first-char string(a string)
 	a.iter.next!.rest slice-left
 
 # Sort the elements of `a` from least to greatest.

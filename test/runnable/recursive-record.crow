@@ -1,4 +1,4 @@
-main nat^(_ str[]) summon trusted
+main nat^(_ string[]) summon trusted
 	a r = (),
 	_ = a
 	()

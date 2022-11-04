@@ -18,7 +18,7 @@ export
 	./opt
 	./range
 	./result
-	./str
+	./string
 	./sym
 	./test-util
 	./tuple

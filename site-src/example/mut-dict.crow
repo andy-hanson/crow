@@ -1,12 +1,12 @@
 import
 	crow/io/print: out, print
 
-main nat^(_ str[]) summon
-	x str mut[nat] = (1, "one"), (2, "two")
+main nat^(_ string[]) summon
+	x string mut[nat] = (1, "one"), (2, "two")
 	out print (x try-remove 1 ?? "n/a")
 	out print (x try-remove 1 ?? "n/a")
 	x[2] := "dos"
 	y = x move-to-dict
-	out print x.is-empty.to-str
+	out print "{x is-empty}"
 	out print (y[2] ?? "n/a")
 	()

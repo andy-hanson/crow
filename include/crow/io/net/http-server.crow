@@ -11,7 +11,7 @@ import
 	../../col/mut-list: ~~=, index-of, move-to-list, mut-list, new, pop-n-from-start, size
 	../../col/private/array-low-level: begin-ptr
 	../../compare: <=, >
-	../../exception: to-str
+	../../exception: to-string
 	../../future: delay, future, future-catch, future-finally, new, subscript, then, with-block
 	../../hash: hash-mix
 	../../log: error, log, warn
@@ -20,9 +20,9 @@ import
 	../../opt: ??, new, opt
 	../../range: ..
 	../../reader: parse-nat
-	../../str:
-		==, <=>, ~~, as-str, contains-substr, hash-mix, is-empty, join, literal, split-by, str,
-		to-bytes, to-c-str, to-nat8, to-str, try-remove-end
+	../../string:
+		==, <=>, ~~, as-string, contains-substr, hash-mix, is-empty, join, literal, split-by, string,
+		to-bytes, to-c-string, to-nat8, to-string, try-remove-end
 	../../private/bootstrap: todo
 	./http-types:
 		headers, http-get, http-internal-server-error, http-method, http-post, http-request,
@@ -37,9 +37,9 @@ http-handler alias
 	ref http-response(http-request)
 
 http-server-options record sendable
-	port str
+	port string
 	handler http-handler
-http-server http-server-options(port str, handler http-handler)
+http-server http-server-options(port string, handler http-handler)
 	port, handler
 
 ###
@@ -85,7 +85,7 @@ with-block<a> a^(a http-server-options, cb ref a(http-server)) is-sendable<a> tr
 		as ok o
 			o
 		as err e
-			error log e.to-str
+			error log e.to-string
 			http-internal-server-error
 		<- sock write-until-finished response.response-to-array
 		sock close-client
@@ -128,9 +128,9 @@ with-block<a> a^(a http-server-options, cb ref a(http-server)) is-sendable<a> tr
 .handle-http-initial bool(state http-parse-state)
 	if line ?= state.unparsed try-take-first-line
 		if line is-empty
-			if content-length-str ?= state.headers["content-length"]
+			if content-length-string ?= state.headers["content-length"]
 				# set state.content-length
-				if content-length ?= content-length-str parse-nat
+				if content-length ?= content-length-string parse-nat
 					state.content-length := content-length
 					false
 				else
@@ -157,7 +157,7 @@ with-block<a> a^(a http-server-options, cb ref a(http-server)) is-sendable<a> tr
 	else
 		false
 
-.parse-method http-method(name str)
+.parse-method http-method(name string)
 	if name == "GET"
 		http-get
 	elif name == "POST"
@@ -165,16 +165,16 @@ with-block<a> a^(a http-server-options, cb ref a(http-server)) is-sendable<a> tr
 	else
 		todo
 
-.try-take-first-line str?(a nat8 mut[]) trusted
+.try-take-first-line string?(a nat8 mut[]) trusted
 	if index ?= a index-of "\n".to-nat8
 		bytes = a pop-n-from-start index + 1 rtail
-		line = bytes as-str
+		line = bytes as-string
 		(line try-remove-end "\r" ?? line),
 
 .http-parse-state record mut
 	method mut http-method
-	url mut str
-	headers str mut[str]
+	url mut string
+	headers string mut[string]
 	# This is not set until after the end of headers
 	content-length mut nat64
 	# TODO:PERF: Use a circular buffer as we often take content off the front

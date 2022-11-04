@@ -35,16 +35,16 @@ tutorial-pages path-and-content[]() summon
 	next: where from here?""" split-by "\n"
 	for line : lines
 		pair = (line.strip try-split-once ":")!
-		pair.a.strip.str-to-sym, pair.b.strip
+		pair.a.strip.string-to-sym, pair.b.strip
 
 .tutorial-meta record
 	key sym
-	title str
+	title string
 
-path str(a tutorial-meta)
+path string(a tutorial-meta)
 	"tutorial/{a key}.html"
 
-tutorial-nav str(cur-path str)
+tutorial-nav string(cur-path string)
 	lines = "" join for x : tutorial-metas
 		key = x key
 		path = x path
@@ -53,7 +53,7 @@ tutorial-nav str(cur-path str)
 		"""<li><a href="/{path}"{cur}>{name}</a></li>"""
 	"<nav><ul>{lines}</ul></nav>"
 
-.tutorial-template path-and-content(page-path str, title str, content str, next tutorial-meta?)
+.tutorial-template path-and-content(page-path string, title string, content string, next tutorial-meta?)
 	next-link = if n ?= next
 		"""<a id="next" href="/{n path}">next: {n title}</a>"""
 	page-path page-template title, """

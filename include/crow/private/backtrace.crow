@@ -17,8 +17,8 @@ import
 		==, +, *, as-any-const-ptr, as-const, by-val, mut-ptr, null, ptr-cast, set-deref, size-of
 	../version: is-interpreted, is-windows
 	./alloc: copy-data-from, gc-ctx, try-alloc-uninitialized
-	./bootstrap: char8, c-str, hard-assert, none, opt, some
-	./c-str-util: c-str-size-incl-nul
+	./bootstrap: char8, c-string, hard-assert, none, opt, some
+	./c-string-util: c-string-size-incl-nul
 	./libunwind:
 		new, unw_context_t, unw_cursor_t, unw_getcontext, unw_get_proc_name, unw_init_local,
 		unw_step, unw_word_t
@@ -45,7 +45,7 @@ get-backtrace backtrace(gc gc-ctx, skip nat64) noctx unsafe
 ###
 Implemented by interpreter only.
 Returns the pointer to after the last entry written.
-Result c-str are temporary, must copy!
+Result entries are temporary, must copy!
 ###
 .interpreter-backtrace backtrace-entry mut*(
 	out backtrace-entry mut*,
@@ -56,11 +56,11 @@ Result c-str are temporary, must copy!
 .copy-strings void(gc gc-ctx, begin backtrace-entry mut*, end backtrace-entry mut*) noctx unsafe
 	cur mut = begin
 	until cur == end
-		*cur := gc copy-c-strs *cur
+		*cur := gc copy-c-strings *cur
 		cur := cur + 1
 
-.copy-c-strs backtrace-entry(gc gc-ctx, a backtrace-entry) noctx unsafe
-	(gc copy-c-str-or-empty a.function-name), (gc copy-c-str-or-empty a.file-path), a.line-number, a.column-number
+.copy-c-strings backtrace-entry(gc gc-ctx, a backtrace-entry) noctx unsafe
+	(gc copy-c-string-or-empty a.function-name), (gc copy-c-string-or-empty a.file-path), a.line-number, a.column-number
 
 .get-native-backtrace-windows backtrace(
 	gc gc-ctx,
@@ -133,12 +133,12 @@ Result c-str are temporary, must copy!
 		out
 	elif IMAGE_FILE_MACHINE_AMD64 StackWalk64 process, thread, frame, ctx, null, &SymFunctionTableAccess64, null, null
 		if skip == 0
-			name c-str = if process SymGetSymFromAddr64 frame->AddrPC.Offset, vars.offset, vars.symbol
-				gc copy-c-str-or-empty &vars.symbol->Name
+			name c-string = if process SymGetSymFromAddr64 frame->AddrPC.Offset, vars.offset, vars.symbol
+				gc copy-c-string-or-empty &vars.symbol->Name
 			else
 				""
 			*out := if process SymGetLineFromAddr64 frame->AddrPC.Offset, vars.displacement, vars.line
-				name, (gc copy-c-str-or-empty vars.line->FileName), vars.line->LineNumber, 0
+				name, (gc copy-c-string-or-empty vars.line->FileName), vars.line->LineNumber, 0
 			else
 				name, "", 0, 0
 			gc windows-walk-backtrace out + 1, out-end, 0, process, thread, context, frame, vars
@@ -147,8 +147,8 @@ Result c-str are temporary, must copy!
 	else
 		out
 
-.copy-c-str-or-empty c-str(gc gc-ctx, a c-str) noctx unsafe
-	size = a c-str-size-incl-nul
+.copy-c-string-or-empty c-string(gc gc-ctx, a c-string) noctx unsafe
+	size = a c-string-size-incl-nul
 	if out ?= (gc try-alloc-uninitialized size) :: char8 mut*?
 		out copy-data-from a, size
 		out as-const

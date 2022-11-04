@@ -68,14 +68,14 @@ opposite color(a color)
 	as blue
 		red
 
-to-str str(a color)
+to-string string(a color)
 	match a
 	as red
 		"{red foreground}red{reset}"
 	as blue
 		"{blue foreground}blue{reset}"
 
-.to-short-str str(a color?)
+.to-short-string string(a color?)
 	if c ?= a
 		match c
 		as red
@@ -119,7 +119,7 @@ empty-board board()
 		else
 			cur-player.opposite,
 
-to-str str(a board, cur-player color, last-column nat?)
+to-string string(a board, cur-player color, last-column nat?)
 	header = "" join for x : 0 .. width
 		text = " {x letter-of-alphabet}"
 		if last-column == (x,)
@@ -128,13 +128,13 @@ to-str str(a board, cur-player color, last-column nat?)
 			text
 	rows = "\n" join for y : 0 .. height reverse
 		parts = "│" join for x : 0 .. width
-			a[x, y, cur-player] to-short-str
+			a[x, y, cur-player] to-short-string
 		"│{parts}│"
 	"{header}\n{rows}\n╰─┴─┴─┴─┴─┴─┴─╯"
 
-.letter-of-alphabet str(a nat)
+.letter-of-alphabet string(a nat)
 	# TODO: type annotation should be unnecessary
-	("A"::char8.to-nat8 + a.to-nat8).to-char8 to-str
+	("A"::char8.to-nat8 + a.to-nat8).to-char8 to-string
 
 just-won bool(a board)
 	a.current-player ^ a.both-players is-win

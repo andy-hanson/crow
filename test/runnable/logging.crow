@@ -1,7 +1,7 @@
 import
 	crow/log: get-log-handler, info, log, log-handler, warn, with-log-handler
 
-main nat^(_ str[]) summon
+main nat^(_ string[]) summon
 	info log "Logged once"
 	lh = get-log-handler
 	doubler log-handler = logged =>

@@ -2,19 +2,19 @@ import
 	crow/io/print: out, print
 	crow/private/bootstrap: static-syms
 
-main nat^(_ str[]) summon
+main nat^(_ string[]) summon
 	_ = "pop"::sym
 	_ = "hop"::sym
 	_ = "pop"::sym
 
-	fosho = "fosho" str-to-sym
-	out print fosho.to-str
+	fosho = "fosho" string-to-sym
+	out print fosho.to-string
 
 	for s : static-syms
-		out print s.to-str
+		out print s.to-string
 
-	out print (fosho == "fosho".str-to-sym).to-str
-	out print (fosho == "foshoe".str-to-sym).to-str
+	out print (fosho == "fosho".string-to-sym).to-string
+	out print (fosho == "foshoe".string-to-sym).to-string
 
 	#enum-members each m =>
 	#	out print "{m name} = {m.val to-sym}"
@@ -24,7 +24,7 @@ main nat^(_ str[]) summon
 	#f2 = c
 	#f02 = f0 | f2
 	#fnot = ~f02
-	#print: fnot.to-nat8.to-str
+	#print: fnot.to-nat8.to-string
 	()
 
 e enum<nat8>

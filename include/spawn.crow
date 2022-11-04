@@ -5,7 +5,7 @@ import
 	crow/extra-types: err-t, fd-t
 	crow/number: int32
 	crow/ptr: any-const-ptr, any-mut-ptr, const-ptr
-	crow/str: c-str
+	crow/string: c-string
 	sys/types: mode_t, pid_t
 
 posix_spawn_file_actions_t record mut by-ref extern
@@ -18,11 +18,11 @@ posix_spawn_file_actions_t record mut by-ref extern
 # /usr/include/spawn.h
 posix_spawn err-t(
 	pid cell pid_t,
-	executable-path c-str,
+	executable-path c-string,
 	file-actions posix_spawn_file_actions_t,
 	attrp any-const-ptr,
-	argv c-str*,
-	environ c-str*,
+	argv c-string*,
+	environ c-string*,
 ) extern<c> summon
 
 posix_spawn_file_actions_init err-t(file-actions posix_spawn_file_actions_t) extern<c> summon
@@ -30,7 +30,7 @@ posix_spawn_file_actions_destroy err-t(file-actions posix_spawn_file_actions_t) 
 posix_spawn_file_actions_addopen err-t(
 	file-actions posix_spawn_file_actions_t,
 	fd fd-t,
-	path c-str,
+	path c-string,
 	oflag int32,
 	mode mode_t,
 ) extern<c> summon

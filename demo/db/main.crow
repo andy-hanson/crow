@@ -2,53 +2,53 @@
 
 import
 	crow/io/print: out, print
-	crow/parse-command: parse-named-args, single-str-or-throw
+	crow/parse-command: parse-named-args, single-string-or-throw
 	crow/serialize: from-bytes
 	lmdb/main:
 		database, from-lmdb-key, get, lmdb-key-flags, open-lmdb-env, read-transaction, set, stat,
-		to-lmdb-key, to-str, with-block, write-transaction
+		to-lmdb-key, to-string, with-block, write-transaction
 
-main nat^(args str[]) unsafe summon
+main nat^(args string[]) unsafe summon
 	command-name = !args.is-empty ? args[0]
 	if command ?= command-name.parse-command_name
 		match command
 		as get
 			named-args = (args.tail parse-named-args ("db-path", "db-name", "key"))!
-			db-path = named-args[0] single-str-or-throw "db-path"
-			db-name = named-args[1] single-str-or-throw "db-name"
-			key = named-args[2] single-str-or-throw "key"
+			db-path = named-args[0] single-string-or-throw "db-path"
+			db-name = named-args[1] single-string-or-throw "db-name"
+			key = named-args[2] single-string-or-throw "key"
 			with env : db-path open-lmdb-env true
-				with db : env database@<str, str> db-name
+				with db : env database@<string, string> db-name
 					value = with txn : env read-transaction
 						txn get db, key ?? "none"
 					out print value
 					()
 		as set
 			named-args = (args.tail parse-named-args ("db-path", "db-name", "key", "value"))!
-			db-path = named-args[0] single-str-or-throw "db-path"
-			db-name = named-args[1] single-str-or-throw "db-name"
-			key = named-args[2] single-str-or-throw "key"
-			value = named-args[3] single-str-or-throw "value"
+			db-path = named-args[0] single-string-or-throw "db-path"
+			db-name = named-args[1] single-string-or-throw "db-name"
+			key = named-args[2] single-string-or-throw "key"
+			value = named-args[3] single-string-or-throw "value"
 			with env : db-path open-lmdb-env true
-				with db : env database@<str, str> db-name
+				with db : env database@<string, string> db-name
 					with txn : env write-transaction
 						txn set db, key, value
 					()
 		as stat
 			named-args = (args.tail parse-named-args ("db-path", "db-name"))!
-			db-path = named-args[0] single-str-or-throw "db-path"
-			db-name = named-args[1] single-str-or-throw "db-name"
+			db-path = named-args[0] single-string-or-throw "db-path"
+			db-name = named-args[1] single-string-or-throw "db-name"
 			with env : db-path open-lmdb-env true
-				with db : env database@<str, str> db-name
+				with db : env database@<string, string> db-name
 					stats = with txn : env read-transaction
-						txn stat db to-str
+						txn stat db to-string
 					out print stats
 					()
 	else
 		out print usage
 		1,
 
-.usage str()
+.usage string()
 	# TODO: Use a """ string
 	a = "Usage: crow run db <get | set | stat> --db-path <db file path> --db-name <db name> --key <key> --value <value>"
 
@@ -61,7 +61,7 @@ main nat^(args str[]) unsafe summon
 	g = "	crow run db -- get --db-path foo.db --db-name capitals --key indiana"
 	"{a}\n{b}\n{c}\n{d}\n{e}\n{f}\n{g}\n"
 
-.parse-command_name command?(a str)
+.parse-command_name command?(a string)
 	if a == "get"
 		get,
 	elif a == "set"

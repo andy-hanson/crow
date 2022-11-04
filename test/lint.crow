@@ -5,7 +5,7 @@ import
 	crow/io/print: out, print
 	./failure: failure, flat-map-with-max-size, max-failures, new, print-tests, test-options
 
-lint result<str, failure[]>(path str, options test-options) summon
+lint result<string, failure[]>(path string, options test-options) summon
 	files = path list-lintable-files
 	failures = files flat-map-with-max-size options.max-failures, file =>
 		if options print-tests
@@ -16,33 +16,33 @@ lint result<str, failure[]>(path str, options test-options) summon
 	else
 		failures err
 
-.list-lintable-files str[](path str) summon
-	res str mut[] = ()
+.list-lintable-files string[](path string) summon
+	res string mut[] = ()
 	path each-child-recursive (child => !child.excluded-from-lint), child =>
 		unless child.base-name should-ignore-extension-of-name
 			res ~= child
 	res move-to-list
 
-.excluded-from-lint bool(name str)
+.excluded-from-lint bool(name string)
 	if name starts-with "." || name in exclude-names
 		true
 	elif ext ?= name get-extension
 		ext in exclude-extensions
 
-.exclude-extensions set str()
+.exclude-extensions set string()
 	"bmp", "dll", "err", "exe", "ilk", "lib", "mdb", "obj", "ogg", "pdb", "png", "svg", "wasm", "wav", "webp", "woff2"
-.exclude-names set str()
+.exclude-names set string()
 	# TODO: gl.crow needs a multi-line call syntax
 	"bin", "COPYING.txt", "dyncall", "gl.crow", "node_modules", "package-lock.json", "site"
 
 # Returns number of errors
-.lint-file failure[](path str) summon
+.lint-file failure[](path string) summon
 	text = path read-file
 	res failure mut[] = ()
 	ext = path.get-extension!
 	allow-double-space = ext == "err" || ext == "sublime-syntax"
 	for line, line-num : text lines
-		ln = line-num + 1 to-str
+		ln = line-num + 1 to-string
 		space-space = " " ~~ " "
 		if !allow-double-space && line contains-substr space-space
 			message = "line {ln} contains a double space"
@@ -53,13 +53,13 @@ lint result<str, failure[]>(path str, options test-options) summon
 			res ~= (path, message)
 	res move-to-list
 
-.ignored-extensions str[]()
+.ignored-extensions string[]()
 	"c", "data", "json", "o", "out", "repr", "tmLanguage"
 
-.should-ignore-extension bool(ext str)
+.should-ignore-extension bool(ext string)
 	ext in ignored-extensions
 
-.should-ignore-extension-of-name bool(name str)
+.should-ignore-extension-of-name bool(name string)
 	if ext ?= name get-extension
 		ext should-ignore-extension
 	else
@@ -69,12 +69,12 @@ lint result<str, failure[]>(path str, options test-options) summon
 .max-line-length nat()
 	120
 
-.n-tabs nat(line str)
+.n-tabs nat(line string)
 	if rest ?= line try-remove-start "\t"
 		rest.n-tabs + 1
 
 .tab-size nat()
 	4
 
-.line-len nat(line str)
+.line-len nat(line string)
 	line.n-tabs * (tab-size - 1) + line.char8s.size

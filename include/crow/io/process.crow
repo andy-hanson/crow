@@ -29,9 +29,9 @@ import
 	../misc: new, void
 	../number: ==, <=>, +, int32, nat8, nat32, to-int32, to-int64, to-nat32, to-nat64
 	../private/bootstrap: todo
-	../private/c-str-util: find-c-str-end
+	../private/c-string-util: find-c-string-end
 	../ptr: ==, +, -, any-const-ptr, as-any-const-ptr, as-any-mut-ptr, as-ref, new, null
-	../str: ~~, as-str, char8, c-str, join, literal, str, to-c-str, to-str
+	../string: ~~, as-string, char8, c-string, join, literal, string, to-c-string, to-string
 	../version: is-windows
 	./environ: get-environ-raw
 	./file: is-file
@@ -42,8 +42,8 @@ import
 # Represents the output of running a process.
 process-result record
 	exit-code int32
-	stdout str
-	stderr str
+	stdout string
+	stderr string
 
 ###
 Launches a process and synchronously waits on the result.
@@ -51,16 +51,16 @@ The child process' stdout and stderr will be sent to the `process-result`,
 not to the parent's stdout and stderr.
 EXE should be a file path and not just a name; this does not search the system path for `exe`.
 ###
-spawn-and-wait-result process-result(exe str, args str[]) trusted summon
+spawn-and-wait-result process-result(exe string, args string[]) trusted summon
 	out print ("spawn-and-wait-result: {exe}" fold args, (a, b) => "{a} {b}")
 
 	# TODO: kill, handle that error properly
 	assert exe is-file : "{exe} is not a file"
-	exe-c-str = exe to-c-str
+	exe-c-string = exe to-c-string
 	if is-windows
-		exe-c-str spawn-and-wait-result-windows args
+		exe-c-string spawn-and-wait-result-windows args
 	else
-		exe-c-str spawn-and-wait-result-posix (exe-c-str convert-args args)
+		exe-c-string spawn-and-wait-result-posix (exe-c-string convert-args args)
 
 .keep-reading void(res char8 mut[], file FILE) unsafe summon
 	read-at-a-time = 0x1000
@@ -73,7 +73,7 @@ spawn-and-wait-result process-result(exe str, args str[]) trusted summon
 		unless file feof
 			check-errno
 	else
-		new-end = old-end find-c-str-end
+		new-end = old-end find-c-string-end
 		res unsafe-set-size new-end - res.begin-ptr
 		res keep-reading file
 
@@ -81,17 +81,17 @@ spawn-and-wait-result process-result(exe str, args str[]) trusted summon
 Launches a process and synchronously waits on the result.
 The child process shares stdout and stderr with the parent process.
 ###
-spawn-and-wait int32(exe str, args str[]) trusted summon
+spawn-and-wait int32(exe string, args string[]) trusted summon
 	# TODO: kill, handle that error properly
 	assert exe is-file : "{exe} is not a file"
 	# First argument should be the executable path
-	# TODO: &to-c-str
-	exe-c-str = exe.to-c-str
-	exe-c-str spawn-and-wait (exe-c-str convert-args args)
+	# TODO: &to-c-string
+	exe-c-string = exe.to-c-string
+	exe-c-string spawn-and-wait (exe-c-string convert-args args)
 
 # Executes a shell command and returns its output.
-shell-exec str(command str) trusted summon
-	cmd = command to-c-str
+shell-exec string(command string) trusted summon
+	cmd = command to-c-string
 	pipe = is-windows ? cmd _popen "r" : cmd popen "r"
 	if pipe.as-any-const-ptr == null
 		todo
@@ -99,13 +99,13 @@ shell-exec str(command str) trusted summon
 	res keep-reading pipe
 	err = is-windows ? pipe _pclose : pipe pclose
 	assert err == 0
-	res.move-to-list str
+	res.move-to-list as-string
 
-.convert-args c-str[](exe-c-str c-str, args str[]) unsafe
-	exe-c-str ~ (for x : args; x to-c-str) ~ null
+.convert-args c-string[](exe-c-string c-string, args string[]) unsafe
+	exe-c-string ~ (for x : args; x to-c-string) ~ null
 
-.spawn-and-wait-result-windows process-result(exe c-str, args str[]) summon unsafe
-	all-args = " " join (exe.to-str ~ args) to-c-str
+.spawn-and-wait-result-windows process-result(exe c-string, args string[]) summon unsafe
+	all-args = " " join (exe.to-string ~ args) to-c-string
 
 	stdout-read cell HANDLE = (),
 	stdout-write cell HANDLE = (),
@@ -148,10 +148,10 @@ shell-exec str(command str) trusted summon
 
 	exit-code->to-int32, stdout, stderr
 
-.read-from-pipe-windows str(pipe HANDLE) summon unsafe
+.read-from-pipe-windows string(pipe HANDLE) summon unsafe
 	res nat8 mut[] = ()
 	res read-from-pipe-windows-recur pipe
-	res.move-to-list as-str
+	res.move-to-list as-string
 
 .read-from-pipe-windows-recur void(res nat8 mut[], pipe HANDLE) summon unsafe
 	read-at-a-time = 0x1000
@@ -170,7 +170,7 @@ shell-exec str(command str) trusted summon
 		err = GetLastError
 		assert err == ERROR_BROKEN_PIPE : "Error reading from pipe: {err show-win32-error}"
 
-.spawn-and-wait-result-posix process-result(exe c-str, args c-str[]) summon unsafe
+.spawn-and-wait-result-posix process-result(exe c-string, args c-string[]) summon unsafe
 	stdout-pipes = make-pipes
 	stderr-pipes = make-pipes
 
@@ -199,7 +199,7 @@ shell-exec str(command str) trusted summon
 
 	exit-code = pid wait-and-get-exit-code
 
-	exit-code, stdout-builder.move-to-list.str, stderr-builder.move-to-list.str
+	exit-code, stdout-builder.move-to-list.as-string, stderr-builder.move-to-list.as-string
 
 .make-pipes pipes() summon unsafe
 	res pipes = 0, 0
@@ -264,7 +264,7 @@ shell-exec str(command str) trusted summon
 
 # Args should be terminated by null.
 # TODO: option to get stdout/stderr as a string rather than having them go to the terminal
-.spawn-and-wait int32(exe c-str, args c-str[]) summon unsafe
+.spawn-and-wait int32(exe c-string, args c-string[]) summon unsafe
 	pid-cell cell pid_t = 0,
 	args-ptr = args.to-array begin-ptr
 	# TODO: null.as-ref is bad. If it's nullable it shouldn't be a ref.

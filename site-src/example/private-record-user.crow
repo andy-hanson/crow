@@ -2,7 +2,7 @@ import
 	crow/io/print: out, print
 	./private-record
 
-main nat^(_ str[]) summon
+main nat^(_ string[]) summon
 	r r = ()
 	out print r.public
 	r.public-mutable := "updated {r public-mutable}"

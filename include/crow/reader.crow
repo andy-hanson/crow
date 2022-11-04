@@ -6,7 +6,7 @@ import
 	./misc: new, void
 	./number: +, *, **, float64, int64, nat64, to-float64, to-int64
 	./opt: ??, is-empty, new, opt
-	./str: ==, char8, copy, literal, mut-iter, mut-str-iter, next, peek, str
+	./string: ==, as-string, char8, copy, literal, mut-iter, mut-string-iter, next, peek, string
 	./test-util: is
 
 ###
@@ -15,12 +15,12 @@ Stateful type used for simple parsers that read strictly left-to-right.
 Once it gets to the end, `is-empty` will return `true`.
 ###
 reader record mut
-	.iter mut mut-str-iter
+	.iter mut mut-string-iter
 
 new reader()
 	"",
 
-new reader(a str) trusted
+new reader(a string) trusted
 	a.mut-iter,
 
 ###
@@ -28,7 +28,7 @@ Creates a reader for the string, calls `f`, and returns the result.
 
 Returns an empty option if the reader did not make it to the end of the string.
 ###
-with-reader<a> a?(a str, f act a?(reader))
+with-reader<a> a?(a string, f act a?(reader))
 	reader reader = a,
 	res = f[reader]
 	if !res.is-empty && reader.is-empty
@@ -72,18 +72,18 @@ Else, this does nothing and returns `false`.
 
 This will not read only part of `s`; it's all or nothing.
 ###
-try-take-str bool(a reader, s str) trusted
+try-take-string bool(a reader, s string) trusted
 	start = a.iter copy
-	if a.iter try-take-str-recur s.mut-iter
+	if a.iter try-take-string-recur s.mut-iter
 		true
 	else
 		a.iter := start
 		false
 
-try-take-str-recur bool(a mut-str-iter, b mut-str-iter)
+try-take-string-recur bool(a mut-string-iter, b mut-string-iter)
 	if nb ?= b next
 		if na ?= a next
-			na == nb && a try-take-str-recur b
+			na == nb && a try-take-string-recur b
 	else
 		true
 
@@ -127,7 +127,7 @@ take-int int64?(a reader) trusted
 		a.iter := start
 		()
 
-# TODO: use 'is-whitespace' function from str-util
+# TODO: use 'is-whitespace' function
 # Skips whitespace characters: `" "`, `"\n"`, `"t"`.
 skip-whitespace void(a reader)
 	if a try-take-char " " || a try-take-char "\r" || a try-take-char "\n" || a try-take-char "\t"
@@ -173,25 +173,25 @@ Unlike in crow, `{` is not a special character.
 
 Does nothing and returns an empty option if it did not take an entire quoted string correctly.
 ###
-take-quoted-str str?(a reader)
+take-quoted-string string?(a reader)
 	start = a.iter copy
 	if a try-take-char "\""
-		res = a take-quoted-str-recur ()
+		res = a take-quoted-string-recur ()
 		if res is-empty
 			a.iter := start
 		res
 
-.take-quoted-str-recur str?(a reader, res char8 mut[])
+.take-quoted-string-recur string?(a reader, res char8 mut[])
 	unless a is-empty
 		if a try-take-char "\""
-			res.move-to-list.str,
+			res.move-to-list.as-string,
 		elif a try-take-char "\\"
 			if esc ?= a.next escape
 				res ~= esc
-				a take-quoted-str-recur res
+				a take-quoted-string-recur res
 		else
 			res ~= a next
-			a take-quoted-str-recur res
+			a take-quoted-string-recur res
 
 .escape char8?(a char8)
 	if a == "n"
@@ -233,19 +233,19 @@ take-quoted-str str?(a reader)
 Parse digits as a nat64.
 Return an empty option if the string contains any punctuation or whitespace.
 ###
-parse-nat nat64?(a str)
+parse-nat nat64?(a string)
 	a with-reader r => r take-nat
 
 ###
 Same as `a with-reader r => r take-int`.
 ###
-parse-int int64?(a str)
+parse-int int64?(a string)
 	a with-reader r => r take-int
 
 ###
 Same as `a with-reader r => r take-float`.
 ###
-parse-float float64?(a str)
+parse-float float64?(a string)
 	a with-reader r => r take-float
 
 test

@@ -4,8 +4,8 @@ import
 	./col/array: array, find-and-get
 	./misc: name, named-val, val
 	./opt: ??, new, opt
-	./private/sym-low-level: ==, sym, to-str
-	./str: ==, str
+	./private/sym-low-level: ==, sym, to-string
+	./string: ==, string
 
 # TODO: inherit from 'compare' spec
 ###
@@ -33,9 +33,9 @@ to-enum<a> a?(a sym) enum-like<a>
 		member.name == a ? member.val,
 
 # Same as `a.to-sym to-enum`.
-to-enum<a> a?(a str) enum-like<a>
+to-enum<a> a?(a string) enum-like<a>
 	enum-members find-and-get member =>
-		member.name.to-str == a ? member.val,
+		member.name.to-string == a ? member.val,
 
 ###
 Converts to the output enum value with the same name.
@@ -45,7 +45,7 @@ Returns an empty option if there is no corresponding output value.
 enum-convert<out, in> out?(a in) enum-like<in> enum-like<out>
 	a.to-sym to-enum
 
-# TODO: should just be called to-str, but that requires better overloading
-# Same as `a.to-sym to-str`.
-enum-to-str<a> str(a a) enum-like<a>
-	a.to-sym to-str
+# TODO: should just be called to-string, but that requires better overloading
+# Same as `a.to-sym to-string`.
+enum-to-string<a> string(a a) enum-like<a>
+	a.to-sym to-string

@@ -5,7 +5,7 @@ import
 	crow/private/thread-utils: acquire, init, lock, release, uninit
 	crow/ptr: ==, +, -, *, by-val, const-ptr, mut-ptr, ref-eq, set-deref
 	./audio: new, playing-sound
-	./sound: ==, format, new, samples, sound, sound-format, to-str
+	./sound: ==, format, new, samples, sound, sound-format, to-string
 
 audio-queue record force-sendable by-ref
 	format sound-format

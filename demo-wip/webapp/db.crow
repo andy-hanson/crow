@@ -1,7 +1,7 @@
 import
 	crow/crypto/experimental/login-cookie:
 		cookie, cookie-matches, from-bytes, generate-login-cookie, login-cookie,
-		parse-login-cookie, to-bytes, to-str
+		parse-login-cookie, to-bytes, to-string
 	crow/crypto/password-hash: password-hash, password-matches-hash, quality-moderate
 	crow/io/print: err, out, print
 	crow/reader: parse-nat
@@ -11,7 +11,7 @@ import
 		lmdb-env, lmdb-key-flags, lmdb-txn, open-lmdb-env, read-transaction, set, to-lmdb-key,
 		transaction-abort, transaction-commit, try-add, with-block, write-transaction, zip
 
-main nat^(_ str[]) unsafe summon
+main nat^(_ string[]) unsafe summon
 	with db : open-real-db
 		if true
 			match db register-user "alice", "swordfish"
@@ -31,10 +31,10 @@ main nat^(_ str[]) unsafe summon
 
 		out print "users:"
 		for user : db list-users
-			out print user.to-str
+			out print user.to-string
 		out print "posts:"
 		for post : db list-posts
-			out print post.to-str
+			out print post.to-string
 		()
 
 user alias
@@ -42,9 +42,9 @@ user alias
 
 user-info record
 	user user
-	user-name str
+	user-name string
 
-to-str str(a user-info)
+to-string string(a user-info)
 	"user {a user}: {a user-name}"
 
 post alias
@@ -53,37 +53,37 @@ post alias
 post-info record
 	post post
 	user user
-	user-name str
-	content str
+	user-name string
+	content string
 
-to-str str(a post-info)
+to-string string(a post-info)
 	"post {a post}: {a user-name} (user {a user}) says: {a content}"
 
 user-cookie record
 	user nat
 	inner login-cookie
 
-parse-user-cookie user-cookie?(a str)
+parse-user-cookie user-cookie?(a string)
 	if split ?= a try-split-once "|"
 		if user ?= split.a parse-nat
 			if inner ?= split.b parse-login-cookie
 				(user, inner),
 
-to-str str(a user-cookie)
+to-string string(a user-cookie)
 	"{a user}|{a inner}"
 
 db record mut
 	.env lmdb-env
-	.user-from-name lmdb-db<str, user>
-	.user-name lmdb-db<user, str>
+	.user-from-name lmdb-db<string, user>
+	.user-name lmdb-db<user, string>
 	.user-password-hash lmdb-db<user, nat8[]>
 	.user-login-cookie lmdb-db<user, login-cookie>
 	.post-user lmdb-db<post, user>
-	.post-content lmdb-db<post, str>
+	.post-content lmdb-db<post, string>
 
 open-db record
-	db-path str
-.open-db open-db(db-path str)
+	db-path string
+.open-db open-db(db-path string)
 	db-path,
 
 open-real-db open-db()
@@ -91,12 +91,12 @@ open-real-db open-db()
 
 with-block<a> a^(a open-db, f act a^(db)) unsafe summon is-sendable<a>
 	with env : a.db-path open-lmdb-env true
-		with user-from-name : env database@<str, user> "user-from-name"
-			with user-name : env database@<user, str> "user-name"
+		with user-from-name : env database@<string, user> "user-from-name"
+			with user-name : env database@<user, string> "user-name"
 				with user-pw-hash : env database@<user, nat8[]> "user-password-hash"
 					with user-login : env database@<user, login-cookie> "user-login-cookie"
 						with post-user : env database@<post, user> "post-user"
-							with post-content : env database@<post, str> "post-content"
+							with post-content : env database@<post, string> "post-content"
 								f[(env, user-from-name, user-name, user-pw-hash, user-login, post-user, post-content)]
 
 list-users user-info[](db db) summon
@@ -104,7 +104,7 @@ list-users user-info[](db db) summon
 		for user, name : txn each db.user-name
 			user, name
 
-user-name str(db db, user user) summon
+user-name string(db db, user user) summon
 	with txn : db.env read-transaction
 		(txn get db.user-name, user)!
 
@@ -132,7 +132,7 @@ register-user-result union
 		as user-already-exists
 			true
 
-register-user register-user-result(db db, user-name str, password str) summon
+register-user register-user-result(db db, user-name string, password string) summon
 	with txn : db.env abortable-write-transaction
 		new-user-id = txn count db.user-from-name
 		user-count-check = txn count db.user-name
@@ -150,7 +150,7 @@ login-error enum
 	user-does-not-exist
 	wrong-password
 
-login result<user-cookie, login-error>(db db, user-name str, password str) summon
+login result<user-cookie, login-error>(db db, user-name string, password string) summon
 	if user-name.is-empty || password.is-empty
 		empty-name-or-password err
 	else
@@ -173,7 +173,7 @@ login result<user-cookie, login-error>(db db, user-name str, password str) summo
 		content = (txn get db.post-content, post)!
 		post, user, user-name, content
 
-add-post post(db db, cookie user-cookie, content str) summon
+add-post post(db db, cookie user-cookie, content string) summon
 	with txn : db.env write-transaction
 		user = db authenticate txn, cookie
 		post = txn count db.post-user
@@ -181,7 +181,7 @@ add-post post(db db, cookie user-cookie, content str) summon
 		txn add db.post-content, post, content
 		post
 
-.get-user user?(db db, txn lmdb-txn, user-name str) summon
+.get-user user?(db db, txn lmdb-txn, user-name string) summon
 	txn get db.user-from-name, user-name
 
 .authenticate user(db db, txn lmdb-txn, cookie user-cookie) summon
@@ -194,7 +194,7 @@ add-post post(db db, cookie user-cookie, content str) summon
 	if login-cookie ?= txn get db.user-login-cookie, cookie.user
 		login-cookie cookie-matches cookie.inner.cookie, cookie-expire-seconds
 
-.db-path str()
+.db-path string()
 	"demo-wip/webapp/db"
 
 cookie-expire-seconds nat()

@@ -4,7 +4,7 @@ import
 	./fun-util: subscript
 	./misc: void
 	./number: ==
-	./str: ~~, is-empty, join, literal, str, to-str
+	./string: ~~, is-empty, join, literal, string, to-string
 	./private/backtrace: backtrace, backtrace-entry, entries, file-path, function-name, line-number
 export
 	./private/exception-low-level: catch, exception, message, rethrow, unreachable
@@ -37,17 +37,17 @@ do-if-error<a> a(on-error act void(), try act a())
 		err rethrow
 
 # Outputs the exception's message and backtrace to a string.
-to-str str(a exception) unsafe
-	message = a.message to-str
-	"{message.is-empty ? "<<empty message>>" : message}{a.backtrace to-str}"
+to-string string(a exception) unsafe
+	message = a.message to-string
+	"{message.is-empty ? "<<empty message>>" : message}{a.backtrace to-string}"
 
-to-str str(a backtrace)
+to-string string(a backtrace)
 	"" join for x : a.entries.to-list
 		"\n\tat {x}"
 
-to-str str(a backtrace-entry) trusted
-	name = a.function-name to-str
-	path = a.file-path to-str
+to-string string(a backtrace-entry) trusted
+	name = a.function-name to-string
+	path = a.file-path to-string
 	if name is-empty
 		"<<unknown>>"
 	elif path is-empty

@@ -11,7 +11,7 @@ import
 	./misc: void
 	./number: ==
 	./opt: !, ??, new, opt
-	./str: ==, <=>, ~~, hash-mix, literal, starts-with, str, to-c-str, to-str, try-remove-start
+	./string: ==, <=>, ~~, hash-mix, literal, starts-with, string, to-c-string, to-string, try-remove-start
 
 ###
 In this syntax:
@@ -25,15 +25,15 @@ For example, if the command is: `foo bar --a 1 --b 2 3 -- x y z`:
 `after` will be: `"x", "y", "z"`
 ###
 parsed-command record
-	nameless str[]
-	named str[][str]
-	after str[]
+	nameless string[]
+	named string[][string]
+	after string[]
 
 ###
 See comment on `parsed-command` for syntax.
 Parse errors aren't possible with this syntax.
 ###
-parse-command parsed-command(args str[])
+parse-command parsed-command(args string[])
 	if split ?= args try-split-once-by-fn arg => arg starts-with "--"
 		nameless = split.left
 		rest = split.middle ~ split.right
@@ -58,9 +58,9 @@ This will return `((),) (), (("d",),)`.
 
 If the argument syntax is invalid, returns an empty option.
 ###
-parse-named-args str[]?[]?(args str[], arg-names str[])
+parse-named-args string[]?[]?(args string[], arg-names string[])
 	parsed = args parse-command
-	values str[]? mut[] = arg-names.size fill-mut-list ()
+	values string[]? mut[] = arg-names.size fill-mut-list ()
 	err cell bool = false,
 	for key, value : parsed named
 		if index ?= arg-names index-of key
@@ -75,7 +75,7 @@ If `a` as a single element, returns that; else throws an exception.
 
 Useful for arguments that should have a single string as their value.
 ###
-single-str-or-throw str(a str[]?, option-name str)
+single-string-or-throw string(a string[]?, option-name string)
 	if strs ?= a
 		if strs.size == 1
 			strs[0]
@@ -86,12 +86,12 @@ single-str-or-throw str(a str[]?, option-name str)
 	else
 		throw "Need {option-name}"
 
-.parse-named-args-dict str[][str](args str[])
-	res str[] mut[str] = ()
+.parse-named-args-dict string[][string](args string[])
+	res string[] mut[string] = ()
 	args parse-named-args-dict-recur res
 	res move-to-dict
 
-.parse-named-args-dict-recur void(args str[], builder str[] mut[str])
+.parse-named-args-dict-recur void(args string[], builder string[] mut[string])
 	first-name = (args[0] try-remove-start "--")!
 	tl = args tail
 	if split ?= tl try-split-once-by-fn arg => arg starts-with "--"

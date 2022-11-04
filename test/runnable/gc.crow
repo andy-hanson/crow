@@ -4,7 +4,7 @@ import
 		cur-word, gc-count, gc-stats, get-gc, get-stats, force-needs-gc, set-hard-limit, words-free, words-used
 	crow/ptr: -, as-any-const-ptr, by-val, size-of
 
-main nat^(_ str[]) summon unsafe
+main nat^(_ string[]) summon unsafe
 	gc = get-gc
 	# To speed up 'gc.get-stats'
 	gc.hard-limit := 0x10000
@@ -33,8 +33,8 @@ r record
 	b nat
 	c nat
 
-to-str str(a r)
+to-string string(a r)
 	"a={a a}, b={a b}, c={a c}"
 
-to-str str(a gc-stats) summon
+to-string string(a gc-stats) summon
 	"gc-count={a gc-count}, cur-word={a cur-word}, words-used={a words-used}, words-free={a words-free}"

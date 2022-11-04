@@ -1,8 +1,8 @@
 import
 	crow/io/print: out, print
 
-main nat^(_ str[]) summon
-	a str[nat] = (10, "ten"), (1, "one")
+main nat^(_ string[]) summon
+	a string[nat] = (10, "ten"), (1, "one")
 	out print (a[1] ?? "n/a")
 	out print (a[3] ?? "n/a")
 	b = a ~ (3, "three")

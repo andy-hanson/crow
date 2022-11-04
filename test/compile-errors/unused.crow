@@ -1,4 +1,4 @@
-foo<a> void(p nat, _ str)
+foo<a> void(p nat, _ string)
 	_ act void(nat) = x => ()
 	_ act void(nat) = _ => ()
 	()

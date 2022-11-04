@@ -5,10 +5,10 @@ import
 	crow/extra-types: fd-t
 	crow/misc: void
 	crow/number: nat8, nat32
-	crow/private/bootstrap: char8, c-str
+	crow/private/bootstrap: char8, c-string
 	crow/ptr: const-ptr, mut-ptr
 
-perror void(s c-str) extern<c> summon
+perror void(s c-string) extern<c> summon
 
 stdin fd-t() noctx
 	0
@@ -17,7 +17,7 @@ stdout fd-t() noctx
 stderr fd-t() noctx
 	2
 
-popen FILE(command c-str, modes c-str) extern<c> summon
+popen FILE(command c-string, modes c-string) extern<c> summon
 pclose c-int(stream FILE) extern<c> summon
 
 feof bool(stream FILE) extern<c> summon
@@ -26,7 +26,7 @@ fgets char8 mut*(s char8 mut*, n c-int, stream FILE) extern<c> summon
 
 FILE extern-ptr
 
-fopen FILE(filename c-str, mode c-str) extern<c> summon
+fopen FILE(filename c-string, mode c-string) extern<c> summon
 fclose c-int(stream FILE) extern<c> summon
 fseek c-int(stream FILE, offset long, whence SEEK) extern<c> summon
 ftell long(stream FILE) extern<c> summon

@@ -1,17 +1,17 @@
 r record extern
-	a str
+	a string
 	b list nat64
 
 u union extern
-	a str
+	a string
 
 f void() extern
 
 f void() extern<c>
 
-f str() extern<c>
+f string() extern<c>
 
-f void(a str) extern<c>
+f void(a string) extern<c>
 
 f<a> void(a a) extern<c>
 

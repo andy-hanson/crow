@@ -11,7 +11,7 @@ import
 		GLchar, GL_COMPILE_STATUS, GLenum, GL_FALSE, GL_FRAGMENT_SHADER, GL_INFO_LOG_LENGTH, GLint, GL_LINK_STATUS,
 		GL_TRUE, GLuint, GL_VERTEX_SHADER
 
-shader-prog-load GLuint(gl gl-ext, vert-shader-source str, frag-shader-source str) summon unsafe
+shader-prog-load GLuint(gl gl-ext, vert-shader-source string, frag-shader-source string) summon unsafe
 	vert-shader = gl shader-load "vertex shader", vert-shader-source, GL_VERTEX_SHADER
 	frag-shader = gl shader-load "fragment shader", frag-shader-source, GL_FRAGMENT_SHADER
 	shader-prog = gl glCreateProgram
@@ -32,12 +32,12 @@ shader-prog-load GLuint(gl gl-ext, vert-shader-source str, frag-shader-source st
 		err-log mut-array GLchar = log-length->to-nat64 uninitialized-mut-array
 		gl glGetProgramInfoLog shader-prog, *log-length, log-length, err-log.begin-ptr
 		gl glDeleteProgram shader-prog
-		throw "Error loading shaders: {err-log.to-array.to-list.str}"
+		throw "Error loading shaders: {err-log.to-array as-string}"
 
 shader-prog-destroy void(gl gl-ext, shader-prog GLuint) summon unsafe
 	gl glDeleteProgram shader-prog
 
-.shader-load GLuint(gl gl-ext, name str, source str, shader-type GLenum) summon unsafe
+.shader-load GLuint(gl gl-ext, name string, source string, shader-type GLenum) summon unsafe
 	shader = gl create-shader-from-source source, shader-type
 	gl glCompileShader shader
 	compile-succeeded cell GLint = GL_FALSE,
@@ -50,10 +50,10 @@ shader-prog-destroy void(gl gl-ext, shader-prog GLuint) summon unsafe
 		err-log mut-array GLchar = log-length->to-nat64 uninitialized-mut-array
 		gl glGetShaderInfoLog shader, *log-length, log-length, err-log.begin-ptr
 		gl glDeleteShader shader
-		throw "error compiling GLSL {name}: {err-log.to-array.to-list.str}"
+		throw "error compiling GLSL {name}: {err-log.to-array as-string}"
 
-.create-shader-from-source GLuint(gl gl-ext, source str, shader-type GLenum) summon unsafe
+.create-shader-from-source GLuint(gl gl-ext, source string, shader-type GLenum) summon unsafe
 	shader = gl glCreateShader shader-type
-	shader-sources array c-str = source.to-c-str,
+	shader-sources array c-string = source.to-c-string,
 	gl glShaderSource shader, shader-sources.size.to-int32, shader-sources.begin-ptr, null
 	shader

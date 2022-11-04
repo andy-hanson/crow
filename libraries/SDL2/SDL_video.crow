@@ -4,7 +4,7 @@ import
 	crow/number: nat32
 	crow/c-types: c-int, u-int
 	crow/ptr: any-const-ptr
-	crow/str: c-str
+	crow/string: c-string
 
 SDL_DestroyWindow void(window SDL_Window) extern<SDL2> summon
 
@@ -13,7 +13,7 @@ SDL_Window extern-ptr
 SDL_GLContext extern-ptr
 
 SDL_CreateWindow SDL_Window(
-	title c-str,
+	title c-string,
 	x c-int,
 	y c-int,
 	w c-int,
@@ -90,6 +90,6 @@ SDL_WINDOWPOS_UNDEFINED c-int()
 
 SDL_GL_SwapWindow void(window SDL_Window) extern<SDL2> summon
 
-SDL_GL_LoadLibrary c-int(path c-str) extern<SDL2> summon
+SDL_GL_LoadLibrary c-int(path c-string) extern<SDL2> summon
 
-SDL_GL_GetProcAddress any-const-ptr(proc c-str) extern<SDL2> summon
+SDL_GL_GetProcAddress any-const-ptr(proc c-string) extern<SDL2> summon

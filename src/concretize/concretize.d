@@ -117,20 +117,20 @@ immutable(bool) isNat(ref immutable CommonTypes commonTypes, immutable Type type
 immutable(bool) isInt32(ref immutable CommonTypes commonTypes, immutable Type type) =>
 	type == immutable Type(commonTypes.integrals.int32);
 
-immutable(bool) isStr(ref immutable CommonTypes commonTypes, immutable Type type) =>
+immutable(bool) isString(ref immutable CommonTypes commonTypes, immutable Type type) =>
 	//TODO:better
-	isStructInst(type) && decl(*asStructInst(type)).name == shortSym("str");
+	isStructInst(type) && decl(*asStructInst(type)).name == shortSym("string");
 
 immutable(bool) isNatFuture(ref immutable CommonTypes commonTypes, immutable Type type) =>
 	isStructInst(type) &&
 		decl(*asStructInst(type)) == commonTypes.future &&
 		isNat(commonTypes, only(typeArgs(*asStructInst(type))));
 
-immutable(bool) isListStr(ref immutable CommonTypes commonTypes, immutable Type type) =>
+immutable(bool) isStringList(ref immutable CommonTypes commonTypes, immutable Type type) =>
 	isStructInst(type) &&
 		//TODO:BETTER
 		decl(*asStructInst(type)).name == shortSym("list") &&
-		isStr(commonTypes, only(typeArgs(*asStructInst(type))));
+		isString(commonTypes, only(typeArgs(*asStructInst(type))));
 
 void checkRtMainSignature(ref immutable CommonTypes commonTypes, ref immutable FunDecl mainFun) {
 	if (!noCtx(mainFun))
@@ -158,7 +158,7 @@ void checkUserMainSignature(ref immutable CommonTypes commonTypes, ref immutable
 	immutable Param[] params = assertNonVariadic(mainFun.params);
 	if (params.length != 1)
 		todo!void("checkUserMainSignature should take 1 param");
-	if (!isListStr(commonTypes, only(params).type))
+	if (!isStringList(commonTypes, only(params).type))
 		todo!void("checkUserMainSignature doesn't take str[]");
 }
 

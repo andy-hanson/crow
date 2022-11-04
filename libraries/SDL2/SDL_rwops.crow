@@ -2,10 +2,10 @@ no-std
 import
 	crow/c-types: c-int
 	crow/ptr: any-const-ptr, any-mut-ptr
-	crow/str: c-str
+	crow/string: c-string
 
 SDL_RWops extern-ptr
 
-SDL_RWFromFile SDL_RWops(file c-str, mode c-str) extern<SDL2> summon
+SDL_RWFromFile SDL_RWops(file c-string, mode c-string) extern<SDL2> summon
 SDL_RWFromMem SDL_RWops(mem any-mut-ptr, size c-int) extern<SDL2> summon
 SDL_RWFromConstMem SDL_RWops(mem any-const-ptr, size c-int) extern<SDL2> summon

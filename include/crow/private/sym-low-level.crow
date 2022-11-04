@@ -7,46 +7,46 @@ import
 	../misc: void
 	../number: +
 	../ptr: ==, +, as-const, mut-ptr, set-deref
-	../str: ==, <=>, char8, char8s, c-str, hash-mix, literal, str
+	../string: ==, <=>, char8, char8s, c-string, hash-mix, literal, string
 	../tuple: a, b, new
 	./alloc: unmanaged-alloc-elements
 	./bootstrap: new-sym, static-syms
 	./runtime: get-global-ctx, global-ctx, set-syms-table, syms-lock, syms-table
 	./thread-utils: with-lock
 export
-	# TODO: ensure that 'sym' constructor from c-str is not exported
-	../private/bootstrap: sym, to-c-str
+	# TODO: ensure that 'sym' constructor from c-string is not exported
+	../private/bootstrap: sym, to-c-string
 
 == bool(a sym, b sym) noctx trusted
 	# (this is pointer equality)
-	a.to-c-str == b.to-c-str
+	a.to-c-string == b.to-c-string
 
-# Same as `a.to-str <=> b.to-str`.
+# Same as `a.to-string <=> b.to-string`.
 <=> comparison(a sym, b sym)
-	a.to-str <=> b.to-str
+	a.to-string <=> b.to-string
 
-to-str str(a sym) noctx trusted
-	a.to-c-str literal
+to-string string(a sym) noctx trusted
+	a.to-c-string literal
 
 init-symbol-table void(a global-ctx)
-	a.syms-table := (for x : static-syms.to-list; (x.to-str, x)) to-dict
+	a.syms-table := (for x : static-syms.to-list; (x.to-string, x)) to-dict
 
 # TODO: name 'to-sym'
 ###
 Interns a string.
 This is O(log n), where 'n' is the number of unique syms that exist.
 ###
-str-to-sym sym(a str) trusted
+string-to-sym sym(a string) trusted
 	gctx = get-global-ctx
 	&gctx.syms-lock with-lock () =>
-		match gctx.syms-table get-or-add a, () => a.to-malloced-c-str new-sym
+		match gctx.syms-table get-or-add a, () => a.to-malloced-c-string new-sym
 		as got x
 			x
 		as added pair
 			gctx.syms-table := pair a
 			pair b
 
-.to-malloced-c-str c-str(a str) unsafe
+.to-malloced-c-string c-string(a string) unsafe
 	res char8 mut* = a.char8s.size + 1 unmanaged-alloc-elements
 	end = res fold a.char8s, (cur, x) =>
 		*cur := x

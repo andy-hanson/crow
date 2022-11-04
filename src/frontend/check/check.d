@@ -1009,7 +1009,7 @@ immutable(Type) typeForFileImport(
 			//TODO: this sort of duplicates 'getStrType'
 			scope immutable TypeAst ast = immutable TypeAst(immutable TypeAst.InstStruct(
 				range,
-				immutable NameAndRange(range.start, shortSym("str")),
+				immutable NameAndRange(range.start, shortSym("string")),
 				emptySmallArray!TypeAst));
 			return typeFromAstNoTypeParamsNeverDelay(ctx, commonTypes, ast, structsAndAliasesDict);
 	}

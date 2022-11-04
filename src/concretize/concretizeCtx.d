@@ -267,7 +267,7 @@ immutable(ConcreteType) voidType(ref ConcretizeCtx a) =>
 
 immutable(ConcreteType) cStrType(ref ConcretizeCtx a) =>
 	lazilySet(a._cStrType, () =>
-		getConcreteType_forStructInst(a, a.commonTypes.cStr, TypeArgsScope.empty));
+		getConcreteType_forStructInst(a, a.commonTypes.cString, TypeArgsScope.empty));
 
 immutable(ConcreteType) symType(ref ConcretizeCtx a) =>
 	lazilySet(a._symType, () =>

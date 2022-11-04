@@ -1,5 +1,5 @@
-f str()
+f string()
 	"a"
 
-.g str()
+.g string()
 	"swordfish"

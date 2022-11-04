@@ -12,53 +12,53 @@ sqlite3 record force-sendable
 	raw sqlite3-ptr
 
 .open-sqlite3 record
-	db-path str
-open-sqlite3 open-sqlite3(db-path str)
+	db-path string
+open-sqlite3 open-sqlite3(db-path string)
 	db-path,
 with-block<a> a^(a open-sqlite3, cb ref a(sqlite3)) summon trusted is-sendable<a>
 	db mut sqlite3-ptr = null::any-mut-ptr.ptr-cast-to-extern
 	# Create empty file if not exist
 
 
-	err = a.db-path.to-c-str sqlite3_open_v2 &db, SQLITE_OPEN_READWRITE | SQLITE_OPEN_CREATE, null
+	err = a.db-path.to-c-string sqlite3_open_v2 &db, SQLITE_OPEN_READWRITE | SQLITE_OPEN_CREATE, null
 	assert err == SQLITE_OK
 	res <- cb[(db,)]
 	err2 = db sqlite3_close
 	assert err2 == SQLITE_OK
 	res,
 
-query str[][](db sqlite3, command str) summon
-	res str[] mut[] = ()
+query string[][](db sqlite3, command string) summon
+	res string[] mut[] = ()
 	db run command, (_, values) =>
 		res ~= values
 		again
 	res move-to-list
 
-run void(db sqlite3, command str) summon
+run void(db sqlite3, command string) summon
 	db run command, (_, _) => again
 
 ###
 cb takes column names and values for a single row.
 ###
-run void(db sqlite3, command str, cb-row act again-or-stop(str[], str[])) summon trusted
-	error-message mut c-str = null
+run void(db sqlite3, command string, cb-row act again-or-stop(string[], string[])) summon trusted
+	error-message mut c-string = null
 	ctx callback-ctx = cb-row,
-	err = db.raw sqlite3_exec command.to-c-str, &callback, (&ctx)::callback-ctx*.as-any-mut-ptr, &error-message
+	err = db.raw sqlite3_exec command.to-c-string, &callback, (&ctx)::callback-ctx*.as-any-mut-ptr, &error-message
 	# TODO: if err == SQLITE_ABORT, callback returned non-0
 	if err != SQLITE_OK
-		error-str = error-message to-str
+		error-string = error-message to-string
 		error-message.as-any-mut-ptr sqlite3_free
-		throw "ERROR {err.enum-to-str}: {error-str}"
+		throw "ERROR {err.enum-to-string}: {error-string}"
 
 .callback-ctx record by-val mut
-	cb-row act again-or-stop(str[], str[])
+	cb-row act again-or-stop(string[], string[])
 
-.callback c-int(ctx-ptr any-mut-ptr, argc c-int, argv c-str*, col-name c-str*) summon unsafe
+.callback c-int(ctx-ptr any-mut-ptr, argc c-int, argv c-string*, col-name c-string*) summon unsafe
 	ctx callback-ctx = *(ctx-ptr.as-const.ptr-cast::callback-ctx*)
-	column-names str[] = for i : 0 .. argc.to-nat64
-		col-name[i] to-str
-	values str[] = for i : 0 .. argc.to-nat64
-		argv[i] to-str
+	column-names string[] = for i : 0 .. argc.to-nat64
+		col-name[i] to-string
+	values string[] = for i : 0 .. argc.to-nat64
+		argv[i] to-string
 	match ctx.cb-row[column-names, values]
 	as again
 		0

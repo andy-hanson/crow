@@ -7,21 +7,21 @@ no-std
 import
 	../bool: bool
 	../opt: new, opt, opt-equal
-	../str: ==, literal, new, str
+	../string: ==, literal, new, string
 	../tuple: a, b
-	../str: ~~, to-str, try-split-once-right
+	../string: ~~, to-string, try-split-once-right
 	../test-util: is
 
 ###
 Parent of a path. This means removing the last path component.
 `""` if the path has no parent.
 ###
-parent-path str(a str)
+parent-path string(a string)
 	if x ?= a try-split-once-right "/"
 		x a
 
 # Adds a new path component onto the end.
-child-path str(a str, child_name str)
+child-path string(a string, child_name string)
 	# TODO: ensure child-name doesn't contain "../"
 	"{a}/{child_name}"
 
@@ -29,13 +29,13 @@ child-path str(a str, child_name str)
 Gets the extension from a file name or path.
 Returns an empty option if there is no extension.
 ###
-get-extension str?(name str)
+get-extension string?(name string)
 	if x ?= name try-split-once-right "."
 		x.b,
 test
 	"birds/crow.txt".get-extension is ("txt",)
 
-.== bool(a str?, b str?)
+.== bool(a string?, b string?)
 	a opt-equal b
 
 ###
@@ -44,7 +44,7 @@ This returns the path without the extension.
 
 For example: `"birds/crow.txt" remove-extension` is `"birds/crow"`.
 ###
-remove-extension str(name str)
+remove-extension string(name string)
 	if x ?= name try-split-once-right "."
 		x a
 	else
@@ -56,19 +56,19 @@ test
 Adds an extension to a file name or path.
 If an extension already exists, adds a second one, as in `foo.png.txt`.
 ###
-add-extension str(name str, ext str)
+add-extension string(name string, ext string)
 	"{name}.{ext}"
 test
 	"birds/crow.txt" add-extension "exe" is "birds/crow.txt.exe"
 
 # Removes the extension (if it exists) and adds a new one.
-change-extension str(name str, ext str)
+change-extension string(name string, ext string)
 	name.remove-extension add-extension ext
 test
 	"birds/crow.txt" change-extension "exe" is "birds/crow.exe"
 
 # Gets just the file name without any directory names in from of it.
-base-name str(path str)
+base-name string(path string)
 	if x ?= path try-split-once-right "/"
 		x b
 	else

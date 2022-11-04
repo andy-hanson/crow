@@ -2,7 +2,7 @@ no-std
 import
 	crow/bool: bool, false, true
 	crow/fun-util: subscript
-	crow/fut: fut, subscript
+	crow/future: future, subscript
 	crow/misc: void
 	./sound: sound, sound-format
 

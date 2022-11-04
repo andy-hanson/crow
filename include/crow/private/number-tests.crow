@@ -1,7 +1,7 @@
 no-std
 import
 	../number: ==, +, -, *, /, max-int64, min-int64, nat64
-	../str: literal
+	../string: literal
 	../test-util: is, throws
 
 dummy-number-tests nat64()

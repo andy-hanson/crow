@@ -1,9 +1,9 @@
 import
 	crow/io/print: out, print
 
-main nat^(_ str[]) summon
+main nat^(_ string[]) summon
 	x sym = "flabbergast"
-	out print x.to-str
-	out print (x == "glabberfast").to-str
-	out print (x == ("flabber" ~~ "gast").str-to-sym).to-str
+	out print "{x}"
+	out print "{x == "glabberfast"}"
+	out print "{x == ("flabber" ~~ "gast").string-to-sym}"
 	()

@@ -2,7 +2,7 @@ no-std
 import
 	../col/array: array, new
 	../number: +, -, *, /, float32, float64, square-root, to-float32, to-float64
-	../str: ~~, literal, str, to-str
+	../string: ~~, literal, string, to-string
 	../test-util: throws
 
 # 2-dimensional vector with 32-bit elements.
@@ -199,12 +199,12 @@ to-array array float64(a vec3-64)
 	a.x, a.y, a.z
 
 # `"<x, y>"`
-to-str str(a vec2-32)
+to-string string(a vec2-32)
 	"<{a x}, {a y}>"
-to-str str(a vec2-64)
+to-string string(a vec2-64)
 	"<{a x}, {a y}>"
 # `"<x, y, z>"`
-to-str str(a vec3-32)
+to-string string(a vec3-32)
 	"<{a x}, {a y}, {a z}>"
-to-str str(a vec3-64)
+to-string string(a vec3-64)
 	"<{a x}, {a y}, {a z}>"

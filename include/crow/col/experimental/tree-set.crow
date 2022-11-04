@@ -9,7 +9,7 @@ import
 	../../opt: !, new, opt
 	../../ptr: ==, <=>, +, -, *, const-ptr, mut-ptr, set-deref
 	../../range: ..
-	../../str: ==, <=>, ~~, iter, join, literal, next, slice-left, starts-with, str, to-str
+	../../string: ==, <=>, ~~, iter, join, literal, next, slice-left, starts-with, string, to-string
 	../../test-util: is
 	../array: array, fold, for-loop, insert-at, is-empty, last, remove-at, rtail, size, subscript, tail
 	../mut-array: begin-ptr, cast-immutable, end-ptr, mut-array, subscript, uninitialized-mut-array
@@ -472,9 +472,9 @@ for-loop<out, in> tree-set out(a tree-set in, f act out(in)) is-data<in> compare
 	assert end == out.end-ptr
 	out[0 .. end - out.begin-ptr].set-sort-unique.cast-immutable.to-list to-tree-set
 
-.dbg<a> str(a tree-set a) to-str<a>
+.dbg<a> string(a tree-set a) to-string<a>
 	a.root dbg
-.dbg<a> str(a node a) to-str<a>
+.dbg<a> string(a node a) to-string<a>
 	match a
 	as inner i
 		"({i.left dbg} {i value} {i.right dbg})"
@@ -482,16 +482,16 @@ for-loop<out, in> tree-set out(a tree-set in, f act out(in)) is-data<in> compare
 		parts = " " join for x : l.to-list; "{x}"
 		"[{parts}]"
 
-.verify void(a tree-set str, expected str)
+.verify void(a tree-set string, expected string)
 	a.size is a.root.walk-size
 	a.dbg is expected
 
 test
-	s tree-set str = "a", "c", "e", "g"
+	s tree-set string = "a", "c", "e", "g"
 	s ~ "d" verify "([a c] d [e g])"
 
 test
-	s0 tree-set str = new
+	s0 tree-set string = new
 	s0 verify "[]"
 
 	s1 = s0 ~ "h"
@@ -547,9 +547,9 @@ test
 	filtered = s8 filter x => !(x starts-with "j")
 	filtered verify "[h i k l]"
 
-	mapped tree-set str = for x : s8
+	mapped tree-set string = for x : s8
 		x first-char
 	mapped verify "[h i j k l]"
 
-.first-char str(a str)
+.first-char string(a string)
 	a.iter.next!.rest slice-left

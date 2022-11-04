@@ -10,7 +10,7 @@ import
 	crow/number: ==, <=>, *, float32, nat8, to-nat64
 	crow/private/alloc: mem-copy
 	crow/ptr: ==, <=>, +, -, any-mut-ptr, as-any-mut-ptr, as-ref, const-ptr, mut-ptr
-	crow/str: str, to-c-str
+	crow/string: string, to-c-string
 	sndfile/headers:
 		channels, frames, new, samplerate, sf_close, sf_count_t, sf_error, SF_INFO, SFM_READ,
 		sf_open, sf_open_virtual, sf_read_float, SF_VIRTUAL_IO, SNDFILE
@@ -18,9 +18,9 @@ import
 	stdio: SEEK
 	./sound: new, sound
 
-read-sound-file sound(path str) trusted summon
+read-sound-file sound(path string) trusted summon
 	info cell SF_INFO = (),
-	f = path.to-c-str sf_open SFM_READ, info.as-mut-ptr
+	f = path.to-c-string sf_open SFM_READ, info.as-mut-ptr
 	f common *info
 
 sound-from-file-content sound(content array nat8) trusted

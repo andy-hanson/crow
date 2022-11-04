@@ -36,9 +36,9 @@ lmdb-env record mut
 	.env MDB_env
 
 .open-lmdb-env record
-	db-dir str
+	db-dir string
 	create-if-not-exists bool
-open-lmdb-env open-lmdb-env(db-dir str, create-if-not-exists bool)
+open-lmdb-env open-lmdb-env(db-dir string, create-if-not-exists bool)
 	db-dir, create-if-not-exists
 # Calls `open-env`, then `f`, then `close-env` (in a `finally`).
 with-block<a> a^(options open-lmdb-env, f act a^(lmdb-env)) trusted summon is-sendable<a>
@@ -59,7 +59,7 @@ with-block<a> a^(options open-lmdb-env, f act a^(lmdb-env)) trusted summon is-se
 		info log "Creating database directory {db-dir}"
 		db-dir make-directory
 
-	err = env mdb_env_open db-dir.to-c-str, 0, 0o666
+	err = env mdb_env_open db-dir.to-c-string, 0, 0o666
 	unless err == 0
 		env mdb_env_close
 		err check-lmdb-error
@@ -71,7 +71,7 @@ with-block<a> a^(options open-lmdb-env, f act a^(lmdb-env)) trusted summon is-se
 region lmdb-key
 
 ###
-Keys in LMDB can be nat32, nat64, or str.
+Keys in LMDB can be nat32, nat64, or string.
 
 Don't implement this spec for other types, since LMDB really only supports a few types.
 ###
@@ -87,21 +87,21 @@ lmdb-key-flags u-int(_ nat64)
 	MDB_INTEGERKEY
 lmdb-key-flags u-int(_ nat32)
 	MDB_INTEGERKEY
-lmdb-key-flags u-int(_ str)
+lmdb-key-flags u-int(_ string)
 	0
 
 to-lmdb-key nat8[](key nat64)
 	key to-8-bytes
 to-lmdb-key nat8[](key nat32)
 	key to-4-bytes
-to-lmdb-key nat8[](key str)
+to-lmdb-key nat8[](key string)
 	key to-bytes
 
 from-lmdb-key nat64(a nat8[])
 	a from-bytes
 from-lmdb-key nat32(a nat8[])
 	a from-bytes
-from-lmdb-key str(a nat8[])
+from-lmdb-key string(a nat8[])
 	a from-bytes
 
 # TODO:MOVE
@@ -118,8 +118,8 @@ lmdb-db<k, v> record mut
 
 database<k, v> record mut
 	env lmdb-env
-	db-name str
-database<k, v> database<k, v>(env lmdb-env, db-name str)
+	db-name string
+database<k, v> database<k, v>(env lmdb-env, db-name string)
 	env, db-name
 
 with-block<a, k, v> a^(
@@ -137,7 +137,7 @@ with-block<a, k, v> a^(
 
 	dbi-cell cell MDB_dbi = zeroed,
 	mdb-flags = MDB_CREATE | zeroed::k.lmdb-key-flags
-	transaction mdb_dbi_open a.db-name.to-c-str, mdb-flags, dbi-cell check-lmdb-error
+	transaction mdb_dbi_open a.db-name.to-c-string, mdb-flags, dbi-cell check-lmdb-error
 
 	transaction.mdb_txn_commit check-lmdb-error
 	*dbi-cell,
@@ -257,7 +257,7 @@ lmdb_stat record
 	overflow-pages nat
 	entries nat
 
-to-str str(a lmdb_stat)
+to-string string(a lmdb_stat)
 	# TODO: Use """ string
 	x = "	psize = {a psize}\n	depth = {a depth}\n	branch-pages = {a branch-pages}"
 	y = "	leaf-pages = {a leaf-pages}\n	overflow-pages = {a overflow-pages}"
@@ -413,7 +413,7 @@ zip-fold<a, k, v0, v1> a(
 .check-lmdb-error void(a err-t)
 	assert a == MDB_SUCCESS : "LMDB error code: {a} ({a error-name})"
 
-.error-name str(a err-t)
+.error-name string(a err-t)
 	if a == MDB_KEYEXIST
 		"MDB_KEYEXIST"
 	elif a == MDB_NOTFOUND
@@ -455,4 +455,4 @@ zip-fold<a, k, v0, v1> a(
 	elif a == MDB_BAD_DBI
 		"MDB_BAD_DBI"
 	else
-		a to-str
+		a to-string

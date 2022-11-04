@@ -9,7 +9,7 @@ import
 	../../opt: !, ??, new, opt
 	../../ptr: ==, <=>, +, -, *, as-const, const-ptr, mut-ptr, set-deref
 	../../range: ..
-	../../str: ==, <=>, ~~, join, literal, new, str, to-str
+	../../string: ==, <=>, ~~, join, literal, new, string, to-string
 	../../test-util: is
 	../array: array, is-empty, new, size, subscript, tail
 	../mut-array:
@@ -387,7 +387,7 @@ for-loop<out, in> out[](a sorted-set in, f act out(in)) trusted is-data<in> comp
 	assert end == out.end-ptr
 	out.cast-immutable to-list
 
-.dbg<a> str(a sorted-set a) to-str<a>
+.dbg<a> string(a sorted-set a) to-string<a>
 	add = a.add dbg
 	if a.remove is-empty
 		add
@@ -395,18 +395,18 @@ for-loop<out, in> out[](a sorted-set in, f act out(in)) trusted is-data<in> comp
 		parts = " " join for i : a remove; "{i}"
 		"{add} - [{parts}]"
 
-.dbg<a> str(a add-node a) to-str<a>
+.dbg<a> string(a add-node a) to-string<a>
 	left = if left ?= a left
 		"{left dbg}, "
 	values = " " join for x : a.values to-list; "{x}"
 	"{left}[{values}]"
 
-.verify void(a sorted-set str, expected str)
+.verify void(a sorted-set string, expected string)
 	a.dbg is expected
 
 test
 	# TODO: be sure to test removing and then adding back
-	a sorted-set str = ()
+	a sorted-set string = ()
 	a.is-empty is true
 	a.size is 0
 	a verify "[]"
@@ -433,7 +433,7 @@ test
 
 	# TODO: test filter
 
-	dm sorted-set str = for x : d
+	dm sorted-set string = for x : d
 		if x == "c"
 			"sea"
 		elif x == "r"

@@ -7,7 +7,7 @@ import
 	../opt: ==, new, opt
 	../ptr: ==, <=>, +, -, *, as-const, mut-ptr, null, set-deref, zeroed
 	../range: .., for-loop
-	../str: ==, ~~, literal, new, join, str, to-str
+	../string: ==, ~~, literal, new, join, string, to-string
 	../test-util: is
 	./mut-array:
 		begin-ptr, cast-immutable, copy-from, end-ptr, mut-array, is-empty, new, set-zero-elements,
@@ -166,14 +166,14 @@ pop-right<a> a?(a mut-deque a) trusted
 		dest[0 .. left-to-end-size] copy-from (a.left.as-const array-from-begin-end a.inner.end-ptr.as-const)
 		dest[left-to-end-size .. dest.size] copy-from (a.inner.begin-ptr.as-const array-from-begin-end a.right.as-const)
 
-.dbg str(a mut-deque nat64) trusted
+.dbg string(a mut-deque nat64) trusted
 	right = a.right - a.inner.begin-ptr
 	left = a.left - a.inner.begin-ptr
 	# Note: can come in any order...
 	" " join for i : 0 .. a.inner.size
 		"{i == right ? "<-R "}{i == left ? "L-> "}{a.inner[i]}"
 
-.verify void(a mut-deque nat64, expected nat64[], expected-dbg str)
+.verify void(a mut-deque nat64, expected nat64[], expected-dbg string)
 	a.peek-left is expected.first
 	a.peek-right is expected.last
 	a.size is expected.size

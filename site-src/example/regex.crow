@@ -4,12 +4,12 @@ import
 	crow/io/print: out, print
 	crow/ptr: as-const, const-ptr, mut-ptr, new
 
-main nat^(_ str[]) summon
+main nat^(_ string[]) summon
 	"cro\\+w" test-regex ("crow", "crooow", "duck")
 	"[0-9" test-regex ("42",)
 	()
 
-test-regex void(source str, candidates list str) summon trusted
+test-regex void(source string, candidates string[]) summon trusted
 	match source parse
 	as ok regex
 		for x : candidates
@@ -22,22 +22,22 @@ regex record mut
 	wrapped cell regex_t
 
 # Unsafe because must 'free'
-parse result<regex, str>(source str) unsafe
+parse result<regex, string>(source string) unsafe
 	res regex = ((),),
-	err = res.wrapped.as-mut-ptr regcomp source.to-c-str, ()
+	err = res.wrapped.as-mut-ptr regcomp source.to-c-string, ()
 	if err == REG_NOERROR
 		res ok
 	else
 		buf char8 mut[] = 1000 fill-mut-list "\0"
 		_ = err regerror res.wrapped.as-const-ptr, buf.begin-ptr, buf.size
 		res free
-		buf.begin-ptr.as-const.to-str err
+		buf.begin-ptr.as-const.to-string err
 
 free void(a regex) unsafe
 	a.wrapped.as-mut-ptr regfree
 
-matches bool(a regex, candidate str) trusted
-	err = a.wrapped.as-const-ptr regexec candidate.to-c-str, (), (), ()
+matches bool(a regex, candidate string) trusted
+	err = a.wrapped.as-const-ptr regexec candidate.to-c-string, (), (), ()
 	if err == REG_NOERROR
 		true
 	elif err == REG_NOMATCH
@@ -84,13 +84,13 @@ reg_errcode_t enum<c-int> extern
 	_REG_ESPACE
 	_REG_BADRPT
 
-regcomp reg_errcode_t(regex regex_t mut*, pattern c-str, cflags c-int) extern<c>
+regcomp reg_errcode_t(regex regex_t mut*, pattern c-string, cflags c-int) extern<c>
 
 regfree void(preg regex_t mut*) extern<c>
 
 regexec reg_errcode_t(
 	preg regex_t*,
-	string c-str,
+	string c-string,
 	nmatch size_t,
 	pmatch regmatch_t mut*,
 	eflags c-int,

@@ -8,7 +8,7 @@ import
 	../../number: ==, <=>, +, -, /, %, nat64
 	../../opt: is-empty, new, opt, opt-equal
 	../../ptr: ==, <=>, +, -, *, const-ptr, mut-ptr, set-deref, swap
-	../../str: ==, literal, str
+	../../string: ==, literal, string
 	../../test-util: is
 	../../tuple: from, new, pair, to
 	../../private/alloc: alloc-uninitialized
@@ -251,21 +251,21 @@ fold<a, k, v> a(acc a, a frozen-dict<k, v>, f act a(a, k, v, nat64))
 	acc fold a.pairs, (inner-acc, pair, index) =>
 		f[inner-acc, pair from, pair to, index]
 
-.verify void(a frozen-dict<nat64, str>, keys-order nat64[], bucket-starts nat64[]) unsafe
+.verify void(a frozen-dict<nat64, string>, keys-order nat64[], bucket-starts nat64[]) unsafe
 	(for pair : a.pairs to-list; pair from)::nat64[] is keys-order
 	(for ptr : a.bucket-starts to-list; ptr - a.pairs.begin-ptr)::nat64[] is bucket-starts
 
-.== bool(a str?, b str?)
+.== bool(a string?, b string?)
 	a opt-equal b
 
 test
-	a frozen-dict<nat64, str> = ()
+	a frozen-dict<nat64, string> = ()
 	a.is-empty is true
 	a.size is 0
 	a verify (), ()
 	a[0] is ()
 	
-	b frozen-dict<nat64, str> = (3, "3"), (1, "1"), (5, "5"), (2, "2")
+	b frozen-dict<nat64, string> = (3, "3"), (1, "1"), (5, "5"), (2, "2")
 	b verify (3, 1, 5, 2), ()
 	b[0] is ()
 	b[1] is ("1",)
@@ -275,7 +275,7 @@ test
 	b[5] is ("5",)
 	b[6] is ()
 
-	c frozen-dict<nat64, str> = (3, "3"), (1, "1"), (5, "5"), (2, "2"), (8, "8")
+	c frozen-dict<nat64, string> = (3, "3"), (1, "1"), (5, "5"), (2, "2"), (8, "8")
 	c verify (2, 8, 3, 5, 1), (0, 2)
 	c[0] is ()
 	c[1] is ("1",)
@@ -289,7 +289,7 @@ test
 	c[9] is ()
 
 test
-	a frozen-dict<nat64, str> = (1, "1"), (1, "2")
+	a frozen-dict<nat64, string> = (1, "1"), (1, "2")
 	a.size is 1
 	a verify (1,), ()
 	a[1] is ("2",)

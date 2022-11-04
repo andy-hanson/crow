@@ -7,7 +7,7 @@ import
 	../../number: ==, <=>, +, -, *, nat64
 	../../opt: !, is-empty, new, opt, opt-equal, size
 	../../ptr: ==, -, *, mut-ptr, set-deref
-	../../str: ==, ~~, iter, join, literal, next, slice-left, str, to-str
+	../../string: ==, ~~, iter, join, literal, next, slice-left, string, to-string
 	../../test-util: is
 	../../tuple: from, new, pair, to
 	../array: array
@@ -283,7 +283,7 @@ set-map<k, v> void(a mut-sorted-dict<k, v>, f act (k, v)(k, v)) is-data<k> compa
 	a.pairs set-sort-by pair => pair from
 
 test
-	a mut-sorted-dict<nat64, str> = (3, "30"), (6, "60")
+	a mut-sorted-dict<nat64, string> = (3, "30"), (6, "60")
 	a verify "[3 -> 30, 6 -> 60]"
 	a set-map (k, v) =>
 		10 - k, v.iter.next!.rest.slice-left
@@ -294,7 +294,7 @@ set-map-values<k, v> void(a mut-sorted-dict<k, v>, f act v(k, v)) is-data<k> com
 	a.pairs set-map pair =>
 		pair.from, (f[pair.from, pair.to!],)
 
-.dbg<k, v> str(a mut-sorted-dict<k, v>) to-str<k> to-str<v>
+.dbg<k, v> string(a mut-sorted-dict<k, v>) to-string<k> to-string<v>
 	pairs = ", " join for pair : a pairs
 		to = if v ?= pair to
 			"{v}"
@@ -306,7 +306,7 @@ set-map-values<k, v> void(a mut-sorted-dict<k, v>, f act v(k, v)) is-data<k> com
 	else
 		"[{pairs}]"
 
-.verify void(a mut-sorted-dict<nat64, str>, expected str)
+.verify void(a mut-sorted-dict<nat64, string>, expected string)
 	a.dbg is expected
 	a verify-node-size
 
@@ -318,7 +318,7 @@ set-map-values<k, v> void(a mut-sorted-dict<k, v>, f act v(k, v)) is-data<k> com
 		next verify-node-size
 
 test
-	a mut-sorted-dict<nat64, str> = (3, "3"), (5, "5"), (7, "7"), (8, "8"), (9, "9"), (10, "10")
+	a mut-sorted-dict<nat64, string> = (3, "3"), (5, "5"), (7, "7"), (8, "8"), (9, "9"), (10, "10")
 	a verify "[3 -> 3, 5 -> 5, 7 -> 7, 8 -> 8, 9 -> 9, 10 -> 10]"
 
 	# Insert into the previous slot
@@ -334,7 +334,7 @@ test
 	a verify "[3 -> 3, 5 -> 5, 7 -> 7, 8 -> 8, 9 -> 9, 10 -> 10]"
 
 test
-	a mut-sorted-dict<nat64, str> = ()
+	a mut-sorted-dict<nat64, string> = ()
 	a verify "[]"
 
 	a[5] := "5"
@@ -406,5 +406,5 @@ test
 	a[4] := "4"
 	a verify "[0 -> 0, 1 -> 1, 2 -> 2, 3 -> 3, 4 -> 4, 5 -> 5, 6 -> 6, 11 -> 11, 17 -> 17]"
 
-.== bool(a str?, b str?)
+.== bool(a string?, b string?)
 	a opt-equal b

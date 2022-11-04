@@ -7,7 +7,7 @@ import
 	crow/io/stdin: read-stdin
 	crow/log: info, log
 
-main nat^(args str[]) unsafe summon
+main nat^(args string[]) unsafe summon
 	if args.size != 1
 		err print "usage: serve [PORT]"
 		1,
@@ -34,10 +34,10 @@ main nat^(args str[]) unsafe summon
 		else
 			http-not-found
 
-file-response http-response(path str, content nat8[])
+file-response http-response(path string, content nat8[])
 	200, "OK", (("Content-Type", path.content-type),), content
 
-content-type str(path str)
+content-type string(path string)
 	if path ends-with ".html"
 		"text/html"
 	elif path ends-with ".css"

@@ -4,7 +4,7 @@ import
 	crow/misc: void
 	crow/number: int32
 	crow/ptr: const-ptr, mut-ptr
-	crow/str: c-str
+	crow/string: c-string
 	sys/socket: sockaddr
 	sys/types: socklen_t
 
@@ -15,7 +15,7 @@ addrinfo record mut by-val extern
 	ai_protocol int32
 	ai_addrlen socklen_t
 	ai_addr sockaddr
-	ai_canonname c-str
+	ai_canonname c-string
 	ai_next addrinfo*
 
 ai-passive int32()
@@ -26,29 +26,29 @@ Remember to call 'freeaddrinfo'!
 And cast the result to an enum 'getaddrinfo_error_posix' or 'getaddrinfo_error_windows'
 ###
 getaddrinfo c-int(
-	name c-str,
-	service c-str,
+	name c-string,
+	service c-string,
 	req addrinfo*,
 	pai addrinfo mut* mut*,
 ) extern<c> summon
 freeaddrinfo void(ai addrinfo mut*) extern<c>
-gai_strerror c-str(ecode int32) extern<c>
+gai_strerror c-string(ecode int32) extern<c>
 
 hostent record mut by-ref extern
-	h_name c-str
-	h_aliases c-str mut*
+	h_name c-string
+	h_aliases c-string mut*
 	h_addrtype c-int
 	h_length c-int
-	h_addr_list c-str mut*
+	h_addr_list c-string mut*
 
-gethostbyname hostent(name c-str) extern<c>
+gethostbyname hostent(name c-string) extern<c>
 
 protoent record mut by-ref extern
-	p_name c-str
-	p_aliases c-str mut*
+	p_name c-string
+	p_aliases c-string mut*
 	p_proto c-int
 
-getprotobyname protoent(name c-str) extern<c>
+getprotobyname protoent(name c-string) extern<c>
 
 getaddrinfo_error_posix enum<int32>
 	EAI_NONE = 0

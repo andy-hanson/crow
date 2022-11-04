@@ -1,7 +1,7 @@
 import
 	./path-and-content: new, path-and-content
 
-page-template path-and-content(path str, title str, content str)
+page-template path-and-content(path string, title string, content string)
 	current = " class=\"current\""
 	full-content = """
 <!DOCTYPE html>

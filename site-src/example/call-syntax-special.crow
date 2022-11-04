@@ -2,21 +2,21 @@ import
 	crow/cell
 	crow/io/print: out, print
 
-main nat^(_ str[]) summon
+main nat^(_ string[]) summon
 	# "crow" new "duck"
-	xs list str = "crow", "duck"
+	xs string[] = "crow", "duck"
 	# xs subscript 0
 	out print xs[0]
 
 	# "duck" new
-	c cell str = "duck",
+	c cell string = "duck",
 	# c set-deref "crow"
 	*c := "crow"
 	# c.deref print
 	out print *c
 
 	# new
-	ys str mut[] = ()
+	ys string mut[] = ()
 	ys ~= "duck"
 	ys ~= "goose"
 	# ys set-deref 0, "crow"

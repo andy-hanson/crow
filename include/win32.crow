@@ -8,7 +8,7 @@ import
 	crow/fun-util: fun-ptr1
 	crow/misc: new, void
 	crow/number: int64, max-nat64, nat8, nat16, nat32, nat64, new, to-nat16, to-nat32
-	crow/private/bootstrap: c-str
+	crow/private/bootstrap: c-string
 	crow/ptr: *, any-const-ptr, any-mut-ptr, const-ptr, mut-ptr, new, ptr-cast, size-of, to-mut-ptr
 	stdio: FILE
 	sys/types: mode_t
@@ -150,9 +150,9 @@ FILETIME record by-val extern
 new FILETIME() noctx
 	(), ()
 
-DeleteFileA bool(lpFileName c-str) extern<kernel32> summon
+DeleteFileA bool(lpFileName c-string) extern<kernel32> summon
 
-GetFileAttributesA FileAttributes(lpFileName c-str) extern<kernel32> summon
+GetFileAttributesA FileAttributes(lpFileName c-string) extern<kernel32> summon
 
 FileAttributes flags<nat32> extern
 	FILE_ATTRIBUTE_READONLY = 0x1
@@ -178,14 +178,14 @@ FileAttributes flags<nat32> extern
 	FILE_ATTRIBUTE_RECALL_ON_DATA_ACCESS = 0x400000
 	INVALID_FILE_ATTRIBUTES = 0xffffffff
 
-FindFirstFileA HANDLE(lpFileName c-str, lpFindFileData WIN32_FIND_DATAA mut*) extern<kernel32> summon
+FindFirstFileA HANDLE(lpFileName c-string, lpFindFileData WIN32_FIND_DATAA mut*) extern<kernel32> summon
 FindNextFileA bool(hFindFile HANDLE, lpFindFileData WIN32_FIND_DATAA mut*) extern<kernel32> summon
 FindClose bool(hFindFile HANDLE) extern<kernel32> summon
 
 _getcwd c-char mut*(buffer c-char mut*, size size_t) extern<c> summon
-_mkdir err-t(path c-str, mode mode_t) extern<c> summon
+_mkdir err-t(path c-string, mode mode_t) extern<c> summon
 _pclose err-t(stream FILE) extern<c> summon
-_popen FILE(command c-str, mode c-str) extern<c> summon
+_popen FILE(command c-string, mode c-string) extern<c> summon
 
 ERROR_FILE_NOT_FOUND DWORD() noctx
 	2
@@ -284,8 +284,8 @@ CreatePipe bool(
 ) extern<kernel32> summon
 
 CreateSymbolicLinkA bool(
-	lpSymlinkFileName c-str,
-	lpTargetFileName c-str,
+	lpSymlinkFileName c-string,
+	lpTargetFileName c-string,
 	dwFlags link-flags,
 ) extern<kernel32> summon
 
@@ -301,14 +301,14 @@ HANDLE_FLAG_PROTECT_FROM_CLOSE DWORD() noctx
 	2
 
 CreateProcessA bool(
-	lpApplicationName c-str,
-	lpCommandLine c-str,
+	lpApplicationName c-string,
+	lpCommandLine c-string,
 	lpProcessAttributes SECURITY_ATTRIBUTES*,
 	lpThreadAttributes SECURITY_ATTRIBUTES*,
 	bInheritHandles bool,
 	dwCreationFlags DWORD,
 	lpEnvironment any-mut-ptr,
-	lpCurrentDirectory c-str,
+	lpCurrentDirectory c-string,
 	lpStartupInfo STARTUPINFOA*,
 	lpProcessInformation PROCESS_INFORMATION mut*,
 ) extern<kernel32> summon

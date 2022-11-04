@@ -4,7 +4,7 @@ import
 	crow/fun-util: fun-ptr1, fun-ptr3
 	crow/number: float32, nat8, nat64
 	crow/ptr: any-mut-ptr, const-ptr, mut-ptr
-	crow/str: c-str
+	crow/string: c-string
 	stdio: SEEK
 
 sf_count_t alias
@@ -20,7 +20,7 @@ SF_VIRTUAL_IO record extern by-ref mut
 	tell fun-ptr1<sf_count_t, any-mut-ptr>
 
 sf_error c-int(sndfile SNDFILE) extern<sndfile>
-sf_error_number c-str(errnum c-int) extern<sndfile>
+sf_error_number c-string(errnum c-int) extern<sndfile>
 
 SF_INFO record extern by-val
 	frames sf_count_t
@@ -33,7 +33,7 @@ SF_INFO record extern by-val
 new SF_INFO() noctx
 	0, 0, 0, (), 0, 0
 
-sf_open SNDFILE(path c-str, mode SndFileMode, sfinfo SF_INFO mut*) extern<sndfile> summon
+sf_open SNDFILE(path c-string, mode SndFileMode, sfinfo SF_INFO mut*) extern<sndfile> summon
 sf_open_virtual SNDFILE(
 	sfvirtual SF_VIRTUAL_IO,
 	mode SndFileMode,

@@ -111,7 +111,7 @@ array<a> record by-val
 	size nat64
 	begin-ptr a*
 
-region str
+region string
 
 # Single character in a string.
 # This could be any UTF-8 code point.
@@ -119,9 +119,9 @@ char8 builtin extern
 ###
 C-style string. Always const.
 This should be a valid pointer whose content ends in a "\0", though this is not enforced.
-Thus, all operations on `c-str` are unsafe.
+Thus, all operations on `c-string` are unsafe.
 ###
-c-str alias
+c-string alias
 	char8*
 
 to-char8 char8(a nat8) noctx builtin
@@ -148,13 +148,13 @@ true bool() noctx builtin
 region sym.crow
 
 sym record by-val
-	.sym-to-c-str c-str
+	.sym-to-c-string c-string
 
-new-sym sym(a c-str) noctx unsafe
+new-sym sym(a c-string) noctx unsafe
 	a,
 
-to-c-str c-str(a sym) no-doc noctx unsafe
-	a sym-to-c-str
+to-c-string c-string(a sym) no-doc noctx unsafe
+	a sym-to-c-string
 
 region bootstrap arithmetic
 
@@ -297,7 +297,7 @@ fun-ptr9<r, p0, p1, p2, p3, p4, p5, p6, p7, p8> builtin extern
 
 ###
 Non-mutating function type.
-This is usually written as `fun nat(str)` instead of `fun1<nat, str>`.
+This is usually written as `fun nat(string)` instead of `fun1<nat, string>`.
 
 Contrasted with `act`, a `fun` can't close over mutable data.
 It can still close over `sendable` data and perform I/O, so it's not a completely pure function.
@@ -309,7 +309,7 @@ fun3<r, p0, p1, p2> builtin sendable
 fun4<r, p0, p1, p2, p3> builtin sendable
 
 ###
-This is usually written as `act nat(str, bool)` instead of `fun-act2<nat, str, bool>`.
+This is usually written as `act nat(string, bool)` instead of `fun-act2<nat, string, bool>`.
 
 An `act` can have anything in its closure, including mutable data, so it's considered mutable.
 ###
@@ -320,7 +320,7 @@ fun-act3<r, p0, p1, p2> builtin mut
 fun-act4<r, p0, p1, p2, p3> builtin mut
 
 ###
-This is usually written as `ref nat(str)` instead of `fun-ref1<nat, str>`.
+This is usually written as `ref nat(string)` instead of `fun-ref1<nat, string>`.
 
 This wraps an `act` combined with the exclusion it came from.
 This is sendable since the `act` isn't be called directly;
@@ -438,8 +438,8 @@ backtrace record by-val
 # 'extern' because interpreter also declares this type
 backtrace-entry record extern by-val
 	# These point into either GC or permanent memory. May be empty strings, never null.
-	function-name c-str
-	file-path c-str
+	function-name c-string
+	file-path c-string
 	# 1-indexed. 0 if unknown.
 	line-number nat32
 	# 1-indexed. 0 if unknown.
@@ -452,7 +452,7 @@ There is no exception subtyping in crow, so all exceptions have this type.
 ###
 exception record by-val
 	# Message passed to `throw`.
-	message c-str
+	message c-string
 	# TODO: accessing backtrace should be unsafe
 	###
 	Backtrace when the exception was created.

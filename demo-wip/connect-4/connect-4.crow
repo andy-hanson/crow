@@ -4,9 +4,9 @@ import
 	crow/io/stdin: read-stdin-until-parse
 	./board:
 		board, board-cache, can-place, color, empty-board, has-empty, just-won, new, opposite,
-		place, red, set-subscript, subscript, to-str, width
+		place, red, set-subscript, subscript, to-string, width
 
-main nat^(_ str[]) summon
+main nat^(_ string[]) summon
 	out print "Select a game:\n(If using hard CPU, compile with --optimize)\n"
 	out print "2: 2-player game\nE: Easy\nM: Medium\nH: Hard\nH2: Hard and CPU goes first\nCPU: CPU vs CPU\n"
 	#settings = "Invalid option" read-stdin-until-parse it => it parse-settings
@@ -17,7 +17,7 @@ main nat^(_ str[]) summon
 	0,
 
 # TODO:PRIVATE
-parse-settings ai-settings?(a str)
+parse-settings ai-settings?(a string)
 	if a == "2"
 		((), ()),
 	elif a == "E"
@@ -31,7 +31,7 @@ parse-settings ai-settings?(a str)
 	elif a == "CPU"
 		((10,), (10,)),
 
-.show-winner str(winner color?)
+.show-winner string(winner color?)
 	if w ?= winner
 		"{w} wins!"
 	else
@@ -65,25 +65,25 @@ parse-settings ai-settings?(a str)
 
 .print-board void(a board, cur-player color, last-x nat?) summon
 	clear-screen
-	out print (a to-str cur-player, last-x)
+	out print (a to-string cur-player, last-x)
 
 .human-player-move nat^(board board, color color) summon
 	out print "{color} player, where will you go? (Type a letter A-G and hit enter)"
 	board human-player-move-recur
 .human-player-move-recur nat^(board board) summon
-	column <- "Not a valid column." read-stdin-until-parse it => it column-of-str
+	column <- "Not a valid column." read-stdin-until-parse it => it column-of-string
 	if board can-place column
 		column,
 	else
 		out print "Can't, column is full."
 		board human-player-move-recur
 
-.column-of-str nat?(a str)
+.column-of-string nat?(a string)
 	if n ?= a.strip letter-to-number
 		if n < width
 			n,
 
-.letter-to-number nat?(a str)
+.letter-to-number nat?(a string)
 	chars = a char8s
 	if chars.size == 1
 		n = chars.iter.next!.value to-nat8
@@ -137,5 +137,5 @@ score-cache alias
 			0, best
 		cache strategy-recur board, ai-depth, score-and-best.best, (sum-score + score-and-best.score.to-int64), x + 1
 
-indent str(depth nat)
+indent string(depth nat)
 	" " repeat 2 * (9 - depth)

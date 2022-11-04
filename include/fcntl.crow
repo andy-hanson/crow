@@ -3,7 +3,7 @@ import
 	crow/c-types: c-int
 	crow/extra-types: fd-t
 	crow/number: nat32
-	crow/str: c-str
+	crow/string: c-string
 
 fcntl c-int(fd fd-t, cmd c-int, oflags oflag-t) extern<GL> summon
 
@@ -18,7 +18,7 @@ F_GETFL c-int() noctx
 F_SETFL c-int() noctx
 	4
 
-open fd-t(path c-str, oflag oflag-t, permission nat32) extern<GL> summon
+open fd-t(path c-string, oflag oflag-t, permission nat32) extern<GL> summon
 
 oflag-t alias
 	c-int

@@ -2,10 +2,10 @@ no-std
 import
 	./hash: hasher, hash-mix
 	./misc: void
-	./private/sym-low-level: to-c-str
+	./private/sym-low-level: to-c-string
 	./ptr: to-nat64
 export
-	./private/sym-low-level: ==, <=>, sym, to-str, str-to-sym
+	./private/sym-low-level: ==, <=>, sym, to-string, string-to-sym
 
 hash-mix void(hasher hasher, a sym) trusted
-	hasher hash-mix a.to-c-str.to-nat64
+	hasher hash-mix a.to-c-string.to-nat64

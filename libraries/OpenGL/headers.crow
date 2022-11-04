@@ -3,11 +3,11 @@ import
 	crow/bool: bool
 	crow/cell: cell
 	crow/c-types: c-char, c-float, c-int, long, u-int
-	crow/enum-util: enum-to-str
+	crow/enum-util: enum-to-string
 	crow/misc: void
 	crow/number: nat8
 	crow/ptr: any-const-ptr, const-ptr, mut-ptr
-	crow/str: c-str, str
+	crow/string: c-string, string
 
 GLbitfield alias
 	u-int
@@ -101,7 +101,7 @@ glGetShaderInfoLog void(
 
 glGetShaderiv void(reader GLuint, pname GLenum, params cell GLint) extern<GL> summon
 
-glGetString c-str(name GLenum) extern<GL> summon
+glGetString c-string(name GLenum) extern<GL> summon
 
 glGetUniformLocation GLint(program GLuint, name GLchar*) extern<GL> summon
 
@@ -193,8 +193,8 @@ GLenum enum<u-int> extern
 	GL_TEXTURE_SWIZZLE_A = 0x8e45
 	GL_CULL_FACE = 0x0B44
 
-to-str str(a GLenum)
-	a enum-to-str
+to-string string(a GLenum)
+	a enum-to-string
 
 GL_COLOR_BUFFER_BIT GLbitfield() noctx
 	0x00004000

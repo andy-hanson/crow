@@ -1,6 +1,6 @@
 test/compile-errors/extern-errors.crow 1:1-5:1 'extern' record 'r' must be explicitly 'by-ref' or 'by-val'
 
-test/compile-errors/extern-errors.crow 2:5-2:10 extern type 'r' can't reference non-extern type 'str'
+test/compile-errors/extern-errors.crow 2:5-2:13 extern type 'r' can't reference non-extern type 'string'
 
 test/compile-errors/extern-errors.crow 3:5-3:17 extern type 'r' can't reference non-extern type 'list<nat64>'
 
@@ -8,9 +8,9 @@ test/compile-errors/extern-errors.crow 5:1-8:1 a union can't be 'extern'
 
 test/compile-errors/extern-errors.crow 8:1-8:2 'extern' function 'f' is missing the library name
 
-test/compile-errors/extern-errors.crow 12:1-12:2 'extern' function 'f' can't reference non-extern type 'str'
+test/compile-errors/extern-errors.crow 12:1-12:2 'extern' function 'f' can't reference non-extern type 'string'
 
-test/compile-errors/extern-errors.crow 14:8-14:13 'extern' function 'f' parameter 'a' can't reference non-extern type 'str'
+test/compile-errors/extern-errors.crow 14:8-14:16 'extern' function 'f' parameter 'a' can't reference non-extern type 'string'
 
 test/compile-errors/extern-errors.crow 16:1-16:2 'extern' function 'f' can't have type parameters
 

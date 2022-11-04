@@ -1,21 +1,21 @@
 import
 	crow/io/print: out, print
 
-main nat^(_ str[]) summon
+main nat^(_ string[]) summon
 	a bird = "crow", "cap"
 	b bird = "seagull", "stetson"
+	out print "{a} :: {b}"
 	a steal-hat b
-	out print a.to-str
-	out print b.to-str
+	out print "{a} :: {b}"
 	()
 
 bird record mut
-	species str
-	hat mut str
+	species string
+	hat mut string
 
 steal-hat void(a bird, b bird)
 	a.hat := "{a hat} and {b hat}"
 	b.hat := "missing hat"
 
-to-str str(a bird)
+to-string string(a bird)
 	"{a species} in a {a hat}"

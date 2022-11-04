@@ -13,7 +13,7 @@ import
 	../misc: new, void
 	../number: ==, nat8, to-int64, to-nat32
 	../ptr: null, size-of
-	../str: ~~, char8, literal, str, to-bytes, to-c-str, to-str
+	../string: ~~, char8, literal, string, to-bytes, to-c-string, to-string
 	../version: is-windows
 	../private/bootstrap: todo
 	./win32-util: show-win32-error
@@ -23,11 +23,11 @@ pipe enum
 	err
 
 # Print to stdout or stderr, including a newline.
-print void(pipe pipe, message str) summon
+print void(pipe pipe, message string) summon
 	pipe print-no-newline "{message}\n"
 
 # Print to stdout or stderr, without appending a newline.
-print-no-newline void(pipe pipe, message str) summon trusted
+print-no-newline void(pipe pipe, message string) summon trusted
 	if is-windows
 		handle = match out
 		as out
@@ -43,7 +43,7 @@ print-no-newline void(pipe pipe, message str) summon trusted
 			stderr
 		output write-posix message
 
-.write-windows void(console HANDLE, a str) summon unsafe
+.write-windows void(console HANDLE, a string) summon unsafe
 	bytes = a.to-bytes to-array
 	written cell DWORD = 0,
 	size32 = bytes.size to-nat32
@@ -53,7 +53,7 @@ print-no-newline void(pipe pipe, message str) summon trusted
 		# TODO: maybe retry
 		todo
 
-.write-posix void(fd fd-t, a str) summon unsafe
+.write-posix void(fd fd-t, a string) summon unsafe
 	assert size-of@<char8> == size-of@<nat8>
 	bytes = a.to-bytes to-array
 	res = fd write bytes.begin-ptr, bytes.size

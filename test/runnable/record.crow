@@ -1,12 +1,11 @@
 import
 	crow/io/print: out, print
 
-main nat^(_ str[]) summon
+main nat^(_ string[]) summon
 	m my-record = 1, 2
 	assert m.x == 1
 	assert m.y == 2
-	out print m.x.to-str
-	out print m.y.to-str
+	out print "{m x} {m y}"
 	()
 
 my-record record

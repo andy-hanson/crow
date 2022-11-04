@@ -3,7 +3,6 @@ import
 	stdio: stdin
 	unistd: read
 	../col/mut-array: begin-ptr, cast-immutable, mut-array, size, subscript, uninitialized-mut-array
-	../col/list: to-list
 	../compare: >=
 	../fun-util: subscript
 	../future: future, new, parallel, then, with-block
@@ -11,7 +10,7 @@ import
 	../number: ==, <=>, nat8, to-nat64
 	../opt: opt
 	../range: ..
-	../str: as-str, str, strip
+	../string: as-string, string, strip
 	../private/bootstrap: todo
 	./print: out, print
 
@@ -20,7 +19,7 @@ Reads from stdin.
 If that comes from the user typing at the terminal, this will block until they hit enter.
 Result will not have leading or trailing whitespace.
 ###
-read-stdin str^() trusted summon
+read-stdin string^() trusted summon
 	with : parallel
 		buffer mut-array nat8 = 0x2000 uninitialized-mut-array
 		# TODO: use a non-blocking API
@@ -30,13 +29,13 @@ read-stdin str^() trusted summon
 		if bytes-read >= buffer.size
 			todo
 		else
-			buffer[0 .. bytes-read].cast-immutable.to-list.as-str.strip,
+			buffer[0 .. bytes-read].cast-immutable.as-string.strip,
 
 ###
 Keep reading from stdin until `parse` returns a non-empty option.
 Print `error-message` after every failure.
 ###
-read-stdin-until-parse<a> a^(error-message str, parse act a?(str)) summon is-sendable<a>
+read-stdin-until-parse<a> a^(error-message string, parse act a?(string)) summon is-sendable<a>
 	text <- read-stdin
 	if res ?= parse[text]
 		res,

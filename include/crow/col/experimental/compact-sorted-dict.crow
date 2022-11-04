@@ -9,7 +9,7 @@ import
 	../../opt: !, ||, is-empty, new, opt, opt-equal
 	../../ptr: ==, <=>, +, -, *, const-ptr, mut-ptr, ref-eq, set-deref
 	../../range: ..
-	../../str: ==, ~~, end-iter, is-empty, join, literal, prev, str, to-str
+	../../string: ==, ~~, end-iter, is-empty, join, literal, prev, string, to-string
 	../../test-util: is
 	../../tuple: from, new, pair, to
 	../../private/alloc: mem-copy
@@ -379,14 +379,14 @@ map-values<v-out, k, v-in> compact-sorted-dict<k, v-out>(
 	(new-pairs end-node),
 
 # TODO:PRIVATE
-dbg<k, v> str(a compact-sorted-dict<k, v>) to-str<k> to-str<v>
+dbg<k, v> string(a compact-sorted-dict<k, v>) to-string<k> to-string<v>
 	a.impl dbg
-.dbg<k, v> str(a impl<k, v>) to-str<k> to-str<v>
+.dbg<k, v> string(a impl<k, v>) to-string<k> to-string<v>
 	match a
 	as overlay o
 		pairs = ", " join for x : o.pairs to-list
 			to = if t ?= x to
-				t to-str
+				t to-string
 			else
 				"_"
 			"{x from} -> {to}"
@@ -396,7 +396,7 @@ dbg<k, v> str(a compact-sorted-dict<k, v>) to-str<k> to-str<v>
 			"{x from} -> {x to}"
 		"[{pairs}]"
 
-verify void(a compact-sorted-dict<nat64, str>, expected str)
+verify void(a compact-sorted-dict<nat64, string>, expected string)
 	a.dbg is expected
 
 .array-ref-eq<a> bool(a array a, b array a) unsafe
@@ -417,11 +417,11 @@ verify void(a compact-sorted-dict<nat64, str>, expected str)
 		as end-node eb
 			ea array-ref-eq eb
 
-.== bool(a str?, b str?)
+.== bool(a string?, b string?)
 	a opt-equal b
 
 test
-	a compact-sorted-dict<nat64, str> = ()
+	a compact-sorted-dict<nat64, string> = ()
 	a.is-empty is true
 	a.size is 0
 	a verify "[]"
@@ -466,11 +466,11 @@ test
 		k is-even
 	h-filtered verify "[10 -> 10b, 20 -> 20]"
 
-	h-mapped compact-sorted-dict<nat64, str> = h map-values (_, v) =>
+	h-mapped compact-sorted-dict<nat64, string> = h map-values (_, v) =>
 		"{v.end-iter.prev! value}"
 	h-mapped verify "[5 -> 5, 10 -> b, 20 -> 0]"
 
 test
-	a compact-sorted-dict<nat64, str> = (84, "84"),
+	a compact-sorted-dict<nat64, string> = (84, "84"),
 	b = a ~ (84, "84b")
 	b verify "[84 -> 84b]"

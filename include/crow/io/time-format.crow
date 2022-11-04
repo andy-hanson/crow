@@ -10,10 +10,9 @@ import
 	../bool: bool, false, true
 	../col/array: subscript
 	../col/mut-array: cast-immutable, begin-ptr, mut-array, size, uninitialized-mut-array
-	../col/list: to-list
 	../number: ==, <=>, +, nat64
 	../range: ..
-	../str: char8, literal, str, to-c-str
+	../string: as-string, char8, literal, string, to-c-string
 	./time: seconds-since-epoch, unix-time
 	
 time-locale record
@@ -28,103 +27,103 @@ gmt time-locale()
 	false,
 
 # Returns a value like `"-0500"`.
-timezone-offset str(locale time-locale, time unix-time) summon
+timezone-offset string(locale time-locale, time unix-time) summon
 	locale format time, "%z", 5
 
 # Returns a value like `"EST"`.
-timezone-name str(locale time-locale, time unix-time) summon
+timezone-name string(locale time-locale, time unix-time) summon
 	locale format time, "%Z", 20
 
 # Year as a string, e.g. `"2000"`.
-year str(locale time-locale, time unix-time) summon
+year string(locale time-locale, time unix-time) summon
 	locale format time, "%Y", 5
 
 # Last 2 digits of the year, e.g. `"00"`.
-year-2-digit str(locale time-locale, time unix-time) summon
+year-2-digit string(locale time-locale, time unix-time) summon
 	locale format time, "%y", 2
 
 ###
 Date formatted by local preferences.
 E.g., `"2020-01-30"` or `"01/30/20"`.
 ###
-date str(locale time-locale, time unix-time) summon
+date string(locale time-locale, time unix-time) summon
 	if locale is-local-time
 		locale format time, "%x", 10
 	else
 		locale iso-date time
 
 # `HH:MM:SS`, e.g. `00:00:00`.
-time-of-day str(locale time-locale, time unix-time) summon
+time-of-day string(locale time-locale, time unix-time) summon
 	locale format time, "%X", 8
 
 # E.g. `"Mon"`.
-day-of-week-short str(locale time-locale, time unix-time) summon
+day-of-week-short string(locale time-locale, time unix-time) summon
 	locale format time, "%a", 3
 
 # E.g. `"Monday"`.
-day-of-week-long str(locale time-locale, time unix-time) summon
+day-of-week-long string(locale time-locale, time unix-time) summon
 	locale format time, "%A", 9
 
 # Day from 001 to 366 inclusive.
-day-of-year str(locale time-locale, time unix-time) summon
+day-of-year string(locale time-locale, time unix-time) summon
 	locale format time, "%j", 3
 
 # Month like `"Jan"`.
-month-short str(locale time-locale, time unix-time) summon
+month-short string(locale time-locale, time unix-time) summon
 	locale format time, "%b", 3
 
 # Month like `"January"`.
-month-long str(locale time-locale, time unix-time) summon
+month-long string(locale time-locale, time unix-time) summon
 	locale format time, "%B", 9
 
 # Month from `"01"` to `"12"` inclusive.
-month-number str(locale time-locale, time unix-time) summon
+month-number string(locale time-locale, time unix-time) summon
 	locale format time, "%m", 2
 
 # Day of month from `"01"` to `"31"` inclusive.
-day-of-month str(locale time-locale, time unix-time) summon
+day-of-month string(locale time-locale, time unix-time) summon
 	locale format time, "%d", 2
 
 # `YYYY-MM-DD` (ISO 8601 date format)
-iso-date str(locale time-locale, time unix-time) summon
+iso-date string(locale time-locale, time unix-time) summon
 	locale format time, "%F", 10
 
 ###
 ISO 8601 full timestamp, in UTC.
 E.g.: `2000-01-01T00:00:00Z`
 ###
-iso-timestamp str(time unix-time) summon
+iso-timestamp string(time unix-time) summon
 	gmt format time, "%FT%H:%M:%SZ", 20
 
 # Hour from 00 to 23 inclusive.
-hour-of-24 str(locale time-locale, time unix-time) summon
+hour-of-24 string(locale time-locale, time unix-time) summon
 	locale format time, "%H", 2
 
 # Hour from 1 to 12 inclusive.
-hour-of-12 str(locale time-locale, time unix-time) summon
+hour-of-12 string(locale time-locale, time unix-time) summon
 	locale format time, "%I", 2
 
 # `"am"` or `"pm"`. `""` in GMT.
-am-pm str(locale time-locale, time unix-time) summon
+am-pm string(locale time-locale, time unix-time) summon
 	locale format time, "%P", 2
 
 # Minute from 00 to 59 inclusive.
-minute str(locale time-locale, time unix-time) summon
+minute string(locale time-locale, time unix-time) summon
 	locale format time, "%M", 2
 
 ###
 Second from 00 to 60 inclusive.
 (60 for leap seconds.)
 ###
-second str(locale time-locale, time unix-time) summon
+second string(locale time-locale, time unix-time) summon
 	locale format time, "%S", 2
 
-.format str(locale time-locale, time unix-time, format str, max-size nat64) trusted summon
+.format string(locale time-locale, time unix-time, format string, max-size nat64) trusted summon
 	seconds = time.seconds-since-epoch
 	tm = if locale is-local-time
 		&seconds localtime
 	else
 		&seconds gmtime
 	res mut-array char8 = max-size + 1 uninitialized-mut-array
-	len = res.begin-ptr strftime res.size, format.to-c-str, tm
-	res.cast-immutable[0 .. len].to-list str
+	len = res.begin-ptr strftime res.size, format.to-c-string, tm
+	res.cast-immutable[0 .. len] as-string

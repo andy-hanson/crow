@@ -10,7 +10,7 @@ import
 	sys/socket: AF_INET, connect, sockaddr, socket, SOCK_STREAM
 	unistd: read, write
 
-main nat^(_ str[]) unsafe summon
+main nat^(_ string[]) unsafe summon
 	hostname = "duckduckgo.com"
 	socket = get-tcp-socket
 	socket connect-socket hostname, 80
@@ -28,8 +28,8 @@ main nat^(_ str[]) unsafe summon
 	forbid socket-file-descriptor == max-nat64
 	socket-file-descriptor to-int32
 
-.connect-socket void(socket fd-t, hostname str, server-port nat16) unsafe summon
-	hostent = hostname.to-c-str gethostbyname
+.connect-socket void(socket fd-t, hostname string, server-port nat16) unsafe summon
+	hostent = hostname.to-c-string gethostbyname
 	forbid hostent.as-any-const-ptr == null
 	in_addr0 in_addr* = hostent.h_addr_list->ptr-cast
 	in_addr = in_addr0->inet_ntoa inet_addr
@@ -39,7 +39,7 @@ main nat^(_ str[]) unsafe summon
 	err = socket.to-nat64 connect sockaddr, (size-of@<sockaddr_in> to-nat32)
 	assert err == 0
 
-.send-request void(socket fd-t, request str) unsafe summon
+.send-request void(socket fd-t, request string) unsafe summon
 	forbid request is-empty
 	socket send-request-recur request.to-bytes.to-array
 .send-request-recur void(socket fd-t, bytes array nat8) unsafe
@@ -58,6 +58,6 @@ main nat^(_ str[]) unsafe summon
 	assert bytes-read >= 0
 	if bytes-read > 0
 		out print "Read (possibly partial) response:"
-		out print buffer[0 .. bytes-read.to-nat64].cast-immutable.to-list.as-str
+		out print buffer[0 .. bytes-read.to-nat64].cast-immutable.to-list.as-string
 		# TODO: Response might be partial. The parser will have to tell us that.
 

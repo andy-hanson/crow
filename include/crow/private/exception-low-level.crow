@@ -9,7 +9,7 @@ import
 	../version: is-interpreted, is-windows
 	./alloc: try-get-cur-gc-ctx
 	./backtrace: get-backtrace
-	./bootstrap: abort, c-str, err, hard-assert, new, ok, result
+	./bootstrap: abort, c-string, err, hard-assert, new, ok, result
 export
 	./bootstrap: exception, message
 
@@ -55,10 +55,10 @@ catch<a> a(try act a(), catcher act a(exception)) trusted
 		catcher[thrown]
 
 # THis is called by the compiler on 'throw'
-throw-impl void(message c-str) noctx trusted
+throw-impl void(message c-string) noctx trusted
 	message throw-with-skip 2
 
-throw-with-skip void(message c-str, skip nat64) noctx trusted
+throw-with-skip void(message c-string, skip nat64) noctx trusted
 	backtrace = if ctx ?= try-get-cur-gc-ctx
 		ctx get-backtrace skip
 	else

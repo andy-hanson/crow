@@ -2,12 +2,12 @@ no-std
 import
 	./fun-util: subscript
 	./misc: void
-	./str: str
+	./string: string
 	./private/exception-low-level: catch, rethrow
 	./private/log-low-level: set-log-handler
 export
 	./private/log-low-level:
-		error, get-log-handler, info, logged, log-handler, log-level, new, to-str, warn
+		error, get-log-handler, info, logged, log-handler, log-level, new, to-string, warn
 
 ###
 Sends a log to the current log handler.
@@ -16,7 +16,7 @@ By default, this means the message is logged to the console.
 This is not considered `summon` since the I/O is done by the log handler,
 which is passed in via the crow context. `with-log-handler` can change it.
 ###
-log void(level log-level, message str) trusted
+log void(level log-level, message string) trusted
 	get-log-handler[(level, message)]
 
 ###

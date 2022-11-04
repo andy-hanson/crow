@@ -8,7 +8,7 @@ import
 	../number: ==, <=>, +, -, *, %, nat64
 	../opt: is-empty, new, opt, opt-equal
 	../ptr: ==, +, *, mut-ptr, set-deref
-	../str: ==, ~~, join, literal, str, to-str
+	../string: ==, ~~, join, literal, string, to-string
 	../test-util: is
 	../tuple: from, new, pair, to
 	./array: array
@@ -87,7 +87,7 @@ copy<k, v> v mut[k](a v mut[k]) is-data<k> compare<k> hash-mix<k>
 			m.copy many
 	entries, a.total-size
 test
-	a str mut[nat64] = (1, "1"), (2, "2"), (5, "5")
+	a string mut[nat64] = (1, "1"), (2, "2"), (5, "5")
 	a verify "_ (1 -> 1) [2 -> 2, 5 -> 5]"
 
 	b = a copy
@@ -320,7 +320,7 @@ set-map-values<k, v> void(a v mut[k], f act v(k, v)) trusted is-data<k> compare<
 			m set-map pair => pair.from, f[pair.from, pair.to]
 		entry-ptr + 1 set-map-values-recur entry-end, f
 
-.dbg<k, v> str(a v mut[k]) to-str<k> to-str<v>
+.dbg<k, v> string(a v mut[k]) to-string<k> to-string<v>
 	" " join for entry : a.entries.to-array.to-list
 		match entry
 		as none
@@ -329,14 +329,14 @@ set-map-values<k, v> void(a v mut[k], f act v(k, v)) trusted is-data<k> compare<
 			"({ar dbg})"
 		as many m
 			"[{", " join for pair : m; pair dbg}]"
-.dbg<k, v> str(a (k, v)) to-str<k> to-str<v>
+.dbg<k, v> string(a (k, v)) to-string<k> to-string<v>
 	"{a from} -> {a to}"
 
-.verify void(a str mut[nat64], expected str)
+.verify void(a string mut[nat64], expected string)
 	a.dbg is expected
 
 test
-	a str mut[nat64] = ()
+	a string mut[nat64] = ()
 
 	a[6] := "6"
 	a[5] is ()
@@ -344,7 +344,7 @@ test
 	a.size is 1
 	# TODO: a.arr is ((6, "6"),)
 	(for pair : a to-list; pair from)::nat64[] is (6,)
-	(for pair : a to-list; pair to)::str[] is ("6",)
+	(for pair : a to-list; pair to)::string[] is ("6",)
 
 	a verify "(6 -> 6)"
 
@@ -366,7 +366,7 @@ test
 
 	# TODO: a.to-list is ((4, "4"), (8, "8"), (6, "six"), (3, "3"))
 	(for pair : a to-list; pair from)::nat64[] is (4, 8, 6, 3)
-	(for pair : a to-list; pair to)::str[] is ("4", "8", "six", "3")
+	(for pair : a to-list; pair to)::string[] is ("4", "8", "six", "3")
 
 	a[12] := "12"
 	a verify "(8 -> 8) _ _ (3 -> 3) [4 -> 4, 12 -> 12] _ (6 -> six) _"
@@ -385,8 +385,8 @@ test
 	a set-map-values (key, value) => "{key}-{value}"
 	a verify "_ _ _ (11 -> 11-11) (12 -> 12-12) _ (6 -> 6-six) _"
 
-.== bool(a str?, b str?)
+.== bool(a string?, b string?)
 	a opt-equal b
 
-.== bool(a str[], b str[])
+.== bool(a string[], b string[])
 	a list-equal b

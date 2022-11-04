@@ -3,22 +3,22 @@ import
 	crow/io/print: out, print
 	audio/read-sound-file: read-sound-file
 	audio/write-sound-file: flac, ogg-vorbis, sound-file-format, wav, write-sound-file
-	audio/sound: format, to-str, with-sample-rate
+	audio/sound: format, to-string, with-sample-rate
 
-main nat^(args arr str) summon unsafe
+main nat^(args string[]) summon unsafe
 	assert args.size == 2 : "Usage: crow run convert-file.crow -- [IN] [OUT]"
 	in-path = args[0]
 	out-path = args[1]
 	ext = out-path.get-extension ?? throw "Output file needs extension"
-	format sound-file-format = default-file-types[ext str-to-sym] ?? throw describe-out-exts.to-c-str
+	format sound-file-format = default-file-types[ext string-to-sym] ?? throw describe-out-exts.to-c-string
 
 	sound = in-path.read-sound-file with-sample-rate 48000
 	out print "sound format is {sound format}"
 	out-path write-sound-file sound, format
 	()
 
-.describe-out-exts str()
-	supported = ", " join for key : default-file-types keys; key to-str
+.describe-out-exts string()
+	supported = ", " join for key : default-file-types keys; key to-string
 	"Supported output file extensions: {supported}"
 
 .default-file-types sound-file-format[sym]()

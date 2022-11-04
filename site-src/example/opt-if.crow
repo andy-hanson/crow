@@ -2,12 +2,12 @@ import
 	crow/io/print: out, print
 	crow/reader: parse-nat
 
-main nat^(_ str[]) summon
+main nat^(_ string[]) summon
 	out print "2".double
 	out print "X".double
 	()
 
-double str(a str)
+double string(a string)
 	if n ?= a parse-nat
 		"{n * 2}"
 	else

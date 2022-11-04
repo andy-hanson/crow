@@ -1,8 +1,8 @@
 no-std
 import
-	crow/str: c-str
+	crow/string: c-string
 	netinet/in: in_addr, in_addr_t
 
-inet_addr in_addr_t(cp c-str) extern<c> summon
+inet_addr in_addr_t(cp c-string) extern<c> summon
 
-inet_ntoa c-str(in in_addr) extern<c> summon
+inet_ntoa c-string(in in_addr) extern<c> summon

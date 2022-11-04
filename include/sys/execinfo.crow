@@ -1,11 +1,11 @@
 no-std
 import
 	crow/c-types: c-int
-	crow/private/bootstrap: c-str
+	crow/private/bootstrap: c-string
 	crow/ptr: any-const-ptr, const-ptr, mut-ptr
 
 # Crow interpreter overrides this
 backtrace c-int(array any-const-ptr mut*, size c-int) unsafe noctx extern<c>
 
 # Crow interpreter overrides this
-backtrace_symbols c-str mut*(array any-const-ptr*, size c-int) unsafe noctx extern<c>
+backtrace_symbols c-string mut*(array any-const-ptr*, size c-int) unsafe noctx extern<c>

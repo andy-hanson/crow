@@ -5,19 +5,19 @@ import
 sqlite3-ptr extern-ptr
 
 sqlite3_open_v2 sqlite3-result(
-	filename c-str,
+	filename c-string,
 	db sqlite3-ptr mut*,
 	open-flags sqlite3-open-flags,
-	zVfs c-str,
+	zVfs c-string,
 ) extern<sqlite3> summon
 sqlite3_close sqlite3-result(db sqlite3-ptr) extern<sqlite3> summon
 
 sqlite3_exec sqlite3-result(
 	db sqlite3-ptr,
-	sql c-str,
-	cb fun-ptr4<c-int, any-mut-ptr, c-int, c-str*, c-str*>,
+	sql c-string,
+	cb fun-ptr4<c-int, any-mut-ptr, c-int, c-string*, c-string*>,
 	cb-arg any-mut-ptr,
-	err-msg c-str mut*,
+	err-msg c-string mut*,
 ) extern<sqlite3> summon
 
 sqlite3_free void(ptr any-mut-ptr) extern<sqlite3> summon

@@ -10,24 +10,24 @@ import
 	./number: ==, float64, int64, nat64, to-float64
 	./opt: new, opt
 	./reader:
-		reader, skip-whitespace, try-take-char, take-float, take-quoted-str, try-take-str, with-reader
-	./str: ==, <=>, ~~, hash-mix, join, literal, quote, str, to-str
+		reader, skip-whitespace, try-take-char, take-float, take-quoted-string, try-take-string, with-reader
+	./string: ==, <=>, ~~, hash-mix, join, literal, quote, string, to-string
 	./test-util: is
 	./tuple: new, pair
 
 ###
 JSON data.
 
-This can be the result of parsing or the input to `to-str`.
+This can be the result of parsing or the input to `to-string`.
 ###
 json union
 	json-bool bool
 	json-number float64
-	json-str str
+	json-string string
 	json-list json[]
-	json-object json[str]
+	json-object json[string]
 
-new json(...pairs array (str, json))
+new json(...pairs array (string, json))
 	pairs.to-list.to-dict json-object
 
 json<a> spec
@@ -41,15 +41,15 @@ json json(a int64)
 	a.to-float64 json
 json json(a float64)
 	a json-number
-json json(a str)
-	a json-str
+json json(a string)
+	a json-string
 json<a> json(a a[]) json<a>
 	(for x : a; x json) json-list
 
 ###
 True iff the two values are deeply equal.
 
-This is equivalent to `a.to-str == b.to-str`.
+This is equivalent to `a.to-string == b.to-string`.
 ###
 == bool(a json, b json)
 	match a
@@ -59,8 +59,8 @@ This is equivalent to `a.to-str == b.to-str`.
 	as json-number fa
 		if fb ?= b as-number
 			fa == fb
-	as json-str sa
-		if sb ?= b as-str
+	as json-string sa
+		if sb ?= b as-string
 			sa == sb
 	as json-list aa
 		if ab ?= b as-list
@@ -82,7 +82,7 @@ as-bool bool?(a json) noctx
 		b,
 	as json-number _
 		()
-	as json-str _
+	as json-string _
 		()
 	as json-list _
 		()
@@ -95,7 +95,7 @@ as-number float64?(a json) noctx
 		()
 	as json-number n
 		n,
-	as json-str _
+	as json-string _
 		()
 	as json-list _
 		()
@@ -104,15 +104,15 @@ as-number float64?(a json) noctx
 ###
 If `a` is a string, returns that, else returns an empty option.
 
-This does not render as JSON; `to-str` does that.
+This does not render as JSON; `to-string` does that.
 ###
-as-str str?(a json) noctx
+as-string string?(a json) noctx
 	match a
 	as json-bool _
 		()
 	as json-number _
 		()
-	as json-str s
+	as json-string s
 		s,
 	as json-list _
 		()
@@ -125,20 +125,20 @@ as-list json[]?(a json) noctx
 		()
 	as json-number _
 		()
-	as json-str _
+	as json-string _
 		()
 	as json-list x
 		x,
 	as json-object _
 		()
 # If `a` is an object, returns that, else returns an empty option.
-as-object json[str]?(a json) noctx
+as-object json[string]?(a json) noctx
 	match a
 	as json-bool _
 		()
 	as json-number _
 		()
-	as json-str _
+	as json-string _
 		()
 	as json-list _
 		()
@@ -149,7 +149,7 @@ as-object json[str]?(a json) noctx
 If `a` is an `object` containing the key `key`, returns the associated value.
 Else, returns an empty option.
 ###
-subscript json?(a json, key str)
+subscript json?(a json, key string)
 	if o ?= a.as-object
 		o[key]
 
@@ -158,20 +158,20 @@ Parse a JSON string.
 
 The parser is strict and does not support trailing commas, comments, keys without quotes, etc.
 ###
-parse-json json?(a str)
+parse-json json?(a string)
 	a with-reader r =>
 		res = r take-json
 		r skip-whitespace
 		res
 
 # Renders a json value to JSON.
-to-str str(a json)
+to-string string(a json)
 	match a
 	as json-bool b
 		"{b}"
 	as json-number f
 		"{f}"
-	as json-str s
+	as json-string s
 		s quote
 	as json-list xs
 		parts = "," join for x : xs; "{x}"
@@ -192,12 +192,12 @@ take-json json?(a reader)
 	a skip-whitespace
 	if f ?= a take-float
 		f.json-number,
-	elif a try-take-str "true"
+	elif a try-take-string "true"
 		true.json-bool,
-	elif a try-take-str "false"
+	elif a try-take-string "false"
 		false.json-bool,
-	elif s ?= a take-quoted-str
-		s.json-str,
+	elif s ?= a take-quoted-string
+		s.json-string,
 	elif a try-take-char "["
 		a skip-whitespace
 		if a try-take-char "]"
@@ -221,8 +221,8 @@ take-json json?(a reader)
 		elif a try-take-char "]"
 			res.move-to-list.json-list,
 
-.take-object-recur json?(a reader, res json mut[str])
-	if key ?= a take-quoted-str
+.take-object-recur json?(a reader, res json mut[string])
+	if key ?= a take-quoted-string
 		a skip-whitespace
 		if a try-take-char ":"
 			if j ?= a take-json
@@ -236,9 +236,9 @@ take-json json?(a reader)
 				else
 					a take-object-recur res
 
-.verify void(a json, s str)
+.verify void(a json, s string)
 	s.parse-json is (a,)
-	a.to-str is s
+	a.to-string is s
 
 test
 	true.json-bool verify "true"
@@ -246,9 +246,9 @@ test
 	-3.0.json-number verify "-3"
 	1.5.json-number verify "1.5"
 	-1.5.json-number verify "-1.5"
-	"j".json-str verify "\"j\""
-	"a\nb".json-str verify "\"a\\nb\""
-	"a\\nb".json-str verify "\"a\\\\nb\""
+	"j".json-string verify "\"j\""
+	"a\nb".json-string verify "\"a\\nb\""
+	"a\\nb".json-string verify "\"a\\\\nb\""
 
 	().json-list verify "[]"
 	(1.0.json-number,).json-list verify "[1]"

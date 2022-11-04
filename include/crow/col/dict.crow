@@ -11,7 +11,7 @@ import
 	../opt: !, is-empty, new, opt, opt-equal
 	../ptr: ==, +, set-deref
 	../range: .., for-loop
-	../str: ==, ~~, join, literal, str, to-str
+	../string: ==, ~~, join, literal, string, to-string
 	../test-util: is
 	../tuple: from, new, pair, to
 	../private/bootstrap: todo
@@ -433,13 +433,13 @@ for-loop<out, k, v> out[](a v[k], f act out(k, v)) trusted is-data<k> compare<k>
 	assert end == res.end-ptr
 	res.cast-immutable to-list
 
-.dbg<k, v> str(a v[k]) to-str<k> to-str<v>
+.dbg<k, v> string(a v[k]) to-string<k> to-string<v>
 	a.root dbg ""
 
-.dbg<k, v> str(a node<k, v>, path str) to-str<k> to-str<v>
+.dbg<k, v> string(a node<k, v>, path string) to-string<k> to-string<v>
 	match a
 	as inner-node node
-		parts str[][] = for index : 0 .. node.size
+		parts string[][] = for index : 0 .. node.size
 			child = node[index]
 			unless child node-is-empty
 				(child dbg "{path}{index}"),
@@ -449,14 +449,14 @@ for-loop<out, k, v> out[](a v[k], f act out(k, v)) trusted is-data<k> compare<k>
 			"{pair from} -> {pair to}"
 		"{path}[{parts}]"
 
-verify void(a str[nat64], expected str)
+verify void(a string[nat64], expected string)
 	a.dbg is expected
 
-.== bool(a str?, b str?)
+.== bool(a string?, b string?)
 	a opt-equal b
 
 test
-	l0 str[nat64] = ()
+	l0 string[nat64] = ()
 	l0.is-empty is true
 	l0.size is 0
 	l0 verify "[]"

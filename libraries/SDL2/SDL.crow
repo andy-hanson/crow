@@ -5,7 +5,7 @@ import
 	crow/c-types: c-int
 	crow/misc: void
 	crow/number: nat32
-	crow/str: c-str
+	crow/string: c-string
 
 SDL_Init c-int(init-flags SDL_Init_flags) extern<SDL2> summon
 
@@ -21,4 +21,4 @@ SDL_Init_flags flags<nat32> extern
 
 SDL_Quit void() extern<SDL2> summon
 
-SDL_GetError c-str() extern<SDL2> summon
+SDL_GetError c-string() extern<SDL2> summon

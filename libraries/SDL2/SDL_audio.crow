@@ -5,7 +5,7 @@ import
 	crow/misc: void
 	crow/number: nat8, nat16, nat32
 	crow/ptr: any-mut-ptr, const-ptr, mut-ptr, null
-	crow/str: c-str
+	crow/string: c-string
 
 SDL_AudioFormat alias
 	nat16
@@ -33,10 +33,10 @@ SDL_AudioSpec record extern by-val mut
 new SDL_AudioSpec() noctx unsafe
 	0, 0, 0, 0, 0, 0, 0, null, null
 
-SDL_GetAudioDeviceName c-str(index c-int, iscapture c-int) extern<SDL2> summon
+SDL_GetAudioDeviceName c-string(index c-int, iscapture c-int) extern<SDL2> summon
 
 SDL_OpenAudioDevice SDL_AudioDeviceID(
-	device c-str,
+	device c-string,
 	iscapture c-int,
 	desired SDL_AudioSpec*,
 	obtained SDL_AudioSpec mut*,

@@ -4,7 +4,7 @@ import
 	crow/fun-util: fun-ptr0, fun-ptr1, fun-ptr2, fun-ptr3, fun-ptr4, fun-ptr6, fun-ptr9, subscript
 	crow/misc: void
 	crow/ptr: ==, any-const-ptr, as-fun-ptr, const-ptr, mut-ptr, null
-	crow/str: ~~, c-str, literal, to-c-str, to-str
+	crow/string: ~~, c-string, literal, to-c-string, to-string
 	SDL2/SDL_video: SDL_GL_GetProcAddress
 	./headers:
 		GLbitfield, GLboolean, GLchar, GLenum, GLfloat, GLint, GLintptr, GLsizei, GLsizeiptr, GLuint
@@ -244,7 +244,7 @@ new gl-ext() unsafe summon
 	glVertexAttribPointer fun-ptr6<void, GLuint, GLint, GLenum, GLboolean, GLsizei, any-const-ptr> = "glVertexAttribPointer".load as-fun-ptr
 	glActiveTexture, glAttachShader, glBindBuffer, glBindTexture, glBufferData, glBufferSubData, glClear, glClearColor, glCompileShader, glCreateProgram, glCreateShader, glCullFace, glDeleteBuffers, glDeleteProgram, glDeleteShader, glDeleteTextures, glDrawArrays, glEnable, glEnableVertexAttribArray, glGenBuffers, glGenTextures, glGetError, glGetProgramInfoLog, glGetProgramiv, glGetShaderInfoLog, glGetShaderiv, glGetUniformLocation, glLinkProgram, glShaderSource, glTexImage2D, glTexParameteri, glUniform1i, glUniformMatrix3fv, glUseProgram, glVertexAttribPointer
 
-.load any-const-ptr(name c-str) unsafe summon
+.load any-const-ptr(name c-string) unsafe summon
 	proc = name SDL_GL_GetProcAddress
 	forbid proc == null : "Could not find {name}"
 	proc

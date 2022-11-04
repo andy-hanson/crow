@@ -6,7 +6,7 @@ import
 	../../number: ==, nat64
 	../../opt: !
 	../../ptr: size-of
-	../../str: ==, ~~, join, literal, str, to-str
+	../../string: ==, ~~, join, literal, string, to-string
 	../../test-util: is
 	../../tuple: a, b
 	../array: array, for-loop, is-empty
@@ -17,31 +17,31 @@ import
 dummy-list-tests nat64()
 	0
 
-.verify<a> void(a a[], expected str) no-doc trusted to-str<a>
+.verify<a> void(a a[], expected string) no-doc trusted to-string<a>
 	a.dbg is expected
 	a.get-root check-structure
 
-.dbg<a> str(a a[]) to-str<a> no-doc
+.dbg<a> string(a a[]) to-string<a> no-doc
 	a.get-root dbg-l0
-.dbg-l0<a> str(a l0 a) to-str<a>
+.dbg-l0<a> string(a l0 a) to-string<a>
 	a.node dbg-node (x => x dbg-arr), (x => x dbg-l1)
-.dbg-l1<a> str(a l1 a) to-str<a>
+.dbg-l1<a> string(a l1 a) to-string<a>
 	a.node dbg-node (x => x dbg-arr2d), (x => x dbg-l2)
-.dbg-l2<a> str(a l2 a) to-str<a>
+.dbg-l2<a> string(a l2 a) to-string<a>
 	a.nodes dbg-arr3d
-.dbg-node<a, lower> str(a node<a, lower>, dbg-a act str(array a), dbg-lower act str(lower))
+.dbg-node<a, lower> string(a node<a, lower>, dbg-a act string(array a), dbg-lower act string(lower))
 	match a
 	as leaf l
 		dbg-a[l]
 	as branch b
 		"({dbg-a[b left]} {dbg-lower[b down]} {dbg-a[b right]})"
-.dbg-arr<a> str(a array a) to-str<a>
+.dbg-arr<a> string(a array a) to-string<a>
 	parts = " " join for x : a.to-list; "{x}"
 	"[{parts}]"
-.dbg-arr2d<a> str(a array array a) to-str<a>
+.dbg-arr2d<a> string(a array array a) to-string<a>
 	parts = " " join for x : a.to-list; x dbg-arr
 	"[{parts}]"
-.dbg-arr3d<a> str(a array array array a) to-str<a>
+.dbg-arr3d<a> string(a array array array a) to-string<a>
 	parts = " " join for x : a.to-list; x dbg-arr2d
 	"[{parts}]"
 
@@ -116,8 +116,8 @@ test
 .big big-nat(a nat64)
 	a, a, a
 
-.to-str str(a big-nat)
-	a.a to-str
+.to-string string(a big-nat)
+	a.a to-string
 
 test
 	assert size-of@<big-nat> == 24

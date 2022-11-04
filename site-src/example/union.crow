@@ -1,7 +1,7 @@
 import
 	crow/io/print: out, print
 
-main nat^(_ str[]) summon
+main nat^(_ string[]) summon
 	out print "crow".describe
 	out print "dr. mario".describe
 	out print "soap".describe
@@ -9,17 +9,17 @@ main nat^(_ str[]) summon
 
 entity union
 	bird bird
-	doctor str
+	doctor string
 	unknown
 
 bird enum
 	crow
 	seagull
 
-describe str(a str)
+describe string(a string)
 	"{a}: {a.parse greet}"
 
-parse entity(a str)
+parse entity(a string)
 	if d ?= a try-remove-start "dr. "
 		d doctor
 	elif b ?= a.to-enum :: bird?
@@ -27,10 +27,10 @@ parse entity(a str)
 	else
 		unknown
 
-greet str(a entity)
+greet string(a entity)
 	match a
 	as bird b
-		"hello, you {b enum-to-str}"
+		"hello, you {b enum-to-string}"
 	as doctor d
 		"greetings, doctor {d}"
 	as unknown

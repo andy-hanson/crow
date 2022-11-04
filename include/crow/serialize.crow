@@ -7,11 +7,11 @@ For JSON serialization, see the `crow/json` module.
 no-std
 import
 	./bits: &, |, <<, >>
-	./col/list: ==, fold, list, list-cast, new, size, strip-left-while, subscript
+	./col/list: ==, fold, list, new, size, strip-left-while, subscript
 	./compare: <, <=
 	./number: ==, <=>, int64, max-int64, nat8, nat32, nat64, to-nat8, to-int64, to-nat32, to-nat64
 	./range: ..
-	./str: char8, str
+	./string: as-string, string
 	./test-util: is
 	./private/bootstrap: todo
 
@@ -30,8 +30,8 @@ to-bytes nat8[](a nat8[])
 from-bytes nat8[](a nat8[])
 	a
 
-from-bytes str(a nat8[]) trusted
-	a.list-cast@<char8, nat8> str
+from-bytes string(a nat8[]) trusted
+	a as-string
 
 ###
 Convert a number to a nat8[] simply by taking its component bytes in big-endian order.

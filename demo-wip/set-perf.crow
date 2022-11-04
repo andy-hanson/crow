@@ -16,13 +16,13 @@ import
 	crow/private/bootstrap: todo
 	crow/reader: parse-nat
 
-main nat^(args str[]) summon unsafe
+main nat^(args string[]) summon unsafe
 	if args.size < 4
 		err print "Usage: set-perf dict add iters max-value"
 		()
 	else
-		col-kind col-kind = args[0].str-to-sym.to-enum!
-		test-kind test-kind = args[1].str-to-sym.to-enum!
+		col-kind col-kind = args[0].string-to-sym.to-enum!
+		test-kind test-kind = args[1].string-to-sym.to-enum!
 		iters = args[2].parse-nat!
 		max-value = args[3].parse-nat!
 

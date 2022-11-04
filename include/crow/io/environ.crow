@@ -3,40 +3,39 @@ import
 	unistd: __environ
 	../col/dict: dict
 	../col/mut-dict: move-to-dict, mut-dict, new, set-subscript
-	../col/list: to-list
 	../col/private/array-low-level: array-from-begin-end
 	../misc: new, void
 	../private/bootstrap: todo
-	../private/c-str-util: find-char-in-c-str, find-c-str-end
+	../private/c-string-util: find-char-in-c-string, find-c-string-end
 	../ptr: ==, +, *, const-ptr, null
-	../str: ==, <=>, c-str, hash-mix, str
+	../string: ==, <=>, as-string, c-string, hash-mix, string
 	../tuple: from, new, pair, to
 
 # Represents the environment variables available to this process.
 environ alias
-	str[str]
+	string[string]
 
-get-environ-raw c-str*() summon unsafe
+get-environ-raw c-string*() summon unsafe
 	__environ
 
 # Get all environment variables for this process.
 get-environ environ() summon trusted
-	res str mut[str] = ()
+	res string mut[string] = ()
 	get-environ-raw get-environ-recur res
 	res move-to-dict
 
-.get-environ-recur void(env c-str*, res str mut[str]) unsafe
+.get-environ-recur void(env c-string*, res string mut[string]) unsafe
 	unless *env == null
 		entry = env->parse-environ-entry
 		res[entry from] := entry to
 		env + 1 get-environ-recur res
 
-.parse-environ-entry (str, str)(entry c-str) unsafe
-	if key-end ?= entry find-char-in-c-str "="
-		key = (entry array-from-begin-end key-end).to-list str
+.parse-environ-entry (string, string)(entry c-string) unsafe
+	if key-end ?= entry find-char-in-c-string "="
+		key = entry array-from-begin-end key-end as-string
 		value-begin = key-end + 1
-		value-end = value-begin find-c-str-end
-		value = (value-begin array-from-begin-end value-end).to-list str
+		value-end = value-begin find-c-string-end
+		value = value-begin array-from-begin-end value-end as-string
 		key, value
 	else
 		todo

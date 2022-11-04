@@ -1,0 +1,40 @@
+no-std
+import
+	../number: ==, +, nat64
+	../ptr: +, -, *, as-const, as-mut, mut-ptr
+	./bootstrap: char8, c-string, none, opt, some, to-nat8
+
+###
+Walk a c-string and return a pointer to the first occurrence of `c`.
+If that is not found, return an empty option.
+###
+find-char-in-c-string c-string?(a c-string, c char8) unsafe noctx
+	cur mut = a
+	loop
+		if cur->to-nat8 == c.to-nat8
+			break cur some
+		elif cur->to-nat8 == 0
+			break none
+		else
+			cur := cur + 1
+			continue
+
+# Pointer to the end of a c-string.
+find-c-string-end c-string(a c-string) unsafe noctx
+	cur mut = a
+	loop
+		if cur->to-nat8 == 0
+			break cur
+		else
+			cur := cur + 1
+			continue
+
+# Pointer to the end of a c-string.
+find-c-string-end char8 mut*(a char8 mut*) unsafe noctx
+	a.as-const.find-c-string-end as-mut
+
+c-string-size nat64(a c-string) unsafe noctx
+	a.find-c-string-end - a
+
+c-string-size-incl-nul nat64(a c-string) unsafe noctx
+	a.c-string-size + 1

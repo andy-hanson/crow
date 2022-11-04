@@ -8,7 +8,7 @@ import
 		failure, flat-map-with-max-size, handle-output, max-failures, match-test, new,
 		overwrite-output, print-tests, test-options
 
-run-crow-tests result<str, failure[]>(path str, path-to-crow str, options test-options) summon
+run-crow-tests result<string, failure[]>(path string, path-to-crow string, options test-options) summon
 	tests = path list-tests options.match-test
 	failures = tests flat-map-with-max-size options.max-failures, x =>
 		path-to-crow run-single-crow-test x, options
@@ -17,24 +17,24 @@ run-crow-tests result<str, failure[]>(path str, path-to-crow str, options test-o
 	else
 		failures err
 
-.list-tests str[](path str, match-test str) summon
-	res str mut[] = ()
+.list-tests string[](path string, match-test string) summon
+	res string mut[] = ()
 	path each-child-recursive child =>
 		if child contains-substr match-test && child.ext-is-crow && !child.is-excluded
 			res ~= child
 	res move-to-list
 
 # Some tests have different output on Windows
-.is-excluded bool(a str) trusted
+.is-excluded bool(a string) trusted
 	if is-windows
 		a ends-with "/fail.crow" || a ends-with "/gc.crow"
 
-.ext-is-crow bool(a str)
+.ext-is-crow bool(a string)
 	if ext ?= a.base-name get-extension
 		ext == "crow"
 
-.run-single-crow-test failure[](path-to-crow str, path str, options test-options) summon trusted
-	op failure[]? = ("ast", "model")::str[] find-and-get print-kind =>
+.run-single-crow-test failure[](path-to-crow string, path string, options test-options) summon trusted
+	op failure[]? = ("ast", "model")::string[] find-and-get print-kind =>
 		if options print-tests
 			out print "crow print {print-kind} {path}"
 		res = print-kind run-print-test path-to-crow, path, options.overwrite-output
@@ -55,9 +55,9 @@ run-crow-tests result<str, failure[]>(path str, path-to-crow str, options test-o
 	failures failure[]
 
 .run-print-test print-test-result(
-	print-kind str,
-	path-to-crow str,
-	path str,
+	print-kind string,
+	path-to-crow string,
+	path string,
 	overwrite-output bool,
 ) summon
 	res = path-to-crow spawn-and-wait-result ("print", print-kind, path)
@@ -87,12 +87,12 @@ run-kind enum
 	jit
 
 .run-single-runnable-test failure[](
-	path-to-crow str,
-	path str,
+	path-to-crow string,
+	path string,
 	run-kind run-kind,
 	overwrite-output bool,
 ) summon
-	args str[] = match run-kind
+	args string[] = match run-kind
 	as interpret
 		"run", path
 	as jit
@@ -112,7 +112,7 @@ run-kind enum
 		path handle-output err-path, res.stderr, overwrite-output
 	stdout-failures ~~ stderr-failures
 
-remove-colors str(a str)
+remove-colors string(a string)
 	if pair ?= a try-split-once "\x1b"
 		pair.a ~~ if pair2 ?= pair.b try-split-once "m"
 			pair2.b remove-colors

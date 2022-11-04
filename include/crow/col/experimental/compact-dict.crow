@@ -10,7 +10,7 @@ import
 	../../opt: is-empty, new, opt, opt-equal
 	../../ptr: ==, +, ref-eq, set-deref
 	../../range: ..
-	../../str: ==, ~~, join, literal, str, to-str
+	../../string: ==, ~~, join, literal, string, to-string
 	../../test-util: is
 	../../tuple: from, new, pair, pair-equal, to
 	../array: array, every, for-loop, size, subscript
@@ -198,13 +198,13 @@ for-loop<a, k, v> a[](a compact-dict<k, v>, f act a(k, v)) trusted is-data<k> co
 	assert end == res.end-ptr
 	res.cast-immutable to-list
 
-.dbg<k, v> str(a compact-dict<k, v>) to-str<k> to-str<v>
+.dbg<k, v> string(a compact-dict<k, v>) to-string<k> to-string<v>
 	a.impl dbg
-.dbg<k, v> str(a impl<k, v>) to-str<k> to-str<v>
+.dbg<k, v> string(a impl<k, v>) to-string<k> to-string<v>
 	match a
 	as overlay o
 		parts = ", " join for k, v : o pairs
-			# TODO: v?.to-str ?? "_"
+			# TODO: v?.to-string ?? "_"
 			v-str = if val ?= v
 				"{val}"
 			else
@@ -216,7 +216,7 @@ for-loop<a, k, v> a[](a compact-dict<k, v>, f act a(k, v)) trusted is-data<k> co
 			"{k} -> {v}"
 		"[{parts}]"
 
-verify void(a compact-dict<nat64, str>, expected str)
+verify void(a compact-dict<nat64, string>, expected string)
 	dbg = a dbg
 	unless dbg == expected
 		info log "expected:"
@@ -227,10 +227,10 @@ verify void(a compact-dict<nat64, str>, expected str)
 	for k, v : a
 		a[k] is (v,)
 
-.== bool(a str?, b str?)
+.== bool(a string?, b string?)
 	a opt-equal b
 
-.exact-eq bool(a compact-dict<nat64, str>, b compact-dict<nat64, str>) unsafe
+.exact-eq bool(a compact-dict<nat64, string>, b compact-dict<nat64, string>) unsafe
 	match a impl
 	as overlay oa
 		match b impl
@@ -243,7 +243,7 @@ verify void(a compact-dict<nat64, str>, expected str)
 		as overlay _
 			false
 		as end-node eb
-			# TODO: ea.to-array::array<(nat64, str)> arr-equal@<(nat64, str)> eb.to-array::array<(nat64, str)>
+			# TODO: ea.to-array::array<(nat64, string)> arr-equal@<(nat64, string)> eb.to-array::array<(nat64, string)>
 			pa = ea to-array
 			pb = eb to-array
 			bs array bool = for i : 0 .. pa.size
@@ -251,7 +251,7 @@ verify void(a compact-dict<nat64, str>, expected str)
 			bs every x => x
 
 test
-	a compact-dict<nat64, str> = ()
+	a compact-dict<nat64, string> = ()
 	a.is-empty is true
 	a.size is 0
 	a verify "[]"

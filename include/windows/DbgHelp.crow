@@ -4,7 +4,7 @@ import
 	crow/c-types: c-char
 	crow/fun-util: fun-ptr2, fun-ptr3, fun-ptr5
 	crow/number: nat32, to-nat32
-	crow/private/bootstrap: c-str
+	crow/private/bootstrap: c-string
 	crow/ptr: *, any-const-ptr, any-mut-ptr, const-ptr, mut-ptr, null, size-of
 	win32: CONTEXT, DWORD, DWORD64, HANDLE, Rbp, Rip, Rsp, WORD
 
@@ -86,7 +86,7 @@ IMAGEHLP_LINE64 record extern by-val
 	SizeOfStruct DWORD
 	Key any-const-ptr
 	LineNumber DWORD
-	FileName c-str
+	FileName c-string
 	Address DWORD64
 
 new IMAGEHLP_LINE64() noctx unsafe
@@ -155,7 +155,7 @@ StackWalk64 bool(
 SymFunctionTableAccess64 any-const-ptr(hProcess HANDLE, AddrBase DWORD64) extern<DbgHelp>
 
 # A process that calls SymInitialize should not call it again unless it calls SymCleanup first
-SymInitialize bool(hProcess HANDLE, UserSearchPath c-str, fInvadeProcess bool) extern<DbgHelp>
+SymInitialize bool(hProcess HANDLE, UserSearchPath c-string, fInvadeProcess bool) extern<DbgHelp>
 SymCleanup bool(hProcess HANDLE) extern<DbgHelp>
 
 SymSetOptions DWORD(SymOptions SymOptions) extern<DbgHelp>

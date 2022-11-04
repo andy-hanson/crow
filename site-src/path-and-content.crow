@@ -1,4 +1,4 @@
 path-and-content record
 	# relative to 'site'
-	out-path str
-	content str
+	out-path string
+	content string

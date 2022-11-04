@@ -1,14 +1,14 @@
 no-std
 import
 	../col/dict: dict, empty-dict
-	../exception: exception, to-str
+	../exception: exception, to-string
 	../io/print: err, print, print-no-newline
 	../io/private/time-low-level: get-monotime-nsec, timestamp
 	../misc: void
 	../number: ==, nat64
 	../opt: new, opt
 	../ptr: *, by-val, mut-ptr, set-deref
-	../str: literal, str
+	../string: literal, string
 	../version: is-wasm
 	./alloc:
 		gc, init, needs-gc, return-gc-ctx, run-garbage-collection, set-gc-ctx-for-thread, uninit
@@ -85,7 +85,7 @@ free void(a global-ctx) noctx unsafe
 gc-root record mut by-ref
 	# protected by 'tasks-lock' on the global ctx
 	tasks mut by-val task-queue
-	syms-table mut sym[str]
+	syms-table mut sym[string]
 	# If there's an uncaught exception (e.g. in 'call-ref-and-drop'), we'll call this.
 	# Default is to print it and set `gctx.any-unhandled-exceptions`
 	exception-handler mut fun void(exception)
@@ -95,9 +95,9 @@ gc-root record mut by-ref
 .init void(a gc-root) noctx unsafe
 	(&a.tasks)::task-queue init
 
-syms-table sym[str](a global-ctx) trusted noctx
+syms-table sym[string](a global-ctx) trusted noctx
 	(&a.gc-root)::gc-root syms-table
-set-syms-table void(a global-ctx, value sym[str]) trusted noctx
+set-syms-table void(a global-ctx, value sym[string]) trusted noctx
 	(&a.gc-root)::gc-root.syms-table := value
 
 .tasks task-queue(a global-ctx) noctx unsafe
@@ -111,7 +111,7 @@ new-exclusion exclusion(v global-ctx) noctx trusted
 
 default-exception-handler void(e exception) summon unsafe
 	err print-no-newline "uncaught exception: "
-	err print e.to-str
+	err print e.to-string
 	get-global-ctx.any-unhandled-exceptions := true
 
 # TODO: move to exception.crow ?

@@ -2,8 +2,8 @@ import
 	crow/io/print: out, print
 	crow/private/bootstrap: safe-value
 
-main nat^(_ str[]) summon
-	s = safe-value::act nat(str)
-	out print s["hello"].to-str
+main nat^(_ string[]) summon
+	s = safe-value::act nat(string)
+	out print s["hello"].to-string
 	()
 

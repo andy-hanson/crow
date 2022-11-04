@@ -25,19 +25,19 @@ import
 	crow/io/process: new, process-result
 	crow/io/terminal-color: bold
 	crow/io/time-format: gmt
-	crow/json: json-str
+	crow/json: json-string
 	crow/log: info
 	crow/math/mat: new, mat3-32
 	crow/math/vec: new, vec2-32
 	crow/parse-command: parse-named-args
 	crow/perf: measure-total, new
 	crow/private/number-tests: dummy-number-tests
-	crow/private/str-tests: dummy-str-tests
+	crow/private/string-tests: dummy-string-tests
 	crow/reader: new, reader
 	crow/serialize: from-bytes
 	crow/test-util/test-runner: run-all-tests
 
-main nat^(_ str[]) summon
+main nat^(_ string[]) summon
 	_ = ().from-bytes :: nat8[]
 	_ = quality-moderate
 	_ = bold
@@ -46,7 +46,7 @@ main nat^(_ str[]) summon
 	_ = () :: deque<nat>
 	_ = dummy-list-tests
 	_ = dummy-number-tests
-	_ = dummy-str-tests
+	_ = dummy-string-tests
 	_ = () :: nat[nat]
 	_ = () :: environ
 	_ = () :: frozen-dict<nat, nat>
@@ -76,7 +76,7 @@ main nat^(_ str[]) summon
 	_ = () :: vec2-32
 	_ = () :: queue<nat>
 	_ = gmt
-	_ = "".json-str
+	_ = "".json-string
 	_ = () parse-named-args ()
 	run-all-tests
 	()

@@ -5,19 +5,18 @@ import
 		return-type, spec-ref, spec-sig, specs, target, type-param, type-params, type, type-args,
 		type-ref, union-member, value, variadic
 
-module-content str(a module)
+module-content string(a module)
 	exports = "" join for x : a exports
 		x export-content
 	doc = unless a.doc-comment is-empty
 		"""\n<section class="module-doc">{a.doc-comment format-comment}</section>"""
 	"{a.path module-top}{doc}\n{exports}"
 
-module-top str(path str)
-	# https://github.com/andy-hanson/crow/blob/master/include/crow/bits.crow
+module-top string(path string)
 	url = "https://github.com/andy-hanson/crow/blob/master/include/{path}.crow"
 	"""<h1><code class="module">{path}</code> <a class="source-link" href="{url}">(source)</a></h1>"""
 
-.export-content str(a module-export)
+.export-content string(a module-export)
 	type-params = a.type-params type-params-content
 	header-extra = a.value export-header-extra
 	"""<section class="doc {a.value section-class}">
@@ -27,7 +26,7 @@ module-top str(path str)
 	</section>
 	"""
 
-.section-class str(a module-export-value)
+.section-class string(a module-export-value)
 	match a
 	as alias-decl _
 		"alias"
@@ -48,7 +47,7 @@ module-top str(path str)
 	as union-decl _
 		"union"
 
-.name-class str(a module-export-value)
+.name-class string(a module-export-value)
 	match a
 	as alias-decl _
 		"struct"
@@ -69,13 +68,13 @@ module-top str(path str)
 	as union-decl _
 		"struct"
 
-.type-params-content str(a type-param[])
+.type-params-content string(a type-param[])
 	unless a is-empty
 		type-params = "," join for x : a
 			"""<code class="type-param">{x name}</code>"""
 		"""<span class="type-params">{type-params}</span>"""
 
-.export-header-extra str(a module-export-value)
+.export-header-extra string(a module-export-value)
 	match a
 	as alias-decl _
 		"alias" keyword
@@ -100,7 +99,7 @@ module-top str(path str)
 	as union-decl u
 		"{"union" keyword}{u.purity purity-content}"
 
-.purity-content str(a purity)
+.purity-content string(a purity)
 	match a
 	as p-data
 		""
@@ -109,7 +108,7 @@ module-top str(path str)
 	as p-mut
 		" mut" keyword
 
-.export-body str(a module-export-value)
+.export-body string(a module-export-value)
 	match a
 	as alias-decl al
 		"""<div class="alias-target">{al.target type-ref-content}</div>"""
@@ -142,27 +141,27 @@ module-top str(path str)
 			x union-member-content
 		"""<ul class="members">{members}</ul>"""
 
-.enum-flags-members-content str(a sym[])
+.enum-flags-members-content string(a sym[])
 	members = "" join for x : a
 		"""<li><code class="member">{x}</code></li>"""
 	"""<ul class="members">{members}</ul>"""
 
-.field-content str(a record-field)
+.field-content string(a record-field)
 	name = """<code class="member">{a name}</code>"""
 	mut-kw = a.is-mut ? """ <code class="keyword">mut</code>"""
 	"<li>{name}{mut-kw} {a.type type-ref-content}</li>"
 
-.union-member-content str(a union-member)
+.union-member-content string(a union-member)
 	name = """<code class="member">{a name}</code>"""
 	type = if t ?= a type
 		" {t type-ref-content}"
 	"<li>{name}{type}</li>"
 
-.spec-sig-li str(a spec-sig)
+.spec-sig-li string(a spec-sig)
 	rt = a.return-type return-type-and-params-and-specs false, a.params, ()
 	"""<li class="sig"><code class="fun">{a name}</code> {rt}</li>"""
 
-.return-type-and-params-and-specs str(return-type type-ref, variadic bool, params param[], specs spec-ref[])
+.return-type-and-params-and-specs string(return-type type-ref, variadic bool, params param[], specs spec-ref[])
 	params-content = "," join for x : params
 		x param-content variadic
 	specs-span = unless specs is-empty
@@ -171,17 +170,17 @@ module-top str(path str)
 		"""<span class="specs">{contents}</span>"""
 	"""{return-type type-ref-content}<span class="params">{params-content}</span>{specs-span}"""
 
-.param-content str(a param, variadic bool)
+.param-content string(a param, variadic bool)
 	var = variadic ? """<code class="keyword">...</code>"""
 	"""<span class="param">{var}<code class="param">{a name}</code> {a.type type-ref-content}</span>"""
 
-.type-ref-content str(a type-ref)
+.type-ref-content string(a type-ref)
 	a type-ref-content-recur false
 
-.type-ref-with-subscript str(a type-ref)
+.type-ref-with-subscript string(a type-ref)
 	a type-ref-content-recur true
 
-.type-ref-content-recur str(a type-ref, has-subscript bool)
+.type-ref-content-recur string(a type-ref, has-subscript bool)
 	name = a name
 	if name == "opt"
 		"{a.type-args.only type-ref-with-subscript}{"?" keyword}"
@@ -214,43 +213,43 @@ module-top str(path str)
 			"{name}{a.type-args type-args-content}"
 		"""<code class="struct">{inner}</code>"""
 
-.fun-type str(a type-ref, type str)
+.fun-type string(a type-ref, type string)
 	params = ", " join for x : a.type-args tail
 		x type-ref-content
 	kw = " {type}" keyword
 	"{a.type-args[0] type-ref-with-subscript}{kw}({params})"
 
-.spec-ref-content str(a spec-ref)
+.spec-ref-content string(a spec-ref)
 	"""<span class="spec"><code class="spec">{a name}</code>{a.type-args type-args-content}</span>"""
 
-.type-args-content str(a type-ref[])
+.type-args-content string(a type-ref[])
 	unless a is-empty
 		args = "," join for x : a
 			x type-ref-content
 		"&lt;{args}&gt;"
 
-.keyword str(a str)
+.keyword string(a string)
 	"""<code class="keyword">{a}</code>"""
 
 .only<a> a(a a[])
 	assert a.size == 1
 	a[0]
 
-.format-comment str(a str)
+.format-comment string(a string)
 	"<p>" format-comment-recur text, a
 
 .comment-state enum
 	text
 	code-block
 
-.close-state str(a comment-state)
+.close-state string(a comment-state)
 	match a
 	as text
 		"</p>"
 	as code-block
 		"</div>"
 
-.format-comment-recur str(acc str, state comment-state, a str)
+.format-comment-recur string(acc string, state comment-state, a string)
 	if split ?= a try-split-once-by-fn x => x == "\n" || x == "`"
 		acc2 = "{acc}{split left}"
 		if split.middle == "\n"

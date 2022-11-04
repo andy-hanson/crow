@@ -2,16 +2,18 @@ import
 	crow/io/print: out, print
 	crow/math/vec
 
-main nat^(_ str[]) summon
+main nat^(_ string[]) summon
 	a rect = 0.0, 1.0, 0.0, 1.0
 	b rect = 0.75, 1.75, 0.5, 1.5
 	c rect = 1.5, 2.5, 0.0, 1.0
-	out print (a intersection-or-distance b).to-str
-	out print (b intersection-or-distance c).to-str
-	out print (a intersection-or-distance c).to-str
+	out print """
+	{a intersection-or-distance b}
+	{b intersection-or-distance c}
+	{a intersection-or-distance c}
+	"""
 	()
 
-to-str str(a result<rect, float>)
+to-string string(a result<rect, float>)
 	match a
 	as ok r
 		"intersection: {r bottom-left} to {r top-right}"

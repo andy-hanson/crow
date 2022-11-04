@@ -13,7 +13,7 @@ import
 	../../ptr: ==, +, *, const-ptr, set-deref
 	../../private/number-low-level: wrap-sub
 	../../range: .., for-loop
-	../../str: ==, ~~, join, literal, str, to-hex, to-str
+	../../string: ==, ~~, join, literal, string, to-hex, to-string
 	../../test-util: is
 	../array: array, fold, new, subscript
 	../mut-array: begin-ptr, cast-immutable, end-ptr, mut-array, uninitialized-mut-array
@@ -385,7 +385,7 @@ filter-less index-set(a index-set, limit nat64) trusted
 .bit-index nat64(a nat64) trusted
 	a % 64
 
-to-str str(a index-set)
+to-string string(a index-set)
 	", " join for x : a; "{x}"
 
 region iteration
@@ -434,9 +434,9 @@ for-loop<a> a[](a index-set, f act a(nat64)) trusted
 	assert end == res.end-ptr
 	res.cast-immutable to-list
 
-.dbg str(a index-set)
+.dbg string(a index-set)
 	a.root dbg
-.dbg str(a node)
+.dbg string(a node)
 	match a
 	as inner i
 		"({i.a dbg} {i.b dbg} {i.c dbg} {i.d dbg})"
@@ -445,7 +445,7 @@ for-loop<a> a[](a index-set, f act a(nat64)) trusted
 	as empty
 		"_"
 
-.verify void(a index-set, expected str, expected-list nat64[])
+.verify void(a index-set, expected string, expected-list nat64[])
 	actual = a.dbg
 	unless actual == expected
 		info log "a.dbg is"

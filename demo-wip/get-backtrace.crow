@@ -3,7 +3,7 @@ import
 	crow/private/alloc: get-gc-ctx
 	crow/private/backtrace: entries, get-backtrace
 
-main nat^(_ str[]) summon unsafe
+main nat^(_ string[]) summon unsafe
 	gonna-do-it
 	()
 
@@ -15,4 +15,4 @@ really-gonna-do-it void() summon unsafe
 
 do-it void() summon unsafe
 	for entry : get-gc-ctx get-backtrace 0 entries
-		out print entry.to-str
+		out print entry.to-string

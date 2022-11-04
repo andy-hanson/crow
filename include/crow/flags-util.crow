@@ -4,8 +4,8 @@ import
 	./col/array: array
 	./col/list: for-loop, join, list, new, to-list
 	./misc: name, named-val, val
-	./str: join, literal, str
-	./sym: sym, to-str
+	./string: join, literal, string
+	./sym: sym, to-string
 
 ###
 Spec that will be satisfied by generated functions for any `flags` type.
@@ -39,6 +39,6 @@ to-syms<a> sym[](a a) flags-like<a>
 			member.name,
 
 # Flag names separated by `|`, like `"foo | bar"`.
-flags-to-str<a> str(a a) flags-like<a>
+flags-to-string<a> string(a a) flags-like<a>
 	" | " join for x : a to-syms
-		x to-str
+		x to-string

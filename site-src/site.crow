@@ -2,13 +2,13 @@ import
 	crow/io/file: current-directory, make-directory, make-symlink-to, path-exists, read-file, try-read-file, write-file
 	crow/io/path: child-path, parent-path
 	crow/io/print: out, print
-	crow/json: json, json-object, json-str, to-str
+	crow/json: json, json-object, json-string, to-string
 	./document: documentation
 	./pages: pages
 	./path-and-content: content, out-path, new, path-and-content
 	./search-dir-recursive: remove-include-and-crow, search-dir-recursive
 
-main nat^(_ str[]) summon
+main nat^(_ string[]) summon
 	all-content = documentation ~~ pages ~ include-all
 	for content : all-content
 		content ensure-up-to-date
@@ -23,7 +23,7 @@ main nat^(_ str[]) summon
 		full-out-path.parent-path ensure-directory-recursive
 		full-out-path write-file a.content
 
-.ensure-link void(a link, cwd str) summon
+.ensure-link void(a link, cwd string) summon
 	full-out-path = "site" child-path a.link-path
 	# TODO: check that link target is up to date
 	unless full-out-path path-exists
@@ -32,44 +32,44 @@ main nat^(_ str[]) summon
 		out print "link {full-out-path} -> {full-target}"
 		full-out-path make-symlink-to full-target
 
-.is-up-to-date bool(path str, content str) summon
+.is-up-to-date bool(path string, content string) summon
 	if cur-content ?= path try-read-file
 		cur-content == content
 
-.ensure-directory-recursive void(path str) summon
+.ensure-directory-recursive void(path string) summon
 	unless path == "" || path.path-exists
 		path.parent-path ensure-directory-recursive
 		path make-directory
 
 link record
-	target str
-	link-path str
+	target string
+	link-path string
 
 .all-to-link link[]() summon
 	example = "site-src/example".search-dir-recursive to-links "site-src/"
-	in-src-paths link[] = for x : ("crow.svg", "index.css")::str[]
+	in-src-paths link[] = for x : ("crow.svg", "index.css")::string[]
 		("site-src" child-path x), x
 	script = ("site-src/script" search-dir-recursive x => x ends-with ".js") to-links "site-src/"
 	font = "site-src/font".search-dir-recursive to-links "site-src/"
-	other link[] = for x : ("bin/crow.wasm", "bin/crow.tar.xz", "crow-js/crow.js")::str[]
+	other link[] = for x : ("bin/crow.wasm", "bin/crow.tar.xz", "crow-js/crow.js")::string[]
 		x, x
 	example ~~ in-src-paths ~~ script ~~ font ~~ other
 
 .include-all path-and-content() summon
 	include = "include" search-all-with-content ""
-	pairs (str, json)[] = for x : include
-		x.out-path.remove-include-and-crow, x.content.json-str
-	content = pairs.to-dict.json-object to-str
+	pairs (string, json)[] = for x : include
+		x.out-path.remove-include-and-crow, x.content.json-string
+	content = pairs.to-dict.json-object to-string
 	"include-all.json", content
 
-.search-all-with-content path-and-content[](path str, remove-prefix str) summon
+.search-all-with-content path-and-content[](path string, remove-prefix string) summon
 	path.search-dir-recursive to-paths-and-contents remove-prefix
 
-.to-links link[](targets str[], remove-prefix str)
+.to-links link[](targets string[], remove-prefix string)
 	for target : targets
 		target, target try-remove-start remove-prefix ?? throw "{target} didn't start with {remove-prefix}"
 
-.to-paths-and-contents path-and-content[](paths str[], remove-prefix str) summon
+.to-paths-and-contents path-and-content[](paths string[], remove-prefix string) summon
 	for path : paths
 		if rel-path ?= path try-remove-start remove-prefix
 			rel-path, path.read-file

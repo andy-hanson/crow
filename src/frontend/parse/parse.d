@@ -207,7 +207,7 @@ immutable(Opt!(ImportFileType)) toImportFileType(immutable TypeAst a) =>
 			none!(ImportFileType),
 		(immutable TypeAst.InstStruct x) {
 			switch (x.name.name.value) {
-				case shortSymValue("str"):
+				case shortSymValue("string"):
 					return empty(x.typeArgs)
 						? some(ImportFileType.str)
 						: none!ImportFileType;

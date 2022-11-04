@@ -1,9 +1,9 @@
 import
 	crow/io/print: out, print
 
-main nat^(_ str[]) summon
-	for v : enum-members::arr<named-val<e>>
-		out print v.name.to-str
+main nat^(_ string[]) summon
+	for v : enum-members::array<named-val<e>>
+		out print v.name.to-string
 	()
 
 e enum

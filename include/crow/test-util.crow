@@ -7,7 +7,7 @@ import
 	./compare: equal
 	./misc: void
 	./private/exception-low-level: catch, message
-	./str: ==, literal, str
+	./string: ==, literal, string
 
 ###
 Asserts the the values are equal.
@@ -18,7 +18,7 @@ is<a> void(a a, b a) equal<a>
 ###
 Calls `f` and asserts that it throws an exception with the specified `message`.
 ###
-throws<a> void(f act a(), message str)
+throws<a> void(f act a(), message string)
 	match f catch
 	as ok _
 		throw "Expected to throw an exception"

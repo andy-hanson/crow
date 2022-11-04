@@ -7,7 +7,7 @@ import
 	../number: +, *, ==, <=>, nat64
 	../ptr: ==, +, *, as-const, const-ptr, mut-ptr, set-deref
 	../range: .., for-loop
-	../str: ==, ~~, join, literal, str, to-str
+	../string: ==, ~~, join, literal, string, to-string
 	../test-util: is
 	./mut-array:
 		begin-ptr, copy, end-ptr, exists, mut-array, fold, new, set-map, set-subscript, size,
@@ -47,7 +47,7 @@ new coord()
 	a.x == b.x && a.y == b.y
 
 # `"<x, y>"`
-to-str str(a coord)
+to-string string(a coord)
 	"<{a.x}, {a.y}>"
 
 # `true` if `coord` is a valid coordinate (within the width and height of the grid).
@@ -125,7 +125,7 @@ Each row will have a space in between columns.
 
 This makes no attempt to add padding to ensure columns line up. (TODO?)
 ###
-to-str<a> str(a mut-grid a) to-str<a>
+to-string<a> string(a mut-grid a) to-string<a>
 	"\n" join for row : a.rows
 		" " join for value : row.to-array.to-list
 			"{value}"
@@ -188,8 +188,8 @@ set-map-with-coords<a> void(a mut-grid a, f act a(a, coord)) trusted
 		new-x, a.y
 
 test
-	a mut-grid str = 3 make-mut-grid 2, (x, y) => "{x}|{y}"
-	a.to-str is "0|0 1|0 2|0\n0|1 1|1 2|1"
+	a mut-grid string = 3 make-mut-grid 2, (x, y) => "{x}|{y}"
+	a.to-string is "0|0 1|0 2|0\n0|1 1|1 2|1"
 
 	folded = "S" fold-with-coords a, (acc, value, coord) => "{acc} {value}/{coord}"
 	folded is "S 0|0/<0, 0> 1|0/<1, 0> 2|0/<2, 0> 0|1/<0, 1> 1|1/<1, 1> 2|1/<2, 1>"

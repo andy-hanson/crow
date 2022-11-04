@@ -8,8 +8,8 @@ import
 	./lint: lint
 	./crow-tests: run-crow-tests
 
-main nat^(args str[]) summon
-	option-names str[] = "print-tests", "overwrite-output", "max-failures", "match"
+main nat^(args string[]) summon
+	option-names string[] = "print-tests", "overwrite-output", "max-failures", "match"
 	if values ?= args parse-named-args option-names
 		print-tests-strs = values[0]
 		overwrite-output-strs = values[1]
@@ -49,5 +49,5 @@ options:
 	all-failures = crow-failures first-failures () => crow-dir lint options
 	all-failures print-failures options
 
-.crow-path str(crow-dir str) trusted
+.crow-path string(crow-dir string) trusted
 	crow-dir child-path "bin" child-path "crow" ~~ (is-windows ? ".exe" : "")

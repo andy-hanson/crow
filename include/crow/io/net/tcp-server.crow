@@ -24,7 +24,7 @@ import
 	../../private/bootstrap: todo
 	../../ptr: by-val, mut-ptr, ptr-cast-to-extern, size-of
 	../../range: ..
-	../../str: literal, str
+	../../string: literal, string
 	../../version: is-windows
 	../duration: msec
 	../posix-util: check-posix-error
@@ -48,7 +48,7 @@ tcp-handler record sendable
 Starts running a TCP server on the given port.
 Once the function returns, it is already serving requests.
 ###
-start-tcp-server tcp-server(port str, handler tcp-handler) unsafe summon
+start-tcp-server tcp-server(port string, handler tcp-handler) unsafe summon
 	sock = port bind-to-port
 	max-connections int32 = 1000
 	sock listen max-connections check-posix-error

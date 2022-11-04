@@ -4,7 +4,7 @@ import
 	crow/misc: void
 	crow/number: nat32
 	crow/ptr: any-mut-ptr, mut-ptr
-	crow/str: str, to-c-str
+	crow/string: string, to-c-string
 	./SDL_pixels: SDL_PixelFormat
 	./SDL_rect: SDL_Rect
 	./SDL_rwops: SDL_RWFromFile, SDL_RWops
@@ -28,8 +28,8 @@ SDL_Surface record mut by-ref extern
 
 SDL_LoadBMP_RW SDL_Surface(src SDL_RWops, freesrc c-int) extern<SDL2> summon
 
-SDL_LoadBMP SDL_Surface(file str) summon unsafe
-	file.to-c-str SDL_RWFromFile "rb" SDL_LoadBMP_RW 1
+SDL_LoadBMP SDL_Surface(file string) summon unsafe
+	file.to-c-string SDL_RWFromFile "rb" SDL_LoadBMP_RW 1
 
 SDL_ConvertSurfaceFormat SDL_Surface(
 	src SDL_Surface,

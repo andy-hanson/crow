@@ -1,11 +1,11 @@
 module record
-	path str
-	doc-comment str
+	path string
+	doc-comment string
 	exports module-export[]
 
 module-export record
 	name sym
-	doc-comment str
+	doc-comment string
 	type-params type-param[]
 	value module-export-value
 
@@ -60,7 +60,7 @@ spec-body union
 	spec-sigs spec-sig[]
 
 spec-sig record
-	comment str
+	comment string
 	name sym
 	return-type type-ref
 	params param[]

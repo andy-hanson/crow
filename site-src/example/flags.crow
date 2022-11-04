@@ -1,13 +1,13 @@
 import
 	crow/io/print: out, print
 
-main nat^(_ str[]) summon
+main nat^(_ string[]) summon
 	x = shoes
-	out print "{x flags-to-str} receives service? {x receives-service}"
+	out print "{x flags-to-string} receives service? {x receives-service}"
 	y = x | shirt
-	out print "{y flags-to-str} receives service? {y receives-service}"
-	out print "negate: {~y flags-to-str}"
-	out print "take off shoes: {y & ~shoes flags-to-str}"
+	out print "{y flags-to-string} receives service? {y receives-service}"
+	out print "negate: {~y flags-to-string}"
+	out print "take off shoes: {y & ~shoes flags-to-string}"
 	()
 
 clothes flags

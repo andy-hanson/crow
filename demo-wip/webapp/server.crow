@@ -3,17 +3,17 @@ import
 	crow/io/net/http-server: http-handler, http-server, with-block
 	crow/io/net/http-types:
 		headers, http-bad-query, http-forbidden, http-not-found, http-ok, http-request,
-		http-response, method, request-body-str, url
+		http-response, method, request-body-string, url
 	crow/io/print: err, out, print
 	crow/io/stdin: read-stdin
-	crow/json: json, new, to-str
+	crow/json: json, new, to-string
 	crow/reader: parse-nat
 	./db:
 		add-post, content, cookie-expire-seconds, db, list-posts, list-users, login, open-real-db,
-		post, post-info, parse-user-cookie, register-user, to-str, user, user-info, user-name,
+		post, post-info, parse-user-cookie, register-user, to-string, user, user-info, user-name,
 		with-block
 
-main nat^(args str[]) unsafe summon
+main nat^(args string[]) unsafe summon
 	if args.size == 1
 		port = args[0]
 		with db : open-real-db
@@ -38,27 +38,27 @@ main nat^(args str[]) unsafe summon
 		elif path == "/index.js"
 			"demo-wip/webapp/index.js".read-file http-ok
 		elif path == "/posts"
-			(("posts", db.list-posts.json),)::json.to-str http-ok
+			(("posts", db.list-posts.json),)::json.to-string http-ok
 		elif path == "/user-name"
 			user = (query parse-query ("user",))[0].parse-nat!
 			db user-name user http-ok
 		elif path == "/users"
-			(("users", db.list-users.json),)::json.to-str http-ok
+			(("users", db.list-users.json),)::json.to-string http-ok
 		else
 			http-not-found
 	as http-post
 		if path == "/register"
-			args = req.request-body-str parse-query ("user-name", "password")
+			args = req.request-body-string parse-query ("user-name", "password")
 			user-name = args[0]
 			password = args[1]
 			match db register-user user-name, password
 			as register-user-success user-id
 				# We need to get: user-name and password
-				(("userId", user-id.json),)::json.to-str http-ok
+				(("userId", user-id.json),)::json.to-string http-ok
 			as user-already-exists
 				"User already exists" http-bad-query
 		elif path == "/login"
-			args = req.request-body-str parse-query ("user-name", "password")
+			args = req.request-body-string parse-query ("user-name", "password")
 			user-name = args[0]
 			password = args[1]
 			match db login user-name, password
@@ -75,8 +75,8 @@ main nat^(args str[]) unsafe summon
 		elif path == "/post"
 			if cookie ?= req.headers["Cookie"]
 				user-cookie = (cookie parse-cookie "login").parse-user-cookie!
-				post = db add-post user-cookie, req.request-body-str
-				(("postId", post.json),)::json.to-str http-ok
+				post = db add-post user-cookie, req.request-body-string
+				(("postId", post.json),)::json.to-string http-ok
 			else
 				"No login cookie" http-forbidden
 		else
@@ -85,19 +85,19 @@ main nat^(args str[]) unsafe summon
 	#200, "OK", dict, "Your request:\n{descr}"
 
 url record
-	path str
-	query str
+	path string
+	query string
 
-split-url url(url-str str)
-	if split ?= url-str try-split-once "?"
+split-url url(url-string string)
+	if split ?= url-string try-split-once "?"
 		split.a, split.b
 	else
-		url-str, ""
+		url-string, ""
 
 # Extra cookies are ignored
-parse-cookies str[](cookies-str str, cookie-names str[])
-	res str? mut[] = cookie-names.size fill-mut-list ()
-	for part : cookies-str split-by "; "
+parse-cookies string[](cookies-string string, cookie-names string[])
+	res string? mut[] = cookie-names.size fill-mut-list ()
+	for part : cookies-string split-by "; "
 		if pair ?= part try-split-once "="
 			if index ?= cookie-names index-of pair.a
 				res[index] := pair.b,
@@ -105,11 +105,11 @@ parse-cookies str[](cookies-str str, cookie-names str[])
 	for index : 0 .. res.size
 		res[index] ?? throw "Did not get cookie value for {cookie-names[index]}"
 
-parse-cookie str(cookies-str str, cookie-name str)
-	(cookies-str parse-cookies (cookie-name,))[0]
+parse-cookie string(cookies-string string, cookie-name string)
+	(cookies-string parse-cookies (cookie-name,))[0]
 
-parse-query str[](s str, arg-names str[])
-	res str? mut[] = arg-names.size fill-mut-list ()
+parse-query string[](s string, arg-names string[])
+	res string? mut[] = arg-names.size fill-mut-list ()
 	for part : s split-by "&"
 		if pair ?= part try-split-once "="
 			if index ?= arg-names index-of pair.a

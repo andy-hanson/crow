@@ -2,10 +2,10 @@ import
 	crow/cell
 	crow/io/print: out, print
 
-main nat^(_ str[]) summon
-	xs list str = "crow", "raven"
+main nat^(_ string[]) summon
+	xs string[] = "crow", "raven"
 	count cell nat = 0,
-	ys list str = for x : xs
+	ys string[] = for x : xs
 		"{count get-and-incr}: {x}"
 	out print ("; " join ys)
 	()

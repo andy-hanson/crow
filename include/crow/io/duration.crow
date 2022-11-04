@@ -2,7 +2,7 @@ no-std
 import
 	../compare: >=
 	../number: ==, <=>, *, /, float64
-	../str: ~~, literal, str, to-str
+	../string: ~~, literal, string, to-string
 
 # Represents an amount of time.
 duration record by-val
@@ -47,7 +47,7 @@ nsec float64(a duration)
 	a nanos
 
 # Tries to pick an appropriate format for the value, like `1.5s` or `2.3us`.
-to-str str(a duration)
+to-string string(a duration)
 	if a.nanos >= 1_000_000_000
 		"{a seconds}s"
 	elif a.nanos >= 1_000_000

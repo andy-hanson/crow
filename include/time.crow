@@ -2,7 +2,7 @@ no-std
 import
 	crow/c-types: c-int, size_t, long
 	crow/extra-types: err-t
-	crow/private/bootstrap: char8, c-str
+	crow/private/bootstrap: char8, c-string
 	crow/ptr: const-ptr, mut-ptr
 
 timespec record by-val extern
@@ -25,7 +25,7 @@ localtime tm(timer time_t*) extern<c> summon
 
 time time_t(timer time_t mut*) extern<c> summon
 
-strftime size_t(s char8 mut*, max-size size_t, format c-str, tp tm) extern<c> summon
+strftime size_t(s char8 mut*, max-size size_t, format c-string, tp tm) extern<c> summon
 
 CLOCK_MONOTONIC __clockid_t() noctx
 	1

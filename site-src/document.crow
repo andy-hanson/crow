@@ -19,10 +19,10 @@ documentation path-and-content[]() summon
 	index = "index" document-template "documentation", index-content, all-paths
 	index ~ modules
 
-.sort-paths str[](a str[])
+.sort-paths string[](a string[])
 	a sort (x, y) => x compare-paths y
 
-.compare-paths comparison(a str, b str)
+.compare-paths comparison(a string, b string)
 	if pair-a ?= a try-split-once "/"
 		if pair-b ?= b try-split-once "/"
 			cmp = pair-a.a <=> pair-b.a
@@ -37,19 +37,19 @@ documentation path-and-content[]() summon
 	else
 		less
 
-.ignore-dir bool(a str)
-	a in ("experimental", "private")::str[]
+.ignore-dir bool(a string)
+	a in ("experimental", "private")::string[]
 
-.document-template path-and-content(path str, title str, content str, all-paths str[])
+.document-template path-and-content(path string, title string, content string, all-paths string[])
 	out-path = "doc" child-path "{path}.html"
 	nav = all-paths generate-nav path
 	full = """<div class="documentation" id="side-nav-wrapper">{nav}<main>{content}</main></div>"""
 	out-path page-template title, full
 
-.generate-nav str(all-paths str[], cur-path str)
+.generate-nav string(all-paths string[], cur-path string)
 	parts = "" join for x : all-paths
 		x nav-part x == cur-path
 	"""<nav><ul>{parts}</ul></nav>"""
-.nav-part str(a str, is-current bool)
+.nav-part string(a string, is-current bool)
 	cur = is-current ? " class=\"current\""
 	"""<li><a href="/doc/{a}.html"{cur}>{a}</a></li>"""

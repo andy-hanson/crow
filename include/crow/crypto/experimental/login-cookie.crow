@@ -11,7 +11,7 @@ import
 	../../range: ..
 	../../reader: parse-int, parse-nat
 	../../serialize: from-bytes, to-8-bytes
-	../../str: ~~, literal, str, to-str, try-split-once
+	../../string: ~~, literal, string, to-string, try-split-once
 	../../tuple: a, b
 	../random: random-nat64
 
@@ -38,10 +38,10 @@ from-bytes login-cookie(a nat8[])
 	assert a.size == 16
 	(a[0 .. 8].from-bytes,), a[8 .. 16].from-bytes
 
-to-str str(a login-cookie)
+to-string string(a login-cookie)
 	"{a.timestamp seconds-since-epoch}|{a cookie}"
 
-parse-login-cookie login-cookie?(a str)
+parse-login-cookie login-cookie?(a string)
 	if split ?= a try-split-once "|"
 		if time ?= split.a parse-int
 			if cookie ?= split.b parse-nat

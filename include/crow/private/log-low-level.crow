@@ -4,7 +4,7 @@ import
 	../ptr: *, set-deref
 	../misc: void
 	../ptr: mut-ptr
-	../str: ~~, literal, str
+	../string: ~~, literal, string
 
 ###
 Log severity.
@@ -30,7 +30,7 @@ log-level enum
 ###
 `"info"`, `"warn"`, or `"error"`.
 ###
-to-str str(a log-level)
+to-string string(a log-level)
 	match a
 	as info
 		"info"
@@ -42,7 +42,7 @@ to-str str(a log-level)
 # Represents a single call to `log`.
 logged record
 	level log-level
-	message str
+	message string
 
 ###
 Function that handles a log message.
@@ -53,7 +53,7 @@ log-handler alias
 	fun void(logged)
 
 default-log-handler void(a logged) summon
-	out print a.level.to-str ~~ ": " ~~ a.message
+	out print a.level.to-string ~~ ": " ~~ a.message
 
 # GC doesn't trace thread-locals, but won't outlive a task anyway.
 .cur-log-handler log-handler mut*() thread-local
