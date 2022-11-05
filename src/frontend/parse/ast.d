@@ -117,7 +117,7 @@ struct TypeAst {
 			list,
 			mutList,
 			mutPtr,
-			opt,
+			option,
 			ptr,
 		}
 		immutable Kind kind;
@@ -208,7 +208,7 @@ private immutable(uint) suffixLength(immutable TypeAst.Suffix.Kind a) {
 			return cast(uint) "$".length;
 		case TypeAst.Suffix.Kind.list:
 			return cast(uint) "[]".length;
-		case TypeAst.Suffix.Kind.opt:
+		case TypeAst.Suffix.Kind.option:
 			return cast(uint) "?".length;
 		case TypeAst.Suffix.Kind.mutList:
 			return cast(uint) "mut[]".length;
@@ -238,8 +238,8 @@ immutable(Sym) symForTypeAstSuffix(immutable TypeAst.Suffix.Kind a) {
 			return shortSym("mut-list");
 		case TypeAst.Suffix.Kind.mutPtr:
 			return shortSym("mut-ptr");
-		case TypeAst.Suffix.Kind.opt:
-			return shortSym("opt");
+		case TypeAst.Suffix.Kind.option:
+			return shortSym("option");
 		case TypeAst.Suffix.Kind.ptr:
 			return shortSym("const-ptr");
 	}

@@ -4,7 +4,7 @@ import
 	../../fun-util: subscript
 	../../misc: new, void
 	../../number: ==, nat64
-	../../opt: !
+	../../option: !
 	../../ptr: size-of
 	../../string: ==, ~~, join, literal, string, to-string
 	../../test-util: is

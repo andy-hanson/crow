@@ -8,7 +8,7 @@ import
 	../hash: hash, hash-mix
 	../misc: is-data, new, void
 	../number: ==, <=>, +, -, nat64
-	../opt: !, is-empty, new, opt, opt-equal
+	../option: !, is-empty, new, option, option-equal
 	../ptr: ==, +, set-deref
 	../range: .., for-loop
 	../string: ==, ~~, join, literal, string, to-string
@@ -453,7 +453,7 @@ verify void(a string[nat64], expected string)
 	a.dbg is expected
 
 .== bool(a string?, b string?)
-	a opt-equal b
+	a option-equal b
 
 test
 	l0 string[nat64] = ()

@@ -312,7 +312,7 @@ immutable(CommonTypes) getCommonTypes(
 	immutable StructDecl* array = com("array", 1);
 	immutable StructDecl* future = com("future", 1);
 	immutable StructDecl* namedVal = com("named-val", 1);
-	immutable StructDecl* opt = com("opt", 1);
+	immutable StructDecl* opt = com("option", 1);
 	immutable StructDecl* ptrConst = com("const-ptr", 1);
 	immutable StructDecl* ptrMut = com("mut-ptr", 1);
 	immutable StructDecl* fun0 = com("fun0", 1);

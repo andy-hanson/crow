@@ -6,7 +6,7 @@ import
 	../../fun-util: subscript
 	../../misc: new, void
 	../../number: ==, <=>, +, /
-	../../opt: new, opt
+	../../option: new, option
 	../../ptr: ==, +, -, *, as-const, as-mut, const-ptr, mut-ptr, null, set-deref
 	../../test-util: is
 	../../tuple: from, pair, to

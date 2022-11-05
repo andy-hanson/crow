@@ -1,8 +1,9 @@
 no-std
 import
 	../number: ==, +, nat64
+	../option: new, option
 	../ptr: +, -, *, as-const, as-mut, mut-ptr
-	./bootstrap: char8, c-string, none, opt, some, to-nat8
+	./bootstrap: char8, c-string, to-nat8
 
 ###
 Walk a c-string and return a pointer to the first occurrence of `c`.
@@ -12,9 +13,9 @@ find-char-in-c-string c-string?(a c-string, c char8) unsafe noctx
 	cur mut = a
 	loop
 		if cur->to-nat8 == c.to-nat8
-			break cur some
+			break cur,
 		elif cur->to-nat8 == 0
-			break none
+			break
 		else
 			cur := cur + 1
 			continue

@@ -6,7 +6,7 @@ import
 	../fun-util: subscript
 	../misc: new, void
 	../number: ==, +, nat64
-	../opt: !, ==, is-empty, new, opt, opt-equal
+	../option: !, ==, is-empty, new, option, option-equal
 	../ptr: ==, +, mut-ptr, set-deref
 	../string: ==, literal, string
 	../test-util: is
@@ -219,7 +219,7 @@ test
 	(d find-and-get x => x if-eq 5, "five") is ()
 
 .== bool(a string?, b string?)
-	a opt-equal b
+	a option-equal b
 
 .if-eq string?(actual nat64, expected nat64, result string)
 	if actual == expected

@@ -11,7 +11,7 @@ candidates (with 1 arguments):
 	new mut-list<a>(...array<a>) (from include/crow/col/mut-list.crow.crow line 69)
 	new mut-dict<k, v>(...array<pair<k, v>>) (from include/crow/col/mut-dict.crow.crow line 43)
 	new future<a>(a) (from include/crow/future.crow.crow line 33)
-	new opt<a>(a) (from include/crow/opt.crow.crow line 15)
+	new option<a>(a) (from include/crow/option.crow.crow line 15)
 
 test/compile-errors/record-privacy-b.crow 9:11-9:12 there is no function or field named 'j'
 

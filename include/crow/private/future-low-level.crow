@@ -1,6 +1,6 @@
 no-std
 import
-	../opt: new
+	../option: new
 	../misc: new, void
 	../result: err, ok, result
 	./bootstrap:

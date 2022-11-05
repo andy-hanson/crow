@@ -5,7 +5,7 @@ import
 	./fun-util: subscript
 	./misc: new, void
 	./number: +, *, **, float64, int64, nat64, to-float64, to-int64
-	./opt: ??, is-empty, new, opt
+	./option: ??, is-empty, new, option
 	./string: ==, as-string, char8, copy, literal, mut-iter, mut-string-iter, next, peek, string
 	./test-util: is
 

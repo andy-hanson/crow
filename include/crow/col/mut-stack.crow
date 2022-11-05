@@ -3,7 +3,7 @@ import
 	../bool: bool
 	../misc: void
 	../number: nat64
-	../opt: new, opt
+	../option: new, option
 	./list: list
 	./mut-list:
 		~=, ~~=, copy, fold, for-loop, is-empty, last, mut-list, new, pop, set-filter,

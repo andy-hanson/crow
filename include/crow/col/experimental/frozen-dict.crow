@@ -6,7 +6,7 @@ import
 	../../hash: hash, hash-mix
 	../../misc: is-data, new, void
 	../../number: ==, <=>, +, -, /, %, nat64
-	../../opt: is-empty, new, opt, opt-equal
+	../../option: is-empty, new, option, option-equal
 	../../ptr: ==, <=>, +, -, *, const-ptr, mut-ptr, set-deref, swap
 	../../string: ==, literal, string
 	../../test-util: is
@@ -256,7 +256,7 @@ fold<a, k, v> a(acc a, a frozen-dict<k, v>, f act a(a, k, v, nat64))
 	(for ptr : a.bucket-starts to-list; ptr - a.pairs.begin-ptr)::nat64[] is bucket-starts
 
 .== bool(a string?, b string?)
-	a opt-equal b
+	a option-equal b
 
 test
 	a frozen-dict<nat64, string> = ()

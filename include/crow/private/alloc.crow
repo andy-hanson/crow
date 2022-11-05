@@ -6,11 +6,11 @@ import
 	../bool: !, bool, false, to-nat64, true
 	../compare: !=, <, <=, >
 	../misc: new
-	../opt: new
+	../option: new, option
 	../ptr:
 		==, <=>, +, -, *, any-const-ptr, any-mut-ptr, as-any-const-ptr, as-any-mut-ptr, as-const,
 		as-mut, as-ref, by-val, const-ptr, mut-ptr, null, ptr-cast, set-deref, size-of, to-nat64
-	./bootstrap: hard-assert, hard-unreachable, lock, nat64, none, opt, some, todo, void
+	./bootstrap: hard-assert, hard-unreachable, lock, nat64, todo, void
 	./number-low-level: ==, <=>, nat8, unsafe-div, wrap-add, wrap-mul, wrap-sub
 	./thread-utils: acquire, barrier, init, release, wait-barrier, uninit
 
@@ -137,7 +137,7 @@ uninit by-val gc() noctx unsafe
 
 	_ = mark.as-any-mut-ptr memset 0, size-words
 
-	res mut by-val gc = uninit, uninit, 0, none, false, size-words, mark, mark, mark-end, bytes, bytes, bytes-end
+	res mut by-val gc = uninit, uninit, 0, (), false, size-words, mark, mark, mark-end, bytes, bytes, bytes-end
 	&res validate-gc
 	res
 
@@ -185,7 +185,7 @@ force-needs-gc void(gc gc) unsafe
 	&gc.lk acquire
 	res = if c ?= gc.context-head
 		gc.context-head := c next-ctx
-		c.next-ctx := none
+		c.next-ctx := ()
 		c
 	else
 		# NOTE: malloc'd memory is not traced for garbage col.
@@ -193,7 +193,7 @@ force-needs-gc void(gc gc) unsafe
 		# TODO: `size-of@<by-val<gc-ctx>>.malloc` should be legal
 		c gc-ctx = (size-of@<by-val<gc-ctx>> malloc) as-ref
 		c.gc := gc
-		c.next-ctx := none
+		c.next-ctx := ()
 		c
 	&gc.lk release
 	res
@@ -204,7 +204,7 @@ return-gc-ctx void() noctx unsafe
 	gc = gc-ctx gc
 	&gc.lk acquire
 	gc-ctx.next-ctx := gc context-head
-	gc.context-head := gc-ctx some
+	gc.context-head := gc-ctx,
 	&gc.lk release
 
 .cur-gc-ctx gc-ctx? mut*() thread-local
@@ -268,15 +268,13 @@ validate-gc void(gc gc) noctx unsafe
 		else
 			gc.mark-cur := gc.mark-cur + size-words
 			gc.data-cur := next
-			cur.ptr-cast some
-	else
-		none
+			cur.ptr-cast,
 
 .first-non-free bool mut*?(mark bool mut*, end bool mut*) noctx unsafe
 	if mark == end
-		none
+		()
 	elif *mark
-		mark some
+		mark,
 	else
 		mark + 1 first-non-free end
 
@@ -304,9 +302,7 @@ try-alloc-uninitialized<a> a mut*?(size nat64) unsafe
 
 try-alloc-uninitialized<a> a mut*?(gc gc-ctx, size nat64) noctx unsafe
 	if res ?= gc try-gc-alloc (size wrap-mul size-of@<a>)
-		res.ptr-cast some
-	else
-		none
+		res.ptr-cast,
 
 try-alloc-uninitialized<a> a mut*?() unsafe
 	1 try-alloc-uninitialized

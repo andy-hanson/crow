@@ -230,7 +230,7 @@ private immutable(Opt!(Diag.TypeShouldUseSyntax.Kind)) typeSyntaxKind(immutable 
 			return some(Diag.TypeShouldUseSyntax.Kind.mutList);
 		case shortSymValue("mut-ptr"):
 			return some(Diag.TypeShouldUseSyntax.Kind.mutPtr);
-		case shortSymValue("opt"):
+		case shortSymValue("option"):
 			return some(Diag.TypeShouldUseSyntax.Kind.opt);
 		case shortSymValue("pair"):
 			return some(Diag.TypeShouldUseSyntax.Kind.pair);

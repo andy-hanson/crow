@@ -37,14 +37,14 @@ is-sendable<a> builtin-spec
 
 ## TODO: extern<a> builtin-spec for extern ptr types
 
-region opt.crow
+region option.crow
 
 ###
 Optional type. Read the tutorial to learn more.
 
 You never need to `match` on this union; use the `if x ?= y` syntax instead. 
 ###
-opt<a> union
+option<a> union
 	none
 	some a
 

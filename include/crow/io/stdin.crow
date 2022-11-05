@@ -8,7 +8,7 @@ import
 	../future: future, new, parallel, then, with-block
 	../misc: is-sendable
 	../number: ==, <=>, nat8, to-nat64
-	../opt: opt
+	../option: option
 	../range: ..
 	../string: as-string, string, strip
 	../private/bootstrap: todo

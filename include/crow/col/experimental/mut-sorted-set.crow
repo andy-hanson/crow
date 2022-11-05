@@ -5,7 +5,7 @@ import
 	../../fun-util: subscript
 	../../misc: is-data, new, void
 	../../number: nat64
-	../../opt: is-empty
+	../../option: is-empty
 	../../tuple: from, new, pair
 	../list: for-loop, list
 	./mut-sorted-dict:

@@ -6,7 +6,7 @@ import
 	../fun-util: subscript
 	../misc: new, void
 	../number: ==, <=>, +, -, *, /, %, nat64
-	../opt: new, opt
+	../option: new, option
 	../ptr:
 		==, <=>, +, -, *, as-any-const-ptr, as-any-mut-ptr, as-const, as-mut, mut-ptr, ptr-cast,
 		set-deref, set-subscript, size-of, subscript, swap

@@ -30,7 +30,7 @@ import
 	../ptr:
 		==, any-mut-ptr, as-any-mut-ptr, as-ref, by-val, null, ptr-cast, size-of, to-nat64, zeroed
 	../version: is-single-threaded, is-windows
-	./bootstrap: hard-assert, hard-forbid, hard-unreachable, opt, todo
+	./bootstrap: hard-assert, hard-forbid, hard-unreachable, option, todo
 export
 	./bootstrap: lock
 

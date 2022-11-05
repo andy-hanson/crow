@@ -15,7 +15,7 @@ export
 	./hash
 	./misc
 	./number
-	./opt
+	./option
 	./range
 	./result
 	./string

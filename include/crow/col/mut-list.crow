@@ -6,7 +6,7 @@ import
 	../fun-util: subscript
 	../misc: new, void
 	../number: ==, <=>, +, -, *, nat64
-	../opt: new, opt
+	../option: new, option
 	../ptr:
 		==, +, -, *, as-any-const-ptr, as-any-mut-ptr, as-const, by-val, const-ptr, mut-ptr,
 		set-deref, set-subscript, size-of, subscript, zeroed
@@ -401,20 +401,6 @@ for-loop<out, in> out[](a in mut[], f act out(in)) trusted
 	# TODO: dangerous if mutated while looping
 	for x : a.backing[0 .. a.size]
 		f[x]
-
-map-opt<out, in> out mut[](a in mut[], f act out?(in)) trusted
-	a map-opt-to-mut-array f as-mut-list
-
-# TODO: this works on anything supporting 'fold' .. don't want to repeat for every collection
-map-opt-to-mut-array<out, in> mut-array out(a in mut[], f act out?(in)) trusted
-	out mut-array out = a.size uninitialized-mut-array
-	end = out.begin-ptr fold a, (cur, x) =>
-		if fx ?= f[x]
-			*cur := fx
-			cur + 1
-		else
-			cur
-	out[0 .. end - out.begin-ptr]
 
 .as-mut-list<a> a mut[](a mut-array a) unsafe
 	a, a.size

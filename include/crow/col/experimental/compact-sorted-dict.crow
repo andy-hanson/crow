@@ -6,7 +6,7 @@ import
 	../../fun-util: subscript
 	../../misc: is-data, new, void
 	../../number: ==, <=>, +, -, is-even, nat64
-	../../opt: !, ||, is-empty, new, opt, opt-equal
+	../../option: !, ||, is-empty, new, option, option-equal
 	../../ptr: ==, <=>, +, -, *, const-ptr, mut-ptr, ref-eq, set-deref
 	../../range: ..
 	../../string: ==, ~~, end-iter, is-empty, join, literal, prev, string, to-string
@@ -418,7 +418,7 @@ verify void(a compact-sorted-dict<nat64, string>, expected string)
 			ea array-ref-eq eb
 
 .== bool(a string?, b string?)
-	a opt-equal b
+	a option-equal b
 
 test
 	a compact-sorted-dict<nat64, string> = ()

@@ -5,7 +5,7 @@ import
 	../fun-util: subscript
 	../misc: void
 	../number: ==, <=>, +, nat64
-	../opt: !, is-empty, new, opt
+	../option: !, is-empty, new, option
 	../ptr: ==, +, -, set-deref
 	../test-util: is
 	../range: ..

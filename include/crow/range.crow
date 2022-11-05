@@ -8,7 +8,7 @@ import
 	./fun-util: subscript
 	./misc: new, void
 	./number: ==, +, -, nat64
-	./opt: is-empty, new, opt
+	./option: is-empty, new, option
 	./private/alloc: alloc-uninitialized
 	./ptr: ==, +, as-const, mut-ptr, set-deref
 export

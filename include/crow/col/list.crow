@@ -6,7 +6,7 @@ import
 	../fun-util: subscript
 	../misc: new, void
 	../number: +, -, *, /, %, ==, <=>, nat8, nat64
-	../opt: ??, ||, is-empty, new, opt
+	../option: ??, ||, is-empty, new, option
 	../private/exception-low-level: unreachable
 	../private/range-low-level: .., range
 	../ptr: ==, +, *, set-deref, size-of

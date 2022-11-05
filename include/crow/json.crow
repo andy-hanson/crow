@@ -8,7 +8,7 @@ import
 	./col/mut-list: ~=, move-to-list, mut-list, new
 	./misc: void
 	./number: ==, float64, int64, nat64, to-float64
-	./opt: new, opt
+	./option: new, option
 	./reader:
 		reader, skip-whitespace, try-take-char, take-float, take-quoted-string, try-take-string, with-reader
 	./string: ==, <=>, ~~, hash-mix, join, literal, quote, string, to-string
@@ -69,7 +69,7 @@ This is equivalent to `a.to-string == b.to-string`.
 		if ob ?= b as-object
 			oa dict-equal ob
 
-# TODO: opt equality should be generic
+# TODO: option equality should be generic
 == bool(a json?, b json?) no-doc
 	if va ?= a
 		if vb ?= b

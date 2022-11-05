@@ -4,7 +4,7 @@ import
 	../compare: <, compare
 	../misc: is-data, new, void
 	../number: ==, <=>, +, nat64
-	../opt: !, is-empty, new, opt
+	../option: !, is-empty, new, option
 	../ptr: -
 	../range: .., for-loop
 	../string: ==, ~~, join, literal, new, string, to-string
@@ -193,7 +193,7 @@ test
 	a.pop is ((5, "five"),)
 	a.is-empty is true
 
-# TODO: opt should have generic ==
+# TODO: option should have generic ==
 .== bool(a (nat64, string)?, b (nat64, string)?)
 	if va ?= a
 		if vb ?= b

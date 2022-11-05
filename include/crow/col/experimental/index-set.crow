@@ -9,7 +9,7 @@ import
 	../../log: info, log
 	../../misc: new, void
 	../../number: ==, <=>, +, -, *, /, %, max-nat64, nat64, new
-	../../opt: ??, is-empty, new, opt
+	../../option: ??, is-empty, new, option
 	../../ptr: ==, +, *, const-ptr, set-deref
 	../../private/number-low-level: wrap-sub
 	../../range: .., for-loop

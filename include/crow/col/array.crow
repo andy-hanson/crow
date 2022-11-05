@@ -9,7 +9,7 @@ import
 	../fun-util: subscript
 	../misc: new, void
 	../number: ==, <=>, +, -, nat64
-	../opt: new, opt
+	../option: new, option
 	../private/alloc: alloc-uninitialized, copy-data-from
 	../private/range-low-level: .., low, high, range
 	../ptr: ==, +, -, *, as-const, const-ptr, mut-ptr, set-deref, subscript

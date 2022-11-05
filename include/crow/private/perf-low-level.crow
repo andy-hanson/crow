@@ -7,7 +7,7 @@ import
 	../fun-util: subscript
 	../misc: void
 	../number: ==, <=>, +, nat64
-	../opt: opt
+	../option: option
 	../ptr: *, mut-ptr, set-deref
 	../range: .., for-loop
 	./symbol-low-level: ==, symbol

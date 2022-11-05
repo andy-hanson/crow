@@ -12,12 +12,13 @@ import
 	../col/private/array-low-level: array-from-begin-end, new
 	../compare: <=
 	../misc: new, void
+	../option: new, option
 	../private/number-low-level: ==, <=>, nat8, nat32, nat64, unsafe-to-nat32, wrap-add, wrap-sub
 	../ptr:
 		==, +, *, as-any-const-ptr, as-const, by-val, mut-ptr, null, ptr-cast, set-deref, size-of
 	../version: is-interpreted, is-windows
 	./alloc: copy-data-from, gc-ctx, try-alloc-uninitialized
-	./bootstrap: char8, c-string, hard-assert, none, opt, some
+	./bootstrap: char8, c-string, hard-assert
 	./c-string-util: c-string-size-incl-nul
 	./libunwind:
 		new, unw_context_t, unw_cursor_t, unw_getcontext, unw_get_proc_name, unw_init_local,
@@ -112,10 +113,7 @@ Result entries are temporary, must copy!
 				*symbol := symbol-max-name-length.unsafe-to-nat32,
 				if line ?= gc.try-alloc-uninitialized :: IMAGEHLP_LINE64 mut*?
 					*line := ()
-					(offset, displacement, symbol, line) some
-
-.new<a> a?() noctx
-	none
+					(offset, displacement, symbol, line),
 
 .windows-walk-backtrace backtrace-entry mut*(
 	gc gc-ctx,

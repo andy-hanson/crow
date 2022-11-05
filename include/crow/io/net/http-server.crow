@@ -17,7 +17,7 @@ import
 	../../log: error, log, warn
 	../../misc: is-sendable, new, void
 	../../number: ==, <=>, +, nat8, nat64, to-int64, to-nat64
-	../../opt: ??, new, opt
+	../../option: ??, new, option
 	../../range: ..
 	../../reader: parse-nat
 	../../string:

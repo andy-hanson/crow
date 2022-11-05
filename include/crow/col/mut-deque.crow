@@ -4,7 +4,7 @@ import
 	../compare: !=, <
 	../misc: new, void
 	../number: ==, <=>, +, *, nat64, new
-	../opt: ==, new, opt
+	../option: ==, new, option
 	../ptr: ==, <=>, +, -, *, as-const, mut-ptr, null, set-deref, zeroed
 	../range: .., for-loop
 	../string: ==, ~~, literal, new, join, string, to-string

@@ -6,7 +6,7 @@ import
 	../../hash: hash-mix
 	../../misc: is-data, new, void
 	../../number: nat64
-	../../opt: is-empty, new, opt
+	../../option: is-empty, new, option
 	../../tuple: a, new
 	../dict: dict, for-loop, get-or-add, is-empty, new, rest, size, subscript, to-dict, try-remove
 	../list: for-loop, list

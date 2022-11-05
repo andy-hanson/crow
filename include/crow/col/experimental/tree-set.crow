@@ -6,7 +6,7 @@ import
 	../../fun-util: subscript
 	../../misc: is-data, void
 	../../number: ==, <=>, +, -, /, nat64, new
-	../../opt: !, new, opt
+	../../option: !, new, option
 	../../ptr: ==, <=>, +, -, *, const-ptr, mut-ptr, set-deref
 	../../range: ..
 	../../string: ==, <=>, ~~, iter, join, literal, next, slice-left, starts-with, string, to-string

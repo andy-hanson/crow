@@ -3,7 +3,7 @@ import
 	./bool: bool
 	./col/array: array, find-and-get
 	./misc: name, named-val, val
-	./opt: ??, new, opt
+	./option: ??, new, option
 	./private/symbol-low-level: ==, symbol, to-string
 	./string: ==, string
 

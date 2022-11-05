@@ -7,7 +7,7 @@ import
 	../../hash: hash, hash-mix
 	../../misc: is-data, new, void
 	../../number: ==, <=>, +, -, /, %, nat64
-	../../opt: new, opt
+	../../option: new, option
 	../../ptr: ==, <=>, +, -, *, const-ptr, mut-ptr, set-deref, swap
 	../../test-util: is
 	../array: array, fold, in, index-of, is-empty, new, ptr-of, size, subscript

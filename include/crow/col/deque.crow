@@ -4,7 +4,7 @@ import
 	../fun-util: subscript
 	../misc: void
 	../number: ==, <=>, +, is-even, nat64
-	../opt: !, is-empty, new, opt
+	../option: !, is-empty, new, option
 	../ptr: ==, +, -, set-deref
 	../range: ..
 	../string: ==, ~~, join, literal, string, to-string

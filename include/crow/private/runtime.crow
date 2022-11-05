@@ -6,7 +6,7 @@ import
 	../io/private/time-low-level: get-monotime-nsec, timestamp
 	../misc: void
 	../number: ==, nat64
-	../opt: new, opt
+	../option: new, option
 	../ptr: *, by-val, mut-ptr, set-deref
 	../string: literal, string
 	../version: is-wasm

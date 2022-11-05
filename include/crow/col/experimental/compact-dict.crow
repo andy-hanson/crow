@@ -7,7 +7,7 @@ import
 	../../log: info, log
 	../../misc: is-data, new, void
 	../../number: ==, <=>, +, nat64
-	../../opt: is-empty, new, opt, opt-equal
+	../../option: ??, is-empty, new, option, option-equal
 	../../ptr: ==, +, ref-eq, set-deref
 	../../range: ..
 	../../string: ==, ~~, join, literal, string, to-string
@@ -95,11 +95,7 @@ subscript<k, v> v?(a compact-dict<k, v>, key k) is-data<k> compare<k> hash-mix<k
 .subscript-recur<k, v> v?(a impl<k, v>, key k) is-data<k> compare<k> hash-mix<k>
 	match a
 	as overlay o
-		# TODO: use option || operator
-		if v ?= o.pairs[key]
-			v
-		else
-			o.prev subscript-recur key
+		o.pairs[key] ?? o.prev subscript-recur key
 	as end-node e
 		e[key]
 
@@ -228,7 +224,7 @@ verify void(a compact-dict<nat64, string>, expected string)
 		a[k] is (v,)
 
 .== bool(a string?, b string?)
-	a opt-equal b
+	a option-equal b
 
 .exact-eq bool(a compact-dict<nat64, string>, b compact-dict<nat64, string>) unsafe
 	match a impl

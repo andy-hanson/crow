@@ -10,7 +10,7 @@ import
 	./col/mut-list: fill-mut-list, move-to-list, mut-list, set-subscript, subscript
 	./misc: void
 	./number: ==
-	./opt: !, ??, new, opt
+	./option: !, ??, new, option
 	./string: ==, <=>, ~~, hash-mix, literal, starts-with, string, to-c-string, to-string, try-remove-start
 
 ###

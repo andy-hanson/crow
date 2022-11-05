@@ -182,7 +182,7 @@ module-top string(path string)
 
 .type-ref-content-recur string(a type-ref, has-subscript bool)
 	name = a name
-	if name == "opt"
+	if name == "option"
 		"{a.type-args.only type-ref-with-subscript}{"?" keyword}"
 	elif name == "arr"
 		"{a.type-args.only type-ref-with-subscript}{"[]" keyword}"

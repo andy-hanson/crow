@@ -29,7 +29,7 @@ import
 	../fun-util: subscript
 	../misc: new, void
 	../number: ==, <=>, +, nat8, nat16, to-nat32, to-nat64
-	../opt: is-empty, new, opt
+	../option: is-empty, new, option
 	../private/bootstrap: todo
 	../ptr:
 		==, +, any-const-ptr, as-any-const-ptr, as-const, const-ptr, mut-ptr, null, ptr-cast,

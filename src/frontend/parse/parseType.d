@@ -173,7 +173,7 @@ immutable(TypeAst) parseTypeSuffixes(scope ref Lexer lexer, immutable TypeAst as
 	}
 
 	if (tryTakeToken(lexer, Token.question))
-		return handleSuffix(TypeAst.Suffix.Kind.opt);
+		return handleSuffix(TypeAst.Suffix.Kind.option);
 	else if (tryTakeToken(lexer, Token.bracketLeft))
 		return tryTakeToken(lexer, Token.bracketRight)
 			? handleSuffix(TypeAst.Suffix.Kind.list)
