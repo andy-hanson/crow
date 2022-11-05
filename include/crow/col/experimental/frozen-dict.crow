@@ -8,16 +8,18 @@ import
 	../../number: ==, <=>, +, -, /, %, nat64
 	../../option: is-empty, new, option, option-equal
 	../../pointer: ==, <=>, +, -, *, const-pointer, mut-pointer, set-deref, swap
+	../../range: ..
 	../../string: ==, literal, string
 	../../test-util: is
 	../../tuple: from, new, pair, to
 	../../private/alloc: alloc-uninitialized
-	../array: array, fold, for-loop, is-empty, new, size, subscript
+	../array:
+		array, array-cast, as-array, begin-pointer, end-pointer, fold, for-loop, is-empty, new,
+		size, subscript
 	../mut-array:
-		begin-pointer, cast-immutable, end-pointer, fill, fill-mut-array, mut-array, mut-array-from-begin-end,
+		as-mut-array, begin-pointer, cast-immutable, end-pointer, fill, fill-mut-array, mut-array,
 		for-loop, size, temp-as-array, to-mut-array, set-subscript, subscript, uninitialized-mut-array
 	../list: ==, for-loop, list, new, to-array, to-list
-	../private/array-low-level: array-cast, array-from-begin-end, begin-pointer, end-pointer
 
 ###
 Immutable dictionary that is not efficient to update.
@@ -76,7 +78,7 @@ try-get-unordered-index<k, v> nat64?(a frozen-dict<k, v>, key k) trusted is-data
 			a.pairs end-pointer
 		else
 			a.bucket-starts[bucket-index + 1]
-		bucket-start array-from-begin-end bucket-end
+		bucket-start .. bucket-end as-array
 
 	bucket.begin-pointer find-pointer bucket.end-pointer, key
 
@@ -113,7 +115,7 @@ mut-array-to-frozen-dict-promise-no-duplicates<k, v> frozen-dict<k, v>(
 		# Then call mut-array-to-frozen-dict-promise-no-duplicates 
 		out-pairs (k, v) mut* = a.size alloc-uninitialized
 		end = out-pairs write-without-duplicates a
-		out-pairs mut-array-from-begin-end end mut-array-to-frozen-dict-promise-no-duplicates
+		(out-pairs .. end).as-mut-array mut-array-to-frozen-dict-promise-no-duplicates
 	else
 		a
 

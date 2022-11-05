@@ -20,10 +20,10 @@ import
 	../bool: &&, ||, bool, to-nat64, true
 	../bytes-types: new
 	../cell: *, as-const-pointer, as-mut-pointer, cell, new
+	../col/array: begin-pointer
 	../col/mut-array: begin-pointer, mut-array, new, size, subscript
 	../col/list: ~, fold, for-loop, to-array, list
 	../col/mut-list: begin-pointer, end-pointer, move-to-list, mut-list, new, size, unsafe-set-size
-	../col/private/array-low-level: begin-pointer
 	../compare: <=
 	../extra-types: fd-t
 	../misc: new, void

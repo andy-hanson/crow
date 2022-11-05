@@ -1,8 +1,7 @@
 no-std
 import
-	../col/array: array
+	../col/array: array, subscript
 	../col/list: for-loop, list, tail, to-list
-	../col/private/array-low-level: subscript
 	../fun-util: fun-pointer1, subscript
 	../future: delay, future, handle-exceptions, then
 	../misc: new, void

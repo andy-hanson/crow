@@ -1,6 +1,7 @@
 no-std
 import
-	../compare: <, compare
+	../compare: <=, compare
+	./number-low-level: nat64
 
 ###
 Range of values. `low` is inclusive and `high` is exclusive.
@@ -13,15 +14,12 @@ range<a> record by-val
 
 # Create a range from `low` (inclusive) to `high` (exclusive).
 .. <a> range<a>(low a, high a) noctx compare<a>
-	if low < high
-		low, high
-	else
-		# TODO:WARN
-		high, high
+	assert low <= high
+	low, high
 
 # Size of the range; depends on a `-` function existing.
-size<a> a(a range a) minus<a>
+size<a> nat64(a range a) noctx minus<a>
 	a.high - a.low
 
 minus<a> spec
-	- a(a a, b a)
+	- nat64(a a, b a)

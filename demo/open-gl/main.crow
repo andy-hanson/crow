@@ -1,5 +1,4 @@
 import
-	crow/col/private/array-low-level: begin-pointer, subscript
 	crow/c-types: c-int
 	crow/io/duration: msec
 	crow/io/print: out, print

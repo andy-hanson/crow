@@ -15,10 +15,9 @@ import
 	../../range: .., for-loop
 	../../string: ==, ~~, join, literal, string, to-hex, to-string
 	../../test-util: is
-	../array: array, fold, new, subscript
+	../array: array, begin-pointer, end-pointer, fold, new, subscript
 	../mut-array: begin-pointer, cast-immutable, end-pointer, mut-array, uninitialized-mut-array
 	../list: ==, fold, list, new, size, to-list
-	../private/array-low-level: begin-pointer, end-pointer, subscript
 
 index-set record by-ref
 	# This is one more than the highest number that would currently fit in the tree.

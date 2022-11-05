@@ -1,7 +1,6 @@
 no-std
 import
 	setjmp: jmp_buf, __jmp_buf_tag, longjmp, new, setjmp, _setjmp
-	../col/private/array-low-level: new
 	../fun-util: subscript
 	../misc: void
 	../number: ==, int32, nat64
@@ -9,7 +8,7 @@ import
 	../version: is-interpreted, is-windows
 	./alloc: try-get-cur-gc-ctx
 	./backtrace: get-backtrace
-	./bootstrap: abort, c-string, err, hard-assert, new, ok, result
+	./bootstrap: abort, array, c-string, err, hard-assert, new, ok, result
 export
 	./bootstrap: exception, message
 
@@ -64,6 +63,9 @@ throw-with-skip void(message c-string, skip nat64) noctx trusted
 	else
 		(),
 	(message, backtrace) rethrow
+
+.new<a> array a(...a array a) noctx
+	a
 
 ###
 Throw an existing exception object.

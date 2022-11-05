@@ -11,13 +11,18 @@ import
 	../number: ==, <=>, +, -, nat64
 	../option: new, option
 	../private/alloc: alloc-uninitialized, copy-data-from
-	../private/range-low-level: .., low, high, range
-	../pointer: ==, +, -, *, as-const, const-pointer, mut-pointer, set-deref, subscript
+	../private/bootstrap: new
+	../private/range-low-level: .., high, low, range, size
+	../pointer:
+		==, <=>, +, -, *, as-const, const-pointer, mut-pointer, pointer-cast, set-deref, size-of,
+		subscript
 	./iter: new, value-and-rest
-	./private/array-low-level: array-from-begin-end, array-from-begin-size, begin-pointer, end-pointer
 export
-	../private/bootstrap: array, size
-	./private/array-low-level: new
+	../private/bootstrap: array, begin-pointer, size
+
+# Create an array with the given elements.
+new<a> array a(...a array a) noctx
+	a
 
 # Make an array from a range
 for-loop<out> array out(a range nat64, f act out(nat64)) trusted
@@ -29,7 +34,7 @@ for-loop<out> array out(a range nat64, f act out(nat64)) trusted
 	loop
 		if cur == end
 			assert n == a.high
-			break out.as-const array-from-begin-end end.as-const
+			break out .. end as-array
 		else
 			*cur := f[n]
 			cur := cur + 1
@@ -55,7 +60,7 @@ Throws if the slice would exceed the bounds of the array.
 ###
 subscript<a> array a(a array a, range range nat64) noctx trusted
 	assert range.high <= a.size : "slice out of bounds"
-	a.begin-pointer + range.low array-from-begin-end a.begin-pointer + range.high
+	a.begin-pointer + range.low .. a.begin-pointer + range.high as-array
 
 ###
 Prepend an element to an array.
@@ -82,7 +87,7 @@ If you need concatenate many arrays, use a `mut[]` to accumulate elements, then 
 	res a mut* = res-size alloc-uninitialized
 	res copy-data-from a.begin-pointer, a.size
 	res + a.size copy-data-from b.begin-pointer, b.size
-	res.as-const array-from-begin-size res-size
+	res.as-const[0 .. res-size]
 
 # TODO: array comparison should be generic
 array-equal<a> bool(a array a, b array a) no-doc trusted noctx equal<a>
@@ -303,7 +308,7 @@ for-loop<out, in> array out(a array in, f act out(in)) trusted
 		if in-cur == in-end
 			out-end = out-begin + a.size
 			assert out-cur == out-end
-			break out-begin.as-const array-from-begin-end out-end.as-const
+			break out-begin .. out-end as-array
 		else
 			*out-cur := f[*in-cur]
 			out-cur := out-cur + 1
@@ -337,7 +342,7 @@ filter<a> array a(a array a, f act bool(a, nat64)) trusted
 	index mut = 0
 	loop
 		if cur == end
-			break res.as-const array-from-begin-end out.as-const
+			break res .. out as-array
 		else
 			if f[*cur, index]
 				*out := *cur
@@ -408,3 +413,28 @@ slice-left<a> array a(a array-iter a)
 
 slice-right<a> array a(a array-iter a)
 	a.xs[a.index .. a.xs.size]
+
+region low-level
+
+# Pointer to the end of an array.
+end-pointer<a> a*(a array a) noctx unsafe
+	a.begin-pointer + a.size
+
+###
+Arr or the range from begin to end.
+`begin` is inclusive and `end` is exclusive.
+UB if begin > end.
+###
+as-array<a> array a(pointers range a*) unsafe noctx
+	pointers.size, pointers.low
+as-array<a> array a(pointers range a mut*) unsafe noctx
+	pointers.size, pointers.low.as-const
+
+array-cast<out, in> array out(a array in) no-doc unsafe noctx
+	assert size-of@<out> == size-of@<in>
+	a.size, a.begin-pointer.pointer-cast
+
+# Create an array from a range of pointers.
+subscript<a> array a(a a*, r range nat64) noctx unsafe
+	r.high - r.low, a + r.low
+

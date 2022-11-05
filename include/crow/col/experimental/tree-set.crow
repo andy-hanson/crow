@@ -11,13 +11,14 @@ import
 	../../range: ..
 	../../string: ==, <=>, ~~, iter, join, literal, next, slice-left, starts-with, string, to-string
 	../../test-util: is
-	../array: array, fold, for-loop, insert-at, is-empty, last, remove-at, rtail, size, subscript, tail
+	../array:
+		array, begin-pointer, end-pointer, fold, for-loop, insert-at, is-empty, last, remove-at,
+		rtail, size, subscript, tail
 	../mut-array: begin-pointer, cast-immutable, end-pointer, mut-array, subscript, uninitialized-mut-array
 	../iter: rest
 	../list: for-loop, list, size, to-array, to-list
 	../mut-stack: ~=, mut-stack, new, peek, pop
 	../sort: sort-unique, set-sort-unique
-	../private/array-low-level: begin-pointer, end-pointer
 	../private/sort-utils: binary-search-has, binary-search-insert-pointer
 
 ###

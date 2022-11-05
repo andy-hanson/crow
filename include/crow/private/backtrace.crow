@@ -9,13 +9,14 @@ import
 		SymFunctionTableAccess64, SymInitialize, SYMOPT_LOAD_LINES, SymSetOptions
 	../bool: ||, true
 	../bytes-types: new
-	../col/private/array-low-level: array-from-begin-end, new
+	../col/array: as-array, new
 	../compare: <=
 	../misc: new, void
 	../option: new, option
 	../private/number-low-level: ==, <=>, nat8, nat32, nat64, unsafe-to-nat32, wrap-add, wrap-sub
 	../pointer:
-		==, +, *, as-any-const-pointer, as-const, by-val, mut-pointer, null, pointer-cast, set-deref, size-of
+		==, <=>, +, *, as-any-const-pointer, as-const, by-val, mut-pointer, null, pointer-cast,
+		set-deref, size-of
 	../version: is-interpreted, is-windows
 	./alloc: copy-data-from, gc-ctx, try-alloc-uninitialized
 	./bootstrap: char8, c-string, hard-assert
@@ -23,6 +24,7 @@ import
 	./libunwind:
 		new, unw_context_t, unw_cursor_t, unw_getcontext, unw_get_proc_name, unw_init_local,
 		unw_step, unw_word_t
+	./range-low-level: ..
 export
 	./bootstrap: backtrace, backtrace-entry, column-number, entries, file-path, function-name, line-number, new
 
@@ -37,7 +39,7 @@ get-backtrace backtrace(gc gc-ctx, skip nat64) noctx unsafe
 		if is-interpreted
 			end = entries interpreter-backtrace max-entries, skip
 			gc copy-strings entries, end
-			(entries.as-const array-from-begin-end end.as-const),
+			(entries .. end).as-array,
 		elif is-windows
 			gc get-native-backtrace-windows entries, max-entries, (skip wrap-add 2)
 		else
@@ -95,7 +97,7 @@ Result entries are temporary, must copy!
 	end = gc windows-walk-backtrace entries, max-end, skip, process, thread, &context, &frame, vars
 	ok1 = process SymCleanup
 	ok1 hard-assert
-	(entries.as-const array-from-begin-end end.as-const),
+	(entries .. end).as-array,
 
 .windows-backtrace-vars record by-val mut
 	offset nat64 mut*
@@ -170,7 +172,7 @@ Result entries are temporary, must copy!
 	# omit 'get-native-backtrace' in addition to other skipped
 	cursor unwind-skip (skip wrap-add 1)
 	end = gc unwind-recur entries, entries + max-entries, cursor
-	(entries.as-const array-from-begin-end end.as-const),
+	(entries .. end).as-array,
 
 .unwind-skip void(cursor unw_cursor_t, skip nat64) noctx unsafe
 	unless skip == 0

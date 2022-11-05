@@ -11,13 +11,12 @@ import
 	../../range: ..
 	../../string: ==, <=>, ~~, join, literal, new, string, to-string
 	../../test-util: is
-	../array: array, is-empty, new, size, subscript, tail
+	../array: array, as-array, begin-pointer, end-pointer, is-empty, new, size, subscript, tail
 	../mut-array:
 		begin-pointer, cast-immutable, end-pointer, is-empty, mut-array, set-subscript, size, subscript,
 		uninitialized-mut-array
 	../list: for-loop, list, to-array, to-list
 	../sort: sort
-	../private/array-low-level: array-from-begin-end, begin-pointer, end-pointer
 	../private/sort-utils: binary-search-exact-index
 	./index-set:
 		~, count-greater-or-equal, count-range, filter-less, for-loop, in, index-set, is-empty, new,
@@ -291,7 +290,7 @@ Or a combination of the two.
 
 .finish<a> array a(a compactor a) unsafe
 	assert a.cur.as-const == a.end
-	a.begin array-from-begin-end a.end
+	a.begin .. a.end as-array
 
 region iteration
 

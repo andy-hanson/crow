@@ -1,5 +1,4 @@
 import
-	crow/col/private/array-low-level: begin-pointer
 	SDL2/SDL_pixels: SDL_PIXELFORMAT_RGBA32
 	SDL2/SDL_rwops: SDL_RWFromConstMem
 	SDL2/SDL_surface: h, pixels, SDL_ConvertSurfaceFormat, SDL_LoadBMP_RW, SDL_FreeSurface, w

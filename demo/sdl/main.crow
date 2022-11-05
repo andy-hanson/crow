@@ -1,6 +1,5 @@
 import
 	crow/col/iter: again, again-or-stop, stop
-	crow/col/private/array-low-level: begin-pointer, subscript
 	crow/io/duration: msec
 	crow/io/print: out, print
 	crow/io/time: get-monotime-msec, repeat-interval

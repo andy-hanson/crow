@@ -1,6 +1,4 @@
 import
-	crow/cell: as-mut-pointer, cell, new
-	crow/col/private/array-low-level: begin-pointer
 	crow/io/print: out, print
 	sndfile/headers:
 		|, to-nat32, ~, &, ==, all, flags-members, new, sf_close, sf_error, SF_FORMAT,

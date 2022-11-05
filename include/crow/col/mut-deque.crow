@@ -5,15 +5,15 @@ import
 	../misc: new, void
 	../number: ==, <=>, +, *, nat64, new
 	../option: ==, new, option
-	../pointer: ==, <=>, +, -, *, as-const, mut-pointer, null, set-deref, zeroed
+	../pointer: ==, <=>, +, -, *, mut-pointer, null, set-deref, zeroed
 	../range: .., for-loop
 	../string: ==, ~~, literal, new, join, string, to-string
 	../test-util: is
+	./array: as-array
 	./mut-array:
 		begin-pointer, cast-immutable, copy-from, end-pointer, mut-array, is-empty, new, set-zero-elements,
 		size, subscript, uninitialized-mut-array, zeroed-mut-array
 	./list: ==, first, last, list, new, size, to-list
-	./private/array-low-level: array-from-begin-end
 
 # Mutable double-ended queue.
 mut-deque<a> record mut
@@ -160,12 +160,11 @@ pop-right<a> a?(a mut-deque a) trusted
 .copy-from-deque<a> void(dest mut-array a, a mut-deque a) trusted
 	assert dest.size == a.size
 	if a.left < a.right
-		dest copy-from (a.left.as-const array-from-begin-end a.right.as-const)
+		dest copy-from (a.left .. a.right).as-array
 	else
 		left-to-end-size = a.inner.end-pointer - a.left
-		dest[0 .. left-to-end-size] copy-from (a.left.as-const array-from-begin-end a.inner.end-pointer.as-const)
-		left-to-end = a.inner.begin-pointer.as-const array-from-begin-end a.right.as-const
-		dest[left-to-end-size .. dest.size] copy-from left-to-end
+		dest[0 .. left-to-end-size] copy-from (a.left .. a.inner.end-pointer).as-array
+		dest[left-to-end-size .. dest.size] copy-from (a.inner.begin-pointer .. a.right).as-array
 
 .dbg string(a mut-deque nat64) trusted
 	right = a.right - a.inner.begin-pointer

@@ -17,11 +17,10 @@ import
 	../bytes-types: new
 	../bool: !, ||, bool, false, new, to-nat64, true
 	../cell: *, as-mut-pointer, cell, new
-	../col/array: array, size, subscript
+	../col/array: array, begin-pointer, size, subscript
 	../col/mut-array: cast-immutable, begin-pointer, mut-array, size, uninitialized-mut-array
 	../col/list: for-loop, list, new, to-array, to-list
 	../col/mut-list: ~=, move-to-list, mut-list, new
-	../col/private/array-low-level: begin-pointer
 	../col/sort: sort
 	../compare: !=
 	../exception: finally, with-block

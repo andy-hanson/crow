@@ -11,9 +11,8 @@ import
 		==, <=>, +, -, *, as-any-const-pointer, as-any-mut-pointer, as-const, as-mut, mut-pointer, pointer-cast,
 		set-deref, set-subscript, size-of, subscript, swap
 	../private/alloc: alloc-uninitialized, set-zero-range, unmanaged-alloc-elements, unmanaged-free-elements
-	../private/range-low-level: .., range
-	./array: array, exists, find-index, fold, for-loop, index-of, new, size, subscript
-	./private/array-low-level: array-from-begin-end, begin-pointer, subscript
+	../private/range-low-level: .., high, low, range
+	./array: array, as-array, begin-pointer, exists, find-index, fold, for-loop, index-of, new, size, subscript
 
 ###
 `mut-array` is a low-level type mostly useful for implementing other collections.
@@ -31,7 +30,6 @@ Taking a slice aliases the elements, so writing to the slice writes to the origi
 mut-array<a> record mut by-val
 	.inner array a
 
-# TODO:INTERNAL (or mut-array-low-level)
 empty-mut-array<a> mut-array a() no-doc noctx
 	# TODO: should not need type annotation
 	inner array a = ()
@@ -52,6 +50,12 @@ to-mut-array<a> mut-array a(a array a)
 	a.size make-mut-array i => a[i]
 
 ###
+Treat a mutable as an array. Only do this if you are done mutating it.
+###
+as-const<a> array a(a mut-array a) noctx unsafe
+	a inner
+
+###
 Copies the elements to an immutable array.
 
 This is O(n).
@@ -66,9 +70,9 @@ subscript<a> mut-array a(a a mut*, range range nat64) noctx unsafe
 	a.as-const[range],
 
 # Creates a `mut-array` from a range of pointers.
-mut-array-from-begin-end<a> mut-array a(begin a mut*, end a mut*) no-doc unsafe noctx
-	assert begin <= end
-	(begin.as-const array-from-begin-end end.as-const),
+as-mut-array<a> mut-array a(a range a mut*) no-doc unsafe noctx
+	assert a.low <= a.high
+	(a.low .. a.high).as-array,
 
 ###
 Gets the element at the index.
@@ -218,7 +222,7 @@ fill-mut-array<a> mut-array a(size nat64, value a)
 fill<a> void(a mut-array a, value a) noctx trusted
 	unless a is-empty
 		*a.begin-pointer := value
-		a.begin-pointer + 1 mut-array-from-begin-end a.end-pointer fill value
+		(a.begin-pointer + 1 .. a.end-pointer).as-mut-array fill value
 
 in<a> bool(value a, a mut-array a) noctx trusted equal<a>
 	cur mut = a.begin-pointer as-const

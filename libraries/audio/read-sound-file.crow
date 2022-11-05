@@ -1,5 +1,4 @@
 import
-	crow/col/private/array-low-level: begin-pointer, end-pointer
 	crow/private/alloc: mem-copy
 	sndfile/headers:
 		channels, frames, new, samplerate, sf_close, sf_count_t, sf_error, SF_INFO, SFM_READ,

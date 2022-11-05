@@ -9,6 +9,7 @@ import
 	../number: ==, <=>, +, -, *, nat64
 	../option: !, ??, new, option
 	../pointer: ==, <=>, +, *, const-pointer, mut-pointer, set-deref
+	../range: ..
 	../string: ==, ~~, join, literal, new, string, to-string
 	../test-util: is
 	./array: array
@@ -17,9 +18,7 @@ import
 	./experimental/frozen-set:
 		begin-pointer, end-pointer, frozen-set, fold, is-empty, new, size, to-frozen-set,
 		to-list, try-get-unordered-index, unsafe-frozen-set-from-mut-array-cast-immutable
-	./mut-array:
-		begin-pointer, cast-immutable, end-pointer, mut-array, mut-array-from-begin-end,
-		uninitialized-mut-array
+	./mut-array: as-mut-array, begin-pointer, cast-immutable, end-pointer, mut-array, uninitialized-mut-array
 	./list: ==, for-loop, list, new, to-list
 	./mut-list: ~=, move-to-list, mut-list, new
 
@@ -218,7 +217,7 @@ try-add<a> set<a>?(a set a, value a) is-data<a> compare<a> hash-mix<a>
 
 .finish<a> frozen-set a(a compactor a) unsafe is-data<a> compare<a> hash-mix<a>
 	assert a.cur == a.end
-	a.begin mut-array-from-begin-end a.end unsafe-frozen-set-from-mut-array-cast-immutable
+	(a.begin .. a.end).as-mut-array unsafe-frozen-set-from-mut-array-cast-immutable
 
 region iteration
 

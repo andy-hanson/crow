@@ -1,6 +1,4 @@
 import
-	crow/col/mut-array: begin-pointer, end-pointer, fill, mut-array, mut-array-from-begin-end, new, size, to-array
-	crow/col/private/array-low-level: array-from-begin-end, begin-pointer, end-pointer
 	crow/private/thread-utils: acquire, init, lock, release, uninit
 	./audio: new, playing-sound
 	./sound: ==, format, new, samples, sound, sound-format, to-string
@@ -59,14 +57,14 @@ pull void(a audio-queue, out mut-array float32) noctx unsafe
 	n-remaining = a.samples.end-pointer - a.cur
 	if n-remaining > out.size
 		end = a.cur + out.size
-		out add (a.cur array-from-begin-end end)
+		out add (a.cur .. end).as-array
 		a.cur := end
 	else
 		out-mid = out.begin-pointer + n-remaining
-		out.begin-pointer mut-array-from-begin-end out-mid add (a.cur array-from-begin-end a.samples.end-pointer)
+		(out.begin-pointer .. out-mid).as-mut-array add (a.cur .. a.samples.end-pointer).as-array
 		if a looping
 			a.cur := a.samples begin-pointer
-			a add-to (out-mid mut-array-from-begin-end out.end-pointer)
+			a add-to (out-mid .. out.end-pointer).as-mut-array
 		else
 			a.cur := a.samples end-pointer
 

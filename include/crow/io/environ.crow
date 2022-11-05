@@ -3,11 +3,11 @@ import
 	unistd: __environ
 	../col/dict: dict
 	../col/mut-dict: move-to-dict, mut-dict, new, set-subscript
-	../col/private/array-low-level: array-from-begin-end
 	../misc: new, void
 	../private/bootstrap: todo
 	../private/c-string-util: find-char-in-c-string, find-c-string-end
-	../pointer: ==, +, *, const-pointer, null
+	../pointer: ==, <=>, +, *, const-pointer, null
+	../range: ..
 	../string: ==, <=>, as-string, c-string, hash-mix, string
 	../tuple: from, new, pair, to
 
@@ -32,10 +32,10 @@ get-environ environ() summon trusted
 
 .parse-environ-entry (string, string)(entry c-string) unsafe
 	if key-end ?= entry find-char-in-c-string "="
-		key = entry array-from-begin-end key-end as-string
+		key = entry .. key-end as-string
 		value-begin = key-end + 1
 		value-end = value-begin find-c-string-end
-		value = value-begin array-from-begin-end value-end as-string
+		value = value-begin .. value-end as-string
 		key, value
 	else
 		todo

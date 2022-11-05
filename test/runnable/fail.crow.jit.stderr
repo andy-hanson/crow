@@ -4,6 +4,6 @@ uncaught exception: FOO
 	at main_0
 	at add__sfirst__stask__lambda0
 	at call__sw__sctx_470
-	at subscript_38
+	at subscript_40
 	at catch_0__lambda0
 	at call__sw__sctx_465

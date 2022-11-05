@@ -1,6 +1,4 @@
 import
-	crow/col/mut-array: begin-pointer, cast-immutable, mut-array, size, subscript, uninitialized-mut-array
-	crow/col/private/array-low-level: begin-pointer
 	crow/extra-types: fd-t
 	crow/io/print: out, print
 	arpa/inet: inet_addr, inet_ntoa

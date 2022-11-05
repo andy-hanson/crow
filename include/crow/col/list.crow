@@ -7,17 +7,18 @@ import
 	../misc: new, void
 	../number: +, -, *, /, %, ==, <=>, nat8, nat64
 	../option: ??, ||, is-empty, new, option
+	../pointer: const-pointer, mut-pointer
 	../private/exception-low-level: unreachable
 	../private/range-low-level: .., range
 	../pointer: ==, +, *, set-deref, size-of
 	../tuple: a, b, new, pair
 	./array:
-		~, ~~, array, array-equal, array-iter, end-iter, iter, find-and-get, fold, for-loop,
-		index-of, is-empty, new, next, prev, rtail, size, slice-left, slice-right, subscript, tail
+		~, ~~, array, array-cast, array-equal, array-iter, as-array, begin-pointer, end-iter,
+		end-pointer, iter, find-and-get, fold, for-loop, index-of, is-empty, new, next, prev,
+		rtail, size, slice-left, slice-right, subscript, tail
 	./mut-array: begin-pointer, cast-immutable, end-pointer, mut-array, uninitialized-mut-array
 	./iter: new, rest, value, value-and-rest
 	./private/array-builder: ~=, array-builder, finish, new
-	./private/array-low-level: array-cast, begin-pointer, end-pointer
 
 ###
 Immutable list type.
@@ -131,6 +132,11 @@ branch<a, lower> record
 # List containing the given elements.
 new<a> a[](...a array a) noctx
 	a to-list
+
+as-list<a> a[](a range a*) noctx unsafe
+	a.as-array to-list
+as-list<a> a[](a range a mut*) noctx unsafe
+	a.as-array to-list
 
 ###
 Convert an array to a list.

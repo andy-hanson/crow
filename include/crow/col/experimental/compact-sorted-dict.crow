@@ -13,14 +13,13 @@ import
 	../../test-util: is
 	../../tuple: from, new, pair, to
 	../../private/alloc: mem-copy
-	../array: array, fold, is-empty, new, size, subscript, tail
+	../array: array, begin-pointer, end-pointer, fold, is-empty, new, size, subscript, tail
 	../mut-array:
 		begin-pointer, cast-immutable, is-empty, fold, mut-array, set-subscript, size, subscript, tail,
 		uninitialized-mut-array
 	../iter: value
 	../list: filter, for-loop, is-empty, list, new, to-array, to-list
 	../sort: sort-by
-	../private/array-low-level: begin-pointer, end-pointer
 	../private/sort-utils: binary-search-key
 
 compact-sorted-dict<k, v> record by-val

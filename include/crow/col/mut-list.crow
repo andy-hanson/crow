@@ -14,12 +14,11 @@ import
 		alloc-uninitialized, copy-data-from, set-zero-range, unmanaged-alloc-zeroed-elements
 	../private/number-low-level: round-up-to-power-of-two
 	../range: .., for-loop, reverse
-	./array: array, exists, fold, find-index, for-loop, in, index-of
+	./array: array, exists, fold, find-index, for-loop, in, index-of, subscript
 	./mut-array:
 		begin-pointer, cast-immutable, empty-mut-array, fill-mut-array, mut-array, for-loop, set-map,
 		set-reverse, set-zero-elements, size, subscript, temp-as-array, uninitialized-mut-array
 	./list: for-loop, list, to-list
-	./private/array-low-level: array-from-begin-size
 
 ###
 Mutable array type that can change in size.
@@ -181,7 +180,7 @@ in<a> bool(value a, a a mut[]) noctx trusted equal<a>
 	res a mut* = size alloc-uninitialized
 	src = a.begin-pointer + begin
 	_ = res.as-any-mut-pointer memcpy src.as-any-const-pointer, size * size-of@<a>
-	res.as-const array-from-begin-size size
+	res.as-const[0 .. size]
 
 ###
 Removes the first `n` elements and returns them as an array.

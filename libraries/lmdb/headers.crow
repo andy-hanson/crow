@@ -1,5 +1,4 @@
 import
-	crow/cell: cell
 	crow/c-types: c-int, size_t, u-int
 	crow/extra-types: err-t
 	sys/types: mode_t

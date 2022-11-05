@@ -7,18 +7,18 @@ import
 	../../misc: new, void
 	../../number: ==, <=>, +, /
 	../../option: new, option
-	../../pointer: ==, +, -, *, as-const, as-mut, const-pointer, mut-pointer, null, set-deref
+	../../pointer: ==, <=>, +, -, *, as-const, as-mut, const-pointer, mut-pointer, null, set-deref
+	../../range: ..
 	../../test-util: is
 	../../tuple: from, pair, to
 	../../private/bootstrap: nat64
-	../array: array
+	../array: array, as-array, begin-pointer, end-pointer
 	../mut-array:
-		begin-pointer, cast-immutable, copy-from, end-pointer, mut-array, mut-array-from-begin-end, new
+		as-mut-array, begin-pointer, cast-immutable, copy-from, end-pointer, mut-array, new
 	../list: ==, list, new
 	../mut-list:
 		begin-pointer, clear, end-pointer, is-empty, move-to-list, mut-list, size, swap, temp-as-mut-array,
 		to-mut-list, unsafe-set-size
-	./array-low-level: array-from-begin-end, begin-pointer, end-pointer
 
 binary-search-has<a> bool(a array a, value a) compare<a> trusted
 	(a.begin-pointer binary-search-exact-pointer-recur a.end-pointer, value) != null
@@ -193,9 +193,7 @@ In condition: a-read, a-write, b-read are all valid pointers.
 	as greater
 		*a-write := *a-read
 		if a-read == a-begin.as-const
-			dest = a-begin mut-array-from-begin-end a-write
-			src = b-begin array-from-begin-end b-read + 1
-			dest copy-from src
+			(a-begin .. a-write).as-mut-array copy-from (b-begin .. b-read + 1).as-array
 		else
 			a-begin merge-reverse-recur a-read - 1, a-write - 1, b-begin, b-read, compare
 

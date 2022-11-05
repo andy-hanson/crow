@@ -6,6 +6,7 @@ export
 	./col/array
 	./col/dict
 	./col/list
+	./col/mut-array
 	./col/mut-list
 	./col/mut-dict
 	./col/mut-set

@@ -9,13 +9,15 @@ import
 	../../number: ==, <=>, +, -, /, %, nat64
 	../../option: new, option
 	../../pointer: ==, <=>, +, -, *, const-pointer, mut-pointer, set-deref, swap
+	../../range: ..
 	../../test-util: is
-	../array: array, fold, in, index-of, is-empty, new, pointer-of, size, subscript
+	../array:
+		array, array-cast, as-array, begin-pointer, end-pointer, fold, in, index-of, is-empty, new,
+		pointer-of, size, subscript
 	../mut-array:
 		begin-pointer, cast-immutable, end-pointer, fill, fill-mut-array, mut-array, for-loop,
 		size, temp-as-array, to-mut-array, set-subscript, subscript, uninitialized-mut-array
 	../list: ==, for-loop, list, new, to-array, to-list
-	../private/array-low-level: array-cast, array-from-begin-end, begin-pointer, end-pointer
 
 frozen-set<a> record
 	.values array a
@@ -57,7 +59,7 @@ in<a> bool(value a, a frozen-set a) is-data<a> compare<a> hash-mix<a>
 			a.values end-pointer
 		else
 			a.bucket-starts[bucket-index + 1]
-		bucket-start array-from-begin-end bucket-end
+		bucket-start .. bucket-end as-array
 
 # TODO: no-doc
 # WARN: The order of values is arbitrary,
@@ -72,7 +74,7 @@ try-get-unordered-index<a> nat64?(a frozen-set a, value a) trusted is-data<a> co
 			a.values end-pointer
 		else
 			a.bucket-starts[bucket-index + 1]
-		if pointer ?= bucket-start array-from-begin-end bucket-end pointer-of value
+		if pointer ?= (bucket-start .. bucket-end).as-array pointer-of value
 			pointer - a.begin-pointer,
 
 unsafe-frozen-set-from-mut-array-cast-immutable<a> frozen-set a(

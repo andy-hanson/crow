@@ -3,14 +3,13 @@ import
 	./bool: !, bool
 	./cell: *, cell, new, set-deref
 	./col/array: for-loop
-	./col/list: list, to-list
-	./col/private/array-low-level: array-from-begin-end
+	./col/list: as-list, list, to-list
 	./fun-util: subscript
 	./misc: new, void
 	./number: ==, +, -, nat64
 	./option: is-empty, new, option
 	./private/alloc: alloc-uninitialized
-	./pointer: ==, +, as-const, mut-pointer, set-deref
+	./pointer: ==, <=>, +, mut-pointer, set-deref
 export
 	./private/range-low-level: .., low, high, range, size
 
@@ -63,7 +62,7 @@ for-loop<out> out[](a range-reverse nat64, f act out(nat64)) trusted
 		*cur := *cur + 1
 	end = out + size
 	assert *cur == end
-	out.as-const array-from-begin-end end.as-const to-list
+	out .. end as-list
 
 for-loop<out> out[](a range nat64, f act out(nat64)) trusted
 	a for-loop f to-list

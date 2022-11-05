@@ -3,25 +3,26 @@ import
 	./bool: ||, bool
 	./cell: *, cell, new, set-deref
 	./compare: <, comparison
-	./col/array: array
+	./col/array: array, as-array, begin-pointer
 	./col/iter: new, rest, value, value-and-rest
 	./col/list:
-		~, ~~, contains-sublist, copy, drop-right-while, drop-while, end-iter, ends-with, for-loop,
-		is-empty, iter, left, list, list-cast, list-compare, list-equal, list-iter, middle,
-		mut-iter, mut-list-iter, new, next, peek, prev, repeat, reverse, right, slice-left,
+		~, ~~, as-list, contains-sublist, copy, drop-right-while, drop-while, end-iter, ends-with,
+		for-loop, is-empty, iter, left, list, list-cast, list-compare, list-equal, list-iter,
+		middle, mut-iter, mut-list-iter, new, next, peek, prev, repeat, reverse, right, slice-left,
 		slice-right, split-by-sublist, starts-with, to-array, to-list, try-remove-end,
 		try-remove-start, try-split-once-by-fn, try-split-once-by-sublist,
 		try-split-once-by-sublist-right
 	./col/mut-list: copy, move-to-list, to-mut-list
-	./col/private/array-low-level: array-from-begin-end, begin-pointer
 	./hash: hasher, hash-mix
 	./misc: void
 	./number:
 		==, <=>, +, *, /, %, abs, float64, float32, int8, int16, int32, int64, is-nan, min-int64,
 		nat8, nat16, nat32, nat64, to-float64, to-int64, to-nat64, truncate-to-int64
 	./option: ??, new, option
+	./pointer: ==, <=>, const-pointer
 	./private/c-string-util: find-c-string-end
 	./private/number-low-level: wrap-sub
+	./range: .., range
 	./tuple: a, b, new, pair
 export
 	./private/bootstrap: char8, c-string, to-char8, to-nat8
@@ -39,7 +40,7 @@ char8s char8[](a string)
 	a inner
 
 literal string(a c-string) noctx trusted
-	(a array-from-begin-end a.find-c-string-end).to-list as-string
+	(a .. a.find-c-string-end).as-list as-string
 
 ###
 Concatenate two strings.
@@ -88,6 +89,8 @@ as-string string(a char8[]) noctx
 	a,
 as-string string(a array char8) noctx
 	a.to-list as-string
+as-string string(a range char8*) noctx unsafe
+	a.as-array as-string
 
 ###
 Treats UTF-8 bytes as a string.

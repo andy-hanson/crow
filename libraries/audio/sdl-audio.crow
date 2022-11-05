@@ -1,5 +1,4 @@
 import
-	crow/col/mut-array: cast-mut-array, subscript
 	crow/c-types: c-int
 	SDL2/SDL: SDL_Init, SDL_INIT_AUDIO, SDL_Quit
 	SDL2/SDL_audio:
