@@ -1,5 +1,4 @@
 import
-	crow/cell: *, as-const-pointer, as-mut-pointer, cell, new
 	crow/col/private/array-low-level: begin-pointer, subscript
 	crow/c-types: c-int
 	crow/io/duration: msec
@@ -10,7 +9,6 @@ import
 	crow/math/trig: pi
 	crow/math/vec: +, -, *, new, right, up, vec2-32, vec3-32
 	crow/private/runtime: cur-thread-id
-	crow/pointer: ==, as-any-const-pointer, to-const-pointer, null, pointer-cast, size-of
 	OpenGL/gl:
 		glActiveTexture, glBindBuffer, glBindTexture, glBufferData, glBufferSubData, glClear,
 		glClearColor, glCullFace, glDeleteBuffers, glDrawArrays, glEnable,

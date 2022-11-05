@@ -1,5 +1,4 @@
 import
-	crow/col/set: in, new, set
 	crow/io/file: each-child-recursive, read-file
 	crow/io/path: base-name, get-extension
 	crow/io/print: out, print

@@ -2,7 +2,6 @@ import
 	crow/cell: cell
 	crow/c-types: c-int, size_t, u-int
 	crow/extra-types: err-t
-	crow/pointer: any-mut-pointer
 	sys/types: mode_t
 
 MDB_env extern-pointer

@@ -1,6 +1,5 @@
 import
 	crow/c-types: c-int, u-int
-	crow/pointer: any-const-pointer
 
 SDL_DestroyWindow void(window SDL_Window) extern<SDL2> summon
 

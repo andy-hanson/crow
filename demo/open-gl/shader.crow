@@ -1,8 +1,6 @@
 import
-	crow/cell: *, cell, new
 	crow/col/mut-array: begin-pointer, mut-array, to-array, uninitialized-mut-array
 	crow/col/private/array-low-level: begin-pointer
-	crow/pointer: null
 	OpenGL/gl:
 		glAttachShader, glCompileShader, glCreateProgram, glCreateShader, glDeleteProgram,
 		glDeleteShader, gl-ext, glGetProgramInfoLog, glGetProgramiv, glGetShaderInfoLog,

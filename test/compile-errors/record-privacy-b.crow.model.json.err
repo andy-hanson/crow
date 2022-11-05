@@ -2,6 +2,8 @@ test/compile-errors/record-privacy-b.crow 5:22-6:1 there are functions named 'ne
 expected return type: 'private-ctor'
 actual argument types:  (other arguments not checked, gave up early)
 candidates (with 1 arguments):
+	new cell<a>(a) (from include/crow/cell.crow.crow line 22)
+	new by-val<cell<a>>(a) (from include/crow/cell.crow.crow line 25)
 	new array<a>(...array<a>) (from include/crow/col/private/array-low-level.crow.crow line 12)
 	new dict<k, v>(...array<pair<k, v>>) (from include/crow/col/dict.crow.crow line 73)
 	new list<a>(...array<a>) (from include/crow/col/list.crow.crow line 132)
@@ -10,6 +12,8 @@ candidates (with 1 arguments):
 	new l2<a>(array<array<array<a>>>) (from include/crow/col/list.crow.crow line 45)
 	new mut-list<a>(...array<a>) (from include/crow/col/mut-list.crow.crow line 69)
 	new mut-dict<k, v>(...array<pair<k, v>>) (from include/crow/col/mut-dict.crow.crow line 43)
+	new mut-set<a>(...array<a>) (from include/crow/col/mut-set.crow.crow line 24)
+	new set<a>(...array<a>) (from include/crow/col/set.crow.crow line 47)
 	new future<a>(a) (from include/crow/future.crow.crow line 33)
 	new option<a>(a) (from include/crow/option.crow.crow line 15)
 

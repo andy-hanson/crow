@@ -1,8 +1,6 @@
 import
-	crow/cell: *, as-mut-pointer, cell, new
 	crow/col/private/array-low-level: begin-pointer, end-pointer
 	crow/private/alloc: mem-copy
-	crow/pointer: ==, <=>, +, -, any-mut-pointer, as-any-mut-pointer, as-ref, const-pointer, mut-pointer
 	sndfile/headers:
 		channels, frames, new, samplerate, sf_close, sf_count_t, sf_error, SF_INFO, SFM_READ,
 		sf_open, sf_open_virtual, sf_read_float, SF_VIRTUAL_IO, SNDFILE

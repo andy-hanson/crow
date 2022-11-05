@@ -1,6 +1,5 @@
 import
 	crow/c-types: c-int
-	crow/pointer: any-const-pointer, any-mut-pointer
 
 SDL_RWops extern-pointer
 

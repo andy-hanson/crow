@@ -5,7 +5,6 @@ For the raw library, import from `lmdb/headers` instead of `lmdb`.
 ###
 
 import
-	crow/bits: |
 	crow/cell: *, cell, new
 	crow/col/mut-array:
 		begin-pointer, cast-immutable, end-pointer, mut-array, mut-array-from-begin-end, to-array,
@@ -15,7 +14,6 @@ import
 	crow/extra-types: err-t
 	crow/io/file: make-directory, path-exists
 	crow/log: info, log
-	crow/pointer: ==, +, as-mut, mut-pointer, null, pointer-cast-to-extern, set-deref, zeroed
 	crow/serialize: from-bytes, serialize, to-4-bytes, to-8-bytes
 	./headers:
 		MDB_BAD_DBI, MDB_BAD_RSLOT, MDB_BAD_TXN, MDB_BAD_VALSIZE, MDB_CORRUPTED, MDB_CREATE,

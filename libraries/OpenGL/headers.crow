@@ -1,7 +1,5 @@
 import
-	crow/cell: cell
 	crow/c-types: c-char, c-float, c-int, long, u-int
-	crow/pointer: any-const-pointer, const-pointer, mut-pointer
 
 GLbitfield alias
 	u-int

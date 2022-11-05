@@ -1,6 +1,4 @@
 import
-	crow/cell: *, as-mut-pointer, cell, new
-	crow/pointer: as-const
 	OpenGL/gl:
 		glBindTexture, glDeleteTextures, gl-ext, glGenTextures, glGetError, glTexImage2D,
 		glTexParameteri

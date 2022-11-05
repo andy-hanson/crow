@@ -1,6 +1,4 @@
 import
-	crow/cell: cell
-	crow/pointer: ==, any-const-pointer, as-fun-pointer, const-pointer, mut-pointer, null
 	SDL2/SDL_video: SDL_GL_GetProcAddress
 	./headers:
 		GLbitfield, GLboolean, GLchar, GLenum, GLfloat, GLint, GLintptr, GLsizei, GLsizeiptr, GLuint

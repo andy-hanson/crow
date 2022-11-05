@@ -1,9 +1,6 @@
 import
 	crow/col/iter: again, again-or-stop
 	crow/c-types: c-int
-	crow/pointer:
-		*, any-mut-pointer, as-any-mut-pointer, as-const, const-pointer, null, pointer-cast, pointer-cast-to-extern,
-		subscript
 	./headers:
 		==, |, enum-members, sqlite3-pointer, sqlite3_close, sqlite3_exec, sqlite3_free, SQLITE_OK,
 		SQLITE_OPEN_CREATE, SQLITE_OPEN_READWRITE, sqlite3_open_v2

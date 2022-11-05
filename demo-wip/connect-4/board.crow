@@ -1,9 +1,7 @@
 import
-	crow/bits: &, ^, |, <<, >>, has-bit, bits-intersect
 	crow/col/mut-array: fill-mut-array, mut-array, set-subscript, size, subscript
 	crow/col/mut-grid: coord, new, x, y
 	crow/io/terminal-color: bold, blue, foreground, red, reset
-	crow/pointer: zeroed
 	crow/private/number-low-level: wrap-to-nat32
 
 ###

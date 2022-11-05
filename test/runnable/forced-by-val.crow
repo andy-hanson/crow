@@ -1,6 +1,5 @@
 import
 	crow/io/print: out, print
-	crow/pointer: const-pointer, size-of
 
 main nat^(_ string[]) trusted summon
 	out print "{size-of@<t>}"

@@ -1,6 +1,5 @@
 import
 	crow/c-types: c-int, u-int
-	crow/pointer: const-pointer
 	./SDL_rect: SDL_Rect
 	./SDL_surface: SDL_Surface
 	./SDL_video: SDL_Window

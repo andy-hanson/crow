@@ -1,7 +1,6 @@
 import
 	crow/io/duration: sec
 	crow/io/time: delay
-	crow/pointer: any-mut-pointer, null
 	pthread: pthread_create, pthread_t
 
 main nat^(_ string[]) summon unsafe

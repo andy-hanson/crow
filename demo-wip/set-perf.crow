@@ -8,7 +8,6 @@ import
 	crow/col/experimental/index-set: -, ~, index-set, in, new, size
 	crow/col/experimental/sorted-set: -, ~, in, new, sorted-set, size
 	crow/col/experimental/tree-set: -, ~, in, new, size, tree-set
-	crow/col/set: ~, in, new, node-count, set, size
 	crow/io/print: err, out, print
 	crow/io/private/time-low-level: get-monotime-nsec
 	crow/log: info, log

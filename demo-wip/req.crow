@@ -3,7 +3,6 @@ import
 	crow/col/private/array-low-level: begin-pointer
 	crow/extra-types: fd-t
 	crow/io/print: out, print
-	crow/pointer: ==, *, as-any-const-pointer, const-pointer, null, pointer-cast, pointer-cast-to-extern, size-of
 	arpa/inet: inet_addr, inet_ntoa
 	netdb: gethostbyname, getprotobyname, h_addr_list, p_proto
 	netinet/in: htons, in_addr, new, sockaddr_in

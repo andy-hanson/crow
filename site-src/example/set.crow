@@ -1,6 +1,4 @@
 import
-	crow/col/mut-set
-	crow/col/set
 	crow/io/print: out, print
 
 main nat^(_ string[]) summon

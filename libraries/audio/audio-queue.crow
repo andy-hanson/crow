@@ -1,9 +1,7 @@
 import
-	crow/cell: *, cell, new, set-deref
 	crow/col/mut-array: begin-pointer, end-pointer, fill, mut-array, mut-array-from-begin-end, new, size, to-array
 	crow/col/private/array-low-level: array-from-begin-end, begin-pointer, end-pointer
 	crow/private/thread-utils: acquire, init, lock, release, uninit
-	crow/pointer: ==, +, -, *, by-val, const-pointer, mut-pointer, ref-eq, set-deref
 	./audio: new, playing-sound
 	./sound: ==, format, new, samples, sound, sound-format, to-string
 

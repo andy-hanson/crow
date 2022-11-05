@@ -1,8 +1,6 @@
 import
-	crow/cell: as-const-pointer, as-mut-pointer, cell, new
 	crow/c-types: c-int, size_t, u-long
 	crow/io/print: out, print
-	crow/pointer: as-const, const-pointer, mut-pointer, new
 
 main nat^(_ string[]) summon
 	"cro\\+w" test-regex ("crow", "crooow", "duck")

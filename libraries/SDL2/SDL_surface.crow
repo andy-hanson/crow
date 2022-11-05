@@ -1,6 +1,5 @@
 import
 	crow/c-types: c-int
-	crow/pointer: any-mut-pointer, mut-pointer
 	./SDL_pixels: SDL_PixelFormat
 	./SDL_rect: SDL_Rect
 	./SDL_rwops: SDL_RWFromFile, SDL_RWops

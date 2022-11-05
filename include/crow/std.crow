@@ -1,11 +1,15 @@
 no-std
 export
+	./bits
 	./bool
+	./cell
 	./col/array
 	./col/dict
 	./col/list
 	./col/mut-list
 	./col/mut-dict
+	./col/mut-set
+	./col/set
 	./compare
 	./enum-util
 	./exception
@@ -16,6 +20,7 @@ export
 	./misc
 	./number
 	./option
+	./pointer
 	./range
 	./result
 	./string

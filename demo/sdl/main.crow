@@ -1,11 +1,9 @@
 import
-	crow/cell: as-const-pointer, cell, new
 	crow/col/iter: again, again-or-stop, stop
 	crow/col/private/array-low-level: begin-pointer, subscript
 	crow/io/duration: msec
 	crow/io/print: out, print
 	crow/io/time: get-monotime-msec, repeat-interval
-	crow/pointer: ==, as-any-const-pointer, null
 	crow/c-types: c-int
 	SDL2/SDL:
 		SDL_GetError, SDL_Init, SDL_INIT_VIDEO, SDL_Quit

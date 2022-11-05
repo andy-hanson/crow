@@ -1,6 +1,4 @@
 import
-	crow/col/set: in, set, to-list, to-set
-	crow/col/mut-set: ~=, for-loop, move-to-list, move-to-set, mut-set, new, to-mut-set, try-remove
 	crow/io/file: read-file
 	crow/io/print: err, print
 	crow/io/process: shell-exec

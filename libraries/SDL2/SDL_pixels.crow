@@ -1,7 +1,5 @@
 import
-	crow/bits: |, <<
 	crow/c-types: c-int
-	crow/pointer: mut-pointer
 	crow/version: is-big-endian
 
 SDL_Color record by-val extern
