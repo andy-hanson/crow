@@ -7,13 +7,13 @@ import
 	../misc: new, void
 	../number: ==, <=>, +, -, *, /, %, nat64
 	../option: new, option
-	../ptr:
-		==, <=>, +, -, *, as-any-const-ptr, as-any-mut-ptr, as-const, as-mut, mut-ptr, ptr-cast,
+	../pointer:
+		==, <=>, +, -, *, as-any-const-pointer, as-any-mut-pointer, as-const, as-mut, mut-pointer, pointer-cast,
 		set-deref, set-subscript, size-of, subscript, swap
 	../private/alloc: alloc-uninitialized, set-zero-range, unmanaged-alloc-elements, unmanaged-free-elements
 	../private/range-low-level: .., range
 	./array: array, exists, find-index, fold, for-loop, index-of, new, size, subscript
-	./private/array-low-level: array-from-begin-end, begin-ptr, subscript
+	./private/array-low-level: array-from-begin-end, begin-pointer, subscript
 
 ###
 `mut-array` is a low-level type mostly useful for implementing other collections.
@@ -76,7 +76,7 @@ Throws if `index >= a.size`.
 ###
 subscript<a> a(a mut-array a, index nat64) noctx trusted
 	assert index < a.size
-	a.begin-ptr[index]
+	a.begin-pointer[index]
 
 ###
 Slices the mut-array.
@@ -96,7 +96,7 @@ Throws if `index >= a.size`.
 ###
 set-subscript<a> void(a mut-array a, index nat64, value a) noctx trusted
 	assert index < a.size
-	a.begin-ptr[index] := value
+	a.begin-pointer[index] := value
 
 # `true` iff `a.size == 0`.
 is-empty<a> bool(a mut-array a) noctx
@@ -107,15 +107,15 @@ size<a> nat64(a mut-array a) noctx
 	a.inner size
 
 # Pointer to the beginning of the `mut-array`.
-begin-ptr<a> a mut*(a mut-array a) noctx unsafe
-	a.inner.begin-ptr as-mut
+begin-pointer<a> a mut*(a mut-array a) noctx unsafe
+	a.inner.begin-pointer as-mut
 
 ###
 Pointer to the end of the `mut-array`.
 This is one past the last valid pointer.
 ###
-end-ptr<a> a mut*(a mut-array a) noctx unsafe
-	a.begin-ptr + a.size
+end-pointer<a> a mut*(a mut-array a) noctx unsafe
+	a.begin-pointer + a.size
 
 ###
 Copies the elements to a new `mut-array`.
@@ -136,7 +136,7 @@ This is O(n).
 ###
 copy-from<a> void(dest mut-array a, source array a) trusted
 	assert dest.size == source.size
-	_ = dest.begin-ptr.as-any-mut-ptr memcpy source.begin-ptr.as-any-const-ptr, dest.size * size-of@<a>
+	_ = dest.begin-pointer.as-any-mut-pointer memcpy source.begin-pointer.as-any-const-pointer, dest.size * size-of@<a>
 	()
 
 ###
@@ -160,15 +160,15 @@ since initialization code might throw an exception.
 See `zeroed-mut-array` for a safer alternative, or `make-mut-array` for a fully safe alternative.
 ###
 uninitialized-mut-array<a> mut-array a(size nat64) unsafe
-	ptr a mut* = size alloc-uninitialized
-	ptr[0 .. size]
+	pointer a mut* = size alloc-uninitialized
+	pointer[0 .. size]
 
 unmanaged-uninitialized-mut-array<a> mut-array a(size nat64) no-doc noctx unsafe
-	ptr a mut* = size unmanaged-alloc-elements
-	ptr[0 .. size]
+	pointer a mut* = size unmanaged-alloc-elements
+	pointer[0 .. size]
 
 free-unmanaged-mut-array<a> void(a mut-array a) no-doc noctx unsafe
-	a.begin-ptr unmanaged-free-elements a.size
+	a.begin-pointer unmanaged-free-elements a.size
 
 ###
 This is like `uninitialized-mut-array` but fills memory with zeroes.
@@ -187,7 +187,7 @@ zeroed-mut-array<a> mut-array a(size nat64) unsafe
 Sets every element to `zeroed`. See comment on `zeroed-mut-array` for why this is useful.
 ###
 set-zero-elements<a> void(a mut-array a) noctx unsafe
-	a.begin-ptr set-zero-range a.size
+	a.begin-pointer set-zero-range a.size
 
 ###
 `mut-array` where each element is `f[i]`.
@@ -195,11 +195,11 @@ Equivalent to `f[0], f[1], ...`.
 ###
 .make-mut-array<a> mut-array a(size nat64, f act a(nat64)) trusted
 	res mut-array a = size uninitialized-mut-array
-	out mut = res begin-ptr
+	out mut = res begin-pointer
 	i mut = 0
 	loop
 		if i == size
-			assert out == res.end-ptr
+			assert out == res.end-pointer
 			break res
 		else
 			*out := f[i]
@@ -217,12 +217,12 @@ fill-mut-array<a> mut-array a(size nat64, value a)
 # Sets every element to `value`.
 fill<a> void(a mut-array a, value a) noctx trusted
 	unless a is-empty
-		*a.begin-ptr := value
-		a.begin-ptr + 1 mut-array-from-begin-end a.end-ptr fill value
+		*a.begin-pointer := value
+		a.begin-pointer + 1 mut-array-from-begin-end a.end-pointer fill value
 
 in<a> bool(value a, a mut-array a) noctx trusted equal<a>
-	cur mut = a.begin-ptr as-const
-	end = a.end-ptr as-const
+	cur mut = a.begin-pointer as-const
+	end = a.end-pointer as-const
 	loop
 		if cur == end
 			break false
@@ -276,9 +276,9 @@ find-index<a> nat64?(a mut-array a, f act bool(a)) trusted
 	a.temp-as-array find-index f
 
 set-reverse<a> void(a mut-array a) trusted
-	# avoid 'a.end-ptr - 1' overflowing for null arrays
+	# avoid 'a.end-pointer - 1' overflowing for null arrays
 	unless a is-empty
-		a.begin-ptr set-reverse-recur a.end-ptr - 1
+		a.begin-pointer set-reverse-recur a.end-pointer - 1
 .set-reverse-recur<a> void(left a mut*, right a mut*) unsafe
 	if left < right
 		left swap right
@@ -300,7 +300,7 @@ fold<a, b> a(acc a, a mut-array b, f act a(a, b)) trusted
 	acc fold a.temp-as-array, f
 
 set-map<a> void(a mut-array a, f act a(a)) trusted
-	a.begin-ptr set-map-recur a.end-ptr, f
+	a.begin-pointer set-map-recur a.end-pointer, f
 .set-map-recur<a> void(cur a mut*, end a mut*, f act a(a)) unsafe
 	unless cur == end
 		*cur := f[*cur]
@@ -321,7 +321,7 @@ cast-mut-array<out, in> mut-array out(a mut-array in) noctx unsafe
 	size-bytes = a.size * size-of@<in>
 	assert size-bytes % size-of@<out> == 0
 	size-out = size-bytes / size-of@<out>
-	a.begin-ptr.ptr-cast@<out, in>[0 .. size-out]
+	a.begin-pointer.pointer-cast@<out, in>[0 .. size-out]
 
 for-loop<out, in> array out(a mut-array in, f act out(in)) trusted
 	a for-loop f cast-immutable

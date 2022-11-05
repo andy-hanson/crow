@@ -6,7 +6,7 @@ import
 	../future: future, subscript, then
 	../misc: new, void
 	../number: ==, <=>, +, /, nat64, to-nat64
-	../ptr: null
+	../pointer: null
 	../future: new
 	../private/future-low-level: forward-to, resolve, unresolved
 	../private/runtime: add-timed-task, get-global-ctx, new-exclusion

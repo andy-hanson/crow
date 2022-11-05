@@ -169,8 +169,8 @@ immutable(DocExport) documentStructDecl(ref Alloc alloc, ref immutable StructDec
 				"members",
 				reprArr(alloc, it.members, (ref immutable StructBody.Enum.Member member) =>
 					reprSym(member.name)))]),
-		(ref immutable StructBody.ExternPtr) =>
-			reprNamedRecord(alloc, "extern-ptr", []),
+		(ref immutable StructBody.ExternPointer) =>
+			reprNamedRecord(alloc, "extern-pointer", []),
 		(ref immutable StructBody.Record it) =>
 			documentRecord(alloc, a, it),
 		(ref immutable StructBody.Union it) =>

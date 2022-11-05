@@ -8,18 +8,18 @@ import
 	../../misc: is-data, new, void
 	../../number: ==, <=>, +, -, /, %, nat64
 	../../option: new, option
-	../../ptr: ==, <=>, +, -, *, const-ptr, mut-ptr, set-deref, swap
+	../../pointer: ==, <=>, +, -, *, const-pointer, mut-pointer, set-deref, swap
 	../../test-util: is
-	../array: array, fold, in, index-of, is-empty, new, ptr-of, size, subscript
+	../array: array, fold, in, index-of, is-empty, new, pointer-of, size, subscript
 	../mut-array:
-		begin-ptr, cast-immutable, end-ptr, fill, fill-mut-array, mut-array, for-loop,
+		begin-pointer, cast-immutable, end-pointer, fill, fill-mut-array, mut-array, for-loop,
 		size, temp-as-array, to-mut-array, set-subscript, subscript, uninitialized-mut-array
 	../list: ==, for-loop, list, new, to-array, to-list
-	../private/array-low-level: array-cast, array-from-begin-end, begin-ptr, end-ptr
+	../private/array-low-level: array-cast, array-from-begin-end, begin-pointer, end-pointer
 
 frozen-set<a> record
 	.values array a
-	# These are pointers into 'values', so it's fine that 'ptr' isn't GC traced.
+	# These are pointers into 'values', so it's fine that 'pointer' isn't GC traced.
 	.bucket-starts array a*
 
 new<a> frozen-set a(...a array a) is-data<a> compare<a> hash-mix<a>
@@ -32,11 +32,11 @@ to-frozen-set<a> frozen-set a(a a[]) trusted is-data<a> compare<a> hash-mix<a>
 to-list<a> a[](a frozen-set a)
 	a.values to-list
 
-begin-ptr<a> a*(a frozen-set a) no-doc unsafe
-	a.values begin-ptr
+begin-pointer<a> a*(a frozen-set a) no-doc unsafe
+	a.values begin-pointer
 
-end-ptr<a> a*(a frozen-set a) no-doc unsafe
-	a.values end-ptr
+end-pointer<a> a*(a frozen-set a) no-doc unsafe
+	a.values end-pointer
 
 is-empty<a> bool(a frozen-set a)
 	a.values is-empty
@@ -54,7 +54,7 @@ in<a> bool(value a, a frozen-set a) is-data<a> compare<a> hash-mix<a>
 		bucket-index = value.hash % a.bucket-starts.size
 		bucket-start = a.bucket-starts[bucket-index]
 		bucket-end = if bucket-index == a.bucket-starts.size - 1
-			a.values end-ptr
+			a.values end-pointer
 		else
 			a.bucket-starts[bucket-index + 1]
 		bucket-start array-from-begin-end bucket-end
@@ -69,11 +69,11 @@ try-get-unordered-index<a> nat64?(a frozen-set a, value a) trusted is-data<a> co
 		bucket-index = value.hash % a.bucket-starts.size
 		bucket-start = a.bucket-starts[bucket-index]
 		bucket-end = if bucket-index == a.bucket-starts.size - 1
-			a.values end-ptr
+			a.values end-pointer
 		else
 			a.bucket-starts[bucket-index + 1]
-		if ptr ?= bucket-start array-from-begin-end bucket-end ptr-of value
-			ptr - a.begin-ptr,
+		if pointer ?= bucket-start array-from-begin-end bucket-end pointer-of value
+			pointer - a.begin-pointer,
 
 unsafe-frozen-set-from-mut-array-cast-immutable<a> frozen-set a(
 	a mut-array a,
@@ -83,9 +83,9 @@ unsafe-frozen-set-from-mut-array-cast-immutable<a> frozen-set a(
 	else
 		n-buckets = a.size / 2
 		bucket-counts = a get-bucket-counts n-buckets
-		bucket-starts = a.begin-ptr running-sum bucket-counts.temp-as-array
+		bucket-starts = a.begin-pointer running-sum bucket-counts.temp-as-array
 		bucket-counts fill 0
-		a.begin-ptr move-values-to-buckets-recur a.end-ptr, bucket-counts, bucket-starts
+		a.begin-pointer move-values-to-buckets-recur a.end-pointer, bucket-counts, bucket-starts
 		a.cast-immutable, bucket-starts.array-cast
 
 .get-bucket-counts<a> mut-array nat64(a mut-array a, n-buckets nat64) unsafe hash-mix<a>
@@ -121,7 +121,7 @@ unsafe-frozen-set-from-mut-array-cast-immutable<a> frozen-set a(
 
 .running-sum<a> array a mut*(acc a mut*, a array nat64) trusted
 	out mut-array a mut* = a.size uninitialized-mut-array
-	acc running-sum-recur out.begin-ptr, out.end-ptr, a.begin-ptr
+	acc running-sum-recur out.begin-pointer, out.end-pointer, a.begin-pointer
 	out cast-immutable
 .running-sum-recur<a> void(
 	acc a mut*,
@@ -141,11 +141,11 @@ for-loop<a> void(a frozen-set a, f act void(a))
 
 for-loop<out, in> out[](a frozen-set in, f act out(in)) trusted
 	res mut-array out = a.size uninitialized-mut-array
-	out cell out mut* = res.begin-ptr,
+	out cell out mut* = res.begin-pointer,
 	for x : a
 		*(*out) := f[x]
 		*out := *out + 1
-	assert *out == res.end-ptr
+	assert *out == res.end-pointer
 	res.cast-immutable to-list
 
 fold<a, b> a(acc a, a frozen-set b, f act a(a, b))
@@ -156,7 +156,7 @@ fold<a, b> a(acc a, a frozen-set b, f act a(a, b, nat64))
 
 .verify void(a frozen-set nat64, values nat64[], bucket-starts nat64[]) unsafe
 	a.values.to-list is values
-	(for ptr : a.bucket-starts to-list; ptr - a.values.begin-ptr)::nat64[] is bucket-starts
+	(for pointer : a.bucket-starts to-list; pointer - a.values.begin-pointer)::nat64[] is bucket-starts
 
 test
 	a frozen-set nat64 = ()

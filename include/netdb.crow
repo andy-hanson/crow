@@ -3,7 +3,7 @@ import
 	crow/c-types: c-int
 	crow/misc: void
 	crow/number: int32
-	crow/ptr: const-ptr, mut-ptr
+	crow/pointer: const-pointer, mut-pointer
 	crow/string: c-string
 	sys/socket: sockaddr
 	sys/types: socklen_t

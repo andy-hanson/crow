@@ -237,11 +237,11 @@ immutable(Sym) symForTypeAstSuffix(immutable TypeAst.Suffix.Kind a) {
 		case TypeAst.Suffix.Kind.mutList:
 			return shortSym("mut-list");
 		case TypeAst.Suffix.Kind.mutPtr:
-			return shortSym("mut-ptr");
+			return shortSym("mut-pointer");
 		case TypeAst.Suffix.Kind.option:
 			return shortSym("option");
 		case TypeAst.Suffix.Kind.ptr:
-			return shortSym("const-ptr");
+			return symForSpecial(SpecialSym.const_pointer);
 	}
 }
 
@@ -1354,7 +1354,7 @@ immutable(Repr) reprStructBodyAst(ref Alloc alloc, ref immutable StructDeclAst.B
 		(ref immutable StructDeclAst.Body.Flags e) =>
 			reprEnumOrFlags(alloc, "flags", e.typeArg, e.members),
 		(ref immutable StructDeclAst.Body.ExternPtr) =>
-			reprSym("extern-ptr"),
+			reprSym(symForSpecial(SpecialSym.extern_pointer)),
 		(ref immutable StructDeclAst.Body.Record a) =>
 			reprRecord(alloc, a),
 		(ref immutable StructDeclAst.Body.Union a) =>

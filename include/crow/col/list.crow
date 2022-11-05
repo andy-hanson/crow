@@ -9,15 +9,15 @@ import
 	../option: ??, ||, is-empty, new, option
 	../private/exception-low-level: unreachable
 	../private/range-low-level: .., range
-	../ptr: ==, +, *, set-deref, size-of
+	../pointer: ==, +, *, set-deref, size-of
 	../tuple: a, b, new, pair
 	./array:
 		~, ~~, array, array-equal, array-iter, end-iter, iter, find-and-get, fold, for-loop,
 		index-of, is-empty, new, next, prev, rtail, size, slice-left, slice-right, subscript, tail
-	./mut-array: begin-ptr, cast-immutable, end-ptr, mut-array, uninitialized-mut-array
+	./mut-array: begin-pointer, cast-immutable, end-pointer, mut-array, uninitialized-mut-array
 	./iter: new, rest, value, value-and-rest
 	./private/array-builder: ~=, array-builder, finish, new
-	./private/array-low-level: array-cast, begin-ptr, end-ptr
+	./private/array-low-level: array-cast, begin-pointer, end-pointer
 
 ###
 Immutable list type.
@@ -223,8 +223,8 @@ size<a> nat64(a a[]) noctx
 .size<a> nat64(a l2 a) noctx
 	a.nodes.size-3d
 .size-2d<a> nat64(a array array a) noctx trusted
-	cur mut = a begin-ptr
-	end = a end-ptr
+	cur mut = a begin-pointer
+	end = a end-pointer
 	res mut = 0
 	until cur == end
 		res := res + cur->size
@@ -232,8 +232,8 @@ size<a> nat64(a a[]) noctx
 	res
 
 .size-3d<a> nat64(a array array array a) noctx trusted
-	cur mut = a begin-ptr
-	end = a end-ptr
+	cur mut = a begin-pointer
+	end = a end-pointer
 	res mut = 0
 	until cur == end
 		res := res + cur->size-2d
@@ -893,18 +893,18 @@ for-loop<out, in> out[](a in[], f act out(in, nat64))
 
 for-loop<out, in> array out(a in[], f act out(in)) trusted
 	res mut-array out = a.size uninitialized-mut-array
-	end = res.begin-ptr fold a, (out, x) =>
+	end = res.begin-pointer fold a, (out, x) =>
 		*out := f[x]
 		out + 1
-	assert end == res.end-ptr
+	assert end == res.end-pointer
 	res.cast-immutable
 
 for-loop<out, in> array out(a in[], f act out(in, nat64)) trusted
 	res mut-array out = a.size uninitialized-mut-array
-	end = res.begin-ptr fold a, (out, x, i) =>
+	end = res.begin-pointer fold a, (out, x, i) =>
 		*out := f[x, i]
 		out + 1
-	assert end == res.end-ptr
+	assert end == res.end-pointer
 	res.cast-immutable
 
 flatten<a> a[](a a[][])

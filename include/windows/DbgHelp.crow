@@ -2,10 +2,10 @@ no-std
 import
 	crow/bool: bool, false
 	crow/c-types: c-char
-	crow/fun-util: fun-ptr2, fun-ptr3, fun-ptr5
+	crow/fun-util: fun-pointer2, fun-pointer3, fun-pointer5
 	crow/number: nat32, to-nat32
 	crow/private/bootstrap: c-string
-	crow/ptr: *, any-const-ptr, any-mut-ptr, const-ptr, mut-ptr, null, size-of
+	crow/pointer: *, any-const-pointer, any-mut-pointer, const-pointer, mut-pointer, null, size-of
 	win32: CONTEXT, DWORD, DWORD64, HANDLE, Rbp, Rip, Rsp, WORD
 
 ADDRESS_MODE enum<nat32> extern
@@ -31,7 +31,7 @@ STACKFRAME64 record extern by-val
 	AddrFrame ADDRESS64
 	AddrStack ADDRESS64
 	AddrBStore ADDRESS64
-	FuncTableEntry any-const-ptr
+	FuncTableEntry any-const-pointer
 	Params0 DWORD64
 	Params1 DWORD64
 	Params2 DWORD64
@@ -84,7 +84,7 @@ new IMAGEHLP_SYMBOL64(max-name-length DWORD) noctx unsafe
 
 IMAGEHLP_LINE64 record extern by-val
 	SizeOfStruct DWORD
-	Key any-const-ptr
+	Key any-const-pointer
 	LineNumber DWORD
 	FileName c-string
 	Address DWORD64
@@ -132,27 +132,27 @@ IMAGEHLP_SYMBOL_TYPE_INFO enum<nat32> extern
 	IMAGEHLP_SYMBOL_TYPE_INFO_MAX
 
 PREAD_PROCESS_MEMORY_ROUTINE64 alias
-	fun-ptr5<bool, HANDLE, DWORD64, any-mut-ptr, DWORD, DWORD mut*>
+	fun-pointer5<bool, HANDLE, DWORD64, any-mut-pointer, DWORD, DWORD mut*>
 PFUNCTION_TABLE_ACCESS_ROUTINE64 alias
-	fun-ptr2<any-const-ptr, HANDLE, DWORD64>
+	fun-pointer2<any-const-pointer, HANDLE, DWORD64>
 PGET_MODULE_BASE_ROUTINE64 alias
-	fun-ptr2<DWORD64, HANDLE, DWORD64>
+	fun-pointer2<DWORD64, HANDLE, DWORD64>
 PTRANSLATE_ADDRESS_ROUTINE64 alias
-	fun-ptr3<DWORD64, HANDLE, HANDLE, ADDRESS64 mut*>
+	fun-pointer3<DWORD64, HANDLE, HANDLE, ADDRESS64 mut*>
 
 StackWalk64 bool(
 	MachineType DWORD,
 	hProcess HANDLE,
 	hThread HANDLE,
 	StackFrame STACKFRAME64 mut*,
-	ContextRecord any-const-ptr,
+	ContextRecord any-const-pointer,
 	ReadMemoryRoutine PREAD_PROCESS_MEMORY_ROUTINE64,
 	FunctionTableAccessRoutine PFUNCTION_TABLE_ACCESS_ROUTINE64,
 	GetModuleBaseRoutine PGET_MODULE_BASE_ROUTINE64,
 	TranslateAddress PTRANSLATE_ADDRESS_ROUTINE64,
 ) extern<DbgHelp>
 
-SymFunctionTableAccess64 any-const-ptr(hProcess HANDLE, AddrBase DWORD64) extern<DbgHelp>
+SymFunctionTableAccess64 any-const-pointer(hProcess HANDLE, AddrBase DWORD64) extern<DbgHelp>
 
 # A process that calls SymInitialize should not call it again unless it calls SymCleanup first
 SymInitialize bool(hProcess HANDLE, UserSearchPath c-string, fInvadeProcess bool) extern<DbgHelp>

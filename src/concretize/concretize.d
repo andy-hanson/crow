@@ -145,7 +145,7 @@ void checkRtMainSignature(ref immutable CommonTypes commonTypes, ref immutable F
 	if (!isInt32(commonTypes, params[0].type))
 		todo!void("checkRtMainSignature doesn't take int");
 	// TODO: check p1 type is ptr c-str
-	// TODO: check p2 type is fun-ptr2 nat^ ctx str[])
+	// TODO: check p2 type is fun-pointer2 nat^ ctx str[])
 }
 
 void checkUserMainSignature(ref immutable CommonTypes commonTypes, ref immutable FunDecl mainFun) {

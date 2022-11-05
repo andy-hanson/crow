@@ -7,24 +7,24 @@ import
 	../../misc: new, void
 	../../number: ==, <=>, +, /
 	../../option: new, option
-	../../ptr: ==, +, -, *, as-const, as-mut, const-ptr, mut-ptr, null, set-deref
+	../../pointer: ==, +, -, *, as-const, as-mut, const-pointer, mut-pointer, null, set-deref
 	../../test-util: is
 	../../tuple: from, pair, to
 	../../private/bootstrap: nat64
 	../array: array
 	../mut-array:
-		begin-ptr, cast-immutable, copy-from, end-ptr, mut-array, mut-array-from-begin-end, new
+		begin-pointer, cast-immutable, copy-from, end-pointer, mut-array, mut-array-from-begin-end, new
 	../list: ==, list, new
 	../mut-list:
-		begin-ptr, clear, end-ptr, is-empty, move-to-list, mut-list, size, swap, temp-as-mut-array,
+		begin-pointer, clear, end-pointer, is-empty, move-to-list, mut-list, size, swap, temp-as-mut-array,
 		to-mut-list, unsafe-set-size
-	./array-low-level: array-from-begin-end, begin-ptr, end-ptr
+	./array-low-level: array-from-begin-end, begin-pointer, end-pointer
 
 binary-search-has<a> bool(a array a, value a) compare<a> trusted
-	(a.begin-ptr binary-search-exact-ptr-recur a.end-ptr, value) != null
+	(a.begin-pointer binary-search-exact-pointer-recur a.end-pointer, value) != null
 
 binary-search-key<k, v> v?(a array (k, v), key k) trusted compare<k>
-	a.begin-ptr binary-search-key-recur a.end-ptr, key
+	a.begin-pointer binary-search-key-recur a.end-pointer, key
 .binary-search-key-recur<k, v> v?(left (k, v)*, right (k, v)*, key k) trusted compare<k>
 	diff = right - left
 	if diff < 4
@@ -47,88 +47,88 @@ binary-search-key<k, v> v?(a array (k, v), key k) trusted compare<k>
 		left + 1 linear-search-key-recur right, key
 
 binary-search-exact-index<a> nat64?(a array a, value a) trusted compare<a>
-	ptr = a.begin-ptr binary-search-exact-ptr-recur a.end-ptr, value
-	unless ptr == null
-		ptr - a.begin-ptr,
+	pointer = a.begin-pointer binary-search-exact-pointer-recur a.end-pointer, value
+	unless pointer == null
+		pointer - a.begin-pointer,
 
-binary-search-exact-ptr<a> a mut*?(a a mut[], compare act comparison(a)) unsafe
-	a.temp-as-mut-array binary-search-exact-ptr compare
+binary-search-exact-pointer<a> a mut*?(a a mut[], compare act comparison(a)) unsafe
+	a.temp-as-mut-array binary-search-exact-pointer compare
 
-binary-search-exact-ptr<a> a mut*?(a mut-array a, compare act comparison(a)) unsafe
-	if x ?= a.cast-immutable binary-search-exact-ptr compare
+binary-search-exact-pointer<a> a mut*?(a mut-array a, compare act comparison(a)) unsafe
+	if x ?= a.cast-immutable binary-search-exact-pointer compare
 		x.as-mut,
 
-binary-search-exact-ptr<a> a*?(a array a, value a) compare<a> unsafe
-	res = a.begin-ptr binary-search-exact-ptr-recur a.end-ptr, value
+binary-search-exact-pointer<a> a*?(a array a, value a) compare<a> unsafe
+	res = a.begin-pointer binary-search-exact-pointer-recur a.end-pointer, value
 	unless res == null
 		res,
 
-binary-search-exact-ptr<a> a*?(a array a, compare act comparison(a)) unsafe
-	ptr = a.begin-ptr binary-search-compare-recur a.end-ptr, compare
-	if ptr == a.end-ptr
+binary-search-exact-pointer<a> a*?(a array a, compare act comparison(a)) unsafe
+	pointer = a.begin-pointer binary-search-compare-recur a.end-pointer, compare
+	if pointer == a.end-pointer
 		()
-	elif compare[*ptr] == equal
-		ptr,
+	elif compare[*pointer] == equal
+		pointer,
 
-binary-search-insert-ptr<a> a mut*(a a mut[], compare act comparison(a)) unsafe
-	a.temp-as-mut-array binary-search-insert-ptr compare
+binary-search-insert-pointer<a> a mut*(a a mut[], compare act comparison(a)) unsafe
+	a.temp-as-mut-array binary-search-insert-pointer compare
 
 ###
 Returns the pointer to the least value that is compared equal or greater.
-Returns `a end-ptr` if all values compare less.
+Returns `a end-pointer` if all values compare less.
 ###
-binary-search-insert-ptr<a> a mut*(a mut-array a, compare act comparison(a)) unsafe
-	a.begin-ptr.as-const binary-search-compare-recur a.end-ptr.as-const, compare as-mut
+binary-search-insert-pointer<a> a mut*(a mut-array a, compare act comparison(a)) unsafe
+	a.begin-pointer.as-const binary-search-compare-recur a.end-pointer.as-const, compare as-mut
 
-binary-search-insert-ptr<a> a*(a array a, value a) unsafe compare<a>
-	a.begin-ptr binary-search-insert-ptr-recur a.end-ptr, value
+binary-search-insert-pointer<a> a*(a array a, value a) unsafe compare<a>
+	a.begin-pointer binary-search-insert-pointer-recur a.end-pointer, value
 
 test
 	a mut-array nat64 = 1, 3, 5, 7
-	(a binary-search-insert-ptr x => 0 <=> x) - a.begin-ptr is 0
-	(a binary-search-insert-ptr x => 3 <=> x) - a.begin-ptr is 1
-	(a binary-search-insert-ptr x => 4 <=> x) - a.begin-ptr is 2
-	(a binary-search-insert-ptr x => 5 <=> x) - a.begin-ptr is 2
-	(a binary-search-insert-ptr x => 6 <=> x) - a.begin-ptr is 3
-	(a binary-search-insert-ptr x => 7 <=> x) - a.begin-ptr is 3
-	(a binary-search-insert-ptr x => 8 <=> x) - a.begin-ptr is 4
+	(a binary-search-insert-pointer x => 0 <=> x) - a.begin-pointer is 0
+	(a binary-search-insert-pointer x => 3 <=> x) - a.begin-pointer is 1
+	(a binary-search-insert-pointer x => 4 <=> x) - a.begin-pointer is 2
+	(a binary-search-insert-pointer x => 5 <=> x) - a.begin-pointer is 2
+	(a binary-search-insert-pointer x => 6 <=> x) - a.begin-pointer is 3
+	(a binary-search-insert-pointer x => 7 <=> x) - a.begin-pointer is 3
+	(a binary-search-insert-pointer x => 8 <=> x) - a.begin-pointer is 4
 
 # Left inclusive, right exclusive
-.binary-search-exact-ptr-recur<a> a*(left a*, right a*, value a) unsafe compare<a>
+.binary-search-exact-pointer-recur<a> a*(left a*, right a*, value a) unsafe compare<a>
 	diff = right - left
 	if diff < 4
-		left linear-search-exact-ptr-recur right, value
+		left linear-search-exact-pointer-recur right, value
 	else
 		mid = left + diff / 2
 		match value <=> *mid
 		as less
-			left binary-search-exact-ptr-recur mid, value
+			left binary-search-exact-pointer-recur mid, value
 		as equal
 			mid
 		as greater
-			mid + 1 binary-search-exact-ptr-recur right, value
+			mid + 1 binary-search-exact-pointer-recur right, value
 
-.linear-search-exact-ptr-recur<a> a*(left a*, right a*, value a) unsafe compare<a>
+.linear-search-exact-pointer-recur<a> a*(left a*, right a*, value a) unsafe compare<a>
 	if left == right
 		null
 	elif *left == value
 		left
 	else
-		left + 1 linear-search-exact-ptr-recur right, value
+		left + 1 linear-search-exact-pointer-recur right, value
 
 # Left inclusive, right exclusive
-.binary-search-insert-ptr-recur<a> a*(left a*, right a*, value a) unsafe compare<a>
+.binary-search-insert-pointer-recur<a> a*(left a*, right a*, value a) unsafe compare<a>
 	if left == right
 		left
 	else
 		mid = left + (right - left) / 2
 		match value <=> *mid
 		as less
-			left binary-search-insert-ptr-recur mid, value
+			left binary-search-insert-pointer-recur mid, value
 		as equal
 			mid
 		as greater
-			mid + 1 binary-search-insert-ptr-recur right, value
+			mid + 1 binary-search-insert-pointer-recur right, value
 
 
 # Left inclusive, right exclusive
@@ -166,9 +166,10 @@ merge-no-duplicates<a> void(a a mut[], b a mut[], compare act unique-comparison(
 	unless b is-empty
 		a-old-size = a size
 		a unsafe-set-size a-old-size + b.size
-		a-read = a.begin-ptr.as-const + a-old-size - 1
-		a-write = a.end-ptr - 1
-		a.begin-ptr merge-reverse-recur a-read, a-write, b.begin-ptr.as-const, b.end-ptr.as-const - 1, compare
+		a-read = a.begin-pointer.as-const + a-old-size - 1
+		a-write = a.end-pointer - 1
+		bb = b.begin-pointer as-const
+		a.begin-pointer merge-reverse-recur a-read, a-write, bb, b.end-pointer.as-const - 1, compare
 		b clear
 
 ###

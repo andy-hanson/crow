@@ -2,7 +2,7 @@ no-std
 import
 	./misc: new, void
 	./number: nat64
-	./ptr: as-any-mut-ptr, as-const, as-ref, by-val, const-ptr, mut-ptr, ptr-cast
+	./pointer: as-any-mut-pointer, as-const, as-ref, by-val, const-pointer, mut-pointer, pointer-cast
 
 ###
 Mutable reference to a single value.
@@ -42,17 +42,17 @@ Treats a pointer as a cell.
 UB if the pointer does not point to a mutable value.
 ###
 as-cell<a> cell a(a a mut*) no-doc noctx unsafe
-	a.as-any-mut-ptr as-ref
+	a.as-any-mut-pointer as-ref
 
 ###
 Treats a cell as a pointer.
 Make sure to use the pointer only temporarily (not past the end of this task).
 ###
-as-mut-ptr<a> a mut*(a cell a) noctx unsafe
-	a.as-any-mut-ptr ptr-cast
+as-mut-pointer<a> a mut*(a cell a) noctx unsafe
+	a.as-any-mut-pointer pointer-cast
 
-as-const-ptr<a> a*(a cell a) noctx unsafe
-	a.as-mut-ptr as-const
+as-const-pointer<a> a*(a cell a) noctx unsafe
+	a.as-mut-pointer as-const
 
 # Sets the value in `a` to `value`, and returns the value it had before.
 get-and-set<a> a(a cell a, value a) noctx

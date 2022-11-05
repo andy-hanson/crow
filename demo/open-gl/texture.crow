@@ -1,6 +1,6 @@
 import
-	crow/cell: *, as-mut-ptr, cell, new
-	crow/ptr: as-const
+	crow/cell: *, as-mut-pointer, cell, new
+	crow/pointer: as-const
 	OpenGL/gl:
 		glBindTexture, glDeleteTextures, gl-ext, glGenTextures, glGetError, glTexImage2D,
 		glTexParameteri
@@ -13,7 +13,7 @@ import
 load-texture-from-bmp GLuint(gl gl-ext, bmp-raw nat8[]) unsafe summon
 	bmp-raw with-bmp image =>
 		texture-cell cell GLuint = 0,
-		gl glGenTextures 1, texture-cell.as-mut-ptr
+		gl glGenTextures 1, texture-cell.as-mut-pointer
 		gl check-error "glGenTextures"
 		texture = *texture-cell
 

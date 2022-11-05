@@ -1,6 +1,6 @@
 b builtin data
 
-e extern-ptr mut
+e extern-pointer mut
 
 r record data
 

@@ -1,4 +1,4 @@
-a extern-ptr
+a extern-pointer
 
 r record
 	a a

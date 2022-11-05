@@ -7,8 +7,8 @@ import
 	../misc: new, void
 	../number: ==, <=>, +, -, *, nat64
 	../option: new, option
-	../ptr:
-		==, +, -, *, as-any-const-ptr, as-any-mut-ptr, as-const, by-val, const-ptr, mut-ptr,
+	../pointer:
+		==, +, -, *, as-any-const-pointer, as-any-mut-pointer, as-const, by-val, const-pointer, mut-pointer,
 		set-deref, set-subscript, size-of, subscript, zeroed
 	../private/alloc:
 		alloc-uninitialized, copy-data-from, set-zero-range, unmanaged-alloc-zeroed-elements
@@ -16,7 +16,7 @@ import
 	../range: .., for-loop, reverse
 	./array: array, exists, fold, find-index, for-loop, in, index-of
 	./mut-array:
-		begin-ptr, cast-immutable, empty-mut-array, fill-mut-array, mut-array, for-loop, set-map,
+		begin-pointer, cast-immutable, empty-mut-array, fill-mut-array, mut-array, for-loop, set-map,
 		set-reverse, set-zero-elements, size, subscript, temp-as-array, uninitialized-mut-array
 	./list: for-loop, list, to-list
 	./private/array-low-level: array-from-begin-size
@@ -38,11 +38,11 @@ Pointer to the first element.
 Since `mut-list` changes its underlying data occasionally,
 it's UB if this is used after the size of `a` changes.
 ###
-begin-ptr<a> a mut*(a a mut[]) no-doc noctx unsafe
-	a.backing begin-ptr
+begin-pointer<a> a mut*(a a mut[]) no-doc noctx unsafe
+	a.backing begin-pointer
 
-end-ptr<a> a mut*(a a mut[]) no-doc noctx unsafe
-	a.begin-ptr + a.size
+end-pointer<a> a mut*(a a mut[]) no-doc noctx unsafe
+	a.begin-pointer + a.size
 
 is-at-capacity<a> bool(a a mut[]) no-doc noctx unsafe
 	a.capacity == a.size
@@ -76,7 +76,7 @@ to-mut-list<a> a mut[](a a[])
 	res
 
 clear<a> void(a a mut[]) noctx trusted
-	a.begin-ptr set-zero-range a.size
+	a.begin-pointer set-zero-range a.size
 	a.size := 0
 
 ###
@@ -104,7 +104,7 @@ move-to-array<a> array a(a a mut[]) noctx trusted
 	a.move-to-mut-array.cast-immutable
 
 move-to-mut-array<a> mut-array a(a a mut[]) noctx trusted
-	res = a.begin-ptr[0 .. a.size]
+	res = a.begin-pointer[0 .. a.size]
 	a.backing := empty-mut-array
 	a.size := 0
 	res
@@ -126,7 +126,7 @@ Throws if `index >= a.size`.
 ###
 subscript<a> a(a a mut[], index nat64) noctx trusted
 	a check-index index
-	a.begin-ptr[index]
+	a.begin-pointer[index]
 
 first<a> a?(a a mut[])
 	unless a is-empty
@@ -148,7 +148,7 @@ Converts to an `mut-array`.
 "Temp" because it's UB if the result is used after ths size of `a` changes.
 ###
 temp-as-mut-array<a> mut-array a(a a mut[]) no-doc noctx unsafe
-	a.begin-ptr[0 .. a.size]
+	a.begin-pointer[0 .. a.size]
 
 ###
 Converts to an `array`.
@@ -167,7 +167,7 @@ Throws if `index >= a.size`.
 ###
 set-subscript<a> void(a a mut[], index nat64, value a) noctx trusted
 	a check-index index
-	a.begin-ptr[index] := value
+	a.begin-pointer[index] := value
 
 ###
 True iff `a[i] == value` for some `i`.
@@ -179,8 +179,8 @@ in<a> bool(value a, a a mut[]) noctx trusted equal<a>
 .copy-range-to-array<a> array a(a a mut[], begin nat64, size nat64) trusted
 	assert begin + size <= a.size : "range out of bounds"
 	res a mut* = size alloc-uninitialized
-	src = a.begin-ptr + begin
-	_ = res.as-any-mut-ptr memcpy src.as-any-const-ptr, size * size-of@<a>
+	src = a.begin-pointer + begin
+	_ = res.as-any-mut-pointer memcpy src.as-any-const-pointer, size * size-of@<a>
 	res.as-const array-from-begin-size size
 
 ###
@@ -191,8 +191,8 @@ Throws if `n > a.size`.
 pop-n-from-start<a> a[](a a mut[], n nat64) trusted
 	assert n <= a.size : "can't pop more than size of array"
 	res = a copy-range-to-array 0, n
-	dest = a.begin-ptr as-any-mut-ptr
-	src = a.begin-ptr + n as-any-const-ptr
+	dest = a.begin-pointer as-any-mut-pointer
+	src = a.begin-pointer + n as-any-const-pointer
 	new-size = a.size - n
 	_ = dest memmove src, new-size * size-of@<a>
 	a.size := new-size
@@ -218,14 +218,14 @@ Throws if `n > a.size`.
 pop-n<a> void(a a mut[], n nat64) trusted
 	assert n <= a.size : "can't pop more than size of array"
 	new-size = a.size - n
-	a.begin-ptr + new-size set-zero-range n
+	a.begin-pointer + new-size set-zero-range n
 	a.size := new-size
 
 # Push a value onto the end of the list.
 ~= <a> void(a a mut[], value a) trusted
 	a incr-capacity
 	assert a.size < a.capacity
-	a.begin-ptr[a size] := value
+	a.begin-pointer[a size] := value
 	a.size := a.size + 1
 
 # TODO: Use an 'each' spec..
@@ -248,14 +248,14 @@ pop-n<a> void(a a mut[], n nat64) trusted
 
 push-capacity-must-be-sufficient<a> void(a a mut[], value a) no-doc noctx unsafe
 	assert a.size < a.capacity
-	a.begin-ptr[a size] := value
+	a.begin-pointer[a size] := value
 	a.size := a.size + 1
 
 .increase-capacity-to<a> void(a a mut[], new-capacity nat64) unsafe
 	assert new-capacity > a.capacity
-	old-begin = a begin-ptr
+	old-begin = a begin-pointer
 	a.backing := new-capacity uninitialized-mut-array
-	a.begin-ptr copy-data-from old-begin.as-const, a.size
+	a.begin-pointer copy-data-from old-begin.as-const, a.size
 	a.backing[a.size + 1 .. a.backing.size] set-zero-elements
 
 .ensure-capacity<a> void(a a mut[], min-capacity nat64) unsafe
@@ -280,9 +280,9 @@ Throws if `index >= a.size`.
 ###
 remove-unordered-at<a> a(a a mut[], index nat64) no-doc noctx trusted
 	a check-index index
-	res = a.begin-ptr[index]
+	res = a.begin-pointer[index]
 	new-size = a.size - 1
-	a.begin-ptr[index] := a.begin-ptr[new-size]
+	a.begin-pointer[index] := a.begin-pointer[new-size]
 	a.size := new-size
 	res
 
@@ -322,16 +322,16 @@ Throws if `index > a.size`.
 insert-at<a> void(a a mut[], index nat64, value a) trusted
 	assert index <= a.size : "index out of bounds"
 	a incr-capacity
-	dest = a.begin-ptr + index + 1
-	src = a.begin-ptr + index
+	dest = a.begin-pointer + index + 1
+	src = a.begin-pointer + index
 	n = a.size - index
-	_ = dest.as-any-mut-ptr memmove src.as-any-const-ptr, n * size-of@<a>
+	_ = dest.as-any-mut-pointer memmove src.as-any-const-pointer, n * size-of@<a>
 	a.size := a.size + 1
 	a[index] := value
 	assert a.size <= a.capacity
 
-insert-at<a> void(a a mut[], ptr a mut*, value a) unsafe
-	a insert-at ptr - a.begin-ptr, value
+insert-at<a> void(a a mut[], pointer a mut*, value a) unsafe
+	a insert-at pointer - a.begin-pointer, value
 
 ###
 Removes `a[index]`, and shifts all values from `index` onwards to the left to fill the hole.
@@ -343,15 +343,15 @@ Throws if `index >= a.size`.
 remove-at<a> a(a a mut[], index nat64) trusted
 	a check-index index
 	res = a[index]
-	dest = a.begin-ptr + index
-	src = a.begin-ptr + index + 1
+	dest = a.begin-pointer + index
+	src = a.begin-pointer + index + 1
 	n = a.size - index - 1
-	_ = dest.as-any-mut-ptr memmove src.as-any-const-ptr, n * size-of@<a>
+	_ = dest.as-any-mut-pointer memmove src.as-any-const-pointer, n * size-of@<a>
 	a.size := a.size - 1
 	res
 
-remove-at<a> a(a a mut[], ptr a mut*) unsafe
-	a remove-at ptr - a.begin-ptr
+remove-at<a> a(a a mut[], pointer a mut*) unsafe
+	a remove-at pointer - a.begin-pointer
 
 set-reverse<a> void(a a mut[]) trusted
 	a.temp-as-mut-array set-reverse
@@ -413,8 +413,8 @@ Removes every element `x` where `!f[x]`.
 This can be written as `a.filter := f`.
 ###
 set-filter<a> void(a a mut[], f act bool(a)) trusted
-	new-end = a.begin-ptr set-filter-recur a.begin-ptr.as-const, a.end-ptr.as-const, f
-	new-size = new-end - a.begin-ptr
+	new-end = a.begin-pointer set-filter-recur a.begin-pointer.as-const, a.end-pointer.as-const, f
+	new-size = new-end - a.begin-pointer
 	a.backing[new-size .. a.size] set-zero-elements
 	a.size := new-size
 .set-filter-recur<a> a mut*(out a mut*, in a*, end a*, f act bool(a)) unsafe

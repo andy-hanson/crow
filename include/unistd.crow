@@ -2,7 +2,7 @@ no-std
 import
 	crow/c-types: c-int, size_t
 	crow/extra-types: err-t, fd-t
-	crow/ptr: any-const-ptr, any-mut-ptr, const-ptr, mut-ptr
+	crow/pointer: any-const-pointer, any-mut-pointer, const-pointer, mut-pointer
 	crow/private/bootstrap: char8, c-string, int32, int64, nat32
 	sys/types: off_t
 
@@ -13,9 +13,9 @@ symlink c-int(target c-string, linkpath c-string) extern<c> summon
 
 close err-t(fd fd-t) extern<c> summon
 lseek off_t(f fd-t, offset off_t, whence int32) extern<c>
-read ssize_t(fd fd-t, buff any-mut-ptr, n-bytes size_t) extern<c> summon
+read ssize_t(fd fd-t, buff any-mut-pointer, n-bytes size_t) extern<c> summon
 # TODO: summon
-write ssize_t(fd fd-t, buf any-const-ptr, n-bytes size_t) extern<c>
+write ssize_t(fd fd-t, buf any-const-pointer, n-bytes size_t) extern<c>
 
 pipe err-t(pipes pipes) extern<c> summon
 

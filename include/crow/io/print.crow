@@ -5,14 +5,14 @@ import
 	win32:
 		DWORD, GetLastError, GetStdHandle, HANDLE, STD_ERROR_HANDLE, STD_OUTPUT_HANDLE,
 		WriteFile
-	../cell: *, as-mut-ptr, cell, new
+	../cell: *, as-mut-pointer, cell, new
 	../col/array: size
 	../col/list: to-array
-	../col/private/array-low-level: begin-ptr
+	../col/private/array-low-level: begin-pointer
 	../extra-types: fd-t
 	../misc: new, void
 	../number: ==, nat8, to-int64, to-nat32
-	../ptr: null, size-of
+	../pointer: null, size-of
 	../string: ~~, char8, literal, string, to-bytes, to-c-string, to-string
 	../version: is-windows
 	../private/bootstrap: todo
@@ -47,7 +47,7 @@ print-no-newline void(pipe pipe, message string) summon trusted
 	bytes = a.to-bytes to-array
 	written cell DWORD = 0,
 	size32 = bytes.size to-nat32
-	ok = console WriteFile bytes.begin-ptr, size32, written.as-mut-ptr, null
+	ok = console WriteFile bytes.begin-pointer, size32, written.as-mut-pointer, null
 	assert ok : "{GetLastError show-win32-error}"
 	unless *written == size32
 		# TODO: maybe retry
@@ -56,7 +56,7 @@ print-no-newline void(pipe pipe, message string) summon trusted
 .write-posix void(fd fd-t, a string) summon unsafe
 	assert size-of@<char8> == size-of@<nat8>
 	bytes = a.to-bytes to-array
-	res = fd write bytes.begin-ptr, bytes.size
+	res = fd write bytes.begin-pointer, bytes.size
 	unless res == bytes.size.to-int64
 		# TODO: Maybe retry
 		todo

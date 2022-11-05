@@ -9,7 +9,7 @@ import
 	../misc: is-data, new, void
 	../number: ==, <=>, +, -, nat64
 	../option: !, is-empty, new, option, option-equal
-	../ptr: ==, +, set-deref
+	../pointer: ==, +, set-deref
 	../range: .., for-loop
 	../string: ==, ~~, join, literal, string, to-string
 	../test-util: is
@@ -19,7 +19,7 @@ import
 		~, array, every, find-index, fold, for-loop, is-empty, new, remove-at, rtail, size,
 		subscript, tail, update-at
 	./mut-array:
-		begin-ptr, cast-immutable, copy-from, end-ptr, fill-mut-array, mut-array, set-subscript, size,
+		begin-pointer, cast-immutable, copy-from, end-pointer, fill-mut-array, mut-array, set-subscript, size,
 		subscript, uninitialized-mut-array
 	./list: every, flatten, first, fold, for-loop, list, new, size, tail, to-array, to-list
 
@@ -427,10 +427,10 @@ for-loop<k, v> void(a v[k], f act void(k, v)) is-data<k> compare<k> hash-mix<k>
 # Calls `f` on every pair in the dictionary and returns an array of the results.
 for-loop<out, k, v> out[](a v[k], f act out(k, v)) trusted is-data<k> compare<k> hash-mix<k>
 	res mut-array out = a.size uninitialized-mut-array
-	end = res.begin-ptr fold a, (cur, k, v) =>
+	end = res.begin-pointer fold a, (cur, k, v) =>
 		*cur := f[k, v]
 		cur + 1
-	assert end == res.end-ptr
+	assert end == res.end-pointer
 	res.cast-immutable to-list
 
 .dbg<k, v> string(a v[k]) to-string<k> to-string<v>

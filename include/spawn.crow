@@ -4,14 +4,14 @@ import
 	crow/cell: cell
 	crow/extra-types: err-t, fd-t
 	crow/number: int32
-	crow/ptr: any-const-ptr, any-mut-ptr, const-ptr
+	crow/pointer: any-const-pointer, any-mut-pointer, const-pointer
 	crow/string: c-string
 	sys/types: mode_t, pid_t
 
 posix_spawn_file_actions_t record mut by-ref extern
 	allocated mut int32
 	used mut int32
-	actions mut any-mut-ptr
+	actions mut any-mut-pointer
 	pad mut bytes64
 
 # TODO: type file-actions and attrp, currently these are always null
@@ -20,7 +20,7 @@ posix_spawn err-t(
 	pid cell pid_t,
 	executable-path c-string,
 	file-actions posix_spawn_file_actions_t,
-	attrp any-const-ptr,
+	attrp any-const-pointer,
 	argv c-string*,
 	environ c-string*,
 ) extern<c> summon

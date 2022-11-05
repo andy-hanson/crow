@@ -4,17 +4,17 @@ import
 	crow/c-types: c-int, size_t, u-int
 	crow/extra-types: err-t
 	crow/misc: void
-	crow/ptr: any-mut-ptr
+	crow/pointer: any-mut-pointer
 	crow/string: c-string
 	sys/types: mode_t
 
-MDB_env extern-ptr
+MDB_env extern-pointer
 MDB_dbi alias
 	u-int
 
 MDB_val record mut by-ref extern
 	mv_size mut size_t
-	mv_data mut any-mut-ptr
+	mv_data mut any-mut-pointer
 
 mdb_env_create err-t(env cell MDB_env) extern<lmdb> summon
 mdb_env_open err-t(
@@ -27,7 +27,7 @@ mdb_env_close void(env MDB_env) extern<lmdb> summon
 mdb_env_set_mapsize err-t(env MDB_env, size size_t) extern<lmdb> summon
 mdb_env_set_maxdbs err-t(env MDB_env, dbs u-int) extern<lmdb> summon
 
-MDB_txn extern-ptr
+MDB_txn extern-pointer
 mdb_txn_begin err-t(
 	env MDB_env,
 	parent MDB_txn,
@@ -57,7 +57,7 @@ mdb_stat record mut by-ref extern
 	ms_entries mut size_t
 mdb_stat err-t(txn MDB_txn, dbi MDB_dbi, stat mdb_stat) extern<lmdb> summon
 
-MDB_cursor extern-ptr
+MDB_cursor extern-pointer
 mdb_cursor_open err-t(txn MDB_txn, dbi MDB_dbi, cursor cell MDB_cursor) extern<lmdb> summon
 mdb_cursor_close void(cursor MDB_cursor) extern<lmdb> summon
 mdb_cursor_get err-t(

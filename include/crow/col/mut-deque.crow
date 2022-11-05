@@ -5,12 +5,12 @@ import
 	../misc: new, void
 	../number: ==, <=>, +, *, nat64, new
 	../option: ==, new, option
-	../ptr: ==, <=>, +, -, *, as-const, mut-ptr, null, set-deref, zeroed
+	../pointer: ==, <=>, +, -, *, as-const, mut-pointer, null, set-deref, zeroed
 	../range: .., for-loop
 	../string: ==, ~~, literal, new, join, string, to-string
 	../test-util: is
 	./mut-array:
-		begin-ptr, cast-immutable, copy-from, end-ptr, mut-array, is-empty, new, set-zero-elements,
+		begin-pointer, cast-immutable, copy-from, end-pointer, mut-array, is-empty, new, set-zero-elements,
 		size, subscript, uninitialized-mut-array, zeroed-mut-array
 	./list: ==, first, last, list, new, size, to-list
 	./private/array-low-level: array-from-begin-end
@@ -21,7 +21,7 @@ mut-deque<a> record mut
 	# Points to the first element. Null for an empty queue.
 	.left .mut a mut*
 	# Points to the element after the last. Null for an empty queue.
-	# This should never be inner.end-ptr; it wraps around to inner.begin-ptr
+	# This should never be inner.end-pointer; it wraps around to inner.begin-pointer
 	.right .mut a mut*
 
 # New empty `mut-deque`.
@@ -45,7 +45,7 @@ to-list<a> a[](a mut-deque a) trusted
 # Copy elements to a new deque.
 copy<a> mut-deque a(a mut-deque a) trusted
 	inner = a to-mut-array
-	inner, inner.begin-ptr, inner.begin-ptr
+	inner, inner.begin-pointer, inner.begin-pointer
 
 # `true` iff `a.size == 0`.
 is-empty<a> bool(a mut-deque a) trusted
@@ -60,20 +60,20 @@ size<a> nat64(a mut-deque a) trusted
 		unless a.left == null
 			a.inner size
 	as greater
-		(a.inner.end-ptr - a.left) + (a.right - a.inner.begin-ptr)
+		(a.inner.end-pointer - a.left) + (a.right - a.inner.begin-pointer)
 
 # Push a value to the left.
 push<a> void(value a, a mut-deque a) trusted
 	a ensure-capacity
-	if a.left == a.inner.begin-ptr
-		a.left := a.inner end-ptr
+	if a.left == a.inner.begin-pointer
+		a.left := a.inner end-pointer
 	a.left := a.left - 1
 	*a.left := value
 
 # Push a value to the right.
 push<a> void(a mut-deque a, value a) trusted
 	a ensure-capacity
-	assert a.right < a.inner.end-ptr
+	assert a.right < a.inner.end-pointer
 	*a.right := value
 	a.right := a.right + 1
 
@@ -93,8 +93,8 @@ Returns an empty option iff `a` is empty.
 ###
 peek-right<a> a?(a mut-deque a) trusted
 	unless a.right == null
-		fixed-right = if a.right == a.inner.begin-ptr
-			a.inner end-ptr
+		fixed-right = if a.right == a.inner.begin-pointer
+			a.inner end-pointer
 		else
 			a right
 		*(fixed-right - 1),
@@ -109,8 +109,8 @@ pop-left<a> a?(a mut-deque a) trusted
 		res = *a.left
 		*a.left := zeroed
 		a.left := a.left + 1
-		if a.left == a.inner.end-ptr
-			a.left := a.inner begin-ptr
+		if a.left == a.inner.end-pointer
+			a.left := a.inner begin-pointer
 		if a.left == a.right
 			a.left := null
 			a.right := null
@@ -124,8 +124,8 @@ Returns an empty option iff `a` was empty (before calling `pop-right`).
 ###
 pop-right<a> a?(a mut-deque a) trusted
 	unless a.right == null
-		if a.right == a.inner.begin-ptr
-			a.right := a.inner end-ptr
+		if a.right == a.inner.begin-pointer
+			a.right := a.inner end-pointer
 		a.right := a.right - 1
 		res = *a.right
 		*a.right := zeroed
@@ -141,7 +141,7 @@ pop-right<a> a?(a mut-deque a) trusted
 		assert a.right == null
 		if a.inner is-empty
 			a.inner := 2 zeroed-mut-array
-		a.left := a.inner begin-ptr
+		a.left := a.inner begin-pointer
 		a.right := a.left
 	else
 		assert a.right != null
@@ -154,7 +154,7 @@ pop-right<a> a?(a mut-deque a) trusted
 			new-inner[0 .. old-capacity] copy-from-deque a
 			new-inner[old-capacity .. new-capacity] set-zero-elements
 			a.inner := new-inner
-			a.left := a.inner begin-ptr
+			a.left := a.inner begin-pointer
 			a.right := a.left + old-capacity
 
 .copy-from-deque<a> void(dest mut-array a, a mut-deque a) trusted
@@ -162,13 +162,14 @@ pop-right<a> a?(a mut-deque a) trusted
 	if a.left < a.right
 		dest copy-from (a.left.as-const array-from-begin-end a.right.as-const)
 	else
-		left-to-end-size = a.inner.end-ptr - a.left
-		dest[0 .. left-to-end-size] copy-from (a.left.as-const array-from-begin-end a.inner.end-ptr.as-const)
-		dest[left-to-end-size .. dest.size] copy-from (a.inner.begin-ptr.as-const array-from-begin-end a.right.as-const)
+		left-to-end-size = a.inner.end-pointer - a.left
+		dest[0 .. left-to-end-size] copy-from (a.left.as-const array-from-begin-end a.inner.end-pointer.as-const)
+		left-to-end = a.inner.begin-pointer.as-const array-from-begin-end a.right.as-const
+		dest[left-to-end-size .. dest.size] copy-from left-to-end
 
 .dbg string(a mut-deque nat64) trusted
-	right = a.right - a.inner.begin-ptr
-	left = a.left - a.inner.begin-ptr
+	right = a.right - a.inner.begin-pointer
+	left = a.left - a.inner.begin-pointer
 	# Note: can come in any order...
 	" " join for i : 0 .. a.inner.size
 		"{i == right ? "<-R "}{i == left ? "L-> "}{a.inner[i]}"

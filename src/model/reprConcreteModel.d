@@ -97,7 +97,7 @@ immutable(Repr) reprOfConcreteStructBody(ref Alloc alloc, ref immutable Concrete
 			//TODO:MORE DETAIL
 			reprSym("flags"),
 		(ref immutable ConcreteStructBody.ExternPtr it) =>
-			reprSym("extern-ptr"),
+			reprSym("extern-pointer"),
 		(ref immutable ConcreteStructBody.Record it) =>
 			reprOfConcreteStructBodyRecord(alloc, it),
 		(ref immutable ConcreteStructBody.Union it) =>

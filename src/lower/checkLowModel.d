@@ -279,9 +279,9 @@ immutable(Repr) reprOfLowType2(ref Ctx ctx, immutable LowType a) =>
 	matchLowType!(
 		immutable Repr,
 		(immutable LowType.ExternPtr) =>
-			reprSym("some-extern-ptr"), //TODO: more detail
+			reprSym("some-extern-pointer"), //TODO: more detail
 		(immutable LowType.FunPtr) =>
-			reprSym("some-fun-ptr"), //TODO: more detail
+			reprSym("some-fun-pointer"), //TODO: more detail
 		(immutable PrimitiveType it) =>
 			reprSym(symOfPrimitiveType(it)),
 		(immutable LowType.PtrGc it) =>

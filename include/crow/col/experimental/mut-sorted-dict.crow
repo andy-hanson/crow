@@ -6,19 +6,19 @@ import
 	../../misc: is-data, new, void
 	../../number: ==, <=>, +, -, *, nat64
 	../../option: !, is-empty, new, option, option-equal, size
-	../../ptr: ==, -, *, mut-ptr, set-deref
+	../../pointer: ==, -, *, mut-pointer, set-deref
 	../../string: ==, ~~, iter, join, literal, next, slice-left, string, to-string
 	../../test-util: is
 	../../tuple: from, new, pair, to
 	../array: array
 	../iter: rest
 	../mut-list:
-		~=, begin-ptr, clear, end-ptr, filter, fold, for-loop, is-empty, mut-list, new, remove-at,
+		~=, begin-pointer, clear, end-pointer, filter, fold, for-loop, is-empty, mut-list, new, remove-at,
 		set-filter, set-map, set-subscript, size, subscript, to-list
 	../list: for-loop, list, new, to-list
 	../sort: set-sort-by
 	../private/sort-utils:
-		binary-search-exact-ptr, binary-search-insert-ptr, assert-comparison-not-equal,
+		binary-search-exact-pointer, binary-search-insert-pointer, assert-comparison-not-equal,
 		merge-no-duplicates
 
 ###
@@ -79,8 +79,8 @@ Returns an empty option iff the key is not in the dictionary.
 This is O(log n).
 ###
 subscript<k, v> v?(a mut-sorted-dict<k, v>, key k) trusted is-data<k> compare<k>
-	if ptr ?= a find-exact-ptr key
-		*ptr to
+	if pointer ?= a find-exact-pointer key
+		*pointer to
 
 # Adds a key-value pair, replacing any existing one with that key.
 set-subscript<k, v> void(a mut-sorted-dict<k, v>, key k, value v) is-data<k> compare<k>
@@ -88,7 +88,7 @@ set-subscript<k, v> void(a mut-sorted-dict<k, v>, key k, value v) is-data<k> com
 		a add-pair key, value
 
 in<k, v> bool(key k, a mut-sorted-dict<k, v>) trusted is-data<k> compare<k>
-	!(a find-exact-ptr key is-empty)
+	!(a find-exact-pointer key is-empty)
 
 ###
 Adds many key-value pairs, replacing existing ones with the same keys.
@@ -104,12 +104,12 @@ If that fails, traverses back right-to-left and inserts into an empty slot if po
 Returns true if it succeeded.
 ###
 .insert-into-key-match-or-empty-slot<k, v> bool(a mut-sorted-dict<k, v>, key k, value v) trusted is-data<k> compare<k>
-	insert-ptr = a find-insert-ptr key
-	can-insert = insert-ptr != a.pairs.end-ptr
-	if can-insert && insert-ptr->from == key
-		if insert-ptr->to is-empty
+	insert-pointer = a find-insert-pointer key
+	can-insert = insert-pointer != a.pairs.end-pointer
+	if can-insert && insert-pointer->from == key
+		if insert-pointer->to is-empty
 			a.node-size := a.node-size + 1
-		*insert-ptr := key, (value,)
+		*insert-pointer := key, (value,)
 		true
 	else
 		inserted = if next ?= a next
@@ -117,16 +117,16 @@ Returns true if it succeeded.
 
 		if inserted
 			true
-		elif can-insert && insert-ptr->to.is-empty
-			assert key < insert-ptr->from
+		elif can-insert && insert-pointer->to.is-empty
+			assert key < insert-pointer->from
 			a.node-size := a.node-size + 1
-			*insert-ptr := key, (value,)
+			*insert-pointer := key, (value,)
 			true
-		elif can-insert && insert-ptr != a.pairs.begin-ptr && (insert-ptr - 1)->to.is-empty
-			assert key < insert-ptr->from
+		elif can-insert && insert-pointer != a.pairs.begin-pointer && (insert-pointer - 1)->to.is-empty
+			assert key < insert-pointer->from
 			# overwrite empty slot even though key doesn't match
 			a.node-size := a.node-size + 1
-			*(insert-ptr - 1) := key, (value,)
+			*(insert-pointer - 1) := key, (value,)
 			true
 
 # Returns the new physical size of this node and all nodes to the right
@@ -185,12 +185,12 @@ If the key is in the dictionary, removes it and returns the value that was assoc
 Else, returns an empty option.
 ###
 remove-key<k, v> v?(a mut-sorted-dict<k, v>, key k) trusted is-data<k> compare<k>
-	if ptr ?= a find-exact-ptr key
-		res = if a.pairs.end-ptr - ptr < 4
-			a.pairs remove-at ptr to
+	if pointer ?= a find-exact-pointer key
+		res = if a.pairs.end-pointer - pointer < 4
+			a.pairs remove-at pointer to
 		else
-			old-value = *ptr to
-			*ptr := key, ()
+			old-value = *pointer to
+			*pointer := key, ()
 			old-value
 		unless res is-empty
 			a.node-size := a.node-size - 1
@@ -223,11 +223,11 @@ remove-key<k, v> v?(a mut-sorted-dict<k, v>, key k) trusted is-data<k> compare<k
 		a.next := ()
 		a.node-size := a.pairs.size
 
-.find-exact-ptr<k, v> (k, v?) mut*?(a mut-sorted-dict<k, v>, key k) is-data<k> compare<k> unsafe
-	a.pairs binary-search-exact-ptr pair => key <=> pair.from
+.find-exact-pointer<k, v> (k, v?) mut*?(a mut-sorted-dict<k, v>, key k) is-data<k> compare<k> unsafe
+	a.pairs binary-search-exact-pointer pair => key <=> pair.from
 
-.find-insert-ptr<k, v> (k, v?) mut*(a mut-sorted-dict<k, v>, key k) is-data<k> compare<k> unsafe
-	a.pairs binary-search-insert-ptr pair => key <=> pair.from
+.find-insert-pointer<k, v> (k, v?) mut*(a mut-sorted-dict<k, v>, key k) is-data<k> compare<k> unsafe
+	a.pairs binary-search-insert-pointer pair => key <=> pair.from
 
 region iteration
 

@@ -12,9 +12,9 @@ import
 	../option: new, option
 	../private/alloc: alloc-uninitialized, copy-data-from
 	../private/range-low-level: .., low, high, range
-	../ptr: ==, +, -, *, as-const, const-ptr, mut-ptr, set-deref, subscript
+	../pointer: ==, +, -, *, as-const, const-pointer, mut-pointer, set-deref, subscript
 	./iter: new, value-and-rest
-	./private/array-low-level: array-from-begin-end, array-from-begin-size, begin-ptr, end-ptr
+	./private/array-low-level: array-from-begin-end, array-from-begin-size, begin-pointer, end-pointer
 export
 	../private/bootstrap: array, size
 	./private/array-low-level: new
@@ -46,7 +46,7 @@ Throws if `index >= a.size`.
 ###
 subscript<a> a(a array a, index nat64) noctx trusted
 	assert index < a.size : "index out of bounds"
-	a.begin-ptr[index]
+	a.begin-pointer[index]
 
 ###
 Gets an array elements from 'range.low' (inclusive) to 'range.height' (exclusive).
@@ -55,7 +55,7 @@ Throws if the slice would exceed the bounds of the array.
 ###
 subscript<a> array a(a array a, range range nat64) noctx trusted
 	assert range.high <= a.size : "slice out of bounds"
-	a.begin-ptr + range.low array-from-begin-end a.begin-ptr + range.high
+	a.begin-pointer + range.low array-from-begin-end a.begin-pointer + range.high
 
 ###
 Prepend an element to an array.
@@ -80,13 +80,13 @@ If you need concatenate many arrays, use a `mut[]` to accumulate elements, then 
 ~~ <a> array a(a array a, b array a) trusted
 	res-size = a.size + b.size
 	res a mut* = res-size alloc-uninitialized
-	res copy-data-from a.begin-ptr, a.size
-	res + a.size copy-data-from b.begin-ptr, b.size
+	res copy-data-from a.begin-pointer, a.size
+	res + a.size copy-data-from b.begin-pointer, b.size
 	res.as-const array-from-begin-size res-size
 
 # TODO: array comparison should be generic
 array-equal<a> bool(a array a, b array a) no-doc trusted noctx equal<a>
-	a.begin-ptr equal-recur a.end-ptr, b.begin-ptr, b.end-ptr
+	a.begin-pointer equal-recur a.end-pointer, b.begin-pointer, b.end-pointer
 .equal-recur<a> bool(a a*, a-end a*, b a*, b-end a*) unsafe noctx equal<a>
 	if a == a-end
 		b == b-end
@@ -94,7 +94,7 @@ array-equal<a> bool(a array a, b array a) no-doc trusted noctx equal<a>
 		b != b-end && *a == *b && a + 1 equal-recur a-end, b + 1, b-end
 
 array-equal<a> bool(a array a, b array a, eq act bool(a, a)) no-doc trusted
-	a.begin-ptr equal-recur a.end-ptr, b.begin-ptr, b.end-ptr, eq
+	a.begin-pointer equal-recur a.end-pointer, b.begin-pointer, b.end-pointer, eq
 .equal-recur<a> bool(a a*, a-end a*, b a*, b-end a*, eq act bool(a, a)) unsafe
 	if a == a-end
 		b == b-end
@@ -102,7 +102,7 @@ array-equal<a> bool(a array a, b array a, eq act bool(a, a)) no-doc trusted
 		b != b-end && eq[*a, *b] && a + 1 equal-recur a-end, b + 1, b-end, eq
 
 array-compare<a> comparison(a array a, b array a) no-doc trusted noctx compare<a>
-	a.begin-ptr compare-recur a.end-ptr, b.begin-ptr, b.end-ptr
+	a.begin-pointer compare-recur a.end-pointer, b.begin-pointer, b.end-pointer
 .compare-recur<a> comparison(a a*, a-end a*, b a*, b-end a*) unsafe noctx compare<a>
 	if a == a-end
 		if b == b-end
@@ -183,8 +183,8 @@ Equivalent to `a[0] == value || a[1] == value || ... || a[a.size - 1] == value`.
 Also equivalent to `a exists it => it == value`.
 ###
 in<a> bool(value a, a array a) noctx trusted equal<a>
-	cur mut = a begin-ptr
-	end = a end-ptr
+	cur mut = a begin-pointer
+	end = a end-pointer
 	loop
 		if cur == end
 			break false
@@ -201,21 +201,21 @@ Equivalent to `a find-index x => x == value`.
 Returns an empty option iff `value` is not in the array.
 ###
 index-of<a> nat64?(a array a, value a) noctx trusted equal<a>
-	if v ?= a ptr-of value
-		v - a.begin-ptr,
+	if v ?= a pointer-of value
+		v - a.begin-pointer,
 
 ###
 Returns the first index `i` for which `f[a[i]]` is true.
 Returns an empty option iff `f` returns `false` for every element of `a`.
 ###
 find-index<a> nat64?(a array a, f act bool(a)) no-doc trusted
-	cur mut = a begin-ptr
-	end = a end-ptr
+	cur mut = a begin-pointer
+	end = a end-pointer
 	loop
 		if cur == end
 			break
 		elif f[*cur]
-			break cur - a.begin-ptr,
+			break cur - a.begin-pointer,
 		else
 			cur := cur + 1
 			continue
@@ -234,8 +234,8 @@ For each element `x` in `a`, gets `y = f[x]` and returns `y` if it is a non-empt
 Returns an empty option iff `f` returns an empty option for every element of `a`.
 ###
 find-and-get<out, in> out?(a array in, f act out?(in)) trusted
-	cur mut = a begin-ptr
-	end = a end-ptr
+	cur mut = a begin-pointer
+	end = a end-pointer
 	loop
 		if cur == end
 			break
@@ -249,14 +249,14 @@ find-and-get<out, in> out?(a array in, f act out?(in)) trusted
 Returns a pointer to the first element equal to `value`.
 Returns an empty option iff `value` is not in the array.
 ###
-ptr-of<a> a*?(a array a, value a) no-doc noctx unsafe equal<a>
-	a.begin-ptr ptr-of-recur a.end-ptr, value
-.ptr-of-recur<a> a*?(cur a*, end a*, value a) noctx unsafe equal<a>
+pointer-of<a> a*?(a array a, value a) no-doc noctx unsafe equal<a>
+	a.begin-pointer pointer-of-recur a.end-pointer, value
+.pointer-of-recur<a> a*?(cur a*, end a*, value a) noctx unsafe equal<a>
 	unless cur == end
 		if *cur == value
 			cur,
 		else
-			cur + 1 ptr-of-recur end, value
+			cur + 1 pointer-of-recur end, value
 
 region iteration
 
@@ -284,8 +284,8 @@ Equivalent to calling `f[a[0]]`, `f[a[1]]`, etc.
 Calls `f` for each element in `a`.
 ###
 for-loop<a> void(a array a, f act void(a)) trusted
-	cur mut = a begin-ptr
-	end = a end-ptr
+	cur mut = a begin-pointer
+	end = a end-pointer
 	until cur == end
 		f[*cur]
 		cur := cur + 1
@@ -295,8 +295,8 @@ Equivalent to `f[a[0]], f[a[1]], ...`.
 Array containing `f[x]` for each `x` in `a`.
 ###
 for-loop<out, in> array out(a array in, f act out(in)) trusted
-	in-cur mut = a begin-ptr
-	in-end = a end-ptr
+	in-cur mut = a begin-pointer
+	in-end = a end-pointer
 	out-begin out mut* = a.size alloc-uninitialized
 	out-cur mut = out-begin
 	loop
@@ -316,7 +316,7 @@ Equivalent to calling `f[a[0], 0]`, `f[a[1], 1]`, etc.
 Calls `f` for each element in `a`, also providing the index.
 ###
 for-loop<a> void(a array a, f act void(a, nat64)) trusted
-	cur mut = a begin-ptr
+	cur mut = a begin-pointer
 	index mut = 0
 	size = a size
 	until index == size
@@ -332,8 +332,8 @@ filter<a> array a(a array a, f act bool(a))
 filter<a> array a(a array a, f act bool(a, nat64)) trusted
 	res a mut* = a.size alloc-uninitialized
 	out mut = res
-	cur mut = a begin-ptr
-	end = a end-ptr
+	cur mut = a begin-pointer
+	end = a end-pointer
 	index mut = 0
 	loop
 		if cur == end
@@ -349,8 +349,8 @@ filter<a> array a(a array a, f act bool(a, nat64)) trusted
 # TODO:KILL (just use 'for' loop)
 fold<a, b> a(init a, a array b, f act a(a, b)) no-doc trusted
 	acc mut = init
-	cur mut = a begin-ptr
-	end = a end-ptr
+	cur mut = a begin-pointer
+	end = a end-pointer
 	loop
 		if cur == end
 			break acc
@@ -362,9 +362,9 @@ fold<a, b> a(init a, a array b, f act a(a, b)) no-doc trusted
 # TODO:KILL (just use 'for' loop)
 fold<a, b> a(init a, a array b, f act a(a, b, nat64)) no-doc trusted
 	acc mut = init
-	cur mut = a begin-ptr
+	cur mut = a begin-pointer
 	index mut = 0
-	end = a end-ptr
+	end = a end-pointer
 	loop
 		if cur == end
 			break acc

@@ -122,6 +122,6 @@ struct FunReferencesBuilder {
 
 struct FunPtrReferencesBuilder {
 	immutable DynCallSig sig;
-	ArrBuilder!ByteCodeIndex funPtrRefs; // appearing as a fun-ptr directly in code
+	ArrBuilder!ByteCodeIndex funPtrRefs; // appearing as a fun-pointer directly in code
 	ArrBuilder!TextIndex textReferences; // these are fun ptrs too, that appear in text
 }

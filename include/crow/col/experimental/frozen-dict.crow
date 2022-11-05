@@ -7,17 +7,17 @@ import
 	../../misc: is-data, new, void
 	../../number: ==, <=>, +, -, /, %, nat64
 	../../option: is-empty, new, option, option-equal
-	../../ptr: ==, <=>, +, -, *, const-ptr, mut-ptr, set-deref, swap
+	../../pointer: ==, <=>, +, -, *, const-pointer, mut-pointer, set-deref, swap
 	../../string: ==, literal, string
 	../../test-util: is
 	../../tuple: from, new, pair, to
 	../../private/alloc: alloc-uninitialized
 	../array: array, fold, for-loop, is-empty, new, size, subscript
 	../mut-array:
-		begin-ptr, cast-immutable, end-ptr, fill, fill-mut-array, mut-array, mut-array-from-begin-end,
+		begin-pointer, cast-immutable, end-pointer, fill, fill-mut-array, mut-array, mut-array-from-begin-end,
 		for-loop, size, temp-as-array, to-mut-array, set-subscript, subscript, uninitialized-mut-array
 	../list: ==, for-loop, list, new, to-array, to-list
-	../private/array-low-level: array-cast, array-from-begin-end, begin-ptr, end-ptr
+	../private/array-low-level: array-cast, array-from-begin-end, begin-pointer, end-pointer
 
 ###
 Immutable dictionary that is not efficient to update.
@@ -42,11 +42,11 @@ to-list<k, v> (k, v)[](a frozen-dict<k, v>) noctx
 	a.to-array to-list
 
 # TODO:INTERNAL
-begin-ptr<k, v> (k, v)*(a frozen-dict<k, v>) unsafe
-	a.pairs begin-ptr
+begin-pointer<k, v> (k, v)*(a frozen-dict<k, v>) unsafe
+	a.pairs begin-pointer
 
-end-ptr<k, v> (k, v)*(a frozen-dict<k, v>) unsafe
-	a.pairs end-ptr
+end-pointer<k, v> (k, v)*(a frozen-dict<k, v>) unsafe
+	a.pairs end-pointer
 
 is-empty<k, v> bool(a frozen-dict<k, v>)
 	a.pairs is-empty
@@ -55,42 +55,42 @@ size<k, v> nat64(a frozen-dict<k, v>)
 	a.pairs size
 
 subscript<k, v> v?(a frozen-dict<k, v>, key k) trusted is-data<k> compare<k> hash-mix<k>
-	if ptr ?= a find-ptr key
-		ptr->to,
+	if pointer ?= a find-pointer key
+		pointer->to,
 
 in<k, v> bool(key k, a frozen-dict<k, v>) trusted is-data<k> compare<k> hash-mix<k>
-	!(a find-ptr key is-empty)
+	!(a find-pointer key is-empty)
 
 # TODO:INTERNAL
 try-get-unordered-index<k, v> nat64?(a frozen-dict<k, v>, key k) trusted is-data<k> compare<k> hash-mix<k>
-	if ptr ?= a find-ptr key
-		ptr - a.pairs.begin-ptr,
+	if pointer ?= a find-pointer key
+		pointer - a.pairs.begin-pointer,
 
-.find-ptr<k, v> (k, v)*?(a frozen-dict<k, v>, key k) unsafe is-data<k> compare<k> hash-mix<k>
+.find-pointer<k, v> (k, v)*?(a frozen-dict<k, v>, key k) unsafe is-data<k> compare<k> hash-mix<k>
 	bucket = if a.bucket-starts is-empty
 		a pairs
 	else
 		bucket-index = key.hash % a.bucket-starts.size
 		bucket-start = a.bucket-starts[bucket-index]
 		bucket-end = if bucket-index == a.bucket-starts.size - 1
-			a.pairs end-ptr
+			a.pairs end-pointer
 		else
 			a.bucket-starts[bucket-index + 1]
 		bucket-start array-from-begin-end bucket-end
 
-	bucket.begin-ptr find-ptr bucket.end-ptr, key
+	bucket.begin-pointer find-pointer bucket.end-pointer, key
 
 find-index<k, v> nat64?(pairs array (k, v), key k) unsafe is-data<k> compare<k> hash-mix<k>
-	if ptr ?= pairs.begin-ptr find-ptr pairs.end-ptr, key
-		ptr - pairs.begin-ptr,
+	if pointer ?= pairs.begin-pointer find-pointer pairs.end-pointer, key
+		pointer - pairs.begin-pointer,
 
-find-ptr<k, v> (k, v)*?(cur (k, v)*, end (k, v)*, key k) unsafe is-data<k> compare<k> hash-mix<k>
+find-pointer<k, v> (k, v)*?(cur (k, v)*, end (k, v)*, key k) unsafe is-data<k> compare<k> hash-mix<k>
 	if cur == end
 		()
 	elif cur->from == key
 		cur,
 	else
-		cur + 1 find-ptr end, key
+		cur + 1 find-pointer end, key
 
 mut-array-to-frozen-dict-promise-no-duplicates<k, v> frozen-dict<k, v>(
 	a mut-array (k, v),
@@ -100,9 +100,9 @@ mut-array-to-frozen-dict-promise-no-duplicates<k, v> frozen-dict<k, v>(
 	else
 		n-buckets = a.size / 2
 		bucket-counts = a get-bucket-counts n-buckets
-		bucket-starts = a.begin-ptr running-sum bucket-counts.temp-as-array
+		bucket-starts = a.begin-pointer running-sum bucket-counts.temp-as-array
 		bucket-counts fill 0
-		a.begin-ptr move-values-to-buckets-recur a.end-ptr, bucket-counts, bucket-starts
+		a.begin-pointer move-values-to-buckets-recur a.end-pointer, bucket-counts, bucket-starts
 		a.cast-immutable, bucket-starts.array-cast
 
 .remove-duplicates<k, v> frozen-dict<k, v>(
@@ -119,11 +119,11 @@ mut-array-to-frozen-dict-promise-no-duplicates<k, v> frozen-dict<k, v>(
 
 .write-without-duplicates<k, v> (k, v) mut*(out (k, v) mut*, a frozen-dict<k, v>) trusted equal<k>
 	if a.bucket-starts is-empty
-		out write-bucket-without-duplicates a.pairs.begin-ptr, a.pairs.end-ptr
+		out write-bucket-without-duplicates a.pairs.begin-pointer, a.pairs.end-pointer
 	else
-		cur = *a.bucket-starts.begin-ptr
-		next = a.bucket-starts.begin-ptr + 1
-		out write-without-duplicates-recur cur, next, a.bucket-starts.end-ptr, a.pairs.end-ptr
+		cur = *a.bucket-starts.begin-pointer
+		next = a.bucket-starts.begin-pointer + 1
+		out write-without-duplicates-recur cur, next, a.bucket-starts.end-pointer, a.pairs.end-pointer
 .write-without-duplicates-recur<k, v> (k, v) mut*(
 	out (k, v) mut*,
 	cur-bucket-start (k, v)*,
@@ -154,11 +154,11 @@ mut-array-to-frozen-dict-promise-no-duplicates<k, v> frozen-dict<k, v>(
 
 .has-duplicates<k, v> bool(a frozen-dict<k, v>) trusted equal<k>
 	if a.bucket-starts is-empty
-		a.pairs.begin-ptr bucket-has-duplicates a.pairs.end-ptr
+		a.pairs.begin-pointer bucket-has-duplicates a.pairs.end-pointer
 	else
-		cur = *a.bucket-starts.begin-ptr
-		next = a.bucket-starts.begin-ptr + 1
-		cur has-duplicates-recur next, a.bucket-starts.end-ptr, a.pairs.end-ptr
+		cur = *a.bucket-starts.begin-pointer
+		next = a.bucket-starts.begin-pointer + 1
+		cur has-duplicates-recur next, a.bucket-starts.end-pointer, a.pairs.end-pointer
 .has-duplicates-recur<k, v> bool(
 	cur-bucket-start (k, v)*,
 	next-bucket (k, v)**,
@@ -221,7 +221,7 @@ mut-array-to-frozen-dict-promise-no-duplicates<k, v> frozen-dict<k, v>(
 
 .running-sum<k, v> array<(k, v) mut*>(acc (k, v) mut*, a array nat64) trusted
 	out mut-array (k, v) mut* = a.size uninitialized-mut-array
-	acc running-sum-recur out.begin-ptr, out.end-ptr, a.begin-ptr
+	acc running-sum-recur out.begin-pointer, out.end-pointer, a.begin-pointer
 	out cast-immutable
 .running-sum-recur<k, v> void(
 	acc (k, v) mut*,
@@ -253,7 +253,7 @@ fold<a, k, v> a(acc a, a frozen-dict<k, v>, f act a(a, k, v, nat64))
 
 .verify void(a frozen-dict<nat64, string>, keys-order nat64[], bucket-starts nat64[]) unsafe
 	(for pair : a.pairs to-list; pair from)::nat64[] is keys-order
-	(for ptr : a.bucket-starts to-list; ptr - a.pairs.begin-ptr)::nat64[] is bucket-starts
+	(for pointer : a.bucket-starts to-list; pointer - a.pairs.begin-pointer)::nat64[] is bucket-starts
 
 .== bool(a string?, b string?)
 	a option-equal b

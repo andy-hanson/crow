@@ -1,10 +1,10 @@
 no-std
 import
 	crow/c-types: c-int
-	crow/fun-util: fun-ptr3
+	crow/fun-util: fun-pointer3
 	crow/misc: void
 	crow/number: nat8, nat16, nat32
-	crow/ptr: any-mut-ptr, const-ptr, mut-ptr, null
+	crow/pointer: any-mut-pointer, const-pointer, mut-pointer, null
 	crow/string: c-string
 
 SDL_AudioFormat alias
@@ -17,7 +17,7 @@ SDL_AudioDeviceID alias
 	nat32
 
 SDL_AudioCallback alias
-	fun-ptr3<void, any-mut-ptr, nat8 mut*, c-int>
+	fun-pointer3<void, any-mut-pointer, nat8 mut*, c-int>
 
 SDL_AudioSpec record extern by-val mut
 	freq c-int
@@ -28,7 +28,7 @@ SDL_AudioSpec record extern by-val mut
 	padding nat16
 	size nat32
 	callback SDL_AudioCallback
-	userdata any-mut-ptr
+	userdata any-mut-pointer
 
 new SDL_AudioSpec() noctx unsafe
 	0, 0, 0, 0, 0, 0, 0, null, null

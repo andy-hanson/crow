@@ -13,7 +13,7 @@ import
 		try-remove-start, try-split-once-by-fn, try-split-once-by-sublist,
 		try-split-once-by-sublist-right
 	./col/mut-list: copy, move-to-list, to-mut-list
-	./col/private/array-low-level: array-from-begin-end, begin-ptr
+	./col/private/array-low-level: array-from-begin-end, begin-pointer
 	./hash: hasher, hash-mix
 	./misc: void
 	./number:
@@ -114,7 +114,7 @@ WARN: The resulting string is allocated from GC memory but isn't traced by the g
 so it may be freed after the current task.
 ###
 to-c-string c-string(a string) trusted
-	(a ~ "\0").char8s.to-array begin-ptr
+	(a ~ "\0").char8s.to-array begin-pointer
 
 ###
 Treats a c-string as a string by walking to the end.

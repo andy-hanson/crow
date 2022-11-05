@@ -8,16 +8,18 @@ import
 	../misc: is-data, new, void
 	../number: ==, <=>, +, -, *, nat64
 	../option: !, ??, new, option
-	../ptr: ==, <=>, +, *, const-ptr, mut-ptr, set-deref
+	../pointer: ==, <=>, +, *, const-pointer, mut-pointer, set-deref
 	../string: ==, ~~, join, literal, new, string, to-string
 	../test-util: is
 	./array: array
 	./experimental/index-set:
 		count-greater-or-equal, filter-less, for-loop, is-empty, in, index-set, new, size, try-remove
 	./experimental/frozen-set:
-		begin-ptr, end-ptr, frozen-set, fold, is-empty, new, size, to-frozen-set,
+		begin-pointer, end-pointer, frozen-set, fold, is-empty, new, size, to-frozen-set,
 		to-list, try-get-unordered-index, unsafe-frozen-set-from-mut-array-cast-immutable
-	./mut-array: begin-ptr, cast-immutable, end-ptr, mut-array, mut-array-from-begin-end, uninitialized-mut-array
+	./mut-array:
+		begin-pointer, cast-immutable, end-pointer, mut-array, mut-array-from-begin-end,
+		uninitialized-mut-array
 	./list: ==, for-loop, list, new, to-list
 	./mut-list: ~=, move-to-list, mut-list, new
 
@@ -179,8 +181,8 @@ try-add<a> set<a>?(a set a, value a) is-data<a> compare<a> hash-mix<a>
 ) unsafe is-data<a> compare<a> hash-mix<a>
 	assert plan.compacted-size > 1
 	compacted mut-array a = plan.compacted-size uninitialized-mut-array
-	*compacted.begin-ptr := value
-	compactor compactor a = compacted.begin-ptr, compacted.begin-ptr + 1, compacted.end-ptr
+	*compacted.begin-pointer := value
+	compactor compactor a = compacted.begin-pointer, compacted.begin-pointer + 1, compacted.end-pointer
 	new-add = compactor do-compact-recur a.add, add-size, a.remove
 	new-add, (a.remove filter-less plan.add-size-left)
 
@@ -205,7 +207,7 @@ try-add<a> set<a>?(a set a, value a) is-data<a> compare<a> hash-mix<a>
 		compactor do-compact-recur a.left!, new-l, remove
 
 .push<a> void(a compactor a, here frozen-set a, add-size-here-and-left nat64, remove index-set) unsafe
-	a push-recur here.begin-ptr, here.end-ptr, add-size-here-and-left, remove
+	a push-recur here.begin-pointer, here.end-pointer, add-size-here-and-left, remove
 .push-recur<a> void(a compactor a, cur a*, end a*, remove-index nat64, remove index-set) unsafe
 	unless cur == end
 		unless remove-index in remove
@@ -249,10 +251,10 @@ filter<a> set a(a set a, f act bool(a)) is-data<a> compare<a> hash-mix<a>
 
 for-loop<out, in> out[](a set in, f act out(in)) trusted is-data<in> compare<in> hash-mix<in>
 	out mut-array out = a.size uninitialized-mut-array
-	end = out.begin-ptr fold a, (cur, x) =>
+	end = out.begin-pointer fold a, (cur, x) =>
 		*cur := f[x]
 		cur + 1
-	assert end == out.end-ptr
+	assert end == out.end-pointer
 	out.cast-immutable to-list
 
 .dbg<a> string(a set a) to-string<a>

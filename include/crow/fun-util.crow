@@ -1,4 +1,5 @@
 no-std
 export
 	./private/bootstrap:
-		fun-ptr0, fun-ptr1, fun-ptr2, fun-ptr3, fun-ptr4, fun-ptr5, fun-ptr6, fun-ptr7, fun-ptr8, fun-ptr9, subscript
+		fun-pointer0, fun-pointer1, fun-pointer2, fun-pointer3, fun-pointer4, fun-pointer5,
+		fun-pointer6, fun-pointer7, fun-pointer8, fun-pointer9, subscript

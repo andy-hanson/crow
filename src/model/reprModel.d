@@ -298,7 +298,7 @@ immutable(Repr) reprExpr(ref Alloc alloc, scope ref Ctx ctx, ref immutable Expr 
 		(ref immutable Expr.Drop x) =>
 			reprRecord(alloc, "drop", [reprExpr(alloc, ctx, x.arg)]),
 		(ref immutable Expr.FunPtr it) =>
-			reprRecord(alloc, "fun-ptr", [
+			reprRecord(alloc, "fun-pointer", [
 				reprFunInst(alloc, ctx, *it.funInst),
 				reprStructInst(alloc, ctx, *it.structInst)]),
 		(ref immutable Expr.IfOption it) =>

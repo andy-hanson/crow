@@ -61,7 +61,7 @@ immutable(size_t) countFunsForStruct(immutable StructDecl[] structs) =>
 				// '()', 'all', '==', '~', '|', '&', 'to-intXX'/'to-natXX', 'flags-members',
 				// and a constructor for each member
 				8 + it.members.length,
-			(ref immutable StructBody.ExternPtr) =>
+			(ref immutable StructBody.ExternPointer) =>
 				immutable size_t(0),
 			(ref immutable StructBody.Record it) {
 				immutable size_t nConstructors = recordIsAlwaysByVal(it) ? 1 : 2;
@@ -88,7 +88,7 @@ void addFunsForStruct(
 		(ref immutable StructBody.Flags it) {
 			addFunsForFlags(ctx, funsBuilder, commonTypes, struct_, it);
 		},
-		(ref immutable StructBody.ExternPtr) {},
+		(ref immutable StructBody.ExternPointer) {},
 		(ref immutable StructBody.Record it) {
 			addFunsForRecord(ctx, funsBuilder, commonTypes, struct_, it);
 		},

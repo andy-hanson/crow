@@ -3,7 +3,7 @@ import
 	crow/c-types: size_t, u-long-long
 	crow/extra-types: err-t
 	crow/number: nat32
-	crow/ptr: const-ptr, mut-ptr
+	crow/pointer: const-pointer, mut-pointer
 	crow/string: char8, c-string
 
 sodium_init err-t() extern<sodium>

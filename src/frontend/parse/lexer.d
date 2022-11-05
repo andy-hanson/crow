@@ -458,7 +458,7 @@ public enum Token {
 	enum_, // 'enum'
 	equal, // '='
 	extern_, // 'extern'
-	externPtr, // 'extern-ptr'
+	externPointer, // 'extern-pointer'
 	EOF, // end of file
 	export_, // 'export'
 	flags, // 'flags'
@@ -646,8 +646,8 @@ immutable(Token) tokenForSym(ref Lexer lexer, immutable Sym a) {
 			return Token.export_;
 		case shortSymValue("extern"):
 			return Token.extern_;
-		case shortSymValue("extern-ptr"):
-			return Token.externPtr;
+		case specialSymValue(SpecialSym.extern_pointer):
+			return Token.externPointer;
 		case shortSymValue("flags"):
 			return Token.flags;
 		case shortSymValue("for"):
@@ -847,7 +847,7 @@ immutable(bool) isExpressionStartToken(immutable Token a) {
 		case Token.equal:
 		case Token.export_:
 		case Token.extern_:
-		case Token.externPtr:
+		case Token.externPointer:
 		case Token.EOF:
 		case Token.flags:
 		case Token.forceSendable:

@@ -1,11 +1,11 @@
 import
-	crow/cell: as-const-ptr, cell, new
+	crow/cell: as-const-pointer, cell, new
 	crow/col/iter: again, again-or-stop, stop
-	crow/col/private/array-low-level: begin-ptr, subscript
+	crow/col/private/array-low-level: begin-pointer, subscript
 	crow/io/duration: msec
 	crow/io/print: out, print
 	crow/io/time: get-monotime-msec, repeat-interval
-	crow/ptr: ==, as-any-const-ptr, null
+	crow/pointer: ==, as-any-const-pointer, null
 	crow/c-types: c-int
 	SDL2/SDL:
 		SDL_GetError, SDL_Init, SDL_INIT_VIDEO, SDL_Quit
@@ -27,7 +27,7 @@ import
 main nat^(_ string[]) summon trusted
 	SDL_INIT_VIDEO.SDL_Init handle-sdl-error "SDL_INIT_VIDEO"
 	window = "SDL demo" SDL_CreateWindow 100, 100, window-width, window-height, SDL_WINDOW_SHOWN
-	if window.as-any-const-ptr == null
+	if window.as-any-const-pointer == null
 		"SDL_CreateWindow" fail-sdl-error
 	renderer = window renderer
 	texture = renderer create-texture
@@ -53,9 +53,9 @@ main nat^(_ string[]) summon trusted
 	if look-for-quit-event
 		stop,
 	else
-		key-states-ptr = null SDL_GetKeyboardState
+		key-states-pointer = null SDL_GetKeyboardState
 		# TODO: use a mut-enum-lookup type
-		key-states = key-states-ptr[0 .. SDL_NUM_SCANCODES.to-nat32.to-nat64]
+		key-states = key-states-pointer[0 .. SDL_NUM_SCANCODES.to-nat32.to-nat64]
 		if key-states[SDL_SCANCODE_RETURN.to-nat32.to-nat64] != 0
 			out print "return is pressed"
 
@@ -69,7 +69,7 @@ main nat^(_ string[]) summon trusted
 
 .draw-image void(renderer SDL_Renderer, texture SDL_Texture, x int32) summon trusted
 	dest cell SDL_Rect = (x, (window-height - image-height) / 2, image-width, image-height),
-	renderer SDL_RenderCopy texture, null, dest.as-const-ptr handle-sdl-error "SDL_RenderCopy"
+	renderer SDL_RenderCopy texture, null, dest.as-const-pointer handle-sdl-error "SDL_RenderCopy"
 
 .look-for-quit-event bool() summon
 	e = SDL_Event
@@ -77,17 +77,17 @@ main nat^(_ string[]) summon trusted
 
 .renderer SDL_Renderer(window SDL_Window) summon trusted
 	renderer = window SDL_CreateRenderer -1, SDL_RENDERER_ACCELERATED | SDL_RENDERER_PRESENTVSYNC
-	if renderer.as-any-const-ptr == null
+	if renderer.as-any-const-pointer == null
 		"SDL_CreateRenderer" fail-sdl-error
 	renderer
 
 .create-texture SDL_Texture(renderer SDL_Renderer) summon trusted
-	bmp = crow-bmp.begin-ptr SDL_RWFromConstMem crow-bmp.size.to-int32 SDL_LoadBMP_RW 0
-	if bmp.as-any-const-ptr == null
+	bmp = crow-bmp.begin-pointer SDL_RWFromConstMem crow-bmp.size.to-int32 SDL_LoadBMP_RW 0
+	if bmp.as-any-const-pointer == null
 		"sdl-loadbmp-error" fail-sdl-error
 	texture = renderer SDL_CreateTextureFromSurface bmp
 	bmp SDL_FreeSurface
-	if texture.as-any-const-ptr == null
+	if texture.as-any-const-pointer == null
 		"SDL_CreateTextureFromSurface" fail-sdl-error
 	texture
 

@@ -1,9 +1,9 @@
 import
-	crow/col/mut-array: begin-ptr, cast-immutable, mut-array, size, subscript, uninitialized-mut-array
-	crow/col/private/array-low-level: begin-ptr
+	crow/col/mut-array: begin-pointer, cast-immutable, mut-array, size, subscript, uninitialized-mut-array
+	crow/col/private/array-low-level: begin-pointer
 	crow/extra-types: fd-t
 	crow/io/print: out, print
-	crow/ptr: ==, *, as-any-const-ptr, const-ptr, null, ptr-cast, ptr-cast-to-extern, size-of
+	crow/pointer: ==, *, as-any-const-pointer, const-pointer, null, pointer-cast, pointer-cast-to-extern, size-of
 	arpa/inet: inet_addr, inet_ntoa
 	netdb: gethostbyname, getprotobyname, h_addr_list, p_proto
 	netinet/in: htons, in_addr, new, sockaddr_in
@@ -23,19 +23,19 @@ main nat^(_ string[]) unsafe summon
 
 .get-tcp-socket fd-t() unsafe summon
 	protoent = "tcp" getprotobyname
-	forbid protoent.as-any-const-ptr == null
+	forbid protoent.as-any-const-pointer == null
 	socket-file-descriptor = AF_INET socket SOCK_STREAM, protoent.p_proto
 	forbid socket-file-descriptor == max-nat64
 	socket-file-descriptor to-int32
 
 .connect-socket void(socket fd-t, hostname string, server-port nat16) unsafe summon
 	hostent = hostname.to-c-string gethostbyname
-	forbid hostent.as-any-const-ptr == null
-	in_addr0 in_addr* = hostent.h_addr_list->ptr-cast
+	forbid hostent.as-any-const-pointer == null
+	in_addr0 in_addr* = hostent.h_addr_list->pointer-cast
 	in_addr = in_addr0->inet_ntoa inet_addr
 
 	sockaddr_in mut sockaddr_in = AF_INET, server-port.htons, (in_addr,)
-	sockaddr = &sockaddr_in ptr-cast-to-extern@<sockaddr, sockaddr_in>
+	sockaddr = &sockaddr_in pointer-cast-to-extern@<sockaddr, sockaddr_in>
 	err = socket.to-nat64 connect sockaddr, (size-of@<sockaddr_in> to-nat32)
 	assert err == 0
 
@@ -43,7 +43,7 @@ main nat^(_ string[]) unsafe summon
 	forbid request is-empty
 	socket send-request-recur request.to-bytes.to-array
 .send-request-recur void(socket fd-t, bytes array nat8) unsafe
-	bytes-sent = socket write bytes.begin-ptr, bytes.size
+	bytes-sent = socket write bytes.begin-pointer, bytes.size
 	# TODO: might be 0 if the socket is overloaded -- delay and try again
 	assert bytes-sent > 0
 	if bytes-sent < bytes.size.to-int64
@@ -54,7 +54,7 @@ main nat^(_ string[]) unsafe summon
 .receive-response void(socket fd-t) unsafe summon
 	buffer mut-array nat8 = 0x2000 uninitialized-mut-array
 	# TODO: use epoll like we did in the server, for a non-blocking read.
-	bytes-read = socket read buffer.begin-ptr, buffer.size
+	bytes-read = socket read buffer.begin-pointer, buffer.size
 	assert bytes-read >= 0
 	if bytes-read > 0
 		out print "Read (possibly partial) response:"

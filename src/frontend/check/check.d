@@ -127,7 +127,7 @@ import util.opt : force, has, none, noneMut, Opt, some, someMut;
 import util.perf : Perf;
 import util.ptr : castImmutable, castNonScope_mut, ptrTrustMe_mut;
 import util.sourceRange : FileAndPos, FileAndRange, FileIndex, RangeWithinFile;
-import util.sym : AllSymbols, shortSym, shortSymValue, Sym;
+import util.sym : AllSymbols, shortSym, shortSymValue, SpecialSym, Sym, symForSpecial;
 import util.util : unreachable, todo, verify;
 
 struct PathAndAst { //TODO:RENAME
@@ -261,7 +261,7 @@ immutable(CommonTypes) getCommonTypes(
 	ref immutable StructsAndAliasesDict structsAndAliasesDict,
 	ref MutArr!(StructInst*) delayedStructInsts,
 ) {
-	ArrBuilder!string missing = ArrBuilder!string();
+	ArrBuilder!Sym missing = ArrBuilder!Sym();
 
 	immutable(StructInst*) nonTemplate(immutable string name) {
 		immutable Opt!(StructInst*) res = getCommonNonTemplateType(
@@ -273,7 +273,7 @@ immutable(CommonTypes) getCommonTypes(
 		if (has(res))
 			return force(res);
 		else {
-			add(ctx.alloc, missing, name);
+			add(ctx.alloc, missing, shortSym(name));
 			return instantiateNonTemplateStructDecl(
 				ctx.alloc,
 				ctx.programState,
@@ -297,9 +297,9 @@ immutable(CommonTypes) getCommonTypes(
 	immutable StructInst* symbol = nonTemplate("symbol");
 	immutable StructInst* void_ = nonTemplate("void");
 
-	immutable(StructDecl*) com(immutable string name, immutable size_t nTypeParameters) {
+	immutable(StructDecl*) getDecl(immutable Sym name, immutable size_t nTypeParameters) {
 		immutable Opt!(StructDecl*) res =
-			getCommonTemplateType(structsAndAliasesDict, shortSym(name), nTypeParameters);
+			getCommonTemplateType(structsAndAliasesDict, name, nTypeParameters);
 		if (has(res))
 			return force(res);
 		else {
@@ -308,44 +308,56 @@ immutable(CommonTypes) getCommonTypes(
 		}
 	}
 
-	immutable StructDecl* byVal = com("by-val", 1);
-	immutable StructDecl* array = com("array", 1);
-	immutable StructDecl* future = com("future", 1);
-	immutable StructDecl* namedVal = com("named-val", 1);
-	immutable StructDecl* opt = com("option", 1);
-	immutable StructDecl* ptrConst = com("const-ptr", 1);
-	immutable StructDecl* ptrMut = com("mut-ptr", 1);
-	immutable StructDecl* fun0 = com("fun0", 1);
-	immutable StructDecl* fun1 = com("fun1", 2);
-	immutable StructDecl* fun2 = com("fun2", 3);
-	immutable StructDecl* fun3 = com("fun3", 4);
-	immutable StructDecl* fun4 = com("fun4", 5);
-	immutable StructDecl* funAct0 = com("fun-act0", 1);
-	immutable StructDecl* funAct1 = com("fun-act1", 2);
-	immutable StructDecl* funAct2 = com("fun-act2", 3);
-	immutable StructDecl* funAct3 = com("fun-act3", 4);
-	immutable StructDecl* funAct4 = com("fun-act4", 5);
-	immutable StructDecl* funPtr0 = com("fun-ptr0", 1);
-	immutable StructDecl* funPtr1 = com("fun-ptr1", 2);
-	immutable StructDecl* funPtr2 = com("fun-ptr2", 3);
-	immutable StructDecl* funPtr3 = com("fun-ptr3", 4);
-	immutable StructDecl* funPtr4 = com("fun-ptr4", 5);
-	immutable StructDecl* funPtr5 = com("fun-ptr5", 6);
-	immutable StructDecl* funPtr6 = com("fun-ptr6", 7);
-	immutable StructDecl* funPtr7 = com("fun-ptr7", 8);
-	immutable StructDecl* funPtr8 = com("fun-ptr8", 9);
-	immutable StructDecl* funPtr9 = com("fun-ptr9", 10);
-	immutable StructDecl* funRef0 = com("fun-ref0", 1);
-	immutable StructDecl* funRef1 = com("fun-ref1", 2);
-	immutable StructDecl* funRef2 = com("fun-ref2", 3);
-	immutable StructDecl* funRef3 = com("fun-ref3", 4);
-	immutable StructDecl* funRef4 = com("fun-ref4", 5);
+	immutable StructDecl* byVal = getDecl(shortSym("by-val"), 1);
+	immutable StructDecl* array = getDecl(shortSym("array"), 1);
+	immutable StructDecl* future = getDecl(shortSym("future"), 1);
+	immutable StructDecl* namedVal = getDecl(shortSym("named-val"), 1);
+	immutable StructDecl* opt = getDecl(shortSym("option"), 1);
+	immutable StructDecl* pointerConst = getDecl(symForSpecial(SpecialSym.const_pointer), 1);
+	immutable StructDecl* pointerMut = getDecl(shortSym("mut-pointer"), 1);
+	immutable StructDecl*[5] funStructs = [
+		getDecl(shortSym("fun0"), 1),
+		getDecl(shortSym("fun1"), 2),
+		getDecl(shortSym("fun2"), 3),
+		getDecl(shortSym("fun3"), 4),
+		getDecl(shortSym("fun4"), 5),
+	];
+	immutable StructDecl*[5] funActStructs = [
+		getDecl(shortSym("fun-act0"), 1),
+		getDecl(shortSym("fun-act1"), 2),
+		getDecl(shortSym("fun-act2"), 3),
+		getDecl(shortSym("fun-act3"), 4),
+		getDecl(shortSym("fun-act4"), 5),
+	];
+	immutable StructDecl*[10] funPointerStructs = [
+		getDecl(symForSpecial(SpecialSym.fun_pointer0), 1),
+		getDecl(symForSpecial(SpecialSym.fun_pointer1), 2),
+		getDecl(symForSpecial(SpecialSym.fun_pointer2), 3),
+		getDecl(symForSpecial(SpecialSym.fun_pointer3), 4),
+		getDecl(symForSpecial(SpecialSym.fun_pointer4), 5),
+		getDecl(symForSpecial(SpecialSym.fun_pointer5), 6),
+		getDecl(symForSpecial(SpecialSym.fun_pointer6), 7),
+		getDecl(symForSpecial(SpecialSym.fun_pointer7), 8),
+		getDecl(symForSpecial(SpecialSym.fun_pointer8), 9),
+		getDecl(symForSpecial(SpecialSym.fun_pointer9), 10),
+	];
+	immutable StructDecl*[5] funRefStructs = [
+		getDecl(shortSym("fun-ref0"), 1),
+		getDecl(shortSym("fun-ref1"), 2),
+		getDecl(shortSym("fun-ref2"), 3),
+		getDecl(shortSym("fun-ref3"), 4),
+		getDecl(shortSym("fun-ref4"), 5),
+	];
 
-	immutable StructDecl* constPtr = com("const-ptr", 1);
+	immutable StructDecl* constPointer = getDecl(symForSpecial(SpecialSym.const_pointer), 1);
 	immutable StructInst* cStr = instantiateStruct(
-		ctx.alloc, ctx.programState, constPtr, [immutable Type(char8)], someMut(castNonScope_mut(&delayedStructInsts)));
+		ctx.alloc,
+		ctx.programState,
+		constPointer,
+		[immutable Type(char8)],
+		someMut(castNonScope_mut(&delayedStructInsts)));
 
-	immutable string[] missingArr = finishArr(ctx.alloc, missing);
+	immutable Sym[] missingArr = finishArr(ctx.alloc, missing);
 
 	if (!empty(missingArr))
 		addDiag(
@@ -374,13 +386,13 @@ immutable(CommonTypes) getCommonTypes(
 		future,
 		namedVal,
 		opt,
-		ptrConst,
-		ptrMut,
-		[funPtr0, funPtr1, funPtr2, funPtr3, funPtr4, funPtr5, funPtr6, funPtr7, funPtr8, funPtr9],
+		pointerConst,
+		pointerMut,
+		funPointerStructs,
 		[
-			immutable FunKindAndStructs(FunKind.plain, [fun0, fun1, fun2, fun3, fun4]),
-			immutable FunKindAndStructs(FunKind.mut, [funAct0, funAct1, funAct2, funAct3, funAct4]),
-			immutable FunKindAndStructs(FunKind.ref_, [funRef0, funRef1, funRef2, funRef3, funRef4])
+			immutable FunKindAndStructs(FunKind.plain, funStructs),
+			immutable FunKindAndStructs(FunKind.mut, funActStructs),
+			immutable FunKindAndStructs(FunKind.ref_, funRefStructs),
 		]);
 }
 

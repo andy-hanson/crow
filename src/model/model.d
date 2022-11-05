@@ -442,7 +442,7 @@ struct StructBody {
 		// For Flags, members should be unsigned
 		immutable Member[] members;
 	}
-	struct ExternPtr {}
+	struct ExternPointer {}
 	struct Record {
 		immutable RecordFlags flags;
 		immutable RecordField[] fields;
@@ -457,7 +457,7 @@ struct StructBody {
 		builtin,
 		enum_,
 		flags,
-		externPtr,
+		externPointer,
 		record,
 		union_,
 	}
@@ -467,7 +467,7 @@ struct StructBody {
 		immutable Builtin builtin;
 		immutable Enum enum_;
 		immutable Flags flags;
-		immutable ExternPtr externPtr;
+		immutable ExternPointer externPointer;
 		immutable Record record;
 		immutable Union union_;
 	}
@@ -477,7 +477,7 @@ struct StructBody {
 	immutable this(immutable Builtin a) { kind = Kind.builtin; builtin = a; }
 	@trusted immutable this(immutable Enum a) { kind = Kind.enum_; enum_ = a; }
 	@trusted immutable this(immutable Flags a) { kind = Kind.flags; flags = a; }
-	immutable this(immutable ExternPtr a) { kind = Kind.externPtr; externPtr = a; }
+	immutable this(immutable ExternPointer a) { kind = Kind.externPointer; externPointer = a; }
 	@trusted immutable this(immutable Record a) { kind = Kind.record; record = a; }
 	@trusted immutable this(immutable Union a) { kind = Kind.union_; union_ = a;}
 }
@@ -503,7 +503,7 @@ private immutable(bool) isUnion(ref immutable StructBody a) =>
 	scope immutable(T) delegate(ref immutable StructBody.Builtin) @safe @nogc pure nothrow cbBuiltin,
 	scope immutable(T) delegate(ref immutable StructBody.Enum) @safe @nogc pure nothrow cbEnum,
 	scope immutable(T) delegate(ref immutable StructBody.Flags) @safe @nogc pure nothrow cbFlags,
-	scope immutable(T) delegate(ref immutable StructBody.ExternPtr) @safe @nogc pure nothrow cbExternPtr,
+	scope immutable(T) delegate(ref immutable StructBody.ExternPointer) @safe @nogc pure nothrow cbExternPointer,
 	scope immutable(T) delegate(ref immutable StructBody.Record) @safe @nogc pure nothrow cbRecord,
 	scope immutable(T) delegate(ref immutable StructBody.Union) @safe @nogc pure nothrow cbUnion,
 ) {
@@ -516,8 +516,8 @@ private immutable(bool) isUnion(ref immutable StructBody a) =>
 			return cbEnum(a.enum_);
 		case StructBody.Kind.flags:
 			return cbFlags(a.flags);
-		case StructBody.Kind.externPtr:
-			return cbExternPtr(a.externPtr);
+		case StructBody.Kind.externPointer:
+			return cbExternPointer(a.externPointer);
 		case StructBody.Kind.record:
 			return cbRecord(a.record);
 		case StructBody.Kind.union_:

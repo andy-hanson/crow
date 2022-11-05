@@ -256,7 +256,7 @@ AllLowTypesWithCtx getAllLowTypes(
 	ref Alloc alloc() { return *allocPtr; }
 
 	DictBuilder!(ConcreteStruct*, LowType) concreteStructToTypeBuilder;
-	ArrBuilder!(ConcreteStruct*) allFunPtrSources;
+	ArrBuilder!(ConcreteStruct*) allFunPointerSources;
 	ArrBuilder!LowExternPtrType allExternPtrTypes;
 	ArrBuilder!(ConcreteStruct*) allRecordSources;
 	ArrBuilder!(ConcreteStruct*) allUnionSources;
@@ -282,9 +282,9 @@ AllLowTypesWithCtx getAllLowTypes(
 						return some(immutable LowType(PrimitiveType.float64));
 					case BuiltinStructKind.fun:
 						return some(addUnion(s));
-					case BuiltinStructKind.funPtrN: {
-						immutable size_t i = arrBuilderSize(allFunPtrSources);
-						add(alloc, allFunPtrSources, s);
+					case BuiltinStructKind.funPointerN: {
+						immutable size_t i = arrBuilderSize(allFunPointerSources);
+						add(alloc, allFunPointerSources, s);
 						return some(immutable LowType(immutable LowType.FunPtr(i)));
 					}
 					case BuiltinStructKind.int8:
@@ -303,8 +303,8 @@ AllLowTypesWithCtx getAllLowTypes(
 						return some(immutable LowType(PrimitiveType.nat32));
 					case BuiltinStructKind.nat64:
 						return some(immutable LowType(PrimitiveType.nat64));
-					case BuiltinStructKind.ptrConst:
-					case BuiltinStructKind.ptrMut:
+					case BuiltinStructKind.pointerConst:
+					case BuiltinStructKind.pointerMut:
 						return none!LowType;
 					case BuiltinStructKind.void_:
 						return some(immutable LowType(PrimitiveType.void_));
@@ -335,9 +335,9 @@ AllLowTypesWithCtx getAllLowTypes(
 		allSymbolsPtr,
 		finishDict(alloc, concreteStructToTypeBuilder));
 
-	immutable FullIndexDict!(LowType.FunPtr, LowFunPtrType) allFunPtrs =
+	immutable FullIndexDict!(LowType.FunPtr, LowFunPtrType) allFunPointers =
 		fullIndexDictOfArr!(LowType.FunPtr, LowFunPtrType)(
-			map(alloc, finishArr(alloc, allFunPtrSources), (ref immutable ConcreteStruct* it) {
+			map(alloc, finishArr(alloc, allFunPointerSources), (ref immutable ConcreteStruct* it) {
 				immutable ConcreteType[] typeArgs = asBuiltin(body_(*it)).typeArgs;
 				immutable LowType returnType = lowTypeFromConcreteType(getLowTypeCtx, typeArgs[0]);
 				immutable LowType[] paramTypes =
@@ -367,7 +367,7 @@ AllLowTypesWithCtx getAllLowTypes(
 	return AllLowTypesWithCtx(
 		immutable AllLowTypes(
 			fullIndexDictOfArr!(LowType.ExternPtr, LowExternPtrType)(finishArr(alloc, allExternPtrTypes)),
-			allFunPtrs,
+			allFunPointers,
 			allRecords,
 			allUnions),
 		getLowTypeCtx);
@@ -440,13 +440,12 @@ immutable(LowType) lowTypeFromConcreteStruct(ref GetLowTypeCtx ctx, immutable Co
 		return force(res);
 	else {
 		immutable ConcreteStructBody.Builtin builtin = asBuiltin(body_(*it));
-		verify(builtin.kind == BuiltinStructKind.ptrConst || builtin.kind == BuiltinStructKind.ptrMut);
 		//TODO: cache the creation.. don't want an allocation for every BuiltinStructKind.ptr to the same target type
 		immutable LowType* inner = allocate(ctx.alloc, lowTypeFromConcreteType(ctx, only(builtin.typeArgs)));
 		switch (builtin.kind) {
-			case BuiltinStructKind.ptrConst:
+			case BuiltinStructKind.pointerConst:
 				return immutable LowType(immutable LowType.PtrRawConst(inner));
-			case BuiltinStructKind.ptrMut:
+			case BuiltinStructKind.pointerMut:
 				return immutable LowType(immutable LowType.PtrRawMut(inner));
 			default:
 				return unreachable!(immutable LowType);
@@ -1375,7 +1374,7 @@ immutable(LowExprKind) getCallBuiltinExpr(
 		getLowExpr(ctx, locals, arg, argPos);
 	return matchBuiltinKind!(immutable LowExprKind)(
 		builtinKind,
-		(ref immutable BuiltinKind.CallFunPtr) =>
+		(ref immutable BuiltinKind.CallFunPointer) =>
 			immutable LowExprKind(allocate(ctx.alloc, immutable LowExprKind.CallFunPtr(
 				getLowExpr(ctx, locals, a.args[0], ExprPos.nonTail),
 				getArgs(ctx, locals, a.args[1 .. $])))),
@@ -1436,7 +1435,7 @@ immutable(LowExprKind) getCallBuiltinExpr(
 						some(valueLocal),
 						genLocalRef(ctx.alloc, range, valueLocal))]))));
 		},
-		(ref immutable BuiltinKind.PtrCast) {
+		(ref immutable BuiltinKind.PointerCast) {
 			verify(a.args.length == 1);
 			return genPtrCastKind(ctx.alloc, getLowExpr(ctx, locals, only(a.args), ExprPos.nonTail));
 		},

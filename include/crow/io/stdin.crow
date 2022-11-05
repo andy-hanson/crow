@@ -2,7 +2,7 @@ no-std
 import
 	stdio: stdin
 	unistd: read
-	../col/mut-array: begin-ptr, cast-immutable, mut-array, size, subscript, uninitialized-mut-array
+	../col/mut-array: begin-pointer, cast-immutable, mut-array, size, subscript, uninitialized-mut-array
 	../compare: >=
 	../fun-util: subscript
 	../future: future, new, parallel, then, with-block
@@ -23,7 +23,7 @@ read-stdin string^() trusted summon
 	with : parallel
 		buffer mut-array nat8 = 0x2000 uninitialized-mut-array
 		# TODO: use a non-blocking API
-		bytes-read-or-err = stdin read buffer.begin-ptr, buffer.size
+		bytes-read-or-err = stdin read buffer.begin-pointer, buffer.size
 		assert bytes-read-or-err >= 0
 		bytes-read = bytes-read-or-err to-nat64
 		if bytes-read >= buffer.size

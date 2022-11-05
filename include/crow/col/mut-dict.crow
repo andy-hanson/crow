@@ -7,14 +7,14 @@ import
 	../misc: is-data, new, void
 	../number: ==, <=>, +, -, *, %, nat64
 	../option: is-empty, new, option, option-equal
-	../ptr: ==, +, *, mut-ptr, set-deref
+	../pointer: ==, +, *, mut-pointer, set-deref
 	../string: ==, ~~, join, literal, string, to-string
 	../test-util: is
 	../tuple: from, new, pair, to
 	./array: array
 	./dict: dict, to-dict
 	./mut-array:
-		begin-ptr, cast-immutable, end-ptr, fill, fill-mut-array, mut-array, fold, for-loop, is-empty,
+		begin-pointer, cast-immutable, end-pointer, fill, fill-mut-array, mut-array, fold, for-loop, is-empty,
 		new, set-subscript, size, subscript, to-array, uninitialized-mut-array
 	./list: ==, for-loop, list, list-equal, new, size, to-list
 	./mut-list:
@@ -261,24 +261,24 @@ Filters the dictionary in place.
 Calls `f` on every key and value and removes the key if `f` returns false.
 ###
 set-filter<k, v> void(a v mut[k], f act bool(k, v)) trusted is-data<k> compare<k> hash-mix<k>
-	a.entries.begin-ptr set-filter-recur a.entries.end-ptr, f
-.set-filter-recur<k, v> void(entry-ptr entry<k, v> mut*, entry-end entry<k, v> mut*, f act bool(k, v)) unsafe
-	unless entry-ptr == entry-end
-		match *entry-ptr
+	a.entries.begin-pointer set-filter-recur a.entries.end-pointer, f
+.set-filter-recur<k, v> void(entry-pointer entry<k, v> mut*, entry-end entry<k, v> mut*, f act bool(k, v)) unsafe
+	unless entry-pointer == entry-end
+		match *entry-pointer
 		as none
 			()
 		as one ar
 			unless f[ar.from, ar.to]
-				*entry-ptr := none
+				*entry-pointer := none
 		as many m
 			m set-filter pair => f[pair.from, pair.to]
 			if m is-empty
-				*entry-ptr := none
+				*entry-pointer := none
 			elif m.size == 1
 				# TODO: should not need a local
 				z = m[0]
-				*entry-ptr := z one
-		entry-ptr + 1 set-filter-recur entry-end, f
+				*entry-pointer := z one
+		entry-pointer + 1 set-filter-recur entry-end, f
 
 # Calls `f` for every key and value in the dictionary.
 for-loop<k, v> void(a v mut[k], f act void(k, v)) is-data<k> compare<k> hash-mix<k>
@@ -289,10 +289,10 @@ Calls `f` on every key and value and returns a list of the results.
 ###
 for-loop<out, k, v> out[](a v mut[k], f act out(k, v)) trusted is-data<k> compare<k> hash-mix<k>
 	out mut-array out = a.size uninitialized-mut-array
-	end = out.begin-ptr fold a, (cur, key, value) =>
+	end = out.begin-pointer fold a, (cur, key, value) =>
 		*cur := f[key, value]
 		cur + 1
-	assert end == out.end-ptr
+	assert end == out.end-pointer
 	out.cast-immutable to-list
 
 ###
@@ -308,17 +308,17 @@ move-to-dict<k, v> v[k](a v mut[k]) is-data<k> compare<k> hash-mix<k>
 Calls `f` on every key and value, and replaces the value with the new value returned by `f`.
 ###
 set-map-values<k, v> void(a v mut[k], f act v(k, v)) trusted is-data<k> compare<k> hash-mix<k>
-	a.entries.begin-ptr set-map-values-recur a.entries.end-ptr, f
-.set-map-values-recur<k, v> void(entry-ptr entry<k, v> mut*, entry-end entry<k, v> mut*, f act v(k, v)) unsafe
-	unless entry-ptr == entry-end
-		match *entry-ptr
+	a.entries.begin-pointer set-map-values-recur a.entries.end-pointer, f
+.set-map-values-recur<k, v> void(entry-pointer entry<k, v> mut*, entry-end entry<k, v> mut*, f act v(k, v)) unsafe
+	unless entry-pointer == entry-end
+		match *entry-pointer
 		as none
 			()
 		as one ar
-			*entry-ptr := (ar.from, f[ar.from, ar.to]) one
+			*entry-pointer := (ar.from, f[ar.from, ar.to]) one
 		as many m
 			m set-map pair => pair.from, f[pair.from, pair.to]
-		entry-ptr + 1 set-map-values-recur entry-end, f
+		entry-pointer + 1 set-map-values-recur entry-end, f
 
 .dbg<k, v> string(a v mut[k]) to-string<k> to-string<v>
 	" " join for entry : a.entries.to-array.to-list

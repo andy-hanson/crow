@@ -13,7 +13,7 @@ module-export-value union
 	alias-decl alias-decl
 	builtin-decl
 	enum-decl enum-decl
-	extern-ptr-decl
+	extern-pointer-decl
 	flags-decl flags-decl
 	fun-decl fun-decl
 	record-decl record-decl

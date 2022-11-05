@@ -113,7 +113,7 @@ void writeLowType(
 	matchLowType!(
 		void,
 		(immutable LowType.ExternPtr) {
-			writer ~= "some extern-ptr type"; // TODO: more detail
+			writer ~= "some extern-pointer type"; // TODO: more detail
 		},
 		(immutable LowType.FunPtr) {
 			writer ~= "some fun ptr type"; // TODO: more detail

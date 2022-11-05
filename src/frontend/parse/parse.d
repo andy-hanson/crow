@@ -611,7 +611,7 @@ void parseSpecOrStructOrFun(
 			addStruct(() => immutable StructDeclAst.Body(
 				immutable StructDeclAst.Body.Enum(typeArg, small(parseEnumOrFlagsMembers(lexer)))));
 			break;
-		case Token.externPtr:
+		case Token.externPointer:
 			nextToken(lexer);
 			addStruct(() => immutable StructDeclAst.Body(immutable StructDeclAst.Body.ExternPtr()));
 			takeNewline_topLevel(lexer);

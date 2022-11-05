@@ -2,7 +2,7 @@ no-std
 import
 	crow/extra-types: err-t
 	crow/version: is-windows
-	crow/ptr: *, mut-ptr
+	crow/pointer: *, mut-pointer
 
 errno err-t() unsafe noctx
 	if is-windows

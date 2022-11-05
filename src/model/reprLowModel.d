@@ -56,9 +56,11 @@ import util.sourceRange : reprFileAndRange;
 
 immutable(Repr) reprOfLowProgram(ref Alloc alloc, ref immutable LowProgram a) =>
 	reprNamedRecord(alloc, "program", [
-		nameAndRepr("extern-ptrs", reprFullIndexDict(alloc, a.allExternPtrTypes, (ref immutable LowExternPtrType it) =>
-			reprOfExternPtrType(alloc, it))),
-		nameAndRepr("fun-ptrs", reprFullIndexDict(alloc, a.allFunPtrTypes, (ref immutable LowFunPtrType it) =>
+		nameAndRepr(
+			"extern-pointers",
+			reprFullIndexDict(alloc, a.allExternPtrTypes, (ref immutable LowExternPtrType it) =>
+				reprOfExternPtrType(alloc, it))),
+		nameAndRepr("fun-pointers", reprFullIndexDict(alloc, a.allFunPtrTypes, (ref immutable LowFunPtrType it) =>
 			reprOfLowFunPtrType(alloc, it))),
 		nameAndRepr("records", reprFullIndexDict(alloc, a.allRecords, (ref immutable LowRecord it) =>
 			reprOfLowRecord(alloc, it))),
@@ -74,9 +76,9 @@ immutable(Repr) reprOfLowType(ref Alloc alloc, immutable LowType a) =>
 	matchLowType!(
 		immutable Repr,
 		(immutable LowType.ExternPtr it) =>
-			reprRecord(alloc, "extern-ptr", [reprNat(it.index)]),
+			reprRecord(alloc, "extern-pointer", [reprNat(it.index)]),
 		(immutable LowType.FunPtr it) =>
-			reprRecord(alloc, "fun-ptr", [reprNat(it.index)]),
+			reprRecord(alloc, "fun-pointer", [reprNat(it.index)]),
 		(immutable PrimitiveType it) =>
 			reprSym(symOfPrimitiveType(it)),
 		(immutable LowType.PtrGc it) =>
@@ -92,11 +94,11 @@ immutable(Repr) reprOfLowType(ref Alloc alloc, immutable LowType a) =>
 	)(a);
 
 immutable(Repr) reprOfExternPtrType(ref Alloc alloc, ref immutable LowExternPtrType a) =>
-	reprRecord(alloc, "extern-ptr", [
+	reprRecord(alloc, "extern-pointer", [
 		reprOfConcreteStructRef(alloc, *a.source)]);
 
 immutable(Repr) reprOfLowFunPtrType(ref Alloc alloc, ref immutable LowFunPtrType a) =>
-	reprRecord(alloc, "fun-ptr", [
+	reprRecord(alloc, "fun-pointer", [
 		reprOfConcreteStructRef(alloc, *a.source),
 		reprOfLowType(alloc, a.returnType),
 		reprArr(alloc, a.paramTypes, (ref immutable LowType it) =>
@@ -173,7 +175,7 @@ immutable(Repr) reprOfLowExprKind(ref Alloc alloc, ref immutable LowExprKind a) 
 				reprArr(alloc, it.args, (ref immutable LowExpr e) =>
 					reprOfLowExpr(alloc, e))]),
 		(ref immutable LowExprKind.CallFunPtr it) =>
-			reprRecord(alloc, "call-fun-ptr", [
+			reprRecord(alloc, "call-fun-pointer", [
 				reprOfLowExpr(alloc, it.funPtr),
 				reprArr(alloc, it.args, (ref immutable LowExpr arg) =>
 					reprOfLowExpr(alloc, arg))]),

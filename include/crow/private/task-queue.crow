@@ -7,7 +7,7 @@ import
 	../misc: new, void
 	../number: ==, <=>, max-nat64, nat64
 	../option: is-empty, new, option
-	../ptr: by-val, ref-cast, zeroed
+	../pointer: by-val, ref-cast, zeroed
 	./bootstrap: hard-unreachable, first, last, new, next, set-next, time
 export
 	./bootstrap: action, exclusion, task, task-list, task-node, task-node-with-time

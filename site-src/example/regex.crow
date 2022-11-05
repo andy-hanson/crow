@@ -1,8 +1,8 @@
 import
-	crow/cell: as-const-ptr, as-mut-ptr, cell, new
+	crow/cell: as-const-pointer, as-mut-pointer, cell, new
 	crow/c-types: c-int, size_t, u-long
 	crow/io/print: out, print
-	crow/ptr: as-const, const-ptr, mut-ptr, new
+	crow/pointer: as-const, const-pointer, mut-pointer, new
 
 main nat^(_ string[]) summon
 	"cro\\+w" test-regex ("crow", "crooow", "duck")
@@ -24,28 +24,28 @@ regex record mut
 # Unsafe because must 'free'
 parse result<regex, string>(source string) unsafe
 	res regex = ((),),
-	err = res.wrapped.as-mut-ptr regcomp source.to-c-string, ()
+	err = res.wrapped.as-mut-pointer regcomp source.to-c-string, ()
 	if err == REG_NOERROR
 		res ok
 	else
 		buf char8 mut[] = 1000 fill-mut-list "\0"
-		_ = err regerror res.wrapped.as-const-ptr, buf.begin-ptr, buf.size
+		_ = err regerror res.wrapped.as-const-pointer, buf.begin-pointer, buf.size
 		res free
-		buf.begin-ptr.as-const.to-string err
+		buf.begin-pointer.as-const.to-string err
 
 free void(a regex) unsafe
-	a.wrapped.as-mut-ptr regfree
+	a.wrapped.as-mut-pointer regfree
 
 matches bool(a regex, candidate string) trusted
-	err = a.wrapped.as-const-ptr regexec candidate.to-c-string, (), (), ()
+	err = a.wrapped.as-const-pointer regexec candidate.to-c-string, (), (), ()
 	if err == REG_NOERROR
 		true
 	elif err == REG_NOMATCH
 		false
 	else
 		buf char8 mut[] = 1000 fill-mut-list "\0"
-		_ = err regerror a.wrapped.as-const-ptr, buf.begin-ptr, buf.size
-		throw buf.begin-ptr.as-const
+		_ = err regerror a.wrapped.as-const-pointer, buf.begin-pointer, buf.size
+		throw buf.begin-pointer.as-const
 
 regex_t record mut by-val extern
 	buffer void mut*

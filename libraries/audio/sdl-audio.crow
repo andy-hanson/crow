@@ -1,12 +1,12 @@
 no-std
 import
-	crow/cell: as-const-ptr, as-mut-ptr, cell, new
+	crow/cell: as-const-pointer, as-mut-pointer, cell, new
 	crow/col/mut-array: cast-mut-array, subscript
 	crow/c-types: c-int
 	crow/future: new
 	crow/misc: new, void
 	crow/number: ==, <=>, float32, nat8, nat16, to-int32, to-nat8, to-nat64
-	crow/ptr: any-mut-ptr, as-any-mut-ptr, as-ref, mut-ptr, null
+	crow/pointer: any-mut-pointer, as-any-mut-pointer, as-ref, mut-pointer, null
 	crow/range: ..
 	SDL2/SDL: SDL_Init, SDL_INIT_AUDIO, SDL_Quit
 	SDL2/SDL_audio:
@@ -27,11 +27,11 @@ start-sdl-audio audio() summon trusted
 
 	sr = format.sample-rate to-int32
 	nc = format.n-channels to-nat8
-	wc = write-ctx as-any-mut-ptr
+	wc = write-ctx as-any-mut-pointer
 	aspec SDL_AudioSpec = sr, AUDIO_F32, nc, 0, samples, 0, 0, &audio-callback, wc
 	desired cell SDL_AudioSpec = aspec,
 	obtained cell SDL_AudioSpec = (),
-	device = null SDL_OpenAudioDevice 0, desired.as-const-ptr, obtained.as-mut-ptr, 0
+	device = null SDL_OpenAudioDevice 0, desired.as-const-pointer, obtained.as-mut-pointer, 0
 	forbid device == 0
 
 	device SDL_PauseAudioDevice 0
@@ -45,7 +45,7 @@ start-sdl-audio audio() summon trusted
 .write-ctx record mut by-ref
 	queue audio-queue
 
-.audio-callback void(userdata any-mut-ptr, stream nat8 mut*, len c-int) noctx unsafe
+.audio-callback void(userdata any-mut-pointer, stream nat8 mut*, len c-int) noctx unsafe
 	write-ctx write-ctx = userdata as-ref
 	queue = write-ctx queue
 	floats = stream[0 .. len.to-nat64] cast-mut-array@<float32, nat8>

@@ -6,7 +6,7 @@ import
 	../compare: comparison
 	../misc: void
 	../number: +
-	../ptr: ==, +, as-const, mut-ptr, set-deref
+	../pointer: ==, +, as-const, mut-pointer, set-deref
 	../string: ==, <=>, char8, char8s, c-string, hash-mix, literal, string
 	../tuple: a, b, new
 	./alloc: unmanaged-alloc-elements

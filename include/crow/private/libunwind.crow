@@ -3,7 +3,7 @@ import
 	../c-types: c-char, c-int, size_t
 	../bytes-types: bytes1024
 	../number: nat64
-	../ptr: mut-ptr
+	../pointer: mut-pointer
 
 unw_word_t alias
 	nat64

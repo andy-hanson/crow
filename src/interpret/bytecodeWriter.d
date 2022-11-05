@@ -130,14 +130,14 @@ void fillDelayedCall(ref Operations operations, immutable ByteCodeIndex index, i
 void writeCallFunPtr(
 	ref ByteCodeWriter writer,
 	immutable ByteCodeSource source,
-	// This is before the fun-ptr arg, which should be the first
+	// This is before the fun-pointer arg, which should be the first
 	immutable StackEntry stackEntryBeforeArgs,
 	scope immutable DynCallSig sig,
 ) {
 	verify(stackEntryBeforeArgs.entry == writer.nextStackEntry - sig.parameterTypes.length - 1);
 	pushOperationFn(writer, source, &opCallFunPtr);
 	writeCallFunPtrCommon(writer, source, sig);
-	writer.nextStackEntry -= 1; // for the fun-ptr
+	writer.nextStackEntry -= 1; // for the fun-pointer
 	verify(writer.nextStackEntry == stackEntryBeforeArgs.entry + (sig.returnType == DynCallType.void_ ? 0 : 1));
 }
 

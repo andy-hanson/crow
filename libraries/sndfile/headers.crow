@@ -1,23 +1,23 @@
 no-std
 import
 	crow/c-types: c-int, short, u-int
-	crow/fun-util: fun-ptr1, fun-ptr3
+	crow/fun-util: fun-pointer1, fun-pointer3
 	crow/number: float32, nat8, nat64
-	crow/ptr: any-mut-ptr, const-ptr, mut-ptr
+	crow/pointer: any-mut-pointer, const-pointer, mut-pointer
 	crow/string: c-string
 	stdio: SEEK
 
 sf_count_t alias
 	nat64
 
-SNDFILE extern-ptr
+SNDFILE extern-pointer
 
 SF_VIRTUAL_IO record extern by-ref mut
-	get_filelen fun-ptr1<sf_count_t, any-mut-ptr>
-	seek fun-ptr3<sf_count_t, sf_count_t, SEEK, any-mut-ptr>
-	read fun-ptr3<sf_count_t, nat8 mut*, sf_count_t, any-mut-ptr>
-	write fun-ptr3<sf_count_t, nat8*, sf_count_t, any-mut-ptr>
-	tell fun-ptr1<sf_count_t, any-mut-ptr>
+	get_filelen fun-pointer1<sf_count_t, any-mut-pointer>
+	seek fun-pointer3<sf_count_t, sf_count_t, SEEK, any-mut-pointer>
+	read fun-pointer3<sf_count_t, nat8 mut*, sf_count_t, any-mut-pointer>
+	write fun-pointer3<sf_count_t, nat8*, sf_count_t, any-mut-pointer>
+	tell fun-pointer1<sf_count_t, any-mut-pointer>
 
 sf_error c-int(sndfile SNDFILE) extern<sndfile>
 sf_error_number c-string(errnum c-int) extern<sndfile>
@@ -38,7 +38,7 @@ sf_open_virtual SNDFILE(
 	sfvirtual SF_VIRTUAL_IO,
 	mode SndFileMode,
 	sfinfo SF_INFO mut*,
-	user_data any-mut-ptr,
+	user_data any-mut-pointer,
 ) extern<sndfile>
 sf_close c-int(SNDFILE SNDFILE) extern<sndfile>
 
@@ -47,11 +47,11 @@ SndFileMode enum<c-int> extern
 	SFM_WRITE = 0x20
 	SFM_RDWR = 0x30
 
-sf_read_short sf_count_t(sndfile SNDFILE, ptr short mut*, items sf_count_t) extern<sndfile>
-sf_write_short sf_count_t(sndfile SNDFILE, ptr short*, items sf_count_t) extern<sndfile>
+sf_read_short sf_count_t(sndfile SNDFILE, pointer short mut*, items sf_count_t) extern<sndfile>
+sf_write_short sf_count_t(sndfile SNDFILE, pointer short*, items sf_count_t) extern<sndfile>
 
-sf_read_float sf_count_t(sndfile SNDFILE, ptr float32 mut*, items sf_count_t) extern<sndfile>
-sf_write_float sf_count_t(sndfile SNDFILE, ptr float32*, items sf_count_t) extern<sndfile>
+sf_read_float sf_count_t(sndfile SNDFILE, pointer float32 mut*, items sf_count_t) extern<sndfile>
+sf_write_float sf_count_t(sndfile SNDFILE, pointer float32*, items sf_count_t) extern<sndfile>
 
 # WARN: This is not a true flags type; can only be mixed in certain ways
 SF_FORMAT flags<u-int> extern

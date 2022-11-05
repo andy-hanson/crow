@@ -184,8 +184,8 @@ immutable(StructBody) instantiateStructBody(
 			immutable StructBody(e),
 		(ref immutable StructBody.Flags f) =>
 			immutable StructBody(f),
-		(ref immutable StructBody.ExternPtr) =>
-			immutable StructBody(immutable StructBody.ExternPtr()),
+		(ref immutable StructBody.ExternPointer) =>
+			immutable StructBody(immutable StructBody.ExternPointer()),
 		(ref immutable StructBody.Record r) =>
 			immutable StructBody(immutable StructBody.Record(
 				r.flags,

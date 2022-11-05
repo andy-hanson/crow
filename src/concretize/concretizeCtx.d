@@ -94,7 +94,7 @@ import util.memory : allocate, allocateMut;
 import util.opt : force, has, none, Opt, some;
 import util.ptr : castImmutable, castMutable, hashPtr;
 import util.sourceRange : FileAndRange;
-import util.sym : AllSymbols, shortSym, shortSymValue, Sym;
+import util.sym : AllSymbols, shortSym, shortSymValue, SpecialSym, specialSymValue, Sym;
 import util.util : max, roundUp, todo, unreachable, verify;
 import versionInfo : VersionInfo;
 
@@ -575,13 +575,13 @@ void initializeConcreteStruct(
 				false));
 			lateSet(res.typeSize_, typeSizeForEnumOrFlags(it.backingType));
 		},
-		(ref immutable StructBody.ExternPtr it) {
+		(ref immutable StructBody.ExternPointer it) {
 			// byVal because the 'extern' type *is* a pointer
 			lateSet(res.defaultReferenceKind_, ReferenceKind.byVal);
 			lateSet(res.info_, immutable ConcreteStructInfo(
 				immutable ConcreteStructBody(immutable ConcreteStructBody.ExternPtr()),
 				false));
-			lateSet(res.typeSize_, getBuiltinStructSize(BuiltinStructKind.ptrMut));
+			lateSet(res.typeSize_, getBuiltinStructSize(BuiltinStructKind.pointerMut));
 		},
 		(ref immutable StructBody.Record r) {
 			// don't set 'defaultReferenceKind' until the end, unless explicit
@@ -810,7 +810,7 @@ immutable(StructBody.Enum.Member[]) enumOrFlagsMembers(immutable ConcreteType ty
 			it.members,
 		(ref immutable StructBody.Flags it) =>
 			it.members,
-		(ref immutable StructBody.ExternPtr) =>
+		(ref immutable StructBody.ExternPointer) =>
 			unreachable!(immutable StructBody.Enum.Member[]),
 		(ref immutable StructBody.Record) =>
 			unreachable!(immutable StructBody.Enum.Member[]),
@@ -868,17 +868,17 @@ immutable(BuiltinStructKind) getBuiltinStructKind(immutable Sym name) {
 		case shortSymValue("fun-act3"):
 		case shortSymValue("fun-act4"):
 			return BuiltinStructKind.fun;
-		case shortSymValue("fun-ptr0"):
-		case shortSymValue("fun-ptr1"):
-		case shortSymValue("fun-ptr2"):
-		case shortSymValue("fun-ptr3"):
-		case shortSymValue("fun-ptr4"):
-		case shortSymValue("fun-ptr5"):
-		case shortSymValue("fun-ptr6"):
-		case shortSymValue("fun-ptr7"):
-		case shortSymValue("fun-ptr8"):
-		case shortSymValue("fun-ptr9"):
-			return BuiltinStructKind.funPtrN;
+		case specialSymValue(SpecialSym.fun_pointer0):
+		case specialSymValue(SpecialSym.fun_pointer1):
+		case specialSymValue(SpecialSym.fun_pointer2):
+		case specialSymValue(SpecialSym.fun_pointer3):
+		case specialSymValue(SpecialSym.fun_pointer4):
+		case specialSymValue(SpecialSym.fun_pointer5):
+		case specialSymValue(SpecialSym.fun_pointer6):
+		case specialSymValue(SpecialSym.fun_pointer7):
+		case specialSymValue(SpecialSym.fun_pointer8):
+		case specialSymValue(SpecialSym.fun_pointer9):
+			return BuiltinStructKind.funPointerN;
 		case shortSymValue("int8"):
 			return BuiltinStructKind.int8;
 		case shortSymValue("int16"):
@@ -895,10 +895,10 @@ immutable(BuiltinStructKind) getBuiltinStructKind(immutable Sym name) {
 			return BuiltinStructKind.nat32;
 		case shortSymValue("nat64"):
 			return BuiltinStructKind.nat64;
-		case shortSymValue("const-ptr"):
-			return BuiltinStructKind.ptrConst;
-		case shortSymValue("mut-ptr"):
-			return BuiltinStructKind.ptrMut;
+		case specialSymValue(SpecialSym.const_pointer):
+			return BuiltinStructKind.pointerConst;
+		case shortSymValue("mut-pointer"):
+			return BuiltinStructKind.pointerMut;
 		case shortSymValue("void"):
 			return BuiltinStructKind.void_;
 		default:
@@ -923,11 +923,11 @@ immutable(TypeSize) getBuiltinStructSize(immutable BuiltinStructKind kind) {
 		case BuiltinStructKind.nat32:
 			return immutable TypeSize(4, 4);
 		case BuiltinStructKind.float64:
-		case BuiltinStructKind.funPtrN:
+		case BuiltinStructKind.funPointerN:
 		case BuiltinStructKind.int64:
 		case BuiltinStructKind.nat64:
-		case BuiltinStructKind.ptrConst:
-		case BuiltinStructKind.ptrMut:
+		case BuiltinStructKind.pointerConst:
+		case BuiltinStructKind.pointerMut:
 			return immutable TypeSize(8, 8);
 		case BuiltinStructKind.fun:
 			return immutable TypeSize(16, 8);

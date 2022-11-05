@@ -543,9 +543,9 @@ void writeDiag(
 		},
 		(ref immutable Diag.CommonTypesMissing d) {
 			writer ~= "common types are missing from 'bootstrap.crow':";
-			foreach (immutable string s; d.missing) {
+			foreach (immutable Sym s; d.missing) {
 				writer ~= "\n\t";
-				writer ~= s;
+				writeSym(writer, allSymbols, s);
 			}
 		},
 		(ref immutable Diag.DuplicateDeclaration d) {
@@ -636,7 +636,7 @@ void writeDiag(
 			}();
 		},
 		(ref immutable Diag.ExternPtrHasTypeParams) {
-			writer ~= "an 'extern-ptr' type should not be a template";
+			writer ~= "an 'extern-pointer' type should not be a template";
 		},
 		(ref immutable Diag.ExternRecordMustBeByRefOrVal d) {
 			writer ~= "'extern' record ";
@@ -916,14 +916,14 @@ void writeDiag(
 						return "prefer to write 'v mut[k]' instead of 'mut-dict<k, v>'";
 					case Diag.TypeShouldUseSyntax.Kind.mutList:
 						return "prefer to write 'a mut[]' instead of 'mut-list a'";
-					case Diag.TypeShouldUseSyntax.Kind.mutPtr:
-						return "prefer to write 'a mut*' instead of 'mut-ptr a'";
+					case Diag.TypeShouldUseSyntax.Kind.mutPointer:
+						return "prefer to write 'a mut*' instead of 'mut-pointer a'";
 					case Diag.TypeShouldUseSyntax.Kind.opt:
 						return "prefer to write 'a?' instead of 'opt a'";
 					case Diag.TypeShouldUseSyntax.Kind.pair:
 						return "prefer to write '(a, b)' instead of 'pair<a, b>'";
-					case Diag.TypeShouldUseSyntax.Kind.ptr:
-						return "prefer to write 'a*' instead of 'const-ptr a'";
+					case Diag.TypeShouldUseSyntax.Kind.pointer:
+						return "prefer to write 'a*' instead of 'const-pointer a'";
 				}
 			}();
 		},
@@ -1012,7 +1012,7 @@ immutable(string) aOrAnTypeKind(immutable TypeKind a) {
 		case TypeKind.flags:
 			return "a flags type";
 		case TypeKind.externPtr:
-			return "an extern-ptr";
+			return "an extern-pointer";
 		case TypeKind.record:
 			return "a record";
 		case TypeKind.union_:
@@ -1119,8 +1119,8 @@ immutable(string) describeTokenForUnexpected(immutable Token token) {
 			return "unexpected '='";
 		case Token.extern_:
 			return "unexpected keyword 'extern'";
-		case Token.externPtr:
-			return "unexpected keyword 'extern-ptr'";
+		case Token.externPointer:
+			return "unexpected keyword 'extern-pointer'";
 		case Token.EOF:
 			return "unexpected end of file";
 		case Token.flags:

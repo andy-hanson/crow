@@ -3,10 +3,10 @@ import
 	crow/bytes-types: bytes4, bytes32, bytes40, bytes48, new
 	crow/c-types: u-int, u-long
 	crow/extra-types: err-t
-	crow/fun-util: fun-ptr1
+	crow/fun-util: fun-pointer1
 	crow/misc: new
 	crow/number: int32
-	crow/ptr: any-const-ptr, any-mut-ptr, const-ptr, mut-ptr
+	crow/pointer: any-const-pointer, any-mut-pointer, const-pointer, mut-pointer
 	time: __clockid_t, timespec
 
 pthread_t alias
@@ -16,12 +16,12 @@ pthread_t alias
 # TODO: attr -- not typing this as currently I only pass null
 pthread_create err-t(
 	thread pthread_t mut*,
-	attr any-const-ptr,
-	start-routine fun-ptr1<any-mut-ptr, any-mut-ptr>,
-	arg any-mut-ptr,
+	attr any-const-pointer,
+	start-routine fun-pointer1<any-mut-pointer, any-mut-pointer>,
+	arg any-mut-pointer,
 ) extern<pthread> summon
 
-pthread_join err-t(thread pthread_t, thread-return any-mut-ptr mut*) extern<pthread> summon
+pthread_join err-t(thread pthread_t, thread-return any-mut-pointer mut*) extern<pthread> summon
 
 region mutex
 

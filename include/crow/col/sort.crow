@@ -6,12 +6,12 @@ import
 	../misc: new, void
 	../number: ==, <=>, +, -, /, nat64
 	../option: !
-	../ptr: ==, +, -, *, mut-ptr, set-deref
+	../pointer: ==, +, -, *, mut-pointer, set-deref
 	../range: ..
 	../string: ==, <=>, iter, literal, next, slice-left, string
 	../test-util: is
 	./mut-array:
-		begin-ptr, cast-immutable, end-ptr, is-empty, mut-array, new, size, set-subscript,
+		begin-pointer, cast-immutable, end-pointer, is-empty, mut-array, new, size, set-subscript,
 		subscript, to-array, to-mut-array
 	./iter: rest
 	./list: ==, list, list-equal, new, to-array, to-list
@@ -86,7 +86,7 @@ set-sort<a> void(a mut-array a) compare<a>
 	a set-sort (x, y) => x <=> y
 set-sort<a> void(a mut-array a, comparer act comparison(a, a)) trusted
 	unless a is-empty
-		a.begin-ptr insertion-sort-recur a.begin-ptr + 1, a.end-ptr, comparer
+		a.begin-pointer insertion-sort-recur a.begin-pointer + 1, a.end-pointer, comparer
 set-sort-by<a, b> void(a mut-array a, f act b(a)) compare<b>
 	a set-sort (x, y) => f[x] <=> f[y]
 
@@ -118,8 +118,8 @@ set-sort-unique<a> mut-array a(a mut-array a, comparer act comparison(a, a)) tru
 		a
 	else
 		a set-sort comparer
-		end = *a.begin-ptr set-unique-recur a.begin-ptr + 1, a.begin-ptr + 1, a.end-ptr, comparer
-		a[0 .. end - a.begin-ptr]
+		end = *a.begin-pointer set-unique-recur a.begin-pointer + 1, a.begin-pointer + 1, a.end-pointer, comparer
+		a[0 .. end - a.begin-pointer]
 set-sort-unique-by<a, b> mut-array a(a mut-array a, f act b(a)) compare<b>
 	a set-sort-unique (x, y) => f[x] <=> f[y]
 .set-unique-recur<a> a mut*(

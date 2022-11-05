@@ -5,7 +5,7 @@ import
 	crow/c-types: u-long
 	crow/extra-types: fd-t
 	crow/number: int16, int32
-	crow/ptr: mut-ptr
+	crow/pointer: mut-pointer
 
 pollfd record by-val extern
 	fd fd-t

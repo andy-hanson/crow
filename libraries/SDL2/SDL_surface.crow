@@ -3,7 +3,7 @@ import
 	crow/c-types: c-int
 	crow/misc: void
 	crow/number: nat32
-	crow/ptr: any-mut-ptr, mut-ptr
+	crow/pointer: any-mut-pointer, mut-pointer
 	crow/string: string, to-c-string
 	./SDL_pixels: SDL_PixelFormat
 	./SDL_rect: SDL_Rect
@@ -17,13 +17,13 @@ SDL_Surface record mut by-ref extern
 	w c-int
 	h c-int
 	pitch c-int
-	pixels any-mut-ptr
-	userdata any-mut-ptr
+	pixels any-mut-pointer
+	userdata any-mut-pointer
 	locked c-int
-	list_blitmap any-mut-ptr
+	list_blitmap any-mut-pointer
 	clip_rect SDL_Rect
 	# TODO: SDL_BlitMap
-	map any-mut-ptr
+	map any-mut-pointer
 	refcount c-int
 
 SDL_LoadBMP_RW SDL_Surface(src SDL_RWops, freesrc c-int) extern<SDL2> summon

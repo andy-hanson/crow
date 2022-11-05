@@ -1,15 +1,15 @@
 no-std
 import
 	crow/bool: &&
-	crow/cell: *, as-mut-ptr, cell, new
+	crow/cell: *, as-mut-pointer, cell, new
 	crow/col/array: array, size
-	crow/col/mut-list: begin-ptr, move-to-array, mut-list, size, uninitialized-mut-list
-	crow/col/private/array-low-level: begin-ptr, end-ptr
+	crow/col/mut-list: begin-pointer, move-to-array, mut-list, size, uninitialized-mut-list
+	crow/col/private/array-low-level: begin-pointer, end-pointer
 	crow/compare: <=, min
 	crow/exception: unreachable
 	crow/number: ==, <=>, *, float32, nat8, to-nat64
 	crow/private/alloc: mem-copy
-	crow/ptr: ==, <=>, +, -, any-mut-ptr, as-any-mut-ptr, as-ref, const-ptr, mut-ptr
+	crow/pointer: ==, <=>, +, -, any-mut-pointer, as-any-mut-pointer, as-ref, const-pointer, mut-pointer
 	crow/string: string, to-c-string
 	sndfile/headers:
 		channels, frames, new, samplerate, sf_close, sf_count_t, sf_error, SF_INFO, SFM_READ,
@@ -20,14 +20,14 @@ import
 
 read-sound-file sound(path string) trusted summon
 	info cell SF_INFO = (),
-	f = path.to-c-string sf_open SFM_READ, info.as-mut-ptr
+	f = path.to-c-string sf_open SFM_READ, info.as-mut-pointer
 	f common *info
 
 sound-from-file-content sound(content array nat8) trusted
 	info cell SF_INFO = (),
-	user-data = content, content.begin-ptr
+	user-data = content, content.begin-pointer
 	virtual SF_VIRTUAL_IO = &get_filelen, &seek, &read, &write, &tell
-	f = virtual sf_open_virtual SFM_READ, info.as-mut-ptr, user-data.as-any-mut-ptr
+	f = virtual sf_open_virtual SFM_READ, info.as-mut-pointer, user-data.as-any-mut-pointer
 	f common *info
 
 .common sound(f SNDFILE, info SF_INFO) unsafe
@@ -35,42 +35,42 @@ sound-from-file-content sound(content array nat8) trusted
 	n-channels = info.channels to-nat64
 	sample-rate = info.samplerate to-nat64
 	samples float32 mut[] = info.frames * n-channels uninitialized-mut-list
-	n-read = f sf_read_float samples.begin-ptr, samples.size
+	n-read = f sf_read_float samples.begin-pointer, samples.size
 	f.sf_close check-sndfile-error
 	assert n-read == samples.size
 	(n-channels, sample-rate), samples.move-to-array
 
-.get_filelen sf_count_t(user-data-ptr any-mut-ptr) noctx unsafe
-	a user-data = user-data-ptr as-ref
+.get_filelen sf_count_t(user-data-pointer any-mut-pointer) noctx unsafe
+	a user-data = user-data-pointer as-ref
 	a.content size
 
-.seek sf_count_t(offset sf_count_t, whence SEEK, user-data-ptr any-mut-ptr) noctx unsafe
-	a user-data = user-data-ptr as-ref
+.seek sf_count_t(offset sf_count_t, whence SEEK, user-data-pointer any-mut-pointer) noctx unsafe
+	a user-data = user-data-pointer as-ref
 	start = match whence
 	as SEEK_SET
-		a.content begin-ptr
+		a.content begin-pointer
 	as SEEK_CUR
 		a cur
 	as SEEK_END
-		a.content end-ptr
+		a.content end-pointer
 	pos = start + offset
-	assert a.content.begin-ptr <= pos && pos <= a.content.end-ptr
+	assert a.content.begin-pointer <= pos && pos <= a.content.end-pointer
 	a.cur := pos
-	pos - a.content.begin-ptr
+	pos - a.content.begin-pointer
 
-.read sf_count_t(ptr nat8 mut*, count sf_count_t, user-data-ptr any-mut-ptr) noctx unsafe
-	a user-data = user-data-ptr as-ref
-	n-to-read = count min (a.content.end-ptr - a.cur)
-	ptr mem-copy a.cur, n-to-read
+.read sf_count_t(pointer nat8 mut*, count sf_count_t, user-data-pointer any-mut-pointer) noctx unsafe
+	a user-data = user-data-pointer as-ref
+	n-to-read = count min (a.content.end-pointer - a.cur)
+	pointer mem-copy a.cur, n-to-read
 	a.cur := a.cur + n-to-read
 	n-to-read
 
-.write sf_count_t(_ nat8*, _ sf_count_t, _ any-mut-ptr) noctx unsafe
+.write sf_count_t(_ nat8*, _ sf_count_t, _ any-mut-pointer) noctx unsafe
 	unreachable
 
-.tell sf_count_t(user-data-ptr any-mut-ptr) noctx unsafe
-	a user-data = user-data-ptr as-ref
-	a.cur - a.content.begin-ptr
+.tell sf_count_t(user-data-pointer any-mut-pointer) noctx unsafe
+	a user-data = user-data-pointer as-ref
+	a.cur - a.content.begin-pointer
 
 .user-data record by-ref mut
 	content array nat8

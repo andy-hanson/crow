@@ -105,7 +105,7 @@ immutable(ConcreteExpr) safeValueForStruct(
 					return fromConstant(immutable Constant(immutable Constant.Float(0)));
 				case BuiltinStructKind.fun:
 					return safeFunValue(ctx, range, struct_);
-				case BuiltinStructKind.funPtrN:
+				case BuiltinStructKind.funPointerN:
 					return fromConstant(immutable Constant(immutable Constant.Null()));
 				case BuiltinStructKind.int8:
 				case BuiltinStructKind.int16:
@@ -116,8 +116,8 @@ immutable(ConcreteExpr) safeValueForStruct(
 				case BuiltinStructKind.nat32:
 				case BuiltinStructKind.nat64:
 					return fromConstant(immutable Constant(immutable Constant.Integral(0)));
-				case BuiltinStructKind.ptrConst:
-				case BuiltinStructKind.ptrMut:
+				case BuiltinStructKind.pointerConst:
+				case BuiltinStructKind.pointerMut:
 					return fromConstant(immutable Constant(immutable Constant.Null()));
 				case BuiltinStructKind.void_:
 					return fromConstant(immutable Constant(immutable Constant.Void()));

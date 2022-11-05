@@ -6,7 +6,7 @@ import
 	crow/misc: void
 	crow/number: nat8, nat32
 	crow/private/bootstrap: char8, c-string
-	crow/ptr: const-ptr, mut-ptr
+	crow/pointer: const-pointer, mut-pointer
 
 perror void(s c-string) extern<c> summon
 
@@ -24,7 +24,7 @@ feof bool(stream FILE) extern<c> summon
 fgets char8 mut*(s char8 mut*, n c-int, stream FILE) extern<c> summon
 
 
-FILE extern-ptr
+FILE extern-pointer
 
 fopen FILE(filename c-string, mode c-string) extern<c> summon
 fclose c-int(stream FILE) extern<c> summon

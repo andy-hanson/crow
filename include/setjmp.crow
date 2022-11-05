@@ -1,6 +1,6 @@
 no-std
 import
-	crow/ptr: mut-ptr
+	crow/pointer: mut-pointer
 	crow/bytes-types: bytes512, new
 	crow/private/bootstrap: int32, void
 

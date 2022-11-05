@@ -3,12 +3,12 @@ import
 	../col/array: array
 	../col/list: for-loop, list, tail, to-list
 	../col/private/array-low-level: subscript
-	../fun-util: fun-ptr1, subscript
+	../fun-util: fun-pointer1, subscript
 	../future: delay, future, handle-exceptions, then
 	../misc: new, void
 	../number: ==, <=>, +, -, int32, nat64, to-int32, to-int64, to-nat64
-	../ptr:
-		+, any-mut-ptr, as-any-mut-ptr, as-const, as-ref, by-val, const-ptr, mut-ptr, null,
+	../pointer:
+		+, any-mut-pointer, as-any-mut-pointer, as-const, as-ref, by-val, const-pointer, mut-pointer, null,
 		set-deref, set-subscript, subscript
 	../range: ..
 	../string: c-string, string, to-string
@@ -21,17 +21,17 @@ import
 	./symbol-low-level: init-symbol-table
 	./thread-utils: count-processors, create-one-thread, join-one-thread, thread-handle
 
-.main-ptr alias
-	fun-ptr1<nat64^, string[]>
+.main-pointer alias
+	fun-pointer1<nat64^, string[]>
 
 # Treated specially by the compiler
-rt-main int32(argc int32, argv c-string*, main-ptr main-ptr) trusted noctx summon
+rt-main int32(argc int32, argv c-string*, main-pointer main-pointer) trusted noctx summon
 	do-init-constants
 	n-threads = count-processors
 	gctx-by-val mut by-val global-ctx = n-threads uninit
 	gctx global-ctx = &gctx-by-val
 	gctx init
-	main-fut = gctx add-main-task argc, argv, main-ptr
+	main-fut = gctx add-main-task argc, argv, main-pointer
 	n-threads run-threads gctx
 	res = gctx exit-code-from-main-fut main-fut
 	gctx free
@@ -59,14 +59,14 @@ init-constants void() unsafe noctx summon builtin
 	gctx global-ctx,
 	argc int32,
 	argv c-string*,
-	main-ptr main-ptr,
+	main-pointer main-pointer,
 ) trusted noctx
 	# Create a ctx manually so we can call functions that need it when creating the task
 	gctx before-task 0
-	add act nat64^(array c-string, main-ptr) = (all-args, main-ptr-2) =>
-		all-args add-first-task main-ptr-2
+	add act nat64^(array c-string, main-pointer) = (all-args, main-pointer-2) =>
+		all-args add-first-task main-pointer-2
 	all-args = argv[0 .. argc.to-int64.to-nat64]
-	res = add call-with-ctx all-args, main-ptr
+	res = add call-with-ctx all-args, main-pointer
 	after-task
 	res
 
@@ -77,13 +77,13 @@ init-constants void() unsafe noctx summon builtin
 # TODO: if mut-bag-node is in unmanaged memory, don't need ctx for this
 # We want main-fut to be available immediately, not after having run some user code.
 # So we create main-fut now, and forward the result of 'main' to that.
-.add-first-task nat64^(all-args array c-string, main-ptr fun-ptr1<nat64^, string[]>) unsafe
+.add-first-task nat64^(all-args array c-string, main-pointer fun-pointer1<nat64^, string[]>) unsafe
 	# 'then' is useful here -- it handles any errors in 'main' and gets us main-fut immediately.
 	# TODO: 'then' overload for void^ taking lambda with 0 params
 	res = delay then () =>
 		get-global-ctx init-symbol-table
 		# First argument is the path to this executable; omit from crow main
-		main-ptr[for arg : all-args.to-list.tail; arg to-string]
+		main-pointer[for arg : all-args.to-list.tail; arg to-string]
 	res handle-exceptions
 	res
 
@@ -109,13 +109,13 @@ init-constants void() unsafe noctx summon builtin
 	gctx global-ctx,
 ) noctx unsafe summon
 	unless i == n-threads
-		thread-arg-ptr = thread-args-begin + i
-		*thread-arg-ptr := i, gctx
-		threads[i] := thread-arg-ptr.as-any-mut-ptr create-one-thread &thread-fun
+		thread-arg-pointer = thread-args-begin + i
+		*thread-arg-pointer := i, gctx
+		threads[i] := thread-arg-pointer.as-any-mut-pointer create-one-thread &thread-fun
 		i + 1 start-threads-recur n-threads, threads, thread-args-begin, gctx
 
-.thread-fun any-mut-ptr(args-ptr any-mut-ptr) noctx unsafe summon
-	args thread-args = args-ptr as-ref
+.thread-fun any-mut-pointer(args-pointer any-mut-pointer) noctx unsafe summon
+	args thread-args = args-pointer as-ref
 	args.thread-id thread-function args.gctx
 	null
 

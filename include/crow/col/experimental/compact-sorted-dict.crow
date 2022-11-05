@@ -7,7 +7,7 @@ import
 	../../misc: is-data, new, void
 	../../number: ==, <=>, +, -, is-even, nat64
 	../../option: !, ||, is-empty, new, option, option-equal
-	../../ptr: ==, <=>, +, -, *, const-ptr, mut-ptr, ref-eq, set-deref
+	../../pointer: ==, <=>, +, -, *, const-pointer, mut-pointer, ref-eq, set-deref
 	../../range: ..
 	../../string: ==, ~~, end-iter, is-empty, join, literal, prev, string, to-string
 	../../test-util: is
@@ -15,12 +15,12 @@ import
 	../../private/alloc: mem-copy
 	../array: array, fold, is-empty, new, size, subscript, tail
 	../mut-array:
-		begin-ptr, cast-immutable, is-empty, fold, mut-array, set-subscript, size, subscript, tail,
+		begin-pointer, cast-immutable, is-empty, fold, mut-array, set-subscript, size, subscript, tail,
 		uninitialized-mut-array
 	../iter: value
 	../list: filter, for-loop, is-empty, list, new, to-array, to-list
 	../sort: sort-by
-	../private/array-low-level: begin-ptr, end-ptr
+	../private/array-low-level: begin-pointer, end-pointer
 	../private/sort-utils: binary-search-key
 
 compact-sorted-dict<k, v> record by-val
@@ -131,8 +131,8 @@ in<k, v> bool(key k, a compact-sorted-dict<k, v>) is-data<k> compare<k>
 
 .merge-overlays<k, v> array<(k, v?)>(l array (k, v?), r array (k, v?)) trusted is-data<k> compare<k>
 	res mut-array (k, v?) = l.size + r.size uninitialized-mut-array
-	end = res.begin-ptr merge-keep-right l.begin-ptr, l.end-ptr, r.begin-ptr, r.end-ptr
-	res[0 .. end - res.begin-ptr] cast-immutable
+	end = res.begin-pointer merge-keep-right l.begin-pointer, l.end-pointer, r.begin-pointer, r.end-pointer
+	res[0 .. end - res.begin-pointer] cast-immutable
 
 .merge-keep-right<k, v> (k, v) mut*(
 	out (k, v) mut*,
@@ -168,10 +168,10 @@ in<k, v> bool(key k, a compact-sorted-dict<k, v>) is-data<k> compare<k>
 .merge-to-end<k, v> array<(k, v)>(l array (k, v), r array (k, v?)) trusted is-data<k> compare<k>
 	res mut-array (k, v) = l.size + r.size uninitialized-mut-array
 	end = if l is-empty
-		res.begin-ptr finish-rest-ignore-none r.begin-ptr, r.end-ptr
+		res.begin-pointer finish-rest-ignore-none r.begin-pointer, r.end-pointer
 	else
-		res.begin-ptr merge-to-end-recur l.begin-ptr, l.end-ptr, r.begin-ptr, r.end-ptr
-	res[0 .. end - res.begin-ptr] cast-immutable
+		res.begin-pointer merge-to-end-recur l.begin-pointer, l.end-pointer, r.begin-pointer, r.end-pointer
+	res[0 .. end - res.begin-pointer] cast-immutable
 
 .merge-to-end-recur<k, v> (k, v) mut*(
 	out (k, v) mut*,
@@ -326,7 +326,7 @@ Returns the rightmost value associated with that key.
 
 .init-iters<k, v> iters<k, v>(a compact-sorted-dict<k, v>) trusted
 	overlay-iters mut-array array (k, v?) = 0 overlay-count a.impl uninitialized-mut-array
-	end-pairs = overlay-iters.begin-ptr init-overlay-iters-recur a.impl
+	end-pairs = overlay-iters.begin-pointer init-overlay-iters-recur a.impl
 	end-pairs, overlay-iters
 
 .overlay-count<k, v> nat64(acc nat64, a impl<k, v>) noctx
@@ -400,7 +400,7 @@ verify void(a compact-sorted-dict<nat64, string>, expected string)
 	a.dbg is expected
 
 .array-ref-eq<a> bool(a array a, b array a) unsafe
-	a.begin-ptr == b.begin-ptr && a.size == b.size
+	a.begin-pointer == b.begin-pointer && a.size == b.size
 
 .exact-eq<k, v> bool(a compact-sorted-dict<k, v>, b compact-sorted-dict<k, v>) unsafe
 	match a impl

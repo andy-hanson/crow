@@ -8,7 +8,7 @@ import
 	../misc: void
 	../number: ==, <=>, +, nat64
 	../option: option
-	../ptr: *, mut-ptr, set-deref
+	../pointer: *, mut-pointer, set-deref
 	../range: .., for-loop
 	./symbol-low-level: ==, symbol
 

@@ -2,7 +2,7 @@ no-std
 import
 	crow/c-types: size_t
 	crow/misc: void
-	crow/ptr: any-mut-ptr
+	crow/pointer: any-mut-pointer
 
-WebPMalloc any-mut-ptr(size size_t) extern<webp> noctx summon unsafe
-WebPFree void(ptr any-mut-ptr) extern<webp> noctx summon unsafe
+WebPMalloc any-mut-pointer(size size_t) extern<webp> noctx summon unsafe
+WebPFree void(pointer any-mut-pointer) extern<webp> noctx summon unsafe

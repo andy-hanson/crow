@@ -226,7 +226,7 @@ void testCallFunPtr(ref Test test) {
 	// Code is:
 	// push address of 'f'
 	// push 1, 2
-	// call-fun-ptr
+	// call-fun-pointer
 	// return
 	// # f nat64(a nat64, b nat64):
 	// +
@@ -258,7 +258,7 @@ void testCallFunPtr(ref Test test) {
 	immutable ByteCodeIndex fIndex = nextByteCodeIndex(writer);
 
 	// f:
-	// TODO: can't break inside a fun-ptr now..
+	// TODO: can't break inside a fun-pointer now..
 	//writeBreak(writer, source);
 	writeFnBinary!fnWrapAddIntegral(writer, source);
 	writeReturn(writer, source);

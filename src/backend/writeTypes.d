@@ -24,7 +24,7 @@ void writeTypes(
 	scope ref immutable LowProgram program,
 	scope ref immutable TypeWriters writers,
 ) {
-	// Write extern-ptr types first
+	// Write extern-pointer types first
 	fullIndexDictEachValue!(LowType.ExternPtr, LowExternPtrType)(
 		program.allExternPtrTypes,
 		(ref immutable LowExternPtrType it) {

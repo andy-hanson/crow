@@ -5,12 +5,12 @@ import
 	../fun-util: subscript
 	../misc: new, void
 	../number: +, *, ==, <=>, nat64
-	../ptr: ==, +, *, as-const, const-ptr, mut-ptr, set-deref
+	../pointer: ==, +, *, as-const, const-pointer, mut-pointer, set-deref
 	../range: .., for-loop
 	../string: ==, ~~, join, literal, string, to-string
 	../test-util: is
 	./mut-array:
-		begin-ptr, copy, end-ptr, exists, mut-array, fold, new, set-map, set-subscript, size,
+		begin-pointer, copy, end-pointer, exists, mut-array, fold, new, set-map, set-subscript, size,
 		subscript, to-array, uninitialized-mut-array
 	./list: for-loop, list, to-list
 
@@ -153,7 +153,7 @@ fold<a, b> a(acc a, a mut-grid b, f act a(a, b))
 	acc fold a.elements, f
 
 fold-with-coords<a, b> a(acc a, a mut-grid b, f act a(a, b, coord)) trusted
-	acc fold-with-coords-recur a.elements.begin-ptr.as-const, a.elements.end-ptr.as-const, (), a.width, f
+	acc fold-with-coords-recur a.elements.begin-pointer.as-const, a.elements.end-pointer.as-const, (), a.width, f
 .fold-with-coords-recur<a, b> a(
 	acc a,
 	cur b*,
@@ -174,7 +174,7 @@ set-map<a> void(a mut-grid a, f act a(a))
 	a.elements set-map f
 
 set-map-with-coords<a> void(a mut-grid a, f act a(a, coord)) trusted
-	a.elements.begin-ptr set-map-with-coords-recur a.elements.end-ptr, (), a.width, f
+	a.elements.begin-pointer set-map-with-coords-recur a.elements.end-pointer, (), a.width, f
 .set-map-with-coords-recur<a> void(cur a mut*, end a mut*, coord coord, width nat64, f act a(a, coord)) unsafe
 	unless cur == end
 		*cur := f[*cur, coord]

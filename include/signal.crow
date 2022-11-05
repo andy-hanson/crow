@@ -2,7 +2,7 @@ no-std
 import
 	bits/types/sigset_t: __sigset_t
 	crow/c-types: c-int, u-long
-	crow/fun-util: fun-ptr0, fun-ptr1
+	crow/fun-util: fun-pointer0, fun-pointer1
 	crow/number: int32
 	crow/misc: void
 
@@ -16,8 +16,8 @@ SIGPIPE int32() noctx
 	13
 
 __sighandler_t alias
-	fun-ptr1<void, c-int>
+	fun-pointer1<void, c-int>
 __sigrestore_t alias
-	fun-ptr0<void>
+	fun-pointer0<void>
 
 sigignore c-int(sig c-int) extern noctx summon

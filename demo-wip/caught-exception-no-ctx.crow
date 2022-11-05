@@ -1,7 +1,7 @@
 import
 	crow/io/duration: sec
 	crow/io/time: delay
-	crow/ptr: any-mut-ptr, null
+	crow/pointer: any-mut-pointer, null
 	pthread: pthread_create, pthread_t
 
 main nat^(_ string[]) summon unsafe
@@ -11,6 +11,6 @@ main nat^(_ string[]) summon unsafe
 	<- 1.sec delay
 	()
 
-.thread-fun any-mut-ptr(a any-mut-ptr) noctx
+.thread-fun any-mut-pointer(a any-mut-pointer) noctx
 	assert 1 + 1 == 3
 	a

@@ -8,14 +8,14 @@ import
 	crow/bits: |
 	crow/cell: *, cell, new
 	crow/col/mut-array:
-		begin-ptr, cast-immutable, end-ptr, mut-array, mut-array-from-begin-end, to-array,
+		begin-pointer, cast-immutable, end-pointer, mut-array, mut-array-from-begin-end, to-array,
 		uninitialized-mut-array
-	crow/col/private/array-low-level: begin-ptr
+	crow/col/private/array-low-level: begin-pointer
 	crow/c-types: u-int
 	crow/extra-types: err-t
 	crow/io/file: make-directory, path-exists
 	crow/log: info, log
-	crow/ptr: ==, +, as-mut, mut-ptr, null, ptr-cast-to-extern, set-deref, zeroed
+	crow/pointer: ==, +, as-mut, mut-pointer, null, pointer-cast-to-extern, set-deref, zeroed
 	crow/serialize: from-bytes, serialize, to-4-bytes, to-8-bytes
 	./headers:
 		MDB_BAD_DBI, MDB_BAD_RSLOT, MDB_BAD_TXN, MDB_BAD_VALSIZE, MDB_CORRUPTED, MDB_CREATE,
@@ -47,7 +47,7 @@ with-block<a> a^(options open-lmdb-env, f act a^(lmdb-env)) trusted summon is-se
 		f[env]
 
 .open-env lmdb-env(options open-lmdb-env) unsafe summon
-	env-cell cell MDB_env = null-extern-ptr,
+	env-cell cell MDB_env = null-extern-pointer,
 	env-cell.mdb_env_create check-lmdb-error
 	env = *env-cell
 	env mdb_env_set_maxdbs 50 check-lmdb-error
@@ -105,10 +105,10 @@ from-lmdb-key string(a nat8[])
 	a from-bytes
 
 # TODO:MOVE
-# And make sure `a` is actually an extern ptr type
-.null-extern-ptr<a> a() unsafe
+# And make sure `a` is actually an extern pointer type
+.null-extern-pointer<a> a() unsafe
 	p nat8 mut* = null
-	p ptr-cast-to-extern
+	p pointer-cast-to-extern
 
 region db
 
@@ -131,8 +131,8 @@ with-block<a, k, v> a^(
 		f[db]
 
 .open-db<k, v> lmdb-db<k, v>(a database<k, v>) unsafe summon lmdb-key<k> serialize<v>
-	transaction-cell cell MDB_txn = null-extern-ptr,
-	a.env.env mdb_txn_begin null-extern-ptr, 0, transaction-cell check-lmdb-error
+	transaction-cell cell MDB_txn = null-extern-pointer,
+	a.env.env mdb_txn_begin null-extern-pointer, 0, transaction-cell check-lmdb-error
 	transaction = *transaction-cell
 
 	dbi-cell cell MDB_dbi = zeroed,
@@ -186,8 +186,8 @@ with-block<a> a(a abortable-write-transaction, f act (a, transaction-result)(lmd
 	a.env with-transaction 0, f
 
 .with-transaction<a> a(env lmdb-env, mdb-flags u-int, f act (a, transaction-result)(lmdb-txn)) unsafe summon
-	transaction-cell cell MDB_txn = null-extern-ptr,
-	env.env mdb_txn_begin null-extern-ptr, mdb-flags, transaction-cell check-lmdb-error
+	transaction-cell cell MDB_txn = null-extern-pointer,
+	env.env mdb_txn_begin null-extern-pointer, mdb-flags, transaction-cell check-lmdb-error
 	transaction = *transaction-cell
 	(() => transaction mdb_txn_abort) do-if-error () =>
 		pair = f[(transaction,)]
@@ -308,10 +308,10 @@ for-loop<k, v> void(a each<k, v>, f act void(k, v)) summon lmdb-key<k> serialize
 # Calls `f` for each key-value pair in `db` and returns an array of the results.
 for-loop<out, k, v> out[](a each<k, v>, f act out(k, v)) trusted summon lmdb-key<k> serialize<v>
 	out mut-array out = a.txn count a.db uninitialized-mut-array
-	end = out.begin-ptr fold a.txn, a.db, (cur, key, value) =>
+	end = out.begin-pointer fold a.txn, a.db, (cur, key, value) =>
 		*cur := f[key, value]
 		cur + 1
-	assert end == out.end-ptr
+	assert end == out.end-pointer
 	out.cast-immutable to-list
 
 ###
@@ -330,10 +330,10 @@ zip<out, k, v0, v1> out[](
 	assert db0-count == db1-count
 	unless db0-count == 0
 		res mut-array out = db0-count uninitialized-mut-array
-		end = res.begin-ptr zip-fold-non-empty txn, db0, db1, (cur, key, value0, value1) =>
+		end = res.begin-pointer zip-fold-non-empty txn, db0, db1, (cur, key, value0, value1) =>
 			*cur := f[key, value0, value1]
 			cur + 1
-		assert end == res.end-ptr
+		assert end == res.end-pointer
 		res.cast-immutable to-list
 
 # Like `zip`, but passes along an accumulator.
@@ -393,7 +393,7 @@ zip-fold<a, k, v0, v1> a(
 		new-acc zip-fold-recur cursor0, cursor1, f
 
 .with-cursor<a, k, v> a(txn lmdb-txn, db lmdb-db<k, v>, f act a(MDB_cursor)) unsafe summon
-	cursor-cell cell MDB_cursor = null-extern-ptr,
+	cursor-cell cell MDB_cursor = null-extern-pointer,
 	open-err = txn.txn mdb_cursor_open db.dbi, cursor-cell
 	cursor = *cursor-cell
 	with : (() => cursor mdb_cursor_close) finally
@@ -405,7 +405,7 @@ zip-fold<a, k, v0, v1> a(
 
 .val-of-bytes MDB_val(a nat8[]) unsafe
 	array = a to-array
-	array.size, array.begin-ptr.as-mut
+	array.size, array.begin-pointer.as-mut
 
 .bytes-of-val nat8[](a MDB_val) unsafe
 	(a.mv_data mut-array-from-begin-end a.mv_data + a.mv_size).to-array to-list

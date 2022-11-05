@@ -1,26 +1,26 @@
 import
 	crow/c-types: c-int
-	crow/ptr: any-mut-ptr, const-ptr, mut-ptr
+	crow/pointer: any-mut-pointer, const-pointer, mut-pointer
 
-sqlite3-ptr extern-ptr
+sqlite3-pointer extern-pointer
 
 sqlite3_open_v2 sqlite3-result(
 	filename c-string,
-	db sqlite3-ptr mut*,
+	db sqlite3-pointer mut*,
 	open-flags sqlite3-open-flags,
 	zVfs c-string,
 ) extern<sqlite3> summon
-sqlite3_close sqlite3-result(db sqlite3-ptr) extern<sqlite3> summon
+sqlite3_close sqlite3-result(db sqlite3-pointer) extern<sqlite3> summon
 
 sqlite3_exec sqlite3-result(
-	db sqlite3-ptr,
+	db sqlite3-pointer,
 	sql c-string,
-	cb fun-ptr4<c-int, any-mut-ptr, c-int, c-string*, c-string*>,
-	cb-arg any-mut-ptr,
+	cb fun-pointer4<c-int, any-mut-pointer, c-int, c-string*, c-string*>,
+	cb-arg any-mut-pointer,
 	err-msg c-string mut*,
 ) extern<sqlite3> summon
 
-sqlite3_free void(ptr any-mut-ptr) extern<sqlite3> summon
+sqlite3_free void(pointer any-mut-pointer) extern<sqlite3> summon
 
 sqlite3-open-flags flags extern
 	SQLITE_OPEN_READONLY = 1

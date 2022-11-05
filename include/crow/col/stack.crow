@@ -7,12 +7,12 @@ import
 	../misc: new, void
 	../number: ==, +, nat64
 	../option: !, ==, is-empty, new, option, option-equal
-	../ptr: ==, +, mut-ptr, set-deref
+	../pointer: ==, +, mut-pointer, set-deref
 	../string: ==, literal, string
 	../test-util: is
 	../test-util/spy: calls, fn, new, spy-act1
 	./array: array
-	./mut-array: begin-ptr, cast-immutable, end-ptr, mut-array, uninitialized-mut-array
+	./mut-array: begin-pointer, cast-immutable, end-pointer, mut-array, uninitialized-mut-array
 	./list: ==, fold, list, new, to-list
 
 ###
@@ -115,11 +115,11 @@ for-loop<a> void(a reversed-stack a, f act void(a))
 
 for-loop<out, in> out[](a reversed-stack in, f act out(in)) trusted
 	res mut-array out = a.inner.size uninitialized-mut-array
-	out cell out mut* = res.begin-ptr,
+	out cell out mut* = res.begin-pointer,
 	for x : a
 		*(*out) := f[x]
 		*out := *out + 1
-	assert *out == res.end-ptr
+	assert *out == res.end-pointer
 	res.cast-immutable to-list
 
 # Copy elements to a list, from top to bottom.
@@ -147,11 +147,11 @@ fold<a, b> a(acc a, a stack b, f act a(a, b))
 
 for-loop<out, in> out[](a stack in, f act out(in)) trusted
 	res mut-array out = a.size uninitialized-mut-array
-	out cell out mut* = res.begin-ptr,
+	out cell out mut* = res.begin-pointer,
 	for x : a
 		*(*out) := f[x]
 		*out := *out + 1
-	assert *out == res.end-ptr
+	assert *out == res.end-pointer
 	res.cast-immutable to-list
 
 # Produce a stack with `f[x]` applied to each element `x` in the input.

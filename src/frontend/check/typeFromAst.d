@@ -41,7 +41,7 @@ import util.col.mutArr : MutArr;
 import util.col.mutMaxArr : fillMutMaxArr, mapTo, tempAsArr;
 import util.opt : force, has, none, noneMut, Opt, some;
 import util.sourceRange : RangeWithinFile;
-import util.sym : shortSym, shortSymValue, Sym;
+import util.sym : shortSym, shortSymValue, SpecialSym, specialSymValue, Sym;
 import util.util : todo;
 
 private immutable(Type) instStructFromAst(
@@ -216,8 +216,8 @@ immutable(Type) typeFromAst(
 
 private immutable(Opt!(Diag.TypeShouldUseSyntax.Kind)) typeSyntaxKind(immutable Sym a) {
 	switch (a.value) {
-		case shortSymValue("const-ptr"):
-			return some(Diag.TypeShouldUseSyntax.Kind.ptr);
+		case specialSymValue(SpecialSym.const_pointer):
+			return some(Diag.TypeShouldUseSyntax.Kind.pointer);
 		case shortSymValue("dict"):
 			return some(Diag.TypeShouldUseSyntax.Kind.dict);
 		case shortSymValue("future"):
@@ -228,8 +228,8 @@ private immutable(Opt!(Diag.TypeShouldUseSyntax.Kind)) typeSyntaxKind(immutable 
 			return some(Diag.TypeShouldUseSyntax.Kind.mutDict);
 		case shortSymValue("mut-list"):
 			return some(Diag.TypeShouldUseSyntax.Kind.mutList);
-		case shortSymValue("mut-ptr"):
-			return some(Diag.TypeShouldUseSyntax.Kind.mutPtr);
+		case shortSymValue("mut-pointer"):
+			return some(Diag.TypeShouldUseSyntax.Kind.mutPointer);
 		case shortSymValue("option"):
 			return some(Diag.TypeShouldUseSyntax.Kind.opt);
 		case shortSymValue("pair"):

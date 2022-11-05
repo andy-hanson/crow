@@ -1,8 +1,8 @@
 import
 	crow/cell: *, cell, new
-	crow/col/mut-array: begin-ptr, mut-array, to-array, uninitialized-mut-array
-	crow/col/private/array-low-level: begin-ptr
-	crow/ptr: null
+	crow/col/mut-array: begin-pointer, mut-array, to-array, uninitialized-mut-array
+	crow/col/private/array-low-level: begin-pointer
+	crow/pointer: null
 	OpenGL/gl:
 		glAttachShader, glCompileShader, glCreateProgram, glCreateShader, glDeleteProgram,
 		glDeleteShader, gl-ext, glGetProgramInfoLog, glGetProgramiv, glGetShaderInfoLog,
@@ -30,7 +30,7 @@ shader-prog-load GLuint(gl gl-ext, vert-shader-source string, frag-shader-source
 		log-length cell GLint = 0,
 		gl glGetProgramiv shader-prog, GL_INFO_LOG_LENGTH, log-length
 		err-log mut-array GLchar = log-length->to-nat64 uninitialized-mut-array
-		gl glGetProgramInfoLog shader-prog, *log-length, log-length, err-log.begin-ptr
+		gl glGetProgramInfoLog shader-prog, *log-length, log-length, err-log.begin-pointer
 		gl glDeleteProgram shader-prog
 		throw "Error loading shaders: {err-log.to-array as-string}"
 
@@ -48,12 +48,12 @@ shader-prog-destroy void(gl gl-ext, shader-prog GLuint) summon unsafe
 		log-length cell GLint = 0,
 		gl glGetShaderiv shader, GL_INFO_LOG_LENGTH, log-length
 		err-log mut-array GLchar = log-length->to-nat64 uninitialized-mut-array
-		gl glGetShaderInfoLog shader, *log-length, log-length, err-log.begin-ptr
+		gl glGetShaderInfoLog shader, *log-length, log-length, err-log.begin-pointer
 		gl glDeleteShader shader
 		throw "error compiling GLSL {name}: {err-log.to-array as-string}"
 
 .create-shader-from-source GLuint(gl gl-ext, source string, shader-type GLenum) summon unsafe
 	shader = gl glCreateShader shader-type
 	shader-sources array c-string = source.to-c-string,
-	gl glShaderSource shader, shader-sources.size.to-int32, shader-sources.begin-ptr, null
+	gl glShaderSource shader, shader-sources.size.to-int32, shader-sources.begin-pointer, null
 	shader

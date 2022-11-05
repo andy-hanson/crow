@@ -6,7 +6,7 @@ import
 	../misc: is-data, new, void
 	../number: ==, <=>, +, -, nat64
 	../option: !, is-empty, new, option
-	../ptr: ==, +, -, mut-ptr, set-deref
+	../pointer: ==, +, -, mut-pointer, set-deref
 	../range: ..
 	../string: ~~, ==, join, literal, new, string, to-string
 	../test-util: is
@@ -14,7 +14,7 @@ import
 	../tuple: from, new, pair, to
 	./array: array, first, fold, is-empty, new, size, tail
 	./mut-array:
-		begin-ptr, cast-immutable, end-ptr, first, mut-array, set-subscript, size, subscript,
+		begin-pointer, cast-immutable, end-pointer, first, mut-array, set-subscript, size, subscript,
 		tail, uninitialized-mut-array
 	./list: ==, first, for-loop, is-empty, list, list-equal, new, tail, to-array, to-list
 	./sort: set-sort-by, sort-by
@@ -202,9 +202,9 @@ pop<k, v> popped<k, v>?(a priority-queue<k, v>) is-data<k> compare<k>
 
 .do-compact<k, v> node<k, v>(root node<k, v>, n-to-compact nat64, nodes-to-compact node<k, v>?) trusted compare<k>
 	compacted mut-array (k, v) = n-to-compact uninitialized-mut-array
-	mid = compacted.begin-ptr compact-non-singles nodes-to-compact
+	mid = compacted.begin-pointer compact-non-singles nodes-to-compact
 	end = mid compact-singles root
-	assert end == compacted.end-ptr
+	assert end == compacted.end-pointer
 	compacted set-sort-by pair => pair from
 	arr = compacted cast-immutable
 	arr.first!, arr.tail, ()
@@ -254,8 +254,8 @@ fold<a, k, v> a(acc a, a priority-queue<k, v>, f act a(a, k, v)) is-data<k> comp
 
 .each-arr<k, v> mut-array each-part<k, v>(a priority-queue<k, v>) trusted compare<k>
 	res mut-array each-part<k, v> = a.node-count uninitialized-mut-array
-	end = res.begin-ptr fill-each-arr a.root
-	assert end == res.end-ptr
+	end = res.begin-pointer fill-each-arr a.root
+	assert end == res.end-pointer
 	res set-sort-by it => it.min from
 	res
 
@@ -299,13 +299,13 @@ fold<a, k, v> a(acc a, a priority-queue<k, v>, f act a(a, k, v)) is-data<k> comp
 
 filter<k, v> priority-queue<k, v>(a priority-queue<k, v>, f act bool(k, v)) trusted is-data<k> compare<k>
 	out mut-array (k, v) = a.size uninitialized-mut-array
-	end = out.begin-ptr fold a, (cur, k, v) =>
+	end = out.begin-pointer fold a, (cur, k, v) =>
 		if f[k, v]
 			*cur := k, v
 			cur + 1
 		else
 			cur
-	out[0 .. end - out.begin-ptr].cast-immutable.to-list to-priority-queue
+	out[0 .. end - out.begin-pointer].cast-immutable.to-list to-priority-queue
 
 for-loop<k-out, v-out, k-in, v-in> priority-queue<k-out, v-out>(
 	a priority-queue<k-in, v-in>,
@@ -315,10 +315,10 @@ for-loop<k-out, v-out, k-in, v-in> priority-queue<k-out, v-out>(
 
 for-loop<out, k, v> out[](a priority-queue<k, v>, f act out(k, v)) is-data<k> compare<k> trusted
 	out mut-array out = a.size uninitialized-mut-array
-	end = out.begin-ptr fold a, (cur, k, v) =>
+	end = out.begin-pointer fold a, (cur, k, v) =>
 		*cur := f[k, v]
 		cur + 1
-	assert end == out.end-ptr
+	assert end == out.end-pointer
 	out.cast-immutable to-list
 
 keys<k, v> k[](a priority-queue<k, v>) is-data<k> compare<k>

@@ -5,7 +5,7 @@ import
 	../fun-util: subscript
 	../misc: void
 	../number: ==, int32, nat64
-	../ptr: *, ==, mut-ptr, null, set-deref, zeroed
+	../pointer: *, ==, mut-pointer, null, set-deref, zeroed
 	../version: is-interpreted, is-windows
 	./alloc: try-get-cur-gc-ctx
 	./backtrace: get-backtrace

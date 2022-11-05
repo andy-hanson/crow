@@ -1,8 +1,8 @@
 no-std
 import
 	crow/c-types: size_t
-	crow/ptr: any-mut-ptr
+	crow/pointer: any-mut-pointer
 	crow/private/bootstrap: void
 
-malloc any-mut-ptr(size size_t) extern<c>
-free void(p any-mut-ptr) extern<c>
+malloc any-mut-pointer(size size_t) extern<c>
+free void(p any-mut-pointer) extern<c>

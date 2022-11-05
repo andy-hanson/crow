@@ -3,7 +3,7 @@ import
 	crow/c-types: c-int, size_t, long
 	crow/extra-types: err-t
 	crow/private/bootstrap: char8, c-string
-	crow/ptr: const-ptr, mut-ptr
+	crow/pointer: const-pointer, mut-pointer
 
 timespec record by-val extern
 	tv_sec long
@@ -12,7 +12,7 @@ timespec record by-val extern
 new timespec() noctx
 	0, 0
 
-tm extern-ptr
+tm extern-pointer
 
 nanosleep err-t(requested_time timespec*, remaining timespec mut*) extern<c>
 

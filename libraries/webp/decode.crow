@@ -3,7 +3,7 @@ import
 	crow/cell: cell
 	crow/c-types: c-int, size_t
 	crow/number: nat8
-	crow/ptr: const-ptr, mut-ptr
+	crow/pointer: const-pointer, mut-pointer
 
 WebPDecodeRGBA nat8 mut*
 	rgba nat8*

@@ -5,11 +5,13 @@ import
 	crow/bytes-types: bytes2048, new
 	crow/c-types: c-char, c-int, long, u-short, u-int, size_t
 	crow/extra-types: err-t
-	crow/fun-util: fun-ptr1
+	crow/fun-util: fun-pointer1
 	crow/misc: new, void
 	crow/number: int64, max-nat64, nat8, nat16, nat32, nat64, new, to-nat16, to-nat32
 	crow/private/bootstrap: c-string
-	crow/ptr: *, any-const-ptr, any-mut-ptr, const-ptr, mut-ptr, new, ptr-cast, size-of, to-mut-ptr
+	crow/pointer:
+		*, any-const-pointer, any-mut-pointer, const-pointer, mut-pointer, new, pointer-cast,
+		size-of, to-mut-pointer
 	stdio: FILE
 	sys/types: mode_t
 
@@ -88,20 +90,20 @@ ERROR_TIMEOUT DWORD() noctx
 	1460
 
 HANDLE alias
-	any-mut-ptr
+	any-mut-pointer
 
 INVALID_HANDLE_VALUE HANDLE() noctx unsafe
-	max-nat64 to-mut-ptr
+	max-nat64 to-mut-pointer
 
 WaitForSingleObject DWORD(handle HANDLE, milliseconds DWORD) extern<kernel32> summon
 
 CloseHandle bool(a HANDLE) extern<kernel32>
 
 _beginthreadex HANDLE(
-	security any-mut-ptr,
+	security any-mut-pointer,
 	stack_size u-int,
-	start-address fun-ptr1<any-mut-ptr, any-mut-ptr>,
-	arglist any-mut-ptr,
+	start-address fun-pointer1<any-mut-pointer, any-mut-pointer>,
+	arglist any-mut-pointer,
 	initflag u-int,
 	thrdaddr u-int mut*,
 ) extern<c>
@@ -119,10 +121,10 @@ std-handle enum<DWORD> extern
 
 WriteFile bool(
 	hFile HANDLE,
-	lpBuffer any-const-ptr,
+	lpBuffer any-const-pointer,
 	nNumberOfBytesToWrite DWORD,
 	lpNumberOfBytesWritten DWORD mut*,
-	lpOverlapped any-mut-ptr,
+	lpOverlapped any-mut-pointer,
 ) extern<kernel32> summon
 
 WIN32_FIND_DATAA record by-val extern
@@ -141,7 +143,7 @@ new WIN32_FIND_DATAA() noctx
 	(), (), (), (), () , (), (), (), (), ()
 
 cFileName c-char mut*(a WIN32_FIND_DATAA mut*) unsafe
-	(&a->cFileName_STORAGE)::chars-max-path mut* ptr-cast
+	(&a->cFileName_STORAGE)::chars-max-path mut* pointer-cast
 
 FILETIME record by-val extern
 	dwLowDateTime DWORD
@@ -196,12 +198,12 @@ ERROR_NO_MORE_FILES DWORD() noctx
 
 FormatMessageA DWORD(
 	dwFlags DWORD,
-	lpSource any-const-ptr,
+	lpSource any-const-pointer,
 	dwMessageId DWORD,
 	dwLanguageId DWORD,
 	lpBuffer c-char mut*,
 	nSize DWORD,
-	arguments any-mut-ptr,
+	arguments any-mut-pointer,
 ) extern<kernel32> summon
 
 FORMAT_MESSAGE_IGNORE_INSERTS DWORD() noctx
@@ -260,10 +262,10 @@ new STARTUPINFOA(dwFlags startup-flags, hStdInput HANDLE, hStdOutput HANDLE, hSt
 
 SECURITY_ATTRIBUTES record mut by-val extern
 	nLength DWORD
-	lpSecurityDescriptor any-mut-ptr
+	lpSecurityDescriptor any-mut-pointer
 	bInheritHandle c-int
 
-new SECURITY_ATTRIBUTES(lpSecurityDescriptor any-mut-ptr, bInheritHandle bool) unsafe noctx
+new SECURITY_ATTRIBUTES(lpSecurityDescriptor any-mut-pointer, bInheritHandle bool) unsafe noctx
 	# TODO: shouldn't need parens
 	(size-of@<SECURITY_ATTRIBUTES>).to-nat32, lpSecurityDescriptor, bInheritHandle ? 1 : 0
 
@@ -307,7 +309,7 @@ CreateProcessA bool(
 	lpThreadAttributes SECURITY_ATTRIBUTES*,
 	bInheritHandles bool,
 	dwCreationFlags DWORD,
-	lpEnvironment any-mut-ptr,
+	lpEnvironment any-mut-pointer,
 	lpCurrentDirectory c-string,
 	lpStartupInfo STARTUPINFOA*,
 	lpProcessInformation PROCESS_INFORMATION mut*,
@@ -321,7 +323,7 @@ ReadFile bool(
 	nNumberOfBytesToRead nat32,
 	lpNumberOfBytesRead nat32 mut*,
 	# TODO: Overlapped type
-	lpOverlapped any-mut-ptr,
+	lpOverlapped any-mut-pointer,
 ) extern<kernel32> summon
 
 MAKEWORD WORD(a nat8, b nat8) trusted
@@ -346,8 +348,8 @@ GetSystemInfo void(lpSystemInfo SYSTEM_INFO mut*) summon extern<kernel32>
 SYSTEM_INFO record mut by-val extern
 	DUMMYUNIONNAME DWORD
 	dwPageSize DWORD
-	lpMinimumApplicationAddress any-mut-ptr
-	lpMaximumApplicationAddress any-mut-ptr
+	lpMinimumApplicationAddress any-mut-pointer
+	lpMaximumApplicationAddress any-mut-pointer
 	dwActiveProcessorMask int64
 	dwNumberOfProcessors DWORD
 	dwProcessorType DWORD

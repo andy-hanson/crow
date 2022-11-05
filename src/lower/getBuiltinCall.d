@@ -20,16 +20,16 @@ import util.util : debugLog, todo;
 struct BuiltinKind {
 	@safe @nogc pure nothrow:
 
-	struct CallFunPtr {}
+	struct CallFunPointer {}
 	struct InitConstants {}
 	struct OptOr {}
 	struct OptQuestion2 {}
-	struct PtrCast {}
+	struct PointerCast {}
 	struct SizeOf {}
 	struct StaticSymbols {}
 	struct Zeroed {}
 
-	immutable this(immutable CallFunPtr a) { kind_ = Kind.callFunPtr; callFunPtr_ = a; }
+	immutable this(immutable CallFunPointer a) { kind_ = Kind.callFunPointer; callFunPointer_ = a; }
 	@trusted immutable this(immutable Constant a) { kind_ = Kind.constant; constant_ = a; }
 	immutable this(immutable InitConstants a) { kind_ = Kind.initConstants; initConstants_ = a; }
 	immutable this(immutable OptOr a) { kind_ = Kind.optOr; optOr_ = a; }
@@ -37,14 +37,14 @@ struct BuiltinKind {
 	immutable this(immutable LowExprKind.SpecialUnary.Kind a) { kind_ = Kind.unary; unary_ = a; }
 	immutable this(immutable LowExprKind.SpecialBinary.Kind a) { kind_ = Kind.binary; binary_ = a; }
 	immutable this(immutable LowExprKind.SpecialTernary.Kind a) { kind_ = Kind.ternary; ternary_ = a; }
-	immutable this(immutable PtrCast a) { kind_ = Kind.ptrCast; ptrCast_ = a; }
+	immutable this(immutable PointerCast a) { kind_ = Kind.pointerCast; pointerCast_ = a; }
 	immutable this(immutable SizeOf a) { kind_ = Kind.sizeOf; sizeOf_ = a; }
 	immutable this(immutable StaticSymbols a) { kind_ = Kind.staticSymbols; staticSymbols_ = a; }
 	immutable this(immutable Zeroed a) { kind_ = Kind.zeroed; zeroed_ = a; }
 
 	private:
 	enum Kind {
-		callFunPtr,
+		callFunPointer,
 		constant,
 		initConstants,
 		unary,
@@ -52,14 +52,14 @@ struct BuiltinKind {
 		ternary,
 		optOr,
 		optQuestion2,
-		ptrCast,
+		pointerCast,
 		sizeOf,
 		staticSymbols,
 		zeroed,
 	}
 	immutable Kind kind_;
 	union {
-		immutable CallFunPtr callFunPtr_;
+		immutable CallFunPointer callFunPointer_;
 		immutable Constant constant_;
 		immutable InitConstants initConstants_;
 		immutable LowExprKind.SpecialUnary.Kind unary_;
@@ -67,7 +67,7 @@ struct BuiltinKind {
 		immutable LowExprKind.SpecialTernary.Kind ternary_;
 		immutable OptOr optOr_;
 		immutable OptQuestion2 optQuestion2_;
-		immutable PtrCast ptrCast_;
+		immutable PointerCast pointerCast_;
 		immutable SizeOf sizeOf_;
 		immutable StaticSymbols staticSymbols_;
 		immutable Zeroed zeroed_;
@@ -76,7 +76,7 @@ struct BuiltinKind {
 
 @trusted immutable(T) matchBuiltinKind(T)(
 	ref immutable BuiltinKind a,
-	scope immutable(T) delegate(ref immutable BuiltinKind.CallFunPtr) @safe @nogc pure nothrow cbCallFunPtr,
+	scope immutable(T) delegate(ref immutable BuiltinKind.CallFunPointer) @safe @nogc pure nothrow cbCallFunPointer,
 	scope immutable(T) delegate(ref immutable Constant) @safe @nogc pure nothrow cbConstant,
 	scope immutable(T) delegate(ref immutable BuiltinKind.InitConstants) @safe @nogc pure nothrow cbInitConstants,
 	scope immutable(T) delegate(immutable LowExprKind.SpecialUnary.Kind) @safe @nogc pure nothrow cbUnary,
@@ -84,14 +84,14 @@ struct BuiltinKind {
 	scope immutable(T) delegate(immutable LowExprKind.SpecialTernary.Kind) @safe @nogc pure nothrow cbTernary,
 	scope immutable(T) delegate(ref immutable BuiltinKind.OptOr) @safe @nogc pure nothrow cbOptOr,
 	scope immutable(T) delegate(ref immutable BuiltinKind.OptQuestion2) @safe @nogc pure nothrow cbOptQuestion2,
-	scope immutable(T) delegate(ref immutable BuiltinKind.PtrCast) @safe @nogc pure nothrow cbPtrCast,
+	scope immutable(T) delegate(ref immutable BuiltinKind.PointerCast) @safe @nogc pure nothrow cbPointerCast,
 	scope immutable(T) delegate(ref immutable BuiltinKind.SizeOf) @safe @nogc pure nothrow cbSizeOf,
 	scope immutable(T) delegate(ref immutable BuiltinKind.StaticSymbols) @safe @nogc pure nothrow cbStaticSymbols,
 	scope immutable(T) delegate(ref immutable BuiltinKind.Zeroed) @safe @nogc pure nothrow cbZeroed,
 ) {
 	final switch (a.kind_) {
-		case BuiltinKind.Kind.callFunPtr:
-			return cbCallFunPtr(a.callFunPtr_);
+		case BuiltinKind.Kind.callFunPointer:
+			return cbCallFunPointer(a.callFunPointer_);
 		case BuiltinKind.Kind.constant:
 			return cbConstant(a.constant_);
 		case BuiltinKind.Kind.initConstants:
@@ -106,8 +106,8 @@ struct BuiltinKind {
 			return cbOptOr(a.optOr_);
 		case BuiltinKind.Kind.optQuestion2:
 			return cbOptQuestion2(a.optQuestion2_);
-		case BuiltinKind.Kind.ptrCast:
-			return cbPtrCast(a.ptrCast_);
+		case BuiltinKind.Kind.pointerCast:
+			return cbPointerCast(a.pointerCast_);
 		case BuiltinKind.Kind.sizeOf:
 			return cbSizeOf(a.sizeOf_);
 		case BuiltinKind.Kind.staticSymbols:
@@ -261,8 +261,8 @@ immutable(BuiltinKind) getBuiltinKind(
 				: failBinary());
 		case shortSymValue("as-const"):
 		case shortSymValue("as-mut"):
-		case shortSymValue("ptr-cast"):
-			return immutable BuiltinKind(immutable BuiltinKind.PtrCast());
+		case shortSymValue("pointer-cast"):
+			return immutable BuiltinKind(immutable BuiltinKind.PointerCast());
 		case shortSymValue("count-ones"):
 			return unary(isNat64(p0)
 				? LowExprKind.SpecialUnary.Kind.countOnesNat64
@@ -297,7 +297,7 @@ immutable(BuiltinKind) getBuiltinKind(
 			return immutable BuiltinKind(immutable BuiltinKind.SizeOf());
 		case shortSymValue("subscript"):
 			return isFunPtrType(p0)
-				? immutable BuiltinKind(immutable BuiltinKind.CallFunPtr())
+				? immutable BuiltinKind(immutable BuiltinKind.CallFunPointer())
 				: fail();
 		case shortSymValue("to-char8"):
 			return unary(isNat8(p0)
@@ -335,7 +335,7 @@ immutable(BuiltinKind) getBuiltinKind(
 			return unary(isChar(p0)
 				? LowExprKind.SpecialUnary.Kind.toNat8FromChar
 				: failUnary());
-		case shortSymValue("to-mut-ptr"):
+		case specialSymValue(SpecialSym.to_mut_pointer):
 			return unary(isNat64(p0)
 				? LowExprKind.SpecialUnary.Kind.toPtrFromNat64
 				: failUnary());
@@ -427,13 +427,13 @@ immutable(BuiltinKind) getBuiltinKind(
 				: failBinary());
 		case shortSymValue("zeroed"):
 			return immutable BuiltinKind(immutable BuiltinKind.Zeroed());
-		case specialSymValue(SpecialSym.as_any_mut_ptr):
+		case specialSymValue(SpecialSym.as_any_mut_pointer):
 			return unary(LowExprKind.SpecialUnary.Kind.asAnyPtr);
 		case specialSymValue(SpecialSym.init_constants):
 			return immutable BuiltinKind(immutable BuiltinKind.InitConstants());
-		case specialSymValue(SpecialSym.ptr_cast_from_extern):
-		case specialSymValue(SpecialSym.ptr_cast_to_extern):
-			return immutable BuiltinKind(immutable BuiltinKind.PtrCast());
+		case specialSymValue(SpecialSym.pointer_cast_from_extern):
+		case specialSymValue(SpecialSym.pointer_cast_to_extern):
+			return immutable BuiltinKind(immutable BuiltinKind.PointerCast());
 		case specialSymValue(SpecialSym.static_symbols):
 			return immutable BuiltinKind(immutable BuiltinKind.StaticSymbols());
 		case specialSymValue(SpecialSym.truncate_to_int64):

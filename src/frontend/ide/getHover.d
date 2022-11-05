@@ -92,7 +92,7 @@ void getHover(
 					"enum type ",
 				(ref immutable StructBody.Flags) =>
 					"flags type ",
-				(ref immutable StructBody.ExternPtr) =>
+				(ref immutable StructBody.ExternPointer) =>
 					"extern type ",
 				(ref immutable StructBody.Record) =>
 					"record ",

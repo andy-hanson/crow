@@ -1,6 +1,6 @@
 import
-	crow/cell: *, as-const-ptr, as-mut-ptr, cell, new
-	crow/col/private/array-low-level: begin-ptr, subscript
+	crow/cell: *, as-const-pointer, as-mut-pointer, cell, new
+	crow/col/private/array-low-level: begin-pointer, subscript
 	crow/c-types: c-int
 	crow/io/duration: msec
 	crow/io/print: out, print
@@ -10,7 +10,7 @@ import
 	crow/math/trig: pi
 	crow/math/vec: +, -, *, new, right, up, vec2-32, vec3-32
 	crow/private/runtime: cur-thread-id
-	crow/ptr: ==, as-any-const-ptr, to-const-ptr, null, ptr-cast, size-of
+	crow/pointer: ==, as-any-const-pointer, to-const-pointer, null, pointer-cast, size-of
 	OpenGL/gl:
 		glActiveTexture, glBindBuffer, glBindTexture, glBufferData, glBufferSubData, glClear,
 		glClearColor, glCullFace, glDeleteBuffers, glDrawArrays, glEnable,
@@ -55,11 +55,11 @@ main nat^(_ string[]) summon trusted
 
 	wflags = SDL_WINDOW_OPENGL | SDL_WINDOW_SHOWN
 	window = "crube" SDL_CreateWindow SDL_WINDOWPOS_UNDEFINED, SDL_WINDOWPOS_UNDEFINED, 960, 720, wflags
-	if window.as-any-const-ptr == null
+	if window.as-any-const-pointer == null
 		"SDL_CreateWindow" fail-sdl-error
 
 	context = window SDL_GL_CreateContext
-	if context.as-any-const-ptr == null
+	if context.as-any-const-pointer == null
 		"SDL_GL_CreateContext" fail-sdl-error
 
 	gl gl-ext = ()
@@ -79,7 +79,7 @@ main nat^(_ string[]) summon trusted
 	assert tex-sampler-uniform-loc >= 0
 	gl glUniform1i tex-sampler-uniform-loc, 0
 	gl gl-check-error "after glUniform1i"
-	gl glUniformMatrix3fv rotation-uniform-loc, 1, false, I::mat3-32.to-array.begin-ptr
+	gl glUniformMatrix3fv rotation-uniform-loc, 1, false, I::mat3-32.to-array.begin-pointer
 	gl gl-check-error "after set rotation-uniform-loc"
 
 	texture = gl load-texture-from-bmp crow-bmp.to-list
@@ -157,20 +157,21 @@ main nat^(_ string[]) summon trusted
 	gl glUseProgram renderer.shader-prog
 
 	gl glBindBuffer GL_ARRAY_BUFFER, renderer.triangle-vbo
-	gl glBufferSubData GL_ARRAY_BUFFER, 0, renderer.vertices.size-bytes.to-int64, renderer.vertices.begin-ptr.ptr-cast
+	n-vertices = renderer.vertices.size-bytes.to-int64
+	gl glBufferSubData GL_ARRAY_BUFFER, 0, n-vertices, renderer.vertices.begin-pointer.pointer-cast
 	stride = size-of@<vertex> to-int32
 	# pos
-	gl glVertexAttribPointer 0, 3, GL_FLOAT, false, stride, 0.to-const-ptr
+	gl glVertexAttribPointer 0, 3, GL_FLOAT, false, stride, 0.to-const-pointer
 	gl glEnableVertexAttribArray 0
 	# normal
 	# TODO: should not need parentheses
-	gl glVertexAttribPointer 1, 3, GL_FLOAT, false, stride, (size-of@<vec3-32>).to-const-ptr
+	gl glVertexAttribPointer 1, 3, GL_FLOAT, false, stride, (size-of@<vec3-32>).to-const-pointer
 	gl glEnableVertexAttribArray 1
 	# color
-	gl glVertexAttribPointer 2, 3, GL_FLOAT, false, stride, (2 * size-of@<vec3-32>).to-const-ptr
+	gl glVertexAttribPointer 2, 3, GL_FLOAT, false, stride, (2 * size-of@<vec3-32>).to-const-pointer
 	gl glEnableVertexAttribArray 2
 	# tex-coord
-	gl glVertexAttribPointer 3, 2, GL_FLOAT, false, stride, (3 * size-of@<vec3-32>).to-const-ptr
+	gl glVertexAttribPointer 3, 2, GL_FLOAT, false, stride, (3 * size-of@<vec3-32>).to-const-pointer
 	gl glEnableVertexAttribArray 3
 
 	gl glActiveTexture GL_TEXTURE0
@@ -181,8 +182,8 @@ main nat^(_ string[]) summon trusted
 	if look-for-quit-event
 		stop,
 	else
-		key-states-ptr = null SDL_GetKeyboardState
-		key-states = key-states-ptr[0 .. SDL_NUM_SCANCODES.to-nat32.to-nat64]
+		key-states-pointer = null SDL_GetKeyboardState
+		key-states = key-states-pointer[0 .. SDL_NUM_SCANCODES.to-nat32.to-nat64]
 		if key-states[SDL_SCANCODE_RETURN.to-nat32 to-nat64] != 0
 			out print "return is pressed"
 		<- renderer.render-thread-id run-with-thread-id () =>
@@ -195,7 +196,7 @@ main nat^(_ string[]) summon trusted
 
 	t = get-monotime-msec.to-float32 * 0.0003::float32
 	mat mat3-32 = (0.5::float32) * ((1, 2, 3) rotation t)
-	gl glUniformMatrix3fv renderer.rotation-uniform-loc, 1, false, mat.to-array.begin-ptr
+	gl glUniformMatrix3fv renderer.rotation-uniform-loc, 1, false, mat.to-array.begin-pointer
 
 	gl glDrawArrays GL_TRIANGLES, 0, renderer.vertices.size.to-int32
 	gl gl-check-error "after render"
@@ -224,14 +225,14 @@ main nat^(_ string[]) summon trusted
 .vbo-create GLuint(gl gl-ext, vertices array vertex) summon unsafe
 	vbo-cell cell GLuint = 0,
 	n-buffers = 1 to-int32
-	gl glGenBuffers n-buffers, vbo-cell.as-mut-ptr
+	gl glGenBuffers n-buffers, vbo-cell.as-mut-pointer
 	vbo = *vbo-cell
 	gl glBindBuffer GL_ARRAY_BUFFER, vbo
-	gl glBufferData GL_ARRAY_BUFFER, vertices.size-bytes.to-int64, vertices.begin-ptr.ptr-cast, GL_STATIC_DRAW
+	gl glBufferData GL_ARRAY_BUFFER, vertices.size-bytes.to-int64, vertices.begin-pointer.pointer-cast, GL_STATIC_DRAW
 	gl glBindBuffer GL_ARRAY_BUFFER, 0
 	err = gl glGetError
 	unless err == GL_NO_ERROR
-		gl glDeleteBuffers n-buffers, vbo-cell.as-const-ptr
+		gl glDeleteBuffers n-buffers, vbo-cell.as-const-pointer
 		throw "Creating VBO failed: Code {err}"
 	vbo
 

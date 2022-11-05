@@ -2,19 +2,19 @@ no-std
 import
 	../../compare: <=
 	../../number: ==, -, nat64
-	../../ptr: ==, <=>, +, -, const-ptr, ptr-cast, size-of
+	../../pointer: ==, <=>, +, -, const-pointer, pointer-cast, size-of
 	../../private/bootstrap: new
 	../../private/range-low-level: high, low, range
 export
-	../../private/bootstrap: array, begin-ptr, size
+	../../private/bootstrap: array, begin-pointer, size
 
 # Create an array with the given elements.
 new<a> array a(...a array a) noctx
 	a
 
 # Pointer to the end of an array.
-end-ptr<a> a*(a array a) noctx unsafe
-	a.begin-ptr + a.size
+end-pointer<a> a*(a array a) noctx unsafe
+	a.begin-pointer + a.size
 
 ###
 Arr or the range from begin to end.
@@ -30,11 +30,11 @@ array-from-begin-size<a> array a(begin a*, size nat64) unsafe noctx
 
 array-cast<out, in> array out(a array in) no-doc unsafe noctx
 	assert size-of@<out> == size-of@<in>
-	a.size, a.begin-ptr.ptr-cast
+	a.size, a.begin-pointer.pointer-cast
 
 # Create an array from a range of pointers.
 subscript<a> array a(a a*, r range nat64) noctx unsafe
 	r.high - r.low, a + r.low
 
 unsafe-slice<a> array a(a array a, begin nat64, end nat64) no-doc unsafe noctx
-	a.begin-ptr + begin array-from-begin-end a.begin-ptr + end
+	a.begin-pointer + begin array-from-begin-end a.begin-pointer + end

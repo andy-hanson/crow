@@ -35,7 +35,7 @@ In the future, parallel-safe collections may be included here.
 ###
 is-sendable<a> builtin-spec
 
-## TODO: extern<a> builtin-spec for extern ptr types
+## TODO: extern<a> builtin-spec for extern-pointer types
 
 region option.crow
 
@@ -60,7 +60,7 @@ result<ok, err> union
 	ok ok
 	err err
 
-region ptr.crow
+region pointer.crow
 
 ###
 Avoid using this; this may change in a future version.
@@ -82,16 +82,16 @@ If `a` is a reference type, `a*` is a pointer to a pointer.
 This is a read-only reference, is the pointee is not immutable;
 it could be modified if there are other references to it.
 ###
-const-ptr<a> builtin extern
+const-pointer<a> builtin extern
 
 ###
-This is like `const-ptr` but supports writing to the contents.
+This is like `const-pointer` but supports writing to the contents.
 ###
-mut-ptr<a> builtin mut extern
+mut-pointer<a> builtin mut extern
 
-any-const-ptr alias
+any-const-pointer alias
 	nat8*
-any-mut-ptr alias
+any-mut-pointer alias
 	nat8 mut*
 
 region arr
@@ -109,7 +109,7 @@ elements not reachable by any slice will be garbage collected.
 ###
 array<a> record by-val
 	size nat64
-	begin-ptr a*
+	begin-pointer a*
 
 region string
 
@@ -284,16 +284,16 @@ These aren't used much in crow code.
 
 Create a function pointer by writing `&foo` where `foo` is the name of a function in scope.
 ###
-fun-ptr0<r> builtin extern
-fun-ptr1<r, p0> builtin extern
-fun-ptr2<r, p0, p1> builtin extern
-fun-ptr3<r, p0, p1, p2> builtin extern
-fun-ptr4<r, p0, p1, p2, p3> builtin extern
-fun-ptr5<r, p0, p1, p2, p3, p4> builtin extern
-fun-ptr6<r, p0, p1, p2, p3, p4, p5> builtin extern
-fun-ptr7<r, p0, p1, p2, p3, p4, p5, p6> builtin extern
-fun-ptr8<r, p0, p1, p2, p3, p4, p5, p6, p7> builtin extern
-fun-ptr9<r, p0, p1, p2, p3, p4, p5, p6, p7, p8> builtin extern
+fun-pointer0<r> builtin extern
+fun-pointer1<r, p0> builtin extern
+fun-pointer2<r, p0, p1> builtin extern
+fun-pointer3<r, p0, p1, p2> builtin extern
+fun-pointer4<r, p0, p1, p2, p3> builtin extern
+fun-pointer5<r, p0, p1, p2, p3, p4> builtin extern
+fun-pointer6<r, p0, p1, p2, p3, p4, p5> builtin extern
+fun-pointer7<r, p0, p1, p2, p3, p4, p5, p6> builtin extern
+fun-pointer8<r, p0, p1, p2, p3, p4, p5, p6, p7> builtin extern
+fun-pointer9<r, p0, p1, p2, p3, p4, p5, p6, p7, p8> builtin extern
 
 ###
 Non-mutating function type.
@@ -346,14 +346,27 @@ fun-ref4<r, p0, p1, p2, p3> record force-sendable by-val
 `f[x]` calls the function and returns its return value.
 `f[]` calls a function with no arguments and `f[x, y, z]` calls a function with 3 arguments.
 ###
-subscript<r> r(a fun-ptr0 r) noctx builtin
-subscript<r, p0> r(a fun-ptr1<r, p0>, p0 p0) noctx builtin
-subscript<r, p0, p1> r(a fun-ptr2<r, p0, p1>, p0 p0, p1 p1) noctx builtin
-subscript<r, p0, p1, p2> r(a fun-ptr3<r, p0, p1, p2>, p0 p0, p1 p1, p2 p2) noctx builtin
-subscript<r, p0, p1, p2, p3> r(a fun-ptr4<r, p0, p1, p2, p3>, p0 p0, p1 p1, p2 p2, p3 p3) noctx builtin
-subscript<r, p0, p1, p2, p3, p4> r(a fun-ptr5<r, p0, p1, p2, p3, p4>, p0 p0, p1 p1, p2 p2, p3 p3, p4 p4) noctx builtin
+subscript<r> r(a fun-pointer0 r) noctx builtin
+subscript<r, p0> r(a fun-pointer1<r, p0>, p0 p0) noctx builtin
+subscript<r, p0, p1> r(a fun-pointer2<r, p0, p1>, p0 p0, p1 p1) noctx builtin
+subscript<r, p0, p1, p2> r(a fun-pointer3<r, p0, p1, p2>, p0 p0, p1 p1, p2 p2) noctx builtin
+subscript<r, p0, p1, p2, p3> r(
+	a fun-pointer4<r, p0, p1, p2, p3>,
+	p0 p0,
+	p1 p1,
+	p2 p2,
+	p3 p3,
+) noctx builtin
+subscript<r, p0, p1, p2, p3, p4> r(
+	a fun-pointer5<r, p0, p1, p2, p3, p4>,
+	p0 p0,
+	p1 p1,
+	p2 p2,
+	p3 p3,
+	p4 p4,
+) noctx builtin
 subscript<r, p0, p1, p2, p3, p4, p5> r(
-	a fun-ptr6<r, p0, p1, p2, p3, p4, p5>,
+	a fun-pointer6<r, p0, p1, p2, p3, p4, p5>,
 	p0 p0,
 	p1 p1,
 	p2 p2,
@@ -362,7 +375,7 @@ subscript<r, p0, p1, p2, p3, p4, p5> r(
 	p5 p5,
 ) noctx builtin
 subscript<r, p0, p1, p2, p3, p4, p5, p6> r(
-	a fun-ptr7<r, p0, p1, p2, p3, p4, p5, p6>,
+	a fun-pointer7<r, p0, p1, p2, p3, p4, p5, p6>,
 	p0 p0,
 	p1 p1,
 	p2 p2,
@@ -372,7 +385,7 @@ subscript<r, p0, p1, p2, p3, p4, p5, p6> r(
 	p6 p6,
 ) noctx builtin
 subscript<r, p0, p1, p2, p3, p4, p5, p6, p7> r(
-	a fun-ptr8<r, p0, p1, p2, p3, p4, p5, p6, p7>,
+	a fun-pointer8<r, p0, p1, p2, p3, p4, p5, p6, p7>,
 	p0 p0,
 	p1 p1,
 	p2 p2,
@@ -383,7 +396,7 @@ subscript<r, p0, p1, p2, p3, p4, p5, p6, p7> r(
 	p7 p7,
 ) noctx builtin
 subscript<r, p0, p1, p2, p3, p4, p5, p6, p7, p8> r(
-	a fun-ptr9<r, p0, p1, p2, p3, p4, p5, p6, p7, p8>,
+	a fun-pointer9<r, p0, p1, p2, p3, p4, p5, p6, p7, p8>,
 	p0 p0,
 	p1 p1,
 	p2 p2,

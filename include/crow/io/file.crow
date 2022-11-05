@@ -16,12 +16,12 @@ import
 	../bits: &, |, <<
 	../bytes-types: new
 	../bool: !, ||, bool, false, new, to-nat64, true
-	../cell: *, as-mut-ptr, cell, new
+	../cell: *, as-mut-pointer, cell, new
 	../col/array: array, size, subscript
-	../col/mut-array: cast-immutable, begin-ptr, mut-array, size, uninitialized-mut-array
+	../col/mut-array: cast-immutable, begin-pointer, mut-array, size, uninitialized-mut-array
 	../col/list: for-loop, list, new, to-array, to-list
 	../col/mut-list: ~=, move-to-list, mut-list, new
-	../col/private/array-low-level: begin-ptr
+	../col/private/array-low-level: begin-pointer
 	../col/sort: sort
 	../compare: !=
 	../exception: finally, with-block
@@ -31,9 +31,9 @@ import
 	../number: ==, <=>, +, nat8, nat16, to-nat32, to-nat64
 	../option: is-empty, new, option
 	../private/bootstrap: todo
-	../ptr:
-		==, +, any-const-ptr, as-any-const-ptr, as-const, const-ptr, mut-ptr, null, ptr-cast,
-		ptr-cast-from-extern, ref-eq, size-of
+	../pointer:
+		==, +, any-const-pointer, as-any-const-pointer, as-const, const-pointer, mut-pointer, null, pointer-cast,
+		pointer-cast-from-extern, ref-eq, size-of
 	../range: ..
 	../string: ==, <=>, ~~, as-string, char8, c-string, literal, string, to-bytes, to-c-string, to-string
 	../version: is-windows
@@ -107,8 +107,8 @@ is-file bool(path string) trusted summon
 .get-dirent-name string(d dirent) unsafe
 	# TODO: this is offsetof(d, d_name)
 	name-offset = size-of@<ino_t> + size-of@<off_t> + size-of@<nat16> + size-of@<char8>
-	name-ptr char8* = d.as-any-const-ptr + name-offset ptr-cast
-	name-ptr to-string
+	name-pointer char8* = d.as-any-const-pointer + name-offset pointer-cast
+	name-pointer to-string
 
 ###
 Returns all children of the directory `path`, as full paths.
@@ -130,7 +130,7 @@ names-in-dir string[](path string) summon trusted
 	if is-windows
 		path-search = "{path}\\*" to-c-string
 		file-data cell WIN32_FIND_DATAA = (),
-		file = path-search FindFirstFileA file-data.as-mut-ptr
+		file = path-search FindFirstFileA file-data.as-mut-pointer
 		if file == INVALID_HANDLE_VALUE
 			throw "failed to open dir {path}"
 		else
@@ -141,16 +141,16 @@ names-in-dir string[](path string) summon trusted
 			res.move-to-list sort
 	else
 		dirp = path opendir
-		forbid dirp.ptr-cast-from-extern::any-const-ptr mut* == null : "failed to open dir {path}"
+		forbid dirp.pointer-cast-from-extern::any-const-pointer mut* == null : "failed to open dir {path}"
 		res string mut[] = ()
 		res names-in-dir-recur dirp
 		res.move-to-list sort
 
 .names-in-dir-recur void(out string mut[], dir-path c-string, file HANDLE) unsafe summon
 	file-data cell WIN32_FIND_DATAA = (),
-	ok = file FindNextFileA file-data.as-mut-ptr
+	ok = file FindNextFileA file-data.as-mut-pointer
 	if ok
-		s = file-data.as-mut-ptr.cFileName.as-const to-string
+		s = file-data.as-mut-pointer.cFileName.as-const to-string
 		if s != ".."
 			out ~= s
 		out names-in-dir-recur dir-path, file
@@ -165,7 +165,7 @@ names-in-dir string[](path string) summon trusted
 	err = dirp readdir_r entry, result
 	# TODO: handle error
 	assert err == 0
-	unless result->as-any-const-ptr == null
+	unless result->as-any-const-pointer == null
 		assert *result ref-eq entry
 		name = entry get-dirent-name
 		unless name == "." || name == ".."
@@ -176,7 +176,7 @@ names-in-dir string[](path string) summon trusted
 read-link string(path string) summon trusted
 	# TODO: smart small and retry if necessAry
 	buff mut-array char8 = 1000 uninitialized-mut-array
-	size = path.to-c-string readlink buff.begin-ptr, buff.size
+	size = path.to-c-string readlink buff.begin-pointer, buff.size
 	if size == -1
 		check-errno
 	buff.cast-immutable[0 .. size.to-nat64] as-string
@@ -222,12 +222,12 @@ write-file void(path string, content string) summon trusted
 
 .write-file void(path c-string, content string) summon unsafe
 	fd = path fopen "wb"
-	forbid fd.as-any-const-ptr == null : "failed to open file for write: {path}"
+	forbid fd.as-any-const-pointer == null : "failed to open file for write: {path}"
 	with : (() => fd close-fd path) finally
 		fd write-fd path, content.to-bytes.to-array
 
 .write-fd void(fd FILE, path c-string, bytes array nat8) summon unsafe
-	wrote-bytes = bytes.begin-ptr fwrite size-of@<nat8>, bytes.size, fd
+	wrote-bytes = bytes.begin-pointer fwrite size-of@<nat8>, bytes.size, fd
 	assert wrote-bytes == bytes.size : "error writing file {path}"
 
 ###
@@ -245,7 +245,7 @@ try-read-file-binary nat8[]?(path string) summon trusted
 .try-read-file-binary nat8[]?(path c-string) summon trusted
 	if path is-file
 		fd = path fopen "rb"
-		if fd.as-any-const-ptr == null
+		if fd.as-any-const-pointer == null
 			unless errno == ENOENT
 				err print "failed to open file {path}"
 				todo
@@ -271,7 +271,7 @@ try-read-file-binary nat8[]?(path string) summon trusted
 		# TODO: allocation can fail, then 'fd' is left open. Need finalizers
 		file-size-nat = file-size to-nat64
 		res mut-array nat8 = file-size-nat uninitialized-mut-array
-		n-bytes-read = res.begin-ptr.ptr-cast fread size-of@<nat8>, file-size-nat, fd
+		n-bytes-read = res.begin-pointer.pointer-cast fread size-of@<nat8>, file-size-nat, fd
 		assert n-bytes-read == file-size-nat
 		forbid fd ferror : "Error reading {path}"
 		res.cast-immutable to-list
@@ -283,11 +283,11 @@ try-read-file-binary nat8[]?(path string) summon trusted
 # Gets the current directory (of the user that ran the program).
 current-directory string() summon trusted
 	buff mut-array char8 = 256 uninitialized-mut-array
-	b = is-windows ? buff.begin-ptr _getcwd buff.size : buff.begin-ptr getcwd buff.size
+	b = is-windows ? buff.begin-pointer _getcwd buff.size : buff.begin-pointer getcwd buff.size
 	if b == null
 		todo
 	else
-		assert b == buff.begin-ptr
+		assert b == buff.begin-pointer
 		b.as-const to-string
 
 ###

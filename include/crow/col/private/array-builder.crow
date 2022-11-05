@@ -5,9 +5,9 @@ import
 	../../number: ==, +, *
 	../../private/alloc: alloc-uninitialized, copy-data-from
 	../../private/number-low-level: round-up-to-power-of-two
-	../../ptr: ==, <=>, +, -, as-const, mut-ptr, null, set-deref
+	../../pointer: ==, <=>, +, -, as-const, mut-pointer, null, set-deref
 	../array: array, size
-	./array-low-level: array-from-begin-end, begin-ptr
+	./array-low-level: array-from-begin-end, begin-pointer
 
 array-builder<a> record mut
 	.begin mut a mut*
@@ -46,5 +46,5 @@ finish<a> array a(a array-builder a) noctx trusted
 		a.begin := new-begin
 		a.cur := new-begin + cur-size
 		a.end := new-begin + new-capacity
-	a.cur copy-data-from values.begin-ptr, values.size
+	a.cur copy-data-from values.begin-pointer, values.size
 	a.cur := a.cur + values.size

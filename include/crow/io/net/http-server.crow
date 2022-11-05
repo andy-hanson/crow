@@ -9,7 +9,7 @@ import
 	../../col/list: ~~, is-empty, rtail, size, subscript, to-array
 	../../col/mut-dict: move-to-dict, mut-dict, new, try-remove, set-subscript, subscript
 	../../col/mut-list: ~~=, index-of, move-to-list, mut-list, new, pop-n-from-start, size
-	../../col/private/array-low-level: begin-ptr
+	../../col/private/array-low-level: begin-pointer
 	../../compare: <=, >
 	../../exception: to-string
 	../../future: delay, future, future-catch, future-finally, new, subscript, then, with-block
@@ -95,7 +95,7 @@ with-block<a> a^(a http-server-options, cb ref a(http-server)) is-sendable<a> tr
 
 .write-until-finished void^(sock SOCKET, content array nat8) summon trusted
 	unless content is-empty
-		wrote = sock.as-fd write content.begin-ptr, content.size
+		wrote = sock.as-fd write content.begin-pointer, content.size
 		unless wrote == content.size.to-int64
 			if wrote == -1
 				err = errno

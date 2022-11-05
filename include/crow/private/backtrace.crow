@@ -14,8 +14,8 @@ import
 	../misc: new, void
 	../option: new, option
 	../private/number-low-level: ==, <=>, nat8, nat32, nat64, unsafe-to-nat32, wrap-add, wrap-sub
-	../ptr:
-		==, +, *, as-any-const-ptr, as-const, by-val, mut-ptr, null, ptr-cast, set-deref, size-of
+	../pointer:
+		==, +, *, as-any-const-pointer, as-const, by-val, mut-pointer, null, pointer-cast, set-deref, size-of
 	../version: is-interpreted, is-windows
 	./alloc: copy-data-from, gc-ctx, try-alloc-uninitialized
 	./bootstrap: char8, c-string, hard-assert
@@ -109,7 +109,7 @@ Result entries are temporary, must copy!
 			symbol-max-name-length = 255
 			symbol-size = size-of@<IMAGEHLP_SYMBOL64> wrap-add symbol-max-name-length wrap-add 1
 			if symbol-buffer ?= (gc try-alloc-uninitialized symbol-size) :: nat8 mut*?
-				symbol IMAGEHLP_SYMBOL64 mut* = symbol-buffer ptr-cast
+				symbol IMAGEHLP_SYMBOL64 mut* = symbol-buffer pointer-cast
 				*symbol := symbol-max-name-length.unsafe-to-nat32,
 				if line ?= gc.try-alloc-uninitialized :: IMAGEHLP_LINE64 mut*?
 					*line := ()
@@ -126,7 +126,7 @@ Result entries are temporary, must copy!
 	frame STACKFRAME64 mut*,
 	vars windows-backtrace-vars,
 ) noctx unsafe
-	ctx = context as-any-const-ptr
+	ctx = context as-any-const-pointer
 	if out == out-end
 		out
 	elif IMAGE_FILE_MACHINE_AMD64 StackWalk64 process, thread, frame, ctx, null, &SymFunctionTableAccess64, null, null

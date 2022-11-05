@@ -2,7 +2,7 @@ no-std
 import
 	crow/c-types: c-int, u-int
 	crow/misc: void
-	crow/ptr: const-ptr
+	crow/pointer: const-pointer
 	./SDL_rect: SDL_Rect
 	./SDL_surface: SDL_Surface
 	./SDL_video: SDL_Window
@@ -31,7 +31,7 @@ SDL_RenderCopy c-int(
 	dest-rect SDL_Rect*,
 ) extern<SDL2> summon
 
-SDL_Renderer extern-ptr
+SDL_Renderer extern-pointer
 
 SDL_RendererFlags flags<u-int> extern
 	SDL_RENDERER_SOFTWARE = 1
@@ -41,4 +41,4 @@ SDL_RendererFlags flags<u-int> extern
 
 SDL_RenderPresent void(renderer SDL_Renderer) extern<SDL2> summon
 
-SDL_Texture extern-ptr
+SDL_Texture extern-pointer

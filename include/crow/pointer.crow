@@ -7,13 +7,13 @@ import
 	./bool: bool
 	./compare: comparison, less, equal, greater
 	./fun-util:
-		fun-ptr0, fun-ptr1, fun-ptr2, fun-ptr3, fun-ptr4, fun-ptr5, fun-ptr6, fun-ptr7, fun-ptr8,
-		fun-ptr9
+		fun-pointer0, fun-pointer1, fun-pointer2, fun-pointer3, fun-pointer4, fun-pointer5,
+		fun-pointer6, fun-pointer7, fun-pointer8, fun-pointer9
 	./misc: void
 	./number: /, nat64
 	./private/number-low-level: wrap-sub
 export
-	./private/bootstrap: any-const-ptr, any-mut-ptr, by-val, const-ptr, mut-ptr, zeroed
+	./private/bootstrap: any-const-pointer, any-mut-pointer, by-val, const-pointer, mut-pointer, zeroed
 
 # Treats a mutable pointer as constant.
 as-const<a> a*(a a mut*) noctx builtin
@@ -27,18 +27,18 @@ as-mut<a> a mut*(a a*) noctx unsafe builtin
 null<a> a*() noctx unsafe
 	null.as-const
 null<a> a mut*() noctx unsafe builtin
-null<r> fun-ptr0<r>() noctx unsafe
-	null as-fun-ptr
-null<r, p0> fun-ptr1<r, p0>() noctx unsafe
-	null as-fun-ptr
-null<r, p0, p1> fun-ptr2<r, p0, p1>() noctx unsafe
-	null as-fun-ptr
-null<r, p0, p1, p2> fun-ptr3<r, p0, p1, p2>() noctx unsafe
-	null as-fun-ptr
-null<r, p0, p1, p2, p3> fun-ptr4<r, p0, p1, p2, p3>() noctx unsafe
-	null as-fun-ptr
-null<r, p0, p1, p2, p3, p4> fun-ptr5<r, p0, p1, p2, p3, p4>() noctx unsafe
-	null as-fun-ptr
+null<r> fun-pointer0<r>() noctx unsafe
+	null as-fun-pointer
+null<r, p0> fun-pointer1<r, p0>() noctx unsafe
+	null as-fun-pointer
+null<r, p0, p1> fun-pointer2<r, p0, p1>() noctx unsafe
+	null as-fun-pointer
+null<r, p0, p1, p2> fun-pointer3<r, p0, p1, p2>() noctx unsafe
+	null as-fun-pointer
+null<r, p0, p1, p2, p3> fun-pointer4<r, p0, p1, p2, p3>() noctx unsafe
+	null as-fun-pointer
+null<r, p0, p1, p2, p3, p4> fun-pointer5<r, p0, p1, p2, p3, p4>() noctx unsafe
+	null as-fun-pointer
 
 # Same as `null`.
 new<a> a*() noctx unsafe
@@ -125,20 +125,20 @@ Change the type of the pointee. This is like a pointer cast `(out*) a` in C.
 
 At a low level, this is just an identity function; it just changes the type.
 ###
-ptr-cast<out, in> out*(a in*) noctx unsafe
-	a.as-mut.ptr-cast as-const
-ptr-cast<out, in> out mut*(a in mut*) noctx unsafe builtin
+pointer-cast<out, in> out*(a in*) noctx unsafe
+	a.as-mut.pointer-cast as-const
+pointer-cast<out, in> out mut*(a in mut*) noctx unsafe builtin
 
 ref-cast<out, in> out(a in) no-doc noctx unsafe
-	a.as-any-mut-ptr as-ref
+	a.as-any-mut-pointer as-ref
 
 # Raw address of a pointer.
 to-nat64<a> nat64(a a*) noctx unsafe builtin
 to-nat64<a> nat64(a a mut*) noctx unsafe builtin
 # Get a pointer from a raw address.
-to-const-ptr<a> a*(a nat64) noctx unsafe
-	a.to-mut-ptr as-const
-to-mut-ptr<a> a mut*(a nat64) noctx unsafe builtin
+to-const-pointer<a> a*(a nat64) noctx unsafe
+	a.to-mut-pointer as-const
+to-mut-pointer<a> a mut*(a nat64) noctx unsafe builtin
 
 # Swap the pointees. Does not change the pointers theirselves.
 swap<a> void(a a mut*, b a mut*) noctx unsafe
@@ -147,48 +147,56 @@ swap<a> void(a a mut*, b a mut*) noctx unsafe
 	*b := temp
 
 # Maximum pointer value.
-max-ptr<a> a*() noctx unsafe
-	max-ptr as-const
-max-ptr<a> a mut*() noctx unsafe
+max-pointer<a> a*() noctx unsafe
+	max-pointer as-const
+max-pointer<a> a mut*() noctx unsafe
 	null + 0xffffffffffffffff
 
 region Conversion between pointers and pointer-like types
 
 # TODO: this function only works for by-ref types -- currently that is not checked by the type checker
-# Convert a reference to `any-ptr`.
-as-any-const-ptr<a> any-const-ptr(reference a) no-doc noctx unsafe
-	reference.as-any-mut-ptr.as-const
-# TODO: this could just use ptr-cast? Doesn't need to be builtin?
-as-any-mut-ptr<a> any-mut-ptr(reference a) no-doc noctx unsafe builtin
+# Convert a reference to `any-pointer`.
+as-any-const-pointer<a> any-const-pointer(reference a) no-doc noctx unsafe
+	reference.as-any-mut-pointer.as-const
+# TODO: this could just use pointer-cast? Doesn't need to be builtin?
+as-any-mut-pointer<a> any-mut-pointer(reference a) no-doc noctx unsafe builtin
 # TODO: this function only works for by-ref types -- currently that is not checked by the type checker
-as-ref<a> a(a any-const-ptr) no-doc noctx unsafe
+as-ref<a> a(a any-const-pointer) no-doc noctx unsafe
 	a.as-mut as-ref
 ###
 Convert a pointer to a reference of the chosen type.
 UB if a value of that type was not stored at the pointer.
 ###
-as-ref<a> a(a any-mut-ptr) no-doc noctx unsafe builtin
+as-ref<a> a(a any-mut-pointer) no-doc noctx unsafe builtin
 
-as-fun-ptr<r> fun-ptr0<r>(a any-const-ptr) noctx unsafe
+as-fun-pointer<r> fun-pointer0<r>(a any-const-pointer) noctx unsafe
 	a as-ref
-as-fun-ptr<r, p0> fun-ptr1<r, p0>(a any-const-ptr) noctx unsafe
+as-fun-pointer<r, p0> fun-pointer1<r, p0>(a any-const-pointer) noctx unsafe
 	a as-ref
-as-fun-ptr<r, p0, p1> fun-ptr2<r, p0, p1>(a any-const-ptr) noctx unsafe
+as-fun-pointer<r, p0, p1> fun-pointer2<r, p0, p1>(a any-const-pointer) noctx unsafe
 	a as-ref
-as-fun-ptr<r, p0, p1, p2> fun-ptr3<r, p0, p1, p2>(a any-const-ptr) noctx unsafe
+as-fun-pointer<r, p0, p1, p2> fun-pointer3<r, p0, p1, p2>(a any-const-pointer) noctx unsafe
 	a as-ref
-as-fun-ptr<r, p0, p1, p2, p3> fun-ptr4<r, p0, p1, p2, p3>(a any-const-ptr) noctx unsafe
+as-fun-pointer<r, p0, p1, p2, p3> fun-pointer4<r, p0, p1, p2, p3>(a any-const-pointer) noctx unsafe
 	a as-ref
-as-fun-ptr<r, p0, p1, p2, p3, p4> fun-ptr5<r, p0, p1, p2, p3, p4>(a any-const-ptr) noctx unsafe
+as-fun-pointer<r, p0, p1, p2, p3, p4> fun-pointer5<r, p0, p1, p2, p3, p4>(
+	a any-const-pointer,
+) noctx unsafe
 	a as-ref
-as-fun-ptr<r, p0, p1, p2, p3, p4, p5> fun-ptr6<r, p0, p1, p2, p3, p4, p5>(a any-const-ptr) noctx unsafe
+as-fun-pointer<r, p0, p1, p2, p3, p4, p5> fun-pointer6<r, p0, p1, p2, p3, p4, p5>(
+	a any-const-pointer,
+) noctx unsafe
 	a as-ref
-as-fun-ptr<r, p0, p1, p2, p3, p4, p5, p6> fun-ptr7<r, p0, p1, p2, p3, p4, p5, p6>(a any-const-ptr) noctx unsafe
+as-fun-pointer<r, p0, p1, p2, p3, p4, p5, p6> fun-pointer7<r, p0, p1, p2, p3, p4, p5, p6>(
+	a any-const-pointer,
+) noctx unsafe
 	a as-ref
-as-fun-ptr<r, p0, p1, p2, p3, p4, p5, p6, p7> fun-ptr8<r, p0, p1, p2, p3, p4, p5, p6, p7>(a any-const-ptr) noctx unsafe
+as-fun-pointer<r, p0, p1, p2, p3, p4, p5, p6, p7> fun-pointer8<r, p0, p1, p2, p3, p4, p5, p6, p7>(
+	a any-const-pointer,
+) noctx unsafe
 	a as-ref
-as-fun-ptr<r, p0, p1, p2, p3, p4, p5, p6, p7, p8> fun-ptr9<r, p0, p1, p2, p3, p4, p5, p6, p7, p8>(
-	a any-const-ptr,
+as-fun-pointer<r, p0, p1, p2, p3, p4, p5, p6, p7, p8> fun-pointer9<r, p0, p1, p2, p3, p4, p5, p6, p7, p8>(
+	a any-const-pointer,
 ) noctx unsafe
 	a as-ref
 
@@ -197,18 +205,18 @@ True if two references have the same pointer.
 Contrast with `a == b` which can also e true for different pointers with equal contents.
 ###
 ref-eq<a> bool(a a, b a) no-doc noctx unsafe
-	a.as-any-const-ptr == b.as-any-const-ptr
+	a.as-any-const-pointer == b.as-any-const-pointer
 
-# TODO: require that out be an extern-ptr type
+# TODO: require that out be an extern-pointer type
 ###
-Convert a pointer to an `extern-ptr` type.
+Convert a pointer to an `extern-pointer` type.
 Does nothing at runtime, just changes the type.
 ###
-ptr-cast-to-extern<out, in> out(p in mut*) no-doc noctx unsafe builtin
+pointer-cast-to-extern<out, in> out(p in mut*) no-doc noctx unsafe builtin
 
-# TODO: require that in be an extern-ptr type
+# TODO: require that in be an extern-pointer type
 ###
-Convert an extern-ptr to another pointer.
+Convert an extern-pointer to another pointer.
 Does nothing at runtime, just changes the type.
 ###
-ptr-cast-from-extern<out, in> out mut*(p in) no-doc noctx unsafe builtin
+pointer-cast-from-extern<out, in> out mut*(p in) no-doc noctx unsafe builtin

@@ -1,6 +1,6 @@
 import
-	crow/col/private/array-low-level: begin-ptr
-	crow/ptr: mut-ptr
+	crow/col/private/array-low-level: begin-pointer
+	crow/pointer: mut-pointer
 	SDL2/SDL_pixels: SDL_PIXELFORMAT_RGBA32
 	SDL2/SDL_rwops: SDL_RWFromConstMem
 	SDL2/SDL_surface: h, pixels, SDL_ConvertSurfaceFormat, SDL_LoadBMP_RW, SDL_FreeSurface, w
@@ -12,7 +12,7 @@ rgba-image record mut
 
 with-bmp<a> a(src nat8[], cb act a(rgba-image)) unsafe summon
 	src-array = src to-array
-	surface = src-array.begin-ptr SDL_RWFromConstMem src-array.size.to-int32 SDL_LoadBMP_RW 0
+	surface = src-array.begin-pointer SDL_RWFromConstMem src-array.size.to-int32 SDL_LoadBMP_RW 0
 	converted = surface SDL_ConvertSurfaceFormat SDL_PIXELFORMAT_RGBA32, 0
 	surface SDL_FreeSurface
 	image rgba-image = converted.pixels, converted.w.to-nat64, converted.h.to-nat64

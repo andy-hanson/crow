@@ -1,22 +1,22 @@
 import
 	crow/col/iter: again, again-or-stop
 	crow/c-types: c-int
-	crow/ptr:
-		*, any-mut-ptr, as-any-mut-ptr, as-const, const-ptr, null, ptr-cast, ptr-cast-to-extern,
+	crow/pointer:
+		*, any-mut-pointer, as-any-mut-pointer, as-const, const-pointer, null, pointer-cast, pointer-cast-to-extern,
 		subscript
 	./headers:
-		==, |, enum-members, sqlite3-ptr, sqlite3_close, sqlite3_exec, sqlite3_free, SQLITE_OK,
+		==, |, enum-members, sqlite3-pointer, sqlite3_close, sqlite3_exec, sqlite3_free, SQLITE_OK,
 		SQLITE_OPEN_CREATE, SQLITE_OPEN_READWRITE, sqlite3_open_v2
 
 sqlite3 record force-sendable
-	raw sqlite3-ptr
+	raw sqlite3-pointer
 
 .open-sqlite3 record
 	db-path string
 open-sqlite3 open-sqlite3(db-path string)
 	db-path,
 with-block<a> a^(a open-sqlite3, cb ref a(sqlite3)) summon trusted is-sendable<a>
-	db mut sqlite3-ptr = null::any-mut-ptr.ptr-cast-to-extern
+	db mut sqlite3-pointer = null::any-mut-pointer.pointer-cast-to-extern
 	# Create empty file if not exist
 
 
@@ -43,18 +43,18 @@ cb takes column names and values for a single row.
 run void(db sqlite3, command string, cb-row act again-or-stop(string[], string[])) summon trusted
 	error-message mut c-string = null
 	ctx callback-ctx = cb-row,
-	err = db.raw sqlite3_exec command.to-c-string, &callback, (&ctx)::callback-ctx*.as-any-mut-ptr, &error-message
+	err = db.raw sqlite3_exec command.to-c-string, &callback, (&ctx)::callback-ctx*.as-any-mut-pointer, &error-message
 	# TODO: if err == SQLITE_ABORT, callback returned non-0
 	if err != SQLITE_OK
 		error-string = error-message to-string
-		error-message.as-any-mut-ptr sqlite3_free
+		error-message.as-any-mut-pointer sqlite3_free
 		throw "ERROR {err.enum-to-string}: {error-string}"
 
 .callback-ctx record by-val mut
 	cb-row act again-or-stop(string[], string[])
 
-.callback c-int(ctx-ptr any-mut-ptr, argc c-int, argv c-string*, col-name c-string*) summon unsafe
-	ctx callback-ctx = *(ctx-ptr.as-const.ptr-cast::callback-ctx*)
+.callback c-int(ctx-pointer any-mut-pointer, argc c-int, argv c-string*, col-name c-string*) summon unsafe
+	ctx callback-ctx = *(ctx-pointer.as-const.pointer-cast::callback-ctx*)
 	column-names string[] = for i : 0 .. argc.to-nat64
 		col-name[i] to-string
 	values string[] = for i : 0 .. argc.to-nat64

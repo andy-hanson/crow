@@ -1,6 +1,6 @@
 import
 	crow/io/print: out, print
-	crow/ptr: *, mut-ptr, set-deref
+	crow/pointer: *, mut-pointer, set-deref
 
 main nat^(_ string[]) summon unsafe
 	results <- for x : 0 .. 100 parallel

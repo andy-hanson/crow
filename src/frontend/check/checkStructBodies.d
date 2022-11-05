@@ -104,7 +104,7 @@ void checkStructBodies(
 					checkOnlyStructModifiers(ctx, TypeKind.externPtr, ast.modifiers);
 					if (!empty(ast.typeParams))
 						addDiag(ctx, ast.range, immutable Diag(immutable Diag.ExternPtrHasTypeParams()));
-					return immutable StructBody(immutable StructBody.ExternPtr());
+					return immutable StructBody(immutable StructBody.ExternPointer());
 				},
 				(ref immutable StructDeclAst.Body.Record it) =>
 					immutable StructBody(checkRecord(

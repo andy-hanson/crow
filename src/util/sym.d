@@ -146,14 +146,28 @@ enum Operator {
 
 enum SpecialSym {
 	// all below are hyphenated
-	as_any_mut_ptr,
+	as_any_mut_pointer,
+	begin_pointer,
 	concrete_model,
+	const_pointer,
 	exception_low_level,
+	extern_pointer,
+	fun_pointer0,
+	fun_pointer1,
+	fun_pointer2,
+	fun_pointer3,
+	fun_pointer4,
+	fun_pointer5,
+	fun_pointer6,
+	fun_pointer7,
+	fun_pointer8,
+	fun_pointer9,
 	init_constants,
 	line_and_column_getter,
-	ptr_cast_from_extern,
-	ptr_cast_to_extern,
+	pointer_cast_from_extern,
+	pointer_cast_to_extern,
 	static_symbols,
+	to_mut_pointer,
 	truncate_to_int64,
 	unsafe_bit_shift_left,
 	unsafe_bit_shift_right,
@@ -257,22 +271,50 @@ immutable(SafeCStr) strOfOperator(immutable Operator a) {
 
 private immutable(SafeCStr) strOfSpecial(immutable SpecialSym a) {
 	final switch (a) {
-		case SpecialSym.as_any_mut_ptr:
-			return safeCStr!"as-any-mut-ptr";
+		case SpecialSym.as_any_mut_pointer:
+			return safeCStr!"as-any-mut-pointer";
+		case SpecialSym.begin_pointer:
+			return safeCStr!"begin-pointer";
 		case SpecialSym.concrete_model:
 			return safeCStr!"concrete-model";
+		case SpecialSym.const_pointer:
+			return safeCStr!"const-pointer";
 		case SpecialSym.exception_low_level:
 			return safeCStr!"exception-low-level";
+		case SpecialSym.extern_pointer:
+			return safeCStr!"extern-pointer";
+		case SpecialSym.fun_pointer0:
+			return safeCStr!"fun-pointer0";
+		case SpecialSym.fun_pointer1:
+			return safeCStr!"fun-pointer1";
+		case SpecialSym.fun_pointer2:
+			return safeCStr!"fun-pointer2";
+		case SpecialSym.fun_pointer3:
+			return safeCStr!"fun-pointer3";
+		case SpecialSym.fun_pointer4:
+			return safeCStr!"fun-pointer4";
+		case SpecialSym.fun_pointer5:
+			return safeCStr!"fun-pointer5";
+		case SpecialSym.fun_pointer6:
+			return safeCStr!"fun-pointer6";
+		case SpecialSym.fun_pointer7:
+			return safeCStr!"fun-pointer7";
+		case SpecialSym.fun_pointer8:
+			return safeCStr!"fun-pointer8";
+		case SpecialSym.fun_pointer9:
+			return safeCStr!"fun-pointer9";
 		case SpecialSym.init_constants:
 			return safeCStr!"init-constants";
 		case SpecialSym.line_and_column_getter:
 			return safeCStr!"line-and-column-getter";
-		case SpecialSym.ptr_cast_from_extern:
-			return safeCStr!"ptr-cast-from-extern";
-		case SpecialSym.ptr_cast_to_extern:
-			return safeCStr!"ptr-cast-to-extern";
+		case SpecialSym.pointer_cast_from_extern:
+			return safeCStr!"pointer-cast-from-extern";
+		case SpecialSym.pointer_cast_to_extern:
+			return safeCStr!"pointer-cast-to-extern";
 		case SpecialSym.static_symbols:
 			return safeCStr!"static-symbols";
+		case SpecialSym.to_mut_pointer:
+			return safeCStr!"to-mut-pointer";
 		case SpecialSym.truncate_to_int64:
 			return safeCStr!"truncate-to-int64";
 		case SpecialSym.unsafe_bit_shift_left:

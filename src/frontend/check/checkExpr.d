@@ -120,7 +120,6 @@ import model.model :
 	matchType,
 	matchVariableRef,
 	name,
-	noCtx,
 	Param,
 	Purity,
 	range,
@@ -919,9 +918,9 @@ immutable(Expr) checkPtr(
 			addDiag2(ctx, range, immutable Diag(immutable Diag.PtrNeedsExpectedType()));
 			return bogus(expected, range);
 		},
-		(immutable ExpectedPointee.FunPtr) =>
-			checkFunPtr(ctx, range, ast, expected),
-		(immutable ExpectedPointee.Ptr x) =>
+		(immutable ExpectedPointee.FunPointer) =>
+			checkFunPointer(ctx, range, ast, expected),
+		(immutable ExpectedPointee.Pointer x) =>
 			checkPtrInner(ctx, locals, range, ast, x.pointer, x.pointee, x.mutability));
 }
 
@@ -929,36 +928,36 @@ struct ExpectedPointee {
 	@safe @nogc pure nothrow:
 
 	struct None {}
-	struct FunPtr {}
-	struct Ptr { immutable Type pointer; immutable Type pointee; immutable LocalMutability mutability; }
+	struct FunPointer {}
+	struct Pointer { immutable Type pointer; immutable Type pointee; immutable LocalMutability mutability; }
 
 	immutable this(immutable None a) { kind = Kind.none; none = a; }
-	immutable this(immutable FunPtr a) { kind = Kind.funPtr; funPtr = a; }
-	immutable this(immutable Ptr a) { kind = Kind.ptr; ptr = a; }
+	immutable this(immutable FunPointer a) { kind = Kind.funPointer; funPointer = a; }
+	immutable this(immutable Pointer a) { kind = Kind.pointer; pointer = a; }
 
 	private:
-	enum Kind { none, funPtr, ptr }
+	enum Kind { none, funPointer, pointer }
 	immutable Kind kind;
 	union {
 		immutable None none;
-		immutable FunPtr funPtr;
-		immutable Ptr ptr;
+		immutable FunPointer funPointer;
+		immutable Pointer pointer;
 	}
 }
 
 immutable(T) matchExpectedPointee(T)(
 	immutable ExpectedPointee a,
 	scope immutable(T) delegate(immutable ExpectedPointee.None) @safe @nogc pure nothrow cbNone,
-	scope immutable(T) delegate(immutable ExpectedPointee.FunPtr) @safe @nogc pure nothrow cbFunPtr,
-	scope immutable(T) delegate(immutable ExpectedPointee.Ptr) @safe @nogc pure nothrow cbPtr,
+	scope immutable(T) delegate(immutable ExpectedPointee.FunPointer) @safe @nogc pure nothrow cbFunPointer,
+	scope immutable(T) delegate(immutable ExpectedPointee.Pointer) @safe @nogc pure nothrow cbPointer,
 ) {
 	final switch (a.kind) {
 		case ExpectedPointee.Kind.none:
 			return cbNone(a.none);
-		case ExpectedPointee.Kind.funPtr:
-			return cbFunPtr(a.funPtr);
-		case ExpectedPointee.Kind.ptr:
-			return cbPtr(a.ptr);
+		case ExpectedPointee.Kind.funPointer:
+			return cbFunPointer(a.funPointer);
+		case ExpectedPointee.Kind.pointer:
+			return cbPointer(a.pointer);
 	}
 }
 
@@ -968,15 +967,15 @@ immutable(ExpectedPointee) getExpectedPointee(ref ExprCtx ctx, ref const Expecte
 		immutable StructInst* inst = asStructInst(force(expectedType));
 		immutable StructDecl* decl = decl(*inst);
 		if (decl == ctx.commonTypes.ptrConst)
-			return immutable ExpectedPointee(immutable ExpectedPointee.Ptr(
+			return immutable ExpectedPointee(immutable ExpectedPointee.Pointer(
 				immutable Type(inst), only(typeArgs(*inst)), LocalMutability.immut));
 		else if (decl == ctx.commonTypes.ptrMut)
-			return immutable ExpectedPointee(immutable ExpectedPointee.Ptr(
+			return immutable ExpectedPointee(immutable ExpectedPointee.Pointer(
 				immutable Type(inst), only(typeArgs(*inst)), LocalMutability.mut));
 		else if (contains(ctx.commonTypes.funPtrStructs, decl))
-			return immutable ExpectedPointee(immutable ExpectedPointee.FunPtr());
+			return immutable ExpectedPointee(immutable ExpectedPointee.FunPointer());
 		else if (isDefinitelyByRef(*inst))
-			return immutable ExpectedPointee(immutable ExpectedPointee.Ptr(
+			return immutable ExpectedPointee(immutable ExpectedPointee.Pointer(
 				immutable Type(inst),
 				immutable Type(instantiateStructNeverDelay(
 					ctx.alloc, ctx.programState, ctx.commonTypes.byVal, [immutable Type(inst)])),
@@ -1072,14 +1071,14 @@ immutable(LocalMutability) mutabilityForPtrDecl(scope ref const ExprCtx ctx, sco
 	}
 }
 
-immutable(Expr) checkFunPtr(
+immutable(Expr) checkFunPointer(
 	ref ExprCtx ctx,
 	immutable FileAndRange range,
 	scope ref immutable PtrAst ast,
 	ref Expected expected,
 ) {
 	if (!isIdentifier(ast.inner.kind))
-		todo!void("diag: fun-ptr ast should just be an identifier");
+		todo!void("diag: fun-pointer ast should just be an identifier");
 	immutable Sym name = asIdentifier(ast.inner.kind).name;
 	MutArr!(immutable FunDecl*) funsInScope = MutArr!(immutable FunDecl*)();
 	eachFunInScope(ctx, name, (immutable UsedFun used, immutable CalledDecl cd) {
@@ -1100,8 +1099,6 @@ immutable(Expr) checkFunPtr(
 
 	if (isTemplate(*funDecl))
 		todo!void("can't point to template");
-	//if (!noCtx(*funDecl))
-	//	todo!void("fun-ptr can't take ctx");
 	immutable size_t nParams = matchArity!(
 		immutable size_t,
 		(immutable size_t n) =>
@@ -1300,7 +1297,7 @@ immutable(Opt!EnumOrUnionAndMembers) getEnumOrUnionBody(immutable Type a) =>
 					some(immutable EnumOrUnionAndMembers(immutable EnumAndMembers(it.members))),
 				(ref immutable StructBody.Flags) =>
 					none!EnumOrUnionAndMembers,
-				(ref immutable StructBody.ExternPtr) =>
+				(ref immutable StructBody.ExternPointer) =>
 					none!EnumOrUnionAndMembers,
 				(ref immutable StructBody.Record) =>
 					none!EnumOrUnionAndMembers,

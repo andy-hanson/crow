@@ -7,7 +7,7 @@ import
 	../misc: new, void
 	../private/bootstrap: todo
 	../private/c-string-util: find-char-in-c-string, find-c-string-end
-	../ptr: ==, +, *, const-ptr, null
+	../pointer: ==, +, *, const-pointer, null
 	../string: ==, <=>, as-string, c-string, hash-mix, string
 	../tuple: from, new, pair, to
 

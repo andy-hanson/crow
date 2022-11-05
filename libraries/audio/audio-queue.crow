@@ -1,9 +1,9 @@
 import
 	crow/cell: *, cell, new, set-deref
-	crow/col/mut-array: begin-ptr, end-ptr, fill, mut-array, mut-array-from-begin-end, new, size, to-array
-	crow/col/private/array-low-level: array-from-begin-end, begin-ptr, end-ptr
+	crow/col/mut-array: begin-pointer, end-pointer, fill, mut-array, mut-array-from-begin-end, new, size, to-array
+	crow/col/private/array-low-level: array-from-begin-end, begin-pointer, end-pointer
 	crow/private/thread-utils: acquire, init, lock, release, uninit
-	crow/ptr: ==, +, -, *, by-val, const-ptr, mut-ptr, ref-eq, set-deref
+	crow/pointer: ==, +, -, *, by-val, const-pointer, mut-pointer, ref-eq, set-deref
 	./audio: new, playing-sound
 	./sound: ==, format, new, samples, sound, sound-format, to-string
 
@@ -27,10 +27,10 @@ new audio-queue(format sound-format) trusted
 	looping bool
 
 .reset-position void(a entry)
-	a.cur := a.samples begin-ptr
+	a.cur := a.samples begin-pointer
 
 .is-over bool(a entry) noctx trusted
-	!a.looping && a.cur == a.samples.end-ptr
+	!a.looping && a.cur == a.samples.end-pointer
 
 clear void(a audio-queue) noctx trusted
 	a.lock acquire
@@ -47,7 +47,7 @@ play-loop playing-sound(a audio-queue, sound sound)
 pull void(a audio-queue, out mut-array float32) noctx unsafe
 	out fill 0
 	a.lock acquire
-	a.playing.begin-ptr each-playing a.playing.end-ptr, out
+	a.playing.begin-pointer each-playing a.playing.end-pointer, out
 	a.lock release
 
 .each-playing void(cur entry mut*, end entry mut*, out mut-array float32) noctx unsafe
@@ -58,23 +58,23 @@ pull void(a audio-queue, out mut-array float32) noctx unsafe
 		()
 
 .add-to void(a entry, out mut-array float32) noctx unsafe
-	n-remaining = a.samples.end-ptr - a.cur
+	n-remaining = a.samples.end-pointer - a.cur
 	if n-remaining > out.size
 		end = a.cur + out.size
 		out add (a.cur array-from-begin-end end)
 		a.cur := end
 	else
-		out-mid = out.begin-ptr + n-remaining
-		out.begin-ptr mut-array-from-begin-end out-mid add (a.cur array-from-begin-end a.samples.end-ptr)
+		out-mid = out.begin-pointer + n-remaining
+		out.begin-pointer mut-array-from-begin-end out-mid add (a.cur array-from-begin-end a.samples.end-pointer)
 		if a looping
-			a.cur := a.samples begin-ptr
-			a add-to (out-mid mut-array-from-begin-end out.end-ptr)
+			a.cur := a.samples begin-pointer
+			a add-to (out-mid mut-array-from-begin-end out.end-pointer)
 		else
-			a.cur := a.samples end-ptr
+			a.cur := a.samples end-pointer
 
 .add void(a mut-array float32, b array float32) noctx unsafe
 	assert a.size == b.size
-	a.begin-ptr add-recur a.end-ptr, b.begin-ptr
+	a.begin-pointer add-recur a.end-pointer, b.begin-pointer
 .add-recur void(out float32 mut*, out-end float32 mut*, read float32*) noctx unsafe
 	unless out == out-end
 		*out := *out + *read
@@ -85,7 +85,7 @@ pull void(a audio-queue, out mut-array float32) noctx unsafe
 	a.lock acquire
 	# Can't use 'set-filter' in 'noctx' code, so do it here
 	a.playing.filter := x => !x.is-over
-	entry entry = sound.samples, sound.samples.begin-ptr, looping
+	entry entry = sound.samples, sound.samples.begin-pointer, looping
 	a.playing ~= entry
 	a.lock release
 	reset fun void() = () =>

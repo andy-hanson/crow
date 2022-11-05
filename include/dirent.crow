@@ -6,7 +6,7 @@ import
 	crow/string: char8, c-string
 	sys/types: ino_t, off_t
 
-dir extern-ptr
+dir extern-pointer
 
 dirent record mut by-ref extern
 	d_ino mut ino_t

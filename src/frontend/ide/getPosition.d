@@ -240,7 +240,7 @@ immutable(Position) positionInStruct(ref const AllSymbols allSymbols, immutable 
 			none!Position, // TODO
 		(ref immutable StructBody.Flags) =>
 			none!Position, // TODO
-		(ref immutable StructBody.ExternPtr) =>
+		(ref immutable StructBody.ExternPointer) =>
 			none!Position,
 		(ref immutable StructBody.Record it) {
 			foreach (immutable RecordField* field; ptrsRange(it.fields))

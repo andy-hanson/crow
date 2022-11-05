@@ -5,18 +5,18 @@ import
 	../misc: is-data, new, void
 	../number: ==, <=>, +, nat64
 	../option: !, is-empty, new, option
-	../ptr: -
+	../pointer: -
 	../range: .., for-loop
 	../string: ==, ~~, join, literal, new, string, to-string
 	../test-util: is
 	../tuple: from, new, pair, pair-equal, to
 	./array: array, size, subscript
 	./mut-list:
-		~=, ~~=, begin-ptr, clear, copy, fold, for-loop, is-empty, move-to-array, mut-list, new,
+		~=, ~~=, begin-pointer, clear, copy, fold, for-loop, is-empty, move-to-array, mut-list, new,
 		pop, reversed, size, subscript, temp-as-array, to-list, to-mut-list
 	./list: list, list-equal, new, reverse, to-list
 	./sort: set-sort-by, set-sort-by-reverse
-	./private/sort-utils: binary-search-insert-ptr
+	./private/sort-utils: binary-search-insert-pointer
 
 ###
 Mutable priority queue.
@@ -66,8 +66,8 @@ This is O(log n).
 ###
 ~= <k, v> void(a mut-priority-queue<k, v>, pair (k, v)) trusted is-data<k> compare<k>
 	# Highest min is on the right, so comparing in reverse
-	ptr = a.mins binary-search-insert-ptr it => it.from <=> pair.from
-	index = ptr - a.mins.begin-ptr
+	pointer = a.mins binary-search-insert-pointer it => it.from <=> pair.from
+	index = pointer - a.mins.begin-pointer
 	if index == a.mins.size
 		a.mins ~= pair
 	else

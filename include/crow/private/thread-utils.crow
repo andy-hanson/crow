@@ -22,13 +22,13 @@ import
 	../bool: bool, false, true
 	../compare: !=, <, <=
 	../extra-types: err-t
-	../fun-util: fun-ptr1, subscript
+	../fun-util: fun-pointer1, subscript
 	../io/private/time-low-level: get-monotime-nsec, nsec-to-msec, timestamp, to-timespec
 	../misc: new, void
 	../number: ==, <=>, nat32, nat64, to-int64, to-nat64
 	./number-low-level: unsafe-to-int64, unsafe-to-nat32, wrap-add, wrap-sub
-	../ptr:
-		==, any-mut-ptr, as-any-mut-ptr, as-ref, by-val, null, ptr-cast, size-of, to-nat64, zeroed
+	../pointer:
+		==, any-mut-pointer, as-any-mut-pointer, as-ref, by-val, null, pointer-cast, size-of, to-nat64, zeroed
 	../version: is-single-threaded, is-windows
 	./bootstrap: hard-assert, hard-forbid, hard-unreachable, option, todo
 export
@@ -49,11 +49,11 @@ uninit by-val lock() noctx unsafe
 
 .as-critical-section CRITICAL_SECTION(a lock) noctx unsafe
 	size-of@<by-val CRITICAL_SECTION> <= size-of@<by-val lock> hard-assert
-	a.as-any-mut-ptr as-ref
+	a.as-any-mut-pointer as-ref
 
 .as-mutex pthread_mutex_t(a lock) noctx unsafe
 	size-of@<by-val pthread_mutex_t> <= size-of@<by-val lock> hard-assert
-	a.as-any-mut-ptr as-ref
+	a.as-any-mut-pointer as-ref
 
 init void(a lock) noctx unsafe
 	if is-single-threaded
@@ -288,15 +288,15 @@ get-and-decrement nat64(t thread-safe-counter) noctx unsafe
 	old
 
 thread-handle record mut by-val
-	.storage any-mut-ptr
+	.storage any-mut-pointer
 .as-windows-handle HANDLE(a thread-handle) noctx unsafe
 	a.storage
 .as-pthread pthread_t(a thread-handle) noctx unsafe
 	a.storage to-nat64
 
 create-one-thread thread-handle(
-	thread-arg any-mut-ptr,
-	thread-fun fun-ptr1<any-mut-ptr, any-mut-ptr>,
+	thread-arg any-mut-pointer,
+	thread-fun fun-pointer1<any-mut-pointer, any-mut-pointer>,
 ) noctx unsafe summon
 	if is-single-threaded
 		hard-unreachable
@@ -306,7 +306,7 @@ create-one-thread thread-handle(
 		res,
 	else
 		res mut thread-handle = null,
-		err = (&res).ptr-cast@<pthread_t, thread-handle> pthread_create null, thread-fun, thread-arg
+		err = (&res).pointer-cast@<pthread_t, thread-handle> pthread_create null, thread-fun, thread-arg
 		unless err == 0
 			if err == EAGAIN
 				# TODO: warn and make do with the threads it does let us create (so long as there's at least one)
@@ -326,7 +326,7 @@ join-one-thread void(a thread-handle) noctx unsafe summon
 		ok = a.as-windows-handle CloseHandle
 		ok hard-assert
 	else
-		thread-return mut any-mut-ptr = null
+		thread-return mut any-mut-pointer = null
 		err = a.as-pthread pthread_join &thread-return
 		unless err == 0
 			if err == EINVAL

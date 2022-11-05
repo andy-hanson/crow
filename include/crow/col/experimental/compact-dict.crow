@@ -8,13 +8,15 @@ import
 	../../misc: is-data, new, void
 	../../number: ==, <=>, +, nat64
 	../../option: ??, is-empty, new, option, option-equal
-	../../ptr: ==, +, ref-eq, set-deref
+	../../pointer: ==, +, ref-eq, set-deref
 	../../range: ..
 	../../string: ==, ~~, join, literal, string, to-string
 	../../test-util: is
 	../../tuple: from, new, pair, pair-equal, to
 	../array: array, every, for-loop, size, subscript
-	../mut-array: begin-ptr, cast-immutable, end-ptr, mut-array, mut-array-from-begin-end, uninitialized-mut-array
+	../mut-array:
+		begin-pointer, cast-immutable, end-pointer, mut-array, mut-array-from-begin-end,
+		uninitialized-mut-array
 	../list: fold, list, new, to-list
 	../mut-set: in, mut-set, new, try-add
 	./frozen-dict:
@@ -126,7 +128,7 @@ in<k, v> bool(key k, a compact-dict<k, v>) is-data<k> compare<k> hash-mix<k>
 	r frozen-dict<k, v?>,
 ) trusted is-data<k> compare<k> hash-mix<k>
 	res mut-array (k, v?) = l.size + r.size uninitialized-mut-array
-	begin = res begin-ptr
+	begin = res begin-pointer
 	mid = begin fold l, (cur, k, vl) =>
 		if k in r
 			cur
@@ -143,7 +145,7 @@ in<k, v> bool(key k, a compact-dict<k, v>) is-data<k> compare<k> hash-mix<k>
 	r frozen-dict<k, v?>,
 ) trusted is-data<k> compare<k> hash-mix<k>
 	res mut-array (k, v) = l.size + r.size uninitialized-mut-array
-	begin = res begin-ptr
+	begin = res begin-pointer
 	mid = begin fold l, (cur, k, vl) =>
 		if k in r
 			cur
@@ -188,10 +190,10 @@ for-loop<k, v> void(a compact-dict<k, v>, f act void(k, v)) is-data<k> compare<k
 
 for-loop<a, k, v> a[](a compact-dict<k, v>, f act a(k, v)) trusted is-data<k> compare<k> hash-mix<k>
 	res mut-array a = a.size uninitialized-mut-array
-	end = res.begin-ptr fold a, (cur, k, v) =>
+	end = res.begin-pointer fold a, (cur, k, v) =>
 		*cur := f[k, v]
 		cur + 1
-	assert end == res.end-ptr
+	assert end == res.end-pointer
 	res.cast-immutable to-list
 
 .dbg<k, v> string(a compact-dict<k, v>) to-string<k> to-string<v>

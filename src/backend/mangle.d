@@ -56,7 +56,7 @@ immutable(MangledNames) buildMangledNames(
 	return scope immutable AllSymbols* allSymbols,
 	ref immutable LowProgram program,
 ) {
-	// First time we see a fun with a name, we'll store the fun-ptr here in case it's not overloaded.
+	// First time we see a fun with a name, we'll store the fun-pointer here in case it's not overloaded.
 	// After that, we'll start putting them in funToNameIndex, and store the next index here.
 	MutDict!(immutable Sym, immutable PrevOrIndex!ConcreteFun) funNameToIndex;
 	// This will not have an entry for non-overloaded funs.

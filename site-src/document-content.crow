@@ -34,8 +34,8 @@ module-top string(path string)
 		"builtin"
 	as enum-decl _
 		"enum"
-	as extern-ptr-decl
-		"extern-ptr"
+	as extern-pointer-decl
+		"extern-pointer"
 	as flags-decl _
 		"flags"
 	as fun-decl _
@@ -55,7 +55,7 @@ module-top string(path string)
 		"struct"
 	as enum-decl _
 		"struct"
-	as extern-ptr-decl
+	as extern-pointer-decl
 		"struct"
 	as flags-decl _
 		"struct"
@@ -82,8 +82,8 @@ module-top string(path string)
 		"builtin" keyword
 	as enum-decl _
 		"enum" keyword
-	as extern-ptr-decl
-		"extern-ptr" keyword
+	as extern-pointer-decl
+		"extern-pointer" keyword
 	as flags-decl _
 		"flags" keyword
 	as fun-decl f
@@ -116,7 +116,7 @@ module-top string(path string)
 		()
 	as enum-decl e
 		e.members enum-flags-members-content
-	as extern-ptr-decl
+	as extern-pointer-decl
 		()
 	as flags-decl f
 		f.members enum-flags-members-content
@@ -196,9 +196,9 @@ module-top string(path string)
 		k = a.type-args[0] type-ref-content
 		v = a.type-args[1] type-ref-with-subscript
 		"{v}{" mut[" keyword}{k}{"]" keyword}"
-	elif name == "const-ptr"
+	elif name == "const-pointer"
 		"{a.type-args.only type-ref-with-subscript}{"*" keyword}"
-	elif name == "mut-ptr"
+	elif name == "mut-pointer"
 		"{a.type-args.only type-ref-with-subscript}{" mut*" keyword}"
 	elif name in ("fun0", "fun1", "fun2", "fun3", "fun4", "fun5")::symbol[]
 		a fun-type "fun"

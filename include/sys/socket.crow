@@ -5,7 +5,7 @@ import
 	crow/extra-types: err-t, fd-t
 	crow/number: int32, max-nat64, nat16, nat64, to-int32, to-int64
 	crow/private/number-low-level: unsafe-to-nat64
-	crow/ptr: any-mut-ptr
+	crow/pointer: any-mut-pointer
 	crow/version: is-windows
 	unistd: ssize_t
 	./types: socklen_t
@@ -36,13 +36,13 @@ INVALID_SOCKET SOCKET() unsafe
 	else
 		-1 as-socket
 
-sockaddr extern-ptr
+sockaddr extern-pointer
 
 accept err-t(a SOCKET, addr sockaddr, addrlen cell socklen_t) extern<c> summon
 
 bind err-t(a SOCKET, addr sockaddr, len socklen_t) extern<c> summon
 
-recv ssize_t(a SOCKET, buf any-mut-ptr, n size_t, recv-flags int32) extern<c> summon
+recv ssize_t(a SOCKET, buf any-mut-pointer, n size_t, recv-flags int32) extern<c> summon
 
 socket SOCKET(domain c-int, type c-int, protocol c-int) extern<c> summon
 

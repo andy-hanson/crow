@@ -112,7 +112,7 @@ struct Diag {
 		immutable Sym name;
 	}
 	struct CommonTypesMissing {
-		immutable string[] missing;
+		immutable Sym[] missing;
 	}
 	struct DuplicateDeclaration {
 		enum Kind {
@@ -312,10 +312,10 @@ struct Diag {
 			list,
 			mutDict,
 			mutList,
-			mutPtr,
+			mutPointer,
 			opt,
 			pair,
-			ptr,
+			pointer,
 		}
 		immutable Kind kind;
 	}

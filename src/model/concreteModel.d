@@ -31,7 +31,7 @@ import util.late : Late, lateGet, lateIsSet, lateSet;
 import util.opt : none, Opt, some;
 import util.ptr : hashPtr;
 import util.sourceRange : FileAndRange;
-import util.sym : AllSymbols, shortSym, Sym;
+import util.sym : AllSymbols, shortSym, SpecialSym, Sym, symForSpecial;
 import util.util : unreachable, verify;
 
 enum BuiltinStructKind {
@@ -40,7 +40,7 @@ enum BuiltinStructKind {
 	float32,
 	float64,
 	fun, // 'fun' or 'act'
-	funPtrN, // fun-ptr0, fun-ptr1, etc...
+	funPointerN, // fun-pointer0, fun-pointer1, etc...
 	int8,
 	int16,
 	int32,
@@ -49,8 +49,8 @@ enum BuiltinStructKind {
 	nat16,
 	nat32,
 	nat64,
-	ptrConst,
-	ptrMut,
+	pointerConst,
+	pointerMut,
 	void_,
 }
 
@@ -66,8 +66,8 @@ immutable(Sym) symOfBuiltinStructKind(immutable BuiltinStructKind a) {
 			return shortSym("float-64");
 		case BuiltinStructKind.fun:
 			return shortSym("fun");
-		case BuiltinStructKind.funPtrN:
-			return shortSym("fun-ptr");
+		case BuiltinStructKind.funPointerN:
+			return shortSym("fun-pointer");
 		case BuiltinStructKind.int8:
 			return shortSym("int-8");
 		case BuiltinStructKind.int16:
@@ -84,10 +84,10 @@ immutable(Sym) symOfBuiltinStructKind(immutable BuiltinStructKind a) {
 			return shortSym("nat-32");
 		case BuiltinStructKind.nat64:
 			return shortSym("nat-64");
-		case BuiltinStructKind.ptrConst:
-			return shortSym("ptr-const");
-		case BuiltinStructKind.ptrMut:
-			return shortSym("ptr-mut");
+		case BuiltinStructKind.pointerConst:
+			return symForSpecial(SpecialSym.const_pointer);
+		case BuiltinStructKind.pointerMut:
+			return shortSym("pointer-mut");
 		case BuiltinStructKind.void_:
 			return shortSym("void");
 	}

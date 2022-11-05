@@ -14,7 +14,7 @@ import
 	../../bool: !, ||, bool, false, true
 	../../cell: cell, new
 	../../col/array: array, subscript
-	../../col/mut-array: cast-immutable, begin-ptr, mut-array, size, uninitialized-mut-array
+	../../col/mut-array: cast-immutable, begin-pointer, mut-array, size, uninitialized-mut-array
 	../../compare: !=, <
 	../../c-types: c-int
 	../../extra-types: fd-t
@@ -22,7 +22,7 @@ import
 	../../misc: new, void
 	../../number: ==, <=>, int32, nat8, nat16, nat32, to-int32, to-int64, to-nat32, to-nat64
 	../../private/bootstrap: todo
-	../../ptr: by-val, mut-ptr, ptr-cast-to-extern, size-of
+	../../pointer: by-val, mut-pointer, pointer-cast-to-extern, size-of
 	../../range: ..
 	../../string: literal, string
 	../../version: is-windows
@@ -132,7 +132,7 @@ close-client void(client SOCKET) unsafe summon
 .accept-clients void(listen-fd SOCKET, epoll-fd fd-t, on-accepted-client ref void(SOCKET)) unsafe summon
 	clientaddr mut sockaddr_in = ()
 	# TODO: should not need parens
-	clientaddr-as-sockaddr sockaddr = (&clientaddr)::sockaddr_in mut* ptr-cast-to-extern
+	clientaddr-as-sockaddr sockaddr = (&clientaddr)::sockaddr_in mut* pointer-cast-to-extern
 	# TODO: should be able to write `size-of@<sockaddr_in>.to-nat32`
 	addrlen mut by-val cell socklen_t = (size-of@<sockaddr_in>).to-nat32,
 	client-fd = listen-fd accept clientaddr-as-sockaddr, &addrlen
@@ -151,7 +151,7 @@ close-client void(client SOCKET) unsafe summon
 
 .handle-client-linux void(fd fd-t, on-received-chunk ref void(SOCKET, array nat8)) unsafe summon
 	buf mut-array nat8 = 0x1000 uninitialized-mut-array
-	count = fd read buf.begin-ptr, buf.size
+	count = fd read buf.begin-pointer, buf.size
 	if count < 0
 		err = errno
 		unless err == EAGAIN

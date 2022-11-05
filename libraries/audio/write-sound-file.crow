@@ -1,8 +1,8 @@
 no-std
 import
-	crow/cell: as-mut-ptr, cell, new
+	crow/cell: as-mut-pointer, cell, new
 	crow/col/array: size
-	crow/col/private/array-low-level: begin-ptr
+	crow/col/private/array-low-level: begin-pointer
 	crow/flags-util: flags-to-string
 	crow/io/print: out, print
 	crow/misc: void
@@ -27,11 +27,11 @@ write-sound-file void(path string, sound sound, format sound-file-format) truste
 	out print "sf-format is {sf-format to-nat32} = {sf-format flags-to-string}"
 	info SF_INFO = n-frames, sound.format.sample-rate.to-nat32, n-channels.to-nat32, sf-format, 1, 1
 	info-cell cell SF_INFO = info,
-	f = path.to-c-string sf_open SFM_WRITE, info-cell.as-mut-ptr
+	f = path.to-c-string sf_open SFM_WRITE, info-cell.as-mut-pointer
 	out print "f.sf_error is {f sf_error}"
 	f.sf_error check-sndfile-error
 	out print "write {sound.samples.size} samples"
-	n-written = f sf_write_float sound.samples.begin-ptr, sound.samples.size
+	n-written = f sf_write_float sound.samples.begin-pointer, sound.samples.size
 	f.sf_close check-sndfile-error
 	out print "n-written is {n-written}; samples size is {sound.samples.size}"
 	assert n-written == sound.samples.size

@@ -6,7 +6,7 @@ import
 	crow/enum-util: enum-to-string
 	crow/misc: void
 	crow/number: nat8
-	crow/ptr: any-const-ptr, const-ptr, mut-ptr
+	crow/pointer: any-const-pointer, const-pointer, mut-pointer
 	crow/string: c-string, string
 
 GLbitfield alias
@@ -41,7 +41,7 @@ glBindTexture void(target GLenum, texture GLuint) extern<GL> summon
 glBufferData void(
 	target GLenum,
 	size GLsizeiptr,
-	buffer-data any-const-ptr,
+	buffer-data any-const-pointer,
 	usage GLenum,
 ) extern<GL> summon
 
@@ -49,7 +49,7 @@ glBufferSubData void(
 	target GLenum,
 	offset GLintptr,
 	size GLsizeiptr,
-	buffer-data any-const-ptr,
+	buffer-data any-const-pointer,
 ) extern<GL> summon
 
 glClear void(mask GLbitfield) extern<GL> summon
@@ -123,7 +123,7 @@ glTexImage2D void(
 	border GLint,
 	format GLenum,
 	type GLenum,
-	pixels any-const-ptr,
+	pixels any-const-pointer,
 ) extern<GL> summon
 
 glTexParameteri void(target GLenum, pname GLenum, param GLenum) extern<GL> summon
@@ -145,7 +145,7 @@ glVertexAttribPointer void(
 	type GLenum,
 	normalized GLboolean,
 	stride GLsizei,
-	pointer any-const-ptr,
+	pointer any-const-pointer,
 ) extern<GL> summon
 
 GL_FALSE GLint() noctx
