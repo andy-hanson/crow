@@ -1,16 +1,8 @@
-no-std
 import
-	crow/bool: &&
 	crow/cell: *, as-mut-pointer, cell, new
-	crow/col/array: array, size
-	crow/col/mut-list: begin-pointer, move-to-array, mut-list, size, uninitialized-mut-list
 	crow/col/private/array-low-level: begin-pointer, end-pointer
-	crow/compare: <=, min
-	crow/exception: unreachable
-	crow/number: ==, <=>, *, float32, nat8, to-nat64
 	crow/private/alloc: mem-copy
 	crow/pointer: ==, <=>, +, -, any-mut-pointer, as-any-mut-pointer, as-ref, const-pointer, mut-pointer
-	crow/string: string, to-c-string
 	sndfile/headers:
 		channels, frames, new, samplerate, sf_close, sf_count_t, sf_error, SF_INFO, SFM_READ,
 		sf_open, sf_open_virtual, sf_read_float, SF_VIRTUAL_IO, SNDFILE

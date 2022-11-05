@@ -1,13 +1,8 @@
-no-std
 import
 	crow/cell: as-const-pointer, as-mut-pointer, cell, new
 	crow/col/mut-array: cast-mut-array, subscript
 	crow/c-types: c-int
-	crow/future: new
-	crow/misc: new, void
-	crow/number: ==, <=>, float32, nat8, nat16, to-int32, to-nat8, to-nat64
 	crow/pointer: any-mut-pointer, as-any-mut-pointer, as-ref, mut-pointer, null
-	crow/range: ..
 	SDL2/SDL: SDL_Init, SDL_INIT_AUDIO, SDL_Quit
 	SDL2/SDL_audio:
 		AUDIO_F32, new, SDL_AudioSpec, SDL_CloseAudioDevice, SDL_OpenAudioDevice,

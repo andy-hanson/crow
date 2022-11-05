@@ -1,10 +1,6 @@
-no-std
 import
 	crow/c-types: c-int
-	crow/misc: void
-	crow/number: nat32
 	crow/pointer: any-mut-pointer, mut-pointer
-	crow/string: string, to-c-string
 	./SDL_pixels: SDL_PixelFormat
 	./SDL_rect: SDL_Rect
 	./SDL_rwops: SDL_RWFromFile, SDL_RWops

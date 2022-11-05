@@ -1,9 +1,4 @@
-no-std
 import
-	crow/bool: bool, false, true
-	crow/fun-util: subscript
-	crow/future: future, subscript
-	crow/misc: void
 	./sound: sound, sound-format
 
 audio record sendable

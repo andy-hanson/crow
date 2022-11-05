@@ -1,8 +1,6 @@
-no-std
 import
 	crow/c-types: c-int
 	crow/pointer: any-const-pointer, any-mut-pointer
-	crow/string: c-string
 
 SDL_RWops extern-pointer
 

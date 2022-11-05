@@ -1,7 +1,5 @@
-no-std
 import
 	crow/c-types: c-int, u-int
-	crow/misc: void
 	crow/pointer: const-pointer
 	./SDL_rect: SDL_Rect
 	./SDL_surface: SDL_Surface

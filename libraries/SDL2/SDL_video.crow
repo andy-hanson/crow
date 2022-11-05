@@ -1,10 +1,6 @@
-no-std
 import
-	crow/misc: void
-	crow/number: nat32
 	crow/c-types: c-int, u-int
 	crow/pointer: any-const-pointer
-	crow/string: c-string
 
 SDL_DestroyWindow void(window SDL_Window) extern<SDL2> summon
 

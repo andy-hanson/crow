@@ -1,13 +1,7 @@
-no-std
 import
-	crow/bool: bool
 	crow/cell: cell
 	crow/c-types: c-char, c-float, c-int, long, u-int
-	crow/enum-util: enum-to-string
-	crow/misc: void
-	crow/number: nat8
 	crow/pointer: any-const-pointer, const-pointer, mut-pointer
-	crow/string: c-string, string
 
 GLbitfield alias
 	u-int

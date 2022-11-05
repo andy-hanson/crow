@@ -1,10 +1,6 @@
-no-std
 import
 	crow/cell: cell
-	crow/fun-util: fun-pointer0, fun-pointer1, fun-pointer2, fun-pointer3, fun-pointer4, fun-pointer6, fun-pointer9, subscript
-	crow/misc: void
 	crow/pointer: ==, any-const-pointer, as-fun-pointer, const-pointer, mut-pointer, null
-	crow/string: ~~, c-string, literal, to-c-string, to-string
 	SDL2/SDL_video: SDL_GL_GetProcAddress
 	./headers:
 		GLbitfield, GLboolean, GLchar, GLenum, GLfloat, GLint, GLintptr, GLsizei, GLsizeiptr, GLuint

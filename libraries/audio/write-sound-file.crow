@@ -1,13 +1,7 @@
-no-std
 import
 	crow/cell: as-mut-pointer, cell, new
-	crow/col/array: size
 	crow/col/private/array-low-level: begin-pointer
-	crow/flags-util: flags-to-string
 	crow/io/print: out, print
-	crow/misc: void
-	crow/number: ==, /, to-nat32
-	crow/string: ~~, literal, string, to-c-string, to-string
 	sndfile/headers:
 		|, to-nat32, ~, &, ==, all, flags-members, new, sf_close, sf_error, SF_FORMAT,
 		SF_FORMAT_FLAC, SF_FORMAT_OGG, SF_FORMAT_PCM_16, SF_FORMAT_PCM_32, SF_FORMAT_VORBIS,

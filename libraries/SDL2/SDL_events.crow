@@ -1,9 +1,6 @@
-no-std
 import
 	crow/bytes-types: bytes48, new
 	crow/c-types: c-int, u-int
-	crow/misc: void
-	crow/number: nat32
 
 SDL_PumpEvents void() extern<SDL2> summon
 

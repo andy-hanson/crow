@@ -1,4 +1,3 @@
-no-std
 import
 	crow/c-types: u-int
 

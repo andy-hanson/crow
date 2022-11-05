@@ -1,10 +1,6 @@
-no-std
 import
 	crow/c-types: c-int, short, u-int
-	crow/fun-util: fun-pointer1, fun-pointer3
-	crow/number: float32, nat8, nat64
 	crow/pointer: any-mut-pointer, const-pointer, mut-pointer
-	crow/string: c-string
 	stdio: SEEK
 
 sf_count_t alias
