@@ -120,7 +120,10 @@ immutable(TypeAst) parseTypeBeforeSuffixes(scope ref Lexer lexer, immutable Requ
 		case Token.act:
 			return parseFunType(lexer, start, TypeAst.Fun.Kind.act);
 		case Token.fun:
-			return parseFunType(lexer, start, TypeAst.Fun.Kind.fun);
+			return parseFunType(
+				lexer,
+				start,
+				tryTakeOperator(lexer, Operator.times) ? TypeAst.Fun.Kind.funPointer : TypeAst.Fun.Kind.fun);
 		case Token.ref_:
 			return parseFunType(lexer, start, TypeAst.Fun.Kind.ref_);
 		default:

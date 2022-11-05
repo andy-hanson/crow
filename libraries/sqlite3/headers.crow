@@ -14,7 +14,7 @@ sqlite3_close sqlite3-result(db sqlite3-pointer) extern<sqlite3> summon
 sqlite3_exec sqlite3-result(
 	db sqlite3-pointer,
 	sql c-string,
-	cb fun-pointer4<c-int, any-mut-pointer, c-int, c-string*, c-string*>,
+	cb fun* c-int(any-mut-pointer, c-int, c-string*, c-string*),
 	cb-arg any-mut-pointer,
 	err-msg c-string mut*,
 ) extern<sqlite3> summon

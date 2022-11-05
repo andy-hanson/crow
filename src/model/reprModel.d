@@ -385,6 +385,8 @@ immutable(Sym) symOfFunKind(immutable FunKind a) {
 			return shortSym("mut");
 		case FunKind.ref_:
 			return shortSym("ref");
+		case FunKind.pointer:
+			return shortSym("pointer");
 	}
 }
 

@@ -256,6 +256,8 @@ private immutable(Type) typeFromFunAst(
 				return FunKind.mut;
 			case TypeAst.Fun.Kind.fun:
 				return FunKind.plain;
+			case TypeAst.Fun.Kind.funPointer:
+				return FunKind.pointer;
 			case TypeAst.Fun.Kind.ref_:
 				return FunKind.ref_;
 		}

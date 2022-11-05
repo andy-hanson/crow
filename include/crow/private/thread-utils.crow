@@ -22,7 +22,7 @@ import
 	../bool: bool, false, true
 	../compare: !=, <, <=
 	../extra-types: err-t
-	../fun-util: fun-pointer1, subscript
+	../fun-util: subscript
 	../io/private/time-low-level: get-monotime-nsec, nsec-to-msec, timestamp, to-timespec
 	../misc: new, void
 	../number: ==, <=>, nat32, nat64, to-int64, to-nat64
@@ -296,7 +296,7 @@ thread-handle record mut by-val
 
 create-one-thread thread-handle(
 	thread-arg any-mut-pointer,
-	thread-fun fun-pointer1<any-mut-pointer, any-mut-pointer>,
+	thread-fun fun* any-mut-pointer(any-mut-pointer),
 ) noctx unsafe summon
 	if is-single-threaded
 		hard-unreachable

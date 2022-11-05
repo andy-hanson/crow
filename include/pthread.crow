@@ -3,7 +3,6 @@ import
 	crow/bytes-types: bytes4, bytes32, bytes40, bytes48, new
 	crow/c-types: u-int, u-long
 	crow/extra-types: err-t
-	crow/fun-util: fun-pointer1
 	crow/misc: new
 	crow/number: int32
 	crow/pointer: any-const-pointer, any-mut-pointer, const-pointer, mut-pointer
@@ -17,7 +16,7 @@ pthread_t alias
 pthread_create err-t(
 	thread pthread_t mut*,
 	attr any-const-pointer,
-	start-routine fun-pointer1<any-mut-pointer, any-mut-pointer>,
+	start-routine fun* any-mut-pointer(any-mut-pointer),
 	arg any-mut-pointer,
 ) extern<pthread> summon
 

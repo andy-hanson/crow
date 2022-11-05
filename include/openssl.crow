@@ -2,7 +2,6 @@ no-std
 import
 	crow/c-types: u-long
 	crow/extra-types: fd-t
-	crow/fun-util: fun-pointer6
 	crow/misc: void
 	crow/number: int32, int64, nat8, nat32, nat64
 	crow/pointer: any-const-pointer, null, const-pointer
@@ -38,7 +37,7 @@ ssl-ctx-set-mode long(s ssl-ctx, op long) unsafe summon
 	s SSL_CTX_ctrl ssl-ctrl-mode, op, null
 
 proto-select-cb alias
-	fun-pointer6<int32, ssl, string*, nat8*, nat8*, nat32, any-const-pointer>
+	fun* int32(ssl, string*, nat8*, nat8*, nat32, any-const-pointer)
 
 SSL_CTX_set_next_proto_select_cb void(s ssl-ctx, cb proto-select-cb) extern noctx summon
 

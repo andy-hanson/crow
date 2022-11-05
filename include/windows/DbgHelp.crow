@@ -2,7 +2,6 @@ no-std
 import
 	crow/bool: bool, false
 	crow/c-types: c-char
-	crow/fun-util: fun-pointer2, fun-pointer3, fun-pointer5
 	crow/number: nat32, to-nat32
 	crow/private/bootstrap: c-string
 	crow/pointer: *, any-const-pointer, any-mut-pointer, const-pointer, mut-pointer, null, size-of
@@ -132,13 +131,13 @@ IMAGEHLP_SYMBOL_TYPE_INFO enum<nat32> extern
 	IMAGEHLP_SYMBOL_TYPE_INFO_MAX
 
 PREAD_PROCESS_MEMORY_ROUTINE64 alias
-	fun-pointer5<bool, HANDLE, DWORD64, any-mut-pointer, DWORD, DWORD mut*>
+	fun* bool(HANDLE, DWORD64, any-mut-pointer, DWORD, DWORD mut*)
 PFUNCTION_TABLE_ACCESS_ROUTINE64 alias
-	fun-pointer2<any-const-pointer, HANDLE, DWORD64>
+	fun* any-const-pointer(HANDLE, DWORD64)
 PGET_MODULE_BASE_ROUTINE64 alias
-	fun-pointer2<DWORD64, HANDLE, DWORD64>
+	fun* DWORD64(HANDLE, DWORD64)
 PTRANSLATE_ADDRESS_ROUTINE64 alias
-	fun-pointer3<DWORD64, HANDLE, HANDLE, ADDRESS64 mut*>
+	fun* DWORD64(HANDLE, HANDLE, ADDRESS64 mut*)
 
 StackWalk64 bool(
 	MachineType DWORD,

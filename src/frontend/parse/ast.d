@@ -96,6 +96,7 @@ struct TypeAst {
 		enum Kind {
 			act,
 			fun,
+			funPointer,
 			ref_,
 		}
 		immutable RangeWithinFile range;
@@ -1449,6 +1450,8 @@ immutable(Sym) symOfFunKind(immutable TypeAst.Fun.Kind a) {
 			return shortSym("fun");
 		case TypeAst.Fun.Kind.ref_:
 			return shortSym("ref");
+		case TypeAst.Fun.Kind.funPointer:
+			return shortSym("fun-pointer");
 	}
 }
 

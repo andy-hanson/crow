@@ -11,7 +11,7 @@ SDL_AudioDeviceID alias
 	nat32
 
 SDL_AudioCallback alias
-	fun-pointer3<void, any-mut-pointer, nat8 mut*, c-int>
+	fun* void(any-mut-pointer, nat8 mut*, c-int)
 
 SDL_AudioSpec record extern by-val mut
 	freq c-int

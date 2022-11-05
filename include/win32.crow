@@ -5,7 +5,6 @@ import
 	crow/bytes-types: bytes2048, new
 	crow/c-types: c-char, c-int, long, u-short, u-int, size_t
 	crow/extra-types: err-t
-	crow/fun-util: fun-pointer1
 	crow/misc: new, void
 	crow/number: int64, max-nat64, nat8, nat16, nat32, nat64, new, to-nat16, to-nat32
 	crow/private/bootstrap: c-string
@@ -102,7 +101,7 @@ CloseHandle bool(a HANDLE) extern<kernel32>
 _beginthreadex HANDLE(
 	security any-mut-pointer,
 	stack_size u-int,
-	start-address fun-pointer1<any-mut-pointer, any-mut-pointer>,
+	start-address fun* any-mut-pointer(any-mut-pointer),
 	arglist any-mut-pointer,
 	initflag u-int,
 	thrdaddr u-int mut*,

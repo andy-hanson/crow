@@ -315,19 +315,29 @@ immutable(CommonTypes) getCommonTypes(
 	immutable StructDecl* opt = getDecl(shortSym("option"), 1);
 	immutable StructDecl* pointerConst = getDecl(symForSpecial(SpecialSym.const_pointer), 1);
 	immutable StructDecl* pointerMut = getDecl(shortSym("mut-pointer"), 1);
-	immutable StructDecl*[5] funStructs = [
+	immutable StructDecl*[10] funStructs = [
 		getDecl(shortSym("fun0"), 1),
 		getDecl(shortSym("fun1"), 2),
 		getDecl(shortSym("fun2"), 3),
 		getDecl(shortSym("fun3"), 4),
 		getDecl(shortSym("fun4"), 5),
+		getDecl(shortSym("fun5"), 6),
+		getDecl(shortSym("fun6"), 7),
+		getDecl(shortSym("fun7"), 8),
+		getDecl(shortSym("fun8"), 9),
+		getDecl(shortSym("fun9"), 10),
 	];
-	immutable StructDecl*[5] funActStructs = [
+	immutable StructDecl*[10] funActStructs = [
 		getDecl(shortSym("fun-act0"), 1),
 		getDecl(shortSym("fun-act1"), 2),
 		getDecl(shortSym("fun-act2"), 3),
 		getDecl(shortSym("fun-act3"), 4),
 		getDecl(shortSym("fun-act4"), 5),
+		getDecl(shortSym("fun-act5"), 6),
+		getDecl(shortSym("fun-act6"), 7),
+		getDecl(shortSym("fun-act7"), 8),
+		getDecl(shortSym("fun-act8"), 9),
+		getDecl(shortSym("fun-act9"), 10),
 	];
 	immutable StructDecl*[10] funPointerStructs = [
 		getDecl(symForSpecial(SpecialSym.fun_pointer0), 1),
@@ -341,12 +351,17 @@ immutable(CommonTypes) getCommonTypes(
 		getDecl(symForSpecial(SpecialSym.fun_pointer8), 9),
 		getDecl(symForSpecial(SpecialSym.fun_pointer9), 10),
 	];
-	immutable StructDecl*[5] funRefStructs = [
+	immutable StructDecl*[10] funRefStructs = [
 		getDecl(shortSym("fun-ref0"), 1),
 		getDecl(shortSym("fun-ref1"), 2),
 		getDecl(shortSym("fun-ref2"), 3),
 		getDecl(shortSym("fun-ref3"), 4),
 		getDecl(shortSym("fun-ref4"), 5),
+		getDecl(shortSym("fun-ref5"), 6),
+		getDecl(shortSym("fun-ref6"), 7),
+		getDecl(shortSym("fun-ref7"), 8),
+		getDecl(shortSym("fun-ref8"), 9),
+		getDecl(shortSym("fun-ref9"), 10),
 	];
 
 	immutable StructDecl* constPointer = getDecl(symForSpecial(SpecialSym.const_pointer), 1);
@@ -388,11 +403,11 @@ immutable(CommonTypes) getCommonTypes(
 		opt,
 		pointerConst,
 		pointerMut,
-		funPointerStructs,
 		[
 			immutable FunKindAndStructs(FunKind.plain, funStructs),
 			immutable FunKindAndStructs(FunKind.mut, funActStructs),
 			immutable FunKindAndStructs(FunKind.ref_, funRefStructs),
+			immutable FunKindAndStructs(FunKind.pointer, funPointerStructs),
 		]);
 }
 

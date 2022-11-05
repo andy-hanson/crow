@@ -6,9 +6,6 @@ no-std
 import
 	./bool: bool
 	./compare: comparison, less, equal, greater
-	./fun-util:
-		fun-pointer0, fun-pointer1, fun-pointer2, fun-pointer3, fun-pointer4, fun-pointer5,
-		fun-pointer6, fun-pointer7, fun-pointer8, fun-pointer9
 	./misc: void
 	./number: /, nat64
 	./private/number-low-level: wrap-sub
@@ -27,17 +24,17 @@ as-mut<a> a mut*(a a*) noctx unsafe builtin
 null<a> a*() noctx unsafe
 	null.as-const
 null<a> a mut*() noctx unsafe builtin
-null<r> fun-pointer0<r>() noctx unsafe
+null<r> fun* r()() noctx unsafe
 	null as-fun-pointer
-null<r, p0> fun-pointer1<r, p0>() noctx unsafe
+null<r, p0> fun* r(p0)() noctx unsafe
 	null as-fun-pointer
-null<r, p0, p1> fun-pointer2<r, p0, p1>() noctx unsafe
+null<r, p0, p1> fun* r(p0, p1)() noctx unsafe
 	null as-fun-pointer
-null<r, p0, p1, p2> fun-pointer3<r, p0, p1, p2>() noctx unsafe
+null<r, p0, p1, p2> fun* r(p0, p1, p2)() noctx unsafe
 	null as-fun-pointer
-null<r, p0, p1, p2, p3> fun-pointer4<r, p0, p1, p2, p3>() noctx unsafe
+null<r, p0, p1, p2, p3> fun* r(p0, p1, p2, p3)() noctx unsafe
 	null as-fun-pointer
-null<r, p0, p1, p2, p3, p4> fun-pointer5<r, p0, p1, p2, p3, p4>() noctx unsafe
+null<r, p0, p1, p2, p3, p4> fun* r(p0, p1, p2, p3, p4)() noctx unsafe
 	null as-fun-pointer
 
 # Same as `null`.
@@ -169,33 +166,33 @@ UB if a value of that type was not stored at the pointer.
 ###
 as-ref<a> a(a any-mut-pointer) no-doc noctx unsafe builtin
 
-as-fun-pointer<r> fun-pointer0<r>(a any-const-pointer) noctx unsafe
+as-fun-pointer<r> fun* r()(a any-const-pointer) noctx unsafe
 	a as-ref
-as-fun-pointer<r, p0> fun-pointer1<r, p0>(a any-const-pointer) noctx unsafe
+as-fun-pointer<r, p0> fun* r(p0)(a any-const-pointer) noctx unsafe
 	a as-ref
-as-fun-pointer<r, p0, p1> fun-pointer2<r, p0, p1>(a any-const-pointer) noctx unsafe
+as-fun-pointer<r, p0, p1> fun* r(p0, p1)(a any-const-pointer) noctx unsafe
 	a as-ref
-as-fun-pointer<r, p0, p1, p2> fun-pointer3<r, p0, p1, p2>(a any-const-pointer) noctx unsafe
+as-fun-pointer<r, p0, p1, p2> fun* r(p0, p1, p2)(a any-const-pointer) noctx unsafe
 	a as-ref
-as-fun-pointer<r, p0, p1, p2, p3> fun-pointer4<r, p0, p1, p2, p3>(a any-const-pointer) noctx unsafe
+as-fun-pointer<r, p0, p1, p2, p3> fun* r(p0, p1, p2, p3)(a any-const-pointer) noctx unsafe
 	a as-ref
-as-fun-pointer<r, p0, p1, p2, p3, p4> fun-pointer5<r, p0, p1, p2, p3, p4>(
+as-fun-pointer<r, p0, p1, p2, p3, p4> fun* r(p0, p1, p2, p3, p4)(
 	a any-const-pointer,
 ) noctx unsafe
 	a as-ref
-as-fun-pointer<r, p0, p1, p2, p3, p4, p5> fun-pointer6<r, p0, p1, p2, p3, p4, p5>(
+as-fun-pointer<r, p0, p1, p2, p3, p4, p5> fun* r(p0, p1, p2, p3, p4, p5)(
 	a any-const-pointer,
 ) noctx unsafe
 	a as-ref
-as-fun-pointer<r, p0, p1, p2, p3, p4, p5, p6> fun-pointer7<r, p0, p1, p2, p3, p4, p5, p6>(
+as-fun-pointer<r, p0, p1, p2, p3, p4, p5, p6> fun* r(p0, p1, p2, p3, p4, p5, p6)(
 	a any-const-pointer,
 ) noctx unsafe
 	a as-ref
-as-fun-pointer<r, p0, p1, p2, p3, p4, p5, p6, p7> fun-pointer8<r, p0, p1, p2, p3, p4, p5, p6, p7>(
+as-fun-pointer<r, p0, p1, p2, p3, p4, p5, p6, p7> fun* r(p0, p1, p2, p3, p4, p5, p6, p7)(
 	a any-const-pointer,
 ) noctx unsafe
 	a as-ref
-as-fun-pointer<r, p0, p1, p2, p3, p4, p5, p6, p7, p8> fun-pointer9<r, p0, p1, p2, p3, p4, p5, p6, p7, p8>(
+as-fun-pointer<r, p0, p1, p2, p3, p4, p5, p6, p7, p8> fun* r(p0, p1, p2, p3, p4, p5, p6, p7, p8)(
 	a any-const-pointer,
 ) noctx unsafe
 	a as-ref

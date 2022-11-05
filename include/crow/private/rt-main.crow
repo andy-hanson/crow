@@ -2,7 +2,7 @@ no-std
 import
 	../col/array: array, subscript
 	../col/list: for-loop, list, tail, to-list
-	../fun-util: fun-pointer1, subscript
+	../fun-util: subscript
 	../future: delay, future, handle-exceptions, then
 	../misc: new, void
 	../number: ==, <=>, +, -, int32, nat64, to-int32, to-int64, to-nat64
@@ -21,7 +21,7 @@ import
 	./thread-utils: count-processors, create-one-thread, join-one-thread, thread-handle
 
 .main-pointer alias
-	fun-pointer1<nat64^, string[]>
+	fun* nat64^(string[])
 
 # Treated specially by the compiler
 rt-main int32(argc int32, argv c-string*, main-pointer main-pointer) trusted noctx summon
@@ -76,7 +76,7 @@ init-constants void() unsafe noctx summon builtin
 # TODO: if mut-bag-node is in unmanaged memory, don't need ctx for this
 # We want main-fut to be available immediately, not after having run some user code.
 # So we create main-fut now, and forward the result of 'main' to that.
-.add-first-task nat64^(all-args array c-string, main-pointer fun-pointer1<nat64^, string[]>) unsafe
+.add-first-task nat64^(all-args array c-string, main-pointer fun* nat64^(string[])) unsafe
 	# 'then' is useful here -- it handles any errors in 'main' and gets us main-fut immediately.
 	# TODO: 'then' overload for void^ taking lambda with 0 params
 	res = delay then () =>

@@ -1,7 +1,7 @@
 no-std
 import
 	../col/array: array, for-loop, size
-	../fun-util: fun-pointer0, subscript
+	../fun-util: subscript
 	../io/print: out, print
 	../misc: void
 	../string: ~~, literal, to-string
@@ -14,4 +14,4 @@ run-all-tests void() summon trusted
 		x[]
 	out print "Done running tests"
 
-.all-tests array fun-pointer0 void() builtin
+.all-tests array<fun* void()>() builtin

@@ -1166,6 +1166,9 @@ immutable(Expr) checkLambda(
 		case FunKind.mut:
 		case FunKind.ref_:
 			break;
+		case FunKind.pointer:
+			todo!void("ensure no closure");
+			break;
 	}
 	immutable VariableRef[] closureFields =
 		map(ctx.alloc, tempAsArr(lambdaInfo.closureFields), (ref immutable ClosureFieldBuilder x) =>

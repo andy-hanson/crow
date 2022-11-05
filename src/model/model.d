@@ -1462,12 +1462,13 @@ enum FunKind {
 	plain,
 	mut,
 	ref_,
+	pointer,
 }
 
 struct FunKindAndStructs {
 	immutable FunKind kind;
 	// indexed by arity
-	immutable StructDecl*[5] structs;
+	immutable StructDecl*[10] structs;
 }
 
 struct CommonTypes {
@@ -1488,8 +1489,11 @@ struct CommonTypes {
 	immutable StructDecl* opt;
 	immutable StructDecl* ptrConst;
 	immutable StructDecl* ptrMut;
-	immutable StructDecl*[10] funPtrStructs; // Indexed by arity
-	immutable FunKindAndStructs[3] funKindsAndStructs;
+	immutable FunKindAndStructs[4] funKindsAndStructs;
+
+	ref immutable(StructDecl*[10]) funPtrStructs() scope return immutable {
+		return funKindsAndStructs[3].structs;
+	}
 }
 
 struct IntegralTypes {
