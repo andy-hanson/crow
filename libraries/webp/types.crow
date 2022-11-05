@@ -1,6 +1,0 @@
-import
-	crow/c-types: size_t
-	crow/pointer: any-mut-pointer
-
-WebPMalloc any-mut-pointer(size size_t) extern<webp> noctx summon unsafe
-WebPFree void(pointer any-mut-pointer) extern<webp> noctx summon unsafe
