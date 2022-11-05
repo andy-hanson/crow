@@ -4,6 +4,7 @@ import
 	../exception: exception, to-string
 	../io/print: err, print, print-no-newline
 	../io/private/time-low-level: get-monotime-nsec, timestamp
+	../log: default-log-handler, set-log-handler, log-handler
 	../misc: void
 	../number: ==, nat64
 	../option: new, option
@@ -14,7 +15,6 @@ import
 		gc, init, needs-gc, return-gc-ctx, run-garbage-collection, set-gc-ctx-for-thread, uninit
 	./bool-low-level: !, &&, ||, bool, false, true
 	./bootstrap: call-with-ctx, hard-assert, new, symbol
-	./log-low-level: default-log-handler, set-log-handler, log-handler
 	./task-queue:
 		action, add-task, add-tasks, add-timed-task, any-tasks, exclusion, first-task-time, init,
 		is-empty, pop-task, return-task, task, task-list, task-node, task-node-with-time,
