@@ -436,6 +436,10 @@ end-iter<a> list-iter<a>(a a[])
 	as branch b
 		a, b.right.end-iter.to-iter3d, l0-right
 
+peek<a> a?(a list-iter a)
+	if n ?= a next
+		n.value,
+
 ###
 Returns the next element and next iterator.
 Returns an empty option if the iterator was already at the end of the list.
@@ -496,11 +500,11 @@ end-mut-iter<a> mut-list-iter a(a a[])
 	a.end-iter,
 
 # Copy to an immutable iterator.
-iter<a> list-iter a(a mut-list-iter a)
+save<a> list-iter a(a mut-list-iter a)
 	a.inner
 
-copy<a> mut-list-iter a(a mut-list-iter a)
-	a.inner,
+restore<a> void(a mut-list-iter a, saved list-iter a)
+	a.inner := saved
 
 ###
 Advances the iterator and returns the next element.

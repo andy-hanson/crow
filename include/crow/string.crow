@@ -6,11 +6,11 @@ import
 	./col/array: array, as-array, begin-pointer
 	./col/iter: new, rest, value, value-and-rest
 	./col/list:
-		~, ~~, as-list, contains-sublist, copy, drop-right-while, drop-while, end-iter, ends-with,
+		~, ~~, as-list, contains-sublist, drop-right-while, drop-while, end-iter, ends-with,
 		for-loop, is-empty, iter, left, list, list-cast, list-compare, list-equal, list-iter,
-		middle, mut-iter, mut-list-iter, new, next, peek, prev, repeat, reverse, right, slice-left,
-		slice-right, split-by-sublist, starts-with, to-array, to-list, try-remove-end,
-		try-remove-start, try-split-once-by-fn, try-split-once-by-sublist,
+		middle, mut-iter, mut-list-iter, new, next, peek, prev, repeat, restore, reverse, right,
+		save, slice-left, slice-right, split-by-sublist, starts-with, to-array, to-list,
+		try-remove-end, try-remove-start, try-split-once-by-fn, try-split-once-by-sublist,
 		try-split-once-by-sublist-right
 	./col/mut-list: copy, move-to-list, to-mut-list
 	./hash: hasher, hash-mix
@@ -77,7 +77,9 @@ is-empty bool(a string)
 
 hash-mix void(hasher hasher, a string)
 	for c : a char8s
-		hasher hash-mix c.to-nat8.to-nat64
+		hasher hash-mix c
+hash-mix void(hasher hasher, a char8)
+	hasher hash-mix a.to-nat8.to-nat64
 
 region conversion
 
@@ -271,6 +273,9 @@ iter string-iter(a string)
 end-iter string-iter(a string)
 	a.char8s.end-iter,
 
+peek char8?(a string-iter)
+	a.inner peek
+
 next value-and-rest<char8, string-iter>?(a string-iter)
 	if res ?= a.inner next
 		(res.value, (res.rest,)),
@@ -291,14 +296,20 @@ mut-string-iter record mut
 mut-iter mut-string-iter(a string)
 	a.char8s.mut-iter,
 
-copy mut-string-iter(a mut-string-iter)
-	a.inner.copy,
+save string-iter(a mut-string-iter)
+	a.inner.save,
+
+restore void(a mut-string-iter, saved string-iter)
+	a.inner restore saved.inner
 
 peek char8?(a mut-string-iter)
 	a.inner peek
 
 next char8?(a mut-string-iter)
 	a.inner next
+
+prev char8?(a mut-string-iter)
+	a.inner prev
 
 region split
 

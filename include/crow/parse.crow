@@ -1,0 +1,362 @@
+no-std
+import
+	./bool: &&, bool, false, new, true
+	./cell: *, cell, new, set-deref
+	./col/list: ~, for-loop, list, new
+	./col/mut-list: ~=, move-to-list, mut-list, new
+	./col/set: in, new, set
+	./compare: !=, <=
+	./fun-util: subscript
+	./misc: new, void
+	./number: ==, <=>, +, -, *, **, float64, int64, nat64, to-float64, to-int64, to-nat64
+	./option: ??, is-empty, new, option, option-equal
+	./result: err, ok, result, then
+	./string:
+		==, <=>, ~~, as-string, char8, char8s, hash-mix, literal, mut-iter, mut-string-iter, next,
+		peek, prev, restore, save, string, string-iter, to-nat8, to-string
+	./tuple: a, b, new, pair
+
+###
+Match a string against a grammar.
+THe whole string must match the grammar.
+If the string has leading or trailing spaces you must use a grammar that includes those.
+###
+parse<a> result<a, parse-error>(a grammar a, text string)
+	iter = text mut-iter
+	match a.fn[iter]
+	as ok v
+		if iter.next is-empty
+			v ok
+		else
+			_ = iter prev
+			(text, iter.save, "string continues past end of parse") err
+	as err e
+		(text, e.iter, e.description) err
+
+parse-error record
+	input string
+	iter string-iter
+	description string
+
+.inner-parse-error record
+	iter string-iter
+	description string
+
+to-string string(a parse-error)
+	# TODO: show where it is
+	peek = if p ?= a.iter peek
+		"'{p}'"
+	else
+		"EOF"
+	"expected {a description}, got {peek}"
+
+###
+Opaque grammar type parsing an 'a' value.
+Use the functions in this module to build a grammar.
+###
+grammar<a> record mut
+	# This function does *not* restore the iterator on error!
+	.fn act result<a, inner-parse-error>(mut-string-iter)
+
+# This is like 'grammar' but produces no result.
+grammar-skip record mut
+	.inner grammar void
+
+.make-grammar record
+.make-grammar make-grammar()
+	()
+.with-block<a> grammar a(_ make-grammar, f act result<a, inner-parse-error>(mut-string-iter))
+	f,
+
+region basic building blocks
+
+# Use to discard the result of any grammar.
+skip<a> grammar-skip(a grammar a)
+	(a map _ => ()),
+
+# Grammar for a single character matching the predicate.
+.char-matching-predicate grammar char8(description string, predicate fun bool(char8))
+	with iter : make-grammar
+		if n ?= iter next
+			if predicate[n]
+				n ok
+			else
+				_ = iter prev
+				(iter.save, description) err
+		else
+			(iter.save, description) err
+
+.try-take-exact bool(iter mut-string-iter, expect string)
+	# TODO:PERF use for-break
+	saved = iter save
+	ok cell bool = true,
+	for expected : expect.char8s
+		if actual ?= iter.next
+			if actual != expected
+				iter restore saved
+				*ok := false
+		else
+			iter restore saved
+			*ok := false
+	*ok
+
+###
+Expects to parse 'a' followed by 'b'.
+By default this does not allow spaces in between. For that, use `a ~~ spaces ~~ b`.
+###
+~~ <a, b> grammar<(a, b)>(a grammar a, b grammar b)
+	with iter : make-grammar
+		x <- a.fn[iter]
+		y <- b.fn[iter]
+		(x, y) ok
+~~ <a> grammar a(a grammar a, b grammar-skip)
+	with iter : make-grammar
+		x <- a.fn[iter]
+		_ <- b.inner.fn[iter]
+		x ok
+~~ <a> grammar a(a grammar-skip, b grammar a)
+	with iter : make-grammar
+		_ <- a.inner.fn[iter]
+		x <- b.fn[iter]
+		x ok
+~~ grammar-skip(a grammar-skip, b grammar-skip)
+	a.inner ~~ b,
+# Skips an exact string and parses 'b'
+~~ <a> grammar a(a string, b grammar a)
+	a.exact.skip ~~ b
+# Parses 'a' then skips an exact string
+~~ <a> grammar a(a grammar a, b string)
+	a ~~ b.exact.skip
+~~ grammar-skip(a string, b grammar-skip)
+	a.exact.skip ~~ b
+~~ grammar-skip(a grammar-skip, b string)
+	a ~~ b.exact.skip
+
+# Tries to parse with 'a', and if that fails, tries to parse with 'b' instead.
+/ <a> grammar a(a grammar a, b grammar a)
+	with iter : make-grammar
+		saved = iter save
+		match a.fn[iter]
+		as ok v
+			v ok
+		as err _
+			iter restore saved
+			b.fn[iter]
+
+# Uses a function to transform the result if parsing is successful.
+map<out, in> grammar out(a grammar in, f fun out(in))
+	with iter : make-grammar
+		x <- a.fn[iter]
+		f[x] ok
+map<out, in0, in1> grammar out(a grammar (in0, in1), f fun out(in0, in1))
+	with iter : make-grammar
+		x <- a.fn[iter]
+		f[x.a, x.b] ok
+
+# Allows parsing to fail, returning an empty option if it does.
+optional<a> grammar a?(a grammar a)
+	with iter : make-grammar
+		match a.fn[iter]
+		as ok v
+			(v,) ok
+		as err _
+			() ok
+# Optionally skips an exact string.
+optional grammar-skip(a string)
+	a.exact.optional skip
+
+# Parses the same grammar as many times as possible (including 0 times).
+many<a> grammar a[](a grammar a)
+	with iter : make-grammar
+		res a mut[] = ()
+		loop
+			saved = iter save
+			match a.fn[iter]
+			as ok v
+				res ~= v
+				continue
+			as err _
+				iter restore saved
+				break res.move-to-list ok
+
+# Parses 'a' at least once, then as many times as possible.
+one-or-more<a> grammar a[](a grammar a)
+	a ~~ a.many map x =>
+		x.a ~ x.b
+
+###
+Parses 'a' as many times as possible, with 'separator' in between.
+
+This does not allow a trailing separator;
+it is a parse error to have a separator not followed by another 'a'.
+###
+separated-by<a> grammar a[](a grammar a, separator string)
+	#	a separated-by separator.exact.skip
+	#separated-by<a> grammar a[](a grammar a, separator grammar-skip)
+	with iter : make-grammar
+		saved = iter save
+		match a.fn[iter]
+		as ok first
+			res a mut[] = first,
+			loop
+				if iter try-take-exact separator
+					match a.fn[iter]
+					as ok v
+						res ~= v
+						continue
+					as err e
+						break e err
+				else
+					break res.move-to-list ok
+		as err _
+			iter restore saved
+			() ok
+
+
+# Use this to allow recursive grammars. WHen a grammar cycles into itself, make it lazy.
+lazy record
+lazy lazy()
+	()
+with-block<a> grammar a(_ lazy, f fun grammar a())
+	with iter : make-grammar
+		# TODO: actually be lazy (cache it)
+		grammar = f[]
+		grammar.fn[iter]
+
+region basic elements
+
+# Matches 'a' exactly.
+exact grammar void(a string)
+	with iter : make-grammar
+		saved = iter save
+		if iter try-take-exact a
+			() ok
+		else
+			iter restore saved
+			(saved, "expected '{a}'") err
+
+# Matches any amount of whitespace (including none) and discards it.
+spaces grammar-skip()
+	("" char-matching-predicate (x => x.is-space)).many skip
+
+.is-space bool(a char8)
+	a in space-chars
+.space-chars set char8()
+	" ", "\n", "\t"
+
+# A double-quoted string as in JSON, including escape sequences.
+quoted-string grammar string()
+	with iter : make-grammar
+		saved = iter save
+		if iter try-take "\""
+			if res ?= iter take-quoted-string-recur ()
+				res ok
+			else
+				(saved, "quoted string") err
+		else
+			(saved, "quoted string") err
+.take-quoted-string-recur string?(iter mut-string-iter, res char8 mut[])
+	if iter try-take "\""
+		res.move-to-list.as-string,
+	elif iter try-take "\\"
+		if esc ?= (iter.next ?? " ") escape
+			res ~= esc
+			iter take-quoted-string-recur res
+	elif n ?= iter next
+		res ~= n
+		iter take-quoted-string-recur res
+.escape char8?(a char8)
+	if a == "n"
+		"\n",
+	elif a == "r"
+		"\r",
+	elif a == "t"
+		"\t",
+	elif a == "\""
+		"\"",
+	elif a == "\\"
+		"\\",
+	elif a == "0"
+		"\0",
+
+# Matches and returns a sequence of letters.
+word grammar string()
+	letter.one-or-more map (x => x as-string)
+
+.letter grammar char8()
+	"letter" char-matching-predicate x => x.is-letter
+
+.is-letter bool(a char8)
+	# TODO: support other alphabets
+	"a".to-nat8 <= a.to-nat8 && a.to-nat8 <= "z".to-nat8
+
+###
+Parses a natural number in decimal format.
+This allows leading 0s which have no effect.
+###
+nat grammar nat64()
+	with iter : make-grammar
+		saved = iter save
+		if x ?= iter take-nat-and-count-digits
+			x.value ok
+		else
+			(saved, "natural number") err
+
+###
+Parses a signed integer in decimal format.
+This allows e.g. "1", "+23", "-45".
+###
+int grammar int64()
+	("+".optional ~~ (nat map x => x to-int64)) / ("+" ~~ (nat map x => -x.to-int64))
+
+.nat-and-count-digits record
+	.value nat64
+	.count-digits nat64
+.take-nat-and-count-digits nat-and-count-digits?(a mut-string-iter)
+	if c ?= a next
+		if digit ?= c char-to-nat64
+			(digit take-nat-and-count-digits-recur 1, a),
+.take-nat-and-count-digits-recur nat-and-count-digits(acc nat64, count-digits nat64, a mut-string-iter)
+	if p ?= a peek
+		if v ?= p char-to-nat64
+			_ = a next
+			acc * 10 + v take-nat-and-count-digits-recur count-digits + 1, a
+		else
+			acc, count-digits
+	else
+		acc, count-digits
+
+.char-to-nat64 nat64?(c char8)
+	if "0".to-nat8 <= c.to-nat8 && c.to-nat8 <= "9".to-nat8
+		(c.to-nat8 - "0".to-nat8).to-nat64,
+
+float grammar float64()
+	with iter : make-grammar
+		saved = iter save
+		sign float64 = if iter try-take "-"
+			-1
+		else
+			_ = iter try-take "+"
+			1
+		if whole-nat ?= iter take-nat-and-count-digits
+			whole-part = whole-nat.value to-float64
+			before-dot = iter save
+			if iter try-take "."
+				if nd ?= iter take-nat-and-count-digits
+					# TODO: more accurate methods exist
+					sign * (whole-part + nd.value.to-float64 * 0.1 ** nd.count-digits) ok
+				else
+					iter restore before-dot
+					sign * whole-part ok
+			else
+				sign * whole-part ok
+		else
+			(saved, "float") err
+
+.try-take bool(a mut-string-iter, c char8)
+	if a.peek == (c,)
+		_ = a next
+		true
+
+.== bool(a char8?, b char8?)
+	a option-equal b

@@ -1,8 +1,16 @@
 no-std
 import
 	./exception: exception, rethrow
+	./fun-util: subscript
 export
 	./private/bootstrap: err, ok, result
+
+then<out, in, err> result<out, err>(a result<in, err>, f act result<out, err>(in))
+	match a
+	as ok v
+		f[v]
+	as err e
+		e err
 
 ok-or-throw<a> a(a result<a, exception>)
 	match a

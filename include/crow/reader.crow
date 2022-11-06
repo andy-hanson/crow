@@ -6,7 +6,7 @@ import
 	./misc: new, void
 	./number: +, *, **, float64, int64, nat64, to-float64, to-int64
 	./option: ??, is-empty, new, option
-	./string: ==, as-string, char8, copy, literal, mut-iter, mut-string-iter, next, peek, string
+	./string: ==, as-string, char8, literal, mut-iter, mut-string-iter, next, peek, restore, save, string
 	./test-util: is
 
 ###
@@ -73,11 +73,11 @@ Else, this does nothing and returns `false`.
 This will not read only part of `s`; it's all or nothing.
 ###
 try-take-string bool(a reader, s string) trusted
-	start = a.iter copy
+	start = a.iter save
 	if a.iter try-take-string-recur s.mut-iter
 		true
 	else
-		a.iter := start
+		a.iter restore start
 		false
 
 try-take-string-recur bool(a mut-string-iter, b mut-string-iter)
@@ -116,7 +116,7 @@ take-nat nat64?(a reader)
 
 # This is like `take-nat`, but the number may start with a `+` or `-` sign.
 take-int int64?(a reader) trusted
-	start = a.iter copy
+	start = a.iter save
 	sign = if a try-take-sign
 		+1
 	else
@@ -124,7 +124,7 @@ take-int int64?(a reader) trusted
 	if n ?= a take-nat
 		n.to-int64 * sign,
 	else
-		a.iter := start
+		a.iter restore start
 		()
 
 # TODO: use 'is-whitespace' function
@@ -153,13 +153,13 @@ take-float float64?(a reader) trusted
 		-1.0
 	if whole-nat ?= a take-nat
 		whole-part = whole-nat to-float64
-		before-dot = a.iter copy
+		before-dot = a.iter save
 		if a try-take-char "."
 			if nd ?= a take-nat-and-count-digits
 				# TODO: more accurate methods exist
 				sign * (whole-part + nd.value.to-float64 * 0.1 ** nd.count-digits),
 			else
-				a.iter := before-dot
+				a.iter restore before-dot
 				sign * whole-part,
 		else
 			sign * whole-part,
@@ -174,11 +174,11 @@ Unlike in crow, `{` is not a special character.
 Does nothing and returns an empty option if it did not take an entire quoted string correctly.
 ###
 take-quoted-string string?(a reader)
-	start = a.iter copy
+	start = a.iter save
 	if a try-take-char "\""
 		res = a take-quoted-string-recur ()
 		if res is-empty
-			a.iter := start
+			a.iter restore start
 		res
 
 .take-quoted-string-recur string?(a reader, res char8 mut[])
