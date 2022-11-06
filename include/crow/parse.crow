@@ -13,7 +13,7 @@ import
 	./result: err, ok, result, then
 	./string:
 		==, <=>, ~~, as-string, char8, char8s, hash-mix, literal, mut-iter, mut-string-iter, next,
-		peek, prev, restore, save, string, string-iter, to-nat8, to-string
+		peek, prev, restore, save, string, string-iter, to-nat8, to-c-string, to-string
 	./tuple: a, b, new, pair
 
 ###
@@ -31,16 +31,29 @@ parse<a> result<a, parse-error>(a grammar a, text string)
 			_ = iter prev
 			(text, iter.save, "string continues past end of parse") err
 	as err e
-		(text, e.iter, e.description) err
+		(text, e.iter, e.expected) err
+
+# Return a parse result or throw on error.
+! <a> a(a result<a, parse-error>)
+	match a
+	as ok v
+		v
+	as err e
+		throw "{e}"
 
 parse-error record
+	# The argument passed to 'parse'
 	input string
+	# Position where the parse error happened
 	iter string-iter
-	description string
+	# Description of what was expected.
+	expected string
+== bool(a parse-error, b parse-error)
+	a.input == b.input && a.iter == b.iter && a.expected == b.expected
 
 .inner-parse-error record
 	iter string-iter
-	description string
+	expected string
 
 to-string string(a parse-error)
 	# TODO: show where it is
@@ -48,7 +61,7 @@ to-string string(a parse-error)
 		"'{p}'"
 	else
 		"EOF"
-	"expected {a description}, got {peek}"
+	"expected {a expected}, got {peek}"
 
 ###
 Opaque grammar type parsing an 'a' value.
@@ -60,7 +73,11 @@ grammar<a> record mut
 
 # This is like 'grammar' but produces no result.
 grammar-skip record mut
-	.inner grammar void
+	inner grammar void
+
+# Grammar matching empty strings
+new grammar-skip()
+	"" exact
 
 .make-grammar record
 .make-grammar make-grammar()
@@ -123,14 +140,14 @@ By default this does not allow spaces in between. For that, use `a ~~ spaces ~~ 
 	a.inner ~~ b,
 # Skips an exact string and parses 'b'
 ~~ <a> grammar a(a string, b grammar a)
-	a.exact.skip ~~ b
+	a.exact ~~ b
 # Parses 'a' then skips an exact string
 ~~ <a> grammar a(a grammar a, b string)
-	a ~~ b.exact.skip
+	a ~~ b.exact
 ~~ grammar-skip(a string, b grammar-skip)
-	a.exact.skip ~~ b
+	a.exact ~~ b
 ~~ grammar-skip(a grammar-skip, b string)
-	a ~~ b.exact.skip
+	a ~~ b.exact
 
 # Tries to parse with 'a', and if that fails, tries to parse with 'b' instead.
 / <a> grammar a(a grammar a, b grammar a)
@@ -143,12 +160,13 @@ By default this does not allow spaces in between. For that, use `a ~~ spaces ~~ 
 			iter restore saved
 			b.fn[iter]
 
+# TODO: use 'fun' not 'act'
 # Uses a function to transform the result if parsing is successful.
-map<out, in> grammar out(a grammar in, f fun out(in))
+map<out, in> grammar out(a grammar in, f act out(in))
 	with iter : make-grammar
 		x <- a.fn[iter]
 		f[x] ok
-map<out, in0, in1> grammar out(a grammar (in0, in1), f fun out(in0, in1))
+map<out, in0, in1> grammar out(a grammar (in0, in1), f act out(in0, in1))
 	with iter : make-grammar
 		x <- a.fn[iter]
 		f[x.a, x.b] ok
@@ -163,7 +181,7 @@ optional<a> grammar a?(a grammar a)
 			() ok
 # Optionally skips an exact string.
 optional grammar-skip(a string)
-	a.exact.optional skip
+	a.exact.inner.optional skip
 
 # Parses the same grammar as many times as possible (including 0 times).
 many<a> grammar a[](a grammar a)
@@ -191,22 +209,23 @@ This does not allow a trailing separator;
 it is a parse error to have a separator not followed by another 'a'.
 ###
 separated-by<a> grammar a[](a grammar a, separator string)
-	#	a separated-by separator.exact.skip
-	#separated-by<a> grammar a[](a grammar a, separator grammar-skip)
+	a separated-by separator.exact
+separated-by<a> grammar a[](a grammar a, separator grammar-skip)
 	with iter : make-grammar
 		saved = iter save
 		match a.fn[iter]
 		as ok first
 			res a mut[] = first,
 			loop
-				if iter try-take-exact separator
+				match separator.inner.fn[iter]
+				as ok _
 					match a.fn[iter]
 					as ok v
 						res ~= v
 						continue
 					as err e
 						break e err
-				else
+				as err _
 					break res.move-to-list ok
 		as err _
 			iter restore saved
@@ -226,14 +245,19 @@ with-block<a> grammar a(_ lazy, f fun grammar a())
 region basic elements
 
 # Matches 'a' exactly.
-exact grammar void(a string)
-	with iter : make-grammar
+exact grammar-skip(a string)
+	res grammar void = with iter : make-grammar
 		saved = iter save
 		if iter try-take-exact a
 			() ok
 		else
 			iter restore saved
 			(saved, "expected '{a}'") err
+	res,
+
+# Equivalent to `a.exact map _ => value`
+exact<a> grammar a(a string, value a)
+	a.exact.inner map _ => value
 
 # Matches any amount of whitespace (including none) and discards it.
 spaces grammar-skip()
@@ -289,6 +313,10 @@ word grammar string()
 .is-letter bool(a char8)
 	# TODO: support other alphabets
 	"a".to-nat8 <= a.to-nat8 && a.to-nat8 <= "z".to-nat8
+
+# Parse a boolean as 'true' or 'false'
+bool grammar bool()
+	("true" exact true) / ("false" exact false)
 
 ###
 Parses a natural number in decimal format.

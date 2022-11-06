@@ -1,6 +1,7 @@
 import
 	crow/io/process: exit-code, spawn-and-wait-result, stderr, stdout
-	crow/json: as-bool, as-list, as-string, json, parse-json, subscript
+	crow/json: as-bool, as-list, as-string, json, subscript
+	crow/parse: !, ~~, parse, spaces
 	crow/version: is-windows
 	./module:
 		alias-decl, builtin-decl, enum-decl, extern-pointer-decl, flags-decl, fun-decl, module,
@@ -12,7 +13,7 @@ get-modules module[](paths string[], remove-prefix string) summon
 	result = crow-path spawn-and-wait-result "doc" ~ paths
 	unless result.exit-code == 0 && result.stderr.is-empty
 		throw "Could not get documentation: exit code {result exit-code}, stderr: {result stderr}"
-	result.stdout.parse-json! to-modules remove-prefix
+	((json ~~ spaces) parse result.stdout)! to-modules remove-prefix
 
 .crow-path string() trusted
 	if is-windows

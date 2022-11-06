@@ -17,8 +17,8 @@ import
 	../../misc: is-sendable, new, void
 	../../number: ==, <=>, +, nat8, nat64, to-int64, to-nat64
 	../../option: ??, new, option
+	../../parse: nat, parse
 	../../range: ..
-	../../reader: parse-nat
 	../../string:
 		==, <=>, ~~, as-string, contains-substr, hash-mix, is-empty, join, literal, split-by, string,
 		to-bytes, to-c-string, to-nat8, to-string, try-remove-end
@@ -129,10 +129,11 @@ with-block<a> a^(a http-server-options, cb ref a(http-server)) is-sendable<a> tr
 		if line is-empty
 			if content-length-string ?= state.headers["content-length"]
 				# set state.content-length
-				if content-length ?= content-length-string parse-nat
+				match nat parse content-length-string
+				as ok content-length
 					state.content-length := content-length
 					false
-				else
+				as err _
 					# invalid content-length
 					todo
 			else

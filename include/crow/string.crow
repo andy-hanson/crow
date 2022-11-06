@@ -8,10 +8,10 @@ import
 	./col/list:
 		~, ~~, as-list, contains-sublist, drop-right-while, drop-while, end-iter, ends-with,
 		for-loop, is-empty, iter, left, list, list-cast, list-compare, list-equal, list-iter,
-		middle, mut-iter, mut-list-iter, new, next, peek, prev, repeat, restore, reverse, right,
-		save, slice-left, slice-right, split-by-sublist, starts-with, to-array, to-list,
-		try-remove-end, try-remove-start, try-split-once-by-fn, try-split-once-by-sublist,
-		try-split-once-by-sublist-right
+		list-iter-equal, middle, mut-iter, mut-list-iter, new, next, peek, prev, repeat, restore,
+		reverse, right, save, size, slice-left, slice-right, split-by-sublist, starts-with,
+		to-array, to-list, try-remove-end, try-remove-start, try-split-once-by-fn,
+		try-split-once-by-sublist, try-split-once-by-sublist-right
 	./col/mut-list: copy, move-to-list, to-mut-list
 	./hash: hasher, hash-mix
 	./misc: void
@@ -64,6 +64,10 @@ new string() noctx
 # Same as `a == ""`.
 is-empty bool(a string)
 	a.inner is-empty
+
+# Size in `char8`s
+size nat64(a string)
+	a.inner size
 
 == bool(a string, b string) noctx trusted
 	a.inner list-equal b.inner
@@ -266,6 +270,8 @@ region iterator
 
 string-iter record by-val
 	.inner list-iter char8
+== bool(a string-iter, b string-iter)
+	a.inner list-iter-equal b.inner
 
 iter string-iter(a string)
 	a.char8s.iter,

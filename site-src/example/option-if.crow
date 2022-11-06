@@ -1,14 +1,17 @@
 import
 	crow/io/print: out, print
-	crow/reader: parse-nat
 
 main nat^(_ string[]) summon
-	out print "2".double
-	out print "X".double
+	out print "salsa".pair
+	out print "pickles".pair
 	()
 
-double string(a string)
-	if n ?= a parse-nat
-		"{n * 2}"
+pair string(a string)
+	if b ?= a pairing
+		"{a} and {b}"
 	else
-		"{a}{a}"
+		"{a} alone"
+
+pairing string?(a string)
+	if a == "salsa"
+		"chips",

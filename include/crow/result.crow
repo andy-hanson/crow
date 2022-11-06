@@ -1,9 +1,27 @@
 no-std
 import
+	./bool: bool, false
+	./compare: equal
 	./exception: exception, rethrow
 	./fun-util: subscript
 export
 	./private/bootstrap: err, ok, result
+
+result-equals<a, b> bool(a result<a, b>, b result<a, b>) equal<a> equal<b>
+	match a
+	as ok oa
+		match b
+		as ok ob
+			oa == ob
+		as err _
+			false
+	as err ea
+		match b
+		as ok _
+			false
+		as err eb
+			ea == eb
+
 
 then<out, in, err> result<out, err>(a result<in, err>, f act result<out, err>(in))
 	match a
@@ -12,7 +30,7 @@ then<out, in, err> result<out, err>(a result<in, err>, f act result<out, err>(in
 	as err e
 		e err
 
-ok-or-throw<a> a(a result<a, exception>)
+! <a> a(a result<a, exception>)
 	match a
 	as ok v
 		v

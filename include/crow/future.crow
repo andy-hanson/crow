@@ -11,7 +11,7 @@ import
 	./private/runtime: add-task, cur-exclusion, exception-handler, get-global-ctx, new-exclusion
 	./private/task-queue: task
 	./private/thread-utils: init, lock, uninit
-	./result: ok-or-throw, result
+	./result: !, result
 	./tuple: a, b, new, pair
 export
 	./private/bootstrap: future
@@ -56,7 +56,7 @@ Use `wait-fold` instead of you intend to iterate over the result anyway.
 ###
 wait-all<a> a[]^(futures a^[]) trusted is-sendable<a> is-sendable<a[]>
 	<- futures wait-all-complete
-	(for x : futures; x.get-result ok-or-throw),
+	(for x : futures; x.get-result!),
 
 ###
 Waits on each of `futures` in turn, calling `f` to get a new accumulator.

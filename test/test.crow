@@ -1,8 +1,8 @@
 import
 	crow/io/path: child-path, parent-path
 	crow/io/print: out, print
+	crow/parse: !, nat, parse
 	crow/parse-command: parse-named-args
-	crow/reader: parse-nat
 	crow/version: is-windows
 	./failure: first-failures, new, print-failures, test-options
 	./lint: lint
@@ -22,7 +22,7 @@ main nat^(args string[]) summon
 			true
 		max-failures = if strs ?= max-failures-strs
 			assert strs.size == 1
-			strs[0].parse-nat!
+			(nat parse strs[0])!
 		else
 			100
 		match-test = if strs ?= match-test-strs

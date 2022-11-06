@@ -7,12 +7,10 @@ import
 	../../log: info, log
 	../../misc: new
 	../../number: ==, <=>, -, nat8, nat64, to-int64
-	../../option: new, option
+	../../parse: ~~, grammar, int, map, nat
 	../../range: ..
-	../../reader: parse-int, parse-nat
 	../../serialize: from-bytes, to-8-bytes
-	../../string: ~~, literal, string, to-string, try-split-once
-	../../tuple: a, b
+	../../string: ~~, literal, string, to-string
 	../random: random-nat64
 
 login-cookie record
@@ -41,8 +39,6 @@ from-bytes login-cookie(a nat8[])
 to-string string(a login-cookie)
 	"{a.timestamp seconds-since-epoch}|{a cookie}"
 
-parse-login-cookie login-cookie?(a string)
-	if split ?= a try-split-once "|"
-		if time ?= split.a parse-int
-			if cookie ?= split.b parse-nat
-				((time,), cookie),
+login-cookie grammar login-cookie()
+	int ~~ "|" ~~ nat map (time, cookie) =>
+		(time,), cookie

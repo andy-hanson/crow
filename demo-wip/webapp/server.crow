@@ -7,10 +7,10 @@ import
 	crow/io/print: err, out, print
 	crow/io/stdin: read-stdin
 	crow/json: json, new, to-string
-	crow/reader: parse-nat
+	crow/parse: nat, parse, to-string
 	./db:
 		add-post, content, cookie-expire-seconds, db, list-posts, list-users, login, open-real-db,
-		post, post-info, parse-user-cookie, register-user, to-string, user, user-info, user-name,
+		post, post-info, register-user, to-string, user, user-cookie, user-info, user-name,
 		with-block
 
 main nat^(args string[]) unsafe summon
@@ -40,8 +40,12 @@ main nat^(args string[]) unsafe summon
 		elif path == "/posts"
 			(("posts", db.list-posts.json),)::json.to-string http-ok
 		elif path == "/user-name"
-			user = (query parse-query ("user",))[0].parse-nat!
-			db user-name user http-ok
+			user = query parse-query-single "user"
+			match nat parse user
+			as ok user-id
+				db user-name user-id http-ok
+			as err e
+				"{e}" http-bad-query
 		elif path == "/users"
 			(("users", db.list-users.json),)::json.to-string http-ok
 		else
@@ -49,12 +53,12 @@ main nat^(args string[]) unsafe summon
 	as http-post
 		if path == "/register"
 			args = req.request-body-string parse-query ("user-name", "password")
-			user-name = args[0]
-			password = args[1]
-			match db register-user user-name, password
+			match db register-user args[0], args[1]
 			as register-user-success user-id
 				# We need to get: user-name and password
 				(("userId", user-id.json),)::json.to-string http-ok
+			as bad-user-name message
+				"Bad user name: {message}" http-bad-query
 			as user-already-exists
 				"User already exists" http-bad-query
 		elif path == "/login"
@@ -73,54 +77,53 @@ main nat^(args string[]) unsafe summon
 				as wrong-password
 					"Wrong password" http-forbidden
 		elif path == "/post"
-			if cookie ?= req.headers["Cookie"]
-				user-cookie = (cookie parse-cookie "login").parse-user-cookie!
-				post = db add-post user-cookie, req.request-body-string
-				(("postId", post.json),)::json.to-string http-ok
+			if cookie ?= (req.headers["Cookie"] ?? "") parse-cookie "login"
+				match user-cookie parse cookie
+				as ok user-cookie
+					post = db add-post user-cookie, req.request-body-string
+					(("postId", post.json),)::json.to-string http-ok
+				as err e
+					"Error parsing 'login' cookie: {e}" http-forbidden
 			else
-				"No login cookie" http-forbidden
+				"Missing login cookie" http-forbidden
 		else
 			http-not-found
 	#descr = req describe-request
 	#200, "OK", dict, "Your request:\n{descr}"
 
-url record
+.url record
 	path string
 	query string
 
-split-url url(url-string string)
+.split-url url(url-string string)
 	if split ?= url-string try-split-once "?"
 		split.a, split.b
 	else
 		url-string, ""
 
 # Extra cookies are ignored
-parse-cookies string[](cookies-string string, cookie-names string[])
+.parse-cookies string?[](cookies-string string, cookie-names string[])
 	res string? mut[] = cookie-names.size fill-mut-list ()
 	for part : cookies-string split-by "; "
 		if pair ?= part try-split-once "="
 			if index ?= cookie-names index-of pair.a
 				res[index] := pair.b,
-	# TODO: for x, index : res
-	for index : 0 .. res.size
-		res[index] ?? throw "Did not get cookie value for {cookie-names[index]}"
+	res move-to-list
 
-parse-cookie string(cookies-string string, cookie-name string)
+.parse-cookie string?(cookies-string string, cookie-name string)
 	(cookies-string parse-cookies (cookie-name,))[0]
 
-parse-query string[](s string, arg-names string[])
-	res string? mut[] = arg-names.size fill-mut-list ()
+# Result parallels 'arg-names'. Defaults to empty strings.
+.parse-query string[](s string, arg-names string[])
+	res string mut[] = arg-names.size fill-mut-list ""
 	for part : s split-by "&"
 		if pair ?= part try-split-once "="
 			if index ?= arg-names index-of pair.a
-				res[index] := pair.b,
-			else
-				throw "Unexpected key {pair a}"
-		else
-			throw "Invalid part: {part}"
-	# TODO: for x, index : res
-	for index : 0 .. res.size
-		res[index] ?? throw "Did not get argument for {arg-names[index]}"
+				res[index] := pair b
+	res move-to-list
+
+.parse-query-single string(s string, arg-name string)
+	(s parse-query (arg-name,))[0]
 
 .json json(a user-info)
 	("user", a.user.json), ("userName", a.user-name.json)

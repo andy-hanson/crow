@@ -4,13 +4,13 @@ import
 	./col/array: array
 	./col/dict: dict, dict-equal, for-loop, new, subscript, to-dict
 	./col/list: for-loop, list, list-equal, new, to-list
-	./col/mut-dict: move-to-dict, mut-dict, new, set-subscript
-	./col/mut-list: ~=, move-to-list, mut-list, new
+	./parse:
+		==, /, ~~, bool, exact, float, grammar, lazy, map, parse, parse-error, quoted-string,
+		separated-by, spaces, with-block
 	./misc: void
 	./number: ==, float64, int64, nat64, to-float64
 	./option: new, option
-	./reader:
-		reader, skip-whitespace, try-take-char, take-float, take-quoted-string, try-take-string, with-reader
+	./result: ok, result, result-equals
 	./string: ==, <=>, ~~, hash-mix, join, literal, quote, string, to-string
 	./test-util: is
 	./tuple: new, pair
@@ -153,16 +153,19 @@ subscript json?(a json, key string)
 	if o ?= a.as-object
 		o[key]
 
-###
-Parse a JSON string.
-
-The parser is strict and does not support trailing commas, comments, keys without quotes, etc.
-###
-parse-json json?(a string)
-	a with-reader r =>
-		res = r take-json
-		r skip-whitespace
-		res
+json grammar json()
+	with : lazy
+		(json-object map x => x.json-object) / (json-list map x => x.json-list) / json-primitive
+.json-object grammar json[string]()
+	pair grammar<(string, json)> = quoted-string ~~ spaces ~~ ":" ~~ spaces ~~ json
+	pairs grammar<(string, json)[]> = pair separated-by ","
+	pairs2 grammar<json[string]> = pairs map x => x.to-dict
+	"\{" ~~ spaces ~~ pairs2 ~~ spaces ~~ "}"
+.json-list grammar json[]()
+	"[" ~~ spaces ~~ (json separated-by "," ~~ spaces) ~~ spaces ~~ "]"
+.json-primitive grammar json()
+	literal = (bool map x => x json) / ("null" exact ())
+	(quoted-string map x => x json) / (float map x => x json-number) / literal
 
 # Renders a json value to JSON.
 to-string string(a json)
@@ -181,64 +184,12 @@ to-string string(a json)
 			"{k quote}:{v}"
 		"\{{parts}}"
 
-###
-Takes a JSON value from the start of a reader.
-
-If there is a parse error, this will leave the reader at the location of the parse error.
-
-This skips leading but not trailing whitespace.
-###
-take-json json?(a reader)
-	a skip-whitespace
-	if f ?= a take-float
-		f.json-number,
-	elif a try-take-string "true"
-		true.json-bool,
-	elif a try-take-string "false"
-		false.json-bool,
-	elif s ?= a take-quoted-string
-		s.json-string,
-	elif a try-take-char "["
-		a skip-whitespace
-		if a try-take-char "]"
-			().json-list,
-		else
-			a take-list-recur ()
-	elif a try-take-char "\{"
-		a skip-whitespace
-		if a try-take-char "}"
-			().json-object,
-		else
-			a take-object-recur ()
-
-.take-list-recur json?(a reader, res json mut[])
-	if j ?= a take-json
-		res ~= j
-		a skip-whitespace
-		if a try-take-char ","
-			a skip-whitespace
-			a take-list-recur res
-		elif a try-take-char "]"
-			res.move-to-list.json-list,
-
-.take-object-recur json?(a reader, res json mut[string])
-	if key ?= a take-quoted-string
-		a skip-whitespace
-		if a try-take-char ":"
-			if j ?= a take-json
-				res[key] := j
-				a skip-whitespace
-				if a try-take-char ","
-					a skip-whitespace
-					a take-object-recur res
-				elif a try-take-char "}"
-					res.move-to-dict.json-object,
-				else
-					a take-object-recur res
-
 .verify void(a json, s string)
-	s.parse-json is (a,)
+	json parse s is@<result<json, parse-error>> a.ok
 	a.to-string is s
+
+.== bool(a result<json, parse-error>, b result<json, parse-error>)
+	a result-equals b
 
 test
 	true.json-bool verify "true"

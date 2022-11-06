@@ -27,11 +27,11 @@ import
 	crow/log: info
 	crow/math/mat: new, mat3-32
 	crow/math/vec: new, vec2-32
+	crow/parse: grammar-skip, new
 	crow/parse-command: parse-named-args
 	crow/perf: measure-total, new
 	crow/private/number-tests: dummy-number-tests
 	crow/private/string-tests: dummy-string-tests
-	crow/reader: new, reader
 	crow/serialize: from-bytes
 	crow/test-util/test-runner: run-all-tests
 
@@ -49,6 +49,7 @@ main nat^(_ string[]) summon
 	_ = () :: environ
 	_ = () :: frozen-dict<nat, nat>
 	_ = () :: frozen-set<nat>
+	_ = () :: grammar-skip
 	_ = () :: hamt-set<nat>
 	_ = "".strip
 	_ = () :: index-set
@@ -66,7 +67,6 @@ main nat^(_ string[]) summon
 	_ = () :: measure-total
 	_ = () :: priority-queue<nat, nat>
 	_ = ((), (), ()) :: process-result
-	_ = () :: reader
 	_ = () :: set<nat>
 	_ = () :: sorted-set<nat>
 	_ = () :: stack<nat>
