@@ -933,7 +933,9 @@ void generateSpecialUnary(
 			break;
 		case LowExprKind.SpecialUnary.Kind.deref:
 			generateArg();
-			writeRead(writer, source, 0, typeSizeBytes(ctx, type));
+			immutable size_t size = typeSizeBytes(ctx, type);
+			if (size != 0)
+				writeRead(writer, source, 0, size);
 			handleAfter(writer, ctx, source, after);
 			break;
 		case LowExprKind.SpecialUnary.Kind.toFloat32FromFloat64:
@@ -1064,14 +1066,19 @@ void generateSpecialBinary(
 		case LowExprKind.SpecialBinary.Kind.subPtrAndNat64:
 			immutable LowType pointee = asPtrRawPointee(a.left.type);
 			generateExprAndContinue(writer, ctx, locals, a.left);
+			immutable StackEntry afterLeft = getNextStackEntry(writer);
 			generateExprAndContinue(writer, ctx, locals, a.right);
 			immutable size_t pointeeSize = typeSizeBytes(ctx, pointee);
-			if (pointeeSize != 1)
+			if (pointeeSize != 0 && pointeeSize != 1)
 				writeMulConstantNat64(writer, source, pointeeSize);
-			if (a.kind == LowExprKind.SpecialBinary.Kind.addPtrAndNat64)
-				writeFnBinary!fnWrapAddIntegral(writer, source);
-			else
-				writeFnBinary!fnWrapSubIntegral(writer, source);
+			if (pointeeSize == 0) {
+				writeRemove(writer, source, immutable StackEntries(afterLeft, 1));
+			} else {
+				if (a.kind == LowExprKind.SpecialBinary.Kind.addPtrAndNat64)
+					writeFnBinary!fnWrapAddIntegral(writer, source);
+				else
+					writeFnBinary!fnWrapSubIntegral(writer, source);
+			}
 			handleAfter(writer, ctx, source, after);
 			break;
 		case LowExprKind.SpecialBinary.Kind.addFloat32:
@@ -1266,7 +1273,10 @@ void generateSpecialBinary(
 		case LowExprKind.SpecialBinary.Kind.writeToPtr:
 			generateExprAndContinue(writer, ctx, locals, a.left);
 			generateExprAndContinue(writer, ctx, locals, a.right);
-			writeWrite(writer, source, 0, typeSizeBytes(ctx, a.right.type));
+			immutable size_t size = typeSizeBytes(ctx, a.right.type);
+			if (size != 0) {
+				writeWrite(writer, source, 0, size);
+			}
 			handleAfter(writer, ctx, source, after);
 			break;
 	}

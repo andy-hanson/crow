@@ -289,31 +289,41 @@ Equivalent to calling `f[a[0]]`, `f[a[1]]`, etc.
 Calls `f` for each element in `a`.
 ###
 for-loop<a> void(a array a, f act void(a)) trusted
-	cur mut = a begin-pointer
-	end = a end-pointer
-	until cur == end
-		f[*cur]
-		cur := cur + 1
+	if size-of@<a> == 0
+		i mut = 0
+		until i == a.size
+			f[a[i]]
+			i := i + 1
+	else
+		cur mut = a begin-pointer
+		end = a end-pointer
+		until cur == end
+			f[*cur]
+			cur := cur + 1
 
 ###
 Equivalent to `f[a[0]], f[a[1]], ...`.
 Array containing `f[x]` for each `x` in `a`.
 ###
 for-loop<out, in> array out(a array in, f act out(in)) trusted
-	in-cur mut = a begin-pointer
-	in-end = a end-pointer
-	out-begin out mut* = a.size alloc-uninitialized
-	out-cur mut = out-begin
-	loop
-		if in-cur == in-end
-			out-end = out-begin + a.size
-			assert out-cur == out-end
-			break out-begin .. out-end as-array
-		else
-			*out-cur := f[*in-cur]
-			out-cur := out-cur + 1
-			in-cur := in-cur + 1
-			continue
+	if size-of@<in> == 0
+		for i : 0 .. a.size
+			f[a[i]]
+	else
+		in-cur mut = a begin-pointer
+		in-end = a end-pointer
+		out-begin out mut* = a.size alloc-uninitialized
+		out-cur mut = out-begin
+		loop
+			if in-cur == in-end
+				out-end = out-begin + a.size
+				assert out-cur == out-end
+				break out-begin .. out-end as-array
+			else
+				*out-cur := f[*in-cur]
+				out-cur := out-cur + 1
+				in-cur := in-cur + 1
+				continue
 
 ###
 Equivalent to calling `f[a[0], 0]`, `f[a[1], 1]`, etc.
@@ -353,31 +363,43 @@ filter<a> array a(a array a, f act bool(a, nat64)) trusted
 
 # TODO:KILL (just use 'for' loop)
 fold<a, b> a(init a, a array b, f act a(a, b)) no-doc trusted
-	acc mut = init
-	cur mut = a begin-pointer
-	end = a end-pointer
-	loop
-		if cur == end
-			break acc
-		else
-			acc := f[acc, *cur]
-			cur := cur + 1
-			continue
+	if size-of@<a> == 0
+		init fold a, (cur, x, _) =>
+			f[cur, x]
+	else
+		acc mut = init
+		cur mut = a begin-pointer
+		end = a end-pointer
+		loop
+			if cur == end
+				break acc
+			else
+				acc := f[acc, *cur]
+				cur := cur + 1
+				continue
 
 # TODO:KILL (just use 'for' loop)
 fold<a, b> a(init a, a array b, f act a(a, b, nat64)) no-doc trusted
-	acc mut = init
-	cur mut = a begin-pointer
-	index mut = 0
-	end = a end-pointer
-	loop
-		if cur == end
-			break acc
-		else
-			acc := f[acc, *cur, index]
-			cur := cur + 1
-			index := index + 1
-			continue
+	if size-of@<a> == 0
+		acc mut = init
+		i mut = 0
+		until i == a.size
+			acc := f[acc, a[i], i]
+			i := i + 1
+		acc
+	else
+		acc mut = init
+		cur mut = a begin-pointer
+		index mut = 0
+		end = a end-pointer
+		loop
+			if cur == end
+				break acc
+			else
+				acc := f[acc, *cur, index]
+				cur := cur + 1
+				index := index + 1
+				continue
 
 region iter
 
