@@ -220,16 +220,15 @@ main nat^(_ string[]) summon trusted
 	SDL_Quit
 
 .vbo-create GLuint(gl gl-ext, vertices array vertex) summon unsafe
-	vbo-cell cell GLuint = 0,
+	vbo mut GLuint = 0
 	n-buffers = 1 to-int32
-	gl glGenBuffers n-buffers, vbo-cell.as-mut-pointer
-	vbo = *vbo-cell
+	gl glGenBuffers n-buffers, &vbo
 	gl glBindBuffer GL_ARRAY_BUFFER, vbo
 	gl glBufferData GL_ARRAY_BUFFER, vertices.size-bytes.to-int64, vertices.begin-pointer.pointer-cast, GL_STATIC_DRAW
 	gl glBindBuffer GL_ARRAY_BUFFER, 0
 	err = gl glGetError
 	unless err == GL_NO_ERROR
-		gl glDeleteBuffers n-buffers, vbo-cell.as-const-pointer
+		gl glDeleteBuffers n-buffers, &vbo
 		throw "Creating VBO failed: Code {err}"
 	vbo
 

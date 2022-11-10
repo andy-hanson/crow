@@ -24,6 +24,7 @@ import model.model :
 	isTypeParam,
 	Local,
 	matchType,
+	Mutability,
 	Param,
 	range,
 	SpecInst,
@@ -47,9 +48,19 @@ import util.sym : AllSymbols, Sym;
 import util.util : unreachable, verify;
 
 struct ClosureFieldBuilder {
+	@safe @nogc pure nothrow:
+
 	immutable Sym name; // Redundant to the variableRef, but it's faster to keep this close
+	immutable Mutability mutability;
+	bool[4]* isUsed; // points to isUsed for the outer variable. Null for Param.
 	immutable Type type; // Same as above
 	immutable VariableRef variableRef;
+
+	void setIsUsed(immutable LocalAccessKind accessKind) {
+		if (isUsed != null) {
+			(*isUsed)[accessKind] = true;
+		}
+	}
 }
 
 struct FunOrLambdaInfo {
@@ -73,16 +84,16 @@ immutable(bool) isInLambda(ref LocalsInfo a) =>
 
 struct LocalNode {
 	Opt!(LocalNode*) prev;
-	bool isUsedGet;
-	bool isUsedSet;
+	bool[4] isUsed; // One for each LocalAccessKind
 	immutable Local* local;
 }
+enum LocalAccessKind { getOnStack, getThroughClosure, setOnStack, setThroughClosure }
 
-void markIsUsedSet(scope ref LocalsInfo locals, immutable Local* local) {
+void markIsUsedSetOnStack(scope ref LocalsInfo locals, immutable Local* local) {
 	LocalNode* node = force(locals.locals);
 	while (true) {
 		if (node.local == local) {
-			node.isUsedSet = true;
+			node.isUsed[LocalAccessKind.setOnStack] = true;
 			break;
 		}
 		node = force(node.prev);

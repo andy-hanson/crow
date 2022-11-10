@@ -1,5 +1,4 @@
 import
-	crow/cell
 	crow/io/print: out, print
 
 main nat^(_ string[]) summon
@@ -19,10 +18,10 @@ store record sendable
 
 make-store store^(initial-value nat)
 	with : parallel
-		cur cell nat = initial-value,
-		get ref nat() = () => *cur,
+		cur mut nat = initial-value
+		get ref nat() = () => cur,
 		get-and-set ref nat(nat) = x =>
-			prev-value = *cur
-			*cur := x
+			prev-value = cur
+			cur := x
 			prev-value,
 		(get, get-and-set),

@@ -1,0 +1,10 @@
+import
+	crow/io/print: out, print
+
+main nat^(_ string[]) summon
+	x mut nat = 0
+	_ fun nat() = () => x
+
+	y nat mut[] = 0,
+	_ fun nat mut[]() = () => y
+	()

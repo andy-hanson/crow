@@ -1006,8 +1006,8 @@ immutable(ExprResult) toGccExpr(
 			initConstantsToGcc(ctx, emit),
 		(scope ref immutable LowExprKind.Let it) =>
 			letToGcc(ctx, locals, emit, it),
-		(scope ref immutable LowExprKind.LocalRef it) =>
-			localRefToGcc(ctx, locals, emit, it),
+		(scope ref immutable LowExprKind.LocalGet it) =>
+			localGetToGcc(ctx, locals, emit, it),
 		(scope ref immutable LowExprKind.LocalSet it) =>
 			localSetToGcc(ctx, locals, emit, it),
 		(scope ref immutable LowExprKind.Loop it) =>
@@ -1018,8 +1018,8 @@ immutable(ExprResult) toGccExpr(
 			loopContinueToGcc(ctx, locals, emit, it),
 		(scope ref immutable LowExprKind.MatchUnion it) =>
 			matchUnionToGcc(ctx, locals, emit, a, it),
-		(scope ref immutable LowExprKind.ParamRef it) =>
-			paramRefToGcc(ctx, emit, it),
+		(scope ref immutable LowExprKind.ParamGet it) =>
+			paramGetToGcc(ctx, emit, it),
 		(scope ref immutable LowExprKind.PtrCast it) =>
 			ptrCastToGcc(ctx, locals, emit, a, it),
 		(scope ref immutable LowExprKind.PtrToField it) =>
@@ -1268,11 +1268,11 @@ immutable(ExprResult) emitWithLocal(
 	return toGccExpr(ctx, newLocals, emit, then);
 }
 
-immutable(ExprResult) localRefToGcc(
+immutable(ExprResult) localGetToGcc(
 	ref ExprCtx ctx,
 	ref Locals locals,
 	ref ExprEmit emit,
-	ref immutable LowExprKind.LocalRef a,
+	ref immutable LowExprKind.LocalGet a,
 ) =>
 	emitSimpleNoSideEffects(ctx, emit, gcc_jit_lvalue_as_rvalue(getLocal(locals, a.local)));
 
@@ -1394,10 +1394,10 @@ immutable(ExprResult) matchUnionToGcc(
 		});
 }
 
-immutable(ExprResult) paramRefToGcc(
+immutable(ExprResult) paramGetToGcc(
 	ref ExprCtx ctx,
 	ref ExprEmit emit,
-	ref immutable LowExprKind.ParamRef a,
+	ref immutable LowExprKind.ParamGet a,
 ) =>
 	emitSimpleNoSideEffects(ctx, emit, gcc_jit_param_as_rvalue(getParam(ctx, a.index)));
 
@@ -1619,14 +1619,14 @@ immutable(ExprResult) constantToGcc(
 		case LowExprKind.SpecialUnary.Kind.asAnyPtr:
 		case LowExprKind.SpecialUnary.Kind.asRef:
 		case LowExprKind.SpecialUnary.Kind.enumToIntegral:
-		case LowExprKind.SpecialUnary.Kind.toCharFromNat8:
+		case LowExprKind.SpecialUnary.Kind.toChar8FromNat8:
 		case LowExprKind.SpecialUnary.Kind.toFloat32FromFloat64:
 		case LowExprKind.SpecialUnary.Kind.toFloat64FromFloat32:
 		case LowExprKind.SpecialUnary.Kind.toFloat64FromInt64:
 		case LowExprKind.SpecialUnary.Kind.toFloat64FromNat64:
 		case LowExprKind.SpecialUnary.Kind.toInt64FromInt16:
 		case LowExprKind.SpecialUnary.Kind.toInt64FromInt32:
-		case LowExprKind.SpecialUnary.Kind.toNat8FromChar:
+		case LowExprKind.SpecialUnary.Kind.toNat8FromChar8:
 		case LowExprKind.SpecialUnary.Kind.toNat64FromNat8:
 		case LowExprKind.SpecialUnary.Kind.toNat64FromNat16:
 		case LowExprKind.SpecialUnary.Kind.toNat64FromNat32:
@@ -1749,8 +1749,7 @@ immutable(ExprResult) binaryToGcc(
 		case LowExprKind.SpecialBinary.Kind.eqNat64:
 		case LowExprKind.SpecialBinary.Kind.eqPtr:
 			return comparison(gcc_jit_comparison.GCC_JIT_COMPARISON_EQ);
-		case LowExprKind.SpecialBinary.Kind.lessBool:
-		case LowExprKind.SpecialBinary.Kind.lessChar:
+		case LowExprKind.SpecialBinary.Kind.lessChar8:
 		case LowExprKind.SpecialBinary.Kind.lessFloat32:
 		case LowExprKind.SpecialBinary.Kind.lessFloat64:
 		case LowExprKind.SpecialBinary.Kind.lessInt8:

@@ -8,7 +8,7 @@ main nat^(_ string[]) unsafe summon
 	primes <- for x : 1_000_000 .. 1_010_000 parallel
 		if x is-prime
 			(x,),
-	out print "primes: " ~~ (", " join (for x : primes.flatten; "{x}")})
+	out print "primes: " ~~ (", " join (for x : primes.flatten; "{x}"))
 	()
 
 parallel-range record

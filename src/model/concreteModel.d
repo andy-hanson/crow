@@ -4,6 +4,7 @@ module model.concreteModel;
 
 import model.constant : Constant;
 import model.model :
+	ClosureReferenceKind,
 	debugName,
 	decl,
 	EnumBackingType,
@@ -23,13 +24,13 @@ import model.model :
 	range,
 	StructInst,
 	summon;
-import util.col.arr : empty, only;
+import util.col.arr : empty, only, PtrAndSmallNumber;
 import util.col.dict : Dict;
 import util.col.str : SafeCStr;
 import util.hash : hashEnum, Hasher;
 import util.late : Late, lateGet, lateIsSet, lateSet;
 import util.opt : none, Opt, some;
-import util.ptr : hashPtr;
+import util.ptr : hashPtr, TaggedPtr;
 import util.sourceRange : FileAndRange;
 import util.sym : AllSymbols, shortSym, SpecialSym, Sym, symForSpecial;
 import util.util : unreachable, verify;
@@ -242,14 +243,16 @@ struct ConcreteType {
 	}
 }
 
-enum ReferenceKind { byRef, byVal }
+enum ReferenceKind { byVal, byRef, byRefRef }
 
 immutable(Sym) symOfReferenceKind(immutable ReferenceKind a) {
 	final switch (a) {
-		case ReferenceKind.byRef:
-			return shortSym("by-ref");
 		case ReferenceKind.byVal:
 			return shortSym("by-val");
+		case ReferenceKind.byRef:
+			return shortSym("by-ref");
+		case ReferenceKind.byRefRef:
+			return shortSym("by-ref-ref");
 	}
 }
 
@@ -356,19 +359,22 @@ immutable(ReferenceKind) defaultReferenceKind(ref immutable ConcreteStruct a) =>
 //TODO: this is only useful during concretize, move
 immutable(bool) hasSizeOrPointerSizeBytes(ref immutable ConcreteType a) {
 	final switch (a.reference) {
-		case ReferenceKind.byRef:
-			return true;
 		case ReferenceKind.byVal:
 			return lateIsSet(a.struct_.typeSize_);
+		case ReferenceKind.byRef:
+			return true;
+		case ReferenceKind.byRefRef:
+			return true;
 	}
 }
 
 immutable(TypeSize) sizeOrPointerSizeBytes(ref immutable ConcreteType a) {
 	final switch (a.reference) {
-		case ReferenceKind.byRef:
-			return immutable TypeSize(8, 8);
 		case ReferenceKind.byVal:
 			return typeSize(*a.struct_);
+		case ReferenceKind.byRef:
+		case ReferenceKind.byRefRef:
+			return immutable TypeSize(8, 8);
 	}
 }
 
@@ -422,9 +428,6 @@ struct ConcreteParamSource {
 	}
 }
 
-immutable(bool) isClosure(ref immutable ConcreteParamSource a) =>
-	a.kind_ == ConcreteParamSource.Kind.closure;
-
 @trusted immutable(T) matchConcreteParamSource(T)(
 	ref immutable ConcreteParamSource a,
 	scope immutable(T) delegate(ref immutable ConcreteParamSource.Closure) @safe @nogc pure nothrow cbClosure,
@@ -443,13 +446,18 @@ immutable(bool) isClosure(ref immutable ConcreteParamSource a) =>
 
 struct ConcreteParam {
 	immutable ConcreteParamSource source;
-	immutable Opt!size_t index; // not present for ctx/ closure param
+	immutable Opt!size_t index; // not present for closure param
 	immutable ConcreteType type;
 }
 
 struct ConcreteLocal {
+	@safe @nogc pure nothrow:
+
 	immutable Local* source;
 	immutable ConcreteType type;
+
+	immutable(bool) isAllocated() immutable =>
+		source.isAllocated;
 }
 
 struct ConcreteFunBody {
@@ -741,6 +749,18 @@ struct ConcreteExpr {
 	immutable ConcreteExprKind kind;
 }
 
+struct ConcreteClosureRef {
+	@safe @nogc pure nothrow:
+
+	immutable PtrAndSmallNumber!ConcreteParam paramAndIndex;
+
+	immutable(ConcreteParam*) closureParam() immutable =>
+		paramAndIndex.ptr;
+
+	immutable(ushort) fieldIndex() immutable =>
+		paramAndIndex.number;
+}
+
 struct ConcreteExprKind {
 	@safe @nogc pure nothrow:
 
@@ -751,6 +771,21 @@ struct ConcreteExprKind {
 	struct Call {
 		immutable ConcreteFun* called;
 		immutable ConcreteExpr[] args;
+	}
+
+	struct ClosureCreate {
+		immutable ConcreteVariableRef[] args;
+	}
+
+	struct ClosureGet {
+		immutable ConcreteClosureRef closureRef;
+		immutable ClosureReferenceKind referenceKind;
+	}
+
+	struct ClosureSet {
+		immutable ConcreteClosureRef closureRef;
+		immutable ConcreteExpr value;
+		// referenceKind is always allocated
 	}
 
 	struct Cond {
@@ -789,7 +824,7 @@ struct ConcreteExprKind {
 
 	struct Let {
 		immutable ConcreteLocal* local;
-		immutable ConcreteExpr value; // If a constant, we just use 'then' in place of the Let
+		immutable ConcreteExpr value;
 		immutable ConcreteExpr then;
 	}
 
@@ -800,7 +835,7 @@ struct ConcreteExprKind {
 		immutable Opt!(ConcreteExpr*) closure;
 	}
 
-	struct LocalRef {
+	struct LocalGet {
 		immutable ConcreteLocal* local;
 	}
 
@@ -837,7 +872,7 @@ struct ConcreteExprKind {
 		immutable Case[] cases;
 	}
 
-	struct ParamRef {
+	struct ParamGet {
 		immutable ConcreteParam* param;
 	}
 
@@ -854,12 +889,6 @@ struct ConcreteExprKind {
 		immutable ConcreteParam* param;
 	}
 
-	// TODO: this is only used for closure field accesses now. At least rename.
-	struct RecordFieldGet {
-		immutable ConcreteExpr target;
-		immutable ushort fieldIndex;
-	}
-
 	struct Seq {
 		immutable ConcreteExpr first;
 		immutable ConcreteExpr then;
@@ -874,6 +903,9 @@ struct ConcreteExprKind {
 	enum Kind {
 		alloc,
 		call,
+		closureCreate,
+		closureGet,
+		closureSet,
 		cond,
 		constant,
 		createArr,
@@ -882,18 +914,17 @@ struct ConcreteExprKind {
 		drop,
 		lambda,
 		let,
-		localRef,
+		localGet,
 		localSet,
 		loop,
 		loopBreak,
 		loopContinue,
 		matchEnum,
 		matchUnion,
-		paramRef,
+		paramGet,
 		ptrToField,
 		ptrToLocal,
 		ptrToParam,
-		recordFieldGet,
 		seq,
 		throw_,
 	}
@@ -901,6 +932,9 @@ struct ConcreteExprKind {
 	union {
 		immutable Alloc* alloc;
 		immutable Call call;
+		immutable ClosureCreate closureCreate;
+		immutable ClosureGet* closureGet;
+		immutable ClosureSet* closureSet;
 		immutable Cond* cond;
 		immutable CreateArr* createArr;
 		immutable Constant constant;
@@ -909,18 +943,17 @@ struct ConcreteExprKind {
 		immutable Drop* drop;
 		immutable Lambda lambda;
 		immutable Let* let;
-		immutable LocalRef localRef;
+		immutable LocalGet localGet;
 		immutable LocalSet* localSet;
 		immutable Loop* loop;
 		immutable LoopBreak* loopBreak;
 		immutable LoopContinue loopContinue;
 		immutable MatchEnum* matchEnum;
 		immutable MatchUnion* matchUnion;
-		immutable ParamRef paramRef;
+		immutable ParamGet paramGet;
 		immutable PtrToField* ptrToField;
 		immutable PtrToLocal ptrToLocal;
 		immutable PtrToParam ptrToParam;
-		immutable RecordFieldGet* recordFieldGet;
 		immutable Seq* seq;
 		immutable Throw* throw_;
 	}
@@ -928,6 +961,9 @@ struct ConcreteExprKind {
 	public:
 	@trusted immutable this(immutable Alloc* a) { kind = Kind.alloc; alloc = a; }
 	@trusted immutable this(immutable Call a) { kind = Kind.call; call = a; }
+	immutable this(immutable ClosureCreate a) { kind = Kind.closureCreate; closureCreate = a; }
+	immutable this(immutable ClosureGet* a) { kind = Kind.closureGet; closureGet = a; }
+	immutable this(immutable ClosureSet* a) { kind = Kind.closureSet; closureSet = a; }
 	@trusted immutable this(immutable Cond* a) { kind = Kind.cond; cond = a; }
 	@trusted immutable this(immutable CreateArr* a) { kind = Kind.createArr; createArr = a; }
 	@trusted immutable this(immutable Constant a) { kind = Kind.constant; constant = a; }
@@ -936,20 +972,58 @@ struct ConcreteExprKind {
 	immutable this(immutable Drop* a) { kind = Kind.drop; drop = a; }
 	@trusted immutable this(immutable Lambda a) { kind = Kind.lambda; lambda = a; }
 	@trusted immutable this(immutable Let* a) { kind = Kind.let; let = a; }
-	@trusted immutable this(immutable LocalRef a) { kind = Kind.localRef; localRef = a; }
+	@trusted immutable this(immutable LocalGet a) { kind = Kind.localGet; localGet = a; }
 	@trusted immutable this(immutable LocalSet* a) { kind = Kind.localSet; localSet = a; }
 	@trusted immutable this(immutable Loop* a) { kind = Kind.loop; loop = a; }
 	@trusted immutable this(immutable LoopBreak* a) { kind = Kind.loopBreak; loopBreak = a; }
 	immutable this(immutable LoopContinue a) { kind = Kind.loopContinue; loopContinue = a; }
 	@trusted immutable this(immutable MatchEnum* a) { kind = Kind.matchEnum; matchEnum = a; }
 	@trusted immutable this(immutable MatchUnion* a) { kind = Kind.matchUnion; matchUnion = a; }
-	@trusted immutable this(immutable ParamRef a) { kind = Kind.paramRef; paramRef = a; }
+	@trusted immutable this(immutable ParamGet a) { kind = Kind.paramGet; paramGet = a; }
 	immutable this(immutable PtrToField* a) { kind = Kind.ptrToField; ptrToField = a; }
 	immutable this(immutable PtrToLocal a) { kind = Kind.ptrToLocal; ptrToLocal = a; }
 	immutable this(immutable PtrToParam a) { kind = Kind.ptrToParam; ptrToParam = a; }
-	@trusted immutable this(immutable RecordFieldGet* a) { kind = Kind.recordFieldGet; recordFieldGet = a; }
 	@trusted immutable this(immutable Seq* a) { kind = Kind.seq; seq = a; }
 	immutable this(immutable Throw* a) { kind = Kind.throw_; throw_ = a; }
+}
+
+struct ConcreteVariableRef {
+	@safe @nogc pure nothrow:
+	@trusted immutable this(immutable Constant* a) {
+		inner = immutable TaggedPtr!Kind(Kind.constant, a);
+	}
+	@trusted immutable this(immutable ConcreteLocal* a) {
+		inner = immutable TaggedPtr!Kind(Kind.local, a);
+	}
+	@trusted immutable this(immutable ConcreteParam* a) {
+		inner = immutable TaggedPtr!Kind(Kind.param, a);
+	}
+	@trusted immutable this(immutable ConcreteClosureRef a) {
+		inner = immutable TaggedPtr!Kind(Kind.closure, a.paramAndIndex);
+	}
+
+	private:
+	enum Kind { constant, local, param, closure }
+	immutable TaggedPtr!Kind inner;
+}
+
+@trusted immutable(T) matchConcreteVariableRef(T)(
+	immutable ConcreteVariableRef a,
+	scope immutable(T) delegate(immutable Constant) @safe @nogc pure nothrow cbConstant,
+	scope immutable(T) delegate(immutable ConcreteLocal*) @safe @nogc pure nothrow cbLocal,
+	scope immutable(T) delegate(immutable ConcreteParam*) @safe @nogc pure nothrow cbParam,
+	scope immutable(T) delegate(immutable ConcreteClosureRef) @safe @nogc pure nothrow cbClosure,
+) {
+	final switch (a.inner.tag()) {
+		case ConcreteVariableRef.Kind.constant:
+			return cbConstant(*a.inner.asPtr!Constant);
+		case ConcreteVariableRef.Kind.local:
+			return cbLocal(a.inner.asPtr!ConcreteLocal);
+		case ConcreteVariableRef.Kind.param:
+			return cbParam(a.inner.asPtr!ConcreteParam);
+		case ConcreteVariableRef.Kind.closure:
+			return cbClosure(immutable ConcreteClosureRef(a.inner.asPtrAndSmallNumber!ConcreteParam));
+	}
 }
 
 immutable(ConcreteType) elementType(return scope ref immutable ConcreteExprKind.CreateArr a) =>
@@ -970,6 +1044,9 @@ immutable(bool) isConstant(ref immutable ConcreteExprKind a) =>
 	ref immutable ConcreteExprKind a,
 	scope immutable(T) delegate(ref immutable ConcreteExprKind.Alloc) @safe @nogc pure nothrow cbAlloc,
 	scope immutable(T) delegate(ref immutable ConcreteExprKind.Call) @safe @nogc pure nothrow cbCall,
+	scope immutable(T) delegate(ref immutable ConcreteExprKind.ClosureCreate) @safe @nogc pure nothrow cbClosureCreate,
+	scope immutable(T) delegate(ref immutable ConcreteExprKind.ClosureGet) @safe @nogc pure nothrow cbClosureGet,
+	scope immutable(T) delegate(ref immutable ConcreteExprKind.ClosureSet) @safe @nogc pure nothrow cbClosureSet,
 	scope immutable(T) delegate(ref immutable ConcreteExprKind.Cond) @safe @nogc pure nothrow cbCond,
 	scope immutable(T) delegate(immutable Constant) @safe @nogc pure nothrow cbConstant,
 	scope immutable(T) delegate(ref immutable ConcreteExprKind.CreateArr) @safe @nogc pure nothrow cbCreateArr,
@@ -978,20 +1055,17 @@ immutable(bool) isConstant(ref immutable ConcreteExprKind a) =>
 	scope immutable(T) delegate(ref immutable ConcreteExprKind.Drop) @safe @nogc pure nothrow cbDrop,
 	scope immutable(T) delegate(ref immutable ConcreteExprKind.Lambda) @safe @nogc pure nothrow cbLambda,
 	scope immutable(T) delegate(ref immutable ConcreteExprKind.Let) @safe @nogc pure nothrow cbLet,
-	scope immutable(T) delegate(ref immutable ConcreteExprKind.LocalRef) @safe @nogc pure nothrow cbLocalRef,
+	scope immutable(T) delegate(ref immutable ConcreteExprKind.LocalGet) @safe @nogc pure nothrow cbLocalGet,
 	scope immutable(T) delegate(ref immutable ConcreteExprKind.LocalSet) @safe @nogc pure nothrow cbLocalSet,
 	scope immutable(T) delegate(ref immutable ConcreteExprKind.Loop) @safe @nogc pure nothrow cbLoop,
 	scope immutable(T) delegate(ref immutable ConcreteExprKind.LoopBreak) @safe @nogc pure nothrow cbLoopBreak,
 	scope immutable(T) delegate(ref immutable ConcreteExprKind.LoopContinue) @safe @nogc pure nothrow cbLoopContinue,
 	scope immutable(T) delegate(ref immutable ConcreteExprKind.MatchEnum) @safe @nogc pure nothrow cbMatchEnum,
 	scope immutable(T) delegate(ref immutable ConcreteExprKind.MatchUnion) @safe @nogc pure nothrow cbMatchUnion,
-	scope immutable(T) delegate(ref immutable ConcreteExprKind.ParamRef) @safe @nogc pure nothrow cbParamRef,
+	scope immutable(T) delegate(ref immutable ConcreteExprKind.ParamGet) @safe @nogc pure nothrow cbParamGet,
 	scope immutable(T) delegate(ref immutable ConcreteExprKind.PtrToField) @safe @nogc pure nothrow cbPtrToField,
 	scope immutable(T) delegate(ref immutable ConcreteExprKind.PtrToLocal) @safe @nogc pure nothrow cbPtrToLocal,
 	scope immutable(T) delegate(ref immutable ConcreteExprKind.PtrToParam) @safe @nogc pure nothrow cbPtrToParam,
-	scope immutable(T) delegate(
-		ref immutable ConcreteExprKind.RecordFieldGet,
-	) @safe @nogc pure nothrow cbRecordFieldGet,
 	scope immutable(T) delegate(ref immutable ConcreteExprKind.Seq) @safe @nogc pure nothrow cbSeq,
 	scope immutable(T) delegate(ref immutable ConcreteExprKind.Throw) @safe @nogc pure nothrow cbThrow,
 ) {
@@ -1000,6 +1074,12 @@ immutable(bool) isConstant(ref immutable ConcreteExprKind a) =>
 			return cbAlloc(*a.alloc);
 		case ConcreteExprKind.Kind.call:
 			return cbCall(a.call);
+		case ConcreteExprKind.Kind.closureCreate:
+			return cbClosureCreate(a.closureCreate);
+		case ConcreteExprKind.Kind.closureGet:
+			return cbClosureGet(*a.closureGet);
+		case ConcreteExprKind.Kind.closureSet:
+			return cbClosureSet(*a.closureSet);
 		case ConcreteExprKind.Kind.cond:
 			return cbCond(*a.cond);
 		case ConcreteExprKind.Kind.constant:
@@ -1016,8 +1096,8 @@ immutable(bool) isConstant(ref immutable ConcreteExprKind a) =>
 			return cbLambda(a.lambda);
 		case ConcreteExprKind.Kind.let:
 			return cbLet(*a.let);
-		case ConcreteExprKind.Kind.localRef:
-			return cbLocalRef(a.localRef);
+		case ConcreteExprKind.Kind.localGet:
+			return cbLocalGet(a.localGet);
 		case ConcreteExprKind.Kind.localSet:
 			return cbLocalSet(*a.localSet);
 		case ConcreteExprKind.Kind.loop:
@@ -1030,16 +1110,14 @@ immutable(bool) isConstant(ref immutable ConcreteExprKind a) =>
 			return cbMatchEnum(*a.matchEnum);
 		case ConcreteExprKind.Kind.matchUnion:
 			return cbMatchUnion(*a.matchUnion);
-		case ConcreteExprKind.Kind.paramRef:
-			return cbParamRef(a.paramRef);
+		case ConcreteExprKind.Kind.paramGet:
+			return cbParamGet(a.paramGet);
 		case ConcreteExprKind.Kind.ptrToField:
 			return cbPtrToField(*a.ptrToField);
 		case ConcreteExprKind.Kind.ptrToLocal:
 			return cbPtrToLocal(a.ptrToLocal);
 		case ConcreteExprKind.Kind.ptrToParam:
 			return cbPtrToParam(a.ptrToParam);
-		case ConcreteExprKind.Kind.recordFieldGet:
-			return cbRecordFieldGet(*a.recordFieldGet);
 		case ConcreteExprKind.Kind.seq:
 			return cbSeq(*a.seq);
 		case ConcreteExprKind.Kind.throw_:

@@ -21,9 +21,9 @@ start-sdl-audio audio() summon trusted
 	nc = format.n-channels to-nat8
 	wc = write-ctx as-any-mut-pointer
 	aspec SDL_AudioSpec = sr, AUDIO_F32, nc, 0, samples, 0, 0, &audio-callback, wc
-	desired cell SDL_AudioSpec = aspec,
-	obtained cell SDL_AudioSpec = (),
-	device = null SDL_OpenAudioDevice 0, desired.as-const-pointer, obtained.as-mut-pointer, 0
+	desired SDL_AudioSpec = aspec
+	obtained mut SDL_AudioSpec = ()
+	device = null SDL_OpenAudioDevice 0, &desired, &obtained, 0
 	forbid device == 0
 
 	device SDL_PauseAudioDevice 0

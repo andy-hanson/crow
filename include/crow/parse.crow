@@ -1,7 +1,6 @@
 no-std
 import
 	./bool: &&, bool, false, new, true
-	./cell: *, cell, new, set-deref
 	./col/list: ~, for-loop, list, new
 	./col/mut-list: ~=, move-to-list, mut-list, new
 	./col/set: in, new, set
@@ -106,16 +105,16 @@ skip<a> grammar-skip(a grammar a)
 .try-take-exact bool(iter mut-string-iter, expect string)
 	# TODO:PERF use for-break
 	saved = iter save
-	ok cell bool = true,
+	ok mut = true
 	for expected : expect.char8s
 		if actual ?= iter.next
 			if actual != expected
 				iter restore saved
-				*ok := false
+				ok := false
 		else
 			iter restore saved
-			*ok := false
-	*ok
+			ok := false
+	ok
 
 ###
 Expects to parse 'a' followed by 'b'.

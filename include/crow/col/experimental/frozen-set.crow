@@ -1,7 +1,6 @@
 no-std
 import
 	../../bool: &&, ==, bool, false, true
-	../../cell: *, cell, new, set-deref
 	../../compare: <=, compare
 	../../fun-util: subscript
 	../../hash: hash, hash-mix
@@ -143,11 +142,11 @@ for-loop<a> void(a frozen-set a, f act void(a))
 
 for-loop<out, in> out[](a frozen-set in, f act out(in)) trusted
 	res mut-array out = a.size uninitialized-mut-array
-	out cell out mut* = res.begin-pointer,
+	out mut out mut* = res begin-pointer
 	for x : a
-		*(*out) := f[x]
-		*out := *out + 1
-	assert *out == res.end-pointer
+		*out := f[x]
+		out := out + 1
+	assert out == res.end-pointer
 	res.cast-immutable to-list
 
 fold<a, b> a(acc a, a frozen-set b, f act a(a, b))

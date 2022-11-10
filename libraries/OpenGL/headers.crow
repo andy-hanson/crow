@@ -78,20 +78,20 @@ glGetError GLenum() extern<GL> summon
 glGetProgramInfoLog void(
 	program GLuint,
 	bufSize GLsizei,
-	length cell GLsizei,
+	length GLsizei mut*,
 	infoLog GLchar mut*,
 ) extern<GL> summon
 
-glGetProgramiv void(program GLuint, pname GLenum, params cell GLint) extern<GL> summon
+glGetProgramiv void(program GLuint, pname GLenum, params GLint mut*) extern<GL> summon
 
 glGetShaderInfoLog void(
 	shader GLuint,
 	bufSize GLsizei,
-	length cell GLsizei,
+	length GLsizei mut*,
 	infoLog GLchar mut*,
 ) extern<GL> summon
 
-glGetShaderiv void(reader GLuint, pname GLenum, params cell GLint) extern<GL> summon
+glGetShaderiv void(reader GLuint, pname GLenum, params GLint mut*) extern<GL> summon
 
 glGetString c-string(name GLenum) extern<GL> summon
 

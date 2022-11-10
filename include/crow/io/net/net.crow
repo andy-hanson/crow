@@ -14,7 +14,6 @@ import
 		AF_INET, AF_UNSPEC, as-fd, bind, closesocket, connect, INVALID_SOCKET, socket, SOCKET
 	unistd: close
 	win32: new, MAKEWORD, WSADATA, WSAStartup
-	../../cell: *, as-mut-pointer, cell, new
 	../../compare: !=
 	../../number: ==, int32, nat16, to-int32
 	../../option: !, new, option
@@ -39,16 +38,16 @@ connect-to-uri SOCKET(u uri) trusted summon
 
 	# TODO: null.as-ref is evil
 	hints addrinfo = 0, AF_UNSPEC.to-int32, SOCK_STREAM, 0, 0, null::any-const-pointer.as-ref, null, null
-	result cell addrinfo mut* = null,
-	u.host.to-c-string getaddrinfo u.port.to-string.to-c-string, &hints, result.as-mut-pointer check-getaddrinfo-error
-	op-sock = result->as-const find-and-connect-working-socket
-	*result freeaddrinfo
+	result mut addrinfo mut* = null
+	u.host.to-c-string getaddrinfo u.port.to-string.to-c-string, &hints, &result check-getaddrinfo-error
+	op-sock = result.as-const find-and-connect-working-socket
+	result freeaddrinfo
 	# TODO: handle failure
 	op-sock!
 
 .wsa-init void() unsafe summon
-	wsa-data cell WSADATA = (), 
-	err = 2 MAKEWORD 2 WSAStartup wsa-data.as-mut-pointer
+	wsa-data mut WSADATA = () 
+	err = 2 MAKEWORD 2 WSAStartup &wsa-data
 	out print "initialized WSA, err is {err}"
 	if err != 0
 		todo
@@ -78,10 +77,10 @@ bind-to-port SOCKET(port string) unsafe summon
 
 	# TODO: null.as-ref is evil
 	hints addrinfo = ai-passive, AF_INET, SOCK_STREAM, 0, 0, null::any-const-pointer.as-ref, null, null
-	result cell addrinfo mut* = null,
-	null getaddrinfo port.to-c-string, &hints, result.as-mut-pointer check-getaddrinfo-error
-	op-sock = result->as-const find-and-bind-working-socket
-	*result freeaddrinfo
+	result mut addrinfo mut* = null
+	null getaddrinfo port.to-c-string, &hints, &result check-getaddrinfo-error
+	op-sock = result.as-const find-and-bind-working-socket
+	result freeaddrinfo
 	if res ?= op-sock
 		res
 	else

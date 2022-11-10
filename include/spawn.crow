@@ -1,10 +1,9 @@
 no-std
 import
 	crow/bytes-types: bytes64
-	crow/cell: cell
 	crow/extra-types: err-t, fd-t
 	crow/number: int32
-	crow/pointer: any-const-pointer, any-mut-pointer, const-pointer
+	crow/pointer: any-const-pointer, any-mut-pointer, const-pointer, mut-pointer
 	crow/string: c-string
 	sys/types: mode_t, pid_t
 
@@ -17,7 +16,7 @@ posix_spawn_file_actions_t record mut by-ref extern
 # TODO: type file-actions and attrp, currently these are always null
 # /usr/include/spawn.h
 posix_spawn err-t(
-	pid cell pid_t,
+	pid pid_t mut*,
 	executable-path c-string,
 	file-actions posix_spawn_file_actions_t,
 	attrp any-const-pointer,

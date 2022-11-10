@@ -2,7 +2,6 @@ no-std
 export
 	./bits
 	./bool
-	./cell
 	./col/array
 	./col/dict
 	./col/list

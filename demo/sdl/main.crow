@@ -65,8 +65,8 @@ main nat^(_ string[]) summon trusted
 		again,
 
 .draw-image void(renderer SDL_Renderer, texture SDL_Texture, x int32) summon trusted
-	dest cell SDL_Rect = (x, (window-height - image-height) / 2, image-width, image-height),
-	renderer SDL_RenderCopy texture, null, dest.as-const-pointer handle-sdl-error "SDL_RenderCopy"
+	dest SDL_Rect = x, (window-height - image-height) / 2, image-width, image-height
+	renderer SDL_RenderCopy texture, null, &dest handle-sdl-error "SDL_RenderCopy"
 
 .look-for-quit-event bool() summon
 	e = SDL_Event

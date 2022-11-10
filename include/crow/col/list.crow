@@ -1,7 +1,6 @@
 no-std
 import
 	../bool: !, &&, bool, false, new, true
-	../cell: *, cell, new, set-deref
 	../compare: ==, <, <=, compare, comparison, equal, greater, less, min
 	../fun-util: subscript
 	../misc: new, void
@@ -932,10 +931,10 @@ flatten<a> a[](a a[][])
 	() fold a, (acc, x) => acc ~~ x
 
 join<a> a[](joiner a[], parts a[][])
-	first cell bool = true,
+	first mut = true
 	() fold parts, (acc, x) =>
-		if *first
-			*first := false
+		if first
+			first := false
 			x
 		else
 			acc ~~ joiner ~~ x

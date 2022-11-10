@@ -1548,68 +1548,180 @@ struct SpecialModules {
 }
 
 struct Local {
+	@safe @nogc pure nothrow:
+
 	//TODO: use NameAndRange (more compact)
 	immutable FileAndRange range;
 	immutable Sym name;
 	immutable LocalMutability mutability;
 	immutable Type type;
+
+	immutable(bool) isAllocated() immutable {
+		final switch (mutability) {
+			case LocalMutability.immut:
+			case LocalMutability.mutOnStack:
+				return false;
+			case LocalMutability.mutAllocated:
+				return true;
+		}
+	}
 }
 
-enum LocalMutability { immut, mut }
+enum LocalMutability {
+	immut,
+	mutOnStack, // Mutable and on the stack
+	mutAllocated, // Mutable and must be heap-allocated since it's used in a closure
+}
+enum Mutability { immut, mut }
+immutable(Mutability) toMutability(immutable LocalMutability a) {
+	final switch (a) {
+		case LocalMutability.immut:
+			return Mutability.immut;
+		case LocalMutability.mutOnStack:
+		case LocalMutability.mutAllocated:
+			return Mutability.mut;
+	}
+}
+
+struct ClosureRef {
+	@safe @nogc pure nothrow:
+
+	immutable PtrAndSmallNumber!(Expr.Lambda) lambdaAndIndex;
+
+	immutable(Expr.Lambda*) lambda() immutable =>
+		lambdaAndIndex.ptr;
+
+	immutable(ushort) index() immutable =>
+		lambdaAndIndex.number;
+
+	immutable(VariableRef) variableRef() immutable =>
+		lambda.closure[index];
+}
+
+enum ClosureReferenceKind { direct, allocated }
+immutable(Sym) symOfClosureReferenceKind(immutable ClosureReferenceKind a) {
+	final switch (a) {
+		case ClosureReferenceKind.direct:
+			return shortSym("direct");
+		case ClosureReferenceKind.allocated:
+			return shortSym("allocated");
+	}
+}
+immutable(ClosureReferenceKind) getClosureReferenceKind(immutable ClosureRef a) =>
+	getClosureReferenceKind(a.variableRef);
+private immutable(ClosureReferenceKind) getClosureReferenceKind(immutable VariableRef a) =>
+	matchLocalOrParam!(immutable ClosureReferenceKind)(
+		toLocalOrParam(a),
+		(immutable Local* l) {
+			final switch (l.mutability) {
+				case LocalMutability.immut:
+					return ClosureReferenceKind.direct;
+				case LocalMutability.mutOnStack:
+					return unreachable!(immutable ClosureReferenceKind);
+				case LocalMutability.mutAllocated:
+					return ClosureReferenceKind.allocated;
+			}
+		},
+		(immutable Param*) =>
+			ClosureReferenceKind.direct);
 
 struct VariableRef {
 	@safe @nogc pure nothrow:
+
 	@trusted immutable this(immutable Param* a) {
 		inner = immutable TaggedPtr!Kind(Kind.param, a);
 	}
 	@trusted immutable this(immutable Local* a) {
 		inner = immutable TaggedPtr!Kind(Kind.local, a);
 	}
-	@trusted immutable this(immutable Expr.ClosureFieldRef a) {
+	@trusted immutable this(immutable ClosureRef a) {
 		inner = immutable TaggedPtr!Kind(Kind.closure, a.lambdaAndIndex);
 	}
 
 	private:
-	enum Kind { param, local, closure }
+	enum Kind { local, param, closure }
 	immutable TaggedPtr!Kind inner;
 }
 static assert(VariableRef.sizeof == 8);
 
 @trusted immutable(T) matchVariableRef(T)(
 	immutable VariableRef a,
-	scope immutable(T) delegate(immutable Param*) @safe @nogc pure nothrow cbParam,
 	scope immutable(T) delegate(immutable Local*) @safe @nogc pure nothrow cbLocal,
-	scope immutable(T) delegate(immutable Expr.ClosureFieldRef) @safe @nogc pure nothrow cbClosure,
+	scope immutable(T) delegate(immutable Param*) @safe @nogc pure nothrow cbParam,
+	scope immutable(T) delegate(immutable ClosureRef) @safe @nogc pure nothrow cbClosure,
 ) {
 	final switch (a.inner.tag()) {
-		case VariableRef.Kind.param:
-			return cbParam(a.inner.asPtr!Param);
 		case VariableRef.Kind.local:
 			return cbLocal(a.inner.asPtr!Local);
+		case VariableRef.Kind.param:
+			return cbParam(a.inner.asPtr!Param);
 		case VariableRef.Kind.closure:
-			return cbClosure(immutable Expr.ClosureFieldRef(a.inner.asPtrAndSmallNumber!(Expr.Lambda)()));
+			return cbClosure(immutable ClosureRef(
+				a.inner.asPtrAndSmallNumber!(Expr.Lambda)()));
 	}
 }
 
 immutable(Sym) debugName(immutable VariableRef a) =>
-	matchVariableRef!(immutable Sym)(
-		a,
-		(immutable Param* x) =>
-			force(x.name),
+	matchLocalOrParam!(immutable Sym)(
+		toLocalOrParam(a),
 		(immutable Local* x) =>
 			x.name,
-		(immutable Expr.ClosureFieldRef x) =>
-			debugName(x.variableRef()));
+		(immutable Param* x) =>
+			force(x.name));
 
 immutable(Type) variableRefType(immutable VariableRef a) =>
-	matchVariableRef!(immutable Type)(
-		a,
-		(immutable Param* x) =>
-			x.type,
+	matchLocalOrParam!(immutable Type)(
+		toLocalOrParam(a),
 		(immutable Local* x) =>
 			x.type,
-		(immutable Expr.ClosureFieldRef x) =>
-			variableRefType(x.variableRef()));
+		(immutable Param* x) =>
+			x.type);
+
+private struct LocalOrParam {
+	@safe @nogc pure nothrow:
+
+	@trusted immutable this(immutable Param* a) {
+		inner = immutable TaggedPtr!Kind(Kind.param, a);
+	}
+	@trusted immutable this(immutable Local* a) {
+		inner = immutable TaggedPtr!Kind(Kind.local, a);
+	}
+
+	private:
+	enum Kind { local, param }
+	immutable TaggedPtr!Kind inner;
+}
+
+private @trusted immutable(T) matchLocalOrParam(T)(
+	immutable LocalOrParam a,
+	scope immutable(T) delegate(immutable Local*) @safe @nogc pure nothrow cbLocal,
+	scope immutable(T) delegate(immutable Param*) @safe @nogc pure nothrow cbParam,
+) {
+	final switch (a.inner.tag()) {
+		case LocalOrParam.Kind.param:
+			return cbParam(a.inner.asPtr!Param);
+		case LocalOrParam.Kind.local:
+			return cbLocal(a.inner.asPtr!Local);
+	}
+}
+
+immutable(Opt!Sym) name(immutable VariableRef a) =>
+	matchLocalOrParam!(immutable Opt!Sym)(
+		toLocalOrParam(a),
+		(immutable Local* x) =>
+			some(x.name),
+		(immutable Param* x) =>
+			x.name);
+
+private immutable(LocalOrParam) toLocalOrParam(immutable VariableRef a) =>
+	matchVariableRef!(immutable LocalOrParam)(
+		a,
+		(immutable Local* x) =>
+			immutable LocalOrParam(x),
+		(immutable Param* x) =>
+			immutable LocalOrParam(x),
+		(immutable ClosureRef x) =>
+			toLocalOrParam(x.variableRef()));
 
 struct Expr {
 	@safe @nogc pure nothrow:
@@ -1627,19 +1739,13 @@ struct Expr {
 		immutable Expr[] args;
 	}
 
-	struct ClosureFieldRef {
-		@safe @nogc pure nothrow:
+	struct ClosureGet {
+		immutable ClosureRef closureRef;
+	}
 
-		immutable PtrAndSmallNumber!Lambda lambdaAndIndex;
-
-		immutable(Expr.Lambda*) lambda() immutable =>
-			lambdaAndIndex.ptr;
-
-		immutable(ushort) index() immutable =>
-			lambdaAndIndex.number;
-
-		immutable(VariableRef) variableRef() immutable =>
-			lambda.closure[index];
+	struct ClosureSet {
+		immutable ClosureRef closureRef;
+		immutable Expr* value;
 	}
 
 	struct Cond {
@@ -1671,8 +1777,8 @@ struct Expr {
 		immutable Param[] params;
 		immutable Expr body_;
 		immutable VariableRef[] closure;
-		// This is the funN type;
-		immutable StructInst* type;
+		// This is the function type;
+		immutable StructInst* funType;
 		immutable FunKind kind;
 		// For FunKind.send this includes 'future' wrapper
 		immutable Type returnType;
@@ -1697,7 +1803,7 @@ struct Expr {
 		immutable Sym value;
 	}
 
-	struct LocalRef {
+	struct LocalGet {
 		immutable Local* local;
 	}
 
@@ -1748,7 +1854,7 @@ struct Expr {
 		immutable Type type;
 	}
 
-	struct ParamRef {
+	struct ParamGet {
 		immutable Param* param;
 	}
 
@@ -1783,7 +1889,8 @@ struct Expr {
 		assertOrForbid,
 		bogus,
 		call,
-		closureFieldRef,
+		closureGet,
+		closureSet,
 		cond,
 		drop,
 		funPtr,
@@ -1793,7 +1900,7 @@ struct Expr {
 		literal,
 		literalCString,
 		literalSymbol,
-		localRef,
+		localGet,
 		localSet,
 		loop,
 		loopBreak,
@@ -1802,7 +1909,7 @@ struct Expr {
 		loopWhile,
 		matchEnum,
 		matchUnion,
-		paramRef,
+		paramGet,
 		ptrToField,
 		ptrToLocal,
 		ptrToParam,
@@ -1816,7 +1923,8 @@ struct Expr {
 		immutable AssertOrForbid* assertOrForbid;
 		immutable Bogus bogus;
 		immutable Call call;
-		immutable ClosureFieldRef closureFieldRef;
+		immutable ClosureGet closureGet;
+		immutable ClosureSet closureSet;
 		immutable Cond* cond;
 		immutable Drop* drop;
 		immutable FunPtr funPtr;
@@ -1826,7 +1934,7 @@ struct Expr {
 		immutable Literal* literal;
 		immutable LiteralCString literalCString;
 		immutable LiteralSymbol literalSymbol;
-		immutable LocalRef localRef;
+		immutable LocalGet localGet;
 		immutable LocalSet* localSet;
 		immutable Loop* loop;
 		immutable LoopBreak* loopBreak;
@@ -1835,7 +1943,7 @@ struct Expr {
 		immutable LoopWhile* loopWhile;
 		immutable MatchEnum* matchEnum;
 		immutable MatchUnion* matchUnion;
-		immutable ParamRef paramRef;
+		immutable ParamGet paramGet;
 		immutable PtrToField* ptrToField;
 		immutable PtrToLocal ptrToLocal;
 		immutable PtrToParam ptrToParam;
@@ -1849,8 +1957,11 @@ struct Expr {
 	}
 	immutable this(immutable FileAndRange r, immutable Bogus a) { range_ = r; kind = Kind.bogus; bogus = a; }
 	@trusted immutable this(immutable FileAndRange r, immutable Call a) { range_ = r; kind = Kind.call; call = a; }
-	@trusted immutable this(immutable FileAndRange r, immutable ClosureFieldRef a) {
-		range_ = r; kind = Kind.closureFieldRef; closureFieldRef = a;
+	@trusted immutable this(immutable FileAndRange r, immutable ClosureGet a) {
+		range_ = r; kind = Kind.closureGet; closureGet = a;
+	}
+	immutable this(immutable FileAndRange r, immutable ClosureSet a) {
+		range_ = r; kind = Kind.closureSet; closureSet = a;
 	}
 	@trusted immutable this(immutable FileAndRange r, immutable Cond* a) { range_ = r; kind = Kind.cond; cond = a; }
 	@trusted immutable this(immutable FileAndRange r, immutable Drop* a) { range_ = r; kind = Kind.drop; drop = a; }
@@ -1873,8 +1984,8 @@ struct Expr {
 	@trusted immutable this(immutable FileAndRange r, immutable LiteralSymbol a) {
 		range_ = r; kind = Kind.literalSymbol; literalSymbol = a;
 	}
-	@trusted immutable this(immutable FileAndRange r, immutable LocalRef a) {
-		range_ = r; kind = Kind.localRef; localRef = a;
+	@trusted immutable this(immutable FileAndRange r, immutable LocalGet a) {
+		range_ = r; kind = Kind.localGet; localGet = a;
 	}
 	@trusted immutable this(immutable FileAndRange r, immutable LocalSet* a) {
 		range_ = r; kind = Kind.localSet; localSet = a;
@@ -1900,8 +2011,8 @@ struct Expr {
 	@trusted immutable this(immutable FileAndRange r, immutable MatchUnion* a) {
 		range_ = r; kind = Kind.matchUnion; matchUnion = a;
 	}
-	@trusted immutable this(immutable FileAndRange r, immutable ParamRef a) {
-		range_ = r; kind = Kind.paramRef; paramRef = a;
+	@trusted immutable this(immutable FileAndRange r, immutable ParamGet a) {
+		range_ = r; kind = Kind.paramGet; paramGet = a;
 	}
 	immutable this(immutable FileAndRange r, immutable PtrToField* a) {
 		range_ = r; kind = Kind.ptrToField; ptrToField = a;
@@ -1924,7 +2035,8 @@ immutable(FileAndRange) range(scope ref immutable Expr a) =>
 	scope immutable(T) delegate(ref immutable Expr.AssertOrForbid) @safe @nogc pure nothrow cbAssertOrForbid,
 	scope immutable(T) delegate(ref immutable Expr.Bogus) @safe @nogc pure nothrow cbBogus,
 	scope immutable(T) delegate(ref immutable Expr.Call) @safe @nogc pure nothrow cbCall,
-	scope immutable(T) delegate(ref immutable Expr.ClosureFieldRef) @safe @nogc pure nothrow cbClosureFieldRef,
+	scope immutable(T) delegate(ref immutable Expr.ClosureGet) @safe @nogc pure nothrow cbClosureGet,
+	scope immutable(T) delegate(ref immutable Expr.ClosureSet) @safe @nogc pure nothrow cbClosureSet,
 	scope immutable(T) delegate(ref immutable Expr.Cond) @safe @nogc pure nothrow cbCond,
 	scope immutable(T) delegate(ref immutable Expr.Drop) @safe @nogc pure nothrow cbDrop,
 	scope immutable(T) delegate(ref immutable Expr.FunPtr) @safe @nogc pure nothrow cbFunPtr,
@@ -1934,7 +2046,7 @@ immutable(FileAndRange) range(scope ref immutable Expr a) =>
 	scope immutable(T) delegate(ref immutable Expr.Literal) @safe @nogc pure nothrow cbLiteral,
 	scope immutable(T) delegate(ref immutable Expr.LiteralCString) @safe @nogc pure nothrow cbLiteralCString,
 	scope immutable(T) delegate(ref immutable Expr.LiteralSymbol) @safe @nogc pure nothrow cbLiteralSymbol,
-	scope immutable(T) delegate(ref immutable Expr.LocalRef) @safe @nogc pure nothrow cbLocalRef,
+	scope immutable(T) delegate(ref immutable Expr.LocalGet) @safe @nogc pure nothrow cbLocalGet,
 	scope immutable(T) delegate(ref immutable Expr.LocalSet) @safe @nogc pure nothrow cbLocalSet,
 	scope immutable(T) delegate(ref immutable Expr.Loop) @safe @nogc pure nothrow cbLoop,
 	scope immutable(T) delegate(ref immutable Expr.LoopBreak) @safe @nogc pure nothrow cbLoopBreak,
@@ -1943,7 +2055,7 @@ immutable(FileAndRange) range(scope ref immutable Expr a) =>
 	scope immutable(T) delegate(ref immutable Expr.LoopWhile) @safe @nogc pure nothrow cbLoopWhile,
 	scope immutable(T) delegate(ref immutable Expr.MatchEnum) @safe @nogc pure nothrow cbMatchEnum,
 	scope immutable(T) delegate(ref immutable Expr.MatchUnion) @safe @nogc pure nothrow cbMatchUnion,
-	scope immutable(T) delegate(ref immutable Expr.ParamRef) @safe @nogc pure nothrow cbParamRef,
+	scope immutable(T) delegate(ref immutable Expr.ParamGet) @safe @nogc pure nothrow cbParamGet,
 	scope immutable(T) delegate(ref immutable Expr.PtrToField) @safe @nogc pure nothrow cbPtrToField,
 	scope immutable(T) delegate(ref immutable Expr.PtrToLocal) @safe @nogc pure nothrow cbPtrToLocal,
 	scope immutable(T) delegate(ref immutable Expr.PtrToParam) @safe @nogc pure nothrow cbPtrToParam,
@@ -1957,8 +2069,10 @@ immutable(FileAndRange) range(scope ref immutable Expr a) =>
 			return cbBogus(a.bogus);
 		case Expr.Kind.call:
 			return cbCall(a.call);
-		case Expr.Kind.closureFieldRef:
-			return cbClosureFieldRef(a.closureFieldRef);
+		case Expr.Kind.closureGet:
+			return cbClosureGet(a.closureGet);
+		case Expr.Kind.closureSet:
+			return cbClosureSet(a.closureSet);
 		case Expr.Kind.cond:
 			return cbCond(*a.cond);
 		case Expr.Kind.drop:
@@ -1977,8 +2091,8 @@ immutable(FileAndRange) range(scope ref immutable Expr a) =>
 			return cbLiteralCString(a.literalCString);
 		case Expr.Kind.literalSymbol:
 			return cbLiteralSymbol(a.literalSymbol);
-		case Expr.Kind.localRef:
-			return cbLocalRef(a.localRef);
+		case Expr.Kind.localGet:
+			return cbLocalGet(a.localGet);
 		case Expr.Kind.localSet:
 			return cbLocalSet(*a.localSet);
 		case Expr.Kind.loop:
@@ -1995,8 +2109,8 @@ immutable(FileAndRange) range(scope ref immutable Expr a) =>
 			return cbMatchEnum(*a.matchEnum);
 		case Expr.Kind.matchUnion:
 			return cbMatchUnion(*a.matchUnion);
-		case Expr.Kind.paramRef:
-			return cbParamRef(a.paramRef);
+		case Expr.Kind.paramGet:
+			return cbParamGet(a.paramGet);
 		case Expr.Kind.ptrToField:
 			return cbPtrToField(*a.ptrToField);
 		case Expr.Kind.ptrToLocal:
@@ -2020,18 +2134,18 @@ immutable(bool) isCall(scope ref immutable Expr a) =>
 	return a.call;
 }
 
-immutable(bool) isLocalRef(scope ref immutable Expr a) =>
-	a.kind == Expr.Kind.localRef;
-@trusted ref immutable(Expr.LocalRef) asLocalRef(scope return ref immutable Expr a) {
-	verify(isLocalRef(a));
-	return a.localRef;
+immutable(bool) isLocalGet(scope ref immutable Expr a) =>
+	a.kind == Expr.Kind.localGet;
+@trusted ref immutable(Expr.LocalGet) asLocalGet(scope return ref immutable Expr a) {
+	verify(isLocalGet(a));
+	return a.localGet;
 }
 
-immutable(bool) isParamRef(scope ref immutable Expr a) =>
-	a.kind == Expr.Kind.paramRef;
-@trusted ref immutable(Expr.ParamRef) asParamRef(scope return ref immutable Expr a) {
-	verify(isParamRef(a));
-	return a.paramRef;
+immutable(bool) isParamGet(scope ref immutable Expr a) =>
+	a.kind == Expr.Kind.paramGet;
+@trusted ref immutable(Expr.ParamGet) asParamGet(scope return ref immutable Expr a) {
+	verify(isParamGet(a));
+	return a.paramGet;
 }
 
 enum AssertOrForbidKind { assert_, forbid }
@@ -2050,13 +2164,19 @@ void writeStructDecl(scope ref Writer writer, scope ref const AllSymbols allSymb
 }
 
 void writeStructInst(scope ref Writer writer, scope ref const AllSymbols allSymbols, scope ref immutable StructInst s) {
-	writeStructDecl(writer, allSymbols, *s.declAndArgs.decl);
-	if (!empty(s.typeArgs)) {
-		writer ~= '<';
-		writeWithCommas!Type(writer, s.typeArgs, (ref immutable Type t) {
-			writeTypeUnquoted(writer, allSymbols, t);
-		});
-		writer ~= '>';
+	// TODO: more cases like this
+	if (decl(s).name == shortSym("mut-list") && s.typeArgs.length == 1) {
+		writeTypeUnquoted(writer, allSymbols, only(s.typeArgs));
+		writer ~= " mut[]";
+	} else {
+		writeStructDecl(writer, allSymbols, *decl(s));
+		if (!empty(s.typeArgs)) {
+			writer ~= '<';
+			writeWithCommas!Type(writer, s.typeArgs, (ref immutable Type t) {
+				writeTypeUnquoted(writer, allSymbols, t);
+			});
+			writer ~= '>';
+		}
 	}
 }
 

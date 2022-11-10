@@ -92,17 +92,17 @@ pull void(a audio-queue, out mut-array float32) noctx unsafe
 
 .set-playing void(a audio-queue, entry entry, desired bool) trusted
 	a.lock acquire
-	is-playing cell bool = false,
+	is-playing mut bool = false
 	# Can't use 'set-filter' in 'noctx' code, so do it here
 	a.playing.filter := x =>
 		if x is-over
 			false
 		elif x ref-eq entry
-			*is-playing := true
+			is-playing := true
 			desired
 		else
 			true
-	if desired && !*is-playing
+	if desired && !is-playing
 		a.playing ~= entry
 	a.lock release
 

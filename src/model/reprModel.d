@@ -288,8 +288,10 @@ immutable(Repr) reprExpr(ref Alloc alloc, scope ref Ctx ctx, ref immutable Expr 
 				reprCalled(alloc, ctx, e.called),
 				reprArr(alloc, e.args, (ref immutable Expr arg) =>
 					reprExpr(alloc, ctx, arg))]),
-		(ref immutable Expr.ClosureFieldRef a) =>
-			reprRecord(alloc, "closure-rf", [reprNat(a.index)]),
+		(ref immutable Expr.ClosureGet a) =>
+			reprRecord(alloc, "closure-get", [reprNat(a.closureRef.index)]),
+		(ref immutable Expr.ClosureSet a) =>
+			reprRecord(alloc, "closure-set", [reprNat(a.closureRef.index)]),
 		(ref immutable Expr.Cond e) =>
 			reprRecord(alloc, "cond", [
 				reprExpr(alloc, ctx, e.cond),
@@ -314,7 +316,7 @@ immutable(Repr) reprExpr(ref Alloc alloc, scope ref Ctx ctx, ref immutable Expr 
 				reprExpr(alloc, ctx, a.body_),
 				reprArr(alloc, a.closure, (ref immutable VariableRef it) =>
 					reprSym(debugName(it))),
-				reprStructInst(alloc, ctx, *a.type),
+				reprStructInst(alloc, ctx, *a.funType),
 				reprSym(symOfFunKind(a.kind)),
 				reprType(alloc, ctx, a.returnType)]),
 		(ref immutable Expr.Let it) =>
@@ -330,8 +332,8 @@ immutable(Repr) reprExpr(ref Alloc alloc, scope ref Ctx ctx, ref immutable Expr 
 			reprRecord(alloc, "c-string-lit", [reprStr(it.value)]),
 		(ref immutable Expr.LiteralSymbol it) =>
 			reprRecord(alloc, "sym-lit", [reprSym(it.value)]),
-		(ref immutable Expr.LocalRef it) =>
-			reprRecord(alloc, "local-ref", [reprSym(it.local.name)]),
+		(ref immutable Expr.LocalGet it) =>
+			reprRecord(alloc, "local-get", [reprSym(it.local.name)]),
 		(ref immutable Expr.LocalSet it) =>
 			reprRecord(alloc, "local-set", [reprSym(it.local.name), reprExpr(alloc, ctx, it.value)]),
 		(ref immutable Expr.Loop x) =>
@@ -359,8 +361,8 @@ immutable(Repr) reprExpr(ref Alloc alloc, scope ref Ctx ctx, ref immutable Expr 
 				reprStructInst(alloc, ctx, *a.matchedUnion),
 				reprArr(alloc, a.cases, (ref immutable Expr.MatchUnion.Case case_) =>
 					reprMatchUnionCase(alloc, ctx, case_))]),
-		(ref immutable Expr.ParamRef it) =>
-			reprRecord(alloc, "param-ref", [reprSym(force(it.param.name))]),
+		(ref immutable Expr.ParamGet it) =>
+			reprRecord(alloc, "param-get", [reprSym(force(it.param.name))]),
 		(ref immutable Expr.PtrToField it) =>
 			reprRecord(alloc, "ptr-to-field", [
 				reprType(alloc, ctx, it.pointerType),

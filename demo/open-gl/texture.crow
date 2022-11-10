@@ -10,10 +10,9 @@ import
 # Remember to call 'free-texture'
 load-texture-from-bmp GLuint(gl gl-ext, bmp-raw nat8[]) unsafe summon
 	bmp-raw with-bmp image =>
-		texture-cell cell GLuint = 0,
-		gl glGenTextures 1, texture-cell.as-mut-pointer
+		texture mut GLuint = 0
+		gl glGenTextures 1, &texture
 		gl check-error "glGenTextures"
-		texture = *texture-cell
 
 		gl glBindTexture GL_TEXTURE_2D, texture
 		gl check-error "glBindTexture"

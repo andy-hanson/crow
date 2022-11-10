@@ -1,19 +1,15 @@
 import
-	crow/cell
 	crow/io/print: out, print
 
-main nat^(_ string[]) summon
+main nat^(_ string[]) summon unsafe
 	# "crow" new "duck"
 	xs string[] = "crow", "duck"
 	# xs subscript 0
 	out print xs[0]
 
-	# "duck" new
-	c cell string = "duck",
-	# c set-deref "crow"
-	*c := "crow"
-	# c.deref print
-	out print *c
+	# "crow" new
+	xs2 string[] = "goose",
+	out print xs2[0]
 
 	# new
 	ys string mut[] = ()

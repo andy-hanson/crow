@@ -1,8 +1,8 @@
 no-std
 import
 	crow/bytes-types: bytes256
-	crow/cell: cell
 	crow/number: int32, nat16
+	crow/pointer: mut-pointer
 	crow/string: char8, c-string
 	sys/types: ino_t, off_t
 
@@ -17,4 +17,4 @@ dirent record mut by-ref extern
 	d_name mut bytes256
 
 opendir dir(name c-string) extern<c> summon
-readdir_r int32(dirp dir, entry dirent, result cell dirent) extern<c> summon
+readdir_r int32(dirp dir, entry dirent, result dirent mut*) extern<c> summon

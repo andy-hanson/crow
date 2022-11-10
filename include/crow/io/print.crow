@@ -5,7 +5,6 @@ import
 	win32:
 		DWORD, GetLastError, GetStdHandle, HANDLE, STD_ERROR_HANDLE, STD_OUTPUT_HANDLE,
 		WriteFile
-	../cell: *, as-mut-pointer, cell, new
 	../col/array: begin-pointer, size
 	../col/list: to-array
 	../extra-types: fd-t
@@ -44,11 +43,11 @@ print-no-newline void(pipe pipe, message string) summon trusted
 
 .write-windows void(console HANDLE, a string) summon unsafe
 	bytes = a.to-bytes to-array
-	written cell DWORD = 0,
+	written mut DWORD = 0
 	size32 = bytes.size to-nat32
-	ok = console WriteFile bytes.begin-pointer, size32, written.as-mut-pointer, null
+	ok = console WriteFile bytes.begin-pointer, size32, &written, null
 	assert ok : "{GetLastError show-win32-error}"
-	unless *written == size32
+	unless written == size32
 		# TODO: maybe retry
 		todo
 

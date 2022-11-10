@@ -1,11 +1,10 @@
 no-std
 import
-	crow/cell: cell
 	crow/c-types: c-int, size_t
 	crow/extra-types: err-t, fd-t
 	crow/number: int32, max-nat64, nat16, nat64, to-int32, to-int64
 	crow/private/number-low-level: unsafe-to-nat64
-	crow/pointer: any-mut-pointer
+	crow/pointer: any-mut-pointer, mut-pointer
 	crow/version: is-windows
 	unistd: ssize_t
 	./types: socklen_t
@@ -38,7 +37,7 @@ INVALID_SOCKET SOCKET() unsafe
 
 sockaddr extern-pointer
 
-accept err-t(a SOCKET, addr sockaddr, addrlen cell socklen_t) extern<c> summon
+accept err-t(a SOCKET, addr sockaddr, addrlen socklen_t mut*) extern<c> summon
 
 bind err-t(a SOCKET, addr sockaddr, len socklen_t) extern<c> summon
 

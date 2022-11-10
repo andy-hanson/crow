@@ -13,6 +13,7 @@ import model.model :
 	decl,
 	EnumBackingType,
 	FunDecl,
+	LocalMutability,
 	matchCalledDecl,
 	matchParams,
 	name,
@@ -679,10 +680,13 @@ void writeDiag(
 			writer ~= "lambda expression needs an expected type";
 		},
 		(ref immutable Diag.LambdaClosesOverMut d) {
-			writer ~= "lambda is a plain 'fun' but closes over ";
+			writer ~= "this lambda is a 'fun' but references ";
 			writeName(writer, allSymbols, d.name);
-			writer ~= " of 'mut' type ";
-			writeTypeQuoted(writer, allSymbols, d.type);
+			if (has(d.type)) {
+				writer ~= " of 'mut' type ";
+				writeTypeQuoted(writer, allSymbols, force(d.type));
+			} else
+				writer ~= " which is 'mut'";
 			writer ~= " (should it be an 'act' or 'ref' fun?)";
 		},
 		(ref immutable Diag.LambdaWrongNumberParams d) {
@@ -717,7 +721,8 @@ void writeDiag(
 		},
 		(ref immutable Diag.LocalNotMutable d) {
 			writer ~= "local variable ";
-			writeName(writer, allSymbols, d.local.name);
+			immutable Opt!Sym name = name(d.local);
+			writeName(writer, allSymbols, force(name));
 			writer ~= " was not marked 'mut'";
 		},
 		(ref immutable Diag.LoopBreakNotAtTail d) {
@@ -942,9 +947,13 @@ void writeDiag(
 		(ref immutable Diag.UnusedLocal it) {
 			writer ~= "local ";
 			writeSym(writer, allSymbols, it.local.name);
-			writer ~= it.usedGet
+			writer ~= (it.local.mutability == LocalMutability.immut)
+				? " is unused"
+				: it.usedGet
 				? " is mutable but never reassigned"
-				: (it.usedSet ? " is assigned to but unused" : " is unused");
+				: it.usedSet
+				? " is assigned to but unused"
+				: " is unused";
 		},
 		(ref immutable Diag.UnusedParam it) {
 			writer ~= "parameter ";

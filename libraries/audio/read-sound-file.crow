@@ -8,16 +8,16 @@ import
 	./sound: new, sound
 
 read-sound-file sound(path string) trusted summon
-	info cell SF_INFO = (),
-	f = path.to-c-string sf_open SFM_READ, info.as-mut-pointer
-	f common *info
+	info mut SF_INFO = ()
+	f = path.to-c-string sf_open SFM_READ, &info
+	f common info
 
 sound-from-file-content sound(content array nat8) trusted
-	info cell SF_INFO = (),
+	info mut SF_INFO = ()
 	user-data = content, content.begin-pointer
 	virtual SF_VIRTUAL_IO = &get_filelen, &seek, &read, &write, &tell
-	f = virtual sf_open_virtual SFM_READ, info.as-mut-pointer, user-data.as-any-mut-pointer
-	f common *info
+	f = virtual sf_open_virtual SFM_READ, &info, user-data.as-any-mut-pointer
+	f common info
 
 .common sound(f SNDFILE, info SF_INFO) unsafe
 	f.sf_error check-sndfile-error

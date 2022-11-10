@@ -128,7 +128,7 @@ ref const(T) only_const(size_t maxSize, T)(ref const MutMaxArr!(maxSize, T) a) {
 @trusted immutable(T[]) tempAsArr(size_t maxSize, T)(return ref const MutMaxArr!(maxSize, T) a) =>
 	cast(immutable) tempAsArr_const(a);
 @trusted T[] tempAsArr_mut(size_t maxSize, T)(return ref MutMaxArr!(maxSize, T) a) =>
-	a.values[0 .. a.size_];
+	a.values.ptr[0 .. a.size_];
 @trusted const(T[]) tempAsArr_const(size_t maxSize, T)(return ref const MutMaxArr!(maxSize, T) a) =>
 	a.values[0 .. a.size_];
 

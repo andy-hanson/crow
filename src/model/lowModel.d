@@ -262,11 +262,6 @@ immutable(bool) isPtrRawMut(immutable LowType a) =>
 immutable(bool) isPtrRawConstOrMut(immutable LowType a) =>
 	isPtrRawConst(a) || isPtrRawMut(a);
 
-@trusted immutable(LowType) asPtrGcPointee(return immutable LowType a) {
-	verify(isPtrGc(a));
-	return *a.ptrGc_.pointee;
-}
-
 @trusted immutable(LowType.PtrRawConst) asPtrRawConst(immutable LowType a) {
 	verify(isPtrRawConst(a));
 	return a.ptrRawConst_;
@@ -277,7 +272,7 @@ immutable(bool) isPtrRawConstOrMut(immutable LowType a) =>
 	return a.ptrRawMut_;
 }
 
-private immutable(bool) isPtrGcOrRaw(immutable LowType a) =>
+immutable(bool) isPtrGcOrRaw(immutable LowType a) =>
 	isPtrGc(a) || isPtrRawConst(a) || isPtrRawMut(a);
 
 @trusted immutable(LowType) asGcOrRawPointee(scope return immutable LowType a) {
@@ -291,6 +286,11 @@ private immutable(bool) isPtrGcOrRaw(immutable LowType a) =>
 		(immutable LowType.Record) => unreachable!(immutable LowType),
 		(immutable LowType.Union) => unreachable!(immutable LowType),
 	)(a);
+}
+
+immutable(LowType) asPtrGcPointee(immutable LowType a) {
+	verify(isPtrGc(a));
+	return asGcOrRawPointee(a);
 }
 
 immutable(LowType) asPtrRawPointee(immutable LowType a) {
@@ -638,12 +638,13 @@ struct LowExprKind {
 	struct InitConstants {}
 
 	struct Let {
+		// A heap-allocated mutable local will become a read-only local whose type is a gc-ptr
 		immutable LowLocal* local;
 		immutable LowExpr value;
 		immutable LowExpr then;
 	}
 
-	struct LocalRef {
+	struct LocalGet {
 		immutable LowLocal* local;
 	}
 
@@ -677,7 +678,7 @@ struct LowExprKind {
 		immutable Case[] cases;
 	}
 
-	struct ParamRef {
+	struct ParamGet {
 		immutable LowParamIndex index;
 	}
 
@@ -699,7 +700,7 @@ struct LowExprKind {
 	}
 
 	struct RecordFieldGet {
-		immutable LowExpr target;
+		immutable LowExpr target; // Call 'targetIsPointer' to see if this is x.y or x->y
 		immutable size_t fieldIndex;
 	}
 
@@ -729,14 +730,14 @@ struct LowExprKind {
 			countOnesNat64,
 			deref,
 			enumToIntegral,
-			toCharFromNat8,
+			toChar8FromNat8,
 			toFloat32FromFloat64,
 			toFloat64FromFloat32,
 			toFloat64FromInt64,
 			toFloat64FromNat64,
 			toInt64FromInt16,
 			toInt64FromInt32,
-			toNat8FromChar,
+			toNat8FromChar8,
 			toNat64FromNat8,
 			toNat64FromNat16,
 			toNat64FromNat32,
@@ -798,8 +799,7 @@ struct LowExprKind {
 			eqNat32,
 			eqNat64,
 			eqPtr,
-			lessBool,
-			lessChar,
+			lessChar8,
 			lessFloat32,
 			lessFloat64,
 			lessInt8,
@@ -897,13 +897,13 @@ struct LowExprKind {
 		if_,
 		initConstants,
 		let,
-		localRef,
+		localGet,
 		localSet,
 		loop,
 		loopBreak,
 		loopContinue,
 		matchUnion,
-		paramRef,
+		paramGet,
 		ptrCast,
 		ptrToField,
 		ptrToLocal,
@@ -931,13 +931,13 @@ struct LowExprKind {
 		immutable If* if_;
 		immutable InitConstants initConstants;
 		immutable Let* let;
-		immutable LocalRef localRef;
+		immutable LocalGet localGet;
 		immutable LocalSet* localSet;
 		immutable Loop* loop;
 		immutable LoopBreak* loopBreak;
 		immutable LoopContinue loopContinue;
 		immutable MatchUnion* matchUnion;
-		immutable ParamRef paramRef;
+		immutable ParamGet paramGet;
 		immutable PtrCast* ptrCast;
 		immutable PtrToField* ptrToField;
 		immutable PtrToLocal ptrToLocal;
@@ -965,13 +965,13 @@ struct LowExprKind {
 	immutable this(immutable If* a) { kind = Kind.if_; if_ = a; }
 	immutable this(immutable InitConstants a) { kind = Kind.initConstants; initConstants = a; }
 	@trusted immutable this(immutable Let* a) { kind = Kind.let; let = a; }
-	@trusted immutable this(immutable LocalRef a) { kind = Kind.localRef; localRef = a; }
+	@trusted immutable this(immutable LocalGet a) { kind = Kind.localGet; localGet = a; }
 	@trusted immutable this(immutable LocalSet* a) { kind = Kind.localSet; localSet = a; }
 	immutable this(immutable Loop* a) { kind = Kind.loop; loop = a; }
 	immutable this(immutable LoopBreak* a) { kind = Kind.loopBreak; loopBreak = a; }
 	immutable this(immutable LoopContinue a) { kind = Kind.loopContinue; loopContinue = a; }
 	@trusted immutable this(immutable MatchUnion* a) { kind = Kind.matchUnion; matchUnion = a; }
-	@trusted immutable this(immutable ParamRef a) { kind = Kind.paramRef; paramRef = a; }
+	@trusted immutable this(immutable ParamGet a) { kind = Kind.paramGet; paramGet = a; }
 	@trusted immutable this(immutable PtrCast* a) { kind = Kind.ptrCast; ptrCast = a; }
 	immutable this(immutable PtrToField* a) { kind = Kind.ptrToField; ptrToField = a; }
 	immutable this(immutable PtrToLocal a) { kind = Kind.ptrToLocal; ptrToLocal = a; }
@@ -1001,13 +1001,13 @@ static assert(LowExprKind.sizeof <= 32);
 	alias cbIf,
 	alias cbInitConstants,
 	alias cbLet,
-	alias cbLocalRef,
+	alias cbLocalGet,
 	alias cbLocalSet,
 	alias cbLoop,
 	alias cbLoopBreak,
 	alias cbLoopContinue,
 	alias cbMatchUnion,
-	alias cbParamRef,
+	alias cbParamGet,
 	alias cbPtrCast,
 	alias cbPtrToField,
 	alias cbPtrToLocal,
@@ -1041,8 +1041,8 @@ static assert(LowExprKind.sizeof <= 32);
 			return cbInitConstants(a.initConstants);
 		case LowExprKind.Kind.let:
 			return cbLet(*a.let);
-		case LowExprKind.Kind.localRef:
-			return cbLocalRef(a.localRef);
+		case LowExprKind.Kind.localGet:
+			return cbLocalGet(a.localGet);
 		case LowExprKind.Kind.localSet:
 			return cbLocalSet(*a.localSet);
 		case LowExprKind.Kind.loop:
@@ -1053,8 +1053,8 @@ static assert(LowExprKind.sizeof <= 32);
 			return cbLoopContinue(a.loopContinue);
 		case LowExprKind.Kind.matchUnion:
 			return cbMatchUnion(*a.matchUnion);
-		case LowExprKind.Kind.paramRef:
-			return cbParamRef(a.paramRef);
+		case LowExprKind.Kind.paramGet:
+			return cbParamGet(a.paramGet);
 		case LowExprKind.Kind.ptrCast:
 			return cbPtrCast(*a.ptrCast);
 		case LowExprKind.Kind.ptrToField:
@@ -1115,12 +1115,12 @@ struct UpdateParam {
 	immutable LowExpr newValue;
 }
 
-immutable(bool) isParamRef(ref immutable LowExprKind a) =>
-	a.kind == LowExprKind.Kind.paramRef;
+immutable(bool) isParamGet(ref immutable LowExprKind a) =>
+	a.kind == LowExprKind.Kind.paramGet;
 
-ref immutable(LowExprKind.ParamRef) asParamRef(scope return ref immutable LowExprKind a) {
-	verify(isParamRef(a));
-	return a.paramRef;
+ref immutable(LowExprKind.ParamGet) asParamGet(scope return ref immutable LowExprKind a) {
+	verify(isParamGet(a));
+	return a.paramGet;
 }
 
 struct ArrTypeAndConstantsLow {

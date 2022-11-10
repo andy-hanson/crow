@@ -35,8 +35,8 @@ import model.lowModel :
 import model.model : EnumValue;
 import model.reprConcreteModel :
 	reprOfConcreteFunRef,
-	reprOfConcreteLocalRef,
-	reprOfConcreteParamRef,
+	reprOfConcreteLocalGet,
+	reprOfConcreteParamGet,
 	reprOfConcreteStructRef;
 import model.reprConstant : reprOfConstant;
 import util.alloc.alloc : Alloc;
@@ -137,7 +137,7 @@ immutable(Repr) reprOfLowParamSource(ref immutable LowParamSource a) =>
 	matchLowParamSource!(
 		immutable Repr,
 		(ref immutable ConcreteParam it) =>
-			reprOfConcreteParamRef(it),
+			reprOfConcreteParamGet(it),
 		(ref immutable LowParamSource.Generated it) =>
 			reprSym(it.name),
 	)(a);
@@ -155,7 +155,7 @@ immutable(Repr) reprOfLowLocalSource(ref Alloc alloc, ref immutable LowLocalSour
 	matchLowLocalSource!(
 		immutable Repr,
 		(ref immutable ConcreteLocal it) =>
-			reprOfConcreteLocalRef(it),
+			reprOfConcreteLocalGet(it),
 		(ref immutable LowLocalSource.Generated it) =>
 			reprRecord(alloc, "generated", [reprSym(it.name), reprNat(it.index)]),
 	)(a);
@@ -197,8 +197,8 @@ immutable(Repr) reprOfLowExprKind(ref Alloc alloc, ref immutable LowExprKind a) 
 				reprOfLowLocalSource(alloc, it.local.source),
 				reprOfLowExpr(alloc, it.value),
 				reprOfLowExpr(alloc, it.then)]),
-		(ref immutable LowExprKind.LocalRef it) =>
-			reprRecord(alloc, "local-ref", [reprOfLowLocalSource(alloc, it.local.source)]),
+		(ref immutable LowExprKind.LocalGet it) =>
+			reprRecord(alloc, "local-get", [reprOfLowLocalSource(alloc, it.local.source)]),
 		(ref immutable LowExprKind.LocalSet it) =>
 			reprRecord(alloc, "local-set", [
 				reprOfLowLocalSource(alloc, it.local.source),
@@ -211,8 +211,8 @@ immutable(Repr) reprOfLowExprKind(ref Alloc alloc, ref immutable LowExprKind a) 
 			reprSym("continue"),
 		(ref immutable LowExprKind.MatchUnion it) =>
 			reprOfMatchUnion(alloc, it),
-		(ref immutable LowExprKind.ParamRef it) =>
-			reprRecord(alloc, "param-ref", [reprNat(it.index.index)]),
+		(ref immutable LowExprKind.ParamGet it) =>
+			reprRecord(alloc, "param-get", [reprNat(it.index.index)]),
 		(ref immutable LowExprKind.PtrCast it) =>
 			reprRecord(alloc, "ptr-cast", [reprOfLowExpr(alloc, it.target)]),
 		(ref immutable LowExprKind.PtrToField it) =>
@@ -310,7 +310,7 @@ immutable(string) strOfSpecialUnaryKind(immutable LowExprKind.SpecialUnary.Kind 
 			return "deref";
 		case LowExprKind.SpecialUnary.Kind.enumToIntegral:
 			return "to integral (from enum)";
-		case LowExprKind.SpecialUnary.Kind.toCharFromNat8:
+		case LowExprKind.SpecialUnary.Kind.toChar8FromNat8:
 			return "to-char8 (from nat8)";
 		case LowExprKind.SpecialUnary.Kind.toFloat32FromFloat64:
 			return "to-float32 (from float64)";
@@ -324,7 +324,7 @@ immutable(string) strOfSpecialUnaryKind(immutable LowExprKind.SpecialUnary.Kind 
 			return "to-int (from int16)";
 		case LowExprKind.SpecialUnary.Kind.toInt64FromInt32:
 			return "to-int (from int32)";
-		case LowExprKind.SpecialUnary.Kind.toNat8FromChar:
+		case LowExprKind.SpecialUnary.Kind.toNat8FromChar8:
 			return "to-nat8 (from char8)";
 		case LowExprKind.SpecialUnary.Kind.toNat64FromNat8:
 			return "to-nat (from nat8)";
@@ -439,9 +439,7 @@ immutable(string) strOfSpecialBinaryKind(immutable LowExprKind.SpecialBinary.Kin
 			return "== (nat64)";
 		case LowExprKind.SpecialBinary.Kind.eqPtr:
 			return "ptr-eq?";
-		case LowExprKind.SpecialBinary.Kind.lessBool:
-			return "< (bool)";
-		case LowExprKind.SpecialBinary.Kind.lessChar:
+		case LowExprKind.SpecialBinary.Kind.lessChar8:
 			return "< (char)";
 		case LowExprKind.SpecialBinary.Kind.lessFloat32:
 			return "< (float32)";
@@ -552,7 +550,7 @@ immutable(string) strOfSpecialBinaryKind(immutable LowExprKind.SpecialBinary.Kin
 		case LowExprKind.SpecialBinary.Kind.wrapSubNat64:
 			return "wrap-sub (nat64)";
 		case LowExprKind.SpecialBinary.Kind.writeToPtr:
-			return "wriite to ptr";
+			return "write to ptr";
 	}
 }
 

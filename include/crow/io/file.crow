@@ -16,7 +16,6 @@ import
 	../bits: &, |, <<
 	../bytes-types: new
 	../bool: !, ||, bool, false, new, to-nat64, true
-	../cell: *, as-mut-pointer, cell, new
 	../col/array: array, begin-pointer, size, subscript
 	../col/mut-array: cast-immutable, begin-pointer, mut-array, size, uninitialized-mut-array
 	../col/list: for-loop, list, new, to-array, to-list
@@ -128,8 +127,8 @@ names-in-dir string[](path string) summon trusted
 .names-in-dir string[](path c-string) trusted summon
 	if is-windows
 		path-search = "{path}\\*" to-c-string
-		file-data cell WIN32_FIND_DATAA = (),
-		file = path-search FindFirstFileA file-data.as-mut-pointer
+		file-data mut WIN32_FIND_DATAA = ()
+		file = path-search FindFirstFileA &file-data
 		if file == INVALID_HANDLE_VALUE
 			throw "failed to open dir {path}"
 		else
@@ -146,10 +145,10 @@ names-in-dir string[](path string) summon trusted
 		res.move-to-list sort
 
 .names-in-dir-recur void(out string mut[], dir-path c-string, file HANDLE) unsafe summon
-	file-data cell WIN32_FIND_DATAA = (),
-	ok = file FindNextFileA file-data.as-mut-pointer
+	file-data mut WIN32_FIND_DATAA = ()
+	ok = file FindNextFileA &file-data
 	if ok
-		s = file-data.as-mut-pointer.cFileName.as-const to-string
+		s = (&file-data).cFileName.as-const to-string
 		if s != ".."
 			out ~= s
 		out names-in-dir-recur dir-path, file
@@ -160,12 +159,12 @@ names-in-dir string[](path string) summon trusted
 .names-in-dir-recur void(out string mut[], dirp dir) unsafe summon
 	# Initial value of entry / result should not matter
 	entry dirent = 0, 0, 0, "\0", ()
-	result cell dirent = entry,
-	err = dirp readdir_r entry, result
+	result mut dirent = entry
+	err = dirp readdir_r entry, &result
 	# TODO: handle error
 	assert err == 0
-	unless result->as-any-const-pointer == null
-		assert *result ref-eq entry
+	unless result.as-any-const-pointer == null
+		assert result ref-eq entry
 		name = entry get-dirent-name
 		unless name == "." || name == ".."
 			out ~= name

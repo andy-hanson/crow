@@ -866,7 +866,7 @@ immutable(WriteExprResult) writeExpr(
 			writeReturnVoid(writer, indent, ctx, writeKind),
 		(scope ref immutable LowExprKind.Let it) =>
 			writeLet(writer, indent, ctx, locals, writeKind, it),
-		(scope ref immutable LowExprKind.LocalRef it) =>
+		(scope ref immutable LowExprKind.LocalGet it) =>
 			inlineableSimple(() {
 				writeLowLocalName(writer, ctx.mangledNames, *it.local);
 			}),
@@ -883,9 +883,9 @@ immutable(WriteExprResult) writeExpr(
 		},
 		(scope ref immutable LowExprKind.MatchUnion it) =>
 			writeMatchUnion(writer, indent, ctx, locals, writeKind, type, it),
-		(scope ref immutable LowExprKind.ParamRef it) =>
+		(scope ref immutable LowExprKind.ParamGet it) =>
 			inlineableSimple(() {
-				writeParamRef(writer, ctx, it.index);
+				writeParamGet(writer, ctx, it.index);
 			}),
 		(scope ref immutable LowExprKind.PtrCast it) =>
 			inlineableSingleArg(it.target, (ref immutable WriteExprResult arg) {
@@ -904,7 +904,7 @@ immutable(WriteExprResult) writeExpr(
 		(scope ref immutable LowExprKind.PtrToParam it) =>
 			inlineableSimple(() {
 				writer ~= '&';
-				writeParamRef(writer, ctx, it.index);
+				writeParamGet(writer, ctx, it.index);
 			}),
 		(scope ref immutable LowExprKind.RecordFieldGet it) =>
 			writeRecordFieldGet(writer, indent, ctx, locals, writeKind, type, it),
@@ -1183,7 +1183,7 @@ void writeFunPtr(scope ref Writer writer, scope ref immutable Ctx ctx, immutable
 	writeLowFunMangledName(writer, ctx.mangledNames, a, ctx.program.allFuns[a]);
 }
 
-void writeParamRef(scope ref Writer writer, scope ref const FunBodyCtx ctx, immutable LowParamIndex a) {
+void writeParamGet(scope ref Writer writer, scope ref const FunBodyCtx ctx, immutable LowParamIndex a) {
 	writeLowParamName(writer, ctx.mangledNames, ctx.program.allFuns[ctx.curFun].params[a.index]);
 }
 
@@ -1514,14 +1514,14 @@ immutable(WriteExprResult) writeSpecialUnary(
 			return prefix("(uint8_t*) ");
 		case LowExprKind.SpecialUnary.Kind.asRef:
 		case LowExprKind.SpecialUnary.Kind.enumToIntegral:
-		case LowExprKind.SpecialUnary.Kind.toCharFromNat8:
+		case LowExprKind.SpecialUnary.Kind.toChar8FromNat8:
 		case LowExprKind.SpecialUnary.Kind.toFloat32FromFloat64:
 		case LowExprKind.SpecialUnary.Kind.toFloat64FromFloat32:
 		case LowExprKind.SpecialUnary.Kind.toFloat64FromInt64:
 		case LowExprKind.SpecialUnary.Kind.toFloat64FromNat64:
 		case LowExprKind.SpecialUnary.Kind.toInt64FromInt16:
 		case LowExprKind.SpecialUnary.Kind.toInt64FromInt32:
-		case LowExprKind.SpecialUnary.Kind.toNat8FromChar:
+		case LowExprKind.SpecialUnary.Kind.toNat8FromChar8:
 		case LowExprKind.SpecialUnary.Kind.toNat64FromNat8:
 		case LowExprKind.SpecialUnary.Kind.toNat64FromNat16:
 		case LowExprKind.SpecialUnary.Kind.toNat64FromNat32:
@@ -1687,8 +1687,7 @@ immutable(WriteExprResult) writeSpecialBinary(
 		case LowExprKind.SpecialBinary.Kind.eqNat64:
 		case LowExprKind.SpecialBinary.Kind.eqPtr:
 			return operator("==");
-		case LowExprKind.SpecialBinary.Kind.lessBool:
-		case LowExprKind.SpecialBinary.Kind.lessChar:
+		case LowExprKind.SpecialBinary.Kind.lessChar8:
 		case LowExprKind.SpecialBinary.Kind.lessFloat32:
 		case LowExprKind.SpecialBinary.Kind.lessFloat64:
 		case LowExprKind.SpecialBinary.Kind.lessInt8:

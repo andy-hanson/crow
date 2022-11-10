@@ -1,7 +1,6 @@
 no-std
 import
 	./bool: ||, bool
-	./cell: *, cell, new, set-deref
 	./compare: <, comparison
 	./col/array: array, as-array, begin-pointer
 	./col/iter: new, rest, value, value-and-rest
@@ -397,14 +396,13 @@ Returns a string containing each element of `a`, with `b` as a separator.
 This is `parts[0] ~ joiner ~ parts[1] ~ joiner ~ ... ~ parts[parts.size - 1]`.
 ###
 join string(joiner string, parts string[])
-	# TODO: NO CELl
-	res cell string? = (),
+	res mut string? = ()
 	for part : parts
-		*res := if cur ?= *res
+		res := if cur ?= res
 			(cur ~~ joiner ~~ part),
 		else
 			part,
-	*res ?? ""
+	res ?? ""
 
 # Lower cases every character in `a`.
 lower-case string(a string)

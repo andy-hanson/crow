@@ -301,7 +301,7 @@ immutable(BuiltinKind) getBuiltinKind(
 				: fail();
 		case shortSymValue("to-char8"):
 			return unary(isNat8(p0)
-				? LowExprKind.SpecialUnary.Kind.toCharFromNat8
+				? LowExprKind.SpecialUnary.Kind.toChar8FromNat8
 				: failUnary());
 		case shortSymValue("to-float32"):
 			return unary(isFloat64(p0)
@@ -333,7 +333,7 @@ immutable(BuiltinKind) getBuiltinKind(
 				: failUnary());
 		case shortSymValue("to-nat8"):
 			return unary(isChar(p0)
-				? LowExprKind.SpecialUnary.Kind.toNat8FromChar
+				? LowExprKind.SpecialUnary.Kind.toNat8FromChar8
 				: failUnary());
 		case specialSymValue(SpecialSym.to_mut_pointer):
 			return unary(isNat64(p0)

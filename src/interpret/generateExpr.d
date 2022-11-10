@@ -357,7 +357,7 @@ void generateExpr(
 		},
 		(ref immutable LowExprKind.Let it) =>
 			generateLet(writer, ctx, locals, after, it),
-		(ref immutable LowExprKind.LocalRef it) {
+		(ref immutable LowExprKind.LocalGet it) {
 			immutable StackEntries entries = getLocal(locals, it.local);
 			if (entries.size != 0)
 				writeDupEntries(writer, source, entries);
@@ -382,7 +382,7 @@ void generateExpr(
 		(ref immutable LowExprKind.MatchUnion it) {
 			generateMatchUnion(writer, ctx, source, locals, after, it);
 		},
-		(ref immutable LowExprKind.ParamRef it) {
+		(ref immutable LowExprKind.ParamGet it) {
 			immutable StackEntries entries = ctx.parameterEntries[it.index.index];
 			if (entries.size != 0)
 				writeDupEntries(writer, source, entries);
@@ -877,8 +877,8 @@ void generateSpecialUnary(
 		case LowExprKind.SpecialUnary.Kind.asAnyPtr:
 		case LowExprKind.SpecialUnary.Kind.asRef:
 		case LowExprKind.SpecialUnary.Kind.enumToIntegral:
-		case LowExprKind.SpecialUnary.Kind.toCharFromNat8:
-		case LowExprKind.SpecialUnary.Kind.toNat8FromChar:
+		case LowExprKind.SpecialUnary.Kind.toChar8FromNat8:
+		case LowExprKind.SpecialUnary.Kind.toNat8FromChar8:
 		case LowExprKind.SpecialUnary.Kind.toNat64FromPtr:
 		case LowExprKind.SpecialUnary.Kind.toPtrFromNat64:
 		case LowExprKind.SpecialUnary.Kind.unsafeInt32ToNat32:
@@ -1151,8 +1151,7 @@ void generateSpecialBinary(
 		case LowExprKind.SpecialBinary.Kind.eqPtr:
 			fn!fnEqBits();
 			break;
-		case LowExprKind.SpecialBinary.Kind.lessBool:
-		case LowExprKind.SpecialBinary.Kind.lessChar:
+		case LowExprKind.SpecialBinary.Kind.lessChar8:
 		case LowExprKind.SpecialBinary.Kind.lessNat8:
 			fn!fnLessNat8();
 			break;

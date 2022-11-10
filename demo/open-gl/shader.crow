@@ -15,18 +15,17 @@ shader-prog-load GLuint(gl gl-ext, vert-shader-source string, frag-shader-source
 	gl glAttachShader shader-prog, vert-shader
 	gl glAttachShader shader-prog, frag-shader
 	gl glLinkProgram shader-prog
-	# TODO: type arg should not be needed
-	linking-succeeded cell GLint = GL_FALSE,
-	gl glGetProgramiv shader-prog, GL_LINK_STATUS, linking-succeeded
+	linking-succeeded mut GLint = GL_FALSE
+	gl glGetProgramiv shader-prog, GL_LINK_STATUS, &linking-succeeded
 	gl glDeleteShader vert-shader
 	gl glDeleteShader frag-shader
-	if *linking-succeeded == GL_TRUE
+	if linking-succeeded == GL_TRUE
 		shader-prog
 	else
-		log-length cell GLint = 0,
-		gl glGetProgramiv shader-prog, GL_INFO_LOG_LENGTH, log-length
-		err-log mut-array GLchar = log-length->to-nat64 uninitialized-mut-array
-		gl glGetProgramInfoLog shader-prog, *log-length, log-length, err-log.begin-pointer
+		log-length mut GLint = 0
+		gl glGetProgramiv shader-prog, GL_INFO_LOG_LENGTH, &log-length
+		err-log mut-array GLchar = log-length.to-nat64 uninitialized-mut-array
+		gl glGetProgramInfoLog shader-prog, log-length, &log-length, err-log.begin-pointer
 		gl glDeleteProgram shader-prog
 		throw "Error loading shaders: {err-log.to-array as-string}"
 
@@ -36,15 +35,15 @@ shader-prog-destroy void(gl gl-ext, shader-prog GLuint) summon unsafe
 .shader-load GLuint(gl gl-ext, name string, source string, shader-type GLenum) summon unsafe
 	shader = gl create-shader-from-source source, shader-type
 	gl glCompileShader shader
-	compile-succeeded cell GLint = GL_FALSE,
-	gl glGetShaderiv shader, GL_COMPILE_STATUS, compile-succeeded
-	if *compile-succeeded == GL_TRUE
+	compile-succeeded mut GLint = GL_FALSE
+	gl glGetShaderiv shader, GL_COMPILE_STATUS, &compile-succeeded
+	if compile-succeeded == GL_TRUE
 		shader
 	else
-		log-length cell GLint = 0,
-		gl glGetShaderiv shader, GL_INFO_LOG_LENGTH, log-length
-		err-log mut-array GLchar = log-length->to-nat64 uninitialized-mut-array
-		gl glGetShaderInfoLog shader, *log-length, log-length, err-log.begin-pointer
+		log-length mut GLint = 0
+		gl glGetShaderiv shader, GL_INFO_LOG_LENGTH, &log-length
+		err-log mut-array GLchar = log-length.to-nat64 uninitialized-mut-array
+		gl glGetShaderInfoLog shader, log-length, &log-length, err-log.begin-pointer
 		gl glDeleteShader shader
 		throw "error compiling GLSL {name}: {err-log.to-array as-string}"
 

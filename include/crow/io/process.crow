@@ -19,7 +19,6 @@ import
 		STARTF_USESTDHANDLES, STARTUPINFOA, WaitForSingleObject
 	../bool: &&, ||, bool, to-nat64, true
 	../bytes-types: new
-	../cell: *, as-const-pointer, as-mut-pointer, cell, new
 	../col/array: begin-pointer
 	../col/mut-array: begin-pointer, mut-array, new, size, subscript
 	../col/list: ~, fold, for-loop, to-array, list
@@ -107,47 +106,46 @@ shell-exec string(command string) trusted summon
 .spawn-and-wait-result-windows process-result(exe c-string, args string[]) summon unsafe
 	all-args = " " join (exe.to-string ~ args) to-c-string
 
-	stdout-read cell HANDLE = (),
-	stdout-write cell HANDLE = (),
-	stderr-read cell HANDLE = (),
-	stderr-write cell HANDLE = (),
-	sec cell SECURITY_ATTRIBUTES = (null, true),
+	stdout-read mut HANDLE = ()
+	stdout-write mut HANDLE = ()
+	stderr-read mut HANDLE = ()
+	stderr-write mut HANDLE = ()
+	sec SECURITY_ATTRIBUTES = null, true
 
-	ok0 = stdout-read.as-mut-pointer CreatePipe stdout-write.as-mut-pointer, sec.as-const-pointer, 0
-	ok1 = *stdout-read SetHandleInformation HANDLE_FLAG_INHERIT, 0
-	ok2 = stderr-read.as-mut-pointer CreatePipe stderr-write.as-mut-pointer, sec.as-const-pointer, 0
-	ok3 = *stderr-read SetHandleInformation HANDLE_FLAG_INHERIT, 0
+	ok0 = &stdout-read CreatePipe &stdout-write, &sec, 0
+	ok1 = stdout-read SetHandleInformation HANDLE_FLAG_INHERIT, 0
+	ok2 = &stderr-read CreatePipe &stderr-write, &sec, 0
+	ok3 = stderr-read SetHandleInformation HANDLE_FLAG_INHERIT, 0
 	unless ok0 && ok1 && ok2 && ok3
 		todo
 
-	startup-info cell STARTUPINFOA = (STARTF_USESTDHANDLES, (), *stdout-write, *stderr-write),
-	process-info cell PROCESS_INFORMATION = (),
-	pip = process-info as-mut-pointer
-	ok4 = exe CreateProcessA all-args, (), (), true, 0, (), (), startup-info.as-const-pointer, pip
+	startup-info STARTUPINFOA = STARTF_USESTDHANDLES, (), stdout-write, stderr-write
+	process-info mut PROCESS_INFORMATION = ()
+	ok4 = exe CreateProcessA all-args, (), (), true, 0, (), (), &startup-info, &process-info
 	unless ok4
 		todo
 
-	unless stdout-write->CloseHandle && stderr-write->CloseHandle
+	unless stdout-write.CloseHandle && stderr-write.CloseHandle
 		todo
 
-	stdout = stdout-read->read-from-pipe-windows
-	unless stdout-read->CloseHandle
+	stdout = stdout-read.read-from-pipe-windows
+	unless stdout-read.CloseHandle
 		todo
-	stderr = stderr-read->read-from-pipe-windows
-	unless stderr-read->CloseHandle
+	stderr = stderr-read.read-from-pipe-windows
+	unless stderr-read.CloseHandle
 		todo
 
-	_ = process-info->hProcess WaitForSingleObject INFINITE
+	_ = process-info.hProcess WaitForSingleObject INFINITE
 
-	exit-code cell DWORD = 0,
-	ok5 = process-info->hProcess GetExitCodeProcess exit-code.as-mut-pointer
+	exit-code mut DWORD = 0
+	ok5 = process-info.hProcess GetExitCodeProcess &exit-code
 	unless ok5
 		todo
 	# TODO: should be in a 'finally'
-	unless process-info->hProcess.CloseHandle && process-info->hThread.CloseHandle
+	unless process-info.hProcess.CloseHandle && process-info.hThread.CloseHandle
 		todo
 
-	exit-code->to-int32, stdout, stderr
+	exit-code.to-int32, stdout, stderr
 
 .read-from-pipe-windows string(pipe HANDLE) summon unsafe
 	res nat8 mut[] = ()
@@ -159,12 +157,11 @@ shell-exec string(command string) trusted summon
 	old-size = res size
 	res unsafe-set-size old-size + read-at-a-time
 	old-end = res.end-pointer - read-at-a-time
-	n-read-cell cell nat32 = 0,
-	ok = pipe ReadFile old-end, read-at-a-time.to-nat32, n-read-cell.as-mut-pointer, null
+	n-read mut nat32 = 0
+	ok = pipe ReadFile old-end, read-at-a-time.to-nat32, &n-read, null
 	if ok
-		n-read = n-read-cell->to-nat64
-		assert n-read <= read-at-a-time
-		res unsafe-set-size old-size + n-read
+		assert n-read.to-nat64 <= read-at-a-time
+		res unsafe-set-size old-size + n-read.to-nat64
 		res read-from-pipe-windows-recur pipe
 	else
 		res unsafe-set-size old-size
@@ -185,9 +182,8 @@ shell-exec string(command string) trusted summon
 	actions posix_spawn_file_actions_addclose stdout-pipes.read-pipe check-posix-error
 	actions posix_spawn_file_actions_addclose stderr-pipes.read-pipe check-posix-error
 
-	pid-cell cell pid_t = 0,
-	pid-cell posix_spawn exe, actions, null, args.to-array.begin-pointer, get-environ-raw check-posix-error
-	pid = *pid-cell
+	pid mut pid_t = 0
+	&pid posix_spawn exe, actions, null, args.to-array.begin-pointer, get-environ-raw check-posix-error
 
 	# Close child-side of pipes (from this process, child still has them)
 	stdout-pipes.read-pipe.close check-posix-error
@@ -266,16 +262,15 @@ shell-exec string(command string) trusted summon
 # Args should be terminated by null.
 # TODO: option to get stdout/stderr as a string rather than having them go to the terminal
 .spawn-and-wait int32(exe c-string, args c-string[]) summon unsafe
-	pid-cell cell pid_t = 0,
+	pid mut pid_t = 0
 	args-pointer = args.to-array begin-pointer
 	# TODO: null.as-ref is bad. If it's nullable it shouldn't be a ref.
-	pid-cell posix_spawn exe, null::any-const-pointer.as-ref, null, args-pointer, get-environ-raw check-posix-error
-	*pid-cell wait-and-get-exit-code
+	&pid posix_spawn exe, null::any-const-pointer.as-ref, null, args-pointer, get-environ-raw check-posix-error
+	pid wait-and-get-exit-code
 
 .wait-and-get-exit-code int32(pid pid_t) summon unsafe
-	wait-status-cell cell status-t = 0,
-	res-pid = pid waitpid wait-status-cell, 0
-	wait-status = *wait-status-cell
+	wait-status mut status-t = 0
+	res-pid = pid waitpid &wait-status, 0
 	assert res-pid == pid
 	if wait-status WIFEXITED
 		wait-status WEXITSTATUS

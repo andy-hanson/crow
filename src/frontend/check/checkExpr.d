@@ -17,10 +17,11 @@ import frontend.check.inferringType :
 	FunOrLambdaInfo,
 	inferred,
 	isBogus,
+	LocalAccessKind,
 	LocalNode,
 	LocalsInfo,
 	LoopInfo,
-	markIsUsedSet,
+	markIsUsedSetOnStack,
 	mustSetType,
 	programState,
 	rangeInFile2,
@@ -83,17 +84,19 @@ import model.model :
 	arity,
 	asCall,
 	asFunInst,
-	asLocalRef,
-	asParamRef,
+	asLocalGet,
+	asParamGet,
 	asRecord,
 	asRecordFieldGet,
 	assertNonVariadic,
 	asStructInst,
 	body_,
 	CalledDecl,
+	ClosureRef,
 	CommonTypes,
 	decl,
 	Expr,
+	FieldMutability,
 	FunBody,
 	FunDecl,
 	FunFlags,
@@ -107,8 +110,8 @@ import model.model :
 	isCall,
 	isDefinitelyByRef,
 	isFunInst,
-	isLocalRef,
-	isParamRef,
+	isLocalGet,
+	isParamGet,
 	isRecordFieldGet,
 	isStructInst,
 	isTemplate,
@@ -119,6 +122,7 @@ import model.model :
 	matchStructBody,
 	matchType,
 	matchVariableRef,
+	Mutability,
 	name,
 	Param,
 	Purity,
@@ -128,6 +132,7 @@ import model.model :
 	StructBody,
 	StructDecl,
 	StructInst,
+	toMutability,
 	Type,
 	typeArgs,
 	TypeParam,
@@ -136,10 +141,10 @@ import model.model :
 	worstCasePurity;
 import util.alloc.alloc : Alloc, allocateUninitialized;
 import util.col.arr : empty, emptySmallArray, only, PtrAndSmallNumber, ptrsRange, sizeEq;
-import util.col.arrUtil : arrLiteral, arrsCorrespond, contains, map, mapZip, mapZipWithIndex, zipPtrFirst;
+import util.col.arrUtil : arrLiteral, arrsCorrespond, contains, map, map_mut, mapZip, mapZipWithIndex, zipPtrFirst;
 import util.col.fullIndexDict : FullIndexDict;
 import util.col.mutArr : MutArr, mutArrSize, push, tempAsArr;
-import util.col.mutMaxArr : fillMutMaxArr, initializeMutMaxArr, mutMaxArrSize, push, pushLeft, tempAsArr;
+import util.col.mutMaxArr : fillMutMaxArr, initializeMutMaxArr, mutMaxArrSize, push, pushLeft, tempAsArr, tempAsArr_mut;
 import util.col.str : copyToSafeCStr;
 import util.conv : safeToUshort, safeToUint;
 import util.memory : allocate, allocateMut, initMemory, overwriteMemory;
@@ -147,7 +152,7 @@ import util.opt : force, has, none, noneMut, Opt, some, someMut;
 import util.ptr : castImmutable, ptrTrustMe_mut;
 import util.sourceRange : FileAndRange, Pos, RangeWithinFile;
 import util.sym : Operator, shortSym, Sym, symForOperator, symOfStr;
-import util.util : max, todo, verify;
+import util.util : max, todo, unreachable, verify;
 
 immutable(Expr) checkFunctionBody(
 	ref CheckCtx checkCtx,
@@ -517,48 +522,54 @@ immutable(Opt!FunKind) getFunStructInfo(ref immutable CommonTypes a, immutable S
 }
 
 struct VariableRefAndType {
+	@safe @nogc pure nothrow:
+
 	immutable VariableRef variableRef;
+	immutable Mutability mutability;
+	bool[4]* isUsed; // null for Param
 	immutable Type type;
+
+	@trusted void setIsUsed(immutable LocalAccessKind kind) {
+		if (isUsed != null) {
+			(*isUsed)[kind] = true;
+		}
+	}
 }
 
-immutable(Opt!VariableRefAndType) getIdentifierNonCall(
+Opt!VariableRefAndType getIdentifierNonCall(
 	ref Alloc alloc,
 	ref LocalsInfo locals,
 	immutable Sym name,
 	immutable LocalAccessKind accessKind,
 ) {
-	immutable Opt!(Local*) fromLocals = has(locals.locals)
-		? getIdentifierInLocals(*force(locals.locals), name, accessKind)
-		: none!(Local*);
-	return has(fromLocals)
-		? some(immutable VariableRefAndType(immutable VariableRef(force(fromLocals)), force(fromLocals).type))
-		: getIdentifierFromFunOrLambda(alloc, name, *locals.funOrLambda, accessKind);
+	Opt!(LocalNode*) fromLocals = has(locals.locals)
+		? getIdentifierInLocals(force(locals.locals), name, accessKind)
+		: noneMut!(LocalNode*);
+	if (has(fromLocals)) {
+		LocalNode* node = force(fromLocals);
+		node.isUsed[accessKind] = true;
+		return someMut(VariableRefAndType(
+			immutable VariableRef(node.local),
+			toMutability(node.local.mutability),
+			&node.isUsed,
+			node.local.type));
+	} else
+		return getIdentifierFromFunOrLambda(alloc, name, *locals.funOrLambda, accessKind);
 }
 
-enum LocalAccessKind { get, set }
-
-immutable(Opt!(Local*)) getIdentifierInLocals(
-	ref LocalNode node,
+Opt!(LocalNode*) getIdentifierInLocals(
+	LocalNode* node,
 	immutable Sym name,
 	immutable LocalAccessKind accessKind,
 ) {
-	if (node.local.name == name) {
-		final switch (accessKind) {
-			case LocalAccessKind.get:
-				node.isUsedGet = true;
-				break;
-			case LocalAccessKind.set:
-				node.isUsedSet = true;
-				break;
-		}
-		return some(node.local);
-	} else if (has(node.prev))
-		return getIdentifierInLocals(*force(node.prev), name, accessKind);
-	else
-		return none!(Local*);
+	return node.local.name == name
+		? someMut(node)
+		: has(node.prev)
+		? getIdentifierInLocals(force(node.prev), name, accessKind)
+		: noneMut!(LocalNode*);
 }
 
-immutable(Opt!VariableRefAndType) getIdentifierFromFunOrLambda(
+Opt!VariableRefAndType getIdentifierFromFunOrLambda(
 	ref Alloc alloc,
 	immutable Sym name,
 	ref FunOrLambdaInfo info,
@@ -567,32 +578,51 @@ immutable(Opt!VariableRefAndType) getIdentifierFromFunOrLambda(
 	foreach (immutable Param* param; ptrsRange(info.params))
 		if (has(param.name) && force(param.name) == name) {
 			info.paramsUsed[param.index] = true;
-			return some(immutable VariableRefAndType(immutable VariableRef(param), param.type));
+			return someMut(VariableRefAndType(immutable VariableRef(param), Mutability.immut, null, param.type));
 		}
-	foreach (immutable size_t index, ref immutable ClosureFieldBuilder field; tempAsArr(info.closureFields))
-		if (field.name == name)
-			return some(immutable VariableRefAndType(
-				immutable VariableRef(immutable Expr.ClosureFieldRef(
+	foreach (immutable size_t index, ref ClosureFieldBuilder field; tempAsArr_mut(info.closureFields))
+		if (field.name == name) {
+			field.setIsUsed(accessKindInClosure(accessKind));
+			return someMut(VariableRefAndType(
+				immutable VariableRef(immutable ClosureRef(
 					immutable PtrAndSmallNumber!(Expr.Lambda)(force(info.lambda), safeToUshort(index)))),
+				field.mutability,
+				field.isUsed,
 				field.type));
+		}
 
-	immutable(Opt!VariableRefAndType) optOuter = has(info.outer)
-		? getIdentifierNonCall(alloc, *force(info.outer), name, accessKind)
-		: none!VariableRefAndType;
+	Opt!VariableRefAndType optOuter = has(info.outer)
+		? getIdentifierNonCall(alloc, *force(info.outer), name, accessKindInClosure(accessKind))
+		: noneMut!VariableRefAndType;
 	if (has(optOuter)) {
-		immutable VariableRefAndType outer = force(optOuter);
+		VariableRefAndType outer = force(optOuter);
 		immutable size_t closureFieldIndex = mutMaxArrSize(info.closureFields);
-		push(info.closureFields, immutable ClosureFieldBuilder(name, outer.type, outer.variableRef));
-		return some(immutable VariableRefAndType(
-			immutable VariableRef(immutable Expr.ClosureFieldRef(
+		push(
+			info.closureFields,
+			ClosureFieldBuilder(name, outer.mutability, outer.isUsed, outer.type, outer.variableRef));
+		outer.setIsUsed(accessKindInClosure(accessKind));
+		return someMut(VariableRefAndType(
+			immutable VariableRef(immutable ClosureRef(
 				immutable PtrAndSmallNumber!(Expr.Lambda)(force(info.lambda), safeToUshort(closureFieldIndex)))),
+			outer.mutability,
+			outer.isUsed,
 			outer.type));
 	} else
-		return none!VariableRefAndType;
+		return noneMut!VariableRefAndType;
+}
+immutable(LocalAccessKind) accessKindInClosure(immutable LocalAccessKind a) {
+	final switch (a) {
+		case LocalAccessKind.getOnStack:
+		case LocalAccessKind.getThroughClosure:
+			return LocalAccessKind.getThroughClosure;
+		case LocalAccessKind.setOnStack:
+		case LocalAccessKind.setThroughClosure:
+			return LocalAccessKind.setThroughClosure;
+	}
 }
 
 immutable(bool) nameIsParameterOrLocalInScope(ref Alloc alloc, ref LocalsInfo locals, immutable Sym name) {
-	immutable Opt!VariableRefAndType var = getIdentifierNonCall(alloc, locals, name, LocalAccessKind.get);
+	Opt!VariableRefAndType var = getIdentifierNonCall(alloc, locals, name, LocalAccessKind.getOnStack);
 	return has(var);
 }
 
@@ -603,7 +633,7 @@ immutable(Expr) checkIdentifier(
 	ref immutable IdentifierAst ast,
 	ref Expected expected,
 ) {
-	immutable Opt!VariableRefAndType res = getIdentifierNonCall(ctx.alloc, locals, ast.name, LocalAccessKind.get);
+	Opt!VariableRefAndType res = getIdentifierNonCall(ctx.alloc, locals, ast.name, LocalAccessKind.getOnStack);
 	if (has(res)) {
 		immutable Expr expr = toExpr(range, force(res).variableRef);
 		return check(ctx, expected, force(res).type, expr);
@@ -618,55 +648,53 @@ immutable(Expr) checkIdentifierSet(
 	ref immutable IdentifierSetAst ast,
 	ref Expected expected,
 ) {
-	immutable Opt!(Local*) optLocal = getLocalForSet(ctx, locals, range, ast.name);
-	if (has(optLocal)) {
-		immutable Local* local = force(optLocal);
-		immutable Expr value = checkAndExpect(ctx, locals, ast.value, local.type);
-		immutable Expr expr = immutable Expr(range, allocate(ctx.alloc, immutable Expr.LocalSet(local, value)));
+	Opt!VariableRefAndType optVar = getVariableRefForSet(ctx, locals, range, ast.name);
+	if (has(optVar)) {
+		VariableRefAndType var = force(optVar);
+		immutable Expr value = checkAndExpect(ctx, locals, ast.value, var.type);
+		immutable Expr expr = matchVariableRef!(immutable Expr)(
+			var.variableRef,
+			(immutable Local* local) =>
+				immutable Expr(range, allocate(ctx.alloc, immutable Expr.LocalSet(local, value))),
+			(immutable Param*) =>
+				unreachable!(immutable Expr),
+			(immutable ClosureRef cr) =>
+				immutable Expr(range, immutable Expr.ClosureSet(cr, allocate(ctx.alloc, value))));
 		return check(ctx, expected, immutable Type(ctx.commonTypes.void_), expr);
 	} else
 		return bogus(expected, range);
 }
 
-immutable(Opt!(Local*)) getLocalForSet(
+Opt!VariableRefAndType getVariableRefForSet(
 	ref ExprCtx ctx,
 	ref LocalsInfo locals,
 	immutable FileAndRange range,
 	immutable Sym name,
 ) {
-	immutable Opt!VariableRefAndType res = getIdentifierNonCall(ctx.alloc, locals, name, LocalAccessKind.set);
-	return has(res)
-		? matchVariableRef!(immutable Opt!(Local*))(
-			force(res).variableRef,
-			(immutable Param*) {
-				todo!void("diag: can't mutate param");
-				return none!(Local*);
-			},
-			(immutable Local* local) {
-				final switch (local.mutability) {
-					case LocalMutability.immut:
-						addDiag2(ctx, range, immutable Diag(immutable Diag.LocalNotMutable(local)));
-						return none!(Local*);
-					case LocalMutability.mut:
-						return some(local);
-				}
-			},
-			(immutable Expr.ClosureFieldRef) {
-				todo!void("can't mutate closure");
-				return none!(Local*);
-			})
-		: none!(Local*);
+	Opt!VariableRefAndType opVar = getIdentifierNonCall(ctx.alloc, locals, name, LocalAccessKind.setOnStack);
+	if (has(opVar)) {
+		VariableRefAndType var = force(opVar);
+		final switch (var.mutability) {
+			case Mutability.immut:
+				addDiag2(ctx, range, immutable Diag(immutable Diag.LocalNotMutable(var.variableRef)));
+				break;
+			case Mutability.mut:
+				break;
+		}
+		return someMut(var);
+	} else
+		return noneMut!VariableRefAndType;
 }
 
 immutable(Expr) toExpr(immutable FileAndRange range, immutable VariableRef a) =>
-	matchVariableRef(
+	matchVariableRef!(immutable Expr)(
 		a,
-		(immutable Param* x) =>
-			immutable Expr(range, immutable Expr.ParamRef(x)),
 		(immutable Local* x) =>
-			immutable Expr(range, immutable Expr.LocalRef(x)),
-		(immutable Expr.ClosureFieldRef x) =>
-			immutable Expr(range, x));
+			immutable Expr(range, immutable Expr.LocalGet(x)),
+		(immutable Param* x) =>
+			immutable Expr(range, immutable Expr.ParamGet(x)),
+		(immutable ClosureRef x) =>
+			immutable Expr(range, immutable Expr.ClosureGet(x)));
 
 struct IntRange {
 	immutable long min;
@@ -865,17 +893,25 @@ immutable(Expr) checkWithLocal(
 			immutable Diag.DuplicateDeclaration(Diag.DuplicateDeclaration.Kind.paramOrLocal, local.name)));
 		return bogus(expected, rangeInFile2(ctx, ast.range));
 	} else {
-		LocalNode localNode = LocalNode(locals.locals, false, false, local);
+		LocalNode localNode = LocalNode(locals.locals, [false, false, false, false], local);
 		LocalsInfo newLocals = LocalsInfo(locals.funOrLambda, someMut(ptrTrustMe_mut(localNode)));
 		immutable Expr res = checkExpr(ctx, newLocals, ast, expected);
+		if (localNode.local.mutability == LocalMutability.mutOnStack &&
+			(localNode.isUsed[LocalAccessKind.getThroughClosure] ||
+			 localNode.isUsed[LocalAccessKind.setThroughClosure])) {
+			//TODO:BETTER
+			overwriteMemory(&local.mutability, LocalMutability.mutAllocated);
+		}
 		addUnusedLocalDiags(ctx, local, localNode);
 		return res;
 	}
 }
 
 void addUnusedLocalDiags(ref ExprCtx ctx, immutable Local* local, scope ref LocalNode node) {
-	if (!node.isUsedGet || (!node.isUsedSet && local.mutability != LocalMutability.immut))
-		addDiag2(ctx, local.range, immutable Diag(immutable Diag.UnusedLocal(local, node.isUsedGet, node.isUsedSet)));
+	immutable bool isGot = node.isUsed[LocalAccessKind.getOnStack] || node.isUsed[LocalAccessKind.getThroughClosure];
+	immutable bool isSet = node.isUsed[LocalAccessKind.setOnStack] || node.isUsed[LocalAccessKind.setThroughClosure];
+	if (!isGot || (!isSet && local.mutability != LocalMutability.immut))
+		addDiag2(ctx, local.range, immutable Diag(immutable Diag.UnusedLocal(local, isGot, isSet)));
 }
 
 immutable(Param[]) checkParamsForLambda(
@@ -929,7 +965,7 @@ struct ExpectedPointee {
 
 	struct None {}
 	struct FunPointer {}
-	struct Pointer { immutable Type pointer; immutable Type pointee; immutable LocalMutability mutability; }
+	struct Pointer { immutable Type pointer; immutable Type pointee; immutable PointerMutability mutability; }
 
 	immutable this(immutable None a) { kind = Kind.none; none = a; }
 	immutable this(immutable FunPointer a) { kind = Kind.funPointer; funPointer = a; }
@@ -944,6 +980,7 @@ struct ExpectedPointee {
 		immutable Pointer pointer;
 	}
 }
+enum PointerMutability { immutable_, mutable }
 
 immutable(T) matchExpectedPointee(T)(
 	immutable ExpectedPointee a,
@@ -968,10 +1005,10 @@ immutable(ExpectedPointee) getExpectedPointee(ref ExprCtx ctx, ref const Expecte
 		immutable StructDecl* decl = decl(*inst);
 		if (decl == ctx.commonTypes.ptrConst)
 			return immutable ExpectedPointee(immutable ExpectedPointee.Pointer(
-				immutable Type(inst), only(typeArgs(*inst)), LocalMutability.immut));
+				immutable Type(inst), only(typeArgs(*inst)), PointerMutability.immutable_));
 		else if (decl == ctx.commonTypes.ptrMut)
 			return immutable ExpectedPointee(immutable ExpectedPointee.Pointer(
-				immutable Type(inst), only(typeArgs(*inst)), LocalMutability.mut));
+				immutable Type(inst), only(typeArgs(*inst)), PointerMutability.mutable));
 		else if (contains(ctx.commonTypes.funPtrStructs, decl))
 			return immutable ExpectedPointee(immutable ExpectedPointee.FunPointer());
 		else if (isDefinitelyByRef(*inst))
@@ -979,7 +1016,7 @@ immutable(ExpectedPointee) getExpectedPointee(ref ExprCtx ctx, ref const Expecte
 				immutable Type(inst),
 				immutable Type(instantiateStructNeverDelay(
 					ctx.alloc, ctx.programState, ctx.commonTypes.byVal, [immutable Type(inst)])),
-				hasMutableField(*inst) ? LocalMutability.mut : LocalMutability.immut));
+				hasMutableField(*inst) ? PointerMutability.mutable : PointerMutability.immutable_));
 		else
 			return immutable ExpectedPointee(immutable ExpectedPointee.None());
 	} else
@@ -993,18 +1030,18 @@ immutable(Expr) checkPtrInner(
 	scope ref immutable PtrAst ast,
 	immutable Type pointerType,
 	immutable Type pointeeType,
-	immutable LocalMutability pointerMutability,
+	immutable PointerMutability pointerMutability,
 ) {
 	immutable Expr inner = checkAndExpect(ctx, locals, ast.inner, pointeeType);
-	if (isLocalRef(inner)) {
-		immutable Local* local = asLocalRef(inner).local;
+	if (isLocalGet(inner)) {
+		immutable Local* local = asLocalGet(inner).local;
 		if (local.mutability < pointerMutability)
 			addDiag2(ctx, range, immutable Diag(immutable Diag.PtrMutToConst(Diag.PtrMutToConst.Kind.local)));
-		if (pointerMutability == LocalMutability.mut)
-			markIsUsedSet(locals, local);
+		if (pointerMutability == PointerMutability.mutable)
+			markIsUsedSetOnStack(locals, local);
 		return immutable Expr(range, immutable Expr.PtrToLocal(pointerType, local));
-	} else if (isParamRef(inner))
-		return immutable Expr(range, immutable Expr.PtrToParam(pointerType, asParamRef(inner).param));
+	} else if (isParamGet(inner))
+		return immutable Expr(range, immutable Expr.PtrToParam(pointerType, asParamGet(inner).param));
 	else if (isCall(inner))
 		return checkPtrOfCall(ctx, range, asCall(inner), pointerType, pointerMutability);
 	else {
@@ -1018,7 +1055,7 @@ immutable(Expr) checkPtrOfCall(
 	immutable FileAndRange range,
 	immutable Expr.Call call,
 	immutable Type pointerType,
-	immutable LocalMutability pointerMutability,
+	immutable PointerMutability pointerMutability,
 ) {
 	immutable(Expr) fail() {
 		addDiag2(ctx, range, immutable Diag(immutable Diag.PtrUnsupported()));
@@ -1032,8 +1069,9 @@ immutable(Expr) checkPtrOfCall(
 			immutable Expr target = only(call.args);
 			immutable StructInst* recordType = asStructInst(only(assertNonVariadic(getFieldFun.params)).type);
 			immutable RecordField field = asRecord(body_(*recordType)).fields[rfg.fieldIndex];
+			immutable PointerMutability fieldMutability = pointerMutabilityFromField(field.mutability);
 			if (isDefinitelyByRef(*recordType)) {
-				if (field.mutability < pointerMutability)
+				if (fieldMutability < pointerMutability)
 					addDiag2(ctx, range, immutable Diag(immutable Diag.PtrMutToConst(Diag.PtrMutToConst.Kind.field)));
 				return immutable Expr(range, allocate(ctx.alloc,
 					immutable Expr.PtrToField(pointerType, target, rfg.fieldIndex)));
@@ -1043,7 +1081,7 @@ immutable(Expr) checkPtrOfCall(
 				if (isFunInst(targetCall.called) && isDerefFunction(ctx, derefFun)) {
 					immutable StructInst* ptrStructInst = asStructInst(only(assertNonVariadic(derefFun.params)).type);
 					immutable Expr targetPtr = only(targetCall.args);
-					if (max(field.mutability, mutabilityForPtrDecl(ctx, decl(*ptrStructInst))) < pointerMutability)
+					if (max(fieldMutability, mutabilityForPtrDecl(ctx, decl(*ptrStructInst))) < pointerMutability)
 						todo!void("diag: can't get mut* to immutable field");
 					return immutable Expr(range, allocate(ctx.alloc,
 						immutable Expr.PtrToField(pointerType, targetPtr, rfg.fieldIndex)));
@@ -1057,17 +1095,27 @@ immutable(Expr) checkPtrOfCall(
 		return fail();
 }
 
+immutable(PointerMutability) pointerMutabilityFromField(immutable FieldMutability a) {
+	final switch (a) {
+		case FieldMutability.const_:
+			return PointerMutability.immutable_;
+		case FieldMutability.private_:
+		case FieldMutability.public_:
+			return PointerMutability.mutable;
+	}
+}
+
 immutable(bool) isDerefFunction(ref ExprCtx ctx, immutable FunInst* a) {
 	immutable FunBody body_ = decl(*a).body_;
 	return isBuiltin(body_) && decl(*a).name == symForOperator(Operator.times) && arity(*a) == immutable Arity(1);
 }
 
-immutable(LocalMutability) mutabilityForPtrDecl(scope ref const ExprCtx ctx, scope immutable StructDecl* a) {
+immutable(PointerMutability) mutabilityForPtrDecl(scope ref const ExprCtx ctx, scope immutable StructDecl* a) {
 	if (a == ctx.commonTypes.ptrConst)
-		return LocalMutability.immut;
+		return PointerMutability.immutable_;
 	else {
 		verify(a == ctx.commonTypes.ptrMut);
-		return LocalMutability.mut;
+		return PointerMutability.mutable;
 	}
 }
 
@@ -1159,9 +1207,16 @@ immutable(Expr) checkLambda(
 
 	final switch (kind) {
 		case FunKind.plain:
-			foreach (ref immutable ClosureFieldBuilder cf; tempAsArr(lambdaInfo.closureFields))
+			foreach (ref ClosureFieldBuilder cf; tempAsArr_mut(lambdaInfo.closureFields)) {
+				final switch (cf.mutability) {
+					case Mutability.immut:
+						break;
+					case Mutability.mut:
+						addDiag2(ctx, range, immutable Diag(immutable Diag.LambdaClosesOverMut(cf.name, none!Type)));
+				}
 				if (worstCasePurity(cf.type) == Purity.mut)
-					addDiag2(ctx, range, immutable Diag(immutable Diag.LambdaClosesOverMut(cf.name, cf.type)));
+					addDiag2(ctx, range, immutable Diag(immutable Diag.LambdaClosesOverMut(cf.name, some(cf.type))));
+			}
 			break;
 		case FunKind.mut:
 		case FunKind.ref_:
@@ -1171,7 +1226,7 @@ immutable(Expr) checkLambda(
 			break;
 	}
 	immutable VariableRef[] closureFields =
-		map(ctx.alloc, tempAsArr(lambdaInfo.closureFields), (ref immutable ClosureFieldBuilder x) =>
+		map_mut(ctx.alloc, tempAsArr_mut(lambdaInfo.closureFields), (ref ClosureFieldBuilder x) =>
 			x.variableRef);
 
 	immutable Type actualPossiblyFutReturnType = inferred(returnTypeInferrer);
@@ -1218,7 +1273,7 @@ immutable(Expr) checkLet(
 		immutable Local* local = allocate(ctx.alloc, immutable Local(
 			rangeInFile2(ctx, rangeOfOptNameAndRange(immutable OptNameAndRange(range.start, ast.name), ctx.allSymbols)),
 			force(ast.name),
-			ast.mut ? LocalMutability.mut : LocalMutability.immut,
+			ast.mut ? LocalMutability.mutOnStack : LocalMutability.immut,
 			init.type));
 		immutable Expr then = checkWithLocal(ctx, locals, local, ast.then, expected);
 		return immutable Expr(range, allocate(ctx.alloc, immutable Expr.Let(local, init.expr, then)));

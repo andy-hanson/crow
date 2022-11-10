@@ -26,10 +26,10 @@ gl-ext record mut
 	.glGenBuffers_ fun* void(GLsizei, GLuint mut*)
 	.glGenTextures_ fun* void(GLsizei, GLuint mut*)
 	.glGetError_ fun* GLenum()
-	.glGetProgramInfoLog_ fun* void(GLuint, GLsizei, cell GLsizei, GLchar mut*)
-	.glGetProgramiv_ fun* void(GLuint, GLenum, cell GLint)
-	.glGetShaderInfoLog_ fun* void(GLuint, GLsizei, cell GLsizei, GLchar mut*)
-	.glGetShaderiv_ fun* void(GLuint, GLenum, cell GLint)
+	.glGetProgramInfoLog_ fun* void(GLuint, GLsizei, GLsizei mut*, GLchar mut*)
+	.glGetProgramiv_ fun* void(GLuint, GLenum, GLint mut*)
+	.glGetShaderInfoLog_ fun* void(GLuint, GLsizei, GLsizei mut*, GLchar mut*)
+	.glGetShaderiv_ fun* void(GLuint, GLenum, GLint mut*)
 	.glGetUniformLocation_ fun* GLint(GLuint, GLchar*)
 	.glLinkProgram_ fun* void(GLuint)
 	.glShaderSource_ fun* void(GLuint, GLsizei, GLchar**, GLint*)
@@ -122,24 +122,24 @@ glGetProgramInfoLog void(
 	a gl-ext,
 	program GLuint,
 	bufSize GLsizei,
-	length cell GLsizei,
+	length GLsizei mut*,
 	infoLog GLchar mut*,
 ) noctx summon unsafe
 	a.glGetProgramInfoLog_[program, bufSize, length, infoLog]
 
-glGetProgramiv void(a gl-ext, program GLuint, pname GLenum, params cell GLint) noctx summon unsafe
+glGetProgramiv void(a gl-ext, program GLuint, pname GLenum, params GLint mut*) noctx summon unsafe
 	a.glGetProgramiv_[program, pname, params]
 
 glGetShaderInfoLog void(
 	a gl-ext,
 	shader GLuint,
 	bufSize GLsizei,
-	length cell GLsizei,
+	length GLsizei mut*,
 	infoLog GLchar mut*,
 ) noctx summon unsafe
 	a.glGetShaderInfoLog_[shader, bufSize, length, infoLog]
 
-glGetShaderiv void(a gl-ext, reader GLuint, pname GLenum, params cell GLint) noctx summon unsafe
+glGetShaderiv void(a gl-ext, reader GLuint, pname GLenum, params GLint mut*) noctx summon unsafe
 	a.glGetShaderiv_[reader, pname, params]
 
 glGetUniformLocation GLint(a gl-ext, program GLuint, name GLchar*) noctx summon unsafe
@@ -223,10 +223,10 @@ new gl-ext() unsafe summon
 	glGenBuffers fun* void(GLsizei, GLuint mut*) = "glGenBuffers".load as-fun-pointer
 	glGenTextures fun* void(GLsizei, GLuint mut*) = "glGenTextures".load as-fun-pointer
 	glGetError fun* GLenum() = "glGetError".load as-fun-pointer
-	glGetProgramInfoLog fun* void(GLuint, GLsizei, cell GLsizei, GLchar mut*) = "glGetProgramInfoLog".load as-fun-pointer
-	glGetProgramiv fun* void(GLuint, GLenum, cell GLint) = "glGetProgramiv".load as-fun-pointer
-	glGetShaderInfoLog fun* void(GLuint, GLsizei, cell GLsizei, GLchar mut*) = "glGetShaderInfoLog".load as-fun-pointer
-	glGetShaderiv fun* void(GLuint, GLenum, cell GLint) = "glGetShaderiv".load as-fun-pointer
+	glGetProgramInfoLog fun* void(GLuint, GLsizei, GLsizei mut*, GLchar mut*) = "glGetProgramInfoLog".load as-fun-pointer
+	glGetProgramiv fun* void(GLuint, GLenum, GLint mut*) = "glGetProgramiv".load as-fun-pointer
+	glGetShaderInfoLog fun* void(GLuint, GLsizei, GLsizei mut*, GLchar mut*) = "glGetShaderInfoLog".load as-fun-pointer
+	glGetShaderiv fun* void(GLuint, GLenum, GLint mut*) = "glGetShaderiv".load as-fun-pointer
 	glGetUniformLocation fun* GLint(GLuint, GLchar*) = "glGetUniformLocation".load as-fun-pointer
 	glLinkProgram fun* void(GLuint) = "glLinkProgram".load as-fun-pointer
 	glShaderSource fun* void(GLuint, GLsizei, GLchar**, GLint*) = "glShaderSource".load as-fun-pointer

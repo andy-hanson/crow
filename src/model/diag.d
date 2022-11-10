@@ -20,6 +20,7 @@ import model.model :
 	StructInst,
 	StructOrAlias,
 	Type,
+	VariableRef,
 	Visibility;
 import model.parseDiag : ParseDiag;
 import util.alloc.alloc : Alloc;
@@ -189,7 +190,9 @@ struct Diag {
 	struct LambdaCantInferParamTypes {}
 	struct LambdaClosesOverMut {
 		immutable Sym name;
-		immutable Type type;
+		// If missing, the error is that the local itself is 'mut'.
+		// If present, the error is that the type is 'mut'.
+		immutable Opt!Type type;
 	}
 	struct LambdaWrongNumberParams {
 		immutable StructInst* expectedLambdaType;
@@ -209,7 +212,7 @@ struct Diag {
 		immutable StructInst* type;
 	}
 	struct LocalNotMutable {
-		immutable Local* local;
+		immutable VariableRef local;
 	}
 	struct LoopBreakNotAtTail {}
 	struct LoopNeedsBreakOrContinue {}

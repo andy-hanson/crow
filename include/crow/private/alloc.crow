@@ -288,6 +288,9 @@ gc-alloc any-mut-pointer(gc gc-ctx, size nat64) noctx trusted
 alloc any-mut-pointer(size-bytes nat64) unsafe
 	get-gc-ctx gc-alloc size-bytes
 
+alloc-uninitialized<a> a mut*() unsafe
+	1 alloc-uninitialized
+
 alloc-uninitialized<a> a mut*(count nat64) unsafe
 	get-gc-ctx alloc-uninitialized count
 

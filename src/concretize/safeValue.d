@@ -37,6 +37,7 @@ import util.memory : allocate, allocateMut;
 import util.opt : force, has, none, some;
 import util.ptr : castImmutable, castNonScope_mut;
 import util.sourceRange : FileAndRange;
+import util.util : todo;
 
 immutable(ConcreteFunBody) bodyForSafeValue(
 	ref ConcretizeCtx concretizeCtx,
@@ -67,6 +68,8 @@ struct Ctx {
 immutable(ConcreteExpr) safeValueForType(ref Ctx ctx, immutable FileAndRange range, immutable ConcreteType type) {
 	immutable ConcreteExpr inner = safeValueForStruct(ctx, range, type.struct_);
 	final switch (type.reference) {
+		case ReferenceKind.byVal:
+			return inner;
 		case ReferenceKind.byRef:
 			return immutable ConcreteExpr(type, range, isConstant(inner.kind)
 				? immutable ConcreteExprKind(getConstantPtr(
@@ -75,8 +78,8 @@ immutable(ConcreteExpr) safeValueForType(ref Ctx ctx, immutable FileAndRange ran
 					type.struct_,
 					asConstant(inner.kind)))
 				: immutable ConcreteExprKind(allocate(ctx.alloc, immutable ConcreteExprKind.Alloc(inner))));
-		case ReferenceKind.byVal:
-			return inner;
+		case ReferenceKind.byRefRef:
+			return todo!(immutable ConcreteExpr)("!");
 	}
 }
 

@@ -28,14 +28,21 @@ import util.sym : shortSym, SpecialSym, Sym, symForSpecial;
 import util.util : unreachable, verify;
 
 immutable LowType boolType = immutable LowType(PrimitiveType.bool_);
-private immutable LowType char8Type = immutable LowType(PrimitiveType.char8);
+immutable LowType char8Type = immutable LowType(PrimitiveType.char8);
 private immutable LowType char8PtrConstType =
 	immutable LowType(immutable LowType.PtrRawConst(&char8Type));
 immutable LowType char8PtrPtrConstType =
 	immutable LowType(immutable LowType.PtrRawConst(&char8PtrConstType));
+immutable LowType float32Type = immutable LowType(PrimitiveType.float32);
+immutable LowType float64Type = immutable LowType(PrimitiveType.float64);
+immutable LowType int8Type = immutable LowType(PrimitiveType.int8);
+immutable LowType int16Type = immutable LowType(PrimitiveType.int16);
 immutable LowType int32Type = immutable LowType(PrimitiveType.int32);
+immutable LowType int64Type = immutable LowType(PrimitiveType.int64);
+immutable LowType nat8Type = immutable LowType(PrimitiveType.nat8);
+immutable LowType nat16Type = immutable LowType(PrimitiveType.nat16);
+immutable LowType nat32Type = immutable LowType(PrimitiveType.nat32);
 immutable LowType nat64Type = immutable LowType(PrimitiveType.nat64);
-private immutable LowType nat8Type = immutable LowType(PrimitiveType.nat8);
 private immutable LowType anyPtrConstType =
 	immutable LowType(immutable LowType.PtrRawConst(&nat8Type));
 immutable LowType anyPtrMutType = immutable LowType(immutable LowType.PtrRawMut(&nat8Type));
@@ -89,6 +96,9 @@ private immutable(LowExpr) genDerefGcOrRawPtr(
 
 immutable(LowExpr) genDerefGcPtr(ref Alloc alloc, immutable FileAndRange range, immutable LowExpr ptr) =>
 	genDerefGcOrRawPtr(alloc, range, ptr);
+
+immutable(LowExprKind) genDerefGcPtr(ref Alloc alloc, immutable LowExpr ptr) =>
+	genDerefGcOrRawPtr(alloc, immutable FileAndRange(), ptr).kind;
 
 immutable(LowExpr) genDerefRawPtr(ref Alloc alloc, immutable FileAndRange range, immutable LowExpr ptr) =>
 	genDerefGcOrRawPtr(alloc, range, ptr);
@@ -152,15 +162,15 @@ immutable(LowExpr) genCall(
 immutable(LowExpr) genSizeOf(immutable FileAndRange range, immutable LowType t) =>
 	immutable LowExpr(nat64Type, range, immutable LowExprKind(immutable LowExprKind.SizeOf(t)));
 
-immutable(LowExpr) genLocalRef(ref Alloc alloc, immutable FileAndRange range, immutable LowLocal* local) =>
-	immutable LowExpr(local.type, range, immutable LowExprKind(immutable LowExprKind.LocalRef(local)));
+immutable(LowExpr) genLocalGet(ref Alloc alloc, immutable FileAndRange range, immutable LowLocal* local) =>
+	immutable LowExpr(local.type, range, immutable LowExprKind(immutable LowExprKind.LocalGet(local)));
 
 immutable(LowParam) genParam(immutable Sym name, immutable LowType type) =>
 	immutable LowParam(
 		immutable LowParamSource(immutable LowParamSource.Generated(name)),
 		type);
 
-immutable(LowExpr) genParamRef(
+immutable(LowExpr) genParamGet(
 	immutable FileAndRange range,
 	immutable LowType type,
 	immutable LowParamIndex param,
@@ -168,7 +178,7 @@ immutable(LowExpr) genParamRef(
 	immutable LowExpr(
 		type,
 		range,
-		immutable LowExprKind(immutable LowExprKind.ParamRef(param)));
+		immutable LowExprKind(immutable LowExprKind.ParamGet(param)));
 
 immutable(LowExpr) genWrapMulNat64(
 	ref Alloc alloc,
@@ -359,12 +369,14 @@ immutable(LowExpr) genSeq(
 immutable(LowExpr) genWriteToPtr(
 	ref Alloc alloc,
 	immutable FileAndRange range,
-	ref immutable LowExpr ptr,
-	ref immutable LowExpr value,
+	immutable LowExpr ptr,
+	immutable LowExpr value,
 ) =>
-	immutable LowExpr(voidType, range, immutable LowExprKind(allocate(
+	immutable LowExpr(voidType, range, genWriteToPtr(alloc, ptr, value));
+immutable(LowExprKind) genWriteToPtr(ref Alloc alloc, immutable LowExpr ptr, immutable LowExpr value) =>
+	immutable LowExprKind(allocate(
 		alloc,
-		immutable LowExprKind.SpecialBinary(LowExprKind.SpecialBinary.Kind.writeToPtr, ptr, value))));
+		immutable LowExprKind.SpecialBinary(LowExprKind.SpecialBinary.Kind.writeToPtr, ptr, value)));
 
 immutable(LowExpr) genVoid(immutable FileAndRange source) =>
 	immutable LowExpr(voidType, source, immutable LowExprKind(immutable Constant(immutable Constant.Void())));

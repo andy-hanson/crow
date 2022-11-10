@@ -40,9 +40,8 @@ with-block<a> a^(options open-lmdb-env, f act a^(lmdb-env)) trusted summon is-se
 		f[env]
 
 .open-env lmdb-env(options open-lmdb-env) unsafe summon
-	env-cell cell MDB_env = null-extern-pointer,
-	env-cell.mdb_env_create check-lmdb-error
-	env = *env-cell
+	env mut MDB_env = null-extern-pointer
+	(&env).mdb_env_create check-lmdb-error
 	env mdb_env_set_maxdbs 50 check-lmdb-error
 	mapsize = 1024 * 1024 * 100000
 	env mdb_env_set_mapsize mapsize check-lmdb-error
@@ -124,16 +123,15 @@ with-block<a, k, v> a^(
 		f[db]
 
 .open-db<k, v> lmdb-db<k, v>(a database<k, v>) unsafe summon lmdb-key<k> serialize<v>
-	transaction-cell cell MDB_txn = null-extern-pointer,
-	a.env.env mdb_txn_begin null-extern-pointer, 0, transaction-cell check-lmdb-error
-	transaction = *transaction-cell
+	transaction mut MDB_txn = null-extern-pointer
+	a.env.env mdb_txn_begin null-extern-pointer, 0, &transaction check-lmdb-error
 
-	dbi-cell cell MDB_dbi = zeroed,
+	dbi mut MDB_dbi = zeroed
 	mdb-flags = MDB_CREATE | zeroed::k.lmdb-key-flags
-	transaction mdb_dbi_open a.db-name.to-c-string, mdb-flags, dbi-cell check-lmdb-error
+	transaction mdb_dbi_open a.db-name.to-c-string, mdb-flags, &dbi check-lmdb-error
 
 	transaction.mdb_txn_commit check-lmdb-error
-	*dbi-cell,
+	dbi,
 
 .close-db<k, v> void(env lmdb-env, db lmdb-db<k, v>) unsafe summon
 	env.env mdb_dbi_close db.dbi
@@ -179,9 +177,8 @@ with-block<a> a(a abortable-write-transaction, f act (a, transaction-result)(lmd
 	a.env with-transaction 0, f
 
 .with-transaction<a> a(env lmdb-env, mdb-flags u-int, f act (a, transaction-result)(lmdb-txn)) unsafe summon
-	transaction-cell cell MDB_txn = null-extern-pointer,
-	env.env mdb_txn_begin null-extern-pointer, mdb-flags, transaction-cell check-lmdb-error
-	transaction = *transaction-cell
+	transaction mut MDB_txn = null-extern-pointer
+	env.env mdb_txn_begin null-extern-pointer, mdb-flags, &transaction check-lmdb-error
 	(() => transaction mdb_txn_abort) do-if-error () =>
 		pair = f[(transaction,)]
 		match pair.b
@@ -386,9 +383,8 @@ zip-fold<a, k, v0, v1> a(
 		new-acc zip-fold-recur cursor0, cursor1, f
 
 .with-cursor<a, k, v> a(txn lmdb-txn, db lmdb-db<k, v>, f act a(MDB_cursor)) unsafe summon
-	cursor-cell cell MDB_cursor = null-extern-pointer,
-	open-err = txn.txn mdb_cursor_open db.dbi, cursor-cell
-	cursor = *cursor-cell
+	cursor mut MDB_cursor = null-extern-pointer
+	open-err = txn.txn mdb_cursor_open db.dbi, &cursor
 	with : (() => cursor mdb_cursor_close) finally
 		open-err check-lmdb-error
 		f[cursor]

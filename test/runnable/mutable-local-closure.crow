@@ -1,0 +1,17 @@
+import
+	crow/io/print: out, print
+
+# Make this by-ref so that the mutable local must use a pointer to pointer
+foo record by-ref
+	x nat
+
+main nat^(_ string[]) summon
+	x mut foo = 0,
+	get act foo() = () =>
+		x
+	set act void() = () =>
+		x := 1,
+	out print "{get[].x}"
+	set[]
+	out print "{get[].x}"
+	()
