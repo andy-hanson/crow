@@ -14,11 +14,11 @@ import
 	./array: array
 	./dict: dict, to-dict
 	./mut-array:
-		begin-pointer, cast-immutable, end-pointer, fill, fill-mut-array, mut-array, fold, for-loop, is-empty,
+		begin-pointer, cast-immutable, end-pointer, fill, fill-mut-array, mut-array, for-loop, is-empty,
 		new, set-subscript, size, subscript, to-array, uninitialized-mut-array
 	./list: ==, for-loop, list, list-equal, new, size, to-list
 	./mut-list:
-		~=, copy, find-index, fold, for-loop, is-at-capacity, is-empty, mut-list, new,
+		~=, copy, find-index, for-loop, is-at-capacity, is-empty, mut-list, new,
 		remove-unordered-at, set-filter, set-map, set-subscript, size, subscript
 
 ###
@@ -240,20 +240,29 @@ Returns the old value (if it exists).
 
 region iteration
 
-###
-Calls `f` for every key and value in the dictionary.
-
-Each call to `f` gets the previous accumulator and returns the new accumulator.
-###
-fold<a, k, v> a(acc a, a v mut[k], f act a(a, k, v)) is-data<k> compare<k> hash-mix<k>
-	acc fold a.entries, (cur, entry) =>
+# Calls `f` for every key and value in the dictionary.
+for-loop<k, v> void(a v mut[k], f act void(k, v)) is-data<k> compare<k> hash-mix<k>
+	for entry : a entries
 		match entry
 		as none
-			cur
-		as one ar
-			f[cur, ar.from, ar.to]
+			()
+		as one pair
+			f[pair from, pair to]
 		as many m
-			cur fold m, (cur2, pair) => f[cur2, pair.from, pair.to]
+			for pair : m
+				f[pair from, pair to]
+
+###
+Calls `f` on every key and value and returns a list of the results.
+###
+for-loop<out, k, v> out[](a v mut[k], f act out(k, v)) trusted is-data<k> compare<k> hash-mix<k>
+	out mut-array out = a.size uninitialized-mut-array
+	cur mut = out begin-pointer
+	for key, value : a
+		*cur := f[key, value]
+		cur := cur + 1
+	assert cur == out.end-pointer
+	out.cast-immutable to-list
 
 ###
 Filters the dictionary in place.
@@ -279,21 +288,6 @@ set-filter<k, v> void(a v mut[k], f act bool(k, v)) trusted is-data<k> compare<k
 				z = m[0]
 				*entry-pointer := z one
 		entry-pointer + 1 set-filter-recur entry-end, f
-
-# Calls `f` for every key and value in the dictionary.
-for-loop<k, v> void(a v mut[k], f act void(k, v)) is-data<k> compare<k> hash-mix<k>
-	() fold a, (_, key, value) => f[key, value]
-
-###
-Calls `f` on every key and value and returns a list of the results.
-###
-for-loop<out, k, v> out[](a v mut[k], f act out(k, v)) trusted is-data<k> compare<k> hash-mix<k>
-	out mut-array out = a.size uninitialized-mut-array
-	end = out.begin-pointer fold a, (cur, key, value) =>
-		*cur := f[key, value]
-		cur + 1
-	assert end == out.end-pointer
-	out.cast-immutable to-list
 
 ###
 Returns an immutable dictionary with this dictionary's contents.

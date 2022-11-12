@@ -294,12 +294,10 @@ Or a combination of the two.
 
 region iteration
 
-fold<a, b> a(acc a, a sorted-set b, f act a(a, b)) is-data<b> compare<b>
-	acc fold-recur a.init-iters, a.remove, f
-.fold-recur<a, b> a(acc a, iters mut-array iter-part b, remove index-set, f act a(a, b)) compare<b>
-	if iters is-empty
-		acc
-	else
+for-loop<a> void(a sorted-set a, f act void(a)) is-data<a> compare<a>
+	a.init-iters for-loop-recur a.remove, f
+.for-loop-recur<a> void(iters mut-array iter-part a, remove index-set, f act void(a)) compare<a>
+	unless iters is-empty
 		least-iter-index = iters[0].values[0] find-least-iter 0, 1, iters
 		least-value = iters[least-iter-index].values[0]
 		iters[least-iter-index] := iters[least-iter-index] tail remove
@@ -308,7 +306,8 @@ fold<a, b> a(acc a, a sorted-set b, f act a(a, b)) is-data<b> compare<b>
 			iters[0 .. iters.size - 1]
 		else
 			iters
-		f[acc, least-value] fold-recur new-iters, remove, f
+		f[least-value]
+		new-iters for-loop-recur remove, f
 
 .find-least-iter<a> nat64(
 	current-least a,
@@ -371,22 +370,20 @@ fold<a, b> a(acc a, a sorted-set b, f act a(a, b)) is-data<b> compare<b>
 	else
 		a
 
-# TODO: filter
-
-for-loop<a> void(a sorted-set a, f act void(a)) is-data<a> compare<a>
-	() fold a, (_, x) => f[x]
-
 # Returns a set containing `f[x]` for every element `x` in `a`.
 for-loop<out, in> sorted-set out(a sorted-set in, f act out(in)) is-data<out> compare<out> is-data<in> compare<in>
 	a for-loop f to-sorted-set
 
 for-loop<out, in> out[](a sorted-set in, f act out(in)) trusted is-data<in> compare<in>
 	out mut-array out = a.size uninitialized-mut-array
-	end = out.begin-pointer fold a, (cur, x) =>
+	cur mut = out begin-pointer
+	for x : a
 		*cur := f[x]
-		cur + 1
-	assert end == out.end-pointer
+		cur := cur + 1
+	assert cur == out.end-pointer
 	out.cast-immutable to-list
+
+# TODO: filter
 
 .dbg<a> string(a sorted-set a) to-string<a>
 	add = a.add dbg
@@ -429,8 +426,7 @@ test
 	d - "r" verify "[c o]"
 	d - "c" verify "[o r]"
 
-	folded = "w" fold d, (acc, x) => "{acc}-{x}"
-	folded is "w-c-o-r"
+	"-" join (for x : d; "({x})") is "(c)-(o)-(r)"
 
 	# TODO: test filter
 

@@ -3,16 +3,16 @@ import
 	../bool: &&, ==, bool, true
 	../compare: !=
 	../fun-util: subscript
-	../misc: void
+	../misc: new, void
 	../number: ==, <=>, +, nat64
 	../option: !, is-empty, new, option
 	../pointer: ==, +, -, set-deref
 	../test-util: is
 	../range: ..
-	./array: array, first, fold, for-loop, is-empty, new, size, tail
+	./array: array, first, for-loop, is-empty, new, size, tail
 	./mut-array: begin-pointer, cast-immutable, end-pointer, mut-array, subscript, uninitialized-mut-array
 	./list: ==, list, new, to-array, to-list
-	./stack: ~, fold, for-loop, is-empty, new, size, stack, to-list
+	./stack: ~, for-loop, is-empty, new, size, stack, to-list
 
 ###
 Immutable queue.
@@ -37,10 +37,11 @@ This is O(n).
 ###
 to-list<a> a[](a queue a) trusted
 	res mut-array a = a.size uninitialized-mut-array
-	end = res.begin-pointer fold a, (out, x) =>
-		*out := x
-		out + 1
-	assert end == res.end-pointer
+	cur mut = res begin-pointer
+	for x : a
+		*cur := x
+		cur := cur + 1
+	assert cur == res.end-pointer
 	res.cast-immutable to-list
 
 # `true` iff `a.size == 0`.
@@ -79,24 +80,21 @@ for-loop<a> void(a queue a, f act void(a))
 
 for-loop<out, in> queue out(a queue in, f act out(in)) trusted
 	res mut-array out = a.size uninitialized-mut-array
-	end = res.begin-pointer fold a, (out, x) =>
-		*out := f[x]
-		out + 1
-	assert end == res.end-pointer
+	cur mut = res begin-pointer
+	for x : a
+		*cur := f[x]
+		cur := cur + 1
+	assert cur == res.end-pointer
 	res.cast-immutable.to-list to-queue
-
-fold<a, b> a(acc a, a queue b, f act a(a, b))
-	acc fold a.left, f fold a.right, f
 
 filter<a> queue a(a queue a, f act bool(a)) trusted
 	res mut-array a = a.size uninitialized-mut-array
-	end = res.begin-pointer fold a, (out, x) =>
+	cur mut = res begin-pointer
+	for x : a
 		if f[x]
-			*out := x
-			out + 1
-		else
-			out
-	res[0 .. end - res.begin-pointer].cast-immutable.to-list to-queue
+			*cur := x
+			cur := cur + 1
+	res[0 .. cur - res.begin-pointer].cast-immutable.to-list to-queue
 
 test
 	a queue nat64 = ()

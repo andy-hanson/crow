@@ -3,15 +3,15 @@ import
 	../bool: &&, bool
 	../compare: <
 	../fun-util: subscript
-	../misc: new, void
+	../misc: void
 	../number: +, *, ==, <=>, nat64
-	../pointer: ==, +, *, as-const, const-pointer, mut-pointer, set-deref
 	../range: .., for-loop
 	../string: ==, ~~, join, literal, string, to-string
 	../test-util: is
 	./mut-array:
-		begin-pointer, copy, end-pointer, exists, mut-array, fold, new, set-map, set-subscript, size,
-		subscript, to-array, uninitialized-mut-array
+		copy, exists, for-loop, mut-array, new, set-map, set-subscript, size, subscript, to-array,
+		uninitialized-mut-array
+	./mut-list: ~=, move-to-list, mut-list, new
 	./list: for-loop, list, to-list
 
 ###
@@ -79,7 +79,7 @@ fill-mut-grid<a> mut-grid a(width nat64, height nat64, value a)
 # Creates a new grid with the given width and height, setting every element to `f[x, y]`.
 make-mut-grid<a> mut-grid a(width nat64, height nat64, f act a(nat64, nat64)) trusted
 	res mut-grid a = (width * height).uninitialized-mut-array, width, height
-	res set-map-with-coords (_, coord) => f[coord.x, coord.y]
+	res set-map (_, coord) => f[coord.x, coord.y]
 	res
 
 # Copy elements to a new grid.
@@ -132,9 +132,6 @@ to-string<a> string(a mut-grid a) to-string<a>
 
 region iteration
 
-for-loop<a> void(a mut-grid a, f act void(a))
-	() fold a, (_, value) => f[value]
-
 mut-grid-rows<a> record mut
 	.inner mut-grid a
 
@@ -149,36 +146,38 @@ for-loop<out, in> out[](a mut-grid-rows in, f act out(mut-array in))
 	for y : 0 .. a.inner.height
 		f[a.inner row y]
 
-fold<a, b> a(acc a, a mut-grid b, f act a(a, b))
-	acc fold a.elements, f
+for-loop<a> void(a mut-grid a, f act void(a))
+	a.elements for-loop f
+for-loop<out, in> out[](a mut-grid in, f act out(in))
+	res out mut[] = ()
+	for x : a
+		res ~= f[x]
+	res move-to-list
 
-fold-with-coords<a, b> a(acc a, a mut-grid b, f act a(a, b, coord)) trusted
-	acc fold-with-coords-recur a.elements.begin-pointer.as-const, a.elements.end-pointer.as-const, (), a.width, f
-.fold-with-coords-recur<a, b> a(
-	acc a,
-	cur b*,
-	end b*,
-	coord coord,
-	width nat64,
-	f act a(a, b, coord),
-) unsafe
-	if cur == end
-		acc
-	else
-		f[acc, *cur, coord] fold-with-coords-recur cur + 1, end, (coord next-coord width), width, f
+for-loop<a> void(a mut-grid a, f act void(a, coord))
+	coord mut coord = ()
+	for x : a
+		f[x, coord]
+		coord := coord next-coord a.width
+for-loop<out, in> out[](a mut-grid in, f act out(in, coord))
+	coord mut coord = ()
+	res out mut[] = ()
+	for x : a
+		res ~= f[x, coord]
+		coord := coord next-coord a.width
+	res move-to-list
 
 exists<a> bool(a mut-grid a, f act bool(a))
 	a.elements exists f
 
 set-map<a> void(a mut-grid a, f act a(a))
 	a.elements set-map f
-
-set-map-with-coords<a> void(a mut-grid a, f act a(a, coord)) trusted
-	a.elements.begin-pointer set-map-with-coords-recur a.elements.end-pointer, (), a.width, f
-.set-map-with-coords-recur<a> void(cur a mut*, end a mut*, coord coord, width nat64, f act a(a, coord)) unsafe
-	unless cur == end
-		*cur := f[*cur, coord]
-		cur + 1 set-map-with-coords-recur end, (coord next-coord width), width, f
+set-map<a> void(a mut-grid a, f act a(a, coord)) trusted
+	coord mut coord = ()
+	a set-map x =>
+		res = f[x, coord]
+		coord := coord next-coord a.width
+		res
 
 .next-coord coord(a coord, width nat64)
 	new-x = a.x + 1
@@ -191,5 +190,6 @@ test
 	a mut-grid string = 3 make-mut-grid 2, (x, y) => "{x}|{y}"
 	a.to-string is "0|0 1|0 2|0\n0|1 1|1 2|1"
 
-	folded = "S" fold-with-coords a, (acc, value, coord) => "{acc} {value}/{coord}"
-	folded is "S 0|0/<0, 0> 1|0/<1, 0> 2|0/<2, 0> 0|1/<0, 1> 1|1/<1, 1> 2|1/<2, 1>"
+	values = " " join for value, coord : a
+		"{value}/{coord}"
+	values is "0|0/<0, 0> 1|0/<1, 0> 2|0/<2, 0> 0|1/<0, 1> 1|1/<1, 1> 2|1/<2, 1>"

@@ -271,37 +271,34 @@ count<k, v> nat(txn lmdb-txn, db lmdb-db<k, v>) summon
 
 region iteration
 
-fold<a, k, v> a(acc a, txn lmdb-txn, db lmdb-db<k, v>, f act a(a, k, v)) trusted summon lmdb-key<k> serialize<v>
-	txn with-cursor db, cursor =>
-		cursor mdb_cursor_get empty-val, empty-val, MDB_FIRST check-lmdb-error
-		acc fold-recur cursor, f
-.fold-recur<a, k, v> a(acc a, cursor MDB_cursor, f act a(a, k, v)) unsafe summon lmdb-key<k> serialize<v>
-	key = empty-val
-	value = empty-val
-	cursor mdb_cursor_get key, value, MDB_GET_CURRENT check-lmdb-error
-	new-acc = f[acc, key.bytes-of-val.from-lmdb-key, value.bytes-of-val.from-bytes]
-	err = cursor mdb_cursor_get empty-val, empty-val, MDB_NEXT
-	if err == MDB_NOTFOUND
-		new-acc
-	else
-		err check-lmdb-error
-		new-acc fold-recur cursor, f
-
 each<k, v> record mut
 	txn lmdb-txn
 	db lmdb-db<k, v>
 each<k, v> each<k, v>(txn lmdb-txn, db lmdb-db<k, v>)
 	txn, db
 # Calls `f` for each key-value pair in `db`.
-for-loop<k, v> void(a each<k, v>, f act void(k, v)) summon lmdb-key<k> serialize<v>
-	() fold a.txn, a.db, (_, key, value) => f[key, value]
+for-loop<k, v> void(a each<k, v>, f act void(k, v)) trusted summon lmdb-key<k> serialize<v>
+	a.txn with-cursor a.db, cursor =>
+		cursor mdb_cursor_get empty-val, empty-val, MDB_FIRST check-lmdb-error
+		cursor for-loop-recur f
+.for-loop-recur<k, v> void(cursor MDB_cursor, f act void(k, v)) unsafe summon lmdb-key<k> serialize<v>
+	key = empty-val
+	value = empty-val
+	cursor mdb_cursor_get key, value, MDB_GET_CURRENT check-lmdb-error
+	f[key.bytes-of-val.from-lmdb-key, value.bytes-of-val.from-bytes]
+	err = cursor mdb_cursor_get empty-val, empty-val, MDB_NEXT
+	if err != MDB_NOTFOUND
+		err check-lmdb-error
+		cursor for-loop-recur f
+
 # Calls `f` for each key-value pair in `db` and returns an array of the results.
 for-loop<out, k, v> out[](a each<k, v>, f act out(k, v)) trusted summon lmdb-key<k> serialize<v>
 	out mut-array out = a.txn count a.db uninitialized-mut-array
-	end = out.begin-pointer fold a.txn, a.db, (cur, key, value) =>
+	cur mut = out begin-pointer
+	for key, value : a.txn each a.db
 		*cur := f[key, value]
-		cur + 1
-	assert end == out.end-pointer
+		cur := cur + 1
+	assert cur == out.end-pointer
 	out.cast-immutable to-list
 
 ###
@@ -320,45 +317,28 @@ zip<out, k, v0, v1> out[](
 	assert db0-count == db1-count
 	unless db0-count == 0
 		res mut-array out = db0-count uninitialized-mut-array
-		end = res.begin-pointer zip-fold-non-empty txn, db0, db1, (cur, key, value0, value1) =>
+		cur mut = res begin-pointer
+		txn zip-non-empty db0, db1, (key, value0, value1) =>
 			*cur := f[key, value0, value1]
-			cur + 1
-		assert end == res.end-pointer
+			cur := cur + 1
+		assert cur == res.end-pointer
 		res.cast-immutable to-list
 
-# Like `zip`, but passes along an accumulator.
-zip-fold<a, k, v0, v1> a(
-	acc a,
+.zip-non-empty<k, v0, v1> void(
 	txn lmdb-txn,
 	db0 lmdb-db<k, v0>,
 	db1 lmdb-db<k, v1>,
-	f act a(a, k, v0, v1),
-) trusted summon is-data<k> lmdb-key<k> serialize<v0> serialize<v1>
-	db0-count = txn count db0
-	db1-count = txn count db1
-	assert db0-count == db1-count
-	if db0-count == 0
-		acc
-	else
-		acc zip-fold-non-empty txn, db0, db1, f
-
-.zip-fold-non-empty<a, k, v0, v1> a(
-	acc a,
-	txn lmdb-txn,
-	db0 lmdb-db<k, v0>,
-	db1 lmdb-db<k, v1>,
-	f act a(a, k, v0, v1),
+	f act void(k, v0, v1),
 ) trusted summon is-data<k> lmdb-key<k> serialize<v0> serialize<v1>
 	txn with-cursor db0, cursor0 =>
 		txn with-cursor db1, cursor1 =>
 			cursor0 mdb_cursor_get empty-val, empty-val, MDB_FIRST check-lmdb-error
 			cursor1 mdb_cursor_get empty-val, empty-val, MDB_FIRST check-lmdb-error
-			acc zip-fold-recur cursor0, cursor1, f
-.zip-fold-recur<a, k, v0, v1> a(
-	acc a,
+			cursor0 zip-recur cursor1, f
+.zip-recur<k, v0, v1> void(
 	cursor0 MDB_cursor,
 	cursor1 MDB_cursor,
-	f act a(a, k, v0, v1),
+	f act void(k, v0, v1),
 ) unsafe summon is-data<k> lmdb-key<k> serialize<v0> serialize<v1>
 	key0-val = empty-val
 	value0-val = empty-val
@@ -371,16 +351,15 @@ zip-fold<a, k, v0, v1> a(
 	key1 k = key1-val.bytes-of-val.from-lmdb-key
 	value1 v1 = value1-val.bytes-of-val.from-bytes
 	assert key0 == key1
-	new-acc = f[acc, key0, value0, value1]
+	f[key0, value0, value1]
 	err0 = cursor0 mdb_cursor_get empty-val, empty-val, MDB_NEXT
 	err1 = cursor1 mdb_cursor_get empty-val, empty-val, MDB_NEXT
 	if err0 == MDB_NOTFOUND || err1 == MDB_NOTFOUND
 		assert err0 == MDB_NOTFOUND && err1 == MDB_NOTFOUND
-		new-acc
 	else
 		err0 check-lmdb-error
 		err1 check-lmdb-error
-		new-acc zip-fold-recur cursor0, cursor1, f
+		cursor0 zip-recur cursor1, f
 
 .with-cursor<a, k, v> a(txn lmdb-txn, db lmdb-db<k, v>, f act a(MDB_cursor)) unsafe summon
 	cursor mut MDB_cursor = null-extern-pointer

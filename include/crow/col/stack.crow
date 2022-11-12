@@ -12,7 +12,7 @@ import
 	../test-util/spy: calls, fn, new, spy-act1
 	./array: array
 	./mut-array: begin-pointer, cast-immutable, end-pointer, mut-array, uninitialized-mut-array
-	./list: ==, fold, list, new, to-list
+	./list: ==, for-loop, list, new, to-list
 
 ###
 Immutable stack type.
@@ -39,9 +39,10 @@ Stack containing the given elements.
 The first element of `a` goes on the bottom and the last element of `a` goes on the top.
 ###
 to-stack<a> stack a(a a[])
-	# TODO: type annotation should not be necessary
-	empty stack a = (()::node<a>?,)
-	empty fold a, (stack, x) => stack ~ x
+	res mut stack a = ()::node<a>?,
+	for x : a
+		res := res ~ x
+	res
 
 # Copy elements a list.
 to-list<a> a[](a stack a) trusted
@@ -64,7 +65,10 @@ Number of elements in the stack.
 This is O(1).
 ###
 size<a> nat64(a stack a)
-	0 fold a, (acc, _) => acc + 1
+	res mut = 0
+	for _ : a
+		res := res + 1
+	res
 
 ###
 Top element.
@@ -96,7 +100,6 @@ for-loop<a> void(a stack a, f act void(a))
 		node.prev for-loop-recur f
 		f[node value]
 
-
 reversed-stack<a> record
 	.inner stack a
 reversed<a> reversed-stack a(a stack a)
@@ -125,24 +128,6 @@ for-loop<out, in> out[](a reversed-stack in, f act out(in)) trusted
 to-list<a> a[](a reversed-stack a) trusted
 	for x : a
 		x
-
-fold<a, b> a(acc a, a reversed-stack b, f act a(a, b))
-	acc fold-reverse-recur a.inner.last-node, f
-.fold-reverse-recur<a, b> a(acc a, a node<b>?, f act a(a, b))
-	if node ?= a
-		f[acc, node.value] fold-reverse-recur node.prev, f
-	else
-		acc
-
-# Call a function for each element in the stack and accumulate.
-fold<a, b> a(acc a, a stack b, f act a(a, b))
-	acc fold-recur a.last-node, f
-.fold-recur<a, b> a(acc a, a node<b>?, f act a(a, b))
-	if node ?= a
-		prev-val = acc fold-recur node.prev, f
-		f[prev-val, node.value]
-	else
-		acc
 
 for-loop<out, in> out[](a stack in, f act out(in)) trusted
 	res mut-array out = a.size uninitialized-mut-array
@@ -210,9 +195,6 @@ test
 
 	d3 = d filter x => x != 2
 	d3.to-list is (1, 3)
-
-	folded = 5 fold d, (x, y) => x + y
-	folded is 11
 
 	(d find-and-get x => x if-eq 2, "two") is ("two",)
 	(d find-and-get x => x if-eq 5, "five") is ()

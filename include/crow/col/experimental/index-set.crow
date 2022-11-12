@@ -1,7 +1,8 @@
 no-std
 import
 	../../bits:
-		&, <<, >>, add-bit, has-bit, count-ones, fold-one-bits, high-n-bits, low-n-bits, sub-bit
+		&, <<, >>, add-bit, for-loop, has-bit, count-ones, high-n-bits, low-n-bits, one-bits,
+		sub-bit
 	../../bool: &&, ==, bool, false, true
 	../../compare: <, <=, >, >=, min
 	../../exception: unreachable
@@ -15,9 +16,9 @@ import
 	../../range: .., for-loop
 	../../string: ==, ~~, join, literal, string, to-hex, to-string
 	../../test-util: is
-	../array: array, begin-pointer, end-pointer, fold, new, subscript
+	../array: array, begin-pointer, end-pointer, for-loop, new, subscript
 	../mut-array: begin-pointer, cast-immutable, end-pointer, mut-array, uninitialized-mut-array
-	../list: ==, fold, list, new, size, to-list
+	../list: ==, for-loop, list, new, size, to-list
 
 index-set record by-ref
 	# This is one more than the highest number that would currently fit in the tree.
@@ -50,7 +51,10 @@ new index-set(...a array nat64)
 	a.to-list to-index-set
 
 to-index-set index-set(a nat64[])
-	(0, empty) fold a, (acc, x) => acc ~ x
+	res mut index-set = (0, empty)
+	for x : a
+		res := res ~ x
+	res
 
 is-empty bool(a index-set)
 	a.capacity == 0
@@ -163,7 +167,10 @@ try-add index-set?(a index-set, index nat64) trusted
 		new-node try-add index, n
 
 ~~ index-set(a index-set, indices array nat64)
-	a fold indices, (cur, index) => cur ~ index
+	res mut = a
+	for index : indices
+		res := res ~ index
+	res
 
 - index-set(a index-set, index nat64)
 	a try-remove index ?? a
@@ -389,29 +396,26 @@ to-string string(a index-set)
 
 region iteration
 
-for-loop void(a index-set, f act void(nat64))
-	() fold a, (_, x) => f[x]
-
-fold<a> a(acc a, a index-set, f act a(a, nat64)) trusted
-	acc fold a.root, 0, a.capacity, f
+for-loop void(a index-set, f act void(nat64)) trusted
+	a.root for-loop-recur 0, a.capacity, f
 # offset: how much to add to indices in this node
-.fold<a> a(acc a, node node, offset nat64, n nat64, f act a(a, nat64)) unsafe
+.for-loop-recur void(node node, offset nat64, n nat64, f act void(nat64)) unsafe
 	match node
 	as inner i
 		half = n / 2
 		quarter = half / 2
 		three-quarters = half + quarter
-		acc-a = acc fold i.a, offset, quarter, f
-		acc-b = acc-a fold i.b, offset + quarter, quarter, f
-		acc-c = acc-b fold i.c, offset + half, quarter, f
-		acc-c fold i.d, offset + three-quarters, quarter, f
+		i.a for-loop-recur offset, quarter, f
+		i.b for-loop-recur offset + quarter, quarter, f
+		i.c for-loop-recur offset + half, quarter, f
+		i.d for-loop-recur offset + three-quarters, quarter, f
 	as leaf l
-		acc fold l.values, (cur, value, word-index) =>
+		for value, word-index : l values
 			bit-index-offset = offset + word-index * 64
-			cur fold-one-bits value, (inner-acc, bit-index) =>
-				f[inner-acc, bit-index-offset + bit-index]
+			for bit-index : value one-bits
+				f[bit-index-offset + bit-index]
 	as empty
-		acc
+		()
 
 ###
 TODO
@@ -427,10 +431,11 @@ for-loop index-set(a index-set, f act nat64(nat64))
 
 for-loop<a> a[](a index-set, f act a(nat64)) trusted
 	res mut-array a = a.size uninitialized-mut-array
-	end = res.begin-pointer fold a, (cur, x) =>
+	cur mut = res begin-pointer
+	for x : a
 		*cur := f[x]
-		cur + 1
-	assert end == res.end-pointer
+		cur := cur + 1
+	assert cur == res.end-pointer
 	res.cast-immutable to-list
 
 .dbg string(a index-set)
@@ -455,11 +460,12 @@ for-loop<a> a[](a index-set, f act a(nat64)) trusted
 	actual is expected
 	r = a to-list
 	r is expected-list
-	_ = 0 fold a, (prev, cur) =>
+	prev mut = 0
+	for cur : a
 		for x : prev .. cur
 			x in a is false
 		cur in a is true
-		cur + 1
+		prev := cur + 1
 	a.size is r.size
 
 test
@@ -487,9 +493,6 @@ test
 
 	e = c filter-less 9
 	e verify "[110 0 0 0]", (4, 8)
-
-	folded = 1 fold d, (cur, x) => cur + x
-	folded is 14
 
 	# TODO
 	# filtered = c filter it => it != 8

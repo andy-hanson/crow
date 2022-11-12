@@ -1,6 +1,6 @@
 no-std
 import
-	./col/list: for-loop, is-empty, list, size, subscript, tail
+	./col/list: for-loop, list, size
 	./exception: catch, exception
 	./fun-util: subscript
 	./misc: new, void
@@ -50,23 +50,10 @@ Waits for every one of `futures` to be resolved, then returns an array all of th
 
 If one of `futures` resolves with an exception, this resolves to the leftmost exception (discarding others),
 regardless of which exception happened first.
-
-Use `wait-fold` instead of you intend to iterate over the result anyway.
 ###
 wait-all<a> a[]^(futures a^[]) trusted is-sendable<a> is-sendable<a[]>
 	<- futures wait-all-complete
 	(for x : futures; x.get-result!),
-
-###
-Waits on each of `futures` in turn, calling `f` to get a new accumulator.
-###
-wait-fold<a, b> a^(acc a, futures b^[], f ref a(a, b)) is-sendable<a> is-sendable<b>
-	if futures is-empty
-		acc,
-	else
-		cur <- futures[0]
-		new-acc <- f[acc, cur]
-		new-acc wait-fold futures.tail, f
 
 # Returns a future that is resolved once all inputs are resolved.
 .wait-all-complete<a> void^(futures a^[]) is-sendable<a> trusted

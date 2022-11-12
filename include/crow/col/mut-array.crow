@@ -8,11 +8,13 @@ import
 	../number: ==, <=>, +, -, *, /, %, nat64
 	../option: new, option
 	../pointer:
-		==, <=>, +, -, *, as-any-const-pointer, as-any-mut-pointer, as-const, as-mut, mut-pointer, pointer-cast,
-		set-deref, set-subscript, size-of, subscript, swap
-	../private/alloc: alloc-uninitialized, set-zero-range, unmanaged-alloc-elements, unmanaged-free-elements
+		==, <=>, +, -, *, as-any-const-pointer, as-any-mut-pointer, as-const, as-mut, mut-pointer,
+		pointer-cast, set-deref, set-subscript, size-of, subscript, swap
+	../private/alloc:
+		alloc-uninitialized, set-zero-range, unmanaged-alloc-elements, unmanaged-free-elements
 	../private/range-low-level: .., high, low, range
-	./array: array, as-array, begin-pointer, exists, find-index, fold, for-loop, index-of, new, size, subscript
+	./array:
+		array, as-array, begin-pointer, exists, find-index, for-loop, index-of, new, size, subscript
 
 ###
 `mut-array` is a low-level type mostly useful for implementing other collections.
@@ -295,13 +297,12 @@ exists<a> bool(a mut-array a, f act bool(a)) trusted
 
 # Calls 'f' on each element in the mut-array.
 for-loop<a> void(a mut-array a, f act void(a)) trusted
+	# TODO: dangerous if 'a' is modified while running 'f'
 	a.temp-as-array for-loop f
 
 for-loop<a> void(a mut-array a, f act void(a, nat64)) trusted
+	# TODO: dangerous if 'a' is modified while running 'f'
 	a.temp-as-array for-loop f
-
-fold<a, b> a(acc a, a mut-array b, f act a(a, b)) trusted
-	acc fold a.temp-as-array, f
 
 set-map<a> void(a mut-array a, f act a(a)) trusted
 	a.begin-pointer set-map-recur a.end-pointer, f

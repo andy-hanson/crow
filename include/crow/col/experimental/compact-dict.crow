@@ -17,11 +17,11 @@ import
 	../mut-array:
 		as-mut-array, begin-pointer, cast-immutable, end-pointer, mut-array,
 		uninitialized-mut-array
-	../list: fold, list, new, to-list
+	../list: for-loop, list, new, to-list
 	../mut-set: in, mut-set, new, try-add
 	./frozen-dict:
-		for-loop, frozen-dict, fold, in, is-empty, mut-array-to-frozen-dict-promise-no-duplicates,
-		new, size, subscript, to-array, to-frozen-dict
+		for-loop, frozen-dict, in, is-empty, mut-array-to-frozen-dict-promise-no-duplicates, new,
+		size, subscript, to-array, to-frozen-dict
 
 compact-dict<k, v> record by-val
 	ignore void
@@ -72,7 +72,10 @@ This is O(n).
 ###
 
 size<k, v> nat64(a compact-dict<k, v>) is-data<k> compare<k> hash-mix<k>
-	0 fold a, (acc, _, _) => acc + 1
+	res mut = 0
+	for _, _ : a
+		res := res + 1
+	res
 
 ~ <k, v> compact-dict<k, v>(a compact-dict<k, v>, pair (k, v)) is-data<k> compare<k> hash-mix<k>
 	a add-or-remove pair.from, (pair.to,)
@@ -84,7 +87,10 @@ TODO
 ###
 
 ~~ <k, v> compact-dict<k, v>(a compact-dict<k, v>, b (k, v)[]) is-data<k> compare<k> hash-mix<k>
-	a fold b, (cur, pair) => cur ~ pair
+	res mut = a
+	for pair : b
+		res := res ~ pair
+	res
 
 - <k, v> compact-dict<k, v>(a compact-dict<k, v>, key k) is-data<k> compare<k> hash-mix<k>
 	if key in a
@@ -128,72 +134,57 @@ in<k, v> bool(key k, a compact-dict<k, v>) is-data<k> compare<k> hash-mix<k>
 	r frozen-dict<k, v?>,
 ) trusted is-data<k> compare<k> hash-mix<k>
 	res mut-array (k, v?) = l.size + r.size uninitialized-mut-array
-	begin = res begin-pointer
-	mid = begin fold l, (cur, k, vl) =>
-		if k in r
-			cur
-		else
+	cur mut = res begin-pointer
+	for k, vl : l
+		unless k in r
 			*cur := k, vl
-			cur + 1
-	end = mid fold r, (cur, k, vr) =>
+			cur := cur + 1
+	for k, vr : r
 		*cur := k, vr
-		cur + 1
-	(begin .. end).as-mut-array mut-array-to-frozen-dict-promise-no-duplicates
+		cur := cur + 1
+	(res.begin-pointer .. cur).as-mut-array mut-array-to-frozen-dict-promise-no-duplicates
 
 .merge-to-end<k, v> frozen-dict<k, v>(
 	l frozen-dict<k, v>,
 	r frozen-dict<k, v?>,
 ) trusted is-data<k> compare<k> hash-mix<k>
 	res mut-array (k, v) = l.size + r.size uninitialized-mut-array
-	begin = res begin-pointer
-	mid = begin fold l, (cur, k, vl) =>
-		if k in r
-			cur
-		else
+	cur mut = res begin-pointer
+	for k, vl : l
+		unless k in r
 			*cur := k, vl
-			cur + 1
-	end = mid fold r, (cur, k, vr) =>
+			cur := cur + 1
+	for k, vr : r
 		if v ?= vr
 			*cur := k, v
-			cur + 1
-		else
-			cur
-	(begin .. end).as-mut-array mut-array-to-frozen-dict-promise-no-duplicates
+			cur := cur + 1
+	(res.begin-pointer .. cur).as-mut-array mut-array-to-frozen-dict-promise-no-duplicates
 
 region iteration
 
-fold<a, k, v> a(acc a, a compact-dict<k, v>, f act a(a, k, v)) is-data<k> compare<k> hash-mix<k>
-	acc fold-recur a.impl, (), f
-.fold-recur<a, k, v> a(acc a, a impl<k, v>, seen mut-set k, f act a(a, k, v)) is-data<k> compare<k> hash-mix<k>
+for-loop<k, v> void(a compact-dict<k, v>, f act void(k, v)) is-data<k> compare<k> hash-mix<k>
+	a.impl for-loop-recur (), f
+.for-loop-recur<k, v> void(a impl<k, v>, seen mut-set k, f act void(k, v)) is-data<k> compare<k> hash-mix<k>
 	match a
 	as overlay o
-		mid = acc fold o.pairs, (cur, k, v-opt) =>
+		for k, v-opt : o pairs
 			if seen try-add k
 				if v ?= v-opt
-					f[cur, k, v]
-				else
-					cur
-			else
-				cur
-		mid fold-recur o.prev, seen, f
+					f[k, v]
+		o.prev for-loop-recur seen, f
 	as end-node e
-		acc fold e, (cur, k, v) =>
-			if k in seen
-				cur
-			else
+		for k, v : e
+			unless k in seen
 				# Don't need to add to 'seen' because this is the last node.
-				f[cur, k, v]
-
-for-loop<k, v> void(a compact-dict<k, v>, f act void(k, v)) is-data<k> compare<k> hash-mix<k>
-	() fold a, (_, k, v) =>
-		f[k, v]
+				f[k, v]
 
 for-loop<a, k, v> a[](a compact-dict<k, v>, f act a(k, v)) trusted is-data<k> compare<k> hash-mix<k>
 	res mut-array a = a.size uninitialized-mut-array
-	end = res.begin-pointer fold a, (cur, k, v) =>
+	cur mut = res begin-pointer
+	for k, v : a
 		*cur := f[k, v]
-		cur + 1
-	assert end == res.end-pointer
+		cur := cur + 1
+	assert cur == res.end-pointer
 	res.cast-immutable to-list
 
 .dbg<k, v> string(a compact-dict<k, v>) to-string<k> to-string<v>

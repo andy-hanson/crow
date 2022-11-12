@@ -13,7 +13,7 @@ import
 	../array: array
 	../iter: rest
 	../mut-list:
-		~=, begin-pointer, clear, end-pointer, filter, fold, for-loop, is-empty, mut-list, new, remove-at,
+		~=, begin-pointer, clear, end-pointer, filter, for-loop, is-empty, mut-list, new, remove-at,
 		set-filter, set-map, set-subscript, size, subscript, to-list
 	../list: for-loop, list, new, to-list
 	../sort: set-sort-by
@@ -231,24 +231,25 @@ remove-key<k, v> v?(a mut-sorted-dict<k, v>, key k) trusted is-data<k> compare<k
 
 region iteration
 
-fold<a, k, v> a(acc a, a mut-sorted-dict<k, v>, f act a(a, k, v)) is-data<k> compare<k>
-	a compact
-	acc fold a.pairs, (cur, pair) =>
-		f[cur, pair.from, pair.to!]
-
-filter<k, v> mut-sorted-dict<k, v>(a mut-sorted-dict<k, v>, f act bool(k, v)) is-data<k> compare<k>
-	a compact
-	(a.pairs filter pair => f[pair.from, pair.to!]) from-sorted-pairs
-
 for-loop<k, v> void(a mut-sorted-dict<k, v>, f act void(k, v)) is-data<k> compare<k>
-	() fold a, (_, k, v) =>
-		f[k, v]
+	a compact
+	for pair : a.pairs to-list
+		f[pair.from, pair.to!]
+
+for-loop<out, k, v> out[](a mut-sorted-dict<k, v>, f act out(k, v)) is-data<k> compare<k>
+	a compact
+	for pair : a.pairs to-list
+		f[pair.from, pair.to!]
 
 for-loop<k-out, v-out, k-in, v-in> mut-sorted-dict<k-out, v-out>(
 	a mut-sorted-dict<k-in, v-in>,
 	f act (k-out, v-out)(k-in, v-in),
 ) is-data<k-in> compare<k-in> is-data<k-out> compare<k-out>
 	a for-loop f to-mut-sorted-dict
+
+filter<k, v> mut-sorted-dict<k, v>(a mut-sorted-dict<k, v>, f act bool(k, v)) is-data<k> compare<k>
+	a compact
+	(a.pairs filter pair => f[pair.from, pair.to!]) from-sorted-pairs
 
 map-values<v-out, k, v-in> mut-sorted-dict<k, v-out>(
 	a mut-sorted-dict<k, v-in>,
@@ -262,11 +263,6 @@ map-values<v-out, k, v-in> mut-sorted-dict<k, v-out>(
 
 .from-sorted-pairs<k, v> mut-sorted-dict<k, v>(a (k, v?) mut[])
 	a, a.size, ()
-
-for-loop<out, k, v> out[](a mut-sorted-dict<k, v>, f act out(k, v)) is-data<k> compare<k>
-	a compact
-	for pair : a.pairs to-list
-		f[pair.from, pair.to!]
 
 region mutating iteration
 
@@ -311,9 +307,10 @@ set-map-values<k, v> void(a mut-sorted-dict<k, v>, f act v(k, v)) is-data<k> com
 	a verify-node-size
 
 .verify-node-size<k, v> void(a mut-sorted-dict<k, v>)
-	actual = 0 fold a.pairs, (acc, x) =>
-		acc + x.to.size
-	a.node-size is actual
+	res mut = 0
+	for x : a pairs
+		res := res + x.to.size
+	a.node-size is res
 	if next ?= a next
 		next verify-node-size
 

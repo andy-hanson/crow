@@ -14,5 +14,7 @@ add<a> spec
 	+ a(a a, b a)
 
 sum<a> a(xs a[]) add<a>
-	() fold xs, (acc, x) =>
-		acc + x
+	acc mut a = ()
+	for x : xs
+		acc := acc + x
+	acc

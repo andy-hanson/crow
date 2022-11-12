@@ -21,7 +21,7 @@ import
 	../bytes-types: new
 	../col/array: begin-pointer
 	../col/mut-array: begin-pointer, mut-array, new, size, subscript
-	../col/list: ~, fold, for-loop, to-array, list
+	../col/list: ~, for-loop, to-array, list
 	../col/mut-list: begin-pointer, end-pointer, move-to-list, mut-list, new, size, unsafe-set-size
 	../compare: <=
 	../extra-types: fd-t
@@ -51,7 +51,7 @@ not to the parent's stdout and stderr.
 EXE should be a file path and not just a name; this does not search the system path for `exe`.
 ###
 spawn-and-wait-result process-result(exe string, args string[]) trusted summon
-	out print ("spawn-and-wait-result: {exe}" fold args, (a, b) => "{a} {b}")
+	out print (" " join "spawn-and-wait-result: {exe}" ~ args)
 
 	# TODO: kill, handle that error properly
 	assert exe is-file : "{exe} is not a file"

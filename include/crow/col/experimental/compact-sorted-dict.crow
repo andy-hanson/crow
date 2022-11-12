@@ -9,14 +9,14 @@ import
 	../../option: !, ||, is-empty, new, option, option-equal
 	../../pointer: ==, <=>, +, -, *, const-pointer, mut-pointer, ref-eq, set-deref
 	../../range: ..
-	../../string: ==, ~~, end-iter, is-empty, join, literal, prev, string, to-string
+	../../string: ==, ~~, end-iter, join, literal, prev, string, to-string
 	../../test-util: is
 	../../tuple: from, new, pair, to
 	../../private/alloc: mem-copy
-	../array: array, begin-pointer, end-pointer, fold, is-empty, new, size, subscript, tail
+	../array: array, begin-pointer, end-pointer, for-loop, is-empty, new, size, subscript, tail
 	../mut-array:
-		begin-pointer, cast-immutable, is-empty, fold, mut-array, set-subscript, size, subscript, tail,
-		uninitialized-mut-array
+		begin-pointer, cast-immutable, for-loop, is-empty, mut-array, set-subscript, size,
+		subscript, tail, uninitialized-mut-array
 	../iter: value
 	../list: filter, for-loop, is-empty, list, new, to-array, to-list
 	../sort: sort-by
@@ -55,7 +55,10 @@ Number of pairs.
 This is O(n).
 ###
 size<k, v> nat64(a compact-sorted-dict<k, v>) is-data<k> compare<k>
-	0 fold a, (acc, _, _) => acc + 1
+	res mut = 0
+	for _, _ : a
+		res := res + 1
+	res
 
 to-list<k, v> (k, v)[](a compact-sorted-dict<k, v>) is-data<k> compare<k>
 	# TODO:PERF Just use 'fold'?
@@ -244,18 +247,17 @@ compact<k, v> compact-sorted-dict<k, v>(a compact-sorted-dict<k, v>) is-data<k> 
 
 region iteration
 
-fold<a, k, v> a(acc a, a compact-sorted-dict<k, v>, f act a(a, k, v)) is-data<k> compare<k>
+for-loop<k, v> void(a compact-sorted-dict<k, v>, f act void(k, v)) is-data<k> compare<k>
 	iters = a init-iters
-	acc fold-recur iters.end-pairs, iters.overlays, f
-
-.fold-recur<a, k, v> a(
-	acc a,
+	iters.end-pairs for-loop-recur iters.overlays, f
+.for-loop-recur<k, v> void(
 	end-node array (k, v),
 	overlays mut-array array (k, v?),
-	f act a(a, k, v),
+	f act void(k, v),
 ) is-data<k> compare<k>
 	if overlays is-empty
-		acc fold end-node, (cur, pair) => f[cur, pair.from, pair.to]
+		for pair : end-node
+			f[pair from, pair to]
 	else
 		least-key = if end-node is-empty
 			overlays[0][0].from find-least-key overlays.tail
@@ -270,15 +272,15 @@ fold<a, k, v> a(acc a, a compact-sorted-dict<k, v>, f act a(a, k, v)) is-data<k>
 		else
 			end-node
 		took-from-overlays = overlays take-key least-key
-		new-acc = if val ?= took-from-overlays.rightmost-value || val-from-end-node
-			f[acc, least-key, val]
-		else
-			acc
-		new-acc fold-recur new-end-node, took-from-overlays.overlays, f
+		if val ?= took-from-overlays.rightmost-value || val-from-end-node
+			f[least-key, val]
+		new-end-node for-loop-recur took-from-overlays.overlays, f
 
 .find-least-key<k, v> k(current-least-key k, overlays mut-array array (k, v)) is-data<k> compare<k>
-	current-least-key fold overlays, (cur, overlay) =>
-		cur min overlay[0].from
+	res mut = current-least-key
+	for overlay : overlays
+		res := res min overlay[0].from
+	res
 
 .took-key<k, v> record mut
 	rightmost-value v?
@@ -344,11 +346,9 @@ Returns the rightmost value associated with that key.
 	as end-node e
 		e
 
-filter<k, v> compact-sorted-dict<k, v>(a compact-sorted-dict<k, v>, f act bool(k, v)) is-data<k> compare<k>
-	# No need to re-sort
-	pairs = a.to-list filter pair =>
+for-loop<out, k, v> out[](a compact-sorted-dict<k, v>, f act out(k, v)) is-data<k> compare<k>
+	for pair : a to-list
 		f[pair.from, pair.to]
-	(pairs.to-array end-node),
 
 for-loop<k-out, v-out, k-in, v-in> compact-sorted-dict<k-out, v-out>(
 	a compact-sorted-dict<k-in, v-in>,
@@ -356,17 +356,15 @@ for-loop<k-out, v-out, k-in, v-in> compact-sorted-dict<k-out, v-out>(
 ) is-data<k-in> compare<k-in> is-data<k-out> compare<k-out>
 	a for-loop f to-compact-sorted-dict
 
+filter<k, v> compact-sorted-dict<k, v>(a compact-sorted-dict<k, v>, f act bool(k, v)) is-data<k> compare<k>
+	# No need to re-sort
+	pairs = a.to-list filter pair =>
+		f[pair.from, pair.to]
+	(pairs.to-array end-node),
+
 keys<k, v> k[](a compact-sorted-dict<k, v>) is-data<k> compare<k>
 	for k, _ : a
 		k
-
-for-loop<k, v> void(a compact-sorted-dict<k, v>, f act void(k, v)) is-data<k> compare<k>
-	() fold a, (_, k, v) =>
-		f[k, v]
-
-for-loop<out, k, v> out[](a compact-sorted-dict<k, v>, f act out(k, v)) is-data<k> compare<k>
-	for pair : a to-list
-		f[pair.from, pair.to]
 
 map-values<v-out, k, v-in> compact-sorted-dict<k, v-out>(
 	a compact-sorted-dict<k, v-in>,
@@ -456,10 +454,7 @@ test
 	i = h ~~ ((11, "11"), (25, "25"))
 	i verify "[5 -> 5, 10 -> 10b, 11 -> 11, 20 -> 20, 25 -> 25]"
 
-	h-folded = "" fold h, (cur, key, value) =>
-		pair = "{key} -> {value}"
-		cur.is-empty ? pair : "{cur}, {pair}"
-	h-folded is "5 -> 5, 10 -> 10b, 15 -> 15, 20 -> 20"
+	", " join (for key, value : h; "{key} -> {value}") is "5 -> 5, 10 -> 10b, 20 -> 20"
 
 	h-filtered = h filter (k, _) =>
 		k is-even

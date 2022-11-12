@@ -7,7 +7,7 @@ For JSON serialization, see the `crow/json` module.
 no-std
 import
 	./bits: &, |, <<, >>
-	./col/list: ==, fold, list, new, size, strip-left-while, subscript
+	./col/list: ==, for-loop, list, new, size, strip-left-while, subscript
 	./compare: <, <=
 	./number: ==, <=>, int64, max-int64, nat8, nat32, nat64, to-nat8, to-int64, to-nat32, to-nat64
 	./range: ..
@@ -55,8 +55,10 @@ to-8-bytes nat8[](a nat64)
 # This works for the result of either `to-bytes` or `to-8-bytes`.
 from-bytes nat64(a nat8[])
 	assert a.size <= 8
-	0 fold a, (cur, x) =>
-		cur << 8 | x.to-nat64
+	res mut = 0
+	for x : a
+		res := res << 8 | x.to-nat64
+	res
 test
 	n = 0x0123456789abcdef
 	bytes = n to-bytes

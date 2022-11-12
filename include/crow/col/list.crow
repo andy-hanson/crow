@@ -13,8 +13,8 @@ import
 	../tuple: a, b, new, pair
 	./array:
 		~, ~~, array, array-cast, array-equal, array-iter, as-array, begin-pointer, end-iter,
-		end-pointer, iter, find-and-get, fold, for-loop, index-of, is-empty, new, next, prev,
-		rtail, size, slice-left, slice-right, subscript, tail
+		end-pointer, iter, find-and-get, for-loop, index-of, is-empty, new, next, prev, rtail,
+		size, slice-left, slice-right, subscript, tail
 	./mut-array: begin-pointer, cast-immutable, end-pointer, mut-array, uninitialized-mut-array
 	./iter: new, rest, value, value-and-rest
 	./private/array-builder: ~=, array-builder, finish, new
@@ -844,19 +844,6 @@ rtail<a> a[](a a[])
 	if i ?= a.end-iter prev
 		i.rest slice-left
 
-fold<a, b> a(acc a, a b[], f act a(a, b))
-	acc fold-chunks a, (cur, chunk) =>
-		cur fold chunk, f
-
-fold<a, b> a(acc a, a b[], f act a(a, b, nat64))
-	start (a, nat64) = acc, 0
-	end = start fold-chunks a, (pair, chunk) =>
-		mid = pair.a fold chunk, (cur, x, i) =>
-			f[cur, x, pair.b + i]
-		mid, pair.b + chunk.size
-	assert end.b == a.size
-	end.a
-
 in<a> bool(value a, a a[]) equal<a>
 	a some x =>
 		x == value
@@ -900,10 +887,15 @@ drop-right-while<a> a[](a a[], f act bool(a))
 			a slice-left
 
 for-loop<a> void(a a[], f act void(a))
-	() fold a, (_, x) => f[x]
+	a each-chunk chunk =>
+		for x : chunk
+			f[x]
 
 for-loop<a> void(a a[], f act void(a, nat64))
-	() fold a, (_, x, i) => f[x, i]
+	i mut = 0
+	for x : a
+		f[x, i]
+		i := i + 1
 
 for-loop<out, in> out[](a in[], f act out(in))
 	a for-loop f to-list
@@ -913,50 +905,58 @@ for-loop<out, in> out[](a in[], f act out(in, nat64))
 
 for-loop<out, in> array out(a in[], f act out(in)) trusted
 	res mut-array out = a.size uninitialized-mut-array
-	end = res.begin-pointer fold a, (out, x) =>
-		*out := f[x]
-		out + 1
-	assert end == res.end-pointer
+	cur mut = res begin-pointer
+	for x : a
+		*cur := f[x]
+		cur := cur + 1
+	assert cur == res.end-pointer
 	res.cast-immutable
 
-for-loop<out, in> array out(a in[], f act out(in, nat64)) trusted
-	res mut-array out = a.size uninitialized-mut-array
-	end = res.begin-pointer fold a, (out, x, i) =>
-		*out := f[x, i]
-		out + 1
-	assert end == res.end-pointer
-	res.cast-immutable
+for-loop<out, in> array out(a in[], f act out(in, nat64))
+	i mut = 0
+	for x : a
+		out = f[x, i]
+		i := i + 1
+		out
 
 flatten<a> a[](a a[][])
-	() fold a, (acc, x) => acc ~~ x
+	res mut a[] = ()
+	for x : a
+		res := res ~~ x
+	res
 
 join<a> a[](joiner a[], parts a[][])
 	first mut = true
-	() fold parts, (acc, x) =>
+	res mut a[] = ()
+	for x : parts
 		if first
 			first := false
-			x
 		else
-			acc ~~ joiner ~~ x
+			res := res ~~ joiner
+		res := res ~~ x
+	res
 
-.fold-chunks<a, b> a(acc a, xs b[], f act a(a, array b))
+.each-chunk<a> void(xs a[], f act void(array a))
 	match xs.root node
 	as leaf l
-		f[acc, l]
+		f[l]
 	as branch b
-		mid = f[acc, b left] fold-chunks-l1 b.down, f
-		f[mid, b right]
+		f[b left]
+		b.down each-chunk-l1 f
+		f[b right]
 
-.fold-chunks-l1<a, b> a(acc a, xs l1 b, f act a(a, array b))
+.each-chunk-l1<a> void(xs l1 a, f act void(array a))
 	match xs node
 	as leaf l
-		acc fold l, f
+		l for-loop f
 	as branch b
-		acc fold b.left, f fold-chunks-l2 b.down, f fold b.right, f
+		b.left for-loop f
+		b.down each-chunk-l2 f
+		b.right for-loop f
 
-.fold-chunks-l2<a, b> a(acc a, xs l2 b, f act a(a, array b))
-	acc fold xs.nodes, (cur, nodes) =>
-		cur fold nodes, f
+.each-chunk-l2<a> void(xs l2 a, f act void(array a))
+	for nodes : xs.nodes
+		nodes for-loop f
 
 .find-and-get-chunk<out, in> out?(a in[], f act out?(array in))
 	match a.root node

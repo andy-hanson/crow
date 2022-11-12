@@ -2,7 +2,7 @@ no-std
 import
 	../bool: bool
 	../col/dict: get-or-add, to-dict
-	../col/list: fold, for-loop, size, to-list
+	../col/list: for-loop, size, to-list
 	../compare: comparison
 	../misc: void
 	../number: +
@@ -48,9 +48,10 @@ string-to-symbol symbol(a string) trusted
 
 .to-malloced-c-string c-string(a string) unsafe
 	res char8 mut* = a.char8s.size + 1 unmanaged-alloc-elements
-	end = res fold a.char8s, (cur, x) =>
+	cur mut = res
+	for x : a char8s
 		*cur := x
-		cur + 1
-	assert end == res + a.char8s.size
-	*end := "\0"
+		cur := cur + 1
+	assert cur == res + a.char8s.size
+	*cur := "\0"
 	res as-const

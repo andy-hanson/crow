@@ -6,8 +6,8 @@ import
 	../option: new, option
 	./list: list
 	./mut-list:
-		~=, ~~=, copy, fold, for-loop, is-empty, last, mut-list, new, pop, set-filter,
-		size, to-list, to-mut-list
+		~=, ~~=, copy, for-loop, is-empty, last, mut-list, new, pop, set-filter, size, to-list,
+		to-mut-list
 
 ###
 Mutable stack.
@@ -75,9 +75,6 @@ region iteration
 
 for-loop<a> void(a mut-stack a, f act void(a))
 	a.inner for-loop f
-
-fold<a, b> a(acc a, a mut-stack b, f act a(a, b))
-	acc fold a.inner, f
 
 ###
 Removes every element `x` where `!f[x]`.

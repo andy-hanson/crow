@@ -12,8 +12,8 @@ import
 	../tuple: from, new, pair, pair-equal, to
 	./array: array, size, subscript
 	./mut-list:
-		~=, ~~=, begin-pointer, clear, copy, fold, for-loop, is-empty, move-to-array, mut-list, new,
-		pop, reversed, size, subscript, temp-as-array, to-list, to-mut-list
+		~=, ~~=, begin-pointer, clear, copy, for-loop, is-empty, move-to-array, mut-list, new, pop,
+		reversed, size, subscript, temp-as-array, to-list, to-mut-list
 	./list: list, list-equal, new, reverse, to-list
 	./sort: set-sort-by, set-sort-by-reverse
 	./private/sort-utils: binary-search-insert-pointer
@@ -57,8 +57,10 @@ Number of pairs in the queue.
 This is O(n).
 ###
 size<k, v> nat64(a mut-priority-queue<k, v>) is-data<k> compare<k>
-	a.mins.size fold a.buckets, (acc, b) =>
-		acc + b.size
+	res mut = a.mins size
+	for b : a.buckets
+		res := res + b.size
+	res
 
 ###
 Adds a pair to the queue.

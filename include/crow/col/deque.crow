@@ -3,17 +3,15 @@ import
 	../bool: &&, ==, bool, true
 	../fun-util: subscript
 	../misc: void
-	../number: ==, <=>, +, is-even, nat64
+	../number: ==, +, nat64
 	../option: !, is-empty, new, option
-	../pointer: ==, +, -, set-deref
-	../range: ..
+	../pointer: ==, +, set-deref
 	../string: ==, ~~, join, literal, string, to-string
 	../test-util: is
-	./array: array, first, fold, for-loop, is-empty, last, rtail, size, tail
-	./mut-array: begin-pointer, cast-immutable, end-pointer, mut-array, subscript, uninitialized-mut-array
+	./array: array, first, for-loop, is-empty, last, rtail, size, tail
+	./mut-array: begin-pointer, cast-immutable, end-pointer, mut-array, uninitialized-mut-array
 	./list: ==, for-loop, list, new, to-array, to-list
-	./stack:
-		~, is-empty, fold, for-loop, new, pop, rest, reversed, size, stack, to-list, value
+	./stack: ~, is-empty, for-loop, new, pop, rest, reversed, size, stack, to-list, value
 
 # Immutable double-ended queue.
 deque<a> record
@@ -39,10 +37,11 @@ to-deque<a> deque a(a a[])
 # Copy elements to a list.
 to-list<a> a[](a deque a) trusted
 	res mut-array a = a.size uninitialized-mut-array
-	end = res.begin-pointer fold a, (out, x) =>
-		*out := x
-		out + 1
-	assert end == res.end-pointer
+	cur mut = res begin-pointer
+	for x : a
+		*cur := x
+		cur := cur + 1
+	assert cur == res.end-pointer
 	res.cast-immutable to-list
 
 ###
@@ -107,25 +106,13 @@ for-loop<a> void(a deque a, f act void(a))
 	a.mid for-loop f
 	a.right for-loop f
 
-fold<a, b> a(acc a, a deque b, f act a(a, b))
-	acc fold a.left.reversed, f fold a.mid, f fold a.right, f
-
-filter<a> deque a(a deque a, f act bool(a)) trusted
-	res mut-array a = a.size uninitialized-mut-array
-	end = res.begin-pointer fold a, (out, x) =>
-		if f[x]
-			*out := x
-			out + 1
-		else
-			out
-	res[0 .. end - res.begin-pointer].cast-immutable.to-list to-deque
-
 for-loop<out, in> out[](a deque in, f act out(in)) trusted
 	res mut-array out = a.size uninitialized-mut-array
-	end = res.begin-pointer fold a, (out, x) =>
-		*out := f[x]
-		out + 1
-	assert end == res.end-pointer
+	cur mut = res begin-pointer
+	for x : a
+		*cur := f[x]
+		cur := cur + 1
+	assert cur == res.end-pointer
 	res.cast-immutable to-list
 
 for-loop<out, in> deque out(a deque in, f act out(in))
@@ -193,7 +180,4 @@ test
 
 	six deque nat64 = 1 ~ (2 ~ (3, 4)) ~ 5 ~ 6
 	six.dbg is "1 2 [3 4] 5 6"
-	folded = 10 fold six, (x, y) => x + y
-	folded is 31
-	(six filter it => it is-even).to-list is (2, 4, 6)
 	(for x : six; x + 10)::nat64[] is (11, 12, 13, 14, 15, 16)

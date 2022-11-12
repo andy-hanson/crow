@@ -16,12 +16,12 @@ import
 	../tuple: from, new, pair, to
 	../private/bootstrap: todo
 	./array:
-		~, array, every, find-index, fold, for-loop, is-empty, new, remove-at, rtail, size,
-		subscript, tail, update-at
+		~, array, every, find-index, for-loop, is-empty, new, remove-at, rtail, size, subscript,
+		tail, update-at
 	./mut-array:
 		begin-pointer, cast-immutable, copy-from, end-pointer, fill-mut-array, mut-array, set-subscript, size,
 		subscript, uninitialized-mut-array
-	./list: every, flatten, first, fold, for-loop, list, new, size, tail, to-array, to-list
+	./list: every, flatten, first, for-loop, list, new, size, tail, to-array, to-list
 
 ###
 Immutable unordered dictionary type.
@@ -81,9 +81,10 @@ to-dict<k, v> v[k](a (k, v)[]) is-data<k> compare<k> hash-mix<k>
 	if a.size <= 4 && a.no-duplicate-keys
 		a.to-array.leaf-node,
 	else
-		# TODO: should be able to write this inline
-		empty node<k, v> = empty-leaf-node
-		(empty,) fold a, (cur, x) => cur ~ x
+		res mut v[k] = empty-leaf-node::node<k, v>,
+		for x : a
+			res := res ~ x
+		res
 
 # Returns all pairs in the dictionary.
 to-list<k, v> (k, v)[](a v[k]) is-data<k> compare<k> hash-mix<k>
@@ -109,13 +110,16 @@ is-empty<k, v> bool(a v[k]) is-data<k> compare<k> hash-mix<k>
 
 # Number of pairs.
 size<k, v> nat64(a v[k]) is-data<k> compare<k> hash-mix<k>
-	0 size-recur a.root
-.size-recur<k, v> nat64(acc nat64, a node<k, v>)
+	a.root size
+.size<k, v> nat64(a node<k, v>)
 	match a
 	as inner-node i
-		acc fold i, (cur, child) => cur size-recur child
+		acc mut = 0
+		for child : i
+			acc := acc + child.size
+		acc
 	as leaf-node l
-		acc + l.size
+		l size
 
 ###
 Gets the value associated with a key.
@@ -164,7 +168,10 @@ This may overwrite the key if it's already in `a`, or add a new entry.
 Adds/updates many entries to `a`.
 ###
 ~~ <k, v> v[k](a v[k], pairs array (k, v)) is-data<k> compare<k> hash-mix<k>
-	a fold pairs, (cur, pair) => cur ~ pair
+	res mut = a
+	for pair : pairs
+		res := res ~ pair
+	res
 
 got-or-added<k, v> union
 	got v
@@ -305,32 +312,26 @@ If `index > a.size`, entries between the and of `a` and the new entries will be 
 
 # Returns 'some' if we should change this to a leaf.
 .inner-node-to-leaf<k, v> node<k, v>?(a array node<k, v>, which nat64, new-child node<k, v>) trusted
-	total-size = 0 fold a, (cur, child, child-index) =>
-		new-child-here = if child-index == which
-			new-child
-		else
-			child
-		match new-child-here
+	total-size mut = 0
+	for child, child-index : a
+		total-size := match child-index == which ? new-child : child
 		as inner-node _
-			99
+			leaf-max-size + 1
 		as leaf-node l
-			cur + l.size
+			total-size + l.size
 	if total-size <= leaf-max-size
 		# TODO: if only one non-empty leaf, don't copy..
 		out mut-array (k, v) = total-size uninitialized-mut-array
-		end = 0 fold a, (out-index, child, child-index) =>
-			new-child-here = if child-index == which
-				new-child
-			else
-				child
-			match new-child-here
+		out-index mut = 0
+		for child, child-index : a
+			match child-index == which ? new-child : child
 			as inner-node _
 				unreachable
 			as leaf-node l
 				new-out-index = out-index + l.size
 				out[out-index .. new-out-index] copy-from l
-				new-out-index
-		assert end == out.size
+				out-index := new-out-index
+		assert out-index == out.size
 		out.cast-immutable.leaf-node,
 
 .find-only-non-empty-child<k, v> node<k, v>?(children array node<k, v>)
@@ -383,8 +384,9 @@ If `index > a.size`, entries between the and of `a` and the new entries will be 
 	hash-shift nat64,
 ) trusted hash-mix<k>
 	key-hash = hash low-bits
-	max-hash = key-hash fold a, (cur, pair) =>
-		cur max (pair.from.hash unsafe-bit-shift-right hash-shift low-bits)
+	max-hash mut = key-hash
+	for pair : a
+		max-hash := max-hash max (pair.from.hash unsafe-bit-shift-right hash-shift low-bits)
 	res mut-array node<k, v> = max-hash + 1 fill-mut-array empty-leaf-node
 	# TODO: avoid allocating the same leaf twice...
 	res[key-hash] := ((key, value),) leaf-node
@@ -398,15 +400,6 @@ If `index > a.size`, entries between the and of `a` and the new entries will be 
 	res.cast-immutable inner-node
 
 region iteration
-
-fold<a, k, v> a(acc a, a v[k], f act a(a, k, v)) is-data<k> compare<k> hash-mix<k>
-	acc fold-recur a.root, f
-.fold-recur<a, k, v> a(acc a, a node<k, v>, f act a(a, k, v))
-	match a
-	as inner-node i
-		acc fold i, (cur, child) => cur fold-recur child, f
-	as leaf-node l
-		acc fold l, (cur, pair) => f[cur, pair.from, pair.to]
 
 # TODO: map
 # TODO: map-values
@@ -422,15 +415,24 @@ values<k, v> v[](a v[k]) is-data<k> compare<k> hash-mix<k>
 		v
 
 for-loop<k, v> void(a v[k], f act void(k, v)) is-data<k> compare<k> hash-mix<k>
-	() fold a, (_, key, value) => f[key, value]
+	a.root for-loop f
+.for-loop<k, v> void(a node<k, v>, f act void(k, v)) is-data<k> compare<k> hash-mix<k>
+	match a
+	as inner-node i
+		for child : i
+			child for-loop f
+	as leaf-node l
+		for pair : l
+			f[pair.from, pair.to]
 
 # Calls `f` on every pair in the dictionary and returns an array of the results.
 for-loop<out, k, v> out[](a v[k], f act out(k, v)) trusted is-data<k> compare<k> hash-mix<k>
 	res mut-array out = a.size uninitialized-mut-array
-	end = res.begin-pointer fold a, (cur, k, v) =>
+	cur mut = res begin-pointer
+	for k, v : a
 		*cur := f[k, v]
-		cur + 1
-	assert end == res.end-pointer
+		cur := cur + 1
+	assert cur == res.end-pointer
 	res.cast-immutable to-list
 
 .dbg<k, v> string(a v[k]) to-string<k> to-string<v>

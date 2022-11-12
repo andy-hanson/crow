@@ -2,7 +2,6 @@ no-std
 import
 	../../bool: &&, ==, bool, false, true
 	../../compare: <=, compare
-	../../fun-util: subscript
 	../../hash: hash, hash-mix
 	../../misc: is-data, new, void
 	../../number: ==, <=>, +, -, /, %, nat64
@@ -11,7 +10,7 @@ import
 	../../range: ..
 	../../test-util: is
 	../array:
-		array, array-cast, as-array, begin-pointer, end-pointer, fold, in, index-of, is-empty, new,
+		array, array-cast, as-array, begin-pointer, end-pointer, for-loop, in, index-of, is-empty, new,
 		pointer-of, size, subscript
 	../mut-array:
 		begin-pointer, cast-immutable, end-pointer, fill, fill-mut-array, mut-array, for-loop,
@@ -137,23 +136,11 @@ unsafe-frozen-set-from-mut-array-cast-immutable<a> frozen-set a(
 region iteration
 
 for-loop<a> void(a frozen-set a, f act void(a))
-	() fold a, (_, x) =>
-		f[x]
-
+	a.values for-loop f
+for-loop<a> void(a frozen-set a, f act void(a, nat64))
+	a.values for-loop f
 for-loop<out, in> out[](a frozen-set in, f act out(in)) trusted
-	res mut-array out = a.size uninitialized-mut-array
-	out mut out mut* = res begin-pointer
-	for x : a
-		*out := f[x]
-		out := out + 1
-	assert out == res.end-pointer
-	res.cast-immutable to-list
-
-fold<a, b> a(acc a, a frozen-set b, f act a(a, b))
-	acc fold a.values, f
-
-fold<a, b> a(acc a, a frozen-set b, f act a(a, b, nat64))
-	acc fold a.values, f
+	a.values for-loop f to-list
 
 .verify void(a frozen-set nat64, values nat64[], bucket-starts nat64[]) unsafe
 	a.values.to-list is values

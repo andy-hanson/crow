@@ -361,46 +361,6 @@ filter<a> array a(a array a, f act bool(a, nat64)) trusted
 			index := index + 1
 			continue
 
-# TODO:KILL (just use 'for' loop)
-fold<a, b> a(init a, a array b, f act a(a, b)) no-doc trusted
-	if size-of@<a> == 0
-		init fold a, (cur, x, _) =>
-			f[cur, x]
-	else
-		acc mut = init
-		cur mut = a begin-pointer
-		end = a end-pointer
-		loop
-			if cur == end
-				break acc
-			else
-				acc := f[acc, *cur]
-				cur := cur + 1
-				continue
-
-# TODO:KILL (just use 'for' loop)
-fold<a, b> a(init a, a array b, f act a(a, b, nat64)) no-doc trusted
-	if size-of@<a> == 0
-		acc mut = init
-		i mut = 0
-		until i == a.size
-			acc := f[acc, a[i], i]
-			i := i + 1
-		acc
-	else
-		acc mut = init
-		cur mut = a begin-pointer
-		index mut = 0
-		end = a end-pointer
-		loop
-			if cur == end
-				break acc
-			else
-				acc := f[acc, *cur, index]
-				cur := cur + 1
-				index := index + 1
-				continue
-
 region iter
 
 array-iter<a> record by-val
