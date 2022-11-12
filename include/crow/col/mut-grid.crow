@@ -9,10 +9,9 @@ import
 	../string: ==, ~~, join, literal, string, to-string
 	../test-util: is
 	./mut-array:
-		copy, exists, for-loop, mut-array, new, set-map, set-subscript, size, subscript, to-array,
-		uninitialized-mut-array
-	./mut-list: ~=, move-to-list, mut-list, new
-	./list: for-loop, list, to-list
+		~=, build-mut-array, copy, exists, for-loop, mut-array, new, set-map, set-subscript, size,
+		subscript, to-array, with-block
+	./list: ~=, build-list, for-loop, list, to-list, with-block
 
 ###
 Mutable grid (matrix) type.
@@ -77,10 +76,12 @@ fill-mut-grid<a> mut-grid a(width nat64, height nat64, value a)
 	width make-mut-grid height, (_, _) => value
 
 # Creates a new grid with the given width and height, setting every element to `f[x, y]`.
-make-mut-grid<a> mut-grid a(width nat64, height nat64, f act a(nat64, nat64)) trusted
-	res mut-grid a = (width * height).uninitialized-mut-array, width, height
-	res set-map (_, coord) => f[coord.x, coord.y]
-	res
+make-mut-grid<a> mut-grid a(width nat64, height nat64, f act a(nat64, nat64))
+	elements mut-array a = with out : width * height build-mut-array
+		for y : 0 .. height
+			for x : 0 .. width
+				out ~= f[x, y]
+	elements, width, height
 
 # Copy elements to a new grid.
 copy<a> mut-grid a(a mut-grid a)
@@ -149,10 +150,9 @@ for-loop<out, in> out[](a mut-grid-rows in, f act out(mut-array in))
 for-loop<a> void(a mut-grid a, f act void(a))
 	a.elements for-loop f
 for-loop<out, in> out[](a mut-grid in, f act out(in))
-	res out mut[] = ()
-	for x : a
-		res ~= f[x]
-	res move-to-list
+	with out : a.size build-list
+		for x : a
+			out ~= f[x]
 
 for-loop<a> void(a mut-grid a, f act void(a, coord))
 	coord mut coord = ()
@@ -160,12 +160,11 @@ for-loop<a> void(a mut-grid a, f act void(a, coord))
 		f[x, coord]
 		coord := coord next-coord a.width
 for-loop<out, in> out[](a mut-grid in, f act out(in, coord))
-	coord mut coord = ()
-	res out mut[] = ()
-	for x : a
-		res ~= f[x, coord]
-		coord := coord next-coord a.width
-	res move-to-list
+	with out : a.size build-list
+		coord mut coord = ()
+		for x : a
+			out ~= f[x, coord]
+			coord := coord next-coord a.width
 
 exists<a> bool(a mut-grid a, f act bool(a))
 	a.elements exists f

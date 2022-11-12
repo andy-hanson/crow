@@ -4,14 +4,11 @@ import
 	../compare: !=
 	../fun-util: subscript
 	../misc: new, void
-	../number: ==, <=>, +, nat64
+	../number: ==, +, nat64
 	../option: !, is-empty, new, option
-	../pointer: ==, +, -, set-deref
 	../test-util: is
-	../range: ..
 	./array: array, first, for-loop, is-empty, new, size, tail
-	./mut-array: begin-pointer, cast-immutable, end-pointer, mut-array, subscript, uninitialized-mut-array
-	./list: ==, list, new, to-array, to-list
+	./list: ==, ~=, build-list, list, new, to-array, with-block
 	./stack: ~, for-loop, is-empty, new, size, stack, to-list
 
 ###
@@ -35,14 +32,9 @@ Copies queue elements to an array.
 
 This is O(n).
 ###
-to-list<a> a[](a queue a) trusted
-	res mut-array a = a.size uninitialized-mut-array
-	cur mut = res begin-pointer
+to-list<a> a[](a queue a)
 	for x : a
-		*cur := x
-		cur := cur + 1
-	assert cur == res.end-pointer
-	res.cast-immutable to-list
+		x
 
 # `true` iff `a.size == 0`.
 is-empty<a> bool(a queue a)
@@ -78,23 +70,20 @@ for-loop<a> void(a queue a, f act void(a))
 	a.left for-loop f
 	a.right for-loop f
 
-for-loop<out, in> queue out(a queue in, f act out(in)) trusted
-	res mut-array out = a.size uninitialized-mut-array
-	cur mut = res begin-pointer
-	for x : a
-		*cur := f[x]
-		cur := cur + 1
-	assert cur == res.end-pointer
-	res.cast-immutable.to-list to-queue
+for-loop<out, in> out[](a queue in, f act out(in))
+	with out : a.size build-list
+		for x : a
+			out ~= f[x]
 
-filter<a> queue a(a queue a, f act bool(a)) trusted
-	res mut-array a = a.size uninitialized-mut-array
-	cur mut = res begin-pointer
-	for x : a
-		if f[x]
-			*cur := x
-			cur := cur + 1
-	res[0 .. cur - res.begin-pointer].cast-immutable.to-list to-queue
+for-loop<out, in> queue out(a queue in, f act out(in))
+	a for-loop f to-queue
+
+filter<a> queue a(a queue a, f act bool(a))
+	list a[] = with out : build-list
+		for x : a
+			if f[x]
+				out ~= x
+	list to-queue
 
 test
 	a queue nat64 = ()

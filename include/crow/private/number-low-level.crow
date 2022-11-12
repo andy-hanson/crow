@@ -198,7 +198,6 @@ max-nat32 nat32() noctx
 max-nat64 nat64() noctx
 	0xffffffffffffffff
 
-
 round-up-to-power-of-two nat64(n nat64) noctx
 	1 round-up-to-power-of-two-recur n
 .round-up-to-power-of-two-recur nat64(acc nat64, n nat64) noctx

@@ -9,15 +9,13 @@ import
 	../pointer: const-pointer, mut-pointer
 	../private/exception-low-level: unreachable
 	../private/range-low-level: .., range
-	../pointer: ==, +, *, set-deref, size-of
+	../pointer: ==, +, *, size-of
 	../tuple: a, b, new, pair
 	./array:
-		~, ~~, array, array-cast, array-equal, array-iter, as-array, begin-pointer, end-iter,
-		end-pointer, iter, find-and-get, for-loop, index-of, is-empty, new, next, prev, rtail,
-		size, slice-left, slice-right, subscript, tail
-	./mut-array: begin-pointer, cast-immutable, end-pointer, mut-array, uninitialized-mut-array
+		~, ~~, ~=, ~~=, array, array-builder, array-cast, array-equal, array-iter, as-array,
+		begin-pointer, build-array, end-iter, end-pointer, iter, find-and-get, for-loop, index-of,
+		is-empty, new, next, prev, rtail, size, slice-left, slice-right, subscript, tail, with-block
 	./iter: new, rest, value, value-and-rest
-	./private/array-builder: ~=, array-builder, finish, new
 
 ###
 Immutable list type.
@@ -862,11 +860,11 @@ find-and-get<out, in> out?(a in[], f act out?(in))
 		chunk find-and-get f
 
 filter<a> a[](a a[], f act bool(a))
-	out array-builder a = ()
-	for x : a
-		if f[x]
-			out ~= x
-	out.finish to-list
+	res array a = with out : build-array
+		for x : a
+			if f[x]
+				out ~= x
+	res to-list
 
 drop-while<a> a[](a a[], f act bool(a))
 	a.iter drop-while-recur f
@@ -904,20 +902,14 @@ for-loop<out, in> out[](a in[], f act out(in, nat64))
 	a for-loop f to-list
 
 for-loop<out, in> array out(a in[], f act out(in)) trusted
-	res mut-array out = a.size uninitialized-mut-array
-	cur mut = res begin-pointer
-	for x : a
-		*cur := f[x]
-		cur := cur + 1
-	assert cur == res.end-pointer
-	res.cast-immutable
+	with out : a.size build-array
+		for x : a
+			out ~= f[x]
 
 for-loop<out, in> array out(a in[], f act out(in, nat64))
-	i mut = 0
-	for x : a
-		out = f[x, i]
-		i := i + 1
-		out
+	with out : a.size build-array
+		for x, i : a
+			out ~= f[x, i]
 
 flatten<a> a[](a a[][])
 	res mut a[] = ()
@@ -1113,3 +1105,23 @@ reverse<a> a[](a a[])
 
 .for-loop<out> out[](a range nat64, f act out(nat64))
 	a for-loop f to-list
+
+region builder
+
+build-list record
+	.size-hint nat64
+build-list build-list()
+	0,
+build-list build-list(size-hint nat64)
+	size-hint,
+
+list-builder<a> record mut
+	.inner array-builder a
+
+with-block<a> a[](_ build-list, f act void(list-builder a))
+	(with out : build-array; f[(out,)]) to-list
+
+~= <a> void(a list-builder a, value a)
+	a.inner ~= value
+~~= <a> void(a list-builder a, values a[])
+	a.inner ~~= values.to-array

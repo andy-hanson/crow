@@ -14,9 +14,9 @@ import
 	./array: array
 	./dict: dict, to-dict
 	./mut-array:
-		begin-pointer, cast-immutable, end-pointer, fill, fill-mut-array, mut-array, for-loop, is-empty,
-		new, set-subscript, size, subscript, to-array, uninitialized-mut-array
-	./list: ==, for-loop, list, list-equal, new, size, to-list
+		begin-pointer, end-pointer, fill, fill-mut-array, mut-array, for-loop, is-empty, new,
+		set-subscript, size, subscript, to-array
+	./list: ==, ~=, build-list, for-loop, list, list-equal, new, size, to-list, with-block
 	./mut-list:
 		~=, copy, find-index, for-loop, is-at-capacity, is-empty, mut-list, new,
 		remove-unordered-at, set-filter, set-map, set-subscript, size, subscript
@@ -256,13 +256,9 @@ for-loop<k, v> void(a v mut[k], f act void(k, v)) is-data<k> compare<k> hash-mix
 Calls `f` on every key and value and returns a list of the results.
 ###
 for-loop<out, k, v> out[](a v mut[k], f act out(k, v)) trusted is-data<k> compare<k> hash-mix<k>
-	out mut-array out = a.size uninitialized-mut-array
-	cur mut = out begin-pointer
-	for key, value : a
-		*cur := f[key, value]
-		cur := cur + 1
-	assert cur == out.end-pointer
-	out.cast-immutable to-list
+	with out : a.size build-list
+		for key, value : a
+			out ~= f[key, value]
 
 ###
 Filters the dictionary in place.

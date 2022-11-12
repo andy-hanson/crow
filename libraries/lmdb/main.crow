@@ -292,14 +292,10 @@ for-loop<k, v> void(a each<k, v>, f act void(k, v)) trusted summon lmdb-key<k> s
 		cursor for-loop-recur f
 
 # Calls `f` for each key-value pair in `db` and returns an array of the results.
-for-loop<out, k, v> out[](a each<k, v>, f act out(k, v)) trusted summon lmdb-key<k> serialize<v>
-	out mut-array out = a.txn count a.db uninitialized-mut-array
-	cur mut = out begin-pointer
-	for key, value : a.txn each a.db
-		*cur := f[key, value]
-		cur := cur + 1
-	assert cur == out.end-pointer
-	out.cast-immutable to-list
+for-loop<out, k, v> out[](a each<k, v>, f act out(k, v)) summon lmdb-key<k> serialize<v>
+	with out : a.txn count a.db build-list
+		for key, value : a.txn each a.db
+			out ~= f[key, value]
 
 ###
 `db0` and `db1` shuld have exactly the same keys.
@@ -311,18 +307,14 @@ zip<out, k, v0, v1> out[](
 	db0 lmdb-db<k, v0>,
 	db1 lmdb-db<k, v1>,
 	f act out(k, v0, v1),
-) trusted summon is-data<k> lmdb-key<k> serialize<v0> serialize<v1>
+) summon is-data<k> lmdb-key<k> serialize<v0> serialize<v1>
 	db0-count = txn count db0
 	db1-count = txn count db1
 	assert db0-count == db1-count
 	unless db0-count == 0
-		res mut-array out = db0-count uninitialized-mut-array
-		cur mut = res begin-pointer
-		txn zip-non-empty db0, db1, (key, value0, value1) =>
-			*cur := f[key, value0, value1]
-			cur := cur + 1
-		assert cur == res.end-pointer
-		res.cast-immutable to-list
+		with out : db0-count build-list
+			txn zip-non-empty db0, db1, (key, value0, value1) =>
+				out ~= f[key, value0, value1]
 
 .zip-non-empty<k, v0, v1> void(
 	txn lmdb-txn,

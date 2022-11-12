@@ -5,12 +5,10 @@ import
 	../misc: void
 	../number: ==, +, nat64
 	../option: !, is-empty, new, option
-	../pointer: ==, +, set-deref
 	../string: ==, ~~, join, literal, string, to-string
 	../test-util: is
 	./array: array, first, for-loop, is-empty, last, rtail, size, tail
-	./mut-array: begin-pointer, cast-immutable, end-pointer, mut-array, uninitialized-mut-array
-	./list: ==, for-loop, list, new, to-array, to-list
+	./list: ==, ~=, build-list, for-loop, list, new, to-array, to-list, with-block
 	./stack: ~, is-empty, for-loop, new, pop, rest, reversed, size, stack, to-list, value
 
 # Immutable double-ended queue.
@@ -36,13 +34,8 @@ to-deque<a> deque a(a a[])
 
 # Copy elements to a list.
 to-list<a> a[](a deque a) trusted
-	res mut-array a = a.size uninitialized-mut-array
-	cur mut = res begin-pointer
 	for x : a
-		*cur := x
-		cur := cur + 1
-	assert cur == res.end-pointer
-	res.cast-immutable to-list
+		x
 
 ###
 `true` iff `a.size == 0`.
@@ -107,13 +100,9 @@ for-loop<a> void(a deque a, f act void(a))
 	a.right for-loop f
 
 for-loop<out, in> out[](a deque in, f act out(in)) trusted
-	res mut-array out = a.size uninitialized-mut-array
-	cur mut = res begin-pointer
-	for x : a
-		*cur := f[x]
-		cur := cur + 1
-	assert cur == res.end-pointer
-	res.cast-immutable to-list
+	with out : a.size build-list
+		for x : a
+			out ~= f[x]
 
 for-loop<out, in> deque out(a deque in, f act out(in))
 	a for-loop f to-deque

@@ -7,17 +7,15 @@ import
 	../../misc: is-data, new, void
 	../../number: ==, <=>, +, -, /, nat64, new
 	../../option: !, new, option
-	../../pointer: ==, <=>, +, -, *, const-pointer, mut-pointer, set-deref
+	../../pointer: ==, <=>, +, -, *, const-pointer
 	../../range: ..
 	../../string: ==, <=>, ~~, iter, join, literal, next, slice-left, starts-with, string, to-string
 	../../test-util: is
 	../array:
-		array, begin-pointer, end-pointer, for-loop, insert-at, is-empty, last, remove-at, rtail,
-		size, subscript, tail
-	../mut-array: begin-pointer, cast-immutable, end-pointer, mut-array, subscript, uninitialized-mut-array
+		~=, ~~=, array, array-builder, begin-pointer, build-array, end-pointer, for-loop, insert-at,
+		is-empty, last, remove-at, rtail, size, subscript, tail, with-block
 	../iter: rest
-	../list: for-loop, list, size, to-array, to-list
-	../mut-list: ~=, move-to-list, mut-list, new
+	../list: ~=, build-list, for-loop, list, list-builder, size, to-array, to-list, with-block
 	../mut-stack: ~=, mut-stack, new, peek, pop
 	../sort: sort-unique
 	../private/sort-utils: binary-search-has, binary-search-insert-pointer
@@ -103,34 +101,28 @@ Union of two sets.
 This is O(n).
 ###
 ~~ <a> tree-set a(a tree-set a, b tree-set a) trusted is-data<a> compare<a>
-	out mut-array a = a.size + b.size uninitialized-mut-array
-	b-iter = b iter
-	cur mut = out begin-pointer
-	for x : a
-		cur := cur walk-iter-union x, b-iter
-	b-iter consume-rest x =>
-		*cur := x
-		cur := cur + 1
-	assert cur <= out.end-pointer
-	out[0 .. cur - out.begin-pointer].cast-immutable.to-list to-tree-set
+	list a[] = with out : a.size + b.size build-list
+		b-iter = b iter
+		for x : a
+			out walk-iter-union x, b-iter
+		b-iter consume-rest out
+	list to-tree-set
 
-.walk-iter-union<a> a mut*(out a mut*, value a, a iter a) unsafe is-data<a> compare<a>
+.walk-iter-union<a> void(out list-builder a, value a, a iter a) unsafe is-data<a> compare<a>
 	if peek ?= a peek
 		match value <=> peek
 		as less
-			*out := value
-			out + 1
+			out ~= value
 		as equal
-			*out := value
+			out ~= value
 			_ = a next
-			out + 1
+			()
 		as greater
-			*out := peek
+			out ~= peek
 			_ = a next
-			out + 1 walk-iter-union value, a
+			out walk-iter-union value, a
 	else
-		*out := value
-		out + 1
+		out ~= value
 
 intersect<a> tree-set a(a tree-set a, b tree-set a) trusted is-data<a> compare<a>
 	b-iter = b iter
@@ -370,52 +362,40 @@ try-remove<a> tree-set<a>?(a tree-set a, b a) is-data<a> compare<a>
 		l size
 
 .tree-to-array<a> array a(a inner-node a, value a, size nat64) trusted compare<a>
-	out mut-array a = size uninitialized-mut-array
-	end = out.begin-pointer tree-to-array-recur a.inner, value
-	assert end == out.end-pointer
-	out cast-immutable
+	with out : size build-array
+		out tree-to-array-recur a.inner, value
 .tree-to-array<a> array a(a inner-node a, size nat64) trusted compare<a>
-	out mut-array a = size uninitialized-mut-array
-	end = out.begin-pointer tree-to-array-recur a.inner
-	assert end == out.end-pointer
-	out cast-immutable
-.tree-to-array-recur<a> a mut*(out a mut*, a node a, value a) compare<a> unsafe
+	with out : size build-array
+		out tree-to-array-recur a.inner
+.tree-to-array-recur<a> void(out array-builder a, a node a, value a) compare<a> unsafe
 	match a
 	as inner i
 		match value <=> i.value
 		as less
-			mid = out tree-to-array-recur i.left, value
-			*mid := i.value
-			mid + 1 tree-to-array-recur i.right
+			out tree-to-array-recur i.left, value
+			out ~= i.value
+			out tree-to-array-recur i.right
 		as equal
 			unreachable
 		as greater
-			mid = out tree-to-array-recur i.left
-			*mid := i.value
-			mid + 1 tree-to-array-recur i.right, value
+			out tree-to-array-recur i.left
+			out ~= i.value
+			out tree-to-array-recur i.right, value
 	as leaf l
 		# Find first x > value, insert it before there
 		index = (l binary-search-insert-pointer value) - l.begin-pointer
-		mid = out copy-out l[0 .. index]
-		*mid := value
-		mid + 1 copy-out l[index .. l.size]
+		out ~~= l[0 .. index]
+		out ~= value
+		out ~~= l[index .. l.size]
 # Version where we know we don't have to insert value
-.tree-to-array-recur<a> a mut*(out a mut*, a node a) unsafe
+.tree-to-array-recur<a> void(out array-builder a, a node a) unsafe
 	match a
 	as inner i
-		mid = out tree-to-array-recur i.left
-		*mid := i.value
-		mid + 1 tree-to-array-recur i.right
+		out tree-to-array-recur i.left
+		out ~= i.value
+		out tree-to-array-recur i.right
 	as leaf l
-		out copy-out l
-
-# TODO:PERF (use memcpy)
-.copy-out<a> a mut*(out a mut*, a array a) unsafe
-	cur mut = out
-	for x : a
-		*cur := x
-		cur := cur + 1
-	cur
+		out ~~= l
 
 # TODO:PERF
 .get-max-height nat64(size nat64) trusted
@@ -437,32 +417,30 @@ for-loop<a> void(a tree-set a, f act void(a)) is-data<a> compare<a>
 	f[i.value]
 	i.right for-loop-recur f
 
-.consume-rest<a> void(a iter a, f act void(a))
-	a.cur for-loop f
-	a.stack consume-rest-recur f
-.consume-rest-recur<a> void(stack mut-stack inner-node a, f act void(a))
+.consume-rest<a> void(a iter a, out list-builder a)
+	for x : a cur
+		out ~= x
+	a.stack consume-rest-recur out
+.consume-rest-recur<a> void(stack mut-stack inner-node a, out list-builder a)
 	if popped ?= stack pop
-		popped each-inner f
-		stack consume-rest-recur f
+		popped each-inner x =>
+			out ~= x
+		stack consume-rest-recur out
 
 for-loop<out, in> out[](a tree-set in, f act out(in)) trusted is-data<in> compare<in>
-	out mut-array out = a.size uninitialized-mut-array
-	cur mut = out begin-pointer
-	for value : a
-		*cur := f[value]
-		cur := cur + 1
-	assert cur == out.end-pointer
-	out.cast-immutable to-list
+	with out : a.size build-list
+		for value : a
+			out ~= f[value]
 
 for-loop<out, in> tree-set out(a tree-set in, f act out(in)) is-data<in> compare<in> is-data<out> compare<out>
 	a for-loop f to-tree-set
 
 filter<a> tree-set a(a tree-set a, f act bool(a)) is-data<a> compare<a>
-	res a mut[] = ()
-	for value : a
-		if f[value]
-			res ~= value
-	res.move-to-list to-tree-set
+	list a[] = with out : build-list
+		for value : a
+			if f[value]
+				out ~= value
+	list to-tree-set
 
 # TODO: find-and-get
 

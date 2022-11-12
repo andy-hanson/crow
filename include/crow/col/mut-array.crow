@@ -14,7 +14,8 @@ import
 		alloc-uninitialized, set-zero-range, unmanaged-alloc-elements, unmanaged-free-elements
 	../private/range-low-level: .., high, low, range
 	./array:
-		array, as-array, begin-pointer, exists, find-index, for-loop, index-of, new, size, subscript
+		~=, array, array-builder, as-array, begin-pointer, build-array, exists, find-index,
+		for-loop, index-of, new, size, subscript, with-block
 
 ###
 `mut-array` is a low-level type mostly useful for implementing other collections.
@@ -330,3 +331,23 @@ cast-mut-array<out, in> mut-array out(a mut-array in) noctx unsafe
 
 for-loop<out, in> array out(a mut-array in, f act out(in)) trusted
 	a for-loop f cast-immutable
+
+region builder
+
+build-mut-array record
+	.size-hint nat64
+build-mut-array build-mut-array()
+	0,
+build-mut-array build-mut-array(size-hint nat64)
+	size-hint,
+
+mut-array-builder<a> record mut
+	.inner array-builder a
+
+with-block<a> mut-array a(a build-mut-array, f act void(mut-array-builder a))
+	array array a = with out : a.size-hint build-array
+		f[(out,)]
+	array,
+
+~= <a> void(a mut-array-builder a, value a)
+	a.inner ~= value

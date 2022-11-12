@@ -18,8 +18,8 @@ import
 	./experimental/frozen-set:
 		begin-pointer, end-pointer, for-loop, frozen-set, is-empty, new, size, to-frozen-set,
 		to-list, try-get-unordered-index, unsafe-frozen-set-from-mut-array-cast-immutable
-	./mut-array: as-mut-array, begin-pointer, cast-immutable, end-pointer, mut-array, uninitialized-mut-array
-	./list: ==, for-loop, list, new, to-list
+	./mut-array: as-mut-array, begin-pointer, end-pointer, mut-array, uninitialized-mut-array
+	./list: ==, ~=, build-list, for-loop, list, new, to-list, with-block
 	./mut-list: ~=, move-to-list, mut-list, new
 
 ###
@@ -242,13 +242,9 @@ filter<a> set a(a set a, f act bool(a)) is-data<a> compare<a> hash-mix<a>
 	res.move-to-list to-set
 
 for-loop<out, in> out[](a set in, f act out(in)) trusted is-data<in> compare<in> hash-mix<in>
-	out mut-array out = a.size uninitialized-mut-array
-	cur mut = out begin-pointer
-	for x : a
-		*cur := f[x]
-		cur := cur + 1
-	assert cur == out.end-pointer
-	out.cast-immutable to-list
+	with out : a.size build-list
+		for x : a
+			out ~= f[x]
 
 .dbg<a> string(a set a) to-string<a>
 	add = a.add dbg
@@ -258,8 +254,8 @@ for-loop<out, in> out[](a set in, f act out(in)) trusted is-data<in> compare<in>
 		parts = " " join for i : a remove; "{i}"
 		"{add} - [{parts}]"
 .dbg<a> string(a add-node a) to-string<a>
-	left = if left ?= a left
-		"{left.dbg}, "
+	left = if l ?= a left
+		"{l dbg}, "
 	here = " " join for x : a.here to-list; "{x}"
 	"{left}[{here}]"
 

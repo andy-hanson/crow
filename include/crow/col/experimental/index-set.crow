@@ -11,14 +11,13 @@ import
 	../../misc: new, void
 	../../number: ==, <=>, +, -, *, /, %, max-nat64, nat64, new
 	../../option: ??, is-empty, new, option
-	../../pointer: ==, +, *, const-pointer, set-deref
+	../../pointer: ==, +, *, const-pointer
 	../../private/number-low-level: wrap-sub
 	../../range: .., for-loop
 	../../string: ==, ~~, join, literal, string, to-hex, to-string
 	../../test-util: is
 	../array: array, begin-pointer, end-pointer, for-loop, new, subscript
-	../mut-array: begin-pointer, cast-immutable, end-pointer, mut-array, uninitialized-mut-array
-	../list: ==, for-loop, list, new, size, to-list
+	../list: ==, ~=, build-list, for-loop, list, new, size, to-list, with-block
 
 index-set record by-ref
 	# This is one more than the highest number that would currently fit in the tree.
@@ -430,13 +429,9 @@ for-loop index-set(a index-set, f act nat64(nat64))
 	a for-loop f to-index-set
 
 for-loop<a> a[](a index-set, f act a(nat64)) trusted
-	res mut-array a = a.size uninitialized-mut-array
-	cur mut = res begin-pointer
-	for x : a
-		*cur := f[x]
-		cur := cur + 1
-	assert cur == res.end-pointer
-	res.cast-immutable to-list
+	with out : a.size build-list
+		for x : a
+			out ~= f[x]
 
 .dbg string(a index-set)
 	a.root dbg

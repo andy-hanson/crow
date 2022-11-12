@@ -13,9 +13,9 @@ import
 	../../test-util: is
 	../array: array, as-array, begin-pointer, end-pointer, is-empty, new, size, subscript, tail
 	../mut-array:
-		begin-pointer, cast-immutable, end-pointer, is-empty, mut-array, set-subscript, size, subscript,
+		begin-pointer, end-pointer, is-empty, mut-array, set-subscript, size, subscript,
 		uninitialized-mut-array
-	../list: for-loop, list, to-array, to-list
+	../list: ~=, build-list, for-loop, list, to-array, to-list, with-block
 	../sort: sort
 	../private/sort-utils: binary-search-exact-index
 	./index-set:
@@ -375,13 +375,9 @@ for-loop<out, in> sorted-set out(a sorted-set in, f act out(in)) is-data<out> co
 	a for-loop f to-sorted-set
 
 for-loop<out, in> out[](a sorted-set in, f act out(in)) trusted is-data<in> compare<in>
-	out mut-array out = a.size uninitialized-mut-array
-	cur mut = out begin-pointer
-	for x : a
-		*cur := f[x]
-		cur := cur + 1
-	assert cur == out.end-pointer
-	out.cast-immutable to-list
+	with out : a.size build-list
+		for x : a
+			out ~= f[x]
 
 # TODO: filter
 
@@ -394,8 +390,8 @@ for-loop<out, in> out[](a sorted-set in, f act out(in)) trusted is-data<in> comp
 		"{add} - [{parts}]"
 
 .dbg<a> string(a add-node a) to-string<a>
-	left = if left ?= a left
-		"{left dbg}, "
+	left = if l ?= a left
+		"{l dbg}, "
 	values = " " join for x : a.values to-list; "{x}"
 	"{left}[{values}]"
 

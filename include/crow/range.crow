@@ -2,13 +2,11 @@ no-std
 import
 	./bool: !, bool
 	./col/array: for-loop
-	./col/list: as-list, list, to-list
+	./col/list: ~=, build-list, list, to-list, with-block
 	./fun-util: subscript
 	./misc: new, void
 	./number: ==, +, -, nat64
 	./option: is-empty, new, option
-	./private/alloc: alloc-uninitialized
-	./pointer: ==, <=>, +, mut-pointer, set-deref
 export
 	./private/range-low-level: .., low, high, range, size
 
@@ -33,6 +31,9 @@ range-reverse<a> record
 	low a
 	high a
 
+size nat64(a range-reverse nat64)
+	a.high - a.low
+
 is-empty bool(a range-reverse nat64) noctx
 	a.low == a.high
 
@@ -52,16 +53,10 @@ for-loop void(a range-reverse nat64, f act void(nat64))
 				cur := cur - 1
 				continue
 
-for-loop<out> out[](a range-reverse nat64, f act out(nat64)) trusted
-	size = a.high - a.low
-	out out mut* = size alloc-uninitialized
-	cur mut out mut* = out
-	for x : a
-		*cur := f[x]
-		cur := cur + 1
-	end = out + size
-	assert cur == end
-	out .. end as-list
+for-loop<out> out[](a range-reverse nat64, f act out(nat64))
+	with out : a.size build-list
+		for x : a
+			out ~= f[x]
 
 for-loop<out> out[](a range nat64, f act out(nat64)) trusted
 	a for-loop f to-list
@@ -70,6 +65,7 @@ for-loop<out> out[](a range nat64, f act out(nat64)) trusted
 exists bool(a range nat64, f act bool(nat64))
 	!(a find f is-empty)
 
+# TODO: use 'for-break'
 # Returns the first value in the range for which `f` returns true.
 find nat64?(a range nat64, f act bool(nat64))
 	cur mut = a low

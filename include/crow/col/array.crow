@@ -5,17 +5,17 @@ More functions on arrays are in the `crow/col/array-util` module.
 no-std
 import
 	../bool: !, &&, ||, bool, false, true
-	../compare: !=, <, <=, compare, comparison, equal, greater, less
+	../compare: !=, <, <=, >, compare, comparison, equal, greater, less
 	../fun-util: subscript
 	../misc: new, void
-	../number: ==, <=>, +, -, nat64
+	../number: ==, <=>, +, -, *, nat64, round-up-to-power-of-two
 	../option: new, option
 	../private/alloc: alloc-uninitialized, copy-data-from
 	../private/bootstrap: new
 	../private/range-low-level: .., high, low, range, size
 	../pointer:
-		==, <=>, +, -, *, as-const, const-pointer, mut-pointer, pointer-cast, set-deref, size-of,
-		subscript
+		==, <=>, +, -, *, as-const, const-pointer, mut-pointer, null, pointer-cast, set-deref,
+		size-of, subscript
 	./iter: new, value-and-rest
 export
 	../private/bootstrap: array, begin-pointer, size
@@ -26,20 +26,15 @@ new<a> array a(...a array a) noctx
 
 # Make an array from a range
 for-loop<out> array out(a range nat64, f act out(nat64)) trusted
-	size = a.high - a.low
-	out out mut* = size alloc-uninitialized
-	cur mut = out
-	end = out + size
-	n mut = a low
-	loop
-		if cur == end
-			assert n == a.high
-			break out .. end as-array
-		else
-			*cur := f[n]
-			cur := cur + 1
-			n := n + 1
-			continue
+	with out : a.size build-array
+		n mut = a low
+		loop
+			if n == a.high
+				break
+			else
+				out ~= f[n]
+				n := n + 1
+				continue
 
 # `true` iff `a.size == 0`.
 is-empty<a> bool(a array a) noctx
@@ -214,6 +209,7 @@ Returns the first index `i` for which `f[a[i]]` is true.
 Returns an empty option iff `f` returns `false` for every element of `a`.
 ###
 find-index<a> nat64?(a array a, f act bool(a)) no-doc trusted
+	# TODO: use for-break. Actually, maybe this function shouldn't exist since for-break is good enough
 	cur mut = a begin-pointer
 	end = a end-pointer
 	loop
@@ -305,61 +301,37 @@ for-loop<a> void(a array a, f act void(a)) trusted
 Equivalent to `f[a[0]], f[a[1]], ...`.
 Array containing `f[x]` for each `x` in `a`.
 ###
-for-loop<out, in> array out(a array in, f act out(in)) trusted
-	if size-of@<in> == 0
-		for i : 0 .. a.size
-			f[a[i]]
-	else
-		in-cur mut = a begin-pointer
-		in-end = a end-pointer
-		out-begin out mut* = a.size alloc-uninitialized
-		out-cur mut = out-begin
-		loop
-			if in-cur == in-end
-				out-end = out-begin + a.size
-				assert out-cur == out-end
-				break out-begin .. out-end as-array
-			else
-				*out-cur := f[*in-cur]
-				out-cur := out-cur + 1
-				in-cur := in-cur + 1
-				continue
+for-loop<out, in> array out(a array in, f act out(in))
+	with out : a.size build-array
+		for x : a
+			out ~= f[x]
 
 ###
 Equivalent to calling `f[a[0], 0]`, `f[a[1], 1]`, etc.
 
 Calls `f` for each element in `a`, also providing the index.
 ###
-for-loop<a> void(a array a, f act void(a, nat64)) trusted
-	cur mut = a begin-pointer
-	index mut = 0
-	size = a size
-	until index == size
-		f[*cur, index]
-		cur := cur + 1
-		index := index + 1
+for-loop<a> void(a array a, f act void(a, nat64))
+	i mut = 0
+	until i == a.size
+		f[a[i], i]
+		i := i + 1
+
+for-loop<out, in> array out(a array in, f act out(in, nat64))
+	with out : a.size build-array
+		for x, i : a
+			out ~= f[x, i]
 
 # Array containing only the elements of `a` for which `f[a[i]]` returns true.
 filter<a> array a(a array a, f act bool(a))
 	a filter (cur, _) => f[cur]
 
 # Like `filter`, but also provides the element index.
-filter<a> array a(a array a, f act bool(a, nat64)) trusted
-	res a mut* = a.size alloc-uninitialized
-	out mut = res
-	cur mut = a begin-pointer
-	end = a end-pointer
-	index mut = 0
-	loop
-		if cur == end
-			break res .. out as-array
-		else
-			if f[*cur, index]
-				*out := *cur
-				out := out + 1
-			cur := cur + 1
-			index := index + 1
-			continue
+filter<a> array a(a array a, f act bool(a, nat64))
+	with out : build-array
+		for x, i : a
+			if f[x, i]
+				out ~= x
 
 region iter
 
@@ -420,3 +392,55 @@ array-cast<out, in> array out(a array in) no-doc unsafe noctx
 subscript<a> array a(a a*, r range nat64) noctx unsafe
 	r.high - r.low, a + r.low
 
+region builder
+
+build-array record
+	.size-hint nat64
+build-array build-array()
+	0,
+build-array build-array(size-hint nat64)
+	size-hint,
+
+array-builder<a> record mut
+	.begin mut a mut*
+	.cur mut a mut*
+	.end mut a mut*
+
+with-block<a> array a(a build-array, f act void(array-builder a)) trusted
+	begin a mut* = a.size-hint alloc-uninitialized
+	builder array-builder a = begin, begin, begin + a.size-hint
+	f[builder]
+	res = builder.begin .. builder.cur as-array
+	builder.begin := null
+	builder.cur := null
+	builder.end := null
+	res
+
+~=<a> void(a array-builder a, value a) trusted
+	forbid a.begin == null
+	assert a.cur <= a.end
+	if a.cur == a.end
+		cur-size = a.end - a.begin
+		new-capacity = cur-size == 0 ? 4 : cur-size * 2
+		new-begin a mut* = new-capacity alloc-uninitialized
+		new-begin copy-data-from a.begin.as-const, cur-size
+		a.begin := new-begin
+		a.cur := new-begin + cur-size
+		a.end := new-begin + new-capacity
+	*a.cur := value
+	a.cur := a.cur + 1
+
+~~=<a> void(a array-builder a, values array a) trusted
+	forbid a.begin == null
+	assert a.cur <= a.end
+	if a.cur + values.size > a.end
+		cur-size = a.cur - a.begin
+		min-size = cur-size + values.size
+		new-capacity = min-size.round-up-to-power-of-two
+		new-begin a mut* = new-capacity alloc-uninitialized
+		new-begin copy-data-from a.begin.as-const, cur-size
+		a.begin := new-begin
+		a.cur := new-begin + cur-size
+		a.end := new-begin + new-capacity
+	a.cur copy-data-from values.begin-pointer, values.size
+	a.cur := a.cur + values.size

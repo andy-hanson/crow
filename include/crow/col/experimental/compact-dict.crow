@@ -8,16 +8,14 @@ import
 	../../misc: is-data, new, void
 	../../number: ==, <=>, +, nat64
 	../../option: ??, is-empty, new, option, option-equal
-	../../pointer: ==, <=>, +, ref-eq, set-deref
+	../../pointer: ref-eq
 	../../range: ..
 	../../string: ==, ~~, join, literal, string, to-string
 	../../test-util: is
 	../../tuple: from, new, pair, pair-equal, to
 	../array: array, every, for-loop, size, subscript
-	../mut-array:
-		as-mut-array, begin-pointer, cast-immutable, end-pointer, mut-array,
-		uninitialized-mut-array
-	../list: for-loop, list, new, to-list
+	../mut-array: ~=, build-mut-array, mut-array, with-block
+	../list: ~=, build-list, for-loop, list, new, with-block
 	../mut-set: in, mut-set, new, try-add
 	./frozen-dict:
 		for-loop, frozen-dict, in, is-empty, mut-array-to-frozen-dict-promise-no-duplicates, new,
@@ -133,32 +131,26 @@ in<k, v> bool(key k, a compact-dict<k, v>) is-data<k> compare<k> hash-mix<k>
 	l frozen-dict<k, v?>,
 	r frozen-dict<k, v?>,
 ) trusted is-data<k> compare<k> hash-mix<k>
-	res mut-array (k, v?) = l.size + r.size uninitialized-mut-array
-	cur mut = res begin-pointer
-	for k, vl : l
-		unless k in r
-			*cur := k, vl
-			cur := cur + 1
-	for k, vr : r
-		*cur := k, vr
-		cur := cur + 1
-	(res.begin-pointer .. cur).as-mut-array mut-array-to-frozen-dict-promise-no-duplicates
+	pairs mut-array (k, v?) = with out : l.size + r.size build-mut-array
+		for k, vl : l
+			unless k in r
+				out ~= (k, vl)
+		for k, vr : r
+			out ~= (k, vr)
+	pairs mut-array-to-frozen-dict-promise-no-duplicates
 
 .merge-to-end<k, v> frozen-dict<k, v>(
 	l frozen-dict<k, v>,
 	r frozen-dict<k, v?>,
 ) trusted is-data<k> compare<k> hash-mix<k>
-	res mut-array (k, v) = l.size + r.size uninitialized-mut-array
-	cur mut = res begin-pointer
-	for k, vl : l
-		unless k in r
-			*cur := k, vl
-			cur := cur + 1
-	for k, vr : r
-		if v ?= vr
-			*cur := k, v
-			cur := cur + 1
-	(res.begin-pointer .. cur).as-mut-array mut-array-to-frozen-dict-promise-no-duplicates
+	pairs mut-array (k, v) = with out : l.size + r.size build-mut-array
+		for k, vl : l
+			unless k in r
+				out ~= (k, vl)
+		for k, vr : r
+			if v ?= vr
+				out ~= (k, v)
+	pairs mut-array-to-frozen-dict-promise-no-duplicates
 
 region iteration
 
@@ -179,13 +171,9 @@ for-loop<k, v> void(a compact-dict<k, v>, f act void(k, v)) is-data<k> compare<k
 				f[k, v]
 
 for-loop<a, k, v> a[](a compact-dict<k, v>, f act a(k, v)) trusted is-data<k> compare<k> hash-mix<k>
-	res mut-array a = a.size uninitialized-mut-array
-	cur mut = res begin-pointer
-	for k, v : a
-		*cur := f[k, v]
-		cur := cur + 1
-	assert cur == res.end-pointer
-	res.cast-immutable to-list
+	with out : a.size build-list
+		for k, v : a
+			out ~= f[k, v]
 
 .dbg<k, v> string(a compact-dict<k, v>) to-string<k> to-string<v>
 	a.impl dbg
