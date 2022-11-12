@@ -3,9 +3,9 @@ import
 	../bool: !, &&, bool, false, new, true
 	../compare: ==, <, <=, compare, comparison, equal, greater, less, min
 	../fun-util: subscript
-	../misc: new, void
+	../misc: break-or-continue, loop-break, loop-continue, new, void
 	../number: ==, <=>, +, -, *, /, %, nat8, nat64
-	../option: ??, ||, is-empty, new, option
+	../option: ??, is-empty, new, option
 	../pointer: const-pointer, mut-pointer
 	../private/exception-low-level: unreachable
 	../private/range-low-level: .., range
@@ -13,7 +13,7 @@ import
 	../tuple: a, b, new, pair
 	./array:
 		~, ~~, ~=, ~~=, array, array-builder, array-cast, array-equal, array-iter, as-array,
-		begin-pointer, build-array, end-iter, end-pointer, iter, find-and-get, for-loop, index-of,
+		begin-pointer, build-array, end-iter, end-pointer, iter, for-break, for-loop, index-of,
 		is-empty, new, next, prev, rtail, size, slice-left, slice-right, subscript, tail, with-block
 	./iter: new, rest, value, value-and-rest
 
@@ -847,17 +847,18 @@ in<a> bool(value a, a a[]) equal<a>
 		x == value
 
 some<a> bool(a a[], f act bool(a))
-	v void? = a find-and-get x =>
+	for x : a
 		if f[x]
-			(),
-	!v.is-empty
+			break true
+	else
+		false
 
 every<a> bool(a a[], f act bool(a))
-	!(a some x => !f[x])
-
-find-and-get<out, in> out?(a in[], f act out?(in))
-	a find-and-get-chunk chunk =>
-		chunk find-and-get f
+	for x : a
+		if !f[x]
+			break false
+	else
+		true
 
 filter<a> a[](a a[], f act bool(a))
 	res array a = with out : build-array
@@ -883,6 +884,31 @@ drop-right-while<a> a[](a a[], f act bool(a))
 			p.rest drop-right-while-recur f
 		else
 			a slice-left
+
+for-break<out, in> out?(a in[], f act break-or-continue out(in))
+	for x : a
+		match f[x]
+		as loop-break v
+			break v,
+		as loop-continue
+			continue
+	else
+		()
+for-break<out, in> out(a in[], f-loop act break-or-continue out(in), f-else act out())
+	x break-or-continue out = a for-break-chunk chunk =>
+		for x : chunk
+			match f-loop[x]
+			as loop-break v
+				break break v
+			as loop-continue
+				continue
+		else
+			continue
+	match x
+	as loop-break v
+		v
+	as loop-continue
+		f-else[]
 
 for-loop<a> void(a a[], f act void(a))
 	a each-chunk chunk =>
@@ -950,23 +976,55 @@ join<a> a[](joiner a[], parts a[][])
 	for nodes : xs.nodes
 		nodes for-loop f
 
-.find-and-get-chunk<out, in> out?(a in[], f act out?(array in))
+.for-break-chunk<out, in> break-or-continue out(a in[], f act break-or-continue out(array in))
 	match a.root node
 	as leaf l
 		f[l]
 	as branch b
-		f[b.left] || b.down find-and-get-chunk-l1 f || f[b.right]
+		match f[b left]
+		as loop-break v
+			break v
+		as loop-continue
+			match b.down for-break-chunk-l1 f
+			as loop-break v
+				break v
+			as loop-continue
+				f[b right]
 
-.find-and-get-chunk-l1<out, in> out?(a l1 in, f act out?(array in))
+.for-break-chunk-l1<out, in> break-or-continue out(a l1 in, f act break-or-continue out(array in))
 	match a node
 	as leaf l
-		l find-and-get f
+		l for-break-chunk-l1-leaf f
 	as branch b
-		b.left find-and-get f || b.down find-and-get-chunk-l2 f || b.right find-and-get f
+		match b.left for-break-chunk-l1-leaf f
+		as loop-break v
+			break v
+		as loop-continue
+			match b.down for-break-chunk-l2 f
+			as loop-break v
+				break v
+			as loop-continue
+				b.right for-break-chunk-l1-leaf f
 
-.find-and-get-chunk-l2<out, in> out?(a l2 in, f act out?(array in))
-	a.nodes find-and-get xs =>
-		xs find-and-get f
+.for-break-chunk-l1-leaf<out, in> break-or-continue out(a array array in, f act break-or-continue out(array in))
+	for xs : a
+		match f[xs]
+		as loop-break v
+			break break v
+		as loop-continue
+			continue
+	else
+		continue
+
+.for-break-chunk-l2<out, in> break-or-continue out(a l2 in, f act break-or-continue out(array in))
+	for xs : a nodes
+		match xs for-break-chunk-l1-leaf f
+		as loop-break v
+			break break v
+		as loop-continue
+			continue
+	else
+		continue
 
 subscript<a> a(a a[], index nat64)
 	# TODO:PERF

@@ -1,12 +1,12 @@
 no-std
 import
 	./bool: &&, bool, false, new, true
-	./col/list: ~, for-loop, list, new
+	./col/list: ~, for-break, list, new
 	./col/mut-list: ~=, move-to-list, mut-list, new
 	./col/set: in, new, set
 	./compare: !=, <=
 	./fun-util: subscript
-	./misc: new, void
+	./misc: loop-break, new, void
 	./number: ==, <=>, +, -, *, **, float64, int64, nat64, to-float64, to-int64, to-nat64
 	./option: ??, is-empty, new, option, option-equal
 	./result: err, ok, result, then
@@ -103,18 +103,17 @@ skip<a> grammar-skip(a grammar a)
 			(iter.save, description) err
 
 .try-take-exact bool(iter mut-string-iter, expect string)
-	# TODO:PERF use for-break
 	saved = iter save
-	ok mut = true
 	for expected : expect.char8s
 		if actual ?= iter.next
 			if actual != expected
 				iter restore saved
-				ok := false
+				break false
 		else
 			iter restore saved
-			ok := false
-	ok
+			break false
+	else
+		true
 
 ###
 Expects to parse 'a' followed by 'b'.

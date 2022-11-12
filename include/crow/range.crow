@@ -1,12 +1,11 @@
 no-std
 import
-	./bool: !, bool
+	./bool: bool, false, true
 	./col/array: for-loop
 	./col/list: ~=, build-list, list, to-list, with-block
 	./fun-util: subscript
-	./misc: new, void
+	./misc: break-or-continue, loop-break, new, void
 	./number: ==, +, -, nat64
-	./option: is-empty, new, option
 export
 	./private/range-low-level: .., low, high, range, size
 
@@ -61,20 +60,25 @@ for-loop<out> out[](a range-reverse nat64, f act out(nat64))
 for-loop<out> out[](a range nat64, f act out(nat64)) trusted
 	a for-loop f to-list
 
-# `true` iff `f` is `true` for some value in the range.
-exists bool(a range nat64, f act bool(nat64))
-	!(a find f is-empty)
-
-# TODO: use 'for-break'
-# Returns the first value in the range for which `f` returns true.
-find nat64?(a range nat64, f act bool(nat64))
+for-break<out> out(a range nat64, f-loop act break-or-continue out(nat64), f-else act out())
 	cur mut = a low
 	high = a high
 	loop
 		if cur == high
-			break
-		elif f[cur]
-			break cur,
+			break f-else[]
 		else
-			cur := cur + 1
-			continue
+			# TOOD: should it be possible to return f-loop[cur] directly here?
+			match f-loop[cur]
+			as loop-break x
+				break x
+			as loop-continue
+				cur := cur + 1
+				continue
+
+# `true` iff `f` is `true` for some value in the range.
+exists bool(a range nat64, f act bool(nat64))
+	for x : a
+		if f[x]
+			break true
+	else
+		false

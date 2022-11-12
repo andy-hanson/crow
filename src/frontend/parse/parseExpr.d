@@ -851,8 +851,13 @@ immutable(ExprAndMaybeDedent) parseFor(
 		start,
 		allowedBlock,
 		ParseDiag.NeedsBlockCtx.Kind.for_,
-		(immutable OptNameAndRange[] params, immutable ExprAst col, immutable ExprAst body_) =>
-			immutable ExprAstKind(allocate(lexer.alloc, immutable ForAst(params, col, body_))));
+		(
+			immutable OptNameAndRange[] params,
+			immutable ExprAst col,
+			immutable ExprAst body_,
+			immutable Opt!ExprAst else_,
+		) =>
+			immutable ExprAstKind(allocate(lexer.alloc, immutable ForAst(params, col, body_, else_))));
 }
 
 immutable(ExprAndMaybeDedent) parseWith(
@@ -865,8 +870,13 @@ immutable(ExprAndMaybeDedent) parseWith(
 		start,
 		allowedBlock,
 		ParseDiag.NeedsBlockCtx.Kind.with_,
-		(immutable OptNameAndRange[] params, immutable ExprAst col, immutable ExprAst body_) =>
-			immutable ExprAstKind(allocate(lexer.alloc, immutable WithAst(params, col, body_))));
+		(
+			immutable OptNameAndRange[] params,
+			immutable ExprAst col,
+			immutable ExprAst body_,
+			immutable Opt!ExprAst else_,
+		) =>
+			immutable ExprAstKind(allocate(lexer.alloc, immutable WithAst(params, col, body_, else_))));
 }
 
 immutable(ExprAndMaybeDedent) parseForOrWith(
@@ -875,29 +885,32 @@ immutable(ExprAndMaybeDedent) parseForOrWith(
 	immutable AllowedBlock allowedBlock,
 	immutable ParseDiag.NeedsBlockCtx.Kind blockKind,
 	scope immutable(ExprAstKind) delegate(
-		immutable LambdaAst.Param[], immutable ExprAst, immutable ExprAst
+		immutable LambdaAst.Param[], immutable ExprAst rhs, immutable ExprAst body_, immutable Opt!ExprAst else_,
 	) @safe @nogc pure nothrow cbMakeExprKind,
 ) {
 	immutable LambdaAst.Param[] params = parseParametersForForOrWith(lexer);
-	immutable ExprAst col = parseExprNoBlock(lexer);
-	immutable ExprAndMaybeDedent bodyAndDedent = () {
-		immutable bool semi = tryTakeToken(lexer, Token.semicolon);
-		if (isAllowBlock(allowedBlock)) {
-			immutable uint curIndent = asAllowBlock(allowedBlock).curIndent;
-			return toMaybeDedent(semi
-				? parseExprNoLet(lexer, curIndent)
-				: takeIndentOrFail_ExprAndDedent(lexer, curIndent, () =>
-					parseStatementsAndExtraDedents(lexer, curIndent + 1)));
-		} else {
-			if (semi)
-				return noDedent(parseExprNoBlock(lexer));
-			else
-				return exprBlockNotAllowed(lexer, start, blockKind);
-		}
-	}();
-	return immutable ExprAndMaybeDedent(
-		immutable ExprAst(range(lexer, start), cbMakeExprKind(params, col, bodyAndDedent.expr)),
-		bodyAndDedent.dedents);
+	immutable ExprAst rhs = parseExprNoBlock(lexer);	
+	immutable bool semi = tryTakeToken(lexer, Token.semicolon);
+	if (semi) {
+		immutable ExprAst body_ = parseExprNoBlock(lexer);
+		return noDedent(immutable ExprAst(range(lexer, start), cbMakeExprKind(params, rhs, body_, none!ExprAst)));
+	} else if (isAllowBlock(allowedBlock)) {
+		immutable uint curIndent = asAllowBlock(allowedBlock).curIndent;
+		return toMaybeDedent(takeIndentOrFail_ExprAndDedent(lexer, curIndent, () {
+			immutable ExprAndDedent body_ = parseStatementsAndExtraDedents(lexer, curIndent + 1);
+			immutable OptExprAndDedent else_ = () {
+				if (body_.dedents == 0 && tryTakeToken(lexer, Token.else_)) {
+					return toOptExprAndDedent(takeIndentOrFail_ExprAndDedent(lexer, curIndent, () =>
+						parseStatementsAndExtraDedents(lexer, curIndent + 1)));
+				} else
+					return immutable OptExprAndDedent(none!ExprAst, body_.dedents);
+			}();
+			return immutable ExprAndDedent(
+				immutable ExprAst(range(lexer, start), cbMakeExprKind(params, rhs, body_.expr, else_.expr)),
+				else_.dedents);
+		}));
+	} else
+		return exprBlockNotAllowed(lexer, start, blockKind);
 }
 
 immutable(ExprAndDedent) parseLoop(scope ref Lexer lexer, immutable Pos start, immutable uint curIndent) {

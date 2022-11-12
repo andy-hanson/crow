@@ -302,6 +302,7 @@ struct ForAst {
 	immutable LambdaAst.Param[] params;
 	immutable ExprAst collection;
 	immutable ExprAst body_;
+	immutable Opt!ExprAst else_;
 }
 
 struct IdentifierAst {
@@ -562,6 +563,7 @@ struct WithAst {
 	immutable LambdaAst.Param[] params;
 	immutable ExprAst arg;
 	immutable ExprAst body_;
+	immutable Opt!ExprAst else_;
 }
 
 struct ExprAstKind {
@@ -1516,7 +1518,8 @@ immutable(Repr) reprExprAstKind(ref Alloc alloc, ref immutable ExprAstKind ast) 
 			reprRecord(alloc, "for", [
 				reprLambdaParamAsts(alloc, x.params),
 				reprExprAst(alloc, x.collection),
-				reprExprAst(alloc, x.body_)]),
+				reprExprAst(alloc, x.body_),
+				reprOpt(alloc, x.else_, (ref immutable ExprAst else_) => reprExprAst(alloc, else_))]),
 		(ref immutable IdentifierAst a) =>
 			reprSym(a.name),
 		(ref immutable IdentifierSetAst a) =>

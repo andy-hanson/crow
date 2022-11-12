@@ -3,6 +3,10 @@ import
 	crow/io/path: base-name
 	crow/io/print: out, print, print-no-newline
 
+failure record
+	path string
+	message string
+
 handle-output failure[](
 	original-path string,
 	output-path string,
@@ -38,10 +42,6 @@ test-options record
 	overwrite-output bool
 	max-failures nat
 	match-test string
-
-failure record
-	path string
-	message string
 
 first-failures result<string, failure[]>(a result<string, failure[]>, b fun result<string, failure[]>())
 	match a

@@ -7,7 +7,7 @@ import
 	../bool: !, &&, ||, bool, false, true
 	../compare: !=, <, <=, >, compare, comparison, equal, greater, less
 	../fun-util: subscript
-	../misc: new, void
+	../misc: break-or-continue, loop-break, new, void
 	../number: ==, <=>, +, -, *, nat64, round-up-to-power-of-two
 	../option: new, option
 	../private/alloc: alloc-uninitialized, copy-data-from
@@ -180,7 +180,7 @@ region search
 # TODO: only written this way to be `noctx`, else could defer to `exists`
 ###
 Equivalent to `a[0] == value || a[1] == value || ... || a[a.size - 1] == value`.
-Also equivalent to `a exists it => it == value`.
+Also equivalent to `a exists x => x == value`.
 ###
 in<a> bool(value a, a array a) noctx trusted equal<a>
 	cur mut = a begin-pointer
@@ -205,59 +205,29 @@ index-of<a> nat64?(a array a, value a) noctx trusted equal<a>
 		v - a.begin-pointer,
 
 ###
-Returns the first index `i` for which `f[a[i]]` is true.
-Returns an empty option iff `f` returns `false` for every element of `a`.
-###
-find-index<a> nat64?(a array a, f act bool(a)) no-doc trusted
-	# TODO: use for-break. Actually, maybe this function shouldn't exist since for-break is good enough
-	cur mut = a begin-pointer
-	end = a end-pointer
-	loop
-		if cur == end
-			break
-		elif f[*cur]
-			break cur - a.begin-pointer,
-		else
-			cur := cur + 1
-			continue
-
-# TODO: This could just be 'for-break'
-###
-Returns the first element `x` of `a` such that `f[x]` is `true`.
-Returns an empty option iff `f` returns `false` for every element of `a`.
-###
-find<a> a?(a array a, f act bool(a)) trusted
-	a find-and-get x => f[x] ? x,
-
-# TODO: This could just be 'for-break'
-###
-For each element `x` in `a`, gets `y = f[x]` and returns `y` if it is a non-empty option.
-Returns an empty option iff `f` returns an empty option for every element of `a`.
-###
-find-and-get<out, in> out?(a array in, f act out?(in)) trusted
-	cur mut = a begin-pointer
-	end = a end-pointer
-	loop
-		if cur == end
-			break
-		elif x ?= f[*cur]
-			break x,
-		else
-			cur := cur + 1
-			continue
-
-###
 Returns a pointer to the first element equal to `value`.
 Returns an empty option iff `value` is not in the array.
 ###
 pointer-of<a> a*?(a array a, value a) no-doc noctx unsafe equal<a>
-	a.begin-pointer pointer-of-recur a.end-pointer, value
-.pointer-of-recur<a> a*?(cur a*, end a*, value a) noctx unsafe equal<a>
-	unless cur == end
-		if *cur == value
-			cur,
+	cur mut = a begin-pointer
+	end = a end-pointer
+	loop
+		if cur == end
+			break
+		elif *cur == value
+			break cur,
 		else
-			cur + 1 pointer-of-recur end, value
+			cur := cur + 1
+			continue
+
+###
+Returns the first index `i` for which `f[a[i]]` is true.
+Returns an empty option iff `f` returns `false` for every element of `a`.
+###
+find-index<a> nat64?(a array a, f act bool(a)) no-doc trusted
+	for x, i : a
+		if f[x]
+			break i
 
 region iteration
 
@@ -321,6 +291,55 @@ for-loop<out, in> array out(a array in, f act out(in, nat64))
 	with out : a.size build-array
 		for x, i : a
 			out ~= f[x, i]
+
+for-break<out, in> out?(a array in, f act break-or-continue out(in))
+	i mut nat64 = 0
+	loop
+		if i == a.size
+			break
+		else
+			match f[a[i]]
+			as loop-break x
+				break x,
+			as loop-continue
+				i := i + 1
+				continue
+for-break<out, in> out(a array in, f-loop act break-or-continue out(in), f-else act out())
+	i mut nat64 = 0
+	loop
+		if i == a.size
+			break f-else[]
+		else
+			match f-loop[a[i]]
+			as loop-break x
+				break x
+			as loop-continue
+				i := i + 1
+				continue
+for-break<out, in> out?(a array in, f act break-or-continue out(in, nat64))
+	i mut nat64 = 0
+	loop
+		if i == a.size
+			break
+		else
+			match f[a[i], i]
+			as loop-break x
+				break x,
+			as loop-continue
+				i := i + 1
+				continue
+for-break<out, in> out(a array in, f-loop act break-or-continue out(in, nat64), f-else act out())
+	i mut nat64 = 0
+	loop
+		if i == a.size
+			break f-else[]
+		else
+			match f-loop[a[i], i]
+			as loop-break x
+				break x
+			as loop-continue
+				i := i + 1
+				continue
 
 # Array containing only the elements of `a` for which `f[a[i]]` returns true.
 filter<a> array a(a array a, f act bool(a))

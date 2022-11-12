@@ -1,20 +1,18 @@
 import
-	crow/col/iter: again
 	crow/io/file: remove-file
 	crow/io/print: out, print
-	sqlite3/main: open-sqlite3, query, run, with-block
+	crow/json: json, json-object, to-string
+	sqlite3/main: for-loop, open-sqlite3, query, run, with-block
 
 main nat^(_ string[]) summon unsafe
 	file-name = "test.db"
 	<- with db : file-name open-sqlite3
+		db run "drop table if exists foo"
 		db run "create table foo (name varchar(255));"
-		db run "insert into foo (name) values (\"tomato\")"
-		db run "select * from foo", (columns, values) =>
-			out print "COLUMNS ARE: {", " join columns}"
-			out print "VALUES ARE: {", " join values}"
-			again
-		tuples = db query "select * from foo"
-		out print ("\n" join for tuple : tuples; ", " join tuple)
+		db run "insert into foo (name) values (\"tomato\"), (\"potato\")"
+		objects json[] = for columns, values : db query "select * from foo"
+			(for column, i : columns; column, values[i].json).to-dict.json-object
+		out print ("\n" join for object : objects; object to-string)
 		db run "drop table foo"
 		()
 	file-name remove-file

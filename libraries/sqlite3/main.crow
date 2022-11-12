@@ -1,5 +1,4 @@
 import
-	crow/col/iter: again, again-or-stop
 	crow/c-types: c-int
 	./headers:
 		==, |, enum-members, sqlite3-pointer, sqlite3_close, sqlite3_exec, sqlite3_free, SQLITE_OK,
@@ -24,23 +23,31 @@ with-block<a> a^(a open-sqlite3, cb ref a(sqlite3)) summon trusted is-sendable<a
 	assert err2 == SQLITE_OK
 	res,
 
-query string[][](db sqlite3, command string) summon
-	res string[] mut[] = ()
-	db run command, (_, values) =>
-		res ~= values
-		again
-	res move-to-list
-
 run void(db sqlite3, command string) summon
-	db run command, (_, _) => again
+	for _, _ : db query command
+		()
 
-###
-cb takes column names and values for a single row.
-###
-run void(db sqlite3, command string, cb-row act again-or-stop(string[], string[])) summon trusted
+db-query record mut
+	db sqlite3
+	query string
+query db-query(db sqlite3, query string)
+	db, query
+
+for-loop void(a db-query, f act void(string[], string[])) summon
+	a query-internal (columns, values) =>
+		f[columns, values]
+		continue
+
+for-loop<out> out[](a db-query, f act out(string[], string[])) summon
+	with out : build-list
+		for columns, values : a
+			out ~= f[columns, values]
+
+.query-internal void(a db-query, cb-row act break-or-continue void(string[], string[])) summon trusted
 	error-message mut c-string = null
 	ctx callback-ctx = cb-row,
-	err = db.raw sqlite3_exec command.to-c-string, &callback, (&ctx)::callback-ctx*.as-any-mut-pointer, &error-message
+	ctx-ptr = (&ctx)::callback-ctx* as-any-mut-pointer
+	err = a.db.raw sqlite3_exec a.query.to-c-string, &callback, ctx-ptr, &error-message
 	# TODO: if err == SQLITE_ABORT, callback returned non-0
 	if err != SQLITE_OK
 		error-string = error-message to-string
@@ -48,7 +55,7 @@ run void(db sqlite3, command string, cb-row act again-or-stop(string[], string[]
 		throw "ERROR {err.enum-to-string}: {error-string}"
 
 .callback-ctx record by-val mut
-	cb-row act again-or-stop(string[], string[])
+	cb-row act break-or-continue void(string[], string[])
 
 .callback c-int(ctx-pointer any-mut-pointer, argc c-int, argv c-string*, col-name c-string*) summon unsafe
 	ctx callback-ctx = *(ctx-pointer.as-const.pointer-cast::callback-ctx*)
@@ -57,7 +64,7 @@ run void(db sqlite3, command string, cb-row act again-or-stop(string[], string[]
 	values string[] = for i : 0 .. argc.to-nat64
 		argv[i] to-string
 	match ctx.cb-row[column-names, values]
-	as again
-		0
-	as stop
+	as loop-break _
 		1
+	as loop-continue
+		0

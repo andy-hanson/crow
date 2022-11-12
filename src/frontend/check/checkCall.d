@@ -114,7 +114,7 @@ immutable(Expr) checkCall(
 immutable(Expr) checkCallNoLocals(
 	ref ExprCtx ctx,
 	immutable FileAndRange range,
-	scope ref immutable CallAst ast,
+	scope immutable CallAst ast,
 	ref Expected expected,
 ) {
 	FunOrLambdaInfo emptyFunInfo = FunOrLambdaInfo(noneMut!(LocalsInfo*), [], none!(Expr.Lambda*));

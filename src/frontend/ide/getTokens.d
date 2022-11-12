@@ -464,6 +464,8 @@ void addExprTokens(
 			addLambdaAstParams(alloc, tokens, allSymbols, x.params);
 			addExprTokens(alloc, tokens, allSymbols, x.collection);
 			addExprTokens(alloc, tokens, allSymbols, x.body_);
+			if (has(x.else_))
+				addExprTokens(alloc, tokens, allSymbols, force(x.else_));
 		},
 		(ref immutable(IdentifierAst)) {
 			add(alloc, tokens, immutable Token(Token.Kind.identifier, a.range));

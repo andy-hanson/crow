@@ -141,7 +141,8 @@ import model.model :
 	worstCasePurity;
 import util.alloc.alloc : Alloc, allocateUninitialized;
 import util.col.arr : empty, emptySmallArray, only, PtrAndSmallNumber, ptrsRange, sizeEq;
-import util.col.arrUtil : arrLiteral, arrsCorrespond, contains, map, map_mut, mapZip, mapZipWithIndex, zipPtrFirst;
+import util.col.arrUtil :
+	arrLiteral, arrsCorrespond, contains, exists, map, map_mut, mapZip, mapZipWithIndex, zipPtrFirst;
 import util.col.fullIndexDict : FullIndexDict;
 import util.col.mutArr : MutArr, mutArrSize, push, tempAsArr;
 import util.col.mutMaxArr : fillMutMaxArr, initializeMutMaxArr, mutMaxArrSize, push, pushLeft, tempAsArr, tempAsArr_mut;
@@ -151,7 +152,7 @@ import util.memory : allocate, allocateMut, initMemory, overwriteMemory;
 import util.opt : force, has, none, noneMut, Opt, some, someMut;
 import util.ptr : castImmutable, ptrTrustMe_mut;
 import util.sourceRange : FileAndRange, Pos, RangeWithinFile;
-import util.sym : Operator, shortSym, Sym, symForOperator, symOfStr;
+import util.sym : Operator, shortSym, SpecialSym, Sym, symForOperator, symForSpecial, symOfStr;
 import util.util : max, todo, unreachable, verify;
 
 immutable(Expr) checkFunctionBody(
@@ -315,7 +316,7 @@ immutable(Expr) checkUnless(
 ) {
 	immutable Expr cond = checkAndExpectBool(ctx, locals, ast.cond);
 	immutable Expr else_ = checkExpr(ctx, locals, ast.body_, expected);
-	immutable Expr then = checkEmptyNew(ctx, locals, range, expected);
+	immutable Expr then = checkEmptyNew(ctx, range, expected);
 	return immutable Expr(range, allocate(ctx.alloc, immutable Expr.Cond(inferred(expected), cond, then, else_)));
 }
 
@@ -339,18 +340,10 @@ immutable(Expr) checkExprOrEmptyNew(
 ) =>
 	has(ast)
 		? checkExpr(ctx, locals, force(ast), expected)
-		: checkEmptyNew(ctx, locals, range, expected);
+		: checkEmptyNew(ctx, range, expected);
 
-immutable(Expr) checkEmptyNew(
-	ref ExprCtx ctx,
-	ref LocalsInfo locals,
-	immutable FileAndRange range,
-	ref Expected expected,
-) {
-	immutable CallAst ast =
-		immutable CallAst(CallAst.style.emptyParens, immutable NameAndRange(range.start, shortSym("new")), [], []);
-	return checkCallNoLocals(ctx, range, ast, expected);
-}
+immutable(Expr) checkEmptyNew(ref ExprCtx ctx, immutable FileAndRange range, ref Expected expected) =>
+	checkCallNoLocals(ctx, range, callNewCall(range.range), expected);
 
 immutable(Expr) checkIfOption(
 	ref ExprCtx ctx,
@@ -1396,8 +1389,15 @@ immutable(Expr) checkLoopBreak(
 ) {
 	Opt!(LoopInfo*) optLoop = tryGetLoop(expected);
 	if (!has(optLoop)) {
-		addDiag2(ctx, range, immutable Diag(immutable Diag.LoopBreakNotAtTail()));
-		return bogus(expected, range);
+		// TODO: NEATER (don't create a synthetic AST)
+		immutable ExprAst arg = has(ast.value) ? force(ast.value) : callNew(range.range);
+		immutable ExprAst[1] args = [arg];
+		scope immutable CallAst call = immutable CallAst(
+			CallAst.Style.infix,
+			immutable NameAndRange(range.range.start, shortSym("loop-break")),
+			[],
+			args);
+		return checkCall(ctx, locals, range, call, expected);
 	} else {
 		LoopInfo* loop = force(optLoop);
 		loop.hasBreak = true;
@@ -1414,8 +1414,12 @@ immutable(Expr) checkLoopContinue(
 ) {
 	Opt!(LoopInfo*) optLoop = tryGetLoop(expected);
 	if (!has(optLoop)) {
-		addDiag2(ctx, range, immutable Diag(immutable Diag.LoopBreakNotAtTail())); //TODO: LoopContinueNotAtTail
-		return bogus(expected, range);
+		scope immutable CallAst call = immutable CallAst(
+			CallAst.Style.infix,
+			immutable NameAndRange(range.range.start, symForSpecial(SpecialSym.loop_continue)),
+			[],
+			[]);
+		return checkCall(ctx, locals, range, call, expected);
 	} else {
 		LoopInfo* loop = force(optLoop);
 		return immutable Expr(range, allocate(ctx.alloc, immutable Expr.LoopContinue(loop.loop)));
@@ -1590,6 +1594,76 @@ immutable(Expr) checkSeq(
 	return immutable Expr(range, allocate(ctx.alloc, immutable Expr.Seq(first, then)));
 }
 
+immutable(bool) hasBreakOrContinue(immutable ExprAst a) =>
+	matchExprAstKind!(
+		immutable bool,
+		(scope ref immutable(ArrowAccessAst)) =>
+			false,
+		(scope ref immutable(AssertOrForbidAst)) =>
+			false,
+		(scope ref immutable(BogusAst)) =>
+			false,
+		(scope ref immutable(CallAst)) =>
+			false,
+		(scope ref immutable(ForAst)) =>
+			false,
+		(scope ref immutable(IdentifierAst)) =>
+			false,
+		(scope ref immutable(IdentifierSetAst)) =>
+			false,
+		(scope ref immutable IfAst x) =>
+			hasBreakOrContinue(x.then) || (has(x.else_) && hasBreakOrContinue(force(x.else_))),
+		(scope ref immutable IfOptionAst x) =>
+			hasBreakOrContinue(x.then) || (has(x.else_) && hasBreakOrContinue(force(x.else_))),
+		(scope ref immutable(InterpolatedAst)) =>
+			false,
+		(scope ref immutable(LambdaAst)) =>
+			false,
+		(scope ref immutable LetAst x) =>
+			hasBreakOrContinue(x.then),
+		(scope ref immutable(LiteralAst)) =>
+			false,
+		(scope ref immutable(LoopAst)) =>
+			false,
+		(scope ref immutable(LoopBreakAst)) =>
+			true,
+		(scope ref immutable(LoopContinueAst)) =>
+			true,
+		(scope ref immutable(LoopUntilAst)) =>
+			false,
+		(scope ref immutable(LoopWhileAst)) =>
+			false,
+		(scope ref immutable MatchAst x) =>
+			exists!(immutable MatchAst.CaseAst)(x.cases, (ref immutable MatchAst.CaseAst case_) =>
+				hasBreakOrContinue(case_.then)),
+		(scope ref immutable(ParenthesizedAst)) =>
+			false,
+		(scope ref immutable(PtrAst)) =>
+			false,
+		(scope ref immutable SeqAst x) =>
+			hasBreakOrContinue(x.then),
+		//Hmm... maybe this should be allowed some day. Not in primitive loop but in for-break.
+		(scope ref immutable ThenAst x) =>
+			hasBreakOrContinue(x.then),
+		(scope ref immutable(ThrowAst)) =>
+			false,
+		(scope ref immutable(TypedAst)) =>
+			false,
+		(scope ref immutable(UnlessAst) x) =>
+			hasBreakOrContinue(x.body_),
+		(scope ref immutable(WithAst)) =>
+			false,
+	)(a.kind);
+
+immutable(ExprAst) callNew(immutable RangeWithinFile range) =>
+	immutable ExprAst(range, immutable ExprAstKind(callNewCall(range)));
+immutable(CallAst) callNewCall(immutable RangeWithinFile range) =>
+	immutable CallAst(
+		CallAst.style.emptyParens,
+		immutable NameAndRange(range.start, shortSym("new")),
+		[],
+		[]);
+
 immutable(Expr) checkFor(
 	ref ExprCtx ctx,
 	ref LocalsInfo locals,
@@ -1598,14 +1672,21 @@ immutable(Expr) checkFor(
 	ref Expected expected,
 ) {
 	// TODO: NEATER (don't create a synthetic AST)
-	immutable ExprAst lambda = immutable ExprAst(
+	immutable bool isForBreak = hasBreakOrContinue(ast.body_);
+	immutable ExprAst lambdaBody = immutable ExprAst(
 		range.range,
 		immutable ExprAstKind(allocate(ctx.alloc, immutable LambdaAst(ast.params, ast.body_))));
-	immutable CallAst call = immutable CallAst(
+	immutable ExprAst lambdaElse_ = has(ast.else_)
+		? immutable ExprAst(
+			force(ast.else_).range,
+			immutable ExprAstKind(allocate(ctx.alloc, immutable LambdaAst([], force(ast.else_)))))
+		: immutable ExprAst(range.range, immutable ExprAstKind(immutable BogusAst())); // won't be used
+	immutable ExprAst[3] allArgs = [ast.collection, lambdaBody, lambdaElse_];
+	scope immutable CallAst call = immutable CallAst(
 		CallAst.Style.infix,
-		immutable NameAndRange(range.range.start, shortSym("for-loop")),
+		immutable NameAndRange(range.range.start, isForBreak ? shortSym("for-break") : shortSym("for-loop")),
 		[],
-		arrLiteral!ExprAst(ctx.alloc, [ast.collection, lambda]));
+		has(ast.else_) ? allArgs : allArgs[0 .. 2]);
 	return checkCall(ctx, locals, range, call, expected);
 }
 
@@ -1616,6 +1697,9 @@ immutable(Expr) checkWith(
 	ref immutable WithAst ast,
 	ref Expected expected,
 ) {
+	if (has(ast.else_))
+		todo!void("diag: no 'else' for 'with'");
+
 	// TODO: NEATER (don't create a synthetic AST)
 	immutable ExprAst lambda = immutable ExprAst(
 		range.range,

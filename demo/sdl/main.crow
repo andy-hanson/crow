@@ -1,8 +1,7 @@
 import
-	crow/col/iter: again, again-or-stop, stop
 	crow/io/duration: msec
 	crow/io/print: out, print
-	crow/io/time: get-monotime-msec, repeat-interval
+	crow/io/time: for-break, get-monotime-msec, interval
 	crow/c-types: c-int
 	SDL2/SDL:
 		SDL_GetError, SDL_Init, SDL_INIT_VIDEO, SDL_Quit
@@ -28,7 +27,13 @@ main nat^(_ string[]) summon trusted
 		"SDL_CreateWindow" fail-sdl-error
 	renderer = window renderer
 	texture = renderer create-texture
-	<- 25.msec repeat-interval () => renderer main-loop-body texture
+	<- for : 25.msec interval
+		SDL_PumpEvents
+		if look-for-quit-event
+			break
+		else
+			<- renderer main-loop-body texture
+			continue
 	# TODO: use 'finally'
 	texture SDL_DestroyTexture
 	renderer SDL_DestroyRenderer
@@ -45,24 +50,20 @@ main nat^(_ string[]) summon trusted
 .image-height int32()
 	200
 
-.main-loop-body again-or-stop^(renderer SDL_Renderer, texture SDL_Texture) summon trusted
-	SDL_PumpEvents
-	if look-for-quit-event
-		stop,
-	else
-		key-states-pointer = null SDL_GetKeyboardState
-		# TODO: use a mut-enum-lookup type
-		key-states = key-states-pointer[0 .. SDL_NUM_SCANCODES.to-nat32.to-nat64]
-		if key-states[SDL_SCANCODE_RETURN.to-nat32.to-nat64] != 0
-			out print "return is pressed"
+.main-loop-body void^(renderer SDL_Renderer, texture SDL_Texture) summon trusted
+	key-states-pointer = null SDL_GetKeyboardState
+	# TODO: use a mut-enum-lookup type
+	key-states = key-states-pointer[0 .. SDL_NUM_SCANCODES.to-nat32.to-nat64]
+	if key-states[SDL_SCANCODE_RETURN.to-nat32.to-nat64] != 0
+		out print "return is pressed"
 
-		renderer.SDL_RenderClear handle-sdl-error "SDL_RenderClear"
-		x = ((get-monotime-msec / 10) % window-width.to-nat64).to-int32
-		renderer draw-image texture, x
-		if x + image-width > window-width
-			renderer draw-image texture, x - window-width
-		renderer SDL_RenderPresent
-		again,
+	renderer.SDL_RenderClear handle-sdl-error "SDL_RenderClear"
+	x = ((get-monotime-msec / 10) % window-width.to-nat64).to-int32
+	renderer draw-image texture, x
+	if x + image-width > window-width
+		renderer draw-image texture, x - window-width
+	renderer SDL_RenderPresent
+	()
 
 .draw-image void(renderer SDL_Renderer, texture SDL_Texture, x int32) summon trusted
 	dest SDL_Rect = x, (window-height - image-height) / 2, image-width, image-height

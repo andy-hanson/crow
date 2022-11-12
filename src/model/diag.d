@@ -214,7 +214,6 @@ struct Diag {
 	struct LocalNotMutable {
 		immutable VariableRef local;
 	}
-	struct LoopBreakNotAtTail {}
 	struct LoopNeedsBreakOrContinue {}
 	struct LoopNeedsExpectedType {}
 	struct LoopWithoutBreak {}
@@ -391,7 +390,6 @@ struct Diag {
 		linkageWorseThanContainingType,
 		literalOverflow,
 		localNotMutable,
-		loopBreakNotAtTail,
 		loopNeedsBreakOrContinue,
 		loopNeedsExpectedType,
 		loopWithoutBreak,
@@ -468,7 +466,6 @@ struct Diag {
 		immutable LinkageWorseThanContainingType linkageWorseThanContainingType;
 		immutable LiteralOverflow literalOverflow;
 		immutable LocalNotMutable localNotMutable;
-		immutable LoopBreakNotAtTail loopBreakNotAtTail;
 		immutable LoopNeedsBreakOrContinue loopNeedsBreakOrContinue;
 		immutable LoopNeedsExpectedType loopNeedsExpectedType;
 		immutable LoopWithoutBreak loopWithoutBreak;
@@ -580,7 +577,6 @@ struct Diag {
 	}
 	@trusted immutable this(immutable LiteralOverflow a) { kind = Kind.literalOverflow; literalOverflow = a; }
 	immutable this(immutable LocalNotMutable a) { kind = Kind.localNotMutable; localNotMutable = a; }
-	immutable this(immutable LoopBreakNotAtTail a) { kind = Kind.loopBreakNotAtTail; loopBreakNotAtTail = a; }
 	immutable this(immutable LoopNeedsBreakOrContinue a) {
 		kind = Kind.loopNeedsBreakOrContinue; loopNeedsBreakOrContinue = a;
 	}
@@ -755,7 +751,6 @@ struct Diag {
 	) @safe @nogc pure nothrow cbLinkageWorseThanContainingType,
 	scope immutable(Out) delegate(ref immutable Diag.LiteralOverflow) @safe @nogc pure nothrow cbLiteralOverflow,
 	scope immutable(Out) delegate(ref immutable Diag.LocalNotMutable) @safe @nogc pure nothrow cbLocalNotMutable,
-	scope immutable(Out) delegate(ref immutable Diag.LoopBreakNotAtTail) @safe @nogc pure nothrow cbLoopBreakNotAtTail,
 	scope immutable(Out) delegate(
 		ref immutable Diag.LoopNeedsBreakOrContinue
 	) @safe @nogc pure nothrow cbLoopNeedsBreakOrContinue,
@@ -918,8 +913,6 @@ struct Diag {
 			return cbLiteralOverflow(a.literalOverflow);
 		case Diag.Kind.localNotMutable:
 			return cbLocalNotMutable(a.localNotMutable);
-		case Diag.Kind.loopBreakNotAtTail:
-			return cbLoopBreakNotAtTail(a.loopBreakNotAtTail);
 		case Diag.Kind.loopNeedsBreakOrContinue:
 			return cbLoopNeedsBreakOrContinue(a.loopNeedsBreakOrContinue);
 		case Diag.Kind.loopNeedsExpectedType:

@@ -1,10 +1,9 @@
 no-std
 import
 	time: time, time_t
-	../col/iter: again-or-stop
 	../compare: max
 	../future: future, subscript, then
-	../misc: new, void
+	../misc: break-or-continue, is-sendable, new, void
 	../number: ==, <=>, +, /, nat64, to-nat64
 	../pointer: null
 	../future: new
@@ -28,25 +27,33 @@ get-unix-time unix-time() summon trusted
 delay void^(duration duration) trusted summon
 	get-monotime-nsec + duration.nsec.to-nat64 delay-until-time
 
+interval record
+	.time duration
+interval interval(time duration)
+	time,
+# TODO: shouldn't need `is-sendable<break-or-continue out>`
 # Call `action` now and on every `interval`.
-repeat-interval void^(interval duration, action ref again-or-stop()) trusted summon
-	get-monotime-nsec repeat-interval-recur interval.nsec.to-nat64, action
-.repeat-interval-recur void^(
+for-break<out> out^(
+	interval interval,
+	f-loop ref break-or-continue out(),
+) trusted summon is-sendable<out> is-sendable<break-or-continue out>
+	get-monotime-nsec repeat-interval-recur interval.time.nsec.to-nat64, f-loop
+.repeat-interval-recur<out> out^(
 	start-nsec nat64,
 	interval-nsec nat64,
-	action ref again-or-stop(),
-) trusted summon
+	action ref break-or-continue out(),
+) trusted summon is-sendable<out> is-sendable<break-or-continue out>
 	choice <- action[]
 	match choice
-	as again
+	as loop-break v
+		v,
+	as loop-continue
 		next-time = get-monotime-nsec max start-nsec + interval-nsec
 		gctx = get-global-ctx
-		res void^ = unresolved
+		res out^ = unresolved
 		gctx add-timed-task next-time, gctx.new-exclusion, () =>
 			res forward-to (next-time repeat-interval-recur interval-nsec, action)
 		res
-	as stop
-		()
 
 .delay-until-time void^(target-nsec nat64) unsafe summon
 	res void^ = unresolved

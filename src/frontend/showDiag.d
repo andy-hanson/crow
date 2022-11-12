@@ -725,9 +725,6 @@ void writeDiag(
 			writeName(writer, allSymbols, force(name));
 			writer ~= " was not marked 'mut'";
 		},
-		(ref immutable Diag.LoopBreakNotAtTail d) {
-			writer ~= "'break' must be appear at the tail of a loop";
-		},
 		(ref immutable Diag.LoopNeedsBreakOrContinue) {
 			writer ~= "a loop must end in 'break' or 'continue'";
 		},

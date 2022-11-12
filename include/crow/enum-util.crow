@@ -1,9 +1,9 @@
 no-std
 import
 	./bool: bool
-	./col/array: array, find-and-get
-	./misc: name, named-val, val
-	./option: ??, new, option
+	./col/array: array, for-break
+	./misc: loop-break, name, new, named-val, val
+	./option: option
 	./private/symbol-low-level: ==, symbol, to-string
 	./string: ==, string
 
@@ -21,7 +21,11 @@ enum-like<a> spec
 
 # Convert an enum value to name that was used to declare it.
 to-symbol<a> symbol(a a) enum-like<a>
-	(enum-members find-and-get x => x.val == a ? x.name,) ?? throw "Invalid enum value"
+	for x : enum-members
+		if x.val == a
+			break x name
+	else
+		throw "Invalid enum value"
 
 ###
 Converts a symbol to the enum value that was declared with that name.
@@ -29,13 +33,15 @@ Converts a symbol to the enum value that was declared with that name.
 Returns an empty option if `a` is not the name of an enum member.
 ###
 to-enum<a> a?(a symbol) enum-like<a>
-	enum-members find-and-get member =>
-		member.name == a ? member.val,
+	for x : enum-members
+		if x.name == a
+			break x val
 
 # Same as `a.to-symbol to-enum`.
 to-enum<a> a?(a string) enum-like<a>
-	enum-members find-and-get member =>
-		member.name.to-string == a ? member.val,
+	for x : enum-members
+		if x.name.to-string == a
+			break x val
 
 ###
 Converts to the output enum value with the same name.

@@ -164,6 +164,7 @@ enum SpecialSym {
 	fun_pointer9,
 	init_constants,
 	line_and_column_getter,
+	loop_continue,
 	pointer_cast_from_extern,
 	pointer_cast_to_extern,
 	static_symbols,
@@ -307,6 +308,8 @@ private immutable(SafeCStr) strOfSpecial(immutable SpecialSym a) {
 			return safeCStr!"init-constants";
 		case SpecialSym.line_and_column_getter:
 			return safeCStr!"line-and-column-getter";
+		case SpecialSym.loop_continue:
+			return safeCStr!"loop-continue";
 		case SpecialSym.pointer_cast_from_extern:
 			return safeCStr!"pointer-cast-from-extern";
 		case SpecialSym.pointer_cast_to_extern:

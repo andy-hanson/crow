@@ -34,11 +34,14 @@ run-crow-tests result<string, failure[]>(path string, path-to-crow string, optio
 		ext == "crow"
 
 .run-single-crow-test failure[](path-to-crow string, path string, options test-options) summon trusted
-	op failure[]? = ("ast", "model")::string[] find-and-get print-kind =>
+	op failure[]? = for print-kind : ("ast", "model")::string[]
 		if options print-tests
 			out print "crow print {print-kind} {path}"
-		res = print-kind run-print-test path-to-crow, path, options.overwrite-output
-		res.should-stop ? res.failures,
+		match print-kind run-print-test path-to-crow, path, options.overwrite-output
+		as loop-break v
+			break v
+		as loop-continue
+			continue
 	if res ?= op
 		res
 	else
@@ -50,11 +53,7 @@ run-crow-tests result<string, failure[]>(path string, path-to-crow string, optio
 		else
 			interpret-failures
 
-.print-test-result record
-	should-stop bool
-	failures failure[]
-
-.run-print-test print-test-result(
+.run-print-test break-or-continue failure[](
 	print-kind string,
 	path-to-crow string,
 	path string,
@@ -70,17 +69,16 @@ run-crow-tests result<string, failure[]>(path string, path-to-crow string, optio
 		path handle-output output-path, res.stdout, overwrite-output
 
 	if !output-failures.is-empty
-		true, output-failures
+		break output-failures
 	elif res.exit-code == 0
 		assert res.stderr == ""
-		false, ()
+		()
 	elif res.exit-code == 1
 		stderr-no-color = res.stderr remove-colors
 		# We should stop even if no test failure in handling the output
-		true, (path handle-output "{output-path}.err", stderr-no-color, overwrite-output)
+		break path handle-output "{output-path}.err", stderr-no-color, overwrite-output
 	else
-		message = "unexpected exit code: {res exit-code}"
-		true, ((path, message),)
+		break (path, "unexpected exit code: {res exit-code}"),
 
 run-kind enum
 	interpret

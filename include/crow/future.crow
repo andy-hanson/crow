@@ -3,7 +3,7 @@ import
 	./col/list: for-loop, list, size
 	./exception: catch, exception
 	./fun-util: subscript
-	./misc: new, void
+	./misc: break-or-continue, loop-break, loop-continue, new, void
 	./number: ==, -, nat64
 	./private/bootstrap: action, exclusion, is-sendable, lk, new, rejected, resolved
 	./private/future-low-level: add-task, get-result, forward-to, reject, resolve, unresolved
@@ -15,7 +15,12 @@ import
 export
 	./private/bootstrap: future
 
-lock<a> lock(a a^) unsafe
+loop-break<a> break-or-continue<a>^(a a)
+	a.loop-break,
+loop-continue<a> break-or-continue<a>^()
+	loop-continue,
+
+.lock<a> lock(a a^) unsafe
 	&a.lk
 
 ###
