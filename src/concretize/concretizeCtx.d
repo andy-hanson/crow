@@ -94,7 +94,7 @@ import util.memory : allocate, allocateMut;
 import util.opt : force, has, none, Opt, some;
 import util.ptr : castImmutable, castMutable, hashPtr;
 import util.sourceRange : FileAndRange;
-import util.sym : AllSymbols, shortSym, shortSymValue, Sym, symValue;
+import util.sym : AllSymbols, Sym, sym;
 import util.util : max, roundUp, todo, unreachable, verify;
 import versionInfo : VersionInfo;
 
@@ -713,7 +713,7 @@ void fillInConcreteFunBody(ref ConcretizeCtx ctx, ConcreteFun* cf) {
 	if (!lateIsSet(cf._body_)) {
 		// set to arbitrary temporarily
 		lateSet(cf._body_, immutable ConcreteFunBody(
-			immutable ConcreteFunBody.Extern(false, shortSym("bogus"))));
+			immutable ConcreteFunBody.Extern(false, sym!"bogus")));
 		immutable ConcreteFunBodyInputs inputs = mustDelete(ctx.concreteFunToBodyInputs, castImmutable(cf));
 		immutable ConcreteFunBody body_ = matchFunBody!(
 			immutable ConcreteFunBody,
@@ -722,9 +722,9 @@ void fillInConcreteFunBody(ref ConcretizeCtx ctx, ConcreteFun* cf) {
 			(ref immutable FunBody.Builtin) {
 				immutable FunInst* inst = asFunInst(cf.source);
 				switch (inst.name.value) {
-					case shortSymValue("all-tests"):
+					case sym!"all-tests".value:
 						return bodyForAllTests(ctx, castImmutable(cf).returnType);
-					case shortSymValue("safe-value"):
+					case sym!"safe-value".value:
 						return bodyForSafeValue(
 							ctx,
 							castImmutable(cf),
@@ -849,57 +849,57 @@ immutable(ConcreteParam[]) concretizeParams(
 
 immutable(BuiltinStructKind) getBuiltinStructKind(immutable Sym name) {
 	switch (name.value) {
-		case shortSymValue("bool"):
+		case sym!"bool".value:
 			return BuiltinStructKind.bool_;
-		case shortSymValue("char8"):
+		case sym!"char8".value:
 			return BuiltinStructKind.char8;
-		case shortSymValue("float32"):
+		case sym!"float32".value:
 			return BuiltinStructKind.float32;
-		case shortSymValue("float64"):
+		case sym!"float64".value:
 			return BuiltinStructKind.float64;
-		case shortSymValue("fun0"):
-		case shortSymValue("fun1"):
-		case shortSymValue("fun2"):
-		case shortSymValue("fun3"):
-		case shortSymValue("fun4"):
-		case shortSymValue("fun-act0"):
-		case shortSymValue("fun-act1"):
-		case shortSymValue("fun-act2"):
-		case shortSymValue("fun-act3"):
-		case shortSymValue("fun-act4"):
+		case sym!"fun0".value:
+		case sym!"fun1".value:
+		case sym!"fun2".value:
+		case sym!"fun3".value:
+		case sym!"fun4".value:
+		case sym!"fun-act0".value:
+		case sym!"fun-act1".value:
+		case sym!"fun-act2".value:
+		case sym!"fun-act3".value:
+		case sym!"fun-act4".value:
 			return BuiltinStructKind.fun;
-		case symValue!"fun-pointer0":
-		case symValue!"fun-pointer1":
-		case symValue!"fun-pointer2":
-		case symValue!"fun-pointer3":
-		case symValue!"fun-pointer4":
-		case symValue!"fun-pointer5":
-		case symValue!"fun-pointer6":
-		case symValue!"fun-pointer7":
-		case symValue!"fun-pointer8":
-		case symValue!"fun-pointer9":
+		case sym!"fun-pointer0".value:
+		case sym!"fun-pointer1".value:
+		case sym!"fun-pointer2".value:
+		case sym!"fun-pointer3".value:
+		case sym!"fun-pointer4".value:
+		case sym!"fun-pointer5".value:
+		case sym!"fun-pointer6".value:
+		case sym!"fun-pointer7".value:
+		case sym!"fun-pointer8".value:
+		case sym!"fun-pointer9".value:
 			return BuiltinStructKind.funPointerN;
-		case shortSymValue("int8"):
+		case sym!"int8".value:
 			return BuiltinStructKind.int8;
-		case shortSymValue("int16"):
+		case sym!"int16".value:
 			return BuiltinStructKind.int16;
-		case shortSymValue("int32"):
+		case sym!"int32".value:
 			return BuiltinStructKind.int32;
-		case shortSymValue("int64"):
+		case sym!"int64".value:
 			return BuiltinStructKind.int64;
-		case shortSymValue("nat8"):
+		case sym!"nat8".value:
 			return BuiltinStructKind.nat8;
-		case shortSymValue("nat16"):
+		case sym!"nat16".value:
 			return BuiltinStructKind.nat16;
-		case shortSymValue("nat32"):
+		case sym!"nat32".value:
 			return BuiltinStructKind.nat32;
-		case shortSymValue("nat64"):
+		case sym!"nat64".value:
 			return BuiltinStructKind.nat64;
-		case symValue!"const-pointer":
+		case sym!"const-pointer".value:
 			return BuiltinStructKind.pointerConst;
-		case shortSymValue("mut-pointer"):
+		case sym!"mut-pointer".value:
 			return BuiltinStructKind.pointerMut;
-		case shortSymValue("void"):
+		case sym!"void".value:
 			return BuiltinStructKind.void_;
 		default:
 			return todo!(immutable BuiltinStructKind)("not a builtin struct");

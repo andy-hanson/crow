@@ -127,7 +127,7 @@ import util.opt : force, has, none, noneMut, Opt, some, someMut;
 import util.perf : Perf;
 import util.ptr : castImmutable, castNonScope_mut, ptrTrustMe_mut;
 import util.sourceRange : FileAndPos, FileAndRange, FileIndex, RangeWithinFile;
-import util.sym : AllSymbols, shortSym, shortSymValue, Sym, sym;
+import util.sym : AllSymbols, Sym, sym;
 import util.util : unreachable, todo, verify;
 
 struct PathAndAst { //TODO:RENAME
@@ -263,17 +263,17 @@ immutable(CommonTypes) getCommonTypes(
 ) {
 	ArrBuilder!Sym missing = ArrBuilder!Sym();
 
-	immutable(StructInst*) nonTemplate(immutable string name) {
+	immutable(StructInst*) nonTemplateFromSym(immutable Sym name) {
 		immutable Opt!(StructInst*) res = getCommonNonTemplateType(
 			ctx.alloc,
 			ctx.programState,
 			structsAndAliasesDict,
-			shortSym(name),
+			name,
 			delayedStructInsts);
 		if (has(res))
 			return force(res);
 		else {
-			add(ctx.alloc, missing, shortSym(name));
+			add(ctx.alloc, missing, name);
 			return instantiateNonTemplateStructDecl(
 				ctx.alloc,
 				ctx.programState,
@@ -281,23 +281,25 @@ immutable(CommonTypes) getCommonTypes(
 				bogusStructDecl(ctx.alloc, 0));
 		}
 	}
+	immutable(StructInst*) nonTemplate(immutable string name)() =>
+		nonTemplateFromSym(sym!name);
 
-	immutable StructInst* bool_ = nonTemplate("bool");
-	immutable StructInst* char8 = nonTemplate("char8");
-	immutable StructInst* float32 = nonTemplate("float32");
-	immutable StructInst* float64 = nonTemplate("float64");
-	immutable StructInst* int8 = nonTemplate("int8");
-	immutable StructInst* int16 = nonTemplate("int16");
-	immutable StructInst* int32 = nonTemplate("int32");
-	immutable StructInst* int64 = nonTemplate("int64");
-	immutable StructInst* nat8 = nonTemplate("nat8");
-	immutable StructInst* nat16 = nonTemplate("nat16");
-	immutable StructInst* nat32 = nonTemplate("nat32");
-	immutable StructInst* nat64 = nonTemplate("nat64");
-	immutable StructInst* symbol = nonTemplate("symbol");
-	immutable StructInst* void_ = nonTemplate("void");
+	immutable StructInst* bool_ = nonTemplate!"bool";
+	immutable StructInst* char8 = nonTemplate!"char8";
+	immutable StructInst* float32 = nonTemplate!"float32";
+	immutable StructInst* float64 = nonTemplate!"float64";
+	immutable StructInst* int8 = nonTemplate!"int8";
+	immutable StructInst* int16 = nonTemplate!"int16";
+	immutable StructInst* int32 = nonTemplate!"int32";
+	immutable StructInst* int64 = nonTemplate!"int64";
+	immutable StructInst* nat8 = nonTemplate!"nat8";
+	immutable StructInst* nat16 = nonTemplate!"nat16";
+	immutable StructInst* nat32 = nonTemplate!"nat32";
+	immutable StructInst* nat64 = nonTemplate!"nat64";
+	immutable StructInst* symbol = nonTemplate!"symbol";
+	immutable StructInst* void_ = nonTemplate!"void";
 
-	immutable(StructDecl*) getDecl(immutable Sym name, immutable size_t nTypeParameters) {
+	immutable(StructDecl*) getDeclFromSym(immutable Sym name, immutable size_t nTypeParameters) {
 		immutable Opt!(StructDecl*) res =
 			getCommonTemplateType(structsAndAliasesDict, name, nTypeParameters);
 		if (has(res))
@@ -307,64 +309,66 @@ immutable(CommonTypes) getCommonTypes(
 			return bogusStructDecl(ctx.alloc, nTypeParameters);
 		}
 	}
+	immutable(StructDecl*) getDecl(immutable string name)(immutable size_t nTypeParameters) =>
+		getDeclFromSym(sym!name, nTypeParameters);
 
-	immutable StructDecl* byVal = getDecl(shortSym("by-val"), 1);
-	immutable StructDecl* array = getDecl(shortSym("array"), 1);
-	immutable StructDecl* future = getDecl(shortSym("future"), 1);
-	immutable StructDecl* namedVal = getDecl(shortSym("named-val"), 1);
-	immutable StructDecl* opt = getDecl(shortSym("option"), 1);
-	immutable StructDecl* pointerConst = getDecl(sym!"const-pointer", 1);
-	immutable StructDecl* pointerMut = getDecl(shortSym("mut-pointer"), 1);
+	immutable StructDecl* byVal = getDecl!"by-val"(1);
+	immutable StructDecl* array = getDecl!"array"(1);
+	immutable StructDecl* future = getDecl!"future"(1);
+	immutable StructDecl* namedVal = getDecl!"named-val"(1);
+	immutable StructDecl* opt = getDecl!"option"(1);
+	immutable StructDecl* pointerConst = getDecl!"const-pointer"(1);
+	immutable StructDecl* pointerMut = getDecl!"mut-pointer"(1);
 	immutable StructDecl*[10] funStructs = [
-		getDecl(shortSym("fun0"), 1),
-		getDecl(shortSym("fun1"), 2),
-		getDecl(shortSym("fun2"), 3),
-		getDecl(shortSym("fun3"), 4),
-		getDecl(shortSym("fun4"), 5),
-		getDecl(shortSym("fun5"), 6),
-		getDecl(shortSym("fun6"), 7),
-		getDecl(shortSym("fun7"), 8),
-		getDecl(shortSym("fun8"), 9),
-		getDecl(shortSym("fun9"), 10),
+		getDecl!"fun0"(1),
+		getDecl!"fun1"(2),
+		getDecl!"fun2"(3),
+		getDecl!"fun3"(4),
+		getDecl!"fun4"(5),
+		getDecl!"fun5"(6),
+		getDecl!"fun6"(7),
+		getDecl!"fun7"(8),
+		getDecl!"fun8"(9),
+		getDecl!"fun9"(10),
 	];
 	immutable StructDecl*[10] funActStructs = [
-		getDecl(shortSym("fun-act0"), 1),
-		getDecl(shortSym("fun-act1"), 2),
-		getDecl(shortSym("fun-act2"), 3),
-		getDecl(shortSym("fun-act3"), 4),
-		getDecl(shortSym("fun-act4"), 5),
-		getDecl(shortSym("fun-act5"), 6),
-		getDecl(shortSym("fun-act6"), 7),
-		getDecl(shortSym("fun-act7"), 8),
-		getDecl(shortSym("fun-act8"), 9),
-		getDecl(shortSym("fun-act9"), 10),
+		getDecl!"fun-act0"(1),
+		getDecl!"fun-act1"(2),
+		getDecl!"fun-act2"(3),
+		getDecl!"fun-act3"(4),
+		getDecl!"fun-act4"(5),
+		getDecl!"fun-act5"(6),
+		getDecl!"fun-act6"(7),
+		getDecl!"fun-act7"(8),
+		getDecl!"fun-act8"(9),
+		getDecl!"fun-act9"(10),
 	];
 	immutable StructDecl*[10] funPointerStructs = [
-		getDecl(sym!"fun-pointer0", 1),
-		getDecl(sym!"fun-pointer1", 2),
-		getDecl(sym!"fun-pointer2", 3),
-		getDecl(sym!"fun-pointer3", 4),
-		getDecl(sym!"fun-pointer4", 5),
-		getDecl(sym!"fun-pointer5", 6),
-		getDecl(sym!"fun-pointer6", 7),
-		getDecl(sym!"fun-pointer7", 8),
-		getDecl(sym!"fun-pointer8", 9),
-		getDecl(sym!"fun-pointer9", 10),
+		getDecl!"fun-pointer0"(1),
+		getDecl!"fun-pointer1"(2),
+		getDecl!"fun-pointer2"(3),
+		getDecl!"fun-pointer3"(4),
+		getDecl!"fun-pointer4"(5),
+		getDecl!"fun-pointer5"(6),
+		getDecl!"fun-pointer6"(7),
+		getDecl!"fun-pointer7"(8),
+		getDecl!"fun-pointer8"(9),
+		getDecl!"fun-pointer9"(10),
 	];
 	immutable StructDecl*[10] funRefStructs = [
-		getDecl(shortSym("fun-ref0"), 1),
-		getDecl(shortSym("fun-ref1"), 2),
-		getDecl(shortSym("fun-ref2"), 3),
-		getDecl(shortSym("fun-ref3"), 4),
-		getDecl(shortSym("fun-ref4"), 5),
-		getDecl(shortSym("fun-ref5"), 6),
-		getDecl(shortSym("fun-ref6"), 7),
-		getDecl(shortSym("fun-ref7"), 8),
-		getDecl(shortSym("fun-ref8"), 9),
-		getDecl(shortSym("fun-ref9"), 10),
+		getDecl!"fun-ref0"(1),
+		getDecl!"fun-ref1"(2),
+		getDecl!"fun-ref2"(3),
+		getDecl!"fun-ref3"(4),
+		getDecl!"fun-ref4"(5),
+		getDecl!"fun-ref5"(6),
+		getDecl!"fun-ref6"(7),
+		getDecl!"fun-ref7"(8),
+		getDecl!"fun-ref8"(9),
+		getDecl!"fun-ref9"(10),
 	];
 
-	immutable StructDecl* constPointer = getDecl(sym!"const-pointer", 1);
+	immutable StructDecl* constPointer = getDecl!"const-pointer"(1);
 	immutable StructInst* cStr = instantiateStruct(
 		ctx.alloc,
 		ctx.programState,
@@ -415,11 +419,11 @@ immutable(StructDecl*) bogusStructDecl(ref Alloc alloc, immutable size_t nTypePa
 	ArrBuilder!TypeParam typeParams;
 	immutable FileAndRange fileAndRange = immutable FileAndRange(immutable FileIndex(0), RangeWithinFile.empty);
 	foreach (immutable size_t i; 0 .. nTypeParameters)
-		add(alloc, typeParams, immutable TypeParam(fileAndRange, shortSym("bogus"), i));
+		add(alloc, typeParams, immutable TypeParam(fileAndRange, sym!"bogus", i));
 	StructDecl* res = allocateMut(alloc, StructDecl(
 		fileAndRange,
 		safeCStr!"",
-		shortSym("bogus"),
+		sym!"bogus",
 		small(finishArr(alloc, typeParams)),
 		Visibility.public_,
 		Linkage.internal,
@@ -525,9 +529,9 @@ immutable(SpecBody.Builtin.Kind) getSpecBodyBuiltinKind(
 	immutable Sym name,
 ) {
 	switch (name.value) {
-		case shortSymValue("is-data"):
+		case sym!"is-data".value:
 			return SpecBody.Builtin.Kind.data;
-		case shortSymValue("is-sendable"):
+		case sym!"is-sendable".value:
 			return SpecBody.Builtin.Kind.send;
 		default:
 			addDiag(ctx, range, immutable Diag(immutable Diag.BuiltinUnsupported(name)));
@@ -743,13 +747,13 @@ immutable(FunFlags) checkFunFlags(
 
 	immutable(Sym) bodyModifier() =>
 		builtin
-			? shortSym("builtin")
+			? sym!"builtin"
 			: extern_
-			? shortSym("extern")
+			? sym!"extern"
 			: global
-			? shortSym("global")
+			? sym!"global"
 			: threadLocal
-			? shortSym("thread-local")
+			? sym!"thread-local"
 			: unreachable!(immutable Sym);
 
 	immutable FunFlags.Safety safety = trusted
@@ -758,13 +762,13 @@ immutable(FunFlags) checkFunFlags(
 		? FunFlags.Safety.unsafe
 		: FunFlags.Safety.safe;
 	if (trusted && explicitUnsafe)
-		warnConflict(shortSym("trusted"), shortSym("unsafe"));
+		warnConflict(sym!"trusted", sym!"unsafe");
 	if (implicitNoctx && explicitNoctx)
-		warnRedundant(bodyModifier(), shortSym("noctx"));
+		warnRedundant(bodyModifier(), sym!"noctx");
 	if (implicitUnsafe && explicitUnsafe)
-		warnRedundant(bodyModifier(), shortSym("unsafe"));
+		warnRedundant(bodyModifier(), sym!"unsafe");
 	if (implicitUnsafe && trusted && !extern_)
-		warnConflict(bodyModifier(), shortSym("trusted"));
+		warnConflict(bodyModifier(), sym!"trusted");
 	immutable FunFlags.SpecialBody specialBody = builtin
 		? FunFlags.SpecialBody.builtin
 		: extern_
@@ -776,10 +780,10 @@ immutable(FunFlags) checkFunFlags(
 		: FunFlags.SpecialBody.none;
 	if (builtin + extern_ + global + threadLocal > 1) {
 		MutMaxArr!(2, Sym) bodyModifiers = mutMaxArr!(2, Sym);
-		if (builtin) pushIfUnderMaxSize(bodyModifiers, shortSym("builtin"));
-		if (extern_) pushIfUnderMaxSize(bodyModifiers, shortSym("extern"));
-		if (global) pushIfUnderMaxSize(bodyModifiers, shortSym("global"));
-		if (threadLocal) pushIfUnderMaxSize(bodyModifiers, shortSym("thread-local"));
+		if (builtin) pushIfUnderMaxSize(bodyModifiers, sym!"builtin");
+		if (extern_) pushIfUnderMaxSize(bodyModifiers, sym!"extern");
+		if (global) pushIfUnderMaxSize(bodyModifiers, sym!"global");
+		if (threadLocal) pushIfUnderMaxSize(bodyModifiers, sym!"thread-local");
 		verify(mutMaxArrSize(bodyModifiers) == 2);
 		addDiag(ctx, range, immutable Diag(immutable Diag.FunModifierConflict(bodyModifiers[0], bodyModifiers[1])));
 	}
@@ -1025,18 +1029,18 @@ immutable(Type) typeForFileImport(
 		case ImportFileType.nat8Array:
 			immutable TypeAst nat8 = immutable TypeAst(immutable TypeAst.InstStruct(
 				range,
-				immutable NameAndRange(range.start, shortSym("nat8")),
+				immutable NameAndRange(range.start, sym!"nat8"),
 				emptySmallArray!TypeAst));
 			scope immutable TypeAst arrayNat8 = immutable TypeAst(immutable TypeAst.InstStruct(
 				range,
-				immutable NameAndRange(range.start, shortSym("array")),
+				immutable NameAndRange(range.start, sym!"array"),
 				small([nat8])));
 			return typeFromAstNoTypeParamsNeverDelay(ctx, commonTypes, arrayNat8, structsAndAliasesDict);
 		case ImportFileType.str:
 			//TODO: this sort of duplicates 'getStrType'
 			scope immutable TypeAst ast = immutable TypeAst(immutable TypeAst.InstStruct(
 				range,
-				immutable NameAndRange(range.start, shortSym("string")),
+				immutable NameAndRange(range.start, sym!"string"),
 				emptySmallArray!TypeAst));
 			return typeFromAstNoTypeParamsNeverDelay(ctx, commonTypes, ast, structsAndAliasesDict);
 	}
@@ -1093,7 +1097,7 @@ immutable(FunBody.Extern) checkExternOrGlobalBody(
 	if (!has(libraryName))
 		addDiag(ctx, fun.range, immutable Diag(
 			immutable Diag.ExternFunForbidden(fun, Diag.ExternFunForbidden.Reason.missingLibraryName)));
-	return immutable FunBody.Extern(isGlobal, has(libraryName) ? force(libraryName) : shortSym("bogus"));
+	return immutable FunBody.Extern(isGlobal, has(libraryName) ? force(libraryName) : sym!"bogus");
 }
 
 immutable(FunBody.ThreadLocal) checkThreadLocalBody(

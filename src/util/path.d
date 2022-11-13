@@ -539,7 +539,7 @@ void eachPartRecur(
 
 public void writePathPlain(
 	ref Writer writer,
-	ref const AllPaths allPaths,
+	scope ref const AllPaths allPaths,
 	immutable Path p,
 ) {
 	immutable Opt!Path par = parent(allPaths, p);
@@ -567,7 +567,7 @@ public void writePath(
 
 public void writeRelPath(
 	ref Writer writer,
-	ref const AllPaths allPaths,
+	scope ref const AllPaths allPaths,
 	immutable RelPath p,
 	immutable Sym extension,
 ) {

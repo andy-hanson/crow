@@ -9,23 +9,23 @@ import util.col.str : SafeCStr, strOfSafeCStr;
 import util.memory : allocate;
 import util.opt : force, has, none, Opt, some;
 import util.ptr : ptrTrustMe_mut;
-import util.sym : AllSymbols, shortSym, Sym, writeQuotedSym;
+import util.sym : AllSymbols, Sym, sym, writeQuotedSym;
 import util.writer : finishWriterToSafeCStr, writeFloatLiteral, writeJoin, Writer, writeQuotedStr;
 
 immutable(Repr) reprRecord(immutable Sym name, immutable Repr[] children) =>
 	immutable Repr(immutable ReprRecord(name, children));
 
-immutable(Repr) reprRecord(immutable string name, immutable Repr[] children) =>
-	reprRecord(shortSym(name), children);
+immutable(Repr) reprRecord(immutable string name)(immutable Repr[] children) =>
+	reprRecord(sym!name, children);
 
-immutable(Repr) reprRecord(immutable string name) =>
+immutable(Repr) reprRecord(immutable string name)() =>
 	reprRecord(name, []);
 
 immutable(Repr) reprRecord(ref Alloc alloc, immutable Sym name, scope immutable Repr[] children) =>
 	reprRecord(name, arrLiteral(alloc, children));
 
-immutable(Repr) reprRecord(ref Alloc alloc, immutable string name, scope immutable Repr[] children) =>
-	reprRecord(name, arrLiteral(alloc, children));
+immutable(Repr) reprRecord(immutable string name)(ref Alloc alloc, scope immutable Repr[] children) =>
+	reprRecord!name(arrLiteral(alloc, children));
 
 private struct ReprRecord {
 	immutable Sym name;
@@ -35,14 +35,14 @@ private struct ReprRecord {
 immutable(Repr) reprNamedRecord(immutable Sym name, immutable NameAndRepr[] children) =>
 	immutable Repr(immutable ReprNamedRecord(name, children));
 
-immutable(Repr) reprNamedRecord(immutable string name, immutable NameAndRepr[] children) =>
-	reprNamedRecord(shortSym(name), children);
+immutable(Repr) reprNamedRecord(immutable string name)(immutable NameAndRepr[] children) =>
+	reprNamedRecord(sym!name, children);
 
 immutable(Repr) reprNamedRecord(ref Alloc alloc, immutable Sym name, scope immutable NameAndRepr[] children) =>
 	reprNamedRecord(name, arrLiteral(alloc, children));
 
-immutable(Repr) reprNamedRecord(ref Alloc alloc, immutable string name, scope immutable NameAndRepr[] children) =>
-	reprNamedRecord(name, arrLiteral(alloc, children));
+immutable(Repr) reprNamedRecord(immutable string name)(ref Alloc alloc, scope immutable NameAndRepr[] children) =>
+	reprNamedRecord(alloc, sym!name, children);
 
 immutable(Repr) reprArr(immutable Repr[] elements) =>
 	immutable Repr(immutable ReprArr(false, elements), true);
@@ -89,8 +89,8 @@ immutable(Repr) reprStr(immutable SafeCStr a) =>
 immutable(Repr) reprSym(immutable Sym a) =>
 	immutable Repr(a);
 
-immutable(Repr) reprSym(immutable string a) =>
-	reprSym(shortSym(a));
+immutable(Repr) reprSym(immutable string a)() =>
+	reprSym(sym!a);
 
 immutable(Repr) reprOpt(T)(
 	ref Alloc alloc,
@@ -104,8 +104,8 @@ private struct ReprNamedRecord {
 	immutable NameAndRepr[] children;
 }
 
-immutable(NameAndRepr) nameAndRepr(immutable string name, immutable Repr value) =>
-	immutable NameAndRepr(shortSym(name), value);
+immutable(NameAndRepr) nameAndRepr(immutable string name)(immutable Repr value) =>
+	immutable NameAndRepr(sym!name, value);
 
 struct NameAndRepr {
 	immutable Sym name;

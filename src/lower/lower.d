@@ -148,7 +148,7 @@ import util.opt : asImmutable, force, has, none, Opt, some;
 import util.perf : Perf, PerfMeasure, withMeasure;
 import util.ptr : castNonScope_mut, ptrTrustMe, ptrTrustMe_mut;
 import util.sourceRange : FileAndRange;
-import util.sym : AllSymbols, shortSym, Sym;
+import util.sym : AllSymbols, Sym, sym;
 import util.util : unreachable, verify;
 
 immutable(LowProgram) lower(
@@ -906,10 +906,10 @@ immutable(LowFun) mainFun(
 ) {
 	immutable LowParam[] params = arrLiteral!LowParam(ctx.alloc, [
 		immutable LowParam(
-			immutable LowParamSource(immutable LowParamSource.Generated(shortSym("argc"))),
+			immutable LowParamSource(immutable LowParamSource.Generated(sym!"argc")),
 			int32Type),
 		immutable LowParam(
-			immutable LowParamSource(immutable LowParamSource.Generated(shortSym("argv"))),
+			immutable LowParamSource(immutable LowParamSource.Generated(sym!"argv")),
 			char8PtrPtrConstType)]);
 	immutable LowParamIndex argc = immutable LowParamIndex(0);
 	immutable LowParamIndex argv = immutable LowParamIndex(1);
@@ -928,7 +928,7 @@ immutable(LowFun) mainFun(
 				userMainFunPtr]))));
 	immutable LowFunBody body_ = immutable LowFunBody(immutable LowFunExprBody(false, call));
 	return immutable LowFun(
-		immutable LowFunSource(allocate(ctx.alloc, immutable LowFunSource.Generated(shortSym("main"), []))),
+		immutable LowFunSource(allocate(ctx.alloc, immutable LowFunSource.Generated(sym!"main", []))),
 		int32Type,
 		params,
 		body_);
@@ -1061,7 +1061,7 @@ immutable(size_t) getTempLocalIndex(ref GetLowExprCtx ctx) {
 }
 
 immutable(LowLocal*) addTempLocal(ref GetLowExprCtx ctx, immutable LowType type) =>
-	genLocal(ctx.alloc, shortSym("temp"), getTempLocalIndex(ctx), type);
+	genLocal(ctx.alloc, sym!"temp", getTempLocalIndex(ctx), type);
 
 enum ExprPos {
 	tail,

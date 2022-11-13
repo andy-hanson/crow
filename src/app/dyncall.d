@@ -29,7 +29,7 @@ import util.late : Late, late, lateGet, lateSet;
 import util.memory : allocate;
 import util.opt : force, has, Opt, none, some;
 import util.path : AllPaths, childPath, Path, pathToTempStr, TempStrForPath;
-import util.sym : AllSymbols, concatSyms, shortSym, shortSymValue, Sym, sym, symAsTempBuffer;
+import util.sym : AllSymbols, concatSyms, Sym, sym, symAsTempBuffer;
 import util.util : todo, unreachable, verify;
 
 @trusted immutable(ExitCode) withRealExtern(
@@ -100,14 +100,14 @@ immutable(LibraryAndError) getLibrary(
 		return immutable LibraryAndError(force(fromPath), false);
 	else {
 		switch (libraryName.value) {
-			case shortSymValue("c"):
-			case shortSymValue("m"):
+			case sym!"c".value:
+			case sym!"m".value:
 				version (Windows) {
 					return loadLibraryFromName(safeCStr!"ucrtbase.dll", writeError);
 				} else {
 					return immutable LibraryAndError(null, false);
 				}
-			case shortSymValue("pthread"):
+			case sym!"pthread".value:
 				// TODO: understand why this is different
 				return loadLibraryFromName(safeCStr!"libpthread.so.0", writeError);
 			default:
@@ -120,7 +120,7 @@ immutable(Sym) dllOrSoName(ref AllSymbols allSymbols, immutable Sym libraryName)
 	version (Windows) {
 		return concatSyms(allSymbols, [libraryName, sym!".dll"]);
 	} else {
-		return concatSyms(allSymbols, [shortSym("lib"), libraryName, sym!".so"]);
+		return concatSyms(allSymbols, [sym!"lib", libraryName, sym!".so"]);
 	}
 }
 

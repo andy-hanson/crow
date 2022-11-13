@@ -22,7 +22,7 @@ import test.testWriter : testWriter;
 import util.alloc.alloc : Alloc;
 import util.opt : force, has, Opt;
 import util.ptr : castNonScope_mut;
-import util.sym : shortSym, Sym, sym;
+import util.sym : Sym, sym;
 
 immutable(ExitCode) test(ref Alloc alloc, scope immutable Opt!Sym name) {
 	Test test = Test(castNonScope_mut(&alloc));
@@ -35,21 +35,21 @@ immutable(ExitCode) test(ref Alloc alloc, scope immutable Opt!Sym name) {
 private:
 
 immutable(NameAndTest[]) allTests = [
-	immutable NameAndTest(shortSym("apply-fn"), &testApplyFn),
-	immutable NameAndTest(shortSym("dict"), &testDict),
-	immutable NameAndTest(shortSym("fake-extern"), &testFakeExtern),
-	immutable NameAndTest(shortSym("hover"), &testHover),
-	immutable NameAndTest(shortSym("interpreter"), &testInterpreter),
-	immutable NameAndTest(shortSym("json"), &testJson),
+	immutable NameAndTest(sym!"apply-fn", &testApplyFn),
+	immutable NameAndTest(sym!"dict", &testDict),
+	immutable NameAndTest(sym!"fake-extern", &testFakeExtern),
+	immutable NameAndTest(sym!"hover", &testHover),
+	immutable NameAndTest(sym!"interpreter", &testInterpreter),
+	immutable NameAndTest(sym!"json", &testJson),
 	immutable NameAndTest(sym!"line-and-column-getter", &testLineAndColumnGetter),
-	immutable NameAndTest(shortSym("memory"), &testMemory),
-	immutable NameAndTest(shortSym("path"), &testPath),
-	immutable NameAndTest(shortSym("server"), &testServer),
-	immutable NameAndTest(shortSym("sort-util"), &testSortUtil),
-	immutable NameAndTest(shortSym("stack"), &testStack),
-	immutable NameAndTest(shortSym("sym"), &testSym),
-	immutable NameAndTest(shortSym("tokens"), &testTokens),
-	immutable NameAndTest(shortSym("writer"), &testWriter),
+	immutable NameAndTest(sym!"memory", &testMemory),
+	immutable NameAndTest(sym!"path", &testPath),
+	immutable NameAndTest(sym!"server", &testServer),
+	immutable NameAndTest(sym!"sort-util", &testSortUtil),
+	immutable NameAndTest(sym!"stack", &testStack),
+	immutable NameAndTest(sym!"sym", &testSym),
+	immutable NameAndTest(sym!"tokens", &testTokens),
+	immutable NameAndTest(sym!"writer", &testWriter),
 ];
 
 struct NameAndTest {

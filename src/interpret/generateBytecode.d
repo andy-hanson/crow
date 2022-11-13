@@ -80,7 +80,7 @@ import util.opt : force, has, Opt;
 import util.perf : Perf, PerfMeasure, withMeasure;
 import util.ptr : castNonScope_mut, ptrTrustMe_mut;
 import util.sourceRange : FileIndex;
-import util.sym : AllSymbols, shortSym, shortSymValue, Sym;
+import util.sym : AllSymbols, Sym, sym;
 import util.util : unreachable, verify;
 import util.writer : Writer;
 
@@ -310,10 +310,10 @@ void generateExternCall(
 	immutable Opt!Sym optName = name(fun);
 	immutable Sym name = force(optName);
 	switch (name.value) {
-		case shortSymValue("longjmp"):
+		case sym!"longjmp".value:
 			writeLongjmp(writer, source);
 			break;
-		case shortSymValue("setjmp"):
+		case sym!"setjmp".value:
 			writeSetjmp(writer, source);
 			break;
 		default:
@@ -416,7 +416,7 @@ void toDynCallTypes(
 	} else if (isUnionType(a)) {
 		// This should only happen for the 'str[]' in 'main'
 		immutable LowUnion u = program.allUnions[asUnionType(a)];
-		verify(name(*asInst(u.source.source).inst) == shortSym("node"));
+		verify(name(*asInst(u.source.source).inst) == sym!"node");
 		immutable size_t sizeWords = 3;
 		verify(typeSize(u).sizeBytes == ulong.sizeof * sizeWords);
 		foreach (immutable size_t i; 0 .. sizeWords)

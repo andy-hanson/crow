@@ -41,7 +41,7 @@ import util.col.mutArr : MutArr;
 import util.col.mutMaxArr : fillMutMaxArr, mapTo, tempAsArr;
 import util.opt : force, has, none, noneMut, Opt, some;
 import util.sourceRange : RangeWithinFile;
-import util.sym : shortSym, shortSymValue, Sym, sym, symValue;
+import util.sym : Sym, sym;
 import util.util : todo;
 
 private immutable(Type) instStructFromAst(
@@ -206,7 +206,7 @@ immutable(Type) typeFromAst(
 			instStructFromAst(
 				ctx,
 				commonTypes,
-				shortSym("pair"),
+				sym!"pair",
 				range(it),
 				[it.a, it.b],
 				structsAndAliasesDict,
@@ -216,23 +216,23 @@ immutable(Type) typeFromAst(
 
 private immutable(Opt!(Diag.TypeShouldUseSyntax.Kind)) typeSyntaxKind(immutable Sym a) {
 	switch (a.value) {
-		case symValue!"const-pointer":
+		case sym!"const-pointer".value:
 			return some(Diag.TypeShouldUseSyntax.Kind.pointer);
-		case shortSymValue("dict"):
+		case sym!"dict".value:
 			return some(Diag.TypeShouldUseSyntax.Kind.dict);
-		case shortSymValue("future"):
+		case sym!"future".value:
 			return some(Diag.TypeShouldUseSyntax.Kind.future);
-		case shortSymValue("list"):
+		case sym!"list".value:
 			return some(Diag.TypeShouldUseSyntax.Kind.list);
-		case shortSymValue("mut-dict"):
+		case sym!"mut-dict".value:
 			return some(Diag.TypeShouldUseSyntax.Kind.mutDict);
-		case shortSymValue("mut-list"):
+		case sym!"mut-list".value:
 			return some(Diag.TypeShouldUseSyntax.Kind.mutList);
-		case shortSymValue("mut-pointer"):
+		case sym!"mut-pointer".value:
 			return some(Diag.TypeShouldUseSyntax.Kind.mutPointer);
-		case shortSymValue("option"):
+		case sym!"option".value:
 			return some(Diag.TypeShouldUseSyntax.Kind.opt);
-		case shortSymValue("pair"):
+		case sym!"pair".value:
 			return some(Diag.TypeShouldUseSyntax.Kind.pair);
 		default:
 			return none!(Diag.TypeShouldUseSyntax.Kind);

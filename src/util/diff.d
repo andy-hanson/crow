@@ -7,7 +7,7 @@ import util.col.arr : only;
 import util.col.arrUtil : arrMax, arrMaxIndex, exists, fillArrUninitialized;
 import util.col.arrBuilder : add, ArrBuilder, finishArr;
 import util.comparison : compareSizeT;
-import util.sym : AllSymbols, shortSym, Sym, symSize, writeSym;
+import util.sym : AllSymbols, Sym, sym, symSize, writeSym;
 import util.writer : Writer, writeRed, writeReset;
 import util.writerUtils : writeNlIndent, writeSpaces, writeSymPadded;
 import util.util : max, verify;
@@ -149,7 +149,7 @@ void printDiff(
 	ref immutable Sym[] b,
 	immutable Sym[] commonSyms,
 ) {
-	immutable Sym expected = shortSym("expected");
+	immutable Sym expected = sym!"expected";
 	// + 2 for a margin
 	immutable size_t columnSize = 2 + max(
 		arrMax(0, a, (ref immutable Sym s) => symSize(allSymbols, s)),

@@ -56,7 +56,7 @@ import util.perf : Perf, PerfMeasure, withMeasure;
 import util.readOnlyStorage :
 	asOption, matchReadFileResult, ReadFileResult, ReadOnlyStorage, withFileBinary, withFileText;
 import util.sourceRange : FileIndex, RangeWithinFile;
-import util.sym : AllSymbols, shortSym, Sym, sym;
+import util.sym : AllSymbols, Sym, sym;
 import util.util : as, verify;
 
 immutable(Program) frontendCompile(

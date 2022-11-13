@@ -26,11 +26,11 @@ import util.col.arrUtil : arrLiteral;
 import util.memory : allocate;
 import util.opt : none, Opt, some;
 import util.sourceRange : Pos, RangeWithinFile;
-import util.sym : Operator;
+import util.sym : sym;
 import util.util : todo;
 
 immutable(Opt!(TypeAst*)) tryParseTypeArg(scope ref Lexer lexer) {
-	if (tryTakeOperator(lexer, Operator.less)) {
+	if (tryTakeOperator(lexer, sym!"<")) {
 		immutable TypeAst res = parseType(lexer);
 		takeTypeArgsEnd(lexer);
 		return some(allocate(lexer.alloc, res));
@@ -48,7 +48,7 @@ immutable(TypeAst[]) tryParseTypeArgsForExpr(scope ref Lexer lexer) {
 }
 
 immutable(TypeAst[]) tryParseTypeArgsBracketed(scope ref Lexer lexer) {
-	if (tryTakeOperator(lexer, Operator.less)) {
+	if (tryTakeOperator(lexer, sym!"<")) {
 		immutable TypeAst[] res = parseTypesWithCommas(lexer);
 		takeTypeArgsEnd(lexer);
 		return res;
@@ -123,7 +123,7 @@ immutable(TypeAst) parseTypeBeforeSuffixes(scope ref Lexer lexer, immutable Requ
 			return parseFunType(
 				lexer,
 				start,
-				tryTakeOperator(lexer, Operator.times) ? TypeAst.Fun.Kind.funPointer : TypeAst.Fun.Kind.fun);
+				tryTakeOperator(lexer, sym!"*") ? TypeAst.Fun.Kind.funPointer : TypeAst.Fun.Kind.fun);
 		case Token.ref_:
 			return parseFunType(lexer, start, TypeAst.Fun.Kind.ref_);
 		default:
@@ -181,20 +181,20 @@ immutable(TypeAst) parseTypeSuffixes(scope ref Lexer lexer, immutable TypeAst as
 		return tryTakeToken(lexer, Token.bracketRight)
 			? handleSuffix(TypeAst.Suffix.Kind.list)
 			: handleDictLike(TypeAst.Dict.Kind.data);
-	else if (tryTakeOperator(lexer, Operator.xor1))
+	else if (tryTakeOperator(lexer, sym!"^"))
 		return handleSuffix(TypeAst.Suffix.Kind.future);
-	else if (tryTakeOperator(lexer, Operator.times))
+	else if (tryTakeOperator(lexer, sym!"*"))
 		return handleSuffix(TypeAst.Suffix.Kind.ptr);
-	else if (tryTakeOperator(lexer, Operator.exponent))
+	else if (tryTakeOperator(lexer, sym!"**"))
 		return handleDoubleSuffix(TypeAst.Suffix.Kind.ptr, TypeAst.Suffix.Kind.ptr);
 	else if (tryTakeToken(lexer, Token.mut)) {
 		if (tryTakeToken(lexer, Token.bracketLeft))
 			return tryTakeToken(lexer, Token.bracketRight)
 				? handleSuffix(TypeAst.Suffix.Kind.mutList)
 				: handleDictLike(TypeAst.Dict.Kind.mut);
-		else if (tryTakeOperator(lexer, Operator.times))
+		else if (tryTakeOperator(lexer, sym!"*"))
 			return handleSuffix(TypeAst.Suffix.kind.mutPtr);
-		else if (tryTakeOperator(lexer, Operator.exponent))
+		else if (tryTakeOperator(lexer, sym!"**"))
 			return handleDoubleSuffix(TypeAst.Suffix.Kind.mutPtr, TypeAst.Suffix.Kind.ptr);
 		else {
 			addDiagExpected(lexer, ParseDiag.Expected.Kind.afterMut);

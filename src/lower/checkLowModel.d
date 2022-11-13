@@ -532,17 +532,17 @@ immutable(Repr) reprOfLowType2(ref Ctx ctx, immutable LowType a) =>
 	matchLowType!(
 		immutable Repr,
 		(immutable LowType.ExternPtr) =>
-			reprSym("some-ext-ptr"), //TODO: more detail
+			reprSym!"some-ext-ptr", //TODO: more detail
 		(immutable LowType.FunPtr) =>
-			reprSym("some-fun-ptr"), //TODO: more detail
+			reprSym!"some-fun-ptr", //TODO: more detail
 		(immutable PrimitiveType it) =>
 			reprSym(symOfPrimitiveType(it)),
 		(immutable LowType.PtrGc it) =>
-			reprRecord(ctx.alloc, "gc-ptr", [reprOfLowType2(ctx, *it.pointee)]),
+			reprRecord!"gc-ptr"(ctx.alloc, [reprOfLowType2(ctx, *it.pointee)]),
 		(immutable LowType.PtrRawConst it) =>
-			reprRecord(ctx.alloc, "ptr-const", [reprOfLowType2(ctx, *it.pointee)]),
+			reprRecord!"ptr-const"(ctx.alloc, [reprOfLowType2(ctx, *it.pointee)]),
 		(immutable LowType.PtrRawMut it) =>
-			reprRecord(ctx.alloc, "ptr-mut", [reprOfLowType2(ctx, *it.pointee)]),
+			reprRecord!"ptr-mut"(ctx.alloc, [reprOfLowType2(ctx, *it.pointee)]),
 		(immutable LowType.Record it) =>
 			reprOfConcreteStructRef(ctx.alloc, *ctx.program.allRecords[it].source),
 		(immutable LowType.Union it) =>

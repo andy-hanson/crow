@@ -76,10 +76,10 @@ struct FileAndRange {
 static assert(FileAndRange.sizeof == 8);
 
 immutable(Repr) reprFileAndPos(ref Alloc alloc, ref immutable FileAndPos a) =>
-	reprRecord(alloc, "file-pos", [reprNat(a.fileIndex.index), reprNat(a.pos)]);
+	reprRecord!"file-pos"(alloc, [reprNat(a.fileIndex.index), reprNat(a.pos)]);
 
 immutable(Repr) reprFileAndRange(ref Alloc alloc, ref immutable FileAndRange a) =>
-	reprRecord(alloc, "file-range", [reprNat(a.fileIndex.index), reprRangeWithinFile(alloc, a.range)]);
+	reprRecord!"file-range"(alloc, [reprNat(a.fileIndex.index), reprRangeWithinFile(alloc, a.range)]);
 
 immutable(Repr) reprRangeWithinFile(ref Alloc alloc, immutable RangeWithinFile a) =>
-	reprRecord(alloc, "range", [reprNat(a.start), reprNat(a.end)]);
+	reprRecord!"range"(alloc, [reprNat(a.start), reprNat(a.end)]);

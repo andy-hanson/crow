@@ -79,7 +79,7 @@ import util.path : AllPaths, childPath, Path, PathOrRelPath, rootPath;
 import util.perf : Perf, PerfMeasure, withMeasure;
 import util.ptr : ptrTrustMe_mut;
 import util.sourceRange : Pos, RangeWithinFile;
-import util.sym : AllSymbols, Operator, shortSym, shortSymValue, Sym;
+import util.sym : AllSymbols, Sym, sym;
 import util.util : todo, unreachable;
 
 immutable(FileAst) parseFile(
@@ -102,7 +102,7 @@ immutable(FileAst) parseFile(
 private:
 
 immutable(NameAndRange[]) parseTypeParams(scope ref Lexer lexer) {
-	if (tryTakeOperator(lexer, Operator.less)) {
+	if (tryTakeOperator(lexer, sym!"<")) {
 		ArrBuilder!NameAndRange res;
 		do {
 			add(lexer.alloc, res, takeNameAndRange(lexer));
@@ -127,10 +127,10 @@ struct ImportOrExportKindAndDedent {
 immutable(PathOrRelPath) parseImportPath(ref AllPaths allPaths, scope ref Lexer lexer) {
 	immutable Opt!ushort nParents = () {
 		if (tryTakeToken(lexer, Token.dot)) {
-			takeOrAddDiagExpectedOperator(lexer, Operator.divide, ParseDiag.Expected.Kind.slash);
+			takeOrAddDiagExpectedOperator(lexer, sym!"/", ParseDiag.Expected.Kind.slash);
 			return some!ushort(0);
-		} else if (tryTakeOperator(lexer, Operator.range)) {
-			takeOrAddDiagExpectedOperator(lexer, Operator.divide, ParseDiag.Expected.Kind.slash);
+		} else if (tryTakeOperator(lexer, sym!"..")) {
+			takeOrAddDiagExpectedOperator(lexer, sym!"/", ParseDiag.Expected.Kind.slash);
 			return some(safeToUshort(takeDotDotSlashes(lexer, 1)));
 		} else
 			return none!ushort;
@@ -141,15 +141,15 @@ immutable(PathOrRelPath) parseImportPath(ref AllPaths allPaths, scope ref Lexer 
 }
 
 immutable(size_t) takeDotDotSlashes(scope ref Lexer lexer, immutable size_t acc) {
-	if (tryTakeOperator(lexer, Operator.range)) {
-		takeOrAddDiagExpectedOperator(lexer, Operator.divide, ParseDiag.Expected.Kind.slash);
+	if (tryTakeOperator(lexer, sym!"..")) {
+		takeOrAddDiagExpectedOperator(lexer, sym!"/", ParseDiag.Expected.Kind.slash);
 		return takeDotDotSlashes(lexer, acc + 1);
 	} else
 		return acc;
 }
 
 immutable(Path) addPathComponents(ref AllPaths allPaths, scope ref Lexer lexer, immutable Path acc) =>
-	tryTakeOperator(lexer, Operator.divide)
+	tryTakeOperator(lexer, sym!"/")
 		? addPathComponents(allPaths, lexer, childPath(allPaths, acc, takePathComponent(lexer)))
 		: acc;
 
@@ -207,11 +207,11 @@ immutable(Opt!(ImportFileType)) toImportFileType(immutable TypeAst a) =>
 			none!(ImportFileType),
 		(immutable TypeAst.InstStruct x) {
 			switch (x.name.name.value) {
-				case shortSymValue("string"):
+				case sym!"string".value:
 					return empty(x.typeArgs)
 						? some(ImportFileType.str)
 						: none!ImportFileType;
-				case shortSymValue("array"):
+				case sym!"array".value:
 					return x.typeArgs.length == 1
 						? matchTypeAst!(
 							immutable Opt!(ImportFileType),
@@ -220,7 +220,7 @@ immutable(Opt!(ImportFileType)) toImportFileType(immutable TypeAst a) =>
 							(immutable(TypeAst.Fun)) =>
 								none!(ImportFileType),
 							(immutable TypeAst.InstStruct y) =>
-								y.name.name == shortSym("nat8") && empty(y.typeArgs)
+								y.name.name == sym!"nat8" && empty(y.typeArgs)
 									? some(ImportFileType.nat8Array)
 									: none!(ImportFileType),
 							(immutable(TypeAst.Suffix)) =>
@@ -495,23 +495,23 @@ void parseFunModifier(scope ref Lexer lexer, scope ref ArrBuilder!FunModifierAst
 	immutable Opt!Sym name = () {
 		switch (token) {
 			case Token.builtin:
-				return some(shortSym("builtin"));
+				return some(sym!"builtin");
 			case Token.extern_:
-				return some(shortSym("extern"));
+				return some(sym!"extern");
 			case Token.global:
-				return some(shortSym("global"));
+				return some(sym!"global");
 			case Token.noCtx:
-				return some(shortSym("noctx"));
+				return some(sym!"noctx");
 			case Token.noDoc:
-				return some(shortSym("no-doc"));
+				return some(sym!"no-doc");
 			case Token.summon:
-				return some(shortSym("summon"));
+				return some(sym!"summon");
 			case Token.unsafe:
-				return some(shortSym("unsafe"));
+				return some(sym!"unsafe");
 			case Token.thread_local:
-				return some(shortSym("thread-local"));
+				return some(sym!"thread-local");
 			case Token.trusted:
-				return some(shortSym("trusted"));
+				return some(sym!"trusted");
 			case Token.name:
 				return some(getCurSym(lexer));
 			default:
@@ -676,7 +676,7 @@ void parseModifiersRecur(scope ref Lexer lexer, ref ArrBuilder!ModifierAst res) 
 immutable(Opt!(ModifierAst.Kind)) tryParseModifierKind(scope ref Lexer lexer) {
 	if (tryTakeToken(lexer, Token.dot)) {
 		immutable Opt!Sym name = tryTakeName(lexer);
-		if (!(has(name) && force(name) == shortSym("new")))
+		if (!(has(name) && force(name) == sym!"new"))
 			todo!void("diagnostic: expected 'new' after '.'");
 		return some(ModifierAst.Kind.newPrivate);
 	} else {
@@ -710,13 +710,13 @@ immutable(Opt!(ModifierAst.Kind)) tryParseModifierKind(scope ref Lexer lexer) {
 
 immutable(Opt!(ModifierAst.Kind)) modifierKindFromSym(immutable Sym a) {
 	switch (a.value) {
-		case shortSymValue("by-val"):
+		case sym!"by-val".value:
 			return some(ModifierAst.Kind.byVal);
-		case shortSymValue("by-ref"):
+		case sym!"by-ref".value:
 			return some(ModifierAst.Kind.byRef);
-		case shortSymValue("new"):
+		case sym!"new".value:
 			return some(ModifierAst.Kind.newPublic);
-		case shortSymValue("packed"):
+		case sym!"packed".value:
 			return some(ModifierAst.Kind.packed);
 		default:
 			return none!(ModifierAst.Kind);

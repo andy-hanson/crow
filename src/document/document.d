@@ -51,7 +51,7 @@ import util.opt : force, has, none, Opt, some;
 import util.path : AllPaths, Path, PathsInfo, pathToSafeCStrPreferRelative;
 import util.repr : jsonStrOfRepr, NameAndRepr, nameAndRepr, Repr, reprArr, reprBool, reprNamedRecord, reprStr, reprSym;
 import util.sourceRange : FileAndRange;
-import util.sym : AllSymbols, shortSym, Sym;
+import util.sym : AllSymbols, Sym, sym;
 import util.util : unreachable, verify;
 
 immutable(SafeCStr) documentJSON(
@@ -72,8 +72,8 @@ immutable(Repr) documentRootModules(
 	ref immutable PathsInfo pathsInfo,
 	ref immutable Program program,
 ) =>
-	reprNamedRecord(alloc, "root", [
-		nameAndRepr("modules", reprArr(alloc, program.specialModules.rootModules, (ref immutable Module* x) =>
+	reprNamedRecord!"root"(alloc, [
+		nameAndRepr!"modules"(reprArr(alloc, program.specialModules.rootModules, (ref immutable Module* x) =>
 			documentModule(alloc, allSymbols, allPaths, pathsInfo, program, *x)))]);
 
 immutable(Repr) documentModule(
@@ -101,13 +101,12 @@ immutable(Repr) documentModule(
 	arrBuilderSort!DocExport(exports, (ref immutable DocExport x, ref immutable DocExport y) =>
 		compareRanges(x.range, y.range));
 	ArrBuilder!NameAndRepr fields;
-	add(alloc, fields, nameAndRepr("path", reprStr(pathStr)));
+	add(alloc, fields, nameAndRepr!"path"(reprStr(pathStr)));
 	if (!safeCStrIsEmpty(a.docComment))
-		add(alloc, fields, nameAndRepr("comment", reprStr(a.docComment)));
-	add(alloc, fields, nameAndRepr(
-		"exports",
+		add(alloc, fields, nameAndRepr!"comment"(reprStr(a.docComment)));
+	add(alloc, fields, nameAndRepr!"exports"(
 		reprArr(alloc, finishArr(alloc, exports), (ref immutable DocExport x) => x.repr)));
-	return reprNamedRecord("module", finishArr(alloc, fields));
+	return reprNamedRecord!"module"(finishArr(alloc, fields));
 }
 
 immutable(Comparison) compareRanges(immutable FileAndRange a, immutable FileAndRange b) {
@@ -129,13 +128,13 @@ immutable(DocExport) documentExport(
 	immutable Repr value,
 ) {
 	ArrBuilder!NameAndRepr fields;
-	add(alloc, fields, nameAndRepr("name", reprSym(name)));
+	add(alloc, fields, nameAndRepr!"name"(reprSym(name)));
 	if (!safeCStrIsEmpty(docComment))
-		add(alloc, fields, nameAndRepr("comment", reprStr(docComment)));
+		add(alloc, fields, nameAndRepr!"comment"(reprStr(docComment)));
 	if (!empty(typeParams))
-		add(alloc, fields, nameAndRepr("type-params", documentTypeParams(alloc, typeParams)));
-	add(alloc, fields, nameAndRepr("value", value));
-	return immutable DocExport(range, reprNamedRecord("export", finishArr(alloc, fields)));
+		add(alloc, fields, nameAndRepr!"type-params"(documentTypeParams(alloc, typeParams)));
+	add(alloc, fields, nameAndRepr!"value"(value));
+	return immutable DocExport(range, reprNamedRecord!"export"(finishArr(alloc, fields)));
 }
 
 immutable(DocExport) documentStructOrAlias(ref Alloc alloc, immutable StructOrAlias a) =>
@@ -148,8 +147,8 @@ immutable(DocExport) documentStructOrAlias(ref Alloc alloc, immutable StructOrAl
 
 immutable(DocExport) documentStructAlias(ref Alloc alloc, ref immutable StructAlias a) {
 	immutable Opt!(StructInst*) optTarget = target(a);
-	return documentExport(alloc, a.range, a.name, a.docComment, a.typeParams, reprNamedRecord(alloc, "alias", [
-		nameAndRepr("target", documentStructInst(alloc, *force(optTarget)))]));
+	return documentExport(alloc, a.range, a.name, a.docComment, a.typeParams, reprNamedRecord!"alias"(alloc, [
+		nameAndRepr!"target"(documentStructInst(alloc, *force(optTarget)))]));
 }
 
 immutable(DocExport) documentStructDecl(ref Alloc alloc, ref immutable StructDecl a) =>
@@ -158,19 +157,17 @@ immutable(DocExport) documentStructDecl(ref Alloc alloc, ref immutable StructDec
 		(ref immutable StructBody.Bogus) =>
 			unreachable!(immutable Repr),
 		(ref immutable StructBody.Builtin) =>
-			reprNamedRecord(alloc, "builtin", [nameAndRepr("name", reprSym(a.name))]),
+			reprNamedRecord!"builtin"(alloc, [nameAndRepr!"name"(reprSym(a.name))]),
 		(ref immutable StructBody.Enum it) =>
-			reprNamedRecord(alloc, "enum", [nameAndRepr(
-				"members",
+			reprNamedRecord!"enum"(alloc, [nameAndRepr!"members"(
 				reprArr(alloc, it.members, (ref immutable StructBody.Enum.Member member) =>
 					reprSym(member.name)))]),
 		(ref immutable StructBody.Flags it) =>
-			reprNamedRecord(alloc, "flags", [nameAndRepr(
-				"members",
+			reprNamedRecord!"flags"(alloc, [nameAndRepr!"members"(
 				reprArr(alloc, it.members, (ref immutable StructBody.Enum.Member member) =>
 					reprSym(member.name)))]),
 		(ref immutable StructBody.ExternPointer) =>
-			reprNamedRecord(alloc, "extern-pointer", []),
+			reprNamedRecord!"extern-pointer"(alloc, []),
 		(ref immutable StructBody.Record it) =>
 			documentRecord(alloc, a, it),
 		(ref immutable StructBody.Union it) =>
@@ -180,15 +177,15 @@ immutable(Repr) documentRecord(ref Alloc alloc, ref immutable StructDecl decl, r
 	ArrBuilder!NameAndRepr fields;
 	maybeAddPurity(alloc, fields, decl);
 	if (hasPrivateFields(a))
-		add(alloc, fields, nameAndRepr("has-private", reprBool(true)));
-	add(alloc, fields, nameAndRepr("fields", reprArr(mapOp(alloc, a.fields, (ref immutable RecordField field) =>
+		add(alloc, fields, nameAndRepr!"has-private"(reprBool(true)));
+	add(alloc, fields, nameAndRepr!"fields"(reprArr(mapOp(alloc, a.fields, (ref immutable RecordField field) =>
 		documentRecordField(alloc, field)))));
-	return reprNamedRecord("record", finishArr(alloc, fields));
+	return reprNamedRecord!"record"(finishArr(alloc, fields));
 }
 
 void maybeAddPurity(ref Alloc alloc, ref ArrBuilder!NameAndRepr fields, ref immutable StructDecl decl) {
 	if (decl.purity != Purity.data)
-		add(alloc, fields, nameAndRepr("purity", reprSym(symOfPurity(decl.purity))));
+		add(alloc, fields, nameAndRepr!"purity"(reprSym(symOfPurity(decl.purity))));
 }
 
 immutable(bool) hasPrivateFields(ref immutable StructBody.Record a) =>
@@ -204,9 +201,9 @@ immutable(bool) hasPrivateFields(ref immutable StructBody.Record a) =>
 immutable(Repr) documentUnion(ref Alloc alloc, ref immutable StructDecl decl, ref immutable StructBody.Union a) {
 	ArrBuilder!NameAndRepr fields;
 	maybeAddPurity(alloc, fields, decl);
-	add(alloc, fields, nameAndRepr("members", reprArr(alloc, a.members, (ref immutable UnionMember member) =>
+	add(alloc, fields, nameAndRepr!"members"(reprArr(alloc, a.members, (ref immutable UnionMember member) =>
 		documentUnionMember(alloc, member))));
-	return reprNamedRecord("union", finishArr(alloc, fields));
+	return reprNamedRecord!"union"(finishArr(alloc, fields));
 }
 
 immutable(Opt!Repr) documentRecordField(ref Alloc alloc, ref immutable RecordField a) {
@@ -215,38 +212,38 @@ immutable(Opt!Repr) documentRecordField(ref Alloc alloc, ref immutable RecordFie
 			return none!Repr;
 		case Visibility.public_:
 			ArrBuilder!NameAndRepr fields;
-			add(alloc, fields, nameAndRepr("name", reprSym(a.name)));
-			add(alloc, fields, nameAndRepr("type", documentTypeRef(alloc, a.type)));
+			add(alloc, fields, nameAndRepr!"name"(reprSym(a.name)));
+			add(alloc, fields, nameAndRepr!"type"(documentTypeRef(alloc, a.type)));
 			final switch (a.mutability) {
 				case FieldMutability.const_:
 					break;
 				case FieldMutability.private_:
 					break;
 				case FieldMutability.public_:
-					add(alloc, fields, nameAndRepr("mut", reprBool(true)));
+					add(alloc, fields, nameAndRepr!"mut"(reprBool(true)));
 					break;
 			}
-			return some(reprNamedRecord("field", finishArr(alloc, fields)));
+			return some(reprNamedRecord!"field"(finishArr(alloc, fields)));
 	}
 }
 
 immutable(Repr) documentUnionMember(ref Alloc alloc, ref immutable UnionMember a) {
 	ArrBuilder!NameAndRepr fields;
-	add(alloc, fields, nameAndRepr("name", reprSym(a.name)));
+	add(alloc, fields, nameAndRepr!"name"(reprSym(a.name)));
 	if (has(a.type))
-		add(alloc, fields, nameAndRepr("type", documentTypeRef(alloc, force(a.type))));
-	return reprNamedRecord("member", finishArr(alloc, fields));
+		add(alloc, fields, nameAndRepr!"type"(documentTypeRef(alloc, force(a.type))));
+	return reprNamedRecord!"member"(finishArr(alloc, fields));
 }
 
 immutable(DocExport) documentSpec(ref Alloc alloc, ref immutable SpecDecl a) {
-	immutable Repr value = reprNamedRecord(alloc, "spec", [
-		nameAndRepr("body", matchSpecBody!(immutable Repr)(
+	immutable Repr value = reprNamedRecord!"spec"(alloc, [
+		nameAndRepr!"body"(matchSpecBody!(immutable Repr)(
 			a.body_,
 			(immutable SpecBody.Builtin) =>
-				reprNamedRecord(alloc, "builtin", []),
+				reprNamedRecord!"builtin"(alloc, []),
 			(immutable SpecDeclSig[] sigs) =>
-				reprNamedRecord(alloc, "sigs", [
-					nameAndRepr("sigs", reprArr(alloc, sigs, (ref immutable SpecDeclSig sig) =>
+				reprNamedRecord!"sigs"(alloc, [
+					nameAndRepr!"sigs"(reprArr(alloc, sigs, (ref immutable SpecDeclSig sig) =>
 						documentSpecDeclSig(alloc, sig)))])))]);
 	return documentExport(alloc, a.range, a.name, a.docComment, a.typeParams, value);
 }
@@ -254,48 +251,48 @@ immutable(DocExport) documentSpec(ref Alloc alloc, ref immutable SpecDecl a) {
 immutable(Repr) documentSpecDeclSig(ref Alloc alloc, ref immutable SpecDeclSig a) {
 	ArrBuilder!NameAndRepr fields;
 	if (!safeCStrIsEmpty(a.docComment))
-		add(alloc, fields, nameAndRepr("comment", reprStr(a.docComment)));
-	add(alloc, fields, nameAndRepr("name", reprSym(a.name)));
-	add(alloc, fields, nameAndRepr("return-type", documentTypeRef(alloc, a.returnType)));
-	add(alloc, fields, nameAndRepr("params", reprArr(alloc, paramsArray(a.params), (ref immutable Param x) =>
+		add(alloc, fields, nameAndRepr!"comment"(reprStr(a.docComment)));
+	add(alloc, fields, nameAndRepr!"name"(reprSym(a.name)));
+	add(alloc, fields, nameAndRepr!"return-type"(documentTypeRef(alloc, a.returnType)));
+	add(alloc, fields, nameAndRepr!"params"(reprArr(alloc, paramsArray(a.params), (ref immutable Param x) =>
 		documentParam(alloc, x))));
-	return reprNamedRecord("sig", finishArr(alloc, fields));
+	return reprNamedRecord!"sig"(finishArr(alloc, fields));
 }
 
 immutable(DocExport) documentFun(ref Alloc alloc, ref immutable FunDecl a) {
 	ArrBuilder!NameAndRepr fields;
-	add(alloc, fields, nameAndRepr("return-type", documentTypeRef(alloc, a.returnType)));
-	add(alloc, fields, nameAndRepr("params", reprArr(alloc, paramsArray(a.params), (ref immutable Param x) =>
+	add(alloc, fields, nameAndRepr!"return-type"(documentTypeRef(alloc, a.returnType)));
+	add(alloc, fields, nameAndRepr!"params"(reprArr(alloc, paramsArray(a.params), (ref immutable Param x) =>
 			documentParam(alloc, x))));
 	if (isVariadic(a))
-		add(alloc, fields, nameAndRepr("variadic", reprBool(true)));
+		add(alloc, fields, nameAndRepr!"variadic"(reprBool(true)));
 	immutable Repr[] specs = documentSpecs(alloc, a);
 	if (!empty(specs))
-		add(alloc, fields, nameAndRepr("specs", reprArr(specs)));
-	immutable Repr value = reprNamedRecord("fun", finishArr(alloc, fields));
+		add(alloc, fields, nameAndRepr!"specs"(reprArr(specs)));
+	immutable Repr value = reprNamedRecord!"fun"(finishArr(alloc, fields));
 	return documentExport(alloc, a.range, a.name, a.docComment, a.typeParams, value);
 }
 
 immutable(Repr[]) documentSpecs(ref Alloc alloc, ref immutable FunDecl a) {
 	ArrBuilder!Repr res;
 	if (summon(a))
-		add(alloc, res, reprSpecialSpec(alloc, shortSym("summon")));
+		add(alloc, res, reprSpecialSpec(alloc, sym!"summon"));
 	if (unsafe(a))
-		add(alloc, res, reprSpecialSpec(alloc, shortSym("unsafe")));
+		add(alloc, res, reprSpecialSpec(alloc, sym!"unsafe"));
 	if (noCtx(a))
-		add(alloc, res, reprSpecialSpec(alloc, shortSym("noctx")));
+		add(alloc, res, reprSpecialSpec(alloc, sym!"noctx"));
 	foreach (immutable SpecInst* spec; a.specs)
 		add(alloc, res, documentSpecInst(alloc, *spec));
 	return finishArr(alloc, res);
 }
 
 immutable(Repr) reprSpecialSpec(ref Alloc alloc, immutable Sym name) =>
-	reprNamedRecord(alloc, "special", [nameAndRepr("name", reprSym(name))]);
+	reprNamedRecord!"special"(alloc, [nameAndRepr!"name"(reprSym(name))]);
 
 immutable(Repr) documentParam(ref Alloc alloc, ref immutable Param a) =>
-	reprNamedRecord(alloc, "param", [
-		nameAndRepr("name", reprSym(a.nameOrUnderscore)),
-		nameAndRepr("type", documentTypeRef(alloc, a.type))]);
+	reprNamedRecord!"param"(alloc, [
+		nameAndRepr!"name"(reprSym(a.nameOrUnderscore)),
+		nameAndRepr!"type"(documentTypeRef(alloc, a.type))]);
 
 immutable(Repr) documentTypeRef(ref Alloc alloc, immutable Type a) =>
 	matchType!(immutable Repr)(
@@ -303,15 +300,15 @@ immutable(Repr) documentTypeRef(ref Alloc alloc, immutable Type a) =>
 		(immutable Type.Bogus) =>
 			unreachable!(immutable Repr),
 		(immutable TypeParam* it) =>
-			reprNamedRecord(alloc, "type-param", [nameAndRepr("name", reprSym(it.name))]),
+			reprNamedRecord!"type-param"(alloc, [nameAndRepr!"name"(reprSym(it.name))]),
 		(immutable StructInst* it) =>
 			documentStructInst(alloc, *it));
 
 immutable(Repr) documentSpecInst(ref Alloc alloc, ref immutable SpecInst a) =>
-	documentNameAndTypeArgs(alloc, shortSym("spec"), name(a), typeArgs(a));
+	documentNameAndTypeArgs(alloc, sym!"spec", name(a), typeArgs(a));
 
 immutable(Repr) documentStructInst(ref Alloc alloc, ref immutable StructInst a) =>
-	documentNameAndTypeArgs(alloc, shortSym("struct"), name(a), typeArgs(a));
+	documentNameAndTypeArgs(alloc, sym!"struct", name(a), typeArgs(a));
 
 immutable(Repr) documentNameAndTypeArgs(
 	ref Alloc alloc,
@@ -320,16 +317,16 @@ immutable(Repr) documentNameAndTypeArgs(
 	scope immutable Type[] typeArgs,
 ) =>
 	empty(typeArgs)
-		? reprNamedRecord(alloc, nodeType, [nameAndRepr("name", reprSym(name))])
+		? reprNamedRecord(alloc, nodeType, [nameAndRepr!"name"(reprSym(name))])
 		: reprNamedRecord(alloc, nodeType, [
-			nameAndRepr("name", reprSym(name)),
-			nameAndRepr("type-args", reprArr(alloc, typeArgs, (ref immutable Type typeArg) =>
+			nameAndRepr!"name"(reprSym(name)),
+			nameAndRepr!"type-args"(reprArr(alloc, typeArgs, (ref immutable Type typeArg) =>
 				documentTypeRef(alloc, typeArg)))]);
 
 immutable(Repr) documentTypeParams(ref Alloc alloc, scope immutable TypeParam[] xs) {
 	verify(!empty(xs));
 	return reprArr(alloc, xs, (ref immutable TypeParam x) =>
-		reprNamedRecord(alloc, "type-param", [nameAndRepr("name", reprSym(x.name))]));
+		reprNamedRecord!"type-param"(alloc, [nameAndRepr!"name"(reprSym(x.name))]));
 }
 
 void eachLine(

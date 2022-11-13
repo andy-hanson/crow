@@ -18,7 +18,7 @@ import util.opt : force, has, none, Opt, some;
 import util.jsonParse : asObject, asString, isObject, isString, Json, parseJson;
 import util.path : AllPaths, childPath, commonAncestor, parent, parseAbsoluteOrRelPath, Path, PathAndRange;
 import util.sourceRange : RangeWithinFile;
-import util.sym : AllSymbols, shortSym, shortSymValue, Sym, sym;
+import util.sym : AllSymbols, Sym, sym;
 import util.util : todo;
 
 immutable(Config) getConfig(
@@ -47,7 +47,7 @@ immutable(Config) getConfigRecur(
 	ref DiagnosticsBuilder diagsBuilder,
 	immutable Path searchPath,
 ) {
-	immutable Path configPath = childPath(allPaths, searchPath, shortSym("crow-config"));
+	immutable Path configPath = childPath(allPaths, searchPath, sym!"crow-config");
 	ArrBuilder!DiagnosticWithinFile diags;
 	immutable Opt!Config res = withFileText(
 		storage,
@@ -121,11 +121,11 @@ immutable(Config) parseConfigRecur(
 	fold(emptyConfig, fields, (immutable Config cur, ref immutable KeyValuePair!(Sym, Json) field) {
 		immutable Json value = field.value;
 		switch (field.key.value) {
-			case shortSymValue("include"):
+			case sym!"include".value:
 				return withInclude(
 					cur,
 					parseIncludeOrExtern(alloc, allSymbols, allPaths, dirContainingConfig, diags, value));
-			case shortSymValue("extern"):
+			case sym!"extern".value:
 				return withExtern(
 					cur,
 					parseIncludeOrExtern(alloc, allSymbols, allPaths, dirContainingConfig, diags, value));

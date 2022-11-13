@@ -25,7 +25,7 @@ import util.sourceRange :
 	FileIndex,
 	rangeOfStartAndName,
 	RangeWithinFile;
-import util.sym : AllSymbols, Operator, shortSym, Sym, sym, symForOperator, writeSym;
+import util.sym : AllSymbols, Sym, sym, writeSym;
 import util.util : as, max, min, unreachable, verify;
 import util.writer : Writer, writeWithCommas;
 
@@ -58,11 +58,11 @@ immutable(Purity) worsePurity(immutable Purity a, immutable Purity b) =>
 immutable(Sym) symOfPurity(immutable Purity a) {
 	final switch (a) {
 		case Purity.data:
-			return shortSym("data");
+			return sym!"data";
 		case Purity.sendable:
-			return shortSym("sendable");
+			return sym!"sendable";
 		case Purity.mut:
-			return shortSym("mut");
+			return sym!"mut";
 	}
 }
 
@@ -210,7 +210,7 @@ struct Param {
 	immutable size_t index;
 
 	immutable(Sym) nameOrUnderscore() immutable =>
-		has(name) ? force(name) : shortSym("_");
+		has(name) ? force(name) : sym!"_";
 
 	immutable(RangeWithinFile) nameRange(ref const AllSymbols allSymbols) immutable =>
 		rangeOfStartAndName(range.range.start, nameOrUnderscore, allSymbols);
@@ -358,11 +358,11 @@ enum FieldMutability {
 immutable(Sym) symOfFieldMutability(immutable FieldMutability a) {
 	final switch (a) {
 		case FieldMutability.const_:
-			return shortSym("const");
+			return sym!"const";
 		case FieldMutability.private_:
-			return shortSym("private");
+			return sym!"private";
 		case FieldMutability.public_:
-			return shortSym("public");
+			return sym!"public";
 	}
 }
 
@@ -398,11 +398,11 @@ enum ForcedByValOrRefOrNone {
 immutable(Sym) symOfForcedByValOrRefOrNone(immutable ForcedByValOrRefOrNone a) {
 	final switch (a) {
 		case ForcedByValOrRefOrNone.none:
-			return shortSym("none");
+			return sym!"none";
 		case ForcedByValOrRefOrNone.byVal:
-			return shortSym("by-val");
+			return sym!"by-val";
 		case ForcedByValOrRefOrNone.byRef:
-			return shortSym("by-ref");
+			return sym!"by-ref";
 	}
 }
 
@@ -639,7 +639,7 @@ immutable(bool) isDefinitelyByRef(scope ref immutable StructInst a) =>
 
 immutable(bool) isArray(ref immutable StructInst i) {
 	// TODO: only do this for the arr in bootstrap, not anything named 'arr'
-	return decl(i).name == shortSym("array");
+	return decl(i).name == sym!"array";
 }
 
 immutable(Sym) name(ref immutable StructInst i) =>
@@ -754,15 +754,15 @@ enum EnumFunction {
 immutable(Sym) enumFunctionName(immutable EnumFunction a) {
 	final switch (a) {
 		case EnumFunction.equal:
-			return symForOperator(Operator.equal);
+			return sym!"==";
 		case EnumFunction.intersect:
-			return symForOperator(Operator.and1);
+			return sym!"&";
 		case EnumFunction.members:
-			return shortSym("members");
+			return sym!"members";
 		case EnumFunction.toIntegral:
-			return shortSym("to-integral");
+			return sym!"to-integral";
 		case EnumFunction.union_:
-			return symForOperator(Operator.or1);
+			return sym!"|";
 	}
 }
 
@@ -775,11 +775,11 @@ enum FlagsFunction {
 immutable(Sym) flagsFunctionName(immutable FlagsFunction a) {
 	final switch (a) {
 		case FlagsFunction.all:
-			return shortSym("all");
+			return sym!"all";
 		case FlagsFunction.negate:
-			return symForOperator(Operator.tilde);
+			return sym!"~";
 		case FlagsFunction.new_:
-			return shortSym("new");
+			return sym!"new";
 	}
 }
 
@@ -1068,11 +1068,11 @@ immutable(bool) isCallWithCtxFun(ref immutable FunInst a) =>
 
 immutable(bool) isCompareFun(ref immutable FunInst a) =>
 	// TODO: only do this for the '<=>' in bootstrap
-	decl(a).name == symForOperator(Operator.compare);
+	decl(a).name == sym!"<=>";
 
 immutable(bool) isMarkVisitFun(ref immutable FunInst a) =>
 	// TODO: only do this for the 'mark-visit' in bootstrap
-	decl(a).name == shortSym("mark-visit");
+	decl(a).name == sym!"mark-visit";
 
 immutable(FunInst*) nonTemplateFunInst(ref Alloc alloc, immutable FunDecl* decl) =>
 	allocate(alloc, immutable FunInst(immutable FunDeclAndArgs(decl, [], []), decl.returnType, decl.params));
@@ -1413,9 +1413,9 @@ enum ImportFileType { nat8Array, str }
 immutable(Sym) symOfImportFileType(immutable ImportFileType a) {
 	final switch (a) {
 		case ImportFileType.nat8Array:
-			return shortSym("nat8Array");
+			return sym!"nat8Array";
 		case ImportFileType.str:
-			return shortSym("string");
+			return sym!"string";
 	}
 }
 
@@ -1599,9 +1599,9 @@ enum ClosureReferenceKind { direct, allocated }
 immutable(Sym) symOfClosureReferenceKind(immutable ClosureReferenceKind a) {
 	final switch (a) {
 		case ClosureReferenceKind.direct:
-			return shortSym("direct");
+			return sym!"direct";
 		case ClosureReferenceKind.allocated:
-			return shortSym("allocated");
+			return sym!"allocated";
 	}
 }
 immutable(ClosureReferenceKind) getClosureReferenceKind(immutable ClosureRef a) =>
@@ -2150,9 +2150,9 @@ enum AssertOrForbidKind { assert_, forbid }
 immutable(Sym) symOfAssertOrForbidKind(immutable AssertOrForbidKind a) {
 	final switch (a) {
 		case AssertOrForbidKind.assert_:
-			return shortSym("assert");
+			return sym!"assert";
 		case AssertOrForbidKind.forbid:
-			return shortSym("forbid");
+			return sym!"forbid";
 	}
 }
 
@@ -2162,7 +2162,7 @@ void writeStructDecl(scope ref Writer writer, scope ref const AllSymbols allSymb
 
 void writeStructInst(scope ref Writer writer, scope ref const AllSymbols allSymbols, scope ref immutable StructInst s) {
 	// TODO: more cases like this
-	if (decl(s).name == shortSym("mut-list") && s.typeArgs.length == 1) {
+	if (decl(s).name == sym!"mut-list" && s.typeArgs.length == 1) {
 		writeTypeUnquoted(writer, allSymbols, only(s.typeArgs));
 		writer ~= " mut[]";
 	} else {
@@ -2206,9 +2206,9 @@ enum Visibility : ubyte {
 immutable(Sym) symOfVisibility(immutable Visibility a) {
 	final switch (a) {
 		case Visibility.public_:
-			return shortSym("public");
+			return sym!"public";
 		case Visibility.private_:
-			return shortSym("private");
+			return sym!"private";
 	}
 }
 

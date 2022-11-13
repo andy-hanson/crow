@@ -38,7 +38,7 @@ import util.opt : force, has, Opt;
 import util.path : AllPaths;
 import util.perf : Perf, PerfMeasure, withMeasure;
 import util.ptr : castNonScope;
-import util.sym : AllSymbols, shortSym, Sym, sym;
+import util.sym : AllSymbols, Sym, sym;
 import util.util : todo, verify;
 import versionInfo : VersionInfo;
 
@@ -119,7 +119,7 @@ immutable(bool) isInt32(ref immutable CommonTypes commonTypes, immutable Type ty
 
 immutable(bool) isString(ref immutable CommonTypes commonTypes, immutable Type type) =>
 	//TODO:better
-	isStructInst(type) && decl(*asStructInst(type)).name == shortSym("string");
+	isStructInst(type) && decl(*asStructInst(type)).name == sym!"string";
 
 immutable(bool) isNatFuture(ref immutable CommonTypes commonTypes, immutable Type type) =>
 	isStructInst(type) &&
@@ -129,7 +129,7 @@ immutable(bool) isNatFuture(ref immutable CommonTypes commonTypes, immutable Typ
 immutable(bool) isStringList(ref immutable CommonTypes commonTypes, immutable Type type) =>
 	isStructInst(type) &&
 		//TODO:BETTER
-		decl(*asStructInst(type)).name == shortSym("list") &&
+		decl(*asStructInst(type)).name == sym!"list" &&
 		isString(commonTypes, only(typeArgs(*asStructInst(type))));
 
 void checkRtMainSignature(ref immutable CommonTypes commonTypes, ref immutable FunDecl mainFun) {
@@ -163,7 +163,7 @@ void checkUserMainSignature(ref immutable CommonTypes commonTypes, ref immutable
 }
 
 immutable(FunInst*) getMarkFun(ref Alloc alloc, ref immutable Program program) {
-	immutable FunDecl*[] markFuns = getFuns(*program.specialModules.allocModule, shortSym("mark"));
+	immutable FunDecl*[] markFuns = getFuns(*program.specialModules.allocModule, sym!"mark");
 	if (markFuns.length != 1)
 		todo!void("wong number mark funs");
 	immutable FunDecl* markFun = only(markFuns);
@@ -172,7 +172,7 @@ immutable(FunInst*) getMarkFun(ref Alloc alloc, ref immutable Program program) {
 }
 
 immutable(FunInst*) getRtMainFun(ref Alloc alloc, ref immutable Program program) {
-	immutable FunDecl*[] mainFuns = getFuns(*program.specialModules.runtimeMainModule, shortSym("rt-main"));
+	immutable FunDecl*[] mainFuns = getFuns(*program.specialModules.runtimeMainModule, sym!"rt-main");
 	if (mainFuns.length != 1)
 		todo!void("wrong number rt-main funs");
 	immutable FunDecl* mainFun = only(mainFuns);
@@ -181,7 +181,7 @@ immutable(FunInst*) getRtMainFun(ref Alloc alloc, ref immutable Program program)
 }
 
 immutable(FunInst*) getUserMainFun(ref Alloc alloc, ref immutable Program program, immutable Module* mainModule) {
-	immutable FunDecl*[] mainFuns = getFuns(*mainModule, shortSym("main"));
+	immutable FunDecl*[] mainFuns = getFuns(*mainModule, sym!"main");
 	if (mainFuns.length != 1)
 		todo!void("wrong number main funs");
 	immutable FunDecl* mainFun = only(mainFuns);
@@ -190,7 +190,7 @@ immutable(FunInst*) getUserMainFun(ref Alloc alloc, ref immutable Program progra
 }
 
 immutable(FunInst*) getAllocFun(ref Alloc alloc, ref immutable Program program) {
-	immutable FunDecl*[] allocFuns = getFuns(*program.specialModules.allocModule, shortSym("alloc"));
+	immutable FunDecl*[] allocFuns = getFuns(*program.specialModules.allocModule, sym!"alloc");
 	if (allocFuns.length != 1)
 		todo!void("wrong number alloc funs");
 	immutable FunDecl* allocFun = only(allocFuns);
@@ -199,7 +199,7 @@ immutable(FunInst*) getAllocFun(ref Alloc alloc, ref immutable Program program) 
 }
 
 immutable(FunInst*) getThrowImplFun(ref Alloc alloc, ref immutable Program program) {
-	immutable FunDecl*[] funs = getFuns(*program.specialModules.exceptionLowLevelModule, shortSym("throw-impl"));
+	immutable FunDecl*[] funs = getFuns(*program.specialModules.exceptionLowLevelModule, sym!"throw-impl");
 	if (funs.length != 1)
 		todo!void("wrong number throw-impl funs");
 	return nonTemplateFunInst(alloc, only(funs));

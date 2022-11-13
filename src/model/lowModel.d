@@ -24,7 +24,7 @@ import util.hash : Hasher, hashSizeT, hashUint;
 import util.opt : none, Opt;
 import util.path : Path;
 import util.sourceRange : FileAndRange;
-import util.sym : AllSymbols, shortSym, Sym;
+import util.sym : AllSymbols, Sym, sym;
 import util.util : unreachable, verify;
 
 struct LowExternPtrType {
@@ -84,37 +84,36 @@ enum PrimitiveType {
 	void_,
 }
 
-immutable(Sym) symOfPrimitiveType(immutable PrimitiveType a) =>
-	shortSym(() {
-		final switch (a) {
-			case PrimitiveType.bool_:
-				return "bool";
-			case PrimitiveType.char8:
-				return "char8";
-			case PrimitiveType.float32:
-				return "float-32";
-			case PrimitiveType.float64:
-				return "float-64";
-			case PrimitiveType.int8:
-				return "int-8";
-			case PrimitiveType.int16:
-				return "int-16";
-			case PrimitiveType.int32:
-				return "int-32";
-			case PrimitiveType.int64:
-				return "int-64";
-			case PrimitiveType.nat8:
-				return "nat-8";
-			case PrimitiveType.nat16:
-				return "nat-16";
-			case PrimitiveType.nat32:
-				return "nat-32";
-			case PrimitiveType.nat64:
-				return "nat-64";
-			case PrimitiveType.void_:
-				return "void";
-		}
-	}());
+immutable(Sym) symOfPrimitiveType(immutable PrimitiveType a) {
+	final switch (a) {
+		case PrimitiveType.bool_:
+			return sym!"bool";
+		case PrimitiveType.char8:
+			return sym!"char8";
+		case PrimitiveType.float32:
+			return sym!"float-32";
+		case PrimitiveType.float64:
+			return sym!"float-64";
+		case PrimitiveType.int8:
+			return sym!"int-8";
+		case PrimitiveType.int16:
+			return sym!"int-16";
+		case PrimitiveType.int32:
+			return sym!"int-32";
+		case PrimitiveType.int64:
+			return sym!"int-64";
+		case PrimitiveType.nat8:
+			return sym!"nat-8";
+		case PrimitiveType.nat16:
+			return sym!"nat-16";
+		case PrimitiveType.nat32:
+			return sym!"nat-32";
+		case PrimitiveType.nat64:
+			return sym!"nat-64";
+		case PrimitiveType.void_:
+			return sym!"void";
+	}
+}
 
 struct LowType {
 	@safe @nogc pure nothrow:

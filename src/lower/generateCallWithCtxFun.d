@@ -25,7 +25,7 @@ import util.col.dict : mustGetAt;
 import util.memory : allocate;
 import util.opt : some;
 import util.sourceRange : FileAndRange;
-import util.sym : shortSym, Sym;
+import util.sym : Sym, sym;
 import util.util : verify;
 
 immutable(LowFun) generateCallWithCtxFun(
@@ -48,7 +48,7 @@ immutable(LowFun) generateCallWithCtxFun(
 		allTypes.allUnions[asUnionType(funType)].members,
 		(ref immutable ConcreteLambdaImpl impl, ref immutable LowType closureType) {
 			immutable LowLocal* closureLocal =
-				genLocal(alloc, shortSym("closure"), localIndex, closureType);
+				genLocal(alloc, sym!"closure", localIndex, closureType);
 			localIndex = localIndex + 1;
 			immutable LowExpr[] args = mapWithFirst!(LowExpr, LowType)(
 				alloc,
@@ -66,7 +66,7 @@ immutable(LowFun) generateCallWithCtxFun(
 	immutable LowParam[] params = mapWithFirst!(LowParam, LowType)(
 		alloc,
 		immutable LowParam(
-			immutable LowParamSource(immutable LowParamSource.Generated(shortSym("a"))),
+			immutable LowParamSource(immutable LowParamSource.Generated(sym!"a")),
 			funType),
 		nonFunParamTypes,
 		(immutable size_t i, ref immutable LowType paramType) {
@@ -79,7 +79,7 @@ immutable(LowFun) generateCallWithCtxFun(
 		//TODO: use long sym call-with-ctx
 		//Or rename it in bootstrap.crow
 		immutable LowFunSource(allocate(alloc, immutable LowFunSource.Generated(
-			shortSym("call-w-ctx"),
+			sym!"call-w-ctx",
 			prepend(alloc, returnType, nonFunParamTypes)))),
 		returnType,
 		params,
@@ -89,9 +89,9 @@ immutable(LowFun) generateCallWithCtxFun(
 private:
 
 immutable Sym[] paramNames = [
-	shortSym("p0"),
-	shortSym("p1"),
-	shortSym("p2"),
-	shortSym("p3"),
-	shortSym("p4"),
+	sym!"p0",
+	sym!"p1",
+	sym!"p2",
+	sym!"p3",
+	sym!"p4",
 ];

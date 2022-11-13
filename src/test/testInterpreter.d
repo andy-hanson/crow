@@ -81,7 +81,7 @@ import util.memory : allocate;
 import util.path : emptyPathsInfo, Path, PathsInfo, rootPath;
 import util.ptr : castImmutable, castNonScope, castNonScope_mut;
 import util.sourceRange : FileIndex, Pos;
-import util.sym : shortSym;
+import util.sym : sym;
 import util.util : verify;
 
 void testInterpreter(ref Test test) {
@@ -121,7 +121,7 @@ immutable(ByteCode) dummyByteCode(immutable Operations operations) =>
 		immutable ByteCodeIndex(0));
 
 immutable(FileToFuns) dummyFileToFuns() {
-	static immutable FunNameAndPos[][] dummy = [[immutable FunNameAndPos(shortSym("a"), immutable Pos(0))]];
+	static immutable FunNameAndPos[][] dummy = [[immutable FunNameAndPos(sym!"a", immutable Pos(0))]];
 	return fullIndexDictOfArr!(FileIndex, FunNameAndPos[])(dummy);
 }
 
@@ -130,15 +130,15 @@ void doInterpret(
 	ref immutable ByteCode byteCode,
 	scope void delegate(ref Stacks stacks, immutable(Operation)*) @system @nogc nothrow runInterpreter,
 ) {
-	immutable Path emptyPath = rootPath(test.allPaths, shortSym("test"));
+	immutable Path emptyPath = rootPath(test.allPaths, sym!"test");
 	immutable FilesInfo filesInfo = filesInfoForSingle(test.alloc,
 		emptyPath,
 		lineAndColumnGetterForEmptyFile(test.alloc));
 	immutable LowFun[1] lowFun = [immutable LowFun(
-		immutable LowFunSource(allocate(test.alloc, immutable LowFunSource.Generated(shortSym("test"), []))),
+		immutable LowFunSource(allocate(test.alloc, immutable LowFunSource.Generated(sym!"test", []))),
 		nat64Type,
 		[],
-		immutable LowFunBody(immutable LowFunBody.Extern(false, shortSym("bogus"))))];
+		immutable LowFunBody(immutable LowFunBody.Extern(false, sym!"bogus")))];
 	immutable LowProgram lowProgram = immutable LowProgram(
 		ConcreteFunToLowFunIndex(),
 		immutable AllConstantsLow([], [], []),

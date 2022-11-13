@@ -86,7 +86,7 @@ import util.col.arrBuilder : add, ArrBuilder, finishArr;
 import util.memory : allocate;
 import util.opt : force, has, none, Opt, some;
 import util.sourceRange : Pos, RangeWithinFile;
-import util.sym : isSymOperator, Operator, operatorForSym, prependSet, shortSym, Sym, symForOperator;
+import util.sym : prependSet, Sym, sym;
 import util.util : max, todo, unreachable, verify;
 
 immutable(Opt!ExprAst) parseFunExprBody(scope ref Lexer lexer) {
@@ -365,7 +365,7 @@ immutable(ExprAndDedent) parseMutEquals(
 				case CallAst.Style.subscript:
 					return CallAst.Style.setSubscript;
 				case CallAst.Style.prefixOperator:
-					if (beforeCall.funName.name == symForOperator(Operator.times))
+					if (beforeCall.funName.name == sym!"*")
 						return CallAst.Style.setDeref;
 					else
 						// This is `~x := foo` or `-x := foo`. Have a diagnostic for this.
@@ -388,7 +388,7 @@ immutable(ExprAndDedent) parseMutEquals(
 	} else {
 		addDiag(lexer, range(lexer, start), immutable ParseDiag(immutable ParseDiag.CantPrecedeMutEquals()));
 		return makeCall(
-			lexer, start, initAndDedent, shortSym("bogus"), [], [], CallAst.Style.setDot);
+			lexer, start, initAndDedent, sym!"bogus", [], [], CallAst.Style.setDot);
 	}
 }
 
@@ -408,7 +408,7 @@ immutable(ExprAndDedent) makeCall(
 			style,
 			immutable NameAndRange(
 				start,
-				style == CallAst.Style.setDeref ? shortSym("set-deref") : prependSet(lexer.allSymbols, name)),
+				style == CallAst.Style.setDeref ? sym!"set-deref" : prependSet(lexer.allSymbols, name)),
 			typeArgs,
 			append(lexer.alloc, args, initAndDedent.expr))));
 	return immutable ExprAndDedent(call, initAndDedent.dedents);
@@ -434,7 +434,7 @@ immutable(NameAndRange) asIdentifierOrDiagnostic(scope ref Lexer lexer, ref immu
 		return identifierAsNameAndRange(a);
 	else {
 		addDiag(lexer, a.range, immutable ParseDiag(immutable ParseDiag.CantPrecedeOptEquals()));
-		return immutable NameAndRange(a.range.start, shortSym("a"));
+		return immutable NameAndRange(a.range.start, sym!"a");
 	}
 }
 
@@ -549,7 +549,7 @@ immutable(ExprAndMaybeNameOrDedent) parseCallsAfterComma(
 			immutable CallAst(
 				CallAst.Style.comma,
 				//TODO: range is wrong..
-				immutable NameAndRange(range.start, shortSym("new")),
+				immutable NameAndRange(range.start, sym!"new"),
 				[],
 				args.args))),
 		args.nameOrDedent);
@@ -594,61 +594,62 @@ immutable(ExprAndMaybeNameOrDedent) parseCallsAfterName(
 		return immutable ExprAndMaybeNameOrDedent(lhs, immutable OptNameOrDedent(funName));
 }
 
-immutable(int) symPrecedence(immutable Sym a) {
-	immutable Opt!Operator operator = operatorForSym(a);
-	return has(operator) ? operatorPrecedence(force(operator)) : 0;
-}
-
 // This is for the , in `1, 2`, not the comma between args
 immutable int commaPrecedence = -6;
 // Precedence for '?' and ':' in 'a ? b : c'
 immutable int ternaryPrecedence = -5;
 
-immutable(int) operatorPrecedence(immutable Operator a) {
-	final switch (a) {
-		case Operator.tildeEquals:
-		case Operator.tilde2Equals:
+immutable(bool) isSymOperator(immutable Sym a) =>
+	symPrecedence(a) != 0;
+
+immutable(int) symPrecedence(immutable Sym a) {
+	switch (a.value) {
+		case sym!"~=".value:
+		case sym!"~~=".value:
 			return -4;
-		case Operator.or2:
+		case sym!"||".value:
 			return -3;
-		case Operator.and2:
+		case sym!"&&".value:
 			return -2;
-		case Operator.question2:
+		case sym!"??".value:
 			return -1;
-		case Operator.range:
+		case sym!"..".value:
 			return 1;
-		case Operator.tilde:
-		case Operator.tilde2:
+		case sym!"~".value:
+		case sym!"~~".value:
 			return 2;
-		case Operator.equal:
-		case Operator.notEqual:
-		case Operator.less:
-		case Operator.lessOrEqual:
-		case Operator.greater:
-		case Operator.greaterOrEqual:
-		case Operator.compare:
+		case sym!"==".value:
+		case sym!"!=".value:
+		case sym!"<".value:
+		case sym!"<=".value:
+		case sym!">".value:
+		case sym!">=".value:
+		case sym!"<=>".value:
 			return 3;
-		case Operator.or1:
+		case sym!"|".value:
 			return 4;
-		case Operator.xor1:
+		case sym!"^".value:
 			return 5;
-		case Operator.and1:
+		case sym!"&".value:
 			return 6;
-		case Operator.shiftLeft:
-		case Operator.shiftRight:
+		case sym!"<<".value:
+		case sym!">>".value:
 			return 7;
-		case Operator.plus:
-		case Operator.minus:
+		case sym!"+".value:
+		case sym!"-".value:
 			return 8;
-		case Operator.times:
-		case Operator.divide:
-		case Operator.modulo:
+		case sym!"*".value:
+		case sym!"/".value:
+		case sym!"%".value:
 			return 9;
-		case Operator.exponent:
+		case sym!"**".value:
 			return 10;
-		case Operator.not:
-			// prefix only
+		case sym!"!".value:
+			// prefix/suffix only
 			return unreachable!int();
+		default:
+			// All other names
+			return 0;
 	}
 }
 
@@ -676,7 +677,7 @@ immutable(ExprAst) tryParseDotsAndSubscripts(scope ref Lexer lexer, immutable Ex
 		immutable CallAst call = immutable CallAst(
 			//TODO: the range is wrong..
 			CallAst.Style.subscript,
-			immutable NameAndRange(start, shortSym("subscript")),
+			immutable NameAndRange(start, sym!"subscript"),
 			[],
 			prepend(lexer.alloc, initial, args));
 		return tryParseDotsAndSubscripts(lexer, immutable ExprAst(range(lexer, start), immutable ExprAstKind(call)));
@@ -685,10 +686,10 @@ immutable(ExprAst) tryParseDotsAndSubscripts(scope ref Lexer lexer, immutable Ex
 		return tryParseDotsAndSubscripts(lexer, immutable ExprAst(
 			range(lexer, start),
 			immutable ExprAstKind(allocate(lexer.alloc, immutable TypedAst(initial, type)))));
-	} else if (tryTakeOperator(lexer, Operator.not)) {
+	} else if (tryTakeOperator(lexer, sym!"!")) {
 		immutable CallAst call = immutable CallAst(
 			CallAst.Style.suffixOperator,
-			immutable NameAndRange(start, symForOperator(Operator.not)),
+			immutable NameAndRange(start, sym!"!"),
 			[],
 			arrLiteral!ExprAst(lexer.alloc, [initial]));
 		return tryParseDotsAndSubscripts(lexer, immutable ExprAst(range(lexer, start), immutable ExprAstKind(call)));
@@ -1085,7 +1086,7 @@ immutable(ExprAndMaybeDedent) parseExprBeforeCall(scope ref Lexer lexer, immutab
 					immutable ExprAstKind(immutable CallAst(
 						CallAst.Style.emptyParens,
 						//TODO: range is wrong..
-						immutable NameAndRange(start, shortSym("new")),
+						immutable NameAndRange(start, sym!"new"),
 						[],
 						[])));
 				return noDedent(tryParseDotsAndSubscripts(lexer, expr));
@@ -1134,8 +1135,8 @@ immutable(ExprAndMaybeDedent) parseExprBeforeCall(scope ref Lexer lexer, immutab
 				? parseLambdaAfterArrow(lexer, start, allowedBlock, some(name))
 				: handleName(lexer, start, immutable NameAndRange(start, name));
 		case Token.operator:
-			immutable Operator operator = getCurOperator(lexer);
-			if (operator == Operator.and1) {
+			immutable Sym operator = getCurOperator(lexer);
+			if (operator == sym!"&") {
 				immutable ExprAndMaybeDedent inner = parseExprBeforeCall(lexer, noBlock());
 				return immutable ExprAndMaybeDedent(
 					immutable ExprAst(
@@ -1184,13 +1185,13 @@ immutable(ExprAndMaybeDedent) handlePrefixOperator(
 	scope ref Lexer lexer,
 	immutable AllowedBlock allowedBlock,
 	immutable Pos start,
-	immutable Operator operator,
+	immutable Sym operator,
 ) {
 	immutable ExprAndMaybeDedent arg = parseExprBeforeCall(lexer, allowedBlock);
 	immutable ExprAst expr = immutable ExprAst(range(lexer, start), immutable ExprAstKind(
 		immutable CallAst(
 			CallAst.Style.prefixOperator,
-			immutable NameAndRange(start, symForOperator(operator)),
+			immutable NameAndRange(start, operator),
 			[],
 			arrLiteral!ExprAst(lexer.alloc, [arg.expr]))));
 	return immutable ExprAndMaybeDedent(expr, arg.dedents);

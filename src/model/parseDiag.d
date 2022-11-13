@@ -5,7 +5,7 @@ module model.parseDiag;
 import frontend.parse.lexer : Token;
 import util.opt : Opt;
 import util.path : Path, PathAndRange, RelPath;
-import util.sym : Operator;
+import util.sym : Sym;
 
 struct ParseDiag {
 	@safe @nogc pure nothrow:
@@ -94,7 +94,7 @@ struct ParseDiag {
 		immutable char ch;
 	}
 	struct UnexpectedOperator {
-		immutable Operator operator;
+		immutable Sym operator;
 	}
 	struct UnexpectedToken {
 		immutable Token token;

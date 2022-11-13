@@ -10,7 +10,7 @@ import util.col.str : SafeCStr, safeCStr, safeCStrEq, strOfSafeCStr;
 import util.opt : force, has, none, Opt, some;
 import util.path : AllPaths, parseAbsoluteOrRelPathAndExtension, Path, PathAndExtension;
 import util.ptr : castNonScope;
-import util.sym : AllSymbols, shortSymValue, Sym, sym, symOfSafeCStr, symOfStr, symValue;
+import util.sym : AllSymbols, Sym, sym, symOfSafeCStr, symOfStr;
 import util.util : todo, verify;
 
 @safe @nogc nothrow: // not pure
@@ -178,17 +178,17 @@ immutable(Command) parseCommand(
 		immutable Sym arg0 = symOfStr(allSymbols, strOfSafeCStr(args[0]));
 		immutable SafeCStr[] cmdArgs = args[1 .. $];
 		switch (arg0.value) {
-			case shortSymValue("build"):
+			case sym!"build".value:
 				return parseBuildCommand(alloc, allSymbols, allPaths, cwd, cmdArgs);
-			case shortSymValue("doc"):
+			case sym!"doc".value:
 				return parseDocumentCommand(alloc, allSymbols, allPaths, cwd, cmdArgs);
-			case shortSymValue("print"):
+			case sym!"print".value:
 				return parsePrintCommand(alloc, allSymbols, allPaths, cwd, cmdArgs);
-			case shortSymValue("run"):
+			case sym!"run".value:
 				return parseRunCommand(alloc, allSymbols, allPaths, cwd, cmdArgs);
-			case shortSymValue("test"):
+			case sym!"test".value:
 				return parseTestCommand(alloc, allSymbols, cmdArgs);
-			case shortSymValue("version"):
+			case sym!"version".value:
 				return immutable Command(immutable Command.Version());
 			default:
 				return immutable Command(immutable Command.Help(
@@ -211,9 +211,9 @@ immutable(BuildOut) emptyBuildOut() =>
 
 immutable(bool) isHelp(immutable Sym a) {
 	switch (a.value) {
-		case shortSymValue("help"):
-		case shortSymValue("-help"):
-		case shortSymValue("--help"):
+		case sym!"help".value:
+		case sym!"-help".value:
+		case sym!"--help".value:
 			return true;
 		default:
 			return false;
@@ -287,15 +287,15 @@ immutable(Command) parsePrintCommand(
 
 immutable(Opt!PrintKind) parsePrintKind(immutable Sym a) {
 	switch (a.value) {
-		case shortSymValue("tokens"):
+		case sym!"tokens".value:
 			return some(PrintKind.tokens);
-		case shortSymValue("ast"):
+		case sym!"ast".value:
 			return some(PrintKind.ast);
-		case shortSymValue("model"):
+		case sym!"model".value:
 			return some(PrintKind.model);
-		case symValue!"concrete-model":
+		case sym!"concrete-model".value:
 			return some(PrintKind.concreteModel);
-		case shortSymValue("low-model"):
+		case sym!"low-model".value:
 			return some(PrintKind.lowModel);
 		default:
 			return none!PrintKind;
@@ -380,10 +380,10 @@ immutable(Opt!RunOptions) parseRunOptions(
 	bool optimize = false;
 	foreach (immutable ArgsPart part; argParts) {
 		switch (part.tag.value) {
-			case shortSymValue("--jit"):
+			case sym!"--jit".value:
 				jit = true;
 				break;
-			case shortSymValue("--optimize"):
+			case sym!"--optimize".value:
 				optimize = true;
 				break;
 			default:
@@ -416,14 +416,14 @@ immutable(Opt!BuildOptions) parseBuildOptions(
 		argParts,
 		(immutable BuildOptions cur, ref immutable ArgsPart part) {
 			switch (part.tag.value) {
-				case shortSymValue("--out"):
+				case sym!"--out".value:
 					immutable Opt!BuildOut buildOut = parseBuildOut(alloc, allPaths, cwd, part.args);
 					return has(buildOut) ? some(withBuildOut(cur, force(buildOut))) : none!BuildOptions;
-				case shortSymValue("--no-out"):
+				case sym!"--no-out".value:
 					return empty(part.args)
 						? some(withBuildOut(cur, immutable BuildOut(none!PathAndExtension, none!PathAndExtension)))
 						: none!BuildOptions;
-				case shortSymValue("--optimize"):
+				case sym!"--optimize".value:
 					return empty(part.args)
 						? some(withCCompileOptions(cur, immutable CCompileOptions(OptimizationLevel.o2)))
 						: none!BuildOptions;

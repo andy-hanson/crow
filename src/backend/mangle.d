@@ -41,7 +41,7 @@ import util.col.dictBuilder : finishDict, mustAddToDict, DictBuilder;
 import util.col.fullIndexDict : fullIndexDictEachValue;
 import util.col.mutDict : insertOrUpdate, MutDict, setInDict;
 import util.opt : force, has, none, Opt, some;
-import util.sym : AllSymbols, eachCharInSym, shortSym, shortSymValue, Sym, writeSym;
+import util.sym : AllSymbols, eachCharInSym, Sym, sym, writeSym;
 import util.writer : Writer;
 
 struct MangledNames {
@@ -62,7 +62,7 @@ immutable(MangledNames) buildMangledNames(
 	// This will not have an entry for non-overloaded funs.
 	DictBuilder!(ConcreteFun*, size_t) funToNameIndex;
 	// HAX: Ensure "main" has that name.
-	setInDict(alloc, funNameToIndex, shortSym("main"), immutable PrevOrIndex!ConcreteFun(0));
+	setInDict(alloc, funNameToIndex, sym!"main", immutable PrevOrIndex!ConcreteFun(0));
 	fullIndexDictEachValue!(LowFunIndex, LowFun)(program.allFuns, (ref immutable LowFun it) {
 		matchLowFunSource!(
 			void,
@@ -153,7 +153,7 @@ void writeLowFunMangledName(
 		},
 		(ref immutable LowFunSource.Generated it) {
 			writeMangledName(writer, mangledNames, it.name);
-			if (it.name != shortSym("main")) {
+			if (it.name != sym!"main") {
 				writer ~= '_';
 				writer ~= funIndex.index;
 			}
@@ -351,7 +351,7 @@ void addToPrevOrIndex(T)(
 
 public void writeMangledName(ref Writer writer, scope ref immutable MangledNames mangledNames, immutable Sym a) {
 	//TODO: this applies to any C function. Maybe crow functions should have a common prefix.
-	if (a == shortSym("errno")) {
+	if (a == sym!"errno") {
 		writer ~= "_crow_errno";
 		return;
 	}
@@ -406,17 +406,17 @@ immutable(Opt!string) mangleChar(immutable char a) {
 
 immutable(bool) conflictsWithCName(immutable Sym a) {
 	switch (a.value) {
-		case shortSymValue("atomic-bool"): // avoid conflicting with c's "atomic_bool" type
-		case shortSymValue("break"):
-		case shortSymValue("continue"):
-		case shortSymValue("default"):
-		case shortSymValue("do"):
-		case shortSymValue("double"):
-		case shortSymValue("float"):
-		case shortSymValue("for"):
-		case shortSymValue("int"):
-		case shortSymValue("void"):
-		case shortSymValue("while"):
+		case sym!"atomic-bool".value: // avoid conflicting with c's "atomic_bool" type
+		case sym!"break".value:
+		case sym!"continue".value:
+		case sym!"default".value:
+		case sym!"do".value:
+		case sym!"double".value:
+		case sym!"float".value:
+		case sym!"for".value:
+		case sym!"int".value:
+		case sym!"void".value:
+		case sym!"while".value:
 			return true;
 		default:
 			return false;

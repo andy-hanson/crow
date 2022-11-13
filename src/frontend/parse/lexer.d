@@ -15,7 +15,7 @@ import util.col.str : copyToSafeCStr, CStr, SafeCStr, safeCStr;
 import util.conv : safeIntFromUint, safeToUint;
 import util.opt : force, has, none, Opt, some;
 import util.sourceRange : Pos, RangeWithinFile;
-import util.sym : AllSymbols, Operator, concatSymsWithDot, shortSym, shortSymValue, Sym, sym, symForOperator, symOfStr, symValue;
+import util.sym : AllSymbols, concatSymsWithDot, Sym, sym, symOfStr;
 import util.util : drop, todo, unreachable, verify;
 
 private enum IndentKind {
@@ -35,7 +35,7 @@ struct Lexer {
 	union {
 		bool ignore;
 		Cell!Sym curSym; // For Token.name
-		Cell!Operator curOperator;
+		Cell!Sym curOperator;
 		Cell!LiteralAst curLiteral; // for Token.literal
 	}
 }
@@ -142,7 +142,7 @@ void addDiagExpected(ref Lexer lexer, immutable ParseDiag.Expected.Kind kind) {
 
 immutable(bool) takeOrAddDiagExpectedOperator(
 	ref Lexer lexer,
-	immutable Operator operator,
+	immutable Sym operator,
 	immutable ParseDiag.Expected.Kind kind,
 ) {
 	immutable bool res = tryTakeOperator(lexer, operator);
@@ -301,7 +301,7 @@ immutable(NameAndRange) takeNameAndRange(ref Lexer lexer) {
 	else {
 		addDiag(lexer, range(lexer, start), immutable ParseDiag(
 			immutable ParseDiag.Expected(ParseDiag.Expected.Kind.name)));
-		return immutable NameAndRange(start, shortSym("bogus"));
+		return immutable NameAndRange(start, sym!"bogus");
 	}
 }
 
@@ -338,7 +338,7 @@ immutable(Opt!NameAndRange) tryTakeNameOrOperatorAndRange(ref Lexer lexer) {
 	return tryTakeToken(lexer, Token.name)
 		? some(immutable NameAndRange(start, getCurSym(lexer)))
 		: tryTakeToken(lexer, Token.operator)
-		? some(immutable NameAndRange(start, symForOperator(getCurOperator(lexer))))
+		? some(immutable NameAndRange(start, getCurOperator(lexer)))
 		: none!NameAndRange;
 }
 
@@ -355,7 +355,7 @@ immutable(Sym) takeNameOrOperator(ref Lexer lexer) {
 	else {
 		addDiag(lexer, range(lexer, start), immutable ParseDiag(
 			immutable ParseDiag.Expected(ParseDiag.Expected.Kind.nameOrOperator)));
-		return shortSym("bogus");
+		return sym!"bogus";
 	}
 }
 
@@ -508,22 +508,22 @@ public enum Token {
 			return Token.newline;
 		case '~':
 			return operatorToken(lexer, tryTakeChar(lexer, '~')
-				? tryTakeChar(lexer, '=') ? Operator.tilde2Equals : Operator.tilde2
-				: tryTakeChar(lexer, '=') ? Operator.tildeEquals : Operator.tilde);
+				? tryTakeChar(lexer, '=') ? sym!"~~=" : sym!"~~"
+				: tryTakeChar(lexer, '=') ? sym!"~=" : sym!"~");
 		case '@':
 			return tryTakeChar(lexer, '<')
 				? Token.atLess
 				: Token.invalid;
 		case '!':
-			return operatorToken(lexer, tryTakeChar(lexer, '=') ? Operator.notEqual : Operator.not);
+			return operatorToken(lexer, tryTakeChar(lexer, '=') ? sym!"!=" : sym!"!");
 		case '%':
-			return operatorToken(lexer, Operator.modulo);
+			return operatorToken(lexer, sym!"%");
 		case '^':
-			return operatorToken(lexer, Operator.xor1);
+			return operatorToken(lexer, sym!"^");
 		case '&':
-			return operatorToken(lexer, tryTakeChar(lexer, '&') ? Operator.and2 : Operator.and1);
+			return operatorToken(lexer, tryTakeChar(lexer, '&') ? sym!"&&" : sym!"&");
 		case '*':
-			return operatorToken(lexer, tryTakeChar(lexer, '*') ? Operator.exponent : Operator.times);
+			return operatorToken(lexer, tryTakeChar(lexer, '*') ? sym!"**" : sym!"*");
 		case '(':
 			return Token.parenLeft;
 		case ')':
@@ -541,19 +541,19 @@ public enum Token {
 				? literalToken(lexer, takeNumberAfterSign(lexer, some(Sign.minus)))
 				: tryTakeChar(lexer, '>')
 				? Token.arrowAccess
-				: operatorToken(lexer, Operator.minus);
+				: operatorToken(lexer, sym!"-");
 		case '=':
 			return tryTakeChar(lexer, '>')
 				? Token.arrowLambda
 				: tryTakeChar(lexer, '=')
-				? operatorToken(lexer, Operator.equal)
+				? operatorToken(lexer, sym!"==")
 				: Token.equal;
 		case '+':
 			return isDigit(*lexer.ptr)
 				? literalToken(lexer, takeNumberAfterSign(lexer, some(Sign.plus)))
-				: operatorToken(lexer, Operator.plus);
+				: operatorToken(lexer, sym!"+");
 		case '|':
-			return operatorToken(lexer, tryTakeChar(lexer, '|') ? Operator.or2 : Operator.or1);
+			return operatorToken(lexer, tryTakeChar(lexer, '|') ? sym!"||" : sym!"|");
 		case ':':
 			return tryTakeChar(lexer, '=')
 				? Token.colonEqual
@@ -572,27 +572,27 @@ public enum Token {
 			return tryTakeChar(lexer, '-')
 				? Token.arrowThen
 				: operatorToken(lexer, tryTakeChar(lexer, '=')
-					? tryTakeChar(lexer, '>') ? Operator.compare : Operator.lessOrEqual
+					? tryTakeChar(lexer, '>') ? sym!"<=>" : sym!"<="
 					: tryTakeChar(lexer, '<')
-					? Operator.shiftLeft
-					: Operator.less);
+					? sym!"<<"
+					: sym!"<");
 		case '>':
 			return operatorToken(lexer, tryTakeChar(lexer, '=')
-				? Operator.greaterOrEqual
+				? sym!">="
 				: tryTakeChar(lexer, '>')
-				? Operator.shiftRight
-				: Operator.greater);
+				? sym!">>"
+				: sym!">");
 		case '.':
 			return tryTakeChar(lexer, '.')
-				? tryTakeChar(lexer, '.') ? Token.dot3 : operatorToken(lexer, Operator.range)
+				? tryTakeChar(lexer, '.') ? Token.dot3 : operatorToken(lexer, sym!"..")
 				: Token.dot;
 		case '/':
-			return operatorToken(lexer, Operator.divide);
+			return operatorToken(lexer, sym!"/");
 		case '?':
 			return tryTakeChar(lexer, '=')
 				? Token.questionEqual
 				: tryTakeChar(lexer, '?')
-				? operatorToken(lexer, Operator.question2)
+				? operatorToken(lexer, sym!"??")
 				: Token.question;
 		default:
 			if (isAlphaIdentifierStart(c)) {
@@ -608,95 +608,95 @@ public enum Token {
 
 immutable(Token) tokenForSym(ref Lexer lexer, immutable Sym a) {
 	switch (a.value) {
-		case shortSymValue("act"):
+		case sym!"act".value:
 			return Token.act;
-		case shortSymValue("alias"):
+		case sym!"alias".value:
 			return Token.alias_;
-		case shortSymValue("as"):
+		case sym!"as".value:
 			return Token.as;
-		case shortSymValue("assert"):
+		case sym!"assert".value:
 			return Token.assert_;
-		case shortSymValue("break"):
+		case sym!"break".value:
 			return Token.break_;
-		case shortSymValue("builtin"):
+		case sym!"builtin".value:
 			return Token.builtin;
-		case shortSymValue("builtin-spec"):
+		case sym!"builtin-spec".value:
 			return Token.builtinSpec;
-		case shortSymValue("continue"):
+		case sym!"continue".value:
 			return Token.continue_;
-		case shortSymValue("data"):
+		case sym!"data".value:
 			return Token.data;
-		case shortSymValue("elif"):
+		case sym!"elif".value:
 			return Token.elif;
-		case shortSymValue("else"):
+		case sym!"else".value:
 			return Token.else_;
-		case shortSymValue("enum"):
+		case sym!"enum".value:
 			return Token.enum_;
-		case shortSymValue("export"):
+		case sym!"export".value:
 			return Token.export_;
-		case shortSymValue("extern"):
+		case sym!"extern".value:
 			return Token.extern_;
-		case symValue!"extern-pointer":
+		case sym!"extern-pointer".value:
 			return Token.externPointer;
-		case shortSymValue("flags"):
+		case sym!"flags".value:
 			return Token.flags;
-		case shortSymValue("for"):
+		case sym!"for".value:
 			return Token.for_;
-		case shortSymValue("forbid"):
+		case sym!"forbid".value:
 			return Token.forbid;
-		case symValue!"force-sendable":
+		case sym!"force-sendable".value:
 			return Token.forceSendable;
-		case shortSymValue("fun"):
+		case sym!"fun".value:
 			return Token.fun;
-		case shortSymValue("global"):
+		case sym!"global".value:
 			return Token.global;
-		case shortSymValue("if"):
+		case sym!"if".value:
 			return Token.if_;
-		case shortSymValue("import"):
+		case sym!"import".value:
 			return Token.import_;
-		case shortSymValue("loop"):
+		case sym!"loop".value:
 			return Token.loop;
-		case shortSymValue("match"):
+		case sym!"match".value:
 			return Token.match;
-		case shortSymValue("mut"):
+		case sym!"mut".value:
 			return Token.mut;
-		case shortSymValue("noctx"):
+		case sym!"noctx".value:
 			return Token.noCtx;
-		case shortSymValue("no-doc"):
+		case sym!"no-doc".value:
 			return Token.noDoc;
-		case shortSymValue("no-std"):
+		case sym!"no-std".value:
 			return Token.noStd;
-		case shortSymValue("record"):
+		case sym!"record".value:
 			return Token.record;
-		case shortSymValue("ref"):
+		case sym!"ref".value:
 			return Token.ref_;
-		case shortSymValue("sendable"):
+		case sym!"sendable".value:
 			return Token.sendable;
-		case shortSymValue("spec"):
+		case sym!"spec".value:
 			return Token.spec;
-		case shortSymValue("summon"):
+		case sym!"summon".value:
 			return Token.summon;
-		case shortSymValue("test"):
+		case sym!"test".value:
 			return Token.test;
-		case shortSymValue("thread-local"):
+		case sym!"thread-local".value:
 			return Token.thread_local;
-		case shortSymValue("throw"):
+		case sym!"throw".value:
 			return Token.throw_;
-		case shortSymValue("trusted"):
+		case sym!"trusted".value:
 			return Token.trusted;
-		case shortSymValue("unless"):
+		case sym!"unless".value:
 			return Token.unless;
-		case shortSymValue("union"):
+		case sym!"union".value:
 			return Token.union_;
-		case shortSymValue("unsafe"):
+		case sym!"unsafe".value:
 			return Token.unsafe;
-		case shortSymValue("until"):
+		case sym!"until".value:
 			return Token.until;
-		case shortSymValue("while"):
+		case sym!"while".value:
 			return Token.while_;
-		case shortSymValue("with"):
+		case sym!"with".value:
 			return Token.with_;
-		case shortSymValue("_"):
+		case sym!"_".value:
 			return Token.underscore;
 		default:
 			return nameToken(lexer, a);
@@ -708,7 +708,7 @@ immutable(Token) nameToken(ref Lexer lexer, immutable Sym a) {
 	return Token.name;
 }
 
-immutable(Token) operatorToken(ref Lexer lexer, immutable Operator a) {
+immutable(Token) operatorToken(ref Lexer lexer, immutable Sym a) {
 	cellSet(lexer.curOperator, a);
 	return Token.operator;
 }
@@ -726,7 +726,7 @@ public immutable(Sym) getCurSym(ref Lexer lexer) =>
 public immutable(NameAndRange) getCurNameAndRange(ref Lexer lexer, immutable Pos start) =>
 	immutable NameAndRange(start, getCurSym(lexer));
 
-public immutable(Operator) getCurOperator(ref Lexer lexer) =>
+public immutable(Sym) getCurOperator(ref Lexer lexer) =>
 	cellGet(lexer.curOperator);
 
 @trusted public immutable(LiteralAst) getCurLiteral(scope ref Lexer lexer) {
@@ -758,7 +758,7 @@ public immutable(bool) tryTakeToken(ref Lexer lexer, immutable Token expected) {
 	}
 }
 
-public immutable(bool) tryTakeOperator(ref Lexer lexer, immutable Operator expected) {
+public immutable(bool) tryTakeOperator(ref Lexer lexer, immutable Sym expected) {
 	//TODO: always have the next token ready, so we don't need to repeatedly lex the same token
 	immutable char* before = lexer.ptr;
 	immutable Token actual = nextToken(lexer);
@@ -781,10 +781,10 @@ public void takeTypeArgsEnd(ref Lexer lexer) {
 			ParseDiag.Expected.Kind.typeArgsEnd)));
 	}
 	if (actual == Token.operator) {
-		switch (getCurOperator(lexer)) {
-			case Operator.greater:
+		switch (getCurOperator(lexer).value) {
+			case sym!">".value:
 				break;
-			case Operator.shiftRight:
+			case sym!">>".value:
 				backUp(lexer);
 				break;
 			default:

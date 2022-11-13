@@ -44,7 +44,7 @@ import util.col.mutMaxArr : push, tempAsArr;
 import util.col.str : safeCStr;
 import util.opt : force, has, none, noneMut, Opt, some;
 import util.sourceRange : fileAndPosFromFileAndRange, FileAndRange;
-import util.sym : prependSet, shortSym, Sym, sym;
+import util.sym : prependSet, Sym, sym;
 
 immutable(size_t) countFunsForStruct(immutable StructDecl[] structs) =>
 	sum!StructDecl(structs, (ref immutable StructDecl s) =>
@@ -122,7 +122,7 @@ void addFunsForEnum(
 	immutable FileAndRange range = struct_.range;
 	addEnumFlagsCommonFunctions(
 		ctx.alloc, funsBuilder, ctx.programState, visibility, range, enumType, enum_.backingType, commonTypes,
-		shortSym("enum-members"));
+		sym!"enum-members");
 	foreach (ref immutable StructBody.Enum.Member member; enum_.members)
 		exactSizeArrBuilderAdd(funsBuilder, enumOrFlagsConstructor(ctx.alloc, visibility, enumType, member));
 }
@@ -206,8 +206,8 @@ FunDecl enumEqualFunction(
 		[],
 		immutable Type(commonTypes.bool_),
 		immutable Params(arrLiteral!Param(alloc, [
-			immutable Param(fileAndRange, some(shortSym("a")), enumType, 0),
-			immutable Param(fileAndRange, some(shortSym("b")), enumType, 1)])),
+			immutable Param(fileAndRange, some(sym!"a"), enumType, 0),
+			immutable Param(fileAndRange, some(sym!"b"), enumType, 1)])),
 		FunFlags.generatedNoCtx.withOkIfUnused(),
 		[],
 		immutable FunBody(EnumFunction.equal));
@@ -222,7 +222,7 @@ FunDecl flagsNewFunction(
 		safeCStr!"",
 		visibility,
 		fileAndPosFromFileAndRange(fileAndRange),
-		shortSym("new"),
+		sym!"new",
 		[],
 		enumType,
 		immutable Params([]),
@@ -240,7 +240,7 @@ FunDecl flagsAllFunction(
 		safeCStr!"",
 		visibility,
 		fileAndPosFromFileAndRange(fileAndRange),
-		shortSym("all"),
+		sym!"all",
 		[],
 		enumType,
 		immutable Params([]),
@@ -262,7 +262,7 @@ FunDecl flagsNegateFunction(
 		[],
 		enumType,
 		immutable Params(arrLiteral!Param(alloc, [
-			immutable Param(fileAndRange, some(shortSym("a")), enumType, 0)])),
+			immutable Param(fileAndRange, some(sym!"a"), enumType, 0)])),
 		FunFlags.generatedNoCtx.withOkIfUnused(),
 		[],
 		immutable FunBody(FlagsFunction.negate));
@@ -283,7 +283,7 @@ FunDecl enumToIntegralFunction(
 		[],
 		immutable Type(getBackingTypeFromEnumType(enumBackingType, commonTypes)),
 		immutable Params(arrLiteral!Param(alloc, [
-			immutable Param(fileAndRange, some(shortSym("a")), enumType, 0)])),
+			immutable Param(fileAndRange, some(sym!"a"), enumType, 0)])),
 		FunFlags.generatedNoCtx.withOkIfUnused(),
 		[],
 		immutable FunBody(EnumFunction.toIntegral));
@@ -354,35 +354,34 @@ FunDecl flagsUnionOrIntersectFunction(
 		[],
 		enumType,
 		immutable Params(arrLiteral!Param(alloc, [
-			immutable Param(fileAndRange, some(shortSym("a")), enumType, 0),
-			immutable Param(fileAndRange, some(shortSym("b")), enumType, 0)])),
+			immutable Param(fileAndRange, some(sym!"a"), enumType, 0),
+			immutable Param(fileAndRange, some(sym!"b"), enumType, 0)])),
 		FunFlags.generatedNoCtx.withOkIfUnused(),
 		[],
 		immutable FunBody(fn));
 
 //TODO: actually, we should record the type name used,
 //so if they had 'e enum<size_t>' we should have 'to-size_t' not 'to-nat64'
-immutable(Sym) enumToIntegralName(immutable EnumBackingType a) =>
-	shortSym(() {
-		final switch (a) {
-			case EnumBackingType.int8:
-				return "to-int8";
-			case EnumBackingType.int16:
-				return "to-int16";
-			case EnumBackingType.int32:
-				return "to-int32";
-			case EnumBackingType.int64:
-				return "to-int64";
-			case EnumBackingType.nat8:
-				return "to-nat8";
-			case EnumBackingType.nat16:
-				return "to-nat16";
-			case EnumBackingType.nat32:
-				return "to-nat32";
-			case EnumBackingType.nat64:
-				return "to-nat64";
-		}
-	}());
+immutable(Sym) enumToIntegralName(immutable EnumBackingType a) {
+	final switch (a) {
+		case EnumBackingType.int8:
+			return sym!"to-int8";
+		case EnumBackingType.int16:
+			return sym!"to-int16";
+		case EnumBackingType.int32:
+			return sym!"to-int32";
+		case EnumBackingType.int64:
+			return sym!"to-int64";
+		case EnumBackingType.nat8:
+			return sym!"to-nat8";
+		case EnumBackingType.nat16:
+			return sym!"to-nat16";
+		case EnumBackingType.nat32:
+			return sym!"to-nat32";
+		case EnumBackingType.nat64:
+			return sym!"to-nat64";
+	}
+}
 
 void addFunsForRecord(
 	ref CheckCtx ctx,
@@ -404,7 +403,7 @@ void addFunsForRecord(
 			safeCStr!"",
 			record.flags.newVisibility,
 			fileAndPosFromFileAndRange(struct_.range),
-			shortSym("new"),
+			sym!"new",
 			typeParams,
 			returnType,
 			immutable Params(ctorParams),
@@ -431,7 +430,7 @@ void addFunsForRecord(
 			typeParams,
 			field.type,
 			immutable Params(arrLiteral!Param(ctx.alloc, [
-				immutable Param(field.range, some(shortSym("a")), structType, 0)])),
+				immutable Param(field.range, some(sym!"a"), structType, 0)])),
 			FunFlags.generatedNoCtx,
 			[],
 			immutable FunBody(immutable FunBody.RecordFieldGet(fieldIndex))));
@@ -446,7 +445,7 @@ void addFunsForRecord(
 				typeParams,
 				immutable Type(commonTypes.void_),
 				immutable Params(arrLiteral!Param(ctx.alloc, [
-					immutable Param(field.range, some(shortSym("a")), structType, 0),
+					immutable Param(field.range, some(sym!"a"), structType, 0),
 					immutable Param(field.range, some(field.name), field.type, 1)])),
 				FunFlags.generatedNoCtx,
 				[],
@@ -481,7 +480,7 @@ void addFunsForUnion(
 	foreach (immutable size_t memberIndex, ref immutable UnionMember member; union_.members) {
 		immutable Param[] params = has(member.type)
 			? arrLiteral!Param(ctx.alloc, [
-				immutable Param(member.range, some(shortSym("a")), force(member.type), 0)])
+				immutable Param(member.range, some(sym!"a"), force(member.type), 0)])
 			: [];
 		exactSizeArrBuilderAdd(funsBuilder, FunDecl(
 			safeCStr!"",

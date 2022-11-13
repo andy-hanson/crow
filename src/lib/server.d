@@ -30,7 +30,7 @@ import util.path : AllPaths, childPath, emptyPathsInfo, emptyRootPath, parsePath
 import util.perf : Perf;
 import util.readOnlyStorage : ReadOnlyStorage;
 import util.sourceRange : FileIndex, Pos, RangeWithinFile;
-import util.sym : AllSymbols, shortSym;
+import util.sym : AllSymbols, sym;
 
 struct Server {
 	@safe @nogc pure nothrow:
@@ -46,7 +46,7 @@ struct Server {
 		alloc = a.move();
 		allSymbols = AllSymbols(&alloc);
 		allPaths = AllPaths(&alloc, &allSymbols);
-		includeDir = childPath(allPaths, emptyRootPath(allPaths), shortSym("include"));
+		includeDir = childPath(allPaths, emptyRootPath(allPaths), sym!"include");
 		pathsInfo = emptyPathsInfo;
 		files = MutFiles.init;
 	}

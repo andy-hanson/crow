@@ -15,7 +15,7 @@ import util.path : emptyPathsInfo, Path, PathsInfo, rootPath;
 import util.perf : Perf, withNullPerf;
 import util.readOnlyStorage : ReadOnlyStorage;
 import util.sourceRange : Pos;
-import util.sym : shortSym;
+import util.sym : sym;
 import util.util : verify, verifyFail;
 
 @trusted void testHover(ref Test test) {
@@ -31,11 +31,11 @@ struct HoverTest {
 }
 
 HoverTest initHoverTest(ref Test test, immutable SafeCStr content) {
-	immutable Path path = rootPath(test.allPaths, shortSym("main"));
+	immutable Path path = rootPath(test.allPaths, sym!"main");
 	MutFiles files;
 	addToMutDict(test.alloc, files, path, content);
 	immutable Program program = withDictReadOnlyStorage!(immutable Program)(
-		rootPath(test.allPaths, shortSym("include")),
+		rootPath(test.allPaths, sym!"include"),
 		files,
 		(scope ref const ReadOnlyStorage storage) @safe =>
 			withNullPerf!(immutable Program, (ref Perf perf) @safe =>

@@ -40,7 +40,7 @@ import util.opt : force, has, Opt;
 import util.path : AllPaths, baseName, Path, PathsInfo, writePath, writeRelPath;
 import util.ptr : ptrTrustMe_mut;
 import util.sourceRange : FileAndPos;
-import util.sym : AllSymbols, Sym, strOfOperator, writeSym;
+import util.sym : AllSymbols, Sym, writeSym;
 import util.util : unreachable;
 import util.writer :
 	finishWriter,
@@ -112,8 +112,9 @@ void writeLineNumber(
 
 void writeParseDiag(
 	ref Writer writer,
-	ref const AllPaths allPaths,
-	ref immutable PathsInfo pathsInfo,
+	scope ref const AllSymbols allSymbols,
+	scope ref const AllPaths allPaths,
+	scope ref immutable PathsInfo pathsInfo,
 	ref immutable ParseDiag d,
 ) {
 	matchParseDiag!void(
@@ -300,7 +301,7 @@ void writeParseDiag(
 		},
 		(ref immutable ParseDiag.UnexpectedOperator u) {
 			writer ~= "unexpected '";
-			writer ~= strOfOperator(u.operator);
+			writeSym(writer, allSymbols, u.operator);
 			writer ~= '\'';
 		},
 		(ref immutable ParseDiag.UnexpectedToken u) {
@@ -801,7 +802,7 @@ void writeDiag(
 			writer ~= " expression needs an expected type";
 		},
 		(ref immutable ParseDiag pd) {
-			writeParseDiag(writer, allPaths, pathsInfo, pd);
+			writeParseDiag(writer, allSymbols, allPaths, pathsInfo, pd);
 		},
 		(ref immutable Diag.PtrIsUnsafe) {
 			writer ~= "can only get pointer in an 'unsafe' or 'trusted' function";

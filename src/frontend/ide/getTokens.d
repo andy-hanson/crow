@@ -71,7 +71,7 @@ import util.conv : safeToUint;
 import util.opt : force, has, Opt;
 import util.repr : Repr, nameAndRepr, reprArr, reprNamedRecord, reprSym;
 import util.sourceRange : Pos, rangeOfStartAndLength, rangeOfStartAndName, RangeWithinFile, reprRangeWithinFile;
-import util.sym : AllSymbols, shortSym, Sym, symSize;
+import util.sym : AllSymbols, Sym, sym, symSize;
 import util.util : todo;
 
 struct Token {
@@ -101,8 +101,8 @@ immutable(Repr) reprTokens(ref Alloc alloc, ref immutable Token[] tokens) =>
 immutable(Token[]) tokensOfAst(ref Alloc alloc, ref const AllSymbols allSymbols, scope ref immutable FileAst ast) {
 	ArrBuilder!Token tokens;
 
-	addImportTokens(alloc, tokens, allSymbols, ast.imports, shortSym("import"));
-	addImportTokens(alloc, tokens, allSymbols, ast.exports, shortSym("export"));
+	addImportTokens(alloc, tokens, allSymbols, ast.imports, sym!"import");
+	addImportTokens(alloc, tokens, allSymbols, ast.exports, sym!"export");
 
 	//TODO: also tests...
 	eachSorted!(RangeWithinFile, SpecDeclAst, StructAliasAst, StructDeclAst, FunDeclAst)(
@@ -234,7 +234,7 @@ void addTypeTokens(
 		(immutable TypeAst.Fun it) {
 			add(alloc, tokens, immutable Token(
 				Token.Kind.keyword,
-				rangeOfStartAndName(it.range.start, shortSym("fun"), allSymbols)));
+				rangeOfStartAndName(it.range.start, sym!"fun", allSymbols)));
 			foreach (immutable TypeAst t; it.returnAndParamTypes)
 				addTypeTokens(alloc, tokens, allSymbols, t);
 		},
@@ -424,7 +424,7 @@ void addExprTokens(
 			add(alloc, tokens, immutable Token(
 				Token.Kind.keyword,
 				// Only the length matters, and "assert" is same length as "forbid"
-				rangeOfNameAndRange(immutable NameAndRange(a.range.start, shortSym("assert")), allSymbols)));
+				rangeOfNameAndRange(immutable NameAndRange(a.range.start, sym!"assert"), allSymbols)));
 		},
 		(ref immutable BogusAst) {},
 		(ref immutable CallAst it) {
@@ -688,35 +688,35 @@ immutable(Comparison) compareRangeWithinFile(ref immutable RangeWithinFile a, re
 immutable(Sym) symOfTokenKind(immutable Token.Kind kind) {
 	final switch (kind) {
 		case Token.Kind.fun:
-			return shortSym("fun");
+			return sym!"fun";
 		case Token.Kind.identifier:
-			return shortSym("identifier");
+			return sym!"identifier";
 		case Token.Kind.importPath:
-			return shortSym("import");
+			return sym!"import";
 		case Token.Kind.keyword:
-			return shortSym("keyword");
+			return sym!"keyword";
 		case Token.Kind.literalNumber:
-			return shortSym("lit-num");
+			return sym!"lit-num";
 		case Token.Kind.literalString:
-			return shortSym("lit-str");
+			return sym!"lit-str";
 		case Token.Kind.local:
-			return shortSym("local");
+			return sym!"local";
 		case Token.Kind.member:
-			return shortSym("member");
+			return sym!"member";
 		case Token.Kind.modifier:
-			return shortSym("modifier");
+			return sym!"modifier";
 		case Token.Kind.param:
-			return shortSym("param");
+			return sym!"param";
 		case Token.Kind.spec:
-			return shortSym("spec");
+			return sym!"spec";
 		case Token.Kind.struct_:
-			return shortSym("struct");
+			return sym!"struct";
 		case Token.Kind.typeParam:
-			return shortSym("type-param");
+			return sym!"type-param";
 	}
 }
 
 immutable(Repr) reprToken(ref Alloc alloc, ref immutable Token token) =>
-	reprNamedRecord(alloc, "token", [
-		nameAndRepr("kind", reprSym(symOfTokenKind(token.kind))),
-		nameAndRepr("range", reprRangeWithinFile(alloc, token.range))]);
+	reprNamedRecord!"token"(alloc, [
+		nameAndRepr!"kind"(reprSym(symOfTokenKind(token.kind))),
+		nameAndRepr!"range"(reprRangeWithinFile(alloc, token.range))]);

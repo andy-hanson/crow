@@ -148,9 +148,9 @@ ulong[2000 * 1024 * 1024 / ulong.sizeof] globalBuffer;
 
 immutable(Repr) reprParseDiagnostics(ref Alloc alloc, ref immutable StrParseDiagnostic[] a) =>
 	reprArr(alloc, a, (ref immutable StrParseDiagnostic it) =>
-		reprNamedRecord(alloc, "diagnostic", [
-			nameAndRepr("range", reprRangeWithinFile(alloc, it.range)),
-			nameAndRepr("message", reprStr(it.message))]));
+		reprNamedRecord!"diagnostic"(alloc, [
+			nameAndRepr!"range"(reprRangeWithinFile(alloc, it.range)),
+			nameAndRepr!"message"(reprStr(it.message))]));
 
 immutable(CStr) writeRunResult(ref Alloc alloc, ref immutable FakeExternResult result) {
 	Writer writer = Writer(castNonScope_mut(&alloc));

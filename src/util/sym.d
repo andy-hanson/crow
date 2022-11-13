@@ -7,7 +7,7 @@ import util.col.arr : only;
 import util.col.arrUtil : findIndex;
 import util.col.mutArr : MutArr, mutArrSize, push;
 import util.col.mutDict : addToMutDict, getAt_mut, MutDict, mutDictSize;
-import util.col.str : copyToSafeCStr, eachChar, SafeCStr, safeCStr, strOfCStr, strOfSafeCStr;
+import util.col.str : copyToSafeCStr, eachChar, SafeCStr, strEq, strOfSafeCStr;
 import util.hash : Hasher, hashUlong;
 import util.opt : force, has, Opt, none, some;
 import util.ptr : ptrTrustMe_mut;
@@ -22,9 +22,6 @@ struct Sym {
 	// This is either:
 	// * A short symbol, tagged with 'shortSymTag'
 	// * An index into 'largeStrings'.
-	// The first members of 'largeStrings' match the members of the 'Operator' enum,
-	// so an operator can cast to/from a Sym.
-	// After that come specialSyms.
 	immutable ulong value; // Public for 'switch'
 	@disable this();
 	// TODO:PRIVATE
@@ -40,9 +37,6 @@ struct AllSymbols {
 
 	@trusted this(Alloc* allocPtr_) {
 		allocPtr = allocPtr_;
-		static assert(Operator.min == 0);
-		foreach (immutable string s; operators)
-			drop(addLargeString(this, immutable SafeCStr(s.ptr)));
 		foreach (immutable string s; specialSyms) { {
 			immutable SafeCStr str = immutable SafeCStr(s.ptr);
 			debug {
@@ -104,8 +98,6 @@ immutable(Sym) concatSymsWithDot(ref AllSymbols allSymbols, immutable Sym a, imm
 	return symOfStr(allSymbols, cast(immutable) temp[0 .. i]);
 }
 
-private immutable(Sym) emptySym = shortSym("");
-
 immutable(Sym) symOfStr(ref AllSymbols allSymbols, scope immutable string str) {
 	immutable Opt!Sym packed = tryPackShortSym(str);
 	return has(packed) ? force(packed) : getSymFromLongStr(allSymbols, str);
@@ -113,126 +105,6 @@ immutable(Sym) symOfStr(ref AllSymbols allSymbols, scope immutable string str) {
 
 immutable(Sym) symOfSafeCStr(ref AllSymbols allSymbols, scope immutable SafeCStr a) =>
 	symOfStr(allSymbols, strOfSafeCStr(a));
-
-enum Operator {
-	or2,
-	and2,
-	question2,
-	equal,
-	notEqual,
-	less,
-	lessOrEqual,
-	greater,
-	greaterOrEqual,
-	compare,
-	or1,
-	xor1,
-	and1,
-	tilde,
-	tildeEquals,
-	tilde2,
-	tilde2Equals,
-	range,
-	shiftLeft,
-	shiftRight,
-	plus,
-	minus,
-	times,
-	divide,
-	modulo,
-	exponent,
-	not,
-}
-
-immutable string[] operators = [
-	"||\0",
-	"&&\0",
-	"??\0",
-	"==\0",
-	"!=\0",
-	"<\0",
-	"<=\0",
-	">\0",
-	">=\0",
-	"<=>\0",
-	"|\0",
-	"^\0",
-	"&\0",
-	"~\0",
-	"~=\0",
-	"~~\0",
-	"~~=\0",
-	"..\0",
-	"<<\0",
-	">>\0",
-	"+\0",
-	"-\0",
-	"*\0",
-	"/\0",
-	"%\0",
-	"**\0",
-	"!\0",
-];
-immutable(string) strOfOperator(immutable Operator a) =>
-	operators[a][0 .. $ - 1];
-
-immutable(Sym) symForOperator(immutable Operator a) =>
-	immutable Sym(a);
-
-immutable string[] specialSyms = [
-	".\0",
-	".c\0",
-	".crow\0",
-	".dll\0",
-	".exe\0",
-	".json\0",
-	".lib\0",
-	".new\0",
-	".so\0",
-	"as-any-mut-pointer\0",
-	"begin-pointer\0",
-	"call-with-ctx\0",
-	"clock_gettime\0",
-	"concrete-model\0",
-	"const-pointer\0",
-	"cur-exclusion\0",
-	"exception-low-level\0",
-	"extern-pointer\0",
-	"flags-members\0",
-	"force-sendable\0",
-	"fun-pointer0\0",
-	"fun-pointer1\0",
-	"fun-pointer2\0",
-	"fun-pointer3\0",
-	"fun-pointer4\0",
-	"fun-pointer5\0",
-	"fun-pointer6\0",
-	"fun-pointer7\0",
-	"fun-pointer8\0",
-	"fun-pointer9\0",
-	"init-constants\0",
-	"interpreter-backtrace\0",
-	"is-big-endian\0",
-	"is-interpreted\0",
-	"is-single-threaded\0",
-	"line-and-column-getter\0",
-	"loop-continue\0",
-	"pointer-cast-from-extern\0",
-	"pointer-cast-to-extern\0",
-	"static-symbols\0",
-	"to-mut-pointer\0",
-	"truncate-to-int64\0",
-	"unsafe-bit-shift-left\0",
-	"unsafe-bit-shift-right\0",
-	"unsafe-to-int8\0",
-	"unsafe-to-int16\0",
-	"unsafe-to-int32\0",
-	"unsafe-to-int64\0",
-	"unsafe-to-nat8\0",
-	"unsafe-to-nat16\0",
-	"unsafe-to-nat32\0",
-	"unsafe-to-nat64\0",
-];
 
 void eachCharInSym(
 	scope ref const AllSymbols allSymbols,
@@ -255,34 +127,19 @@ immutable(uint) symSize(ref const AllSymbols allSymbols, immutable Sym a) {
 	return size;
 }
 
-immutable(Sym) sym(immutable string name) = name == ""
-	? emptySym
-	: has(tryPackShortSym(name))
-	? shortSym(name)
-	: specialSym(name);
-
-immutable(ulong) symValue(immutable string name) = sym!name.value;
+immutable(Sym) sym(immutable string name) = specialSym(name);
 
 private @trusted immutable(Sym) specialSym(immutable string name) {
-	foreach (immutable size_t i, immutable string s; operators)
-		if (s[0 .. $ - 1] == name)
-			return immutable Sym(i);
 	foreach (immutable size_t i, immutable string s; specialSyms)
-		if (s[0 .. $ - 1] == name)
-			return immutable Sym(Operator.max + 1 + i);
-	assert(0);
+		if (strEq(s[0 .. $ - 1], name))
+			return immutable Sym(i);
+	return shortSym(name);
 }
 
-immutable(Sym) shortSym(immutable string name) {
+private immutable(Sym) shortSym(immutable string name) {
 	immutable Opt!Sym opt = tryPackShortSym(name);
 	return force(opt);
 }
-
-immutable(ulong) shortSymValue(immutable string name) =>
-	shortSym(name).value;
-
-immutable(ulong) operatorSymValue(immutable Operator a) =>
-	symForOperator(a).value;
 
 immutable(SafeCStr) safeCStrOfSym(ref Alloc alloc, ref const AllSymbols allSymbols, immutable Sym a) {
 	if (isLongSym(a))
@@ -323,18 +180,6 @@ void writeQuotedSym(ref Writer writer, ref const AllSymbols allSymbols, immutabl
 	writer ~= '"';
 	writeSym(writer, allSymbols, a);
 	writer ~= '"';
-}
-
-immutable(bool) isSymOperator(immutable Sym a) =>
-	a.value <= Operator.max;
-
-immutable(Opt!Operator) operatorForSym(immutable Sym a) {
-	if (isSymOperator(a)) {
-		immutable Operator res = cast(immutable Operator) a.value;
-		verify(res <= Operator.max);
-		return some(res);
-	} else
-		return none!Operator;
 }
 
 private:
@@ -466,3 +311,89 @@ immutable(Sym) getSymFromLongStr(ref AllSymbols allSymbols, scope immutable stri
 	const Opt!(immutable Sym) value = getAt_mut(allSymbols.largeStringToIndex, str);
 	return has(value) ? force(value) : addLargeString(allSymbols, copyToSafeCStr(allSymbols.alloc, str));
 }
+
+immutable string[] specialSyms = [
+	// Putting operator symbols in precedence order so `symPrecedence` from `parseExpr` can be efficient.
+	// '-' can't be here because it's a short sym.
+	"||\0",
+	"&&\0",
+	"??\0",
+	"==\0",
+	"!=\0",
+	"<\0",
+	"<=\0",
+	">\0",
+	">=\0",
+	"<=>\0",
+	"|\0",
+	"^\0",
+	"&\0",
+	"~\0",
+	"~=\0",
+	"~~\0",
+	"~~=\0",
+	"..\0",
+	"<<\0",
+	">>\0",
+	"+\0",
+	"*\0",
+	"/\0",
+	"%\0",
+	"**\0",
+	"!\0",
+
+	".\0",
+	".c\0",
+	".crow\0",
+	".dll\0",
+	".exe\0",
+	".json\0",
+	".lib\0",
+	".new\0",
+	".so\0",
+	"as-any-mut-pointer\0",
+	"begin-pointer\0",
+	"call-fun-pointer\0",
+	"call-with-ctx\0",
+	"clock_gettime\0",
+	"concrete-model\0",
+	"const-pointer\0",
+	"cur-exclusion\0",
+	"exception-low-level\0",
+	"extern-pointer\0",
+	"extern-pointers\0",
+	"flags-members\0",
+	"force-sendable\0",
+	"fun-pointer0\0",
+	"fun-pointer1\0",
+	"fun-pointer2\0",
+	"fun-pointer3\0",
+	"fun-pointer4\0",
+	"fun-pointer5\0",
+	"fun-pointer6\0",
+	"fun-pointer7\0",
+	"fun-pointer8\0",
+	"fun-pointer9\0",
+	"init-constants\0",
+	"interpreter-backtrace\0",
+	"is-big-endian\0",
+	"is-interpreted\0",
+	"is-single-threaded\0",
+	"line-and-column-getter\0",
+	"loop-continue\0",
+	"pointer-cast-from-extern\0",
+	"pointer-cast-to-extern\0",
+	"static-symbols\0",
+	"to-mut-pointer\0",
+	"truncate-to-int64\0",
+	"unsafe-bit-shift-left\0",
+	"unsafe-bit-shift-right\0",
+	"unsafe-to-int8\0",
+	"unsafe-to-int16\0",
+	"unsafe-to-int32\0",
+	"unsafe-to-int64\0",
+	"unsafe-to-nat8\0",
+	"unsafe-to-nat16\0",
+	"unsafe-to-nat32\0",
+	"unsafe-to-nat64\0",
+];

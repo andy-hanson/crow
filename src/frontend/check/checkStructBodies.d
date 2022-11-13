@@ -55,7 +55,7 @@ import util.col.str : copySafeCStr;
 import util.opt : force, has, none, Opt, some, someMut;
 import util.ptr : castImmutable, castNonScope_mut;
 import util.sourceRange : RangeWithinFile;
-import util.sym : shortSym, Sym, sym;
+import util.sym : Sym, sym;
 import util.util : todo, unreachable;
 
 StructDecl[] checkStructsInitial(ref CheckCtx ctx, scope immutable StructDeclAst[] asts) =>
@@ -619,7 +619,7 @@ immutable(RecordModifiers) withPacked(
 	immutable RangeWithinFile range,
 ) {
 	if (cur.packed)
-		addDiag(ctx, range, immutable Diag(immutable Diag.ModifierDuplicate(shortSym("packed"))));
+		addDiag(ctx, range, immutable Diag(immutable Diag.ModifierDuplicate(sym!"packed")));
 	return immutable RecordModifiers(cur.byValOrRefOrNone, cur.newVisibility, true);
 }
 

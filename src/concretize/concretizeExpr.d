@@ -93,7 +93,7 @@ import util.memory : allocate, allocateMut, overwriteMemory;
 import util.opt : force, has, none, Opt, some;
 import util.ptr : castImmutable, castNonScope, ptrTrustMe_mut;
 import util.sourceRange : FileAndRange;
-import util.sym : shortSym, shortSymValue, Sym, sym, symValue;
+import util.sym : Sym, sym;
 import util.util : todo, unreachable, verify;
 import versionInfo : VersionInfo;
 
@@ -468,9 +468,9 @@ immutable(ConcreteExpr) concretizeLambda(
 		immutable ConcreteField[] fields = asRecord(body_(*concreteStruct)).fields;
 		verify(fields.length == 2);
 		immutable ConcreteField exclusionField = fields[0];
-		verify(exclusionField.debugName == shortSym("exclusion"));
+		verify(exclusionField.debugName == sym!"exclusion");
 		immutable ConcreteField actionField = fields[1];
-		verify(actionField.debugName == shortSym("action"));
+		verify(actionField.debugName == sym!"action");
 		immutable ConcreteType funType = actionField.type;
 		immutable ConcreteExpr exclusion = getGetExclusion(ctx, exclusionField.type, range);
 		return immutable ConcreteExpr(concreteType, range, immutable ConcreteExprKind(
@@ -1012,17 +1012,17 @@ immutable(Opt!Constant) tryEvalConstant(
 
 immutable(Opt!Constant) tryEvalConstantBuiltin(immutable Sym name, ref immutable VersionInfo versionInfo) {
 	switch (name.value) {
-		case symValue!"is-big-endian":
+		case sym!"is-big-endian".value:
 			return some(immutable Constant(immutable Constant.BoolConstant(versionInfo.isBigEndian)));
-		case symValue!"is-interpreted":
+		case sym!"is-interpreted".value:
 			return some(immutable Constant(immutable Constant.BoolConstant(versionInfo.isInterpreted)));
-		case shortSymValue("is-jit"):
+		case sym!"is-jit".value:
 			return some(immutable Constant(immutable Constant.BoolConstant(versionInfo.isJit)));
-		case symValue!"is-single-threaded":
+		case sym!"is-single-threaded".value:
 			return some(immutable Constant(immutable Constant.BoolConstant(versionInfo.isSingleThreaded)));
-		case shortSymValue("is-wasm"):
+		case sym!"is-wasm".value:
 			return some(immutable Constant(immutable Constant.BoolConstant(versionInfo.isWasm)));
-		case shortSymValue("is-windows"):
+		case sym!"is-windows".value:
 			return some(immutable Constant(immutable Constant.BoolConstant(versionInfo.isWindows)));
 		default:
 			return none!Constant;

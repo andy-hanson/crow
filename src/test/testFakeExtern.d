@@ -12,7 +12,7 @@ import util.col.dict : mustGetAt;
 import util.col.str : SafeCStr, strEq;
 import util.opt : force, none, Opt;
 import util.path : Path;
-import util.sym : shortSym, Sym;
+import util.sym : Sym, sym;
 import util.util : unreachable, verify;
 
 void testFakeExtern(ref Test test) {
@@ -24,15 +24,15 @@ private:
 
 @trusted void testMallocAndFree(ref Test test) {
 	withFakeExtern(test.alloc, test.allSymbols, (scope ref Extern extern_, scope ref FakeStdOutput _) @trusted {
-		immutable Sym[2] exportNames = [shortSym("free"), shortSym("malloc")];
-		immutable ExternLibrary[1] externLibraries = [immutable ExternLibrary(shortSym("c"), none!Path, exportNames)];
+		immutable Sym[2] exportNames = [sym!"free", sym!"malloc"];
+		immutable ExternLibrary[1] externLibraries = [immutable ExternLibrary(sym!"c", none!Path, exportNames)];
 		immutable Opt!ExternFunPtrsForAllLibraries funPtrsOpt =
 			extern_.loadExternFunPtrs(externLibraries, (scope immutable(SafeCStr)) =>
 				unreachable!void());
 		immutable ExternFunPtrsForAllLibraries funPtrs = force(funPtrsOpt);
-		immutable ExternFunPtrsForLibrary forCrow = mustGetAt(funPtrs, shortSym("c"));
-		immutable FunPtr free = mustGetAt(forCrow, shortSym("free"));
-		immutable FunPtr malloc = mustGetAt(forCrow, shortSym("malloc"));
+		immutable ExternFunPtrsForLibrary forCrow = mustGetAt(funPtrs, sym!"c");
+		immutable FunPtr free = mustGetAt(forCrow, sym!"free");
+		immutable FunPtr malloc = mustGetAt(forCrow, sym!"malloc");
 
 		immutable ulong[1] args8 = [8];
 		immutable DynCallType[2] mallocSigTypes = [DynCallType.pointer, DynCallType.nat64];
@@ -56,16 +56,16 @@ private:
 void testWrite(ref Test test) {
 	immutable FakeExternResult result =
 		withFakeExtern(test.alloc, test.allSymbols, (scope ref Extern extern_, scope ref FakeStdOutput _) @trusted {
-			immutable Sym[1] exportNames = [shortSym("write")];
+			immutable Sym[1] exportNames = [sym!"write"];
 			immutable ExternLibrary[1] externLibraries = [
-				immutable ExternLibrary(shortSym("c"), none!Path, exportNames),
+				immutable ExternLibrary(sym!"c", none!Path, exportNames),
 			];
 			immutable Opt!ExternFunPtrsForAllLibraries funPtrsOpt =
 				extern_.loadExternFunPtrs(externLibraries, (scope immutable(SafeCStr)) =>
 					unreachable!void());
 			immutable ExternFunPtrsForAllLibraries funPtrs = force(funPtrsOpt);
-			immutable ExternFunPtrsForLibrary forCrow = mustGetAt(funPtrs, shortSym("c"));
-			immutable FunPtr write = mustGetAt(forCrow, shortSym("write"));
+			immutable ExternFunPtrsForLibrary forCrow = mustGetAt(funPtrs, sym!"c");
+			immutable FunPtr write = mustGetAt(forCrow, sym!"write");
 
 			immutable DynCallType[4] sigTypes =
 				[DynCallType.pointer, DynCallType.int32, DynCallType.pointer, DynCallType.nat64];

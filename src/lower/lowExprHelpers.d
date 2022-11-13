@@ -24,7 +24,7 @@ import model.lowModel :
 import util.alloc.alloc : Alloc;
 import util.memory : allocate;
 import util.sourceRange : FileAndRange;
-import util.sym : shortSym, Sym, sym;
+import util.sym : Sym, sym;
 import util.util : unreachable, verify;
 
 immutable LowType boolType = immutable LowType(PrimitiveType.bool_);
@@ -82,7 +82,7 @@ immutable(LowExpr) genDrop(
 		voidType,
 		range,
 		immutable LowExprKind(allocate(alloc, immutable LowExprKind.Let(
-			genLocal(alloc, shortSym("dropped"), localIndex, a.type),
+			genLocal(alloc, sym!"dropped", localIndex, a.type),
 			a,
 			genVoid(range)))));
 }
@@ -412,7 +412,7 @@ immutable(LowType.PtrRawConst) getElementPtrTypeFromArrType(
 ) {
 	immutable LowRecord arrRecord = allTypes.allRecords[arrType];
 	verify(arrRecord.fields.length == 2);
-	verify(debugName(arrRecord.fields[0]) == shortSym("size"));
+	verify(debugName(arrRecord.fields[0]) == sym!"size");
 	verify(debugName(arrRecord.fields[1]) == sym!"begin-pointer");
 	return asPtrRawConst(arrRecord.fields[1].type);
 }

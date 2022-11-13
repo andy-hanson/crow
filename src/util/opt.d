@@ -85,7 +85,7 @@ const(Opt!T) someConst(T)(return scope const T value) =>
 Opt!T someMut(T)(T value) =>
 	Opt!T(value);
 
-immutable(bool) has(T)(const Opt!T a) =>
+immutable(bool) has(T)(ref const Opt!T a) =>
 	a.has_;
 
 @trusted ref T force(T)(ref Opt!T a) {

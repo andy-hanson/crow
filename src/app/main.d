@@ -114,7 +114,7 @@ import util.path :
 import util.perf : eachMeasure, Perf, perfEnabled, PerfMeasure, PerfMeasureResult, withMeasure;
 import util.ptr : ptrTrustMe_mut;
 import util.readOnlyStorage : matchReadFileResult, ReadFileResult, ReadOnlyStorage;
-import util.sym : AllSymbols, concatSyms, safeCStrOfSym, shortSym, shortSymValue, Sym, sym, symOfStr, writeSym;
+import util.sym : AllSymbols, concatSyms, safeCStrOfSym, Sym, sym, symOfStr, writeSym;
 import util.util : castImmutableRef, todo, verify;
 import util.writer : finishWriterToSafeCStr, Writer;
 import versionInfo : versionInfoForJIT;
@@ -175,8 +175,8 @@ immutable(ExitCode) go(
 	scope immutable SafeCStr[] args,
 ) {
 	immutable Path crowDir = getCrowDir(allPaths);
-	immutable Path includeDir = childPath(allPaths, crowDir, shortSym("include"));
-	immutable Path tempDir = childPath(allPaths, crowDir, shortSym("temp"));
+	immutable Path includeDir = childPath(allPaths, crowDir, sym!"include");
+	immutable Path tempDir = childPath(allPaths, crowDir, sym!"temp");
 	immutable ExitCode setupTempExitCode = setupTempDir(allSymbols, allPaths, tempDir);
 	if (setupTempExitCode != ExitCode.ok)
 		return printErr(safeCStr!"Failed to set up temporary directory\n");
@@ -699,8 +699,8 @@ immutable(SafeCStr[]) cCompileArgs(
 				add(alloc, args, pathToSafeCStr(alloc, allPaths, path));
 			} else
 				switch (x.libraryName.value) {
-					case shortSymValue("c"):
-					case shortSymValue("m"):
+					case sym!"c".value:
+					case sym!"m".value:
 						break;
 					default:
 						add(alloc, args, safeCStrOfSym(alloc, allSymbols, xDotLib));

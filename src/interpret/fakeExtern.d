@@ -23,7 +23,7 @@ import util.col.mutArr : moveToArr, MutArr, mutArrIsEmpty, push, pushAll, tempAs
 import util.col.str : safeCStr;
 import util.memory : memmove, memset;
 import util.opt : force, has, none, Opt, some;
-import util.sym : AllSymbols, shortSym, shortSymValue, Sym, sym, symValue;
+import util.sym : AllSymbols, Sym, sym;
 import util.util : debugLog, todo, unreachable, verify, verifyFail;
 
 struct FakeExternResult {
@@ -142,31 +142,31 @@ immutable(ExternFunPtrsForLibrary) fakeExternFunsForLibrary(
 	});
 
 immutable(Opt!FunPtr) getFakeExternFun(immutable Sym libraryName, immutable Sym name) =>
-	libraryName == shortSym("c")
+	libraryName == sym!"c"
 		? getFakeExternFunC(name)
 		: none!FunPtr;
 
 immutable(Opt!FunPtr) getFakeExternFunC(immutable Sym name) {
 	switch (name.value) {
-		case shortSymValue("abort"):
+		case sym!"abort".value:
 			return some!FunPtr(immutable FunPtr(&abort));
-		case symValue!"clock_gettime":
+		case sym!"clock_gettime".value:
 			return some!FunPtr(immutable FunPtr(&clockGetTime));
-		case shortSymValue("free"):
+		case sym!"free".value:
 			return some!FunPtr(immutable FunPtr(&free));
-		case shortSymValue("nanosleep"):
+		case sym!"nanosleep".value:
 			return some!FunPtr(immutable FunPtr(&nanosleep));
-		case shortSymValue("malloc"):
+		case sym!"malloc".value:
 			return some!FunPtr(immutable FunPtr(&malloc));
-		case shortSymValue("memcpy"):
-		case shortSymValue("memmove"):
+		case sym!"memcpy".value:
+		case sym!"memmove".value:
 			return some!FunPtr(immutable FunPtr(&memmove));
-		case shortSymValue("memset"):
+		case sym!"memset".value:
 			return some!FunPtr(immutable FunPtr(&memset));
-		case shortSymValue("write"):
+		case sym!"write".value:
 			return some!FunPtr(immutable FunPtr(&write));
-		case shortSymValue("longjmp"):
-		case shortSymValue("setjmp"):
+		case sym!"longjmp".value:
+		case sym!"setjmp".value:
 			// these are treated specially by the interpreter
 			return some!FunPtr(immutable FunPtr(&unreachable!void));
 		default:

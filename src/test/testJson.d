@@ -7,7 +7,7 @@ import util.col.dict : KeyValuePair;
 import util.col.str : SafeCStr, safeCStr;
 import util.jsonParse : Json, jsonEqual, matchJson, parseJson;
 import util.opt : force, has, Opt;
-import util.sym : AllSymbols, shortSym, Sym, writeQuotedSym;
+import util.sym : AllSymbols, Sym, sym, writeQuotedSym;
 import util.util : as, debugLog, verify, verifyFail;
 import util.writer : finishWriterToSafeCStr, Writer, writeWithCommas;
 
@@ -48,13 +48,13 @@ void testString(ref Test test) {
 @trusted void testObject(ref Test test) {
 	verifyParseJson(test, safeCStr!"{ }", immutable Json(as!(immutable KeyValuePair!(Sym, Json)[])([])));
 	scope immutable KeyValuePair!(Sym, Json)[1] fieldsA = [
-		immutable KeyValuePair!(Sym, Json)(shortSym("x"), immutable Json(false)),
+		immutable KeyValuePair!(Sym, Json)(sym!"x", immutable Json(false)),
 	];
 	verifyParseJson(test, safeCStr!"{ \"x\": false }", immutable Json(fieldsA));
 	scope immutable Json[1] values = [immutable Json(true)];
 	scope immutable KeyValuePair!(Sym, Json)[2] fieldsB = [
-		immutable KeyValuePair!(Sym, Json)(shortSym("a"), immutable Json(fieldsA)),
-		immutable KeyValuePair!(Sym, Json)(shortSym("b"), immutable Json(values)),
+		immutable KeyValuePair!(Sym, Json)(sym!"a", immutable Json(fieldsA)),
+		immutable KeyValuePair!(Sym, Json)(sym!"b", immutable Json(values)),
 	];
 	verifyParseJson(test, safeCStr!"{\"a\":{\"x\":false}, \"b\":[true]}", immutable Json(fieldsB));
 }

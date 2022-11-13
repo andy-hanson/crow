@@ -32,7 +32,7 @@ import util.late : Late, lateGet, lateIsSet, lateSet;
 import util.opt : none, Opt, some;
 import util.ptr : hashPtr, TaggedPtr;
 import util.sourceRange : FileAndRange;
-import util.sym : AllSymbols, shortSym, Sym, sym;
+import util.sym : AllSymbols, Sym, sym;
 import util.util : unreachable, verify;
 
 enum BuiltinStructKind {
@@ -58,39 +58,39 @@ enum BuiltinStructKind {
 immutable(Sym) symOfBuiltinStructKind(immutable BuiltinStructKind a) {
 	final switch (a) {
 		case BuiltinStructKind.bool_:
-			return shortSym("bool");
+			return sym!"bool";
 		case BuiltinStructKind.char8:
-			return shortSym("char8");
+			return sym!"char8";
 		case BuiltinStructKind.float32:
-			return shortSym("float-32");
+			return sym!"float-32";
 		case BuiltinStructKind.float64:
-			return shortSym("float-64");
+			return sym!"float-64";
 		case BuiltinStructKind.fun:
-			return shortSym("fun");
+			return sym!"fun";
 		case BuiltinStructKind.funPointerN:
-			return shortSym("fun-pointer");
+			return sym!"fun-pointer";
 		case BuiltinStructKind.int8:
-			return shortSym("int-8");
+			return sym!"int-8";
 		case BuiltinStructKind.int16:
-			return shortSym("int-16");
+			return sym!"int-16";
 		case BuiltinStructKind.int32:
-			return shortSym("int-32");
+			return sym!"int-32";
 		case BuiltinStructKind.int64:
-			return shortSym("int-64");
+			return sym!"int-64";
 		case BuiltinStructKind.nat8:
-			return shortSym("nat-8");
+			return sym!"nat-8";
 		case BuiltinStructKind.nat16:
-			return shortSym("nat-16");
+			return sym!"nat-16";
 		case BuiltinStructKind.nat32:
-			return shortSym("nat-32");
+			return sym!"nat-32";
 		case BuiltinStructKind.nat64:
-			return shortSym("nat-64");
+			return sym!"nat-64";
 		case BuiltinStructKind.pointerConst:
 			return sym!"const-pointer";
 		case BuiltinStructKind.pointerMut:
-			return shortSym("pointer-mut");
+			return sym!"pointer-mut";
 		case BuiltinStructKind.void_:
-			return shortSym("void");
+			return sym!"void";
 	}
 }
 
@@ -248,11 +248,11 @@ enum ReferenceKind { byVal, byRef, byRefRef }
 immutable(Sym) symOfReferenceKind(immutable ReferenceKind a) {
 	final switch (a) {
 		case ReferenceKind.byVal:
-			return shortSym("by-val");
+			return sym!"by-val";
 		case ReferenceKind.byRef:
-			return shortSym("by-ref");
+			return sym!"by-ref";
 		case ReferenceKind.byRefRef:
-			return shortSym("by-ref-ref");
+			return sym!"by-ref-ref";
 	}
 }
 
@@ -392,9 +392,9 @@ enum ConcreteMutability {
 immutable(Sym) symOfConcreteMutability(immutable ConcreteMutability a) {
 	final switch (a) {
 		case ConcreteMutability.const_:
-			return shortSym("const");
+			return sym!"const";
 		case ConcreteMutability.mutable:
-			return shortSym("mutable");
+			return sym!"mutable";
 	}
 }
 
