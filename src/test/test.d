@@ -22,7 +22,7 @@ import test.testWriter : testWriter;
 import util.alloc.alloc : Alloc;
 import util.opt : force, has, Opt;
 import util.ptr : castNonScope_mut;
-import util.sym : shortSym, SpecialSym, Sym, symForSpecial;
+import util.sym : shortSym, Sym, sym;
 
 immutable(ExitCode) test(ref Alloc alloc, scope immutable Opt!Sym name) {
 	Test test = Test(castNonScope_mut(&alloc));
@@ -41,7 +41,7 @@ immutable(NameAndTest[]) allTests = [
 	immutable NameAndTest(shortSym("hover"), &testHover),
 	immutable NameAndTest(shortSym("interpreter"), &testInterpreter),
 	immutable NameAndTest(shortSym("json"), &testJson),
-	immutable NameAndTest(symForSpecial(SpecialSym.line_and_column_getter), &testLineAndColumnGetter),
+	immutable NameAndTest(sym!"line-and-column-getter", &testLineAndColumnGetter),
 	immutable NameAndTest(shortSym("memory"), &testMemory),
 	immutable NameAndTest(shortSym("path"), &testPath),
 	immutable NameAndTest(shortSym("server"), &testServer),

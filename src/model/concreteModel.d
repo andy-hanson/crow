@@ -32,7 +32,7 @@ import util.late : Late, lateGet, lateIsSet, lateSet;
 import util.opt : none, Opt, some;
 import util.ptr : hashPtr, TaggedPtr;
 import util.sourceRange : FileAndRange;
-import util.sym : AllSymbols, shortSym, SpecialSym, Sym, symForSpecial;
+import util.sym : AllSymbols, shortSym, Sym, sym;
 import util.util : unreachable, verify;
 
 enum BuiltinStructKind {
@@ -86,7 +86,7 @@ immutable(Sym) symOfBuiltinStructKind(immutable BuiltinStructKind a) {
 		case BuiltinStructKind.nat64:
 			return shortSym("nat-64");
 		case BuiltinStructKind.pointerConst:
-			return symForSpecial(SpecialSym.const_pointer);
+			return sym!"const-pointer";
 		case BuiltinStructKind.pointerMut:
 			return shortSym("pointer-mut");
 		case BuiltinStructKind.void_:

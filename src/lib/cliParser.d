@@ -10,8 +10,7 @@ import util.col.str : SafeCStr, safeCStr, safeCStrEq, strOfSafeCStr;
 import util.opt : force, has, none, Opt, some;
 import util.path : AllPaths, parseAbsoluteOrRelPathAndExtension, Path, PathAndExtension;
 import util.ptr : castNonScope;
-import util.sym :
-	AllSymbols, emptySym, shortSymValue, SpecialSym, specialSymValue, Sym, symForSpecial, symOfSafeCStr, symOfStr;
+import util.sym : AllSymbols, shortSymValue, Sym, sym, symOfSafeCStr, symOfStr, symValue;
 import util.util : todo, verify;
 
 @safe @nogc nothrow: // not pure
@@ -200,9 +199,9 @@ immutable(Command) parseCommand(
 }
 
 version (Windows) {
-	immutable Sym defaultExeExtension = symForSpecial(SpecialSym.dotExe);
+	immutable Sym defaultExeExtension = sym!".exe";
 } else {
-	immutable Sym defaultExeExtension = emptySym;
+	immutable Sym defaultExeExtension = sym!"";
 }
 
 private:
@@ -254,7 +253,7 @@ immutable(Opt!Path) tryParseCrowPath(
 	scope immutable SafeCStr arg,
 ) {
 	immutable PathAndExtension path = parseAbsoluteOrRelPathAndExtension(allPaths, cwd, arg);
-	return path.extension == emptySym || path.extension == crowExtension
+	return path.extension == sym!"" || path.extension == crowExtension
 		? some(path.path)
 		: none!Path;
 }
@@ -294,7 +293,7 @@ immutable(Opt!PrintKind) parsePrintKind(immutable Sym a) {
 			return some(PrintKind.ast);
 		case shortSymValue("model"):
 			return some(PrintKind.model);
-		case specialSymValue(SpecialSym.concrete_model):
+		case symValue!"concrete-model":
 			return some(PrintKind.concreteModel);
 		case shortSymValue("low-model"):
 			return some(PrintKind.lowModel);
@@ -444,11 +443,11 @@ immutable(Opt!BuildOut) parseBuildOut(
 		args,
 		(immutable BuildOut o, ref immutable SafeCStr arg) {
 			immutable PathAndExtension path = parseAbsoluteOrRelPathAndExtension(allPaths, cwd, arg);
-			return path.extension == emptySym
+			return path.extension == sym!""
 				? has(o.outExecutable)
 					? none!BuildOut
 					: some(immutable BuildOut(o.outC, some(path)))
-				: path.extension == symForSpecial(SpecialSym.dotC)
+				: path.extension == sym!".c"
 					? has(o.outC)
 						? none!BuildOut
 						: some(immutable BuildOut(some(path), o.outExecutable))

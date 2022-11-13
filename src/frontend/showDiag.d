@@ -40,7 +40,7 @@ import util.opt : force, has, Opt;
 import util.path : AllPaths, baseName, Path, PathsInfo, writePath, writeRelPath;
 import util.ptr : ptrTrustMe_mut;
 import util.sourceRange : FileAndPos;
-import util.sym : AllSymbols, strOfOperator, Sym, writeSym;
+import util.sym : AllSymbols, Sym, strOfOperator, writeSym;
 import util.util : unreachable;
 import util.writer :
 	finishWriter,

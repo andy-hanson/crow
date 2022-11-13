@@ -29,7 +29,7 @@ import util.late : Late, late, lateGet, lateSet;
 import util.memory : allocate;
 import util.opt : force, has, Opt, none, some;
 import util.path : AllPaths, childPath, Path, pathToTempStr, TempStrForPath;
-import util.sym : AllSymbols, concatSyms, shortSym, shortSymValue, SpecialSym, Sym, symAsTempBuffer, symForSpecial;
+import util.sym : AllSymbols, concatSyms, shortSym, shortSymValue, Sym, sym, symAsTempBuffer;
 import util.util : todo, unreachable, verify;
 
 @trusted immutable(ExitCode) withRealExtern(
@@ -118,9 +118,9 @@ immutable(LibraryAndError) getLibrary(
 
 immutable(Sym) dllOrSoName(ref AllSymbols allSymbols, immutable Sym libraryName) {
 	version (Windows) {
-		return concatSyms(allSymbols, [libraryName, symForSpecial(SpecialSym.dotDll)]);
+		return concatSyms(allSymbols, [libraryName, sym!".dll"]);
 	} else {
-		return concatSyms(allSymbols, [shortSym("lib"), libraryName, symForSpecial(SpecialSym.dotSo)]);
+		return concatSyms(allSymbols, [shortSym("lib"), libraryName, sym!".so"]);
 	}
 }
 

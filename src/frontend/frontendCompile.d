@@ -56,7 +56,7 @@ import util.perf : Perf, PerfMeasure, withMeasure;
 import util.readOnlyStorage :
 	asOption, matchReadFileResult, ReadFileResult, ReadOnlyStorage, withFileBinary, withFileText;
 import util.sourceRange : FileIndex, RangeWithinFile;
-import util.sym : AllSymbols, emptySym, shortSym, SpecialSym, Sym, symForSpecial;
+import util.sym : AllSymbols, shortSym, Sym, sym;
 import util.util : as, verify;
 
 immutable(Program) frontendCompile(
@@ -217,14 +217,14 @@ immutable(ParsedEverything) parseEverything(
 				statuses, stack, diags, fromPath, import_));
 
 	immutable Path includeDir = storage.includeDir;
-	immutable Path includeCrow = childPath(allPaths, includeDir, shortSym("crow"));
-	immutable Path private_ = childPath(allPaths, includeCrow, shortSym("private"));
-	immutable Path bootstrapPath = childPath(allPaths, private_, shortSym("bootstrap"));
-	immutable Path allocPath = childPath(allPaths, private_, shortSym("alloc"));
-	immutable Path exceptionLowLevelPath = childPath(allPaths, private_, symForSpecial(SpecialSym.exception_low_level));
-	immutable Path stdPath = childPath(allPaths, includeCrow, shortSym("std"));
-	immutable Path runtimePath = childPath(allPaths, private_, shortSym("runtime"));
-	immutable Path runtimeMainPath = childPath(allPaths, private_, shortSym("rt-main"));
+	immutable Path includeCrow = childPath(allPaths, includeDir, sym!"crow");
+	immutable Path private_ = childPath(allPaths, includeCrow, sym!"private");
+	immutable Path bootstrapPath = childPath(allPaths, private_, sym!"bootstrap");
+	immutable Path allocPath = childPath(allPaths, private_, sym!"alloc");
+	immutable Path exceptionLowLevelPath = childPath(allPaths, private_, sym!"exception-low-level");
+	immutable Path stdPath = childPath(allPaths, includeCrow, sym!"std");
+	immutable Path runtimePath = childPath(allPaths, private_, sym!"runtime");
+	immutable Path runtimeMainPath = childPath(allPaths, private_, sym!"rt-main");
 
 	void process() {
 		while (!isEmpty(stack)) {
@@ -403,7 +403,7 @@ immutable(FileContent) readFileContent(
 						() => as!(immutable ubyte[])([]))));
 		case ImportFileType.str:
 			return immutable FileContent(withFileText!(immutable SafeCStr)(
-				storage, path, emptySym,
+				storage, path, sym!"",
 				(immutable ReadFileResult!SafeCStr res) =>
 					handleReadFileResult!(immutable SafeCStr, SafeCStr)(
 						modelAlloc, diags, importedFrom, res,

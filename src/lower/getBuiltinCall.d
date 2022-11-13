@@ -13,8 +13,7 @@ import model.lowModel :
 	LowType,
 	PrimitiveType;
 import util.alloc.alloc : Alloc;
-import util.sym :
-	AllSymbols, Operator, operatorSymValue, safeCStrOfSym, shortSymValue, SpecialSym, specialSymValue, Sym;
+import util.sym : AllSymbols, Operator, operatorSymValue, safeCStrOfSym, shortSymValue, Sym, symValue;
 import util.util : debugLog, todo;
 
 struct BuiltinKind {
@@ -269,7 +268,7 @@ immutable(BuiltinKind) getBuiltinKind(
 				: failUnary());
 		case shortSymValue("false"):
 			return constantBool(false);
-		case specialSymValue(SpecialSym.interpreter_backtrace):
+		case symValue!"interpreter-backtrace":
 			return immutable BuiltinKind(LowExprKind.SpecialTernary.Kind.interpreterBacktrace);
 		case shortSymValue("is-less"):
 			return binary(
@@ -335,7 +334,7 @@ immutable(BuiltinKind) getBuiltinKind(
 			return unary(isChar(p0)
 				? LowExprKind.SpecialUnary.Kind.toNat8FromChar8
 				: failUnary());
-		case specialSymValue(SpecialSym.to_mut_pointer):
+		case symValue!"to-mut-pointer":
 			return unary(isNat64(p0)
 				? LowExprKind.SpecialUnary.Kind.toPtrFromNat64
 				: failUnary());
@@ -427,44 +426,44 @@ immutable(BuiltinKind) getBuiltinKind(
 				: failBinary());
 		case shortSymValue("zeroed"):
 			return immutable BuiltinKind(immutable BuiltinKind.Zeroed());
-		case specialSymValue(SpecialSym.as_any_mut_pointer):
+		case symValue!"as-any-mut-pointer":
 			return unary(LowExprKind.SpecialUnary.Kind.asAnyPtr);
-		case specialSymValue(SpecialSym.init_constants):
+		case symValue!"init-constants":
 			return immutable BuiltinKind(immutable BuiltinKind.InitConstants());
-		case specialSymValue(SpecialSym.pointer_cast_from_extern):
-		case specialSymValue(SpecialSym.pointer_cast_to_extern):
+		case symValue!"pointer-cast-from-extern":
+		case symValue!"pointer-cast-to-extern":
 			return immutable BuiltinKind(immutable BuiltinKind.PointerCast());
-		case specialSymValue(SpecialSym.static_symbols):
+		case symValue!"static-symbols":
 			return immutable BuiltinKind(immutable BuiltinKind.StaticSymbols());
-		case specialSymValue(SpecialSym.truncate_to_int64):
+		case symValue!"truncate-to-int64":
 			return unary(isFloat64(p0)
 				? LowExprKind.SpecialUnary.Kind.truncateToInt64FromFloat64
 				: failUnary());
-		case specialSymValue(SpecialSym.unsafe_bit_shift_left):
+		case symValue!"unsafe-bit-shift-left":
 			return isNat64(rt) ? binary(LowExprKind.SpecialBinary.Kind.unsafeBitShiftLeftNat64) : fail();
-		case specialSymValue(SpecialSym.unsafe_bit_shift_right):
+		case symValue!"unsafe-bit-shift-right":
 			return isNat64(rt)
 				? binary(LowExprKind.SpecialBinary.Kind.unsafeBitShiftRightNat64)
 				: fail();
-		case specialSymValue(SpecialSym.unsafe_to_int8):
+		case symValue!"unsafe-to-int8":
 			return isInt64(p0) ? unary(LowExprKind.SpecialUnary.Kind.unsafeInt64ToInt8) : fail();
-		case specialSymValue(SpecialSym.unsafe_to_int16):
+		case symValue!"unsafe-to-int16":
 			return isInt64(p0) ? unary(LowExprKind.SpecialUnary.Kind.unsafeInt64ToInt16) : fail();
-		case specialSymValue(SpecialSym.unsafe_to_int32):
+		case symValue!"unsafe-to-int32":
 			return isInt64(p0) ? unary(LowExprKind.SpecialUnary.Kind.unsafeInt64ToInt32) : fail();
-		case specialSymValue(SpecialSym.unsafe_to_int64):
+		case symValue!"unsafe-to-int64":
 			return isNat64(p0) ? unary(LowExprKind.SpecialUnary.Kind.unsafeNat64ToInt64) : fail();
-		case specialSymValue(SpecialSym.unsafe_to_nat8):
+		case symValue!"unsafe-to-nat8":
 			return isNat64(p0) ? unary(LowExprKind.SpecialUnary.Kind.unsafeNat64ToNat8) : fail();
-		case specialSymValue(SpecialSym.unsafe_to_nat16):
+		case symValue!"unsafe-to-nat16":
 			return isNat64(p0) ? unary(LowExprKind.SpecialUnary.Kind.unsafeNat64ToNat16): fail();
-		case specialSymValue(SpecialSym.unsafe_to_nat32):
+		case symValue!"unsafe-to-nat32":
 			return unary(isInt32(p0)
 				? LowExprKind.SpecialUnary.Kind.unsafeInt32ToNat32
 				: isNat64(p0)
 				? LowExprKind.SpecialUnary.Kind.unsafeNat64ToNat32
 				: failUnary());
-		case specialSymValue(SpecialSym.unsafe_to_nat64):
+		case symValue!"unsafe-to-nat64":
 			return isInt64(p0) ? unary(LowExprKind.SpecialUnary.Kind.unsafeInt64ToNat64) : fail();
 		default:
 			return fail();

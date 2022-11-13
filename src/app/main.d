@@ -114,20 +114,7 @@ import util.path :
 import util.perf : eachMeasure, Perf, perfEnabled, PerfMeasure, PerfMeasureResult, withMeasure;
 import util.ptr : ptrTrustMe_mut;
 import util.readOnlyStorage : matchReadFileResult, ReadFileResult, ReadOnlyStorage;
-import util.sym :
-	AllSymbols,
-	concatSyms,
-	emptySym,
-	Operator,
-	safeCStrOfSym,
-	shortSym,
-	shortSymValue,
-	SpecialSym,
-	Sym,
-	symForOperator,
-	symForSpecial,
-	symOfStr,
-	writeSym;
+import util.sym : AllSymbols, concatSyms, safeCStrOfSym, shortSym, shortSymValue, Sym, sym, symOfStr, writeSym;
 import util.util : castImmutableRef, todo, verify;
 import util.writer : finishWriterToSafeCStr, Writer;
 import versionInfo : versionInfoForJIT;
@@ -285,7 +272,7 @@ immutable(SafeCStr[]) getAllArgs(
 	immutable Path main,
 	scope immutable SafeCStr[] programArgs,
 ) =>
-	prepend(alloc, pathToSafeCStr(alloc, allPaths, main, symForSpecial(SpecialSym.dotCrow)), programArgs);
+	prepend(alloc, pathToSafeCStr(alloc, allPaths, main, sym!".crow"), programArgs);
 
 @trusted immutable(ExitCode) setupTempDir(
 	ref AllSymbols allSymbols,
@@ -293,7 +280,7 @@ immutable(SafeCStr[]) getAllArgs(
 	immutable Path tempDir,
 ) {
 	TempStrForPath dirPathBuf = void;
-	immutable CStr dirPath = pathToTempStr(dirPathBuf, allPaths, tempDir, emptySym).ptr;
+	immutable CStr dirPath = pathToTempStr(dirPathBuf, allPaths, tempDir, sym!"").ptr;
 	version (Windows) {
 		if (GetFileAttributesA(dirPath) == INVALID_FILE_ATTRIBUTES) {
 			immutable int ok = CreateDirectoryA(dirPath, null);
@@ -335,8 +322,7 @@ version (Windows) {
 		immutable Path dirPath,
 	) {
 		TempStrForPath searchPathBuf = void;
-		immutable CStr searchPath =
-			pathToTempStr(searchPathBuf, allPaths, childPath(allPaths, dirPath, symForOperator(Operator.times))).ptr;
+		immutable CStr searchPath = pathToTempStr(searchPathBuf, allPaths, childPath(allPaths, dirPath, sym!"*")).ptr;
 		WIN32_FIND_DATAA fileData;
 		HANDLE fileHandle = FindFirstFileA(searchPath, &fileData);
 		if (fileHandle == INVALID_HANDLE_VALUE) {
@@ -526,7 +512,7 @@ immutable(RunBuildResult) runBuildInner(
 	immutable Sym name = baseName(allPaths, mainPath);
 	immutable PathAndExtension cPath = has(options.out_.outC)
 		? force(options.out_.outC)
-		: immutable PathAndExtension(childPath(allPaths, tempDir, name), symForSpecial(SpecialSym.dotC));
+		: immutable PathAndExtension(childPath(allPaths, tempDir, name), sym!".c");
 	immutable Opt!PathAndExtension exePath = has(options.out_.outExecutable)
 		? options.out_.outExecutable
 		: exeKind == ExeKind.ensureExe
@@ -707,7 +693,7 @@ immutable(SafeCStr[]) cCompileArgs(
 	}
 	foreach (immutable ExternLibrary x; externLibraries) {
 		version (Windows) {
-			immutable Sym xDotLib = concatSyms(allSymbols, [x.libraryName, symForSpecial(SpecialSym.dotLib)]);
+			immutable Sym xDotLib = concatSyms(allSymbols, [x.libraryName, sym!".lib"]);
 			if (has(x.configuredPath)) {
 				immutable Path path = childPath(allPaths, force(x.configuredPath), xDotLib);
 				add(alloc, args, pathToSafeCStr(alloc, allPaths, path));
@@ -772,7 +758,7 @@ immutable(T) withReadOnlyStorage(T)(
 			immutable Path path,
 			void delegate(immutable ReadFileResult!(ubyte[])) @safe @nogc pure nothrow cb,
 		) =>
-			tryReadFile(allPaths, path, emptySym, NulTerminate.no, cb),
+			tryReadFile(allPaths, path, sym!"", NulTerminate.no, cb),
 		(
 			immutable Path path,
 			immutable Sym extension,

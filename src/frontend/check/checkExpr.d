@@ -152,7 +152,7 @@ import util.memory : allocate, allocateMut, initMemory, overwriteMemory;
 import util.opt : force, has, none, noneMut, Opt, some, someMut;
 import util.ptr : castImmutable, ptrTrustMe_mut;
 import util.sourceRange : FileAndRange, Pos, RangeWithinFile;
-import util.sym : Operator, shortSym, SpecialSym, Sym, symForOperator, symForSpecial, symOfStr;
+import util.sym : shortSym, Sym, sym, symOfStr;
 import util.util : max, todo, unreachable, verify;
 
 immutable(Expr) checkFunctionBody(
@@ -250,7 +250,7 @@ immutable(Expr) checkArrowAccess(
 	// TODO: NEATER (don't create a synthetic AST)
 	immutable CallAst callDeref = immutable CallAst(
 		CallAst.style.single,
-		immutable NameAndRange(range.range.start, symForOperator(Operator.times)),
+		immutable NameAndRange(range.range.start, sym!"*"),
 		[],
 		arrLiteral!ExprAst(ctx.alloc, [ast.left]));
 	immutable CallAst callName = immutable CallAst(
@@ -445,7 +445,7 @@ immutable(CallAst) checkInterpolatedRecur(
 			immutable ExprAstKind(immutable CallAst(
 				//TODO: new kind (not infix)
 				CallAst.Style.infix,
-				immutable NameAndRange(pos, symForOperator(Operator.tilde2)),
+				immutable NameAndRange(pos, sym!"~~"),
 				[],
 				arrLiteral!ExprAst(ctx.alloc, [force(left), right]))))
 		: right;
@@ -1100,7 +1100,7 @@ immutable(PointerMutability) pointerMutabilityFromField(immutable FieldMutabilit
 
 immutable(bool) isDerefFunction(ref ExprCtx ctx, immutable FunInst* a) {
 	immutable FunBody body_ = decl(*a).body_;
-	return isBuiltin(body_) && decl(*a).name == symForOperator(Operator.times) && arity(*a) == immutable Arity(1);
+	return isBuiltin(body_) && decl(*a).name == sym!"*" && arity(*a) == immutable Arity(1);
 }
 
 immutable(PointerMutability) mutabilityForPtrDecl(scope ref const ExprCtx ctx, scope immutable StructDecl* a) {
@@ -1416,7 +1416,7 @@ immutable(Expr) checkLoopContinue(
 	if (!has(optLoop)) {
 		scope immutable CallAst call = immutable CallAst(
 			CallAst.Style.infix,
-			immutable NameAndRange(range.range.start, symForSpecial(SpecialSym.loop_continue)),
+			immutable NameAndRange(range.range.start, sym!"loop-continue"),
 			[],
 			[]);
 		return checkCall(ctx, locals, range, call, expected);

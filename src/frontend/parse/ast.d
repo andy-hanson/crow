@@ -34,7 +34,7 @@ import util.repr :
 	reprStr,
 	reprSym;
 import util.sourceRange : Pos, rangeOfStartAndLength, rangeOfStartAndName, RangeWithinFile, reprRangeWithinFile;
-import util.sym : AllSymbols, shortSym, shortSymValue, SpecialSym, Sym, symForSpecial, symSize;
+import util.sym : AllSymbols, shortSym, shortSymValue, Sym, sym, symSize;
 import util.util : verify;
 
 @trusted immutable(T) matchImportOrExportAstKindImpure(T)(
@@ -242,7 +242,7 @@ immutable(Sym) symForTypeAstSuffix(immutable TypeAst.Suffix.Kind a) {
 		case TypeAst.Suffix.Kind.option:
 			return shortSym("option");
 		case TypeAst.Suffix.Kind.ptr:
-			return symForSpecial(SpecialSym.const_pointer);
+			return sym!"const-pointer";
 	}
 }
 
@@ -1325,11 +1325,11 @@ public immutable(Sym) symOfModifierKind(immutable ModifierAst.Kind a) {
 		case ModifierAst.Kind.extern_:
 			return shortSym("extern");
 		case ModifierAst.Kind.forceSendable:
-			return symForSpecial(SpecialSym.force_sendable);
+			return sym!"force-sendable";
 		case ModifierAst.Kind.mut:
-			return shortSym("mut");
+			return sym!"mut";
 		case ModifierAst.Kind.newPrivate:
-			return symForSpecial(SpecialSym.dotNew);
+			return sym!".new";
 		case ModifierAst.Kind.newPublic:
 			return shortSym("new");
 		case ModifierAst.Kind.packed:
@@ -1357,7 +1357,7 @@ immutable(Repr) reprStructBodyAst(ref Alloc alloc, ref immutable StructDeclAst.B
 		(ref immutable StructDeclAst.Body.Flags e) =>
 			reprEnumOrFlags(alloc, "flags", e.typeArg, e.members),
 		(ref immutable StructDeclAst.Body.ExternPtr) =>
-			reprSym(symForSpecial(SpecialSym.extern_pointer)),
+			reprSym(sym!"extern-pointer"),
 		(ref immutable StructDeclAst.Body.Record a) =>
 			reprRecord(alloc, a),
 		(ref immutable StructDeclAst.Body.Union a) =>

@@ -55,7 +55,7 @@ import util.col.str : copySafeCStr;
 import util.opt : force, has, none, Opt, some, someMut;
 import util.ptr : castImmutable, castNonScope_mut;
 import util.sourceRange : RangeWithinFile;
-import util.sym : shortSym, SpecialSym, Sym, symForSpecial;
+import util.sym : shortSym, Sym, sym;
 import util.util : todo, unreachable;
 
 StructDecl[] checkStructsInitial(ref CheckCtx ctx, scope immutable StructDeclAst[] asts) =>
@@ -607,9 +607,9 @@ immutable(RecordModifiers) withNewVisibility(
 immutable(Sym) symOfNewVisibility(immutable Visibility a) {
 	final switch (a) {
 		case Visibility.private_:
-			return symForSpecial(SpecialSym.dotNew);
+			return sym!".new";
 		case Visibility.public_:
-			return shortSym("new");
+			return sym!"new";
 	}
 }
 

@@ -127,7 +127,7 @@ import util.opt : force, has, none, noneMut, Opt, some, someMut;
 import util.perf : Perf;
 import util.ptr : castImmutable, castNonScope_mut, ptrTrustMe_mut;
 import util.sourceRange : FileAndPos, FileAndRange, FileIndex, RangeWithinFile;
-import util.sym : AllSymbols, shortSym, shortSymValue, SpecialSym, Sym, symForSpecial;
+import util.sym : AllSymbols, shortSym, shortSymValue, Sym, sym;
 import util.util : unreachable, todo, verify;
 
 struct PathAndAst { //TODO:RENAME
@@ -313,7 +313,7 @@ immutable(CommonTypes) getCommonTypes(
 	immutable StructDecl* future = getDecl(shortSym("future"), 1);
 	immutable StructDecl* namedVal = getDecl(shortSym("named-val"), 1);
 	immutable StructDecl* opt = getDecl(shortSym("option"), 1);
-	immutable StructDecl* pointerConst = getDecl(symForSpecial(SpecialSym.const_pointer), 1);
+	immutable StructDecl* pointerConst = getDecl(sym!"const-pointer", 1);
 	immutable StructDecl* pointerMut = getDecl(shortSym("mut-pointer"), 1);
 	immutable StructDecl*[10] funStructs = [
 		getDecl(shortSym("fun0"), 1),
@@ -340,16 +340,16 @@ immutable(CommonTypes) getCommonTypes(
 		getDecl(shortSym("fun-act9"), 10),
 	];
 	immutable StructDecl*[10] funPointerStructs = [
-		getDecl(symForSpecial(SpecialSym.fun_pointer0), 1),
-		getDecl(symForSpecial(SpecialSym.fun_pointer1), 2),
-		getDecl(symForSpecial(SpecialSym.fun_pointer2), 3),
-		getDecl(symForSpecial(SpecialSym.fun_pointer3), 4),
-		getDecl(symForSpecial(SpecialSym.fun_pointer4), 5),
-		getDecl(symForSpecial(SpecialSym.fun_pointer5), 6),
-		getDecl(symForSpecial(SpecialSym.fun_pointer6), 7),
-		getDecl(symForSpecial(SpecialSym.fun_pointer7), 8),
-		getDecl(symForSpecial(SpecialSym.fun_pointer8), 9),
-		getDecl(symForSpecial(SpecialSym.fun_pointer9), 10),
+		getDecl(sym!"fun-pointer0", 1),
+		getDecl(sym!"fun-pointer1", 2),
+		getDecl(sym!"fun-pointer2", 3),
+		getDecl(sym!"fun-pointer3", 4),
+		getDecl(sym!"fun-pointer4", 5),
+		getDecl(sym!"fun-pointer5", 6),
+		getDecl(sym!"fun-pointer6", 7),
+		getDecl(sym!"fun-pointer7", 8),
+		getDecl(sym!"fun-pointer8", 9),
+		getDecl(sym!"fun-pointer9", 10),
 	];
 	immutable StructDecl*[10] funRefStructs = [
 		getDecl(shortSym("fun-ref0"), 1),
@@ -364,7 +364,7 @@ immutable(CommonTypes) getCommonTypes(
 		getDecl(shortSym("fun-ref9"), 10),
 	];
 
-	immutable StructDecl* constPointer = getDecl(symForSpecial(SpecialSym.const_pointer), 1);
+	immutable StructDecl* constPointer = getDecl(sym!"const-pointer", 1);
 	immutable StructInst* cStr = instantiateStruct(
 		ctx.alloc,
 		ctx.programState,

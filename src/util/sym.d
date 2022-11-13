@@ -7,7 +7,7 @@ import util.col.arr : only;
 import util.col.arrUtil : findIndex;
 import util.col.mutArr : MutArr, mutArrSize, push;
 import util.col.mutDict : addToMutDict, getAt_mut, MutDict, mutDictSize;
-import util.col.str : copyToSafeCStr, eachChar, SafeCStr, safeCStr, strOfSafeCStr;
+import util.col.str : copyToSafeCStr, eachChar, SafeCStr, safeCStr, strOfCStr, strOfSafeCStr;
 import util.hash : Hasher, hashUlong;
 import util.opt : force, has, Opt, none, some;
 import util.ptr : ptrTrustMe_mut;
@@ -24,7 +24,7 @@ struct Sym {
 	// * An index into 'largeStrings'.
 	// The first members of 'largeStrings' match the members of the 'Operator' enum,
 	// so an operator can cast to/from a Sym.
-	// After that come SpecialSyms.
+	// After that come specialSyms.
 	immutable ulong value; // Public for 'switch'
 	@disable this();
 	// TODO:PRIVATE
@@ -38,19 +38,19 @@ struct Sym {
 struct AllSymbols {
 	@safe @nogc pure nothrow:
 
-	this(Alloc* allocPtr_) {
+	@trusted this(Alloc* allocPtr_) {
 		allocPtr = allocPtr_;
-		static assert(Operator.min == 0 && SpecialSym.min == 0);
-		for (Operator op = Operator.min; op <= Operator.max; op++)
-			drop(addLargeString(this, strOfOperator(op)));
-		for (SpecialSym s = SpecialSym.min; s <= SpecialSym.max; s++) {
-			immutable SafeCStr str = strOfSpecial(s);
+		static assert(Operator.min == 0);
+		foreach (immutable string s; operators)
+			drop(addLargeString(this, immutable SafeCStr(s.ptr)));
+		foreach (immutable string s; specialSyms) { {
+			immutable SafeCStr str = immutable SafeCStr(s.ptr);
 			debug {
 				immutable Opt!Sym packed = tryPackShortSym(strOfSafeCStr(str));
 				verify(!has(packed));
 			}
 			drop(addLargeString(this, str));
-		}
+		} }
 	}
 
 	private:
@@ -90,7 +90,7 @@ private @trusted immutable(Sym) prependToLongStr(immutable string prepend)(ref A
 }
 
 immutable(Sym) concatSymsWithDot(ref AllSymbols allSymbols, immutable Sym a, immutable Sym b) =>
-	concatSyms(allSymbols, [a, symForSpecial(SpecialSym.dot), b]);
+	concatSyms(allSymbols, [a, sym!".", b]);
 
 @trusted immutable(Sym) concatSyms(ref AllSymbols allSymbols, scope immutable Sym[] syms) {
 	char[0x100] temp = void;
@@ -104,7 +104,7 @@ immutable(Sym) concatSymsWithDot(ref AllSymbols allSymbols, immutable Sym a, imm
 	return symOfStr(allSymbols, cast(immutable) temp[0 .. i]);
 }
 
-immutable(Sym) emptySym = shortSym("");
+private immutable(Sym) emptySym = shortSym("");
 
 immutable(Sym) symOfStr(ref AllSymbols allSymbols, scope immutable string str) {
 	immutable Opt!Sym packed = tryPackShortSym(str);
@@ -144,244 +144,95 @@ enum Operator {
 	not,
 }
 
-enum SpecialSym {
-	// all below are hyphenated
-	as_any_mut_pointer,
-	begin_pointer,
-	concrete_model,
-	const_pointer,
-	exception_low_level,
-	extern_pointer,
-	fun_pointer0,
-	fun_pointer1,
-	fun_pointer2,
-	fun_pointer3,
-	fun_pointer4,
-	fun_pointer5,
-	fun_pointer6,
-	fun_pointer7,
-	fun_pointer8,
-	fun_pointer9,
-	init_constants,
-	line_and_column_getter,
-	loop_continue,
-	pointer_cast_from_extern,
-	pointer_cast_to_extern,
-	static_symbols,
-	to_mut_pointer,
-	truncate_to_int64,
-	unsafe_bit_shift_left,
-	unsafe_bit_shift_right,
-	unsafe_to_int8,
-	unsafe_to_int16,
-	unsafe_to_int32,
-	unsafe_to_int64,
-	unsafe_to_nat8,
-	unsafe_to_nat16,
-	unsafe_to_nat32,
-	unsafe_to_nat64,
-
-	call_with_ctx,
-
-	force_sendable,
-	flags_members,
-	cur_exclusion,
-	interpreter_backtrace,
-	is_big_endian,
-	is_interpreted,
-	is_single_threaded,
-
-	dotNew,
-
-	dot,
-	dotC,
-	dotCrow,
-	dotDll,
-	dotExe,
-	dotJson,
-	dotLib,
-	dotSo,
-
-	clock_gettime,
-}
+immutable string[] operators = [
+	"||\0",
+	"&&\0",
+	"??\0",
+	"==\0",
+	"!=\0",
+	"<\0",
+	"<=\0",
+	">\0",
+	">=\0",
+	"<=>\0",
+	"|\0",
+	"^\0",
+	"&\0",
+	"~\0",
+	"~=\0",
+	"~~\0",
+	"~~=\0",
+	"..\0",
+	"<<\0",
+	">>\0",
+	"+\0",
+	"-\0",
+	"*\0",
+	"/\0",
+	"%\0",
+	"**\0",
+	"!\0",
+];
+immutable(string) strOfOperator(immutable Operator a) =>
+	operators[a][0 .. $ - 1];
 
 immutable(Sym) symForOperator(immutable Operator a) =>
 	immutable Sym(a);
 
-immutable(Sym) symForSpecial(immutable SpecialSym a) =>
-	immutable Sym(Operator.max + 1 + a);
-
-immutable(SafeCStr) strOfOperator(immutable Operator a) {
-	final switch (a) {
-		case Operator.or2:
-			return safeCStr!"||";
-		case Operator.and2:
-			return safeCStr!"&&";
-		case Operator.question2:
-			return safeCStr!"??";
-		case Operator.equal:
-			return safeCStr!"==";
-		case Operator.notEqual:
-			return safeCStr!"!=";
-		case Operator.less:
-			return safeCStr!"<";
-		case Operator.lessOrEqual:
-			return safeCStr!"<=";
-		case Operator.greater:
-			return safeCStr!">";
-		case Operator.greaterOrEqual:
-			return safeCStr!">=";
-		case Operator.compare:
-			return safeCStr!"<=>";
-		case Operator.or1:
-			return safeCStr!"|";
-		case Operator.xor1:
-			return safeCStr!"^";
-		case Operator.and1:
-			return safeCStr!"&";
-		case Operator.range:
-			return safeCStr!"..";
-		case Operator.tilde:
-			return safeCStr!"~";
-		case Operator.tildeEquals:
-			return safeCStr!"~=";
-		case Operator.tilde2:
-			return safeCStr!"~~";
-		case Operator.tilde2Equals:
-			return safeCStr!"~~=";
-		case Operator.shiftLeft:
-			return safeCStr!"<<";
-		case Operator.shiftRight:
-			return safeCStr!">>";
-		case Operator.plus:
-			return safeCStr!"+";
-		case Operator.minus:
-			return safeCStr!"-";
-		case Operator.times:
-			return safeCStr!"*";
-		case Operator.divide:
-			return safeCStr!"/";
-		case Operator.modulo:
-			return safeCStr!"%";
-		case Operator.exponent:
-			return safeCStr!"**";
-		case Operator.not:
-			return safeCStr!"!";
-	}
-}
-
-private immutable(SafeCStr) strOfSpecial(immutable SpecialSym a) {
-	final switch (a) {
-		case SpecialSym.as_any_mut_pointer:
-			return safeCStr!"as-any-mut-pointer";
-		case SpecialSym.begin_pointer:
-			return safeCStr!"begin-pointer";
-		case SpecialSym.concrete_model:
-			return safeCStr!"concrete-model";
-		case SpecialSym.const_pointer:
-			return safeCStr!"const-pointer";
-		case SpecialSym.exception_low_level:
-			return safeCStr!"exception-low-level";
-		case SpecialSym.extern_pointer:
-			return safeCStr!"extern-pointer";
-		case SpecialSym.fun_pointer0:
-			return safeCStr!"fun-pointer0";
-		case SpecialSym.fun_pointer1:
-			return safeCStr!"fun-pointer1";
-		case SpecialSym.fun_pointer2:
-			return safeCStr!"fun-pointer2";
-		case SpecialSym.fun_pointer3:
-			return safeCStr!"fun-pointer3";
-		case SpecialSym.fun_pointer4:
-			return safeCStr!"fun-pointer4";
-		case SpecialSym.fun_pointer5:
-			return safeCStr!"fun-pointer5";
-		case SpecialSym.fun_pointer6:
-			return safeCStr!"fun-pointer6";
-		case SpecialSym.fun_pointer7:
-			return safeCStr!"fun-pointer7";
-		case SpecialSym.fun_pointer8:
-			return safeCStr!"fun-pointer8";
-		case SpecialSym.fun_pointer9:
-			return safeCStr!"fun-pointer9";
-		case SpecialSym.init_constants:
-			return safeCStr!"init-constants";
-		case SpecialSym.line_and_column_getter:
-			return safeCStr!"line-and-column-getter";
-		case SpecialSym.loop_continue:
-			return safeCStr!"loop-continue";
-		case SpecialSym.pointer_cast_from_extern:
-			return safeCStr!"pointer-cast-from-extern";
-		case SpecialSym.pointer_cast_to_extern:
-			return safeCStr!"pointer-cast-to-extern";
-		case SpecialSym.static_symbols:
-			return safeCStr!"static-symbols";
-		case SpecialSym.to_mut_pointer:
-			return safeCStr!"to-mut-pointer";
-		case SpecialSym.truncate_to_int64:
-			return safeCStr!"truncate-to-int64";
-		case SpecialSym.unsafe_bit_shift_left:
-			return safeCStr!"unsafe-bit-shift-left";
-		case SpecialSym.unsafe_bit_shift_right:
-			return safeCStr!"unsafe-bit-shift-right";
-		case SpecialSym.unsafe_to_int8:
-			return safeCStr!"unsafe-to-int8";
-		case SpecialSym.unsafe_to_int16:
-			return safeCStr!"unsafe-to-int16";
-		case SpecialSym.unsafe_to_int32:
-			return safeCStr!"unsafe-to-int32";
-		case SpecialSym.unsafe_to_int64:
-			return safeCStr!"unsafe-to-int64";
-		case SpecialSym.unsafe_to_nat8:
-			return safeCStr!"unsafe-to-nat8";
-		case SpecialSym.unsafe_to_nat16:
-			return safeCStr!"unsafe-to-nat16";
-		case SpecialSym.unsafe_to_nat32:
-			return safeCStr!"unsafe-to-nat32";
-		case SpecialSym.unsafe_to_nat64:
-			return safeCStr!"unsafe-to-nat64";
-
-		case SpecialSym.call_with_ctx:
-			return safeCStr!"call-with-ctx";
-
-		case SpecialSym.force_sendable:
-			return safeCStr!"force-sendable";
-		case SpecialSym.flags_members:
-			return safeCStr!"flags-members";
-		case SpecialSym.cur_exclusion:
-			return safeCStr!"cur-exclusion";
-		case SpecialSym.interpreter_backtrace:
-			return safeCStr!"interpreter-backtrace";
-		case SpecialSym.is_big_endian:
-			return safeCStr!"is-big-endian";
-		case SpecialSym.is_interpreted:
-			return safeCStr!"is-interpreted";
-		case SpecialSym.is_single_threaded:
-			return safeCStr!"is-single-threaded";
-
-		case SpecialSym.dotNew:
-			return safeCStr!".new";
-		case SpecialSym.dot:
-			return safeCStr!".";
-		case SpecialSym.dotC:
-			return safeCStr!".c";
-		case SpecialSym.dotCrow:
-			return safeCStr!".crow";
-		case SpecialSym.dotDll:
-			return safeCStr!".dll";
-		case SpecialSym.dotExe:
-			return safeCStr!".exe";
-		case SpecialSym.dotJson:
-			return safeCStr!".json";
-		case SpecialSym.dotLib:
-			return safeCStr!".lib";
-		case SpecialSym.dotSo:
-			return safeCStr!".so";
-
-		case SpecialSym.clock_gettime:
-			return safeCStr!"clock_gettime";
-	}
-}
+immutable string[] specialSyms = [
+	".\0",
+	".c\0",
+	".crow\0",
+	".dll\0",
+	".exe\0",
+	".json\0",
+	".lib\0",
+	".new\0",
+	".so\0",
+	"as-any-mut-pointer\0",
+	"begin-pointer\0",
+	"call-with-ctx\0",
+	"clock_gettime\0",
+	"concrete-model\0",
+	"const-pointer\0",
+	"cur-exclusion\0",
+	"exception-low-level\0",
+	"extern-pointer\0",
+	"flags-members\0",
+	"force-sendable\0",
+	"fun-pointer0\0",
+	"fun-pointer1\0",
+	"fun-pointer2\0",
+	"fun-pointer3\0",
+	"fun-pointer4\0",
+	"fun-pointer5\0",
+	"fun-pointer6\0",
+	"fun-pointer7\0",
+	"fun-pointer8\0",
+	"fun-pointer9\0",
+	"init-constants\0",
+	"interpreter-backtrace\0",
+	"is-big-endian\0",
+	"is-interpreted\0",
+	"is-single-threaded\0",
+	"line-and-column-getter\0",
+	"loop-continue\0",
+	"pointer-cast-from-extern\0",
+	"pointer-cast-to-extern\0",
+	"static-symbols\0",
+	"to-mut-pointer\0",
+	"truncate-to-int64\0",
+	"unsafe-bit-shift-left\0",
+	"unsafe-bit-shift-right\0",
+	"unsafe-to-int8\0",
+	"unsafe-to-int16\0",
+	"unsafe-to-int32\0",
+	"unsafe-to-int64\0",
+	"unsafe-to-nat8\0",
+	"unsafe-to-nat16\0",
+	"unsafe-to-nat32\0",
+	"unsafe-to-nat64\0",
+];
 
 void eachCharInSym(
 	scope ref const AllSymbols allSymbols,
@@ -404,6 +255,24 @@ immutable(uint) symSize(ref const AllSymbols allSymbols, immutable Sym a) {
 	return size;
 }
 
+immutable(Sym) sym(immutable string name) = name == ""
+	? emptySym
+	: has(tryPackShortSym(name))
+	? shortSym(name)
+	: specialSym(name);
+
+immutable(ulong) symValue(immutable string name) = sym!name.value;
+
+private @trusted immutable(Sym) specialSym(immutable string name) {
+	foreach (immutable size_t i, immutable string s; operators)
+		if (s[0 .. $ - 1] == name)
+			return immutable Sym(i);
+	foreach (immutable size_t i, immutable string s; specialSyms)
+		if (s[0 .. $ - 1] == name)
+			return immutable Sym(Operator.max + 1 + i);
+	assert(0);
+}
+
 immutable(Sym) shortSym(immutable string name) {
 	immutable Opt!Sym opt = tryPackShortSym(name);
 	return force(opt);
@@ -414,9 +283,6 @@ immutable(ulong) shortSymValue(immutable string name) =>
 
 immutable(ulong) operatorSymValue(immutable Operator a) =>
 	symForOperator(a).value;
-
-immutable(ulong) specialSymValue(immutable SpecialSym a) =>
-	symForSpecial(a).value;
 
 immutable(SafeCStr) safeCStrOfSym(ref Alloc alloc, ref const AllSymbols allSymbols, immutable Sym a) {
 	if (isLongSym(a))

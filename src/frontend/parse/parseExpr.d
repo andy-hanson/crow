@@ -1143,7 +1143,7 @@ immutable(ExprAndMaybeDedent) parseExprBeforeCall(scope ref Lexer lexer, immutab
 						immutable ExprAstKind(allocate(lexer.alloc, immutable PtrAst(inner.expr)))),
 					inner.dedents);
 			} else
-				return handlePrefixOperator(lexer, allowedBlock, start, getCurOperator(lexer));
+				return handlePrefixOperator(lexer, allowedBlock, start, operator);
 		case Token.literal:
 			return handleLiteral(lexer, start, getCurLiteral(lexer));
 		case Token.loop:

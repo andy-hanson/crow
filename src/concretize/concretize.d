@@ -38,7 +38,7 @@ import util.opt : force, has, Opt;
 import util.path : AllPaths;
 import util.perf : Perf, PerfMeasure, withMeasure;
 import util.ptr : castNonScope;
-import util.sym : AllSymbols, shortSym, SpecialSym, Sym, symForSpecial;
+import util.sym : AllSymbols, shortSym, Sym, sym;
 import util.util : todo, verify;
 import versionInfo : VersionInfo;
 
@@ -206,16 +206,14 @@ immutable(FunInst*) getThrowImplFun(ref Alloc alloc, ref immutable Program progr
 }
 
 immutable(FunInst*) getStaticSymbolsFun(ref Alloc alloc, ref immutable Program program) {
-	immutable FunDecl*[] funs =
-		getFuns(*program.specialModules.bootstrapModule, symForSpecial(SpecialSym.static_symbols));
+	immutable FunDecl*[] funs = getFuns(*program.specialModules.bootstrapModule, sym!"static-symbols");
 	if (funs.length != 1)
 		todo!void("wrong number static-syms funs");
 	return nonTemplateFunInst(alloc, only(funs));
 }
 
 immutable(FunInst*) getCurExclusionFun(ref Alloc alloc, ref immutable Program program) {
-	immutable FunDecl*[] funs =
-		getFuns(*program.specialModules.runtimeModule, symForSpecial(SpecialSym.cur_exclusion));
+	immutable FunDecl*[] funs = getFuns(*program.specialModules.runtimeModule, sym!"cur-exclusion");
 	if (funs.length != 1)
 		todo!void("wrong number cur-exclusion funs");
 	return nonTemplateFunInst(alloc, only(funs));

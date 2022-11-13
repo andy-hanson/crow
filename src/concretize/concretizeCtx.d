@@ -94,7 +94,7 @@ import util.memory : allocate, allocateMut;
 import util.opt : force, has, none, Opt, some;
 import util.ptr : castImmutable, castMutable, hashPtr;
 import util.sourceRange : FileAndRange;
-import util.sym : AllSymbols, shortSym, shortSymValue, SpecialSym, specialSymValue, Sym;
+import util.sym : AllSymbols, shortSym, shortSymValue, Sym, symValue;
 import util.util : max, roundUp, todo, unreachable, verify;
 import versionInfo : VersionInfo;
 
@@ -868,16 +868,16 @@ immutable(BuiltinStructKind) getBuiltinStructKind(immutable Sym name) {
 		case shortSymValue("fun-act3"):
 		case shortSymValue("fun-act4"):
 			return BuiltinStructKind.fun;
-		case specialSymValue(SpecialSym.fun_pointer0):
-		case specialSymValue(SpecialSym.fun_pointer1):
-		case specialSymValue(SpecialSym.fun_pointer2):
-		case specialSymValue(SpecialSym.fun_pointer3):
-		case specialSymValue(SpecialSym.fun_pointer4):
-		case specialSymValue(SpecialSym.fun_pointer5):
-		case specialSymValue(SpecialSym.fun_pointer6):
-		case specialSymValue(SpecialSym.fun_pointer7):
-		case specialSymValue(SpecialSym.fun_pointer8):
-		case specialSymValue(SpecialSym.fun_pointer9):
+		case symValue!"fun-pointer0":
+		case symValue!"fun-pointer1":
+		case symValue!"fun-pointer2":
+		case symValue!"fun-pointer3":
+		case symValue!"fun-pointer4":
+		case symValue!"fun-pointer5":
+		case symValue!"fun-pointer6":
+		case symValue!"fun-pointer7":
+		case symValue!"fun-pointer8":
+		case symValue!"fun-pointer9":
 			return BuiltinStructKind.funPointerN;
 		case shortSymValue("int8"):
 			return BuiltinStructKind.int8;
@@ -895,7 +895,7 @@ immutable(BuiltinStructKind) getBuiltinStructKind(immutable Sym name) {
 			return BuiltinStructKind.nat32;
 		case shortSymValue("nat64"):
 			return BuiltinStructKind.nat64;
-		case specialSymValue(SpecialSym.const_pointer):
+		case symValue!"const-pointer":
 			return BuiltinStructKind.pointerConst;
 		case shortSymValue("mut-pointer"):
 			return BuiltinStructKind.pointerMut;

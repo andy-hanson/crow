@@ -23,7 +23,7 @@ import util.col.mutArr : moveToArr, MutArr, mutArrIsEmpty, push, pushAll, tempAs
 import util.col.str : safeCStr;
 import util.memory : memmove, memset;
 import util.opt : force, has, none, Opt, some;
-import util.sym : AllSymbols, shortSym, shortSymValue, SpecialSym, specialSymValue, Sym;
+import util.sym : AllSymbols, shortSym, shortSymValue, Sym, sym, symValue;
 import util.util : debugLog, todo, unreachable, verify, verifyFail;
 
 struct FakeExternResult {
@@ -150,7 +150,7 @@ immutable(Opt!FunPtr) getFakeExternFunC(immutable Sym name) {
 	switch (name.value) {
 		case shortSymValue("abort"):
 			return some!FunPtr(immutable FunPtr(&abort));
-		case specialSymValue(SpecialSym.clock_gettime):
+		case symValue!"clock_gettime":
 			return some!FunPtr(immutable FunPtr(&clockGetTime));
 		case shortSymValue("free"):
 			return some!FunPtr(immutable FunPtr(&free));

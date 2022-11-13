@@ -15,17 +15,7 @@ import util.col.str : copyToSafeCStr, CStr, SafeCStr, safeCStr;
 import util.conv : safeIntFromUint, safeToUint;
 import util.opt : force, has, none, Opt, some;
 import util.sourceRange : Pos, RangeWithinFile;
-import util.sym :
-	AllSymbols,
-	Operator,
-	concatSymsWithDot,
-	shortSym,
-	shortSymValue,
-	SpecialSym,
-	specialSymValue,
-	Sym,
-	symForOperator,
-	symOfStr;
+import util.sym : AllSymbols, Operator, concatSymsWithDot, shortSym, shortSymValue, Sym, sym, symForOperator, symOfStr, symValue;
 import util.util : drop, todo, unreachable, verify;
 
 private enum IndentKind {
@@ -646,7 +636,7 @@ immutable(Token) tokenForSym(ref Lexer lexer, immutable Sym a) {
 			return Token.export_;
 		case shortSymValue("extern"):
 			return Token.extern_;
-		case specialSymValue(SpecialSym.extern_pointer):
+		case symValue!"extern-pointer":
 			return Token.externPointer;
 		case shortSymValue("flags"):
 			return Token.flags;
@@ -654,7 +644,7 @@ immutable(Token) tokenForSym(ref Lexer lexer, immutable Sym a) {
 			return Token.for_;
 		case shortSymValue("forbid"):
 			return Token.forbid;
-		case specialSymValue(SpecialSym.force_sendable):
+		case symValue!"force-sendable":
 			return Token.forceSendable;
 		case shortSymValue("fun"):
 			return Token.fun;

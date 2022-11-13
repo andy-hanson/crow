@@ -44,7 +44,7 @@ import util.col.mutMaxArr : push, tempAsArr;
 import util.col.str : safeCStr;
 import util.opt : force, has, none, noneMut, Opt, some;
 import util.sourceRange : fileAndPosFromFileAndRange, FileAndRange;
-import util.sym : Operator, prependSet, shortSym, SpecialSym, Sym, symForOperator, symForSpecial;
+import util.sym : prependSet, shortSym, Sym, sym;
 
 immutable(size_t) countFunsForStruct(immutable StructDecl[] structs) =>
 	sum!StructDecl(structs, (ref immutable StructDecl s) =>
@@ -140,14 +140,14 @@ void addFunsForFlags(
 	immutable FileAndRange range = struct_.range;
 	addEnumFlagsCommonFunctions(
 		ctx.alloc, funsBuilder, ctx.programState, visibility, range, type, flags.backingType, commonTypes,
-		symForSpecial(SpecialSym.flags_members));
+		sym!"flags-members");
 	exactSizeArrBuilderAdd(funsBuilder, flagsNewFunction(ctx.alloc, visibility, range, type));
 	exactSizeArrBuilderAdd(funsBuilder, flagsAllFunction(ctx.alloc, visibility, range, type));
 	exactSizeArrBuilderAdd(funsBuilder, flagsNegateFunction(ctx.alloc, visibility, range, type));
 	exactSizeArrBuilderAdd(funsBuilder, flagsUnionOrIntersectFunction(
-		ctx.alloc, visibility, range, type, Operator.or1, EnumFunction.union_));
+		ctx.alloc, visibility, range, type, sym!"|", EnumFunction.union_));
 	exactSizeArrBuilderAdd(funsBuilder, flagsUnionOrIntersectFunction(
-		ctx.alloc, visibility, range, type, Operator.and1, EnumFunction.intersect));
+		ctx.alloc, visibility, range, type, sym!"&", EnumFunction.intersect));
 
 	foreach (ref immutable StructBody.Enum.Member member; flags.members)
 		exactSizeArrBuilderAdd(funsBuilder, enumOrFlagsConstructor(ctx.alloc, visibility, type, member));
@@ -202,7 +202,7 @@ FunDecl enumEqualFunction(
 		safeCStr!"",
 		visibility,
 		fileAndPosFromFileAndRange(fileAndRange),
-		symForOperator(Operator.equal),
+		sym!"==",
 		[],
 		immutable Type(commonTypes.bool_),
 		immutable Params(arrLiteral!Param(alloc, [
@@ -258,7 +258,7 @@ FunDecl flagsNegateFunction(
 		safeCStr!"",
 		visibility,
 		fileAndPosFromFileAndRange(fileAndRange),
-		symForOperator(Operator.tilde),
+		sym!"~",
 		[],
 		enumType,
 		immutable Params(arrLiteral!Param(alloc, [
@@ -343,14 +343,14 @@ FunDecl flagsUnionOrIntersectFunction(
 	immutable Visibility visibility,
 	immutable FileAndRange fileAndRange,
 	immutable Type enumType,
-	immutable Operator operator,
+	immutable Sym name,
 	immutable EnumFunction fn,
 ) =>
 	FunDecl(
 		safeCStr!"",
 		visibility,
 		fileAndPosFromFileAndRange(fileAndRange),
-		symForOperator(operator),
+		name,
 		[],
 		enumType,
 		immutable Params(arrLiteral!Param(alloc, [

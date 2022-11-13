@@ -25,7 +25,7 @@ import util.sourceRange :
 	FileIndex,
 	rangeOfStartAndName,
 	RangeWithinFile;
-import util.sym : AllSymbols, Operator, shortSym, SpecialSym, Sym, symForOperator, symForSpecial, writeSym;
+import util.sym : AllSymbols, Operator, shortSym, Sym, sym, symForOperator, writeSym;
 import util.util : as, max, min, unreachable, verify;
 import util.writer : Writer, writeWithCommas;
 
@@ -1062,20 +1062,17 @@ struct FunInst {
 		decl(this).name;
 }
 
-immutable(bool) isCallWithCtxFun(ref immutable FunInst a) {
+immutable(bool) isCallWithCtxFun(ref immutable FunInst a) =>
 	// TODO: only do this for the call-with-ctx in bootstrap
-	return decl(a).name == symForSpecial(SpecialSym.call_with_ctx);
-}
+	decl(a).name == sym!"call-with-ctx";
 
-immutable(bool) isCompareFun(ref immutable FunInst a) {
+immutable(bool) isCompareFun(ref immutable FunInst a) =>
 	// TODO: only do this for the '<=>' in bootstrap
-	return decl(a).name == symForOperator(Operator.compare);
-}
+	decl(a).name == symForOperator(Operator.compare);
 
-immutable(bool) isMarkVisitFun(ref immutable FunInst a) {
+immutable(bool) isMarkVisitFun(ref immutable FunInst a) =>
 	// TODO: only do this for the 'mark-visit' in bootstrap
-	return decl(a).name == shortSym("mark-visit");
-}
+	decl(a).name == shortSym("mark-visit");
 
 immutable(FunInst*) nonTemplateFunInst(ref Alloc alloc, immutable FunDecl* decl) =>
 	allocate(alloc, immutable FunInst(immutable FunDeclAndArgs(decl, [], []), decl.returnType, decl.params));

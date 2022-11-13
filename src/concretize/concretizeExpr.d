@@ -93,7 +93,7 @@ import util.memory : allocate, allocateMut, overwriteMemory;
 import util.opt : force, has, none, Opt, some;
 import util.ptr : castImmutable, castNonScope, ptrTrustMe_mut;
 import util.sourceRange : FileAndRange;
-import util.sym : shortSym, shortSymValue, SpecialSym, specialSymValue, Sym;
+import util.sym : shortSym, shortSymValue, Sym, sym, symValue;
 import util.util : todo, unreachable, verify;
 import versionInfo : VersionInfo;
 
@@ -1012,13 +1012,13 @@ immutable(Opt!Constant) tryEvalConstant(
 
 immutable(Opt!Constant) tryEvalConstantBuiltin(immutable Sym name, ref immutable VersionInfo versionInfo) {
 	switch (name.value) {
-		case specialSymValue(SpecialSym.is_big_endian):
+		case symValue!"is-big-endian":
 			return some(immutable Constant(immutable Constant.BoolConstant(versionInfo.isBigEndian)));
-		case specialSymValue(SpecialSym.is_interpreted):
+		case symValue!"is-interpreted":
 			return some(immutable Constant(immutable Constant.BoolConstant(versionInfo.isInterpreted)));
 		case shortSymValue("is-jit"):
 			return some(immutable Constant(immutable Constant.BoolConstant(versionInfo.isJit)));
-		case specialSymValue(SpecialSym.is_single_threaded):
+		case symValue!"is-single-threaded":
 			return some(immutable Constant(immutable Constant.BoolConstant(versionInfo.isSingleThreaded)));
 		case shortSymValue("is-wasm"):
 			return some(immutable Constant(immutable Constant.BoolConstant(versionInfo.isWasm)));

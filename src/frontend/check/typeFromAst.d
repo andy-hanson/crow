@@ -41,7 +41,7 @@ import util.col.mutArr : MutArr;
 import util.col.mutMaxArr : fillMutMaxArr, mapTo, tempAsArr;
 import util.opt : force, has, none, noneMut, Opt, some;
 import util.sourceRange : RangeWithinFile;
-import util.sym : shortSym, shortSymValue, SpecialSym, specialSymValue, Sym;
+import util.sym : shortSym, shortSymValue, Sym, sym, symValue;
 import util.util : todo;
 
 private immutable(Type) instStructFromAst(
@@ -216,7 +216,7 @@ immutable(Type) typeFromAst(
 
 private immutable(Opt!(Diag.TypeShouldUseSyntax.Kind)) typeSyntaxKind(immutable Sym a) {
 	switch (a.value) {
-		case specialSymValue(SpecialSym.const_pointer):
+		case symValue!"const-pointer":
 			return some(Diag.TypeShouldUseSyntax.Kind.pointer);
 		case shortSymValue("dict"):
 			return some(Diag.TypeShouldUseSyntax.Kind.dict);

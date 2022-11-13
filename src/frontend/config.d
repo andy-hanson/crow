@@ -18,7 +18,7 @@ import util.opt : force, has, none, Opt, some;
 import util.jsonParse : asObject, asString, isObject, isString, Json, parseJson;
 import util.path : AllPaths, childPath, commonAncestor, parent, parseAbsoluteOrRelPath, Path, PathAndRange;
 import util.sourceRange : RangeWithinFile;
-import util.sym : AllSymbols, shortSym, shortSymValue, SpecialSym, Sym, symForSpecial;
+import util.sym : AllSymbols, shortSym, shortSymValue, Sym, sym;
 import util.util : todo;
 
 immutable(Config) getConfig(
@@ -52,7 +52,7 @@ immutable(Config) getConfigRecur(
 	immutable Opt!Config res = withFileText(
 		storage,
 		configPath,
-		symForSpecial(SpecialSym.dotJson),
+		sym!".json",
 		(immutable ReadFileResult!SafeCStr a) =>
 			matchReadFileResult!(immutable Opt!Config, SafeCStr)(
 				a,
