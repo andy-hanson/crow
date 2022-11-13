@@ -737,7 +737,7 @@ struct SpecInst {
 immutable(SpecDecl*) decl(ref immutable SpecInst a) =>
 	a.declAndArgs.decl;
 
-immutable(Type[]) typeArgs(scope return ref immutable SpecInst a) =>
+immutable(Type[]) typeArgs(return scope ref immutable SpecInst a) =>
 	a.declAndArgs.typeArgs;
 
 immutable(Sym) name(ref immutable SpecInst a) =>
@@ -1077,7 +1077,7 @@ immutable(bool) isMarkVisitFun(ref immutable FunInst a) =>
 immutable(FunInst*) nonTemplateFunInst(ref Alloc alloc, immutable FunDecl* decl) =>
 	allocate(alloc, immutable FunInst(immutable FunDeclAndArgs(decl, [], []), decl.returnType, decl.params));
 
-immutable(FunDecl*) decl(scope return ref immutable FunInst a) =>
+immutable(FunDecl*) decl(return scope ref immutable FunInst a) =>
 	a.funDeclAndArgs.decl;
 
 immutable(Type[]) typeArgs(ref immutable FunInst a) =>
@@ -1371,7 +1371,7 @@ struct ImportOrExportKind {
 		@safe @nogc pure nothrow:
 		immutable Module* modulePtr;
 
-		ref immutable(Module) module_() scope return immutable =>
+		ref immutable(Module) module_() return immutable =>
 			*modulePtr;
 	}
 	struct ModuleNamed {
@@ -1379,7 +1379,7 @@ struct ImportOrExportKind {
 		immutable Module* modulePtr;
 		immutable Sym[] names;
 
-		ref immutable(Module) module_() scope return immutable =>
+		ref immutable(Module) module_() return immutable =>
 			*modulePtr;
 	}
 

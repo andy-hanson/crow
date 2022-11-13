@@ -670,14 +670,14 @@ immutable(bool) isCall(ref immutable ExprAstKind a) =>
 
 immutable(bool) isIdentifier(ref immutable ExprAstKind a) =>
 	a.kind == ExprAstKind.Kind.identifier;
-ref immutable(IdentifierAst) asIdentifier(scope return ref immutable ExprAstKind a) {
+immutable(IdentifierAst) asIdentifier(return scope ref immutable ExprAstKind a) {
 	verify(isIdentifier(a));
 	return a.identifier;
 }
 
 immutable(bool) isLambda(ref immutable ExprAstKind a) =>
 	a.kind == ExprAstKind.Kind.lambda;
-@trusted ref immutable(LambdaAst) asLambda(scope return ref immutable ExprAstKind a) {
+@trusted ref immutable(LambdaAst) asLambda(return scope ref immutable ExprAstKind a) {
 	verify(isLambda(a));
 	return *a.lambda;
 }

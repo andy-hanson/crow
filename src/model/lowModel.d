@@ -274,7 +274,7 @@ immutable(bool) isPtrRawConstOrMut(immutable LowType a) =>
 immutable(bool) isPtrGcOrRaw(immutable LowType a) =>
 	isPtrGc(a) || isPtrRawConst(a) || isPtrRawMut(a);
 
-@trusted immutable(LowType) asGcOrRawPointee(scope return immutable LowType a) {
+@trusted immutable(LowType) asGcOrRawPointee(return scope immutable LowType a) {
 	verify(isPtrGcOrRaw(a));
 	return matchLowTypeCombinePtr!(
 		immutable LowType,

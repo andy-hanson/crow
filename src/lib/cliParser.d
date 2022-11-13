@@ -170,7 +170,7 @@ immutable(Command) parseCommand(
 	ref AllSymbols allSymbols,
 	ref AllPaths allPaths,
 	immutable Path cwd,
-	scope return immutable SafeCStr[] args,
+	return scope immutable SafeCStr[] args,
 ) {
 	if (empty(args))
 		return immutable Command(immutable Command.Help(helpAllText, Command.Help.Kind.error));
@@ -352,7 +352,7 @@ immutable(Command) parseRunCommand(
 	ref AllSymbols allSymbols,
 	ref AllPaths allPaths,
 	immutable Path cwd,
-	scope return immutable SafeCStr[] args,
+	return scope immutable SafeCStr[] args,
 ) {
 	if (args.length == 1 && isHelp(symOfSafeCStr(allSymbols, only(args))))
 		return immutable Command(immutable Command.Help(helpRunText, Command.Help.Kind.requested));
@@ -466,7 +466,7 @@ struct SplitArgs {
 	immutable SafeCStr[] afterDashDash;
 }
 
-immutable(SplitArgs) splitArgs(ref Alloc alloc, ref AllSymbols allSymbols, scope return immutable SafeCStr[] args) {
+immutable(SplitArgs) splitArgs(ref Alloc alloc, ref AllSymbols allSymbols, return scope immutable SafeCStr[] args) {
 	immutable Opt!size_t optFirstArgIndex = findIndex!SafeCStr(args, (ref immutable SafeCStr arg) =>
 		startsWithDashDash(arg));
 	if (!has(optFirstArgIndex))

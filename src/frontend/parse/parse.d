@@ -90,8 +90,8 @@ immutable(FileAst) parseFile(
 	ref ArrBuilder!DiagnosticWithinFile diagsBuilder,
 	scope immutable SafeCStr source,
 ) =>
-	withMeasure!(immutable FileAst, () {
-		scope Lexer lexer = createLexer(
+	withMeasure!(immutable FileAst, () @trusted {
+		Lexer lexer = createLexer(
 			ptrTrustMe_mut(alloc),
 			ptrTrustMe_mut(allSymbols),
 			ptrTrustMe_mut(diagsBuilder),
@@ -101,7 +101,7 @@ immutable(FileAst) parseFile(
 
 private:
 
-immutable(NameAndRange[]) parseTypeParams(scope ref Lexer lexer) {
+immutable(NameAndRange[]) parseTypeParams(ref Lexer lexer) {
 	if (tryTakeOperator(lexer, sym!"<")) {
 		ArrBuilder!NameAndRange res;
 		do {
@@ -124,7 +124,7 @@ struct ImportOrExportKindAndDedent {
 	immutable NewlineOrDedent dedented;
 }
 
-immutable(PathOrRelPath) parseImportPath(ref AllPaths allPaths, scope ref Lexer lexer) {
+immutable(PathOrRelPath) parseImportPath(ref AllPaths allPaths, ref Lexer lexer) {
 	immutable Opt!ushort nParents = () {
 		if (tryTakeToken(lexer, Token.dot)) {
 			takeOrAddDiagExpectedOperator(lexer, sym!"/", ParseDiag.Expected.Kind.slash);
@@ -140,7 +140,7 @@ immutable(PathOrRelPath) parseImportPath(ref AllPaths allPaths, scope ref Lexer 
 		addPathComponents(allPaths, lexer, rootPath(allPaths, takePathComponent(lexer))));
 }
 
-immutable(size_t) takeDotDotSlashes(scope ref Lexer lexer, immutable size_t acc) {
+immutable(size_t) takeDotDotSlashes(ref Lexer lexer, immutable size_t acc) {
 	if (tryTakeOperator(lexer, sym!"..")) {
 		takeOrAddDiagExpectedOperator(lexer, sym!"/", ParseDiag.Expected.Kind.slash);
 		return takeDotDotSlashes(lexer, acc + 1);
@@ -148,19 +148,19 @@ immutable(size_t) takeDotDotSlashes(scope ref Lexer lexer, immutable size_t acc)
 		return acc;
 }
 
-immutable(Path) addPathComponents(ref AllPaths allPaths, scope ref Lexer lexer, immutable Path acc) =>
+immutable(Path) addPathComponents(ref AllPaths allPaths, ref Lexer lexer, immutable Path acc) =>
 	tryTakeOperator(lexer, sym!"/")
 		? addPathComponents(allPaths, lexer, childPath(allPaths, acc, takePathComponent(lexer)))
 		: acc;
 
-immutable(ImportAndDedent) parseSingleModuleImportOnOwnLine(ref AllPaths allPaths, scope ref Lexer lexer) {
+immutable(ImportAndDedent) parseSingleModuleImportOnOwnLine(ref AllPaths allPaths, ref Lexer lexer) {
 	immutable Pos start = curPos(lexer);
 	immutable PathOrRelPath path = parseImportPath(allPaths, lexer);
 	immutable ImportOrExportKindAndDedent kind = parseImportOrExportKind(lexer, start);
 	return immutable ImportAndDedent(immutable ImportOrExportAst(kind.range, path, kind.kind), kind.dedented);
 }
 
-immutable(ImportOrExportKindAndDedent) parseImportOrExportKind(scope ref Lexer lexer, immutable Pos start) {
+immutable(ImportOrExportKindAndDedent) parseImportOrExportKind(ref Lexer lexer, immutable Pos start) {
 	if (tryTakeToken(lexer, Token.colon)) {
 		if (tryTakeIndent(lexer, 1))
 			return parseIndentedImportNames(lexer, start);
@@ -186,7 +186,7 @@ immutable(ImportOrExportKindAndDedent) parseImportOrExportKind(scope ref Lexer l
 		takeNewlineOrSingleDedent(lexer));
 }
 
-immutable(ImportFileType) parseImportFileType(scope ref Lexer lexer) {
+immutable(ImportFileType) parseImportFileType(ref Lexer lexer) {
 	immutable Pos start = curPos(lexer);
 	immutable TypeAst type = parseType(lexer);
 	immutable Opt!(ImportFileType) fileType = toImportFileType(type);
@@ -239,7 +239,7 @@ immutable(Opt!(ImportFileType)) toImportFileType(immutable TypeAst a) =>
 			none!ImportFileType,
 	)(a);
 
-immutable(ImportOrExportKindAndDedent) parseIndentedImportNames(scope ref Lexer lexer, immutable Pos start) {
+immutable(ImportOrExportKindAndDedent) parseIndentedImportNames(ref Lexer lexer, immutable Pos start) {
 	ArrBuilder!Sym names;
 	struct NewlineOrDedentAndRange {
 		immutable NewlineOrDedent newlineOrDedent;
@@ -288,7 +288,7 @@ immutable(ImportOrExportKindAndDedent) parseIndentedImportNames(scope ref Lexer 
 		res.newlineOrDedent);
 }
 
-immutable(Sym[]) parseSingleImportNamesOnSingleLine(scope ref Lexer lexer) {
+immutable(Sym[]) parseSingleImportNamesOnSingleLine(ref Lexer lexer) {
 	ArrBuilder!Sym names;
 	final switch (takeCommaSeparatedNames(lexer, names)) {
 		case TrailingComma.no:
@@ -303,7 +303,7 @@ immutable(Sym[]) parseSingleImportNamesOnSingleLine(scope ref Lexer lexer) {
 
 enum TrailingComma { no, yes }
 
-immutable(TrailingComma) takeCommaSeparatedNames(scope ref Lexer lexer, ref ArrBuilder!Sym names) {
+immutable(TrailingComma) takeCommaSeparatedNames(ref Lexer lexer, ref ArrBuilder!Sym names) {
 	add(lexer.alloc, names, takeNameOrOperator(lexer));
 	return tryTakeToken(lexer, Token.comma)
 		? peekToken(lexer, Token.newline)
@@ -312,14 +312,14 @@ immutable(TrailingComma) takeCommaSeparatedNames(scope ref Lexer lexer, ref ArrB
 		: TrailingComma.no;
 }
 
-immutable(ParamAst) parseSingleParam(scope ref Lexer lexer) {
+immutable(ParamAst) parseSingleParam(ref Lexer lexer) {
 	immutable Pos start = curPos(lexer);
 	immutable Opt!Sym name = takeNameOrUnderscore(lexer);
 	immutable TypeAst type = parseType(lexer);
 	return immutable ParamAst(range(lexer, start), name, type);
 }
 
-immutable(ParamsAst) parseParams(scope ref Lexer lexer) {
+immutable(ParamsAst) parseParams(ref Lexer lexer) {
 	if (!takeOrAddDiagExpectedToken(lexer, Token.parenLeft, ParseDiag.Expected.Kind.openParen)) {
 		skipUntilNewlineNoDiag(lexer);
 		return immutable ParamsAst([]);
@@ -349,7 +349,7 @@ immutable(ParamsAst) parseParams(scope ref Lexer lexer) {
 	}
 }
 
-immutable(SpecSigAst) parseSpecSig(scope ref Lexer lexer) {
+immutable(SpecSigAst) parseSpecSig(ref Lexer lexer) {
 	// TODO: this doesn't work because the lexer already skipped comments
 	immutable SafeCStr comment = skipBlankLinesAndGetDocComment(lexer);
 	immutable Pos start = curPos(lexer);
@@ -359,7 +359,7 @@ immutable(SpecSigAst) parseSpecSig(scope ref Lexer lexer) {
 	return immutable SpecSigAst(comment, range(lexer, start), name, returnType, params);
 }
 
-immutable(SpecSigAst[]) parseIndentedSigs(scope ref Lexer lexer) {
+immutable(SpecSigAst[]) parseIndentedSigs(ref Lexer lexer) {
 	final switch (takeNewlineOrIndent_topLevel(lexer)) {
 		case NewlineOrIndent.newline:
 			return [];
@@ -378,7 +378,7 @@ immutable(SpecSigAst[]) parseIndentedSigs(scope ref Lexer lexer) {
 	}
 }
 
-immutable(StructDeclAst.Body.Enum.Member[]) parseEnumOrFlagsMembers(scope ref Lexer lexer) {
+immutable(StructDeclAst.Body.Enum.Member[]) parseEnumOrFlagsMembers(ref Lexer lexer) {
 	final switch (takeNewlineOrIndent_topLevel(lexer)) {
 		case NewlineOrIndent.newline:
 			return [];
@@ -402,7 +402,7 @@ immutable(StructDeclAst.Body.Enum.Member[]) parseEnumOrFlagsMembers(scope ref Le
 	}
 }
 
-immutable(StructDeclAst.Body.Record) parseRecordBody(scope ref Lexer lexer) {
+immutable(StructDeclAst.Body.Record) parseRecordBody(ref Lexer lexer) {
 	ArrBuilder!(StructDeclAst.Body.Record.Field) fields;
 	final switch (takeNewlineOrIndent_topLevel(lexer)) {
 		case NewlineOrIndent.newline:
@@ -414,7 +414,7 @@ immutable(StructDeclAst.Body.Record) parseRecordBody(scope ref Lexer lexer) {
 	return immutable StructDeclAst.Body.Record(small(finishArr(lexer.alloc, fields)));
 }
 
-void parseRecordFields(scope ref Lexer lexer, ref ArrBuilder!(StructDeclAst.Body.Record.Field) res) {
+void parseRecordFields(ref Lexer lexer, ref ArrBuilder!(StructDeclAst.Body.Record.Field) res) {
 	immutable Pos start = curPos(lexer);
 	immutable Visibility visibility = tryTakePrivate(lexer);
 	immutable Sym name = takeName(lexer);
@@ -431,7 +431,7 @@ void parseRecordFields(scope ref Lexer lexer, ref ArrBuilder!(StructDeclAst.Body
 	}
 }
 
-immutable(FieldMutability) parseFieldMutability(scope ref Lexer lexer) {
+immutable(FieldMutability) parseFieldMutability(ref Lexer lexer) {
 	if (tryTakeToken(lexer, Token.dot)) {
 		// '.' isn't valid at start of a type, so can only be '.mut'
 		if (tryTakeToken(lexer, Token.mut))
@@ -446,7 +446,7 @@ immutable(FieldMutability) parseFieldMutability(scope ref Lexer lexer) {
 			: FieldMutability.const_;
 }
 
-immutable(StructDeclAst.Body.Union.Member[]) parseUnionMembers(scope ref Lexer lexer) {
+immutable(StructDeclAst.Body.Union.Member[]) parseUnionMembers(ref Lexer lexer) {
 	ArrBuilder!(StructDeclAst.Body.Union.Member) res;
 	do {
 		immutable Pos start = curPos(lexer);
@@ -458,7 +458,7 @@ immutable(StructDeclAst.Body.Union.Member[]) parseUnionMembers(scope ref Lexer l
 }
 
 immutable(FunDeclAst) parseFun(
-	scope ref Lexer lexer,
+	ref Lexer lexer,
 	immutable SafeCStr docComment,
 	immutable Visibility visibility,
 	immutable Pos start,
@@ -482,14 +482,14 @@ immutable(FunDeclAst) parseFun(
 }
 
 //TODO: use alloc from lexer
-immutable(FunModifierAst[]) parseFunModifiers(scope ref Alloc alloc, scope ref Lexer lexer) {
+immutable(FunModifierAst[]) parseFunModifiers(scope ref Alloc alloc, ref Lexer lexer) {
 	ArrBuilder!FunModifierAst res;
 	while (!peekToken(lexer, Token.newline) && !peekToken(lexer, Token.EOF))
 		parseFunModifier(lexer, res);
 	return finishArr(lexer.alloc, res);
 }
 
-void parseFunModifier(scope ref Lexer lexer, scope ref ArrBuilder!FunModifierAst res) {
+void parseFunModifier(ref Lexer lexer, scope ref ArrBuilder!FunModifierAst res) {
 	immutable Pos start = curPos(lexer);
 	immutable Token token = nextToken(lexer);
 	immutable Opt!Sym name = () {
@@ -528,7 +528,7 @@ void parseFunModifier(scope ref Lexer lexer, scope ref ArrBuilder!FunModifierAst
 }
 
 void parseSpecOrStructOrFunOrTest(
-	scope ref Lexer lexer,
+	ref Lexer lexer,
 	ref ArrBuilder!SpecDeclAst specs,
 	ref ArrBuilder!StructAliasAst structAliases,
 	ref ArrBuilder!StructDeclAst structs,
@@ -543,7 +543,7 @@ void parseSpecOrStructOrFunOrTest(
 }
 
 void parseSpecOrStructOrFun(
-	scope ref Lexer lexer,
+	ref Lexer lexer,
 	ref ArrBuilder!SpecDeclAst specs,
 	ref ArrBuilder!StructAliasAst structAliases,
 	ref ArrBuilder!StructDeclAst structs,
@@ -648,7 +648,7 @@ void parseSpecOrStructOrFun(
 	}
 }
 
-immutable(StructDeclAst.Body.Union.Member[]) parseUnionMembersOrDiag(scope ref Lexer lexer) {
+immutable(StructDeclAst.Body.Union.Member[]) parseUnionMembersOrDiag(ref Lexer lexer) {
 	final switch (takeNewlineOrIndent_topLevel(lexer)) {
 		case NewlineOrIndent.newline:
 			//TODO: this should be a checker error, not parse error
@@ -659,12 +659,12 @@ immutable(StructDeclAst.Body.Union.Member[]) parseUnionMembersOrDiag(scope ref L
 	}
 }
 
-immutable(ModifierAst[]) parseModifiers(scope ref Lexer lexer) {
+immutable(ModifierAst[]) parseModifiers(ref Lexer lexer) {
 	ArrBuilder!ModifierAst res;
 	parseModifiersRecur(lexer, res);
 	return finishArr(lexer.alloc, res);
 }
-void parseModifiersRecur(scope ref Lexer lexer, ref ArrBuilder!ModifierAst res) {
+void parseModifiersRecur(ref Lexer lexer, ref ArrBuilder!ModifierAst res) {
 	immutable Pos start = curPos(lexer);
 	immutable Opt!(ModifierAst.Kind) kind = tryParseModifierKind(lexer);
 	if (has(kind)) {
@@ -673,7 +673,7 @@ void parseModifiersRecur(scope ref Lexer lexer, ref ArrBuilder!ModifierAst res) 
 	}
 }
 
-immutable(Opt!(ModifierAst.Kind)) tryParseModifierKind(scope ref Lexer lexer) {
+immutable(Opt!(ModifierAst.Kind)) tryParseModifierKind(ref Lexer lexer) {
 	if (tryTakeToken(lexer, Token.dot)) {
 		immutable Opt!Sym name = tryTakeName(lexer);
 		if (!(has(name) && force(name) == sym!"new"))
@@ -723,12 +723,12 @@ immutable(Opt!(ModifierAst.Kind)) modifierKindFromSym(immutable Sym a) {
 	}
 }
 
-immutable(Visibility) tryTakePrivate(scope ref Lexer lexer) =>
+immutable(Visibility) tryTakePrivate(ref Lexer lexer) =>
 	tryTakeToken(lexer, Token.dot) ? Visibility.private_ : Visibility.public_;
 
 immutable(Opt!ImportsOrExportsAst) parseImportsOrExports(
 	ref AllPaths allPaths,
-	scope ref Lexer lexer,
+	ref Lexer lexer,
 	immutable Token keyword,
 ) {
 	immutable Pos start = curPos(lexer);
@@ -748,7 +748,7 @@ immutable(Opt!ImportsOrExportsAst) parseImportsOrExports(
 		return none!ImportsOrExportsAst;
 }
 
-immutable(FileAst) parseFileInner(ref AllPaths allPaths, scope ref Lexer lexer) {
+immutable(FileAst) parseFileInner(ref AllPaths allPaths, ref Lexer lexer) {
 	immutable SafeCStr moduleDocComment = skipBlankLinesAndGetDocComment(lexer);
 	immutable bool noStd = tryTakeToken(lexer, Token.noStd);
 	if (noStd)
@@ -775,7 +775,7 @@ immutable(FileAst) parseFileInner(ref AllPaths allPaths, scope ref Lexer lexer) 
 }
 
 void parseFileRecur(
-	scope ref Lexer lexer,
+	ref Lexer lexer,
 	ref ArrBuilder!SpecDeclAst specs,
 	ref ArrBuilder!StructAliasAst structAliases,
 	ref ArrBuilder!StructDeclAst structs,

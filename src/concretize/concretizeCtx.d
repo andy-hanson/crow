@@ -199,7 +199,7 @@ private struct ConcreteFunBodyInputs {
 	immutable FunBody body_;
 }
 
-ref immutable(ConcreteType[]) typeArgs(scope return ref immutable ConcreteFunBodyInputs a) =>
+immutable(ConcreteType[]) typeArgs(return scope ref immutable ConcreteFunBodyInputs a) =>
 	a.containing.typeArgs;
 
 immutable(TypeArgsScope) typeArgsScope(ref immutable ConcreteFunBodyInputs a) =>

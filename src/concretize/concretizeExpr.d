@@ -91,7 +91,7 @@ import util.col.stackDict : StackDict2, stackDict2Add0, stackDict2Add1, stackDic
 import util.col.str : SafeCStr, safeCStr;
 import util.memory : allocate, allocateMut, overwriteMemory;
 import util.opt : force, has, none, Opt, some;
-import util.ptr : castImmutable, castNonScope, ptrTrustMe_mut;
+import util.ptr : castImmutable, castNonScope, castNonScope_ref, ptrTrustMe_mut;
 import util.sourceRange : FileAndRange;
 import util.sym : Sym, sym;
 import util.util : todo, unreachable, verify;
@@ -160,7 +160,7 @@ struct LocalOrConstant {
 }
 
 @trusted immutable(T) matchLocalOrConstant(T)(
-	scope ref immutable LocalOrConstant a,
+	immutable LocalOrConstant a,
 	scope immutable(T) delegate(immutable ConcreteLocal*) @safe @nogc pure nothrow cbLocal,
 	scope immutable(T) delegate(immutable TypedConstant) @safe @nogc pure nothrow cbTypedConstant,
 ) {
@@ -581,14 +581,16 @@ immutable(ConcreteExpr) concretizeIfOption(
 	immutable FileAndRange range,
 	scope ref immutable Locals locals,
 	immutable Local* local,
-) =>
-	matchLocalOrConstant!(immutable ConcreteExpr)(
-		getLocal(locals, local),
+) {
+	immutable LocalOrConstant lc = castNonScope(getLocal(locals, local));
+	return matchLocalOrConstant!(immutable ConcreteExpr)(
+		lc,
 		(immutable ConcreteLocal* local) =>
 			immutable ConcreteExpr(local.type, range, immutable ConcreteExprKind(
 				immutable ConcreteExprKind.LocalGet(local))),
 		(immutable TypedConstant it) =>
 			immutable ConcreteExpr(it.type, range, immutable ConcreteExprKind(it.value)));
+}
 
 // TODO: not @trusted
 @trusted immutable(ConcreteExpr) concretizePtrToLocal(
@@ -640,7 +642,7 @@ immutable(ConcreteExpr) concretizeLoop(
 	ref immutable Expr.Loop a,
 ) {
 	ConcreteExprKind.Loop* res = allocateMut(ctx.alloc, ConcreteExprKind.Loop());
-	scope immutable Locals localsWithLoop = addLoop(locals, castNonScope(&a), castImmutable(res));
+	scope immutable Locals localsWithLoop = addLoop(castNonScope_ref(locals), castNonScope(&a), castImmutable(res));
 	overwriteMemory(&res.body_, concretizeExpr(ctx, localsWithLoop, a.body_));
 	return immutable ConcreteExpr(getConcreteType(ctx, a.type), range, immutable ConcreteExprKind(castImmutable(res)));
 }

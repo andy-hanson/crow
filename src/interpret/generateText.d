@@ -42,7 +42,7 @@ import util.col.exactSizeArrBuilder :
 import util.col.fullIndexDict : FullIndexDict, mapFullIndexDict;
 import util.col.str : SafeCStr, safeCStrSize;
 import util.conv : bitsOfFloat32, bitsOfFloat64;
-import util.ptr : ptrTrustMe_mut;
+import util.ptr : castNonScope, castNonScope_mut, ptrTrustMe_mut;
 import util.util : todo, unreachable, verify;
 
 struct ThreadLocalsInfo {
@@ -109,7 +109,7 @@ immutable(ubyte*) getTextPointerForCString(ref immutable TextInfo info, immutabl
 	scope immutable AllConstantsLow* allConstantsPtr,
 	ref FunToReferences funToReferences,
 ) {
-	ref immutable(AllConstantsLow) allConstants() { return *allConstantsPtr; }
+	scope ref immutable(AllConstantsLow) allConstants() { return *castNonScope(allConstantsPtr); }
 
 	Ctx ctx = Ctx(
 		programPtr,
@@ -162,7 +162,7 @@ immutable(ubyte*) getTextPointerForCString(ref immutable TextInfo info, immutabl
 				constantIndex,
 				pointee);
 	}
-	ubyte[] text = castNonScope(finish(ctx.text));
+	ubyte[] text = castNonScope_mut(finish(ctx.text));
 	return TextAndInfo(
 		text,
 		immutable TextInfo(
@@ -173,9 +173,6 @@ immutable(ubyte*) getTextPointerForCString(ref immutable TextInfo info, immutabl
 }
 
 private:
-
-T[] castNonScope(T)(scope T[] a) =>
-	a;
 
 struct Ctx {
 	@safe @nogc pure nothrow:

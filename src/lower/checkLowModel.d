@@ -49,13 +49,13 @@ import util.col.arr : sizeEq;
 import util.col.arrUtil : zip;
 import util.col.fullIndexDict : fullIndexDictEachValue;
 import util.opt : force, has, none, Opt, some;
-import util.ptr : ptrTrustMe, ptrTrustMe_const, ptrTrustMe_mut;
+import util.ptr : castNonScope_ref, ptrTrustMe, ptrTrustMe_const, ptrTrustMe_mut;
 import util.repr : Repr, reprRecord, reprSym;
 import util.sym : AllSymbols;
 import util.util : verify;
 
 void checkLowProgram(ref Alloc alloc, ref const AllSymbols allSymbols, scope ref immutable LowProgram a) {
-	Ctx ctx = Ctx(ptrTrustMe_mut(alloc), ptrTrustMe_const(allSymbols), ptrTrustMe(a));
+	Ctx ctx = Ctx(ptrTrustMe_mut(alloc), ptrTrustMe_const(allSymbols), ptrTrustMe(castNonScope_ref(a)));
 	fullIndexDictEachValue!(LowFunIndex, LowFun)(a.allFuns, (ref immutable LowFun fun) {
 		checkLowFun(ctx, fun);
 	});

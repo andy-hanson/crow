@@ -150,7 +150,7 @@ import util.col.str : copyToSafeCStr;
 import util.conv : safeToUshort, safeToUint;
 import util.memory : allocate, allocateMut, initMemory, overwriteMemory;
 import util.opt : force, has, none, noneMut, Opt, some, someMut;
-import util.ptr : castImmutable, ptrTrustMe_mut;
+import util.ptr : castImmutable, castNonScope_mut, ptrTrustMe_mut;
 import util.sourceRange : FileAndRange, Pos, RangeWithinFile;
 import util.sym : Sym, sym, symOfStr;
 import util.util : max, todo, unreachable, verify;
@@ -178,8 +178,7 @@ immutable(Expr) checkFunctionBody(
 		typeParams,
 		flags,
 		usedFuns);
-	scope FunOrLambdaInfo funInfo =
-		FunOrLambdaInfo(noneMut!(LocalsInfo*), params, none!(Expr.Lambda*));
+	FunOrLambdaInfo funInfo = FunOrLambdaInfo(noneMut!(LocalsInfo*), params, none!(Expr.Lambda*));
 	fillMutMaxArr(funInfo.paramsUsed, params.length, false);
 	// leave funInfo.closureFields uninitialized, it won't be used
 	scope LocalsInfo locals = LocalsInfo(ptrTrustMe_mut(funInfo), noneMut!(LocalNode*));
@@ -1187,7 +1186,8 @@ immutable(Expr) checkLambda(
 
 	Expr.Lambda* lambda = () @trusted { return allocateUninitialized!(Expr.Lambda)(ctx.alloc); }();
 
-	FunOrLambdaInfo lambdaInfo = FunOrLambdaInfo(someMut(ptrTrustMe_mut(locals)), params, some(castImmutable(lambda)));
+	FunOrLambdaInfo lambdaInfo =
+		FunOrLambdaInfo(someMut(castNonScope_mut(ptrTrustMe_mut(locals))), params, some(castImmutable(lambda)));
 	fillMutMaxArr(lambdaInfo.paramsUsed, params.length, false);
 	initializeMutMaxArr(lambdaInfo.closureFields);
 	scope LocalsInfo lambdaLocalsInfo = LocalsInfo(ptrTrustMe_mut(lambdaInfo), noneMut!(LocalNode*));

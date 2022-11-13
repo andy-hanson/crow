@@ -131,7 +131,7 @@ import util.col.mutMaxArr : push, tempAsArr;
 import util.col.stackDict : StackDict, stackDictAdd, stackDictMustGet;
 import util.conv : bitsOfFloat32, bitsOfFloat64;
 import util.opt : force, has, Opt;
-import util.ptr : ptrTrustMe, ptrTrustMe_const, ptrTrustMe_mut;
+import util.ptr : castNonScope_ref, ptrTrustMe, ptrTrustMe_const, ptrTrustMe_mut;
 import util.sym : AllSymbols;
 import util.util : divRoundUp, unreachable, verify;
 import util.writer : finishWriter, Writer;
@@ -191,7 +191,7 @@ struct ExprAfterKind {
 
 	this(immutable Continue a) { kind = Kind.continue_; continue_ = a; }
 	this(JumpDelayed a) { kind = Kind.jumpDelayed; jumpDelayed = a; }
-	this(scope return Loop a) { kind = Kind.loop; loop = a; }
+	this(return scope Loop a) { kind = Kind.loop; loop = a; }
 	this(immutable Return a) { kind = Kind.return_; return_ = a; }
 
 	private:
@@ -478,7 +478,7 @@ void generateLet(
 		immutable StackEntries(getNextStackEntry(writer), nStackEntriesForType(ctx, a.local.type));
 	generateExprAndContinue(writer, ctx, locals, a.value);
 	verify(getNextStackEntry(writer) == stackEntriesEnd(localEntries));
-	scope immutable Locals newLocals = addLocal(locals, a.local, localEntries);
+	scope immutable Locals newLocals = addLocal(castNonScope_ref(locals), a.local, localEntries);
 	generateExpr(writer, ctx, newLocals, after, a.then);
 }
 
@@ -551,7 +551,7 @@ void generateMatchUnion(
 	immutable StackEntries matchedEntriesWithoutKind =
 		immutable StackEntries(startStack, (stackAfterMatched.entry - startStack.entry));
 
-	withBranching(writer, ctx, after, (ref ExprAfter afterBranch, ref ExprAfter afterLastBranch) {
+	withBranching(writer, ctx, after, (ref ExprAfter afterBranch, ref ExprAfter afterLastBranch) @safe {
 		foreach (immutable size_t caseIndex, ref immutable LowExprKind.MatchUnion.Case case_; a.cases) {
 			immutable bool isLast = caseIndex == a.cases.length - 1;
 			fillDelayedSwitchEntry(writer, switchDelayed, caseIndex);
@@ -559,7 +559,7 @@ void generateMatchUnion(
 				immutable size_t nEntries = nStackEntriesForType(ctx, force(case_.local).type);
 				verify(nEntries <= matchedEntriesWithoutKind.size);
 				scope immutable Locals newLocals = addLocal(
-					locals,
+					castNonScope_ref(locals),
 					force(case_.local),
 					immutable StackEntries(matchedEntriesWithoutKind.start, nEntries));
 				generateExpr(writer, ctx, newLocals, isLast ? afterLastBranch : afterBranch, case_.then);

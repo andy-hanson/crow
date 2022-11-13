@@ -146,7 +146,7 @@ import util.late : Late, late, lateGet, lateIsSet, lateSet;
 import util.memory : allocate, allocateMut, overwriteMemory;
 import util.opt : asImmutable, force, has, none, Opt, some;
 import util.perf : Perf, PerfMeasure, withMeasure;
-import util.ptr : castNonScope_mut, ptrTrustMe, ptrTrustMe_mut;
+import util.ptr : castNonScope_mut, castNonScope_ref, ptrTrustMe, ptrTrustMe_mut;
 import util.sourceRange : FileAndRange;
 import util.sym : AllSymbols, Sym, sym;
 import util.util : unreachable, verify;
@@ -947,7 +947,7 @@ immutable(T) withLowLocal(T)(
 	immutable LowType type = concreteLocal.isAllocated ? getLowGcPtrType(ctx.typeCtx, typeByVal) : typeByVal;
 	immutable LowLocal* local =
 		allocate(ctx.alloc, immutable LowLocal(immutable LowLocalSource(concreteLocal), type));
-	scope immutable Locals newLocals = addLocal(locals, concreteLocal, local);
+	scope immutable Locals newLocals = addLocal(castNonScope_ref(locals), concreteLocal, local);
 	return cb(newLocals, local);
 }
 
@@ -1207,7 +1207,7 @@ immutable(LowExprKind) getAllocExpr2(
 	ref immutable ConcreteExprKind.Loop a,
 ) {
 	LowExprKind.Loop* res = allocateMut(ctx.alloc, LowExprKind.Loop(type));
-	immutable Locals newLocals = addLoop(locals, &a, cast(immutable) res);
+	immutable Locals newLocals = addLoop(locals, ptrTrustMe(a), cast(immutable) res);
 	// Go ahead and give the body the same 'exprPos'. 'continue' will know it's non-tail.
 	overwriteMemory(&res.body_, getLowExpr(ctx, newLocals, a.body_, exprPos));
 	return immutable LowExprKind(cast(immutable) res);
@@ -1226,7 +1226,7 @@ immutable(LowExprKind) getAllocExpr2(
 
 @trusted immutable(LowExprKind) getLoopContinueExpr(
 	ref GetLowExprCtx ctx,
-	scope ref immutable Locals locals,
+	return scope ref immutable Locals locals,
 	ref immutable ConcreteExprKind.LoopContinue a,
 ) =>
 	immutable LowExprKind(immutable LowExprKind.LoopContinue(getLoop(locals, a.loop)));

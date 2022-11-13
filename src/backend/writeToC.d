@@ -75,7 +75,7 @@ import util.col.fullIndexDict : FullIndexDict, fullIndexDictEach, fullIndexDictE
 import util.col.stackDict : StackDict, stackDictAdd, stackDictLastAdded, stackDictMustGet;
 import util.col.str : eachChar, SafeCStr;
 import util.opt : force, has, Opt, some;
-import util.ptr : castNonScope_mut, ptrTrustMe, ptrTrustMe_mut;
+import util.ptr : castNonScope_ref, castNonScope_mut, ptrTrustMe, ptrTrustMe_mut;
 import util.sym : AllSymbols;
 import util.util : abs, drop, unreachable, verify;
 import util.writer :
@@ -713,7 +713,7 @@ struct WriteKind {
 immutable(bool) isInline(scope ref immutable WriteKind a) =>
 	a.kind == WriteKind.Kind.inline;
 
-@trusted immutable(WriteKind.Inline) asInline(scope ref immutable WriteKind a) {
+@trusted immutable(WriteKind.Inline) asInline(return scope ref immutable WriteKind a) {
 	verify(isInline(a));
 	return a.inline;
 }
@@ -1935,7 +1935,7 @@ immutable(WriteExprResult) writeLoop(
 
 	immutable uint index = nextLoopIndex(locals);
 	immutable LoopInfo loopInfo = immutable LoopInfo(index, nested.writeKind);
-	immutable Locals innerLocals = addLoop(locals, &a, &loopInfo);
+	immutable Locals innerLocals = addLoop(castNonScope_ref(locals), &a, &loopInfo);
 
 	writeNewline(writer, indent);
 	writer ~= "for (;;) {";

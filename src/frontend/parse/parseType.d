@@ -29,7 +29,7 @@ import util.sourceRange : Pos, RangeWithinFile;
 import util.sym : sym;
 import util.util : todo;
 
-immutable(Opt!(TypeAst*)) tryParseTypeArg(scope ref Lexer lexer) {
+immutable(Opt!(TypeAst*)) tryParseTypeArg(ref Lexer lexer) {
 	if (tryTakeOperator(lexer, sym!"<")) {
 		immutable TypeAst res = parseType(lexer);
 		takeTypeArgsEnd(lexer);
@@ -38,7 +38,7 @@ immutable(Opt!(TypeAst*)) tryParseTypeArg(scope ref Lexer lexer) {
 		return none!(TypeAst*);
 }
 
-immutable(TypeAst[]) tryParseTypeArgsForExpr(scope ref Lexer lexer) {
+immutable(TypeAst[]) tryParseTypeArgsForExpr(ref Lexer lexer) {
 	if (tryTakeToken(lexer, Token.atLess)) {
 		immutable TypeAst[] res = parseTypesWithCommas(lexer);
 		takeTypeArgsEnd(lexer);
@@ -47,7 +47,7 @@ immutable(TypeAst[]) tryParseTypeArgsForExpr(scope ref Lexer lexer) {
 		return [];
 }
 
-immutable(TypeAst[]) tryParseTypeArgsBracketed(scope ref Lexer lexer) {
+immutable(TypeAst[]) tryParseTypeArgsBracketed(ref Lexer lexer) {
 	if (tryTakeOperator(lexer, sym!"<")) {
 		immutable TypeAst[] res = parseTypesWithCommas(lexer);
 		takeTypeArgsEnd(lexer);
@@ -56,48 +56,48 @@ immutable(TypeAst[]) tryParseTypeArgsBracketed(scope ref Lexer lexer) {
 		return [];
 }
 
-private void parseTypesWithCommas(Builder)(scope ref Lexer lexer, ref Builder output) {
+private void parseTypesWithCommas(Builder)(ref Lexer lexer, ref Builder output) {
 	do {
 		add(lexer.alloc, output, parseType(lexer));
 	} while (tryTakeToken(lexer, Token.comma));
 }
 
-private immutable(TypeAst[]) parseTypesWithCommas(scope ref Lexer lexer) {
+private immutable(TypeAst[]) parseTypesWithCommas(ref Lexer lexer) {
 	ArrBuilder!TypeAst res;
 	parseTypesWithCommas(lexer, res);
 	return finishArr(lexer.alloc, res);
 }
 
 private immutable(TypeAst[]) tryParseTypeArgsAllowSpaceNoTuple(
-	scope ref Lexer lexer,
+	ref Lexer lexer,
 	immutable RequireBracket requireBracket,
 ) =>
 	peekToken(lexer, Token.name)
 		? arrLiteral(lexer.alloc, [parseType(lexer, requireBracket)])
 		: tryParseTypeArgsBracketed(lexer);
 
-private immutable(TypeAst[]) tryParseTypeArgsAllowSpace(scope ref Lexer lexer) =>
+private immutable(TypeAst[]) tryParseTypeArgsAllowSpace(ref Lexer lexer) =>
 	peekToken(lexer, Token.parenLeft)
 		? arrLiteral(lexer.alloc, [parseType(lexer, RequireBracket.no)])
 		: tryParseTypeArgsAllowSpaceNoTuple(lexer, RequireBracket.no);
 
-immutable(TypeAst) parseType(scope ref Lexer lexer) =>
+immutable(TypeAst) parseType(ref Lexer lexer) =>
 	parseType(lexer, RequireBracket.no);
 
-immutable(TypeAst) parseTypeNoTuple(scope ref Lexer lexer) =>
+immutable(TypeAst) parseTypeNoTuple(ref Lexer lexer) =>
 	parseType(lexer, RequireBracket.forTuple);
 
-immutable(TypeAst) parseTypeRequireBracket(scope ref Lexer lexer) =>
+immutable(TypeAst) parseTypeRequireBracket(ref Lexer lexer) =>
 	parseType(lexer, RequireBracket.yes);
 
 private:
 
 enum RequireBracket { no, forTuple, yes }
 
-immutable(TypeAst) parseType(scope ref Lexer lexer, immutable RequireBracket requireBracket) =>
+immutable(TypeAst) parseType(ref Lexer lexer, immutable RequireBracket requireBracket) =>
 	parseTypeSuffixes(lexer, parseTypeBeforeSuffixes(lexer, requireBracket));
 
-immutable(TypeAst) parseTypeBeforeSuffixes(scope ref Lexer lexer, immutable RequireBracket requireBracket) {
+immutable(TypeAst) parseTypeBeforeSuffixes(ref Lexer lexer, immutable RequireBracket requireBracket) {
 	immutable Pos start = curPos(lexer);
 	immutable Token token = nextToken(lexer);
 	switch (token) {
@@ -132,7 +132,7 @@ immutable(TypeAst) parseTypeBeforeSuffixes(scope ref Lexer lexer, immutable Requ
 	}
 }
 
-immutable(TypeAst) parseTupleType(scope ref Lexer lexer, immutable Pos start) {
+immutable(TypeAst) parseTupleType(ref Lexer lexer, immutable Pos start) {
 	immutable TypeAst a = parseType(lexer);
 	takeOrAddDiagExpectedToken(lexer, Token.comma, ParseDiag.Expected.Kind.comma);
 	immutable TypeAst b = parseType(lexer);
@@ -140,7 +140,7 @@ immutable(TypeAst) parseTupleType(scope ref Lexer lexer, immutable Pos start) {
 	return immutable TypeAst(allocate(lexer.alloc, immutable TypeAst.Tuple(a, b)));
 }
 
-immutable(TypeAst) parseFunType(scope ref Lexer lexer, immutable Pos start, immutable TypeAst.Fun.Kind kind) {
+immutable(TypeAst) parseFunType(ref Lexer lexer, immutable Pos start, immutable TypeAst.Fun.Kind kind) {
 	ArrBuilder!TypeAst returnAndParamTypes;
 	add(lexer.alloc, returnAndParamTypes, parseType(lexer, RequireBracket.forTuple));
 	if (tryTakeToken(lexer, Token.parenLeft)) {
@@ -158,7 +158,7 @@ immutable(TypeAst) parseFunType(scope ref Lexer lexer, immutable Pos start, immu
 		finishArr(lexer.alloc, returnAndParamTypes)));
 }
 
-immutable(TypeAst) parseTypeSuffixes(scope ref Lexer lexer, immutable TypeAst ast) {
+immutable(TypeAst) parseTypeSuffixes(ref Lexer lexer, immutable TypeAst ast) {
 	immutable(TypeAst) doSuffix(immutable TypeAst inner, immutable TypeAst.Suffix.Kind kind) =>
 		immutable TypeAst(allocate(lexer.alloc, immutable TypeAst.Suffix(kind, inner)));
 
