@@ -728,10 +728,6 @@ void writeDiag(
 		(ref immutable Diag.LoopNeedsBreakOrContinue) {
 			writer ~= "a loop must end in 'break' or 'continue'";
 		},
-		(ref immutable Diag.LoopNeedsExpectedType) {
-			writer ~= "can not infer type of loop; provide an expected type";
-			writer ~= " (for example, by making it the return expression of a function)";
-		},
 		(ref immutable Diag.LoopWithoutBreak d) {
 			writer ~= "'loop' has no 'break'";
 		},
@@ -791,6 +787,19 @@ void writeDiag(
 			writer ~= " name not found: ";
 			writeName(writer, allSymbols, d.name);
 		},
+		(ref immutable Diag.NeedsExpectedType x) {
+			writer ~= () {
+				final switch (x.kind) {
+					case Diag.NeedsExpectedType.Kind.pointer:
+						return "pointer";
+					case Diag.NeedsExpectedType.Kind.loop:
+						return "'loop'";
+					case Diag.NeedsExpectedType.Kind.throw_:
+						return "'throw'";
+				}
+			}();
+			writer ~= " expression needs an expected type";
+		},
 		(ref immutable ParseDiag pd) {
 			writeParseDiag(writer, allPaths, pathsInfo, pd);
 		},
@@ -806,9 +815,6 @@ void writeDiag(
 						return "can't get a mutable pointer to a non-'mut' local";
 				}
 			}();
-		},
-		(ref immutable Diag.PtrNeedsExpectedType) {
-			writer ~= "pointer expression needs an expected type";
 		},
 		(ref immutable Diag.PtrUnsupported) {
 			writer ~= "can't get a pointer to this kind of expression";
@@ -887,9 +893,6 @@ void writeDiag(
 						return " return type must be a 'mut*'";
 				}
 			}();
-		},
-		(ref immutable Diag.ThrowNeedsExpectedType) {
-			writer ~= "'throw' needs an expected type";
 		},
 		(ref immutable Diag.TypeAnnotationUnnecessary d) {
 			writer ~= "type ";

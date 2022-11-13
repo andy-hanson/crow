@@ -215,7 +215,6 @@ struct Diag {
 		immutable VariableRef local;
 	}
 	struct LoopNeedsBreakOrContinue {}
-	struct LoopNeedsExpectedType {}
 	struct LoopWithoutBreak {}
 	struct MatchCaseNamesDoNotMatch {
 		immutable Sym[] expectedNames;
@@ -256,12 +255,19 @@ struct Diag {
 		immutable Kind kind;
 		immutable Sym name;
 	}
+	struct NeedsExpectedType {
+		enum Kind {
+			loop,
+			pointer,
+			throw_,
+		}
+		immutable Kind kind;
+	}
 	struct PtrIsUnsafe {}
 	struct PtrMutToConst {
 		enum Kind { field, local }
 		immutable Kind kind;
 	}
-	struct PtrNeedsExpectedType {}
 	struct PtrUnsupported {}
 	struct PurityWorseThanParent {
 		immutable StructDecl* parent;
@@ -298,7 +304,6 @@ struct Diag {
 		enum Kind { hasParams, hasSpecs, hasTypeParams, mustReturnPtrMut }
 		immutable Kind kind;
 	}
-	struct ThrowNeedsExpectedType {}
 	struct TypeAnnotationUnnecessary {
 		immutable Type type;
 	}
@@ -391,7 +396,6 @@ struct Diag {
 		literalOverflow,
 		localNotMutable,
 		loopNeedsBreakOrContinue,
-		loopNeedsExpectedType,
 		loopWithoutBreak,
 		matchCaseNamesDoNotMatch,
 		matchCaseShouldHaveLocal,
@@ -402,10 +406,10 @@ struct Diag {
 		modifierInvalid,
 		mutFieldNotAllowed,
 		nameNotFound,
+		needsExpectedType,
 		parseDiag,
 		ptrIsUnsafe,
 		ptrMutToConst,
-		ptrNeedsExpectedType,
 		ptrUnsupported,
 		purityWorseThanParent,
 		puritySpecifierRedundant,
@@ -416,7 +420,6 @@ struct Diag {
 		specImplHasSpecs,
 		specImplNotFound,
 		threadLocalError,
-		throwNeedsExpectedType,
 		typeAnnotationUnnecessary,
 		typeConflict,
 		typeParamCantHaveTypeArgs,
@@ -467,7 +470,6 @@ struct Diag {
 		immutable LiteralOverflow literalOverflow;
 		immutable LocalNotMutable localNotMutable;
 		immutable LoopNeedsBreakOrContinue loopNeedsBreakOrContinue;
-		immutable LoopNeedsExpectedType loopNeedsExpectedType;
 		immutable LoopWithoutBreak loopWithoutBreak;
 		immutable MatchCaseNamesDoNotMatch matchCaseNamesDoNotMatch;
 		immutable MatchCaseShouldHaveLocal matchCaseShouldHaveLocal;
@@ -478,10 +480,10 @@ struct Diag {
 		immutable ModifierInvalid modifierInvalid;
 		immutable MutFieldNotAllowed mutFieldNotAllowed;
 		immutable NameNotFound nameNotFound;
+		immutable NeedsExpectedType needsExpectedType;
 		immutable ParseDiag parseDiag;
 		immutable PtrIsUnsafe ptrIsUnsafe;
 		immutable PtrMutToConst ptrMutToConst;
-		immutable PtrNeedsExpectedType ptrNeedsExpectedType;
 		immutable PtrUnsupported ptrUnsupported;
 		immutable PurityWorseThanParent purityWorseThanParent;
 		immutable PuritySpecifierRedundant puritySpecifierRedundant;
@@ -492,7 +494,6 @@ struct Diag {
 		immutable SpecImplHasSpecs specImplHasSpecs;
 		immutable SpecImplNotFound specImplNotFound;
 		immutable ThreadLocalError threadLocalError;
-		immutable ThrowNeedsExpectedType throwNeedsExpectedType;
 		immutable TypeAnnotationUnnecessary typeAnnotationUnnecessary;
 		immutable TypeConflict typeConflict;
 		immutable TypeParamCantHaveTypeArgs typeParamCantHaveTypeArgs;
@@ -580,7 +581,6 @@ struct Diag {
 	immutable this(immutable LoopNeedsBreakOrContinue a) {
 		kind = Kind.loopNeedsBreakOrContinue; loopNeedsBreakOrContinue = a;
 	}
-	immutable this(immutable LoopNeedsExpectedType a) { kind = Kind.loopNeedsExpectedType; loopNeedsExpectedType = a; }
 	immutable this(immutable LoopWithoutBreak a) { kind = Kind.loopWithoutBreak; loopWithoutBreak = a; }
 	@trusted immutable this(immutable MatchCaseNamesDoNotMatch a) {
 		kind = Kind.matchCaseNamesDoNotMatch; matchCaseNamesDoNotMatch = a;
@@ -609,6 +609,7 @@ struct Diag {
 	@trusted immutable this(immutable NameNotFound a) {
 		kind = Kind.nameNotFound; nameNotFound = a;
 	}
+	immutable this(immutable NeedsExpectedType a) { kind = Kind.needsExpectedType; needsExpectedType = a; }
 	@trusted immutable this(immutable ParseDiag a) {
 		kind = Kind.parseDiag; parseDiag = a;
 	}
@@ -617,9 +618,6 @@ struct Diag {
 	}
 	immutable this(immutable PtrMutToConst a) {
 		kind = kind.ptrMutToConst; ptrMutToConst = a;
-	}
-	immutable this(immutable PtrNeedsExpectedType a) {
-		kind = Kind.ptrNeedsExpectedType; ptrNeedsExpectedType = a;
 	}
 	immutable this(immutable PtrUnsupported a) {
 		kind = Kind.ptrUnsupported; ptrUnsupported = a;
@@ -645,9 +643,6 @@ struct Diag {
 	@trusted immutable this(immutable SpecImplHasSpecs a) { kind = Kind.specImplHasSpecs; specImplHasSpecs = a; }
 	@trusted immutable this(immutable SpecImplNotFound a) { kind = Kind.specImplNotFound; specImplNotFound = a; }
 	immutable this(immutable ThreadLocalError a) { kind = Kind.threadLocalError; threadLocalError = a; }
-	immutable this(immutable ThrowNeedsExpectedType a) {
-		kind = Kind.throwNeedsExpectedType; throwNeedsExpectedType = a;
-	}
 	immutable this(immutable TypeAnnotationUnnecessary a) {
 		kind = Kind.typeAnnotationUnnecessary; typeAnnotationUnnecessary = a;
 	}
@@ -754,9 +749,6 @@ struct Diag {
 	scope immutable(Out) delegate(
 		ref immutable Diag.LoopNeedsBreakOrContinue
 	) @safe @nogc pure nothrow cbLoopNeedsBreakOrContinue,
-	scope immutable(Out) delegate(
-		ref immutable Diag.LoopNeedsExpectedType
-	) @safe @nogc pure nothrow cbLoopNeedsExpectedType,
 	scope immutable(Out) delegate(ref immutable Diag.LoopWithoutBreak) @safe @nogc pure nothrow cbLoopWithoutBreak,
 	scope immutable(Out) delegate(
 		ref immutable Diag.MatchCaseNamesDoNotMatch
@@ -779,12 +771,10 @@ struct Diag {
 	scope immutable(Out) delegate(
 		ref immutable Diag.NameNotFound
 	) @safe @nogc pure nothrow cbNameNotFound,
+	scope immutable(Out) delegate(ref immutable Diag.NeedsExpectedType) @safe @nogc pure nothrow cbNeedsExpectedType,
 	scope immutable(Out) delegate(ref immutable ParseDiag) @safe @nogc pure nothrow cbParseDiag,
 	scope immutable(Out) delegate(ref immutable Diag.PtrIsUnsafe) @safe @nogc pure nothrow cbPtrIsUnsafe,
 	scope immutable(Out) delegate(ref immutable Diag.PtrMutToConst) @safe @nogc pure nothrow cbPtrMutToConst,
-	scope immutable(Out) delegate(
-		ref immutable Diag.PtrNeedsExpectedType
-	) @safe @nogc pure nothrow cbPtrNeedsExpectedType,
 	scope immutable(Out) delegate(ref immutable Diag.PtrUnsupported) @safe @nogc pure nothrow cbPtrUnsupported,
 	scope immutable(Out) delegate(
 		ref immutable Diag.PurityWorseThanParent
@@ -811,9 +801,6 @@ struct Diag {
 		ref immutable Diag.SpecImplNotFound
 	) @safe @nogc pure nothrow cbSpecImplNotFound,
 	scope immutable(Out) delegate(ref immutable Diag.ThreadLocalError) @safe @nogc pure nothrow cbThreadLocalError,
-	scope immutable(Out) delegate(
-		ref immutable Diag.ThrowNeedsExpectedType
-	) @safe @nogc pure nothrow cbThrowNeedsExpectedType,
 	scope immutable(Out) delegate(
 		ref immutable Diag.TypeAnnotationUnnecessary
 	) @safe @nogc pure nothrow cbTypeAnnotationUnnecessary,
@@ -915,8 +902,6 @@ struct Diag {
 			return cbLocalNotMutable(a.localNotMutable);
 		case Diag.Kind.loopNeedsBreakOrContinue:
 			return cbLoopNeedsBreakOrContinue(a.loopNeedsBreakOrContinue);
-		case Diag.Kind.loopNeedsExpectedType:
-			return cbLoopNeedsExpectedType(a.loopNeedsExpectedType);
 		case Diag.Kind.loopWithoutBreak:
 			return cbLoopWithoutBreak(a.loopWithoutBreak);
 		case Diag.Kind.matchCaseNamesDoNotMatch:
@@ -937,14 +922,14 @@ struct Diag {
 			return cbMutFieldNotAllowed(a.mutFieldNotAllowed);
 		case Diag.Kind.nameNotFound:
 			return cbNameNotFound(a.nameNotFound);
+		case Diag.Kind.needsExpectedType:
+			return cbNeedsExpectedType(a.needsExpectedType);
 		case Diag.Kind.parseDiag:
 			return cbParseDiag(a.parseDiag);
 		case Diag.Kind.ptrIsUnsafe:
 			return cbPtrIsUnsafe(a.ptrIsUnsafe);
 		case Diag.Kind.ptrMutToConst:
 			return cbPtrMutToConst(a.ptrMutToConst);
-		case Diag.Kind.ptrNeedsExpectedType:
-			return cbPtrNeedsExpectedType(a.ptrNeedsExpectedType);
 		case Diag.Kind.ptrUnsupported:
 			return cbPtrUnsupported(a.ptrUnsupported);
 		case Diag.Kind.purityWorseThanParent:
@@ -965,8 +950,6 @@ struct Diag {
 			return cbSpecImplNotFound(a.specImplNotFound);
 		case Diag.Kind.threadLocalError:
 			return cbThreadLocalError(a.threadLocalError);
-		case Diag.Kind.throwNeedsExpectedType:
-			return cbThrowNeedsExpectedType(a.throwNeedsExpectedType);
 		case Diag.Kind.typeAnnotationUnnecessary:
 			return cbTypeAnnotationUnnecessary(a.typeAnnotationUnnecessary);
 		case Diag.Kind.typeConflict:

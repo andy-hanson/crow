@@ -286,7 +286,7 @@ immutable(Expr) checkThrow(
 		immutable Expr thrown = checkAndExpectCStr(ctx, locals, ast.thrown);
 		return immutable Expr(range, allocate(ctx.alloc, immutable Expr.Throw(force(inferred), thrown)));
 	} else {
-		addDiag2(ctx, range, immutable Diag(immutable Diag.ThrowNeedsExpectedType()));
+		addDiag2(ctx, range, immutable Diag(immutable Diag.NeedsExpectedType(Diag.NeedsExpectedType.Kind.throw_)));
 		return bogus(expected, range);
 	}
 }
@@ -944,7 +944,7 @@ immutable(Expr) checkPtr(
 	return matchExpectedPointee!(immutable Expr)(
 		getExpectedPointee(ctx, expected),
 		(immutable ExpectedPointee.None) {
-			addDiag2(ctx, range, immutable Diag(immutable Diag.PtrNeedsExpectedType()));
+			addDiag2(ctx, range, immutable Diag(immutable Diag.NeedsExpectedType(Diag.NeedsExpectedType.Kind.pointer)));
 			return bogus(expected, range);
 		},
 		(immutable ExpectedPointee.FunPointer) =>
@@ -1375,7 +1375,7 @@ immutable(Expr) checkLoop(
 			addDiag2(ctx, range, immutable Diag(immutable Diag.LoopWithoutBreak()));
 		return immutable Expr(range, castImmutable(loop));
 	} else {
-		addDiag2(ctx, range, immutable Diag(immutable Diag.LoopNeedsExpectedType()));
+		addDiag2(ctx, range, immutable Diag(immutable Diag.NeedsExpectedType(Diag.NeedsExpectedType.Kind.loop)));
 		return bogus(expected, range);
 	}
 }

@@ -74,8 +74,6 @@ immutable(DiagSeverity) getDiagnosticSeverity(ref immutable Diag a) =>
 			DiagSeverity.checkWarning,
 		(ref immutable Diag.LoopNeedsBreakOrContinue) =>
 			DiagSeverity.checkError,
-		(ref immutable Diag.LoopNeedsExpectedType) =>
-			DiagSeverity.checkError,
 		(ref immutable Diag.LoopWithoutBreak) =>
 			DiagSeverity.checkWarning,
 		(ref immutable Diag.MatchCaseNamesDoNotMatch) =>
@@ -96,13 +94,13 @@ immutable(DiagSeverity) getDiagnosticSeverity(ref immutable Diag a) =>
 			DiagSeverity.checkError,
 		(ref immutable Diag.NameNotFound) =>
 			DiagSeverity.nameNotFound,
+		(ref immutable Diag.NeedsExpectedType) =>
+			DiagSeverity.checkError,
 		(ref immutable(ParseDiag)) =>
 			DiagSeverity.parseError,
 		(ref immutable Diag.PtrIsUnsafe) =>
 			DiagSeverity.checkError,
 		(ref immutable Diag.PtrMutToConst) =>
-			DiagSeverity.checkError,
-		(ref immutable Diag.PtrNeedsExpectedType) =>
 			DiagSeverity.checkError,
 		(ref immutable Diag.PtrUnsupported) =>
 			DiagSeverity.checkError,
@@ -123,8 +121,6 @@ immutable(DiagSeverity) getDiagnosticSeverity(ref immutable Diag a) =>
 		(ref immutable Diag.SpecImplNotFound) =>
 			DiagSeverity.checkError,
 		(ref immutable Diag.ThreadLocalError) =>
-			DiagSeverity.checkError,
-		(ref immutable Diag.ThrowNeedsExpectedType) =>
 			DiagSeverity.checkError,
 		(ref immutable Diag.TypeAnnotationUnnecessary) =>
 			DiagSeverity.checkWarning,
