@@ -1,9 +1,8 @@
 import
 	crow/col/experimental/compact-dict: -, ~, compact-dict, in, new, node-count, size
 	crow/col/experimental/compact-sorted-dict: -, ~, compact-sorted-dict, in, new, size
-	crow/col/experimental/frozen-dict: frozen-dict, in, size, to-frozen-dict
-	crow/col/experimental/frozen-set:
-		frozen-set, in, unsafe-frozen-set-from-mut-array-cast-immutable, size
+	crow/col/experimental/frozen-dict: ~=, build-frozen-dict, frozen-dict, in, size, with-block
+	crow/col/experimental/frozen-set: ~=, build-frozen-set, frozen-set, in, size, with-block
 	crow/col/experimental/hamt-set: -, ~, hamt-set, in, new, size
 	crow/col/experimental/index-set: -, ~, index-set, in, new, size
 	crow/col/experimental/sorted-set: -, ~, in, new, sorted-set, size
@@ -11,25 +10,17 @@ import
 	crow/io/print: err, out, print
 	crow/io/private/time-low-level: get-monotime-nsec
 	crow/log: info, log
-	crow/parse: !, nat, parse
+	crow/parse: nat, parse
 	crow/private/alloc: force-needs-gc, gc, get-gc, get-stats, words-used
 	crow/private/bootstrap: todo
 
 main nat^(args string[]) summon unsafe
-	if args.size < 4
-		err print "Usage: set-perf dict add iters max-value"
-		()
-	else
-		col-kind col-kind = args[0].string-to-symbol.to-enum::col-kind? !
-		test-kind test-kind = args[1].string-to-symbol.to-enum::test-kind? !
-		iters = (nat parse args[2])!
-		max-value = (nat parse args[3])!
-
+	match args parse-options
+	as ok options
 		42 srand
 		gc = get-gc
-		assert gc.current-kb < 10
 		start-us = get-monotime-nsec
-		get-result = col-kind run-test test-kind, iters, max-value
+		get-result = options run-test
 		result = get-result[]
 		end-us = get-monotime-nsec
 
@@ -44,8 +35,35 @@ main nat^(args string[]) summon unsafe
 
 		out print "size after GC is {gc current-kb}KB"
 		assert result == get-result[]
-
 		()
+	as err e
+		err print e
+		1,
+
+.options record
+	col-kind col-kind
+	test-kind test-kind
+	iters nat
+	max-value nat
+
+.parse-options result<options, string>(args string[])
+	if args.size < 4
+		"Usage: set-perf dict add iters max-value" err
+	elif col-kind ?= args[0].string-to-symbol.to-enum::col-kind?
+		if test-kind ?= args[1].string-to-symbol.to-enum::test-kind?
+			match nat parse args[2]
+			as ok iters
+				match nat parse args[3]
+				as ok max-value
+					(col-kind, test-kind, iters, max-value) ok
+				as err _
+					"bad max-value" err
+			as err _
+				"bad iters" err
+		else
+			"bad test-kind" err
+	else
+		"bad col-kind" err
 
 .current-kb nat(gc gc) unsafe
 	gc.get-stats.words-used words-to-kb
@@ -74,60 +92,64 @@ test-kind enum
 Returns a function for getting the size.
 This ensures the collection is kept in memory.
 ###
-.run-test fun nat()(col-kind col-kind, test-kind test-kind, iters nat64, max-value nat64) summon
+.run-test fun nat()(options options) summon
+	col-kind = options col-kind
+	test-kind = options test-kind
+	iters = options iters
+	max-value = options max-value
 	match col-kind
 	as compact-dict
 		a compact-dict<nat, void> = match test-kind
 		as add
-			() add-test iters, max-value
+			iters add-test max-value
 		as get
-			a compact-dict<nat, void> = () add-test iters, max-value
-			info log "{0 get-test a, iters * get-factor, max-value}"
+			a compact-dict<nat, void> = iters add-test max-value
+			info log "{a get-test iters * get-factor, max-value}"
 			info log "node count is {a.node-count}"
 			a
 		as rm
-			() rm-test iters, max-value
+			iters rm-test max-value
 		() => a size
 	as compact-sorted-dict
 		a compact-sorted-dict<nat, void> = match test-kind
 		as add
-			() add-test iters, max-value
+			iters add-test max-value
 		as get
-			a compact-sorted-dict<nat, void> = () add-test iters, max-value
-			info log "{0 get-test a, iters * get-factor, max-value}"
+			a compact-sorted-dict<nat, void> = iters add-test max-value
+			info log "{a get-test iters * get-factor, max-value}"
 			a
 		as rm
-			() rm-test iters, max-value
+			iters rm-test max-value
 		() => a size
 	as dict
 		a void[nat] = match test-kind
 		as add
-			() add-test iters, max-value
+			iters add-test max-value
 		as get
-			a void[nat] = () add-test iters, max-value
-			info log "{0 get-test a, iters * get-factor, max-value}"
+			a void[nat] = iters add-test max-value
+			info log "{a get-test iters * get-factor, max-value}"
 			a
 		as rm
-			() rm-test iters, max-value
+			iters rm-test max-value
 		() => a size
 	as frozen-dict
-		a = match test-kind
+		a frozen-dict<nat, void> = match test-kind
 		as add
-			() frozen-dict-add-test iters, max-value
+			iters add-test max-value
 		as get
-			a = () frozen-dict-add-test iters, max-value
-			info log "{0 get-test a, iters * get-factor, max-value}"
+			a frozen-dict<nat, void> = iters add-test max-value
+			info log "{a get-test iters * get-factor, max-value}"
 			a
 		as rm
 			todo
 		() => a size
 	as frozen-set
-		a = match test-kind
+		a frozen-set nat = match test-kind
 		as add
-			() frozen-set-add-test iters, max-value
+			iters add-test max-value
 		as get
-			a = () frozen-set-add-test iters, max-value
-			info log "{0 get-test a, iters * get-factor, max-value}"
+			a frozen-set nat = iters add-test max-value
+			info log "{a get-test iters * get-factor, max-value}"
 			a
 		as rm
 			todo
@@ -135,32 +157,32 @@ This ensures the collection is kept in memory.
 	as hamt-set
 		a hamt-set nat = match test-kind
 		as add
-			() add-test iters, max-value
+			iters add-test max-value
 		as get
-			a hamt-set nat = () add-test iters, max-value
-			info log "{0 get-test a, iters * get-factor, max-value}"
+			a hamt-set nat = iters add-test max-value
+			info log "{a get-test iters * get-factor, max-value}"
 			a
 		as rm
-			() rm-test iters, max-value
+			iters rm-test max-value
 		() => a size
 	as index-set
 		a index-set = match test-kind
 		as add
-			() add-test iters, max-value
+			iters add-test max-value
 		as get
-			a index-set = () add-test iters, max-value
-			info log "{0 get-test a, iters * get-factor, max-value}"
+			a index-set = iters add-test max-value
+			info log "{a get-test iters * get-factor, max-value}"
 			a
 		as rm
-			() rm-test iters, max-value
+			iters rm-test max-value
 		() => a size
 	as set
 		a set nat = match test-kind
 		as add
-			() add-test iters, max-value
+			iters add-test max-value
 		as get
-			a set nat = () add-test iters, max-value
-			info log "{0 get-test a, iters * get-factor, max-value}"
+			a set nat = iters add-test max-value
+			info log "{a get-test iters * get-factor, max-value}"
 			info log "node count is {a.node-count}"
 			a
 		as rm
@@ -169,199 +191,102 @@ This ensures the collection is kept in memory.
 	as sorted-set
 		a sorted-set nat = match test-kind
 		as add
-			() add-test iters, max-value
+			iters add-test max-value
 		as get
-			a sorted-set nat = () add-test iters, max-value
-			info log "{0 get-test a, iters * get-factor, max-value}"
+			a sorted-set nat = iters add-test max-value
+			info log "{a get-test iters * get-factor, max-value}"
 			a
 		as rm
-			() rm-test iters, max-value
+			iters rm-test max-value
 		() => a size
 	as tree-set
 		a tree-set nat = match test-kind
 		as add
-			() add-test iters, max-value
+			iters add-test max-value
 		as get
-			a tree-set nat = () add-test iters, max-value
-			info log "{0 get-test a, iters * get-factor, max-value}"
+			a tree-set nat = iters add-test max-value
+			info log "{a get-test iters * get-factor, max-value}"
 			a
 		as rm
-			() rm-test iters, max-value
+			iters rm-test max-value
 		() => a size
 
 .get-factor nat()
 	100
 
-.add-test compact-dict<nat, void>(a compact-dict<nat, void>, iters nat, max-value nat) summon
-	if iters == 0
-		a
-	else
-		n = max-value.rand-nat
-		a ~ (n, ()) add-test iters - 1, max-value
+.repeat<a> a(init a, iters nat, f fun a(a))
+	res mut = init
+	for _ : 0 .. iters
+		res := f[res]
+	res
 
-.add-test compact-sorted-dict<nat, void>(a compact-sorted-dict<nat, void>, iters nat, max-value nat) summon
-	if iters == 0
-		a
-	else
-		a ~ (max-value.rand-nat, ()) add-test iters - 1, max-value
+.add-test compact-dict<nat, void>(iters nat, max-value nat) summon
+	() repeat iters, x => x ~ (max-value.rand-nat, ())
+.add-test compact-sorted-dict<nat, void>(iters nat, max-value nat) summon
+	() repeat iters, x => x ~ (max-value.rand-nat, ())
+.add-test void[nat](iters nat, max-value nat) summon
+	() repeat iters, x => x ~ (max-value.rand-nat, ())
+.add-test hamt-set nat(iters nat, max-value nat) summon
+	() repeat iters, x => x ~ max-value.rand-nat
+.add-test index-set(iters nat, max-value nat) summon
+	() repeat iters, x => x ~ max-value.rand-nat
+.add-test set nat(iters nat, max-value nat) summon
+	() repeat iters, x => x ~ max-value.rand-nat
+.add-test sorted-set nat(iters nat, max-value nat) summon
+	() repeat iters, x => x ~ max-value.rand-nat
+.add-test tree-set nat(iters nat, max-value nat) summon
+	() repeat iters, x => x ~ max-value.rand-nat
+.add-test frozen-dict<nat, void>(iters nat, max-value nat) trusted summon
+	with out : build-frozen-dict
+		for _ : 0 .. iters
+			out ~= (max-value.rand-nat, ())
+.add-test frozen-set nat(iters nat, max-value nat) trusted summon
+	with out : build-frozen-set
+		for _ : 0 .. iters
+			out ~= max-value rand-nat
 
-.add-test void[nat](a void[nat], iters nat, max-value nat) summon
-	if iters == 0
-		a
-	else
-		a ~ (max-value.rand-nat, ()) add-test iters - 1, max-value
+.rm-test compact-dict<nat, void>(iters nat, max-value nat) summon
+	() repeat iters, x => (x ~ (max-value.rand-nat, ())) - max-value.rand-nat
+.rm-test compact-sorted-dict<nat, void>(iters nat, max-value nat) summon
+	() repeat iters, x => (x ~ (max-value.rand-nat, ())) - max-value.rand-nat
+.rm-test void[nat](iters nat, max-value nat) summon
+	() repeat iters, x => (x ~ (max-value.rand-nat, ())) - max-value.rand-nat
+.rm-test hamt-set nat(iters nat, max-value nat) summon
+	() repeat iters, x => (x ~ max-value.rand-nat) - max-value.rand-nat
+.rm-test index-set(iters nat, max-value nat) summon
+	() repeat iters, x => (x ~ max-value.rand-nat) - max-value.rand-nat
+.rm-test sorted-set nat(iters nat, max-value nat) summon
+	() repeat iters, x => (x ~ max-value.rand-nat) - max-value.rand-nat
+.rm-test tree-set nat(iters nat, max-value nat) summon
+	() repeat iters, x => (x ~ max-value.rand-nat) - max-value.rand-nat
 
-.add-test hamt-set nat(a hamt-set nat, iters nat, max-value nat) summon
-	if iters == 0
-		a
-	else
-		an = a ~ max-value.rand-nat
-		an add-test iters - 1, max-value
+.count nat(iters nat, f act bool())
+	acc mut = 0
+	for _ : 0 .. iters
+		if f[]
+			acc := acc + 1
+	acc
 
-.add-test index-set(a index-set, iters nat, max-value nat) summon
-	if iters == 0
-		a
-	else
-		a ~ max-value.rand-nat add-test iters - 1, max-value
-
-.add-test set nat(a set nat, iters nat, max-value nat) summon
-	if iters == 0
-		a
-	else
-		an = a ~ max-value.rand-nat
-		an add-test iters - 1, max-value
-
-.add-test sorted-set nat(a sorted-set nat, iters nat, max-value nat) summon
-	if iters == 0
-		a
-	else
-		a ~ max-value.rand-nat add-test iters - 1, max-value
-
-.add-test tree-set nat(a tree-set nat, iters nat, max-value nat) summon
-	if iters == 0
-		a
-	else
-		a ~ max-value.rand-nat add-test iters - 1, max-value
-
-.frozen-dict-add-test frozen-dict<nat, void>(
-	a (nat, void) mut[],
-	iters nat,
-	max-value nat,
-) trusted summon
-	if iters == 0
-		a.move-to-list to-frozen-dict
-	else
-		a ~= (max-value.rand-nat, ())
-		a frozen-dict-add-test iters - 1, max-value
-
-.frozen-set-add-test frozen-set nat(a nat mut[], iters nat, max-value nat) trusted summon
-	if iters == 0
-		a.move-to-mut-array unsafe-frozen-set-from-mut-array-cast-immutable
-	else
-		a ~= max-value rand-nat
-		a frozen-set-add-test iters - 1, max-value
-
-.rm-test compact-dict<nat, void>(a compact-dict<nat, void>, iters nat, max-value nat) summon
-	if iters == 0
-		a
-	else
-		(a ~ (max-value.rand-nat, ())) - max-value.rand-nat rm-test iters - 1, max-value
-
-.rm-test compact-sorted-dict<nat, void>(a compact-sorted-dict<nat, void>, iters nat, max-value nat) summon
-	if iters == 0
-		a
-	else
-		(a ~ (max-value.rand-nat, ())) - max-value.rand-nat rm-test iters - 1, max-value
-
-.rm-test void[nat](a void[nat], iters nat, max-value nat) summon
-	if iters == 0
-		a
-	else
-		(a ~ (max-value.rand-nat, ())) - max-value.rand-nat rm-test iters - 1, max-value
-
-.rm-test hamt-set nat(a hamt-set nat, iters nat, max-value nat) summon
-	if iters == 0
-		a
-	else
-		(a ~ max-value.rand-nat) - max-value.rand-nat rm-test iters - 1, max-value
-
-.rm-test index-set(a index-set, iters nat, max-value nat) summon
-	if iters == 0
-		a
-	else
-		(a ~ max-value.rand-nat) - max-value.rand-nat rm-test iters - 1, max-value
-
-.rm-test sorted-set nat(a sorted-set nat, iters nat, max-value nat) summon
-	if iters == 0
-		a
-	else
-		(a ~ max-value.rand-nat) - max-value.rand-nat rm-test iters - 1, max-value
-
-.rm-test tree-set nat(a tree-set nat, iters nat, max-value nat) summon
-	if iters == 0
-		a
-	else
-		(a ~ max-value.rand-nat) - max-value.rand-nat rm-test iters - 1, max-value
-
-.get-test nat(acc nat, a compact-dict<nat, void>, iters nat, max-value nat) summon
-	if iters == 0
-		acc
-	else
-		acc + (max-value.rand-nat in a).to-nat64 get-test a, iters - 1, max-value
-
-.get-test nat(acc nat, a compact-sorted-dict<nat, void>, iters nat, max-value nat) summon
-	if iters == 0
-		acc
-	else
-		acc + (max-value.rand-nat in a).to-nat64 get-test a, iters - 1, max-value
-
-.get-test nat(acc nat, a void[nat], iters nat, max-value nat) summon
-	if iters == 0
-		acc
-	else
-		acc + (max-value.rand-nat in a).to-nat64 get-test a, iters - 1, max-value
-
-.get-test nat(acc nat, a frozen-dict<nat, void>, iters nat, max-value nat) summon
-	if iters == 0
-		acc
-	else
-		acc + (max-value.rand-nat in a).to-nat64 get-test a, iters - 1, max-value
-
-.get-test nat(acc nat, a frozen-set nat, iters nat, max-value nat) summon
-	if iters == 0
-		acc
-	else
-		acc + (max-value.rand-nat in a).to-nat64 get-test a, iters - 1, max-value
-
-.get-test nat(acc nat, a hamt-set nat, iters nat, max-value nat) summon
-	if iters == 0
-		acc
-	else
-		acc + (max-value.rand-nat in a).to-nat64 get-test a, iters - 1, max-value
-
-.get-test nat(acc nat, a index-set, iters nat, max-value nat) summon
-	if iters == 0
-		acc
-	else
-		acc + (max-value.rand-nat in a).to-nat64 get-test a, iters - 1, max-value
-
-.get-test nat(acc nat, a set nat, iters nat, max-value nat) summon
-	if iters == 0
-		acc
-	else
-		acc + (max-value.rand-nat in a).to-nat64 get-test a, iters - 1, max-value
-
-.get-test nat(acc nat, a sorted-set nat, iters nat, max-value nat) summon
-	if iters == 0
-		acc
-	else
-		acc + (max-value.rand-nat in a).to-nat64 get-test a, iters - 1, max-value
-
-.get-test nat(acc nat, a tree-set nat, iters nat, max-value nat) summon
-	if iters == 0
-		acc
-	else
-		acc + (max-value.rand-nat in a).to-nat64 get-test a, iters - 1, max-value
+.get-test nat(a compact-dict<nat, void>, iters nat, max-value nat) summon
+	iters count () => max-value.rand-nat in a
+.get-test nat(a compact-sorted-dict<nat, void>, iters nat, max-value nat) summon
+	iters count () => max-value.rand-nat in a
+.get-test nat(a void[nat], iters nat, max-value nat) summon
+	iters count () => max-value.rand-nat in a
+.get-test nat(a frozen-dict<nat, void>, iters nat, max-value nat) summon
+	iters count () => max-value.rand-nat in a
+.get-test nat(a frozen-set nat, iters nat, max-value nat) summon
+	iters count () => max-value.rand-nat in a
+.get-test nat(a hamt-set nat, iters nat, max-value nat) summon
+	iters count () => max-value.rand-nat in a
+.get-test nat(a index-set, iters nat, max-value nat) summon
+	iters count () => max-value.rand-nat in a
+.get-test nat(a set nat, iters nat, max-value nat) summon
+	iters count () => max-value.rand-nat in a
+.get-test nat(a sorted-set nat, iters nat, max-value nat) summon
+	iters count () => max-value.rand-nat in a
+.get-test nat(a tree-set nat, iters nat, max-value nat) summon
+	iters count () => max-value.rand-nat in a
 
 .rand-nat nat(max nat) summon
 	rand.to-nat64 % max

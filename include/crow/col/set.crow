@@ -8,19 +8,15 @@ import
 	../misc: is-data, new, void
 	../number: ==, <=>, +, -, *, nat64
 	../option: !, ??, new, option
-	../pointer: ==, <=>, +, *, const-pointer, mut-pointer, set-deref
-	../range: ..
 	../string: ==, ~~, join, literal, new, string, to-string
 	../test-util: is
 	./array: array
 	./experimental/index-set:
 		count-greater-or-equal, filter-less, for-loop, is-empty, in, index-set, new, size, try-remove
 	./experimental/frozen-set:
-		begin-pointer, end-pointer, for-loop, frozen-set, is-empty, new, size, to-frozen-set,
-		to-list, try-get-unordered-index, unsafe-frozen-set-from-mut-array-cast-immutable
-	./mut-array: as-mut-array, begin-pointer, end-pointer, mut-array, uninitialized-mut-array
+		~=, build-frozen-set, for-loop, frozen-set, frozen-set-builder, is-empty, new, size,
+		to-frozen-set, to-list, try-get-unordered-index, with-block
 	./list: ==, ~=, build-list, for-loop, list, new, to-list, with-block
-	./mut-list: ~=, move-to-list, mut-list, new
 
 ###
 Immutable unsorted set.
@@ -63,19 +59,20 @@ is-empty<a> bool(a set a) is-data<a> compare<a> hash-mix<a>
 
 # Number of elements in the set.
 size<a> nat64(a set a) is-data<a> compare<a> hash-mix<a>
-	a.remove.size add-size-recur a.add
+	a.add.add-size - a.remove.size
 
 .add-size<a> nat64(a add-node a)
-	0 add-size-recur a
-.add-size-recur<a> nat64(acc nat64, a add-node a)
-	acc + a.here.size add-size-left-recur a
+	a.here.size + a.add-size-left
 .add-size-left<a> nat64(a add-node a)
-	0 add-size-left-recur a
-.add-size-left-recur<a> nat64(acc nat64, a add-node a)
-	if left ?= a left
-		acc add-size-recur left
-	else
-		acc
+	acc mut = 0
+	cur mut = a
+	loop
+		if left ?= cur left
+			acc := acc + left.here.size
+			cur := left
+			continue
+		else
+			break acc
 
 # `true` iff `value` is an element of `a`.
 in<a> bool(value a, a set a) is-data<a> compare<a> hash-mix<a>
@@ -180,66 +177,59 @@ try-add<a> set<a>?(a set a, value a) is-data<a> compare<a> hash-mix<a>
 	add-size nat64,
 	plan compact-plan,
 	value a,
-) unsafe is-data<a> compare<a> hash-mix<a>
+) is-data<a> compare<a> hash-mix<a>
 	assert plan.compacted-size > 1
-	compacted mut-array a = plan.compacted-size uninitialized-mut-array
-	*compacted.begin-pointer := value
-	compactor compactor a = compacted.begin-pointer, compacted.begin-pointer + 1, compacted.end-pointer
-	new-add = compactor do-compact-recur a.add, add-size, a.remove
-	new-add, (a.remove filter-less plan.add-size-left)
+	left mut add-node<a>? = ()
+	compacted frozen-set a = with out : plan.compacted-size build-frozen-set
+		out ~= value
+		left := out do-compact a, add-size, plan.compacted-size
+	(compacted, left), (a.remove filter-less plan.add-size-left)
 
-.compactor<a> record mut
-	begin a mut*
-	cur mut a mut*
-	end a mut*
+.do-compact<a> add-node<a>?(
+	out frozen-set-builder a,
+	a set a,
+	add-size nat64,
+	compacted-size nat64,
+) is-data<a> compare<a> hash-mix<a>
+	cur mut = a add
+	add-size-here-and-left mut = add-size
+	loop
+		out push cur.here, add-size-here-and-left, a.remove
+		assert out.size <= compacted-size
+		if out.size == compacted-size
+			break cur left
+		else
+			cur := cur.left!
+			add-size-here-and-left := add-size-here-and-left - cur.here.size
+			continue
 
-.do-compact-recur<a> add-node a(
-	compactor compactor a,
-	a add-node a,
-	add-size-here-and-left nat64,
-	remove index-set,
-) unsafe is-data<a> compare<a> hash-mix<a>
-	compactor push a.here, add-size-here-and-left, remove
-	assert compactor.cur <= compactor.end
-	if compactor.cur == compactor.end
-		compactor.finish, a.left
-	else
-		# TODO: should be able to write this inline
-		new-l = add-size-here-and-left - a.here.size
-		compactor do-compact-recur a.left!, new-l, remove
-
-.push<a> void(a compactor a, here frozen-set a, add-size-here-and-left nat64, remove index-set) unsafe
-	a push-recur here.begin-pointer, here.end-pointer, add-size-here-and-left, remove
-.push-recur<a> void(a compactor a, cur a*, end a*, remove-index nat64, remove index-set) unsafe
-	unless cur == end
-		unless remove-index in remove
-			*a.cur := *cur
-			a.cur := a.cur + 1
-		a push-recur cur + 1, end, remove-index + 1, remove
-
-
-.finish<a> frozen-set a(a compactor a) unsafe is-data<a> compare<a> hash-mix<a>
-	assert a.cur == a.end
-	(a.begin .. a.end).as-mut-array unsafe-frozen-set-from-mut-array-cast-immutable
+.push<a> void(out frozen-set-builder a, here frozen-set a, add-size-here-and-left nat64, remove index-set)
+	for x, i : here
+		unless add-size-here-and-left + i in remove
+			out ~= x
 
 region iteration
 
 for-loop<a> void(a set a, f act void(a)) is-data<a> compare<a> hash-mix<a>
-	a.add for-loop-recur a.add.add-size-left, a.remove, f
-.for-loop-recur<a> void(a add-node a, add-size-left nat64, remove index-set, f act void(a))
-	for x, index : a here
-		unless add-size-left + index in remove
-			f[x]
-	if left ?= a left
-		left for-loop-recur add-size-left - a.here.size, remove, f
+	cur mut = a add
+	add-size-left mut = cur add-size-left
+	loop
+		for x, index : cur here
+			unless add-size-left + index in a.remove
+				f[x]
+		if left ?= cur left
+			cur := left
+			add-size-left := add-size-left - cur.here.size
+			continue
+		else
+			break
 
 filter<a> set a(a set a, f act bool(a)) is-data<a> compare<a> hash-mix<a>
-	# TODO:PERF
-	res a mut[] = ()
-	for x : a
-		if f[x]
-			res ~= x
-	res.move-to-list to-set
+	list a[] = with out : build-list
+		for x : a
+			if f[x]
+				out ~= x
+	list to-set
 
 for-loop<out, in> out[](a set in, f act out(in)) trusted is-data<in> compare<in> hash-mix<in>
 	with out : a.size build-list

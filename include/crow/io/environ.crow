@@ -1,15 +1,13 @@
 no-std
 import
 	unistd: __environ
-	../col/dict: dict
-	../col/mut-dict: move-to-dict, mut-dict, new, set-subscript
-	../misc: new, void
+	../col/dict: ~=, build-dict, dict, with-block
 	../private/bootstrap: todo
 	../private/c-string-util: find-char-in-c-string, find-c-string-end
 	../pointer: ==, <=>, +, *, const-pointer, null
 	../range: ..
 	../string: ==, <=>, as-string, c-string, hash-mix, string
-	../tuple: from, new, pair, to
+	../tuple: new, pair
 
 # Represents the environment variables available to this process.
 environ alias
@@ -20,15 +18,11 @@ get-environ-raw c-string*() summon unsafe
 
 # Get all environment variables for this process.
 get-environ environ() summon trusted
-	res string mut[string] = ()
-	get-environ-raw get-environ-recur res
-	res move-to-dict
-
-.get-environ-recur void(env c-string*, res string mut[string]) unsafe
-	unless *env == null
-		entry = env->parse-environ-entry
-		res[entry from] := entry to
-		env + 1 get-environ-recur res
+	with out : build-dict
+		env mut = get-environ-raw
+		until *env == null
+			out ~= env->parse-environ-entry
+			env := env + 1
 
 .parse-environ-entry (string, string)(entry c-string) unsafe
 	if key-end ?= entry find-char-in-c-string "="

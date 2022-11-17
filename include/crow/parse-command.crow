@@ -1,16 +1,18 @@
 no-std
 import
-	./bool: !, &&, false, true
-	./col/dict: dict, for-loop, new
-	./col/list:
-		~, ~~, index-of, is-empty, left, list, middle, new, right, size, subscript, tail,
-		try-split-once-by-fn
-	./col/mut-dict: move-to-dict, mut-dict, new, set-subscript
-	./col/mut-list: fill-mut-list, move-to-list, mut-list, set-subscript, subscript
-	./misc: void
-	./number: ==
-	./option: !, ??, new, option
-	./string: ==, <=>, ~~, hash-mix, literal, starts-with, string, to-c-string, to-string, try-remove-start
+	./bool: !, &&, bool, false, true
+	./col/dict: dict, dict-equal, for-loop, new
+	./col/list: ~~, for-break, index-of, is-empty, list, list-equal, new, size, subscript
+	./col/mut-dict: for-loop, mut-dict, new, set-subscript
+	./col/mut-list: ~=, fill-mut-list, move-to-list, mut-list, new, set-subscript, subscript
+	./misc: loop-break, loop-continue, new
+	./number: ==, <=>, +
+	./option: ??, new, option
+	./range: ..
+	./string:
+		==, <=>, ~~, hash-mix, literal, split-by, string, to-c-string, to-string, try-remove-start
+	./test-util: is
+	./tuple: new
 
 ###
 In this syntax:
@@ -28,21 +30,39 @@ parsed-command record
 	named string[][string]
 	after string[]
 
+== bool(a parsed-command, b parsed-command)
+	a.nameless == b.nameless && a.named == b.named && a.after == b.after
+
+.== bool(a string[], b string[])
+	a list-equal b
+
+.== bool( a string[][string], b string[][string])
+	a dict-equal b
+
 ###
 See comment on `parsed-command` for syntax.
 Parse errors aren't possible with this syntax.
 ###
 parse-command parsed-command(args string[])
-	if split ?= args try-split-once-by-fn arg => arg starts-with "--"
-		nameless = split.left
-		rest = split.middle ~ split.right
-		if split2 ?= rest try-split-once-by-fn arg => arg == "--"
-			named-args = split2.left parse-named-args-dict
-			nameless, named-args, split2.right
+	nameless string mut[] = ()
+	named string mut[] mut[string] = ()
+	after mut string[] = ()
+	cur mut string mut[] = nameless
+	for arg, i : args
+		if arg == "--"
+			after := args[i + 1 .. args.size]
+			break
+		elif name ?= arg try-remove-start "--"
+			cur := ()
+			named[name] := cur
+			continue
 		else
-			nameless, rest.parse-named-args-dict, ()
-	else
-		args, (), ()
+			cur ~= arg
+			continue
+	nameless.move-to-list, (for k, v : named; k, v.move-to-list), after
+
+test
+	("foo --bar baz -- bang" split-by " ").parse-command is (("foo",), (("bar", ("baz",)),), ("bang",))
 
 ###
 This is stricter than `parse-command`.
@@ -84,17 +104,3 @@ single-string-or-throw string(a string[]?, option-name string)
 			throw "{option-name} got too many values"
 	else
 		throw "Need {option-name}"
-
-.parse-named-args-dict string[][string](args string[])
-	res string[] mut[string] = ()
-	args parse-named-args-dict-recur res
-	res move-to-dict
-
-.parse-named-args-dict-recur void(args string[], builder string[] mut[string])
-	first-name = (args[0] try-remove-start "--")!
-	tl = args tail
-	if split ?= tl try-split-once-by-fn arg => arg starts-with "--"
-		builder[first-name] := split.left
-		(split.middle ~ split.right) parse-named-args-dict-recur builder
-	else
-		builder[first-name] := tl

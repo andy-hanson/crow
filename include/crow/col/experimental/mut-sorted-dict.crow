@@ -16,7 +16,7 @@ import
 		~=, begin-pointer, clear, end-pointer, filter, for-loop, is-empty, mut-list, new, remove-at,
 		set-filter, set-map, set-subscript, size, subscript, to-list
 	../list: for-loop, list, new, to-list
-	../sort: set-sort-by
+	../sort: set-sort
 	../private/sort-utils:
 		binary-search-exact-pointer, binary-search-insert-pointer, assert-comparison-not-equal,
 		merge-no-duplicates
@@ -64,13 +64,15 @@ Number of pairs in the dictionary.
 This is O(n).
 ###
 size<k, v> nat64(a mut-sorted-dict<k, v>)
-	0 size-recur a
-.size-recur<k, v> nat64(acc nat64, a mut-sorted-dict<k, v>)
-	mid = acc + a.node-size
-	if next ?= a next
-		mid size-recur next
-	else
-		mid
+	acc mut = 0
+	cur mut = a
+	loop
+		acc := acc + cur.node-size
+		if next ?= cur next
+			cur := next
+			continue
+		else
+			break acc
 
 ###
 Find the value associated with the key.
@@ -206,13 +208,15 @@ remove-key<k, v> v?(a mut-sorted-dict<k, v>, key k) trusted is-data<k> compare<k
 		assert a.node-size == a.total-pairs-size
 
 .total-pairs-size<k, v> nat64(a mut-sorted-dict<k, v>)
-	0 total-pairs-size-recur a
-.total-pairs-size-recur<k, v> nat64(acc nat64, a mut-sorted-dict<k, v>)
-	mid = acc + a.pairs.size
-	if next ?= a next
-		mid total-pairs-size-recur next
-	else
-		mid
+	acc mut = 0
+	cur mut = a
+	loop
+		acc := acc + cur.pairs.size
+		if next ?= cur next
+			cur := next
+			continue
+		else
+			break acc
 
 .compact<k, v> void(a mut-sorted-dict<k, v>) trusted is-data<k> compare<k>
 	if next ?= a next
@@ -276,7 +280,7 @@ set-map<k, v> void(a mut-sorted-dict<k, v>, f act (k, v)(k, v)) is-data<k> compa
 	a.pairs set-map pair =>
 		new-pair = f[pair.from, pair.to!]
 		new-pair.from, (new-pair.to,)
-	a.pairs set-sort-by pair => pair from
+	a.pairs set-sort pair => pair from
 
 test
 	a mut-sorted-dict<nat64, string> = (3, "30"), (6, "60")

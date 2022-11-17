@@ -8,8 +8,8 @@ import
 	../number: ==, <=>, +, -, *, nat64
 	../option: new, option
 	../pointer:
-		==, +, -, *, as-any-const-pointer, as-any-mut-pointer, as-const, by-val, const-pointer, mut-pointer,
-		set-deref, set-subscript, size-of, subscript, zeroed
+		+, -, as-any-const-pointer, as-any-mut-pointer, as-const, by-val, mut-pointer, set-deref,
+		set-subscript, size-of, subscript, zeroed
 	../private/alloc:
 		alloc-uninitialized, copy-data-from, set-zero-range, unmanaged-alloc-zeroed-elements
 	../private/number-low-level: round-up-to-power-of-two
@@ -409,20 +409,14 @@ Removes every element `x` where `!f[x]`.
 This can be written as `a.filter := f`.
 ###
 set-filter<a> void(a a mut[], f act bool(a)) trusted
-	new-end = a.begin-pointer set-filter-recur a.begin-pointer.as-const, a.end-pointer.as-const, f
-	new-size = new-end - a.begin-pointer
+	out mut = a begin-pointer
+	for x : a
+		if f[x]
+			*out := x
+			out := out + 1
+	new-size = out - a.begin-pointer
 	a.backing[new-size .. a.size] set-zero-elements
 	a.size := new-size
-.set-filter-recur<a> a mut*(out a mut*, in a*, end a*, f act bool(a)) unsafe
-	if in == end
-		out
-	else
-		new-out = if f[*in]
-			*out := *in
-			out + 1
-		else
-			out
-		new-out set-filter-recur in + 1, end, f
 
 ###
 Overwrites every element `x` with `f[x]`.

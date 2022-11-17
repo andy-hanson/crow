@@ -5,10 +5,10 @@ import
 	unistd: write
 	../../bool: bool, false, true
 	../../col/array: array, begin-pointer, is-empty, size, subscript
-	../../col/dict: for-loop, in
+	../../col/dict: for-loop, in, to-dict
 	../../col/list: ~~, is-empty, rtail, size, subscript, to-array
-	../../col/mut-dict: move-to-dict, mut-dict, new, try-remove, set-subscript, subscript
-	../../col/mut-list: ~~=, index-of, move-to-list, mut-list, new, pop-n-from-start, size
+	../../col/mut-dict: mut-dict, new, try-remove, set-subscript, subscript
+	../../col/mut-list: ~=, ~~=, index-of, move-to-list, mut-list, new, pop-n-from-start, size
 	../../compare: <=, >
 	../../exception: to-string
 	../../future: delay, future, future-catch, future-finally, new, subscript, then, with-block
@@ -22,6 +22,7 @@ import
 	../../string:
 		==, <=>, ~~, as-string, contains-substr, hash-mix, is-empty, join, literal, split-by, string,
 		to-bytes, to-c-string, to-nat8, to-string, try-remove-end
+	../../tuple: new, pair
 	../../private/bootstrap: todo
 	./http-types:
 		headers, http-get, http-internal-server-error, http-method, http-post, http-request,
@@ -107,7 +108,7 @@ with-block<a> a^(a http-server-options, cb ref a(http-server)) is-sendable<a> tr
 				sock write-until-finished content[wrote.to-nat64 .. content.size]
 
 .finish-request http-request(state http-parse-state) trusted
-	state.method, state.url, state.headers.move-to-dict, state.unparsed.move-to-list
+	state.method, state.url, state.headers.move-to-list.to-dict, state.unparsed.move-to-list
 
 .response-to-array array nat8(a http-response)
 	forbid a.status-desc contains-substr "\n"
@@ -125,37 +126,35 @@ with-block<a> a^(a http-server-options, cb ref a(http-server)) is-sendable<a> tr
 
 # returns true if ready to call handler
 .handle-http-initial bool(state http-parse-state)
-	if line ?= state.unparsed try-take-first-line
-		if line is-empty
-			if content-length-string ?= state.headers["content-length"]
-				# set state.content-length
-				match nat parse content-length-string
-				as ok content-length
-					state.content-length := content-length
-					false
-				as err _
-					# invalid content-length
-					todo
+	loop
+		if line ?= state.unparsed try-take-first-line
+			if line is-empty
+				break state.content-length == 0
+			elif state.url is-empty
+				# Expect something like "GET / HTTP/1.1"
+				parts = line split-by " "
+				assert parts.size == 3
+				state.method := parts[0] parse-method
+				state.url := parts[1]
+				assert parts[2] == "HTTP/1.1"
+				forbid state.url is-empty
+				continue
 			else
-				true
-		elif state.url is-empty
-			# Expect something like "GET / HTTP/1.1"
-			parts = line split-by " "
-			assert parts.size == 3
-			state.method := parts[0] parse-method
-			state.url := parts[1]
-			assert parts[2] == "HTTP/1.1"
-			forbid state.url is-empty
-			state handle-http-initial
+				parts = line split-by ": "
+				assert parts.size == 2
+				key = parts[0]
+				value = parts[1]
+				state.headers ~= (key, value)
+				if key == "content-length"
+					match nat parse value
+					as ok content-length
+						state.content-length := content-length
+					as err _
+						# invalid content-length
+						todo
+				continue
 		else
-			parts = line split-by ": "
-			assert parts.size == 2
-			key = parts[0]
-			value = parts[1]
-			state.headers[key] := value
-			state handle-http-initial
-	else
-		false
+			break false
 
 .parse-method http-method(name string)
 	if name == "GET"
@@ -174,7 +173,7 @@ with-block<a> a^(a http-server-options, cb ref a(http-server)) is-sendable<a> tr
 .http-parse-state record mut
 	method mut http-method
 	url mut string
-	headers string mut[string]
+	headers (string, string) mut[]
 	# This is not set until after the end of headers
 	content-length mut nat64
 	# TODO:PERF: Use a circular buffer as we often take content off the front

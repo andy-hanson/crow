@@ -158,5 +158,5 @@ test
 	a nat64[] = 1, 2, 3, 4, 5, 6, 7
 	a groups-of 3 is ((1, 2, 3), (4, 5, 6), (7,))
 
-.== bool(a nat64[][], b nat64[][]) noctx
+.== bool(a nat64[][], b nat64[][])
 	a list-equal b

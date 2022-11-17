@@ -10,9 +10,8 @@ To measure performance:
 ###
 no-std
 import
-	./col/dict: dict
+	./col/dict: ~=, build-dict, dict, with-block
 	./col/list: list, new, to-array
-	./col/mut-dict: move-to-dict, mut-dict, new, set-subscript
 	./fun-util: subscript
 	./io/duration: duration, new, nsec, to-string
 	./io/private/time-low-level: get-monotime-nsec
@@ -20,6 +19,7 @@ import
 	./number: -, nat64, to-float64
 	./string: ~~, literal, string, to-string
 	./symbol: ==, <=>, hash-mix, symbol
+	./tuple: new
 	./private/perf-low-level:
 		add-measure-value-at-index, count, each-measure, get-measure-index, perf-enable-low-level,
 		perf-measure-value, total-nsec
@@ -64,11 +64,10 @@ Calls `f` for each performance measurement and its total.
 This must be called before `perf-disable`.
 ###
 get-measured-perf measure-total[symbol]() summon trusted
-	res measure-total mut[symbol] = ()
-	f act void(symbol, perf-measure-value) = (name, value) =>
-		res[name] := value to-measure-total
-	f each-measure
-	res move-to-dict
+	with out : build-dict
+		f act void(symbol, perf-measure-value) = (name, value) =>
+			out ~= (name, value.to-measure-total)
+		f each-measure
 
 .to-measure-total measure-total(a perf-measure-value)
 	a.count, a.total-nsec.to-float64.nsec

@@ -7,15 +7,14 @@ import
 	../misc: is-data, new, void
 	../number: ==, <=>, +, -, *, %, nat64
 	../option: is-empty, new, option, option-equal
-	../pointer: ==, +, *, mut-pointer, set-deref
 	../string: ==, ~~, join, literal, string, to-string
 	../test-util: is
 	../tuple: from, new, pair, to
 	./array: array
 	./dict: dict, to-dict
 	./mut-array:
-		begin-pointer, end-pointer, fill, fill-mut-array, mut-array, for-loop, is-empty, new,
-		set-subscript, size, subscript, to-array
+		fill, fill-mut-array, mut-array, for-loop, is-empty, new, set-map, set-subscript, size,
+		subscript, to-array
 	./list: ==, ~=, build-list, for-loop, list, list-equal, new, size, to-list, with-block
 	./mut-list:
 		~=, copy, find-index, for-loop, is-at-capacity, is-empty, mut-list, new,
@@ -260,55 +259,52 @@ for-loop<out, k, v> out[](a v mut[k], f act out(k, v)) trusted is-data<k> compar
 		for key, value : a
 			out ~= f[key, value]
 
+for-loop<k-out, v-out, k, v> v-out[k-out](
+	a v mut[k],
+	f act (k-out, v-out)(k, v),
+) is-data<k> compare<k> hash-mix<k> is-data<k-out> compare<k-out> hash-mix<k-out>
+	(a for-loop f)::(k-out, v-out)[] to-dict
+
 ###
 Filters the dictionary in place.
 
 Calls `f` on every key and value and removes the key if `f` returns false.
 ###
 set-filter<k, v> void(a v mut[k], f act bool(k, v)) trusted is-data<k> compare<k> hash-mix<k>
-	a.entries.begin-pointer set-filter-recur a.entries.end-pointer, f
-.set-filter-recur<k, v> void(entry-pointer entry<k, v> mut*, entry-end entry<k, v> mut*, f act bool(k, v)) unsafe
-	unless entry-pointer == entry-end
-		match *entry-pointer
+	a.entries set-map entry =>
+		match entry
 		as none
-			()
+			none
 		as one ar
-			unless f[ar.from, ar.to]
-				*entry-pointer := none
+			if f[ar.from, ar.to]
+				ar one
+			else
+				none
 		as many m
 			m set-filter pair => f[pair.from, pair.to]
 			if m is-empty
-				*entry-pointer := none
+				none
 			elif m.size == 1
-				# TODO: should not need a local
-				z = m[0]
-				*entry-pointer := z one
-		entry-pointer + 1 set-filter-recur entry-end, f
+				m[0] one
+			else
+				m many
 
-###
-Returns an immutable dictionary with this dictionary's contents.
-In the process, clears the mutable dictionary.
-###
-move-to-dict<k, v> v[k](a v mut[k]) is-data<k> compare<k> hash-mix<k>
-	res = (for k, v : a; k, v)::(k, v)[] to-dict
-	a clear
-	res
+to-dict<k, v> v[k](a v mut[k]) is-data<k> compare<k> hash-mix<k>
+	(for k, v : a; k, v)::(k, v)[] to-dict
 
 ###
 Calls `f` on every key and value, and replaces the value with the new value returned by `f`.
 ###
 set-map-values<k, v> void(a v mut[k], f act v(k, v)) trusted is-data<k> compare<k> hash-mix<k>
-	a.entries.begin-pointer set-map-values-recur a.entries.end-pointer, f
-.set-map-values-recur<k, v> void(entry-pointer entry<k, v> mut*, entry-end entry<k, v> mut*, f act v(k, v)) unsafe
-	unless entry-pointer == entry-end
-		match *entry-pointer
+	a.entries set-map entry =>
+		match entry
 		as none
-			()
+			none
 		as one ar
-			*entry-pointer := (ar.from, f[ar.from, ar.to]) one
+			(ar.from, f[ar.from, ar.to]) one
 		as many m
 			m set-map pair => pair.from, f[pair.from, pair.to]
-		entry-pointer + 1 set-map-values-recur entry-end, f
+			m many
 
 .dbg<k, v> string(a v mut[k]) to-string<k> to-string<v>
 	" " join for entry : a.entries.to-array.to-list

@@ -280,16 +280,17 @@ each<k, v> each<k, v>(txn lmdb-txn, db lmdb-db<k, v>)
 for-loop<k, v> void(a each<k, v>, f act void(k, v)) trusted summon lmdb-key<k> serialize<v>
 	a.txn with-cursor a.db, cursor =>
 		cursor mdb_cursor_get empty-val, empty-val, MDB_FIRST check-lmdb-error
-		cursor for-loop-recur f
-.for-loop-recur<k, v> void(cursor MDB_cursor, f act void(k, v)) unsafe summon lmdb-key<k> serialize<v>
-	key = empty-val
-	value = empty-val
-	cursor mdb_cursor_get key, value, MDB_GET_CURRENT check-lmdb-error
-	f[key.bytes-of-val.from-lmdb-key, value.bytes-of-val.from-bytes]
-	err = cursor mdb_cursor_get empty-val, empty-val, MDB_NEXT
-	if err != MDB_NOTFOUND
-		err check-lmdb-error
-		cursor for-loop-recur f
+		loop
+			key = empty-val
+			value = empty-val
+			cursor mdb_cursor_get key, value, MDB_GET_CURRENT check-lmdb-error
+			f[key.bytes-of-val.from-lmdb-key, value.bytes-of-val.from-bytes]
+			err = cursor mdb_cursor_get empty-val, empty-val, MDB_NEXT
+			if err == MDB_NOTFOUND
+				break
+			else
+				err check-lmdb-error
+				continue
 
 # Calls `f` for each key-value pair in `db` and returns an array of the results.
 for-loop<out, k, v> out[](a each<k, v>, f act out(k, v)) summon lmdb-key<k> serialize<v>
@@ -326,32 +327,34 @@ zip<out, k, v0, v1> out[](
 		txn with-cursor db1, cursor1 =>
 			cursor0 mdb_cursor_get empty-val, empty-val, MDB_FIRST check-lmdb-error
 			cursor1 mdb_cursor_get empty-val, empty-val, MDB_FIRST check-lmdb-error
-			cursor0 zip-recur cursor1, f
-.zip-recur<k, v0, v1> void(
+			cursor0 zip-inner cursor1, f
+.zip-inner<k, v0, v1> void(
 	cursor0 MDB_cursor,
 	cursor1 MDB_cursor,
 	f act void(k, v0, v1),
 ) unsafe summon is-data<k> lmdb-key<k> serialize<v0> serialize<v1>
-	key0-val = empty-val
-	value0-val = empty-val
-	cursor0 mdb_cursor_get key0-val, value0-val, MDB_GET_CURRENT check-lmdb-error
-	key0 k = key0-val.bytes-of-val from-lmdb-key
-	value0 v0 = value0-val.bytes-of-val from-bytes
-	key1-val = empty-val
-	value1-val = empty-val
-	cursor1 mdb_cursor_get key1-val, value1-val, MDB_GET_CURRENT check-lmdb-error
-	key1 k = key1-val.bytes-of-val.from-lmdb-key
-	value1 v1 = value1-val.bytes-of-val.from-bytes
-	assert key0 == key1
-	f[key0, value0, value1]
-	err0 = cursor0 mdb_cursor_get empty-val, empty-val, MDB_NEXT
-	err1 = cursor1 mdb_cursor_get empty-val, empty-val, MDB_NEXT
-	if err0 == MDB_NOTFOUND || err1 == MDB_NOTFOUND
-		assert err0 == MDB_NOTFOUND && err1 == MDB_NOTFOUND
-	else
-		err0 check-lmdb-error
-		err1 check-lmdb-error
-		cursor0 zip-recur cursor1, f
+	loop
+		key0-val = empty-val
+		value0-val = empty-val
+		cursor0 mdb_cursor_get key0-val, value0-val, MDB_GET_CURRENT check-lmdb-error
+		key0 k = key0-val.bytes-of-val from-lmdb-key
+		value0 v0 = value0-val.bytes-of-val from-bytes
+		key1-val = empty-val
+		value1-val = empty-val
+		cursor1 mdb_cursor_get key1-val, value1-val, MDB_GET_CURRENT check-lmdb-error
+		key1 k = key1-val.bytes-of-val.from-lmdb-key
+		value1 v1 = value1-val.bytes-of-val.from-bytes
+		assert key0 == key1
+		f[key0, value0, value1]
+		err0 = cursor0 mdb_cursor_get empty-val, empty-val, MDB_NEXT
+		err1 = cursor1 mdb_cursor_get empty-val, empty-val, MDB_NEXT
+		if err0 == MDB_NOTFOUND || err1 == MDB_NOTFOUND
+			assert err0 == MDB_NOTFOUND && err1 == MDB_NOTFOUND
+			break
+		else
+			err0 check-lmdb-error
+			err1 check-lmdb-error
+			continue
 
 .with-cursor<a, k, v> a(txn lmdb-txn, db lmdb-db<k, v>, f act a(MDB_cursor)) unsafe summon
 	cursor mut MDB_cursor = null-extern-pointer

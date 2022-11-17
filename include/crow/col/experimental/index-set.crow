@@ -11,12 +11,12 @@ import
 	../../misc: new, void
 	../../number: ==, <=>, +, -, *, /, %, max-nat64, nat64, new
 	../../option: ??, is-empty, new, option
-	../../pointer: ==, +, *, const-pointer
+	../../pointer: const-pointer
 	../../private/number-low-level: wrap-sub
 	../../range: .., for-loop
 	../../string: ==, ~~, join, literal, string, to-hex, to-string
 	../../test-util: is
-	../array: array, begin-pointer, end-pointer, for-loop, new, subscript
+	../array: array, for-loop, new, subscript
 	../list: ==, ~=, build-list, for-loop, list, new, size, to-list, with-block
 
 index-set record by-ref
@@ -332,12 +332,10 @@ count-greater-or-equal nat64(a index-set, n nat64)
 	a >> bit-index count-ones
 
 .count-ones-in-array nat64(a array nat64) trusted
-	0 count-ones-in-array-recur a.begin-pointer, a.end-pointer
-.count-ones-in-array-recur nat64(acc nat64, cur nat64*, end nat64*) unsafe
-	if cur == end
-		acc
-	else
-		acc + cur->count-ones count-ones-in-array-recur cur + 1, end
+	res mut = 0
+	for x : a
+		res := res + x.count-ones
+	res
 
 # Gets the set with only values < limit
 filter-less index-set(a index-set, limit nat64) trusted
@@ -415,15 +413,6 @@ for-loop void(a index-set, f act void(nat64)) trusted
 				f[bit-index-offset + bit-index]
 	as empty
 		()
-
-###
-TODO
-filter index-set(a index-set, f act bool(nat64))
-	strip-trailing-zeroes: for value, nat64-index : a.values
-		bit-index-offset = nat64-index + 64
-		value filter-bits bit-index =>
-			f[bit-index-offset + bit-index]
-###
 
 for-loop index-set(a index-set, f act nat64(nat64))
 	a for-loop f to-index-set

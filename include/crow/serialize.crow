@@ -7,7 +7,7 @@ For JSON serialization, see the `crow/json` module.
 no-std
 import
 	./bits: &, |, <<, >>
-	./col/list: ==, for-loop, list, new, size, strip-left-while, subscript
+	./col/list: ==, for-loop, list, new, size, drop-while, subscript
 	./compare: <, <=
 	./number: ==, <=>, int64, max-int64, nat8, nat32, nat64, to-nat8, to-int64, to-nat32, to-nat64
 	./range: ..
@@ -38,7 +38,7 @@ Convert a number to a nat8[] simply by taking its component bytes in big-endian 
 This strips leading 0 bytes.
 ###
 to-bytes nat8[](a nat64)
-	a.to-8-bytes strip-left-while byte => byte == 0
+	a.to-8-bytes drop-while byte => byte == 0
 ###
 Unlike `a to-bytes`, this always returns an 8-byte array, including any leading 0 bytes.
 ###

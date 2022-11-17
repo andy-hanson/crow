@@ -1,0 +1,45 @@
+no-std
+import
+	../compare: compare
+	../hash: hash-mix
+	../number: ==, <=>, +, nat64
+	../misc: is-data, void
+	../option: ??
+	../test-util: is
+	../tuple: new
+	./array: array
+	./dict: ~, dict, for-loop, subscript
+	./list: for-loop, list, to-list
+	./mut-dict: mut-dict, new, set-subscript, subscript, to-dict
+
+counter<a> record
+	.inner nat64[a]
+
+new<a> counter a(...a array a) is-data<a> compare<a> hash-mix<a>
+	a.to-list to-counter
+
+to-counter<a> counter a(values a[]) is-data<a> compare<a> hash-mix<a>
+	res nat64 mut[a] = ()
+	for x : values
+		res[x] := (res[x] ?? 0) + 1
+	res.to-dict,
+
+to-dict<a> nat64[a](a counter a) is-data<a> compare<a> hash-mix<a>
+	a inner
+
+subscript<a> nat64(a counter a, value a) is-data<a> compare<a> hash-mix<a>
+	a.inner[value] ?? 0
+
+~ <a> counter a(a counter a, value a) is-data<a> compare<a> hash-mix<a>
+	a.inner ~ (value, a[value] + 1),
+
+for-loop<a> void(a counter a, f act void(a, nat64)) is-data<a> compare<a> hash-mix<a>
+	a.inner for-loop f
+
+test
+	a counter nat64 = ()
+	a[1] is 0
+	b = a ~ 3
+	b[3] is 1
+	c = b ~ 3
+	c[3] is 2

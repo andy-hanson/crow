@@ -117,7 +117,7 @@ register-user-result union
 	register-user-success user
 	bad-user-name string
 	user-already-exists
-== bool(a register-user-result, b register-user-result) noctx
+== bool(a register-user-result, b register-user-result)
 	match a
 	as register-user-success sa
 		match b

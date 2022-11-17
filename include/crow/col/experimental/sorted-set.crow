@@ -13,8 +13,8 @@ import
 	../../test-util: is
 	../array: array, as-array, begin-pointer, end-pointer, is-empty, new, size, subscript, tail
 	../mut-array:
-		begin-pointer, end-pointer, is-empty, mut-array, set-subscript, size, subscript,
-		uninitialized-mut-array
+		~=, begin-pointer, build-mut-array, end-pointer, is-empty, mut-array, mut-array-builder,
+		set-subscript, size, subscript, uninitialized-mut-array, with-block
 	../list: ~=, build-list, for-loop, list, to-array, to-list, with-block
 	../sort: sort
 	../private/sort-utils: binary-search-exact-index
@@ -57,18 +57,19 @@ is-empty<a> bool(a sorted-set a)
 
 # Number of elements in the set.
 size<a> nat64(a sorted-set a)
-	a.remove.size add-size-recur a.add
+	a.add.add-size - a.remove.size
 .add-size<a> nat64(a add-node a)
-	0 add-size-recur a
-.add-size-recur<a> nat64(acc nat64, a add-node a)
-	acc + a.values.size add-size-left-recur a
+	a.values.size + a.add-size-left
 .add-size-left<a> nat64(a add-node a)
-	0 add-size-left-recur a
-.add-size-left-recur<a> nat64(acc nat64, a add-node a)
-	if left ?= a left
-		acc add-size-recur left
-	else
-		acc
+	acc mut = 0
+	cur mut = a
+	loop
+		if left ?= cur left
+			acc := acc + left.values.size
+			cur := left
+			continue
+		else
+			break acc
 
 # True if `value` is an element of the set.
 in<a> bool(value a, a sorted-set a) is-data<a> compare<a>
@@ -187,8 +188,8 @@ Or a combination of the two.
 	compacted mut-array a = plan.compacted-size uninitialized-mut-array
 	begin = compacted begin-pointer
 	*begin := value
-	compactor compactor a = begin.as-const, begin + 1, compacted.end-pointer.as-const
-	new-add = compactor do-compact-recur a.add, add-size, a.remove
+	compactor compactor a = begin.as-const, begin + 1, compacted.end-pointer
+	new-add = compactor do-compact a.add, add-size, a.remove
 	new-add, (a.remove filter-less plan.add-size-left)
 
 .remove-and-compact<a> sorted-set a(a sorted-set a, plan compact-plan, extra-removal nat64) unsafe is-data<a> compare<a>
@@ -201,31 +202,33 @@ Or a combination of the two.
 	else
 		compacted mut-array a = plan.compacted-size uninitialized-mut-array
 		begin = compacted begin-pointer
-		compactor compactor a = begin.as-const, begin, compacted.end-pointer.as-const
+		compactor compactor a = begin.as-const, begin, compacted.end-pointer
 		old-size = plan.add-size-left + plan.compacted-size + 1
-		new-add = compactor do-compact-recur a.add, old-size, a.remove ~ extra-removal
+		new-add = compactor do-compact a.add, old-size, a.remove ~ extra-removal
 		new-add, new-remove
 
 .compactor<a> record mut
 	begin a*
 	cur mut a mut*
-	end a*
+	end a mut*
 
-# NOTE: size-here-and-left is the old size, used to index into remove
-.do-compact-recur<a> add-node a(
+.do-compact<a> add-node a(
 	compactor compactor a,
-	a add-node a,
-	add-size-here-and-left nat64,
+	add add-node a,
+	add-size nat64,
 	remove index-set,
 ) unsafe compare<a>
-	compactor merge a.values, add-size-here-and-left, remove
-	assert compactor.cur.as-const <= compactor.end
-	if compactor.cur.as-const == compactor.end
-		compactor.finish, a.left
-	else
-		# TODO: should be able to write this inline
-		new-l = add-size-here-and-left - a.values.size
-		compactor do-compact-recur a.left!, new-l, remove
+	cur mut = add
+	add-size-here-and-left mut = add-size
+	loop
+		compactor merge cur.values, add-size-here-and-left, remove
+		assert compactor.cur <= compactor.end
+		if compactor.cur == compactor.end
+			break compactor.finish, cur.left
+		else
+			add-size-here-and-left := add-size-here-and-left - cur.values.size
+			cur := cur.left!
+			continue
 
 .merge<a> void(a compactor a, values array a, add-size-here-and-left nat64, remove index-set) unsafe compare<a>
 	n-remove = remove count-range (add-size-here-and-left - values.size), add-size-here-and-left
@@ -234,80 +237,93 @@ Or a combination of the two.
 		new-cur = a.cur + n-added
 		remove-index = add-size-here-and-left - 1
 		if a.cur.as-const == a.begin
-			new-cur - 1 copy-from-b-recur values.begin-pointer, values.end-pointer - 1, remove-index, remove
+			new-cur - 1 copy-from-b values, remove-index, remove
 		else
 			a-read = (a.cur - 1).as-const
-			a.begin merge-recur a-read, new-cur - 1, values.begin-pointer, values.end-pointer - 1, remove-index, remove
+			a.begin do-merge a-read, new-cur - 1, values, remove-index, remove
 		a.cur := new-cur
 
-.merge-recur<a> void(
+.do-merge<a> void(
 	a-begin a*,
-	a-read a*,
-	a-write a mut*,
-	b-begin a*,
-	b-read a*,
-	b-remove-index nat64,
+	init-a-read a*,
+	init-a-write a mut*,
+	b array a,
+	init-b-remove-index nat64,
 	b-remove index-set,
 ) unsafe compare<a>
-	forbid a-read < a-begin
-	forbid b-read < b-begin
-	forbid a-write.as-const < a-begin
-	# merging from right, so take the greater value
-	match *a-read <=> *b-read
-	as less
-		new-a-write = if b-remove-index in b-remove
-			a-write
-		else
-			*a-write := *b-read
-			a-write - 1
-		unless b-read == b-begin
-			a-begin merge-recur a-read, new-a-write, b-begin, b-read - 1, b-remove-index - 1, b-remove
-		# Else -- done, everything from 'a' is in place
-	as equal
-		# We shouldn't store the same value twice.
-		unreachable
-	as greater
-		*a-write := *a-read
-		if a-read == a-begin
-			a-write - 1 copy-from-b-recur b-begin, b-read, b-remove-index, b-remove
-		else
-			a-begin merge-recur a-read - 1, a-write - 1, b-begin, b-read, b-remove-index, b-remove
+	a-read mut = init-a-read
+	a-write mut = init-a-write
+	b-begin = b begin-pointer
+	b-read mut = b.end-pointer - 1
+	b-remove-index mut = init-b-remove-index
+	loop
+		forbid a-read < a-begin
+		forbid b-read < b-begin
+		forbid a-write.as-const < a-begin
+		# merging from right, so take the greater value
+		match *a-read <=> *b-read
+		as less
+			unless b-remove-index in b-remove
+				*a-write := *b-read
+				a-write := a-write - 1
 
-.copy-from-b-recur<a> void(
-	a-write a mut*,
-	b-begin a*,
-	b-read a*,
-	b-remove-index nat64,
+			if b-read == b-begin
+				# done, everything from 'a' is in place
+				break
+			else
+				b-read := b-read - 1
+				b-remove-index := b-remove-index - 1
+				continue
+		as equal
+			# We shouldn't store the same value twice.
+			unreachable
+			break
+		as greater
+			*a-write := *a-read
+			if a-read == a-begin
+				a-write - 1 copy-from-b (b-begin .. b-read + 1).as-array, b-remove-index, b-remove
+				break
+			else
+				a-read := a-read - 1
+				a-write := a-write - 1
+				continue
+
+.copy-from-b<a> void(
+	init-a-write a mut*,
+	b array a,
+	init-b-remove-index nat64,
 	b-remove index-set,
 ) unsafe
-	new-a-write = if b-remove-index in b-remove
-		a-write
-	else
-		*a-write := *b-read
-		a-write - 1
-	unless b-read == b-begin
-		new-a-write copy-from-b-recur b-begin, b-read - 1, b-remove-index - 1, b-remove
+	a-write mut = init-a-write
+	b-read mut = b.end-pointer - 1
+	b-remove-index mut = init-b-remove-index
+	loop
+		unless b-remove-index in b-remove
+			*a-write := *b-read
+			a-write := a-write - 1
+		if b-read == b.begin-pointer
+			break
+		else
+			b-read := b-read - 1
+			b-remove-index := b-remove-index - 1
+			continue
 
 .finish<a> array a(a compactor a) unsafe
-	assert a.cur.as-const == a.end
-	a.begin .. a.end as-array
+	assert a.cur == a.end
+	a.begin .. a.end.as-const as-array
 
 region iteration
 
 for-loop<a> void(a sorted-set a, f act void(a)) is-data<a> compare<a>
-	a.init-iters for-loop-recur a.remove, f
-.for-loop-recur<a> void(iters mut-array iter-part a, remove index-set, f act void(a)) compare<a>
-	unless iters is-empty
+	iters mut = a init-iters
+	until iters is-empty
 		least-iter-index = iters[0].values[0] find-least-iter 0, 1, iters
 		least-value = iters[least-iter-index].values[0]
-		iters[least-iter-index] := iters[least-iter-index] tail remove
-		new-iters = if iters[least-iter-index] is-empty
+		iters[least-iter-index] := iters[least-iter-index] tail a.remove
+		if iters[least-iter-index] is-empty
 			iters[least-iter-index] := iters[iters.size - 1]
-			iters[0 .. iters.size - 1]
-		else
-			iters
+			iters := iters[0 .. iters.size - 1]
 		f[least-value]
-		new-iters for-loop-recur remove, f
 
 .find-least-iter<a> nat64(
 	current-least a,
@@ -335,34 +351,31 @@ for-loop<a> void(a sorted-set a, f act void(a)) is-data<a> compare<a>
 	(a.values.tail, a.remove-index + 1) remove-from-front remove
 
 .init-iters<a> mut-array iter-part a(a sorted-set a) trusted
-	iters mut-array iter-part a = a.add-node-count uninitialized-mut-array
-	res = iters.begin-pointer init-iters-recur a.add, a.remove
-	iters[0 .. res.out - iters.begin-pointer]
+	with out : a.add-node-count build-mut-array
+		_ = out init-iters-recur a.add, a.remove
+		()
 
 .add-node-count<a> nat64(a sorted-set a)
-	0 add-node-count-recur a.add
-.add-node-count-recur<a> nat64(acc nat64, a add-node a)
-	if left ?= a left
-		acc + 1 add-node-count-recur left
-	else
-		acc + 1
+	acc mut = 1
+	cur mut = a add
+	loop
+		if left ?= cur left
+			acc := acc + 1
+			cur := left
+			continue
+		else
+			break acc
 
-.init-iters-result<a> record mut by-val
-	next-remove-index nat64
-	out iter-part<a> mut*
-
-.init-iters-recur<a> init-iters-result a(out iter-part<a> mut*, a add-node a, remove index-set) unsafe
+# Returns next remove index
+.init-iters-recur<a> nat64(out mut-array-builder iter-part a, a add-node a, remove index-set) unsafe
 	prev = if left ?= a left
 		out init-iters-recur left, remove
 	else
-		0, out
-	here = (a.values, prev.next-remove-index) remove-from-front remove
-	new-out = if here is-empty
-		prev.out
-	else
-		*prev.out := here
-		prev.out + 1
-	(prev.next-remove-index + a.values.size), new-out
+		0
+	here = (a.values, prev) remove-from-front remove
+	unless here is-empty
+		out ~= here
+	prev + a.values.size
 
 .remove-from-front<a> iter-part a(a iter-part a, remove index-set)
 	if !a.values.is-empty && a.remove-index in remove

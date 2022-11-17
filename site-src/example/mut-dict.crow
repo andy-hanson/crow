@@ -6,7 +6,5 @@ main nat^(_ string[]) summon
 	out print (x try-remove 1 ?? "n/a")
 	out print (x try-remove 1 ?? "n/a")
 	x[2] := "dos"
-	y = x move-to-dict
-	out print "{x is-empty}"
-	out print (y[2] ?? "n/a")
+	out print x[2]!
 	()

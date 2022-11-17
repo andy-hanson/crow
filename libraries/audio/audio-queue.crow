@@ -70,11 +70,13 @@ pull void(a audio-queue, out mut-array float32) noctx unsafe
 
 .add void(a mut-array float32, b array float32) noctx unsafe
 	assert a.size == b.size
-	a.begin-pointer add-recur a.end-pointer, b.begin-pointer
-.add-recur void(out float32 mut*, out-end float32 mut*, read float32*) noctx unsafe
-	unless out == out-end
+	out mut = a begin-pointer
+	read mut = b begin-pointer
+	until out == a.end-pointer
 		*out := *out + *read
-		out + 1 add-recur out-end, read + 1
+		out := out + 1
+		read := read + 1
+	assert read == b.end-pointer
 
 .play-common playing-sound(a audio-queue, sound sound, looping bool) trusted
 	assert sound.format == a.format : "sound format mismatch: expected {a format}, got {sound format}"
@@ -124,4 +126,4 @@ test
 	buf.to-array is (0, 0, 0)
 
 .== bool(a array float32, b array float32)
-	a array-equal b, (x, y) => x == y
+	a array-equal b

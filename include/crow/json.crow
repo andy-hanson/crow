@@ -185,7 +185,7 @@ to-string string(a json)
 		"\{{parts}}"
 
 .verify void(a json, s string)
-	json parse s is@<result<json, parse-error>> a.ok
+	json parse s is a.ok
 	a.to-string is s
 
 .== bool(a result<json, parse-error>, b result<json, parse-error>)

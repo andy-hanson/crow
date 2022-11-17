@@ -1,11 +1,13 @@
 no-std
 import
 	./bool: bool, false, true
-	./col/array: for-loop
+	./col/array: array, for-loop
 	./col/list: ~=, build-list, list, to-list, with-block
 	./fun-util: subscript
 	./misc: break-or-continue, loop-break, new, void
 	./number: ==, +, -, nat64
+	./option: new, option
+	./pointer: ==, +, const-pointer
 export
 	./private/range-low-level: .., low, high, range, size
 
@@ -25,6 +27,20 @@ for-loop void(a range nat64, f act void(nat64))
 	until cur == high
 		f[cur]
 		cur := cur + 1
+
+for-break<out, in> out?(a range in*, f act break-or-continue out(in*)) unsafe
+	cur mut = a low
+	high = a high
+	loop
+		if cur == high
+			break
+		else
+			match f[cur]
+			as loop-break v
+				break v,
+			as loop-continue
+				cur := cur + 1
+				continue
 
 range-reverse<a> record
 	low a
@@ -58,7 +74,7 @@ for-loop<out> out[](a range-reverse nat64, f act out(nat64))
 			out ~= f[x]
 
 for-loop<out> out[](a range nat64, f act out(nat64)) trusted
-	a for-loop f to-list
+	(a for-loop f)::array<out> to-list
 
 for-break<out> out(a range nat64, f-loop act break-or-continue out(nat64), f-else act out())
 	cur mut = a low

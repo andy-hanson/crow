@@ -1,54 +1,51 @@
 no-std
 import
-	../../bool: bool
-	../../compare: ==, !=, <, >=, compare, comparison, equal
+	../../bool: !, bool
+	../../compare: ==, <, >=, compare, comparison, equal
 	../../exception: unreachable
 	../../fun-util: subscript
-	../../misc: new, void
+	../../misc: loop-break, new, void
 	../../number: ==, <=>, +, /
-	../../option: new, option
-	../../pointer: ==, <=>, +, -, *, as-const, as-mut, const-pointer, mut-pointer, null, set-deref
-	../../range: ..
+	../../option: is-empty, new, option
+	../../pointer: ==, <=>, +, -, *, as-const, as-mut, const-pointer, mut-pointer, set-deref
+	../../range: .., for-break
 	../../test-util: is
 	../../tuple: from, pair, to
 	../../private/bootstrap: nat64
-	../array: array, as-array, begin-pointer, end-pointer
+	../array: array, as-array, begin-pointer, end-pointer, for-break
 	../mut-array:
-		as-mut-array, begin-pointer, cast-immutable, copy-from, end-pointer, mut-array, new
+		as-mut-array, begin-pointer, cast-immutable, copy-from, mut-array, new, temp-as-array
 	../list: ==, list, new
 	../mut-list:
 		begin-pointer, clear, end-pointer, is-empty, move-to-list, mut-list, size, swap, temp-as-mut-array,
 		to-mut-list, unsafe-set-size
 
 binary-search-has<a> bool(a array a, value a) compare<a> trusted
-	(a.begin-pointer binary-search-exact-pointer-recur a.end-pointer, value) != null
+	!(a binary-search-exact-pointer value is-empty)
 
 binary-search-key<k, v> v?(a array (k, v), key k) trusted compare<k>
-	a.begin-pointer binary-search-key-recur a.end-pointer, key
-.binary-search-key-recur<k, v> v?(left (k, v)*, right (k, v)*, key k) trusted compare<k>
-	diff = right - left
-	if diff < 4
-		left linear-search-key-recur right, key
-	else
-		mid = left + diff / 2
-		match key <=> mid->from
-		as less
-			left binary-search-key-recur mid, key
-		as equal
-			mid->to,
-		as greater
-			mid + 1 binary-search-key-recur right, key
-.linear-search-key-recur<k, v> v?(left (k, v)*, right (k, v)*, key k) trusted compare<k>
-	if left == right
-		()
-	elif left->from == key
-		left->to,
-	else
-		left + 1 linear-search-key-recur right, key
+	left mut = a begin-pointer
+	right mut = a end-pointer
+	loop
+		diff = right - left
+		if diff < 4
+			break for pair : (left .. right).as-array
+				if pair.from == key
+					break pair.to
+		else
+			mid = left + diff / 2
+			match key <=> mid->from
+			as less
+				right := mid
+				continue
+			as equal
+				break mid->to,
+			as greater
+				left := mid + 1
+				continue
 
 binary-search-exact-index<a> nat64?(a array a, value a) trusted compare<a>
-	pointer = a.begin-pointer binary-search-exact-pointer-recur a.end-pointer, value
-	unless pointer == null
+	if pointer ?= a binary-search-exact-pointer value
 		pointer - a.begin-pointer,
 
 binary-search-exact-pointer<a> a mut*?(a a mut[], compare act comparison(a)) unsafe
@@ -59,12 +56,28 @@ binary-search-exact-pointer<a> a mut*?(a mut-array a, compare act comparison(a))
 		x.as-mut,
 
 binary-search-exact-pointer<a> a*?(a array a, value a) compare<a> unsafe
-	res = a.begin-pointer binary-search-exact-pointer-recur a.end-pointer, value
-	unless res == null
-		res,
+	left mut = a begin-pointer
+	right mut = a end-pointer
+	loop
+		diff = right - left
+		if diff < 4
+			break for x : left .. right
+				if *x == value
+					break x
+		else
+			mid = left + diff / 2
+			match value <=> *mid
+			as less
+				right := mid
+				continue
+			as equal
+				break mid,
+			as greater
+				left := mid + 1
+				continue
 
 binary-search-exact-pointer<a> a*?(a array a, compare act comparison(a)) unsafe
-	pointer = a.begin-pointer binary-search-compare-recur a.end-pointer, compare
+	pointer = a binary-search-compare compare
 	if pointer == a.end-pointer
 		()
 	elif compare[*pointer] == equal
@@ -78,10 +91,26 @@ Returns the pointer to the least value that is compared equal or greater.
 Returns `a end-pointer` if all values compare less.
 ###
 binary-search-insert-pointer<a> a mut*(a mut-array a, compare act comparison(a)) unsafe
-	a.begin-pointer.as-const binary-search-compare-recur a.end-pointer.as-const, compare as-mut
+	a.temp-as-array binary-search-compare compare as-mut
 
 binary-search-insert-pointer<a> a*(a array a, value a) unsafe compare<a>
-	a.begin-pointer binary-search-insert-pointer-recur a.end-pointer, value
+	# Left inclusive, right exclusive
+	left mut = a begin-pointer
+	right mut = a end-pointer
+	loop
+		if left == right
+			break left
+		else
+			mid = left + (right - left) / 2
+			match value <=> *mid
+			as less
+				right := mid
+				continue
+			as equal
+				break mid
+			as greater
+				left := mid + 1
+				continue
 
 test
 	a mut-array nat64 = 1, 3, 5, 7
@@ -93,57 +122,24 @@ test
 	(a binary-search-insert-pointer x => 7 <=> x) - a.begin-pointer is 3
 	(a binary-search-insert-pointer x => 8 <=> x) - a.begin-pointer is 4
 
-# Left inclusive, right exclusive
-.binary-search-exact-pointer-recur<a> a*(left a*, right a*, value a) unsafe compare<a>
-	diff = right - left
-	if diff < 4
-		left linear-search-exact-pointer-recur right, value
-	else
-		mid = left + diff / 2
-		match value <=> *mid
-		as less
-			left binary-search-exact-pointer-recur mid, value
-		as equal
-			mid
-		as greater
-			mid + 1 binary-search-exact-pointer-recur right, value
-
-.linear-search-exact-pointer-recur<a> a*(left a*, right a*, value a) unsafe compare<a>
-	if left == right
-		null
-	elif *left == value
-		left
-	else
-		left + 1 linear-search-exact-pointer-recur right, value
-
-# Left inclusive, right exclusive
-.binary-search-insert-pointer-recur<a> a*(left a*, right a*, value a) unsafe compare<a>
-	if left == right
-		left
-	else
-		mid = left + (right - left) / 2
-		match value <=> *mid
-		as less
-			left binary-search-insert-pointer-recur mid, value
-		as equal
-			mid
-		as greater
-			mid + 1 binary-search-insert-pointer-recur right, value
-
-
-# Left inclusive, right exclusive
-.binary-search-compare-recur<a> a*(left a*, right a*, compare act comparison(a)) unsafe
-	if left == right
-		left
-	else
-		mid = left + (right - left) / 2
-		match compare[*mid]
-		as less
-			left binary-search-compare-recur mid, compare
-		as equal
-			mid
-		as greater
-			mid + 1 binary-search-compare-recur right, compare
+.binary-search-compare<a> a*(a array a, compare act comparison(a)) unsafe
+	# Left inclusive, right exclusive
+	left mut = a begin-pointer
+	right mut = a end-pointer
+	loop
+		if left == right
+			break left
+		else
+			mid = left + (right - left) / 2
+			match compare[*mid]
+			as less
+				right := mid
+				continue
+			as equal
+				break mid
+			as greater
+				left := mid + 1
+				continue
 
 unique-comparison enum
 	less
@@ -166,36 +162,32 @@ merge-no-duplicates<a> void(a a mut[], b a mut[], compare act unique-comparison(
 	unless b is-empty
 		a-old-size = a size
 		a unsafe-set-size a-old-size + b.size
-		a-read = a.begin-pointer.as-const + a-old-size - 1
-		a-write = a.end-pointer - 1
-		bb = b.begin-pointer as-const
-		a.begin-pointer merge-reverse-recur a-read, a-write, bb, b.end-pointer.as-const - 1, compare
+		a-read mut = a.begin-pointer.as-const + a-old-size - 1
+		a-write mut = a.end-pointer - 1
+		b-begin = b.begin-pointer as-const
+		b-read mut = b.end-pointer.as-const - 1
+		# Merge right-to-left so we never overwrite anything we still have to read.
+		# Invariant: a-read, a-write, b-read are all valid pointers.
+		loop
+			match compare[*a-read, *b-read]
+			as less
+				*a-write := *b-read
+				if b-read == b-begin
+					break
+				else
+					a-write := a-write - 1
+					b-read := b-read - 1
+					continue
+			as greater
+				*a-write := *a-read
+				if a-read == a.begin-pointer.as-const
+					(a.begin-pointer .. a-write).as-mut-array copy-from (b-begin .. b-read + 1).as-array
+					break
+				else
+					a-read := a-read - 1
+					a-write := a-write - 1
+					continue
 		b clear
-
-###
-Merge right-to-left so we never overwrite anything we still have to read.
-In condition: a-read, a-write, b-read are all valid pointers.
-###
-.merge-reverse-recur<a> void(
-	a-begin a mut*,
-	a-read a*,
-	a-write a mut*,
-	b-begin a*,
-	b-read a*,
-	compare act unique-comparison(a, a),
-) unsafe
-	match compare[*a-read, *b-read]
-	as less
-		*a-write := *b-read
-		unless b-read == b-begin
-			a-begin merge-reverse-recur a-read, a-write - 1, b-begin, b-read - 1, compare
-		# Else -- we are done, don't need to touch 'a' any more
-	as greater
-		*a-write := *a-read
-		if a-read == a-begin.as-const
-			(a-begin .. a-write).as-mut-array copy-from (b-begin .. b-read + 1).as-array
-		else
-			a-begin merge-reverse-recur a-read - 1, a-write - 1, b-begin, b-read, compare
 
 .test-one void(a nat64[], b nat64[], expected nat64[]) unsafe
 	a-mut = a to-mut-list

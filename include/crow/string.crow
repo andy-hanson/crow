@@ -5,13 +5,14 @@ import
 	./col/array: array, as-array, begin-pointer
 	./col/iter: new, rest, value, value-and-rest
 	./col/list:
-		~, ~~, as-list, contains-sublist, drop-right-while, drop-while, end-iter, ends-with,
-		for-loop, is-empty, iter, left, list, list-cast, list-compare, list-equal, list-iter,
-		list-iter-equal, middle, mut-iter, mut-list-iter, new, next, peek, prev, repeat, restore,
-		reverse, right, save, size, slice-left, slice-right, split-by-sublist, starts-with,
-		to-array, to-list, try-remove-end, try-remove-start, try-split-once-by-fn,
-		try-split-once-by-sublist, try-split-once-by-sublist-right
+		~, ~~, ~=, ~~=, as-list, build-list, contains-sublist, drop-right-while, drop-while,
+		end-iter, ends-with, find-iter, for-loop, is-empty, iter, list, list-builder, list-cast,
+		list-compare, list-equal, list-iter, list-iter-equal, mut-iter, mut-list-iter, new, next,
+		peek, prev, repeat, restore, reverse, save, size, slice-left, slice-right, split-by-sublist,
+		starts-with, to-array, to-list, try-remove-end, try-remove-start, try-split-once-by-sublist,
+		try-split-once-by-sublist-right, with-block
 	./col/mut-list: copy, move-to-list, to-mut-list
+	./fun-util: subscript
 	./hash: hasher, hash-mix
 	./misc: void
 	./number:
@@ -68,7 +69,7 @@ is-empty bool(a string)
 size nat64(a string)
 	a.inner size
 
-== bool(a string, b string) noctx trusted
+== bool(a string, b string) trusted
 	a.inner list-equal b.inner
 == bool(a char8, b char8) noctx
 	a.to-nat8 == b.to-nat8
@@ -343,7 +344,7 @@ try-remove-start string?(a string, b string)
 		res.as-string,
 
 ###
-If `a` ends with `b, returns the rest.
+If `a` ends with `b`, returns the rest.
 Else, returns an empty option.
 ###
 try-remove-end string?(a string, b string)
@@ -382,14 +383,9 @@ split-string record by-val
 Find the first character where `f` returns `true`, and return the parts of `a` before and after it.
 Returns an empty option if `f` does not returns `true` for any character in `a`.
 ###
-try-split-once-by-fn split-string?(a string, f act bool(char8))
-	if res ?= a.char8s try-split-once-by-fn f
-		(res.left.as-string, res.middle, res.right.as-string),
-
-# Finds the first whitespace character in `a` and returns the parts before and after it.
-try-split-once-by-whitespace (string, string)?(a string)
-	if x ?= a try-split-once-by-fn x => x is-whitespace
-		(x.left, x.right),
+find-iter string-iter?(a string, f act bool(char8))
+	if res ?= a.char8s find-iter f
+		(res,),
 
 ###
 Returns a string containing each element of `a`, with `b` as a separator.
@@ -466,7 +462,7 @@ strip-right string(a string, b string)
 	else
 		a
 
-.is-whitespace bool(a char8)
+is-whitespace bool(a char8)
 	a == " " || a == "\r" || a == "\n" || a == "\t"
 
 normalize-newlines string(a string)
@@ -498,3 +494,24 @@ quote string(a string)
 
 unindent string(a string)
 	a replace "\t", ""
+
+region builder
+
+build-string record
+	.size-hint nat64
+build-string build-string()
+	0,
+build-string build-string(size-hint nat64)
+	size-hint,
+
+string-builder record mut
+	.inner list-builder char8
+
+with-block string(a build-string, f act void(string-builder))
+	(with out : a.size-hint build-list; f[(out,)])::char8[] as-string
+
+~= void(a string-builder, c char8)
+	a.inner ~= c
+
+~~= void(a string-builder, s string)
+	a.inner ~~= s.char8s

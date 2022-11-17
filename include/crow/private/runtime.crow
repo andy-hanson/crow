@@ -142,25 +142,23 @@ add-timed-task void(a global-ctx, time timestamp, exclusion exclusion, action ac
 
 thread-function void(thread-id nat64, gctx global-ctx) noctx unsafe summon
 	*thread-id-var := thread-id
-	gctx thread-function-recur
-
-.thread-function-recur void(gctx global-ctx) noctx unsafe summon
-	# Get a task to do; or sleep.
-	last-checked = &gctx.may-be-work-to-do get-sequence
-	match gctx choose-task
-	as task t
-		gctx do-task t
-		gctx thread-function-recur
-	as gc
-		&gctx.may-be-work-to-do broadcast
-		&gctx.gc run-garbage-collection gctx.gc-root
-		gctx thread-function-recur
-	as wait-for-task wait-until-time
-		&gctx.may-be-work-to-do wait-on wait-until-time, last-checked
-		&gctx.n-waiting-threads decrement
-		gctx thread-function-recur
-	as shut-down
-		gctx thread-shut-down
+	loop
+		# Get a task to do; or sleep.
+		last-checked = &gctx.may-be-work-to-do get-sequence
+		match gctx choose-task
+		as task t
+			gctx do-task t
+			continue
+		as gc
+			&gctx.may-be-work-to-do broadcast
+			&gctx.gc run-garbage-collection gctx.gc-root
+			continue
+		as wait-for-task wait-until-time
+			&gctx.may-be-work-to-do wait-on wait-until-time, last-checked
+			&gctx.n-waiting-threads decrement
+			continue
+		as shut-down
+			break gctx thread-shut-down
 
 .do-task void(gctx global-ctx, task task) noctx unsafe summon
 	gctx before-task task.exclusion

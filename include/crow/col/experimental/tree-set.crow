@@ -12,8 +12,8 @@ import
 	../../string: ==, <=>, ~~, iter, join, literal, next, slice-left, starts-with, string, to-string
 	../../test-util: is
 	../array:
-		~=, ~~=, array, array-builder, begin-pointer, build-array, end-pointer, for-loop, insert-at,
-		is-empty, last, remove-at, rtail, size, subscript, tail, with-block
+		~=, ~~=, array, array-builder, begin-pointer, build-array, end-pointer, for-loop, index-of,
+		insert-at, is-empty, last, remove-at, rtail, size, subscript, tail, with-block
 	../iter: rest
 	../list: ~=, build-list, for-loop, list, list-builder, size, to-array, to-list, with-block
 	../mut-stack: ~=, mut-stack, new, peek, pop
@@ -107,6 +107,16 @@ This is O(n).
 			out walk-iter-union x, b-iter
 		b-iter consume-rest out
 	list to-tree-set
+.consume-rest<a> void(a iter a, out list-builder a)
+	for x : a cur
+		out ~= x
+	loop
+		if popped ?= a.stack pop
+			popped each-inner x =>
+				out ~= x
+			continue
+		else
+			break
 
 .walk-iter-union<a> void(out list-builder a, value a, a iter a) unsafe is-data<a> compare<a>
 	if peek ?= a peek
@@ -156,13 +166,8 @@ If `value` is in `a`, returns `a` with the first instance of `value` removed.
 Else, returns an empty option.
 ###
 .try-remove<a> array<a>?(a array a, value a) compare<a>
-	a try-remove-recur 0, value
-.try-remove-recur<a> array<a>?(a array a, index nat64, value a) compare<a>
-	unless index == a.size
-		if a[index] == value
-			(a remove-at index),
-		else
-			a try-remove-recur index + 1, value
+	if index ?= a index-of value
+		(a remove-at index),
 
 ###
 If 'b' is in the set, returns `none~.
@@ -232,21 +237,23 @@ try-remove<a> tree-set<a>?(a tree-set a, b a) is-data<a> compare<a>
 
 .iter<a> iter a(a tree-set a) trusted
 	stack mut-stack inner-node a = ()
-	cur = stack init-iter-recur a.root
-	cur, stack
-.init-iter-recur<a> array a(stack mut-stack inner-node a, node node a)
-	match node
-	as inner i
-		stack ~= i
-		stack init-iter-recur i.left
-	as leaf l
-		l
+	node mut = a root
+	loop
+		match node
+		as inner i
+			stack ~= i
+			node := i left
+			continue
+		as leaf l
+			break l, stack
+
 .peek<a> a?(a iter a)
 	if a.cur is-empty
 		if x ?= a.stack peek
 			x.value,
 	else
 		a.cur[0],
+
 .next<a> a?(a iter a) trusted
 	if a.cur is-empty
 		if node ?= a.stack pop
@@ -416,16 +423,6 @@ for-loop<a> void(a tree-set a, f act void(a)) is-data<a> compare<a>
 	i.left for-loop-recur f
 	f[i.value]
 	i.right for-loop-recur f
-
-.consume-rest<a> void(a iter a, out list-builder a)
-	for x : a cur
-		out ~= x
-	a.stack consume-rest-recur out
-.consume-rest-recur<a> void(stack mut-stack inner-node a, out list-builder a)
-	if popped ?= stack pop
-		popped each-inner x =>
-			out ~= x
-		stack consume-rest-recur out
 
 for-loop<out, in> out[](a tree-set in, f act out(in)) trusted is-data<in> compare<in>
 	with out : a.size build-list

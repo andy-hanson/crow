@@ -2,19 +2,21 @@ no-std
 import
 	../../bool: &&, ==, bool, false, true
 	../../compare: <=, compare
+	../../fun-util: subscript
 	../../hash: hash, hash-mix
 	../../misc: is-data, new, void
 	../../number: ==, <=>, +, -, /, %, nat64
 	../../option: new, option
-	../../pointer: ==, <=>, +, -, *, const-pointer, mut-pointer, set-deref, swap
+	../../pointer: ==, <=>, +, -, *, const-pointer, mut-pointer, swap
 	../../range: ..
 	../../test-util: is
 	../array:
-		array, array-cast, as-array, begin-pointer, end-pointer, for-loop, in, index-of, is-empty, new,
-		pointer-of, size, subscript
+		~=, array, array-cast, as-array, begin-pointer, build-array, end-pointer, for-loop, in, index-of, is-empty, new,
+		pointer-of, size, subscript, with-block
 	../mut-array:
-		begin-pointer, cast-immutable, end-pointer, fill, fill-mut-array, mut-array, for-loop,
-		size, temp-as-array, to-mut-array, set-subscript, subscript, uninitialized-mut-array
+		~=, begin-pointer, build-mut-array, cast-immutable, end-pointer, fill, fill-mut-array,
+		mut-array, mut-array-builder, for-loop, size, temp-as-array, to-mut-array, set-subscript,
+		subscript, with-block
 	../list: ==, for-loop, list, new, to-array, to-list
 
 frozen-set<a> record
@@ -31,12 +33,6 @@ to-frozen-set<a> frozen-set a(a a[]) trusted is-data<a> compare<a> hash-mix<a>
 # This is O(1).
 to-list<a> a[](a frozen-set a)
 	a.values to-list
-
-begin-pointer<a> a*(a frozen-set a) no-doc unsafe
-	a.values begin-pointer
-
-end-pointer<a> a*(a frozen-set a) no-doc unsafe
-	a.values end-pointer
 
 is-empty<a> bool(a frozen-set a)
 	a.values is-empty
@@ -73,9 +69,9 @@ try-get-unordered-index<a> nat64?(a frozen-set a, value a) trusted is-data<a> co
 		else
 			a.bucket-starts[bucket-index + 1]
 		if pointer ?= (bucket-start .. bucket-end).as-array pointer-of value
-			pointer - a.begin-pointer,
+			pointer - a.values.begin-pointer,
 
-unsafe-frozen-set-from-mut-array-cast-immutable<a> frozen-set a(
+.unsafe-frozen-set-from-mut-array-cast-immutable<a> frozen-set a(
 	a mut-array a,
 ) unsafe is-data<a> compare<a> hash-mix<a>
 	if a.size <= 4
@@ -85,7 +81,19 @@ unsafe-frozen-set-from-mut-array-cast-immutable<a> frozen-set a(
 		bucket-counts = a get-bucket-counts n-buckets
 		bucket-starts = a.begin-pointer running-sum bucket-counts.temp-as-array
 		bucket-counts fill 0
-		a.begin-pointer move-values-to-buckets-recur a.end-pointer, bucket-counts, bucket-starts
+		cur mut = a begin-pointer
+		until cur == a.end-pointer
+			bucket-index = *cur get-bucket-index bucket-counts.size
+			bucket-count = bucket-counts[bucket-index]
+			bucket-start = bucket-starts[bucket-index]
+			bucket-cur-end = bucket-start + bucket-count
+			if bucket-start <= cur && cur <= bucket-cur-end
+				if cur == bucket-cur-end
+					bucket-counts[bucket-index] := bucket-count + 1
+				cur := cur + 1
+			else
+				bucket-counts[bucket-index] := bucket-count + 1
+				cur swap bucket-cur-end
 		a.cast-immutable, bucket-starts.array-cast
 
 .get-bucket-counts<a> mut-array nat64(a mut-array a, n-buckets nat64) unsafe hash-mix<a>
@@ -95,43 +103,41 @@ unsafe-frozen-set-from-mut-array-cast-immutable<a> frozen-set a(
 		res[bucket-index] := res[bucket-index] + 1
 	res
 
-.move-values-to-buckets-recur<a> void(
-	cur a mut*,
-	end a mut*,
-	bucket-counts mut-array nat64,
-	bucket-starts array a mut*,
-) unsafe hash-mix<a>
-	unless cur == end
-		bucket-index = *cur get-bucket-index bucket-counts.size
-		bucket-count = bucket-counts[bucket-index]
-		bucket-start = bucket-starts[bucket-index]
-		bucket-cur-end = bucket-start + bucket-count
-		new-cur = if bucket-start <= cur && cur <= bucket-cur-end
-			if cur == bucket-cur-end
-				bucket-counts[bucket-index] := bucket-count + 1
-			cur + 1
-		else
-			bucket-counts[bucket-index] := bucket-count + 1
-			cur swap bucket-cur-end
-			cur
-		new-cur move-values-to-buckets-recur end, bucket-counts, bucket-starts
-
 .get-bucket-index<a> nat64(value a, n-buckets nat64) unsafe hash-mix<a>
 	value.hash % n-buckets
 
-.running-sum<a> array a mut*(acc a mut*, a array nat64) trusted
-	out mut-array a mut* = a.size uninitialized-mut-array
-	acc running-sum-recur out.begin-pointer, out.end-pointer, a.begin-pointer
-	out cast-immutable
-.running-sum-recur<a> void(
-	acc a mut*,
-	out a mut* mut*,
-	out-end a mut* mut*,
-	read nat64*,
-) unsafe
-	*out := acc
-	unless out + 1 == out-end
-		acc + *read running-sum-recur out + 1, out-end, read + 1
+.running-sum<a> array a mut*(initial a mut*, offsets array nat64) trusted
+	with out : offsets.size build-array
+		acc mut = initial
+		for offset : offsets
+			out ~= acc
+			acc := acc + offset
+
+region builder
+
+build-frozen-set record
+	.size-hint nat64
+build-frozen-set build-frozen-set()
+	0,
+build-frozen-set build-frozen-set(size-hint nat64)
+	size-hint,
+
+frozen-set-builder<a> record mut
+	.inner mut-array-builder a
+
+with-block<a> frozen-set a(
+	a build-frozen-set,
+	f act void(frozen-set-builder a),
+) trusted is-data<a> compare<a> hash-mix<a>
+	inner mut-array a = with out : a.size-hint build-mut-array
+		f[(out,)]
+	inner unsafe-frozen-set-from-mut-array-cast-immutable
+
+~= <a> void(a frozen-set-builder a, value a)
+	a.inner ~= value
+
+size<a> nat64(a frozen-set-builder a)
+	a.inner size
 
 region iteration
 

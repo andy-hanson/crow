@@ -1,12 +1,12 @@
 no-std
 import
-	../bits: &, unsafe-bit-shift-right
+	../bits: &, >>
 	../bool: !, &&, ==, bool, false, new, true
 	../compare: !=, <, <=, >=, compare, equal, max
 	../exception: unreachable
 	../fun-util: subscript
 	../hash: hash, hash-mix
-	../misc: is-data, new, void
+	../misc: is-data, loop-break, new, void
 	../number: ==, <=>, +, -, nat64
 	../option: !, is-empty, new, option, option-equal
 	../range: .., for-loop
@@ -15,8 +15,8 @@ import
 	../tuple: from, new, pair, to
 	../private/bootstrap: todo
 	./array:
-		~, array, every, find-index, for-loop, is-empty, new, remove-at, rtail, size, subscript,
-		tail, update-at
+		~, ~=, array, array-builder, build-array, every, find-index, for-break, for-loop, is-empty,
+		new, remove-at, rtail, size, subscript, update-at, with-block
 	./mut-array:
 		cast-immutable, copy-from, fill-mut-array, mut-array, set-subscript, size, subscript,
 		uninitialized-mut-array
@@ -127,27 +127,22 @@ Gets the value associated with a key.
 Returns an empty option if the key is not in `a`.
 ###
 subscript<k, v> v?(a v[k], key k) is-data<k> compare<k> hash-mix<k>
-	match a root
-	as inner-node _
-		hash = key hash
-		a.root subscript-recur key, hash
-	as leaf-node l
-		l subscript-leaf-recur key
-.subscript-recur<k, v> v?(a node<k, v>, key k, remaining-hash nat64) trusted is-data<k> compare<k> hash-mix<k>
-	match a
-	as inner-node i
-		which = remaining-hash low-bits
-		if which < i.size
-			i[which] subscript-recur key, (remaining-hash unsafe-bit-shift-right inner-node-n-bits)
-	as leaf-node l
-		l subscript-leaf-recur key
-.subscript-leaf-recur<k, v> v?(a array (k, v), key k) compare<k>
-	if a is-empty
-		()
-	elif a[0].from == key
-		a[0].to,
-	else
-		a.tail subscript-leaf-recur key
+	cur mut = a root
+	remaining-hash mut = key hash
+	loop
+		match cur
+		as inner-node i
+			which = remaining-hash low-bits
+			if which < i.size
+				cur := i[which]
+				remaining-hash := remaining-hash >> inner-node-n-bits
+				continue
+			else
+				break
+		as leaf-node l
+			break for pair : l
+				if pair.from == key
+					break pair.to
 
 # `true` iff the key is in the dictionary.
 in<k, v> bool(key k, a v[k]) is-data<k> compare<k> hash-mix<k>
@@ -257,7 +252,7 @@ try-remove<k, v> try-remove-result<k, v>?(a v[k], key k) is-data<k> compare<k> h
 	as inner-node i
 		which = remaining-hash low-bits
 		if which < i.size
-			next-hash = remaining-hash unsafe-bit-shift-right 3
+			next-hash = remaining-hash >> 3
 			child-res = i[which] get-or-update-recur key, next-hash, hash-shift + 3, f
 			if node ?= child-res new-node
 				new-inner = i update-child which, node
@@ -387,12 +382,12 @@ If `index > a.size`, entries between the and of `a` and the new entries will be 
 	key-hash = hash low-bits
 	max-hash mut = key-hash
 	for pair : a
-		max-hash := max-hash max (pair.from.hash unsafe-bit-shift-right hash-shift low-bits)
+		max-hash := max-hash max (pair.from.hash >> hash-shift low-bits)
 	res mut-array node<k, v> = max-hash + 1 fill-mut-array empty-leaf-node
 	# TODO: avoid allocating the same leaf twice...
 	res[key-hash] := ((key, value),) leaf-node
 	for pair : a
-		x = pair.from.hash unsafe-bit-shift-right hash-shift low-bits
+		x = pair.from.hash >> hash-shift low-bits
 		res[x] := match res[x]
 		as inner-node _
 			unreachable
@@ -453,6 +448,24 @@ verify void(a string[nat64], expected string)
 
 .== bool(a string?, b string?)
 	a option-equal b
+
+region builder
+
+build-dict record
+	.size-hint nat64
+build-dict build-dict()
+	0,
+build-dict build-dict(size-hint nat64)
+	size-hint,
+
+dict-builder<k, v> record mut
+	.inner array-builder (k, v)
+
+with-block<k, v> v[k](a build-dict, f act void(dict-builder<k, v>)) is-data<k> compare<k> hash-mix<k>
+	(with out : a.size-hint build-array; f[(out,)])::array<(k, v)>.to-list to-dict
+
+~= <k, v>void(a dict-builder<k, v>, pair (k, v))
+	a.inner ~= pair
 
 test
 	l0 string[nat64] = ()

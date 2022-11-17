@@ -1,8 +1,7 @@
 no-std
 import
 	./bool: &&, bool, false, new, true
-	./col/list: ~, for-break, list, new
-	./col/mut-list: ~=, move-to-list, mut-list, new
+	./col/list: ~, ~=, build-list, exists, for-break, for-loop, list, new, with-block
 	./col/set: in, new, set
 	./compare: !=, <=
 	./fun-util: subscript
@@ -11,8 +10,9 @@ import
 	./option: ??, is-empty, new, option, option-equal
 	./result: err, ok, result, then
 	./string:
-		==, <=>, ~~, as-string, char8, char8s, hash-mix, literal, mut-iter, mut-string-iter, next,
-		peek, prev, restore, save, string, string-iter, to-nat8, to-c-string, to-string
+		==, <=>, ~~, ~=, as-string, build-string, char8, char8s, hash-mix, is-empty, join, literal,
+		mut-iter, mut-string-iter, next, peek, prev, restore, save, string, string-iter, to-nat8,
+		to-c-string, to-string, with-block
 	./tuple: a, b, new, pair
 
 ###
@@ -89,6 +89,34 @@ region basic building blocks
 # Use to discard the result of any grammar.
 skip<a> grammar-skip(a grammar a)
 	(a map _ => ()),
+
+and-return<a> grammar a(a grammar-skip, value a)
+	a.inner map _ => value
+
+text-delimited grammar string(begin string, end string)
+	begin ~~ end.text-not-containing ~~ end
+
+text-not-containing grammar string(ending string)
+	(ending,) text-not-containing-any
+
+text-not-containing-any grammar string(possible-endings string[])
+	with iter : make-grammar
+		res = with out : build-string
+			loop
+				saved = iter save
+				if possible-endings exists x => iter try-take-exact x
+					iter restore saved
+					break 
+				elif x ?= iter next
+					out ~= x
+					continue
+				else
+					break
+		if res is-empty
+			desc = ", " join for x : possible-endings; "'{x}'"
+			(iter.save, "expected text ending in one of {desc}") err
+		else
+			res ok
 
 # Grammar for a single character matching the predicate.
 .char-matching-predicate grammar char8(description string, predicate fun bool(char8))
@@ -169,6 +197,7 @@ map<out, in0, in1> grammar out(a grammar (in0, in1), f act out(in0, in1))
 		x <- a.fn[iter]
 		f[x.a, x.b] ok
 
+
 # Allows parsing to fail, returning an empty option if it does.
 optional<a> grammar a?(a grammar a)
 	with iter : make-grammar
@@ -184,21 +213,30 @@ optional grammar-skip(a string)
 # Parses the same grammar as many times as possible (including 0 times).
 many<a> grammar a[](a grammar a)
 	with iter : make-grammar
-		res a mut[] = ()
-		loop
-			saved = iter save
-			match a.fn[iter]
-			as ok v
-				res ~= v
-				continue
-			as err _
-				iter restore saved
-				break res.move-to-list ok
+		res a[] = with out : build-list
+			loop
+				saved = iter save
+				match a.fn[iter]
+				as ok v
+					out ~= v
+					continue
+				as err _
+					iter restore saved
+					break
+		res ok
+
+many grammar-skip(a grammar-skip)
+	inner grammar void[] = a.inner many
+	(inner map _ => ()),
 
 # Parses 'a' at least once, then as many times as possible.
 one-or-more<a> grammar a[](a grammar a)
 	a ~~ a.many map x =>
 		x.a ~ x.b
+
+one-or-more grammar-skip(a grammar-skip)
+	inner grammar void[] = a.inner one-or-more
+	(inner map _ => ()),
 
 ###
 Parses 'a' as many times as possible, with 'separator' in between.
@@ -213,18 +251,25 @@ separated-by<a> grammar a[](a grammar a, separator grammar-skip)
 		saved = iter save
 		match a.fn[iter]
 		as ok first
-			res a mut[] = first,
-			loop
-				match separator.inner.fn[iter]
-				as ok _
-					match a.fn[iter]
-					as ok v
-						res ~= v
-						continue
-					as err e
-						break e err
-				as err _
-					break res.move-to-list ok
+			error mut inner-parse-error? = ()
+			res a[] = with out : build-list
+				out ~= first
+				loop
+					match separator.inner.fn[iter]
+					as ok _
+						match a.fn[iter]
+						as ok v
+							out ~= v
+							continue
+						as err e
+							error := e,
+							break
+					as err _
+						break
+			if e ?= error
+				e err
+			else
+				res ok
 		as err _
 			iter restore saved
 			() ok
@@ -271,22 +316,34 @@ quoted-string grammar string()
 	with iter : make-grammar
 		saved = iter save
 		if iter try-take "\""
-			if res ?= iter take-quoted-string-recur ()
+			if res ?= iter take-quoted-string-rest
 				res ok
 			else
 				(saved, "quoted string") err
 		else
 			(saved, "quoted string") err
-.take-quoted-string-recur string?(iter mut-string-iter, res char8 mut[])
-	if iter try-take "\""
-		res.move-to-list.as-string,
-	elif iter try-take "\\"
-		if esc ?= (iter.next ?? " ") escape
-			res ~= esc
-			iter take-quoted-string-recur res
-	elif n ?= iter next
-		res ~= n
-		iter take-quoted-string-recur res
+.take-quoted-string-rest string?(iter mut-string-iter)
+	error mut bool = false
+	res = with out : build-string
+		loop
+			if n ?= iter next
+				if n == "\""
+					break
+				elif n == "\\"
+					if esc ?= (iter.next ?? " ") escape
+						out ~= esc
+						continue
+					else
+						error := true
+						break
+				else
+					out ~= n
+					continue
+			else
+				error := true
+				break
+	unless error
+		res,
 .escape char8?(a char8)
 	if a == "n"
 		"\n",
@@ -306,7 +363,7 @@ word grammar string()
 	letter.one-or-more map (x => x as-string)
 
 .letter grammar char8()
-	"letter" char-matching-predicate x => x.is-letter
+	"letter" char-matching-predicate x => x is-letter
 
 .is-letter bool(a char8)
 	# TODO: support other alphabets
@@ -339,18 +396,22 @@ int grammar int64()
 	.value nat64
 	.count-digits nat64
 .take-nat-and-count-digits nat-and-count-digits?(a mut-string-iter)
-	if c ?= a next
-		if digit ?= c char-to-nat64
-			(digit take-nat-and-count-digits-recur 1, a),
-.take-nat-and-count-digits-recur nat-and-count-digits(acc nat64, count-digits nat64, a mut-string-iter)
-	if p ?= a peek
-		if v ?= p char-to-nat64
-			_ = a next
-			acc * 10 + v take-nat-and-count-digits-recur count-digits + 1, a
+	acc mut = 0
+	count-digits mut = 0
+	loop
+		if digit ?= a next-digit
+			acc := acc * 10 + digit
+			count-digits := count-digits + 1
+			continue
 		else
-			acc, count-digits
-	else
-		acc, count-digits
+			break
+	unless count-digits == 0
+		(acc, count-digits),
+.next-digit nat64?(a mut-string-iter)
+	if p ?= a peek
+		if digit ?= p char-to-nat64
+			_ = a next
+			digit,
 
 .char-to-nat64 nat64?(c char8)
 	if "0".to-nat8 <= c.to-nat8 && c.to-nat8 <= "9".to-nat8

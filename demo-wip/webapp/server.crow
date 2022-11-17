@@ -1,4 +1,5 @@
 import
+	crow/log
 	crow/io/file: read-file
 	crow/io/net/http-server: http-handler, http-server, with-block
 	crow/io/net/http-types:
@@ -7,7 +8,7 @@ import
 	crow/io/print: err, out, print
 	crow/io/stdin: read-stdin
 	crow/json: json, new, to-string
-	crow/parse: nat, parse, to-string
+	crow/parse: ~~, grammar, nat, parse, separated-by, text-not-containing-any, to-string
 	./db:
 		add-post, content, cookie-expire-seconds, db, list-posts, list-users, login, open-real-db,
 		post, post-info, register-user, to-string, user, user-cookie, user-info, user-name,
@@ -40,7 +41,7 @@ main nat^(args string[]) unsafe summon
 		elif path == "/posts"
 			(("posts", db.list-posts.json),)::json.to-string http-ok
 		elif path == "/user-name"
-			user = query parse-query-single "user"
+			user = query.parse-query["user"] ?? ""
 			match nat parse user
 			as ok user-id
 				db user-name user-id http-ok
@@ -52,8 +53,8 @@ main nat^(args string[]) unsafe summon
 			http-not-found
 	as http-post
 		if path == "/register"
-			args = req.request-body-string parse-query ("user-name", "password")
-			match db register-user args[0], args[1]
+			args = req.request-body-string parse-query
+			match db register-user (args["user-name"] ?? ""), (args["password"] ?? "")
 			as register-user-success user-id
 				# We need to get: user-name and password
 				(("userId", user-id.json),)::json.to-string http-ok
@@ -62,10 +63,9 @@ main nat^(args string[]) unsafe summon
 			as user-already-exists
 				"User already exists" http-bad-query
 		elif path == "/login"
-			args = req.request-body-string parse-query ("user-name", "password")
-			user-name = args[0]
-			password = args[1]
-			match db login user-name, password
+			args = req.request-body-string parse-query
+			user-name = args["user-name"] ?? ""
+			match db login user-name, (args["password"] ?? "")
 			as ok cookie
 				"Logged in as {user-name}" http-ok (("Set-Cookie", "login={cookie}; Max-Age={cookie-expire-seconds}"),)
 			as err e
@@ -113,17 +113,19 @@ main nat^(args string[]) unsafe summon
 .parse-cookie string?(cookies-string string, cookie-name string)
 	(cookies-string parse-cookies (cookie-name,))[0]
 
-# Result parallels 'arg-names'. Defaults to empty strings.
-.parse-query string[](s string, arg-names string[])
-	res string mut[] = arg-names.size fill-mut-list ""
-	for part : s split-by "&"
-		if pair ?= part try-split-once "="
-			if index ?= arg-names index-of pair.a
-				res[index] := pair b
-	res move-to-list
+.parse-query string[string](s string)
+	match query parse s
+	as ok pairs
+		pairs to-dict
+	as err err
+		error log "failed to parse query {s} with error {err}"
+		()
 
-.parse-query-single string(s string, arg-name string)
-	(s parse-query (arg-name,))[0]
+.query grammar<(string, string)[]>()
+	query-part separated-by "&"
+.query-part grammar<(string, string)>()
+	identifier = ("=", "&").text-not-containing-any
+	identifier ~~ "=" ~~ identifier
 
 .json json(a user-info)
 	("user", a.user.json), ("userName", a.user-name.json)

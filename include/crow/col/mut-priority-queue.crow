@@ -15,7 +15,7 @@ import
 		~=, ~~=, begin-pointer, clear, copy, for-loop, is-empty, move-to-array, mut-list, new, pop,
 		reversed, size, subscript, temp-as-array, to-list, to-mut-list
 	./list: list, list-equal, new, reverse, to-list
-	./sort: set-sort-by, set-sort-by-reverse
+	./sort: set-sort, set-sort-reverse
 	./private/sort-utils: binary-search-insert-pointer
 
 ###
@@ -40,7 +40,7 @@ new<k, v> mut-priority-queue<k, v>(...a array (k, v)) is-data<k> compare<k>
 # Copies a list to a new priority queue.
 to-mut-priority-queue<k, v> mut-priority-queue<k, v>(a (k, v)[]) is-data<k> compare<k>
 	mins = a to-mut-list
-	mins.sort-by-reverse := pair => pair from
+	mins.sort-reverse := pair => pair from
 	mins, ()
 
 # Removes all pairs from the queue.
@@ -90,7 +90,7 @@ pop<k, v> (k, v)?(a mut-priority-queue<k, v>) is-data<k> compare<k>
 		# Mins are popped off from the right.
 		# This preserves insertion order: 'sort-by' doesn't change that,
 		# then we reverse, then popping from the right reverses it again.
-		bucket.sort-by-reverse := it => it from
+		bucket.sort-reverse := it => it from
 		a.mins ~~= bucket
 	res
 
@@ -116,7 +116,7 @@ to-list<k, v> (k, v)[](a mut-priority-queue<k, v>) trusted is-data<k> compare<k>
 	for index : 0 .. old-mins.size
 		if index < a.buckets.size
 			bucket = a.buckets[index]
-			bucket.sort-by := it => it from
+			bucket.sort := it => it from
 			for x : bucket reversed
 				a.mins ~= x
 		a.mins ~= old-mins[index]

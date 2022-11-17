@@ -149,24 +149,22 @@ shell-exec string(command string) trusted summon
 
 .read-from-pipe-windows string(pipe HANDLE) summon unsafe
 	res nat8 mut[] = ()
-	res read-from-pipe-windows-recur pipe
-	res.move-to-list as-string
-
-.read-from-pipe-windows-recur void(res nat8 mut[], pipe HANDLE) summon unsafe
-	read-at-a-time = 0x1000
-	old-size = res size
-	res unsafe-set-size old-size + read-at-a-time
-	old-end = res.end-pointer - read-at-a-time
-	n-read mut nat32 = 0
-	ok = pipe ReadFile old-end, read-at-a-time.to-nat32, &n-read, null
-	if ok
-		assert n-read.to-nat64 <= read-at-a-time
-		res unsafe-set-size old-size + n-read.to-nat64
-		res read-from-pipe-windows-recur pipe
-	else
-		res unsafe-set-size old-size
-		err = GetLastError
-		assert err == ERROR_BROKEN_PIPE : "Error reading from pipe: {err show-win32-error}"
+	loop
+		read-at-a-time = 0x1000
+		old-size = res size
+		res unsafe-set-size old-size + read-at-a-time
+		old-end = res.end-pointer - read-at-a-time
+		n-read mut nat32 = 0
+		ok = pipe ReadFile old-end, read-at-a-time.to-nat32, &n-read, null
+		if ok
+			assert n-read.to-nat64 <= read-at-a-time
+			res unsafe-set-size old-size + n-read.to-nat64
+			continue
+		else
+			res unsafe-set-size old-size
+			err = GetLastError
+			assert err == ERROR_BROKEN_PIPE : "Error reading from pipe: {err show-win32-error}"
+			break res.move-to-list as-string
 
 .spawn-and-wait-result-posix process-result(exe c-string, args c-string[]) summon unsafe
 	stdout-pipes = make-pipes

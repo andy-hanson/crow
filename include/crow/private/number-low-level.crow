@@ -199,9 +199,8 @@ max-nat64 nat64() noctx
 	0xffffffffffffffff
 
 round-up-to-power-of-two nat64(n nat64) noctx
-	1 round-up-to-power-of-two-recur n
-.round-up-to-power-of-two-recur nat64(acc nat64, n nat64) noctx
-	if acc >= n
-		acc
-	else
-		acc wrap-mul 2 round-up-to-power-of-two-recur n
+	# TODO: this needs to throw if 'n' is too big to round up!
+	acc mut = 1
+	until acc >= n
+		acc := acc wrap-mul 2
+	acc

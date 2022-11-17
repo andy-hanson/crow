@@ -1,0 +1,17 @@
+no-std
+import
+	../../misc: new, void
+	../../number: ==, nat64
+	../../test-util: is
+	../array: ~=, ~~=, array, build-array, new, size, with-block
+
+dummy-array-tests nat64()
+	0
+
+test
+	a array void = with out : build-array
+		out ~= ()
+		out.size is 1
+		out ~~= ((), ())
+		out.size is 3
+	a.size is 3

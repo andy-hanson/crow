@@ -1,6 +1,7 @@
 no-std
 import
-	crow/bytes-types: bytes256
+	crow/bytes-types: bytes256, new
+	crow/extra-types: err-t
 	crow/number: int32, nat16
 	crow/pointer: mut-pointer
 	crow/string: char8, c-string
@@ -15,6 +16,9 @@ dirent record mut by-ref extern
 	d_type mut char8
 	# TODO: d_name char8[256]
 	d_name mut bytes256
+new dirent()
+	0, 0, 0, "\0", ()
 
 opendir dir(name c-string) extern<c> summon
+closedir err-t(dirp dir) extern<c> summon
 readdir_r int32(dirp dir, entry dirent, result dirent mut*) extern<c> summon

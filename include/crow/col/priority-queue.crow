@@ -18,7 +18,7 @@ import
 	./list:
 		==, ~=, build-list, first, for-loop, is-empty, list, list-equal, new, tail, to-array,
 		to-list, with-block
-	./sort: set-sort-by, sort-by
+	./sort: set-sort, sort
 
 ###
 Immutable priority queue.
@@ -64,7 +64,7 @@ to-priority-queue<k, v> priority-queue<k, v>(a (k, v)[]) is-data<k> compare<k>
 		# TODO: type annotation should not be necessary
 		()::node<k, v>?,
 	else
-		sorted = a sort-by pair => pair from
+		sorted = a sort pair => pair from
 		root node<k, v> = sorted.first!, sorted.tail.to-array, ()
 		# TODO: type annotation should not be necessary
 		(root,)::node<k, v>?,
@@ -206,7 +206,7 @@ pop<k, v> popped<k, v>?(a priority-queue<k, v>) is-data<k> compare<k>
 	mid = compacted.begin-pointer compact-non-singles nodes-to-compact
 	end = mid compact-singles root
 	assert end == compacted.end-pointer
-	compacted set-sort-by pair => pair from
+	compacted set-sort pair => pair from
 	arr = compacted cast-immutable
 	arr.first!, arr.tail, ()
 
@@ -255,7 +255,7 @@ for-loop<k, v> void(a priority-queue<k, v>, f act void(k, v)) is-data<k> compare
 	res mut-array each-part<k, v> = a.node-count uninitialized-mut-array
 	end = res.begin-pointer fill-each-arr a.root
 	assert end == res.end-pointer
-	res set-sort-by it => it.min from
+	res set-sort it => it.min from
 	res
 
 .node-count<k, v> nat64(a priority-queue<k, v>)

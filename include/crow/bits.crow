@@ -7,16 +7,16 @@ So, the number 5 has bits 0 and 2 set, since 5 is `2**0 + 2**2`.
 
 no-std
 import
-	./bool: &&, bool
+	./bool: bool
 	./compare: !=, <, >
 	./fun-util: subscript
 	./misc: new, void
-	./number: ==, <=>, new, to-int64, to-nat64
+	./number: ==, <=>, +, new, to-int64, to-nat64
 	./private/bootstrap:
 		int8, int16, int32, int64, nat8, nat16, nat32, nat64, todo
 	./private/number-low-level:
 		unsafe-mul, unsafe-to-int32, unsafe-to-int64, unsafe-to-nat8, unsafe-to-nat64,
-		unsafe-to-nat16, unsafe-to-nat32, wrap-add, wrap-sub
+		unsafe-to-nat16, unsafe-to-nat32, wrap-sub
 
 ###
 Negates every bit.
@@ -173,25 +173,13 @@ one-bits one-bits(a nat64)
 	a,
 # Calls `f` on the index of each `1` bit.
 for-loop void(a one-bits, f act void(nat64))
-	a.inner one-bits-recur 0, f
-# TODO:PERF
-.one-bits-recur void(a nat64, offset nat64, f act void(nat64)) trusted
-	unless a == 0
-		if a bits-intersect 1
+	cur mut = a inner
+	offset mut = 0
+	until cur == 0
+		if cur bits-intersect 1
 			f[offset]
-		(a unsafe-bit-shift-right 1) one-bits-recur (offset wrap-add 1), f
-
-filter-bits nat64(a nat64, f act bool(nat64))
-	0 filter-bits-recur a, 0, f
-.filter-bits-recur nat64(acc nat64, a nat64, offset nat64, f act bool(nat64)) trusted
-	if a == 0
-		acc
-	else
-		new-acc = if a bits-intersect 1 && f[offset]
-			acc add-bit offset
-		else
-			acc
-		new-acc filter-bits-recur (a unsafe-bit-shift-right 1), (offset wrap-add 1), f
+		cur := cur >> 1
+		offset := offset + 1
 
 ###
 Concatenates two 32-bit numbers to a 64-bit number.

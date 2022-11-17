@@ -3,12 +3,14 @@ import
 	crow/io/path: child-path, parent-path
 	crow/io/print: out, print
 	crow/json: json, json-object, json-string, to-string
+	crow/test-util/test-runner: run-all-tests
 	./document: documentation
 	./pages: pages
 	./path-and-content: content, out-path, new, path-and-content
 	./search-dir-recursive: remove-include-and-crow, search-dir-recursive
 
 main nat^(_ string[]) summon
+	run-all-tests
 	all-content = documentation ~~ pages ~ include-all
 	for content : all-content
 		content ensure-up-to-date

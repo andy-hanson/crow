@@ -171,7 +171,7 @@ Result entries are temporary, must copy!
 	err1 == 0 hard-assert
 	# omit 'get-native-backtrace' in addition to other skipped
 	cursor unwind-skip (skip wrap-add 1)
-	end = gc unwind-recur entries, entries + max-entries, cursor
+	end = gc unwind entries, entries + max-entries, cursor
 	(entries .. end).as-array,
 
 .unwind-skip void(cursor unw_cursor_t, skip nat64) noctx unsafe
@@ -180,26 +180,29 @@ Result entries are temporary, must copy!
 		cursor unwind-skip (skip wrap-sub 1)
 
 # Returns one past the last entry written to
-.unwind-recur backtrace-entry mut*(
+.unwind backtrace-entry mut*(
 	gc gc-ctx,
-	out-cur backtrace-entry mut*,
+	out-begin backtrace-entry mut*,
 	out-end backtrace-entry mut*,
 	cursor unw_cursor_t,
 ) noctx unsafe
-	if out-cur == out-end || cursor.unw_step <= 0
-		out-cur
-	else
-		offset mut unw_word_t = 0
-		buf-size = 256
-		buf-try char8 mut*? = gc try-alloc-uninitialized buf-size
-		if buf ?= buf-try
-			err = cursor unw_get_proc_name buf, buf-size, &offset
-			*out-cur := if err == 0
-				# TODO: get filename and line number too
-				buf.as-const, "", 0, 0
-			else
-				"", "", 0, 0
-			gc unwind-recur out-cur + 1, out-end, cursor
+	out-cur mut = out-begin
+	loop
+		if out-cur == out-end || cursor.unw_step <= 0
+			break out-cur
 		else
-			*out-cur := "<<out of memory for backtrace>>", "", 0, 0
-			out-cur + 1
+			offset mut unw_word_t = 0
+			buf-size = 256
+			buf-try char8 mut*? = gc try-alloc-uninitialized buf-size
+			if buf ?= buf-try
+				err = cursor unw_get_proc_name buf, buf-size, &offset
+				*out-cur := if err == 0
+					# TODO: get filename and line number too
+					buf.as-const, "", 0, 0
+				else
+					"", "", 0, 0
+				out-cur := out-cur + 1
+				continue
+			else
+				*out-cur := "<<out of memory for backtrace>>", "", 0, 0
+				break out-cur + 1

@@ -38,15 +38,17 @@ main nat^(_ string[]) unsafe summon
 
 .send-request void(socket fd-t, request string) unsafe summon
 	forbid request is-empty
-	socket send-request-recur request.to-bytes.to-array
-.send-request-recur void(socket fd-t, bytes array nat8) unsafe
-	bytes-sent = socket write bytes.begin-pointer, bytes.size
-	# TODO: might be 0 if the socket is overloaded -- delay and try again
-	assert bytes-sent > 0
-	if bytes-sent < bytes.size.to-int64
-		socket send-request-recur bytes[bytes-sent.to-nat64 .. bytes.size]
-	else
-		assert bytes-sent == bytes.size.to-int64
+	bytes mut = request.to-bytes to-array
+	loop
+		bytes-sent = socket write bytes.begin-pointer, bytes.size
+		# TODO: might be 0 if the socket is overloaded -- delay and try again
+		assert bytes-sent > 0
+		if bytes-sent < bytes.size.to-int64
+			bytes := bytes[bytes-sent.to-nat64 .. bytes.size]
+			continue
+		else
+			assert bytes-sent == bytes.size.to-int64
+			break
 
 .receive-response void(socket fd-t) unsafe summon
 	buffer mut-array nat8 = 0x2000 uninitialized-mut-array

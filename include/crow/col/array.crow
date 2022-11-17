@@ -1,11 +1,7 @@
-###
-More functions on arrays are in the `crow/col/array-util` module.
-###
-
 no-std
 import
-	../bool: !, &&, ||, bool, false, true
-	../compare: !=, <, <=, >, compare, comparison, equal, greater, less
+	../bool: &&, ||, bool, false, new, true
+	../compare: ==, !=, <, <=, >, compare, comparison, equal, greater, less
 	../fun-util: subscript
 	../misc: break-or-continue, loop-break, new, void
 	../number: ==, <=>, +, -, *, nat64, round-up-to-power-of-two
@@ -15,7 +11,7 @@ import
 	../private/range-low-level: .., high, low, range, size
 	../pointer:
 		==, <=>, +, -, *, as-const, const-pointer, mut-pointer, null, pointer-cast, set-deref,
-		size-of, subscript
+		size-of, subscript, to-mut-pointer, to-nat64
 	./iter: new, value-and-rest
 export
 	../private/bootstrap: array, begin-pointer, size
@@ -55,7 +51,10 @@ Throws if the slice would exceed the bounds of the array.
 ###
 subscript<a> array a(a array a, range range nat64) noctx trusted
 	assert range.high <= a.size : "slice out of bounds"
-	a.begin-pointer + range.low .. a.begin-pointer + range.high as-array
+	if size-of@<a> == 0
+		range.size, a.begin-pointer
+	else
+		a.begin-pointer + range.low .. a.begin-pointer + range.high as-array
 
 ###
 Prepend an element to an array.
@@ -86,39 +85,38 @@ If you need concatenate many arrays, use a `mut[]` to accumulate elements, then 
 
 # TODO: array comparison should be generic
 array-equal<a> bool(a array a, b array a) no-doc trusted noctx equal<a>
-	a.begin-pointer equal-recur a.end-pointer, b.begin-pointer, b.end-pointer
-.equal-recur<a> bool(a a*, a-end a*, b a*, b-end a*) unsafe noctx equal<a>
-	if a == a-end
-		b == b-end
-	else
-		b != b-end && *a == *b && a + 1 equal-recur a-end, b + 1, b-end
-
-array-equal<a> bool(a array a, b array a, eq act bool(a, a)) no-doc trusted
-	a.begin-pointer equal-recur a.end-pointer, b.begin-pointer, b.end-pointer, eq
-.equal-recur<a> bool(a a*, a-end a*, b a*, b-end a*, eq act bool(a, a)) unsafe
-	if a == a-end
-		b == b-end
-	else
-		b != b-end && eq[*a, *b] && a + 1 equal-recur a-end, b + 1, b-end, eq
+	if a.size == b.size
+		a-cur mut = a begin-pointer
+		a-end = a end-pointer
+		b-cur mut = b begin-pointer
+		loop
+			if a-cur == a-end
+				break true
+			elif *a-cur != *b-cur
+				break false
+			else
+				a-cur := a-cur + 1
+				b-cur := b-cur + 1
+				continue
 
 array-compare<a> comparison(a array a, b array a) no-doc trusted noctx compare<a>
-	a.begin-pointer compare-recur a.end-pointer, b.begin-pointer, b.end-pointer
-.compare-recur<a> comparison(a a*, a-end a*, b a*, b-end a*) unsafe noctx compare<a>
-	if a == a-end
-		if b == b-end
-			equal
+	a-cur mut = a begin-pointer
+	a-end = a end-pointer
+	b-cur mut = b begin-pointer
+	b-end = b end-pointer
+	loop
+		if a-cur == a-end
+			break b-cur == b-end ? equal : less
+		elif b-cur == b-end
+			break greater
 		else
-			less
-	elif b == b-end
-		greater
-	else
-		match *a <=> *b
-		as less
-			less
-		as equal
-			a + 1 compare-recur a-end, b + 1, b-end
-		as greater
-			greater
+			cmp = *a-cur <=> *b-cur
+			if cmp == equal
+				a-cur := a-cur + 1
+				b-cur := b-cur + 1
+				continue
+			else
+				break cmp
 
 # region basic array operations
 
@@ -238,7 +236,17 @@ Calls `f` on each element of `a` and returns `true` the first time `f` does.
 Returns `false` iff `f` returned `false` every time.
 ###
 exists<a> bool(a array a, f act bool(a))
-	!a.is-empty && (f[a[0]] || (a.tail exists f))
+	for x : a
+		if f[x]
+			break true
+	else
+		false
+exists<a> bool(a array a, f act bool(a, nat64))
+	for x, i : a
+		if f[x, i]
+			break true
+	else
+		false
 
 ###
 Equivalent to `f[a[0]] && f[a[1]] && ... && f[a[a.size - 1]]`.
@@ -363,7 +371,7 @@ array-iter<a> record by-val
 new<a> array-iter a() noctx
 	(), 0
 
-iter<a> array-iter<a>(a array a) noctx
+iter<a> array-iter a(a array a) noctx
 	a, 0
 
 # Iterator at the end, suitable for iterating over `a` by calling `prev`.
@@ -386,6 +394,40 @@ slice-left<a> array a(a array-iter a)
 
 slice-right<a> array a(a array-iter a)
 	a.xs[a.index .. a.xs.size]
+
+array-mut-iter<a> record mut
+	.xs array a
+	.index mut nat64
+
+mut-iter<a> array-mut-iter a(a array a)
+	a, 0
+
+save<a> array-iter a(a array-mut-iter a)
+	a.xs, a.index
+
+restore<a> void(a array-mut-iter a, saved array-iter a)
+	assert a.xs.size == saved.xs.size
+	a.index := saved.index
+
+next<a> a?(a array-mut-iter a)
+	if res ?= a.peek
+		a.index := a.index + 1
+		res,
+
+peek<a> a?(a array-mut-iter a)
+	if a.index < a.xs.size
+		a.xs[a.index],
+
+prev<a> a?(a array-mut-iter a)
+	if a.index > 0
+		a.index := a.index - 1
+		a.xs[a.index],
+
+slice-left<a> array a(a array-mut-iter a)
+	a.save slice-left
+
+slice-right<a> array a(a array-mut-iter a)
+	a.save slice-right
 
 region low-level
 
@@ -422,44 +464,63 @@ build-array build-array(size-hint nat64)
 
 array-builder<a> record mut
 	.begin mut a mut*
+	# If `size-of@<a> == 0`, we store the size here instead of an actual pointer
 	.cur mut a mut*
 	.end mut a mut*
 
 with-block<a> array a(a build-array, f act void(array-builder a)) trusted
-	begin a mut* = a.size-hint alloc-uninitialized
-	builder array-builder a = begin, begin, begin + a.size-hint
-	f[builder]
-	res = builder.begin .. builder.cur as-array
-	builder.begin := null
-	builder.cur := null
-	builder.end := null
-	res
+	if size-of@<a> == 0
+		# store size in 'cur'
+		builder array-builder a = null, 0.to-mut-pointer, null
+		f[builder]
+		builder.size, null
+	else
+		begin a mut* = a.size-hint alloc-uninitialized
+		builder array-builder a = begin, begin, begin + a.size-hint
+		f[builder]
+		res = builder.begin .. builder.cur as-array
+		builder.begin := null
+		builder.cur := null
+		builder.end := null
+		res
 
-~=<a> void(a array-builder a, value a) trusted
-	forbid a.begin == null
-	assert a.cur <= a.end
-	if a.cur == a.end
-		cur-size = a.end - a.begin
-		new-capacity = cur-size == 0 ? 4 : cur-size * 2
-		new-begin a mut* = new-capacity alloc-uninitialized
-		new-begin copy-data-from a.begin.as-const, cur-size
-		a.begin := new-begin
-		a.cur := new-begin + cur-size
-		a.end := new-begin + new-capacity
-	*a.cur := value
-	a.cur := a.cur + 1
+~= <a> void(a array-builder a, value a) trusted
+	if size-of@<a> == 0
+		a.cur := (a.cur.to-nat64 + 1).to-mut-pointer
+	else
+		forbid a.begin == null
+		assert a.cur <= a.end
+		if a.cur == a.end
+			cur-size = a.end - a.begin
+			new-capacity = cur-size == 0 ? 4 : cur-size * 2
+			new-begin a mut* = new-capacity alloc-uninitialized
+			new-begin copy-data-from a.begin.as-const, cur-size
+			a.begin := new-begin
+			a.cur := new-begin + cur-size
+			a.end := new-begin + new-capacity
+		*a.cur := value
+		a.cur := a.cur + 1
 
 ~~=<a> void(a array-builder a, values array a) trusted
-	forbid a.begin == null
-	assert a.cur <= a.end
-	if a.cur + values.size > a.end
-		cur-size = a.cur - a.begin
-		min-size = cur-size + values.size
-		new-capacity = min-size.round-up-to-power-of-two
-		new-begin a mut* = new-capacity alloc-uninitialized
-		new-begin copy-data-from a.begin.as-const, cur-size
-		a.begin := new-begin
-		a.cur := new-begin + cur-size
-		a.end := new-begin + new-capacity
-	a.cur copy-data-from values.begin-pointer, values.size
-	a.cur := a.cur + values.size
+	if size-of@<a> == 0
+		a.cur := (a.cur.to-nat64 + values.size).to-mut-pointer
+	else
+		forbid a.begin == null
+		assert a.cur <= a.end
+		if a.cur + values.size > a.end
+			cur-size = a.cur - a.begin
+			min-size = cur-size + values.size
+			new-capacity = min-size.round-up-to-power-of-two
+			new-begin a mut* = new-capacity alloc-uninitialized
+			new-begin copy-data-from a.begin.as-const, cur-size
+			a.begin := new-begin
+			a.cur := new-begin + cur-size
+			a.end := new-begin + new-capacity
+		a.cur copy-data-from values.begin-pointer, values.size
+		a.cur := a.cur + values.size
+
+size<a> nat64(a array-builder a) trusted
+	if size-of@<a> == 0
+		a.cur to-nat64
+	else
+		a.cur - a.begin

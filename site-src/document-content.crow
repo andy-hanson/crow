@@ -1,4 +1,7 @@
 import
+	crow/parse:
+		/, ~~, and-return, exact, grammar, grammar-skip, many, map, parse, text-delimited,
+		text-not-containing-any, to-string
 	./module:
 		body_, doc-comment, exports, fields, has-private-fields, is-mut, members, module,
 		module-export, module-export-value, name, param, params, path, purity, record-field,
@@ -235,41 +238,58 @@ module-top string(path string)
 	assert a.size == 1
 	a[0]
 
-.format-comment string(a string)
-	"<p>" format-comment-recur text, a
+format-comment string(a string)
+	match comment-part.many parse a.strip
+	as ok parts
+		parts format-comment-parts
+	as err e
+		throw "Could not parse doc comment:\n{a}\n\nReason: {e}"
 
-.comment-state enum
-	text
-	code-block
+.format-comment-parts string(parts comment-part[])
+	res mut string = "<p>"
+	for part : parts
+		res := res ~~ match part
+		as text t
+			t
+		as multi-newline
+			"</p><p>"
+		as newline
+			"<br/>"
+		as code-short code
+			"<code>{code html-escape}</code>"
+		as code-block code
+			"</p><div class=\"code-block\">{code html-escape}</div><p>"
+	"{res}</p>"
 
-.close-state string(a comment-state)
-	match a
-	as text
-		"</p>"
-	as code-block
-		"</div>"
+test
+	"".format-comment is "<p></p>"
+	" a\nb ".format-comment is "<p>a<br/>b</p>"
+	"a\n\nb".format-comment is "<p>a</p><p>b</p>"
+	"a\n\n\nb".format-comment is "<p>a</p><p>b</p>"
+	"Use `x`\nNot `y`".format-comment is "<p>Use <code>x</code><br/>Not <code>y</code></p>"
+	actual = "It is:\n\n```\nfoo\n```\nGot it?".format-comment
+	actual is "<p>It is:</p><div class=\"code-block\">foo</div><p>Got it?</p>"
 
-.format-comment-recur string(acc string, state comment-state, a string)
-	if split ?= a try-split-once-by-fn x => x == "\n" || x == "`"
-		acc2 = "{acc}{split left}"
-		if split.middle == "\n"
-			if rest ?= state == text ? split.right try-remove-start "\n"
-				"{acc2}</p><p>" format-comment-recur state, rest
-			else
-				"{acc2}<br />" format-comment-recur state, split.right
-		else
-			assert split.middle == "`"
-			if rest ?= split.right try-remove-start "``"
-				match state
-				as text
-					acc3 = """{acc2}</p><div class="code-block">"""
-					acc3 format-comment-recur code-block, rest.strip-left
-				as code-block
-					"{acc2}</div>" format-comment-recur text, rest.strip-left
-			elif pair ?= split.right try-split-once "`"
-				code = pair.a replace "<", "&lt;"
-				"{acc2}<code>{code}</code>" format-comment-recur state, pair.b
-			else
-				acc2 format-comment-recur state, split.right
-	else
-		"{acc}{a}{state close-state}"
+.html-escape string(a string)
+	a replace "<", "&lt;"
+
+.comment-part union
+	text string
+	multi-newline
+	newline
+	code-short string
+	code-block string
+
+.comment-part grammar comment-part()
+	code-block / newlines / code-short / text
+.newlines grammar comment-part()
+	(("\n\n" ~~ skip-newlines) and-return multi-newline) / ("\n" exact newline)
+.code-block grammar comment-part()
+	block = "```" text-delimited "```"
+	skip-newlines ~~ block ~~ skip-newlines map x => x.strip code-block
+.skip-newlines grammar-skip()
+	"\n".exact many
+.code-short grammar comment-part()
+	"`" text-delimited "`" map x => x code-short
+.text grammar comment-part()
+	("\n", "`").text-not-containing-any map x => x text

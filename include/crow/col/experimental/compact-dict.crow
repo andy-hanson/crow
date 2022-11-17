@@ -7,7 +7,7 @@ import
 	../../log: info, log
 	../../misc: is-data, new, void
 	../../number: ==, <=>, +, nat64
-	../../option: ??, is-empty, new, option, option-equal
+	../../option: is-empty, new, option, option-equal
 	../../pointer: ref-eq
 	../../range: ..
 	../../string: ==, ~~, join, literal, string, to-string
@@ -97,13 +97,17 @@ TODO
 		a
 
 subscript<k, v> v?(a compact-dict<k, v>, key k) is-data<k> compare<k> hash-mix<k>
-	a.impl subscript-recur key
-.subscript-recur<k, v> v?(a impl<k, v>, key k) is-data<k> compare<k> hash-mix<k>
-	match a
-	as overlay o
-		o.pairs[key] ?? o.prev subscript-recur key
-	as end-node e
-		e[key]
+	cur mut = a impl
+	loop
+		match cur
+		as overlay o
+			if res ?= o.pairs[key]
+				break res
+			else
+				cur := o prev
+				continue
+		as end-node e
+			break e[key]
 
 in<k, v> bool(key k, a compact-dict<k, v>) is-data<k> compare<k> hash-mix<k>
 	!a[key].is-empty
@@ -155,20 +159,23 @@ in<k, v> bool(key k, a compact-dict<k, v>) is-data<k> compare<k> hash-mix<k>
 region iteration
 
 for-loop<k, v> void(a compact-dict<k, v>, f act void(k, v)) is-data<k> compare<k> hash-mix<k>
-	a.impl for-loop-recur (), f
-.for-loop-recur<k, v> void(a impl<k, v>, seen mut-set k, f act void(k, v)) is-data<k> compare<k> hash-mix<k>
-	match a
-	as overlay o
-		for k, v-opt : o pairs
-			if seen try-add k
-				if v ?= v-opt
+	cur mut = a impl
+	seen mut-set k = ()
+	loop
+		match cur
+		as overlay o
+			for k, v-opt : o pairs
+				if seen try-add k
+					if v ?= v-opt
+						f[k, v]
+			cur := o prev
+			continue
+		as end-node e
+			for k, v : e
+				unless k in seen
+					# Don't need to add to 'seen' because this is the last node.
 					f[k, v]
-		o.prev for-loop-recur seen, f
-	as end-node e
-		for k, v : e
-			unless k in seen
-				# Don't need to add to 'seen' because this is the last node.
-				f[k, v]
+			break
 
 for-loop<a, k, v> a[](a compact-dict<k, v>, f act a(k, v)) trusted is-data<k> compare<k> hash-mix<k>
 	with out : a.size build-list

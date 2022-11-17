@@ -1,18 +1,17 @@
 no-std
 import
-	../bool: bool
-	../compare: ==, <, <=, >, compare, comparison, equal, less
+	../bool: ||, bool
+	../compare: !=, <, <=, >, compare
 	../fun-util: subscript
 	../misc: new, void
 	../number: ==, <=>, +, -, /, nat64
 	../option: !
-	../pointer: ==, +, -, *, mut-pointer, set-deref
-	../range: ..
-	../string: ==, <=>, iter, literal, next, slice-left, string
+	../range: .., for-loop, reverse
+	../string: ==, <=>, end-iter, iter, literal, next, prev, slice-left, slice-right, string
 	../test-util: is
 	./mut-array:
-		begin-pointer, cast-immutable, end-pointer, is-empty, mut-array, new, size, set-subscript,
-		subscript, to-array, to-mut-array
+		cast-immutable, for-loop, is-empty, mut-array, new, size, set-subscript, subscript,
+		to-array, to-mut-array
 	./iter: rest
 	./list: ==, list, list-equal, new, to-array, to-list
 	./mut-list: mut-list, set-reverse, temp-as-mut-array
@@ -20,31 +19,17 @@ import
 ###
 Sorts the elements of `a` from least to greatest.
 
-That means that the result satisfies `res[i] <= res[i + 1]`.
-
-This is O(n * log(n)).
+The result satisfies `res[i] <= res[i + 1]`.
 ###
 sort<a> a[](a a[]) compare<a>
-	a sort (x, y) => x <=> y
+	a sort x => x
 ###
-Same as `sort`, but uses a custom comparer.
-
-`comparer` should be consistent, meaning always return the same result for the same inputs.
+Same as `sort`, but use `get-key` to get the comparable part of each element.
 ###
-sort<a> a[](a a[], comparer act comparison(a, a)) trusted
+sort<a, b> a[](a a[], get-key fun b(a)) trusted compare<b>
 	res = a.to-array to-mut-array
-	res set-sort comparer
+	res set-sort get-key
 	res.cast-immutable to-list
-
-###
-Same as `sort`, but uses `f` to get the comparable part of each element.
-
-`f` should be consistent, meaning always return the same `b` for the same `a`.
-###
-sort-by<a, b> a[](a a[], f act b(a)) compare<b>
-	a sort (x, y) => f[x] <=> f[y]
-
-# TODO: try https://github.com/BonzaiThePenguin/WikiSort
 
 ###
 Sort and remove duplicates.
@@ -60,84 +45,57 @@ test
 
 	# Test that it's a stable sort
 	arr mut-array string = "2a", "2b", "1a", "1b"
-	arr.sort := (x, y) => x.first-char <=> y.first-char
+	arr.sort := x => x.first-char
 	arr.to-array.to-list is ("1a", "1b", "2a", "2b")
+	arr.sort := x => x.last-char
+	arr.to-array.to-list is ("1a", "2a", "1b", "2b")
 
 .== bool(a string[], b string[])
 	a list-equal b
 
 .first-char string(a string)
 	a.iter.next!.rest slice-left
+.last-char string(a string)
+	# TODO: this should not be so complicated
+	a.end-iter.prev!.rest slice-right
 
 # Sort the elements of `a` from least to greatest.
 set-sort<a> void(a a mut[]) compare<a> trusted
-	a.temp-as-mut-array set-sort
-# Like `set-sort`, but uses a custom comparer.
-set-sort<a> void(a a mut[], comparer act comparison(a, a)) trusted
-	a.temp-as-mut-array set-sort comparer
-# Like `set-sort`, but `f` to get the comparable part of each element.
-set-sort-by<a, b> void(a a mut[], f act b(a)) compare<b> trusted
-	a.temp-as-mut-array set-sort-by f
-set-sort-by-reverse<a, b> void(a a mut[], f act b(a)) compare<b>
-	a set-sort-by f
+	a set-sort x => x
+# Like `set-sort`, but use `get-key` to get the comparable part of each element.
+set-sort<a, b> void(a a mut[], get-key fun b(a)) compare<b> trusted
+	a.temp-as-mut-array set-sort get-key
+set-sort-reverse<a, b> void(a a mut[]) compare<a>
+	a set-sort-reverse x => x
+set-sort-reverse<a, b> void(a a mut[], get-key fun b(a)) compare<b>
+	a set-sort get-key
 	a set-reverse
 
 set-sort<a> void(a mut-array a) compare<a>
-	a set-sort (x, y) => x <=> y
-set-sort<a> void(a mut-array a, comparer act comparison(a, a)) trusted
+	a set-sort x => x
+set-sort<a, b> void(a mut-array a, get-key fun b(a)) compare<b>
+	# TODO: PERF Try https://github.com/BonzaiThePenguin/WikiSort
+	# Given that a subarray is sorted, add one more element in sorted order
 	unless a is-empty
-		a.begin-pointer insertion-sort-recur a.begin-pointer + 1, a.end-pointer, comparer
-set-sort-by<a, b> void(a mut-array a, f act b(a)) compare<b>
-	a set-sort (x, y) => f[x] <=> f[y]
-
-.insertion-sort-recur<a> void(begin a mut*, cur a mut*, end a mut*, comparer act comparison(a, a)) unsafe
-	unless cur == end
-		begin insert cur, *cur, comparer
-		begin insertion-sort-recur cur + 1, end, comparer
-
-.insert<a> void(begin a mut*, cur a mut*, value a, comparer act comparison(a, a)) unsafe
-	forbid begin == cur
-	prev = cur - 1
-	if comparer[value, *prev] == less
-		*cur := *prev
-		if begin == prev
-			*prev := value
-		else
-			begin insert prev, value, comparer
-	else
-		*cur := value
+		for i : 1 .. a.size + 1
+			a[0 .. i] move-last-sorted get-key
+.move-last-sorted<a, b> void(a mut-array a, get-key fun b(a)) compare<b>
+	for i : 1 .. a.size reverse
+		if get-key[a[i - 1]] > get-key[a[i]]
+			a swap i, i - 1
 
 ###
 Sort `a` in place and remove unique elements.
 Returns is a slice of the original `a`, which will be shorter if non-unique elements were removed.
 ###
-set-sort-unique<a> mut-array a(a mut-array a) compare<a>
-	a set-sort-unique (x, y) => x <=> y
-set-sort-unique<a> mut-array a(a mut-array a, comparer act comparison(a, a)) trusted
-	if a is-empty
-		a
-	else
-		a set-sort comparer
-		end = *a.begin-pointer set-unique-recur a.begin-pointer + 1, a.begin-pointer + 1, a.end-pointer, comparer
-		a[0 .. end - a.begin-pointer]
-set-sort-unique-by<a, b> mut-array a(a mut-array a, f act b(a)) compare<b>
-	a set-sort-unique (x, y) => f[x] <=> f[y]
-.set-unique-recur<a> a mut*(
-	prev a,
-	read a mut*,
-	write a mut*,
-	end a mut*,
-	comparer act comparison(a, a),
-) unsafe
-	if read == end
-		write
-	else
-		here = *read
-		if comparer[here, prev] == equal
-			prev set-unique-recur read + 1, write, end, comparer
-		else
-			*write := here
-			here set-unique-recur read + 1, write + 1, end, comparer
+.set-sort-unique<a> mut-array a(a mut-array a) compare<a>
+	a set-sort
+	out-i mut = 0
+	for x, i : a
+		if i == a.size - 1 || x != a[i + 1]
+			a[out-i] := x
+			out-i := out-i + 1
+	a[0 .. out-i]
 
 .swap<a> void(a mut-array a, x nat64, y nat64)
 	old-x = a[x]

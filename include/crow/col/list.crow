@@ -1,6 +1,6 @@
 no-std
 import
-	../bool: !, &&, bool, false, new, true
+	../bool: !, &&, bool, false, true
 	../compare: ==, <, <=, compare, comparison, equal, greater, less, min
 	../fun-util: subscript
 	../misc: break-or-continue, loop-break, loop-continue, new, void
@@ -12,7 +12,7 @@ import
 	../pointer: ==, +, *, size-of
 	../tuple: a, b, new, pair
 	./array:
-		~, ~~, ~=, ~~=, array, array-builder, array-cast, array-equal, array-iter, as-array,
+		~, ~~, ~=, ~~=, array, array-builder, array-cast, array-iter, as-array,
 		begin-pointer, build-array, end-iter, end-pointer, iter, for-break, for-loop, index-of,
 		is-empty, new, next, prev, rtail, size, slice-left, slice-right, subscript, tail, with-block
 	./iter: new, rest, value, value-and-rest
@@ -143,50 +143,54 @@ to-list<a> a[](a array a) noctx
 	l l0 a = a.leaf,
 	l,
 
-== bool(a nat8[], b nat8[]) no-doc noctx
+to-list<a> a[](a a?)
+	if x ?= a
+		x,
+
+== bool(a nat8[], b nat8[]) no-doc
 	a list-equal b
-== bool(a nat64[], b nat64[]) no-doc noctx
+== bool(a nat64[], b nat64[]) no-doc
 	a list-equal b
-<=> comparison(a nat8[], b nat8[]) no-doc noctx
+<=> comparison(a nat8[], b nat8[]) no-doc
 	a list-compare b
-<=> comparison(a nat64[], b nat64[]) no-doc noctx
+<=> comparison(a nat64[], b nat64[]) no-doc
 	a list-compare b
 
 list-cast<out, in> out[](a in[]) no-doc unsafe
 	assert size-of@<out> == size-of@<in>
 	# TODO:PERF
-	a.to-array.array-cast to-list
+	a.to-array.array-cast::array<out> to-list
 
-list-equal<a> bool(a a[], b a[]) noctx equal<a>
-	if la ?= a try-as-l0-leaf
-		if lb ?= b try-as-l0-leaf
-			la array-equal lb
-		else
-			a.iter list-equal-recur b.iter
-	else
-		a.size == b.size && a.iter list-equal-recur b.iter
-.list-equal-recur<a> bool(a list-iter a, b list-iter a) noctx equal<a>
-	if na ?= a next
-		if nb ?= b next
-			if na.value == nb.value
-				na.rest list-equal-recur nb.rest
-	else
-		b.next is-empty
-
-list-compare<a> comparison(a a[], b a[]) noctx compare<a>
-	a.iter list-compare-recur b.iter
-.list-compare-recur<a> comparison(a list-iter a, b list-iter a) noctx compare<a>
-	if na ?= a next
-		if nb ?= b next
-			cmp = na.value <=> nb.value
-			if cmp == equal
-				na.rest list-compare-recur nb.rest
+list-equal<a> bool(a a[], b a[]) equal<a>
+	ai = a mut-iter
+	bi = b mut-iter
+	loop
+		if na ?= ai next
+			if nb ?= bi next
+				if na == nb
+					continue
+				else
+					break false
 			else
-				cmp
+				break false
 		else
-			greater
-	else
-		b.next.is-empty ? equal : less
+			break bi.next is-empty
+
+list-compare<a> comparison(a a[], b a[]) compare<a>
+	ai = a mut-iter
+	bi = b mut-iter
+	loop
+		if na ?= ai next
+			if nb ?= bi next
+				cmp = na <=> nb
+				if cmp == equal
+					continue
+				else
+					break cmp
+			else
+				break greater
+		else
+			break bi.next.is-empty ? equal : less
 
 ###
 Convert a list to an array.
@@ -412,13 +416,16 @@ list-iter-equal<a> bool(a list-iter a, b list-iter a) equal<a>
 	a.list list-equal b.list && a.index == b.index
 
 index<a> nat64(a list-iter a)
-	0 index-recur a
-.index-recur<a> nat64(acc nat64, a list-iter a)
 	# TODO:PERF (this could be a lot faster than walking back)
-	if p ?= a prev
-		acc + 1 index-recur p.rest
-	else
-		acc
+	acc mut = 0
+	cur mut list-iter a = a
+	loop
+		if p ?= cur prev
+			acc := acc + 1
+			cur := p rest
+			continue
+		else
+			break acc
 
 .position enum
 	l0-leaf
@@ -514,6 +521,12 @@ save<a> list-iter a(a mut-list-iter a)
 restore<a> void(a mut-list-iter a, saved list-iter a)
 	a.inner := saved
 
+slice-left<a> a[](a mut-list-iter a)
+	a.inner slice-left
+
+slice-right<a> a[](a mut-list-iter a)
+	a.inner slice-right
+
 ###
 Advances the iterator and returns the next element.
 Returns an empty option if the iterator was already at the end of the list.
@@ -599,6 +612,7 @@ slice-right<a> a[](a list-iter a) trusted
 	as l2-leaf
 		a.list slice-right-update-l2 _ =>
 			a.cur.slice-right,
+
 
 .level<l, a> spec
 	is-empty bool(level l)
@@ -843,10 +857,10 @@ rtail<a> a[](a a[])
 		i.rest slice-left
 
 in<a> bool(value a, a a[]) equal<a>
-	a some x =>
+	a exists x =>
 		x == value
 
-some<a> bool(a a[], f act bool(a))
+exists<a> bool(a a[], f act bool(a))
 	for x : a
 		if f[x]
 			break true
@@ -867,24 +881,36 @@ filter<a> a[](a a[], f act bool(a))
 				out ~= x
 	res to-list
 
+# Drops elements from the left that match `f`.
 drop-while<a> a[](a a[], f act bool(a))
-	a.iter drop-while-recur f
-.drop-while-recur<a> a[](a list-iter a, f act bool(a))
-	if n ?= a next
-		if f[n value]
-			n.rest drop-while-recur f
+	iter = a mut-iter
+	loop
+		if x ?= iter next
+			if f[x]
+				continue
+			else
+				_ = iter prev
+				break iter slice-right
 		else
-			a slice-right
+			break
 
+# Drops elements from the right that match `f`.
 drop-right-while<a> a[](a a[], f act bool(a))
-	a.end-iter drop-right-while-recur f
-.drop-right-while-recur<a> a[](a list-iter a, f act bool(a))
-	if p ?= a prev
-		if f[p value]
-			p.rest drop-right-while-recur f
+	iter = a end-mut-iter
+	loop
+		if x ?= iter prev
+			if f[x]
+				continue
+			else
+				_ = iter next
+				break iter slice-left
 		else
-			a slice-left
+			break
 
+for-break<a> void(a a[], f act break-or-continue void(a))
+	a for-break f, () => ()
+for-break<a> void(a a[], f act break-or-continue void(a, nat64))
+	a for-break f, () => ()
 for-break<out, in> out?(a in[], f act break-or-continue out(in))
 	for x : a
 		match f[x]
@@ -894,6 +920,13 @@ for-break<out, in> out?(a in[], f act break-or-continue out(in))
 			continue
 	else
 		()
+for-break<out, in> out(a in[], f-loop act break-or-continue out(in, nat64), f-else act out())
+	i mut = 0
+	inner-f-loop act break-or-continue out(in) = x =>
+		res = f-loop[x, i]
+		i := i + 1
+		res
+	a for-break inner-f-loop, f-else
 for-break<out, in> out(a in[], f-loop act break-or-continue out(in), f-else act out())
 	x break-or-continue out = a for-break-chunk chunk =>
 		for x : chunk
@@ -922,10 +955,10 @@ for-loop<a> void(a a[], f act void(a, nat64))
 		i := i + 1
 
 for-loop<out, in> out[](a in[], f act out(in))
-	a for-loop f to-list
+	(a for-loop f)::array<out> to-list
 
 for-loop<out, in> out[](a in[], f act out(in, nat64))
-	a for-loop f to-list
+	(a for-loop f)::array<out> to-list
 
 for-loop<out, in> array out(a in[], f act out(in)) trusted
 	with out : a.size build-array
@@ -1060,37 +1093,22 @@ That means: The characters in `b` appear in `a`, in order, without interruptions
 contains-sublist<a> bool(a a[], b a[]) equal<a>
 	!(a iters-of-sublist b).is-empty
 
-# Removes elements from the left while `f` returns true.
-strip-left-while<a> a[](a a[], f act bool(a))
-	a.iter strip-left-while-recur f
-.strip-left-while-recur<a> a[](a list-iter a, f act bool(a))
-	if n ?= a next
-		if f[n value]
-			n.rest strip-left-while-recur f
-		else
-			a slice-right
-strip-right-while<a> a[](a a[], f act bool(a))
-	a.end-iter strip-right-while-recur f
-.strip-right-while-recur<a> a[](a list-iter a, f act bool(a))
-	if n ?= a prev
-		if f[n value]
-			n.rest strip-right-while-recur f
-		else
-			a slice-left
-
 split-list<a> record
 	left a[]
 	middle a
 	right a[]
 
-try-split-once-by-fn<a> split-list<a>?(a a[], f act bool(a)) equal<a>
-	a.iter try-split-once-by-fn-recur f
-.try-split-once-by-fn-recur<a> split-list<a>?(a list-iter a, f act bool(a))
-	if n ?= a next
-		if f[n value]
-			(a.slice-left, n.value, n.rest.slice-right),
+find-iter<a> list-iter<a>?(a a[], f act bool(a)) equal<a>
+	iter = a mut-iter
+	loop
+		if x ?= iter next
+			if f[x]
+				_ = iter prev
+				break iter.save,
+			else
+				continue
 		else
-			n.rest try-split-once-by-fn-recur f
+			break
 
 ###
 Finds the first apperance of `b` as a sublist of `a`,
@@ -1115,28 +1133,43 @@ split-by-sublist<a> a[][](a a[], b a[]) equal<a>
 		a,
 
 .iters-of-sublist<a> (list-iter a, list-iter a)?(a a[], b a[]) equal<a>
-	a.iter iters-of-sublist-recur b
-.iters-of-sublist-recur<a> (list-iter a, list-iter a)?(a list-iter a, b a[]) equal<a>
-	if end-iter ?= a iter-starts-with b.iter
-		(a, end-iter),
-	elif n ?= a next
-		n.rest iters-of-sublist-recur b
+	ai mut = a iter
+	loop
+		if end-iter ?= ai iter-starts-with b.iter
+			break (ai, end-iter),
+		elif n ?= ai next
+			ai := n rest
+			continue
+		else
+			break
 
 .iters-of-sublist-right<a> (list-iter a, list-iter a)?(a a[], b a[]) equal<a>
-	a.end-iter iters-of-sublist-right-recur b
-.iters-of-sublist-right-recur<a> (list-iter a, list-iter a)?(a list-iter a, b a[]) equal<a>
-	if start-iter ?= a iter-ends-with b.end-iter
-		(start-iter, a),
-	elif p ?= a prev
-		p.rest iters-of-sublist-right-recur b
+	ai mut = a end-iter
+	loop
+		if start-iter ?= ai iter-ends-with b.end-iter
+			break (start-iter, ai),
+		elif p ?= ai prev
+			ai := p rest
+			continue
+		else
+			break
 
 .iter-starts-with<a> list-iter<a>?(a list-iter a, b list-iter a) equal<a>
-	if bn ?= b next
-		if an ?= a next
-			if an.value == bn.value
-				an.rest iter-starts-with bn.rest
-	else
-		a,
+	ai mut = a
+	bi mut = b
+	loop
+		if bn ?= bi next
+			if an ?= ai next
+				if an.value == bn.value
+					ai := an rest
+					bi := bn rest
+					continue
+				else
+					break
+			else
+				break
+		else
+			break ai,
 
 .iter-ends-with<a> list-iter<a>?(a list-iter a, b list-iter a) equal<a>
 	if bp ?= b prev
@@ -1162,7 +1195,7 @@ reverse<a> a[](a a[])
 		unreachable
 
 .for-loop<out> out[](a range nat64, f act out(nat64))
-	a for-loop f to-list
+	(a for-loop f)::array<out> to-list
 
 region builder
 
@@ -1177,7 +1210,7 @@ list-builder<a> record mut
 	.inner array-builder a
 
 with-block<a> a[](_ build-list, f act void(list-builder a))
-	(with out : build-array; f[(out,)]) to-list
+	(with out : build-array; f[(out,)])::array<a> to-list
 
 ~= <a> void(a list-builder a, value a)
 	a.inner ~= value

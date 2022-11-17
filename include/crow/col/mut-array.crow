@@ -285,11 +285,12 @@ find-index<a> nat64?(a mut-array a, f act bool(a)) trusted
 set-reverse<a> void(a mut-array a) trusted
 	# avoid 'a.end-pointer - 1' overflowing for null arrays
 	unless a is-empty
-		a.begin-pointer set-reverse-recur a.end-pointer - 1
-.set-reverse-recur<a> void(left a mut*, right a mut*) unsafe
-	if left < right
-		left swap right
-		left + 1 set-reverse-recur right - 1
+		left mut = a begin-pointer
+		right mut = a.end-pointer - 1
+		while left < right
+			left swap right
+			left := left + 1
+			right := right - 1
 
 region iteration
 
@@ -306,11 +307,10 @@ for-loop<a> void(a mut-array a, f act void(a, nat64)) trusted
 	a.temp-as-array for-loop f
 
 set-map<a> void(a mut-array a, f act a(a)) trusted
-	a.begin-pointer set-map-recur a.end-pointer, f
-.set-map-recur<a> void(cur a mut*, end a mut*, f act a(a)) unsafe
-	unless cur == end
+	cur mut = a begin-pointer
+	until cur == a.end-pointer
 		*cur := f[*cur]
-		cur + 1 set-map-recur end, f
+		cur := cur + 1
 
 for-loop<out, in> mut-array out(a mut-array in, f act out(in)) trusted
 	a.size make-mut-array i => f[a[i]]
@@ -351,3 +351,6 @@ with-block<a> mut-array a(a build-mut-array, f act void(mut-array-builder a))
 
 ~= <a> void(a mut-array-builder a, value a)
 	a.inner ~= value
+
+size<a> nat64(a mut-array-builder a)
+	a.inner size

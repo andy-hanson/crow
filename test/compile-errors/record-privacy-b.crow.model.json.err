@@ -2,7 +2,7 @@ test/compile-errors/record-privacy-b.crow 5:22-6:1 there are functions named 'ne
 expected return type: 'private-ctor'
 actual argument types:  (other arguments not checked, gave up early)
 candidates (with 1 arguments):
-	new array<a>(...array<a>) (from include/crow/col/array.crow.crow line 24)
+	new array<a>(...array<a>) (from include/crow/col/array.crow.crow line 20)
 	new dict<k, v>(...array<pair<k, v>>) (from include/crow/col/dict.crow.crow line 74)
 	new list<a>(...array<a>) (from include/crow/col/list.crow.crow line 130)
 	new l0<a>(node<a, l1<a>>) (from include/crow/col/list.crow.crow line 35)
@@ -10,9 +10,9 @@ candidates (with 1 arguments):
 	new l2<a>(array<array<array<a>>>) (from include/crow/col/list.crow.crow line 43)
 	new mut-array<a>(...array<a>) (from include/crow/col/mut-array.crow.crow line 44)
 	new a mut[](...array<a>) (from include/crow/col/mut-list.crow.crow line 68)
-	new mut-dict<k, v>(...array<pair<k, v>>) (from include/crow/col/mut-dict.crow.crow line 43)
+	new mut-dict<k, v>(...array<pair<k, v>>) (from include/crow/col/mut-dict.crow.crow line 42)
 	new mut-set<a>(...array<a>) (from include/crow/col/mut-set.crow.crow line 24)
-	new set<a>(...array<a>) (from include/crow/col/set.crow.crow line 46)
+	new set<a>(...array<a>) (from include/crow/col/set.crow.crow line 42)
 	new future<a>(a) (from include/crow/future.crow.crow line 37)
 	new option<a>(a) (from include/crow/option.crow.crow line 15)
 

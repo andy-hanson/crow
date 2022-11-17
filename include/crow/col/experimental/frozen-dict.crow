@@ -1,24 +1,24 @@
 no-std
 import
-	../../bool: !, &&, ==, bool, false, true
+	../../bool: !, &&, ==, bool, true
 	../../compare: <=, compare, equal
 	../../fun-util: subscript
 	../../hash: hash, hash-mix
 	../../misc: is-data, new, void
 	../../number: ==, <=>, +, -, /, %, nat64
 	../../option: is-empty, new, option, option-equal
-	../../pointer: ==, <=>, +, -, *, const-pointer, mut-pointer, set-deref, swap
+	../../pointer: ==, <=>, +, -, *, const-pointer, mut-pointer, swap
 	../../range: ..
 	../../string: ==, literal, string
 	../../test-util: is
 	../../tuple: from, new, pair, to
-	../../private/alloc: alloc-uninitialized
 	../array:
-		array, array-cast, as-array, begin-pointer, end-pointer, for-loop, is-empty, new, size,
-		subscript
+		~=, array, array-cast, as-array, begin-pointer, end-pointer, build-array, exists, for-loop,
+		is-empty, new, size, subscript, with-block
 	../mut-array:
-		as-mut-array, begin-pointer, cast-immutable, end-pointer, fill, fill-mut-array, mut-array,
-		for-loop, size, temp-as-array, to-mut-array, set-subscript, subscript, uninitialized-mut-array
+		~=, begin-pointer, build-mut-array, cast-immutable, end-pointer, fill, fill-mut-array,
+		mut-array, mut-array-builder, for-loop, size, temp-as-array, to-mut-array, set-subscript,
+		subscript, with-block
 	../list: ==, for-loop, list, new, to-array, to-list
 
 ###
@@ -33,7 +33,7 @@ new<k, v> frozen-dict<k, v>(...a array (k, v)) is-data<k> compare<k> hash-mix<k>
 	a.to-list to-frozen-dict
 
 to-frozen-dict<k, v> frozen-dict<k, v>(a (k, v)[]) trusted is-data<k> compare<k> hash-mix<k>
-	a.to-array.to-mut-array.mut-array-to-frozen-dict-promise-no-duplicates remove-duplicates
+	a.to-array.to-mut-array as-frozen-dict
 
 # This is O(1).
 to-array<k, v> array<(k, v)>(a frozen-dict<k, v>) noctx
@@ -94,6 +94,9 @@ find-pointer<k, v> (k, v)*?(cur (k, v)*, end (k, v)*, key k) unsafe is-data<k> c
 	else
 		cur + 1 find-pointer end, key
 
+.as-frozen-dict<k, v> frozen-dict<k, v>(a mut-array (k, v)) unsafe is-data<k> compare<k> hash-mix<k>
+	a.mut-array-to-frozen-dict-promise-no-duplicates remove-duplicates
+
 mut-array-to-frozen-dict-promise-no-duplicates<k, v> frozen-dict<k, v>(
 	a mut-array (k, v),
 ) no-doc unsafe is-data<k> compare<k> hash-mix<k>
@@ -104,91 +107,64 @@ mut-array-to-frozen-dict-promise-no-duplicates<k, v> frozen-dict<k, v>(
 		bucket-counts = a get-bucket-counts n-buckets
 		bucket-starts = a.begin-pointer running-sum bucket-counts.temp-as-array
 		bucket-counts fill 0
-		a.begin-pointer move-values-to-buckets-recur a.end-pointer, bucket-counts, bucket-starts
+		cur mut = a begin-pointer
+		until cur == a.end-pointer
+			bucket-index = cur->from get-bucket-index bucket-counts.size
+			bucket-count = bucket-counts[bucket-index]
+			bucket-start = bucket-starts[bucket-index]
+			bucket-cur-end = bucket-start + bucket-count
+			if bucket-start <= cur && cur <= bucket-cur-end
+				if cur == bucket-cur-end
+					bucket-counts[bucket-index] := bucket-count + 1
+				cur := cur + 1
+			else
+				bucket-counts[bucket-index] := bucket-count + 1
+				cur swap bucket-cur-end
 		a.cast-immutable, bucket-starts.array-cast
 
-.remove-duplicates<k, v> frozen-dict<k, v>(
-	a frozen-dict<k, v>,
-) unsafe is-data<k> compare<k> hash-mix<k>
+.remove-duplicates<k, v> frozen-dict<k, v>(a frozen-dict<k, v>) unsafe is-data<k> compare<k> hash-mix<k>
 	if a has-duplicates
 		# Write out pairs from each bucket to a mut-array, omitting a pair if its key appears later in the same bucket.
 		# Then call mut-array-to-frozen-dict-promise-no-duplicates 
-		out-pairs (k, v) mut* = a.size alloc-uninitialized
-		end = out-pairs write-without-duplicates a
-		(out-pairs .. end).as-mut-array mut-array-to-frozen-dict-promise-no-duplicates
+		xs mut-array (k, v) = with out : a.size build-mut-array
+			out write-without-duplicates a
+		xs mut-array-to-frozen-dict-promise-no-duplicates
 	else
 		a
 
-.write-without-duplicates<k, v> (k, v) mut*(out (k, v) mut*, a frozen-dict<k, v>) trusted equal<k>
+.write-without-duplicates<k, v> void(out mut-array-builder (k, v), a frozen-dict<k, v>) trusted equal<k>
 	if a.bucket-starts is-empty
-		out write-bucket-without-duplicates a.pairs.begin-pointer, a.pairs.end-pointer
+		out write-bucket-without-duplicates a.pairs
 	else
-		cur = *a.bucket-starts.begin-pointer
-		next = a.bucket-starts.begin-pointer + 1
-		out write-without-duplicates-recur cur, next, a.bucket-starts.end-pointer, a.pairs.end-pointer
-.write-without-duplicates-recur<k, v> (k, v) mut*(
-	out (k, v) mut*,
-	cur-bucket-start (k, v)*,
-	next-bucket (k, v)**,
-	end-buckets (k, v)**,
-	last-bucket-end (k, v)*,
-) unsafe equal<k>
-	if next-bucket == end-buckets
-		out write-bucket-without-duplicates cur-bucket-start, last-bucket-end
-	else
-		mid = out write-bucket-without-duplicates cur-bucket-start, *next-bucket
-		mid write-without-duplicates-recur *next-bucket, next-bucket + 1, end-buckets, last-bucket-end
+		for bucket-start, i : a bucket-starts
+			bucket-end = if i == a.bucket-starts.size - 1
+				a.pairs.end-pointer
+			else
+				a.bucket-starts[i + 1]
+			out write-bucket-without-duplicates (bucket-start .. bucket-end).as-array
 
-.write-bucket-without-duplicates<k, v> (k, v) mut*(
-	out (k, v) mut*,
-	begin (k, v)*,
-	end (k, v)*,
-) unsafe equal<k>
-	if begin == end
-		out
-	else
-		mid = if begin->from key-in-range begin + 1, end
-			out
-		else
-			*out := *begin
-			out + 1
-		mid write-bucket-without-duplicates begin + 1, end
+.write-bucket-without-duplicates<k, v> void(out mut-array-builder (k, v), pairs array (k, v)) equal<k>
+	for pair, i : pairs
+		unless pair.from key-in-range pairs[i + 1 .. pairs.size]
+			out ~= pairs[i]
 
 .has-duplicates<k, v> bool(a frozen-dict<k, v>) trusted equal<k>
 	if a.bucket-starts is-empty
-		a.pairs.begin-pointer bucket-has-duplicates a.pairs.end-pointer
+		a.pairs bucket-has-duplicates
 	else
-		cur = *a.bucket-starts.begin-pointer
-		next = a.bucket-starts.begin-pointer + 1
-		cur has-duplicates-recur next, a.bucket-starts.end-pointer, a.pairs.end-pointer
-.has-duplicates-recur<k, v> bool(
-	cur-bucket-start (k, v)*,
-	next-bucket (k, v)**,
-	end-buckets (k, v)**,
-	last-bucket-end (k, v)*,
-) unsafe equal<k>
-	if next-bucket == end-buckets
-		cur-bucket-start bucket-has-duplicates last-bucket-end
-	elif cur-bucket-start bucket-has-duplicates *next-bucket
-		true
-	else
-		*next-bucket has-duplicates-recur next-bucket + 1, end-buckets, last-bucket-end
+		a.bucket-starts exists (bucket-start, i) =>
+			bucket-end = if i == a.bucket-starts.size - 1
+				a.pairs.end-pointer
+			else
+				a.bucket-starts[i + 1]
+			(bucket-start .. bucket-end).as-array bucket-has-duplicates
 
-.bucket-has-duplicates<k, v> bool(begin (k, v)*, end (k, v)*) unsafe equal<k>
-	if begin == end
-		false
-	elif begin->from key-in-range begin + 1, end
-		true
-	else
-		begin + 1 bucket-has-duplicates end
+.bucket-has-duplicates<k, v> bool(pairs array (k, v)) unsafe equal<k>
+	pairs exists (pair, i) =>
+		pair.from key-in-range pairs[i + 1 .. pairs.size]
 
-.key-in-range<k, v> bool(key k, begin (k, v)*, end (k, v)*) unsafe equal<k>
-	if begin == end
-		false
-	elif key == begin->from
-		true
-	else
-		key key-in-range begin + 1, end
+.key-in-range<k, v> bool(key k, pairs array (k, v)) equal<k>
+	pairs exists pair => key == pair.from
 
 .get-bucket-counts<k, v> mut-array nat64(a mut-array (k, v), n-buckets nat64) unsafe hash-mix<k>
 	res = n-buckets fill-mut-array 0
@@ -197,43 +173,36 @@ mut-array-to-frozen-dict-promise-no-duplicates<k, v> frozen-dict<k, v>(
 		res[bucket-index] := res[bucket-index] + 1
 	res
 
-.move-values-to-buckets-recur<k, v> void(
-	cur (k, v) mut*,
-	end (k, v) mut*,
-	bucket-counts mut-array nat64,
-	bucket-starts array (k, v) mut*,
-) unsafe hash-mix<k>
-	unless cur == end
-		bucket-index = cur->from get-bucket-index bucket-counts.size
-		bucket-count = bucket-counts[bucket-index]
-		bucket-start = bucket-starts[bucket-index]
-		bucket-cur-end = bucket-start + bucket-count
-		new-cur = if bucket-start <= cur && cur <= bucket-cur-end
-			if cur == bucket-cur-end
-				bucket-counts[bucket-index] := bucket-count + 1
-			cur + 1
-		else
-			bucket-counts[bucket-index] := bucket-count + 1
-			cur swap bucket-cur-end
-			cur
-		new-cur move-values-to-buckets-recur end, bucket-counts, bucket-starts
-
 .get-bucket-index<k> nat64(key k, n-buckets nat64) hash-mix<k>
 	key.hash % n-buckets
 
-.running-sum<k, v> array<(k, v) mut*>(acc (k, v) mut*, a array nat64) trusted
-	out mut-array (k, v) mut* = a.size uninitialized-mut-array
-	acc running-sum-recur out.begin-pointer, out.end-pointer, a.begin-pointer
-	out cast-immutable
-.running-sum-recur<k, v> void(
-	acc (k, v) mut*,
-	out (k, v) mut* mut*,
-	out-end (k, v) mut* mut*,
-	read nat64*,
-) unsafe
-	*out := acc
-	unless out + 1 == out-end
-		acc + *read running-sum-recur out + 1, out-end, read + 1
+.running-sum<k, v> array<(k, v) mut*>(initial (k, v) mut*, offsets array nat64) trusted
+	with out : offsets.size build-array
+		acc mut = initial
+		for offset : offsets
+			out ~= acc
+			acc := acc + offset
+
+region builder
+
+build-frozen-dict record
+	.size-hint nat64
+build-frozen-dict build-frozen-dict()
+	0,
+build-frozen-dict build-frozen-dict(size-hint nat64)
+	size-hint,
+
+frozen-dict-builder<k, v> record mut
+	.inner mut-array-builder (k, v)
+
+with-block<k, v> frozen-dict<k, v>(
+	a build-frozen-dict,
+	f act void(frozen-dict-builder<k, v>),
+) trusted is-data<k> compare<k> hash-mix<k>
+	(with out : a.size-hint build-mut-array; f[(out,)]) as-frozen-dict
+
+~= <k, v> void(a frozen-dict-builder<k, v>, pair (k, v))
+	a.inner ~= pair
 
 region iteration
 

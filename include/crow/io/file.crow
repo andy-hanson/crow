@@ -1,6 +1,6 @@
 no-std
 import
-	dirent: dir, dirent, new, opendir, readdir_r
+	dirent: closedir, dir, dirent, new, opendir, readdir_r
 	errno: ENOENT, errno
 	stat: mkdir, new, S_IFDIR, S_IFMT, S_IFREG, stat, st_mode
 	stdio: fclose, ferror, FILE, fopen, fread, fseek, ftell, fwrite, SEEK_SET, SEEK_END
@@ -14,12 +14,10 @@ import
 		SYMBOLIC_LINK_FLAG_ALLOW_UNPRIVILEGED_CREATE, SYMBOLIC_LINK_FLAG_DIRECTORY,
 		WIN32_FIND_DATAA
 	../bits: &, |, <<
-	../bytes-types: new
 	../bool: !, ||, bool, false, new, to-nat64, true
 	../col/array: array, begin-pointer, size, subscript
 	../col/mut-array: cast-immutable, begin-pointer, mut-array, size, uninitialized-mut-array
-	../col/list: for-loop, list, new, to-array, to-list
-	../col/mut-list: ~=, move-to-list, mut-list, new
+	../col/list: ~=, build-list, for-loop, list, new, to-array, to-list, with-block
 	../col/sort: sort
 	../compare: !=
 	../exception: finally, with-block
@@ -132,43 +130,54 @@ names-in-dir string[](path string) summon trusted
 		if file == INVALID_HANDLE_VALUE
 			throw "failed to open dir {path}"
 		else
-			res string mut[] = ()
-			res names-in-dir-recur path, file
-			ok = file FindClose
-			assert ok : "failed to close dir {path}"
-			res.move-to-list sort
+			with : (() => file find-close path) finally
+				path names-in-dir-windows file sort
 	else
 		dirp = path opendir
 		forbid dirp.pointer-cast-from-extern::any-const-pointer mut* == null : "failed to open dir {path}"
-		res string mut[] = ()
-		res names-in-dir-recur dirp
-		res.move-to-list sort
+		with : (() => dirp close-dir path) finally
+			dirp.names-in-dir-posix sort
 
-.names-in-dir-recur void(out string mut[], dir-path c-string, file HANDLE) unsafe summon
-	file-data mut WIN32_FIND_DATAA = ()
-	ok = file FindNextFileA &file-data
-	if ok
-		s = (&file-data).cFileName.as-const to-string
-		if s != ".."
-			out ~= s
-		out names-in-dir-recur dir-path, file
-	else
-		err = GetLastError
-		assert err == ERROR_NO_MORE_FILES : "Error while reading directory {dir-path}: {err show-win32-error}"
+.find-close void(file HANDLE, path c-string) unsafe summon
+	ok = file FindClose
+	assert ok : "failed to close dir {path}"
 
-.names-in-dir-recur void(out string mut[], dirp dir) unsafe summon
-	# Initial value of entry / result should not matter
-	entry dirent = 0, 0, 0, "\0", ()
-	result mut dirent = entry
-	err = dirp readdir_r entry, &result
-	# TODO: handle error
-	assert err == 0
-	unless result.as-any-const-pointer == null
-		assert result ref-eq entry
-		name = entry get-dirent-name
-		unless name == "." || name == ".."
-			out ~= name
-		out names-in-dir-recur dirp
+.close-dir void(dirp dir, path c-string) unsafe summon
+	err = dirp closedir
+	assert err == 0 : "failed to close dir {path}"
+
+.names-in-dir-windows string[](dir-path c-string, file HANDLE) unsafe summon
+	with out : build-list
+		loop
+			file-data mut WIN32_FIND_DATAA = ()
+			ok = file FindNextFileA &file-data
+			if ok
+				s = (&file-data).cFileName.as-const to-string
+				if s != ".."
+					out ~= s
+				continue
+			else
+				err = GetLastError
+				assert err == ERROR_NO_MORE_FILES : "Error while reading directory {dir-path}: {err show-win32-error}"
+				break
+
+.names-in-dir-posix string[](dirp dir) unsafe summon
+	with out : build-list
+		loop
+			# Initial value of entry / result should not matter
+			entry dirent = ()
+			result mut dirent = entry
+			err = dirp readdir_r entry, &result
+			# TODO: handle error
+			assert err == 0
+			if result.as-any-const-pointer == null
+				break
+			else
+				assert result ref-eq entry
+				name = entry get-dirent-name
+				unless name == "." || name == ".."
+					out ~= name
+				continue
 
 # Gets the path a symbolic link refers to.
 read-link string(path string) summon trusted

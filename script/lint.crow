@@ -1,4 +1,5 @@
 import
+	crow/col/counter: counter, for-loop, subscript, to-counter
 	crow/io/file: read-file
 	crow/io/print: err, print
 	crow/io/process: shell-exec
@@ -20,7 +21,7 @@ main nat^(_ string[]) summon
 				failures ~= "{file path} export not used: {public-export}"
 	for file : files
 		for private-member : file.members private
-			if file.uses[private-member]! < 2
+			if file.uses[private-member] < 2
 				failures ~= "{file path} private member not used: {private-member}"
 	for file : files
 		failures lint-imports-in-file file
@@ -36,7 +37,7 @@ main nat^(_ string[]) summon
 	path string
 	members members
 	imports set symbol
-	uses nat[symbol]
+	uses counter symbol
 
 .members record
 	public symbol[]
@@ -48,7 +49,7 @@ all-files file[]() summon
 
 .get-file file(path string) summon
 	imports-and-rest = path.read-file find-imports
-	path, path.get-members, imports-and-rest.imports, imports-and-rest.rest.get-uses
+	path, path.get-members, imports-and-rest.imports, imports-and-rest.rest.words.to-counter
 
 .get-members members(path string) summon
 	stdout = "dub run dscanner -- --ctags {path}" shell-exec
@@ -60,7 +61,7 @@ all-files file[]() summon
 	rest = (stdout try-split-once look-for)!.b
 	for line : rest lines
 		unless line == "" || line contains-substr "enum:" || line contains-substr "struct:"
-			name = line.try-split-once-by-whitespace!.a string-to-symbol
+			name = (line find-iter x => x is-whitespace)!.slice-left string-to-symbol
 			if line contains-substr "access:public"
 				public ~= name
 			elif line contains-substr "access:private"
@@ -80,43 +81,38 @@ all-files file[]() summon
 	rest string
 
 .find-imports imports-and-rest(a string)
-	() find-imports-recur a, a
-.find-imports-recur imports-and-rest(res mut-set symbol, since-last-import string, a string)
-	if pair ?= a try-split-once "import "
-		if pair.a ends-with "\n" || pair.a ends-with "\n\t"
-			rest = pair b
-			after-colon = (rest try-split-once ":")!.b
-			split-semi = (after-colon try-split-once ";")!
-			for word : split-semi.a words
-				res ~= word
-			res find-imports-recur split-semi.b, split-semi.b
+	res mut-set symbol = ()
+	since-last-import mut = a
+	rest mut = a
+	loop
+		if pair ?= rest try-split-once "import "
+			if pair.a ends-with "\n" || pair.a ends-with "\n\t"
+				after-colon = (pair.b try-split-once ":")!.b
+				split-semi = (after-colon try-split-once ";")!
+				for word : split-semi.a words
+					res ~= word
+				since-last-import := split-semi b
+				rest := split-semi b
+				continue
+			else
+				# This is an 'import' in a nested scope; don't count it
+				# (since we want only imports at top of file, not later on)
+				rest := pair b
+				continue
 		else
-			# This is an 'import' in a nested scope; don't count it
-			# (since we want only imports at top of file, not later on)
-			res find-imports-recur since-last-import, pair.b
-	else
-		res.move-to-set, since-last-import
+			break res.move-to-set, since-last-import
 
-.get-uses nat[symbol](a string)
-	res nat mut[symbol] = ()
-	for x : a words
-		res[x] := (res[x] ?? 0) + 1
-	res move-to-dict
-
-words record
-	inner string
-.words words(a string)
-	a,
-.for-loop void(a words, cb act void(symbol))
-	word char8 mut[] = ()
-	for x : a.inner char8s
-		if x is-identifier-char
-			word ~= x
-		else
-			unless word is-empty
-				cb[word.move-to-list.as-string string-to-symbol]
-	unless word is-empty
-		cb[word.move-to-list.as-string string-to-symbol]
+.words symbol[](a string)
+	with out : build-list
+		word char8 mut[] = ()
+		for x : a char8s
+			if x is-identifier-char
+				word ~= x
+			else
+				unless word is-empty
+					out ~= word.move-to-list.as-string string-to-symbol
+		unless word is-empty
+			out ~= word.move-to-list.as-string string-to-symbol
 
 .is-identifier-char bool(a char8)
 	"a"::char8 <= a && a <= "z" || "A"::char8 <= a && a <= "Z" || "0"::char8 <= a && a <= "9" || a == "_"
