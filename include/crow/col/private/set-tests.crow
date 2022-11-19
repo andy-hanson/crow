@@ -1,0 +1,51 @@
+no-std
+import
+	../../bool: ==, false, true
+	../../hash: hash-mix
+	../../json: json
+	../../misc: void
+	../../number: ==, <=>, nat64
+	../../string: ==, literal, string, to-string
+	../../test-util: is
+	../list: ==, new
+	../set: ~, ~~, dbg, in, is-empty, new, set, size, to-list
+
+dummy-set-tests nat64()
+	0
+
+.verify void(a set nat64, expected string)
+	a.dbg is expected
+
+test
+	a set nat64 = ()
+	a.is-empty is true
+	a.size is 0
+	a verify "[]"
+
+	b = a ~ 5
+	b.is-empty is false
+	b.size is 1
+	b.to-list is (5,)
+	b verify "[5]"
+
+	c = b ~~ (6, 4, 1)
+	c verify "[1 4 6 5]"
+
+	d = c ~ 8
+	d verify "[1 4 6 5], [8]"
+
+	e = d ~~ (4, 10)
+	e verify "[1 4 6 5], [10 8]"
+	e.size is 6
+	0 in e is false
+	1 in e is true
+	2 in e is false
+	3 in e is false
+	4 in e is true
+	5 in e is true
+	6 in e is true
+	7 in e is false
+	8 in e is true
+	9 in e is false
+	10 in e is true
+	11 in e is false

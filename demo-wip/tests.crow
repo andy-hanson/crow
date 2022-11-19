@@ -9,6 +9,8 @@ import
 	crow/col/experimental/index-set: index-set, new
 	crow/col/experimental/mut-sorted-dict: mut-sorted-dict, new
 	crow/col/experimental/mut-sorted-set: mut-sorted-set, new
+	crow/col/experimental/private/frozen-set-tests: dummy-frozen-set-tests
+	crow/col/experimental/private/index-set-tests: dummy-index-set-tests
 	crow/col/experimental/sorted-set: new, sorted-set
 	crow/col/experimental/tree-set: new, tree-set
 	crow/col/mut-deque: mut-deque, new
@@ -17,7 +19,9 @@ import
 	crow/col/mut-stack: mut-stack, new
 	crow/col/priority-queue: new, priority-queue
 	crow/col/private/array-tests: dummy-array-tests
+	crow/col/private/dict-tests: dummy-dict-tests
 	crow/col/private/list-tests: dummy-list-tests
+	crow/col/private/set-tests: dummy-set-tests
 	crow/col/stack: new, stack
 	crow/col/queue: new, queue
 	crow/crypto/password-hash: quality-moderate
@@ -25,13 +29,14 @@ import
 	crow/io/process: new, process-result
 	crow/io/terminal-color: bold
 	crow/io/time-format: gmt
-	crow/json: json-string
 	crow/log: info
 	crow/math/mat: new, mat3-32
 	crow/math/vec: new, vec2-32
 	crow/parse: grammar-skip, new
 	crow/parse-command: parse-named-args
 	crow/perf: measure-total, new
+	crow/private/bits-tests: dummy-bits-tests
+	crow/private/json-tests: dummy-json-tests
 	crow/private/number-tests: dummy-number-tests
 	crow/private/string-tests: dummy-string-tests
 	crow/serialize: from-bytes
@@ -46,8 +51,14 @@ main nat^(_ string[]) summon
 	_ = () :: counter<nat>
 	_ = () :: deque<nat>
 	_ = dummy-array-tests
+	_ = dummy-bits-tests
+	_ = dummy-dict-tests
+	_ = dummy-frozen-set-tests
+	_ = dummy-index-set-tests
+	_ = dummy-json-tests
 	_ = dummy-list-tests
 	_ = dummy-number-tests
+	_ = dummy-set-tests
 	_ = dummy-string-tests
 	_ = () :: nat[nat]
 	_ = () :: environ
@@ -78,7 +89,6 @@ main nat^(_ string[]) summon
 	_ = () :: vec2-32
 	_ = () :: queue<nat>
 	_ = gmt
-	_ = "".json-string
 	_ = () parse-named-args ()
 	run-all-tests
 	()

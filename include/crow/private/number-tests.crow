@@ -1,5 +1,6 @@
 no-std
 import
+	../json: json
 	../number: ==, +, -, *, /, max-int64, min-int64, nat64
 	../string: literal
 	../test-util: is, throws

@@ -1,22 +1,21 @@
 no-std
 import
-	../bool: !, ==, bool, false, new, true
+	../bool: !, bool, new
 	../compare: <=, >, >=, compare
 	../fun-util: subscript
 	../hash: hash-mix
-	../log: info, log
 	../misc: is-data, new, void
 	../number: ==, <=>, +, -, *, nat64
 	../option: !, ??, new, option
-	../string: ==, ~~, join, literal, new, string, to-string
-	../test-util: is
+	../string: ~~, join, literal, new, string, to-string
 	./array: array
 	./experimental/index-set:
-		count-greater-or-equal, filter-less, for-loop, is-empty, in, index-set, new, size, try-remove
+		count-greater-or-equal, filter-less, for-loop, in, index-set, is-empty, new, size,
+		try-remove
 	./experimental/frozen-set:
 		~=, build-frozen-set, for-loop, frozen-set, frozen-set-builder, is-empty, new, size,
-		to-frozen-set, to-list, try-get-unordered-index, with-block
-	./list: ==, ~=, build-list, for-loop, list, new, to-list, with-block
+		to-frozen-set, try-get-unordered-index, with-block
+	./list: ~=, build-list, list, to-list, with-block
 
 ###
 Immutable unsorted set.
@@ -236,7 +235,7 @@ for-loop<out, in> out[](a set in, f act out(in)) trusted is-data<in> compare<in>
 		for x : a
 			out ~= f[x]
 
-.dbg<a> string(a set a) to-string<a>
+dbg<a> string(a set a) no-doc to-string<a>
 	add = a.add dbg
 	if a.remove is-empty
 		add
@@ -246,48 +245,5 @@ for-loop<out, in> out[](a set in, f act out(in)) trusted is-data<in> compare<in>
 .dbg<a> string(a add-node a) to-string<a>
 	left = if l ?= a left
 		"{l dbg}, "
-	here = " " join for x : a.here to-list; "{x}"
+	here = " " join for x : a here; "{x}"
 	"{left}[{here}]"
-
-.verify void(a set nat64, expected string)
-	dbg = a dbg
-	unless dbg == expected
-		info log "expected:"
-		info log expected
-		info log "but was:"
-		info log dbg
-	dbg is expected
-
-test
-	a set nat64 = ()
-	a.is-empty is true
-	a.size is 0
-	a verify "[]"
-
-	b = a ~ 5
-	b.is-empty is false
-	b.size is 1
-	b.to-list is (5,)
-	b verify "[5]"
-
-	c = b ~~ (6, 4, 1)
-	c verify "[1 4 6 5]"
-
-	d = c ~ 8
-	d verify "[1 4 6 5], [8]"
-
-	e = d ~~ (4, 10)
-	e verify "[1 4 6 5], [10 8]"
-	e.size is 6
-	0 in e is false
-	1 in e is true
-	2 in e is false
-	3 in e is false
-	4 in e is true
-	5 in e is true
-	6 in e is true
-	7 in e is false
-	8 in e is true
-	9 in e is false
-	10 in e is true
-	11 in e is false

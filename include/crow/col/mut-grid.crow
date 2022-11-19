@@ -3,6 +3,7 @@ import
 	../bool: &&, bool
 	../compare: <
 	../fun-util: subscript
+	../json: json
 	../misc: void
 	../number: +, *, ==, <=>, nat64
 	../range: .., for-loop

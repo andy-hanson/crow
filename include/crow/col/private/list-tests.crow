@@ -2,6 +2,7 @@ no-std
 import
 	../../bool: &&, bool
 	../../fun-util: subscript
+	../../json: json
 	../../misc: new, void
 	../../number: ==, nat64
 	../../option: !

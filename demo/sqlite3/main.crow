@@ -1,7 +1,6 @@
 import
 	crow/io/file: remove-file
 	crow/io/print: out, print
-	crow/json: json, json-object, to-string
 	sqlite3/main: for-loop, open-sqlite3, query, run, with-block
 
 main nat^(_ string[]) summon unsafe
@@ -11,7 +10,7 @@ main nat^(_ string[]) summon unsafe
 		db run "create table foo (name varchar(255));"
 		db run "insert into foo (name) values (\"tomato\"), (\"potato\")"
 		objects json[] = for columns, values : db query "select * from foo"
-			(for column, i : columns; column, values[i].json).to-dict.json-object
+			(for column, i : columns; column, values[i].json) json-object
 		out print ("\n" join for object : objects; object to-string)
 		db run "drop table foo"
 		()

@@ -1,6 +1,5 @@
 import
 	crow/io/process: exit-code, spawn-and-wait-result, stderr, stdout
-	crow/json: as-bool, as-list, as-string, json, subscript
 	crow/parse: !, ~~, parse, spaces
 	crow/version: is-windows
 	./module:

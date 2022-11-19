@@ -3,6 +3,7 @@ import
 	../bool: &&, ==, bool, true
 	../compare: !=
 	../fun-util: subscript
+	../json: json
 	../misc: new, void
 	../number: ==, +, nat64
 	../option: !, is-empty, new, option

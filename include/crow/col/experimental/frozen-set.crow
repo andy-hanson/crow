@@ -1,6 +1,6 @@
 no-std
 import
-	../../bool: &&, ==, bool, false, true
+	../../bool: &&, bool
 	../../compare: <=, compare
 	../../fun-util: subscript
 	../../hash: hash, hash-mix
@@ -9,7 +9,6 @@ import
 	../../option: new, option
 	../../pointer: ==, <=>, +, -, *, const-pointer, mut-pointer, swap
 	../../range: ..
-	../../test-util: is
 	../array:
 		~=, array, array-cast, as-array, begin-pointer, build-array, end-pointer, for-loop, in, index-of, is-empty, new,
 		pointer-of, size, subscript, with-block
@@ -17,12 +16,16 @@ import
 		~=, begin-pointer, build-mut-array, cast-immutable, end-pointer, fill, fill-mut-array,
 		mut-array, mut-array-builder, for-loop, size, temp-as-array, to-mut-array, set-subscript,
 		subscript, with-block
-	../list: ==, for-loop, list, new, to-array, to-list
+	../list: for-loop, list, to-array, to-list
 
 frozen-set<a> record
 	.values array a
 	# These are pointers into 'values', so it's fine that 'pointer' isn't GC traced.
 	.bucket-starts array a*
+
+dbg-bucket-starts<a> nat64[](a frozen-set a) unsafe no-doc
+	for pointer : a.bucket-starts to-list
+		pointer - a.values.begin-pointer
 
 new<a> frozen-set a(...a array a) is-data<a> compare<a> hash-mix<a>
 	a.to-list to-frozen-set
@@ -147,37 +150,3 @@ for-loop<a> void(a frozen-set a, f act void(a, nat64))
 	a.values for-loop f
 for-loop<out, in> out[](a frozen-set in, f act out(in)) trusted
 	a.values for-loop f to-list
-
-.verify void(a frozen-set nat64, values nat64[], bucket-starts nat64[]) unsafe
-	a.values.to-list is values
-	(for pointer : a.bucket-starts to-list; pointer - a.values.begin-pointer)::nat64[] is bucket-starts
-
-test
-	a frozen-set nat64 = ()
-	a.is-empty is true
-	a.size is 0
-	a verify (), ()
-	0 in a is false
-
-	b frozen-set nat64 = 3, 1, 5, 2
-	b verify (3, 1, 5, 2), ()
-	0 in b is false
-	1 in b is true
-	2 in b is true
-	3 in b is true
-	4 in b is false
-	5 in b is true
-	6 in b is false
-
-	c frozen-set nat64 = 3, 1, 5, 2, 8
-	c verify (2, 8, 3, 5, 1), (0, 2)
-	0 in c is false
-	1 in c is true
-	2 in c is true
-	3 in c is true
-	4 in c is false
-	5 in c is true
-	6 in c is false
-	7 in c is false
-	8 in c is true
-	9 in c is false

@@ -7,7 +7,6 @@ import
 		http-response, method, request-body-string, url
 	crow/io/print: err, out, print
 	crow/io/stdin: read-stdin
-	crow/json: json, new, to-string
 	crow/parse: ~~, grammar, nat, parse, separated-by, text-not-containing-any, to-string
 	./db:
 		add-post, content, cookie-expire-seconds, db, list-posts, list-users, login, open-real-db,
@@ -39,7 +38,7 @@ main nat^(args string[]) unsafe summon
 		elif path == "/index.js"
 			"demo-wip/webapp/index.js".read-file http-ok
 		elif path == "/posts"
-			(("posts", db.list-posts.json),)::json.to-string http-ok
+			(("posts", db.list-posts.list-json),)::json.to-string http-ok
 		elif path == "/user-name"
 			user = query.parse-query["user"] ?? ""
 			match nat parse user
@@ -48,7 +47,7 @@ main nat^(args string[]) unsafe summon
 			as err e
 				"{e}" http-bad-query
 		elif path == "/users"
-			(("users", db.list-users.json),)::json.to-string http-ok
+			(("users", db.list-users.list-json),)::json.to-string http-ok
 		else
 			http-not-found
 	as http-post

@@ -1,0 +1,47 @@
+no-std
+import
+	../../../bool: ==, false, true
+	../../../hash: hash-mix
+	../../../json: json
+	../../../misc: void
+	../../../number: ==, <=>, nat64
+	../../../test-util: is
+	../../list: ==, list, new
+	../frozen-set: dbg-bucket-starts, frozen-set, in, is-empty, new, size, to-list
+
+dummy-frozen-set-tests nat64()
+	0
+
+.verify void(a frozen-set nat64, values nat64[], bucket-starts nat64[]) unsafe
+	a.to-list is values
+	a.dbg-bucket-starts is bucket-starts
+
+test
+	a frozen-set nat64 = ()
+	a.is-empty is true
+	a.size is 0
+	a verify (), ()
+	0 in a is false
+
+	b frozen-set nat64 = 3, 1, 5, 2
+	b verify (3, 1, 5, 2), ()
+	0 in b is false
+	1 in b is true
+	2 in b is true
+	3 in b is true
+	4 in b is false
+	5 in b is true
+	6 in b is false
+
+	c frozen-set nat64 = 3, 1, 5, 2, 8
+	c verify (2, 8, 3, 5, 1), (0, 2)
+	0 in c is false
+	1 in c is true
+	2 in c is true
+	3 in c is true
+	4 in c is false
+	5 in c is true
+	6 in c is false
+	7 in c is false
+	8 in c is true
+	9 in c is false

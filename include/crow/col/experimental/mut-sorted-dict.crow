@@ -3,6 +3,7 @@ import
 	../../bool: !, &&, bool, new, true
 	../../compare: !=, <, >, <=, compare
 	../../fun-util: subscript
+	../../json: json
 	../../misc: is-data, new, void
 	../../number: ==, <=>, +, -, *, nat64
 	../../option: !, is-empty, new, option, option-equal, size

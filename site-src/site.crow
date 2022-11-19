@@ -2,7 +2,6 @@ import
 	crow/io/file: current-directory, make-directory, make-symlink-to, path-exists, read-file, try-read-file, write-file
 	crow/io/path: child-path, parent-path
 	crow/io/print: out, print
-	crow/json: json, json-object, json-string, to-string
 	crow/test-util/test-runner: run-all-tests
 	./document: documentation
 	./pages: pages

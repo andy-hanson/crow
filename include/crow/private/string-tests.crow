@@ -1,5 +1,6 @@
 no-std
 import
+	../json: json
 	../number: nat64
 	../string: ==, literal, to-string
 	../test-util: is

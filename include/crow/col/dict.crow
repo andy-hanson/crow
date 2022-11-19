@@ -1,17 +1,16 @@
 no-std
 import
 	../bits: &, >>
-	../bool: !, &&, ==, bool, false, new, true
+	../bool: !, &&, bool, false, new, true
 	../compare: !=, <, <=, >=, compare, equal, max
 	../exception: unreachable
 	../fun-util: subscript
 	../hash: hash, hash-mix
 	../misc: is-data, loop-break, new, void
 	../number: ==, <=>, +, -, nat64
-	../option: !, is-empty, new, option, option-equal
+	../option: !, is-empty, new, option
 	../range: .., for-loop
-	../string: ==, ~~, join, literal, string, to-string
-	../test-util: is
+	../string: ~~, literal, join, string, to-string
 	../tuple: from, new, pair, to
 	../private/bootstrap: todo
 	./array:
@@ -21,7 +20,7 @@ import
 		cast-immutable, copy-from, fill-mut-array, mut-array, set-subscript, size, subscript,
 		uninitialized-mut-array
 	./list:
-		~=, build-list, every, flatten, first, for-loop, list, new, size, tail, to-array, to-list,
+		~=, build-list, every, first, for-loop, join, list, new, size, tail, to-array, to-list,
 		with-block
 
 ###
@@ -163,7 +162,7 @@ This may overwrite the key if it's already in `a`, or add a new entry.
 ###
 Adds/updates many entries to `a`.
 ###
-~~ <k, v> v[k](a v[k], pairs array (k, v)) is-data<k> compare<k> hash-mix<k>
+~~ <k, v> v[k](a v[k], pairs (k, v)[]) is-data<k> compare<k> hash-mix<k>
 	res mut = a
 	for pair : pairs
 		res := res ~ pair
@@ -397,19 +396,6 @@ If `index > a.size`, entries between the and of `a` and the new entries will be 
 
 region iteration
 
-# TODO: map
-# TODO: map-values
-
-# List of every key in the dictionary.
-keys<k, v> k[](a v[k]) is-data<k> compare<k> hash-mix<k>
-	for k, _ : a
-		k
-
-# List of every value in the dictionary.
-values<k, v> v[](a v[k]) is-data<k> compare<k> hash-mix<k>
-	for _, v : a
-		v
-
 for-loop<k, v> void(a v[k], f act void(k, v)) is-data<k> compare<k> hash-mix<k>
 	a.root for-loop f
 .for-loop<k, v> void(a node<k, v>, f act void(k, v)) is-data<k> compare<k> hash-mix<k>
@@ -427,27 +413,16 @@ for-loop<out, k, v> out[](a v[k], f act out(k, v)) trusted is-data<k> compare<k>
 		for k, v : a
 			out ~= f[k, v]
 
-.dbg<k, v> string(a v[k]) to-string<k> to-string<v>
-	a.root dbg ""
+for-loop<k-out, v-out, k, v> v-out[k-out](
+	a v[k],
+	f act (k-out, v-out)(k, v),
+) is-data<k> compare<k> hash-mix<k> is-data<k-out> compare<k-out> hash-mix<k-out>
+	a for-loop f to-dict
 
-.dbg<k, v> string(a node<k, v>, path string) to-string<k> to-string<v>
-	match a
-	as inner-node node
-		parts string[][] = for index : 0 .. node.size
-			child = node[index]
-			unless child node-is-empty
-				(child dbg "{path}{index}"),
-		" " join parts.flatten
-	as leaf-node l
-		parts = ", " join for pair : l.to-list
-			"{pair from} -> {pair to}"
-		"{path}[{parts}]"
-
-verify void(a string[nat64], expected string)
-	a.dbg is expected
-
-.== bool(a string?, b string?)
-	a option-equal b
+for-loop<k, v, a> v[k](a a[], f act (k, v)(a)) is-data<k> compare<k> hash-mix<k>
+	a for-loop f to-dict
+for-loop<k, v, a> v[k](a a[], f act (k, v)(a, nat64)) is-data<k> compare<k> hash-mix<k>
+	a for-loop f to-dict
 
 region builder
 
@@ -467,28 +442,18 @@ with-block<k, v> v[k](a build-dict, f act void(dict-builder<k, v>)) is-data<k> c
 ~= <k, v>void(a dict-builder<k, v>, pair (k, v))
 	a.inner ~= pair
 
-test
-	l0 string[nat64] = ()
-	l0.is-empty is true
-	l0.size is 0
-	l0 verify "[]"
-	l0[0] is ()
+dbg<k, v> string(a v[k]) no-doc to-string<k> to-string<v>
+	a.root dbg ""
 
-	l1 = l0 ~ (5, "5")
-	l1.is-empty is false
-	l1.size is 1
-	l1 verify "[5 -> 5]"
-
-	l2 = l1 ~~ ((1, "1"), (3, "3"), (9, "9"))
-	l2 verify "[5 -> 5, 1 -> 1, 3 -> 3, 9 -> 9]"
-
-	l3 = l2 ~ (13, "13")
-	l3 verify "[5 -> 5, 1 -> 1, 3 -> 3, 9 -> 9, 13 -> 13]"
-	#l3 verify "1[1 -> 1, 9 -> 9] 3[3 -> 3] 5[13 -> 13, 5 -> 5]"
-
-	#l3[3] is ("3",)
-	#l3[4] is ()
-
-	#l3 - 3 verify "[1 -> 1, 9 -> 9, 13 -> 13, 5 -> 5]"
-
-	# TODO: lots more tests. Be sure to test removal can remove inner nodes.
+.dbg<k, v> string(a node<k, v>, path string) to-string<k> to-string<v>
+	match a
+	as inner-node node
+		parts string[] = () join for index : 0 .. node.size
+			child = node[index]
+			unless child node-is-empty
+				(child dbg "{path}{index}"),
+		" " join parts
+	as leaf-node l
+		parts = ", " join for pair : l to-list
+			"{pair from} -> {pair to}"
+		"{path}[{parts}]"

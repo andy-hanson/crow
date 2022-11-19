@@ -2,6 +2,7 @@ no-std
 import
 	../bool: bool
 	../compare: !=, <
+	../json: json
 	../misc: new, void
 	../number: ==, <=>, +, *, nat64, new
 	../option: ==, new, option

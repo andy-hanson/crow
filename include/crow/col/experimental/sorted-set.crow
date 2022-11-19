@@ -4,6 +4,7 @@ import
 	../../compare: <, <=, >, >=, compare
 	../../exception: unreachable
 	../../fun-util: subscript
+	../../json: json
 	../../misc: is-data, new, void
 	../../number: ==, <=>, +, -, *, nat64
 	../../option: !, ??, new, option

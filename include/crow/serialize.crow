@@ -9,6 +9,7 @@ import
 	./bits: &, |, <<, >>
 	./col/list: ==, for-loop, list, new, size, drop-while, subscript
 	./compare: <, <=
+	./json: json
 	./number: ==, <=>, int64, max-int64, nat8, nat32, nat64, to-nat8, to-int64, to-nat32, to-nat64
 	./range: ..
 	./string: as-string, string

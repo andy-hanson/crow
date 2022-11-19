@@ -4,16 +4,20 @@ Functions for use in tests.
 
 no-std
 import
+	./bool: bool
 	./compare: equal
+	./json: json, to-string
 	./misc: void
+	./number: ==, nat64
 	./private/exception-low-level: catch, message
-	./string: ==, literal, string
+	./string: ~~, ==, literal, string, to-c-string
+	./tuple: new, pair, pair-equal
 
 ###
 Asserts the the values are equal.
 ###
-is<a> void(a a, b a) equal<a>
-	assert a == b
+is<a> void(a a, b a) equal<a> json<a>
+	assert a == b : "Test failure: Expected {a json} is {b json}"
 
 ###
 Calls `f` and asserts that it throws an exception with the specified `message`.
@@ -24,3 +28,10 @@ throws<a> void(f act a(), message string)
 		throw "Expected to throw an exception"
 	as err e
 		e.message.literal is message
+
+test
+	x (nat64, string) = 1, "foo"
+	(() => x is (1, "bar")) throws """Test failure: Expected [1,"foo"] is [1,"bar"]"""
+
+.== bool(a (nat64, string), b (nat64, string))
+	a pair-equal b

@@ -2,8 +2,9 @@ no-std
 import
 	../compare: compare
 	../hash: hash-mix
-	../number: ==, <=>, +, nat64
+	../json: json
 	../misc: is-data, void
+	../number: ==, <=>, +, nat64
 	../option: ??
 	../test-util: is
 	../tuple: new

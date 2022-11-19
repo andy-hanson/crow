@@ -17,6 +17,7 @@ export
 	./fun-util
 	./future
 	./hash
+	./json
 	./misc
 	./number
 	./option

@@ -5,6 +5,7 @@ import
 	./col/list: ~~, for-break, index-of, is-empty, list, list-equal, new, size, subscript
 	./col/mut-dict: for-loop, mut-dict, new, set-subscript
 	./col/mut-list: ~=, fill-mut-list, move-to-list, mut-list, new, set-subscript, subscript
+	./json: json, json-object, new
 	./misc: loop-break, loop-continue, new
 	./number: ==, <=>, +
 	./option: ??, new, option
@@ -32,6 +33,9 @@ parsed-command record
 
 == bool(a parsed-command, b parsed-command)
 	a.nameless == b.nameless && a.named == b.named && a.after == b.after
+.json json(a parsed-command)
+	named = (for k, v : a named; k, v.json) json-object
+	("nameless", a.nameless.json), ("named", named), ("after", a.after.json)
 
 .== bool(a string[], b string[])
 	a list-equal b

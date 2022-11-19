@@ -4,6 +4,7 @@ import
 	../compare: >, >=, compare
 	../fun-util: subscript
 	../hash: hash, hash-mix
+	../json: json
 	../misc: is-data, new, void
 	../number: ==, <=>, +, -, *, %, nat64
 	../option: is-empty, new, option, option-equal

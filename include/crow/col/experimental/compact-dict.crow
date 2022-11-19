@@ -4,7 +4,7 @@ import
 	../../compare: <=, compare, max
 	../../fun-util: subscript
 	../../hash: hash-mix
-	../../log: info, log
+	../../json: json
 	../../misc: is-data, new, void
 	../../number: ==, <=>, +, nat64
 	../../option: is-empty, new, option, option-equal
@@ -201,13 +201,7 @@ for-loop<a, k, v> a[](a compact-dict<k, v>, f act a(k, v)) trusted is-data<k> co
 		"[{parts}]"
 
 verify void(a compact-dict<nat64, string>, expected string)
-	dbg = a dbg
-	unless dbg == expected
-		info log "expected:"
-		info log expected
-		info log "but was:"
-		info log dbg
-	dbg is expected
+	a.dbg is expected
 	for k, v : a
 		a[k] is (v,)
 

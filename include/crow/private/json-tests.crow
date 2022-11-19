@@ -1,0 +1,51 @@
+no-std
+import
+	../bool: bool, false, true
+	../col/dict: new
+	../col/list: new
+	../json:
+		==, json, new, json-bool, json-list, json-number, json-object, json-string, result-json,
+		to-string
+	../misc: void
+	../number: nat64
+	../parse: ==, expected, parse, parse-error
+	../result: ok, result, result-equals
+	../string: ==, <=>, hash-mix, literal, string
+	../test-util: is
+	../tuple: new
+
+dummy-json-tests nat64()
+	0
+
+#TODO:MOVE
+.json json(a parse-error)
+	# TODO: include input/iter
+	("expected", a.expected.json),
+
+.json json(a result<json, parse-error>)
+	a result-json
+
+.verify void(a json, s string)
+	json parse s is a.ok
+	a.to-string is s
+
+.== bool(a result<json, parse-error>, b result<json, parse-error>)
+	a result-equals b
+
+test
+	true.json-bool verify "true"
+	false.json-bool verify "false"
+	-3.0.json-number verify "-3"
+	1.5.json-number verify "1.5"
+	-1.5.json-number verify "-1.5"
+	"j".json-string verify "\"j\""
+	"a\nb".json-string verify "\"a\\nb\""
+	"a\\nb".json-string verify "\"a\\\\nb\""
+
+	().json-list verify "[]"
+	(1.0.json-number,).json-list verify "[1]"
+	(1.0.json-number, true.json-bool).json-list verify "[1,true]"
+
+	().json-object verify "\{}"
+	(("a", 1.0.json-number),).json-object verify "\{\"a\":1}"
+	(("a", 1.0.json-number), ("x\ny", true.json-bool)).json-object verify "\{\"a\":1,\"x\\ny\":true}"

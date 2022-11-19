@@ -9,6 +9,7 @@ import
 	../col/list: list, list-equal, new
 	../col/mut-list: ~=, move-to-list, mut-list, new
 	../fun-util: subscript
+	../json: json
 	../number: ==, +, nat64
 	../test-util: is
 	../tuple: new, pair, pair-equal
