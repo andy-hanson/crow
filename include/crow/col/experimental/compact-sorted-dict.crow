@@ -1,23 +1,22 @@
 no-std
 import
 	../../bool: !, &&, ==, bool, false, true
-	../../compare: <=, >=, compare, max, min
+	../../compare: <=, >=, compare, equal, max, min
 	../../exception: unreachable
 	../../fun-util: subscript
 	../../json: json
 	../../misc: is-data, new, void
 	../../number: ==, <=>, +, is-even, nat64
-	../../option: !, ||, is-empty, new, option, option-equal
-	../../pointer: ==, ref-eq
+	../../option: ==, !, ||, is-empty, new, option
 	../../string: ==, ~~, end-iter, join, literal, prev, string, to-string
 	../../test-util: is
-	../../tuple: from, new, pair, to
+	../../tuple: ==, from, new, pair, to
 	../array:
-		~=, ~~=, array, array-builder, begin-pointer, build-array, for-loop, is-empty, mut-iter,
-		new, next, peek, size, slice-right, subscript, tail, with-block
+		~=, ~~=, array, array-builder, build-array, for-loop, is-empty, mut-iter, new, next, peek,
+		size, slice-right, subscript, tail, with-block
 	../mut-list: ~=, for-loop, is-empty, last, mut-list, new, pop, size, set-subscript, subscript
 	../iter: value
-	../list: filter, for-loop, is-empty, list, new, to-array, to-list
+	../list: ==, filter, for-loop, is-empty, list, new, to-array, to-list
 	../sort: sort
 	../private/sort-utils: binary-search-key
 
@@ -34,6 +33,14 @@ compact-sorted-dict<k, v> record by-val
 	# never empty
 	pairs array (k, v?)
 	prev impl<k, v>
+
+== <k, v> bool(a compact-sorted-dict<k, v>, b compact-sorted-dict<k, v>) is-data<k> compare<k> equal<v>
+	a.to-sorted-pairs == b.to-sorted-pairs
+.to-sorted-pairs<k, v> (k, v)[](a compact-sorted-dict<k, v>) is-data<k> compare<k>
+	a.to-list sort pair => pair from
+
+json<k, v> json(a compact-sorted-dict<k, v>) is-data<k> compare<k> json<k> json<v>
+	a.to-sorted-pairs json
 
 new<k, v> compact-sorted-dict<k, v>(...a array (k, v)) is-data<k> compare<k>
 	a.to-list to-compact-sorted-dict
@@ -309,27 +316,6 @@ dbg<k, v> string(a compact-sorted-dict<k, v>) to-string<k> to-string<v>
 verify void(a compact-sorted-dict<nat64, string>, expected string)
 	a.dbg is expected
 
-.array-ref-eq<a> bool(a array a, b array a) unsafe
-	a.begin-pointer == b.begin-pointer && a.size == b.size
-
-.exact-eq<k, v> bool(a compact-sorted-dict<k, v>, b compact-sorted-dict<k, v>) unsafe
-	match a impl
-	as overlay oa
-		match b impl
-		as overlay ob
-			oa ref-eq ob
-		as end-node _
-			false
-	as end-node ea
-		match b impl
-		as overlay _
-			false
-		as end-node eb
-			ea array-ref-eq eb
-
-.== bool(a string?, b string?)
-	a option-equal b
-
 test
 	a compact-sorted-dict<nat64, string> = ()
 	a.is-empty is true
@@ -350,8 +336,8 @@ test
 	e = d - 15
 	e verify "[5 -> 5, 10 -> 10, 15 -> 15, 20 -> 20], [11 -> 11, 15 -> _]"
 
-	e - 15 exact-eq e is true
-	e - 16 exact-eq e is true
+	e - 15 is e
+	e - 16 is e
 
 	f = e - 10
 	f verify "[5 -> 5, 10 -> 10, 15 -> 15, 20 -> 20], [10 -> _, 11 -> 11, 15 -> _]"

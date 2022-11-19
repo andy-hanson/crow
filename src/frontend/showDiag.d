@@ -13,6 +13,7 @@ import model.model :
 	decl,
 	EnumBackingType,
 	FunDecl,
+	FunDeclAndTypeArgs,
 	LocalMutability,
 	matchCalledDecl,
 	matchParams,
@@ -28,6 +29,7 @@ import model.model :
 	symOfVisibility,
 	Type,
 	writeStructInst,
+	writeTypeArgs,
 	writeTypeQuoted,
 	writeTypeUnquoted;
 import model.parseDiag : matchParseDiag, ParseDiag;
@@ -344,6 +346,35 @@ void writeSig(
 			writeTypeUnquoted(writer, allSymbols, varargs.param.type);
 		});
 	writer ~= ')';
+}
+
+void writeSpecTrace(
+	ref Writer writer,
+	ref const AllSymbols allSymbols,
+	ref const AllPaths allPaths,
+	ref immutable PathsInfo pathsInfo,
+	ref immutable ShowDiagOptions options,
+	ref immutable FilesInfo fi,
+	immutable FunDeclAndTypeArgs[] trace,
+) {
+	foreach (immutable FunDeclAndTypeArgs x; trace) {
+		writer ~= "\n\t";
+		writeFunDeclAndTypeArgs(writer, allSymbols, allPaths, pathsInfo, options, fi, x);
+	}
+}
+
+void writeFunDeclAndTypeArgs(
+	ref Writer writer,
+	ref const AllSymbols allSymbols,
+	ref const AllPaths allPaths,
+	ref immutable PathsInfo pathsInfo,
+	ref immutable ShowDiagOptions options,
+	ref immutable FilesInfo fi,
+	immutable FunDeclAndTypeArgs a,
+) {
+	writeSym(writer, allSymbols, a.decl.name);
+	writeTypeArgs(writer, allSymbols, a.typeArgs);
+	writeFunDeclLocation(writer, allSymbols, allPaths, pathsInfo, options, fi, *a.decl);
 }
 
 void writeCalledDecl(
@@ -867,17 +898,15 @@ void writeDiag(
 			writer ~= ':';
 			writeCalledDecls(writer, allSymbols, allPaths, pathsInfo, options, fi, d.matches);
 		},
-		(ref immutable Diag.SpecImplHasSpecs d) {
-			writer ~= "calling ";
-			writeName(writer, allSymbols, d.outerCalled.name);
-			writer ~= ", spec implementation for ";
-			writeName(writer, allSymbols, d.specImpl.name);
-			writeFunDeclLocation(writer, allSymbols, allPaths, pathsInfo, options, fi, *d.specImpl);
-			writer ~= " has specs itself; currently this is not allowed";
-		},
 		(ref immutable Diag.SpecImplNotFound d) {
 			writer ~= "no implementation was found for spec signature ";
-			writeName(writer, allSymbols, d.sigName);
+			writeSig(writer, allSymbols, d.sig.name, d.sig.returnType, d.sig.params);
+			writer ~= " calling:";
+			writeSpecTrace(writer, allSymbols, allPaths, pathsInfo, options, fi, d.trace); 
+		},
+		(ref immutable Diag.SpecImplTooDeep d) {
+			writer ~= "spec instantiation is too deep calling:";
+			writeSpecTrace(writer, allSymbols, allPaths, pathsInfo, options, fi, d.trace);
 		},
 		(ref immutable Diag.ThreadLocalError d) {
 			writer ~= "thread-local ";

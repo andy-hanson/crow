@@ -7,7 +7,7 @@ import
 	../json: json
 	../misc: is-data, new, void
 	../number: ==, <=>, +, -, *, %, nat64
-	../option: is-empty, new, option, option-equal
+	../option: ==, is-empty, new, option
 	../string: ==, ~~, join, literal, string, to-string
 	../test-util: is
 	../tuple: from, new, pair, to
@@ -16,7 +16,7 @@ import
 	./mut-array:
 		fill, fill-mut-array, mut-array, for-loop, is-empty, new, set-map, set-subscript, size,
 		subscript, to-array
-	./list: ==, ~=, build-list, for-loop, list, list-equal, new, size, to-list, with-block
+	./list: ==, ~=, build-list, for-loop, list, new, size, to-list, with-block
 	./mut-list:
 		~=, copy, find-index, for-loop, is-at-capacity, is-empty, mut-list, new,
 		remove-unordered-at, set-filter, set-map, set-subscript, size, subscript
@@ -371,9 +371,3 @@ test
 
 	a set-map-values (key, value) => "{key}-{value}"
 	a verify "_ _ _ (11 -> 11-11) (12 -> 12-12) _ (6 -> 6-six) _"
-
-.== bool(a string?, b string?)
-	a option-equal b
-
-.== bool(a string[], b string[])
-	a list-equal b

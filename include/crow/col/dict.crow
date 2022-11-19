@@ -36,10 +36,7 @@ functions dealing with multiple elements (like `to-list` or `for-loop`) work in 
 dict<k, v> record by-val
 	.root node<k, v>
 
-# TODO: comparison should be generic
-
-# True if the dictionaries have equal keys and values.
-dict-equal<k, v> bool(a v[k], b v[k]) no-doc is-data<k> compare<k> hash-mix<k> equal<v>
+==<k, v> bool(a v[k], b v[k]) no-doc is-data<k> compare<k> hash-mix<k> equal<v>
 	# TODO:PERF `a every` nto `a.to-list every`
 	a.size == b.size && a.to-list every pair =>
 		if bv ?= b[pair from]

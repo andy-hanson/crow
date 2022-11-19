@@ -7,7 +7,7 @@ import
 	../../json: json
 	../../misc: is-data, new, void
 	../../number: ==, <=>, +, -, /, %, nat64
-	../../option: is-empty, new, option, option-equal
+	../../option: ==, is-empty, new, option
 	../../pointer: ==, <=>, +, -, *, const-pointer, mut-pointer, swap
 	../../range: ..
 	../../string: ==, literal, string
@@ -218,9 +218,6 @@ for-loop<out, k, v> out[](a frozen-dict<k, v>, f act out(k, v))
 .verify void(a frozen-dict<nat64, string>, keys-order nat64[], bucket-starts nat64[]) unsafe
 	(for pair : a.pairs to-list; pair from)::nat64[] is keys-order
 	(for pointer : a.bucket-starts to-list; pointer - a.pairs.begin-pointer)::nat64[] is bucket-starts
-
-.== bool(a string?, b string?)
-	a option-equal b
 
 test
 	a frozen-dict<nat64, string> = ()

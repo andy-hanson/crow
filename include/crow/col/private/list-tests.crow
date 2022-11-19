@@ -12,8 +12,8 @@ import
 	../../tuple: a, b
 	../array: array, for-loop, is-empty
 	../list:
-		==, ~, ~~, down, for-loop, get-root, groups-of, left, list-equal, l0, l1, l2, list, new,
-		node, nodes, right, to-list, try-split-once-by-sublist
+		==, ~, ~~, down, for-loop, get-root, groups-of, left, l0, l1, l2, list, new, node, nodes,
+		right, to-list, try-split-once-by-sublist
 
 dummy-list-tests nat64()
 	0
@@ -158,6 +158,3 @@ test
 test
 	a nat64[] = 1, 2, 3, 4, 5, 6, 7
 	a groups-of 3 is ((1, 2, 3), (4, 5, 6), (7,))
-
-.== bool(a nat64[][], b nat64[][])
-	a list-equal b

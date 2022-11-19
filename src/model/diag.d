@@ -8,6 +8,7 @@ import model.model :
 	CalledDecl,
 	EnumBackingType,
 	FunDecl,
+	FunDeclAndTypeArgs,
 	LineAndColumnGetters,
 	Local,
 	Module,
@@ -15,6 +16,7 @@ import model.model :
 	Purity,
 	SpecBody,
 	SpecDecl,
+	SpecDeclSig,
 	StructAlias,
 	StructDecl,
 	StructInst,
@@ -292,12 +294,12 @@ struct Diag {
 		immutable Sym sigName;
 		immutable CalledDecl[] matches;
 	}
-	struct SpecImplHasSpecs {
-		immutable FunDecl* outerCalled;
-		immutable FunDecl* specImpl;
-	}
 	struct SpecImplNotFound {
-		immutable Sym sigName;
+		immutable SpecDeclSig sig;
+		immutable FunDeclAndTypeArgs[] trace;
+	}
+	struct SpecImplTooDeep {
+		immutable FunDeclAndTypeArgs[] trace;
 	}
 	struct ThreadLocalError {
 		immutable FunDecl* fun;
@@ -417,8 +419,8 @@ struct Diag {
 		sendFunDoesNotReturnFut,
 		specBuiltinNotSatisfied,
 		specImplFoundMultiple,
-		specImplHasSpecs,
 		specImplNotFound,
+		specImplTooDeep,
 		threadLocalError,
 		typeAnnotationUnnecessary,
 		typeConflict,
@@ -491,8 +493,8 @@ struct Diag {
 		immutable SendFunDoesNotReturnFut sendFunDoesNotReturnFut;
 		immutable SpecBuiltinNotSatisfied specBuiltinNotSatisfied;
 		immutable SpecImplFoundMultiple specImplFoundMultiple;
-		immutable SpecImplHasSpecs specImplHasSpecs;
 		immutable SpecImplNotFound specImplNotFound;
+		immutable SpecImplTooDeep specImplTooDeep;
 		immutable ThreadLocalError threadLocalError;
 		immutable TypeAnnotationUnnecessary typeAnnotationUnnecessary;
 		immutable TypeConflict typeConflict;
@@ -640,8 +642,8 @@ struct Diag {
 	@trusted immutable this(immutable SpecImplFoundMultiple a) {
 		kind = Kind.specImplFoundMultiple; specImplFoundMultiple = a;
 	}
-	@trusted immutable this(immutable SpecImplHasSpecs a) { kind = Kind.specImplHasSpecs; specImplHasSpecs = a; }
 	@trusted immutable this(immutable SpecImplNotFound a) { kind = Kind.specImplNotFound; specImplNotFound = a; }
+	@trusted immutable this(immutable SpecImplTooDeep a) { kind = Kind.specImplTooDeep; specImplTooDeep = a; }
 	immutable this(immutable ThreadLocalError a) { kind = Kind.threadLocalError; threadLocalError = a; }
 	immutable this(immutable TypeAnnotationUnnecessary a) {
 		kind = Kind.typeAnnotationUnnecessary; typeAnnotationUnnecessary = a;
@@ -795,11 +797,11 @@ struct Diag {
 		ref immutable Diag.SpecImplFoundMultiple
 	) @safe @nogc pure nothrow cbSpecImplFoundMultiple,
 	scope immutable(Out) delegate(
-		ref immutable Diag.SpecImplHasSpecs
-	) @safe @nogc pure nothrow cbSpecImplHasSpecs,
-	scope immutable(Out) delegate(
 		ref immutable Diag.SpecImplNotFound
 	) @safe @nogc pure nothrow cbSpecImplNotFound,
+	scope immutable(Out) delegate(
+		ref immutable Diag.SpecImplTooDeep
+	) @safe @nogc pure nothrow cbSpecImplTooDeep,
 	scope immutable(Out) delegate(ref immutable Diag.ThreadLocalError) @safe @nogc pure nothrow cbThreadLocalError,
 	scope immutable(Out) delegate(
 		ref immutable Diag.TypeAnnotationUnnecessary
@@ -944,10 +946,10 @@ struct Diag {
 			return cbSpecBuiltinNotSatisfied(a.specBuiltinNotSatisfied);
 		case Diag.Kind.specImplFoundMultiple:
 			return cbSpecImplFoundMultiple(a.specImplFoundMultiple);
-		case Diag.Kind.specImplHasSpecs:
-			return cbSpecImplHasSpecs(a.specImplHasSpecs);
 		case Diag.Kind.specImplNotFound:
 			return cbSpecImplNotFound(a.specImplNotFound);
+		case Diag.Kind.specImplTooDeep:
+			return cbSpecImplTooDeep(a.specImplTooDeep);
 		case Diag.Kind.threadLocalError:
 			return cbThreadLocalError(a.threadLocalError);
 		case Diag.Kind.typeAnnotationUnnecessary:

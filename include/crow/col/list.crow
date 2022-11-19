@@ -4,7 +4,7 @@ import
 	../compare: ==, <, <=, compare, comparison, equal, greater, less, min
 	../fun-util: subscript
 	../misc: break-or-continue, loop-break, loop-continue, new, void
-	../number: ==, <=>, +, -, *, /, %, nat8, nat64
+	../number: ==, <=>, +, -, *, /, %, nat64
 	../option: ??, is-empty, new, option
 	../pointer: const-pointer, mut-pointer
 	../private/exception-low-level: unreachable
@@ -147,21 +147,12 @@ to-list<a> a[](a a?)
 	if x ?= a
 		x,
 
-== bool(a nat8[], b nat8[]) no-doc
-	a list-equal b
-== bool(a nat64[], b nat64[]) no-doc
-	a list-equal b
-<=> comparison(a nat8[], b nat8[]) no-doc
-	a list-compare b
-<=> comparison(a nat64[], b nat64[]) no-doc
-	a list-compare b
-
 list-cast<out, in> out[](a in[]) no-doc unsafe
 	assert size-of@<out> == size-of@<in>
 	# TODO:PERF
 	a.to-array.array-cast::array<out> to-list
 
-list-equal<a> bool(a a[], b a[]) equal<a>
+== <a> bool(a a[], b a[]) equal<a>
 	ai = a mut-iter
 	bi = b mut-iter
 	loop
@@ -176,7 +167,7 @@ list-equal<a> bool(a a[], b a[]) equal<a>
 		else
 			break bi.next is-empty
 
-list-compare<a> comparison(a a[], b a[]) compare<a>
+<=> <a> comparison(a a[], b a[]) compare<a>
 	ai = a mut-iter
 	bi = b mut-iter
 	loop
@@ -412,8 +403,9 @@ list-iter<a> record by-val
 	.list a[]
 	.cur array-3d-iter a
 	.pos position
-list-iter-equal<a> bool(a list-iter a, b list-iter a) equal<a>
-	a.list list-equal b.list && a.index == b.index
+
+==<a> bool(a list-iter a, b list-iter a) equal<a>
+	a.list == b.list && a.index == b.index
 
 index<a> nat64(a list-iter a)
 	# TODO:PERF (this could be a lot faster than walking back)

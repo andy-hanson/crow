@@ -5,9 +5,8 @@ There is technically no I/O here; for functions like reading from a path, see `c
 
 no-std
 import
-	../bool: bool
 	../json: json
-	../option: new, option, option-equal
+	../option: ==, new, option
 	../string: ==, literal, new, string
 	../tuple: a, b
 	../string: ~~, to-string, try-split-once-right
@@ -35,9 +34,6 @@ get-extension string?(name string)
 		x.b,
 test
 	"birds/crow.txt".get-extension is ("txt",)
-
-.== bool(a string?, b string?)
-	a option-equal b
 
 ###
 Removes the extension from a file name or path.

@@ -2,7 +2,7 @@ no-std
 import
 	./bool: bool, false, new, true
 	./compare: equal
-	./number: ==, int64, nat64, new
+	./number: nat64, new
 	./private/bootstrap: none, some
 export
 	./private/bootstrap: option
@@ -15,13 +15,7 @@ new<a> a?() noctx
 new<a> a?(a a) noctx
 	a some
 
-== bool(a int64?, b int64?) no-doc noctx
-	a option-equal b
-== bool(a nat64?, b nat64?) no-doc noctx
-	a option-equal b
-
-# TODO:GENERIC
-option-equal<a> bool(a a?, b a?) equal<a> noctx no-doc
+==<a> bool(a a?, b a?) equal<a> noctx
 	if va ?= a
 		if vb ?= b
 			va == vb

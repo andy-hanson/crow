@@ -7,7 +7,7 @@ import
 export
 	./private/bootstrap: err, ok, result
 
-result-equals<a, b> bool(a result<a, b>, b result<a, b>) equal<a> equal<b>
+==<a, b> bool(a result<a, b>, b result<a, b>) equal<a> equal<b>
 	match a
 	as ok oa
 		match b
@@ -21,7 +21,6 @@ result-equals<a, b> bool(a result<a, b>, b result<a, b>) equal<a> equal<b>
 			false
 		as err eb
 			ea == eb
-
 
 then<out, in, err> result<out, err>(a result<in, err>, f act result<out, err>(in))
 	match a

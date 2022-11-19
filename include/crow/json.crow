@@ -2,9 +2,9 @@ no-std
 import
 	./bool: ==, bool, new
 	./col/array: array
-	./col/dict: dict, dict-equal, for-loop, subscript, to-dict
+	./col/dict: ==, dict, for-loop, subscript, to-dict
 	./col/experimental/index-set: index-set, to-list
-	./col/list: for-loop, list, list-equal, new, to-list
+	./col/list: ==, for-loop, list, new, to-list
 	./parse:
 		/, ~~, bool, exact, float, grammar, lazy, map, quoted-string, separated-by, spaces,
 		with-block
@@ -61,64 +61,26 @@ json json(a float64)
 	a json-number
 json json(a string)
 	a json-string
-json json(a array float32) no-doc
-	a.to-list list-json
-# TODO: specs with specs
-list-json<a> json(a a[]) no-doc json<a>
+json<a> json(a array a) json<a>
+	(for x : a to-list; x json) json-list
+json<a> json(a a[]) json<a>
 	(for x : a; x json) json-list
-json json(a nat8[]) no-doc
-	a list-json
-json json(a nat64[]) no-doc
-	a list-json
-json json(a nat64[][]) no-doc
-	a list-json
-json json(a string[]) no-doc
-	a list-json
-json json(a (nat64, nat64)[]) no-doc
-	a list-json
-json json(a (nat64, string)[]) no-doc
-	a list-json
-
-#TODO:MOVE
-json json(a index-set) no-doc
+json json(a index-set)
 	a.to-list json
-json json(a index-set?) no-doc
-	a option-json
-
-# TODO: specs with specs
-.option-json<a> json(a a?) no-doc json<a>
+json<a> json(a a?) json<a>
 	if x ?= a
 		(x.json,) json-list
 	else
 		()
-json json(a nat64?) no-doc
-	a option-json
-json json(a string?) no-doc
-	a option-json
-json json(a (nat64, string)?) no-doc
-	a option-json
-
-# TODO: specs with specs
-.tuple-json<a, b> json(a (a, b)) no-doc json<a> json<b>
+json<a, b> json(a (a, b)) json<a> json<b>
 	(a.a json, a.b json) json-list
-json json(a (nat64, nat64)) no-doc
-	a tuple-json
-json json(a (nat64, string)) no-doc
-	a tuple-json
-
-# TODO: specs with specs
-result-json<a, b> json(a result<a, b>) no-doc json<a> json<b>
+json<a, b> json(a result<a, b>) json<a> json<b>
 	match a
 	as ok v
 		("ok", v json),
 	as err e
 		("err", e json),
 
-###
-True iff the two values are deeply equal.
-
-This is equivalent to `a.to-string == b.to-string`.
-###
 == bool(a json, b json)
 	match a
 	as json-bool ba
@@ -132,16 +94,10 @@ This is equivalent to `a.to-string == b.to-string`.
 			sa == sb
 	as json-list aa
 		if ab ?= b as-list
-			aa list-equal ab
+			aa == ab
 	as json-object oa
 		if ob ?= b as-object
-			oa dict-equal ob
-
-# TODO: option equality should be generic
-== bool(a json?, b json?) no-doc
-	if va ?= a
-		if vb ?= b
-			va == vb
+			oa == ob
 
 # If `a` is a boolean, returns that, else returns an empty option.
 as-bool bool?(a json) noctx

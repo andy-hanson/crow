@@ -5,14 +5,13 @@ Spies record each call and output to an array.
 
 no-std
 import
-	../bool: bool
-	../col/list: list, list-equal, new
+	../col/list: ==, list, new
 	../col/mut-list: ~=, move-to-list, mut-list, new
 	../fun-util: subscript
 	../json: json
 	../number: ==, +, nat64
 	../test-util: is
-	../tuple: new, pair, pair-equal
+	../tuple: ==, new, pair
 
 spy-act1<out, in> record mut
 	.calls-builder in mut[]
@@ -50,10 +49,3 @@ test
 	spy.fn[3, 4] is 7
 	spy.calls is ((1, 2), (3, 4))
 	spy.calls is ()
-
-# TODO: list equality should be generic
-.== bool(a (nat64, nat64)[], b (nat64, nat64)[])
-	a list-equal b
-
-.== bool(a (nat64, nat64), b (nat64, nat64))
-	a pair-equal b

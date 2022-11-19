@@ -1,8 +1,8 @@
 no-std
 import
 	./bool: !, &&, bool, false, true
-	./col/dict: dict, dict-equal, for-loop, new
-	./col/list: ~~, for-break, index-of, is-empty, list, list-equal, new, size, subscript
+	./col/dict: ==, dict, for-loop, new
+	./col/list: ==, ~~, for-break, index-of, is-empty, list, new, size, subscript
 	./col/mut-dict: for-loop, mut-dict, new, set-subscript
 	./col/mut-list: ~=, fill-mut-list, move-to-list, mut-list, new, set-subscript, subscript
 	./json: json, json-object, new
@@ -36,12 +36,6 @@ parsed-command record
 .json json(a parsed-command)
 	named = (for k, v : a named; k, v.json) json-object
 	("nameless", a.nameless.json), ("named", named), ("after", a.after.json)
-
-.== bool(a string[], b string[])
-	a list-equal b
-
-.== bool( a string[][string], b string[][string])
-	a dict-equal b
 
 ###
 See comment on `parsed-command` for syntax.

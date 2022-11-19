@@ -116,9 +116,9 @@ immutable(DiagSeverity) getDiagnosticSeverity(ref immutable Diag a) =>
 			DiagSeverity.checkError,
 		(ref immutable Diag.SpecImplFoundMultiple) =>
 			DiagSeverity.checkError,
-		(ref immutable Diag.SpecImplHasSpecs) =>
-			DiagSeverity.checkError,
 		(ref immutable Diag.SpecImplNotFound) =>
+			DiagSeverity.checkError,
+		(ref immutable Diag.SpecImplTooDeep) =>
 			DiagSeverity.checkError,
 		(ref immutable Diag.ThreadLocalError) =>
 			DiagSeverity.checkError,

@@ -1,11 +1,11 @@
 no-std
 import
-	../../bool: ==, bool, false, true
+	../../bool: ==, false, true
 	../../hash: hash-mix
 	../../json: json
 	../../misc: void
 	../../number: ==, <=>, nat64
-	../../option: new, option, option-equal
+	../../option: ==, new
 	../../string: ==, literal, string, to-string
 	../../test-util: is
 	../../tuple: new
@@ -17,9 +17,6 @@ dummy-dict-tests nat64()
 
 verify void(a string[nat64], expected string)
 	a.dbg is expected
-
-.== bool(a string?, b string?)
-	a option-equal b
 
 test
 	l0 string[nat64] = ()

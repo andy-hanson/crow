@@ -7,7 +7,7 @@ import
 	./fun-util: subscript
 	./misc: loop-break, new, void
 	./number: ==, <=>, +, -, *, **, float64, int64, nat64, to-float64, to-int64, to-nat64
-	./option: ??, is-empty, new, option, option-equal
+	./option: ==, ??, is-empty, new, option
 	./result: err, ok, result, then
 	./string:
 		==, <=>, ~~, ~=, as-string, build-string, char8, char8s, hash-mix, is-empty, join, literal,
@@ -444,6 +444,3 @@ float grammar float64()
 	if a.peek == (c,)
 		_ = a next
 		true
-
-.== bool(a char8?, b char8?)
-	a option-equal b

@@ -12,13 +12,13 @@ pair<a, b> record by-val
 	a a
 	b b
 
+==<a, b> bool(a (a, b), b (a, b)) noctx equal<a> equal<b>
+	a.a == b.a && a.b == b.b
+
 # Same as `a.a`.
-from<a, b> a(a (a, b)) noctx
+from<a, b> a(a (a, b)) no-doc noctx
 	a a
 
 # Same as `a.b`.
-to<a, b> b(a (a, b)) noctx
+to<a, b> b(a (a, b)) no-doc noctx
 	a b
-
-pair-equal<a, b> bool(a (a, b), b (a, b)) noctx equal<a> equal<b>
-	a.a == b.a && a.b == b.b

@@ -11,14 +11,14 @@ import
 	../string: ~~, ==, join, literal, new, string, to-string
 	../test-util: is
 	../test-util/spy: calls, fn, new, spy-act2
-	../tuple: from, new, pair, to
+	../tuple: ==, from, new, pair, to
 	./array: array, first, for-loop, is-empty, new, size, tail
 	./mut-array:
 		begin-pointer, cast-immutable, end-pointer, first, mut-array, set-subscript, size, subscript,
 		tail, uninitialized-mut-array
 	./list:
-		==, ~=, build-list, first, for-loop, is-empty, list, list-equal, new, tail, to-array,
-		to-list, with-block
+		==, ~=, build-list, first, for-loop, is-empty, list, new, tail, to-array, to-list,
+		with-block
 	./sort: set-sort, sort
 
 ###
@@ -377,13 +377,3 @@ test
 	map-calls = map-order calls
 	map-calls is p6-pairs
 	mapped.dbg is "2 8x [3 7x, 3 7bx, 4 6x, 4 6bx, 4 6cx]"
-
-.== bool(a (nat64, string)[], b (nat64, string)[])
-	a list-equal b
-
-# TODO: pair should be equatable
-.== bool(a (nat64, string), b (nat64, string))
-	a.from == b.from && a.to == b.to
-
-.== bool(a string[], b string[])
-	a list-equal b

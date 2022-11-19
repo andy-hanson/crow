@@ -1,6 +1,6 @@
 no-std
 import
-	../bool: ||, bool
+	../bool: ||
 	../compare: !=, <, <=, >, compare
 	../fun-util: subscript
 	../json: json
@@ -10,11 +10,12 @@ import
 	../range: .., for-loop, reverse
 	../string: ==, <=>, end-iter, iter, literal, next, prev, slice-left, slice-right, string
 	../test-util: is
+	./array: ==, new
 	./mut-array:
 		cast-immutable, for-loop, is-empty, mut-array, new, size, set-subscript, subscript,
 		to-array, to-mut-array
 	./iter: rest
-	./list: ==, list, list-equal, new, to-array, to-list
+	./list: ==, list, new, to-array, to-list
 	./mut-list: mut-list, set-reverse, temp-as-mut-array
 
 ###
@@ -47,12 +48,9 @@ test
 	# Test that it's a stable sort
 	arr mut-array string = "2a", "2b", "1a", "1b"
 	arr.sort := x => x.first-char
-	arr.to-array.to-list is ("1a", "1b", "2a", "2b")
+	arr.to-array is ("1a", "1b", "2a", "2b")
 	arr.sort := x => x.last-char
-	arr.to-array.to-list is ("1a", "2a", "1b", "2b")
-
-.== bool(a string[], b string[])
-	a list-equal b
+	arr.to-array is ("1a", "2a", "1b", "2b")
 
 .first-char string(a string)
 	a.iter.next!.rest slice-left

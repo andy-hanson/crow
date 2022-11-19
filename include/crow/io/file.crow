@@ -29,7 +29,7 @@ import
 	../private/bootstrap: todo
 	../pointer:
 		==, +, any-const-pointer, as-any-const-pointer, as-const, const-pointer, mut-pointer, null, pointer-cast,
-		pointer-cast-from-extern, ref-eq, size-of
+		pointer-cast-from-extern, size-of
 	../range: ..
 	../string: ==, <=>, ~~, as-string, char8, c-string, literal, string, to-bytes, to-c-string, to-string
 	../version: is-windows
@@ -173,7 +173,7 @@ names-in-dir string[](path string) summon trusted
 			if result.as-any-const-pointer == null
 				break
 			else
-				assert result ref-eq entry
+				assert result.as-any-const-pointer == entry.as-any-const-pointer
 				name = entry get-dirent-name
 				unless name == "." || name == ".."
 					out ~= name

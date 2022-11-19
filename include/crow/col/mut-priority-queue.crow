@@ -1,21 +1,21 @@
 no-std
 import
-	../bool: &&, ==, bool, false, true
+	../bool: ==, bool, false, true
 	../compare: <, compare
 	../json: json
 	../misc: is-data, new, void
 	../number: ==, <=>, +, nat64
-	../option: !, is-empty, new, option
+	../option: ==, !, new, option
 	../pointer: -
 	../range: .., for-loop
 	../string: ==, ~~, join, literal, new, string, to-string
 	../test-util: is
-	../tuple: from, new, pair, pair-equal, to
+	../tuple: ==, from, new, pair, to
 	./array: array, size, subscript
 	./mut-list:
 		~=, ~~=, begin-pointer, clear, copy, for-loop, is-empty, move-to-array, mut-list, new, pop,
 		reversed, size, subscript, temp-as-array, to-list, to-mut-list
-	./list: list, list-equal, new, reverse, to-list
+	./list: ==, list, new, reverse, to-list
 	./sort: set-sort, set-sort-reverse
 	./private/sort-utils: binary-search-insert-pointer
 
@@ -194,19 +194,3 @@ test
 	a.pop is ((5, "5"),)
 	a.pop is ((5, "five"),)
 	a.is-empty is true
-
-# TODO: option should have generic ==
-.== bool(a (nat64, string)?, b (nat64, string)?)
-	if va ?= a
-		if vb ?= b
-			va.from == vb.from && va.to == vb.to
-		else
-			false
-	else
-		b is-empty
-
-.== bool(a (nat64, string)[], b (nat64, string)[])
-	a list-equal b
-
-.== bool(a (nat64, string), b (nat64, string))
-	a pair-equal b

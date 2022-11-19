@@ -3,7 +3,7 @@ expected return type: 'private-ctor'
 actual argument types:  (other arguments not checked, gave up early)
 candidates (with 1 arguments):
 	new array<a>(...array<a>) (from include/crow/col/array.crow.crow line 20)
-	new dict<k, v>(...array<pair<k, v>>) (from include/crow/col/dict.crow.crow line 73)
+	new dict<k, v>(...array<pair<k, v>>) (from include/crow/col/dict.crow.crow line 70)
 	new list<a>(...array<a>) (from include/crow/col/list.crow.crow line 130)
 	new l0<a>(node<a, l1<a>>) (from include/crow/col/list.crow.crow line 35)
 	new l1<a>(node<array<a>, l2<a>>) (from include/crow/col/list.crow.crow line 39)

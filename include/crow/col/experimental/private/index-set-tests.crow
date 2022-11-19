@@ -1,10 +1,10 @@
 no-std
 import
-	../../../bool: ==, bool, false, true
+	../../../bool: ==, false, true
 	../../../json: json
 	../../../misc: void
 	../../../number: ==, <=>, +, -, nat64
-	../../../option: new, option, option-equal
+	../../../option: ==, new
 	../../../range: .., for-loop
 	../../../string: ==, literal, string
 	../../../test-util: is
@@ -27,9 +27,6 @@ dummy-index-set-tests nat64()
 		cur in a is true
 		prev := cur + 1
 	a.size is r.size
-
-.== bool(a index-set?, b index-set?)
-	a option-equal b
 
 test
 	a index-set = ()

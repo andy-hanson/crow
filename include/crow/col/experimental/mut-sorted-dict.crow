@@ -6,7 +6,7 @@ import
 	../../json: json
 	../../misc: is-data, new, void
 	../../number: ==, <=>, +, -, *, nat64
-	../../option: !, is-empty, new, option, option-equal, size
+	../../option: ==, !, is-empty, new, option, size
 	../../pointer: ==, -, *, mut-pointer, set-deref
 	../../string: ==, ~~, iter, join, literal, next, slice-left, string, to-string
 	../../test-util: is
@@ -407,6 +407,3 @@ test
 
 	a[4] := "4"
 	a verify "[0 -> 0, 1 -> 1, 2 -> 2, 3 -> 3, 4 -> 4, 5 -> 5, 6 -> 6, 11 -> 11, 17 -> 17]"
-
-.== bool(a string?, b string?)
-	a option-equal b

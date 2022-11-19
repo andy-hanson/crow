@@ -1,15 +1,13 @@
 no-std
 import
-	../bool: bool, false, true
+	../bool: false, true
 	../col/dict: new
 	../col/list: new
-	../json:
-		==, json, new, json-bool, json-list, json-number, json-object, json-string, result-json,
-		to-string
+	../json: ==, json, new, json-bool, json-list, json-number, json-object, json-string, to-string
 	../misc: void
 	../number: nat64
 	../parse: ==, expected, parse, parse-error
-	../result: ok, result, result-equals
+	../result: ==, ok
 	../string: ==, <=>, hash-mix, literal, string
 	../test-util: is
 	../tuple: new
@@ -22,15 +20,9 @@ dummy-json-tests nat64()
 	# TODO: include input/iter
 	("expected", a.expected.json),
 
-.json json(a result<json, parse-error>)
-	a result-json
-
 .verify void(a json, s string)
 	json parse s is a.ok
 	a.to-string is s
-
-.== bool(a result<json, parse-error>, b result<json, parse-error>)
-	a result-equals b
 
 test
 	true.json-bool verify "true"

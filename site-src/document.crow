@@ -19,11 +19,6 @@ documentation path-and-content[]() summon
 	index = "index" document-template "documentation", index-content, all-paths
 	index ~ modules
 
-.== bool(a string[], b string[])
-	a list-equal b
-.<=> comparison(a string[], b string[])
-	a list-compare b
-
 .ignore-dir bool(a string)
 	a in ("experimental", "private")::string[]
 

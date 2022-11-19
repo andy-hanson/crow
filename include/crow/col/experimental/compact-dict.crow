@@ -1,29 +1,35 @@
 no-std
 import
 	../../bool: !, ==, bool, false, true
-	../../compare: <=, compare, max
+	../../compare: <=, compare, equal, max
 	../../fun-util: subscript
 	../../hash: hash-mix
 	../../json: json
 	../../misc: is-data, new, void
 	../../number: ==, <=>, +, nat64
-	../../option: is-empty, new, option, option-equal
-	../../pointer: ref-eq
-	../../range: ..
+	../../option: ==, is-empty, new, option
 	../../string: ==, ~~, join, literal, string, to-string
 	../../test-util: is
-	../../tuple: from, new, pair, pair-equal, to
-	../array: array, every, for-loop, size, subscript
+	../../tuple: ==, from, new, pair, to
 	../mut-array: ~=, build-mut-array, mut-array, with-block
-	../list: ~=, build-list, for-loop, list, new, with-block
+	../list: ==, ~=, build-list, for-loop, list, new, with-block
 	../mut-set: in, mut-set, new, try-add
+	../sort: sort
 	./frozen-dict:
 		for-loop, frozen-dict, in, is-empty, mut-array-to-frozen-dict-promise-no-duplicates, new,
-		size, subscript, to-array, to-frozen-dict
+		size, subscript, to-frozen-dict
 
 compact-dict<k, v> record by-val
 	ignore void
 	impl impl<k, v>
+
+== <k, v> bool(a compact-dict<k, v>, b compact-dict<k, v>) is-data<k> compare<k> hash-mix<k> equal<v>
+	a.to-sorted-pairs == b.to-sorted-pairs
+.to-sorted-pairs<k, v> (k, v)[](a compact-dict<k, v>) is-data<k> compare<k> hash-mix<k>
+	a.to-list sort pair => pair from
+
+json<k, v> json(a compact-dict<k, v>) is-data<k> compare<k> hash-mix<k> json<k> json<v>
+	a.to-sorted-pairs json
 
 # TODO:KILL
 node-count<k, v> nat64(a compact-dict<k, v>)
@@ -64,11 +70,14 @@ is-empty<k, v> bool(a compact-dict<k, v>) is-data<k> compare<k> hash-mix<k>
 	as end-node e
 		e is-empty
 
+to-list<k, v> (k, v)[](a compact-dict<k, v>) is-data<k> compare<k> hash-mix<k>
+	for k, v : a
+		k, v
+
 ###
 Number of pairs.
 This is O(n).
 ###
-
 size<k, v> nat64(a compact-dict<k, v>) is-data<k> compare<k> hash-mix<k>
 	res mut = 0
 	for _, _ : a
@@ -205,29 +214,6 @@ verify void(a compact-dict<nat64, string>, expected string)
 	for k, v : a
 		a[k] is (v,)
 
-.== bool(a string?, b string?)
-	a option-equal b
-
-.exact-eq bool(a compact-dict<nat64, string>, b compact-dict<nat64, string>) unsafe
-	match a impl
-	as overlay oa
-		match b impl
-		as overlay ob
-			oa ref-eq ob
-		as end-node _
-			false
-	as end-node ea
-		match b impl
-		as overlay _
-			false
-		as end-node eb
-			# TODO: ea.to-array::array<(nat64, string)> arr-equal@<(nat64, string)> eb.to-array::array<(nat64, string)>
-			pa = ea to-array
-			pb = eb to-array
-			bs array bool = for i : 0 .. pa.size
-				pa[i] pair-equal pb[i]
-			bs every x => x
-
 test
 	a compact-dict<nat64, string> = ()
 	a.is-empty is true
@@ -253,8 +239,8 @@ test
 	e[11] is ("11",)
 	e[15] is ()
 
-	e - 15 exact-eq e is true
-	e - 16 exact-eq e is true
+	e - 15 is e
+	e - 16 is e
 
 	f = e - 10
 	f verify "[10 -> 10, 15 -> 15, 5 -> 5, 20 -> 20], [11 -> 11, 15 -> _, 10 -> _]"

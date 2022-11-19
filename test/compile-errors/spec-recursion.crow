@@ -1,0 +1,14 @@
+f void(a string) summon
+	a foo
+
+foo<a> spec
+	foo void(a a)
+
+bar<a> spec
+	bar void(a a)
+
+foo<a> void(_ a) bar<a>
+	()
+
+bar<a> void(_ a) foo<a>
+	()

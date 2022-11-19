@@ -1028,6 +1028,11 @@ struct Test {
 	immutable Expr body_;
 }
 
+struct FunDeclAndTypeArgs {
+	immutable FunDecl* decl;
+	immutable Type[] typeArgs;
+}
+
 struct FunDeclAndArgs {
 	@safe @nogc pure nothrow:
 
@@ -2175,6 +2180,14 @@ void writeStructInst(scope ref Writer writer, scope ref const AllSymbols allSymb
 			writer ~= '>';
 		}
 	}
+}
+
+void writeTypeArgs(ref Writer writer, scope ref const AllSymbols allSymbols, scope immutable Type[] a) {
+	writer ~= '<';
+	writeWithCommas!Type(writer, a, (scope ref immutable Type x) {
+		writeTypeUnquoted(writer, allSymbols, x);
+	});
+	writer ~= '>';
 }
 
 void writeTypeQuoted(ref Writer writer, ref const AllSymbols allSymbols, immutable Type a) {

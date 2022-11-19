@@ -83,8 +83,7 @@ If you need concatenate many arrays, use a `mut[]` to accumulate elements, then 
 	res + a.size copy-data-from b.begin-pointer, b.size
 	res.as-const[0 .. res-size]
 
-# TODO: array comparison should be generic
-array-equal<a> bool(a array a, b array a) no-doc trusted noctx equal<a>
+== <a> bool(a array a, b array a) no-doc trusted noctx equal<a>
 	if a.size == b.size
 		a-cur mut = a begin-pointer
 		a-end = a end-pointer
@@ -99,7 +98,7 @@ array-equal<a> bool(a array a, b array a) no-doc trusted noctx equal<a>
 				b-cur := b-cur + 1
 				continue
 
-array-compare<a> comparison(a array a, b array a) no-doc trusted noctx compare<a>
+<=> <a> comparison(a array a, b array a) no-doc trusted noctx compare<a>
 	a-cur mut = a begin-pointer
 	a-end = a end-pointer
 	b-cur mut = b begin-pointer

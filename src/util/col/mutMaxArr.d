@@ -2,7 +2,10 @@ module util.col.mutMaxArr;
 
 @safe @nogc pure nothrow:
 
+import util.alloc.alloc : Alloc;
+import util.col.arrUtil : arrLiteral;
 import util.memory : overwriteMemory;
+import util.ptr : castNonScope;
 import util.util : verify;
 
 struct MutMaxArr(size_t maxSize, T) {
@@ -29,8 +32,14 @@ void copyToFrom(size_t maxSize, T)(ref MutMaxArr!(maxSize, T) a, ref const MutMa
 		overwriteMemory(&a.values[i], x);
 }
 
+immutable(T[]) toArray(size_t maxSize, T)(ref Alloc alloc, return scope ref MutMaxArr!(maxSize, T) a) =>
+	arrLiteral!T(alloc, tempAsArr(a));
+
 immutable(bool) isEmpty(size_t maxSize, T)(ref MutMaxArr!(maxSize, T) a) =>
 	a.size_ == 0;
+
+immutable(bool) isFull(size_t maxSize, T)(ref MutMaxArr!(maxSize, T) a) =>
+	a.size_ == maxSize;
 
 immutable(size_t) mutMaxArrSize(size_t maxSize, T)(ref MutMaxArr!(maxSize, T) a) =>
 	a.size_;
@@ -125,12 +134,12 @@ ref const(T) only_const(size_t maxSize, T)(ref const MutMaxArr!(maxSize, T) a) {
 	return a.values[0];
 }
 
-@trusted immutable(T[]) tempAsArr(size_t maxSize, T)(return ref const MutMaxArr!(maxSize, T) a) =>
+@trusted immutable(T[]) tempAsArr(size_t maxSize, T)(return scope ref const MutMaxArr!(maxSize, T) a) =>
 	cast(immutable) tempAsArr_const(a);
 @trusted T[] tempAsArr_mut(size_t maxSize, T)(return ref MutMaxArr!(maxSize, T) a) =>
 	a.values.ptr[0 .. a.size_];
-@trusted const(T[]) tempAsArr_const(size_t maxSize, T)(return ref const MutMaxArr!(maxSize, T) a) =>
-	a.values[0 .. a.size_];
+@trusted const(T[]) tempAsArr_const(size_t maxSize, T)(return scope ref const MutMaxArr!(maxSize, T) a) =>
+	castNonScope(a.values[0 .. a.size_]);
 
 @trusted void filterUnordered(size_t maxSize, T)(
 	scope ref MutMaxArr!(maxSize, T) a,

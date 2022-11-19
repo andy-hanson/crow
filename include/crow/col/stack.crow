@@ -6,7 +6,7 @@ import
 	../json: json
 	../misc: new, void
 	../number: ==, +, nat64
-	../option: !, ==, is-empty, new, option, option-equal
+	../option: !, ==, is-empty, new, option
 	../pointer: ==, +, mut-pointer, set-deref
 	../string: ==, literal, string
 	../test-util: is
@@ -199,9 +199,6 @@ test
 
 	(d find-and-get x => x if-eq 2, "two") is ("two",)
 	(d find-and-get x => x if-eq 5, "five") is ()
-
-.== bool(a string?, b string?)
-	a option-equal b
 
 .if-eq string?(actual nat64, expected nat64, result string)
 	if actual == expected
