@@ -124,6 +124,3 @@ test
 	buf.to-array is (7, 8, 0)
 	a pull buf
 	buf.to-array is (0, 0, 0)
-
-.== bool(a array float32, b array float32)
-	a array-equal b

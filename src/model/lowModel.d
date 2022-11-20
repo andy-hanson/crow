@@ -921,7 +921,7 @@ struct LowExprKind {
 		threadLocalPtr,
 		zeroed,
 	}
-	public immutable Kind kind; //TODO:PRIVATE
+	immutable Kind kind;
 	union {
 		immutable Call call;
 		immutable CallFunPtr* callFunPtr;

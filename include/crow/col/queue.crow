@@ -9,7 +9,7 @@ import
 	../option: !, is-empty, new, option
 	../test-util: is
 	./array: array, first, for-loop, is-empty, new, size, tail
-	./list: ==, ~=, build-list, list, new, to-array, with-block
+	./list: ==, ~=, build, list, new, to-array, with-block
 	./stack: ~, for-loop, is-empty, new, size, stack, to-list
 
 ###
@@ -72,7 +72,7 @@ for-loop<a> void(a queue a, f act void(a))
 	a.right for-loop f
 
 for-loop<out, in> out[](a queue in, f act out(in))
-	with out : a.size build-list
+	with out : a.size build
 		for x : a
 			out ~= f[x]
 
@@ -80,7 +80,7 @@ for-loop<out, in> queue out(a queue in, f act out(in))
 	a for-loop f to-queue
 
 filter<a> queue a(a queue a, f act bool(a))
-	list a[] = with out : build-list
+	list a[] = with out : build
 		for x : a
 			if f[x]
 				out ~= x

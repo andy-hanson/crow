@@ -10,7 +10,7 @@ To measure performance:
 ###
 no-std
 import
-	./col/dict: ~=, build-dict, dict, with-block
+	./col/dict: ~=, build, dict, with-block
 	./col/list: list, new, to-array
 	./fun-util: subscript
 	./io/duration: duration, new, nsec, to-string
@@ -64,7 +64,7 @@ Calls `f` for each performance measurement and its total.
 This must be called before `perf-disable`.
 ###
 get-measured-perf measure-total[symbol]() summon trusted
-	with out : build-dict
+	with out : build
 		f act void(symbol, perf-measure-value) = (name, value) =>
 			out ~= (name, value.to-measure-total)
 		f each-measure

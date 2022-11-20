@@ -22,7 +22,7 @@ new<a> array a(...a array a) noctx
 
 # Make an array from a range
 for-loop<out> array out(a range nat64, f act out(nat64)) trusted
-	with out : a.size build-array
+	with out : a.size build
 		n mut = a low
 		loop
 			if n == a.high
@@ -279,7 +279,7 @@ Equivalent to `f[a[0]], f[a[1]], ...`.
 Array containing `f[x]` for each `x` in `a`.
 ###
 for-loop<out, in> array out(a array in, f act out(in))
-	with out : a.size build-array
+	with out : a.size build
 		for x : a
 			out ~= f[x]
 
@@ -295,7 +295,7 @@ for-loop<a> void(a array a, f act void(a, nat64))
 		i := i + 1
 
 for-loop<out, in> array out(a array in, f act out(in, nat64))
-	with out : a.size build-array
+	with out : a.size build
 		for x, i : a
 			out ~= f[x, i]
 
@@ -354,7 +354,7 @@ filter<a> array a(a array a, f act bool(a))
 
 # Like `filter`, but also provides the element index.
 filter<a> array a(a array a, f act bool(a, nat64))
-	with out : build-array
+	with out : build
 		for x, i : a
 			if f[x, i]
 				out ~= x
@@ -456,9 +456,9 @@ region builder
 
 build-array record
 	.size-hint nat64
-build-array build-array()
+build build-array()
 	0,
-build-array build-array(size-hint nat64)
+build build-array(size-hint nat64)
 	size-hint,
 
 array-builder<a> record mut

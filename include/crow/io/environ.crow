@@ -1,7 +1,7 @@
 no-std
 import
 	unistd: __environ
-	../col/dict: ~=, build-dict, dict, with-block
+	../col/dict: ~=, build, dict, with-block
 	../private/bootstrap: todo
 	../private/c-string-util: find-char-in-c-string, find-c-string-end
 	../pointer: ==, <=>, +, *, const-pointer, null
@@ -18,7 +18,7 @@ get-environ-raw c-string*() summon unsafe
 
 # Get all environment variables for this process.
 get-environ environ() summon trusted
-	with out : build-dict
+	with out : build
 		env mut = get-environ-raw
 		until *env == null
 			out ~= env->parse-environ-entry

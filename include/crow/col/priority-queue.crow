@@ -16,9 +16,7 @@ import
 	./mut-array:
 		begin-pointer, cast-immutable, end-pointer, first, mut-array, set-subscript, size, subscript,
 		tail, uninitialized-mut-array
-	./list:
-		==, ~=, build-list, first, for-loop, is-empty, list, new, tail, to-array, to-list,
-		with-block
+	./list: ==, ~=, build, first, for-loop, is-empty, list, new, tail, to-array, to-list, with-block
 	./sort: set-sort, sort
 
 ###
@@ -296,7 +294,7 @@ for-loop<k, v> void(a priority-queue<k, v>, f act void(k, v)) is-data<k> compare
 		a.tail swap-sorted
 
 filter<k, v> priority-queue<k, v>(a priority-queue<k, v>, f act bool(k, v)) trusted is-data<k> compare<k>
-	pairs (k, v)[] = with out : build-list
+	pairs (k, v)[] = with out : build
 		for k, v : a
 			if f[k, v]
 				out ~= (k, v)
@@ -309,7 +307,7 @@ for-loop<k-out, v-out, k-in, v-in> priority-queue<k-out, v-out>(
 	a for-loop f to-priority-queue
 
 for-loop<out, k, v> out[](a priority-queue<k, v>, f act out(k, v)) is-data<k> compare<k> trusted
-	with out : a.size build-list
+	with out : a.size build
 		for k, v : a
 			out ~= f[k, v]
 

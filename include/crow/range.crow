@@ -2,7 +2,7 @@ no-std
 import
 	./bool: bool, false, true
 	./col/array: array, for-loop
-	./col/list: ~=, build-list, list, to-list, with-block
+	./col/list: ~=, build, list, to-list, with-block
 	./fun-util: subscript
 	./misc: break-or-continue, loop-break, new, void
 	./number: ==, +, -, nat64
@@ -69,7 +69,7 @@ for-loop void(a range-reverse nat64, f act void(nat64))
 				continue
 
 for-loop<out> out[](a range-reverse nat64, f act out(nat64))
-	with out : a.size build-list
+	with out : a.size build
 		for x : a
 			out ~= f[x]
 

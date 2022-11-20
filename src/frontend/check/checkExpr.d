@@ -11,7 +11,6 @@ import frontend.check.inferringType :
 	bogus,
 	check,
 	ClosureFieldBuilder,
-	copyWithNewExpectedType,
 	Expected,
 	ExprCtx,
 	FunOrLambdaInfo,
@@ -23,6 +22,7 @@ import frontend.check.inferringType :
 	LoopInfo,
 	markIsUsedSetOnStack,
 	mustSetType,
+	Pair,
 	programState,
 	rangeInFile2,
 	shallowInstantiateType,
@@ -30,7 +30,8 @@ import frontend.check.inferringType :
 	tryGetInferred,
 	tryGetLoop,
 	typeFromAst2,
-	typeFromOptAst;
+	typeFromOptAst,
+	withCopyWithNewExpectedType;
 import frontend.check.instantiate : instantiateFun, instantiateStructNeverDelay, TypeArgsArray, typeArgsArray;
 import frontend.check.typeFromAst : makeFutType;
 import frontend.parse.ast :
@@ -203,7 +204,11 @@ struct ExprAndType {
 	immutable Type type;
 }
 
-immutable(ExprAndType) checkAndInfer(ref ExprCtx ctx, ref LocalsInfo locals, ref immutable ExprAst ast) {
+immutable(ExprAndType) checkAndInfer(
+	scope ref ExprCtx ctx,
+	scope ref LocalsInfo locals,
+	scope ref immutable ExprAst ast,
+) {
 	Expected expected = Expected(immutable Expected.Infer());
 	immutable Expr expr = checkExpr(ctx, locals, ast, expected);
 	return immutable ExprAndType(expr, inferred(expected));
@@ -215,9 +220,11 @@ immutable(ExprAndType) checkAndExpectOrInfer(
 	scope ref immutable ExprAst ast,
 	immutable Opt!Type optExpected,
 ) {
-	Expected et = has(optExpected) ? Expected(force(optExpected)) : Expected(immutable Expected.Infer());
-	immutable Expr expr = checkExpr(ctx, locals, ast, et);
-	return immutable ExprAndType(expr, inferred(et));
+	if (has(optExpected)) {
+		immutable Expr res = checkAndExpect(ctx, locals, ast, force(optExpected));
+		return immutable ExprAndType(res, force(optExpected));
+	} else
+		return checkAndInfer(ctx, locals, ast);
 }
 
 immutable(Expr) checkAndExpect(
@@ -335,13 +342,13 @@ immutable(Expr) checkExprOrEmptyNew(
 	ref LocalsInfo locals,
 	immutable FileAndRange range,
 	ref immutable Opt!ExprAst ast,
-	ref Expected expected,
+	scope ref Expected expected,
 ) =>
 	has(ast)
 		? checkExpr(ctx, locals, force(ast), expected)
 		: checkEmptyNew(ctx, range, expected);
 
-immutable(Expr) checkEmptyNew(ref ExprCtx ctx, immutable FileAndRange range, ref Expected expected) =>
+immutable(Expr) checkEmptyNew(ref ExprCtx ctx, immutable FileAndRange range, scope ref Expected expected) =>
 	checkCallNoLocals(ctx, range, callNewCall(range.range), expected);
 
 immutable(Expr) checkIfOption(
@@ -726,7 +733,7 @@ immutable(Expr) checkLiteral(
 		immutable Expr,
 		(immutable LiteralAst.Float it) {
 			if (it.overflow)
-				todo!void("literal overflow");
+				todo!void("literal overflow\n");
 
 			return expectedStructIs(ctx.commonTypes.float32)
 				? asFloat32(it.value)
@@ -1182,7 +1189,6 @@ immutable(Expr) checkLambda(
 	}
 
 	immutable Param[] params = checkParamsForLambda(ctx, locals, ast.params, tempAsArr(paramTypes));
-	Expected returnTypeInferrer = copyWithNewExpectedType(expected, et.nonInstantiatedPossiblyFutReturnType);
 
 	Expr.Lambda* lambda = () @trusted { return allocateUninitialized!(Expr.Lambda)(ctx.alloc); }();
 
@@ -1194,7 +1200,13 @@ immutable(Expr) checkLambda(
 
 	// Checking the body of the lambda may fill in candidate type args
 	// if the expected return type contains candidate's type params
-	immutable Expr body_ = checkExpr(ctx, lambdaLocalsInfo, ast.body_, returnTypeInferrer);
+	immutable Pair!(Expr, Type) bodyAndType = withCopyWithNewExpectedType!Expr(
+		expected,
+		et.nonInstantiatedPossiblyFutReturnType,
+		(ref Expected returnTypeInferrer) =>
+			checkExpr(ctx, lambdaLocalsInfo, ast.body_, returnTypeInferrer));
+	immutable Expr body_ = bodyAndType.a;
+	immutable Type actualPossiblyFutReturnType = bodyAndType.b;
 
 	checkUnusedParams(ctx.checkCtx, params, tempAsArr(lambdaInfo.paramsUsed));
 
@@ -1222,7 +1234,6 @@ immutable(Expr) checkLambda(
 		map_mut(ctx.alloc, tempAsArr_mut(lambdaInfo.closureFields), (ref ClosureFieldBuilder x) =>
 			x.variableRef);
 
-	immutable Type actualPossiblyFutReturnType = inferred(returnTypeInferrer);
 	immutable Opt!Type actualNonFutReturnType = kind == FunKind.ref_
 		? matchType!(immutable Opt!Type)(
 			actualPossiblyFutReturnType,
@@ -1250,7 +1261,8 @@ immutable(Expr) checkLambda(
 			instFunStruct,
 			kind,
 			actualPossiblyFutReturnType));
-		return immutable Expr(range, castImmutable(lambda));
+		//TODO: this check should never fail, so could just set inferred directly with no check
+		return check(ctx, expected, immutable Type(instFunStruct), immutable Expr(range, castImmutable(lambda)));
 	}
 }
 

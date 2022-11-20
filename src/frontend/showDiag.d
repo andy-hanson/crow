@@ -930,9 +930,12 @@ void writeDiag(
 			writer ~= " was already inferred";
 		},
 		(ref immutable Diag.TypeConflict d) {
-			writer ~= "the type of the expression conflicts with its expected type.\n\texpected: ";
-			writeTypeQuoted(writer, allSymbols, d.expected);
-			writer ~= "\n\tactual: ";
+			writer ~= "expected one of these types:";
+			foreach (immutable Type t; d.expected) {
+				writer ~= "\n\t";
+				writeTypeQuoted(writer, allSymbols, t);
+			}
+			writer ~= "\nactual:\n\t";
 			writeTypeQuoted(writer, allSymbols, d.actual);
 		},
 		(ref immutable Diag.TypeParamCantHaveTypeArgs) {

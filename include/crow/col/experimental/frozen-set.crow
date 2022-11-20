@@ -10,12 +10,12 @@ import
 	../../pointer: ==, <=>, +, -, *, const-pointer, mut-pointer, swap
 	../../range: ..
 	../array:
-		~=, array, array-cast, as-array, begin-pointer, build-array, end-pointer, for-loop, in, index-of, is-empty, new,
-		pointer-of, size, subscript, with-block
+		~=, array, array-cast, as-array, begin-pointer, build, end-pointer, for-loop, in, index-of,
+		is-empty, new, pointer-of, size, subscript, with-block
 	../mut-array:
-		~=, begin-pointer, build-mut-array, cast-immutable, end-pointer, fill, fill-mut-array,
-		mut-array, mut-array-builder, for-loop, size, temp-as-array, to-mut-array, set-subscript,
-		subscript, with-block
+		~=, begin-pointer, build, cast-immutable, end-pointer, fill, fill-mut-array, mut-array,
+		mut-array-builder, for-loop, size, temp-as-array, to-mut-array, set-subscript, subscript,
+		with-block
 	../list: for-loop, list, to-array, to-list
 
 frozen-set<a> record
@@ -110,7 +110,7 @@ try-get-unordered-index<a> nat64?(a frozen-set a, value a) trusted is-data<a> co
 	value.hash % n-buckets
 
 .running-sum<a> array a mut*(initial a mut*, offsets array nat64) trusted
-	with out : offsets.size build-array
+	with out : offsets.size build
 		acc mut = initial
 		for offset : offsets
 			out ~= acc
@@ -120,9 +120,9 @@ region builder
 
 build-frozen-set record
 	.size-hint nat64
-build-frozen-set build-frozen-set()
+build build-frozen-set()
 	0,
-build-frozen-set build-frozen-set(size-hint nat64)
+build build-frozen-set(size-hint nat64)
 	size-hint,
 
 frozen-set-builder<a> record mut
@@ -132,9 +132,7 @@ with-block<a> frozen-set a(
 	a build-frozen-set,
 	f act void(frozen-set-builder a),
 ) trusted is-data<a> compare<a> hash-mix<a>
-	inner mut-array a = with out : a.size-hint build-mut-array
-		f[(out,)]
-	inner unsafe-frozen-set-from-mut-array-cast-immutable
+	(with out : a.size-hint build; f[(out,)]) unsafe-frozen-set-from-mut-array-cast-immutable
 
 ~= <a> void(a frozen-set-builder a, value a)
 	a.inner ~= value

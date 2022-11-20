@@ -13,9 +13,9 @@ import
 		count-greater-or-equal, filter-less, for-loop, in, index-set, is-empty, new, size,
 		try-remove
 	./experimental/frozen-set:
-		~=, build-frozen-set, for-loop, frozen-set, frozen-set-builder, is-empty, new, size,
-		to-frozen-set, try-get-unordered-index, with-block
-	./list: ~=, build-list, list, to-list, with-block
+		~=, build, for-loop, frozen-set, frozen-set-builder, is-empty, new, size, to-frozen-set,
+		try-get-unordered-index, with-block
+	./list: ~=, build, list, to-list, with-block
 
 ###
 Immutable unsorted set.
@@ -179,7 +179,7 @@ try-add<a> set<a>?(a set a, value a) is-data<a> compare<a> hash-mix<a>
 ) is-data<a> compare<a> hash-mix<a>
 	assert plan.compacted-size > 1
 	left mut add-node<a>? = ()
-	compacted frozen-set a = with out : plan.compacted-size build-frozen-set
+	compacted frozen-set a = with out : plan.compacted-size build
 		out ~= value
 		left := out do-compact a, add-size, plan.compacted-size
 	(compacted, left), (a.remove filter-less plan.add-size-left)
@@ -224,14 +224,14 @@ for-loop<a> void(a set a, f act void(a)) is-data<a> compare<a> hash-mix<a>
 			break
 
 filter<a> set a(a set a, f act bool(a)) is-data<a> compare<a> hash-mix<a>
-	list a[] = with out : build-list
+	list a[] = with out : build
 		for x : a
 			if f[x]
 				out ~= x
 	list to-set
 
 for-loop<out, in> out[](a set in, f act out(in)) trusted is-data<in> compare<in> hash-mix<in>
-	with out : a.size build-list
+	with out : a.size build
 		for x : a
 			out ~= f[x]
 

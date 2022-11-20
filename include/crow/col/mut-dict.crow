@@ -16,7 +16,7 @@ import
 	./mut-array:
 		fill, fill-mut-array, mut-array, for-loop, is-empty, new, set-map, set-subscript, size,
 		subscript, to-array
-	./list: ==, ~=, build-list, for-loop, list, new, size, to-list, with-block
+	./list: ==, ~=, build, for-loop, list, new, size, to-list, with-block
 	./mut-list:
 		~=, copy, find-index, for-loop, is-at-capacity, is-empty, mut-list, new,
 		remove-unordered-at, set-filter, set-map, set-subscript, size, subscript
@@ -256,7 +256,7 @@ for-loop<k, v> void(a v mut[k], f act void(k, v)) is-data<k> compare<k> hash-mix
 Calls `f` on every key and value and returns a list of the results.
 ###
 for-loop<out, k, v> out[](a v mut[k], f act out(k, v)) trusted is-data<k> compare<k> hash-mix<k>
-	with out : a.size build-list
+	with out : a.size build
 		for key, value : a
 			out ~= f[key, value]
 

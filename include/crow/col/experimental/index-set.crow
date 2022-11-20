@@ -14,7 +14,7 @@ import
 	../../range: ..
 	../../string: ~~, join, literal, string, to-hex, to-string
 	../array: array, for-loop, subscript
-	../list: ~=, build-list, for-loop, list, to-list, with-block
+	../list: ~=, build, for-loop, list, to-list, with-block
 
 index-set record by-ref
 	# This is one more than the highest number that would currently fit in the tree.
@@ -444,7 +444,7 @@ for-loop index-set(a index-set, f act nat64(nat64))
 	a for-loop f to-index-set
 
 for-loop<a> a[](a index-set, f act a(nat64)) trusted
-	with out : a.size build-list
+	with out : a.size build
 		for x : a
 			out ~= f[x]
 

@@ -294,7 +294,7 @@ for-loop<k, v> void(a each<k, v>, f act void(k, v)) trusted summon lmdb-key<k> s
 
 # Calls `f` for each key-value pair in `db` and returns an array of the results.
 for-loop<out, k, v> out[](a each<k, v>, f act out(k, v)) summon lmdb-key<k> serialize<v>
-	with out : a.txn count a.db build-list
+	with out : a.txn count a.db build
 		for key, value : a.txn each a.db
 			out ~= f[key, value]
 
@@ -313,7 +313,7 @@ zip<out, k, v0, v1> out[](
 	db1-count = txn count db1
 	assert db0-count == db1-count
 	unless db0-count == 0
-		with out : db0-count build-list
+		with out : db0-count build
 			txn zip-non-empty db0, db1, (key, value0, value1) =>
 				out ~= f[key, value0, value1]
 

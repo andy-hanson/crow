@@ -1,0 +1,24 @@
+import
+	crow/io/print: out, print
+
+main nat^(_ string[]) summon
+	_ nat[] = with : build
+		()
+	out print "hello, world!"
+	()
+
+build-a-list record
+build build-a-list()
+	()
+with-block<a> a[](_ build-a-list, _ act void())
+	()
+
+build-a-array record
+build build-a-array()
+	()
+with-block<a> array a(_ build-a-array, _ act void())
+	()
+
+with-block<a> a[](_ float32, _ act void())
+	()
+

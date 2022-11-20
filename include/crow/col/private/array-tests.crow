@@ -4,13 +4,13 @@ import
 	../../misc: new, void
 	../../number: ==, nat64
 	../../test-util: is
-	../array: ~=, ~~=, array, build-array, new, size, with-block
+	../array: ~=, ~~=, array, build, new, size, with-block
 
 dummy-array-tests nat64()
 	0
 
 test
-	a array void = with out : build-array
+	a array void = with out : build
 		out ~= ()
 		out.size is 1
 		out ~~= ((), ())

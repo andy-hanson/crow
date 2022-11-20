@@ -17,7 +17,7 @@ import
 	../bool: !, ||, bool, false, new, to-nat64, true
 	../col/array: array, begin-pointer, size, subscript
 	../col/mut-array: cast-immutable, begin-pointer, mut-array, size, uninitialized-mut-array
-	../col/list: ~=, build-list, for-loop, list, new, to-array, to-list, with-block
+	../col/list: ~=, build, for-loop, list, new, to-array, to-list, with-block
 	../col/sort: sort
 	../compare: !=
 	../exception: finally, with-block
@@ -147,7 +147,7 @@ names-in-dir string[](path string) summon trusted
 	assert err == 0 : "failed to close dir {path}"
 
 .names-in-dir-windows string[](dir-path c-string, file HANDLE) unsafe summon
-	with out : build-list
+	with out : build
 		loop
 			file-data mut WIN32_FIND_DATAA = ()
 			ok = file FindNextFileA &file-data
@@ -162,7 +162,7 @@ names-in-dir string[](path string) summon trusted
 				break
 
 .names-in-dir-posix string[](dirp dir) unsafe summon
-	with out : build-list
+	with out : build
 		loop
 			# Initial value of entry / result should not matter
 			entry dirent = ()

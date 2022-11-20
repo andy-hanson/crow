@@ -5,11 +5,11 @@ import
 	./col/array: array, as-array, begin-pointer
 	./col/iter: new, rest, value, value-and-rest
 	./col/list:
-		==, <=>, ~, ~~, ~=, ~~=, as-list, build-list, contains-sublist, drop-right-while,
-		drop-while, end-iter, ends-with, find-iter, for-loop, is-empty, iter, list, list-builder,
-		list-cast, list-iter, mut-iter, mut-list-iter, new, next, peek, prev, repeat, restore,
-		reverse, save, size, slice-left, slice-right, split-by-sublist, starts-with, to-array,
-		to-list, try-remove-end, try-remove-start, try-split-once-by-sublist,
+		==, <=>, ~, ~~, ~=, ~~=, as-list, build, contains-sublist, drop-right-while, drop-while,
+		end-iter, ends-with, find-iter, for-loop, is-empty, iter, list, list-builder, list-cast,
+		list-iter, mut-iter, mut-list-iter, new, next, peek, prev, repeat, restore, reverse, save,
+		size, slice-left, slice-right, split-by-sublist, starts-with, to-array, to-list,
+		try-remove-end, try-remove-start, try-split-once-by-sublist,
 		try-split-once-by-sublist-right, with-block
 	./col/mut-list: copy, move-to-list, to-mut-list
 	./fun-util: subscript
@@ -499,16 +499,16 @@ region builder
 
 build-string record
 	.size-hint nat64
-build-string build-string()
+build build-string()
 	0,
-build-string build-string(size-hint nat64)
+build build-string(size-hint nat64)
 	size-hint,
 
 string-builder record mut
 	.inner list-builder char8
 
 with-block string(a build-string, f act void(string-builder))
-	(with out : a.size-hint build-list; f[(out,)])::char8[] as-string
+	(with out : a.size-hint build; f[(out,)])::char8[] as-string
 
 ~= void(a string-builder, c char8)
 	a.inner ~= c

@@ -18,13 +18,14 @@ import frontend.check.inferringType :
 	LocalNode,
 	LocalsInfo,
 	markUsedLocalFun,
+	matchExpectedVsReturnTypeNoDiagnostic,
 	matchTypesNoDiagnostic,
 	mayBeFunTypeWithArity,
 	programState,
 	SingleInferringType,
-	tryGetDeeplyInstantiatedType,
 	tryGetInferred,
 	tryGetTypeArgFromInferringTypeArgs_const,
+	TypeAndInferring,
 	typeArgsFromAsts;
 import frontend.check.instantiate :
 	instantiateFun, instantiateSpecInst, instantiateStructNeverDelay, TypeArgsArray, typeArgsArray, TypeParamsAndArgs;
@@ -93,7 +94,7 @@ import util.col.mutMaxArr :
 import util.memory : overwriteMemory;
 import util.opt : force, has, none, noneMut, Opt, some;
 import util.perf : endMeasure, PerfMeasure, PerfMeasurer, pauseMeasure, resumeMeasure, startMeasure;
-import util.ptr : ptrTrustMe_mut;
+import util.ptr : castNonScope_ref, ptrTrustMe_mut;
 import util.sourceRange : FileAndRange;
 import util.sym : Sym;
 import util.util : todo;
@@ -103,7 +104,7 @@ immutable(Expr) checkCall(
 	scope ref LocalsInfo locals,
 	immutable FileAndRange range,
 	scope ref immutable CallAst ast,
-	ref Expected expected,
+	scope ref Expected expected,
 ) {
 	PerfMeasurer perfMeasurer = startMeasure(ctx.alloc, ctx.perf, PerfMeasure.checkCall);
 	scope TypeArgsArray explicitTypeArgs = typeArgsFromAsts(ctx, ast.typeArgs);
@@ -119,7 +120,7 @@ immutable(Expr) checkCallNoLocals(
 	ref ExprCtx ctx,
 	immutable FileAndRange range,
 	scope immutable CallAst ast,
-	ref Expected expected,
+	scope ref Expected expected,
 ) {
 	FunOrLambdaInfo emptyFunInfo = FunOrLambdaInfo(noneMut!(LocalsInfo*), [], none!(Expr.Lambda*));
 	LocalsInfo emptyLocals = LocalsInfo(ptrTrustMe_mut(emptyFunInfo), noneMut!(LocalNode*));
@@ -131,7 +132,7 @@ private immutable(Expr) checkCallInner(
 	scope ref LocalsInfo locals,
 	immutable FileAndRange range,
 	scope ref immutable CallAst ast,
-	ref Expected expected,
+	scope ref Expected expected,
 	scope immutable Type[] explicitTypeArgs,
 	ref PerfMeasurer perfMeasurer,
 	ref Candidates candidates,
@@ -139,37 +140,36 @@ private immutable(Expr) checkCallInner(
 	immutable Sym funName = ast.funName.name;
 	immutable size_t arity = ast.args.length;
 
-	// TODO: may not need to be deeply instantiated to do useful filtering here
-	immutable Opt!Type expectedReturnType = tryGetDeeplyInstantiatedType(ctx.alloc, ctx.programState, expected);
-	if (has(expectedReturnType))
-		filterByReturnType(ctx.alloc, ctx.programState, candidates, force(expectedReturnType));
-
 	foreach (immutable size_t argIdx; 0 .. arity)
 		filterByLambdaArity(ctx.alloc, ctx.programState, ctx.commonTypes, candidates, ast.args[argIdx], argIdx);
 
+	filterCandidates(candidates, (ref Candidate candidate) =>
+		matchExpectedVsReturnTypeNoDiagnostic(
+			ctx.alloc, ctx.programState, expected, candidate.called.returnType, inferringTypeArgs(candidate)));
+
 	ArrBuilder!Type actualArgTypes;
 	bool someArgIsBogus = false;
-	immutable Opt!(Expr[]) args = fillArrOrFail!Expr(ctx.alloc, arity, (immutable size_t argIdx) {
+	immutable Opt!(Expr[]) args = fillArrOrFail!Expr(ctx.alloc, arity, (immutable size_t argIdx) @safe {
 		if (isEmpty(candidates))
 			// Already certainly failed.
 			return none!Expr;
 
-		CommonOverloadExpected common =
-			getCommonOverloadParamExpected(ctx.alloc, ctx.programState, tempAsArr_mut(candidates), argIdx);
+		ParamExpected paramExpected = mutMaxArr!(maxCandidates, TypeAndInferring);
+		getParamExpected(ctx.alloc, ctx.programState, paramExpected, tempAsArr_mut(candidates), argIdx);
+		Expected expected = Expected(tempAsArr_mut(castNonScope_ref(paramExpected)));
+
 		pauseMeasure(ctx.alloc, ctx.perf, perfMeasurer);
-		immutable Expr arg = checkExpr(ctx, locals, ast.args[argIdx], common.expected);
+		immutable Expr arg = checkExpr(ctx, locals, ast.args[argIdx], expected);
 		resumeMeasure(ctx.alloc, ctx.perf, perfMeasurer);
 
-		immutable Type actualArgType = inferred(common.expected);
+		immutable Type actualArgType = inferred(expected);
 		// If it failed to check, don't continue, just stop there.
 		if (isBogus(actualArgType)) {
 			someArgIsBogus = true;
 			return none!Expr;
 		}
 		add(ctx.alloc, actualArgTypes, actualArgType);
-		// If the Inferring already came from the candidate, no need to do more work.
-		if (!common.isExpectedFromCandidate)
-			filterByParamType(ctx.alloc, ctx.programState, candidates, actualArgType, argIdx);
+		filterByParamType(ctx.alloc, ctx.programState, candidates, actualArgType, argIdx);
 		return some(arg);
 	});
 
@@ -190,7 +190,7 @@ private immutable(Expr) checkCallInner(
 			immutable CalledDecl[] allCandidates = getAllCandidatesAsCalledDecls(ctx, funName);
 			addDiag2(ctx, diagRange, immutable Diag(immutable Diag.CallNoMatch(
 				funName,
-				expectedReturnType,
+				tryGetInferred(expected),
 				explicitTypeArgs.length,
 				arity,
 				finishArr(ctx.alloc, actualArgTypes),
@@ -301,6 +301,7 @@ private:
 
 immutable size_t maxCandidates = 64;
 alias Candidates = MutMaxArr!(maxCandidates, Candidate);
+alias ParamExpected = MutMaxArr!(maxCandidates, TypeAndInferring);
 
 immutable(CalledDecl[]) candidatesForDiag(ref Alloc alloc, ref const Candidates candidates) =>
 	map_const!(CalledDecl, Candidate)(alloc, tempAsArr_const(candidates), (ref const Candidate c) =>
@@ -426,55 +427,21 @@ immutable(Type) paramTypeAt(scope immutable Params params, immutable size_t argI
 		(ref immutable Params.Varargs varargs) =>
 			varargs.elementType);
 
-struct CommonOverloadExpected {
-	Expected expected;
-	immutable bool isExpectedFromCandidate;
-}
-
-// For multiple candidates, only have an expected type if they have exactly the same param type
-Expected getCommonOverloadParamExpectedForMultipleCandidates(
+void getParamExpected(
 	ref Alloc alloc,
 	ref ProgramState programState,
-	scope const Candidate[] candidates,
-	immutable size_t argIdx,
-	immutable Opt!Type expected,
-) {
-	if (empty(candidates))
-		return has(expected) ? Expected(force(expected)) : Expected(immutable Expected.Infer());
-	else {
-		// If we get a template candidate and haven't inferred this param type yet, no expected type.
-		immutable Type paramType = getCandidateExpectedParameterType(alloc, programState, candidates[0], argIdx);
-		return has(expected) && paramType != force(expected)
-			// Only get an expected type if all candidates expect it.
-			? Expected(immutable Expected.Infer())
-			: getCommonOverloadParamExpectedForMultipleCandidates(
-				alloc,
-				programState,
-				candidates[1 .. $],
-				argIdx,
-				some(paramType));
-	}
-}
-
-CommonOverloadExpected getCommonOverloadParamExpected(
-	ref Alloc alloc,
-	ref ProgramState programState,
+	ref ParamExpected paramExpected,
 	Candidate[] candidates,
 	immutable size_t argIdx,
 ) {
-	switch (candidates.length) {
-		case 0:
-			return CommonOverloadExpected(Expected(immutable Expected.Infer()), false);
-		case 1:
-			return CommonOverloadExpected(
-				Expected(
-					getCandidateExpectedParameterType(alloc, programState, candidates[0], argIdx),
-					inferringTypeArgs(candidates[0])),
-				true);
-		default:
-			return CommonOverloadExpected(
-				getCommonOverloadParamExpectedForMultipleCandidates(alloc, programState, candidates, argIdx, none!Type),
-				false);
+	foreach (ref Candidate candidate; candidates) {
+		immutable Type t = getCandidateExpectedParameterType(alloc, programState, candidate, argIdx);
+		InferringTypeArgs ita = inferringTypeArgs(candidate);
+		immutable bool isDuplicate = ita.args.length == 0 &&
+			exists_const!TypeAndInferring(tempAsArr(paramExpected), (scope ref const TypeAndInferring x) =>
+				x.type == t);
+		if (!isDuplicate)
+			paramExpected.push(TypeAndInferring(t, ita));
 	}
 }
 
@@ -532,17 +499,16 @@ void checkCalledDeclFlags(
 	)(res);
 }
 
-void filterByReturnType(
+void filterByReturnTypeForSpec(
 	ref Alloc alloc,
 	ref ProgramState programState,
 	scope ref Candidates candidates,
 	immutable Type expectedReturnType,
 ) {
 	// Filter by return type. Also does type argument inference on the candidate.
-	filterCandidates(candidates, (ref Candidate candidate) {
-		InferringTypeArgs ta = inferringTypeArgs(candidate);
-		return matchTypesNoDiagnostic(alloc, programState, candidate.called.returnType, expectedReturnType, ta);
-	});
+	filterCandidates(candidates, (ref Candidate candidate) =>
+		matchTypesNoDiagnostic(
+			alloc, programState, candidate.called.returnType, inferringTypeArgs(candidate), expectedReturnType));
 }
 
 void filterByLambdaArity(
@@ -571,9 +537,8 @@ void filterByParamType(
 ) {
 	// Remove candidates that can't accept this as a param. Also does type argument inference on the candidate.
 	filterCandidates(candidates, (ref Candidate candidate) {
-		immutable Type expectedArgType = getCandidateExpectedParameterType(alloc, programState, candidate, argIdx);
-		InferringTypeArgs ita = inferringTypeArgs(candidate);
-		return matchTypesNoDiagnostic(alloc, programState, expectedArgType, actualArgType, ita);
+		immutable Type paramType = getCandidateExpectedParameterType(alloc, programState, candidate, argIdx);
+		return matchTypesNoDiagnostic(alloc, programState, paramType, inferringTypeArgs(candidate), actualArgType);
 	});
 }
 
@@ -592,7 +557,7 @@ immutable(Opt!Called) findSpecSigImplementation(
 			todo!(immutable size_t)("varargs in spec?"),
 	)(arity(specSig));
 	return withCandidates(ctx, specSig.name, [], nParams, (ref Candidates candidates) {
-		filterByReturnType(ctx.alloc, ctx.programState, candidates, specSig.returnType);
+		filterByReturnTypeForSpec(ctx.alloc, ctx.programState, candidates, specSig.returnType);
 		foreach (immutable size_t argIdx; 0 .. nParams)
 			filterByParamType(ctx.alloc, ctx.programState, candidates, paramTypeAt(specSig.params, argIdx), argIdx);
 
@@ -741,8 +706,8 @@ immutable(Expr) checkCallAfterChoosingOverload(
 	immutable bool isInLambda,
 	ref const Candidate candidate,
 	immutable FileAndRange range,
-	immutable Expr[] args,
-	ref Expected expected,
+	scope immutable Expr[] args,
+	scope ref Expected expected,
 ) {
 	SpecTrace trace = mutMaxArr!(maxSpecDepth, immutable FunDeclAndTypeArgs);
 	immutable Opt!Called opCalled = getCalledFromCandidate(

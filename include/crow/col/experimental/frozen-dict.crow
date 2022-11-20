@@ -14,12 +14,12 @@ import
 	../../test-util: is
 	../../tuple: from, new, pair, to
 	../array:
-		~=, array, array-cast, as-array, begin-pointer, end-pointer, build-array, exists, for-loop,
+		~=, array, array-cast, as-array, begin-pointer, end-pointer, build, exists, for-loop,
 		is-empty, new, size, subscript, with-block
 	../mut-array:
-		~=, begin-pointer, build-mut-array, cast-immutable, end-pointer, fill, fill-mut-array,
-		mut-array, mut-array-builder, for-loop, size, temp-as-array, to-mut-array, set-subscript,
-		subscript, with-block
+		~=, begin-pointer, build, cast-immutable, end-pointer, fill, fill-mut-array, mut-array,
+		mut-array-builder, for-loop, size, temp-as-array, to-mut-array, set-subscript, subscript,
+		with-block
 	../list: ==, for-loop, list, new, to-array, to-list
 
 ###
@@ -127,7 +127,7 @@ mut-array-to-frozen-dict-promise-no-duplicates<k, v> frozen-dict<k, v>(
 	if a has-duplicates
 		# Write out pairs from each bucket to a mut-array, omitting a pair if its key appears later in the same bucket.
 		# Then call mut-array-to-frozen-dict-promise-no-duplicates 
-		xs mut-array (k, v) = with out : a.size build-mut-array
+		xs mut-array (k, v) = with out : a.size build
 			out write-without-duplicates a
 		xs mut-array-to-frozen-dict-promise-no-duplicates
 	else
@@ -178,7 +178,7 @@ mut-array-to-frozen-dict-promise-no-duplicates<k, v> frozen-dict<k, v>(
 	key.hash % n-buckets
 
 .running-sum<k, v> array<(k, v) mut*>(initial (k, v) mut*, offsets array nat64) trusted
-	with out : offsets.size build-array
+	with out : offsets.size build
 		acc mut = initial
 		for offset : offsets
 			out ~= acc
@@ -188,9 +188,9 @@ region builder
 
 build-frozen-dict record
 	.size-hint nat64
-build-frozen-dict build-frozen-dict()
+build build-frozen-dict()
 	0,
-build-frozen-dict build-frozen-dict(size-hint nat64)
+build build-frozen-dict(size-hint nat64)
 	size-hint,
 
 frozen-dict-builder<k, v> record mut
@@ -200,7 +200,7 @@ with-block<k, v> frozen-dict<k, v>(
 	a build-frozen-dict,
 	f act void(frozen-dict-builder<k, v>),
 ) trusted is-data<k> compare<k> hash-mix<k>
-	(with out : a.size-hint build-mut-array; f[(out,)]) as-frozen-dict
+	(with out : a.size-hint build; f[(out,)]) as-frozen-dict
 
 ~= <k, v> void(a frozen-dict-builder<k, v>, pair (k, v))
 	a.inner ~= pair

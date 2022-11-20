@@ -81,11 +81,11 @@ col2 vec3-64(a mat3-64) noctx
 rotation mat3-32(axis vec3-32, theta float32)
 	norm = axis normalize
 	cos = theta cos
-	cos * I + theta.sin * norm.cross-product-matrix + (1::float32 - cos) * (norm outer-product norm)
+	cos * I + theta.sin * norm.cross-product-matrix + (1 - cos) * (norm outer-product norm)
 rotation mat3-64(axis vec3-64, theta float64)
 	norm = axis normalize
 	cos = theta cos
-	cos * I + theta.sin * norm.cross-product-matrix + (1::float64 - cos) * (norm outer-product norm)
+	cos * I + theta.sin * norm.cross-product-matrix + (1 - cos) * (norm outer-product norm)
 
 .cross-product-matrix mat3-32(a vec3-32) noctx
 	(0, -a.z, a.y), (a.z, 0, -a.x), (-a.y, a.x, 0)

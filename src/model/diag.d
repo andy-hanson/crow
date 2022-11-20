@@ -310,7 +310,7 @@ struct Diag {
 		immutable Type type;
 	}
 	struct TypeConflict {
-		immutable Type expected;
+		immutable Type[] expected;
 		immutable Type actual;
 	}
 	struct TypeParamCantHaveTypeArgs {}

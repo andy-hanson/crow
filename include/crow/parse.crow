@@ -1,7 +1,7 @@
 no-std
 import
 	./bool: &&, bool, false, new, true
-	./col/list: ~, ~=, build-list, exists, for-break, for-loop, list, new, with-block
+	./col/list: ~, ~=, build, exists, for-break, for-loop, list, new, with-block
 	./col/set: in, new, set
 	./compare: !=, <=
 	./fun-util: subscript
@@ -10,7 +10,7 @@ import
 	./option: ==, ??, is-empty, new, option
 	./result: err, ok, result, then
 	./string:
-		==, <=>, ~~, ~=, as-string, build-string, char8, char8s, hash-mix, is-empty, join, literal,
+		==, <=>, ~~, ~=, as-string, build, char8, char8s, hash-mix, is-empty, join, literal,
 		mut-iter, mut-string-iter, next, peek, prev, restore, save, string, string-iter, to-nat8,
 		to-c-string, to-string, with-block
 	./tuple: a, b, new, pair
@@ -101,7 +101,7 @@ text-not-containing grammar string(ending string)
 
 text-not-containing-any grammar string(possible-endings string[])
 	with iter : make-grammar
-		res = with out : build-string
+		res string = with out : build
 			loop
 				saved = iter save
 				if possible-endings exists x => iter try-take-exact x
@@ -213,7 +213,7 @@ optional grammar-skip(a string)
 # Parses the same grammar as many times as possible (including 0 times).
 many<a> grammar a[](a grammar a)
 	with iter : make-grammar
-		res a[] = with out : build-list
+		res a[] = with out : build
 			loop
 				saved = iter save
 				match a.fn[iter]
@@ -252,7 +252,7 @@ separated-by<a> grammar a[](a grammar a, separator grammar-skip)
 		match a.fn[iter]
 		as ok first
 			error mut inner-parse-error? = ()
-			res a[] = with out : build-list
+			res a[] = with out : build
 				out ~= first
 				loop
 					match separator.inner.fn[iter]
@@ -324,7 +324,7 @@ quoted-string grammar string()
 			(saved, "quoted string") err
 .take-quoted-string-rest string?(iter mut-string-iter)
 	error mut bool = false
-	res = with out : build-string
+	res string = with out : build
 		loop
 			if n ?= iter next
 				if n == "\""

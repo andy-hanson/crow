@@ -12,9 +12,9 @@ import
 	../pointer: ==, +, *, size-of
 	../tuple: a, b, new, pair
 	./array:
-		~, ~~, ~=, ~~=, array, array-builder, array-cast, array-iter, as-array,
-		begin-pointer, build-array, end-iter, end-pointer, iter, for-break, for-loop, index-of,
-		is-empty, new, next, prev, rtail, size, slice-left, slice-right, subscript, tail, with-block
+		~, ~~, ~=, ~~=, array, array-builder, array-cast, array-iter, as-array, begin-pointer,
+		build, end-iter, end-pointer, iter, for-break, for-loop, index-of, is-empty, new, next,
+		prev, rtail, size, slice-left, slice-right, subscript, tail, with-block
 	./iter: new, rest, value, value-and-rest
 
 ###
@@ -867,7 +867,7 @@ every<a> bool(a a[], f act bool(a))
 		true
 
 filter<a> a[](a a[], f act bool(a))
-	res array a = with out : build-array
+	res array a = with out : build
 		for x : a
 			if f[x]
 				out ~= x
@@ -953,12 +953,12 @@ for-loop<out, in> out[](a in[], f act out(in, nat64))
 	(a for-loop f)::array<out> to-list
 
 for-loop<out, in> array out(a in[], f act out(in)) trusted
-	with out : a.size build-array
+	with out : a.size build
 		for x : a
 			out ~= f[x]
 
 for-loop<out, in> array out(a in[], f act out(in, nat64))
-	with out : a.size build-array
+	with out : a.size build
 		for x, i : a
 			out ~= f[x, i]
 
@@ -1193,16 +1193,16 @@ region builder
 
 build-list record
 	.size-hint nat64
-build-list build-list()
+build build-list()
 	0,
-build-list build-list(size-hint nat64)
+build build-list(size-hint nat64)
 	size-hint,
 
 list-builder<a> record mut
 	.inner array-builder a
 
 with-block<a> a[](_ build-list, f act void(list-builder a))
-	(with out : build-array; f[(out,)])::array<a> to-list
+	(with out : build; f[(out,)])::array<a> to-list
 
 ~= <a> void(a list-builder a, value a)
 	a.inner ~= value

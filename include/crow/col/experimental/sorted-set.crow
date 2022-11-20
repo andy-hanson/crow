@@ -14,9 +14,9 @@ import
 	../../test-util: is
 	../array: array, as-array, begin-pointer, end-pointer, is-empty, new, size, subscript, tail
 	../mut-array:
-		~=, begin-pointer, build-mut-array, end-pointer, is-empty, mut-array, mut-array-builder,
+		~=, begin-pointer, build, end-pointer, is-empty, mut-array, mut-array-builder,
 		set-subscript, size, subscript, uninitialized-mut-array, with-block
-	../list: ~=, build-list, for-loop, list, to-array, to-list, with-block
+	../list: ~=, build, for-loop, list, to-array, to-list, with-block
 	../sort: sort
 	../private/sort-utils: binary-search-exact-index
 	./index-set:
@@ -352,7 +352,7 @@ for-loop<a> void(a sorted-set a, f act void(a)) is-data<a> compare<a>
 	(a.values.tail, a.remove-index + 1) remove-from-front remove
 
 .init-iters<a> mut-array iter-part a(a sorted-set a) trusted
-	with out : a.add-node-count build-mut-array
+	with out : a.add-node-count build
 		_ = out init-iters-recur a.add, a.remove
 		()
 
@@ -389,7 +389,7 @@ for-loop<out, in> sorted-set out(a sorted-set in, f act out(in)) is-data<out> co
 	a for-loop f to-sorted-set
 
 for-loop<out, in> out[](a sorted-set in, f act out(in)) trusted is-data<in> compare<in>
-	with out : a.size build-list
+	with out : a.size build
 		for x : a
 			out ~= f[x]
 

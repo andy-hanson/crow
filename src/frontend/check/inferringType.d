@@ -36,13 +36,15 @@ import model.model :
 	VariableRef;
 import util.alloc.alloc : Alloc;
 import util.cell : Cell, cellGet, cellSet;
-import util.col.arr : sizeEq;
+import util.col.arr : only_const, only_mut, sizeEq;
+import util.col.arrUtil : arrLiteral, exists_const, map_const;
 import util.col.fullIndexDict : FullIndexDict;
 import util.col.mutArr : MutArr;
 import util.col.mutMaxArr : mapTo, MutMaxArr, push, tempAsArr;
 import util.memory : overwriteMemory;
 import util.opt : has, force, none, noneMut, Opt, some, someMut;
 import util.perf : Perf;
+import util.ptr : castNonScope_ref;
 import util.sourceRange : FileAndRange, RangeWithinFile;
 import util.sym : AllSymbols, Sym;
 import util.util : unreachable, verify;
@@ -220,14 +222,17 @@ immutable(bool) matchTypesNoDiagnostic(
 	ref Alloc alloc,
 	ref ProgramState programState,
 	immutable Type expectedType,
-	immutable Type setType,
-	scope ref InferringTypeArgs aInferringTypeArgs
-) =>
-	matchSetTypeResult!(immutable bool)(
-		checkAssignability(alloc, programState, expectedType, setType, aInferringTypeArgs),
-		(immutable(SetTypeResult.Set)) => true,
-		(immutable(SetTypeResult.Keep)) => true,
-		(immutable(SetTypeResult.Fail)) => false);
+	scope InferringTypeArgs expectedTypeArgs,
+	immutable Type actualType,
+) {
+	final switch (checkType(alloc, programState, expectedType, expectedTypeArgs, actualType)) {
+		case SetTypeResult.set:
+		case SetTypeResult.keep:
+			return true;
+		case SetTypeResult.fail:
+			return false;
+	}
+}
 
 struct LoopInfo {
 	immutable Type voidType;
@@ -236,24 +241,29 @@ struct LoopInfo {
 	bool hasBreak;
 }
 
+struct TypeAndInferring {
+	immutable Type type;
+	InferringTypeArgs inferringTypeArgs;
+}
+
 struct Expected {
 	@safe @nogc pure nothrow:
 
 	struct Infer {}
 
-	InferringTypeArgs inferringTypeArgs; //TODO: only used with 'type'
 	private:
-	enum Kind { infer, type, loop }
+	enum Kind { infer, type, typeAndInferring, loop }
 	Kind kind;
 	union {
 		Infer infer_;
-		Type type_;
+		immutable Type type_;
+		TypeAndInferring[] typeAndInferring_;
 		LoopInfo* loop_;
 	}
 
 	public:
 	@disable this();
-	this(immutable Infer a) {
+	this(Infer a) {
 		kind = Kind.infer;
 		infer_ = a;
 	}
@@ -261,10 +271,9 @@ struct Expected {
 		kind = Kind.type;
 		type_ = a;
 	}
-	this(immutable Type type, InferringTypeArgs ita) {
-		kind = Kind.type;
-		type_ = type;
-		inferringTypeArgs = ita;
+	this(return TypeAndInferring[] a) {
+		kind = Kind.typeAndInferring;
+		typeAndInferring_ = a;
 	}
 	this(return scope LoopInfo* a) {
 		kind = Kind.loop;
@@ -272,17 +281,38 @@ struct Expected {
 	}
 }
 
-private @trusted immutable(T) matchExpected(T)(
-	ref Expected a,
-	scope immutable(T) delegate(immutable Expected.Infer) @safe @nogc pure nothrow cbInfer,
-	scope immutable(T) delegate(immutable Type) @safe @nogc pure nothrow cbType,
-	scope immutable(T) delegate(LoopInfo*) @safe @nogc pure nothrow cbLoop,
+private @trusted T matchExpected_const(T)(
+	scope ref inout Expected a,
+	scope T delegate(immutable Expected.Infer) @safe @nogc pure nothrow cbInfer,
+	scope T delegate(immutable Type) @safe @nogc pure nothrow cbType,
+	scope T delegate(const TypeAndInferring[]) @safe @nogc pure nothrow cbTypeAndInferring,
+	scope T delegate(const LoopInfo*) @safe @nogc pure nothrow cbLoop,
 ) {
 	final switch (a.kind) {
 		case Expected.Kind.infer:
 			return cbInfer(a.infer_);
 		case Expected.Kind.type:
 			return cbType(a.type_);
+		case Expected.Kind.typeAndInferring:
+			return cbTypeAndInferring(a.typeAndInferring_);
+		case Expected.Kind.loop:
+			return cbLoop(a.loop_);
+	}
+}
+private @trusted T matchExpected_mut(T)(
+	scope ref Expected a,
+	scope T delegate(immutable Expected.Infer) @safe @nogc pure nothrow cbInfer,
+	scope T delegate(immutable Type) @safe @nogc pure nothrow cbType,
+	scope T delegate(TypeAndInferring[]) @safe @nogc pure nothrow cbTypeAndInferring,
+	scope T delegate(LoopInfo*) @safe @nogc pure nothrow cbLoop,
+) {
+	final switch (a.kind) {
+		case Expected.Kind.infer:
+			return cbInfer(a.infer_);
+		case Expected.Kind.type:
+			return cbType(a.type_);
+		case Expected.Kind.typeAndInferring:
+			return cbTypeAndInferring(a.typeAndInferring_);
 		case Expected.Kind.loop:
 			return cbLoop(a.loop_);
 	}
@@ -293,8 +323,17 @@ private @trusted immutable(T) matchExpected(T)(
 		? someMut(expected.loop_)
 		: noneMut!(LoopInfo*);
 
-immutable(Opt!Type) tryGetInferred(ref const Expected expected) =>
-	expected.kind == Expected.Kind.type ? some(expected.type_) : none!Type;
+@trusted immutable(Opt!Type) tryGetInferred(ref const Expected expected) =>
+	matchExpected_const!(immutable Opt!Type)(
+		expected,
+		(immutable Expected.Infer) =>
+			none!Type,
+		(immutable Type x) =>
+			some(x),
+		(const TypeAndInferring[] ti) =>
+			ti.length == 1 ? some(only_const(ti).type) : none!Type,
+		(const LoopInfo*) =>
+			none!Type);
 
 // TODO: if we have a bogus expected type we should probably not be doing any more checking at all?
 immutable(bool) isBogus(ref const Expected expected) {
@@ -302,31 +341,84 @@ immutable(bool) isBogus(ref const Expected expected) {
 	return has(t) && isBogus(force(t));
 }
 
-Expected copyWithNewExpectedType(ref Expected expected, immutable Type type) =>
-	Expected(type, expected.inferringTypeArgs);
-
-immutable(Opt!Type) shallowInstantiateType(ref const Expected expected) {
-	immutable Opt!Type t = tryGetInferred(expected);
-	if (has(t) && isTypeParam(force(t))) {
-		const Opt!(SingleInferringType*) typeArg =
-			tryGetTypeArgFromInferringTypeArgs_const(expected.inferringTypeArgs, asTypeParam(force(t)));
-		return has(typeArg) ? tryGetInferred(*force(typeArg)) : none!Type;
-	} else
-		return t;
+private @trusted void setToType(scope ref Expected expected, immutable Type type) {
+	overwriteMemory(&castNonScope_ref(expected), Expected(type));
 }
+private void setToBogus(scope ref Expected expected) {
+	setToType(expected, immutable Type(immutable Type.Bogus()));
+}
+
+struct Pair(T, U) {
+	T a;
+	U b;
+}
+Pair!(T, Type) withCopyWithNewExpectedType(T)(
+	ref Expected expected,
+	immutable Type newExpectedType,
+	scope immutable(T) delegate(scope ref Expected) @safe @nogc pure nothrow cb,
+) {
+	TypeAndInferring[1] t = [TypeAndInferring(newExpectedType, getInferringTypeArgs(expected))];
+	Expected newExpected = Expected(t);
+	immutable T res = cb(newExpected);
+	return Pair!(T, Type)(res, inferred(newExpected));
+}
+
+immutable(Opt!Type) shallowInstantiateType(ref const Expected expected) =>
+	matchExpected_const!(immutable Opt!Type)(
+		expected,
+		(immutable Expected.Infer) =>
+			none!Type,
+		(immutable Type x) =>
+			some(x),
+		(const TypeAndInferring[] choices) {
+			if (choices.length == 1) {
+				const TypeAndInferring choice = only_const(choices);
+				if (isTypeParam(choice.type)) {
+					const Opt!(SingleInferringType*) typeArg =
+						tryGetTypeArgFromInferringTypeArgs_const(choice.inferringTypeArgs, asTypeParam(choice.type));
+					return has(typeArg) ? tryGetInferred(*force(typeArg)) : none!Type;
+				} else
+					return some(choice.type);
+			} else
+				return none!Type;
+		},
+		(const LoopInfo*) => none!Type);
 
 immutable(Opt!Type) tryGetDeeplyInstantiatedTypeFor(
 	ref Alloc alloc,
 	ref ProgramState programState,
-	ref const Expected expected,
+	scope ref const Expected expected,
 	immutable Type t,
 ) =>
-	tryGetDeeplyInstantiatedTypeWorker(alloc, programState, t, expected.inferringTypeArgs);
+	tryGetDeeplyInstantiatedTypeWorker(alloc, programState, t, getInferringTypeArgs(expected));
 
-immutable(Opt!Type) tryGetDeeplyInstantiatedType(
+private InferringTypeArgs getInferringTypeArgs(ref Expected expected) =>
+	matchExpected_mut!InferringTypeArgs(
+		expected,
+		(immutable Expected.Infer) =>
+			unreachable!InferringTypeArgs,
+		(immutable Type x) =>
+			InferringTypeArgs(),
+		(TypeAndInferring[] choices) =>
+			only_mut(choices).inferringTypeArgs,
+		(LoopInfo*) =>
+			unreachable!InferringTypeArgs);
+private const(InferringTypeArgs) getInferringTypeArgs(ref const Expected expected) =>
+	matchExpected_const!(const InferringTypeArgs)(
+		expected,
+		(immutable Expected.Infer) =>
+			unreachable!(const InferringTypeArgs),
+		(immutable Type t) =>
+			const InferringTypeArgs(),
+		(const TypeAndInferring[] choices) =>
+			only_const(choices).inferringTypeArgs,
+		(const LoopInfo*) =>
+			unreachable!(const InferringTypeArgs));
+
+private immutable(Opt!Type) tryGetDeeplyInstantiatedType(
 	ref Alloc alloc,
 	ref ProgramState programState,
-	ref const Expected expected,
+	scope ref const Expected expected,
 ) {
 	immutable Opt!Type t = tryGetInferred(expected);
 	return has(t)
@@ -334,44 +426,82 @@ immutable(Opt!Type) tryGetDeeplyInstantiatedType(
 		: none!Type;
 }
 
-immutable(Expr) bogus(ref Expected expected, immutable FileAndRange range) {
-	matchExpected!void(
+immutable(bool) matchExpectedVsReturnTypeNoDiagnostic(
+	ref Alloc alloc,
+	ref ProgramState programState,
+	scope ref const Expected expected,
+	immutable Type candidateReturnType,
+	scope InferringTypeArgs candidateTypeArgs,
+) =>
+	matchExpected_const!(immutable bool)(
+		expected,
+		(immutable Expected.Infer) =>
+			true,
+		(immutable Type t) =>
+			// We have a particular expected type, so infer its type args
+			matchTypesNoDiagnostic(alloc, programState, candidateReturnType, candidateTypeArgs, t),
+		(const TypeAndInferring[] choices) {
+			if (choices.length == 1) {
+				immutable Opt!Type t = tryGetDeeplyInstantiatedType(alloc, programState, expected);
+				if (has(t))
+					return matchTypesNoDiagnostic(
+						alloc, programState, candidateReturnType, candidateTypeArgs, force(t));
+			}
+			// Don't infer any type args here; multiple candidates and multiple possible return types.
+			return exists_const!TypeAndInferring(choices, (ref const TypeAndInferring x) =>
+				isTypeMatchPossible(x.type, x.inferringTypeArgs, candidateReturnType, candidateTypeArgs));
+		},
+		(const LoopInfo*) =>
+			false);
+
+immutable(Expr) bogus(scope ref Expected expected, immutable FileAndRange range) {
+	matchExpected_mut!void(
 		expected,
 		(immutable Expected.Infer) {
-			overwriteMemory(&expected, Expected(immutable Type(immutable Type.Bogus())));
+			setToBogus(expected);
 		},
 		(immutable(Type)) {},
+		(TypeAndInferring[]) {
+			setToBogus(expected);
+		},
 		(LoopInfo*) {});
 	return immutable Expr(range, immutable Expr.Bogus());
 }
 
-immutable(Type) inferred(ref Expected expected) =>
-	matchExpected!(immutable Type)(
+immutable(Type) inferred(ref const Expected expected) =>
+	matchExpected_const!(immutable Type)(
 		expected,
 		(immutable Expected.Infer) =>
 			unreachable!(immutable Type),
 		(immutable Type x) =>
 			x,
-		(LoopInfo* x) =>
+		(const TypeAndInferring[] choices) =>
+			// If there were multiple, we should have set the expected.
+			only_const(choices).type,
+		(const LoopInfo* x) =>
 			// Just treat loop body as 'void'
 			x.voidType);
 
 immutable(Expr) check(
 	ref ExprCtx ctx,
-	ref Expected expected,
+	scope ref Expected expected,
 	immutable Type exprType,
 	immutable Expr expr,
 ) {
 	if (setTypeNoDiagnostic(ctx.alloc, ctx.programState, expected, exprType))
 		return expr;
 	else {
-		addDiag2(ctx, range(expr), matchExpected!(immutable Diag)(
-			expected,
-			(immutable Expected.Infer) =>
+		addDiag2(ctx, range(expr), matchExpected_const!(immutable Diag)(
+			castNonScope_ref(expected),
+			(scope immutable Expected.Infer) =>
 				unreachable!(immutable Diag),
-			(immutable Type t) =>
-				immutable Diag(immutable Diag.TypeConflict(t, exprType)),
-			(LoopInfo*) =>
+			(scope immutable Type x) =>
+				immutable Diag(immutable Diag.TypeConflict(arrLiteral!Type(ctx.alloc, [x]), exprType)),
+			(scope const TypeAndInferring[] xs) =>
+				immutable Diag(immutable Diag.TypeConflict(
+					map_const!Type(ctx.alloc, xs, (scope ref const TypeAndInferring x) => x.type),
+					exprType)),
+			(scope const LoopInfo*) =>
 				immutable Diag(immutable Diag.LoopNeedsBreakOrContinue())));
 		return bogus(expected, range(expr));
 	}
@@ -386,26 +516,41 @@ void mustSetType(ref Alloc alloc, ref ProgramState programState, ref Expected ex
 private immutable(bool) setTypeNoDiagnostic(
 	ref Alloc alloc,
 	ref ProgramState programState,
-	ref Expected expected,
-	immutable Type setType,
+	scope ref Expected expected,
+	immutable Type actual,
 ) =>
-	matchExpected!(immutable bool)(
+	matchExpected_mut!(immutable bool)(
 		expected,
 		(immutable Expected.Infer) {
-			overwriteMemory(&expected, Expected(setType));
+			setToType(expected, actual);
 			return true;
 		},
-		(immutable Type expectedType) =>
-			matchSetTypeResult!(immutable bool)(
-				checkAssignability(alloc, programState, expectedType, setType, expected.inferringTypeArgs),
-				(immutable SetTypeResult.Set s) {
-					overwriteMemory(&expected, Expected(s.type));
+		(immutable Type x) {
+			final switch (checkType(alloc, programState, x, InferringTypeArgs(), actual)) {
+				case SetTypeResult.set:
+					return unreachable!(immutable bool);
+				case SetTypeResult.keep:
 					return true;
-				},
-				(immutable SetTypeResult.Keep) =>
-					true,
-				(immutable SetTypeResult.Fail) =>
-					false),
+				case SetTypeResult.fail:
+					return false;
+			}
+		},
+		(TypeAndInferring[] choices) {
+			bool anyOk = false;
+			foreach (ref TypeAndInferring x; choices) {
+				final switch (checkType(alloc, programState, x.type, x.inferringTypeArgs, actual)) {
+					case SetTypeResult.set:
+						// we'll do the set at the end
+					case SetTypeResult.keep:
+						anyOk = true;
+						break;
+					case SetTypeResult.fail:
+						break;
+				}
+			}
+			setToType(expected, anyOk ? actual : immutable Type(immutable Type.Bogus()));
+			return anyOk;
+		},
 		(LoopInfo* loop) =>
 			false);
 
@@ -423,107 +568,20 @@ const(Opt!(SingleInferringType*)) tryGetTypeArgFromInferringTypeArgs_const(
 
 private:
 
-struct SetTypeResult {
-	@safe @nogc pure nothrow:
-
-	// set a new type
-	struct Set {
-		immutable Type type;
-	}
-	// keep the type as-is
-	struct Keep {}
-	// type error
-	struct Fail {}
-
-	@trusted immutable this(immutable Set a) { kind = Kind.set; set = a; }
-	immutable this(immutable Keep a) { kind = Kind.keep; keep = a; }
-	immutable this(immutable Fail a) { kind = Kind.fail; fail = a; }
-
-	private:
-
-	enum Kind { set, keep, fail }
-	immutable Kind kind;
-	union {
-		immutable Set set;
-		immutable Keep keep;
-		immutable Fail fail;
-	}
-}
-
-@trusted immutable(T) matchSetTypeResult(T)(
-	immutable SetTypeResult a,
-	scope immutable(T) delegate(immutable SetTypeResult.Set) @safe @nogc pure nothrow cbSet,
-	scope immutable(T) delegate(immutable SetTypeResult.Keep) @safe @nogc pure nothrow cbKeep,
-	scope immutable(T) delegate(immutable SetTypeResult.Fail) @safe @nogc pure nothrow cbFail,
-) {
-	final switch (a.kind) {
-		case SetTypeResult.Kind.set:
-			return cbSet(a.set);
-		case SetTypeResult.Kind.keep:
-			return cbKeep(a.keep);
-		case SetTypeResult.Kind.fail:
-			return cbFail(a.fail);
-	}
-}
-
-immutable(SetTypeResult) checkAssignabilityForStructInstsWithSameDecl(
-	ref Alloc alloc,
-	ref ProgramState programState,
-	immutable StructDecl* decl,
-	immutable Type[] as,
-	immutable Type[] bs,
-	scope ref InferringTypeArgs aInferringTypeArgs,
-) {
-	// If we need to set at least one type arg, return Set.
-	// If all passed, return Keep.
-	// Else, return Fail.
-	bool someIsSet = false;
-	scope TypeArgsArray newTypeArgs = typeArgsArray();
-	verify(sizeEq(as, bs));
-	foreach (immutable size_t i, a; as) {
-		immutable Type b = bs[i];
-		immutable Opt!Type setType = matchSetTypeResult!(immutable Opt!Type)(
-			checkAssignability(alloc, programState, a, b, aInferringTypeArgs),
-			(immutable SetTypeResult.Set x) {
-				someIsSet = true;
-				return some(x.type);
-			},
-			(immutable(SetTypeResult.Keep)) =>
-				some(a),
-			(immutable(SetTypeResult.Fail)) =>
-				none!Type);
-		if (has(setType))
-			push(newTypeArgs, force(setType));
-		else
-			return immutable SetTypeResult(immutable SetTypeResult.Fail());
-	}
-	return someIsSet
-		? immutable SetTypeResult(immutable SetTypeResult.Set(immutable Type(
-			instantiateStructNeverDelay(alloc, programState, decl, tempAsArr(newTypeArgs)))))
-		: immutable SetTypeResult(immutable SetTypeResult.Keep());
-}
-
-immutable(SetTypeResult) setTypeNoDiagnosticWorker_forStructInst(
-	ref Alloc alloc,
-	ref ProgramState programState,
-	ref immutable StructInst a,
-	ref immutable StructInst b,
-	scope ref InferringTypeArgs aInferringTypeArgs,
-) {
-	// Handling a union expected type is done in Expected::check
-	// TODO: but it's done here to for case of call return type ...
-	if (decl(a) == decl(b))
-		return checkAssignabilityForStructInstsWithSameDecl(
-			alloc, programState, a.decl, a.typeArgs, b.typeArgs, aInferringTypeArgs);
-	else
-		return SetTypeResult(SetTypeResult.Fail());
+enum SetTypeResult {
+	// Set expected to the actual type.
+	set,
+	// Keep the expected type (ignoring the actual type). This is useful when expected is bogus.
+	keep,
+	// Fail with a type error.
+	fail,
 }
 
 immutable(Opt!Type) tryGetDeeplyInstantiatedTypeWorker(
 	ref Alloc alloc,
 	ref ProgramState programState,
 	immutable Type a,
-	ref const InferringTypeArgs inferringTypeArgs,
+	scope const InferringTypeArgs inferringTypeArgs,
 ) =>
 	matchType!(immutable Opt!Type)(
 		a,
@@ -547,53 +605,43 @@ immutable(Opt!Type) tryGetDeeplyInstantiatedTypeWorker(
 				instantiateStructNeverDelay(alloc, programState, decl(*i), tempAsArr(newTypeArgs))));
 		});
 
-immutable(SetTypeResult) checkAssignabilityOpt(
-	ref Alloc alloc,
-	ref ProgramState programState,
-	immutable Opt!Type a,
-	immutable Type b,
-	ref InferringTypeArgs aInferringTypeArgs,
-) =>
-	has(a)
-		? checkAssignability(alloc, programState, force(a), b, aInferringTypeArgs)
-		: immutable SetTypeResult(immutable SetTypeResult.Set(b));
-
 immutable(SetTypeResult) setTypeNoDiagnosticWorker_forSingleInferringType(
 	ref Alloc alloc,
 	ref ProgramState programState,
-	ref SingleInferringType sit,
-	immutable Type setType,
+	ref SingleInferringType inferring,
+	immutable Type actual,
 ) {
-	InferringTypeArgs inferring = InferringTypeArgs();
-	immutable SetTypeResult res = checkAssignabilityOpt(alloc, programState, tryGetInferred(sit), setType, inferring);
-	matchSetTypeResult!void(
-		res,
-		(immutable SetTypeResult.Set s) {
-			cellSet(sit.type, some(s.type));
-		},
-		(immutable SetTypeResult.Keep) {},
-		(immutable SetTypeResult.Fail) {});
+	immutable Opt!Type inferred = tryGetInferred(inferring);
+	immutable SetTypeResult res = has(inferred)
+		? checkType(alloc, programState, force(inferred), InferringTypeArgs(), actual)
+		: SetTypeResult.set;
+	final switch (res) {
+		case SetTypeResult.set:
+			cellSet(inferring.type, some(actual));
+			break;
+		case SetTypeResult.keep:
+		case SetTypeResult.fail:
+			break;
+	}
 	return res;
 }
 
-
-// TODO:NAME
 // We are trying to assign 'a = b'.
 // 'a' may contain type parameters from inferringTypeArgs. We'll infer those here.
 // If 'allowConvertAToBUnion' is set, if 'b' is a union type and 'a' is a member, we'll set it to the union.
 // When matching a type, we may fill in type parameters, so we may want to set a new more specific expected type.
-immutable(SetTypeResult) checkAssignability(
+immutable(SetTypeResult) checkType(
 	ref Alloc alloc,
 	ref ProgramState programState,
 	immutable Type a,
+	scope InferringTypeArgs aInferringTypeArgs,
 	immutable Type b,
-	scope ref InferringTypeArgs aInferringTypeArgs,
 ) =>
 	matchType!(immutable SetTypeResult)(
 		a,
 		(immutable Type.Bogus) =>
 			// TODO: make sure to infer type params in this case!
-			immutable SetTypeResult(immutable SetTypeResult.Keep()),
+			SetTypeResult.keep,
 		(immutable TypeParam* pa) {
 			Opt!(SingleInferringType*) aInferring = tryGetTypeArgFromInferringTypeArgs_mut(aInferringTypeArgs, pa);
 			return has(aInferring)
@@ -602,27 +650,87 @@ immutable(SetTypeResult) checkAssignability(
 					b,
 					(immutable Type.Bogus) =>
 						// Bogus is assignable to anything
-						immutable SetTypeResult(immutable SetTypeResult.Keep()),
+						SetTypeResult.keep,
 					(immutable TypeParam* pb) =>
-						pa == pb
-							? immutable SetTypeResult(immutable SetTypeResult.Keep())
-							: immutable SetTypeResult(immutable SetTypeResult.Fail()),
+						pa == pb ? SetTypeResult.keep : SetTypeResult.fail,
 					(immutable StructInst*) =>
 						// Expecting a type param, got a particular type
-						immutable SetTypeResult(immutable SetTypeResult.Fail()));
+						SetTypeResult.fail);
 		},
-		(immutable StructInst* ai) @safe =>
+		(immutable StructInst* ai) =>
 			matchType!(immutable SetTypeResult)(
 				b,
 				(immutable Type.Bogus) =>
 					// Bogus is assignable to anything
-					immutable SetTypeResult(immutable SetTypeResult.Keep()),
+					SetTypeResult.keep,
 				(immutable TypeParam*) =>
-					immutable SetTypeResult(immutable SetTypeResult.Fail()),
+					SetTypeResult.fail,
 				(immutable StructInst* bi) =>
-					setTypeNoDiagnosticWorker_forStructInst(
-						alloc,
-						programState,
-						*ai,
-						*bi,
-						aInferringTypeArgs)));
+					checkStructInsts(alloc, programState, *ai, aInferringTypeArgs, *bi)));
+
+immutable(SetTypeResult) checkStructInsts(
+	ref Alloc alloc,
+	ref ProgramState programState,
+	ref immutable StructInst ai,
+	scope InferringTypeArgs aInferringTypeArgs,
+	ref immutable StructInst bi,
+) {
+	if (decl(ai) == decl(bi)) {
+		// If we need to set at least one type arg, return Set.
+		// If all passed, return Keep.
+		// Else, return Fail.
+		SetTypeResult res = SetTypeResult.keep;
+		verify(sizeEq(typeArgs(ai), typeArgs(bi)));
+		foreach (immutable size_t i, a; typeArgs(ai)) {
+			immutable Type b = typeArgs(bi)[i];
+			final switch (checkType(alloc, programState, a, aInferringTypeArgs, b)) {
+				case SetTypeResult.set:
+					res = SetTypeResult.set;
+					break;
+				case SetTypeResult.keep:
+					break;
+				case SetTypeResult.fail:
+					return SetTypeResult.fail;
+			}
+		}
+		return res;
+	} else
+		return SetTypeResult.fail;
+}
+
+immutable(bool) isTypeMatchPossible(
+	immutable Type a,
+	const InferringTypeArgs aInferring,
+	immutable Type b,
+	const InferringTypeArgs bInferring,
+) {
+	if (a == b)
+		return true;
+	if (isBogus(a) || isBogus(b))
+		return true;
+	if (isTypeParam(a)) {
+		const Opt!(SingleInferringType*) aSingle = tryGetTypeArgFromInferringTypeArgs_const(aInferring, asTypeParam(a));
+		if (has(aSingle)) {
+			immutable Opt!Type t = tryGetInferred(*force(aSingle));
+			return !has(t) || isTypeMatchPossible(force(t), InferringTypeArgs(), b, bInferring);
+		}
+	}
+	if (isTypeParam(b)) {
+		const Opt!(SingleInferringType*) bSingle = tryGetTypeArgFromInferringTypeArgs_const(bInferring, asTypeParam(b));
+		if (has(bSingle)) {
+			immutable Opt!Type t = tryGetInferred(*force(bSingle));
+			return !has(t) || isTypeMatchPossible(a, aInferring, force(t), InferringTypeArgs());
+		}
+	}
+	if (isStructInst(a) && isStructInst(b)) {
+		immutable StructInst* sa = asStructInst(a);
+		immutable StructInst* sb = asStructInst(b);
+		if (decl(*sa) != decl(*sb))
+			return false;
+		foreach (immutable size_t i; 0 .. typeArgs(*sa).length)
+			if (!isTypeMatchPossible(typeArgs(*sa)[i], aInferring, typeArgs(*sb)[i], bInferring))
+				return false;
+		return true;
+	}
+	return false;
+}

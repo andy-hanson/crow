@@ -12,8 +12,8 @@ import
 	../../test-util: is
 	../../tuple: ==, from, new, pair, to
 	../array:
-		~=, ~~=, array, array-builder, build-array, for-loop, is-empty, mut-iter, new, next, peek,
-		size, slice-right, subscript, tail, with-block
+		~=, ~~=, array, array-builder, build, for-loop, is-empty, mut-iter, new, next, peek, size,
+		slice-right, subscript, tail, with-block
 	../mut-list: ~=, for-loop, is-empty, last, mut-list, new, pop, size, set-subscript, subscript
 	../iter: value
 	../list: ==, filter, for-loop, is-empty, list, new, to-array, to-list
@@ -138,7 +138,7 @@ in<k, v> bool(key k, a compact-sorted-dict<k, v>) is-data<k> compare<k>
 	prev-size <= (overlay-size max 3)
 
 .merge-overlays<k, v> array<(k, v?)>(left array (k, v?), right array (k, v?)) is-data<k> compare<k>
-	with out : left.size + right.size build-array
+	with out : left.size + right.size build
 		l = left mut-iter
 		r = right mut-iter
 		loop
@@ -161,7 +161,7 @@ in<k, v> bool(key k, a compact-sorted-dict<k, v>) is-data<k> compare<k>
 				break
 
 .merge-to-end<k, v> array<(k, v)>(left array (k, v), right array (k, v?)) is-data<k> compare<k>
-	with out : left.size + right.size build-array
+	with out : left.size + right.size build
 		l = left mut-iter
 		r = right mut-iter
 		loop

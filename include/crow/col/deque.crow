@@ -9,7 +9,7 @@ import
 	../string: ==, ~~, join, literal, string, to-string
 	../test-util: is
 	./array: array, first, for-loop, is-empty, last, rtail, size, tail
-	./list: ==, ~=, build-list, for-loop, list, new, to-array, to-list, with-block
+	./list: ==, ~=, build, for-loop, list, new, to-array, to-list, with-block
 	./stack: ~, is-empty, for-loop, new, pop, rest, reversed, size, stack, to-list, value
 
 # Immutable double-ended queue.
@@ -101,7 +101,7 @@ for-loop<a> void(a deque a, f act void(a))
 	a.right for-loop f
 
 for-loop<out, in> out[](a deque in, f act out(in)) trusted
-	with out : a.size build-list
+	with out : a.size build
 		for x : a
 			out ~= f[x]
 

@@ -14,13 +14,13 @@ import
 	../tuple: from, new, pair, to
 	../private/bootstrap: todo
 	./array:
-		~, ~=, array, array-builder, build-array, every, find-index, for-break, for-loop, is-empty,
-		new, remove-at, rtail, size, subscript, update-at, with-block
+		~, ~=, array, array-builder, build, every, find-index, for-break, for-loop, is-empty, new,
+		remove-at, rtail, size, subscript, update-at, with-block
 	./mut-array:
 		cast-immutable, copy-from, fill-mut-array, mut-array, set-subscript, size, subscript,
 		uninitialized-mut-array
 	./list:
-		~=, build-list, every, first, for-loop, join, list, new, size, tail, to-array, to-list,
+		~=, build, every, first, for-loop, join, list, new, size, tail, to-array, to-list,
 		with-block
 
 ###
@@ -406,7 +406,7 @@ for-loop<k, v> void(a v[k], f act void(k, v)) is-data<k> compare<k> hash-mix<k>
 
 # Calls `f` on every pair in the dictionary and returns an array of the results.
 for-loop<out, k, v> out[](a v[k], f act out(k, v)) trusted is-data<k> compare<k> hash-mix<k>
-	with out : build-list
+	with out : build
 		for k, v : a
 			out ~= f[k, v]
 
@@ -425,16 +425,16 @@ region builder
 
 build-dict record
 	.size-hint nat64
-build-dict build-dict()
+build build-dict()
 	0,
-build-dict build-dict(size-hint nat64)
+build build-dict(size-hint nat64)
 	size-hint,
 
 dict-builder<k, v> record mut
 	.inner array-builder (k, v)
 
 with-block<k, v> v[k](a build-dict, f act void(dict-builder<k, v>)) is-data<k> compare<k> hash-mix<k>
-	(with out : a.size-hint build-array; f[(out,)])::array<(k, v)>.to-list to-dict
+	(with out : a.size-hint build; f[(out,)])::array<(k, v)>.to-list to-dict
 
 ~= <k, v>void(a dict-builder<k, v>, pair (k, v))
 	a.inner ~= pair

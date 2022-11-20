@@ -39,7 +39,7 @@ for-loop void(a db-query, f act void(string[], string[])) summon
 		continue
 
 for-loop<out> out[](a db-query, f act out(string[], string[])) summon
-	with out : build-list
+	with out : build
 		for columns, values : a
 			out ~= f[columns, values]
 

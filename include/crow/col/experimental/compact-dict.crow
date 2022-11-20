@@ -11,8 +11,8 @@ import
 	../../string: ==, ~~, join, literal, string, to-string
 	../../test-util: is
 	../../tuple: ==, from, new, pair, to
-	../mut-array: ~=, build-mut-array, mut-array, with-block
-	../list: ==, ~=, build-list, for-loop, list, new, with-block
+	../mut-array: ~=, build, mut-array, with-block
+	../list: ==, ~=, build, for-loop, list, new, with-block
 	../mut-set: in, mut-set, new, try-add
 	../sort: sort
 	./frozen-dict:
@@ -144,7 +144,7 @@ in<k, v> bool(key k, a compact-dict<k, v>) is-data<k> compare<k> hash-mix<k>
 	l frozen-dict<k, v?>,
 	r frozen-dict<k, v?>,
 ) trusted is-data<k> compare<k> hash-mix<k>
-	pairs mut-array (k, v?) = with out : l.size + r.size build-mut-array
+	pairs mut-array (k, v?) = with out : l.size + r.size build
 		for k, vl : l
 			unless k in r
 				out ~= (k, vl)
@@ -156,7 +156,7 @@ in<k, v> bool(key k, a compact-dict<k, v>) is-data<k> compare<k> hash-mix<k>
 	l frozen-dict<k, v>,
 	r frozen-dict<k, v?>,
 ) trusted is-data<k> compare<k> hash-mix<k>
-	pairs mut-array (k, v) = with out : l.size + r.size build-mut-array
+	pairs mut-array (k, v) = with out : l.size + r.size build
 		for k, vl : l
 			unless k in r
 				out ~= (k, vl)
@@ -187,7 +187,7 @@ for-loop<k, v> void(a compact-dict<k, v>, f act void(k, v)) is-data<k> compare<k
 			break
 
 for-loop<a, k, v> a[](a compact-dict<k, v>, f act a(k, v)) trusted is-data<k> compare<k> hash-mix<k>
-	with out : a.size build-list
+	with out : a.size build
 		for k, v : a
 			out ~= f[k, v]
 

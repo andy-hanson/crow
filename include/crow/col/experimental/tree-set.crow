@@ -13,10 +13,10 @@ import
 	../../string: ==, <=>, ~~, iter, join, literal, next, slice-left, starts-with, string, to-string
 	../../test-util: is
 	../array:
-		~=, ~~=, array, array-builder, begin-pointer, build-array, end-pointer, for-loop, index-of,
+		~=, ~~=, array, array-builder, begin-pointer, build, end-pointer, for-loop, index-of,
 		insert-at, is-empty, last, remove-at, rtail, size, subscript, tail, with-block
 	../iter: rest
-	../list: ~=, build-list, for-loop, list, list-builder, size, to-array, to-list, with-block
+	../list: ~=, build, for-loop, list, list-builder, size, to-array, to-list, with-block
 	../mut-stack: ~=, mut-stack, new, peek, pop
 	../sort: sort-unique
 	../private/sort-utils: binary-search-has, binary-search-insert-pointer
@@ -102,7 +102,7 @@ Union of two sets.
 This is O(n).
 ###
 ~~ <a> tree-set a(a tree-set a, b tree-set a) trusted is-data<a> compare<a>
-	list a[] = with out : a.size + b.size build-list
+	list a[] = with out : a.size + b.size build
 		b-iter = b iter
 		for x : a
 			out walk-iter-union x, b-iter
@@ -370,10 +370,10 @@ try-remove<a> tree-set<a>?(a tree-set a, b a) is-data<a> compare<a>
 		l size
 
 .tree-to-array<a> array a(a inner-node a, value a, size nat64) trusted compare<a>
-	with out : size build-array
+	with out : size build
 		out tree-to-array-recur a.inner, value
 .tree-to-array<a> array a(a inner-node a, size nat64) trusted compare<a>
-	with out : size build-array
+	with out : size build
 		out tree-to-array-recur a.inner
 .tree-to-array-recur<a> void(out array-builder a, a node a, value a) compare<a> unsafe
 	match a
@@ -426,7 +426,7 @@ for-loop<a> void(a tree-set a, f act void(a)) is-data<a> compare<a>
 	i.right for-loop-recur f
 
 for-loop<out, in> out[](a tree-set in, f act out(in)) trusted is-data<in> compare<in>
-	with out : a.size build-list
+	with out : a.size build
 		for value : a
 			out ~= f[value]
 
@@ -434,7 +434,7 @@ for-loop<out, in> tree-set out(a tree-set in, f act out(in)) is-data<in> compare
 	a for-loop f to-tree-set
 
 filter<a> tree-set a(a tree-set a, f act bool(a)) is-data<a> compare<a>
-	list a[] = with out : build-list
+	list a[] = with out : build
 		for value : a
 			if f[value]
 				out ~= value

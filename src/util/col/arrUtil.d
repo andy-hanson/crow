@@ -612,8 +612,7 @@ void filterUnordered(T)(
 ) {
 	size_t i = 0;
 	while (i < mutArrSize(a)) {
-		immutable bool b = pred(a[i]);
-		if (b)
+		if (pred(a[i]))
 			i++;
 		else if (i == mutArrSize(a) - 1)
 			mustPop(a);

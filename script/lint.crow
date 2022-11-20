@@ -103,7 +103,7 @@ all-files file[]() summon
 			break res.move-to-set, since-last-import
 
 .words symbol[](a string)
-	with out : build-list
+	with out : build
 		word char8 mut[] = ()
 		for x : a char8s
 			if x is-identifier-char

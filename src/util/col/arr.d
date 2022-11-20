@@ -107,6 +107,10 @@ ref const(T) only_const(T)(const T[] a) {
 	verify(a.length == 1);
 	return a[0];
 }
+ref T only_mut(T)(T[] a) {
+	verify(a.length == 1);
+	return a[0];
+}
 
 @trusted PtrsRange!T ptrsRange(T)(immutable T[] a) =>
 	PtrsRange!T(a.ptr, a.ptr + a.length);

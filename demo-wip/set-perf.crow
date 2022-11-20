@@ -1,8 +1,8 @@
 import
 	crow/col/experimental/compact-dict: -, ~, compact-dict, in, new, node-count, size
 	crow/col/experimental/compact-sorted-dict: -, ~, compact-sorted-dict, in, new, size
-	crow/col/experimental/frozen-dict: ~=, build-frozen-dict, frozen-dict, in, size, with-block
-	crow/col/experimental/frozen-set: ~=, build-frozen-set, frozen-set, in, size, with-block
+	crow/col/experimental/frozen-dict: ~=, build, frozen-dict, in, size, with-block
+	crow/col/experimental/frozen-set: ~=, build, frozen-set, in, size, with-block
 	crow/col/experimental/hamt-set: -, ~, hamt-set, in, new, size
 	crow/col/experimental/index-set: -, ~, index-set, in, new, size
 	crow/col/experimental/sorted-set: -, ~, in, new, sorted-set, size
@@ -237,11 +237,11 @@ This ensures the collection is kept in memory.
 .add-test tree-set nat(iters nat, max-value nat) summon
 	() repeat iters, x => x ~ max-value.rand-nat
 .add-test frozen-dict<nat, void>(iters nat, max-value nat) trusted summon
-	with out : build-frozen-dict
+	with out : build
 		for _ : 0 .. iters
 			out ~= (max-value.rand-nat, ())
 .add-test frozen-set nat(iters nat, max-value nat) trusted summon
-	with out : build-frozen-set
+	with out : build
 		for _ : 0 .. iters
 			out ~= max-value rand-nat
 

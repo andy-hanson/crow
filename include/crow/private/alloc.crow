@@ -4,14 +4,16 @@ import
 	string: memcpy, memset
 	../bits: ~, &
 	../bool: !, bool, false, to-nat64, true
-	../compare: !=, <, <=, >
+	../compare: !=, <, <=, >, >=
 	../misc: new
 	../option: new, option
 	../pointer:
-		==, <=>, +, -, *, any-const-pointer, any-mut-pointer, as-any-const-pointer, as-any-mut-pointer, as-const,
-		as-mut, as-ref, by-val, const-pointer, mut-pointer, null, pointer-cast, set-deref, size-of, to-nat64
+		==, <=>, +, -, *, any-const-pointer, any-mut-pointer, as-any-const-pointer,
+		as-any-mut-pointer, as-const, as-ref, by-val, const-pointer, mut-pointer, null,
+		pointer-cast, set-deref, size-of, to-const-pointer, to-nat64
 	./bootstrap: hard-assert, hard-unreachable, lock, nat64, todo, void
 	./number-low-level: ==, <=>, nat8, unsafe-div, wrap-add, wrap-mul, wrap-sub
+	./range-low-level: .., high, low, range
 	./thread-utils: acquire, barrier, init, release, wait-barrier, uninit
 
 mem-copy<a> void(dest a mut*, src a*, size nat64) unsafe noctx
@@ -28,23 +30,20 @@ mark-ctx record mut by-ref
 	marks bool mut*
 	memory-start nat64 mut*
 
+.to-word-aligned-range range nat64*(a any-const-pointer, size-bytes nat64) noctx unsafe
+	a.round-down-to-word .. (a + size-bytes).round-up-to-word
+
 # Returns true if the range is GC-allocated memory and was not already marked
 mark bool(ctx mark-ctx, pointer-any any-const-pointer, size-bytes nat64) noctx unsafe summon
-	size-words = size-bytes words-of-bytes
-	pointer nat64* = pointer-any pointer-cast
-	index = pointer - ctx.memory-start.as-const
-	if index < ctx.memory-size-words
-		pointer-any.is-word-aligned hard-assert
-		(index wrap-add size-words) <= ctx.memory-size-words hard-assert
-		mark-start = ctx.marks + index
-		mark-end = mark-start + size-words
-		mark-start mark-range mark-end
+	words = pointer-any to-word-aligned-range size-bytes
+	indices = words.low - ctx.memory-start.as-const .. words.high - ctx.memory-start.as-const
+	if indices.low < ctx.memory-size-words
+		assert indices.high <= ctx.memory-size-words
+		ctx.marks + indices.low mark-range ctx.marks + indices.high
 	else
-		(index wrap-add size-words) > ctx.memory-size-words hard-assert
+		assert indices.high >= ctx.memory-size-words
 		false
 
-.is-word-aligned bool(a any-const-pointer) noctx unsafe
-	a.as-mut is-word-aligned
 .is-word-aligned bool(a any-mut-pointer) noctx unsafe
 	a.to-nat64 & 7 == 0
 
@@ -53,6 +52,10 @@ words-of-bytes nat64(size-bytes nat64) noctx trusted
 
 round-up-to-multiple-of-8 nat64(n nat64) noctx
 	(n wrap-add 7) & ~7
+round-down-to-word nat64*(a nat8*) noctx unsafe
+	a - (a.to-nat64 & 7) pointer-cast
+round-up-to-word nat64*(a nat8*) noctx unsafe
+	a.to-nat64.round-up-to-multiple-of-8 to-const-pointer
 
 mark-range bool(start bool mut*, end bool mut*) noctx unsafe
 	cur mut = start
