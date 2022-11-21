@@ -630,7 +630,7 @@ struct StructInst {
 
 immutable(bool) hasMutableField(scope ref immutable StructInst a) =>
 	isRecord(body_(*decl(a))) &&
-		exists!RecordField(asRecord(body_(*decl(a))).fields, (scope ref immutable RecordField x) =>
+		exists!(immutable RecordField)(asRecord(body_(*decl(a))).fields, (scope ref immutable RecordField x) =>
 			x.mutability != FieldMutability.const_);
 
 immutable(bool) isDefinitelyByRef(scope ref immutable StructInst a) =>

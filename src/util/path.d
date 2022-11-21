@@ -10,7 +10,7 @@ import util.comparison : compareNat16, Comparison;
 import util.conv : safeToUshort;
 import util.hash : Hasher, hashUshort;
 import util.opt : has, force, none, Opt, some;
-import util.ptr : ptrTrustMe_mut;
+import util.ptr : ptrTrustMe;
 import util.sourceRange : RangeWithinFile;
 import util.sym : AllSymbols, eachCharInSym, Sym, sym, symOfStr, symSize, writeSym;
 import util.util : todo, verify;
@@ -302,7 +302,7 @@ public immutable(SafeCStr) pathToSafeCStrPreferRelative(
 	ref immutable PathsInfo pathsInfo,
 	immutable Path a,
 ) {
-	Writer writer = Writer(ptrTrustMe_mut(alloc));
+	Writer writer = Writer(ptrTrustMe(alloc));
 	writePath(writer, allPaths, pathsInfo, a, sym!"");
 	return finishWriterToSafeCStr(writer);
 }

@@ -81,7 +81,7 @@ void fillMutMaxArr_mut(size_t maxSize, T)(
 }
 
 void mapTo(size_t maxSize, Out, In)(
-	ref MutMaxArr!(maxSize, Out) a,
+	ref MutMaxArr!(maxSize, immutable Out) a,
 	scope immutable In[] values,
 	scope immutable(Out) delegate(ref immutable In) @safe @nogc pure nothrow cb,
 ) {
@@ -129,16 +129,12 @@ T mustPop(size_t maxSize, T)(ref MutMaxArr!(maxSize, T) a) {
 	return a.values[a.size_];
 }
 
-ref const(T) only_const(size_t maxSize, T)(ref const MutMaxArr!(maxSize, T) a) {
+ref const(T) only(size_t maxSize, T)(ref const MutMaxArr!(maxSize, T) a) {
 	verify(a.size_ == 1);
 	return a.values[0];
 }
 
-@trusted immutable(T[]) tempAsArr(size_t maxSize, T)(return scope ref const MutMaxArr!(maxSize, T) a) =>
-	cast(immutable) tempAsArr_const(a);
-@trusted T[] tempAsArr_mut(size_t maxSize, T)(return ref MutMaxArr!(maxSize, T) a) =>
-	a.values.ptr[0 .. a.size_];
-@trusted const(T[]) tempAsArr_const(size_t maxSize, T)(return scope ref const MutMaxArr!(maxSize, T) a) =>
+@trusted inout(T[]) tempAsArr(size_t maxSize, T)(return scope ref inout MutMaxArr!(maxSize, T) a) =>
 	castNonScope(a.values[0 .. a.size_]);
 
 @trusted void filterUnordered(size_t maxSize, T)(

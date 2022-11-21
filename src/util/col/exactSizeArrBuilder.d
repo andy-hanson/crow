@@ -3,7 +3,7 @@ module util.col.exactSizeArrBuilder;
 @safe @nogc pure nothrow:
 
 import util.alloc.alloc : Alloc, allocateT;
-import util.col.arr : arrOfRange_mut;
+import util.col.arr : arrOfRange;
 import util.col.str : eachChar, SafeCStr, safeCStrSize;
 import util.memory : initMemory_mut, memset;
 import util.util : verify;
@@ -80,7 +80,7 @@ void padTo(ref ExactSizeArrBuilder!ubyte a, immutable size_t desiredSize) {
 
 @trusted T[] finish(T)(ref ExactSizeArrBuilder!T a) {
 	verify(a.cur == a.end);
-	T[] res = arrOfRange_mut(a.begin, a.end);
+	T[] res = arrOfRange(a.begin, a.end);
 	a.begin = null;
 	a.cur = null;
 	a.end = null;

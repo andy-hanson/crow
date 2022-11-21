@@ -16,7 +16,7 @@ import util.alloc.alloc : Alloc, allocateT;
 import util.col.str : CStr, SafeCStr;
 import util.memory : utilMemcpy = memcpy, utilMemmove = memmove;
 import util.perf : eachMeasure, Perf, PerfMeasureResult, withNullPerf;
-import util.ptr : castNonScope_mut;
+import util.ptr : ptrTrustMe;
 import util.repr : Repr, jsonStrOfRepr, nameAndRepr, reprArr, reprNamedRecord, reprStr;
 import util.sourceRange : Pos, reprRangeWithinFile;
 import util.writer : finishWriterToCStr, writeQuotedStr, Writer;
@@ -153,7 +153,7 @@ immutable(Repr) reprParseDiagnostics(ref Alloc alloc, ref immutable StrParseDiag
 			nameAndRepr!"message"(reprStr(it.message))]));
 
 immutable(CStr) writeRunResult(ref Alloc alloc, ref immutable FakeExternResult result) {
-	Writer writer = Writer(castNonScope_mut(&alloc));
+	Writer writer = Writer(ptrTrustMe(alloc));
 	writer ~= "{\"err\":";
 	writer ~= result.err.value;
 	writer ~= ",\"stdout\":";

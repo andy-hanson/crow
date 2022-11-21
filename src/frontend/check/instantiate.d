@@ -51,7 +51,7 @@ import util.col.mutDict : getOrAddPair, getOrAddPairAndDidAdd, KeyValuePair, Pai
 import util.col.mutArr : MutArr, push;
 import util.col.mutMaxArr : mapTo, MutMaxArr, mutMaxArr, push, tempAsArr;
 import util.memory : allocate, allocateMut;
-import util.opt : force, has, none, noneMut, Opt, some, someConst, someMut;
+import util.opt : force, has, none, noneInout, noneMut, Opt, some;
 import util.ptr : castImmutable;
 import util.util : verify;
 
@@ -73,42 +73,18 @@ struct TypeParamsAndArgs {
 	}
 }
 
-alias TypeArgsArray = MutMaxArr!(maxTypeParams, Type);
+alias TypeArgsArray = MutMaxArr!(maxTypeParams, immutable Type);
 TypeArgsArray typeArgsArray() =>
-	mutMaxArr!(maxTypeParams, Type);
+	mutMaxArr!(maxTypeParams, immutable Type);
 
-private immutable(Opt!(T*)) tryGetTypeArg(T)(
+inout(Opt!(T*)) tryGetTypeArg(T)(
 	immutable TypeParam[] typeParams,
-	immutable T[] typeArgs,
+	return scope inout T[] typeArgs,
 	immutable TypeParam* typeParam,
 ) {
 	immutable size_t index = typeParam.index;
-	immutable bool hasTypeParam = &typeParams[index] == typeParam;
-	return hasTypeParam
-		? some(&typeArgs[index])
-		: none!(T*);
-}
-
-const(Opt!(T*)) tryGetTypeArg_const(T)(
-	scope immutable TypeParam[] typeParams,
-	return scope const T[] typeArgs,
-	scope immutable TypeParam* typeParam,
-) {
-	immutable size_t index = typeParam.index;
-	return index < typeParams.length && &typeParams[index] == typeParam
-		? someConst!(T*)(&typeArgs[index])
-		: none!(T*);
-}
-
-Opt!(T*) tryGetTypeArg_mut(T)(
-	scope immutable TypeParam[] typeParams,
-	T[] typeArgs,
-	scope immutable TypeParam* typeParam,
-) {
-	immutable size_t index = typeParam.index;
-	return index < typeParams.length && &typeParams[index] == typeParam
-		? someMut(&typeArgs[index])
-		: noneMut!(T*);
+	immutable bool hasTypeParam = index < typeParams.length && &typeParams[index] == typeParam;
+	return hasTypeParam ? some(&typeArgs[index]) : noneInout!(T*)(typeArgs);
 }
 
 private immutable(Opt!Type) tryGetTypeArgFromTypeParamsAndArgs(
@@ -189,16 +165,15 @@ immutable(StructBody) instantiateStructBody(
 		(ref immutable StructBody.Record r) =>
 			immutable StructBody(immutable StructBody.Record(
 				r.flags,
-				map!RecordField(alloc, r.fields, (ref immutable RecordField f) =>
+				map(alloc, r.fields, (ref immutable RecordField f) =>
 					withType(f, instantiateType(alloc, programState, f.type, typeParamsAndArgs, delayStructInsts))))),
 		(ref immutable StructBody.Union u) =>
-			immutable StructBody(immutable StructBody.Union(
-				map!UnionMember(alloc, u.members, (ref immutable UnionMember it) =>
-					has(it.type)
-						? withType(
-							it,
-							instantiateType(alloc, programState, force(it.type), typeParamsAndArgs, delayStructInsts))
-						: it))));
+			immutable StructBody(immutable StructBody.Union(map(alloc, u.members, (ref immutable UnionMember it) =>
+				has(it.type)
+					? withType(
+						it,
+						instantiateType(alloc, programState, force(it.type), typeParamsAndArgs, delayStructInsts))
+					: it))));
 }
 
 immutable(StructInst*) instantiateStruct(
@@ -315,7 +290,7 @@ immutable(SpecInst*) instantiateSpec(
 			(immutable SpecBody.Builtin b) =>
 				immutable SpecBody(SpecBody.Builtin(b.kind)),
 			(immutable SpecDeclSig[] sigs) =>
-				immutable SpecBody(map!SpecDeclSig(alloc, sigs, (ref immutable SpecDeclSig sig) {
+				immutable SpecBody(map(alloc, sigs, (ref immutable SpecDeclSig sig) {
 					immutable TypeParamsAndArgs typeParamsAndArgs =
 						immutable TypeParamsAndArgs(decl.typeParams, key.typeArgs);
 					return immutable SpecDeclSig(

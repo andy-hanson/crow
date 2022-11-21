@@ -21,11 +21,11 @@ import test.testUtil : Test;
 import test.testWriter : testWriter;
 import util.alloc.alloc : Alloc;
 import util.opt : force, has, Opt;
-import util.ptr : castNonScope_mut;
+import util.ptr : ptrTrustMe;
 import util.sym : Sym, sym;
 
 immutable(ExitCode) test(ref Alloc alloc, scope immutable Opt!Sym name) {
-	Test test = Test(castNonScope_mut(&alloc));
+	Test test = Test(ptrTrustMe(alloc));
 	foreach (ref immutable NameAndTest it; allTests)
 		if (!has(name) || force(name) == it.name)
 			it.test(test);

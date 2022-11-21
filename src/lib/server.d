@@ -75,7 +75,7 @@ pure void addOrChangeFile(
 }
 
 pure immutable(SafeCStr) getFile(ref Server server, scope immutable SafeCStr path) {
-	immutable Opt!(immutable SafeCStr) text = getAt_mut(server.files, toPath(server, path));
+	immutable Opt!SafeCStr text = getAt_mut(server.files, toPath(server, path));
 	return has(text) ? force(text) : safeCStr!"";
 }
 
@@ -109,7 +109,7 @@ immutable(StrParseDiagnostic[]) getParseDiagnostics(
 		dictLiteral!(Path, FileIndex)(alloc, key, immutable FileIndex(0)),
 		fullIndexDictOfArr!(FileIndex, LineAndColumnGetter)(
 			arrLiteral!LineAndColumnGetter(alloc, [lineAndColumnGetterForText(alloc, text)])));
-	return map!StrParseDiagnostic(
+	return map(
 		alloc,
 		diagnosticsForFile(alloc, immutable FileIndex(0), diagsBuilder, filesInfo.filePaths).diags,
 		(ref immutable Diagnostic it) =>

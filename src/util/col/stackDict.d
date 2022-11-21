@@ -3,7 +3,7 @@ module util.col.stackDict;
 @safe @nogc pure nothrow:
 
 import util.opt : none, Opt, some;
-import util.ptr : castNonScope_ref, ptrTrustMe, ptrTrustMe_mut;
+import util.ptr : castNonScope_ref, ptrTrustMe;
 import util.util : verify;
 
 struct StackDict(K, V) {
@@ -61,7 +61,7 @@ ref inout(V) mutStackDictMustGet(K, V)(return ref inout(MutStackDict!(K, V)) a, 
 	V value,
 ) {
 	verify(key != invalid!K);
-	return MutStackDict!(K, V)(key, value, ptrTrustMe_mut(a));
+	return MutStackDict!(K, V)(key, value, ptrTrustMe(a));
 }
 
 // 2 StackDicts in one

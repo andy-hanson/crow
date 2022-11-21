@@ -79,7 +79,7 @@ import util.col.fullIndexDict : emptyFullIndexDict, fullIndexDictOfArr;
 import util.lineAndColumnGetter : lineAndColumnGetterForEmptyFile;
 import util.memory : allocate;
 import util.path : emptyPathsInfo, Path, PathsInfo, rootPath;
-import util.ptr : castImmutable, castNonScope, castNonScope_mut;
+import util.ptr : castImmutable, castNonScope, ptrTrustMe;
 import util.sourceRange : FileIndex, Pos;
 import util.sym : sym;
 import util.util : verify;
@@ -106,7 +106,7 @@ immutable(ByteCode) makeByteCode(
 	ref Alloc alloc,
 	scope void delegate(ref ByteCodeWriter, immutable ByteCodeSource source) @safe @nogc nothrow writeBytecode,
 ) {
-	ByteCodeWriter writer = newByteCodeWriter(castNonScope_mut(&alloc));
+	ByteCodeWriter writer = newByteCodeWriter(ptrTrustMe(alloc));
 	writeBytecode(writer, emptyByteCodeSource);
 	return dummyByteCode(castImmutable(finishOperations(writer)));
 }

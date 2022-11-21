@@ -49,13 +49,13 @@ import util.col.arr : sizeEq;
 import util.col.arrUtil : zip;
 import util.col.fullIndexDict : fullIndexDictEachValue;
 import util.opt : force, has, none, Opt, some;
-import util.ptr : castNonScope_ref, ptrTrustMe, ptrTrustMe_const, ptrTrustMe_mut;
+import util.ptr : castNonScope_ref, ptrTrustMe;
 import util.repr : Repr, reprRecord, reprSym;
 import util.sym : AllSymbols;
 import util.util : verify;
 
 void checkLowProgram(ref Alloc alloc, ref const AllSymbols allSymbols, scope ref immutable LowProgram a) {
-	Ctx ctx = Ctx(ptrTrustMe_mut(alloc), ptrTrustMe_const(allSymbols), ptrTrustMe(castNonScope_ref(a)));
+	Ctx ctx = Ctx(ptrTrustMe(alloc), ptrTrustMe(allSymbols), ptrTrustMe(castNonScope_ref(a)));
 	fullIndexDictEachValue!(LowFunIndex, LowFun)(a.allFuns, (ref immutable LowFun fun) {
 		checkLowFun(ctx, fun);
 	});
@@ -108,7 +108,7 @@ void checkLowFun(ref Ctx ctx, ref immutable LowFun fun) {
 		void,
 		(ref immutable LowFunBody.Extern) {},
 		(ref immutable LowFunExprBody it) {
-			FunCtx funCtx = FunCtx(ptrTrustMe_mut(ctx), ptrTrustMe(fun));
+			FunCtx funCtx = FunCtx(ptrTrustMe(ctx), ptrTrustMe(fun));
 			checkLowExpr(funCtx, fun.returnType, it.expr);
 		},
 	)(fun.body_);
@@ -126,7 +126,7 @@ void checkLowExpr(
 			immutable LowFun* fun = &ctx.ctx.program.allFuns[it.called];
 			checkTypeEqual(ctx.ctx, type, fun.returnType);
 			verify(sizeEq(fun.params, it.args));
-			zip!(LowParam, LowExpr)(
+			zip!(immutable LowParam, immutable LowExpr)(
 				fun.params,
 				it.args,
 				(ref immutable LowParam param, ref immutable LowExpr arg) {
@@ -137,7 +137,7 @@ void checkLowExpr(
 			immutable LowFunPtrType funPtrType = ctx.ctx.program.allFunPtrTypes[asFunPtrType(it.funPtr.type)];
 			checkTypeEqual(ctx.ctx, type, funPtrType.returnType);
 			verify(sizeEq(funPtrType.paramTypes, it.args));
-			zip!(LowType, LowExpr)(
+			zip!(immutable LowType, immutable LowExpr)(
 				funPtrType.paramTypes,
 				it.args,
 				(ref immutable LowType paramType, ref immutable LowExpr arg) {
@@ -146,9 +146,12 @@ void checkLowExpr(
 		},
 		(ref immutable LowExprKind.CreateRecord it) {
 			immutable LowField[] fields = ctx.ctx.program.allRecords[asRecordType(type)].fields;
-			zip!(LowField, LowExpr)(fields, it.args, (ref immutable LowField field, ref immutable LowExpr arg) {
-				checkLowExpr(ctx, field.type, arg);
-			});
+			zip!(immutable LowField, immutable LowExpr)(
+				fields,
+				it.args,
+				(ref immutable LowField field, ref immutable LowExpr arg) {
+					checkLowExpr(ctx, field.type, arg);
+				});
 		},
 		(ref immutable LowExprKind.CreateUnion it) {
 			immutable LowType member = ctx.ctx.program.allUnions[asUnionType(type)].members[it.memberIndex];
@@ -184,7 +187,7 @@ void checkLowExpr(
 		},
 		(ref immutable LowExprKind.MatchUnion it) {
 			checkLowExpr(ctx, it.matchedValue.type, it.matchedValue);
-			zip!(LowType, LowExprKind.MatchUnion.Case)(
+			zip!(immutable LowType, immutable LowExprKind.MatchUnion.Case)(
 				ctx.ctx.program.allUnions[asUnionType(it.matchedValue.type)].members,
 				it.cases,
 				(ref immutable LowType memberType, ref immutable LowExprKind.MatchUnion.Case case_) {

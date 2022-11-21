@@ -131,7 +131,7 @@ import util.col.mutMaxArr : push, tempAsArr;
 import util.col.stackDict : StackDict, stackDictAdd, stackDictMustGet;
 import util.conv : bitsOfFloat32, bitsOfFloat64;
 import util.opt : force, has, Opt;
-import util.ptr : castNonScope_ref, ptrTrustMe, ptrTrustMe_const, ptrTrustMe_mut;
+import util.ptr : castNonScope_ref, ptrTrustMe;
 import util.sym : AllSymbols;
 import util.util : divRoundUp, unreachable, verify;
 import util.writer : finishWriter, Writer;
@@ -151,14 +151,14 @@ import util.writer : finishWriter, Writer;
 	ref immutable LowFunExprBody body_,
 ) {
 	ExprCtx ctx = ExprCtx(
-		ptrTrustMe_const(allSymbols),
+		ptrTrustMe(allSymbols),
 		ptrTrustMe(program),
 		ptrTrustMe(textInfo),
 		ptrTrustMe(threadLocalsInfo),
 		funIndex,
 		returnEntries,
-		ptrTrustMe_mut(tempAlloc),
-		ptrTrustMe_mut(funToReferences),
+		ptrTrustMe(tempAlloc),
+		ptrTrustMe(funToReferences),
 		nextByteCodeIndex(writer),
 		parameters);
 	immutable Locals locals;
@@ -774,7 +774,7 @@ void generateConstant(
 ) {
 	debug {
 		if (false) {
-			Writer w = Writer(ptrTrustMe_mut(ctx.tempAlloc));
+			Writer w = Writer(ptrTrustMe(ctx.tempAlloc));
 			w ~= "generateConstant of type ";
 			writeLowType(w, ctx.allSymbols, ctx.program.allTypes, type);
 			w ~= '\n';

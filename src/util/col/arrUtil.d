@@ -37,27 +37,14 @@ import util.util : max, verify;
 	return some!(Out[])(cast(immutable) res[0 .. a.length]);
 }
 
-@system void zipImpureSystem(T, U)(
-	immutable T[] a,
-	immutable U[] b,
-	scope void delegate(ref immutable T, ref immutable U) @nogc nothrow cb,
-) {
-	verify(sizeEq(a, b));
-	foreach (immutable size_t i; 0 .. a.length)
-		cb(a[i], b[i]);
-}
-
 pure:
 
-@trusted immutable(T[]) arrLiteral(T)(scope ref Alloc alloc, scope immutable T[] values) {
-	T* ptr = allocateT!T(alloc, values.length);
-	foreach (immutable size_t i; 0 .. values.length)
-		initMemory(ptr + i, values[i]);
-	return cast(immutable) ptr[0 .. values.length];
-}
+@trusted immutable(T[]) arrLiteral(T)(scope ref Alloc alloc, scope immutable T[] values) =>
+	copyArr(alloc, values);
 
-@system Out[] fillArrUninitialized(Out)(ref Alloc alloc, immutable size_t size) =>
+@system Out[] allocateUninitialized(Out)(ref Alloc alloc, immutable size_t size) =>
 	allocateT!Out(alloc, size)[0 .. size];
+
 @trusted Out[] fillArr_mut(Out)(
 	ref Alloc alloc,
 	immutable size_t size,
@@ -88,20 +75,10 @@ pure:
 }
 
 immutable(bool) exists(T)(
-	scope immutable T[] arr,
-	scope immutable(bool) delegate(ref immutable T) @safe @nogc pure nothrow cb,
+	scope T[] arr,
+	scope immutable(bool) delegate(scope ref T) @safe @nogc pure nothrow cb,
 ) {
-	foreach (ref immutable T x; arr)
-		if (cb(x))
-			return true;
-	return false;
-}
-
-immutable(bool) exists_const(T)(
-	scope const T[] arr,
-	scope immutable(bool) delegate(ref const T) @safe @nogc pure nothrow cb,
-) {
-	foreach (ref const T x; arr)
+	foreach (ref T x; arr)
 		if (cb(x))
 			return true;
 	return false;
@@ -135,20 +112,10 @@ immutable(bool) contains(T)(scope immutable T[] xs, scope immutable T value) {
 }
 
 immutable(Opt!size_t) findIndex(T)(
-	scope immutable T[] a,
-	scope immutable(bool) delegate(ref immutable T) @safe @nogc pure nothrow cb,
+	scope T[] a,
+	scope immutable(bool) delegate(ref T) @safe @nogc pure nothrow cb,
 ) {
-	foreach (immutable size_t i, ref immutable T x; a)
-		if (cb(x))
-			return some(i);
-	return none!size_t;
-}
-
-immutable(Opt!size_t) findIndex_const(T)(
-	const T[] a,
-	scope immutable(bool) delegate(ref const T) @safe @nogc pure nothrow cb,
-) {
-	foreach (immutable size_t i, ref immutable T x; a)
+	foreach (immutable size_t i, ref T x; a)
 		if (cb(x))
 			return some(i);
 	return none!size_t;
@@ -190,26 +157,6 @@ immutable(T[]) copyArr(T)(ref Alloc alloc, scope immutable T[] a) =>
 
 @trusted immutable(Out[]) map(Out, In)(
 	ref Alloc alloc,
-	scope immutable In[] a,
-	scope immutable(Out) delegate(ref immutable In) @safe @nogc pure nothrow cb,
-) {
-	Out* res = allocateT!Out(alloc, a.length);
-	foreach (immutable size_t i, ref immutable In x; a)
-		initMemory(res + i, cb(x));
-	return cast(immutable) res[0 .. a.length];
-}
-@trusted immutable(Out[]) map_const(Out, In)(
-	ref Alloc alloc,
-	scope const In[] a,
-	scope immutable(Out) delegate(ref const In) @safe @nogc pure nothrow cb,
-) {
-	Out* res = allocateT!Out(alloc, a.length);
-	foreach (immutable size_t i, ref const In x; a)
-		initMemory(res + i, cb(x));
-	return cast(immutable) res[0 .. a.length];
-}
-@trusted immutable(Out[]) map_mut(Out, In)(
-	ref Alloc alloc,
 	scope In[] a,
 	scope immutable(Out) delegate(ref In) @safe @nogc pure nothrow cb,
 ) {
@@ -218,6 +165,7 @@ immutable(T[]) copyArr(T)(ref Alloc alloc, scope immutable T[] a) =>
 		initMemory(res + i, cb(x));
 	return cast(immutable) res[0 .. a.length];
 }
+
 @trusted Out[] mapToMut(Out, In)(
 	ref Alloc alloc,
 	scope immutable In[] a,
@@ -316,16 +264,6 @@ immutable(T[]) copyArr(T)(ref Alloc alloc, scope immutable T[] a) =>
 		initMemory(res + i, cb(i, x));
 	return cast(immutable) res[0 .. a.length];
 }
-@trusted immutable(Out[]) mapWithIndex_scope(Out, In)(
-	ref Alloc alloc,
-	scope immutable In[] a,
-	scope immutable(Out) delegate(immutable size_t, scope ref immutable In) @safe @nogc pure nothrow cb,
-) {
-	Out* res = allocateT!Out(alloc, a.length);
-	foreach (immutable size_t i, ref immutable In x; a)
-		initMemory(res + i, cb(i, x));
-	return cast(immutable) res[0 .. a.length];
-}
 @trusted Out[] mapWithIndex_mut(Out, In)(
 	ref Alloc alloc,
 	scope immutable In[] a,
@@ -400,9 +338,9 @@ immutable(T[]) copyArr(T)(ref Alloc alloc, scope immutable T[] a) =>
 }
 
 void zip(T, U)(
-	scope immutable T[] a,
-	scope immutable U[] b,
-	scope void delegate(ref immutable T, ref immutable U) @safe @nogc pure nothrow cb,
+	scope T[] a,
+	scope U[] b,
+	scope void delegate(ref T, ref U) @safe @nogc pure nothrow cb,
 ) {
 	verify(sizeEq(a, b));
 	foreach (immutable size_t i; 0 .. a.length)
@@ -410,40 +348,20 @@ void zip(T, U)(
 }
 
 void zip(T, U, V)(
-	scope immutable T[] a,
-	scope immutable U[] b,
-	scope immutable V[] c,
-	scope void delegate(ref immutable T, ref immutable U, ref immutable V) @safe @nogc pure nothrow cb,
+	scope T[] a,
+	scope U[] b,
+	scope V[] c,
+	scope void delegate(ref T, ref U, ref V) @safe @nogc pure nothrow cb,
 ) {
 	verify(sizeEq(a, b) && sizeEq(b, c));
 	foreach (immutable size_t i; 0 .. a.length)
 		cb(at(a, i), at(b, i), at(c, i));
 }
 
-void zipFirstMut(T, U)(
-	ref T[] a,
-	ref immutable U[] b,
-	scope void delegate(ref T, ref immutable U) @safe @nogc pure nothrow cb,
-) {
-	verify(sizeEq(a, b));
-	foreach (immutable size_t i; 0 .. a.length)
-		cb(a[i], b[i]);
-}
-
-void zipMutPtrFirst(T, U)(
-	ref T[] a,
-	ref immutable U[] b,
-	scope void delegate(T*, ref immutable U) @safe @nogc pure nothrow cb,
-) {
-	verify(sizeEq(a, b));
-	foreach (immutable size_t i; 0 .. a.length)
-		cb(&a[i], b[i]);
-}
-
 void zipPtrFirst(T, U)(
-	immutable T[] a,
-	immutable U[] b,
-	scope void delegate(immutable T*, ref immutable U) @safe @nogc pure nothrow cb,
+	T[] a,
+	scope U[] b,
+	scope void delegate(T*, ref U) @safe @nogc pure nothrow cb,
 ) {
 	verify(sizeEq(a, b));
 	foreach (immutable size_t i; 0 .. a.length)
@@ -452,8 +370,8 @@ void zipPtrFirst(T, U)(
 
 @trusted immutable(Out[]) mapZip(Out, In0, In1)(
 	ref Alloc alloc,
-	ref immutable In0[] in0,
-	ref immutable In1[] in1,
+	scope immutable In0[] in0,
+	scope immutable In1[] in1,
 	scope immutable(Out) delegate(ref immutable In0, ref immutable In1) @safe @nogc pure nothrow cb,
 ) {
 	verify(sizeEq(in0, in1));
@@ -466,8 +384,8 @@ void zipPtrFirst(T, U)(
 
 @trusted immutable(Out[]) mapZipPtrFirst(Out, In0, In1)(
 	ref Alloc alloc,
-	ref immutable In0[] in0,
-	ref immutable In1[] in1,
+	scope immutable In0[] in0,
+	scope immutable In1[] in1,
 	scope immutable(Out) delegate(immutable In0*, ref immutable In1) @safe @nogc pure nothrow cb,
 ) {
 	verify(sizeEq(in0, in1));
@@ -480,8 +398,8 @@ void zipPtrFirst(T, U)(
 
 @trusted immutable(Out[]) mapZipWithIndex(Out, In0, In1)(
 	ref Alloc alloc,
-	ref immutable In0[] in0,
-	ref immutable In1[] in1,
+	scope immutable In0[] in0,
+	scope immutable In1[] in1,
 	scope immutable(Out) delegate(ref immutable In0, ref immutable In1, immutable size_t) @safe @nogc pure nothrow cb,
 ) {
 	verify(sizeEq(in0, in1));
@@ -493,8 +411,8 @@ void zipPtrFirst(T, U)(
 }
 
 immutable(bool) eachCorresponds(T, U)(
-	immutable T[] a,
-	immutable U[] b,
+	scope immutable T[] a,
+	scope immutable U[] b,
 	scope immutable(bool) delegate(ref immutable T, ref immutable U) @safe @nogc pure nothrow cb,
 ) {
 	verify(sizeEq(a, b));

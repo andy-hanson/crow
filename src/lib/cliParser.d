@@ -467,7 +467,7 @@ struct SplitArgs {
 }
 
 immutable(SplitArgs) splitArgs(ref Alloc alloc, ref AllSymbols allSymbols, return scope immutable SafeCStr[] args) {
-	immutable Opt!size_t optFirstArgIndex = findIndex!SafeCStr(args, (ref immutable SafeCStr arg) =>
+	immutable Opt!size_t optFirstArgIndex = findIndex!(immutable SafeCStr)(args, (ref immutable SafeCStr arg) =>
 		startsWithDashDash(arg));
 	if (!has(optFirstArgIndex))
 		return immutable SplitArgs(args, [], []);

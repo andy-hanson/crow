@@ -83,12 +83,7 @@ immutable(SmallArray!T) emptySmallArray(T)() =>
 @trusted immutable(T[]) castImmutable(T)(T[] a) =>
 	cast(immutable) a;
 
-@system immutable(T[]) arrOfRange(T)(immutable T* begin, immutable T* end) {
-	verify(begin <= end);
-	return begin[0 .. end - begin];
-}
-
-@system T[] arrOfRange_mut(T)(T* begin, T* end) {
+@system inout(T[]) arrOfRange(T)(inout T* begin, inout T* end) {
 	verify(begin <= end);
 	return begin[0 .. end - begin];
 }
@@ -99,15 +94,7 @@ immutable(bool) sizeEq(T, U)(scope const T[] a, scope const U[] b) =>
 immutable(bool) empty(T)(const T[] a) =>
 	a.length == 0;
 
-ref immutable(T) only(T)(return scope immutable T[] a) {
-	verify(a.length == 1);
-	return a[0];
-}
-ref const(T) only_const(T)(const T[] a) {
-	verify(a.length == 1);
-	return a[0];
-}
-ref T only_mut(T)(T[] a) {
+ref inout(T) only(T)(return scope inout T[] a) {
 	verify(a.length == 1);
 	return a[0];
 }

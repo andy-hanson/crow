@@ -42,7 +42,7 @@ import util.col.exactSizeArrBuilder :
 import util.col.fullIndexDict : FullIndexDict, mapFullIndexDict;
 import util.col.str : SafeCStr, safeCStrSize;
 import util.conv : bitsOfFloat32, bitsOfFloat64;
-import util.ptr : castNonScope, castNonScope_mut, ptrTrustMe_mut;
+import util.ptr : castNonScope, ptrTrustMe;
 import util.util : todo, unreachable, verify;
 
 struct ThreadLocalsInfo {
@@ -116,7 +116,7 @@ immutable(ubyte*) getTextPointerForCString(ref immutable TextInfo info, immutabl
 		allConstantsPtr,
 		// '1 +' because we add a dummy byte at 0
 		newExactSizeArrBuilder!ubyte(alloc, 1 + getAllConstantsSize(*programPtr, allConstants)),
-		ptrTrustMe_mut(funToReferences),
+		ptrTrustMe(funToReferences),
 		[], // cStringIndexToTextIndex will be overwritten just below this
 		mapToMut!(size_t[], ArrTypeAndConstantsLow)(
 			alloc,
@@ -132,7 +132,7 @@ immutable(ubyte*) getTextPointerForCString(ref immutable TextInfo info, immutabl
 	// Ensure 0 is not a valid text index
 	exactSizeArrBuilderAdd(ctx.text, 0);
 
-	ctx.cStringIndexToTextIndex = map!size_t(alloc, allConstants.cStrings, (ref immutable SafeCStr value) {
+	ctx.cStringIndexToTextIndex = map(alloc, allConstants.cStrings, (ref immutable SafeCStr value) {
 		immutable size_t textIndex = exactSizeArrBuilderCurSize(ctx.text);
 		addStringAndNulTerminate(ctx.text, value);
 		return textIndex;
@@ -162,7 +162,7 @@ immutable(ubyte*) getTextPointerForCString(ref immutable TextInfo info, immutabl
 				constantIndex,
 				pointee);
 	}
-	ubyte[] text = castNonScope_mut(finish(ctx.text));
+	ubyte[] text = castNonScope(finish(ctx.text));
 	return TextAndInfo(
 		text,
 		immutable TextInfo(
@@ -234,7 +234,7 @@ void ensureConstant(
 		},
 		(ref immutable Constant.Record it) {
 			immutable LowRecord record = ctx.program.allRecords[asRecordType(t)];
-			zip!(LowField, Constant)(
+			zip!(immutable LowField, immutable Constant)(
 				record.fields,
 				it.args,
 				(ref immutable LowField field, ref immutable Constant arg) {
@@ -389,7 +389,7 @@ void writeConstant(
 			immutable LowType.Record recordType = asRecordType(type);
 			immutable LowRecord record = ctx.program.allRecords[recordType];
 			immutable size_t start = exactSizeArrBuilderCurSize(ctx.text);
-			zip!(LowField, Constant)(
+			zip!(immutable LowField, immutable Constant)(
 				record.fields,
 				it.args,
 				(ref immutable LowField field, ref immutable Constant fieldValue) {

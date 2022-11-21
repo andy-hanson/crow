@@ -10,12 +10,12 @@ import util.col.mutDict : addToMutDict, getAt_mut, MutDict, mutDictSize;
 import util.col.str : copyToSafeCStr, eachChar, SafeCStr, strEq, strOfSafeCStr;
 import util.hash : Hasher, hashUlong;
 import util.opt : force, has, Opt, none, some;
-import util.ptr : ptrTrustMe_mut;
+import util.ptr : ptrTrustMe;
 import util.util : drop, verify;
 import util.writer : finishWriterToSafeCStr, Writer;
 
 immutable(Opt!size_t) indexOfSym(ref immutable Sym[] a, immutable Sym value) =>
-	findIndex!Sym(a, (ref immutable Sym it) => it == value);
+	findIndex!(immutable Sym)(a, (ref immutable Sym it) => it == value);
 
 struct Sym {
 	@safe @nogc pure nothrow:
@@ -145,7 +145,7 @@ immutable(SafeCStr) safeCStrOfSym(ref Alloc alloc, ref const AllSymbols allSymbo
 	if (isLongSym(a))
 		return asLongSym(allSymbols, a);
 	else {
-		Writer writer = Writer(ptrTrustMe_mut(alloc));
+		Writer writer = Writer(ptrTrustMe(alloc));
 		writeSym(writer, allSymbols, a);
 		return finishWriterToSafeCStr(writer);
 	}
@@ -308,7 +308,7 @@ public immutable(bool) isLongSym(immutable Sym a) =>
 }
 
 immutable(Sym) getSymFromLongStr(ref AllSymbols allSymbols, scope immutable string str) {
-	const Opt!(immutable Sym) value = getAt_mut(allSymbols.largeStringToIndex, str);
+	immutable Opt!Sym value = getAt_mut(allSymbols.largeStringToIndex, str);
 	return has(value) ? force(value) : addLargeString(allSymbols, copyToSafeCStr(allSymbols.alloc, str));
 }
 

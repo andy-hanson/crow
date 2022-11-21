@@ -44,6 +44,6 @@ struct ConstantsOrExprs {
 
 immutable(ConstantsOrExprs) asConstantsOrExprs(ref Alloc alloc, immutable ConcreteExpr[] exprs) =>
 	every!ConcreteExpr(exprs, (ref immutable ConcreteExpr arg) => isConstant(arg.kind))
-		? immutable ConstantsOrExprs(map!Constant(alloc, exprs, (ref immutable ConcreteExpr arg) =>
+		? immutable ConstantsOrExprs(map(alloc, exprs, (ref immutable ConcreteExpr arg) =>
 			asConstant(arg.kind)))
 		: immutable ConstantsOrExprs(exprs);

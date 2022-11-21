@@ -12,12 +12,12 @@ import model.concreteModel :
 import model.constant : Constant, constantEqual;
 import util.alloc.alloc : Alloc;
 import util.col.arr : empty, only;
-import util.col.arrUtil : arrEqual, arrLiteral, findIndex_const;
+import util.col.arrUtil : arrEqual, arrLiteral, findIndex;
 import util.col.mutArr : moveToArr, MutArr, mutArrSize, push, tempAsArr;
 import util.col.mutDict : getOrAdd, mapToArr_mut, mustGetAt_mut, MutDict, mutDictSize, valuesArray;
 import util.col.str : SafeCStr;
 import util.opt : force, has, Opt;
-import util.ptr : ptrTrustMe_mut;
+import util.ptr : ptrTrustMe;
 import util.sym : AllSymbols, safeCStrOfSym, Sym;
 import util.util : verify;
 
@@ -87,7 +87,7 @@ immutable(Constant) getConstantPtr(
 	immutable ConcreteStruct* pointee,
 	ref immutable Constant value,
 ) {
-	PointerTypeAndConstants* d = ptrTrustMe_mut(getOrAdd(alloc, allConstants.pointers, pointee, () =>
+	PointerTypeAndConstants* d = ptrTrustMe(getOrAdd(alloc, allConstants.pointers, pointee, () =>
 		PointerTypeAndConstants(mutDictSize(allConstants.pointers), MutArr!(immutable Constant)())));
 	return immutable Constant(immutable Constant.Pointer(d.typeIndex, findOrPush!(immutable Constant)(
 		alloc,
@@ -106,7 +106,7 @@ immutable(Constant) getConstantArr(
 		return constantEmptyArr();
 	else {
 		immutable ConcreteType elementType = only(asInst(arrStruct.source).typeArgs);
-		ArrTypeAndConstants* d = ptrTrustMe_mut(getOrAdd(alloc, allConstants.arrs, elementType, () =>
+		ArrTypeAndConstants* d = ptrTrustMe(getOrAdd(alloc, allConstants.arrs, elementType, () =>
 			ArrTypeAndConstants(
 				arrStruct,
 				elementType,
@@ -175,7 +175,7 @@ immutable(size_t) findOrPush(T)(
 	scope immutable(bool) delegate(ref const T) @safe @nogc pure nothrow cbFind,
 	scope immutable(T) delegate() @safe @nogc pure nothrow cbPush,
 ) {
-	const Opt!size_t res = findIndex_const!T(tempAsArr(a), cbFind);
+	const Opt!size_t res = findIndex!(immutable T)(tempAsArr(a), cbFind);
 	if (has(res))
 		return force(res);
 	else {
@@ -183,4 +183,3 @@ immutable(size_t) findOrPush(T)(
 		return mutArrSize(a) - 1;
 	}
 }
-

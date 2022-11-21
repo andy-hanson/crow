@@ -8,7 +8,7 @@ import util.col.fullIndexDict : FullIndexDict;
 import util.col.str : SafeCStr, strOfSafeCStr;
 import util.memory : allocate;
 import util.opt : force, has, none, Opt, some;
-import util.ptr : ptrTrustMe_mut;
+import util.ptr : ptrTrustMe;
 import util.sym : AllSymbols, Sym, sym, writeQuotedSym;
 import util.writer : finishWriterToSafeCStr, writeFloatLiteral, writeJoin, Writer, writeQuotedStr;
 
@@ -191,7 +191,7 @@ private @trusted T matchRepr(T)(
 }
 
 immutable(SafeCStr) jsonStrOfRepr(ref Alloc alloc, ref const AllSymbols allSymbols, immutable Repr a) {
-	Writer writer = Writer(ptrTrustMe_mut(alloc));
+	Writer writer = Writer(ptrTrustMe(alloc));
 	writeReprJSON(writer, allSymbols, a);
 	return finishWriterToSafeCStr(writer);
 }

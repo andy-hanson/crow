@@ -66,7 +66,7 @@ immutable(Opt!Pack) optPack(TempAlloc)(
 		return none!Pack;
 	else {
 		size_t inOffsetEntries = 0;
-		immutable PackField[] fields = map!(PackField)(tempAlloc, record.fields, (ref immutable LowField field) {
+		immutable PackField[] fields = map(tempAlloc, record.fields, (ref immutable LowField field) {
 			immutable size_t fieldInOffsetBytes = inOffsetEntries * 8;
 			immutable size_t fieldSizeBytes = typeSizeBytes(program, field.type);
 			inOffsetEntries += nStackEntriesForBytes(fieldSizeBytes);

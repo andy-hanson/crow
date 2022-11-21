@@ -45,14 +45,8 @@ struct TaggedPtr(E) {
 	ulong value;
 }
 
-@trusted immutable(T*) ptrTrustMe(T)(scope ref immutable T t) =>
-	&t;
-
-@trusted T* ptrTrustMe_mut(T)(scope ref T t) =>
+@trusted T* ptrTrustMe(T)(scope ref T t) =>
 	castNonScope(&t);
-
-@trusted const(T*) ptrTrustMe_const(T)(ref const T t) =>
-	&t;
 
 void hashPtr(T)(ref Hasher hasher, const T* a) {
 	hashSizeT(hasher, cast(immutable size_t) a);
@@ -77,11 +71,3 @@ void hashPtr(T)(ref Hasher hasher, const T* a) {
 
 @trusted ref inout(T) castNonScope_ref(T)(scope ref inout T x) =>
 	*castNonScope(&x);
-
-@trusted T castNonScope_mut(T)(scope T x) {
-	static if (is(T == P*, P)) {
-		size_t res = cast(size_t) x;
-		return cast(T) res;
-	} else
-		return x;
-}

@@ -4,7 +4,7 @@ module util.diff;
 
 import util.alloc.alloc : Alloc, TempAlloc;
 import util.col.arr : only;
-import util.col.arrUtil : arrMax, arrMaxIndex, exists, fillArrUninitialized;
+import util.col.arrUtil : allocateUninitialized, arrMax, arrMaxIndex, exists;
 import util.col.arrBuilder : add, ArrBuilder, finishArr;
 import util.comparison : compareSizeT;
 import util.sym : AllSymbols, Sym, sym, symSize, writeSym;
@@ -119,7 +119,7 @@ void longestCommonSubsequenceRecur(
 		// No output
 	} else if (a.length == 1) {
 		immutable Sym sa = only(a);
-		if (exists!Sym(b, (ref immutable Sym x) => x == sa))
+		if (exists!(immutable Sym)(b, (ref immutable Sym x) => x == sa))
 			add(alloc, res, sa);
 	} else {
 		// Always slice 'a' exactly in half. Then find best way to slice 'b'.
@@ -135,7 +135,7 @@ void longestCommonSubsequenceRecur(
 	ref immutable Sym[] a,
 	ref immutable Sym[] b,
 ) {
-	size_t[] scratch = fillArrUninitialized!size_t(alloc, (b.length + 1) * 2);
+	size_t[] scratch = allocateUninitialized!size_t(alloc, (b.length + 1) * 2);
 	ArrBuilder!Sym res;
 	longestCommonSubsequenceRecur(alloc, a, b, scratch, res);
 	return finishArr(alloc, res);

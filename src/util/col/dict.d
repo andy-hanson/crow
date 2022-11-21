@@ -10,10 +10,10 @@ public import util.col.mutDict : KeyValuePair;
 import util.opt : Opt;
 
 struct Dict(K, V) {
-	private immutable MutDict!(K, V) inner;
+	private immutable MutDict!(immutable K, immutable V) inner;
 
 	@trusted immutable(Opt!V) opIndex(immutable K key) immutable =>
-		cast(immutable) getAt_mut(inner, key);
+		getAt_mut!(K, V)(inner, key);
 }
 
 immutable(bool) hasKey(K, V)(ref immutable Dict!(K, V) a, const K key) =>
@@ -26,7 +26,7 @@ immutable(Dict!(K, V)) zipToDict(K, V, X, Y)(
 	scope immutable(KeyValuePair!(K, V)) delegate(ref immutable X, ref immutable Y) @safe @nogc pure nothrow cb,
 ) {
 	MutDict!(immutable K, immutable V) res;
-	zip!(X, Y)(xs, ys, (ref immutable X x, ref immutable Y y) {
+	zip!(immutable X, immutable Y)(xs, ys, (ref immutable X x, ref immutable Y y) {
 		immutable KeyValuePair!(K, V) pair = cb(x, y);
 		addToMutDict!(immutable K, immutable V)(alloc, res, pair.key, pair.value);
 	});
@@ -54,14 +54,14 @@ immutable(Dict!(K, V)) makeDictFromKeys(K, V)(
 	makeDict!(K, V, K)(alloc, keys, (scope ref immutable K key) =>
 		immutable KeyValuePair!(K, V)(key, getValue(key)));
 
-@trusted immutable(V) mustGetAt(K, V)(immutable Dict!(K, V) a, const K key) =>
-	cast(immutable) mustGetAt_mut(a.inner, key);
+@trusted immutable(V) mustGetAt(K, V)(immutable Dict!(K, V) a, scope immutable K key) =>
+	mustGetAt_mut(a.inner, key);
 
 void dictEach(K, V)(
 	ref immutable Dict!(K, V) a,
 	scope void delegate(immutable K, ref immutable V) @safe @nogc pure nothrow cb,
 ) {
-	mutDictEach!(K, V)(a.inner, cb);
+	mutDictEach!(immutable K, immutable V)(a.inner, cb);
 }
 
 immutable(Dict!(K, V)) dictLiteral(K, V)(

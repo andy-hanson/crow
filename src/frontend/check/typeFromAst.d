@@ -36,7 +36,7 @@ import model.model :
 import util.alloc.alloc : Alloc;
 import util.cell : Cell, cellGet, cellSet;
 import util.col.arr : empty;
-import util.col.arrUtil : eachPair, find, findPtr, mapWithIndex_scope;
+import util.col.arrUtil : eachPair, find, findPtr, mapWithIndex;
 import util.col.mutArr : MutArr;
 import util.col.mutMaxArr : fillMutMaxArr, mapTo, tempAsArr;
 import util.opt : force, has, none, noneMut, Opt, some;
@@ -123,7 +123,7 @@ private void getTypeArgsIfNumberMatches(
 }
 
 immutable(TypeParam[]) checkTypeParams(ref CheckCtx ctx, scope immutable NameAndRange[] asts) {
-	immutable TypeParam[] res = mapWithIndex_scope!(TypeParam, NameAndRange)(
+	immutable TypeParam[] res = mapWithIndex!(TypeParam, NameAndRange)(
 		ctx.alloc,
 		asts,
 		(immutable size_t index, scope ref immutable NameAndRange ast) =>

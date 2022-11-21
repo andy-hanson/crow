@@ -16,12 +16,12 @@ import util.path :
 	pathToSafeCStr,
 	rootPath,
 	TEST_countPathParts;
-import util.ptr : ptrTrustMe_mut;
+import util.ptr : ptrTrustMe;
 import util.sym : sym;
 import util.util : verify;
 
 void testPath(ref Test test) {
-	AllPaths allPaths = AllPaths(test.allocPtr, ptrTrustMe_mut(test.allSymbols));
+	AllPaths allPaths = AllPaths(test.allocPtr, ptrTrustMe(test.allSymbols));
 	immutable Path a = rootPath(allPaths, sym!"a");
 	immutable Path b = rootPath(allPaths, sym!"b");
 	verify(comparePath(a, a) == Comparison.equal);

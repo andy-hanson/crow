@@ -150,7 +150,7 @@ void writeWithCommasZip(T, U)(
 	scope void delegate(scope ref immutable T, scope ref immutable U) @safe @nogc pure nothrow cb,
 ) {
 	bool needsComma = false;
-	zip!(T, U)(a, b, (ref immutable T x, ref immutable U y) {
+	zip!(immutable T, immutable U)(a, b, (ref immutable T x, ref immutable U y) {
 		if (filter(x, y)) {
 			if (needsComma)
 				writer ~= ", ";

@@ -73,9 +73,9 @@ immutable(T) withFileBinary(T)(
 	immutable Path path,
 	immutable(T) delegate(immutable ReadFileResult!(ubyte[])) @safe @nogc pure nothrow cb,
 ) {
-	Cell!(immutable Opt!(immutable T)) res = Cell!(immutable Opt!(immutable T))(none!(immutable T));
+	Cell!(immutable Opt!T) res = Cell!(immutable Opt!T)(none!T);
 	storage.withFileBinary_(path, (immutable ReadFileResult!(ubyte[]) content) {
-		cellSet!(immutable Opt!T)(res, some!(immutable T)(cb(content)));
+		cellSet!(immutable Opt!T)(res, some(cb(content)));
 	});
 	return force(cellGet(res));
 }
@@ -91,9 +91,9 @@ immutable(T) withFileText(T)(
 			cb(content);
 		});
 	} else {
-		Cell!(immutable Opt!(immutable T)) res = Cell!(immutable Opt!(immutable T))(none!(immutable T));
+		Cell!(immutable Opt!T) res = Cell!(immutable Opt!T)(none!T);
 		storage.withFileText_(path, extension, (immutable ReadFileResult!SafeCStr content) {
-			cellSet!(immutable Opt!(immutable T))(res, some!(immutable T)(cb(content)));
+			cellSet!(immutable Opt!T)(res, some(cb(content)));
 		});
 		return force(cellGet(res));
 	}

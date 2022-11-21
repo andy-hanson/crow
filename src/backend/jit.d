@@ -128,15 +128,15 @@ import model.lowModel :
 import model.typeLayout : typeSizeBytes;
 import util.alloc.alloc : Alloc;
 import util.col.arr : empty;
-import util.col.arrUtil : makeArr, map, mapToMut, mapWithIndex, mapWithIndex_mut, zip, zipFirstMut;
+import util.col.arrUtil : makeArr, map, mapToMut, mapWithIndex, mapWithIndex_mut, zip;
 import util.col.dict : mustGetAt;
 import util.col.fullIndexDict : FullIndexDict, fullIndexDictZip, mapFullIndexDict_mut;
 import util.col.stackDict : MutStackDict, mutStackDictAdd, mutStackDictMustGet;
 import util.col.str : CStr, SafeCStr;
 import util.conv : safeToInt;
-import util.opt : force, has, none, noneMut, Opt, some, someMut;
+import util.opt : force, has, none, noneMut, Opt, some;
 import util.perf : Perf, PerfMeasure, withMeasure;
-import util.ptr : castImmutable, ptrTrustMe, ptrTrustMe_mut;
+import util.ptr : castImmutable, ptrTrustMe;
 import util.sourceRange : FileAndRange;
 import util.sym : AllSymbols, writeSym;
 import util.util : todo, unreachable, verify;
@@ -219,7 +219,7 @@ GccProgram getGccProgram(
 
 	foreach (ref immutable ExternLibrary x; program.externLibraries) {
 		//TODO:NO ALLOC
-		Writer writer = Writer(ptrTrustMe_mut(alloc));
+		Writer writer = Writer(ptrTrustMe(alloc));
 		writer ~= "-l";
 		writeSym(writer, allSymbols, x.libraryName);
 		gcc_jit_context_add_driver_option(*ctx, finishWriterToCStr(writer));
@@ -300,13 +300,13 @@ extern(C) {
 			(ref immutable LowFunExprBody expr) {
 				gcc_jit_block* entryBlock = gcc_jit_function_new_block(curFun, "entry");
 				ExprCtx exprCtx = ExprCtx(
-					ptrTrustMe_mut(alloc),
+					ptrTrustMe(alloc),
 					ptrTrustMe(program),
-					ptrTrustMe_mut(ctx),
+					ptrTrustMe(ctx),
 					ptrTrustMe(mangledNames),
 					ptrTrustMe(gccTypes),
-					ptrTrustMe_mut(globalsForConstants),
-					ptrTrustMe_mut(globalsForThreadLocals),
+					ptrTrustMe(globalsForConstants),
+					ptrTrustMe(globalsForThreadLocals),
 					gccFuns,
 					curFun,
 					fun.returnType,
@@ -322,7 +322,7 @@ extern(C) {
 					debug {
 						import core.stdc.stdio : printf;
 						import interpret.debugging : writeFunName, writeFunSig;
-						Writer writer = Writer(ptrTrustMe_mut(alloc));
+						Writer writer = Writer(ptrTrustMe(alloc));
 						writeFunName(writer, allSymbols, program, funIndex);
 						writer ~= ' ';
 						writeFunSig(writer, allSymbols, program, fun);
@@ -334,7 +334,7 @@ extern(C) {
 						if (false) {
 							import core.stdc.stdio : printf;
 							import interpret.debugging : writeFunName, writeFunSig;
-							Writer writer = Writer(ptrTrustMe_mut(alloc));
+							Writer writer = Writer(ptrTrustMe(alloc));
 							writeFunName(writer, allSymbols, program, funIndex);
 							writer ~= ' ';
 							writeFunSig(writer, allSymbols, program, fun);
@@ -435,10 +435,8 @@ GlobalsForConstants generateGlobalsForConstants(
 	ref immutable GccTypes types,
 	ref immutable MangledNames mangledNames,
 ) {
-	immutable gcc_jit_rvalue*[][] arrGlobals = map!(gcc_jit_rvalue*[], ArrTypeAndConstantsLow)(
-		alloc,
-		program.allConstants.arrs,
-		(ref immutable ArrTypeAndConstantsLow tc) {
+	immutable gcc_jit_rvalue*[][] arrGlobals =
+		map(alloc, program.allConstants.arrs, (ref immutable ArrTypeAndConstantsLow tc) {
 			immutable gcc_jit_type* gccElementType = getGccType(types, tc.elementType);
 			return mapWithIndex!(gcc_jit_rvalue*, Constant[])(
 				alloc,
@@ -450,7 +448,7 @@ GlobalsForConstants generateGlobalsForConstants(
 						gccElementType,
 						cast(int) values.length);
 					//TODO:NO ALLOC
-					Writer writer = Writer(ptrTrustMe_mut(alloc));
+					Writer writer = Writer(ptrTrustMe(alloc));
 					writeConstantArrStorageName(writer, mangledNames, program, tc.arrType, index);
 					immutable CStr name = finishWriterToCStr(writer);
 					return gcc_jit_lvalue_as_rvalue(gcc_jit_context_new_global(
@@ -472,7 +470,7 @@ GlobalsForConstants generateGlobalsForConstants(
 				tc.constants,
 				(immutable size_t index, scope ref immutable Constant) {
 					//TODO:NO ALLOC
-					Writer writer = Writer(ptrTrustMe_mut(alloc));
+					Writer writer = Writer(ptrTrustMe(alloc));
 					writeConstantPointerStorageName(writer, mangledNames, program, tc.pointeeType, index);
 					immutable CStr name = finishWriterToCStr(writer);
 					return gcc_jit_context_new_global(
@@ -502,7 +500,7 @@ GlobalsForThreadLocals generateGlobalsForThreadLocals(
 		(immutable(LowThreadLocalIndex), scope ref immutable LowThreadLocal x) {
 			immutable gcc_jit_type* type = getGccType(types, x.type);
 			//TODO:NO ALLOC
-			Writer writer = Writer(ptrTrustMe_mut(alloc));
+			Writer writer = Writer(ptrTrustMe(alloc));
 			writeLowThreadLocalMangledName(writer, mangledNames, x);
 			immutable char* name = finishWriterToCStr(writer);
 			gcc_jit_lvalue* res =
@@ -535,21 +533,18 @@ GlobalsForThreadLocals generateGlobalsForThreadLocals(
 
 	immutable gcc_jit_type* returnType = getGccType(gccTypes, fun.returnType);
 	//TODO:NO ALLOC
-	immutable gcc_jit_param*[] params = map!(immutable gcc_jit_param*, LowParam)(
-		alloc,
-		fun.params,
-		(ref immutable LowParam param) {
-			//TODO:NO ALLOC
-			Writer writer = Writer(ptrTrustMe_mut(alloc));
-			writeLowParamName(writer, mangledNames, param);
-			return gcc_jit_context_new_param(
-				ctx,
-				null,
-				getGccType(gccTypes, param.type),
-				finishWriterToCStr(writer));
-		});
+	immutable gcc_jit_param*[] params = map(alloc, fun.params, (ref immutable LowParam param) {
+		//TODO:NO ALLOC
+		Writer writer = Writer(ptrTrustMe(alloc));
+		writeLowParamName(writer, mangledNames, param);
+		return gcc_jit_context_new_param(
+			ctx,
+			null,
+			getGccType(gccTypes, param.type),
+			finishWriterToCStr(writer));
+	});
 	//TODO:NO ALLOC
-	Writer writer = Writer(ptrTrustMe_mut(alloc));
+	Writer writer = Writer(ptrTrustMe(alloc));
 	writeLowFunMangledName(writer, mangledNames, funIndex, fun);
 	if (isGlobal(fun.body_))
 		// The function name needs to be different from the global name, else libgccjit gets confused.
@@ -562,7 +557,7 @@ GlobalsForThreadLocals generateGlobalsForThreadLocals(
 		void,
 		(ref immutable LowFunBody.Extern it) {
 			if (it.isGlobal) {
-				Writer globalWriter = Writer(ptrTrustMe_mut(alloc));
+				Writer globalWriter = Writer(ptrTrustMe(alloc));
 				writeLowFunMangledName(globalWriter, mangledNames, funIndex, fun);
 				immutable CStr globalName = finishWriterToCStr(globalWriter);
 				gcc_jit_lvalue* global = gcc_jit_context_new_global(
@@ -843,9 +838,9 @@ immutable(ExprResult) emitWithBranching(
 ) {
 	Opt!(gcc_jit_block*) endBlock = isLoopOrReturn(emit)
 		? noneMut!(gcc_jit_block*)
-		: someMut(gcc_jit_function_new_block(ctx.curFun, endBlockName));
+		: some(gcc_jit_function_new_block(ctx.curFun, endBlockName));
 	Opt!(gcc_jit_lvalue*) local = isValue(emit)
-		? someMut(gcc_jit_function_new_local(ctx.curFun, null, getGccType(ctx.types, type), "temp"))
+		? some(gcc_jit_function_new_local(ctx.curFun, null, getGccType(ctx.types, type), "temp"))
 		: noneMut!(gcc_jit_lvalue*);
 	gcc_jit_block* originalBlock = ctx.curBlock;
 
@@ -1092,8 +1087,7 @@ void emitToLValue(ref ExprCtx ctx, ref Locals locals, gcc_jit_lvalue* lvalue, sc
 	const gcc_jit_function* called = ctx.gccFuns[a.called];
 	//TODO:NO ALLOC
 	immutable gcc_jit_rvalue*[] argsGcc =
-		map!(gcc_jit_rvalue*, LowExpr)(ctx.alloc, a.args, (ref immutable LowExpr arg) =>
-			emitToRValue(ctx, locals, arg));
+		map(ctx.alloc, a.args, (ref immutable LowExpr arg) => emitToRValue(ctx, locals, arg));
 	return emitSimpleYesSideEffects(ctx, emit, type, castImmutable(
 		gcc_jit_context_new_call(ctx.gcc, null, called, cast(int) argsGcc.length, argsGcc.ptr)));
 }
@@ -1108,8 +1102,7 @@ void emitToLValue(ref ExprCtx ctx, ref Locals locals, gcc_jit_lvalue* lvalue, sc
 	immutable gcc_jit_rvalue* funPtrGcc = emitToRValue(ctx, locals, a.funPtr);
 	//TODO:NO ALLOC
 	immutable gcc_jit_rvalue*[] argsGcc =
-		map!(gcc_jit_rvalue*, LowExpr)(ctx.alloc, a.args, (ref immutable LowExpr arg) =>
-			emitToRValue(ctx, locals, arg));
+		map(ctx.alloc, a.args, (ref immutable LowExpr arg) => emitToRValue(ctx, locals, arg));
 	return emitSimpleYesSideEffects(ctx, emit, expr.type, gcc_jit_context_new_call_through_ptr(
 		ctx.gcc,
 		null,
@@ -1134,7 +1127,7 @@ void emitToLValue(ref ExprCtx ctx, ref Locals locals, gcc_jit_lvalue* lvalue, sc
 			emitToLValue(ctx, locals, local, updateParam.newValue);
 			return local;
 		});
-	zipFirstMut!(gcc_jit_lvalue*, UpdateParam)(
+	zip!(gcc_jit_lvalue*, immutable UpdateParam)(
 		updateParamLocals,
 		a.updateParams,
 		(ref gcc_jit_lvalue* local, ref immutable UpdateParam updateParam) {
@@ -2058,11 +2051,11 @@ immutable(gcc_jit_rvalue*) arbitraryValue(ref ExprCtx ctx, immutable LowType typ
 }
 
 immutable(ExprResult) initConstantsToGcc(ref ExprCtx ctx, ref ExprEmit emit) {
-	zip!(gcc_jit_rvalue*[], ArrTypeAndConstantsLow)(
+	zip!(immutable gcc_jit_rvalue*[], immutable ArrTypeAndConstantsLow)(
 		ctx.globalsForConstants.arrs,
 		ctx.program.allConstants.arrs,
 		(ref immutable gcc_jit_rvalue*[] globals, ref immutable ArrTypeAndConstantsLow tc) {
-			zip!(gcc_jit_rvalue*, Constant[])(
+			zip!(immutable gcc_jit_rvalue*, immutable Constant[])(
 				globals,
 				tc.constants,
 				(ref immutable gcc_jit_rvalue* global, ref immutable Constant[] elements) {
@@ -2079,11 +2072,11 @@ immutable(ExprResult) initConstantsToGcc(ref ExprCtx ctx, ref ExprEmit emit) {
 					}
 				});
 		});
-	zipFirstMut!(gcc_jit_lvalue*[], PointerTypeAndConstantsLow)(
+	zip!(gcc_jit_lvalue*[], immutable PointerTypeAndConstantsLow)(
 		ctx.globalsForConstants.pointers,
 		ctx.program.allConstants.pointers,
 		(ref gcc_jit_lvalue*[] globals, ref immutable PointerTypeAndConstantsLow tc) {
-			zipFirstMut!(gcc_jit_lvalue*, Constant)(
+			zip!(gcc_jit_lvalue*, immutable Constant)(
 				globals,
 				tc.constants,
 				(ref gcc_jit_lvalue* global, ref immutable Constant value) {

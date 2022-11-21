@@ -136,7 +136,7 @@ immutable(Opt!Json) parseString(ref Alloc alloc, ref CStr ptr) {
 		case '\n':
 			return none!string;
 		case '"':
-			return some(begin[0 .. (ptr - 1 - begin)]);
+			return some!string(begin[0 .. (ptr - 1 - begin)]);
 		default:
 			return parseStringTempRecur(begin, ptr);
 	}

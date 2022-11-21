@@ -40,7 +40,7 @@ import util.col.str : SafeCStr;
 import util.lineAndColumnGetter : lineAndColumnAtPos;
 import util.opt : force, has, Opt;
 import util.path : AllPaths, baseName, Path, PathsInfo, writePath, writeRelPath;
-import util.ptr : ptrTrustMe_mut;
+import util.ptr : ptrTrustMe;
 import util.sourceRange : FileAndPos;
 import util.sym : AllSymbols, Sym, writeSym;
 import util.util : unreachable;
@@ -69,7 +69,7 @@ immutable(SafeCStr) strOfDiagnostics(
 	ref immutable FilesInfo filesInfo,
 	ref immutable Diagnostics diagnostics,
 ) {
-	Writer writer = Writer(ptrTrustMe_mut(alloc));
+	Writer writer = Writer(ptrTrustMe(alloc));
 	writeWithNewlines!Diagnostic(writer, diagnostics.diags, (ref immutable Diagnostic it) {
 		showDiagnostic(alloc, writer, allSymbols, allPaths, pathsInfo, options, filesInfo, it);
 	});
@@ -85,7 +85,7 @@ immutable(string) strOfDiagnostic(
 	ref immutable FilesInfo filesInfo,
 	ref immutable Diagnostic diagnostic,
 ) {
-	Writer writer = Writer(ptrTrustMe_mut(alloc));
+	Writer writer = Writer(ptrTrustMe(alloc));
 	showDiagnostic(alloc, writer, allSymbols, allPaths, pathsInfo, options, filesInfo, diagnostic);
 	return finishWriter(writer);
 }
@@ -455,11 +455,12 @@ void writeCallNoMatch(
 ) {
 	immutable bool someCandidateHasCorrectNTypeArgs =
 		d.actualNTypeArgs == 0 ||
-		exists!CalledDecl(d.allCandidates, (ref immutable CalledDecl c) =>
+		exists!(immutable CalledDecl)(d.allCandidates, (ref immutable CalledDecl c) =>
 			nTypeParams(c) == d.actualNTypeArgs);
-	immutable bool someCandidateHasCorrectArity = exists!CalledDecl(d.allCandidates, (ref immutable CalledDecl c) =>
-		(d.actualNTypeArgs == 0 || nTypeParams(c) == d.actualNTypeArgs) &&
-		arityMatches(arity(c), d.actualArity));
+	immutable bool someCandidateHasCorrectArity =
+		exists!(immutable CalledDecl)(d.allCandidates, (ref immutable CalledDecl c) =>
+			(d.actualNTypeArgs == 0 || nTypeParams(c) == d.actualNTypeArgs) &&
+			arityMatches(arity(c), d.actualArity));
 
 	if (empty(d.allCandidates)) {
 		writer ~= "there is no function ";

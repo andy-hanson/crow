@@ -4,11 +4,11 @@ module util.col.mutDict;
 
 import util.alloc.alloc : Alloc, allocateT;
 import util.col.arr : empty;
-import util.col.arrUtil : map_mut;
+import util.col.arrUtil : map;
 import util.col.dict : Dict;
 import util.hash : Hasher, hashSizeT, hashUbyte;
 import util.memory : initMemory, overwriteMemory;
-import util.opt : force, has, none, noneConst, Opt, some, someConst, someMut;
+import util.opt : force, has, none, Opt, some;
 import util.ptr : hashPtr;
 import util.col.str : strEq;
 import util.util : drop, unreachable, verify;
@@ -30,21 +30,21 @@ immutable(bool) mutDictIsEmpty(K, V)(ref const MutDict!(K, V) a) =>
 immutable(size_t) mutDictSize(K, V)(ref const MutDict!(K, V) a) =>
 	a.size;
 
-immutable(bool) hasKey_mut(K, V)(ref const MutDict!(K, V) a, const K key) {
+immutable(bool) hasKey_mut(K, V)(ref const MutDict!(K, immutable V) a, const K key) {
 	immutable Opt!V value = getAt_mut(a, key);
 	return has(value);
 }
 
-const(Opt!V) getAt_mut(K, V)(ref const MutDict!(K, V) a, const K key) {
+immutable(Opt!V) getAt_mut(K, V)(ref const MutDict!(immutable K, immutable V) a, scope immutable K key) {
 	if (empty(a.pairs)) return none!V;
 
 	verify(a.size < a.pairs.length);
 	size_t i = getHash(key) % a.pairs.length;
 	while (true) {
 		if (!has(a.pairs[i]))
-			return noneConst!V;
+			return none!V;
 		else if (eq(key, force(a.pairs[i]).key))
-			return someConst!V(cast(const V) force(a.pairs[i]).value);
+			return some(force(a.pairs[i]).value);
 		else {
 			i = nextI(a, i);
 		}
@@ -259,7 +259,7 @@ private @trusted immutable(Out[]) mapToArr_const(Out, K, V)(
 	ref Alloc alloc,
 	ref MutDict!(immutable K, immutable V) a,
 ) {
-	immutable Dict!(K, V) res = immutable Dict!(K, V)(cast(immutable MutDict!(K, V)) a);
+	immutable Dict!(K, V) res = immutable Dict!(K, V)(cast(immutable) a);
 	a.size = 0;
 	a.pairs = [];
 	return res;
@@ -270,15 +270,13 @@ immutable(Dict!(K, VOut)) mapToDict(K, VOut, VIn)(
 	scope ref MutDict!(immutable K, VIn) a,
 	scope immutable(VOut) delegate(ref VIn) @safe @nogc pure nothrow cb,
 ) {
-	immutable Opt!(KeyValuePair!(K, VOut))[] outPairs =
-		map_mut!(Opt!(KeyValuePair!(K, VOut)), Opt!(KeyValuePair!(immutable K, VIn)))(
-			alloc,
-			a.pairs,
-			(ref Opt!(KeyValuePair!(immutable K, VIn)) pair) =>
-				has(pair)
-					? some(immutable KeyValuePair!(K, VOut)(force(pair).key, cb(force(pair).value)))
-					: none!(KeyValuePair!(K, VOut)));
-	return immutable Dict!(K, VOut)(immutable MutDict!(K, VOut)(a.size, outPairs));
+	immutable Opt!(KeyValuePair!(immutable K, immutable VOut))[] outPairs =
+		map(alloc, a.pairs, (ref Opt!(KeyValuePair!(immutable K, VIn)) pair) =>
+			has(pair)
+				? some(immutable KeyValuePair!(immutable K, immutable VOut)(force(pair).key, cb(force(pair).value)))
+				: none!(KeyValuePair!(immutable K, immutable VOut)));
+
+	return immutable Dict!(K, VOut)(immutable MutDict!(immutable K, immutable VOut)(a.size, outPairs));
 }
 
 immutable(V[]) valuesArray(K, V)(
@@ -324,7 +322,7 @@ ref KeyValuePair!(K, V) addAt(K, V)(
 		return setInDict(alloc, a, pair.key, pair.value);
 	} else {
 		a.size++;
-		overwriteMemory(&a.pairs[i], someMut(pair));
+		overwriteMemory(&a.pairs[i], some(pair));
 		return force(a.pairs[i]);
 	}
 }
@@ -353,14 +351,14 @@ immutable(bool) eq(K)(scope K a, scope K b) {
 		return a == b;
 }
 
-immutable(ulong) getHash(K)(scope K key) {
+immutable(ulong) getHash(K)(scope immutable K key) {
 	Hasher hasher = Hasher();
 	static if (is(K == P*, P)) {
 		hashPtr(hasher, key);
 	} else static if (is(K == string)) {
 		foreach (immutable char c; key)
 			hashUbyte(hasher, c);
-	} else static if (is(K == immutable size_t)) {
+	} else static if (is(K == size_t)) {
 		hashSizeT(hasher, key);
 	} else {
 		key.hash(hasher);

@@ -35,7 +35,7 @@ import util.alloc.alloc : Alloc;
 import util.col.arrUtil : map, mapWithIndex;
 import util.memory : allocate, allocateMut;
 import util.opt : force, has, none, some;
-import util.ptr : castImmutable, castNonScope_mut;
+import util.ptr : castImmutable, ptrTrustMe;
 import util.sourceRange : FileAndRange;
 import util.util : todo;
 
@@ -45,7 +45,7 @@ immutable(ConcreteFunBody) bodyForSafeValue(
 	immutable FileAndRange range,
 	immutable ConcreteType type,
 ) {
-	Ctx ctx = Ctx(castNonScope_mut(&concretizeCtx), containingFun);
+	Ctx ctx = Ctx(ptrTrustMe(concretizeCtx), containingFun);
 	return immutable ConcreteFunBody(safeValueForType(ctx, range, type));
 }
 
@@ -140,11 +140,8 @@ immutable(ConcreteExpr) safeValueForStruct(
 		(ref immutable ConcreteStructBody.ExternPtr) =>
 			fromConstant(immutable Constant(immutable Constant.Null())),
 		(ref immutable ConcreteStructBody.Record it) {
-			immutable ConcreteExpr[] fieldExprs = map!(immutable ConcreteExpr, ConcreteField)(
-				ctx.alloc,
-				it.fields,
-				(ref immutable ConcreteField field) =>
-					safeValueForType(ctx, range, field.type));
+			immutable ConcreteExpr[] fieldExprs = map(ctx.alloc, it.fields, (ref immutable ConcreteField field) =>
+				safeValueForType(ctx, range, field.type));
 			immutable ConstantsOrExprs fieldConstantsOrExprs = isSelfMutable(*struct_)
 				? immutable ConstantsOrExprs(fieldExprs)
 				: asConstantsOrExprs(ctx.alloc, fieldExprs);
@@ -174,7 +171,7 @@ immutable(ConcreteExpr) safeFunValue(ref Ctx ctx, immutable FileAndRange range, 
 	immutable ConcreteParam[] params = mapWithIndex!(immutable ConcreteParam, ConcreteType)(
 		ctx.alloc,
 		typeArgs[1 .. $],
-		(immutable size_t index, ref immutable ConcreteType paramType) =>
+		(immutable size_t index, scope ref immutable ConcreteType paramType) =>
 			immutable ConcreteParam(
 				immutable ConcreteParamSource(immutable ConcreteParamSource.Synthetic()),
 				some(index),

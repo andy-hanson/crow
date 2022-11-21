@@ -14,7 +14,7 @@ import util.alloc.alloc : Alloc;
 import util.lineAndColumnGetter : LineAndColumn, lineAndColumnAtPos;
 import util.opt : force, has, none, Opt, some;
 import util.path : AllPaths, Path, PathsInfo, pathToSafeCStrPreferRelative;
-import util.ptr : ptrTrustMe_mut;
+import util.ptr : ptrTrustMe;
 import util.sourceRange : FileAndPos, FileIndex;
 import util.sym : AllSymbols;
 import util.util : min, verify;
@@ -104,7 +104,7 @@ private @trusted immutable(BacktraceEntry) backtraceEntryFromSource(
 	scope ref immutable InterpreterDebugInfo info,
 	immutable ByteCodeSource source,
 ) {
-	Writer writer = Writer(ptrTrustMe_mut(alloc));
+	Writer writer = Writer(ptrTrustMe(alloc));
 	writeFunName(writer, info.allSymbols, info.lowProgram, source.fun);
 	immutable Ptr64!(immutable char) funName = Ptr64!(immutable char)(finishWriterToSafeCStr(writer).ptr);
 
@@ -135,7 +135,7 @@ void printDebugInfo(
 		{
 			ubyte[10_000] mem;
 			scope Alloc dbgAlloc = Alloc(&mem[0], mem.length);
-			scope Writer writer = Writer(ptrTrustMe_mut(dbgAlloc));
+			scope Writer writer = Writer(ptrTrustMe(dbgAlloc));
 			showDataArr(writer, dataStack);
 			showReturnStack(writer, a, returnStackReverse, cur);
 			printf("%s\n", finishWriterToSafeCStr(writer).ptr);
@@ -144,7 +144,7 @@ void printDebugInfo(
 		{
 			ubyte[10_000] mem;
 			scope Alloc dbgAlloc = Alloc(&mem[0], mem.length);
-			scope Writer writer = Writer(ptrTrustMe_mut(dbgAlloc));
+			scope Writer writer = Writer(ptrTrustMe(dbgAlloc));
 			writer ~= "STEP: ";
 			immutable ShowDiagOptions showDiagOptions = immutable ShowDiagOptions(false);
 			if (has(source)) {

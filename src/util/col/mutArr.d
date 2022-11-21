@@ -87,5 +87,3 @@ void mutArrClear(T)(ref MutArr!T a) {
 
 @trusted const(T[]) tempAsArr(T)(ref const MutArr!T a) =>
 	a.begin_[0 .. a.size_];
-@trusted T[] tempAsArr_mut(T)(ref MutArr!T a) =>
-	a.begin_[0 .. a.size_];

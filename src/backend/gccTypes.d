@@ -60,8 +60,8 @@ import util.col.fullIndexDict :
 	mapFullIndexDict,
 	mapFullIndexDict_mut;
 import util.col.str : CStr;
-import util.opt : force, has, none, noneMut, Opt, some, someMut;
-import util.ptr : castImmutable, ptrTrustMe_mut;
+import util.opt : force, has, none, noneMut, Opt, some;
+import util.ptr : castImmutable, castNonScope_ref, ptrTrustMe;
 import util.sym : AllSymbols, writeSym;
 import util.util : as, verify;
 import util.writer : finishWriterToCStr, Writer;
@@ -195,7 +195,7 @@ immutable(gcc_jit_function*) generateAssertFieldOffsetsFunction(
 				null,
 				gcc_jit_lvalue_get_address(local, null),
 				voidPtrType);
-			zip!(LowField, gcc_jit_field*)(
+			zip!(immutable LowField, immutable gcc_jit_field*)(
 				record.fields,
 				gccFields,
 				(ref immutable LowField field, ref immutable gcc_jit_field* gccField) {
@@ -231,7 +231,7 @@ immutable(gcc_jit_function*) generateAssertFieldOffsetsFunction(
 	return castImmutable(fn);
 }
 
-immutable(gcc_jit_type*) getGccType(ref immutable GccTypes types, scope immutable LowType a) {
+immutable(gcc_jit_type*) getGccType(scope ref immutable GccTypes types, scope immutable LowType a) {
 	immutable gcc_jit_type* res = matchLowTypeCombinePtr!(
 		immutable gcc_jit_type*,
 		(immutable LowType.ExternPtr x) =>
@@ -332,12 +332,9 @@ struct GccTypesWip {
 	verify(!has(*ptr));
 	const gcc_jit_type* returnType = getGccType(typesWip, funPtr.returnType);
 	//TODO:NO ALLOC
-	immutable gcc_jit_type*[] paramTypes = map!(gcc_jit_type*, LowType)(
-		alloc,
-		funPtr.paramTypes,
-		(ref immutable LowType x) =>
-			getGccType(typesWip, x));
-	*ptr = someMut!(gcc_jit_type*)(gcc_jit_context_new_function_ptr_type(
+	immutable gcc_jit_type*[] paramTypes = map(alloc, funPtr.paramTypes, (ref immutable LowType x) =>
+		getGccType(typesWip, x));
+	*ptr = some!(gcc_jit_type*)(gcc_jit_context_new_function_ptr_type(
 		ctx,
 		null,
 		returnType,
@@ -355,15 +352,12 @@ struct GccTypesWip {
 	ref immutable LowRecord record,
 ) {
 	gcc_jit_struct* struct_ = typesWip.records[recordIndex];
-	immutable gcc_jit_field*[] fields = map!(gcc_jit_field*, LowField)(
-		alloc,
-		record.fields,
-		(ref immutable LowField field) {
-			//TODO:NO ALLOC
-			Writer writer = Writer(ptrTrustMe_mut(alloc));
-			writeSym(writer, allSymbols, debugName(field));
-			return gcc_jit_context_new_field(ctx, null, getGccType(typesWip, field.type), finishWriterToCStr(writer));
-		});
+	immutable gcc_jit_field*[] fields = map(alloc, record.fields, (ref immutable LowField field) {
+		//TODO:NO ALLOC
+		Writer writer = Writer(ptrTrustMe(alloc));
+		writeSym(writer, allSymbols, debugName(field));
+		return gcc_jit_context_new_field(ctx, null, getGccType(typesWip, field.type), finishWriterToCStr(writer));
+	});
 	verify(empty(typesWip.recordFields[recordIndex]));
 	typesWip.recordFields[recordIndex] = fields;
 	gcc_jit_struct_set_fields(struct_, null, cast(int) fields.length, fields.ptr);
@@ -381,7 +375,7 @@ struct GccTypesWip {
 
 	//TODO:NO ALLOC
 	immutable CStr mangledNameInner = () {
-		Writer writer = Writer(ptrTrustMe_mut(alloc));
+		Writer writer = Writer(ptrTrustMe(alloc));
 		writeStructMangledName(writer, mangledNames, union_.source);
 		writer ~= "_inner";
 		return finishWriterToCStr(writer);
@@ -390,12 +384,13 @@ struct GccTypesWip {
 	immutable gcc_jit_field*[] memberFields = mapWithIndex!(gcc_jit_field*, LowType)(
 		alloc,
 		union_.members,
-		(immutable size_t memberIndex, ref immutable LowType memberType) {
+		(immutable size_t memberIndex, scope ref immutable LowType memberType) {
 			//TODO:NO ALLOC
-			Writer writer = Writer(ptrTrustMe_mut(alloc));
+			Writer writer = Writer(ptrTrustMe(alloc));
 			writer ~= "as";
 			writer ~= memberIndex;
-			return gcc_jit_context_new_field(ctx, null, getGccType(typesWip, memberType), finishWriterToCStr(writer));
+			return gcc_jit_context_new_field(
+				ctx, null, getGccType(typesWip, castNonScope_ref(memberType)), finishWriterToCStr(writer));
 		});
 	immutable gcc_jit_type* innerUnion = gcc_jit_context_new_union_type(
 		ctx,
@@ -433,7 +428,7 @@ gcc_jit_struct* structStub(
 	scope immutable ConcreteStruct* source,
 ) {
 	//TODO:PERF use a temporary (dont' allocate string)
-	Writer writer = Writer(ptrTrustMe_mut(alloc));
+	Writer writer = Writer(ptrTrustMe(alloc));
 	writeStructMangledName(writer, mangledNames, source);
 	return gcc_jit_context_new_opaque_struct(ctx, null, finishWriterToCStr(writer));
 }

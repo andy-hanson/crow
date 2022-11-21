@@ -24,7 +24,7 @@ import frontend.check.inferringType :
 	programState,
 	SingleInferringType,
 	tryGetInferred,
-	tryGetTypeArgFromInferringTypeArgs_const,
+	tryGetTypeArgFromInferringTypeArgs,
 	TypeAndInferring,
 	typeArgsFromAsts;
 import frontend.check.instantiate :
@@ -68,9 +68,9 @@ import model.model :
 	TypeParam,
 	typeParams;
 import util.alloc.alloc : Alloc;
-import util.col.arr : empty, only, only_const;
+import util.col.arr : empty, only;
 import util.col.arrBuilder : add, ArrBuilder, finishArr;
-import util.col.arrUtil : exists, exists_const, fillArrOrFail, map_const;
+import util.col.arrUtil : exists, fillArrOrFail, map;
 import util.col.mutMaxArr :
 	copyToFrom,
 	fillMutMaxArr_mut,
@@ -84,17 +84,15 @@ import util.col.mutMaxArr :
 	MutMaxArr,
 	mutMaxArr,
 	mutMaxArrSize,
-	only_const,
+	only,
 	push,
 	pushUninitialized,
 	tempAsArr,
-	tempAsArr_const,
-	tempAsArr_mut,
 	toArray;
 import util.memory : overwriteMemory;
 import util.opt : force, has, none, noneMut, Opt, some;
 import util.perf : endMeasure, PerfMeasure, PerfMeasurer, pauseMeasure, resumeMeasure, startMeasure;
-import util.ptr : castNonScope_ref, ptrTrustMe_mut;
+import util.ptr : castNonScope_ref, ptrTrustMe;
 import util.sourceRange : FileAndRange;
 import util.sym : Sym;
 import util.util : todo;
@@ -123,7 +121,7 @@ immutable(Expr) checkCallNoLocals(
 	scope ref Expected expected,
 ) {
 	FunOrLambdaInfo emptyFunInfo = FunOrLambdaInfo(noneMut!(LocalsInfo*), [], none!(Expr.Lambda*));
-	LocalsInfo emptyLocals = LocalsInfo(ptrTrustMe_mut(emptyFunInfo), noneMut!(LocalNode*));
+	LocalsInfo emptyLocals = LocalsInfo(ptrTrustMe(emptyFunInfo), noneMut!(LocalNode*));
 	return checkCall(ctx, emptyLocals, range, ast, expected);
 }
 
@@ -155,8 +153,8 @@ private immutable(Expr) checkCallInner(
 			return none!Expr;
 
 		ParamExpected paramExpected = mutMaxArr!(maxCandidates, TypeAndInferring);
-		getParamExpected(ctx.alloc, ctx.programState, paramExpected, tempAsArr_mut(candidates), argIdx);
-		Expected expected = Expected(tempAsArr_mut(castNonScope_ref(paramExpected)));
+		getParamExpected(ctx.alloc, ctx.programState, paramExpected, tempAsArr(candidates), argIdx);
+		Expected expected = Expected(tempAsArr(castNonScope_ref(paramExpected)));
 
 		pauseMeasure(ctx.alloc, ctx.perf, perfMeasurer);
 		immutable Expr arg = checkExpr(ctx, locals, ast.args[argIdx], expected);
@@ -177,7 +175,7 @@ private immutable(Expr) checkCallInner(
 		return bogus(expected, range);
 
 	if (mutMaxArrSize(candidates) != 1 &&
-		exists_const!Candidate(tempAsArr_const(candidates), (ref const Candidate it) => candidateIsPreferred(it))) {
+		exists!(const Candidate)(tempAsArr(candidates), (ref const Candidate it) => candidateIsPreferred(it))) {
 		filterCandidates(candidates, (ref Candidate it) => candidateIsPreferred(it));
 	}
 
@@ -200,8 +198,7 @@ private immutable(Expr) checkCallInner(
 				immutable Diag.CallMultipleMatches(funName, candidatesForDiag(ctx.alloc, candidates))));
 		return bogus(expected, range);
 	} else
-		return checkCallAfterChoosingOverload(
-			ctx, isInLambda(locals), only_const(candidates), range, force(args), expected);
+		return checkCallAfterChoosingOverload(ctx, isInLambda(locals), only(candidates), range, force(args), expected);
 }
 
 immutable(Expr) checkIdentifierCall(
@@ -304,8 +301,7 @@ alias Candidates = MutMaxArr!(maxCandidates, Candidate);
 alias ParamExpected = MutMaxArr!(maxCandidates, TypeAndInferring);
 
 immutable(CalledDecl[]) candidatesForDiag(ref Alloc alloc, ref const Candidates candidates) =>
-	map_const!(CalledDecl, Candidate)(alloc, tempAsArr_const(candidates), (ref const Candidate c) =>
-		c.called);
+	map(alloc, tempAsArr(candidates), (ref const Candidate c) => c.called);
 
 immutable(bool) candidateIsPreferred(ref const Candidate a) =>
 	matchCalledDecl!(
@@ -333,10 +329,8 @@ void overwriteCandidate(ref Candidate a, ref const Candidate b) {
 	copyToFrom(a.typeArgs, b.typeArgs);
 }
 
-InferringTypeArgs inferringTypeArgs(return ref Candidate a) =>
-	InferringTypeArgs(a.called.typeParams, tempAsArr_mut(a.typeArgs));
-const(InferringTypeArgs) inferringTypeArgs_const(return ref const Candidate a) =>
-	const InferringTypeArgs(a.called.typeParams, tempAsArr_const(a.typeArgs));
+inout(InferringTypeArgs) inferringTypeArgs(return ref inout Candidate a) =>
+	inout InferringTypeArgs(a.called.typeParams, tempAsArr(a.typeArgs));
 
 immutable(T) withCandidates(T)(
 	ref ExprCtx ctx,
@@ -394,8 +388,8 @@ immutable(Type) getCandidateExpectedParameterTypeRecur(
 		(immutable Type.Bogus) =>
 			immutable Type(Type.Bogus()),
 		(immutable TypeParam* p) {
-			const InferringTypeArgs ita = inferringTypeArgs_const(candidate);
-			const Opt!(SingleInferringType*) sit = tryGetTypeArgFromInferringTypeArgs_const(ita, p);
+			const InferringTypeArgs ita = inferringTypeArgs(candidate);
+			const Opt!(SingleInferringType*) sit = tryGetTypeArgFromInferringTypeArgs(ita, p);
 			immutable Opt!Type inferred = has(sit) ? tryGetInferred(*force(sit)) : none!Type;
 			return has(inferred) ? force(inferred) : immutable Type(p);
 		},
@@ -438,7 +432,7 @@ void getParamExpected(
 		immutable Type t = getCandidateExpectedParameterType(alloc, programState, candidate, argIdx);
 		InferringTypeArgs ita = inferringTypeArgs(candidate);
 		immutable bool isDuplicate = ita.args.length == 0 &&
-			exists_const!TypeAndInferring(tempAsArr(paramExpected), (scope ref const TypeAndInferring x) =>
+			exists!(const TypeAndInferring)(tempAsArr(paramExpected), (scope ref const TypeAndInferring x) =>
 				x.type == t);
 		if (!isDuplicate)
 			paramExpected.push(TypeAndInferring(t, ita));
@@ -569,7 +563,7 @@ immutable(Opt!Called) findSpecSigImplementation(
 					immutable Diag.SpecImplNotFound(specSig, toArray(ctx.alloc, trace))));
 				return none!Called;
 			case 1:
-				return getCalledFromCandidate(ctx, isInLambda, range, only_const(candidates), ArgsKind.nonEmpty, trace);
+				return getCalledFromCandidate(ctx, isInLambda, range, only(candidates), ArgsKind.nonEmpty, trace);
 			default:
 				addDiag2(ctx, range, immutable Diag(
 					immutable Diag.SpecImplFoundMultiple(specSig.name, candidatesForDiag(ctx.alloc, candidates))));
@@ -584,7 +578,7 @@ immutable(bool) findBuiltinSpecOnType(
 	immutable SpecBody.Builtin.Kind kind,
 	immutable Type type,
 ) =>
-	exists!(SpecInst*)(ctx.outermostFunSpecs, (ref immutable SpecInst* inst) =>
+	exists!(immutable SpecInst*)(ctx.outermostFunSpecs, (ref immutable SpecInst* inst) =>
 		matchSpecBody!(immutable bool)(
 			inst.body_,
 			(immutable SpecBody.Builtin b) =>
@@ -616,11 +610,12 @@ immutable(bool) checkBuiltinSpec(
 immutable size_t maxSpecImpls = 16;
 immutable size_t maxSpecDepth = 8;
 
+alias SpecImpls = MutMaxArr!(maxSpecImpls, immutable Called);
 alias SpecTrace = MutMaxArr!(maxSpecDepth, immutable FunDeclAndTypeArgs);
 
 // On failure, returns false
 immutable(bool) checkSpecImpls(
-	ref MutMaxArr!(maxSpecImpls, Called) res,
+	ref SpecImpls res,
 	ref ExprCtx ctx,
 	immutable bool isInLambda,
 	immutable FileAndRange range,
@@ -684,7 +679,7 @@ immutable(Opt!Called) getCalledFromCandidate(
 				addDiag2(ctx, range, immutable Diag(immutable Diag.SpecImplTooDeep(toArray(ctx.alloc, trace))));
 				return none!Called;
 			} else {
-				MutMaxArr!(maxSpecImpls, Called) specImpls = mutMaxArr!(maxSpecImpls, Called);
+				SpecImpls specImpls = mutMaxArr!(maxSpecImpls, immutable Called);
 				return checkSpecImpls(specImpls, ctx, isInLambda, range, f, tempAsArr(candidateTypeArgs), trace)
 					? some(immutable Called(
 						instantiateFun(

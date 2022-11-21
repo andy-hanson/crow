@@ -111,7 +111,7 @@ import model.model :
 import util.alloc.alloc : Alloc;
 import util.col.arr : castImmutable, empty, emptySmallArray, only, ptrsRange, sizeEq, small;
 import util.col.arrBuilder : add, ArrBuilder, finishArr;
-import util.col.arrUtil : cat, eachPair, map, mapOp, mapToMut, mapWithIndex, zipFirstMut, zipMutPtrFirst;
+import util.col.arrUtil : cat, eachPair, map, mapOp, mapToMut, mapWithIndex, zip, zipPtrFirst;
 import util.col.dict : Dict, dictEach, hasKey, KeyValuePair;
 import util.col.dictBuilder : DictBuilder, finishDict, tryAddToDict;
 import util.col.exactSizeArrBuilder : ExactSizeArrBuilder, exactSizeArrBuilderAdd, finish, newExactSizeArrBuilder;
@@ -123,9 +123,9 @@ import util.col.mutDict : insertOrUpdate, moveToDict, MutDict;
 import util.col.mutMaxArr : MutMaxArr, mutMaxArr, mutMaxArrSize, pushIfUnderMaxSize, tempAsArr;
 import util.col.str : copySafeCStr, SafeCStr, safeCStr, strOfSafeCStr;
 import util.memory : allocate, allocateMut, overwriteMemory;
-import util.opt : force, has, none, noneMut, Opt, some, someMut;
+import util.opt : force, has, none, noneMut, Opt, some;
 import util.perf : Perf;
-import util.ptr : castImmutable, castNonScope_mut, ptrTrustMe_mut;
+import util.ptr : castImmutable, ptrTrustMe;
 import util.sourceRange : FileAndPos, FileAndRange, FileIndex, RangeWithinFile;
 import util.sym : AllSymbols, Sym, sym;
 import util.util : unreachable, todo, verify;
@@ -150,11 +150,11 @@ immutable(BootstrapCheck) checkBootstrap(
 ) {
 	static immutable ImportsAndExports emptyImportsAndExports = immutable ImportsAndExports([], [], [], []);
 	return checkWorker(
-		castNonScope_mut(&alloc),
-		castNonScope_mut(&perf),
-		castNonScope_mut(&allSymbols),
+		alloc,
+		perf,
+		allSymbols,
 		diagsBuilder,
-		castNonScope_mut(&programState),
+		programState,
 		emptyImportsAndExports,
 		pathAndAst,
 		(ref CheckCtx ctx,
@@ -188,11 +188,11 @@ immutable(Module) check(
 	ref immutable CommonTypes commonTypes,
 ) =>
 	checkWorker(
-		castNonScope_mut(&alloc),
-		castNonScope_mut(&perf),
-		castNonScope_mut(&allSymbols),
+		alloc,
+		perf,
+		allSymbols,
 		diagsBuilder,
-		castNonScope_mut(&programState),
+		programState,
 		importsAndExports,
 		pathAndAst,
 		(ref CheckCtx, ref immutable(StructsAndAliasesDict), ref MutArr!(StructInst*)) => commonTypes,
@@ -254,7 +254,7 @@ immutable(StructInst*) instantiateNonTemplateStructDecl(
 	ref MutArr!(StructInst*) delayedStructInsts,
 	immutable StructDecl* structDecl,
 ) =>
-	instantiateStruct(alloc, programState, structDecl, [], someMut(castNonScope_mut(&delayedStructInsts)));
+	instantiateStruct(alloc, programState, structDecl, [], some(ptrTrustMe(delayedStructInsts)));
 
 immutable(CommonTypes) getCommonTypes(
 	ref CheckCtx ctx,
@@ -374,7 +374,7 @@ immutable(CommonTypes) getCommonTypes(
 		ctx.programState,
 		constPointer,
 		[immutable Type(char8)],
-		someMut(castNonScope_mut(&delayedStructInsts)));
+		some(ptrTrustMe(delayedStructInsts)));
 
 	immutable Sym[] missingArr = finishArr(ctx.alloc, missing);
 
@@ -553,7 +553,7 @@ immutable(SpecBody) checkSpecBody(
 		(ref immutable SpecBodyAst.Builtin) =>
 			immutable SpecBody(SpecBody.Builtin(getSpecBodyBuiltinKind(ctx, range, name))),
 		(ref immutable SpecSigAst[] sigs) =>
-			immutable SpecBody(map!SpecDeclSig(ctx.alloc, sigs, (ref immutable SpecSigAst it) {
+			immutable SpecBody(map(ctx.alloc, sigs, (ref immutable SpecSigAst it) {
 				immutable ReturnTypeAndParams rp = checkReturnTypeAndParams(
 					ctx,
 					commonTypes,
@@ -577,7 +577,7 @@ immutable(SpecDecl[]) checkSpecDecls(
 	ref immutable StructsAndAliasesDict structsAndAliasesDict,
 	scope immutable SpecDeclAst[] asts,
 ) =>
-	map!SpecDecl(ctx.alloc, asts, (ref immutable SpecDeclAst ast) {
+	map(ctx.alloc, asts, (ref immutable SpecDeclAst ast) {
 		immutable TypeParam[] typeParams = checkTypeParams(ctx, ast.typeParams);
 		immutable SpecBody body_ =
 			checkSpecBody(ctx, commonTypes, typeParams, structsAndAliasesDict, ast.range, ast.name, ast.body_);
@@ -607,7 +607,7 @@ void checkStructAliasTargets(
 	scope immutable StructAliasAst[] asts,
 	ref MutArr!(StructInst*) delayStructInsts,
 ) {
-	zipFirstMut!(StructAlias, StructAliasAst)(
+	zip!(StructAlias, immutable StructAliasAst)(
 		aliases,
 		asts,
 		(ref StructAlias structAlias, ref immutable StructAliasAst ast) {
@@ -617,7 +617,7 @@ void checkStructAliasTargets(
 				ast.target,
 				structsAndAliasesDict,
 				immutable TypeParamsScope(structAlias.typeParams),
-				someMut!(MutArr!(StructInst*)*)(ptrTrustMe_mut(delayStructInsts)));
+				some!(MutArr!(StructInst*)*)(ptrTrustMe(delayStructInsts)));
 			if (isStructInst(type))
 				setTarget(structAlias, some(asStructInst(type)));
 			else {
@@ -860,7 +860,7 @@ immutable(FunsAndDict) checkFuns(
 				immutable FunDeclAndIndex(immutable ModuleLocalFunIndex(index), it)));
 
 	FunDecl[] funsWithAsts = funs[0 .. asts.length];
-	zipMutPtrFirst!(FunDecl, FunDeclAst)(funsWithAsts, asts, (FunDecl* fun, ref immutable FunDeclAst funAst) {
+	zipPtrFirst!(FunDecl, immutable FunDeclAst)(funsWithAsts, asts, (FunDecl* fun, ref immutable FunDeclAst funAst) {
 		overwriteMemory(&fun.body_, () {
 			final switch (fun.flags.specialBody) {
 				case FunFlags.SpecialBody.none:
@@ -914,7 +914,7 @@ immutable(FunsAndDict) checkFuns(
 			ctx, commonTypes, structsAndAliasesDict, funsDict, usedFuns, *castImmutable(fun), f));
 	}
 
-	immutable Test[] tests = map!(Test, TestAst)(ctx.alloc, testAsts, (scope ref immutable TestAst ast) {
+	immutable Test[] tests = map(ctx.alloc, testAsts, (scope ref immutable TestAst ast) {
 		immutable Type voidType = immutable Type(commonTypes.void_);
 		if (!has(ast.body_))
 			todo!void("diag: test needs body");
@@ -1160,7 +1160,7 @@ immutable(Module) checkWorkerAfterCommonTypes(
 			ctx.alloc,
 			ctx.programState,
 			i.declAndArgs,
-			someMut(castNonScope_mut(&delayStructInsts))));
+			some(ptrTrustMe(delayStructInsts))));
 	}
 
 	immutable SpecDecl[] specs = checkSpecDecls(ctx, commonTypes, structsAndAliasesDict, ast.specs);
@@ -1289,11 +1289,11 @@ immutable(Dict!(Sym, NameReferents)) getAllExportedNames(
 }
 
 immutable(BootstrapCheck) checkWorker(
-	Alloc* allocPtr,
-	Perf* perf,
-	AllSymbols* allSymbolsPtr,
+	ref Alloc alloc,
+	scope ref Perf perf,
+	scope ref AllSymbols allSymbols,
 	ref DiagnosticsBuilder diagsBuilder,
-	ProgramState* programStatePtr,
+	ref ProgramState programState,
 	ref immutable ImportsAndExports importsAndExports,
 	scope ref immutable PathAndAst pathAndAst,
 	scope immutable(CommonTypes) delegate(
@@ -1302,17 +1302,14 @@ immutable(BootstrapCheck) checkWorker(
 		ref MutArr!(StructInst*),
 	) @safe @nogc pure nothrow getCommonTypes,
 ) {
-	ref Alloc alloc() =>
-		*allocPtr;
-
 	checkImportsOrExports(alloc, diagsBuilder, pathAndAst.fileIndex, importsAndExports.moduleImports);
 	checkImportsOrExports(alloc, diagsBuilder, pathAndAst.fileIndex, importsAndExports.moduleExports);
 	immutable FileAst ast = pathAndAst.ast;
 	CheckCtx ctx = CheckCtx(
-		allocPtr,
-		perf,
-		programStatePtr,
-		allSymbolsPtr,
+		ptrTrustMe(alloc),
+		ptrTrustMe(perf),
+		ptrTrustMe(programState),
+		ptrTrustMe(allSymbols),
 		pathAndAst.fileIndex,
 		importsAndExports.moduleImports,
 		importsAndExports.moduleExports,
@@ -1327,7 +1324,7 @@ immutable(BootstrapCheck) checkWorker(
 		// TODO: use temp alloc
 		makeFullIndexDict_mut!(ModuleLocalSpecIndex, bool)(
 			alloc, ast.specs.length, (immutable(ModuleLocalSpecIndex)) => false),
-		castNonScope_mut(&diagsBuilder));
+		ptrTrustMe(diagsBuilder));
 
 	// Since structs may refer to each other, first get a structsAndAliasesDict, *then* fill in bodies
 	StructDecl[] structs = checkStructsInitial(ctx, ast.structs);

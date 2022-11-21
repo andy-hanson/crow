@@ -370,35 +370,35 @@ public void writeMangledName(ref Writer writer, scope ref immutable MangledNames
 immutable(Opt!string) mangleChar(immutable char a) {
 	switch (a) {
 		case '~':
-			return some("__t");
+			return some!string("__t");
 		case '!':
-			return some("__b");
+			return some!string("__b");
 		case '%':
-			return some("__u");
+			return some!string("__u");
 		case '^':
-			return some("__x");
+			return some!string("__x");
 		case '&':
-			return some("__a");
+			return some!string("__a");
 		case '*':
-			return some("__m");
+			return some!string("__m");
 		case '-':
-			return some("__s");
+			return some!string("__s");
 		case '+':
-			return some("__p");
+			return some!string("__p");
 		case '=':
-			return some("__e");
+			return some!string("__e");
 		case '|':
-			return some("__o");
+			return some!string("__o");
 		case '<':
-			return some("__l");
+			return some!string("__l");
 		case '.':
-			return some("__r");
+			return some!string("__r");
 		case '>':
-			return some("__g");
+			return some!string("__g");
 		case '/':
-			return some("__d");
+			return some!string("__d");
 		case '?':
-			return some("__q");
+			return some!string("__q");
 		default:
 			return none!string;
 	}

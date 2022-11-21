@@ -5,7 +5,7 @@ module frontend.check.inferringType;
 import frontend.check.checkCtx : addDiag, CheckCtx, rangeInFile;
 import frontend.check.dicts : FunsDict, ModuleLocalFunIndex, StructsAndAliasesDict;
 import frontend.check.instantiate :
-	instantiateStructNeverDelay, tryGetTypeArg_const, tryGetTypeArg_mut, TypeArgsArray, typeArgsArray, TypeParamsScope;
+	instantiateStructNeverDelay, tryGetTypeArg, TypeArgsArray, typeArgsArray, TypeParamsScope;
 import frontend.check.typeFromAst : typeFromAst;
 import frontend.lang : maxClosureFields, maxParams;
 import frontend.parse.ast : TypeAst;
@@ -36,13 +36,13 @@ import model.model :
 	VariableRef;
 import util.alloc.alloc : Alloc;
 import util.cell : Cell, cellGet, cellSet;
-import util.col.arr : only_const, only_mut, sizeEq;
-import util.col.arrUtil : arrLiteral, exists_const, map_const;
+import util.col.arr : only, sizeEq;
+import util.col.arrUtil : arrLiteral, exists, map;
 import util.col.fullIndexDict : FullIndexDict;
 import util.col.mutArr : MutArr;
 import util.col.mutMaxArr : mapTo, MutMaxArr, push, tempAsArr;
 import util.memory : overwriteMemory;
-import util.opt : has, force, none, noneMut, Opt, some, someMut;
+import util.opt : has, force, none, noneMut, Opt, some;
 import util.perf : Perf;
 import util.ptr : castNonScope_ref;
 import util.sourceRange : FileAndRange, RangeWithinFile;
@@ -196,7 +196,7 @@ immutable(bool) mayBeFunTypeWithArity(
 		(immutable Type.Bogus) =>
 			false,
 		(immutable TypeParam* p) {
-			const Opt!(SingleInferringType*) inferring = tryGetTypeArgFromInferringTypeArgs_const(inferringTypeArgs, p);
+			const Opt!(SingleInferringType*) inferring = tryGetTypeArgFromInferringTypeArgs(inferringTypeArgs, p);
 			immutable Opt!Type inferred = has(inferring) ? cellGet(force(inferring).type) : none!Type;
 			return has(inferred) && isStructInst(force(inferred))
 				? isFunTypeWithArity(commonTypes, asStructInst(force(inferred)), arity)
@@ -282,7 +282,7 @@ struct Expected {
 }
 
 private @trusted T matchExpected_const(T)(
-	scope ref inout Expected a,
+	scope ref const Expected a,
 	scope T delegate(immutable Expected.Infer) @safe @nogc pure nothrow cbInfer,
 	scope T delegate(immutable Type) @safe @nogc pure nothrow cbType,
 	scope T delegate(const TypeAndInferring[]) @safe @nogc pure nothrow cbTypeAndInferring,
@@ -320,7 +320,7 @@ private @trusted T matchExpected_mut(T)(
 
 @trusted Opt!(LoopInfo*) tryGetLoop(ref Expected expected) =>
 	expected.kind == Expected.Kind.loop
-		? someMut(expected.loop_)
+		? some(expected.loop_)
 		: noneMut!(LoopInfo*);
 
 @trusted immutable(Opt!Type) tryGetInferred(ref const Expected expected) =>
@@ -331,7 +331,7 @@ private @trusted T matchExpected_mut(T)(
 		(immutable Type x) =>
 			some(x),
 		(const TypeAndInferring[] ti) =>
-			ti.length == 1 ? some(only_const(ti).type) : none!Type,
+			ti.length == 1 ? some(only(ti).type) : none!Type,
 		(const LoopInfo*) =>
 			none!Type);
 
@@ -372,10 +372,10 @@ immutable(Opt!Type) shallowInstantiateType(ref const Expected expected) =>
 			some(x),
 		(const TypeAndInferring[] choices) {
 			if (choices.length == 1) {
-				const TypeAndInferring choice = only_const(choices);
+				const TypeAndInferring choice = only(choices);
 				if (isTypeParam(choice.type)) {
 					const Opt!(SingleInferringType*) typeArg =
-						tryGetTypeArgFromInferringTypeArgs_const(choice.inferringTypeArgs, asTypeParam(choice.type));
+						tryGetTypeArgFromInferringTypeArgs(choice.inferringTypeArgs, asTypeParam(choice.type));
 					return has(typeArg) ? tryGetInferred(*force(typeArg)) : none!Type;
 				} else
 					return some(choice.type);
@@ -400,7 +400,7 @@ private InferringTypeArgs getInferringTypeArgs(ref Expected expected) =>
 		(immutable Type x) =>
 			InferringTypeArgs(),
 		(TypeAndInferring[] choices) =>
-			only_mut(choices).inferringTypeArgs,
+			only(choices).inferringTypeArgs,
 		(LoopInfo*) =>
 			unreachable!InferringTypeArgs);
 private const(InferringTypeArgs) getInferringTypeArgs(ref const Expected expected) =>
@@ -411,7 +411,7 @@ private const(InferringTypeArgs) getInferringTypeArgs(ref const Expected expecte
 		(immutable Type t) =>
 			const InferringTypeArgs(),
 		(const TypeAndInferring[] choices) =>
-			only_const(choices).inferringTypeArgs,
+			only(choices).inferringTypeArgs,
 		(const LoopInfo*) =>
 			unreachable!(const InferringTypeArgs));
 
@@ -448,7 +448,7 @@ immutable(bool) matchExpectedVsReturnTypeNoDiagnostic(
 						alloc, programState, candidateReturnType, candidateTypeArgs, force(t));
 			}
 			// Don't infer any type args here; multiple candidates and multiple possible return types.
-			return exists_const!TypeAndInferring(choices, (ref const TypeAndInferring x) =>
+			return exists!(const TypeAndInferring)(choices, (ref const TypeAndInferring x) =>
 				isTypeMatchPossible(x.type, x.inferringTypeArgs, candidateReturnType, candidateTypeArgs));
 		},
 		(const LoopInfo*) =>
@@ -477,7 +477,7 @@ immutable(Type) inferred(ref const Expected expected) =>
 			x,
 		(const TypeAndInferring[] choices) =>
 			// If there were multiple, we should have set the expected.
-			only_const(choices).type,
+			only(choices).type,
 		(const LoopInfo* x) =>
 			// Just treat loop body as 'void'
 			x.voidType);
@@ -499,7 +499,7 @@ immutable(Expr) check(
 				immutable Diag(immutable Diag.TypeConflict(arrLiteral!Type(ctx.alloc, [x]), exprType)),
 			(scope const TypeAndInferring[] xs) =>
 				immutable Diag(immutable Diag.TypeConflict(
-					map_const!Type(ctx.alloc, xs, (scope ref const TypeAndInferring x) => x.type),
+					map(ctx.alloc, xs, (scope ref const TypeAndInferring x) => x.type),
 					exprType)),
 			(scope const LoopInfo*) =>
 				immutable Diag(immutable Diag.LoopNeedsBreakOrContinue())));
@@ -554,17 +554,11 @@ private immutable(bool) setTypeNoDiagnostic(
 		(LoopInfo* loop) =>
 			false);
 
-private Opt!(SingleInferringType*) tryGetTypeArgFromInferringTypeArgs_mut(
-	return scope ref InferringTypeArgs inferringTypeArgs,
+inout(Opt!(SingleInferringType*)) tryGetTypeArgFromInferringTypeArgs(
+	return scope ref inout InferringTypeArgs inferringTypeArgs,
 	immutable TypeParam* typeParam,
 ) =>
-	tryGetTypeArg_mut!SingleInferringType(inferringTypeArgs.params, inferringTypeArgs.args, typeParam);
-
-const(Opt!(SingleInferringType*)) tryGetTypeArgFromInferringTypeArgs_const(
-	return scope ref const InferringTypeArgs inferringTypeArgs,
-	immutable TypeParam* typeParam,
-) =>
-	tryGetTypeArg_const!SingleInferringType(inferringTypeArgs.params, inferringTypeArgs.args, typeParam);
+	tryGetTypeArg(inferringTypeArgs.params, inferringTypeArgs.args, typeParam);
 
 private:
 
@@ -588,7 +582,7 @@ immutable(Opt!Type) tryGetDeeplyInstantiatedTypeWorker(
 		(immutable Type.Bogus) =>
 			some(immutable Type(Type.Bogus())),
 		(immutable TypeParam* p) {
-			const Opt!(SingleInferringType*) ta = tryGetTypeArgFromInferringTypeArgs_const(inferringTypeArgs, p);
+			const Opt!(SingleInferringType*) ta = tryGetTypeArgFromInferringTypeArgs(inferringTypeArgs, p);
 			// If it's not one of the inferring types, it's instantiated enough to return.
 			return has(ta) ? tryGetInferred(*force(ta)) : some(a);
 		},
@@ -643,7 +637,7 @@ immutable(SetTypeResult) checkType(
 			// TODO: make sure to infer type params in this case!
 			SetTypeResult.keep,
 		(immutable TypeParam* pa) {
-			Opt!(SingleInferringType*) aInferring = tryGetTypeArgFromInferringTypeArgs_mut(aInferringTypeArgs, pa);
+			Opt!(SingleInferringType*) aInferring = tryGetTypeArgFromInferringTypeArgs(aInferringTypeArgs, pa);
 			return has(aInferring)
 				? setTypeNoDiagnosticWorker_forSingleInferringType(alloc, programState, *force(aInferring), b)
 				: matchType!(immutable SetTypeResult)(
@@ -709,14 +703,14 @@ immutable(bool) isTypeMatchPossible(
 	if (isBogus(a) || isBogus(b))
 		return true;
 	if (isTypeParam(a)) {
-		const Opt!(SingleInferringType*) aSingle = tryGetTypeArgFromInferringTypeArgs_const(aInferring, asTypeParam(a));
+		const Opt!(SingleInferringType*) aSingle = tryGetTypeArgFromInferringTypeArgs(aInferring, asTypeParam(a));
 		if (has(aSingle)) {
 			immutable Opt!Type t = tryGetInferred(*force(aSingle));
 			return !has(t) || isTypeMatchPossible(force(t), InferringTypeArgs(), b, bInferring);
 		}
 	}
 	if (isTypeParam(b)) {
-		const Opt!(SingleInferringType*) bSingle = tryGetTypeArgFromInferringTypeArgs_const(bInferring, asTypeParam(b));
+		const Opt!(SingleInferringType*) bSingle = tryGetTypeArgFromInferringTypeArgs(bInferring, asTypeParam(b));
 		if (has(bSingle)) {
 			immutable Opt!Type t = tryGetInferred(*force(bSingle));
 			return !has(t) || isTypeMatchPossible(a, aInferring, force(t), InferringTypeArgs());

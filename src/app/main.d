@@ -112,7 +112,7 @@ import util.path :
 	TempStrForPath,
 	writePathPlain;
 import util.perf : eachMeasure, Perf, perfEnabled, PerfMeasure, PerfMeasureResult, withMeasure;
-import util.ptr : ptrTrustMe_mut;
+import util.ptr : ptrTrustMe;
 import util.readOnlyStorage : matchReadFileResult, ReadFileResult, ReadOnlyStorage;
 import util.sym : AllSymbols, concatSyms, safeCStrOfSym, Sym, sym, symOfStr, writeSym;
 import util.util : castImmutableRef, todo, verify;
@@ -125,8 +125,8 @@ import versionInfo : versionInfoForJIT;
 	scope(exit) pureFree(mem);
 	verify(mem != null);
 	Alloc alloc = Alloc(mem, memorySizeBytes);
-	AllSymbols allSymbols = AllSymbols(ptrTrustMe_mut(alloc));
-	AllPaths allPaths = AllPaths(ptrTrustMe_mut(alloc), ptrTrustMe_mut(allSymbols));
+	AllSymbols allSymbols = AllSymbols(ptrTrustMe(alloc));
+	AllPaths allPaths = AllPaths(ptrTrustMe(alloc), ptrTrustMe(allSymbols));
 	immutable immutable(ulong) function() @safe @nogc pure nothrow getTimeNanosPure =
 		cast(immutable(ulong) function() @safe @nogc pure nothrow) &getTimeNanos;
 	scope Perf perf = Perf(() => getTimeNanosPure());
@@ -710,7 +710,7 @@ immutable(SafeCStr[]) cCompileArgs(
 			if (has(x.configuredPath))
 				todo!void("link to library at custom path on Posix");
 			else {
-				Writer writer = Writer(ptrTrustMe_mut(alloc));
+				Writer writer = Writer(ptrTrustMe(alloc));
 				writer ~= "-l";
 				writeSym(writer, allSymbols, x.libraryName);
 				add(alloc, args, finishWriterToSafeCStr(writer));
@@ -719,7 +719,7 @@ immutable(SafeCStr[]) cCompileArgs(
 	}
 	version (Windows) {
 		add(alloc, args, safeCStr!"/DEBUG");
-		Writer writer = Writer(ptrTrustMe_mut(alloc));
+		Writer writer = Writer(ptrTrustMe(alloc));
 		writer ~= "/out:";
 		writePathPlain(writer, allPaths, exePath);
 		add(alloc, args, finishWriterToSafeCStr(writer));
@@ -1031,7 +1031,7 @@ version (Windows) {
 		immutable SafeCStr executablePath,
 		scope immutable SafeCStr[] args,
 	) {
-		Writer writer = Writer(ptrTrustMe_mut(tempAlloc));
+		Writer writer = Writer(ptrTrustMe(tempAlloc));
 		writer ~= '"';
 		writer ~= executablePath;
 		writer ~= '"';

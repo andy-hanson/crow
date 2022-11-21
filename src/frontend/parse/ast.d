@@ -335,7 +335,7 @@ struct InterpolatedAst {
 
 	immutable this(immutable InterpolatedPart[] p) {
 		parts = p;
-		verify(exists!InterpolatedPart(parts, (ref immutable InterpolatedPart part) =>
+		verify(exists!(immutable InterpolatedPart)(parts, (ref immutable InterpolatedPart part) =>
 			part.kind == InterpolatedPart.Kind.expr));
 	}
 }

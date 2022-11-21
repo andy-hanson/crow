@@ -5,7 +5,7 @@ module util.dictReadOnlyStorage;
 import frontend.lang : crowExtension;
 import util.col.mutDict : getAt_mut, MutDict;
 import util.col.str : SafeCStr;
-import util.opt : asImmutable, force, has, none, Opt;
+import util.opt : force, has, none, Opt;
 import util.path : Path;
 import util.readOnlyStorage : ReadFileResult, ReadOnlyStorage;
 import util.sym : Sym;
@@ -28,7 +28,7 @@ immutable(T) withDictReadOnlyStorage(T)(
 			void delegate(immutable ReadFileResult!SafeCStr) @safe @nogc pure nothrow cb,
 		) {
 			immutable Opt!SafeCStr res = extension == crowExtension
-				? asImmutable(getAt_mut(files, path))
+				? getAt_mut(files, path)
 				: none!SafeCStr;
 			return cb(has(res)
 				? immutable ReadFileResult!SafeCStr(force(res))

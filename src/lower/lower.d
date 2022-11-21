@@ -144,9 +144,9 @@ import util.col.mutDict : getAt_mut, getOrAdd, mapToArr_mut, MutDict, MutDict, V
 import util.col.stackDict : StackDict2, stackDict2Add0, stackDict2Add1, stackDict2MustGet0, stackDict2MustGet1;
 import util.late : Late, late, lateGet, lateIsSet, lateSet;
 import util.memory : allocate, allocateMut, overwriteMemory;
-import util.opt : asImmutable, force, has, none, Opt, some;
+import util.opt : force, has, none, Opt, some;
 import util.perf : Perf, PerfMeasure, withMeasure;
-import util.ptr : castNonScope_mut, castNonScope_ref, ptrTrustMe, ptrTrustMe_mut;
+import util.ptr : castNonScope_ref, ptrTrustMe;
 import util.sourceRange : FileAndRange;
 import util.sym : AllSymbols, Sym, sym;
 import util.util : unreachable, verify;
@@ -168,7 +168,7 @@ private immutable(LowProgram) lowerInner(
 	scope ref immutable ConfigExternPaths configExtern,
 	ref immutable ConcreteProgram a,
 ) {
-	AllLowTypesWithCtx allTypes = getAllLowTypes(castNonScope_mut(&alloc), castNonScope_mut(&allSymbols), a);
+	AllLowTypesWithCtx allTypes = getAllLowTypes(ptrTrustMe(alloc), ptrTrustMe(allSymbols), a);
 	immutable AllLowFuns allFuns = getAllLowFuns(allTypes.allTypes, allTypes.getLowTypeCtx, configExtern, a);
 	immutable AllConstantsLow allConstants = convertAllConstants(allTypes.getLowTypeCtx, a.allConstants);
 	immutable LowProgram res = immutable LowProgram(
@@ -184,8 +184,8 @@ private immutable(LowProgram) lowerInner(
 }
 
 struct MarkVisitFuns {
-	MutIndexDict!(immutable LowType.Record, immutable LowFunIndex) recordValToVisit;
-	MutIndexDict!(immutable LowType.Union, immutable LowFunIndex) unionToVisit;
+	MutIndexDict!(LowType.Record, LowFunIndex) recordValToVisit;
+	MutIndexDict!(LowType.Union, LowFunIndex) unionToVisit;
 	MutDict!(immutable LowType, immutable LowFunIndex) gcPointeeToVisit;
 }
 
@@ -204,15 +204,15 @@ immutable(Opt!LowFunIndex) tryGetMarkVisitFun(ref const MarkVisitFuns funs, immu
 		(immutable PrimitiveType it) =>
 			none!LowFunIndex,
 		(immutable LowType.PtrGc it) =>
-			asImmutable(getAt_mut(funs.gcPointeeToVisit, *it.pointee)),
+			getAt_mut(funs.gcPointeeToVisit, *it.pointee),
 		(immutable LowType.PtrRawConst) =>
 			none!LowFunIndex,
 		(immutable LowType.PtrRawMut) =>
 			none!LowFunIndex,
 		(immutable LowType.Record it) =>
-			asImmutable(funs.recordValToVisit[it]),
+			funs.recordValToVisit[it],
 		(immutable LowType.Union it) =>
-			asImmutable(funs.unionToVisit[it]),
+			funs.unionToVisit[it],
 	)(type);
 
 private:
@@ -221,12 +221,11 @@ immutable(AllConstantsLow) convertAllConstants(
 	ref GetLowTypeCtx ctx,
 	ref immutable AllConstantsConcrete a,
 ) {
-	immutable ArrTypeAndConstantsLow[] arrs =
-		map!ArrTypeAndConstantsLow(ctx.alloc, a.arrs, (ref immutable ArrTypeAndConstantsConcrete it) {
-			immutable LowType arrType = lowTypeFromConcreteStruct(ctx, it.arrType);
-			immutable LowType elementType = lowTypeFromConcreteType(ctx, it.elementType);
-			return immutable ArrTypeAndConstantsLow(asRecordType(arrType), elementType, it.constants);
-		});
+	immutable ArrTypeAndConstantsLow[] arrs = map(ctx.alloc, a.arrs, (ref immutable ArrTypeAndConstantsConcrete it) {
+		immutable LowType arrType = lowTypeFromConcreteStruct(ctx, it.arrType);
+		immutable LowType elementType = lowTypeFromConcreteType(ctx, it.elementType);
+		return immutable ArrTypeAndConstantsLow(asRecordType(arrType), elementType, it.constants);
+	});
 	immutable PointerTypeAndConstantsLow[] records =
 		map(ctx.alloc, a.pointers, (ref immutable PointerTypeAndConstantsConcrete it) =>
 			immutable PointerTypeAndConstantsLow(lowTypeFromConcreteStruct(ctx, it.pointeeType), it.constants));
@@ -575,11 +574,11 @@ immutable(bool) needsMarkVisitFun(ref immutable AllLowTypes allTypes, immutable 
 			false,
 		(immutable LowType.Record it) {
 			immutable LowRecord record = allTypes.allRecords[it];
-			return isArray(record) || exists!LowField(record.fields, (ref immutable LowField field) =>
+			return isArray(record) || exists!(immutable LowField)(record.fields, (ref immutable LowField field) =>
 				needsMarkVisitFun(allTypes, field.type));
 		},
 		(immutable LowType.Union it) =>
-			exists!LowType(allTypes.allUnions[it].members, (ref immutable LowType member) =>
+			exists!(immutable LowType)(allTypes.allUnions[it].members, (ref immutable LowType member) =>
 				needsMarkVisitFun(allTypes, member)),
 	)(a);
 
@@ -593,10 +592,8 @@ immutable(AllLowFuns) getAllLowFuns(
 	ArrBuilder!LowFunCause lowFunCausesBuilder;
 
 	MarkVisitFuns markVisitFuns = MarkVisitFuns(
-		newMutIndexDict!(immutable LowType.Record, immutable LowFunIndex)(
-			getLowTypeCtx.alloc, fullIndexDictSize(allTypes.allRecords)),
-		newMutIndexDict!(immutable LowType.Union, immutable LowFunIndex)(
-			getLowTypeCtx.alloc, fullIndexDictSize(allTypes.allUnions)));
+		newMutIndexDict!(LowType.Record, LowFunIndex)(getLowTypeCtx.alloc, fullIndexDictSize(allTypes.allRecords)),
+		newMutIndexDict!(LowType.Union, LowFunIndex)(getLowTypeCtx.alloc, fullIndexDictSize(allTypes.allUnions)));
 
 	immutable(LowFunIndex) addLowFun(immutable LowFunCause source) {
 		immutable LowFunIndex res = immutable LowFunIndex(arrBuilderSize(lowFunCausesBuilder));
@@ -636,7 +633,7 @@ immutable(AllLowFuns) getAllLowFuns(
 				immutable LowRecord record = allTypes.allRecords[it];
 				if (isArray(record)) {
 					immutable LowType.PtrRawConst elementPtrType = getElementPtrTypeFromArrType(allTypes, it);
-					immutable ValueAndDidAdd!(immutable LowFunIndex) outerIndex = getOrAddAndDidAdd(
+					immutable ValueAndDidAdd!LowFunIndex outerIndex = getOrAddAndDidAdd!(LowType.Record, LowFunIndex)(
 						markVisitFuns.recordValToVisit,
 						it,
 						() {
@@ -652,7 +649,7 @@ immutable(AllLowFuns) getAllLowFuns(
 						maybeGenerateMarkVisitForType(*elementPtrType.pointee);
 					return outerIndex.value;
 				} else {
-					immutable ValueAndDidAdd!(immutable LowFunIndex) index = getOrAddAndDidAdd(
+					immutable ValueAndDidAdd!LowFunIndex index = getOrAddAndDidAdd(
 						markVisitFuns.recordValToVisit,
 						it,
 						() => addNonArr());
@@ -663,7 +660,7 @@ immutable(AllLowFuns) getAllLowFuns(
 				}
 			},
 			(immutable LowType.Union it) {
-				immutable ValueAndDidAdd!(immutable LowFunIndex) index =
+				immutable ValueAndDidAdd!LowFunIndex index =
 					getOrAddAndDidAdd(markVisitFuns.unionToVisit, it, () => addNonArr());
 				if (index.didAdd)
 					foreach (immutable LowType member; allTypes.allUnions[it].members)
@@ -995,7 +992,7 @@ immutable(LowFunBody) getLowFunBody(
 				thisFunIndex,
 				ptrTrustMe(allTypes),
 				staticSymbols,
-				ptrTrustMe_mut(getLowTypeCtx),
+				ptrTrustMe(getLowTypeCtx),
 				concreteFunToLowFunIndex,
 				concreteFunToThreadLocalIndex,
 				allocFunIndex,
@@ -1374,7 +1371,7 @@ immutable(LowExprKind) genEnumFunction(
 }
 
 immutable(LowExpr[]) getArgs(ref GetLowExprCtx ctx, scope ref immutable Locals locals, immutable ConcreteExpr[] args) =>
-	map!LowExpr(ctx.alloc, args, (ref immutable ConcreteExpr arg) =>
+	map(ctx.alloc, args, (ref immutable ConcreteExpr arg) =>
 		getLowExpr(ctx, locals, arg, ExprPos.nonTail));
 
 immutable(LowExprKind) getCallBuiltinExpr(
@@ -1621,7 +1618,7 @@ immutable(LowExprKind) getMatchEnumExpr(
 ) {
 	immutable ConcreteStructBody.Enum enum_ = asEnum(body_(*mustBeByVal(a.matchedValue.type)));
 	immutable LowExpr matchedValue = getLowExpr(ctx, locals, a.matchedValue, ExprPos.nonTail);
-	immutable LowExpr[] cases = map!LowExpr(ctx.alloc, a.cases, (ref immutable ConcreteExpr case_) =>
+	immutable LowExpr[] cases = map(ctx.alloc, a.cases, (ref immutable ConcreteExpr case_) =>
 		getLowExpr(ctx, locals, case_, exprPos));
 	return matchEnum!(immutable LowExprKind)(
 		enum_,

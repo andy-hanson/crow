@@ -91,7 +91,7 @@ import util.col.stackDict : StackDict2, stackDict2Add0, stackDict2Add1, stackDic
 import util.col.str : SafeCStr, safeCStr;
 import util.memory : allocate, allocateMut, overwriteMemory;
 import util.opt : force, has, none, Opt, some;
-import util.ptr : castImmutable, castNonScope, castNonScope_ref, ptrTrustMe_mut;
+import util.ptr : castImmutable, castNonScope, castNonScope_ref, ptrTrustMe;
 import util.sourceRange : FileAndRange;
 import util.sym : Sym, sym;
 import util.util : todo, unreachable, verify;
@@ -103,7 +103,7 @@ import versionInfo : VersionInfo;
 	immutable ConcreteFun* cf,
 	scope ref immutable Expr e,
 ) {
-	ConcretizeExprCtx exprCtx = ConcretizeExprCtx(ptrTrustMe_mut(ctx), containing, cf);
+	ConcretizeExprCtx exprCtx = ConcretizeExprCtx(ptrTrustMe(ctx), containing, cf);
 	immutable Locals locals;
 	return concretizeExpr(exprCtx, locals, e);
 }
@@ -239,9 +239,8 @@ immutable(ConcreteFun*) getConcreteFunFromFunInst(
 	immutable FunInst* funInst,
 ) {
 	immutable ConcreteType[] typeArgs = typesToConcreteTypes(ctx, typeArgs(*funInst));
-	immutable ConcreteFun*[] specImpls =
-		map!(ConcreteFun*, Called)(ctx.alloc, specImpls(*funInst), (ref immutable Called it) =>
-			getConcreteFunFromCalled(ctx, it));
+	immutable ConcreteFun*[] specImpls = map(ctx.alloc, specImpls(*funInst), (ref immutable Called it) =>
+		getConcreteFunFromCalled(ctx, it));
 	immutable ConcreteFunKey key = immutable ConcreteFunKey(funInst, typeArgs, specImpls);
 	return getOrAddConcreteFunAndFillBody(ctx.concretizeCtx, key);
 }
@@ -338,7 +337,7 @@ immutable(ConcreteField[]) concretizeClosureFields(
 	immutable VariableRef[] closure,
 	immutable TypeArgsScope typeArgsScope,
 ) =>
-	map!ConcreteField(ctx.alloc, closure, (ref immutable VariableRef x) {
+	map(ctx.alloc, closure, (ref immutable VariableRef x) {
 		immutable ConcreteType baseType = getConcreteType_fromConcretizeCtx(ctx, variableRefType(x), typeArgsScope);
 		immutable ConcreteType type = () {
 			final switch (getClosureReferenceKind(x)) {
@@ -433,9 +432,8 @@ immutable(ConcreteExpr) concretizeLambda(
 	immutable ConcreteType concreteType = getConcreteType_forStructInst(ctx, e.funType);
 	immutable ConcreteStruct* concreteStruct = mustBeByVal(concreteType);
 
-	immutable ConcreteVariableRef[] closureArgs =
-		map!ConcreteVariableRef(ctx.alloc, e.closure, (ref immutable VariableRef x) =>
-			concretizeVariableRefForClosure(ctx, range, locals, x));
+	immutable ConcreteVariableRef[] closureArgs = map(ctx.alloc, e.closure, (ref immutable VariableRef x) =>
+		concretizeVariableRefForClosure(ctx, range, locals, x));
 	immutable ConcreteField[] closureFields = concretizeClosureFields(ctx.concretizeCtx, e.closure, tScope);
 	immutable ConcreteType closureType = concreteTypeFromClosure(
 		ctx.concretizeCtx,
@@ -735,7 +733,7 @@ immutable(ConcreteExpr) concretizeMatchEnum(
 	immutable ConcreteExpr matched = concretizeExpr(ctx, locals, e.matched);
 	//TODO: If matched is a constant, just compile the relevant case
 	immutable ConcreteType type = getConcreteType(ctx, e.type);
-	immutable ConcreteExpr[] cases = map!ConcreteExpr(ctx.alloc, e.cases, (ref immutable Expr case_) =>
+	immutable ConcreteExpr[] cases = map(ctx.alloc, e.cases, (ref immutable Expr case_) =>
 		concretizeExpr(ctx, locals, case_));
 	return immutable ConcreteExpr(type, range, immutable ConcreteExprKind(
 		allocate(ctx.alloc, immutable ConcreteExprKind.MatchEnum(matched, cases))));
@@ -761,7 +759,7 @@ immutable(ConcreteExpr) concretizeMatchUnion(
 		} else
 			return concretizeExpr(ctx, locals, case_.then);
 	} else {
-		immutable ConcreteExprKind.MatchUnion.Case[] cases = map!(ConcreteExprKind.MatchUnion.Case)(
+		immutable ConcreteExprKind.MatchUnion.Case[] cases = map(
 			ctx.alloc,
 			e.cases,
 			(ref immutable Expr.MatchUnion.Case case_) {

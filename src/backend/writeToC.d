@@ -75,7 +75,7 @@ import util.col.fullIndexDict : FullIndexDict, fullIndexDictEach, fullIndexDictE
 import util.col.stackDict : StackDict, stackDictAdd, stackDictLastAdded, stackDictMustGet;
 import util.col.str : eachChar, SafeCStr;
 import util.opt : force, has, Opt, some;
-import util.ptr : castNonScope_ref, castNonScope_mut, ptrTrustMe, ptrTrustMe_mut;
+import util.ptr : castNonScope, castNonScope_ref, ptrTrustMe;
 import util.sym : AllSymbols;
 import util.util : abs, drop, unreachable, verify;
 import util.writer :
@@ -93,7 +93,7 @@ immutable(SafeCStr) writeToC(
 	ref immutable AllSymbols allSymbols,
 	ref immutable LowProgram program,
 ) {
-	Writer writer = Writer(ptrTrustMe_mut(alloc));
+	Writer writer = Writer(ptrTrustMe(alloc));
 
 	writer ~= "#include <stddef.h>\n"; // for NULL
 	writer ~= "#include <stdint.h>\n";
@@ -246,7 +246,7 @@ struct FunBodyCtx {
 	size_t nextTemp;
 
 	ref TempAlloc tempAlloc() scope =>
-		*castNonScope_mut(tempAllocPtr);
+		*castNonScope(tempAllocPtr);
 
 	ref immutable(Ctx) ctx() return scope const =>
 		*ctxPtr;
@@ -532,7 +532,7 @@ void writeFunDefinition(
 	writer ~= " {";
 	if (body_.hasTailRecur)
 		writer ~= "\n\ttop:;"; // Need ';' so it labels a statement
-	FunBodyCtx bodyCtx = FunBodyCtx(ptrTrustMe_mut(tempAlloc), ptrTrustMe(ctx), body_.hasTailRecur, funIndex, 0);
+	FunBodyCtx bodyCtx = FunBodyCtx(ptrTrustMe(tempAlloc), ptrTrustMe(ctx), body_.hasTailRecur, funIndex, 0);
 	immutable WriteKind writeKind = immutable WriteKind(immutable WriteKind.Return());
 	immutable Locals locals;
 	drop(writeExpr(writer, 1, bodyCtx, locals, writeKind, body_.expr));
@@ -765,7 +765,7 @@ immutable(WriteExprResult[]) writeExprsTempOrInline(
 	scope ref immutable Locals locals,
 	scope immutable LowExpr[] args,
 ) =>
-	map!WriteExprResult(ctx.tempAlloc, args, (ref immutable LowExpr arg) =>
+	map(ctx.tempAlloc, args, (ref immutable LowExpr arg) =>
 		writeExprTempOrInline(writer, indent, ctx, locals, arg));
 
 immutable(Temp) writeExprTemp(
@@ -1138,9 +1138,9 @@ void writeTailRecur(
 ) {
 	immutable LowParam[] params = ctx.program.allFuns[ctx.curFun].params;
 	immutable WriteExprResult[] newValues =
-		map!WriteExprResult(ctx.tempAlloc, a.updateParams, (ref immutable UpdateParam updateParam) =>
+		map(ctx.tempAlloc, a.updateParams, (ref immutable UpdateParam updateParam) =>
 			writeExprTempOrInline(writer, indent, ctx, locals, updateParam.newValue));
-	zip!(UpdateParam, WriteExprResult)(
+	zip!(immutable UpdateParam, immutable WriteExprResult)(
 		a.updateParams,
 		newValues,
 		(ref immutable UpdateParam updateParam, ref immutable WriteExprResult newValue) {

@@ -49,11 +49,11 @@ import model.model :
 	Visibility,
 	visibility;
 import util.col.arr : castImmutable, empty, small;
-import util.col.arrUtil : eachPair, fold, map, mapAndFold, MapAndFold, mapToMut, mapWithIndex, zipMutPtrFirst;
+import util.col.arrUtil : eachPair, fold, map, mapAndFold, MapAndFold, mapToMut, mapWithIndex, zipPtrFirst;
 import util.col.mutArr : MutArr;
 import util.col.str : copySafeCStr;
-import util.opt : force, has, none, Opt, some, someMut;
-import util.ptr : castImmutable, castNonScope_mut;
+import util.opt : force, has, none, Opt, some;
+import util.ptr : castImmutable, ptrTrustMe;
 import util.sourceRange : RangeWithinFile;
 import util.sym : Sym, sym;
 import util.util : todo, unreachable;
@@ -80,11 +80,11 @@ void checkStructBodies(
 	scope immutable StructDeclAst[] asts,
 	ref MutArr!(StructInst*) delayStructInsts,
 ) {
-	zipMutPtrFirst!(StructDecl, StructDeclAst)(
+	zipPtrFirst!(StructDecl, immutable StructDeclAst)(
 		structs,
 		asts,
 		(StructDecl* struct_, ref immutable StructDeclAst ast) {
-			immutable StructBody body_ = matchStructDeclAstBody!(
+			setBody(*struct_, matchStructDeclAstBody!(
 				immutable StructBody,
 				(ref immutable StructDeclAst.Body.Builtin) {
 					checkOnlyStructModifiers(ctx, TypeKind.builtin, ast.modifiers);
@@ -125,8 +125,7 @@ void checkStructBodies(
 						it,
 						delayStructInsts));
 				},
-			)(ast.body_);
-			setBody(*struct_, body_);
+			)(ast.body_));
 		});
 }
 
@@ -316,7 +315,7 @@ immutable(EnumOrFlagsTypeAndMembers) checkEnumOrFlagsMembers(
 	immutable Type implementationType = has(typeArg)
 		? typeFromAst(
 			ctx, commonTypes, *force(typeArg), structsAndAliasesDict, typeParamsScope,
-			someMut(castNonScope_mut(&delayStructInsts)))
+			some(ptrTrustMe(delayStructInsts)))
 		: immutable Type(commonTypes.integrals.nat32);
 	immutable EnumBackingType enumType = getEnumTypeFromType(ctx, range, commonTypes, implementationType);
 
@@ -474,7 +473,7 @@ immutable(StructBody.Record) checkRecord(
 	immutable RecordField[] fields = mapWithIndex(
 		ctx.alloc,
 		r.fields,
-		(immutable size_t index, ref immutable StructDeclAst.Body.Record.Field field) =>
+		(immutable size_t index, scope ref immutable StructDeclAst.Body.Record.Field field) =>
 			checkRecordField(
 				ctx, commonTypes, structsAndAliasesDict, delayStructInsts, struct_, forcedByVal, index, field));
 	eachPair!RecordField(fields, (ref immutable RecordField a, ref immutable RecordField b) {
@@ -498,7 +497,7 @@ immutable(RecordField) checkRecordField(
 	immutable StructDecl* struct_,
 	immutable bool forcedByVal,
 	immutable size_t index,
-	ref immutable StructDeclAst.Body.Record.Field ast,
+	scope ref immutable StructDeclAst.Body.Record.Field ast,
 ) {
 	immutable Type fieldType = typeFromAst(
 		ctx,
@@ -506,7 +505,7 @@ immutable(RecordField) checkRecordField(
 		ast.type,
 		structsAndAliasesDict,
 		TypeParamsScope(struct_.typeParams),
-		someMut(castNonScope_mut(&delayStructInsts)));
+		some(ptrTrustMe(delayStructInsts)));
 	checkReferenceLinkageAndPurity(ctx, struct_, ast.range, fieldType);
 	if (ast.mutability != FieldMutability.const_) {
 		immutable Opt!(Diag.MutFieldNotAllowed.Reason) reason =
@@ -537,7 +536,7 @@ immutable(StructBody.Union) checkUnion(
 			addDiag(ctx, struct_.range, immutable Diag(immutable Diag.ExternUnion()));
 	}
 	immutable UnionMember[] members =
-		map!UnionMember(ctx.alloc, ast.members, (ref immutable StructDeclAst.Body.Union.Member memberAst) =>
+		map(ctx.alloc, ast.members, (ref immutable StructDeclAst.Body.Union.Member memberAst) =>
 			checkUnionMember(ctx, commonTypes, structsAndAliasesDict, delayStructInsts, struct_, memberAst));
 	eachPair!UnionMember(members, (ref immutable UnionMember a, ref immutable UnionMember b) {
 		if (a.name == b.name)
@@ -561,7 +560,7 @@ immutable(UnionMember) checkUnionMember(
 		force(ast.type),
 		structsAndAliasesDict,
 		TypeParamsScope(struct_.typeParams),
-		someMut(castNonScope_mut(&delayStructInsts))));
+		some(ptrTrustMe(delayStructInsts))));
 	if (has(type))
 		checkReferencePurity(ctx, struct_, ast.range, force(type));
 	return immutable UnionMember(rangeInFile(ctx, ast.range), ast.name, type);

@@ -22,7 +22,7 @@ import model.model :
 import util.alloc.alloc : Alloc, TempAlloc;
 import util.col.str : SafeCStr;
 import util.path : AllPaths, PathsInfo;
-import util.ptr : ptrTrustMe_mut;
+import util.ptr : ptrTrustMe;
 import util.sym : AllSymbols, writeSym;
 import util.writer : finishWriterToSafeCStr, Writer;
 
@@ -35,7 +35,7 @@ immutable(SafeCStr) getHoverStr(
 	ref immutable Program program,
 	ref immutable Position pos,
 ) {
-	Writer writer = Writer(ptrTrustMe_mut(alloc));
+	Writer writer = Writer(ptrTrustMe(alloc));
 	getHover(tempAlloc, writer, allSymbols, allPaths, pathsInfo, program, pos);
 	return finishWriterToSafeCStr(writer);
 }

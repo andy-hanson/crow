@@ -142,16 +142,15 @@ import model.model :
 	worstCasePurity;
 import util.alloc.alloc : Alloc, allocateUninitialized;
 import util.col.arr : empty, emptySmallArray, only, PtrAndSmallNumber, ptrsRange, sizeEq;
-import util.col.arrUtil :
-	arrLiteral, arrsCorrespond, contains, exists, map, map_mut, mapZip, mapZipWithIndex, zipPtrFirst;
+import util.col.arrUtil : arrLiteral, arrsCorrespond, contains, exists, map, mapZip, mapZipWithIndex, zipPtrFirst;
 import util.col.fullIndexDict : FullIndexDict;
 import util.col.mutArr : MutArr, mutArrSize, push, tempAsArr;
-import util.col.mutMaxArr : fillMutMaxArr, initializeMutMaxArr, mutMaxArrSize, push, pushLeft, tempAsArr, tempAsArr_mut;
+import util.col.mutMaxArr : fillMutMaxArr, initializeMutMaxArr, mutMaxArrSize, push, pushLeft, tempAsArr;
 import util.col.str : copyToSafeCStr;
 import util.conv : safeToUshort, safeToUint;
 import util.memory : allocate, allocateMut, initMemory, overwriteMemory;
-import util.opt : force, has, none, noneMut, Opt, some, someMut;
-import util.ptr : castImmutable, castNonScope_mut, ptrTrustMe_mut;
+import util.opt : force, has, none, noneMut, Opt, some;
+import util.ptr : castImmutable, ptrTrustMe;
 import util.sourceRange : FileAndRange, Pos, RangeWithinFile;
 import util.sym : Sym, sym, symOfStr;
 import util.util : max, todo, unreachable, verify;
@@ -170,7 +169,7 @@ immutable(Expr) checkFunctionBody(
 	scope ref immutable ExprAst ast,
 ) {
 	ExprCtx exprCtx = ExprCtx(
-		ptrTrustMe_mut(checkCtx),
+		ptrTrustMe(checkCtx),
 		structsAndAliasesDict,
 		funsDict,
 		commonTypes,
@@ -182,7 +181,7 @@ immutable(Expr) checkFunctionBody(
 	FunOrLambdaInfo funInfo = FunOrLambdaInfo(noneMut!(LocalsInfo*), params, none!(Expr.Lambda*));
 	fillMutMaxArr(funInfo.paramsUsed, params.length, false);
 	// leave funInfo.closureFields uninitialized, it won't be used
-	scope LocalsInfo locals = LocalsInfo(ptrTrustMe_mut(funInfo), noneMut!(LocalNode*));
+	scope LocalsInfo locals = LocalsInfo(ptrTrustMe(funInfo), noneMut!(LocalNode*));
 	immutable Expr res = checkAndExpect(exprCtx, locals, ast, returnType);
 	checkUnusedParams(checkCtx, params, tempAsArr(funInfo.paramsUsed));
 	return res;
@@ -190,11 +189,11 @@ immutable(Expr) checkFunctionBody(
 
 private:
 
-void checkUnusedParams(ref CheckCtx checkCtx, immutable Param[] params, scope immutable bool[] paramsUsed) =>
-	zipPtrFirst!(Param, bool)(
+void checkUnusedParams(ref CheckCtx checkCtx, immutable Param[] params, scope const bool[] paramsUsed) =>
+	zipPtrFirst!(immutable Param, const bool)(
 		params,
 		paramsUsed,
-		(immutable Param* param, ref immutable bool used) {
+		(immutable Param* param, ref const bool used) {
 			if (!used && has(param.name))
 				addDiag(checkCtx, param.range, immutable Diag(immutable Diag.UnusedParam(param)));
 		});
@@ -547,7 +546,7 @@ Opt!VariableRefAndType getIdentifierNonCall(
 	if (has(fromLocals)) {
 		LocalNode* node = force(fromLocals);
 		node.isUsed[accessKind] = true;
-		return someMut(VariableRefAndType(
+		return some(VariableRefAndType(
 			immutable VariableRef(node.local),
 			toMutability(node.local.mutability),
 			&node.isUsed,
@@ -562,7 +561,7 @@ Opt!(LocalNode*) getIdentifierInLocals(
 	immutable LocalAccessKind accessKind,
 ) {
 	return node.local.name == name
-		? someMut(node)
+		? some(node)
 		: has(node.prev)
 		? getIdentifierInLocals(force(node.prev), name, accessKind)
 		: noneMut!(LocalNode*);
@@ -577,12 +576,12 @@ Opt!VariableRefAndType getIdentifierFromFunOrLambda(
 	foreach (immutable Param* param; ptrsRange(info.params))
 		if (has(param.name) && force(param.name) == name) {
 			info.paramsUsed[param.index] = true;
-			return someMut(VariableRefAndType(immutable VariableRef(param), Mutability.immut, null, param.type));
+			return some(VariableRefAndType(immutable VariableRef(param), Mutability.immut, null, param.type));
 		}
-	foreach (immutable size_t index, ref ClosureFieldBuilder field; tempAsArr_mut(info.closureFields))
+	foreach (immutable size_t index, ref ClosureFieldBuilder field; tempAsArr(info.closureFields))
 		if (field.name == name) {
 			field.setIsUsed(accessKindInClosure(accessKind));
-			return someMut(VariableRefAndType(
+			return some(VariableRefAndType(
 				immutable VariableRef(immutable ClosureRef(
 					immutable PtrAndSmallNumber!(Expr.Lambda)(force(info.lambda), safeToUshort(index)))),
 				field.mutability,
@@ -600,7 +599,7 @@ Opt!VariableRefAndType getIdentifierFromFunOrLambda(
 			info.closureFields,
 			ClosureFieldBuilder(name, outer.mutability, outer.isUsed, outer.type, outer.variableRef));
 		outer.setIsUsed(accessKindInClosure(accessKind));
-		return someMut(VariableRefAndType(
+		return some(VariableRefAndType(
 			immutable VariableRef(immutable ClosureRef(
 				immutable PtrAndSmallNumber!(Expr.Lambda)(force(info.lambda), safeToUshort(closureFieldIndex)))),
 			outer.mutability,
@@ -680,7 +679,7 @@ Opt!VariableRefAndType getVariableRefForSet(
 			case Mutability.mut:
 				break;
 		}
-		return someMut(var);
+		return some(var);
 	} else
 		return noneMut!VariableRefAndType;
 }
@@ -893,7 +892,7 @@ immutable(Expr) checkWithLocal(
 		return bogus(expected, rangeInFile2(ctx, ast.range));
 	} else {
 		LocalNode localNode = LocalNode(locals.locals, [false, false, false, false], local);
-		LocalsInfo newLocals = LocalsInfo(locals.funOrLambda, someMut(ptrTrustMe_mut(localNode)));
+		LocalsInfo newLocals = LocalsInfo(locals.funOrLambda, some(ptrTrustMe(localNode)));
 		immutable Expr res = checkExpr(ctx, newLocals, ast, expected);
 		if (localNode.local.mutability == LocalMutability.mutOnStack &&
 			(localNode.isUsed[LocalAccessKind.getThroughClosure] ||
@@ -1193,10 +1192,10 @@ immutable(Expr) checkLambda(
 	Expr.Lambda* lambda = () @trusted { return allocateUninitialized!(Expr.Lambda)(ctx.alloc); }();
 
 	FunOrLambdaInfo lambdaInfo =
-		FunOrLambdaInfo(someMut(castNonScope_mut(ptrTrustMe_mut(locals))), params, some(castImmutable(lambda)));
+		FunOrLambdaInfo(some(ptrTrustMe(locals)), params, some(castImmutable(lambda)));
 	fillMutMaxArr(lambdaInfo.paramsUsed, params.length, false);
 	initializeMutMaxArr(lambdaInfo.closureFields);
-	scope LocalsInfo lambdaLocalsInfo = LocalsInfo(ptrTrustMe_mut(lambdaInfo), noneMut!(LocalNode*));
+	scope LocalsInfo lambdaLocalsInfo = LocalsInfo(ptrTrustMe(lambdaInfo), noneMut!(LocalNode*));
 
 	// Checking the body of the lambda may fill in candidate type args
 	// if the expected return type contains candidate's type params
@@ -1212,7 +1211,7 @@ immutable(Expr) checkLambda(
 
 	final switch (kind) {
 		case FunKind.plain:
-			foreach (ref ClosureFieldBuilder cf; tempAsArr_mut(lambdaInfo.closureFields)) {
+			foreach (ref ClosureFieldBuilder cf; tempAsArr(lambdaInfo.closureFields)) {
 				final switch (cf.mutability) {
 					case Mutability.immut:
 						break;
@@ -1231,7 +1230,7 @@ immutable(Expr) checkLambda(
 			break;
 	}
 	immutable VariableRef[] closureFields =
-		map_mut(ctx.alloc, tempAsArr_mut(lambdaInfo.closureFields), (ref ClosureFieldBuilder x) =>
+		map(ctx.alloc, tempAsArr(lambdaInfo.closureFields), (ref ClosureFieldBuilder x) =>
 			x.variableRef);
 
 	immutable Opt!Type actualNonFutReturnType = kind == FunKind.ref_
@@ -1504,10 +1503,10 @@ immutable(Expr) checkMatchEnum(
 			member.name == caseAst.memberName);
 	if (!goodCases) {
 		addDiag2(ctx, range, immutable Diag(immutable Diag.MatchCaseNamesDoNotMatch(
-			map!Sym(ctx.alloc, members, (ref immutable StructBody.Enum.Member member) => member.name))));
+			map(ctx.alloc, members, (ref immutable StructBody.Enum.Member member) => member.name))));
 		return bogus(expected, range);
 	} else {
-		immutable Expr[] cases = map!Expr(ctx.alloc, ast.cases, (ref immutable MatchAst.CaseAst caseAst) {
+		immutable Expr[] cases = map(ctx.alloc, ast.cases, (ref immutable MatchAst.CaseAst caseAst) {
 			matchNameOrUnderscoreOrNone!(
 				void,
 				(immutable(Sym)) =>
@@ -1539,7 +1538,7 @@ immutable(Expr) checkMatchUnion(
 			member.name == caseAst.memberName);
 	if (!goodCases) {
 		addDiag2(ctx, range, immutable Diag(immutable Diag.MatchCaseNamesDoNotMatch(
-			map!Sym(ctx.alloc, members, (ref immutable UnionMember member) => member.name))));
+			map(ctx.alloc, members, (ref immutable UnionMember member) => member.name))));
 		return bogus(expected, range);
 	} else {
 		immutable Expr.MatchUnion.Case[] cases = mapZip!(Expr.MatchUnion.Case)(

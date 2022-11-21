@@ -19,7 +19,7 @@ import interpret.stacks : dataPush, Stacks;
 import lib.compiler : ExitCode;
 import model.lowModel : ExternLibraries, ExternLibrary;
 import util.alloc.alloc : Alloc;
-import util.col.arrUtil : map, mapImpure, zipImpureSystem;
+import util.col.arrUtil : map, mapImpure;
 import util.col.dict : Dict, KeyValuePair, makeDictFromKeys, Dict, zipToDict;
 import util.col.dictBuilder : DictBuilder, finishDict, tryAddToDict;
 import util.col.mutArr : MutArr, mutArrIsEmpty, push, tempAsArr;
@@ -229,52 +229,49 @@ immutable(LoadedLibraries) loadLibrariesInner(
 
 	DCpointer ptr = cast(DCpointer) funPtr.fn;
 	dcReset(dcVm);
-	zipImpureSystem!(ulong, DynCallType)(
-		parameters,
-		sig.parameterTypes,
-		(ref immutable ulong value, ref immutable DynCallType type) {
-			final switch (type) {
-				case DynCallType.bool_:
-					dcArgBool(dcVm, cast(bool) value);
-					break;
-				case DynCallType.char8:
-					todo!void("handle this type");
-					break;
-				case DynCallType.int8:
-					todo!void("handle this type");
-					break;
-				case DynCallType.int16:
-					dcArgShort(dcVm, cast(short) value);
-					break;
-				case DynCallType.int32:
-					dcArgInt(dcVm, cast(int) value);
-					break;
-				case DynCallType.float32:
-					dcArgFloat(dcVm, float32OfBits(cast(uint) value));
-					break;
-				case DynCallType.float64:
-					dcArgDouble(dcVm, float64OfBits(value));
-					break;
-				case DynCallType.nat8:
-					todo!void("handle this type");
-					break;
-				case DynCallType.nat16:
-					dcArgShort(dcVm, cast(ushort) value);
-					break;
-				case DynCallType.nat32:
-					dcArgInt(dcVm, cast(uint) value);
-					break;
-				case DynCallType.int64:
-				case DynCallType.nat64:
-					dcArgLongLong(dcVm, value);
-					break;
-				case DynCallType.pointer:
-					dcArgPointer(dcVm, cast(void*) value);
-					break;
-				case DynCallType.void_:
-					unreachable!void();
-			}
-		});
+	foreach (immutable size_t i, immutable ulong value; parameters) {
+		final switch (sig.parameterTypes[i]) {
+			case DynCallType.bool_:
+				dcArgBool(dcVm, cast(bool) value);
+				break;
+			case DynCallType.char8:
+				todo!void("handle this type");
+				break;
+			case DynCallType.int8:
+				todo!void("handle this type");
+				break;
+			case DynCallType.int16:
+				dcArgShort(dcVm, cast(short) value);
+				break;
+			case DynCallType.int32:
+				dcArgInt(dcVm, cast(int) value);
+				break;
+			case DynCallType.float32:
+				dcArgFloat(dcVm, float32OfBits(cast(uint) value));
+				break;
+			case DynCallType.float64:
+				dcArgDouble(dcVm, float64OfBits(value));
+				break;
+			case DynCallType.nat8:
+				todo!void("handle this type");
+				break;
+			case DynCallType.nat16:
+				dcArgShort(dcVm, cast(ushort) value);
+				break;
+			case DynCallType.nat32:
+				dcArgInt(dcVm, cast(uint) value);
+				break;
+			case DynCallType.int64:
+			case DynCallType.nat64:
+				dcArgLongLong(dcVm, value);
+				break;
+			case DynCallType.pointer:
+				dcArgPointer(dcVm, cast(void*) value);
+				break;
+			case DynCallType.void_:
+				unreachable!void();
+		}
+	}
 
 	immutable ulong res = () {
 		final switch (sig.returnType) {

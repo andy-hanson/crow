@@ -78,7 +78,7 @@ import util.col.fullIndexDict :
 import util.col.mutMaxArr : initializeMutMaxArr, MutMaxArr, push, tempAsArr;
 import util.opt : force, has, Opt;
 import util.perf : Perf, PerfMeasure, withMeasure;
-import util.ptr : castNonScope_mut, ptrTrustMe_mut;
+import util.ptr : ptrTrustMe;
 import util.sourceRange : FileIndex;
 import util.sym : AllSymbols, Sym, sym;
 import util.util : unreachable, verify;
@@ -119,7 +119,7 @@ private immutable(ByteCode) generateBytecodeInner(
 		initFunToReferences(tempAlloc, funPtrTypeToDynCallSig, fullIndexDictSize(program.allFuns));
 	TextAndInfo text = generateText(codeAlloc, tempAlloc, &program, &program.allConstants, funToReferences);
 	immutable ThreadLocalsInfo threadLocals = generateThreadLocalsInfo(codeAlloc, program);
-	ByteCodeWriter writer = newByteCodeWriter(castNonScope_mut(&codeAlloc));
+	ByteCodeWriter writer = newByteCodeWriter(ptrTrustMe(codeAlloc));
 
 	immutable FullIndexDict!(LowFunIndex, ByteCodeIndex) funToDefinition =
 		mapFullIndexDict!(LowFunIndex, ByteCodeIndex, LowFun)(
@@ -260,22 +260,19 @@ void generateBytecodeForFun(
 			import util.writer : finishWriterToCStr;
 			import core.stdc.stdio : printf;
 			import interpret.debugging : writeFunName;
-			Writer w = Writer(ptrTrustMe_mut(tempAlloc));
+			Writer w = Writer(ptrTrustMe(tempAlloc));
 			writeFunName(w, allSymbols, program, fun);
 			printf("generateBytecodeForFun %s\n", finishWriterToCStr(w));
 		}
 	}
 
 	size_t stackEntry = 0;
-	immutable StackEntries[] parameters = map!StackEntries(
-		tempAlloc,
-		fun.params,
-		(ref immutable LowParam it) {
-			immutable StackEntry start = immutable StackEntry(stackEntry);
-			immutable size_t n = nStackEntriesForType(program, it.type);
-			stackEntry += n;
-			return immutable StackEntries(start, n);
-		});
+	immutable StackEntries[] parameters = map(tempAlloc, fun.params, (ref immutable LowParam it) {
+		immutable StackEntry start = immutable StackEntry(stackEntry);
+		immutable size_t n = nStackEntriesForType(program, it.type);
+		stackEntry += n;
+		return immutable StackEntries(start, n);
+	});
 	setStackEntryAfterParameters(writer, immutable StackEntry(stackEntry));
 	immutable size_t returnEntries = nStackEntriesForType(program, fun.returnType);
 	immutable ByteCodeSource source =
@@ -346,7 +343,7 @@ void generateExternCallFunPtr(
 	scope ref immutable LowFun fun,
 	immutable FunPtr funPtr,
 ) {
-	MutMaxArr!(16, DynCallType) sigTypes = void;
+	MutMaxArr!(16, immutable DynCallType) sigTypes = void;
 	initializeMutMaxArr(sigTypes);
 	push(sigTypes, toDynCallType(fun.returnType));
 	foreach (ref immutable LowParam x; fun.params)

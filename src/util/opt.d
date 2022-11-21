@@ -9,47 +9,21 @@ struct Opt(T) {
 
 	private:
 	static if (is(T == U*, U)) {
-		this(BeNone) immutable {
+		this(BeNone) inout {
 			value_ = null;
 		}
-		this(BeNone) const {
-			value_ = null;
-		}
-		this(BeNone) {
-			value_ = null;
-		}
-		@trusted this(return scope immutable T value) immutable {
-			value_ = value;
-		}
-		@trusted this(return scope const T value) const {
-			value_ = value;
-		}
-		@trusted this(return scope T value) {
+		@trusted this(return scope inout T value) inout {
 			value_ = value;
 		}
 		T value_;
 
-		immutable(bool) has_() const =>
+		immutable(bool) has_() scope const =>
 			value_ != null;
 	} else {
-		this(BeNone) immutable {
+		this(BeNone) inout {
 			has_ = false;
 		}
-		this(BeNone) const {
-			has_ = false;
-		}
-		this(BeNone) {
-			has_ = false;
-		}
-		@trusted this(return scope immutable T value) immutable {
-			has_ = true;
-			value_ = value;
-		}
-		@trusted this(return scope const T value) const {
-			has_ = true;
-			value_ = value;
-		}
-		@trusted this(return scope T value) {
+		@trusted this(return scope inout T value) inout {
 			has_ = true;
 			value_ = value;
 		}
@@ -65,38 +39,20 @@ private struct BeNone {}
 immutable(Opt!T) none(T)() =>
 	immutable Opt!T(BeNone());
 
-immutable(Opt!T) asImmutable(T)(immutable Opt!(immutable T) a) =>
-	has(a) ? some(force(a)) : none!T;
-
-const(Opt!T) noneConst(T)() =>
-	const Opt!T(BeNone());
+// Trick to allow 'none' to be 'inout' in safe code.
+@trusted inout(Opt!T) noneInout(T, U)(ref inout U) =>
+	cast(inout(Opt!T)) none!T;
 
 Opt!T noneMut(T)() =>
 	Opt!T(BeNone());
 
-immutable(Opt!T) some(T)(immutable T value) if (!is(T == U*, U)) =>
-	immutable Opt!T(value);
-immutable(Opt!(T*)) some(T)(immutable T* value) =>
-	immutable Opt!(T*)(value);
-
-const(Opt!T) someConst(T)(return scope const T value) =>
-	const Opt!T(value);
-
-Opt!T someMut(T)(T value) =>
-	Opt!T(value);
+inout(Opt!T) some(T)(inout T value) =>
+	inout Opt!T(value);
 
 immutable(bool) has(T)(ref const Opt!T a) =>
 	a.has_;
 
-@trusted ref T force(T)(ref Opt!T a) {
-	verify!"force"(has(a));
-	return a.value_;
-}
-@trusted ref const(T) force(T)(ref const Opt!T a) {
-	verify!"force"(has(a));
-	return a.value_;
-}
-@trusted ref immutable(T) force(T)(ref immutable Opt!T a) {
+@trusted ref inout(T) force(T)(ref inout Opt!T a) {
 	verify!"force"(has(a));
 	return a.value_;
 }

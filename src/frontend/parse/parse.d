@@ -77,7 +77,7 @@ import util.memory : allocate;
 import util.opt : force, has, none, Opt, some;
 import util.path : AllPaths, childPath, Path, PathOrRelPath, rootPath;
 import util.perf : Perf, PerfMeasure, withMeasure;
-import util.ptr : ptrTrustMe_mut;
+import util.ptr : ptrTrustMe;
 import util.sourceRange : Pos, RangeWithinFile;
 import util.sym : AllSymbols, Sym, sym;
 import util.util : todo, unreachable;
@@ -92,9 +92,9 @@ immutable(FileAst) parseFile(
 ) =>
 	withMeasure!(immutable FileAst, () @trusted {
 		Lexer lexer = createLexer(
-			ptrTrustMe_mut(alloc),
-			ptrTrustMe_mut(allSymbols),
-			ptrTrustMe_mut(diagsBuilder),
+			ptrTrustMe(alloc),
+			ptrTrustMe(allSymbols),
+			ptrTrustMe(diagsBuilder),
 			source);
 		return parseFileInner(allPaths, lexer);
 	})(alloc, perf, PerfMeasure.parseFile);

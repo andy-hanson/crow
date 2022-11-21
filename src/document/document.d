@@ -333,7 +333,7 @@ void eachLine(
 	immutable string a,
 	scope void delegate(immutable string) @safe @nogc pure nothrow cb
 ) {
-	immutable Opt!size_t index = findIndex!char(a, (ref immutable char c) => c == '\n');
+	immutable Opt!size_t index = findIndex!(immutable char)(a, (ref immutable char c) => c == '\n');
 	if (has(index)) {
 		cb(a[0..force(index)]);
 		eachLine(a[force(index)+1 .. $], cb);

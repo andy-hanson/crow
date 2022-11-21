@@ -369,7 +369,7 @@ immutable(ConcreteType[]) typesToConcreteTypes(
 	immutable Type[] types,
 	immutable TypeArgsScope typeArgsScope,
 ) =>
-	map!ConcreteType(ctx.alloc, types, (ref immutable Type t) =>
+	map(ctx.alloc, types, (ref immutable Type t) =>
 		getConcreteType(ctx, t, typeArgsScope));
 
 immutable(ConcreteType) concreteTypeFromClosure(
@@ -512,7 +512,7 @@ immutable(bool) canGetRecordSize(immutable ConcreteField[] fields) =>
 immutable(ConcreteStructInfo) getConcreteStructInfoForFields(immutable ConcreteField[] fields) =>
 	immutable ConcreteStructInfo(
 		immutable ConcreteStructBody(immutable ConcreteStructBody.Record(fields)),
-		exists!ConcreteField(fields, (ref immutable ConcreteField field) =>
+		exists!(immutable ConcreteField)(fields, (ref immutable ConcreteField field) =>
 			field.mutability != ConcreteMutability.const_));
 
 struct TypeSizeAndFieldOffsets {
@@ -596,7 +596,7 @@ void initializeConcreteStruct(
 					break;
 			}
 
-			immutable ConcreteField[] fields = map!ConcreteField(ctx.alloc, r.fields, (ref immutable RecordField f) =>
+			immutable ConcreteField[] fields = map(ctx.alloc, r.fields, (ref immutable RecordField f) =>
 				immutable ConcreteField(
 					f.name,
 					toConcreteMutability(f.mutability),
@@ -611,13 +611,10 @@ void initializeConcreteStruct(
 		},
 		(ref immutable StructBody.Union u) {
 			lateSet(res.defaultReferenceKind_, ReferenceKind.byVal);
-			immutable Opt!ConcreteType[] members = map!(Opt!ConcreteType)(
-				ctx.alloc,
-				u.members,
-				(ref immutable UnionMember it) =>
-					has(it.type)
-						? some(getConcreteType(ctx, force(it.type), typeArgsScope))
-						: none!ConcreteType);
+			immutable Opt!ConcreteType[] members = map(ctx.alloc, u.members, (ref immutable UnionMember it) =>
+				has(it.type)
+					? some(getConcreteType(ctx, force(it.type), typeArgsScope))
+					: none!ConcreteType);
 			lateSet(res.info_, immutable ConcreteStructInfo(
 				immutable ConcreteStructBody(ConcreteStructBody.Union(members)), false));
 			if (canGetUnionSize(members))
@@ -681,7 +678,7 @@ immutable(ConcreteStructBody.Flags) getConcreteStructBodyForFlags(
 ) =>
 	immutable ConcreteStructBody.Flags(
 		a.backingType,
-		map!ulong(alloc, a.members, (ref immutable StructBody.Enum.Member member) =>
+		map(alloc, a.members, (ref immutable StructBody.Enum.Member member) =>
 			member.value.asUnsigned()));
 
 public void deferredFillRecordAndUnionBodies(ref ConcretizeCtx ctx) {
@@ -787,7 +784,7 @@ immutable(ConcreteFunBody) bodyForEnumOrFlagsMembers(ref ConcretizeCtx ctx, immu
 	immutable ConcreteStruct* arrayStruct = mustBeByVal(returnType);
 	immutable ConcreteType elementType = only(asInst(arrayStruct.source).typeArgs); // named<e>
 	immutable ConcreteType enumOrFlagsType = only(asInst(mustBeByVal(elementType).source).typeArgs);
-	immutable Constant[] elements = map!Constant(
+	immutable Constant[] elements = map(
 		ctx.alloc,
 		enumOrFlagsMembers(enumOrFlagsType),
 		(ref immutable StructBody.Enum.Member member) =>

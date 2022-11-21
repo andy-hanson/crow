@@ -293,10 +293,7 @@ immutable(LowFunExprBody) visitUnionBody(
 	ref immutable LowExpr value,
 ) {
 	immutable LowExprKind.MatchUnion.Case[] cases =
-		mapWithIndex!(LowExprKind.MatchUnion.Case)(
-			alloc,
-			unionMembers,
-			(immutable size_t memberIndex, ref immutable LowType memberType) {
+		mapWithIndex(alloc, unionMembers, (immutable size_t memberIndex, ref immutable LowType memberType) {
 				immutable Opt!LowFunIndex visitMember = tryGetMarkVisitFun(markVisitFuns, memberType);
 				if (has(visitMember)) {
 					immutable LowLocal* local = genLocal(

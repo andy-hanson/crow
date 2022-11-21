@@ -277,8 +277,7 @@ immutable(ParsedEverything) parseEverything(
 		getIndex(stdPath),
 		getIndex(runtimePath),
 		getIndex(runtimeMainPath),
-		map!(FileIndex, Path)(modelAlloc, rootPaths, (ref immutable Path path) =>
-			getIndex(path)));
+		map(modelAlloc, rootPaths, (ref immutable Path path) => getIndex(path)));
 
 	return immutable ParsedEverything(
 		immutable FilesInfo(
@@ -394,7 +393,7 @@ immutable(FileContent) readFileContent(
 ) {
 	final switch (type) {
 		case ImportFileType.nat8Array:
-			return immutable FileContent(withFileBinary!(immutable ubyte[])(
+			return immutable FileContent(withFileBinary!(ubyte[])(
 				storage, path,
 				(immutable ReadFileResult!(ubyte[]) res) =>
 					handleReadFileResult!(immutable ubyte[], ubyte[])(
@@ -402,7 +401,7 @@ immutable(FileContent) readFileContent(
 						(scope immutable ubyte[] content) => copyArr(modelAlloc, content),
 						() => as!(immutable ubyte[])([]))));
 		case ImportFileType.str:
-			return immutable FileContent(withFileText!(immutable SafeCStr)(
+			return immutable FileContent(withFileText!SafeCStr(
 				storage, path, sym!"",
 				(immutable ReadFileResult!SafeCStr res) =>
 					handleReadFileResult!(immutable SafeCStr, SafeCStr)(
@@ -428,7 +427,7 @@ immutable(Opt!FullyResolvedImportKind) fullyResolveImportModule(
 	immutable Path importPath,
 	scope immutable(FullyResolvedImportKind) delegate(immutable FileIndex) @safe @nogc pure nothrow getSuccessKind,
 ) {
-	immutable Opt!(immutable ParseStatus) status = getAt_mut(statuses, importPath);
+	immutable Opt!ParseStatus status = getAt_mut(statuses, importPath);
 	if (has(status))
 		return some(matchParseStatus!(immutable FullyResolvedImportKind)(
 			force(status),
@@ -776,7 +775,7 @@ immutable(Program) checkEverything(
 			&modules[moduleIndices.exceptionLowLevel.index],
 			&modules[moduleIndices.runtime.index],
 			&modules[moduleIndices.runtimeMain.index],
-			map!(Module*, FileIndex)(modelAlloc, moduleIndices.rootPaths, (ref immutable FileIndex index) =>
+			map!(Module*, immutable FileIndex)(modelAlloc, moduleIndices.rootPaths, (ref immutable FileIndex index) =>
 				&modules[index.index])),
 		modules,
 		modulesAndCommonTypes.commonTypes,
