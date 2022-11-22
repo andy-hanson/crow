@@ -4,8 +4,7 @@ module frontend.check.inferringType;
 
 import frontend.check.checkCtx : addDiag, CheckCtx, rangeInFile;
 import frontend.check.dicts : FunsDict, ModuleLocalFunIndex, StructsAndAliasesDict;
-import frontend.check.instantiate :
-	instantiateStructNeverDelay, tryGetTypeArg, TypeArgsArray, typeArgsArray, TypeParamsScope;
+import frontend.check.instantiate : instantiateStructNeverDelay, tryGetTypeArg, TypeArgsArray, typeArgsArray;
 import frontend.check.typeFromAst : typeFromAst;
 import frontend.lang : maxClosureFields, maxParams;
 import frontend.parse.ast : TypeAst;
@@ -162,7 +161,7 @@ immutable(Type) typeFromAst2(ref ExprCtx ctx, scope immutable TypeAst ast) =>
 		ctx.commonTypes,
 		ast,
 		ctx.structsAndAliasesDict,
-		immutable TypeParamsScope(ctx.outermostFunTypeParams),
+		ctx.outermostFunTypeParams,
 		noneMut!(MutArr!(StructInst*)*));
 
 struct SingleInferringType {

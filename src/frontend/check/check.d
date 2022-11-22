@@ -19,13 +19,7 @@ import frontend.check.dicts :
 	StructOrAliasAndIndex;
 import frontend.check.funsForStruct : addFunsForStruct, countFunsForStruct;
 import frontend.check.instantiate :
-	DelayStructInsts,
-	instantiateSpec,
-	instantiateStruct,
-	instantiateStructBody,
-	TypeArgsArray,
-	typeArgsArray,
-	TypeParamsScope;
+	DelayStructInsts, instantiateSpec, instantiateStruct, instantiateStructBody, TypeArgsArray, typeArgsArray;
 import frontend.check.typeFromAst :
 	checkTypeParams, tryFindSpec, typeArgsFromAsts, typeFromAst, typeFromAstNoTypeParamsNeverDelay;
 import frontend.diagnosticsBuilder : addDiagnostic, DiagnosticsBuilder;
@@ -438,7 +432,7 @@ immutable(Params) checkParams(
 	ref immutable CommonTypes commonTypes,
 	scope immutable ParamsAst ast,
 	scope ref immutable StructsAndAliasesDict structsAndAliasesDict,
-	immutable TypeParamsScope typeParamsScope,
+	scope immutable TypeParam[] typeParamsScope,
 	ref DelayStructInsts delayStructInsts,
 ) =>
 	matchParamsAst!(
@@ -448,9 +442,7 @@ immutable(Params) checkParams(
 				ctx.alloc,
 				asts,
 				(immutable size_t index, scope ref immutable ParamAst ast) =>
-					checkParam(
-						ctx, commonTypes, structsAndAliasesDict, typeParamsScope, delayStructInsts,
-						ast, index));
+					checkParam(ctx, commonTypes, structsAndAliasesDict, typeParamsScope, delayStructInsts, ast, index));
 			eachPair!Param(params, (ref immutable Param x, ref immutable Param y) {
 				if (has(x.name) && has(y.name) && force(x.name) == force(y.name))
 					addDiag(ctx, y.range, immutable Diag(immutable Diag.DuplicateDeclaration(
@@ -481,21 +473,16 @@ immutable(Param) checkParam(
 	ref CheckCtx ctx,
 	ref immutable CommonTypes commonTypes,
 	scope ref immutable StructsAndAliasesDict structsAndAliasesDict,
-	immutable TypeParamsScope typeParamsScope,
+	scope immutable TypeParam[] typeParamsScope,
 	ref DelayStructInsts delayStructInsts,
 	scope ref immutable ParamAst ast,
 	immutable size_t index,
-) {
-	immutable Type type = typeFromAst(
-		ctx,
-		commonTypes,
-		ast.type,
-		structsAndAliasesDict,
-		typeParamsScope,
-		delayStructInsts);
-	return immutable Param(rangeInFile(ctx, ast.range), ast.name, type, index);
-}
-
+) =>
+	immutable Param(
+		rangeInFile(ctx, ast.range),
+		ast.name,
+		typeFromAst(ctx, commonTypes, ast.type, structsAndAliasesDict, typeParamsScope, delayStructInsts),
+		index);
 
 struct ReturnTypeAndParams {
 	immutable Type returnType;
@@ -506,22 +493,13 @@ immutable(ReturnTypeAndParams) checkReturnTypeAndParams(
 	ref immutable CommonTypes commonTypes,
 	scope immutable TypeAst returnTypeAst,
 	scope immutable ParamsAst paramsAst,
-	immutable TypeParam[] typeParams,
+	scope immutable TypeParam[] typeParams,
 	scope ref immutable StructsAndAliasesDict structsAndAliasesDict,
 	DelayStructInsts delayStructInsts
-) {
-	immutable TypeParamsScope typeParamsScope = TypeParamsScope(typeParams);
-	immutable Params params = checkParams(
-		ctx,
-		commonTypes,
-		paramsAst,
-		structsAndAliasesDict,
-		typeParamsScope,
-		delayStructInsts);
-	immutable Type returnType =
-		typeFromAst(ctx, commonTypes, returnTypeAst, structsAndAliasesDict, typeParamsScope, delayStructInsts);
-	return immutable ReturnTypeAndParams(returnType, params);
-}
+) =>
+	immutable ReturnTypeAndParams(
+		typeFromAst(ctx, commonTypes, returnTypeAst, structsAndAliasesDict, typeParams, delayStructInsts),
+		checkParams(ctx, commonTypes, paramsAst, structsAndAliasesDict, typeParams, delayStructInsts));
 
 immutable(SpecBody.Builtin.Kind) getSpecBodyBuiltinKind(
 	ref CheckCtx ctx,
@@ -616,7 +594,7 @@ void checkStructAliasTargets(
 				commonTypes,
 				ast.target,
 				structsAndAliasesDict,
-				immutable TypeParamsScope(structAlias.typeParams),
+				structAlias.typeParams,
 				some!(MutArr!(StructInst*)*)(ptrTrustMe(delayStructInsts)));
 			if (isStructInst(type))
 				setTarget(structAlias, some(asStructInst(type)));
@@ -674,7 +652,7 @@ immutable(FunFlagsAndSpecs) checkFunModifiers(
 	scope immutable FunModifierAst[] asts,
 	scope immutable StructsAndAliasesDict structsAndAliasesDict,
 	scope immutable SpecsDict specsDict,
-	immutable TypeParamsScope typeParamsScope,
+	scope immutable TypeParam[] typeParamsScope,
 ) {
 	FunModifierAst.SpecialFlags allFlags = FunModifierAst.SpecialFlags.none;
 	immutable SpecInst*[] specs = mapOp!(SpecInst*)(ctx.alloc, asts, (scope ref immutable FunModifierAst ast) {
@@ -815,13 +793,7 @@ immutable(FunsAndDict) checkFuns(
 			structsAndAliasesDict,
 			noneMut!(MutArr!(StructInst*)*));
 		immutable FunFlagsAndSpecs flagsAndSpecs = checkFunModifiers(
-			ctx,
-			commonTypes,
-			funAst.range,
-			funAst.modifiers,
-			structsAndAliasesDict,
-			specsDict,
-			immutable TypeParamsScope(typeParams));
+			ctx, commonTypes, funAst.range, funAst.modifiers, structsAndAliasesDict, specsDict, typeParams);
 		exactSizeArrBuilderAdd(
 			funsBuilder,
 			FunDecl(

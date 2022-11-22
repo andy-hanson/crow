@@ -55,11 +55,6 @@ import util.opt : force, has, none, noneInout, noneMut, Opt, some;
 import util.ptr : castImmutable;
 import util.util : verify;
 
-struct TypeParamsScope {
-	// TODO: consistent naming
-	immutable TypeParam[] innerTypeParams;
-}
-
 struct TypeParamsAndArgs {
 	@safe @nogc pure nothrow:
 

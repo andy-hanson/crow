@@ -13,7 +13,7 @@ import frontend.check.checkCtx :
 	rangeInFile;
 import frontend.check.dicts : SpecDeclAndIndex, SpecsDict, StructsAndAliasesDict, StructOrAliasAndIndex;
 import frontend.check.instantiate :
-	DelayStructInsts, instantiateStruct, instantiateStructNeverDelay, TypeArgsArray, typeArgsArray, TypeParamsScope;
+	DelayStructInsts, instantiateStruct, instantiateStructNeverDelay, TypeArgsArray, typeArgsArray;
 import frontend.parse.ast :
 	matchTypeAst, NameAndRange, range, rangeOfNameAndRange, symForTypeAstDict, symForTypeAstSuffix, TypeAst;
 import frontend.programState : ProgramState;
@@ -51,7 +51,7 @@ private immutable(Type) instStructFromAst(
 	immutable RangeWithinFile range,
 	scope immutable TypeAst[] typeArgAsts,
 	ref immutable StructsAndAliasesDict structsAndAliasesDict,
-	immutable TypeParamsScope typeParamsScope,
+	scope immutable TypeParam[] typeParamsScope,
 	DelayStructInsts delayStructInsts,
 ) {
 	immutable Opt!StructOrAliasAndIndex opDeclFromHere = structsAndAliasesDict[name];
@@ -104,7 +104,7 @@ private void getTypeArgsIfNumberMatches(
 	immutable StructOrAlias sOrA,
 	immutable size_t nExpectedTypeArgs,
 	scope immutable TypeAst[] typeArgAsts,
-	immutable TypeParamsScope typeParamsScope,
+	scope immutable TypeParam[] typeParamsScope,
 	DelayStructInsts delayStructInsts,
 ) {
 	if (typeArgAsts.length != nExpectedTypeArgs) {
@@ -112,14 +112,7 @@ private void getTypeArgsIfNumberMatches(
 			immutable Diag.WrongNumberTypeArgsForStruct(sOrA, nExpectedTypeArgs, typeArgAsts.length)));
 		fillMutMaxArr(res, nExpectedTypeArgs, immutable Type(immutable Type.Bogus()));
 	} else
-		typeArgsFromAsts(
-			res,
-			ctx,
-			commonTypes,
-			typeArgAsts,
-			structsAndAliasesDict,
-			typeParamsScope,
-			delayStructInsts);
+		typeArgsFromAsts(res, ctx, commonTypes, typeArgAsts, structsAndAliasesDict, typeParamsScope, delayStructInsts);
 }
 
 immutable(TypeParam[]) checkTypeParams(ref CheckCtx ctx, scope immutable NameAndRange[] asts) {
@@ -141,18 +134,15 @@ immutable(Type) typeFromAstNoTypeParamsNeverDelay(
 	ref immutable CommonTypes commonTypes,
 	scope ref immutable TypeAst ast,
 	scope ref immutable StructsAndAliasesDict structsAndAliasesDict,
-) {
-	static immutable TypeParamsScope emptyTypeParams = immutable TypeParamsScope([]);
-	return typeFromAst(
-		ctx, commonTypes, ast, structsAndAliasesDict, emptyTypeParams, noneMut!(MutArr!(StructInst*)*));
-}
+) =>
+	typeFromAst(ctx, commonTypes, ast, structsAndAliasesDict, [], noneMut!(MutArr!(StructInst*)*));
 
 immutable(Type) typeFromAst(
 	ref CheckCtx ctx,
 	ref immutable CommonTypes commonTypes,
 	scope ref immutable TypeAst ast,
 	scope ref immutable StructsAndAliasesDict structsAndAliasesDict,
-	immutable TypeParamsScope typeParamsScope,
+	scope immutable TypeParam[] typeParamsScope,
 	DelayStructInsts delayStructInsts,
 ) =>
 	matchTypeAst!(
@@ -174,9 +164,8 @@ immutable(Type) typeFromAst(
 			if (has(optSyntax))
 				addDiag(ctx, iAst.range, immutable Diag(immutable Diag.TypeShouldUseSyntax(force(optSyntax))));
 
-			immutable Opt!(TypeParam*) found =
-				findPtr!TypeParam(typeParamsScope.innerTypeParams, (immutable TypeParam* it) =>
-					it.name == iAst.name.name);
+			immutable Opt!(TypeParam*) found = findPtr!TypeParam(typeParamsScope, (immutable TypeParam* it) =>
+				it.name == iAst.name.name);
 			if (has(found)) {
 				if (!empty(iAst.typeArgs))
 					addDiag(ctx, iAst.range, immutable Diag(immutable Diag.TypeParamCantHaveTypeArgs()));
@@ -245,9 +234,9 @@ private immutable(Type) typeFromOptInst(immutable Opt!(StructInst*) a) =>
 private immutable(Type) typeFromFunAst(
 	ref CheckCtx ctx,
 	ref immutable CommonTypes commonTypes,
-	immutable TypeAst.Fun ast,
+	scope immutable TypeAst.Fun ast,
 	ref immutable StructsAndAliasesDict structsAndAliasesDict,
-	immutable TypeParamsScope typeParamsScope,
+	scope immutable TypeParam[] typeParamsScope,
 	DelayStructInsts delayStructInsts,
 ) {
 	immutable FunKind funKind = () {
@@ -303,7 +292,7 @@ void typeArgsFromAsts(
 	ref immutable CommonTypes commonTypes,
 	scope immutable TypeAst[] typeAsts,
 	scope ref immutable StructsAndAliasesDict structsAndAliasesDict,
-	immutable TypeParamsScope typeParamsScope,
+	scope immutable TypeParam[] typeParamsScope,
 	DelayStructInsts delayStructInsts,
 ) {
 	mapTo(res, typeAsts, (ref immutable TypeAst ast) =>

@@ -4,7 +4,6 @@ module frontend.check.checkStructs;
 
 import frontend.check.checkCtx : addDiag, CheckCtx, rangeInFile;
 import frontend.check.dicts : StructsAndAliasesDict;
-import frontend.check.instantiate : TypeParamsScope;
 import frontend.check.typeFromAst : checkTypeParams, typeFromAst;
 import frontend.parse.ast :
 	LiteralAst,
@@ -311,11 +310,8 @@ immutable(EnumOrFlagsTypeAndMembers) checkEnumOrFlagsMembers(
 		immutable EnumBackingType,
 	) @safe @nogc pure nothrow cbGetNextValue,
 ) {
-	immutable TypeParamsScope typeParamsScope = immutable TypeParamsScope([]);
 	immutable Type implementationType = has(typeArg)
-		? typeFromAst(
-			ctx, commonTypes, *force(typeArg), structsAndAliasesDict, typeParamsScope,
-			some(ptrTrustMe(delayStructInsts)))
+		? typeFromAst(ctx, commonTypes, *force(typeArg), structsAndAliasesDict, [], some(ptrTrustMe(delayStructInsts)))
 		: immutable Type(commonTypes.integrals.nat32);
 	immutable EnumBackingType enumType = getEnumTypeFromType(ctx, range, commonTypes, implementationType);
 
@@ -500,12 +496,7 @@ immutable(RecordField) checkRecordField(
 	scope ref immutable StructDeclAst.Body.Record.Field ast,
 ) {
 	immutable Type fieldType = typeFromAst(
-		ctx,
-		commonTypes,
-		ast.type,
-		structsAndAliasesDict,
-		TypeParamsScope(struct_.typeParams),
-		some(ptrTrustMe(delayStructInsts)));
+		ctx, commonTypes, ast.type, structsAndAliasesDict, struct_.typeParams, some(ptrTrustMe(delayStructInsts)));
 	checkReferenceLinkageAndPurity(ctx, struct_, ast.range, fieldType);
 	if (ast.mutability != FieldMutability.const_) {
 		immutable Opt!(Diag.MutFieldNotAllowed.Reason) reason =
@@ -559,7 +550,7 @@ immutable(UnionMember) checkUnionMember(
 		commonTypes,
 		force(ast.type),
 		structsAndAliasesDict,
-		TypeParamsScope(struct_.typeParams),
+		struct_.typeParams,
 		some(ptrTrustMe(delayStructInsts))));
 	if (has(type))
 		checkReferencePurity(ctx, struct_, ast.range, force(type));
