@@ -153,7 +153,7 @@ import util.opt : force, has, none, noneMut, Opt, some;
 import util.ptr : castImmutable, ptrTrustMe;
 import util.sourceRange : FileAndRange, Pos, RangeWithinFile;
 import util.sym : Sym, sym, symOfStr;
-import util.util : max, todo, unreachable, verify;
+import util.util : max, todo, verify;
 
 immutable(Expr) checkFunctionBody(
 	ref CheckCtx checkCtx,
@@ -243,7 +243,10 @@ immutable(Expr) checkAndExpectCStr(ref ExprCtx ctx, scope ref LocalsInfo locals,
 	checkAndExpect(ctx, locals, ast, immutable Type(ctx.commonTypes.cString));
 
 immutable(Expr) checkAndExpectVoid(ref ExprCtx ctx, scope ref LocalsInfo locals, scope ref immutable ExprAst ast) =>
-	checkAndExpect(ctx, locals, ast, immutable Type(ctx.commonTypes.void_));
+	checkAndExpect(ctx, locals, ast, voidType(ctx));
+
+immutable(Type) voidType(ref const ExprCtx ctx) =>
+	immutable Type(ctx.commonTypes.void_);
 
 immutable(Expr) checkArrowAccess(
 	ref ExprCtx ctx,
@@ -307,7 +310,7 @@ immutable(Expr) checkAssertOrForbid(
 	immutable Opt!Expr thrown = has(ast.thrown)
 		? some(checkAndExpectCStr(ctx, locals, force(ast.thrown)))
 		: none!Expr;
-	return check(ctx, expected, immutable Type(ctx.commonTypes.void_), immutable Expr(
+	return check(ctx, expected, voidType(ctx), immutable Expr(
 		range,
 		allocate(ctx.alloc, immutable Expr.AssertOrForbid(ast.kind, condition, thrown))));
 }
@@ -650,15 +653,20 @@ immutable(Expr) checkIdentifierSet(
 	if (has(optVar)) {
 		VariableRefAndType var = force(optVar);
 		immutable Expr value = checkAndExpect(ctx, locals, ast.value, var.type);
-		immutable Expr expr = matchVariableRef!(immutable Expr)(
+		return matchVariableRef!(immutable Expr)(
 			var.variableRef,
 			(immutable Local* local) =>
-				immutable Expr(range, allocate(ctx.alloc, immutable Expr.LocalSet(local, value))),
-			(immutable Param*) =>
-				unreachable!(immutable Expr),
+				check(ctx, expected, voidType(ctx), immutable Expr(
+					range,
+					allocate(ctx.alloc, immutable Expr.LocalSet(local, value)))),
+			(immutable Param*) {
+				addDiag2(ctx, range, immutable Diag(immutable Diag.ParamNotMutable()));
+				return bogus(expected, range);
+			},
 			(immutable ClosureRef cr) =>
-				immutable Expr(range, immutable Expr.ClosureSet(cr, allocate(ctx.alloc, value))));
-		return check(ctx, expected, immutable Type(ctx.commonTypes.void_), expr);
+				check(ctx, expected, voidType(ctx), immutable Expr(
+					range,
+					immutable Expr.ClosureSet(cr, allocate(ctx.alloc, value)))));
 	} else
 		return bogus(expected, range);
 }
@@ -1378,7 +1386,7 @@ immutable(Expr) checkLoop(
 		immutable Type type = force(expectedType);
 		Expr.Loop* loop =
 			allocateMut(ctx.alloc, Expr.Loop(type, immutable Expr(FileAndRange.empty, immutable Expr.Bogus())));
-		LoopInfo info = LoopInfo(immutable Type(ctx.commonTypes.void_), castImmutable(loop), type, false);
+		LoopInfo info = LoopInfo(voidType(ctx), castImmutable(loop), type, false);
 		scope Expected bodyExpected = Expected(&info);
 		immutable Expr body_ = checkExpr(ctx, locals, ast.body_, bodyExpected);
 		overwriteMemory(&loop.body_, body_);
@@ -1444,7 +1452,7 @@ immutable(Expr) checkLoopUntil(
 	ref immutable LoopUntilAst ast,
 	ref Expected expected,
 ) =>
-	check(ctx, expected, immutable Type(ctx.commonTypes.void_), immutable Expr(
+	check(ctx, expected, voidType(ctx), immutable Expr(
 		range,
 		allocate(ctx.alloc, immutable Expr.LoopUntil(
 			checkAndExpectBool(ctx, locals, ast.condition),
@@ -1457,7 +1465,7 @@ immutable(Expr) checkLoopWhile(
 	ref immutable LoopWhileAst ast,
 	ref Expected expected,
 ) =>
-	check(ctx, expected, immutable Type(ctx.commonTypes.void_), immutable Expr(
+	check(ctx, expected, voidType(ctx), immutable Expr(
 		range,
 		allocate(ctx.alloc, immutable Expr.LoopWhile(
 			checkAndExpectBool(ctx, locals, ast.condition),

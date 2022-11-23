@@ -1,0 +1,2 @@
+f void(a nat)
+	a := 3

@@ -265,6 +265,7 @@ struct Diag {
 		}
 		immutable Kind kind;
 	}
+	struct ParamNotMutable {}
 	struct PtrIsUnsafe {}
 	struct PtrMutToConst {
 		enum Kind { field, local }
@@ -409,6 +410,7 @@ struct Diag {
 		mutFieldNotAllowed,
 		nameNotFound,
 		needsExpectedType,
+		paramNotMutable,
 		parseDiag,
 		ptrIsUnsafe,
 		ptrMutToConst,
@@ -483,6 +485,7 @@ struct Diag {
 		immutable MutFieldNotAllowed mutFieldNotAllowed;
 		immutable NameNotFound nameNotFound;
 		immutable NeedsExpectedType needsExpectedType;
+		immutable ParamNotMutable paramNotMutable;
 		immutable ParseDiag parseDiag;
 		immutable PtrIsUnsafe ptrIsUnsafe;
 		immutable PtrMutToConst ptrMutToConst;
@@ -614,6 +617,9 @@ struct Diag {
 	immutable this(immutable NeedsExpectedType a) { kind = Kind.needsExpectedType; needsExpectedType = a; }
 	@trusted immutable this(immutable ParseDiag a) {
 		kind = Kind.parseDiag; parseDiag = a;
+	}
+	immutable this(immutable ParamNotMutable a) {
+		kind = Kind.paramNotMutable; paramNotMutable = a;
 	}
 	immutable this(immutable PtrIsUnsafe a) {
 		kind = Kind.ptrIsUnsafe; ptrIsUnsafe = a;
@@ -774,6 +780,7 @@ struct Diag {
 		ref immutable Diag.NameNotFound
 	) @safe @nogc pure nothrow cbNameNotFound,
 	scope immutable(Out) delegate(ref immutable Diag.NeedsExpectedType) @safe @nogc pure nothrow cbNeedsExpectedType,
+	scope immutable(Out) delegate(ref immutable Diag.ParamNotMutable) @safe @nogc pure nothrow cbParamNotMutable,
 	scope immutable(Out) delegate(ref immutable ParseDiag) @safe @nogc pure nothrow cbParseDiag,
 	scope immutable(Out) delegate(ref immutable Diag.PtrIsUnsafe) @safe @nogc pure nothrow cbPtrIsUnsafe,
 	scope immutable(Out) delegate(ref immutable Diag.PtrMutToConst) @safe @nogc pure nothrow cbPtrMutToConst,
@@ -926,6 +933,8 @@ struct Diag {
 			return cbNameNotFound(a.nameNotFound);
 		case Diag.Kind.needsExpectedType:
 			return cbNeedsExpectedType(a.needsExpectedType);
+		case Diag.Kind.paramNotMutable:
+			return cbParamNotMutable(a.paramNotMutable);
 		case Diag.Kind.parseDiag:
 			return cbParseDiag(a.parseDiag);
 		case Diag.Kind.ptrIsUnsafe:

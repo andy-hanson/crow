@@ -833,6 +833,9 @@ void writeDiag(
 			}();
 			writer ~= " expression needs an expected type";
 		},
+		(ref immutable Diag.ParamNotMutable) {
+			writer ~= "can't change the value of a parameter; consider introducing a mutable local instead";
+		},
 		(ref immutable ParseDiag pd) {
 			writeParseDiag(writer, allSymbols, allPaths, pathsInfo, pd);
 		},
