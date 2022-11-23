@@ -45,7 +45,7 @@ matches bool(a regex, candidate string) trusted
 		_ = err regerror &a.wrapped, buf.begin-pointer, buf.size
 		throw buf.begin-pointer.as-const
 
-regex_t record mut by-val extern
+regex_t record mut extern
 	buffer void mut*
 	allocated size_t
 	used size_t
@@ -61,7 +61,7 @@ new regex_t() unsafe
 regoff_t alias
 	c-int
 
-regmatch_t record by-val extern
+regmatch_t record extern
 	rm_so regoff_t
 	rm_eo regoff_t
 

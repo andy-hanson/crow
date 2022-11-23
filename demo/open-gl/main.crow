@@ -18,7 +18,7 @@ import
 	SDL2/SDL:
 		SDL_GetError, SDL_Init, SDL_INIT_VIDEO, SDL_Quit
 	SDL2/SDL_events:
-		==, SDL_Event, SDL_PollEvent, SDL_PumpEvents, SDL_Quit, type
+		==, new, SDL_Event, SDL_PollEvent, SDL_PumpEvents, SDL_Quit, type
 	SDL2/SDL_keyboard: SDL_GetKeyboardState
 	SDL2/SDL_scancode: SDL_NUM_SCANCODES, SDL_SCANCODE_RETURN, to-nat32
 	SDL2/SDL_video:
@@ -131,7 +131,7 @@ main nat^(_ string[]) summon trusted
 	for x : a
 		m * x.pos, m * x.normal, x.color, x.tex-coord
 
-.vertex record extern by-val
+.vertex record extern
 	pos vec3-32
 	normal vec3-32
 	color vec3-32
@@ -207,9 +207,15 @@ main nat^(_ string[]) summon trusted
 		<- delay
 		thread-id run-with-thread-id cb
 
-.look-for-quit-event bool() summon
-	e = SDL_Event
-	e.SDL_PollEvent != 0 && (e.type == SDL_Quit || look-for-quit-event)
+.look-for-quit-event bool() summon trusted
+	loop
+		e mut SDL_Event = ()
+		if (&e).SDL_PollEvent == 0
+			break false
+		elif e.type == SDL_Quit
+			break true
+		else
+			continue
 
 .handle-sdl-error void(err c-int, description string) summon trusted
 	unless err == 0

@@ -12,7 +12,7 @@ SDL_CreateRenderer SDL_Renderer(
 
 SDL_CreateTextureFromSurface SDL_Texture(
 	renderer SDL_Renderer,
-	surface SDL_Surface,
+	surface SDL_Surface mut*,
 ) extern<SDL2> summon
 
 SDL_DestroyRenderer void(renderer SDL_Renderer) extern<SDL2> summon

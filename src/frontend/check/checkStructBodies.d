@@ -462,10 +462,11 @@ immutable(StructBody.Record) checkRecord(
 	ref MutArr!(StructInst*) delayStructInsts,
 ) {
 	immutable RecordModifiers modifiers = checkRecordModifiers(ctx, modifierAsts);
-	immutable bool forcedByVal = modifiers.byValOrRefOrNone == ForcedByValOrRefOrNone.byVal;
-	if (struct_.linkage != Linkage.internal && modifiers.byValOrRefOrNone == ForcedByValOrRefOrNone.none)
-		addDiag(ctx, struct_.range, immutable Diag(
-				immutable Diag.ExternRecordMustBeByRefOrVal(struct_)));
+	immutable bool isExtern = struct_.linkage != Linkage.internal;
+	immutable ForcedByValOrRefOrNone valOrRef = isExtern ? ForcedByValOrRefOrNone.byVal : modifiers.byValOrRefOrNone;
+	if (isExtern && modifiers.byValOrRefOrNone != ForcedByValOrRefOrNone.none)
+		addDiag(ctx, struct_.range, immutable Diag(immutable Diag.ExternRecordImplicitlyByVal(struct_)));
+	immutable bool forcedByVal = valOrRef == ForcedByValOrRefOrNone.byVal;
 	immutable RecordField[] fields = mapWithIndex(
 		ctx.alloc,
 		r.fields,
@@ -481,7 +482,7 @@ immutable(StructBody.Record) checkRecord(
 		immutable RecordFlags(
 			recordNewVisibility(ctx, *struct_, fields, modifiers.newVisibility),
 			modifiers.packed,
-			modifiers.byValOrRefOrNone),
+			valOrRef),
 		fields);
 }
 

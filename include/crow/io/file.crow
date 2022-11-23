@@ -1,10 +1,10 @@
 no-std
 import
-	dirent: closedir, dir, dirent, new, opendir, readdir_r
+	dirent: closedir, dir, dirent, d_name, new, opendir, readdir_r
 	errno: ENOENT, errno
 	stat: mkdir, new, S_IFDIR, S_IFMT, S_IFREG, stat, st_mode
 	stdio: fclose, ferror, FILE, fopen, fread, fseek, ftell, fwrite, SEEK_SET, SEEK_END
-	sys/types: ino_t, mode_t, off_t
+	sys/types: mode_t
 	unistd: getcwd, readlink, rmdir, symlink, unlink
 	win32:
 		&, |, ==, cFileName, CreateSymbolicLinkA, DeleteFileA, ERROR_FILE_NOT_FOUND,
@@ -15,6 +15,7 @@ import
 		WIN32_FIND_DATAA
 	../bits: &, |, <<
 	../bool: !, ||, bool, false, new, to-nat64, true
+	../bytes-types: bytes256
 	../col/array: array, begin-pointer, size, subscript
 	../col/mut-array: cast-immutable, begin-pointer, mut-array, size, uninitialized-mut-array
 	../col/list: ~=, build, for-loop, list, new, to-array, to-list, with-block
@@ -24,12 +25,12 @@ import
 	../flags-util: is-in
 	../fun-util: subscript
 	../misc: new, void
-	../number: ==, <=>, +, nat8, nat16, to-nat32, to-nat64
+	../number: ==, <=>, nat8, to-nat32, to-nat64
 	../option: is-empty, new, option
 	../private/bootstrap: todo
 	../pointer:
-		==, +, any-const-pointer, as-any-const-pointer, as-const, const-pointer, mut-pointer, null, pointer-cast,
-		pointer-cast-from-extern, size-of
+		==, *, any-const-pointer, as-any-const-pointer, as-const, const-pointer, mut-pointer, null,
+		pointer-cast, pointer-cast-from-extern, size-of
 	../range: ..
 	../string: ==, <=>, ~~, as-string, char8, c-string, literal, string, to-bytes, to-c-string, to-string
 	../version: is-windows
@@ -85,8 +86,8 @@ is-file bool(path string) trusted summon
 			else
 				file,
 	else
-		s stat = ()
-		err = path stat s
+		s mut stat = ()
+		err = path stat &s
 		if err == 0
 			if s.st_mode & S_IFMT == S_IFDIR
 				directory,
@@ -99,12 +100,6 @@ is-file bool(path string) trusted summon
 			# TODO: show error message
 			assert errno == ENOENT : "error while testing path {path}"
 			()
-
-.get-dirent-name string(d dirent) unsafe
-	# TODO: this is offsetof(d, d_name)
-	name-offset = size-of@<ino_t> + size-of@<off_t> + size-of@<nat16> + size-of@<char8>
-	name-pointer char8* = d.as-any-const-pointer + name-offset pointer-cast
-	name-pointer to-string
 
 ###
 Returns all children of the directory `path`, as full paths.
@@ -165,16 +160,18 @@ names-in-dir string[](path string) summon trusted
 	with out : build
 		loop
 			# Initial value of entry / result should not matter
-			entry dirent = ()
-			result mut dirent = entry
-			err = dirp readdir_r entry, &result
+			entry mut dirent = ()
+			result mut dirent mut* = &entry
+			err = dirp readdir_r &entry, &result
 			# TODO: handle error
 			assert err == 0
-			if result.as-any-const-pointer == null
+			if result == null
 				break
 			else
-				assert result.as-any-const-pointer == entry.as-any-const-pointer
-				name = entry get-dirent-name
+				assert result == &entry
+				#name = &entry get-dirent-name
+				d_name bytes256* = &result->d_name
+				name = d_name.pointer-cast::char8* to-string
 				unless name == "." || name == ".."
 					out ~= name
 				continue

@@ -13,7 +13,7 @@ with-bmp<a> a(src nat8[], cb act a(rgba-image)) unsafe summon
 	surface = src-array.begin-pointer SDL_RWFromConstMem src-array.size.to-int32 SDL_LoadBMP_RW 0
 	converted = surface SDL_ConvertSurfaceFormat SDL_PIXELFORMAT_RGBA32, 0
 	surface SDL_FreeSurface
-	image rgba-image = converted.pixels, converted.w.to-nat64, converted.h.to-nat64
+	image rgba-image = converted->pixels, converted->w.to-nat64, converted->h.to-nat64
 	res = cb[image]
 	converted SDL_FreeSurface
 	res

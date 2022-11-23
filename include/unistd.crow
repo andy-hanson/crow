@@ -17,12 +17,12 @@ read ssize_t(fd fd-t, buff any-mut-pointer, n-bytes size_t) extern<c> summon
 # TODO: summon
 write ssize_t(fd fd-t, buf any-const-pointer, n-bytes size_t) extern<c>
 
-pipe err-t(pipes pipes) extern<c> summon
+pipe err-t(pipes pipes mut*) extern<c> summon
 
 # The headers just use int[2], but this is easier to use from crow
-pipes record mut by-ref extern
-	write-pipe mut fd-t
-	read-pipe mut fd-t
+pipes record mut extern
+	write-pipe fd-t
+	read-pipe fd-t
 
 __environ c-string*() global<c>
 

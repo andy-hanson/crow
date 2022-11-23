@@ -14,38 +14,38 @@ import
 	stdio: FILE
 	sys/types: mode_t
 
-CRITICAL_SECTION record by-ref extern
+CRITICAL_SECTION record extern
 	n0 nat64
 	n1 nat64
 	n2 nat64
 	n3 nat64
 	n4 nat64
 
-InitializeCriticalSection void(a CRITICAL_SECTION) extern<kernel32>
+InitializeCriticalSection void(a CRITICAL_SECTION mut*) extern<kernel32>
 
-EnterCriticalSection void(a CRITICAL_SECTION) extern<kernel32>
+EnterCriticalSection void(a CRITICAL_SECTION mut*) extern<kernel32>
 
-LeaveCriticalSection void(a CRITICAL_SECTION) extern<kernel32>
+LeaveCriticalSection void(a CRITICAL_SECTION mut*) extern<kernel32>
 
-DeleteCriticalSection void(a CRITICAL_SECTION) extern<kernel32>
+DeleteCriticalSection void(a CRITICAL_SECTION mut*) extern<kernel32>
 
-CONDITION_VARIABLE record mut by-ref extern
+CONDITION_VARIABLE record mut extern
 	n nat64
 
-InitializeConditionVariable void(a CONDITION_VARIABLE) extern<kernel32>
+InitializeConditionVariable void(a CONDITION_VARIABLE mut*) extern<kernel32>
 
 SleepConditionVariableCS bool(
-	a CONDITION_VARIABLE,
-	crit CRITICAL_SECTION,
+	a CONDITION_VARIABLE mut*,
+	crit CRITICAL_SECTION mut*,
 	millis DWORD,
 ) extern<kernel32> summon
 
-WakeAllConditionVariable void(a CONDITION_VARIABLE) extern<kernel32>
+WakeAllConditionVariable void(a CONDITION_VARIABLE mut*) extern<kernel32>
 
 INFINITE DWORD() noctx
 	0xffffffff
 
-SYNCHRONIZATION_BARRIER record mut by-val extern
+SYNCHRONIZATION_BARRIER record mut extern
 	Reserved1 DWORD
 	Reserved2 DWORD
 	Reserved3_0 ULONG_PTR
@@ -126,7 +126,7 @@ WriteFile bool(
 	lpOverlapped any-mut-pointer,
 ) extern<kernel32> summon
 
-WIN32_FIND_DATAA record by-val extern
+WIN32_FIND_DATAA record extern
 	dwFileAttributes DWORD
 	ftCreationTime FILETIME
 	ftLastAccessTime FILETIME
@@ -144,7 +144,7 @@ new WIN32_FIND_DATAA() noctx
 cFileName c-char mut*(a WIN32_FIND_DATAA mut*) unsafe
 	(&a->cFileName_STORAGE)::chars-max-path mut* pointer-cast
 
-FILETIME record by-val extern
+FILETIME record extern
 	dwLowDateTime DWORD
 	dwHighDateTime DWORD
 
@@ -224,7 +224,7 @@ SUBLANG_NEUTRAL WORD()
 MAKELANGID DWORD(p WORD, s WORD) trusted noctx
 	(s.to-nat32 << 10) | p.to-nat32
 
-STARTUPINFOA record mut by-val extern
+STARTUPINFOA record mut extern
 	cb DWORD
 	lpReserved c-char mut*
 	lpDesktop c-char mut*
@@ -259,7 +259,7 @@ new STARTUPINFOA(dwFlags startup-flags, hStdInput HANDLE, hStdOutput HANDLE, hSt
 	size = size-of@<STARTUPINFOA> to-nat32
 	size, (), (), (), (), (), (), (), (), (), (), dwFlags, (), (), (), hStdInput, hStdOutput, hStdError
 
-SECURITY_ATTRIBUTES record mut by-val extern
+SECURITY_ATTRIBUTES record mut extern
 	nLength DWORD
 	lpSecurityDescriptor any-mut-pointer
 	bInheritHandle c-int
@@ -268,7 +268,7 @@ new SECURITY_ATTRIBUTES(lpSecurityDescriptor any-mut-pointer, bInheritHandle boo
 	# TODO: shouldn't need parens
 	(size-of@<SECURITY_ATTRIBUTES>).to-nat32, lpSecurityDescriptor, bInheritHandle ? 1 : 0
 
-PROCESS_INFORMATION record mut by-val extern
+PROCESS_INFORMATION record mut extern
 	hProcess HANDLE
 	hThread HANDLE
 	dwProcessId DWORD
@@ -330,7 +330,7 @@ MAKEWORD WORD(a nat8, b nat8) trusted
 
 WSAStartup c-int(wVersionRequested WORD, lpWSAData WSADATA mut*) extern<kernel32> summon
 
-WSADATA record mut by-val extern
+WSADATA record mut extern
 	wVersion WORD
 	wHighVersion WORD
 	iMaxSockets u-short
@@ -344,7 +344,7 @@ new WSADATA() noctx unsafe
 
 GetSystemInfo void(lpSystemInfo SYSTEM_INFO mut*) summon extern<kernel32>
 
-SYSTEM_INFO record mut by-val extern
+SYSTEM_INFO record mut extern
 	DUMMYUNIONNAME DWORD
 	dwPageSize DWORD
 	lpMinimumApplicationAddress any-mut-pointer
@@ -364,7 +364,7 @@ GetTickCount DWORD() extern<kernel32>
 
 Sleep void(dwMilliseconds DWORD) summon extern<kernel32>
 
-CONTEXT record extern by-val
+CONTEXT record extern
 	P1Home DWORD64
 	P2Home DWORD64
 	P3Home DWORD64
@@ -442,75 +442,75 @@ IMAGE_FILE_MACHINE_AMD64 DWORD() noctx
 
 # Not using bytes-types due to alignment
 
-.chars2 record by-val extern
+.chars2 record extern
 	.n0 c-char
 	.n1 c-char
 .new chars2() noctx
 	"\0", "\0"
 
-.chars4 record by-val extern
+.chars4 record extern
 	.n0 chars2
 	.n1 chars2
 .new chars4() noctx
 	(), ()
 
-.chars8 record by-val extern
+.chars8 record extern
 	.n0 chars4
 	.n1 chars4
 .new chars8() noctx
 	(), ()
 
-.chars14 record by-val extern
+.chars14 record extern
 	.n0 chars8
 	.n1 chars4
 	.n2 chars2
 .new chars14() noctx
 	(), (), ()
 
-.chars16 record by-val extern
+.chars16 record extern
 	.n0 chars8
 	.n1 chars8
 .new chars16() noctx
 	(), ()
 
-.chars32 record by-val extern
+.chars32 record extern
 	.n0 chars16
 	.n1 chars16
 .new chars32() noctx
 	(), ()
 
-.chars64 record by-val extern
+.chars64 record extern
 	.n0 chars32
 	.n1 chars32
 .new chars64() noctx
 	(), ()
 
-.chars128 record by-val extern
+.chars128 record extern
 	.n0 chars64
 	.n1 chars64
 .new chars128() noctx
 	(), ()
 
-.chars129 record by-val extern
+.chars129 record extern
 	.n0 chars128
 	.n1 c-char
 .new chars129() noctx
 	(), "\0"
 
-.chars256 record by-val extern
+.chars256 record extern
 	.n0 chars128
 	.n1 chars128
 .new chars256() noctx
 	(), ()
 
-.chars257 record by-val extern
+.chars257 record extern
 	.n0 chars256
 	.n1 c-char
 .new chars257() noctx
 	(), "\0"
 
 # For char[MAX_PATH]
-.chars-max-path record by-val extern
+.chars-max-path record extern
 	.n0 chars256
 	.n1 chars4
 .new chars-max-path() noctx

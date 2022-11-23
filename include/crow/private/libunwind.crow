@@ -7,26 +7,26 @@ import
 
 unw_word_t alias
 	nat64
-unw_cursor_t record extern by-ref
+unw_cursor_t record extern
 	opaque bytes1024
-unw_context_t record extern by-ref mut
+unw_context_t record extern mut
 	opaque bytes1024
 
 # TODO: aliases for different machine types
-unw_getcontext c-int(context unw_context_t) noctx unsafe
+unw_getcontext c-int(context unw_context_t mut*) noctx unsafe
 	context _Ux86_64_getcontext
-unw_init_local c-int(cursor unw_cursor_t, context unw_context_t) noctx unsafe
+unw_init_local c-int(cursor unw_cursor_t mut*, context unw_context_t mut*) noctx unsafe
 	cursor _ULx86_64_init_local context
-unw_step c-int(cursor unw_cursor_t) noctx unsafe
+unw_step c-int(cursor unw_cursor_t mut*) noctx unsafe
 	cursor _ULx86_64_step
-unw_get_proc_name c-int(cursor unw_cursor_t, begin c-char mut*, size size_t, offset unw_word_t mut*) noctx unsafe
+unw_get_proc_name c-int(cursor unw_cursor_t mut*, begin c-char mut*, size size_t, offset unw_word_t mut*) noctx unsafe
 	cursor _ULx86_64_get_proc_name begin, size, offset
 
-._Ux86_64_getcontext c-int(context unw_context_t) extern<unwind>
-._ULx86_64_init_local c-int(cursor unw_cursor_t, context unw_context_t) extern<unwind>
-._ULx86_64_step c-int(cursor unw_cursor_t) extern<unwind>
+._Ux86_64_getcontext c-int(context unw_context_t mut*) extern<unwind>
+._ULx86_64_init_local c-int(cursor unw_cursor_t mut*, context unw_context_t mut*) extern<unwind>
+._ULx86_64_step c-int(cursor unw_cursor_t mut*) extern<unwind>
 ._ULx86_64_get_proc_name c-int(
-	cursor unw_cursor_t,
+	cursor unw_cursor_t mut*,
 	begin c-char mut*,
 	size size_t,
 	offset unw_word_t mut*,

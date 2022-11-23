@@ -166,7 +166,7 @@ struct Diag {
 		immutable Reason reason;
 	}
 	struct ExternPtrHasTypeParams {}
-	struct ExternRecordMustBeByRefOrVal {
+	struct ExternRecordImplicitlyByVal {
 		immutable StructDecl* struct_;
 	}
 	struct ExternUnion {}
@@ -383,7 +383,7 @@ struct Diag {
 		expectedTypeIsNotALambda,
 		externFunForbidden,
 		externPtrHasTypeParams,
-		externRecordMustBeByRefOrVal,
+		externRecordImplicitlyByVal,
 		externUnion,
 		funMissingBody,
 		funModifierConflict,
@@ -458,7 +458,7 @@ struct Diag {
 		immutable ExpectedTypeIsNotALambda expectedTypeIsNotALambda;
 		immutable ExternFunForbidden externFunForbidden;
 		immutable ExternPtrHasTypeParams externPtrHasTypeParams;
-		immutable ExternRecordMustBeByRefOrVal externRecordMustBeByRefOrVal;
+		immutable ExternRecordImplicitlyByVal externRecordImplicitlyByVal;
 		immutable ExternUnion externUnion;
 		immutable FunMissingBody funMissingBody;
 		immutable FunModifierConflict funModifierConflict;
@@ -550,8 +550,8 @@ struct Diag {
 	immutable this(immutable ExternPtrHasTypeParams a) {
 		kind = Kind.externPtrHasTypeParams; externPtrHasTypeParams = a;
 	}
-	immutable this(immutable ExternRecordMustBeByRefOrVal a) {
-		kind = Kind.externRecordMustBeByRefOrVal; externRecordMustBeByRefOrVal = a;
+	immutable this(immutable ExternRecordImplicitlyByVal a) {
+		kind = Kind.externRecordImplicitlyByVal; externRecordImplicitlyByVal = a;
 	}
 	immutable this(immutable ExternUnion a) {
 		kind = Kind.externUnion; externUnion = a;
@@ -720,8 +720,8 @@ struct Diag {
 		ref immutable Diag.ExternPtrHasTypeParams
 	) @safe @nogc pure nothrow cbExternPtrHasTypeParams,
 	scope immutable(Out) delegate(
-		ref immutable Diag.ExternRecordMustBeByRefOrVal
-	) @safe @nogc pure nothrow cbExternRecordMustBeByRefOrVal,
+		ref immutable Diag.ExternRecordImplicitlyByVal
+	) @safe @nogc pure nothrow cbExternRecordImplicitlyByVal,
 	scope immutable(Out) delegate(ref immutable Diag.ExternUnion) @safe @nogc pure nothrow cbExternUnion,
 	scope immutable(Out) delegate(ref immutable Diag.FunMissingBody) @safe @nogc pure nothrow cbFunMissingBody,
 	scope immutable(Out) delegate(
@@ -879,8 +879,8 @@ struct Diag {
 			return cbExternFunForbidden(a.externFunForbidden);
 		case Diag.Kind.externPtrHasTypeParams:
 			return cbExternPtrHasTypeParams(a.externPtrHasTypeParams);
-		case Diag.Kind.externRecordMustBeByRefOrVal:
-			return cbExternRecordMustBeByRefOrVal(a.externRecordMustBeByRefOrVal);
+		case Diag.Kind.externRecordImplicitlyByVal:
+			return cbExternRecordImplicitlyByVal(a.externRecordImplicitlyByVal);
 		case Diag.Kind.externUnion:
 			return cbExternUnion(a.externUnion);
 		case Diag.Kind.funMissingBody:

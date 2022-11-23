@@ -7,7 +7,7 @@ import
 	crow/number: int16, int32
 	crow/pointer: mut-pointer
 
-pollfd record by-val extern
+pollfd record extern
 	fd fd-t
 	events int16
 	revents int16

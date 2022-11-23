@@ -20,15 +20,15 @@ main nat^(_ string[]) unsafe summon
 
 .get-tcp-socket fd-t() unsafe summon
 	protoent = "tcp" getprotobyname
-	forbid protoent.as-any-const-pointer == null
-	socket-file-descriptor = AF_INET socket SOCK_STREAM, protoent.p_proto
+	forbid protoent == null
+	socket-file-descriptor = AF_INET socket SOCK_STREAM, protoent->p_proto
 	forbid socket-file-descriptor == max-nat64
 	socket-file-descriptor to-int32
 
 .connect-socket void(socket fd-t, hostname string, server-port nat16) unsafe summon
 	hostent = hostname.to-c-string gethostbyname
-	forbid hostent.as-any-const-pointer == null
-	in_addr0 in_addr* = hostent.h_addr_list->pointer-cast
+	forbid hostent == null
+	in_addr0 in_addr* = hostent->h_addr_list->pointer-cast
 	in_addr = in_addr0->inet_ntoa inet_addr
 
 	sockaddr_in mut sockaddr_in = AF_INET, server-port.htons, (in_addr,)

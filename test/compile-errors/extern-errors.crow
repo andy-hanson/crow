@@ -2,6 +2,12 @@ r record extern
 	a string
 	b list nat64
 
+r2 record extern by-val
+	a nat64
+
+r3 record extern by-ref
+	a nat64
+
 u union extern
 	a string
 

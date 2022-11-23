@@ -7,9 +7,9 @@ MDB_env extern-pointer
 MDB_dbi alias
 	u-int
 
-MDB_val record mut by-ref extern
-	mv_size mut size_t
-	mv_data mut any-mut-pointer
+MDB_val record mut extern
+	mv_size size_t
+	mv_data any-mut-pointer
 
 mdb_env_create err-t(env MDB_env mut*) extern<lmdb> summon
 mdb_env_open err-t(
@@ -34,37 +34,37 @@ mdb_txn_commit err-t(txn MDB_txn) extern<lmdb> summon
 mdb_dbi_open err-t(txn MDB_txn, name c-string, mdb-flags u-int, dbi MDB_dbi mut*) extern<lmdb> summon
 mdb_dbi_close void(env MDB_env, dbi MDB_dbi) extern<lmdb> summon
 
-mdb_get err-t(txn MDB_txn, dbi MDB_dbi, key MDB_val, value MDB_val) extern<lmdb> summon
+mdb_get err-t(txn MDB_txn, dbi MDB_dbi, key MDB_val*, value MDB_val mut*) extern<lmdb> summon
 mdb_put err-t(
 	txn MDB_txn,
 	dbi MDB_dbi,
-	key MDB_val,
-	value MDB_val,
+	key MDB_val*,
+	value MDB_val*,
 	mdb-flags u-int,
 ) extern<lmdb> summon
 
-mdb_stat record mut by-ref extern
-	ms_psize mut u-int
-	ms_depth mut u-int
-	ms_branch_pages mut size_t
-	ms_leaf_pages mut size_t
-	ms_overflow_pages mut size_t
-	ms_entries mut size_t
-mdb_stat err-t(txn MDB_txn, dbi MDB_dbi, stat mdb_stat) extern<lmdb> summon
+mdb_stat record extern
+	ms_psize u-int
+	ms_depth u-int
+	ms_branch_pages size_t
+	ms_leaf_pages size_t
+	ms_overflow_pages size_t
+	ms_entries size_t
+mdb_stat err-t(txn MDB_txn, dbi MDB_dbi, stat mdb_stat mut*) extern<lmdb> summon
 
 MDB_cursor extern-pointer
 mdb_cursor_open err-t(txn MDB_txn, dbi MDB_dbi, cursor MDB_cursor mut*) extern<lmdb> summon
 mdb_cursor_close void(cursor MDB_cursor) extern<lmdb> summon
 mdb_cursor_get err-t(
 	cursor MDB_cursor,
-	key MDB_val,
-	value MDB_val,
+	key MDB_val mut*,
+	value MDB_val mut*,
 	op MDB_cursor_op,
 ) extern<lmdb> summon
 mdb_cursor_put err-t(
 	cursor MDB_cursor,
-	key MDB_val,
-	value MDB_val,
+	key MDB_val*,
+	value MDB_val*,
 	mdb-flags u-int,
 ) extern<lmdb> summon
 

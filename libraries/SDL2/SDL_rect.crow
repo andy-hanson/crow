@@ -1,7 +1,7 @@
 import
 	crow/c-types: c-int
 
-SDL_Rect record by-val extern
+SDL_Rect record extern
 	x c-int
 	y c-int
 	w c-int

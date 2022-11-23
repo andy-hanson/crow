@@ -9,16 +9,17 @@ import
 
 dir extern-pointer
 
-dirent record mut by-ref extern
-	d_ino mut ino_t
-	d_off mut off_t
-	d_reclen mut nat16
-	d_type mut char8
+# TODO: This wasn't marked as packed in C. There's probably a bug in how crow lays out types.
+dirent record extern packed
+	d_ino ino_t
+	d_off off_t
+	d_reclen nat16
+	d_type char8
 	# TODO: d_name char8[256]
-	d_name mut bytes256
+	d_name bytes256
 new dirent()
 	0, 0, 0, "\0", ()
 
 opendir dir(name c-string) extern<c> summon
 closedir err-t(dirp dir) extern<c> summon
-readdir_r int32(dirp dir, entry dirent, result dirent mut*) extern<c> summon
+readdir_r int32(dirp dir, entry dirent mut*, result dirent mut* mut*) extern<c> summon

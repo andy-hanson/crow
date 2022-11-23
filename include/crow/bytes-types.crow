@@ -9,28 +9,28 @@ import
 	./number: nat16, nat32, nat64, new
 
 # 2-byte type.
-bytes2 record by-val extern
+bytes2 record extern
 	.n0 nat16
 
 new bytes2() noctx
 	(),
 
 # 4-byte type.
-bytes4 record by-val extern
+bytes4 record extern
 	.n0 nat32
 
 new bytes4() noctx
 	(),
 
 # 8-byte type.
-bytes8 record by-val extern
+bytes8 record extern
 	.n0 nat64
 
 new bytes8() noctx
 	(),
 
 # 14-byte type.
-bytes12 record by-val extern
+bytes12 record extern
 	.n0 bytes8
 	.n1 bytes4
 
@@ -38,7 +38,7 @@ new bytes12() noctx
 	(), ()
 
 # 14-byte type.
-bytes14 record by-val extern
+bytes14 record extern
 	.n0 bytes12
 	.n1 bytes2
 
@@ -46,7 +46,7 @@ new bytes14() noctx
 	(), ()
 
 # 16-byte type.
-bytes16 record by-val extern
+bytes16 record extern
 	.n0 bytes8
 	.n1 bytes8
 
@@ -54,14 +54,14 @@ new bytes16() noctx
 	(), ()
 
 # 32-byte type.
-bytes32 record by-val extern
+bytes32 record extern
 	.n0 bytes16
 	.n1 bytes16
 
 new bytes32() noctx
 	(), ()
 
-bytes40 record by-val extern
+bytes40 record extern
 	.n0 bytes32
 	.n1 bytes8
 
@@ -69,7 +69,7 @@ new bytes40() noctx
 	(), ()
 
 # 48-byte type.
-bytes48 record by-val extern
+bytes48 record extern
 	.n0 bytes32
 	.n1 bytes16
 
@@ -77,7 +77,7 @@ new bytes48() noctx
 	(), ()
 
 # 64-byte type.
-bytes64 record by-val extern
+bytes64 record extern
 	.n0 bytes32
 	.n1 bytes32
 
@@ -85,7 +85,7 @@ new bytes64() noctx
 	(), ()
 
 # 128-byte type.
-bytes128 record by-val extern
+bytes128 record extern
 	.n0 bytes64
 	.n1 bytes64
 
@@ -93,28 +93,28 @@ new bytes128() noctx
 	(), ()
 
 # 256-byte type
-bytes256 record by-val extern
+bytes256 record extern
 	.n0 bytes128
 	.n1 bytes128
 
 new bytes256() noctx
 	(), ()
 
-bytes512 record by-val extern
+bytes512 record extern
 	.n0 bytes256
 	.n1 bytes256
 
 new bytes512() noctx
 	(), ()
 
-bytes1024 record by-val extern
+bytes1024 record extern
 	.n0 bytes512
 	.n1 bytes512
 
 new bytes1024() noctx
 	(), ()
 
-bytes2048 record by-val extern
+bytes2048 record extern
 	.n0 bytes1024
 	.n1 bytes1024
 

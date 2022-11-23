@@ -474,7 +474,7 @@ backtrace record by-val
 	entries array backtrace-entry
 
 # 'extern' because interpreter also declares this type
-backtrace-entry record extern by-val
+backtrace-entry record extern
 	# These point into either GC or permanent memory. May be empty strings, never null.
 	function-name c-string
 	file-path c-string

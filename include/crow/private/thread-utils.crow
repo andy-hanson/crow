@@ -28,7 +28,8 @@ import
 	../number: ==, <=>, nat32, nat64, to-int64, to-nat64
 	./number-low-level: unsafe-to-int64, unsafe-to-nat32, wrap-add, wrap-sub
 	../pointer:
-		==, any-mut-pointer, as-any-mut-pointer, as-ref, by-val, null, pointer-cast, size-of, to-nat64, zeroed
+		==, any-mut-pointer, as-any-mut-pointer, by-val, mut-pointer, null, pointer-cast, size-of,
+		to-nat64, zeroed
 	../version: is-single-threaded, is-windows
 	./bootstrap: hard-assert, hard-forbid, hard-unreachable, option, todo
 export
@@ -47,13 +48,13 @@ count-processors nat64() unsafe noctx summon
 uninit by-val lock() noctx unsafe
 	zeroed
 
-.as-critical-section CRITICAL_SECTION(a lock) noctx unsafe
+.as-critical-section CRITICAL_SECTION mut*(a lock) noctx unsafe
 	size-of@<by-val CRITICAL_SECTION> <= size-of@<by-val lock> hard-assert
-	a.as-any-mut-pointer as-ref
+	a.as-any-mut-pointer pointer-cast
 
-.as-mutex pthread_mutex_t(a lock) noctx unsafe
-	size-of@<by-val pthread_mutex_t> <= size-of@<by-val lock> hard-assert
-	a.as-any-mut-pointer as-ref
+.as-mutex pthread_mutex_t mut*(a lock) noctx unsafe
+	size-of@<pthread_mutex_t> <= size-of@<by-val lock> hard-assert
+	a.as-any-mut-pointer pointer-cast
 
 init void(a lock) noctx unsafe
 	if is-single-threaded
@@ -61,7 +62,7 @@ init void(a lock) noctx unsafe
 	elif is-windows
 		a.as-critical-section InitializeCriticalSection
 	else
-		attr by-val pthread_mutexattr_t = zeroed
+		attr pthread_mutexattr_t = zeroed
 		a.as-mutex pthread_mutex_init &attr hard-assert-posix-error
 
 acquire void(a lock) noctx unsafe
@@ -88,13 +89,13 @@ with-lock<a> a(a lock, f act a()) trusted
 
 condition record mut by-ref
 	# TODO: use union to save space instead of storing posix/windows side-by-side
-	.posix-mutex-attr by-val pthread_mutexattr_t
-	.posix-mutex by-val pthread_mutex_t
-	.posix-cond-attr by-val pthread_condattr_t
-	.posix-cond by-val pthread_cond_t
+	.posix-mutex-attr mut pthread_mutexattr_t
+	.posix-mutex mut pthread_mutex_t
+	.posix-cond-attr mut pthread_condattr_t
+	.posix-cond mut pthread_cond_t
 
-	.windows-condition by-val CONDITION_VARIABLE
-	.windows-critical-section by-val CRITICAL_SECTION
+	.windows-condition mut CONDITION_VARIABLE
+	.windows-critical-section mut CRITICAL_SECTION
 
 	###
 	Incremented each time the condition fires.
@@ -216,7 +217,7 @@ wait-on void(a condition, until-time timestamp?, last-sequence sequence-id) noct
 
 barrier record mut by-ref
 	# TODO: use union to save space instead of storing posix/windows side-by-side
-	.posix by-val pthread_barrier_t
+	.posix mut pthread_barrier_t
 	.windows mut SYNCHRONIZATION_BARRIER
 
 uninit by-val barrier() noctx unsafe

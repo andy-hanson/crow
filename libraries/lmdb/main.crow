@@ -195,12 +195,13 @@ Gets the value associated with a key.
 Returns an empty option iff `key` is not in `db`.
 ###
 get<k, v> v?(txn lmdb-txn, db lmdb-db<k, v>, key k) trusted summon lmdb-key<k> serialize<v>
-	value = empty-val
 	# TODO: this check should be unnecessary...
 	unless (txn count db) == 0
 		lmdb-key = key to-lmdb-key
 		forbid lmdb-key is-empty : "empty key is not allowed"
-		err = txn.txn mdb_get db.dbi, lmdb-key.val-of-bytes, value
+		key-val = lmdb-key val-of-bytes
+		value mut = empty-val
+		err = txn.txn mdb_get db.dbi, &key-val, &value
 		unless err == MDB_NOTFOUND
 			err check-lmdb-error
 			# TODO:PERF For some v types, the copy in 'bytes-of-val' is unnecessary.
@@ -235,7 +236,9 @@ try-add<k, v> bool(txn lmdb-txn, db lmdb-db<k, v>, key k, value v) summon lmdb-k
 	value v,
 	mdb-flags u-int,
 ) trusted summon lmdb-key<k> serialize<v>
-	txn.txn mdb_put db.dbi, key.to-lmdb-key.val-of-bytes, value.to-bytes.val-of-bytes, mdb-flags
+	key-val = key.to-lmdb-key val-of-bytes
+	value-val = value.to-bytes val-of-bytes
+	txn.txn mdb_put db.dbi, &key-val, &value-val, mdb-flags
 
 region stat
 
@@ -256,8 +259,8 @@ to-string string(a lmdb_stat)
 
 # Get statistics about `db`.
 stat<k, v> lmdb_stat(txn lmdb-txn, db lmdb-db<k, v>) trusted summon
-	s mdb_stat = 0, 0, 0, 0, 0, 0
-	txn.txn mdb_stat db.dbi, s check-lmdb-error
+	s mut mdb_stat = 0, 0, 0, 0, 0, 0
+	txn.txn mdb_stat db.dbi, &s check-lmdb-error
 	psize = s.ms_psize to-nat64
 	depth = s.ms_depth to-nat64
 	psize, depth, s.ms_branch_pages, s.ms_leaf_pages, s.ms_overflow_pages, s.ms_entries
@@ -279,13 +282,14 @@ each<k, v> each<k, v>(txn lmdb-txn, db lmdb-db<k, v>)
 # Calls `f` for each key-value pair in `db`.
 for-loop<k, v> void(a each<k, v>, f act void(k, v)) trusted summon lmdb-key<k> serialize<v>
 	a.txn with-cursor a.db, cursor =>
-		cursor mdb_cursor_get empty-val, empty-val, MDB_FIRST check-lmdb-error
+		key mut = empty-val
+		value mut = empty-val
+		cursor mdb_cursor_get &key, &value, MDB_FIRST check-lmdb-error
 		loop
-			key = empty-val
-			value = empty-val
-			cursor mdb_cursor_get key, value, MDB_GET_CURRENT check-lmdb-error
+			cursor mdb_cursor_get &key, &value, MDB_GET_CURRENT check-lmdb-error
 			f[key.bytes-of-val.from-lmdb-key, value.bytes-of-val.from-bytes]
-			err = cursor mdb_cursor_get empty-val, empty-val, MDB_NEXT
+			value := empty-val
+			err = cursor mdb_cursor_get &key, &value, MDB_NEXT
 			if err == MDB_NOTFOUND
 				break
 			else
@@ -325,8 +329,9 @@ zip<out, k, v0, v1> out[](
 ) trusted summon is-data<k> lmdb-key<k> serialize<v0> serialize<v1>
 	txn with-cursor db0, cursor0 =>
 		txn with-cursor db1, cursor1 =>
-			cursor0 mdb_cursor_get empty-val, empty-val, MDB_FIRST check-lmdb-error
-			cursor1 mdb_cursor_get empty-val, empty-val, MDB_FIRST check-lmdb-error
+			empty mut = empty-val
+			cursor0 mdb_cursor_get &empty, &empty, MDB_FIRST check-lmdb-error
+			cursor1 mdb_cursor_get &empty, &empty, MDB_FIRST check-lmdb-error
 			cursor0 zip-inner cursor1, f
 .zip-inner<k, v0, v1> void(
 	cursor0 MDB_cursor,
@@ -334,20 +339,21 @@ zip<out, k, v0, v1> out[](
 	f act void(k, v0, v1),
 ) unsafe summon is-data<k> lmdb-key<k> serialize<v0> serialize<v1>
 	loop
-		key0-val = empty-val
-		value0-val = empty-val
-		cursor0 mdb_cursor_get key0-val, value0-val, MDB_GET_CURRENT check-lmdb-error
+		key0-val mut = empty-val
+		value0-val mut = empty-val
+		cursor0 mdb_cursor_get &key0-val, &value0-val, MDB_GET_CURRENT check-lmdb-error
 		key0 k = key0-val.bytes-of-val from-lmdb-key
 		value0 v0 = value0-val.bytes-of-val from-bytes
-		key1-val = empty-val
-		value1-val = empty-val
-		cursor1 mdb_cursor_get key1-val, value1-val, MDB_GET_CURRENT check-lmdb-error
+		key1-val mut = empty-val
+		value1-val mut = empty-val
+		cursor1 mdb_cursor_get &key1-val, &value1-val, MDB_GET_CURRENT check-lmdb-error
 		key1 k = key1-val.bytes-of-val.from-lmdb-key
 		value1 v1 = value1-val.bytes-of-val.from-bytes
 		assert key0 == key1
 		f[key0, value0, value1]
-		err0 = cursor0 mdb_cursor_get empty-val, empty-val, MDB_NEXT
-		err1 = cursor1 mdb_cursor_get empty-val, empty-val, MDB_NEXT
+		empty mut = empty-val
+		err0 = cursor0 mdb_cursor_get &empty, &empty, MDB_NEXT
+		err1 = cursor1 mdb_cursor_get &empty, &empty, MDB_NEXT
 		if err0 == MDB_NOTFOUND || err1 == MDB_NOTFOUND
 			assert err0 == MDB_NOTFOUND && err1 == MDB_NOTFOUND
 			break

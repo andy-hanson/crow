@@ -15,8 +15,8 @@ import
 	../option: new, option
 	../private/number-low-level: ==, <=>, nat8, nat32, nat64, unsafe-to-nat32, wrap-add, wrap-sub
 	../pointer:
-		==, <=>, +, *, as-any-const-pointer, as-const, by-val, mut-pointer, null, pointer-cast,
-		set-deref, size-of
+		==, <=>, +, *, as-any-const-pointer, as-const, mut-pointer, null, pointer-cast, set-deref,
+		size-of
 	../version: is-interpreted, is-windows
 	./alloc: copy-data-from, gc-ctx, try-alloc-uninitialized
 	./bootstrap: char8, c-string, hard-assert
@@ -161,20 +161,18 @@ Result entries are temporary, must copy!
 	max-entries nat64,
 	skip nat64,
 ) noctx unsafe
-	cursor-val by-val unw_cursor_t = (),
-	cursor unw_cursor_t = &cursor-val
-	context-val by-val unw_context_t = (),
-	context unw_context_t = &context-val
-	err0 = context unw_getcontext
+	cursor mut unw_cursor_t = (),
+	context mut unw_context_t = (),
+	err0 = &context unw_getcontext
 	err0 == 0 hard-assert
-	err1 = cursor unw_init_local context
+	err1 = &cursor unw_init_local &context
 	err1 == 0 hard-assert
 	# omit 'get-native-backtrace' in addition to other skipped
-	cursor unwind-skip (skip wrap-add 1)
-	end = gc unwind entries, entries + max-entries, cursor
+	&cursor unwind-skip (skip wrap-add 1)
+	end = gc unwind entries, entries + max-entries, &cursor
 	(entries .. end).as-array,
 
-.unwind-skip void(cursor unw_cursor_t, skip nat64) noctx unsafe
+.unwind-skip void(cursor unw_cursor_t mut*, skip nat64) noctx unsafe
 	unless skip == 0
 		_ = cursor unw_step
 		cursor unwind-skip (skip wrap-sub 1)
@@ -184,7 +182,7 @@ Result entries are temporary, must copy!
 	gc gc-ctx,
 	out-begin backtrace-entry mut*,
 	out-end backtrace-entry mut*,
-	cursor unw_cursor_t,
+	cursor unw_cursor_t mut*,
 ) noctx unsafe
 	out-cur mut = out-begin
 	loop

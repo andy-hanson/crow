@@ -18,7 +18,6 @@ import
 		_popen, PROCESS_INFORMATION, ReadFile, SECURITY_ATTRIBUTES, SetHandleInformation,
 		STARTF_USESTDHANDLES, STARTUPINFOA, WaitForSingleObject
 	../bool: &&, ||, bool, to-nat64, true
-	../bytes-types: new
 	../col/array: begin-pointer
 	../col/mut-array: begin-pointer, mut-array, new, size, subscript
 	../col/list: ~, for-loop, to-array, list
@@ -171,17 +170,17 @@ shell-exec string(command string) trusted summon
 	stderr-pipes = make-pipes
 
 	# TODO: Neater, move to own function
-	actions posix_spawn_file_actions_t = 0, 0, null, ()
-	actions.posix_spawn_file_actions_init check-posix-error
-	actions posix_spawn_file_actions_addclose stdout-pipes.write-pipe check-posix-error
-	actions posix_spawn_file_actions_addclose stderr-pipes.write-pipe check-posix-error
-	actions posix_spawn_file_actions_adddup2 stdout-pipes.read-pipe, stdout check-posix-error
-	actions posix_spawn_file_actions_adddup2 stderr-pipes.read-pipe, stderr check-posix-error
-	actions posix_spawn_file_actions_addclose stdout-pipes.read-pipe check-posix-error
-	actions posix_spawn_file_actions_addclose stderr-pipes.read-pipe check-posix-error
+	actions mut posix_spawn_file_actions_t = ()
+	(&actions).posix_spawn_file_actions_init check-posix-error
+	&actions posix_spawn_file_actions_addclose stdout-pipes.write-pipe check-posix-error
+	&actions posix_spawn_file_actions_addclose stderr-pipes.write-pipe check-posix-error
+	&actions posix_spawn_file_actions_adddup2 stdout-pipes.read-pipe, stdout check-posix-error
+	&actions posix_spawn_file_actions_adddup2 stderr-pipes.read-pipe, stderr check-posix-error
+	&actions posix_spawn_file_actions_addclose stdout-pipes.read-pipe check-posix-error
+	&actions posix_spawn_file_actions_addclose stderr-pipes.read-pipe check-posix-error
 
 	pid mut pid_t = 0
-	&pid posix_spawn exe, actions, null, args.to-array.begin-pointer, get-environ-raw check-posix-error
+	&pid posix_spawn exe, &actions, null, args.to-array.begin-pointer, get-environ-raw check-posix-error
 
 	# Close child-side of pipes (from this process, child still has them)
 	stdout-pipes.read-pipe.close check-posix-error
@@ -197,8 +196,8 @@ shell-exec string(command string) trusted summon
 	exit-code, stdout-builder.move-to-list.as-string, stderr-builder.move-to-list.as-string
 
 .make-pipes pipes() summon unsafe
-	res pipes = 0, 0
-	res.pipe check-posix-error
+	res mut pipes = 0, 0
+	(&res).pipe check-posix-error
 	res
 
 .keep-polling void(

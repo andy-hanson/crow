@@ -6,7 +6,7 @@ import
 
 # Make this as big as the biggest one I've found, which is on Windows where it is 16 * 128 bits.
 # The interpreter uses a fake implementation of this.
-__jmp_buf_tag record by-val extern
+__jmp_buf_tag record extern
 	spacer bytes512
 
 new __jmp_buf_tag() noctx

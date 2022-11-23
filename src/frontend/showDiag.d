@@ -672,10 +672,10 @@ void writeDiag(
 		(ref immutable Diag.ExternPtrHasTypeParams) {
 			writer ~= "an 'extern-pointer' type should not be a template";
 		},
-		(ref immutable Diag.ExternRecordMustBeByRefOrVal d) {
+		(ref immutable Diag.ExternRecordImplicitlyByVal d) {
 			writer ~= "'extern' record ";
 			writeName(writer, allSymbols, d.struct_.name);
-			writer ~= " must be explicitly 'by-ref' or 'by-val'";
+			writer ~= " is implicitly 'by-val'";
 		},
 		(ref immutable Diag.ExternUnion d) {
 			writer ~= "a union can't be 'extern'";

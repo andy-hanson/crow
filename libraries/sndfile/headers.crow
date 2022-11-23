@@ -7,7 +7,7 @@ sf_count_t alias
 
 SNDFILE extern-pointer
 
-SF_VIRTUAL_IO record extern by-ref mut
+SF_VIRTUAL_IO record extern mut
 	get_filelen fun* sf_count_t(any-mut-pointer)
 	seek fun* sf_count_t(sf_count_t, SEEK, any-mut-pointer)
 	read fun* sf_count_t(nat8 mut*, sf_count_t, any-mut-pointer)
@@ -17,7 +17,7 @@ SF_VIRTUAL_IO record extern by-ref mut
 sf_error c-int(sndfile SNDFILE) extern<sndfile>
 sf_error_number c-string(errnum c-int) extern<sndfile>
 
-SF_INFO record extern by-val
+SF_INFO record extern
 	frames sf_count_t
 	samplerate u-int
 	channels u-int
@@ -30,7 +30,7 @@ new SF_INFO() noctx
 
 sf_open SNDFILE(path c-string, mode SndFileMode, sfinfo SF_INFO mut*) extern<sndfile> summon
 sf_open_virtual SNDFILE(
-	sfvirtual SF_VIRTUAL_IO,
+	sfvirtual SF_VIRTUAL_IO*,
 	mode SndFileMode,
 	sfinfo SF_INFO mut*,
 	user_data any-mut-pointer,

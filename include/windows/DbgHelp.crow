@@ -13,7 +13,7 @@ ADDRESS_MODE enum<nat32> extern
 	AddrModeReal
 	AddrModeFlat
 
-ADDRESS64 record extern by-val
+ADDRESS64 record extern
 	Offset DWORD64
 	Segment WORD
 	Mode ADDRESS_MODE
@@ -24,7 +24,7 @@ new ADDRESS64() noctx
 new ADDRESS64(offset DWORD64) noctx
 	offset, 0, AddrModeFlat
 
-STACKFRAME64 record extern by-val
+STACKFRAME64 record extern
 	AddrPC ADDRESS64
 	AddrReturn ADDRESS64
 	AddrFrame ADDRESS64
@@ -45,7 +45,7 @@ STACKFRAME64 record extern by-val
 new STACKFRAME64(context CONTEXT*) noctx unsafe
 	(context->Rip,), (), (context->Rbp,), (context->Rsp,), (), null, 0, 0, 0, 0, false, false, 0, 0, 0, ()
 
-KDHELP64 record extern by-val
+KDHELP64 record extern
 	Thread DWORD64
 	ThCallbackStack DWORD
 	ThCallbackBStore DWORD
@@ -68,7 +68,7 @@ KDHELP64 record extern by-val
 new KDHELP64() noctx
 	0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0
 
-IMAGEHLP_SYMBOL64 record extern by-val
+IMAGEHLP_SYMBOL64 record extern
 	SizeOfStruct DWORD
 	Address DWORD64
 	Size DWORD
@@ -81,7 +81,7 @@ new IMAGEHLP_SYMBOL64(max-name-length DWORD) noctx unsafe
 	# TODO: should not need parentheses
 	(size-of@<IMAGEHLP_LINE64>).to-nat32, 0, 0, 0, max-name-length, "\0"
 
-IMAGEHLP_LINE64 record extern by-val
+IMAGEHLP_LINE64 record extern
 	SizeOfStruct DWORD
 	Key any-const-pointer
 	LineNumber DWORD

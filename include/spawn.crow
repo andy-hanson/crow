@@ -1,44 +1,46 @@
 no-std
 import
-	crow/bytes-types: bytes64
+	crow/bytes-types: bytes64, new
 	crow/extra-types: err-t, fd-t
 	crow/number: int32
-	crow/pointer: any-const-pointer, any-mut-pointer, const-pointer, mut-pointer
+	crow/pointer: any-const-pointer, any-mut-pointer, const-pointer, mut-pointer, null
 	crow/string: c-string
 	sys/types: mode_t, pid_t
 
-posix_spawn_file_actions_t record mut by-ref extern
-	allocated mut int32
-	used mut int32
-	actions mut any-mut-pointer
-	pad mut bytes64
+posix_spawn_file_actions_t record mut extern
+	allocated int32
+	used int32
+	actions any-mut-pointer
+	pad bytes64
+new posix_spawn_file_actions_t() unsafe
+	0, 0, null, ()
 
 # TODO: type file-actions and attrp, currently these are always null
 # /usr/include/spawn.h
 posix_spawn err-t(
 	pid pid_t mut*,
 	executable-path c-string,
-	file-actions posix_spawn_file_actions_t,
+	file-actions posix_spawn_file_actions_t*,
 	attrp any-const-pointer,
 	argv c-string*,
 	environ c-string*,
 ) extern<c> summon
 
-posix_spawn_file_actions_init err-t(file-actions posix_spawn_file_actions_t) extern<c> summon
-posix_spawn_file_actions_destroy err-t(file-actions posix_spawn_file_actions_t) extern<c> summon
+posix_spawn_file_actions_init err-t(file-actions posix_spawn_file_actions_t mut*) extern<c> summon
+posix_spawn_file_actions_destroy err-t(file-actions posix_spawn_file_actions_t mut*) extern<c> summon
 posix_spawn_file_actions_addopen err-t(
-	file-actions posix_spawn_file_actions_t,
+	file-actions posix_spawn_file_actions_t mut*,
 	fd fd-t,
 	path c-string,
 	oflag int32,
 	mode mode_t,
 ) extern<c> summon
 posix_spawn_file_actions_addclose err-t(
-	file-actions posix_spawn_file_actions_t,
+	file-actions posix_spawn_file_actions_t mut*,
 	fd fd-t,
 ) extern<c> summon
 posix_spawn_file_actions_adddup2 err-t(
-	file-actions posix_spawn_file_actions_t,
+	file-actions posix_spawn_file_actions_t mut*,
 	fd fd-t,
 	new-fd fd-t,
 ) extern<c> summon

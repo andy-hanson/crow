@@ -5,7 +5,7 @@ import
 	crow/private/bootstrap: char8, c-string
 	crow/pointer: const-pointer, mut-pointer
 
-timespec record by-val extern
+timespec record extern
 	tv_sec long
 	tv_nsec long
 

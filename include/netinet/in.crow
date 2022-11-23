@@ -5,7 +5,7 @@ import
 
 in_addr_t alias
 	nat32
-in_addr record extern by-val
+in_addr record extern
 	s-addr in_addr_t
 
 in_port_t alias

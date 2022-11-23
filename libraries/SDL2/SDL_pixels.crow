@@ -2,21 +2,21 @@ import
 	crow/c-types: c-int
 	crow/version: is-big-endian
 
-SDL_Color record by-val extern
+SDL_Color record extern
 	r nat8
 	g nat8
 	b nat8
 	a nat8
 
-SDL_Palette record mut by-ref extern
+SDL_Palette record mut extern
 	ncolors c-int
 	colors SDL_Color mut*
 	version nat32
 	refcount c-int
 
-SDL_PixelFormat record mut by-val extern
+SDL_PixelFormat record mut extern
 	format nat32
-	palette SDL_Palette
+	palette SDL_Palette mut*
 	BitsPerPixel nat8
 	BytesPerPixel nat8
 	padding nat16
