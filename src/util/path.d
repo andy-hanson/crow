@@ -550,6 +550,16 @@ public void writePathPlain(
 	writeSym(writer, allPaths.allSymbols, baseName(allPaths, p));
 }
 
+public void writePathPlain(
+	ref Writer writer,
+	scope ref const AllPaths allPaths,
+	immutable PathAndExtension p,
+) {
+	writePathPlain(writer, allPaths, p.path);
+	writer ~= '.';
+	writeSym(writer, allPaths.allSymbols, p.extension);
+}
+
 public void writePath(
 	ref Writer writer,
 	scope ref const AllPaths allPaths,

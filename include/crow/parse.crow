@@ -309,7 +309,7 @@ spaces grammar-skip()
 .is-space bool(a char8)
 	a in space-chars
 .space-chars set char8()
-	" ", "\n", "\t"
+	" ", "\r", "\n", "\t"
 
 # A double-quoted string as in JSON, including escape sequences.
 quoted-string grammar string()

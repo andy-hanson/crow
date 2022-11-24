@@ -1,1 +1,1 @@
-@nmake /f NMakefile %*
+@nmake /nologo /f NMakefile %*
