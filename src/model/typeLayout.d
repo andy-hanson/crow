@@ -15,7 +15,7 @@ import model.lowModel :
 	typeSize;
 import util.col.arrUtil : every, map;
 import util.opt : none, Opt, some;
-import util.util : divRoundUp;
+import util.util : divRoundUp, isMultipleOf;
 
 immutable(size_t) typeSizeBytes(scope ref immutable LowProgram program, scope immutable LowType a) =>
 	sizeOfType(program, a).sizeBytes;
@@ -23,8 +23,8 @@ immutable(size_t) typeSizeBytes(scope ref immutable LowProgram program, scope im
 immutable(TypeSize) sizeOfType(scope ref immutable LowProgram program, scope immutable LowType a) =>
 	matchLowTypeCombinePtr!(
 		immutable TypeSize,
-		(immutable LowType.ExternPtr) =>
-			externPtrSize,
+		(immutable LowType.Extern x) =>
+			typeSize(program.allExternTypes[x]),
 		(immutable LowType.FunPtr) =>
 			funPtrSize,
 		(immutable PrimitiveType it) =>
@@ -62,7 +62,7 @@ immutable(Opt!Pack) optPack(TempAlloc)(
 ) {
 	immutable LowRecord record = program.allRecords[type];
 
-	if (every!LowField(record.fields, (ref immutable LowField field) => field.offset % 8 == 0))
+	if (every!LowField(record.fields, (ref immutable LowField field) => isMultipleOf(field.offset, 8)))
 		return none!Pack;
 	else {
 		size_t inOffsetEntries = 0;
@@ -81,7 +81,6 @@ private:
 
 immutable TypeSize ptrSize = immutable TypeSize(8, 8);
 immutable TypeSize funPtrSize = ptrSize;
-immutable TypeSize externPtrSize = ptrSize;
 
 immutable(TypeSize) primitiveSize(immutable PrimitiveType a) {
 	final switch (a) {

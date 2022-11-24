@@ -12,20 +12,20 @@ timespec record extern
 new timespec() noctx
 	0, 0
 
-tm extern-pointer
+tm extern
 
 nanosleep err-t(requested_time timespec*, remaining timespec mut*) extern<c>
 
 # TODO:SUMMON
 clock_gettime err-t(clock-id __clockid_t, timespec timespec mut*) extern<c>
 
-gmtime tm(timer time_t*) extern<c> summon
+gmtime tm mut*(timer time_t*) extern<c> summon
 
-localtime tm(timer time_t*) extern<c> summon
+localtime tm mut*(timer time_t*) extern<c> summon
 
 time time_t(timer time_t mut*) extern<c> summon
 
-strftime size_t(s char8 mut*, max-size size_t, format c-string, tp tm) extern<c> summon
+strftime size_t(s char8 mut*, max-size size_t, format c-string, tp tm*) extern<c> summon
 
 CLOCK_MONOTONIC __clockid_t() noctx
 	1

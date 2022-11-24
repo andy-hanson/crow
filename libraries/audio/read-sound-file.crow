@@ -19,7 +19,7 @@ sound-from-file-content sound(content array nat8) trusted
 	f = &virtual sf_open_virtual SFM_READ, &info, user-data.as-any-mut-pointer
 	f common info
 
-.common sound(f SNDFILE, info SF_INFO) unsafe
+.common sound(f SNDFILE mut*, info SF_INFO) unsafe
 	f.sf_error check-sndfile-error
 	n-channels = info.channels to-nat64
 	sample-rate = info.samplerate to-nat64

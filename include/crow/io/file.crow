@@ -1,6 +1,6 @@
 no-std
 import
-	dirent: closedir, dir, dirent, d_name, new, opendir, readdir_r
+	dirent: closedir, DIR, dirent, d_name, new, opendir, readdir_r
 	errno: ENOENT, errno
 	stat: mkdir, new, S_IFDIR, S_IFMT, S_IFREG, stat, st_mode
 	stdio: fclose, ferror, FILE, fopen, fread, fseek, ftell, fwrite, SEEK_SET, SEEK_END
@@ -15,7 +15,6 @@ import
 		WIN32_FIND_DATAA
 	../bits: &, |, <<
 	../bool: !, ||, bool, false, new, to-nat64, true
-	../bytes-types: bytes256
 	../col/array: array, begin-pointer, size, subscript
 	../col/mut-array: cast-immutable, begin-pointer, mut-array, size, uninitialized-mut-array
 	../col/list: ~=, build, for-loop, list, new, to-array, to-list, with-block
@@ -28,11 +27,10 @@ import
 	../number: ==, <=>, nat8, to-nat32, to-nat64
 	../option: is-empty, new, option
 	../private/bootstrap: todo
-	../pointer:
-		==, *, any-const-pointer, as-any-const-pointer, as-const, const-pointer, mut-pointer, null,
-		pointer-cast, pointer-cast-from-extern, size-of
+	../pointer: ==, as-any-const-pointer, as-const, mut-pointer, null, pointer-cast, size-of
 	../range: ..
-	../string: ==, <=>, ~~, as-string, char8, c-string, literal, string, to-bytes, to-c-string, to-string
+	../string:
+		==, <=>, ~~, as-string, char8, c-string, literal, string, to-bytes, to-c-string, to-string
 	../version: is-windows
 	./path: child-path
 	./posix-util: check-errno, check-posix-error
@@ -129,7 +127,7 @@ names-in-dir string[](path string) summon trusted
 				path names-in-dir-windows file sort
 	else
 		dirp = path opendir
-		forbid dirp.pointer-cast-from-extern::any-const-pointer mut* == null : "failed to open dir {path}"
+		forbid dirp == null : "failed to open dir {path}"
 		with : (() => dirp close-dir path) finally
 			dirp.names-in-dir-posix sort
 
@@ -137,7 +135,7 @@ names-in-dir string[](path string) summon trusted
 	ok = file FindClose
 	assert ok : "failed to close dir {path}"
 
-.close-dir void(dirp dir, path c-string) unsafe summon
+.close-dir void(dirp DIR mut*, path c-string) unsafe summon
 	err = dirp closedir
 	assert err == 0 : "failed to close dir {path}"
 
@@ -156,7 +154,7 @@ names-in-dir string[](path string) summon trusted
 				assert err == ERROR_NO_MORE_FILES : "Error while reading directory {dir-path}: {err show-win32-error}"
 				break
 
-.names-in-dir-posix string[](dirp dir) unsafe summon
+.names-in-dir-posix string[](dirp DIR mut*) unsafe summon
 	with out : build
 		loop
 			# Initial value of entry / result should not matter
@@ -169,9 +167,7 @@ names-in-dir string[](path string) summon trusted
 				break
 			else
 				assert result == &entry
-				#name = &entry get-dirent-name
-				d_name bytes256* = &result->d_name
-				name = d_name.pointer-cast::char8* to-string
+				name = result.as-const.d_name to-string
 				unless name == "." || name == ".."
 					out ~= name
 				continue
@@ -230,7 +226,7 @@ write-file void(path string, content string) summon trusted
 	with : (() => fd close-fd path) finally
 		fd write-fd path, content.to-bytes.to-array
 
-.write-fd void(fd FILE, path c-string, bytes array nat8) summon unsafe
+.write-fd void(fd FILE mut*, path c-string, bytes array nat8) summon unsafe
 	wrote-bytes = bytes.begin-pointer fwrite size-of@<nat8>, bytes.size, fd
 	assert wrote-bytes == bytes.size : "error writing file {path}"
 
@@ -259,7 +255,7 @@ try-read-file-binary nat8[]?(path string) summon trusted
 	else
 		()
 
-.read-fd nat8[](fd FILE, path c-string) summon unsafe
+.read-fd nat8[](fd FILE mut*, path c-string) summon unsafe
 	err = fd fseek 0, SEEK_END
 	assert err == 0 : "Error reading {path}"
 
@@ -280,7 +276,7 @@ try-read-file-binary nat8[]?(path string) summon trusted
 		forbid fd ferror : "Error reading {path}"
 		res.cast-immutable to-list
 
-.close-fd void(fd FILE, path c-string) summon unsafe
+.close-fd void(fd FILE mut*, path c-string) summon unsafe
 	err = fd fclose
 	assert err == 0 : "Error closing {path}"
 

@@ -568,20 +568,19 @@ void initializeConcreteStruct(
 				false));
 			lateSet(res.typeSize_, typeSizeForEnumOrFlags(it.backingType));
 		},
+		(ref immutable StructBody.Extern it) {
+			lateSet(res.defaultReferenceKind_, ReferenceKind.byVal);
+			lateSet(res.info_, immutable ConcreteStructInfo(
+				immutable ConcreteStructBody(immutable ConcreteStructBody.Extern()),
+				false));
+			lateSet(res.typeSize_, has(it.size) ? force(it.size) : immutable TypeSize(0, 0));
+		},
 		(ref immutable StructBody.Flags it) {
 			lateSet(res.defaultReferenceKind_, ReferenceKind.byVal);
 			lateSet(res.info_, immutable ConcreteStructInfo(
 				immutable ConcreteStructBody(getConcreteStructBodyForFlags(ctx.alloc, it)),
 				false));
 			lateSet(res.typeSize_, typeSizeForEnumOrFlags(it.backingType));
-		},
-		(ref immutable StructBody.ExternPointer it) {
-			// byVal because the 'extern' type *is* a pointer
-			lateSet(res.defaultReferenceKind_, ReferenceKind.byVal);
-			lateSet(res.info_, immutable ConcreteStructInfo(
-				immutable ConcreteStructBody(immutable ConcreteStructBody.ExternPtr()),
-				false));
-			lateSet(res.typeSize_, getBuiltinStructSize(BuiltinStructKind.pointerMut));
 		},
 		(ref immutable StructBody.Record r) {
 			// don't set 'defaultReferenceKind' until the end, unless explicit
@@ -733,6 +732,8 @@ void fillInConcreteFunBody(ref ConcretizeCtx ctx, ConcreteFun* cf) {
 			},
 			(ref immutable FunBody.CreateEnum it) =>
 				immutable ConcreteFunBody(immutable ConcreteFunBody.CreateEnum(it.value)),
+			(ref immutable FunBody.CreateExtern) =>
+				immutable ConcreteFunBody(immutable ConcreteFunBody.CreateExtern()),
 			(ref immutable FunBody.CreateRecord) =>
 				immutable ConcreteFunBody(immutable ConcreteFunBody.CreateRecord()),
 			(ref immutable FunBody.CreateUnion it) =>
@@ -805,10 +806,10 @@ immutable(StructBody.Enum.Member[]) enumOrFlagsMembers(immutable ConcreteType ty
 			unreachable!(immutable StructBody.Enum.Member[]),
 		(ref immutable StructBody.Enum it) =>
 			it.members,
+		(ref immutable StructBody.Extern) =>
+			unreachable!(immutable StructBody.Enum.Member[]),
 		(ref immutable StructBody.Flags it) =>
 			it.members,
-		(ref immutable StructBody.ExternPointer) =>
-			unreachable!(immutable StructBody.Enum.Member[]),
 		(ref immutable StructBody.Record) =>
 			unreachable!(immutable StructBody.Enum.Member[]),
 		(ref immutable StructBody.Union) =>

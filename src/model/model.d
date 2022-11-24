@@ -2,6 +2,7 @@ module model.model;
 
 @safe @nogc pure nothrow:
 
+import model.concreteModel : TypeSize;
 import model.constant : Constant;
 import model.diag : Diagnostics, FilesInfo; // TODO: move FilesInfo here?
 import util.alloc.alloc : Alloc;
@@ -436,13 +437,15 @@ struct StructBody {
 		immutable EnumBackingType backingType;
 		immutable Member[] members;
 	}
+	struct Extern {
+		immutable Opt!TypeSize size;
+	}
 	struct Flags {
 		alias Member = Enum.Member;
 		immutable EnumBackingType backingType;
 		// For Flags, members should be unsigned
 		immutable Member[] members;
 	}
-	struct ExternPointer {}
 	struct Record {
 		immutable RecordFlags flags;
 		immutable RecordField[] fields;
@@ -456,8 +459,8 @@ struct StructBody {
 		bogus,
 		builtin,
 		enum_,
+		extern_,
 		flags,
-		externPointer,
 		record,
 		union_,
 	}
@@ -466,8 +469,8 @@ struct StructBody {
 		immutable Bogus bogus;
 		immutable Builtin builtin;
 		immutable Enum enum_;
+		immutable Extern extern_;
 		immutable Flags flags;
-		immutable ExternPointer externPointer;
 		immutable Record record;
 		immutable Union union_;
 	}
@@ -476,8 +479,8 @@ struct StructBody {
 	immutable this(immutable Bogus a) { kind = Kind.bogus; bogus = a; }
 	immutable this(immutable Builtin a) { kind = Kind.builtin; builtin = a; }
 	@trusted immutable this(immutable Enum a) { kind = Kind.enum_; enum_ = a; }
+	immutable this(immutable Extern a) { kind = Kind.extern_; extern_ = a; }
 	@trusted immutable this(immutable Flags a) { kind = Kind.flags; flags = a; }
-	immutable this(immutable ExternPointer a) { kind = Kind.externPointer; externPointer = a; }
 	@trusted immutable this(immutable Record a) { kind = Kind.record; record = a; }
 	@trusted immutable this(immutable Union a) { kind = Kind.union_; union_ = a;}
 }
@@ -502,8 +505,8 @@ private immutable(bool) isUnion(ref immutable StructBody a) =>
 	scope immutable(T) delegate(ref immutable StructBody.Bogus) @safe @nogc pure nothrow cbBogus,
 	scope immutable(T) delegate(ref immutable StructBody.Builtin) @safe @nogc pure nothrow cbBuiltin,
 	scope immutable(T) delegate(ref immutable StructBody.Enum) @safe @nogc pure nothrow cbEnum,
+	scope immutable(T) delegate(ref immutable StructBody.Extern) @safe @nogc pure nothrow cbExtern,
 	scope immutable(T) delegate(ref immutable StructBody.Flags) @safe @nogc pure nothrow cbFlags,
-	scope immutable(T) delegate(ref immutable StructBody.ExternPointer) @safe @nogc pure nothrow cbExternPointer,
 	scope immutable(T) delegate(ref immutable StructBody.Record) @safe @nogc pure nothrow cbRecord,
 	scope immutable(T) delegate(ref immutable StructBody.Union) @safe @nogc pure nothrow cbUnion,
 ) {
@@ -514,10 +517,10 @@ private immutable(bool) isUnion(ref immutable StructBody a) =>
 			return cbBuiltin(a.builtin);
 		case StructBody.Kind.enum_:
 			return cbEnum(a.enum_);
+		case StructBody.Kind.extern_:
+			return cbExtern(a.extern_);
 		case StructBody.Kind.flags:
 			return cbFlags(a.flags);
-		case StructBody.Kind.externPointer:
-			return cbExternPointer(a.externPointer);
 		case StructBody.Kind.record:
 			return cbRecord(a.record);
 		case StructBody.Kind.union_:
@@ -791,6 +794,7 @@ struct FunBody {
 	struct CreateEnum {
 		immutable EnumValue value;
 	}
+	struct CreateExtern {}
 	struct CreateRecord {}
 	struct CreateUnion {
 		immutable size_t memberIndex;
@@ -815,6 +819,7 @@ struct FunBody {
 		bogus,
 		builtin,
 		createEnum,
+		createExtern,
 		createRecord,
 		createUnion,
 		enumFunction,
@@ -831,6 +836,7 @@ struct FunBody {
 		immutable Bogus bogus;
 		immutable Builtin builtin;
 		immutable CreateEnum createEnum;
+		immutable CreateExtern createExtern;
 		immutable CreateRecord createRecord;
 		immutable CreateUnion createUnion;
 		immutable EnumFunction enumFunction;
@@ -847,6 +853,7 @@ struct FunBody {
 	immutable this(immutable Bogus a) { kind = Kind.bogus; bogus = a; }
 	immutable this(immutable Builtin a) { kind = Kind.builtin; builtin = a; }
 	immutable this(immutable CreateEnum a) { kind = Kind.createEnum; createEnum = a; }
+	immutable this(immutable CreateExtern a) { kind = Kind.createExtern; createExtern = a; }
 	immutable this(immutable CreateRecord a) { kind = Kind.createRecord; createRecord = a; }
 	immutable this(immutable CreateUnion a) { kind = Kind.createUnion; createUnion = a; }
 	immutable this(immutable EnumFunction a) { kind = Kind.enumFunction; enumFunction = a; }
@@ -878,6 +885,7 @@ immutable(FunBody.RecordFieldGet) asRecordFieldGet(ref immutable FunBody a) {
 	alias cbBogus,
 	alias cbBuiltin,
 	alias cbCreateEnum,
+	alias cbCreateExtern,
 	alias cbCreateRecord,
 	alias cbCreateUnion,
 	alias cbEnumFunction,
@@ -898,6 +906,8 @@ immutable(FunBody.RecordFieldGet) asRecordFieldGet(ref immutable FunBody a) {
 			return cbBuiltin(a.builtin);
 		case FunBody.Kind.createEnum:
 			return cbCreateEnum(a.createEnum);
+		case FunBody.Kind.createExtern:
+			return cbCreateExtern(a.createExtern);
 		case FunBody.Kind.createRecord:
 			return cbCreateRecord(a.createRecord);
 		case FunBody.Kind.createUnion:
@@ -938,13 +948,15 @@ struct FunFlags {
 	immutable(FunFlags) withOkIfUnused() immutable =>
 		immutable FunFlags(noDoc, noCtx, summon, safety, preferred, true, specialBody);
 
-	static immutable FunFlags none =
+	static immutable(FunFlags) none() =>
 		immutable FunFlags(false, false, false, Safety.safe, false, false, SpecialBody.none);
-	static immutable FunFlags generatedNoCtx =
+	static immutable(FunFlags) generatedNoCtx() =>
 		immutable FunFlags(true, true, false, Safety.safe, false, true, SpecialBody.builtin);
-	static immutable FunFlags generatedPreferred =
+	static immutable(FunFlags) generatedNoCtxUnsafe() =>
+		immutable FunFlags(true, true, false, Safety.unsafe, false, true, SpecialBody.builtin);
+	static immutable(FunFlags) generatedPreferred() =>
 		immutable FunFlags(false, true, false, Safety.safe, true, true, SpecialBody.builtin);
-	static immutable FunFlags unsafeSummon =
+	static immutable(FunFlags) unsafeSummon() =>
 		immutable FunFlags(false, false, true, Safety.unsafe, false, false, SpecialBody.none);
 }
 static assert(FunFlags.sizeof == 7);

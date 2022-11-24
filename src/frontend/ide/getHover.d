@@ -90,10 +90,10 @@ void getHover(
 					"builtin type ",
 				(ref immutable StructBody.Enum) =>
 					"enum type ",
+				(ref immutable StructBody.Extern) =>
+					"extern type ",
 				(ref immutable StructBody.Flags) =>
 					"flags type ",
-				(ref immutable StructBody.ExternPointer) =>
-					"extern type ",
 				(ref immutable StructBody.Record) =>
 					"record ",
 				(ref immutable StructBody.Union) =>

@@ -203,17 +203,3 @@ Contrast with `a == b` which can also e true for different pointers with equal c
 ###
 ref-eq<a> bool(a a, b a) no-doc noctx unsafe
 	a.as-any-const-pointer == b.as-any-const-pointer
-
-# TODO: require that out be an extern-pointer type
-###
-Convert a pointer to an `extern-pointer` type.
-Does nothing at runtime, just changes the type.
-###
-pointer-cast-to-extern<out, in> out(p in mut*) no-doc noctx unsafe builtin
-
-# TODO: require that in be an extern-pointer type
-###
-Convert an extern-pointer to another pointer.
-Does nothing at runtime, just changes the type.
-###
-pointer-cast-from-extern<out, in> out mut*(p in) no-doc noctx unsafe builtin

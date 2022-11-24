@@ -23,7 +23,7 @@ import
 main nat^(_ string[]) summon trusted
 	SDL_INIT_VIDEO.SDL_Init handle-sdl-error "SDL_INIT_VIDEO"
 	window = "SDL demo" SDL_CreateWindow 100, 100, window-width, window-height, SDL_WINDOW_SHOWN
-	if window.as-any-const-pointer == null
+	if window == null
 		"SDL_CreateWindow" fail-sdl-error
 	renderer = window renderer
 	texture = renderer create-texture
@@ -50,7 +50,7 @@ main nat^(_ string[]) summon trusted
 .image-height int32()
 	200
 
-.main-loop-body void^(renderer SDL_Renderer, texture SDL_Texture) summon trusted
+.main-loop-body void^(renderer SDL_Renderer mut*, texture SDL_Texture mut*) summon trusted
 	key-states-pointer = null SDL_GetKeyboardState
 	# TODO: use a mut-enum-lookup type
 	key-states = key-states-pointer[0 .. SDL_NUM_SCANCODES.to-nat32.to-nat64]
@@ -65,7 +65,7 @@ main nat^(_ string[]) summon trusted
 	renderer SDL_RenderPresent
 	()
 
-.draw-image void(renderer SDL_Renderer, texture SDL_Texture, x int32) summon trusted
+.draw-image void(renderer SDL_Renderer mut*, texture SDL_Texture mut*, x int32) summon trusted
 	dest SDL_Rect = x, (window-height - image-height) / 2, image-width, image-height
 	renderer SDL_RenderCopy texture, null, &dest handle-sdl-error "SDL_RenderCopy"
 
@@ -79,19 +79,19 @@ main nat^(_ string[]) summon trusted
 		else
 			continue
 
-.renderer SDL_Renderer(window SDL_Window) summon trusted
+.renderer SDL_Renderer mut*(window SDL_Window mut*) summon trusted
 	renderer = window SDL_CreateRenderer -1, SDL_RENDERER_ACCELERATED | SDL_RENDERER_PRESENTVSYNC
-	if renderer.as-any-const-pointer == null
+	if renderer == null
 		"SDL_CreateRenderer" fail-sdl-error
 	renderer
 
-.create-texture SDL_Texture(renderer SDL_Renderer) summon trusted
+.create-texture SDL_Texture mut*(renderer SDL_Renderer mut*) summon trusted
 	bmp = crow-bmp.begin-pointer SDL_RWFromConstMem crow-bmp.size.to-int32 SDL_LoadBMP_RW 0
-	if bmp.as-any-const-pointer == null
+	if bmp == null
 		"sdl-loadbmp-error" fail-sdl-error
 	texture = renderer SDL_CreateTextureFromSurface bmp
 	bmp SDL_FreeSurface
-	if texture.as-any-const-pointer == null
+	if texture == null
 		"SDL_CreateTextureFromSurface" fail-sdl-error
 	texture
 

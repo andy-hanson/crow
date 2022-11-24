@@ -8,7 +8,6 @@ import
 		STACKFRAME64, StackWalk64, SymCleanup, SymGetLineFromAddr64, SymGetSymFromAddr64,
 		SymFunctionTableAccess64, SymInitialize, SYMOPT_LOAD_LINES, SymSetOptions
 	../bool: ||, true
-	../bytes-types: new
 	../col/array: as-array, new
 	../compare: <=
 	../misc: new, void
@@ -161,8 +160,8 @@ Result entries are temporary, must copy!
 	max-entries nat64,
 	skip nat64,
 ) noctx unsafe
-	cursor mut unw_cursor_t = (),
-	context mut unw_context_t = (),
+	cursor mut unw_cursor_t = ()
+	context mut unw_context_t = ()
 	err0 = &context unw_getcontext
 	err0 == 0 hard-assert
 	err1 = &cursor unw_init_local &context

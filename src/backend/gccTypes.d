@@ -9,6 +9,7 @@ import backend.libgccjit :
 	gcc_jit_comparison,
 	gcc_jit_context,
 	gcc_jit_context_get_type,
+	gcc_jit_context_new_array_type,
 	gcc_jit_context_new_binary_op,
 	gcc_jit_context_new_cast,
 	gcc_jit_context_new_comparison,
@@ -35,11 +36,11 @@ import backend.libgccjit :
 	gcc_jit_type_get_pointer,
 	gcc_jit_types;
 import backend.mangle : MangledNames, writeStructMangledName;
-import backend.writeTypes : TypeWriters, writeTypes;
+import backend.writeTypes : ElementAndCount, getElementAndCountForExtern, TypeWriters, writeTypes;
 import model.concreteModel : ConcreteStruct;
 import model.lowModel :
 	debugName,
-	LowExternPtrType,
+	LowExternType,
 	LowField,
 	LowFunPtrType,
 	LowProgram,
@@ -48,7 +49,8 @@ import model.lowModel :
 	LowType,
 	LowUnion,
 	matchLowTypeCombinePtr,
-	PrimitiveType;
+	PrimitiveType,
+	typeSize;
 import util.alloc.alloc : Alloc;
 import util.col.arr : empty;
 import util.col.arrUtil : map, mapWithIndex, zip;
@@ -60,6 +62,7 @@ import util.col.fullIndexDict :
 	mapFullIndexDict,
 	mapFullIndexDict_mut;
 import util.col.str : CStr;
+import util.conv : safeToInt;
 import util.opt : force, has, none, noneMut, Opt, some;
 import util.ptr : castImmutable, castNonScope_ref, ptrTrustMe;
 import util.sym : AllSymbols, writeSym;
@@ -69,12 +72,22 @@ import util.writer : finishWriterToCStr, Writer;
 struct GccTypes {
 	private:
 	immutable gcc_jit_type*[PrimitiveType.max + 1] primitiveTypes;
-	immutable FullIndexDict!(LowType.ExternPtr, gcc_jit_type*) externPtrs;
+	public immutable FullIndexDict!(LowType.Extern, ExternTypeInfo) extern_;
 	immutable FullIndexDict!(LowType.FunPtr, gcc_jit_type*) funPtrs;
 	immutable FullIndexDict!(LowType.Record, gcc_jit_struct*) records;
 	public immutable FullIndexDict!(LowType.Record, gcc_jit_field*[]) recordFields;
 	immutable FullIndexDict!(LowType.Union, gcc_jit_struct*) unions;
 	public immutable FullIndexDict!(LowType.Union, UnionFields) unionFields;
+}
+
+struct ExternTypeInfo {
+	immutable gcc_jit_type* type;
+	immutable Opt!ExternTypeArrayInfo array;
+}
+struct ExternTypeArrayInfo {
+	immutable gcc_jit_field* field;
+	immutable gcc_jit_type* gccArrayType;
+	immutable ElementAndCount elementAndCount;
 }
 
 struct UnionFields {
@@ -92,7 +105,7 @@ immutable(GccTypes) getGccTypes(
 ) {
 	GccTypesWip typesWip = GccTypesWip(
 		getPrimitiveTypes(ctx),
-		gccExternPtrTypes(alloc, ctx, program, mangledNames),
+		gccExternTypes(alloc, ctx, program, mangledNames),
 		mapFullIndexDict_mut!(LowType.FunPtr, Opt!(gcc_jit_type*), LowFunPtrType)(
 			alloc,
 			program.allFunPtrTypes,
@@ -123,6 +136,9 @@ immutable(GccTypes) getGccTypes(
 		(immutable ConcreteStruct*) {
 			// Do nothing, we declared types ahead of time.
 		},
+		(immutable ConcreteStruct* source, immutable Opt!ElementAndCount) {
+			// Declared ahead of time
+		},
 		(immutable LowType.FunPtr funPtrIndex, ref immutable LowFunPtrType funPtr) {
 			writeFunPtrType(alloc, ctx, typesWip, funPtrIndex, funPtr);
 		},
@@ -136,7 +152,7 @@ immutable(GccTypes) getGccTypes(
 
 	return immutable GccTypes(
 		typesWip.primitiveTypes,
-		typesWip.externPtrs,
+		typesWip.extern_,
 		//TODO:PERF just cast, since Opt!Ptr and Ptr representations are the same
 		mapFullIndexDict!(LowType.FunPtr, gcc_jit_type*, Opt!(gcc_jit_type*))(
 			alloc,
@@ -234,8 +250,8 @@ immutable(gcc_jit_function*) generateAssertFieldOffsetsFunction(
 immutable(gcc_jit_type*) getGccType(scope ref immutable GccTypes types, scope immutable LowType a) {
 	immutable gcc_jit_type* res = matchLowTypeCombinePtr!(
 		immutable gcc_jit_type*,
-		(immutable LowType.ExternPtr x) =>
-			types.externPtrs[x],
+		(immutable LowType.Extern x) =>
+			types.extern_[x].type,
 		(immutable LowType.FunPtr x) =>
 			types.funPtrs[x],
 		(immutable PrimitiveType it) =>
@@ -256,8 +272,8 @@ private:
 immutable(gcc_jit_type*) getGccType(ref GccTypesWip typesWip, immutable LowType a) {
 	immutable gcc_jit_type* res = matchLowTypeCombinePtr!(
 		immutable gcc_jit_type*,
-		(immutable LowType.ExternPtr x) =>
-			typesWip.externPtrs[x],
+		(immutable LowType.Extern x) =>
+			typesWip.extern_[x].type,
 		(immutable LowType.FunPtr x) =>
 			castImmutable(force(typesWip.funPtrs[x])),
 		(immutable PrimitiveType it) =>
@@ -313,7 +329,7 @@ immutable(gcc_jit_type*) getOnePrimitiveType(ref gcc_jit_context ctx, immutable 
 
 struct GccTypesWip {
 	immutable gcc_jit_type*[PrimitiveType.max + 1] primitiveTypes;
-	immutable FullIndexDict!(LowType.ExternPtr, gcc_jit_type*) externPtrs;
+	immutable FullIndexDict!(LowType.Extern, ExternTypeInfo) extern_;
 	FullIndexDict!(LowType.FunPtr, Opt!(gcc_jit_type*)) funPtrs;
 	FullIndexDict!(LowType.Record, gcc_jit_struct*) records;
 	FullIndexDict!(LowType.Record, immutable gcc_jit_field*[]) recordFields;
@@ -408,18 +424,33 @@ struct GccTypesWip {
 	typesWip.unionFields[unionIndex] = some(immutable UnionFields(kindField, innerField, memberFields));
 }
 
-immutable(FullIndexDict!(LowType.ExternPtr, gcc_jit_type*)) gccExternPtrTypes(
+immutable(FullIndexDict!(LowType.Extern, ExternTypeInfo)) gccExternTypes(
 	ref Alloc alloc,
 	ref gcc_jit_context ctx,
 	ref immutable LowProgram program,
 	ref immutable MangledNames mangledNames,
 ) =>
-	mapFullIndexDict!(LowType.ExternPtr, gcc_jit_type*, LowExternPtrType)(
+	mapFullIndexDict!(LowType.Extern, ExternTypeInfo, LowExternType)(
 		alloc,
-		program.allExternPtrTypes,
-		(immutable LowType.ExternPtr, ref immutable LowExternPtrType extern_) =>
-			gcc_jit_type_get_pointer(gcc_jit_struct_as_type(
-				castImmutable(structStub(alloc, ctx, mangledNames, extern_.source)))));
+		program.allExternTypes,
+		(immutable LowType.Extern, ref immutable LowExternType extern_) {
+			gcc_jit_struct* struct_ = structStub(alloc, ctx, mangledNames, extern_.source);
+			immutable Opt!ElementAndCount ec = getElementAndCountForExtern(typeSize(extern_));
+			immutable Opt!ExternTypeArrayInfo arrayInfo = () {
+				if (has(ec)) {
+					immutable gcc_jit_type* arrayType = gcc_jit_context_new_array_type(
+						ctx,
+						null,
+						getOnePrimitiveType(ctx, force(ec).elementType),
+						safeToInt(force(ec).count));
+					immutable gcc_jit_field* field = gcc_jit_context_new_field(ctx, null, arrayType, "__sizer");
+					gcc_jit_struct_set_fields(struct_, null, 1, &field);
+					return some(immutable ExternTypeArrayInfo(field, arrayType, force(ec)));
+				} else
+					return none!ExternTypeArrayInfo;
+			}();
+			return immutable ExternTypeInfo(gcc_jit_struct_as_type(struct_), arrayInfo);
+		});
 
 gcc_jit_struct* structStub(
 	ref Alloc alloc,

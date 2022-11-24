@@ -14,7 +14,7 @@ addrinfo record mut extern
 	ai_socktype int32
 	ai_protocol int32
 	ai_addrlen socklen_t
-	ai_addr sockaddr
+	ai_addr sockaddr mut*
 	ai_canonname c-string
 	ai_next addrinfo*
 

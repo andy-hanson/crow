@@ -1,9 +1,7 @@
 no-std
 import
-	crow/bytes-types: bytes4, bytes32, bytes40, bytes48, new
 	crow/c-types: u-int, u-long
 	crow/extra-types: err-t
-	crow/misc: new
 	crow/number: int32
 	crow/pointer: any-const-pointer, any-mut-pointer, const-pointer, mut-pointer
 	time: __clockid_t, timespec
@@ -24,11 +22,9 @@ pthread_join err-t(thread pthread_t, thread-return any-mut-pointer mut*) extern<
 
 region mutex
 
-pthread_mutex_t record force-sendable extern
-	.sizer bytes40
+pthread_mutex_t extern(40) sendable
 
-pthread_mutexattr_t record extern
-	.sizer bytes4
+pthread_mutexattr_t extern(4)
 
 pthread_mutexattr_init err-t(attr pthread_mutexattr_t mut*) extern<pthread>
 pthread_mutexattr_destroy err-t(attr pthread_mutexattr_t mut*) extern<pthread>
@@ -43,11 +39,8 @@ pthread_mutex_unlock err-t(mutex pthread_mutex_t mut*) extern<pthread>
 
 region cond
 
-pthread_cond_t record sendable extern
-	.sizer bytes48
-
-pthread_condattr_t record mut extern
-	.sizer bytes4
+pthread_cond_t extern(48) sendable
+pthread_condattr_t extern(4)
 
 pthread_condattr_init err-t(attr pthread_condattr_t mut*) extern<c>
 pthread_condattr_destroy err-t(attr pthread_condattr_t mut*) extern<c>
@@ -63,11 +56,8 @@ pthread_cond_broadcast err-t(cond pthread_cond_t mut*) extern<c>
 pthread_cond_wait err-t(cond pthread_cond_t mut*, mutex pthread_mutex_t mut*) extern<c>
 pthread_cond_timedwait err-t(cond pthread_cond_t mut*, mutex pthread_mutex_t mut*, abstime timespec*) extern<c>
 
-pthread_barrier_t record sendable extern
-	.sizer bytes32
-
-pthread_barrierattr_t record mut extern
-	.sizer bytes4
+pthread_barrier_t extern(32) sendable
+pthread_barrierattr_t extern(4) sendable
 
 pthread_barrier_init err-t(barrier pthread_barrier_t mut*, attr pthread_barrierattr_t*, count u-int) extern<c>
 pthread_barrier_destroy err-t(barrier pthread_barrier_t mut*) extern<c>
@@ -78,16 +68,3 @@ PTHREAD_BARRIER_SERIAL_THREAD err-t() unsafe noctx
 
 pthread_barrierattr_init err-t(attr pthread_barrierattr_t mut*) extern<c>
 pthread_barrierattr_destroy err-t(attr pthread_barrierattr_t mut*) extern<c>
-
-test
-	mutex pthread_mutex_t = (),
-	_ = mutex sizer
-	mutex-attr pthread_mutexattr_t = (),
-	_ = mutex-attr sizer
-	cond pthread_cond_t = (),
-	_ = cond sizer
-	cond-attr pthread_condattr_t = (),
-	_ = cond-attr sizer
-	barrier pthread_barrier_t = (),
-	_ = barrier sizer
-	()

@@ -2,6 +2,7 @@ module document.document;
 
 @safe @nogc pure nothrow:
 
+import model.concreteModel : TypeSize;
 import model.model :
 	body_,
 	FieldMutability,
@@ -49,7 +50,18 @@ import util.col.str : SafeCStr, safeCStrIsEmpty;
 import util.comparison : compareNat16, compareNat32, Comparison;
 import util.opt : force, has, none, Opt, some;
 import util.path : AllPaths, Path, PathsInfo, pathToSafeCStrPreferRelative;
-import util.repr : jsonStrOfRepr, NameAndRepr, nameAndRepr, Repr, reprArr, reprBool, reprNamedRecord, reprStr, reprSym;
+import util.repr :
+	jsonStrOfRepr,
+	NameAndRepr,
+	nameAndRepr,
+	Repr,
+	reprArr,
+	reprBool,
+	reprNamedRecord,
+	reprNat,
+	reprOpt,
+	reprStr,
+	reprSym;
 import util.sourceRange : FileAndRange;
 import util.sym : AllSymbols, Sym, sym;
 import util.util : unreachable, verify;
@@ -162,12 +174,16 @@ immutable(DocExport) documentStructDecl(ref Alloc alloc, ref immutable StructDec
 			reprNamedRecord!"enum"(alloc, [nameAndRepr!"members"(
 				reprArr(alloc, it.members, (ref immutable StructBody.Enum.Member member) =>
 					reprSym(member.name)))]),
+		(ref immutable StructBody.Extern x) =>
+			reprNamedRecord!"extern"(alloc, [
+				nameAndRepr!"size"(reprOpt(alloc, x.size, (ref immutable TypeSize size) =>
+					reprNamedRecord!"type-size"(alloc, [
+						nameAndRepr!"size"(reprNat(size.sizeBytes)),
+						nameAndRepr!"alignment"(reprNat(size.alignmentBytes))])))]),
 		(ref immutable StructBody.Flags it) =>
 			reprNamedRecord!"flags"(alloc, [nameAndRepr!"members"(
 				reprArr(alloc, it.members, (ref immutable StructBody.Enum.Member member) =>
 					reprSym(member.name)))]),
-		(ref immutable StructBody.ExternPointer) =>
-			reprNamedRecord!"extern-pointer"(alloc, []),
 		(ref immutable StructBody.Record it) =>
 			documentRecord(alloc, a, it),
 		(ref immutable StructBody.Union it) =>

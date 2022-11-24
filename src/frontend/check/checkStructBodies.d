@@ -6,7 +6,8 @@ import frontend.check.checkCtx : addDiag, CheckCtx, rangeInFile;
 import frontend.check.dicts : StructsAndAliasesDict;
 import frontend.check.typeFromAst : checkTypeParams, typeFromAst;
 import frontend.parse.ast :
-	LiteralAst,
+	LiteralIntAst,
+	LiteralNatAst,
 	matchLiteralIntOrNat,
 	matchStructDeclAstBody,
 	ModifierAst,
@@ -14,6 +15,7 @@ import frontend.parse.ast :
 	StructDeclAst,
 	symOfModifierKind,
 	TypeAst;
+import model.concreteModel : TypeSize;
 import model.diag : Diag, TypeKind;
 import model.model :
 	body_,
@@ -51,11 +53,12 @@ import util.col.arr : castImmutable, empty, small;
 import util.col.arrUtil : eachPair, fold, map, mapAndFold, MapAndFold, mapToMut, mapWithIndex, zipPtrFirst;
 import util.col.mutArr : MutArr;
 import util.col.str : copySafeCStr;
+import util.conv : safeToSizeT;
 import util.opt : force, has, none, Opt, some;
 import util.ptr : castImmutable, ptrTrustMe;
 import util.sourceRange : RangeWithinFile;
 import util.sym : Sym, sym;
-import util.util : todo, unreachable;
+import util.util : isMultipleOf, todo, unreachable;
 
 StructDecl[] checkStructsInitial(ref CheckCtx ctx, scope immutable StructDeclAst[] asts) =>
 	mapToMut!StructDecl(ctx.alloc, asts, (scope ref immutable StructDeclAst ast) {
@@ -94,16 +97,12 @@ void checkStructBodies(
 					return immutable StructBody(
 						checkEnum(ctx, commonTypes, structsAndAliasesDict, ast.range, it, delayStructInsts));
 				},
+				(ref immutable StructDeclAst.Body.Extern it) =>
+					immutable StructBody(checkExtern(ctx, ast, it)),
 				(ref immutable StructDeclAst.Body.Flags it) {
 					checkOnlyStructModifiers(ctx, TypeKind.flags, ast.modifiers);
 					return immutable StructBody(
 						checkFlags(ctx, commonTypes, structsAndAliasesDict, ast.range, it, delayStructInsts));
-				},
-				(ref immutable StructDeclAst.Body.ExternPtr) {
-					checkOnlyStructModifiers(ctx, TypeKind.externPtr, ast.modifiers);
-					if (!empty(ast.typeParams))
-						addDiag(ctx, ast.range, immutable Diag(immutable Diag.ExternPtrHasTypeParams()));
-					return immutable StructBody(immutable StructBody.ExternPointer());
 				},
 				(ref immutable StructDeclAst.Body.Record it) =>
 					immutable StructBody(checkRecord(
@@ -129,6 +128,58 @@ void checkStructBodies(
 }
 
 private:
+
+immutable(StructBody.Extern) checkExtern(
+	ref CheckCtx ctx,
+	ref immutable StructDeclAst declAst,
+	immutable StructDeclAst.Body.Extern bodyAst,
+) {
+	checkOnlyStructModifiers(ctx, TypeKind.extern_, declAst.modifiers);
+	if (!empty(declAst.typeParams))
+		addDiag(ctx, declAst.range, immutable Diag(immutable Diag.ExternHasTypeParams()));
+	immutable(Opt!size_t) optNat(immutable Opt!(LiteralNatAst*) value) {
+		if (has(value)) {
+			immutable LiteralNatAst n = *force(value);
+			if (n.overflow || n.value > size_t.max) {
+				todo!void("diagnostic");
+				return none!size_t;
+			} else
+				return some!size_t(safeToSizeT(n.value));
+		} else
+			return none!size_t;
+	}
+	return immutable StructBody.Extern(toTypeSize(ctx, optNat(bodyAst.size), optNat(bodyAst.alignment)));
+}
+immutable(Opt!TypeSize) toTypeSize(ref CheckCtx ctx, immutable Opt!size_t optSize, immutable Opt!size_t optAlignment) {
+	if (has(optSize)) {
+		immutable size_t size = force(optSize);
+		immutable size_t defAlign = defaultAlignment(size);
+		immutable size_t alignment = () {
+			if (has(optAlignment)) {
+				switch (force(optAlignment)) {
+					case 1:
+					case 2:
+					case 4:
+					case 8:
+						return force(optAlignment);
+					default:
+						todo!void("diagnostic");
+						return defAlign;
+				}
+			} else
+				return defAlign;
+		}();
+		return some(immutable TypeSize(size, alignment));
+	} else
+		return none!TypeSize;
+}
+
+immutable(size_t) defaultAlignment(immutable size_t size) =>
+	size == 0 ? 0 :
+	isMultipleOf(size, 8) ? 8 :
+	isMultipleOf(size, 4) ? 4 :
+	isMultipleOf(size, 2) ? 2 :
+	1;
 
 struct LinkageAndPurity {
 	immutable Linkage linkage;
@@ -180,7 +231,7 @@ immutable(Linkage) defaultLinkage(immutable TypeKind a) {
 		case TypeKind.record:
 		case TypeKind.union_:
 			return Linkage.internal;
-		case TypeKind.externPtr:
+		case TypeKind.extern_:
 			return Linkage.extern_;
 	}
 }
@@ -193,7 +244,7 @@ immutable(Purity) defaultPurity(immutable TypeKind a) {
 		case TypeKind.record:
 		case TypeKind.union_:
 			return Purity.data;
-		case TypeKind.externPtr:
+		case TypeKind.extern_:
 			return Purity.mut;
 	}
 }
@@ -203,8 +254,8 @@ immutable(TypeKind) getTypeKind(ref immutable StructDeclAst.Body a) =>
 		immutable TypeKind,
 		(ref immutable StructDeclAst.Body.Builtin) => TypeKind.builtin,
 		(ref immutable StructDeclAst.Body.Enum) => TypeKind.enum_,
+		(ref immutable StructDeclAst.Body.Extern) => TypeKind.extern_,
 		(ref immutable StructDeclAst.Body.Flags) => TypeKind.flags,
-		(ref immutable StructDeclAst.Body.ExternPtr) => TypeKind.externPtr,
 		(ref immutable StructDeclAst.Body.Record) => TypeKind.record,
 		(ref immutable StructDeclAst.Body.Union) => TypeKind.union_,
 	)(a);
@@ -326,16 +377,16 @@ immutable(EnumOrFlagsTypeAndMembers) checkEnumOrFlagsMembers(
 						return isSignedEnumBackingType(enumType)
 							? matchLiteralIntOrNat!(
 								immutable ValueAndOverflow,
-								(ref immutable LiteralAst.Int i) =>
+								(ref immutable LiteralIntAst i) =>
 									immutable ValueAndOverflow(immutable EnumValue(i.value), i.overflow),
-								(ref immutable LiteralAst.Nat n) =>
+								(ref immutable LiteralNatAst n) =>
 									immutable ValueAndOverflow(immutable EnumValue(n.value), n.value > long.max),
 							)(force(memberAst.value))
 							: matchLiteralIntOrNat!(
 								immutable ValueAndOverflow,
-								(ref immutable LiteralAst.Int) =>
+								(ref immutable LiteralIntAst) =>
 									todo!(immutable ValueAndOverflow)("signed value in unsigned enum"),
-								(ref immutable LiteralAst.Nat n) =>
+								(ref immutable LiteralNatAst n) =>
 									immutable ValueAndOverflow(immutable EnumValue(n.value), n.overflow),
 							)(force(memberAst.value));
 					else

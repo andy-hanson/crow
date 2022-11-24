@@ -11,6 +11,7 @@ import
 	../col/array: subscript
 	../col/mut-array: cast-immutable, begin-pointer, mut-array, size, uninitialized-mut-array
 	../number: ==, <=>, +, nat64
+	../pointer: as-const
 	../range: ..
 	../string: as-string, char8, literal, string, to-c-string
 	./time: seconds-since-epoch, unix-time
@@ -125,5 +126,5 @@ second string(locale time-locale, time unix-time) summon
 	else
 		&seconds gmtime
 	res mut-array char8 = max-size + 1 uninitialized-mut-array
-	len = res.begin-pointer strftime res.size, format.to-c-string, tm
+	len = res.begin-pointer strftime res.size, format.to-c-string, tm.as-const
 	res.cast-immutable[0 .. len] as-string

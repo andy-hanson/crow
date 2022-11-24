@@ -1,0 +1,6 @@
+a extern
+
+r record
+	a a
+
+b<a> extern

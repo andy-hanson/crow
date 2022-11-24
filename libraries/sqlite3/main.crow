@@ -1,21 +1,19 @@
 import
 	crow/c-types: c-int
 	./headers:
-		==, |, enum-members, sqlite3-pointer, sqlite3_close, sqlite3_exec, sqlite3_free, SQLITE_OK,
+		==, |, enum-members, sqlite3, sqlite3_close, sqlite3_exec, sqlite3_free, SQLITE_OK,
 		SQLITE_OPEN_CREATE, SQLITE_OPEN_READWRITE, sqlite3_open_v2
 
-sqlite3 record force-sendable
-	raw sqlite3-pointer
+db record force-sendable
+	raw sqlite3 mut*
 
 .open-sqlite3 record
 	db-path string
 open-sqlite3 open-sqlite3(db-path string)
 	db-path,
-with-block<a> a^(a open-sqlite3, cb ref a(sqlite3)) summon trusted is-sendable<a>
-	db mut sqlite3-pointer = null::any-mut-pointer.pointer-cast-to-extern
+with-block<a> a^(a open-sqlite3, cb ref a(db)) summon trusted is-sendable<a>
+	db mut sqlite3 mut* = null
 	# Create empty file if not exist
-
-
 	err = a.db-path.to-c-string sqlite3_open_v2 &db, SQLITE_OPEN_READWRITE | SQLITE_OPEN_CREATE, null
 	assert err == SQLITE_OK
 	res <- cb[(db,)]
@@ -23,14 +21,14 @@ with-block<a> a^(a open-sqlite3, cb ref a(sqlite3)) summon trusted is-sendable<a
 	assert err2 == SQLITE_OK
 	res,
 
-run void(db sqlite3, command string) summon
+run void(db db, command string) summon
 	for _, _ : db query command
 		()
 
 db-query record mut
-	db sqlite3
+	db db
 	query string
-query db-query(db sqlite3, query string)
+query db-query(db db, query string)
 	db, query
 
 for-loop void(a db-query, f act void(string[], string[])) summon

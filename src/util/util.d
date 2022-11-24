@@ -44,6 +44,11 @@ immutable(T) divRoundUp(T)(immutable T a, immutable T b) {
 	return res;
 }
 
+immutable(bool) isMultipleOf(T)(immutable T a, immutable T b) {
+	verify(b != 0);
+	return a % b == 0;
+}
+
 void verify(immutable char* reason = null)(immutable bool condition) {
 	version(assert) {
 		if (!condition) {

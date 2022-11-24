@@ -205,8 +205,13 @@ extern(C) {
 		gcc_jit_global_kind kind,
 		immutable gcc_jit_type* type,
 		const char *name);
-	
 
+	immutable(gcc_jit_rvalue*) gcc_jit_context_new_array_constructor(
+		ref gcc_jit_context ctxt,
+		gcc_jit_location* loc,
+		immutable gcc_jit_type* type,
+		size_t num_values,
+		immutable gcc_jit_rvalue** values);
 
 	immutable(gcc_jit_rvalue*) gcc_jit_lvalue_as_rvalue(const gcc_jit_lvalue* lvalue);
 

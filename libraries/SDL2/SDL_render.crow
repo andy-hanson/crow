@@ -4,31 +4,33 @@ import
 	./SDL_surface: SDL_Surface
 	./SDL_video: SDL_Window
 
-SDL_CreateRenderer SDL_Renderer(
-	window SDL_Window,
+SDL_Renderer extern
+SDL_Texture extern
+
+SDL_CreateRenderer SDL_Renderer mut*(
+	window SDL_Window mut*,
 	index c-int,
 	render-flags SDL_RendererFlags,
 ) extern<SDL2> summon
 
-SDL_CreateTextureFromSurface SDL_Texture(
-	renderer SDL_Renderer,
+SDL_CreateTextureFromSurface SDL_Texture mut*(
+	renderer SDL_Renderer mut*,
 	surface SDL_Surface mut*,
 ) extern<SDL2> summon
 
-SDL_DestroyRenderer void(renderer SDL_Renderer) extern<SDL2> summon
+SDL_DestroyRenderer void(renderer SDL_Renderer mut*) extern<SDL2> summon
 
-SDL_DestroyTexture void(texture SDL_Texture) extern<SDL2> summon
+SDL_DestroyTexture void(texture SDL_Texture mut*) extern<SDL2> summon
 
-SDL_RenderClear c-int(renderer SDL_Renderer) extern<SDL2> summon
+SDL_RenderClear c-int(renderer SDL_Renderer mut*) extern<SDL2> summon
 
 SDL_RenderCopy c-int(
-	renderer SDL_Renderer,
-	texture SDL_Texture,
+	renderer SDL_Renderer mut*,
+	texture SDL_Texture mut*,
 	src-rect SDL_Rect*,
 	dest-rect SDL_Rect*,
 ) extern<SDL2> summon
 
-SDL_Renderer extern-pointer
 
 SDL_RendererFlags flags<u-int> extern
 	SDL_RENDERER_SOFTWARE = 1
@@ -36,6 +38,5 @@ SDL_RendererFlags flags<u-int> extern
 	SDL_RENDERER_PRESENTVSYNC = 4
 	SDL_RENDERER_TARGETTEXTURE = 8
 
-SDL_RenderPresent void(renderer SDL_Renderer) extern<SDL2> summon
+SDL_RenderPresent void(renderer SDL_Renderer mut*) extern<SDL2> summon
 
-SDL_Texture extern-pointer

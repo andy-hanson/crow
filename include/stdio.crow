@@ -17,31 +17,30 @@ stdout fd-t() noctx
 stderr fd-t() noctx
 	2
 
-popen FILE(command c-string, modes c-string) extern<c> summon
-pclose c-int(stream FILE) extern<c> summon
+FILE extern
 
-feof bool(stream FILE) extern<c> summon
-fgets char8 mut*(s char8 mut*, n c-int, stream FILE) extern<c> summon
+popen FILE mut*(command c-string, modes c-string) extern<c> summon
+pclose c-int(stream FILE mut*) extern<c> summon
 
+feof bool(stream FILE mut*) extern<c> summon
+fgets char8 mut*(s char8 mut*, n c-int, stream FILE mut*) extern<c> summon
 
-FILE extern-pointer
-
-fopen FILE(filename c-string, mode c-string) extern<c> summon
-fclose c-int(stream FILE) extern<c> summon
-fseek c-int(stream FILE, offset long, whence SEEK) extern<c> summon
-ftell long(stream FILE) extern<c> summon
-ferror bool(stream FILE) extern<c> summon
+fopen FILE mut*(filename c-string, mode c-string) extern<c> summon
+fclose c-int(stream FILE mut*) extern<c> summon
+fseek c-int(stream FILE mut*, offset long, whence SEEK) extern<c> summon
+ftell long(stream FILE mut*) extern<c> summon
+ferror bool(stream FILE mut*) extern<c> summon
 fread size_t(
 	_Buffer nat8 mut*,
 	_ElementSize size_t,
 	_ElementCount size_t,
-	_Stream FILE,
+	_Stream FILE mut*,
 ) extern<c> summon
 fwrite size_t(
 	_Buffer nat8*,
 	_ElementSize size_t,
 	_ElementCount size_t,
-	_Stream FILE,
+	_Stream FILE mut*,
 ) extern<c> summon
 
 SEEK enum<nat32> extern

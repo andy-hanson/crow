@@ -232,7 +232,7 @@ immutable(LowFunExprBody) visitBody(
 ) =>
 	matchLowType!(
 		immutable LowFunExprBody,
-		(immutable LowType.ExternPtr) =>
+		(immutable LowType.Extern) =>
 			unreachable!(immutable LowFunExprBody),
 		(immutable LowType.FunPtr) =>
 			unreachable!(immutable LowFunExprBody),

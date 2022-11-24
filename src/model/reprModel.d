@@ -234,6 +234,8 @@ immutable(Repr) reprFunBody(ref Alloc alloc, scope ref Ctx ctx, ref immutable Fu
 			reprSym!"builtin" ,
 		(ref immutable FunBody.CreateEnum it) =>
 			reprRecord!"new-enum"(alloc, [reprInt(it.value.value)]),
+		(ref immutable FunBody.CreateExtern) =>
+			reprSym!"new-extern",
 		(ref immutable FunBody.CreateRecord) =>
 			reprSym!"new-record" ,
 		(ref immutable FunBody.CreateUnion) =>

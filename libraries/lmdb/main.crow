@@ -26,7 +26,7 @@ region env
 
 # LMDB environment.
 lmdb-env record mut
-	.env MDB_env
+	.env MDB_env mut*
 
 .open-lmdb-env record
 	db-dir string
@@ -40,7 +40,7 @@ with-block<a> a^(options open-lmdb-env, f act a^(lmdb-env)) trusted summon is-se
 		f[env]
 
 .open-env lmdb-env(options open-lmdb-env) unsafe summon
-	env mut MDB_env = null-extern-pointer
+	env mut MDB_env mut* = null
 	(&env).mdb_env_create check-lmdb-error
 	env mdb_env_set_maxdbs 50 check-lmdb-error
 	mapsize = 1024 * 1024 * 100000
@@ -96,12 +96,6 @@ from-lmdb-key nat32(a nat8[])
 from-lmdb-key string(a nat8[])
 	a from-bytes
 
-# TODO:MOVE
-# And make sure `a` is actually an extern pointer type
-.null-extern-pointer<a> a() unsafe
-	p nat8 mut* = null
-	p pointer-cast-to-extern
-
 region db
 
 # Single database (key-value store).
@@ -123,8 +117,8 @@ with-block<a, k, v> a^(
 		f[db]
 
 .open-db<k, v> lmdb-db<k, v>(a database<k, v>) unsafe summon lmdb-key<k> serialize<v>
-	transaction mut MDB_txn = null-extern-pointer
-	a.env.env mdb_txn_begin null-extern-pointer, 0, &transaction check-lmdb-error
+	transaction mut MDB_txn mut* = null
+	a.env.env mdb_txn_begin null, 0, &transaction check-lmdb-error
 
 	dbi mut MDB_dbi = zeroed
 	mdb-flags = MDB_CREATE | zeroed::k.lmdb-key-flags
@@ -140,7 +134,7 @@ region transaction
 
 # LMDB transaction.
 lmdb-txn record mut
-	.txn MDB_txn
+	.txn MDB_txn mut*
 
 read-transaction record mut
 	env lmdb-env
@@ -177,8 +171,8 @@ with-block<a> a(a abortable-write-transaction, f act (a, transaction-result)(lmd
 	a.env with-transaction 0, f
 
 .with-transaction<a> a(env lmdb-env, mdb-flags u-int, f act (a, transaction-result)(lmdb-txn)) unsafe summon
-	transaction mut MDB_txn = null-extern-pointer
-	env.env mdb_txn_begin null-extern-pointer, mdb-flags, &transaction check-lmdb-error
+	transaction mut MDB_txn mut* = null
+	env.env mdb_txn_begin null, mdb-flags, &transaction check-lmdb-error
 	(() => transaction mdb_txn_abort) do-if-error () =>
 		pair = f[(transaction,)]
 		match pair.b
@@ -334,8 +328,8 @@ zip<out, k, v0, v1> out[](
 			cursor1 mdb_cursor_get &empty, &empty, MDB_FIRST check-lmdb-error
 			cursor0 zip-inner cursor1, f
 .zip-inner<k, v0, v1> void(
-	cursor0 MDB_cursor,
-	cursor1 MDB_cursor,
+	cursor0 MDB_cursor mut*,
+	cursor1 MDB_cursor mut*,
 	f act void(k, v0, v1),
 ) unsafe summon is-data<k> lmdb-key<k> serialize<v0> serialize<v1>
 	loop
@@ -362,8 +356,8 @@ zip<out, k, v0, v1> out[](
 			err1 check-lmdb-error
 			continue
 
-.with-cursor<a, k, v> a(txn lmdb-txn, db lmdb-db<k, v>, f act a(MDB_cursor)) unsafe summon
-	cursor mut MDB_cursor = null-extern-pointer
+.with-cursor<a, k, v> a(txn lmdb-txn, db lmdb-db<k, v>, f act a(MDB_cursor mut*)) unsafe summon
+	cursor mut MDB_cursor mut* = null
 	open-err = txn.txn mdb_cursor_open db.dbi, &cursor
 	with : (() => cursor mdb_cursor_close) finally
 		open-err check-lmdb-error

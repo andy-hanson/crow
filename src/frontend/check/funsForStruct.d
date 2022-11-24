@@ -4,7 +4,7 @@ module frontend.check.funsForStruct;
 
 import frontend.check.checkCtx : CheckCtx;
 import frontend.check.instantiate :
-	instantiateStruct, instantiateStructNeverDelay, makeArrayType, makeNamedValType, TypeArgsArray, typeArgsArray;
+	instantiateStructNeverDelay, makeArrayType, makeNamedValType, TypeArgsArray, typeArgsArray;
 import frontend.programState : ProgramState;
 import model.model :
 	body_,
@@ -39,10 +39,9 @@ import util.alloc.alloc : Alloc;
 import util.col.arr : empty, ptrsRange;
 import util.col.arrUtil : arrLiteral, count, map, sum;
 import util.col.exactSizeArrBuilder : ExactSizeArrBuilder, exactSizeArrBuilderAdd;
-import util.col.mutArr : MutArr;
 import util.col.mutMaxArr : push, tempAsArr;
 import util.col.str : safeCStr;
-import util.opt : force, has, none, noneMut, Opt, some;
+import util.opt : force, has, none, Opt, some;
 import util.sourceRange : fileAndPosFromFileAndRange, FileAndRange;
 import util.sym : prependSet, Sym, sym;
 
@@ -57,12 +56,12 @@ immutable(size_t) countFunsForStruct(immutable StructDecl[] structs) =>
 			(ref immutable StructBody.Enum it) =>
 				// '==', 'to-intXX'/'to-natXX', 'enum-members', and a constructor for each member
 				3 + it.members.length,
+			(ref immutable StructBody.Extern x) =>
+				immutable size_t(has(x.size) ? 1 : 0),
 			(ref immutable StructBody.Flags it) =>
 				// '()', 'all', '==', '~', '|', '&', 'to-intXX'/'to-natXX', 'flags-members',
 				// and a constructor for each member
 				8 + it.members.length,
-			(ref immutable StructBody.ExternPointer) =>
-				immutable size_t(0),
 			(ref immutable StructBody.Record it) {
 				immutable size_t nConstructors = recordIsAlwaysByVal(it) ? 1 : 2;
 				immutable size_t nMutableFields = count!RecordField(it.fields, (ref immutable RecordField field) =>
@@ -85,10 +84,14 @@ void addFunsForStruct(
 		(ref immutable StructBody.Enum it) {
 			addFunsForEnum(ctx, funsBuilder, commonTypes, struct_, it);
 		},
+		(ref immutable StructBody.Extern x) {
+			if (has(x.size)) {
+				exactSizeArrBuilderAdd(funsBuilder, newExtern(ctx.alloc, ctx.programState, struct_));
+			}
+		},
 		(ref immutable StructBody.Flags it) {
 			addFunsForFlags(ctx, funsBuilder, commonTypes, struct_, it);
 		},
-		(ref immutable StructBody.ExternPointer) {},
 		(ref immutable StructBody.Record it) {
 			addFunsForRecord(ctx, funsBuilder, commonTypes, struct_, it);
 		},
@@ -99,12 +102,29 @@ void addFunsForStruct(
 
 private:
 
+immutable(FunDecl) newExtern(
+	ref Alloc alloc,
+	ref ProgramState programState,
+	immutable StructDecl* struct_,
+) =>
+	FunDecl(
+		safeCStr!"",
+		struct_.visibility,
+		fileAndPosFromFileAndRange(struct_.range),
+		sym!"new",
+		[],
+		immutable Type(instantiateNonTemplateStructDeclNeverDelay(alloc, programState, struct_)),
+		immutable Params([]),
+		FunFlags.generatedNoCtxUnsafe,
+		[],
+		immutable FunBody(immutable FunBody.CreateExtern()));
+
 immutable(StructInst*) instantiateNonTemplateStructDeclNeverDelay(
 	ref Alloc alloc,
 	ref ProgramState programState,
 	immutable StructDecl* structDecl,
 ) =>
-	instantiateStruct(alloc, programState, structDecl, [], noneMut!(MutArr!(StructInst*)*));
+	instantiateStructNeverDelay(alloc, programState, structDecl, []);
 
 immutable(bool) recordIsAlwaysByVal(ref immutable StructBody.Record record) =>
 	empty(record.fields) || record.flags.forcedByValOrRef == ForcedByValOrRefOrNone.byVal;

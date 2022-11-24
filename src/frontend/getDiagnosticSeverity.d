@@ -40,7 +40,7 @@ immutable(DiagSeverity) getDiagnosticSeverity(ref immutable Diag a) =>
 			DiagSeverity.checkError,
 		(ref immutable Diag.ExternFunForbidden) =>
 			DiagSeverity.checkError,
-		(ref immutable Diag.ExternPtrHasTypeParams) =>
+		(ref immutable Diag.ExternHasTypeParams) =>
 			DiagSeverity.checkError,
 		(ref immutable Diag.ExternRecordImplicitlyByVal) =>
 			DiagSeverity.checkError,

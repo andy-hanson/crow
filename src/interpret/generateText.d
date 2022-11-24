@@ -221,6 +221,7 @@ void ensureConstant(
 		(ref immutable Constant.CString) {
 			// We wrote out all CStrings first, so no need to do anything here.
 		},
+		(immutable Constant.ExternZeroed) {},
 		(immutable Constant.Float) {},
 		(immutable Constant.FunPtr) {},
 		(immutable Constant.Integral) {},
@@ -327,6 +328,9 @@ void writeConstant(
 		},
 		(ref immutable Constant.CString it) {
 			add64TextPtr(ctx.text, ctx.cStringIndexToTextIndex[it.index]);
+		},
+		(immutable Constant.ExternZeroed) {
+			todo!void("!");
 		},
 		(immutable Constant.Float it) {
 			switch (asPrimitive(type)) {

@@ -3,7 +3,7 @@ import
 	crow/parse: !, ~~, parse, spaces
 	crow/version: is-windows
 	./module:
-		alias-decl, builtin-decl, enum-decl, extern-pointer-decl, flags-decl, fun-decl, module,
+		alias-decl, builtin-decl, enum-decl, extern-decl, flags-decl, fun-decl, module,
 		module-export, module-export-value, new, param, p-data, p-mut, p-sendable, purity,
 		spec-decl, spec-ref, type-param, type-ref, record-decl, record-field, spec-builtin,
 		spec-sig, spec-sigs, union-decl, union-member
@@ -54,8 +54,8 @@ get-modules module[](paths string[], remove-prefix string) summon
 		builtin-decl
 	elif type == "enum"
 		a.to-enum-decl enum-decl
-	elif type == "extern-pointer"
-		extern-pointer-decl
+	elif type == "extern"
+		extern-decl
 	elif type == "flags"
 		a.to-flags-decl flags-decl
 	elif type == "fun"

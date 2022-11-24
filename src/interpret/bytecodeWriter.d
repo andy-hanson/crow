@@ -56,7 +56,7 @@ import util.col.arrBuilder : add, ArrBuilder, backUp, finishArr;
 import util.col.fullIndexDict : fullIndexDictOfArr;
 import util.col.mutArr : moveToArr_mut, mustPop, MutArr, mutArrEnd, mutArrSize, push;
 import util.memory : initMemory, overwriteMemory;
-import util.util : divRoundUp, todo, verify;
+import util.util : divRoundUp, isMultipleOf, todo, verify;
 
 struct ByteCodeWriter {
 	private:
@@ -200,7 +200,7 @@ void writeDup(
 	verify(sizeBytes != 0);
 	verify(offsetBytes < 8);
 
-	if (offsetBytes == 0 && sizeBytes % 8 == 0) {
+	if (offsetBytes == 0 && isMultipleOf(sizeBytes, 8)) {
 		writeDupWords(writer, source, getStackOffsetTo(writer, start), sizeBytes / 8);
 	} else {
 		pushOperationFn(writer, source, &opDupBytes);
@@ -263,7 +263,7 @@ void writeRead(
 	immutable size_t nBytesToRead,
 ) {
 	verify(nBytesToRead != 0);
-	if (pointerOffsetBytes % 8 == 0 && nBytesToRead % 8 == 0)
+	if (isMultipleOf(pointerOffsetBytes, 8) && isMultipleOf(nBytesToRead, 8))
 		writeReadWords(writer, source, pointerOffsetBytes / 8, nBytesToRead / 8);
 	else
 		writeReadBytes(writer, source, pointerOffsetBytes, nBytesToRead);
@@ -305,7 +305,7 @@ private void writeReadBytes(
 				}
 			break;
 		case 2:
-			if (pointerOffsetBytes % 2 == 0) {
+			if (isMultipleOf(pointerOffsetBytes, 2)) {
 				immutable size_t offsetNat16s = pointerOffsetBytes / 2;
 				static foreach (immutable size_t possibleOffsetNat16s; 0 .. 4)
 					if (offsetNat16s == possibleOffsetNat16s) {
@@ -315,7 +315,7 @@ private void writeReadBytes(
 			}
 			break;
 		case 4:
-			if (pointerOffsetBytes % 4 == 0) {
+			if (isMultipleOf(pointerOffsetBytes, 4)) {
 				immutable size_t offsetNat32s = pointerOffsetBytes / 2;
 				static foreach (immutable size_t possibleOffsetNat32s; 0 .. 2)
 					if (offsetNat32s == possibleOffsetNat32s) {

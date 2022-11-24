@@ -27,9 +27,12 @@ import util.sourceRange : FileAndRange;
 import util.sym : AllSymbols, Sym, sym;
 import util.util : unreachable, verify;
 
-struct LowExternPtrType {
+struct LowExternType {
 	immutable ConcreteStruct* source;
 }
+
+immutable(TypeSize) typeSize(ref immutable LowExternType a) =>
+	typeSize(*a.source);
 
 struct LowRecord {
 	@safe @nogc pure nothrow:
@@ -118,7 +121,7 @@ immutable(Sym) symOfPrimitiveType(immutable PrimitiveType a) {
 struct LowType {
 	@safe @nogc pure nothrow:
 
-	struct ExternPtr {
+	struct Extern {
 		immutable size_t index;
 	}
 	struct FunPtr {
@@ -143,7 +146,7 @@ struct LowType {
 
 	private:
 	enum Kind {
-		externPtr,
+		extern_,
 		funPtr,
 		primitive,
 		ptrGc,
@@ -154,7 +157,7 @@ struct LowType {
 	}
 	immutable Kind kind_;
 	union {
-		immutable ExternPtr externPtr_;
+		immutable Extern extern_;
 		immutable FunPtr funPtr_;
 		immutable PrimitiveType primitive_;
 		immutable PtrGc ptrGc_;
@@ -165,7 +168,7 @@ struct LowType {
 	}
 
 	public:
-	immutable this(immutable ExternPtr a) { kind_ = Kind.externPtr; externPtr_ = a; }
+	immutable this(immutable Extern a) { kind_ = Kind.extern_; extern_ = a; }
 	immutable this(immutable FunPtr a) { kind_ = Kind.funPtr; funPtr_ = a; }
 	@trusted immutable this(immutable PtrGc a) { kind_ = Kind.ptrGc; ptrGc_ = a; }
 	@trusted immutable this(immutable PtrRawConst a) { kind_ = Kind.ptrRawConst; ptrRawConst_ = a; }
@@ -177,8 +180,8 @@ struct LowType {
 	immutable(bool) opEquals(scope immutable LowType b) scope immutable =>
 		kind_ == b.kind_ && () {
 			final switch (kind_) {
-				case LowType.Kind.externPtr:
-					return externPtr_.index == b.externPtr_.index;
+				case LowType.Kind.extern_:
+					return extern_.index == b.extern_.index;
 				case LowType.Kind.funPtr:
 					return funPtr_.index == b.funPtr_.index;
 				case LowType.Kind.primitive:
@@ -199,8 +202,8 @@ struct LowType {
 	@trusted void hash(ref Hasher hasher) scope immutable {
 		hashUint(hasher, kind_);
 		final switch (kind_) {
-			case LowType.Kind.externPtr:
-				hashSizeT(hasher, externPtr_.index);
+			case LowType.Kind.extern_:
+				hashSizeT(hasher, extern_.index);
 				break;
 			case LowType.Kind.funPtr:
 				hashSizeT(hasher, funPtr_.index);
@@ -278,7 +281,7 @@ immutable(bool) isPtrGcOrRaw(immutable LowType a) =>
 	verify(isPtrGcOrRaw(a));
 	return matchLowTypeCombinePtr!(
 		immutable LowType,
-		(immutable LowType.ExternPtr) => unreachable!(immutable LowType),
+		(immutable LowType.Extern) => unreachable!(immutable LowType),
 		(immutable LowType.FunPtr) => unreachable!(immutable LowType),
 		(immutable PrimitiveType) => unreachable!(immutable LowType),
 		(immutable LowPtrCombine it) => it.pointee,
@@ -295,6 +298,13 @@ immutable(LowType) asPtrGcPointee(immutable LowType a) {
 immutable(LowType) asPtrRawPointee(immutable LowType a) {
 	verify(isPtrRawConstOrMut(a));
 	return asGcOrRawPointee(a);
+}
+
+private immutable(bool) isExternType(immutable LowType a) =>
+	a.kind_ == LowType.Kind.extern_;
+immutable(LowType.Extern) asExternType(immutable LowType a) {
+	verify(isExternType(a));
+	return a.extern_;
 }
 
 immutable(LowType.FunPtr) asFunPtrType(immutable LowType a) {
@@ -325,7 +335,7 @@ immutable(LowType.Union) asUnionType(immutable LowType a) {
 
 @trusted immutable(T) matchLowType(
 	T,
-	alias cbExternPtr,
+	alias cbExtern,
 	alias cbFunPtr,
 	alias cbPrimitive,
 	alias cbPtrGc,
@@ -335,8 +345,8 @@ immutable(LowType.Union) asUnionType(immutable LowType a) {
 	alias cbUnion,
 )(immutable LowType a) {
 	final switch (a.kind_) {
-		case LowType.Kind.externPtr:
-			return cbExternPtr(a.externPtr_);
+		case LowType.Kind.extern_:
+			return cbExtern(a.extern_);
 		case LowType.Kind.funPtr:
 			return cbFunPtr(a.funPtr_);
 		case LowType.Kind.primitive:
@@ -360,7 +370,7 @@ struct LowPtrCombine {
 
 @trusted immutable(T) matchLowTypeCombinePtr(
 	T,
-	alias cbExternPtr,
+	alias cbExtern,
 	alias cbFunPtr,
 	alias cbPrimitive,
 	alias cbPtr,
@@ -369,7 +379,7 @@ struct LowPtrCombine {
 )(immutable LowType a) =>
 	matchLowType!(
 		T,
-		cbExternPtr,
+		cbExtern,
 		cbFunPtr,
 		cbPrimitive,
 		(immutable LowType.PtrGc it) => cbPtr(immutable LowPtrCombine(*it.pointee)),
@@ -1180,8 +1190,8 @@ struct LowProgram {
 	immutable ExternLibraries externLibraries;
 
 	//TODO: NOT INSTANCE
-	ref immutable(FullIndexDict!(LowType.ExternPtr, LowExternPtrType)) allExternPtrTypes() scope return immutable =>
-		allTypes.allExternPtrTypes;
+	ref immutable(FullIndexDict!(LowType.Extern, LowExternType)) allExternTypes() scope return immutable =>
+		allTypes.allExternTypes;
 
 	ref immutable(FullIndexDict!(LowType.FunPtr, LowFunPtrType)) allFunPtrTypes() scope return immutable =>
 		allTypes.allFunPtrTypes;
@@ -1202,7 +1212,7 @@ struct ExternLibrary {
 }
 
 struct AllLowTypes {
-	immutable FullIndexDict!(LowType.ExternPtr, LowExternPtrType) allExternPtrTypes;
+	immutable FullIndexDict!(LowType.Extern, LowExternType) allExternTypes;
 	immutable FullIndexDict!(LowType.FunPtr, LowFunPtrType) allFunPtrTypes;
 	immutable FullIndexDict!(LowType.Record, LowRecord) allRecords;
 	immutable FullIndexDict!(LowType.Union, LowUnion) allUnions;

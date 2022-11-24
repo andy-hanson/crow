@@ -3,7 +3,7 @@ uncaught exception: FOO
 	at foo
 	at main_0
 	at add__sfirst__stask__lambda0
-	at call__sw__sctx_509
+	at call__sw__sctx_501
 	at subscript_58
 	at catch_0__lambda0
-	at call__sw__sctx_504
+	at call__sw__sctx_496

@@ -153,10 +153,10 @@ immutable(StructBody) instantiateStructBody(
 			immutable StructBody(immutable StructBody.Builtin()),
 		(ref immutable StructBody.Enum e) =>
 			immutable StructBody(e),
+		(ref immutable StructBody.Extern e) =>
+			immutable StructBody(immutable StructBody.Extern(e.size)),
 		(ref immutable StructBody.Flags f) =>
 			immutable StructBody(f),
-		(ref immutable StructBody.ExternPointer) =>
-			immutable StructBody(immutable StructBody.ExternPointer()),
 		(ref immutable StructBody.Record r) =>
 			immutable StructBody(immutable StructBody.Record(
 				r.flags,

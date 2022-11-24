@@ -29,7 +29,7 @@ import frontend.parse.ast :
 	FileAst,
 	FunDeclAst,
 	FunModifierAst,
-	LiteralAst,
+	LiteralStringAst,
 	matchParamsAst,
 	matchSpecBodyAst,
 	matchTypeAst,
@@ -944,7 +944,7 @@ immutable(FunBody) getFileImportFunctionBody(
 		(immutable SafeCStr str) {
 			immutable ExprAst ast = immutable ExprAst(
 				f.range.range,
-				immutable ExprAstKind(immutable LiteralAst(strOfSafeCStr(str))));
+				immutable ExprAstKind(immutable LiteralStringAst(strOfSafeCStr(str))));
 			return immutable FunBody(
 				getExprFunctionBody(ctx, commonTypes, structsAndAliasesDict, funsDict, usedFuns, f, ast));
 		});

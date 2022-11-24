@@ -1,13 +1,13 @@
 import
 	crow/c-types: c-int, u-int
 
-SDL_DestroyWindow void(window SDL_Window) extern<SDL2> summon
+SDL_Window extern
 
-SDL_Window extern-pointer
+SDL_DestroyWindow void(window SDL_Window mut*) extern<SDL2> summon
 
-SDL_GLContext extern-pointer
+SDL_GLContext extern
 
-SDL_CreateWindow SDL_Window(
+SDL_CreateWindow SDL_Window mut*(
 	title c-string,
 	x c-int,
 	y c-int,
@@ -41,8 +41,8 @@ SDL_WindowFlags flags<nat32> extern
 	SDL_WINDOW_VULKAN = 0x10000000
 	SDL_WINDOW_METAL = 0x20000000
 
-SDL_GL_CreateContext SDL_GLContext(window SDL_Window) extern<SDL2> summon
-SDL_GL_DeleteContext void(context SDL_GLContext) extern<SDL2> summon
+SDL_GL_CreateContext SDL_GLContext mut*(window SDL_Window mut*) extern<SDL2> summon
+SDL_GL_DeleteContext void(context SDL_GLContext mut*) extern<SDL2> summon
 
 SDL_GLattr enum<u-int> extern
 	SDL_GL_RED_SIZE = 0
@@ -83,7 +83,7 @@ SDL_GL_SetAttribute c-int(attr SDL_GLattr, value c-int) extern<SDL2> summon
 SDL_WINDOWPOS_UNDEFINED c-int()
 	0x1fff0000
 
-SDL_GL_SwapWindow void(window SDL_Window) extern<SDL2> summon
+SDL_GL_SwapWindow void(window SDL_Window mut*) extern<SDL2> summon
 
 SDL_GL_LoadLibrary c-int(path c-string) extern<SDL2> summon
 

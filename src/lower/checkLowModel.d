@@ -534,8 +534,8 @@ void checkTypeEqual(
 immutable(Repr) reprOfLowType2(ref Ctx ctx, immutable LowType a) =>
 	matchLowType!(
 		immutable Repr,
-		(immutable LowType.ExternPtr) =>
-			reprSym!"some-ext-ptr", //TODO: more detail
+		(immutable LowType.Extern) =>
+			reprSym!"some-extern", //TODO: more detail
 		(immutable LowType.FunPtr) =>
 			reprSym!"some-fun-ptr", //TODO: more detail
 		(immutable PrimitiveType it) =>

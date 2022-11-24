@@ -21,7 +21,7 @@ import
 	../../misc: new, void
 	../../number: ==, <=>, int32, nat8, nat16, nat32, to-int32, to-int64, to-nat32, to-nat64
 	../../private/bootstrap: todo
-	../../pointer: mut-pointer, pointer-cast-to-extern, size-of
+	../../pointer: mut-pointer, pointer-cast, size-of
 	../../range: ..
 	../../string: literal, string
 	../../version: is-windows
@@ -130,8 +130,7 @@ close-client void(client SOCKET) unsafe summon
 
 .accept-clients void(listen-fd SOCKET, epoll-fd fd-t, on-accepted-client ref void(SOCKET)) unsafe summon
 	clientaddr mut sockaddr_in = ()
-	# TODO: should not need parens
-	clientaddr-as-sockaddr sockaddr = (&clientaddr)::sockaddr_in mut* pointer-cast-to-extern
+	clientaddr-as-sockaddr sockaddr mut* = (&clientaddr)::sockaddr_in mut* pointer-cast
 	addrlen mut socklen_t = size-of@<sockaddr_in> to-nat32
 	client-fd = listen-fd accept clientaddr-as-sockaddr, &addrlen
 	if client-fd < 0

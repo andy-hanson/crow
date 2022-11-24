@@ -1,18 +1,18 @@
 import
 	crow/c-types: c-int
 
-sqlite3-pointer extern-pointer
+sqlite3 extern
 
 sqlite3_open_v2 sqlite3-result(
 	filename c-string,
-	db sqlite3-pointer mut*,
+	db sqlite3 mut* mut*,
 	open-flags sqlite3-open-flags,
 	zVfs c-string,
 ) extern<sqlite3> summon
-sqlite3_close sqlite3-result(db sqlite3-pointer) extern<sqlite3> summon
+sqlite3_close sqlite3-result(db sqlite3 mut*) extern<sqlite3> summon
 
 sqlite3_exec sqlite3-result(
-	db sqlite3-pointer,
+	db sqlite3 mut*,
 	sql c-string,
 	cb fun* c-int(any-mut-pointer, c-int, c-string*, c-string*),
 	cb-arg any-mut-pointer,

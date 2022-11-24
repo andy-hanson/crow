@@ -2,9 +2,9 @@ module backend.writeTypes;
 
 @safe @nogc pure nothrow:
 
-import model.concreteModel : ConcreteStruct;
+import model.concreteModel : ConcreteStruct, TypeSize;
 import model.lowModel :
-	LowExternPtrType,
+	LowExternType,
 	LowField,
 	LowFunPtrType,
 	LowProgram,
@@ -12,24 +12,24 @@ import model.lowModel :
 	LowRecord,
 	LowType,
 	LowUnion,
-	matchLowTypeCombinePtr;
+	matchLowTypeCombinePtr,
+	PrimitiveType,
+	typeSize;
 import util.alloc.alloc : Alloc;
 import util.col.arrUtil : every;
 import util.col.fullIndexDict :
 	FullIndexDict, fullIndexDictEachKey, fullIndexDictEachValue, fullIndexDictSize, makeFullIndexDict_mut;
-import util.util : verify;
+import util.opt : none, Opt, some;
+import util.util : isMultipleOf, unreachable, verify;
 
 void writeTypes(
 	ref Alloc alloc,
 	scope ref immutable LowProgram program,
 	scope ref immutable TypeWriters writers,
 ) {
-	// Write extern-pointer types first
-	fullIndexDictEachValue!(LowType.ExternPtr, LowExternPtrType)(
-		program.allExternPtrTypes,
-		(ref immutable LowExternPtrType it) {
-			writers.cbDeclareStruct(it.source);
-		});
+	fullIndexDictEachValue!(LowType.Extern, LowExternType)(program.allExternTypes, (ref immutable LowExternType it) {
+		writers.cbWriteExternWithSize(it.source, getElementAndCountForExtern(typeSize(it)));
+	});
 
 	// TODO: use a temp alloc...
 	scope StructStates structStates = StructStates(
@@ -91,9 +91,37 @@ void writeTypes(
 
 struct TypeWriters {
 	void delegate(immutable ConcreteStruct*) @safe @nogc pure nothrow cbDeclareStruct;
+	void delegate(
+		immutable ConcreteStruct*,
+		immutable Opt!ElementAndCount,
+	) @safe @nogc pure nothrow cbWriteExternWithSize;
 	void delegate(immutable LowType.FunPtr, ref immutable LowFunPtrType) @safe @nogc pure nothrow cbWriteFunPtr;
 	void delegate(immutable LowType.Record, ref immutable LowRecord) @safe @nogc pure nothrow cbWriteRecord;
 	void delegate(immutable LowType.Union, ref immutable LowUnion) @safe @nogc pure nothrow cbWriteUnion;
+}
+
+struct ElementAndCount {
+	immutable PrimitiveType elementType;
+	immutable size_t count;
+}
+immutable(Opt!ElementAndCount) getElementAndCountForExtern(immutable TypeSize size) {
+	switch (size.alignmentBytes) {
+		case 0:
+			return none!ElementAndCount;
+		case 1:
+			return some(immutable ElementAndCount(PrimitiveType.nat8, size.sizeBytes));
+		case 2:
+			verify(isMultipleOf(size.sizeBytes, 2));
+			return some(immutable ElementAndCount(PrimitiveType.nat16, size.sizeBytes / 2));
+		case 4:
+			verify(isMultipleOf(size.sizeBytes, 4));
+			return some(immutable ElementAndCount(PrimitiveType.nat32, size.sizeBytes / 4));
+		case 8:
+			verify(isMultipleOf(size.sizeBytes, 8));
+			return some(immutable ElementAndCount(PrimitiveType.nat64, size.sizeBytes / 8));
+		default:
+			return unreachable!(immutable Opt!ElementAndCount);
+	}
 }
 
 private:
@@ -113,8 +141,7 @@ struct StructStates {
 immutable(bool) canReferenceTypeAsValue(ref const StructStates states, immutable LowType a) =>
 	matchLowTypeCombinePtr!(
 		immutable bool,
-		(immutable LowType.ExternPtr) =>
-			// Declared all up front
+		(immutable LowType.Extern) =>
 			true,
 		(immutable LowType.FunPtr it) =>
 			states.funPtrStates[it],
@@ -131,8 +158,7 @@ immutable(bool) canReferenceTypeAsValue(ref const StructStates states, immutable
 immutable(bool) canReferenceTypeAsPointee(ref const StructStates states, immutable LowType a) =>
 	matchLowTypeCombinePtr!(
 		immutable bool,
-		(immutable LowType.ExternPtr) =>
-			// Declared all up front
+		(immutable LowType.Extern) =>
 			true,
 		(immutable LowType.FunPtr it) =>
 			states.funPtrStates[it],

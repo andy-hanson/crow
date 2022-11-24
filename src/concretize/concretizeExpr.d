@@ -997,6 +997,7 @@ immutable(Opt!Constant) tryEvalConstant(
 			return has(name) ? tryEvalConstantBuiltin(force(name), versionInfo) : none!Constant;
 		},
 		(ref immutable ConcreteFunBody.CreateEnum) => none!Constant,
+		(ref immutable ConcreteFunBody.CreateExtern) => none!Constant,
 		(ref immutable ConcreteFunBody.CreateRecord) => none!Constant,
 		(ref immutable ConcreteFunBody.CreateUnion) => none!Constant,
 		(immutable EnumFunction) => none!Constant,

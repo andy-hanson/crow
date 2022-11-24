@@ -92,7 +92,7 @@ contexts:
     - match: '(enum|flags)[\n<]'
       scope: comment
       push: enum
-    - match: 'extern-pointer\n'
+    - match: 'extern\n'
       scope: comment
       pop: true
     - match: 'record\s'

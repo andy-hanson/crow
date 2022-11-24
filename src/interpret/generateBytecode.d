@@ -81,7 +81,7 @@ import util.perf : Perf, PerfMeasure, withMeasure;
 import util.ptr : ptrTrustMe;
 import util.sourceRange : FileIndex;
 import util.sym : AllSymbols, Sym, sym;
-import util.util : unreachable, verify;
+import util.util : todo, unreachable, verify;
 import util.writer : Writer;
 
 immutable(ByteCode) generateBytecode(
@@ -356,8 +356,8 @@ void generateExternCallFunPtr(
 immutable(DynCallType) toDynCallType(scope immutable LowType a) =>
 	matchLowType!(
 		immutable DynCallType,
-		(immutable LowType.ExternPtr) =>
-			DynCallType.pointer,
+		(immutable LowType.Extern) =>
+			todo!(immutable DynCallType)("!"),
 		(immutable LowType.FunPtr) =>
 			DynCallType.pointer,
 		(immutable PrimitiveType it) {

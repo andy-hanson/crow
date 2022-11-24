@@ -8,7 +8,7 @@ import model.lowModel :
 	debugName,
 	LowExpr,
 	LowExprKind,
-	LowExternPtrType,
+	LowExternType,
 	LowField,
 	LowFun,
 	LowFunBody,
@@ -56,9 +56,9 @@ import util.sourceRange : reprFileAndRange;
 
 immutable(Repr) reprOfLowProgram(ref Alloc alloc, ref immutable LowProgram a) =>
 	reprNamedRecord!"program"(alloc, [
-		nameAndRepr!"extern-pointers"(
-			reprFullIndexDict(alloc, a.allExternPtrTypes, (ref immutable LowExternPtrType it) =>
-				reprOfExternPtrType(alloc, it))),
+		nameAndRepr!"extern"(
+			reprFullIndexDict(alloc, a.allExternTypes, (ref immutable LowExternType it) =>
+				reprOfExternType(alloc, it))),
 		nameAndRepr!"fun-pointers"(reprFullIndexDict(alloc, a.allFunPtrTypes, (ref immutable LowFunPtrType it) =>
 			reprOfLowFunPtrType(alloc, it))),
 		nameAndRepr!"records"(reprFullIndexDict(alloc, a.allRecords, (ref immutable LowRecord it) =>
@@ -74,8 +74,8 @@ private:
 immutable(Repr) reprOfLowType(ref Alloc alloc, immutable LowType a) =>
 	matchLowType!(
 		immutable Repr,
-		(immutable LowType.ExternPtr it) =>
-			reprRecord!"extern-pointer"(alloc, [reprNat(it.index)]),
+		(immutable LowType.Extern it) =>
+			reprRecord!"extern"(alloc, [reprNat(it.index)]),
 		(immutable LowType.FunPtr it) =>
 			reprRecord!"fun-pointer"(alloc, [reprNat(it.index)]),
 		(immutable PrimitiveType it) =>
@@ -92,8 +92,8 @@ immutable(Repr) reprOfLowType(ref Alloc alloc, immutable LowType a) =>
 			reprRecord!"union"(alloc, [reprNat(it.index)]),
 	)(a);
 
-immutable(Repr) reprOfExternPtrType(ref Alloc alloc, ref immutable LowExternPtrType a) =>
-	reprRecord!"extern-pointer"(alloc, [
+immutable(Repr) reprOfExternType(ref Alloc alloc, ref immutable LowExternType a) =>
+	reprRecord!"extern"(alloc, [
 		reprOfConcreteStructRef(alloc, *a.source)]);
 
 immutable(Repr) reprOfLowFunPtrType(ref Alloc alloc, ref immutable LowFunPtrType a) =>

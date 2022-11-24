@@ -30,6 +30,8 @@ struct ParseDiag {
 			indent,
 			lambdaArrow,
 			less,
+			literalIntOrNat,
+			literalNat,
 			name,
 			nameOrOperator,
 			openParen,

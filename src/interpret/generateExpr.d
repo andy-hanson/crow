@@ -796,6 +796,9 @@ void generateConstant(
 		(ref immutable Constant.CString it) {
 			writePushConstantPointer(writer, source, getTextPointerForCString(ctx.textInfo, it));
 		},
+		(immutable Constant.ExternZeroed) {
+			writeZeroed(writer, source, typeSizeBytes(ctx, type));
+		},
 		(immutable Constant.Float it) {
 			switch (asPrimitiveType(type)) {
 				case PrimitiveType.float32:
@@ -848,6 +851,11 @@ void generateConstant(
 		(immutable Constant.Void) {
 			// do nothing
 		});
+}
+
+void writeZeroed(ref ByteCodeWriter writer, immutable ByteCodeSource source, immutable size_t sizeBytes) {
+	foreach (immutable size_t i; 0 .. divRoundUp(sizeBytes, stackEntrySize))
+		writePushConstant(writer, source, 0);
 }
 
 void writeBoolConstant(ref ByteCodeWriter writer, immutable ByteCodeSource source, immutable bool value) {

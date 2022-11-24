@@ -1,16 +1,13 @@
 no-std
 import
 	../c-types: c-char, c-int, size_t
-	../bytes-types: bytes1024
 	../number: nat64
 	../pointer: mut-pointer
 
 unw_word_t alias
 	nat64
-unw_cursor_t record extern
-	opaque bytes1024
-unw_context_t record extern mut
-	opaque bytes1024
+unw_cursor_t extern(1024)
+unw_context_t extern(1024)
 
 # TODO: aliases for different machine types
 unw_getcontext c-int(context unw_context_t mut*) noctx unsafe

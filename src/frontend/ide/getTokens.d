@@ -22,7 +22,10 @@ import frontend.parse.ast :
 	InterpolatedPart,
 	LambdaAst,
 	LetAst,
-	LiteralAst,
+	LiteralFloatAst,
+	LiteralIntAst,
+	LiteralNatAst,
+	LiteralStringAst,
 	LoopAst,
 	LoopBreakAst,
 	LoopContinueAst,
@@ -31,7 +34,6 @@ import frontend.parse.ast :
 	MatchAst,
 	matchExprAstKind,
 	matchInterpolatedPart,
-	matchLiteralAst,
 	matchNameOrUnderscoreOrNone,
 	matchParamsAst,
 	matchSpecBodyAst,
@@ -326,11 +328,11 @@ void addStructTokens(
 		(ref immutable StructDeclAst.Body.Enum it) {
 			addEnumOrFlagsTokens(alloc, tokens, allSymbols, a, it.typeArg, it.members);
 		},
+		(ref immutable StructDeclAst.Body.Extern) {
+			addModifierTokens(alloc, tokens, allSymbols, a);
+		},
 		(ref immutable StructDeclAst.Body.Flags it) {
 			addEnumOrFlagsTokens(alloc, tokens, allSymbols, a, it.typeArg, it.members);
-		},
-		(ref immutable StructDeclAst.Body.ExternPtr) {
-			addModifierTokens(alloc, tokens, allSymbols, a);
 		},
 		(ref immutable StructDeclAst.Body.Record record) {
 			addModifierTokens(alloc, tokens, allSymbols, a);
@@ -541,19 +543,17 @@ void addExprTokens(
 			addExprTokens(alloc, tokens, allSymbols, it.initializer);
 			addExprTokens(alloc, tokens, allSymbols, it.then);
 		},
-		(ref immutable LiteralAst literal) {
-			immutable Token.Kind kind = matchLiteralAst!(
-				immutable Token.Kind,
-				(immutable LiteralAst.Float) =>
-					Token.Kind.literalNumber,
-				(immutable LiteralAst.Int) =>
-					Token.Kind.literalNumber,
-				(immutable LiteralAst.Nat) =>
-					Token.Kind.literalNumber,
-				(immutable(string)) =>
-					Token.Kind.literalString,
-			)(literal);
-			add(alloc, tokens, immutable Token(kind, a.range));
+		(ref immutable(LiteralFloatAst)) {
+			add(alloc, tokens, immutable Token(Token.Kind.literalNumber, a.range));
+		},
+		(ref immutable(LiteralIntAst)) {
+			add(alloc, tokens, immutable Token(Token.Kind.literalNumber, a.range));
+		},
+		(ref immutable(LiteralNatAst)) {
+			add(alloc, tokens, immutable Token(Token.Kind.literalNumber, a.range));
+		},
+		(ref immutable(LiteralStringAst)) {
+			add(alloc, tokens, immutable Token(Token.Kind.literalString, a.range));
 		},
 		(ref immutable LoopAst it) {
 			add(alloc, tokens, immutable Token(

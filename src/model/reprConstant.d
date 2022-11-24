@@ -17,6 +17,8 @@ immutable(Repr) reprOfConstant(ref Alloc alloc, ref immutable Constant a) =>
 			reprBool(it.value),
 		(ref immutable Constant.CString it) =>
 			reprRecord!"c-string"(alloc, [reprNat(it.index)]),
+		(immutable Constant.ExternZeroed) =>
+			reprSym!"extern",
 		(immutable Constant.Float it) =>
 			reprFloat(it.value),
 		(immutable Constant.FunPtr it) =>

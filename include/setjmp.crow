@@ -1,16 +1,11 @@
 no-std
 import
 	crow/pointer: mut-pointer
-	crow/bytes-types: bytes512, new
 	crow/private/bootstrap: int32, void
 
 # Make this as big as the biggest one I've found, which is on Windows where it is 16 * 128 bits.
 # The interpreter uses a fake implementation of this.
-__jmp_buf_tag record extern
-	spacer bytes512
-
-new __jmp_buf_tag() noctx
-	(),
+__jmp_buf_tag extern(512)
 
 # WARNING: This is declared as `typedef struct __jmp_buf_tag jmp_buf[1];`
 # (or on Windows, `typedef _JBTYPE jmp_buf[_JBLEN];` where JBLEN is 16)

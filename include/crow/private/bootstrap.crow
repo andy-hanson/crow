@@ -35,8 +35,6 @@ In the future, parallel-safe collections may be included here.
 ###
 is-sendable<a> builtin-spec
 
-## TODO: extern<a> builtin-spec for extern-pointer types
-
 region option.crow
 
 ###

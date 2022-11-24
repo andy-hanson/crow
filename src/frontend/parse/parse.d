@@ -12,6 +12,7 @@ import frontend.parse.ast :
 	ImportOrExportAstKind,
 	ImportsOrExportsAst,
 	LiteralIntOrNat,
+	LiteralNatAst,
 	matchTypeAst,
 	ModifierAst,
 	NameAndRange,
@@ -27,11 +28,14 @@ import frontend.parse.ast :
 import frontend.parse.lexer :
 	addDiag,
 	addDiagAtChar,
+	addDiagExpected,
 	addDiagUnexpectedCurToken,
 	alloc,
 	allSymbols,
 	createLexer,
 	curPos,
+	getCurLiteralInt,
+	getCurLiteralNat,
 	getCurSym,
 	getPeekToken,
 	Lexer,
@@ -45,7 +49,6 @@ import frontend.parse.lexer :
 	skipUntilNewlineNoDiag,
 	takeDedentFromIndent1,
 	takeIndentOrDiagTopLevel,
-	takeIntOrNat,
 	takeName,
 	takeNameAndRange,
 	takeNameOrOperator,
@@ -387,9 +390,19 @@ immutable(StructDeclAst.Body.Enum.Member[]) parseEnumOrFlagsMembers(ref Lexer le
 			immutable(StructDeclAst.Body.Enum.Member[]) recur() {
 				immutable Pos start = curPos(lexer);
 				immutable Sym name = takeName(lexer);
-				immutable Opt!LiteralIntOrNat value = tryTakeToken(lexer, Token.equal)
-					? some(takeIntOrNat(lexer))
-					: none!LiteralIntOrNat;
+				immutable Opt!LiteralIntOrNat value = () {
+					if (tryTakeToken(lexer, Token.equal)) {
+						if (tryTakeToken(lexer, Token.literalInt))
+							return some(immutable LiteralIntOrNat(getCurLiteralInt(lexer)));
+						else if (tryTakeToken(lexer, Token.literalNat))
+							return some(immutable LiteralIntOrNat(getCurLiteralNat(lexer)));
+						else {
+							addDiagExpected(lexer, ParseDiag.Expected.Kind.literalIntOrNat);
+							return none!LiteralIntOrNat;
+						}
+					} else
+						return none!LiteralIntOrNat;
+				}();
 				add(lexer.alloc, res, immutable StructDeclAst.Body.Enum.Member(range(lexer, start), name, value));
 				final switch (takeNewlineOrSingleDedent(lexer)) {
 					case NewlineOrDedent.newline:
@@ -611,9 +624,10 @@ void parseSpecOrStructOrFun(
 			addStruct(() => immutable StructDeclAst.Body(
 				immutable StructDeclAst.Body.Enum(typeArg, small(parseEnumOrFlagsMembers(lexer)))));
 			break;
-		case Token.externPointer:
+		case Token.extern_:
 			nextToken(lexer);
-			addStruct(() => immutable StructDeclAst.Body(immutable StructDeclAst.Body.ExternPtr()));
+			immutable StructDeclAst.Body.Extern body_ = parseExternType(lexer);
+			addStruct(() => immutable StructDeclAst.Body(body_));
 			takeNewline_topLevel(lexer);
 			break;
 		case Token.flags:
@@ -647,6 +661,22 @@ void parseSpecOrStructOrFun(
 			break;
 	}
 }
+
+immutable(StructDeclAst.Body.Extern) parseExternType(ref Lexer lexer) {
+	if (tryTakeToken(lexer, Token.parenLeft)) {
+		immutable Opt!(LiteralNatAst*) size = parseNat(lexer);
+		immutable Opt!(LiteralNatAst*) alignment = tryTakeToken(lexer, Token.comma)
+			? parseNat(lexer)
+			: none!(LiteralNatAst*);
+		takeOrAddDiagExpectedToken(lexer, Token.parenRight, ParseDiag.Expected.Kind.closingParen);
+		return immutable StructDeclAst.Body.Extern(size, alignment);
+	} else
+		return immutable StructDeclAst.Body.Extern(none!(LiteralNatAst*), none!(LiteralNatAst*));
+}
+immutable(Opt!(LiteralNatAst*)) parseNat(ref Lexer lexer) =>
+	takeOrAddDiagExpectedToken(lexer, Token.literalNat, ParseDiag.Expected.Kind.literalNat)
+		? some(allocate(lexer.alloc, getCurLiteralNat(lexer)))
+		: none!(LiteralNatAst*);
 
 immutable(StructDeclAst.Body.Union.Member[]) parseUnionMembersOrDiag(ref Lexer lexer) {
 	final switch (takeNewlineOrIndent_topLevel(lexer)) {

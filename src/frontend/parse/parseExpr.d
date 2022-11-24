@@ -22,7 +22,7 @@ import frontend.parse.ast :
 	isIdentifier,
 	LambdaAst,
 	LetAst,
-	LiteralAst,
+	LiteralStringAst,
 	LoopAst,
 	LoopBreakAst,
 	LoopContinueAst,
@@ -49,7 +49,9 @@ import frontend.parse.lexer :
 	allSymbols,
 	curPos,
 	EqualsOrThen,
-	getCurLiteral,
+	getCurLiteralFloat,
+	getCurLiteralInt,
+	getCurLiteralNat,
 	getCurOperator,
 	getCurSym,
 	Lexer,
@@ -1102,13 +1104,17 @@ immutable(ExprAndMaybeDedent) parseExprBeforeCall(ref Lexer lexer, immutable All
 		case Token.quoteDouble3:
 			immutable QuoteKind quoteKind = token == Token.quoteDouble ? QuoteKind.double_ : QuoteKind.double3;
 			immutable StringPart part = takeStringPart(lexer, quoteKind);
-			final switch (part.after) {
-				case StringPart.After.quote:
-					return handleLiteral(lexer, start, immutable LiteralAst(part.text));
-				case StringPart.After.lbrace:
-					immutable ExprAst interpolated = takeInterpolated(lexer, start, part.text, quoteKind);
-					return noDedent(tryParseDotsAndSubscripts(lexer, interpolated));
-			}
+			immutable ExprAst quoted = () {
+				final switch (part.after) {
+					case StringPart.After.quote:
+						return immutable ExprAst(
+							range(lexer, start),
+							immutable ExprAstKind(immutable LiteralStringAst(part.text)));
+					case StringPart.After.lbrace:
+						return takeInterpolated(lexer, start, part.text, quoteKind);
+				}
+			}();
+			return noDedent(tryParseDotsAndSubscripts(lexer, quoted));
 		case Token.assert_:
 			return parseAssertOrForbid(lexer, start, allowedBlock, AssertOrForbidKind.assert_);
 		case Token.break_:
@@ -1145,8 +1151,18 @@ immutable(ExprAndMaybeDedent) parseExprBeforeCall(ref Lexer lexer, immutable All
 					inner.dedents);
 			} else
 				return handlePrefixOperator(lexer, allowedBlock, start, operator);
-		case Token.literal:
-			return handleLiteral(lexer, start, getCurLiteral(lexer));
+		case Token.literalFloat:
+			return noDedent(tryParseDotsAndSubscripts(
+				lexer,
+				immutable ExprAst(range(lexer, start), immutable ExprAstKind(getCurLiteralFloat(lexer)))));
+		case Token.literalInt:
+			return noDedent(tryParseDotsAndSubscripts(
+				lexer,
+				immutable ExprAst(range(lexer, start), immutable ExprAstKind(getCurLiteralInt(lexer)))));
+		case Token.literalNat:
+			return noDedent(tryParseDotsAndSubscripts(
+				lexer,
+				immutable ExprAst(range(lexer, start), immutable ExprAstKind(getCurLiteralNat(lexer)))));
 		case Token.loop:
 			return isAllowBlock(allowedBlock)
 				? toMaybeDedent(parseLoop(lexer, start, asAllowBlock(allowedBlock).curIndent))
@@ -1195,15 +1211,6 @@ immutable(ExprAndMaybeDedent) handlePrefixOperator(
 			[],
 			arrLiteral!ExprAst(lexer.alloc, [arg.expr]))));
 	return immutable ExprAndMaybeDedent(expr, arg.dedents);
-}
-
-immutable(ExprAndMaybeDedent) handleLiteral(
-	ref Lexer lexer,
-	immutable Pos start,
-	immutable LiteralAst literal,
-) {
-	immutable ExprAst expr = immutable ExprAst(range(lexer, start), immutable ExprAstKind(literal));
-	return noDedent(tryParseDotsAndSubscripts(lexer, expr));
 }
 
 immutable(ExprAndMaybeDedent) handleName(ref Lexer lexer, immutable Pos start, immutable NameAndRange name) {

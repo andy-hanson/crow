@@ -17,7 +17,7 @@ import model.concreteModel :
 	matchConcreteStructSource;
 import model.lowModel :
 	asRecordType,
-	LowExternPtrType,
+	LowExternType,
 	LowFun,
 	LowFunIndex,
 	LowFunPtrType,
@@ -94,9 +94,9 @@ immutable(MangledNames) buildMangledNames(
 			(ref immutable ConcreteStructSource.Lambda) {},
 		)(s.source);
 	}
-	fullIndexDictEachValue!(LowType.ExternPtr, LowExternPtrType)(
-		program.allExternPtrTypes,
-		(ref immutable LowExternPtrType it) {
+	fullIndexDictEachValue!(LowType.Extern, LowExternType)(
+		program.allExternTypes,
+		(ref immutable LowExternType it) {
 			build(it.source);
 		});
 	fullIndexDictEachValue!(LowType.FunPtr, LowFunPtrType)(

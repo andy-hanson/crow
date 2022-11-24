@@ -177,6 +177,8 @@ immutable(Opt!Position) positionInFun(immutable FunDecl* a, immutable Pos pos, r
 			none!Position,
 		(ref immutable FunBody.CreateEnum) =>
 			none!Position,
+		(ref immutable FunBody.CreateExtern) =>
+			none!Position,
 		(ref immutable FunBody.CreateRecord) =>
 			none!Position,
 		(ref immutable FunBody.CreateUnion) =>
@@ -238,10 +240,10 @@ immutable(Position) positionInStruct(ref const AllSymbols allSymbols, immutable 
 			none!Position,
 		(ref immutable StructBody.Enum) =>
 			none!Position, // TODO
+		(ref immutable StructBody.Extern) =>
+			none!Position,
 		(ref immutable StructBody.Flags) =>
 			none!Position, // TODO
-		(ref immutable StructBody.ExternPointer) =>
-			none!Position,
 		(ref immutable StructBody.Record it) {
 			foreach (immutable RecordField* field; ptrsRange(it.fields))
 				if (hasPos(field.range.range, pos))

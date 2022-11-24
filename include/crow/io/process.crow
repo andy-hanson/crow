@@ -28,7 +28,7 @@ import
 	../number: ==, <=>, +, int32, nat8, nat32, to-int32, to-int64, to-nat32, to-nat64
 	../private/bootstrap: todo
 	../private/c-string-util: find-c-string-end
-	../pointer: ==, +, -, any-const-pointer, as-any-const-pointer, as-any-mut-pointer, as-ref, new, null
+	../pointer: ==, +, -, as-any-const-pointer, as-any-mut-pointer, mut-pointer, new, null
 	../string: ~~, as-string, char8, c-string, join, literal, string, to-c-string, to-string
 	../version: is-windows
 	./environ: get-environ-raw
@@ -60,7 +60,7 @@ spawn-and-wait-result process-result(exe string, args string[]) trusted summon
 	else
 		exe-c-string spawn-and-wait-result-posix (exe-c-string convert-args args)
 
-.keep-reading void(res char8 mut[], file FILE) unsafe summon
+.keep-reading void(res char8 mut[], file FILE mut*) unsafe summon
 	read-at-a-time = 0x1000
 	old-size = res size
 	res unsafe-set-size old-size + read-at-a-time
@@ -261,8 +261,7 @@ shell-exec string(command string) trusted summon
 .spawn-and-wait int32(exe c-string, args c-string[]) summon unsafe
 	pid mut pid_t = 0
 	args-pointer = args.to-array begin-pointer
-	# TODO: null.as-ref is bad. If it's nullable it shouldn't be a ref.
-	&pid posix_spawn exe, null::any-const-pointer.as-ref, null, args-pointer, get-environ-raw check-posix-error
+	&pid posix_spawn exe, null, null, args-pointer, get-environ-raw check-posix-error
 	pid wait-and-get-exit-code
 
 .wait-and-get-exit-code int32(pid pid_t) summon unsafe

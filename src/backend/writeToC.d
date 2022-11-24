@@ -14,7 +14,7 @@ import backend.mangle :
 	writeMangledName,
 	writeRecordName,
 	writeStructMangledName;
-import backend.writeTypes : TypeWriters, writeTypes;
+import backend.writeTypes : ElementAndCount, TypeWriters, writeTypes;
 import interpret.debugging : writeFunName, writeFunSig;
 import lower.lowExprHelpers : boolType;
 import model.concreteModel :
@@ -29,6 +29,7 @@ import model.constant : asIntegral, Constant, matchConstant;
 import model.lowModel :
 	AllConstantsLow,
 	ArrTypeAndConstantsLow,
+	asExternType,
 	asPrimitive,
 	asPtrGcPointee,
 	asRecordType,
@@ -267,10 +268,9 @@ immutable(Temp) getNextTemp(ref FunBodyCtx ctx) {
 void writeType(scope ref Writer writer, scope ref immutable Ctx ctx, scope immutable LowType t) =>
 	matchLowTypeCombinePtr!(
 		void,
-		(immutable LowType.ExternPtr it) {
+		(immutable LowType.Extern it) {
 			writer ~= "struct ";
-			writeStructMangledName(writer, ctx.mangledNames, ctx.program.allExternPtrTypes[it].source);
-			writer ~= '*';
+			writeStructMangledName(writer, ctx.mangledNames, ctx.program.allExternTypes[it].source);
 		},
 		(immutable LowType.FunPtr it) {
 			writeStructMangledName(writer, ctx.mangledNames, ctx.program.allFunPtrTypes[it].source);
@@ -355,8 +355,8 @@ void writeUnion(scope ref Writer writer, scope ref immutable Ctx ctx, scope ref 
 			return true;
 		},
 		(ref immutable(ConcreteStructBody.Enum)) => false,
+		(ref immutable(ConcreteStructBody.Extern)) => false,
 		(ref immutable(ConcreteStructBody.Flags)) => false,
-		(ref immutable(ConcreteStructBody.ExternPtr)) => false,
 		(ref immutable(ConcreteStructBody.Record)) => false,
 		(ref immutable(ConcreteStructBody.Union)) => false);
 	if (exists!(immutable LowType)(a.members, (ref immutable LowType member) => !isVoid(member)) || isBuiltin) {
@@ -408,6 +408,18 @@ void writeStructs(ref Alloc alloc, scope ref Writer writer, scope ref immutable 
 	scope immutable TypeWriters writers = immutable TypeWriters(
 		(immutable ConcreteStruct* it) {
 			declareStruct(writer, ctx, it);
+		},
+		(immutable ConcreteStruct* source, immutable Opt!ElementAndCount ec) {
+			writer ~= "struct ";
+			writeStructMangledName(writer, ctx.mangledNames, source);
+			if (has(ec)) {
+				writer ~= " { ";
+				writePrimitiveType(writer, force(ec).elementType);
+				writer ~= " __sizer[";
+				writer ~= force(ec).count;
+				writer ~= "]; }";
+			}
+			writer ~= ";\n";
 		},
 		(immutable LowType.FunPtr, ref immutable LowFunPtrType funPtr) {
 			writer ~= "typedef ";
@@ -1364,6 +1376,9 @@ void writeConstantRef(
 			});
 			writer ~= '"';
 		},
+		(immutable Constant.ExternZeroed) {
+			writeExternZeroed(writer, ctx, asExternType(type));
+		},
 		(immutable Constant.Float it) {
 			switch (asPrimitive(type)) {
 				case PrimitiveType.float32:
@@ -1379,7 +1394,7 @@ void writeConstantRef(
 		(immutable Constant.FunPtr it) {
 			immutable bool isRawPtr = matchLowType!(
 				immutable bool,
-				(immutable LowType.ExternPtr) => unreachable!bool,
+				(immutable LowType.Extern) => unreachable!bool,
 				(immutable LowType.FunPtr) => false,
 				(immutable PrimitiveType) => unreachable!bool,
 				(immutable LowType.PtrGc) => unreachable!bool,
@@ -1564,8 +1579,8 @@ immutable(WriteExprResult) writeSpecialUnary(
 void writeZeroedValue(scope ref Writer writer, scope ref immutable Ctx ctx, scope immutable LowType type) =>
 	matchLowTypeCombinePtr!(
 		void,
-		(immutable LowType.ExternPtr) {
-			writer ~= "NULL";
+		(immutable LowType.Extern x) {
+			writeExternZeroed(writer, ctx, x);
 		},
 		(immutable LowType.FunPtr) {
 			writer ~= "NULL";
@@ -1596,6 +1611,15 @@ void writeZeroedValue(scope ref Writer writer, scope ref immutable Ctx ctx, scop
 			writer ~= "{0}";
 		},
 	)(type);
+
+void writeExternZeroed(
+	ref Writer writer,
+	scope ref immutable Ctx ctx,
+	immutable LowType.Extern type,
+) {
+	writeCastToType(writer, ctx, immutable LowType(type));
+	writer ~= "{{0}}";
+}
 
 immutable(WriteExprResult) writeSpecialBinary(
 	ref Writer writer,
@@ -1754,10 +1778,12 @@ immutable(WriteExprResult) writeSpecialBinary(
 			immutable WriteExprResult temp0 = arg0();
 			immutable WriteExprResult temp1 = arg1();
 			return writeReturnVoid(writer, indent, ctx, writeKind, () {
-				writer ~= "*";
-				writeTempOrInline(writer, ctx, locals, it.left, temp0);
-				writer ~= " = ";
-				writeTempOrInline(writer, ctx, locals, it.right, temp1);
+				if (!isVoid(it.right.type)) {
+					writer ~= "*";
+					writeTempOrInline(writer, ctx, locals, it.left, temp0);
+					writer ~= " = ";
+					writeTempOrInline(writer, ctx, locals, it.right, temp1);
+				}
 			});
 	}
 }

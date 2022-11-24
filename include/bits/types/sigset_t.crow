@@ -1,7 +1,0 @@
-no-std
-import
-	crow/bytes-types: bytes128
-
-__sigset_t alias
-	# 1024 bits
-	bytes128

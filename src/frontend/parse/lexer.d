@@ -3,7 +3,7 @@ module frontend.parse.lexer;
 @safe @nogc pure nothrow:
 
 import frontend.parse.ast :
-	LiteralAst, LiteralIntOrNat, matchLiteralAst, NameAndRange, NameOrUnderscoreOrNone, OptNameAndRange;
+	LiteralFloatAst, LiteralIntAst, LiteralNatAst, NameAndRange, NameOrUnderscoreOrNone, OptNameAndRange;
 import model.diag : Diag, DiagnosticWithinFile;
 import model.parseDiag : ParseDiag;
 import util.alloc.alloc : Alloc;
@@ -36,7 +36,9 @@ struct Lexer {
 		bool ignore;
 		Cell!Sym curSym; // For Token.name
 		Cell!Sym curOperator;
-		Cell!LiteralAst curLiteral; // for Token.literal
+		Cell!LiteralFloatAst curLiteralFloat; // for Token.literalFloat
+		Cell!LiteralIntAst curLiteralInt; // for Token.literalInt
+		Cell!LiteralNatAst curLiteralNat; // for Token.literalNat
 	}
 }
 
@@ -448,7 +450,6 @@ public enum Token {
 	enum_, // 'enum'
 	equal, // '='
 	extern_, // 'extern'
-	externPointer, // 'extern-pointer'
 	EOF, // end of file
 	export_, // 'export'
 	flags, // 'flags'
@@ -460,7 +461,9 @@ public enum Token {
 	if_, // 'if'
 	import_, // 'import'
 	invalid, // invalid token (e.g. illegal character)
-	literal, // Use getCurLiteral
+	literalFloat, // Use getCurLiteralFloat
+	literalInt, // Use getCurLiteralInt
+	literalNat, // Use getCurLiteralNat
 	loop, // 'loop'
 	match, // 'match'
 	mut, // 'mut'
@@ -538,7 +541,7 @@ public enum Token {
 			return Token.bracketRight;
 		case '-':
 			return isDigit(*lexer.ptr)
-				? literalToken(lexer, takeNumberAfterSign(lexer, some(Sign.minus)))
+				? takeNumberAfterSign(lexer, some(Sign.minus))
 				: tryTakeChar(lexer, '>')
 				? Token.arrowAccess
 				: operatorToken(lexer, sym!"-");
@@ -550,7 +553,7 @@ public enum Token {
 				: Token.equal;
 		case '+':
 			return isDigit(*lexer.ptr)
-				? literalToken(lexer, takeNumberAfterSign(lexer, some(Sign.plus)))
+				? takeNumberAfterSign(lexer, some(Sign.plus))
 				: operatorToken(lexer, sym!"+");
 		case '|':
 			return operatorToken(lexer, tryTakeChar(lexer, '|') ? sym!"||" : sym!"|");
@@ -600,7 +603,7 @@ public enum Token {
 				return tokenForSym(lexer, symOfStr(lexer.allSymbols, nameStr));
 			} else if (isDigit(c)) {
 				backUp(lexer);
-				return literalToken(lexer, takeNumberAfterSign(lexer, none!Sign));
+				return takeNumberAfterSign(lexer, none!Sign);
 			} else
 				return Token.invalid;
 	}
@@ -636,8 +639,6 @@ immutable(Token) tokenForSym(ref Lexer lexer, immutable Sym a) {
 			return Token.export_;
 		case sym!"extern".value:
 			return Token.extern_;
-		case sym!"extern-pointer".value:
-			return Token.externPointer;
 		case sym!"flags".value:
 			return Token.flags;
 		case sym!"for".value:
@@ -713,12 +714,6 @@ immutable(Token) operatorToken(ref Lexer lexer, immutable Sym a) {
 	return Token.operator;
 }
 
-@trusted immutable(Token) literalToken(ref Lexer lexer, immutable LiteralAst a) {
-	cellSet(lexer.curLiteral, a);
-	return Token.literal;
-}
-
-
 public immutable(Sym) getCurSym(ref Lexer lexer) =>
 	//TODO: assert that cur token is Token.name
 	cellGet(lexer.curSym);
@@ -729,22 +724,14 @@ public immutable(NameAndRange) getCurNameAndRange(ref Lexer lexer, immutable Pos
 public immutable(Sym) getCurOperator(ref Lexer lexer) =>
 	cellGet(lexer.curOperator);
 
-@trusted public immutable(LiteralAst) getCurLiteral(ref Lexer lexer) {
-	//TODO: assert that cur token is Token.literal
-	immutable LiteralAst res = cellGet(lexer.curLiteral);
-	// copy to avoid `scope`` issues
-	return matchLiteralAst!(
-		immutable LiteralAst,
-		(immutable LiteralAst.Float x) =>
-			immutable LiteralAst(x),
-		(immutable LiteralAst.Int x) =>
-			immutable LiteralAst(x),
-		(immutable LiteralAst.Nat x) =>
-			immutable LiteralAst(x),
-		(immutable(string)) =>
-			unreachable!(immutable LiteralAst)(),
-	)(res);
-}
+public immutable(LiteralFloatAst) getCurLiteralFloat(ref Lexer lexer) =>
+	cellGet(lexer.curLiteralFloat);
+
+public immutable(LiteralIntAst) getCurLiteralInt(ref Lexer lexer) =>
+	cellGet(lexer.curLiteralInt);
+
+public immutable(LiteralNatAst) getCurLiteralNat(ref Lexer lexer) =>
+	cellGet(lexer.curLiteralNat);
 
 public immutable(bool) tryTakeToken(ref Lexer lexer, immutable Token expected) {
 	//TODO: always have the next token ready, so we don't need to repeatedly lex the same token
@@ -837,7 +824,6 @@ immutable(bool) isExpressionStartToken(immutable Token a) {
 		case Token.equal:
 		case Token.export_:
 		case Token.extern_:
-		case Token.externPointer:
 		case Token.EOF:
 		case Token.flags:
 		case Token.forceSendable:
@@ -873,7 +859,9 @@ immutable(bool) isExpressionStartToken(immutable Token a) {
 		case Token.forbid:
 		case Token.if_:
 		case Token.for_:
-		case Token.literal:
+		case Token.literalFloat:
+		case Token.literalInt:
+		case Token.literalNat:
 		case Token.loop:
 		case Token.match:
 		case Token.name:
@@ -900,24 +888,7 @@ enum Sign {
 	minus,
 }
 
-public @trusted immutable(LiteralIntOrNat) takeIntOrNat(ref Lexer lexer) {
-	while (tryTakeChar(lexer, ' ')) {}
-	immutable Opt!Sign sign = tryTakeChar(lexer, '+')
-		? some(Sign.plus)
-		: tryTakeChar(lexer, '-')
-		? some(Sign.minus)
-		: none!Sign;
-	immutable LiteralAst res = takeNumberAfterSign(lexer, sign);
-	return matchLiteralAst!(
-		LiteralIntOrNat,
-		(immutable LiteralAst.Float) => todo!(immutable LiteralIntOrNat)("no float in enum"),
-		(immutable LiteralAst.Int i) => immutable LiteralIntOrNat(i),
-		(immutable LiteralAst.Nat n) => immutable LiteralIntOrNat(n),
-		(immutable(string)) => unreachable!(immutable LiteralIntOrNat),
-	)(res);
-}
-
-@trusted immutable(LiteralAst) takeNumberAfterSign(ref Lexer lexer, immutable Opt!Sign sign) {
+@trusted immutable(Token) takeNumberAfterSign(ref Lexer lexer, immutable Opt!Sign sign) {
 	immutable ulong base = tryTakeCStr(lexer, "0x")
 		? 16
 		: tryTakeCStr(lexer, "0o")
@@ -925,30 +896,36 @@ public @trusted immutable(LiteralIntOrNat) takeIntOrNat(ref Lexer lexer) {
 		: tryTakeCStr(lexer, "0b")
 		? 2
 		: 10;
-	immutable LiteralAst.Nat n = takeNat(lexer, base);
+	immutable LiteralNatAst n = takeNat(lexer, base);
 	if (*lexer.ptr == '.' && isDigit(*(lexer.ptr + 1))) {
 		lexer.ptr++;
-		return immutable LiteralAst(takeFloat(lexer, has(sign) ? force(sign) : Sign.plus, n, base));
-	} else if (has(sign))
-		final switch (force(sign)) {
-			case Sign.plus:
-				return immutable LiteralAst(immutable LiteralAst.Int(n.value, n.value > long.max));
-			case Sign.minus:
-				return immutable LiteralAst(immutable LiteralAst.Int(-n.value, n.value > (cast(ulong) long.max) + 1));
-		}
-	else
-		return immutable LiteralAst(n);
+		return takeFloat(lexer, has(sign) ? force(sign) : Sign.plus, n, base);
+	} else if (has(sign)) {
+		immutable LiteralIntAst intAst = () {
+			final switch (force(sign)) {
+				case Sign.plus:
+					return immutable LiteralIntAst(n.value, n.value > long.max);
+				case Sign.minus:
+					return immutable LiteralIntAst(-n.value, n.value > (cast(ulong) long.max) + 1);
+			}
+		}();
+		cellSet(lexer.curLiteralInt, intAst);
+		return Token.literalInt;
+	} else {
+		cellSet(lexer.curLiteralNat, n);
+		return Token.literalNat;
+	}
 }
 
-@system immutable(LiteralAst.Float) takeFloat(
+@system immutable(Token) takeFloat(
 	ref Lexer lexer,
 	immutable Sign sign,
-	ref immutable LiteralAst.Nat natPart,
+	ref immutable LiteralNatAst natPart,
 	immutable ulong base,
 ) {
 	// TODO: improve accuracy
 	const char *cur = lexer.ptr;
-	immutable LiteralAst.Nat rest = takeNat(lexer, base);
+	immutable LiteralNatAst rest = takeNat(lexer, base);
 	immutable bool overflow = natPart.overflow || rest.overflow;
 	immutable ulong power = lexer.ptr - cur;
 	immutable double multiplier = pow(1.0, 1.0 / base, power);
@@ -961,7 +938,8 @@ public @trusted immutable(LiteralIntOrNat) takeIntOrNat(ref Lexer lexer) {
 		}
 	}();
 	immutable double f = floatSign * (natPart.value + (rest.value * multiplier));
-	return immutable LiteralAst.Float(f, overflow);
+	cellSet(lexer.curLiteralFloat, immutable LiteralFloatAst(f, overflow));
+	return Token.literalFloat;
 }
 
 immutable(double) pow(immutable double acc, immutable double base, immutable ulong power) =>
@@ -971,10 +949,10 @@ immutable(double) pow(immutable double acc, immutable double base, immutable ulo
 immutable(ulong) getDivisor(immutable ulong acc, immutable ulong a, immutable ulong base) =>
 	acc < a ? getDivisor(acc * base, a, base) : acc;
 
-@system immutable(LiteralAst.Nat) takeNat(ref Lexer lexer, immutable ulong base) =>
+@system immutable(LiteralNatAst) takeNat(ref Lexer lexer, immutable ulong base) =>
 	takeNatRecur(lexer, base, 0, false);
 
-@system immutable(LiteralAst.Nat) takeNatRecur(
+@system immutable(LiteralNatAst) takeNatRecur(
 	ref Lexer lexer,
 	immutable ulong base,
 	immutable ulong value,
@@ -987,7 +965,7 @@ immutable(ulong) getDivisor(immutable ulong acc, immutable ulong a, immutable ul
 		drop(tryTakeChar(lexer, '_'));
 		return takeNatRecur(lexer, base, newValue, overflow || newValue / base != value);
 	} else
-		return immutable LiteralAst.Nat(value, overflow);
+		return immutable LiteralNatAst(value, overflow);
 }
 
 immutable(ulong) charToNat(immutable char c) =>

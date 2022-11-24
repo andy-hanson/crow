@@ -1,16 +1,16 @@
 import
-	crow/bytes-types: bytes48, new
 	crow/c-types: c-int, u-int
 
 SDL_PumpEvents void() extern<SDL2> summon
 
 SDL_PollEvent c-int(event SDL_Event mut*) extern<SDL2> summon trusted
 
-SDL_Event record extern
+SDL_Event record extern mut
 	type SDL_EventType
 	timestamp nat32
-	padding bytes48
-new SDL_Event()
+	.padding bytes48
+.bytes48 extern(48)
+new SDL_Event() unsafe
 	SDL_FIRSTEVENT, 0, ()
 
 SDL_EventType enum<u-int> extern

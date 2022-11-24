@@ -381,41 +381,23 @@ struct LetAst {
 	immutable ExprAst then;
 }
 
-struct LiteralAst {
-	@safe @nogc pure nothrow:
+struct LiteralFloatAst {
+	immutable double value;
+	immutable bool overflow;
+}
 
-	struct Float {
-		immutable double value;
-		immutable bool overflow;
-	}
-	struct Int {
-		immutable long value;
-		immutable bool overflow;
-	}
-	struct Nat {
-		immutable ulong value;
-		immutable bool overflow;
-	}
+struct LiteralIntAst {
+	immutable long value;
+	immutable bool overflow;
+}
 
-	immutable this(immutable Float a) { kind = Kind.float_; float_ = a; }
-	immutable this(immutable Int a) { kind = Kind.int_; int_ = a; }
-	immutable this(immutable Nat a) { kind = Kind.nat; nat = a; }
-	@trusted immutable this(immutable string a) { kind = Kind.str; str = a; }
+struct LiteralNatAst {
+	immutable ulong value;
+	immutable bool overflow;
+}
 
-	private:
-	enum Kind {
-		float_,
-		int_,
-		nat,
-		str,
-	}
-	immutable Kind kind;
-	union {
-		immutable Float float_;
-		immutable Int int_;
-		immutable Nat nat;
-		immutable string str;
-	}
+struct LiteralStringAst {
+	immutable string value;
 }
 
 struct LoopAst {
@@ -436,21 +418,6 @@ struct LoopUntilAst {
 struct LoopWhileAst {
 	immutable ExprAst condition;
 	immutable ExprAst body_;
-}
-
-@trusted T matchLiteralAst(T, alias cbFloat, alias cbInt, alias cbNat, alias cbStr)(
-	ref immutable LiteralAst a,
-) {
-	final switch (a.kind) {
-		case LiteralAst.Kind.float_:
-			return cbFloat(a.float_);
-		case LiteralAst.Kind.int_:
-			return cbInt(a.int_);
-		case LiteralAst.Kind.nat:
-			return cbNat(a.nat);
-		case LiteralAst.Kind.str:
-			return cbStr(a.str);
-	}
 }
 
 struct NameOrUnderscoreOrNone {
@@ -583,7 +550,10 @@ struct ExprAstKind {
 		interpolated,
 		lambda,
 		let,
-		literal,
+		literalFloat,
+		literalInt,
+		literalNat,
+		literalString,
 		loop,
 		loopBreak,
 		loopContinue,
@@ -613,7 +583,10 @@ struct ExprAstKind {
 		immutable InterpolatedAst interpolated;
 		immutable LambdaAst* lambda;
 		immutable LetAst* let;
-		immutable LiteralAst literal;
+		immutable LiteralFloatAst literalFloat;
+		immutable LiteralIntAst literalInt;
+		immutable LiteralNatAst literalNat;
+		immutable LiteralStringAst literalString;
 		immutable LoopAst* loop;
 		immutable LoopBreakAst* loopBreak;
 		immutable LoopContinueAst loopContinue;
@@ -643,7 +616,10 @@ struct ExprAstKind {
 	@trusted immutable this(immutable InterpolatedAst a) { kind = Kind.interpolated; interpolated = a; }
 	@trusted immutable this(immutable LambdaAst* a) { kind = Kind.lambda; lambda = a; }
 	@trusted immutable this(immutable LetAst* a) { kind = Kind.let; let = a; }
-	@trusted immutable this(immutable LiteralAst a) { kind = Kind.literal; literal = a; }
+	immutable this(immutable LiteralFloatAst a) { kind = Kind.literalFloat; literalFloat = a; }
+	immutable this(immutable LiteralIntAst a) { kind = Kind.literalInt; literalInt = a; }
+	immutable this(immutable LiteralNatAst a) { kind = Kind.literalNat; literalNat = a; }
+	immutable this(immutable LiteralStringAst a) { kind = Kind.literalString; literalString = a; }
 	@trusted immutable this(immutable LoopAst* a) { kind = Kind.loop; loop = a; }
 	@trusted immutable this(immutable LoopBreakAst* a) { kind = Kind.loopBreak; loopBreak = a; }
 	@trusted immutable this(immutable LoopContinueAst a) { kind = Kind.loopContinue; loopContinue = a; }
@@ -696,7 +672,10 @@ immutable(bool) isLambda(ref immutable ExprAstKind a) =>
 	alias cbInterpolated,
 	alias cbLambda,
 	alias cbLet,
-	alias cbLiteral,
+	alias cbLiteralFloat,
+	alias cbLiteralInt,
+	alias cbLiteralNat,
+	alias cbLiteralString,
 	alias cbLoop,
 	alias cbLoopBreak,
 	alias cbLoopContinue,
@@ -739,8 +718,14 @@ immutable(bool) isLambda(ref immutable ExprAstKind a) =>
 			return cbLambda(*a.lambda);
 		case ExprAstKind.Kind.let:
 			return cbLet(*a.let);
-		case ExprAstKind.Kind.literal:
-			return cbLiteral(a.literal);
+		case ExprAstKind.Kind.literalFloat:
+			return cbLiteralFloat(a.literalFloat);
+		case ExprAstKind.Kind.literalInt:
+			return cbLiteralInt(a.literalInt);
+		case ExprAstKind.Kind.literalNat:
+			return cbLiteralNat(a.literalNat);
+		case ExprAstKind.Kind.literalString:
+			return cbLiteralString(a.literalString);
 		case ExprAstKind.Kind.loop:
 			return cbLoop(*a.loop);
 		case ExprAstKind.Kind.loopBreak:
@@ -857,15 +842,15 @@ immutable(RangeWithinFile) rangeOfModifierAst(immutable ModifierAst a, ref const
 struct LiteralIntOrNat {
 	@safe @nogc pure nothrow:
 
-	immutable this(immutable LiteralAst.Int a) { kind = Kind.int_; int_ = a; }
-	immutable this(immutable LiteralAst.Nat a) { kind = Kind.nat; nat = a; }
+	immutable this(immutable LiteralIntAst a) { kind = Kind.int_; int_ = a; }
+	immutable this(immutable LiteralNatAst a) { kind = Kind.nat; nat = a; }
 
 	private:
 	enum Kind { int_, nat }
 	immutable Kind kind;
 	union {
-		immutable LiteralAst.Int int_;
-		immutable LiteralAst.Nat nat;
+		immutable LiteralIntAst int_;
+		immutable LiteralNatAst nat;
 	}
 }
 
@@ -892,12 +877,15 @@ struct StructDeclAst {
 			immutable Opt!(TypeAst*) typeArg;
 			immutable SmallArray!Member members;
 		}
+		struct Extern {
+			immutable Opt!(LiteralNatAst*) size;
+			immutable Opt!(LiteralNatAst*) alignment;
+		}
 		struct Flags {
 			alias Member = Enum.Member;
 			immutable Opt!(TypeAst*) typeArg;
 			immutable SmallArray!Member members;
 		}
-		struct ExternPtr {}
 		struct Record {
 			@safe @nogc pure nothrow:
 
@@ -923,8 +911,8 @@ struct StructDeclAst {
 		enum Kind {
 			builtin,
 			enum_,
+			extern_,
 			flags,
-			externPtr,
 			record,
 			union_,
 		}
@@ -933,8 +921,8 @@ struct StructDeclAst {
 		union {
 			immutable Builtin builtin;
 			immutable Enum enum_;
+			immutable Extern extern_;
 			immutable Flags flags;
-			immutable ExternPtr externPtr;
 			immutable Record record;
 			immutable Union union_;
 		}
@@ -943,8 +931,8 @@ struct StructDeclAst {
 
 		immutable this(immutable Builtin a) { kind = Kind.builtin; builtin = a; }
 		@trusted immutable this(immutable Enum a) { kind = Kind.enum_; enum_ = a; }
+		immutable this(immutable Extern a) { kind = Kind.extern_; extern_ = a; }
 		@trusted immutable this(immutable Flags a) { kind = Kind.flags; flags = a; }
-		immutable this(immutable ExternPtr a) { kind = Kind.externPtr; externPtr = a; }
 		@trusted immutable this(immutable Record a) { kind = Kind.record; record = a; }
 		@trusted immutable this(immutable Union a) { kind = Kind.union_; union_ = a; }
 	}
@@ -964,8 +952,8 @@ static assert(StructDeclAst.sizeof <= 88);
 	T,
 	alias cbBuiltin,
 	alias cbEnum,
+	alias cbExtern,
 	alias cbFlags,
-	alias cbExternPtr,
 	alias cbRecord,
 	alias cbUnion,
 )(ref immutable StructDeclAst.Body a) {
@@ -974,10 +962,10 @@ static assert(StructDeclAst.sizeof <= 88);
 			return cbBuiltin(a.builtin);
 		case StructDeclAst.Body.Kind.enum_:
 			return cbEnum(a.enum_);
+		case StructDeclAst.Body.Kind.extern_:
+			return cbExtern(a.extern_);
 		case StructDeclAst.Body.Kind.flags:
 			return cbFlags(a.flags);
-		case StructDeclAst.Body.Kind.externPtr:
-			return cbExternPtr(a.externPtr);
 		case StructDeclAst.Body.Kind.record:
 			return cbRecord(a.record);
 		case StructDeclAst.Body.Kind.union_:
@@ -1273,33 +1261,25 @@ immutable(Repr) reprEnumMember(ref Alloc alloc, ref immutable StructDeclAst.Body
 		reprOpt(alloc, a.value, (ref immutable LiteralIntOrNat v) =>
 			reprLiteralIntOrNat(alloc, v))]);
 
-immutable(Repr) reprLiteralAst(ref Alloc alloc, ref immutable LiteralAst a) =>
-	reprRecord!"literal"(alloc, [
-		matchLiteralAst!(
-			immutable Repr,
-			(immutable LiteralAst.Float it) =>
-				reprRecord!"float"(alloc, [reprFloat(it.value), reprBool(it.overflow)]),
-			(immutable LiteralAst.Int it) =>
-				reprLiteralInt(alloc, it),
-			(immutable LiteralAst.Nat it) =>
-				reprLiteralNat(alloc, it),
-			(immutable string it) =>
-				reprStr(it),
-		)(a)]);
+immutable(Repr) reprLiteralFloatAst(ref Alloc alloc, ref immutable LiteralFloatAst a) =>
+	reprRecord!"float"(alloc, [reprFloat(a.value), reprBool(a.overflow)]);
 
-immutable(Repr) reprLiteralInt(ref Alloc alloc, ref immutable LiteralAst.Int a) =>
+immutable(Repr) reprLiteralIntAst(ref Alloc alloc, ref immutable LiteralIntAst a) =>
 	reprRecord!"int"(alloc, [reprInt(a.value), reprBool(a.overflow)]);
 
-immutable(Repr) reprLiteralNat(ref Alloc alloc, ref immutable LiteralAst.Nat a) =>
+immutable(Repr) reprLiteralNatAst(ref Alloc alloc, ref immutable LiteralNatAst a) =>
 	reprRecord!"nat"(alloc, [reprNat(a.value), reprBool(a.overflow)]);
+
+immutable(Repr) reprLiteralStringAst(ref Alloc alloc, ref immutable LiteralStringAst a) =>
+	reprRecord!"string"(alloc, [reprStr(a.value)]);
 
 immutable(Repr) reprLiteralIntOrNat(ref Alloc alloc, ref immutable LiteralIntOrNat a) =>
 	matchLiteralIntOrNat!(
 		immutable Repr,
-		(ref immutable LiteralAst.Int it) =>
-			reprLiteralInt(alloc, it),
-		(ref immutable LiteralAst.Nat it) =>
-			reprLiteralNat(alloc, it),
+		(ref immutable LiteralIntAst it) =>
+			reprLiteralIntAst(alloc, it),
+		(ref immutable LiteralNatAst it) =>
+			reprLiteralNatAst(alloc, it),
 	)(a);
 
 immutable(Repr) reprField(ref Alloc alloc, ref immutable StructDeclAst.Body.Record.Field a) =>
@@ -1354,10 +1334,10 @@ immutable(Repr) reprStructBodyAst(ref Alloc alloc, ref immutable StructDeclAst.B
 			reprSym!"builtin" ,
 		(ref immutable StructDeclAst.Body.Enum e) =>
 			reprEnumOrFlags(alloc, sym!"enum", e.typeArg, e.members),
+		(ref immutable StructDeclAst.Body.Extern) =>
+			reprSym!"extern",
 		(ref immutable StructDeclAst.Body.Flags e) =>
 			reprEnumOrFlags(alloc, sym!"flags", e.typeArg, e.members),
-		(ref immutable StructDeclAst.Body.ExternPtr) =>
-			reprSym(sym!"extern-pointer"),
 		(ref immutable StructDeclAst.Body.Record a) =>
 			reprRecordAst(alloc, a),
 		(ref immutable StructDeclAst.Body.Union a) =>
@@ -1552,8 +1532,14 @@ immutable(Repr) reprExprAstKind(ref Alloc alloc, ref immutable ExprAstKind ast) 
 				reprSym(has(a.name) ? force(a.name) : sym!"_"),
 				reprExprAst(alloc, a.initializer),
 				reprExprAst(alloc, a.then)]),
-		(ref immutable LiteralAst a) =>
-			reprLiteralAst(alloc, a),
+		(ref immutable LiteralFloatAst a) =>
+			reprLiteralFloatAst(alloc, a),
+		(ref immutable LiteralIntAst a) =>
+			reprLiteralIntAst(alloc, a),
+		(ref immutable LiteralNatAst a) =>
+			reprLiteralNatAst(alloc, a),
+		(ref immutable LiteralStringAst a) =>
+			reprLiteralStringAst(alloc, a),
 		(ref immutable LoopAst a) =>
 			reprRecord!"loop"(alloc, [reprExprAst(alloc, a.body_)]),
 		(ref immutable LoopBreakAst e) =>

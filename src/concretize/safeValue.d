@@ -135,10 +135,10 @@ immutable(ConcreteExpr) safeValueForStruct(
 					values[0].asSigned());
 			return fromConstant(immutable Constant(immutable Constant.Integral(value)));
 		},
+		(ref immutable ConcreteStructBody.Extern) =>
+			todo!(immutable ConcreteExpr)("!"),
 		(ref immutable ConcreteStructBody.Flags) =>
 			fromConstant(immutable Constant(immutable Constant.Integral(0))),
-		(ref immutable ConcreteStructBody.ExternPtr) =>
-			fromConstant(immutable Constant(immutable Constant.Null())),
 		(ref immutable ConcreteStructBody.Record it) {
 			immutable ConcreteExpr[] fieldExprs = map(ctx.alloc, it.fields, (ref immutable ConcreteField field) =>
 				safeValueForType(ctx, range, field.type));

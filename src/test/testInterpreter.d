@@ -59,7 +59,7 @@ import model.lowModel :
 	AllConstantsLow,
 	AllLowTypes,
 	ConcreteFunToLowFunIndex,
-	LowExternPtrType,
+	LowExternType,
 	LowFun,
 	LowFunBody,
 	LowFunIndex,
@@ -144,7 +144,7 @@ void doInterpret(
 		immutable AllConstantsLow([], [], []),
 		emptyFullIndexDict!(LowThreadLocalIndex, LowThreadLocal),
 		immutable AllLowTypes(
-			emptyFullIndexDict!(LowType.ExternPtr, LowExternPtrType),
+			emptyFullIndexDict!(LowType.Extern, LowExternType),
 			emptyFullIndexDict!(LowType.FunPtr, LowFunPtrType),
 			emptyFullIndexDict!(LowType.Record, LowRecord),
 			emptyFullIndexDict!(LowType.Union, LowUnion)),

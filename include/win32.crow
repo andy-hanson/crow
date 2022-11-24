@@ -2,10 +2,9 @@ no-std
 import
 	crow/bits: |, <<
 	crow/bool: bool
-	crow/bytes-types: bytes2048, new
 	crow/c-types: c-char, c-int, long, u-short, u-int, size_t
 	crow/extra-types: err-t
-	crow/misc: new, void
+	crow/misc: void
 	crow/number: int64, max-nat64, nat8, nat16, nat32, nat64, new, to-nat16, to-nat32
 	crow/private/bootstrap: c-string
 	crow/pointer:
@@ -126,7 +125,7 @@ WriteFile bool(
 	lpOverlapped any-mut-pointer,
 ) extern<kernel32> summon
 
-WIN32_FIND_DATAA record extern
+WIN32_FIND_DATAA record extern mut
 	dwFileAttributes DWORD
 	ftCreationTime FILETIME
 	ftLastAccessTime FILETIME
@@ -135,14 +134,19 @@ WIN32_FIND_DATAA record extern
 	nFileSizeLow DWORD
 	dwReserved0 DWORD
 	dwReserved1 DWORD
-	cFileName_STORAGE chars-max-path
+	# TODO: use char[260]
+	cFileName_STORAGE chars260
+	# TODO: use char[14]
 	cAlternateFileName_STORAGE chars14
 
-new WIN32_FIND_DATAA() noctx
+.chars260 extern(260, 1)
+.chars14 extern(14, 1)
+
+new WIN32_FIND_DATAA() noctx unsafe
 	(), (), (), (), () , (), (), (), (), ()
 
 cFileName c-char mut*(a WIN32_FIND_DATAA mut*) unsafe
-	(&a->cFileName_STORAGE)::chars-max-path mut* pointer-cast
+	(&a->cFileName_STORAGE)::chars260 mut* pointer-cast
 
 FILETIME record extern
 	dwLowDateTime DWORD
@@ -185,8 +189,8 @@ FindClose bool(hFindFile HANDLE) extern<kernel32> summon
 
 _getcwd c-char mut*(buffer c-char mut*, size size_t) extern<c> summon
 _mkdir err-t(path c-string, mode mode_t) extern<c> summon
-_pclose err-t(stream FILE) extern<c> summon
-_popen FILE(command c-string, mode c-string) extern<c> summon
+_pclose err-t(stream FILE mut*) extern<c> summon
+_popen FILE mut*(command c-string, mode c-string) extern<c> summon
 
 ERROR_FILE_NOT_FOUND DWORD() noctx
 	2
@@ -336,8 +340,12 @@ WSADATA record mut extern
 	iMaxSockets u-short
 	iMaxUdpDg u-short
 	lpVendorInfo c-char mut*
+	# TODO: use char[257]
 	szDescription_STORAGE chars257
+	# TODO: use char[129]
 	szSystemStatus_STORAGE chars129
+.chars129 extern(129, 1)
+.chars257 extern(257, 1)
 
 new WSADATA() noctx unsafe
 	(), (), (), (), (), (), ()
@@ -364,7 +372,7 @@ GetTickCount DWORD() extern<kernel32>
 
 Sleep void(dwMilliseconds DWORD) summon extern<kernel32>
 
-CONTEXT record extern
+CONTEXT record extern mut
 	P1Home DWORD64
 	P2Home DWORD64
 	P3Home DWORD64
@@ -407,8 +415,10 @@ CONTEXT record extern
 
 	Rip DWORD64
 	# There's a lot more declared here, reserve enough space for it all
-	opaque bytes2048
-new CONTEXT(ContextFlags DWORD) noctx
+	.opaque bytes2048
+.bytes2048 extern(2048)
+
+new CONTEXT(ContextFlags DWORD) noctx unsafe
 	cf = ContextFlags
 	0, 0, 0, 0, 0, 0, cf, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, ()
 
@@ -439,108 +449,3 @@ GetCurrentThread HANDLE() extern<kernel32>
 
 IMAGE_FILE_MACHINE_AMD64 DWORD() noctx
 	0x8664
-
-# Not using bytes-types due to alignment
-
-.chars2 record extern
-	.n0 c-char
-	.n1 c-char
-.new chars2() noctx
-	"\0", "\0"
-
-.chars4 record extern
-	.n0 chars2
-	.n1 chars2
-.new chars4() noctx
-	(), ()
-
-.chars8 record extern
-	.n0 chars4
-	.n1 chars4
-.new chars8() noctx
-	(), ()
-
-.chars14 record extern
-	.n0 chars8
-	.n1 chars4
-	.n2 chars2
-.new chars14() noctx
-	(), (), ()
-
-.chars16 record extern
-	.n0 chars8
-	.n1 chars8
-.new chars16() noctx
-	(), ()
-
-.chars32 record extern
-	.n0 chars16
-	.n1 chars16
-.new chars32() noctx
-	(), ()
-
-.chars64 record extern
-	.n0 chars32
-	.n1 chars32
-.new chars64() noctx
-	(), ()
-
-.chars128 record extern
-	.n0 chars64
-	.n1 chars64
-.new chars128() noctx
-	(), ()
-
-.chars129 record extern
-	.n0 chars128
-	.n1 c-char
-.new chars129() noctx
-	(), "\0"
-
-.chars256 record extern
-	.n0 chars128
-	.n1 chars128
-.new chars256() noctx
-	(), ()
-
-.chars257 record extern
-	.n0 chars256
-	.n1 c-char
-.new chars257() noctx
-	(), "\0"
-
-# For char[MAX_PATH]
-.chars-max-path record extern
-	.n0 chars256
-	.n1 chars4
-.new chars-max-path() noctx
-	(), ()
-
-# Just ensuring that private fields are used...
-test
-	_ = ()::chars2.n0
-	_ = ()::chars2.n1
-	_ = ()::chars4.n0
-	_ = ()::chars4.n1
-	_ = ()::chars8.n0
-	_ = ()::chars8.n1
-	_ = ()::chars14.n0
-	_ = ()::chars14.n1
-	_ = ()::chars14.n2
-	_ = ()::chars16.n0
-	_ = ()::chars16.n1
-	_ = ()::chars32.n0
-	_ = ()::chars32.n1
-	_ = ()::chars64.n0
-	_ = ()::chars64.n1
-	_ = ()::chars128.n0
-	_ = ()::chars128.n1
-	_ = ()::chars129.n0
-	_ = ()::chars129.n1
-	_ = ()::chars256.n0
-	_ = ()::chars256.n1
-	_ = ()::chars257.n0
-	_ = ()::chars257.n1
-	_ = ()::chars-max-path.n0
-	_ = ()::chars-max-path.n1
-	()

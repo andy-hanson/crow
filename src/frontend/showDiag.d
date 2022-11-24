@@ -174,6 +174,12 @@ void writeParseDiag(
 				case ParseDiag.Expected.Kind.less:
 					writer ~= "expected '<'";
 					break;
+				case ParseDiag.Expected.Kind.literalIntOrNat:
+					writer ~= "expected an integer";
+					break;
+				case ParseDiag.Expected.Kind.literalNat:
+					writer ~= "expected a natural number";
+					break;
 				case ParseDiag.Expected.Kind.name:
 					writer ~= "expected a name (non-operator)";
 					break;
@@ -669,8 +675,8 @@ void writeDiag(
 				}
 			}();
 		},
-		(ref immutable Diag.ExternPtrHasTypeParams) {
-			writer ~= "an 'extern-pointer' type should not be a template";
+		(ref immutable Diag.ExternHasTypeParams) {
+			writer ~= "an 'extern' type should not be a template";
 		},
 		(ref immutable Diag.ExternRecordImplicitlyByVal d) {
 			writer ~= "'extern' record ";
@@ -1055,10 +1061,10 @@ immutable(string) aOrAnTypeKind(immutable TypeKind a) {
 			return "a builtin";
 		case TypeKind.enum_:
 			return "an enum";
+		case TypeKind.extern_:
+			return "an extern";
 		case TypeKind.flags:
-			return "a flags type";
-		case TypeKind.externPtr:
-			return "an extern-pointer";
+			return "a flags";
 		case TypeKind.record:
 			return "a record";
 		case TypeKind.union_:
@@ -1165,8 +1171,6 @@ immutable(string) describeTokenForUnexpected(immutable Token token) {
 			return "unexpected '='";
 		case Token.extern_:
 			return "unexpected keyword 'extern'";
-		case Token.externPointer:
-			return "unexpected keyword 'extern-pointer'";
 		case Token.EOF:
 			return "unexpected end of file";
 		case Token.flags:
@@ -1188,8 +1192,10 @@ immutable(string) describeTokenForUnexpected(immutable Token token) {
 		case Token.invalid:
 			// This is UnexpectedCharacter instead
 			return unreachable!string;
-		case Token.literal:
-			return "unexpected literal expression";
+		case Token.literalFloat:
+		case Token.literalInt:
+		case Token.literalNat:
+			return "unexpected number literal expression";
 		case Token.loop:
 			return "unexpected keyword 'loop'";
 		case Token.match:

@@ -93,12 +93,12 @@ immutable(Repr) reprOfConcreteStructBody(ref Alloc alloc, ref immutable Concrete
 			reprOfConcreteStructBodyBuiltin(alloc, it),
 		(ref immutable ConcreteStructBody.Enum it) =>
 			//TODO:MORE DETAIL
-			reprSym!"enum" ,
+			reprSym!"enum",
+		(ref immutable ConcreteStructBody.Extern) =>
+			reprSym!"extern",
 		(ref immutable ConcreteStructBody.Flags it) =>
 			//TODO:MORE DETAIL
 			reprSym!"flags" ,
-		(ref immutable ConcreteStructBody.ExternPtr it) =>
-			reprSym!"extern-pointer" ,
 		(ref immutable ConcreteStructBody.Record it) =>
 			reprOfConcreteStructBodyRecord(alloc, it),
 		(ref immutable ConcreteStructBody.Union it) =>
@@ -178,6 +178,8 @@ immutable(Repr) reprOfConcreteFunBody(ref Alloc alloc, ref immutable ConcreteFun
 			reprOfConcreteFunBodyBuiltin(alloc, it),
 		(ref immutable ConcreteFunBody.CreateEnum it) =>
 			reprRecord!"create-enum"(alloc, [reprInt(it.value.value)]),
+		(ref immutable ConcreteFunBody.CreateExtern) =>
+			reprSym!"new-extern",
 		(ref immutable ConcreteFunBody.CreateRecord) =>
 			reprSym!"new-record" ,
 		(ref immutable ConcreteFunBody.CreateUnion) =>

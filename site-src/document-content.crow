@@ -37,8 +37,8 @@ module-top string(path string)
 		"builtin"
 	as enum-decl _
 		"enum"
-	as extern-pointer-decl
-		"extern-pointer"
+	as extern-decl
+		"extern"
 	as flags-decl _
 		"flags"
 	as fun-decl _
@@ -58,7 +58,7 @@ module-top string(path string)
 		"struct"
 	as enum-decl _
 		"struct"
-	as extern-pointer-decl
+	as extern-decl
 		"struct"
 	as flags-decl _
 		"struct"
@@ -85,8 +85,8 @@ module-top string(path string)
 		"builtin" keyword
 	as enum-decl _
 		"enum" keyword
-	as extern-pointer-decl
-		"extern-pointer" keyword
+	as extern-decl
+		"extern" keyword
 	as flags-decl _
 		"flags" keyword
 	as fun-decl f
@@ -119,7 +119,7 @@ module-top string(path string)
 		()
 	as enum-decl e
 		e.members enum-flags-members-content
-	as extern-pointer-decl
+	as extern-decl
 		()
 	as flags-decl f
 		f.members enum-flags-members-content

@@ -128,7 +128,7 @@ struct ConcreteStructBody {
 		immutable EnumBackingType backingType;
 		immutable ulong[] values;
 	}
-	struct ExternPtr {}
+	struct Extern {}
 	struct Record {
 		immutable ConcreteField[] fields;
 	}
@@ -140,18 +140,18 @@ struct ConcreteStructBody {
 	private:
 	enum Kind {
 		builtin,
-		externPtr,
-		record,
 		enum_,
+		extern_,
 		flags,
+		record,
 		union_,
 	}
 	immutable Kind kind;
 	union {
 		immutable Builtin builtin;
 		immutable Enum enum_;
+		immutable Extern extern_;
 		immutable Flags flags;
-		immutable ExternPtr externPtr;
 		immutable Record record;
 		immutable Union union_;
 	}
@@ -160,7 +160,7 @@ struct ConcreteStructBody {
 	@trusted immutable this(immutable Builtin a) { kind = Kind.builtin; builtin = a; }
 	@trusted immutable this(immutable Enum a) { kind = Kind.enum_; enum_ = a; }
 	@trusted immutable this(immutable Flags a) { kind = Kind.flags; flags = a; }
-	immutable this(immutable ExternPtr a) { kind = Kind.externPtr; externPtr = a; }
+	immutable this(immutable Extern a) { kind = Kind.extern_; extern_ = a; }
 	@trusted immutable this(immutable Record a) { kind = Kind.record; record = a; }
 	@trusted immutable this(immutable Union a) { kind = Kind.union_; union_ = a; }
 }
@@ -207,8 +207,8 @@ struct ConcreteStructBody {
 	ref immutable ConcreteStructBody a,
 	scope immutable(T) delegate(ref immutable ConcreteStructBody.Builtin) @safe @nogc pure nothrow cbBuiltin,
 	scope immutable(T) delegate(ref immutable ConcreteStructBody.Enum) @safe @nogc pure nothrow cbEnum,
+	scope immutable(T) delegate(ref immutable ConcreteStructBody.Extern) @safe @nogc pure nothrow cbExtern,
 	scope immutable(T) delegate(ref immutable ConcreteStructBody.Flags) @safe @nogc pure nothrow cbFlags,
-	scope immutable(T) delegate(ref immutable ConcreteStructBody.ExternPtr) @safe @nogc pure nothrow cbExternPtr,
 	scope immutable(T) delegate(ref immutable ConcreteStructBody.Record) @safe @nogc pure nothrow cbRecord,
 	scope immutable(T) delegate(ref immutable ConcreteStructBody.Union) @safe @nogc pure nothrow cbUnion,
 ) {
@@ -217,10 +217,10 @@ struct ConcreteStructBody {
 			return cbBuiltin(a.builtin);
 		case ConcreteStructBody.Kind.enum_:
 			return cbEnum(a.enum_);
+		case ConcreteStructBody.Kind.extern_:
+			return cbExtern(a.extern_);
 		case ConcreteStructBody.Kind.flags:
 			return cbFlags(a.flags);
-		case ConcreteStructBody.Kind.externPtr:
-			return cbExternPtr(a.externPtr);
 		case ConcreteStructBody.Kind.record:
 			return cbRecord(a.record);
 		case ConcreteStructBody.Kind.union_:
@@ -469,6 +469,7 @@ struct ConcreteFunBody {
 	struct CreateEnum {
 		immutable EnumValue value;
 	}
+	struct CreateExtern {}
 	struct CreateRecord {}
 	struct CreateUnion {
 		immutable size_t memberIndex;
@@ -493,6 +494,7 @@ struct ConcreteFunBody {
 	enum Kind {
 		builtin,
 		createEnum,
+		createExtern,
 		createRecord,
 		createUnion,
 		enumFunction,
@@ -507,6 +509,7 @@ struct ConcreteFunBody {
 	union {
 		immutable Builtin builtin;
 		immutable CreateEnum createEnum;
+		immutable CreateExtern createExtern;
 		immutable CreateRecord createRecord;
 		immutable CreateUnion createUnion;
 		immutable EnumFunction enumFunction;
@@ -521,6 +524,7 @@ struct ConcreteFunBody {
 	public:
 	@trusted immutable this(immutable Builtin a) { kind = Kind.builtin; builtin = a; }
 	immutable this(immutable CreateEnum a) { kind = Kind.createEnum; createEnum = a; }
+	immutable this(immutable CreateExtern a) { kind = Kind.createExtern; createExtern = a; }
 	@trusted immutable this(immutable CreateRecord a) { kind = Kind.createRecord; createRecord = a; }
 	immutable this(immutable CreateUnion a) { kind = Kind.createUnion; createUnion = a; }
 	immutable this(immutable EnumFunction a) { kind = Kind.enumFunction; enumFunction = a; }
@@ -551,6 +555,7 @@ private @trusted ref immutable(ConcreteFunBody.Extern) asExtern(scope return ref
 	ref immutable ConcreteFunBody a,
 	scope immutable(T) delegate(ref immutable ConcreteFunBody.Builtin) @safe @nogc pure nothrow cbBuiltin,
 	scope immutable(T) delegate(ref immutable ConcreteFunBody.CreateEnum) @safe @nogc pure nothrow cbCreateEnum,
+	scope immutable(T) delegate(ref immutable ConcreteFunBody.CreateExtern) @safe @nogc pure nothrow cbCreateExtern,
 	scope immutable(T) delegate(ref immutable ConcreteFunBody.CreateRecord) @safe @nogc pure nothrow cbCreateRecord,
 	scope immutable(T) delegate(ref immutable ConcreteFunBody.CreateUnion) @safe @nogc pure nothrow cbCreateUnion,
 	scope immutable(T) delegate(immutable EnumFunction) @safe @nogc pure nothrow cbEnumFunction,
@@ -566,6 +571,8 @@ private @trusted ref immutable(ConcreteFunBody.Extern) asExtern(scope return ref
 			return cbBuiltin(a.builtin);
 		case ConcreteFunBody.Kind.createEnum:
 			return cbCreateEnum(a.createEnum);
+		case ConcreteFunBody.Kind.createExtern:
+			return cbCreateExtern(a.createExtern);
 		case ConcreteFunBody.Kind.createRecord:
 			return cbCreateRecord(a.createRecord);
 		case ConcreteFunBody.Kind.createUnion:

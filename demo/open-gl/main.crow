@@ -51,11 +51,11 @@ main nat^(_ string[]) summon trusted
 
 	wflags = SDL_WINDOW_OPENGL | SDL_WINDOW_SHOWN
 	window = "crube" SDL_CreateWindow SDL_WINDOWPOS_UNDEFINED, SDL_WINDOWPOS_UNDEFINED, 960, 720, wflags
-	if window.as-any-const-pointer == null
+	if window == null
 		"SDL_CreateWindow" fail-sdl-error
 
 	context = window SDL_GL_CreateContext
-	if context.as-any-const-pointer == null
+	if context == null
 		"SDL_GL_CreateContext" fail-sdl-error
 
 	gl gl-ext = ()
@@ -144,7 +144,7 @@ main nat^(_ string[]) summon trusted
 	gl gl-ext
 	# OpenGL only allows renders on the same thread.
 	render-thread-id nat
-	window SDL_Window
+	window SDL_Window mut*
 	shader-prog GLuint
 	vertices array vertex
 	triangle-vbo GLuint

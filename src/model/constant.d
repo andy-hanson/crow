@@ -24,6 +24,7 @@ struct Constant {
 	struct CString {
 		immutable size_t index; // Index into AllConstants#cStrings
 	}
+	struct ExternZeroed {}
 	// Used for float32 / float64
 	struct Float {
 		immutable double value;
@@ -56,6 +57,7 @@ struct Constant {
 		arr,
 		bool_,
 		cString,
+		externZeroed,
 		float_,
 		funPtr,
 		integral,
@@ -70,6 +72,7 @@ struct Constant {
 		immutable ArrConstant arr_;
 		immutable BoolConstant bool_;
 		immutable CString cString;
+		immutable ExternZeroed externZeroed;
 		immutable Float float_;
 		immutable FunPtr funPtr;
 		immutable Integral integral;
@@ -83,6 +86,7 @@ struct Constant {
 	@trusted immutable this(immutable ArrConstant a) { kind = Kind.arr; arr_ = a; }
 	immutable this(immutable BoolConstant a) { kind = Kind.bool_; bool_ = a; }
 	immutable this(immutable CString a) { kind = Kind.cString; cString = a; }
+	immutable this(immutable ExternZeroed a) { kind = Kind.externZeroed; externZeroed = a; }
 	immutable this(immutable Float a) { kind = Kind.float_; float_ = a; }
 	immutable this(immutable FunPtr a) { kind = Kind.funPtr; funPtr = a; }
 	immutable this(immutable Integral a) { kind = Kind.integral; integral = a; }
@@ -124,6 +128,8 @@ immutable(Constant.Integral) asIntegral(ref immutable Constant a) {
 			return a.bool_.value == b.bool_.value;
 		case Constant.Kind.cString:
 			return a.cString.index == b.cString.index;
+		case Constant.Kind.externZeroed:
+			return true;
 		case Constant.Kind.float_:
 			//TODO: handle NaN
 			return a.float_ == b.float_;
@@ -154,6 +160,7 @@ immutable(Constant.Integral) asIntegral(ref immutable Constant a) {
 	scope T delegate(ref immutable Constant.ArrConstant) @safe @nogc pure nothrow cbArr,
 	scope T delegate(immutable Constant.BoolConstant) @safe @nogc pure nothrow cbBool,
 	scope T delegate(ref immutable Constant.CString) @safe @nogc pure nothrow cbCString,
+	scope T delegate(immutable Constant.ExternZeroed) @safe @nogc pure nothrow cbExternZeroed,
 	scope T delegate(immutable Constant.Float) @safe @nogc pure nothrow cbFloat,
 	scope T delegate(immutable Constant.FunPtr) @safe @nogc pure nothrow cbFunPtr,
 	scope T delegate(immutable Constant.Integral) @safe @nogc pure nothrow cbIntegral,
@@ -170,6 +177,8 @@ immutable(Constant.Integral) asIntegral(ref immutable Constant a) {
 			return cbBool(a.bool_);
 		case Constant.Kind.cString:
 			return cbCString(a.cString);
+		case Constant.Kind.externZeroed:
+			return cbExternZeroed(a.externZeroed);
 		case Constant.Kind.float_:
 			return cbFloat(a.float_);
 		case Constant.Kind.funPtr:

@@ -65,7 +65,7 @@ enum TypeKind {
 	builtin,
 	enum_,
 	flags,
-	externPtr,
+	extern_,
 	record,
 	union_,
 }
@@ -165,7 +165,7 @@ struct Diag {
 		immutable FunDecl* fun;
 		immutable Reason reason;
 	}
-	struct ExternPtrHasTypeParams {}
+	struct ExternHasTypeParams {}
 	struct ExternRecordImplicitlyByVal {
 		immutable StructDecl* struct_;
 	}
@@ -382,7 +382,7 @@ struct Diag {
 		enumMemberOverflows,
 		expectedTypeIsNotALambda,
 		externFunForbidden,
-		externPtrHasTypeParams,
+		externHasTypeParams,
 		externRecordImplicitlyByVal,
 		externUnion,
 		funMissingBody,
@@ -457,7 +457,7 @@ struct Diag {
 		immutable EnumMemberOverflows enumMemberOverflows;
 		immutable ExpectedTypeIsNotALambda expectedTypeIsNotALambda;
 		immutable ExternFunForbidden externFunForbidden;
-		immutable ExternPtrHasTypeParams externPtrHasTypeParams;
+		immutable ExternHasTypeParams externHasTypeParams;
 		immutable ExternRecordImplicitlyByVal externRecordImplicitlyByVal;
 		immutable ExternUnion externUnion;
 		immutable FunMissingBody funMissingBody;
@@ -547,8 +547,8 @@ struct Diag {
 	immutable this(immutable ExternFunForbidden a) {
 		kind = Kind.externFunForbidden; externFunForbidden = a;
 	}
-	immutable this(immutable ExternPtrHasTypeParams a) {
-		kind = Kind.externPtrHasTypeParams; externPtrHasTypeParams = a;
+	immutable this(immutable ExternHasTypeParams a) {
+		kind = Kind.externHasTypeParams; externHasTypeParams = a;
 	}
 	immutable this(immutable ExternRecordImplicitlyByVal a) {
 		kind = Kind.externRecordImplicitlyByVal; externRecordImplicitlyByVal = a;
@@ -717,8 +717,8 @@ struct Diag {
 		ref immutable Diag.ExternFunForbidden
 	) @safe @nogc pure nothrow cbExternFunForbidden,
 	scope immutable(Out) delegate(
-		ref immutable Diag.ExternPtrHasTypeParams
-	) @safe @nogc pure nothrow cbExternPtrHasTypeParams,
+		ref immutable Diag.ExternHasTypeParams
+	) @safe @nogc pure nothrow cbExternHasTypeParams,
 	scope immutable(Out) delegate(
 		ref immutable Diag.ExternRecordImplicitlyByVal
 	) @safe @nogc pure nothrow cbExternRecordImplicitlyByVal,
@@ -877,8 +877,8 @@ struct Diag {
 			return cbExpectedTypeIsNotALambda(a.expectedTypeIsNotALambda);
 		case Diag.Kind.externFunForbidden:
 			return cbExternFunForbidden(a.externFunForbidden);
-		case Diag.Kind.externPtrHasTypeParams:
-			return cbExternPtrHasTypeParams(a.externPtrHasTypeParams);
+		case Diag.Kind.externHasTypeParams:
+			return cbExternHasTypeParams(a.externHasTypeParams);
 		case Diag.Kind.externRecordImplicitlyByVal:
 			return cbExternRecordImplicitlyByVal(a.externRecordImplicitlyByVal);
 		case Diag.Kind.externUnion:

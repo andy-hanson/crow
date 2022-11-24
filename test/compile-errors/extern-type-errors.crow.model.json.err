@@ -1,0 +1,3 @@
+test/compile-errors/extern-type-errors.crow 4:5-4:8 struct 'r' has purity 'data', but member of type 'a' has purity 'mut'
+
+test/compile-errors/extern-type-errors.crow 6:1-6:12 an 'extern' type should not be a template

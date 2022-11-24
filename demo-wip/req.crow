@@ -32,7 +32,7 @@ main nat^(_ string[]) unsafe summon
 	in_addr = in_addr0->inet_ntoa inet_addr
 
 	sockaddr_in mut sockaddr_in = AF_INET, server-port.htons, (in_addr,)
-	sockaddr = &sockaddr_in pointer-cast-to-extern@<sockaddr, sockaddr_in>
+	sockaddr sockaddr mut* = (&sockaddr_in)::sockaddr_in mut* pointer-cast
 	err = socket.to-nat64 connect sockaddr, (size-of@<sockaddr_in> to-nat32)
 	assert err == 0
 

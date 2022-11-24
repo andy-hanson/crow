@@ -53,7 +53,10 @@ import frontend.parse.ast :
 	isIdentifier,
 	LambdaAst,
 	LetAst,
-	LiteralAst,
+	LiteralFloatAst,
+	LiteralIntAst,
+	LiteralNatAst,
+	LiteralStringAst,
 	LoopAst,
 	LoopBreakAst,
 	LoopContinueAst,
@@ -62,7 +65,6 @@ import frontend.parse.ast :
 	MatchAst,
 	matchExprAstKind,
 	matchInterpolatedPart,
-	matchLiteralAst,
 	matchNameOrUnderscoreOrNone,
 	NameAndRange,
 	NameOrUnderscoreOrNone,
@@ -431,7 +433,7 @@ immutable(CallAst) checkInterpolatedRecur(
 			immutable ExprAst(
 				// TODO: this length may be wrong in the presence of escapes
 				immutable RangeWithinFile(pos, safeToUint(pos + it.length)),
-				immutable ExprAstKind(immutable LiteralAst(it))),
+				immutable ExprAstKind(immutable LiteralStringAst(it))),
 		(ref immutable ExprAst e) =>
 			immutable ExprAst(
 				e.range,
@@ -707,171 +709,153 @@ struct IntRange {
 	immutable long max;
 }
 
-immutable(Expr) checkLiteral(
-	ref ExprCtx ctx,
-	immutable FileAndRange range,
-	ref immutable ExprAst curAst,
-	ref immutable LiteralAst ast,
-	ref Expected expected,
-) {
+immutable(StructInst*) expectedStructOrNull(ref const Expected expected) {
 	immutable Opt!Type expectedType = tryGetInferred(expected);
-	immutable Opt!(StructInst*) expectedStruct = has(expectedType) && isStructInst(force(expectedType))
-		? some(asStructInst(force(expectedType)))
-		: none!(StructInst*);
-	immutable(bool) expectedStructIs(immutable StructInst* x) =>
-		has(expectedStruct) && force(expectedStruct) == x;
-	immutable IntegralTypes integrals = ctx.commonTypes.integrals;
-
-	immutable(Expr) asFloat32(immutable float value) {
-		immutable Expr e = immutable Expr(range, allocate(ctx.alloc, immutable Expr.Literal(
-			ctx.commonTypes.float32,
-			immutable Constant(immutable Constant.Float(value)))));
-		return check(ctx, expected, immutable Type(ctx.commonTypes.float32), e);
-	}
-
-	immutable(Expr) asFloat64(immutable double value) {
-		immutable Expr e = immutable Expr(range, allocate(ctx.alloc, immutable Expr.Literal(
-			ctx.commonTypes.float64,
-			immutable Constant(immutable Constant.Float(value)))));
-		return check(ctx, expected, immutable Type(ctx.commonTypes.float64), e);
-	}
-
-	return matchLiteralAst!(
-		immutable Expr,
-		(immutable LiteralAst.Float it) {
-			if (it.overflow)
-				todo!void("literal overflow\n");
-
-			return expectedStructIs(ctx.commonTypes.float32)
-				? asFloat32(it.value)
-				: asFloat64(it.value);
-		},
-		(immutable LiteralAst.Int it) {
-			if (expectedStructIs(ctx.commonTypes.float32))
-				return asFloat32(cast(immutable float) it.value);
-			if (expectedStructIs(ctx.commonTypes.float64))
-				return asFloat64(cast(immutable double) it.value);
-			else {
-				immutable(Opt!IntRange) intRange = expectedStructIs(integrals.int8)
-					? some(immutable IntRange(byte.min, byte.max))
-					: expectedStructIs(integrals.int16)
-					? some(immutable IntRange(short.min, short.max))
-					: expectedStructIs(integrals.int32)
-					? some(immutable IntRange(int.min, int.max))
-					: expectedStructIs(integrals.int64)
-					? some(immutable IntRange(long.min, long.max))
-					: none!IntRange;
-				immutable Constant constant = immutable Constant(immutable Constant.Integral(it.value));
-				if (has(intRange)) {
-					if (it.overflow || it.value < force(intRange).min || it.value > force(intRange).max)
-						todo!void("literal overflow");
-					return immutable Expr(
-						range,
-						allocate(ctx.alloc, immutable Expr.Literal(force(expectedStruct), constant)));
-				} else {
-					immutable Expr e = immutable Expr(
-						range,
-						allocate(ctx.alloc, immutable Expr.Literal(integrals.int64, constant)));
-					return check(ctx, expected, immutable Type(integrals.int64), e);
-				}
-			}
-		},
-		(immutable LiteralAst.Nat it) {
-			if (expectedStructIs(ctx.commonTypes.float32))
-				return asFloat32(cast(immutable float) it.value);
-			if (expectedStructIs(ctx.commonTypes.float64))
-				return asFloat64(cast(immutable double) it.value);
-			else {
-				immutable(Opt!ulong) max = expectedStructIs(integrals.nat8)
-					? some!ulong(ubyte.max)
-					: expectedStructIs(integrals.nat16)
-					? some!ulong(ushort.max)
-					: expectedStructIs(integrals.nat32)
-					? some!ulong(uint.max)
-					: expectedStructIs(integrals.nat64)
-					? some(ulong.max)
-					: expectedStructIs(integrals.int8)
-					? some!ulong(byte.max)
-					: expectedStructIs(integrals.int16)
-					? some!ulong(short.max)
-					: expectedStructIs(integrals.int32)
-					? some!ulong(int.max)
-					: expectedStructIs(integrals.int64)
-					? some!ulong(long.max)
-					: none!ulong;
-				immutable Constant constant = immutable Constant(immutable Constant.Integral(it.value));
-				if (has(max)) {
-					if (it.overflow || it.value > force(max))
-						addDiag2(ctx, range, immutable Diag(
-							immutable Diag.LiteralOverflow(force(expectedStruct))));
-					return immutable Expr(
-						range,
-						allocate(ctx.alloc, immutable Expr.Literal(force(expectedStruct), constant)));
-				} else {
-					if (it.overflow)
-						todo!void("literal overflow");
-					immutable Expr e = immutable Expr(
-						range,
-						allocate(ctx.alloc, immutable Expr.Literal(integrals.nat64, constant)));
-					return check(ctx, expected, immutable Type(integrals.nat64), e);
-				}
-			}
-		},
-		(immutable string value) =>
-			checkStringLiteral(ctx, curAst, range, expected, expectedStruct, value),
-	)(ast);
+	return has(expectedType) && isStructInst(force(expectedType))
+		? asStructInst(force(expectedType))
+		: null;
 }
 
-immutable(Expr) checkStringLiteral(
+immutable(Expr) checkLiteralFloat(
 	ref ExprCtx ctx,
-	ref immutable ExprAst curAst,
 	immutable FileAndRange range,
+	ref immutable LiteralFloatAst ast,
 	ref Expected expected,
-	immutable Opt!(StructInst*) expectedStruct,
-	immutable string value,
-) =>
-	has(expectedStruct) && force(expectedStruct) == ctx.commonTypes.char8
-		? checkStringLiteralTypedAsChar(ctx, range, value)
-		: has(expectedStruct) && force(expectedStruct) == ctx.commonTypes.symbol
-		? immutable Expr(range, immutable Expr.LiteralSymbol(symOfStr(ctx.allSymbols, value)))
-		: has(expectedStruct) && force(expectedStruct) == ctx.commonTypes.cString
-		? immutable Expr(range, immutable Expr.LiteralCString(copyToSafeCStr(ctx.alloc, value)))
-		: checkStringExpressionTypedAsOther(ctx, curAst, range, expected);
-
-immutable(Expr) checkStringLiteralTypedAsChar(
-	ref ExprCtx ctx,
-	immutable FileAndRange range,
-	immutable string value,
 ) {
-	immutable char char_ = () {
-		if (value.length != 1) {
-			addDiag2(ctx, range, immutable Diag(immutable Diag.CharLiteralMustBeOneChar()));
-			return 'a';
-		} else
-			return only(value);
-	}();
-	return immutable Expr(
-		range,
-		allocate(ctx.alloc, immutable Expr.Literal(
-			ctx.commonTypes.char8,
-			immutable Constant(immutable Constant.Integral(char_)))));
+	if (ast.overflow)
+		todo!void("literal overflow\n");
+	return asFloat(ctx, range, ast.value, expected);
 }
 
-immutable(Expr) checkStringExpressionTypedAsOther(
+immutable(Expr) asFloat(ref ExprCtx ctx, immutable FileAndRange range, immutable double value, ref Expected expected) {
+	immutable StructInst* type = expectedStructOrNull(expected) == ctx.commonTypes.float32
+		? ctx.commonTypes.float32
+		: ctx.commonTypes.float64;
+	immutable Expr e = immutable Expr(range, allocate(ctx.alloc, immutable Expr.Literal(
+		type,
+		immutable Constant(immutable Constant.Float(value)))));
+	return check(ctx, expected, immutable Type(type), e);
+}
+
+immutable(Expr) checkLiteralInt(
 	ref ExprCtx ctx,
-	ref immutable ExprAst curAst,
 	immutable FileAndRange range,
+	ref immutable LiteralIntAst ast,
 	ref Expected expected,
 ) {
-	defaultExpectedToString(ctx, range, expected);
-	// TODO: NEATER (don't create a synthetic AST)
-	immutable CallAst ast = immutable CallAst(
-		CallAst.Style.emptyParens,
-		immutable NameAndRange(range.start, sym!"literal"),
-		[],
-		// TODO: allocating should be unnecessary, do on stack
-		arrLiteral!ExprAst(ctx.alloc, [curAst]));
-	return checkCallNoLocals(ctx, range, ast, expected);
+	immutable StructInst* expectedStruct = expectedStructOrNull(expected);
+	if (expectedStruct == ctx.commonTypes.float32 || expectedStruct == ctx.commonTypes.float64)
+		return asFloat(ctx, range, cast(immutable double) ast.value, expected);
+	else {
+		immutable IntegralTypes integrals = ctx.commonTypes.integrals;
+		immutable(Opt!IntRange) intRange = expectedStruct == integrals.int8
+			? some(immutable IntRange(byte.min, byte.max))
+			: expectedStruct == integrals.int16
+			? some(immutable IntRange(short.min, short.max))
+			: expectedStruct == integrals.int32
+			? some(immutable IntRange(int.min, int.max))
+			: expectedStruct == integrals.int64
+			? some(immutable IntRange(long.min, long.max))
+			: none!IntRange;
+		immutable Constant constant = immutable Constant(immutable Constant.Integral(ast.value));
+		if (has(intRange)) {
+			if (ast.overflow || ast.value < force(intRange).min || ast.value > force(intRange).max)
+				todo!void("literal overflow");
+			return immutable Expr(
+				range,
+				allocate(ctx.alloc, immutable Expr.Literal(expectedStruct, constant)));
+		} else {
+			immutable Expr e = immutable Expr(
+				range,
+				allocate(ctx.alloc, immutable Expr.Literal(integrals.int64, constant)));
+			return check(ctx, expected, immutable Type(integrals.int64), e);
+		}
+	}
+}
+
+immutable(Expr) checkLiteralNat(
+	ref ExprCtx ctx,
+	immutable FileAndRange range,
+	ref immutable LiteralNatAst ast,
+	ref Expected expected,
+) {
+	immutable StructInst* expectedStruct = expectedStructOrNull(expected);
+	if (expectedStruct == ctx.commonTypes.float32 || expectedStruct == ctx.commonTypes.float64)
+		return asFloat(ctx, range, cast(immutable double) ast.value, expected);
+	else {
+		immutable IntegralTypes integrals = ctx.commonTypes.integrals;
+		immutable(Opt!ulong) max = expectedStruct == integrals.nat8
+			? some!ulong(ubyte.max)
+			: expectedStruct == integrals.nat16
+			? some!ulong(ushort.max)
+			: expectedStruct == integrals.nat32
+			? some!ulong(uint.max)
+			: expectedStruct == integrals.nat64
+			? some(ulong.max)
+			: expectedStruct == integrals.int8
+			? some!ulong(byte.max)
+			: expectedStruct == integrals.int16
+			? some!ulong(short.max)
+			: expectedStruct == integrals.int32
+			? some!ulong(int.max)
+			: expectedStruct == integrals.int64
+			? some!ulong(long.max)
+			: none!ulong;
+		immutable Constant constant = immutable Constant(immutable Constant.Integral(ast.value));
+		if (has(max)) {
+			if (ast.overflow || ast.value > force(max))
+				addDiag2(ctx, range, immutable Diag(
+					immutable Diag.LiteralOverflow(expectedStruct)));
+			return immutable Expr(
+				range,
+				allocate(ctx.alloc, immutable Expr.Literal(expectedStruct, constant)));
+		} else {
+			if (ast.overflow)
+				todo!void("literal overflow");
+			immutable Expr e = immutable Expr(
+				range,
+				allocate(ctx.alloc, immutable Expr.Literal(integrals.nat64, constant)));
+			return check(ctx, expected, immutable Type(integrals.nat64), e);
+		}
+	}
+}
+
+immutable(Expr) checkLiteralString(
+	ref ExprCtx ctx,
+	immutable FileAndRange range,
+	ref immutable ExprAst curAst,
+	scope immutable string value,
+	ref Expected expected,
+) {
+	immutable StructInst* expectedStruct = expectedStructOrNull(expected);
+	if (expectedStruct == ctx.commonTypes.char8) {
+		immutable char char_ = () {
+			if (value.length != 1) {
+				addDiag2(ctx, range, immutable Diag(immutable Diag.CharLiteralMustBeOneChar()));
+				return 'a';
+			} else
+				return only(value);
+		}();
+		return immutable Expr(
+			range,
+			allocate(ctx.alloc, immutable Expr.Literal(
+				ctx.commonTypes.char8,
+				immutable Constant(immutable Constant.Integral(char_)))));
+	} else if (expectedStruct == ctx.commonTypes.symbol) {
+		return immutable Expr(range, immutable Expr.LiteralSymbol(symOfStr(ctx.allSymbols, value)));
+	} else if (expectedStruct == ctx.commonTypes.cString) {
+		return immutable Expr(range, immutable Expr.LiteralCString(copyToSafeCStr(ctx.alloc, value)));
+	} else {
+		defaultExpectedToString(ctx, range, expected);
+		// TODO: NEATER (don't create a synthetic AST)
+		immutable CallAst ast = immutable CallAst(
+			CallAst.Style.emptyParens,
+			immutable NameAndRange(range.start, sym!"literal"),
+			[],
+			// TODO: allocating should be unnecessary, do on stack
+			arrLiteral!ExprAst(ctx.alloc, [curAst]));
+		return checkCallNoLocals(ctx, range, ast, expected);
+	}
 }
 
 void defaultExpectedToString(ref ExprCtx ctx, immutable FileAndRange range, ref Expected expected) {
@@ -1365,9 +1349,9 @@ immutable(Opt!EnumOrUnionAndMembers) getEnumOrUnionBody(immutable Type a) =>
 					none!EnumOrUnionAndMembers,
 				(ref immutable StructBody.Enum it) =>
 					some(immutable EnumOrUnionAndMembers(immutable EnumAndMembers(it.members))),
-				(ref immutable StructBody.Flags) =>
+				(ref immutable StructBody.Extern) =>
 					none!EnumOrUnionAndMembers,
-				(ref immutable StructBody.ExternPointer) =>
+				(ref immutable StructBody.Flags) =>
 					none!EnumOrUnionAndMembers,
 				(ref immutable StructBody.Record) =>
 					none!EnumOrUnionAndMembers,
@@ -1640,7 +1624,13 @@ immutable(bool) hasBreakOrContinue(immutable ExprAst a) =>
 			false,
 		(scope ref immutable LetAst x) =>
 			hasBreakOrContinue(x.then),
-		(scope ref immutable(LiteralAst)) =>
+		(scope ref immutable(LiteralFloatAst)) =>
+			false,
+		(scope ref immutable(LiteralIntAst)) =>
+			false,
+		(scope ref immutable(LiteralNatAst)) =>
+			false,
+		(scope ref immutable(LiteralStringAst)) =>
 			false,
 		(scope ref immutable(LoopAst)) =>
 			false,
@@ -1799,8 +1789,14 @@ public immutable(Expr) checkExpr(
 			checkLambda(ctx, locals, range, a, expected),
 		(scope ref immutable LetAst a) =>
 			checkLet(ctx, locals, range, a, expected),
-		(scope ref immutable LiteralAst a) =>
-			checkLiteral(ctx, range, ast, a, expected),
+		(scope ref immutable LiteralFloatAst a) =>
+			checkLiteralFloat(ctx, range, a, expected),
+		(scope ref immutable LiteralIntAst a) =>
+			checkLiteralInt(ctx, range, a, expected),
+		(scope ref immutable LiteralNatAst a) =>
+			checkLiteralNat(ctx, range, a, expected),
+		(scope ref immutable LiteralStringAst a) =>
+			checkLiteralString(ctx, range, ast, a.value, expected),
 		(scope ref immutable LoopAst a) =>
 			checkLoop(ctx, locals, range, a, expected),
 		(scope ref immutable LoopBreakAst a) =>

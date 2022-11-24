@@ -1,13 +1,12 @@
 no-std
 import
-	crow/bytes-types: bytes256, new
 	crow/extra-types: err-t
 	crow/number: int32, nat16
-	crow/pointer: mut-pointer
+	crow/pointer: *, const-pointer, mut-pointer, pointer-cast
 	crow/string: char8, c-string
 	sys/types: ino_t, off_t
 
-dir extern-pointer
+DIR extern
 
 # TODO: This wasn't marked as packed in C. There's probably a bug in how crow lays out types.
 dirent record extern packed
@@ -16,10 +15,14 @@ dirent record extern packed
 	d_reclen nat16
 	d_type char8
 	# TODO: d_name char8[256]
-	d_name bytes256
-new dirent()
+	.d_name bytes256
+.bytes256 extern(256) data
+new dirent() unsafe
 	0, 0, 0, "\0", ()
 
-opendir dir(name c-string) extern<c> summon
-closedir err-t(dirp dir) extern<c> summon
-readdir_r int32(dirp dir, entry dirent mut*, result dirent mut* mut*) extern<c> summon
+d_name c-string(a dirent*) unsafe
+	(&a->d_name)::bytes256* pointer-cast
+
+opendir DIR mut*(name c-string) extern<c> summon
+closedir err-t(dirp DIR mut*) extern<c> summon
+readdir_r int32(dirp DIR mut*, entry dirent mut*, result dirent mut* mut*) extern<c> summon

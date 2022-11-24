@@ -5,6 +5,8 @@ module backend.jit;
 import backend.gccTypes :
 	assertFieldOffsetsFunctionName,
 	AssertFieldOffsetsType,
+	ExternTypeInfo,
+	ExternTypeArrayInfo,
 	GccTypes,
 	generateAssertFieldOffsetsFunction,
 	getGccType,
@@ -30,6 +32,7 @@ import backend.libgccjit :
 	gcc_jit_context_get_first_error,
 	gcc_jit_context_get_type,
 	gcc_jit_context_new_array_access,
+	gcc_jit_context_new_array_constructor,
 	gcc_jit_context_new_array_type,
 	gcc_jit_context_new_binary_op,
 	gcc_jit_context_get_builtin_function,
@@ -94,6 +97,7 @@ import frontend.lang : JitOptions, OptimizationLevel;
 import model.constant : Constant, matchConstant;
 import model.lowModel :
 	ArrTypeAndConstantsLow,
+	asExternType,
 	asRecordType,
 	asUnionType,
 	ExternLibrary,
@@ -1537,6 +1541,8 @@ immutable(ExprResult) constantToGcc(
 			emitSimpleNoSideEffects(ctx, emit, gcc_jit_context_new_string_literal(
 				ctx.gcc,
 				ctx.program.allConstants.cStrings[it.index].ptr)),
+		(immutable Constant.ExternZeroed) =>
+			externZeroedToGcc(ctx, emit, asExternType(type)),
 		(immutable Constant.Float it) =>
 			emitSimpleNoSideEffects(
 				ctx,
@@ -1984,38 +1990,16 @@ immutable(ExprResult) zeroedToGcc(
 	immutable gcc_jit_type* gccType = getGccType(ctx.types, type);
 	return matchLowTypeCombinePtr!(
 		immutable ExprResult,
-		(immutable LowType.ExternPtr) =>
-			emitSimpleNoSideEffects(ctx, emit, gcc_jit_context_null(ctx.gcc, gccType)),
+		(immutable LowType.Extern x) =>
+			externZeroedToGcc(ctx, emit, x),
 		(immutable LowType.FunPtr) =>
 			emitSimpleNoSideEffects(ctx, emit, gcc_jit_context_null(ctx.gcc, gccType)),
-		(immutable PrimitiveType it) {
-			final switch (it) {
-				case PrimitiveType.bool_:
-				case PrimitiveType.char8:
-				case PrimitiveType.int8:
-				case PrimitiveType.int16:
-				case PrimitiveType.int32:
-				case PrimitiveType.int64:
-				case PrimitiveType.nat8:
-				case PrimitiveType.nat16:
-				case PrimitiveType.nat32:
-				case PrimitiveType.nat64:
-					return emitSimpleNoSideEffects(
-						ctx,
-						emit,
-						gcc_jit_context_new_rvalue_from_long(ctx.gcc, gccType, 0));
-				case PrimitiveType.float32:
-				case PrimitiveType.float64:
-					return emitSimpleNoSideEffects(
-						ctx,
-						emit,
-						gcc_jit_context_new_rvalue_from_double(ctx.gcc, gccType, 0));
-				case PrimitiveType.void_:
-					return emitWriteToLValue(ctx, emit, type, (gcc_jit_lvalue*) {
-						// empty type, nothing to write to
-					});
-			}
-		},
+		(immutable PrimitiveType x) =>
+			x == PrimitiveType.void_
+				? emitWriteToLValue(ctx, emit, type, (gcc_jit_lvalue*) {
+					// empty type, nothing to write to
+				})
+				: emitSimpleNoSideEffects(ctx, emit, zeroForPrimitiveType(ctx, x)),
 		(immutable(LowPtrCombine)) =>
 			emitSimpleNoSideEffects(ctx, emit, gcc_jit_context_null(ctx.gcc, gccType)),
 		(immutable LowType.Record record) {
@@ -2029,13 +2013,62 @@ immutable(ExprResult) zeroedToGcc(
 	)(type);
 }
 
+immutable(ExprResult) externZeroedToGcc(
+	ref ExprCtx ctx,
+	ref ExprEmit emit,
+	immutable LowType.Extern type,
+) =>
+	emitWriteToLValue(ctx, emit, immutable LowType(type), (gcc_jit_lvalue* lvalue) {
+		immutable ExternTypeInfo info = ctx.types.extern_[type];
+		if (has(info.array)) {
+			immutable ExternTypeArrayInfo array = force(info.array);
+			immutable gcc_jit_rvalue* elementValue = zeroForPrimitiveType(ctx, array.elementAndCount.elementType);
+			//TODO: no alloc
+			immutable gcc_jit_rvalue*[] elementValues = makeArr!(gcc_jit_rvalue*)(
+				ctx.alloc, array.elementAndCount.count, (immutable(ulong)) => elementValue);
+			immutable gcc_jit_rvalue* arrayValue = gcc_jit_context_new_array_constructor(
+				ctx.gcc,
+				null,
+				array.gccArrayType,
+				elementValues.length,
+				&elementValues[0]);
+			gcc_jit_block_add_assignment(
+				ctx.curBlock,
+				null,
+				gcc_jit_lvalue_access_field(lvalue, null, array.field),
+				arrayValue);
+		}
+	});
+
+immutable(gcc_jit_rvalue*) zeroForPrimitiveType(ref ExprCtx ctx, immutable PrimitiveType a) {
+	immutable gcc_jit_type* gccType = getGccType(ctx.types, immutable LowType(a));
+	final switch (a) {
+		case PrimitiveType.bool_:
+		case PrimitiveType.char8:
+		case PrimitiveType.int8:
+		case PrimitiveType.int16:
+		case PrimitiveType.int32:
+		case PrimitiveType.int64:
+		case PrimitiveType.nat8:
+		case PrimitiveType.nat16:
+		case PrimitiveType.nat32:
+		case PrimitiveType.nat64:
+			return gcc_jit_context_new_rvalue_from_long(ctx.gcc, gccType, 0);
+		case PrimitiveType.float32:
+		case PrimitiveType.float64:
+			return gcc_jit_context_new_rvalue_from_double(ctx.gcc, gccType, 0);
+		case PrimitiveType.void_:
+			return unreachable!(gcc_jit_rvalue*);
+	}
+}
+
 immutable(gcc_jit_rvalue*) arbitraryValue(ref ExprCtx ctx, immutable LowType type) {
 	immutable(gcc_jit_rvalue*) nullValue() =>
 		gcc_jit_context_null(ctx.gcc, getGccType(ctx.types, type));
 	return matchLowTypeCombinePtr!(
 		immutable gcc_jit_rvalue*,
-		(immutable LowType.ExternPtr) =>
-			nullValue(),
+		(immutable LowType.Extern) =>
+			todo!(immutable gcc_jit_rvalue*)("!"),
 		(immutable LowType.FunPtr) =>
 			nullValue(),
 		(immutable(PrimitiveType)) =>
