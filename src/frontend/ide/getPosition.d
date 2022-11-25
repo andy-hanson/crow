@@ -128,7 +128,7 @@ immutable(Opt!Position) getPosition(ref const AllSymbols allSymbols, ref immutab
 	immutable Opt!Position fromImports = positionInImportsOrExports(allSymbols, module_.imports, pos);
 	if (has(fromImports))
 		return fromImports;
-	immutable Opt!Position fromExports = positionInImportsOrExports(allSymbols, module_.exports, pos);
+	immutable Opt!Position fromExports = positionInImportsOrExports(allSymbols, module_.reExports, pos);
 	if (has(fromExports))
 		return fromExports;
 

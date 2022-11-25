@@ -224,9 +224,9 @@ struct ConcretizeCtx {
 	Alloc* allocPtr;
 	immutable VersionInfo versionInfo;
 	const AllSymbols* allSymbolsPtr;
-	immutable FunInst* curExclusionFun;
 	immutable CommonTypes* commonTypesPtr;
 	immutable Program* programPtr;
+	Late!(immutable ConcreteFun*) curExclusionFun_;
 	AllConstantsBuilder allConstants;
 	MutDict!(immutable ConcreteStructKey, immutable ConcreteStruct*) nonLambdaConcreteStructs;
 	ArrBuilder!(immutable ConcreteStruct*) allConcreteStructs;
@@ -253,6 +253,8 @@ struct ConcretizeCtx {
 		*allSymbolsPtr;
 	ref immutable(CommonTypes) commonTypes() return scope const =>
 		*commonTypesPtr;
+	immutable(ConcreteFun*) curExclusionFun() return scope const =>
+		lateGet(curExclusionFun_);
 	ref immutable(Program) program() return scope const =>
 		*programPtr;
 }
@@ -422,10 +424,6 @@ private void setConcreteStructRecordSize(ref Alloc alloc, DeferredRecordBody a) 
 	lateSet(a.struct_.typeSize_, size.typeSize);
 	lateSet(a.struct_.fieldOffsets_, size.fieldOffsets);
 }
-
-//TODO: do eagerly?
-immutable(ConcreteFun*) getCurExclusionFun(ref ConcretizeCtx ctx) =>
-	getOrAddNonTemplateConcreteFunAndFillBody(ctx, ctx.curExclusionFun);
 
 private:
 

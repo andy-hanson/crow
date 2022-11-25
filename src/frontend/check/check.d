@@ -255,7 +255,12 @@ immutable(CommonTypes) getCommonTypes(
 	ref immutable StructsAndAliasesDict structsAndAliasesDict,
 	ref MutArr!(StructInst*) delayedStructInsts,
 ) {
-	ArrBuilder!Sym missing = ArrBuilder!Sym();
+	void addDiagMissing(immutable Sym name) {
+		addDiag(
+			ctx,
+			immutable FileAndRange(ctx.fileIndex, RangeWithinFile.empty),
+			immutable Diag(immutable Diag.CommonTypeMissing(name)));
+	}
 
 	immutable(StructInst*) nonTemplateFromSym(immutable Sym name) {
 		immutable Opt!(StructInst*) res = getCommonNonTemplateType(
@@ -267,7 +272,7 @@ immutable(CommonTypes) getCommonTypes(
 		if (has(res))
 			return force(res);
 		else {
-			add(ctx.alloc, missing, name);
+			addDiagMissing(name);
 			return instantiateNonTemplateStructDecl(
 				ctx.alloc,
 				ctx.programState,
@@ -299,7 +304,7 @@ immutable(CommonTypes) getCommonTypes(
 		if (has(res))
 			return force(res);
 		else {
-			add(ctx.alloc, missing, name);
+			addDiagMissing(name);
 			return bogusStructDecl(ctx.alloc, nTypeParameters);
 		}
 	}
@@ -370,13 +375,6 @@ immutable(CommonTypes) getCommonTypes(
 		[immutable Type(char8)],
 		some(ptrTrustMe(delayedStructInsts)));
 
-	immutable Sym[] missingArr = finishArr(ctx.alloc, missing);
-
-	if (!empty(missingArr))
-		addDiag(
-			ctx,
-			immutable FileAndRange(ctx.fileIndex, RangeWithinFile.empty),
-			immutable Diag(immutable Diag.CommonTypesMissing(missingArr)));
 	return immutable CommonTypes(
 		bool_,
 		char8,

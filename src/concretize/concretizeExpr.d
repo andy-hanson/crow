@@ -14,7 +14,6 @@ import concretize.concretizeCtx :
 	getOrAddNonTemplateConcreteFunAndFillBody,
 	getConcreteType_fromConcretizeCtx = getConcreteType,
 	getConcreteType_forStructInst_fromConcretizeCtx = getConcreteType_forStructInst,
-	getCurExclusionFun,
 	getConcreteFunForLambdaAndFillBody,
 	getOrAddConcreteFunAndFillBody,
 	cStrType,
@@ -324,13 +323,13 @@ immutable(ConcreteExpr) createAllocExpr(ref Alloc alloc, immutable ConcreteExpr 
 		immutable ConcreteExprKind(allocate(alloc, immutable ConcreteExprKind.Alloc(inner))));
 }
 
-immutable(ConcreteExpr) getGetExclusion(
+immutable(ConcreteExpr) getCurExclusion(
 	ref ConcretizeExprCtx ctx,
 	ref immutable ConcreteType type,
 	immutable FileAndRange range,
 ) =>
 	immutable ConcreteExpr(type, range, immutable ConcreteExprKind(
-		immutable ConcreteExprKind.Call(getCurExclusionFun(ctx.concretizeCtx), [])));
+		immutable ConcreteExprKind.Call(ctx.concretizeCtx.curExclusionFun, [])));
 
 immutable(ConcreteField[]) concretizeClosureFields(
 	ref ConcretizeCtx ctx,
@@ -470,7 +469,7 @@ immutable(ConcreteExpr) concretizeLambda(
 		immutable ConcreteField actionField = fields[1];
 		verify(actionField.debugName == sym!"action");
 		immutable ConcreteType funType = actionField.type;
-		immutable ConcreteExpr exclusion = getGetExclusion(ctx, exclusionField.type, range);
+		immutable ConcreteExpr exclusion = getCurExclusion(ctx, exclusionField.type, range);
 		return immutable ConcreteExpr(concreteType, range, immutable ConcreteExprKind(
 			immutable ConcreteExprKind.CreateRecord(arrLiteral!ConcreteExpr(ctx.alloc, [
 				exclusion,

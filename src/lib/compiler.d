@@ -182,11 +182,11 @@ immutable(DiagsAndResultStrs) printModel(
 	ref immutable ShowDiagOptions showDiagOptions,
 	immutable Path main,
 ) {
-	immutable Program program = frontendCompile(alloc, perf, alloc, allPaths, allSymbols, storage, [main]);
+	immutable Program program = frontendCompile(alloc, perf, alloc, allPaths, allSymbols, storage, [main], none!Path);
 	return !hasDiags(program)
 		? immutable DiagsAndResultStrs(
 			safeCStr!"",
-			showModule(alloc, allSymbols, *only(program.specialModules.rootModules)))
+			showModule(alloc, allSymbols, *only(program.rootModules)))
 		: immutable DiagsAndResultStrs(
 			strOfDiagnostics(
 				alloc, allSymbols, allPaths, pathsInfo, showDiagOptions, program.filesInfo, program.diagnostics),
@@ -204,11 +204,9 @@ immutable(DiagsAndResultStrs) printConcreteModel(
 	ref immutable ShowDiagOptions showDiagOptions,
 	immutable Path main,
 ) {
-	immutable Program program = frontendCompile(alloc, perf, alloc, allPaths, allSymbols, storage, [main]);
+	immutable Program program = frontendCompile(alloc, perf, alloc, allPaths, allSymbols, storage, [main], none!Path);
 	if (!hasDiags(program)) {
-		immutable ConcreteProgram concreteProgram = concretize(
-			alloc, perf, versionInfo, allSymbols, allPaths, program,
-			only(program.specialModules.rootModules));
+		immutable ConcreteProgram concreteProgram = concretize(alloc, perf, versionInfo, allSymbols, allPaths, program);
 		return immutable DiagsAndResultStrs(safeCStr!"", showConcreteProgram(alloc, allSymbols, concreteProgram));
 	} else
 		return immutable DiagsAndResultStrs(
@@ -228,11 +226,9 @@ immutable(DiagsAndResultStrs) printLowModel(
 	ref immutable ShowDiagOptions showDiagOptions,
 	immutable Path main,
 ) {
-	immutable Program program = frontendCompile(alloc, perf, alloc, allPaths, allSymbols, storage, [main]);
+	immutable Program program = frontendCompile(alloc, perf, alloc, allPaths, allSymbols, storage, [main], none!Path);
 	if (!hasDiags(program)) {
-		immutable ConcreteProgram concreteProgram = concretize(
-			alloc, perf, versionInfo, allSymbols, allPaths, program,
-			only(program.specialModules.rootModules));
+		immutable ConcreteProgram concreteProgram = concretize(alloc, perf, versionInfo, allSymbols, allPaths, program);
 		immutable LowProgram lowProgram = lower(alloc, perf, allSymbols, program.config.extern_, concreteProgram);
 		return immutable DiagsAndResultStrs(safeCStr!"", showLowProgram(alloc, allSymbols, lowProgram));
 	} else
@@ -279,7 +275,7 @@ public immutable(ExitCode) justTypeCheck(
 	scope ref immutable ReadOnlyStorage storage,
 	immutable Path main,
 ) {
-	immutable Program program = frontendCompile(alloc, perf, alloc, allPaths, allSymbols, storage, [main]);
+	immutable Program program = frontendCompile(alloc, perf, alloc, allPaths, allSymbols, storage, [main], none!Path);
 	return !hasDiags(program) ? immutable ExitCode(0) : immutable ExitCode(1);
 }
 
@@ -335,7 +331,8 @@ public immutable(DocumentResult) compileAndDocument(
 	ref immutable ShowDiagOptions showDiagOptions,
 	scope immutable Path[] rootPaths,
 ) {
-	immutable Program program = frontendCompile(alloc, perf, alloc, allPaths, allSymbols, storage, rootPaths);
+	immutable Program program =
+		frontendCompile(alloc, perf, alloc, allPaths, allSymbols, storage, rootPaths, none!Path);
 	return !hasDiags(program)
 		? immutable DocumentResult(
 			documentJSON(alloc, allSymbols, allPaths, pathsInfo, program),
@@ -371,11 +368,9 @@ public immutable(ProgramsAndFilesInfo) buildToLowProgram(
 	scope ref const ReadOnlyStorage storage,
 	immutable Path main,
 ) {
-	immutable Program program = frontendCompile(alloc, perf, alloc, allPaths, allSymbols, storage, [main]);
+	immutable Program program = frontendCompile(alloc, perf, alloc, allPaths, allSymbols, storage, [main], some(main));
 	if (!hasDiags(program)) {
-		immutable ConcreteProgram concreteProgram = concretize(
-			alloc, perf, versionInfo, allSymbols, allPaths, program,
-			only(program.specialModules.rootModules));
+		immutable ConcreteProgram concreteProgram = concretize(alloc, perf, versionInfo, allSymbols, allPaths, program);
 		return immutable ProgramsAndFilesInfo(
 			program,
 			some(immutable ConcreteAndLowProgram(

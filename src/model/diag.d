@@ -111,11 +111,14 @@ struct Diag {
 
 	struct CantInferTypeArguments {}
 	struct CharLiteralMustBeOneChar {}
-	struct CommonFunMissing {
+	struct CommonFunDuplicate {
 		immutable Sym name;
 	}
-	struct CommonTypesMissing {
-		immutable Sym[] missing;
+	struct CommonFunMissing {
+		immutable SpecDeclSig expectedSig;
+	}
+	struct CommonTypeMissing {
+		immutable Sym name;
 	}
 	struct DuplicateDeclaration {
 		enum Kind {
@@ -372,8 +375,9 @@ struct Diag {
 		cantCall,
 		cantInferTypeArguments,
 		charLiteralMustBeOneChar,
+		commonFunDuplicate,
 		commonFunMissing,
-		commonTypesMissing,
+		commonTypeMissing,
 		duplicateDeclaration,
 		duplicateExports,
 		duplicateImports,
@@ -447,8 +451,9 @@ struct Diag {
 		immutable CantCall cantCall;
 		immutable CantInferTypeArguments cantInferTypeArguments;
 		immutable CharLiteralMustBeOneChar charLiteralMustBeOneChar;
+		immutable CommonFunDuplicate commonFunDuplicate;
 		immutable CommonFunMissing commonFunMissing;
-		immutable CommonTypesMissing commonTypesMissing;
+		immutable CommonTypeMissing commonTypeMissing;
 		immutable DuplicateDeclaration duplicateDeclaration;
 		immutable DuplicateExports duplicateExports;
 		immutable DuplicateImports duplicateImports;
@@ -529,8 +534,9 @@ struct Diag {
 	immutable this(immutable CharLiteralMustBeOneChar a) {
 		kind = Kind.charLiteralMustBeOneChar; charLiteralMustBeOneChar = a;
 	}
-	@trusted immutable this(immutable CommonFunMissing a) { kind = Kind.commonFunMissing; commonFunMissing = a; }
-	@trusted immutable this(immutable CommonTypesMissing a) { kind = Kind.commonTypesMissing; commonTypesMissing = a; }
+	immutable this(immutable CommonFunDuplicate a) { kind = Kind.commonFunDuplicate; commonFunDuplicate = a; }
+	immutable this(immutable CommonFunMissing a) { kind = Kind.commonFunMissing; commonFunMissing = a; }
+	@trusted immutable this(immutable CommonTypeMissing a) { kind = Kind.commonTypeMissing; commonTypeMissing = a; }
 	@trusted immutable this(immutable DuplicateDeclaration a) {
 		kind = Kind.duplicateDeclaration; duplicateDeclaration = a;
 	}
@@ -692,12 +698,9 @@ struct Diag {
 	scope immutable(Out) delegate(
 		ref immutable Diag.CharLiteralMustBeOneChar
 	) @safe @nogc pure nothrow cbCharLiteralMustBeOneChar,
-	scope immutable(Out) delegate(
-		ref immutable Diag.CommonFunMissing
-	) @safe @nogc pure nothrow cbCommonFunMissing,
-	scope immutable(Out) delegate(
-		ref immutable Diag.CommonTypesMissing
-	) @safe @nogc pure nothrow cbCommonTypesMissing,
+	scope immutable(Out) delegate(ref immutable Diag.CommonFunDuplicate) @safe @nogc pure nothrow cbCommonFunDuplicate,
+	scope immutable(Out) delegate(ref immutable Diag.CommonFunMissing) @safe @nogc pure nothrow cbCommonFunMissing,
+	scope immutable(Out) delegate(ref immutable Diag.CommonTypeMissing) @safe @nogc pure nothrow cbCommonTypeMissing,
 	scope immutable(Out) delegate(
 		ref immutable Diag.DuplicateDeclaration
 	) @safe @nogc pure nothrow cbDuplicateDeclaration,
@@ -857,10 +860,12 @@ struct Diag {
 			return cbCantInferTypeArguments(a.cantInferTypeArguments);
 		case Diag.Kind.charLiteralMustBeOneChar:
 			return cbCharLiteralMustBeOneChar(a.charLiteralMustBeOneChar);
+		case Diag.Kind.commonFunDuplicate:
+			return cbCommonFunDuplicate(a.commonFunDuplicate);
 		case Diag.Kind.commonFunMissing:
 			return cbCommonFunMissing(a.commonFunMissing);
-		case Diag.Kind.commonTypesMissing:
-			return cbCommonTypesMissing(a.commonTypesMissing);
+		case Diag.Kind.commonTypeMissing:
+			return cbCommonTypeMissing(a.commonTypeMissing);
 		case Diag.Kind.duplicateDeclaration:
 			return cbDuplicateDeclaration(a.duplicateDeclaration);
 		case Diag.Kind.duplicateExports:

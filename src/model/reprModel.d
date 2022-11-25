@@ -82,8 +82,8 @@ immutable(Repr) reprModule(ref Alloc alloc, ref immutable Module a) {
 	if (!empty(a.imports))
 		add(alloc, fields, nameAndRepr!"imports"(reprArr(alloc, a.imports, (ref immutable ImportOrExport x) =>
 			reprImportOrExport(alloc, x))));
-	if (!empty(a.exports))
-		add(alloc, fields, nameAndRepr!"exports"(reprArr(alloc, a.exports, (ref immutable ImportOrExport x) =>
+	if (!empty(a.reExports))
+		add(alloc, fields, nameAndRepr!"re-exports"(reprArr(alloc, a.reExports, (ref immutable ImportOrExport x) =>
 			reprImportOrExport(alloc, x))));
 	if (!empty(a.structs))
 		add(alloc, fields, nameAndRepr!"structs"(reprArr(alloc, a.structs, (ref immutable StructDecl s) =>

@@ -681,7 +681,7 @@ immutable(AllLowFuns) getAllLowFuns(
 		immutable Opt!LowFunIndex opIndex = matchConcreteFunBody!(immutable Opt!LowFunIndex)(
 			body_(*fun),
 			(ref immutable ConcreteFunBody.Builtin it) {
-				if (isCallWithCtxFun(*fun)) {
+				if (isCallWithCtxFun(program, *fun)) {
 					immutable ConcreteStruct* funStruct =
 						mustBeByVal(fun.paramsExcludingClosure[0].type);
 					immutable LowType funType = lowTypeFromConcreteStruct(getLowTypeCtx, funStruct);
@@ -699,7 +699,7 @@ immutable(AllLowFuns) getAllLowFuns(
 						: [];
 					return some(addLowFun(immutable LowFunCause(
 						immutable LowFunCause.CallWithCtx(funType, returnType, nonFunParamTypes, impls))));
-				} else if (isMarkVisitFun(*fun)) {
+				} else if (isMarkVisitFun(program, *fun)) {
 					if (!lateIsSet(markCtxTypeLate))
 						lateSet(markCtxTypeLate, lowTypeFromConcreteType(
 							getLowTypeCtx,
@@ -743,7 +743,7 @@ immutable(AllLowFuns) getAllLowFuns(
 				mustAddToDict(getLowTypeCtx.alloc, threadLocalIndicesBuilder, fun, index);
 				return none!LowFunIndex;
 			});
-		if (concreteFunWillBecomeNonExternLowFun(*fun))
+		if (concreteFunWillBecomeNonExternLowFun(program, *fun))
 			verify(has(opIndex));
 		if (has(opIndex))
 			mustAddToDict(getLowTypeCtx.alloc, concreteFunToLowFunIndexBuilder, fun, force(opIndex));
@@ -806,11 +806,14 @@ immutable(AllLowFuns) getAllLowFuns(
 
 alias ConcreteFunToThreadLocalIndex = immutable Dict!(ConcreteFun*, LowThreadLocalIndex);
 
-immutable(bool) concreteFunWillBecomeNonExternLowFun()(ref immutable ConcreteFun a) =>
+immutable(bool) concreteFunWillBecomeNonExternLowFun(
+	ref immutable ConcreteProgram program,
+	ref immutable ConcreteFun a,
+) =>
 	matchConcreteFunBody!(immutable bool)(
 		body_(a),
 		(ref immutable ConcreteFunBody.Builtin it) =>
-			isCallWithCtxFun(a) || isMarkVisitFun(a),
+			isCallWithCtxFun(program, a) || isMarkVisitFun(program, a),
 		(ref immutable ConcreteFunBody.CreateEnum) =>
 			false,
 		(ref immutable ConcreteFunBody.CreateExtern) =>

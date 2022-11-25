@@ -5,7 +5,6 @@ module model.model;
 import model.concreteModel : TypeSize;
 import model.constant : Constant;
 import model.diag : Diagnostics, FilesInfo; // TODO: move FilesInfo here?
-import util.alloc.alloc : Alloc;
 import util.col.arr : empty, only, PtrAndSmallNumber, small, SmallArray;
 import util.col.arrUtil : arrEqual, exists;
 import util.col.dict : Dict;
@@ -15,7 +14,6 @@ import util.col.str : SafeCStr;
 import util.hash : Hasher;
 import util.late : Late, lateGet, lateIsSet, lateSet;
 import util.lineAndColumnGetter : LineAndColumnGetter;
-import util.memory : allocate;
 import util.opt : force, has, Opt, some;
 import util.path : Path;
 import util.ptr : hashPtr, TaggedPtr;
@@ -587,6 +585,9 @@ struct StructDecl {
 	Late!(immutable StructBody) _body_;
 }
 
+immutable(bool) isTemplate(scope ref immutable StructDecl a) =>
+	!empty(a.typeParams);
+
 immutable(bool) bodyIsSet(ref const StructDecl a) =>
 	lateIsSet(a._body_);
 
@@ -1079,21 +1080,6 @@ struct FunInst {
 		decl(this).name;
 }
 
-immutable(bool) isCallWithCtxFun(ref immutable FunInst a) =>
-	// TODO: only do this for the call-with-ctx in bootstrap
-	decl(a).name == sym!"call-with-ctx";
-
-immutable(bool) isCompareFun(ref immutable FunInst a) =>
-	// TODO: only do this for the '<=>' in bootstrap
-	decl(a).name == sym!"<=>";
-
-immutable(bool) isMarkVisitFun(ref immutable FunInst a) =>
-	// TODO: only do this for the 'mark-visit' in bootstrap
-	decl(a).name == sym!"mark-visit";
-
-immutable(FunInst*) nonTemplateFunInst(ref Alloc alloc, immutable FunDecl* decl) =>
-	allocate(alloc, immutable FunInst(immutable FunDeclAndArgs(decl, [], []), decl.returnType, decl.params));
-
 immutable(FunDecl*) decl(return scope ref immutable FunInst a) =>
 	a.funDeclAndArgs.decl;
 
@@ -1302,6 +1288,8 @@ struct StructOrAlias {
 	}
 }
 
+immutable(bool) isStructDecl(immutable StructOrAlias a) =>
+	a.kind == StructOrAlias.Kind.structDecl;
 @trusted immutable(StructDecl*) asStructDecl(immutable StructOrAlias a) {
 	verify(a.kind == StructOrAlias.Kind.structDecl);
 	return a.structDecl_;
@@ -1363,7 +1351,7 @@ struct Module {
 	immutable FileIndex fileIndex;
 	immutable SafeCStr docComment;
 	immutable ImportOrExport[] imports; // includes import of std (if applicable)
-	immutable ImportOrExport[] exports;
+	immutable ImportOrExport[] reExports;
 	immutable StructDecl[] structs;
 	immutable SpecDecl[] specs;
 	immutable FunDecl[] funs;
@@ -1485,6 +1473,18 @@ struct FunKindAndStructs {
 	immutable StructDecl*[10] structs;
 }
 
+struct CommonFuns {
+	immutable FunInst* alloc;
+	immutable FunDecl*[] callWithCtxFunDecls;
+	immutable FunInst* curExclusion;
+	immutable FunInst* main;
+	immutable FunInst* mark;
+	immutable FunDecl* markVisitFunDecl;
+	immutable FunInst* rtMain;
+	immutable FunInst* staticSymbols;
+	immutable FunInst* throwImpl;
+}
+
 struct CommonTypes {
 	@safe @nogc pure nothrow:
 
@@ -1535,8 +1535,9 @@ enum EnumBackingType {
 struct Program {
 	immutable FilesInfo filesInfo;
 	immutable Config config;
-	immutable SpecialModules specialModules;
 	immutable Module[] allModules;
+	immutable Module*[] rootModules;
+	immutable Opt!CommonFuns commonFuns;
 	immutable CommonTypes commonTypes;
 	immutable Diagnostics diagnostics;
 }
@@ -1551,15 +1552,6 @@ alias ConfigExternPaths = immutable Dict!(Sym, Path);
 
 immutable(bool) hasDiags(ref immutable Program a) =>
 	!empty(a.diagnostics.diags);
-
-struct SpecialModules {
-	immutable Module* allocModule;
-	immutable Module* bootstrapModule;
-	immutable Module* exceptionLowLevelModule;
-	immutable Module* runtimeModule;
-	immutable Module* runtimeMainModule;
-	immutable Module*[] rootModules;
-}
 
 struct Local {
 	@safe @nogc pure nothrow:

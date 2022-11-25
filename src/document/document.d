@@ -85,7 +85,7 @@ immutable(Repr) documentRootModules(
 	ref immutable Program program,
 ) =>
 	reprNamedRecord!"root"(alloc, [
-		nameAndRepr!"modules"(reprArr(alloc, program.specialModules.rootModules, (ref immutable Module* x) =>
+		nameAndRepr!"modules"(reprArr(alloc, program.rootModules, (ref immutable Module* x) =>
 			documentModule(alloc, allSymbols, allPaths, pathsInfo, program, *x)))]);
 
 immutable(Repr) documentModule(

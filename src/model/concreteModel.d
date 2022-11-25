@@ -11,11 +11,9 @@ import model.model :
 	EnumFunction,
 	EnumValue,
 	FlagsFunction,
+	FunDecl,
 	FunInst,
 	isArray,
-	isCallWithCtxFun,
-	isCompareFun,
-	isMarkVisitFun,
 	isVarargs,
 	Local,
 	name,
@@ -25,6 +23,7 @@ import model.model :
 	StructInst,
 	summon;
 import util.col.arr : empty, only, PtrAndSmallNumber;
+import util.col.arrUtil : contains;
 import util.col.dict : Dict;
 import util.col.str : SafeCStr;
 import util.hash : hashEnum, Hasher;
@@ -704,33 +703,22 @@ immutable(FileAndRange) concreteFunRange(ref immutable ConcreteFun a, ref const 
 			it.range,
 	)(a.source);
 
-immutable(bool) isCallWithCtxFun(ref immutable ConcreteFun a) =>
+immutable(bool) isCallWithCtxFun(ref immutable ConcreteProgram program, ref immutable ConcreteFun a) =>
 	matchConcreteFunSource!(
 		immutable bool,
 		(ref immutable FunInst it) =>
-			isCallWithCtxFun(it),
+			contains(program.commonFuns.callWithCtxFunDecls, decl(it)),
 		(ref immutable ConcreteFunSource.Lambda) =>
 			false,
 		(ref immutable ConcreteFunSource.Test) =>
 			false,
 	)(a.source);
 
-immutable(bool) isCompareFun(ref immutable ConcreteFun a) =>
+immutable(bool) isMarkVisitFun(ref immutable ConcreteProgram program, ref immutable ConcreteFun a) =>
 	matchConcreteFunSource!(
 		immutable bool,
 		(ref immutable FunInst it) =>
-			isCompareFun(it),
-		(ref immutable ConcreteFunSource.Lambda) =>
-			false,
-		(ref immutable ConcreteFunSource.Test) =>
-			false,
-	)(a.source);
-
-immutable(bool) isMarkVisitFun(ref immutable ConcreteFun a) =>
-	matchConcreteFunSource!(
-		immutable bool,
-		(ref immutable FunInst it) =>
-			isMarkVisitFun(it),
+			decl(it) == program.commonFuns.markVisitFunDecl,
 		(ref immutable ConcreteFunSource.Lambda) =>
 			false,
 		(ref immutable ConcreteFunSource.Test) =>
@@ -1170,11 +1158,13 @@ struct ConcreteProgram {
 }
 
 struct ConcreteCommonFuns {
-	immutable ConcreteFun* markFun;
-	immutable ConcreteFun* rtMain;
-	immutable ConcreteFun* userMain;
 	immutable ConcreteFun* allocFun;
+	immutable FunDecl*[] callWithCtxFunDecls;
+	immutable ConcreteFun* markFun;
+	immutable FunDecl* markVisitFunDecl;
+	immutable ConcreteFun* rtMain;
 	immutable ConcreteFun* throwImpl;
+	immutable ConcreteFun* userMain;
 }
 
 struct ConcreteLambdaImpl {

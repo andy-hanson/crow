@@ -2,17 +2,10 @@ module frontend.frontendCompile;
 
 @safe @nogc nothrow: // not pure
 
+import frontend.check.getCommonFuns : getCommonFuns;
 import model.diag : Diag, Diagnostics, DiagnosticWithinFile, FilesInfo, filesInfoForSingle;
 import model.model :
-	CommonTypes,
-	Config,
-	FileContent,
-	ImportFileType,
-	ImportOrExport,
-	ImportOrExportKind,
-	Module,
-	Program,
-	SpecialModules;
+	CommonFuns, CommonTypes, Config, FileContent, ImportFileType, ImportOrExport, ImportOrExportKind, Module, Program;
 import model.parseDiag : ParseDiag;
 import frontend.check.check : BootstrapCheck, check, checkBootstrap, ImportOrExportFile, ImportsAndExports, PathAndAst;
 import frontend.config : getConfig;
@@ -30,7 +23,7 @@ import frontend.programState : ProgramState;
 import util.alloc.alloc : Alloc;
 import util.col.arr : empty;
 import util.col.arrBuilder : add, ArrBuilder, arrBuilderSize, finishArr;
-import util.col.arrUtil : copyArr, map, mapOp, mapOrNoneImpure, mapWithSoFar, prepend;
+import util.col.arrUtil : contains, copyArr, map, mapOp, mapOrNoneImpure, mapWithSoFar, prepend;
 import util.col.dict : mapValues;
 import util.col.fullIndexDict : asArray, FullIndexDict, fullIndexDictOfArr;
 import util.col.mutMaxArr : isEmpty, mustPeek, mustPop, MutMaxArr, mutMaxArr, push;
@@ -67,11 +60,13 @@ immutable(Program) frontendCompile(
 	ref AllSymbols allSymbols,
 	scope ref const ReadOnlyStorage storage,
 	scope immutable Path[] rootPaths,
+	scope immutable Opt!Path mainPath,
 ) {
 	DiagnosticsBuilder diagsBuilder = DiagnosticsBuilder();
 	immutable Config config = getConfig(modelAlloc, allSymbols, allPaths, storage, diagsBuilder, rootPaths);
 	immutable ParsedEverything parsed = withMeasure!(immutable ParsedEverything, () =>
-		parseEverything(modelAlloc, perf, allPaths, allSymbols, diagsBuilder, storage, rootPaths, config, astsAlloc)
+		parseEverything(
+			modelAlloc, perf, allPaths, allSymbols, diagsBuilder, storage, rootPaths, mainPath, config, astsAlloc)
 	)(astsAlloc, perf, PerfMeasure.parseEverything);
 	return withMeasure!(immutable Program, () =>
 		checkEverything(
@@ -168,12 +163,15 @@ struct ParsedEverything {
 }
 
 struct CommonModuleIndices {
+	immutable Opt!FileIndex main;
 	immutable FileIndex alloc;
 	immutable FileIndex bootstrap;
 	immutable FileIndex exceptionLowLevel;
-	immutable FileIndex std;
+	immutable FileIndex list;
 	immutable FileIndex runtime;
 	immutable FileIndex runtimeMain;
+	immutable FileIndex std;
+	immutable FileIndex string_;
 	immutable FileIndex[] rootPaths;
 }
 
@@ -196,9 +194,13 @@ immutable(ParsedEverything) parseEverything(
 	ref DiagnosticsBuilder diagsBuilder,
 	scope ref const ReadOnlyStorage storage,
 	scope immutable Path[] rootPaths,
+	scope immutable Opt!Path mainPath,
 	ref immutable Config config,
 	ref Alloc astAlloc,
 ) {
+	if (has(mainPath))
+		verify(contains(rootPaths, force(mainPath)));
+
 	ArrBuilder!Path fileIndexToPath;
 	PathToStatus statuses;
 	ArrBuilder!AstAndResolvedImports res;
@@ -221,8 +223,11 @@ immutable(ParsedEverything) parseEverything(
 	immutable Path private_ = childPath(allPaths, includeCrow, sym!"private");
 	immutable Path bootstrapPath = childPath(allPaths, private_, sym!"bootstrap");
 	immutable Path allocPath = childPath(allPaths, private_, sym!"alloc");
+	immutable Path colPath = childPath(allPaths, includeCrow, sym!"col");
+	immutable Path listPath = childPath(allPaths, colPath, sym!"list");
 	immutable Path exceptionLowLevelPath = childPath(allPaths, private_, sym!"exception-low-level");
 	immutable Path stdPath = childPath(allPaths, includeCrow, sym!"std");
+	immutable Path stringPath = childPath(allPaths, includeCrow, sym!"string");
 	immutable Path runtimePath = childPath(allPaths, private_, sym!"runtime");
 	immutable Path runtimeMainPath = childPath(allPaths, private_, sym!"rt-main");
 
@@ -258,8 +263,8 @@ immutable(ParsedEverything) parseEverything(
 			process();
 		}
 	}
-	immutable Path[6] commonPaths =
-		[bootstrapPath, allocPath, exceptionLowLevelPath, stdPath, runtimePath, runtimeMainPath];
+	immutable Path[8] commonPaths =
+		[bootstrapPath, allocPath, exceptionLowLevelPath, listPath, stdPath, stringPath, runtimePath, runtimeMainPath];
 	foreach (immutable Path path; commonPaths)
 		processRootPath(path);
 	foreach (immutable Path path; rootPaths)
@@ -271,12 +276,15 @@ immutable(ParsedEverything) parseEverything(
 		asDone(mustGetAt_mut(statuses, path));
 
 	immutable CommonModuleIndices commonModuleIndices = immutable CommonModuleIndices(
+		has(mainPath) ? some(getIndex(force(mainPath))) : none!FileIndex,
 		getIndex(allocPath),
 		getIndex(bootstrapPath),
 		getIndex(exceptionLowLevelPath),
-		getIndex(stdPath),
+		getIndex(listPath),
 		getIndex(runtimePath),
 		getIndex(runtimeMainPath),
+		getIndex(stdPath),
+		getIndex(stringPath),
 		map(modelAlloc, rootPaths, (ref immutable Path path) => getIndex(path)));
 
 	return immutable ParsedEverything(
@@ -766,18 +774,29 @@ immutable(Program) checkEverything(
 		getModules(modelAlloc, perf, allSymbols, diagsBuilder, programState, moduleIndices.std, allAsts);
 	immutable Module[] modules = modulesAndCommonTypes.modules;
 	immutable Module* bootstrapModule = &modules[moduleIndices.bootstrap.index];
+	immutable Opt!(Module*) mainModule = has(moduleIndices.main)
+		? some(&modules[force(moduleIndices.main).index])
+		: none!(Module*);
+	immutable Opt!CommonFuns commonFuns = getCommonFuns(
+		modelAlloc,
+		programState,
+		diagsBuilder,
+		modulesAndCommonTypes.commonTypes,
+		mainModule,
+		&modules[moduleIndices.alloc.index],
+		bootstrapModule,
+		&modules[moduleIndices.exceptionLowLevel.index],
+		&modules[moduleIndices.list.index],
+		&modules[moduleIndices.runtime.index],
+		&modules[moduleIndices.runtimeMain.index],
+		&modules[moduleIndices.string_.index]);
 	return immutable Program(
 		filesInfo,
 		config,
-		immutable SpecialModules(
-			&modules[moduleIndices.alloc.index],
-			bootstrapModule,
-			&modules[moduleIndices.exceptionLowLevel.index],
-			&modules[moduleIndices.runtime.index],
-			&modules[moduleIndices.runtimeMain.index],
-			map!(Module*, immutable FileIndex)(modelAlloc, moduleIndices.rootPaths, (ref immutable FileIndex index) =>
-				&modules[index.index])),
 		modules,
+		map!(Module*, immutable FileIndex)(modelAlloc, moduleIndices.rootPaths, (ref immutable FileIndex index) =>
+			&modules[index.index]),
+		commonFuns,
 		modulesAndCommonTypes.commonTypes,
 		finishDiagnostics(modelAlloc, diagsBuilder, filesInfo.filePaths));
 }

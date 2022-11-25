@@ -20,9 +20,11 @@ immutable(DiagSeverity) getDiagnosticSeverity(ref immutable Diag a) =>
 			DiagSeverity.checkError,
 		(ref immutable Diag.CharLiteralMustBeOneChar) =>
 			DiagSeverity.checkError,
+		(ref immutable Diag.CommonFunDuplicate) =>
+			DiagSeverity.checkError,
 		(ref immutable Diag.CommonFunMissing) =>
 			DiagSeverity.checkError,
-		(ref immutable Diag.CommonTypesMissing) =>
+		(ref immutable Diag.CommonTypeMissing) =>
 			DiagSeverity.checkError,
 		(ref immutable Diag.DuplicateDeclaration) =>
 			DiagSeverity.checkError,

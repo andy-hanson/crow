@@ -24,6 +24,7 @@ import model.model :
 	Purity,
 	range,
 	SpecBody,
+	SpecDeclSig,
 	SpecSig,
 	symOfPurity,
 	symOfVisibility,
@@ -329,6 +330,14 @@ void writePurity(ref Writer writer, scope ref const AllSymbols allSymbols, immut
 	writer ~= '\'';
 }
 
+void writeSpecDeclSig(
+	scope ref Writer writer,
+	scope ref const AllSymbols allSymbols,
+	scope ref immutable SpecDeclSig sig,
+) {
+	writeSig(writer, allSymbols, sig.name, sig.returnType, sig.params);
+}
+
 void writeSig(
 	scope ref Writer writer,
 	scope ref const AllSymbols allSymbols,
@@ -576,17 +585,19 @@ void writeDiag(
 		(ref immutable Diag.CharLiteralMustBeOneChar) {
 			writer ~= "value of 'char' type must be a single character";
 		},
-		(ref immutable Diag.CommonFunMissing it) {
-			writer ~= "common function ";
-			writeName(writer, allSymbols, it.name);
-			writer ~= " is missing from 'bootstrap.crow'";
+		(ref immutable Diag.CommonFunDuplicate x) {
+			writer ~= "module contains multiple valid ";
+			writeName(writer, allSymbols, x.name);
+			writer ~= " functions";
 		},
-		(ref immutable Diag.CommonTypesMissing d) {
-			writer ~= "common types are missing from 'bootstrap.crow':";
-			foreach (immutable Sym s; d.missing) {
-				writer ~= "\n\t";
-				writeSym(writer, allSymbols, s);
-			}
+		(ref immutable Diag.CommonFunMissing x) {
+			writer ~= "module should have a function:\n\t";
+			writeSpecDeclSig(writer, allSymbols, x.expectedSig);
+		},
+		(ref immutable Diag.CommonTypeMissing d) {
+			writer ~= "expected to find a type named ";
+			writeName(writer, allSymbols, d.name);
+			writer ~= " in this module";
 		},
 		(ref immutable Diag.DuplicateDeclaration d) {
 			immutable string desc = () {
@@ -910,7 +921,7 @@ void writeDiag(
 		},
 		(ref immutable Diag.SpecImplNotFound d) {
 			writer ~= "no implementation was found for spec signature ";
-			writeSig(writer, allSymbols, d.sig.name, d.sig.returnType, d.sig.params);
+			writeSpecDeclSig(writer, allSymbols, d.sig);
 			writer ~= " calling:";
 			writeSpecTrace(writer, allSymbols, allPaths, pathsInfo, options, fi, d.trace); 
 		},

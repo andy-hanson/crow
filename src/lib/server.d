@@ -25,7 +25,7 @@ import util.col.mutDict : getAt_mut, insertOrUpdate, mustDelete, mustGetAt_mut;
 import util.col.str : copySafeCStr, freeSafeCStr, SafeCStr, safeCStr, strOfSafeCStr;
 import util.dictReadOnlyStorage : withDictReadOnlyStorage, MutFiles;
 import util.lineAndColumnGetter : LineAndColumnGetter, lineAndColumnGetterForText;
-import util.opt : force, has, Opt;
+import util.opt : force, has, none, Opt;
 import util.path : AllPaths, childPath, emptyPathsInfo, emptyRootPath, parsePath, Path, PathsInfo;
 import util.perf : Perf;
 import util.readOnlyStorage : ReadOnlyStorage;
@@ -131,7 +131,7 @@ immutable(SafeCStr) getHover(
 		server.includeDir,
 		server.files,
 		(scope ref const ReadOnlyStorage storage) =>
-			frontendCompile(alloc, perf, alloc, server.allPaths, server.allSymbols, storage, [key]));
+			frontendCompile(alloc, perf, alloc, server.allPaths, server.allSymbols, storage, [key], none!Path));
 	return getHoverFromProgram(alloc, server, key, program, pos);
 }
 

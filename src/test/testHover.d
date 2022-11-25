@@ -10,7 +10,7 @@ import test.testUtil : Test;
 import util.col.mutDict : addToMutDict;
 import util.col.str : end, SafeCStr, safeCStr, safeCStrEq;
 import util.dictReadOnlyStorage : withDictReadOnlyStorage, MutFiles;
-import util.opt : force, has, Opt;
+import util.opt : force, has, none, Opt;
 import util.path : emptyPathsInfo, Path, PathsInfo, rootPath;
 import util.perf : Perf, withNullPerf;
 import util.readOnlyStorage : ReadOnlyStorage;
@@ -38,8 +38,9 @@ HoverTest initHoverTest(ref Test test, immutable SafeCStr content) {
 		rootPath(test.allPaths, sym!"include"),
 		files,
 		(scope ref const ReadOnlyStorage storage) @safe =>
-			withNullPerf!(immutable Program, (ref Perf perf) @safe =>
-				frontendCompile(test.alloc, perf, test.alloc, test.allPaths, test.allSymbols, storage, [path])));
+			withNullPerf!(immutable Program, (ref Perf perf) =>
+				frontendCompile(
+					test.alloc, perf, test.alloc, test.allPaths, test.allSymbols, storage, [path], none!Path)));
 	immutable Module* mainModule = &program.allModules[$ - 1];
 	return HoverTest(program, mainModule);
 }
