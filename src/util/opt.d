@@ -46,8 +46,13 @@ immutable(Opt!T) none(T)() =>
 Opt!T noneMut(T)() =>
 	Opt!T(BeNone());
 
-inout(Opt!T) some(T)(inout T value) =>
-	inout Opt!T(value);
+auto some(T)(inout T value) {
+	static if (is(T == enum)) {
+		return immutable Opt!T(value);
+	} else {
+		return inout Opt!T(value);
+	}
+}
 
 immutable(bool) has(T)(ref const Opt!T a) =>
 	a.has_;

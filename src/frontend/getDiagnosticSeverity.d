@@ -2,153 +2,152 @@ module frontend.getDiagnosticSeverity;
 
 @safe @nogc pure nothrow:
 
-import model.diag : Diag, DiagSeverity, matchDiag;
+import model.diag : Diag, DiagSeverity;
 import model.parseDiag : ParseDiag;
 
 immutable(DiagSeverity) getDiagnosticSeverity(ref immutable Diag a) =>
-	matchDiag!(immutable DiagSeverity)(
-		a,
-		(ref immutable Diag.BuiltinUnsupported) =>
+	a.match!(immutable DiagSeverity)(
+		(immutable Diag.BuiltinUnsupported) =>
 			DiagSeverity.checkError,
-		(ref immutable Diag.CallMultipleMatches) =>
+		(immutable Diag.CallMultipleMatches) =>
 			DiagSeverity.checkError,
-		(ref immutable Diag.CallNoMatch) =>
+		(immutable Diag.CallNoMatch) =>
 			DiagSeverity.checkError,
-		(ref immutable Diag.CantCall) =>
+		(immutable Diag.CantCall) =>
 			DiagSeverity.checkError,
-		(ref immutable Diag.CantInferTypeArguments) =>
+		(immutable Diag.CantInferTypeArguments) =>
 			DiagSeverity.checkError,
-		(ref immutable Diag.CharLiteralMustBeOneChar) =>
+		(immutable Diag.CharLiteralMustBeOneChar) =>
 			DiagSeverity.checkError,
-		(ref immutable Diag.CommonFunDuplicate) =>
+		(immutable Diag.CommonFunDuplicate) =>
 			DiagSeverity.checkError,
-		(ref immutable Diag.CommonFunMissing) =>
+		(immutable Diag.CommonFunMissing) =>
 			DiagSeverity.checkError,
-		(ref immutable Diag.CommonTypeMissing) =>
+		(immutable Diag.CommonTypeMissing) =>
 			DiagSeverity.checkError,
-		(ref immutable Diag.DuplicateDeclaration) =>
+		(immutable Diag.DuplicateDeclaration) =>
 			DiagSeverity.checkError,
-		(ref immutable Diag.DuplicateExports) =>
+		(immutable Diag.DuplicateExports) =>
 			DiagSeverity.checkError,
-		(ref immutable Diag.DuplicateImports) =>
+		(immutable Diag.DuplicateImports) =>
 			DiagSeverity.checkError,
-		(ref immutable Diag.EnumBackingTypeInvalid) =>
+		(immutable Diag.EnumBackingTypeInvalid) =>
 			DiagSeverity.checkError,
-		(ref immutable Diag.EnumDuplicateValue) =>
+		(immutable Diag.EnumDuplicateValue) =>
 			DiagSeverity.checkError,
-		(ref immutable Diag.EnumMemberOverflows) =>
+		(immutable Diag.EnumMemberOverflows) =>
 			DiagSeverity.checkError,
-		(ref immutable Diag.ExpectedTypeIsNotALambda) =>
+		(immutable Diag.ExpectedTypeIsNotALambda) =>
 			DiagSeverity.checkError,
-		(ref immutable Diag.ExternFunForbidden) =>
+		(immutable Diag.ExternFunForbidden) =>
 			DiagSeverity.checkError,
-		(ref immutable Diag.ExternHasTypeParams) =>
+		(immutable Diag.ExternHasTypeParams) =>
 			DiagSeverity.checkError,
-		(ref immutable Diag.ExternRecordImplicitlyByVal) =>
+		(immutable Diag.ExternRecordImplicitlyByVal) =>
 			DiagSeverity.checkError,
-		(ref immutable Diag.ExternUnion) =>
+		(immutable Diag.ExternUnion) =>
 			DiagSeverity.checkError,
-		(ref immutable Diag.FunMissingBody) =>
+		(immutable Diag.FunMissingBody) =>
 			DiagSeverity.checkError,
-		(ref immutable Diag.FunModifierConflict) =>
+		(immutable Diag.FunModifierConflict) =>
 			DiagSeverity.checkError,
-		(ref immutable Diag.FunModifierRedundant) =>
+		(immutable Diag.FunModifierRedundant) =>
 			DiagSeverity.checkWarning,
-		(ref immutable Diag.FunModifierTypeArgs) =>
+		(immutable Diag.FunModifierTypeArgs) =>
 			DiagSeverity.checkError,
-		(ref immutable Diag.IfNeedsOpt) =>
+		(immutable Diag.IfNeedsOpt) =>
 			DiagSeverity.checkError,
-		(ref immutable Diag.ImportRefersToNothing) =>
+		(immutable Diag.ImportRefersToNothing) =>
 			DiagSeverity.nameNotFound,
-		(ref immutable Diag.LambdaCantInferParamTypes) =>
+		(immutable Diag.LambdaCantInferParamTypes) =>
 			DiagSeverity.checkError,
-		(ref immutable Diag.LambdaClosesOverMut) =>
+		(immutable Diag.LambdaClosesOverMut) =>
 			DiagSeverity.checkError,
-		(ref immutable Diag.LambdaWrongNumberParams) =>
+		(immutable Diag.LambdaWrongNumberParams) =>
 			DiagSeverity.checkError,
-		(ref immutable Diag.LinkageWorseThanContainingFun) =>
+		(immutable Diag.LinkageWorseThanContainingFun) =>
 			DiagSeverity.checkError,
-		(ref immutable Diag.LinkageWorseThanContainingType) =>
+		(immutable Diag.LinkageWorseThanContainingType) =>
 			DiagSeverity.checkError,
-		(ref immutable Diag.LiteralOverflow) =>
+		(immutable Diag.LiteralOverflow) =>
 			DiagSeverity.checkError,
-		(ref immutable Diag.LocalNotMutable) =>
+		(immutable Diag.LocalNotMutable) =>
 			DiagSeverity.checkWarning,
-		(ref immutable Diag.LoopNeedsBreakOrContinue) =>
+		(immutable Diag.LoopNeedsBreakOrContinue) =>
 			DiagSeverity.checkError,
-		(ref immutable Diag.LoopWithoutBreak) =>
+		(immutable Diag.LoopWithoutBreak) =>
 			DiagSeverity.checkWarning,
-		(ref immutable Diag.MatchCaseNamesDoNotMatch) =>
+		(immutable Diag.MatchCaseNamesDoNotMatch) =>
 			DiagSeverity.checkError,
-		(ref immutable Diag.MatchCaseShouldHaveLocal) =>
+		(immutable Diag.MatchCaseShouldHaveLocal) =>
 			DiagSeverity.checkWarning,
-		(ref immutable Diag.MatchCaseShouldNotHaveLocal) =>
+		(immutable Diag.MatchCaseShouldNotHaveLocal) =>
 			DiagSeverity.checkError,
-		(ref immutable Diag.MatchOnNonUnion) =>
+		(immutable Diag.MatchOnNonUnion) =>
 			DiagSeverity.checkError,
-		(ref immutable Diag.ModifierConflict) =>
+		(immutable Diag.ModifierConflict) =>
 			DiagSeverity.checkError,
-		(ref immutable Diag.ModifierDuplicate) =>
+		(immutable Diag.ModifierDuplicate) =>
 			DiagSeverity.checkWarning,
-		(ref immutable Diag.ModifierInvalid) =>
+		(immutable Diag.ModifierInvalid) =>
 			DiagSeverity.checkError,
-		(ref immutable Diag.MutFieldNotAllowed) =>
+		(immutable Diag.MutFieldNotAllowed) =>
 			DiagSeverity.checkError,
-		(ref immutable Diag.NameNotFound) =>
+		(immutable Diag.NameNotFound) =>
 			DiagSeverity.nameNotFound,
-		(ref immutable Diag.NeedsExpectedType) =>
+		(immutable Diag.NeedsExpectedType) =>
 			DiagSeverity.checkError,
-		(ref immutable Diag.ParamNotMutable) =>
+		(immutable Diag.ParamNotMutable) =>
 			DiagSeverity.checkError,
-		(ref immutable(ParseDiag)) =>
+		(immutable(ParseDiag)) =>
 			DiagSeverity.parseError,
-		(ref immutable Diag.PtrIsUnsafe) =>
+		(immutable Diag.PtrIsUnsafe) =>
 			DiagSeverity.checkError,
-		(ref immutable Diag.PtrMutToConst) =>
+		(immutable Diag.PtrMutToConst) =>
 			DiagSeverity.checkError,
-		(ref immutable Diag.PtrUnsupported) =>
+		(immutable Diag.PtrUnsupported) =>
 			DiagSeverity.checkError,
-		(ref immutable Diag.PurityWorseThanParent) =>
+		(immutable Diag.PurityWorseThanParent) =>
 			DiagSeverity.checkError,
-		(ref immutable Diag.PuritySpecifierRedundant) =>
+		(immutable Diag.PuritySpecifierRedundant) =>
 			DiagSeverity.checkWarning,
-		(ref immutable Diag.RecordNewVisibilityIsRedundant) =>
+		(immutable Diag.RecordNewVisibilityIsRedundant) =>
 			DiagSeverity.checkWarning,
-		(ref immutable Diag.SendFunDoesNotReturnFut) =>
+		(immutable Diag.SendFunDoesNotReturnFut) =>
 			DiagSeverity.checkError,
-		(ref immutable Diag.SpecBuiltinNotSatisfied) =>
+		(immutable Diag.SpecBuiltinNotSatisfied) =>
 			DiagSeverity.checkError,
-		(ref immutable Diag.SpecImplFoundMultiple) =>
+		(immutable Diag.SpecImplFoundMultiple) =>
 			DiagSeverity.checkError,
-		(ref immutable Diag.SpecImplNotFound) =>
+		(immutable Diag.SpecImplNotFound) =>
 			DiagSeverity.checkError,
-		(ref immutable Diag.SpecImplTooDeep) =>
+		(immutable Diag.SpecImplTooDeep) =>
 			DiagSeverity.checkError,
-		(ref immutable Diag.ThreadLocalError) =>
+		(immutable Diag.ThreadLocalError) =>
 			DiagSeverity.checkError,
-		(ref immutable Diag.TypeAnnotationUnnecessary) =>
+		(immutable Diag.TypeAnnotationUnnecessary) =>
 			DiagSeverity.checkWarning,
-		(ref immutable Diag.TypeConflict) =>
+		(immutable Diag.TypeConflict) =>
 			DiagSeverity.checkError,
-		(ref immutable Diag.TypeParamCantHaveTypeArgs) =>
+		(immutable Diag.TypeParamCantHaveTypeArgs) =>
 			DiagSeverity.checkError,
-		(ref immutable Diag.TypeShouldUseSyntax) =>
+		(immutable Diag.TypeShouldUseSyntax) =>
 			DiagSeverity.checkWarning,
-		(ref immutable Diag.UnusedImport) =>
+		(immutable Diag.UnusedImport) =>
 			DiagSeverity.unusedCode,
-		(ref immutable Diag.UnusedLocal) =>
+		(immutable Diag.UnusedLocal) =>
 			DiagSeverity.unusedCode,
-		(ref immutable Diag.UnusedParam) =>
+		(immutable Diag.UnusedParam) =>
 			DiagSeverity.unusedCode,
-		(ref immutable Diag.UnusedPrivateFun) =>
+		(immutable Diag.UnusedPrivateFun) =>
 			DiagSeverity.unusedCode,
-		(ref immutable Diag.UnusedPrivateSpec) =>
+		(immutable Diag.UnusedPrivateSpec) =>
 			DiagSeverity.unusedCode,
-		(ref immutable Diag.UnusedPrivateStruct) =>
+		(immutable Diag.UnusedPrivateStruct) =>
 			DiagSeverity.unusedCode,
-		(ref immutable Diag.UnusedPrivateStructAlias) =>
+		(immutable Diag.UnusedPrivateStructAlias) =>
 			DiagSeverity.unusedCode,
-		(ref immutable Diag.WrongNumberTypeArgsForSpec) =>
+		(immutable Diag.WrongNumberTypeArgsForSpec) =>
 			DiagSeverity.checkError,
-		(ref immutable Diag.WrongNumberTypeArgsForStruct) =>
+		(immutable Diag.WrongNumberTypeArgsForStruct) =>
 			DiagSeverity.checkError);

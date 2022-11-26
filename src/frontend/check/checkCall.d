@@ -29,7 +29,7 @@ import frontend.check.inferringType :
 	typeArgsFromAsts;
 import frontend.check.instantiate :
 	instantiateFun, instantiateSpecInst, instantiateStructNeverDelay, TypeArgsArray, typeArgsArray, TypeParamsAndArgs;
-import frontend.parse.ast : asLambda, CallAst, ExprAst, isLambda, NameAndRange, rangeOfNameAndRange;
+import frontend.parse.ast : CallAst, ExprAst, LambdaAst, NameAndRange, rangeOfNameAndRange;
 import frontend.programState : ProgramState;
 import model.diag : Diag;
 import model.model :
@@ -99,7 +99,7 @@ import util.util : todo;
 
 immutable(Expr) checkCall(
 	ref ExprCtx ctx,
-	scope ref LocalsInfo locals,
+	ref LocalsInfo locals,
 	immutable FileAndRange range,
 	scope ref immutable CallAst ast,
 	scope ref Expected expected,
@@ -127,7 +127,7 @@ immutable(Expr) checkCallNoLocals(
 
 private immutable(Expr) checkCallInner(
 	ref ExprCtx ctx,
-	scope ref LocalsInfo locals,
+	ref LocalsInfo locals,
 	immutable FileAndRange range,
 	scope ref immutable CallAst ast,
 	scope ref Expected expected,
@@ -513,8 +513,8 @@ void filterByLambdaArity(
 	scope ref immutable ExprAst arg,
 	immutable size_t argIdx,
 ) {
-	if (isLambda(arg.kind)) {
-		immutable size_t arity = asLambda(arg.kind).params.length;
+	if (arg.kind.isA!(LambdaAst*)) {
+		immutable size_t arity = arg.kind.as!(LambdaAst*).params.length;
 		filterCandidates(candidates, (ref Candidate candidate) {
 			immutable Type expectedArgType = getCandidateExpectedParameterType(alloc, programState, candidate, argIdx);
 			return mayBeFunTypeWithArity(commonTypes, expectedArgType, inferringTypeArgs(candidate), arity);

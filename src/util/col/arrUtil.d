@@ -132,7 +132,7 @@ immutable(Opt!T) find(T)(
 }
 
 immutable(Opt!(T*)) findPtr(T)(
-	immutable T[] arr,
+	return scope immutable T[] arr,
 	scope immutable(bool) delegate(immutable T*) @safe @nogc pure nothrow cb,
 ) {
 	foreach (immutable T* x; ptrsRange(arr))

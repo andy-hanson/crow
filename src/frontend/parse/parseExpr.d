@@ -4,8 +4,6 @@ module frontend.parse.parseExpr;
 
 import frontend.parse.ast :
 	ArrowAccessAst,
-	asCall,
-	asIdentifier,
 	AssertOrForbidAst,
 	BogusAst,
 	CallAst,
@@ -18,8 +16,6 @@ import frontend.parse.ast :
 	IfOptionAst,
 	InterpolatedAst,
 	InterpolatedPart,
-	isCall,
-	isIdentifier,
 	LambdaAst,
 	LetAst,
 	LiteralStringAst,
@@ -344,16 +340,16 @@ immutable(ExprAndDedent) parseMutEquals(
 	immutable uint curIndent,
 ) {
 	immutable ExprAndDedent initAndDedent = parseExprNoLet(lexer, curIndent);
-	if (isIdentifier(before.kind))
+	if (before.kind.isA!IdentifierAst)
 		return immutable ExprAndDedent(
 			immutable ExprAst(
 				range(lexer, start),
 				immutable ExprAstKind(allocate(lexer.alloc, immutable IdentifierSetAst(
-					asIdentifier(before.kind).name,
+					before.kind.as!IdentifierAst.name,
 					initAndDedent.expr)))),
 			initAndDedent.dedents);
-	else if (isCall(before.kind)) {
-		immutable CallAst beforeCall = asCall(before.kind);
+	else if (before.kind.isA!CallAst) {
+		immutable CallAst beforeCall = before.kind.as!CallAst;
 		immutable CallAst.Style style = () {
 			final switch (beforeCall.style) {
 				case CallAst.Style.dot:
@@ -432,16 +428,13 @@ immutable(ExprAndDedent) mustParseNextLines(
 }
 
 immutable(NameAndRange) asIdentifierOrDiagnostic(ref Lexer lexer, ref immutable ExprAst a) {
-	if (isIdentifier(a.kind))
-		return identifierAsNameAndRange(a);
+	if (a.kind.isA!IdentifierAst)
+		return immutable NameAndRange(a.range.start, a.kind.as!IdentifierAst.name);
 	else {
 		addDiag(lexer, a.range, immutable ParseDiag(immutable ParseDiag.CantPrecedeOptEquals()));
 		return immutable NameAndRange(a.range.start, sym!"a");
 	}
 }
-
-immutable(NameAndRange) identifierAsNameAndRange(ref immutable ExprAst a) =>
-	immutable NameAndRange(a.range.start, asIdentifier(a.kind).name);
 
 immutable(ExprAndMaybeNameOrDedent) parseCalls(
 	ref Lexer lexer,

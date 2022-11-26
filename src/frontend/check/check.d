@@ -30,9 +30,6 @@ import frontend.parse.ast :
 	FunDeclAst,
 	FunModifierAst,
 	LiteralStringAst,
-	matchParamsAst,
-	matchSpecBodyAst,
-	matchTypeAst,
 	NameAndRange,
 	ParamAst,
 	ParamsAst,
@@ -433,8 +430,7 @@ immutable(Params) checkParams(
 	scope immutable TypeParam[] typeParamsScope,
 	ref DelayStructInsts delayStructInsts,
 ) =>
-	matchParamsAst!(
-		immutable Params,
+	ast.match!(immutable Params)(
 		(immutable ParamAst[] asts) {
 			immutable Param[] params = mapWithIndex!(Param, ParamAst)(
 				ctx.alloc,
@@ -464,8 +460,7 @@ immutable(Params) checkParams(
 						return todo!(immutable Type)("diagnostic");
 				});
 			return immutable Params(allocate(ctx.alloc, immutable Params.Varargs(param, elementType)));
-		},
-	)(ast);
+		});
 
 immutable(Param) checkParam(
 	ref CheckCtx ctx,
@@ -524,11 +519,10 @@ immutable(SpecBody) checkSpecBody(
 	immutable Sym name,
 	ref immutable SpecBodyAst ast,
 ) =>
-	matchSpecBodyAst!(
-		immutable SpecBody,
-		(ref immutable SpecBodyAst.Builtin) =>
+	ast.match!(immutable SpecBody)(
+		(immutable SpecBodyAst.Builtin) =>
 			immutable SpecBody(SpecBody.Builtin(getSpecBodyBuiltinKind(ctx, range, name))),
-		(ref immutable SpecSigAst[] sigs) =>
+		(immutable SpecSigAst[] sigs) =>
 			immutable SpecBody(map(ctx.alloc, sigs, (ref immutable SpecSigAst it) {
 				immutable ReturnTypeAndParams rp = checkReturnTypeAndParams(
 					ctx,
@@ -544,8 +538,7 @@ immutable(SpecBody) checkSpecBody(
 					it.name,
 					rp.returnType,
 					rp.params);
-			})),
-	)(ast);
+			})));
 
 immutable(SpecDecl[]) checkSpecDecls(
 	ref CheckCtx ctx,
@@ -1051,19 +1044,17 @@ immutable(FunBody.Extern) checkExternOrGlobalBody(
 	if (isGlobal && arityIsNonZero(arity(*fun)))
 		todo!void("'global' fun has parameters");
 
-	immutable Opt!Sym libraryName = typeArgs.length != 1 ? none!Sym : matchTypeAst!(
-		immutable Opt!Sym,
-		(immutable TypeAst.Dict) =>
+	immutable Opt!Sym libraryName = typeArgs.length != 1 ? none!Sym : only(typeArgs).match!(immutable Opt!Sym)(
+		(ref immutable TypeAst.Dict) =>
 			none!Sym,
 		(immutable TypeAst.Fun) =>
 			none!Sym,
 		(immutable TypeAst.InstStruct i) =>
 			empty(i.typeArgs) ? some(i.name.name) : none!Sym,
-		(immutable TypeAst.Suffix) =>
+		(ref immutable TypeAst.Suffix) =>
 			none!Sym,
-		(immutable TypeAst.Tuple) =>
-			none!Sym,
-	)(only(typeArgs));
+		(ref immutable TypeAst.Tuple) =>
+			none!Sym);
 	if (!has(libraryName))
 		addDiag(ctx, fun.range, immutable Diag(
 			immutable Diag.ExternFunForbidden(fun, Diag.ExternFunForbidden.Reason.missingLibraryName)));

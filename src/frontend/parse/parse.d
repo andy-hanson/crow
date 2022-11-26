@@ -13,7 +13,6 @@ import frontend.parse.ast :
 	ImportsOrExportsAst,
 	LiteralIntOrNat,
 	LiteralNatAst,
-	matchTypeAst,
 	ModifierAst,
 	NameAndRange,
 	ParamAst,
@@ -170,7 +169,7 @@ immutable(ImportOrExportKindAndDedent) parseImportOrExportKind(ref Lexer lexer, 
 		else {
 			immutable Sym[] names = parseSingleImportNamesOnSingleLine(lexer);
 			return immutable ImportOrExportKindAndDedent(
-				immutable ImportOrExportAstKind(immutable ImportOrExportAstKind.ModuleNamed(names)),
+				immutable ImportOrExportAstKind(names),
 				range(lexer, start),
 				takeNewlineOrSingleDedent(lexer));
 		}
@@ -202,11 +201,10 @@ immutable(ImportFileType) parseImportFileType(ref Lexer lexer) {
 }
 
 immutable(Opt!(ImportFileType)) toImportFileType(immutable TypeAst a) =>
-	matchTypeAst!(
-		immutable Opt!(ImportFileType),
-		(immutable(TypeAst.Dict)) =>
+	a.match!(immutable Opt!ImportFileType)(
+		(ref immutable TypeAst.Dict) =>
 			none!(ImportFileType),
-		(immutable(TypeAst.Fun)) =>
+		(immutable TypeAst.Fun) =>
 			none!(ImportFileType),
 		(immutable TypeAst.InstStruct x) {
 			switch (x.name.name.value) {
@@ -216,31 +214,28 @@ immutable(Opt!(ImportFileType)) toImportFileType(immutable TypeAst a) =>
 						: none!ImportFileType;
 				case sym!"array".value:
 					return x.typeArgs.length == 1
-						? matchTypeAst!(
-							immutable Opt!(ImportFileType),
-							(immutable(TypeAst.Dict)) =>
-								none!(ImportFileType),
-							(immutable(TypeAst.Fun)) =>
-								none!(ImportFileType),
+						? x.typeArgs[0].match!(immutable Opt!ImportFileType)(
+							(ref immutable TypeAst.Dict) =>
+								none!ImportFileType,
+							(immutable TypeAst.Fun) =>
+								none!ImportFileType,
 							(immutable TypeAst.InstStruct y) =>
 								y.name.name == sym!"nat8" && empty(y.typeArgs)
 									? some(ImportFileType.nat8Array)
-									: none!(ImportFileType),
-							(immutable(TypeAst.Suffix)) =>
+									: none!ImportFileType,
+							(ref immutable TypeAst.Suffix) =>
 								none!ImportFileType,
-							(immutable TypeAst.Tuple) =>
-								none!ImportFileType,
-							)(x.typeArgs[0])
+							(ref immutable TypeAst.Tuple) =>
+								none!ImportFileType)
 						: none!ImportFileType;
 				default:
 					return none!ImportFileType;
 			}
 		},
-		(immutable TypeAst.Suffix) =>
+		(ref immutable TypeAst.Suffix) =>
 			none!ImportFileType,
-		(immutable TypeAst.Tuple) =>
-			none!ImportFileType,
-	)(a);
+		(ref immutable TypeAst.Tuple) =>
+			none!ImportFileType);
 
 immutable(ImportOrExportKindAndDedent) parseIndentedImportNames(ref Lexer lexer, immutable Pos start) {
 	ArrBuilder!Sym names;
@@ -286,7 +281,7 @@ immutable(ImportOrExportKindAndDedent) parseIndentedImportNames(ref Lexer lexer,
 	}
 	immutable NewlineOrDedentAndRange res = recur();
 	return immutable ImportOrExportKindAndDedent(
-		immutable ImportOrExportAstKind(immutable ImportOrExportAstKind.ModuleNamed(finishArr(lexer.alloc, names))),
+		immutable ImportOrExportAstKind(finishArr(lexer.alloc, names)),
 		res.range,
 		res.newlineOrDedent);
 }

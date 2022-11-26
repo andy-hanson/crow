@@ -34,6 +34,7 @@ import util.opt : Opt;
 import util.path : AllPaths, Path, PathsInfo, writePath;
 import util.sourceRange : FileAndPos, FileAndRange, FileIndex, FilePaths, PathToFile, RangeWithinFile;
 import util.sym : Sym;
+import util.union_ : Union;
 import util.writer : Writer, writeBold, writeHyperlink, writeRed, writeReset;
 import util.writerUtils : writePos, writeRangeWithinFile;
 
@@ -367,632 +368,79 @@ struct Diag {
 		immutable size_t nActualTypeArgs;
 	}
 
-	private:
-	enum Kind {
-		builtinUnsupported,
-		callMultipleMatches,
-		callNoMatch,
-		cantCall,
-		cantInferTypeArguments,
-		charLiteralMustBeOneChar,
-		commonFunDuplicate,
-		commonFunMissing,
-		commonTypeMissing,
-		duplicateDeclaration,
-		duplicateExports,
-		duplicateImports,
-		enumBackingTypeInvalid,
-		enumDuplicateValue,
-		enumMemberOverflows,
-		expectedTypeIsNotALambda,
-		externFunForbidden,
-		externHasTypeParams,
-		externRecordImplicitlyByVal,
-		externUnion,
-		funMissingBody,
-		funModifierConflict,
-		funModifierRedundant,
-		funModifierTypeArgs,
-		ifNeedsOpt,
-		importRefersToNothing,
-		lambdaCantInferParamTypes,
-		lambdaClosesOverMut,
-		lambdaWrongNumberParams,
-		linkageWorseThanContainingFun,
-		linkageWorseThanContainingType,
-		literalOverflow,
-		localNotMutable,
-		loopNeedsBreakOrContinue,
-		loopWithoutBreak,
-		matchCaseNamesDoNotMatch,
-		matchCaseShouldHaveLocal,
-		matchCaseShouldNotHaveLocal,
-		matchOnNonUnion,
-		modifierConflict,
-		modifierDuplicate,
-		modifierInvalid,
-		mutFieldNotAllowed,
-		nameNotFound,
-		needsExpectedType,
-		paramNotMutable,
-		parseDiag,
-		ptrIsUnsafe,
-		ptrMutToConst,
-		ptrUnsupported,
-		purityWorseThanParent,
-		puritySpecifierRedundant,
-		recordNewVisibilityIsRedundant,
-		sendFunDoesNotReturnFut,
-		specBuiltinNotSatisfied,
-		specImplFoundMultiple,
-		specImplNotFound,
-		specImplTooDeep,
-		threadLocalError,
-		typeAnnotationUnnecessary,
-		typeConflict,
-		typeParamCantHaveTypeArgs,
-		typeShouldUseSyntax,
-		unusedImport,
-		unusedLocal,
-		unusedParam,
-		unusedPrivateFun,
-		unusedPrivateSpec,
-		unusedPrivateStruct,
-		unusedPrivateStructAlias,
-		wrongNumberTypeArgsForSpec,
-		wrongNumberTypeArgsForStruct,
-	}
-
-	immutable Kind kind;
-	union {
-		immutable BuiltinUnsupported builtinUnsupported;
-		immutable CallMultipleMatches callMultipleMatches;
-		immutable CallNoMatch callNoMatch;
-		immutable CantCall cantCall;
-		immutable CantInferTypeArguments cantInferTypeArguments;
-		immutable CharLiteralMustBeOneChar charLiteralMustBeOneChar;
-		immutable CommonFunDuplicate commonFunDuplicate;
-		immutable CommonFunMissing commonFunMissing;
-		immutable CommonTypeMissing commonTypeMissing;
-		immutable DuplicateDeclaration duplicateDeclaration;
-		immutable DuplicateExports duplicateExports;
-		immutable DuplicateImports duplicateImports;
-		immutable EnumBackingTypeInvalid enumBackingTypeInvalid;
-		immutable EnumDuplicateValue enumDuplicateValue;
-		immutable EnumMemberOverflows enumMemberOverflows;
-		immutable ExpectedTypeIsNotALambda expectedTypeIsNotALambda;
-		immutable ExternFunForbidden externFunForbidden;
-		immutable ExternHasTypeParams externHasTypeParams;
-		immutable ExternRecordImplicitlyByVal externRecordImplicitlyByVal;
-		immutable ExternUnion externUnion;
-		immutable FunMissingBody funMissingBody;
-		immutable FunModifierConflict funModifierConflict;
-		immutable FunModifierRedundant funModifierRedundant;
-		immutable FunModifierTypeArgs funModifierTypeArgs;
-		immutable IfNeedsOpt ifNeedsOpt;
-		immutable ImportRefersToNothing importRefersToNothing;
-		immutable LambdaCantInferParamTypes lambdaCantInferParamTypes;
-		immutable LambdaClosesOverMut lambdaClosesOverMut;
-		immutable LambdaWrongNumberParams lambdaWrongNumberParams;
-		immutable LinkageWorseThanContainingFun linkageWorseThanContainingFun;
-		immutable LinkageWorseThanContainingType linkageWorseThanContainingType;
-		immutable LiteralOverflow literalOverflow;
-		immutable LocalNotMutable localNotMutable;
-		immutable LoopNeedsBreakOrContinue loopNeedsBreakOrContinue;
-		immutable LoopWithoutBreak loopWithoutBreak;
-		immutable MatchCaseNamesDoNotMatch matchCaseNamesDoNotMatch;
-		immutable MatchCaseShouldHaveLocal matchCaseShouldHaveLocal;
-		immutable MatchCaseShouldNotHaveLocal matchCaseShouldNotHaveLocal;
-		immutable MatchOnNonUnion matchOnNonUnion;
-		immutable ModifierConflict modifierConflict;
-		immutable ModifierDuplicate modifierDuplicate;
-		immutable ModifierInvalid modifierInvalid;
-		immutable MutFieldNotAllowed mutFieldNotAllowed;
-		immutable NameNotFound nameNotFound;
-		immutable NeedsExpectedType needsExpectedType;
-		immutable ParamNotMutable paramNotMutable;
-		immutable ParseDiag parseDiag;
-		immutable PtrIsUnsafe ptrIsUnsafe;
-		immutable PtrMutToConst ptrMutToConst;
-		immutable PtrUnsupported ptrUnsupported;
-		immutable PurityWorseThanParent purityWorseThanParent;
-		immutable PuritySpecifierRedundant puritySpecifierRedundant;
-		immutable RecordNewVisibilityIsRedundant recordNewVisibilityIsRedundant;
-		immutable SendFunDoesNotReturnFut sendFunDoesNotReturnFut;
-		immutable SpecBuiltinNotSatisfied specBuiltinNotSatisfied;
-		immutable SpecImplFoundMultiple specImplFoundMultiple;
-		immutable SpecImplNotFound specImplNotFound;
-		immutable SpecImplTooDeep specImplTooDeep;
-		immutable ThreadLocalError threadLocalError;
-		immutable TypeAnnotationUnnecessary typeAnnotationUnnecessary;
-		immutable TypeConflict typeConflict;
-		immutable TypeParamCantHaveTypeArgs typeParamCantHaveTypeArgs;
-		immutable TypeShouldUseSyntax typeShouldUseSyntax;
-		immutable UnusedImport unusedImport;
-		immutable UnusedLocal unusedLocal;
-		immutable UnusedParam unusedParam;
-		immutable UnusedPrivateFun unusedPrivateFun;
-		immutable UnusedPrivateSpec unusedPrivateSpec;
-		immutable UnusedPrivateStructAlias unusedPrivateStructAlias;
-		immutable UnusedPrivateStruct unusedPrivateStruct;
-		immutable WrongNumberTypeArgsForSpec wrongNumberTypeArgsForSpec;
-		immutable WrongNumberTypeArgsForStruct wrongNumberTypeArgsForStruct;
-	}
-
-	public:
-	immutable this(immutable BuiltinUnsupported a) {
-		kind = Kind.builtinUnsupported; builtinUnsupported = a;
-	}
-	@trusted immutable this(immutable CallMultipleMatches a) {
-		kind = Kind.callMultipleMatches; callMultipleMatches = a;
-	}
-	@trusted immutable this(immutable CallNoMatch a) { kind = Kind.callNoMatch; callNoMatch = a; }
-	@trusted immutable this(immutable CantCall a) { kind = Kind.cantCall; cantCall = a; }
-	@trusted immutable this(immutable CantInferTypeArguments a) {
-		kind = Kind.cantInferTypeArguments; cantInferTypeArguments = a;
-	}
-	immutable this(immutable CharLiteralMustBeOneChar a) {
-		kind = Kind.charLiteralMustBeOneChar; charLiteralMustBeOneChar = a;
-	}
-	immutable this(immutable CommonFunDuplicate a) { kind = Kind.commonFunDuplicate; commonFunDuplicate = a; }
-	immutable this(immutable CommonFunMissing a) { kind = Kind.commonFunMissing; commonFunMissing = a; }
-	@trusted immutable this(immutable CommonTypeMissing a) { kind = Kind.commonTypeMissing; commonTypeMissing = a; }
-	@trusted immutable this(immutable DuplicateDeclaration a) {
-		kind = Kind.duplicateDeclaration; duplicateDeclaration = a;
-	}
-	@trusted immutable this(immutable DuplicateExports a) { kind = Kind.duplicateExports; duplicateExports = a; }
-	@trusted immutable this(immutable DuplicateImports a) { kind = Kind.duplicateImports; duplicateImports = a; }
-	@trusted immutable this(immutable EnumBackingTypeInvalid a) {
-		kind = Kind.enumBackingTypeInvalid; enumBackingTypeInvalid = a;
-	}
-	immutable this(immutable EnumDuplicateValue a) { kind = Kind.enumDuplicateValue; enumDuplicateValue = a; }
-	immutable this(immutable EnumMemberOverflows a) { kind = Kind.enumMemberOverflows; enumMemberOverflows = a; }
-	@trusted immutable this(immutable ExpectedTypeIsNotALambda a) {
-		kind = Kind.expectedTypeIsNotALambda; expectedTypeIsNotALambda = a;
-	}
-	immutable this(immutable ExternFunForbidden a) {
-		kind = Kind.externFunForbidden; externFunForbidden = a;
-	}
-	immutable this(immutable ExternHasTypeParams a) {
-		kind = Kind.externHasTypeParams; externHasTypeParams = a;
-	}
-	immutable this(immutable ExternRecordImplicitlyByVal a) {
-		kind = Kind.externRecordImplicitlyByVal; externRecordImplicitlyByVal = a;
-	}
-	immutable this(immutable ExternUnion a) {
-		kind = Kind.externUnion; externUnion = a;
-	}
-	immutable this(immutable FunMissingBody a) {
-		kind = Kind.funMissingBody; funMissingBody = a;
-	}
-	immutable this(immutable FunModifierConflict a) { kind = Kind.funModifierConflict; funModifierConflict = a; }
-	immutable this(immutable FunModifierRedundant a) { kind = Kind.funModifierRedundant; funModifierRedundant = a; }
-	immutable this(immutable FunModifierTypeArgs a) {
-		kind = Kind.funModifierTypeArgs; funModifierTypeArgs = a;
-	}
-	@trusted immutable this(immutable IfNeedsOpt a) { kind = Kind.ifNeedsOpt; ifNeedsOpt = a; }
-	immutable this(immutable ImportRefersToNothing a) { kind = Kind.importRefersToNothing; importRefersToNothing = a; }
-	@trusted immutable this(immutable LambdaCantInferParamTypes a) {
-		kind = Kind.lambdaCantInferParamTypes; lambdaCantInferParamTypes = a;
-	}
-	@trusted immutable this(immutable LambdaClosesOverMut a) {
-		kind = Kind.lambdaClosesOverMut; lambdaClosesOverMut = a;
-	}
-	@trusted immutable this(immutable LambdaWrongNumberParams a) {
-		kind = Kind.lambdaWrongNumberParams; lambdaWrongNumberParams = a;
-	}
-	@trusted immutable this(immutable LinkageWorseThanContainingFun a) {
-		kind = Kind.linkageWorseThanContainingFun; linkageWorseThanContainingFun = a;
-	}
-	@trusted immutable this(immutable LinkageWorseThanContainingType a) {
-		kind = Kind.linkageWorseThanContainingType; linkageWorseThanContainingType = a;
-	}
-	@trusted immutable this(immutable LiteralOverflow a) { kind = Kind.literalOverflow; literalOverflow = a; }
-	immutable this(immutable LocalNotMutable a) { kind = Kind.localNotMutable; localNotMutable = a; }
-	immutable this(immutable LoopNeedsBreakOrContinue a) {
-		kind = Kind.loopNeedsBreakOrContinue; loopNeedsBreakOrContinue = a;
-	}
-	immutable this(immutable LoopWithoutBreak a) { kind = Kind.loopWithoutBreak; loopWithoutBreak = a; }
-	@trusted immutable this(immutable MatchCaseNamesDoNotMatch a) {
-		kind = Kind.matchCaseNamesDoNotMatch; matchCaseNamesDoNotMatch = a;
-	}
-	@trusted immutable this(immutable MatchCaseShouldHaveLocal a) {
-		kind = Kind.matchCaseShouldHaveLocal; matchCaseShouldHaveLocal = a;
-	}
-	@trusted immutable this(immutable MatchCaseShouldNotHaveLocal a) {
-		kind = Kind.matchCaseShouldNotHaveLocal; matchCaseShouldNotHaveLocal = a;
-	}
-	@trusted immutable this(immutable MatchOnNonUnion a) {
-		kind = Kind.matchOnNonUnion; matchOnNonUnion = a;
-	}
-	@trusted immutable this(immutable ModifierConflict a) {
-		kind = Kind.modifierConflict; modifierConflict = a;
-	}
-	@trusted immutable this(immutable ModifierDuplicate a) {
-		kind = Kind.modifierDuplicate; modifierDuplicate = a;
-	}
-	@trusted immutable this(immutable ModifierInvalid a) {
-		kind = Kind.modifierInvalid; modifierInvalid = a;
-	}
-	@trusted immutable this(immutable MutFieldNotAllowed a) {
-		kind = Kind.mutFieldNotAllowed; mutFieldNotAllowed = a;
-	}
-	@trusted immutable this(immutable NameNotFound a) {
-		kind = Kind.nameNotFound; nameNotFound = a;
-	}
-	immutable this(immutable NeedsExpectedType a) { kind = Kind.needsExpectedType; needsExpectedType = a; }
-	@trusted immutable this(immutable ParseDiag a) {
-		kind = Kind.parseDiag; parseDiag = a;
-	}
-	immutable this(immutable ParamNotMutable a) {
-		kind = Kind.paramNotMutable; paramNotMutable = a;
-	}
-	immutable this(immutable PtrIsUnsafe a) {
-		kind = Kind.ptrIsUnsafe; ptrIsUnsafe = a;
-	}
-	immutable this(immutable PtrMutToConst a) {
-		kind = kind.ptrMutToConst; ptrMutToConst = a;
-	}
-	immutable this(immutable PtrUnsupported a) {
-		kind = Kind.ptrUnsupported; ptrUnsupported = a;
-	}
-	@trusted immutable this(immutable PurityWorseThanParent a) {
-		kind = Kind.purityWorseThanParent; purityWorseThanParent = a;
-	}
-	immutable this(immutable PuritySpecifierRedundant a) {
-		kind = Kind.puritySpecifierRedundant; puritySpecifierRedundant = a;
-	}
-	immutable this(immutable RecordNewVisibilityIsRedundant a) {
-		kind = Kind.recordNewVisibilityIsRedundant; recordNewVisibilityIsRedundant = a;
-	}
-	@trusted immutable this(immutable SendFunDoesNotReturnFut a) {
-		kind = Kind.sendFunDoesNotReturnFut; sendFunDoesNotReturnFut = a;
-	}
-	@trusted immutable this(immutable SpecBuiltinNotSatisfied a) {
-		kind = Kind.specBuiltinNotSatisfied; specBuiltinNotSatisfied = a;
-	}
-	@trusted immutable this(immutable SpecImplFoundMultiple a) {
-		kind = Kind.specImplFoundMultiple; specImplFoundMultiple = a;
-	}
-	@trusted immutable this(immutable SpecImplNotFound a) { kind = Kind.specImplNotFound; specImplNotFound = a; }
-	@trusted immutable this(immutable SpecImplTooDeep a) { kind = Kind.specImplTooDeep; specImplTooDeep = a; }
-	immutable this(immutable ThreadLocalError a) { kind = Kind.threadLocalError; threadLocalError = a; }
-	immutable this(immutable TypeAnnotationUnnecessary a) {
-		kind = Kind.typeAnnotationUnnecessary; typeAnnotationUnnecessary = a;
-	}
-	@trusted immutable this(immutable TypeConflict a) { kind = Kind.typeConflict; typeConflict = a; }
-	immutable this(immutable TypeParamCantHaveTypeArgs a) {
-		kind = Kind.typeParamCantHaveTypeArgs; typeParamCantHaveTypeArgs = a;
-	}
-	immutable this(immutable TypeShouldUseSyntax a) { kind = Kind.typeShouldUseSyntax; typeShouldUseSyntax = a; }
-	@trusted immutable this(immutable UnusedImport a) { kind = Kind.unusedImport; unusedImport = a; }
-	@trusted immutable this(immutable UnusedLocal a) { kind = Kind.unusedLocal; unusedLocal = a; }
-	@trusted immutable this(immutable UnusedParam a) { kind = Kind.unusedParam; unusedParam = a; }
-	@trusted immutable this(immutable UnusedPrivateFun a) { kind = Kind.unusedPrivateFun; unusedPrivateFun = a; }
-	@trusted immutable this(immutable UnusedPrivateSpec a) { kind = Kind.unusedPrivateSpec; unusedPrivateSpec = a; }
-	@trusted immutable this(immutable UnusedPrivateStruct a) {
-		kind = Kind.unusedPrivateStruct; unusedPrivateStruct = a;
-	}
-	@trusted immutable this(immutable UnusedPrivateStructAlias a) {
-		kind = Kind.unusedPrivateStructAlias; unusedPrivateStructAlias = a;
-	}
-	@trusted immutable this(immutable WrongNumberTypeArgsForSpec a) {
-		kind = Kind.wrongNumberTypeArgsForSpec; wrongNumberTypeArgsForSpec = a;
-	}
-	@trusted immutable this(immutable WrongNumberTypeArgsForStruct a) {
-		kind = Kind.wrongNumberTypeArgsForStruct; wrongNumberTypeArgsForStruct = a;
-	}
-}
-
-@trusted immutable(Out) matchDiag(Out)(
-	immutable Diag a,
-	scope immutable(Out) delegate(ref immutable Diag.BuiltinUnsupported) @safe @nogc pure nothrow cbBuiltinUnsupported,
-	scope immutable(Out) delegate(
-		ref immutable Diag.CallMultipleMatches
-	) @safe @nogc pure nothrow cbCallMultipleMatches,
-	scope immutable(Out) delegate(ref immutable Diag.CallNoMatch) @safe @nogc pure nothrow cbCallNoMatch,
-	scope immutable(Out) delegate(ref immutable Diag.CantCall) @safe @nogc pure nothrow cbCantCall,
-	scope immutable(Out) delegate(
-		ref immutable Diag.CantInferTypeArguments
-	) @safe @nogc pure nothrow cbCantInferTypeArguments,
-	scope immutable(Out) delegate(
-		ref immutable Diag.CharLiteralMustBeOneChar
-	) @safe @nogc pure nothrow cbCharLiteralMustBeOneChar,
-	scope immutable(Out) delegate(ref immutable Diag.CommonFunDuplicate) @safe @nogc pure nothrow cbCommonFunDuplicate,
-	scope immutable(Out) delegate(ref immutable Diag.CommonFunMissing) @safe @nogc pure nothrow cbCommonFunMissing,
-	scope immutable(Out) delegate(ref immutable Diag.CommonTypeMissing) @safe @nogc pure nothrow cbCommonTypeMissing,
-	scope immutable(Out) delegate(
-		ref immutable Diag.DuplicateDeclaration
-	) @safe @nogc pure nothrow cbDuplicateDeclaration,
-	scope immutable(Out) delegate(ref immutable Diag.DuplicateExports) @safe @nogc pure nothrow cbDuplicateExports,
-	scope immutable(Out) delegate(ref immutable Diag.DuplicateImports) @safe @nogc pure nothrow cbDuplicateImports,
-	scope immutable(Out) delegate(
-		ref immutable Diag.EnumBackingTypeInvalid
-	) @safe @nogc pure nothrow cbEnumBackingTypeInvalid,
-	scope immutable(Out) delegate(ref immutable Diag.EnumDuplicateValue) @safe @nogc pure nothrow cbEnumDuplicateValue,
-	scope immutable(Out) delegate(
-		ref immutable Diag.EnumMemberOverflows
-	) @safe @nogc pure nothrow cbEnumMemberOverflows,
-	scope immutable(Out) delegate(
-		ref immutable Diag.ExpectedTypeIsNotALambda
-	) @safe @nogc pure nothrow cbExpectedTypeIsNotALambda,
-	scope immutable(Out) delegate(
-		ref immutable Diag.ExternFunForbidden
-	) @safe @nogc pure nothrow cbExternFunForbidden,
-	scope immutable(Out) delegate(
-		ref immutable Diag.ExternHasTypeParams
-	) @safe @nogc pure nothrow cbExternHasTypeParams,
-	scope immutable(Out) delegate(
-		ref immutable Diag.ExternRecordImplicitlyByVal
-	) @safe @nogc pure nothrow cbExternRecordImplicitlyByVal,
-	scope immutable(Out) delegate(ref immutable Diag.ExternUnion) @safe @nogc pure nothrow cbExternUnion,
-	scope immutable(Out) delegate(ref immutable Diag.FunMissingBody) @safe @nogc pure nothrow cbFunMissingBody,
-	scope immutable(Out) delegate(
-		ref immutable Diag.FunModifierConflict,
-	) @safe @nogc pure nothrow cbFunModifierConflict,
-	scope immutable(Out) delegate(
-		ref immutable Diag.FunModifierRedundant,
-	) @safe @nogc pure nothrow cbFunModifierRedundant,
-	scope immutable(Out) delegate(
-		ref immutable Diag.FunModifierTypeArgs
-	) @safe @nogc pure nothrow cbFunModifierTypeArgs,
-	scope immutable(Out) delegate(ref immutable Diag.IfNeedsOpt) @safe @nogc pure nothrow cbIfNeedsOpt,
-	scope immutable(Out) delegate(
-		ref immutable Diag.ImportRefersToNothing
-	) @safe @nogc pure nothrow cbImportRefersToNothing,
-	scope immutable(Out) delegate(
-		ref immutable Diag.LambdaCantInferParamTypes
-	) @safe @nogc pure nothrow cbLambdaCantInferParamTypes,
-	scope immutable(Out) delegate(
-		ref immutable Diag.LambdaClosesOverMut
-	) @safe @nogc pure nothrow cbLambdaClosesOverMut,
-	scope immutable(Out) delegate(
-		ref immutable Diag.LambdaWrongNumberParams
-	) @safe @nogc pure nothrow cbLambdaWrongNumberParams,
-	scope immutable(Out) delegate(
-		ref immutable Diag.LinkageWorseThanContainingFun
-	) @safe @nogc pure nothrow cbLinkageWorseThanContainingFun,
-	scope immutable(Out) delegate(
-		ref immutable Diag.LinkageWorseThanContainingType
-	) @safe @nogc pure nothrow cbLinkageWorseThanContainingType,
-	scope immutable(Out) delegate(ref immutable Diag.LiteralOverflow) @safe @nogc pure nothrow cbLiteralOverflow,
-	scope immutable(Out) delegate(ref immutable Diag.LocalNotMutable) @safe @nogc pure nothrow cbLocalNotMutable,
-	scope immutable(Out) delegate(
-		ref immutable Diag.LoopNeedsBreakOrContinue
-	) @safe @nogc pure nothrow cbLoopNeedsBreakOrContinue,
-	scope immutable(Out) delegate(ref immutable Diag.LoopWithoutBreak) @safe @nogc pure nothrow cbLoopWithoutBreak,
-	scope immutable(Out) delegate(
-		ref immutable Diag.MatchCaseNamesDoNotMatch
-	) @safe @nogc pure nothrow cbMatchCaseNamesDoNotMatch,
-	scope immutable(Out) delegate(
-		ref immutable Diag.MatchCaseShouldHaveLocal
-	) @safe @nogc pure nothrow cbMatchCaseShouldHaveLocal,
-	scope immutable(Out) delegate(
-		ref immutable Diag.MatchCaseShouldNotHaveLocal
-	) @safe @nogc pure nothrow cbMatchCaseShouldNotHaveLocal,
-	scope immutable(Out) delegate(
-		ref immutable Diag.MatchOnNonUnion
-	) @safe @nogc pure nothrow cbMatchOnNonUnion,
-	scope immutable(Out) delegate(ref immutable Diag.ModifierConflict) @safe @nogc pure nothrow cbModifierConflict,
-	scope immutable(Out) delegate(ref immutable Diag.ModifierDuplicate) @safe @nogc pure nothrow cbModifierDuplicate,
-	scope immutable(Out) delegate(ref immutable Diag.ModifierInvalid) @safe @nogc pure nothrow cbModifierInvalid,
-	scope immutable(Out) delegate(
-		ref immutable Diag.MutFieldNotAllowed
-	) @safe @nogc pure nothrow cbMutFieldNotAllowed,
-	scope immutable(Out) delegate(
-		ref immutable Diag.NameNotFound
-	) @safe @nogc pure nothrow cbNameNotFound,
-	scope immutable(Out) delegate(ref immutable Diag.NeedsExpectedType) @safe @nogc pure nothrow cbNeedsExpectedType,
-	scope immutable(Out) delegate(ref immutable Diag.ParamNotMutable) @safe @nogc pure nothrow cbParamNotMutable,
-	scope immutable(Out) delegate(ref immutable ParseDiag) @safe @nogc pure nothrow cbParseDiag,
-	scope immutable(Out) delegate(ref immutable Diag.PtrIsUnsafe) @safe @nogc pure nothrow cbPtrIsUnsafe,
-	scope immutable(Out) delegate(ref immutable Diag.PtrMutToConst) @safe @nogc pure nothrow cbPtrMutToConst,
-	scope immutable(Out) delegate(ref immutable Diag.PtrUnsupported) @safe @nogc pure nothrow cbPtrUnsupported,
-	scope immutable(Out) delegate(
-		ref immutable Diag.PurityWorseThanParent
-	) @safe @nogc pure nothrow cbPurityWorseThanParent,
-	scope immutable(Out) delegate(
-		ref immutable Diag.PuritySpecifierRedundant
-	) @safe @nogc pure nothrow cbPuritySpecifierRedundant,
-	scope immutable(Out) delegate(
-		ref immutable Diag.RecordNewVisibilityIsRedundant
-	) @safe @nogc pure nothrow cbRecordNewVisibilityIsRedundant,
-	scope immutable(Out) delegate(
-		ref immutable Diag.SendFunDoesNotReturnFut
-	) @safe @nogc pure nothrow cbSendFunDoesNotReturnFut,
-	scope immutable(Out) delegate(
-		ref immutable Diag.SpecBuiltinNotSatisfied
-	) @safe @nogc pure nothrow cbSpecBuiltinNotSatisfied,
-	scope immutable(Out) delegate(
-		ref immutable Diag.SpecImplFoundMultiple
-	) @safe @nogc pure nothrow cbSpecImplFoundMultiple,
-	scope immutable(Out) delegate(
-		ref immutable Diag.SpecImplNotFound
-	) @safe @nogc pure nothrow cbSpecImplNotFound,
-	scope immutable(Out) delegate(
-		ref immutable Diag.SpecImplTooDeep
-	) @safe @nogc pure nothrow cbSpecImplTooDeep,
-	scope immutable(Out) delegate(ref immutable Diag.ThreadLocalError) @safe @nogc pure nothrow cbThreadLocalError,
-	scope immutable(Out) delegate(
-		ref immutable Diag.TypeAnnotationUnnecessary
-	) @safe @nogc pure nothrow cbTypeAnnotationUnnecessary,
-	scope immutable(Out) delegate(
-		ref immutable Diag.TypeConflict
-	) @safe @nogc pure nothrow cbTypeConflict,
-	scope immutable(Out) delegate(
-		ref immutable Diag.TypeParamCantHaveTypeArgs
-	) @safe @nogc pure nothrow cbTypeParamCantHaveTypeArgs,
-	scope immutable(Out) delegate(
-		ref immutable Diag.TypeShouldUseSyntax
-	) @safe @nogc pure nothrow cbTypeShouldUseSyntax,
-	scope immutable(Out) delegate(
-		ref immutable Diag.UnusedImport
-	) @safe @nogc pure nothrow cbUnusedImport,
-	scope immutable(Out) delegate(ref immutable Diag.UnusedLocal) @safe @nogc pure nothrow cbUnusedLocal,
-	scope immutable(Out) delegate(
-		ref immutable Diag.UnusedParam
-	) @safe @nogc pure nothrow cbUnusedParam,
-	scope immutable(Out) delegate(ref immutable Diag.UnusedPrivateFun) @safe @nogc pure nothrow cbUnusedPrivateFun,
-	scope immutable(Out) delegate(ref immutable Diag.UnusedPrivateSpec) @safe @nogc pure nothrow cbUnusedPrivateSpec,
-	scope immutable(Out) delegate(
-		ref immutable Diag.UnusedPrivateStruct,
-	) @safe @nogc pure nothrow cbUnusedPrivateStruct,
-	scope immutable(Out) delegate(
-		ref immutable Diag.UnusedPrivateStructAlias,
-	) @safe @nogc pure nothrow cbUnusedPrivateStructAlias,
-	scope immutable(Out) delegate(
-		ref immutable Diag.WrongNumberTypeArgsForSpec
-	) @safe @nogc pure nothrow cbWrongNumberTypeArgsForSpec,
-	scope immutable(Out) delegate(
-		ref immutable Diag.WrongNumberTypeArgsForStruct
-	) @safe @nogc pure nothrow cbWrongNumberTypeArgsForStruct,
-) {
-	final switch (a.kind) {
-		case Diag.Kind.builtinUnsupported:
-			return cbBuiltinUnsupported(a.builtinUnsupported);
-		case Diag.Kind.callMultipleMatches:
-			return cbCallMultipleMatches(a.callMultipleMatches);
-		case Diag.Kind.callNoMatch:
-			return cbCallNoMatch(a.callNoMatch);
-		case Diag.Kind.cantCall:
-			return cbCantCall(a.cantCall);
-		case Diag.Kind.cantInferTypeArguments:
-			return cbCantInferTypeArguments(a.cantInferTypeArguments);
-		case Diag.Kind.charLiteralMustBeOneChar:
-			return cbCharLiteralMustBeOneChar(a.charLiteralMustBeOneChar);
-		case Diag.Kind.commonFunDuplicate:
-			return cbCommonFunDuplicate(a.commonFunDuplicate);
-		case Diag.Kind.commonFunMissing:
-			return cbCommonFunMissing(a.commonFunMissing);
-		case Diag.Kind.commonTypeMissing:
-			return cbCommonTypeMissing(a.commonTypeMissing);
-		case Diag.Kind.duplicateDeclaration:
-			return cbDuplicateDeclaration(a.duplicateDeclaration);
-		case Diag.Kind.duplicateExports:
-			return cbDuplicateExports(a.duplicateExports);
-		case Diag.Kind.duplicateImports:
-			return cbDuplicateImports(a.duplicateImports);
-		case Diag.Kind.enumBackingTypeInvalid:
-			return cbEnumBackingTypeInvalid(a.enumBackingTypeInvalid);
-		case Diag.Kind.enumDuplicateValue:
-			return cbEnumDuplicateValue(a.enumDuplicateValue);
-		case Diag.Kind.enumMemberOverflows:
-			return cbEnumMemberOverflows(a.enumMemberOverflows);
-		case Diag.Kind.expectedTypeIsNotALambda:
-			return cbExpectedTypeIsNotALambda(a.expectedTypeIsNotALambda);
-		case Diag.Kind.externFunForbidden:
-			return cbExternFunForbidden(a.externFunForbidden);
-		case Diag.Kind.externHasTypeParams:
-			return cbExternHasTypeParams(a.externHasTypeParams);
-		case Diag.Kind.externRecordImplicitlyByVal:
-			return cbExternRecordImplicitlyByVal(a.externRecordImplicitlyByVal);
-		case Diag.Kind.externUnion:
-			return cbExternUnion(a.externUnion);
-		case Diag.Kind.funMissingBody:
-			return cbFunMissingBody(a.funMissingBody);
-		case Diag.Kind.funModifierConflict:
-			return cbFunModifierConflict(a.funModifierConflict);
-		case Diag.Kind.funModifierRedundant:
-			return cbFunModifierRedundant(a.funModifierRedundant);
-		case Diag.Kind.funModifierTypeArgs:
-			return cbFunModifierTypeArgs(a.funModifierTypeArgs);
-		case Diag.Kind.ifNeedsOpt:
-			return cbIfNeedsOpt(a.ifNeedsOpt);
-		case Diag.Kind.importRefersToNothing:
-			return cbImportRefersToNothing(a.importRefersToNothing);
-		case Diag.Kind.lambdaCantInferParamTypes:
-			return cbLambdaCantInferParamTypes(a.lambdaCantInferParamTypes);
-		case Diag.Kind.lambdaClosesOverMut:
-			return cbLambdaClosesOverMut(a.lambdaClosesOverMut);
-		case Diag.Kind.lambdaWrongNumberParams:
-			return cbLambdaWrongNumberParams(a.lambdaWrongNumberParams);
-		case Diag.Kind.linkageWorseThanContainingFun:
-			return cbLinkageWorseThanContainingFun(a.linkageWorseThanContainingFun);
-		case Diag.Kind.linkageWorseThanContainingType:
-			return cbLinkageWorseThanContainingType(a.linkageWorseThanContainingType);
-		case Diag.Kind.literalOverflow:
-			return cbLiteralOverflow(a.literalOverflow);
-		case Diag.Kind.localNotMutable:
-			return cbLocalNotMutable(a.localNotMutable);
-		case Diag.Kind.loopNeedsBreakOrContinue:
-			return cbLoopNeedsBreakOrContinue(a.loopNeedsBreakOrContinue);
-		case Diag.Kind.loopWithoutBreak:
-			return cbLoopWithoutBreak(a.loopWithoutBreak);
-		case Diag.Kind.matchCaseNamesDoNotMatch:
-			return cbMatchCaseNamesDoNotMatch(a.matchCaseNamesDoNotMatch);
-		case Diag.Kind.matchCaseShouldHaveLocal:
-			return cbMatchCaseShouldHaveLocal(a.matchCaseShouldHaveLocal);
-		case Diag.Kind.matchCaseShouldNotHaveLocal:
-			return cbMatchCaseShouldNotHaveLocal(a.matchCaseShouldNotHaveLocal);
-		case Diag.Kind.matchOnNonUnion:
-			return cbMatchOnNonUnion(a.matchOnNonUnion);
-		case Diag.Kind.modifierConflict:
-			return cbModifierConflict(a.modifierConflict);
-		case Diag.Kind.modifierDuplicate:
-			return cbModifierDuplicate(a.modifierDuplicate);
-		case Diag.Kind.modifierInvalid:
-			return cbModifierInvalid(a.modifierInvalid);
-		case Diag.Kind.mutFieldNotAllowed:
-			return cbMutFieldNotAllowed(a.mutFieldNotAllowed);
-		case Diag.Kind.nameNotFound:
-			return cbNameNotFound(a.nameNotFound);
-		case Diag.Kind.needsExpectedType:
-			return cbNeedsExpectedType(a.needsExpectedType);
-		case Diag.Kind.paramNotMutable:
-			return cbParamNotMutable(a.paramNotMutable);
-		case Diag.Kind.parseDiag:
-			return cbParseDiag(a.parseDiag);
-		case Diag.Kind.ptrIsUnsafe:
-			return cbPtrIsUnsafe(a.ptrIsUnsafe);
-		case Diag.Kind.ptrMutToConst:
-			return cbPtrMutToConst(a.ptrMutToConst);
-		case Diag.Kind.ptrUnsupported:
-			return cbPtrUnsupported(a.ptrUnsupported);
-		case Diag.Kind.purityWorseThanParent:
-			return cbPurityWorseThanParent(a.purityWorseThanParent);
-		case Diag.Kind.puritySpecifierRedundant:
-			return cbPuritySpecifierRedundant(a.puritySpecifierRedundant);
-		case Diag.Kind.recordNewVisibilityIsRedundant:
-			return cbRecordNewVisibilityIsRedundant(a.recordNewVisibilityIsRedundant);
-		case Diag.Kind.sendFunDoesNotReturnFut:
-			return cbSendFunDoesNotReturnFut(a.sendFunDoesNotReturnFut);
-		case Diag.Kind.specBuiltinNotSatisfied:
-			return cbSpecBuiltinNotSatisfied(a.specBuiltinNotSatisfied);
-		case Diag.Kind.specImplFoundMultiple:
-			return cbSpecImplFoundMultiple(a.specImplFoundMultiple);
-		case Diag.Kind.specImplNotFound:
-			return cbSpecImplNotFound(a.specImplNotFound);
-		case Diag.Kind.specImplTooDeep:
-			return cbSpecImplTooDeep(a.specImplTooDeep);
-		case Diag.Kind.threadLocalError:
-			return cbThreadLocalError(a.threadLocalError);
-		case Diag.Kind.typeAnnotationUnnecessary:
-			return cbTypeAnnotationUnnecessary(a.typeAnnotationUnnecessary);
-		case Diag.Kind.typeConflict:
-			return cbTypeConflict(a.typeConflict);
-		case Diag.Kind.typeParamCantHaveTypeArgs:
-			return cbTypeParamCantHaveTypeArgs(a.typeParamCantHaveTypeArgs);
-		case Diag.Kind.typeShouldUseSyntax:
-			return cbTypeShouldUseSyntax(a.typeShouldUseSyntax);
-		case Diag.Kind.unusedImport:
-			return cbUnusedImport(a.unusedImport);
-		case Diag.Kind.unusedLocal:
-			return cbUnusedLocal(a.unusedLocal);
-		case Diag.Kind.unusedParam:
-			return cbUnusedParam(a.unusedParam);
-		case Diag.Kind.unusedPrivateFun:
-			return cbUnusedPrivateFun(a.unusedPrivateFun);
-		case Diag.Kind.unusedPrivateSpec:
-			return cbUnusedPrivateSpec(a.unusedPrivateSpec);
-		case Diag.Kind.unusedPrivateStruct:
-			return cbUnusedPrivateStruct(a.unusedPrivateStruct);
-		case Diag.Kind.unusedPrivateStructAlias:
-			return cbUnusedPrivateStructAlias(a.unusedPrivateStructAlias);
-		case Diag.Kind.wrongNumberTypeArgsForSpec:
-			return cbWrongNumberTypeArgsForSpec(a.wrongNumberTypeArgsForSpec);
-		case Diag.Kind.wrongNumberTypeArgsForStruct:
-			return cbWrongNumberTypeArgsForStruct(a.wrongNumberTypeArgsForStruct);
-	}
+	mixin Union!(
+		BuiltinUnsupported,
+		CallMultipleMatches,
+		CallNoMatch,
+		CantCall,
+		CantInferTypeArguments,
+		CharLiteralMustBeOneChar,
+		CommonFunDuplicate,
+		CommonFunMissing,
+		CommonTypeMissing,
+		DuplicateDeclaration,
+		DuplicateExports,
+		DuplicateImports,
+		EnumBackingTypeInvalid,
+		EnumDuplicateValue,
+		EnumMemberOverflows,
+		ExpectedTypeIsNotALambda,
+		ExternFunForbidden,
+		ExternHasTypeParams,
+		ExternRecordImplicitlyByVal,
+		ExternUnion,
+		FunMissingBody,
+		FunModifierConflict,
+		FunModifierRedundant,
+		FunModifierTypeArgs,
+		IfNeedsOpt,
+		ImportRefersToNothing,
+		LambdaCantInferParamTypes,
+		LambdaClosesOverMut,
+		LambdaWrongNumberParams,
+		LinkageWorseThanContainingFun,
+		LinkageWorseThanContainingType,
+		LiteralOverflow,
+		LocalNotMutable,
+		LoopNeedsBreakOrContinue,
+		LoopWithoutBreak,
+		MatchCaseNamesDoNotMatch,
+		MatchCaseShouldHaveLocal,
+		MatchCaseShouldNotHaveLocal,
+		MatchOnNonUnion,
+		ModifierConflict,
+		ModifierDuplicate,
+		ModifierInvalid,
+		MutFieldNotAllowed,
+		NameNotFound,
+		NeedsExpectedType,
+		ParamNotMutable,
+		ParseDiag,
+		PtrIsUnsafe,
+		PtrMutToConst,
+		PtrUnsupported,
+		PurityWorseThanParent,
+		PuritySpecifierRedundant,
+		RecordNewVisibilityIsRedundant,
+		SendFunDoesNotReturnFut,
+		SpecBuiltinNotSatisfied,
+		SpecImplFoundMultiple,
+		SpecImplNotFound,
+		SpecImplTooDeep,
+		ThreadLocalError,
+		TypeAnnotationUnnecessary,
+		TypeConflict,
+		TypeParamCantHaveTypeArgs,
+		TypeShouldUseSyntax,
+		UnusedImport,
+		UnusedLocal,
+		UnusedParam,
+		UnusedPrivateFun,
+		UnusedPrivateSpec,
+		UnusedPrivateStruct,
+		UnusedPrivateStructAlias,
+		WrongNumberTypeArgsForSpec,
+		WrongNumberTypeArgsForStruct);
 }
 
 struct FilesInfo {

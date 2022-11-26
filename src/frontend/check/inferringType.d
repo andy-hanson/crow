@@ -354,12 +354,12 @@ struct Pair(T, U) {
 Pair!(T, Type) withCopyWithNewExpectedType(T)(
 	ref Expected expected,
 	immutable Type newExpectedType,
-	scope immutable(T) delegate(scope ref Expected) @safe @nogc pure nothrow cb,
+	scope immutable(T) delegate(ref Expected) @safe @nogc pure nothrow cb,
 ) {
 	TypeAndInferring[1] t = [TypeAndInferring(newExpectedType, getInferringTypeArgs(expected))];
 	Expected newExpected = Expected(t);
 	immutable T res = cb(newExpected);
-	return Pair!(T, Type)(res, inferred(newExpected));
+	return Pair!(T, Type)(castNonScope_ref(res), inferred(newExpected));
 }
 
 immutable(Opt!Type) shallowInstantiateType(ref const Expected expected) =>

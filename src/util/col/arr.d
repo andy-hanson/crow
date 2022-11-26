@@ -20,6 +20,7 @@ struct PtrAndSmallNumber(T) {
 	}
 
 	private static immutable(ulong) encode(immutable T* ptr, immutable ushort number) {
+		assert(number <= 0xffff);
 		immutable ulong val = cast(immutable ulong) ptr;
 		verify((val & 0xffff_0000_0000_0000) == 0);
 		return ((cast(ulong) number) << 48) | val;

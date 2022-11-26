@@ -165,7 +165,7 @@ private @trusted T matchRepr(T)(
 	scope T delegate(ref immutable ReprNamedRecord) @safe @nogc pure nothrow cbNamedRecord,
 	scope T delegate(immutable Opt!(Repr*)) @safe @nogc pure nothrow cbOpt,
 	scope T delegate(ref immutable ReprRecord) @safe @nogc pure nothrow cbRecord,
-	scope T delegate(ref immutable string) @safe @nogc pure nothrow cbStr,
+	scope T delegate(immutable string) @safe @nogc pure nothrow cbStr,
 	scope T delegate(immutable Sym) @safe @nogc pure nothrow cbSym,
 ) {
 	final switch (a.kind) {
@@ -244,7 +244,7 @@ void writeReprJSON(ref Writer writer, ref const AllSymbols allSymbols, immutable
 			});
 			writer ~= "]}";
 		},
-		(ref immutable string it) {
+		(immutable string it) {
 			writeQuotedStr(writer, it);
 		},
 		(immutable Sym it) {

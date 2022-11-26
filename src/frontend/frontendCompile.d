@@ -10,13 +10,7 @@ import model.parseDiag : ParseDiag;
 import frontend.check.check : BootstrapCheck, check, checkBootstrap, ImportOrExportFile, ImportsAndExports, PathAndAst;
 import frontend.config : getConfig;
 import frontend.diagnosticsBuilder : addDiagnosticsForFile, DiagnosticsBuilder, finishDiagnostics;
-import frontend.parse.ast :
-	emptyFileAst,
-	FileAst,
-	ImportOrExportAst,
-	ImportOrExportAstKind,
-	ImportsOrExportsAst,
-	matchImportOrExportAstKindImpure;
+import frontend.parse.ast : emptyFileAst, FileAst, ImportOrExportAst, ImportOrExportAstKind, ImportsOrExportsAst;
 import frontend.lang : crowExtension;
 import frontend.parse.parse : parseFile;
 import frontend.programState : ProgramState;
@@ -366,22 +360,21 @@ immutable(Opt!FullyResolvedImportKind) fullyResolveImportKind(
 	ref immutable ResolvedImport import_,
 	immutable Path resolvedPath,
 ) =>
-	matchImportOrExportAstKindImpure!(immutable Opt!FullyResolvedImportKind)(
-		import_.kind,
-		(immutable ImportOrExportAstKind.ModuleWhole m) =>
+	import_.kind.matchImpure!(immutable Opt!FullyResolvedImportKind)(
+		(immutable ImportOrExportAstKind.ModuleWhole) =>
 			fullyResolveImportModule(
 				modelAlloc, astAlloc, perf, allSymbols, allPaths, storage, config, statuses, stack, diags, fromPath,
 				import_.importedFrom, resolvedPath,
 				(immutable FileIndex f) =>
 					immutable FullyResolvedImportKind(immutable FullyResolvedImportKind.ModuleWhole(f))),
-		(immutable ImportOrExportAstKind.ModuleNamed m) =>
+		(immutable Sym[] names) =>
 			fullyResolveImportModule(
 				modelAlloc, astAlloc, perf, allSymbols, allPaths, storage, config, statuses, stack, diags, fromPath,
 				import_.importedFrom, resolvedPath,
 				(immutable FileIndex f) =>
 					immutable FullyResolvedImportKind(
-						immutable FullyResolvedImportKind.ModuleNamed(f, copyArr(modelAlloc, m.names)))),
-		(immutable ImportOrExportAstKind.File f) =>
+						immutable FullyResolvedImportKind.ModuleNamed(f, copyArr(modelAlloc, names)))),
+		(ref immutable ImportOrExportAstKind.File f) =>
 			some(immutable FullyResolvedImportKind(
 				immutable FullyResolvedImportKind.File(
 					f.name,
