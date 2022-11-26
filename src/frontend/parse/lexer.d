@@ -16,6 +16,7 @@ import util.conv : safeIntFromUint, safeToUint;
 import util.opt : force, has, none, Opt, some;
 import util.sourceRange : Pos, RangeWithinFile;
 import util.sym : AllSymbols, concatSymsWithDot, Sym, sym, symOfStr;
+import util.union_ : Union;
 import util.util : drop, todo, unreachable, verify;
 
 private enum IndentKind {
@@ -166,13 +167,12 @@ immutable(NewlineOrIndent) takeNewlineOrIndent_topLevel(ref Lexer lexer) {
 
 private immutable(NewlineOrIndent) takeNewlineOrIndentAfterEOL(ref Lexer lexer) {
 	immutable IndentDelta delta = skipBlankLinesAndGetIndentDelta(lexer, 0);
-	return matchIndentDelta!(immutable NewlineOrIndent)(
-		delta,
-		(ref immutable IndentDelta.DedentOrSame it) {
-			verify(it.nDedents == 0);
+	return delta.match!(immutable NewlineOrIndent)(
+		(immutable IndentDelta.DedentOrSame dedent) {
+			verify(dedent.nDedents == 0);
 			return NewlineOrIndent.newline;
 		},
-		(ref immutable IndentDelta.Indent) =>
+		(immutable IndentDelta.Indent) =>
 			NewlineOrIndent.indent);
 }
 
@@ -191,14 +191,13 @@ immutable(bool) tryTakeIndent(ref Lexer lexer, immutable uint curIndent) {
 	immutable char* begin = lexer.ptr;
 	if (nextToken(lexer) == Token.newline) {
 		immutable IndentDelta delta = skipBlankLinesAndGetIndentDelta(lexer, curIndent);
-		return matchIndentDelta!(immutable bool)(
-			delta,
-			(ref immutable IndentDelta.DedentOrSame dedent) {
+		return delta.match!(immutable bool)(
+			(immutable IndentDelta.DedentOrSame) {
 				addDiagAtChar(lexer, immutable ParseDiag(immutable ParseDiag.Expected(ParseDiag.Expected.Kind.indent)));
 				lexer.ptr = begin;
 				return false;
 			},
-			(ref immutable IndentDelta.Indent) =>
+			(immutable IndentDelta.Indent) =>
 				true);
 	} else {
 		lexer.ptr = begin;
@@ -214,16 +213,15 @@ immutable(T) takeIndentOrFailGeneric(T)(
 ) {
 	immutable Pos start = curPos(lexer);
 	immutable IndentDelta delta = takeNewlineAndReturnIndentDelta(lexer, curIndent);
-	return matchIndentDelta!(immutable T)(
-		delta,
-		(ref immutable IndentDelta.DedentOrSame dedent) {
+	return delta.match!(immutable T)(
+		(immutable IndentDelta.DedentOrSame dedent) {
 			addDiag(
 				lexer,
 				immutable RangeWithinFile(start, start + 1),
 				immutable ParseDiag(immutable ParseDiag.Expected(ParseDiag.Expected.Kind.indent)));
 			return cbFail(range(lexer, start), dedent.nDedents);
 		},
-		(ref immutable IndentDelta.Indent) =>
+		(immutable IndentDelta.Indent) =>
 			cbIndent());
 }
 
@@ -245,11 +243,10 @@ private @trusted immutable(IndentDelta) takeNewlineAndReturnIndentDelta(ref Lexe
 
 void takeDedentFromIndent1(ref Lexer lexer) {
 	immutable IndentDelta delta = skipBlankLinesAndGetIndentDelta(lexer, 1);
-	immutable bool success = matchIndentDelta!(immutable bool)(
-		delta,
-		(ref immutable IndentDelta.DedentOrSame it) =>
-			it.nDedents == 1,
-		(ref immutable IndentDelta.Indent) =>
+	immutable bool success = delta.match!(immutable bool)(
+		(immutable IndentDelta.DedentOrSame dedent) =>
+			dedent.nDedents == 1,
+		(immutable IndentDelta.Indent) =>
 			false);
 	if (!success) {
 		addDiagAtChar(lexer, immutable ParseDiag(immutable ParseDiag.Expected(ParseDiag.Expected.Kind.dedent)));
@@ -263,11 +260,10 @@ immutable(uint) takeNewlineOrDedentAmount(ref Lexer lexer, immutable uint curInd
 	if (!takeOrAddDiagExpectedToken(lexer, Token.newline, ParseDiag.Expected.Kind.endOfLine))
 		skipRestOfLineAndNewline(lexer);
 	immutable IndentDelta delta = skipBlankLinesAndGetIndentDelta(lexer, curIndent);
-	return matchIndentDelta!(immutable uint)(
-		delta,
-		(ref immutable IndentDelta.DedentOrSame it) =>
-			it.nDedents,
-		(ref immutable IndentDelta.Indent) {
+	return delta.match!(immutable uint)(
+		(immutable IndentDelta.DedentOrSame dedent) =>
+			dedent.nDedents,
+		(immutable IndentDelta.Indent) {
 			addDiagAtChar(lexer, immutable ParseDiag(
 				immutable ParseDiag.Unexpected(ParseDiag.Unexpected.Kind.indent)));
 			skipUntilNewlineNoDiag(lexer);
@@ -1118,39 +1114,12 @@ public @trusted immutable(StringPart) takeStringPart(ref Lexer lexer, immutable 
 }
 
 struct IndentDelta {
-	@safe @nogc pure nothrow:
-
 	struct DedentOrSame {
 		immutable uint nDedents;
 	}
 	struct Indent {}
-	enum Kind {
-		dedentOrSame,
-		indent,
-	}
-	private:
-	immutable Kind kind;
-	union {
-		immutable DedentOrSame dedentOrSame_;
-		immutable Indent indent_;
-	}
 
-	public:
-	immutable this(immutable DedentOrSame a) { kind = Kind.dedentOrSame; dedentOrSame_ = a; }
-	immutable this(immutable Indent a) { kind = Kind.indent; indent_ = a; }
-}
-
-@trusted T matchIndentDelta(T)(
-	ref immutable IndentDelta a,
-	scope T delegate(ref immutable IndentDelta.DedentOrSame) @safe @nogc pure nothrow cbDedentOrSame,
-	scope T delegate(ref immutable IndentDelta.Indent) @safe @nogc pure nothrow cbIndent,
-) {
-	final switch (a.kind) {
-		case IndentDelta.Kind.dedentOrSame:
-			return cbDedentOrSame(a.dedentOrSame_);
-		case IndentDelta.Kind.indent:
-			return cbIndent(a.indent_);
-	}
+	mixin Union!(immutable DedentOrSame, immutable Indent);
 }
 
 public immutable(SafeCStr) skipBlankLinesAndGetDocComment(ref Lexer lexer) =>

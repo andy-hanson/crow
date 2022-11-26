@@ -48,7 +48,6 @@ import model.lowModel :
 	LowRecord,
 	LowType,
 	LowUnion,
-	matchLowTypeCombinePtr,
 	PrimitiveType,
 	typeSize;
 import util.alloc.alloc : Alloc;
@@ -247,9 +246,8 @@ immutable(gcc_jit_function*) generateAssertFieldOffsetsFunction(
 	return castImmutable(fn);
 }
 
-immutable(gcc_jit_type*) getGccType(scope ref immutable GccTypes types, scope immutable LowType a) {
-	immutable gcc_jit_type* res = matchLowTypeCombinePtr!(
-		immutable gcc_jit_type*,
+immutable(gcc_jit_type*) getGccType(scope ref immutable GccTypes types, immutable LowType a) =>
+	a.combinePointer.match!(immutable gcc_jit_type*)(
 		(immutable LowType.Extern x) =>
 			types.extern_[x].type,
 		(immutable LowType.FunPtr x) =>
@@ -261,17 +259,12 @@ immutable(gcc_jit_type*) getGccType(scope ref immutable GccTypes types, scope im
 		(immutable LowType.Record x) =>
 			gcc_jit_struct_as_type(types.records[x]),
 		(immutable LowType.Union x) =>
-			gcc_jit_struct_as_type(types.unions[x]),
-	)(a);
-	verify(res != null);
-	return res;
-}
+			gcc_jit_struct_as_type(types.unions[x]));
 
 private:
 
-immutable(gcc_jit_type*) getGccType(ref GccTypesWip typesWip, immutable LowType a) {
-	immutable gcc_jit_type* res = matchLowTypeCombinePtr!(
-		immutable gcc_jit_type*,
+immutable(gcc_jit_type*) getGccType(ref GccTypesWip typesWip, immutable LowType a) =>
+	a.combinePointer.match!(immutable gcc_jit_type*)(
 		(immutable LowType.Extern x) =>
 			typesWip.extern_[x].type,
 		(immutable LowType.FunPtr x) =>
@@ -283,11 +276,7 @@ immutable(gcc_jit_type*) getGccType(ref GccTypesWip typesWip, immutable LowType 
 		(immutable LowType.Record x) =>
 			gcc_jit_struct_as_type(typesWip.records[x]),
 		(immutable LowType.Union x) =>
-			gcc_jit_struct_as_type(typesWip.unions[x]),
-	)(a);
-	verify(res != null);
-	return res;
-}
+			gcc_jit_struct_as_type(typesWip.unions[x]));
 
 @trusted immutable(gcc_jit_type*[PrimitiveType.max + 1]) getPrimitiveTypes(ref gcc_jit_context ctx) {
 	gcc_jit_type*[PrimitiveType.max + 1] res;

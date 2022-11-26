@@ -29,7 +29,7 @@ import frontend.check.inferringType :
 	typeArgsFromAsts;
 import frontend.check.instantiate :
 	instantiateFun, instantiateSpecInst, instantiateStructNeverDelay, TypeArgsArray, typeArgsArray, TypeParamsAndArgs;
-import frontend.parse.ast : asLambda, CallAst, ExprAst, isLambda, NameAndRange, rangeOfNameAndRange;
+import frontend.parse.ast : CallAst, ExprAst, LambdaAst, NameAndRange, rangeOfNameAndRange;
 import frontend.programState : ProgramState;
 import model.diag : Diag;
 import model.model :
@@ -42,17 +42,12 @@ import model.model :
 	CommonTypes,
 	decl,
 	Expr,
+	ExprKind,
 	FunDecl,
 	FunDeclAndTypeArgs,
 	FunFlags,
-	isBogus,
 	isPurityAlwaysCompatible,
 	isVariadic,
-	matchArity,
-	matchCalledDecl,
-	matchParams,
-	matchSpecBody,
-	matchType,
 	NameReferents,
 	Param,
 	Params,
@@ -89,20 +84,21 @@ import util.col.mutMaxArr :
 	pushUninitialized,
 	tempAsArr,
 	toArray;
-import util.memory : overwriteMemory;
+import util.memory : allocate, overwriteMemory;
 import util.opt : force, has, none, noneMut, Opt, some;
 import util.perf : endMeasure, PerfMeasure, PerfMeasurer, pauseMeasure, resumeMeasure, startMeasure;
 import util.ptr : castNonScope_ref, ptrTrustMe;
 import util.sourceRange : FileAndRange;
 import util.sym : Sym;
+import util.union_ : Union;
 import util.util : todo;
 
 immutable(Expr) checkCall(
 	ref ExprCtx ctx,
-	scope ref LocalsInfo locals,
+	ref LocalsInfo locals,
 	immutable FileAndRange range,
 	scope ref immutable CallAst ast,
-	scope ref Expected expected,
+	ref Expected expected,
 ) {
 	PerfMeasurer perfMeasurer = startMeasure(ctx.alloc, ctx.perf, PerfMeasure.checkCall);
 	scope TypeArgsArray explicitTypeArgs = typeArgsFromAsts(ctx, ast.typeArgs);
@@ -118,19 +114,19 @@ immutable(Expr) checkCallNoLocals(
 	ref ExprCtx ctx,
 	immutable FileAndRange range,
 	scope immutable CallAst ast,
-	scope ref Expected expected,
+	ref Expected expected,
 ) {
-	FunOrLambdaInfo emptyFunInfo = FunOrLambdaInfo(noneMut!(LocalsInfo*), [], none!(Expr.Lambda*));
+	FunOrLambdaInfo emptyFunInfo = FunOrLambdaInfo(noneMut!(LocalsInfo*), [], none!(ExprKind.Lambda*));
 	LocalsInfo emptyLocals = LocalsInfo(ptrTrustMe(emptyFunInfo), noneMut!(LocalNode*));
 	return checkCall(ctx, emptyLocals, range, ast, expected);
 }
 
 private immutable(Expr) checkCallInner(
 	ref ExprCtx ctx,
-	scope ref LocalsInfo locals,
+	ref LocalsInfo locals,
 	immutable FileAndRange range,
 	scope ref immutable CallAst ast,
-	scope ref Expected expected,
+	ref Expected expected,
 	scope immutable Type[] explicitTypeArgs,
 	ref PerfMeasurer perfMeasurer,
 	ref Candidates candidates,
@@ -162,7 +158,7 @@ private immutable(Expr) checkCallInner(
 
 		immutable Type actualArgType = inferred(expected);
 		// If it failed to check, don't continue, just stop there.
-		if (isBogus(actualArgType)) {
+		if (actualArgType.isA!(Type.Bogus)) {
 			someArgIsBogus = true;
 			return none!Expr;
 		}
@@ -215,50 +211,13 @@ immutable(Expr) checkIdentifierCall(
 }
 
 struct UsedFun {
-	@safe @nogc pure nothrow:
-
 	struct None {}
-	private immutable this(immutable None a) { kind = Kind.none; none_ = a; }
-	immutable this(immutable ImportIndex a) { kind = Kind.import_; import_ = a; }
-	immutable this(immutable ModuleLocalFunIndex a) { kind = Kind.moduleLocal; moduleLocal = a; }
-
-	static immutable(UsedFun) none() =>
-		immutable UsedFun(immutable None());
-
-	private:
-	enum Kind {
-		none,
-		import_,
-		moduleLocal,
-	}
-	immutable Kind kind;
-	union {
-		immutable None none_;
-		immutable ImportIndex import_;
-		immutable ModuleLocalFunIndex moduleLocal;
-	}
+	mixin Union!(immutable None, immutable ImportIndex, immutable ModuleLocalFunIndex);
 }
 static assert(UsedFun.sizeof <= 16);
 
-private T matchUsedFun(T)(
-	immutable UsedFun a,
-	scope T delegate(immutable UsedFun.None) @safe @nogc pure nothrow cbNone,
-	scope T delegate(immutable ImportIndex) @safe @nogc pure nothrow cbImport,
-	scope T delegate(immutable ModuleLocalFunIndex) @safe @nogc pure nothrow cbModuleLocal,
-) {
-	final switch (a.kind) {
-		case UsedFun.Kind.none:
-			return cbNone(a.none_);
-		case UsedFun.Kind.import_:
-			return cbImport(a.import_);
-		case UsedFun.Kind.moduleLocal:
-			return cbModuleLocal(a.moduleLocal);
-	}
-}
-
 void markUsedFun(ref ExprCtx ctx, ref immutable UsedFun used) {
-	matchUsedFun!void(
-		used,
+	used.match!void(
 		(immutable UsedFun.None) {},
 		(immutable ImportIndex it) =>
 			markUsedImport(ctx.checkCtx, it),
@@ -273,13 +232,12 @@ void eachFunInScope(
 ) {
 	size_t totalIndex = 0;
 	foreach (immutable SpecInst* specInst; ctx.outermostFunSpecs)
-		matchSpecBody!void(
-			specInst.body_,
+		specInst.body_.match!void(
 			(immutable SpecBody.Builtin) {},
 			(immutable SpecDeclSig[] sigs) {
 				foreach (immutable size_t i, ref immutable SpecDeclSig sig; sigs)
 					if (sig.name == funName) {
-						cb(UsedFun.none, immutable CalledDecl(
+						cb(immutable UsedFun(immutable UsedFun.None()), immutable CalledDecl(
 							immutable SpecSig(specInst, &sigs[i], totalIndex + i)));
 					}
 				totalIndex += sigs.length;
@@ -304,13 +262,11 @@ immutable(CalledDecl[]) candidatesForDiag(ref Alloc alloc, ref const Candidates 
 	map(alloc, tempAsArr(candidates), (ref const Candidate c) => c.called);
 
 immutable(bool) candidateIsPreferred(ref const Candidate a) =>
-	matchCalledDecl!(
-		immutable bool,
-		(immutable FunDecl* it) =>
-			it.flags.preferred,
-		(ref immutable SpecSig) =>
-			false,
-	)(a.called);
+	a.called.match!(immutable bool)(
+		(ref immutable FunDecl x) =>
+			x.flags.preferred,
+		(immutable SpecSig) =>
+			false);
 
 struct Candidate {
 	immutable UsedFun used;
@@ -383,8 +339,7 @@ immutable(Type) getCandidateExpectedParameterTypeRecur(
 	ref const Candidate candidate,
 	immutable Type candidateParamType,
 ) =>
-	matchType!(immutable Type)(
-		candidateParamType,
+	candidateParamType.matchWithPointers!(immutable Type)(
 		(immutable Type.Bogus) =>
 			immutable Type(Type.Bogus()),
 		(immutable TypeParam* p) {
@@ -414,12 +369,11 @@ immutable(Type) getCandidateExpectedParameterType(
 		paramTypeAt(candidate.called.params, argIdx));
 
 immutable(Type) paramTypeAt(scope immutable Params params, immutable size_t argIdx) =>
-	matchParams!(immutable Type)(
-		params,
-		(immutable Param[] params) =>
-			params[argIdx].type,
-		(ref immutable Params.Varargs varargs) =>
-			varargs.elementType);
+	params.match!(immutable Type)(
+		(immutable Param[] x) =>
+			x[argIdx].type,
+		(ref immutable Params.Varargs x) =>
+			x.elementType);
 
 void getParamExpected(
 	ref Alloc alloc,
@@ -482,15 +436,12 @@ void checkCalledDeclFlags(
 	immutable FileAndRange range,
 	immutable ArgsKind argsKind,
 ) {
-	matchCalledDecl!(
-		void,
-		(immutable FunDecl* f) {
+	res.matchWithPointers!void(
+		(immutable FunDecl* f) @safe {
 			checkCallFlags(ctx.checkCtx, range, f, ctx.outermostFunFlags, isInLambda, argsKind);
 		},
-		(ref immutable SpecSig) {
-			// For a spec, we check the flags when providing the spec impl
-		},
-	)(res);
+		// For a spec, we check the flags when providing the spec impl
+		(immutable SpecSig) {});
 }
 
 void filterByReturnTypeForSpec(
@@ -513,8 +464,8 @@ void filterByLambdaArity(
 	scope ref immutable ExprAst arg,
 	immutable size_t argIdx,
 ) {
-	if (isLambda(arg.kind)) {
-		immutable size_t arity = asLambda(arg.kind).params.length;
+	if (arg.kind.isA!(LambdaAst*)) {
+		immutable size_t arity = arg.kind.as!(LambdaAst*).params.length;
 		filterCandidates(candidates, (ref Candidate candidate) {
 			immutable Type expectedArgType = getCandidateExpectedParameterType(alloc, programState, candidate, argIdx);
 			return mayBeFunTypeWithArity(commonTypes, expectedArgType, inferringTypeArgs(candidate), arity);
@@ -543,13 +494,11 @@ immutable(Opt!Called) findSpecSigImplementation(
 	ref immutable SpecDeclSig specSig,
 	ref SpecTrace trace,
 ) {
-	immutable size_t nParams = matchArity!(
-		immutable size_t,
+	immutable size_t nParams = arity(specSig).match!(immutable size_t)(
 		(immutable size_t n) =>
 			n,
-		(ref immutable Arity.Varargs) =>
-			todo!(immutable size_t)("varargs in spec?"),
-	)(arity(specSig));
+		(immutable Arity.Varargs) =>
+			todo!(immutable size_t)("varargs in spec?"));
 	return withCandidates(ctx, specSig.name, [], nParams, (ref Candidates candidates) {
 		filterByReturnTypeForSpec(ctx.alloc, ctx.programState, candidates, specSig.returnType);
 		foreach (immutable size_t argIdx; 0 .. nParams)
@@ -579,8 +528,7 @@ immutable(bool) findBuiltinSpecOnType(
 	immutable Type type,
 ) =>
 	exists!(immutable SpecInst*)(ctx.outermostFunSpecs, (ref immutable SpecInst* inst) =>
-		matchSpecBody!(immutable bool)(
-			inst.body_,
+		inst.body_.match!(immutable bool)(
 			(immutable SpecBody.Builtin b) =>
 				b.kind == kind && only(typeArgs(*inst)) == type,
 			(immutable SpecDeclSig[]) =>
@@ -629,8 +577,7 @@ immutable(bool) checkSpecImpls(
 		immutable SpecInst* specInstInstantiated = instantiateSpecInst(
 			ctx.alloc, ctx.programState, specInst, immutable TypeParamsAndArgs(called.typeParams, calledTypeArgs));
 		immutable Type[] typeArgs = typeArgs(*specInstInstantiated);
-		immutable bool ok = matchSpecBody!(immutable bool)(
-			specInstInstantiated.body_,
+		immutable bool ok = specInstInstantiated.body_.match!(immutable bool)(
 			(immutable SpecBody.Builtin b) =>
 				checkBuiltinSpec(ctx, called, range, b.kind, only(typeArgs)),
 			(immutable SpecDeclSig[] sigs) {
@@ -672,8 +619,7 @@ immutable(Opt!Called) getCalledFromCandidate(
 			return none!Called;
 		}
 	}
-	return matchCalledDecl!(
-		immutable Opt!Called,
+	return candidate.called.matchWithPointers!(immutable Opt!Called)(
 		(immutable FunDecl* f) {
 			if (isFull(trace)) {
 				addDiag2(ctx, range, immutable Diag(immutable Diag.SpecImplTooDeep(toArray(ctx.alloc, trace))));
@@ -691,9 +637,8 @@ immutable(Opt!Called) getCalledFromCandidate(
 					: none!Called;
 			}
 		},
-		(ref immutable SpecSig s) =>
-			some(immutable Called(s)),
-	)(candidate.called);
+		(immutable SpecSig s) =>
+			some(immutable Called(allocate(ctx.alloc, s))));
 }
 
 immutable(Expr) checkCallAfterChoosingOverload(
@@ -701,15 +646,15 @@ immutable(Expr) checkCallAfterChoosingOverload(
 	immutable bool isInLambda,
 	ref const Candidate candidate,
 	immutable FileAndRange range,
-	scope immutable Expr[] args,
-	scope ref Expected expected,
+	immutable Expr[] args,
+	ref Expected expected,
 ) {
 	SpecTrace trace = mutMaxArr!(maxSpecDepth, immutable FunDeclAndTypeArgs);
 	immutable Opt!Called opCalled = getCalledFromCandidate(
 		ctx, isInLambda, range, candidate, empty(args) ? ArgsKind.empty : ArgsKind.nonEmpty, trace);
 	if (has(opCalled)) {
 		immutable Called called = force(opCalled);
-		immutable Expr calledExpr = immutable Expr(range, Expr.Call(called, args));
+		immutable Expr calledExpr = immutable Expr(range, immutable ExprKind(immutable ExprKind.Call(called, args)));
 		//TODO: PERF second return type check may be unnecessary
 		// if we already filtered by return type at the beginning
 		return check(ctx, expected, called.returnType, calledExpr);

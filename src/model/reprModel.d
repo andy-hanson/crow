@@ -10,6 +10,7 @@ import model.model :
 	EnumFunction,
 	enumFunctionName,
 	Expr,
+	ExprKind,
 	FlagsFunction,
 	flagsFunctionName,
 	FunBody,
@@ -20,12 +21,6 @@ import model.model :
 	ImportOrExport,
 	ImportOrExportKind,
 	Local,
-	matchCalled,
-	matchExpr,
-	matchFunBody,
-	matchImportOrExportKind,
-	matchParams,
-	matchType,
 	Module,
 	name,
 	noCtx,
@@ -106,8 +101,7 @@ immutable(Repr) reprImportOrExport(ref Alloc alloc, ref immutable ImportOrExport
 		reprImportOrExportKind(alloc, a.kind)]);
 
 immutable(Repr) reprImportOrExportKind(ref Alloc alloc, ref immutable ImportOrExportKind a) =>
-	matchImportOrExportKind(
-		a,
+	a.match!(immutable Repr)(
 		(immutable ImportOrExportKind.ModuleWhole m) =>
 			reprRecord!"whole"(alloc, [reprNat(m.module_.fileIndex.index)]),
 		(immutable ImportOrExportKind.ModuleNamed m) =>
@@ -207,8 +201,7 @@ immutable(Repr) reprTypeParam(ref Alloc alloc, immutable TypeParam a) =>
 	reprRecord!"type-param"(alloc, [reprSym(a.name)]);
 
 immutable(Repr) reprParams(ref Alloc alloc, scope ref Ctx ctx, scope ref immutable Params a) =>
-	matchParams!(immutable Repr)(
-		a,
+	a.match!(immutable Repr)(
 		(immutable Param[] params) =>
 			reprArr(alloc, params, (ref immutable Param it) =>
 				reprParam(alloc, ctx, it)),
@@ -226,48 +219,45 @@ immutable(Repr) reprSpecInst(ref Alloc alloc, scope ref Ctx ctx, ref immutable S
 	todo!(immutable Repr)("reprSpecInst");
 
 immutable(Repr) reprFunBody(ref Alloc alloc, scope ref Ctx ctx, ref immutable FunBody a) =>
-	matchFunBody!(
-		immutable Repr,
-		(ref immutable FunBody.Bogus) =>
+	a.match!(immutable Repr)(
+		(immutable FunBody.Bogus) =>
 			reprSym!"bogus" ,
-		(ref immutable FunBody.Builtin) =>
+		(immutable FunBody.Builtin) =>
 			reprSym!"builtin" ,
-		(ref immutable FunBody.CreateEnum it) =>
+		(immutable FunBody.CreateEnum it) =>
 			reprRecord!"new-enum"(alloc, [reprInt(it.value.value)]),
-		(ref immutable FunBody.CreateExtern) =>
+		(immutable FunBody.CreateExtern) =>
 			reprSym!"new-extern",
-		(ref immutable FunBody.CreateRecord) =>
+		(immutable FunBody.CreateRecord) =>
 			reprSym!"new-record" ,
-		(ref immutable FunBody.CreateUnion) =>
+		(immutable FunBody.CreateUnion) =>
 			//TODO: more detail
 			reprSym!"new-union" ,
 		(immutable EnumFunction it) =>
 			reprRecord!"enum-fn"(alloc, [reprSym(enumFunctionName(it))]),
-		(ref immutable FunBody.Extern x) =>
+		(immutable FunBody.Extern x) =>
 			reprRecord!"extern"(alloc, [reprBool(x.isGlobal), reprSym(x.libraryName)]),
-		(ref immutable Expr it) =>
+		(immutable Expr it) =>
 			reprExpr(alloc, ctx, it),
 		(immutable(FunBody.FileBytes)) =>
 			reprSym!"bytes" ,
 		(immutable FlagsFunction it) =>
 			reprRecord!"flags-fn"(alloc, [reprSym(flagsFunctionName(it))]),
-		(ref immutable FunBody.RecordFieldGet it) =>
+		(immutable FunBody.RecordFieldGet it) =>
 			reprRecord!"field-get"(alloc, [reprNat(it.fieldIndex)]),
-		(ref immutable FunBody.RecordFieldSet it) =>
+		(immutable FunBody.RecordFieldSet it) =>
 			reprRecord!"field-set"(alloc, [reprNat(it.fieldIndex)]),
-		(ref immutable FunBody.ThreadLocal) =>
-			reprSym!"thread-local" ,
-	)(a);
+		(immutable FunBody.ThreadLocal) =>
+			reprSym!"thread-local");
 
 immutable(Repr) reprType(ref Alloc alloc, scope ref Ctx ctx, immutable Type a) =>
-	matchType!(immutable Repr)(
-		a,
+	a.match!(immutable Repr)(
 		(immutable Type.Bogus) =>
 			reprSym!"bogus" ,
-		(immutable TypeParam* p) =>
-			reprRecord!"type-param"(alloc, [reprSym(p.name)]),
-		(immutable StructInst* a) =>
-			reprStructInst(alloc, ctx, *a));
+		(ref immutable TypeParam x) =>
+			reprRecord!"type-param"(alloc, [reprSym(x.name)]),
+		(ref immutable StructInst x) =>
+			reprStructInst(alloc, ctx, x));
 
 immutable(Repr) reprStructInst(ref Alloc alloc, scope ref Ctx ctx, ref immutable StructInst a) =>
 	reprRecord(
@@ -276,42 +266,41 @@ immutable(Repr) reprStructInst(ref Alloc alloc, scope ref Ctx ctx, ref immutable
 			reprType(alloc, ctx, it)));
 
 immutable(Repr) reprExpr(ref Alloc alloc, scope ref Ctx ctx, ref immutable Expr a) =>
-	matchExpr!(immutable Repr)(
-		a,
-		(ref immutable Expr.AssertOrForbid x) =>
+	a.kind.match!(immutable Repr)(
+		(immutable ExprKind.AssertOrForbid x) =>
 			reprRecord(alloc, symOfAssertOrForbidKind(x.kind), [
-				reprExpr(alloc, ctx, x.condition),
-				reprOpt(alloc, x.thrown, (ref immutable Expr thrown) =>
-					reprExpr(alloc, ctx, thrown))]),
-		(ref immutable Expr.Bogus) =>
+				reprExpr(alloc, ctx, *x.condition),
+				reprOpt!(Expr*)(alloc, x.thrown, (ref immutable Expr* thrown) =>
+					reprExpr(alloc, ctx, *thrown))]),
+		(immutable ExprKind.Bogus) =>
 			reprSym!"bogus" ,
-		(ref immutable Expr.Call e) =>
+		(immutable ExprKind.Call e) =>
 			reprRecord!"call"(alloc, [
 				reprCalled(alloc, ctx, e.called),
 				reprArr(alloc, e.args, (ref immutable Expr arg) =>
 					reprExpr(alloc, ctx, arg))]),
-		(ref immutable Expr.ClosureGet a) =>
+		(immutable ExprKind.ClosureGet a) =>
 			reprRecord!"closure-get"(alloc, [reprNat(a.closureRef.index)]),
-		(ref immutable Expr.ClosureSet a) =>
+		(immutable ExprKind.ClosureSet a) =>
 			reprRecord!"closure-set"(alloc, [reprNat(a.closureRef.index)]),
-		(ref immutable Expr.Cond e) =>
+		(ref immutable ExprKind.Cond e) =>
 			reprRecord!"cond"(alloc, [
 				reprExpr(alloc, ctx, e.cond),
 				reprExpr(alloc, ctx, e.then),
 				reprExpr(alloc, ctx, e.else_)]),
-		(ref immutable Expr.Drop x) =>
+		(ref immutable ExprKind.Drop x) =>
 			reprRecord!"drop"(alloc, [reprExpr(alloc, ctx, x.arg)]),
-		(ref immutable Expr.FunPtr it) =>
+		(immutable ExprKind.FunPtr it) =>
 			reprRecord!"fun-pointer"(alloc, [
 				reprFunInst(alloc, ctx, *it.funInst),
 				reprStructInst(alloc, ctx, *it.structInst)]),
-		(ref immutable Expr.IfOption it) =>
+		(ref immutable ExprKind.IfOption it) =>
 			reprRecord!"if"(alloc, [
 				reprExpr(alloc, ctx, it.option),
 				reprLocal(alloc, ctx, *it.local),
 				reprExpr(alloc, ctx, it.then),
 				reprExpr(alloc, ctx, it.else_)]),
-		(ref immutable Expr.Lambda a) =>
+		(ref immutable ExprKind.Lambda a) =>
 			reprRecord!"lambda"(alloc, [
 				reprArr(alloc, a.params, (ref immutable Param it) =>
 					reprParam(alloc, ctx, it)),
@@ -321,64 +310,64 @@ immutable(Repr) reprExpr(ref Alloc alloc, scope ref Ctx ctx, ref immutable Expr 
 				reprStructInst(alloc, ctx, *a.funType),
 				reprSym(symOfFunKind(a.kind)),
 				reprType(alloc, ctx, a.returnType)]),
-		(ref immutable Expr.Let it) =>
+		(ref immutable ExprKind.Let it) =>
 			reprRecord!"let"(alloc, [
 				reprLocal(alloc, ctx, *it.local),
 				reprExpr(alloc, ctx, it.value),
 				reprExpr(alloc, ctx, it.then)]),
-		(ref immutable Expr.Literal it) =>
+		(ref immutable ExprKind.Literal it) =>
 			reprRecord!"literal"(alloc, [
 				reprStructInst(alloc, ctx, *it.structInst),
 				reprOfConstant(alloc, it.value)]),
-		(ref immutable Expr.LiteralCString it) =>
+		(immutable ExprKind.LiteralCString it) =>
 			reprRecord!"c-string-lit"(alloc, [reprStr(it.value)]),
-		(ref immutable Expr.LiteralSymbol it) =>
+		(immutable ExprKind.LiteralSymbol it) =>
 			reprRecord!"sym-lit"(alloc, [reprSym(it.value)]),
-		(ref immutable Expr.LocalGet it) =>
+		(immutable ExprKind.LocalGet it) =>
 			reprRecord!"local-get"(alloc, [reprSym(it.local.name)]),
-		(ref immutable Expr.LocalSet it) =>
+		(ref immutable ExprKind.LocalSet it) =>
 			reprRecord!"local-set"(alloc, [reprSym(it.local.name), reprExpr(alloc, ctx, it.value)]),
-		(ref immutable Expr.Loop x) =>
+		(ref immutable ExprKind.Loop x) =>
 			reprRecord!"loop"(alloc, [reprExpr(alloc, ctx, x.body_)]),
-		(ref immutable Expr.LoopBreak x) =>
+		(ref immutable ExprKind.LoopBreak x) =>
 			reprRecord!"break"(alloc, [reprExpr(alloc, ctx, x.value)]),
-		(ref immutable Expr.LoopContinue x) =>
+		(immutable ExprKind.LoopContinue x) =>
 			reprRecord!"continue"(alloc, []),
-		(ref immutable Expr.LoopUntil x) =>
+		(ref immutable ExprKind.LoopUntil x) =>
 			reprRecord!"until"(alloc, [
 				reprExpr(alloc, ctx, x.condition),
 				reprExpr(alloc, ctx, x.body_)]),
-		(ref immutable Expr.LoopWhile x) =>
+		(ref immutable ExprKind.LoopWhile x) =>
 			reprRecord!"while"(alloc, [
 				reprExpr(alloc, ctx, x.condition),
 				reprExpr(alloc, ctx, x.body_)]),
-		(ref immutable Expr.MatchEnum a) =>
+		(ref immutable ExprKind.MatchEnum a) =>
 			reprRecord!"match-enum"(alloc, [
 				reprExpr(alloc, ctx, a.matched),
 				reprArr(alloc, a.cases, (ref immutable Expr case_) =>
 					reprExpr(alloc, ctx, case_))]),
-		(ref immutable Expr.MatchUnion a) =>
+		(ref immutable ExprKind.MatchUnion a) =>
 			reprRecord!"match-union"(alloc, [
 				reprExpr(alloc, ctx, a.matched),
 				reprStructInst(alloc, ctx, *a.matchedUnion),
-				reprArr(alloc, a.cases, (ref immutable Expr.MatchUnion.Case case_) =>
+				reprArr(alloc, a.cases, (ref immutable ExprKind.MatchUnion.Case case_) =>
 					reprMatchUnionCase(alloc, ctx, case_))]),
-		(ref immutable Expr.ParamGet it) =>
+		(immutable ExprKind.ParamGet it) =>
 			reprRecord!"param-get"(alloc, [reprSym(force(it.param.name))]),
-		(ref immutable Expr.PtrToField it) =>
+		(ref immutable ExprKind.PtrToField it) =>
 			reprRecord!"ptr-to-field"(alloc, [
 				reprType(alloc, ctx, it.pointerType),
 				reprExpr(alloc, ctx, it.target),
 				reprNat(it.fieldIndex)]),
-		(ref immutable Expr.PtrToLocal it) =>
+		(immutable ExprKind.PtrToLocal it) =>
 			reprRecord!"ptr-to-local"(alloc, [reprSym(it.local.name)]),
-		(ref immutable Expr.PtrToParam it) =>
+		(immutable ExprKind.PtrToParam it) =>
 			reprRecord!"ptr-to-param"(alloc, [reprSym(force(it.param.name))]),
-		(ref immutable Expr.Seq a) =>
+		(ref immutable ExprKind.Seq a) =>
 			reprRecord!"seq"(alloc, [
 				reprExpr(alloc, ctx, a.first),
 				reprExpr(alloc, ctx, a.then)]),
-		(ref immutable Expr.Throw a) =>
+		(ref immutable ExprKind.Throw a) =>
 			reprRecord!"throw"(alloc, [reprExpr(alloc, ctx, a.thrown)]));
 
 immutable(Sym) symOfFunKind(immutable FunKind a) {
@@ -394,7 +383,7 @@ immutable(Sym) symOfFunKind(immutable FunKind a) {
 	}
 }
 
-immutable(Repr) reprMatchUnionCase(ref Alloc alloc, scope ref Ctx ctx, ref immutable Expr.MatchUnion.Case a) =>
+immutable(Repr) reprMatchUnionCase(ref Alloc alloc, scope ref Ctx ctx, ref immutable ExprKind.MatchUnion.Case a) =>
 	reprRecord!"case"(alloc, [
 		reprOpt!(Local*)(alloc, a.local, (ref immutable Local* local) =>
 			reprLocal(alloc, ctx, *local)),
@@ -407,13 +396,11 @@ immutable(Repr) reprLocal(ref Alloc alloc, scope ref Ctx ctx, ref immutable Loca
 		reprType(alloc, ctx, a.type)]);
 
 immutable(Repr) reprCalled(ref Alloc alloc, scope ref Ctx ctx, ref immutable Called a) =>
-	matchCalled!(
-		immutable Repr,
-		(immutable FunInst* it) =>
-			reprFunInst(alloc, ctx, *it),
-		(ref immutable SpecSig it) =>
-			reprSpecSig(alloc, ctx, it),
-	)(a);
+	a.match!(immutable Repr)(
+		(ref immutable FunInst x) =>
+			reprFunInst(alloc, ctx, x),
+		(ref immutable SpecSig x) =>
+			reprSpecSig(alloc, ctx, x));
 
 immutable(Repr) reprFunInst(ref Alloc alloc, scope ref Ctx ctx, ref immutable FunInst a) {
 	ArrBuilder!NameAndRepr args;

@@ -8,10 +8,6 @@ import model.model :
 	FieldMutability,
 	FunDecl,
 	isVariadic,
-	matchSpecBody,
-	matchStructBody,
-	matchStructOrAlias,
-	matchType,
 	Module,
 	name,
 	NameReferents,
@@ -150,8 +146,7 @@ immutable(DocExport) documentExport(
 }
 
 immutable(DocExport) documentStructOrAlias(ref Alloc alloc, immutable StructOrAlias a) =>
-	matchStructOrAlias!(immutable DocExport)(
-		a,
+	a.match!(immutable DocExport)(
 		(ref immutable StructAlias x) =>
 			documentStructAlias(alloc, x),
 		(ref immutable StructDecl x) =>
@@ -164,29 +159,28 @@ immutable(DocExport) documentStructAlias(ref Alloc alloc, ref immutable StructAl
 }
 
 immutable(DocExport) documentStructDecl(ref Alloc alloc, ref immutable StructDecl a) =>
-	documentExport(alloc, a.range, a.name, a.docComment, a.typeParams, matchStructBody!(immutable Repr)(
-		body_(a),
-		(ref immutable StructBody.Bogus) =>
+	documentExport(alloc, a.range, a.name, a.docComment, a.typeParams, body_(a).match!(immutable Repr)(
+		(immutable StructBody.Bogus) =>
 			unreachable!(immutable Repr),
-		(ref immutable StructBody.Builtin) =>
+		(immutable StructBody.Builtin) =>
 			reprNamedRecord!"builtin"(alloc, [nameAndRepr!"name"(reprSym(a.name))]),
-		(ref immutable StructBody.Enum it) =>
+		(immutable StructBody.Enum it) =>
 			reprNamedRecord!"enum"(alloc, [nameAndRepr!"members"(
 				reprArr(alloc, it.members, (ref immutable StructBody.Enum.Member member) =>
 					reprSym(member.name)))]),
-		(ref immutable StructBody.Extern x) =>
+		(immutable StructBody.Extern x) =>
 			reprNamedRecord!"extern"(alloc, [
 				nameAndRepr!"size"(reprOpt(alloc, x.size, (ref immutable TypeSize size) =>
 					reprNamedRecord!"type-size"(alloc, [
 						nameAndRepr!"size"(reprNat(size.sizeBytes)),
 						nameAndRepr!"alignment"(reprNat(size.alignmentBytes))])))]),
-		(ref immutable StructBody.Flags it) =>
+		(immutable StructBody.Flags it) =>
 			reprNamedRecord!"flags"(alloc, [nameAndRepr!"members"(
 				reprArr(alloc, it.members, (ref immutable StructBody.Enum.Member member) =>
 					reprSym(member.name)))]),
-		(ref immutable StructBody.Record it) =>
+		(immutable StructBody.Record it) =>
 			documentRecord(alloc, a, it),
-		(ref immutable StructBody.Union it) =>
+		(immutable StructBody.Union it) =>
 			documentUnion(alloc, a, it)));
 
 immutable(Repr) documentRecord(ref Alloc alloc, ref immutable StructDecl decl, ref immutable StructBody.Record a) {
@@ -251,18 +245,15 @@ immutable(Repr) documentUnionMember(ref Alloc alloc, ref immutable UnionMember a
 	return reprNamedRecord!"member"(finishArr(alloc, fields));
 }
 
-immutable(DocExport) documentSpec(ref Alloc alloc, ref immutable SpecDecl a) {
-	immutable Repr value = reprNamedRecord!"spec"(alloc, [
-		nameAndRepr!"body"(matchSpecBody!(immutable Repr)(
-			a.body_,
+immutable(DocExport) documentSpec(ref Alloc alloc, ref immutable SpecDecl a) =>
+	documentExport(alloc, a.range, a.name, a.docComment, a.typeParams, reprNamedRecord!"spec"(alloc, [
+		nameAndRepr!"body"(a.body_.match!(immutable Repr)(
 			(immutable SpecBody.Builtin) =>
 				reprNamedRecord!"builtin"(alloc, []),
 			(immutable SpecDeclSig[] sigs) =>
 				reprNamedRecord!"sigs"(alloc, [
 					nameAndRepr!"sigs"(reprArr(alloc, sigs, (ref immutable SpecDeclSig sig) =>
-						documentSpecDeclSig(alloc, sig)))])))]);
-	return documentExport(alloc, a.range, a.name, a.docComment, a.typeParams, value);
-}
+						documentSpecDeclSig(alloc, sig)))])))]));
 
 immutable(Repr) documentSpecDeclSig(ref Alloc alloc, ref immutable SpecDeclSig a) {
 	ArrBuilder!NameAndRepr fields;
@@ -311,14 +302,13 @@ immutable(Repr) documentParam(ref Alloc alloc, ref immutable Param a) =>
 		nameAndRepr!"type"(documentTypeRef(alloc, a.type))]);
 
 immutable(Repr) documentTypeRef(ref Alloc alloc, immutable Type a) =>
-	matchType!(immutable Repr)(
-		a,
+	a.match!(immutable Repr)(
 		(immutable Type.Bogus) =>
 			unreachable!(immutable Repr),
-		(immutable TypeParam* it) =>
-			reprNamedRecord!"type-param"(alloc, [nameAndRepr!"name"(reprSym(it.name))]),
-		(immutable StructInst* it) =>
-			documentStructInst(alloc, *it));
+		(ref immutable TypeParam x) =>
+			reprNamedRecord!"type-param"(alloc, [nameAndRepr!"name"(reprSym(x.name))]),
+		(ref immutable StructInst x) =>
+			documentStructInst(alloc, x));
 
 immutable(Repr) documentSpecInst(ref Alloc alloc, ref immutable SpecInst a) =>
 	documentNameAndTypeArgs(alloc, sym!"spec", name(a), typeArgs(a));

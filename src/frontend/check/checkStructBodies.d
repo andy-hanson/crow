@@ -6,15 +6,7 @@ import frontend.check.checkCtx : addDiag, CheckCtx, rangeInFile;
 import frontend.check.dicts : StructsAndAliasesDict;
 import frontend.check.typeFromAst : checkTypeParams, typeFromAst;
 import frontend.parse.ast :
-	LiteralIntAst,
-	LiteralNatAst,
-	matchLiteralIntOrNat,
-	matchStructDeclAstBody,
-	ModifierAst,
-	rangeOfModifierAst,
-	StructDeclAst,
-	symOfModifierKind,
-	TypeAst;
+	LiteralIntAst, LiteralNatAst, ModifierAst, rangeOfModifierAst, StructDeclAst, symOfModifierKind, TypeAst;
 import model.concreteModel : TypeSize;
 import model.diag : Diag, TypeKind;
 import model.model :
@@ -31,7 +23,6 @@ import model.model :
 	Linkage,
 	linkage,
 	linkageRange,
-	matchType,
 	name,
 	Purity,
 	purityRange,
@@ -86,25 +77,24 @@ void checkStructBodies(
 		structs,
 		asts,
 		(StructDecl* struct_, ref immutable StructDeclAst ast) {
-			setBody(*struct_, matchStructDeclAstBody!(
-				immutable StructBody,
-				(ref immutable StructDeclAst.Body.Builtin) {
+			setBody(*struct_, ast.body_.match!(immutable StructBody)(
+				(immutable StructDeclAst.Body.Builtin) {
 					checkOnlyStructModifiers(ctx, TypeKind.builtin, ast.modifiers);
 					return immutable StructBody(immutable StructBody.Builtin());
 				},
-				(ref immutable StructDeclAst.Body.Enum it) {
+				(immutable StructDeclAst.Body.Enum it) {
 					checkOnlyStructModifiers(ctx, TypeKind.enum_, ast.modifiers);
 					return immutable StructBody(
 						checkEnum(ctx, commonTypes, structsAndAliasesDict, ast.range, it, delayStructInsts));
 				},
-				(ref immutable StructDeclAst.Body.Extern it) =>
+				(immutable StructDeclAst.Body.Extern it) =>
 					immutable StructBody(checkExtern(ctx, ast, it)),
-				(ref immutable StructDeclAst.Body.Flags it) {
+				(immutable StructDeclAst.Body.Flags it) {
 					checkOnlyStructModifiers(ctx, TypeKind.flags, ast.modifiers);
 					return immutable StructBody(
 						checkFlags(ctx, commonTypes, structsAndAliasesDict, ast.range, it, delayStructInsts));
 				},
-				(ref immutable StructDeclAst.Body.Record it) =>
+				(immutable StructDeclAst.Body.Record it) =>
 					immutable StructBody(checkRecord(
 						ctx,
 						commonTypes,
@@ -113,7 +103,7 @@ void checkStructBodies(
 						ast.modifiers,
 						it,
 						delayStructInsts)),
-				(ref immutable StructDeclAst.Body.Union it) {
+				(immutable StructDeclAst.Body.Union it) {
 					checkOnlyStructModifiers(ctx, TypeKind.union_, ast.modifiers);
 					return immutable StructBody(checkUnion(
 						ctx,
@@ -122,8 +112,7 @@ void checkStructBodies(
 						castImmutable(struct_),
 						it,
 						delayStructInsts));
-				},
-			)(ast.body_));
+				}));
 		});
 }
 
@@ -250,15 +239,19 @@ immutable(Purity) defaultPurity(immutable TypeKind a) {
 }
 
 immutable(TypeKind) getTypeKind(ref immutable StructDeclAst.Body a) =>
-	matchStructDeclAstBody!(
-		immutable TypeKind,
-		(ref immutable StructDeclAst.Body.Builtin) => TypeKind.builtin,
-		(ref immutable StructDeclAst.Body.Enum) => TypeKind.enum_,
-		(ref immutable StructDeclAst.Body.Extern) => TypeKind.extern_,
-		(ref immutable StructDeclAst.Body.Flags) => TypeKind.flags,
-		(ref immutable StructDeclAst.Body.Record) => TypeKind.record,
-		(ref immutable StructDeclAst.Body.Union) => TypeKind.union_,
-	)(a);
+	a.match!(immutable TypeKind)(
+		(immutable StructDeclAst.Body.Builtin) =>
+			TypeKind.builtin,
+		(immutable StructDeclAst.Body.Enum) =>
+			TypeKind.enum_,
+		(immutable StructDeclAst.Body.Extern) =>
+			TypeKind.extern_,
+		(immutable StructDeclAst.Body.Flags) =>
+			TypeKind.flags,
+		(immutable StructDeclAst.Body.Record) =>
+			TypeKind.record,
+		(immutable StructDeclAst.Body.Union) =>
+			TypeKind.union_);
 
 immutable(Opt!PurityAndForced) purityAndForcedFromModifier(immutable ModifierAst.Kind a) {
 	final switch (a) {
@@ -375,20 +368,16 @@ immutable(EnumOrFlagsTypeAndMembers) checkEnumOrFlagsMembers(
 				immutable ValueAndOverflow valueAndOverflow = () {
 					if (has(memberAst.value))
 						return isSignedEnumBackingType(enumType)
-							? matchLiteralIntOrNat!(
-								immutable ValueAndOverflow,
-								(ref immutable LiteralIntAst i) =>
+							? force(memberAst.value).match!(immutable ValueAndOverflow)(
+								(immutable LiteralIntAst i) =>
 									immutable ValueAndOverflow(immutable EnumValue(i.value), i.overflow),
-								(ref immutable LiteralNatAst n) =>
-									immutable ValueAndOverflow(immutable EnumValue(n.value), n.value > long.max),
-							)(force(memberAst.value))
-							: matchLiteralIntOrNat!(
-								immutable ValueAndOverflow,
-								(ref immutable LiteralIntAst) =>
+								(immutable LiteralNatAst n) =>
+									immutable ValueAndOverflow(immutable EnumValue(n.value), n.value > long.max))
+							: force(memberAst.value).match!(immutable ValueAndOverflow)(
+								(immutable LiteralIntAst) =>
 									todo!(immutable ValueAndOverflow)("signed value in unsigned enum"),
-								(ref immutable LiteralNatAst n) =>
-									immutable ValueAndOverflow(immutable EnumValue(n.value), n.overflow),
-							)(force(memberAst.value));
+								(immutable LiteralNatAst n) =>
+									immutable ValueAndOverflow(immutable EnumValue(n.value), n.overflow));
 					else
 						return cbGetNextValue(lastValue, enumType);
 				}();
@@ -473,8 +462,7 @@ immutable(EnumBackingType) getEnumTypeFromType(
 	immutable Type type,
 ) {
 	immutable IntegralTypes integrals = commonTypes.integrals;
-	return matchType!(immutable EnumBackingType)(
-		type,
+	return type.matchWithPointers!(immutable EnumBackingType)(
 		(immutable Type.Bogus) =>
 			defaultEnumBackingType(),
 		(immutable TypeParam*) =>

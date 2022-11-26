@@ -5,9 +5,7 @@ module lower.lowExprHelpers;
 import model.constant : Constant;
 import model.lowModel :
 	asGcOrRawPointee,
-	asPrimitive,
 	AllLowTypes,
-	asPtrRawConst,
 	debugName,
 	LowExpr,
 	LowExprKind,
@@ -165,9 +163,9 @@ immutable(LowExpr) genSizeOf(immutable FileAndRange range, immutable LowType t) 
 immutable(LowExpr) genLocalGet(ref Alloc alloc, immutable FileAndRange range, immutable LowLocal* local) =>
 	immutable LowExpr(local.type, range, immutable LowExprKind(immutable LowExprKind.LocalGet(local)));
 
-immutable(LowParam) genParam(immutable Sym name, immutable LowType type) =>
+immutable(LowParam) genParam(ref Alloc alloc, immutable Sym name, immutable LowType type) =>
 	immutable LowParam(
-		immutable LowParamSource(immutable LowParamSource.Generated(name)),
+		immutable LowParamSource(allocate(alloc, immutable LowParamSource.Generated(name))),
 		type);
 
 immutable(LowExpr) genParamGet(
@@ -201,29 +199,29 @@ immutable(LowExpr) genPtrEq(
 		immutable LowExprKind.SpecialBinary(LowExprKind.SpecialBinary.Kind.eqPtr, a, b))));
 
 immutable(LowExprKind) genEnumEq(ref Alloc alloc, immutable LowExpr a, immutable LowExpr b) {
-	verify(asPrimitive(a.type) == asPrimitive(b.type));
+	verify(a.type.as!PrimitiveType == b.type.as!PrimitiveType);
 	return immutable LowExprKind(allocate(
 		alloc,
-		immutable LowExprKind.SpecialBinary(eqForType(asPrimitive(a.type)), a, b)));
+		immutable LowExprKind.SpecialBinary(eqForType(a.type.as!PrimitiveType), a, b)));
 }
 
 immutable(LowExprKind) genBitwiseNegate(ref Alloc alloc, immutable LowExpr a) =>
 	immutable LowExprKind(allocate(
 		alloc,
-		immutable LowExprKind.SpecialUnary(bitwiseNegateForType(asPrimitive(a.type)), a)));
+		immutable LowExprKind.SpecialUnary(bitwiseNegateForType(a.type.as!PrimitiveType), a)));
 
 immutable(LowExprKind) genEnumIntersect(ref Alloc alloc, immutable LowExpr a, immutable LowExpr b) {
-	verify(asPrimitive(a.type) == asPrimitive(b.type));
+	verify(a.type.as!PrimitiveType == b.type.as!PrimitiveType);
 	return immutable LowExprKind(allocate(
 		alloc,
-		immutable LowExprKind.SpecialBinary(intersectForType(asPrimitive(a.type)), a, b)));
+		immutable LowExprKind.SpecialBinary(intersectForType(a.type.as!PrimitiveType), a, b)));
 }
 
 immutable(LowExprKind) genEnumUnion(ref Alloc alloc, immutable LowExpr a, immutable LowExpr b) {
-	verify(asPrimitive(a.type) == asPrimitive(b.type));
+	verify(a.type.as!PrimitiveType == b.type.as!PrimitiveType);
 	return immutable LowExprKind(allocate(
 		alloc,
-		immutable LowExprKind.SpecialBinary(unionForType(asPrimitive(a.type)), a, b)));
+		immutable LowExprKind.SpecialBinary(unionForType(a.type.as!PrimitiveType), a, b)));
 }
 
 private immutable(LowExprKind.SpecialUnary.Kind) bitwiseNegateForType(immutable PrimitiveType a) {
@@ -388,7 +386,7 @@ immutable(LowLocal*) genLocal(
 	immutable LowType type,
 ) =>
 	allocate(alloc, immutable LowLocal(
-		immutable LowLocalSource(immutable LowLocalSource.Generated(name, index)),
+		immutable LowLocalSource(allocate(alloc, immutable LowLocalSource.Generated(name, index))),
 		type));
 
 immutable(LowExpr) genGetArrSize(
@@ -414,5 +412,5 @@ immutable(LowType.PtrRawConst) getElementPtrTypeFromArrType(
 	verify(arrRecord.fields.length == 2);
 	verify(debugName(arrRecord.fields[0]) == sym!"size");
 	verify(debugName(arrRecord.fields[1]) == sym!"begin-pointer");
-	return asPtrRawConst(arrRecord.fields[1].type);
+	return arrRecord.fields[1].type.as!(LowType.PtrRawConst);
 }

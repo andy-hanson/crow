@@ -173,7 +173,7 @@ void writeWithNewlines(T)(
 	}
 }
 
-void writeQuotedStr(ref Writer writer, ref immutable string s) {
+void writeQuotedStr(ref Writer writer, scope immutable string s) {
 	writer ~= '"';
 	foreach (immutable char c; s)
 		writeEscapedChar_inner(writer, c);

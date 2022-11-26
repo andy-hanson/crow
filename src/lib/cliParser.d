@@ -1,5 +1,7 @@
 module lib.cliParser;
 
+@safe @nogc pure nothrow:
+
 import frontend.lang : crowExtension, JitOptions, OptimizationLevel;
 import lib.compiler : PrintKind;
 import util.alloc.alloc : Alloc;
@@ -11,55 +13,10 @@ import util.opt : force, has, none, Opt, some;
 import util.path : AllPaths, parseAbsoluteOrRelPathAndExtension, Path, PathAndExtension;
 import util.ptr : castNonScope;
 import util.sym : AllSymbols, Sym, sym, symOfSafeCStr, symOfStr;
+import util.union_ : Union;
 import util.util : todo, verify;
 
-@safe @nogc nothrow: // not pure
-
-@trusted immutable(Out) matchCommand(Out)(
-	scope immutable Command a,
-	scope immutable(Out) delegate(scope immutable Command.Build) @safe @nogc nothrow cbBuild,
-	scope immutable(Out) delegate(scope immutable Command.Document) @safe @nogc nothrow cbDocument,
-	scope immutable(Out) delegate(scope immutable Command.Help) @safe @nogc nothrow cbHelp,
-	scope immutable(Out) delegate(scope immutable Command.Print) @safe @nogc nothrow cbPrint,
-	scope immutable(Out) delegate(scope immutable Command.Run) @safe @nogc nothrow cbRun,
-	scope immutable(Out) delegate(scope immutable Command.Test) @safe @nogc nothrow cbTest,
-	scope immutable(Out) delegate(scope immutable Command.Version) @safe @nogc nothrow cbVersion,
-) {
-	final switch (a.kind) {
-		case Command.Kind.build:
-			return cbBuild(a.build);
-		case Command.Kind.document:
-			return cbDocument(a.document);
-		case Command.Kind.help:
-			return cbHelp(a.help);
-		case Command.Kind.print:
-			return cbPrint(a.print);
-		case Command.Kind.run:
-			return cbRun(a.run);
-		case Command.Kind.test:
-			return cbTest(a.test);
-		case Command.Kind.version_:
-			return cbVersion(a.version_);
-	}
-}
-
-@trusted Out matchRunOptions(Out)(
-	ref immutable RunOptions a,
-	scope Out delegate(ref immutable RunOptions.Interpret) @safe @nogc nothrow cbInterpret,
-	scope Out delegate(ref immutable RunOptions.Jit) @safe @nogc nothrow cbJit,
-) {
-	final switch (a.kind) {
-		case RunOptions.Kind.interpret:
-			return cbInterpret(a.interpret);
-		case RunOptions.Kind.jit:
-			return cbJit(a.jit);
-	}
-}
-
-pure:
-
 struct Command {
-	@safe @nogc pure nothrow:
 	struct Build {
 		immutable Path mainPath;
 		immutable BuildOptions options;
@@ -90,56 +47,22 @@ struct Command {
 	}
 	struct Version {}
 
-	@trusted immutable this(immutable Build a) { kind = Kind.build; build = a; }
-	@trusted immutable this(immutable Document a) { kind = Kind.document; document = a; }
-	@trusted immutable this(immutable Help a) { kind = Kind.help; help = a; }
-	@trusted immutable this(immutable Print a) { kind = Kind.print; print = a; }
-	@trusted immutable this(immutable Run a) { kind = Kind.run; run = a; }
-	@trusted immutable this(immutable Test a) { kind = Kind.test; test = a; }
-	immutable this(immutable Version a) { kind = Kind.version_; version_ = a; }
-
-	private:
-	enum Kind {
-		build,
-		document,
-		help,
-		print,
-		run,
-		test,
-		version_,
-	}
-	immutable Kind kind;
-	union {
-		immutable Build build;
-		immutable Document document;
-		immutable Help help;
-		immutable Print print;
-		immutable Run run;
-		immutable Test test;
-		immutable Version version_;
-	}
+	mixin Union!(
+		immutable Build,
+		immutable Document,
+		immutable Help,
+		immutable Print,
+		immutable Run,
+		immutable Test,
+		immutable Version);
 }
 
 struct RunOptions {
-	@safe @nogc pure nothrow:
 	struct Interpret {}
 	struct Jit {
 		immutable JitOptions options;
 	}
-
-	immutable this(immutable Interpret a) { kind = Kind.interpret; interpret = a; }
-	immutable this(immutable Jit a) { kind = Kind.jit; jit = a; }
-
-	private:
-	enum Kind {
-		interpret,
-		jit,
-	}
-	immutable Kind kind;
-	union {
-		immutable Interpret interpret;
-		immutable Jit jit;
-	}
+	mixin Union!(immutable Interpret, immutable Jit);
 }
 
 struct BuildOptions {

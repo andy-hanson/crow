@@ -44,12 +44,8 @@ import interpret.generateExpr : generateFunFromExpr;
 import interpret.generateText :
 	generateText, generateThreadLocalsInfo, TextAndInfo, TextIndex, TextInfo, ThreadLocalsInfo;
 import interpret.runBytecode : maxThreadLocalsSizeWords;
-import model.concreteModel : asInst, name;
+import model.concreteModel : ConcreteStructSource, name;
 import model.lowModel :
-	asRecordType,
-	asUnionType,
-	isRecordType,
-	isUnionType,
 	LowField,
 	LowFun,
 	LowFunBody,
@@ -61,8 +57,6 @@ import model.lowModel :
 	LowProgram,
 	LowType,
 	LowUnion,
-	matchLowFunBody,
-	matchLowType,
 	name,
 	PrimitiveType,
 	typeSize;
@@ -90,7 +84,7 @@ immutable(ByteCode) generateBytecode(
 	ref const AllSymbols allSymbols,
 	scope ref immutable Program modelProgram,
 	ref immutable LowProgram program,
-	scope immutable ExternFunPtrsForAllLibraries externFunPtrs,
+	immutable ExternFunPtrsForAllLibraries externFunPtrs,
 	scope immutable MakeSyntheticFunPtrs makeSyntheticFunPtrs,
 ) {
 	//TODO: use a temp alloc for 2nd arg
@@ -105,7 +99,7 @@ private immutable(ByteCode) generateBytecodeInner(
 	ref const AllSymbols allSymbols,
 	scope ref immutable Program modelProgram,
 	ref immutable LowProgram program,
-	scope immutable ExternFunPtrsForAllLibraries externFunPtrs,
+	immutable ExternFunPtrsForAllLibraries externFunPtrs,
 	scope immutable MakeSyntheticFunPtrs cbMakeSyntheticFunPtrs,
 ) {
 	immutable FunPtrTypeToDynCallSig funPtrTypeToDynCallSig =
@@ -249,7 +243,7 @@ void generateBytecodeForFun(
 	ref immutable TextInfo textInfo,
 	ref immutable ThreadLocalsInfo threadLocalsInfo,
 	scope ref immutable LowProgram program,
-	scope immutable ExternFunPtrsForAllLibraries externFunPtrs,
+	immutable ExternFunPtrsForAllLibraries externFunPtrs,
 	immutable LowFunIndex funIndex,
 	scope ref immutable LowFun fun,
 ) {
@@ -278,18 +272,16 @@ void generateBytecodeForFun(
 	immutable ByteCodeSource source =
 		immutable ByteCodeSource(funIndex, lowFunRange(fun, allSymbols).range.start);
 
-	matchLowFunBody!(
-		void,
-		(ref immutable LowFunBody.Extern body_) {
+	fun.body_.match!void(
+		(immutable LowFunBody.Extern body_) {
 			generateExternCall(writer, allSymbols, program, funIndex, fun, body_, externFunPtrs);
 			writeReturn(writer, source);
 		},
-		(ref immutable LowFunExprBody body_) {
+		(immutable LowFunExprBody body_) {
 			generateFunFromExpr(
 				tempAlloc, writer, allSymbols, program, textInfo, threadLocalsInfo, funIndex,
 				funToReferences, parameters, returnEntries, body_);
-		},
-	)(fun.body_);
+		});
 	verify(getNextStackEntry(writer).entry == returnEntries);
 	setNextStackEntry(writer, immutable StackEntry(0));
 }
@@ -297,11 +289,11 @@ void generateBytecodeForFun(
 void generateExternCall(
 	ref ByteCodeWriter writer,
 	ref const AllSymbols allSymbols,
-	ref immutable LowProgram program,
+	scope ref immutable LowProgram program,
 	immutable LowFunIndex funIndex,
 	scope ref immutable LowFun fun,
 	ref immutable LowFunBody.Extern a,
-	ref immutable ExternFunPtrsForAllLibraries externFunPtrs,
+	immutable ExternFunPtrsForAllLibraries externFunPtrs,
 ) {
 	immutable ByteCodeSource source = immutable ByteCodeSource(funIndex, lowFunRange(fun, allSymbols).range.start);
 	immutable Opt!Sym optName = name(fun);
@@ -354,8 +346,7 @@ void generateExternCallFunPtr(
 }
 
 immutable(DynCallType) toDynCallType(scope immutable LowType a) =>
-	matchLowType!(
-		immutable DynCallType,
+	a.match!(immutable DynCallType)(
 		(immutable LowType.Extern) =>
 			todo!(immutable DynCallType)("!"),
 		(immutable LowType.FunPtr) =>
@@ -399,21 +390,20 @@ immutable(DynCallType) toDynCallType(scope immutable LowType a) =>
 		(immutable LowType.Record) =>
 			unreachable!(immutable DynCallType),
 		(immutable LowType.Union) =>
-			unreachable!(immutable DynCallType),
-	)(a);
+			unreachable!(immutable DynCallType));
 
 void toDynCallTypes(
 	scope ref immutable LowProgram program,
 	scope immutable LowType a,
 	scope void delegate(immutable DynCallType) @safe @nogc pure nothrow cb,
 ) {
-	if (isRecordType(a)) {
-		foreach (immutable LowField field; program.allRecords[asRecordType(a)].fields)
+	if (a.isA!(LowType.Record)) {
+		foreach (immutable LowField field; program.allRecords[a.as!(LowType.Record)].fields)
 			toDynCallTypes(program, field.type, cb);
-	} else if (isUnionType(a)) {
+	} else if (a.isA!(LowType.Union)) {
 		// This should only happen for the 'str[]' in 'main'
-		immutable LowUnion u = program.allUnions[asUnionType(a)];
-		verify(name(*asInst(u.source.source).inst) == sym!"node");
+		immutable LowUnion u = program.allUnions[a.as!(LowType.Union)];
+		verify(name(*u.source.source.as!(ConcreteStructSource.Inst).inst) == sym!"node");
 		immutable size_t sizeWords = 3;
 		verify(typeSize(u).sizeBytes == ulong.sizeof * sizeWords);
 		foreach (immutable size_t i; 0 .. sizeWords)

@@ -32,13 +32,6 @@ import frontend.parse.ast :
 	LoopUntilAst,
 	LoopWhileAst,
 	MatchAst,
-	matchExprAstKind,
-	matchInterpolatedPart,
-	matchNameOrUnderscoreOrNone,
-	matchParamsAst,
-	matchSpecBodyAst,
-	matchStructDeclAstBody,
-	matchTypeAst,
 	ModifierAst,
 	NameAndRange,
 	NameOrUnderscoreOrNone,
@@ -181,20 +174,21 @@ void addSpecTokens(
 		Token.Kind.spec,
 		rangeAtName(allSymbols, a.visibility, a.range.start, a.name)));
 	addTypeParamsTokens(alloc, tokens, allSymbols, a.typeParams);
-	matchSpecBodyAst!(
-		void,
-		(ref immutable SpecBodyAst.Builtin) {},
-		(ref immutable SpecSigAst[] sigs) {
+	a.body_.match!void(
+		(immutable SpecBodyAst.Builtin) {},
+		(immutable SpecSigAst[] sigs) {
 			foreach (ref immutable SpecSigAst sig; sigs) {
 				add(alloc, tokens, immutable Token(
 					Token.Kind.fun,
 					rangeAtName(allSymbols, sig.range.start, sig.name)));
 				addSigReturnTypeAndParamsTokens(alloc, tokens, allSymbols, sig.returnType, sig.params);
 			}
-		},
-	)(a.body_);
+		});
 }
 
+// LDC compilation is slow without this pragma.
+// Might be https://github.com/ldc-developers/ldc/issues/3879
+pragma(inline, false)
 void addSigReturnTypeAndParamsTokens(
 	ref Alloc alloc,
 	ref ArrBuilder!Token tokens,
@@ -203,16 +197,14 @@ void addSigReturnTypeAndParamsTokens(
 	scope immutable ParamsAst params,
 ) {
 	addTypeTokens(alloc, tokens, allSymbols, returnType);
-	matchParamsAst!(
-		void,
-		(immutable ParamAst[] params) {
-			foreach (ref immutable ParamAst param; params)
+	params.match!void(
+		(immutable ParamAst[] regular) {
+			foreach (ref immutable ParamAst param; regular)
 				addParamTokens(alloc, tokens, allSymbols, param);
 		},
-		(ref immutable ParamsAst.Varargs v) {
-			addParamTokens(alloc, tokens, allSymbols, v.param);
-		},
-	)(params);
+		(ref immutable ParamsAst.Varargs) {
+			addParamTokens(alloc, tokens, allSymbols, params.as!(ParamsAst.Varargs*).param);
+		});
 }
 
 void addTypeTokens(
@@ -221,9 +213,8 @@ void addTypeTokens(
 	ref const AllSymbols allSymbols,
 	scope immutable TypeAst a,
 ) {
-	matchTypeAst!(
-		void,
-		(immutable TypeAst.Dict it) {
+	a.match!void(
+		(ref immutable TypeAst.Dict it) {
 			addTypeTokens(alloc, tokens, allSymbols, it.v);
 			add(alloc, tokens, immutable Token(
 				Token.Kind.keyword,
@@ -243,15 +234,14 @@ void addTypeTokens(
 		(immutable TypeAst.InstStruct it) {
 			addInstStructTokens(alloc, tokens, allSymbols, it);
 		},
-		(immutable TypeAst.Suffix it) {
+		(ref immutable TypeAst.Suffix it) {
 			addTypeTokens(alloc, tokens, allSymbols, it.left);
 			add(alloc, tokens, immutable Token(Token.Kind.keyword, suffixRange(it)));
 		},
-		(immutable TypeAst.Tuple it) {
+		(ref immutable TypeAst.Tuple it) {
 			addTypeTokens(alloc, tokens, allSymbols, it.a);
 			addTypeTokens(alloc, tokens, allSymbols, it.b);
-		},
-	)(a);
+		});
 }
 
 void addInstStructTokens(
@@ -320,21 +310,20 @@ void addStructTokens(
 		Token.Kind.struct_,
 		rangeAtName(allSymbols, a.visibility, a.range.start, a.name)));
 	addTypeParamsTokens(alloc, tokens, allSymbols, a.typeParams);
-	matchStructDeclAstBody!(
-		void,
-		(ref immutable StructDeclAst.Body.Builtin) {
+	a.body_.match!void(
+		(immutable StructDeclAst.Body.Builtin) {
 			addModifierTokens(alloc, tokens, allSymbols, a);
 		},
-		(ref immutable StructDeclAst.Body.Enum it) {
+		(immutable StructDeclAst.Body.Enum it) {
 			addEnumOrFlagsTokens(alloc, tokens, allSymbols, a, it.typeArg, it.members);
 		},
-		(ref immutable StructDeclAst.Body.Extern) {
+		(immutable StructDeclAst.Body.Extern) {
 			addModifierTokens(alloc, tokens, allSymbols, a);
 		},
-		(ref immutable StructDeclAst.Body.Flags it) {
+		(immutable StructDeclAst.Body.Flags it) {
 			addEnumOrFlagsTokens(alloc, tokens, allSymbols, a, it.typeArg, it.members);
 		},
-		(ref immutable StructDeclAst.Body.Record record) {
+		(immutable StructDeclAst.Body.Record record) {
 			addModifierTokens(alloc, tokens, allSymbols, a);
 			foreach (ref immutable StructDeclAst.Body.Record.Field field; record.fields) {
 				add(alloc, tokens, immutable Token(
@@ -343,7 +332,7 @@ void addStructTokens(
 				addTypeTokens(alloc, tokens, allSymbols, field.type);
 			}
 		},
-		(ref immutable StructDeclAst.Body.Union union_) {
+		(immutable StructDeclAst.Body.Union union_) {
 			addModifierTokens(alloc, tokens, allSymbols, a);
 			foreach (ref immutable StructDeclAst.Body.Union.Member member; union_.members) {
 				add(alloc, tokens, immutable Token(
@@ -352,8 +341,7 @@ void addStructTokens(
 				if (has(member.type))
 					addTypeTokens(alloc, tokens, allSymbols, force(member.type));
 			}
-		},
-	)(a.body_);
+		});
 }
 
 void addModifierTokens(
@@ -370,7 +358,7 @@ void addEnumOrFlagsTokens(
 	ref Alloc alloc,
 	ref ArrBuilder!Token tokens,
 	ref const AllSymbols allSymbols,
-	ref immutable StructDeclAst a,
+	scope ref immutable StructDeclAst a,
 	scope immutable Opt!(TypeAst*) typeArg,
 	scope immutable StructDeclAst.Body.Enum.Member[] members,
 ) {
@@ -415,8 +403,7 @@ void addExprTokens(
 	ref const AllSymbols allSymbols,
 	scope ref immutable ExprAst a,
 ) {
-	matchExprAstKind!(
-		void,
+	a.kind.match!void(
 		(ref immutable ArrowAccessAst it) {
 			addExprTokens(alloc, tokens, allSymbols, it.left);
 			add(alloc, tokens, immutable Token(Token.Kind.fun, rangeOfNameAndRange(it.name, allSymbols)));
@@ -428,8 +415,8 @@ void addExprTokens(
 				// Only the length matters, and "assert" is same length as "forbid"
 				rangeOfNameAndRange(immutable NameAndRange(a.range.start, sym!"assert"), allSymbols)));
 		},
-		(ref immutable BogusAst) {},
-		(ref immutable CallAst it) {
+		(immutable(BogusAst)) {},
+		(immutable CallAst it) {
 			void addName() {
 				add(alloc, tokens, immutable Token(Token.Kind.fun, rangeOfNameAndRange(it.funName, allSymbols)));
 				addTypeArgsTokens(alloc, tokens, allSymbols, it.typeArgs);
@@ -469,7 +456,7 @@ void addExprTokens(
 			if (has(x.else_))
 				addExprTokens(alloc, tokens, allSymbols, force(x.else_));
 		},
-		(ref immutable(IdentifierAst)) {
+		(immutable(IdentifierAst)) {
 			add(alloc, tokens, immutable Token(Token.Kind.identifier, a.range));
 		},
 		(ref immutable IdentifierSetAst x) {
@@ -491,23 +478,20 @@ void addExprTokens(
 			if (has(it.else_))
 				addExprTokens(alloc, tokens, allSymbols, force(it.else_));
 		},
-		(ref immutable InterpolatedAst it) {
+		(immutable InterpolatedAst it) {
 			Pos pos = a.range.start;
 			if (!empty(it.parts)) {
 				// Ensure opening quote is highlighted
-				matchInterpolatedPart!(
-					void,
-					(ref immutable(string)) {},
-					(ref immutable(ExprAst)) {
+				it.parts[0].match!void(
+					(immutable(string)) {},
+					(immutable(ExprAst)) {
 						add(alloc, tokens, immutable Token(
 							Token.Kind.literalString,
 							immutable RangeWithinFile(pos, pos + 1)));
-					},
-				)(it.parts[0]);
+					});
 				foreach (immutable size_t i, ref immutable InterpolatedPart part; it.parts)
-					matchInterpolatedPart!(
-						void,
-						(ref immutable string s) {
+					part.match!void(
+						(immutable string s) {
 							// TODO: length may be wrong if there are escapes
 							// Ensure the closing quote is highlighted
 							immutable Pos end = safeToUint(pos + s.length) + (i == it.parts.length - 1 ? 1 : 0);
@@ -515,21 +499,18 @@ void addExprTokens(
 								Token.Kind.literalString,
 								immutable RangeWithinFile(pos, end)));
 						},
-						(ref immutable ExprAst e) {
+						(immutable ExprAst e) {
 							addExprTokens(alloc, tokens, allSymbols, e);
 							pos = safeToUint(e.range.end + 1);
-						},
-					)(part);
+						});
 				// Ensure closing quote is highlighted
-				matchInterpolatedPart!(
-					void,
-					(ref immutable(string)) {},
-					(ref immutable(ExprAst)) {
+				it.parts[$ - 1].match!void(
+					(immutable(string)) {},
+					(immutable(ExprAst)) {
 						add(alloc, tokens, immutable Token(
 							Token.Kind.literalString,
 							immutable RangeWithinFile(a.range.end - 1, a.range.end)));
-					},
-				)(it.parts[$ - 1]);
+					});
 			}
 		},
 		(ref immutable LambdaAst it) {
@@ -543,16 +524,16 @@ void addExprTokens(
 			addExprTokens(alloc, tokens, allSymbols, it.initializer);
 			addExprTokens(alloc, tokens, allSymbols, it.then);
 		},
-		(ref immutable(LiteralFloatAst)) {
+		(immutable(LiteralFloatAst)) {
 			add(alloc, tokens, immutable Token(Token.Kind.literalNumber, a.range));
 		},
-		(ref immutable(LiteralIntAst)) {
+		(immutable(LiteralIntAst)) {
 			add(alloc, tokens, immutable Token(Token.Kind.literalNumber, a.range));
 		},
-		(ref immutable(LiteralNatAst)) {
+		(immutable(LiteralNatAst)) {
 			add(alloc, tokens, immutable Token(Token.Kind.literalNumber, a.range));
 		},
-		(ref immutable(LiteralStringAst)) {
+		(immutable(LiteralStringAst)) {
 			add(alloc, tokens, immutable Token(Token.Kind.literalString, a.range));
 		},
 		(ref immutable LoopAst it) {
@@ -568,7 +549,7 @@ void addExprTokens(
 			if (has(it.value))
 				addExprTokens(alloc, tokens, allSymbols, force(it.value));
 		},
-		(ref immutable LoopContinueAst it) {
+		(immutable(LoopContinueAst)) {
 			add(alloc, tokens, immutable Token(
 				Token.Kind.keyword,
 				rangeOfStartAndLength(a.range.start, "continue".length)));
@@ -591,22 +572,20 @@ void addExprTokens(
 			addExprTokens(alloc, tokens, allSymbols, it.matched);
 			foreach (ref immutable MatchAst.CaseAst case_; it.cases) {
 				add(alloc, tokens, immutable Token(Token.Kind.struct_, case_.memberNameRange(allSymbols)));
-				matchNameOrUnderscoreOrNone!(
-					void,
+				case_.local.match!void(
 					(immutable(Sym)) {
 						add(alloc, tokens, immutable Token(Token.Kind.local, case_.localRange(allSymbols)));
 					},
-					(ref immutable NameOrUnderscoreOrNone.Underscore) {},
-					(ref immutable NameOrUnderscoreOrNone.None) {},
-				)(case_.local);
+					(immutable NameOrUnderscoreOrNone.Underscore) {},
+					(immutable NameOrUnderscoreOrNone.None) {});
 				addExprTokens(alloc, tokens, allSymbols, case_.then);
 			}
 		},
 		(ref immutable ParenthesizedAst it) {
 			addExprTokens(alloc, tokens, allSymbols, it.inner);
 		},
-		(ref immutable(PtrAst)) {
-			add(alloc, tokens, immutable Token(Token.Kind.identifier, a.range));
+		(ref immutable PtrAst x) {
+			addExprTokens(alloc, tokens, allSymbols, x.inner);
 		},
 		(ref immutable SeqAst it) {
 			addExprTokens(alloc, tokens, allSymbols, it.first);
@@ -638,8 +617,7 @@ void addExprTokens(
 			addLambdaAstParams(alloc, tokens, allSymbols, x.params);
 			addExprTokens(alloc, tokens, allSymbols, x.arg);
 			addExprTokens(alloc, tokens, allSymbols, x.body_);
-		},
-	)(a.kind);
+		});
 }
 
 immutable(Token) localDefOfNameAndRange(ref const AllSymbols allSymbols, immutable NameAndRange a) =>

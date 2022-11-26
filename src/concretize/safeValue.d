@@ -4,11 +4,9 @@ module concretize.safeValue;
 
 import concretize.concretizeCtx : addConcreteFun, ConcretizeCtx, voidType;
 import concretize.concretizeExpr : nextLambdaImplId;
-import concretize.constantsOrExprs : asConstantsOrExprs, ConstantsOrExprs, matchConstantsOrExprs;
+import concretize.constantsOrExprs : asConstantsOrExprs, ConstantsOrExprs;
 import concretize.allConstantsBuilder : getConstantPtr;
 import model.concreteModel :
-	asConstant,
-	asInst,
 	body_,
 	BuiltinStructKind,
 	ConcreteExpr,
@@ -22,11 +20,9 @@ import model.concreteModel :
 	ConcreteParamSource,
 	ConcreteStruct,
 	ConcreteStructBody,
+	ConcreteStructSource,
 	ConcreteType,
-	isConstant,
 	isSelfMutable,
-	matchConcreteStructBody,
-	matchEnum,
 	ReferenceKind,
 	setBody;
 import model.constant : Constant;
@@ -71,12 +67,12 @@ immutable(ConcreteExpr) safeValueForType(ref Ctx ctx, immutable FileAndRange ran
 		case ReferenceKind.byVal:
 			return inner;
 		case ReferenceKind.byRef:
-			return immutable ConcreteExpr(type, range, isConstant(inner.kind)
+			return immutable ConcreteExpr(type, range, inner.kind.isA!Constant
 				? immutable ConcreteExprKind(getConstantPtr(
 					ctx.alloc,
 					ctx.concretizeCtx.allConstants,
 					type.struct_,
-					asConstant(inner.kind)))
+					inner.kind.as!Constant))
 				: immutable ConcreteExprKind(allocate(ctx.alloc, immutable ConcreteExprKind.Alloc(inner))));
 		case ReferenceKind.byRefRef:
 			return todo!(immutable ConcreteExpr)("!");
@@ -95,9 +91,8 @@ immutable(ConcreteExpr) safeValueForStruct(
 			range,
 			immutable ConcreteExprKind(constant));
 
-	return matchConcreteStructBody!(immutable ConcreteExpr)(
-		body_(*struct_),
-		(ref immutable ConcreteStructBody.Builtin it) {
+	return body_(*struct_).match!(immutable ConcreteExpr)(
+		(immutable ConcreteStructBody.Builtin it) {
 			final switch (it.kind) {
 				case BuiltinStructKind.bool_:
 					return fromConstant(immutable Constant(immutable Constant.BoolConstant(false)));
@@ -126,47 +121,45 @@ immutable(ConcreteExpr) safeValueForStruct(
 					return fromConstant(immutable Constant(immutable Constant.Void()));
 			}
 		},
-		(ref immutable ConcreteStructBody.Enum it) {
-			immutable long value = matchEnum!(immutable long)(
-				it,
+		(immutable ConcreteStructBody.Enum x) {
+			immutable long value = x.values.match!(immutable long)(
 				(immutable(size_t)) =>
 					immutable long(0),
 				(immutable EnumValue[] values) =>
 					values[0].asSigned());
 			return fromConstant(immutable Constant(immutable Constant.Integral(value)));
 		},
-		(ref immutable ConcreteStructBody.Extern) =>
+		(immutable ConcreteStructBody.Extern) =>
 			todo!(immutable ConcreteExpr)("!"),
-		(ref immutable ConcreteStructBody.Flags) =>
+		(immutable ConcreteStructBody.Flags) =>
 			fromConstant(immutable Constant(immutable Constant.Integral(0))),
-		(ref immutable ConcreteStructBody.Record it) {
+		(immutable ConcreteStructBody.Record it) {
 			immutable ConcreteExpr[] fieldExprs = map(ctx.alloc, it.fields, (ref immutable ConcreteField field) =>
 				safeValueForType(ctx, range, field.type));
 			immutable ConstantsOrExprs fieldConstantsOrExprs = isSelfMutable(*struct_)
 				? immutable ConstantsOrExprs(fieldExprs)
 				: asConstantsOrExprs(ctx.alloc, fieldExprs);
-			return immutable ConcreteExpr(type, range, matchConstantsOrExprs!(immutable ConcreteExprKind)(
-				fieldConstantsOrExprs,
-				(ref immutable Constant[] constants) =>
+			return immutable ConcreteExpr(type, range, fieldConstantsOrExprs.match!(immutable ConcreteExprKind)(
+				(immutable Constant[] constants) =>
 					immutable ConcreteExprKind(immutable Constant(immutable Constant.Record(constants))),
-				(ref immutable ConcreteExpr[] exprs) =>
+				(immutable ConcreteExpr[] exprs) =>
 					immutable ConcreteExprKind(immutable ConcreteExprKind.CreateRecord(exprs))));
 		},
-		(ref immutable ConcreteStructBody.Union it) {
+		(immutable ConcreteStructBody.Union it) {
 			immutable ConcreteExpr member = has(it.members[0])
 				? safeValueForType(ctx, range, force(it.members[0]))
 				: fromConstant(immutable Constant(immutable Constant.Void()));
 			//TODO: we need to find the function that creates that union...
-			return isConstant(member.kind)
+			return member.kind.isA!Constant
 				? fromConstant(immutable Constant(
-					allocate(ctx.alloc, immutable Constant.Union(0, asConstant(member.kind)))))
+					allocate(ctx.alloc, immutable Constant.Union(0, member.kind.as!Constant))))
 				: immutable ConcreteExpr(type, range, immutable ConcreteExprKind(
 					allocate(ctx.alloc, immutable ConcreteExprKind.CreateUnion(0, member))));
 		});
 }
 
 immutable(ConcreteExpr) safeFunValue(ref Ctx ctx, immutable FileAndRange range, immutable ConcreteStruct* struct_) {
-	immutable ConcreteType[] typeArgs = asInst(struct_.source).typeArgs;
+	immutable ConcreteType[] typeArgs = struct_.source.as!(ConcreteStructSource.Inst).typeArgs;
 	immutable ConcreteType returnType = typeArgs[0];
 	immutable ConcreteParam[] params = mapWithIndex!(immutable ConcreteParam, ConcreteType)(
 		ctx.alloc,

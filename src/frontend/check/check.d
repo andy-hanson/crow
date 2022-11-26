@@ -30,9 +30,6 @@ import frontend.parse.ast :
 	FunDeclAst,
 	FunModifierAst,
 	LiteralStringAst,
-	matchParamsAst,
-	matchSpecBodyAst,
-	matchTypeAst,
 	NameAndRange,
 	ParamAst,
 	ParamsAst,
@@ -48,8 +45,6 @@ import model.diag : Diag;
 import model.model :
 	arity,
 	arityIsNonZero,
-	asStructDecl,
-	asStructInst,
 	body_,
 	CommonTypes,
 	decl,
@@ -64,16 +59,9 @@ import model.model :
 	ImportOrExport,
 	ImportOrExportKind,
 	IntegralTypes,
-	isBogus,
 	isLinkageAlwaysCompatible,
-	isStructInst,
 	Linkage,
 	linkageRange,
-	matchFileContent,
-	matchImportOrExportKind,
-	matchParams,
-	matchStructOrAliasPtr,
-	matchType,
 	Module,
 	name,
 	NameReferents,
@@ -202,7 +190,7 @@ immutable(Opt!(StructDecl*)) getCommonTemplateType(
 	immutable Opt!StructOrAliasAndIndex res = structsAndAliasesDict[name];
 	if (has(res)) {
 		// TODO: may fail -- builtin Template should not be an alias
-		immutable StructDecl* decl = asStructDecl(force(res).structOrAlias);
+		immutable StructDecl* decl = force(res).structOrAlias.as!(StructDecl*);
 		if (decl.typeParams.length != expectedTypeParams)
 			todo!void("getCommonTemplateType");
 		return some(decl);
@@ -234,12 +222,11 @@ immutable(Opt!(StructInst*)) instantiateNonTemplateStructOrAlias(
 	immutable StructOrAlias structOrAlias,
 ) {
 	verify(empty(typeParams(structOrAlias)));
-	return matchStructOrAliasPtr!(immutable Opt!(StructInst*))(
-		structOrAlias,
-		(ref immutable StructAlias it) =>
-			target(it),
-		(immutable StructDecl* it) =>
-			some(instantiateNonTemplateStructDecl(alloc, programState, delayedStructInsts, it)));
+	return structOrAlias.matchWithPointers!(immutable Opt!(StructInst*))(
+		(immutable StructAlias* x) =>
+			target(*x),
+		(immutable StructDecl* x) =>
+			some(instantiateNonTemplateStructDecl(alloc, programState, delayedStructInsts, x)));
 }
 
 immutable(StructInst*) instantiateNonTemplateStructDecl(
@@ -433,8 +420,7 @@ immutable(Params) checkParams(
 	scope immutable TypeParam[] typeParamsScope,
 	ref DelayStructInsts delayStructInsts,
 ) =>
-	matchParamsAst!(
-		immutable Params,
+	ast.match!(immutable Params)(
 		(immutable ParamAst[] asts) {
 			immutable Param[] params = mapWithIndex!(Param, ParamAst)(
 				ctx.alloc,
@@ -451,21 +437,19 @@ immutable(Params) checkParams(
 		(ref immutable ParamsAst.Varargs varargs) {
 			immutable Param param = checkParam(
 				ctx, commonTypes, structsAndAliasesDict, typeParamsScope, delayStructInsts, varargs.param, 0);
-			immutable Type elementType = matchType!(immutable Type)(
-				param.type,
+			immutable Type elementType = param.type.match!(immutable Type)(
 				(immutable Type.Bogus) =>
 					immutable Type(immutable Type.Bogus()),
-				(immutable TypeParam*) =>
+				(ref immutable(TypeParam)) =>
 					todo!(immutable Type)("diagnostic"),
-				(immutable StructInst* si) {
-					if (decl(*si) == commonTypes.array)
-						return only(typeArgs(*si));
+				(ref immutable StructInst x) {
+					if (decl(x) == commonTypes.array)
+						return only(typeArgs(x));
 					else
 						return todo!(immutable Type)("diagnostic");
 				});
 			return immutable Params(allocate(ctx.alloc, immutable Params.Varargs(param, elementType)));
-		},
-	)(ast);
+		});
 
 immutable(Param) checkParam(
 	ref CheckCtx ctx,
@@ -524,11 +508,10 @@ immutable(SpecBody) checkSpecBody(
 	immutable Sym name,
 	ref immutable SpecBodyAst ast,
 ) =>
-	matchSpecBodyAst!(
-		immutable SpecBody,
-		(ref immutable SpecBodyAst.Builtin) =>
+	ast.match!(immutable SpecBody)(
+		(immutable SpecBodyAst.Builtin) =>
 			immutable SpecBody(SpecBody.Builtin(getSpecBodyBuiltinKind(ctx, range, name))),
-		(ref immutable SpecSigAst[] sigs) =>
+		(immutable SpecSigAst[] sigs) =>
 			immutable SpecBody(map(ctx.alloc, sigs, (ref immutable SpecSigAst it) {
 				immutable ReturnTypeAndParams rp = checkReturnTypeAndParams(
 					ctx,
@@ -544,8 +527,7 @@ immutable(SpecBody) checkSpecBody(
 					it.name,
 					rp.returnType,
 					rp.params);
-			})),
-	)(ast);
+			})));
 
 immutable(SpecDecl[]) checkSpecDecls(
 	ref CheckCtx ctx,
@@ -594,10 +576,10 @@ void checkStructAliasTargets(
 				structsAndAliasesDict,
 				structAlias.typeParams,
 				some!(MutArr!(StructInst*)*)(ptrTrustMe(delayStructInsts)));
-			if (isStructInst(type))
-				setTarget(structAlias, some(asStructInst(type)));
+			if (type.isA!(StructInst*))
+				setTarget(structAlias, some(type.as!(StructInst*)));
 			else {
-				if (!isBogus(type))
+				if (!type.isA!(Type.Bogus))
 					todo!void("diagnostic -- alias does not resolve to struct (must be bogus or a type parameter)");
 				setTarget(structAlias, none!(StructInst*));
 			}
@@ -935,8 +917,7 @@ immutable(FunBody) getFileImportFunctionBody(
 	ref immutable FunDecl f,
 	ref immutable ImportOrExportFile ie,
 ) =>
-	matchFileContent!(immutable FunBody)(
-		ie.content,
+	ie.content.match!(immutable FunBody)(
 		(immutable ubyte[] bytes) =>
 			immutable FunBody(immutable FunBody.FileBytes(bytes)),
 		(immutable SafeCStr str) {
@@ -1034,8 +1015,7 @@ immutable(FunBody.Extern) checkExternOrGlobalBody(
 	if (!isLinkageAlwaysCompatible(funLinkage, linkageRange(fun.returnType)))
 		addDiag(ctx, fun.range, immutable Diag(
 			immutable Diag.LinkageWorseThanContainingFun(fun, fun.returnType, none!(Param*))));
-	matchParams!void(
-		fun.params,
+	fun.params.match!void(
 		(immutable Param[] params) {
 			foreach (immutable Param* p; ptrsRange(params)) {
 				if (!isLinkageAlwaysCompatible(funLinkage, linkageRange(p.type)))
@@ -1051,19 +1031,17 @@ immutable(FunBody.Extern) checkExternOrGlobalBody(
 	if (isGlobal && arityIsNonZero(arity(*fun)))
 		todo!void("'global' fun has parameters");
 
-	immutable Opt!Sym libraryName = typeArgs.length != 1 ? none!Sym : matchTypeAst!(
-		immutable Opt!Sym,
-		(immutable TypeAst.Dict) =>
+	immutable Opt!Sym libraryName = typeArgs.length != 1 ? none!Sym : only(typeArgs).match!(immutable Opt!Sym)(
+		(ref immutable TypeAst.Dict) =>
 			none!Sym,
 		(immutable TypeAst.Fun) =>
 			none!Sym,
 		(immutable TypeAst.InstStruct i) =>
 			empty(i.typeArgs) ? some(i.name.name) : none!Sym,
-		(immutable TypeAst.Suffix) =>
+		(ref immutable TypeAst.Suffix) =>
 			none!Sym,
-		(immutable TypeAst.Tuple) =>
-			none!Sym,
-	)(only(typeArgs));
+		(ref immutable TypeAst.Tuple) =>
+			none!Sym);
 	if (!has(libraryName))
 		addDiag(ctx, fun.range, immutable Diag(
 			immutable Diag.ExternFunForbidden(fun, Diag.ExternFunForbidden.Reason.missingLibraryName)));
@@ -1090,7 +1068,7 @@ immutable(FunBody.ThreadLocal) checkThreadLocalBody(
 }
 
 immutable(bool) isPtrMutType(scope ref immutable CommonTypes commonTypes, immutable Type a) =>
-	isStructInst(a) && decl(*asStructInst(a)) == commonTypes.ptrMut;
+	a.isA!(StructInst*) && decl(*a.as!(StructInst*)) == commonTypes.ptrMut;
 
 immutable(bool) paramsIsEmpty(scope immutable Params a) =>
 	empty(paramsArray(a));
@@ -1196,8 +1174,7 @@ immutable(Dict!(Sym, NameReferents)) getAllExportedNames(
 	}
 
 	foreach (ref immutable ImportOrExport e; reExports)
-		matchImportOrExportKind!void(
-			e.kind,
+		e.kind.match!void(
 			(immutable ImportOrExportKind.ModuleWhole m) {
 				dictEach!(Sym, NameReferents)(
 					m.module_.allExportedNames,
@@ -1338,8 +1315,7 @@ void checkImportsOrExports(
 	immutable ImportOrExport[] imports,
 ) {
 	foreach (ref immutable ImportOrExport x; imports)
-		matchImportOrExportKind!void(
-			x.kind,
+		x.kind.match!void(
 			(immutable(ImportOrExportKind.ModuleWhole)) {},
 			(immutable ImportOrExportKind.ModuleNamed m) {
 				foreach (ref immutable Sym name; m.names)

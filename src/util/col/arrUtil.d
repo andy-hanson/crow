@@ -132,7 +132,7 @@ immutable(Opt!T) find(T)(
 }
 
 immutable(Opt!(T*)) findPtr(T)(
-	immutable T[] arr,
+	return scope immutable T[] arr,
 	scope immutable(bool) delegate(immutable T*) @safe @nogc pure nothrow cb,
 ) {
 	foreach (immutable T* x; ptrsRange(arr))
@@ -169,7 +169,7 @@ immutable(T[]) copyArr(T)(ref Alloc alloc, scope immutable T[] a) =>
 @trusted Out[] mapToMut(Out, In)(
 	ref Alloc alloc,
 	scope immutable In[] a,
-	scope Out delegate(scope ref immutable In) @safe @nogc pure nothrow cb,
+	scope Out delegate(ref immutable In) @safe @nogc pure nothrow cb,
 ) {
 	Out* res = allocateT!Out(alloc, a.length);
 	foreach (immutable size_t i, ref immutable In x; a) {

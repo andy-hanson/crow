@@ -10,13 +10,7 @@ import model.parseDiag : ParseDiag;
 import frontend.check.check : BootstrapCheck, check, checkBootstrap, ImportOrExportFile, ImportsAndExports, PathAndAst;
 import frontend.config : getConfig;
 import frontend.diagnosticsBuilder : addDiagnosticsForFile, DiagnosticsBuilder, finishDiagnostics;
-import frontend.parse.ast :
-	emptyFileAst,
-	FileAst,
-	ImportOrExportAst,
-	ImportOrExportAstKind,
-	ImportsOrExportsAst,
-	matchImportOrExportAstKindImpure;
+import frontend.parse.ast : emptyFileAst, FileAst, ImportOrExportAst, ImportOrExportAstKind, ImportsOrExportsAst;
 import frontend.lang : crowExtension;
 import frontend.parse.parse : parseFile;
 import frontend.programState : ProgramState;
@@ -46,10 +40,10 @@ import util.path :
 	RelPath,
 	resolvePath;
 import util.perf : Perf, PerfMeasure, withMeasure;
-import util.readOnlyStorage :
-	asOption, matchReadFileResult, ReadFileResult, ReadOnlyStorage, withFileBinary, withFileText;
+import util.readOnlyStorage : asOption, ReadFileResult, ReadOnlyStorage, withFileBinary, withFileText;
 import util.sourceRange : FileIndex, RangeWithinFile;
 import util.sym : AllSymbols, Sym, sym;
+import util.union_ : Union;
 import util.util : as, verify;
 
 immutable(Program) frontendCompile(
@@ -115,43 +109,9 @@ immutable(FileAstAndDiagnostics) parseSingleAst(
 private:
 
 struct ParseStatus {
-	@safe @nogc pure nothrow:
-
 	struct Started {}
-	struct Done {
-		immutable FileIndex fileIndex;
-	}
-	private:
-	enum Kind {
-		started,
-		done,
-	}
-	immutable Kind kind_;
-	union {
-		immutable Started started_;
-		immutable Done done_;
-	}
-	public:
-	immutable this(immutable Started a) { kind_ = Kind.started; started_ = a; }
-	immutable this(immutable Done a) { kind_ = Kind.done; done_ = a; }
-}
-
-T matchParseStatus(T)(
-	ref immutable ParseStatus a,
-	scope immutable(T) delegate(ref immutable ParseStatus.Started) @safe @nogc pure nothrow cbStarted,
-	scope immutable(T) delegate(ref immutable ParseStatus.Done) @safe @nogc pure nothrow cbDone,
-) {
-	final switch (a.kind_) {
-		case ParseStatus.Kind.started:
-			return cbStarted(a.started_);
-		case ParseStatus.Kind.done:
-			return cbDone(a.done_);
-	}
-}
-
-pure immutable(FileIndex) asDone(immutable ParseStatus a) {
-	verify(a.kind_ == ParseStatus.Kind.done);
-	return a.done_.fileIndex;
+	struct Done { immutable FileIndex fileIndex; }
+	mixin Union!(immutable Started, immutable Done);
 }
 
 alias PathToStatus = MutDict!(immutable Path, immutable ParseStatus);
@@ -273,7 +233,7 @@ immutable(ParsedEverything) parseEverything(
 	verify(isEmpty(stack));
 
 	immutable(FileIndex) getIndex(immutable Path path) pure =>
-		asDone(mustGetAt_mut(statuses, path));
+		mustGetAt_mut(statuses, path).as!(ParseStatus.Done).fileIndex;
 
 	immutable CommonModuleIndices commonModuleIndices = immutable CommonModuleIndices(
 		has(mainPath) ? some(getIndex(force(mainPath))) : none!FileIndex,
@@ -294,7 +254,7 @@ immutable(ParsedEverything) parseEverything(
 				modelAlloc,
 				moveToDict(astAlloc, statuses),
 				(immutable(Path), ref immutable ParseStatus x) =>
-					asDone(x)),
+					x.as!(ParseStatus.Done).fileIndex),
 			fullIndexDictOfArr!(FileIndex, LineAndColumnGetter)(finishArr(modelAlloc, lineAndColumnGetters))),
 		commonModuleIndices,
 		fullIndexDictOfArr!(FileIndex, AstAndResolvedImports)(finishArr(astAlloc, res)));
@@ -366,22 +326,21 @@ immutable(Opt!FullyResolvedImportKind) fullyResolveImportKind(
 	ref immutable ResolvedImport import_,
 	immutable Path resolvedPath,
 ) =>
-	matchImportOrExportAstKindImpure!(immutable Opt!FullyResolvedImportKind)(
-		import_.kind,
-		(immutable ImportOrExportAstKind.ModuleWhole m) =>
+	import_.kind.matchImpure!(immutable Opt!FullyResolvedImportKind)(
+		(immutable ImportOrExportAstKind.ModuleWhole) =>
 			fullyResolveImportModule(
 				modelAlloc, astAlloc, perf, allSymbols, allPaths, storage, config, statuses, stack, diags, fromPath,
 				import_.importedFrom, resolvedPath,
 				(immutable FileIndex f) =>
 					immutable FullyResolvedImportKind(immutable FullyResolvedImportKind.ModuleWhole(f))),
-		(immutable ImportOrExportAstKind.ModuleNamed m) =>
+		(immutable Sym[] names) =>
 			fullyResolveImportModule(
 				modelAlloc, astAlloc, perf, allSymbols, allPaths, storage, config, statuses, stack, diags, fromPath,
 				import_.importedFrom, resolvedPath,
 				(immutable FileIndex f) =>
 					immutable FullyResolvedImportKind(
-						immutable FullyResolvedImportKind.ModuleNamed(f, copyArr(modelAlloc, m.names)))),
-		(immutable ImportOrExportAstKind.File f) =>
+						immutable FullyResolvedImportKind.ModuleNamed(f, copyArr(modelAlloc, names)))),
+		(ref immutable ImportOrExportAstKind.File f) =>
 			some(immutable FullyResolvedImportKind(
 				immutable FullyResolvedImportKind.File(
 					f.name,
@@ -437,16 +396,15 @@ immutable(Opt!FullyResolvedImportKind) fullyResolveImportModule(
 ) {
 	immutable Opt!ParseStatus status = getAt_mut(statuses, importPath);
 	if (has(status))
-		return some(matchParseStatus!(immutable FullyResolvedImportKind)(
-			force(status),
-			(ref immutable ParseStatus.Started) {
+		return some(force(status).match!(immutable FullyResolvedImportKind)(
+			(immutable ParseStatus.Started) {
 				add(modelAlloc, diags, immutable DiagnosticWithinFile(
 					importedFrom,
 					immutable Diag(immutable ParseDiag(
 						immutable ParseDiag.CircularImport(fromPath, importPath)))));
 				return immutable FullyResolvedImportKind(immutable FullyResolvedImportKind.Failed());
 			},
-			(ref immutable ParseStatus.Done x) =>
+			(immutable ParseStatus.Done x) =>
 				getSuccessKind(x.fileIndex)));
 	else {
 		pushIt(
@@ -494,8 +452,7 @@ immutable(T) handleReadFileResult(T, Content)(
 	scope immutable(T) delegate(scope immutable Content) @safe @nogc pure nothrow cbSuccess,
 	scope immutable(T) delegate() @safe @nogc pure nothrow cbFail,
 ) =>
-	matchReadFileResult!(immutable T, Content)(
-		result,
+	result.match!(immutable T)(
 		(immutable Content content) =>
 			cbSuccess(content),
 		(immutable(ReadFileResult!Content.NotFound)) {
@@ -602,8 +559,6 @@ struct FullyResolvedImport {
 }
 
 struct FullyResolvedImportKind {
-	@safe @nogc pure nothrow:
-
 	struct ModuleWhole {
 		immutable FileIndex fileIndex;
 	}
@@ -618,39 +573,7 @@ struct FullyResolvedImportKind {
 	}
 	struct Failed {}
 
-	immutable this(immutable FullyResolvedImportKind.ModuleWhole a) { kind = Kind.moduleWhole; moduleWhole = a; }
-	immutable this(immutable FullyResolvedImportKind.ModuleNamed a) { kind = Kind.moduleNamed; moduleNamed = a; }
-	immutable this(immutable FullyResolvedImportKind.File a) { kind = Kind.file; file = a; }
-	immutable this(immutable FullyResolvedImportKind.Failed a) { kind = Kind.failed; failed = a; }
-
-	private:
-	enum Kind { moduleWhole, moduleNamed, file, failed }
-	immutable Kind kind;
-	union {
-		immutable ModuleWhole moduleWhole;
-		immutable ModuleNamed moduleNamed;
-		immutable File file;
-		immutable Failed failed;
-	}
-}
-
-@trusted immutable(T) matchFullyResolvedImportKind(T)(
-	ref immutable FullyResolvedImportKind a,
-	scope immutable(T) delegate(immutable FullyResolvedImportKind.ModuleWhole) @safe @nogc pure nothrow cbModuleWhole,
-	scope immutable(T) delegate(immutable FullyResolvedImportKind.ModuleNamed) @safe @nogc pure nothrow cbModuleNamed,
-	scope immutable(T) delegate(immutable FullyResolvedImportKind.File) @safe @nogc pure nothrow cbFile,
-	scope immutable(T) delegate(immutable FullyResolvedImportKind.Failed) @safe @nogc pure nothrow cbFailed,
-) {
-	final switch (a.kind) {
-		case FullyResolvedImportKind.Kind.moduleWhole:
-			return cbModuleWhole(a.moduleWhole);
-		case FullyResolvedImportKind.Kind.moduleNamed:
-			return cbModuleNamed(a.moduleNamed);
-		case FullyResolvedImportKind.Kind.file:
-			return cbFile(a.file);
-		case FullyResolvedImportKind.Kind.failed:
-			return cbFailed(a.failed);
-	}
+	mixin Union!(immutable ModuleWhole, immutable ModuleNamed, immutable File, immutable Failed);
 }
 
 struct ImportsOrExports {
@@ -665,9 +588,8 @@ immutable(ImportsOrExports) mapImportsOrExports(
 ) {
 	ArrBuilder!ImportOrExportFile fileImports;
 	immutable ImportOrExport[] moduleImports = mapOp(modelAlloc, paths, (ref immutable FullyResolvedImport x) {
-		immutable Opt!ImportOrExportKind kind = matchFullyResolvedImportKind(
-			x.kind,
-			(immutable FullyResolvedImportKind.ModuleWhole m) @safe =>
+		immutable Opt!ImportOrExportKind kind = x.kind.match!(immutable Opt!ImportOrExportKind)(
+			(immutable FullyResolvedImportKind.ModuleWhole m) =>
 				m.fileIndex == FileIndex.none
 					? none!ImportOrExportKind
 					: some(immutable ImportOrExportKind(

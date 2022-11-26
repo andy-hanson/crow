@@ -9,7 +9,7 @@ import interpret.runBytecode : operationOpStopInterpretation;
 import interpret.stacks : returnPeek, returnStackSize, Stacks;
 import model.diag : FilesInfo, writeFileAndPos;
 import model.concreteModel : ConcreteFun, concreteFunRange;
-import model.lowModel : LowFunIndex, LowFunSource, LowProgram, matchLowFunSource;
+import model.lowModel : LowFunIndex, LowFunSource, LowProgram;
 import util.alloc.alloc : Alloc;
 import util.lineAndColumnGetter : LineAndColumn, lineAndColumnAtPos;
 import util.opt : force, has, none, Opt, some;
@@ -212,13 +212,11 @@ immutable(Opt!FileIndex) getFileIndex(
 	scope ref immutable LowProgram lowProgram,
 	immutable LowFunIndex fun,
 ) =>
-	matchLowFunSource!(
-		immutable Opt!FileIndex,
-		(immutable ConcreteFun* it) =>
-			some(concreteFunRange(*it, allSymbols).fileIndex),
+	lowProgram.allFuns[fun].source.match!(immutable Opt!FileIndex)(
+		(ref immutable ConcreteFun x) =>
+			some(concreteFunRange(x, allSymbols).fileIndex),
 		(ref immutable LowFunSource.Generated) =>
-			none!FileIndex,
-	)(lowProgram.allFuns[fun].source);
+			none!FileIndex);
 
 void writeFunNameAtIndex(
 	scope ref Writer writer,

@@ -18,10 +18,7 @@ import lower.lowExprHelpers :
 	voidType;
 import model.constant : Constant;
 import model.lowModel :
-	asFunPtrType,
 	asGcOrRawPointee,
-	asRecordType,
-	asUnionType,
 	isPtrGcOrRaw,
 	isVoid,
 	LowExpr,
@@ -35,9 +32,6 @@ import model.lowModel :
 	LowParam,
 	LowProgram,
 	LowType,
-	matchLowExprKind,
-	matchLowFunBody,
-	matchLowType,
 	PrimitiveType,
 	symOfPrimitiveType,
 	targetIsPointer,
@@ -104,14 +98,12 @@ void checkLowFun(ref Ctx ctx, ref immutable LowFun fun) {
 		printf("Will check function %s\n", finishWriterToCStr(writer));
 	}
 
-	matchLowFunBody!(
-		void,
-		(ref immutable LowFunBody.Extern) {},
-		(ref immutable LowFunExprBody it) {
+	fun.body_.match!void(
+		(immutable LowFunBody.Extern) {},
+		(immutable LowFunExprBody it) {
 			FunCtx funCtx = FunCtx(ptrTrustMe(ctx), ptrTrustMe(fun));
 			checkLowExpr(funCtx, fun.returnType, it.expr);
-		},
-	)(fun.body_);
+		});
 }
 
 void checkLowExpr(
@@ -120,9 +112,8 @@ void checkLowExpr(
 	ref immutable LowExpr expr,
 ) {
 	checkTypeEqual(ctx.ctx, type, expr.type);
-	matchLowExprKind!(
-		void,
-		(ref immutable LowExprKind.Call it) {
+	expr.kind.match!void(
+		(immutable LowExprKind.Call it) {
 			immutable LowFun* fun = &ctx.ctx.program.allFuns[it.called];
 			checkTypeEqual(ctx.ctx, type, fun.returnType);
 			verify(sizeEq(fun.params, it.args));
@@ -134,7 +125,7 @@ void checkLowExpr(
 				});
 		},
 		(ref immutable LowExprKind.CallFunPtr it) {
-			immutable LowFunPtrType funPtrType = ctx.ctx.program.allFunPtrTypes[asFunPtrType(it.funPtr.type)];
+			immutable LowFunPtrType funPtrType = ctx.ctx.program.allFunPtrTypes[it.funPtr.type.as!(LowType.FunPtr)];
 			checkTypeEqual(ctx.ctx, type, funPtrType.returnType);
 			verify(sizeEq(funPtrType.paramTypes, it.args));
 			zip!(immutable LowType, immutable LowExpr)(
@@ -144,8 +135,8 @@ void checkLowExpr(
 					checkLowExpr(ctx, paramType, arg);
 				});
 		},
-		(ref immutable LowExprKind.CreateRecord it) {
-			immutable LowField[] fields = ctx.ctx.program.allRecords[asRecordType(type)].fields;
+		(immutable LowExprKind.CreateRecord it) {
+			immutable LowField[] fields = ctx.ctx.program.allRecords[type.as!(LowType.Record)].fields;
 			zip!(immutable LowField, immutable LowExpr)(
 				fields,
 				it.args,
@@ -154,7 +145,7 @@ void checkLowExpr(
 				});
 		},
 		(ref immutable LowExprKind.CreateUnion it) {
-			immutable LowType member = ctx.ctx.program.allUnions[asUnionType(type)].members[it.memberIndex];
+			immutable LowType member = ctx.ctx.program.allUnions[type.as!(LowType.Union)].members[it.memberIndex];
 			checkLowExpr(ctx, member, it.arg);
 		},
 		(ref immutable LowExprKind.If it) {
@@ -162,14 +153,14 @@ void checkLowExpr(
 			checkLowExpr(ctx, type, it.then);
 			checkLowExpr(ctx, type, it.else_);
 		},
-		(ref immutable LowExprKind.InitConstants) {
+		(immutable LowExprKind.InitConstants) {
 			verify(isVoid(type));
 		},
 		(ref immutable LowExprKind.Let it) {
 			checkLowExpr(ctx, it.local.type, it.value);
 			checkLowExpr(ctx, type, it.then);
 		},
-		(ref immutable LowExprKind.LocalGet it) {
+		(immutable LowExprKind.LocalGet it) {
 			checkTypeEqual(ctx.ctx, type, it.local.type);
 		},
 		(ref immutable LowExprKind.LocalSet it) {
@@ -182,13 +173,13 @@ void checkLowExpr(
 		(ref immutable LowExprKind.LoopBreak it) {
 			checkLowExpr(ctx, it.loop.type, it.value);
 		},
-		(ref immutable LowExprKind.LoopContinue) {
+		(immutable LowExprKind.LoopContinue) {
 			// TODO
 		},
 		(ref immutable LowExprKind.MatchUnion it) {
 			checkLowExpr(ctx, it.matchedValue.type, it.matchedValue);
 			zip!(immutable LowType, immutable LowExprKind.MatchUnion.Case)(
-				ctx.ctx.program.allUnions[asUnionType(it.matchedValue.type)].members,
+				ctx.ctx.program.allUnions[it.matchedValue.type.as!(LowType.Union)].members,
 				it.cases,
 				(ref immutable LowType memberType, ref immutable LowExprKind.MatchUnion.Case case_) {
 					if (has(case_.local))
@@ -196,7 +187,7 @@ void checkLowExpr(
 					checkLowExpr(ctx, type, case_.then);
 				});
 		},
-		(ref immutable LowExprKind.ParamGet it) {
+		(immutable LowExprKind.ParamGet it) {
 			checkTypeEqual(ctx.ctx, type, ctx.fun.params[it.index.index].type);
 		},
 		(ref immutable LowExprKind.PtrCast it) {
@@ -208,10 +199,10 @@ void checkLowExpr(
 			immutable LowType fieldType = ctx.ctx.program.allRecords[targetRecordType(it)].fields[it.fieldIndex].type;
 			checkTypeEqual(ctx.ctx, asGcOrRawPointee(type), fieldType);
 		},
-		(ref immutable LowExprKind.PtrToLocal it) {
+		(immutable LowExprKind.PtrToLocal it) {
 			checkTypeEqual(ctx.ctx, asGcOrRawPointee(type), it.local.type);
 		},
-		(ref immutable LowExprKind.PtrToParam it) {
+		(immutable LowExprKind.PtrToParam it) {
 			checkTypeEqual(ctx.ctx, type, immutable LowType(
 				immutable LowType.PtrRawConst(&ctx.fun.params[it.index.index].type)));
 		},
@@ -233,10 +224,10 @@ void checkLowExpr(
 			checkLowExpr(ctx, voidType, it.first);
 			checkLowExpr(ctx, type, it.then);
 		},
-		(ref immutable LowExprKind.SizeOf it) {
+		(immutable LowExprKind.SizeOf it) {
 			checkTypeEqual(ctx.ctx, type, nat64Type);
 		},
-		(ref immutable Constant it) {
+		(immutable Constant it) {
 			// Constants are untyped, so can't check more
 		},
 		(ref immutable LowExprKind.SpecialUnary it) {
@@ -258,17 +249,16 @@ void checkLowExpr(
 			foreach (ref immutable LowExpr case_; it.cases)
 				checkLowExpr(ctx, type, case_);
 		},
-		(ref immutable LowExprKind.TailRecur it) {
+		(immutable LowExprKind.TailRecur it) {
 			checkTypeEqual(ctx.ctx, type, ctx.fun.returnType);
 			foreach (ref immutable UpdateParam update; it.updateParams)
 				checkLowExpr(ctx, ctx.fun.params[update.param.index].type, update.newValue);
 		},
-		(ref immutable LowExprKind.ThreadLocalPtr it) {
+		(immutable LowExprKind.ThreadLocalPtr it) {
 			immutable LowType pointee = ctx.ctx.program.threadLocals[it.threadLocalIndex].type;
 			checkTypeEqual(ctx.ctx, type, immutable LowType(immutable LowType.PtrRawMut(&pointee)));
 		},
-		(ref immutable LowExprKind.Zeroed) {},
-	)(expr.kind);
+		(immutable LowExprKind.Zeroed) {});
 }
 
 void checkSpecialUnary(ref FunCtx ctx, immutable LowType type, immutable LowExprKind.SpecialUnary a) {
@@ -512,8 +502,8 @@ immutable(ExpectBinary) expect(immutable LowType return_, immutable LowType arg0
 
 void checkTypeEqual(
 	ref Ctx ctx,
-	immutable LowType expected,
-	immutable LowType actual,
+	scope immutable LowType expected,
+	scope immutable LowType actual,
 ) {
 	static if (false) debug {
 		if (expected != actual) {
@@ -532,8 +522,7 @@ void checkTypeEqual(
 }
 
 immutable(Repr) reprOfLowType2(ref Ctx ctx, immutable LowType a) =>
-	matchLowType!(
-		immutable Repr,
+	a.match!(immutable Repr)(
 		(immutable LowType.Extern) =>
 			reprSym!"some-extern", //TODO: more detail
 		(immutable LowType.FunPtr) =>
@@ -549,5 +538,4 @@ immutable(Repr) reprOfLowType2(ref Ctx ctx, immutable LowType a) =>
 		(immutable LowType.Record it) =>
 			reprOfConcreteStructRef(ctx.alloc, *ctx.program.allRecords[it].source),
 		(immutable LowType.Union it) =>
-			reprOfConcreteStructRef(ctx.alloc, *ctx.program.allUnions[it].source),
-	)(a);
+			reprOfConcreteStructRef(ctx.alloc, *ctx.program.allUnions[it].source));

@@ -19,7 +19,6 @@ import model.model :
 	FunFlags,
 	IntegralTypes,
 	leastVisibility,
-	matchStructBody,
 	name,
 	Param,
 	Params,
@@ -47,28 +46,27 @@ import util.sym : prependSet, Sym, sym;
 
 immutable(size_t) countFunsForStruct(immutable StructDecl[] structs) =>
 	sum!StructDecl(structs, (ref immutable StructDecl s) =>
-		matchStructBody!(immutable size_t)(
-			body_(s),
-			(ref immutable StructBody.Bogus) =>
+		body_(s).match!(immutable size_t)(
+			(immutable StructBody.Bogus) =>
 				immutable size_t(0),
-			(ref immutable StructBody.Builtin) =>
+			(immutable StructBody.Builtin) =>
 				immutable size_t(0),
-			(ref immutable StructBody.Enum it) =>
+			(immutable StructBody.Enum it) =>
 				// '==', 'to-intXX'/'to-natXX', 'enum-members', and a constructor for each member
 				3 + it.members.length,
-			(ref immutable StructBody.Extern x) =>
+			(immutable StructBody.Extern x) =>
 				immutable size_t(has(x.size) ? 1 : 0),
-			(ref immutable StructBody.Flags it) =>
+			(immutable StructBody.Flags it) =>
 				// '()', 'all', '==', '~', '|', '&', 'to-intXX'/'to-natXX', 'flags-members',
 				// and a constructor for each member
 				8 + it.members.length,
-			(ref immutable StructBody.Record it) {
+			(immutable StructBody.Record it) {
 				immutable size_t nConstructors = recordIsAlwaysByVal(it) ? 1 : 2;
 				immutable size_t nMutableFields = count!RecordField(it.fields, (ref immutable RecordField field) =>
 					field.mutability != FieldMutability.const_);
 				return nConstructors + it.fields.length + nMutableFields;
 			},
-			(ref immutable StructBody.Union it) =>
+			(immutable StructBody.Union it) =>
 				it.members.length));
 
 void addFunsForStruct(
@@ -77,25 +75,24 @@ void addFunsForStruct(
 	ref immutable CommonTypes commonTypes,
 	immutable StructDecl* struct_,
 ) {
-	matchStructBody!void(
-		body_(*struct_),
-		(ref immutable StructBody.Bogus) {},
-		(ref immutable StructBody.Builtin) {},
-		(ref immutable StructBody.Enum it) {
+	body_(*struct_).match!void(
+		(immutable StructBody.Bogus) {},
+		(immutable StructBody.Builtin) {},
+		(immutable StructBody.Enum it) {
 			addFunsForEnum(ctx, funsBuilder, commonTypes, struct_, it);
 		},
-		(ref immutable StructBody.Extern x) {
+		(immutable StructBody.Extern x) {
 			if (has(x.size)) {
 				exactSizeArrBuilderAdd(funsBuilder, newExtern(ctx.alloc, ctx.programState, struct_));
 			}
 		},
-		(ref immutable StructBody.Flags it) {
+		(immutable StructBody.Flags it) {
 			addFunsForFlags(ctx, funsBuilder, commonTypes, struct_, it);
 		},
-		(ref immutable StructBody.Record it) {
+		(immutable StructBody.Record it) {
 			addFunsForRecord(ctx, funsBuilder, commonTypes, struct_, it);
 		},
-		(ref immutable StructBody.Union it) {
+		(immutable StructBody.Union it) {
 			addFunsForUnion(ctx, funsBuilder, commonTypes, struct_, it);
 		});
 }

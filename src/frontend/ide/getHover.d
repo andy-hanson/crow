@@ -2,14 +2,13 @@ module frontend.ide.getHover;
 
 @safe @nogc pure nothrow:
 
-import frontend.ide.getPosition : matchPosition, Position;
+import frontend.ide.getPosition : Position;
 import model.diag : writeFile;
 import model.model :
 	body_,
 	Expr,
 	FunDecl,
 	StructDecl,
-	matchStructBody,
 	name,
 	Param,
 	Program,
@@ -49,27 +48,26 @@ void getHover(
 	ref immutable Program program,
 	ref immutable Position pos,
 ) =>
-	matchPosition!void(
-		pos,
-		(ref immutable Expr it) {
+	pos.match!void(
+		(immutable Expr it) {
 			getExprHover(writer, it);
 		},
 		(ref immutable FunDecl it) {
 			writer ~= "fun ";
 			writeSym(writer, allSymbols, it.name);
 		},
-		(ref immutable Position.ImportedModule it) {
+		(immutable Position.ImportedModule it) {
 			writer ~= "import module ";
 			writeFile(writer, allPaths, pathsInfo, program.filesInfo, it.module_.fileIndex);
 		},
-		(ref immutable Position.ImportedName it) {
+		(immutable Position.ImportedName it) {
 			getImportedNameHover(writer, it);
 		},
 		(ref immutable Param it) {
 			writer ~= "param ";
 			writeSym(writer, allSymbols, it.nameOrUnderscore);
 		},
-		(ref immutable Position.RecordFieldPosition it) {
+		(immutable Position.RecordFieldPosition it) {
 			writer ~= "field ";
 			writeStructDecl(writer, allSymbols, *it.struct_);
 			writer ~= '.';
@@ -82,25 +80,24 @@ void getHover(
 			writer ~= "TODO: spec hover";
 		},
 		(ref immutable StructDecl it) {
-			writer ~= matchStructBody!(immutable string)(
-				body_(it),
-				(ref immutable StructBody.Bogus) =>
+			writer ~= body_(it).match!(immutable string)(
+				(immutable StructBody.Bogus) =>
 					"type ",
-				(ref immutable StructBody.Builtin) =>
+				(immutable StructBody.Builtin) =>
 					"builtin type ",
-				(ref immutable StructBody.Enum) =>
+				(immutable StructBody.Enum) =>
 					"enum type ",
-				(ref immutable StructBody.Extern) =>
+				(immutable StructBody.Extern) =>
 					"extern type ",
-				(ref immutable StructBody.Flags) =>
+				(immutable StructBody.Flags) =>
 					"flags type ",
-				(ref immutable StructBody.Record) =>
+				(immutable StructBody.Record) =>
 					"record ",
-				(ref immutable StructBody.Union) =>
+				(immutable StructBody.Union) =>
 					"union ");
 			writeSym(writer, allSymbols, it.name);
 		},
-		(ref immutable Type a) {
+		(immutable Type a) {
 			writer ~= "TODO: hover for type";
 		},
 		(ref immutable(TypeParam)) {

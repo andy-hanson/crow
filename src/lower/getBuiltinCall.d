@@ -3,22 +3,13 @@ module lower.getBuiltinCall;
 @safe @nogc pure nothrow:
 
 import model.constant : Constant;
-import model.lowModel :
-	asPrimitive,
-	isFunPtrType,
-	isPrimitive,
-	isPtrRawConstOrMut,
-	isPtrRawMut,
-	LowExprKind,
-	LowType,
-	PrimitiveType;
+import model.lowModel : isPtrRawConstOrMut, LowExprKind, LowType, PrimitiveType;
 import util.alloc.alloc : Alloc;
 import util.sym : AllSymbols, safeCStrOfSym, Sym, sym;
+import util.union_ : Union;
 import util.util : debugLog, todo;
 
 struct BuiltinKind {
-	@safe @nogc pure nothrow:
-
 	struct CallFunPointer {}
 	struct InitConstants {}
 	struct OptOr {}
@@ -28,92 +19,19 @@ struct BuiltinKind {
 	struct StaticSymbols {}
 	struct Zeroed {}
 
-	immutable this(immutable CallFunPointer a) { kind_ = Kind.callFunPointer; callFunPointer_ = a; }
-	@trusted immutable this(immutable Constant a) { kind_ = Kind.constant; constant_ = a; }
-	immutable this(immutable InitConstants a) { kind_ = Kind.initConstants; initConstants_ = a; }
-	immutable this(immutable OptOr a) { kind_ = Kind.optOr; optOr_ = a; }
-	immutable this(immutable OptQuestion2 a) { kind_ = Kind.optQuestion2; optQuestion2_ = a; }
-	immutable this(immutable LowExprKind.SpecialUnary.Kind a) { kind_ = Kind.unary; unary_ = a; }
-	immutable this(immutable LowExprKind.SpecialBinary.Kind a) { kind_ = Kind.binary; binary_ = a; }
-	immutable this(immutable LowExprKind.SpecialTernary.Kind a) { kind_ = Kind.ternary; ternary_ = a; }
-	immutable this(immutable PointerCast a) { kind_ = Kind.pointerCast; pointerCast_ = a; }
-	immutable this(immutable SizeOf a) { kind_ = Kind.sizeOf; sizeOf_ = a; }
-	immutable this(immutable StaticSymbols a) { kind_ = Kind.staticSymbols; staticSymbols_ = a; }
-	immutable this(immutable Zeroed a) { kind_ = Kind.zeroed; zeroed_ = a; }
-
-	private:
-	enum Kind {
-		callFunPointer,
-		constant,
-		initConstants,
-		unary,
-		binary,
-		ternary,
-		optOr,
-		optQuestion2,
-		pointerCast,
-		sizeOf,
-		staticSymbols,
-		zeroed,
-	}
-	immutable Kind kind_;
-	union {
-		immutable CallFunPointer callFunPointer_;
-		immutable Constant constant_;
-		immutable InitConstants initConstants_;
-		immutable LowExprKind.SpecialUnary.Kind unary_;
-		immutable LowExprKind.SpecialBinary.Kind binary_;
-		immutable LowExprKind.SpecialTernary.Kind ternary_;
-		immutable OptOr optOr_;
-		immutable OptQuestion2 optQuestion2_;
-		immutable PointerCast pointerCast_;
-		immutable SizeOf sizeOf_;
-		immutable StaticSymbols staticSymbols_;
-		immutable Zeroed zeroed_;
-	}
-}
-
-@trusted immutable(T) matchBuiltinKind(T)(
-	ref immutable BuiltinKind a,
-	scope immutable(T) delegate(ref immutable BuiltinKind.CallFunPointer) @safe @nogc pure nothrow cbCallFunPointer,
-	scope immutable(T) delegate(ref immutable Constant) @safe @nogc pure nothrow cbConstant,
-	scope immutable(T) delegate(ref immutable BuiltinKind.InitConstants) @safe @nogc pure nothrow cbInitConstants,
-	scope immutable(T) delegate(immutable LowExprKind.SpecialUnary.Kind) @safe @nogc pure nothrow cbUnary,
-	scope immutable(T) delegate(immutable LowExprKind.SpecialBinary.Kind) @safe @nogc pure nothrow cbBinary,
-	scope immutable(T) delegate(immutable LowExprKind.SpecialTernary.Kind) @safe @nogc pure nothrow cbTernary,
-	scope immutable(T) delegate(ref immutable BuiltinKind.OptOr) @safe @nogc pure nothrow cbOptOr,
-	scope immutable(T) delegate(ref immutable BuiltinKind.OptQuestion2) @safe @nogc pure nothrow cbOptQuestion2,
-	scope immutable(T) delegate(ref immutable BuiltinKind.PointerCast) @safe @nogc pure nothrow cbPointerCast,
-	scope immutable(T) delegate(ref immutable BuiltinKind.SizeOf) @safe @nogc pure nothrow cbSizeOf,
-	scope immutable(T) delegate(ref immutable BuiltinKind.StaticSymbols) @safe @nogc pure nothrow cbStaticSymbols,
-	scope immutable(T) delegate(ref immutable BuiltinKind.Zeroed) @safe @nogc pure nothrow cbZeroed,
-) {
-	final switch (a.kind_) {
-		case BuiltinKind.Kind.callFunPointer:
-			return cbCallFunPointer(a.callFunPointer_);
-		case BuiltinKind.Kind.constant:
-			return cbConstant(a.constant_);
-		case BuiltinKind.Kind.initConstants:
-			return cbInitConstants(a.initConstants_);
-		case BuiltinKind.Kind.unary:
-			return cbUnary(a.unary_);
-		case BuiltinKind.Kind.binary:
-			return cbBinary(a.binary_);
-		case BuiltinKind.Kind.ternary:
-			return cbTernary(a.ternary_);
-		case BuiltinKind.Kind.optOr:
-			return cbOptOr(a.optOr_);
-		case BuiltinKind.Kind.optQuestion2:
-			return cbOptQuestion2(a.optQuestion2_);
-		case BuiltinKind.Kind.pointerCast:
-			return cbPointerCast(a.pointerCast_);
-		case BuiltinKind.Kind.sizeOf:
-			return cbSizeOf(a.sizeOf_);
-		case BuiltinKind.Kind.staticSymbols:
-			return cbStaticSymbols(a.staticSymbols_);
-		case BuiltinKind.Kind.zeroed:
-			return cbZeroed(a.zeroed_);
-	}
+	mixin Union!(
+		immutable CallFunPointer,
+		immutable Constant,
+		immutable InitConstants,
+		immutable LowExprKind.SpecialUnary.Kind,
+		immutable LowExprKind.SpecialBinary.Kind,
+		immutable LowExprKind.SpecialTernary.Kind,
+		immutable OptOr,
+		immutable OptQuestion2,
+		immutable PointerCast,
+		immutable SizeOf,
+		immutable StaticSymbols,
+		immutable Zeroed);
 }
 
 immutable(BuiltinKind) getBuiltinKind(
@@ -291,11 +209,11 @@ immutable(BuiltinKind) getBuiltinKind(
 		case sym!"null".value:
 			return constant(immutable Constant(immutable Constant.Null()));
 		case sym!"set-deref".value:
-			return binary(isPtrRawMut(p0) ? LowExprKind.SpecialBinary.Kind.writeToPtr : failBinary());
+			return binary(p0.isA!(LowType.PtrRawMut) ? LowExprKind.SpecialBinary.Kind.writeToPtr : failBinary());
 		case sym!"size-of".value:
 			return immutable BuiltinKind(immutable BuiltinKind.SizeOf());
 		case sym!"subscript".value:
-			return isFunPtrType(p0)
+			return p0.isA!(LowType.FunPtr)
 				? immutable BuiltinKind(immutable BuiltinKind.CallFunPointer())
 				: fail();
 		case sym!"to-char8".value:
@@ -473,7 +391,7 @@ immutable(BuiltinKind) getBuiltinKind(
 private:
 
 immutable(bool) isPrimitiveType(immutable LowType a, immutable PrimitiveType p) =>
-	isPrimitive(a) && asPrimitive(a) == p;
+	a.isA!PrimitiveType && a.as!PrimitiveType == p;
 
 immutable(bool) isBool(immutable LowType a) =>
 	isPrimitiveType(a, PrimitiveType.bool_);

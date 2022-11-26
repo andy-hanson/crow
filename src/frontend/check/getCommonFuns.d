@@ -8,17 +8,12 @@ import frontend.programState : ProgramState;
 import model.diag : Diag;
 import model.model :
 	assertNonVariadic,
-	asStructDecl,
-	asTypeParam,
 	CommonFuns,
 	CommonTypes,
 	decl,
 	FunDecl,
 	FunInst,
-	isStructDecl,
 	isTemplate,
-	isTypeParam,
-	isVarargs,
 	Module,
 	NameReferents,
 	Param,
@@ -200,8 +195,8 @@ immutable(Opt!(StructDecl*)) getStructDecl(ref immutable Module a, immutable Sym
 	immutable Opt!NameReferents optReferents = a.allExportedNames[name];
 	if (has(optReferents)) {
 		immutable Opt!StructOrAlias sa = force(optReferents).structOrAlias;
-		return has(sa) && isStructDecl(force(sa))
-			? some(asStructDecl(force(sa)))
+		return has(sa) && force(sa).isA!(StructDecl*)
+			? some(force(sa).as!(StructDecl*))
 			: none!(StructDecl*);
 	} else
 		return none!(StructDecl*);
@@ -221,15 +216,15 @@ immutable(bool) signatureMatchesTemplate(
 ) {
 	if (!empty(actual.specs))
 		return false;
-	if (isVarargs(actual.params))
+	if (actual.params.isA!(Params.Varargs*))
 		return false;
 	
 	if (actual.typeParams.length != expectedTypeParams.length)
 		return false;
 	immutable(bool) typesMatch(immutable Type actualType, immutable Type expectedType) {
-		if (isTypeParam(actualType) && isTypeParam(expectedType)) {
-			immutable TypeParam* actualTypeParam = asTypeParam(actualType);
-			immutable TypeParam* expectedTypeParam = asTypeParam(expectedType);
+		if (actualType.isA!(TypeParam*) && expectedType.isA!(TypeParam*)) {
+			immutable TypeParam* actualTypeParam = actualType.as!(TypeParam*);
+			immutable TypeParam* expectedTypeParam = expectedType.as!(TypeParam*);
 			verify(&actual.typeParams[actualTypeParam.index] == actualTypeParam);
 			verify(&expectedTypeParams[expectedTypeParam.index] == expectedTypeParam);
 			return actualTypeParam.index == expectedTypeParam.index;
@@ -247,7 +242,7 @@ immutable(bool) signatureMatchesTemplate(
 immutable(bool) signatureMatchesNonTemplate(ref immutable FunDecl actual, ref immutable SpecDeclSig expected) =>
 	!isTemplate(actual) &&
 		actual.returnType == expected.returnType &&
-		!isVarargs(actual.params) &&
+		actual.params.isA!(Param[]) &&
 		arrsCorrespond!(Param, Param)(
 			assertNonVariadic(actual.params),
 			assertNonVariadic(expected.params),

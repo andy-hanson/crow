@@ -10,82 +10,30 @@ import util.col.dict : KeyValuePair;
 import util.col.str : copyToSafeCStr, CStr, SafeCStr, safeCStrEq;
 import util.opt : force, has, none, Opt, some;
 import util.sym : AllSymbols, Sym, symOfStr;
-import util.util : verify;
+import util.union_ : Union;
 
 // NOTE: doesn't support number since I don't use that anywhere
 struct Json {
 	@safe @nogc pure nothrow:
 
-	immutable this(immutable bool a) { kind = Kind.boolean; boolean = a; }
-	immutable this(immutable SafeCStr a) { kind = Kind.string_; string_ = a; }
-	immutable this(return immutable Json[] a) { kind = Kind.array; array = a; }
-	immutable this(return immutable KeyValuePair!(Sym, Json)[] a) { kind = Kind.object; object = a; }
+	alias Object = KeyValuePair!(Sym, Json)[];
+	mixin Union!(immutable bool, immutable SafeCStr, immutable Json[], immutable Object);
 
-	private:
-	enum Kind { boolean, string_, array, object }
-	immutable Kind kind;
-	union {
-		immutable bool boolean;
-		immutable SafeCStr string_;
-		immutable Json[] array;
-		immutable KeyValuePair!(Sym, Json)[] object;
-	}
-}
-
-immutable(bool) isObject(immutable Json a) =>
-	a.kind == Json.Kind.object;
-
-@trusted immutable(KeyValuePair!(Sym, Json)[]) asObject(immutable Json a) {
-	verify(isObject(a));
-	return a.object;
-}
-
-immutable(bool) isString(immutable Json a) =>
-	a.kind == Json.Kind.string_;
-
-@trusted immutable(SafeCStr) asString(immutable Json a) {
-	verify(isString(a));
-	return a.string_;
-}
-
-@trusted immutable(bool) jsonEqual(immutable Json a, immutable Json b) {
-	if (a.kind == b.kind) {
-		final switch (a.kind) {
-			case Json.Kind.boolean:
-				return a.boolean == b.boolean;
-			case Json.Kind.string_:
-				return safeCStrEq(a.string_, b.string_);
-			case Json.Kind.array:
-				return arrEqual!Json(a.array, b.array, (ref immutable Json x, ref immutable Json y) =>
-					jsonEqual(x, y));
-			case Json.Kind.object:
-				return arrEqual!(KeyValuePair!(Sym, Json))(
-					a.object,
-					b.object,
-					(ref immutable KeyValuePair!(Sym, Json) x, ref immutable KeyValuePair!(Sym, Json) y) =>
-						x.key == y.key && jsonEqual(x.value, y.value));
-		}
-	} else
-		return false;
-}
-
-@trusted immutable(T) matchJson(T)(
-	immutable Json a,
-	scope immutable(T) delegate(immutable bool) @safe @nogc pure nothrow cbBoolean,
-	scope immutable(T) delegate(immutable SafeCStr) @safe @nogc pure nothrow cbString,
-	scope immutable(T) delegate(immutable Json[]) @safe @nogc pure nothrow cbArray,
-	scope immutable(T) delegate(immutable KeyValuePair!(Sym, Json)[]) @safe @nogc pure nothrow cbObject,
-) {
-	final switch (a.kind) {
-		case Json.Kind.boolean:
-			return cbBoolean(a.boolean);
-		case Json.Kind.string_:
-			return cbString(a.string_);
-		case Json.Kind.array:
-			return cbArray(a.array);
-		case Json.Kind.object:
-			return cbObject(a.object);
-	}
+	immutable(bool) opEquals(scope immutable Json b) scope immutable =>
+		match!(immutable bool)(
+			(immutable bool x) =>
+				b.isA!bool && b.as!bool == x,
+			(immutable SafeCStr x) =>
+				b.isA!SafeCStr && safeCStrEq(b.as!SafeCStr, x),
+			(immutable Json[] x) =>
+				b.isA!(Json[]) && arrEqual!Json(x, b.as!(Json[]), (ref immutable Json x, ref immutable Json y) =>
+					x == y),
+			(immutable Object oa) =>
+				b.isA!Object && arrEqual!(KeyValuePair!(Sym, Json))(
+						oa,
+						b.as!Object,
+						(ref immutable KeyValuePair!(Sym, Json) x, ref immutable KeyValuePair!(Sym, Json) y) =>
+							x.key == y.key && x.value == y.value));
 }
 
 immutable(Opt!Json) parseJson(ref Alloc alloc, ref AllSymbols allSymbols, immutable SafeCStr source) {

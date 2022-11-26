@@ -6,9 +6,6 @@ import concretize.allConstantsBuilder : AllConstantsBuilder, getConstantArr, get
 import concretize.concretizeExpr : concretizeExpr;
 import concretize.safeValue : bodyForSafeValue;
 import model.concreteModel :
-	asFlags,
-	asFunInst,
-	asInst,
 	body_,
 	BuiltinStructKind,
 	byVal,
@@ -28,6 +25,7 @@ import model.concreteModel :
 	ConcreteStructBody,
 	ConcreteStructInfo,
 	ConcreteStructSource,
+	EnumValues,
 	hasSizeOrPointerSizeBytes,
 	isSelfMutable,
 	mustBeByVal,
@@ -49,9 +47,6 @@ import model.model :
 	FunBody,
 	FunDecl,
 	FunInst,
-	matchFunBody,
-	matchStructBody,
-	matchType,
 	Module,
 	name,
 	Param,
@@ -354,8 +349,7 @@ immutable(ConcreteType) getConcreteType(
 	immutable Type t,
 	immutable TypeArgsScope typeArgsScope,
 ) =>
-	matchType!(immutable ConcreteType)(
-		t,
+	t.matchWithPointers!(immutable ConcreteType)(
 		(immutable Type.Bogus) =>
 			unreachable!(immutable ConcreteType),
 		(immutable TypeParam* p) {
@@ -548,10 +542,9 @@ void initializeConcreteStruct(
 	ConcreteStruct* res,
 	immutable TypeArgsScope typeArgsScope,
 ) {
-	matchStructBody!void(
-		body_(i),
-		(ref immutable StructBody.Bogus) => unreachable!void,
-		(ref immutable StructBody.Builtin) {
+	body_(i).match!void(
+		(immutable StructBody.Bogus) => unreachable!void,
+		(immutable StructBody.Builtin) {
 			immutable BuiltinStructKind kind = getBuiltinStructKind(i.decl.name);
 			lateSet(res.defaultReferenceKind_, ReferenceKind.byVal);
 			lateSet(res.info_, immutable ConcreteStructInfo(
@@ -559,28 +552,28 @@ void initializeConcreteStruct(
 				false));
 			lateSet(res.typeSize_, getBuiltinStructSize(kind));
 		},
-		(ref immutable StructBody.Enum it) {
+		(immutable StructBody.Enum it) {
 			lateSet(res.defaultReferenceKind_, ReferenceKind.byVal);
 			lateSet(res.info_, immutable ConcreteStructInfo(
 				immutable ConcreteStructBody(getConcreteStructBodyForEnum(ctx.alloc, it)),
 				false));
 			lateSet(res.typeSize_, typeSizeForEnumOrFlags(it.backingType));
 		},
-		(ref immutable StructBody.Extern it) {
+		(immutable StructBody.Extern it) {
 			lateSet(res.defaultReferenceKind_, ReferenceKind.byVal);
 			lateSet(res.info_, immutable ConcreteStructInfo(
 				immutable ConcreteStructBody(immutable ConcreteStructBody.Extern()),
 				false));
 			lateSet(res.typeSize_, has(it.size) ? force(it.size) : immutable TypeSize(0, 0));
 		},
-		(ref immutable StructBody.Flags it) {
+		(immutable StructBody.Flags it) {
 			lateSet(res.defaultReferenceKind_, ReferenceKind.byVal);
 			lateSet(res.info_, immutable ConcreteStructInfo(
 				immutable ConcreteStructBody(getConcreteStructBodyForFlags(ctx.alloc, it)),
 				false));
 			lateSet(res.typeSize_, typeSizeForEnumOrFlags(it.backingType));
 		},
-		(ref immutable StructBody.Record r) {
+		(immutable StructBody.Record r) {
 			// don't set 'defaultReferenceKind' until the end, unless explicit
 			final switch (r.flags.forcedByValOrRef) {
 				case ForcedByValOrRefOrNone.none:
@@ -606,7 +599,7 @@ void initializeConcreteStruct(
 			setConcreteStructRecordSizeOrDefer(
 				ctx, res, packed, fields, info.isSelfMutable, FieldsType.record);
 		},
-		(ref immutable StructBody.Union u) {
+		(immutable StructBody.Union u) {
 			lateSet(res.defaultReferenceKind_, ReferenceKind.byVal);
 			immutable Opt!ConcreteType[] members = map(ctx.alloc, u.members, (ref immutable UnionMember it) =>
 				has(it.type)
@@ -662,11 +655,11 @@ immutable(ConcreteStructBody.Enum) getConcreteStructBodyForEnum(
 		(ref immutable StructBody.Enum.Member member, immutable size_t index) =>
 			member.value.value == index);
 	return simple
-		? immutable ConcreteStructBody.Enum(a.backingType, a.members.length)
+		? immutable ConcreteStructBody.Enum(a.backingType, immutable EnumValues(a.members.length))
 		: immutable ConcreteStructBody.Enum(
 			a.backingType,
-			map(alloc, a.members, (ref immutable StructBody.Enum.Member member) =>
-				member.value));
+			immutable EnumValues(map(alloc, a.members, (ref immutable StructBody.Enum.Member member) =>
+				member.value)));
 }
 
 immutable(ConcreteStructBody.Flags) getConcreteStructBodyForFlags(
@@ -709,12 +702,11 @@ void fillInConcreteFunBody(ref ConcretizeCtx ctx, ConcreteFun* cf) {
 		lateSet(cf._body_, immutable ConcreteFunBody(
 			immutable ConcreteFunBody.Extern(false, sym!"bogus")));
 		immutable ConcreteFunBodyInputs inputs = mustDelete(ctx.concreteFunToBodyInputs, castImmutable(cf));
-		immutable ConcreteFunBody body_ = matchFunBody!(
-			immutable ConcreteFunBody,
-			(ref immutable FunBody.Bogus) =>
+		immutable ConcreteFunBody body_ = inputs.body_.match!(immutable ConcreteFunBody)(
+			(immutable FunBody.Bogus) =>
 				unreachable!(immutable ConcreteFunBody),
-			(ref immutable FunBody.Builtin) {
-				immutable FunInst* inst = asFunInst(cf.source);
+			(immutable FunBody.Builtin) {
+				immutable FunInst* inst = cf.source.as!(FunInst*);
 				switch (inst.name.value) {
 					case sym!"all-tests".value:
 						return bodyForAllTests(ctx, castImmutable(cf).returnType);
@@ -728,13 +720,13 @@ void fillInConcreteFunBody(ref ConcretizeCtx ctx, ConcreteFun* cf) {
 						return immutable ConcreteFunBody(immutable ConcreteFunBody.Builtin(typeArgs(inputs)));
 				}
 			},
-			(ref immutable FunBody.CreateEnum it) =>
+			(immutable FunBody.CreateEnum it) =>
 				immutable ConcreteFunBody(immutable ConcreteFunBody.CreateEnum(it.value)),
-			(ref immutable FunBody.CreateExtern) =>
+			(immutable FunBody.CreateExtern) =>
 				immutable ConcreteFunBody(immutable ConcreteFunBody.CreateExtern()),
-			(ref immutable FunBody.CreateRecord) =>
+			(immutable FunBody.CreateRecord) =>
 				immutable ConcreteFunBody(immutable ConcreteFunBody.CreateRecord()),
-			(ref immutable FunBody.CreateUnion it) =>
+			(immutable FunBody.CreateUnion it) =>
 				immutable ConcreteFunBody(immutable ConcreteFunBody.CreateUnion(it.memberIndex)),
 			(immutable EnumFunction it) {
 				final switch (it) {
@@ -747,9 +739,9 @@ void fillInConcreteFunBody(ref ConcretizeCtx ctx, ConcreteFun* cf) {
 						return bodyForEnumOrFlagsMembers(ctx, castImmutable(cf).returnType);
 				}
 			},
-			(ref immutable FunBody.Extern x) =>
+			(immutable FunBody.Extern x) =>
 				immutable ConcreteFunBody(immutable ConcreteFunBody.Extern(x.isGlobal, x.libraryName)),
-			(ref immutable Expr e) =>
+			(immutable Expr e) =>
 				immutable ConcreteFunBody(concretizeExpr(ctx, inputs.containing, castImmutable(cf), e)),
 			(immutable FunBody.FileBytes e) {
 				immutable ConcreteType type = cf.returnType;
@@ -762,27 +754,27 @@ void fillInConcreteFunBody(ref ConcretizeCtx ctx, ConcreteFun* cf) {
 			},
 			(immutable FlagsFunction it) =>
 				immutable ConcreteFunBody(immutable ConcreteFunBody.FlagsFn(
-					getAllValue(asFlags(body_(*mustBeByVal(castImmutable(cf).returnType)))),
+					getAllValue(body_(*mustBeByVal(castImmutable(cf).returnType)).as!(ConcreteStructBody.Flags)),
 					it)),
-			(ref immutable FunBody.RecordFieldGet it) =>
+			(immutable FunBody.RecordFieldGet it) =>
 				immutable ConcreteFunBody(immutable ConcreteFunBody.RecordFieldGet(it.fieldIndex)),
-			(ref immutable FunBody.RecordFieldSet it) =>
+			(immutable FunBody.RecordFieldSet it) =>
 				immutable ConcreteFunBody(immutable ConcreteFunBody.RecordFieldSet(it.fieldIndex)),
-			(ref immutable FunBody.ThreadLocal) =>
-				immutable ConcreteFunBody(immutable ConcreteFunBody.ThreadLocal()),
-		)(inputs.body_);
+			(immutable FunBody.ThreadLocal) =>
+				immutable ConcreteFunBody(immutable ConcreteFunBody.ThreadLocal()));
 		lateSetOverwrite(cf._body_, body_);
 	}
 }
 
-immutable(ulong) getAllValue(ref immutable ConcreteStructBody.Flags flags) =>
+immutable(ulong) getAllValue(immutable ConcreteStructBody.Flags flags) =>
 	fold(0, flags.values, (immutable ulong a, ref immutable ulong b) =>
 		a | b);
 
 immutable(ConcreteFunBody) bodyForEnumOrFlagsMembers(ref ConcretizeCtx ctx, immutable ConcreteType returnType) {
 	immutable ConcreteStruct* arrayStruct = mustBeByVal(returnType);
-	immutable ConcreteType elementType = only(asInst(arrayStruct.source).typeArgs); // named<e>
-	immutable ConcreteType enumOrFlagsType = only(asInst(mustBeByVal(elementType).source).typeArgs);
+	immutable ConcreteType elementType = only(arrayStruct.source.as!(ConcreteStructSource.Inst).typeArgs); // named<e>
+	immutable ConcreteType enumOrFlagsType =
+		only(mustBeByVal(elementType).source.as!(ConcreteStructSource.Inst).typeArgs);
 	immutable Constant[] elements = map(
 		ctx.alloc,
 		enumOrFlagsMembers(enumOrFlagsType),
@@ -795,23 +787,24 @@ immutable(ConcreteFunBody) bodyForEnumOrFlagsMembers(ref ConcretizeCtx ctx, immu
 		immutable ConcreteExpr(returnType, FileAndRange.empty, immutable ConcreteExprKind(arr)));
 }
 
-immutable(StructBody.Enum.Member[]) enumOrFlagsMembers(immutable ConcreteType type) =>
-	matchStructBody!(immutable StructBody.Enum.Member[])(
-		body_(*decl(*asInst(mustBeByVal(type).source).inst)),
-		(ref immutable StructBody.Bogus) =>
+immutable(StructBody.Enum.Member[]) enumOrFlagsMembers(immutable ConcreteType type) {
+	immutable StructBody body_ = body_(*decl(*mustBeByVal(type).source.as!(ConcreteStructSource.Inst).inst));
+	return body_.match!(immutable StructBody.Enum.Member[])(
+		(immutable StructBody.Bogus) =>
 			unreachable!(immutable StructBody.Enum.Member[]),
-		(ref immutable StructBody.Builtin) =>
+		(immutable StructBody.Builtin) =>
 			unreachable!(immutable StructBody.Enum.Member[]),
-		(ref immutable StructBody.Enum it) =>
+		(immutable StructBody.Enum it) =>
 			it.members,
-		(ref immutable StructBody.Extern) =>
+		(immutable StructBody.Extern) =>
 			unreachable!(immutable StructBody.Enum.Member[]),
-		(ref immutable StructBody.Flags it) =>
+		(immutable StructBody.Flags it) =>
 			it.members,
-		(ref immutable StructBody.Record) =>
+		(immutable StructBody.Record) =>
 			unreachable!(immutable StructBody.Enum.Member[]),
-		(ref immutable StructBody.Union) =>
+		(immutable StructBody.Union) =>
 			unreachable!(immutable StructBody.Enum.Member[]));
+}
 
 immutable(ConcreteFunBody) bodyForAllTests(ref ConcretizeCtx ctx, immutable ConcreteType returnType) {
 	immutable Test[] allTests = () {

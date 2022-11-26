@@ -17,11 +17,12 @@ main nat^(_ string[]) summon
 	all-imports = files get-all-imports
 	for file : files
 		for public-export : file.members public
-			unless public-export in all-imports || public-export in excluded-public
+			# Ignore union.d because it gets confused by the mixin
+			unless public-export in all-imports || public-export in excluded-public || file.path == "src/util/union.d"
 				failures ~= "{file path} export not used: {public-export}"
 	for file : files
 		for private-member : file.members private
-			if file.uses[private-member] < 2
+			if file.uses[private-member] < 2 && file.path != "src/util/union.d"
 				failures ~= "{file path} private member not used: {private-member}"
 	for file : files
 		failures lint-imports-in-file file
@@ -31,7 +32,7 @@ main nat^(_ string[]) summon
 	(for file : files; file.imports to-list).flatten to-set
 
 .excluded-public symbol[]()
-	"derefConstantPointer", "diffSymbols", "main"
+	"diffSymbols", "main"
 
 .file record
 	path string

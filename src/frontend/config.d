@@ -13,9 +13,9 @@ import util.col.arrUtil : fold;
 import util.col.dict : KeyValuePair, Dict;
 import util.col.dictBuilder : finishDict, DictBuilder, tryAddToDict;
 import util.col.str : SafeCStr;
-import util.readOnlyStorage : matchReadFileResult, ReadFileResult, ReadOnlyStorage, withFileText;
+import util.readOnlyStorage : ReadFileResult, ReadOnlyStorage, withFileText;
 import util.opt : force, has, none, Opt, some;
-import util.jsonParse : asObject, asString, isObject, isString, Json, parseJson;
+import util.jsonParse : Json, parseJson;
 import util.path : AllPaths, childPath, commonAncestor, parent, parseAbsoluteOrRelPath, Path, PathAndRange;
 import util.sourceRange : RangeWithinFile;
 import util.sym : AllSymbols, Sym, sym;
@@ -54,8 +54,7 @@ immutable(Config) getConfigRecur(
 		configPath,
 		sym!".json",
 		(immutable ReadFileResult!SafeCStr a) =>
-			matchReadFileResult!(immutable Opt!Config, SafeCStr)(
-				a,
+			a.match!(immutable Opt!Config)(
 				(immutable SafeCStr content) pure =>
 					some(parseConfig(alloc, allSymbols, allPaths, searchPath, diags, content)),
 				(immutable(ReadFileResult!SafeCStr.NotFound)) pure =>
@@ -98,8 +97,9 @@ immutable(Config) parseConfig(
 ) {
 	immutable Opt!Json json = parseJson(alloc, allSymbols, content);
 	if (has(json)) {
-		if (isObject(force(json)))
-			return parseConfigRecur(alloc, allSymbols, allPaths, dirContainingConfig, diags, asObject(force(json)));
+		if (force(json).isA!(Json.Object))
+			return parseConfigRecur(
+				alloc, allSymbols, allPaths, dirContainingConfig, diags, force(json).as!(Json.Object));
 		else {
 			todo!void("diag -- expected object at root");
 			return emptyConfig;
@@ -144,10 +144,10 @@ immutable(Dict!(Sym, Path)) parseIncludeOrExtern(
 	immutable Json json,
 ) {
 	DictBuilder!(Sym, Path) res;
-	if (isObject(json)) {
-		foreach (immutable KeyValuePair!(Sym, Json) field; asObject(json)) {
-			if (isString(field.value)) {
-				immutable Path value = parseAbsoluteOrRelPath(allPaths, dirContainingConfig, asString(field.value));
+	if (json.isA!(Json.Object)) {
+		foreach (immutable KeyValuePair!(Sym, Json) field; json.as!(Json.Object)) {
+			if (field.value.isA!SafeCStr) {
+				immutable Path value = parseAbsoluteOrRelPath(allPaths, dirContainingConfig, field.value.as!SafeCStr);
 				immutable Opt!Path before = tryAddToDict(alloc, res, field.key, value);
 				if (has(before))
 					todo!void("diag -- duplicate include key");

@@ -5,7 +5,7 @@ module test.testJson;
 import test.testUtil : Test;
 import util.col.dict : KeyValuePair;
 import util.col.str : SafeCStr, safeCStr;
-import util.jsonParse : Json, jsonEqual, matchJson, parseJson;
+import util.jsonParse : Json, parseJson;
 import util.opt : force, has, Opt;
 import util.sym : AllSymbols, Sym, sym, writeQuotedSym;
 import util.util : as, debugLog, verify, verifyFail;
@@ -67,7 +67,7 @@ void verifyParseError(ref Test test, immutable SafeCStr source) {
 void verifyParseJson(ref Test test, immutable SafeCStr source, scope immutable Json expected) {
 	immutable Opt!Json actual = parseJson(test.alloc, test.allSymbols, source);
 	verify(has(actual));
-	if (!jsonEqual(force(actual), expected)) {
+	if (force(actual) != expected) {
 		Writer writer = test.writer;
 		writer ~= "actual: ";
 		writeJson(writer, test.allSymbols, force(actual));
@@ -79,8 +79,7 @@ void verifyParseJson(ref Test test, immutable SafeCStr source, scope immutable J
 }
 
 void writeJson(ref Writer writer, ref const AllSymbols allSymbols, scope immutable Json a) {
-	matchJson!void(
-		a,
+	a.match!void(
 		(immutable bool x) {
 			writer ~= x ? "true" : "false";
 		},

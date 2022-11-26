@@ -63,16 +63,7 @@ version (Windows) { } else {
 import frontend.lang : JitOptions, OptimizationLevel;
 import frontend.showDiag : ShowDiagOptions, strOfDiagnostics;
 import interpret.extern_ : Extern;
-import lib.cliParser :
-	BuildOptions,
-	CCompileOptions,
-	Command,
-	defaultExeExtension,
-	hasAnyOut,
-	matchCommand,
-	parseCommand,
-	matchRunOptions,
-	RunOptions;
+import lib.cliParser : BuildOptions, CCompileOptions, Command, defaultExeExtension, hasAnyOut, parseCommand, RunOptions;
 import lib.compiler :
 	buildAndInterpret,
 	buildToC,
@@ -113,7 +104,7 @@ import util.path :
 	writePathPlain;
 import util.perf : eachMeasure, Perf, perfEnabled, PerfMeasure, PerfMeasureResult, withMeasure;
 import util.ptr : ptrTrustMe;
-import util.readOnlyStorage : matchReadFileResult, ReadFileResult, ReadOnlyStorage;
+import util.readOnlyStorage : ReadFileResult, ReadOnlyStorage;
 import util.sym : AllSymbols, concatSyms, safeCStrOfSym, Sym, sym, symOfStr, writeSym;
 import util.util : castImmutableRef, todo, verify;
 import util.writer : finishWriterToSafeCStr, Writer;
@@ -186,8 +177,7 @@ immutable(ExitCode) go(
 	immutable Command command = parseCommand(alloc, allSymbols, allPaths, cwd, args);
 	immutable ShowDiagOptions showDiagOptions = immutable ShowDiagOptions(true);
 
-	return matchCommand!(immutable ExitCode)(
-		command,
+	return command.matchImpure!(immutable ExitCode)(
 		(scope immutable Command.Build it) =>
 			runBuild(alloc, perf, allSymbols, allPaths, pathsInfo, includeDir, tempDir, it.mainPath, it.options),
 		(scope immutable Command.Document it) =>
@@ -220,9 +210,8 @@ immutable(ExitCode) go(
 				allPaths,
 				includeDir,
 				(scope ref immutable ReadOnlyStorage storage) =>
-					matchRunOptions!(immutable ExitCode)(
-						run.options,
-						(ref immutable RunOptions.Interpret) =>
+					run.options.matchImpure!(immutable ExitCode)(
+						(immutable RunOptions.Interpret) =>
 							withRealExtern(alloc, allSymbols, allPaths, (scope ref Extern extern_) => buildAndInterpret(
 								alloc,
 								perf,
@@ -237,7 +226,7 @@ immutable(ExitCode) go(
 								showDiagOptions,
 								run.mainPath,
 								getAllArgs(alloc, allPaths, storage, run.mainPath, run.programArgs))),
-						(ref immutable RunOptions.Jit it) {
+						(immutable RunOptions.Jit it) {
 							version (Windows) {
 								printErr(safeCStr!"'--jit' is not supported on Windows");
 								return ExitCode.error;
@@ -765,8 +754,7 @@ immutable(T) withReadOnlyStorage(T)(
 			void delegate(immutable ReadFileResult!SafeCStr) @safe @nogc pure nothrow cb,
 		) =>
 			tryReadFile(allPaths, path, extension, NulTerminate.yes, (immutable ReadFileResult!(ubyte[]) x) =>
-				matchReadFileResult!(void, ubyte[])(
-					x,
+				x.match!void(
 					(immutable ubyte[] bytes) @trusted =>
 						cb(immutable ReadFileResult!SafeCStr(immutable SafeCStr(cast(immutable char*) bytes.ptr))),
 					(immutable(ReadFileResult!(ubyte[]).NotFound)) =>

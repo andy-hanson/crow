@@ -14,15 +14,13 @@ import frontend.check.checkCtx :
 import frontend.check.dicts : SpecDeclAndIndex, SpecsDict, StructsAndAliasesDict, StructOrAliasAndIndex;
 import frontend.check.instantiate :
 	DelayStructInsts, instantiateStruct, instantiateStructNeverDelay, TypeArgsArray, typeArgsArray;
-import frontend.parse.ast :
-	matchTypeAst, NameAndRange, range, rangeOfNameAndRange, symForTypeAstDict, symForTypeAstSuffix, TypeAst;
+import frontend.parse.ast : NameAndRange, range, rangeOfNameAndRange, symForTypeAstDict, symForTypeAstSuffix, TypeAst;
 import frontend.programState : ProgramState;
 import model.diag : Diag;
 import model.model :
 	CommonTypes,
 	FunKind,
 	FunKindAndStructs,
-	matchStructOrAliasPtr,
 	NameReferents,
 	SpecDecl,
 	StructAlias,
@@ -50,7 +48,7 @@ private immutable(Type) instStructFromAst(
 	immutable Sym name,
 	immutable RangeWithinFile range,
 	scope immutable TypeAst[] typeArgAsts,
-	ref immutable StructsAndAliasesDict structsAndAliasesDict,
+	scope ref immutable StructsAndAliasesDict structsAndAliasesDict,
 	scope immutable TypeParam[] typeParamsScope,
 	DelayStructInsts delayStructInsts,
 ) {
@@ -79,12 +77,11 @@ private immutable(Type) instStructFromAst(
 			typeArgs,
 			ctx, commonTypes, range, structsAndAliasesDict,
 			sOrA, nExpectedTypeArgs, typeArgAsts, typeParamsScope, delayStructInsts);
-		return matchStructOrAliasPtr!(immutable Type)(
-			sOrA,
-			(ref immutable StructAlias a) =>
+		return sOrA.matchWithPointers!(immutable Type)(
+			(immutable StructAlias* a) =>
 				nExpectedTypeArgs != 0
 					? todo!(immutable Type)("alias with type params")
-					: typeFromOptInst(target(a)),
+					: typeFromOptInst(target(*a)),
 			(immutable StructDecl* decl) =>
 				immutable Type(instantiateStruct(
 					ctx.alloc,
@@ -100,7 +97,7 @@ private void getTypeArgsIfNumberMatches(
 	ref CheckCtx ctx,
 	ref immutable CommonTypes commonTypes,
 	immutable RangeWithinFile range,
-	ref immutable StructsAndAliasesDict structsAndAliasesDict,
+	scope ref immutable StructsAndAliasesDict structsAndAliasesDict,
 	immutable StructOrAlias sOrA,
 	immutable size_t nExpectedTypeArgs,
 	scope immutable TypeAst[] typeArgAsts,
@@ -145,9 +142,8 @@ immutable(Type) typeFromAst(
 	scope immutable TypeParam[] typeParamsScope,
 	DelayStructInsts delayStructInsts,
 ) =>
-	matchTypeAst!(
-		immutable Type,
-		(immutable TypeAst.Dict it) =>
+	ast.match!(immutable Type)(
+		(ref immutable TypeAst.Dict it) =>
 			instStructFromAst(
 				ctx,
 				commonTypes,
@@ -181,7 +177,7 @@ immutable(Type) typeFromAst(
 					typeParamsScope,
 					delayStructInsts);
 		},
-		(immutable TypeAst.Suffix it) =>
+		(ref immutable TypeAst.Suffix it) =>
 			instStructFromAst(
 				ctx,
 				commonTypes,
@@ -191,7 +187,7 @@ immutable(Type) typeFromAst(
 				structsAndAliasesDict,
 				typeParamsScope,
 				delayStructInsts),
-		(immutable TypeAst.Tuple it) =>
+		(ref immutable TypeAst.Tuple it) =>
 			instStructFromAst(
 				ctx,
 				commonTypes,
@@ -200,8 +196,7 @@ immutable(Type) typeFromAst(
 				[it.a, it.b],
 				structsAndAliasesDict,
 				typeParamsScope,
-				delayStructInsts),
-	)(ast);
+				delayStructInsts));
 
 private immutable(Opt!(Diag.TypeShouldUseSyntax.Kind)) typeSyntaxKind(immutable Sym a) {
 	switch (a.value) {
@@ -235,7 +230,7 @@ private immutable(Type) typeFromFunAst(
 	ref CheckCtx ctx,
 	ref immutable CommonTypes commonTypes,
 	scope immutable TypeAst.Fun ast,
-	ref immutable StructsAndAliasesDict structsAndAliasesDict,
+	scope ref immutable StructsAndAliasesDict structsAndAliasesDict,
 	scope immutable TypeParam[] typeParamsScope,
 	DelayStructInsts delayStructInsts,
 ) {

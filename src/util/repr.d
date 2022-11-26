@@ -10,6 +10,7 @@ import util.memory : allocate;
 import util.opt : force, has, none, Opt, some;
 import util.ptr : ptrTrustMe;
 import util.sym : AllSymbols, Sym, sym, writeQuotedSym;
+import util.union_ : Union;
 import util.writer : finishWriterToSafeCStr, writeFloatLiteral, writeJoin, Writer, writeQuotedStr;
 
 immutable(Repr) reprRecord(immutable Sym name, immutable Repr[] children) =>
@@ -45,7 +46,7 @@ immutable(Repr) reprNamedRecord(immutable string name)(ref Alloc alloc, scope im
 	reprNamedRecord(alloc, sym!name, children);
 
 immutable(Repr) reprArr(immutable Repr[] elements) =>
-	immutable Repr(immutable ReprArr(false, elements), true);
+	immutable Repr(immutable ReprArr(false, elements));
 
 immutable(Repr) reprArr(T)(
 	ref Alloc alloc,
@@ -66,7 +67,7 @@ immutable(Repr) reprFullIndexDict(K, V)(
 	scope immutable FullIndexDict!(K, V) a,
 	scope immutable(Repr) delegate(ref immutable V) @safe @nogc pure nothrow cb,
 ) =>
-	immutable Repr(immutable ReprArr(true, map(alloc, a.values, cb)), true);
+	immutable Repr(immutable ReprArr(true, map(alloc, a.values, cb)));
 
 immutable(Repr) reprBool(immutable bool a) =>
 	immutable Repr(a);
@@ -118,76 +119,16 @@ private struct ReprArr {
 }
 
 struct Repr {
-	@safe @nogc pure nothrow:
-	private:
-	enum Kind {
-		arr,
-		bool_,
-		namedRecord,
-		float_,
-		int_,
-		opt,
-		record,
-		str,
-		symbol,
-	}
-	immutable Kind kind;
-	union {
-		immutable ReprArr arr;
-		immutable bool bool_;
-		immutable ReprNamedRecord namedRecord;
-		immutable double float_;
-		immutable long int_;
-		immutable Opt!(Repr*) opt;
-		immutable ReprRecord record;
-		immutable string str;
-		immutable Sym symbol;
-	}
-
-	@trusted immutable this(immutable ReprArr a, bool b) { kind = Kind.arr; arr = a; }
-	immutable this(immutable bool a) { kind = Kind.bool_; bool_ = a; }
-
-	@trusted immutable this(immutable ReprNamedRecord a) { kind = Kind.namedRecord; namedRecord = a; }
-	immutable this(immutable double a) { kind = Kind.float_; float_ = a; }
-	immutable this(immutable long a) { kind = Kind.int_; int_ = a; }
-	@trusted immutable this(immutable Opt!(Repr*) a) { kind = Kind.opt; opt = a; }
-	@trusted immutable this(immutable ReprRecord a) { kind = Kind.record; record = a; }
-	@trusted immutable this(immutable string a) { kind = Kind.str; str = a; }
-	immutable this(immutable Sym a) { kind = Kind.symbol; symbol = a; }
-}
-
-private @trusted T matchRepr(T)(
-	ref immutable Repr a,
-	scope T delegate(ref immutable ReprArr) @safe @nogc pure nothrow cbArr,
-	scope T delegate(immutable bool) @safe @nogc pure nothrow cbBool,
-	scope T delegate(immutable double) @safe @nogc pure nothrow cbFloat,
-	scope T delegate(immutable long) @safe @nogc pure nothrow cbInt,
-	scope T delegate(ref immutable ReprNamedRecord) @safe @nogc pure nothrow cbNamedRecord,
-	scope T delegate(immutable Opt!(Repr*)) @safe @nogc pure nothrow cbOpt,
-	scope T delegate(ref immutable ReprRecord) @safe @nogc pure nothrow cbRecord,
-	scope T delegate(ref immutable string) @safe @nogc pure nothrow cbStr,
-	scope T delegate(immutable Sym) @safe @nogc pure nothrow cbSym,
-) {
-	final switch (a.kind) {
-		case Repr.Kind.arr:
-			return cbArr(a.arr);
-		case Repr.Kind.bool_:
-			return cbBool(a.bool_);
-		case Repr.Kind.namedRecord:
-			return cbNamedRecord(a.namedRecord);
-		case Repr.Kind.float_:
-			return cbFloat(a.float_);
-		case Repr.Kind.int_:
-			return cbInt(a.int_);
-		case Repr.Kind.opt:
-			return cbOpt(a.opt);
-		case Repr.Kind.record:
-			return cbRecord(a.record);
-		case Repr.Kind.str:
-			return cbStr(a.str);
-		case Repr.Kind.symbol:
-			return cbSym(a.symbol);
-	}
+	mixin Union!(
+		immutable ReprArr,
+		immutable bool,
+		immutable double,
+		immutable long,
+		immutable ReprNamedRecord,
+		immutable Opt!(Repr*),
+		immutable ReprRecord,
+		immutable string,
+		immutable Sym);
 }
 
 immutable(SafeCStr) jsonStrOfRepr(ref Alloc alloc, ref const AllSymbols allSymbols, immutable Repr a) {
@@ -197,9 +138,8 @@ immutable(SafeCStr) jsonStrOfRepr(ref Alloc alloc, ref const AllSymbols allSymbo
 }
 
 void writeReprJSON(ref Writer writer, ref const AllSymbols allSymbols, immutable Repr a) {
-	matchRepr!void(
-		a,
-		(ref immutable ReprArr it) {
+	a.match!void(
+		(immutable ReprArr it) {
 			writer ~= '[';
 			writeJoin!Repr(writer, it.arr, ",", (ref immutable Repr em) {
 				writeReprJSON(writer, allSymbols, em);
@@ -215,7 +155,7 @@ void writeReprJSON(ref Writer writer, ref const AllSymbols allSymbols, immutable
 		(immutable long it) {
 			writer ~= it;
 		},
-		(ref immutable ReprNamedRecord it) {
+		(immutable ReprNamedRecord it) {
 			writer ~= "{\"_type\":";
 			writeQuotedSym(writer, allSymbols, it.name);
 			foreach (ref immutable NameAndRepr pair; it.children) {
@@ -235,7 +175,7 @@ void writeReprJSON(ref Writer writer, ref const AllSymbols allSymbols, immutable
 				writer ~= "{\"_type\":\"none\"}";
 			}
 		},
-		(ref immutable ReprRecord it) {
+		(immutable ReprRecord it) {
 			writer ~= "{\"_type\":";
 			writeQuotedSym(writer, allSymbols, it.name);
 			writer ~= ",\"args\":[";
@@ -244,7 +184,7 @@ void writeReprJSON(ref Writer writer, ref const AllSymbols allSymbols, immutable
 			});
 			writer ~= "]}";
 		},
-		(ref immutable string it) {
+		(immutable string it) {
 			writeQuotedStr(writer, it);
 		},
 		(immutable Sym it) {

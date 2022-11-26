@@ -10,16 +10,7 @@ import frontend.check.dicts :
 import frontend.diagnosticsBuilder : addDiagnostic, DiagnosticsBuilder;
 import frontend.programState : ProgramState;
 import model.diag : Diag;
-import model.model :
-	ImportOrExport,
-	ImportOrExportKind,
-	matchStructOrAlias,
-	matchImportOrExportKind,
-	NameReferents,
-	SpecDecl,
-	StructAlias,
-	StructDecl,
-	Visibility;
+import model.model : ImportOrExport, ImportOrExportKind, NameReferents, SpecDecl, StructAlias, StructDecl, Visibility;
 import util.alloc.alloc : Alloc;
 import util.col.arrUtil : sum;
 import util.col.fullIndexDict :
@@ -81,8 +72,7 @@ FullIndexDict!(ImportIndex, bool) newUsedImportsAndReExports(
 		(immutable(ImportIndex)) => false);
 
 private immutable(size_t) countImportsForUsed(scope ref immutable ImportOrExport a) =>
-	matchImportOrExportKind!(immutable size_t)(
-		a.kind,
+	a.kind.match!(immutable size_t)(
 		(immutable(ImportOrExportKind.ModuleWhole)) => 1,
 		(immutable ImportOrExportKind.ModuleNamed m) => m.names.length);
 
@@ -138,9 +128,8 @@ void checkForUnused(
 
 private void checkUnusedImports(ref CheckCtx ctx) {
 	size_t index = 0;
-	foreach (ref immutable ImportOrExport x; ctx.imports) {
-		matchImportOrExportKind!void(
-			x.kind,
+	foreach (ref immutable ImportOrExport x; ctx.imports)
+		x.kind.match!void(
 			(immutable ImportOrExportKind.ModuleWhole m) {
 				if (!ctx.importsAndReExportsUsed[immutable ImportIndex(index)] && has(x.importSource))
 					addDiag(ctx, force(x.importSource), immutable Diag(
@@ -155,7 +144,6 @@ private void checkUnusedImports(ref CheckCtx ctx) {
 					index++;
 				}
 			});
-	}
 }
 
 // Index of an imported module / name.
@@ -165,8 +153,7 @@ struct ImportIndex {
 }
 
 void markUsedStructOrAlias(ref CheckCtx ctx, ref immutable StructOrAliasAndIndex a) {
-	matchStructOrAlias!void(
-		a.structOrAlias,
+	a.structOrAlias.match!void(
 		(ref immutable StructAlias) {
 			ctx.structAliasesUsed[a.index.asAlias] = true;
 		},
@@ -191,8 +178,7 @@ void eachImportAndReExport(
 	size_t index = 0;
 	void inner(ref immutable ImportOrExport m) {
 		immutable size_t startIndex = index;
-		immutable Opt!ImportIndexAndReferents importIndexAndReferents = matchImportOrExportKind(
-			m.kind,
+		immutable Opt!ImportIndexAndReferents imported = m.kind.match!(immutable Opt!ImportIndexAndReferents)(
 			(immutable ImportOrExportKind.ModuleWhole m) {
 				index++;
 				immutable Opt!NameReferents referents = m.module_.allExportedNames[name];
@@ -213,8 +199,8 @@ void eachImportAndReExport(
 				} else
 					return none!ImportIndexAndReferents;
 			});
-		if (has(importIndexAndReferents)) {
-			immutable ImportIndexAndReferents ir = force(importIndexAndReferents);
+		if (has(imported)) {
+			immutable ImportIndexAndReferents ir = force(imported);
 			cb(ir.importIndex, ir.referents);
 		}
 	}
@@ -222,7 +208,6 @@ void eachImportAndReExport(
 		inner(m);
 	foreach (ref immutable ImportOrExport m; ctx.reExports)
 		inner(m);
-
 }
 
 private struct ImportIndexAndReferents {

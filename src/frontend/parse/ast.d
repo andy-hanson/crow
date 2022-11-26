@@ -1,6 +1,6 @@
 module frontend.parse.ast;
 
-@safe @nogc nothrow:
+@safe @nogc pure nothrow:
 
 import model.model :
 	AssertOrForbidKind,
@@ -35,25 +35,8 @@ import util.repr :
 	reprSym;
 import util.sourceRange : Pos, rangeOfStartAndLength, rangeOfStartAndName, RangeWithinFile, reprRangeWithinFile;
 import util.sym : AllSymbols, Sym, sym, symSize;
+import util.union_ : Union;
 import util.util : verify;
-
-@trusted immutable(T) matchImportOrExportAstKindImpure(T)(
-	immutable ImportOrExportAstKind a,
-	scope immutable(T) delegate(immutable ImportOrExportAstKind.ModuleWhole) @safe @nogc nothrow cbModuleWhole,
-	scope immutable(T) delegate(immutable ImportOrExportAstKind.ModuleNamed) @safe @nogc nothrow cbModuleNamed,
-	scope immutable(T) delegate(immutable ImportOrExportAstKind.File) @safe @nogc nothrow cbFile,
-) {
-	final switch (a.kind) {
-		case ImportOrExportAstKind.Kind.moduleWhole:
-			return cbModuleWhole(a.moduleWhole);
-		case ImportOrExportAstKind.Kind.moduleNamed:
-			return cbModuleNamed(a.moduleNamed);
-		case ImportOrExportAstKind.Kind.file:
-			return cbFile(*a.file);
-	}
-}
-
-pure:
 
 struct NameAndRange {
 	@safe @nogc pure nothrow:
@@ -80,8 +63,6 @@ immutable(RangeWithinFile) rangeOfOptNameAndRange(immutable OptNameAndRange a, r
 	rangeOfStartAndName(a.start, has(a.name) ? force(a.name) : sym!"_", allSymbols);
 
 struct TypeAst {
-	@safe @nogc pure nothrow:
-
 	struct Dict {
 		enum Kind {
 			data,
@@ -111,8 +92,6 @@ struct TypeAst {
 	}
 
 	struct Suffix {
-		@safe @nogc pure nothrow:
-
 		enum Kind {
 			future,
 			list,
@@ -130,48 +109,9 @@ struct TypeAst {
 		immutable TypeAst b;
 	}
 
-	immutable this(immutable Dict* a) { kind = Kind.dict; dict = a; }
-	@trusted immutable this(immutable Fun a) { kind = Kind.fun; fun = a; }
-	@trusted immutable this(immutable InstStruct a) { kind = Kind.instStruct; instStruct = a; }
-	immutable this(immutable Suffix* a) { kind = Kind.suffix; suffix = a; }
-	immutable this(immutable Tuple* a) { kind = Kind.tuple; tuple = a; }
-
-	private:
-
-	enum Kind {
-		dict,
-		fun,
-		instStruct,
-		suffix,
-		tuple,
-	}
-	immutable Kind kind;
-	union {
-		immutable Dict* dict;
-		immutable Fun fun;
-		immutable InstStruct instStruct;
-		immutable Suffix* suffix;
-		immutable Tuple* tuple;
-	}
+	mixin Union!(immutable Dict*, immutable Fun, immutable InstStruct, immutable Suffix*, immutable Tuple*);
 }
 static assert(TypeAst.sizeof <= 40);
-
-@trusted immutable(T) matchTypeAst(T, alias cbDict, alias cbFun, alias cbInstStruct, alias cbSuffix, alias cbTuple)(
-	immutable TypeAst a,
-) {
-	final switch (a.kind) {
-		case TypeAst.Kind.dict:
-			return cbDict(*a.dict);
-		case TypeAst.Kind.fun:
-			return cbFun(a.fun);
-		case TypeAst.Kind.instStruct:
-			return cbInstStruct(a.instStruct);
-		case TypeAst.Kind.suffix:
-			return cbSuffix(*a.suffix);
-		case TypeAst.Kind.tuple:
-			return cbTuple(*a.tuple);
-	}
-}
 
 immutable(TypeAst) bogusTypeAst(immutable RangeWithinFile range) =>
 	immutable TypeAst(immutable TypeAst.InstStruct(
@@ -180,14 +120,12 @@ immutable(TypeAst) bogusTypeAst(immutable RangeWithinFile range) =>
 		emptySmallArray!TypeAst));
 
 immutable(RangeWithinFile) range(immutable TypeAst a) =>
-	matchTypeAst!(
-		immutable RangeWithinFile,
-		(immutable TypeAst.Dict it) => range(it),
+	a.match!(immutable RangeWithinFile)(
+		(ref immutable TypeAst.Dict it) => range(it),
 		(immutable TypeAst.Fun it) => it.range,
 		(immutable TypeAst.InstStruct it) => it.range,
-		(immutable TypeAst.Suffix it) => range(it),
-		(immutable TypeAst.Tuple it) => range(it),
-	)(a);
+		(ref immutable TypeAst.Suffix it) => range(it),
+		(ref immutable TypeAst.Tuple it) => range(it));
 
 immutable(RangeWithinFile) range(immutable TypeAst.Dict a) =>
 	immutable RangeWithinFile(range(a.v).start, safeToUint(range(a.k).end + "]".length));
@@ -336,35 +274,12 @@ struct InterpolatedAst {
 	immutable this(immutable InterpolatedPart[] p) {
 		parts = p;
 		verify(exists!(immutable InterpolatedPart)(parts, (ref immutable InterpolatedPart part) =>
-			part.kind == InterpolatedPart.Kind.expr));
+			part.isA!ExprAst));
 	}
 }
 
 struct InterpolatedPart {
-	@safe @nogc pure nothrow:
-
-	@trusted immutable this(immutable string a) { kind = Kind.string_; string_ = a; }
-	@trusted immutable this(immutable ExprAst a) { kind = Kind.expr; expr = a; }
-
-	private:
-	enum Kind {
-		string_,
-		expr,
-	}
-	immutable Kind kind;
-	union {
-		immutable string string_;
-		immutable ExprAst expr;
-	}
-}
-
-@trusted T matchInterpolatedPart(T, alias cbString, alias cbExpr)(ref immutable InterpolatedPart a) {
-	final switch (a.kind) {
-		case InterpolatedPart.Kind.string_:
-			return cbString(a.string_);
-		case InterpolatedPart.Kind.expr:
-			return cbExpr(a.expr);
-	}
+	mixin Union!(immutable string, immutable ExprAst);
 }
 
 struct LambdaAst {
@@ -421,40 +336,9 @@ struct LoopWhileAst {
 }
 
 struct NameOrUnderscoreOrNone {
-	@safe @nogc pure nothrow:
-
 	struct Underscore {}
 	struct None {}
-
-	immutable this(immutable Sym a) { kind = Kind.name; name = a; }
-	immutable this(immutable Underscore a) { kind = Kind.underscore; underscore = a; }
-	immutable this(immutable None a) { kind = Kind.none; none = a; }
-
-	private:
-	enum Kind {
-		name,
-		underscore,
-		none,
-	}
-	immutable Kind kind;
-	union {
-		immutable Sym name;
-		immutable Underscore underscore;
-		immutable None none;
-	}
-}
-
-@trusted immutable(T) matchNameOrUnderscoreOrNone(T, alias cbName, alias cbUnderscore, alias cbNone)(
-	ref immutable NameOrUnderscoreOrNone a,
-) {
-	final switch (a.kind) {
-		case NameOrUnderscoreOrNone.Kind.name:
-			return cbName(a.name);
-		case NameOrUnderscoreOrNone.Kind.underscore:
-			return cbUnderscore(a.underscore);
-		case NameOrUnderscoreOrNone.Kind.none:
-			return cbNone(a.none);
-	}
+	mixin Union!(immutable Sym, immutable Underscore, immutable None);
 }
 
 // Includes size of the ' ' before the name (but not for None)
@@ -462,12 +346,13 @@ private immutable(size_t) nameOrUnderscoreOrNoneSize(
 	ref const AllSymbols allSymbols,
 	ref immutable NameOrUnderscoreOrNone a,
 ) =>
-	matchNameOrUnderscoreOrNone!(
-		size_t,
-		(immutable Sym s) => 1 + symSize(allSymbols, s),
-		(ref immutable NameOrUnderscoreOrNone.Underscore) => immutable size_t(2),
-		(ref immutable NameOrUnderscoreOrNone.None) => immutable size_t(0),
-	)(a);
+	a.match!(immutable size_t)(
+		(immutable Sym s) =>
+			1 + symSize(allSymbols, s),
+		(immutable NameOrUnderscoreOrNone.Underscore) =>
+			immutable size_t(2),
+		(immutable NameOrUnderscoreOrNone.None) =>
+			immutable size_t(0));
 
 struct MatchAst {
 	struct CaseAst {
@@ -534,228 +419,39 @@ struct WithAst {
 }
 
 struct ExprAstKind {
-	@safe @nogc pure nothrow:
-
-	private:
-	enum Kind {
-		arrowAccess,
-		assertOrForbid,
-		bogus,
-		call,
-		for_,
-		identifier,
-		identifierSet,
-		if_,
-		ifOption,
-		interpolated,
-		lambda,
-		let,
-		literalFloat,
-		literalInt,
-		literalNat,
-		literalString,
-		loop,
-		loopBreak,
-		loopContinue,
-		loopUntil,
-		loopWhile,
-		match,
-		parenthesized,
-		ptr,
-		seq,
-		then,
-		throw_,
-		typed,
-		unless,
-		with_,
-	}
-	immutable Kind kind;
-	union {
-		immutable ArrowAccessAst* arrowAccess;
-		immutable AssertOrForbidAst* assertOrForbid;
-		immutable BogusAst bogus;
-		immutable CallAst call;
-		immutable ForAst* for_;
-		immutable IdentifierAst identifier;
-		immutable IdentifierSetAst* identifierSet;
-		immutable IfAst* if_;
-		immutable IfOptionAst* ifOption;
-		immutable InterpolatedAst interpolated;
-		immutable LambdaAst* lambda;
-		immutable LetAst* let;
-		immutable LiteralFloatAst literalFloat;
-		immutable LiteralIntAst literalInt;
-		immutable LiteralNatAst literalNat;
-		immutable LiteralStringAst literalString;
-		immutable LoopAst* loop;
-		immutable LoopBreakAst* loopBreak;
-		immutable LoopContinueAst loopContinue;
-		immutable LoopUntilAst* loopUntil;
-		immutable LoopWhileAst* loopWhile;
-		immutable MatchAst* match_;
-		immutable ParenthesizedAst* parenthesized;
-		immutable PtrAst* ptr;
-		immutable SeqAst* seq;
-		immutable ThenAst* then;
-		immutable ThrowAst* throw_;
-		immutable TypedAst* typed;
-		immutable UnlessAst* unless;
-		immutable WithAst* with_;
-	}
-
-	public:
-	@trusted immutable this(immutable ArrowAccessAst* a) { kind = Kind.arrowAccess; arrowAccess = a; }
-	immutable this(immutable AssertOrForbidAst* a) { kind = Kind.assertOrForbid; assertOrForbid = a; }
-	@trusted immutable this(immutable BogusAst a) { kind = Kind.bogus; bogus = a; }
-	@trusted immutable this(immutable CallAst a) { kind = Kind.call; call = a; }
-	immutable this(immutable ForAst* a) { kind = Kind.for_; for_ = a; }
-	@trusted immutable this(immutable IdentifierAst a) { kind = Kind.identifier; identifier = a; }
-	@trusted immutable this(immutable IdentifierSetAst* a) { kind = Kind.identifierSet; identifierSet = a; }
-	@trusted immutable this(immutable IfAst* a) { kind = Kind.if_; if_ = a; }
-	@trusted immutable this(immutable IfOptionAst* a) { kind = Kind.ifOption; ifOption = a; }
-	@trusted immutable this(immutable InterpolatedAst a) { kind = Kind.interpolated; interpolated = a; }
-	@trusted immutable this(immutable LambdaAst* a) { kind = Kind.lambda; lambda = a; }
-	@trusted immutable this(immutable LetAst* a) { kind = Kind.let; let = a; }
-	immutable this(immutable LiteralFloatAst a) { kind = Kind.literalFloat; literalFloat = a; }
-	immutable this(immutable LiteralIntAst a) { kind = Kind.literalInt; literalInt = a; }
-	immutable this(immutable LiteralNatAst a) { kind = Kind.literalNat; literalNat = a; }
-	immutable this(immutable LiteralStringAst a) { kind = Kind.literalString; literalString = a; }
-	@trusted immutable this(immutable LoopAst* a) { kind = Kind.loop; loop = a; }
-	@trusted immutable this(immutable LoopBreakAst* a) { kind = Kind.loopBreak; loopBreak = a; }
-	@trusted immutable this(immutable LoopContinueAst a) { kind = Kind.loopContinue; loopContinue = a; }
-	immutable this(immutable LoopUntilAst* a) { kind = Kind.loopUntil; loopUntil = a; }
-	immutable this(immutable LoopWhileAst* a) { kind = Kind.loopWhile; loopWhile = a; }
-	@trusted immutable this(immutable MatchAst* a) { kind = Kind.match; match_ = a; }
-	@trusted immutable this(immutable ParenthesizedAst* a) { kind = Kind.parenthesized; parenthesized = a; }
-	immutable this(immutable PtrAst* a) { kind = Kind.ptr; ptr = a; }
-	@trusted immutable this(immutable SeqAst* a) { kind = Kind.seq; seq = a; }
-	@trusted immutable this(immutable ThenAst* a) { kind = Kind.then; then = a; }
-	immutable this(immutable ThrowAst* a) { kind = Kind.throw_; throw_ = a; }
-	immutable this(immutable TypedAst* a) { kind = Kind.typed; typed = a; }
-	immutable this(immutable UnlessAst* a) { kind = Kind.unless; unless = a; }
-	immutable this(immutable WithAst* a) { kind = Kind.with_; with_ = a; }
+	mixin Union!(
+		immutable ArrowAccessAst*,
+		immutable AssertOrForbidAst*,
+		immutable BogusAst,
+		immutable CallAst,
+		immutable ForAst*,
+		immutable IdentifierAst,
+		immutable IdentifierSetAst*,
+		immutable IfAst*,
+		immutable IfOptionAst*,
+		immutable InterpolatedAst,
+		immutable LambdaAst*,
+		immutable LetAst*,
+		immutable LiteralFloatAst,
+		immutable LiteralIntAst,
+		immutable LiteralNatAst,
+		immutable LiteralStringAst,
+		immutable LoopAst*,
+		immutable LoopBreakAst*,
+		immutable LoopContinueAst,
+		immutable LoopUntilAst*,
+		immutable LoopWhileAst*,
+		immutable MatchAst*,
+		immutable ParenthesizedAst*,
+		immutable PtrAst*,
+		immutable SeqAst*,
+		immutable ThenAst*,
+		immutable ThrowAst*,
+		immutable TypedAst*,
+		immutable UnlessAst*,
+		immutable WithAst*);
 }
 static assert(ExprAstKind.sizeof <= 40);
-
-immutable(bool) isCall(ref immutable ExprAstKind a) =>
-	a.kind == ExprAstKind.Kind.call;
-@trusted ref immutable(CallAst) asCall(scope return ref immutable ExprAstKind a) {
-	verify(isCall(a));
-	return a.call;
-}
-
-immutable(bool) isIdentifier(ref immutable ExprAstKind a) =>
-	a.kind == ExprAstKind.Kind.identifier;
-immutable(IdentifierAst) asIdentifier(return scope ref immutable ExprAstKind a) {
-	verify(isIdentifier(a));
-	return a.identifier;
-}
-
-immutable(bool) isLambda(ref immutable ExprAstKind a) =>
-	a.kind == ExprAstKind.Kind.lambda;
-@trusted ref immutable(LambdaAst) asLambda(return scope ref immutable ExprAstKind a) {
-	verify(isLambda(a));
-	return *a.lambda;
-}
-
-@trusted T matchExprAstKind(
-	T,
-	alias cbArrowAccess,
-	alias cbAssertOrForbid,
-	alias cbBogus,
-	alias cbCall,
-	alias cbFor,
-	alias cbIdentifier,
-	alias cbIdentifierSet,
-	alias cbIf,
-	alias cbIfOption,
-	alias cbInterpolated,
-	alias cbLambda,
-	alias cbLet,
-	alias cbLiteralFloat,
-	alias cbLiteralInt,
-	alias cbLiteralNat,
-	alias cbLiteralString,
-	alias cbLoop,
-	alias cbLoopBreak,
-	alias cbLoopContinue,
-	alias cbLoopUntil,
-	alias cbLoopWhile,
-	alias cbMatch,
-	alias cbParenthesized,
-	alias cbPtr,
-	alias cbSeq,
-	alias cbThen,
-	alias cbThrow,
-	alias cbTyped,
-	alias cbUnless,
-	alias cbWith,
-)(
-	scope ref immutable ExprAstKind a,
-) {
-	final switch (a.kind) {
-		case ExprAstKind.Kind.arrowAccess:
-			return cbArrowAccess(*a.arrowAccess);
-		case ExprAstKind.Kind.assertOrForbid:
-			return cbAssertOrForbid(*a.assertOrForbid);
-		case ExprAstKind.Kind.bogus:
-			return cbBogus(a.bogus);
-		case ExprAstKind.Kind.call:
-			return cbCall(a.call);
-		case ExprAstKind.Kind.for_:
-			return cbFor(*a.for_);
-		case ExprAstKind.Kind.identifier:
-			return cbIdentifier(a.identifier);
-		case ExprAstKind.Kind.identifierSet:
-			return cbIdentifierSet(*a.identifierSet);
-		case ExprAstKind.Kind.if_:
-			return cbIf(*a.if_);
-		case ExprAstKind.Kind.ifOption:
-			return cbIfOption(*a.ifOption);
-		case ExprAstKind.Kind.interpolated:
-			return cbInterpolated(a.interpolated);
-		case ExprAstKind.Kind.lambda:
-			return cbLambda(*a.lambda);
-		case ExprAstKind.Kind.let:
-			return cbLet(*a.let);
-		case ExprAstKind.Kind.literalFloat:
-			return cbLiteralFloat(a.literalFloat);
-		case ExprAstKind.Kind.literalInt:
-			return cbLiteralInt(a.literalInt);
-		case ExprAstKind.Kind.literalNat:
-			return cbLiteralNat(a.literalNat);
-		case ExprAstKind.Kind.literalString:
-			return cbLiteralString(a.literalString);
-		case ExprAstKind.Kind.loop:
-			return cbLoop(*a.loop);
-		case ExprAstKind.Kind.loopBreak:
-			return cbLoopBreak(*a.loopBreak);
-		case ExprAstKind.Kind.loopContinue:
-			return cbLoopContinue(a.loopContinue);
-		case ExprAstKind.Kind.loopUntil:
-			return cbLoopUntil(*a.loopUntil);
-		case ExprAstKind.Kind.loopWhile:
-			return cbLoopWhile(*a.loopWhile);
-		case ExprAstKind.Kind.match:
-			return cbMatch(*a.match_);
-		case ExprAstKind.Kind.parenthesized:
-			return cbParenthesized(*a.parenthesized);
-		case ExprAstKind.Kind.ptr:
-			return cbPtr(*a.ptr);
-		case ExprAstKind.Kind.seq:
-			return cbSeq(*a.seq);
-		case ExprAstKind.Kind.then:
-			return cbThen(*a.then);
-		case ExprAstKind.Kind.throw_:
-			return cbThrow(*a.throw_);
-		case ExprAstKind.Kind.typed:
-			return cbTyped(*a.typed);
-		case ExprAstKind.Kind.unless:
-			return cbUnless(*a.unless);
-		case ExprAstKind.Kind.with_:
-			return cbWith(*a.with_);
-	}
-}
 
 struct ExprAst {
 	immutable RangeWithinFile range;
@@ -770,36 +466,12 @@ struct ParamAst {
 }
 
 struct ParamsAst {
-	@safe @nogc pure nothrow:
-
 	struct Varargs {
 		immutable ParamAst param;
 	}
-
-	immutable this(immutable ParamAst[] a) { kind = Kind.regular; regular = a; }
-	immutable this(immutable Varargs* a) { kind = Kind.varargs; varargs = a; }
-
-	private:
-
-	enum Kind {
-		regular,
-		varargs,
-	}
-	immutable Kind kind;
-	union {
-		immutable SmallArray!ParamAst regular;
-		immutable Varargs* varargs;
-	}
+	mixin Union!(immutable SmallArray!ParamAst, immutable Varargs*);
 }
-
-@trusted immutable(T) matchParamsAst(T, alias cbRegular, alias cbVarargs)(ref immutable ParamsAst a) {
-	final switch (a.kind) {
-		case ParamsAst.Kind.regular:
-			return cbRegular(a.regular);
-		case ParamsAst.Kind.varargs:
-			return cbVarargs(*a.varargs);
-	}
-}
+static assert(ParamsAst.sizeof == 8);
 
 struct SpecSigAst {
 	immutable SafeCStr docComment;
@@ -840,32 +512,11 @@ immutable(RangeWithinFile) rangeOfModifierAst(immutable ModifierAst a, ref const
 	rangeOfStartAndName(a.pos, symOfModifierKind(a.kind), allSymbols);
 
 struct LiteralIntOrNat {
-	@safe @nogc pure nothrow:
-
-	immutable this(immutable LiteralIntAst a) { kind = Kind.int_; int_ = a; }
-	immutable this(immutable LiteralNatAst a) { kind = Kind.nat; nat = a; }
-
-	private:
-	enum Kind { int_, nat }
-	immutable Kind kind;
-	union {
-		immutable LiteralIntAst int_;
-		immutable LiteralNatAst nat;
-	}
-}
-
-@trusted immutable(T) matchLiteralIntOrNat(T, alias cbInt, alias cbNat)(ref immutable LiteralIntOrNat a) {
-	final switch (a.kind) {
-		case LiteralIntOrNat.Kind.int_:
-			return cbInt(a.int_);
-		case LiteralIntOrNat.Kind.nat:
-			return cbNat(a.nat);
-	}
+	mixin Union!(immutable LiteralIntAst, immutable LiteralNatAst);
 }
 
 struct StructDeclAst {
 	struct Body {
-		@safe @nogc pure nothrow:
 		struct Builtin {}
 		struct Enum {
 			struct Member {
@@ -887,8 +538,6 @@ struct StructDeclAst {
 			immutable SmallArray!Member members;
 		}
 		struct Record {
-			@safe @nogc pure nothrow:
-
 			struct Field {
 				immutable RangeWithinFile range;
 				immutable Visibility visibility;
@@ -907,34 +556,13 @@ struct StructDeclAst {
 			immutable Member[] members;
 		}
 
-		private:
-		enum Kind {
-			builtin,
-			enum_,
-			extern_,
-			flags,
-			record,
-			union_,
-		}
-
-		immutable Kind kind;
-		union {
-			immutable Builtin builtin;
-			immutable Enum enum_;
-			immutable Extern extern_;
-			immutable Flags flags;
-			immutable Record record;
-			immutable Union union_;
-		}
-
-		public:
-
-		immutable this(immutable Builtin a) { kind = Kind.builtin; builtin = a; }
-		@trusted immutable this(immutable Enum a) { kind = Kind.enum_; enum_ = a; }
-		immutable this(immutable Extern a) { kind = Kind.extern_; extern_ = a; }
-		@trusted immutable this(immutable Flags a) { kind = Kind.flags; flags = a; }
-		@trusted immutable this(immutable Record a) { kind = Kind.record; record = a; }
-		@trusted immutable this(immutable Union a) { kind = Kind.union_; union_ = a; }
+		mixin .Union!(
+			immutable Builtin,
+			immutable Enum,
+			immutable Extern,
+			immutable Flags,
+			immutable Record,
+			immutable Union);
 	}
 
 	immutable RangeWithinFile range;
@@ -948,60 +576,11 @@ struct StructDeclAst {
 static assert(StructDeclAst.Body.sizeof <= 24);
 static assert(StructDeclAst.sizeof <= 88);
 
-@trusted T matchStructDeclAstBody(
-	T,
-	alias cbBuiltin,
-	alias cbEnum,
-	alias cbExtern,
-	alias cbFlags,
-	alias cbRecord,
-	alias cbUnion,
-)(ref immutable StructDeclAst.Body a) {
-	final switch (a.kind) {
-		case StructDeclAst.Body.Kind.builtin:
-			return cbBuiltin(a.builtin);
-		case StructDeclAst.Body.Kind.enum_:
-			return cbEnum(a.enum_);
-		case StructDeclAst.Body.Kind.extern_:
-			return cbExtern(a.extern_);
-		case StructDeclAst.Body.Kind.flags:
-			return cbFlags(a.flags);
-		case StructDeclAst.Body.Kind.record:
-			return cbRecord(a.record);
-		case StructDeclAst.Body.Kind.union_:
-			return cbUnion(a.union_);
-	}
-}
-
 struct SpecBodyAst {
-	@safe @nogc pure nothrow:
-
 	struct Builtin {}
-
-	private:
-	enum Kind {
-		builtin,
-		sigs,
-	}
-	immutable Kind kind;
-	union {
-		immutable Builtin builtin;
-		immutable SpecSigAst[] sigs;
-	}
-
-	public:
-	immutable this(immutable Builtin a) { kind = Kind.builtin; builtin = a; }
-	@trusted immutable this(immutable SpecSigAst[] a) { kind = Kind.sigs; sigs = a; }
+	mixin Union!(immutable Builtin, immutable SmallArray!SpecSigAst);
 }
-
-@trusted T matchSpecBodyAst(T, alias cbBuiltin, alias cbSigs)(ref immutable SpecBodyAst a) {
-	final switch (a.kind) {
-		case SpecBodyAst.Kind.builtin:
-			return cbBuiltin(a.builtin);
-		case SpecBodyAst.Kind.sigs:
-			return cbSigs(a.sigs);
-	}
-}
+static assert(SpecBodyAst.sizeof == ulong.sizeof);
 
 struct SpecDeclAst {
 	immutable RangeWithinFile range;
@@ -1085,46 +664,14 @@ struct ImportOrExportAst {
 }
 
 struct ImportOrExportAstKind {
-	@safe @nogc pure nothrow:
-
 	struct ModuleWhole {}
-	struct ModuleNamed {
-		immutable Sym[] names;
-	}
 	struct File {
 		immutable Sym name;
 		immutable ImportFileType type;
 	}
-
-	immutable this(immutable ModuleWhole a) { kind = Kind.moduleWhole; moduleWhole = a; }
-	immutable this(immutable ModuleNamed a) { kind = Kind.moduleNamed; moduleNamed = a; }
-	immutable this(immutable File* a) { kind = Kind.file; file = a; }
-
-	private:
-	enum Kind { moduleWhole, moduleNamed, file }
-	immutable Kind kind;
-	union {
-		immutable ModuleWhole moduleWhole;
-		immutable ModuleNamed moduleNamed;
-		immutable File* file;
-	}
+	mixin Union!(immutable ModuleWhole, immutable SmallArray!Sym, immutable File*);
 }
-
-@trusted private immutable(T) matchImportOrExportAstKind(T)(
-	immutable ImportOrExportAstKind a,
-	scope immutable(T) delegate(immutable ImportOrExportAstKind.ModuleWhole) @safe @nogc pure nothrow cbModuleWhole,
-	scope immutable(T) delegate(immutable ImportOrExportAstKind.ModuleNamed) @safe @nogc pure nothrow cbModuleNamed,
-	scope immutable(T) delegate(immutable ImportOrExportAstKind.File) @safe @nogc pure nothrow cbFile,
-) {
-	final switch (a.kind) {
-		case ImportOrExportAstKind.Kind.moduleWhole:
-			return cbModuleWhole(a.moduleWhole);
-		case ImportOrExportAstKind.Kind.moduleNamed:
-			return cbModuleNamed(a.moduleNamed);
-		case ImportOrExportAstKind.Kind.file:
-			return cbFile(*a.file);
-	}
-}
+static assert(ImportOrExportAstKind.sizeof == ulong.sizeof);
 
 struct ImportsOrExportsAst {
 	immutable RangeWithinFile range;
@@ -1187,14 +734,13 @@ immutable(Repr) reprImportOrExportAst(
 ) =>
 	reprRecord!"port"(alloc, [
 		reprStr(pathOrRelPathToStr(alloc, allPaths, a.path)),
-		matchImportOrExportAstKind(
-			a.kind,
-			(immutable(ImportOrExportAstKind.ModuleWhole)) =>
+		a.kind.match!(immutable Repr)(
+			(immutable ImportOrExportAstKind.ModuleWhole) =>
 				reprSym!"whole",
-			(immutable ImportOrExportAstKind.ModuleNamed m) =>
-				reprRecord!"named"(alloc, [reprArr(alloc, m.names, (ref immutable Sym name) =>
+			(immutable Sym[] names) =>
+				reprRecord!"named"(alloc, [reprArr(alloc, names, (ref immutable Sym name) =>
 					reprSym(name))]),
-			(immutable ImportOrExportAstKind.File f) =>
+			(ref immutable ImportOrExportAstKind.File f) =>
 				reprRecord!"file"(alloc, [
 					reprSym(f.name),
 					reprSym(symOfImportFileType(f.type))]))]);
@@ -1209,14 +755,12 @@ immutable(Repr) reprSpecDeclAst(ref Alloc alloc, ref immutable SpecDeclAst a) =>
 		reprSpecBodyAst(alloc, a.body_)]);
 
 immutable(Repr) reprSpecBodyAst(ref Alloc alloc, ref immutable SpecBodyAst a) =>
-	matchSpecBodyAst!(
-		immutable Repr,
-		(ref immutable SpecBodyAst.Builtin) =>
+	a.match!(immutable Repr)(
+		(immutable SpecBodyAst.Builtin) =>
 			reprSym!"builtin",
-		(ref immutable SpecSigAst[] sigs) =>
+		(immutable SpecSigAst[] sigs) =>
 			reprArr(alloc, sigs, (ref immutable SpecSigAst sig) =>
-				reprSpecSig(alloc, sig)),
-	)(a);
+				reprSpecSig(alloc, sig)));
 
 immutable(Repr) reprSpecSig(ref Alloc alloc, ref immutable SpecSigAst a) =>
 	reprRecord!"spec-sig"(alloc, [
@@ -1224,13 +768,11 @@ immutable(Repr) reprSpecSig(ref Alloc alloc, ref immutable SpecSigAst a) =>
 		reprStr(a.docComment),
 		reprSym(a.name),
 		reprTypeAst(alloc, a.returnType),
-		matchParamsAst!(
-			immutable Repr,
+		a.params.match!(immutable Repr)(
 			(immutable ParamAst[] params) =>
 				reprArr(alloc, params, (ref immutable ParamAst p) => reprParamAst(alloc, p)),
 			(ref immutable ParamsAst.Varargs v) =>
-				reprRecord!"varargs"(alloc, [reprParamAst(alloc, v.param)]),
-		)(a.params)]);
+				reprRecord!"varargs"(alloc, [reprParamAst(alloc, v.param)]))]);
 
 immutable(Repr) reprStructAliasAst(ref Alloc alloc, ref immutable StructAliasAst a) =>
 	reprRecord!"alias"(alloc, [
@@ -1274,13 +816,11 @@ immutable(Repr) reprLiteralStringAst(ref Alloc alloc, ref immutable LiteralStrin
 	reprRecord!"string"(alloc, [reprStr(a.value)]);
 
 immutable(Repr) reprLiteralIntOrNat(ref Alloc alloc, ref immutable LiteralIntOrNat a) =>
-	matchLiteralIntOrNat!(
-		immutable Repr,
-		(ref immutable LiteralIntAst it) =>
+	a.match!(immutable Repr)(
+		(immutable LiteralIntAst it) =>
 			reprLiteralIntAst(alloc, it),
-		(ref immutable LiteralNatAst it) =>
-			reprLiteralNatAst(alloc, it),
-	)(a);
+		(immutable LiteralNatAst it) =>
+			reprLiteralNatAst(alloc, it));
 
 immutable(Repr) reprField(ref Alloc alloc, ref immutable StructDeclAst.Body.Record.Field a) =>
 	reprRecord!"field"(alloc, [
@@ -1328,21 +868,19 @@ immutable(Repr) reprUnion(ref Alloc alloc, ref immutable StructDeclAst.Body.Unio
 					reprTypeAst(alloc, t))]))]);
 
 immutable(Repr) reprStructBodyAst(ref Alloc alloc, ref immutable StructDeclAst.Body a) =>
-	matchStructDeclAstBody!(
-		immutable Repr,
-		(ref immutable StructDeclAst.Body.Builtin) =>
+	a.match!(immutable Repr)(
+		(immutable StructDeclAst.Body.Builtin) =>
 			reprSym!"builtin" ,
-		(ref immutable StructDeclAst.Body.Enum e) =>
+		(immutable StructDeclAst.Body.Enum e) =>
 			reprEnumOrFlags(alloc, sym!"enum", e.typeArg, e.members),
-		(ref immutable StructDeclAst.Body.Extern) =>
+		(immutable StructDeclAst.Body.Extern) =>
 			reprSym!"extern",
-		(ref immutable StructDeclAst.Body.Flags e) =>
+		(immutable StructDeclAst.Body.Flags e) =>
 			reprEnumOrFlags(alloc, sym!"flags", e.typeArg, e.members),
-		(ref immutable StructDeclAst.Body.Record a) =>
+		(immutable StructDeclAst.Body.Record a) =>
 			reprRecordAst(alloc, a),
-		(ref immutable StructDeclAst.Body.Union a) =>
-			reprUnion(alloc, a),
-	)(a);
+		(immutable StructDeclAst.Body.Union a) =>
+			reprUnion(alloc, a));
 
 immutable(Repr) reprStructDeclAst(ref Alloc alloc, ref immutable StructDeclAst a) {
 	ArrBuilder!NameAndRepr fields;
@@ -1385,13 +923,11 @@ immutable(Repr) reprFunDeclAst(ref Alloc alloc, ref immutable FunDeclAst a) {
 }
 
 immutable(Repr) reprParamsAst(ref Alloc alloc, scope immutable ParamsAst a) =>
-	matchParamsAst!(
-		immutable Repr,
+	a.match!(immutable Repr)(
 		(immutable ParamAst[] params) =>
 			reprArr(alloc, params, (ref immutable ParamAst p) => reprParamAst(alloc, p)),
 		(ref immutable ParamsAst.Varargs v) =>
-			reprRecord!"varargs"(alloc, [reprParamAst(alloc, v.param)]),
-	)(a);
+			reprRecord!"varargs"(alloc, [reprParamAst(alloc, v.param)]));
 
 immutable(Repr) reprFunModifierAst(ref Alloc alloc, scope immutable FunModifierAst a) =>
 	reprRecord!"modifier"(alloc, [
@@ -1400,9 +936,8 @@ immutable(Repr) reprFunModifierAst(ref Alloc alloc, scope immutable FunModifierA
 			reprTypeAst(alloc, it))]);
 
 immutable(Repr) reprTypeAst(ref Alloc alloc, immutable TypeAst a) =>
-	matchTypeAst!(
-		immutable Repr,
-		(immutable TypeAst.Dict it) =>
+	a.match!(immutable Repr)(
+		(ref immutable TypeAst.Dict it) =>
 			reprRecord!"dict"(alloc, [
 				reprTypeAst(alloc, it.v),
 				reprTypeAst(alloc, it.k)]),
@@ -1414,15 +949,14 @@ immutable(Repr) reprTypeAst(ref Alloc alloc, immutable TypeAst a) =>
 					reprTypeAst(alloc, t))]),
 		(immutable TypeAst.InstStruct i) =>
 			reprInstStructAst(alloc, i),
-		(immutable TypeAst.Suffix it) =>
+		(ref immutable TypeAst.Suffix it) =>
 			reprRecord!"suffix"(alloc, [
 				reprTypeAst(alloc, it.left),
 				reprSym(symForTypeAstSuffix(it.kind))]),
-		(immutable TypeAst.Tuple it) =>
+		(ref immutable TypeAst.Tuple it) =>
 			reprRecord!"tuple"(alloc, [
 				reprTypeAst(alloc, it.a),
-				reprTypeAst(alloc, it.b)]),
-	)(a);
+				reprTypeAst(alloc, it.b)]));
 
 immutable(Sym) symOfFunKind(immutable TypeAst.Fun.Kind a) {
 	final switch (a) {
@@ -1471,8 +1005,7 @@ immutable(Repr) reprLambdaParamAst(ref Alloc alloc, immutable LambdaAst.Param a)
 		reprSym(has(a.name) ? force(a.name) : sym!"_")]);
 
 immutable(Repr) reprExprAstKind(ref Alloc alloc, ref immutable ExprAstKind ast) =>
-	matchExprAstKind!(
-		immutable Repr,
+	ast.match!(immutable Repr)(
 		(ref immutable ArrowAccessAst e) =>
 			reprRecord!"arrow-access"(alloc, [
 				reprExprAst(alloc, e.left),
@@ -1484,9 +1017,9 @@ immutable(Repr) reprExprAstKind(ref Alloc alloc, ref immutable ExprAstKind ast) 
 				reprExprAst(alloc, e.condition),
 				reprOpt(alloc, e.thrown, (ref immutable ExprAst thrown) =>
 					reprExprAst(alloc, thrown))]),
-		(ref immutable BogusAst e) =>
+		(immutable(BogusAst)) =>
 			reprSym!"bogus" ,
-		(ref immutable CallAst e) =>
+		(immutable CallAst e) =>
 			reprRecord!"call"(alloc, [
 				reprSym(symOfCallAstStyle(e.style)),
 				reprNameAndRange(alloc, e.funName),
@@ -1500,7 +1033,7 @@ immutable(Repr) reprExprAstKind(ref Alloc alloc, ref immutable ExprAstKind ast) 
 				reprExprAst(alloc, x.collection),
 				reprExprAst(alloc, x.body_),
 				reprOpt(alloc, x.else_, (ref immutable ExprAst else_) => reprExprAst(alloc, else_))]),
-		(ref immutable IdentifierAst a) =>
+		(immutable IdentifierAst a) =>
 			reprSym(a.name),
 		(ref immutable IdentifierSetAst a) =>
 			reprRecord!"set"(alloc, [
@@ -1519,7 +1052,7 @@ immutable(Repr) reprExprAstKind(ref Alloc alloc, ref immutable ExprAstKind ast) 
 				reprExprAst(alloc, it.then),
 				reprOpt(alloc, it.else_, (ref immutable ExprAst it) =>
 					reprExprAst(alloc, it))]),
-		(ref immutable InterpolatedAst it) =>
+		(immutable InterpolatedAst it) =>
 			reprRecord!"interpolated"(alloc, [
 				reprArr(alloc, it.parts, (ref immutable InterpolatedPart part) =>
 					reprInterpolatedPart(alloc, part))]),
@@ -1532,13 +1065,13 @@ immutable(Repr) reprExprAstKind(ref Alloc alloc, ref immutable ExprAstKind ast) 
 				reprSym(has(a.name) ? force(a.name) : sym!"_"),
 				reprExprAst(alloc, a.initializer),
 				reprExprAst(alloc, a.then)]),
-		(ref immutable LiteralFloatAst a) =>
+		(immutable LiteralFloatAst a) =>
 			reprLiteralFloatAst(alloc, a),
-		(ref immutable LiteralIntAst a) =>
+		(immutable LiteralIntAst a) =>
 			reprLiteralIntAst(alloc, a),
-		(ref immutable LiteralNatAst a) =>
+		(immutable LiteralNatAst a) =>
 			reprLiteralNatAst(alloc, a),
-		(ref immutable LiteralStringAst a) =>
+		(immutable LiteralStringAst a) =>
 			reprLiteralStringAst(alloc, a),
 		(ref immutable LoopAst a) =>
 			reprRecord!"loop"(alloc, [reprExprAst(alloc, a.body_)]),
@@ -1546,7 +1079,7 @@ immutable(Repr) reprExprAstKind(ref Alloc alloc, ref immutable ExprAstKind ast) 
 			reprRecord!"break"(alloc, [
 				reprOpt(alloc, e.value, (ref immutable ExprAst value) =>
 					reprExprAst(alloc, value))]),
-		(ref immutable(LoopContinueAst)) =>
+		(immutable(LoopContinueAst)) =>
 			reprSym!"continue" ,
 		(ref immutable LoopUntilAst e) =>
 			reprRecord!"until"(alloc, [
@@ -1563,15 +1096,13 @@ immutable(Repr) reprExprAstKind(ref Alloc alloc, ref immutable ExprAstKind ast) 
 					reprRecord!"case"(alloc, [
 						reprRangeWithinFile(alloc, case_.range),
 						reprSym(case_.memberName),
-						matchNameOrUnderscoreOrNone!(
-							immutable Repr,
+						case_.local.match!(immutable Repr)(
 							(immutable(Sym) it) =>
 								reprSym(it),
-							(ref immutable NameOrUnderscoreOrNone.Underscore) =>
+							(immutable NameOrUnderscoreOrNone.Underscore) =>
 								reprStr("_"),
-							(ref immutable NameOrUnderscoreOrNone.None) =>
-								reprSym!"none" ,
-						)(case_.local),
+							(immutable NameOrUnderscoreOrNone.None) =>
+								reprSym!"none"),
 						reprExprAst(alloc, case_.then)]))]),
 		(ref immutable ParenthesizedAst it) =>
 			reprRecord!"paren"(alloc, [reprExprAst(alloc, it.inner)]),
@@ -1600,15 +1131,12 @@ immutable(Repr) reprExprAstKind(ref Alloc alloc, ref immutable ExprAstKind ast) 
 			reprRecord!"with"(alloc, [
 				reprLambdaParamAsts(alloc, x.params),
 				reprExprAst(alloc, x.arg),
-				reprExprAst(alloc, x.body_)]),
-	)(ast);
+				reprExprAst(alloc, x.body_)]));
 
 immutable(Repr) reprInterpolatedPart(ref Alloc alloc, ref immutable InterpolatedPart a) =>
-	matchInterpolatedPart!(
-		immutable Repr,
-		(ref immutable string it) => reprStr(it),
-		(ref immutable ExprAst it) => reprExprAst(alloc, it),
-	)(a);
+	a.match!(immutable Repr)(
+		(immutable string it) => reprStr(it),
+		(immutable ExprAst it) => reprExprAst(alloc, it));
 
 immutable(Sym) symOfCallAstStyle(immutable CallAst.Style a) {
 	final switch (a) {

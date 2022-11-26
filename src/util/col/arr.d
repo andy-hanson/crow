@@ -16,20 +16,16 @@ struct PtrAndSmallNumber(T) {
 		value = v;
 	}
 	immutable this(immutable T* ptr, immutable ushort number) {
-		value = encode(ptr, number);
-	}
-
-	private static immutable(ulong) encode(immutable T* ptr, immutable ushort number) {
+		static assert(ushort.max == 0xffff);
 		immutable ulong val = cast(immutable ulong) ptr;
 		verify((val & 0xffff_0000_0000_0000) == 0);
-		return ((cast(ulong) number) << 48) | val;
+		value = ((cast(ulong) number) << 48) | val;
 	}
 
-	@system immutable(ulong) asUlong() immutable =>
+	immutable(ulong) asTaggable() immutable =>
 		value;
-
-	static immutable(PtrAndSmallNumber!T) decode(immutable ulong value) =>
-		immutable PtrAndSmallNumber!T(value);
+	static immutable(PtrAndSmallNumber!T) fromTagged(immutable ulong x) =>
+		immutable PtrAndSmallNumber!T(x);
 
 	@trusted immutable(T*) ptr() immutable =>
 		cast(immutable T*) (value & 0x0000_ffff_ffff_ffff);
@@ -47,11 +43,10 @@ struct SmallArray(T) {
 		sizeAndBegin = v;
 	}
 
-	@system static immutable(ulong) encode(immutable T[] values) =>
-		(immutable SmallArray!T(values)).sizeAndBegin.value;
-
-	@system static immutable(T[]) decode(immutable ulong value) =>
-		(immutable SmallArray!T(PtrAndSmallNumber!T.decode(value))).toArray();
+	immutable(ulong) asTaggable() immutable =>
+		sizeAndBegin.asTaggable;
+	static immutable(SmallArray!T) fromTagged(immutable ulong x) =>
+		immutable SmallArray!T(PtrAndSmallNumber!T.fromTagged(x));
 
 	@trusted immutable this(immutable T[] values) {
 		sizeAndBegin = immutable PtrAndSmallNumber!T(values.ptr, safeToUshort(values.length));

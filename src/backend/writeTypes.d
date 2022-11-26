@@ -12,7 +12,6 @@ import model.lowModel :
 	LowRecord,
 	LowType,
 	LowUnion,
-	matchLowTypeCombinePtr,
 	PrimitiveType,
 	typeSize;
 import util.alloc.alloc : Alloc;
@@ -139,8 +138,7 @@ struct StructStates {
 }
 
 immutable(bool) canReferenceTypeAsValue(ref const StructStates states, immutable LowType a) =>
-	matchLowTypeCombinePtr!(
-		immutable bool,
+	a.combinePointer.match!(immutable bool)(
 		(immutable LowType.Extern) =>
 			true,
 		(immutable LowType.FunPtr it) =>
@@ -152,12 +150,10 @@ immutable(bool) canReferenceTypeAsValue(ref const StructStates states, immutable
 		(immutable LowType.Record it) =>
 			states.recordStates[it] == StructState.defined,
 		(immutable LowType.Union it) =>
-			states.unionStates[it] == StructState.defined,
-	)(a);
+			states.unionStates[it] == StructState.defined);
 
 immutable(bool) canReferenceTypeAsPointee(ref const StructStates states, immutable LowType a) =>
-	matchLowTypeCombinePtr!(
-		immutable bool,
+	a.combinePointer.match!(immutable bool)(
 		(immutable LowType.Extern) =>
 			true,
 		(immutable LowType.FunPtr it) =>
@@ -169,8 +165,7 @@ immutable(bool) canReferenceTypeAsPointee(ref const StructStates states, immutab
 		(immutable LowType.Record it) =>
 			states.recordStates[it] != StructState.none,
 		(immutable LowType.Union it) =>
-			states.unionStates[it] != StructState.none,
-	)(a);
+			states.unionStates[it] != StructState.none);
 
 immutable(StructState) writeRecordDeclarationOrDefinition(
 	ref immutable LowProgram program,

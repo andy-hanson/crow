@@ -5,18 +5,14 @@ module backend.mangle;
 import model.concreteModel :
 	body_,
 	ConcreteFun,
+	ConcreteFunBody,
 	ConcreteFunSource,
 	ConcreteLocal,
 	ConcreteParam,
 	ConcreteParamSource,
 	ConcreteStruct,
-	ConcreteStructSource,
-	isExtern,
-	matchConcreteFunSource,
-	matchConcreteParamSource,
-	matchConcreteStructSource;
+	ConcreteStructSource;
 import model.lowModel :
-	asRecordType,
 	LowExternType,
 	LowFun,
 	LowFunIndex,
@@ -30,10 +26,7 @@ import model.lowModel :
 	LowRecord,
 	LowThreadLocal,
 	LowType,
-	LowUnion,
-	matchLowFunSource,
-	matchLowLocalSource,
-	matchLowParamSource;
+	LowUnion;
 import model.model : FunInst, name, Param;
 import util.alloc.alloc : Alloc;
 import util.col.dict : Dict;
@@ -42,6 +35,7 @@ import util.col.fullIndexDict : fullIndexDictEachValue;
 import util.col.mutDict : insertOrUpdate, MutDict, setInDict;
 import util.opt : force, has, none, Opt, some;
 import util.sym : AllSymbols, eachCharInSym, Sym, sym, writeSym;
+import util.union_ : Union;
 import util.writer : Writer;
 
 struct MangledNames {
@@ -63,22 +57,18 @@ immutable(MangledNames) buildMangledNames(
 	DictBuilder!(ConcreteFun*, size_t) funToNameIndex;
 	// HAX: Ensure "main" has that name.
 	setInDict(alloc, funNameToIndex, sym!"main", immutable PrevOrIndex!ConcreteFun(0));
-	fullIndexDictEachValue!(LowFunIndex, LowFun)(program.allFuns, (ref immutable LowFun it) {
-		matchLowFunSource!(
-			void,
+	fullIndexDictEachValue!(LowFunIndex, LowFun)(program.allFuns, (ref immutable LowFun fun) {
+		fun.source.matchWithPointers!void(
 			(immutable ConcreteFun* cf) {
-				matchConcreteFunSource!(
-					void,
+				cf.source.match!void(
 					(ref immutable FunInst i) {
 						//TODO: use temp alloc
 						addToPrevOrIndex!ConcreteFun(alloc, funNameToIndex, funToNameIndex, cf, i.name);
 					},
 					(ref immutable ConcreteFunSource.Lambda) {},
-					(ref immutable ConcreteFunSource.Test) {},
-				)(cf.source);
+					(ref immutable ConcreteFunSource.Test) {});
 			},
-			(ref immutable LowFunSource.Generated it) {},
-		)(it.source);
+			(immutable LowFunSource.Generated*) {});
 	});
 
 	MutDict!(immutable Sym, immutable PrevOrIndex!ConcreteStruct) structNameToIndex;
@@ -86,13 +76,11 @@ immutable(MangledNames) buildMangledNames(
 	DictBuilder!(ConcreteStruct*, size_t) structToNameIndex;
 
 	void build(immutable ConcreteStruct* s) {
-		matchConcreteStructSource!(
-			void,
-			(ref immutable ConcreteStructSource.Inst it) {
+		s.source.match!void(
+			(immutable ConcreteStructSource.Inst it) {
 				addToPrevOrIndex!ConcreteStruct(alloc, structNameToIndex, structToNameIndex, s, name(*it.inst));
 			},
-			(ref immutable ConcreteStructSource.Lambda) {},
-		)(s.source);
+			(immutable ConcreteStructSource.Lambda) {});
 	}
 	fullIndexDictEachValue!(LowType.Extern, LowExternType)(
 		program.allExternTypes,
@@ -126,18 +114,16 @@ void writeStructMangledName(
 	scope ref immutable MangledNames mangledNames,
 	scope immutable ConcreteStruct* source,
 ) {
-	matchConcreteStructSource!(
-		void,
-		(ref immutable ConcreteStructSource.Inst it) {
+	source.source.match!void(
+		(immutable ConcreteStructSource.Inst it) {
 			writeMangledName(writer, mangledNames, name(*it.inst));
 			maybeWriteIndexSuffix(writer, mangledNames.structToNameIndex[source]);
 		},
-		(ref immutable ConcreteStructSource.Lambda it) {
+		(immutable ConcreteStructSource.Lambda it) {
 			writeConcreteFunMangledName(writer, mangledNames, it.containingFun);
 			writer ~= "__lambda";
 			writer ~= it.index;
-		},
-	)(source.source);
+		});
 }
 
 void writeLowFunMangledName(
@@ -146,19 +132,17 @@ void writeLowFunMangledName(
 	immutable LowFunIndex funIndex,
 	scope ref immutable LowFun fun,
 ) {
-	matchLowFunSource!(
-		void,
-		(immutable ConcreteFun* it) {
-			writeConcreteFunMangledName(writer, mangledNames, it);
+	fun.source.matchWithPointers!void(
+		(immutable ConcreteFun* x) {
+			writeConcreteFunMangledName(writer, mangledNames, x);
 		},
-		(ref immutable LowFunSource.Generated it) {
-			writeMangledName(writer, mangledNames, it.name);
-			if (it.name != sym!"main") {
+		(immutable LowFunSource.Generated* x) {
+			writeMangledName(writer, mangledNames, x.name);
+			if (x.name != sym!"main") {
 				writer ~= '_';
 				writer ~= funIndex.index;
 			}
-		},
-	)(fun.source);
+		});
 }
 
 void writeLowThreadLocalMangledName(
@@ -174,10 +158,9 @@ private void writeConcreteFunMangledName(
 	scope ref immutable MangledNames mangledNames,
 	scope immutable ConcreteFun* source,
 ) {
-	matchConcreteFunSource!(
-		void,
+	source.source.match!void(
 		(ref immutable FunInst it) {
-			if (isExtern(body_(*source)))
+			if (body_(*source).isA!(ConcreteFunBody.Extern))
 				writeSym(writer, *mangledNames.allSymbols, it.name);
 			else {
 				writeMangledName(writer, mangledNames, it.name);
@@ -192,8 +175,7 @@ private void writeConcreteFunMangledName(
 		(ref immutable ConcreteFunSource.Test it) {
 			writer ~= "__test";
 			writer ~= it.testIndex;
-		},
-	)(source.source);
+		});
 }
 
 private void maybeWriteIndexSuffix(scope ref Writer writer, immutable Opt!size_t index) {
@@ -208,8 +190,7 @@ void writeLowLocalName(
 	scope ref immutable MangledNames mangledNames,
 	scope ref immutable LowLocal a,
 ) {
-	matchLowLocalSource!(
-		void,
+	a.source.match!void(
 		(ref immutable ConcreteLocal it) {
 			// Need to distinguish local names from function names
 			writer ~= "__local";
@@ -218,8 +199,7 @@ void writeLowLocalName(
 		(ref immutable LowLocalSource.Generated it) {
 			writeMangledName(writer, mangledNames, it.name);
 			writer ~= it.index;
-		},
-	)(a.source);
+		});
 }
 
 void writeLowParamName(
@@ -227,12 +207,10 @@ void writeLowParamName(
 	scope ref immutable MangledNames mangledNames,
 	scope ref immutable LowParam a,
 ) {
-	matchLowParamSource!(
-		void,
+	a.source.match!void(
 		(ref immutable ConcreteParam cp) {
-			matchConcreteParamSource!void(
-				cp.source,
-				(ref immutable ConcreteParamSource.Closure) {
+			cp.source.match!void(
+				(immutable ConcreteParamSource.Closure) {
 					writer ~= "_closure";
 				},
 				(ref immutable Param p) {
@@ -243,15 +221,14 @@ void writeLowParamName(
 						writer ~= p.index;
 					}
 				},
-				(ref immutable ConcreteParamSource.Synthetic it) {
+				(immutable ConcreteParamSource.Synthetic it) {
 					writer ~= "_p";
 					writer ~= force(cp.index);
 				});
 		},
 		(ref immutable LowParamSource.Generated it) {
 			writeMangledName(writer, mangledNames, it.name);
-		},
-	)(a.source);
+		});
 }
 
 void writeConstantArrStorageName(
@@ -275,7 +252,7 @@ void writeConstantPointerStorageName(
 	immutable size_t index,
 ) {
 	writer ~= "constant";
-	writeRecordName(writer, mangledNames, program, asRecordType(pointeeType));
+	writeRecordName(writer, mangledNames, program, pointeeType.as!(LowType.Record));
 	writer ~= '_';
 	writer ~= index;
 }
@@ -292,34 +269,7 @@ void writeRecordName(
 private:
 
 struct PrevOrIndex(T) {
-	@safe @nogc pure nothrow:
-
-	@trusted immutable this(immutable T* a) { kind_ = Kind.prev; prev_ = a;}
-	immutable this(immutable size_t a) { kind_ = Kind.index; index_ = a; }
-
-	private:
-	enum Kind {
-		prev,
-		index,
-	}
-	immutable Kind kind_;
-	union {
-		immutable T* prev_;
-		immutable size_t index_;
-	}
-}
-
-@trusted T matchPrevOrIndex(T, P)(
-	ref immutable PrevOrIndex!P a,
-	scope T delegate(immutable P*) @safe @nogc pure nothrow cbPrev,
-	scope T delegate(immutable size_t) @safe @nogc pure nothrow cbIndex,
-) {
-	final switch (a.kind_) {
-		case PrevOrIndex!P.Kind.prev:
-			return cbPrev(a.prev_);
-		case PrevOrIndex!P.Kind.index:
-			return cbIndex(a.index_);
-	}
+	mixin Union!(immutable T*, immutable size_t);
 }
 
 void addToPrevOrIndex(T)(
@@ -335,9 +285,8 @@ void addToPrevOrIndex(T)(
 		name,
 		() =>
 			immutable PrevOrIndex!T(cur),
-		(ref immutable PrevOrIndex!T it) =>
-			immutable PrevOrIndex!T(matchPrevOrIndex!(immutable size_t, T)(
-				it,
+		(ref immutable PrevOrIndex!T x) =>
+			immutable PrevOrIndex!T(x.matchWithPointers!(immutable size_t)(
 				(immutable T* prev) {
 					mustAddToDict(alloc, toNameIndex, prev, 0);
 					mustAddToDict(alloc, toNameIndex, cur, 1);

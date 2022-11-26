@@ -5,8 +5,8 @@ module concretize.allConstantsBuilder;
 import model.concreteModel :
 	AllConstantsConcrete,
 	ArrTypeAndConstantsConcrete,
-	asInst,
 	ConcreteStruct,
+	ConcreteStructSource,
 	ConcreteType,
 	PointerTypeAndConstantsConcrete;
 import model.constant : Constant, constantEqual;
@@ -14,7 +14,7 @@ import util.alloc.alloc : Alloc;
 import util.col.arr : empty, only;
 import util.col.arrUtil : arrEqual, arrLiteral, findIndex;
 import util.col.mutArr : moveToArr, MutArr, mutArrSize, push, tempAsArr;
-import util.col.mutDict : getOrAdd, mapToArr_mut, mustGetAt_mut, MutDict, mutDictSize, valuesArray;
+import util.col.mutDict : getOrAdd, mapToArr_mut, MutDict, mutDictSize, valuesArray;
 import util.col.str : SafeCStr;
 import util.opt : force, has, Opt;
 import util.ptr : ptrTrustMe;
@@ -71,21 +71,12 @@ immutable(AllConstantsConcrete) finishAllConstants(
 	return immutable AllConstantsConcrete(moveToArr(alloc, a.cStringValues), staticSymbols, arrs, records);
 }
 
-ref immutable(Constant) derefConstantPointer(
-	return scope ref AllConstantsBuilder a,
-	ref immutable Constant.Pointer pointer,
-	immutable ConcreteStruct* pointeeType,
-) {
-	verify(mustGetAt_mut(a.pointers, pointeeType).typeIndex == pointer.typeIndex);
-	return mustGetAt_mut(a.pointers, pointeeType).constants[pointer.index];
-}
-
 // TODO: this will be used when creating constant records by-ref.
 immutable(Constant) getConstantPtr(
 	ref Alloc alloc,
 	ref AllConstantsBuilder allConstants,
 	immutable ConcreteStruct* pointee,
-	ref immutable Constant value,
+	immutable Constant value,
 ) {
 	PointerTypeAndConstants* d = ptrTrustMe(getOrAdd(alloc, allConstants.pointers, pointee, () =>
 		PointerTypeAndConstants(mutDictSize(allConstants.pointers), MutArr!(immutable Constant)())));
@@ -105,7 +96,7 @@ immutable(Constant) getConstantArr(
 	if (empty(elements))
 		return constantEmptyArr();
 	else {
-		immutable ConcreteType elementType = only(asInst(arrStruct.source).typeArgs);
+		immutable ConcreteType elementType = only(arrStruct.source.as!(ConcreteStructSource.Inst).typeArgs);
 		ArrTypeAndConstants* d = ptrTrustMe(getOrAdd(alloc, allConstants.arrs, elementType, () =>
 			ArrTypeAndConstants(
 				arrStruct,
@@ -165,7 +156,7 @@ immutable(Constant) getConstantSym(
 
 private:
 
-immutable(bool) constantArrEqual(ref immutable Constant[] a, ref immutable Constant[] b) =>
+immutable(bool) constantArrEqual(immutable Constant[] a, immutable Constant[] b) =>
 	arrEqual!Constant(a, b, (ref immutable Constant x, ref immutable Constant y) =>
 		constantEqual(x, y));
 

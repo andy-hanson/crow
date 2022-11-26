@@ -3,10 +3,9 @@ module lower.generateCallWithCtxFun;
 @safe @nogc pure nothrow:
 
 import lower.lower : ConcreteFunToLowFunIndex;
-import lower.lowExprHelpers : genLocal, genLocalGet, genParamGet;
+import lower.lowExprHelpers : genLocal, genLocalGet, genParam, genParamGet;
 import model.concreteModel : ConcreteLambdaImpl;
 import model.lowModel :
-	asUnionType,
 	AllLowTypes,
 	LowExpr,
 	LowExprKind,
@@ -17,7 +16,6 @@ import model.lowModel :
 	LowLocal,
 	LowParam,
 	LowParamIndex,
-	LowParamSource,
 	LowType;
 import util.alloc.alloc : Alloc;
 import util.col.arrUtil : mapWithFirst, mapZip, prepend;
@@ -45,7 +43,7 @@ immutable(LowFun) generateCallWithCtxFun(
 	immutable LowExprKind.MatchUnion.Case[] cases = mapZip(
 		alloc,
 		impls,
-		allTypes.allUnions[asUnionType(funType)].members,
+		allTypes.allUnions[funType.as!(LowType.Union)].members,
 		(ref immutable ConcreteLambdaImpl impl, ref immutable LowType closureType) {
 			immutable LowLocal* closureLocal =
 				genLocal(alloc, sym!"closure", localIndex, closureType);
@@ -65,15 +63,11 @@ immutable(LowFun) generateCallWithCtxFun(
 		allocate(alloc, immutable LowExprKind.MatchUnion(funParamGet, cases))));
 	immutable LowParam[] params = mapWithFirst!(LowParam, LowType)(
 		alloc,
-		immutable LowParam(
-			immutable LowParamSource(immutable LowParamSource.Generated(sym!"a")),
-			funType),
+		genParam(alloc, sym!"a", funType),
 		nonFunParamTypes,
 		(immutable size_t i, ref immutable LowType paramType) {
 			verify(i < paramNames.length);
-			return immutable LowParam(
-				immutable LowParamSource(immutable LowParamSource.Generated(paramNames[i])),
-				paramType);
+			return genParam(alloc, paramNames[i], paramType);
 		});
 	return immutable LowFun(
 		//TODO: use long sym call-with-ctx

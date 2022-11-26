@@ -7,6 +7,7 @@ import util.opt : force, none, Opt, some;
 import util.path : Path;
 import util.col.str : SafeCStr;
 import util.sym : Sym;
+import util.union_ : Union;
 
 struct ReadOnlyStorage {
 	// WARN: The string used may be a temporary
@@ -23,45 +24,14 @@ struct ReadOnlyStorage {
 }
 
 struct ReadFileResult(T) {
-	@safe @nogc pure nothrow:
-
 	struct NotFound {}
 	struct Error {}
-
-	immutable this(immutable T a) { kind = Kind.content; content = a; }
-	immutable this(immutable NotFound a) { kind = Kind.notFound; notFound = a; }
-	immutable this(immutable Error a) { kind = Kind.error; error = a; }
-
-	private:
-	enum Kind { content, notFound, error }
-	immutable Kind kind;
-	union {
-		immutable T content;
-		immutable NotFound notFound;
-		immutable Error error;
-	}
-}
-
-@trusted pure immutable(T) matchReadFileResult(T, Content)(
-	immutable ReadFileResult!Content a,
-	scope immutable(T) delegate(immutable Content) @safe @nogc pure nothrow cbContent,
-	scope immutable(T) delegate(immutable ReadFileResult!Content.NotFound) @safe @nogc pure nothrow cbNotFound,
-	scope immutable(T) delegate(immutable ReadFileResult!Content.Error) @safe @nogc pure nothrow cbError,
-) {
-	final switch (a.kind) {
-		case ReadFileResult!Content.Kind.content:
-			return cbContent(a.content);
-		case ReadFileResult!Content.Kind.notFound:
-			return cbNotFound(a.notFound);
-		case ReadFileResult!Content.Kind.error:
-			return cbError(a.error);
-	}
+	mixin Union!(immutable T, immutable NotFound, immutable Error);
 }
 
 pure immutable(Opt!T) asOption(T)(immutable ReadFileResult!T a) =>
-	matchReadFileResult!(immutable Opt!T, T)(
-		a,
-		(immutable SafeCStr x) =>
+	a.match!(immutable Opt!T)(
+		(immutable T x) =>
 			some(x),
 		(immutable(ReadFileResult!T.NotFound)) =>
 			none!SafeCStr,

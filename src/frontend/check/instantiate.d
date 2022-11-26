@@ -18,10 +18,6 @@ import model.model :
 	Linkage,
 	LinkageRange,
 	linkageRange,
-	matchParams,
-	matchSpecBody,
-	matchStructBody,
-	matchType,
 	Param,
 	Params,
 	Purity,
@@ -99,8 +95,7 @@ private immutable(Type) instantiateType(
 	immutable TypeParamsAndArgs typeParamsAndArgs,
 	DelayStructInsts delayStructInsts,
 ) =>
-	matchType!(immutable Type)(
-		type,
+	type.matchWithPointers!(immutable Type)(
 		(immutable Type.Bogus) =>
 			immutable Type(Type.Bogus()),
 		(immutable TypeParam* p) {
@@ -145,24 +140,23 @@ immutable(StructBody) instantiateStructBody(
 ) {
 	immutable TypeParamsAndArgs typeParamsAndArgs =
 		immutable TypeParamsAndArgs(declAndArgs.decl.typeParams, declAndArgs.typeArgs);
-	return matchStructBody!(immutable StructBody)(
-		body_(*declAndArgs.decl),
-		(ref immutable StructBody.Bogus) =>
+	return body_(*declAndArgs.decl).match!(immutable StructBody)(
+		(immutable StructBody.Bogus) =>
 			immutable StructBody(immutable StructBody.Bogus()),
-		(ref immutable StructBody.Builtin) =>
+		(immutable StructBody.Builtin) =>
 			immutable StructBody(immutable StructBody.Builtin()),
-		(ref immutable StructBody.Enum e) =>
+		(immutable StructBody.Enum e) =>
 			immutable StructBody(e),
-		(ref immutable StructBody.Extern e) =>
+		(immutable StructBody.Extern e) =>
 			immutable StructBody(immutable StructBody.Extern(e.size)),
-		(ref immutable StructBody.Flags f) =>
+		(immutable StructBody.Flags f) =>
 			immutable StructBody(f),
-		(ref immutable StructBody.Record r) =>
+		(immutable StructBody.Record r) =>
 			immutable StructBody(immutable StructBody.Record(
 				r.flags,
 				map(alloc, r.fields, (ref immutable RecordField f) =>
 					withType(f, instantiateType(alloc, programState, f.type, typeParamsAndArgs, delayStructInsts))))),
-		(ref immutable StructBody.Union u) =>
+		(immutable StructBody.Union u) =>
 			immutable StructBody(immutable StructBody.Union(map(alloc, u.members, (ref immutable UnionMember it) =>
 				has(it.type)
 					? withType(
@@ -280,8 +274,7 @@ immutable(SpecInst*) instantiateSpec(
 	immutable SpecDeclAndArgs tempKey = immutable SpecDeclAndArgs(decl, typeArgs);
 	return getOrAddPair(alloc, programState.specInsts, tempKey, () {
 		immutable SpecDeclAndArgs key = immutable SpecDeclAndArgs(decl, copyArr(alloc, typeArgs));
-		immutable SpecBody body_ = matchSpecBody!(immutable SpecBody)(
-			decl.body_,
+		immutable SpecBody body_ = decl.body_.match!(immutable SpecBody)(
 			(immutable SpecBody.Builtin b) =>
 				immutable SpecBody(SpecBody.Builtin(b.kind)),
 			(immutable SpecDeclSig[] sigs) =>
@@ -320,8 +313,7 @@ immutable(Params) instantiateParams(
 	ref immutable Params params,
 	immutable TypeParamsAndArgs typeParamsAndArgs,
 ) =>
-	matchParams!(immutable Params)(
-		params,
+	params.match!(immutable Params)(
 		(immutable Param[] paramsArray) =>
 			immutable Params(map(alloc, paramsArray, (ref immutable Param p) =>
 				instantiateParam(alloc, programState, typeParamsAndArgs, p))),

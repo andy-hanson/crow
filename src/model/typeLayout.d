@@ -4,25 +4,16 @@ module model.typeLayout;
 
 import interpret.bytecode : stackEntrySize;
 import model.concreteModel : TypeSize;
-import model.lowModel :
-	LowField,
-	LowProgram,
-	LowPtrCombine,
-	LowRecord,
-	LowType,
-	matchLowTypeCombinePtr,
-	PrimitiveType,
-	typeSize;
+import model.lowModel : LowField, LowProgram, LowPtrCombine, LowRecord, LowType, PrimitiveType, typeSize;
 import util.col.arrUtil : every, map;
 import util.opt : none, Opt, some;
 import util.util : divRoundUp, isMultipleOf;
 
-immutable(size_t) typeSizeBytes(scope ref immutable LowProgram program, scope immutable LowType a) =>
+immutable(size_t) typeSizeBytes(scope ref immutable LowProgram program, immutable LowType a) =>
 	sizeOfType(program, a).sizeBytes;
 
-immutable(TypeSize) sizeOfType(scope ref immutable LowProgram program, scope immutable LowType a) =>
-	matchLowTypeCombinePtr!(
-		immutable TypeSize,
+immutable(TypeSize) sizeOfType(scope ref immutable LowProgram program, immutable LowType a) =>
+	a.combinePointer.match!(immutable TypeSize)(
 		(immutable LowType.Extern x) =>
 			typeSize(program.allExternTypes[x]),
 		(immutable LowType.FunPtr) =>
@@ -34,8 +25,7 @@ immutable(TypeSize) sizeOfType(scope ref immutable LowProgram program, scope imm
 		(immutable LowType.Record index) =>
 			typeSize(program.allRecords[index]),
 		(immutable LowType.Union index) =>
-			typeSize(program.allUnions[index]),
-	)(a);
+			typeSize(program.allUnions[index]));
 
 immutable(size_t) nStackEntriesForType(ref immutable LowProgram program, immutable LowType a) =>
 	nStackEntriesForBytes(typeSizeBytes(program, a));
