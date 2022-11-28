@@ -19,6 +19,7 @@ import frontend.parse.lexer :
 	Token,
 	tryTakeOperator,
 	tryTakeToken;
+import model.model : FunKind;
 import model.parseDiag : ParseDiag;
 import util.col.arr : small;
 import util.col.arrBuilder : add, ArrBuilder, finishArr;
@@ -118,14 +119,14 @@ immutable(TypeAst) parseTypeBeforeSuffixes(ref Lexer lexer, immutable RequireBra
 		case Token.parenLeft:
 			return parseTupleType(lexer, start);
 		case Token.act:
-			return parseFunType(lexer, start, TypeAst.Fun.Kind.act);
+			return parseFunType(lexer, start, FunKind.act);
 		case Token.fun:
 			return parseFunType(
 				lexer,
 				start,
-				tryTakeOperator(lexer, sym!"*") ? TypeAst.Fun.Kind.funPointer : TypeAst.Fun.Kind.fun);
+				tryTakeOperator(lexer, sym!"*") ? FunKind.pointer : FunKind.fun);
 		case Token.ref_:
-			return parseFunType(lexer, start, TypeAst.Fun.Kind.ref_);
+			return parseFunType(lexer, start, FunKind.ref_);
 		default:
 			addDiagUnexpectedCurToken(lexer, start, token);
 			return bogusTypeAst(range(lexer, start));
@@ -140,7 +141,7 @@ immutable(TypeAst) parseTupleType(ref Lexer lexer, immutable Pos start) {
 	return immutable TypeAst(allocate(lexer.alloc, immutable TypeAst.Tuple(a, b)));
 }
 
-immutable(TypeAst) parseFunType(ref Lexer lexer, immutable Pos start, immutable TypeAst.Fun.Kind kind) {
+immutable(TypeAst) parseFunType(ref Lexer lexer, immutable Pos start, immutable FunKind kind) {
 	ArrBuilder!TypeAst returnAndParamTypes;
 	add(lexer.alloc, returnAndParamTypes, parseType(lexer, RequireBracket.forTuple));
 	if (tryTakeToken(lexer, Token.parenLeft)) {

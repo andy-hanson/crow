@@ -17,7 +17,6 @@ import model.model :
 	FunDecl,
 	FunFlags,
 	FunInst,
-	FunKind,
 	ImportOrExport,
 	ImportOrExportKind,
 	Local,
@@ -35,6 +34,7 @@ import model.model :
 	StructInst,
 	summon,
 	symOfAssertOrForbidKind,
+	symOfFunKind,
 	symOfPurity,
 	symOfVisibility,
 	Type,
@@ -369,19 +369,6 @@ immutable(Repr) reprExpr(ref Alloc alloc, scope ref Ctx ctx, ref immutable Expr 
 				reprExpr(alloc, ctx, a.then)]),
 		(ref immutable ExprKind.Throw a) =>
 			reprRecord!"throw"(alloc, [reprExpr(alloc, ctx, a.thrown)]));
-
-immutable(Sym) symOfFunKind(immutable FunKind a) {
-	final switch (a) {
-		case FunKind.plain:
-			return sym!"plain";
-		case FunKind.mut:
-			return sym!"mut";
-		case FunKind.ref_:
-			return sym!"ref";
-		case FunKind.pointer:
-			return sym!"pointer";
-	}
-}
 
 immutable(Repr) reprMatchUnionCase(ref Alloc alloc, scope ref Ctx ctx, ref immutable ExprKind.MatchUnion.Case a) =>
 	reprRecord!"case"(alloc, [

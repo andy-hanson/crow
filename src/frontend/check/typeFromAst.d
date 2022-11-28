@@ -19,7 +19,6 @@ import frontend.programState : ProgramState;
 import model.diag : Diag;
 import model.model :
 	CommonTypes,
-	FunKind,
 	NameReferents,
 	SpecDecl,
 	StructAlias,
@@ -233,19 +232,7 @@ private immutable(Type) typeFromFunAst(
 	scope immutable TypeParam[] typeParamsScope,
 	DelayStructInsts delayStructInsts,
 ) {
-	immutable FunKind funKind = () {
-		final switch (ast.kind) {
-			case TypeAst.Fun.Kind.act:
-				return FunKind.mut;
-			case TypeAst.Fun.Kind.fun:
-				return FunKind.plain;
-			case TypeAst.Fun.Kind.funPointer:
-				return FunKind.pointer;
-			case TypeAst.Fun.Kind.ref_:
-				return FunKind.ref_;
-		}
-	}();
-	immutable StructDecl*[] structs = commonTypes.funStructs[funKind];
+	immutable StructDecl*[] structs = commonTypes.funStructs[ast.kind];
 	if (ast.returnAndParamTypes.length > structs.length)
 		// We don't have a fun type big enough
 		todo!void("!");

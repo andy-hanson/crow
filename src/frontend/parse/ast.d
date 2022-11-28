@@ -5,9 +5,11 @@ module frontend.parse.ast;
 import model.model :
 	AssertOrForbidKind,
 	FieldMutability,
+	FunKind,
 	ImportFileType,
 	symOfAssertOrForbidKind,
 	symOfFieldMutability,
+	symOfFunKind,
 	symOfImportFileType,
 	Visibility;
 import model.reprModel : reprVisibility;
@@ -74,14 +76,8 @@ struct TypeAst {
 	}
 
 	struct Fun {
-		enum Kind {
-			act,
-			fun,
-			funPointer,
-			ref_,
-		}
 		immutable RangeWithinFile range;
-		immutable Kind kind;
+		immutable FunKind kind;
 		immutable TypeAst[] returnAndParamTypes;
 	}
 
@@ -957,19 +953,6 @@ immutable(Repr) reprTypeAst(ref Alloc alloc, immutable TypeAst a) =>
 			reprRecord!"tuple"(alloc, [
 				reprTypeAst(alloc, it.a),
 				reprTypeAst(alloc, it.b)]));
-
-immutable(Sym) symOfFunKind(immutable TypeAst.Fun.Kind a) {
-	final switch (a) {
-		case TypeAst.Fun.Kind.act:
-			return sym!"act";
-		case TypeAst.Fun.Kind.fun:
-			return sym!"fun";
-		case TypeAst.Fun.Kind.ref_:
-			return sym!"ref";
-		case TypeAst.Fun.Kind.funPointer:
-			return sym!"fun-pointer";
-	}
-}
 
 immutable(Repr) reprInstStructAst(ref Alloc alloc, immutable TypeAst.InstStruct a) {
 	immutable Repr range = reprRangeWithinFile(alloc, a.range);

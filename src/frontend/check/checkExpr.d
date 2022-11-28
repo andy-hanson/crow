@@ -1138,7 +1138,7 @@ immutable(Expr) checkLambda(
 	checkUnusedParams(ctx.checkCtx, params, tempAsArr(lambdaInfo.paramsUsed));
 
 	final switch (kind) {
-		case FunKind.plain:
+		case FunKind.fun:
 			foreach (ref ClosureFieldBuilder cf; tempAsArr(lambdaInfo.closureFields)) {
 				final switch (cf.mutability) {
 					case Mutability.immut:
@@ -1150,7 +1150,7 @@ immutable(Expr) checkLambda(
 					addDiag2(ctx, range, immutable Diag(immutable Diag.LambdaClosesOverMut(cf.name, some(cf.type))));
 			}
 			break;
-		case FunKind.mut:
+		case FunKind.act:
 		case FunKind.ref_:
 			break;
 		case FunKind.pointer:

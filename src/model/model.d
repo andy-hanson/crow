@@ -985,10 +985,23 @@ struct NameReferents {
 }
 
 enum FunKind {
-	plain,
-	mut,
+	fun,
+	act,
 	ref_,
 	pointer,
+}
+
+immutable(Sym) symOfFunKind(immutable FunKind a) {
+	final switch (a) {
+		case FunKind.fun:
+			return sym!"fun";
+		case FunKind.act:
+			return sym!"act";
+		case FunKind.ref_:
+			return sym!"ref";
+		case FunKind.pointer:
+			return sym!"pointer";
+	}
 }
 
 struct CommonFuns {
