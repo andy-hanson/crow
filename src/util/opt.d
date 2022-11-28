@@ -54,7 +54,7 @@ auto some(T)(inout T value) {
 	}
 }
 
-immutable(bool) has(T)(ref const Opt!T a) =>
+immutable(bool) has(T)(in Opt!T a) =>
 	a.has_;
 
 @trusted ref inout(T) force(T)(ref inout Opt!T a) {

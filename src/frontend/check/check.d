@@ -53,8 +53,6 @@ import model.model :
 	FunBody,
 	FunDecl,
 	FunFlags,
-	FunKind,
-	FunKindAndStructs,
 	ImportFileType,
 	ImportOrExport,
 	ImportOrExportKind,
@@ -386,12 +384,7 @@ immutable(CommonTypes) getCommonTypes(
 		opt,
 		pointerConst,
 		pointerMut,
-		[
-			immutable FunKindAndStructs(FunKind.plain, funStructs),
-			immutable FunKindAndStructs(FunKind.mut, funActStructs),
-			immutable FunKindAndStructs(FunKind.ref_, funRefStructs),
-			immutable FunKindAndStructs(FunKind.pointer, funPointerStructs),
-		]);
+		[funStructs, funActStructs, funRefStructs, funPointerStructs]);
 }
 
 immutable(StructDecl*) bogusStructDecl(ref Alloc alloc, immutable size_t nTypeParameters) {

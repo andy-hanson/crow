@@ -121,16 +121,6 @@ immutable(Opt!size_t) findIndex(T)(
 	return none!size_t;
 }
 
-immutable(Opt!T) find(T)(
-	scope immutable T[] arr,
-	scope immutable(bool) delegate(ref immutable T) @safe @nogc pure nothrow cb,
-) {
-	foreach (ref immutable T x; arr)
-		if (cb(x))
-			return some(x);
-	return none!T;
-}
-
 immutable(Opt!(T*)) findPtr(T)(
 	return scope immutable T[] arr,
 	scope immutable(bool) delegate(immutable T*) @safe @nogc pure nothrow cb,

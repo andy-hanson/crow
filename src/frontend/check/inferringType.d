@@ -16,7 +16,7 @@ import model.model :
 	Expr,
 	ExprKind,
 	FunFlags,
-	FunKindAndStructs,
+	FunKind,
 	Local,
 	Mutability,
 	Param,
@@ -203,12 +203,22 @@ private immutable(bool) isFunTypeWithArity(
 	immutable StructInst* a,
 	immutable size_t arity,
 ) {
-	immutable StructDecl* actual = decl(*a);
-	foreach (immutable FunKindAndStructs f; commonTypes.funKindsAndStructs)
-		if (arity < f.structs.length && f.structs[arity] == actual)
-			return true;			
-	return false;
+	immutable StructDecl* decl = decl(*a);
+	return arityForFunStruct(decl) == arity && has(getFunKindFromStruct(commonTypes, decl));
 }
+
+immutable(Opt!FunKind) getFunKindFromStruct(ref immutable CommonTypes a, immutable StructDecl* s) {
+	immutable size_t arity = arityForFunStruct(s);
+	foreach (immutable FunKind funKind; FunKind.min .. cast(immutable FunKind) (FunKind.max + 1)) {
+		immutable StructDecl*[] structs = a.funStructs[funKind];
+		if (arity < structs.length && structs[arity] == s)
+			return some(funKind);
+	}
+	return none!FunKind;
+}
+
+private immutable(size_t) arityForFunStruct(immutable StructDecl* s) =>
+	s.typeParams.length - 1; // overflow OK, will fail 'arity < structs.length'
 
 // Inferring type args are in 'a', not 'b'
 immutable(bool) matchTypesNoDiagnostic(

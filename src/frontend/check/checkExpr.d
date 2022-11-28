@@ -14,6 +14,7 @@ import frontend.check.inferringType :
 	Expected,
 	ExprCtx,
 	FunOrLambdaInfo,
+	getFunKindFromStruct,
 	inferred,
 	isBogus,
 	LocalAccessKind,
@@ -94,7 +95,6 @@ import model.model :
 	FunFlags,
 	FunInst,
 	FunKind,
-	FunKindAndStructs,
 	hasMutableField,
 	IntegralTypes,
 	isDefinitelyByRef,
@@ -462,7 +462,7 @@ immutable(Opt!ExpectedLambdaType) getExpectedLambdaType(
 	}
 	immutable StructInst* expectedStructInst = force(expectedType).as!(StructInst*);
 	immutable StructDecl* funStruct = decl(*expectedStructInst);
-	immutable Opt!FunKind opKind = getFunStructInfo(ctx.commonTypes, funStruct);
+	immutable Opt!FunKind opKind = getFunKindFromStruct(ctx.commonTypes, funStruct);
 	if (!has(opKind)) {
 		addDiag2(ctx, range, immutable Diag(immutable Diag.ExpectedTypeIsNotALambda(expectedType)));
 		return none!ExpectedLambdaType;
@@ -490,15 +490,6 @@ immutable(Opt!ExpectedLambdaType) getExpectedLambdaType(
 			kind,
 			nonInstantiatedReturnType));
 	}
-}
-
-immutable(Opt!FunKind) getFunStructInfo(ref immutable CommonTypes a, immutable StructDecl* s) {
-	//TODO: use arrUtils
-	foreach (ref immutable FunKindAndStructs fs; a.funKindsAndStructs)
-		foreach (immutable StructDecl* funStruct; fs.structs)
-			if (s == funStruct)
-				return some(fs.kind);
-	return none!FunKind;
 }
 
 struct VariableRefAndType {

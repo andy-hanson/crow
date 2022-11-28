@@ -20,7 +20,6 @@ import model.diag : Diag;
 import model.model :
 	CommonTypes,
 	FunKind,
-	FunKindAndStructs,
 	NameReferents,
 	SpecDecl,
 	StructAlias,
@@ -34,7 +33,7 @@ import model.model :
 import util.alloc.alloc : Alloc;
 import util.cell : Cell, cellGet, cellSet;
 import util.col.arr : empty;
-import util.col.arrUtil : eachPair, find, findPtr, mapWithIndex;
+import util.col.arrUtil : eachPair, findPtr, mapWithIndex;
 import util.col.mutArr : MutArr;
 import util.col.mutMaxArr : fillMutMaxArr, mapTo, tempAsArr;
 import util.opt : force, has, none, noneMut, Opt, some;
@@ -246,11 +245,7 @@ private immutable(Type) typeFromFunAst(
 				return FunKind.ref_;
 		}
 	}();
-	immutable Opt!FunKindAndStructs optF = find!FunKindAndStructs(
-		commonTypes.funKindsAndStructs,
-		(ref immutable FunKindAndStructs it) =>
-			it.kind == funKind);
-	immutable StructDecl*[] structs = force(optF).structs;
+	immutable StructDecl*[] structs = commonTypes.funStructs[funKind];
 	if (ast.returnAndParamTypes.length > structs.length)
 		// We don't have a fun type big enough
 		todo!void("!");
