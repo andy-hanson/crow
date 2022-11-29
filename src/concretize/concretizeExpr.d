@@ -50,7 +50,7 @@ import model.concreteModel :
 	purity,
 	ReferenceKind,
 	returnType;
-import model.constant : Constant;
+import model.constant : asBool, Constant, constantBool, constantZero;
 import model.model :
 	AssertOrForbidKind,
 	Called,
@@ -352,7 +352,7 @@ immutable(ConcreteExpr) constantVoid(ref ConcretizeCtx ctx, immutable FileAndRan
 	immutable ConcreteExpr(voidType(ctx), range, constantVoidKind());
 
 immutable(ConcreteExprKind) constantVoidKind() =>
-	immutable ConcreteExprKind(immutable Constant(immutable Constant.Void()));
+	immutable ConcreteExprKind(constantZero);
 
 immutable(ConcreteExpr) concretizeFunPtr(
 	ref ConcretizeExprCtx ctx,
@@ -852,7 +852,7 @@ immutable(ConcreteExpr) concretizeExpr(
 		(ref immutable ExprKind.Cond e) {
 			immutable ConcreteExpr cond = concretizeExpr(ctx, locals, e.cond);
 			return cond.kind.isA!Constant
-				? concretizeExpr(ctx, locals, cond.kind.as!Constant.as!(Constant.BoolConstant).value ? e.then : e.else_)
+				? concretizeExpr(ctx, locals, asBool(cond.kind.as!Constant) ? e.then : e.else_)
 				: immutable ConcreteExpr(
 					getConcreteType(ctx, e.type),
 					range,
@@ -949,8 +949,8 @@ immutable(Opt!Constant) tryEvalConstant(
 			immutable Opt!Sym name = name(fn);
 			return has(name) ? tryEvalConstantBuiltin(force(name), versionInfo) : none!Constant;
 		},
-		(immutable ConcreteFunBody.CreateEnum) => none!Constant,
-		(immutable ConcreteFunBody.CreateExtern) => none!Constant,
+		(immutable Constant x) =>
+			some(x),
 		(immutable ConcreteFunBody.CreateRecord) => none!Constant,
 		(immutable ConcreteFunBody.CreateUnion) => none!Constant,
 		(immutable EnumFunction) => none!Constant,
@@ -967,17 +967,17 @@ immutable(Opt!Constant) tryEvalConstant(
 immutable(Opt!Constant) tryEvalConstantBuiltin(immutable Sym name, ref immutable VersionInfo versionInfo) {
 	switch (name.value) {
 		case sym!"is-big-endian".value:
-			return some(immutable Constant(immutable Constant.BoolConstant(versionInfo.isBigEndian)));
+			return some(constantBool(versionInfo.isBigEndian));
 		case sym!"is-interpreted".value:
-			return some(immutable Constant(immutable Constant.BoolConstant(versionInfo.isInterpreted)));
+			return some(constantBool(versionInfo.isInterpreted));
 		case sym!"is-jit".value:
-			return some(immutable Constant(immutable Constant.BoolConstant(versionInfo.isJit)));
+			return some(constantBool(versionInfo.isJit));
 		case sym!"is-single-threaded".value:
-			return some(immutable Constant(immutable Constant.BoolConstant(versionInfo.isSingleThreaded)));
+			return some(constantBool(versionInfo.isSingleThreaded));
 		case sym!"is-wasm".value:
-			return some(immutable Constant(immutable Constant.BoolConstant(versionInfo.isWasm)));
+			return some(constantBool(versionInfo.isWasm));
 		case sym!"is-windows".value:
-			return some(immutable Constant(immutable Constant.BoolConstant(versionInfo.isWindows)));
+			return some(constantBool(versionInfo.isWindows));
 		default:
 			return none!Constant;
 	}

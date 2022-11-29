@@ -258,9 +258,7 @@ immutable(Repr) reprOfLowExprKind(ref Alloc alloc, ref immutable LowExprKind a) 
 					]))]),
 		(immutable LowExprKind.ThreadLocalPtr it) =>
 			reprRecord!"thread-local"(alloc, [
-				reprNat(it.threadLocalIndex.index)]),
-		(immutable LowExprKind.Zeroed) =>
-			reprSym!"uninit");
+				reprNat(it.threadLocalIndex.index)]));
 
 immutable(Repr) reprOfMatchUnion(ref Alloc alloc, ref immutable LowExprKind.MatchUnion a) =>
 	reprRecord!"match"(alloc, [

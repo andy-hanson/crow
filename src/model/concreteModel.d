@@ -307,10 +307,6 @@ struct ConcreteFunBody {
 	struct Builtin {
 		immutable ConcreteType[] typeArgs;
 	}
-	struct CreateEnum {
-		immutable EnumValue value;
-	}
-	struct CreateExtern {}
 	struct CreateRecord {}
 	struct CreateUnion {
 		immutable size_t memberIndex;
@@ -333,8 +329,7 @@ struct ConcreteFunBody {
 
 	mixin Union!(
 		immutable Builtin,
-		immutable CreateEnum,
-		immutable CreateExtern,
+		immutable Constant,
 		immutable CreateRecord,
 		immutable CreateUnion,
 		immutable EnumFunction,

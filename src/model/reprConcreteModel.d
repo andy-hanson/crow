@@ -32,18 +32,7 @@ import util.alloc.alloc : Alloc;
 import util.col.arrBuilder : add, ArrBuilder, finishArr;
 import util.opt : force, has, Opt;
 import util.repr :
-	NameAndRepr,
-	nameAndRepr,
-	Repr,
-	reprArr,
-	reprBool,
-	reprInt,
-	reprNamedRecord,
-	reprNat,
-	reprOpt,
-	reprRecord,
-	reprStr,
-	reprSym;
+	NameAndRepr, nameAndRepr, Repr, reprArr, reprBool, reprNamedRecord, reprNat, reprOpt, reprRecord, reprStr, reprSym;
 import util.sourceRange : reprFileAndRange;
 import util.util : todo;
 
@@ -163,10 +152,8 @@ immutable(Repr) reprOfConcreteFunBody(ref Alloc alloc, ref immutable ConcreteFun
 	a.match!(immutable Repr)(
 		(immutable ConcreteFunBody.Builtin x) =>
 			reprOfConcreteFunBodyBuiltin(alloc, x),
-		(immutable ConcreteFunBody.CreateEnum x) =>
-			reprRecord!"create-enum"(alloc, [reprInt(x.value.value)]),
-		(immutable ConcreteFunBody.CreateExtern) =>
-			reprSym!"new-extern",
+		(immutable Constant x) =>
+			reprRecord!"constant"(alloc, [reprOfConstant(alloc, x)]),
 		(immutable ConcreteFunBody.CreateRecord) =>
 			reprSym!"new-record" ,
 		(immutable ConcreteFunBody.CreateUnion) =>

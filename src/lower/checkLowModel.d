@@ -257,8 +257,7 @@ void checkLowExpr(
 		(immutable LowExprKind.ThreadLocalPtr it) {
 			immutable LowType pointee = ctx.ctx.program.threadLocals[it.threadLocalIndex].type;
 			checkTypeEqual(ctx.ctx, type, immutable LowType(immutable LowType.PtrRawMut(&pointee)));
-		},
-		(immutable LowExprKind.Zeroed) {});
+		});
 }
 
 void checkSpecialUnary(ref FunCtx ctx, immutable LowType type, immutable LowExprKind.SpecialUnary a) {
@@ -512,16 +511,16 @@ void checkTypeEqual(
 			import util.writer : finishWriterToCStr, Writer;
 			Writer writer = Writer(ctx.allocPtr);
 			writer ~= "Type is not as expected. Expected:\n";
-			writeReprJSON(writer, ctx.allSymbols, reprOfLowType2(ctx, expected));
+			writeReprJSON(writer, ctx.allSymbols, reprOfLowType2(ctx.alloc, ctx.program, expected));
 			writer ~= "\nActual:\n";
-			writeReprJSON(writer, ctx.allSymbols, reprOfLowType2(ctx, actual));
+			writeReprJSON(writer, ctx.allSymbols, reprOfLowType2(ctx.alloc, ctx.program, actual));
 			printf("%s\n", finishWriterToCStr(writer));
 		}
 	}
 	verify(expected == actual);
 }
 
-immutable(Repr) reprOfLowType2(ref Ctx ctx, immutable LowType a) =>
+immutable(Repr) reprOfLowType2(ref Alloc alloc, ref immutable LowProgram program, immutable LowType a) =>
 	a.match!(immutable Repr)(
 		(immutable LowType.Extern) =>
 			reprSym!"some-extern", //TODO: more detail
@@ -530,12 +529,12 @@ immutable(Repr) reprOfLowType2(ref Ctx ctx, immutable LowType a) =>
 		(immutable PrimitiveType it) =>
 			reprSym(symOfPrimitiveType(it)),
 		(immutable LowType.PtrGc it) =>
-			reprRecord!"gc-ptr"(ctx.alloc, [reprOfLowType2(ctx, *it.pointee)]),
+			reprRecord!"gc-ptr"(alloc, [reprOfLowType2(alloc, program, *it.pointee)]),
 		(immutable LowType.PtrRawConst it) =>
-			reprRecord!"ptr-const"(ctx.alloc, [reprOfLowType2(ctx, *it.pointee)]),
+			reprRecord!"ptr-const"(alloc, [reprOfLowType2(alloc, program, *it.pointee)]),
 		(immutable LowType.PtrRawMut it) =>
-			reprRecord!"ptr-mut"(ctx.alloc, [reprOfLowType2(ctx, *it.pointee)]),
+			reprRecord!"ptr-mut"(alloc, [reprOfLowType2(alloc, program, *it.pointee)]),
 		(immutable LowType.Record it) =>
-			reprOfConcreteStructRef(ctx.alloc, *ctx.program.allRecords[it].source),
+			reprOfConcreteStructRef(alloc, *program.allRecords[it].source),
 		(immutable LowType.Union it) =>
-			reprOfConcreteStructRef(ctx.alloc, *ctx.program.allUnions[it].source));
+			reprOfConcreteStructRef(alloc, *program.allUnions[it].source));

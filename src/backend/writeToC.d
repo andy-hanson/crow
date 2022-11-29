@@ -833,10 +833,6 @@ immutable(WriteExprResult) writeExpr(
 			inlineableSimple(() {
 				writer ~= '&';
 				writeLowThreadLocalMangledName(writer, ctx.mangledNames, ctx.program.threadLocals[x.threadLocalIndex]);
-			}),
-		(immutable LowExprKind.Zeroed) =>
-			inlineableSimple(() {
-				writeZeroedValue(writer, ctx.ctx, type);
 			}));
 }
 
@@ -1233,18 +1229,12 @@ void writeConstantRef(
 				writeConstantArrStorageName(writer, ctx.mangledNames, ctx.program, type.as!(LowType.Record), it.index);
 			writer ~= '}';
 		},
-		(immutable Constant.BoolConstant it) {
-			writer ~= it.value ? '1' : '0';
-		},
 		(immutable Constant.CString it) {
 			writer ~= '"';
 			eachChar(ctx.program.allConstants.cStrings[it.index], (immutable char c) {
 				writeEscapedChar_inner(writer, c);
 			});
 			writer ~= '"';
-		},
-		(immutable Constant.ExternZeroed) {
-			writeExternZeroed(writer, ctx, type.as!(LowType.Extern));
 		},
 		(immutable Constant.Float it) {
 			switch (type.as!PrimitiveType) {
@@ -1289,9 +1279,6 @@ void writeConstantRef(
 				writer ~= 'u';
 			}
 		},
-		(immutable Constant.Null) {
-			writer ~= "NULL";
-		},
 		(immutable Constant.Pointer it) {
 			writer ~= '&';
 			writeConstantPointerStorageName(writer, ctx.mangledNames, ctx.program, asPtrGcPointee(type), it.index);
@@ -1319,8 +1306,8 @@ void writeConstantRef(
 				writeConstantRef(writer, ctx, ConstantRefPos.inner, memberType, it.arg);
 			});
 		},
-		(immutable Constant.Void) {
-			unreachable!void();
+		(immutable Constant.Zero) {
+			writeZeroedValue(writer, ctx, type);
 		});
 }
 

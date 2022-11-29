@@ -2,7 +2,7 @@ module lower.getBuiltinCall;
 
 @safe @nogc pure nothrow:
 
-import model.constant : Constant;
+import model.constant : Constant, constantBool, constantZero;
 import model.lowModel : isPtrRawConstOrMut, LowExprKind, LowType, PrimitiveType;
 import util.alloc.alloc : Alloc;
 import util.sym : AllSymbols, safeCStrOfSym, Sym, sym;
@@ -17,7 +17,6 @@ struct BuiltinKind {
 	struct PointerCast {}
 	struct SizeOf {}
 	struct StaticSymbols {}
-	struct Zeroed {}
 
 	mixin Union!(
 		immutable CallFunPointer,
@@ -30,8 +29,7 @@ struct BuiltinKind {
 		immutable OptQuestion2,
 		immutable PointerCast,
 		immutable SizeOf,
-		immutable StaticSymbols,
-		immutable Zeroed);
+		immutable StaticSymbols);
 }
 
 immutable(BuiltinKind) getBuiltinKind(
@@ -44,8 +42,6 @@ immutable(BuiltinKind) getBuiltinKind(
 ) {
 	immutable(BuiltinKind) constant(immutable Constant kind) =>
 		immutable BuiltinKind(kind);
-	immutable(BuiltinKind) constantBool(immutable bool value) =>
-		constant(immutable Constant(immutable Constant.BoolConstant(value)));
 	immutable(BuiltinKind) unary(immutable LowExprKind.SpecialUnary.Kind kind) =>
 		immutable BuiltinKind(kind);
 	immutable(BuiltinKind) binary(immutable LowExprKind.SpecialBinary.Kind kind) =>
@@ -185,7 +181,7 @@ immutable(BuiltinKind) getBuiltinKind(
 				? LowExprKind.SpecialUnary.Kind.countOnesNat64
 				: failUnary());
 		case sym!"false".value:
-			return constantBool(false);
+			return constant(constantBool(false));
 		case sym!"interpreter-backtrace".value:
 			return immutable BuiltinKind(LowExprKind.SpecialTernary.Kind.interpreterBacktrace);
 		case sym!"is-less".value:
@@ -204,10 +200,10 @@ immutable(BuiltinKind) getBuiltinKind(
 				failBinary());
 		case sym!"new-void".value:
 			return isVoid(rt)
-				? constant(immutable Constant(immutable Constant.Void()))
+				? constant(constantZero)
 				: fail();
 		case sym!"null".value:
-			return constant(immutable Constant(immutable Constant.Null()));
+			return constant(constantZero);
 		case sym!"set-deref".value:
 			return binary(p0.isA!(LowType.PtrRawMut) ? LowExprKind.SpecialBinary.Kind.writeToPtr : failBinary());
 		case sym!"size-of".value:
@@ -257,7 +253,7 @@ immutable(BuiltinKind) getBuiltinKind(
 				? LowExprKind.SpecialUnary.Kind.toPtrFromNat64
 				: failUnary());
 		case sym!"true".value:
-			return constantBool(true);
+			return constant(constantBool(true));
 		case sym!"unsafe-add".value:
 			return binary(isInt8(rt)
 				? LowExprKind.SpecialBinary.Kind.unsafeAddInt8
@@ -343,7 +339,7 @@ immutable(BuiltinKind) getBuiltinKind(
 				? LowExprKind.SpecialBinary.Kind.wrapSubNat64
 				: failBinary());
 		case sym!"zeroed".value:
-			return immutable BuiltinKind(immutable BuiltinKind.Zeroed());
+			return constant(constantZero);
 		case sym!"as-any-mut-pointer".value:
 			return unary(LowExprKind.SpecialUnary.Kind.asAnyPtr);
 		case sym!"init-constants".value:

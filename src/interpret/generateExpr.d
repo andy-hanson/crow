@@ -407,10 +407,6 @@ void generateExpr(
 		(immutable LowExprKind.ThreadLocalPtr x) {
 			writeThreadLocalPtr(writer, source, ctx.threadLocalsInfo.offsetsInWords[x.threadLocalIndex]);
 			handleAfter(writer, ctx, source, after);
-		},
-		(immutable LowExprKind.Zeroed) {
-			writePushEmptySpace(writer, source, after.returnValueStackEntries.size);
-			handleAfter(writer, ctx, source, after);
 		});
 }
 
@@ -748,14 +744,8 @@ void generateConstant(
 			writePushConstant(writer, source, info.size);
 			writePushConstantPointer(writer, source, info.textPtr);
 		},
-		(immutable Constant.BoolConstant it) {
-			writeBoolConstant(writer, source, it.value);
-		},
 		(immutable Constant.CString it) {
 			writePushConstantPointer(writer, source, getTextPointerForCString(ctx.textInfo, it));
-		},
-		(immutable Constant.ExternZeroed) {
-			writeZeroed(writer, source, typeSizeBytes(ctx, type));
 		},
 		(immutable Constant.Float it) {
 			switch (type.as!PrimitiveType) {
@@ -777,9 +767,6 @@ void generateConstant(
 		},
 		(immutable Constant.Integral it) {
 			writePushConstant(writer, source, it.value);
-		},
-		(immutable Constant.Null) {
-			writePushConstant(writer, source, 0);
 		},
 		(immutable Constant.Pointer it) {
 			immutable ubyte* pointer = getTextPointer(ctx.textInfo, it);
@@ -806,18 +793,14 @@ void generateConstant(
 					generateConstant(writer, ctx, source, memberType, x.arg);
 				});
 		},
-		(immutable Constant.Void) {
-			// do nothing
-		});
+		(immutable Constant.Zero) {
+			writeZeroed(writer, source, typeSizeBytes(ctx, type));
+		},);
 }
 
 void writeZeroed(ref ByteCodeWriter writer, immutable ByteCodeSource source, immutable size_t sizeBytes) {
 	foreach (immutable size_t i; 0 .. divRoundUp(sizeBytes, stackEntrySize))
 		writePushConstant(writer, source, 0);
-}
-
-void writeBoolConstant(ref ByteCodeWriter writer, immutable ByteCodeSource source, immutable bool value) {
-	writePushConstant(writer, source, value ? 1 : 0);
 }
 
 void generateSpecialUnary(
@@ -1060,7 +1043,7 @@ void generateSpecialBinary(
 					generateExpr(writer, ctx, locals, innerAfter, a.right);
 				},
 				(ref ExprAfter innerAfter) {
-					writeBoolConstant(writer, source, false);
+					writePushConstant(writer, source, false);
 					handleAfter(writer, ctx, source, innerAfter);
 				});
 			break;
@@ -1159,7 +1142,7 @@ void generateSpecialBinary(
 			generateIf(
 				writer, ctx, source, locals, after, a.left,
 				(ref ExprAfter innerAfter) {
-					writeBoolConstant(writer, source, true);
+					writePushConstant(writer, source, true);
 					handleAfter(writer, ctx, source, innerAfter);
 				},
 				(ref ExprAfter innerAfter) {

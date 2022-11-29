@@ -2,7 +2,7 @@ module lower.lowExprHelpers;
 
 @safe @nogc pure nothrow:
 
-import model.constant : Constant;
+import model.constant : Constant, constantZero;
 import model.lowModel :
 	asGcOrRawPointee,
 	AllLowTypes,
@@ -377,7 +377,7 @@ immutable(LowExprKind) genWriteToPtr(ref Alloc alloc, immutable LowExpr ptr, imm
 		immutable LowExprKind.SpecialBinary(LowExprKind.SpecialBinary.Kind.writeToPtr, ptr, value)));
 
 immutable(LowExpr) genVoid(immutable FileAndRange source) =>
-	immutable LowExpr(voidType, source, immutable LowExprKind(immutable Constant(immutable Constant.Void())));
+	immutable LowExpr(voidType, source, immutable LowExprKind(constantZero));
 
 immutable(LowLocal*) genLocal(
 	ref Alloc alloc,

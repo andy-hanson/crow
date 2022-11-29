@@ -9,7 +9,7 @@ import model.concreteModel :
 	ConcreteStructSource,
 	ConcreteType,
 	PointerTypeAndConstantsConcrete;
-import model.constant : Constant, constantEqual;
+import model.constant : Constant, constantEqual, constantZero;
 import util.alloc.alloc : Alloc;
 import util.col.arr : empty, only;
 import util.col.arrUtil : arrEqual, arrLiteral, findIndex;
@@ -116,7 +116,7 @@ immutable(Constant) getConstantArr(
 private immutable(Constant) constantEmptyArr() {
 	static immutable Constant[2] fields = [
 		immutable Constant(immutable Constant.Integral(0)),
-		immutable Constant(immutable Constant.Null())];
+		constantZero];
 	return immutable Constant(immutable Constant.Record(fields));
 }
 

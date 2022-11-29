@@ -663,8 +663,6 @@ struct LowExprKind {
 		immutable LowThreadLocalIndex threadLocalIndex;
 	}
 
-	struct Zeroed {}
-
 	mixin Union!(
 		immutable Call,
 		immutable CallFunPtr*,
@@ -695,8 +693,7 @@ struct LowExprKind {
 		immutable Switch0ToN*,
 		immutable SwitchWithValues*,
 		immutable TailRecur,
-		immutable ThreadLocalPtr,
-		immutable Zeroed);
+		immutable ThreadLocalPtr);
 }
 static assert(LowExprKind.sizeof <= 32);
 

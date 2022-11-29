@@ -212,15 +212,12 @@ void ensureConstant(
 				it.index,
 				arrs.constants[it.index]);
 		},
-		(immutable Constant.BoolConstant) {},
 		(immutable Constant.CString) {
 			// We wrote out all CStrings first, so no need to do anything here.
 		},
-		(immutable Constant.ExternZeroed) {},
 		(immutable Constant.Float) {},
 		(immutable Constant.FunPtr) {},
 		(immutable Constant.Integral) {},
-		(immutable Constant.Null) {},
 		(immutable Constant.Pointer it) {
 			immutable PointerTypeAndConstantsLow* ptrs = &ctx.allConstants.pointers[it.typeIndex];
 			verify(ptrs.pointeeType == asPtrGcPointee(t));
@@ -245,7 +242,7 @@ void ensureConstant(
 				unionMemberType(ctx.program, t.as!(LowType.Union), x.memberIndex),
 				x.arg);
 		},
-		(immutable Constant.Void) {});
+		(immutable Constant.Zero) {});
 }
 
 ref immutable(LowType) unionMemberType(
@@ -322,14 +319,8 @@ void writeConstant(
 			immutable size_t textIndex = ctx.arrTypeIndexToConstantIndexToTextIndex[it.typeIndex][it.index];
 			add64TextPtr(ctx.text, textIndex);
 		},
-		(immutable Constant.BoolConstant it) {
-			exactSizeArrBuilderAdd(ctx.text, it.value ? 1 : 0);
-		},
 		(immutable Constant.CString it) {
 			add64TextPtr(ctx.text, ctx.cStringIndexToTextIndex[it.index]);
-		},
-		(immutable Constant.ExternZeroed) {
-			todo!void("!");
 		},
 		(immutable Constant.Float it) {
 			switch (type.as!PrimitiveType) {
@@ -356,12 +347,12 @@ void writeConstant(
 		},
 		(immutable Constant.Integral it) {
 			final switch (type.as!PrimitiveType) {
-				case PrimitiveType.bool_:
 				case PrimitiveType.float32:
 				case PrimitiveType.float64:
 				case PrimitiveType.void_:
 					unreachable!void();
 					break;
+				case PrimitiveType.bool_:
 				case PrimitiveType.char8:
 				case PrimitiveType.int8:
 				case PrimitiveType.nat8:
@@ -380,9 +371,6 @@ void writeConstant(
 					add64(ctx.text, it.value);
 					break;
 			}
-		},
-		(immutable Constant.Null) {
-			todo!void("write null");
 		},
 		(immutable Constant.Pointer x) {
 			immutable size_t textIndex = ctx.pointeeTypeIndexToIndexToTextIndex[x.typeIndex][x.index];
@@ -409,8 +397,8 @@ void writeConstant(
 			immutable size_t padding = unionSize - 8 - memberSize;
 			add0Bytes(ctx.text, padding);
 		},
-		(immutable Constant.Void) {
-			todo!void("write void"); // should only happen if there's a pointer to void..
+		(immutable Constant.Zero) {
+			todo!void("!");
 		});
 
 	immutable size_t sizeAfter = exactSizeArrBuilderCurSize(ctx.text);

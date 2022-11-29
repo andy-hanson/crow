@@ -16,14 +16,10 @@ struct Constant {
 		immutable size_t typeIndex; // Index of the arr type in AllConstants
 		immutable size_t index; // Index into AllConstants#arrs for this type.
 	}
-	struct BoolConstant { // TODO: just use Integral?
-		immutable bool value;
-	}
 	// Nul-terminated string identified only by its begin pointer.
 	struct CString {
 		immutable size_t index; // Index into AllConstants#cStrings
 	}
-	struct ExternZeroed {}
 	// Used for float32 / float64
 	struct Float {
 		immutable double value;
@@ -31,12 +27,12 @@ struct Constant {
 	struct FunPtr {
 		immutable ConcreteFun* fun;
 	}
-	// For int and nat types.
+	// For intX, natX, and enum / flags types.
 	// For a large nat, this may wrap around to negative.
 	struct Integral {
 		immutable long value;
 	}
-	struct Null {}
+	// Pointer (or gc-pointer) to another constant
 	struct Pointer {
 		immutable size_t typeIndex;
 		immutable size_t index; // Index into AllConstants#pointers for this type
@@ -49,23 +45,33 @@ struct Constant {
 		immutable size_t memberIndex;
 		immutable Constant arg;
 	}
-	struct Void {}
+	// All 0 bits. Good for null, void, or empty value of 'extern' type.
+	struct Zero {}
 
 	mixin .Union!(
 		immutable ArrConstant,
-		immutable BoolConstant,
 		immutable CString,
-		immutable ExternZeroed,
 		immutable Float,
 		immutable FunPtr,
 		immutable Integral,
-		immutable Null,
 		immutable Pointer,
 		immutable Record,
 		immutable Union*,
-		immutable Void);
+		immutable Zero);
 }
 static assert(Constant.sizeof <= 24);
+
+immutable(Constant) constantBool(immutable bool b) =>
+	immutable Constant(immutable Constant.Integral(b));
+
+immutable(bool) asBool(immutable Constant a) {
+	immutable long value = a.as!(Constant.Integral).value;
+	verify(value == 0 || value == 1);
+	return value == 1;
+}
+
+immutable(Constant) constantZero() =>
+	immutable Constant(immutable Constant.Zero());
 
 // WARN: Only do this with constants known to have the same type
 @trusted immutable(bool) constantEqual(immutable Constant a, immutable Constant b) {
@@ -73,12 +79,8 @@ static assert(Constant.sizeof <= 24);
 	return a.match!(immutable bool)(
 		(immutable Constant.ArrConstant x) =>
 			b.as!(Constant.ArrConstant).index == x.index,
-		(immutable Constant.BoolConstant x) =>
-			b.as!(Constant.BoolConstant).value == x.value,
 		(immutable Constant.CString x) =>
 			b.as!(Constant.CString).index == x.index,
-		(immutable Constant.ExternZeroed) =>
-			true,
 		(immutable Constant.Float x) =>
 			//TODO: handle NaN
 			b.as!(Constant.Float).value == x.value,
@@ -86,8 +88,6 @@ static assert(Constant.sizeof <= 24);
 			b.as!(Constant.FunPtr).fun == x.fun,
 		(immutable Constant.Integral x) =>
 			b.as!(Constant.Integral).value == x.value,
-		(immutable Constant.Null) =>
-			true,
 		(immutable Constant.Pointer x) =>
 			b.as!(Constant.Pointer).index == x.index,
 		(immutable Constant.Record ra) =>
@@ -98,6 +98,6 @@ static assert(Constant.sizeof <= 24);
 					constantEqual(x, y)),
 		(ref immutable Constant.Union ua) =>
 			ua.memberIndex == b.as!(Constant.Union*).memberIndex && constantEqual(ua.arg, b.as!(Constant.Union*).arg),
-		(immutable Constant.Void) =>
+		(immutable Constant.Zero) =>
 			true);
 }

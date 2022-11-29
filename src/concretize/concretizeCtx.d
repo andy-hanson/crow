@@ -33,7 +33,7 @@ import model.concreteModel :
 	ReferenceKind,
 	sizeOrPointerSizeBytes,
 	TypeSize;
-import model.constant : Constant;
+import model.constant : Constant, constantZero;
 import model.model :
 	body_,
 	CommonTypes,
@@ -720,10 +720,10 @@ void fillInConcreteFunBody(ref ConcretizeCtx ctx, ConcreteFun* cf) {
 						return immutable ConcreteFunBody(immutable ConcreteFunBody.Builtin(typeArgs(inputs)));
 				}
 			},
-			(immutable FunBody.CreateEnum it) =>
-				immutable ConcreteFunBody(immutable ConcreteFunBody.CreateEnum(it.value)),
+			(immutable FunBody.CreateEnum x) =>
+				immutable ConcreteFunBody(immutable Constant(immutable Constant.Integral(x.value.value))),
 			(immutable FunBody.CreateExtern) =>
-				immutable ConcreteFunBody(immutable ConcreteFunBody.CreateExtern()),
+				immutable ConcreteFunBody(constantZero),
 			(immutable FunBody.CreateRecord) =>
 				immutable ConcreteFunBody(immutable ConcreteFunBody.CreateRecord()),
 			(immutable FunBody.CreateUnion it) =>

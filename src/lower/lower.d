@@ -64,7 +64,7 @@ import model.concreteModel :
 	name,
 	PointerTypeAndConstantsConcrete,
 	ReferenceKind;
-import model.constant : Constant;
+import model.constant : Constant, constantZero;
 import model.lowModel :
 	AllConstantsLow,
 	AllLowTypes,
@@ -641,9 +641,7 @@ immutable(AllLowFuns) getAllLowFuns(
 				} else
 					return none!LowFunIndex;
 			},
-			(immutable ConcreteFunBody.CreateEnum) =>
-				none!LowFunIndex,
-			(immutable ConcreteFunBody.CreateExtern) =>
+			(immutable(Constant)) =>
 				none!LowFunIndex,
 			(immutable ConcreteFunBody.CreateRecord) =>
 				none!LowFunIndex,
@@ -745,9 +743,7 @@ immutable(bool) concreteFunWillBecomeNonExternLowFun(
 	body_(a).match!(immutable bool)(
 		(immutable ConcreteFunBody.Builtin) =>
 			isCallWithCtxFun(program, a) || isMarkVisitFun(program, a),
-		(immutable ConcreteFunBody.CreateEnum) =>
-			false,
-		(immutable ConcreteFunBody.CreateExtern) =>
+		(immutable(Constant)) =>
 			false,
 		(immutable ConcreteFunBody.CreateRecord) =>
 			false,
@@ -909,9 +905,7 @@ immutable(LowFunBody) getLowFunBody(
 	a.match!(immutable LowFunBody)(
 		(immutable ConcreteFunBody.Builtin) =>
 			unreachable!(immutable LowFunBody),
-		(immutable ConcreteFunBody.CreateEnum) =>
-			unreachable!(immutable LowFunBody),
-		(immutable ConcreteFunBody.CreateExtern) =>
+		(immutable(Constant)) =>
 			unreachable!(immutable LowFunBody),
 		(immutable ConcreteFunBody.CreateRecord) =>
 			unreachable!(immutable LowFunBody),
@@ -1210,10 +1204,8 @@ immutable(LowExprKind) getCallSpecial(
 	body_(*a.called).match!(immutable LowExprKind)(
 		(immutable ConcreteFunBody.Builtin) =>
 			getCallBuiltinExpr(ctx, locals, exprPos, range, type, a),
-		(immutable ConcreteFunBody.CreateEnum it) =>
-			immutable LowExprKind(immutable Constant(immutable Constant.Integral(it.value.value))),
-		(immutable ConcreteFunBody.CreateExtern) =>
-			immutable LowExprKind(immutable Constant(immutable Constant.ExternZeroed())),
+		(immutable Constant x) =>
+			immutable LowExprKind(x),
 		(immutable ConcreteFunBody.CreateRecord) {
 			immutable LowExpr[] args = getArgs(ctx, locals, a.args);
 			immutable LowExprKind create = immutable LowExprKind(immutable LowExprKind.CreateRecord(args));
@@ -1404,9 +1396,7 @@ immutable(LowExprKind) getCallBuiltinExpr(
 			return immutable LowExprKind(immutable LowExprKind.SizeOf(typeArg));
 		},
 		(immutable BuiltinKind.StaticSymbols) =>
-			immutable LowExprKind(ctx.staticSymbols),
-		(immutable BuiltinKind.Zeroed) =>
-			immutable LowExprKind(immutable LowExprKind.Zeroed()));
+			immutable LowExprKind(ctx.staticSymbols));
 }
 
 immutable(LowExprKind) getCreateArrExpr(
@@ -1689,5 +1679,5 @@ immutable(LowExprKind) getThrowExpr(
 		? callThrow
 		: immutable LowExprKind(allocate(ctx.alloc, immutable LowExprKind.Seq(
 			immutable LowExpr(voidType, range, callThrow),
-			immutable LowExpr(type, range, immutable LowExprKind(immutable LowExprKind.Zeroed())))));
+			immutable LowExpr(type, range, immutable LowExprKind(constantZero)))));
 }

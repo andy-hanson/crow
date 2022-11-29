@@ -94,7 +94,7 @@ import backend.mangle :
 	writeLowParamName,
 	writeLowThreadLocalMangledName;
 import frontend.lang : JitOptions, OptimizationLevel;
-import model.constant : Constant;
+import model.constant : Constant, constantBool;
 import model.lowModel :
 	ArrTypeAndConstantsLow,
 	ExternLibrary,
@@ -298,6 +298,7 @@ extern(C) {
 				gcc_jit_block* entryBlock = gcc_jit_function_new_block(curFun, "entry");
 				ExprCtx exprCtx = ExprCtx(
 					ptrTrustMe(alloc),
+					ptrTrustMe(allSymbols),
 					ptrTrustMe(program),
 					ptrTrustMe(ctx),
 					ptrTrustMe(mangledNames),
@@ -818,6 +819,7 @@ struct ExprCtx {
 	@safe @nogc pure nothrow:
 
 	Alloc* allocPtr;
+	const AllSymbols* allSymbolsPtr;
 	immutable LowProgram* programPtr;
 	gcc_jit_context* gccPtr;
 	immutable MangledNames* mangledNamesPtr;
@@ -923,9 +925,7 @@ immutable(ExprResult) toGccExpr(
 		(immutable LowExprKind.TailRecur it) =>
 			tailRecurToGcc(ctx, locals, emit, it),
 		(immutable LowExprKind.ThreadLocalPtr it) =>
-			threadLocalPtrToGcc(ctx, locals, emit, it),
-		(immutable LowExprKind.Zeroed) =>
-			zeroedToGcc(ctx, emit, a.type));
+			threadLocalPtrToGcc(ctx, locals, emit, it));
 
 immutable(gcc_jit_rvalue*) emitToRValueCb(
 	scope immutable(ExprResult) delegate(ref ExprEmit) @safe @nogc pure nothrow cbEmit,
@@ -1401,17 +1401,10 @@ immutable(ExprResult) constantToGcc(
 					gcc_jit_context_new_rvalue_from_long(ctx.gcc, ctx.nat64Type, arrSize));
 			});
 		},
-		(immutable Constant.BoolConstant it) =>
-			emitSimpleNoSideEffects(ctx, emit, gcc_jit_context_new_rvalue_from_long(
-				ctx.gcc,
-				getGccType(ctx.types, type),
-				it.value ? 1 : 0)),
 		(immutable Constant.CString it) =>
 			emitSimpleNoSideEffects(ctx, emit, gcc_jit_context_new_string_literal(
 				ctx.gcc,
 				ctx.program.allConstants.cStrings[it.index].ptr)),
-		(immutable Constant.ExternZeroed) =>
-			externZeroedToGcc(ctx, emit, type.as!(LowType.Extern)),
 		(immutable Constant.Float it) =>
 			emitSimpleNoSideEffects(
 				ctx,
@@ -1437,8 +1430,6 @@ immutable(ExprResult) constantToGcc(
 				ctx,
 				emit,
 				gcc_jit_context_new_rvalue_from_long(ctx.gcc, getGccType(ctx.types, type), it.value)),
-		(immutable Constant.Null) =>
-			emitSimpleNoSideEffects(ctx, emit, gcc_jit_context_null(ctx.gcc, getGccType(ctx.types, type))),
 		(immutable Constant.Pointer it) {
 			gcc_jit_lvalue* storage = ctx.globalsForConstants.pointers[it.typeIndex][it.index];
 			return emitSimpleNoSideEffects(ctx, emit, gcc_jit_lvalue_get_address(storage, null));
@@ -1458,8 +1449,8 @@ immutable(ExprResult) constantToGcc(
 			return emitUnion(ctx, emit, type, it.memberIndex, (ref ExprEmit emitArg) =>
 				constantToGcc(ctx, emit, argType, it.arg));
 		},
-		(immutable Constant.Void) =>
-			emitVoid(ctx, emit));
+		(immutable Constant.Zero) =>
+			zeroedToGcc(ctx, emit, type));
 
 @trusted immutable(ExprResult) unaryToGcc(
 	ref ExprCtx ctx,
@@ -1750,9 +1741,9 @@ immutable(LowType) boolType() =>
 
 immutable(LowExpr) boolExpr(immutable bool value) =>
 	immutable LowExpr(
-		boolType(),
+		boolType,
 		FileAndRange.empty,
-		immutable LowExprKind(immutable Constant(immutable Constant.BoolConstant(value))));
+		immutable LowExprKind(constantBool(value)));
 
 enum PtrArith { addNat, subtractNat }
 
@@ -1864,9 +1855,7 @@ immutable(ExprResult) zeroedToGcc(
 			emitSimpleNoSideEffects(ctx, emit, gcc_jit_context_null(ctx.gcc, gccType)),
 		(immutable PrimitiveType x) =>
 			x == PrimitiveType.void_
-				? emitWriteToLValue(ctx, emit, type, (gcc_jit_lvalue*) {
-					// empty type, nothing to write to
-				})
+				? emitVoid(ctx, emit)
 				: emitSimpleNoSideEffects(ctx, emit, zeroForPrimitiveType(ctx, x)),
 		(immutable(LowPtrCombine)) =>
 			emitSimpleNoSideEffects(ctx, emit, gcc_jit_context_null(ctx.gcc, gccType)),

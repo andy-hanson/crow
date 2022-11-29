@@ -25,7 +25,7 @@ import model.concreteModel :
 	isSelfMutable,
 	ReferenceKind,
 	setBody;
-import model.constant : Constant;
+import model.constant : Constant, constantZero;
 import model.model : EnumValue;
 import util.alloc.alloc : Alloc;
 import util.col.arrUtil : map, mapWithIndex;
@@ -95,16 +95,7 @@ immutable(ConcreteExpr) safeValueForStruct(
 		(immutable ConcreteStructBody.Builtin it) {
 			final switch (it.kind) {
 				case BuiltinStructKind.bool_:
-					return fromConstant(immutable Constant(immutable Constant.BoolConstant(false)));
 				case BuiltinStructKind.char8:
-					return fromConstant(immutable Constant(immutable Constant.Integral('\0')));
-				case BuiltinStructKind.float32:
-				case BuiltinStructKind.float64:
-					return fromConstant(immutable Constant(immutable Constant.Float(0)));
-				case BuiltinStructKind.fun:
-					return safeFunValue(ctx, range, struct_);
-				case BuiltinStructKind.funPointerN:
-					return fromConstant(immutable Constant(immutable Constant.Null()));
 				case BuiltinStructKind.int8:
 				case BuiltinStructKind.int16:
 				case BuiltinStructKind.int32:
@@ -114,11 +105,16 @@ immutable(ConcreteExpr) safeValueForStruct(
 				case BuiltinStructKind.nat32:
 				case BuiltinStructKind.nat64:
 					return fromConstant(immutable Constant(immutable Constant.Integral(0)));
+				case BuiltinStructKind.float32:
+				case BuiltinStructKind.float64:
+					return fromConstant(immutable Constant(immutable Constant.Float(0)));
+				case BuiltinStructKind.fun:
+					return safeFunValue(ctx, range, struct_);
+				case BuiltinStructKind.funPointerN:
 				case BuiltinStructKind.pointerConst:
 				case BuiltinStructKind.pointerMut:
-					return fromConstant(immutable Constant(immutable Constant.Null()));
 				case BuiltinStructKind.void_:
-					return fromConstant(immutable Constant(immutable Constant.Void()));
+					return fromConstant(constantZero);
 			}
 		},
 		(immutable ConcreteStructBody.Enum x) {
@@ -148,7 +144,7 @@ immutable(ConcreteExpr) safeValueForStruct(
 		(immutable ConcreteStructBody.Union it) {
 			immutable ConcreteExpr member = has(it.members[0])
 				? safeValueForType(ctx, range, force(it.members[0]))
-				: fromConstant(immutable Constant(immutable Constant.Void()));
+				: fromConstant(constantZero);
 			//TODO: we need to find the function that creates that union...
 			return member.kind.isA!Constant
 				? fromConstant(immutable Constant(
