@@ -4,11 +4,7 @@ module lower.lower;
 
 import lower.checkLowModel : checkLowProgram;
 import lower.generateCallWithCtxFun : generateCallWithCtxFun;
-import lower.generateMarkVisitFun :
-	generateMarkVisitArrInner,
-	generateMarkVisitArrOuter,
-	generateMarkVisitNonArr,
-	generateMarkVisitGcPtr;
+import lower.generateMarkVisitFun : generateMarkVisitArrOuter, generateMarkVisitNonArr, generateMarkVisitGcPtr;
 import lower.getBuiltinCall : BuiltinKind, getBuiltinKind;
 import lower.lowExprHelpers :
 	anyPtrMutType,
@@ -173,11 +169,6 @@ struct MarkVisitFuns {
 	MutIndexDict!(LowType.Record, LowFunIndex) recordValToVisit;
 	MutIndexDict!(LowType.Union, LowFunIndex) unionToVisit;
 	MutDict!(immutable LowType, immutable LowFunIndex) gcPointeeToVisit;
-}
-
-immutable(LowFunIndex) getMarkVisitFun(ref const MarkVisitFuns funs, immutable LowType type) {
-	immutable Opt!LowFunIndex opt = tryGetMarkVisitFun(funs, type);
-	return force(opt);
 }
 
 immutable(Opt!LowFunIndex) tryGetMarkVisitFun(ref const MarkVisitFuns funs, immutable LowType type) =>
@@ -469,12 +460,8 @@ struct LowFunCause {
 		immutable LowType[] nonFunParamTypes;
 		immutable ConcreteLambdaImpl[] impls;
 	}
-	struct MarkVisitArrInner {
-		immutable LowType.PtrRawConst elementPtrType;
-	}
 	struct MarkVisitArrOuter {
 		immutable LowType.Record arrType;
-		immutable Opt!LowFunIndex inner;
 	}
 	struct MarkVisitNonArr { //TODO: this is record (by-val) or union. Maybe split?
 		immutable LowType type;
@@ -487,7 +474,6 @@ struct LowFunCause {
 	mixin Union!(
 		immutable CallWithCtx,
 		immutable ConcreteFun*,
-		immutable MarkVisitArrInner,
 		immutable MarkVisitArrOuter,
 		immutable MarkVisitNonArr,
 		immutable MarkVisitGcPtr);
@@ -567,17 +553,8 @@ immutable(AllLowFuns) getAllLowFuns(
 				if (isArray(record)) {
 					immutable LowType.PtrRawConst elementPtrType = getElementPtrTypeFromArrType(allTypes, it);
 					immutable ValueAndDidAdd!LowFunIndex outerIndex = getOrAddAndDidAdd!(LowType.Record, LowFunIndex)(
-						markVisitFuns.recordValToVisit,
-						it,
-						() {
-							immutable Opt!LowFunIndex innerIndex =
-								needsMarkVisitFun(allTypes, *elementPtrType.pointee)
-								? some(addLowFun(
-									immutable LowFunCause(immutable LowFunCause.MarkVisitArrInner(elementPtrType))))
-								: none!LowFunIndex;
-							return addLowFun(
-								immutable LowFunCause(immutable LowFunCause.MarkVisitArrOuter(it, innerIndex)));
-						});
+						markVisitFuns.recordValToVisit, it, () =>
+							addLowFun(immutable LowFunCause(immutable LowFunCause.MarkVisitArrOuter(it))));
 					if (outerIndex.didAdd)
 						maybeGenerateMarkVisitForType(*elementPtrType.pointee);
 					return outerIndex.value;
@@ -813,16 +790,12 @@ immutable(LowFun) lowFunFromCause(
 				body_(*cf));
 			return immutable LowFun(immutable LowFunSource(cf), returnType, params, body_);
 		},
-		(immutable LowFunCause.MarkVisitArrInner it) =>
-			generateMarkVisitArrInner(getLowTypeCtx.alloc, markVisitFuns, markCtxType, it.elementPtrType),
-		(immutable LowFunCause.MarkVisitArrOuter it) =>
-			generateMarkVisitArrOuter(
-				getLowTypeCtx.alloc,
-				markCtxType,
-				markFun,
-				it.arrType,
-				getElementPtrTypeFromArrType(allTypes, it.arrType),
-				it.inner),
+		(immutable LowFunCause.MarkVisitArrOuter x) {
+			immutable LowType.PtrRawConst elementPointerType = getElementPtrTypeFromArrType(allTypes, x.arrType);
+			immutable Opt!LowFunIndex markVisitElement = tryGetMarkVisitFun(markVisitFuns, *elementPointerType.pointee);
+			return generateMarkVisitArrOuter(
+				getLowTypeCtx.alloc, markCtxType, markFun, x.arrType, elementPointerType, markVisitElement);
+		},
 		(immutable LowFunCause.MarkVisitNonArr it) =>
 			generateMarkVisitNonArr(getLowTypeCtx.alloc, allTypes, markVisitFuns, markCtxType, it.type),
 		(immutable LowFunCause.MarkVisitGcPtr it) =>
@@ -1115,7 +1088,7 @@ immutable(LowExprKind) getAllocExpr2(
 	immutable LowLocal* local = addTempLocal(ctx, ptrType);
 	immutable LowExpr sizeofT = genSizeOf(range, asPtrGcPointee(ptrType));
 	immutable LowExpr allocatePtr = getAllocateExpr(ctx.alloc, ctx.allocFunIndex, range, ptrType, sizeofT);
-	immutable LowExpr getTemp = genLocalGet(ctx.alloc, range, local);
+	immutable LowExpr getTemp = genLocalGet(range, local);
 	immutable LowExpr setTemp = genWriteToPtr(ctx.alloc, range, getTemp, inner);
 	return immutable LowExprKind(allocate(ctx.alloc, immutable LowExprKind.Let(
 		local,
@@ -1365,7 +1338,7 @@ immutable(LowExprKind) getCallBuiltinExpr(
 			verify(a.args.length == 2);
 			verify(p0 == p1);
 			immutable LowLocal* lhsLocal = addTempLocal(ctx, p0);
-			immutable LowExpr lhsRef = genLocalGet(ctx.alloc, range, lhsLocal);
+			immutable LowExpr lhsRef = genLocalGet(range, lhsLocal);
 			return immutable LowExprKind(allocate(ctx.alloc, immutable LowExprKind.Let(
 				lhsLocal,
 				getArg(a.args[0], ExprPos.nonTail),
@@ -1382,9 +1355,7 @@ immutable(LowExprKind) getCallBuiltinExpr(
 				getArg(a.args[0], ExprPos.nonTail),
 				arrLiteral!(LowExprKind.MatchUnion.Case)(ctx.alloc, [
 					immutable LowExprKind.MatchUnion.Case(none!(LowLocal*), getArg(a.args[1], ExprPos.tail)),
-					immutable LowExprKind.MatchUnion.Case(
-						some(valueLocal),
-						genLocalGet(ctx.alloc, range, valueLocal))]))));
+					immutable LowExprKind.MatchUnion.Case(some(valueLocal), genLocalGet(range, valueLocal))]))));
 		},
 		(immutable BuiltinKind.PointerCast) {
 			verify(a.args.length == 1);
@@ -1417,7 +1388,7 @@ immutable(LowExprKind) getCreateArrExpr(
 	immutable LowExpr sizeBytes = genWrapMulNat64(ctx.alloc, range, elementSize, nElements);
 	immutable LowExpr allocatePtr = getAllocateExpr(ctx.alloc, ctx.allocFunIndex, range, elementPtrType, sizeBytes);
 	immutable LowLocal* temp = addTempLocal(ctx, elementPtrType);
-	immutable LowExpr getTemp = genLocalGet(ctx.alloc, range, temp);
+	immutable LowExpr getTemp = genLocalGet(range, temp);
 	immutable(LowExpr) recur(immutable LowExpr cur, immutable size_t prevIndex) {
 		if (prevIndex == 0)
 			return cur;
@@ -1438,7 +1409,7 @@ immutable(LowExprKind) getCreateArrExpr(
 		arrType,
 		range,
 		immutable LowExprKind(immutable LowExprKind.CreateRecord(
-			arrLiteral!LowExpr(ctx.alloc, [nElements, genLocalGet(ctx.alloc, range, temp)]))));
+			arrLiteral!LowExpr(ctx.alloc, [nElements, genLocalGet(range, temp)]))));
 	immutable LowExpr writeAndGetArr = recur(createArr, a.args.length);
 	return immutable LowExprKind(allocate(ctx.alloc, immutable LowExprKind.Let(
 		temp,

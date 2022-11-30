@@ -50,7 +50,7 @@ immutable(LowFun) generateCallWithCtxFun(
 			localIndex = localIndex + 1;
 			immutable LowExpr[] args = mapWithFirst!(LowExpr, LowType)(
 				alloc,
-				genLocalGet(alloc, range, closureLocal),
+				genLocalGet(range, closureLocal),
 				nonFunParamTypes,
 				(immutable size_t i, ref immutable LowType paramType) =>
 					genParamGet(range, paramType, immutable LowParamIndex(i + 1)));

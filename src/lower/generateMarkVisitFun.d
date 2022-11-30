@@ -15,9 +15,8 @@ import model.lowModel :
 	LowLocal,
 	LowParam,
 	LowParamIndex,
-	LowType,
-	UpdateParam;
-import lower.lower : getMarkVisitFun, MarkVisitFuns, tryGetMarkVisitFun;
+	LowType;
+import lower.lower : MarkVisitFuns, tryGetMarkVisitFun;
 import lower.lowExprHelpers :
 	boolType,
 	genAddPtr,
@@ -30,15 +29,19 @@ import lower.lowExprHelpers :
 	genGetArrSize,
 	genIf,
 	genIncrPointer,
+	genLet,
 	genLocal,
 	genLocalGet,
+	genLocalSet,
+	genLoop,
+	genLoopBreak,
+	genLoopContinue,
 	genParam,
 	genParamGet,
 	genPtrEq,
 	genRecordFieldGet,
 	genSeq,
 	genSizeOf,
-	genTailRecur,
 	genVoid,
 	genWrapMulNat64,
 	voidType;
@@ -109,8 +112,13 @@ immutable(LowFun) generateMarkVisitNonArr(
 		genParam(alloc, sym!"value", paramType)]);
 	immutable LowExpr markCtx = genParamGet(range, markCtxType, immutable LowParamIndex(0));
 	immutable LowExpr value = genParamGet(range, paramType, immutable LowParamIndex(1));
-	immutable LowFunExprBody body_ =
-		visitBody(alloc, range, allTypes, markVisitFuns, paramType, markCtx, value);
+	immutable LowFunExprBody body_ = paramType.isA!(LowType.Record)
+		? visitRecordBody(
+			alloc, range, markVisitFuns, allTypes.allRecords[paramType.as!(LowType.Record)].fields, markCtx, value)
+		: paramType.isA!(LowType.Union)
+		? visitUnionBody(
+			alloc, range, markVisitFuns, allTypes.allUnions[paramType.as!(LowType.Union)].members, markCtx, value)
+		: unreachable!(immutable LowFunExprBody);
 	return immutable LowFun(
 		immutable LowFunSource(allocate(alloc, immutable LowFunSource.Generated(
 			sym!"mark-visit",
@@ -120,91 +128,78 @@ immutable(LowFun) generateMarkVisitNonArr(
 		immutable LowFunBody(body_));
 }
 
-immutable(LowFun) generateMarkVisitArrInner(
-	ref Alloc alloc,
-	ref const MarkVisitFuns markVisitFuns,
-	immutable LowType markCtxType,
-	immutable LowType.PtrRawConst elementPtrType,
-) {
-	immutable FileAndRange range = FileAndRange.empty;
-	immutable LowParam[] params = arrLiteral!LowParam(alloc, [
-		genParam(alloc, sym!"mark-ctx", markCtxType),
-		genParam(alloc, sym!"cur", immutable LowType(elementPtrType)),
-		genParam(alloc, sym!"end", immutable LowType(elementPtrType))]);
-	immutable LowExpr markCtxParamGet = genParamGet(range, markCtxType, immutable LowParamIndex(0));
-	immutable LowExpr curParamGet = genParamGet(range, immutable LowType(elementPtrType), immutable LowParamIndex(1));
-	immutable LowExpr endParamGet = genParamGet(range, immutable LowType(elementPtrType), immutable LowParamIndex(2));
-	immutable LowExpr visit = genCall(
-		alloc,
-		range,
-		getMarkVisitFun(markVisitFuns, *elementPtrType.pointee),
-		voidType,
-		arrLiteral!LowExpr(alloc, [
-			markCtxParamGet,
-			genDerefRawPtr(alloc, range, curParamGet)]));
-	immutable LowExpr recur = genTailRecur(
-		alloc,
-		range,
-		voidType,
-		arrLiteral!(UpdateParam)(alloc, [immutable UpdateParam(
-			immutable LowParamIndex(1),
-			genIncrPointer(alloc, range, elementPtrType, curParamGet))]));
-	immutable LowExpr visitAndRecur = genSeq(alloc, range, visit, recur);
-	immutable LowExpr expr = genIf(
-		alloc,
-		range,
-		genPtrEq(alloc, range, curParamGet, endParamGet),
-		genVoid(range),
-		visitAndRecur);
-	return immutable LowFun(
-		immutable LowFunSource(allocate(alloc, immutable LowFunSource.Generated(
-			sym!"mark-elems",
-			arrLiteral!LowType(alloc, [*elementPtrType.pointee])))),
-		voidType,
-		params,
-		immutable LowFunBody(immutable LowFunExprBody(true, expr)));
-}
-
+/*
+mark-visit void(mark-ctx mark-ctx, a element[])
+	if mark-ctx mark a.data.pointer-cast, a.size * size-of@<a>
+		cur mut = a.data
+		end = a.data + a.size
+		loop
+			# mark-visit for `element`
+			mark-ctx mark-visit *cur
+			cur := cur + 1
+			if cur == end
+				break
+			else
+				continue
+*/
 immutable(LowFun) generateMarkVisitArrOuter(
 	ref Alloc alloc,
 	immutable LowType markCtxType,
 	immutable LowFunIndex markFun,
 	immutable LowType.Record arrType,
-	immutable LowType.PtrRawConst elementPtrType,
-	immutable Opt!LowFunIndex inner,
+	immutable LowType.PtrRawConst elementPointerType,
+	immutable Opt!LowFunIndex markVisitElementFun,
 ) {
-	immutable LowType elementType = *elementPtrType.pointee;
+	immutable LowType elementType = *elementPointerType.pointee;
 	immutable FileAndRange range = FileAndRange.empty;
 	immutable LowParam[] params = arrLiteral!LowParam(alloc, [
 		genParam(alloc, sym!"mark-ctx", markCtxType),
 		genParam(alloc, sym!"a", immutable LowType(arrType))]);
-	immutable LowExpr markCtxParamGet = genParamGet(range, markCtxType, immutable LowParamIndex(0));
-	immutable LowExpr aParamGet = genParamGet(range, immutable LowType(arrType), immutable LowParamIndex(1));
-	immutable LowExpr getData = genGetArrData(alloc, range, aParamGet, elementPtrType);
-	immutable LowExpr getSize = genGetArrSize(alloc, range, aParamGet);
-	immutable LowExpr getSizeBytes = genWrapMulNat64(alloc, range, getSize, genSizeOf(range, elementType));
-	immutable LowExpr getEnd = genAddPtr(alloc, elementPtrType, range, getData, getSize);
-	immutable LowExpr dataAsAnyPtrConst = genAsAnyPtrConst(alloc, range, getData);
+	immutable LowExpr getMarkCtx = genParamGet(range, markCtxType, immutable LowParamIndex(0));
+	immutable LowExpr getA = genParamGet(range, immutable LowType(arrType), immutable LowParamIndex(1));
+	immutable LowExpr getData = genGetArrData(alloc, range, getA, elementPointerType);
+	immutable LowExpr getSize = genGetArrSize(alloc, range, getA);
+	// mark-ctx mark a.data.pointer-cast, a.size * size-of@<a>
 	immutable LowExpr callMark = genCall(
 		alloc,
 		range,
 		markFun,
 		boolType,
-		arrLiteral!LowExpr(alloc, [markCtxParamGet, dataAsAnyPtrConst, getSizeBytes]));
+		arrLiteral!LowExpr(alloc, [
+			getMarkCtx,
+			genAsAnyPtrConst(alloc, range, getData),
+			genWrapMulNat64(alloc, range, getSize, genSizeOf(range, elementType))]));
 	immutable LowExpr expr = () {
-		if (has(inner)) {
-			immutable LowExpr callInner = genCall(
-				alloc,
-				range,
-				force(inner),
-				voidType,
-				arrLiteral!LowExpr(alloc, [markCtxParamGet, getData, getEnd]));
-			return genIf(
-				alloc,
-				range,
-				callMark,
-				callInner,
-				genVoid(range));
+		if (has(markVisitElementFun)) {
+			immutable LowExpr voidValue = genVoid(range);
+			immutable LowLocal* cur = genLocal(alloc, sym!"cur", 0, immutable LowType(elementPointerType));
+			immutable LowExpr getCur = genLocalGet(range, cur);
+			immutable LowLocal* end = genLocal(alloc, sym!"end", 0, immutable LowType(elementPointerType));
+			immutable LowExpr getEnd = genLocalGet(range, end);
+			immutable LowExpr theLoop = genLoop(alloc, range, voidType, (immutable LowExprKind.Loop* loop) {
+				// mark-ctx mark-visit *cur
+				immutable LowExpr markVisitCur = genCall(
+					alloc,
+					range,
+					force(markVisitElementFun),
+					voidType,
+					arrLiteral!LowExpr(alloc, [getMarkCtx, genDerefRawPtr(alloc, range, getCur)]));
+				// cur := cur + 1
+				immutable LowExpr incrCur = genLocalSet(alloc, range, cur,
+					genIncrPointer(alloc, range, elementPointerType, getCur));
+				// if cur == end \n break \n else \n continue
+				immutable LowExpr breakOrContinue = genIf(
+					alloc,
+					range,
+					genPtrEq(alloc, range, getCur, getEnd),
+					genLoopBreak(alloc, range, loop, voidValue),
+					genLoopContinue(range, loop));
+				return genSeq(alloc, range, markVisitCur, incrCur, breakOrContinue);
+			});
+			immutable LowExpr ifBody = genLet(alloc, range, cur, getData,
+				genLet(alloc, range, end, genAddPtr(alloc, elementPointerType, range, getData, getSize),
+					theLoop));
+			return genIf(alloc, range, callMark, ifBody, voidValue);			
 		} else
 			return genDrop(alloc, range, callMark, 0);
 	}();
@@ -218,34 +213,6 @@ immutable(LowFun) generateMarkVisitArrOuter(
 }
 
 private:
-
-//TODO:INLINE
-immutable(LowFunExprBody) visitBody(
-	ref Alloc alloc,
-	immutable FileAndRange range,
-	ref immutable AllLowTypes allTypes,
-	ref const MarkVisitFuns markVisitFuns,
-	immutable LowType valueType,
-	ref immutable LowExpr markCtx,
-	ref immutable LowExpr value,
-) =>
-	valueType.match!(immutable LowFunExprBody)(
-		(immutable LowType.Extern) =>
-			unreachable!(immutable LowFunExprBody),
-		(immutable LowType.FunPtr) =>
-			unreachable!(immutable LowFunExprBody),
-		(immutable PrimitiveType) =>
-			unreachable!(immutable LowFunExprBody),
-		(immutable LowType.PtrGc) =>
-			unreachable!(immutable LowFunExprBody),
-		(immutable LowType.PtrRawConst) =>
-			unreachable!(immutable LowFunExprBody),
-		(immutable LowType.PtrRawMut) =>
-			unreachable!(immutable LowFunExprBody),
-		(immutable LowType.Record it) =>
-			visitRecordBody(alloc, range, markVisitFuns, allTypes.allRecords[it].fields, markCtx, value),
-		(immutable LowType.Union it) =>
-			visitUnionBody(alloc, range, markVisitFuns, allTypes.allUnions[it].members, markCtx, value));
 
 immutable(LowFunExprBody) visitRecordBody(
 	ref Alloc alloc,
@@ -298,7 +265,7 @@ immutable(LowFunExprBody) visitUnionBody(
 						sym!"value",
 						memberIndex,
 						memberType);
-					immutable LowExpr getLocal = genLocalGet(alloc, range, local);
+					immutable LowExpr getLocal = genLocalGet(range, local);
 					immutable LowExpr then = genCall(
 						alloc,
 						range,

@@ -17,10 +17,9 @@ import model.lowModel :
 	LowParamSource,
 	LowRecord,
 	LowType,
-	PrimitiveType,
-	UpdateParam;
+	PrimitiveType;
 import util.alloc.alloc : Alloc;
-import util.memory : allocate;
+import util.memory : allocate, allocateMut, overwriteMemory;
 import util.sourceRange : FileAndRange;
 import util.sym : Sym, sym;
 import util.util : unreachable, verify;
@@ -137,14 +136,6 @@ immutable(LowExpr) genConstantNat64(immutable FileAndRange range, immutable ulon
 		range,
 		immutable LowExprKind(immutable Constant(immutable Constant.Integral(value))));
 
-immutable(LowExpr) genTailRecur(
-	ref Alloc alloc,
-	immutable FileAndRange range,
-	immutable LowType returnType,
-	immutable UpdateParam[] updateParams,
-) =>
-	immutable LowExpr(returnType, range, immutable LowExprKind(immutable LowExprKind.TailRecur(updateParams)));
-
 immutable(LowExpr) genCall(
 	ref Alloc alloc,
 	immutable FileAndRange range,
@@ -160,8 +151,17 @@ immutable(LowExpr) genCall(
 immutable(LowExpr) genSizeOf(immutable FileAndRange range, immutable LowType t) =>
 	immutable LowExpr(nat64Type, range, immutable LowExprKind(immutable LowExprKind.SizeOf(t)));
 
-immutable(LowExpr) genLocalGet(ref Alloc alloc, immutable FileAndRange range, immutable LowLocal* local) =>
+immutable(LowExpr) genLocalGet(immutable FileAndRange range, immutable LowLocal* local) =>
 	immutable LowExpr(local.type, range, immutable LowExprKind(immutable LowExprKind.LocalGet(local)));
+
+immutable(LowExpr) genLocalSet(
+	ref Alloc alloc,
+	immutable FileAndRange range,
+	immutable LowLocal* local,
+	immutable LowExpr value,
+) =>
+	immutable LowExpr(voidType, range, immutable LowExprKind(
+		allocate(alloc, immutable LowExprKind.LocalSet(local, value))));
 
 immutable(LowParam) genParam(ref Alloc alloc, immutable Sym name, immutable LowType type) =>
 	immutable LowParam(
@@ -364,6 +364,15 @@ immutable(LowExpr) genSeq(
 		range,
 		immutable LowExprKind(allocate(alloc, immutable LowExprKind.Seq(first, then))));
 
+immutable(LowExpr) genSeq(
+	ref Alloc alloc,
+	immutable FileAndRange range,
+	immutable LowExpr line0,
+	immutable LowExpr line1,
+	immutable LowExpr line2,
+) =>
+	genSeq(alloc, range, line0, genSeq(alloc, range, line1, line2));
+
 immutable(LowExpr) genWriteToPtr(
 	ref Alloc alloc,
 	immutable FileAndRange range,
@@ -388,6 +397,18 @@ immutable(LowLocal*) genLocal(
 	allocate(alloc, immutable LowLocal(
 		immutable LowLocalSource(allocate(alloc, immutable LowLocalSource.Generated(name, index))),
 		type));
+
+immutable(LowExpr) genLet(
+	ref Alloc alloc,
+	immutable FileAndRange range,
+	immutable LowLocal* local,
+	immutable LowExpr init,
+	immutable LowExpr then,
+) =>
+	immutable LowExpr(
+		then.type,
+		range,
+		immutable LowExprKind(allocate(alloc, immutable LowExprKind.Let(local, init, then))));
 
 immutable(LowExpr) genGetArrSize(
 	ref Alloc alloc,
@@ -414,3 +435,26 @@ immutable(LowType.PtrRawConst) getElementPtrTypeFromArrType(
 	verify(debugName(arrRecord.fields[1]) == sym!"begin-pointer");
 	return arrRecord.fields[1].type.as!(LowType.PtrRawConst);
 }
+
+@trusted immutable(LowExpr) genLoop(
+	ref Alloc alloc,
+	immutable FileAndRange range,
+	immutable LowType type,
+	scope immutable(LowExpr) delegate(immutable LowExprKind.Loop*) @safe @nogc pure nothrow cbBody,
+) {
+	LowExprKind.Loop* res = allocateMut(alloc, LowExprKind.Loop(type));
+	overwriteMemory(&res.body_, cbBody(cast(immutable) res));
+	return immutable LowExpr(type, range, immutable LowExprKind(cast(immutable) res));
+}
+
+immutable(LowExpr) genLoopBreak(
+	ref Alloc alloc,
+	immutable FileAndRange range,
+	immutable LowExprKind.Loop* loop,
+	immutable LowExpr value,
+) =>
+	immutable LowExpr(voidType, range, immutable LowExprKind(
+		allocate(alloc, immutable LowExprKind.LoopBreak(loop, value))));
+
+immutable(LowExpr) genLoopContinue(immutable FileAndRange range, immutable LowExprKind.Loop* loop) =>
+	immutable LowExpr(voidType, range, immutable LowExprKind(immutable LowExprKind.LoopContinue(loop)));
