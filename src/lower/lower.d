@@ -1103,7 +1103,7 @@ immutable(LowExprKind) getAllocExpr2(
 	immutable LowType type,
 	ref immutable ConcreteExprKind.Loop a,
 ) {
-	LowExprKind.Loop* res = allocateMut(ctx.alloc, LowExprKind.Loop(type));
+	LowExprKind.Loop* res = allocateMut(ctx.alloc, LowExprKind.Loop());
 	immutable Locals newLocals = addLoop(locals, ptrTrustMe(a), cast(immutable) res);
 	// Go ahead and give the body the same 'exprPos'. 'continue' will know it's non-tail.
 	overwriteMemory(&res.body_, getLowExpr(ctx, newLocals, a.body_, exprPos));

@@ -442,7 +442,7 @@ immutable(LowType.PtrRawConst) getElementPtrTypeFromArrType(
 	immutable LowType type,
 	scope immutable(LowExpr) delegate(immutable LowExprKind.Loop*) @safe @nogc pure nothrow cbBody,
 ) {
-	LowExprKind.Loop* res = allocateMut(alloc, LowExprKind.Loop(type));
+	LowExprKind.Loop* res = allocateMut(alloc, LowExprKind.Loop());
 	overwriteMemory(&res.body_, cbBody(cast(immutable) res));
 	return immutable LowExpr(type, range, immutable LowExprKind(cast(immutable) res));
 }

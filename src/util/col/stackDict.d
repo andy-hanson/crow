@@ -26,6 +26,9 @@ ref immutable(V) stackDictMustGet(K, V)(return ref immutable StackDict!(K, V) a,
 	return a.key == key ? a.value : stackDictMustGet!(K, V)(*a.next, key);
 }
 
+immutable(bool) stackDictHas(K, V)(ref immutable StackDict!(K, V) a, scope immutable K key) =>
+	a.key != invalid!K && (a.key == key || stackDictHas(*a.next, key));
+
 @trusted immutable(StackDict!(K, V)) stackDictAdd(K, V)(
 	scope return ref immutable StackDict!(K, V) a,
 	immutable K key,

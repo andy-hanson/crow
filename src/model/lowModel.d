@@ -431,7 +431,6 @@ struct LowExprKind {
 	}
 
 	struct Loop {
-		immutable LowType type; // TODO: this is redundant
 		immutable LowExpr body_;
 	}
 
