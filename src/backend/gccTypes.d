@@ -53,6 +53,7 @@ import model.lowModel :
 import util.alloc.alloc : Alloc;
 import util.col.arr : empty;
 import util.col.arrUtil : map, mapWithIndex, zip;
+import util.col.enumDict : EnumDict, makeEnumDict;
 import util.col.fullIndexDict :
 	FullIndexDict,
 	fullIndexDictCastImmutable,
@@ -70,7 +71,7 @@ import util.writer : finishWriterToCStr, Writer;
 
 struct GccTypes {
 	private:
-	immutable gcc_jit_type*[PrimitiveType.max + 1] primitiveTypes;
+	immutable EnumDict!(PrimitiveType, gcc_jit_type*) primitiveTypes;
 	public immutable FullIndexDict!(LowType.Extern, ExternTypeInfo) extern_;
 	immutable FullIndexDict!(LowType.FunPtr, gcc_jit_type*) funPtrs;
 	immutable FullIndexDict!(LowType.Record, gcc_jit_struct*) records;
@@ -278,12 +279,9 @@ immutable(gcc_jit_type*) getGccType(ref GccTypesWip typesWip, immutable LowType 
 		(immutable LowType.Union x) =>
 			gcc_jit_struct_as_type(typesWip.unions[x]));
 
-@trusted immutable(gcc_jit_type*[PrimitiveType.max + 1]) getPrimitiveTypes(ref gcc_jit_context ctx) {
-	gcc_jit_type*[PrimitiveType.max + 1] res;
-	foreach (immutable size_t i; cast(size_t) PrimitiveType.min .. cast(size_t) PrimitiveType.max + 1)
-		res[i] = cast(gcc_jit_type*) getOnePrimitiveType(ctx, cast(immutable PrimitiveType) i);
-	return cast(immutable gcc_jit_type*[PrimitiveType.max + 1]) res;
-}
+@trusted immutable(EnumDict!(PrimitiveType, gcc_jit_type*)) getPrimitiveTypes(ref gcc_jit_context ctx) =>
+	makeEnumDict!(PrimitiveType, gcc_jit_type*)((immutable PrimitiveType type) =>
+		getOnePrimitiveType(ctx, type));
 
 immutable(gcc_jit_type*) getOnePrimitiveType(ref gcc_jit_context ctx, immutable PrimitiveType a) {
 	final switch (a) {
@@ -317,7 +315,7 @@ immutable(gcc_jit_type*) getOnePrimitiveType(ref gcc_jit_context ctx, immutable 
 }
 
 struct GccTypesWip {
-	immutable gcc_jit_type*[PrimitiveType.max + 1] primitiveTypes;
+	immutable EnumDict!(PrimitiveType, gcc_jit_type*) primitiveTypes;
 	immutable FullIndexDict!(LowType.Extern, ExternTypeInfo) extern_;
 	FullIndexDict!(LowType.FunPtr, Opt!(gcc_jit_type*)) funPtrs;
 	FullIndexDict!(LowType.Record, gcc_jit_struct*) records;

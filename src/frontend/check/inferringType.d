@@ -32,6 +32,7 @@ import util.alloc.alloc : Alloc;
 import util.cell : Cell, cellGet, cellSet;
 import util.col.arr : only, sizeEq;
 import util.col.arrUtil : arrLiteral, exists, map;
+import util.col.enumDict : enumDictFindKey;
 import util.col.fullIndexDict : FullIndexDict;
 import util.col.mutArr : MutArr;
 import util.col.mutMaxArr : mapTo, MutMaxArr, push, tempAsArr;
@@ -209,12 +210,8 @@ private immutable(bool) isFunTypeWithArity(
 
 immutable(Opt!FunKind) getFunKindFromStruct(ref immutable CommonTypes a, immutable StructDecl* s) {
 	immutable size_t arity = arityForFunStruct(s);
-	foreach (immutable FunKind funKind; FunKind.min .. cast(immutable FunKind) (FunKind.max + 1)) {
-		immutable StructDecl*[] structs = a.funStructs[funKind];
-		if (arity < structs.length && structs[arity] == s)
-			return some(funKind);
-	}
-	return none!FunKind;
+	return enumDictFindKey!(FunKind, StructDecl*[10])(a.funStructs, (ref immutable(StructDecl*[10]) structs) =>
+		arity < structs.length && structs[arity] == s);
 }
 
 private immutable(size_t) arityForFunStruct(immutable StructDecl* s) =>

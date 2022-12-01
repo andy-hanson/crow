@@ -53,6 +53,7 @@ import model.model :
 	FunBody,
 	FunDecl,
 	FunFlags,
+	FunKind,
 	ImportFileType,
 	ImportOrExport,
 	ImportOrExportKind,
@@ -94,6 +95,7 @@ import util.col.arrBuilder : add, ArrBuilder, finishArr;
 import util.col.arrUtil : cat, eachPair, map, mapOp, mapToMut, mapWithIndex, zip, zipPtrFirst;
 import util.col.dict : Dict, dictEach, hasKey, KeyValuePair;
 import util.col.dictBuilder : DictBuilder, finishDict, tryAddToDict;
+import util.col.enumDict : EnumDict;
 import util.col.exactSizeArrBuilder : ExactSizeArrBuilder, exactSizeArrBuilderAdd, finish, newExactSizeArrBuilder;
 import util.col.fullIndexDict :
 	FullIndexDict, fullIndexDictCastImmutable, fullIndexDictOfArr, fullIndexDictZipPtrs, makeFullIndexDict_mut;
@@ -384,7 +386,7 @@ immutable(CommonTypes) getCommonTypes(
 		opt,
 		pointerConst,
 		pointerMut,
-		[funStructs, funActStructs, funRefStructs, funPointerStructs]);
+		immutable EnumDict!(FunKind, StructDecl*[10])([funStructs, funActStructs, funRefStructs, funPointerStructs]));
 }
 
 immutable(StructDecl*) bogusStructDecl(ref Alloc alloc, immutable size_t nTypeParameters) {

@@ -2,7 +2,7 @@ module frontend.frontendCompile;
 
 @safe @nogc nothrow: // not pure
 
-import frontend.check.getCommonFuns : getCommonFuns;
+import frontend.check.getCommonFuns : CommonPath, getCommonFuns;
 import model.diag : Diag, Diagnostics, DiagnosticWithinFile, FilesInfo, filesInfoForSingle;
 import model.model :
 	CommonFuns, CommonTypes, Config, FileContent, ImportFileType, ImportOrExport, ImportOrExportKind, Module, Program;
@@ -19,6 +19,7 @@ import util.col.arr : empty;
 import util.col.arrBuilder : add, ArrBuilder, arrBuilderSize, finishArr;
 import util.col.arrUtil : contains, copyArr, map, mapOp, mapOrNoneImpure, mapWithSoFar, prepend;
 import util.col.dict : mapValues;
+import util.col.enumDict : EnumDict, enumDictMapValues;
 import util.col.fullIndexDict : asArray, FullIndexDict, fullIndexDictOfArr;
 import util.col.mutMaxArr : isEmpty, mustPeek, mustPop, MutMaxArr, mutMaxArr, push;
 import util.col.mutDict : addToMutDict, getAt_mut, hasKey_mut, moveToDict, mustGetAt_mut, MutDict, setInDict;
@@ -124,15 +125,7 @@ struct ParsedEverything {
 
 struct CommonModuleIndices {
 	immutable Opt!FileIndex main;
-	immutable FileIndex alloc;
-	immutable FileIndex bootstrap;
-	immutable FileIndex exceptionLowLevel;
-	immutable FileIndex funUtil;
-	immutable FileIndex list;
-	immutable FileIndex runtime;
-	immutable FileIndex runtimeMain;
-	immutable FileIndex std;
-	immutable FileIndex string_;
+	immutable EnumDict!(CommonPath, FileIndex) common;
 	immutable FileIndex[] rootPaths;
 }
 
@@ -179,20 +172,6 @@ immutable(ParsedEverything) parseEverything(
 				modelAlloc, astAlloc, perf, allSymbols, allPaths, storage, config,
 				statuses, stack, diags, fromPath, import_));
 
-	immutable Path includeDir = storage.includeDir;
-	immutable Path includeCrow = childPath(allPaths, includeDir, sym!"crow");
-	immutable Path private_ = childPath(allPaths, includeCrow, sym!"private");
-	immutable Path bootstrapPath = childPath(allPaths, private_, sym!"bootstrap");
-	immutable Path allocPath = childPath(allPaths, private_, sym!"alloc");
-	immutable Path colPath = childPath(allPaths, includeCrow, sym!"col");
-	immutable Path listPath = childPath(allPaths, colPath, sym!"list");
-	immutable Path exceptionLowLevelPath = childPath(allPaths, private_, sym!"exception-low-level");
-	immutable Path funUtilPath = childPath(allPaths, includeCrow, sym!"fun-util");
-	immutable Path stdPath = childPath(allPaths, includeCrow, sym!"std");
-	immutable Path stringPath = childPath(allPaths, includeCrow, sym!"string");
-	immutable Path runtimePath = childPath(allPaths, private_, sym!"runtime");
-	immutable Path runtimeMainPath = childPath(allPaths, private_, sym!"rt-main");
-
 	void process() {
 		while (!isEmpty(stack)) {
 			immutable Path path = mustPeek(stack).path;
@@ -225,17 +204,8 @@ immutable(ParsedEverything) parseEverything(
 			process();
 		}
 	}
-	immutable Path[9] commonPaths = [
-		bootstrapPath,
-		allocPath,
-		exceptionLowLevelPath,
-		funUtilPath,
-		listPath,
-		stdPath,
-		stringPath,
-		runtimePath,
-		runtimeMainPath,
-	];
+
+	immutable EnumDict!(CommonPath, Path) commonPaths = commonPaths(allPaths, storage.includeDir);
 	foreach (immutable Path path; commonPaths)
 		processRootPath(path);
 	foreach (immutable Path path; rootPaths)
@@ -248,15 +218,7 @@ immutable(ParsedEverything) parseEverything(
 
 	immutable CommonModuleIndices commonModuleIndices = immutable CommonModuleIndices(
 		has(mainPath) ? some(getIndex(force(mainPath))) : none!FileIndex,
-		getIndex(allocPath),
-		getIndex(bootstrapPath),
-		getIndex(exceptionLowLevelPath),
-		getIndex(funUtilPath),
-		getIndex(listPath),
-		getIndex(runtimePath),
-		getIndex(runtimeMainPath),
-		getIndex(stdPath),
-		getIndex(stringPath),
+		enumDictMapValues(commonPaths, (ref immutable Path path) => getIndex(path)),
 		map(modelAlloc, rootPaths, (ref immutable Path path) => getIndex(path)));
 
 	return immutable ParsedEverything(
@@ -270,6 +232,23 @@ immutable(ParsedEverything) parseEverything(
 			fullIndexDictOfArr!(FileIndex, LineAndColumnGetter)(finishArr(modelAlloc, lineAndColumnGetters))),
 		commonModuleIndices,
 		fullIndexDictOfArr!(FileIndex, AstAndResolvedImports)(finishArr(astAlloc, res)));
+}
+
+immutable(EnumDict!(CommonPath, Path)) commonPaths(ref AllPaths allPaths, immutable Path includeDir) {
+	immutable Path includeCrow = childPath(allPaths, includeDir, sym!"crow");
+	immutable Path private_ = childPath(allPaths, includeCrow, sym!"private");
+	immutable Path col = childPath(allPaths, includeCrow, sym!"col");
+	return immutable EnumDict!(CommonPath, Path)([
+		childPath(allPaths, private_, sym!"bootstrap"),
+		childPath(allPaths, private_, sym!"alloc"),
+		childPath(allPaths, private_, sym!"exception-low-level"),
+		childPath(allPaths, includeCrow, sym!"fun-util"),
+		childPath(allPaths, col, sym!"list"),
+		childPath(allPaths, includeCrow, sym!"std"),
+		childPath(allPaths, includeCrow, sym!"string"),
+		childPath(allPaths, private_, sym!"runtime"),
+		childPath(allPaths, private_, sym!"rt-main"),
+	]);
 }
 
 void pushIt(
@@ -704,27 +683,17 @@ immutable(Program) checkEverything(
 	ref immutable CommonModuleIndices moduleIndices,
 ) {
 	ProgramState programState;
-	immutable ModulesAndCommonTypes modulesAndCommonTypes =
-		getModules(modelAlloc, perf, allSymbols, diagsBuilder, programState, moduleIndices.std, allAsts);
+	immutable ModulesAndCommonTypes modulesAndCommonTypes = getModules(
+		modelAlloc, perf, allSymbols, diagsBuilder, programState, moduleIndices.common[CommonPath.std], allAsts);
 	immutable Module[] modules = modulesAndCommonTypes.modules;
-	immutable Module* bootstrapModule = &modules[moduleIndices.bootstrap.index];
-	immutable Opt!(Module*) mainModule = has(moduleIndices.main)
-		? some(&modules[force(moduleIndices.main).index])
-		: none!(Module*);
 	immutable Opt!CommonFuns commonFuns = getCommonFuns(
 		modelAlloc,
 		programState,
 		diagsBuilder,
 		modulesAndCommonTypes.commonTypes,
-		mainModule,
-		&modules[moduleIndices.alloc.index],
-		bootstrapModule,
-		&modules[moduleIndices.exceptionLowLevel.index],
-		&modules[moduleIndices.funUtil.index],
-		&modules[moduleIndices.list.index],
-		&modules[moduleIndices.runtime.index],
-		&modules[moduleIndices.runtimeMain.index],
-		&modules[moduleIndices.string_.index]);
+		has(moduleIndices.main) ? some(&modules[force(moduleIndices.main).index]) : none!(Module*),
+		enumDictMapValues!(CommonPath, Module*, FileIndex)(moduleIndices.common, (ref immutable FileIndex index) =>
+			&modules[index.index]));
 	return immutable Program(
 		filesInfo,
 		config,

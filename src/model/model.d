@@ -8,6 +8,7 @@ import model.diag : Diagnostics, FilesInfo; // TODO: move FilesInfo here?
 import util.col.arr : empty, only, PtrAndSmallNumber, small, SmallArray;
 import util.col.arrUtil : arrEqual, exists;
 import util.col.dict : Dict;
+import util.col.enumDict : EnumDict;
 import util.col.fullIndexDict : FullIndexDict;
 import util.col.mutArr : MutArr;
 import util.col.str : SafeCStr;
@@ -1036,7 +1037,7 @@ struct CommonTypes {
 	immutable StructDecl* ptrConst;
 	immutable StructDecl* ptrMut;
 	// Indexed by FunKind, then by arity. (arity = typeArgs.length - 1)
-	immutable StructDecl*[10][FunKind.max + 1] funStructs;
+	immutable EnumDict!(FunKind, StructDecl*[10]) funStructs;
 
 	immutable(StructDecl*[]) funPtrStructs() return immutable =>
 		funStructs[FunKind.pointer];

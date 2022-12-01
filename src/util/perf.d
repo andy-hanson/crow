@@ -3,6 +3,7 @@ module util.perf;
 @safe @nogc nothrow:
 
 import util.alloc.alloc : Alloc, curBytes;
+import util.col.enumDict : EnumDict, enumDictEach;
 import util.col.sortUtil : sortInPlace;
 import util.col.str : SafeCStr, safeCStr;
 import util.comparison : compareUlong, oppositeComparison;
@@ -50,7 +51,7 @@ struct Perf {
 
 	immutable(ulong) delegate() @safe @nogc pure nothrow cbGetTimeNSec;
 	private:
-	PerfMeasureResult[PerfMeasure.max + 1] measures;
+	EnumDict!(PerfMeasure, PerfMeasureResult) measures;
 }
 
 immutable bool perfEnabled = false;
@@ -135,8 +136,11 @@ void eachMeasure(
 	scope void delegate(immutable SafeCStr, immutable PerfMeasureResult) @safe @nogc nothrow cb,
 ) {
 	PerfResultWithMeasure[PerfMeasure.max + 1] results;
-	foreach (immutable uint measure; 0 .. PerfMeasure.max + 1)
-		results[measure] = PerfResultWithMeasure(cast(immutable PerfMeasure) measure, perf.measures[measure]);
+	enumDictEach!(PerfMeasure, PerfMeasureResult)(
+		perf.measures,
+		(immutable PerfMeasure measure, ref const PerfMeasureResult result) {
+			results[measure] = PerfResultWithMeasure(cast(immutable PerfMeasure) measure, perf.measures[measure]);
+		});
 	sortInPlace!PerfResultWithMeasure(results, (ref const PerfResultWithMeasure a, ref const PerfResultWithMeasure b) =>
 		oppositeComparison(compareUlong(a.result.nanoseconds, b.result.nanoseconds)));
 	foreach (ref const PerfResultWithMeasure m; results) {
