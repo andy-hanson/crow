@@ -408,8 +408,8 @@ immutable(FileAndRange) concreteFunRange(ref immutable ConcreteFun a, ref const 
 		(ref immutable ConcreteFunSource.Test x) =>
 			x.range);
 
-immutable(bool) isCallWithCtxFun(ref immutable ConcreteProgram program, ref immutable ConcreteFun a) =>
-	a.source.isA!(FunInst*) && contains(program.commonFuns.callWithCtxFunDecls, decl(*a.source.as!(FunInst*)));
+immutable(bool) isFunOrActSubscript(ref immutable ConcreteProgram program, ref immutable ConcreteFun a) =>
+	a.source.isA!(FunInst*) && contains(program.commonFuns.funOrActSubscriptFunDecls, decl(*a.source.as!(FunInst*)));
 
 immutable(bool) isMarkVisitFun(ref immutable ConcreteProgram program, ref immutable ConcreteFun a) =>
 	a.source.isA!(FunInst*) && decl(*a.source.as!(FunInst*)) == program.commonFuns.markVisitFunDecl;
@@ -662,7 +662,7 @@ struct ConcreteProgram {
 
 struct ConcreteCommonFuns {
 	immutable ConcreteFun* allocFun;
-	immutable FunDecl*[] callWithCtxFunDecls;
+	immutable FunDecl*[] funOrActSubscriptFunDecls;
 	immutable ConcreteFun* markFun;
 	immutable FunDecl* markVisitFunDecl;
 	immutable ConcreteFun* rtMain;

@@ -399,7 +399,7 @@ immutable(Opt!(Diag.CantCall.Reason)) getCantCallReason(
 	immutable FunFlags callerFlags,
 	immutable bool callerInLambda,
 ) =>
-	!calledFlags.noCtx && callerFlags.noCtx && !callerInLambda
+	!calledFlags.noCtx && callerFlags.noCtx && !calledFlags.forceCtx && !callerInLambda
 		// TODO: need to explain this better in the case where noCtx is due to the lambda
 		? some(Diag.CantCall.Reason.nonNoCtx)
 		: calledFlags.summon && !callerFlags.summon

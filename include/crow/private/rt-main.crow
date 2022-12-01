@@ -12,7 +12,6 @@ import
 	../range: ..
 	../string: c-string, string, to-string
 	./alloc: unmanaged-alloc-elements, unmanaged-free
-	./bootstrap: call-with-ctx
 	./future-low-level: get-result
 	./runtime:
 		after-task, any-unhandled-exceptions, before-task, free, get-global-ctx, global-ctx, init,
@@ -62,12 +61,13 @@ init-constants void() unsafe noctx summon builtin
 ) trusted noctx
 	# Create a ctx manually so we can call functions that need it when creating the task
 	gctx before-task 0
-	add act nat64^(array c-string, main-pointer) = (all-args, main-pointer-2) =>
-		all-args add-first-task main-pointer-2
 	all-args = argv[0 .. argc.to-int64.to-nat64]
-	res = add call-with-ctx all-args, main-pointer
+	res = all-args invoke-main main-pointer
 	after-task
 	res
+
+.invoke-main nat64^(all-args array c-string, main-pointer main-pointer) force-ctx unsafe
+	all-args add-first-task main-pointer
 
 .thread-args record mut by-ref
 	thread-id nat64
@@ -76,7 +76,7 @@ init-constants void() unsafe noctx summon builtin
 # TODO: if mut-bag-node is in unmanaged memory, don't need ctx for this
 # We want main-fut to be available immediately, not after having run some user code.
 # So we create main-fut now, and forward the result of 'main' to that.
-.add-first-task nat64^(all-args array c-string, main-pointer fun* nat64^(string[])) unsafe
+.add-first-task nat64^(all-args array c-string, main-pointer main-pointer) unsafe
 	# 'then' is useful here -- it handles any errors in 'main' and gets us main-fut immediately.
 	# TODO: 'then' overload for void^ taking lambda with 0 params
 	res = delay then () =>

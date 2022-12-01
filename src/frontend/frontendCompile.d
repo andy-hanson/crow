@@ -127,6 +127,7 @@ struct CommonModuleIndices {
 	immutable FileIndex alloc;
 	immutable FileIndex bootstrap;
 	immutable FileIndex exceptionLowLevel;
+	immutable FileIndex funUtil;
 	immutable FileIndex list;
 	immutable FileIndex runtime;
 	immutable FileIndex runtimeMain;
@@ -186,6 +187,7 @@ immutable(ParsedEverything) parseEverything(
 	immutable Path colPath = childPath(allPaths, includeCrow, sym!"col");
 	immutable Path listPath = childPath(allPaths, colPath, sym!"list");
 	immutable Path exceptionLowLevelPath = childPath(allPaths, private_, sym!"exception-low-level");
+	immutable Path funUtilPath = childPath(allPaths, includeCrow, sym!"fun-util");
 	immutable Path stdPath = childPath(allPaths, includeCrow, sym!"std");
 	immutable Path stringPath = childPath(allPaths, includeCrow, sym!"string");
 	immutable Path runtimePath = childPath(allPaths, private_, sym!"runtime");
@@ -223,8 +225,17 @@ immutable(ParsedEverything) parseEverything(
 			process();
 		}
 	}
-	immutable Path[8] commonPaths =
-		[bootstrapPath, allocPath, exceptionLowLevelPath, listPath, stdPath, stringPath, runtimePath, runtimeMainPath];
+	immutable Path[9] commonPaths = [
+		bootstrapPath,
+		allocPath,
+		exceptionLowLevelPath,
+		funUtilPath,
+		listPath,
+		stdPath,
+		stringPath,
+		runtimePath,
+		runtimeMainPath,
+	];
 	foreach (immutable Path path; commonPaths)
 		processRootPath(path);
 	foreach (immutable Path path; rootPaths)
@@ -240,6 +251,7 @@ immutable(ParsedEverything) parseEverything(
 		getIndex(allocPath),
 		getIndex(bootstrapPath),
 		getIndex(exceptionLowLevelPath),
+		getIndex(funUtilPath),
 		getIndex(listPath),
 		getIndex(runtimePath),
 		getIndex(runtimeMainPath),
@@ -708,6 +720,7 @@ immutable(Program) checkEverything(
 		&modules[moduleIndices.alloc.index],
 		bootstrapModule,
 		&modules[moduleIndices.exceptionLowLevel.index],
+		&modules[moduleIndices.funUtil.index],
 		&modules[moduleIndices.list.index],
 		&modules[moduleIndices.runtime.index],
 		&modules[moduleIndices.runtimeMain.index],

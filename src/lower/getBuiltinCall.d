@@ -211,6 +211,7 @@ immutable(BuiltinKind) getBuiltinKind(
 		case sym!"subscript".value:
 			return p0.isA!(LowType.FunPtr)
 				? immutable BuiltinKind(immutable BuiltinKind.CallFunPointer())
+				// 'subscript' for fun / act is handled elsewhere, see concreteFunWillBecomeNonExternLowFun
 				: fail();
 		case sym!"to-char8".value:
 			return unary(isNat8(p0)

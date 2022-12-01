@@ -616,6 +616,7 @@ struct FunFlags {
 	// generated functions like record field getters are also builtins
 	enum SpecialBody : ubyte { none, builtin, extern_, global, threadLocal }
 	immutable SpecialBody specialBody;
+	immutable bool forceCtx;
 
 	immutable(FunFlags) withOkIfUnused() immutable =>
 		immutable FunFlags(noDoc, noCtx, summon, safety, preferred, true, specialBody);
@@ -631,7 +632,7 @@ struct FunFlags {
 	static immutable(FunFlags) unsafeSummon() =>
 		immutable FunFlags(false, false, true, Safety.unsafe, false, false, SpecialBody.none);
 }
-static assert(FunFlags.sizeof == 7);
+static assert(FunFlags.sizeof == 8);
 
 struct FunDecl {
 	@safe @nogc pure nothrow:
@@ -1006,7 +1007,7 @@ immutable(Sym) symOfFunKind(immutable FunKind a) {
 
 struct CommonFuns {
 	immutable FunInst* alloc;
-	immutable FunDecl*[] callWithCtxFunDecls;
+	immutable FunDecl*[] funOrActSubscriptFunDecls;
 	immutable FunInst* curExclusion;
 	immutable FunInst* main;
 	immutable FunInst* mark;

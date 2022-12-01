@@ -54,7 +54,7 @@ import model.concreteModel :
 	ConcreteVariableRef,
 	elementType,
 	fieldOffsets,
-	isCallWithCtxFun,
+	isFunOrActSubscript,
 	isMarkVisitFun,
 	mustBeByVal,
 	name,
@@ -589,7 +589,7 @@ immutable(AllLowFuns) getAllLowFuns(
 	foreach (immutable ConcreteFun* fun; program.allFuns) {
 		immutable Opt!LowFunIndex opIndex = body_(*fun).match!(immutable Opt!LowFunIndex)(
 			(immutable ConcreteFunBody.Builtin it) {
-				if (isCallWithCtxFun(program, *fun)) {
+				if (isFunOrActSubscript(program, *fun)) {
 					immutable ConcreteStruct* funStruct =
 						mustBeByVal(fun.paramsExcludingClosure[0].type);
 					immutable LowType funType = lowTypeFromConcreteStruct(getLowTypeCtx, funStruct);
@@ -719,7 +719,7 @@ immutable(bool) concreteFunWillBecomeNonExternLowFun(
 ) =>
 	body_(a).match!(immutable bool)(
 		(immutable ConcreteFunBody.Builtin) =>
-			isCallWithCtxFun(program, a) || isMarkVisitFun(program, a),
+			isFunOrActSubscript(program, a) || isMarkVisitFun(program, a),
 		(immutable(Constant)) =>
 			false,
 		(immutable ConcreteFunBody.CreateRecord) =>

@@ -87,7 +87,7 @@ immutable(ConcreteProgram) concretizeInner(
 				moveToArr(alloc, it)),
 		immutable ConcreteCommonFuns(
 			allocFun,
-			commonFuns.callWithCtxFunDecls,
+			commonFuns.funOrActSubscriptFunDecls,
 			markFun,
 			commonFuns.markVisitFunDecl,
 			rtMainConcreteFun,

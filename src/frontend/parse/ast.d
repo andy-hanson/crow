@@ -616,7 +616,8 @@ struct FunModifierAst {
 		summon = 0b10_0000,
 		thread_local = 0b100_0000,
 		trusted = 0b1000_0000,
-		unsafe = 0b10000_0000,
+		unsafe = 0b1_0000_0000,
+		forceCtx = 0b10_0000_0000,
 	}
 
 	immutable(bool) isSpecial() scope immutable =>
@@ -628,6 +629,8 @@ struct FunModifierAst {
 				return SpecialFlags.builtin;
 			case sym!"extern".value:
 				return SpecialFlags.extern_;
+			case sym!"force-ctx".value:
+				return SpecialFlags.forceCtx;
 			case sym!"global".value:
 				return SpecialFlags.global;
 			case sym!"noctx".value:

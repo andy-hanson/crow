@@ -13,12 +13,14 @@ import model.model :
 	decl,
 	FunDecl,
 	FunInst,
+	FunKind,
 	isTemplate,
 	Module,
 	NameReferents,
 	Param,
 	Params,
 	SpecDeclSig,
+	StructInst,
 	StructOrAlias,
 	StructDecl,
 	Type,
@@ -31,7 +33,7 @@ import util.late : late, Late, lateGet, lateIsSet, lateSet;
 import util.opt : force, has, none, Opt, some;
 import util.sourceRange : FileAndPos, FileAndRange, FileIndex, RangeWithinFile;
 import util.sym : Sym, sym;
-import util.util : verify;
+import util.util : unreachable, verify;
 
 immutable(Opt!CommonFuns) getCommonFuns(
 	ref Alloc alloc,
@@ -42,6 +44,7 @@ immutable(Opt!CommonFuns) getCommonFuns(
 	immutable Module* allocModule,
 	immutable Module* bootstrapModule,
 	immutable Module* exceptionLowLevelModule,
+	immutable Module* funUtilModule,
 	immutable Module* listModule,
 	immutable Module* runtimeModule,
 	immutable Module* runtimeMainModule,
@@ -89,9 +92,9 @@ immutable(Opt!CommonFuns) getCommonFuns(
 
 		immutable Opt!(FunInst*) allocFun =
 			getFun(*allocModule, sym!"alloc", nat8MutPointerType, [param!"size-bytes"(nat64Type)]);
-		immutable FunDecl*[] callWithCtxFuns =
+		immutable FunDecl*[] funOrActSubscriptFunDecls =
 			// TODO: check signatures
-			getFuns(*bootstrapModule, sym!"call-with-ctx");
+			getFunOrActSubscriptFuns(commonTypes, getFuns(*funUtilModule, sym!"subscript"));
 		immutable Opt!(FunInst*) curExclusion =
 			getFun(*runtimeModule, sym!"cur-exclusion", nat64Type, []);
 		immutable Opt!(FunInst*) main = has(mainModule)
@@ -147,7 +150,7 @@ immutable(Opt!CommonFuns) getCommonFuns(
 			has(throwImpl)
 			? some(immutable CommonFuns(
 				force(allocFun),
-				callWithCtxFuns,
+				funOrActSubscriptFunDecls,
 				force(curExclusion),
 				force(main),
 				force(mark),
@@ -161,6 +164,37 @@ immutable(Opt!CommonFuns) getCommonFuns(
 }
 
 private:
+
+immutable(FunDecl*[]) getFunOrActSubscriptFuns(ref immutable CommonTypes commonTypes, immutable FunDecl*[] subscripts) {
+	size_t cutIndex = size_t.max;
+	foreach (immutable size_t index, immutable FunDecl* f; subscripts)
+		final switch (firstArgFunKind(commonTypes, f)) {
+			case FunKind.fun:
+			case FunKind.act:
+				if (cutIndex == size_t.max) cutIndex = index;
+				break;
+			case FunKind.ref_:
+				unreachable!void;
+				break;
+			case FunKind.pointer:
+				// pointer subscript should all come first
+				verify(cutIndex == size_t.max);
+				break;
+		}
+	// Pointers always come first
+	return subscripts[cutIndex .. $];
+}
+
+immutable(FunKind) firstArgFunKind(ref immutable CommonTypes commonTypes, immutable FunDecl* f) {
+	immutable Param[] params = assertNonVariadic(f.params);
+	verify(!empty(params));
+	immutable StructDecl* actual = decl(*params[0].type.as!(StructInst*));
+	foreach (immutable FunKind kind; [FunKind.fun, FunKind.act, FunKind.pointer])
+		foreach (immutable StructDecl* decl; commonTypes.funStructs[kind])
+			if (actual == decl)
+				return kind;
+	return unreachable!(immutable FunKind);
+}
 
 immutable(Opt!Type) getNonTemplateType(
 	ref Alloc alloc,

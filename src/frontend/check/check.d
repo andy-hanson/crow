@@ -685,6 +685,7 @@ immutable(FunFlags) checkFunFlags(
 	immutable bool extern_ = (flags & FunModifierAst.SpecialFlags.extern_) != 0;
 	immutable bool global = (flags & FunModifierAst.SpecialFlags.global) != 0;
 	immutable bool explicitNoctx = (flags & FunModifierAst.SpecialFlags.noctx) != 0;
+	immutable bool forceCtx = (flags & FunModifierAst.SpecialFlags.forceCtx) != 0;
 	immutable bool noDoc = (flags & FunModifierAst.SpecialFlags.no_doc) != 0;
 	immutable bool summon = (flags & FunModifierAst.SpecialFlags.summon) != 0;
 	immutable bool threadLocal = (flags & FunModifierAst.SpecialFlags.thread_local) != 0;
@@ -738,7 +739,7 @@ immutable(FunFlags) checkFunFlags(
 		verify(mutMaxArrSize(bodyModifiers) == 2);
 		addDiag(ctx, range, immutable Diag(immutable Diag.FunModifierConflict(bodyModifiers[0], bodyModifiers[1])));
 	}
-	return immutable FunFlags(noctx, noDoc, summon, safety, false, false, specialBody);
+	return immutable FunFlags(noctx, noDoc, summon, safety, false, false, specialBody, forceCtx);
 }
 
 immutable(FunsAndDict) checkFuns(
