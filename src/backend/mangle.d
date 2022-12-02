@@ -38,88 +38,73 @@ import util.sym : AllSymbols, eachCharInSym, Sym, sym, writeSym;
 import util.union_ : Union;
 import util.writer : Writer;
 
-struct MangledNames {
-	immutable AllSymbols* allSymbols;
-	immutable Dict!(ConcreteFun*, size_t) funToNameIndex;
+const struct MangledNames {
+	AllSymbols* allSymbols;
+	Dict!(ConcreteFun*, size_t) funToNameIndex;
 	//TODO:PERF we could use separate FullIndexDict for record, union, etc.
-	immutable Dict!(ConcreteStruct*, size_t) structToNameIndex;
+	Dict!(ConcreteStruct*, size_t) structToNameIndex;
 }
 
-immutable(MangledNames) buildMangledNames(
+MangledNames buildMangledNames(
 	ref Alloc alloc,
-	return scope immutable AllSymbols* allSymbols,
-	ref immutable LowProgram program,
+	return scope const AllSymbols* allSymbols,
+	return scope const LowProgram program,
 ) {
 	// First time we see a fun with a name, we'll store the fun-pointer here in case it's not overloaded.
 	// After that, we'll start putting them in funToNameIndex, and store the next index here.
-	MutDict!(immutable Sym, immutable PrevOrIndex!ConcreteFun) funNameToIndex;
+	MutDict!(Sym, PrevOrIndex!ConcreteFun) funNameToIndex;
 	// This will not have an entry for non-overloaded funs.
 	DictBuilder!(ConcreteFun*, size_t) funToNameIndex;
 	// HAX: Ensure "main" has that name.
-	setInDict(alloc, funNameToIndex, sym!"main", immutable PrevOrIndex!ConcreteFun(0));
-	fullIndexDictEachValue!(LowFunIndex, LowFun)(program.allFuns, (ref immutable LowFun fun) {
+	setInDict(alloc, funNameToIndex, sym!"main", PrevOrIndex!ConcreteFun(0));
+	fullIndexDictEachValue!(LowFunIndex, LowFun)(program.allFuns, (ref LowFun fun) {
 		fun.source.matchWithPointers!void(
-			(immutable ConcreteFun* cf) {
-				cf.source.match!void(
-					(ref immutable FunInst i) {
+			(ConcreteFun* cf) {
+				cf.source.matchIn!void(
+					(in FunInst i) {
 						//TODO: use temp alloc
 						addToPrevOrIndex!ConcreteFun(alloc, funNameToIndex, funToNameIndex, cf, i.name);
 					},
-					(ref immutable ConcreteFunSource.Lambda) {},
-					(ref immutable ConcreteFunSource.Test) {});
+					(in ConcreteFunSource.Lambda) {},
+					(in ConcreteFunSource.Test) {});
 			},
-			(immutable LowFunSource.Generated*) {});
+			(LowFunSource.Generated*) {});
 	});
 
-	MutDict!(immutable Sym, immutable PrevOrIndex!ConcreteStruct) structNameToIndex;
+	MutDict!(Sym, PrevOrIndex!ConcreteStruct) structNameToIndex;
 	// This will not have an entry for non-overloaded structs.
 	DictBuilder!(ConcreteStruct*, size_t) structToNameIndex;
 
-	void build(immutable ConcreteStruct* s) {
+	void build(ConcreteStruct* s) {
 		s.source.match!void(
-			(immutable ConcreteStructSource.Inst it) {
+			(ConcreteStructSource.Inst it) {
 				addToPrevOrIndex!ConcreteStruct(alloc, structNameToIndex, structToNameIndex, s, name(*it.inst));
 			},
-			(immutable ConcreteStructSource.Lambda) {});
+			(ConcreteStructSource.Lambda) {});
 	}
-	fullIndexDictEachValue!(LowType.Extern, LowExternType)(
-		program.allExternTypes,
-		(ref immutable LowExternType it) {
-			build(it.source);
-		});
-	fullIndexDictEachValue!(LowType.FunPtr, LowFunPtrType)(
-		program.allFunPtrTypes,
-		(ref immutable LowFunPtrType it) {
-			build(it.source);
-		});
-	fullIndexDictEachValue!(LowType.Record, LowRecord)(
-		program.allRecords,
-		(ref immutable LowRecord it) {
-			build(it.source);
-		});
-	fullIndexDictEachValue!(LowType.Union, LowUnion)(
-		program.allUnions,
-		(ref immutable LowUnion it) {
-			build(it.source);
-		});
+	fullIndexDictEachValue!(LowType.Extern, LowExternType)(program.allExternTypes, (ref LowExternType it) {
+		build(it.source);
+	});
+	fullIndexDictEachValue!(LowType.FunPtr, LowFunPtrType)(program.allFunPtrTypes, (ref LowFunPtrType it) {
+		build(it.source);
+	});
+	fullIndexDictEachValue!(LowType.Record, LowRecord)(program.allRecords, (ref LowRecord it) {
+		build(it.source);
+	});
+	fullIndexDictEachValue!(LowType.Union, LowUnion)(program.allUnions, (ref LowUnion it) {
+		build(it.source);
+	});
 
-	return immutable MangledNames(
-		allSymbols,
-		finishDict(alloc, funToNameIndex),
-		finishDict(alloc, structToNameIndex));
+	return MangledNames(allSymbols, finishDict(alloc, funToNameIndex), finishDict(alloc, structToNameIndex));
 }
 
-void writeStructMangledName(
-	scope ref Writer writer,
-	scope ref immutable MangledNames mangledNames,
-	scope immutable ConcreteStruct* source,
-) {
-	source.source.match!void(
-		(immutable ConcreteStructSource.Inst it) {
+void writeStructMangledName(scope ref Writer writer, in MangledNames mangledNames, in ConcreteStruct* source) {
+	source.source.matchIn!void(
+		(in ConcreteStructSource.Inst it) {
 			writeMangledName(writer, mangledNames, name(*it.inst));
 			maybeWriteIndexSuffix(writer, mangledNames.structToNameIndex[source]);
 		},
-		(immutable ConcreteStructSource.Lambda it) {
+		(in ConcreteStructSource.Lambda it) {
 			writeConcreteFunMangledName(writer, mangledNames, it.containingFun);
 			writer ~= "__lambda";
 			writer ~= it.index;
@@ -128,15 +113,15 @@ void writeStructMangledName(
 
 void writeLowFunMangledName(
 	scope ref Writer writer,
-	scope ref immutable MangledNames mangledNames,
-	immutable LowFunIndex funIndex,
-	scope ref immutable LowFun fun,
+	in MangledNames mangledNames,
+	LowFunIndex funIndex,
+	in LowFun fun,
 ) {
 	fun.source.matchWithPointers!void(
-		(immutable ConcreteFun* x) {
+		(ConcreteFun* x) {
 			writeConcreteFunMangledName(writer, mangledNames, x);
 		},
-		(immutable LowFunSource.Generated* x) {
+		(LowFunSource.Generated* x) {
 			writeMangledName(writer, mangledNames, x.name);
 			if (x.name != sym!"main") {
 				writer ~= '_';
@@ -147,19 +132,19 @@ void writeLowFunMangledName(
 
 void writeLowThreadLocalMangledName(
 	scope ref Writer writer,
-	scope ref immutable MangledNames mangledNames,
-	scope ref immutable LowThreadLocal threadLocal,
+	in MangledNames mangledNames,
+	in LowThreadLocal threadLocal,
 ) {
 	writeConcreteFunMangledName(writer, mangledNames, threadLocal.source);
 }
 
 private void writeConcreteFunMangledName(
 	scope ref Writer writer,
-	scope ref immutable MangledNames mangledNames,
-	scope immutable ConcreteFun* source,
+	in MangledNames mangledNames,
+	in ConcreteFun* source,
 ) {
-	source.source.match!void(
-		(ref immutable FunInst it) {
+	source.source.matchIn!void(
+		(in FunInst it) {
 			if (body_(*source).isA!(ConcreteFunBody.Extern))
 				writeSym(writer, *mangledNames.allSymbols, it.name);
 			else {
@@ -167,53 +152,45 @@ private void writeConcreteFunMangledName(
 				maybeWriteIndexSuffix(writer, mangledNames.funToNameIndex[source]);
 			}
 		},
-		(ref immutable ConcreteFunSource.Lambda it) {
+		(in ConcreteFunSource.Lambda it) {
 			writeConcreteFunMangledName(writer, mangledNames, it.containingFun);
 			writer ~= "__lambda";
 			writer ~= it.index;
 		},
-		(ref immutable ConcreteFunSource.Test it) {
+		(in ConcreteFunSource.Test it) {
 			writer ~= "__test";
 			writer ~= it.testIndex;
 		});
 }
 
-private void maybeWriteIndexSuffix(scope ref Writer writer, immutable Opt!size_t index) {
+private void maybeWriteIndexSuffix(scope ref Writer writer, Opt!size_t index) {
 	if (has(index)) {
 		writer ~= '_';
 		writer ~= force(index);
 	}
 }
 
-void writeLowLocalName(
-	scope ref Writer writer,
-	scope ref immutable MangledNames mangledNames,
-	scope ref immutable LowLocal a,
-) {
-	a.source.match!void(
-		(ref immutable ConcreteLocal it) {
+void writeLowLocalName(scope ref Writer writer, in MangledNames mangledNames, in LowLocal a) {
+	a.source.matchIn!void(
+		(in ConcreteLocal it) {
 			// Need to distinguish local names from function names
 			writer ~= "__local";
 			writeMangledName(writer, mangledNames, it.source.name);
 		},
-		(ref immutable LowLocalSource.Generated it) {
+		(in LowLocalSource.Generated it) {
 			writeMangledName(writer, mangledNames, it.name);
 			writer ~= it.index;
 		});
 }
 
-void writeLowParamName(
-	scope ref Writer writer,
-	scope ref immutable MangledNames mangledNames,
-	scope ref immutable LowParam a,
-) {
-	a.source.match!void(
-		(ref immutable ConcreteParam cp) {
-			cp.source.match!void(
-				(immutable ConcreteParamSource.Closure) {
+void writeLowParamName(scope ref Writer writer, in MangledNames mangledNames, in LowParam a) {
+	a.source.matchIn!void(
+		(in ConcreteParam cp) {
+			cp.source.matchIn!void(
+				(in ConcreteParamSource.Closure) {
 					writer ~= "_closure";
 				},
-				(ref immutable Param p) {
+				(in Param p) {
 					if (has(p.name))
 						writeMangledName(writer, mangledNames, force(p.name));
 					else {
@@ -221,22 +198,22 @@ void writeLowParamName(
 						writer ~= p.index;
 					}
 				},
-				(immutable ConcreteParamSource.Synthetic it) {
+				(in ConcreteParamSource.Synthetic it) {
 					writer ~= "_p";
 					writer ~= force(cp.index);
 				});
 		},
-		(ref immutable LowParamSource.Generated it) {
+		(in LowParamSource.Generated it) {
 			writeMangledName(writer, mangledNames, it.name);
 		});
 }
 
 void writeConstantArrStorageName(
 	scope ref Writer writer,
-	scope ref immutable MangledNames mangledNames,
-	scope ref immutable LowProgram program,
-	immutable LowType.Record arrType,
-	immutable size_t index,
+	in MangledNames mangledNames,
+	in LowProgram program,
+	LowType.Record arrType,
+	size_t index,
 ) {
 	writer ~= "constant";
 	writeRecordName(writer, mangledNames, program, arrType);
@@ -246,10 +223,10 @@ void writeConstantArrStorageName(
 
 void writeConstantPointerStorageName(
 	scope ref Writer writer,
-	scope ref immutable MangledNames mangledNames,
-	scope ref immutable LowProgram program,
-	scope immutable LowType pointeeType,
-	immutable size_t index,
+	in MangledNames mangledNames,
+	in LowProgram program,
+	in LowType pointeeType,
+	size_t index,
 ) {
 	writer ~= "constant";
 	writeRecordName(writer, mangledNames, program, pointeeType.as!(LowType.Record));
@@ -257,48 +234,43 @@ void writeConstantPointerStorageName(
 	writer ~= index;
 }
 
-void writeRecordName(
-	scope ref Writer writer,
-	scope ref immutable MangledNames mangledNames,
-	scope ref immutable LowProgram program,
-	immutable LowType.Record a,
-) {
+void writeRecordName(scope ref Writer writer, in MangledNames mangledNames, in LowProgram program, LowType.Record a) {
 	writeStructMangledName(writer, mangledNames, program.allRecords[a].source);
 }
 
 private:
 
-struct PrevOrIndex(T) {
+immutable struct PrevOrIndex(T) {
 	mixin Union!(immutable T*, immutable size_t);
 }
 
 void addToPrevOrIndex(T)(
 	ref Alloc alloc,
-	ref MutDict!(immutable Sym, immutable PrevOrIndex!T) nameToIndex,
+	ref MutDict!(Sym, PrevOrIndex!T) nameToIndex,
 	ref DictBuilder!(T*, size_t) toNameIndex,
 	immutable T* cur,
-	immutable Sym name,
+	Sym name,
 ) {
-	insertOrUpdate!(immutable Sym, immutable PrevOrIndex!T)(
+	insertOrUpdate!(Sym, PrevOrIndex!T)(
 		alloc,
 		nameToIndex,
 		name,
 		() =>
-			immutable PrevOrIndex!T(cur),
-		(ref immutable PrevOrIndex!T x) =>
-			immutable PrevOrIndex!T(x.matchWithPointers!(immutable size_t)(
-				(immutable T* prev) {
+			PrevOrIndex!T(cur),
+		(ref PrevOrIndex!T x) =>
+			PrevOrIndex!T(x.matchWithPointers!size_t(
+				(T* prev) {
 					mustAddToDict(alloc, toNameIndex, prev, 0);
 					mustAddToDict(alloc, toNameIndex, cur, 1);
-					return immutable size_t(2);
+					return size_t(2);
 				},
-				(immutable size_t index) {
+				(size_t index) {
 					mustAddToDict(alloc, toNameIndex, cur, index);
 					return index + 1;
 				})));
 }
 
-public void writeMangledName(ref Writer writer, scope ref immutable MangledNames mangledNames, immutable Sym a) {
+public void writeMangledName(ref Writer writer, in MangledNames mangledNames, Sym a) {
 	//TODO: this applies to any C function. Maybe crow functions should have a common prefix.
 	if (a == sym!"errno") {
 		writer ~= "_crow_errno";
@@ -307,8 +279,8 @@ public void writeMangledName(ref Writer writer, scope ref immutable MangledNames
 
 	if (conflictsWithCName(a))
 		writer ~= '_';
-	eachCharInSym(*mangledNames.allSymbols, a, (immutable char c) {
-		immutable Opt!string mangled = mangleChar(c);
+	eachCharInSym(*mangledNames.allSymbols, a, (char c) {
+		Opt!string mangled = mangleChar(c);
 		if (has(mangled))
 			writer ~= force(mangled);
 		else
@@ -316,7 +288,7 @@ public void writeMangledName(ref Writer writer, scope ref immutable MangledNames
 	});
 }
 
-immutable(Opt!string) mangleChar(immutable char a) {
+Opt!string mangleChar(char a) {
 	switch (a) {
 		case '~':
 			return some!string("__t");
@@ -353,7 +325,7 @@ immutable(Opt!string) mangleChar(immutable char a) {
 	}
 }
 
-immutable(bool) conflictsWithCName(immutable Sym a) {
+bool conflictsWithCName(Sym a) {
 	switch (a.value) {
 		case sym!"atomic-bool".value: // avoid conflicting with c's "atomic_bool" type
 		case sym!"break".value:

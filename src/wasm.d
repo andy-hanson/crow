@@ -24,119 +24,92 @@ import util.writer : finishWriterToCStr, writeQuotedStr, Writer;
 // seems to be the required entry point
 extern(C) void _start() {}
 
-extern(C) @system pure ubyte* memset(return scope ubyte* dest, immutable int c, immutable size_t n) {
+extern(C) @system pure ubyte* memset(return scope ubyte* dest, int c, size_t n) {
 	// Can't reuse implementation from util.memory due to
 	// https://github.com/ldc-developers/ldc/issues/3843#issuecomment-999247519
-	foreach (immutable size_t i; 0 .. n)
+	foreach (size_t i; 0 .. n)
 		dest[i] = cast(ubyte) c;
 	return dest;
 }
 
-extern(C) @system pure int memcmp(scope const ubyte* s1, scope const ubyte* s2, immutable size_t n) {
-	foreach (immutable size_t i; 0 .. n)
+extern(C) @system pure int memcmp(scope const ubyte* s1, scope const ubyte* s2, size_t n) {
+	foreach (size_t i; 0 .. n)
 		if (s1[i] != s2[i])
 			return s1[i] < s2[i] ? -1 : 1;
 	return 0;
 }
 
-extern(C) @system pure void* memcpy(return scope ubyte* dest, scope const ubyte* src, immutable size_t n) =>
+extern(C) @system pure void* memcpy(return scope ubyte* dest, scope const ubyte* src, size_t n) =>
 	utilMemcpy(dest, src, n);
 
-extern(C) @system pure void* memmove(return scope ubyte* dest, scope const ubyte* src, immutable size_t n) =>
+extern(C) @system pure void* memmove(return scope ubyte* dest, scope const ubyte* src, size_t n) =>
 	utilMemmove(dest, src, n);
 
-extern(C) immutable(size_t) getGlobalBufferSizeBytes() =>
+extern(C) size_t getGlobalBufferSizeBytes() =>
 	globalBuffer.length * globalBuffer[0].sizeof;
 
 @system extern(C) ubyte* getGlobalBufferPtr() =>
 	cast(ubyte*) globalBuffer.ptr;
 
-@system extern(C) Server* newServer(ubyte* allocStart, immutable size_t allocLength) {
+@system extern(C) Server* newServer(ubyte* allocStart, size_t allocLength) {
 	Alloc alloc = Alloc(allocStart, allocLength);
 	Server* ptr = allocateT!Server(alloc, 1);
 	ptr.__ctor(alloc.move());
 	return ptr;
 }
 
-@system extern(C) void addOrChangeFile(Server* server, scope immutable CStr path, scope immutable CStr content) {
-	addOrChangeFile(*server, immutable SafeCStr(path), immutable SafeCStr(content));
+@system extern(C) void addOrChangeFile(Server* server, scope CStr path, scope CStr content) {
+	addOrChangeFile(*server, SafeCStr(path), SafeCStr(content));
 }
 
-@system extern(C) void deleteFile(Server* server, scope immutable CStr path) {
-	deleteFile(*server, immutable SafeCStr(path));
+@system extern(C) void deleteFile(Server* server, scope CStr path) {
+	deleteFile(*server, SafeCStr(path));
 }
 
-@system extern(C) immutable(CStr) getFile(Server* server, scope immutable CStr path) =>
-	getFile(*server, immutable SafeCStr(path)).ptr;
+@system extern(C) CStr getFile(Server* server, scope CStr path) =>
+	getFile(*server, SafeCStr(path)).ptr;
 
-@system extern(C) immutable(CStr) getTokens(
-	ubyte* resultStart, immutable size_t resultLength,
-	Server* server,
-	scope immutable CStr path,
-) {
+@system extern(C) CStr getTokens(ubyte* resultStart, size_t resultLength, Server* server, scope CStr path) {
 	Alloc resultAlloc = Alloc(resultStart, resultLength);
-	immutable SafeCStr safePath = immutable SafeCStr(path);
-	immutable Token[] tokens = withNullPerf!(immutable Token[], (ref Perf perf) =>
+	SafeCStr safePath = SafeCStr(path);
+	Token[] tokens = withNullPerf!(Token[], (ref Perf perf) =>
 		getTokens(resultAlloc, perf, *server, safePath));
-	immutable Repr repr = reprTokens(resultAlloc, tokens);
+	Repr repr = reprTokens(resultAlloc, tokens);
 	return jsonStrOfRepr(resultAlloc, server.allSymbols, repr).ptr;
 }
 
-@system extern(C) immutable(CStr) getParseDiagnostics(
-	ubyte* resultStart,
-	immutable size_t resultLength,
-	Server* server,
-	scope immutable CStr path,
-) {
+@system extern(C) CStr getParseDiagnostics(ubyte* resultStart, size_t resultLength, Server* server, scope CStr path) {
 	Alloc resultAlloc = Alloc(resultStart, resultLength);
-	immutable SafeCStr safePath = immutable SafeCStr(path);
-	immutable StrParseDiagnostic[] diags = withNullPerf!(immutable StrParseDiagnostic[], (ref Perf perf) =>
+	SafeCStr safePath = SafeCStr(path);
+	StrParseDiagnostic[] diags = withNullPerf!(StrParseDiagnostic[], (ref Perf perf) =>
 		getParseDiagnostics(resultAlloc, perf, *server, safePath));
-	immutable Repr repr = reprParseDiagnostics(resultAlloc, diags);
-	return jsonStrOfRepr(resultAlloc, server.allSymbols, repr).ptr;
+	return jsonStrOfRepr(resultAlloc, server.allSymbols, reprParseDiagnostics(resultAlloc, diags)).ptr;
 }
 
-@system extern(C) immutable(CStr) getHover(
-	ubyte* resultStart,
-	immutable size_t resultLength,
-	Server* server,
-	scope immutable CStr path,
-	immutable Pos pos,
-) {
+@system extern(C) CStr getHover(ubyte* resultStart, size_t resultLength, Server* server, scope CStr path, Pos pos) {
 	Alloc resultAlloc = Alloc(resultStart, resultLength);
-	immutable SafeCStr safePath = immutable SafeCStr(path);
-	return withNullPerf!(immutable SafeCStr, (ref Perf perf) =>
+	SafeCStr safePath = SafeCStr(path);
+	return withNullPerf!(SafeCStr, (ref Perf perf) =>
 		getHover(perf, resultAlloc, *server, safePath, pos)).ptr;
 }
 
-@system extern(C) immutable(CStr) run(
-	ubyte* resultStart,
-	immutable size_t resultLength,
-	Server* server,
-	scope immutable CStr path,
-) {
+@system extern(C) CStr run(ubyte* resultStart, size_t resultLength, Server* server, scope CStr path) {
 	Alloc resultAlloc = Alloc(resultStart, resultLength);
-	immutable FakeExternResult result = withWebPerf!(immutable FakeExternResult)((scope ref Perf perf) =>
-		run(perf, resultAlloc, *server, immutable SafeCStr(path)));
+	FakeExternResult result = withWebPerf!FakeExternResult((scope ref Perf perf) =>
+		run(perf, resultAlloc, *server, SafeCStr(path)));
 	return writeRunResult(server.alloc, result);
 }
 
 // Not really pure, but JS doesn't know that
-extern(C) pure immutable(ulong) getTimeNanos();
-extern(C) void perfLog(
-	immutable char* name,
-	immutable ulong count,
-	immutable ulong nanoseconds,
-	immutable ulong bytesAllocated);
+extern(C) pure ulong getTimeNanos();
+extern(C) void perfLog(scope CStr name, ulong count, ulong nanoseconds, ulong bytesAllocated);
 
 private:
 
-@system immutable(T) withWebPerf(T)(
-	scope immutable(T) delegate(scope ref Perf perf) @nogc nothrow cb,
-) {
+@system T withWebPerf(T)(in T delegate(scope ref Perf perf) @nogc nothrow cb) {
 	scope Perf perf = Perf(() => getTimeNanos());
-	immutable T res = cb(perf);
-	eachMeasure(perf, (immutable SafeCStr name, immutable PerfMeasureResult m) {
+	T res = cb(perf);
+	eachMeasure(perf, (in SafeCStr name, in PerfMeasureResult m) {
 		perfLog(name.ptr, m.count, m.nanoseconds, m.bytesAllocated);
 	});
 	return res;
@@ -146,13 +119,13 @@ private:
 // Almost 2GB (which is size limit for a global array)
 ulong[2000 * 1024 * 1024 / ulong.sizeof] globalBuffer;
 
-immutable(Repr) reprParseDiagnostics(ref Alloc alloc, ref immutable StrParseDiagnostic[] a) =>
-	reprArr(alloc, a, (ref immutable StrParseDiagnostic it) =>
+Repr reprParseDiagnostics(ref Alloc alloc, scope StrParseDiagnostic[] a) =>
+	reprArr!StrParseDiagnostic(alloc, a, (in StrParseDiagnostic it) =>
 		reprNamedRecord!"diagnostic"(alloc, [
 			nameAndRepr!"range"(reprRangeWithinFile(alloc, it.range)),
-			nameAndRepr!"message"(reprStr(it.message))]));
+			nameAndRepr!"message"(reprStr(alloc, it.message))]));
 
-immutable(CStr) writeRunResult(ref Alloc alloc, ref immutable FakeExternResult result) {
+CStr writeRunResult(ref Alloc alloc, in FakeExternResult result) {
 	Writer writer = Writer(ptrTrustMe(alloc));
 	writer ~= "{\"err\":";
 	writer ~= result.err.value;

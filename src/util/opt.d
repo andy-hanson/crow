@@ -4,26 +4,19 @@ module util.opt;
 
 import util.util : verify;
 
-struct Opt(T) {
+private struct Option(T) {
 	@safe @nogc pure nothrow:
 
 	private:
 	static if (is(T == U*, U)) {
-		this(BeNone) inout {
-			value_ = null;
-		}
-		@trusted this(return scope inout T value) inout {
+		inout this(return scope inout T value) {
 			value_ = value;
 		}
 		T value_;
-
-		immutable(bool) has_() scope const =>
+		bool has_() scope const =>
 			value_ != null;
 	} else {
-		this(BeNone) inout {
-			has_ = false;
-		}
-		@trusted this(return scope inout T value) inout {
+		inout this(return scope inout T value) {
 			has_ = true;
 			value_ = value;
 		}
@@ -31,33 +24,28 @@ struct Opt(T) {
 		T value_ = void;
 	}
 
-	@disable immutable(bool) opEquals(scope const Opt!T b) scope const;
+	@disable bool opEquals(scope const Opt!T b) scope const;
 }
 
-private struct BeNone {}
+alias Opt(T) = immutable Option!(immutable T);
+alias MutOpt(T) = Option!T;
 
-immutable(Opt!T) none(T)() =>
-	immutable Opt!T(BeNone());
+Opt!T none(T)() =>
+	Opt!T();
 
-// Trick to allow 'none' to be 'inout' in safe code.
-@trusted inout(Opt!T) noneInout(T, U)(ref inout U) =>
-	cast(inout(Opt!T)) none!T;
+MutOpt!T noneMut(T)() =>
+	MutOpt!T();
 
-Opt!T noneMut(T)() =>
-	Opt!T(BeNone());
+Opt!T some(T)(immutable T value) =>
+	Opt!T(value);
 
-auto some(T)(inout T value) {
-	static if (is(T == enum)) {
-		return immutable Opt!T(value);
-	} else {
-		return inout Opt!T(value);
-	}
-}
+MutOpt!T someMut(T)(T value) =>
+	MutOpt!T(value);
 
-immutable(bool) has(T)(in Opt!T a) =>
+bool has(T)(in Option!T a) =>
 	a.has_;
 
-@trusted ref inout(T) force(T)(ref inout Opt!T a) {
-	verify!"force"(has(a));
+ref inout(T) force(T)(ref inout Option!T a) {
+	verify(has(a));
 	return a.value_;
 }

@@ -2,7 +2,7 @@ module util.union_;
 
 @safe @nogc nothrow: // not pure
 
-import std.traits : isMutable;
+import std.traits : isMutable, Unqual;
 import std.meta : staticMap;
 import util.col.arr : SmallArray;
 
@@ -10,31 +10,32 @@ mixin template Union(ReprTypes...) {
 	@safe @nogc nothrow:
 
 	import std.meta : staticMap;
-	import std.traits : isMutable;
 	import util.col.arr : SmallArray;
 	import util.union_ :
 		canUseTaggedPointers,
 		getAsTaggable,
 		isEmptyStruct,
+		isImmutable,
 		toHandlers,
+		toHandlersIn,
 		toHandlersImpure,
 		toHandlersWithPointers,
 		toMemberType;
 	import util.util : verify;
 
-	static foreach (immutable T; ReprTypes)
-		static assert(!isMutable!T, "Union types must be immutable (otherwise use UnionMutable)");
+	static foreach (T; ReprTypes)
+		static assert(isImmutable!T, "Union types must be immutable (otherwise use UnionMutable)");
 
 	enum usesTaggedPointer = canUseTaggedPointers!ReprTypes;
 	alias MemberTypes = staticMap!(toMemberType, ReprTypes);
 
-	@trusted immutable(R) matchImpure(R)(scope toHandlersImpure!(R, MemberTypes) handlers) scope immutable {
+	@trusted R matchImpure(R)(scope toHandlersImpure!(R, MemberTypes) handlers) scope immutable {
 		final switch (kind) {
 			static foreach (i, T; ReprTypes) {
 				case i:
 					static if (usesTaggedPointer) {
 						static if (isEmptyStruct!T)
-							return handlers[i](immutable T());
+							return handlers[i](T());
 						else static if (is(T == SmallArray!U, U))
 							return handlers[i](SmallArray!U.fromTagged(ptrValue));
 						else static if (is(T == P*, P))
@@ -54,9 +55,9 @@ mixin template Union(ReprTypes...) {
 
 	static if (usesTaggedPointer) {
 		private immutable ulong value;
-		private immutable(uint) kind() scope const =>
+		private uint kind() scope const =>
 			value & 0b11;
-		private immutable(ulong) ptrValue() scope const =>
+		private ulong ptrValue() scope const =>
 			value & ~0b11;
 	} else {
 		private immutable uint kind;
@@ -70,7 +71,7 @@ mixin template Union(ReprTypes...) {
 	static foreach (i, T; ReprTypes) {
 		immutable this(immutable toMemberType!T a) {
 			static if (usesTaggedPointer) {
-				immutable ulong ptr = getAsTaggable!T(a);
+				ulong ptr = getAsTaggable!T(a);
 				verify((ptr & 0b11) == 0);
 				static assert((i & 0b11) == i);
 				value = ptr | i;
@@ -81,13 +82,13 @@ mixin template Union(ReprTypes...) {
 		}
 	}
 
-	@trusted immutable(R) match(R)(scope toHandlers!(R, MemberTypes) handlers) immutable {
+	@trusted R match(R)(scope toHandlers!(R, MemberTypes) handlers) immutable {
 		final switch (kind) {
 			static foreach (i, T; ReprTypes) {
 				case i:
 					static if (usesTaggedPointer) {
 						static if (isEmptyStruct!T)
-							return handlers[i](immutable T());
+							return handlers[i](T());
 						else static if (is(T == P*, P))
 							return handlers[i](*(cast(immutable P*) ptrValue));
 						else
@@ -103,13 +104,35 @@ mixin template Union(ReprTypes...) {
 		}
 	}
 
-	@trusted immutable(R) matchWithPointers(R)(scope toHandlersWithPointers!(R, MemberTypes) handlers) immutable {
+	@trusted R matchIn(R)(scope toHandlersIn!(R, MemberTypes) handlers) scope {
 		final switch (kind) {
 			static foreach (i, T; ReprTypes) {
 				case i:
 					static if (usesTaggedPointer) {
 						static if (isEmptyStruct!T)
-							return handlers[i](immutable T());
+							return handlers[i](T());
+						else static if (is(T == P*, P))
+							return handlers[i](*(cast(immutable P*) ptrValue));
+						else
+							return handlers[i](T.fromTagged(ptrValue));
+					} else {
+						static if (is(T == U*, U)) {
+							mixin("return handlers[", i, "](*as", i, ");");
+						} else {
+							mixin("return handlers[", i, "](as", i, ");");
+						}
+					}
+			}
+		}
+	}
+
+	@trusted R matchWithPointers(R)(scope toHandlersWithPointers!(R, MemberTypes) handlers) immutable {
+		final switch (kind) {
+			static foreach (i, T; ReprTypes) {
+				case i:
+					static if (usesTaggedPointer) {
+						static if (isEmptyStruct!T)
+							return handlers[i](T());
 						else static if (is(T == P*, P))
 							return handlers[i](cast(immutable P*) ptrValue);
 						else
@@ -121,9 +144,9 @@ mixin template Union(ReprTypes...) {
 		}
 	}
 
-	immutable(bool) isA(T)() scope immutable {
+	bool isA(T)() scope immutable {
 		static foreach (i, Ty; MemberTypes) {
-			static if (is(immutable T == immutable Ty))
+			static if (is(immutable T == Ty))
 				return kind == i;
 		}
 	}
@@ -144,6 +167,20 @@ mixin template Union(ReprTypes...) {
 		}
 	}
 }
+
+bool isImmutable(T)() {
+	static if (is(T == U*, U))
+		return !isMutable!U;
+	else static if (is(T == U[], U))
+		return !isMutable!U || is(U == ubyte);
+	else static if (isSimple!T)
+		return true;
+	else
+		return !isMutable!T;
+}
+
+bool isSimple(T)() =>
+	is(T == bool) || is(T == size_t) || is(T == long) || is(T == double);
 
 mixin template UnionMutable(Types...) {
 	@safe @nogc pure nothrow:
@@ -191,7 +228,7 @@ mixin template UnionMutable(Types...) {
 		}
 	}
 
-	immutable(bool) isA(T)() scope const {
+	bool isA(T)() scope const {
 		static foreach (i, Ty; Types) {
 			static if (is(T == Ty))
 				return kind == i;
@@ -208,7 +245,7 @@ mixin template UnionMutable(Types...) {
 	}
 }
 
-immutable(bool) canUseTaggedPointers(Types...)() {
+bool canUseTaggedPointers(Types...)() {
 	static if (Types.length > 4)
 		return false;
 	else static if (Types.length == 0)
@@ -218,21 +255,21 @@ immutable(bool) canUseTaggedPointers(Types...)() {
 	else
 		return false;
 }
-private immutable(bool) canUseTaggedPointer(T)() =>
+private bool canUseTaggedPointer(T)() =>
 	isEmptyStruct!T || is(T == U*, U) || __traits(compiles, T.fromTagged(0)); 
 
-immutable(ulong) getAsTaggable(T)(immutable toMemberType!T a) {
+ulong getAsTaggable(T)(toMemberType!T a) {
 	static if (isEmptyStruct!T)
 		return 0;
 	else static if (is(T == P*, P))
-		return cast(immutable ulong) a;
+		return cast(ulong) a;
 	else static if (is(T == SmallArray!U, U))
-		return (immutable T(a)).asTaggable;
+		return T(a).asTaggable;
 	else
 		return a.asTaggable;
 }
 
-immutable(bool) isEmptyStruct(T)() {
+bool isEmptyStruct(T)() {
 	static if (is(T == struct))
 		return __traits(allMembers, T).length == 0;
 	else
@@ -248,25 +285,42 @@ template toMemberType(T) {
 	static if (is(T == SmallArray!U, U))
 		alias toMemberType = immutable U[];
 	else
-		alias toMemberType = T;
+		alias toMemberType = immutable T;
 }
 
 template toHandlers(R, Types...) {
 	template toHandler(P) {
 		static if (is(P == U*, U))
-			alias toHandler = immutable(R) delegate(ref immutable U) @safe @nogc pure nothrow;
+			alias toHandler = R delegate(ref immutable U) @safe @nogc pure nothrow;
+		else static if (isSimple!(Unqual!P))
+			alias toHandler = R delegate(Unqual!P) @safe @nogc pure nothrow;
 		else
-			alias toHandler = immutable(R) delegate(immutable P) @safe @nogc pure nothrow;
+			alias toHandler = R delegate(immutable P) @safe @nogc pure nothrow;
 	}
 	alias toHandlers = staticMap!(toHandler, Types);
+}
+
+template toHandlersIn(R, Types...) {
+	template toHandlerIn(P) {
+		static if (is(P == U*, U))
+			alias toHandlerIn = immutable(R) delegate(in U) @safe @nogc pure nothrow;
+		else static if (is(P == U[], U))
+			// This makes it 'immutable(T)[]' instead of 'immutable T[]'
+			alias toHandlerIn = R delegate(in U[]) @safe @nogc pure nothrow;
+		else static if (isSimple!(Unqual!P))
+			alias toHandlerIn = R delegate(Unqual!P) @safe @nogc pure nothrow;
+		else
+			alias toHandlerIn = R delegate(in P) @safe @nogc pure nothrow;
+	}
+	alias toHandlersIn = staticMap!(toHandlerIn, Types);
 }
 
 template toHandlersImpure(R, Types...) {
 	template toHandlerImpure(P) {
 		static if (is(P == U*, U))
-			alias toHandlerImpure = immutable(R) delegate(ref immutable U) @safe @nogc nothrow;
+			alias toHandlerImpure = R delegate(in U) @safe @nogc nothrow;
 		else
-			alias toHandlerImpure = immutable(R) delegate(immutable P) @safe @nogc nothrow;
+			alias toHandlerImpure = R delegate(in P) @safe @nogc nothrow;
 	}
 	alias toHandlersImpure = staticMap!(toHandlerImpure, Types);
 }
@@ -290,6 +344,11 @@ template toHandlersMutable(R, Types...) {
 }
 
 template toHandlersWithPointers(R, Types...) {
-	alias toHandler(P) = immutable(R) delegate(immutable P) @safe @nogc pure nothrow;
-	alias toHandlersWithPointers = staticMap!(toHandler, Types);
+	template toHandlerWithPointers(P) {
+		static if (isSimple!(Unqual!P))
+			alias toHandlerWithPointers = R delegate(Unqual!P) @safe @nogc pure nothrow;
+		else
+			alias toHandlerWithPointers = R delegate(P) @safe @nogc pure nothrow;
+	}
+	alias toHandlersWithPointers = staticMap!(toHandlerWithPointers, Types);
 }

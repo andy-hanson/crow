@@ -4,46 +4,46 @@ module util.col.str;
 
 import util.alloc.alloc : Alloc, allocateT;
 import util.col.arr : empty, freeArr;
+import util.col.arrUtil : map;
 import util.hash : Hasher, hashUbyte;
 import util.memory : memcpy;
 
-alias CStr = immutable(char)*;
+alias CStr = immutable char*;
 
 // CStr type that definitely has '\0' at the end
 // (Preferred to `string` as it is 8 bytes instead of 16)
-struct SafeCStr {
+immutable struct SafeCStr {
 	@safe @nogc pure nothrow:
 
 	@disable this();
-	@system immutable this(immutable CStr p) {
+	@system this(CStr p) {
 		ptr = p;
 	}
 
-	immutable CStr ptr;
+	CStr ptr;
 
-	immutable(bool) opEquals(scope immutable SafeCStr b) scope immutable =>
+	bool opEquals(in SafeCStr b) scope =>
 		safeCStrEq(this, b);
 
-	void hash(ref Hasher hasher) scope immutable {
-		eachChar(this, (immutable char c) {
+	void hash(ref Hasher hasher) scope {
+		eachChar(this, (char c) {
 			hashUbyte(hasher, c);
 		});
 	}
 }
 
-@trusted immutable(CStr) end(immutable CStr c) {
+@trusted CStr end(CStr c) {
 	immutable(char)* ptr = c;
 	while (*ptr != '\0')
 		ptr++;
 	return ptr;
 }
 
-@trusted immutable(string) strOfCStr(return scope immutable CStr c) {
-	immutable size_t size = end(c) - c;
-	return c[0 .. size];
+@trusted string strOfCStr(return scope CStr c) {
+	return c[0 .. (end(c) - c)];
 }
 
-@trusted immutable(SafeCStr) copyToSafeCStr(ref Alloc alloc, scope const char[] s) {
+@trusted SafeCStr copyToSafeCStr(ref Alloc alloc, in char[] s) {
 	if (empty(s))
 		return safeCStr!"";
 	else {
@@ -51,40 +51,43 @@ struct SafeCStr {
 		static assert(ubyte.sizeof == char.sizeof);
 		memcpy(cast(ubyte*) res, cast(ubyte*) s.ptr, s.length);
 		res[s.length] = '\0';
-		return immutable SafeCStr(cast(immutable) res);
+		return SafeCStr(cast(immutable) res);
 	}
 }
 
-immutable(bool) strEq(immutable string a, immutable string b) =>
+bool strEq(string a, string b) =>
 	a.length == b.length && (a.length == 0 || (a[0] == b[0] && strEq(a[1 .. $], b[1 .. $])));
 
-@trusted immutable(SafeCStr) safeCStr(immutable char* content)() =>
-	immutable SafeCStr(content);
+@trusted SafeCStr safeCStr(immutable char* content)() =>
+	SafeCStr(content);
 
-@trusted immutable(size_t) safeCStrSize(immutable SafeCStr a) =>
+@trusted size_t safeCStrSize(in SafeCStr a) =>
 	end(a.ptr) - a.ptr;
 
-@system void freeSafeCStr(ref Alloc alloc, immutable SafeCStr a) {
+@system void freeSafeCStr(ref Alloc alloc, SafeCStr a) {
 	// + 1 to free the '\0' too
 	freeArr(alloc, a.ptr[0 .. safeCStrSize(a) + 1]);
 }
 
-immutable(bool) safeCStrIsEmpty(immutable SafeCStr a) =>
+bool safeCStrIsEmpty(SafeCStr a) =>
 	*a.ptr == '\0';
 
-immutable(string) strOfSafeCStr(return scope immutable SafeCStr a) =>
+string strOfSafeCStr(return scope SafeCStr a) =>
 	strOfCStr(a.ptr);
 
-immutable(SafeCStr) copySafeCStr(ref Alloc alloc, scope immutable SafeCStr a) =>
+string copyStr(ref Alloc alloc, in string a) =>
+	map!(char, immutable char)(alloc, a, (ref immutable char x) => x);
+
+SafeCStr copySafeCStr(ref Alloc alloc, in SafeCStr a) =>
 	copyToSafeCStr(alloc, strOfSafeCStr(a));
 
-immutable(bool) safeCStrEq(immutable SafeCStr a, immutable string b) =>
+bool safeCStrEq(SafeCStr a, string b) =>
 	strEq(strOfSafeCStr(a), b);
 
-immutable(bool) safeCStrEq(immutable SafeCStr a, immutable SafeCStr b) =>
+bool safeCStrEq(SafeCStr a, SafeCStr b) =>
 	safeCStrEq(a, strOfSafeCStr(b));
 
-@trusted void eachChar(scope immutable SafeCStr a, scope void delegate(immutable char) @safe @nogc pure nothrow cb) {
+@trusted void eachChar(in SafeCStr a, in void delegate(char) @safe @nogc pure nothrow cb) {
 	for (immutable(char)* p = a.ptr; *p != '\0'; p++)
 		cb(*p);
 }

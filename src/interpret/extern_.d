@@ -11,65 +11,59 @@ import util.opt : Opt;
 import util.ptr : hashPtr;
 import util.sym : AllSymbols, Sym, symAsTempBuffer;
 
-struct Extern {
+immutable struct Extern {
 	// 'none' if anything failed to load
-	immutable(Opt!ExternFunPtrsForAllLibraries) delegate(
-		scope immutable ExternLibraries libraries,
+	Opt!ExternFunPtrsForAllLibraries delegate(
+		in ExternLibraries libraries,
 		scope WriteError writeError,
 	) @safe @nogc nothrow loadExternFunPtrs;
-	immutable MakeSyntheticFunPtrs makeSyntheticFunPtrs;
-	immutable DoDynCall doDynCall;
+	MakeSyntheticFunPtrs makeSyntheticFunPtrs;
+	DoDynCall doDynCall;
 }
 
-struct FunPtrInputs {
-	immutable LowFunIndex funIndex;
-	immutable DynCallSig sig;
-	immutable Operation* operationPtr;
+immutable struct FunPtrInputs {
+	LowFunIndex funIndex;
+	DynCallSig sig;
+	Operation* operationPtr;
 }
 
-alias MakeSyntheticFunPtrs =
-	immutable(FunPtr[]) delegate(scope immutable FunPtrInputs[] inputs) @safe @nogc pure nothrow;
+alias MakeSyntheticFunPtrs = immutable FunPtr[] delegate(in FunPtrInputs[] inputs) @safe @nogc pure nothrow;
+alias DoDynCall = immutable ulong delegate(FunPtr, in DynCallSig, in ulong[] args) @system @nogc nothrow;
+alias WriteError = immutable void delegate(in SafeCStr) @safe @nogc nothrow;
 
-alias DoDynCall = immutable(ulong) delegate(
-	immutable FunPtr,
-	scope immutable DynCallSig,
-	scope immutable ulong[] args,
-) @system @nogc nothrow;
-
-alias WriteError = void delegate(scope immutable SafeCStr) @safe @nogc nothrow;
-
-@trusted void writeSymToCb(scope WriteError writeError, ref const AllSymbols allSymbols, immutable Sym a) {
+@trusted void writeSymToCb(scope WriteError writeError, in AllSymbols allSymbols, Sym a) {
 	immutable char[256] buf = symAsTempBuffer!256(allSymbols, a);
-	writeError(immutable SafeCStr(buf.ptr));
+	writeError(SafeCStr(buf.ptr));
 }
 
 alias ExternFunPtrsForAllLibraries = Dict!(Sym, ExternFunPtrsForLibrary);
 alias ExternFunPtrsForLibrary = Dict!(Sym, FunPtr);
 
-struct FunPtr {
+immutable struct FunPtr {
 	@safe @nogc pure nothrow:
 
-	immutable void* fn;
+	void* fn;
 
-	void hash(ref Hasher hasher) scope const {
+	void hash(ref Hasher hasher) scope {
 		hashPtr(hasher, fn);
 	}
 }
 
-struct DynCallSig {
+immutable struct DynCallSig {
 	@safe @nogc pure nothrow:
 
-	immutable DynCallType[] returnTypeAndParameterTypes;
+	DynCallType[] returnTypeAndParameterTypes;
 
-	immutable(DynCallType) returnType() scope immutable =>
+	DynCallType returnType() scope =>
 		returnTypeAndParameterTypes[0];
 
-	immutable(DynCallType[]) parameterTypes() return scope immutable =>
+	DynCallType[] parameterTypes() return scope =>
 		returnTypeAndParameterTypes[1 .. $];
 }
 
 // These should all fit in a single stack entry (except 'void')
-enum DynCallType : ubyte {
+alias DynCallType = immutable DynCallType_;
+private enum DynCallType_ : ubyte {
 	bool_,
 	char8,
 	int8,

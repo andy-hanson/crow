@@ -124,4 +124,5 @@ all-files file[]() summon
 		_ = not-used try-remove x
 		()
 	for x : not-used
-		failures ~= "{a path}: unused import {x}"
+		if a.path != "src/util/union.d"
+			failures ~= "{a path}: unused import {x}"

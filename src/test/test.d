@@ -24,9 +24,9 @@ import util.opt : force, has, Opt;
 import util.ptr : ptrTrustMe;
 import util.sym : Sym, sym;
 
-immutable(ExitCode) test(ref Alloc alloc, scope immutable Opt!Sym name) {
+ExitCode test(ref Alloc alloc, Opt!Sym name) {
 	Test test = Test(ptrTrustMe(alloc));
-	foreach (ref immutable NameAndTest it; allTests)
+	foreach (ref NameAndTest it; allTests)
 		if (!has(name) || force(name) == it.name)
 			it.test(test);
 	return ExitCode.ok;
@@ -34,25 +34,25 @@ immutable(ExitCode) test(ref Alloc alloc, scope immutable Opt!Sym name) {
 
 private:
 
-immutable(NameAndTest[]) allTests = [
-	immutable NameAndTest(sym!"apply-fn", &testApplyFn),
-	immutable NameAndTest(sym!"dict", &testDict),
-	immutable NameAndTest(sym!"fake-extern", &testFakeExtern),
-	immutable NameAndTest(sym!"hover", &testHover),
-	immutable NameAndTest(sym!"interpreter", &testInterpreter),
-	immutable NameAndTest(sym!"json", &testJson),
-	immutable NameAndTest(sym!"line-and-column-getter", &testLineAndColumnGetter),
-	immutable NameAndTest(sym!"memory", &testMemory),
-	immutable NameAndTest(sym!"path", &testPath),
-	immutable NameAndTest(sym!"server", &testServer),
-	immutable NameAndTest(sym!"sort-util", &testSortUtil),
-	immutable NameAndTest(sym!"stack", &testStack),
-	immutable NameAndTest(sym!"sym", &testSym),
-	immutable NameAndTest(sym!"tokens", &testTokens),
-	immutable NameAndTest(sym!"writer", &testWriter),
+NameAndTest[] allTests = [
+	NameAndTest(sym!"apply-fn", &testApplyFn),
+	NameAndTest(sym!"dict", &testDict),
+	NameAndTest(sym!"fake-extern", &testFakeExtern),
+	NameAndTest(sym!"hover", &testHover),
+	NameAndTest(sym!"interpreter", &testInterpreter),
+	NameAndTest(sym!"json", &testJson),
+	NameAndTest(sym!"line-and-column-getter", &testLineAndColumnGetter),
+	NameAndTest(sym!"memory", &testMemory),
+	NameAndTest(sym!"path", &testPath),
+	NameAndTest(sym!"server", &testServer),
+	NameAndTest(sym!"sort-util", &testSortUtil),
+	NameAndTest(sym!"stack", &testStack),
+	NameAndTest(sym!"sym", &testSym),
+	NameAndTest(sym!"tokens", &testTokens),
+	NameAndTest(sym!"writer", &testWriter),
 ];
 
-struct NameAndTest {
-	immutable Sym name;
-	immutable void function(ref Test) @safe @nogc nothrow test; // not pure
+immutable struct NameAndTest {
+	Sym name;
+	void function(ref Test) @safe @nogc nothrow test; // not pure
 }

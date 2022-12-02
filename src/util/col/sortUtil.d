@@ -3,16 +3,16 @@ module util.col.sortUtil;
 @safe @nogc pure nothrow:
 
 import util.col.arr : empty;
-import util.comparison : Comparer, Comparison, ConstComparer;
+import util.comparison : Comparer, Comparison;
 import util.opt : none, Opt, some;
 import util.memory : overwriteMemory;
 
 //TODO:PERF More efficient than bubble sort..
-void sortInPlace(T)(scope T[] a, scope immutable ConstComparer!T compare) {
-	immutable size_t n = a.length; // avoiding dscanner warning `Avoid subtracting from '.length' as it may be unsigned`
+void sortInPlace(T)(scope T[] a, in Comparer!T compare) {
+	size_t n = a.length; // avoiding dscanner warning `Avoid subtracting from '.length' as it may be unsigned`
 	if (n > 1) {
 		size_t lastNonSorted = 0;
-		foreach (immutable size_t i; 0 .. n - 1) {
+		foreach (size_t i; 0 .. n - 1) {
 			final switch (compare(a[i], a[i + 1])) {
 				case Comparison.less:
 				case Comparison.equal:
@@ -27,37 +27,37 @@ void sortInPlace(T)(scope T[] a, scope immutable ConstComparer!T compare) {
 	}
 }
 
-private void swap(T)(scope T[] a, immutable size_t i, immutable size_t j) {
+private void swap(T)(scope T[] a, size_t i, size_t j) {
 	T tmp = a[i];
 	overwriteMemory(&a[i], a[j]);
 	overwriteMemory(&a[j], tmp);
 }
 
 void eachSorted(T, A0, A1, A2, A3)(
-	immutable T lastComparable,
-	immutable Comparer!T comparer,
-	scope immutable A0[] a0,
-	scope immutable(T) delegate(scope ref immutable A0) @safe @nogc pure nothrow getComparable0,
-	scope void delegate(scope ref immutable A0) @safe @nogc pure nothrow cb0,
-	scope immutable A1[] a1,
-	scope immutable(T) delegate(scope ref immutable A1) @safe @nogc pure nothrow getComparable1,
-	scope void delegate(scope ref immutable A1) @safe @nogc pure nothrow cb1,
-	scope immutable A2[] a2,
-	scope immutable(T) delegate(scope ref immutable A2) @safe @nogc pure nothrow getComparable2,
-	scope void delegate(scope ref immutable A2) @safe @nogc pure nothrow cb2,
-	scope immutable A3[] a3,
-	scope immutable(T) delegate(scope ref immutable A3) @safe @nogc pure nothrow getComparable3,
-	scope void delegate(scope ref immutable A3) @safe @nogc pure nothrow cb3,
+	in T lastComparable,
+	in Comparer!T comparer,
+	in A0[] a0,
+	in T delegate(in A0) @safe @nogc pure nothrow getComparable0,
+	in void delegate(in A0) @safe @nogc pure nothrow cb0,
+	in A1[] a1,
+	in T delegate(in A1) @safe @nogc pure nothrow getComparable1,
+	in void delegate(in A1) @safe @nogc pure nothrow cb1,
+	in A2[] a2,
+	in T delegate(in A2) @safe @nogc pure nothrow getComparable2,
+	in void delegate(in A2) @safe @nogc pure nothrow cb2,
+	in A3[] a3,
+	in T delegate(in A3) @safe @nogc pure nothrow getComparable3,
+	in void delegate(in A3) @safe @nogc pure nothrow cb3,
 ) {
 	if (!empty(a0) || !empty(a1) || !empty(a2) || !empty(a3)) {
-		immutable T c0 = empty(a0) ? lastComparable : getComparable0(a0[0]);
-		immutable T c1 = empty(a1) ? lastComparable : getComparable1(a1[0]);
-		immutable bool less01 = comparer(c0, c1) != Comparison.greater;
-		immutable T min01 = less01 ? c0 : c1;
-		immutable T c2 = empty(a2) ? lastComparable : getComparable2(a2[0]);
-		immutable T c3 = empty(a3) ? lastComparable : getComparable3(a3[0]);
-		immutable bool less23 = comparer(c2, c3) != Comparison.greater;
-		immutable T min23 = less23 ? c2 : c3;
+		T c0 = empty(a0) ? lastComparable : getComparable0(a0[0]);
+		T c1 = empty(a1) ? lastComparable : getComparable1(a1[0]);
+		bool less01 = comparer(c0, c1) != Comparison.greater;
+		T min01 = less01 ? c0 : c1;
+		T c2 = empty(a2) ? lastComparable : getComparable2(a2[0]);
+		T c3 = empty(a3) ? lastComparable : getComparable3(a3[0]);
+		bool less23 = comparer(c2, c3) != Comparison.greater;
+		T min23 = less23 ? c2 : c3;
 		if (comparer(min01, min23) != Comparison.greater) {
 			if (less01) {
 				cb0(a0[0]);
@@ -98,21 +98,21 @@ void eachSorted(T, A0, A1, A2, A3)(
 	}
 }
 
-struct UnsortedPair {
-	immutable size_t index0;
-	immutable size_t index1;
+immutable struct UnsortedPair {
+	size_t index0;
+	size_t index1;
 }
 
 // Returns index of lower value
-immutable(Opt!UnsortedPair) findUnsortedPair(T)(ref immutable T[] a, immutable Comparer!T compare) {
+Opt!UnsortedPair findUnsortedPair(T)(in T[] a, Comparer!T compare) {
 	if (!empty(a)) {
-		foreach (immutable size_t i; 0 .. a.length - 1) {
+		foreach (size_t i; 0 .. a.length - 1) {
 			final switch (compare(a[i], a[i + 1])) {
 				case Comparison.less:
 				case Comparison.equal:
 					break;
 				case Comparison.greater:
-					return some(immutable UnsortedPair(i, i + 1));
+					return some(UnsortedPair(i, i + 1));
 			}
 		}
 	}

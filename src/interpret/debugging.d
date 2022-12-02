@@ -18,30 +18,20 @@ import util.opt : force, has;
 import util.writer : Writer, writeWithCommas;
 import util.sym : AllSymbols, writeSym;
 
-void writeFunName(
-	ref Writer writer,
-	scope ref const AllSymbols allSymbols,
-	scope ref immutable LowProgram lowProgram,
-	immutable LowFunIndex fun,
-) {
+void writeFunName(ref Writer writer, in AllSymbols allSymbols, in LowProgram lowProgram, LowFunIndex fun) {
 	writeFunName(writer, allSymbols, lowProgram, lowProgram.allFuns[fun]);
 }
 
-void writeFunName(
-	ref Writer writer,
-	scope ref const AllSymbols allSymbols,
-	scope ref immutable LowProgram lowProgram,
-	scope ref immutable LowFun a,
-) {
-	a.source.match!void(
-		(ref immutable ConcreteFun x) {
+void writeFunName(ref Writer writer, in AllSymbols allSymbols, in LowProgram lowProgram, in LowFun a) {
+	a.source.matchIn!void(
+		(in ConcreteFun x) {
 			writeConcreteFunName(writer, allSymbols, x);
 		},
-		(ref immutable LowFunSource.Generated x) {
+		(in LowFunSource.Generated x) {
 			writeSym(writer, allSymbols, x.name);
 			if (!empty(x.typeArgs)) {
 				writer ~= '<';
-				writeWithCommas!LowType(writer, x.typeArgs, (scope ref immutable LowType typeArg) {
+				writeWithCommas!LowType(writer, x.typeArgs, (in LowType typeArg) {
 					writeLowType(writer, allSymbols, lowProgram.allTypes, typeArg);
 				});
 				writer ~= '>';
@@ -50,31 +40,26 @@ void writeFunName(
 		});
 }
 
-void writeFunSig(
-	scope ref Writer writer,
-	scope ref const AllSymbols allSymbols,
-	scope ref immutable LowProgram lowProgram,
-	scope ref immutable LowFun a,
-) {
-	a.source.match!void(
-		(ref immutable ConcreteFun x) {
+void writeFunSig(scope ref Writer writer, in AllSymbols allSymbols, in LowProgram lowProgram, in LowFun a) {
+	a.source.matchIn!void(
+		(in ConcreteFun x) {
 			writeConcreteType(writer, allSymbols, x.returnType);
 			writer ~= '(';
 			writeWithCommas!ConcreteParam(
 				writer,
 				x.paramsExcludingClosure,
-				(scope ref immutable ConcreteParam param) {
-					param.source.match!void(
-						(immutable ConcreteParamSource.Closure) {
+				(in ConcreteParam param) {
+					param.source.matchIn!void(
+						(in ConcreteParamSource.Closure) {
 							writer ~= "<closure>";
 						},
-						(ref immutable Param p) {
+						(in Param p) {
 							if (has(p.name))
 								writeSym(writer, allSymbols, force(p.name));
 							else
 								writer ~= '_';
 						},
-						(immutable ConcreteParamSource.Synthetic) {
+						(in ConcreteParamSource.Synthetic) {
 							writer ~= '_';
 						});
 					writer ~= ' ';
@@ -82,72 +67,63 @@ void writeFunSig(
 				});
 			writer ~= ')';
 		},
-		(ref immutable LowFunSource.Generated) {
+		(in LowFunSource.Generated) {
 			writer ~= "(generated)";
 		});
 }
 
-void writeLowType(
-	ref Writer writer,
-	scope ref const AllSymbols allSymbols,
-	scope ref immutable AllLowTypes lowTypes,
-	scope immutable LowType a,
-) {
-	a.match!void(
-		(immutable LowType.Extern) {
+void writeLowType(ref Writer writer, in AllSymbols allSymbols, in AllLowTypes lowTypes, in LowType a) {
+	a.matchIn!void(
+		(in LowType.Extern) {
 			writer ~= "some extern type"; // TODO: more detail
 		},
-		(immutable LowType.FunPtr) {
+		(in LowType.FunPtr) {
 			writer ~= "some fun ptr type"; // TODO: more detail
 		},
-		(immutable PrimitiveType it) {
+		(in PrimitiveType it) {
 			writeSym(writer, allSymbols, symOfPrimitiveType(it));
 		},
-		(immutable LowType.PtrGc it) {
+		(in LowType.PtrGc it) {
 			writer ~= "gc-ptr(";
 			writeLowType(writer, allSymbols, lowTypes, *it.pointee);
 			writer ~= ')';
 		},
-		(immutable LowType.PtrRawConst it) {
+		(in LowType.PtrRawConst it) {
 			writer ~= "raw-ptr-const(";
 			writeLowType(writer, allSymbols, lowTypes, *it.pointee);
 			writer ~= ')';
 		},
-		(immutable LowType.PtrRawMut it) {
+		(in LowType.PtrRawMut it) {
 			writer ~= "raw-ptr-mut(";
 			writeLowType(writer, allSymbols, lowTypes, *it.pointee);
 			writer ~= ')';
 		},
-		(immutable LowType.Record it) {
+		(in LowType.Record it) {
 			writeConcreteStruct(writer, allSymbols, *lowTypes.allRecords[it].source);
 		},
-		(immutable LowType.Union it) {
+		(in LowType.Union it) {
 			writeConcreteStruct(writer, allSymbols, *lowTypes.allUnions[it].source);
 		});
 }
 
-private void writeConcreteFunName(
-	ref Writer writer,
-	scope ref const AllSymbols allSymbols,
-	ref immutable ConcreteFun a,
-) {
-	a.source.match!void(
-		(ref immutable FunInst it) {
+private void writeConcreteFunName(ref Writer writer, in AllSymbols allSymbols, in ConcreteFun a) {
+	a.source.matchIn!void(
+		(in FunInst it) {
 			writeSym(writer, allSymbols, it.name);
 			if (!empty(typeArgs(it))) {
 				writer ~= '<';
-				writeWithCommas!Type(writer, typeArgs(it), (ref immutable Type typeArg) {
+				writeWithCommas!Type(writer, typeArgs(it), (in Type typeArg) {
 					writeTypeUnquoted(writer, allSymbols, typeArg);
 				});
 				writer ~= '>';
 			}
 		},
-		(ref immutable ConcreteFunSource.Lambda it) {
+		(in ConcreteFunSource.Lambda it) {
 			writeConcreteFunName(writer, allSymbols, *it.containingFun);
 			writer ~= ".lambda";
 			writer ~= it.index;
 		},
-		(ref immutable(ConcreteFunSource.Test)) {
+		(in ConcreteFunSource.Test) {
 			//TODO: more unique name for each test
 			writer ~= "test";
 		});
@@ -155,30 +131,26 @@ private void writeConcreteFunName(
 
 private:
 
-void writeConcreteStruct(
-	scope ref Writer writer,
-	scope ref const AllSymbols allSymbols,
-	scope ref immutable ConcreteStruct a,
-) {
-	a.source.match!void(
-		(immutable ConcreteStructSource.Inst it) {
+void writeConcreteStruct(scope ref Writer writer, in AllSymbols allSymbols, in ConcreteStruct a) {
+	a.source.matchIn!void(
+		(in ConcreteStructSource.Inst it) {
 			writeSym(writer, allSymbols, decl(*it.inst).name);
 			if (!empty(it.typeArgs)) {
 				writer ~= '<';
-				writeWithCommas!ConcreteType(writer, it.typeArgs, (ref immutable ConcreteType t) {
+				writeWithCommas!ConcreteType(writer, it.typeArgs, (in ConcreteType t) {
 					writeConcreteType(writer, allSymbols, t);
 				});
 				writer ~= '>';
 			}
 		},
-		(immutable ConcreteStructSource.Lambda it) {
+		(in ConcreteStructSource.Lambda it) {
 			writeConcreteFunName(writer, allSymbols, *it.containingFun);
 			writer ~= ".lambda";
 			writer ~= it.index;
 		});
 }
 
-void writeConcreteType(scope ref Writer writer, scope ref const AllSymbols allSymbols, scope immutable ConcreteType a) {
+void writeConcreteType(scope ref Writer writer, in AllSymbols allSymbols, in ConcreteType a) {
 	//TODO: if it doesn't have the usual by-ref or by-val we should write that
 	writeConcreteStruct(writer, allSymbols, *a.struct_);
 }

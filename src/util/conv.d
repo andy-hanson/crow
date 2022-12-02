@@ -4,50 +4,50 @@ module util.conv;
 
 import util.util : verify;
 
-immutable(int) safeIntFromUint(immutable uint u) {
+int safeIntFromUint(uint u) {
 	verify(u <= int.max);
-	return cast(immutable int) u;
+	return cast(int) u;
 }
 
-immutable(ushort) safeToUshort(immutable size_t a) {
+ushort safeToUshort(size_t a) {
 	verify(a <= ushort.max);
-	return cast(immutable ushort) a;
+	return cast(ushort) a;
 }
 
-immutable(int) safeToInt(immutable size_t a) {
+int safeToInt(size_t a) {
 	verify(a <= int.max);
-	return cast(immutable int) a;
+	return cast(int) a;
 }
 
-immutable(uint) safeToUint(immutable size_t a) {
+uint safeToUint(size_t a) {
 	verify(a <= uint.max);
-	return cast(immutable uint) a;
+	return cast(uint) a;
 }
 
-immutable(size_t) safeToSizeT(immutable ulong a) {
+size_t safeToSizeT(ulong a) {
 	verify(a <= size_t.max);
-	return cast(immutable size_t) a;
+	return cast(size_t) a;
 }
 
-immutable(uint) bitsOfFloat32(immutable float value) {
+uint bitsOfFloat32(float value) {
 	Converter32 conv;
 	conv.asFloat32 = value;
 	return conv.asU32;
 }
 
-immutable(float) float32OfBits(immutable ulong value) {
+float float32OfBits(ulong value) {
 	Converter32 conv;
-	conv.asU32 = cast(immutable uint) value;
+	conv.asU32 = cast(uint) value;
 	return conv.asFloat32;
 }
 
-immutable(ulong) bitsOfFloat64(immutable double value) {
+ulong bitsOfFloat64(double value) {
 	Converter64 conv;
 	conv.asFloat64 = value;
 	return conv.asU64;
 }
 
-immutable(double) float64OfBits(immutable ulong value) {
+double float64OfBits(ulong value) {
 	Converter64 conv;
 	conv.asU64 = value;
 	return conv.asFloat64;

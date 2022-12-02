@@ -25,14 +25,14 @@ import util.ptr : ptrTrustMe;
 import util.sym : AllSymbols, writeSym;
 import util.writer : finishWriterToSafeCStr, Writer;
 
-immutable(SafeCStr) getHoverStr(
+SafeCStr getHoverStr(
 	ref TempAlloc tempAlloc,
 	ref Alloc alloc,
-	ref const AllSymbols allSymbols,
-	ref const AllPaths allPaths,
-	ref immutable PathsInfo pathsInfo,
-	ref immutable Program program,
-	ref immutable Position pos,
+	in AllSymbols allSymbols,
+	in AllPaths allPaths,
+	in PathsInfo pathsInfo,
+	in Program program,
+	in Position pos,
 ) {
 	Writer writer = Writer(ptrTrustMe(alloc));
 	getHover(tempAlloc, writer, allSymbols, allPaths, pathsInfo, program, pos);
@@ -42,32 +42,32 @@ immutable(SafeCStr) getHoverStr(
 void getHover(
 	ref TempAlloc tempAlloc,
 	scope ref Writer writer,
-	ref const AllSymbols allSymbols,
-	ref const AllPaths allPaths,
-	ref immutable PathsInfo pathsInfo,
-	ref immutable Program program,
-	ref immutable Position pos,
+	in AllSymbols allSymbols,
+	in AllPaths allPaths,
+	in PathsInfo pathsInfo,
+	in Program program,
+	in Position pos,
 ) =>
-	pos.match!void(
-		(immutable Expr it) {
+	pos.matchIn!void(
+		(in Expr it) {
 			getExprHover(writer, it);
 		},
-		(ref immutable FunDecl it) {
+		(in FunDecl it) {
 			writer ~= "fun ";
 			writeSym(writer, allSymbols, it.name);
 		},
-		(immutable Position.ImportedModule it) {
+		(in Position.ImportedModule it) {
 			writer ~= "import module ";
 			writeFile(writer, allPaths, pathsInfo, program.filesInfo, it.module_.fileIndex);
 		},
-		(immutable Position.ImportedName it) {
+		(in Position.ImportedName it) {
 			getImportedNameHover(writer, it);
 		},
-		(ref immutable Param it) {
+		(in Param it) {
 			writer ~= "param ";
 			writeSym(writer, allSymbols, it.nameOrUnderscore);
 		},
-		(immutable Position.RecordFieldPosition it) {
+		(in Position.RecordFieldPosition it) {
 			writer ~= "field ";
 			writeStructDecl(writer, allSymbols, *it.struct_);
 			writer ~= '.';
@@ -76,41 +76,41 @@ void getHover(
 			writeTypeUnquoted(writer, allSymbols, it.field.type);
 			writer ~= ')';
 		},
-		(ref immutable SpecDecl) {
+		(in SpecDecl _) {
 			writer ~= "TODO: spec hover";
 		},
-		(ref immutable StructDecl it) {
-			writer ~= body_(it).match!(immutable string)(
-				(immutable StructBody.Bogus) =>
+		(in StructDecl it) {
+			writer ~= body_(it).matchIn!string(
+				(in StructBody.Bogus) =>
 					"type ",
-				(immutable StructBody.Builtin) =>
+				(in StructBody.Builtin) =>
 					"builtin type ",
-				(immutable StructBody.Enum) =>
+				(in StructBody.Enum) =>
 					"enum type ",
-				(immutable StructBody.Extern) =>
+				(in StructBody.Extern) =>
 					"extern type ",
-				(immutable StructBody.Flags) =>
+				(in StructBody.Flags) =>
 					"flags type ",
-				(immutable StructBody.Record) =>
+				(in StructBody.Record) =>
 					"record ",
-				(immutable StructBody.Union) =>
+				(in StructBody.Union) =>
 					"union ");
 			writeSym(writer, allSymbols, it.name);
 		},
-		(immutable Type a) {
+		(in Type a) {
 			writer ~= "TODO: hover for type";
 		},
-		(ref immutable(TypeParam)) {
+		(in TypeParam _) {
 			writer ~= "TODO: hover for type param";
 		});
 
 private:
 
-void getImportedNameHover(ref Writer writer, ref immutable Position.ImportedName) {
+void getImportedNameHover(ref Writer writer, in Position.ImportedName) {
 	writer ~= "TODO: getImportedNameHover";
 }
 
-void getExprHover(ref Writer writer, ref immutable Expr) {
+void getExprHover(ref Writer writer, in Expr) {
 	writer ~= "TODO: getExprHover";
 }
 

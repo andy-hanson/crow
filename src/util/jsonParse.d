@@ -13,48 +13,45 @@ import util.sym : AllSymbols, Sym, symOfStr;
 import util.union_ : Union;
 
 // NOTE: doesn't support number since I don't use that anywhere
-struct Json {
+immutable struct Json {
 	@safe @nogc pure nothrow:
 
-	alias Object = KeyValuePair!(Sym, Json)[];
-	mixin Union!(immutable bool, immutable SafeCStr, immutable Json[], immutable Object);
+	alias List = immutable Json[];
+	alias ObjectField = immutable KeyValuePair!(Sym, Json);
+	alias Object = immutable ObjectField[];
+	mixin Union!(bool, SafeCStr, List, Object);
 
-	immutable(bool) opEquals(scope immutable Json b) scope immutable =>
-		match!(immutable bool)(
-			(immutable bool x) =>
+	bool opEquals(in Json b) scope =>
+		matchIn!bool(
+			(bool x) =>
 				b.isA!bool && b.as!bool == x,
-			(immutable SafeCStr x) =>
+			(in SafeCStr x) =>
 				b.isA!SafeCStr && safeCStrEq(b.as!SafeCStr, x),
-			(immutable Json[] x) =>
-				b.isA!(Json[]) && arrEqual!Json(x, b.as!(Json[]), (ref immutable Json x, ref immutable Json y) =>
-					x == y),
-			(immutable Object oa) =>
-				b.isA!Object && arrEqual!(KeyValuePair!(Sym, Json))(
-						oa,
-						b.as!Object,
-						(ref immutable KeyValuePair!(Sym, Json) x, ref immutable KeyValuePair!(Sym, Json) y) =>
-							x.key == y.key && x.value == y.value));
+			(in List x) =>
+				b.isA!List && arrEqual!Json(x, b.as!List),
+			(in Object oa) =>
+				b.isA!Object && arrEqual(oa, b.as!Object));
 }
 
-immutable(Opt!Json) parseJson(ref Alloc alloc, ref AllSymbols allSymbols, immutable SafeCStr source) {
-	CStr ptr = source.ptr;
-	immutable Opt!Json res = parseValue(alloc, allSymbols, ptr);
+Opt!Json parseJson(ref Alloc alloc, ref AllSymbols allSymbols, in SafeCStr source) {
+	immutable(char)* ptr = source.ptr;
+	Opt!Json res = parseValue(alloc, allSymbols, ptr);
 	skipWhitespace(ptr);
 	return *ptr == '\0' ? res : none!Json;
 }
 
 private:
 
-immutable(Opt!Json) parseValue(ref Alloc alloc, ref AllSymbols allSymbols, ref CStr ptr) {
+Opt!Json parseValue(ref Alloc alloc, ref AllSymbols allSymbols, scope ref immutable(char)* ptr) {
 	skipWhitespace(ptr);
 	switch (next(ptr)) {
 		case 'f':
 			return tryTake(ptr, 'a') && tryTake(ptr, 'l') && tryTake(ptr, 's') && tryTake(ptr, 'e')
-				? some(immutable Json(false))
+				? some(Json(false))
 				: none!Json;
 		case 't':
 			return tryTake(ptr, 'r') && tryTake(ptr, 'u') && tryTake(ptr, 'e')
-				? some(immutable Json(true))
+				? some(Json(true))
 				: none!Json;
 		case '"':
 			return parseString(alloc, ptr);
@@ -67,97 +64,93 @@ immutable(Opt!Json) parseValue(ref Alloc alloc, ref AllSymbols allSymbols, ref C
 	}
 }
 
-immutable(Opt!Json) parseString(ref Alloc alloc, ref CStr ptr) {
-	immutable Opt!string res = parseStringTemp(ptr);
-	return has(res) ? some(immutable Json(copyToSafeCStr(alloc, force(res)))) : none!Json;
+Opt!Json parseString(ref Alloc alloc, scope ref immutable(char)* ptr) {
+	Opt!string res = parseStringTemp(ptr);
+	return has(res) ? some(Json(copyToSafeCStr(alloc, force(res)))) : none!Json;
 }
 
-@trusted immutable(Opt!string) parseStringTemp(ref CStr ptr) {
-	immutable CStr begin = ptr;
-	return parseStringTempRecur(begin, ptr);
-}
-@system immutable(Opt!string) parseStringTempRecur(immutable CStr begin, ref CStr ptr) {
+@trusted Opt!string parseStringTemp(return scope ref immutable(char)* ptr) {
+	CStr begin = ptr;
 	//TODO: escaping
-	switch (next(ptr)) {
-		case '\0':
-		case '\r':
-		case '\n':
-			return none!string;
-		case '"':
-			return some!string(begin[0 .. (ptr - 1 - begin)]);
-		default:
-			return parseStringTempRecur(begin, ptr);
+	while (true) {
+		switch (next(ptr)) {
+			case '\0':
+			case '\r':
+			case '\n':
+				return none!string;
+			case '"':
+				return some(begin[0 .. (ptr - 1 - begin)]);
+			default:
+				break;
+		}
 	}
 }
 
-immutable(Opt!Json) parseArray(ref Alloc alloc, ref AllSymbols allSymbols, ref CStr ptr) {
+Opt!Json parseArray(ref Alloc alloc, ref AllSymbols allSymbols, scope ref immutable(char)* ptr) {
 	ArrBuilder!Json res;
 	return parseArrayRecur(alloc, allSymbols, res, ptr);
 }
-
-immutable(Opt!Json) parseArrayRecur(
+Opt!Json parseArrayRecur(
 	ref Alloc alloc,
 	ref AllSymbols allSymbols,
 	ref ArrBuilder!Json res,
-	ref CStr ptr,
+	scope ref immutable(char)* ptr,
 ) {
 	if (tryTakePunctuation(ptr, ']'))
-		return some(immutable Json(finishArr(alloc, res)));
+		return some(Json(finishArr(alloc, res)));
 	else {
-		immutable Opt!Json value = parseValue(alloc, allSymbols, ptr);
+		Opt!Json value = parseValue(alloc, allSymbols, ptr);
 		if (has(value)) {
 			add(alloc, res, force(value));
 			return tryTakePunctuation(ptr, ',')
 				? parseArrayRecur(alloc, allSymbols, res, ptr)
 				: tryTakePunctuation(ptr, ']')
-				? some(immutable Json(finishArr(alloc, res)))
+				? some(Json(finishArr(alloc, res)))
 				: none!Json;
 		} else
 			return none!Json;
 	}
 }
 
-immutable(Opt!Json) parseObject(ref Alloc alloc, ref AllSymbols allSymbols, ref CStr ptr) {
-	ArrBuilder!(KeyValuePair!(Sym, Json)) res;
+Opt!Json parseObject(ref Alloc alloc, ref AllSymbols allSymbols, scope ref immutable(char)* ptr) {
+	ArrBuilder!(Json.ObjectField) res;
 	return parseObjectRecur(alloc, allSymbols, res, ptr);
 }
 
-immutable(Opt!Json) parseObjectRecur(
+Opt!Json parseObjectRecur(
 	ref Alloc alloc,
 	ref AllSymbols allSymbols,
-	ref ArrBuilder!(KeyValuePair!(Sym, Json)) res,
-	ref CStr ptr,
+	ref ArrBuilder!(Json.ObjectField) res,
+	scope ref immutable(char)* ptr,
 ) {
 	if (tryTakePunctuation(ptr, '"')) {
-		immutable Opt!string keyString = parseStringTemp(ptr);
+		Opt!string keyString = parseStringTemp(ptr);
 		if (has(keyString) && tryTakePunctuation(ptr, ':')) {
-			immutable Opt!Json value = parseValue(alloc, allSymbols, ptr);
+			Opt!Json value = parseValue(alloc, allSymbols, ptr);
 			if (has(value)) {
-				add(alloc, res, immutable KeyValuePair!(Sym, Json)(
-					symOfStr(allSymbols, force(keyString)),
-					force(value)));
+				add(alloc, res, Json.ObjectField(symOfStr(allSymbols, force(keyString)), force(value)));
 				return tryTakePunctuation(ptr, ',')
 					? parseObjectRecur(alloc, allSymbols, res, ptr)
 					: tryTakePunctuation(ptr, '}')
-					? some(immutable Json(finishArr(alloc, res)))
+					? some(Json(finishArr(alloc, res)))
 					: none!Json;
 			} else
 				return none!Json;
 		} else
 			return none!Json;
 	} else if (tryTakePunctuation(ptr, '}'))
-		return some(immutable Json(finishArr(alloc, res)));
+		return some(Json(finishArr(alloc, res)));
 	else
 		return none!Json;
 }
 
-@trusted immutable(char) next(ref CStr ptr) {
-	immutable char res = *ptr;
+@trusted char next(scope ref immutable(char)* ptr) {
+	char res = *ptr;
 	ptr++;
 	return res;
 }
 
-@trusted immutable(bool) tryTake(ref CStr ptr, immutable char expected) {
+@trusted bool tryTake(scope ref immutable(char)* ptr, char expected) {
 	if (*ptr == expected) {
 		ptr++;
 		return true;
@@ -165,12 +158,12 @@ immutable(Opt!Json) parseObjectRecur(
 		return false;
 }
 
-immutable(bool) tryTakePunctuation(ref CStr ptr, immutable char expected) {
+bool tryTakePunctuation(scope ref immutable(char)* ptr, char expected) {
 	skipWhitespace(ptr);
 	return tryTake(ptr, expected);
 }
 
-@trusted void skipWhitespace(ref CStr ptr) {
+@trusted void skipWhitespace(scope ref immutable(char)* ptr) {
 	while (isWhitespace(*ptr))
 		ptr++;
 }

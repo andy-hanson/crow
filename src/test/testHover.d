@@ -11,7 +11,7 @@ import util.col.mutDict : addToMutDict;
 import util.col.str : end, SafeCStr, safeCStr, safeCStrEq;
 import util.dictReadOnlyStorage : withDictReadOnlyStorage, MutFiles;
 import util.opt : force, has, none, Opt;
-import util.path : emptyPathsInfo, Path, PathsInfo, rootPath;
+import util.path : emptyPathsInfo, Path, rootPath;
 import util.perf : Perf, withNullPerf;
 import util.readOnlyStorage : ReadOnlyStorage;
 import util.sourceRange : Pos;
@@ -25,51 +25,45 @@ import util.util : verify, verifyFail;
 
 private:
 
-struct HoverTest {
-	immutable Program program;
-	immutable Module* mainModule;
+immutable struct HoverTest {
+	Program program;
+	Module* mainModule;
 }
 
-HoverTest initHoverTest(ref Test test, immutable SafeCStr content) {
-	immutable Path path = rootPath(test.allPaths, sym!"main");
+HoverTest initHoverTest(ref Test test, SafeCStr content) {
+	Path path = rootPath(test.allPaths, sym!"main");
 	MutFiles files;
 	addToMutDict(test.alloc, files, path, content);
-	immutable Program program = withDictReadOnlyStorage!(immutable Program)(
+	Program program = withDictReadOnlyStorage!Program(
 		rootPath(test.allPaths, sym!"include"),
 		files,
-		(scope ref const ReadOnlyStorage storage) @safe =>
-			withNullPerf!(immutable Program, (ref Perf perf) =>
+		(in ReadOnlyStorage storage) =>
+			withNullPerf!(Program, (ref Perf perf) =>
 				frontendCompile(
 					test.alloc, perf, test.alloc, test.allPaths, test.allSymbols, storage, [path], none!Path)));
-	immutable Module* mainModule = &program.allModules[$ - 1];
+	Module* mainModule = &program.allModules[$ - 1];
 	return HoverTest(program, mainModule);
 }
 
-immutable(SafeCStr) hover(ref Test test, ref HoverTest a, immutable Pos pos) {
-	immutable Opt!Position position = getPosition(test.allSymbols, *a.mainModule, pos);
-	immutable PathsInfo pathsInfo = emptyPathsInfo;
+SafeCStr hover(ref Test test, in HoverTest a, Pos pos) {
+	Opt!Position position = getPosition(test.allSymbols, *a.mainModule, pos);
 	return has(position)
-		? getHoverStr(test.alloc, test.alloc, test.allSymbols, test.allPaths, pathsInfo, a.program, force(position))
+		? getHoverStr(
+			test.alloc, test.alloc, test.allSymbols, test.allPaths, emptyPathsInfo, a.program, force(position))
 		: safeCStr!"";
 }
 
-void checkHover(ref Test test, ref HoverTest hoverTest, immutable Pos pos, immutable SafeCStr expected) {
+void checkHover(ref Test test, ref HoverTest hoverTest, Pos pos, in SafeCStr expected) {
 	verifyStrEq(pos, hover(test, hoverTest, pos), expected);
 }
 
-void checkHoverRange(
-	ref Test test,
-	ref HoverTest hoverTest,
-	immutable Pos start,
-	immutable Pos end,
-	immutable SafeCStr expected,
-) {
-	foreach (immutable Pos pos; start .. end)
+void checkHoverRange(ref Test test, ref HoverTest hoverTest, Pos start, Pos end, in SafeCStr expected) {
+	foreach (Pos pos; start .. end)
 		checkHover(test, hoverTest, pos, expected);
 }
 
 @trusted void testBasic(ref Test test) {
-	immutable SafeCStr content = safeCStr!`
+	SafeCStr content = safeCStr!`
 nat builtin
 
 r record
@@ -80,9 +74,9 @@ r record
 	checkHover(test, a, 0, safeCStr!"");
 	checkHoverRange(test, a, 1, 11, safeCStr!"builtin type nat");
 	checkHoverRange(test, a, 12, 13, safeCStr!"");
-	immutable Pos rStart = 14;
+	Pos rStart = 14;
 	verify(content.ptr[rStart] == 'r');
-	immutable Pos fldStart = rStart + 10;
+	Pos fldStart = rStart + 10;
 	checkHoverRange(test, a, rStart, fldStart, safeCStr!"record r");
 	verify(content.ptr[fldStart] == 'f');
 	checkHoverRange(test, a, fldStart, fldStart + 3, safeCStr!"field r.fld (nat)");
@@ -113,7 +107,7 @@ void testFunction(ref Test test) {
 	//TODO: hover in function body
 }
 
-void verifyStrEq(immutable Pos pos, immutable SafeCStr actual, immutable SafeCStr expected) {
+void verifyStrEq(Pos pos, in SafeCStr actual, in SafeCStr expected) {
 	if (!safeCStrEq(actual, expected)) {
 		debug {
 			import core.stdc.stdio : printf;

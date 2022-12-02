@@ -106,22 +106,22 @@ import util.perf : eachMeasure, Perf, perfEnabled, PerfMeasure, PerfMeasureResul
 import util.ptr : ptrTrustMe;
 import util.readOnlyStorage : ReadFileResult, ReadOnlyStorage;
 import util.sym : AllSymbols, concatSyms, safeCStrOfSym, Sym, sym, symOfStr, writeSym;
-import util.util : castImmutableRef, todo, verify;
+import util.util : todo, verify;
 import util.writer : finishWriterToSafeCStr, Writer;
 import versionInfo : versionInfoForJIT;
 
-@system extern(C) immutable(int) main(immutable int argc, immutable CStr* argv) {
-	immutable size_t memorySizeBytes = 1536 * 1024 * 1024; // 1.5 GB
+@system extern(C) int main(int argc, CStr* argv) {
+	size_t memorySizeBytes = 1536 * 1024 * 1024; // 1.5 GB
 	ubyte* mem = cast(ubyte*) pureMalloc(memorySizeBytes);
 	scope(exit) pureFree(mem);
 	verify(mem != null);
 	Alloc alloc = Alloc(mem, memorySizeBytes);
 	AllSymbols allSymbols = AllSymbols(ptrTrustMe(alloc));
 	AllPaths allPaths = AllPaths(ptrTrustMe(alloc), ptrTrustMe(allSymbols));
-	immutable immutable(ulong) function() @safe @nogc pure nothrow getTimeNanosPure =
-		cast(immutable(ulong) function() @safe @nogc pure nothrow) &getTimeNanos;
+	ulong function() @safe @nogc pure nothrow getTimeNanosPure =
+		cast(ulong function() @safe @nogc pure nothrow) &getTimeNanos;
 	scope Perf perf = Perf(() => getTimeNanosPure());
-	immutable int res = go(alloc, perf, allSymbols, allPaths, cast(immutable SafeCStr[]) argv[1 .. argc]).value;
+	int res = go(alloc, perf, allSymbols, allPaths, cast(SafeCStr[]) argv[1 .. argc]).value;
 	if (perfEnabled)
 		logPerf(perf);
 	return res;
@@ -129,8 +129,8 @@ import versionInfo : versionInfoForJIT;
 
 private:
 
-void logPerf(scope ref Perf perf) {
-	eachMeasure(perf, (immutable SafeCStr name, immutable PerfMeasureResult m) @trusted {
+void logPerf(in Perf perf) {
+	eachMeasure(perf, (in SafeCStr name, in PerfMeasureResult m) @trusted {
 		printf(
 			"%s * %d took %llums and %lluKB\n",
 			name.ptr,
@@ -140,15 +140,15 @@ void logPerf(scope ref Perf perf) {
 	});
 }
 
-immutable(ulong) divRound(immutable ulong a, immutable ulong b) {
-	immutable ulong div = a / b;
-	immutable ulong rem = a % b;
+ulong divRound(ulong a, ulong b) {
+	ulong div = a / b;
+	ulong rem = a % b;
 	return div + (rem >= b / 2 ? 1 : 0);
 }
 static assert(divRound(15, 10) == 2);
 static assert(divRound(14, 10) == 1);
 
-@trusted immutable(ulong) getTimeNanos() {
+@trusted ulong getTimeNanos() {
 	version(Windows) {
 		return (cast(ulong) GetTickCount()) * 1_000_000;
 	} else {
@@ -158,127 +158,111 @@ static assert(divRound(14, 10) == 1);
 	}
 }
 
-immutable(ExitCode) go(
-	ref Alloc alloc,
-	ref Perf perf,
-	ref AllSymbols allSymbols,
-	ref AllPaths allPaths,
-	scope immutable SafeCStr[] args,
-) {
-	immutable Path crowDir = getCrowDir(allPaths);
-	immutable Path includeDir = childPath(allPaths, crowDir, sym!"include");
-	immutable Path tempDir = childPath(allPaths, crowDir, sym!"temp");
-	immutable ExitCode setupTempExitCode = setupTempDir(allSymbols, allPaths, tempDir);
+ExitCode go(ref Alloc alloc, ref Perf perf, ref AllSymbols allSymbols, ref AllPaths allPaths, in SafeCStr[] args) {
+	Path crowDir = getCrowDir(allPaths);
+	Path includeDir = childPath(allPaths, crowDir, sym!"include");
+	Path tempDir = childPath(allPaths, crowDir, sym!"temp");
+	ExitCode setupTempExitCode = setupTempDir(allSymbols, allPaths, tempDir);
 	if (setupTempExitCode != ExitCode.ok)
 		return printErr(safeCStr!"Failed to set up temporary directory\n");
 
-	immutable Path cwd = getCwd(allPaths);
-	immutable PathsInfo pathsInfo = immutable PathsInfo(some(cwd));
-	immutable Command command = parseCommand(alloc, allSymbols, allPaths, cwd, args);
-	immutable ShowDiagOptions showDiagOptions = immutable ShowDiagOptions(true);
+	Path cwd = getCwd(allPaths);
+	PathsInfo pathsInfo = PathsInfo(some(cwd));
+	Command command = parseCommand(alloc, allSymbols, allPaths, cwd, args);
+	ShowDiagOptions showDiagOptions = ShowDiagOptions(true);
 
-	return command.matchImpure!(immutable ExitCode)(
-		(scope immutable Command.Build it) =>
+	return command.matchImpure!ExitCode(
+		(in Command.Build it) =>
 			runBuild(alloc, perf, allSymbols, allPaths, pathsInfo, includeDir, tempDir, it.mainPath, it.options),
-		(scope immutable Command.Document it) =>
+		(in Command.Document it) =>
 			runDocument(alloc, perf, allSymbols, allPaths, pathsInfo, includeDir, it.rootPaths),
-		(scope immutable Command.Help it) =>
+		(in Command.Help it) =>
 			help(it),
-		(scope immutable Command.Print it) =>
-			withReadOnlyStorage!(immutable ExitCode)(
-				allPaths,
-				includeDir,
-				(scope ref immutable ReadOnlyStorage storage) {
-					immutable DiagsAndResultStrs printed = print(
-						alloc,
-						perf,
-						// Just going with this arbitrarily. Only affects concrete-model priting.
-						versionInfoForJIT(),
-						allSymbols,
-						allPaths,
-						pathsInfo,
-						storage,
-						showDiagOptions,
-						it.kind,
-						it.mainPath);
-					if (!safeCStrIsEmpty(printed.diagnostics)) printErr(printed.diagnostics);
-					if (!safeCStrIsEmpty(printed.result)) print(printed.result);
-					return safeCStrIsEmpty(printed.diagnostics) ? ExitCode.ok : ExitCode.error;
+		(in Command.Print it) =>
+			withReadOnlyStorage!ExitCode(allPaths, includeDir, (in ReadOnlyStorage storage) {
+				DiagsAndResultStrs printed = print(
+					alloc,
+					perf,
+					// Just going with this arbitrarily. Only affects concrete-model priting.
+					versionInfoForJIT(),
+					allSymbols,
+					allPaths,
+					pathsInfo,
+					storage,
+					showDiagOptions,
+					it.kind,
+					it.mainPath);
+				if (!safeCStrIsEmpty(printed.diagnostics)) printErr(printed.diagnostics);
+				if (!safeCStrIsEmpty(printed.result)) print(printed.result);
+				return safeCStrIsEmpty(printed.diagnostics) ? ExitCode.ok : ExitCode.error;
 			}),
-		(scope immutable Command.Run run) =>
-			withReadOnlyStorage(
-				allPaths,
-				includeDir,
-				(scope ref immutable ReadOnlyStorage storage) =>
-					run.options.matchImpure!(immutable ExitCode)(
-						(immutable RunOptions.Interpret) =>
-							withRealExtern(alloc, allSymbols, allPaths, (scope ref Extern extern_) => buildAndInterpret(
+		(in Command.Run run) =>
+			withReadOnlyStorage!ExitCode(allPaths, includeDir, (in ReadOnlyStorage storage) =>
+				run.options.matchImpure!ExitCode(
+					(in RunOptions.Interpret) =>
+						withRealExtern(alloc, allSymbols, allPaths, (in Extern extern_) => buildAndInterpret(
+							alloc,
+							perf,
+							allSymbols,
+							allPaths,
+							pathsInfo,
+							storage,
+							extern_,
+							(in SafeCStr x) {
+								printErr(x);
+							},
+							showDiagOptions,
+							run.mainPath,
+							getAllArgs(alloc, allPaths, storage, run.mainPath, run.programArgs))),
+					(in RunOptions.Jit it) {
+						version (Windows) {
+							printErr(safeCStr!"'--jit' is not supported on Windows");
+							return ExitCode.error;
+						} else {
+							return buildAndJit(
 								alloc,
 								perf,
 								allSymbols,
 								allPaths,
 								pathsInfo,
-								storage,
-								extern_,
-								(scope immutable SafeCStr x) {
-									printErr(x);
-								},
+								it.options,
 								showDiagOptions,
+								storage,
 								run.mainPath,
-								getAllArgs(alloc, allPaths, storage, run.mainPath, run.programArgs))),
-						(immutable RunOptions.Jit it) {
-							version (Windows) {
-								printErr(safeCStr!"'--jit' is not supported on Windows");
-								return ExitCode.error;
-							} else {
-								return buildAndJit(
-									alloc,
-									perf,
-									allSymbols,
-									allPaths,
-									pathsInfo,
-									it.options,
-									showDiagOptions,
-									storage,
-									run.mainPath,
-									getAllArgs(alloc, allPaths, storage, run.mainPath, run.programArgs));
-							}
-						})),
-		(scope immutable Command.Test it) {
+								getAllArgs(alloc, allPaths, storage, run.mainPath, run.programArgs));
+						}
+					})),
+		(in Command.Test it) {
 			version(Test) {
 				return test(alloc, it.name);
 			} else
 				return printErr(safeCStr!"Did not compile with tests");
 		},
-		(scope immutable Command.Version) =>
+		(in Command.Version) =>
 			printVersion());
 }
 
-immutable(SafeCStr[]) getAllArgs(
+SafeCStr[] getAllArgs(
 	ref Alloc alloc,
-	ref const AllPaths allPaths,
-	scope ref immutable ReadOnlyStorage storage,
-	immutable Path main,
-	scope immutable SafeCStr[] programArgs,
+	in AllPaths allPaths,
+	in ReadOnlyStorage storage,
+	Path main,
+	in SafeCStr[] programArgs,
 ) =>
 	prepend(alloc, pathToSafeCStr(alloc, allPaths, main, sym!".crow"), programArgs);
 
-@trusted immutable(ExitCode) setupTempDir(
-	ref AllSymbols allSymbols,
-	ref AllPaths allPaths,
-	immutable Path tempDir,
-) {
+@trusted ExitCode setupTempDir(ref AllSymbols allSymbols, ref AllPaths allPaths, Path tempDir) {
 	TempStrForPath dirPathBuf = void;
-	immutable CStr dirPath = pathToTempStr(dirPathBuf, allPaths, tempDir, sym!"").ptr;
+	CStr dirPath = pathToTempStr(dirPathBuf, allPaths, tempDir, sym!"").ptr;
 	version (Windows) {
 		if (GetFileAttributesA(dirPath) == INVALID_FILE_ATTRIBUTES) {
-			immutable int ok = CreateDirectoryA(dirPath, null);
+			int ok = CreateDirectoryA(dirPath, null);
 			if (!ok) {
 				fprintf(stderr, "error creating directory %s\n", dirPath);
 				return ExitCode.error;
 			}
 		} else {
-			immutable ExitCode err = clearDir(allSymbols, allPaths, tempDir);
+			ExitCode err = clearDir(allSymbols, allPaths, tempDir);
 			if (err != ExitCode.ok)
 				return err;
 		}
@@ -286,7 +270,7 @@ immutable(SafeCStr[]) getAllArgs(
 		DIR* dir = opendir(dirPath);
 		if (dir == null) {
 			if (errno == ENOENT) {
-				immutable int err = mkdir(dirPath, S_IRWXU);
+				int err = mkdir(dirPath, S_IRWXU);
 				if (err != 0) {
 					fprintf(stderr, "error creating directory %s\n", dirPath);
 					return ExitCode.error;
@@ -296,7 +280,7 @@ immutable(SafeCStr[]) getAllArgs(
 				return ExitCode.error;
 			}
 		} else {
-			immutable ExitCode err = clearDirRecur(allSymbols, allPaths, tempDir, dir);
+			ExitCode err = clearDirRecur(allSymbols, allPaths, tempDir, dir);
 			if (err != ExitCode.ok)
 				return err;
 		}
@@ -305,45 +289,36 @@ immutable(SafeCStr[]) getAllArgs(
 }
 
 version (Windows) {
-	@system immutable(ExitCode) clearDir(
-		ref AllSymbols allSymbols,
-		ref AllPaths allPaths,
-		immutable Path dirPath,
-	) {
+	@system ExitCode clearDir(ref AllSymbols allSymbols, ref AllPaths allPaths, Path dirPath) {
 		TempStrForPath searchPathBuf = void;
-		immutable CStr searchPath = pathToTempStr(searchPathBuf, allPaths, childPath(allPaths, dirPath, sym!"*")).ptr;
+		CStr searchPath = pathToTempStr(searchPathBuf, allPaths, childPath(allPaths, dirPath, sym!"*")).ptr;
 		WIN32_FIND_DATAA fileData;
 		HANDLE fileHandle = FindFirstFileA(searchPath, &fileData);
 		if (fileHandle == INVALID_HANDLE_VALUE) {
-			immutable DWORD error = GetLastError();
+			DWORD error = GetLastError();
 			if (error != ERROR_PATH_NOT_FOUND) {
 				printLastError(error, "clearing temp directory");
 				return ExitCode.error;
 			}
 			return ExitCode.ok;
 		} else {
-			immutable ExitCode err = clearDirRecur(allSymbols, allPaths, dirPath, fileHandle);
-			immutable int closeOk = FindClose(fileHandle);
-			verify(cast(immutable bool) closeOk);
+			ExitCode err = clearDirRecur(allSymbols, allPaths, dirPath, fileHandle);
+			int closeOk = FindClose(fileHandle);
+			verify(cast(bool) closeOk);
 			return err;
 		}
 	}
 
-	@system immutable(ExitCode) clearDirRecur(
-		ref AllSymbols allSymbols,
-		ref AllPaths allPaths,
-		immutable Path dirPath,
-		HANDLE fileHandle,
-	) {
+	@system ExitCode clearDirRecur(ref AllSymbols allSymbols, ref AllPaths allPaths, Path dirPath, HANDLE fileHandle) {
 		WIN32_FIND_DATAA fileData;
 		if (FindNextFileA(fileHandle, &fileData)) {
-			immutable string name = strOfCStr(cast(immutable) fileData.cFileName.ptr);
+			string name = strOfCStr(cast(immutable) fileData.cFileName.ptr);
 			if (!strEq(name, "..")) {
-				immutable Path child = childPath(allPaths, dirPath, symOfStr(allSymbols, name));
+				Path child = childPath(allPaths, dirPath, symOfStr(allSymbols, name));
 				TempStrForPath childBuf = void;
-				immutable CStr childCStr = pathToTempStr(childBuf, allPaths, child).ptr;
+				CStr childCStr = pathToTempStr(childBuf, allPaths, child).ptr;
 				if (fileData.dwFileAttributes & FILE_ATTRIBUTE_DIRECTORY) {
-					immutable ExitCode clearErr = clearDir(allSymbols, allPaths, child);
+					ExitCode clearErr = clearDir(allSymbols, allPaths, child);
 					if (clearErr != ExitCode.ok)
 						return clearErr;
 					if (!RemoveDirectoryA(childCStr)) {
@@ -364,21 +339,16 @@ version (Windows) {
 		}
 	}
 } else {
-	@system immutable(ExitCode) clearDirRecur(
-		ref AllSymbols allSymbols,
-		ref AllPaths allPaths,
-		immutable Path dirPath,
-		DIR* dir,
-	) {
+	@system ExitCode clearDirRecur(ref AllSymbols allSymbols, ref AllPaths allPaths, Path dirPath, DIR* dir) {
 		immutable dirent* entry = cast(immutable) readdir(dir);
 		if (entry == null)
 			return ExitCode.ok;
-		immutable string entryName = strOfCStr(entry.d_name.ptr);
+		string entryName = strOfCStr(entry.d_name.ptr);
 		if (!strEq(entryName, ".") && !strEq(entryName, "..")) {
-			immutable Path child = childPath(allPaths, dirPath, symOfStr(allSymbols, entryName));
+			Path child = childPath(allPaths, dirPath, symOfStr(allSymbols, entryName));
 			stat_t s;
 			TempStrForPath buf = void;
-			immutable CStr childCStr = pathToTempStr(buf, allPaths, child).ptr;
+			CStr childCStr = pathToTempStr(buf, allPaths, child).ptr;
 			stat(childCStr, &s);
 			if ((s.st_mode & S_IFMT) == S_IFDIR) {
 				DIR* innerDir = opendir(childCStr);
@@ -386,11 +356,11 @@ version (Windows) {
 					fprintf(stderr, "error opening directory %s (to delete contents)\n", childCStr);
 					return ExitCode.error;
 				}
-				immutable ExitCode err = clearDirRecur(allSymbols, allPaths, child, innerDir);
+				ExitCode err = clearDirRecur(allSymbols, allPaths, child, innerDir);
 				if (err != ExitCode.ok)
 					return err;
 			} else {
-				immutable int err = unlink(childCStr);
+				int err = unlink(childCStr);
 				if (err != 0) {
 					fprintf(stderr, "error removing %s\n", childCStr);
 					return ExitCode.error;
@@ -401,17 +371,17 @@ version (Windows) {
 	}
 }
 
-@system immutable(ExitCode) mkdirRecur(ref const AllPaths allPaths, immutable Path dir) {
+@system ExitCode mkdirRecur(in AllPaths allPaths, Path dir) {
 	version (Windows) {
-		return todo!(immutable ExitCode)("!");
+		return todo!ExitCode("!");
 	} else {
 		TempStrForPath buf = void;
-		immutable CStr dirCStr = pathToTempStr(buf, allPaths, dir).ptr;
-		immutable int err = mkdir(dirCStr, S_IRWXU);
+		CStr dirCStr = pathToTempStr(buf, allPaths, dir).ptr;
+		int err = mkdir(dirCStr, S_IRWXU);
 		if (err == ENOENT) {
-			immutable Opt!Path par = parent(allPaths, dir);
+			Opt!Path par = parent(allPaths, dir);
 			if (has(par)) {
-				immutable ExitCode res = mkdirRecur(allPaths, force(par));
+				ExitCode res = mkdirRecur(allPaths, force(par));
 				return res == ExitCode.ok
 					? handleMkdirErr(mkdir(dirCStr, S_IRWXU), dirCStr)
 					: res;
@@ -423,14 +393,14 @@ version (Windows) {
 
 version (Windows) {
 } else {
-	@system immutable(ExitCode) handleMkdirErr(immutable int err, immutable char* dir) {
+	@system ExitCode handleMkdirErr(int err, CStr dir) {
 		if (err != 0)
 			fprintf(stderr, "Error making directory %s: %s\n", dir, strerror(errno));
-		return immutable ExitCode(err);
+		return ExitCode(err);
 	}
 }
 
-@trusted immutable(ExitCode) printVersion() {
+@trusted ExitCode printVersion() {
 	static immutable string date = import("date.txt")[0 .. "2020-02-02".length];
 	static immutable string commitHash = import("commit-hash.txt")[0 .. 8];
 	printf("%.*s (%.*s)", cast(int) date.length, date.ptr, cast(int) commitHash.length, commitHash.ptr);
@@ -447,67 +417,67 @@ version (Windows) {
 	return ExitCode.ok;
 }
 
-immutable(ExitCode) runDocument(
+ExitCode runDocument(
 	ref Alloc alloc,
 	ref Perf perf,
 	ref AllSymbols allSymbols,
 	ref AllPaths allPaths,
-	ref immutable PathsInfo pathsInfo,
-	immutable Path includeDir,
-	scope immutable Path[] rootPaths,
+	in PathsInfo pathsInfo,
+	Path includeDir,
+	in Path[] rootPaths,
 ) =>
-	withReadOnlyStorage(allPaths, includeDir, (scope ref immutable ReadOnlyStorage storage) {
-		immutable DocumentResult result =
+	withReadOnlyStorage!ExitCode(allPaths, includeDir, (in ReadOnlyStorage storage) {
+		DocumentResult result =
 			compileAndDocument(alloc, perf, allSymbols, allPaths, pathsInfo, storage, showDiagOptions, rootPaths);
 		return safeCStrIsEmpty(result.diagnostics) ? println(result.document) : printErr(result.diagnostics);
 	});
 
-struct RunBuildResult {
-	immutable ExitCode err;
-	immutable Opt!PathAndExtension exePath;
+immutable struct RunBuildResult {
+	ExitCode err;
+	Opt!PathAndExtension exePath;
 }
 
-immutable(ExitCode) runBuild(
+ExitCode runBuild(
 	ref Alloc alloc,
 	ref Perf perf,
 	ref AllSymbols allSymbols,
 	ref AllPaths allPaths,
-	ref immutable PathsInfo pathsInfo,
-	immutable Path includeDir,
-	immutable Path tempDir,
-	immutable Path mainPath,
-	ref immutable BuildOptions options,
+	in PathsInfo pathsInfo,
+	Path includeDir,
+	Path tempDir,
+	Path mainPath,
+	in BuildOptions options,
 ) =>
 	hasAnyOut(options.out_)
 		? runBuildInner(
 			alloc, perf, allSymbols, allPaths, pathsInfo, includeDir, tempDir,
 			mainPath, options, ExeKind.allowNoExe).err
-		: withReadOnlyStorage(allPaths, includeDir, (scope ref immutable ReadOnlyStorage storage) =>
+		: withReadOnlyStorage!ExitCode(allPaths, includeDir, (in ReadOnlyStorage storage) =>
 			justTypeCheck(alloc, perf, allSymbols, allPaths, storage, mainPath));
 
 enum ExeKind { ensureExe, allowNoExe }
-immutable(RunBuildResult) runBuildInner(
+RunBuildResult runBuildInner(
 	ref Alloc alloc,
 	ref Perf perf,
 	ref AllSymbols allSymbols,
 	ref AllPaths allPaths,
-	ref immutable PathsInfo pathsInfo,
-	immutable Path includeDir,
-	immutable Path tempDir,
-	immutable Path mainPath,
-	ref immutable BuildOptions options,
-	immutable ExeKind exeKind,
+	in PathsInfo pathsInfo,
+	Path includeDir,
+	Path tempDir,
+	Path mainPath,
+	in BuildOptions options,
+	ExeKind exeKind,
 ) {
-	immutable Sym name = baseName(allPaths, mainPath);
-	immutable PathAndExtension cPath = has(options.out_.outC)
+	Sym name = baseName(allPaths, mainPath);
+	PathAndExtension cPath = has(options.out_.outC)
 		? force(options.out_.outC)
-		: immutable PathAndExtension(childPath(allPaths, tempDir, name), sym!".c");
-	immutable Opt!PathAndExtension exePath = has(options.out_.outExecutable)
+		: PathAndExtension(childPath(allPaths, tempDir, name), sym!".c");
+	Opt!PathAndExtension exePath = has(options.out_.outExecutable)
 		? options.out_.outExecutable
 		: exeKind == ExeKind.ensureExe
-		? some(immutable PathAndExtension(childPath(allPaths, tempDir, name), defaultExeExtension))
+		? some(PathAndExtension(childPath(allPaths, tempDir, name), defaultExeExtension))
 		: none!PathAndExtension;
-	immutable ExitCode err = buildToCAndCompile(
+	ExitCode err = buildToCAndCompile(
 		alloc,
 		perf,
 		allSymbols,
@@ -519,29 +489,30 @@ immutable(RunBuildResult) runBuildInner(
 		cPath,
 		exePath,
 		options.cCompileOptions);
-	return immutable RunBuildResult(err, exePath);
+	return RunBuildResult(err, exePath);
 }
 
-immutable ShowDiagOptions showDiagOptions = immutable ShowDiagOptions(true);
+ShowDiagOptions showDiagOptions() =>
+	ShowDiagOptions(true);
 
-immutable(ExitCode) buildToCAndCompile(
+ExitCode buildToCAndCompile(
 	ref Alloc alloc,
 	ref Perf perf,
 	ref AllSymbols allSymbols,
 	ref AllPaths allPaths,
-	ref immutable PathsInfo pathsInfo,
-	ref immutable ShowDiagOptions showDiagOptions,
-	immutable Path includeDir,
-	immutable Path mainPath,
-	immutable PathAndExtension cPath,
-	immutable Opt!PathAndExtension exePath,
-	ref immutable CCompileOptions cCompileOptions,
+	in PathsInfo pathsInfo,
+	in ShowDiagOptions showDiagOptions,
+	Path includeDir,
+	Path mainPath,
+	PathAndExtension cPath,
+	in Opt!PathAndExtension exePath,
+	in CCompileOptions cCompileOptions,
 ) =>
-	withReadOnlyStorage(allPaths, includeDir, (scope ref immutable ReadOnlyStorage storage) {
-		immutable BuildToCResult result =
+	withReadOnlyStorage!ExitCode(allPaths, includeDir, (in ReadOnlyStorage storage) {
+		BuildToCResult result =
 			buildToC(alloc, perf, allSymbols, allPaths, pathsInfo, storage, showDiagOptions, mainPath);
 		if (safeCStrIsEmpty(result.diagnostics)) {
-			immutable ExitCode res = writeFile(allPaths, cPath, result.cSource);
+			ExitCode res = writeFile(allPaths, cPath, result.cSource);
 			return res == ExitCode.ok && has(exePath)
 				? compileC(
 					alloc, perf, allSymbols, allPaths,
@@ -551,19 +522,19 @@ immutable(ExitCode) buildToCAndCompile(
 			return printErr(result.diagnostics);
 	});
 
-version (Windows) { } else { immutable(ExitCode) buildAndJit(
+version (Windows) { } else { ExitCode buildAndJit(
 	ref Alloc alloc,
 	ref Perf perf,
 	ref AllSymbols allSymbols,
 	ref AllPaths allPaths,
-	ref immutable PathsInfo pathsInfo,
-	ref immutable JitOptions jitOptions,
-	ref immutable ShowDiagOptions showDiagOptions,
-	scope ref immutable ReadOnlyStorage storage,
-	immutable Path main,
-	immutable SafeCStr[] programArgs,
+	in PathsInfo pathsInfo,
+	in JitOptions jitOptions,
+	in ShowDiagOptions showDiagOptions,
+	in ReadOnlyStorage storage,
+	Path main,
+	in SafeCStr[] programArgs,
 ) {
-	immutable ProgramsAndFilesInfo programs =
+	ProgramsAndFilesInfo programs =
 		buildToLowProgram(alloc, perf, versionInfoForJIT(), allSymbols, allPaths, storage, main);
 	return hasDiags(programs.program)
 		? printErr(strOfDiagnostics(
@@ -574,11 +545,10 @@ version (Windows) { } else { immutable(ExitCode) buildAndJit(
 			showDiagOptions,
 			programs.program.filesInfo,
 			programs.program.diagnostics))
-		: immutable ExitCode(
-			jitAndRun(alloc, perf, castImmutableRef(allSymbols), programs.lowProgram, jitOptions, programArgs));
+		: ExitCode(jitAndRun(alloc, perf, allSymbols, programs.lowProgram, jitOptions, programArgs));
 } }
 
-immutable(ExitCode) help(scope immutable Command.Help a) {
+ExitCode help(in Command.Help a) {
 	println(a.helpText);
 	final switch (a.kind) {
 		case Command.Help.Kind.requested:
@@ -588,7 +558,7 @@ immutable(ExitCode) help(scope immutable Command.Help a) {
 	}
 }
 
-immutable(SafeCStr[]) cCompilerArgs(ref immutable CCompileOptions options) {
+SafeCStr[] cCompilerArgs(in CCompileOptions options) {
 	version (Windows) {
 		static immutable SafeCStr[] optimizedArgs = [
 			safeCStr!"/Zi",
@@ -627,35 +597,34 @@ immutable(SafeCStr[]) cCompilerArgs(ref immutable CCompileOptions options) {
 	}
 }
 
-@trusted immutable(ExitCode) compileC(
+@trusted ExitCode compileC(
 	ref Alloc alloc,
 	ref Perf perf,
 	ref AllSymbols allSymbols,
 	ref AllPaths allPaths,
-	immutable PathAndExtension cPath,
-	immutable PathAndExtension exePath,
-	scope immutable ExternLibrary[] externLibraries,
-	ref immutable CCompileOptions options,
+	in PathAndExtension cPath,
+	in PathAndExtension exePath,
+	in ExternLibrary[] externLibraries,
+	in CCompileOptions options,
 ) {
-	immutable SafeCStr[] args = cCompileArgs(alloc, allSymbols, allPaths, cPath, exePath, externLibraries, options);
+	SafeCStr[] args = cCompileArgs(alloc, allSymbols, allPaths, cPath, exePath, externLibraries, options);
 	version (Windows) {
 		TempStrForPath clPath = void;
-		immutable ExitCode clErr = findPathToCl(clPath);
+		ExitCode clErr = findPathToCl(clPath);
 		if (clErr != ExitCode.ok)
 			return clErr;
-		scope immutable SafeCStr executable = immutable SafeCStr(cast(immutable) clPath.ptr);
+		scope SafeCStr executable = SafeCStr(cast(immutable) clPath.ptr);
 	} else {
-		scope immutable SafeCStr executable = safeCStr!"/usr/bin/cc";
+		scope SafeCStr executable = safeCStr!"/usr/bin/cc";
 	}
 
-	immutable int err = withMeasure!(immutable int, () @safe =>
+	return withMeasure!(ExitCode, () =>
 		spawnAndWait(alloc, allPaths, executable, args)
 	)(alloc, perf, PerfMeasure.cCompile);
-	return immutable ExitCode(err);
 }
 
 version (Windows) {
-	@system immutable(ExitCode) findPathToCl(ref TempStrForPath res) {
+	@system ExitCode findPathToCl(ref TempStrForPath res) {
 		int len = SearchPathA(null, "cl.exe", null, cast(uint) res.length, res.ptr, null);
 		if (len == 0) {
 			fprintf(stderr, "Could not find cl.exe on path. Be sure you are using a Native Tools Command Prompt.");
@@ -665,14 +634,14 @@ version (Windows) {
 	}
 }
 
-immutable(SafeCStr[]) cCompileArgs(
+SafeCStr[] cCompileArgs(
 	ref Alloc alloc,
 	ref AllSymbols allSymbols,
 	ref AllPaths allPaths,
-	immutable PathAndExtension cPath,
-	immutable PathAndExtension exePath,
-	scope immutable ExternLibrary[] externLibraries,
-	ref immutable CCompileOptions options,
+	in PathAndExtension cPath,
+	in PathAndExtension exePath,
+	in ExternLibrary[] externLibraries,
+	in CCompileOptions options,
 ) {
 	ArrBuilder!SafeCStr args;
 	addAll(alloc, args, cCompilerArgs(options));
@@ -680,11 +649,11 @@ immutable(SafeCStr[]) cCompileArgs(
 	version (Windows) {
 		add(alloc, args, safeCStr!"/link");
 	}
-	foreach (immutable ExternLibrary x; externLibraries) {
+	foreach (ExternLibrary x; externLibraries) {
 		version (Windows) {
-			immutable Sym xDotLib = concatSyms(allSymbols, [x.libraryName, sym!".lib"]);
+			Sym xDotLib = concatSyms(allSymbols, [x.libraryName, sym!".lib"]);
 			if (has(x.configuredPath)) {
-				immutable Path path = childPath(allPaths, force(x.configuredPath), xDotLib);
+				Path path = childPath(allPaths, force(x.configuredPath), xDotLib);
 				add(alloc, args, pathToSafeCStr(alloc, allPaths, path));
 			} else
 				switch (x.libraryName.value) {
@@ -721,54 +690,54 @@ immutable(SafeCStr[]) cCompileArgs(
 	return finishArr(alloc, args);
 }
 
-@trusted immutable(ExitCode) print(scope immutable SafeCStr a) {
+@trusted ExitCode print(in SafeCStr a) {
 	printf("%s", a.ptr);
 	return ExitCode.ok;
 }
 
-@trusted immutable(ExitCode) println(scope immutable SafeCStr a) {
+@trusted ExitCode println(in SafeCStr a) {
 	printf("%s\n", a.ptr);
 	return ExitCode.ok;
 }
 
-@trusted immutable(ExitCode) printErr(scope immutable SafeCStr a) {
+@trusted ExitCode printErr(in SafeCStr a) {
 	fprintf(stderr, "%s", a.ptr);
 	return ExitCode.error;
 }
 
-immutable(T) withReadOnlyStorage(T)(
-	scope ref const AllPaths allPaths,
-	immutable Path includeDir,
-	immutable(T) delegate(scope ref immutable ReadOnlyStorage) @safe @nogc nothrow cb,
+T withReadOnlyStorage(T)(
+	in AllPaths allPaths,
+	Path includeDir,
+	T delegate(in ReadOnlyStorage) @safe @nogc nothrow cb,
 ) {
-	scope immutable ReadOnlyStorage storage = immutable ReadOnlyStorage(
+	scope ReadOnlyStorage storage = ReadOnlyStorage(
 		includeDir,
 		(
-			immutable Path path,
-			void delegate(immutable ReadFileResult!(ubyte[])) @safe @nogc pure nothrow cb,
+			Path path,
+			in void delegate(in ReadFileResult!(ubyte[])) @safe @nogc pure nothrow cb,
 		) =>
 			tryReadFile(allPaths, path, sym!"", NulTerminate.no, cb),
 		(
-			immutable Path path,
-			immutable Sym extension,
-			void delegate(immutable ReadFileResult!SafeCStr) @safe @nogc pure nothrow cb,
+			Path path,
+			Sym extension,
+			in void delegate(in ReadFileResult!SafeCStr) @safe @nogc pure nothrow cb,
 		) =>
-			tryReadFile(allPaths, path, extension, NulTerminate.yes, (immutable ReadFileResult!(ubyte[]) x) =>
-				x.match!void(
-					(immutable ubyte[] bytes) @trusted =>
-						cb(immutable ReadFileResult!SafeCStr(immutable SafeCStr(cast(immutable char*) bytes.ptr))),
-					(immutable(ReadFileResult!(ubyte[]).NotFound)) =>
-						cb(immutable ReadFileResult!SafeCStr(immutable ReadFileResult!SafeCStr.NotFound())),
-					(immutable(ReadFileResult!(ubyte[]).Error)) =>
-						cb(immutable ReadFileResult!SafeCStr(immutable ReadFileResult!SafeCStr.Error())))));
+			tryReadFile(allPaths, path, extension, NulTerminate.yes, (in ReadFileResult!(ubyte[]) x) =>
+				x.matchIn!void(
+					(in immutable ubyte[] bytes) @trusted =>
+						cb(ReadFileResult!SafeCStr(SafeCStr(cast(immutable char*) bytes.ptr))),
+					(in ReadFileResult!(ubyte[]).NotFound) =>
+						cb(ReadFileResult!SafeCStr(ReadFileResult!SafeCStr.NotFound())),
+					(in ReadFileResult!(ubyte[]).Error) =>
+						cb(ReadFileResult!SafeCStr(ReadFileResult!SafeCStr.Error())))));
 	return cb(storage);
 }
 
 enum NulTerminate { no, yes }
 
-@system void withBufferPossiblyOnStack(immutable size_t maxSizeOnStack)(
-	immutable size_t size,
-	scope void delegate(scope ubyte*) @nogc nothrow cb,
+@system void withBufferPossiblyOnStack(size_t maxSizeOnStack)(
+	size_t size,
+	in void delegate(scope ubyte*) @nogc nothrow cb,
 ) {
 	if (size <= maxSizeOnStack) {
 		ubyte[maxSizeOnStack] buf = void;
@@ -781,66 +750,61 @@ enum NulTerminate { no, yes }
 }
 
 @trusted void tryReadFile(
-	scope ref const AllPaths allPaths,
-	immutable Path path,
-	immutable Sym extension,
-	immutable NulTerminate nulTerminate,
-	scope void delegate(immutable ReadFileResult!(ubyte[])) @safe @nogc pure nothrow cb,
+	in AllPaths allPaths,
+	Path path,
+	Sym extension,
+	NulTerminate nulTerminate,
+	in void delegate(in ReadFileResult!(ubyte[])) @safe @nogc pure nothrow cb,
 ) {
 	TempStrForPath pathBuf = void;
-	immutable CStr pathCStr = pathToTempStr(pathBuf, allPaths, path, extension).ptr;
+	CStr pathCStr = pathToTempStr(pathBuf, allPaths, path, extension).ptr;
 
 	FILE* fd = fopen(pathCStr, "rb");
 	if (fd == null)
 		return cb(errno == ENOENT
-			? immutable ReadFileResult!(ubyte[])(immutable ReadFileResult!(ubyte[]).NotFound())
-			: immutable ReadFileResult!(ubyte[])(immutable ReadFileResult!(ubyte[]).Error()));
+			? ReadFileResult!(ubyte[])(ReadFileResult!(ubyte[]).NotFound())
+			: ReadFileResult!(ubyte[])(ReadFileResult!(ubyte[]).Error()));
 	scope(exit) fclose(fd);
 
-	immutable int err = fseek(fd, 0, SEEK_END);
+	int err = fseek(fd, 0, SEEK_END);
 	if (err) todo!void("!");
 
-	immutable long ftellResult = ftell(fd);
+	long ftellResult = ftell(fd);
 	if (ftellResult < 0)
 		todo!void("ftell failed");
-	immutable size_t fileSize = cast(size_t) ftellResult;
+	size_t fileSize = cast(size_t) ftellResult;
 	if (fileSize == 0) {
 		if (nulTerminate) {
 			static immutable ubyte[] bytes = [0];
-			cb(immutable ReadFileResult!(ubyte[])(bytes));
+			cb(ReadFileResult!(ubyte[])(bytes));
 		} else
-			cb(immutable ReadFileResult!(ubyte[])([]));
+			cb(ReadFileResult!(ubyte[])([]));
 	} else {
 		withBufferPossiblyOnStack!0x100000(fileSize + (nulTerminate ? 1 : 0), (scope ubyte* contentBuf) {
 			// Go back to the beginning so we can read
-			immutable int err2 = fseek(fd, 0, SEEK_SET);
+			int err2 = fseek(fd, 0, SEEK_SET);
 			verify(err2 == 0);
 
-			immutable size_t nBytesRead = fread(contentBuf, ubyte.sizeof, fileSize, fd);
+			size_t nBytesRead = fread(contentBuf, ubyte.sizeof, fileSize, fd);
 			verify(nBytesRead == fileSize);
 			if (ferror(fd))
 				todo!void("error reading file");
 			if (nulTerminate) contentBuf[nBytesRead] = '\0';
 
-			return cb(immutable ReadFileResult!(ubyte[])(
-				cast(immutable) contentBuf[0 .. nBytesRead + (nulTerminate ? 1 : 0)]));
+			return cb(ReadFileResult!(ubyte[])(cast(immutable) contentBuf[0 .. nBytesRead + (nulTerminate ? 1 : 0)]));
 		});
 	}
 }
 
-@trusted immutable(ExitCode) writeFile(
-	ref const AllPaths allPaths,
-	immutable PathAndExtension path,
-	scope immutable SafeCStr content,
-) {
+@trusted ExitCode writeFile(in AllPaths allPaths, in PathAndExtension path, in SafeCStr content) {
 	FILE* fd = tryOpenFileForWrite(allPaths, path);
 	if (fd == null)
 		return ExitCode.error;
 	else {
 		scope(exit) fclose(fd);
 
-		immutable size_t size = safeCStrSize(content);
-		immutable long wroteBytes = fwrite(content.ptr, char.sizeof, size, fd);
+		size_t size = safeCStrSize(content);
+		long wroteBytes = fwrite(content.ptr, char.sizeof, size, fd);
 		if (wroteBytes != size) {
 			if (wroteBytes == -1)
 				todo!void("writeFile failed");
@@ -851,15 +815,15 @@ enum NulTerminate { no, yes }
 	}
 }
 
-@system FILE* tryOpenFileForWrite(ref const AllPaths allPaths, immutable PathAndExtension path) {
+@system FILE* tryOpenFileForWrite(in AllPaths allPaths, in PathAndExtension path) {
 	TempStrForPath buf = void;
-	immutable CStr pathCStr = pathToTempStr(buf, allPaths, path).ptr;
+	CStr pathCStr = pathToTempStr(buf, allPaths, path).ptr;
 	FILE* fd = fopen(pathCStr, "w");
 	if (fd == null) {
 		if (errno == ENOENT) {
-			immutable Opt!Path par = parent(allPaths, path.path);
+			Opt!Path par = parent(allPaths, path.path);
 			if (has(par)) {
-				immutable ExitCode res = mkdirRecur(allPaths, force(par));
+				ExitCode res = mkdirRecur(allPaths, force(par));
 				if (res == ExitCode.ok)
 					return fopen(pathCStr, "w");
 			}
@@ -872,47 +836,47 @@ enum NulTerminate { no, yes }
 
 version (Windows) {
 	extern(C) char* _getcwd(char* buffer, int maxlen);
-	extern(C) immutable(int) _mkdir(scope const char*, immutable uint);
+	extern(C) int _mkdir(scope const char*, immutable uint);
 
 	alias getcwd = _getcwd;
 	alias mkdir = _mkdir;
 }
 
-@trusted immutable(Path) getCwd(ref AllPaths allPaths) {
+@trusted Path getCwd(ref AllPaths allPaths) {
 	TempStrForPath res = void;
 	const char* cwd = getcwd(res.ptr, res.length);
 	return cwd == null
-		? todo!(immutable Path)("getcwd failed")
-		: parsePath(allPaths, immutable SafeCStr(cast(immutable) cwd));
+		? todo!Path("getcwd failed")
+		: parsePath(allPaths, SafeCStr(cast(immutable) cwd));
 }
 
-immutable(Path) getCrowDir(ref AllPaths allPaths) =>
+Path getCrowDir(ref AllPaths allPaths) =>
 	parentOrEmpty(allPaths, parentOrEmpty(allPaths, getPathToThisExecutable(allPaths)));
 
-@trusted immutable(Path) getPathToThisExecutable(ref AllPaths allPaths) {
+@trusted Path getPathToThisExecutable(ref AllPaths allPaths) {
 	TempStrForPath res = void;
 	version(Windows) {
 		HMODULE mod = GetModuleHandle(null);
 		verify(mod != null);
-		immutable DWORD size = GetModuleFileNameA(mod, res.ptr, res.length);
+		DWORD size = GetModuleFileNameA(mod, res.ptr, res.length);
 	} else {
-		immutable long size = readlink("/proc/self/exe", res.ptr, res.length);
+		long size = readlink("/proc/self/exe", res.ptr, res.length);
 	}
 	verify(size > 0 && size < res.length);
 	res[size] = '\0';
-	return parsePathDropExtension(allPaths, immutable SafeCStr(cast(immutable) res.ptr));
+	return parsePathDropExtension(allPaths, SafeCStr(cast(immutable) res.ptr));
 }
 
 // Returns the child process' error code.
 // WARN: A first arg will be prepended that is the executable path.
-@trusted immutable(int) spawnAndWait(
+@trusted ExitCode spawnAndWait(
 	ref TempAlloc tempAlloc,
-	ref const AllPaths allPaths,
-	scope immutable SafeCStr executablePath,
-	immutable SafeCStr[] args,
+	in AllPaths allPaths,
+	in SafeCStr executablePath,
+	in SafeCStr[] args,
 ) {
 	version (Windows) {
-		immutable CStr argsCStr = windowsArgsCStr(tempAlloc, executablePath, args);
+		CStr argsCStr = windowsArgsCStr(tempAlloc, executablePath, args);
 
 		HANDLE stdoutRead;
 		HANDLE stdoutWrite;
@@ -985,10 +949,10 @@ immutable(Path) getCrowDir(ref AllPaths allPaths) =>
 		verifyOk(CloseHandle(processInfo.hProcess));
 		verifyOk(CloseHandle(processInfo.hThread));
 
-		return exitCode;
+		return ExitCode(exitCode);
 	} else {
 		pid_t pid;
-		immutable int spawnStatus = posix_spawn(
+		int spawnStatus = posix_spawn(
 			&pid,
 			executablePath.ptr,
 			null,
@@ -998,32 +962,32 @@ immutable(Path) getCrowDir(ref AllPaths allPaths) =>
 			cast(char**) environ);
 		if (spawnStatus == 0) {
 			int waitStatus;
-			immutable int resPid = waitpid(pid, &waitStatus, 0);
+			int resPid = waitpid(pid, &waitStatus, 0);
 			verify(resPid == pid);
 			if (WIFEXITED(waitStatus))
-				return WEXITSTATUS(waitStatus); // only valid if WIFEXITED
+				return ExitCode(WEXITSTATUS(waitStatus)); // only valid if WIFEXITED
 			else {
 				if (WIFSIGNALED(waitStatus))
-					return todo!int("process exited with signal");
+					return todo!ExitCode("process exited with signal");
 				else
-					return todo!int("process exited non-normally");
+					return todo!ExitCode("process exited non-normally");
 			}
 		} else
-			return todo!int("posix_spawn failed");
+			return todo!ExitCode("posix_spawn failed");
 	}
 }
 
 version (Windows) {
-	immutable(CStr) windowsArgsCStr(
+	CStr windowsArgsCStr(
 		ref TempAlloc tempAlloc,
-		immutable SafeCStr executablePath,
-		scope immutable SafeCStr[] args,
+		in SafeCStr executablePath,
+		in SafeCStr[] args,
 	) {
 		Writer writer = Writer(ptrTrustMe(tempAlloc));
 		writer ~= '"';
 		writer ~= executablePath;
 		writer ~= '"';
-		foreach (immutable SafeCStr arg; args) {
+		foreach (SafeCStr arg; args) {
 			writer ~= ' ';
 			writer ~= arg;
 		}
@@ -1062,15 +1026,10 @@ version (Windows) {
 	}
 }
 
-// Return should be const, but some posix functions aren't marked that way
-@system immutable(CStr*) convertArgs(
-	ref Alloc alloc,
-	immutable SafeCStr executable,
-	immutable SafeCStr[] args,
-) {
+@system CStr* convertArgs(ref Alloc alloc, in SafeCStr executable, in SafeCStr[] args) {
 	ArrBuilder!CStr cArgs;
 	add(alloc, cArgs, executable.ptr);
-	foreach (immutable SafeCStr arg; args)
+	foreach (SafeCStr arg; args)
 		add(alloc, cArgs, arg.ptr);
 	add(alloc, cArgs, null);
 	return finishArr(alloc, cArgs).ptr;
@@ -1090,7 +1049,7 @@ bool WIFSIGNALED( int status )
 }
 
 version (Windows) {
-	@system void printLastError(immutable int error, immutable char* description) {
+	@system void printLastError(int error, CStr description) {
 		char[0x400] buffer;
 		int size = FormatMessageA(
 			FORMAT_MESSAGE_FROM_SYSTEM | FORMAT_MESSAGE_IGNORE_INSERTS,

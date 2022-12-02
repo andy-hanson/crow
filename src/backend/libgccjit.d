@@ -14,7 +14,7 @@ extern(C) {
 	struct gcc_jit_struct;
 	struct gcc_jit_function;
 	struct gcc_jit_block;
-	struct gcc_jit_rvalue;
+	immutable struct gcc_jit_rvalue;
 	struct gcc_jit_lvalue;
 	struct gcc_jit_type;
 	struct gcc_jit_param;
@@ -158,7 +158,7 @@ extern(C) {
 
 	gcc_jit_lvalue* gcc_jit_param_as_lvalue(gcc_jit_param* param);
 
-	immutable(gcc_jit_rvalue*) gcc_jit_param_as_rvalue(const gcc_jit_param* param);
+	gcc_jit_rvalue* gcc_jit_param_as_rvalue(const gcc_jit_param* param);
 
 	enum gcc_jit_function_kind {
 		GCC_JIT_FUNCTION_EXPORTED,
@@ -191,7 +191,7 @@ extern(C) {
 
 	inout(gcc_jit_param*) gcc_jit_function_get_param(inout gcc_jit_function* func, int index);
 
-	gcc_jit_block* gcc_jit_function_new_block(gcc_jit_function* func, const char* name);
+	gcc_jit_block* gcc_jit_function_new_block(gcc_jit_function* func, scope const char* name);
 
 	enum gcc_jit_global_kind {
 		GCC_JIT_GLOBAL_EXPORTED,
@@ -206,34 +206,34 @@ extern(C) {
 		immutable gcc_jit_type* type,
 		const char *name);
 
-	immutable(gcc_jit_rvalue*) gcc_jit_context_new_array_constructor(
+	gcc_jit_rvalue* gcc_jit_context_new_array_constructor(
 		ref gcc_jit_context ctxt,
 		gcc_jit_location* loc,
 		immutable gcc_jit_type* type,
 		size_t num_values,
 		immutable gcc_jit_rvalue** values);
 
-	immutable(gcc_jit_rvalue*) gcc_jit_lvalue_as_rvalue(const gcc_jit_lvalue* lvalue);
+	gcc_jit_rvalue* gcc_jit_lvalue_as_rvalue(const gcc_jit_lvalue* lvalue);
 
-	immutable(gcc_jit_rvalue*) gcc_jit_context_new_rvalue_from_long(
+	gcc_jit_rvalue* gcc_jit_context_new_rvalue_from_long(
 		ref gcc_jit_context ctxt,
 		immutable gcc_jit_type* numeric_type,
 		long value);
 
-	immutable(gcc_jit_rvalue*) gcc_jit_context_zero(
+	gcc_jit_rvalue* gcc_jit_context_zero(
 		ref gcc_jit_context ctxt,
 		immutable gcc_jit_type* numeric_type);
 
-	immutable(gcc_jit_rvalue*) gcc_jit_context_new_rvalue_from_double(
+	gcc_jit_rvalue* gcc_jit_context_new_rvalue_from_double(
 		ref gcc_jit_context ctxt,
 		immutable gcc_jit_type* numeric_type,
 		double value);
 
-	immutable(gcc_jit_rvalue*) gcc_jit_context_null(
+	gcc_jit_rvalue* gcc_jit_context_null(
 		ref gcc_jit_context ctxt,
 		const gcc_jit_type* pointer_type);
 
-	immutable(gcc_jit_rvalue*) gcc_jit_context_new_string_literal(
+	gcc_jit_rvalue* gcc_jit_context_new_string_literal(
 		ref gcc_jit_context ctxt,
 		const char *value);
 
@@ -244,12 +244,12 @@ extern(C) {
 		GCC_JIT_UNARY_OP_ABS,
 	}
 
-	immutable(gcc_jit_rvalue*) gcc_jit_context_new_unary_op(
+	gcc_jit_rvalue* gcc_jit_context_new_unary_op(
 		ref gcc_jit_context ctxt,
 		gcc_jit_location* loc,
 		gcc_jit_unary_op op,
 		immutable gcc_jit_type* result_type,
-		immutable gcc_jit_rvalue* rvalue);
+		gcc_jit_rvalue* rvalue);
 
 	enum gcc_jit_binary_op {
 		GCC_JIT_BINARY_OP_PLUS,
@@ -266,13 +266,13 @@ extern(C) {
 		GCC_JIT_BINARY_OP_RSHIFT,
 	}
 
-	immutable(gcc_jit_rvalue*) gcc_jit_context_new_binary_op(
+	gcc_jit_rvalue* gcc_jit_context_new_binary_op(
 		ref gcc_jit_context ctxt,
 		gcc_jit_location* loc,
 		gcc_jit_binary_op op,
 		immutable gcc_jit_type* result_type,
-		immutable gcc_jit_rvalue* a,
-		immutable gcc_jit_rvalue* b);
+		gcc_jit_rvalue* a,
+		gcc_jit_rvalue* b);
 
 	enum gcc_jit_comparison {
 		GCC_JIT_COMPARISON_EQ,
@@ -283,57 +283,57 @@ extern(C) {
 		GCC_JIT_COMPARISON_GE,
 	}
 
-	immutable(gcc_jit_rvalue*) gcc_jit_context_new_comparison(
+	gcc_jit_rvalue* gcc_jit_context_new_comparison(
 		ref gcc_jit_context ctxt,
 		gcc_jit_location* loc,
 		gcc_jit_comparison op,
-		immutable gcc_jit_rvalue* a,
-		immutable gcc_jit_rvalue* b);
+		gcc_jit_rvalue* a,
+		gcc_jit_rvalue* b);
 
 	gcc_jit_rvalue* gcc_jit_context_new_call(
 		ref gcc_jit_context ctxt,
 		gcc_jit_location *loc,
 		const gcc_jit_function* func,
 		int numargs,
-		scope const gcc_jit_rvalue** args);
+		scope immutable gcc_jit_rvalue** args);
 
-	immutable(gcc_jit_rvalue*) gcc_jit_context_new_call_through_ptr(
+	gcc_jit_rvalue* gcc_jit_context_new_call_through_ptr(
 		ref gcc_jit_context ctxt,
 		gcc_jit_location* loc,
-		immutable gcc_jit_rvalue* fn_ptr,
+		gcc_jit_rvalue* fn_ptr,
 		int numargs,
-		immutable gcc_jit_rvalue** args);
+		scope immutable gcc_jit_rvalue** args);
 
-	immutable(gcc_jit_rvalue*) gcc_jit_context_new_cast(
+	gcc_jit_rvalue* gcc_jit_context_new_cast(
 		ref gcc_jit_context ctxt,
 		gcc_jit_location* loc,
-		immutable gcc_jit_rvalue* rvalue,
+		gcc_jit_rvalue* rvalue,
 		immutable gcc_jit_type* type);
 
 	gcc_jit_lvalue* gcc_jit_context_new_array_access(
 		ref gcc_jit_context ctxt,
 		gcc_jit_location *loc,
-		immutable gcc_jit_rvalue* ptr,
-		immutable gcc_jit_rvalue* index);
+		gcc_jit_rvalue* ptr,
+		gcc_jit_rvalue* index);
 
 	gcc_jit_lvalue* gcc_jit_lvalue_access_field(
 		gcc_jit_lvalue* struct_or_union,
 		gcc_jit_location* loc,
 		const gcc_jit_field* field);
 
-	immutable(gcc_jit_rvalue*) gcc_jit_rvalue_access_field(
-		immutable gcc_jit_rvalue* struct_or_union,
+	gcc_jit_rvalue* gcc_jit_rvalue_access_field(
+		gcc_jit_rvalue* struct_or_union,
 		gcc_jit_location* loc,
 		immutable gcc_jit_field* field);
 
 	gcc_jit_lvalue* gcc_jit_rvalue_dereference_field(
-		immutable gcc_jit_rvalue* ptr,
+		gcc_jit_rvalue* ptr,
 		gcc_jit_location* loc,
 		immutable gcc_jit_field* field);
 
-	gcc_jit_lvalue* gcc_jit_rvalue_dereference(immutable gcc_jit_rvalue* rvalue, gcc_jit_location* loc);
+	gcc_jit_lvalue* gcc_jit_rvalue_dereference(gcc_jit_rvalue* rvalue, gcc_jit_location* loc);
 
-	immutable(gcc_jit_rvalue*) gcc_jit_lvalue_get_address(gcc_jit_lvalue* lvalue, gcc_jit_location* loc);
+	gcc_jit_rvalue* gcc_jit_lvalue_get_address(gcc_jit_lvalue* lvalue, gcc_jit_location* loc);
 
 	void gcc_jit_lvalue_set_tls_model(gcc_jit_lvalue *lvalue, gcc_jit_tls_model mode);
 
@@ -346,18 +346,18 @@ extern(C) {
 	void gcc_jit_block_add_eval(
 		gcc_jit_block* block,
 		gcc_jit_location* loc,
-		immutable gcc_jit_rvalue* rvalue);
+		gcc_jit_rvalue* rvalue);
 
 	void gcc_jit_block_add_assignment(
 		gcc_jit_block* block,
 		gcc_jit_location* loc,
 		gcc_jit_lvalue* lvalue,
-		immutable gcc_jit_rvalue* rvalue);
+		gcc_jit_rvalue* rvalue);
 
 	void gcc_jit_block_end_with_conditional(
 		gcc_jit_block* block,
 		gcc_jit_location* loc,
-		immutable gcc_jit_rvalue* boolval,
+		gcc_jit_rvalue* boolval,
 		gcc_jit_block* on_true,
 		gcc_jit_block* on_false);
 
@@ -369,23 +369,23 @@ extern(C) {
 	void gcc_jit_block_end_with_return(
 		gcc_jit_block* block,
 		gcc_jit_location* loc,
-		immutable gcc_jit_rvalue* rvalue);
+		gcc_jit_rvalue* rvalue);
 
 	immutable(gcc_jit_case*) gcc_jit_context_new_case(
 		ref gcc_jit_context ctxt,
-		immutable gcc_jit_rvalue* min_value,
-		immutable gcc_jit_rvalue* max_value,
+		gcc_jit_rvalue* min_value,
+		gcc_jit_rvalue* max_value,
 		gcc_jit_block* dest_block);
 
 	void gcc_jit_block_end_with_switch(
 		gcc_jit_block* block,
 		gcc_jit_location* loc,
-		immutable gcc_jit_rvalue* expr,
+		gcc_jit_rvalue* expr,
 		gcc_jit_block* default_block,
 		int num_cases,
 		immutable gcc_jit_case** cases);
 
-	immutable(gcc_jit_rvalue*) gcc_jit_function_get_address(
+	gcc_jit_rvalue* gcc_jit_function_get_address(
 		const gcc_jit_function* fn,
 		gcc_jit_location* loc);
 }

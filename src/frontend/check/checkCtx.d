@@ -12,13 +12,12 @@ import frontend.programState : ProgramState;
 import model.diag : Diag;
 import model.model : ImportOrExport, ImportOrExportKind, NameReferents, SpecDecl, StructAlias, StructDecl, Visibility;
 import util.alloc.alloc : Alloc;
-import util.col.arrUtil : sum;
-import util.col.fullIndexDict :
-	FullIndexDict, fullIndexDictCastImmutable, fullIndexDictOfArr, fullIndexDictZipPtrs, makeFullIndexDict_mut;
+import util.col.arrUtil : indexOf, sum;
+import util.col.fullIndexDict : FullIndexDict, fullIndexDictOfArr, fullIndexDictZipPtrFirst, makeFullIndexDict_mut;
 import util.opt : force, has, none, Opt, some;
 import util.perf : Perf;
 import util.sourceRange : FileAndPos, FileAndRange, FileIndex, Pos, RangeWithinFile;
-import util.sym : AllSymbols, indexOfSym, Sym;
+import util.sym : AllSymbols, Sym;
 
 struct CheckCtx {
 	@safe @nogc pure nothrow:
@@ -45,9 +44,7 @@ struct CheckCtx {
 	@trusted ref Alloc alloc() return scope =>
 		*allocPtr;
 
-	ref const(AllSymbols) allSymbols() return scope const =>
-		*allSymbolsPtr;
-	ref AllSymbols allSymbols() return scope =>
+	ref inout(AllSymbols) allSymbols() return scope inout =>
 		*allSymbolsPtr;
 
 	ref Perf perf() return scope =>
@@ -62,85 +59,78 @@ struct CheckCtx {
 
 FullIndexDict!(ImportIndex, bool) newUsedImportsAndReExports(
 	ref Alloc alloc,
-	immutable ImportOrExport[] imports,
-	immutable ImportOrExport[] reExports,
+	ImportOrExport[] imports,
+	ImportOrExport[] reExports,
 ) =>
 	makeFullIndexDict_mut!(ImportIndex, bool)(
 		alloc,
-		sum(imports, (ref immutable ImportOrExport x) => countImportsForUsed(x)) +
-			sum(reExports, (ref immutable ImportOrExport x) => countImportsForUsed(x)),
-		(immutable(ImportIndex)) => false);
+		sum!ImportOrExport(imports, (in ImportOrExport x) => countImportsForUsed(x)) +
+			sum!ImportOrExport(reExports, (in ImportOrExport x) => countImportsForUsed(x)),
+		(ImportIndex _) => false);
 
-private immutable(size_t) countImportsForUsed(scope ref immutable ImportOrExport a) =>
-	a.kind.match!(immutable size_t)(
-		(immutable(ImportOrExportKind.ModuleWhole)) => 1,
-		(immutable ImportOrExportKind.ModuleNamed m) => m.names.length);
+private size_t countImportsForUsed(in ImportOrExport a) =>
+	a.kind.matchIn!size_t(
+		(in ImportOrExportKind.ModuleWhole) =>
+			1,
+		(in ImportOrExportKind.ModuleNamed m) =>
+			m.names.length);
 
-void checkForUnused(
-	ref CheckCtx ctx,
-	immutable StructAlias[] structAliases,
-	immutable StructDecl[] structDecls,
-	immutable SpecDecl[] specDecls,
-) {
+void checkForUnused(ref CheckCtx ctx, StructAlias[] structAliases, StructDecl[] structDecls, SpecDecl[] specDecls) {
 	checkUnusedImports(ctx);
 
-	fullIndexDictZipPtrs!(ModuleLocalAliasIndex, StructAlias, bool)(
+	fullIndexDictZipPtrFirst!(ModuleLocalAliasIndex, StructAlias, bool)(
 		fullIndexDictOfArr!(ModuleLocalAliasIndex, StructAlias)(structAliases),
-		fullIndexDictCastImmutable(ctx.structAliasesUsed),
-		(immutable(ModuleLocalAliasIndex), immutable StructAlias* alias_, immutable bool* used) {
+		ctx.structAliasesUsed,
+		(ModuleLocalAliasIndex _, StructAlias* alias_, in bool used) {
 			final switch (alias_.visibility) {
 				case Visibility.public_:
 					break;
 				case Visibility.private_:
-					if (!*used)
-						addDiag(ctx, alias_.range, immutable Diag(
-							immutable Diag.UnusedPrivateStructAlias(alias_)));
+					if (!used)
+						addDiag(ctx, alias_.range, Diag(Diag.UnusedPrivateStructAlias(alias_)));
 			}
 		});
 
-	fullIndexDictZipPtrs!(ModuleLocalStructIndex, StructDecl, bool)(
+	fullIndexDictZipPtrFirst!(ModuleLocalStructIndex, StructDecl, bool)(
 		fullIndexDictOfArr!(ModuleLocalStructIndex, StructDecl)(structDecls),
-		fullIndexDictCastImmutable(ctx.structsUsed),
-		(immutable(ModuleLocalStructIndex), immutable StructDecl* struct_, immutable bool* used) {
+		ctx.structsUsed,
+		(ModuleLocalStructIndex _, StructDecl* struct_, in bool used) {
 			final switch (struct_.visibility) {
 				case Visibility.public_:
 					break;
 				case Visibility.private_:
-					if (!*used)
-						addDiag(ctx, struct_.range, immutable Diag(
-							immutable Diag.UnusedPrivateStruct(struct_)));
+					if (!used)
+						addDiag(ctx, struct_.range, Diag(Diag.UnusedPrivateStruct(struct_)));
 			}
 		});
 
-	fullIndexDictZipPtrs!(ModuleLocalSpecIndex, SpecDecl, bool)(
+	fullIndexDictZipPtrFirst!(ModuleLocalSpecIndex, SpecDecl, bool)(
 		fullIndexDictOfArr!(ModuleLocalSpecIndex, SpecDecl)(specDecls),
-		fullIndexDictCastImmutable(ctx.specsUsed),
-		(immutable(ModuleLocalSpecIndex), immutable SpecDecl* spec, immutable bool* used) {
+		ctx.specsUsed,
+		(ModuleLocalSpecIndex _, SpecDecl* spec, in bool used) {
 			final switch (spec.visibility) {
 				case Visibility.public_:
 					break;
 				case Visibility.private_:
-					if (!*used)
-						addDiag(ctx, spec.range, immutable Diag(immutable Diag.UnusedPrivateSpec(spec)));
+					if (!used)
+						addDiag(ctx, spec.range, Diag(Diag.UnusedPrivateSpec(spec)));
 			}
 		});
 }
 
 private void checkUnusedImports(ref CheckCtx ctx) {
 	size_t index = 0;
-	foreach (ref immutable ImportOrExport x; ctx.imports)
+	foreach (ref ImportOrExport x; ctx.imports)
 		x.kind.match!void(
-			(immutable ImportOrExportKind.ModuleWhole m) {
-				if (!ctx.importsAndReExportsUsed[immutable ImportIndex(index)] && has(x.importSource))
-					addDiag(ctx, force(x.importSource), immutable Diag(
-						immutable Diag.UnusedImport(m.modulePtr, none!Sym)));
+			(ImportOrExportKind.ModuleWhole m) {
+				if (!ctx.importsAndReExportsUsed[ImportIndex(index)] && has(x.importSource))
+					addDiag(ctx, force(x.importSource), Diag(Diag.UnusedImport(m.modulePtr, none!Sym)));
 				index++;
 			},
-			(immutable ImportOrExportKind.ModuleNamed m) {
-				foreach (immutable Sym name; m.names) {
-					if (!ctx.importsAndReExportsUsed[immutable ImportIndex(index)] && has(x.importSource))
-						addDiag(ctx, force(x.importSource), immutable Diag(
-							immutable Diag.UnusedImport(m.modulePtr, some(name))));
+			(ImportOrExportKind.ModuleNamed m) {
+				foreach (Sym name; m.names) {
+					if (!ctx.importsAndReExportsUsed[ImportIndex(index)] && has(x.importSource))
+						addDiag(ctx, force(x.importSource), Diag(Diag.UnusedImport(m.modulePtr, some(name))));
 					index++;
 				}
 			});
@@ -148,84 +138,82 @@ private void checkUnusedImports(ref CheckCtx ctx) {
 
 // Index of an imported module / name.
 // If named imports are used, there's an index per name. Else, a single index for the whole module.
-struct ImportIndex {
-	immutable size_t index;
+immutable struct ImportIndex {
+	size_t index;
 }
 
-void markUsedStructOrAlias(ref CheckCtx ctx, ref immutable StructOrAliasAndIndex a) {
-	a.structOrAlias.match!void(
-		(ref immutable StructAlias) {
+void markUsedStructOrAlias(ref CheckCtx ctx, in StructOrAliasAndIndex a) {
+	a.structOrAlias.matchIn!void(
+		(in StructAlias) {
 			ctx.structAliasesUsed[a.index.asAlias] = true;
 		},
-		(ref immutable StructDecl) {
+		(in StructDecl) {
 			ctx.structsUsed[a.index.asStruct] = true;
 		});
 }
 
-void markUsedSpec(ref CheckCtx ctx, immutable ModuleLocalSpecIndex a) {
+void markUsedSpec(ref CheckCtx ctx, ModuleLocalSpecIndex a) {
 	ctx.specsUsed[a] = true;
 }
 
-void markUsedImport(ref CheckCtx ctx, immutable ImportIndex index) {
+void markUsedImport(ref CheckCtx ctx, ImportIndex index) {
 	ctx.importsAndReExportsUsed[index] = true;
 }
 
 void eachImportAndReExport(
-	scope ref const CheckCtx ctx,
-	immutable Sym name,
-	scope void delegate(immutable ImportIndex index, ref immutable NameReferents) @safe @nogc pure nothrow cb,
+	in CheckCtx ctx,
+	Sym name,
+	in void delegate(ImportIndex index, in NameReferents) @safe @nogc pure nothrow cb,
 ) {
 	size_t index = 0;
-	void inner(ref immutable ImportOrExport m) {
-		immutable size_t startIndex = index;
-		immutable Opt!ImportIndexAndReferents imported = m.kind.match!(immutable Opt!ImportIndexAndReferents)(
-			(immutable ImportOrExportKind.ModuleWhole m) {
+	void inner(ref ImportOrExport m) {
+		size_t startIndex = index;
+		Opt!ImportIndexAndReferents imported = m.kind.match!(Opt!ImportIndexAndReferents)(
+			(ImportOrExportKind.ModuleWhole m) {
 				index++;
-				immutable Opt!NameReferents referents = m.module_.allExportedNames[name];
+				Opt!NameReferents referents = m.module_.allExportedNames[name];
 				return has(referents)
-					? some(immutable ImportIndexAndReferents(immutable ImportIndex(startIndex), force(referents)))
+					? some(ImportIndexAndReferents(ImportIndex(startIndex), force(referents)))
 					: none!ImportIndexAndReferents;
 			},
-			(immutable ImportOrExportKind.ModuleNamed m) {
+			(ImportOrExportKind.ModuleNamed m) {
 				index += m.names.length;
-				immutable Opt!size_t symIndex = indexOfSym(m.names, name);
+				Opt!size_t symIndex = indexOf(m.names, name);
 				if (has(symIndex)) {
-					immutable Opt!NameReferents referents = m.module_.allExportedNames[name];
+					Opt!NameReferents referents = m.module_.allExportedNames[name];
 					return has(referents)
-						? some(immutable ImportIndexAndReferents(
-							immutable ImportIndex(startIndex + force(symIndex)),
-							force(referents)))
+						? some(ImportIndexAndReferents(ImportIndex(startIndex + force(symIndex)), force(referents)))
 						: none!ImportIndexAndReferents;
 				} else
 					return none!ImportIndexAndReferents;
 			});
 		if (has(imported)) {
-			immutable ImportIndexAndReferents ir = force(imported);
+			ImportIndexAndReferents ir = force(imported);
 			cb(ir.importIndex, ir.referents);
 		}
 	}
-	foreach (ref immutable ImportOrExport m; ctx.imports)
+	foreach (ref ImportOrExport m; ctx.imports)
 		inner(m);
-	foreach (ref immutable ImportOrExport m; ctx.reExports)
+	foreach (ref ImportOrExport m; ctx.reExports)
 		inner(m);
 }
 
-private struct ImportIndexAndReferents {
-	immutable ImportIndex importIndex;
-	immutable NameReferents referents;
+private immutable struct ImportIndexAndReferents {
+	ImportIndex importIndex;
+	NameReferents referents;
 }
 
-immutable(FileAndPos) posInFile(scope ref const CheckCtx ctx, ref immutable Pos pos) =>
-	immutable FileAndPos(ctx.fileIndex, pos);
+FileAndPos posInFile(in CheckCtx ctx, Pos pos) =>
+	FileAndPos(ctx.fileIndex, pos);
 
-immutable(FileAndRange) rangeInFile(scope ref const CheckCtx ctx, immutable RangeWithinFile range) =>
-	immutable FileAndRange(ctx.fileIndex, range);
+FileAndRange rangeInFile(in CheckCtx ctx, RangeWithinFile range) =>
+	FileAndRange(ctx.fileIndex, range);
 
-void addDiag(ref CheckCtx ctx, immutable FileAndRange range, immutable Diag diag) {
+void addDiag(ref CheckCtx ctx, FileAndRange range, Diag diag) {
 	addDiagnostic(ctx.alloc, ctx.diagsBuilder, range, diag);
 }
 
-void addDiag(ref CheckCtx ctx, immutable RangeWithinFile range, immutable Diag diag) {
-	addDiag(ctx, immutable FileAndRange(ctx.fileIndex, range), diag);
+void addDiag(ref CheckCtx ctx, RangeWithinFile range, Diag diag) {
+	addDiag(ctx, FileAndRange(ctx.fileIndex, range), diag);
 }
 

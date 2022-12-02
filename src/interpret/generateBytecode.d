@@ -6,7 +6,6 @@ import interpret.bytecode :
 	ByteCode,
 	ByteCodeIndex,
 	ByteCodeSource,
-	castImmutable,
 	FileToFuns,
 	FunNameAndPos,
 	FunPtrToOperationPtr,
@@ -78,49 +77,49 @@ import util.sym : AllSymbols, Sym, sym;
 import util.util : todo, unreachable, verify;
 import util.writer : Writer;
 
-immutable(ByteCode) generateBytecode(
+ByteCode generateBytecode(
 	ref Alloc alloc,
 	scope ref Perf perf,
-	ref const AllSymbols allSymbols,
-	scope ref immutable Program modelProgram,
-	ref immutable LowProgram program,
-	immutable ExternFunPtrsForAllLibraries externFunPtrs,
-	scope immutable MakeSyntheticFunPtrs makeSyntheticFunPtrs,
+	in AllSymbols allSymbols,
+	in Program modelProgram,
+	in LowProgram program,
+	ExternFunPtrsForAllLibraries externFunPtrs,
+	in MakeSyntheticFunPtrs makeSyntheticFunPtrs,
 ) {
 	//TODO: use a temp alloc for 2nd arg
-	return withMeasure!(immutable ByteCode, () =>
+	return withMeasure!(ByteCode, () =>
 		generateBytecodeInner(alloc, alloc, allSymbols, modelProgram, program, externFunPtrs, makeSyntheticFunPtrs)
 	)(alloc, perf, PerfMeasure.generateBytecode);
 }
 
-private immutable(ByteCode) generateBytecodeInner(
+private ByteCode generateBytecodeInner(
 	ref Alloc codeAlloc,
 	ref TempAlloc tempAlloc,
-	ref const AllSymbols allSymbols,
-	scope ref immutable Program modelProgram,
-	ref immutable LowProgram program,
-	immutable ExternFunPtrsForAllLibraries externFunPtrs,
-	scope immutable MakeSyntheticFunPtrs cbMakeSyntheticFunPtrs,
+	in AllSymbols allSymbols,
+	in Program modelProgram,
+	in LowProgram program,
+	ExternFunPtrsForAllLibraries externFunPtrs,
+	in MakeSyntheticFunPtrs cbMakeSyntheticFunPtrs,
 ) {
-	immutable FunPtrTypeToDynCallSig funPtrTypeToDynCallSig =
+	FunPtrTypeToDynCallSig funPtrTypeToDynCallSig =
 		mapFullIndexDict!(LowType.FunPtr, DynCallSig, LowFunPtrType)(
 			codeAlloc,
 			program.allFunPtrTypes,
-			(immutable(LowType.FunPtr), scope ref immutable LowFunPtrType x) =>
+			(LowType.FunPtr, scope ref LowFunPtrType x) =>
 				funPtrDynCallSig(codeAlloc, program, x));
 
 	FunToReferences funToReferences =
 		initFunToReferences(tempAlloc, funPtrTypeToDynCallSig, fullIndexDictSize(program.allFuns));
-	TextAndInfo text = generateText(codeAlloc, tempAlloc, &program, &program.allConstants, funToReferences);
-	immutable ThreadLocalsInfo threadLocals = generateThreadLocalsInfo(codeAlloc, program);
+	TextAndInfo text = generateText(codeAlloc, tempAlloc, program, funToReferences);
+	ThreadLocalsInfo threadLocals = generateThreadLocalsInfo(codeAlloc, program);
 	ByteCodeWriter writer = newByteCodeWriter(ptrTrustMe(codeAlloc));
 
 	immutable FullIndexDict!(LowFunIndex, ByteCodeIndex) funToDefinition =
 		mapFullIndexDict!(LowFunIndex, ByteCodeIndex, LowFun)(
 			tempAlloc,
 			program.allFuns,
-			(immutable LowFunIndex funIndex, scope ref immutable LowFun fun) {
-				immutable ByteCodeIndex funPos = nextByteCodeIndex(writer);
+			(LowFunIndex funIndex, scope ref LowFun fun) {
+				ByteCodeIndex funPos = nextByteCodeIndex(writer);
 				generateBytecodeForFun(
 					tempAlloc,
 					writer,
@@ -137,29 +136,28 @@ private immutable(ByteCode) generateBytecodeInner(
 
 	Operations operations = finishOperations(writer);
 
-	immutable SyntheticFunPtrs syntheticFunPtrs = makeSyntheticFunPtrs(
-		codeAlloc, allSymbols, program,
-		castImmutable(operations.byteCode), funToDefinition, funToReferences, cbMakeSyntheticFunPtrs);
+	SyntheticFunPtrs syntheticFunPtrs = makeSyntheticFunPtrs(
+		codeAlloc, allSymbols, program, operations.byteCode, funToDefinition, funToReferences, cbMakeSyntheticFunPtrs);
 
 	fullIndexDictEach!(LowFunIndex, ByteCodeIndex)(
 		funToDefinition,
-		(immutable LowFunIndex funIndex, ref immutable ByteCodeIndex definitionIndex) @trusted {
-			immutable Operation* definition = cast(immutable) &operations.byteCode[definitionIndex.index];
-			immutable FunReferences references = finishAt(tempAlloc, funToReferences, funIndex);
-			foreach (immutable ByteCodeIndex reference; references.calls)
+		(LowFunIndex funIndex, ref ByteCodeIndex definitionIndex) @trusted {
+			Operation* definition = &operations.byteCode[definitionIndex.index];
+			FunReferences references = finishAt(tempAlloc, funToReferences, funIndex);
+			foreach (ByteCodeIndex reference; references.calls)
 				fillDelayedCall(operations, reference, definition);
 			if (has(references.ptrRefs)) {
-				immutable FunPtrReferences ptrRefs = force(references.ptrRefs);
-				immutable FunPtr funPtr = mustGetAt(syntheticFunPtrs.funToFunPtr, funIndex);
-				foreach (immutable TextIndex reference; ptrRefs.textRefs)
-					*(cast(ulong*) &text.text[reference.index]) = cast(immutable ulong) funPtr.fn;
-				foreach (immutable ByteCodeIndex reference; ptrRefs.funPtrRefs)
+				FunPtrReferences ptrRefs = force(references.ptrRefs);
+				FunPtr funPtr = mustGetAt(syntheticFunPtrs.funToFunPtr, funIndex);
+				foreach (TextIndex reference; ptrRefs.textRefs)
+					*(cast(ulong*) &text.text[reference.index]) = cast(ulong) funPtr.fn;
+				foreach (ByteCodeIndex reference; ptrRefs.funPtrRefs)
 					fillDelayedFunPtr(operations, reference, funPtr);
 			}
 		});
 
-	return immutable ByteCode(
-		castImmutable(operations),
+	return ByteCode(
+		operations,
 		syntheticFunPtrs.funPtrToOperationPtr,
 		fileToFuns(codeAlloc, allSymbols, modelProgram),
 		castImmutable(text.text),
@@ -169,83 +167,69 @@ private immutable(ByteCode) generateBytecodeInner(
 
 private:
 
-immutable(SyntheticFunPtrs) makeSyntheticFunPtrs(
+SyntheticFunPtrs makeSyntheticFunPtrs(
 	ref Alloc alloc,
-	ref const AllSymbols allSymbols,
-	scope ref immutable LowProgram program,
-	immutable Operation[] byteCode,
-	scope immutable FunToDefinition funToDefinition,
-	scope ref const FunToReferences funToReferences,
-	scope immutable MakeSyntheticFunPtrs cbMakeSyntheticFunPtrs
+	in AllSymbols allSymbols,
+	in LowProgram program,
+	Operation[] byteCode,
+	in FunToDefinition funToDefinition,
+	in FunToReferences funToReferences,
+	in MakeSyntheticFunPtrs cbMakeSyntheticFunPtrs,
 ) {
 	ArrBuilder!FunPtrInputs inputsBuilder;
-	eachFunPtr(funToReferences, (immutable LowFunIndex funIndex, immutable DynCallSig sig) @trusted {
-		add(alloc, inputsBuilder, immutable FunPtrInputs(funIndex, sig, &byteCode[funToDefinition[funIndex].index]));
+	eachFunPtr(funToReferences, (LowFunIndex funIndex, DynCallSig sig) {
+		add(alloc, inputsBuilder, FunPtrInputs(funIndex, sig, &byteCode[funToDefinition[funIndex].index]));
 	});
-	immutable FunPtrInputs[] inputs = finishArr(alloc, inputsBuilder);
-	immutable FunPtr[] funPtrs = cbMakeSyntheticFunPtrs(inputs);
-	immutable FunToFunPtr funToFunPtr = zipToDict!(LowFunIndex, FunPtr)(
-		alloc,
-		inputs,
-		funPtrs,
-		(ref immutable FunPtrInputs inputs, ref immutable FunPtr funPtr) =>
+	FunPtrInputs[] inputs = finishArr(alloc, inputsBuilder);
+	FunPtr[] funPtrs = cbMakeSyntheticFunPtrs(inputs);
+	FunToFunPtr funToFunPtr = zipToDict!(LowFunIndex, FunPtr, FunPtrInputs, FunPtr)(
+		alloc, inputs, funPtrs, (ref FunPtrInputs inputs, ref FunPtr funPtr) =>
 			immutable KeyValuePair!(LowFunIndex, FunPtr)(inputs.funIndex, funPtr));
-	immutable FunPtrToOperationPtr funPtrToOperationPtr = zipToDict!(FunPtr, Operation*)(
-		alloc,
-		inputs,
-		funPtrs,
-		(ref immutable FunPtrInputs inputs, ref immutable FunPtr funPtr) =>
-			immutable KeyValuePair!(FunPtr, Operation*)(funPtr, inputs.operationPtr));
-	return immutable SyntheticFunPtrs(funToFunPtr, funPtrToOperationPtr);
+	FunPtrToOperationPtr funPtrToOperationPtr = zipToDict!(FunPtr, Operation*, FunPtrInputs, FunPtr)(
+		alloc, inputs, funPtrs, (ref FunPtrInputs inputs, ref FunPtr funPtr) =>
+			immutable KeyValuePair!(FunPtr, immutable Operation*)(funPtr, inputs.operationPtr));
+	return SyntheticFunPtrs(funToFunPtr, funPtrToOperationPtr);
 }
 
-struct SyntheticFunPtrs {
-	immutable FunToFunPtr funToFunPtr;
-	immutable FunPtrToOperationPtr funPtrToOperationPtr;
+immutable struct SyntheticFunPtrs {
+	FunToFunPtr funToFunPtr;
+	FunPtrToOperationPtr funPtrToOperationPtr;
 }
-alias FunToFunPtr = immutable Dict!(LowFunIndex, FunPtr);
+alias FunToFunPtr = Dict!(LowFunIndex, FunPtr);
 alias FunToDefinition = immutable FullIndexDict!(LowFunIndex, ByteCodeIndex);
 
-immutable(DynCallSig) funPtrDynCallSig(
-	ref Alloc alloc,
-	scope ref immutable LowProgram program,
-	scope immutable LowFunPtrType a,
-) {
+DynCallSig funPtrDynCallSig(ref Alloc alloc, in LowProgram program, in LowFunPtrType a) {
 	ArrBuilder!DynCallType sigTypes;
 	add(alloc, sigTypes, toDynCallType(a.returnType));
-	foreach (ref immutable LowType x; a.paramTypes)
-		toDynCallTypes(program, x, (immutable DynCallType x) {
+	foreach (ref LowType x; a.paramTypes)
+		toDynCallTypes(program, x, (DynCallType x) {
 			add(alloc, sigTypes, x);
 		});
-	return immutable DynCallSig(finishArr(alloc, sigTypes));
+	return DynCallSig(finishArr(alloc, sigTypes));
 }
 
-immutable(FileToFuns) fileToFuns(
-	ref Alloc alloc,
-	ref const AllSymbols allSymbols,
-	scope ref immutable Program program,
-) {
+FileToFuns fileToFuns(ref Alloc alloc, in AllSymbols allSymbols, in Program program) {
 	immutable FullIndexDict!(FileIndex, Module) modulesDict =
 		fullIndexDictOfArr!(FileIndex, Module)(program.allModules);
 	return mapFullIndexDict!(FileIndex, FunNameAndPos[], Module)(
 		alloc,
 		modulesDict,
-		(immutable FileIndex, ref immutable Module module_) =>
-			map(alloc, module_.funs, (ref immutable FunDecl it) =>
-				immutable FunNameAndPos(it.name, it.fileAndPos.pos)));
+		(FileIndex, ref Module module_) =>
+			map(alloc, module_.funs, (ref FunDecl it) =>
+				FunNameAndPos(it.name, it.fileAndPos.pos)));
 }
 
 void generateBytecodeForFun(
 	ref TempAlloc tempAlloc,
 	scope ref ByteCodeWriter writer,
-	ref const AllSymbols allSymbols,
+	in AllSymbols allSymbols,
 	ref FunToReferences funToReferences,
-	ref immutable TextInfo textInfo,
-	ref immutable ThreadLocalsInfo threadLocalsInfo,
-	scope ref immutable LowProgram program,
-	immutable ExternFunPtrsForAllLibraries externFunPtrs,
-	immutable LowFunIndex funIndex,
-	scope ref immutable LowFun fun,
+	in TextInfo textInfo,
+	in ThreadLocalsInfo threadLocalsInfo,
+	in LowProgram program,
+	ExternFunPtrsForAllLibraries externFunPtrs,
+	LowFunIndex funIndex,
+	in LowFun fun,
 ) {
 	verify(threadLocalsInfo.totalSizeWords < maxThreadLocalsSizeWords);
 
@@ -261,43 +245,42 @@ void generateBytecodeForFun(
 	}
 
 	size_t stackEntry = 0;
-	immutable StackEntries[] parameters = map(tempAlloc, fun.params, (ref immutable LowParam it) {
-		immutable StackEntry start = immutable StackEntry(stackEntry);
-		immutable size_t n = nStackEntriesForType(program, it.type);
+	StackEntries[] parameters = map(tempAlloc, fun.params, (ref LowParam it) {
+		StackEntry start = StackEntry(stackEntry);
+		size_t n = nStackEntriesForType(program, it.type);
 		stackEntry += n;
-		return immutable StackEntries(start, n);
+		return StackEntries(start, n);
 	});
-	setStackEntryAfterParameters(writer, immutable StackEntry(stackEntry));
-	immutable size_t returnEntries = nStackEntriesForType(program, fun.returnType);
-	immutable ByteCodeSource source =
-		immutable ByteCodeSource(funIndex, lowFunRange(fun, allSymbols).range.start);
+	setStackEntryAfterParameters(writer, StackEntry(stackEntry));
+	size_t returnEntries = nStackEntriesForType(program, fun.returnType);
+	ByteCodeSource source = ByteCodeSource(funIndex, lowFunRange(fun, allSymbols).range.start);
 
-	fun.body_.match!void(
-		(immutable LowFunBody.Extern body_) {
+	fun.body_.matchIn!void(
+		(in LowFunBody.Extern body_) {
 			generateExternCall(writer, allSymbols, program, funIndex, fun, body_, externFunPtrs);
 			writeReturn(writer, source);
 		},
-		(immutable LowFunExprBody body_) {
+		(in LowFunExprBody body_) {
 			generateFunFromExpr(
 				tempAlloc, writer, allSymbols, program, textInfo, threadLocalsInfo, funIndex,
 				funToReferences, parameters, returnEntries, body_);
 		});
 	verify(getNextStackEntry(writer).entry == returnEntries);
-	setNextStackEntry(writer, immutable StackEntry(0));
+	setNextStackEntry(writer, StackEntry(0));
 }
 
 void generateExternCall(
 	ref ByteCodeWriter writer,
-	ref const AllSymbols allSymbols,
-	scope ref immutable LowProgram program,
-	immutable LowFunIndex funIndex,
-	scope ref immutable LowFun fun,
-	ref immutable LowFunBody.Extern a,
-	immutable ExternFunPtrsForAllLibraries externFunPtrs,
+	in AllSymbols allSymbols,
+	in LowProgram program,
+	LowFunIndex funIndex,
+	in LowFun fun,
+	in LowFunBody.Extern a,
+	ExternFunPtrsForAllLibraries externFunPtrs,
 ) {
-	immutable ByteCodeSource source = immutable ByteCodeSource(funIndex, lowFunRange(fun, allSymbols).range.start);
-	immutable Opt!Sym optName = name(fun);
-	immutable Sym name = force(optName);
+	ByteCodeSource source = ByteCodeSource(funIndex, lowFunRange(fun, allSymbols).range.start);
+	Opt!Sym optName = name(fun);
+	Sym name = force(optName);
 	switch (name.value) {
 		case sym!"longjmp".value:
 			writeLongjmp(writer, source);
@@ -306,7 +289,7 @@ void generateExternCall(
 			writeSetjmp(writer, source);
 			break;
 		default:
-			immutable FunPtr funPtr = mustGetAt(mustGetAt(externFunPtrs, a.libraryName), name);
+			FunPtr funPtr = mustGetAt(mustGetAt(externFunPtrs, a.libraryName), name);
 			if (a.isGlobal)
 				generateExternGetGlobal(writer, source, program, fun.returnType, funPtr.fn);
 			else
@@ -318,95 +301,94 @@ void generateExternCall(
 
 void generateExternGetGlobal(
 	scope ref ByteCodeWriter writer,
-	immutable ByteCodeSource source,
-	scope ref immutable LowProgram program,
-	scope ref immutable LowType type,
+	ByteCodeSource source,
+	in LowProgram program,
+	in LowType type,
 	// TODO: not really immutable
 	immutable void* ptr,
 ) {
-	writePushConstant(writer, source, cast(immutable ulong) ptr);
+	writePushConstant(writer, source, cast(ulong) ptr);
 	writeRead(writer, source, 0, typeSizeBytes(program, type));
 }
 
 void generateExternCallFunPtr(
 	scope ref ByteCodeWriter writer,
-	immutable ByteCodeSource source,
-	scope ref immutable LowProgram program,
-	scope ref immutable LowFun fun,
-	immutable FunPtr funPtr,
+	ByteCodeSource source,
+	in LowProgram program,
+	in LowFun fun,
+	FunPtr funPtr,
 ) {
-	MutMaxArr!(16, immutable DynCallType) sigTypes = void;
+	MutMaxArr!(16, DynCallType) sigTypes = void;
 	initializeMutMaxArr(sigTypes);
 	push(sigTypes, toDynCallType(fun.returnType));
-	foreach (ref immutable LowParam x; fun.params)
-		toDynCallTypes(program, x.type, (immutable DynCallType x) {
+	foreach (ref LowParam x; fun.params)
+		toDynCallTypes(program, x.type, (DynCallType x) {
 		push(sigTypes, x);
 	});
-	writeCallFunPtrExtern(writer, source, funPtr, immutable DynCallSig(tempAsArr(sigTypes)));
+	writeCallFunPtrExtern(writer, source, funPtr, DynCallSig(tempAsArr(sigTypes)));
 }
 
-immutable(DynCallType) toDynCallType(scope immutable LowType a) =>
-	a.match!(immutable DynCallType)(
-		(immutable LowType.Extern) =>
-			todo!(immutable DynCallType)("!"),
-		(immutable LowType.FunPtr) =>
+DynCallType toDynCallType(in LowType a) =>
+	a.matchIn!DynCallType(
+		(in LowType.Extern) =>
+			todo!DynCallType("!"),
+		(in LowType.FunPtr) =>
 			DynCallType.pointer,
-		(immutable PrimitiveType it) {
-			final switch (it) {
-				case PrimitiveType.bool_:
-					return DynCallType.bool_;
-				case PrimitiveType.char8:
-					return DynCallType.char8;
-				case PrimitiveType.float32:
-					return DynCallType.float32;
-				case PrimitiveType.float64:
-					return DynCallType.float64;
-				case PrimitiveType.int8:
-					return DynCallType.int8;
-				case PrimitiveType.int16:
-					return DynCallType.int16;
-				case PrimitiveType.int32:
-					return DynCallType.int32;
-				case PrimitiveType.int64:
-					return DynCallType.int64;
-				case PrimitiveType.nat8:
-					return DynCallType.nat8;
-				case PrimitiveType.nat16:
-					return DynCallType.nat16;
-				case PrimitiveType.nat32:
-					return DynCallType.nat32;
-				case PrimitiveType.nat64:
-					return DynCallType.nat64;
-				case PrimitiveType.void_:
-					return DynCallType.void_;
-			}
-		},
-		(immutable LowType.PtrGc) =>
+		(in PrimitiveType x) =>
+			primitiveToDynCallType(x),
+		(in LowType.PtrGc) =>
 			DynCallType.pointer,
-		(immutable LowType.PtrRawConst) =>
+		(in LowType.PtrRawConst) =>
 			DynCallType.pointer,
-		(immutable LowType.PtrRawMut) =>
+		(in LowType.PtrRawMut) =>
 			DynCallType.pointer,
-		(immutable LowType.Record) =>
-			unreachable!(immutable DynCallType),
-		(immutable LowType.Union) =>
-			unreachable!(immutable DynCallType));
+		(in LowType.Record) =>
+			unreachable!DynCallType,
+		(in LowType.Union) =>
+			unreachable!DynCallType);
 
-void toDynCallTypes(
-	scope ref immutable LowProgram program,
-	scope immutable LowType a,
-	scope void delegate(immutable DynCallType) @safe @nogc pure nothrow cb,
-) {
+DynCallType primitiveToDynCallType(PrimitiveType a) {
+	final switch (a) {
+		case PrimitiveType.bool_:
+			return DynCallType.bool_;
+		case PrimitiveType.char8:
+			return DynCallType.char8;
+		case PrimitiveType.float32:
+			return DynCallType.float32;
+		case PrimitiveType.float64:
+			return DynCallType.float64;
+		case PrimitiveType.int8:
+			return DynCallType.int8;
+		case PrimitiveType.int16:
+			return DynCallType.int16;
+		case PrimitiveType.int32:
+			return DynCallType.int32;
+		case PrimitiveType.int64:
+			return DynCallType.int64;
+		case PrimitiveType.nat8:
+			return DynCallType.nat8;
+		case PrimitiveType.nat16:
+			return DynCallType.nat16;
+		case PrimitiveType.nat32:
+			return DynCallType.nat32;
+		case PrimitiveType.nat64:
+			return DynCallType.nat64;
+		case PrimitiveType.void_:
+			return DynCallType.void_;
+	}
+}
+
+void toDynCallTypes(in LowProgram program, in LowType a, in void delegate(DynCallType) @safe @nogc pure nothrow cb) {
 	if (a.isA!(LowType.Record)) {
-		foreach (immutable LowField field; program.allRecords[a.as!(LowType.Record)].fields)
+		foreach (LowField field; program.allRecords[a.as!(LowType.Record)].fields)
 			toDynCallTypes(program, field.type, cb);
 	} else if (a.isA!(LowType.Union)) {
 		// This should only happen for the 'str[]' in 'main'
-		immutable LowUnion u = program.allUnions[a.as!(LowType.Union)];
+		LowUnion u = program.allUnions[a.as!(LowType.Union)];
 		verify(name(*u.source.source.as!(ConcreteStructSource.Inst).inst) == sym!"node");
-		immutable size_t sizeWords = 3;
+		size_t sizeWords = 3;
 		verify(typeSize(u).sizeBytes == ulong.sizeof * sizeWords);
-		foreach (immutable size_t i; 0 .. sizeWords)
+		foreach (size_t i; 0 .. sizeWords)
 			cb(DynCallType.nat64);
 	} else
 		cb(toDynCallType(a));

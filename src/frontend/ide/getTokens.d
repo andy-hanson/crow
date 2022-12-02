@@ -69,7 +69,7 @@ import util.sourceRange : Pos, rangeOfStartAndLength, rangeOfStartAndName, Range
 import util.sym : AllSymbols, Sym, sym, symSize;
 import util.util : todo;
 
-struct Token {
+immutable struct Token {
 	enum Kind {
 		fun,
 		identifier,
@@ -85,16 +85,16 @@ struct Token {
 		struct_,
 		typeParam,
 	}
-	immutable Kind kind;
-	immutable RangeWithinFile range;
+	Kind kind;
+	RangeWithinFile range;
 }
 
-immutable(Repr) reprTokens(ref Alloc alloc, ref immutable Token[] tokens) =>
-	reprArr(alloc, tokens, (ref immutable Token it) =>
+Repr reprTokens(ref Alloc alloc, scope Token[] tokens) =>
+	reprArr!Token(alloc, tokens, (in Token it) =>
 		reprToken(alloc, it));
 
-immutable(Token[]) tokensOfAst(ref Alloc alloc, ref const AllSymbols allSymbols, scope ref immutable FileAst ast) {
-	ArrBuilder!Token tokens;
+Token[] tokensOfAst(ref Alloc alloc, in AllSymbols allSymbols, in FileAst ast) {
+	TokensBuilder tokens;
 
 	addImportTokens(alloc, tokens, allSymbols, ast.imports, sym!"import");
 	addImportTokens(alloc, tokens, allSymbols, ast.exports, sym!"export");
@@ -102,36 +102,31 @@ immutable(Token[]) tokensOfAst(ref Alloc alloc, ref const AllSymbols allSymbols,
 	//TODO: also tests...
 	eachSorted!(RangeWithinFile, SpecDeclAst, StructAliasAst, StructDeclAst, FunDeclAst)(
 		RangeWithinFile.max,
-		(scope ref immutable RangeWithinFile a, scope ref immutable RangeWithinFile b) =>
+		(in RangeWithinFile a, in RangeWithinFile b) =>
 			compareRangeWithinFile(a, b),
-		ast.specs, (scope ref immutable SpecDeclAst it) => it.range, (scope ref immutable SpecDeclAst it) {
+		ast.specs, (in SpecDeclAst it) => it.range, (in SpecDeclAst it) {
 			addSpecTokens(alloc, tokens, allSymbols, it);
 		},
-		ast.structAliases,
-		(scope ref immutable StructAliasAst it) => it.range,
-		(scope ref immutable StructAliasAst it) {
+		ast.structAliases, (in StructAliasAst it) => it.range, (in StructAliasAst it) {
 			addStructAliasTokens(alloc, tokens, allSymbols, it);
 		},
-		ast.structs, (scope ref immutable StructDeclAst it) => it.range, (scope ref immutable StructDeclAst it) {
+		ast.structs, (in StructDeclAst it) => it.range, (in StructDeclAst it) {
 			addStructTokens(alloc, tokens, allSymbols, it);
 		},
-		ast.funs, (scope ref immutable FunDeclAst it) => it.range, (scope ref immutable FunDeclAst it) {
+		ast.funs, (in FunDeclAst it) => it.range, (in FunDeclAst it) {
 			addFunTokens(alloc, tokens, allSymbols, it);
 		});
-	immutable Token[] res = finishArr(alloc, tokens);
+	Token[] res = finishArr(alloc, tokens);
 	assertTokensSorted(res);
 	return res;
 }
 
 private:
 
-immutable(RangeWithinFile) rangeAtName(
-	ref const AllSymbols allSymbols,
-	immutable Visibility visibility,
-	immutable Pos start,
-	immutable Sym name,
-) {
-	immutable uint offset = () {
+alias TokensBuilder = ArrBuilder!Token;
+
+RangeWithinFile rangeAtName(in AllSymbols allSymbols, Visibility visibility, Pos start, Sym name) {
+	uint offset = () {
 		final switch (visibility) {
 			case Visibility.public_:
 				return 0;
@@ -139,48 +134,35 @@ immutable(RangeWithinFile) rangeAtName(
 				return 1;
 		}
 	}();
-	immutable Pos afterDot = start + offset;
-	return immutable RangeWithinFile(afterDot, afterDot + symSize(allSymbols, name));
+	Pos afterDot = start + offset;
+	return RangeWithinFile(afterDot, afterDot + symSize(allSymbols, name));
 }
 
-immutable(RangeWithinFile) rangeAtName(ref const AllSymbols allSymbols, immutable Pos start, immutable Sym name) =>
+RangeWithinFile rangeAtName(in AllSymbols allSymbols, Pos start, Sym name) =>
 	rangeAtName(allSymbols, Visibility.public_, start, name);
 
 void addImportTokens(
 	ref Alloc alloc,
-	ref ArrBuilder!Token tokens,
-	ref const AllSymbols allSymbols,
-	scope ref immutable Opt!ImportsOrExportsAst a,
-	immutable Sym keyword,
+	ref TokensBuilder tokens,
+	in AllSymbols allSymbols,
+	in Opt!ImportsOrExportsAst a,
+	Sym keyword,
 ) {
 	if (has(a)) {
-		add(alloc, tokens, immutable Token(
-			Token.Kind.keyword,
-			rangeAtName(allSymbols, force(a).range.start, keyword)));
-		foreach (ref immutable ImportOrExportAst path; force(a).paths)
-			add(alloc, tokens, immutable Token(
-				Token.Kind.importPath,
-				path.range));
+		add(alloc, tokens, Token(Token.Kind.keyword, rangeAtName(allSymbols, force(a).range.start, keyword)));
+		foreach (ref ImportOrExportAst path; force(a).paths)
+			add(alloc, tokens, Token(Token.Kind.importPath, path.range));
 	}
 }
 
-void addSpecTokens(
-	ref Alloc alloc,
-	ref ArrBuilder!Token tokens,
-	ref const AllSymbols allSymbols,
-	scope ref immutable SpecDeclAst a,
-) {
-	add(alloc, tokens, immutable Token(
-		Token.Kind.spec,
-		rangeAtName(allSymbols, a.visibility, a.range.start, a.name)));
+void addSpecTokens(ref Alloc alloc, ref TokensBuilder tokens, in AllSymbols allSymbols, in SpecDeclAst a) {
+	add(alloc, tokens, Token(Token.Kind.spec, rangeAtName(allSymbols, a.visibility, a.range.start, a.name)));
 	addTypeParamsTokens(alloc, tokens, allSymbols, a.typeParams);
-	a.body_.match!void(
-		(immutable SpecBodyAst.Builtin) {},
-		(immutable SpecSigAst[] sigs) {
-			foreach (ref immutable SpecSigAst sig; sigs) {
-				add(alloc, tokens, immutable Token(
-					Token.Kind.fun,
-					rangeAtName(allSymbols, sig.range.start, sig.name)));
+	a.body_.matchIn!void(
+		(in SpecBodyAst.Builtin) {},
+		(in SpecSigAst[] sigs) {
+			foreach (ref SpecSigAst sig; sigs) {
+				add(alloc, tokens, Token(Token.Kind.fun, rangeAtName(allSymbols, sig.range.start, sig.name)));
 				addSigReturnTypeAndParamsTokens(alloc, tokens, allSymbols, sig.returnType, sig.params);
 			}
 		});
@@ -191,234 +173,172 @@ void addSpecTokens(
 pragma(inline, false)
 void addSigReturnTypeAndParamsTokens(
 	ref Alloc alloc,
-	ref ArrBuilder!Token tokens,
-	ref const AllSymbols allSymbols,
-	scope immutable TypeAst returnType,
-	scope immutable ParamsAst params,
+	ref TokensBuilder tokens,
+	in AllSymbols allSymbols,
+	in TypeAst returnType,
+	in ParamsAst params,
 ) {
 	addTypeTokens(alloc, tokens, allSymbols, returnType);
-	params.match!void(
-		(immutable ParamAst[] regular) {
-			foreach (ref immutable ParamAst param; regular)
+	params.matchIn!void(
+		(in ParamAst[] regular) {
+			foreach (ref ParamAst param; regular)
 				addParamTokens(alloc, tokens, allSymbols, param);
 		},
-		(ref immutable ParamsAst.Varargs) {
+		(in ParamsAst.Varargs) {
 			addParamTokens(alloc, tokens, allSymbols, params.as!(ParamsAst.Varargs*).param);
 		});
 }
 
-void addTypeTokens(
-	ref Alloc alloc,
-	ref ArrBuilder!Token tokens,
-	ref const AllSymbols allSymbols,
-	scope immutable TypeAst a,
-) {
-	a.match!void(
-		(ref immutable TypeAst.Dict it) {
+void addTypeTokens(ref Alloc alloc, ref TokensBuilder tokens, in AllSymbols allSymbols, in TypeAst a) {
+	a.matchIn!void(
+		(in TypeAst.Dict it) {
 			addTypeTokens(alloc, tokens, allSymbols, it.v);
-			add(alloc, tokens, immutable Token(
+			add(alloc, tokens, Token(
 				Token.Kind.keyword,
-				immutable RangeWithinFile(range(it.v).end, range(it.k).start)));
+				RangeWithinFile(range(it.v).end, range(it.k).start)));
 			addTypeTokens(alloc, tokens, allSymbols, it.k);
-			add(alloc, tokens, immutable Token(
+			add(alloc, tokens, Token(
 				Token.Kind.keyword,
 				rangeOfStartAndLength(range(it.k).end, "]".length)));
 		},
-		(immutable TypeAst.Fun it) {
-			add(alloc, tokens, immutable Token(
+		(in TypeAst.Fun it) {
+			add(alloc, tokens, Token(
 				Token.Kind.keyword,
 				rangeOfStartAndName(it.range.start, sym!"fun", allSymbols)));
-			foreach (immutable TypeAst t; it.returnAndParamTypes)
+			foreach (TypeAst t; it.returnAndParamTypes)
 				addTypeTokens(alloc, tokens, allSymbols, t);
 		},
-		(immutable TypeAst.InstStruct it) {
+		(in TypeAst.InstStruct it) {
 			addInstStructTokens(alloc, tokens, allSymbols, it);
 		},
-		(ref immutable TypeAst.Suffix it) {
+		(in TypeAst.Suffix it) {
 			addTypeTokens(alloc, tokens, allSymbols, it.left);
-			add(alloc, tokens, immutable Token(Token.Kind.keyword, suffixRange(it)));
+			add(alloc, tokens, Token(Token.Kind.keyword, suffixRange(it)));
 		},
-		(ref immutable TypeAst.Tuple it) {
+		(in TypeAst.Tuple it) {
 			addTypeTokens(alloc, tokens, allSymbols, it.a);
 			addTypeTokens(alloc, tokens, allSymbols, it.b);
 		});
 }
 
-void addInstStructTokens(
-	ref Alloc alloc,
-	ref ArrBuilder!Token tokens,
-	ref const AllSymbols allSymbols,
-	scope ref immutable TypeAst.InstStruct a,
-) {
-	add(alloc, tokens, immutable Token(Token.Kind.struct_, rangeOfNameAndRange(a.name, allSymbols)));
+void addInstStructTokens(ref Alloc alloc, ref TokensBuilder tokens, in AllSymbols allSymbols, in TypeAst.InstStruct a) {
+	add(alloc, tokens, Token(Token.Kind.struct_, rangeOfNameAndRange(a.name, allSymbols)));
 	addTypeArgsTokens(alloc, tokens, allSymbols, a.typeArgs);
 }
 
-void addTypeArgsTokens(
-	ref Alloc alloc,
-	ref ArrBuilder!Token tokens,
-	ref const AllSymbols allSymbols,
-	scope immutable TypeAst[] typeArgs,
-) {
-	foreach (immutable TypeAst typeArg; typeArgs)
+void addTypeArgsTokens(ref Alloc alloc, ref TokensBuilder tokens, in AllSymbols allSymbols, in TypeAst[] typeArgs) {
+	foreach (TypeAst typeArg; typeArgs)
 		addTypeTokens(alloc, tokens, allSymbols, typeArg);
 }
 
-void addParamTokens(
-	ref Alloc alloc,
-	ref ArrBuilder!Token tokens,
-	ref const AllSymbols allSymbols,
-	scope ref immutable ParamAst a,
-) {
+void addParamTokens(ref Alloc alloc, ref TokensBuilder tokens, in AllSymbols allSymbols, in ParamAst a) {
 	if (has(a.name))
-		add(alloc, tokens, immutable Token(
-			Token.Kind.param,
-			rangeOfStartAndName(a.range.start, force(a.name), allSymbols)));
+		add(alloc, tokens, Token(Token.Kind.param, rangeOfStartAndName(a.range.start, force(a.name), allSymbols)));
 	addTypeTokens(alloc, tokens, allSymbols, a.type);
 }
 
-void addTypeParamsTokens(
-	ref Alloc alloc,
-	ref ArrBuilder!Token tokens,
-	ref const AllSymbols allSymbols,
-	scope immutable NameAndRange[] a,
-) {
-	foreach (immutable NameAndRange typeParam; a)
-		add(alloc, tokens, immutable Token(Token.Kind.typeParam, rangeOfNameAndRange(typeParam, allSymbols)));
+void addTypeParamsTokens(ref Alloc alloc, ref TokensBuilder tokens, in AllSymbols allSymbols, in NameAndRange[] a) {
+	foreach (NameAndRange typeParam; a)
+		add(alloc, tokens, Token(Token.Kind.typeParam, rangeOfNameAndRange(typeParam, allSymbols)));
 }
 
-void addStructAliasTokens(
-	ref Alloc alloc,
-	ref ArrBuilder!Token tokens,
-	ref const AllSymbols allSymbols,
-	scope ref immutable StructAliasAst a,
-) {
-	add(alloc, tokens, immutable Token(
-		Token.Kind.struct_,
-		rangeAtName(allSymbols, a.visibility, a.range.start, a.name)));
+void addStructAliasTokens(ref Alloc alloc, ref TokensBuilder tokens, in AllSymbols allSymbols, in StructAliasAst a) {
+	add(alloc, tokens, Token(Token.Kind.struct_, rangeAtName(allSymbols, a.visibility, a.range.start, a.name)));
 	addTypeParamsTokens(alloc, tokens, allSymbols, a.typeParams);
 	addTypeTokens(alloc, tokens, allSymbols, a.target);
 }
 
-void addStructTokens(
-	ref Alloc alloc,
-	ref ArrBuilder!Token tokens,
-	ref const AllSymbols allSymbols,
-	scope ref immutable StructDeclAst a,
-) {
-	add(alloc, tokens, immutable Token(
-		Token.Kind.struct_,
-		rangeAtName(allSymbols, a.visibility, a.range.start, a.name)));
+void addStructTokens(ref Alloc alloc, ref TokensBuilder tokens, in AllSymbols allSymbols, in StructDeclAst a) {
+	add(alloc, tokens, Token(Token.Kind.struct_, rangeAtName(allSymbols, a.visibility, a.range.start, a.name)));
 	addTypeParamsTokens(alloc, tokens, allSymbols, a.typeParams);
-	a.body_.match!void(
-		(immutable StructDeclAst.Body.Builtin) {
+	a.body_.matchIn!void(
+		(in StructDeclAst.Body.Builtin) {
 			addModifierTokens(alloc, tokens, allSymbols, a);
 		},
-		(immutable StructDeclAst.Body.Enum it) {
+		(in StructDeclAst.Body.Enum it) {
 			addEnumOrFlagsTokens(alloc, tokens, allSymbols, a, it.typeArg, it.members);
 		},
-		(immutable StructDeclAst.Body.Extern) {
+		(in StructDeclAst.Body.Extern) {
 			addModifierTokens(alloc, tokens, allSymbols, a);
 		},
-		(immutable StructDeclAst.Body.Flags it) {
+		(in StructDeclAst.Body.Flags it) {
 			addEnumOrFlagsTokens(alloc, tokens, allSymbols, a, it.typeArg, it.members);
 		},
-		(immutable StructDeclAst.Body.Record record) {
+		(in StructDeclAst.Body.Record record) {
 			addModifierTokens(alloc, tokens, allSymbols, a);
-			foreach (ref immutable StructDeclAst.Body.Record.Field field; record.fields) {
-				add(alloc, tokens, immutable Token(
-					Token.Kind.member,
-					rangeAtName(allSymbols, field.range.start, field.name)));
+			foreach (ref StructDeclAst.Body.Record.Field field; record.fields) {
+				add(alloc, tokens, Token(Token.Kind.member, rangeAtName(allSymbols, field.range.start, field.name)));
 				addTypeTokens(alloc, tokens, allSymbols, field.type);
 			}
 		},
-		(immutable StructDeclAst.Body.Union union_) {
+		(in StructDeclAst.Body.Union union_) {
 			addModifierTokens(alloc, tokens, allSymbols, a);
-			foreach (ref immutable StructDeclAst.Body.Union.Member member; union_.members) {
-				add(alloc, tokens, immutable Token(
-					Token.Kind.member,
-					rangeAtName(allSymbols, member.range.start, member.name)));
+			foreach (ref StructDeclAst.Body.Union.Member member; union_.members) {
+				add(alloc, tokens, Token(Token.Kind.member, rangeAtName(allSymbols, member.range.start, member.name)));
 				if (has(member.type))
 					addTypeTokens(alloc, tokens, allSymbols, force(member.type));
 			}
 		});
 }
 
-void addModifierTokens(
-	ref Alloc alloc,
-	ref ArrBuilder!Token tokens,
-	ref const AllSymbols allSymbols,
-	scope ref immutable StructDeclAst a,
-) {
-	foreach (ref immutable ModifierAst modifier; a.modifiers)
-		add(alloc, tokens, immutable Token(Token.Kind.modifier, rangeOfModifierAst(modifier, allSymbols)));
+void addModifierTokens(ref Alloc alloc, ref TokensBuilder tokens, in AllSymbols allSymbols, in StructDeclAst a) {
+	foreach (ref ModifierAst modifier; a.modifiers)
+		add(alloc, tokens, Token(Token.Kind.modifier, rangeOfModifierAst(modifier, allSymbols)));
 }
 
 void addEnumOrFlagsTokens(
 	ref Alloc alloc,
-	ref ArrBuilder!Token tokens,
-	ref const AllSymbols allSymbols,
-	scope ref immutable StructDeclAst a,
-	scope immutable Opt!(TypeAst*) typeArg,
-	scope immutable StructDeclAst.Body.Enum.Member[] members,
+	ref TokensBuilder tokens,
+	in AllSymbols allSymbols,
+	in StructDeclAst a,
+	in Opt!(TypeAst*) typeArg,
+	in StructDeclAst.Body.Enum.Member[] members,
 ) {
 	if (has(typeArg))
 		addTypeTokens(alloc, tokens, allSymbols, *force(typeArg));
 	addModifierTokens(alloc, tokens, allSymbols, a);
-	foreach (ref immutable StructDeclAst.Body.Enum.Member member; members) {
-		add(alloc, tokens, immutable Token(Token.Kind.member, member.range));
+	foreach (ref StructDeclAst.Body.Enum.Member member; members) {
+		add(alloc, tokens, Token(Token.Kind.member, member.range));
 		if (has(member.value)) {
-			immutable uint addLen = " = ".length;
-			immutable Pos pos = member.range.start + symSize(allSymbols, member.name) + addLen;
-			add(alloc, tokens, immutable Token(
-				Token.Kind.literalNumber,
-				immutable RangeWithinFile(pos, member.range.end)));
+			uint addLen = " = ".length;
+			Pos pos = member.range.start + symSize(allSymbols, member.name) + addLen;
+			add(alloc, tokens, Token(Token.Kind.literalNumber, RangeWithinFile(pos, member.range.end)));
 		}
 	}
 }
 
-void addFunTokens(
-	ref Alloc alloc,
-	ref ArrBuilder!Token tokens,
-	ref const AllSymbols allSymbols,
-	scope ref immutable FunDeclAst a,
-) {
-	add(alloc, tokens, immutable Token(
+void addFunTokens(ref Alloc alloc, ref TokensBuilder tokens, in AllSymbols allSymbols, in FunDeclAst a) {
+	add(alloc, tokens, Token(
 		Token.Kind.fun,
 		rangeAtName(allSymbols, a.visibility, a.range.start, a.name)));
 	addTypeParamsTokens(alloc, tokens, allSymbols, a.typeParams);
 	addSigReturnTypeAndParamsTokens(alloc, tokens, allSymbols, a.returnType, a.params);
-	foreach (ref immutable FunModifierAst modifier; a.modifiers) {
-		immutable Token.Kind kind = modifier.isSpecial() ? Token.Kind.modifier : Token.Kind.spec;
-		add(alloc, tokens, immutable Token(kind, rangeOfNameAndRange(modifier.name, allSymbols)));
+	foreach (ref FunModifierAst modifier; a.modifiers) {
+		Token.Kind kind = modifier.isSpecial() ? Token.Kind.modifier : Token.Kind.spec;
+		add(alloc, tokens, Token(kind, rangeOfNameAndRange(modifier.name, allSymbols)));
 		addTypeArgsTokens(alloc, tokens, allSymbols, modifier.typeArgs);
 	}
 	if (has(a.body_))
 		addExprTokens(alloc, tokens, allSymbols, force(a.body_));
 }
 
-void addExprTokens(
-	ref Alloc alloc,
-	ref ArrBuilder!Token tokens,
-	ref const AllSymbols allSymbols,
-	scope ref immutable ExprAst a,
-) {
-	a.kind.match!void(
-		(ref immutable ArrowAccessAst it) {
+void addExprTokens(ref Alloc alloc, ref TokensBuilder tokens, in AllSymbols allSymbols, in ExprAst a) {
+	a.kind.matchIn!void(
+		(in ArrowAccessAst it) {
 			addExprTokens(alloc, tokens, allSymbols, it.left);
-			add(alloc, tokens, immutable Token(Token.Kind.fun, rangeOfNameAndRange(it.name, allSymbols)));
+			add(alloc, tokens, Token(Token.Kind.fun, rangeOfNameAndRange(it.name, allSymbols)));
 			addTypeArgsTokens(alloc, tokens, allSymbols, it.typeArgs);
 		},
-		(ref immutable AssertOrForbidAst it) {
-			add(alloc, tokens, immutable Token(
+		(in AssertOrForbidAst it) {
+			add(alloc, tokens, Token(
 				Token.Kind.keyword,
 				// Only the length matters, and "assert" is same length as "forbid"
-				rangeOfNameAndRange(immutable NameAndRange(a.range.start, sym!"assert"), allSymbols)));
+				rangeOfNameAndRange(NameAndRange(a.range.start, sym!"assert"), allSymbols)));
 		},
-		(immutable(BogusAst)) {},
-		(immutable CallAst it) {
+		(in BogusAst _) {},
+		(in CallAst it) {
 			void addName() {
-				add(alloc, tokens, immutable Token(Token.Kind.fun, rangeOfNameAndRange(it.funName, allSymbols)));
+				add(alloc, tokens, Token(Token.Kind.fun, rangeOfNameAndRange(it.funName, allSymbols)));
 				addTypeArgsTokens(alloc, tokens, allSymbols, it.typeArgs);
 			}
 			final switch (it.style) {
@@ -446,224 +366,196 @@ void addExprTokens(
 					break;
 			}
 		},
-		(ref immutable ForAst x) {
-			add(alloc, tokens, immutable Token(
-				Token.Kind.keyword,
-				rangeOfStartAndLength(a.range.start, "for".length)));
+		(in ForAst x) {
+			add(alloc, tokens, Token(Token.Kind.keyword, rangeOfStartAndLength(a.range.start, "for".length)));
 			addLambdaAstParams(alloc, tokens, allSymbols, x.params);
 			addExprTokens(alloc, tokens, allSymbols, x.collection);
 			addExprTokens(alloc, tokens, allSymbols, x.body_);
 			if (has(x.else_))
 				addExprTokens(alloc, tokens, allSymbols, force(x.else_));
 		},
-		(immutable(IdentifierAst)) {
-			add(alloc, tokens, immutable Token(Token.Kind.identifier, a.range));
+		(in IdentifierAst _) {
+			add(alloc, tokens, Token(Token.Kind.identifier, a.range));
 		},
-		(ref immutable IdentifierSetAst x) {
-			add(alloc, tokens, immutable Token(
+		(in IdentifierSetAst x) {
+			add(alloc, tokens, Token(
 				Token.Kind.identifier,
-				rangeOfNameAndRange(immutable NameAndRange(a.range.start, x.name), allSymbols))) ;
+				rangeOfNameAndRange(NameAndRange(a.range.start, x.name), allSymbols))) ;
 			addExprTokens(alloc, tokens, allSymbols, x.value);
 		},
-		(ref immutable IfAst it) {
+		(in IfAst it) {
 			addExprTokens(alloc, tokens, allSymbols, it.cond);
 			addExprTokens(alloc, tokens, allSymbols, it.then);
 			if (has(it.else_))
 				addExprTokens(alloc, tokens, allSymbols, force(it.else_));
 		},
-		(ref immutable IfOptionAst it) {
+		(in IfOptionAst it) {
 			add(alloc, tokens, localDefOfNameAndRange(allSymbols, it.name));
 			addExprTokens(alloc, tokens, allSymbols, it.option);
 			addExprTokens(alloc, tokens, allSymbols, it.then);
 			if (has(it.else_))
 				addExprTokens(alloc, tokens, allSymbols, force(it.else_));
 		},
-		(immutable InterpolatedAst it) {
+		(in InterpolatedAst it) {
 			Pos pos = a.range.start;
 			if (!empty(it.parts)) {
 				// Ensure opening quote is highlighted
-				it.parts[0].match!void(
-					(immutable(string)) {},
-					(immutable(ExprAst)) {
-						add(alloc, tokens, immutable Token(
-							Token.Kind.literalString,
-							immutable RangeWithinFile(pos, pos + 1)));
+				it.parts[0].matchIn!void(
+					(in string) {},
+					(in ExprAst _) {
+						add(alloc, tokens, Token(Token.Kind.literalString, RangeWithinFile(pos, pos + 1)));
 					});
-				foreach (immutable size_t i, ref immutable InterpolatedPart part; it.parts)
-					part.match!void(
-						(immutable string s) {
+				foreach (size_t i, ref InterpolatedPart part; it.parts)
+					part.matchIn!void(
+						(in string s) {
 							// TODO: length may be wrong if there are escapes
 							// Ensure the closing quote is highlighted
-							immutable Pos end = safeToUint(pos + s.length) + (i == it.parts.length - 1 ? 1 : 0);
-							add(alloc, tokens, immutable Token(
-								Token.Kind.literalString,
-								immutable RangeWithinFile(pos, end)));
+							Pos end = safeToUint(pos + s.length) + (i == it.parts.length - 1 ? 1 : 0);
+							add(alloc, tokens, Token(Token.Kind.literalString, RangeWithinFile(pos, end)));
 						},
-						(immutable ExprAst e) {
+						(in ExprAst e) {
 							addExprTokens(alloc, tokens, allSymbols, e);
 							pos = safeToUint(e.range.end + 1);
 						});
 				// Ensure closing quote is highlighted
-				it.parts[$ - 1].match!void(
-					(immutable(string)) {},
-					(immutable(ExprAst)) {
-						add(alloc, tokens, immutable Token(
+				it.parts[$ - 1].matchIn!void(
+					(in string) {},
+					(in ExprAst _) {
+						add(alloc, tokens, Token(
 							Token.Kind.literalString,
-							immutable RangeWithinFile(a.range.end - 1, a.range.end)));
+							RangeWithinFile(a.range.end - 1, a.range.end)));
 					});
 			}
 		},
-		(ref immutable LambdaAst it) {
+		(in LambdaAst it) {
 			addLambdaAstParams(alloc, tokens, allSymbols, it.params);
 			addExprTokens(alloc, tokens, allSymbols, it.body_);
 		},
-		(ref immutable LetAst it) {
+		(in LetAst it) {
 			add(alloc, tokens, has(it.name)
-				? localDefOfNameAndRange(allSymbols, immutable NameAndRange(a.range.start, force(it.name)))
-				: immutable Token(Token.Kind.keyword, rangeOfStartAndLength(a.range.start, "_".length)));
+				? localDefOfNameAndRange(allSymbols, NameAndRange(a.range.start, force(it.name)))
+				: Token(Token.Kind.keyword, rangeOfStartAndLength(a.range.start, "_".length)));
 			addExprTokens(alloc, tokens, allSymbols, it.initializer);
 			addExprTokens(alloc, tokens, allSymbols, it.then);
 		},
-		(immutable(LiteralFloatAst)) {
-			add(alloc, tokens, immutable Token(Token.Kind.literalNumber, a.range));
+		(in LiteralFloatAst _) {
+			add(alloc, tokens, Token(Token.Kind.literalNumber, a.range));
 		},
-		(immutable(LiteralIntAst)) {
-			add(alloc, tokens, immutable Token(Token.Kind.literalNumber, a.range));
+		(in LiteralIntAst _) {
+			add(alloc, tokens, Token(Token.Kind.literalNumber, a.range));
 		},
-		(immutable(LiteralNatAst)) {
-			add(alloc, tokens, immutable Token(Token.Kind.literalNumber, a.range));
+		(in LiteralNatAst _) {
+			add(alloc, tokens, Token(Token.Kind.literalNumber, a.range));
 		},
-		(immutable(LiteralStringAst)) {
-			add(alloc, tokens, immutable Token(Token.Kind.literalString, a.range));
+		(in LiteralStringAst _) {
+			add(alloc, tokens, Token(Token.Kind.literalString, a.range));
 		},
-		(ref immutable LoopAst it) {
-			add(alloc, tokens, immutable Token(
+		(in LoopAst x) {
+			add(alloc, tokens, Token(
 				Token.Kind.keyword,
 				rangeOfStartAndLength(a.range.start, "loop".length)));
-			addExprTokens(alloc, tokens, allSymbols, it.body_);
+			addExprTokens(alloc, tokens, allSymbols, x.body_);
 		},
-		(ref immutable LoopBreakAst it) {
-			add(alloc, tokens, immutable Token(
-				Token.Kind.keyword,
-				rangeOfStartAndLength(a.range.start, "break".length)));
+		(in LoopBreakAst it) {
+			add(alloc, tokens, Token(Token.Kind.keyword, rangeOfStartAndLength(a.range.start, "break".length)));
 			if (has(it.value))
 				addExprTokens(alloc, tokens, allSymbols, force(it.value));
 		},
-		(immutable(LoopContinueAst)) {
-			add(alloc, tokens, immutable Token(
-				Token.Kind.keyword,
-				rangeOfStartAndLength(a.range.start, "continue".length)));
+		(in LoopContinueAst _) {
+			add(alloc, tokens, Token(Token.Kind.keyword, rangeOfStartAndLength(a.range.start, "continue".length)));
 		},
-		(ref immutable LoopUntilAst it) {
-			add(alloc, tokens, immutable Token(
-				Token.Kind.keyword,
-				rangeOfStartAndLength(a.range.start, "until".length)));
+		(in LoopUntilAst it) {
+			add(alloc, tokens, Token(Token.Kind.keyword, rangeOfStartAndLength(a.range.start, "until".length)));
 			addExprTokens(alloc, tokens, allSymbols, it.condition);
 			addExprTokens(alloc, tokens, allSymbols, it.body_);
 		},
-		(ref immutable LoopWhileAst it) {
-			add(alloc, tokens, immutable Token(
-				Token.Kind.keyword,
-				rangeOfStartAndLength(a.range.start, "while".length)));
+		(in LoopWhileAst it) {
+			add(alloc, tokens, Token(Token.Kind.keyword, rangeOfStartAndLength(a.range.start, "while".length)));
 			addExprTokens(alloc, tokens, allSymbols, it.condition);
 			addExprTokens(alloc, tokens, allSymbols, it.body_);
 		},
-		(ref immutable MatchAst it) {
+		(in MatchAst it) {
 			addExprTokens(alloc, tokens, allSymbols, it.matched);
-			foreach (ref immutable MatchAst.CaseAst case_; it.cases) {
-				add(alloc, tokens, immutable Token(Token.Kind.struct_, case_.memberNameRange(allSymbols)));
+			foreach (ref MatchAst.CaseAst case_; it.cases) {
+				add(alloc, tokens, Token(Token.Kind.struct_, case_.memberNameRange(allSymbols)));
 				case_.local.match!void(
-					(immutable(Sym)) {
-						add(alloc, tokens, immutable Token(Token.Kind.local, case_.localRange(allSymbols)));
+					(Sym _) {
+						add(alloc, tokens, Token(Token.Kind.local, case_.localRange(allSymbols)));
 					},
-					(immutable NameOrUnderscoreOrNone.Underscore) {},
-					(immutable NameOrUnderscoreOrNone.None) {});
+					(NameOrUnderscoreOrNone.Underscore) {},
+					(NameOrUnderscoreOrNone.None) {});
 				addExprTokens(alloc, tokens, allSymbols, case_.then);
 			}
 		},
-		(ref immutable ParenthesizedAst it) {
+		(in ParenthesizedAst it) {
 			addExprTokens(alloc, tokens, allSymbols, it.inner);
 		},
-		(ref immutable PtrAst x) {
+		(in PtrAst x) {
 			addExprTokens(alloc, tokens, allSymbols, x.inner);
 		},
-		(ref immutable SeqAst it) {
+		(in SeqAst it) {
 			addExprTokens(alloc, tokens, allSymbols, it.first);
 			addExprTokens(alloc, tokens, allSymbols, it.then);
 		},
-		(ref immutable ThenAst it) {
+		(in ThenAst it) {
 			addLambdaAstParams(alloc, tokens, allSymbols, it.left);
 			addExprTokens(alloc, tokens, allSymbols, it.futExpr);
 			addExprTokens(alloc, tokens, allSymbols, it.then);
 		},
-		(ref immutable ThrowAst it) {
-			add(alloc, tokens, immutable Token(
-				Token.Kind.keyword,
-				rangeOfStartAndLength(a.range.start, "throw".length)));
+		(in ThrowAst it) {
+			add(alloc, tokens, Token(Token.Kind.keyword, rangeOfStartAndLength(a.range.start, "throw".length)));
 			addExprTokens(alloc, tokens, allSymbols, it.thrown);
 		},
-		(ref immutable TypedAst it) {
+		(in TypedAst it) {
 			addExprTokens(alloc, tokens, allSymbols, it.expr);
 			addTypeTokens(alloc, tokens, allSymbols, it.type);
 		},
-		(ref immutable UnlessAst it) {
+		(in UnlessAst it) {
 			addExprTokens(alloc, tokens, allSymbols, it.cond);
 			addExprTokens(alloc, tokens, allSymbols, it.body_);
 		},
-		(ref immutable WithAst x) {
-			add(alloc, tokens, immutable Token(
-				Token.Kind.keyword,
-				rangeOfStartAndLength(a.range.start, "with".length)));
+		(in WithAst x) {
+			add(alloc, tokens, Token(Token.Kind.keyword, rangeOfStartAndLength(a.range.start, "with".length)));
 			addLambdaAstParams(alloc, tokens, allSymbols, x.params);
 			addExprTokens(alloc, tokens, allSymbols, x.arg);
 			addExprTokens(alloc, tokens, allSymbols, x.body_);
 		});
 }
 
-immutable(Token) localDefOfNameAndRange(ref const AllSymbols allSymbols, immutable NameAndRange a) =>
-	immutable Token(Token.Kind.local, rangeOfNameAndRange(a, allSymbols));
+Token localDefOfNameAndRange(in AllSymbols allSymbols, NameAndRange a) =>
+	Token(Token.Kind.local, rangeOfNameAndRange(a, allSymbols));
 
 void addLambdaAstParams(
 	ref Alloc alloc,
-	ref ArrBuilder!Token tokens,
-	ref const AllSymbols allSymbols,
-	scope immutable LambdaAst.Param[] params,
+	ref TokensBuilder tokens,
+	in AllSymbols allSymbols,
+	in LambdaAst.Param[] params,
 ) {
-	foreach (ref immutable LambdaAst.Param param; params)
+	foreach (ref LambdaAst.Param param; params)
 		addLambdaAstParam(alloc, tokens, allSymbols, param);
 }
 
-void addLambdaAstParam(
-	ref Alloc alloc,
-	ref ArrBuilder!Token tokens,
-	ref const AllSymbols allSymbols,
-	ref immutable LambdaAst.Param param,
-) {
-	add(alloc, tokens, immutable Token(Token.Kind.param, rangeOfOptNameAndRange(param, allSymbols)));
+void addLambdaAstParam(ref Alloc alloc, ref TokensBuilder tokens, in AllSymbols allSymbols, in LambdaAst.Param param) {
+	add(alloc, tokens, Token(Token.Kind.param, rangeOfOptNameAndRange(param, allSymbols)));
 }
 
-void addExprsTokens(
-	ref Alloc alloc,
-	ref ArrBuilder!Token tokens,
-	ref const AllSymbols allSymbols,
-	scope immutable ExprAst[] exprs,
-) {
-	foreach (ref immutable ExprAst expr; exprs)
+void addExprsTokens(ref Alloc alloc, ref TokensBuilder tokens, in AllSymbols allSymbols, in ExprAst[] exprs) {
+	foreach (ref ExprAst expr; exprs)
 		addExprTokens(alloc, tokens, allSymbols, expr);
 }
 
-void assertTokensSorted(ref immutable Token[] tokens) {
-	immutable Opt!UnsortedPair pair = findUnsortedPair!Token(tokens, (ref immutable Token a, ref immutable Token b) =>
+void assertTokensSorted(Token[] tokens) {
+	Opt!UnsortedPair pair = findUnsortedPair!Token(tokens, (in Token a, in Token b) =>
 		compareRangeWithinFile(a.range, b.range));
 	if (has(pair))
 		// To debug, just disable this assertion and look for the unsorted token in the output
 		todo!void("tokens not sorted!");
 }
 
-immutable(Comparison) compareRangeWithinFile(ref immutable RangeWithinFile a, ref immutable RangeWithinFile b) =>
+Comparison compareRangeWithinFile(RangeWithinFile a, RangeWithinFile b) =>
 	compareNat32(a.start, b.start);
 
-immutable(Sym) symOfTokenKind(immutable Token.Kind kind) {
+Sym symOfTokenKind(Token.Kind kind) {
 	final switch (kind) {
 		case Token.Kind.fun:
 			return sym!"fun";
@@ -694,7 +586,7 @@ immutable(Sym) symOfTokenKind(immutable Token.Kind kind) {
 	}
 }
 
-immutable(Repr) reprToken(ref Alloc alloc, ref immutable Token token) =>
+Repr reprToken(ref Alloc alloc, Token token) =>
 	reprNamedRecord!"token"(alloc, [
 		nameAndRepr!"kind"(reprSym(symOfTokenKind(token.kind))),
 		nameAndRepr!"range"(reprRangeWithinFile(alloc, token.range))]);

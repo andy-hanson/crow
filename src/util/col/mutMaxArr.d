@@ -16,9 +16,17 @@ struct MutMaxArr(size_t maxSize, T) {
 	@disable this(ref const MutMaxArr);
 	@disable void opAssign(ref const MutMaxArr);
 
-	ref inout(T) opIndex(immutable size_t i) inout {
+	ref inout(T) opIndex(size_t i) inout {
 		verify(i < size_);
 		return values[i];
+	}
+
+	int opApply(in int delegate(ref T) @safe @nogc pure nothrow cb) {
+		foreach (ref T x; values[0 .. size_]) {
+			int i = cb(x);
+			verify(i == 0);
+		}
+		return 0;
 	}
 
 	private:
@@ -28,20 +36,20 @@ struct MutMaxArr(size_t maxSize, T) {
 
 void copyToFrom(size_t maxSize, T)(ref MutMaxArr!(maxSize, T) a, ref const MutMaxArr!(maxSize, T) b) {
 	a.size_ = b.size_;
-	foreach (immutable size_t i, ref const T x; tempAsArr(b))
+	foreach (size_t i, ref const T x; tempAsArr(b))
 		overwriteMemory(&a.values[i], x);
 }
 
 immutable(T[]) toArray(size_t maxSize, T)(ref Alloc alloc, return scope ref MutMaxArr!(maxSize, T) a) =>
 	arrLiteral!T(alloc, tempAsArr(a));
 
-immutable(bool) isEmpty(size_t maxSize, T)(ref MutMaxArr!(maxSize, T) a) =>
+bool isEmpty(size_t maxSize, T)(in MutMaxArr!(maxSize, T) a) =>
 	a.size_ == 0;
 
-immutable(bool) isFull(size_t maxSize, T)(ref MutMaxArr!(maxSize, T) a) =>
+bool isFull(size_t maxSize, T)(in MutMaxArr!(maxSize, T) a) =>
 	a.size_ == maxSize;
 
-immutable(size_t) mutMaxArrSize(size_t maxSize, T)(ref MutMaxArr!(maxSize, T) a) =>
+size_t mutMaxArrSize(size_t maxSize, T)(in MutMaxArr!(maxSize, T) a) =>
 	a.size_;
 
 void initializeMutMaxArr(size_t maxSize, T)(ref MutMaxArr!(maxSize, T) a) {
@@ -61,43 +69,39 @@ void initializeMutMaxArr(size_t maxSize, T)(ref MutMaxArr!(maxSize, T) a) {
 	return res;
 }
 
-void fillMutMaxArr(size_t maxSize, T)(
-	ref MutMaxArr!(maxSize, T) a,
-	immutable size_t size,
-	immutable T value,
-) {
+void fillMutMaxArr(size_t maxSize, T)(ref MutMaxArr!(maxSize, T) a, size_t size, immutable T value) {
 	a.size_ = size;
-	foreach (immutable size_t i; 0 .. size)
+	foreach (size_t i; 0 .. size)
 		overwriteMemory(&a.values[i], value);
 }
 void fillMutMaxArr_mut(size_t maxSize, T)(
 	ref MutMaxArr!(maxSize, T) a,
-	immutable size_t size,
-	scope T delegate() @safe @nogc pure nothrow cb,
+	size_t size,
+	in T delegate() @safe @nogc pure nothrow cb,
 ) {
 	a.size_ = size;
-	foreach (immutable size_t i; 0 .. size)
+	foreach (size_t i; 0 .. size)
 		overwriteMemory(&a.values[i], cb());
 }
 
 void mapTo(size_t maxSize, Out, In)(
 	ref MutMaxArr!(maxSize, immutable Out) a,
-	scope immutable In[] values,
-	scope immutable(Out) delegate(ref immutable In) @safe @nogc pure nothrow cb,
+	in immutable In[] values,
+	in immutable(Out) delegate(ref immutable In) @safe @nogc pure nothrow cb,
 ) {
 	verify(values.length < maxSize);
 	a.size_ = values.length;
-	foreach (immutable size_t i; 0 .. values.length)
+	foreach (size_t i; 0 .. values.length)
 		overwriteMemory(&a.values[i], cb(values[i]));
 }
 void mapTo_mut(size_t maxSize, Out, In)(
 	ref MutMaxArr!(maxSize, Out) a,
-	scope immutable In[] values,
-	scope Out delegate(ref immutable In) @safe @nogc pure nothrow cb,
+	in immutable In[] values,
+	in Out delegate(ref immutable In) @safe @nogc pure nothrow cb,
 ) {
 	verify(values.length < maxSize);
 	a.size_ = values.length;
-	foreach (immutable size_t i; 0 .. values.length)
+	foreach (size_t i; 0 .. values.length)
 		overwriteMemory(&a.values[i], cb(values[i]));
 }
 
@@ -113,7 +117,7 @@ void pushIfUnderMaxSize(size_t maxSize, T)(ref MutMaxArr!(maxSize, T) a, immutab
 void pushLeft(size_t maxSize, T)(ref MutMaxArr!(maxSize, T) a, T value) {
 	verify(a.size_ != maxSize);
 	a.size_++;
-	foreach_reverse (immutable size_t i; 1 .. a.size_)
+	foreach_reverse (size_t i; 1 .. a.size_)
 		overwriteMemory(&a.values[i], a.values[i - 1]);
 	overwriteMemory(&a.values[0], value);
 }
@@ -139,8 +143,8 @@ ref const(T) only(size_t maxSize, T)(ref const MutMaxArr!(maxSize, T) a) {
 
 @trusted void filterUnordered(size_t maxSize, T)(
 	scope ref MutMaxArr!(maxSize, T) a,
-	scope immutable(bool) delegate(ref T) @safe @nogc pure nothrow pred,
-	scope void delegate(ref T, ref const T) @safe @nogc pure nothrow overwrite,
+	in bool delegate(ref T) @safe @nogc pure nothrow pred,
+	in void delegate(ref T, ref T) @safe @nogc pure nothrow overwrite,
 ) {
 	T* begin = a.values.ptr;
 	T* newEnd = filterUnorderedRecur!T(begin, begin + a.size_, pred, overwrite);
@@ -152,8 +156,8 @@ private:
 @system T* filterUnorderedRecur(T)(
 	T* begin,
 	T* end,
-	scope immutable(bool) delegate(ref T) @safe @nogc pure nothrow pred,
-	scope void delegate(ref T, ref T) @safe @nogc pure nothrow overwrite,
+	in bool delegate(ref T) @safe @nogc pure nothrow pred,
+	in void delegate(ref T, ref T) @safe @nogc pure nothrow overwrite,
 ) {
 	verify(begin <= end);
 	return begin == end
@@ -167,8 +171,8 @@ private:
 @system T* filterUnorderedFillHole(T)(
 	T* begin,
 	T* end,
-	scope immutable(bool) delegate(ref T) @safe @nogc pure nothrow pred,
-	scope void delegate(ref T, ref T) @safe @nogc pure nothrow overwrite,
+	in bool delegate(ref T) @safe @nogc pure nothrow pred,
+	in void delegate(ref T, ref T) @safe @nogc pure nothrow overwrite,
 ) {
 	if (begin + 1 == end)
 		return begin;

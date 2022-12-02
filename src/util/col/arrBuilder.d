@@ -11,7 +11,7 @@ struct ArrBuilder(T) {
 	private MutArr!(immutable T) data;
 }
 
-void add(T)(scope ref Alloc alloc, ref ArrBuilder!T a, immutable T value) {
+void add(T)(scope ref Alloc alloc, ref ArrBuilder!T a, in immutable T value) {
 	push(alloc, a.data, value);
 }
 
@@ -19,7 +19,7 @@ void backUp(T)(ref ArrBuilder!T a) {
 	mustPop(a.data);
 }
 
-void addAll(T)(ref Alloc alloc, ref ArrBuilder!T a, scope immutable T[] value) {
+void addAll(T)(ref Alloc alloc, ref ArrBuilder!(immutable T) a, in immutable T[] value) {
 	pushAll(alloc, a.data, value);
 }
 
@@ -30,15 +30,12 @@ void arrBuilderClear(T)(ref ArrBuilder!T a) {
 const(T[]) arrBuilderTempAsArr(T)(ref const ArrBuilder!T a) =>
 	tempAsArr(a.data);
 
-void arrBuilderSort(T)(ref ArrBuilder!T a, scope immutable Comparer!T compare) {
+void arrBuilderSort(T)(scope ref ArrBuilder!T a, in Comparer!T compare) {
 	sortInPlace!(immutable T)(tempAsArr(a.data), compare);
 }
-
-immutable(T[]) finishArr_immutable(T)(ref Alloc alloc, ref ArrBuilder!(immutable T) a) =>
-	moveToArr(alloc, a.data);
 
 immutable(T[]) finishArr(T)(ref Alloc alloc, scope ref ArrBuilder!T a) =>
 	moveToArr(alloc, a.data);
 
-immutable(size_t) arrBuilderSize(T)(ref const ArrBuilder!T a) =>
+size_t arrBuilderSize(T)(in ArrBuilder!T a) =>
 	mutArrSize(a.data);

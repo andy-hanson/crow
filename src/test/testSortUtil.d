@@ -9,9 +9,8 @@ import util.comparison : compareNat32;
 import util.util : verify;
 
 void testSortUtil(ref Test test) {
-	scope immutable(uint)[3] xs = [3, 1, 2];
-	sortInPlace!(immutable uint)(xs, (ref immutable uint a, ref immutable uint b) =>
+	scope uint[3] xs = [3, 1, 2];
+	sortInPlace!(uint)(xs, (in uint a, in uint b) =>
 		compareNat32(a, b));
-	verify(arrEqual!uint(xs, [1, 2, 3], (ref immutable uint a, ref immutable uint b) =>
-		a == b));
+	verify(arrEqual!uint(xs, [1, 2, 3]));
 }

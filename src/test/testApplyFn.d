@@ -127,39 +127,39 @@ void testApplyFn(ref Test test) {
 
 private:
 
-immutable(ulong) u64OfI8Bits(immutable byte a) =>
+ulong u64OfI8Bits(byte a) =>
 	cast(ulong) (cast(ubyte) a);
 
-immutable(ulong) u64OfI16Bits(immutable short a) =>
+ulong u64OfI16Bits(short a) =>
 	cast(ulong) (cast(ushort) a);
 
-immutable(ulong) u64OfI32Bits(immutable int a) =>
+ulong u64OfI32Bits(int a) =>
 	cast(ulong) (cast(uint) a);
 
-immutable(ulong) u64OfI64Bits(immutable long a) =>
+ulong u64OfI64Bits(long a) =>
 	cast(ulong) a;
 
-@trusted void testFnBinary(alias fn)(ref Test test, scope immutable ulong[2] stackIn, immutable ulong stackOut) {
+@trusted void testFnBinary(alias fn)(ref Test test, ulong[2] stackIn, ulong stackOut) {
 	interpreterTest(
 		test,
-		(ref ByteCodeWriter writer, immutable ByteCodeSource source) {
+		(scope ref ByteCodeWriter writer, ByteCodeSource source) {
 			writePushConstants(writer, source, stackIn);
 			writeFnBinary!fn(writer, source);
 			writeReturn(writer, source);
 		},
-		(ref Stacks stacks, immutable(Operation)* cur) {
+		(scope ref Stacks stacks, Operation* cur) {
 			stepUntilExitAndExpect(test, stacks, [stackOut], cur);
 		});
 }
 
-@trusted void testFnUnary(alias fn)(ref Test test, immutable ulong stackIn, immutable ulong stackOut) {
+@trusted void testFnUnary(alias fn)(ref Test test, ulong stackIn, ulong stackOut) {
 	interpreterTest(
 		test,
-		(ref ByteCodeWriter writer, immutable ByteCodeSource source) {
+		(scope ref ByteCodeWriter writer, ByteCodeSource source) {
 			writeFnUnary!fn(writer, source);
 			writeReturn(writer, source);
 		},
-		(ref Stacks stacks, immutable(Operation)* cur) {
+		(scope ref Stacks stacks, Operation* cur) {
 			dataPush(stacks, stackIn);
 			stepUntilExitAndExpect(test, stacks, [stackOut], cur);
 		});

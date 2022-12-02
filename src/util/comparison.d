@@ -2,10 +2,7 @@ module util.comparison;
 
 @safe @nogc pure nothrow:
 
-alias Comparer(T) =
-	immutable(Comparison) delegate(scope ref immutable T, scope ref immutable T) @safe @nogc pure nothrow;
-alias ConstComparer(T) =
-	immutable(Comparison) delegate(scope ref const T, scope ref const T) @safe @nogc pure nothrow;
+alias Comparer(T) = immutable Comparison delegate(in T, in T) @safe @nogc pure nothrow;
 
 enum Comparison {
 	less,
@@ -13,7 +10,7 @@ enum Comparison {
 	greater,
 }
 
-immutable(Comparison) oppositeComparison(immutable Comparison a) {
+Comparison oppositeComparison(Comparison a) {
 	final switch (a) {
 		case Comparison.less:
 			return Comparison.greater;
@@ -24,21 +21,21 @@ immutable(Comparison) oppositeComparison(immutable Comparison a) {
 	}
 }
 
-immutable(Comparison) compareNat16(immutable ushort a, immutable ushort b) =>
+Comparison compareNat16(ushort a, ushort b) =>
 	compareT(a, b);
 
-immutable(Comparison) compareNat32(immutable uint a, immutable uint b) =>
+Comparison compareNat32(uint a, uint b) =>
 	compareT(a, b);
 
-immutable(Comparison) compareSizeT(immutable size_t a, immutable size_t b) =>
+Comparison compareSizeT(size_t a, size_t b) =>
 	compareT(a, b);
 
-immutable(Comparison) compareUlong(immutable ulong a, immutable ulong b) =>
+Comparison compareUlong(ulong a, ulong b) =>
 	compareT(a, b);
 
-private immutable(Comparison) compareT(T)(immutable T a, immutable T b) =>
+private Comparison compareT(T)(T a, T b) =>
 	a < b
-			? Comparison.less
-		: a > b
-			? Comparison.greater
-		: Comparison.equal;
+	? Comparison.less
+	: a > b
+	? Comparison.greater
+	: Comparison.equal;

@@ -15,28 +15,18 @@ struct DictBuilder(K, V) {
 	MutDict!(immutable K, immutable V) builder;
 }
 
-void mustAddToDict(K, V)(
-	ref Alloc alloc,
-	ref DictBuilder!(K, V) a,
-	immutable K key,
-	immutable V value,
-) {
-	immutable Opt!V res = tryAddToDict(alloc, a, key, value);
+void mustAddToDict(K, V)(ref Alloc alloc, ref DictBuilder!(K, V) a, immutable K key, immutable V value) {
+	Opt!V res = tryAddToDict(alloc, a, key, value);
 	verify(!has(res));
 }
 
 // If there is already a value there, does nothing and returns it
-immutable(Opt!V) tryAddToDict(K, V)(
-	ref Alloc alloc,
-	ref DictBuilder!(K, V) a,
-	immutable K key,
-	immutable V value,
-) {
+Opt!V tryAddToDict(K, V)(ref Alloc alloc, ref DictBuilder!(K, V) a, immutable K key, immutable V value) {
 	ValueAndDidAdd!(immutable V) v = getOrAddAndDidAdd(alloc, a.builder, key, () => value);
-	return v.didAdd ? none!V : some!V(v.value);
+	return v.didAdd ? none!V : some(v.value);
 }
 
-immutable(Dict!(K, V)) finishDict(K, V)(
+Dict!(K, V) finishDict(K, V)(
 	ref Alloc alloc,
 	ref DictBuilder!(K, V) a,
 ) =>

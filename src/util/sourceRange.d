@@ -15,71 +15,74 @@ alias Pos = uint;
 alias FilePaths = FullIndexDict!(FileIndex, Path);
 alias PathToFile = Dict!(Path, FileIndex);
 
-struct FileIndex {
-	immutable ushort index;
+immutable struct FileIndex {
+	@safe @nogc pure nothrow:
 
-	static immutable FileIndex none = FileIndex(ushort.max);
+	ushort index;
+
+	static FileIndex none() =>
+		FileIndex(ushort.max);
 }
 
-struct RangeWithinFile {
-	immutable Pos start;
-	immutable Pos end;
+immutable struct RangeWithinFile {
+	@safe @nogc pure nothrow:
 
-	static immutable RangeWithinFile max = immutable RangeWithinFile(immutable Pos(uint.max), immutable Pos(uint.max));
-	static immutable RangeWithinFile empty = immutable RangeWithinFile(immutable Pos(0), immutable Pos(0));
+	Pos start;
+	Pos end;
+
+	static RangeWithinFile max() =>
+		RangeWithinFile(Pos.max, Pos.max);
+	static RangeWithinFile empty() =>
+		RangeWithinFile(0, 0);
 }
 static assert(RangeWithinFile.sizeof == 8);
 
-immutable(bool) hasPos(immutable RangeWithinFile a, immutable Pos p) =>
+bool hasPos(RangeWithinFile a, Pos p) =>
 	a.start <= p && p < a.end;
 
-immutable(RangeWithinFile) rangeOfStartAndName(
-	immutable Pos start,
-	immutable Sym name,
-	ref const AllSymbols allSymbols,
-) =>
+RangeWithinFile rangeOfStartAndName(Pos start, Sym name, in AllSymbols allSymbols) =>
 	rangeOfStartAndLength(start, symSize(allSymbols, name));
 
-immutable(RangeWithinFile) rangeOfStartAndLength(immutable Pos start, immutable size_t length) =>
-	immutable RangeWithinFile(start, safeToUint(start + length));
+RangeWithinFile rangeOfStartAndLength(Pos start, size_t length) =>
+	RangeWithinFile(start, safeToUint(start + length));
 
-struct FileAndPos {
-	immutable FileIndex fileIndex;
-	immutable Pos pos;
+immutable struct FileAndPos {
+	FileIndex fileIndex;
+	Pos pos;
 }
 
-immutable(FileAndPos) fileAndPosFromFileAndRange(immutable FileAndRange a) =>
-	immutable FileAndPos(a.fileIndex, a.start);
+FileAndPos fileAndPosFromFileAndRange(FileAndRange a) =>
+	FileAndPos(a.fileIndex, a.start);
 
-immutable(FileAndRange) fileAndRangeFromFileAndPos(immutable FileAndPos a) =>
-	immutable FileAndRange(a.fileIndex, immutable RangeWithinFile(a.pos, a.pos + 1));
+FileAndRange fileAndRangeFromFileAndPos(FileAndPos a) =>
+	FileAndRange(a.fileIndex, RangeWithinFile(a.pos, a.pos + 1));
 
-struct FileAndRange {
+immutable struct FileAndRange {
 	@safe @nogc pure nothrow:
 
-	immutable FileIndex fileIndex;
-	immutable ushort size;
-	immutable Pos start;
+	FileIndex fileIndex;
+	ushort size;
+	Pos start;
 
-	immutable this(immutable FileIndex fi, immutable RangeWithinFile r) {
+	this(FileIndex fi, RangeWithinFile r) {
 		fileIndex = fi;
 		size = safeToUshort(r.end - r.start);
 		start = r.start;
 	}
 
-	//TODO: NOT INSTANCE
-	immutable(RangeWithinFile) range() immutable =>
-		immutable RangeWithinFile(start, start + size);
+	RangeWithinFile range() =>
+		RangeWithinFile(start, start + size);
 
-	static immutable FileAndRange empty = immutable FileAndRange(FileIndex.none, RangeWithinFile.empty);
+	static FileAndRange empty() =>
+		FileAndRange(FileIndex.none, RangeWithinFile.empty);
 }
 static assert(FileAndRange.sizeof == 8);
 
-immutable(Repr) reprFileAndPos(ref Alloc alloc, ref immutable FileAndPos a) =>
+Repr reprFileAndPos(ref Alloc alloc, FileAndPos a) =>
 	reprRecord!"file-pos"(alloc, [reprNat(a.fileIndex.index), reprNat(a.pos)]);
 
-immutable(Repr) reprFileAndRange(ref Alloc alloc, ref immutable FileAndRange a) =>
+Repr reprFileAndRange(ref Alloc alloc, FileAndRange a) =>
 	reprRecord!"file-range"(alloc, [reprNat(a.fileIndex.index), reprRangeWithinFile(alloc, a.range)]);
 
-immutable(Repr) reprRangeWithinFile(ref Alloc alloc, immutable RangeWithinFile a) =>
+Repr reprRangeWithinFile(ref Alloc alloc, RangeWithinFile a) =>
 	reprRecord!"range"(alloc, [reprNat(a.start), reprNat(a.end)]);

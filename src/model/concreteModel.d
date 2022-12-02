@@ -55,7 +55,7 @@ enum BuiltinStructKind {
 	void_,
 }
 
-immutable(Sym) symOfBuiltinStructKind(immutable BuiltinStructKind a) {
+Sym symOfBuiltinStructKind(BuiltinStructKind a) {
 	final switch (a) {
 		case BuiltinStructKind.bool_:
 			return sym!"bool";
@@ -94,60 +94,55 @@ immutable(Sym) symOfBuiltinStructKind(immutable BuiltinStructKind a) {
 	}
 }
 
-struct EnumValues {
+immutable struct EnumValues {
 	// size_t for 0 to N
-	mixin Union!(immutable size_t, immutable EnumValue[]);
+	mixin Union!(size_t, EnumValue[]);
 }
 
-struct ConcreteStructBody {
-	struct Builtin {
-		immutable BuiltinStructKind kind;
-		immutable ConcreteType[] typeArgs;
+immutable struct ConcreteStructBody {
+	immutable struct Builtin {
+		BuiltinStructKind kind;
+		ConcreteType[] typeArgs;
 	}
-	struct Enum {
-		immutable EnumBackingType backingType;
-		immutable EnumValues values;
+	immutable struct Enum {
+		EnumBackingType backingType;
+		EnumValues values;
 	}
-	struct Flags {
-		immutable EnumBackingType backingType;
-		immutable ulong[] values;
+	immutable struct Flags {
+		EnumBackingType backingType;
+		ulong[] values;
 	}
-	struct Extern {}
-	struct Record {
-		immutable ConcreteField[] fields;
+	immutable struct Extern {}
+	immutable struct Record {
+		ConcreteField[] fields;
 	}
-	struct Union {
+	immutable struct Union {
 		// In the concrete model we identify members by index, so don't care about their names
-		immutable Opt!ConcreteType[] members;
+		Opt!ConcreteType[] members;
 	}
 
-	mixin .Union!(
-		immutable Builtin,
-		immutable Enum,
-		immutable Extern,
-		immutable Flags,
-		immutable Record,
-		immutable Union);
+	mixin .Union!(Builtin, Enum, Extern, Flags, Record, Union);
 }
 
-struct ConcreteType {
+immutable struct ConcreteType {
 	@safe @nogc pure nothrow:
 
-	immutable ReferenceKind reference;
-	immutable ConcreteStruct* struct_;
+	ReferenceKind reference;
+	ConcreteStruct* struct_;
 
-	immutable(bool) opEquals(scope immutable ConcreteType b) scope immutable =>
+	bool opEquals(scope ConcreteType b) scope =>
 		struct_ == b.struct_ && reference == reference;
 
-	void hash(ref Hasher hasher) scope immutable {
+	void hash(ref Hasher hasher) scope {
 		hashPtr(hasher, struct_);
 		hashEnum(hasher, reference);
 	}
 }
 
-enum ReferenceKind { byVal, byRef, byRefRef }
+alias ReferenceKind = immutable ReferenceKind_;
+private enum ReferenceKind_ { byVal, byRef, byRefRef }
 
-immutable(Sym) symOfReferenceKind(immutable ReferenceKind a) {
+Sym symOfReferenceKind(ReferenceKind a) {
 	final switch (a) {
 		case ReferenceKind.byVal:
 			return sym!"by-val";
@@ -158,112 +153,109 @@ immutable(Sym) symOfReferenceKind(immutable ReferenceKind a) {
 	}
 }
 
-struct TypeSize {
-	immutable size_t sizeBytes;
-	immutable size_t alignmentBytes;
+immutable struct TypeSize {
+	size_t sizeBytes;
+	size_t alignmentBytes;
 }
 
-immutable(Purity) purity(immutable ConcreteType a) =>
+Purity purity(ConcreteType a) =>
 	a.struct_.purity;
 
-immutable(ConcreteStruct*) mustBeByVal(immutable ConcreteType a) {
+ConcreteStruct* mustBeByVal(ConcreteType a) {
 	verify(a.reference == ReferenceKind.byVal);
 	return a.struct_;
 }
 
-struct ConcreteStructInfo {
-	immutable ConcreteStructBody body_;
-	immutable bool isSelfMutable; //TODO: never used? (may need for GC though)
+immutable struct ConcreteStructInfo {
+	ConcreteStructBody body_;
+	bool isSelfMutable; //TODO: never used? (may need for GC though)
 }
 
-struct ConcreteStructSource {
-	@safe @nogc pure nothrow:
-
-	struct Inst {
-		immutable StructInst* inst;
-		immutable ConcreteType[] typeArgs;
+immutable struct ConcreteStructSource {
+	immutable struct Inst {
+		StructInst* inst;
+		ConcreteType[] typeArgs;
 	}
 
-	struct Lambda {
-		immutable ConcreteFun* containingFun;
-		immutable size_t index;
+	immutable struct Lambda {
+		ConcreteFun* containingFun;
+		size_t index;
 	}
 
-	mixin Union!(immutable Inst, immutable Lambda);
+	mixin Union!(Inst, Lambda);
 }
 
-struct ConcreteStruct {
+immutable struct ConcreteStruct {
 	@safe @nogc pure nothrow:
 
-	immutable Purity purity;
-	immutable ConcreteStructSource source;
-	Late!(immutable ConcreteStructInfo) info_;
+	Purity purity;
+	ConcreteStructSource source;
+	Late!ConcreteStructInfo info_;
 	//TODO: this isn't needed outside of concretizeCtx.d
-	Late!(immutable ReferenceKind) defaultReferenceKind_;
-	Late!(immutable TypeSize) typeSize_;
+	Late!ReferenceKind defaultReferenceKind_;
+	Late!TypeSize typeSize_;
 	// Only set for records
 	Late!(immutable size_t[]) fieldOffsets_;
 }
 
-immutable(bool) isArray(ref immutable ConcreteStruct a) =>
-	a.source.match!(immutable bool)(
-		(immutable ConcreteStructSource.Inst it) =>
+bool isArray(ref ConcreteStruct a) =>
+	a.source.match!bool(
+		(ConcreteStructSource.Inst it) =>
 			isArray(*it.inst),
-		(immutable ConcreteStructSource.Lambda it) =>
+		(ConcreteStructSource.Lambda it) =>
 			false);
 
-private ref immutable(ConcreteStructInfo) info(scope return ref const ConcreteStruct a) =>
+private ref ConcreteStructInfo info(return scope ref ConcreteStruct a) =>
 	lateGet(a.info_);
 
-ref immutable(ConcreteStructBody) body_(scope return ref immutable ConcreteStruct a) =>
+ref ConcreteStructBody body_(return scope ref ConcreteStruct a) =>
 	info(a).body_;
 
-immutable(TypeSize) typeSize(ref immutable ConcreteStruct a) =>
+TypeSize typeSize(in ConcreteStruct a) =>
 	lateGet(a.typeSize_);
 
-ref immutable(size_t[]) fieldOffsets(scope return ref immutable ConcreteStruct a) =>
+immutable(size_t[]) fieldOffsets(return ref ConcreteStruct a) =>
 	lateGet(a.fieldOffsets_);
 
-immutable(bool) isSelfMutable(ref immutable ConcreteStruct a) =>
+bool isSelfMutable(ref ConcreteStruct a) =>
 	info(a).isSelfMutable;
 
-immutable(ReferenceKind) defaultReferenceKind(ref immutable ConcreteStruct a) =>
+ReferenceKind defaultReferenceKind(in ConcreteStruct a) =>
 	lateGet(a.defaultReferenceKind_);
 
 //TODO: this is only useful during concretize, move
-immutable(bool) hasSizeOrPointerSizeBytes(ref immutable ConcreteType a) {
+bool hasSizeOrPointerSizeBytes(in ConcreteType a) {
 	final switch (a.reference) {
 		case ReferenceKind.byVal:
 			return lateIsSet(a.struct_.typeSize_);
 		case ReferenceKind.byRef:
-			return true;
 		case ReferenceKind.byRefRef:
 			return true;
 	}
 }
 
-immutable(TypeSize) sizeOrPointerSizeBytes(ref immutable ConcreteType a) {
+TypeSize sizeOrPointerSizeBytes(in ConcreteType a) {
 	final switch (a.reference) {
 		case ReferenceKind.byVal:
 			return typeSize(*a.struct_);
 		case ReferenceKind.byRef:
 		case ReferenceKind.byRefRef:
-			return immutable TypeSize(8, 8);
+			return TypeSize(8, 8);
 	}
 }
 
-immutable(ConcreteType) byRef(immutable ConcreteType t) =>
-	immutable ConcreteType(ReferenceKind.byRef, t.struct_);
+ConcreteType byRef(ConcreteType t) =>
+	ConcreteType(ReferenceKind.byRef, t.struct_);
 
-immutable(ConcreteType) byVal(ref immutable ConcreteType t) =>
-	immutable ConcreteType(ReferenceKind.byVal, t.struct_);
+ConcreteType byVal(ref ConcreteType t) =>
+	ConcreteType(ReferenceKind.byVal, t.struct_);
 
 enum ConcreteMutability {
 	const_,
 	mutable,
 }
 
-immutable(Sym) symOfConcreteMutability(immutable ConcreteMutability a) {
+Sym symOfConcreteMutability(ConcreteMutability a) {
 	final switch (a) {
 		case ConcreteMutability.const_:
 			return sym!"const";
@@ -272,216 +264,212 @@ immutable(Sym) symOfConcreteMutability(immutable ConcreteMutability a) {
 	}
 }
 
-struct ConcreteField {
-	immutable Sym debugName;
-	immutable ConcreteMutability mutability;
-	immutable ConcreteType type;
+immutable struct ConcreteField {
+	Sym debugName;
+	ConcreteMutability mutability;
+	ConcreteType type;
 }
 
-struct ConcreteParamSource {
-	struct Closure {}
-	struct Synthetic {}
-	mixin Union!(immutable Closure, immutable Param*, immutable Synthetic);
+immutable struct ConcreteParamSource {
+	immutable struct Closure {}
+	immutable struct Synthetic {}
+	mixin Union!(Closure, Param*, Synthetic);
 }
 static assert(ConcreteParamSource.sizeof == ulong.sizeof);
 
-struct ConcreteParam {
-	immutable ConcreteParamSource source;
-	immutable Opt!size_t index; // not present for closure param
-	immutable ConcreteType type;
+immutable struct ConcreteParam {
+	ConcreteParamSource source;
+	Opt!size_t index; // not present for closure param
+	ConcreteType type;
 }
 
-struct ConcreteLocal {
+immutable struct ConcreteLocal {
 	@safe @nogc pure nothrow:
 
-	immutable Local* source;
-	immutable ConcreteType type;
+	Local* source;
+	ConcreteType type;
 
-	immutable(bool) isAllocated() immutable =>
+	bool isAllocated() =>
 		source.isAllocated;
 }
 
-struct ConcreteFunBody {
-	@safe @nogc pure nothrow:
-
-	struct Builtin {
-		immutable ConcreteType[] typeArgs;
+immutable struct ConcreteFunBody {
+	immutable struct Builtin {
+		ConcreteType[] typeArgs;
 	}
-	struct CreateRecord {}
-	struct CreateUnion {
-		immutable size_t memberIndex;
+	immutable struct CreateRecord {}
+	immutable struct CreateUnion {
+		size_t memberIndex;
 	}
-	struct Extern {
-		immutable bool isGlobal;
-		immutable Sym libraryName;
+	immutable struct Extern {
+		bool isGlobal;
+		Sym libraryName;
 	}
-	struct FlagsFn {
-		immutable ulong allValue;
-		immutable FlagsFunction fn;
+	immutable struct FlagsFn {
+		ulong allValue;
+		FlagsFunction fn;
 	}
-	struct RecordFieldGet {
-		immutable size_t fieldIndex;
+	immutable struct RecordFieldGet {
+		size_t fieldIndex;
 	}
-	struct RecordFieldSet {
-		immutable size_t fieldIndex;
+	immutable struct RecordFieldSet {
+		size_t fieldIndex;
 	}
-	struct ThreadLocal {}
+	immutable struct ThreadLocal {}
 
 	mixin Union!(
-		immutable Builtin,
-		immutable Constant,
-		immutable CreateRecord,
-		immutable CreateUnion,
-		immutable EnumFunction,
-		immutable Extern,
-		immutable ConcreteExpr,
-		immutable FlagsFn,
-		immutable RecordFieldGet,
-		immutable RecordFieldSet,
-		immutable ThreadLocal);
+		Builtin,
+		Constant,
+		CreateRecord,
+		CreateUnion,
+		EnumFunction,
+		Extern,
+		ConcreteExpr,
+		FlagsFn,
+		RecordFieldGet,
+		RecordFieldSet,
+		ThreadLocal);
 }
 
-immutable(bool) isGlobal(ref immutable ConcreteFunBody a) =>
+bool isGlobal(in ConcreteFunBody a) =>
 	a.isA!(ConcreteFunBody.Extern) && a.as!(ConcreteFunBody.Extern).isGlobal;
 
-struct ConcreteFunSource {
-	struct Lambda {
-		immutable FileAndRange range;
-		immutable ConcreteFun* containingFun;
-		immutable size_t index; // nth lambda in the containing function
+immutable struct ConcreteFunSource {
+	immutable struct Lambda {
+		FileAndRange range;
+		ConcreteFun* containingFun;
+		size_t index; // nth lambda in the containing function
 	}
 
-	struct Test {
-		immutable FileAndRange range;
-		immutable size_t testIndex;
+	immutable struct Test {
+		FileAndRange range;
+		size_t testIndex;
 	}
 
-	mixin Union!(immutable FunInst*, immutable Lambda*, immutable Test*);
+	mixin Union!(FunInst*, Lambda*, Test*);
 }
 static assert(ConcreteFunSource.sizeof == ulong.sizeof);
 
 // We generate a ConcreteFun for:
 // Each instantiation of a FunDecl
 // Each lambda inside an instantiation of a FunDecl
-struct ConcreteFun {
-	immutable ConcreteFunSource source;
-	immutable ConcreteType returnType;
-	immutable Opt!(ConcreteParam*) closureParam;
-	immutable ConcreteParam[] paramsExcludingClosure;
-	Late!(immutable ConcreteFunBody) _body_;
+immutable struct ConcreteFun {
+	ConcreteFunSource source;
+	ConcreteType returnType;
+	Opt!(ConcreteParam*) closureParam;
+	ConcreteParam[] paramsExcludingClosure;
+	Late!ConcreteFunBody _body_;
 }
 
-immutable(bool) isVariadic(ref immutable ConcreteFun a) =>
-	a.source.match!(immutable bool)(
-		(ref immutable FunInst i) =>
+bool isVariadic(ref ConcreteFun a) =>
+	a.source.match!bool(
+		(ref FunInst i) =>
 			i.params.isA!(Params.Varargs*),
-		(ref immutable ConcreteFunSource.Lambda) =>
+		(ref ConcreteFunSource.Lambda) =>
 			false,
-		(ref immutable ConcreteFunSource.Test) =>
+		(ref ConcreteFunSource.Test) =>
 			false);
 
-immutable(Opt!Sym) name(ref immutable ConcreteFun a) =>
-	a.source.match!(immutable Opt!Sym)(
-		(ref immutable FunInst it) =>
+Opt!Sym name(ref ConcreteFun a) =>
+	a.source.match!(Opt!Sym)(
+		(ref FunInst it) =>
 			some(it.name),
-		(ref immutable ConcreteFunSource.Lambda) =>
+		(ref ConcreteFunSource.Lambda) =>
 			none!Sym,
-		(ref immutable ConcreteFunSource.Test) =>
+		(ref ConcreteFunSource.Test) =>
 			none!Sym);
 
-immutable(bool) isSummon(ref immutable ConcreteFun a) =>
-	a.source.match!(immutable bool)(
-		(ref immutable FunInst it) =>
+bool isSummon(ref ConcreteFun a) =>
+	a.source.match!bool(
+		(ref FunInst it) =>
 			summon(*decl(it)),
-		(ref immutable ConcreteFunSource.Lambda it) =>
+		(ref ConcreteFunSource.Lambda it) =>
 			isSummon(*it.containingFun),
-		(ref immutable ConcreteFunSource.Test) =>
+		(ref ConcreteFunSource.Test) =>
 			// 'isSummon' is called for direct calls, but tests are never called directly
-			unreachable!(immutable bool)());
+			unreachable!bool());
 
-immutable(FileAndRange) concreteFunRange(ref immutable ConcreteFun a, ref const AllSymbols allSymbols) =>
-	a.source.match!(immutable FileAndRange)(
-		(ref immutable FunInst x) =>
+FileAndRange concreteFunRange(ref ConcreteFun a, in AllSymbols allSymbols) =>
+	a.source.match!FileAndRange(
+		(ref FunInst x) =>
 			decl(x).range,
-		(ref immutable ConcreteFunSource.Lambda x) =>
+		(ref ConcreteFunSource.Lambda x) =>
 			x.range,
-		(ref immutable ConcreteFunSource.Test x) =>
+		(ref ConcreteFunSource.Test x) =>
 			x.range);
 
-immutable(bool) isFunOrActSubscript(ref immutable ConcreteProgram program, ref immutable ConcreteFun a) =>
+bool isFunOrActSubscript(ref ConcreteProgram program, ref ConcreteFun a) =>
 	a.source.isA!(FunInst*) && contains(program.commonFuns.funOrActSubscriptFunDecls, decl(*a.source.as!(FunInst*)));
 
-immutable(bool) isMarkVisitFun(ref immutable ConcreteProgram program, ref immutable ConcreteFun a) =>
+bool isMarkVisitFun(ref ConcreteProgram program, ref ConcreteFun a) =>
 	a.source.isA!(FunInst*) && decl(*a.source.as!(FunInst*)) == program.commonFuns.markVisitFunDecl;
 
-ref immutable(ConcreteFunBody) body_(scope return ref const ConcreteFun a) =>
+ref ConcreteFunBody body_(return scope ref ConcreteFun a) =>
 	lateGet(a._body_);
 
-void setBody(ref ConcreteFun a, immutable ConcreteFunBody value) {
+void setBody(ref ConcreteFun a, ConcreteFunBody value) {
 	lateSet(a._body_, value);
 }
 
-immutable(bool) isGlobal(ref immutable ConcreteFun a) =>
+bool isGlobal(ref ConcreteFun a) =>
 	isGlobal(body_(a));
 
-struct ConcreteExpr {
-	immutable ConcreteType type;
-	immutable FileAndRange range;
-	immutable ConcreteExprKind kind;
+immutable struct ConcreteExpr {
+	ConcreteType type;
+	FileAndRange range;
+	ConcreteExprKind kind;
 }
 
-struct ConcreteClosureRef {
+immutable struct ConcreteClosureRef {
 	@safe @nogc pure nothrow:
 
-	immutable PtrAndSmallNumber!ConcreteParam paramAndIndex;
+	PtrAndSmallNumber!ConcreteParam paramAndIndex;
 
-	immutable(ConcreteParam*) closureParam() immutable =>
+	ConcreteParam* closureParam() =>
 		paramAndIndex.ptr;
 
-	immutable(ushort) fieldIndex() immutable =>
+	ushort fieldIndex() =>
 		paramAndIndex.number;
 }
 
-struct ConcreteExprKind {
-	@safe @nogc pure nothrow:
-
-	struct Alloc {
-		immutable ConcreteExpr inner;
+immutable struct ConcreteExprKind {
+	immutable struct Alloc {
+		ConcreteExpr inner;
 	}
 
-	struct Call {
-		immutable ConcreteFun* called;
-		immutable ConcreteExpr[] args;
+	immutable struct Call {
+		ConcreteFun* called;
+		ConcreteExpr[] args;
 	}
 
-	struct ClosureCreate {
-		immutable ConcreteVariableRef[] args;
+	immutable struct ClosureCreate {
+		ConcreteVariableRef[] args;
 	}
 
-	struct ClosureGet {
-		immutable ConcreteClosureRef closureRef;
-		immutable ClosureReferenceKind referenceKind;
+	immutable struct ClosureGet {
+		ConcreteClosureRef closureRef;
+		ClosureReferenceKind referenceKind;
 	}
 
-	struct ClosureSet {
-		immutable ConcreteClosureRef closureRef;
-		immutable ConcreteExpr value;
+	immutable struct ClosureSet {
+		ConcreteClosureRef closureRef;
+		ConcreteExpr value;
 		// referenceKind is always allocated
 	}
 
-	struct Cond {
-		immutable ConcreteExpr cond;
-		immutable ConcreteExpr then;
-		immutable ConcreteExpr else_;
+	immutable struct Cond {
+		ConcreteExpr cond;
+		ConcreteExpr then;
+		ConcreteExpr else_;
 	}
 
-	struct CreateArr {
+	immutable struct CreateArr {
 		@safe @nogc pure nothrow:
 
-		immutable ConcreteStruct* arrType;
-		immutable ConcreteExpr[] args;
+		ConcreteStruct* arrType;
+		ConcreteExpr[] args;
 
-		immutable this(immutable ConcreteStruct* at, immutable ConcreteExpr[] as) {
+		this(ConcreteStruct* at, ConcreteExpr[] as) {
 			arrType = at;
 			args = as;
 			verify(!empty(args));
@@ -489,188 +477,189 @@ struct ConcreteExprKind {
 	}
 
 	// TODO: this is only used for closures now, since normal record creation always goes through a function.
-	struct CreateRecord {
-		immutable ConcreteExpr[] args;
+	immutable struct CreateRecord {
+		ConcreteExpr[] args;
 	}
 
 	// Only used for 'safe-value', otherwise it goes through a function
-	struct CreateUnion {
-		immutable size_t memberIndex;
-		immutable ConcreteExpr arg;
+	immutable struct CreateUnion {
+		size_t memberIndex;
+		ConcreteExpr arg;
 	}
 
-	struct Drop {
-		immutable ConcreteExpr arg;
+	immutable struct Drop {
+		ConcreteExpr arg;
 	}
 
-	struct Let {
-		immutable ConcreteLocal* local;
-		immutable ConcreteExpr value;
-		immutable ConcreteExpr then;
+	immutable struct Let {
+		ConcreteLocal* local;
+		ConcreteExpr value;
+		ConcreteExpr then;
 	}
 
 	// May be a fun or fun-mut.
 	// (A fun-ref is a lambda wrapped in CreateRecord.)
-	struct Lambda {
-		immutable size_t memberIndex; // Member index of a Union (which hasn't been created yet)
-		immutable Opt!(ConcreteExpr*) closure;
+	immutable struct Lambda {
+		size_t memberIndex; // Member index of a Union (which hasn't been created yet)
+		Opt!(ConcreteExpr*) closure;
 	}
 
-	struct LocalGet {
-		immutable ConcreteLocal* local;
+	immutable struct LocalGet {
+		ConcreteLocal* local;
 	}
 
-	struct LocalSet {
-		immutable ConcreteLocal* local;
-		immutable ConcreteExpr value;
+	immutable struct LocalSet {
+		ConcreteLocal* local;
+		ConcreteExpr value;
 	}
 
-	struct Loop {
-		immutable ConcreteExpr body_;
+	immutable struct Loop {
+		ConcreteExpr body_;
 	}
 
-	struct LoopBreak {
-		immutable ConcreteExprKind.Loop* loop;
-		immutable ConcreteExpr value;
+	immutable struct LoopBreak {
+		ConcreteExprKind.Loop* loop;
+		ConcreteExpr value;
 	}
 
-	struct LoopContinue {
-		immutable ConcreteExprKind.Loop* loop;
+	immutable struct LoopContinue {
+		ConcreteExprKind.Loop* loop;
 	}
 
-	struct MatchEnum {
-		immutable ConcreteExpr matchedValue;
-		immutable ConcreteExpr[] cases;
+	immutable struct MatchEnum {
+		ConcreteExpr matchedValue;
+		ConcreteExpr[] cases;
 	}
 
-	struct MatchUnion {
-		struct Case {
-			immutable Opt!(ConcreteLocal*) local;
-			immutable ConcreteExpr then;
+	immutable struct MatchUnion {
+		immutable struct Case {
+			Opt!(ConcreteLocal*) local;
+			ConcreteExpr then;
 		}
 
-		immutable ConcreteExpr matchedValue;
-		immutable Case[] cases;
+		ConcreteExpr matchedValue;
+		Case[] cases;
 	}
 
-	struct ParamGet {
-		immutable ConcreteParam* param;
+	immutable struct ParamGet {
+		ConcreteParam* param;
 	}
 
-	struct PtrToField {
-		immutable ConcreteExpr target;
-		immutable size_t fieldIndex;
+	immutable struct PtrToField {
+		ConcreteExpr target;
+		size_t fieldIndex;
 	}
 
-	struct PtrToLocal {
-		immutable ConcreteLocal* local;
+	immutable struct PtrToLocal {
+		ConcreteLocal* local;
 	}
 
-	struct PtrToParam {
-		immutable ConcreteParam* param;
+	immutable struct PtrToParam {
+		ConcreteParam* param;
 	}
 
-	struct Seq {
-		immutable ConcreteExpr first;
-		immutable ConcreteExpr then;
+	immutable struct Seq {
+		ConcreteExpr first;
+		ConcreteExpr then;
 	}
 
-	struct Throw {
+	immutable struct Throw {
 		// a `c-str`
-		immutable ConcreteExpr thrown;
+		ConcreteExpr thrown;
 	}
 
 	mixin Union!(
-		immutable Alloc*,
-		immutable Call,
-		immutable ClosureCreate,
-		immutable ClosureGet*,
-		immutable ClosureSet*,
-		immutable Cond*,
-		immutable Constant,
-		immutable CreateArr*,
-		immutable CreateRecord,
-		immutable CreateUnion*,
-		immutable Drop*,
-		immutable Lambda,
-		immutable Let*,
-		immutable LocalGet,
-		immutable LocalSet*,
-		immutable Loop*,
-		immutable LoopBreak*,
-		immutable LoopContinue,
-		immutable MatchEnum*,
-		immutable MatchUnion*,
-		immutable ParamGet,
-		immutable PtrToField*,
-		immutable PtrToLocal,
-		immutable PtrToParam,
-		immutable Seq*,
-		immutable Throw*);
+		Alloc*,
+		Call,
+		ClosureCreate,
+		ClosureGet*,
+		ClosureSet*,
+		Cond*,
+		Constant,
+		CreateArr*,
+		CreateRecord,
+		CreateUnion*,
+		Drop*,
+		Lambda,
+		Let*,
+		LocalGet,
+		LocalSet*,
+		Loop*,
+		LoopBreak*,
+		LoopContinue,
+		MatchEnum*,
+		MatchUnion*,
+		ParamGet,
+		PtrToField*,
+		PtrToLocal,
+		PtrToParam,
+		Seq*,
+		Throw*);
 }
 
-struct ConcreteVariableRef {
-	mixin Union!(
-		immutable Constant,
-		immutable ConcreteLocal*,
-		immutable ConcreteParam*,
-		immutable ConcreteClosureRef);
+immutable struct ConcreteVariableRef {
+	mixin Union!(Constant, ConcreteLocal*, ConcreteParam*, ConcreteClosureRef);
 }
 
-immutable(ConcreteType) elementType(return scope ref immutable ConcreteExprKind.CreateArr a) =>
+ConcreteType elementType(ConcreteExprKind.CreateArr a) =>
 	only(a.arrType.source.as!(ConcreteStructSource.Inst).typeArgs);
 
-immutable(ConcreteType) returnType(return scope ref immutable ConcreteExprKind.Call a) =>
+ConcreteType returnType(ConcreteExprKind.Call a) =>
 	a.called.returnType;
 
-struct ArrTypeAndConstantsConcrete {
-	immutable ConcreteStruct* arrType;
-	immutable ConcreteType elementType;
-	immutable Constant[][] constants;
+immutable struct ArrTypeAndConstantsConcrete {
+	ConcreteStruct* arrType;
+	ConcreteType elementType;
+	Constant[][] constants;
 }
 
-struct PointerTypeAndConstantsConcrete {
-	immutable ConcreteStruct* pointeeType;
-	immutable Constant[] constants;
+immutable struct PointerTypeAndConstantsConcrete {
+	ConcreteStruct* pointeeType;
+	Constant[] constants;
 }
 
 // TODO: rename -- this is not all constants, just the ones by-ref
-struct AllConstantsConcrete {
-	immutable SafeCStr[] cStrings;
-	immutable Constant staticSymbols;
-	immutable ArrTypeAndConstantsConcrete[] arrs;
+immutable struct AllConstantsConcrete {
+	SafeCStr[] cStrings;
+	Constant staticSymbols;
+	ArrTypeAndConstantsConcrete[] arrs;
 	// These are just the by-ref records
-	immutable PointerTypeAndConstantsConcrete[] pointers;
+	PointerTypeAndConstantsConcrete[] pointers;
 }
 
-struct ConcreteProgram {
+immutable struct ConcreteProgram {
 	@safe @nogc pure nothrow:
 
-	immutable AllConstantsConcrete allConstants;
-	immutable ConcreteStruct*[] allStructs;
-	immutable ConcreteFun*[] allFuns;
-	immutable Dict!(ConcreteStruct*, ConcreteLambdaImpl[]) funStructToImpls;
-	immutable ConcreteCommonFuns commonFuns;
+	AllConstantsConcrete allConstants;
+	ConcreteStruct*[] allStructs;
+	ConcreteFun*[] allFuns;
+	Dict!(ConcreteStruct*, ConcreteLambdaImpl[]) funStructToImpls;
+	ConcreteCommonFuns commonFuns;
 
 	//TODO:NOT INSTANCE
-	immutable(ConcreteFun*) markFun() immutable { return commonFuns.markFun; }
-	immutable(ConcreteFun*) rtMain() immutable { return commonFuns.rtMain; }
-	immutable(ConcreteFun*) userMain() immutable { return commonFuns.userMain; }
-	immutable(ConcreteFun*) allocFun() immutable { return commonFuns.allocFun; }
-	immutable(ConcreteFun*) throwImplFun() immutable { return commonFuns.throwImpl; }
+	ConcreteFun* markFun() return scope =>
+		commonFuns.markFun;
+	ConcreteFun* rtMain() return scope =>
+		commonFuns.rtMain;
+	ConcreteFun* userMain() return scope =>
+		commonFuns.userMain;
+	ConcreteFun* allocFun() return scope =>
+		commonFuns.allocFun;
+	ConcreteFun* throwImplFun() return scope =>
+		commonFuns.throwImpl;
 }
 
-struct ConcreteCommonFuns {
-	immutable ConcreteFun* allocFun;
-	immutable FunDecl*[] funOrActSubscriptFunDecls;
-	immutable ConcreteFun* markFun;
-	immutable FunDecl* markVisitFunDecl;
-	immutable ConcreteFun* rtMain;
-	immutable ConcreteFun* throwImpl;
-	immutable ConcreteFun* userMain;
+immutable struct ConcreteCommonFuns {
+	ConcreteFun* allocFun;
+	FunDecl*[] funOrActSubscriptFunDecls;
+	ConcreteFun* markFun;
+	FunDecl* markVisitFunDecl;
+	ConcreteFun* rtMain;
+	ConcreteFun* throwImpl;
+	ConcreteFun* userMain;
 }
 
-struct ConcreteLambdaImpl {
-	immutable ConcreteType closureType;
-	immutable ConcreteFun* impl;
+immutable struct ConcreteLambdaImpl {
+	ConcreteType closureType;
+	ConcreteFun* impl;
 }

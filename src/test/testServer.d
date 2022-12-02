@@ -12,9 +12,9 @@ import util.util : verify;
 @trusted void testServer(ref Test test) {
 	ubyte[] bytes = allocateUninitialized!ubyte(test.alloc, 0x4000);
 	Server server = Server(Alloc(bytes.ptr, bytes.length));
-	immutable SafeCStr path = safeCStr!"main";
-	immutable SafeCStr content = safeCStr!"content";
+	SafeCStr path = safeCStr!"main";
+	SafeCStr content = safeCStr!"content";
 	addOrChangeFile(server, path, content);
-	immutable SafeCStr res = getFile(server, path);
+	SafeCStr res = getFile(server, path);
 	verify(safeCStrEq(res, content));
 }

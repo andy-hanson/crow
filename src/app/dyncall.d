@@ -32,22 +32,22 @@ import util.path : AllPaths, childPath, Path, pathToTempStr, TempStrForPath;
 import util.sym : AllSymbols, concatSyms, Sym, sym, symAsTempBuffer;
 import util.util : todo, unreachable, verify;
 
-@trusted immutable(ExitCode) withRealExtern(
+@trusted ExitCode withRealExtern(
 	ref Alloc alloc,
 	ref AllSymbols allSymbols,
 	ref AllPaths allPaths,
-	scope immutable(ExitCode) delegate(scope ref Extern) @safe @nogc nothrow cb,
+	in ExitCode delegate(in Extern) @safe @nogc nothrow cb,
 ) {
-	Late!(immutable DebugNames) debugNames = late!(immutable DebugNames);
+	Late!DebugNames debugNames = late!DebugNames;
 	scope Extern extern_ = Extern(
-		(scope immutable ExternLibraries libraries, scope WriteError writeError) {
-			immutable LoadedLibraries res = loadLibraries(alloc, allSymbols, allPaths, libraries, writeError);
+		(in ExternLibraries libraries, scope WriteError writeError) {
+			LoadedLibraries res = loadLibraries(alloc, allSymbols, allPaths, libraries, writeError);
 			lateSet(debugNames, res.debugNames);
 			return res.funPtrs;
 		},
-		(scope immutable FunPtrInputs[] inputs) =>
+		(in FunPtrInputs[] inputs) =>
 			makeSyntheticFunPtrs(alloc, inputs),
-		(immutable FunPtr funPtr, scope immutable DynCallSig sig, scope immutable ulong[] parameters) =>
+		(FunPtr funPtr, in DynCallSig sig, in ulong[] parameters) =>
 			dynamicCallFunPtr(funPtr, allSymbols, lateGet(debugNames)[funPtr], sig, parameters));
 	return cb(extern_);
 }
@@ -56,48 +56,48 @@ private:
 
 alias DebugNames = immutable Dict!(FunPtr, Sym);
 
-struct LoadedLibraries {
-	immutable DebugNames debugNames;
-	immutable Opt!ExternFunPtrsForAllLibraries funPtrs;
+immutable struct LoadedLibraries {
+	DebugNames debugNames;
+	Opt!ExternFunPtrsForAllLibraries funPtrs;
 }
 
-immutable(LoadedLibraries) loadLibraries(
+LoadedLibraries loadLibraries(
 	ref Alloc alloc,
 	ref AllSymbols allSymbols,
 	ref AllPaths allPaths,
-	scope immutable ExternLibraries libraries,
-	scope WriteError writeError,
+	in ExternLibraries libraries,
+	in WriteError writeError,
 ) {
 	bool success = true;
-	immutable DLLib*[] libs = mapImpure(alloc, libraries, (ref immutable ExternLibrary x) {
-		immutable LibraryAndError lib = getLibrary(allSymbols, allPaths, x.libraryName, x.configuredPath, writeError);
+	immutable DLLib*[] libs = mapImpure!(immutable DLLib*, ExternLibrary)(alloc, libraries, (in ExternLibrary x) {
+		LibraryAndError lib = getLibrary(allSymbols, allPaths, x.libraryName, x.configuredPath, writeError);
 		if (lib.error) success = false;
 		return lib.library;
 	});
 	return success
 		? loadLibrariesInner(alloc, allSymbols, libraries, libs, writeError)
-		: immutable LoadedLibraries(immutable DebugNames(), none!ExternFunPtrsForAllLibraries);
+		: LoadedLibraries(DebugNames(), none!ExternFunPtrsForAllLibraries);
 }
 
 // Can't use Opt since 'null' is sometimes allowed as the library
-struct LibraryAndError {
-	immutable DLLib* library;
-	immutable bool error;
+immutable struct LibraryAndError {
+	DLLib* library;
+	bool error;
 }
 
-immutable(LibraryAndError) getLibrary(
+LibraryAndError getLibrary(
 	ref AllSymbols allSymbols,
 	ref AllPaths allPaths,
-	immutable Sym libraryName,
-	immutable Opt!Path configuredPath,
-	scope WriteError writeError,
+	Sym libraryName,
+	Opt!Path configuredPath,
+	in WriteError writeError,
 ) {
-	immutable Sym fileName = dllOrSoName(allSymbols, libraryName);
-	immutable Opt!(DLLib*) fromPath = has(configuredPath)
+	Sym fileName = dllOrSoName(allSymbols, libraryName);
+	Opt!(DLLib*) fromPath = has(configuredPath)
 		? tryLoadLibraryFromPath(allPaths, childPath(allPaths, force(configuredPath), fileName))
 		: none!(DLLib*);
 	if (has(fromPath))
-		return immutable LibraryAndError(force(fromPath), false);
+		return LibraryAndError(force(fromPath), false);
 	else {
 		switch (libraryName.value) {
 			case sym!"c".value:
@@ -105,7 +105,7 @@ immutable(LibraryAndError) getLibrary(
 				version (Windows) {
 					return loadLibraryFromName(safeCStr!"ucrtbase.dll", writeError);
 				} else {
-					return immutable LibraryAndError(null, false);
+					return LibraryAndError(null, false);
 				}
 			case sym!"pthread".value:
 				// TODO: understand why this is different
@@ -116,7 +116,7 @@ immutable(LibraryAndError) getLibrary(
 	}
 }
 
-immutable(Sym) dllOrSoName(ref AllSymbols allSymbols, immutable Sym libraryName) {
+Sym dllOrSoName(ref AllSymbols allSymbols, immutable Sym libraryName) {
 	version (Windows) {
 		return concatSyms(allSymbols, [libraryName, sym!".dll"]);
 	} else {
@@ -124,95 +124,84 @@ immutable(Sym) dllOrSoName(ref AllSymbols allSymbols, immutable Sym libraryName)
 	}
 }
 
-@trusted immutable(Opt!(DLLib*)) tryLoadLibraryFromPath(
-	ref const AllPaths allPaths,
-	immutable Path path,
-) {
+@trusted Opt!(DLLib*) tryLoadLibraryFromPath(in AllPaths allPaths, Path path) {
 	TempStrForPath buf = void;
-	immutable SafeCStr pathStr = pathToTempStr(buf, allPaths, path);
-	immutable DLLib* res = dlLoadLibrary(pathStr.ptr);
+	SafeCStr pathStr = pathToTempStr(buf, allPaths, path);
+	DLLib* res = dlLoadLibrary(pathStr.ptr);
 	return res == null ? none!(DLLib*) : some(res);
 }
 
-@trusted immutable(LibraryAndError) loadLibraryFromName(
-	ref const AllSymbols allSymbols,
-	immutable Sym name,
-	scope WriteError writeError,
-) {
+@trusted LibraryAndError loadLibraryFromName(in AllSymbols allSymbols, Sym name, in WriteError writeError) {
 	char[256] buf = symAsTempBuffer!256(allSymbols, name);
-	return loadLibraryFromName(immutable SafeCStr(cast(immutable) buf.ptr), writeError);
+	return loadLibraryFromName(SafeCStr(cast(immutable) buf.ptr), writeError);
 }
 
-immutable(LibraryAndError) loadLibraryFromName(scope immutable SafeCStr name, scope WriteError writeError) {
-	immutable DLLib* res = dlLoadLibrary(name.ptr);
+LibraryAndError loadLibraryFromName(in SafeCStr name, in WriteError writeError) {
+	DLLib* res = dlLoadLibrary(name.ptr);
 	if (res == null) {
 		// TODO: use a Diagnostic
 		writeError(safeCStr!"Could not load library ");
 		writeError(name);
 		writeError(safeCStr!"\n");
 	}
-	return immutable LibraryAndError(res, res == null);
+	return LibraryAndError(res, res == null);
 }
 
-immutable(LoadedLibraries) loadLibrariesInner(
+LoadedLibraries loadLibrariesInner(
 	ref Alloc alloc,
-	ref const AllSymbols allSymbols,
-	scope immutable ExternLibraries libraries,
+	in AllSymbols allSymbols,
+	in ExternLibraries libraries,
 	immutable DLLib*[] libs,
-	scope WriteError writeError,
+	in WriteError writeError,
 ) {
 	DictBuilder!(FunPtr, Sym) debugNames;
-	MutArr!(immutable KeyValuePair!(Sym, Sym)) failures;
-	immutable ExternFunPtrsForAllLibraries res = zipToDict!(Sym, Dict!(Sym, FunPtr), ExternLibrary, DLLib*)(
+	MutArr!(KeyValuePair!(Sym, Sym)) failures;
+	ExternFunPtrsForAllLibraries res = zipToDict!(Sym, Dict!(Sym, FunPtr), ExternLibrary, DLLib*)(
 		alloc,
 		libraries,
 		libs,
-		(ref immutable ExternLibrary x, ref immutable DLLib* lib) @safe @nogc nothrow {
-			immutable ExternFunPtrsForLibrary funPtrs = makeDictFromKeys!(Sym, FunPtr)(
+		(ref ExternLibrary x, ref DLLib* lib) {
+			ExternFunPtrsForLibrary funPtrs = makeDictFromKeys!(Sym, FunPtr)(
 				alloc,
 				x.importNames,
-				(immutable Sym importName) {
-					immutable Opt!FunPtr p = getExternFunPtr(allSymbols, lib, importName);
+				(Sym importName) {
+					Opt!FunPtr p = getExternFunPtr(allSymbols, lib, importName);
 					if (has(p)) {
 						// sometimes two names refer to the same function -- just go with the first name
-						tryAddToDict(alloc, debugNames, force(p), importName);
+						tryAddToDict!(FunPtr, Sym)(alloc, debugNames, force(p), importName);
 						return force(p);
 					} else {
-						push(alloc, failures, immutable KeyValuePair!(Sym , Sym)(x.libraryName, importName));
-						return immutable FunPtr(null);
+						push(alloc, failures, KeyValuePair!(Sym, Sym)(x.libraryName, importName));
+						return FunPtr(null);
 					}
 				});
 			return immutable KeyValuePair!(Sym, ExternFunPtrsForLibrary)(x.libraryName, funPtrs);
 		});
-	foreach (immutable KeyValuePair!(Sym, Sym) x; tempAsArr(failures)) {
+	foreach (KeyValuePair!(Sym, Sym) x; tempAsArr(failures)) {
 		writeError(safeCStr!"Could not load extern function ");
 		writeSymToCb(writeError, allSymbols, x.value);
 		writeError(safeCStr!" from library ");
 		writeSymToCb(writeError, allSymbols, x.key);
 		writeError(safeCStr!"\n");
 	}
-	return immutable LoadedLibraries(
+	return LoadedLibraries(
 		finishDict(alloc, debugNames),
 		mutArrIsEmpty(failures) ? some(res) : none!ExternFunPtrsForAllLibraries);
 }
 
-@trusted pure immutable(Opt!FunPtr) getExternFunPtr(
-	ref const AllSymbols allSymbols,
-	immutable DLLib* library,
-	immutable Sym name,
-) {
+@trusted pure Opt!FunPtr getExternFunPtr(in AllSymbols allSymbols, DLLib* library, Sym name) {
 	immutable char[256] nameBuffer = symAsTempBuffer!256(allSymbols, name);
-	immutable CStr nameCStr = nameBuffer.ptr;
+	CStr nameCStr = nameBuffer.ptr;
 	DCpointer ptr = dlFindSymbol(library, nameCStr);
-	return ptr == null ? none!FunPtr : some(immutable FunPtr(cast(immutable) ptr));
+	return ptr == null ? none!FunPtr : some(FunPtr(cast(immutable) ptr));
 }
 
-@system immutable(ulong) dynamicCallFunPtr(
-	immutable FunPtr funPtr,
-	scope const ref AllSymbols allSymbols,
-	scope immutable Opt!Sym /*debugName*/,
-	scope immutable DynCallSig sig,
-	scope immutable ulong[] parameters,
+@system ulong dynamicCallFunPtr(
+	FunPtr funPtr,
+	in AllSymbols allSymbols,
+	Opt!Sym /*debugName*/,
+	in DynCallSig sig,
+	in ulong[] parameters,
 ) {
 	static DCCallVM* dcVm = null;
 	if (dcVm == null) {
@@ -229,127 +218,132 @@ immutable(LoadedLibraries) loadLibrariesInner(
 
 	DCpointer ptr = cast(DCpointer) funPtr.fn;
 	dcReset(dcVm);
-	foreach (immutable size_t i, immutable ulong value; parameters) {
-		final switch (sig.parameterTypes[i]) {
-			case DynCallType.bool_:
-				dcArgBool(dcVm, cast(bool) value);
-				break;
-			case DynCallType.char8:
-				todo!void("handle this type");
-				break;
-			case DynCallType.int8:
-				todo!void("handle this type");
-				break;
-			case DynCallType.int16:
-				dcArgShort(dcVm, cast(short) value);
-				break;
-			case DynCallType.int32:
-				dcArgInt(dcVm, cast(int) value);
-				break;
-			case DynCallType.float32:
-				dcArgFloat(dcVm, float32OfBits(cast(uint) value));
-				break;
-			case DynCallType.float64:
-				dcArgDouble(dcVm, float64OfBits(value));
-				break;
-			case DynCallType.nat8:
-				todo!void("handle this type");
-				break;
-			case DynCallType.nat16:
-				dcArgShort(dcVm, cast(ushort) value);
-				break;
-			case DynCallType.nat32:
-				dcArgInt(dcVm, cast(uint) value);
-				break;
-			case DynCallType.int64:
-			case DynCallType.nat64:
-				dcArgLongLong(dcVm, value);
-				break;
-			case DynCallType.pointer:
-				dcArgPointer(dcVm, cast(void*) value);
-				break;
-			case DynCallType.void_:
-				unreachable!void();
-		}
+	foreach (size_t i, ulong value; parameters) {
+		addArgForDynCall(dcVm, value, sig.parameterTypes[i]);
 	}
 
-	immutable ulong res = () {
-		final switch (sig.returnType) {
-			case DynCallType.bool_:
-				return dcCallBool(dcVm, ptr);
-			case DynCallType.char8:
-				return todo!(immutable ulong)("handle this type");
-			case DynCallType.int8:
-				return todo!(immutable ulong)("handle this type");
-			case DynCallType.int16:
-				return todo!(immutable ulong)("handle this type");
-			case DynCallType.int32:
-				return u64OfI32(dcCallInt(dcVm, ptr));
-			case DynCallType.int64:
-			case DynCallType.nat64:
-				return u64OfI64(dcCallLongLong(dcVm, ptr));
-			case DynCallType.float32:
-				return todo!(immutable ulong)("handle this type");
-			case DynCallType.float64:
-				return bitsOfFloat64(dcCallDouble(dcVm, ptr));
-			case DynCallType.nat8:
-				return todo!(immutable ulong)("handle this type");
-			case DynCallType.nat16:
-				return safeToUshort(dcCallShort(dcVm, ptr));
-			case DynCallType.nat32:
-				return cast(uint) dcCallInt(dcVm, ptr);
-			case DynCallType.pointer:
-				return cast(size_t) dcCallPointer(dcVm, ptr);
-			case DynCallType.void_:
-				dcCallVoid(dcVm, ptr);
-				return 0;
-		}
-	}();
+	ulong res = doDynCallForType(dcVm, ptr, sig.returnType);
 	dcReset(dcVm);
 	return res;
 }
 
-struct UserData {
-	immutable DynCallSig sig;
-	immutable Operation* operationPtr;
+@system void addArgForDynCall(DCCallVM*dcVm, ulong value, DynCallType parameterType) {
+	final switch (parameterType) {
+		case DynCallType.bool_:
+			dcArgBool(dcVm, cast(bool) value);
+			break;
+		case DynCallType.char8:
+			todo!void("handle this type");
+			break;
+		case DynCallType.int8:
+			todo!void("handle this type");
+			break;
+		case DynCallType.int16:
+			dcArgShort(dcVm, cast(short) value);
+			break;
+		case DynCallType.int32:
+			dcArgInt(dcVm, cast(int) value);
+			break;
+		case DynCallType.float32:
+			dcArgFloat(dcVm, float32OfBits(cast(uint) value));
+			break;
+		case DynCallType.float64:
+			dcArgDouble(dcVm, float64OfBits(value));
+			break;
+		case DynCallType.nat8:
+			todo!void("handle this type");
+			break;
+		case DynCallType.nat16:
+			dcArgShort(dcVm, cast(ushort) value);
+			break;
+		case DynCallType.nat32:
+			dcArgInt(dcVm, cast(uint) value);
+			break;
+		case DynCallType.int64:
+		case DynCallType.nat64:
+			dcArgLongLong(dcVm, value);
+			break;
+		case DynCallType.pointer:
+			dcArgPointer(dcVm, cast(void*) value);
+			break;
+		case DynCallType.void_:
+			unreachable!void();
+	}
 }
 
-pure immutable(FunPtr[]) makeSyntheticFunPtrs(ref Alloc alloc, scope immutable FunPtrInputs[] inputs) =>
-	map(alloc, inputs, (ref immutable FunPtrInputs x) =>
+@system ulong doDynCallForType(DCCallVM* dcVm, DCpointer ptr, DynCallType returnType) {
+	final switch (returnType) {
+		case DynCallType.bool_:
+			return dcCallBool(dcVm, ptr);
+		case DynCallType.char8:
+			return todo!ulong("handle this type");
+		case DynCallType.int8:
+			return todo!ulong("handle this type");
+		case DynCallType.int16:
+			return todo!ulong("handle this type");
+		case DynCallType.int32:
+			return u64OfI32(dcCallInt(dcVm, ptr));
+		case DynCallType.int64:
+		case DynCallType.nat64:
+			return u64OfI64(dcCallLongLong(dcVm, ptr));
+		case DynCallType.float32:
+			return todo!ulong("handle this type");
+		case DynCallType.float64:
+			return bitsOfFloat64(dcCallDouble(dcVm, ptr));
+		case DynCallType.nat8:
+			return todo!ulong("handle this type");
+		case DynCallType.nat16:
+			return safeToUshort(dcCallShort(dcVm, ptr));
+		case DynCallType.nat32:
+			return cast(uint) dcCallInt(dcVm, ptr);
+		case DynCallType.pointer:
+			return cast(size_t) dcCallPointer(dcVm, ptr);
+		case DynCallType.void_:
+			dcCallVoid(dcVm, ptr);
+			return 0;
+	}
+}
+
+immutable struct UserData {
+	DynCallSig sig;
+	Operation* operationPtr;
+}
+
+pure FunPtr[] makeSyntheticFunPtrs(ref Alloc alloc, in FunPtrInputs[] inputs) =>
+	map(alloc, inputs, (ref FunPtrInputs x) =>
 		syntheticFunPtrForSig(alloc, x.sig, x.operationPtr));
 
-@trusted pure immutable(FunPtr) syntheticFunPtrForSig(
-	ref Alloc alloc,
-	immutable DynCallSig sig,
-	immutable Operation* operationPtr,
-) {
+@trusted pure FunPtr syntheticFunPtrForSig(ref Alloc alloc, DynCallSig sig, Operation* operationPtr) {
 	char[16] sigStr;
 	toDynCallSigString(sigStr, sig);
-	immutable UserData* userData = allocate(alloc, immutable UserData(sig, operationPtr));
-	return immutable FunPtr(cast(immutable) dcbNewCallback(sigStr.ptr, &callbackHandler, cast(void*) userData));
+	UserData* userData = allocate(alloc, UserData(sig, operationPtr));
+	return FunPtr(cast(immutable) dcbNewCallback(sigStr.ptr, &callbackHandler, cast(void*) userData));
 }
 
-@system extern(C) immutable(char) callbackHandler(DCCallback* cb, DCArgs* args, DCValue* result, void* userDataPtr) {
-	immutable UserData userData = *(cast(immutable UserData*) userDataPtr);
-	immutable DynCallSig sig = userData.sig;
-	immutable ulong resValue = syntheticCall(sig, userData.operationPtr, (ref Stacks stacks) {
-		foreach (immutable DynCallType argType; sig.parameterTypes)
+@system extern(C) char callbackHandler(DCCallback* cb, DCArgs* args, DCValue* result, void* userDataPtr) {
+	UserData userData = *(cast(UserData*) userDataPtr);
+	DynCallSig sig = userData.sig;
+	ulong resValue = syntheticCall(sig, userData.operationPtr, (ref Stacks stacks) {
+		foreach (DynCallType argType; sig.parameterTypes)
 			dataPush(stacks, dyncallGetArg(args, argType));
 	});	dyncallSetResult(result, resValue, sig.returnType);
 	return dynCallSigChar(sig.returnType);
 }
 
-pure void toDynCallSigString(ref char[16] res, immutable DynCallSig a) {
+pure void toDynCallSigString(ref char[16] res, in DynCallSig a) {
 	size_t i = 0;
-	void push(immutable char x) { res[i] = x; i++; }
-	foreach (immutable DynCallType t; a.parameterTypes)
+	void push(char x) {
+		res[i] = x;
+		i++;
+	}
+	foreach (DynCallType t; a.parameterTypes)
 		push(dynCallSigChar(t));
 	push(')');
 	push(dynCallSigChar(a.returnType));
 	push('\0');
 }
 
-pure immutable(char) dynCallSigChar(immutable DynCallType a) {
+pure char dynCallSigChar(DynCallType a) {
 	final switch (a) {
 		case DynCallType.bool_:
 			return 'B';
@@ -382,7 +376,7 @@ pure immutable(char) dynCallSigChar(immutable DynCallType a) {
 	}
 }
 
-@system pure immutable(ulong) dyncallGetArg(DCArgs* args, immutable DynCallType type) {
+@system pure ulong dyncallGetArg(DCArgs* args, DynCallType type) {
 	final switch (type) {
 		case DynCallType.bool_:
 			return dcbArgBool(args);
@@ -408,13 +402,13 @@ pure immutable(char) dynCallSigChar(immutable DynCallType a) {
 		case DynCallType.nat64:
 			return dcbArgULongLong(args);
 		case DynCallType.pointer:
-			return cast(immutable ulong) dcbArgPointer(args);
+			return cast(ulong) dcbArgPointer(args);
 		case DynCallType.void_:
-			return unreachable!(immutable ulong);
+			return unreachable!ulong;
 	}
 }
 
-@system pure void dyncallSetResult(DCValue* result, immutable ulong value, immutable DynCallType type) {
+@system pure void dyncallSetResult(DCValue* result, ulong value, DynCallType type) {
 	final switch (type) {
 		case DynCallType.bool_:
 			todo!void("!");
@@ -503,7 +497,7 @@ extern(C) {
 
 	// dyncall_callback.h
 	struct DCCallback;
-	alias DCCallbackHandler = immutable(char) function(DCCallback* pcb, DCArgs* args, DCValue* result, void* userdata);
+	alias DCCallbackHandler = char function(DCCallback* pcb, DCArgs* args, DCValue* result, void* userdata);
 	pure DCCallback* dcbNewCallback(scope const char* signature, DCCallbackHandler funcptr, void* userdata);
 
 	// dyncall_value.h
@@ -564,7 +558,7 @@ extern(C) {
 
 extern(C) {
 	// based on dyncall/dynload/dynload.h
-	struct DLLib;
-	immutable(DLLib*) dlLoadLibrary(scope const char* libpath);
-	pure void* dlFindSymbol(immutable DLLib* pLib, scope const char* pSymbolName);
+	immutable struct DLLib;
+	DLLib* dlLoadLibrary(scope const char* libpath);
+	pure void* dlFindSymbol(DLLib* pLib, scope const char* pSymbolName);
 }

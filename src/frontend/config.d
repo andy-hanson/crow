@@ -10,7 +10,7 @@ import util.alloc.alloc : Alloc;
 import util.col.arr : only;
 import util.col.arrBuilder : add, ArrBuilder, finishArr;
 import util.col.arrUtil : fold;
-import util.col.dict : KeyValuePair, Dict;
+import util.col.dict : Dict;
 import util.col.dictBuilder : finishDict, DictBuilder, tryAddToDict;
 import util.col.str : SafeCStr;
 import util.readOnlyStorage : ReadFileResult, ReadOnlyStorage, withFileText;
@@ -21,15 +21,15 @@ import util.sourceRange : RangeWithinFile;
 import util.sym : AllSymbols, Sym, sym;
 import util.util : todo;
 
-immutable(Config) getConfig(
+Config getConfig(
 	ref Alloc alloc,
 	ref AllSymbols allSymbols,
 	ref AllPaths allPaths,
-	scope ref const ReadOnlyStorage storage,
-	ref DiagnosticsBuilder diagsBuilder,
-	scope immutable Path[] rootPaths,
+	in ReadOnlyStorage storage,
+	scope ref DiagnosticsBuilder diagsBuilder,
+	in Path[] rootPaths,
 ) {
-	immutable Opt!Path search = rootPaths.length == 1
+	Opt!Path search = rootPaths.length == 1
 		? parent(allPaths, only(rootPaths))
 		: some(commonAncestor(allPaths, rootPaths));
 	return has(search)
@@ -39,37 +39,37 @@ immutable(Config) getConfig(
 
 private:
 
-immutable(Config) getConfigRecur(
+Config getConfigRecur(
 	ref Alloc alloc,
 	ref AllSymbols allSymbols,
 	ref AllPaths allPaths,
-	scope ref const ReadOnlyStorage storage,
-	ref DiagnosticsBuilder diagsBuilder,
-	immutable Path searchPath,
+	in ReadOnlyStorage storage,
+	scope ref DiagnosticsBuilder diagsBuilder,
+	Path searchPath,
 ) {
-	immutable Path configPath = childPath(allPaths, searchPath, sym!"crow-config");
+	Path configPath = childPath(allPaths, searchPath, sym!"crow-config");
 	ArrBuilder!DiagnosticWithinFile diags;
-	immutable Opt!Config res = withFileText(
+	Opt!Config res = withFileText!(Opt!Config)(
 		storage,
 		configPath,
 		sym!".json",
-		(immutable ReadFileResult!SafeCStr a) =>
-			a.match!(immutable Opt!Config)(
-				(immutable SafeCStr content) pure =>
+		(in ReadFileResult!SafeCStr a) =>
+			a.matchIn!(Opt!Config)(
+				(in SafeCStr content) @safe =>
 					some(parseConfig(alloc, allSymbols, allPaths, searchPath, diags, content)),
-				(immutable(ReadFileResult!SafeCStr.NotFound)) pure =>
+				(in ReadFileResult!SafeCStr.NotFound) =>
 					none!Config,
-				(immutable(ReadFileResult!SafeCStr.Error)) pure {
-					add(alloc, diags, immutable DiagnosticWithinFile(RangeWithinFile.empty, immutable Diag(
-						immutable ParseDiag(immutable ParseDiag.FileReadError(none!PathAndRange)))));
+				(in ReadFileResult!SafeCStr.Error) {
+					add(alloc, diags, DiagnosticWithinFile(RangeWithinFile.empty, Diag(
+						ParseDiag(ParseDiag.FileReadError(none!PathAndRange)))));
 					return some(emptyConfig);
 				}));
-	foreach (immutable DiagnosticWithinFile d; finishArr(alloc, diags))
+	foreach (ref DiagnosticWithinFile d; finishArr(alloc, diags))
 		todo!void("!");
 	if (has(res))
 		return force(res);
 	else {
-		immutable Opt!Path par = parent(allPaths, searchPath);
+		Opt!Path par = parent(allPaths, searchPath);
 		return has(par)
 			? getConfigRecur(alloc, allSymbols, allPaths, storage, diagsBuilder, force(par))
 			: emptyConfig;
@@ -78,24 +78,24 @@ immutable(Config) getConfigRecur(
 
 pure:
 
-immutable(Config) emptyConfig() =>
-	immutable Config(immutable ConfigImportPaths(), immutable ConfigExternPaths());
+Config emptyConfig() =>
+	Config(ConfigImportPaths(), ConfigExternPaths());
 
-immutable(Config) withInclude(immutable Config a, immutable ConfigImportPaths include) =>
-	immutable Config(include, a.extern_);
+Config withInclude(Config a, ConfigImportPaths include) =>
+	Config(include, a.extern_);
 
-immutable(Config) withExtern(immutable Config a, immutable ConfigExternPaths extern_) =>
-	immutable Config(a.include, extern_);
+Config withExtern(Config a, ConfigExternPaths extern_) =>
+	Config(a.include, extern_);
 
-immutable(Config) parseConfig(
+Config parseConfig(
 	ref Alloc alloc,
 	ref AllSymbols allSymbols,
 	ref AllPaths allPaths,
-	immutable Path dirContainingConfig,
-	ref ArrBuilder!DiagnosticWithinFile diags,
-	immutable SafeCStr content,
+	Path dirContainingConfig,
+	scope ref ArrBuilder!DiagnosticWithinFile diags,
+	in SafeCStr content,
 ) {
-	immutable Opt!Json json = parseJson(alloc, allSymbols, content);
+	Opt!Json json = parseJson(alloc, allSymbols, content);
 	if (has(json)) {
 		if (force(json).isA!(Json.Object))
 			return parseConfigRecur(
@@ -110,16 +110,16 @@ immutable(Config) parseConfig(
 	}
 }
 
-immutable(Config) parseConfigRecur(
+Config parseConfigRecur(
 	ref Alloc alloc,
 	ref AllSymbols allSymbols,
 	ref AllPaths allPaths,
-	immutable Path dirContainingConfig,
-	ref ArrBuilder!DiagnosticWithinFile diags,
-	immutable KeyValuePair!(Sym, Json)[] fields,
+	Path dirContainingConfig,
+	scope ref ArrBuilder!DiagnosticWithinFile diags,
+	in Json.Object fields,
 ) =>
-	fold(emptyConfig, fields, (immutable Config cur, ref immutable KeyValuePair!(Sym, Json) field) {
-		immutable Json value = field.value;
+	fold!(Config, Json.ObjectField)(emptyConfig, fields, (Config cur, in Json.ObjectField field) {
+		Json value = field.value;
 		switch (field.key.value) {
 			case sym!"include".value:
 				return withInclude(
@@ -135,20 +135,20 @@ immutable(Config) parseConfigRecur(
 		}
 	});
 
-immutable(Dict!(Sym, Path)) parseIncludeOrExtern(
+Dict!(Sym, Path) parseIncludeOrExtern(
 	ref Alloc alloc,
 	ref AllSymbols allSymbols,
 	ref AllPaths allPaths,
-	immutable Path dirContainingConfig,
-	ref ArrBuilder!DiagnosticWithinFile diags,
-	immutable Json json,
+	Path dirContainingConfig,
+	scope ref ArrBuilder!DiagnosticWithinFile diags,
+	in Json json,
 ) {
 	DictBuilder!(Sym, Path) res;
 	if (json.isA!(Json.Object)) {
-		foreach (immutable KeyValuePair!(Sym, Json) field; json.as!(Json.Object)) {
+		foreach (ref Json.ObjectField field; json.as!(Json.Object)) {
 			if (field.value.isA!SafeCStr) {
-				immutable Path value = parseAbsoluteOrRelPath(allPaths, dirContainingConfig, field.value.as!SafeCStr);
-				immutable Opt!Path before = tryAddToDict(alloc, res, field.key, value);
+				Path value = parseAbsoluteOrRelPath(allPaths, dirContainingConfig, field.value.as!SafeCStr);
+				Opt!Path before = tryAddToDict(alloc, res, field.key, value);
 				if (has(before))
 					todo!void("diag -- duplicate include key");
 			} else

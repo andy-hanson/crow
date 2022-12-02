@@ -8,15 +8,15 @@ import util.path : Path, PathAndRange, RelPath;
 import util.sym : Sym;
 import util.union_ : Union;
 
-struct ParseDiag {
+immutable struct ParseDiag {
 	@safe @nogc pure nothrow:
-	struct CantPrecedeMutEquals {}
-	struct CantPrecedeOptEquals {}
-	struct CircularImport {
-		immutable Path from;
-		immutable Path to;
+	immutable struct CantPrecedeMutEquals {}
+	immutable struct CantPrecedeOptEquals {}
+	immutable struct CircularImport {
+		Path from;
+		Path to;
 	}
-	struct Expected {
+	immutable struct Expected {
 		enum Kind {
 			afterMut,
 			blockCommentEnd,
@@ -42,32 +42,32 @@ struct ParseDiag {
 			then,
 			typeArgsEnd,
 		}
-		immutable Kind kind;
+		Kind kind;
 	}
-	struct FileDoesNotExist {
-		immutable Opt!PathAndRange importedFrom;
+	immutable struct FileDoesNotExist {
+		Opt!PathAndRange importedFrom;
 	}
-	struct FileReadError {
-		immutable Opt!PathAndRange importedFrom;
+	immutable struct FileReadError {
+		Opt!PathAndRange importedFrom;
 	}
-	struct FunctionTypeMissingParens {}
-	struct ImportFileTypeNotSupported {}
-	struct IndentNotDivisible {
-		immutable uint nSpaces;
-		immutable uint nSpacesPerIndent;
+	immutable struct FunctionTypeMissingParens {}
+	immutable struct ImportFileTypeNotSupported {}
+	immutable struct IndentNotDivisible {
+		uint nSpaces;
+		uint nSpacesPerIndent;
 	}
-	struct IndentTooMuch {}
-	struct IndentWrongCharacter {
-		immutable bool expectedTabs;
+	immutable struct IndentTooMuch {}
+	immutable struct IndentWrongCharacter {
+		bool expectedTabs;
 	}
-	struct InvalidName {
-		immutable string actual;
+	immutable struct InvalidName {
+		string actual;
 	}
-	struct InvalidStringEscape {
-		immutable char actual;
+	immutable struct InvalidStringEscape {
+		char actual;
 	}
-	struct LetMustHaveThen {}
-	struct NeedsBlockCtx {
+	immutable struct LetMustHaveThen {}
+	immutable struct NeedsBlockCtx {
 		enum Kind {
 			break_,
 			for_,
@@ -80,53 +80,53 @@ struct ParseDiag {
 			while_,
 			with_,
 		}
-		immutable Kind kind;
+		Kind kind;
 	}
-	struct RelativeImportReachesPastRoot {
-		immutable RelPath imported;
+	immutable struct RelativeImportReachesPastRoot {
+		RelPath imported;
 	}
 	//TODO:KILL, always use UnexpectedToken
-	struct Unexpected {
+	immutable struct Unexpected {
 		enum Kind {
 			dedent,
 			indent,
 		}
-		immutable Kind kind;
+		Kind kind;
 	}
-	struct UnexpectedCharacter {
-		immutable char ch;
+	immutable struct UnexpectedCharacter {
+		char ch;
 	}
-	struct UnexpectedOperator {
-		immutable Sym operator;
+	immutable struct UnexpectedOperator {
+		Sym operator;
 	}
-	struct UnexpectedToken {
-		immutable Token token;
+	immutable struct UnexpectedToken {
+		Token token;
 	}
-	struct UnionCantBeEmpty {}
-	struct WhenMustHaveElse {}
+	immutable struct UnionCantBeEmpty {}
+	immutable struct WhenMustHaveElse {}
 
 	mixin Union!(
-		immutable CantPrecedeMutEquals,
-		immutable CantPrecedeOptEquals,
-		immutable CircularImport,
-		immutable Expected,
-		immutable FileDoesNotExist,
-		immutable FileReadError,
-		immutable FunctionTypeMissingParens,
-		immutable ImportFileTypeNotSupported,
-		immutable IndentNotDivisible,
-		immutable IndentTooMuch,
-		immutable IndentWrongCharacter,
-		immutable InvalidName,
-		immutable InvalidStringEscape,
-		immutable LetMustHaveThen,
-		immutable NeedsBlockCtx,
-		immutable RelativeImportReachesPastRoot,
-		immutable Unexpected,
-		immutable UnexpectedCharacter,
-		immutable UnexpectedOperator,
-		immutable UnexpectedToken,
-		immutable UnionCantBeEmpty,
-		immutable WhenMustHaveElse);
+		CantPrecedeMutEquals,
+		CantPrecedeOptEquals,
+		CircularImport,
+		Expected,
+		FileDoesNotExist,
+		FileReadError,
+		FunctionTypeMissingParens,
+		ImportFileTypeNotSupported,
+		IndentNotDivisible,
+		IndentTooMuch,
+		IndentWrongCharacter,
+		InvalidName,
+		InvalidStringEscape,
+		LetMustHaveThen,
+		NeedsBlockCtx,
+		RelativeImportReachesPastRoot,
+		Unexpected,
+		UnexpectedCharacter,
+		UnexpectedOperator,
+		UnexpectedToken,
+		UnionCantBeEmpty,
+		WhenMustHaveElse);
 }
 static assert(ParseDiag.sizeof <= 32);

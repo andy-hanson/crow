@@ -38,7 +38,8 @@ import util.sym : Sym, sym;
 import util.util : unreachable, verify;
 
 // Must be in dependency order (can only reference earlier)
-enum CommonPath {
+alias CommonPath = immutable CommonPath_;
+private enum CommonPath_ {
 	bootstrap,
 	alloc,
 	exceptionLowLevel,
@@ -50,87 +51,79 @@ enum CommonPath {
 	runtimeMain,
 }
 
-immutable(Opt!CommonFuns) getCommonFuns(
+Opt!CommonFuns getCommonFuns(
 	ref Alloc alloc,
 	ref ProgramState programState,
-	ref DiagnosticsBuilder diagsBuilder,
-	ref immutable CommonTypes commonTypes,
-	immutable Opt!(Module*) mainModule,
-	immutable EnumDict!(CommonPath, Module*) modules,
+	scope ref DiagnosticsBuilder diagsBuilder,
+	ref CommonTypes commonTypes,
+	Opt!(Module*) mainModule,
+	ref immutable EnumDict!(CommonPath, Module*) modules,
 ) {
-	ref immutable(Module) getModule(immutable CommonPath path) =>
-		*modules[path];
-	immutable(Opt!Type) getType(immutable CommonPath module_, immutable Sym name) =>
-		getNonTemplateType(alloc, programState, diagsBuilder, getModule(module_), name);
-	immutable(Type) instantiateType(immutable StructDecl* decl, scope immutable Type[] typeArgs) =>
-		immutable Type(instantiateStructNeverDelay(alloc, programState, decl, typeArgs));
-	immutable(Opt!(FunInst*)) getFunInner(
-		ref immutable Module module_,
-		immutable Sym name,
-		immutable Type returnType,
-		scope immutable ParamShort[] params,
-	) =>
-		getCommonFunInst(alloc, programState, diagsBuilder, module_, name, returnType, params);
-	immutable(Opt!(FunInst*)) getFun(
-		immutable CommonPath module_,
-		immutable Sym name,
-		immutable Type returnType,
-		scope immutable ParamShort[] params,
-	) =>
-		getFunInner(getModule(module_), name, returnType, params);
+	ref Module getModule(CommonPath path) {
+		return *modules[path];
+	}
+	Opt!Type getType(CommonPath module_, Sym name) {
+		return getNonTemplateType(alloc, programState, diagsBuilder, getModule(module_), name);
+	}
+	Type instantiateType(StructDecl* decl, in Type[] typeArgs) {
+		return Type(instantiateStructNeverDelay(alloc, programState, decl, typeArgs));
+	}
+	Opt!(FunInst*) getFunInner(ref Module module_, Sym name, Type returnType, in ParamShort[] params) {
+		return getCommonFunInst(alloc, programState, diagsBuilder, module_, name, returnType, params);
+	}
+	Opt!(FunInst*) getFun(CommonPath module_, Sym name, Type returnType, in ParamShort[] params) {
+		return getFunInner(getModule(module_), name, returnType, params);
+	}
 
-	immutable Opt!(StructDecl*) optArrayDecl =
+	Opt!(StructDecl*) optArrayDecl =
 		getStructDeclOrAddDiag(alloc, diagsBuilder, getModule(CommonPath.bootstrap), sym!"array");
-	immutable Opt!(StructDecl*) optListDecl =
+	Opt!(StructDecl*) optListDecl =
 		getStructDeclOrAddDiag(alloc, diagsBuilder, getModule(CommonPath.list), sym!"list");
-	immutable Opt!Type optStringType = getType(CommonPath.string_, sym!"string");
-	immutable Opt!Type optMarkCtxType = getType(CommonPath.alloc, sym!"mark-ctx");
-	immutable Opt!Type optSymbolType = getType(CommonPath.bootstrap, sym!"symbol");
+	Opt!Type optStringType = getType(CommonPath.string_, sym!"string");
+	Opt!Type optMarkCtxType = getType(CommonPath.alloc, sym!"mark-ctx");
+	Opt!Type optSymbolType = getType(CommonPath.bootstrap, sym!"symbol");
 
 	if (has(optListDecl) && has(optStringType) && has(optMarkCtxType)) {
-		immutable StructDecl* arrayDecl = force(optArrayDecl);
-		immutable StructDecl* listDecl = force(optListDecl);
-		immutable Type stringType = force(optStringType);
-		immutable Type markCtxType = force(optMarkCtxType);
-		immutable Type symbolType = force(optSymbolType);
+		StructDecl* arrayDecl = force(optArrayDecl);
+		StructDecl* listDecl = force(optListDecl);
+		Type stringType = force(optStringType);
+		Type markCtxType = force(optMarkCtxType);
+		Type symbolType = force(optSymbolType);
 
-		immutable Type int32Type = immutable Type(commonTypes.integrals.int32);
-		immutable Type nat8Type = immutable Type(commonTypes.integrals.nat8);
-		immutable Type nat64Type = immutable Type(commonTypes.integrals.nat64);
-		immutable Type nat64FutureType = instantiateType(commonTypes.future, [nat64Type]);
-		immutable Type voidType = immutable Type(commonTypes.void_);
-		immutable Type stringListType = instantiateType(listDecl, [stringType]);
-		immutable Type nat8ConstPointerType = instantiateType(commonTypes.ptrConst, [nat8Type]);
-		immutable Type nat8MutPointerType = instantiateType(commonTypes.ptrMut, [nat8Type]);
-		immutable Type symbolArrayType = instantiateType(arrayDecl, [symbolType]);
-		immutable Type cStringType = instantiateType(commonTypes.ptrConst, [immutable Type(commonTypes.char8)]);
-		immutable Type cStringConstPointerType = instantiateType(commonTypes.ptrConst, [cStringType]);
-		immutable Type mainPointerType =
+		Type int32Type = Type(commonTypes.integrals.int32);
+		Type nat8Type = Type(commonTypes.integrals.nat8);
+		Type nat64Type = Type(commonTypes.integrals.nat64);
+		Type nat64FutureType = instantiateType(commonTypes.future, [nat64Type]);
+		Type voidType = Type(commonTypes.void_);
+		Type stringListType = instantiateType(listDecl, [stringType]);
+		Type nat8ConstPointerType = instantiateType(commonTypes.ptrConst, [nat8Type]);
+		Type nat8MutPointerType = instantiateType(commonTypes.ptrMut, [nat8Type]);
+		Type symbolArrayType = instantiateType(arrayDecl, [symbolType]);
+		Type cStringType = instantiateType(commonTypes.ptrConst, [Type(commonTypes.char8)]);
+		Type cStringConstPointerType = instantiateType(commonTypes.ptrConst, [cStringType]);
+		Type mainPointerType =
 			instantiateType(commonTypes.funPtrStructs[1], [nat64FutureType, stringListType]);
 
-		immutable Opt!(FunInst*) allocFun =
+		Opt!(FunInst*) allocFun =
 			getFun(CommonPath.alloc, sym!"alloc", nat8MutPointerType, [param!"size-bytes"(nat64Type)]);
 		immutable FunDecl*[] funOrActSubscriptFunDecls =
 			// TODO: check signatures
 			getFunOrActSubscriptFuns(commonTypes, getFuns(getModule(CommonPath.funUtil), sym!"subscript"));
-		immutable Opt!(FunInst*) curExclusion =
+		Opt!(FunInst*) curExclusion =
 			getFun(CommonPath.runtime, sym!"cur-exclusion", nat64Type, []);
-		immutable Opt!(FunInst*) main = has(mainModule)
+		Opt!(FunInst*) main = has(mainModule)
 			? getFunInner(*force(mainModule), sym!"main", nat64FutureType, [param!"args"(stringListType)])
 			: none!(FunInst*);
-		immutable Opt!(FunInst*) mark = getFun(
+		Opt!(FunInst*) mark = getFun(
 			CommonPath.alloc,
 			sym!"mark",
-			immutable Type(commonTypes.bool_),
+			Type(commonTypes.bool_),
 			[param!"ctx"(markCtxType), param!"pointer"(nat8ConstPointerType), param!"size-bytes"(nat64Type)]);
 
-		immutable TypeParam[1] markVisitTypeParams = [
-			immutable TypeParam(
-				immutable FileAndRange(getModule(CommonPath.alloc).fileIndex, RangeWithinFile.empty),
-				sym!"a",
-				0),	
+		TypeParam[1] markVisitTypeParams = [
+			TypeParam(FileAndRange(getModule(CommonPath.alloc).fileIndex, RangeWithinFile.empty), sym!"a", 0),
 		];
-		immutable Opt!(FunDecl*) markVisit = getCommonFunDecl(
+		Opt!(FunDecl*) markVisit = getCommonFunDecl(
 			alloc,
 			programState,
 			diagsBuilder,
@@ -140,9 +133,9 @@ immutable(Opt!CommonFuns) getCommonFuns(
 			voidType,
 			[
 				param!"mark-ctx"(markCtxType),
-				param!"value"(immutable Type(&markVisitTypeParams[0])),
+				param!"value"(Type(&markVisitTypeParams[0])),
 			]);
-		immutable Opt!(FunInst*) rtMain = getFun(
+		Opt!(FunInst*) rtMain = getFun(
 			CommonPath.runtimeMain,
 			sym!"rt-main",
 			int32Type,
@@ -151,9 +144,9 @@ immutable(Opt!CommonFuns) getCommonFuns(
 				param!"argv"(cStringConstPointerType),
 				param!"main"(mainPointerType),
 			]);
-		immutable Opt!(FunInst*) staticSymbols =
+		Opt!(FunInst*) staticSymbols =
 			getFun(CommonPath.bootstrap, sym!"static-symbols", symbolArrayType, []);
-		immutable Opt!(FunInst*) throwImpl = getFun(
+		Opt!(FunInst*) throwImpl = getFun(
 			CommonPath.exceptionLowLevel,
 			sym!"throw-impl",
 			voidType,
@@ -167,7 +160,7 @@ immutable(Opt!CommonFuns) getCommonFuns(
 			has(rtMain) &&
 			has(staticSymbols) &&
 			has(throwImpl)
-			? some(immutable CommonFuns(
+			? some(CommonFuns(
 				force(allocFun),
 				funOrActSubscriptFunDecls,
 				force(curExclusion),
@@ -184,9 +177,9 @@ immutable(Opt!CommonFuns) getCommonFuns(
 
 private:
 
-immutable(FunDecl*[]) getFunOrActSubscriptFuns(ref immutable CommonTypes commonTypes, immutable FunDecl*[] subscripts) {
+immutable(FunDecl*[]) getFunOrActSubscriptFuns(in CommonTypes commonTypes, immutable FunDecl*[] subscripts) {
 	size_t cutIndex = size_t.max;
-	foreach (immutable size_t index, immutable FunDecl* f; subscripts)
+	foreach (size_t index, FunDecl* f; subscripts)
 		final switch (firstArgFunKind(commonTypes, f)) {
 			case FunKind.fun:
 			case FunKind.act:
@@ -204,50 +197,50 @@ immutable(FunDecl*[]) getFunOrActSubscriptFuns(ref immutable CommonTypes commonT
 	return subscripts[cutIndex .. $];
 }
 
-immutable(FunKind) firstArgFunKind(ref immutable CommonTypes commonTypes, immutable FunDecl* f) {
-	immutable Param[] params = assertNonVariadic(f.params);
+FunKind firstArgFunKind(in CommonTypes commonTypes, FunDecl* f) {
+	Param[] params = assertNonVariadic(f.params);
 	verify(!empty(params));
-	immutable StructDecl* actual = decl(*params[0].type.as!(StructInst*));
-	foreach (immutable FunKind kind; [FunKind.fun, FunKind.act, FunKind.pointer])
-		foreach (immutable StructDecl* decl; castNonScope_ref(commonTypes.funStructs)[kind])
+	StructDecl* actual = decl(*params[0].type.as!(StructInst*));
+	foreach (FunKind kind; [FunKind.fun, FunKind.act, FunKind.pointer])
+		foreach (StructDecl* decl; castNonScope_ref(commonTypes.funStructs)[kind])
 			if (actual == decl)
 				return kind;
-	return unreachable!(immutable FunKind);
+	return unreachable!FunKind;
 }
 
-immutable(Opt!Type) getNonTemplateType(
+Opt!Type getNonTemplateType(
 	ref Alloc alloc,
 	ref ProgramState programState,
-	ref DiagnosticsBuilder diagsBuilder,
-	ref immutable Module module_,
-	immutable Sym name,
+	scope ref DiagnosticsBuilder diagsBuilder,
+	ref Module module_,
+	Sym name,
 ) {
-	immutable Opt!(StructDecl*) decl = getStructDeclOrAddDiag(alloc, diagsBuilder, module_, name);
+	Opt!(StructDecl*) decl = getStructDeclOrAddDiag(alloc, diagsBuilder, module_, name);
 	return has(decl) && !isTemplate(*force(decl))
-		? some(immutable Type(instantiateStructNeverDelay(alloc, programState, force(decl), [])))
+		? some(Type(instantiateStructNeverDelay(alloc, programState, force(decl), [])))
 		: none!Type;
 }
 
-immutable(Opt!(StructDecl*)) getStructDeclOrAddDiag(
+Opt!(StructDecl*) getStructDeclOrAddDiag(
 	ref Alloc alloc,
-	ref DiagnosticsBuilder diagsBuilder,
-	ref immutable Module module_,
-	immutable Sym name,
+	scope ref DiagnosticsBuilder diagsBuilder,
+	ref Module module_,
+	Sym name,
 ) {
-	immutable Opt!(StructDecl*) res = getStructDecl(module_, name);
+	Opt!(StructDecl*) res = getStructDecl(module_, name);
 	if (!has(res))
 		addDiagnostic(
 			alloc,
 			diagsBuilder,
-			immutable FileAndRange(module_.fileIndex, RangeWithinFile.empty),
-			immutable Diag(immutable Diag.CommonTypeMissing(name)));
+			FileAndRange(module_.fileIndex, RangeWithinFile.empty),
+			Diag(Diag.CommonTypeMissing(name)));
 	return res;
 }
 
-immutable(Opt!(StructDecl*)) getStructDecl(ref immutable Module a, immutable Sym name) {
-	immutable Opt!NameReferents optReferents = a.allExportedNames[name];
+Opt!(StructDecl*) getStructDecl(in Module a, Sym name) {
+	Opt!NameReferents optReferents = a.allExportedNames[name];
 	if (has(optReferents)) {
-		immutable Opt!StructOrAlias sa = force(optReferents).structOrAlias;
+		Opt!StructOrAlias sa = force(optReferents).structOrAlias;
 		return has(sa) && force(sa).isA!(StructDecl*)
 			? some(force(sa).as!(StructDecl*))
 			: none!(StructDecl*);
@@ -255,17 +248,17 @@ immutable(Opt!(StructDecl*)) getStructDecl(ref immutable Module a, immutable Sym
 		return none!(StructDecl*);
 }
 
-struct ParamShort {
-	immutable Sym name;
-	immutable Type type;
+immutable struct ParamShort {
+	Sym name;
+	Type type;
 }
-immutable(ParamShort) param(immutable string name)(immutable Type type) =>
-	immutable ParamShort(sym!name, type);
+ParamShort param(string name)(Type type) =>
+	ParamShort(sym!name, type);
 
-immutable(bool) signatureMatchesTemplate(
-	ref immutable FunDecl actual,
-	scope immutable TypeParam[] expectedTypeParams,
-	ref immutable SpecDeclSig expected,
+bool signatureMatchesTemplate(
+	in FunDecl actual,
+	in TypeParam[] expectedTypeParams,
+	in SpecDeclSig expected,
 ) {
 	if (!empty(actual.specs))
 		return false;
@@ -274,10 +267,10 @@ immutable(bool) signatureMatchesTemplate(
 	
 	if (actual.typeParams.length != expectedTypeParams.length)
 		return false;
-	immutable(bool) typesMatch(immutable Type actualType, immutable Type expectedType) {
+	bool typesMatch(in Type actualType, in Type expectedType) {
 		if (actualType.isA!(TypeParam*) && expectedType.isA!(TypeParam*)) {
-			immutable TypeParam* actualTypeParam = actualType.as!(TypeParam*);
-			immutable TypeParam* expectedTypeParam = expectedType.as!(TypeParam*);
+			TypeParam* actualTypeParam = actualType.as!(TypeParam*);
+			TypeParam* expectedTypeParam = expectedType.as!(TypeParam*);
 			verify(&actual.typeParams[actualTypeParam.index] == actualTypeParam);
 			verify(&expectedTypeParams[expectedTypeParam.index] == expectedTypeParam);
 			return actualTypeParam.index == expectedTypeParam.index;
@@ -288,65 +281,64 @@ immutable(bool) signatureMatchesTemplate(
 		arrsCorrespond!(Param, Param)(
 			assertNonVariadic(actual.params),
 			assertNonVariadic(expected.params),
-			(ref immutable Param x, ref immutable Param y) =>
+			(in Param x, in Param y) =>
 				typesMatch(x.type, y.type));
 }
 
-immutable(bool) signatureMatchesNonTemplate(ref immutable FunDecl actual, ref immutable SpecDeclSig expected) =>
+bool signatureMatchesNonTemplate(ref FunDecl actual, ref SpecDeclSig expected) =>
 	!isTemplate(actual) &&
 		actual.returnType == expected.returnType &&
 		actual.params.isA!(Param[]) &&
 		arrsCorrespond!(Param, Param)(
 			assertNonVariadic(actual.params),
 			assertNonVariadic(expected.params),
-			(ref immutable Param x, ref immutable Param y) =>
+			(in Param x, in Param y) =>
 				x.type == y.type);
 
-immutable(Opt!(FunDecl*)) getCommonFunDecl(
+Opt!(FunDecl*) getCommonFunDecl(
 	ref Alloc alloc,
 	ref ProgramState programState,
-	ref DiagnosticsBuilder diagsBuilder,
-	ref immutable Module module_,
-	immutable Sym name,
-	scope immutable TypeParam[] typeParams,
-	immutable Type returnType,
-	scope immutable ParamShort[] params,
+	scope ref DiagnosticsBuilder diagsBuilder,
+	ref Module module_,
+	Sym name,
+	in TypeParam[] typeParams,
+	Type returnType,
+	in ParamShort[] params,
 ) {
-	immutable SpecDeclSig expectedSig = toSig(alloc, name, returnType, params);
-	return getFunDecl(alloc, diagsBuilder, module_, expectedSig, (ref immutable FunDecl x) =>
+	SpecDeclSig expectedSig = toSig(alloc, name, returnType, params);
+	return getFunDecl(alloc, diagsBuilder, module_, expectedSig, (ref FunDecl x) =>
 		signatureMatchesTemplate(x, typeParams, expectedSig));
 }
 
-immutable(Opt!(FunInst*)) getCommonFunInst(
+Opt!(FunInst*) getCommonFunInst(
 	ref Alloc alloc,
 	ref ProgramState programState,
-	ref DiagnosticsBuilder diagsBuilder,
-	ref immutable Module module_,
-	immutable Sym name,
-	immutable Type returnType,
-	scope immutable ParamShort[] params,
+	scope ref DiagnosticsBuilder diagsBuilder,
+	ref Module module_,
+	Sym name,
+	Type returnType,
+	in ParamShort[] params,
 ) {
-	immutable SpecDeclSig expectedSig = toSig(alloc, name, returnType, params);
-	immutable Opt!(FunDecl*) decl = getFunDecl(alloc, diagsBuilder, module_, expectedSig, (ref immutable FunDecl x) =>
+	SpecDeclSig expectedSig = toSig(alloc, name, returnType, params);
+	Opt!(FunDecl*) decl = getFunDecl(alloc, diagsBuilder, module_, expectedSig, (ref FunDecl x) =>
 		signatureMatchesNonTemplate(x, expectedSig));
 	return has(decl)
 		? some(instantiateNonTemplateFun(alloc, programState, force(decl)))
 		: none!(FunInst*);
 }
 
-immutable(Opt!(FunDecl*)) getFunDecl(
+Opt!(FunDecl*) getFunDecl(
 	ref Alloc alloc,
-	ref DiagnosticsBuilder diagsBuilder,
-	ref immutable Module module_,
-	immutable SpecDeclSig expectedSig,
-	scope immutable(bool) delegate(ref immutable FunDecl) @safe @nogc pure nothrow isMatch,
+	scope ref DiagnosticsBuilder diagsBuilder,
+	ref Module module_,
+	SpecDeclSig expectedSig,
+	in bool delegate(ref FunDecl) @safe @nogc pure nothrow isMatch,
 ) {
-	Late!(immutable FunDecl*) res = late!(immutable FunDecl*)();
-	foreach (immutable FunDecl* x; getFuns(module_, expectedSig.name)) {
+	Late!(FunDecl*) res = late!(FunDecl*)();
+	foreach (FunDecl* x; getFuns(module_, expectedSig.name)) {
 		if (isMatch(*x)) {
 			if (lateIsSet(res))
-				addDiagnostic(alloc, diagsBuilder, x.range, immutable Diag(
-					immutable Diag.CommonFunDuplicate(expectedSig.name)));
+				addDiagnostic(alloc, diagsBuilder, x.range, Diag(Diag.CommonFunDuplicate(expectedSig.name)));
 			else
 				lateSet(res, x);
 		}
@@ -357,39 +349,26 @@ immutable(Opt!(FunDecl*)) getFunDecl(
 		addDiagnostic(
 			alloc,
 			diagsBuilder,
-			immutable FileAndRange(module_.fileIndex, RangeWithinFile.empty),
-			immutable Diag(immutable Diag.CommonFunMissing(expectedSig)));
+			FileAndRange(module_.fileIndex, RangeWithinFile.empty),
+			Diag(Diag.CommonFunMissing(expectedSig)));
 		return none!(FunDecl*);
 	}
 }
 
-immutable(SpecDeclSig) toSig(
-	ref Alloc alloc,
-	immutable Sym name,
-	immutable Type returnType,
-	scope immutable ParamShort[] params,
-) =>
-	immutable SpecDeclSig(
+SpecDeclSig toSig(ref Alloc alloc, Sym name, Type returnType, in ParamShort[] params) =>
+	SpecDeclSig(
 		safeCStr!"",
-		immutable FileAndPos(FileIndex.none, 0),
+		FileAndPos(FileIndex.none, 0),
 		name,
 		returnType,
 		// TODO: avoid alloc since this is temporary
-		immutable Params(mapWithIndex(alloc, params, (immutable size_t index, ref immutable ParamShort x) =>
-			immutable Param(
-				immutable FileAndRange(FileIndex.none, RangeWithinFile.empty),
-				some(x.name),
-				x.type,
-				index))));
+		Params(mapWithIndex!(Param, ParamShort)(alloc, params, (size_t index, ref ParamShort x) =>
+			Param(FileAndRange(FileIndex.none, RangeWithinFile.empty), some(x.name), x.type, index))));
 
-immutable(FunDecl*[]) getFuns(ref immutable Module a, immutable Sym name) {
-	immutable Opt!NameReferents optReferents = a.allExportedNames[name];
+immutable(FunDecl*[]) getFuns(ref Module a, Sym name) {
+	Opt!NameReferents optReferents = a.allExportedNames[name];
 	return has(optReferents) ? force(optReferents).funs : [];
 }
 
-immutable(FunInst*) instantiateNonTemplateFun(
-	ref Alloc alloc,
-	ref ProgramState programState,
-	immutable FunDecl* decl,
-) =>
+FunInst* instantiateNonTemplateFun(ref Alloc alloc, ref ProgramState programState, FunDecl* decl) =>
 	instantiateFun(alloc, programState, decl, [], []);

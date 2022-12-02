@@ -17,39 +17,39 @@ void testLineAndColumnGetter(ref Test test) {
 private:
 
 void testLF(ref Test test) {
-	immutable LineAndColumnGetter lcg = lineAndColumnGetterForText(test.alloc, safeCStr!"a\n\tbb\nc\n");
+	LineAndColumnGetter lcg = lineAndColumnGetterForText(test.alloc, safeCStr!"a\n\tbb\nc\n");
 	testLFOrCR(lcg);
 }
 
 void testCR(ref Test test) {
-	immutable LineAndColumnGetter lcg = lineAndColumnGetterForText(test.alloc, safeCStr!"a\r\tbb\rc\r");
+	LineAndColumnGetter lcg = lineAndColumnGetterForText(test.alloc, safeCStr!"a\r\tbb\rc\r");
 	testLFOrCR(lcg);
 }
 
-void testLFOrCR(ref immutable LineAndColumnGetter lcg) {
-	verifyEq(lineAndColumnAtPos(lcg, immutable Pos(0)), immutable LineAndColumn(0, 0));
-	verifyEq(lineAndColumnAtPos(lcg, immutable Pos(1)), immutable LineAndColumn(0, 1));
-	verifyEq(lineAndColumnAtPos(lcg, immutable Pos(2)), immutable LineAndColumn(1, 0));
-	verifyEq(lineAndColumnAtPos(lcg, immutable Pos(3)), immutable LineAndColumn(1, 4));
-	verifyEq(lineAndColumnAtPos(lcg, immutable Pos(4)), immutable LineAndColumn(1, 5));
-	verifyEq(lineAndColumnAtPos(lcg, immutable Pos(5)), immutable LineAndColumn(1, 6));
-	verifyEq(lineAndColumnAtPos(lcg, immutable Pos(6)), immutable LineAndColumn(2, 0));
-	verifyEq(lineAndColumnAtPos(lcg, immutable Pos(7)), immutable LineAndColumn(2, 1));
-	verifyEq(lineAndColumnAtPos(lcg, immutable Pos(8)), immutable LineAndColumn(3, 0));
+void testLFOrCR(ref LineAndColumnGetter lcg) {
+	verifyEq(lineAndColumnAtPos(lcg, Pos(0)), LineAndColumn(0, 0));
+	verifyEq(lineAndColumnAtPos(lcg, Pos(1)), LineAndColumn(0, 1));
+	verifyEq(lineAndColumnAtPos(lcg, Pos(2)), LineAndColumn(1, 0));
+	verifyEq(lineAndColumnAtPos(lcg, Pos(3)), LineAndColumn(1, 4));
+	verifyEq(lineAndColumnAtPos(lcg, Pos(4)), LineAndColumn(1, 5));
+	verifyEq(lineAndColumnAtPos(lcg, Pos(5)), LineAndColumn(1, 6));
+	verifyEq(lineAndColumnAtPos(lcg, Pos(6)), LineAndColumn(2, 0));
+	verifyEq(lineAndColumnAtPos(lcg, Pos(7)), LineAndColumn(2, 1));
+	verifyEq(lineAndColumnAtPos(lcg, Pos(8)), LineAndColumn(3, 0));
 }
 
 void testCRLF(ref Test test) {
-	immutable LineAndColumnGetter lcg = lineAndColumnGetterForText(test.alloc, safeCStr!"a\r\n\tbb\r\nc\r\n");
-	verifyEq(lineAndColumnAtPos(lcg, immutable Pos(0)), immutable LineAndColumn(0, 0)); // a
-	verifyEq(lineAndColumnAtPos(lcg, immutable Pos(1)), immutable LineAndColumn(0, 1)); // \r
-	verifyEq(lineAndColumnAtPos(lcg, immutable Pos(2)), immutable LineAndColumn(0, 2)); // \n
-	verifyEq(lineAndColumnAtPos(lcg, immutable Pos(3)), immutable LineAndColumn(1, 0)); // \t
-	verifyEq(lineAndColumnAtPos(lcg, immutable Pos(4)), immutable LineAndColumn(1, 4)); // b
-	verifyEq(lineAndColumnAtPos(lcg, immutable Pos(5)), immutable LineAndColumn(1, 5)); // b
-	verifyEq(lineAndColumnAtPos(lcg, immutable Pos(6)), immutable LineAndColumn(1, 6)); // \r
-	verifyEq(lineAndColumnAtPos(lcg, immutable Pos(7)), immutable LineAndColumn(1, 7)); // \n
-	verifyEq(lineAndColumnAtPos(lcg, immutable Pos(8)), immutable LineAndColumn(2, 0)); // c
-	verifyEq(lineAndColumnAtPos(lcg, immutable Pos(9)), immutable LineAndColumn(2, 1)); // \r
-	verifyEq(lineAndColumnAtPos(lcg, immutable Pos(10)), immutable LineAndColumn(2, 2)); // \n
-	verifyEq(lineAndColumnAtPos(lcg, immutable Pos(11)), immutable LineAndColumn(3, 0)); // end
+	LineAndColumnGetter lcg = lineAndColumnGetterForText(test.alloc, safeCStr!"a\r\n\tbb\r\nc\r\n");
+	verifyEq(lineAndColumnAtPos(lcg, Pos(0)), LineAndColumn(0, 0)); // a
+	verifyEq(lineAndColumnAtPos(lcg, Pos(1)), LineAndColumn(0, 1)); // \r
+	verifyEq(lineAndColumnAtPos(lcg, Pos(2)), LineAndColumn(0, 2)); // \n
+	verifyEq(lineAndColumnAtPos(lcg, Pos(3)), LineAndColumn(1, 0)); // \t
+	verifyEq(lineAndColumnAtPos(lcg, Pos(4)), LineAndColumn(1, 4)); // b
+	verifyEq(lineAndColumnAtPos(lcg, Pos(5)), LineAndColumn(1, 5)); // b
+	verifyEq(lineAndColumnAtPos(lcg, Pos(6)), LineAndColumn(1, 6)); // \r
+	verifyEq(lineAndColumnAtPos(lcg, Pos(7)), LineAndColumn(1, 7)); // \n
+	verifyEq(lineAndColumnAtPos(lcg, Pos(8)), LineAndColumn(2, 0)); // c
+	verifyEq(lineAndColumnAtPos(lcg, Pos(9)), LineAndColumn(2, 1)); // \r
+	verifyEq(lineAndColumnAtPos(lcg, Pos(10)), LineAndColumn(2, 2)); // \n
+	verifyEq(lineAndColumnAtPos(lcg, Pos(11)), LineAndColumn(3, 0)); // end
 }

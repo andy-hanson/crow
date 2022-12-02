@@ -11,9 +11,9 @@ struct Cell(T) {
 	}
 }
 
-@trusted ref const(T) cellGet(T)(ref const Cell!T cell) =>
+@trusted ref inout(T) cellGet(T)(ref inout Cell!T cell) =>
 	cell.value;
 
-@trusted void cellSet(T)(ref Cell!T cell, immutable T value) {
+@trusted void cellSet(T)(ref Cell!T cell, T value) {
 	initMemory(&cell.value, value);
 }

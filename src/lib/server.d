@@ -52,100 +52,80 @@ struct Server {
 	}
 }
 
-pure void addOrChangeFile(
-	ref Server server,
-	scope immutable SafeCStr path,
-	scope immutable SafeCStr content,
-) {
-	immutable SafeCStr contentCopy = copySafeCStr(server.alloc, content);
-	insertOrUpdate!(immutable Path, immutable SafeCStr)(
+pure void addOrChangeFile(ref Server server, in SafeCStr path, in SafeCStr content) {
+	SafeCStr contentCopy = copySafeCStr(server.alloc, content);
+	insertOrUpdate!(Path, SafeCStr)(
 		server.alloc,
 		server.files,
 		toPath(server, path),
 		() => contentCopy,
-		(ref immutable SafeCStr old) @trusted {
+		(ref SafeCStr old) @trusted {
 			freeSafeCStr(server.alloc, old);
 			return contentCopy;
 		});
 }
 
-@trusted pure void deleteFile(ref Server server, scope immutable SafeCStr path) {
-	immutable(SafeCStr) deleted = mustDelete(server.files, toPath(server, path));
+@trusted pure void deleteFile(ref Server server, in SafeCStr path) {
+	SafeCStr deleted = mustDelete(server.files, toPath(server, path));
 	freeSafeCStr(server.alloc, deleted);
 }
 
-pure immutable(SafeCStr) getFile(ref Server server, scope immutable SafeCStr path) {
-	immutable Opt!SafeCStr text = getAt_mut(server.files, toPath(server, path));
+pure SafeCStr getFile(ref Server server, in SafeCStr path) {
+	Opt!SafeCStr text = getAt_mut(server.files, toPath(server, path));
 	return has(text) ? force(text) : safeCStr!"";
 }
 
-immutable(Token[]) getTokens(ref Alloc alloc, scope ref Perf perf, ref Server server, scope immutable SafeCStr path) {
-	immutable SafeCStr text = mustGetAt_mut(server.files, toPath(server, path));
+pure Token[] getTokens(ref Alloc alloc, scope ref Perf perf, ref Server server, in SafeCStr path) {
+	SafeCStr text = mustGetAt_mut(server.files, toPath(server, path));
 	// diagnostics not used
 	ArrBuilder!DiagnosticWithinFile diagnosticsBuilder;
-	immutable FileAst ast = parseFile(alloc, perf, server.allPaths, server.allSymbols, diagnosticsBuilder, text);
+	FileAst ast = parseFile(alloc, perf, server.allPaths, server.allSymbols, diagnosticsBuilder, text);
 	return tokensOfAst(alloc, server.allSymbols, ast);
 }
 
-struct StrParseDiagnostic {
-	immutable RangeWithinFile range;
-	immutable string message;
+immutable struct StrParseDiagnostic {
+	RangeWithinFile range;
+	string message;
 }
 
-immutable(StrParseDiagnostic[]) getParseDiagnostics(
+pure StrParseDiagnostic[] getParseDiagnostics(
 	ref Alloc alloc,
 	scope ref Perf perf,
 	ref Server server,
-	scope immutable SafeCStr path,
+	in SafeCStr path,
 ) {
-	immutable Path key = toPath(server, path);
-	immutable SafeCStr text = mustGetAt_mut(server.files, key);
+	Path key = toPath(server, path);
+	SafeCStr text = mustGetAt_mut(server.files, key);
 	ArrBuilder!DiagnosticWithinFile diagsBuilder;
 	// AST not used
 	parseFile(alloc, perf, server.allPaths, server.allSymbols, diagsBuilder, text);
 	//TODO: use 'scope' to avoid allocating things here
-	immutable FilesInfo filesInfo = immutable FilesInfo(
+	FilesInfo filesInfo = FilesInfo(
 		fullIndexDictOfArr!(FileIndex, Path)(arrLiteral!Path(alloc, [key])),
-		dictLiteral!(Path, FileIndex)(alloc, key, immutable FileIndex(0)),
+		dictLiteral!(Path, FileIndex)(alloc, key, FileIndex(0)),
 		fullIndexDictOfArr!(FileIndex, LineAndColumnGetter)(
 			arrLiteral!LineAndColumnGetter(alloc, [lineAndColumnGetterForText(alloc, text)])));
 	return map(
 		alloc,
-		diagnosticsForFile(alloc, immutable FileIndex(0), diagsBuilder, filesInfo.filePaths).diags,
-		(ref immutable Diagnostic it) =>
-			immutable StrParseDiagnostic(
+		diagnosticsForFile(alloc, FileIndex(0), diagsBuilder, filesInfo.filePaths).diags,
+		(ref Diagnostic it) =>
+			 StrParseDiagnostic(
 				it.where.range,
 				strOfDiagnostic(
 					alloc, server.allSymbols, server.allPaths, server.pathsInfo, showDiagOptions, filesInfo, it)));
 }
 
-immutable(SafeCStr) getHover(
-	ref Perf perf,
-	ref Alloc alloc,
-	ref Server server,
-	scope immutable SafeCStr path,
-	immutable Pos pos,
-) {
-	immutable Path key = toPath(server, path);
-	immutable Program program = withDictReadOnlyStorage!(immutable Program)(
-		server.includeDir,
-		server.files,
-		(scope ref const ReadOnlyStorage storage) =>
-			frontendCompile(alloc, perf, alloc, server.allPaths, server.allSymbols, storage, [key], none!Path));
+SafeCStr getHover(ref Perf perf, ref Alloc alloc, ref Server server, in SafeCStr path, Pos pos) {
+	Path key = toPath(server, path);
+	Program program = withDictReadOnlyStorage!Program(server.includeDir, server.files, (in ReadOnlyStorage storage) =>
+		frontendCompile(alloc, perf, alloc, server.allPaths, server.allSymbols, storage, [key], none!Path));
 	return getHoverFromProgram(alloc, server, key, program, pos);
 }
 
-private pure immutable(SafeCStr) getHoverFromProgram(
-	ref Alloc alloc,
-	ref Server server,
-	immutable Path path,
-	ref immutable Program program,
-	immutable Pos pos,
-) {
-	immutable Opt!FileIndex fileIndex = program.filesInfo.pathToFile[path];
+private SafeCStr getHoverFromProgram(ref Alloc alloc, ref Server server, Path path, in Program program, Pos pos) {
+	Opt!FileIndex fileIndex = program.filesInfo.pathToFile[path];
 	if (has(fileIndex)) {
-		immutable Opt!Position position =
-			getPosition(server.allSymbols, program.allModules[force(fileIndex).index], pos);
+		Opt!Position position = getPosition(server.allSymbols, program.allModules[force(fileIndex).index], pos);
 		return has(position)
 			? getHoverStr(alloc, alloc, server.allSymbols, server.allPaths, server.pathsInfo, program, force(position))
 			: safeCStr!"";
@@ -153,21 +133,16 @@ private pure immutable(SafeCStr) getHoverFromProgram(
 		return safeCStr!"";
 }
 
-immutable(FakeExternResult) run(
-	ref Perf perf,
-	ref Alloc alloc,
-	ref Server server,
-	scope immutable SafeCStr mainPath,
-) {
-	immutable Path main = toPath(server, mainPath);
+FakeExternResult run(ref Perf perf, ref Alloc alloc, ref Server server, in SafeCStr mainPath) {
+	Path main = toPath(server, mainPath);
 	// TODO: use an arena so anything allocated during interpretation is cleaned up.
 	// Or just have interpreter free things.
-	immutable SafeCStr[1] allArgs = [safeCStr!"/usr/bin/fakeExecutable"];
-	return withDictReadOnlyStorage(server.includeDir, server.files, (scope ref const ReadOnlyStorage storage) =>
+	SafeCStr[1] allArgs = [safeCStr!"/usr/bin/fakeExecutable"];
+	return withDictReadOnlyStorage!FakeExternResult(server.includeDir, server.files, (in ReadOnlyStorage storage) =>
 		withFakeExtern(alloc, server.allSymbols, (scope ref Extern extern_, scope ref FakeStdOutput std) =>
 			buildAndInterpret(
 				alloc, perf, server.allSymbols, server.allPaths, server.pathsInfo, storage, extern_,
-				(immutable SafeCStr x) {
+				(in SafeCStr x) {
 					pushAll(alloc, std.stderr, strOfSafeCStr(x));
 				},
 				showDiagOptions, main, allArgs)));
@@ -175,7 +150,8 @@ immutable(FakeExternResult) run(
 
 private:
 
-pure immutable(Path) toPath(ref Server server, scope immutable SafeCStr path) =>
+pure Path toPath(ref Server server, in SafeCStr path) =>
 	parsePath(server.allPaths, path);
 
-immutable ShowDiagOptions showDiagOptions = immutable ShowDiagOptions(false);
+pure ShowDiagOptions showDiagOptions() =>
+	ShowDiagOptions(false);

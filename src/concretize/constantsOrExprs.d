@@ -9,13 +9,12 @@ import util.col.arr : SmallArray;
 import util.col.arrUtil : every, map;
 import util.union_ : Union;
 
-struct ConstantsOrExprs {
-	mixin Union!(immutable SmallArray!Constant, immutable SmallArray!ConcreteExpr);
+immutable struct ConstantsOrExprs {
+	mixin Union!(SmallArray!Constant, SmallArray!ConcreteExpr);
 }
 static assert(ConstantsOrExprs.sizeof == ulong.sizeof);
 
-immutable(ConstantsOrExprs) asConstantsOrExprs(ref Alloc alloc, immutable ConcreteExpr[] exprs) =>
-	every!ConcreteExpr(exprs, (ref immutable ConcreteExpr arg) => arg.kind.isA!Constant)
-		? immutable ConstantsOrExprs(map(alloc, exprs, (ref immutable ConcreteExpr arg) =>
-			arg.kind.as!Constant))
-		: immutable ConstantsOrExprs(exprs);
+ConstantsOrExprs asConstantsOrExprs(ref Alloc alloc, ConcreteExpr[] exprs) =>
+	every!ConcreteExpr(exprs, (in ConcreteExpr arg) => arg.kind.isA!Constant)
+		? ConstantsOrExprs(map(alloc, exprs, (ref ConcreteExpr arg) => arg.kind.as!Constant))
+		: ConstantsOrExprs(exprs);

@@ -1,6 +1,6 @@
 module util.perf;
 
-@safe @nogc nothrow:
+@safe @nogc nothrow: // not pure
 
 import util.alloc.alloc : Alloc, curBytes;
 import util.col.enumDict : EnumDict, enumDictEach;
@@ -9,52 +9,36 @@ import util.col.str : SafeCStr, safeCStr;
 import util.comparison : compareUlong, oppositeComparison;
 import util.util : verify;
 
-immutable(T) withMeasureNoAlloc(T, alias cb)(
-	ref Perf perf,
-	immutable PerfMeasure measure,
-) {
+T withMeasureNoAlloc(T, alias cb)(ref Perf perf, PerfMeasure measure) {
 	PerfMeasurerNoAlloc measurer = startMeasureNoAlloc(perf, measure);
-	immutable T res = cb();
+	T res = cb();
 	endMeasureNoAlloc(perf, measurer);
 	return res;
 }
 
-immutable(T) withMeasure(T, alias cb)(
-	ref Alloc alloc,
-	scope ref Perf perf,
-	immutable PerfMeasure measure,
-) {
+T withMeasure(T, alias cb)(ref Alloc alloc, scope ref Perf perf, PerfMeasure measure) {
 	PerfMeasurer measurer = startMeasure(alloc, perf, measure);
 	static if (is(T == void))
 		cb();
 	else
-		immutable T res = cb();
+		T res = cb();
 	endMeasure(alloc, perf, measurer);
 	static if (!is(T == void))
 		return res;
 }
 
-immutable(T) withNullPerf(T, alias cb)() {
-	Perf perf = Perf(() => immutable ulong(0));
+T withNullPerf(T, alias cb)() {
+	Perf perf = Perf(() => 0);
 	return cb(perf);
 }
 
-@safe @nogc nothrow: // not pure
-
 struct Perf {
-	@safe pure @nogc nothrow:
-
-	// TODO: this dummy constructor is apparently needed to prevent DMD from calling a function '_memsetn'
-	this(return scope immutable(ulong) delegate() @safe @nogc pure nothrow cb) scope {
-		cbGetTimeNSec = cb;
-	}
-
-	immutable(ulong) delegate() @safe @nogc pure nothrow cbGetTimeNSec;
-	private:
-	EnumDict!(PerfMeasure, PerfMeasureResult) measures;
+	ulong delegate() @safe @nogc pure nothrow cbGetTimeNSec;
+	private EnumDict!(PerfMeasure, PerfMeasureResult) measures;
 }
 
-immutable bool perfEnabled = false;
+pure bool perfEnabled() =>
+	false;
 
 private struct PerfMeasurerNoAlloc {
 	private:
@@ -62,15 +46,12 @@ private struct PerfMeasurerNoAlloc {
 	ulong nsecBefore;
 }
 
-private pure PerfMeasurerNoAlloc startMeasureNoAlloc(ref Perf perf, immutable PerfMeasure measure) =>
+private pure PerfMeasurerNoAlloc startMeasureNoAlloc(ref Perf perf, PerfMeasure measure) =>
 	perfEnabled ? PerfMeasurerNoAlloc(measure, perf.cbGetTimeNSec()) : PerfMeasurerNoAlloc(measure, 0);
 
-private void endMeasureNoAlloc(ref Perf perf, ref PerfMeasurerNoAlloc measurer) {
+private pure void endMeasureNoAlloc(ref Perf perf, ref PerfMeasurerNoAlloc measurer) {
 	if (perfEnabled)
-		addToMeasure(
-			perf,
-			measurer.measure,
-			immutable PerfMeasureResult(1, 0, perf.cbGetTimeNSec() - measurer.nsecBefore));
+		addToMeasure(perf, measurer.measure, PerfMeasureResult(1, 0, perf.cbGetTimeNSec() - measurer.nsecBefore));
 }
 
 struct PerfMeasurer {
@@ -81,19 +62,19 @@ struct PerfMeasurer {
 	bool paused;
 }
 
-@trusted pure PerfMeasurer startMeasure(ref Alloc alloc, scope ref Perf perf, immutable PerfMeasure measure) {
+@trusted pure PerfMeasurer startMeasure(ref Alloc alloc, scope ref Perf perf, PerfMeasure measure) {
 	if (perfEnabled) {
-		immutable size_t bytesBefore = curBytes(alloc);
-		immutable ulong nsecBefore = perf.cbGetTimeNSec();
+		size_t bytesBefore = curBytes(alloc);
+		ulong nsecBefore = perf.cbGetTimeNSec();
 		return PerfMeasurer(measure, bytesBefore, nsecBefore, false);
 	} else
 		return PerfMeasurer(measure, 0, 0, false);
 }
 
-@trusted pure void pauseMeasure(ref Alloc alloc, scope ref Perf perf, ref PerfMeasurer measurer) {
+@trusted pure void pauseMeasure(ref Alloc alloc, scope ref Perf perf, scope ref PerfMeasurer measurer) {
 	if (perfEnabled) {
 		verify(!measurer.paused);
-		addToMeasure(perf, measurer.measure, immutable PerfMeasureResult(
+		addToMeasure(perf, measurer.measure, PerfMeasureResult(
 			0,
 			curBytes(alloc) - measurer.bytesBefore,
 			perf.cbGetTimeNSec() - measurer.nsecBefore));
@@ -101,7 +82,7 @@ struct PerfMeasurer {
 	}
 }
 
-@trusted pure void resumeMeasure(ref Alloc alloc, scope ref Perf perf, ref PerfMeasurer measurer) {
+@trusted pure void resumeMeasure(ref Alloc alloc, scope ref Perf perf, scope ref PerfMeasurer measurer) {
 	if (perfEnabled) {
 		verify(measurer.paused);
 		measurer.bytesBefore = curBytes(alloc);
@@ -110,10 +91,10 @@ struct PerfMeasurer {
 	}
 }
 
-@trusted pure void endMeasure(ref Alloc alloc, scope ref Perf perf, ref PerfMeasurer measurer) {
+@trusted pure void endMeasure(ref Alloc alloc, scope ref Perf perf, scope ref PerfMeasurer measurer) {
 	if (perfEnabled) {
 		verify(!measurer.paused);
-		addToMeasure(perf, measurer.measure, immutable PerfMeasureResult(
+		addToMeasure(perf, measurer.measure, PerfMeasureResult(
 			1,
 			curBytes(alloc) - measurer.bytesBefore,
 			perf.cbGetTimeNSec() - measurer.nsecBefore));
@@ -131,17 +112,14 @@ private struct PerfResultWithMeasure {
 	PerfMeasureResult result;
 }
 
-void eachMeasure(
-	scope ref Perf perf,
-	scope void delegate(immutable SafeCStr, immutable PerfMeasureResult) @safe @nogc nothrow cb,
-) {
+void eachMeasure(in Perf perf, in void delegate(in SafeCStr, in PerfMeasureResult) @safe @nogc nothrow cb) {
 	PerfResultWithMeasure[PerfMeasure.max + 1] results;
 	enumDictEach!(PerfMeasure, PerfMeasureResult)(
 		perf.measures,
-		(immutable PerfMeasure measure, ref const PerfMeasureResult result) {
-			results[measure] = PerfResultWithMeasure(cast(immutable PerfMeasure) measure, perf.measures[measure]);
+		(PerfMeasure measure, in PerfMeasureResult result) {
+			results[measure] = PerfResultWithMeasure(measure, perf.measures[measure]);
 		});
-	sortInPlace!PerfResultWithMeasure(results, (ref const PerfResultWithMeasure a, ref const PerfResultWithMeasure b) =>
+	sortInPlace!PerfResultWithMeasure(results, (in PerfResultWithMeasure a, in PerfResultWithMeasure b) =>
 		oppositeComparison(compareUlong(a.result.nanoseconds, b.result.nanoseconds)));
 	foreach (ref const PerfResultWithMeasure m; results) {
 		if (m.result.count)
@@ -166,17 +144,17 @@ enum PerfMeasure {
 
 private:
 
-pure void addToMeasure(ref Perf perf, immutable PerfMeasure measure, immutable PerfMeasureResult result) {
+pure void addToMeasure(ref Perf perf, PerfMeasure measure, PerfMeasureResult result) {
 	perf.measures[measure] = add(perf.measures[measure], result);
 }
 
-pure immutable(PerfMeasureResult) add(immutable PerfMeasureResult a, immutable PerfMeasureResult b) =>
-	immutable PerfMeasureResult(
+pure PerfMeasureResult add(PerfMeasureResult a, PerfMeasureResult b) =>
+	PerfMeasureResult(
 		a.count + b.count,
 		a.bytesAllocated + b.bytesAllocated,
 		a.nanoseconds + b.nanoseconds);
 
-pure immutable(SafeCStr) perfMeasureName(immutable PerfMeasure a) {
+pure SafeCStr perfMeasureName(PerfMeasure a) {
 	final switch (a) {
 		case PerfMeasure.cCompile:
 			return safeCStr!"cCompile";

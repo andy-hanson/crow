@@ -8,7 +8,7 @@ import util.hash : Hasher, hashSizeT;
 	castNonScope(&t);
 
 void hashPtr(T)(ref Hasher hasher, const T* a) {
-	hashSizeT(hasher, cast(immutable size_t) a);
+	hashSizeT(hasher, cast(size_t) a);
 }
 
 @trusted immutable(T*) castImmutable(T)(T* a) =>
@@ -19,10 +19,10 @@ void hashPtr(T)(ref Hasher hasher, const T* a) {
 
 @trusted inout(T) castNonScope(T)(scope inout T x) {
 	static if (is(T == P*, P)) {
-		immutable size_t res = cast(immutable size_t) x;
+		size_t res = cast(size_t) x;
 		return cast(inout T) res;
 	} else static if (is(T == P[], P)) {
-		immutable size_t res = cast(immutable size_t) x.ptr;
+		size_t res = cast(size_t) x.ptr;
 		return (cast(inout P*) res)[0 .. x.length];
 	} else
 		return x;

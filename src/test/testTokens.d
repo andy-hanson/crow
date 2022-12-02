@@ -21,42 +21,35 @@ void testTokens(ref Test test) {
 	testOne(test, safeCStr!"", []);
 
 	testOne(test, testSource, arrLiteral!Token(test.alloc, [
-		immutable Token(Token.Kind.keyword, immutable RangeWithinFile(0, 6)),
-		immutable Token(Token.Kind.importPath, immutable RangeWithinFile(8, 10)),
-		immutable Token(Token.Kind.fun, immutable RangeWithinFile(12, 16)),
-		immutable Token(Token.Kind.struct_, immutable RangeWithinFile(17, 26)),
-		immutable Token(Token.Kind.keyword, immutable RangeWithinFile(26, 27)),
-		immutable Token(Token.Kind.param, immutable RangeWithinFile(28, 32)),
-		immutable Token(Token.Kind.struct_, immutable RangeWithinFile(33, 36)),
-		immutable Token(Token.Kind.keyword, immutable RangeWithinFile(36, 38)),
-		immutable Token(Token.Kind.modifier, immutable RangeWithinFile(40, 46)),
-		immutable Token(Token.Kind.literalNumber, immutable RangeWithinFile(48, 50)),
-		immutable Token(Token.Kind.fun, immutable RangeWithinFile(50, 58))]));
+		Token(Token.Kind.keyword, RangeWithinFile(0, 6)),
+		Token(Token.Kind.importPath, RangeWithinFile(8, 10)),
+		Token(Token.Kind.fun, RangeWithinFile(12, 16)),
+		Token(Token.Kind.struct_, RangeWithinFile(17, 26)),
+		Token(Token.Kind.keyword, RangeWithinFile(26, 27)),
+		Token(Token.Kind.param, RangeWithinFile(28, 32)),
+		Token(Token.Kind.struct_, RangeWithinFile(33, 36)),
+		Token(Token.Kind.keyword, RangeWithinFile(36, 38)),
+		Token(Token.Kind.modifier, RangeWithinFile(40, 46)),
+		Token(Token.Kind.literalNumber, RangeWithinFile(48, 50)),
+		Token(Token.Kind.fun, RangeWithinFile(50, 58))]));
 
 	testOne(test, testSource2, arrLiteral!Token(test.alloc, [
-		immutable Token(Token.Kind.fun, immutable RangeWithinFile(0, 1)),
-		immutable Token(Token.Kind.struct_, immutable RangeWithinFile(2, 5)),
-		immutable Token(Token.Kind.param, immutable RangeWithinFile(6, 7)),
-		immutable Token(Token.Kind.struct_, immutable RangeWithinFile(7, 12)),
-		immutable Token(Token.Kind.literalNumber, immutable RangeWithinFile(15, 16))]));
+		Token(Token.Kind.fun, RangeWithinFile(0, 1)),
+		Token(Token.Kind.struct_, RangeWithinFile(2, 5)),
+		Token(Token.Kind.param, RangeWithinFile(6, 7)),
+		Token(Token.Kind.struct_, RangeWithinFile(7, 12)),
+		Token(Token.Kind.literalNumber, RangeWithinFile(15, 16))]));
 }
 
 private:
 
-void testOne(ref Test test, immutable SafeCStr source, immutable Token[] expectedTokens) {
+void testOne(ref Test test, SafeCStr source, Token[] expectedTokens) {
 	AllSymbols allSymbols = AllSymbols(test.allocPtr);
 	ArrBuilder!DiagnosticWithinFile diags;
-	immutable FileAst ast = withNullPerf!(
-		immutable FileAst,
-		(scope ref Perf perf) => parseFile(
-			test.alloc,
-			perf,
-			test.allPaths,
-			allSymbols,
-			diags,
-			source));
-	immutable Token[] tokens = tokensOfAst(test.alloc, allSymbols, ast);
-	if (!tokensEq(tokens, expectedTokens)) {
+	FileAst ast = withNullPerf!(FileAst, (scope ref Perf perf) =>
+		parseFile(test.alloc, perf, test.allPaths, allSymbols, diags, source));
+	Token[] tokens = tokensOfAst(test.alloc, allSymbols, ast);
+	if (!arrEqual(tokens, expectedTokens)) {
 		debug {
 			import core.stdc.stdio : printf;
 			Writer writer = Writer(test.allocPtr);
@@ -73,22 +66,12 @@ void testOne(ref Test test, immutable SafeCStr source, immutable Token[] expecte
 	}
 }
 
-immutable(bool) tokensEq(ref immutable Token[] a, ref immutable Token[] b) =>
-	arrEqual!Token(a, b, (ref immutable Token x, ref immutable Token y) =>
-		tokenEq(x, y));
-
-immutable(bool) tokenEq(ref immutable Token a, ref immutable Token b) =>
-	a.kind == b.kind && rangeEq(a.range, b.range);
-
-immutable(bool) rangeEq(ref immutable RangeWithinFile a, ref immutable RangeWithinFile b) =>
-	a.start == b.start && a.end == b.end;
-
-immutable SafeCStr testSource = safeCStr!`import
+SafeCStr testSource() => safeCStr!`import
 	io
 
 main exit-code^(args str[]) summon
 	0 resolved
 `;
 
-immutable SafeCStr testSource2 = safeCStr!`f nat(a^ nat)
+SafeCStr testSource2() => safeCStr!`f nat(a^ nat)
 	0`;

@@ -6,8 +6,7 @@ import interpret.bytecode : ByteCode, ByteCodeIndex, Operation;
 import interpret.debugInfo : showDataArr;
 import interpret.stacks : dataTempAsArr, returnTempAsArrReverse, Stacks;
 import util.alloc.alloc : Alloc;
-import util.col.arr : sizeEq;
-import util.col.arrUtil : eachCorresponds, makeArr;
+import util.col.arrUtil : arrEqual, arrsCorrespond, makeArr;
 import util.path : AllPaths;
 import util.sym : AllSymbols;
 import util.util : verify;
@@ -29,7 +28,7 @@ struct Test {
 	Writer writer() =>
 		Writer(allocPtr);
 
-	void fail(immutable string s) {
+	void fail(string s) {
 		debug {
 			import core.stdc.stdio : printf;
 			printf("Failed: %.*s\n", cast(int) s.length, s.ptr);
@@ -41,11 +40,9 @@ struct Test {
 		*allocPtr;
 }
 
-@trusted void expectDataStack(ref Test test, scope const Stacks stacks, scope immutable ulong[] expected) {
+@trusted void expectDataStack(ref Test test, in Stacks stacks, in immutable ulong[] expected) {
 	scope immutable ulong[] stack = dataTempAsArr(stacks);
-	immutable bool eq = sizeEq(stack, expected) &&
-		eachCorresponds!(ulong, ulong)(stack, expected, (ref immutable ulong a, ref immutable ulong b) => a == b);
-	if (!eq) {
+	if (!arrEqual(stack, expected)) {
 		debug {
 			Writer writer = test.writer();
 			writer ~= "expected:\n";
@@ -59,28 +56,27 @@ struct Test {
 
 @trusted void expectReturnStack(
 	ref Test test,
-	scope ref immutable ByteCode byteCode,
-	scope ref const Stacks stacks,
-	scope immutable ByteCodeIndex[] expected,
+	in ByteCode byteCode,
+	in Stacks stacks,
+	in ByteCodeIndex[] expected,
 ) {
 	// Ignore first entry (which is opStopInterpretation)
 	scope immutable(Operation*)[] stack = reverse(test.alloc, returnTempAsArrReverse(stacks)[0 .. $ - 1]);
-	immutable bool eq = sizeEq(stack, expected) &&
-		eachCorresponds!(immutable Operation*, ByteCodeIndex)(
-			stack,
-			expected,
-			(ref immutable Operation* a, ref immutable ByteCodeIndex b) @trusted =>
-				immutable ByteCodeIndex(a - byteCode.byteCode.ptr) == b);
+	bool eq = arrsCorrespond!(Operation*, ByteCodeIndex)(
+		stack,
+		expected,
+		(in Operation* a, in ByteCodeIndex b) @trusted =>
+			ByteCodeIndex(a - byteCode.byteCode.ptr) == b);
 	if (!eq) {
 		debug {
 			Writer writer = test.writer();
 			writer ~= "expected:\nreturn:";
-			foreach (immutable ByteCodeIndex index; expected) {
+			foreach (ByteCodeIndex index; expected) {
 				writer ~= ' ';
 				writer ~= index.index;
 			}
 			writer ~= "\nactual:\nreturn:";
-			foreach (immutable Operation* ptr; stack) {
+			foreach (Operation* ptr; stack) {
 				writer ~= ' ';
 				writer ~= ptr - byteCode.byteCode.ptr;
 			}
@@ -91,6 +87,6 @@ struct Test {
 	}
 }
 
-private immutable(T[]) reverse(T)(ref Alloc alloc, scope T[] xs) =>
-	makeArr(alloc, xs.length, (immutable size_t i) =>
+private T[] reverse(T)(ref Alloc alloc, scope T[] xs) =>
+	makeArr(alloc, xs.length, (size_t i) =>
 		xs[xs.length - 1 - i]);

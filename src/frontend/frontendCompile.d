@@ -45,49 +45,48 @@ import util.readOnlyStorage : asOption, ReadFileResult, ReadOnlyStorage, withFil
 import util.sourceRange : FileIndex, RangeWithinFile;
 import util.sym : AllSymbols, Sym, sym;
 import util.union_ : Union;
-import util.util : as, verify;
+import util.util : typeAs, verify;
 
-immutable(Program) frontendCompile(
+Program frontendCompile(
 	ref Alloc modelAlloc,
 	ref Perf perf,
 	ref Alloc astsAlloc,
 	ref AllPaths allPaths,
 	ref AllSymbols allSymbols,
-	scope ref const ReadOnlyStorage storage,
-	scope immutable Path[] rootPaths,
-	scope immutable Opt!Path mainPath,
+	in ReadOnlyStorage storage,
+	in Path[] rootPaths,
+	in Opt!Path mainPath,
 ) {
 	DiagnosticsBuilder diagsBuilder = DiagnosticsBuilder();
-	immutable Config config = getConfig(modelAlloc, allSymbols, allPaths, storage, diagsBuilder, rootPaths);
-	immutable ParsedEverything parsed = withMeasure!(immutable ParsedEverything, () =>
-		parseEverything(
-			modelAlloc, perf, allPaths, allSymbols, diagsBuilder, storage, rootPaths, mainPath, config, astsAlloc)
+	Config config = getConfig(modelAlloc, allSymbols, allPaths, storage, diagsBuilder, rootPaths);
+	ParsedEverything parsed = withMeasure!(ParsedEverything, () => parseEverything(
+		modelAlloc, perf, allPaths, allSymbols, diagsBuilder, storage, rootPaths, mainPath, config, astsAlloc)
 	)(astsAlloc, perf, PerfMeasure.parseEverything);
-	return withMeasure!(immutable Program, () =>
+	return withMeasure!(Program, () =>
 		checkEverything(
 			modelAlloc, perf, allSymbols, diagsBuilder,
 			config, parsed.asts, parsed.filesInfo, parsed.commonModuleIndices)
 	)(modelAlloc, perf, PerfMeasure.checkEverything);
 }
 
-struct FileAstAndDiagnostics {
-	immutable FileAst ast;
-	immutable FilesInfo filesInfo;
-	immutable Diagnostics diagnostics;
+immutable struct FileAstAndDiagnostics {
+	FileAst ast;
+	FilesInfo filesInfo;
+	Diagnostics diagnostics;
 }
 
-immutable(FileAstAndDiagnostics) parseSingleAst(
+FileAstAndDiagnostics parseSingleAst(
 	ref Alloc alloc,
 	ref Perf perf,
 	ref AllSymbols allSymbols,
 	ref AllPaths allPaths,
-	scope ref const ReadOnlyStorage storage,
-	immutable Path path,
+	in ReadOnlyStorage storage,
+	Path path,
 ) {
 	// In this case model alloc and AST alloc are the same
-	return withFileText(storage, path, crowExtension, (immutable ReadFileResult!SafeCStr fileContent) {
+	return withFileText!FileAstAndDiagnostics(storage, path, crowExtension, (in ReadFileResult!SafeCStr fileContent) {
 		ArrBuilder!DiagnosticWithinFile diags;
-		immutable FileAst ast = parseSingle(
+		FileAst ast = parseSingle(
 			alloc,
 			alloc,
 			perf,
@@ -97,10 +96,10 @@ immutable(FileAstAndDiagnostics) parseSingleAst(
 			none!PathAndRange,
 			fileContent);
 		DiagnosticsBuilder diagsBuilder;
-		addDiagnosticsForFile(alloc, diagsBuilder, immutable FileIndex(0), diags);
-		immutable FilesInfo filesInfo =
+		addDiagnosticsForFile(alloc, diagsBuilder, FileIndex(0), diags);
+		FilesInfo filesInfo =
 			filesInfoForSingle(alloc, path, lineAndColumnGetterForOptText(alloc, asOption(fileContent)));
-		return immutable FileAstAndDiagnostics(
+		return FileAstAndDiagnostics(
 			ast,
 			filesInfo,
 			finishDiagnostics(alloc, diagsBuilder, filesInfo.filePaths));
@@ -109,24 +108,24 @@ immutable(FileAstAndDiagnostics) parseSingleAst(
 
 private:
 
-struct ParseStatus {
-	struct Started {}
-	struct Done { immutable FileIndex fileIndex; }
-	mixin Union!(immutable Started, immutable Done);
+immutable struct ParseStatus {
+	immutable struct Started {}
+	immutable struct Done { FileIndex fileIndex; }
+	mixin Union!(Started, Done);
 }
 
-alias PathToStatus = MutDict!(immutable Path, immutable ParseStatus);
+alias PathToStatus = MutDict!(Path, ParseStatus);
 
-struct ParsedEverything {
-	immutable FilesInfo filesInfo;
-	immutable CommonModuleIndices commonModuleIndices;
-	immutable FullIndexDict!(FileIndex, AstAndResolvedImports) asts;
+immutable struct ParsedEverything {
+	FilesInfo filesInfo;
+	CommonModuleIndices commonModuleIndices;
+	FullIndexDict!(FileIndex, AstAndResolvedImports) asts;
 }
 
-struct CommonModuleIndices {
-	immutable Opt!FileIndex main;
-	immutable EnumDict!(CommonPath, FileIndex) common;
-	immutable FileIndex[] rootPaths;
+immutable struct CommonModuleIndices {
+	Opt!FileIndex main;
+	EnumDict!(CommonPath, FileIndex) common;
+	FileIndex[] rootPaths;
 }
 
 struct ParseStackEntry {
@@ -139,17 +138,16 @@ struct ParseStackEntry {
 
 alias ParseStack = MutMaxArr!(32, ParseStackEntry);
 
-//TODO: Marked @trusted to avoid initializing stack...
-immutable(ParsedEverything) parseEverything(
+ParsedEverything parseEverything(
 	ref Alloc modelAlloc,
 	scope ref Perf perf,
 	ref AllPaths allPaths,
 	ref AllSymbols allSymbols,
-	ref DiagnosticsBuilder diagsBuilder,
-	scope ref const ReadOnlyStorage storage,
-	scope immutable Path[] rootPaths,
-	scope immutable Opt!Path mainPath,
-	ref immutable Config config,
+	scope ref DiagnosticsBuilder diagsBuilder,
+	in ReadOnlyStorage storage,
+	in Path[] rootPaths,
+	in Opt!Path mainPath,
+	ref Config config,
 	ref Alloc astAlloc,
 ) {
 	if (has(mainPath))
@@ -162,41 +160,43 @@ immutable(ParsedEverything) parseEverything(
 
 	ParseStack stack = mutMaxArr!(32, ParseStackEntry)();
 
-	immutable(Opt!(FullyResolvedImport[])) resolveImportsOrExports(
+	Opt!(FullyResolvedImport[]) resolveImportsOrExports(
 		ref ArrBuilder!DiagnosticWithinFile diags,
-		immutable Path fromPath,
-		immutable ResolvedImport[] importsOrExports,
-	) =>
-		mapOrNoneImpure(modelAlloc, importsOrExports, (ref immutable ResolvedImport import_) =>
-			fullyResolveImport(
-				modelAlloc, astAlloc, perf, allSymbols, allPaths, storage, config,
-				statuses, stack, diags, fromPath, import_));
+		Path fromPath,
+		ResolvedImport[] importsOrExports,
+	) {
+		return mapOrNoneImpure!(FullyResolvedImport, ResolvedImport)(
+			modelAlloc, importsOrExports, (in ResolvedImport import_) =>
+				fullyResolveImport(
+					modelAlloc, astAlloc, perf, allSymbols, allPaths, storage, config,
+					statuses, stack, diags, fromPath, import_));
+	}
 
 	void process() {
 		while (!isEmpty(stack)) {
-			immutable Path path = mustPeek(stack).path;
-			immutable ImportAndExportPaths importsAndExports = mustPeek(stack).importsAndExports;
-			immutable Opt!(FullyResolvedImport[]) imports =
+			Path path = mustPeek(stack).path;
+			ImportAndExportPaths importsAndExports = mustPeek(stack).importsAndExports;
+			Opt!(FullyResolvedImport[]) imports =
 				resolveImportsOrExports(mustPeek(stack).diags, path, importsAndExports.imports);
-			immutable Opt!(FullyResolvedImport[]) exports =
+			Opt!(FullyResolvedImport[]) exports =
 				resolveImportsOrExports(mustPeek(stack).diags, path, importsAndExports.exports);
 			if (has(imports) && has(exports)) {
 				ParseStackEntry entry = mustPop(stack);
-				immutable FileIndex fileIndex = immutable FileIndex(safeToUshort(arrBuilderSize(res)));
+				FileIndex fileIndex = FileIndex(safeToUshort(arrBuilderSize(res)));
 
 				addDiagnosticsForFile(modelAlloc, diagsBuilder, fileIndex, entry.diags);
 				verify(arrBuilderSize(fileIndexToPath) == fileIndex.index);
 				verify(arrBuilderSize(lineAndColumnGetters) == fileIndex.index);
-				add(astAlloc, res, immutable AstAndResolvedImports(entry.ast, force(imports), force(exports)));
+				add(astAlloc, res, AstAndResolvedImports(entry.ast, force(imports), force(exports)));
 				add(modelAlloc, fileIndexToPath, path);
 				add(modelAlloc, lineAndColumnGetters, entry.lineAndColumnGetter);
-				setInDict(astAlloc, statuses, path, immutable ParseStatus(immutable ParseStatus.Done(fileIndex)));
+				setInDict(astAlloc, statuses, path, ParseStatus(ParseStatus.Done(fileIndex)));
 			}
 			// else, we just pushed a dependency to the stack, so repeat.
 		}
 	}
 
-	void processRootPath(immutable Path path) {
+	void processRootPath(Path path) {
 		if (!hasKey_mut(statuses, path)) {
 			pushIt(
 				modelAlloc, astAlloc, perf, allSymbols, allPaths, storage, config,
@@ -206,38 +206,39 @@ immutable(ParsedEverything) parseEverything(
 	}
 
 	immutable EnumDict!(CommonPath, Path) commonPaths = commonPaths(allPaths, storage.includeDir);
-	foreach (immutable Path path; commonPaths)
+	foreach (Path path; commonPaths)
 		processRootPath(path);
-	foreach (immutable Path path; rootPaths)
+	foreach (Path path; rootPaths)
 		processRootPath(path);
 
 	verify(isEmpty(stack));
 
-	immutable(FileIndex) getIndex(immutable Path path) pure =>
-		mustGetAt_mut(statuses, path).as!(ParseStatus.Done).fileIndex;
+	FileIndex getIndex(Path path) pure {
+		return mustGetAt_mut(statuses, path).as!(ParseStatus.Done).fileIndex;
+	}
 
-	immutable CommonModuleIndices commonModuleIndices = immutable CommonModuleIndices(
+	CommonModuleIndices commonModuleIndices = CommonModuleIndices(
 		has(mainPath) ? some(getIndex(force(mainPath))) : none!FileIndex,
-		enumDictMapValues(commonPaths, (ref immutable Path path) => getIndex(path)),
-		map(modelAlloc, rootPaths, (ref immutable Path path) => getIndex(path)));
+		enumDictMapValues!(CommonPath, FileIndex, Path)(commonPaths, (in Path path) => getIndex(path)),
+		map(modelAlloc, rootPaths, (ref Path path) => getIndex(path)));
 
-	return immutable ParsedEverything(
-		immutable FilesInfo(
+	return ParsedEverything(
+		FilesInfo(
 			fullIndexDictOfArr!(FileIndex, Path)(finishArr(modelAlloc, fileIndexToPath)),
-			mapValues!(Path, ParseStatus, FileIndex)(
+			mapValues!(Path, FileIndex, ParseStatus)(
 				modelAlloc,
-				moveToDict(astAlloc, statuses),
-				(immutable(Path), ref immutable ParseStatus x) =>
+				moveToDict!(Path, ParseStatus)(astAlloc, statuses),
+				(Path, ref ParseStatus x) =>
 					x.as!(ParseStatus.Done).fileIndex),
 			fullIndexDictOfArr!(FileIndex, LineAndColumnGetter)(finishArr(modelAlloc, lineAndColumnGetters))),
 		commonModuleIndices,
 		fullIndexDictOfArr!(FileIndex, AstAndResolvedImports)(finishArr(astAlloc, res)));
 }
 
-immutable(EnumDict!(CommonPath, Path)) commonPaths(ref AllPaths allPaths, immutable Path includeDir) {
-	immutable Path includeCrow = childPath(allPaths, includeDir, sym!"crow");
-	immutable Path private_ = childPath(allPaths, includeCrow, sym!"private");
-	immutable Path col = childPath(allPaths, includeCrow, sym!"col");
+immutable(EnumDict!(CommonPath, Path)) commonPaths(ref AllPaths allPaths, Path includeDir) {
+	Path includeCrow = childPath(allPaths, includeDir, sym!"crow");
+	Path private_ = childPath(allPaths, includeCrow, sym!"private");
+	Path col = childPath(allPaths, includeCrow, sym!"col");
 	return immutable EnumDict!(CommonPath, Path)([
 		childPath(allPaths, private_, sym!"bootstrap"),
 		childPath(allPaths, private_, sym!"alloc"),
@@ -257,150 +258,146 @@ void pushIt(
 	scope ref Perf perf,
 	ref AllSymbols allSymbols,
 	ref AllPaths allPaths,
-	scope ref const ReadOnlyStorage storage,
-	ref immutable Config config,
+	in ReadOnlyStorage storage,
+	in Config config,
 	ref PathToStatus statuses,
 	ref ParseStack stack,
-	immutable Path path,
-	immutable Opt!PathAndRange importedFrom,
+	Path path,
+	Opt!PathAndRange importedFrom,
 ) {
-	withFileText!void(storage, path, crowExtension, (immutable ReadFileResult!SafeCStr fileContent) @safe {
+	withFileText!void(storage, path, crowExtension, (in ReadFileResult!SafeCStr fileContent) {
 		ArrBuilder!DiagnosticWithinFile diags;
-		immutable LineAndColumnGetter lineAndColumnGetter =
-			lineAndColumnGetterForOptText(modelAlloc, asOption(fileContent));
-		immutable FileAst ast = parseSingle(
-			modelAlloc, astAlloc, perf, allPaths, allSymbols, diags, importedFrom, fileContent);
-		immutable ImportAndExportPaths importsAndExports = resolveImportAndExportPaths(
+		LineAndColumnGetter lineAndColumnGetter = lineAndColumnGetterForOptText(modelAlloc, asOption(fileContent));
+		FileAst ast = parseSingle(modelAlloc, astAlloc, perf, allPaths, allSymbols, diags, importedFrom, fileContent);
+		ImportAndExportPaths importsAndExports = resolveImportAndExportPaths(
 			modelAlloc, astAlloc, allPaths, diags, storage.includeDir, config, path, ast.imports, ast.exports);
-		addToMutDict(astAlloc, statuses, path, immutable ParseStatus(immutable ParseStatus.Started()));
+		addToMutDict(astAlloc, statuses, path, ParseStatus(ParseStatus.Started()));
 		push(stack, ParseStackEntry(path, ast, lineAndColumnGetter, importsAndExports, diags));
 	});
 }
 
 // returns none if we can't resolve all imported modules yet
-immutable(Opt!FullyResolvedImport) fullyResolveImport(
+Opt!FullyResolvedImport fullyResolveImport(
 	ref Alloc modelAlloc,
 	ref Alloc astAlloc,
 	scope ref Perf perf,
 	ref AllSymbols allSymbols,
 	ref AllPaths allPaths,
-	scope ref const ReadOnlyStorage storage,
-	ref immutable Config config,
+	in ReadOnlyStorage storage,
+	in Config config,
 	ref PathToStatus statuses,
 	ref ParseStack stack,
 	ref ArrBuilder!DiagnosticWithinFile diags,
-	immutable Path fromPath,
-	ref immutable ResolvedImport import_,
+	Path fromPath,
+	in ResolvedImport import_,
 ) {
-	immutable Opt!FullyResolvedImportKind kind = has(import_.resolvedPath)
+	Opt!FullyResolvedImportKind kind = has(import_.resolvedPath)
 		? fullyResolveImportKind(
 			modelAlloc, astAlloc, perf, allSymbols, allPaths, storage, config, statuses, stack, diags, fromPath,
 			import_, force(import_.resolvedPath))
-		: some(immutable FullyResolvedImportKind(immutable FullyResolvedImportKind.Failed()));
+		: some(FullyResolvedImportKind(FullyResolvedImportKind.Failed()));
 	return has(kind)
-		? some(immutable FullyResolvedImport(some(import_.importedFrom), force(kind)))
+		? some(FullyResolvedImport(some(import_.importedFrom), force(kind)))
 		: none!FullyResolvedImport;
 }
 
-immutable(Opt!FullyResolvedImportKind) fullyResolveImportKind(
+Opt!FullyResolvedImportKind fullyResolveImportKind(
 	ref Alloc modelAlloc,
 	ref Alloc astAlloc,
 	scope ref Perf perf,
 	ref AllSymbols allSymbols,
 	ref AllPaths allPaths,
-	scope ref const ReadOnlyStorage storage,
-	ref immutable Config config,
+	in ReadOnlyStorage storage,
+	in Config config,
 	ref PathToStatus statuses,
 	ref ParseStack stack,
 	ref ArrBuilder!DiagnosticWithinFile diags,
-	immutable Path fromPath,
-	ref immutable ResolvedImport import_,
-	immutable Path resolvedPath,
+	Path fromPath,
+	in ResolvedImport import_,
+	Path resolvedPath,
 ) =>
-	import_.kind.matchImpure!(immutable Opt!FullyResolvedImportKind)(
-		(immutable ImportOrExportAstKind.ModuleWhole) =>
+	import_.kind.matchImpure!(Opt!FullyResolvedImportKind)(
+		(in ImportOrExportAstKind.ModuleWhole) =>
 			fullyResolveImportModule(
 				modelAlloc, astAlloc, perf, allSymbols, allPaths, storage, config, statuses, stack, diags, fromPath,
 				import_.importedFrom, resolvedPath,
-				(immutable FileIndex f) =>
-					immutable FullyResolvedImportKind(immutable FullyResolvedImportKind.ModuleWhole(f))),
-		(immutable Sym[] names) =>
+				(FileIndex f) =>
+					FullyResolvedImportKind(FullyResolvedImportKind.ModuleWhole(f))),
+		(in Sym[] names) =>
 			fullyResolveImportModule(
 				modelAlloc, astAlloc, perf, allSymbols, allPaths, storage, config, statuses, stack, diags, fromPath,
 				import_.importedFrom, resolvedPath,
-				(immutable FileIndex f) =>
-					immutable FullyResolvedImportKind(
-						immutable FullyResolvedImportKind.ModuleNamed(f, copyArr(modelAlloc, names)))),
-		(ref immutable ImportOrExportAstKind.File f) =>
-			some(immutable FullyResolvedImportKind(
-				immutable FullyResolvedImportKind.File(
+				(FileIndex f) =>
+					FullyResolvedImportKind(FullyResolvedImportKind.ModuleNamed(f, copyArr(modelAlloc, names)))),
+		(in ImportOrExportAstKind.File f) =>
+			some(FullyResolvedImportKind(
+				FullyResolvedImportKind.File(
 					f.name,
 					f.type,
 					readFileContent(
 						modelAlloc, diags, storage,
-						some(immutable PathAndRange(fromPath, import_.importedFrom)),
+						some(PathAndRange(fromPath, import_.importedFrom)),
 						resolvedPath, f.type)))));
 
-immutable(FileContent) readFileContent(
+FileContent readFileContent(
 	ref Alloc modelAlloc,
 	ref ArrBuilder!DiagnosticWithinFile diags,
-	scope ref const ReadOnlyStorage storage,
-	immutable Opt!PathAndRange importedFrom,
-	immutable Path path,
-	immutable ImportFileType type,
+	in ReadOnlyStorage storage,
+	Opt!PathAndRange importedFrom,
+	Path path,
+	ImportFileType type,
 ) {
 	final switch (type) {
 		case ImportFileType.nat8Array:
-			return immutable FileContent(withFileBinary!(ubyte[])(
+			return FileContent(withFileBinary!(immutable ubyte[])(
 				storage, path,
-				(immutable ReadFileResult!(ubyte[]) res) =>
+				(in ReadFileResult!(ubyte[]) res) =>
 					handleReadFileResult!(immutable ubyte[], ubyte[])(
 						modelAlloc, diags, importedFrom, res,
-						(scope immutable ubyte[] content) => copyArr(modelAlloc, content),
-						() => as!(immutable ubyte[])([]))));
+						(in immutable ubyte[] content) => copyArr(modelAlloc, content),
+						() => typeAs!(immutable ubyte[])([]))));
 		case ImportFileType.str:
-			return immutable FileContent(withFileText!SafeCStr(
+			return FileContent(withFileText!SafeCStr(
 				storage, path, sym!"",
-				(immutable ReadFileResult!SafeCStr res) =>
-					handleReadFileResult!(immutable SafeCStr, SafeCStr)(
+				(in ReadFileResult!SafeCStr res) =>
+					handleReadFileResult!(SafeCStr, SafeCStr)(
 						modelAlloc, diags, importedFrom, res,
-						(immutable SafeCStr content) => copySafeCStr(modelAlloc, content),
+						(in SafeCStr content) => copySafeCStr(modelAlloc, content),
 						() => safeCStr!"")));
 	}
 }
 
-immutable(Opt!FullyResolvedImportKind) fullyResolveImportModule(
+Opt!FullyResolvedImportKind fullyResolveImportModule(
 	ref Alloc modelAlloc,
 	ref Alloc astAlloc,
 	scope ref Perf perf,
 	ref AllSymbols allSymbols,
 	ref AllPaths allPaths,
-	scope ref const ReadOnlyStorage storage,
-	ref immutable Config config,
+	in ReadOnlyStorage storage,
+	in Config config,
 	ref PathToStatus statuses,
 	ref ParseStack stack,
 	ref ArrBuilder!DiagnosticWithinFile diags,
-	immutable Path fromPath,
-	immutable RangeWithinFile importedFrom,
-	immutable Path importPath,
-	scope immutable(FullyResolvedImportKind) delegate(immutable FileIndex) @safe @nogc pure nothrow getSuccessKind,
+	Path fromPath,
+	RangeWithinFile importedFrom,
+	Path importPath,
+	in FullyResolvedImportKind delegate(FileIndex) @safe @nogc pure nothrow getSuccessKind,
 ) {
-	immutable Opt!ParseStatus status = getAt_mut(statuses, importPath);
+	Opt!ParseStatus status = getAt_mut!(Path, ParseStatus)(statuses, importPath);
 	if (has(status))
-		return some(force(status).match!(immutable FullyResolvedImportKind)(
-			(immutable ParseStatus.Started) {
-				add(modelAlloc, diags, immutable DiagnosticWithinFile(
+		return some(force(status).match!FullyResolvedImportKind(
+			(ParseStatus.Started) {
+				add(modelAlloc, diags, DiagnosticWithinFile(
 					importedFrom,
-					immutable Diag(immutable ParseDiag(
-						immutable ParseDiag.CircularImport(fromPath, importPath)))));
-				return immutable FullyResolvedImportKind(immutable FullyResolvedImportKind.Failed());
+					Diag(ParseDiag(ParseDiag.CircularImport(fromPath, importPath)))));
+				return FullyResolvedImportKind(FullyResolvedImportKind.Failed());
 			},
-			(immutable ParseStatus.Done x) =>
+			(ParseStatus.Done x) =>
 				getSuccessKind(x.fileIndex)));
 	else {
 		pushIt(
 			modelAlloc, astAlloc, perf, allSymbols, allPaths, storage, config, statuses, stack, importPath,
-			some(immutable PathAndRange(fromPath, importedFrom)));
+			some(PathAndRange(fromPath, importedFrom)));
 		return none!FullyResolvedImportKind;
 	}
 }
@@ -409,222 +406,223 @@ pure:
 
 alias LineAndColumnGettersBuilder = ArrBuilder!LineAndColumnGetter;
 
-immutable(LineAndColumnGetter) lineAndColumnGetterForOptText(
-	ref Alloc modelAlloc,
-	immutable Opt!SafeCStr opFileContent,
-) =>
+LineAndColumnGetter lineAndColumnGetterForOptText(ref Alloc modelAlloc, in Opt!SafeCStr opFileContent) =>
 	has(opFileContent)
 		? lineAndColumnGetterForText(modelAlloc, force(opFileContent))
 		: lineAndColumnGetterForEmptyFile(modelAlloc);
 
-immutable(FileAst) parseSingle(
+FileAst parseSingle(
 	ref Alloc modelAlloc,
 	ref Alloc astAlloc,
 	scope ref Perf perf,
 	ref AllPaths allPaths,
 	ref AllSymbols allSymbols,
 	ref ArrBuilder!DiagnosticWithinFile diags,
-	immutable Opt!PathAndRange importedFrom,
-	immutable ReadFileResult!SafeCStr fileContent,
+	in Opt!PathAndRange importedFrom,
+	in ReadFileResult!SafeCStr fileContent,
 ) =>
-	handleReadFileResult!(immutable FileAst, SafeCStr)(
+	handleReadFileResult!(FileAst, SafeCStr)(
 		modelAlloc,
 		diags,
 		importedFrom,
 		fileContent,
-		(scope immutable SafeCStr content) => parseFile(astAlloc, perf, allPaths, allSymbols, diags, content),
+		(in SafeCStr content) => parseFile(astAlloc, perf, allPaths, allSymbols, diags, content),
 		() => emptyFileAst);
 
-immutable(T) handleReadFileResult(T, Content)(
+T handleReadFileResult(T, Content)(
 	ref Alloc modelAlloc,
 	ref ArrBuilder!DiagnosticWithinFile diags,
-	immutable Opt!PathAndRange importedFrom,
-	immutable ReadFileResult!Content result,
-	scope immutable(T) delegate(scope immutable Content) @safe @nogc pure nothrow cbSuccess,
-	scope immutable(T) delegate() @safe @nogc pure nothrow cbFail,
+	in Opt!PathAndRange importedFrom,
+	in ReadFileResult!Content result,
+	in T delegate(in immutable Content) @safe @nogc pure nothrow cbSuccess,
+	in T delegate() @safe @nogc pure nothrow cbFail,
 ) =>
-	result.match!(immutable T)(
-		(immutable Content content) =>
+	result.matchIn!T(
+		(in immutable Content content) =>
 			cbSuccess(content),
-		(immutable(ReadFileResult!Content.NotFound)) {
-			add(modelAlloc, diags, immutable DiagnosticWithinFile(RangeWithinFile.empty, immutable Diag(
-				immutable ParseDiag(immutable ParseDiag.FileDoesNotExist(importedFrom)))));
+		(in ReadFileResult!Content.NotFound) {
+			add(modelAlloc, diags, DiagnosticWithinFile(RangeWithinFile.empty, Diag(
+				ParseDiag(ParseDiag.FileDoesNotExist(importedFrom)))));
 			return cbFail();
 		},
-		(immutable(ReadFileResult!Content.Error)) {
-			add(modelAlloc, diags, immutable DiagnosticWithinFile(RangeWithinFile.empty, immutable Diag(
-				immutable ParseDiag(immutable ParseDiag.FileReadError(importedFrom)))));
+		(in ReadFileResult!Content.Error) {
+			add(modelAlloc, diags, DiagnosticWithinFile(RangeWithinFile.empty, Diag(
+				ParseDiag(ParseDiag.FileReadError(importedFrom)))));
 			return cbFail();
 		});
 
-struct ResolvedImport {
+immutable struct ResolvedImport {
 	// This is arbitrarily the first module we saw to import this.
 	// This is just used for error reporting in case the file can't be read.
-	immutable RangeWithinFile importedFrom;
-	immutable Opt!Path resolvedPath;
-	immutable ImportOrExportAstKind kind;
+	RangeWithinFile importedFrom;
+	Opt!Path resolvedPath;
+	ImportOrExportAstKind kind;
 }
 
-immutable(ResolvedImport) tryResolveImport(
+ResolvedImport tryResolveImport(
 	ref Alloc modelAlloc,
 	ref AllPaths allPaths,
 	ref ArrBuilder!DiagnosticWithinFile diagnosticsBuilder,
-	immutable Path includeDir,
-	ref immutable Config config,
-	immutable Path fromPath,
-	ref immutable ImportOrExportAst ast,
+	Path includeDir,
+	in Config config,
+	Path fromPath,
+	in ImportOrExportAst ast,
 ) {
-	immutable(ResolvedImport) resolved(immutable Path pk) =>
-		immutable ResolvedImport(ast.range, some(pk), ast.kind);
-	return matchPathOrRelPath!(immutable ResolvedImport)(
+	ResolvedImport resolved(Path pk) {
+		return ResolvedImport(ast.range, some(pk), ast.kind);
+	}
+	return matchPathOrRelPath!ResolvedImport(
 		ast.path,
-		(immutable Path global) {
-			immutable PathFirstAndRest fr = firstAndRest(allPaths, global);
-			immutable Opt!Path fromConfig = config.include[fr.first];
+		(Path global) {
+			PathFirstAndRest fr = firstAndRest(allPaths, global);
+			Opt!Path fromConfig = config.include[fr.first];
 			return resolved(has(fromConfig)
 				? has(fr.rest) ? concatPaths(allPaths, force(fromConfig), force(fr.rest)) : force(fromConfig)
 				: concatPaths(allPaths, includeDir, global));
 		},
-		(immutable RelPath relPath) {
-			immutable Opt!Path rel = resolvePath(allPaths, parent(allPaths, fromPath), relPath);
+		(RelPath relPath) {
+			Opt!Path rel = resolvePath(allPaths, parent(allPaths, fromPath), relPath);
 			if (has(rel))
 				return resolved(force(rel));
 			else {
-				add(modelAlloc, diagnosticsBuilder, immutable DiagnosticWithinFile(ast.range, immutable Diag(
-					immutable ParseDiag(immutable ParseDiag.RelativeImportReachesPastRoot(relPath)))));
-				return immutable ResolvedImport(ast.range, none!Path, ast.kind);
+				add(modelAlloc, diagnosticsBuilder, DiagnosticWithinFile(ast.range, Diag(
+					ParseDiag(ParseDiag.RelativeImportReachesPastRoot(relPath)))));
+				return ResolvedImport(ast.range, none!Path, ast.kind);
 			}
 		});
 }
 
-struct ImportAndExportPaths {
-	immutable ResolvedImport[] imports;
-	immutable ResolvedImport[] exports;
+immutable struct ImportAndExportPaths {
+	ResolvedImport[] imports;
+	ResolvedImport[] exports;
 }
 
-immutable(ResolvedImport[]) resolveImportOrExportPaths(
+ResolvedImport[] resolveImportOrExportPaths(
 	ref Alloc modelAlloc,
 	ref Alloc astAlloc,
 	ref AllPaths allPaths,
 	ref ArrBuilder!DiagnosticWithinFile diagnosticsBuilder,
-	immutable Path includeDir,
-	ref immutable Config config,
-	immutable Path fromPath,
-	ref immutable Opt!ImportsOrExportsAst importsOrExports,
+	Path includeDir,
+	in Config config,
+	Path fromPath,
+	in Opt!ImportsOrExportsAst importsOrExports,
 ) {
-	immutable ImportOrExportAst[] paths = has(importsOrExports) ? force(importsOrExports).paths : [];
-	return map(astAlloc, paths, (ref immutable ImportOrExportAst i) =>
+	ImportOrExportAst[] paths = has(importsOrExports) ? force(importsOrExports).paths : [];
+	return map(astAlloc, paths, (ref ImportOrExportAst i) =>
 		tryResolveImport(modelAlloc, allPaths, diagnosticsBuilder, includeDir, config, fromPath, i));
 }
 
-immutable(ImportAndExportPaths) resolveImportAndExportPaths(
+ImportAndExportPaths resolveImportAndExportPaths(
 	ref Alloc modelAlloc,
 	ref Alloc astAlloc,
 	ref AllPaths allPaths,
 	ref ArrBuilder!DiagnosticWithinFile diagnosticsBuilder,
-	immutable Path includeDir,
-	ref immutable Config config,
-	immutable Path fromPath,
-	ref immutable Opt!ImportsOrExportsAst imports,
-	ref immutable Opt!ImportsOrExportsAst exports,
+	Path includeDir,
+	in Config config,
+	Path fromPath,
+	in Opt!ImportsOrExportsAst imports,
+	in Opt!ImportsOrExportsAst exports,
 ) =>
-	immutable ImportAndExportPaths(
+	ImportAndExportPaths(
 		resolveImportOrExportPaths(
 			modelAlloc, astAlloc, allPaths, diagnosticsBuilder, includeDir, config, fromPath, imports),
 		resolveImportOrExportPaths(
 			modelAlloc, astAlloc, allPaths, diagnosticsBuilder, includeDir, config, fromPath, exports));
 
-struct AstAndResolvedImports {
-	immutable FileAst ast;
-	immutable FullyResolvedImport[] resolvedImports;
-	immutable FullyResolvedImport[] resolvedExports;
+immutable struct AstAndResolvedImports {
+	FileAst ast;
+	FullyResolvedImport[] resolvedImports;
+	FullyResolvedImport[] resolvedExports;
 
-	static immutable(AstAndResolvedImports) empty() =>
-		immutable AstAndResolvedImports(emptyFileAst, [], []);
+	static AstAndResolvedImports empty() =>
+		AstAndResolvedImports(emptyFileAst, [], []);
 }
 
-struct FullyResolvedImport {
+immutable struct FullyResolvedImport {
 	// none for 'std'
-	immutable Opt!RangeWithinFile range;
-	immutable FullyResolvedImportKind kind;
+	Opt!RangeWithinFile range;
+	FullyResolvedImportKind kind;
 }
 
-struct FullyResolvedImportKind {
-	struct ModuleWhole {
-		immutable FileIndex fileIndex;
+immutable struct FullyResolvedImportKind {
+	immutable struct ModuleWhole {
+		FileIndex fileIndex;
 	}
-	struct ModuleNamed {
-		immutable FileIndex fileIndex;
-		immutable Sym[] names;
+	immutable struct ModuleNamed {
+		FileIndex fileIndex;
+		Sym[] names;
 	}
-	struct File {
-		immutable Sym name;
-		immutable ImportFileType type;
-		immutable FileContent content;
+	immutable struct File {
+		Sym name;
+		ImportFileType type;
+		FileContent content;
 	}
-	struct Failed {}
+	immutable struct Failed {}
 
-	mixin Union!(immutable ModuleWhole, immutable ModuleNamed, immutable File, immutable Failed);
+	mixin Union!(ModuleWhole, ModuleNamed, File, Failed);
 }
 
-struct ImportsOrExports {
-	immutable ImportOrExport[] moduleImports;
-	immutable ImportOrExportFile[] fileImports;
+immutable struct ImportsOrExports {
+	ImportOrExport[] moduleImports;
+	ImportOrExportFile[] fileImports;
 }
 
-immutable(ImportsOrExports) mapImportsOrExports(
+ImportsOrExports mapImportsOrExports(
 	ref Alloc modelAlloc,
-	immutable FullyResolvedImport[] paths,
-	immutable FullIndexDict!(FileIndex, Module) compiled,
+	in FullyResolvedImport[] paths,
+	in FullIndexDict!(FileIndex, Module) compiled,
 ) {
 	ArrBuilder!ImportOrExportFile fileImports;
-	immutable ImportOrExport[] moduleImports = mapOp(modelAlloc, paths, (ref immutable FullyResolvedImport x) {
-		immutable Opt!ImportOrExportKind kind = x.kind.match!(immutable Opt!ImportOrExportKind)(
-			(immutable FullyResolvedImportKind.ModuleWhole m) =>
-				m.fileIndex == FileIndex.none
-					? none!ImportOrExportKind
-					: some(immutable ImportOrExportKind(
+	ImportOrExport[] moduleImports = mapOp!(ImportOrExport, FullyResolvedImport)(
+		modelAlloc,
+		paths,
+		(ref FullyResolvedImport x) {
+			Opt!ImportOrExportKind kind = x.kind.match!(Opt!ImportOrExportKind)(
+				(FullyResolvedImportKind.ModuleWhole m) =>
+					m.fileIndex == FileIndex.none
+						? none!ImportOrExportKind
 						// TODO: Should just be `&compiled[m.fileIndex]``
-						immutable ImportOrExportKind.ModuleWhole(&compiled.values[m.fileIndex.index]))),
-			(immutable FullyResolvedImportKind.ModuleNamed m) =>
-				m.fileIndex == FileIndex.none
-					? none!ImportOrExportKind
-					: some(immutable ImportOrExportKind(
+						: some(ImportOrExportKind(
+							ImportOrExportKind.ModuleWhole(&compiled.values[m.fileIndex.index]))),
+				(FullyResolvedImportKind.ModuleNamed m) =>
+					m.fileIndex == FileIndex.none
+						? none!ImportOrExportKind
 						// TODO: Should just be `&compiled[m.fileIndex]``
-						immutable ImportOrExportKind.ModuleNamed(&compiled.values[m.fileIndex.index], m.names))),
-			(immutable FullyResolvedImportKind.File f) @safe {
-				//TODO: could be a temp alloc
-				add(modelAlloc, fileImports, immutable ImportOrExportFile(force(x.range), f.name, f.type, f.content));
-				return none!ImportOrExportKind;
-			},
-			(immutable FullyResolvedImportKind.Failed) =>
-				none!ImportOrExportKind);
-		return has(kind) ? some(immutable ImportOrExport(x.range, force(kind))) : none!ImportOrExport;
+						: some(ImportOrExportKind(
+							ImportOrExportKind.ModuleNamed(&compiled.values[m.fileIndex.index], m.names))),
+				(FullyResolvedImportKind.File f) {
+					//TODO: could be a temp alloc
+					add(modelAlloc, fileImports, ImportOrExportFile(force(x.range), f.name, f.type, f.content));
+					return none!ImportOrExportKind;
+				},
+				(FullyResolvedImportKind.Failed) =>
+					none!ImportOrExportKind);
+			return has(kind) ? some(ImportOrExport(x.range, force(kind))) : none!ImportOrExport;
 	});
-	return immutable ImportsOrExports(moduleImports, finishArr(modelAlloc, fileImports));
+	return ImportsOrExports(moduleImports, finishArr(modelAlloc, fileImports));
 }
 
 struct ModulesAndCommonTypes {
 	immutable Module[] modules;
-	immutable CommonTypes commonTypes;
+	CommonTypes commonTypes;
 }
 
-immutable(ModulesAndCommonTypes) getModules(
+ModulesAndCommonTypes getModules(
 	ref Alloc modelAlloc,
 	ref Perf perf,
 	ref AllSymbols allSymbols,
-	ref DiagnosticsBuilder diagsBuilder,
+	scope ref DiagnosticsBuilder diagsBuilder,
 	ref ProgramState programState,
-	immutable FileIndex stdIndex,
-	immutable FullIndexDict!(FileIndex, AstAndResolvedImports) fileAsts,
+	FileIndex stdIndex,
+	in FullIndexDict!(FileIndex, AstAndResolvedImports) fileAsts,
 ) {
-	Late!(immutable CommonTypes) commonTypes = late!(immutable CommonTypes);
-	immutable Module[] modules = mapWithSoFar!Module(
+	Late!CommonTypes commonTypes = late!CommonTypes;
+	Module[] modules = mapWithSoFar!(Module, AstAndResolvedImports)(
 		modelAlloc,
 		asArray(fileAsts),
-		(ref immutable AstAndResolvedImports ast, ref immutable Module[] soFar, immutable size_t index) {
+		(in AstAndResolvedImports ast, in Module[] soFar, size_t index) {
 			immutable FullIndexDict!(FileIndex, Module) compiled = fullIndexDictOfArr!(FileIndex, Module)(soFar);
-			immutable PathAndAst pathAndAst = immutable PathAndAst(immutable FileIndex(safeToUshort(index)), ast.ast);
+			PathAndAst pathAndAst = PathAndAst(FileIndex(safeToUshort(index)), ast.ast);
 			if (lateIsSet(commonTypes))
 				return checkNonBootstrapModule(
 					modelAlloc, perf, allSymbols, diagsBuilder, programState, stdIndex,
@@ -632,39 +630,38 @@ immutable(ModulesAndCommonTypes) getModules(
 			else {
 				// The first module to check is always 'bootstrap.crow'
 				verify(ast.resolvedImports.empty);
-				immutable BootstrapCheck res =
+				BootstrapCheck res =
 					checkBootstrap(modelAlloc, perf, allSymbols, diagsBuilder, programState, pathAndAst);
 				lateSet(commonTypes, res.commonTypes);
 				return res.module_;
 			}
 		});
-	return immutable ModulesAndCommonTypes(modules, lateGet(commonTypes));
+	return ModulesAndCommonTypes(modules, lateGet(commonTypes));
 }
 
-immutable(Module) checkNonBootstrapModule(
+Module checkNonBootstrapModule(
 	ref Alloc modelAlloc,
 	ref Perf perf,
 	ref AllSymbols allSymbols,
-	ref DiagnosticsBuilder diagsBuilder,
+	scope ref DiagnosticsBuilder diagsBuilder,
 	ref ProgramState programState,
-	immutable FileIndex stdIndex,
-	ref immutable AstAndResolvedImports ast,
-	immutable FullIndexDict!(FileIndex, Module) compiled,
-	ref immutable PathAndAst pathAndAst,
-	ref immutable CommonTypes commonTypes,
+	FileIndex stdIndex,
+	in AstAndResolvedImports ast,
+	in FullIndexDict!(FileIndex, Module) compiled,
+	in PathAndAst pathAndAst,
+	in CommonTypes commonTypes,
 ) {
-	immutable bool noStd = ast.ast.noStd;
-	immutable FullyResolvedImport[] allImports = noStd
+	FullyResolvedImport[] allImports = ast.ast.noStd
 		? ast.resolvedImports
 		: prepend(
 			modelAlloc,
-			immutable FullyResolvedImport(
-				none!RangeWithinFile,
-				immutable FullyResolvedImportKind(immutable FullyResolvedImportKind.ModuleWhole(stdIndex))),
+			FullyResolvedImport(
+			none!RangeWithinFile,
+				FullyResolvedImportKind(FullyResolvedImportKind.ModuleWhole(stdIndex))),
 			ast.resolvedImports);
-	immutable ImportsOrExports imports = mapImportsOrExports(modelAlloc, allImports, compiled);
-	immutable ImportsOrExports exports = mapImportsOrExports(modelAlloc, ast.resolvedExports, compiled);
-	immutable ImportsAndExports importsAndExports = immutable ImportsAndExports(
+	ImportsOrExports imports = mapImportsOrExports(modelAlloc, allImports, compiled);
+	ImportsOrExports exports = mapImportsOrExports(modelAlloc, ast.resolvedExports, compiled);
+	ImportsAndExports importsAndExports = ImportsAndExports(
 		imports.moduleImports,
 		exports.moduleImports,
 		imports.fileImports,
@@ -672,33 +669,35 @@ immutable(Module) checkNonBootstrapModule(
 	return check(modelAlloc, perf, allSymbols, diagsBuilder, programState, importsAndExports, pathAndAst, commonTypes);
 }
 
-immutable(Program) checkEverything(
+Program checkEverything(
 	ref Alloc modelAlloc,
 	ref Perf perf,
 	ref AllSymbols allSymbols,
 	ref DiagnosticsBuilder diagsBuilder,
-	immutable Config config,
-	immutable FullIndexDict!(FileIndex, AstAndResolvedImports) allAsts,
-	ref immutable FilesInfo filesInfo,
-	ref immutable CommonModuleIndices moduleIndices,
+	Config config,
+	in FullIndexDict!(FileIndex, AstAndResolvedImports) allAsts,
+	ref FilesInfo filesInfo,
+	in CommonModuleIndices moduleIndices,
 ) {
 	ProgramState programState;
-	immutable ModulesAndCommonTypes modulesAndCommonTypes = getModules(
+	ModulesAndCommonTypes modulesAndCommonTypes = getModules(
 		modelAlloc, perf, allSymbols, diagsBuilder, programState, moduleIndices.common[CommonPath.std], allAsts);
-	immutable Module[] modules = modulesAndCommonTypes.modules;
-	immutable Opt!CommonFuns commonFuns = getCommonFuns(
+	Module[] modules = modulesAndCommonTypes.modules;
+	immutable EnumDict!(CommonPath, Module*) commonModules =
+		enumDictMapValues!(CommonPath, Module*, FileIndex)(moduleIndices.common, (in FileIndex index) =>
+			&modules[index.index]);
+	Opt!CommonFuns commonFuns = getCommonFuns(
 		modelAlloc,
 		programState,
 		diagsBuilder,
 		modulesAndCommonTypes.commonTypes,
 		has(moduleIndices.main) ? some(&modules[force(moduleIndices.main).index]) : none!(Module*),
-		enumDictMapValues!(CommonPath, Module*, FileIndex)(moduleIndices.common, (ref immutable FileIndex index) =>
-			&modules[index.index]));
-	return immutable Program(
+		commonModules);
+	return Program(
 		filesInfo,
 		config,
 		modules,
-		map!(Module*, immutable FileIndex)(modelAlloc, moduleIndices.rootPaths, (ref immutable FileIndex index) =>
+		map!(Module*, FileIndex)(modelAlloc, moduleIndices.rootPaths, (ref FileIndex index) =>
 			&modules[index.index]),
 		commonFuns,
 		modulesAndCommonTypes.commonTypes,

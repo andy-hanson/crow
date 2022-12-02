@@ -8,10 +8,10 @@ import interpret.generateText : TextIndex;
 import model.lowModel : LowFunIndex, LowType;
 import util.alloc.alloc : TempAlloc;
 import util.col.arrBuilder : add, ArrBuilder, finishArr;
-import util.col.fullIndexDict : FullIndexDict, fullIndexDictEach, makeFullIndexDict_mut;
-import util.late : Late, lateGet, lateIsSet, lateSet;
-import util.memory : allocateMut;
-import util.opt : none, Opt, some;
+import util.col.fullIndexDict : FullIndexDict, fullIndexDictEach_const, makeFullIndexDict_mut;
+import util.memory : allocate;
+import util.opt : force, has, MutOpt, none, some, someMut;
+import util.ptr : castNonScope_ref;
 
 struct FunToReferences {
 	immutable FunPtrTypeToDynCallSig funPtrTypeToDynCallSig;
@@ -19,74 +19,65 @@ struct FunToReferences {
 	FullIndexDict!(LowFunIndex, FunReferencesBuilder) inner;
 }
 
-alias FunPtrTypeToDynCallSig = FullIndexDict!(LowType.FunPtr, DynCallSig);
+alias FunPtrTypeToDynCallSig = immutable FullIndexDict!(LowType.FunPtr, DynCallSig);
 
 void eachFunPtr(
-	scope ref const FunToReferences a,
-	scope void delegate(immutable LowFunIndex, immutable DynCallSig) @safe @nogc pure nothrow cb,
+	in FunToReferences a,
+	in void delegate(LowFunIndex, DynCallSig) @safe @nogc pure nothrow cb,
 ) {
-	fullIndexDictEach!(LowFunIndex, FunReferencesBuilder)(
+	fullIndexDictEach_const!(LowFunIndex, FunReferencesBuilder)(
 		a.inner,
-		(immutable LowFunIndex index, ref const FunReferencesBuilder b) {
-			if (lateIsSet(b.ptrRefs))
-				cb(index, lateGet(b.ptrRefs).sig);
+		(LowFunIndex index, ref const FunReferencesBuilder b) {
+			if (has(b.ptrRefs))
+				cb(index, force(b.ptrRefs).sig);
 		});
 }
 
-struct FunReferences {
-	immutable ByteCodeIndex[] calls;
-	immutable Opt!FunPtrReferences ptrRefs;
+immutable struct FunReferences {
+	ByteCodeIndex[] calls;
+	MutOpt!FunPtrReferences ptrRefs;
 }
-struct FunPtrReferences {
-	immutable DynCallSig sig;
-	immutable ByteCodeIndex[] funPtrRefs;
-	immutable TextIndex[] textRefs;
+immutable struct FunPtrReferences {
+	DynCallSig sig;
+	ByteCodeIndex[] funPtrRefs;
+	TextIndex[] textRefs;
 }
 
 FunToReferences initFunToReferences(
 	ref TempAlloc tempAlloc,
-	return scope immutable FunPtrTypeToDynCallSig funPtrTypeToDynCallSig,
-	immutable size_t nLowFuns,
+	return scope FunPtrTypeToDynCallSig funPtrTypeToDynCallSig,
+	size_t nLowFuns,
 ) =>
 	FunToReferences(
 		funPtrTypeToDynCallSig,
-		makeFullIndexDict_mut!(LowFunIndex, FunReferencesBuilder)(tempAlloc, nLowFuns, (immutable(LowFunIndex)) =>
+		makeFullIndexDict_mut!(LowFunIndex, FunReferencesBuilder)(tempAlloc, nLowFuns, (LowFunIndex _) =>
 			FunReferencesBuilder()));
 
-immutable(FunReferences) finishAt(
-	ref TempAlloc tempAlloc,
-	ref FunToReferences a,
-	immutable LowFunIndex index,
-) {
+FunReferences finishAt(ref TempAlloc tempAlloc, ref FunToReferences a, LowFunIndex index) {
 	ref FunReferencesBuilder builder() { return a.inner[index]; }
-	immutable ByteCodeIndex[] calls = finishArr(tempAlloc, builder.calls);
-	if (lateIsSet(builder.ptrRefs)) {
-		FunPtrReferencesBuilder* ptrs = lateGet(builder.ptrRefs);
-		return immutable FunReferences(
+	ByteCodeIndex[] calls = finishArr(tempAlloc, builder.calls);
+	if (has(builder.ptrRefs)) {
+		FunPtrReferencesBuilder* ptrs = force(builder.ptrRefs);
+		return FunReferences(
 			calls,
-			some(immutable FunPtrReferences(
+			some(FunPtrReferences(
 				ptrs.sig,
 				finishArr(tempAlloc, ptrs.funPtrRefs),
 				finishArr(tempAlloc, ptrs.textReferences))));
 	} else
-		return immutable FunReferences(calls, none!FunPtrReferences);
+		return FunReferences(calls, none!FunPtrReferences);
 }
 
-void registerCall(
-	ref TempAlloc tempAlloc,
-	ref FunToReferences a,
-	immutable LowFunIndex callee,
-	immutable ByteCodeIndex caller,
-) {
+void registerCall(ref TempAlloc tempAlloc, ref FunToReferences a, LowFunIndex callee, ByteCodeIndex caller) {
 	add(tempAlloc, a.inner[callee].calls, caller);
 }
 
 void registerTextReference(
 	ref TempAlloc tempAlloc,
 	ref FunToReferences a,
-	immutable LowType.FunPtr type,
-	immutable LowFunIndex fun,
-	immutable TextIndex reference,
+	LowType.FunPtr type,
+	LowFunIndex fun,
+	TextIndex reference,
 ) {
 	add(tempAlloc, ptrRefs(tempAlloc, a, type, fun).textReferences, reference);
 }
@@ -94,9 +85,9 @@ void registerTextReference(
 void registerFunPtrReference(
 	ref TempAlloc tempAlloc,
 	scope ref FunToReferences a,
-	immutable LowType.FunPtr type,
-	immutable LowFunIndex fun,
-	immutable ByteCodeIndex reference,
+	in LowType.FunPtr type,
+	LowFunIndex fun,
+	ByteCodeIndex reference,
 ) {
 	add(tempAlloc, ptrRefs(tempAlloc, a, type, fun).funPtrRefs, reference);
 }
@@ -106,18 +97,18 @@ private:
 ref FunPtrReferencesBuilder ptrRefs(
 	ref TempAlloc tempAlloc,
 	return scope ref FunToReferences a,
-	immutable LowType.FunPtr type,
-	immutable LowFunIndex fun,
+	in LowType.FunPtr type,
+	LowFunIndex fun,
 ) {
-	if (!lateIsSet(a.inner[fun].ptrRefs))
-		lateSet(a.inner[fun].ptrRefs, allocateMut(tempAlloc, FunPtrReferencesBuilder(
-			a.funPtrTypeToDynCallSig[type])));
-	return *lateGet(a.inner[fun].ptrRefs);
+	if (!has(a.inner[fun].ptrRefs))
+		a.inner[fun].ptrRefs = someMut(allocate(tempAlloc, FunPtrReferencesBuilder(
+			castNonScope_ref(a).funPtrTypeToDynCallSig[type])));
+	return *force(a.inner[fun].ptrRefs);
 }
 
 struct FunReferencesBuilder {
 	ArrBuilder!ByteCodeIndex calls;
-	Late!(FunPtrReferencesBuilder*) ptrRefs;
+	MutOpt!(FunPtrReferencesBuilder*) ptrRefs;
 }
 
 struct FunPtrReferencesBuilder {

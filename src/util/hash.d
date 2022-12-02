@@ -12,31 +12,31 @@ struct Hasher {
 
 	private:
 
-	void mix(immutable ulong n) {
+	void mix(ulong n) {
 		value = value ^ n;
 	}
 }
 
-void hashEnum(E)(ref Hasher hasher, immutable E a) {
+void hashEnum(E)(ref Hasher hasher, E a) {
 	hashSizeT(hasher, a);
 }
 
-void hashSizeT(ref Hasher hasher, immutable size_t a) {
+void hashSizeT(ref Hasher hasher, size_t a) {
 	hasher.mix(a);
 }
 
-void hashUbyte(ref Hasher hasher, immutable ubyte a) {
+void hashUbyte(ref Hasher hasher, ubyte a) {
 	hasher.mix(a);
 }
 
-void hashUshort(ref Hasher hasher, immutable ushort a) {
+void hashUshort(ref Hasher hasher, ushort a) {
 	hasher.mix(a);
 }
 
-void hashUint(ref Hasher hasher, immutable uint a) {
+void hashUint(ref Hasher hasher, uint a) {
 	hasher.mix(a);
 }
 
-void hashUlong(ref Hasher hasher, immutable ulong a) {
+void hashUlong(ref Hasher hasher, ulong a) {
 	hasher.mix(a);
 }

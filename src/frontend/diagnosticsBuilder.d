@@ -18,28 +18,28 @@ struct DiagnosticsBuilder {
 	ArrBuilder!Diagnostic diags;
 }
 
-void addDiagnostic(ref Alloc alloc, scope ref DiagnosticsBuilder a, immutable FileAndRange where, immutable Diag diag) {
-	immutable DiagSeverity severity = getDiagnosticSeverity(diag);
+void addDiagnostic(ref Alloc alloc, scope ref DiagnosticsBuilder a, FileAndRange where, Diag diag) {
+	DiagSeverity severity = getDiagnosticSeverity(diag);
 	if (severity >= a.severity) {
 		if (severity > a.severity) {
 			arrBuilderClear(a.diags);
 			a.severity = severity;
 		}
-		add(alloc, a.diags, immutable Diagnostic(where, diag));
+		add(alloc, a.diags, Diagnostic(where, diag));
 	}
 }
 
-immutable(Diagnostics) finishDiagnostics(ref Alloc alloc, ref DiagnosticsBuilder a, immutable FilePaths filePaths) {
-	arrBuilderSort!Diagnostic(a.diags, (ref immutable Diagnostic a, ref immutable Diagnostic b) =>
+Diagnostics finishDiagnostics(ref Alloc alloc, ref DiagnosticsBuilder a, FilePaths filePaths) {
+	arrBuilderSort!Diagnostic(a.diags, (in Diagnostic a, in Diagnostic b) =>
 		compareDiagnostic(a, b, filePaths));
-	return immutable Diagnostics(a.severity, finishArr(alloc, a.diags));
+	return Diagnostics(a.severity, finishArr(alloc, a.diags));
 }
 
-immutable(Diagnostics) diagnosticsForFile(
+Diagnostics diagnosticsForFile(
 	ref Alloc alloc,
-	immutable FileIndex fileIndex,
+	FileIndex fileIndex,
 	ref ArrBuilder!DiagnosticWithinFile diagnostics,
-	immutable FilePaths filePaths,
+	FilePaths filePaths,
 ) {
 	DiagnosticsBuilder builder;
 	addDiagnosticsForFile(alloc, builder, fileIndex, diagnostics);
@@ -48,21 +48,17 @@ immutable(Diagnostics) diagnosticsForFile(
 
 void addDiagnosticsForFile(
 	ref Alloc alloc,
-	ref DiagnosticsBuilder a,
-	immutable FileIndex fileIndex,
+	scope ref DiagnosticsBuilder a,
+	FileIndex fileIndex,
 	ref ArrBuilder!DiagnosticWithinFile diagnostics,
 ) {
 	foreach (ref const DiagnosticWithinFile diag; arrBuilderTempAsArr(diagnostics))
-		addDiagnostic(alloc, a, immutable FileAndRange(fileIndex, diag.range), diag.diag);
+		addDiagnostic(alloc, a, FileAndRange(fileIndex, diag.range), diag.diag);
 }
 
 private:
 
-immutable(Comparison) compareDiagnostic(
-	ref immutable Diagnostic a,
-	ref immutable Diagnostic b,
-	immutable FilePaths filePaths,
-) {
-	immutable Comparison cmpPath = comparePath(filePaths[a.where.fileIndex], filePaths[b.where.fileIndex]);
+Comparison compareDiagnostic(in Diagnostic a, in Diagnostic b, in FilePaths filePaths) {
+	Comparison cmpPath = comparePath(filePaths[a.where.fileIndex], filePaths[b.where.fileIndex]);
 	return cmpPath != Comparison.equal ? cmpPath : compareNat32(a.where.start, b.where.start);
 }

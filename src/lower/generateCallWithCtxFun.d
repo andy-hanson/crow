@@ -26,58 +26,50 @@ import util.sourceRange : FileAndRange;
 import util.sym : Sym, sym;
 import util.util : verify;
 
-immutable(LowFun) generateCallWithCtxFun(
+LowFun generateCallWithCtxFun(
 	ref Alloc alloc,
-	ref immutable AllLowTypes allTypes,
-	scope ref immutable ConcreteFunToLowFunIndex concreteFunToLowFunIndex,
-	immutable LowType returnType,
-	immutable LowType funType,
-	immutable LowType[] nonFunParamTypes,
-	immutable ConcreteLambdaImpl[] impls,
+	in AllLowTypes allTypes,
+	in ConcreteFunToLowFunIndex concreteFunToLowFunIndex,
+	LowType returnType,
+	LowType funType,
+	in LowType[] nonFunParamTypes,
+	in ConcreteLambdaImpl[] impls,
 ) {
-	immutable FileAndRange range = FileAndRange.empty;
-	immutable LowExpr funParamGet = genParamGet(range, funType, immutable LowParamIndex(0));
+	FileAndRange range = FileAndRange.empty;
+	LowExpr funParamGet = genParamGet(range, funType, LowParamIndex(0));
 
 	size_t localIndex = 0;
 
-	immutable LowExprKind.MatchUnion.Case[] cases = mapZip(
+	LowExprKind.MatchUnion.Case[] cases = mapZip(
 		alloc,
 		impls,
 		allTypes.allUnions[funType.as!(LowType.Union)].members,
-		(ref immutable ConcreteLambdaImpl impl, ref immutable LowType closureType) {
-			immutable LowLocal* closureLocal =
-				genLocal(alloc, sym!"closure", localIndex, closureType);
+		(ref ConcreteLambdaImpl impl, ref LowType closureType) {
+			LowLocal* closureLocal = genLocal(alloc, sym!"closure", localIndex, closureType);
 			localIndex = localIndex + 1;
-			immutable LowExpr[] args = mapWithFirst!(LowExpr, LowType)(
-				alloc,
-				genLocalGet(range, closureLocal),
-				nonFunParamTypes,
-				(immutable size_t i, ref immutable LowType paramType) =>
-					genParamGet(range, paramType, immutable LowParamIndex(i + 1)));
-			immutable LowExpr then = immutable LowExpr(returnType, range, immutable LowExprKind(
-				immutable LowExprKind.Call(mustGetAt(concreteFunToLowFunIndex, impl.impl), args)));
-			return immutable LowExprKind.MatchUnion.Case(some(closureLocal), then);
+			LowExpr[] args = mapWithFirst!(LowExpr, LowType)(
+				alloc, genLocalGet(range, closureLocal), nonFunParamTypes, (size_t i, LowType paramType) =>
+					genParamGet(range, paramType, LowParamIndex(i + 1)));
+			LowExpr then = LowExpr(returnType, range, LowExprKind(
+				LowExprKind.Call(mustGetAt(concreteFunToLowFunIndex, impl.impl), args)));
+			return LowExprKind.MatchUnion.Case(some(closureLocal), then);
 		});
 
-	immutable LowExpr expr = immutable LowExpr(returnType, range, immutable LowExprKind(
-		allocate(alloc, immutable LowExprKind.MatchUnion(funParamGet, cases))));
-	immutable LowParam[] params = mapWithFirst!(LowParam, LowType)(
-		alloc,
-		genParam(alloc, sym!"a", funType),
-		nonFunParamTypes,
-		(immutable size_t i, ref immutable LowType paramType) {
+	LowExpr expr = LowExpr(returnType, range, LowExprKind(allocate(alloc, LowExprKind.MatchUnion(funParamGet, cases))));
+	LowParam[] params = mapWithFirst!(LowParam, LowType)(
+		alloc, genParam(alloc, sym!"a", funType), nonFunParamTypes, (size_t i, LowType paramType) {
 			verify(i < paramNames.length);
 			return genParam(alloc, paramNames[i], paramType);
 		});
-	return immutable LowFun(
+	return LowFun(
 		//TODO: use long sym call-with-ctx
 		//Or rename it in bootstrap.crow
-		immutable LowFunSource(allocate(alloc, immutable LowFunSource.Generated(
+		LowFunSource(allocate(alloc, LowFunSource.Generated(
 			sym!"call-w-ctx",
 			prepend(alloc, returnType, nonFunParamTypes)))),
 		returnType,
 		params,
-		immutable LowFunBody(immutable LowFunExprBody(false, expr)));
+		LowFunBody(LowFunExprBody(false, expr)));
 }
 
 private:

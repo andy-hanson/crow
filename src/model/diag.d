@@ -47,19 +47,19 @@ enum DiagSeverity {
 	fileNotFound,
 }
 
-struct Diagnostic {
-	immutable FileAndRange where;
-	immutable Diag diag;
+immutable struct Diagnostic {
+	FileAndRange where;
+	Diag diag;
 }
 
-struct DiagnosticWithinFile {
-	immutable RangeWithinFile range;
-	immutable Diag diag;
+immutable struct DiagnosticWithinFile {
+	RangeWithinFile range;
+	Diag diag;
 }
 
-struct Diagnostics {
-	immutable DiagSeverity severity;
-	immutable Diagnostic[] diags;
+immutable struct Diagnostics {
+	DiagSeverity severity;
+	Diagnostic[] diags;
 }
 
 enum TypeKind {
@@ -71,34 +71,34 @@ enum TypeKind {
 	union_,
 }
 
-struct Diag {
+immutable struct Diag {
 	@safe @nogc pure nothrow:
 
-	struct BuiltinUnsupported {
-		immutable Sym name;
+	immutable struct BuiltinUnsupported {
+		Sym name;
 	}
 
 	// Note: this error is issued *before* resolving specs.
 	// We don't exclude a candidate based on not having specs.
-	struct CallMultipleMatches {
-		immutable Sym funName;
+	immutable struct CallMultipleMatches {
+		Sym funName;
 		// Unlike CallNoMatch, these are only the ones that match
-		immutable CalledDecl[] matches;
+		CalledDecl[] matches;
 	}
 
-	struct CallNoMatch {
-		immutable Sym funName;
-		immutable Opt!Type expectedReturnType;
+	immutable struct CallNoMatch {
+		Sym funName;
+		Opt!Type expectedReturnType;
 		// 0 for inferred type args
-		immutable size_t actualNTypeArgs;
-		immutable size_t actualArity;
+		size_t actualNTypeArgs;
+		size_t actualArity;
 		// NOTE: we may have given up early and this may not be as much as actualArity
-		immutable Type[] actualArgTypes;
+		Type[] actualArgTypes;
 		// All candidates, including those with wrong arity
-		immutable CalledDecl[] allCandidates;
+		CalledDecl[] allCandidates;
 	}
 
-	struct CantCall {
+	immutable struct CantCall {
 		enum Reason {
 			nonNoCtx,
 			summon,
@@ -106,22 +106,22 @@ struct Diag {
 			variadicFromNoctx,
 		}
 
-		immutable Reason reason;
-		immutable FunDecl* callee;
+		Reason reason;
+		FunDecl* callee;
 	}
 
-	struct CantInferTypeArguments {}
-	struct CharLiteralMustBeOneChar {}
-	struct CommonFunDuplicate {
-		immutable Sym name;
+	immutable struct CantInferTypeArguments {}
+	immutable struct CharLiteralMustBeOneChar {}
+	immutable struct CommonFunDuplicate {
+		Sym name;
 	}
-	struct CommonFunMissing {
-		immutable SpecDeclSig expectedSig;
+	immutable struct CommonFunMissing {
+		SpecDeclSig expectedSig;
 	}
-	struct CommonTypeMissing {
-		immutable Sym name;
+	immutable struct CommonTypeMissing {
+		Sym name;
 	}
-	struct DuplicateDeclaration {
+	immutable struct DuplicateDeclaration {
 		enum Kind {
 			enumMember,
 			flagsMember,
@@ -132,194 +132,194 @@ struct Diag {
 			typeParam,
 			unionMember,
 		}
-		immutable Kind kind;
-		immutable Sym name;
+		Kind kind;
+		Sym name;
 	}
-	struct DuplicateExports {
+	immutable struct DuplicateExports {
 		enum Kind {
 			spec,
 			type,
 		}
-		immutable Kind kind;
-		immutable Sym name;
+		Kind kind;
+		Sym name;
 	}
-	struct DuplicateImports {
+	immutable struct DuplicateImports {
 		enum Kind {
 			spec,
 			type,
 		}
-		immutable Kind kind;
-		immutable Sym name;
+		Kind kind;
+		Sym name;
 	}
-	struct EnumBackingTypeInvalid {
-		immutable StructInst* actual;
+	immutable struct EnumBackingTypeInvalid {
+		StructInst* actual;
 	}
-	struct EnumDuplicateValue {
-		immutable bool signed;
-		immutable long value;
+	immutable struct EnumDuplicateValue {
+		bool signed;
+		long value;
 	}
-	struct EnumMemberOverflows {
-		immutable EnumBackingType backingType;
+	immutable struct EnumMemberOverflows {
+		EnumBackingType backingType;
 	}
-	struct ExpectedTypeIsNotALambda {
-		immutable Opt!Type expectedType;
+	immutable struct ExpectedTypeIsNotALambda {
+		Opt!Type expectedType;
 	}
-	struct ExternFunForbidden {
+	immutable struct ExternFunForbidden {
 		enum Reason { hasSpecs, hasTypeParams, missingLibraryName, variadic }
-		immutable FunDecl* fun;
-		immutable Reason reason;
+		FunDecl* fun;
+		Reason reason;
 	}
-	struct ExternHasTypeParams {}
-	struct ExternRecordImplicitlyByVal {
-		immutable StructDecl* struct_;
+	immutable struct ExternHasTypeParams {}
+	immutable struct ExternRecordImplicitlyByVal {
+		StructDecl* struct_;
 	}
-	struct ExternUnion {}
-	struct FunMissingBody {}
-	struct FunModifierConflict {
-		immutable Sym modifier0;
-		immutable Sym modifier1;
+	immutable struct ExternUnion {}
+	immutable struct FunMissingBody {}
+	immutable struct FunModifierConflict {
+		Sym modifier0;
+		Sym modifier1;
 	}
-	struct FunModifierRedundant {
-		immutable Sym modifier;
+	immutable struct FunModifierRedundant {
+		Sym modifier;
 		// This is implied by the first modifier
-		immutable Sym redundantModifier;
+		Sym redundantModifier;
 	}
-	struct FunModifierTypeArgs {
-		immutable Sym modifier;
+	immutable struct FunModifierTypeArgs {
+		Sym modifier;
 	}
-	struct IfNeedsOpt {
-		immutable Type actualType;
+	immutable struct IfNeedsOpt {
+		Type actualType;
 	}
-	struct ImportRefersToNothing {
-		immutable Sym name;
+	immutable struct ImportRefersToNothing {
+		Sym name;
 	}
-	struct LambdaCantInferParamTypes {}
-	struct LambdaClosesOverMut {
-		immutable Sym name;
+	immutable struct LambdaCantInferParamTypes {}
+	immutable struct LambdaClosesOverMut {
+		Sym name;
 		// If missing, the error is that the local itself is 'mut'.
 		// If present, the error is that the type is 'mut'.
-		immutable Opt!Type type;
+		Opt!Type type;
 	}
-	struct LambdaWrongNumberParams {
-		immutable StructInst* expectedLambdaType;
-		immutable size_t actualNParams;
+	immutable struct LambdaWrongNumberParams {
+		StructInst* expectedLambdaType;
+		size_t actualNParams;
 	}
-	struct LinkageWorseThanContainingFun {
-		immutable FunDecl* containingFun;
-		immutable Type referencedType;
+	immutable struct LinkageWorseThanContainingFun {
+		FunDecl* containingFun;
+		Type referencedType;
 		// empty for return type
-		immutable Opt!(Param*) param;
+		Opt!(Param*) param;
 	}
-	struct LinkageWorseThanContainingType {
-		immutable StructDecl* containingType;
-		immutable Type referencedType;
+	immutable struct LinkageWorseThanContainingType {
+		StructDecl* containingType;
+		Type referencedType;
 	}
-	struct LiteralOverflow {
-		immutable StructInst* type;
+	immutable struct LiteralOverflow {
+		StructInst* type;
 	}
-	struct LocalNotMutable {
-		immutable VariableRef local;
+	immutable struct LocalNotMutable {
+		VariableRef local;
 	}
-	struct LoopNeedsBreakOrContinue {}
-	struct LoopWithoutBreak {}
-	struct MatchCaseNamesDoNotMatch {
-		immutable Sym[] expectedNames;
+	immutable struct LoopNeedsBreakOrContinue {}
+	immutable struct LoopWithoutBreak {}
+	immutable struct MatchCaseNamesDoNotMatch {
+		Sym[] expectedNames;
 	}
-	struct MatchCaseShouldHaveLocal {
-		immutable Sym name;
+	immutable struct MatchCaseShouldHaveLocal {
+		Sym name;
 	}
-	struct MatchCaseShouldNotHaveLocal {
-		immutable Sym name;
+	immutable struct MatchCaseShouldNotHaveLocal {
+		Sym name;
 	}
-	struct MatchOnNonUnion {
-		immutable Type type;
+	immutable struct MatchOnNonUnion {
+		Type type;
 	}
 
-	struct ModifierConflict {
-		immutable Sym prevModifier;
-		immutable Sym curModifier;
+	immutable struct ModifierConflict {
+		Sym prevModifier;
+		Sym curModifier;
 	}
-	struct ModifierDuplicate {
-		immutable Sym modifier;
+	immutable struct ModifierDuplicate {
+		Sym modifier;
 	}
-	struct ModifierInvalid {
-		immutable Sym modifier;
-		immutable TypeKind typeKind;
+	immutable struct ModifierInvalid {
+		Sym modifier;
+		TypeKind typeKind;
 	}
-	struct MutFieldNotAllowed {
+	immutable struct MutFieldNotAllowed {
 		enum Reason {
 			recordIsNotMut,
 			recordIsForcedByVal,
 		}
-		immutable Reason reason;
+		Reason reason;
 	}
-	struct NameNotFound {
+	immutable struct NameNotFound {
 		enum Kind {
 			spec,
 			type,
 		}
-		immutable Kind kind;
-		immutable Sym name;
+		Kind kind;
+		Sym name;
 	}
-	struct NeedsExpectedType {
+	immutable struct NeedsExpectedType {
 		enum Kind {
 			loop,
 			pointer,
 			throw_,
 		}
-		immutable Kind kind;
+		Kind kind;
 	}
-	struct ParamNotMutable {}
-	struct PtrIsUnsafe {}
-	struct PtrMutToConst {
+	immutable struct ParamNotMutable {}
+	immutable struct PtrIsUnsafe {}
+	immutable struct PtrMutToConst {
 		enum Kind { field, local }
-		immutable Kind kind;
+		Kind kind;
 	}
-	struct PtrUnsupported {}
-	struct PurityWorseThanParent {
-		immutable StructDecl* parent;
-		immutable Type child;
+	immutable struct PtrUnsupported {}
+	immutable struct PurityWorseThanParent {
+		StructDecl* parent;
+		Type child;
 	}
-	struct PuritySpecifierRedundant {
-		immutable Purity purity;
-		immutable TypeKind typeKind;
+	immutable struct PuritySpecifierRedundant {
+		Purity purity;
+		TypeKind typeKind;
 	}
-	struct RecordNewVisibilityIsRedundant {
-		immutable Visibility visibility;
+	immutable struct RecordNewVisibilityIsRedundant {
+		Visibility visibility;
 	}
-	struct SendFunDoesNotReturnFut {
-		immutable Type actualReturnType;
+	immutable struct SendFunDoesNotReturnFut {
+		Type actualReturnType;
 	}
-	struct SpecBuiltinNotSatisfied {
-		immutable SpecBody.Builtin.Kind kind;
-		immutable Type type;
-		immutable FunDecl* called;
+	immutable struct SpecBuiltinNotSatisfied {
+		SpecBody.Builtin.Kind kind;
+		Type type;
+		FunDecl* called;
 	}
-	struct SpecImplFoundMultiple {
-		immutable Sym sigName;
-		immutable CalledDecl[] matches;
+	immutable struct SpecImplFoundMultiple {
+		Sym sigName;
+		CalledDecl[] matches;
 	}
-	struct SpecImplNotFound {
-		immutable SpecDeclSig sig;
-		immutable FunDeclAndTypeArgs[] trace;
+	immutable struct SpecImplNotFound {
+		SpecDeclSig sig;
+		FunDeclAndTypeArgs[] trace;
 	}
-	struct SpecImplTooDeep {
-		immutable FunDeclAndTypeArgs[] trace;
+	immutable struct SpecImplTooDeep {
+		FunDeclAndTypeArgs[] trace;
 	}
-	struct ThreadLocalError {
-		immutable FunDecl* fun;
+	immutable struct ThreadLocalError {
+		FunDecl* fun;
 		enum Kind { hasParams, hasSpecs, hasTypeParams, mustReturnPtrMut }
-		immutable Kind kind;
+		Kind kind;
 	}
-	struct TypeAnnotationUnnecessary {
-		immutable Type type;
+	immutable struct TypeAnnotationUnnecessary {
+		Type type;
 	}
-	struct TypeConflict {
-		immutable Type[] expected;
-		immutable Type actual;
+	immutable struct TypeConflict {
+		Type[] expected;
+		Type actual;
 	}
-	struct TypeParamCantHaveTypeArgs {}
-	struct TypeShouldUseSyntax {
+	immutable struct TypeParamCantHaveTypeArgs {}
+	immutable struct TypeShouldUseSyntax {
 		enum Kind {
 			dict,
 			future,
@@ -331,142 +331,138 @@ struct Diag {
 			pair,
 			pointer,
 		}
-		immutable Kind kind;
+		Kind kind;
 	}
-	struct UnusedImport {
-		immutable Module* importedModule;
-		immutable Opt!Sym importedName;
+	immutable struct UnusedImport {
+		Module* importedModule;
+		Opt!Sym importedName;
 	}
-	struct UnusedLocal {
-		immutable Local* local;
-		immutable bool usedGet;
-		immutable bool usedSet;
+	immutable struct UnusedLocal {
+		Local* local;
+		bool usedGet;
+		bool usedSet;
 	}
-	struct UnusedParam {
-		immutable Param* param;
+	immutable struct UnusedParam {
+		Param* param;
 	}
-	struct UnusedPrivateFun {
-		immutable FunDecl* fun;
+	immutable struct UnusedPrivateFun {
+		FunDecl* fun;
 	}
-	struct UnusedPrivateSpec {
-		immutable SpecDecl* spec;
+	immutable struct UnusedPrivateSpec {
+		SpecDecl* spec;
 	}
-	struct UnusedPrivateStruct {
-		immutable StructDecl* struct_;
+	immutable struct UnusedPrivateStruct {
+		StructDecl* struct_;
 	}
-	struct UnusedPrivateStructAlias {
-		immutable StructAlias* alias_;
+	immutable struct UnusedPrivateStructAlias {
+		StructAlias* alias_;
 	}
-	struct WrongNumberTypeArgsForSpec {
-		immutable SpecDecl* decl;
-		immutable size_t nExpectedTypeArgs;
-		immutable size_t nActualTypeArgs;
+	immutable struct WrongNumberTypeArgsForSpec {
+		SpecDecl* decl;
+		size_t nExpectedTypeArgs;
+		size_t nActualTypeArgs;
 	}
-	struct WrongNumberTypeArgsForStruct {
-		immutable StructOrAlias decl;
-		immutable size_t nExpectedTypeArgs;
-		immutable size_t nActualTypeArgs;
+	immutable struct WrongNumberTypeArgsForStruct {
+		StructOrAlias decl;
+		size_t nExpectedTypeArgs;
+		size_t nActualTypeArgs;
 	}
 
 	mixin Union!(
-		immutable BuiltinUnsupported,
-		immutable CallMultipleMatches,
-		immutable CallNoMatch,
-		immutable CantCall,
-		immutable CantInferTypeArguments,
-		immutable CharLiteralMustBeOneChar,
-		immutable CommonFunDuplicate,
-		immutable CommonFunMissing,
-		immutable CommonTypeMissing,
-		immutable DuplicateDeclaration,
-		immutable DuplicateExports,
-		immutable DuplicateImports,
-		immutable EnumBackingTypeInvalid,
-		immutable EnumDuplicateValue,
-		immutable EnumMemberOverflows,
-		immutable ExpectedTypeIsNotALambda,
-		immutable ExternFunForbidden,
-		immutable ExternHasTypeParams,
-		immutable ExternRecordImplicitlyByVal,
-		immutable ExternUnion,
-		immutable FunMissingBody,
-		immutable FunModifierConflict,
-		immutable FunModifierRedundant,
-		immutable FunModifierTypeArgs,
-		immutable IfNeedsOpt,
-		immutable ImportRefersToNothing,
-		immutable LambdaCantInferParamTypes,
-		immutable LambdaClosesOverMut,
-		immutable LambdaWrongNumberParams,
-		immutable LinkageWorseThanContainingFun,
-		immutable LinkageWorseThanContainingType,
-		immutable LiteralOverflow,
-		immutable LocalNotMutable,
-		immutable LoopNeedsBreakOrContinue,
-		immutable LoopWithoutBreak,
-		immutable MatchCaseNamesDoNotMatch,
-		immutable MatchCaseShouldHaveLocal,
-		immutable MatchCaseShouldNotHaveLocal,
-		immutable MatchOnNonUnion,
-		immutable ModifierConflict,
-		immutable ModifierDuplicate,
-		immutable ModifierInvalid,
-		immutable MutFieldNotAllowed,
-		immutable NameNotFound,
-		immutable NeedsExpectedType,
-		immutable ParamNotMutable,
-		immutable ParseDiag,
-		immutable PtrIsUnsafe,
-		immutable PtrMutToConst,
-		immutable PtrUnsupported,
-		immutable PurityWorseThanParent,
-		immutable PuritySpecifierRedundant,
-		immutable RecordNewVisibilityIsRedundant,
-		immutable SendFunDoesNotReturnFut,
-		immutable SpecBuiltinNotSatisfied,
-		immutable SpecImplFoundMultiple,
-		immutable SpecImplNotFound,
-		immutable SpecImplTooDeep,
-		immutable ThreadLocalError,
-		immutable TypeAnnotationUnnecessary,
-		immutable TypeConflict,
-		immutable TypeParamCantHaveTypeArgs,
-		immutable TypeShouldUseSyntax,
-		immutable UnusedImport,
-		immutable UnusedLocal,
-		immutable UnusedParam,
-		immutable UnusedPrivateFun,
-		immutable UnusedPrivateSpec,
-		immutable UnusedPrivateStruct,
-		immutable UnusedPrivateStructAlias,
-		immutable WrongNumberTypeArgsForSpec,
-		immutable WrongNumberTypeArgsForStruct);
+		BuiltinUnsupported,
+		CallMultipleMatches,
+		CallNoMatch,
+		CantCall,
+		CantInferTypeArguments,
+		CharLiteralMustBeOneChar,
+		CommonFunDuplicate,
+		CommonFunMissing,
+		CommonTypeMissing,
+		DuplicateDeclaration,
+		DuplicateExports,
+		DuplicateImports,
+		EnumBackingTypeInvalid,
+		EnumDuplicateValue,
+		EnumMemberOverflows,
+		ExpectedTypeIsNotALambda,
+		ExternFunForbidden,
+		ExternHasTypeParams,
+		ExternRecordImplicitlyByVal,
+		ExternUnion,
+		FunMissingBody,
+		FunModifierConflict,
+		FunModifierRedundant,
+		FunModifierTypeArgs,
+		IfNeedsOpt,
+		ImportRefersToNothing,
+		LambdaCantInferParamTypes,
+		LambdaClosesOverMut,
+		LambdaWrongNumberParams,
+		LinkageWorseThanContainingFun,
+		LinkageWorseThanContainingType,
+		LiteralOverflow,
+		LocalNotMutable,
+		LoopNeedsBreakOrContinue,
+		LoopWithoutBreak,
+		MatchCaseNamesDoNotMatch,
+		MatchCaseShouldHaveLocal,
+		MatchCaseShouldNotHaveLocal,
+		MatchOnNonUnion,
+		ModifierConflict,
+		ModifierDuplicate,
+		ModifierInvalid,
+		MutFieldNotAllowed,
+		NameNotFound,
+		NeedsExpectedType,
+		ParamNotMutable,
+		ParseDiag,
+		PtrIsUnsafe,
+		PtrMutToConst,
+		PtrUnsupported,
+		PurityWorseThanParent,
+		PuritySpecifierRedundant,
+		RecordNewVisibilityIsRedundant,
+		SendFunDoesNotReturnFut,
+		SpecBuiltinNotSatisfied,
+		SpecImplFoundMultiple,
+		SpecImplNotFound,
+		SpecImplTooDeep,
+		ThreadLocalError,
+		TypeAnnotationUnnecessary,
+		TypeConflict,
+		TypeParamCantHaveTypeArgs,
+		TypeShouldUseSyntax,
+		UnusedImport,
+		UnusedLocal,
+		UnusedParam,
+		UnusedPrivateFun,
+		UnusedPrivateSpec,
+		UnusedPrivateStruct,
+		UnusedPrivateStructAlias,
+		WrongNumberTypeArgsForSpec,
+		WrongNumberTypeArgsForStruct);
 }
 
-struct FilesInfo {
-	immutable FilePaths filePaths;
-	immutable PathToFile pathToFile;
-	immutable LineAndColumnGetters lineAndColumnGetters;
+immutable struct FilesInfo {
+	FilePaths filePaths;
+	PathToFile pathToFile;
+	LineAndColumnGetters lineAndColumnGetters;
 }
 
-immutable(FilesInfo) filesInfoForSingle(
-	ref Alloc alloc,
-	immutable Path path,
-	immutable LineAndColumnGetter lineAndColumnGetter,
-) =>
-	immutable FilesInfo(
+FilesInfo filesInfoForSingle(ref Alloc alloc, Path path, LineAndColumnGetter lineAndColumnGetter) =>
+	FilesInfo(
 		fullIndexDictOfArr!(FileIndex, Path)(arrLiteral!Path(alloc, [path])),
-		dictLiteral!(Path, FileIndex)(alloc, path, immutable FileIndex(0)),
+		dictLiteral!(Path, FileIndex)(alloc, path, FileIndex(0)),
 		fullIndexDictOfArr!(FileIndex, LineAndColumnGetter)(
 			arrLiteral!LineAndColumnGetter(alloc, [lineAndColumnGetter])));
 
 void writeFileAndRange(
 	ref Writer writer,
-	ref const AllPaths allPaths,
-	ref immutable PathsInfo pathsInfo,
-	ref immutable ShowDiagOptions options,
-	ref immutable FilesInfo fi,
-	ref immutable FileAndRange where,
+	in AllPaths allPaths,
+	in PathsInfo pathsInfo,
+	in ShowDiagOptions options,
+	in FilesInfo fi,
+	in FileAndRange where,
 ) {
 	writeFileNoResetWriter(writer, allPaths, pathsInfo, options, fi, where.fileIndex);
 	if (where.fileIndex != FileIndex.none)
@@ -477,11 +473,11 @@ void writeFileAndRange(
 
 void writeFileAndPos(
 	ref Writer writer,
-	scope ref const AllPaths allPaths,
-	scope ref immutable PathsInfo pathsInfo,
-	scope ref immutable ShowDiagOptions options,
-	scope ref immutable FilesInfo fi,
-	scope immutable FileAndPos where,
+	in AllPaths allPaths,
+	in PathsInfo pathsInfo,
+	in ShowDiagOptions options,
+	in FilesInfo fi,
+	in FileAndPos where,
 ) {
 	writeFileNoResetWriter(writer, allPaths, pathsInfo, options, fi, where.fileIndex);
 	if (where.fileIndex != FileIndex.none)
@@ -490,32 +486,26 @@ void writeFileAndPos(
 		writeReset(writer);
 }
 
-void writeFile(
-	ref Writer writer,
-	ref const AllPaths allPaths,
-	ref immutable PathsInfo pathsInfo,
-	ref immutable FilesInfo fi,
-	immutable FileIndex fileIndex,
-) {
-	immutable ShowDiagOptions noColor = immutable ShowDiagOptions(false);
+void writeFile(ref Writer writer, in AllPaths allPaths, in PathsInfo pathsInfo, in FilesInfo fi, FileIndex fileIndex) {
+	ShowDiagOptions noColor = ShowDiagOptions(false);
 	writeFileNoResetWriter(writer, allPaths, pathsInfo, noColor, fi, fileIndex);
 	// No need to reset writer since we didn't use color
 }
 
 private void writeFileNoResetWriter(
 	ref Writer writer,
-	scope ref const AllPaths allPaths,
-	scope ref immutable PathsInfo pathsInfo,
-	scope ref immutable ShowDiagOptions options,
-	scope ref immutable FilesInfo fi,
-	immutable FileIndex fileIndex,
+	in AllPaths allPaths,
+	in PathsInfo pathsInfo,
+	in ShowDiagOptions options,
+	in FilesInfo fi,
+	FileIndex fileIndex,
 ) {
 	if (options.color)
 		writeBold(writer);
 	if (fileIndex == FileIndex.none) {
 		writer ~= "<generated code> ";
 	} else {
-		immutable Path path = fi.filePaths[fileIndex];
+		Path path = fi.filePaths[fileIndex];
 		if (options.color) {
 			writeHyperlink(
 				writer,

@@ -2,16 +2,16 @@ module versionInfo;
 
 @safe @nogc pure nothrow:
 
-struct VersionInfo {
+immutable struct VersionInfo {
 	@safe @nogc pure nothrow:
 
-	immutable bool isInterpreted;
-	immutable bool isJit;
+	bool isInterpreted;
+	bool isJit;
 
-	immutable(bool) isSingleThreaded() immutable =>
+	bool isSingleThreaded() =>
 		isWasm();
 
-	immutable(bool) isWasm() immutable {
+	bool isWasm() {
 		version (WebAssembly) {
 			return true;
 		} else {
@@ -20,7 +20,7 @@ struct VersionInfo {
 	}
 
 
-	immutable(bool) isWindows() immutable {
+	bool isWindows() {
 		version (Windows) {
 			return true;
 		} else {
@@ -28,7 +28,7 @@ struct VersionInfo {
 		}
 	}
 
-	immutable(bool) isBigEndian() immutable {
+	bool isBigEndian() {
 		version (BigEndian) {
 			return true;
 		} else {
@@ -37,13 +37,13 @@ struct VersionInfo {
 	}
 }
 
-immutable(VersionInfo) versionInfoForInterpret() =>
-	immutable VersionInfo(true, false);
+VersionInfo versionInfoForInterpret() =>
+	VersionInfo(true, false);
 
 version (WebAssembly) {} else {
-	immutable(VersionInfo) versionInfoForJIT() =>
-		immutable VersionInfo(false, true);
+	VersionInfo versionInfoForJIT() =>
+		VersionInfo(false, true);
 
-	immutable(VersionInfo) versionInfoForBuildToC() =>
-		immutable VersionInfo(false, false);
+	VersionInfo versionInfoForBuildToC() =>
+		VersionInfo(false, false);
 }

@@ -3,9 +3,10 @@ module util.repr;
 @safe @nogc pure nothrow:
 
 import util.alloc.alloc : Alloc;
-import util.col.arrUtil : arrLiteral, map, mapWithIndex;
+import util.col.arr : small, SmallArray;
+import util.col.arrUtil : arrLiteral, map;
 import util.col.fullIndexDict : FullIndexDict;
-import util.col.str : SafeCStr, strOfSafeCStr;
+import util.col.str : copyStr, SafeCStr, strOfSafeCStr;
 import util.memory : allocate;
 import util.opt : force, has, none, Opt, some;
 import util.ptr : ptrTrustMe;
@@ -13,152 +14,143 @@ import util.sym : AllSymbols, Sym, sym, writeQuotedSym;
 import util.union_ : Union;
 import util.writer : finishWriterToSafeCStr, writeFloatLiteral, writeJoin, Writer, writeQuotedStr;
 
-immutable(Repr) reprRecord(immutable Sym name, immutable Repr[] children) =>
-	immutable Repr(immutable ReprRecord(name, children));
+Repr reprRecord(Sym name, in Repr[] children) =>
+	Repr(ReprRecord(name, small(children)));
 
-immutable(Repr) reprRecord(immutable string name)(immutable Repr[] children) =>
+Repr reprRecord(string name)(in Repr[] children) =>
 	reprRecord(sym!name, children);
 
-immutable(Repr) reprRecord(immutable string name)() =>
+Repr reprRecord(string name)() =>
 	reprRecord(name, []);
 
-immutable(Repr) reprRecord(ref Alloc alloc, immutable Sym name, scope immutable Repr[] children) =>
+Repr reprRecord(ref Alloc alloc, Sym name, in Repr[] children) =>
 	reprRecord(name, arrLiteral(alloc, children));
 
-immutable(Repr) reprRecord(immutable string name)(ref Alloc alloc, scope immutable Repr[] children) =>
+Repr reprRecord(string name)(ref Alloc alloc, in Repr[] children) =>
 	reprRecord!name(arrLiteral(alloc, children));
 
-private struct ReprRecord {
-	immutable Sym name;
-	immutable Repr[] children;
+private immutable struct ReprRecord {
+	Sym name;
+	SmallArray!Repr children;
 }
 
-immutable(Repr) reprNamedRecord(immutable Sym name, immutable NameAndRepr[] children) =>
-	immutable Repr(immutable ReprNamedRecord(name, children));
+Repr reprNamedRecord(Sym name, NameAndRepr[] children) =>
+	Repr(ReprNamedRecord(name, small(children)));
 
-immutable(Repr) reprNamedRecord(immutable string name)(immutable NameAndRepr[] children) =>
+Repr reprNamedRecord(string name)(NameAndRepr[] children) =>
 	reprNamedRecord(sym!name, children);
 
-immutable(Repr) reprNamedRecord(ref Alloc alloc, immutable Sym name, scope immutable NameAndRepr[] children) =>
+Repr reprNamedRecord(ref Alloc alloc, Sym name, in NameAndRepr[] children) =>
 	reprNamedRecord(name, arrLiteral(alloc, children));
 
-immutable(Repr) reprNamedRecord(immutable string name)(ref Alloc alloc, scope immutable NameAndRepr[] children) =>
+Repr reprNamedRecord(string name)(ref Alloc alloc, in NameAndRepr[] children) =>
 	reprNamedRecord(alloc, sym!name, children);
 
-immutable(Repr) reprArr(immutable Repr[] elements) =>
-	immutable Repr(immutable ReprArr(false, elements));
+Repr reprArr(Repr[] xs) =>
+	Repr(ReprArr(xs));
 
-immutable(Repr) reprArr(T)(
+Repr reprArr(T)(ref Alloc alloc, in T[] xs, in Repr delegate(in T) @safe @nogc pure nothrow cb) =>
+	reprArr(map!(Repr, const T)(alloc, xs, (ref const T x) => cb(x)));
+
+Repr reprFullIndexDict(K, V)(
 	ref Alloc alloc,
-	scope immutable T[] xs,
-	scope immutable(Repr) delegate(ref immutable T) @safe @nogc pure nothrow cb,
+	in immutable FullIndexDict!(K, V) a,
+	in Repr delegate(ref immutable V) @safe @nogc pure nothrow cb,
 ) =>
-	reprArr(map(alloc, xs, cb));
+	Repr(ReprArr(map(alloc, a.values, cb)));
 
-immutable(Repr) reprArr(T)(
-	ref Alloc alloc,
-	scope immutable T[] xs,
-	scope immutable(Repr) delegate(immutable size_t, ref immutable T) @safe @nogc pure nothrow cb,
-) =>
-	immutable Repr(immutable ReprArr(false, mapWithIndex(alloc, xs, cb)), true);
+Repr reprBool(bool a) =>
+	Repr(a);
 
-immutable(Repr) reprFullIndexDict(K, V)(
-	ref Alloc alloc,
-	scope immutable FullIndexDict!(K, V) a,
-	scope immutable(Repr) delegate(ref immutable V) @safe @nogc pure nothrow cb,
-) =>
-	immutable Repr(immutable ReprArr(true, map(alloc, a.values, cb)));
+Repr reprFloat(double a) =>
+	Repr(a);
 
-immutable(Repr) reprBool(immutable bool a) =>
-	immutable Repr(a);
+Repr reprInt(long a) =>
+	Repr(a);
 
-immutable(Repr) reprFloat(immutable double a) =>
-	immutable Repr(a);
+Repr reprNat(ulong a) =>
+	Repr(a);
 
-immutable(Repr) reprInt(immutable long a) =>
-	immutable Repr(a);
+Repr reprStr(string a) =>
+	Repr(a);
 
-immutable(Repr) reprNat(immutable ulong a) =>
-	immutable Repr(a);
-
-immutable(Repr) reprStr(immutable string a) =>
-	immutable Repr(a);
-
-immutable(Repr) reprStr(immutable SafeCStr a) =>
+Repr reprStr(SafeCStr a) =>
 	reprStr(strOfSafeCStr(a));
 
-immutable(Repr) reprSym(immutable Sym a) =>
-	immutable Repr(a);
+Repr reprStr(ref Alloc alloc, in string a) =>
+	reprStr(copyStr(alloc, a));
 
-immutable(Repr) reprSym(immutable string a)() =>
+Repr reprStr(ref Alloc alloc, in SafeCStr a) =>
+	reprStr(alloc, strOfSafeCStr(a));
+
+Repr reprSym(Sym a) =>
+	Repr(a);
+
+Repr reprSym(string a)() =>
 	reprSym(sym!a);
 
-immutable(Repr) reprOpt(T)(
-	ref Alloc alloc,
-	immutable Opt!T opt,
-	scope immutable(Repr) delegate(ref immutable T) @safe @nogc pure nothrow cb,
-) =>
-	immutable Repr(has(opt) ? some(allocate!Repr(alloc, cb(force(opt)))) : none!(Repr*));
+Repr reprOpt(T)(ref Alloc alloc, in Opt!T opt, in Repr delegate(in T) @safe @nogc pure nothrow cb) =>
+	Repr(has(opt) ? some(allocate!Repr(alloc, cb(force(opt)))) : none!(Repr*));
 
-private struct ReprNamedRecord {
-	immutable Sym name;
-	immutable NameAndRepr[] children;
+private immutable struct ReprNamedRecord {
+	Sym name;
+	SmallArray!NameAndRepr children;
 }
 
-immutable(NameAndRepr) nameAndRepr(immutable string name)(immutable Repr value) =>
-	immutable NameAndRepr(sym!name, value);
+NameAndRepr nameAndRepr(string name)(Repr value) =>
+	NameAndRepr(sym!name, value);
 
-struct NameAndRepr {
-	immutable Sym name;
-	immutable Repr value;
+immutable struct NameAndRepr {
+	Sym name;
+	Repr value;
 }
 
-private struct ReprArr {
-	immutable bool showIndices;
-	immutable Repr[] arr;
+private immutable struct ReprArr {
+	Repr[] arr;
 }
 
-struct Repr {
+immutable struct Repr {
 	mixin Union!(
-		immutable ReprArr,
-		immutable bool,
-		immutable double,
-		immutable long,
-		immutable ReprNamedRecord,
-		immutable Opt!(Repr*),
-		immutable ReprRecord,
-		immutable string,
-		immutable Sym);
+		ReprArr,
+		bool,
+		double,
+		long,
+		ReprNamedRecord,
+		Opt!(Repr*),
+		ReprRecord,
+		string,
+		Sym);
 }
+static assert(Repr.sizeof == ReprRecord.sizeof + ulong.sizeof);
 
-immutable(SafeCStr) jsonStrOfRepr(ref Alloc alloc, ref const AllSymbols allSymbols, immutable Repr a) {
+SafeCStr jsonStrOfRepr(ref Alloc alloc, in AllSymbols allSymbols, in Repr a) {
 	Writer writer = Writer(ptrTrustMe(alloc));
 	writeReprJSON(writer, allSymbols, a);
 	return finishWriterToSafeCStr(writer);
 }
 
-void writeReprJSON(ref Writer writer, ref const AllSymbols allSymbols, immutable Repr a) {
-	a.match!void(
-		(immutable ReprArr it) {
+void writeReprJSON(ref Writer writer, in AllSymbols allSymbols, in Repr a) {
+	a.matchIn!void(
+		(in ReprArr x) {
 			writer ~= '[';
-			writeJoin!Repr(writer, it.arr, ",", (ref immutable Repr em) {
+			writeJoin!Repr(writer, x.arr, ",", (in Repr em) {
 				writeReprJSON(writer, allSymbols, em);
 			});
 			writer ~= ']';
 		},
-		(immutable bool it) {
+		(bool it) {
 			writer ~= it ? "true" : "false";
 		},
-		(immutable double it) {
+		(double it) {
 			writeFloatLiteral(writer, it);
 		},
-		(immutable long it) {
+		(long it) {
 			writer ~= it;
 		},
-		(immutable ReprNamedRecord it) {
+		(in ReprNamedRecord it) {
 			writer ~= "{\"_type\":";
 			writeQuotedSym(writer, allSymbols, it.name);
-			foreach (ref immutable NameAndRepr pair; it.children) {
+			foreach (ref NameAndRepr pair; it.children) {
 				writer ~= ',';
 				writeQuotedSym(writer, allSymbols, pair.name);
 				writer ~= ':';
@@ -166,7 +158,7 @@ void writeReprJSON(ref Writer writer, ref const AllSymbols allSymbols, immutable
 			}
 			writer ~= '}';
 		},
-		(immutable Opt!(Repr*) it) {
+		(in Opt!(Repr*) it) {
 			if (has(it)) {
 				writer ~= "{\"_type\":\"some\",\"value\":";
 				writeReprJSON(writer, allSymbols, *force(it));
@@ -175,19 +167,19 @@ void writeReprJSON(ref Writer writer, ref const AllSymbols allSymbols, immutable
 				writer ~= "{\"_type\":\"none\"}";
 			}
 		},
-		(immutable ReprRecord it) {
+		(in ReprRecord it) {
 			writer ~= "{\"_type\":";
 			writeQuotedSym(writer, allSymbols, it.name);
 			writer ~= ",\"args\":[";
-			writeJoin!Repr(writer, it.children, ",", (ref immutable Repr child) {
+			writeJoin!Repr(writer, it.children, ",", (in Repr child) {
 				writeReprJSON(writer, allSymbols, child);
 			});
 			writer ~= "]}";
 		},
-		(immutable string it) {
+		(in string it) {
 			writeQuotedStr(writer, it);
 		},
-		(immutable Sym it) {
+		(in Sym it) {
 			writeQuotedSym(writer, allSymbols, it);
 		});
 }

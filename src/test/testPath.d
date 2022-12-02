@@ -22,24 +22,24 @@ import util.util : verify;
 
 void testPath(ref Test test) {
 	AllPaths allPaths = AllPaths(test.allocPtr, ptrTrustMe(test.allSymbols));
-	immutable Path a = rootPath(allPaths, sym!"a");
-	immutable Path b = rootPath(allPaths, sym!"b");
+	Path a = rootPath(allPaths, sym!"a");
+	Path b = rootPath(allPaths, sym!"b");
 	verify(comparePath(a, a) == Comparison.equal);
 	verify(comparePath(a, b) == Comparison.less);
 
 	verify(safeCStrEq(pathToSafeCStr(test.alloc, allPaths, a), safeCStr!"a"));
 
-	immutable Path aX = childPath(allPaths, a, sym!"x");
+	Path aX = childPath(allPaths, a, sym!"x");
 	verify(childPath(allPaths, a, sym!"x") == aX);
-	immutable Path aY = childPath(allPaths, a, sym!"y");
+	Path aY = childPath(allPaths, a, sym!"y");
 	verify(aX != aY);
 	verify(safeCStrEq(pathToSafeCStr(test.alloc, allPaths, aX), safeCStr!"a/x"));
 	verify(safeCStrEq(pathToSafeCStr(test.alloc, allPaths, aY), safeCStr!"a/y"));
 
-	immutable PathAndExtension zW = parseAbsoluteOrRelPathAndExtension(allPaths, aX, safeCStr!"/z/w.crow");
+	PathAndExtension zW = parseAbsoluteOrRelPathAndExtension(allPaths, aX, safeCStr!"/z/w.crow");
 	verify(safeCStrEq(pathToSafeCStr(test.alloc, allPaths, zW.path), safeCStr!"/z/w"));
 	verify(zW.extension == sym!".crow");
-	immutable Path aXZW = parseAbsoluteOrRelPathAndExtension(allPaths, aX, safeCStr!"./z/w").path;
+	Path aXZW = parseAbsoluteOrRelPathAndExtension(allPaths, aX, safeCStr!"./z/w").path;
 	verify(safeCStrEq(pathToSafeCStr(test.alloc, allPaths, aXZW), safeCStr!"a/x/z/w"));
 	verify(aXZW == parseAbsoluteOrRelPathAndExtension(allPaths, aX, safeCStr!"z/w").path);
 	verify(aY == parseAbsoluteOrRelPathAndExtension(allPaths, aX, safeCStr!"../y").path);

@@ -14,14 +14,14 @@ struct Writer {
 	public Alloc* alloc;
 	ArrBuilder!char res;
 
-	void opOpAssign(string op, T)(scope immutable T a) scope if (op == "~") {
+	void opOpAssign(string op, T)(in T a) scope if (op == "~") {
 		static if (is(T == char))
 			add(*alloc, res, a);
 		else static if (is(T == string)) {
-			foreach (immutable char c; a)
+			foreach (char c; a)
 				this ~= c;
-		} else static if (is(T == SafeCStr))
-			eachChar(a, (immutable char c) {
+		} else static if (is(immutable T == SafeCStr))
+			eachChar(a, (char c) {
 				this ~= c;
 			});
 		else static if (is(T == int) || is(T == long)) {
@@ -35,28 +35,28 @@ struct Writer {
 	}
 }
 
-immutable(string) finishWriter(scope ref Writer writer) =>
+string finishWriter(scope ref Writer writer) =>
 	finishArr(*writer.alloc, writer.res);
 
-@trusted immutable(CStr) finishWriterToCStr(ref Writer writer) {
+@trusted CStr finishWriterToCStr(scope ref Writer writer) {
 	writer ~= '\0';
 	return finishWriter(writer).ptr;
 }
 
-@trusted immutable(SafeCStr) finishWriterToSafeCStr(ref Writer writer) =>
-	immutable SafeCStr(finishWriterToCStr(writer));
+@trusted SafeCStr finishWriterToSafeCStr(scope ref Writer writer) =>
+	SafeCStr(finishWriterToCStr(writer));
 
-void writeHex(ref Writer writer, immutable ulong a) {
+void writeHex(scope ref Writer writer, ulong a) {
 	writeNat(writer, a, 16);
 }
 
-void writeHex(scope ref Writer writer, immutable long a) {
+void writeHex(scope ref Writer writer, long a) {
 	if (a < 0)
 		writer ~= '-';
-	writeHex(writer, cast(immutable ulong) (a < 0 ? -a : a));
+	writeHex(writer, cast(ulong) (a < 0 ? -a : a));
 }
 
-void writeFloatLiteral(ref Writer writer, immutable double a) {
+void writeFloatLiteral(ref Writer writer, double a) {
 	// TODO: verify(!isNaN(a)); (needs an isnan function)
 
 	// Print simple floats as decimal
@@ -73,11 +73,11 @@ void writeFloatLiteral(ref Writer writer, immutable double a) {
 	} else {
 		DoubleToUlong conv;
 		conv.double_ = a;
-		immutable ulong u = conv.ulong_;
-		immutable bool isNegative = u >> (64 - 1);
-		immutable ulong exponentPlus1023 = (u >> (64 - 1 - 11)) & ((1 << 11) - 1);
-		immutable ulong fraction = u & ((1uL << 52) - 1);
-		immutable long exponent = (cast(long) exponentPlus1023) - 1023;
+		ulong u = conv.ulong_;
+		bool isNegative = u >> (64 - 1);
+		ulong exponentPlus1023 = (u >> (64 - 1 - 11)) & ((1 << 11) - 1);
+		ulong fraction = u & ((1uL << 52) - 1);
+		long exponent = (cast(long) exponentPlus1023) - 1023;
 		if (isNegative)
 			writer ~= '-';
 		writer ~= "0x1.";
@@ -92,46 +92,37 @@ private union DoubleToUlong {
 	ulong ulong_;
 }
 
-private void writeNat(ref Writer writer, immutable ulong n, immutable ulong base = 10) {
+private void writeNat(ref Writer writer, ulong n, ulong base = 10) {
 	if (n >= base)
 		writeNat(writer, n / base, base);
 	writer ~= digitChar(n % base);
 }
 
-private immutable(char) digitChar(immutable ulong digit) {
+private char digitChar(ulong digit) {
 	verify(digit < 16);
 	return digit < 10 ? cast(char) ('0' + digit) : cast(char) ('a' + (digit - 10));
 }
 
-void writeJoin(T)(
-	ref Writer writer,
-	immutable T[] a,
-	immutable string joiner,
-	scope void delegate(ref immutable T) @safe @nogc pure nothrow cb,
-) {
-	foreach (immutable size_t i, ref immutable T x; a) {
+void writeJoin(T)(ref Writer writer, in T[] a, string joiner, in void delegate(in T) @safe @nogc pure nothrow cb) {
+	foreach (size_t i, ref T x; a) {
 		if (i != 0)
 			writer ~= joiner;
 		cb(x);
 	}
 }
 
-void writeWithCommas(T)(
-	ref Writer writer,
-	scope immutable T[] a,
-	scope void delegate(scope ref immutable T) @safe @nogc pure nothrow cb,
-) {
-	writeWithCommas!T(writer, a, (ref immutable T) => true, cb);
+void writeWithCommas(T)(ref Writer writer, in T[] a, in void delegate(in T) @safe @nogc pure nothrow cb) {
+	writeWithCommas!T(writer, a, (in T) => true, cb);
 }
 
 void writeWithCommas(T)(
 	ref Writer writer,
-	scope immutable T[] a,
-	scope immutable(bool) delegate(scope ref immutable T) @safe @nogc pure nothrow filter,
-	scope void delegate(scope ref immutable T) @safe @nogc pure nothrow cb,
+	in T[] a,
+	in bool delegate(in T) @safe @nogc pure nothrow filter,
+	in void delegate(in T) @safe @nogc pure nothrow cb,
 ) {
 	bool needsComma = false;
-	foreach (ref immutable T x; a) {
+	foreach (ref T x; a) {
 		if (filter(x)) {
 			if (needsComma)
 				writer ~= ", ";
@@ -144,13 +135,13 @@ void writeWithCommas(T)(
 
 void writeWithCommasZip(T, U)(
 	ref Writer writer,
-	scope immutable T[] a,
-	scope immutable U[] b,
-	scope immutable(bool) delegate(scope ref immutable T, scope ref immutable U) @safe @nogc pure nothrow filter,
-	scope void delegate(scope ref immutable T, scope ref immutable U) @safe @nogc pure nothrow cb,
+	in T[] a,
+	in U[] b,
+	in bool delegate(in T, in U) @safe @nogc pure nothrow filter,
+	in void delegate(in T, in U) @safe @nogc pure nothrow cb,
 ) {
 	bool needsComma = false;
-	zip!(immutable T, immutable U)(a, b, (ref immutable T x, ref immutable U y) {
+	zip!(T, U)(a, b, (ref immutable T x, ref immutable U y) {
 		if (filter(x, y)) {
 			if (needsComma)
 				writer ~= ", ";
@@ -161,33 +152,29 @@ void writeWithCommasZip(T, U)(
 	});
 }
 
-void writeWithNewlines(T)(
-	ref Writer writer,
-	ref immutable T[] a,
-	scope void delegate(ref immutable T) @safe @nogc pure nothrow cb,
-) {
-	foreach (immutable size_t i, ref immutable T x; a) {
+void writeWithNewlines(T)(ref Writer writer, in T[] a, in void delegate(in T) @safe @nogc pure nothrow cb) {
+	foreach (size_t i, ref T x; a) {
 		if (i != 0)
 			writer ~= "\n";
 		cb(x);
 	}
 }
 
-void writeQuotedStr(ref Writer writer, scope immutable string s) {
+void writeQuotedStr(ref Writer writer, in string s) {
 	writer ~= '"';
-	foreach (immutable char c; s)
+	foreach (char c; s)
 		writeEscapedChar_inner(writer, c);
 	writer ~= '"';
 }
 
-void writeEscapedChar(ref Writer writer, immutable char c) {
+void writeEscapedChar(ref Writer writer, char c) {
 	if (c == '\'')
 		writer ~= "\\\'";
 	else
 		writeEscapedChar_inner(writer, c);
 }
 
-void writeEscapedChar_inner(ref Writer writer, immutable char c) {
+void writeEscapedChar_inner(ref Writer writer, char c) {
 	switch (c) {
 		case '\n':
 			writer ~= "\\n";
@@ -240,8 +227,8 @@ void writeReset(ref Writer writer) {
 
 void writeHyperlink(
 	ref Writer writer,
-	scope void delegate() @safe @nogc pure nothrow writeUrl,
-	scope void delegate() @safe @nogc pure nothrow writeText,
+	in void delegate() @safe @nogc pure nothrow writeUrl,
+	in void delegate() @safe @nogc pure nothrow writeText,
 ) {
 	// documentation: https://gist.github.com/egmontkob/eb114294efbcd5adb1944c9f3cb5feda
 	// https://purpleidea.com/blog/2018/06/29/hyperlinks-in-gnome-terminal/
@@ -256,7 +243,7 @@ void writeHyperlink(
 	}
 }
 
-private immutable(bool) canWriteHyperlink() {
+private bool canWriteHyperlink() {
 	version (Windows) {
 		return false;
 	} else {
@@ -265,8 +252,8 @@ private immutable(bool) canWriteHyperlink() {
 	}
 }
 
-void writeNewline(ref Writer writer, immutable size_t indent) {
+void writeNewline(ref Writer writer, size_t indent) {
 	writer ~= '\n';
-	foreach (immutable size_t _; 0 .. indent)
+	foreach (size_t _; 0 .. indent)
 		writer ~= '\t';
 }

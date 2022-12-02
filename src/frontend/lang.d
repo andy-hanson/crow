@@ -4,10 +4,10 @@ module frontend.lang;
 
 import util.sym : Sym, sym;
 
-immutable Sym crowExtension = sym!".crow";
+Sym crowExtension() => sym!".crow";
 
-struct JitOptions {
-	immutable OptimizationLevel optimization;
+immutable struct JitOptions {
+	OptimizationLevel optimization;
 }
 
 enum OptimizationLevel {
@@ -15,6 +15,6 @@ enum OptimizationLevel {
 	o2,
 }
 
-immutable size_t maxClosureFields = 16;
-immutable size_t maxParams = 16;
-immutable size_t maxTypeParams = 16;
+size_t maxClosureFields() => 16;
+size_t maxParams() => 16;
+size_t maxTypeParams() => 16;

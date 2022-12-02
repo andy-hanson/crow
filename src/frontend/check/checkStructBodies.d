@@ -40,20 +40,20 @@ import model.model :
 	UnionMember,
 	Visibility,
 	visibility;
-import util.col.arr : castImmutable, empty, small;
+import util.col.arr : empty, small;
 import util.col.arrUtil : eachPair, fold, map, mapAndFold, MapAndFold, mapToMut, mapWithIndex, zipPtrFirst;
 import util.col.mutArr : MutArr;
 import util.col.str : copySafeCStr;
 import util.conv : safeToSizeT;
-import util.opt : force, has, none, Opt, some;
-import util.ptr : castImmutable, ptrTrustMe;
+import util.opt : force, has, none, Opt, some, someMut;
+import util.ptr : ptrTrustMe;
 import util.sourceRange : RangeWithinFile;
 import util.sym : Sym, sym;
 import util.util : isMultipleOf, todo, unreachable;
 
-StructDecl[] checkStructsInitial(ref CheckCtx ctx, scope immutable StructDeclAst[] asts) =>
-	mapToMut!StructDecl(ctx.alloc, asts, (scope ref immutable StructDeclAst ast) {
-		immutable LinkageAndPurity p = getStructModifiers(ctx, getTypeKind(ast.body_), ast.modifiers);
+StructDecl[] checkStructsInitial(ref CheckCtx ctx, in StructDeclAst[] asts) =>
+	mapToMut!(StructDecl, StructDeclAst)(ctx.alloc, asts, (in StructDeclAst ast) {
+		LinkageAndPurity p = getStructModifiers(ctx, getTypeKind(ast.body_), ast.modifiers);
 		return StructDecl(
 			rangeInFile(ctx, ast.range),
 			copySafeCStr(ctx.alloc, ast.docComment),
@@ -67,83 +67,62 @@ StructDecl[] checkStructsInitial(ref CheckCtx ctx, scope immutable StructDeclAst
 
 void checkStructBodies(
 	ref CheckCtx ctx,
-	ref immutable CommonTypes commonTypes,
-	ref immutable StructsAndAliasesDict structsAndAliasesDict,
+	ref CommonTypes commonTypes,
+	ref StructsAndAliasesDict structsAndAliasesDict,
 	ref StructDecl[] structs,
-	scope immutable StructDeclAst[] asts,
+	in StructDeclAst[] asts,
 	ref MutArr!(StructInst*) delayStructInsts,
 ) {
-	zipPtrFirst!(StructDecl, immutable StructDeclAst)(
-		structs,
-		asts,
-		(StructDecl* struct_, ref immutable StructDeclAst ast) {
-			setBody(*struct_, ast.body_.match!(immutable StructBody)(
-				(immutable StructDeclAst.Body.Builtin) {
-					checkOnlyStructModifiers(ctx, TypeKind.builtin, ast.modifiers);
-					return immutable StructBody(immutable StructBody.Builtin());
-				},
-				(immutable StructDeclAst.Body.Enum it) {
-					checkOnlyStructModifiers(ctx, TypeKind.enum_, ast.modifiers);
-					return immutable StructBody(
-						checkEnum(ctx, commonTypes, structsAndAliasesDict, ast.range, it, delayStructInsts));
-				},
-				(immutable StructDeclAst.Body.Extern it) =>
-					immutable StructBody(checkExtern(ctx, ast, it)),
-				(immutable StructDeclAst.Body.Flags it) {
-					checkOnlyStructModifiers(ctx, TypeKind.flags, ast.modifiers);
-					return immutable StructBody(
-						checkFlags(ctx, commonTypes, structsAndAliasesDict, ast.range, it, delayStructInsts));
-				},
-				(immutable StructDeclAst.Body.Record it) =>
-					immutable StructBody(checkRecord(
-						ctx,
-						commonTypes,
-						structsAndAliasesDict,
-						castImmutable(struct_),
-						ast.modifiers,
-						it,
-						delayStructInsts)),
-				(immutable StructDeclAst.Body.Union it) {
-					checkOnlyStructModifiers(ctx, TypeKind.union_, ast.modifiers);
-					return immutable StructBody(checkUnion(
-						ctx,
-						commonTypes,
-						structsAndAliasesDict,
-						castImmutable(struct_),
-						it,
-						delayStructInsts));
-				}));
-		});
+	zipPtrFirst!(StructDecl, StructDeclAst)(structs, asts, (StructDecl* struct_, ref StructDeclAst ast) {
+		setBody(*struct_, ast.body_.matchIn!StructBody(
+			(in StructDeclAst.Body.Builtin) {
+				checkOnlyStructModifiers(ctx, TypeKind.builtin, ast.modifiers);
+				return StructBody(StructBody.Builtin());
+			},
+			(in StructDeclAst.Body.Enum it) {
+				checkOnlyStructModifiers(ctx, TypeKind.enum_, ast.modifiers);
+				return StructBody(checkEnum(ctx, commonTypes, structsAndAliasesDict, ast.range, it, delayStructInsts));
+			},
+			(in StructDeclAst.Body.Extern it) =>
+				StructBody(checkExtern(ctx, ast, it)),
+			(in StructDeclAst.Body.Flags it) {
+				checkOnlyStructModifiers(ctx, TypeKind.flags, ast.modifiers);
+				return StructBody(checkFlags(ctx, commonTypes, structsAndAliasesDict, ast.range, it, delayStructInsts));
+			},
+			(in StructDeclAst.Body.Record it) =>
+				StructBody(checkRecord(
+					ctx, commonTypes, structsAndAliasesDict, struct_, ast.modifiers, it, delayStructInsts)),
+			(in StructDeclAst.Body.Union it) {
+				checkOnlyStructModifiers(ctx, TypeKind.union_, ast.modifiers);
+				return StructBody(checkUnion(ctx, commonTypes, structsAndAliasesDict, struct_, it, delayStructInsts));
+			}));
+	});
 }
 
 private:
 
-immutable(StructBody.Extern) checkExtern(
-	ref CheckCtx ctx,
-	ref immutable StructDeclAst declAst,
-	immutable StructDeclAst.Body.Extern bodyAst,
-) {
+StructBody.Extern checkExtern(ref CheckCtx ctx, in StructDeclAst declAst, in StructDeclAst.Body.Extern bodyAst) {
 	checkOnlyStructModifiers(ctx, TypeKind.extern_, declAst.modifiers);
 	if (!empty(declAst.typeParams))
-		addDiag(ctx, declAst.range, immutable Diag(immutable Diag.ExternHasTypeParams()));
-	immutable(Opt!size_t) optNat(immutable Opt!(LiteralNatAst*) value) {
+		addDiag(ctx, declAst.range, Diag(Diag.ExternHasTypeParams()));
+	Opt!size_t optNat(Opt!(LiteralNatAst*) value) {
 		if (has(value)) {
-			immutable LiteralNatAst n = *force(value);
+			LiteralNatAst n = *force(value);
 			if (n.overflow || n.value > size_t.max) {
 				todo!void("diagnostic");
 				return none!size_t;
 			} else
-				return some!size_t(safeToSizeT(n.value));
+				return some(safeToSizeT(n.value));
 		} else
 			return none!size_t;
 	}
-	return immutable StructBody.Extern(toTypeSize(ctx, optNat(bodyAst.size), optNat(bodyAst.alignment)));
+	return StructBody.Extern(toTypeSize(ctx, optNat(bodyAst.size), optNat(bodyAst.alignment)));
 }
-immutable(Opt!TypeSize) toTypeSize(ref CheckCtx ctx, immutable Opt!size_t optSize, immutable Opt!size_t optAlignment) {
+Opt!TypeSize toTypeSize(ref CheckCtx ctx, Opt!size_t optSize, Opt!size_t optAlignment) {
 	if (has(optSize)) {
-		immutable size_t size = force(optSize);
-		immutable size_t defAlign = defaultAlignment(size);
-		immutable size_t alignment = () {
+		size_t size = force(optSize);
+		size_t defAlign = defaultAlignment(size);
+		size_t alignment = () {
 			if (has(optAlignment)) {
 				switch (force(optAlignment)) {
 					case 1:
@@ -158,61 +137,57 @@ immutable(Opt!TypeSize) toTypeSize(ref CheckCtx ctx, immutable Opt!size_t optSiz
 			} else
 				return defAlign;
 		}();
-		return some(immutable TypeSize(size, alignment));
+		return some(TypeSize(size, alignment));
 	} else
 		return none!TypeSize;
 }
 
-immutable(size_t) defaultAlignment(immutable size_t size) =>
+size_t defaultAlignment(size_t size) =>
 	size == 0 ? 0 :
 	isMultipleOf(size, 8) ? 8 :
 	isMultipleOf(size, 4) ? 4 :
 	isMultipleOf(size, 2) ? 2 :
 	1;
 
-struct LinkageAndPurity {
-	immutable Linkage linkage;
-	immutable PurityAndForced purityAndForced;
+immutable struct LinkageAndPurity {
+	Linkage linkage;
+	PurityAndForced purityAndForced;
 }
 
-struct PurityAndForced {
-	immutable Purity purity;
-	immutable bool forced;
+immutable struct PurityAndForced {
+	Purity purity;
+	bool forced;
 }
 
 // Note: purity is taken for granted here, and verified later when we check the body.
-immutable(LinkageAndPurity) getStructModifiers(
-	ref CheckCtx ctx,
-	immutable TypeKind typeKind,
-	scope immutable ModifierAst[] modifiers,
-) =>
-	fold(
-		immutable LinkageAndPurity(defaultLinkage(typeKind), immutable PurityAndForced(defaultPurity(typeKind), false)),
+LinkageAndPurity getStructModifiers(ref CheckCtx ctx, TypeKind typeKind, in ModifierAst[] modifiers) =>
+	fold!(LinkageAndPurity, ModifierAst)(
+		LinkageAndPurity(defaultLinkage(typeKind), PurityAndForced(defaultPurity(typeKind), false)),
 		modifiers,
-		(immutable LinkageAndPurity cur, ref immutable ModifierAst mod) {
+		(LinkageAndPurity cur, in ModifierAst mod) {
 			if (mod.kind == ModifierAst.Kind.extern_) {
 				if (cur.linkage != Linkage.internal)
-					addDiag(ctx, rangeOfModifierAst(mod, ctx.allSymbols), immutable Diag(
-						immutable Diag.ModifierDuplicate(symOfModifierKind(mod.kind))));
-				return immutable LinkageAndPurity(Linkage.extern_, cur.purityAndForced);
+					addDiag(ctx, rangeOfModifierAst(mod, ctx.allSymbols), Diag(
+						Diag.ModifierDuplicate(symOfModifierKind(mod.kind))));
+				return LinkageAndPurity(Linkage.extern_, cur.purityAndForced);
 			} else {
-				immutable Opt!PurityAndForced op = purityAndForcedFromModifier(mod.kind);
+				Opt!PurityAndForced op = purityAndForcedFromModifier(mod.kind);
 				if (has(op)) {
-					immutable PurityAndForced next = force(op);
+					PurityAndForced next = force(op);
 					if (next.purity == cur.purityAndForced.purity)
 						addDiag(
 							ctx,
 							rangeOfModifierAst(mod, ctx.allSymbols),
 							cur.purityAndForced.purity == defaultPurity(typeKind)
-								? immutable Diag(immutable Diag.PuritySpecifierRedundant(next.purity, typeKind))
-								: immutable Diag(immutable Diag.ModifierDuplicate(symOfModifierKind(mod.kind))));
-					return immutable LinkageAndPurity(cur.linkage, next);
+								? Diag(Diag.PuritySpecifierRedundant(next.purity, typeKind))
+								: Diag(Diag.ModifierDuplicate(symOfModifierKind(mod.kind))));
+					return LinkageAndPurity(cur.linkage, next);
 				} else
 					return cur;
 			}
 		});
 
-immutable(Linkage) defaultLinkage(immutable TypeKind a) {
+Linkage defaultLinkage(TypeKind a) {
 	final switch (a) {
 		case TypeKind.builtin:
 		case TypeKind.enum_:
@@ -225,7 +200,7 @@ immutable(Linkage) defaultLinkage(immutable TypeKind a) {
 	}
 }
 
-immutable(Purity) defaultPurity(immutable TypeKind a) {
+Purity defaultPurity(TypeKind a) {
 	final switch (a) {
 		case TypeKind.builtin:
 		case TypeKind.enum_:
@@ -238,22 +213,22 @@ immutable(Purity) defaultPurity(immutable TypeKind a) {
 	}
 }
 
-immutable(TypeKind) getTypeKind(ref immutable StructDeclAst.Body a) =>
-	a.match!(immutable TypeKind)(
-		(immutable StructDeclAst.Body.Builtin) =>
+TypeKind getTypeKind(in StructDeclAst.Body a) =>
+	a.matchIn!TypeKind(
+		(in StructDeclAst.Body.Builtin) =>
 			TypeKind.builtin,
-		(immutable StructDeclAst.Body.Enum) =>
+		(in StructDeclAst.Body.Enum) =>
 			TypeKind.enum_,
-		(immutable StructDeclAst.Body.Extern) =>
+		(in StructDeclAst.Body.Extern) =>
 			TypeKind.extern_,
-		(immutable StructDeclAst.Body.Flags) =>
+		(in StructDeclAst.Body.Flags) =>
 			TypeKind.flags,
-		(immutable StructDeclAst.Body.Record) =>
+		(in StructDeclAst.Body.Record) =>
 			TypeKind.record,
-		(immutable StructDeclAst.Body.Union) =>
+		(in StructDeclAst.Body.Union) =>
 			TypeKind.union_);
 
-immutable(Opt!PurityAndForced) purityAndForcedFromModifier(immutable ModifierAst.Kind a) {
+Opt!PurityAndForced purityAndForcedFromModifier(ModifierAst.Kind a) {
 	final switch (a) {
 		case ModifierAst.Kind.byRef:
 		case ModifierAst.Kind.byVal:
@@ -263,146 +238,139 @@ immutable(Opt!PurityAndForced) purityAndForcedFromModifier(immutable ModifierAst
 		case ModifierAst.Kind.packed:
 			return none!PurityAndForced;
 		case ModifierAst.Kind.data:
-			return some(immutable PurityAndForced(Purity.data, false));
+			return some(PurityAndForced(Purity.data, false));
 		case ModifierAst.Kind.forceSendable:
-			return some(immutable PurityAndForced(Purity.sendable, true));
+			return some(PurityAndForced(Purity.sendable, true));
 		case ModifierAst.Kind.mut:
-			return some(immutable PurityAndForced(Purity.mut, false));
+			return some(PurityAndForced(Purity.mut, false));
 		case ModifierAst.Kind.sendable:
-			return some(immutable PurityAndForced(Purity.sendable, false));
+			return some(PurityAndForced(Purity.sendable, false));
 	}
 }
 
-void checkOnlyStructModifiers(ref CheckCtx ctx, immutable TypeKind typeKind, immutable ModifierAst[] modifiers) {
-	foreach (immutable ModifierAst modifier; modifiers)
+void checkOnlyStructModifiers(ref CheckCtx ctx, TypeKind typeKind, in ModifierAst[] modifiers) {
+	foreach (ref ModifierAst modifier; modifiers)
 		if (!isStructModifier(modifier.kind))
-			addDiag(ctx, rangeOfModifierAst(modifier, ctx.allSymbols), immutable Diag(
-				immutable Diag.ModifierInvalid(symOfModifierKind(modifier.kind), typeKind)));
+			addDiag(ctx, rangeOfModifierAst(modifier, ctx.allSymbols), Diag(
+				Diag.ModifierInvalid(symOfModifierKind(modifier.kind), typeKind)));
 }
 
-immutable(bool) isStructModifier(immutable ModifierAst.Kind a) {
+bool isStructModifier(ModifierAst.Kind a) {
 	if (a == ModifierAst.Kind.extern_)
 		return true;
 	else {
-		immutable Opt!PurityAndForced purity = purityAndForcedFromModifier(a);
+		Opt!PurityAndForced purity = purityAndForcedFromModifier(a);
 		return has(purity);
 	}
 }
 
-immutable(StructBody.Enum) checkEnum(
+StructBody.Enum checkEnum(
 	ref CheckCtx ctx,
-	ref immutable CommonTypes commonTypes,
-	ref immutable StructsAndAliasesDict structsAndAliasesDict,
-	immutable RangeWithinFile range,
-	ref immutable StructDeclAst.Body.Enum e,
+	ref CommonTypes commonTypes,
+	ref StructsAndAliasesDict structsAndAliasesDict,
+	RangeWithinFile range,
+	in StructDeclAst.Body.Enum e,
 	ref MutArr!(StructInst*) delayStructInsts,
 ) {
-	immutable EnumOrFlagsTypeAndMembers tm = checkEnumOrFlagsMembers(
+	EnumOrFlagsTypeAndMembers tm = checkEnumOrFlagsMembers(
 		ctx, commonTypes, structsAndAliasesDict, range, e.typeArg, e.members, delayStructInsts,
 		Diag.DuplicateDeclaration.Kind.enumMember,
-		(immutable Opt!EnumValue lastValue, immutable EnumBackingType enumType) =>
+		(Opt!EnumValue lastValue, EnumBackingType enumType) =>
 			has(lastValue)
-				? immutable ValueAndOverflow(
-					immutable EnumValue(force(lastValue).value + 1),
-					force(lastValue) == maxValue(enumType))
-				: immutable ValueAndOverflow(immutable EnumValue(0), false));
-	return immutable StructBody.Enum(tm.backingType, tm.members);
+				? ValueAndOverflow(EnumValue(force(lastValue).value + 1), force(lastValue) == maxValue(enumType))
+				: ValueAndOverflow(EnumValue(0), false));
+	return StructBody.Enum(tm.backingType, tm.members);
 }
 
-immutable(StructBody.Flags) checkFlags(
+StructBody.Flags checkFlags(
 	ref CheckCtx ctx,
-	ref immutable CommonTypes commonTypes,
-	ref immutable StructsAndAliasesDict structsAndAliasesDict,
-	immutable RangeWithinFile range,
-	ref immutable StructDeclAst.Body.Flags f,
+	ref CommonTypes commonTypes,
+	ref StructsAndAliasesDict structsAndAliasesDict,
+	RangeWithinFile range,
+	in StructDeclAst.Body.Flags f,
 	ref MutArr!(StructInst*) delayStructInsts,
 ) {
-	immutable EnumOrFlagsTypeAndMembers tm = checkEnumOrFlagsMembers(
+	EnumOrFlagsTypeAndMembers tm = checkEnumOrFlagsMembers(
 		ctx, commonTypes, structsAndAliasesDict, range, f.typeArg, f.members, delayStructInsts,
 		Diag.DuplicateDeclaration.Kind.flagsMember,
-		(immutable Opt!EnumValue lastValue, immutable EnumBackingType enumType) =>
+		(Opt!EnumValue lastValue, EnumBackingType enumType) =>
 			has(lastValue)
-				? immutable ValueAndOverflow(
+				? ValueAndOverflow(
 					//TODO: if the last value isn't a power of 2, there should be a diagnostic
-					immutable EnumValue(force(lastValue).value * 2),
+					EnumValue(force(lastValue).value * 2),
 					force(lastValue).value >= maxValue(enumType).value / 2)
-				: immutable ValueAndOverflow(immutable EnumValue(1), false));
-	return immutable StructBody.Flags(tm.backingType, tm.members);
+				: ValueAndOverflow(EnumValue(1), false));
+	return StructBody.Flags(tm.backingType, tm.members);
 }
 
-struct EnumOrFlagsTypeAndMembers {
-	immutable EnumBackingType backingType;
-	immutable StructBody.Enum.Member[] members;
+immutable struct EnumOrFlagsTypeAndMembers {
+	EnumBackingType backingType;
+	StructBody.Enum.Member[] members;
 }
 
-struct ValueAndOverflow {
-	immutable EnumValue value;
-	immutable bool overflow;
+immutable struct ValueAndOverflow {
+	EnumValue value;
+	bool overflow;
 }
 
-immutable(EnumOrFlagsTypeAndMembers) checkEnumOrFlagsMembers(
+EnumOrFlagsTypeAndMembers checkEnumOrFlagsMembers(
 	ref CheckCtx ctx,
-	ref immutable CommonTypes commonTypes,
-	ref immutable StructsAndAliasesDict structsAndAliasesDict,
-	immutable RangeWithinFile range,
-	immutable Opt!(TypeAst*) typeArg,
-	immutable StructDeclAst.Body.Enum.Member[] memberAsts,
+	ref CommonTypes commonTypes,
+	ref StructsAndAliasesDict structsAndAliasesDict,
+	RangeWithinFile range,
+	in Opt!(TypeAst*) typeArg,
+	in StructDeclAst.Body.Enum.Member[] memberAsts,
 	ref MutArr!(StructInst*) delayStructInsts,
 	Diag.DuplicateDeclaration.Kind memberKind,
-	scope immutable(ValueAndOverflow) delegate(
-		immutable Opt!EnumValue,
-		immutable EnumBackingType,
-	) @safe @nogc pure nothrow cbGetNextValue,
+	in ValueAndOverflow delegate(Opt!EnumValue, EnumBackingType) @safe @nogc pure nothrow cbGetNextValue,
 ) {
-	immutable Type implementationType = has(typeArg)
-		? typeFromAst(ctx, commonTypes, *force(typeArg), structsAndAliasesDict, [], some(ptrTrustMe(delayStructInsts)))
-		: immutable Type(commonTypes.integrals.nat32);
-	immutable EnumBackingType enumType = getEnumTypeFromType(ctx, range, commonTypes, implementationType);
+	Type implementationType = has(typeArg)
+		? typeFromAst(
+			ctx, commonTypes, *force(typeArg), structsAndAliasesDict, [], someMut(ptrTrustMe(delayStructInsts)))
+		: Type(commonTypes.integrals.nat32);
+	EnumBackingType enumType = getEnumTypeFromType(ctx, range, commonTypes, implementationType);
 
-	immutable StructBody.Enum.Member[] members =
+	StructBody.Enum.Member[] members =
 		mapAndFold!(StructBody.Enum.Member, Opt!EnumValue, StructDeclAst.Body.Enum.Member)(
 			ctx.alloc,
 			none!EnumValue,
 			memberAsts,
-			(ref immutable StructDeclAst.Body.Enum.Member memberAst, immutable Opt!EnumValue lastValue) {
-				immutable ValueAndOverflow valueAndOverflow = () {
+			(in StructDeclAst.Body.Enum.Member memberAst, Opt!EnumValue lastValue) {
+				ValueAndOverflow valueAndOverflow = () {
 					if (has(memberAst.value))
 						return isSignedEnumBackingType(enumType)
-							? force(memberAst.value).match!(immutable ValueAndOverflow)(
-								(immutable LiteralIntAst i) =>
-									immutable ValueAndOverflow(immutable EnumValue(i.value), i.overflow),
-								(immutable LiteralNatAst n) =>
-									immutable ValueAndOverflow(immutable EnumValue(n.value), n.value > long.max))
-							: force(memberAst.value).match!(immutable ValueAndOverflow)(
-								(immutable LiteralIntAst) =>
-									todo!(immutable ValueAndOverflow)("signed value in unsigned enum"),
-								(immutable LiteralNatAst n) =>
-									immutable ValueAndOverflow(immutable EnumValue(n.value), n.overflow));
+							? force(memberAst.value).matchIn!ValueAndOverflow(
+								(in LiteralIntAst i) =>
+									ValueAndOverflow(EnumValue(i.value), i.overflow),
+								(in LiteralNatAst n) =>
+									ValueAndOverflow(EnumValue(n.value), n.value > long.max))
+							: force(memberAst.value).match!ValueAndOverflow(
+								(LiteralIntAst) =>
+									todo!ValueAndOverflow("signed value in unsigned enum"),
+								(LiteralNatAst n) =>
+									ValueAndOverflow(EnumValue(n.value), n.overflow));
 					else
 						return cbGetNextValue(lastValue, enumType);
 				}();
-				immutable EnumValue value = valueAndOverflow.value;
+				EnumValue value = valueAndOverflow.value;
 				if (valueAndOverflow.overflow || valueOverflows(enumType, value))
-					addDiag(ctx, memberAst.range, immutable Diag(immutable Diag.EnumMemberOverflows(enumType)));
-				return immutable MapAndFold!(StructBody.Enum.Member, Opt!EnumValue)(
-					immutable StructBody.Enum.Member(rangeInFile(ctx, memberAst.range), memberAst.name, value),
+					addDiag(ctx, memberAst.range, Diag(Diag.EnumMemberOverflows(enumType)));
+				return MapAndFold!(StructBody.Enum.Member, Opt!EnumValue)(
+					StructBody.Enum.Member(rangeInFile(ctx, memberAst.range), memberAst.name, value),
 					some(value));
 			}).output;
 
-	eachPair!(StructBody.Enum.Member)(
-		members,
-		(ref immutable StructBody.Enum.Member a, ref immutable StructBody.Enum.Member b) {
-			if (a.name == b.name)
-				addDiag(ctx, b.range, immutable Diag(immutable Diag.DuplicateDeclaration(memberKind, b.name)));
-			if (a.value == b.value)
-				addDiag(ctx, b.range, immutable Diag(
-					immutable Diag.EnumDuplicateValue(isSignedEnumBackingType(enumType), b.value.value)));
-		});
-	return immutable EnumOrFlagsTypeAndMembers(enumType, members);
+	eachPair!(StructBody.Enum.Member)(members, (in StructBody.Enum.Member a, in StructBody.Enum.Member b) {
+		if (a.name == b.name)
+			addDiag(ctx, b.range, Diag(Diag.DuplicateDeclaration(memberKind, b.name)));
+		if (a.value == b.value)
+			addDiag(ctx, b.range, Diag(Diag.EnumDuplicateValue(isSignedEnumBackingType(enumType), b.value.value)));
+	});
+	return EnumOrFlagsTypeAndMembers(enumType, members);
 }
 
-immutable(bool) valueOverflows(immutable EnumBackingType type, immutable EnumValue value) {
-	immutable long v = value.value;
+bool valueOverflows(EnumBackingType type, EnumValue value) {
+	long v = value.value;
 	final switch (type) {
 		case EnumBackingType.int8:
 			return v < byte.min || v > byte.max;
@@ -424,8 +392,8 @@ immutable(bool) valueOverflows(immutable EnumBackingType type, immutable EnumVal
 	}
 }
 
-immutable(EnumValue) maxValue(immutable EnumBackingType type) =>
-	immutable EnumValue(() {
+EnumValue maxValue(EnumBackingType type) =>
+	EnumValue(() {
 		final switch (type) {
 			case EnumBackingType.int8: return byte.max;
 			case EnumBackingType.int16: return short.max;
@@ -438,7 +406,7 @@ immutable(EnumValue) maxValue(immutable EnumBackingType type) =>
 		}
 	}());
 
-immutable(bool) isSignedEnumBackingType(immutable EnumBackingType a) {
+bool isSignedEnumBackingType(EnumBackingType a) {
 	final switch (a) {
 		case EnumBackingType.int8:
 		case EnumBackingType.int16:
@@ -453,22 +421,18 @@ immutable(bool) isSignedEnumBackingType(immutable EnumBackingType a) {
 	}
 }
 
-immutable(EnumBackingType) defaultEnumBackingType() { return EnumBackingType.nat32; }
+EnumBackingType defaultEnumBackingType() =>
+	EnumBackingType.nat32;
 
-immutable(EnumBackingType) getEnumTypeFromType(
-	ref CheckCtx ctx,
-	ref immutable RangeWithinFile range,
-	ref immutable CommonTypes commonTypes,
-	immutable Type type,
-) {
-	immutable IntegralTypes integrals = commonTypes.integrals;
-	return type.matchWithPointers!(immutable EnumBackingType)(
-		(immutable Type.Bogus) =>
+EnumBackingType getEnumTypeFromType(ref CheckCtx ctx, RangeWithinFile range, in CommonTypes commonTypes, in Type type) {
+	IntegralTypes integrals = commonTypes.integrals;
+	return type.matchWithPointers!EnumBackingType(
+		(Type.Bogus) =>
 			defaultEnumBackingType(),
-		(immutable TypeParam*) =>
+		(TypeParam*) =>
 			// enums can't have type params
 			unreachable!EnumBackingType(),
-		(immutable StructInst* x) =>
+		(StructInst* x) =>
 			x == integrals.int8
 				? EnumBackingType.int8
 				: x == integrals.int16
@@ -486,155 +450,139 @@ immutable(EnumBackingType) getEnumTypeFromType(
 				: x == integrals.nat64
 				? EnumBackingType.nat64
 				: (() {
-					addDiag(ctx, range, immutable Diag(immutable Diag.EnumBackingTypeInvalid(x)));
+					addDiag(ctx, range, Diag(Diag.EnumBackingTypeInvalid(x)));
 					return defaultEnumBackingType();
 				})());
 }
 
-immutable(StructBody.Record) checkRecord(
+StructBody.Record checkRecord(
 	ref CheckCtx ctx,
-	ref immutable CommonTypes commonTypes,
-	ref immutable StructsAndAliasesDict structsAndAliasesDict,
-	immutable StructDecl* struct_,
-	immutable ModifierAst[] modifierAsts,
-	ref immutable StructDeclAst.Body.Record r,
+	ref CommonTypes commonTypes,
+	ref StructsAndAliasesDict structsAndAliasesDict,
+	StructDecl* struct_,
+	ModifierAst[] modifierAsts,
+	in StructDeclAst.Body.Record r,
 	ref MutArr!(StructInst*) delayStructInsts,
 ) {
-	immutable RecordModifiers modifiers = checkRecordModifiers(ctx, modifierAsts);
-	immutable bool isExtern = struct_.linkage != Linkage.internal;
-	immutable ForcedByValOrRefOrNone valOrRef = isExtern ? ForcedByValOrRefOrNone.byVal : modifiers.byValOrRefOrNone;
+	RecordModifiers modifiers = checkRecordModifiers(ctx, modifierAsts);
+	bool isExtern = struct_.linkage != Linkage.internal;
+	ForcedByValOrRefOrNone valOrRef = isExtern ? ForcedByValOrRefOrNone.byVal : modifiers.byValOrRefOrNone;
 	if (isExtern && modifiers.byValOrRefOrNone != ForcedByValOrRefOrNone.none)
-		addDiag(ctx, struct_.range, immutable Diag(immutable Diag.ExternRecordImplicitlyByVal(struct_)));
-	immutable bool forcedByVal = valOrRef == ForcedByValOrRefOrNone.byVal;
-	immutable RecordField[] fields = mapWithIndex(
-		ctx.alloc,
-		r.fields,
-		(immutable size_t index, scope ref immutable StructDeclAst.Body.Record.Field field) =>
+		addDiag(ctx, struct_.range, Diag(Diag.ExternRecordImplicitlyByVal(struct_)));
+	bool forcedByVal = valOrRef == ForcedByValOrRefOrNone.byVal;
+	RecordField[] fields = mapWithIndex!(RecordField, StructDeclAst.Body.Record.Field)(
+		ctx.alloc, r.fields, (size_t index, scope ref StructDeclAst.Body.Record.Field field) =>
 			checkRecordField(
 				ctx, commonTypes, structsAndAliasesDict, delayStructInsts, struct_, forcedByVal, index, field));
-	eachPair!RecordField(fields, (ref immutable RecordField a, ref immutable RecordField b) {
+	eachPair!RecordField(fields, (in RecordField a, in RecordField b) {
 		if (a.name == b.name)
-			addDiag(ctx, b.range, immutable Diag(
-				immutable Diag.DuplicateDeclaration(Diag.DuplicateDeclaration.Kind.recordField, a.name)));
+			addDiag(ctx, b.range, Diag(Diag.DuplicateDeclaration(Diag.DuplicateDeclaration.Kind.recordField, a.name)));
 	});
-	return immutable StructBody.Record(
-		immutable RecordFlags(
-			recordNewVisibility(ctx, *struct_, fields, modifiers.newVisibility),
-			modifiers.packed,
-			valOrRef),
+	return StructBody.Record(
+		RecordFlags(recordNewVisibility(ctx, *struct_, fields, modifiers.newVisibility), modifiers.packed, valOrRef),
 		fields);
 }
 
-immutable(RecordField) checkRecordField(
+RecordField checkRecordField(
 	ref CheckCtx ctx,
-	ref immutable CommonTypes commonTypes,
-	ref immutable StructsAndAliasesDict structsAndAliasesDict,
+	ref CommonTypes commonTypes,
+	ref StructsAndAliasesDict structsAndAliasesDict,
 	ref MutArr!(StructInst*) delayStructInsts,
-	immutable StructDecl* struct_,
-	immutable bool forcedByVal,
-	immutable size_t index,
-	scope ref immutable StructDeclAst.Body.Record.Field ast,
+	StructDecl* struct_,
+	bool forcedByVal,
+	size_t index,
+	in StructDeclAst.Body.Record.Field ast,
 ) {
-	immutable Type fieldType = typeFromAst(
-		ctx, commonTypes, ast.type, structsAndAliasesDict, struct_.typeParams, some(ptrTrustMe(delayStructInsts)));
+	Type fieldType = typeFromAst(
+		ctx, commonTypes, ast.type, structsAndAliasesDict, struct_.typeParams, someMut(ptrTrustMe(delayStructInsts)));
 	checkReferenceLinkageAndPurity(ctx, struct_, ast.range, fieldType);
 	if (ast.mutability != FieldMutability.const_) {
-		immutable Opt!(Diag.MutFieldNotAllowed.Reason) reason =
+		Opt!(Diag.MutFieldNotAllowed.Reason) reason =
 			struct_.purity != Purity.mut && !struct_.purityIsForced
 				? some(Diag.MutFieldNotAllowed.Reason.recordIsNotMut)
 				: forcedByVal
 				? some(Diag.MutFieldNotAllowed.Reason.recordIsForcedByVal)
 				: none!(Diag.MutFieldNotAllowed.Reason);
 		if (has(reason))
-			addDiag(ctx, ast.range, immutable Diag(immutable Diag.MutFieldNotAllowed(force(reason))));
+			addDiag(ctx, ast.range, Diag(Diag.MutFieldNotAllowed(force(reason))));
 	}
-	return immutable RecordField(
-		rangeInFile(ctx, ast.range), ast.visibility, ast.name, ast.mutability, fieldType, index);
+	return RecordField(rangeInFile(ctx, ast.range), ast.visibility, ast.name, ast.mutability, fieldType, index);
 }
 
-immutable(StructBody.Union) checkUnion(
+StructBody.Union checkUnion(
 	ref CheckCtx ctx,
-	ref immutable CommonTypes commonTypes,
-	ref immutable StructsAndAliasesDict structsAndAliasesDict,
-	immutable StructDecl* struct_,
-	ref immutable StructDeclAst.Body.Union ast,
+	ref CommonTypes commonTypes,
+	ref StructsAndAliasesDict structsAndAliasesDict,
+	StructDecl* struct_,
+	in StructDeclAst.Body.Union ast,
 	ref MutArr!(StructInst*) delayStructInsts,
 ) {
 	final switch (struct_.linkage) {
 		case Linkage.internal:
 			break;
 		case Linkage.extern_:
-			addDiag(ctx, struct_.range, immutable Diag(immutable Diag.ExternUnion()));
+			addDiag(ctx, struct_.range, Diag(Diag.ExternUnion()));
 	}
-	immutable UnionMember[] members =
-		map(ctx.alloc, ast.members, (ref immutable StructDeclAst.Body.Union.Member memberAst) =>
-			checkUnionMember(ctx, commonTypes, structsAndAliasesDict, delayStructInsts, struct_, memberAst));
-	eachPair!UnionMember(members, (ref immutable UnionMember a, ref immutable UnionMember b) {
+	UnionMember[] members = map(ctx.alloc, ast.members, (ref StructDeclAst.Body.Union.Member memberAst) =>
+		checkUnionMember(ctx, commonTypes, structsAndAliasesDict, delayStructInsts, struct_, memberAst));
+	eachPair!UnionMember(members, (in UnionMember a, in UnionMember b) {
 		if (a.name == b.name)
-			addDiag(ctx, b.range, immutable Diag(
-				immutable Diag.DuplicateDeclaration(Diag.DuplicateDeclaration.Kind.unionMember, a.name)));
+			addDiag(ctx, b.range, Diag(Diag.DuplicateDeclaration(Diag.DuplicateDeclaration.Kind.unionMember, a.name)));
 	});
-	return immutable StructBody.Union(members);
+	return StructBody.Union(members);
 }
 
-immutable(UnionMember) checkUnionMember(
+UnionMember checkUnionMember(
 	ref CheckCtx ctx,
-	ref immutable CommonTypes commonTypes,
-	ref immutable StructsAndAliasesDict structsAndAliasesDict,
+	ref CommonTypes commonTypes,
+	ref StructsAndAliasesDict structsAndAliasesDict,
 	ref MutArr!(StructInst*) delayStructInsts,
-	immutable StructDecl* struct_,
-	ref immutable StructDeclAst.Body.Union.Member ast,
+	StructDecl* struct_,
+	in StructDeclAst.Body.Union.Member ast,
 ) {
-	immutable Opt!Type type = !has(ast.type) ? none!Type : some(typeFromAst(
+	Opt!Type type = !has(ast.type) ? none!Type : some(typeFromAst(
 		ctx,
 		commonTypes,
 		force(ast.type),
 		structsAndAliasesDict,
 		struct_.typeParams,
-		some(ptrTrustMe(delayStructInsts))));
+		someMut(ptrTrustMe(delayStructInsts))));
 	if (has(type))
 		checkReferencePurity(ctx, struct_, ast.range, force(type));
-	return immutable UnionMember(rangeInFile(ctx, ast.range), ast.name, type);
+	return UnionMember(rangeInFile(ctx, ast.range), ast.name, type);
 }
 
-struct RecordModifiers {
-	immutable ForcedByValOrRefOrNone byValOrRefOrNone;
-	immutable Opt!Visibility newVisibility;
-	immutable bool packed;
+immutable struct RecordModifiers {
+	ForcedByValOrRefOrNone byValOrRefOrNone;
+	Opt!Visibility newVisibility;
+	bool packed;
 }
 
-immutable(RecordModifiers) withByValOrRef(
+RecordModifiers withByValOrRef(
 	ref CheckCtx ctx,
-	immutable RecordModifiers cur,
-	immutable RangeWithinFile range,
-	immutable ForcedByValOrRefOrNone value,
-) {
+	RecordModifiers cur,
+	RangeWithinFile range,
+	ForcedByValOrRefOrNone value) {
 	if (cur.byValOrRefOrNone != ForcedByValOrRefOrNone.none) {
-		immutable Sym valueSym = symOfForcedByValOrRefOrNone(value);
+		Sym valueSym = symOfForcedByValOrRefOrNone(value);
 		addDiag(ctx, range, value == cur.byValOrRefOrNone
-			? immutable Diag(immutable Diag.ModifierDuplicate(valueSym))
-			: immutable Diag(
-				immutable Diag.ModifierConflict(symOfForcedByValOrRefOrNone(cur.byValOrRefOrNone), valueSym)));
+			? Diag(Diag.ModifierDuplicate(valueSym))
+			: Diag(Diag.ModifierConflict(symOfForcedByValOrRefOrNone(cur.byValOrRefOrNone), valueSym)));
 	}
-	return immutable RecordModifiers(value, cur.newVisibility, cur.packed);
+	return RecordModifiers(value, cur.newVisibility, cur.packed);
 }
 
-immutable(RecordModifiers) withNewVisibility(
-	ref CheckCtx ctx,
-	immutable RecordModifiers cur,
-	immutable RangeWithinFile range,
-	immutable Visibility value,
-) {
+RecordModifiers withNewVisibility(ref CheckCtx ctx, RecordModifiers cur, RangeWithinFile range, Visibility value) {
 	if (has(cur.newVisibility)) {
-		immutable Sym valueSym = symOfNewVisibility(value);
+		Sym valueSym = symOfNewVisibility(value);
 		addDiag(ctx, range, value == force(cur.newVisibility)
-			? immutable Diag(immutable Diag.ModifierDuplicate(valueSym))
-			: immutable Diag(immutable Diag.ModifierConflict(symOfNewVisibility(force(cur.newVisibility)), valueSym)));
+			? Diag(Diag.ModifierDuplicate(valueSym))
+			: Diag(Diag.ModifierConflict(symOfNewVisibility(force(cur.newVisibility)), valueSym)));
 	}
-	return immutable RecordModifiers(cur.byValOrRefOrNone, some(value), cur.packed);
+	return RecordModifiers(cur.byValOrRefOrNone, some(value), cur.packed);
 }
 
-immutable(Sym) symOfNewVisibility(immutable Visibility a) {
+Sym symOfNewVisibility(Visibility a) {
 	final switch (a) {
 		case Visibility.private_:
 			return sym!".new";
@@ -643,22 +591,18 @@ immutable(Sym) symOfNewVisibility(immutable Visibility a) {
 	}
 }
 
-immutable(RecordModifiers) withPacked(
-	ref CheckCtx ctx,
-	immutable RecordModifiers cur,
-	immutable RangeWithinFile range,
-) {
+RecordModifiers withPacked(ref CheckCtx ctx, RecordModifiers cur, RangeWithinFile range) {
 	if (cur.packed)
-		addDiag(ctx, range, immutable Diag(immutable Diag.ModifierDuplicate(sym!"packed")));
-	return immutable RecordModifiers(cur.byValOrRefOrNone, cur.newVisibility, true);
+		addDiag(ctx, range, Diag(Diag.ModifierDuplicate(sym!"packed")));
+	return RecordModifiers(cur.byValOrRefOrNone, cur.newVisibility, true);
 }
 
-immutable(RecordModifiers) checkRecordModifiers(ref CheckCtx ctx, immutable ModifierAst[] modifiers) =>
-	fold(
-		immutable RecordModifiers(ForcedByValOrRefOrNone.none, none!Visibility, false),
+RecordModifiers checkRecordModifiers(ref CheckCtx ctx, ModifierAst[] modifiers) =>
+	fold!(RecordModifiers, ModifierAst)(
+		RecordModifiers(ForcedByValOrRefOrNone.none, none!Visibility, false),
 		modifiers,
-		(immutable RecordModifiers cur, ref immutable ModifierAst modifier) {
-			immutable RangeWithinFile range = rangeOfModifierAst(modifier, ctx.allSymbols);
+		(RecordModifiers cur, in ModifierAst modifier) {
+			RangeWithinFile range = rangeOfModifierAst(modifier, ctx.allSymbols);
 			final switch (modifier.kind) {
 				case ModifierAst.Kind.byRef:
 					return withByValOrRef(ctx, cur, range, ForcedByValOrRefOrNone.byRef);
@@ -680,45 +624,31 @@ immutable(RecordModifiers) checkRecordModifiers(ref CheckCtx ctx, immutable Modi
 			}
 		});
 
-void checkReferenceLinkageAndPurity(
-	ref CheckCtx ctx,
-	immutable StructDecl* struct_,
-	immutable RangeWithinFile range,
-	immutable Type referencedType,
-) {
+void checkReferenceLinkageAndPurity(ref CheckCtx ctx, StructDecl* struct_, RangeWithinFile range, Type referencedType) {
 	if (!isLinkagePossiblyCompatible(struct_.linkage, linkageRange(referencedType)))
-		addDiag(ctx, range, immutable Diag(
-			immutable Diag.LinkageWorseThanContainingType(struct_, referencedType)));
+		addDiag(ctx, range, Diag(Diag.LinkageWorseThanContainingType(struct_, referencedType)));
 	checkReferencePurity(ctx, struct_, range, referencedType);
 }
 
-void checkReferencePurity(
-	ref CheckCtx ctx,
-	immutable StructDecl* struct_,
-	immutable RangeWithinFile range,
-	immutable Type referencedType,
-) {
+void checkReferencePurity(ref CheckCtx ctx, StructDecl* struct_, RangeWithinFile range, Type referencedType) {
 	if (!isPurityPossiblyCompatible(struct_.purity, purityRange(referencedType)) &&
 		!struct_.purityIsForced)
-		addDiag(ctx, range, immutable Diag(immutable Diag.PurityWorseThanParent(struct_, referencedType)));
+		addDiag(ctx, range, Diag(Diag.PurityWorseThanParent(struct_, referencedType)));
 }
 
-immutable(Visibility) recordNewVisibility(
+Visibility recordNewVisibility(
 	ref CheckCtx ctx,
-	ref immutable StructDecl struct_,
-	scope immutable RecordField[] fields,
-	immutable Opt!Visibility explicit,
+	ref StructDecl struct_,
+	in RecordField[] fields,
+	Opt!Visibility explicit,
 ) {
-	immutable Visibility default_ = fold(
-		struct_.visibility,
-		fields,
-		(immutable Visibility cur, ref immutable RecordField field) =>
+	Visibility default_ = fold!(Visibility, RecordField)(
+		struct_.visibility, fields, (Visibility cur, in RecordField field) =>
 			leastVisibility(cur, field.visibility));
 	if (has(explicit)) {
 		if (force(explicit) == default_)
 			//TODO: better range
-			addDiag(ctx, struct_.range, immutable Diag(
-				immutable Diag.RecordNewVisibilityIsRedundant(default_)));
+			addDiag(ctx, struct_.range, Diag(Diag.RecordNewVisibilityIsRedundant(default_)));
 		return force(explicit);
 	} else
 		return default_;

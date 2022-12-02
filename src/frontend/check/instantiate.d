@@ -46,118 +46,113 @@ import util.col.arrUtil : copyArr, fold, map;
 import util.col.mutDict : getOrAddPair, getOrAddPairAndDidAdd, KeyValuePair, PairAndDidAdd;
 import util.col.mutArr : MutArr, push;
 import util.col.mutMaxArr : mapTo, MutMaxArr, mutMaxArr, push, tempAsArr;
-import util.memory : allocate, allocateMut;
-import util.opt : force, has, none, noneInout, noneMut, Opt, some;
-import util.ptr : castImmutable;
+import util.memory : allocate;
+import util.opt : force, has, MutOpt, none, noneMut, Opt, some, someMut;
 import util.util : verify;
 
-struct TypeParamsAndArgs {
+immutable struct TypeParamsAndArgs {
 	@safe @nogc pure nothrow:
 
-	immutable TypeParam[] typeParams;
-	immutable Type[] typeArgs;
+	TypeParam[] typeParams;
+	Type[] typeArgs;
 
-	immutable this(immutable TypeParam[] tp, immutable Type[] ta) {
+	this(TypeParam[] tp, Type[] ta) {
 		typeParams = tp;
 		typeArgs = ta;
 		verify(sizeEq(typeParams, typeArgs));
 	}
 }
 
-alias TypeArgsArray = MutMaxArr!(maxTypeParams, immutable Type);
+alias TypeArgsArray = MutMaxArr!(maxTypeParams, Type);
 TypeArgsArray typeArgsArray() =>
-	mutMaxArr!(maxTypeParams, immutable Type);
+	mutMaxArr!(maxTypeParams, Type);
 
-inout(Opt!(T*)) tryGetTypeArg(T)(
-	immutable TypeParam[] typeParams,
-	return scope inout T[] typeArgs,
-	immutable TypeParam* typeParam,
-) {
-	immutable size_t index = typeParam.index;
-	immutable bool hasTypeParam = index < typeParams.length && &typeParams[index] == typeParam;
-	return hasTypeParam ? some(&typeArgs[index]) : noneInout!(T*)(typeArgs);
+private Opt!(T*) tryGetTypeArg(T)(TypeParam[] typeParams, return scope immutable T[] typeArgs, TypeParam* typeParam) {
+	size_t index = typeParam.index;
+	bool hasTypeParam = index < typeParams.length && &typeParams[index] == typeParam;
+	return hasTypeParam ? some(&typeArgs[index]) : none!(T*);
+}
+MutOpt!(T*) tryGetTypeArg_mut(T)(TypeParam[] typeParams, return scope T[] typeArgs, TypeParam* typeParam) {
+	size_t index = typeParam.index;
+	bool hasTypeParam = index < typeParams.length && &typeParams[index] == typeParam;
+	return hasTypeParam ? someMut!(T*)(&typeArgs[index]) : noneMut!(T*);
 }
 
-private immutable(Opt!Type) tryGetTypeArgFromTypeParamsAndArgs(
-	immutable TypeParamsAndArgs typeParamsAndArgs,
-	immutable TypeParam* typeParam,
-) {
-	immutable Opt!(Type*) t = tryGetTypeArg(typeParamsAndArgs.typeParams, typeParamsAndArgs.typeArgs, typeParam);
+private Opt!Type tryGetTypeArgFromTypeParamsAndArgs(TypeParamsAndArgs typeParamsAndArgs, TypeParam* typeParam) {
+	Opt!(Type*) t = tryGetTypeArg!Type(typeParamsAndArgs.typeParams, typeParamsAndArgs.typeArgs, typeParam);
 	return has(t) ? some(*force(t)) : none!Type;
 }
 
-alias DelayStructInsts = Opt!(MutArr!(StructInst*)*);
+alias DelayStructInsts = MutOpt!(MutArr!(StructInst*)*);
 
-private immutable(Type) instantiateType(
+private Type instantiateType(
 	ref Alloc alloc,
 	ref ProgramState programState,
-	immutable Type type,
-	immutable TypeParamsAndArgs typeParamsAndArgs,
+	Type type,
+	TypeParamsAndArgs typeParamsAndArgs,
 	DelayStructInsts delayStructInsts,
 ) =>
-	type.matchWithPointers!(immutable Type)(
-		(immutable Type.Bogus) =>
-			immutable Type(Type.Bogus()),
-		(immutable TypeParam* p) {
-			immutable Opt!Type op = tryGetTypeArgFromTypeParamsAndArgs(typeParamsAndArgs, p);
+	type.matchWithPointers!Type(
+		(Type.Bogus _) =>
+			Type(Type.Bogus()),
+		(TypeParam* p) {
+			Opt!Type op = tryGetTypeArgFromTypeParamsAndArgs(typeParamsAndArgs, p);
 			return has(op) ? force(op) : type;
 		},
-		(immutable StructInst* i) =>
-			immutable Type(instantiateStructInst(alloc, programState, i, typeParamsAndArgs, delayStructInsts)));
+		(StructInst* i) =>
+			Type(instantiateStructInst(alloc, programState, i, typeParamsAndArgs, delayStructInsts)));
 
-private immutable(Type) instantiateTypeNoDelay(
+private Type instantiateTypeNoDelay(
 	ref Alloc alloc,
 	ref ProgramState programState,
-	immutable Type type,
-	immutable TypeParamsAndArgs typeParamsAndArgs,
+	Type type,
+	TypeParamsAndArgs typeParamsAndArgs,
 ) =>
 	instantiateType(alloc, programState, type, typeParamsAndArgs, noneMut!(MutArr!(StructInst*)*));
 
-immutable(FunInst*) instantiateFun(
+FunInst* instantiateFun(
 	ref Alloc alloc,
 	ref ProgramState programState,
-	immutable FunDecl* decl,
-	scope immutable Type[] typeArgs,
-	scope immutable Called[] specImpls,
+	FunDecl* decl,
+	in Type[] typeArgs,
+	in Called[] specImpls,
 ) {
-	scope immutable FunDeclAndArgs tempKey = immutable FunDeclAndArgs(decl, typeArgs, specImpls);
+	FunDeclAndArgs tempKey = FunDeclAndArgs(decl, typeArgs, specImpls);
 	return getOrAddPair(alloc, programState.funInsts, tempKey, () {
-		immutable FunDeclAndArgs key =
-			immutable FunDeclAndArgs(decl, copyArr(alloc, typeArgs), copyArr(alloc, specImpls));
-		immutable TypeParamsAndArgs typeParamsAndArgs = immutable TypeParamsAndArgs(decl.typeParams, key.typeArgs);
-		return KeyValuePair!(immutable FunDeclAndArgs, immutable FunInst*)(key, allocate(alloc, immutable FunInst(
+		FunDeclAndArgs key = FunDeclAndArgs(decl, copyArr(alloc, typeArgs), copyArr(alloc, specImpls));
+		TypeParamsAndArgs typeParamsAndArgs = TypeParamsAndArgs(decl.typeParams, key.typeArgs);
+		return KeyValuePair!(FunDeclAndArgs, FunInst*)(key, allocate(alloc, FunInst(
 			key,
 			instantiateTypeNoDelay(alloc, programState, decl.returnType, typeParamsAndArgs),
 			instantiateParams(alloc, programState, decl.params, typeParamsAndArgs))));
 	}).value;
 }
 
-immutable(StructBody) instantiateStructBody(
+StructBody instantiateStructBody(
 	ref Alloc alloc,
 	ref ProgramState programState,
-	immutable StructDeclAndArgs declAndArgs,
+	StructDeclAndArgs declAndArgs,
 	DelayStructInsts delayStructInsts,
 ) {
-	immutable TypeParamsAndArgs typeParamsAndArgs =
-		immutable TypeParamsAndArgs(declAndArgs.decl.typeParams, declAndArgs.typeArgs);
-	return body_(*declAndArgs.decl).match!(immutable StructBody)(
-		(immutable StructBody.Bogus) =>
-			immutable StructBody(immutable StructBody.Bogus()),
-		(immutable StructBody.Builtin) =>
-			immutable StructBody(immutable StructBody.Builtin()),
-		(immutable StructBody.Enum e) =>
-			immutable StructBody(e),
-		(immutable StructBody.Extern e) =>
-			immutable StructBody(immutable StructBody.Extern(e.size)),
-		(immutable StructBody.Flags f) =>
-			immutable StructBody(f),
-		(immutable StructBody.Record r) =>
-			immutable StructBody(immutable StructBody.Record(
+	TypeParamsAndArgs typeParamsAndArgs = TypeParamsAndArgs(declAndArgs.decl.typeParams, declAndArgs.typeArgs);
+	return body_(*declAndArgs.decl).match!StructBody(
+		(StructBody.Bogus) =>
+			StructBody(StructBody.Bogus()),
+		(StructBody.Builtin) =>
+			StructBody(StructBody.Builtin()),
+		(StructBody.Enum e) =>
+			StructBody(e),
+		(StructBody.Extern e) =>
+			StructBody(StructBody.Extern(e.size)),
+		(StructBody.Flags f) =>
+			StructBody(f),
+		(StructBody.Record r) =>
+			StructBody(StructBody.Record(
 				r.flags,
-				map(alloc, r.fields, (ref immutable RecordField f) =>
+				map(alloc, r.fields, (ref RecordField f) =>
 					withType(f, instantiateType(alloc, programState, f.type, typeParamsAndArgs, delayStructInsts))))),
-		(immutable StructBody.Union u) =>
-			immutable StructBody(immutable StructBody.Union(map(alloc, u.members, (ref immutable UnionMember it) =>
+		(StructBody.Union u) =>
+			StructBody(StructBody.Union(map(alloc, u.members, (ref UnionMember it) =>
 				has(it.type)
 					? withType(
 						it,
@@ -165,42 +160,24 @@ immutable(StructBody) instantiateStructBody(
 					: it))));
 }
 
-immutable(StructInst*) instantiateStruct(
+StructInst* instantiateStruct(
 	ref Alloc alloc,
 	ref ProgramState programState,
-	immutable StructDecl* decl,
-	scope immutable Type[] typeArgs,
+	StructDecl* decl,
+	in Type[] typeArgs,
 	DelayStructInsts delayStructInsts,
 ) {
-	scope immutable StructDeclAndArgs tempKey = immutable StructDeclAndArgs(decl, typeArgs);
-	PairAndDidAdd!(immutable StructDeclAndArgs, StructInst*) res = getOrAddPairAndDidAdd(
+	StructDeclAndArgs tempKey = StructDeclAndArgs(decl, typeArgs);
+	PairAndDidAdd!(StructDeclAndArgs, StructInst*) res = getOrAddPairAndDidAdd(
 		alloc,
 		programState.structInsts,
 		tempKey,
 		() {
-			immutable Linkage declLinkage = decl.linkage;
-			immutable LinkageRange linkageRange = () {
-				final switch (declLinkage) {
-					case Linkage.internal:
-						return immutable LinkageRange(Linkage.internal, Linkage.internal);
-					case Linkage.extern_:
-						return fold(
-							immutable LinkageRange(Linkage.extern_, Linkage.extern_),
-							typeArgs,
-							(immutable LinkageRange cur, ref immutable Type typeArg) =>
-								combineLinkageRange(cur, linkageRange(typeArg)));
-				}
-			}();
-			immutable Purity declPurity = decl.purity;
-			immutable PurityRange purityRange = fold(
-				immutable PurityRange(declPurity, declPurity),
-				typeArgs,
-				(immutable PurityRange cur, ref immutable Type typeArg) =>
-					combinePurityRange(cur, purityRange(typeArg)));
-			immutable StructDeclAndArgs key = immutable StructDeclAndArgs(decl, copyArr(alloc, typeArgs));
-			return KeyValuePair!(immutable StructDeclAndArgs, StructInst*)(
+			StructDeclAndArgs key = StructDeclAndArgs(decl, copyArr(alloc, typeArgs));
+			return KeyValuePair!(StructDeclAndArgs, StructInst*)(key, allocate(alloc, StructInst(
 				key,
-				allocateMut(alloc, StructInst(key, linkageRange, purityRange)));
+				combinedLinkageRange(decl.linkage, typeArgs),
+				combinedPurityRange(decl.purity, typeArgs))));
 		});
 
 	if (res.didAdd) {
@@ -213,119 +190,126 @@ immutable(StructInst*) instantiateStruct(
 		}
 	}
 
-	return castImmutable(res.value);
+	return res.value;
 }
 
-private immutable(StructInst*) instantiateStructInst(
+private LinkageRange combinedLinkageRange(Linkage declLinkage, in Type[] typeArgs) {
+	final switch (declLinkage) {
+		case Linkage.internal:
+			return LinkageRange(Linkage.internal, Linkage.internal);
+		case Linkage.extern_:
+			return fold!(LinkageRange, Type)(
+				LinkageRange(Linkage.extern_, Linkage.extern_),
+				typeArgs,
+				(LinkageRange cur, in Type typeArg) => combineLinkageRange(cur, linkageRange(typeArg)));
+	}
+}
+
+private PurityRange combinedPurityRange(Purity declPurity, in Type[] typeArgs) =>
+	fold!(PurityRange, Type)(PurityRange(declPurity, declPurity), typeArgs, (PurityRange cur, in Type typeArg) =>
+		combinePurityRange(cur, purityRange(typeArg)));
+
+private StructInst* instantiateStructInst(
 	ref Alloc alloc,
 	ref ProgramState programState,
-	immutable StructInst* structInst,
-	immutable TypeParamsAndArgs typeParamsAndArgs,
+	StructInst* structInst,
+	TypeParamsAndArgs typeParamsAndArgs,
 	DelayStructInsts delayStructInsts,
 ) {
 	scope TypeArgsArray itsTypeArgs = typeArgsArray();
-	mapTo(itsTypeArgs, typeArgs(*structInst), (ref immutable Type x) =>
+	mapTo(itsTypeArgs, typeArgs(*structInst), (ref Type x) =>
 		instantiateType(alloc, programState, x, typeParamsAndArgs, delayStructInsts));
 	return instantiateStruct(alloc, programState, decl(*structInst), tempAsArr(itsTypeArgs), delayStructInsts);
 }
 
-private immutable(StructInst*) instantiateStructInst(
+private StructInst* instantiateStructInst(
 	ref Alloc alloc,
 	ref ProgramState programState,
-	immutable StructInst* structInst,
-	ref immutable StructInst contextStructInst,
+	StructInst* structInst,
+	in StructInst contextStructInst,
 ) {
-	immutable TypeParamsAndArgs ta = immutable TypeParamsAndArgs(
-		contextStructInst.decl.typeParams,
-		contextStructInst.typeArgs);
+	TypeParamsAndArgs ta = TypeParamsAndArgs(contextStructInst.decl.typeParams, contextStructInst.typeArgs);
 	return instantiateStructInst(alloc, programState, structInst, ta, noneMut!(MutArr!(StructInst*)*));
 }
 
-immutable(StructInst*) instantiateStructNeverDelay(
+StructInst* instantiateStructNeverDelay(
 	ref Alloc alloc,
 	ref ProgramState programState,
-	immutable StructDecl* decl,
-	scope immutable Type[] typeArgs,
+	StructDecl* decl,
+	in Type[] typeArgs,
 ) =>
 	instantiateStruct(alloc, programState, decl, typeArgs, noneMut!(MutArr!(StructInst*)*));
 
-immutable(StructInst*) makeNamedValType(
+StructInst* makeNamedValType(
 	ref Alloc alloc,
 	ref ProgramState programState,
-	ref immutable CommonTypes commonTypes,
-	immutable Type valueType,
+	ref CommonTypes commonTypes,
+	Type valueType,
 ) =>
 	instantiateStructNeverDelay(alloc, programState, commonTypes.namedVal, [valueType]);
 
-immutable(StructInst*) makeArrayType(
+StructInst* makeArrayType(
 	ref Alloc alloc,
 	ref ProgramState programState,
-	ref immutable CommonTypes commonTypes,
-	immutable Type elementType,
+	ref CommonTypes commonTypes,
+	Type elementType,
 ) =>
 	instantiateStructNeverDelay(alloc, programState, commonTypes.array, [elementType]);
 
-immutable(SpecInst*) instantiateSpec(
-	ref Alloc alloc,
-	ref ProgramState programState,
-	immutable SpecDecl* decl,
-	scope immutable Type[] typeArgs,
-) {
-	immutable SpecDeclAndArgs tempKey = immutable SpecDeclAndArgs(decl, typeArgs);
+SpecInst* instantiateSpec(ref Alloc alloc, ref ProgramState programState, SpecDecl* decl, in Type[] typeArgs) {
+	SpecDeclAndArgs tempKey = SpecDeclAndArgs(decl, typeArgs);
 	return getOrAddPair(alloc, programState.specInsts, tempKey, () {
-		immutable SpecDeclAndArgs key = immutable SpecDeclAndArgs(decl, copyArr(alloc, typeArgs));
-		immutable SpecBody body_ = decl.body_.match!(immutable SpecBody)(
-			(immutable SpecBody.Builtin b) =>
-				immutable SpecBody(SpecBody.Builtin(b.kind)),
-			(immutable SpecDeclSig[] sigs) =>
-				immutable SpecBody(map(alloc, sigs, (ref immutable SpecDeclSig sig) {
-					immutable TypeParamsAndArgs typeParamsAndArgs =
-						immutable TypeParamsAndArgs(decl.typeParams, key.typeArgs);
-					return immutable SpecDeclSig(
+		SpecDeclAndArgs key = SpecDeclAndArgs(decl, copyArr(alloc, typeArgs));
+		SpecBody body_ = decl.body_.match!SpecBody(
+			(SpecBody.Builtin b) =>
+				SpecBody(SpecBody.Builtin(b.kind)),
+			(SpecDeclSig[] sigs) =>
+				SpecBody(map(alloc, sigs, (ref SpecDeclSig sig) {
+					TypeParamsAndArgs typeParamsAndArgs = TypeParamsAndArgs(decl.typeParams, key.typeArgs);
+					return SpecDeclSig(
 						sig.docComment,
 						sig.fileAndPos,
 						sig.name,
 						instantiateTypeNoDelay(alloc, programState, sig.returnType, typeParamsAndArgs),
 						instantiateParams(alloc, programState, sig.params, typeParamsAndArgs));
 		 		})));
-		return KeyValuePair!(immutable SpecDeclAndArgs, immutable SpecInst*)(
-			key, allocate(alloc, immutable SpecInst(key, body_)));
+		return KeyValuePair!(SpecDeclAndArgs, SpecInst*)(key, allocate(alloc, SpecInst(key, body_)));
 	}).value;
 }
 
-immutable(SpecInst*) instantiateSpecInst(
+SpecInst* instantiateSpecInst(
 	ref Alloc alloc,
 	ref ProgramState programState,
-	immutable SpecInst* specInst,
-	immutable TypeParamsAndArgs typeParamsAndArgs,
+	SpecInst* specInst,
+	TypeParamsAndArgs typeParamsAndArgs,
 ) {
 	TypeArgsArray itsTypeArgs = typeArgsArray();
-	mapTo(itsTypeArgs, typeArgs(*specInst), (ref immutable Type x) =>
+	mapTo(itsTypeArgs, typeArgs(*specInst), (ref Type x) =>
 		instantiateType(alloc, programState, x, typeParamsAndArgs, noneMut!(MutArr!(StructInst*)*)));
 	return instantiateSpec(alloc, programState, decl(*specInst), tempAsArr(itsTypeArgs));
 }
 
 private:
 
-immutable(Params) instantiateParams(
+Params instantiateParams(
 	ref Alloc alloc,
 	ref ProgramState programState,
-	ref immutable Params params,
-	immutable TypeParamsAndArgs typeParamsAndArgs,
+	Params params,
+	TypeParamsAndArgs typeParamsAndArgs,
 ) =>
-	params.match!(immutable Params)(
-		(immutable Param[] paramsArray) =>
-			immutable Params(map(alloc, paramsArray, (ref immutable Param p) =>
+	params.match!Params(
+		(Param[] paramsArray) =>
+			Params(map(alloc, paramsArray, (ref Param p) =>
 				instantiateParam(alloc, programState, typeParamsAndArgs, p))),
-		(ref immutable Params.Varargs v) =>
-			immutable Params(allocate(alloc, immutable Params.Varargs(
+		(ref Params.Varargs v) =>
+			Params(allocate(alloc, Params.Varargs(
 				instantiateParam(alloc, programState, typeParamsAndArgs, v.param),
 				instantiateTypeNoDelay(alloc, programState, v.elementType, typeParamsAndArgs)))));
 
-immutable(Param) instantiateParam(
+Param instantiateParam(
 	ref Alloc alloc,
 	ref ProgramState programState,
-	immutable TypeParamsAndArgs typeParamsAndArgs,
-	ref immutable Param a,
+	TypeParamsAndArgs typeParamsAndArgs,
+	ref Param a,
 ) =>
 	withType(a, instantiateTypeNoDelay(alloc, programState, a.type, typeParamsAndArgs));

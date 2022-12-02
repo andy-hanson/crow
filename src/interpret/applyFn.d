@@ -5,116 +5,116 @@ module interpret.applyFn;
 import util.conv : bitsOfFloat32, bitsOfFloat64, float32OfBits, float64OfBits;
 import util.util : verify;
 
-immutable(ulong) fnAddFloat32(immutable ulong a, immutable ulong b) =>
-	binaryFloat32s!((immutable float x, immutable float y) => x + y)(a, b);
-immutable(ulong) fnAddFloat64(immutable ulong a, immutable ulong b) =>
-	binaryFloat64s!((immutable double x, immutable double y) => x + y)(a, b);
-immutable(ulong) fnBitwiseNot(immutable ulong a) =>
+ulong fnAddFloat32(ulong a, ulong b) =>
+	binaryFloat32s!((float x, float y) => x + y)(a, b);
+ulong fnAddFloat64(ulong a, ulong b) =>
+	binaryFloat64s!((double x, double y) => x + y)(a, b);
+ulong fnBitwiseNot(ulong a) =>
 	~a;
-immutable(ulong) fnBitwiseAnd(immutable ulong a, immutable ulong b) =>
+ulong fnBitwiseAnd(ulong a, ulong b) =>
 	a & b;
-immutable(ulong) fnBitwiseOr(immutable ulong a, immutable ulong b) =>
+ulong fnBitwiseOr(ulong a, ulong b) =>
 	a | b;
-immutable(ulong) fnBitwiseXor(immutable ulong a, immutable ulong b) =>
+ulong fnBitwiseXor(ulong a, ulong b) =>
 	a ^ b;
-immutable(ulong) fnCountOnesNat64(immutable ulong a) =>
+ulong fnCountOnesNat64(ulong a) =>
 	popcount(a);
-immutable(ulong) fnEqBits(immutable ulong a, immutable ulong b) =>
+ulong fnEqBits(ulong a, ulong b) =>
 	a == b;
-immutable(ulong) fnEqFloat32(immutable ulong a, immutable ulong b) =>
+ulong fnEqFloat32(ulong a, ulong b) =>
 	float32OfBits(a) == float32OfBits(b);
-immutable(ulong) fnEqFloat64(immutable ulong a, immutable ulong b) =>
+ulong fnEqFloat64(ulong a, ulong b) =>
 	float64OfBits(a) == float64OfBits(b);
-immutable(ulong) fnFloat32FromFloat64(immutable ulong a) =>
+ulong fnFloat32FromFloat64(ulong a) =>
 	bitsOfFloat32(cast(float) float64OfBits(a));
-immutable(ulong) fnFloat64FromFloat32(immutable ulong a) =>
+ulong fnFloat64FromFloat32(ulong a) =>
 	bitsOfFloat64(cast(double) float32OfBits(a));
-immutable(ulong) fnFloat64FromInt64(immutable ulong a) =>
+ulong fnFloat64FromInt64(ulong a) =>
 	bitsOfFloat64(cast(double) (cast(long) a));
-immutable(ulong) fnFloat64FromNat64(immutable ulong a) =>
+ulong fnFloat64FromNat64(ulong a) =>
 	bitsOfFloat64(cast(double) a);
-immutable(ulong) fnInt64FromInt16(immutable ulong a) =>
+ulong fnInt64FromInt16(ulong a) =>
 	cast(ulong) (cast(long) (cast(short) a));
-immutable(ulong) fnInt64FromInt32(immutable ulong a) =>
+ulong fnInt64FromInt32(ulong a) =>
 	u64OfI32(cast(int) a);
-immutable(ulong) fnLessFloat32(immutable ulong a, immutable ulong b) =>
+ulong fnLessFloat32(ulong a, ulong b) =>
 	float32OfBits(a) < float32OfBits(b);
-immutable(ulong) fnLessFloat64(immutable ulong a, immutable ulong b) =>
+ulong fnLessFloat64(ulong a, ulong b) =>
 	float64OfBits(a) < float64OfBits(b);
-private immutable(ulong) fnLessT(T)(immutable ulong a, immutable ulong b) =>
-	(cast(immutable T) a) < (cast(immutable T) b);
-alias fnLessInt8 = fnLessT!(immutable byte);
-alias fnLessInt16 = fnLessT!(immutable short);
-alias fnLessInt32 = fnLessT!(immutable int);
-alias fnLessInt64 = fnLessT!(immutable long);
-alias fnLessNat8 = fnLessT!(immutable ubyte);
-alias fnLessNat16 = fnLessT!(immutable ushort);
-alias fnLessNat32 = fnLessT!(immutable uint);
-alias fnLessNat64 = fnLessT!(immutable ulong);
-immutable(ulong) fnMulFloat32(immutable ulong a, immutable ulong b) =>
-	binaryFloat32s!((immutable float x, immutable float y) => x * y)(a, b);
-immutable(ulong) fnMulFloat64(immutable ulong a, immutable ulong b) =>
-	binaryFloat64s!((immutable double x, immutable double y) => x * y)(a, b);
-immutable(ulong) fnSubFloat32(immutable ulong a, immutable ulong b) =>
-	binaryFloat32s!((immutable float x, immutable float y) => x - y)(a, b);
-immutable(ulong) fnSubFloat64(immutable ulong a, immutable ulong b) =>
-	binaryFloat64s!((immutable double x, immutable double y) => x - y)(a, b);
-immutable(ulong) fnTruncateToInt64FromFloat64(immutable ulong a) =>
+private ulong fnLessT(T)(ulong a, ulong b) =>
+	(cast(T) a) < (cast(T) b);
+alias fnLessInt8 = fnLessT!byte;
+alias fnLessInt16 = fnLessT!short;
+alias fnLessInt32 = fnLessT!int;
+alias fnLessInt64 = fnLessT!long;
+alias fnLessNat8 = fnLessT!ubyte;
+alias fnLessNat16 = fnLessT!ushort;
+alias fnLessNat32 = fnLessT!uint;
+alias fnLessNat64 = fnLessT!ulong;
+ulong fnMulFloat32(ulong a, ulong b) =>
+	binaryFloat32s!((float x, float y) => x * y)(a, b);
+ulong fnMulFloat64(ulong a, ulong b) =>
+	binaryFloat64s!((double x, double y) => x * y)(a, b);
+ulong fnSubFloat32(ulong a, ulong b) =>
+	binaryFloat32s!((float x, float y) => x - y)(a, b);
+ulong fnSubFloat64(ulong a, ulong b) =>
+	binaryFloat64s!((double x, double y) => x - y)(a, b);
+ulong fnTruncateToInt64FromFloat64(ulong a) =>
 	cast(ulong) cast(long) float64OfBits(a);
-immutable(ulong) fnUnsafeBitShiftLeftNat64(immutable ulong a, immutable ulong b) {
+ulong fnUnsafeBitShiftLeftNat64(ulong a, ulong b) {
 	verify(b < 64);
 	return a << b;
 }
-immutable(ulong) fnUnsafeBitShiftRightNat64(immutable ulong a, immutable ulong b) {
+ulong fnUnsafeBitShiftRightNat64(ulong a, ulong b) {
 	verify(b < 64);
 	return a >> b;
 }
-immutable(ulong) fnUnsafeDivFloat32(immutable ulong a, immutable ulong b) =>
-	binaryFloat32s!((immutable float x, immutable float y) => x / y)(a, b);
-immutable(ulong) fnUnsafeDivFloat64(immutable ulong a, immutable ulong b) =>
-	binaryFloat64s!((immutable double x, immutable double y) => x / y)(a, b);
-immutable(ulong) fnUnsafeDivInt8(immutable ulong a, immutable ulong b) =>
+ulong fnUnsafeDivFloat32(ulong a, ulong b) =>
+	binaryFloat32s!((float x, float y) => x / y)(a, b);
+ulong fnUnsafeDivFloat64(ulong a, ulong b) =>
+	binaryFloat64s!((double x, double y) => x / y)(a, b);
+ulong fnUnsafeDivInt8(ulong a, ulong b) =>
 	cast(byte) a / cast(byte) b;
-immutable(ulong) fnUnsafeDivInt16(immutable ulong a, immutable ulong b) =>
+ulong fnUnsafeDivInt16(ulong a, ulong b) =>
 	cast(short) a / cast(short) b;
-immutable(ulong) fnUnsafeDivInt32(immutable ulong a, immutable ulong b) =>
+ulong fnUnsafeDivInt32(ulong a, ulong b) =>
 	cast(int) a / cast(int) b;
-immutable(ulong) fnUnsafeDivInt64(immutable ulong a, immutable ulong b) =>
+ulong fnUnsafeDivInt64(ulong a, ulong b) =>
 	cast(ulong) ((cast(long) a) / (cast(long) b));
-immutable(ulong) fnUnsafeDivNat8(immutable ulong a, immutable ulong b) =>
+ulong fnUnsafeDivNat8(ulong a, ulong b) =>
 	cast(ubyte) a / cast(ubyte) b;
-immutable(ulong) fnUnsafeDivNat16(immutable ulong a, immutable ulong b) =>
+ulong fnUnsafeDivNat16(ulong a, ulong b) =>
 	cast(ushort) a / cast(ushort) b;
-immutable(ulong) fnUnsafeDivNat32(immutable ulong a, immutable ulong b) =>
+ulong fnUnsafeDivNat32(ulong a, ulong b) =>
 	cast(uint) a / cast(uint) b;
-immutable(ulong) fnUnsafeDivNat64(immutable ulong a, immutable ulong b) =>
+ulong fnUnsafeDivNat64(ulong a, ulong b) =>
 	a / b;
-immutable(ulong) fnUnsafeModNat64(immutable ulong a, immutable ulong b) =>
+ulong fnUnsafeModNat64(ulong a, ulong b) =>
 	a % b;
-immutable(ulong) fnWrapAddIntegral(immutable ulong a, immutable ulong b) =>
+ulong fnWrapAddIntegral(ulong a, ulong b) =>
 	a + b;
-immutable(ulong) fnWrapMulIntegral(immutable ulong a, immutable ulong b) =>
+ulong fnWrapMulIntegral(ulong a, ulong b) =>
 	a * b;
-immutable(ulong) fnWrapSubIntegral(immutable ulong a, immutable ulong b) =>
+ulong fnWrapSubIntegral(ulong a, ulong b) =>
 	a - b;
 
 //TODO:MOVE
-pure immutable(ulong) u64OfI32(immutable int a) =>
+pure ulong u64OfI32(int a) =>
 	u64OfI64(a);
 
-pure immutable(ulong) u64OfI64(immutable long a) =>
+pure ulong u64OfI64(long a) =>
 	cast(ulong) a;
 
 private:
 
-immutable(ulong) binaryFloat32s(alias cb)(immutable ulong a, immutable ulong b) =>
+ulong binaryFloat32s(alias cb)(ulong a, ulong b) =>
 	bitsOfFloat32(cb(float32OfBits(a), float32OfBits(b)));
 
-immutable(ulong) binaryFloat64s(alias cb)(immutable ulong a, immutable ulong b) =>
+ulong binaryFloat64s(alias cb)(ulong a, ulong b) =>
 	bitsOfFloat64(cb(float64OfBits(a), float64OfBits(b)));
 
 //TODO:PERF
-pure immutable(long) popcount(immutable ulong a) =>
+pure long popcount(ulong a) =>
 	a == 0
 		? 0
 		: popcount(a >> 1) + (a % 2 != 0 ? 1 : 0);

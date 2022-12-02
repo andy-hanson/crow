@@ -9,7 +9,7 @@ import model.concreteModel :
 	ConcreteStructSource,
 	ConcreteType,
 	PointerTypeAndConstantsConcrete;
-import model.constant : Constant, constantEqual, constantZero;
+import model.constant : Constant, constantZero;
 import util.alloc.alloc : Alloc;
 import util.col.arr : empty, only;
 import util.col.arrUtil : arrEqual, arrLiteral, findIndex;
@@ -24,11 +24,11 @@ import util.util : verify;
 struct AllConstantsBuilder {
 	private:
 	@disable this(ref const AllConstantsBuilder);
-	MutDict!(immutable SafeCStr, immutable Constant.CString) cStrings;
-	MutDict!(immutable Sym, immutable Constant) syms;
-	MutArr!(immutable SafeCStr) cStringValues;
-	MutDict!(immutable ConcreteType, ArrTypeAndConstants) arrs;
-	MutDict!(immutable ConcreteStruct*, PointerTypeAndConstants) pointers;
+	MutDict!(SafeCStr, Constant.CString) cStrings;
+	MutDict!(Sym, Constant) syms;
+	MutArr!SafeCStr cStringValues;
+	MutDict!(ConcreteType, ArrTypeAndConstants) arrs;
+	MutDict!(ConcreteStruct*, PointerTypeAndConstants) pointers;
 }
 
 private struct ArrTypeAndConstants {
@@ -40,133 +40,108 @@ private struct ArrTypeAndConstants {
 
 private struct PointerTypeAndConstants {
 	immutable size_t typeIndex;
-	MutArr!(immutable Constant) constants;
+	MutArr!Constant constants;
 }
 
-immutable(AllConstantsConcrete) finishAllConstants(
+AllConstantsConcrete finishAllConstants(
 	ref Alloc alloc,
 	scope ref AllConstantsBuilder a,
-	ref const AllSymbols allSymbols,
-	immutable ConcreteStruct* arrSymStruct,
+	ConcreteStruct* arrSymStruct,
 ) {
-	immutable Constant staticSymbols = getConstantArr(alloc, a, arrSymStruct, valuesArray(alloc, a.syms));
-	immutable ArrTypeAndConstantsConcrete[] arrs =
-		mapToArr_mut!(ArrTypeAndConstantsConcrete, immutable ConcreteType, ArrTypeAndConstants)(
+	Constant staticSymbols = getConstantArr(alloc, a, arrSymStruct, valuesArray(alloc, a.syms));
+	ArrTypeAndConstantsConcrete[] arrs =
+		mapToArr_mut!(ArrTypeAndConstantsConcrete, ConcreteType, ArrTypeAndConstants)(
 			alloc,
 			a.arrs,
-			(immutable(ConcreteType), ref ArrTypeAndConstants value) =>
-				immutable ArrTypeAndConstantsConcrete(
+			(ConcreteType _, ref ArrTypeAndConstants value) =>
+				ArrTypeAndConstantsConcrete(
 					value.arrType,
 					value.elementType,
 					moveToArr!(immutable Constant[])(alloc, value.constants)));
-	immutable PointerTypeAndConstantsConcrete[] records =
-		mapToArr_mut!(
-			PointerTypeAndConstantsConcrete,
-			immutable ConcreteStruct*,
-			PointerTypeAndConstants,
-		)(alloc, a.pointers, (immutable ConcreteStruct* key, ref PointerTypeAndConstants value) =>
-			immutable PointerTypeAndConstantsConcrete(
-				key,
-				moveToArr(alloc, value.constants)));
-	return immutable AllConstantsConcrete(moveToArr(alloc, a.cStringValues), staticSymbols, arrs, records);
+	PointerTypeAndConstantsConcrete[] records =
+		mapToArr_mut!(PointerTypeAndConstantsConcrete, ConcreteStruct*, PointerTypeAndConstants)(
+			alloc, a.pointers, (ConcreteStruct* key, ref PointerTypeAndConstants value) =>
+				PointerTypeAndConstantsConcrete(key, moveToArr(alloc, value.constants)));
+	return AllConstantsConcrete(moveToArr(alloc, a.cStringValues), staticSymbols, arrs, records);
 }
 
 // TODO: this will be used when creating constant records by-ref.
-immutable(Constant) getConstantPtr(
-	ref Alloc alloc,
-	ref AllConstantsBuilder allConstants,
-	immutable ConcreteStruct* pointee,
-	immutable Constant value,
-) {
-	PointerTypeAndConstants* d = ptrTrustMe(getOrAdd(alloc, allConstants.pointers, pointee, () =>
-		PointerTypeAndConstants(mutDictSize(allConstants.pointers), MutArr!(immutable Constant)())));
-	return immutable Constant(immutable Constant.Pointer(d.typeIndex, findOrPush!(immutable Constant)(
-		alloc,
-		d.constants,
-		(ref immutable Constant a) => constantEqual(a, value),
-		() => value)));
+Constant getConstantPtr(ref Alloc alloc, ref AllConstantsBuilder constants, ConcreteStruct* pointee, Constant value) {
+	PointerTypeAndConstants* d = ptrTrustMe(getOrAdd(alloc, constants.pointers, pointee, () =>
+		PointerTypeAndConstants(mutDictSize(constants.pointers), MutArr!(immutable Constant)())));
+	return Constant(Constant.Pointer(
+		d.typeIndex,
+		findOrPush!Constant(alloc, d.constants, (in Constant a) => a == value, () => value)));
 }
 
-immutable(Constant) getConstantArr(
+Constant getConstantArr(
 	ref Alloc alloc,
 	scope ref AllConstantsBuilder allConstants,
-	immutable ConcreteStruct* arrStruct,
-	immutable Constant[] elements,
+	ConcreteStruct* arrStruct,
+	Constant[] elements,
 ) {
 	if (empty(elements))
 		return constantEmptyArr();
 	else {
-		immutable ConcreteType elementType = only(arrStruct.source.as!(ConcreteStructSource.Inst).typeArgs);
+		ConcreteType elementType = only(arrStruct.source.as!(ConcreteStructSource.Inst).typeArgs);
 		ArrTypeAndConstants* d = ptrTrustMe(getOrAdd(alloc, allConstants.arrs, elementType, () =>
 			ArrTypeAndConstants(
 				arrStruct,
 				elementType,
 				mutDictSize(allConstants.arrs), MutArr!(immutable Constant[])())));
-		immutable size_t index = findOrPush!(immutable Constant[])(
+		size_t index = findOrPush!(immutable Constant[])(
 			alloc,
 			d.constants,
-			(ref immutable Constant[] it) =>
-				constantArrEqual(it, elements),
-			() =>
-				elements);
-		return immutable Constant(immutable Constant.ArrConstant(d.typeIndex, index));
+			(in Constant[] it) => arrEqual!Constant(it, elements),
+			() => elements);
+		return Constant(Constant.ArrConstant(d.typeIndex, index));
 	}
 }
 
-private immutable(Constant) constantEmptyArr() {
-	static immutable Constant[2] fields = [
-		immutable Constant(immutable Constant.Integral(0)),
-		constantZero];
-	return immutable Constant(immutable Constant.Record(fields));
+private Constant constantEmptyArr() {
+	static Constant[2] fields = [Constant(Constant.Integral(0)), constantZero];
+	return Constant(Constant.Record(fields));
 }
 
-private immutable(Constant) getConstantCStrForSym(
+private Constant getConstantCStrForSym(
 	ref Alloc alloc,
 	ref AllConstantsBuilder allConstants,
 	ref const AllSymbols allSymbols,
-	immutable Sym value,
+	Sym value,
 ) =>
 	getConstantCStr(alloc, allConstants, safeCStrOfSym(alloc, allSymbols, value));
 
-immutable(Constant) getConstantCStr(
-	ref Alloc alloc,
-	ref AllConstantsBuilder allConstants,
-	immutable SafeCStr value,
-) =>
-	immutable Constant(getOrAdd!(immutable SafeCStr, immutable Constant.CString)(
+Constant getConstantCStr(ref Alloc alloc, ref AllConstantsBuilder allConstants, SafeCStr value) =>
+	Constant(getOrAdd!(SafeCStr, Constant.CString)(
 		alloc,
 		allConstants.cStrings,
 		value,
 		() {
-			immutable size_t index = mutArrSize(allConstants.cStringValues);
+			size_t index = mutArrSize(allConstants.cStringValues);
 			verify(mutDictSize(allConstants.cStrings) == index);
 			push(alloc, allConstants.cStringValues, value);
-			return immutable Constant.CString(index);
+			return Constant.CString(index);
 		}));
 
-immutable(Constant) getConstantSym(
+Constant getConstantSym(
 	ref Alloc alloc,
 	ref AllConstantsBuilder allConstants,
 	ref const AllSymbols allSymbols,
-	immutable Sym value,
+	Sym value,
 ) =>
-	getOrAdd!(immutable Sym, immutable Constant)(alloc, allConstants.syms, value, () =>
-		immutable Constant(immutable Constant.Record(arrLiteral!Constant(alloc, [
+	getOrAdd!(Sym, Constant)(alloc, allConstants.syms, value, () =>
+		Constant(Constant.Record(arrLiteral!Constant(alloc, [
 			getConstantCStrForSym(alloc, allConstants, allSymbols, value)]))));
 
 private:
 
-immutable(bool) constantArrEqual(immutable Constant[] a, immutable Constant[] b) =>
-	arrEqual!Constant(a, b, (ref immutable Constant x, ref immutable Constant y) =>
-		constantEqual(x, y));
-
-immutable(size_t) findOrPush(T)(
+size_t findOrPush(T)(
 	ref Alloc alloc,
 	ref MutArr!T a,
-	scope immutable(bool) delegate(ref const T) @safe @nogc pure nothrow cbFind,
-	scope immutable(T) delegate() @safe @nogc pure nothrow cbPush,
+	in bool delegate(in T) @safe @nogc pure nothrow cbFind,
+	in T delegate() @safe @nogc pure nothrow cbPush,
 ) {
-	const Opt!size_t res = findIndex!(immutable T)(tempAsArr(a), cbFind);
+	Opt!size_t res = findIndex!T(tempAsArr(a), cbFind);
 	if (has(res))
 		return force(res);
 	else {

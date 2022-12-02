@@ -8,25 +8,25 @@ import util.alloc.alloc : Alloc;
 import util.sym : Sym;
 import util.repr : Repr, reprArr, reprFloat, reprNat, reprOpt, reprRecord, reprSym;
 
-immutable(Repr) reprOfConstant(ref Alloc alloc, immutable Constant a) =>
-	a.match!(immutable Repr)(
-		(immutable Constant.ArrConstant x) =>
+Repr reprOfConstant(ref Alloc alloc, in Constant a) =>
+	a.matchIn!Repr(
+		(in Constant.ArrConstant x) =>
 			reprRecord!"arr"(alloc, [reprNat(x.typeIndex), reprNat(x.index)]),
-		(immutable Constant.CString x) =>
+		(in Constant.CString x) =>
 			reprRecord!"c-string"(alloc, [reprNat(x.index)]),
-		(immutable Constant.Float x) =>
+		(in Constant.Float x) =>
 			reprFloat(x.value),
-		(immutable Constant.FunPtr x) =>
+		(in Constant.FunPtr x) =>
 			reprRecord!"fun-pointer"(alloc, [
-				reprOpt(alloc, name(*x.fun), (ref immutable Sym name) => reprSym(name))]),
-		(immutable Constant.Integral x) =>
+				reprOpt!Sym(alloc, name(*x.fun), (in Sym name) => reprSym(name))]),
+		(in Constant.Integral x) =>
 			reprNat(x.value),
-		(immutable Constant.Pointer x) =>
+		(in Constant.Pointer x) =>
 			reprRecord!"pointer"(alloc, [reprNat(x.typeIndex), reprNat(x.index)]),
-		(immutable Constant.Record x) =>
-			reprRecord!"record"(alloc, [reprArr(alloc, x.args, (ref immutable Constant arg) =>
+		(in Constant.Record x) =>
+			reprRecord!"record"(alloc, [reprArr!Constant(alloc, x.args, (in Constant arg) =>
 				reprOfConstant(alloc, arg))]),
-		(ref immutable Constant.Union x) =>
+		(in Constant.Union x) =>
 			reprRecord!"union"(alloc, [reprNat(x.memberIndex), reprOfConstant(alloc, x.arg)]),
-		(immutable Constant.Zero) =>
+		(in Constant.Zero) =>
 			reprSym!"zero");

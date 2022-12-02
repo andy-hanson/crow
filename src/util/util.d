@@ -2,54 +2,54 @@ module util.util;
 
 @safe @nogc pure nothrow:
 
-immutable(T) as(T)(immutable T a) =>
+T typeAs(T)(T a) =>
 	a;
 
-T todo(T)(immutable char* s) {
+T todo(T)(in immutable char* s) {
 	debugLog(s);
 	assert(0);
 }
 
-immutable(T) min(T)(immutable T a, immutable T b) =>
+T min(T)(T a, T b) =>
 	a < b ? a : b;
 
-immutable(T) max(T)(immutable T a, immutable T b) =>
+T max(T)(T a, T b) =>
 	a > b ? a : b;
 
-immutable(ulong) abs(immutable long a) =>
+ulong abs(long a) =>
 	a < 0 ? -a : a;
 
-immutable(double) abs(immutable double a) =>
+double abs(double a) =>
 	a < 0 ? -a : a;
 
-immutable(T) roundUp(T)(immutable T a, immutable T b) {
-	immutable T res = roundUpRecur(a, b);
+T roundUp(T)(T a, T b) {
+	T res = roundUpRecur(a, b);
 	verify(res >= a);
 	verify(res % b == 0);
 	return res;
 }
 
 //TODO: more efficient
-private immutable(T) roundUpRecur(T)(immutable T a, immutable T b) {
+private T roundUpRecur(T)(T a, T b) {
 	verify(b != 0);
 	return a % b == 0 ? a : roundUpRecur(a + 1, b);
 }
 
-immutable(T) divRoundUp(T)(immutable T a, immutable T b) {
+T divRoundUp(T)(T a, T b) {
 	verify(b != 0);
-	immutable T div = a / b;
-	immutable T mod = a % b;
-	immutable T res = div + immutable T(mod == 0 ? 0 : 1);
+	T div = a / b;
+	T mod = a % b;
+	T res = div + (mod == 0 ? 0 : 1);
 	verify(res * b >= a);
 	return res;
 }
 
-immutable(bool) isMultipleOf(T)(immutable T a, immutable T b) {
+bool isMultipleOf(T)(T a, T b) {
 	verify(b != 0);
 	return a % b == 0;
 }
 
-void verify(immutable char* reason = null)(immutable bool condition) {
+void verify(immutable char* reason = null)(bool condition) {
 	version(assert) {
 		if (!condition) {
 			static if (reason != null)
@@ -70,7 +70,7 @@ version(WebAssembly) {
 	extern(C) void verifyFail();
 }
 
-void verifyEq(T)(immutable T a, immutable T b) {
+void verifyEq(T)(T a, T b) {
 	//if (a != b)
 	//	debug {
 	//		static if (T.sizeof == 8) {
@@ -91,15 +91,15 @@ else {
 	}
 }
 
-void debugLog(immutable char* message) {
+void debugLog(in immutable char* message) {
 	debugLog(message, 0);
 }
 
 version (WebAssembly) {
 	// WARN: 'message' must be heap allocated, not on stack
-	extern(C) void debugLog(immutable char* message, immutable size_t value);
+	extern(C) void debugLog(in immutable char* message, size_t value);
 } else {
-	void debugLog(immutable char* message, immutable size_t value) {
+	void debugLog(in immutable char* message, size_t value) {
 		import core.stdc.stdio : printf;
 		debug {
 			printf("debug log: %s == %llu\n", message, value);
@@ -112,6 +112,3 @@ T unreachable(T)() {
 }
 
 void drop(T)(T) {}
-
-@trusted ref immutable(T) castImmutableRef(T)(ref const(T) a) =>
-	cast(immutable) a;

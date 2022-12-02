@@ -4,7 +4,6 @@ module util.sym;
 
 import util.alloc.alloc : Alloc;
 import util.col.arr : only;
-import util.col.arrUtil : findIndex;
 import util.col.mutArr : MutArr, mutArrSize, push;
 import util.col.mutDict : addToMutDict, getAt_mut, MutDict, mutDictSize;
 import util.col.str : copyToSafeCStr, eachChar, SafeCStr, strEq, strOfSafeCStr;
@@ -14,18 +13,14 @@ import util.ptr : ptrTrustMe;
 import util.util : drop, verify;
 import util.writer : finishWriterToSafeCStr, Writer;
 
-immutable(Opt!size_t) indexOfSym(ref immutable Sym[] a, immutable Sym value) =>
-	findIndex!(immutable Sym)(a, (ref immutable Sym it) => it == value);
-
-struct Sym {
+immutable struct Sym {
 	@safe @nogc pure nothrow:
 	// This is either:
 	// * A short symbol, tagged with 'shortSymTag'
 	// * An index into 'largeStrings'.
-	immutable ulong value; // Public for 'switch'
+	ulong value; // Public for 'switch'
 	@disable this();
-	// TODO:PRIVATE
-	immutable this(immutable ulong v) { value = v; }
+	private this(ulong v) { value = v; }
 
 	void hash(ref Hasher hasher) const {
 		hashUlong(hasher, value);
@@ -37,10 +32,10 @@ struct AllSymbols {
 
 	@trusted this(Alloc* allocPtr_) {
 		allocPtr = allocPtr_;
-		foreach (immutable string s; specialSyms) { {
-			immutable SafeCStr str = immutable SafeCStr(s.ptr);
+		foreach (string s; specialSyms) { {
+			SafeCStr str = SafeCStr(s.ptr);
 			debug {
-				immutable Opt!Sym packed = tryPackShortSym(strOfSafeCStr(str));
+				Opt!Sym packed = tryPackShortSym(strOfSafeCStr(str));
 				verify(!has(packed));
 			}
 			drop(addLargeString(this, str));
@@ -49,33 +44,33 @@ struct AllSymbols {
 
 	private:
 	Alloc* allocPtr;
-	MutDict!(immutable string, immutable Sym) largeStringToIndex;
-	MutArr!(immutable SafeCStr) largeStringFromIndex;
+	MutDict!(immutable string, Sym) largeStringToIndex;
+	MutArr!SafeCStr largeStringFromIndex;
 
 	ref Alloc alloc() return scope =>
 		*allocPtr;
 }
 
 // WARN: 'value' must have been allocated by a.alloc
-private immutable(Sym) addLargeString(ref AllSymbols a, immutable SafeCStr value) {
-	immutable size_t index = mutArrSize(a.largeStringFromIndex);
+private Sym addLargeString(ref AllSymbols a, SafeCStr value) {
+	size_t index = mutArrSize(a.largeStringFromIndex);
 	verify(mutDictSize(a.largeStringToIndex) == index);
-	immutable Sym res = immutable Sym(index);
+	Sym res = Sym(index);
 	addToMutDict(a.alloc, a.largeStringToIndex, strOfSafeCStr(value), res);
 	push(a.alloc, a.largeStringFromIndex, value);
 	return res;
 }
 
-immutable(Sym) prependSet(ref AllSymbols allSymbols, immutable Sym a) {
-	immutable Opt!Sym short_ = tryPrefixShortSymWithSet(a);
+Sym prependSet(ref AllSymbols allSymbols, Sym a) {
+	Opt!Sym short_ = tryPrefixShortSymWithSet(a);
 	return has(short_) ? force(short_) : prependToLongStr!"set-"(allSymbols, a);
 }
 
-private @trusted immutable(Sym) prependToLongStr(immutable string prepend)(ref AllSymbols allSymbols, immutable Sym a) {
+private @trusted Sym prependToLongStr(string prepend)(ref AllSymbols allSymbols, Sym a) {
 	char[0x100] temp = void;
 	temp[0 .. prepend.length] = prepend;
 	size_t i = prepend.length;
-	eachCharInSym(allSymbols, a, (immutable char x) {
+	eachCharInSym(allSymbols, a, (char x) {
 		temp[i] = x;
 		i++;
 		verify(i <= temp.length);
@@ -83,14 +78,14 @@ private @trusted immutable(Sym) prependToLongStr(immutable string prepend)(ref A
 	return getSymFromLongStr(allSymbols, cast(immutable) temp[0 .. i]);
 }
 
-immutable(Sym) concatSymsWithDot(ref AllSymbols allSymbols, immutable Sym a, immutable Sym b) =>
+Sym concatSymsWithDot(ref AllSymbols allSymbols, Sym a, Sym b) =>
 	concatSyms(allSymbols, [a, sym!".", b]);
 
-@trusted immutable(Sym) concatSyms(ref AllSymbols allSymbols, scope immutable Sym[] syms) {
+@trusted Sym concatSyms(ref AllSymbols allSymbols, scope Sym[] syms) {
 	char[0x100] temp = void;
 	size_t i = 0;
-	foreach (immutable Sym s; syms)
-		eachCharInSym(allSymbols, s, (immutable char x) {
+	foreach (Sym s; syms)
+		eachCharInSym(allSymbols, s, (char x) {
 			temp[i] = x;
 			i++;
 			verify(i <= temp.length);
@@ -98,19 +93,15 @@ immutable(Sym) concatSymsWithDot(ref AllSymbols allSymbols, immutable Sym a, imm
 	return symOfStr(allSymbols, cast(immutable) temp[0 .. i]);
 }
 
-immutable(Sym) symOfStr(ref AllSymbols allSymbols, scope immutable string str) {
-	immutable Opt!Sym packed = tryPackShortSym(str);
+Sym symOfStr(ref AllSymbols allSymbols, scope string str) {
+	Opt!Sym packed = tryPackShortSym(str);
 	return has(packed) ? force(packed) : getSymFromLongStr(allSymbols, str);
 }
 
-immutable(Sym) symOfSafeCStr(ref AllSymbols allSymbols, scope immutable SafeCStr a) =>
+Sym symOfSafeCStr(ref AllSymbols allSymbols, scope SafeCStr a) =>
 	symOfStr(allSymbols, strOfSafeCStr(a));
 
-void eachCharInSym(
-	scope ref const AllSymbols allSymbols,
-	immutable Sym a,
-	scope void delegate(immutable char) @safe @nogc pure nothrow cb,
-) {
+void eachCharInSym(in AllSymbols allSymbols, Sym a, in void delegate(char) @safe @nogc pure nothrow cb) {
 	if (isShortSym(a))
 		eachCharInShortSym(a.value, cb);
 	else {
@@ -119,29 +110,30 @@ void eachCharInSym(
 	}
 }
 
-immutable(uint) symSize(ref const AllSymbols allSymbols, immutable Sym a) {
+uint symSize(in AllSymbols allSymbols, Sym a) {
 	uint size = 0;
-	eachCharInSym(allSymbols, a, (immutable char) {
+	eachCharInSym(allSymbols, a, (char) {
 		size++;
 	});
 	return size;
 }
 
-immutable(Sym) sym(immutable string name) = specialSym(name);
+Sym sym(string name)() =>
+	specialSym(name);
 
-private @trusted immutable(Sym) specialSym(immutable string name) {
-	foreach (immutable size_t i, immutable string s; specialSyms)
+private @trusted Sym specialSym(string name) {
+	foreach (size_t i, string s; specialSyms)
 		if (strEq(s[0 .. $ - 1], name))
-			return immutable Sym(i);
+			return Sym(i);
 	return shortSym(name);
 }
 
-private immutable(Sym) shortSym(immutable string name) {
-	immutable Opt!Sym opt = tryPackShortSym(name);
+private Sym shortSym(string name) {
+	Opt!Sym opt = tryPackShortSym(name);
 	return force(opt);
 }
 
-immutable(SafeCStr) safeCStrOfSym(ref Alloc alloc, ref const AllSymbols allSymbols, immutable Sym a) {
+SafeCStr safeCStrOfSym(ref Alloc alloc, ref const AllSymbols allSymbols, Sym a) {
 	if (isLongSym(a))
 		return asLongSym(allSymbols, a);
 	else {
@@ -151,11 +143,11 @@ immutable(SafeCStr) safeCStrOfSym(ref Alloc alloc, ref const AllSymbols allSymbo
 	}
 }
 
-immutable(char[bufferSize]) symAsTempBuffer(size_t bufferSize)(ref const AllSymbols allSymbols, immutable Sym a) {
+char[bufferSize] symAsTempBuffer(size_t bufferSize)(in AllSymbols allSymbols, Sym a) {
 	char[bufferSize] res;
 	verify(symSize(allSymbols, a) < bufferSize);
 	size_t index;
-	eachCharInSym(allSymbols, a, (immutable char c) {
+	eachCharInSym(allSymbols, a, (char c) {
 		res[index] = c;
 		index++;
 	});
@@ -163,20 +155,20 @@ immutable(char[bufferSize]) symAsTempBuffer(size_t bufferSize)(ref const AllSymb
 	return res;
 }
 
-immutable(size_t) writeSymAndGetSize(scope ref Writer writer, scope ref const AllSymbols allSymbols, immutable Sym a) {
+size_t writeSymAndGetSize(scope ref Writer writer, in AllSymbols allSymbols, Sym a) {
 	size_t size = 0;
-	eachCharInSym(allSymbols, a, (immutable char c) {
+	eachCharInSym(allSymbols, a, (char c) {
 		writer ~= c;
 		size++;
 	});
 	return size;
 }
 
-void writeSym(scope ref Writer writer, scope ref const AllSymbols allSymbols, immutable Sym a) {
+void writeSym(scope ref Writer writer, in AllSymbols allSymbols, Sym a) {
 	writeSymAndGetSize(writer, allSymbols, a);
 }
 
-void writeQuotedSym(ref Writer writer, ref const AllSymbols allSymbols, immutable Sym a) {
+void writeQuotedSym(scope ref Writer writer, in AllSymbols allSymbols, Sym a) {
 	writer ~= '"';
 	writeSym(writer, allSymbols, a);
 	writer ~= '"';
@@ -185,60 +177,65 @@ void writeQuotedSym(ref Writer writer, ref const AllSymbols allSymbols, immutabl
 private:
 
 // Bit to be set when the sym is short
-immutable ulong shortSymTag = 0x8000000000000000;
+ulong shortSymTag() =>
+	0x8000000000000000;
 
-immutable size_t shortSymMaxChars = 12;
+size_t shortSymMaxChars() =>
+	12;
 
-immutable(ulong) codeForLetter(immutable char a) {
-	verify!"codeForLetter"('a' <= a && a <= 'z');
+ulong codeForLetter(char a) {
+	verify('a' <= a && a <= 'z');
 	return 1 + a - 'a';
 }
-immutable(char) letterFromCode(immutable ulong code) {
+char letterFromCode(ulong code) {
 	verify(1 <= code && code <= 26);
-	return cast(immutable char) ('a' + (code - 1));
+	return cast(char) ('a' + (code - 1));
 }
-immutable ulong codeForHyphen = 27;
-immutable ulong codeForUnderscore = 28;
-immutable ulong codeForNextIsCapitalLetter = 29;
-immutable ulong codeForNextIsDigit = 30;
+ulong codeForHyphen() => 27;
+ulong codeForUnderscore() => 28;
+ulong codeForNextIsCapitalLetter() => 29;
+ulong codeForNextIsDigit() => 30;
 
-immutable ulong setPrefix =
+ulong setPrefix() =>
 	(codeForLetter('s') << (5 * (shortSymMaxChars - 1))) |
 	(codeForLetter('e') << (5 * (shortSymMaxChars - 2))) |
 	(codeForLetter('t') << (5 * (shortSymMaxChars - 3))) |
 	(codeForHyphen << (5 * (shortSymMaxChars - 4)));
 
-immutable ulong setPrefixSizeBits = 5 * 4;
-immutable ulong setPrefixLowerBitsMask = (1 << setPrefixSizeBits) - 1;
-immutable ulong setPrefixMask = setPrefixLowerBitsMask << (5 * 8);
+ulong setPrefixSizeBits() =>
+	5 * 4;
+ulong setPrefixLowerBitsMask() =>
+	(1 << setPrefixSizeBits) - 1;
+ulong setPrefixMask() =>
+	setPrefixLowerBitsMask << (5 * 8);
 
-immutable(Opt!Sym) tryPrefixShortSymWithSet(immutable Sym a) {
+Opt!Sym tryPrefixShortSymWithSet(Sym a) {
 	if (isShortSym(a) && (a.value & setPrefixMask) == 0) {
 		ulong shift = 0;
 		ulong value = a.value;
 		while (true) {
-			immutable ulong shifted = value << 5;
+			ulong shifted = value << 5;
 			if ((shifted & setPrefixMask) != 0)
 				break;
 			value = shifted;
 			shift += 5;
 		}
-		return some(immutable Sym(shortSymTag | ((setPrefix | value) >> shift)));
+		return some(Sym(shortSymTag | ((setPrefix | value) >> shift)));
 	} else
 		return none!Sym;
 }
 
-immutable(Opt!Sym) tryPackShortSym(immutable string str) {
+Opt!Sym tryPackShortSym(string str) {
 	ulong res = 0;
 	size_t len = 0;
 
-	void push(immutable ulong value) {
+	void push(ulong value) {
 		res = res << 5;
 		res |= value;
 		len++;
 	}
 
-	foreach (immutable char x; str) {
+	foreach (char x; str) {
 		if ('a' <= x && x <= 'z')
 			push(codeForLetter(x));
 		else if (x == '-')
@@ -254,16 +251,13 @@ immutable(Opt!Sym) tryPackShortSym(immutable string str) {
 		} else
 			return none!Sym;
 	}
-	return len > shortSymMaxChars ? none!Sym : some(immutable Sym(res | shortSymTag));
+	return len > shortSymMaxChars ? none!Sym : some(Sym(res | shortSymTag));
 }
 
-void eachCharInShortSym(
-	ulong value,
-	scope void delegate(immutable char) @safe @nogc pure nothrow cb,
-) {
+void eachCharInShortSym(ulong value, in void delegate(char) @safe @nogc pure nothrow cb) {
 	ulong remaining = shortSymMaxChars;
-	immutable(ulong) take() {
-		immutable ulong res = (value >> 55) & 0b11111;
+	ulong take() {
+		ulong res = (value >> 55) & 0b11111;
 		value = value << 5;
 		remaining--;
 		return res;
@@ -271,7 +265,7 @@ void eachCharInShortSym(
 
 	while (remaining != 0) {
 		verify(remaining < 999);
-		immutable ulong x = take();
+		ulong x = take();
 		if (x < 27) {
 			if (x != 0)
 				cb(letterFromCode(x));
@@ -284,10 +278,10 @@ void eachCharInShortSym(
 					cb('_');
 					break;
 				case codeForNextIsCapitalLetter:
-					cb(cast(immutable char) ('A' + take()));
+					cb(cast(char) ('A' + take()));
 					break;
 				case codeForNextIsDigit:
-					cb(cast(immutable char) ('0' + take()));
+					cb(cast(char) ('0' + take()));
 					break;
 			}
 		}
@@ -295,20 +289,20 @@ void eachCharInShortSym(
 }
 
 // Public for test only
-public immutable(bool) isShortSym(immutable Sym a) =>
+public bool isShortSym(Sym a) =>
 	(a.value & shortSymTag) != 0;
 
 // Public for test only
-public immutable(bool) isLongSym(immutable Sym a) =>
+public bool isLongSym(Sym a) =>
 	!isShortSym(a);
 
-@trusted immutable(SafeCStr) asLongSym(return scope ref const AllSymbols allSymbols, immutable Sym a) {
+@trusted SafeCStr asLongSym(return scope ref const AllSymbols allSymbols, Sym a) {
 	verify(isLongSym(a));
 	return allSymbols.largeStringFromIndex[a.value];
 }
 
-immutable(Sym) getSymFromLongStr(ref AllSymbols allSymbols, scope immutable string str) {
-	immutable Opt!Sym value = getAt_mut(allSymbols.largeStringToIndex, str);
+Sym getSymFromLongStr(ref AllSymbols allSymbols, in string str) {
+	Opt!Sym value = getAt_mut(allSymbols.largeStringToIndex, str);
 	return has(value) ? force(value) : addLargeString(allSymbols, copyToSafeCStr(allSymbols.alloc, str));
 }
 

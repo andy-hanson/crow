@@ -50,13 +50,13 @@ private:
 	verify(dataEnd(a) == begin + 3);
 
 	scope immutable ulong[] popped = dataPopN(a, 2);
-	verify(dataArrEqual(popped, [6, 7]));
+	verify(arrEqual(popped, [6, 7]));
 	expectDataStack(test, a, [5]);
 
 	dataPush(a, 8);
 	dataPush(a, 9);
 	expectDataStack(test, a, [5, 8, 9]);
-	immutable ulong removed = dataRemove(a, 1);
+	ulong removed = dataRemove(a, 1);
 	verify(removed == 8);
 	expectDataStack(test, a, [5, 9]);
 
@@ -79,7 +79,7 @@ private:
 }
 
 @system void testDataReturn(ref Test test, Stacks a) {
-	foreach (immutable int i; [1, 2, 3, 4, 5, 6])
+	foreach (ulong i; [1, 2, 3, 4, 5, 6])
 		dataPush(a, i);
 
 	dataReturn(a, 0, 0);
@@ -91,6 +91,3 @@ private:
 	dataReturn(a, 2, 0);
 	expectDataStack(test, a, []);
 }
-
-immutable(bool) dataArrEqual(scope immutable ulong[] a, scope immutable ulong[] b) =>
-	arrEqual!(immutable ulong)(a, b, (ref immutable ulong x, ref immutable ulong y) => x == y);

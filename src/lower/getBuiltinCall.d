@@ -5,59 +5,52 @@ module lower.getBuiltinCall;
 import model.constant : Constant, constantBool, constantZero;
 import model.lowModel : isPtrRawConstOrMut, LowExprKind, LowType, PrimitiveType;
 import util.alloc.alloc : Alloc;
-import util.sym : AllSymbols, safeCStrOfSym, Sym, sym;
+import util.sym : Sym, sym;
 import util.union_ : Union;
-import util.util : debugLog, todo;
+import util.util : todo;
 
-struct BuiltinKind {
-	struct CallFunPointer {}
-	struct InitConstants {}
-	struct OptOr {}
-	struct OptQuestion2 {}
-	struct PointerCast {}
-	struct SizeOf {}
-	struct StaticSymbols {}
+immutable struct BuiltinKind {
+	immutable struct CallFunPointer {}
+	immutable struct InitConstants {}
+	immutable struct OptOr {}
+	immutable struct OptQuestion2 {}
+	immutable struct PointerCast {}
+	immutable struct SizeOf {}
+	immutable struct StaticSymbols {}
 
 	mixin Union!(
-		immutable CallFunPointer,
-		immutable Constant,
-		immutable InitConstants,
-		immutable LowExprKind.SpecialUnary.Kind,
-		immutable LowExprKind.SpecialBinary.Kind,
-		immutable LowExprKind.SpecialTernary.Kind,
-		immutable OptOr,
-		immutable OptQuestion2,
-		immutable PointerCast,
-		immutable SizeOf,
-		immutable StaticSymbols);
+		CallFunPointer,
+		Constant,
+		InitConstants,
+		LowExprKind.SpecialUnary.Kind,
+		LowExprKind.SpecialBinary.Kind,
+		LowExprKind.SpecialTernary.Kind,
+		OptOr,
+		OptQuestion2,
+		PointerCast,
+		SizeOf,
+		StaticSymbols);
 }
 
-immutable(BuiltinKind) getBuiltinKind(
-	ref Alloc alloc,
-	ref const AllSymbols allSymbols,
-	immutable Sym name,
-	immutable LowType rt,
-	immutable LowType p0,
-	immutable LowType p1,
-) {
-	immutable(BuiltinKind) constant(immutable Constant kind) =>
-		immutable BuiltinKind(kind);
-	immutable(BuiltinKind) unary(immutable LowExprKind.SpecialUnary.Kind kind) =>
-		immutable BuiltinKind(kind);
-	immutable(BuiltinKind) binary(immutable LowExprKind.SpecialBinary.Kind kind) =>
-		immutable BuiltinKind(kind);
-
-	immutable(T) failT(T)() {
-		debugLog("Unsupported builtin function:");
-		debugLog(safeCStrOfSym(alloc, allSymbols, name).ptr);
+BuiltinKind getBuiltinKind(ref Alloc alloc, Sym name, LowType rt, LowType p0, LowType p1) {
+	BuiltinKind unary(LowExprKind.SpecialUnary.Kind kind) {
+		return BuiltinKind(kind);
+	}
+	BuiltinKind binary(LowExprKind.SpecialBinary.Kind kind) {
+		return BuiltinKind(kind);
+	}
+	T failT(T)() {
 		return todo!T("not a builtin fun");
 	}
-	immutable(BuiltinKind) fail() =>
-		failT!(immutable BuiltinKind);
-	immutable(LowExprKind.SpecialUnary.Kind) failUnary() =>
-		failT!(immutable LowExprKind.SpecialUnary.Kind);
-	immutable(LowExprKind.SpecialBinary.Kind) failBinary() =>
-		failT!(immutable LowExprKind.SpecialBinary.Kind);
+	BuiltinKind fail() {
+		return failT!BuiltinKind;
+	}
+	LowExprKind.SpecialUnary.Kind failUnary() {
+		return failT!(LowExprKind.SpecialUnary.Kind);
+	}
+	LowExprKind.SpecialBinary.Kind failBinary() {
+		return failT!(LowExprKind.SpecialBinary.Kind);
+	}
 
 	switch (name.value) {
 		case sym!"+".value:
@@ -103,9 +96,9 @@ immutable(BuiltinKind) getBuiltinKind(
 		case sym!"||".value:
 			return isBool(rt)
 				? binary(LowExprKind.SpecialBinary.Kind.orBool)
-				: immutable BuiltinKind(immutable BuiltinKind.OptOr());
+				: BuiltinKind(BuiltinKind.OptOr());
 		case sym!"??".value:
-			return immutable BuiltinKind(immutable BuiltinKind.OptQuestion2());
+			return BuiltinKind(BuiltinKind.OptQuestion2());
 		case sym!"&".value:
 			return binary(isInt8(rt)
 				? LowExprKind.SpecialBinary.Kind.bitwiseAndInt8
@@ -173,7 +166,7 @@ immutable(BuiltinKind) getBuiltinKind(
 		case sym!"as-const".value:
 		case sym!"as-mut".value:
 		case sym!"pointer-cast".value:
-			return immutable BuiltinKind(immutable BuiltinKind.PointerCast());
+			return BuiltinKind(BuiltinKind.PointerCast());
 		case sym!"as-ref".value:
 			return unary(LowExprKind.SpecialUnary.Kind.asRef);
 		case sym!"count-ones".value:
@@ -181,9 +174,9 @@ immutable(BuiltinKind) getBuiltinKind(
 				? LowExprKind.SpecialUnary.Kind.countOnesNat64
 				: failUnary());
 		case sym!"false".value:
-			return constant(constantBool(false));
+			return BuiltinKind(constantBool(false));
 		case sym!"interpreter-backtrace".value:
-			return immutable BuiltinKind(LowExprKind.SpecialTernary.Kind.interpreterBacktrace);
+			return BuiltinKind(LowExprKind.SpecialTernary.Kind.interpreterBacktrace);
 		case sym!"is-less".value:
 			return binary(
 				isInt8(p0) ? LowExprKind.SpecialBinary.Kind.lessInt8 :
@@ -200,17 +193,17 @@ immutable(BuiltinKind) getBuiltinKind(
 				failBinary());
 		case sym!"new-void".value:
 			return isVoid(rt)
-				? constant(constantZero)
+				? BuiltinKind(constantZero)
 				: fail();
 		case sym!"null".value:
-			return constant(constantZero);
+			return BuiltinKind(constantZero);
 		case sym!"set-deref".value:
 			return binary(p0.isA!(LowType.PtrRawMut) ? LowExprKind.SpecialBinary.Kind.writeToPtr : failBinary());
 		case sym!"size-of".value:
-			return immutable BuiltinKind(immutable BuiltinKind.SizeOf());
+			return BuiltinKind(BuiltinKind.SizeOf());
 		case sym!"subscript".value:
 			return p0.isA!(LowType.FunPtr)
-				? immutable BuiltinKind(immutable BuiltinKind.CallFunPointer())
+				? BuiltinKind(BuiltinKind.CallFunPointer())
 				// 'subscript' for fun / act is handled elsewhere, see concreteFunWillBecomeNonExternLowFun
 				: fail();
 		case sym!"to-char8".value:
@@ -254,7 +247,7 @@ immutable(BuiltinKind) getBuiltinKind(
 				? LowExprKind.SpecialUnary.Kind.toPtrFromNat64
 				: failUnary());
 		case sym!"true".value:
-			return constant(constantBool(true));
+			return BuiltinKind(constantBool(true));
 		case sym!"unsafe-add".value:
 			return binary(isInt8(rt)
 				? LowExprKind.SpecialBinary.Kind.unsafeAddInt8
@@ -340,16 +333,16 @@ immutable(BuiltinKind) getBuiltinKind(
 				? LowExprKind.SpecialBinary.Kind.wrapSubNat64
 				: failBinary());
 		case sym!"zeroed".value:
-			return constant(constantZero);
+			return BuiltinKind(constantZero);
 		case sym!"as-any-mut-pointer".value:
 			return unary(LowExprKind.SpecialUnary.Kind.asAnyPtr);
 		case sym!"init-constants".value:
-			return immutable BuiltinKind(immutable BuiltinKind.InitConstants());
+			return BuiltinKind(BuiltinKind.InitConstants());
 		case sym!"pointer-cast-from-extern".value:
 		case sym!"pointer-cast-to-extern".value:
-			return immutable BuiltinKind(immutable BuiltinKind.PointerCast());
+			return BuiltinKind(BuiltinKind.PointerCast());
 		case sym!"static-symbols".value:
-			return immutable BuiltinKind(immutable BuiltinKind.StaticSymbols());
+			return BuiltinKind(BuiltinKind.StaticSymbols());
 		case sym!"truncate-to-int64".value:
 			return unary(isFloat64(p0)
 				? LowExprKind.SpecialUnary.Kind.truncateToInt64FromFloat64
@@ -387,44 +380,44 @@ immutable(BuiltinKind) getBuiltinKind(
 
 private:
 
-immutable(bool) isPrimitiveType(immutable LowType a, immutable PrimitiveType p) =>
+bool isPrimitiveType(LowType a, PrimitiveType p) =>
 	a.isA!PrimitiveType && a.as!PrimitiveType == p;
 
-immutable(bool) isBool(immutable LowType a) =>
+bool isBool(LowType a) =>
 	isPrimitiveType(a, PrimitiveType.bool_);
 
-immutable(bool) isChar(immutable LowType a) =>
+bool isChar(LowType a) =>
 	isPrimitiveType(a, PrimitiveType.char8);
 
-immutable(bool) isInt8(immutable LowType a) =>
+bool isInt8(LowType a) =>
 	isPrimitiveType(a, PrimitiveType.int8);
 
-immutable(bool) isInt16(immutable LowType a) =>
+bool isInt16(LowType a) =>
 	isPrimitiveType(a, PrimitiveType.int16);
 
-immutable(bool) isInt32(immutable LowType a) =>
+bool isInt32(LowType a) =>
 	isPrimitiveType(a, PrimitiveType.int32);
 
-immutable(bool) isInt64(immutable LowType a) =>
+bool isInt64(LowType a) =>
 	isPrimitiveType(a, PrimitiveType.int64);
 
-immutable(bool) isNat8(immutable LowType a) =>
+bool isNat8(LowType a) =>
 	isPrimitiveType(a, PrimitiveType.nat8);
 
-immutable(bool) isNat16(immutable LowType a) =>
+bool isNat16(LowType a) =>
 	isPrimitiveType(a, PrimitiveType.nat16);
 
-immutable(bool) isNat32(immutable LowType a) =>
+bool isNat32(LowType a) =>
 	isPrimitiveType(a, PrimitiveType.nat32);
 
-immutable(bool) isNat64(immutable LowType a) =>
+bool isNat64(LowType a) =>
 	isPrimitiveType(a, PrimitiveType.nat64);
 
-immutable(bool) isFloat32(immutable LowType a) =>
+bool isFloat32(LowType a) =>
 	isPrimitiveType(a, PrimitiveType.float32);
 
-immutable(bool) isFloat64(immutable LowType a) =>
+bool isFloat64(LowType a) =>
 	isPrimitiveType(a, PrimitiveType.float64);
 
-immutable(bool) isVoid(immutable LowType a) =>
+bool isVoid(LowType a) =>
 	isPrimitiveType(a, PrimitiveType.void_);

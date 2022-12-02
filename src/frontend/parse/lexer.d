@@ -10,8 +10,7 @@ import util.alloc.alloc : Alloc;
 import util.cell : Cell, cellGet, cellSet;
 import util.col.arr : arrOfRange, empty;
 import util.col.arrBuilder : add, ArrBuilder;
-import util.col.arrUtil : copyArr;
-import util.col.str : copyToSafeCStr, CStr, SafeCStr, safeCStr;
+import util.col.str : copyStr, copyToSafeCStr, CStr, SafeCStr, safeCStr;
 import util.conv : safeIntFromUint, safeToUint;
 import util.opt : force, has, none, Opt, some;
 import util.sourceRange : Pos, RangeWithinFile;
@@ -30,8 +29,8 @@ struct Lexer {
 	Alloc* allocPtr;
 	AllSymbols* allSymbolsPtr;
 	ArrBuilder!DiagnosticWithinFile* diagnosticsBuilderPtr;
-	immutable CStr sourceBegin;
-	CStr ptr;
+	CStr sourceBegin;
+	immutable(char)* ptr;
 	immutable IndentKind indentKind;
 	union {
 		bool ignore;
@@ -53,7 +52,7 @@ ref AllSymbols allSymbols(return ref Lexer lexer) =>
 	Alloc* alloc,
 	AllSymbols* allSymbols,
 	ArrBuilder!DiagnosticWithinFile* diagnosticsBuilder,
-	immutable SafeCStr source,
+	SafeCStr source,
 ) =>
 	Lexer(
 		alloc,
@@ -63,53 +62,56 @@ ref AllSymbols allSymbols(return ref Lexer lexer) =>
 		source.ptr,
 		detectIndentKind(source));
 
-private immutable(char) curChar(ref const Lexer lexer) =>
+private @trusted char prevChar(in Lexer lexer) =>
+	*(lexer.ptr - 1);
+
+private char curChar(in Lexer lexer) =>
 	*lexer.ptr;
 
-@trusted immutable(Pos) curPos(ref Lexer lexer) {
+@trusted Pos curPos(ref Lexer lexer) {
 	// Ensure start is after any whitespace
 	while (tryTakeChar(lexer, ' ')) {}
 	return posOfPtr(lexer, lexer.ptr);
 }
 
-private immutable(Pos) posOfPtr(ref const Lexer lexer, immutable CStr ptr) =>
+private Pos posOfPtr(in Lexer lexer, in CStr ptr) =>
 	safeToUint(ptr - lexer.sourceBegin);
 
-void addDiag(ref Lexer lexer, immutable RangeWithinFile range, immutable ParseDiag diag) {
-	add(lexer.alloc, *lexer.diagnosticsBuilderPtr, immutable DiagnosticWithinFile(range, immutable Diag(diag)));
+void addDiag(ref Lexer lexer, RangeWithinFile range, ParseDiag diag) {
+	add(lexer.alloc, *lexer.diagnosticsBuilderPtr, DiagnosticWithinFile(range, Diag(diag)));
 }
 
-void addDiagAtChar(ref Lexer lexer, immutable ParseDiag diag) {
-	immutable Pos a = curPos(lexer);
-	addDiag(lexer, immutable RangeWithinFile(a, curChar(lexer) == '\0' ? a : a + 1), diag);
+void addDiagAtChar(ref Lexer lexer, ParseDiag diag) {
+	Pos a = curPos(lexer);
+	addDiag(lexer, RangeWithinFile(a, curChar(lexer) == '\0' ? a : a + 1), diag);
 }
 
-private void addDiagAtCurToken(ref Lexer lexer, immutable Pos start, immutable ParseDiag diag) {
+private void addDiagAtCurToken(ref Lexer lexer, Pos start, ParseDiag diag) {
 	addDiag(lexer, range(lexer, start), diag);
 }
 
-void addDiagUnexpectedCurToken(ref Lexer lexer, immutable Pos start, immutable Token token) {
-	immutable ParseDiag diag = () @trusted {
+void addDiagUnexpectedCurToken(ref Lexer lexer, Pos start, Token token) {
+	ParseDiag diag = () {
 		switch (token) {
 			case Token.invalid:
-				return immutable ParseDiag(immutable ParseDiag.UnexpectedCharacter(*(lexer.ptr - 1)));
+				return ParseDiag(ParseDiag.UnexpectedCharacter(prevChar(lexer)));
 			case Token.operator:
-				return immutable ParseDiag(immutable ParseDiag.UnexpectedOperator(getCurOperator(lexer)));
+				return ParseDiag(ParseDiag.UnexpectedOperator(getCurOperator(lexer)));
 			default:
-				return immutable ParseDiag(immutable ParseDiag.UnexpectedToken(token));
+				return ParseDiag(ParseDiag.UnexpectedToken(token));
 		}
 	}();
 	addDiagAtCurToken(lexer, start, diag);
 }
 
 // WARN: Caller should check for '\0'
-private @system immutable(char) takeChar(ref Lexer lexer) {
-	immutable char res = *lexer.ptr;
+private @system char takeChar(ref Lexer lexer) {
+	char res = *lexer.ptr;
 	lexer.ptr++;
 	return res;
 }
 
-private @trusted immutable(bool) tryTakeChar(ref Lexer lexer, immutable char c) {
+private @trusted bool tryTakeChar(ref Lexer lexer, char c) {
 	if (*lexer.ptr == c) {
 		lexer.ptr++;
 		return true;
@@ -117,9 +119,9 @@ private @trusted immutable(bool) tryTakeChar(ref Lexer lexer, immutable char c) 
 		return false;
 }
 
-private @trusted immutable(bool) tryTakeCStr(ref Lexer lexer, immutable CStr c) {
-	CStr ptr2 = lexer.ptr;
-	for (CStr cptr = c; *cptr != 0; cptr++) {
+private @trusted bool tryTakeCStr(ref Lexer lexer, CStr c) {
+	immutable(char)* ptr2 = lexer.ptr;
+	for (immutable(char)* cptr = c; *cptr != 0; cptr++) {
 		if (*ptr2 != *cptr)
 			return false;
 		ptr2++;
@@ -128,29 +130,21 @@ private @trusted immutable(bool) tryTakeCStr(ref Lexer lexer, immutable CStr c) 
 	return true;
 }
 
-immutable(bool) takeOrAddDiagExpectedToken(
-	ref Lexer lexer,
-	immutable Token token,
-	immutable ParseDiag.Expected.Kind kind,
-) {
-	immutable bool res = tryTakeToken(lexer, token);
+bool takeOrAddDiagExpectedToken(ref Lexer lexer, Token token, ParseDiag.Expected.Kind kind) {
+	bool res = tryTakeToken(lexer, token);
 	if (!res)
-		addDiagAtChar(lexer, immutable ParseDiag(immutable ParseDiag.Expected(kind)));
+		addDiagAtChar(lexer, ParseDiag(ParseDiag.Expected(kind)));
 	return res;
 }
 
-void addDiagExpected(ref Lexer lexer, immutable ParseDiag.Expected.Kind kind) {
-	addDiagAtChar(lexer, immutable ParseDiag(immutable ParseDiag.Expected(kind)));
+void addDiagExpected(ref Lexer lexer, ParseDiag.Expected.Kind kind) {
+	addDiagAtChar(lexer, ParseDiag(ParseDiag.Expected(kind)));
 }
 
-immutable(bool) takeOrAddDiagExpectedOperator(
-	ref Lexer lexer,
-	immutable Sym operator,
-	immutable ParseDiag.Expected.Kind kind,
-) {
-	immutable bool res = tryTakeOperator(lexer, operator);
+bool takeOrAddDiagExpectedOperator(ref Lexer lexer, Sym operator, ParseDiag.Expected.Kind kind) {
+	bool res = tryTakeOperator(lexer, operator);
 	if (!res)
-		addDiagAtChar(lexer, immutable ParseDiag(immutable ParseDiag.Expected(kind)));
+		addDiagAtChar(lexer, ParseDiag(ParseDiag.Expected(kind)));
 	return res;
 }
 
@@ -159,45 +153,41 @@ enum NewlineOrIndent {
 	indent,
 }
 
-immutable(NewlineOrIndent) takeNewlineOrIndent_topLevel(ref Lexer lexer) {
+NewlineOrIndent takeNewlineOrIndent_topLevel(ref Lexer lexer) {
 	if (!takeOrAddDiagExpectedToken(lexer, Token.newline, ParseDiag.Expected.Kind.endOfLine))
 		skipRestOfLineAndNewline(lexer);
 	return takeNewlineOrIndentAfterEOL(lexer);
 }
 
-private immutable(NewlineOrIndent) takeNewlineOrIndentAfterEOL(ref Lexer lexer) {
-	immutable IndentDelta delta = skipBlankLinesAndGetIndentDelta(lexer, 0);
-	return delta.match!(immutable NewlineOrIndent)(
-		(immutable IndentDelta.DedentOrSame dedent) {
+private NewlineOrIndent takeNewlineOrIndentAfterEOL(ref Lexer lexer) {
+	IndentDelta delta = skipBlankLinesAndGetIndentDelta(lexer, 0);
+	return delta.match!NewlineOrIndent(
+		(IndentDelta.DedentOrSame dedent) {
 			verify(dedent.nDedents == 0);
 			return NewlineOrIndent.newline;
 		},
-		(immutable IndentDelta.Indent) =>
+		(IndentDelta.Indent) =>
 			NewlineOrIndent.indent);
 }
 
-immutable(bool) takeIndentOrDiagTopLevel(ref Lexer lexer) =>
-	takeIndentOrFailGeneric!(immutable bool)(
-		lexer,
-		0,
-		() => true,
-		(immutable RangeWithinFile, immutable uint dedent) {
-			verify(dedent == 0);
-			return false;
-		});
+bool takeIndentOrDiagTopLevel(ref Lexer lexer) =>
+	takeIndentOrFailGeneric(lexer, 0, () => true, (RangeWithinFile, uint dedent) {
+		verify(dedent == 0);
+		return false;
+	});
 
-immutable(bool) tryTakeIndent(ref Lexer lexer, immutable uint curIndent) {
+bool tryTakeIndent(ref Lexer lexer, uint curIndent) {
 	//TODO: always have cur token handy, no need to back up
 	immutable char* begin = lexer.ptr;
 	if (nextToken(lexer) == Token.newline) {
-		immutable IndentDelta delta = skipBlankLinesAndGetIndentDelta(lexer, curIndent);
-		return delta.match!(immutable bool)(
-			(immutable IndentDelta.DedentOrSame) {
-				addDiagAtChar(lexer, immutable ParseDiag(immutable ParseDiag.Expected(ParseDiag.Expected.Kind.indent)));
+		IndentDelta delta = skipBlankLinesAndGetIndentDelta(lexer, curIndent);
+		return delta.match!bool(
+			(IndentDelta.DedentOrSame) {
+				addDiagAtChar(lexer, ParseDiag(ParseDiag.Expected(ParseDiag.Expected.Kind.indent)));
 				lexer.ptr = begin;
 				return false;
 			},
-			(immutable IndentDelta.Indent) =>
+			(IndentDelta.Indent) =>
 				true);
 	} else {
 		lexer.ptr = begin;
@@ -205,67 +195,64 @@ immutable(bool) tryTakeIndent(ref Lexer lexer, immutable uint curIndent) {
 	}
 }
 
-immutable(T) takeIndentOrFailGeneric(T)(
+T takeIndentOrFailGeneric(T)(
 	ref Lexer lexer,
-	immutable uint curIndent,
-	scope immutable(T) delegate() @safe @nogc pure nothrow cbIndent,
-	scope immutable(T) delegate(immutable RangeWithinFile, immutable uint) @safe @nogc pure nothrow cbFail,
+	uint curIndent,
+	in T delegate() @safe @nogc pure nothrow cbIndent,
+	in T delegate(RangeWithinFile, uint) @safe @nogc pure nothrow cbFail,
 ) {
-	immutable Pos start = curPos(lexer);
-	immutable IndentDelta delta = takeNewlineAndReturnIndentDelta(lexer, curIndent);
-	return delta.match!(immutable T)(
-		(immutable IndentDelta.DedentOrSame dedent) {
-			addDiag(
-				lexer,
-				immutable RangeWithinFile(start, start + 1),
-				immutable ParseDiag(immutable ParseDiag.Expected(ParseDiag.Expected.Kind.indent)));
+	Pos start = curPos(lexer);
+	IndentDelta delta = takeNewlineAndReturnIndentDelta(lexer, curIndent);
+	return delta.match!T(
+		(IndentDelta.DedentOrSame dedent) {
+			addDiag(lexer, RangeWithinFile(start, start + 1), ParseDiag(
+				ParseDiag.Expected(ParseDiag.Expected.Kind.indent)));
 			return cbFail(range(lexer, start), dedent.nDedents);
 		},
-		(immutable IndentDelta.Indent) =>
+		(IndentDelta.Indent) =>
 			cbIndent());
 }
 
 void takeNewline_topLevel(ref Lexer lexer) {
 	if (!tryTakeNewline(lexer)) {
-		addDiagAtChar(lexer, immutable ParseDiag(immutable ParseDiag.Expected(ParseDiag.Expected.Kind.endOfLine)));
+		addDiagAtChar(lexer, ParseDiag(ParseDiag.Expected(ParseDiag.Expected.Kind.endOfLine)));
 		skipRestOfLineAndNewline(lexer);
 	}
 }
 
-private @trusted immutable(IndentDelta) takeNewlineAndReturnIndentDelta(ref Lexer lexer, immutable uint curIndent) {
+private @trusted IndentDelta takeNewlineAndReturnIndentDelta(ref Lexer lexer, uint curIndent) {
 	if (!tryTakeNewline(lexer)) {
 		//TODO: not always expecting indent..
-		addDiagAtChar(lexer, immutable ParseDiag(immutable ParseDiag.Expected(ParseDiag.Expected.Kind.indent)));
+		addDiagAtChar(lexer, ParseDiag(ParseDiag.Expected(ParseDiag.Expected.Kind.indent)));
 		skipRestOfLineAndNewline(lexer);
 	}
 	return skipBlankLinesAndGetIndentDelta(lexer, curIndent);
 }
 
 void takeDedentFromIndent1(ref Lexer lexer) {
-	immutable IndentDelta delta = skipBlankLinesAndGetIndentDelta(lexer, 1);
-	immutable bool success = delta.match!(immutable bool)(
-		(immutable IndentDelta.DedentOrSame dedent) =>
+	IndentDelta delta = skipBlankLinesAndGetIndentDelta(lexer, 1);
+	bool success = delta.match!bool(
+		(IndentDelta.DedentOrSame dedent) =>
 			dedent.nDedents == 1,
-		(immutable IndentDelta.Indent) =>
+		(IndentDelta.Indent) =>
 			false);
 	if (!success) {
-		addDiagAtChar(lexer, immutable ParseDiag(immutable ParseDiag.Expected(ParseDiag.Expected.Kind.dedent)));
+		addDiagAtChar(lexer, ParseDiag(ParseDiag.Expected(ParseDiag.Expected.Kind.dedent)));
 		skipRestOfLineAndNewline(lexer);
 		takeDedentFromIndent1(lexer);
 	}
 }
 
-immutable(uint) takeNewlineOrDedentAmount(ref Lexer lexer, immutable uint curIndent) {
+uint takeNewlineOrDedentAmount(ref Lexer lexer, uint curIndent) {
 	// Must be at the end of a line
 	if (!takeOrAddDiagExpectedToken(lexer, Token.newline, ParseDiag.Expected.Kind.endOfLine))
 		skipRestOfLineAndNewline(lexer);
-	immutable IndentDelta delta = skipBlankLinesAndGetIndentDelta(lexer, curIndent);
-	return delta.match!(immutable uint)(
-		(immutable IndentDelta.DedentOrSame dedent) =>
+	IndentDelta delta = skipBlankLinesAndGetIndentDelta(lexer, curIndent);
+	return delta.match!uint(
+		(IndentDelta.DedentOrSame dedent) =>
 			dedent.nDedents,
-		(immutable IndentDelta.Indent) {
-			addDiagAtChar(lexer, immutable ParseDiag(
-				immutable ParseDiag.Unexpected(ParseDiag.Unexpected.Kind.indent)));
+		(IndentDelta.Indent) {
+			addDiagAtChar(lexer, ParseDiag(ParseDiag.Unexpected(ParseDiag.Unexpected.Kind.indent)));
 			skipUntilNewlineNoDiag(lexer);
 			return takeNewlineOrDedentAmount(lexer, curIndent);
 		});
@@ -276,7 +263,7 @@ enum NewlineOrDedent {
 	dedent,
 }
 
-immutable(NewlineOrDedent) takeNewlineOrSingleDedent(ref Lexer lexer) {
+NewlineOrDedent takeNewlineOrSingleDedent(ref Lexer lexer) {
 	switch (takeNewlineOrDedentAmount(lexer, 1)) {
 		case 0:
 			return NewlineOrDedent.newline;
@@ -287,82 +274,80 @@ immutable(NewlineOrDedent) takeNewlineOrSingleDedent(ref Lexer lexer) {
 	}
 }
 
-immutable(RangeWithinFile) range(ref Lexer lexer, immutable Pos begin) {
+RangeWithinFile range(ref Lexer lexer, Pos begin) {
 	verify(begin <= curPos(lexer));
-	return immutable RangeWithinFile(begin, curPos(lexer));
+	return RangeWithinFile(begin, curPos(lexer));
 }
 
-immutable(NameAndRange) takeNameAndRange(ref Lexer lexer) {
-	immutable Pos start = curPos(lexer);
+NameAndRange takeNameAndRange(ref Lexer lexer) {
+	Pos start = curPos(lexer);
 	if (tryTakeToken(lexer, Token.name))
-		return immutable NameAndRange(start, getCurSym(lexer));
+		return NameAndRange(start, getCurSym(lexer));
 	else {
-		addDiag(lexer, range(lexer, start), immutable ParseDiag(
-			immutable ParseDiag.Expected(ParseDiag.Expected.Kind.name)));
-		return immutable NameAndRange(start, sym!"bogus");
+		addDiag(lexer, range(lexer, start), ParseDiag(ParseDiag.Expected(ParseDiag.Expected.Kind.name)));
+		return NameAndRange(start, sym!"bogus");
 	}
 }
 
-immutable(Sym) takePathComponent(ref Lexer lexer) =>
+Sym takePathComponent(ref Lexer lexer) =>
 	takePathComponentRest(lexer, takeName(lexer));
-private immutable(Sym) takePathComponentRest(ref Lexer lexer, immutable Sym cur) {
+private Sym takePathComponentRest(ref Lexer lexer, Sym cur) {
 	if (tryTakeToken(lexer, Token.dot)) {
-		immutable Sym extension = takeName(lexer);
+		Sym extension = takeName(lexer);
 		return takePathComponentRest(lexer, concatSymsWithDot(lexer.allSymbols, cur, extension));
 	} else
 		return cur;
 }
 
-immutable(OptNameAndRange) takeOptNameAndRange(ref Lexer lexer) {
-	immutable Pos start = curPos(lexer);
+OptNameAndRange takeOptNameAndRange(ref Lexer lexer) {
+	Pos start = curPos(lexer);
 	if (tryTakeToken(lexer, Token.underscore))
-		return immutable OptNameAndRange(start, none!Sym);
+		return OptNameAndRange(start, none!Sym);
 	else {
-		immutable NameAndRange res = takeNameAndRange(lexer);
-		return immutable OptNameAndRange(res.start, some(res.name));
+		NameAndRange res = takeNameAndRange(lexer);
+		return OptNameAndRange(res.start, some(res.name));
 	}
 }
 
-immutable(Opt!Sym) tryTakeName(ref Lexer lexer) =>
+Opt!Sym tryTakeName(ref Lexer lexer) =>
 	tryTakeToken(lexer, Token.name)
 		? some(getCurSym(lexer))
 		: none!Sym;
 
-immutable(Sym) takeName(ref Lexer lexer) =>
+Sym takeName(ref Lexer lexer) =>
 	takeNameAndRange(lexer).name;
 
-immutable(Opt!NameAndRange) tryTakeNameOrOperatorAndRange(ref Lexer lexer) {
-	immutable Pos start = curPos(lexer);
+Opt!NameAndRange tryTakeNameOrOperatorAndRange(ref Lexer lexer) {
+	Pos start = curPos(lexer);
 	return tryTakeToken(lexer, Token.name)
-		? some(immutable NameAndRange(start, getCurSym(lexer)))
+		? some(NameAndRange(start, getCurSym(lexer)))
 		: tryTakeToken(lexer, Token.operator)
-		? some(immutable NameAndRange(start, getCurOperator(lexer)))
+		? some(NameAndRange(start, getCurOperator(lexer)))
 		: none!NameAndRange;
 }
 
-immutable(Opt!Sym) takeNameOrUnderscore(ref Lexer lexer) =>
+Opt!Sym takeNameOrUnderscore(ref Lexer lexer) =>
 	tryTakeToken(lexer, Token.underscore)
 		? none!Sym
 		: some(takeName(lexer));
 
-immutable(Sym) takeNameOrOperator(ref Lexer lexer) {
-	immutable Pos start = curPos(lexer);
-	immutable Opt!NameAndRange res = tryTakeNameOrOperatorAndRange(lexer);
+Sym takeNameOrOperator(ref Lexer lexer) {
+	Pos start = curPos(lexer);
+	Opt!NameAndRange res = tryTakeNameOrOperatorAndRange(lexer);
 	if (has(res))
 		return force(res).name;
 	else {
-		addDiag(lexer, range(lexer, start), immutable ParseDiag(
-			immutable ParseDiag.Expected(ParseDiag.Expected.Kind.nameOrOperator)));
+		addDiag(lexer, range(lexer, start), ParseDiag(ParseDiag.Expected(ParseDiag.Expected.Kind.nameOrOperator)));
 		return sym!"bogus";
 	}
 }
 
-immutable(NameOrUnderscoreOrNone) takeNameOrUnderscoreOrNone(ref Lexer lexer) =>
+NameOrUnderscoreOrNone takeNameOrUnderscoreOrNone(ref Lexer lexer) =>
 	tryTakeToken(lexer, Token.name)
-		? immutable NameOrUnderscoreOrNone(getCurSym(lexer))
+		? NameOrUnderscoreOrNone(getCurSym(lexer))
 		: tryTakeToken(lexer, Token.underscore)
-		? immutable NameOrUnderscoreOrNone(immutable NameOrUnderscoreOrNone.Underscore())
-		: immutable NameOrUnderscoreOrNone(immutable NameOrUnderscoreOrNone.None());
+		? NameOrUnderscoreOrNone(NameOrUnderscoreOrNone.Underscore())
+		: NameOrUnderscoreOrNone(NameOrUnderscoreOrNone.None());
 
 @trusted void skipUntilNewlineNoDiag(ref Lexer lexer) {
 	while (!isNewlineChar(*lexer.ptr) && *lexer.ptr != '\0')
@@ -376,7 +361,7 @@ void skipNewlinesIgnoreIndentation(ref Lexer lexer) {
 
 private:
 
-@trusted immutable(SafeCStr) takeRestOfLineAndNewline(ref Lexer lexer) {
+@trusted SafeCStr takeRestOfLineAndNewline(ref Lexer lexer) {
 	immutable char* begin = lexer.ptr;
 	skipRestOfLineAndNewline(lexer);
 	immutable char* end = lexer.ptr - 1;
@@ -389,7 +374,7 @@ void skipRestOfLineAndNewline(ref Lexer lexer) {
 }
 
 // Note: Not issuing any diagnostics here. We'll fail later if we detect the wrong indent kind.
-@trusted immutable(IndentKind) detectIndentKind(immutable SafeCStr a) {
+@trusted IndentKind detectIndentKind(SafeCStr a) {
 	immutable(char)* ptr = a.ptr;
 	switch (*ptr) {
 		case '\0':
@@ -400,7 +385,7 @@ void skipRestOfLineAndNewline(ref Lexer lexer) {
 		case ' ':
 			// Count spaces
 			do { ptr++; } while (*ptr == ' ');
-			immutable size_t n = ptr - a.ptr;
+			size_t n = ptr - a.ptr;
 			// Only allowed amounts are 2 and 4.
 			return n == 2 ? IndentKind.spaces2 : IndentKind.spaces4;
 		default:
@@ -408,7 +393,7 @@ void skipRestOfLineAndNewline(ref Lexer lexer) {
 				ptr++;
 			if (isNewlineChar(*ptr))
 				ptr++;
-			return detectIndentKind(immutable SafeCStr(ptr));
+			return detectIndentKind(SafeCStr(ptr));
 	}
 }
 
@@ -494,8 +479,8 @@ public enum Token {
 	with_, // 'with'
 }
 
-@trusted public immutable(Token) nextToken(ref Lexer lexer) {
-	immutable char c = takeChar(lexer);
+@trusted public Token nextToken(ref Lexer lexer) {
+	char c = takeChar(lexer);
 	switch (c) {
 		case '\0':
 			lexer.ptr--;
@@ -595,7 +580,7 @@ public enum Token {
 				: Token.question;
 		default:
 			if (isAlphaIdentifierStart(c)) {
-				immutable string nameStr = takeNameRest(lexer, lexer.ptr - 1);
+				string nameStr = takeNameRest(lexer, lexer.ptr - 1);
 				return tokenForSym(lexer, symOfStr(lexer.allSymbols, nameStr));
 			} else if (isDigit(c)) {
 				backUp(lexer);
@@ -605,7 +590,7 @@ public enum Token {
 	}
 }
 
-immutable(Token) tokenForSym(ref Lexer lexer, immutable Sym a) {
+Token tokenForSym(ref Lexer lexer, Sym a) {
 	switch (a.value) {
 		case sym!"act".value:
 			return Token.act;
@@ -700,39 +685,39 @@ immutable(Token) tokenForSym(ref Lexer lexer, immutable Sym a) {
 	}
 }
 
-immutable(Token) nameToken(ref Lexer lexer, immutable Sym a) {
+Token nameToken(ref Lexer lexer, Sym a) {
 	cellSet(lexer.curSym, a);
 	return Token.name;
 }
 
-immutable(Token) operatorToken(ref Lexer lexer, immutable Sym a) {
+Token operatorToken(ref Lexer lexer, Sym a) {
 	cellSet(lexer.curOperator, a);
 	return Token.operator;
 }
 
-public immutable(Sym) getCurSym(ref Lexer lexer) =>
+public Sym getCurSym(ref Lexer lexer) =>
 	//TODO: assert that cur token is Token.name
 	cellGet(lexer.curSym);
 
-public immutable(NameAndRange) getCurNameAndRange(ref Lexer lexer, immutable Pos start) =>
+public NameAndRange getCurNameAndRange(ref Lexer lexer, Pos start) =>
 	immutable NameAndRange(start, getCurSym(lexer));
 
-public immutable(Sym) getCurOperator(ref Lexer lexer) =>
+public Sym getCurOperator(ref Lexer lexer) =>
 	cellGet(lexer.curOperator);
 
-public immutable(LiteralFloatAst) getCurLiteralFloat(ref Lexer lexer) =>
+public LiteralFloatAst getCurLiteralFloat(ref Lexer lexer) =>
 	cellGet(lexer.curLiteralFloat);
 
-public immutable(LiteralIntAst) getCurLiteralInt(ref Lexer lexer) =>
+public LiteralIntAst getCurLiteralInt(ref Lexer lexer) =>
 	cellGet(lexer.curLiteralInt);
 
-public immutable(LiteralNatAst) getCurLiteralNat(ref Lexer lexer) =>
+public LiteralNatAst getCurLiteralNat(ref Lexer lexer) =>
 	cellGet(lexer.curLiteralNat);
 
-public immutable(bool) tryTakeToken(ref Lexer lexer, immutable Token expected) {
+public bool tryTakeToken(ref Lexer lexer, Token expected) {
 	//TODO: always have the next token ready, so we don't need to repeatedly lex the same token
 	immutable char* before = lexer.ptr;
-	immutable Token actual = nextToken(lexer);
+	Token actual = nextToken(lexer);
 	if (actual == expected)
 		return true;
 	else {
@@ -741,10 +726,10 @@ public immutable(bool) tryTakeToken(ref Lexer lexer, immutable Token expected) {
 	}
 }
 
-public immutable(bool) tryTakeOperator(ref Lexer lexer, immutable Sym expected) {
+public bool tryTakeOperator(ref Lexer lexer, Sym expected) {
 	//TODO: always have the next token ready, so we don't need to repeatedly lex the same token
 	immutable char* before = lexer.ptr;
-	immutable Token actual = nextToken(lexer);
+	Token actual = nextToken(lexer);
 	if (actual == Token.operator && getCurOperator(lexer) == expected)
 		return true;
 	else {
@@ -755,13 +740,12 @@ public immutable(bool) tryTakeOperator(ref Lexer lexer, immutable Sym expected) 
 
 public void takeTypeArgsEnd(ref Lexer lexer) {
 	//TODO: always have the next token ready, so we don't need to repeatedly lex the same token
-	immutable Pos start = curPos(lexer);
+	Pos start = curPos(lexer);
 	immutable char* before = lexer.ptr;
-	immutable Token actual = nextToken(lexer);
+	Token actual = nextToken(lexer);
 	void fail() {
 		lexer.ptr = before;
-		addDiagAtCurToken(lexer, start, immutable ParseDiag(immutable ParseDiag.Expected(
-			ParseDiag.Expected.Kind.typeArgsEnd)));
+		addDiagAtCurToken(lexer, start, ParseDiag(ParseDiag.Expected(ParseDiag.Expected.Kind.typeArgsEnd)));
 	}
 	if (actual == Token.operator) {
 		switch (getCurOperator(lexer).value) {
@@ -778,22 +762,22 @@ public void takeTypeArgsEnd(ref Lexer lexer) {
 		fail();
 }
 
-public immutable(Token) getPeekToken(ref Lexer lexer) {
+public Token getPeekToken(ref Lexer lexer) {
 	//TODO: always have the next token ready, so we don't need to repeatedly lex the same token
 	immutable char* before = lexer.ptr;
-	immutable Token res = nextToken(lexer);
+	Token res = nextToken(lexer);
 	lexer.ptr = before;
 	return res;
 }
 
-public immutable(bool) peekToken(ref Lexer lexer, immutable Token expected) =>
+public bool peekToken(ref Lexer lexer, Token expected) =>
 	getPeekToken(lexer) == expected;
 
-public immutable(bool) peekTokenExpression(ref Lexer lexer) =>
+public bool peekTokenExpression(ref Lexer lexer) =>
 	isExpressionStartToken(getPeekToken(lexer));
 
 // Whether a token may start an expression
-immutable(bool) isExpressionStartToken(immutable Token a) {
+bool isExpressionStartToken(Token a) {
 	final switch (a) {
 		case Token.act:
 		case Token.alias_:
@@ -874,7 +858,7 @@ immutable(bool) isExpressionStartToken(immutable Token a) {
 	}
 }
 
-immutable(RangeWithinFile) range(ref Lexer lexer, immutable CStr begin) {
+RangeWithinFile range(ref Lexer lexer, CStr begin) {
 	verify(begin >= lexer.sourceBegin);
 	return range(lexer, safeToUint(begin - lexer.sourceBegin));
 }
@@ -884,25 +868,25 @@ enum Sign {
 	minus,
 }
 
-@trusted immutable(Token) takeNumberAfterSign(ref Lexer lexer, immutable Opt!Sign sign) {
-	immutable ulong base = tryTakeCStr(lexer, "0x")
+@trusted Token takeNumberAfterSign(ref Lexer lexer, Opt!Sign sign) {
+	ulong base = tryTakeCStr(lexer, "0x")
 		? 16
 		: tryTakeCStr(lexer, "0o")
 		? 8
 		: tryTakeCStr(lexer, "0b")
 		? 2
 		: 10;
-	immutable LiteralNatAst n = takeNat(lexer, base);
+	LiteralNatAst n = takeNat(lexer, base);
 	if (*lexer.ptr == '.' && isDigit(*(lexer.ptr + 1))) {
 		lexer.ptr++;
 		return takeFloat(lexer, has(sign) ? force(sign) : Sign.plus, n, base);
 	} else if (has(sign)) {
-		immutable LiteralIntAst intAst = () {
+		LiteralIntAst intAst = () {
 			final switch (force(sign)) {
 				case Sign.plus:
-					return immutable LiteralIntAst(n.value, n.value > long.max);
+					return LiteralIntAst(n.value, n.value > long.max);
 				case Sign.minus:
-					return immutable LiteralIntAst(-n.value, n.value > (cast(ulong) long.max) + 1);
+					return LiteralIntAst(-n.value, n.value > (cast(ulong) long.max) + 1);
 			}
 		}();
 		cellSet(lexer.curLiteralInt, intAst);
@@ -913,19 +897,14 @@ enum Sign {
 	}
 }
 
-@system immutable(Token) takeFloat(
-	ref Lexer lexer,
-	immutable Sign sign,
-	ref immutable LiteralNatAst natPart,
-	immutable ulong base,
-) {
+@system Token takeFloat(ref Lexer lexer, Sign sign, ref LiteralNatAst natPart, ulong base) {
 	// TODO: improve accuracy
 	const char *cur = lexer.ptr;
-	immutable LiteralNatAst rest = takeNat(lexer, base);
-	immutable bool overflow = natPart.overflow || rest.overflow;
-	immutable ulong power = lexer.ptr - cur;
-	immutable double multiplier = pow(1.0, 1.0 / base, power);
-	immutable double floatSign = () {
+	LiteralNatAst rest = takeNat(lexer, base);
+	bool overflow = natPart.overflow || rest.overflow;
+	ulong power = lexer.ptr - cur;
+	double multiplier = pow(1.0, 1.0 / base, power);
+	double floatSign = () {
 		final switch (sign) {
 			case Sign.minus:
 				return -1.0;
@@ -933,38 +912,33 @@ enum Sign {
 				return 1.0;
 		}
 	}();
-	immutable double f = floatSign * (natPart.value + (rest.value * multiplier));
-	cellSet(lexer.curLiteralFloat, immutable LiteralFloatAst(f, overflow));
+	double f = floatSign * (natPart.value + (rest.value * multiplier));
+	cellSet(lexer.curLiteralFloat, LiteralFloatAst(f, overflow));
 	return Token.literalFloat;
 }
 
-immutable(double) pow(immutable double acc, immutable double base, immutable ulong power) =>
+double pow(double acc, double base, ulong power) =>
 	power == 0 ? acc : pow(acc * base, base, power - 1);
 
 //TODO: overflow bug possible here
-immutable(ulong) getDivisor(immutable ulong acc, immutable ulong a, immutable ulong base) =>
+ulong getDivisor(ulong acc, ulong a, ulong base) =>
 	acc < a ? getDivisor(acc * base, a, base) : acc;
 
-@system immutable(LiteralNatAst) takeNat(ref Lexer lexer, immutable ulong base) =>
+@system LiteralNatAst takeNat(ref Lexer lexer, ulong base) =>
 	takeNatRecur(lexer, base, 0, false);
 
-@system immutable(LiteralNatAst) takeNatRecur(
-	ref Lexer lexer,
-	immutable ulong base,
-	immutable ulong value,
-	immutable bool overflow,
-) {
-	immutable ulong digit = charToNat(*lexer.ptr);
+@system LiteralNatAst takeNatRecur(ref Lexer lexer, ulong base, ulong value, bool overflow) {
+	ulong digit = charToNat(*lexer.ptr);
 	if (digit < base) {
 		lexer.ptr++;
-		immutable ulong newValue = value * base + digit;
+		ulong newValue = value * base + digit;
 		drop(tryTakeChar(lexer, '_'));
 		return takeNatRecur(lexer, base, newValue, overflow || newValue / base != value);
 	} else
-		return immutable LiteralNatAst(value, overflow);
+		return LiteralNatAst(value, overflow);
 }
 
-immutable(ulong) charToNat(immutable char c) =>
+ulong charToNat(char c) =>
 	'0' <= c && c <= '9'
 		? c - '0'
 		: 'a' <= c && c <= 'f'
@@ -973,7 +947,7 @@ immutable(ulong) charToNat(immutable char c) =>
 		? 10 + (c - 'A')
 		: ulong.max;
 
-immutable(size_t) toHexDigit(immutable char c) {
+size_t toHexDigit(char c) {
 	if ('0' <= c && c <= '9')
 		return c - '0';
 	else if ('a' <= c && c <= 'f')
@@ -982,9 +956,9 @@ immutable(size_t) toHexDigit(immutable char c) {
 		return todo!size_t("parse diagnostic -- bad hex digit");
 }
 
-public struct StringPart {
-	immutable string text;
-	immutable After after;
+public immutable struct StringPart {
+	string text;
+	After after;
 
 	enum After {
 		quote,
@@ -997,16 +971,16 @@ public enum QuoteKind {
 	double3,
 }
 
-public @trusted immutable(StringPart) takeStringPart(ref Lexer lexer, immutable QuoteKind quoteKind) {
+public @trusted StringPart takeStringPart(ref Lexer lexer, QuoteKind quoteKind) {
 	char[0x10000] res = void;
 	size_t i = 0;
-	void push(immutable char c) {
+	void push(char c) {
 		res[i] = c;
 		i++;
 	}
-	immutable StringPart.After after = () {
+	StringPart.After after = () {
 		while (true) {
-			immutable char x = takeChar(lexer);
+			char x = takeChar(lexer);
 			switch(x) {
 				case '"':
 					final switch (quoteKind) {
@@ -1032,7 +1006,7 @@ public @trusted immutable(StringPart) takeStringPart(ref Lexer lexer, immutable 
 					}
 					break;
 				case '\0':
-					immutable ParseDiag.Expected.Kind expected = () {
+					ParseDiag.Expected.Kind expected = () {
 						final switch (quoteKind) {
 							case QuoteKind.double_:
 								return ParseDiag.Expected.Kind.quoteDouble;
@@ -1045,12 +1019,12 @@ public @trusted immutable(StringPart) takeStringPart(ref Lexer lexer, immutable 
 				case '{':
 					return StringPart.After.lbrace;
 				case '\\':
-					immutable char escapeCode = takeChar(lexer);
-					immutable char escaped = () {
+					char escapeCode = takeChar(lexer);
+					char escaped = () {
 						switch (escapeCode) {
 							case 'x':
-								immutable size_t digit0 = toHexDigit(takeChar(lexer));
-								immutable size_t digit1 = toHexDigit(takeChar(lexer));
+								size_t digit0 = toHexDigit(takeChar(lexer));
+								size_t digit1 = toHexDigit(takeChar(lexer));
 								return cast(char) (digit0 * 16 + digit1);
 							case 'n':
 								return '\n';
@@ -1067,8 +1041,7 @@ public @trusted immutable(StringPart) takeStringPart(ref Lexer lexer, immutable 
 							case '"':
 								return '"';
 							default:
-								addDiagAtChar(lexer, immutable ParseDiag(
-									immutable ParseDiag.InvalidStringEscape(escapeCode)));
+								addDiagAtChar(lexer, ParseDiag(ParseDiag.InvalidStringEscape(escapeCode)));
 								return 'a';
 						}
 					}();
@@ -1079,10 +1052,10 @@ public @trusted immutable(StringPart) takeStringPart(ref Lexer lexer, immutable 
 			}
 		}
 	}();
-	return immutable StringPart(copyArr!char(lexer.alloc, cast(immutable) res[0 .. i]), after);
+	return StringPart(copyStr(lexer.alloc, cast(immutable) res[0 .. i]), after);
 }
 
-@trusted immutable(string) takeNameRest(ref Lexer lexer, immutable CStr begin) {
+@trusted string takeNameRest(ref Lexer lexer, CStr begin) {
 	while (isAlphaIdentifierContinue(*lexer.ptr))
 		lexer.ptr++;
 	if (*(lexer.ptr - 1) == '-')
@@ -1092,40 +1065,39 @@ public @trusted immutable(StringPart) takeStringPart(ref Lexer lexer, immutable 
 
 // Called after the newline
 @trusted uint takeIndentAmount(ref Lexer lexer) {
-	immutable CStr begin = lexer.ptr;
+	CStr begin = lexer.ptr;
 	if (lexer.indentKind == IndentKind.tabs) {
 		while (tryTakeChar(lexer, '\t')) {}
 		if (*lexer.ptr == ' ')
-			addDiagAtChar(lexer, immutable ParseDiag(immutable ParseDiag.IndentWrongCharacter(true)));
+			addDiagAtChar(lexer, ParseDiag(ParseDiag.IndentWrongCharacter(true)));
 		return safeToUint(lexer.ptr - begin);
 	} else {
-		immutable Pos start = curPos(lexer);
+		Pos start = curPos(lexer);
 		while (tryTakeChar(lexer, ' ')) {}
 		if (*lexer.ptr == '\t')
-			addDiagAtChar(lexer, immutable ParseDiag(immutable ParseDiag.IndentWrongCharacter(false)));
-		immutable uint nSpaces = safeToUint(lexer.ptr - begin);
-		immutable uint nSpacesPerIndent = lexer.indentKind == IndentKind.spaces2 ? 2 : 4;
-		immutable uint res = nSpaces / nSpacesPerIndent;
+			addDiagAtChar(lexer, ParseDiag(ParseDiag.IndentWrongCharacter(false)));
+		uint nSpaces = safeToUint(lexer.ptr - begin);
+		uint nSpacesPerIndent = lexer.indentKind == IndentKind.spaces2 ? 2 : 4;
+		uint res = nSpaces / nSpacesPerIndent;
 		if (res * nSpacesPerIndent != nSpaces)
-			addDiag(lexer, range(lexer, start), immutable ParseDiag(
-				immutable ParseDiag.IndentNotDivisible(nSpaces, nSpacesPerIndent)));
+			addDiag(lexer, range(lexer, start), ParseDiag(ParseDiag.IndentNotDivisible(nSpaces, nSpacesPerIndent)));
 		return res;
 	}
 }
 
-struct IndentDelta {
-	struct DedentOrSame {
-		immutable uint nDedents;
+immutable struct IndentDelta {
+	immutable struct DedentOrSame {
+		uint nDedents;
 	}
-	struct Indent {}
+	immutable struct Indent {}
 
-	mixin Union!(immutable DedentOrSame, immutable Indent);
+	mixin Union!(DedentOrSame, Indent);
 }
 
-public immutable(SafeCStr) skipBlankLinesAndGetDocComment(ref Lexer lexer) =>
+public SafeCStr skipBlankLinesAndGetDocComment(ref Lexer lexer) =>
 	skipBlankLinesAndGetDocCommentRecur(lexer, safeCStr!"");
 
-immutable(SafeCStr) skipBlankLinesAndGetDocCommentRecur(ref Lexer lexer, immutable SafeCStr comment) {
+SafeCStr skipBlankLinesAndGetDocCommentRecur(ref Lexer lexer, SafeCStr comment) {
 	if (tryTakeNewline(lexer))
 		return skipBlankLinesAndGetDocCommentRecur(lexer, comment);
 	else if (tryTakeTripleHashThenNewline(lexer))
@@ -1142,9 +1114,9 @@ immutable(SafeCStr) skipBlankLinesAndGetDocCommentRecur(ref Lexer lexer, immutab
 // Returns the change in indent (and updates the indent)
 // Note: does nothing if not looking at a newline!
 // NOTE: never returns a value > 1 as double-indent is always illegal.
-immutable(IndentDelta) skipBlankLinesAndGetIndentDelta(ref Lexer lexer, immutable uint curIndent) {
+IndentDelta skipBlankLinesAndGetIndentDelta(ref Lexer lexer, uint curIndent) {
 	// comment / region counts as a blank line no matter its indent level.
-	immutable uint newIndent = takeIndentAmount(lexer);
+	uint newIndent = takeIndentAmount(lexer);
 	if (tryTakeNewline(lexer))
 		// Ignore lines that are just whitespace
 		return skipBlankLinesAndGetIndentDelta(lexer, curIndent);
@@ -1162,42 +1134,42 @@ immutable(IndentDelta) skipBlankLinesAndGetIndentDelta(ref Lexer lexer, immutabl
 	}
 
 	// If we got here, we're looking at a non-empty line (or EOF)
-	immutable int delta = safeIntFromUint(newIndent) - safeIntFromUint(curIndent);
+	int delta = safeIntFromUint(newIndent) - safeIntFromUint(curIndent);
 	if (delta > 1) {
-		addDiagAtChar(lexer, immutable ParseDiag(immutable ParseDiag.IndentTooMuch()));
+		addDiagAtChar(lexer, ParseDiag(ParseDiag.IndentTooMuch()));
 		skipRestOfLineAndNewline(lexer);
 		return skipBlankLinesAndGetIndentDelta(lexer, curIndent);
 	} else
 		return delta == 1
-			? immutable IndentDelta(immutable IndentDelta.Indent())
-			: immutable IndentDelta(immutable IndentDelta.DedentOrSame(-delta));
+			? IndentDelta(IndentDelta.Indent())
+			: IndentDelta(IndentDelta.DedentOrSame(-delta));
 }
 
-immutable(bool) isNewlineChar(immutable char c) =>
+bool isNewlineChar(char c) =>
 	c == '\r' || c == '\n';
 
-immutable(bool) tryTakeNewline(ref Lexer lexer) =>
+bool tryTakeNewline(ref Lexer lexer) =>
 	tryTakeChar(lexer, '\r') || tryTakeChar(lexer, '\n');
 
-immutable(bool) tryTakeTripleHashThenNewline(ref Lexer lexer) =>
+bool tryTakeTripleHashThenNewline(ref Lexer lexer) =>
 	tryTakeCStr(lexer, "###\r") || tryTakeCStr(lexer, "###\n");
 
-@trusted immutable(SafeCStr) takeRestOfBlockComment(ref Lexer lexer) {
+@trusted SafeCStr takeRestOfBlockComment(ref Lexer lexer) {
 	immutable char* begin = lexer.ptr;
 	immutable char* end = skipRestOfBlockComment(lexer);
 	return copyToSafeCStr(lexer.alloc, stripWhitespace(arrOfRange(begin, end)));
 }
 
-immutable(string) stripWhitespace(immutable string a) =>
+string stripWhitespace(string a) =>
 	stripWhitespaceRight(stripWhitespaceLeft(a));
 
-immutable(char[]) stripWhitespaceLeft(immutable string a) =>
+string stripWhitespaceLeft(string a) =>
 	empty(a) || !isWhitespace(a[0]) ? a : stripWhitespaceLeft(a[1 .. $]);
 
-immutable(char[]) stripWhitespaceRight(immutable string a) =>
+string stripWhitespaceRight(string a) =>
 	empty(a) || !isWhitespace(a[$ - 1]) ? a : stripWhitespaceRight(a[0 .. $ - 1]);
 
-public immutable(bool) isWhitespace(immutable char a) {
+public bool isWhitespace(char a) {
 	switch (a) {
 		case ' ':
 		case '\t':
@@ -1223,7 +1195,7 @@ public immutable(bool) isWhitespace(immutable char a) {
 }
 
 public enum EqualsOrThen { equals, then }
-public @trusted immutable(Opt!EqualsOrThen) lookaheadWillTakeEqualsOrThen(ref Lexer lexer) {
+public @trusted Opt!EqualsOrThen lookaheadWillTakeEqualsOrThen(ref Lexer lexer) {
 	immutable(char)* ptr = lexer.ptr;
 	if (ptr[0] == '<' && ptr[1] == '-' && ptr[2] == ' ')
 		return some(EqualsOrThen.then);
@@ -1256,7 +1228,7 @@ public @trusted immutable(Opt!EqualsOrThen) lookaheadWillTakeEqualsOrThen(ref Le
 	}
 }
 
-public @trusted immutable(bool) lookaheadWillTakeArrow(ref Lexer lexer) {
+public @trusted bool lookaheadWillTakeArrow(ref Lexer lexer) {
 	immutable(char)* ptr = lexer.ptr;
 	while (true) {
 		switch (*ptr) {
@@ -1276,11 +1248,11 @@ public @trusted immutable(bool) lookaheadWillTakeArrow(ref Lexer lexer) {
 	}
 }
 
-immutable(bool) isAlphaIdentifierStart(immutable char c) =>
+bool isAlphaIdentifierStart(char c) =>
 	('a' <= c && c <= 'z') || ('A' <= c && c <= 'Z') || c == '_';
 
-immutable(bool) isDigit(immutable char c) =>
+bool isDigit(char c) =>
 	'0' <= c && c <= '9';
 
-immutable(bool) isAlphaIdentifierContinue(immutable char c) =>
+bool isAlphaIdentifierContinue(char c) =>
 	isAlphaIdentifierStart(c) || c == '-' || isDigit(c);

@@ -10,31 +10,31 @@ import util.path : Path;
 import util.readOnlyStorage : ReadFileResult, ReadOnlyStorage;
 import util.sym : Sym;
 
-immutable(T) withDictReadOnlyStorage(T)(
-	immutable Path includeDir,
-	scope ref const MutFiles files,
-	scope immutable(T) delegate(scope ref const ReadOnlyStorage) @safe @nogc nothrow cb,
+T withDictReadOnlyStorage(T)(
+	Path includeDir,
+	in MutFiles files,
+	in T delegate(in ReadOnlyStorage) @safe @nogc nothrow cb,
 ) {
-	scope const ReadOnlyStorage storage = const ReadOnlyStorage(
+	scope ReadOnlyStorage storage = ReadOnlyStorage(
 		includeDir,
 		(
-			immutable Path path,
-			void delegate(immutable ReadFileResult!(ubyte[])) @safe @nogc pure nothrow cb,
+			Path path,
+			in void delegate(in ReadFileResult!(ubyte[])) @safe @nogc pure nothrow cb,
 		) =>
-			cb(immutable ReadFileResult!(ubyte[])(immutable ReadFileResult!(ubyte[]).NotFound())),
+			cb(ReadFileResult!(ubyte[])(ReadFileResult!(ubyte[]).NotFound())),
 		(
-			immutable Path path,
-			immutable Sym extension,
-			void delegate(immutable ReadFileResult!SafeCStr) @safe @nogc pure nothrow cb,
+			Path path,
+			Sym extension,
+			in void delegate(in ReadFileResult!SafeCStr) @safe @nogc pure nothrow cb,
 		) {
-			immutable Opt!SafeCStr res = extension == crowExtension
+			Opt!SafeCStr res = extension == crowExtension
 				? getAt_mut(files, path)
 				: none!SafeCStr;
 			return cb(has(res)
-				? immutable ReadFileResult!SafeCStr(force(res))
-				: immutable ReadFileResult!SafeCStr(immutable ReadFileResult!SafeCStr.NotFound()));
+				? ReadFileResult!SafeCStr(force(res))
+				: ReadFileResult!SafeCStr(ReadFileResult!SafeCStr.NotFound()));
 		});
 	return cb(storage);
 }
 
-alias MutFiles = MutDict!(immutable Path, immutable SafeCStr);
+alias MutFiles = MutDict!(Path, SafeCStr);

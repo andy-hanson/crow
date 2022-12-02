@@ -6,7 +6,7 @@ import model.model : FunDeclAndArgs, FunInst, SpecDeclAndArgs, SpecInst, StructD
 import util.col.mutDict : MutDict;
 
 struct ProgramState {
-	MutDict!(immutable FunDeclAndArgs, immutable FunInst*) funInsts;
-	MutDict!(immutable StructDeclAndArgs, StructInst*) structInsts;
-	MutDict!(immutable SpecDeclAndArgs, immutable SpecInst*) specInsts;
+	MutDict!(FunDeclAndArgs, FunInst*) funInsts;
+	MutDict!(StructDeclAndArgs, StructInst*) structInsts;
+	MutDict!(SpecDeclAndArgs, SpecInst*) specInsts;
 }
