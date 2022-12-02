@@ -31,7 +31,7 @@ import model.model :
 import util.alloc.alloc : Alloc;
 import util.cell : Cell, cellGet, cellSet;
 import util.col.arr : only, sizeEq;
-import util.col.arrUtil : arrLiteral, exists, map;
+import util.col.arrUtil : arrLiteral, exists, findIndex, map;
 import util.col.enumDict : enumDictFindKey;
 import util.col.fullIndexDict : FullIndexDict;
 import util.col.mutArr : MutArr;
@@ -265,6 +265,36 @@ static assert(Expected.sizeof == ulong.sizeof + size_t.sizeof * 2); // TODO: cou
 			ti.length == 1 ? some(only(ti).type) : none!Type,
 		(const LoopInfo*) =>
 			none!Type);
+
+// Returns an index into choices if it is the only allowed choice
+immutable(Opt!size_t) findExpectedStruct(ref const Expected expected, immutable StructInst*[] choices) =>
+	expected.matchConst!(immutable Opt!size_t)(
+		(immutable Expected.Infer) =>
+			none!size_t,
+		(immutable Type x) =>
+			x.isA!(StructInst*)
+				? findIndex!(immutable StructInst*)(choices, (ref immutable StructInst* choice) =>
+					choice == x.as!(StructInst*))
+				: none!size_t,
+		(const TypeAndInferring[] xs) {
+			// This function will only be used with types like nat8 with no type arguments, so don't worry about those
+			Opt!size_t rslt;
+			foreach (ref const TypeAndInferring x; xs)
+				if (x.type.isA!(StructInst*)) {
+					immutable Opt!size_t here =
+						findIndex!(immutable StructInst*)(choices, (ref immutable StructInst* choice) =>
+							choice == x.type.as!(StructInst*));
+					if (has(here)) {
+						if (has(rslt))
+							return none!size_t;
+						else
+							rslt = here;
+					}
+				}
+			return rslt;
+		},
+		(const LoopInfo*) =>
+			none!size_t);
 
 // TODO: if we have a bogus expected type we should probably not be doing any more checking at all?
 immutable(bool) isBogus(ref const Expected expected) {

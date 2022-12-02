@@ -833,10 +833,10 @@ void writeDiag(
 		(immutable Diag.NeedsExpectedType x) {
 			writer ~= () {
 				final switch (x.kind) {
-					case Diag.NeedsExpectedType.Kind.pointer:
-						return "pointer";
 					case Diag.NeedsExpectedType.Kind.loop:
 						return "'loop'";
+					case Diag.NeedsExpectedType.Kind.pointer:
+						return "pointer";
 					case Diag.NeedsExpectedType.Kind.throw_:
 						return "'throw'";
 				}
