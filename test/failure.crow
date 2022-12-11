@@ -29,7 +29,7 @@ handle-output failure[](
 	else
 		(original-path, "{output-path base-name} does not exist. actual was:\n{actual-normalized}"),
 
-flat-map-with-max-size[out, in] out[](a in[], max-size nat, mapper act out[](in)) trusted
+flat-map-with-max-size[out, in] out[](a in[], max-size nat, mapper act out[](in))
 	res out mut[] = ()
 	for x : a
 		if res.size < max-size

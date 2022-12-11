@@ -23,7 +23,7 @@ import
 	fun* nat64^(string[])
 
 # Treated specially by the compiler
-rt-main int32(argc int32, argv c-string*, main-pointer main-pointer) noctx, summon, trusted
+rt-main int32(argc int32, argv c-string*, main-pointer main-pointer) noctx, summon, unsafe
 	do-init-constants
 	n-threads = count-processors
 	gctx-by-val mut global-ctx by-val = n-threads uninit
@@ -58,13 +58,14 @@ init-constants void() builtin, noctx, summon, unsafe
 	argc int32,
 	argv c-string*,
 	main-pointer main-pointer,
-) noctx, trusted
+) noctx
 	# Create a ctx manually so we can call functions that need it when creating the task
-	gctx before-task 0
-	all-args = argv[0 .. argc.to-int64.to-nat64]
-	res = all-args invoke-main main-pointer
-	after-task
-	res
+	trusted
+		gctx before-task 0
+		all-args = argv[0 .. argc.to-int64.to-nat64]
+		res = all-args invoke-main main-pointer
+		after-task
+		res
 
 .invoke-main nat64^(all-args c-string array, main-pointer main-pointer) force-ctx, unsafe
 	all-args add-first-task main-pointer

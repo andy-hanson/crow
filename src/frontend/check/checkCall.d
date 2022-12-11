@@ -2,13 +2,14 @@ module frontend.check.checkCall;
 
 @safe @nogc pure nothrow:
 
-import frontend.check.checkCtx : addDiag, CheckCtx, eachImportAndReExport, ImportIndex, markUsedImport;
+import frontend.check.checkCtx : eachImportAndReExport, ImportIndex, markUsedImport;
 import frontend.check.checkExpr : checkExpr;
 import frontend.check.dicts : FunDeclAndIndex, ModuleLocalFunIndex;
 import frontend.check.inferringType :
 	addDiag2,
 	bogus,
 	check,
+	checkCanDoUnsafe,
 	Expected,
 	ExprCtx,
 	FunOrLambdaInfo,
@@ -376,17 +377,18 @@ void getParamExpected(
 }
 
 Opt!(Diag.CantCall.Reason) getCantCallReason(
+	ref ExprCtx ctx,
 	bool calledIsVariadicNonEmpty,
 	FunFlags calledFlags,
 	FunFlags callerFlags,
-	bool callerInLambda,
+	bool isCallerInLambda,
 ) =>
-	!calledFlags.noCtx && callerFlags.noCtx && !calledFlags.forceCtx && !callerInLambda
+	!calledFlags.noCtx && callerFlags.noCtx && !calledFlags.forceCtx && !isCallerInLambda
 		// TODO: need to explain this better in the case where noCtx is due to the lambda
 		? some(Diag.CantCall.Reason.nonNoCtx)
 		: calledFlags.summon && !callerFlags.summon
 		? some(Diag.CantCall.Reason.summon)
-		: calledFlags.safety == FunFlags.Safety.unsafe && callerFlags.safety == FunFlags.Safety.safe
+		: calledFlags.safety == FunFlags.Safety.unsafe && !checkCanDoUnsafe(ctx)
 		? some(Diag.CantCall.Reason.unsafe)
 		: calledIsVariadicNonEmpty && callerFlags.noCtx
 		? some(Diag.CantCall.Reason.variadicFromNoctx)
@@ -395,20 +397,21 @@ Opt!(Diag.CantCall.Reason) getCantCallReason(
 enum ArgsKind { empty, nonEmpty }
 
 void checkCallFlags(
-	ref CheckCtx ctx,
+	ref ExprCtx ctx,
 	FileAndRange range,
 	FunDecl* called,
 	FunFlags caller,
-	bool callerInLambda,
+	bool isCallerInLambda,
 	ArgsKind argsKind,
 ) {
 	Opt!(Diag.CantCall.Reason) reason = getCantCallReason(
+		ctx,
 		isVariadic(*called) && argsKind == ArgsKind.nonEmpty,
 		called.flags,
 		caller,
-		callerInLambda);
+		isCallerInLambda);
 	if (has(reason))
-		addDiag(ctx, range, Diag(Diag.CantCall(force(reason), called)));
+		addDiag2(ctx, range, Diag(Diag.CantCall(force(reason), called)));
 }
 
 void checkCalledDeclFlags(
@@ -420,7 +423,7 @@ void checkCalledDeclFlags(
 ) {
 	res.matchWithPointers!void(
 		(FunDecl* f) {
-			checkCallFlags(ctx.checkCtx, range, f, ctx.outermostFunFlags, isInLambda, argsKind);
+			checkCallFlags(ctx, range, f, ctx.outermostFunFlags, isInLambda, argsKind);
 		},
 		// For a spec, we check the flags when providing the spec impl
 		(SpecSig) {});

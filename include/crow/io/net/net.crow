@@ -32,7 +32,7 @@ uri record
 	after-hash string
 
 # Opens a socket, connects to the URI, and returns the fd.
-connect-to-uri SOCKET(u uri) summon, trusted
+connect-to-uri SOCKET(u uri) summon, unsafe
 	if is-windows
 		wsa-init
 

@@ -1,25 +1,24 @@
 no-std
 import
 	../../bool: !, &&, bool, false, new, true
-	../../compare: !=, <, <=, >, >=, compare
+	../../compare: !=, <, >, >=, compare
 	../../exception: unreachable
 	../../fun-util: subscript
 	../../json: json
 	../../misc: is-data, new, void
 	../../number: ==, <=>, +, -, /, nat64, new
 	../../option: !, new, option
-	../../pointer: ==, <=>, +, -, *, const-pointer
 	../../range: ..
 	../../string: ==, <=>, ~~, iter, join, literal, next, slice-left, starts-with, string, to-string
 	../../test-util: is
 	../array:
-		~=, ~~=, array, array-builder, begin-pointer, build, end-pointer, for-loop, index-of,
-		insert-at, is-empty, last, remove-at, rtail, size, subscript, tail, with-block
+		~=, ~~=, array, array-builder, build, for-loop, index-of, insert-at, is-empty, last,
+		remove-at, rtail, size, subscript, tail, with-block
 	../iter: rest
 	../list: ~=, build, for-loop, list, list-builder, size, to-array, to-list, with-block
 	../mut-stack: ~=, mut-stack, new, peek, pop
 	../sort: sort-unique
-	../private/sort-utils: binary-search-has, binary-search-insert-pointer
+	../private/sort-utils: binary-search-has, binary-search-insert-index
 
 ###
 Set of unique values.
@@ -69,7 +68,7 @@ to-list[t] t[](a t tree-set) t is-data, t compare
 # True iff the value is in the set.
 in[t] bool(value t, a t tree-set) t is-data, t compare
 	a.root has value
-.has[t] bool(a t node, value t) trusted, t compare
+.has[t] bool(a t node, value t) t compare
 	match a
 	as inner i
 		match value <=> i.value
@@ -101,7 +100,7 @@ This is O(a.size ln)
 Union of two sets.
 This is O(n).
 ###
-~~[t] t tree-set(a t tree-set, b t tree-set) trusted, t is-data, t compare
+~~[t] t tree-set(a t tree-set, b t tree-set) t is-data, t compare
 	list t[] = with out : a.size + b.size build
 		b-iter = b iter
 		for x : a
@@ -119,7 +118,7 @@ This is O(n).
 		else
 			break
 
-.walk-iter-union[t] void(out t list-builder, value t, a t iter) unsafe, t is-data, t compare
+.walk-iter-union[t] void(out t list-builder, value t, a t iter) t is-data, t compare
 	if peek ?= a peek
 		match value <=> peek
 		as less
@@ -135,11 +134,11 @@ This is O(n).
 	else
 		out ~= value
 
-intersect[t] t tree-set(a t tree-set, b t tree-set) trusted, t is-data, t compare
+intersect[t] t tree-set(a t tree-set, b t tree-set) t is-data, t compare
 	b-iter = b iter
 	a filter x => b-iter walk-iter-has x
 
-.walk-iter-has[t] bool(a t iter, value t) unsafe, t is-data, t compare
+.walk-iter-has[t] bool(a t iter, value t) t is-data, t compare
 	if peek ?= a peek
 		match value <=> peek
 		as less
@@ -226,7 +225,7 @@ try-remove[t] t tree-set?(a t tree-set, b t) t is-data, t compare
 		if last ?= l last
 			(last, l.rtail.leaf),
 
--[t] t tree-set(a t tree-set, b t tree-set) trusted, t is-data, t compare
+-[t] t tree-set(a t tree-set, b t tree-set) t is-data, t compare
 	b-iter = b iter
 	a filter x => !(b-iter walk-iter-has x)
 
@@ -236,7 +235,7 @@ try-remove[t] t tree-set?(a t tree-set, b t) t is-data, t compare
 	# TODO:PERF use a mut-array, initialized to the tree's height
 	stack t inner-node mut-stack
 
-.iter[t] t iter(a t tree-set) trusted
+.iter[t] t iter(a t tree-set)
 	stack t inner-node mut-stack = ()
 	node mut = a root
 	loop
@@ -255,7 +254,7 @@ try-remove[t] t tree-set?(a t tree-set, b t) t is-data, t compare
 	else
 		a.cur[0],
 
-.next[t] t?(a t iter) trusted
+.next[t] t?(a t iter)
 	if a.cur is-empty
 		if node ?= a.stack pop
 			res = node value
@@ -309,35 +308,32 @@ try-remove[t] t tree-set?(a t tree-set, b t) t is-data, t compare
 		as find-scapegoat f
 			a handle-scapegoat value, a.left, f
 
-.add-to-array[t] t add-result(a t array, value t, max-height nat64) trusted, t compare
-	insert-pointer = a binary-search-insert-pointer value
-	if insert-pointer != a.end-pointer && *insert-pointer == value
+.add-to-array[t] t add-result(a t array, value t, max-height nat64) t compare
+	insert-index = a binary-search-insert-index value
+	if insert-index != a.size && a[insert-index] == value
 		none
 	elif a.size < 4
-		(a insert-at insert-pointer - a.begin-pointer, value).leaf inserted
+		(a insert-at insert-index, value).leaf inserted
 	elif max-height == 0
 		# Can't add new nodes
 		(a.size + 1, 1) find-scapegoat
 	else
-		a break-up-arr value, insert-pointer, max-height
+		a break-up-arr value, insert-index, max-height
 
-.break-up-arr[t] t add-result(a t array, value t, insert-pointer t*, max-height nat64) unsafe, t compare
-	assert a.begin-pointer <= insert-pointer
-	assert insert-pointer <= a.end-pointer
+.break-up-arr[t] t add-result(a t array, value t, insert-index nat64, max-height nat64) t compare
 	# Break it up into nodes, adding to height
-	mid-pointer = a.begin-pointer + (a.end-pointer - a.begin-pointer) / 2
-	mid-index = mid-pointer - a.begin-pointer
-	if insert-pointer == mid-pointer
+	mid-index = a.size / 2
+	if insert-index == mid-index
 		(value, a[0 .. mid-index].leaf, a[mid-index .. a.size].leaf).inner inserted
 	else
-		mid = *mid-pointer
+		mid = a[mid-index]
 		assert mid-index < a.size
 		left-arr = a[0 .. mid-index]
 		right-arr = a[mid-index + 1 .. a.size]
 		forbid left-arr is-empty
 		forbid right-arr is-empty
-		if insert-pointer < mid-pointer
-			# TODO:PERF: This redundantly finds insert-pointer again
+		if insert-index < mid-index
+			# TODO:PERF: This redundantly finds insert-index again
 			match left-arr add-to-array value, max-height - 1
 			as none
 				unreachable
@@ -369,13 +365,13 @@ try-remove[t] t tree-set?(a t tree-set, b t) t is-data, t compare
 	as leaf l
 		l size
 
-.tree-to-array[t] t array(a t inner-node, value t, size nat64) trusted, t compare
+.tree-to-array[t] t array(a t inner-node, value t, size nat64) t compare
 	with out : size build
 		out tree-to-array-recur a.inner, value
-.tree-to-array[t] t array(a t inner-node, size nat64) trusted, t compare
+.tree-to-array[t] t array(a t inner-node, size nat64) t compare
 	with out : size build
 		out tree-to-array-recur a.inner
-.tree-to-array-recur[t] void(out t array-builder, a t node, value t) unsafe, t compare
+.tree-to-array-recur[t] void(out t array-builder, a t node, value t) t compare
 	match a
 	as inner i
 		match value <=> i.value
@@ -391,12 +387,12 @@ try-remove[t] t tree-set?(a t tree-set, b t) t is-data, t compare
 			out tree-to-array-recur i.right, value
 	as leaf l
 		# Find first x > value, insert it before there
-		index = (l binary-search-insert-pointer value) - l.begin-pointer
+		index = l binary-search-insert-index value
 		out ~~= l[0 .. index]
 		out ~= value
 		out ~~= l[index .. l.size]
 # Version where we know we don't have to insert value
-.tree-to-array-recur[t] void(out t array-builder, a t node) unsafe
+.tree-to-array-recur[t] void(out t array-builder, a t node)
 	match a
 	as inner i
 		out tree-to-array-recur i.left
@@ -406,7 +402,7 @@ try-remove[t] t tree-set?(a t tree-set, b t) t is-data, t compare
 		out ~~= l
 
 # TODO:PERF
-.get-max-height nat64(size nat64) trusted
+.get-max-height nat64(size nat64)
 	if size >= 4
 		(size / 2).get-max-height + 1
 

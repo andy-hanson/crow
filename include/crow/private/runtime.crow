@@ -96,19 +96,20 @@ gc-root record mut by-ref
 .init void(a gc-root) noctx, unsafe
 	(&a.tasks)::task-queue init
 
-symbols-table symbol[string](a global-ctx) noctx, trusted
-	(&a.gc-root)::gc-root symbols-table
-set-symbols-table void(a global-ctx, value symbol[string]) noctx, trusted
-	(&a.gc-root)::gc-root.symbols-table := value
+symbols-table symbol[string](a global-ctx) noctx
+	trusted (&a.gc-root)::gc-root symbols-table
+set-symbols-table void(a global-ctx, value symbol[string]) noctx
+	trusted
+		(&a.gc-root)::gc-root.symbols-table := value
 
 .tasks task-queue(a global-ctx) noctx, unsafe
 	&(&a.gc-root).tasks
 
-exception-handler fun void(exception)(a global-ctx) trusted
-	(&a.gc-root)::gc-root exception-handler
+exception-handler fun void(exception)(a global-ctx)
+	trusted (&a.gc-root)::gc-root exception-handler
 
-new-exclusion exclusion(v global-ctx) noctx, trusted
-	&v.next-exclusion get-and-increment
+new-exclusion exclusion(v global-ctx) noctx
+	trusted &v.next-exclusion get-and-increment
 
 default-exception-handler void(e exception) summon, unsafe
 	err print-no-newline "uncaught exception: "
@@ -116,8 +117,9 @@ default-exception-handler void(e exception) summon, unsafe
 	get-global-ctx.any-unhandled-exceptions := true
 
 # TODO: move to exception.crow ?
-set-exception-handler void(exception-handler fun void(exception)) summon, trusted
-	(&get-global-ctx.gc-root).exception-handler := exception-handler
+set-exception-handler void(exception-handler fun void(exception)) summon
+	trusted
+		(&get-global-ctx.gc-root).exception-handler := exception-handler
 
 add-task void(a global-ctx, exclusion exclusion, action act void()) unsafe
 	a add-task ((exclusion, action), ())

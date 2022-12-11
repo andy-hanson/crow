@@ -9,9 +9,9 @@ import
 	../number: nat32, nat64
 	./private/sodium: ensure-sodium-initialized
 
-random-nat32 nat32() summon, trusted
+random-nat32 nat32() summon
 	ensure-sodium-initialized
-	randombytes_random
+	trusted randombytes_random
 
 random-nat64 nat64() summon
 	random-nat32 bits-cat random-nat32

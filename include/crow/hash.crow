@@ -25,7 +25,7 @@ hash-mix[t] spec
 	hash-mix void(hasher hasher, a t)
 
 # Get a hash code for any value.
-hash[t] nat64(a t) trusted, t hash-mix
+hash[t] nat64(a t) t hash-mix
 	hasher hasher = 0,
 	hasher hash-mix a
 	hasher cur
@@ -49,9 +49,9 @@ hash-mix void(hasher hasher, a int16)
 	hasher hash-mix a.to-int64
 hash-mix void(hasher hasher, a int32)
 	hasher hash-mix a.to-int64
-hash-mix void(hasher hasher, a int64) trusted
+hash-mix void(hasher hasher, a int64)
 	# TODO: we need 'wrap-to-nat64'
-	hasher hash-mix a.unsafe-to-nat64
+	trusted hasher hash-mix a.unsafe-to-nat64
 
 hash-mix void(hasher hasher, a bool)
 	hasher hash-mix a.to-nat64

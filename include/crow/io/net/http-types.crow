@@ -14,7 +14,7 @@ http-request record
 
 # TODO: should this be trusted?
 # Request body as as string.
-request-body-string string(a http-request) trusted
+request-body-string string(a http-request)
 	a.request-body as-string
 
 # Response to an HTTP request.

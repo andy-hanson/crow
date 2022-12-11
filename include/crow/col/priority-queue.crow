@@ -7,15 +7,14 @@ import
 	../misc: is-data, new, void
 	../number: ==, <=>, +, -, nat64
 	../option: !, is-empty, new, option
-	../pointer: ==, +, mut-pointer, set-deref
 	../string: ~~, ==, join, literal, new, string, to-string
 	../test-util: is
 	../test-util/spy: calls, fn, new, spy-act2
 	../tuple: ==, from, new, pair, to
-	./array: array, first, for-loop, is-empty, new, size, tail
+	./array: array, first, is-empty, new, size, tail
 	./mut-array:
-		begin-pointer, cast-immutable, end-pointer, first, mut-array, set-subscript, size, subscript,
-		tail, uninitialized-mut-array
+		~=, ~~=, build, cast-immutable, first, mut-array, mut-array-builder, set-subscript, size,
+		subscript, tail, with-block
 	./list: ==, ~=, build, first, for-loop, is-empty, list, new, tail, to-array, to-list, with-block
 	./sort: set-sort, sort
 
@@ -149,7 +148,7 @@ pop[k, v] (k, v) popped?(a (k, v) priority-queue) k is-data, k compare
 	# TODO: type annotation should not be necessary
 	popped.popped, ((root,)::((k, v) node?),)
 
-.compact-leading-nodes[k, v] (k, v) priority-queue(a (k, v) priority-queue) trusted, k compare
+.compact-leading-nodes[k, v] (k, v) priority-queue(a (k, v) priority-queue) k compare
 	mid = a.root find-mid 0
 	if mid.n-before-mid == 0
 		a
@@ -200,37 +199,32 @@ pop[k, v] (k, v) popped?(a (k, v) priority-queue) k is-data, k compare
 	else
 		n-singles plan-will-compact
 
-.do-compact[k, v] (k, v) node(root (k, v) node, n-to-compact nat64, nodes-to-compact (k, v) node?) trusted, k compare
-	compacted (k, v) mut-array = n-to-compact uninitialized-mut-array
-	mid = compacted.begin-pointer compact-non-singles nodes-to-compact
-	end = mid compact-singles root
-	assert end == compacted.end-pointer
+.do-compact[k, v] (k, v) node(root (k, v) node, n-to-compact nat64, nodes-to-compact (k, v) node?) k compare
+	compacted (k, v) mut-array = with out : n-to-compact build
+		out compact-non-singles nodes-to-compact
+		out compact-singles root
+	assert compacted.size == n-to-compact
 	compacted set-sort pair => pair from
-	arr = compacted cast-immutable
+	arr = trusted compacted cast-immutable
 	arr.first!, arr.tail, ()
 
-.compact-singles[k, v] (k, v) mut*(out (k, v) mut*, a (k, v) node) unsafe
+.compact-singles[k, v] void(out (k, v) mut-array-builder, a (k, v) node)
 	if a.pairs is-empty
 		# Output later nodes first to preserve insertion order (since they're inserted to the front)
-		pos = if next ?= a next
+		if next ?= a next
 			out compact-singles next
-		else
-			out
-		*pos := a.min
-		pos + 1
-	else
-		out
+		out ~= a.min
 
-.compact-non-singles[k, v] (k, v) mut*(out (k, v) mut*, a (k, v) node?) unsafe
-	if node ?= a
-		*out := node min
-		cur mut = out + 1
-		for x : node pairs
-			*cur := x
-			cur := cur + 1
-		cur compact-non-singles node.next
-	else
-		out
+.compact-non-singles[k, v] void(out (k, v) mut-array-builder, a (k, v) node?)
+	cur mut = a
+	loop
+		if node ?= cur
+			out ~= node min
+			out ~~= node pairs
+			cur := node next
+			continue
+		else
+			break
 
 .dbg string(a (nat64, string) priority-queue)
 	a.root dbg
@@ -250,10 +244,10 @@ for-loop[k, v] void(a (k, v) priority-queue, f act void(k, v)) k is-data, k comp
 	min mut (k, v)
 	pairs mut (k, v) array
 
-.each-arr[k, v] (k, v) each-part mut-array(a (k, v) priority-queue) trusted, k compare
-	res (k, v) each-part mut-array = a.node-count uninitialized-mut-array
-	end = res.begin-pointer fill-each-arr a.root
-	assert end == res.end-pointer
+.each-arr[k, v] (k, v) each-part mut-array(a (k, v) priority-queue) k compare
+	res (k, v) each-part mut-array = with out : a.node-count build
+		out fill-each-arr a.root
+	assert res.size == a.node-count
 	res set-sort it => it.min from
 	res
 
@@ -266,12 +260,15 @@ for-loop[k, v] void(a (k, v) priority-queue, f act void(k, v)) k is-data, k comp
 	else
 		acc
 
-.fill-each-arr[k, v] (k, v) each-part mut*(out (k, v) each-part mut*, a (k, v) node?) unsafe
-	if node ?= a
-		*out := node.min, node.pairs
-		out + 1 fill-each-arr node.next
-	else
-		out
+.fill-each-arr[k, v] void(out (k, v) each-part mut-array-builder, a (k, v) node?)
+	cur mut = a
+	loop
+		if node ?= cur
+			out ~= (node.min, node.pairs)
+			cur := node next
+			continue
+		else
+			break
 
 .walk[k, v] void(a (k, v) each-part mut-array, f act void(k, v)) k compare
 	if head ?= a first
@@ -293,7 +290,7 @@ for-loop[k, v] void(a (k, v) priority-queue, f act void(k, v)) k is-data, k comp
 		a[1] := temp
 		a.tail swap-sorted
 
-filter[k, v] (k, v) priority-queue(a (k, v) priority-queue, f act bool(k, v)) trusted, k is-data, k compare
+filter[k, v] (k, v) priority-queue(a (k, v) priority-queue, f act bool(k, v)) k is-data, k compare
 	pairs (k, v)[] = with out : build
 		for k, v : a
 			if f[k, v]
@@ -306,7 +303,7 @@ for-loop[k-out, v-out, k-in, v-in] (k-out, v-out) priority-queue(
 ) k-in is-data, k-in compare, k-out is-data, k-out compare
 	a for-loop f to-priority-queue
 
-for-loop[out, k, v] out[](a (k, v) priority-queue, f act out(k, v)) trusted, k is-data, k compare
+for-loop[out, k, v] out[](a (k, v) priority-queue, f act out(k, v)) k is-data, k compare
 	with out : a.size build
 		for k, v : a
 			out ~= f[k, v]

@@ -6,18 +6,17 @@ import
 	../misc: is-data, new, void
 	../number: ==, <=>, +, nat64
 	../option: ==, !, new, option
-	../pointer: -
 	../range: .., for-loop
 	../string: ==, ~~, join, literal, new, string, to-string
 	../test-util: is
 	../tuple: ==, from, new, pair, to
 	./array: array, size, subscript
 	./mut-list:
-		~=, ~~=, begin-pointer, clear, copy, for-loop, is-empty, move-to-array, mut-list, new, pop,
-		reversed, size, subscript, temp-as-array, to-list, to-mut-list
+		~=, ~~=, clear, copy, for-loop, is-empty, move-to-array, mut-list, new, pop, reversed, size,
+		subscript, temp-as-array, to-list, to-mut-list
 	./list: ==, list, new, reverse, to-list
 	./sort: set-sort, set-sort-reverse
-	./private/sort-utils: binary-search-insert-pointer
+	./private/sort-utils: binary-search-insert-index
 
 ###
 Mutable priority queue.
@@ -67,10 +66,9 @@ size[k, v] nat64(a (k, v) mut-priority-queue) k is-data, k compare
 Adds a pair to the queue.
 This is O(log n).
 ###
-~=[k, v] void(a (k, v) mut-priority-queue, pair (k, v)) trusted, k is-data, k compare
+~=[k, v] void(a (k, v) mut-priority-queue, pair (k, v)) k is-data, k compare
 	# Highest min is on the right, so comparing in reverse
-	pointer = a.mins binary-search-insert-pointer it => it.from <=> pair.from
-	index = pointer - a.mins.begin-pointer
+	index = a.mins binary-search-insert-index it => it.from <=> pair.from
 	if index == a.mins.size
 		a.mins ~= pair
 	else
@@ -108,7 +106,7 @@ copy[k, v] (k, v) mut-priority-queue(a (k, v) mut-priority-queue) k is-data, k c
 	a spread-all-buckets
 	a.mins.copy, ()
 
-to-list[k, v] (k, v)[](a (k, v) mut-priority-queue) trusted, k is-data, k compare
+to-list[k, v] (k, v)[](a (k, v) mut-priority-queue) k is-data, k compare
 	a spread-all-buckets
 	a.mins.to-list reverse
 
@@ -130,18 +128,19 @@ to-list[k, v] (k, v)[](a (k, v) mut-priority-queue) trusted, k is-data, k compar
 		buckets ~= ()
 		buckets add-to-bucket index, pair
 
-.dbg[k, v] string(a (k, v) mut-priority-queue) trusted, k to-string, v to-string
+.dbg[k, v] string(a (k, v) mut-priority-queue) k to-string, v to-string
 	# TODO: should be able to infer type arguments
-	mins = a.mins temp-as-array
-	buckets = a.buckets temp-as-array
-	# TODO: for min, i : 0 .. mins.size
-	", " join for i : 0 .. mins.size
-		show-bucket = if i < buckets.size
-			bucket = buckets[i]
-			unless bucket is-empty
-				parts = ", " join for pair : bucket; pair dbg
-				" [{parts}]"
-		"{mins[i] dbg}{show-bucket}"
+	trusted
+		mins = a.mins temp-as-array
+		buckets = a.buckets temp-as-array
+		# TODO: for min, i : 0 .. mins.size
+		", " join for i : 0 .. mins.size
+			show-bucket = if i < buckets.size
+				bucket = buckets[i]
+				unless bucket is-empty
+					parts = ", " join for pair : bucket; pair dbg
+					" [{parts}]"
+			"{mins[i] dbg}{show-bucket}"
 
 .dbg[k, v] string(a (k, v)) k to-string, v to-string
 	"{a from} -> {a to}"

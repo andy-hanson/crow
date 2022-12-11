@@ -34,7 +34,7 @@ to-deque[t] t deque(a t[])
 	()::(t stack), a.to-array, ()
 
 # Copy elements to a list.
-to-list[t] t[](a t deque) trusted
+to-list[t] t[](a t deque)
 	for x : a
 		x
 
@@ -101,7 +101,7 @@ for-loop[t] void(a t deque, f act void(t))
 	a.mid for-loop f
 	a.right for-loop f
 
-for-loop[out, in] out[](a in deque, f act out(in)) trusted
+for-loop[out, in] out[](a in deque, f act out(in))
 	with out : a.size build
 		for x : a
 			out ~= f[x]

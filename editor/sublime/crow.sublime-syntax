@@ -316,7 +316,7 @@ contexts:
       scope: comment
 
     # Keywords that are followed by a space
-    - match: '\s*(\?|\:|\;|assert|break|continue|elif|for|forbid|if|loop|match|throw|unless|until|while|with)\s+'
+    - match: '\s*(\?|\:|\;|assert|break|continue|elif|for|forbid|if|loop|match|throw|trusted|unless|until|while|with)\s+'
       scope: keyword
     # Other keywords
     - match: '(else)(?=$|<|\,|\s|\}|\.)'

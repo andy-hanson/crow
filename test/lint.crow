@@ -32,7 +32,7 @@ lint test-result(path string, options test-options) summon
 	"bmp", "dll", "err", "exe", "ilk", "lib", "mdb", "obj", "ogg", "pdb", "png", "svg", "wasm", "wav", "woff2"
 .exclude-names string set()
 	# TODO: gl.crow needs a multi-line call syntax
-	"bin", "COPYING.txt", "dyncall", "gl.crow", "node_modules", "package-lock.json", "site"
+	"bin", "COPYING.txt", "crow.sublime-syntax", "dyncall", "gl.crow", "node_modules", "package-lock.json", "site"
 
 # Returns number of errors
 .lint-file failure[](path string) summon

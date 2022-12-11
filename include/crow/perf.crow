@@ -35,7 +35,7 @@ perf-disable void() summon
 Run `f` and measure its time.
 This will be added to the total time for this measure name.
 ###
-with-perf-measure[t] t(measure-name symbol, f act t()) trusted
+with-perf-measure[t] t(measure-name symbol, f act t())
 	if index ?= measure-name get-measure-index
 		start = perf-now
 		res = f[]
@@ -63,7 +63,7 @@ Calls `f` for each performance measurement and its total.
 
 This must be called before `perf-disable`.
 ###
-get-measured-perf measure-total[symbol]() summon, trusted
+get-measured-perf measure-total[symbol]() summon
 	with out : build
 		f act void(symbol, perf-measure-value) = (name, value) =>
 			out ~= (name, value.to-measure-total)

@@ -31,7 +31,7 @@ to-bytes nat8[](a nat8[])
 from-bytes nat8[](a nat8[])
 	a
 
-from-bytes string(a nat8[]) trusted
+from-bytes string(a nat8[])
 	a as-string
 
 ###
@@ -69,7 +69,7 @@ test
 	0x500.to-bytes is (5, 0)
 
 # TODO:MOVE
-.wrap-to-nat8 nat8(a nat64) noctx, trusted
+.wrap-to-nat8 nat8(a nat64) noctx
 	# TODO: gccjit has a bug if I inline 'masked'
 	masked = a & 0xff
 	masked to-nat8

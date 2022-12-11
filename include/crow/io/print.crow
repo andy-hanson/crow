@@ -25,21 +25,21 @@ print void(pipe pipe, message string) summon
 	pipe print-no-newline "{message}\n"
 
 # Print to stdout or stderr, without appending a newline.
-print-no-newline void(pipe pipe, message string) summon, trusted
-	if is-windows
+print-no-newline void(pipe pipe, message string) summon
+	if trusted is-windows
 		handle = match out
 		as out
 			STD_OUTPUT_HANDLE
 		as err
 			STD_ERROR_HANDLE
-		handle.GetStdHandle write-windows message
+		trusted handle.GetStdHandle write-windows message
 	else
 		output = match pipe
 		as out
 			stdout
 		as err
 			stderr
-		output write-posix message
+		trusted output write-posix message
 
 .write-windows void(console HANDLE, a string) summon, unsafe
 	bytes = a.to-bytes to-array

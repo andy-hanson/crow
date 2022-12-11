@@ -10,6 +10,7 @@ import frontend.check.inferringType :
 	addDiag2,
 	bogus,
 	check,
+	checkCanDoUnsafe,
 	ClosureFieldBuilder,
 	Expected,
 	ExprCtx,
@@ -33,7 +34,8 @@ import frontend.check.inferringType :
 	tryGetLoop,
 	typeFromAst2,
 	typeFromOptAst,
-	withCopyWithNewExpectedType;
+	withCopyWithNewExpectedType,
+	withTrusted;
 import frontend.check.instantiate : instantiateFun, instantiateStructNeverDelay, TypeArgsArray, typeArgsArray;
 import frontend.check.typeFromAst : makeFutType;
 import frontend.parse.ast :
@@ -72,6 +74,7 @@ import frontend.parse.ast :
 	SeqAst,
 	ThenAst,
 	ThrowAst,
+	TrustedAst,
 	TypeAst,
 	TypedAst,
 	UnlessAst,
@@ -224,6 +227,8 @@ Expr checkExpr(ref ExprCtx ctx, ref LocalsInfo locals, in ExprAst ast, ref Expec
 			checkThen(ctx, locals, range, a, expected),
 		(in ThrowAst a) =>
 			checkThrow(ctx, locals, range, a, expected),
+		(in TrustedAst a) =>
+			withTrusted!Expr(ctx, range, () => checkExpr(ctx, locals, a.inner, expected)),
 		(in TypedAst a) =>
 			checkTyped(ctx, locals, range, a, expected),
 		(in UnlessAst a) =>
@@ -870,7 +875,7 @@ Param[] checkParamsForLambda(
 		});
 
 Expr checkPtr(ref ExprCtx ctx, ref LocalsInfo locals, FileAndRange range, in PtrAst ast, ref Expected expected) {
-	if (ctx.outermostFunFlags.safety == FunFlags.Safety.safe)
+	if (!checkCanDoUnsafe(ctx))
 		addDiag2(ctx, range, Diag(Diag.PtrIsUnsafe()));
 	return getExpectedPointee(ctx, expected).match!Expr(
 		(ExpectedPointee.None) {
@@ -1472,6 +1477,8 @@ bool hasBreakOrContinue(in ExprAst a) =>
 		(in ThenAst x) =>
 			hasBreakOrContinue(x.then),
 		(in ThrowAst _) =>
+			false,
+		(in TrustedAst _) =>
 			false,
 		(in TypedAst _) =>
 			false,

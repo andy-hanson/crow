@@ -12,9 +12,9 @@ import
 		pointer-cast, set-deref, set-subscript, size-of, subscript, swap
 	../private/alloc:
 		alloc-uninitialized, set-zero-range, unmanaged-alloc-elements, unmanaged-free-elements
-	../private/range-low-level: .., high, low, range
+	../range: .., for-loop, high, low, range
 	./array:
-		~=, array, array-builder, as-array, begin-pointer, build, exists, find-index, for-loop,
+		~=, ~~=, array, array-builder, as-array, begin-pointer, build, exists, find-index, for-loop,
 		index-of, new, size, subscript, with-block
 
 ###
@@ -73,17 +73,20 @@ subscript[t] t mut-array(a t mut*, indices nat64 range) noctx, unsafe
 	a.as-const[indices],
 
 # Creates a `mut-array` from a range of pointers.
-as-mut-array[t] t mut-array(a t mut* range) noctx, no-doc, unsafe
+as-mut-array[t] t mut-array(a t mut* range) noctx, unsafe
 	assert a.low <= a.high
 	(a.low .. a.high).as-array,
+
+pointers[t] t mut* range(a t mut-array) noctx, unsafe
+	a.begin-pointer .. a.end-pointer
 
 ###
 Gets the element at the index.
 Throws if `index >= a.size`.
 ###
-subscript[t] t(a t mut-array, index nat64) noctx, trusted
+subscript[t] t(a t mut-array, index nat64) noctx
 	assert index < a.size
-	a.begin-pointer[index]
+	trusted a.begin-pointer[index]
 
 ###
 Slices the mut-array.
@@ -101,9 +104,10 @@ subscript[t] t mut-array(a t mut-array, indices nat64 range)
 Write to a single element.
 Throws if `index >= a.size`.
 ###
-set-subscript[t] void(a t mut-array, index nat64, value t) noctx, trusted
+set-subscript[t] void(a t mut-array, index nat64, value t) noctx
 	assert index < a.size
-	a.begin-pointer[index] := value
+	trusted
+		a.begin-pointer[index] := value
 
 # `true` iff `a.size == 0`.
 is-empty[t] bool(a t mut-array) noctx
@@ -141,18 +145,21 @@ Throws if `dest` and `source` are not the same size.
 
 This is O(n).
 ###
-copy-from[t] void(dest t mut-array, source t array) trusted
+copy-from[t] void(dest t mut-array, source t array)
 	assert dest.size == source.size
-	_ = dest.begin-pointer.as-any-mut-pointer memcpy source.begin-pointer.as-any-const-pointer, dest.size * size-of@t
-	()
+	trusted
+		dest-ptr = dest.begin-pointer as-any-mut-pointer
+		src-ptr = source.begin-pointer as-any-const-pointer
+		_ = dest-ptr memcpy src-ptr, dest.size * size-of@t
+		()
 
 ###
 Copies elements from `source` to `dest`.
 
 This is O(n).
 ###
-copy-from[t] void(dest t mut-array, source t mut-array) trusted
-	dest copy-from source.temp-as-array
+copy-from[t] void(dest t mut-array, source t mut-array)
+	dest copy-from trusted source.temp-as-array
 
 ###
 Allocates a `mut-array` without initializing any of its elements.
@@ -200,19 +207,20 @@ set-zero-elements[t] void(a t mut-array) noctx, unsafe
 `mut-array` where each element is `f[i]`.
 Equivalent to `f[0], f[1], ...`.
 ###
-.make-mut-array[t] t mut-array(size nat64, f act t(nat64)) trusted
-	res t mut-array = size uninitialized-mut-array
-	out mut = res begin-pointer
-	i mut = 0
-	loop
-		if i == size
-			assert out == res.end-pointer
-			break res
-		else
-			*out := f[i]
-			out := out + 1
-			i := i + 1
-			continue
+.make-mut-array[t] t mut-array(size nat64, f act t(nat64))
+	trusted
+		res t mut-array = size uninitialized-mut-array
+		out mut = res begin-pointer
+		i mut = 0
+		loop
+			if i == size
+				assert out == res.end-pointer
+				break res
+			else
+				*out := f[i]
+				out := out + 1
+				i := i + 1
+				continue
 
 ###
 `mut-array` where every element is `value`.
@@ -222,22 +230,24 @@ fill-mut-array[t] t mut-array(size nat64, value t)
 	size make-mut-array _ => value
 
 # Sets every element to `value`.
-fill[t] void(a t mut-array, value t) noctx, trusted
+fill[t] void(a t mut-array, value t) noctx
 	unless a is-empty
-		*a.begin-pointer := value
-		(a.begin-pointer + 1 .. a.end-pointer).as-mut-array fill value
+		trusted
+			*a.begin-pointer := value
+			(a.begin-pointer + 1 .. a.end-pointer).as-mut-array fill value
 
-in[t] bool(value t, a t mut-array) noctx, trusted, t equal
-	cur mut = a.begin-pointer as-const
-	end = a.end-pointer as-const
-	loop
-		if cur == end
-			break false
-		elif *cur == value
-			break true
-		else
-			cur := cur + 1
-			continue
+in[t] bool(value t, a t mut-array) noctx, t equal
+	trusted
+		cur mut = a.begin-pointer as-const
+		end = a.end-pointer as-const
+		loop
+			if cur == end
+				break false
+			elif *cur == value
+				break true
+			else
+				cur := cur + 1
+				continue
 
 ###
 Unsafe cast a mut-array to arr.
@@ -275,48 +285,45 @@ temp-as-array[t] t array(a t mut-array) noctx, unsafe
 	a inner
 
 # Equivalent to `a.temp-as-array index-of value`.
-index-of[t] nat64?(a t mut-array, value t) noctx, trusted, t equal
-	a.temp-as-array index-of value
+index-of[t] nat64?(a t mut-array, value t) noctx, t equal
+	trusted a.temp-as-array index-of value
 
 # Equivalent to `a.temp-as-array find-index f`.
-find-index[t] nat64?(a t mut-array, f act bool(t)) trusted
-	a.temp-as-array find-index f
+find-index[t] nat64?(a t mut-array, f act bool(t))
+	trusted a.temp-as-array find-index f
 
-set-reverse[t] void(a t mut-array) trusted
+set-reverse[t] void(a t mut-array)
 	# avoid 'a.end-pointer - 1' overflowing for null arrays
 	unless a is-empty
-		left mut = a begin-pointer
-		right mut = a.end-pointer - 1
-		while left < right
-			left swap right
-			left := left + 1
-			right := right - 1
+		trusted
+			left mut = a begin-pointer
+			right mut = a.end-pointer - 1
+			while left < right
+				left swap right
+				left := left + 1
+				right := right - 1
 
 region iteration
 
-exists[t] bool(a t mut-array, f act bool(t)) trusted
-	a.temp-as-array exists f
+exists[t] bool(a t mut-array, f act bool(t))
+	trusted a.temp-as-array exists f
 
 # Calls 'f' on each element in the mut-array.
-for-loop[t] void(a t mut-array, f act void(t)) trusted
-	# TODO: dangerous if 'a' is modified while running 'f'
-	a.temp-as-array for-loop f
+for-loop[t] void(a t mut-array, f act void(t))
+	trusted a.temp-as-array for-loop f
 
-for-loop[t] void(a t mut-array, f act void(t, nat64)) trusted
-	# TODO: dangerous if 'a' is modified while running 'f'
-	a.temp-as-array for-loop f
+for-loop[t] void(a t mut-array, f act void(t, nat64))
+	trusted a.temp-as-array for-loop f
 
-set-map[t] void(a t mut-array, f act t(t)) trusted
-	cur mut = a begin-pointer
-	until cur == a.end-pointer
+set-map[t] void(a t mut-array, f act t(t))
+	trusted for cur : a.begin-pointer .. a.end-pointer
 		*cur := f[*cur]
-		cur := cur + 1
 
-for-loop[out, in] out mut-array(a in mut-array, f act out(in)) trusted
+for-loop[out, in] out mut-array(a in mut-array, f act out(in))
 	a.size make-mut-array i => f[a[i]]
 
-for-loop[out, in] out mut-array(a in mut-array, f act out(in, nat64)) trusted
-	a.size make-mut-array i => f[a[i], i]
+for-loop[out, in] out mut-array(a in mut-array, f act out(nat64, in))
+	a.size make-mut-array i => f[i, a[i]]
 
 ###
 Casts elements to a different type.
@@ -330,8 +337,8 @@ cast-mut-array[out, in] out mut-array(a in mut-array) noctx, unsafe
 	# TODO: shouldn't need parentheses
 	(a.begin-pointer.pointer-cast::out mut*)[0 .. size-out]
 
-for-loop[out, in] out array(a in mut-array, f act out(in)) trusted
-	a for-loop f cast-immutable
+for-loop[out, in] out array(a in mut-array, f act out(in))
+	trusted a for-loop f cast-immutable
 
 region builder
 
@@ -350,6 +357,9 @@ with-block[t] t mut-array(a build-mut-array, f act void(t mut-array-builder))
 
 ~=[t] void(a t mut-array-builder, value t)
 	a.inner ~= value
+
+~~=[t] void(a t mut-array-builder, values t array)
+	a.inner ~~= values
 
 size[t] nat64(a t mut-array-builder)
 	a.inner size

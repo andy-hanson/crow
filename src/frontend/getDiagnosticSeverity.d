@@ -53,6 +53,8 @@ DiagSeverity getDiagnosticSeverity(in Diag a) =>
 			DiagSeverity.checkError,
 		(in Diag.FunModifierRedundant) =>
 			DiagSeverity.checkWarning,
+		(in FunModifierTrustedOnNonExtern) =>
+			DiagSeverity.checkError,
 		(in Diag.IfNeedsOpt) =>
 			DiagSeverity.checkError,
 		(in Diag.ImportRefersToNothing) =>
@@ -125,6 +127,8 @@ DiagSeverity getDiagnosticSeverity(in Diag a) =>
 			DiagSeverity.checkError,
 		(in Diag.ThreadLocalError) =>
 			DiagSeverity.checkError,
+		(in Diag.TrustedUnnecessary) =>
+			DiagSeverity.checkWarning,
 		(in Diag.TypeAnnotationUnnecessary) =>
 			DiagSeverity.checkWarning,
 		(in Diag.TypeConflict) =>

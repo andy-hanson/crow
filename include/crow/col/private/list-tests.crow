@@ -18,7 +18,7 @@ import
 dummy-list-tests nat64()
 	0
 
-.verify[t] void(a t[], expected string) no-doc, trusted, t to-string
+.verify[t] void(a t[], expected string) no-doc, t to-string
 	a.dbg is expected
 	a.get-root check-structure
 
@@ -46,7 +46,7 @@ dummy-list-tests nat64()
 	parts = " " join for x : a.to-list; x dbg-arr2d
 	"[{parts}]"
 
-.check-structure[t] void(a t l0) unsafe
+.check-structure[t] void(a t l0)
 	match a node
 	as leaf _
 		()
@@ -55,7 +55,7 @@ dummy-list-tests nat64()
 		forbid b.right is-empty
 		b.down check-structure 
 
-.check-structure[t] void(a t l1) unsafe
+.check-structure[t] void(a t l1)
 	match a node
 	as leaf _
 		()
@@ -64,12 +64,12 @@ dummy-list-tests nat64()
 		b.down check-structure
 		b.right check-structure
 
-.check-structure[t] void(xs t array array) unsafe
+.check-structure[t] void(xs t array array)
 	forbid xs is-empty
 	for ys : xs
 		forbid ys is-empty
 
-.check-structure[t] void(a t l2) unsafe
+.check-structure[t] void(a t l2)
 	for ys : a nodes
 		forbid ys is-empty
 		for zs : ys

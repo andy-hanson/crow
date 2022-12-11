@@ -805,7 +805,6 @@ bool isExpressionStartToken(Token a) {
 		case Token.summon:
 		case Token.test:
 		case Token.thread_local:
-		case Token.trusted:
 		case Token.union_:
 		case Token.unsafe:
 		case Token.with_:
@@ -828,6 +827,7 @@ bool isExpressionStartToken(Token a) {
 		case Token.quoteDouble:
 		case Token.quoteDouble3:
 		case Token.throw_:
+		case Token.trusted:
 		case Token.underscore:
 		case Token.unless:
 		case Token.until:

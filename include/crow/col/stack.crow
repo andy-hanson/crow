@@ -7,13 +7,11 @@ import
 	../misc: new, void
 	../number: ==, +, nat64
 	../option: !, ==, is-empty, new, option
-	../pointer: ==, +, mut-pointer, set-deref
 	../string: ==, literal, string
 	../test-util: is
 	../test-util/spy: calls, fn, new, spy-act1
 	./array: array
-	./mut-array: begin-pointer, cast-immutable, end-pointer, mut-array, uninitialized-mut-array
-	./list: ==, for-loop, list, new, to-list
+	./list: ~=, ==, build, for-loop, list, new, to-list, with-block
 
 ###
 Immutable stack type.
@@ -46,7 +44,7 @@ to-stack[t] t stack(a t[])
 	res
 
 # Copy elements a list.
-to-list[t] t[](a t stack) trusted
+to-list[t] t[](a t stack)
 	for x : a; x
 
 # `true` iff `a.size == 0`.
@@ -116,28 +114,20 @@ for-loop[t] void(a t reversed-stack, f act void(t))
 		else
 			break
 
-for-loop[out, in] out[](a in reversed-stack, f act out(in)) trusted
-	res out mut-array = a.inner.size uninitialized-mut-array
-	out mut out mut* = res begin-pointer
-	for x : a
-		*out := f[x]
-		out := out + 1
-	assert out == res.end-pointer
-	res.cast-immutable to-list
+for-loop[out, in] out[](a in reversed-stack, f act out(in)) 
+	with out : a.inner.size build
+		for x : a
+			out ~= f[x]
 
 # Copy elements to a list, from top to bottom.
-to-list[t] t[](a t reversed-stack) trusted
+to-list[t] t[](a t reversed-stack)
 	for x : a
 		x
 
-for-loop[out, in] out[](a in stack, f act out(in)) trusted
-	res out mut-array = a.size uninitialized-mut-array
-	out mut out mut* = res begin-pointer
-	for x : a
-		*out := f[x]
-		out := out + 1
-	assert out == res.end-pointer
-	res.cast-immutable to-list
+for-loop[out, in] out[](a in stack, f act out(in))
+	with out : a.size build
+		for x : a
+			out ~= f[x]
 
 # Produce a stack with `f[x]` applied to each element `x` in the input.
 for-loop[out, in] out stack(a in stack, f act out(in))

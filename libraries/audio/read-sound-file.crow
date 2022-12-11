@@ -7,17 +7,19 @@ import
 	stdio: SEEK
 	./sound: new, sound
 
-read-sound-file sound(path string) summon, trusted
-	info mut SF_INFO = ()
-	f = path.to-c-string sf_open SFM_READ, &info
-	f common info
+read-sound-file sound(path string) summon
+	trusted
+		info mut SF_INFO = ()
+		f = path.to-c-string sf_open SFM_READ, &info
+		f common info
 
-sound-from-file-content sound(content nat8 array) trusted
-	info mut SF_INFO = ()
-	user-data = content, content.begin-pointer
-	virtual SF_VIRTUAL_IO = &get_filelen, &seek, &read, &write, &tell
-	f = &virtual sf_open_virtual SFM_READ, &info, user-data.as-any-mut-pointer
-	f common info
+sound-from-file-content sound(content nat8 array)
+	trusted
+		info mut SF_INFO = ()
+		user-data = content, content.begin-pointer
+		virtual SF_VIRTUAL_IO = &get_filelen, &seek, &read, &write, &tell
+		f = &virtual sf_open_virtual SFM_READ, &info, user-data.as-any-mut-pointer
+		f common info
 
 .common sound(f SNDFILE mut*, info SF_INFO) unsafe
 	f.sf_error check-sndfile-error

@@ -47,8 +47,8 @@ mark bool(ctx mark-ctx, pointer-any any-const-pointer, size-bytes nat64) noctx, 
 .is-word-aligned bool(a any-mut-pointer) noctx, unsafe
 	a.to-nat64 & 7 == 0
 
-words-of-bytes nat64(size-bytes nat64) noctx, trusted
-	size-bytes.round-up-to-multiple-of-8 unsafe-div 8
+words-of-bytes nat64(size-bytes nat64) noctx
+	trusted size-bytes.round-up-to-multiple-of-8 unsafe-div 8
 
 round-up-to-multiple-of-8 nat64(n nat64) noctx
 	(n wrap-add 7) & ~7
@@ -244,30 +244,31 @@ validate-gc void(gc gc) noctx, unsafe
 	gc.data-end - gc.data-begin == gc.size-words hard-assert
 	mark-idx == data-idx hard-assert
 
-.try-gc-alloc any-mut-pointer?(gc-ctx gc-ctx, size-bytes nat64) noctx, trusted
-	gc = gc-ctx.gc
-	&gc.lk acquire
-	res any-mut-pointer? = loop
-		# TODO: support larger allocations than 256MB
-		size-bytes < 0x10000000 hard-assert
-		# gc validate-gc
-		size-words = size-bytes words-of-bytes
-		cur = gc data-cur
-		next = cur + size-words
-		if next < gc.data-end
-			if non-free ?= gc.mark-cur first-non-free gc.mark-cur + size-words
-				gc.data-cur := gc.data-cur + (non-free - gc.mark-cur) + 1
-				gc.mark-cur := non-free + 1
-				continue
+.try-gc-alloc any-mut-pointer?(gc-ctx gc-ctx, size-bytes nat64) noctx
+	trusted
+		gc = gc-ctx gc
+		&gc.lk acquire
+		res any-mut-pointer? = loop
+			# TODO: support larger allocations than 256MB
+			size-bytes < 0x10000000 hard-assert
+			# gc validate-gc
+			size-words = size-bytes words-of-bytes
+			cur = gc data-cur
+			next = cur + size-words
+			if next < gc.data-end
+				if non-free ?= gc.mark-cur first-non-free gc.mark-cur + size-words
+					gc.data-cur := gc.data-cur + (non-free - gc.mark-cur) + 1
+					gc.mark-cur := non-free + 1
+					continue
+				else
+					gc.mark-cur := gc.mark-cur + size-words
+					gc.data-cur := next
+					break cur.pointer-cast,
 			else
-				gc.mark-cur := gc.mark-cur + size-words
-				gc.data-cur := next
-				break cur.pointer-cast,
-		else
-			break
-	gc maybe-set-needs-gc
-	&gc.lk release
-	res
+				break
+		gc maybe-set-needs-gc
+		&gc.lk release
+		res
 
 .maybe-set-needs-gc void(gc gc) noctx, unsafe
 	cur-word = gc.mark-cur - gc.mark-begin
@@ -282,7 +283,7 @@ validate-gc void(gc gc) noctx, unsafe
 	else
 		mark + 1 first-non-free end
 
-gc-alloc any-mut-pointer(gc gc-ctx, size nat64) noctx, trusted
+gc-alloc any-mut-pointer(gc gc-ctx, size nat64) noctx
 	if res ?= gc try-gc-alloc size
 		res
 	else

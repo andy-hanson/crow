@@ -110,7 +110,7 @@ Gets the value associated with a key.
 
 Returns an empty option if the key is not in the dictionary.
 ###
-subscript[k, v] v?(a v mut[k], key k) trusted, k is-data, k compare, k hash-mix
+subscript[k, v] v?(a v mut[k], key k) k is-data, k compare, k hash-mix
 	unless a is-empty
 		match a.entries[key.hash % a.entries.size]
 		as none
@@ -160,7 +160,7 @@ try-remove[k, v] v?(a v mut[k], key k) k is-data, k compare, k hash-mix
 f: Takes the value (if it exists), returns the new value (or none to remove).
 Returns the old value (if it exists).
 ###
-.update[k, v] v?(a v mut[k], key k, new-value v?) trusted, k is-data, k compare, k hash-mix
+.update[k, v] v?(a v mut[k], key k, new-value v?) k is-data, k compare, k hash-mix
 	if a.entries is-empty
 		if value ?= new-value
 			a.entries := (key, value).one,
@@ -208,7 +208,7 @@ Returns the old value (if it exists).
 				old-value,
 			else
 				if value ?= new-value
-					if m.is-at-capacity && a.should-expand
+					if (trusted m is-at-capacity) && a.should-expand
 						a expand
 						a[key] := value
 					else
@@ -255,7 +255,7 @@ for-loop[k, v] void(a v mut[k], f act void(k, v)) k is-data, k compare, k hash-m
 ###
 Calls `f` on every key and value and returns a list of the results.
 ###
-for-loop[out, k, v] out[](a v mut[k], f act out(k, v)) trusted, k is-data, k compare, k hash-mix
+for-loop[out, k, v] out[](a v mut[k], f act out(k, v)) k is-data, k compare, k hash-mix
 	with out : a.size build
 		for key, value : a
 			out ~= f[key, value]
@@ -271,7 +271,7 @@ Filters the dictionary in place.
 
 Calls `f` on every key and value and removes the key if `f` returns false.
 ###
-set-filter[k, v] void(a v mut[k], f act bool(k, v)) trusted, k is-data, k compare, k hash-mix
+set-filter[k, v] void(a v mut[k], f act bool(k, v)) k is-data, k compare, k hash-mix
 	a.entries set-map entry =>
 		match entry
 		as none
@@ -296,7 +296,7 @@ to-dict[k, v] v[k](a v mut[k]) k is-data, k compare, k hash-mix
 ###
 Calls `f` on every key and value, and replaces the value with the new value returned by `f`.
 ###
-set-map-values[k, v] void(a v mut[k], f act v(k, v)) trusted, k is-data, k compare, k hash-mix
+set-map-values[k, v] void(a v mut[k], f act v(k, v)) k is-data, k compare, k hash-mix
 	a.entries set-map entry =>
 		match entry
 		as none

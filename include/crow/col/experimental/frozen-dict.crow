@@ -33,8 +33,8 @@ frozen-dict[k, v] record by-val
 new[k, v] (k, v) frozen-dict(...a (k, v) array) k is-data, k compare, k hash-mix
 	a.to-list to-frozen-dict
 
-to-frozen-dict[k, v] (k, v) frozen-dict(a (k, v)[]) trusted, k is-data, k compare, k hash-mix
-	a.to-array.to-mut-array as-frozen-dict
+to-frozen-dict[k, v] (k, v) frozen-dict(a (k, v)[]) k is-data, k compare, k hash-mix
+	trusted a.to-array.to-mut-array as-frozen-dict
 
 # This is O(1).
 to-array[k, v] (k, v) array(a (k, v) frozen-dict) noctx
@@ -57,16 +57,15 @@ is-empty[k, v] bool(a (k, v) frozen-dict)
 size[k, v] nat64(a (k, v) frozen-dict)
 	a.pairs size
 
-subscript[k, v] v?(a (k, v) frozen-dict, key k) trusted, k is-data, k compare, k hash-mix
-	if pointer ?= a find-pointer key
+subscript[k, v] v?(a (k, v) frozen-dict, key k) k is-data, k compare, k hash-mix
+	trusted if pointer ?= a find-pointer key
 		pointer->to,
 
-in[k, v] bool(key k, a (k, v) frozen-dict) trusted, k is-data, k compare, k hash-mix
-	!(a find-pointer key is-empty)
+in[k, v] bool(key k, a (k, v) frozen-dict) k is-data, k compare, k hash-mix
+	!(a try-get-unordered-index key is-empty)
 
-# TODO:INTERNAL
-try-get-unordered-index[k, v] nat64?(a (k, v) frozen-dict, key k) trusted, k is-data, k compare, k hash-mix
-	if pointer ?= a find-pointer key
+try-get-unordered-index[k, v] nat64?(a (k, v) frozen-dict, key k) no-doc, k is-data, k compare, k hash-mix
+	trusted if pointer ?= a find-pointer key
 		pointer - a.pairs.begin-pointer,
 
 .find-pointer[k, v] (k, v)*?(a (k, v) frozen-dict, key k) unsafe, k is-data, k compare, k hash-mix
@@ -133,34 +132,36 @@ mut-array-to-frozen-dict-promise-no-duplicates[k, v] (k, v) frozen-dict(
 	else
 		a
 
-.write-without-duplicates[k, v] void(out (k, v) mut-array-builder, a (k, v) frozen-dict) trusted, k equal
+.write-without-duplicates[k, v] void(out (k, v) mut-array-builder, a (k, v) frozen-dict) k equal
 	if a.bucket-starts is-empty
 		out write-bucket-without-duplicates a.pairs
 	else
 		for bucket-start, i : a bucket-starts
-			bucket-end = if i == a.bucket-starts.size - 1
-				a.pairs.end-pointer
-			else
-				a.bucket-starts[i + 1]
-			out write-bucket-without-duplicates (bucket-start .. bucket-end).as-array
+			trusted
+				bucket-end = if i == a.bucket-starts.size - 1
+					a.pairs end-pointer
+				else
+					a.bucket-starts[i + 1]
+				out write-bucket-without-duplicates (bucket-start .. bucket-end).as-array
 
 .write-bucket-without-duplicates[k, v] void(out (k, v) mut-array-builder, pairs (k, v) array) k equal
 	for pair, i : pairs
 		unless pair.from key-in-range pairs[i + 1 .. pairs.size]
 			out ~= pairs[i]
 
-.has-duplicates[k, v] bool(a (k, v) frozen-dict) trusted, k equal
+.has-duplicates[k, v] bool(a (k, v) frozen-dict) k equal
 	if a.bucket-starts is-empty
 		a.pairs bucket-has-duplicates
 	else
 		a.bucket-starts exists (bucket-start, i) =>
-			bucket-end = if i == a.bucket-starts.size - 1
-				a.pairs.end-pointer
-			else
-				a.bucket-starts[i + 1]
-			(bucket-start .. bucket-end).as-array bucket-has-duplicates
+			trusted
+				bucket-end = if i == a.bucket-starts.size - 1
+					a.pairs end-pointer
+				else
+					a.bucket-starts[i + 1]
+				(bucket-start .. bucket-end).as-array bucket-has-duplicates
 
-.bucket-has-duplicates[k, v] bool(pairs (k, v) array) unsafe, k equal
+.bucket-has-duplicates[k, v] bool(pairs (k, v) array) k equal
 	pairs exists (pair, i) =>
 		pair.from key-in-range pairs[i + 1 .. pairs.size]
 
@@ -177,7 +178,7 @@ mut-array-to-frozen-dict-promise-no-duplicates[k, v] (k, v) frozen-dict(
 .get-bucket-index[k] nat64(key k, n-buckets nat64) k hash-mix
 	key.hash % n-buckets
 
-.running-sum[k, v] (k, v) mut* array(initial (k, v) mut*, offsets nat64 array) trusted
+.running-sum[k, v] (k, v) mut* array(initial (k, v) mut*, offsets nat64 array) unsafe
 	with out : offsets.size build
 		acc mut = initial
 		for offset : offsets
@@ -199,8 +200,8 @@ frozen-dict-builder[k, v] record mut
 with-block[k, v] (k, v) frozen-dict(
 	a build-frozen-dict,
 	f act void((k, v) frozen-dict-builder),
-) trusted, k is-data, k compare, k hash-mix
-	(with out : a.size-hint build; f[(out,)]) as-frozen-dict
+) k is-data, k compare, k hash-mix
+	trusted (with out : a.size-hint build; f[(out,)]) as-frozen-dict
 
 ~=[k, v] void(a(k, v) frozen-dict-builder, pair (k, v))
 	a.inner ~= pair

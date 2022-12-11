@@ -67,53 +67,53 @@ Shifts the bits of 'a' left by 'b' bits.
 
 Does not rotate.
 ###
-<< nat8(a nat8, b nat8) noctx, trusted
+<< nat8(a nat8, b nat8) noctx
 	if b < 8
-		a.to-nat64 unsafe-bit-shift-left b.to-nat64 unsafe-to-nat8
-<< nat16(a nat16, b nat16) noctx, trusted
+		trusted a.to-nat64 unsafe-bit-shift-left b.to-nat64 unsafe-to-nat8
+<< nat16(a nat16, b nat16) noctx
 	if b < 16
-		a.to-nat64 unsafe-bit-shift-left b.to-nat64 unsafe-to-nat16
-<< nat32(a nat32, b nat32) noctx, trusted
+		trusted a.to-nat64 unsafe-bit-shift-left b.to-nat64 unsafe-to-nat16
+<< nat32(a nat32, b nat32) noctx
 	if b < 32
-		a.to-nat64 unsafe-bit-shift-left b.to-nat64 unsafe-to-nat32
-<< nat64(a nat64, b nat64) noctx, trusted
+		trusted a.to-nat64 unsafe-bit-shift-left b.to-nat64 unsafe-to-nat32
+<< nat64(a nat64, b nat64) noctx
 	if b < 64
-		a unsafe-bit-shift-left b
-<< nat64(a nat64, b int64) noctx, trusted
+		trusted a unsafe-bit-shift-left b
+<< nat64(a nat64, b int64) noctx
 	if b < 0
 		if b > -64
-			a >> (b unsafe-mul -1 unsafe-to-nat64)
+			a >> (trusted b unsafe-mul -1 unsafe-to-nat64)
 		else
 			0
 	else
-		a << b.unsafe-to-nat64
+		a << (trusted b unsafe-to-nat64)
 
 ###
 Shifts the bits of 'a' right by 'b' bits.
 
 Does not rotate.
 ###
->> nat32(a nat32, b nat32) noctx, trusted
+>> nat32(a nat32, b nat32) noctx
 	if b < 32
-		a.to-nat64 unsafe-bit-shift-right b.to-nat64 unsafe-to-nat32
->> nat64(a nat64, b nat64) noctx, trusted
+		trusted a.to-nat64 unsafe-bit-shift-right b.to-nat64 unsafe-to-nat32
+>> nat64(a nat64, b nat64) noctx
 	if b < 64
-		a unsafe-bit-shift-right b
->> nat64(a nat64, b int64) noctx, trusted
+		trusted a unsafe-bit-shift-right b
+>> nat64(a nat64, b int64) noctx
 	if b < 0
 		if b > -64
-			a << (b unsafe-mul -1 unsafe-to-nat64)
+			a << (trusted b unsafe-mul -1 unsafe-to-nat64)
 		else
 			0
 	else
-		a >> b.unsafe-to-nat64
->> int32(a int32, b int32) noctx, trusted
+		a >> (trusted b unsafe-to-nat64)
+>> int32(a int32, b int32) noctx
 	if a < 0
 		todo
 	elif b < 0
 		todo
 	elif b < 32
-		a.unsafe-to-nat64 unsafe-bit-shift-right b.unsafe-to-nat64 unsafe-to-int32
+		trusted a.unsafe-to-nat64 unsafe-bit-shift-right b.unsafe-to-nat64 unsafe-to-int32
 	else
 		todo
 

@@ -14,8 +14,8 @@ get-modules module[](paths string[], remove-prefix string) summon
 		throw "Could not get documentation: exit code {result exit-code}, stderr: {result stderr}"
 	((json ~~ spaces) parse result.stdout)! to-modules remove-prefix
 
-.crow-path string() trusted
-	if is-windows
+.crow-path string()
+	if trusted is-windows
 		"bin\\crow.exe"
 	else
 		"bin/crow"

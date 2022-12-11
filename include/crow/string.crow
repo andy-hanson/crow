@@ -39,8 +39,8 @@ string record by-val
 char8s char8[](a string)
 	a inner
 
-literal string(a c-string) noctx, trusted
-	(a .. a.find-c-string-end).as-list as-string
+literal string(a c-string) noctx
+	trusted (a .. a.find-c-string-end).as-list as-string
 
 ###
 Concatenate two strings.
@@ -69,12 +69,12 @@ is-empty bool(a string)
 size nat64(a string)
 	a.inner size
 
-== bool(a string, b string) trusted
+== bool(a string, b string)
 	a.inner == b.inner
 == bool(a char8, b char8) noctx
 	a.to-nat8 == b.to-nat8
 
-<=> comparison(a string, b string) trusted
+<=> comparison(a string, b string)
 	a.inner <=> b.inner
 <=> comparison(a char8, b char8) noctx
 	a.to-nat8 <=> b.to-nat8
@@ -102,17 +102,17 @@ as-string string(a char8* range) noctx, unsafe
 Treats UTF-8 bytes as a string.
 This is O(1).
 ###
-as-string string(bytes nat8[]) unsafe
-	bytes.list-cast::char8[] as-string
-as-string string(bytes nat8 array) unsafe
+as-string string(bytes nat8[])
+	trusted bytes.list-cast::char8[] as-string
+as-string string(bytes nat8 array)
 	bytes.to-list as-string
 
 ###
 Treats a string as a list of UTF-8 bytes.
 This is O(1).
 ###
-to-bytes nat8[](a string) trusted
-	a.char8s list-cast
+to-bytes nat8[](a string)
+	trusted a.char8s list-cast
 
 # TODO: this should probably be 'unsafe', but safe functions like "throw" need a c-string
 ###
@@ -122,7 +122,7 @@ This is O(n).
 WARN: The resulting string is allocated from GC memory but isn't traced by the garbage collector,
 so it may be freed after the current task.
 ###
-to-c-string c-string(a string) trusted
+to-c-string c-string(a string)
 	(a ~ "\0").char8s.to-array begin-pointer
 
 ###

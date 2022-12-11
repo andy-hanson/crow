@@ -1,8 +1,8 @@
 import
 	crow/io/print: out, print
 
-main nat^(_ string[]) summon, trusted
-	out print "{size-of@t}"
+main nat^(_ string[]) summon
+	out print "{trusted size-of@t}"
 	()
 
 t record by-val

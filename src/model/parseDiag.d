@@ -75,6 +75,8 @@ immutable struct ParseDiag {
 			match,
 			lambda,
 			loop,
+			throw_,
+			trusted,
 			unless,
 			until,
 			while_,

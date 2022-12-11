@@ -45,7 +45,7 @@ http-server http-server-options(port string, handler http-handler)
 ###
 Starts running an HTTP server. Stops it when `cb` returns.
 ###
-with-block[t] t^(a http-server-options, cb ref t(http-server)) t is-sendable, summon, trusted
+with-block[t] t^(a http-server-options, cb ref t(http-server)) summon, t is-sendable
 	client-states http-parse-state mut[SOCKET] = ()
 
 	on-accepted-client ref void(SOCKET) = sock =>
@@ -53,7 +53,7 @@ with-block[t] t^(a http-server-options, cb ref t(http-server)) t is-sendable, su
 		()
 	on-received-chunk ref void(SOCKET, nat8 array) = (sock, bytes) =>
 		if state ?= client-states[sock]
-			closed <- sock handle-chunk state, bytes, a.handler
+			closed <- trusted sock handle-chunk state, bytes, a.handler
 			if closed
 				_ = client-states try-remove sock
 				()
@@ -61,16 +61,14 @@ with-block[t] t^(a http-server-options, cb ref t(http-server)) t is-sendable, su
 		else
 			warn log "Ignoring unrecognized client"
 			()
-	tcp-server = a.port start-tcp-server (on-accepted-client, on-received-chunk)
 
-	# TODO: KILL
-	#_ <- a.handler[(http-get, "", (), ())]
-
-	with : tcp-server.stop future-finally
-		cb[()]
+	trusted
+		tcp-server = a.port start-tcp-server (on-accepted-client, on-received-chunk)
+		with : tcp-server.stop future-finally
+			cb[()]
 
 # Returns true when closed client
-.handle-chunk bool^(sock SOCKET, state http-parse-state, chunk nat8 array, handler http-handler) summon, trusted
+.handle-chunk bool^(sock SOCKET, state http-parse-state, chunk nat8 array, handler http-handler) summon, unsafe
 	state.unparsed ~~= chunk
 	finished-request = if state.content-length == 0
 		state handle-http-initial
@@ -93,7 +91,7 @@ with-block[t] t^(a http-server-options, cb ref t(http-server)) t is-sendable, su
 	else
 		false,
 
-.write-until-finished void^(sock SOCKET, content nat8 array) summon, trusted
+.write-until-finished void^(sock SOCKET, content nat8 array) unsafe
 	unless content is-empty
 		wrote = sock.as-fd write content.begin-pointer, content.size
 		unless wrote == content.size.to-int64
@@ -107,7 +105,7 @@ with-block[t] t^(a http-server-options, cb ref t(http-server)) t is-sendable, su
 				<- delay
 				sock write-until-finished content[wrote.to-nat64 .. content.size]
 
-.finish-request http-request(state http-parse-state) trusted
+.finish-request http-request(state http-parse-state)
 	state.method, state.url, state.headers.move-to-list.to-dict, state.unparsed.move-to-list
 
 .response-to-array nat8 array(a http-response)
@@ -164,7 +162,7 @@ with-block[t] t^(a http-server-options, cb ref t(http-server)) t is-sendable, su
 	else
 		todo
 
-.try-take-first-line string?(a nat8 mut[]) trusted
+.try-take-first-line string?(a nat8 mut[])
 	if index ?= a index-of "\n".to-nat8
 		bytes = a pop-n-from-start index + 1 rtail
 		line = bytes as-string

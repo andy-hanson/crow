@@ -49,5 +49,5 @@ options:
 	all-failures = crow-failures first-failures () => crow-dir lint options
 	all-failures print-failures options
 
-.crow-path string(crow-dir string) trusted
-	crow-dir child-path "bin" child-path "crow" ~~ (is-windows ? ".exe" : "")
+.crow-path string(crow-dir string)
+	crow-dir child-path "bin" child-path "crow" ~~ (trusted is-windows ? ".exe" : "")

@@ -584,7 +584,7 @@ immutable struct FunFlags {
 	bool noCtx;
 	bool noDoc;
 	bool summon;
-	enum Safety : ubyte { safe, unsafe, trusted }
+	enum Safety : ubyte { safe, unsafe }
 	Safety safety;
 	bool preferred;
 	bool okIfUnused;

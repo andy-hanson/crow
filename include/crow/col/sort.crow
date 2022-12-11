@@ -28,18 +28,18 @@ sort[t] t[](a t[]) t compare
 ###
 Same as `sort`, but use `get-key` to get the comparable part of each element.
 ###
-sort[t, k] t[](a t[], get-key fun k(t)) trusted, k compare
+sort[t, k] t[](a t[], get-key fun k(t)) k compare
 	res = a.to-array to-mut-array
 	res set-sort get-key
-	res.cast-immutable to-list
+	trusted res.cast-immutable to-list
 
 ###
 Sort and remove duplicates.
 That means `res[i] < res[i + 1]` for each element in the result.
 `(2, 1, 2) sort-unique` is `1, 2`.
 ###
-sort-unique[t] t[](a t[]) trusted, t compare
-	a.to-array.to-mut-array.set-sort-unique.cast-immutable to-list
+sort-unique[t] t[](a t[]) t compare
+	trusted a.to-array.to-mut-array.set-sort-unique.cast-immutable to-list
 
 test
 	()::nat64[].sort is ()
@@ -59,11 +59,11 @@ test
 	a.end-iter.prev!.rest slice-right
 
 # Sort the elements of `a` from least to greatest.
-set-sort[t] void(a t mut[]) trusted, t compare
+set-sort[t] void(a t mut[]) t compare
 	a set-sort x => x
 # Like `set-sort`, but use `get-key` to get the comparable part of each element.
-set-sort[t, k] void(a t mut[], get-key fun k(t)) trusted, k compare
-	a.temp-as-mut-array set-sort get-key
+set-sort[t, k] void(a t mut[], get-key fun k(t)) k compare
+	trusted a.temp-as-mut-array set-sort get-key
 set-sort-reverse[t] void(a t mut[]) t compare
 	a set-sort-reverse x => x
 set-sort-reverse[t, k] void(a t mut[], get-key fun k(t)) k compare
@@ -112,15 +112,15 @@ This is useful if `a` and `b` are parallel arrays, meaning `a[i]` and `b[i]` bel
 
 Every pair `a[i]` and `b[i]`, will move to `res.a[j]` and `res.b[j]` for some `j`.
 ###
-sort-by-first[t, u] (t, u) sorted-by-first(a t[], b u[]) trusted, t compare
+sort-by-first[t, u] (t, u) sorted-by-first(a t[], b u[]) t compare
 	mut-a = a.to-array to-mut-array
 	mut-b = b.to-array to-mut-array
 	mut-a set-sort-by-first mut-b
-	mut-a.cast-immutable.to-list, mut-b.cast-immutable.to-list
+	trusted mut-a.cast-immutable.to-list, mut-b.cast-immutable.to-list
 
 # Sort `a` in place, and move elements of `b` in the same permutation as `a`.
-set-sort-by-first[t, u] void(a t mut[], b u mut[]) trusted, t compare
-	a.temp-as-mut-array set-sort-by-first b.temp-as-mut-array
+set-sort-by-first[t, u] void(a t mut[], b u mut[]) t compare
+	trusted a.temp-as-mut-array set-sort-by-first b.temp-as-mut-array
 
 # Sort `a` in place, and move elements of `b` in the same permutation as `a`.
 set-sort-by-first[t, u] void(a t mut-array, b u mut-array) t compare

@@ -329,7 +329,7 @@ ReadFile bool(
 	lpOverlapped any-mut-pointer,
 ) kernel32 extern, summon
 
-MAKEWORD WORD(a nat8, b nat8) trusted
+MAKEWORD WORD(a nat8, b nat8)
 	(a.to-nat16 | (b.to-nat16 << 8))
 
 WSAStartup c-int(wVersionRequested WORD, lpWSAData WSADATA mut*) kernel32 extern, summon

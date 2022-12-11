@@ -23,11 +23,11 @@ float alias
 region arithmetic
 
 # `true` iff `b * x == a` for some `x`.
-is-multiple-of bool(a nat64, b nat64) noctx, trusted
+is-multiple-of bool(a nat64, b nat64) noctx
 	if b == 0
 		a == 0
 	else
-		(a unsafe-mod b) == 0
+		(trusted a unsafe-mod b) == 0
 
 ###
 Throws if the result would overflow.
@@ -79,9 +79,9 @@ Throws if the result would overflow.
 Flooring division of `a` divided by `b`.
 Throws if `b == 0`.
 ###
-/ nat64(a nat64, b nat64) noctx, trusted
+/ nat64(a nat64, b nat64) noctx
 	forbid b == 0 : "divide by 0"
-	a unsafe-div b
+	trusted a unsafe-div b
 
 # Like 'a / b' but takes the ceil instead of the floor.
 div-ceil nat64(a nat64, b nat64) noctx
@@ -93,9 +93,9 @@ Remainder of `a / b`.
 Result will be in the range `0 .. b`.
 Throws if `b == 0`.
 ###
-% nat64(a nat64, b nat64) noctx, trusted
+% nat64(a nat64, b nat64) noctx
 	forbid b == 0 : "modulo by 0"
-	a unsafe-mod b
+	trusted a unsafe-mod b
 
 # This returns a `nat64` since modulo always returns a non-negative number.
 % nat64(a int64, b nat64) noctx
@@ -116,29 +116,29 @@ Throws if the result would overflow.
 "Overflow" means:
 Be less than the least possible value or greater than the greatest possible value.
 ###
-+ int32(a int32, b int32) noctx, trusted
-	a.to-int64 unsafe-add b.to-int64 to-int32
-+ int64(a int64, b int64) noctx, trusted
-	forbid (b > 0 ? a > (max-int64 unsafe-sub b) : a < (min-int64 unsafe-sub b)) : "integer overflow"
-	a unsafe-add b
++ int32(a int32, b int32) noctx
+	trusted a.to-int64 unsafe-add b.to-int64 to-int32
++ int64(a int64, b int64) noctx
+	forbid (b > 0 ? a > (trusted max-int64 unsafe-sub b) : a < (trusted min-int64 unsafe-sub b)) : "integer overflow"
+	trusted a unsafe-add b
 
-- int32(a int32, b int32) noctx, trusted
-	a.to-int64 unsafe-sub b.to-int64 to-int32
-- int64(a int64, b int64) noctx, trusted
+- int32(a int32, b int32) noctx
+	trusted a.to-int64 unsafe-sub b.to-int64 to-int32
+- int64(a int64, b int64) noctx
 	overflow = if b > 0
-		a < (min-int64 unsafe-add b)
+		a < (trusted min-int64 unsafe-add b)
 	else
-		a > (max-int64 unsafe-add b)
+		a > (trusted max-int64 unsafe-add b)
 	forbid overflow : "integer overflow"
-	a unsafe-sub b
+	trusted a unsafe-sub b
 
-* int8(a int8, b int8) noctx, trusted
-	a.to-int64 unsafe-mul b.to-int64 to-int8
-* int16(a int16, b int16) noctx, trusted
-	a.to-int64 unsafe-mul b.to-int64 to-int16
-* int32(a int32, b int32) noctx, trusted
-	a.to-int64 unsafe-mul b.to-int64 to-int32
-* int64(a int64, b int64) noctx, trusted
+* int8(a int8, b int8) noctx
+	trusted a.to-int64 unsafe-mul b.to-int64 to-int8
+* int16(a int16, b int16) noctx
+	trusted a.to-int64 unsafe-mul b.to-int64 to-int16
+* int32(a int32, b int32) noctx
+	trusted a.to-int64 unsafe-mul b.to-int64 to-int32
+* int64(a int64, b int64) noctx
 	overflow = if a == -1
 		b == min-int64
 	elif b == -1
@@ -150,7 +150,7 @@ Be less than the least possible value or greater than the greatest possible valu
 	elif a < min-int64 / b
 		true
 	forbid overflow : "integer overflow"
-	a unsafe-mul b
+	trusted a unsafe-mul b
 
 ###
 Negates a number.
@@ -164,7 +164,7 @@ Throws if `a` is the least possible value.
 	a * -1
 - int32(a int32) noctx
 	a * -1
-- int64(a int64) noctx, trusted
+- int64(a int64) noctx
 	a * -1
 
 ###
@@ -173,14 +173,14 @@ Throws if `b == 0`.
 Throws if the result would overflow, which only happens if
 `a` is the least possible value and `b` is `-1`.
 ###
-/ int32(a int32, b int32) noctx, trusted
+/ int32(a int32, b int32) noctx
 	forbid b == 0 : "divide by 0"
 	forbid a == min-int32 && b == -1 : "integer overflow"
-	a unsafe-div b
-/ int64(a int64, b int64) noctx, trusted
+	trusted a unsafe-div b
+/ int64(a int64, b int64) noctx
 	forbid b == 0 : "divide by 0"
 	forbid a == min-int64 && b == -1 : "integer overflow"
-	a unsafe-div b
+	trusted a unsafe-div b
 
 region misc
 
@@ -228,12 +228,12 @@ unsafe-div float32(a float32, b float32) builtin, noctx, no-doc, unsafe
 unsafe-div float64(a float64, b float64) builtin, noctx, no-doc, unsafe
 
 # Throws if `b == 0`.
-/ float32(a float32, b float32) noctx, trusted
+/ float32(a float32, b float32) noctx
 	forbid b == 0 : "divide by 0"
-	a unsafe-div b
-/ float64(a float64, b float64) noctx, trusted
+	trusted a unsafe-div b
+/ float64(a float64, b float64) noctx
 	forbid b == 0 : "divide by 0"
-	a unsafe-div b
+	trusted a unsafe-div b
 
 # `a` to the power of `b`. Never throws.
 ** float32(a float32, b nat64) noctx
@@ -282,70 +282,70 @@ to-nat64 nat64(a float64)
 	a.truncate-to-int64 to-nat64
 
 # Throws if the result would overflow.
-to-int64 int64(a nat64) noctx, trusted
+to-int64 int64(a nat64) noctx
 	assert a < max-int64.to-nat64 : "integer overflow"
-	a unsafe-to-int64
+	trusted a unsafe-to-int64
 
-to-int8 int8(a int64) noctx, trusted
+to-int8 int8(a int64) noctx
 	assert a >= min-int8.to-int64 : "integer overflow"
 	assert a <= max-int8.to-int64 : "integer overflow"
-	a unsafe-to-int8
+	trusted a unsafe-to-int8
 
-to-int16 int16(a int64) noctx, trusted
+to-int16 int16(a int64) noctx
 	assert a >= min-int16.to-int64 : "integer overflow"
 	assert a <= max-int16.to-int64 : "integer overflow"
-	a unsafe-to-int16
+	trusted a unsafe-to-int16
 
 # Convert an int to 32 bits. Fail if the result would overflow.
-to-int32 int32(a int64) noctx, trusted
+to-int32 int32(a int64) noctx
 	assert a >= min-int32.to-int64 : "integer overflow"
 	assert a <= max-int32.to-int64 : "integer overflow"
-	a unsafe-to-int32
+	trusted a unsafe-to-int32
 to-int32 int32(a nat32) noctx
 	a.to-nat64 to-int32
-to-int32 int32(a nat16) noctx, trusted
-	a.to-nat64.unsafe-to-int64 unsafe-to-int32
+to-int32 int32(a nat16) noctx
+	trusted a.to-nat64.unsafe-to-int64 unsafe-to-int32
 to-int32 int32(a nat64) noctx
 	a.to-int64 to-int32
 
 # Return the closest `nat8`. Never throws.
-clamp-to-nat8 nat8(a nat64) noctx, trusted
+clamp-to-nat8 nat8(a nat64) noctx
 	if a > 255
 		255
 	else
-		a unsafe-to-nat8
+		trusted a unsafe-to-nat8
 
 # Return the closest `nat64`. Never throws.
-clamp-to-nat64 nat64(a int64) noctx, trusted
+clamp-to-nat64 nat64(a int64) noctx
 	if a >= 0
-		a unsafe-to-nat64
+		trusted a unsafe-to-nat64
 
-clamp-to-int32 int32(a int64) noctx, trusted
+clamp-to-int32 int32(a int64) noctx
 	if a < min-int32.to-int64
 		min-int32
 	elif a > max-int32.to-int64
 		max-int32
 	else
-		a unsafe-to-int32
+		trusted a unsafe-to-int32
 
 # Return the closest possible value to `a + b`. Never throws.
-clamp-add int32(a int32, b int32) noctx, trusted
-	a.to-int64 unsafe-add b.to-int64 clamp-to-int32
+clamp-add int32(a int32, b int32) noctx
+	trusted a.to-int64 unsafe-add b.to-int64 clamp-to-int32
 
 # Throws if `a` is negative.
-to-nat64 nat64(a int64) noctx, trusted
+to-nat64 nat64(a int64) noctx
 	assert a >= 0 : "integer overflow"
-	a unsafe-to-nat64
+	trusted a unsafe-to-nat64
 to-nat64 nat64(a int32) noctx
 	a.to-int64 to-nat64
 
-to-nat8 nat8(a nat64) noctx, trusted
+to-nat8 nat8(a nat64) noctx
 	assert a <= max-nat8.to-nat64 : "integer overflow"
-	a unsafe-to-nat8
-to-nat32 nat32(a nat16) noctx, trusted
-	a.to-nat64 unsafe-to-nat32
+	trusted a unsafe-to-nat8
+to-nat32 nat32(a nat16) noctx
+	trusted a.to-nat64 unsafe-to-nat32
 
 # Convert a nat to 32 bits. Fail if the result would overflow.
-to-nat32 nat32(a nat64) noctx, trusted
+to-nat32 nat32(a nat64) noctx
 	assert a < max-nat32.to-nat64 : "integer overflow"
-	a unsafe-to-nat32
+	trusted a unsafe-to-nat32

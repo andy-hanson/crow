@@ -143,19 +143,19 @@ in[k, v] bool(key k, a (k, v) compact-dict) k is-data, k compare, k hash-mix
 .merge-overlays[k, v] (k, v?) frozen-dict(
 	l (k, v?) frozen-dict,
 	r (k, v?) frozen-dict,
-) trusted, k is-data, k compare, k hash-mix
+) k is-data, k compare, k hash-mix
 	pairs (k, v?) mut-array = with out : l.size + r.size build
 		for k, vl : l
 			unless k in r
 				out ~= (k, vl)
 		for k, vr : r
 			out ~= (k, vr)
-	pairs mut-array-to-frozen-dict-promise-no-duplicates
+	trusted pairs mut-array-to-frozen-dict-promise-no-duplicates
 
 .merge-to-end[k, v] (k, v) frozen-dict(
 	l (k, v) frozen-dict,
 	r (k, v?) frozen-dict,
-) trusted, k is-data, k compare, k hash-mix
+) k is-data, k compare, k hash-mix
 	pairs (k, v) mut-array = with out : l.size + r.size build
 		for k, vl : l
 			unless k in r
@@ -163,7 +163,7 @@ in[k, v] bool(key k, a (k, v) compact-dict) k is-data, k compare, k hash-mix
 		for k, vr : r
 			if v ?= vr
 				out ~= (k, v)
-	pairs mut-array-to-frozen-dict-promise-no-duplicates
+	trusted pairs mut-array-to-frozen-dict-promise-no-duplicates
 
 region iteration
 
@@ -186,7 +186,7 @@ for-loop[k, v] void(a (k, v) compact-dict, f act void(k, v)) k is-data, k compar
 					f[k, v]
 			break
 
-for-loop[a, k, v] a[](a (k, v) compact-dict, f act a(k, v)) trusted, k is-data, k compare, k hash-mix
+for-loop[a, k, v] a[](a (k, v) compact-dict, f act a(k, v)) k is-data, k compare, k hash-mix
 	with out : a.size build
 		for k, v : a
 			out ~= f[k, v]

@@ -37,8 +37,8 @@ index-set record by-ref
 	c nat64
 	d nat64
 
-.values nat64 array(a leaf-node) trusted
-	((&a.a)::nat64*)[0 .. 4]
+.values nat64 array(a leaf-node)
+	trusted ((&a.a)::nat64*)[0 .. 4]
 .bits-in-leaf-node nat64()
 	# 64 * 4
 	256
@@ -108,10 +108,10 @@ to-list nat64[](a index-set)
 	for x : a
 		x
 
-in bool(index nat64, a index-set) trusted
+in bool(index nat64, a index-set)
 	index < a.capacity && index in a.root, a.capacity
 # n = capacity of this node
-.in bool(index nat64, a node, n nat64) unsafe
+.in bool(index nat64, a node, n nat64)
 	assert index < n
 	match a
 	as inner i
@@ -149,12 +149,12 @@ in bool(index nat64, a index-set) trusted
 .empty-leaf-node leaf-node()
 	0, 0, 0, 0
 
-try-add index-set?(a index-set, index nat64) trusted
+try-add index-set?(a index-set, index nat64)
 	if index >= a.capacity
 		a.quadruple-capacity try-add index
 	elif res ?= a.root try-add index, a.capacity
 		(a.capacity, res),
-.try-add node?(a node, index nat64, n nat64) unsafe
+.try-add node?(a node, index nat64, n nat64)
 	assert index < n
 	match a
 	as inner i
@@ -200,11 +200,11 @@ try-add index-set?(a index-set, index nat64) trusted
 - index-set(a index-set, index nat64)
 	a try-remove index ?? a
 
-try-remove index-set?(a index-set, index nat64) trusted
+try-remove index-set?(a index-set, index nat64)
 	if index < a.capacity
 		if removed ?= a.root try-remove index, a.capacity
 			(removed simplify-after-remove-or-filter a.capacity),
-.try-remove node?(a node, index nat64, n nat64) unsafe
+.try-remove node?(a node, index nat64, n nat64)
 	assert index < n
 	match a
 	as inner i
@@ -244,7 +244,7 @@ try-remove index-set?(a index-set, index nat64) trusted
 				(l update-leaf word-index, new-word).leaf,
 	as empty
 		()
-.simplify-after-remove-or-filter index-set(node node, capacity nat64) unsafe
+.simplify-after-remove-or-filter index-set(node node, capacity nat64)
 	match node
 	as inner i
 		if i.b.is-empty && i.c.is-empty && i.d.is-empty
@@ -272,7 +272,7 @@ try-remove index-set?(a index-set, index nat64) trusted
 .with-d inner-node(a inner-node, new-d node)
 	a.a, a.b, a.c, new-d
 
-.update-leaf leaf-node(a leaf-node, word-index nat64, new-word nat64) unsafe
+.update-leaf leaf-node(a leaf-node, word-index nat64, new-word nat64)
 	if word-index == 0
 		new-word, a.b, a.c, a.d
 	elif word-index == 1
@@ -307,10 +307,10 @@ intersect index-set(a index-set, b index-set)
 
 # hi exclusive
 # TODO: use 'range' type
-count-range nat64(a index-set, low nat64, high nat64) trusted
+count-range nat64(a index-set, low nat64, high nat64)
 	if low <= high
 		a.root count-range a.capacity, low, high - low
-.count-range nat64(a node, n nat64, low nat64, len nat64) unsafe
+.count-range nat64(a node, n nat64, low nat64, len nat64)
 	if low <= n
 		match a
 		as inner i
@@ -357,20 +357,20 @@ count-greater-or-equal nat64(a index-set, n nat64)
 .count-gte-in-nat64 nat64(a nat64, bit-index nat64)
 	a >> bit-index count-ones
 
-.count-ones-in-array nat64(a nat64 array) trusted
+.count-ones-in-array nat64(a nat64 array)
 	res mut = 0
 	for x : a
 		res := res + x.count-ones
 	res
 
 # Gets the set with only values < limit
-filter-less index-set(a index-set, limit nat64) trusted
+filter-less index-set(a index-set, limit nat64)
 	if limit < a.capacity
 		filtered = a.root filter-less-recur a.capacity, limit
 		filtered simplify-after-remove-or-filter a.capacity
 	else
 		a
-.filter-less-recur node(a node, n nat64, limit nat64) unsafe
+.filter-less-recur node(a node, n nat64, limit nat64)
 	match a
 	as inner i
 		assert n > bits-in-leaf-node
@@ -394,7 +394,7 @@ filter-less index-set(a index-set, limit nat64) trusted
 		(new-a, new-b, new-c, new-d) leaf
 	as empty
 		empty
-.filter-less-recur node(a node, n nat64, limit nat64, offset nat64) unsafe
+.filter-less-recur node(a node, n nat64, limit nat64, offset nat64)
 	if limit < offset
 		empty
 	elif limit > offset + n
@@ -409,9 +409,9 @@ filter-less index-set(a index-set, limit nat64) trusted
 		else
 			a & (limit - offset low-n-bits)
 
-.word-index nat64(a nat64) trusted
+.word-index nat64(a nat64)
 	a / 64
-.bit-index nat64(a nat64) trusted
+.bit-index nat64(a nat64)
 	a % 64
 
 to-string string(a index-set)
@@ -419,10 +419,10 @@ to-string string(a index-set)
 
 region iteration
 
-for-loop void(a index-set, f act void(nat64)) trusted
+for-loop void(a index-set, f act void(nat64))
 	a.root for-loop-recur 0, a.capacity, f
 # offset: how much to add to indices in this node
-.for-loop-recur void(node node, offset nat64, n nat64, f act void(nat64)) unsafe
+.for-loop-recur void(node node, offset nat64, n nat64, f act void(nat64))
 	match node
 	as inner i
 		half = n / 2
@@ -443,7 +443,7 @@ for-loop void(a index-set, f act void(nat64)) trusted
 for-loop index-set(a index-set, f act nat64(nat64))
 	a for-loop f to-index-set
 
-for-loop[out] out[](a index-set, f act out(nat64)) trusted
+for-loop[out] out[](a index-set, f act out(nat64))
 	with out : a.size build
 		for x : a
 			out ~= f[x]

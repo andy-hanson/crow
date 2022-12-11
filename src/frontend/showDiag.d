@@ -269,6 +269,10 @@ void writeParseDiag(
 						return "lambda";
 					case ParseDiag.NeedsBlockCtx.Kind.loop:
 						return "loop";
+					case ParseDiag.NeedsBlockCtx.Kind.throw_:
+						return "'throw'";
+					case ParseDiag.NeedsBlockCtx.Kind.trusted:
+						return "'trusted'";
 					case ParseDiag.NeedsBlockCtx.Kind.unless:
 						return "'unless'";
 					case ParseDiag.NeedsBlockCtx.Kind.until:
@@ -689,6 +693,9 @@ void writeDiag(
 			writer ~= " function is implicitly ";
 			writeName(writer, allSymbols, d.redundantModifier);
 		},
+		(in Diag.FunModifierTrustedOnNonExtern) {
+			writer ~= "only 'extern' functions can be 'trusted'; otherwise 'trusted' should be used as an expression";
+		},
 		(in Diag.IfNeedsOpt d) {
 			writer ~= "Expected an option type, but got ";
 			writeTypeQuoted(writer, allSymbols, d.actualType);
@@ -829,7 +836,7 @@ void writeDiag(
 			writeParseDiag(writer, allSymbols, allPaths, pathsInfo, pd);
 		},
 		(in Diag.PtrIsUnsafe) {
-			writer ~= "can only get pointer in an 'unsafe' or 'trusted' function";
+			writer ~= "getting a pointer is unsafe";
 		},
 		(in Diag.PtrMutToConst d) {
 			writer ~= () {
@@ -917,6 +924,18 @@ void writeDiag(
 						return " can't have type parameters";
 					case Diag.ThreadLocalError.Kind.mustReturnPtrMut:
 						return " return type must be a 'mut*'";
+				}
+			}();
+		},
+		(in Diag.TrustedUnnecessary d) {
+			writer ~= () {
+				final switch (d.reason) {
+					case Diag.TrustedUnnecessary.Reason.inTrusted:
+						return "'trusted' is redundant inside another 'trusted'";
+					case Diag.TrustedUnnecessary.Reason.inUnsafeFunction:
+						return "'trusted' has no effect inside an 'unsafe' function";
+					case Diag.TrustedUnnecessary.Reason.unused:
+						return "there is no unsafe code inside this 'trusted'";
 				}
 			}();
 		},

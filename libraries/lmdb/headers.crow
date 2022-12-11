@@ -50,6 +50,8 @@ mdb_stat record extern
 	ms_leaf_pages size_t
 	ms_overflow_pages size_t
 	ms_entries size_t
+new mdb_stat()
+	0, 0, 0, 0, 0, 0
 mdb_stat err-t(txn MDB_txn mut*, dbi MDB_dbi, stat mdb_stat mut*) summon, lmdb extern
 
 MDB_cursor extern

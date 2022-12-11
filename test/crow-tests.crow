@@ -25,15 +25,15 @@ run-crow-tests test-result(path string, path-to-crow string, options test-option
 	res move-to-list
 
 # Some tests have different output on Windows
-.is-excluded bool(a string) trusted
-	if is-windows
+.is-excluded bool(a string)
+	if trusted is-windows
 		a ends-with "/fail.crow" || a ends-with "/gc.crow"
 
 .ext-is-crow bool(a string)
 	if ext ?= a.base-name get-extension
 		ext == "crow"
 
-.run-single-crow-test failure[](path-to-crow string, path string, options test-options) summon, trusted
+.run-single-crow-test failure[](path-to-crow string, path string, options test-options) summon
 	op failure[]? = for print-kind : ("ast", "model")::string[]
 		if options print-tests
 			out print "crow print {print-kind} {path}"
@@ -48,7 +48,7 @@ run-crow-tests test-result(path string, path-to-crow string, options test-option
 		if options print-tests
 			out print "crow run {path}"
 		interpret-failures = path-to-crow run-single-runnable-test path, interpret, options.overwrite-output
-		if interpret-failures.is-empty && !is-windows
+		if interpret-failures.is-empty && !(trusted is-windows)
 			path-to-crow run-single-runnable-test path, jit, options.overwrite-output
 		else
 			interpret-failures

@@ -702,19 +702,17 @@ FunFlags checkFunFlags(ref CheckCtx ctx, RangeWithinFile range, FunModifierAst.S
 			: unreachable!Sym;
 	}
 
-	FunFlags.Safety safety = trusted
-		? FunFlags.Safety.trusted
-		: unsafe
-		? FunFlags.Safety.unsafe
-		: FunFlags.Safety.safe;
-	if (trusted && explicitUnsafe)
-		warnConflict(sym!"trusted", sym!"unsafe");
+	FunFlags.Safety safety = !unsafe
+		? FunFlags.Safety.safe
+		: trusted
+		? FunFlags.Safety.safe
+		: FunFlags.Safety.unsafe;
 	if (implicitNoctx && explicitNoctx)
 		warnRedundant(bodyModifier(), sym!"noctx");
 	if (implicitUnsafe && explicitUnsafe)
 		warnRedundant(bodyModifier(), sym!"unsafe");
-	if (implicitUnsafe && trusted && !extern_)
-		warnConflict(bodyModifier(), sym!"trusted");
+	if (trusted && !extern_)
+		addDiag(ctx, range, Diag(Diag.FunModifierTrustedOnNonExtern()));
 	FunFlags.SpecialBody specialBody = builtin
 		? FunFlags.SpecialBody.builtin
 		: extern_

@@ -52,6 +52,7 @@ import frontend.parse.ast :
 	suffixRange,
 	ThenAst,
 	ThrowAst,
+	TrustedAst,
 	TypeAst,
 	TypedAst,
 	UnlessAst,
@@ -515,6 +516,10 @@ void addExprTokens(ref Alloc alloc, ref TokensBuilder tokens, in AllSymbols allS
 		(in ThrowAst it) {
 			add(alloc, tokens, Token(Token.Kind.keyword, rangeOfStartAndLength(a.range.start, "throw".length)));
 			addExprTokens(alloc, tokens, allSymbols, it.thrown);
+		},
+		(in TrustedAst it) {
+			add(alloc, tokens, Token(Token.Kind.keyword, rangeOfStartAndLength(a.range.start, "trusted".length)));
+			addExprTokens(alloc, tokens, allSymbols, it.inner);
 		},
 		(in TypedAst it) {
 			addExprTokens(alloc, tokens, allSymbols, it.expr);

@@ -19,17 +19,18 @@ Reads from stdin.
 If that comes from the user typing at the terminal, this will block until they hit enter.
 Result will not have leading or trailing whitespace.
 ###
-read-stdin string^() summon, trusted
+read-stdin string^() summon
 	with : parallel
-		buffer nat8 mut-array = 0x2000 uninitialized-mut-array
-		# TODO: use a non-blocking API
-		bytes-read-or-err = stdin read buffer.begin-pointer, buffer.size
-		assert bytes-read-or-err >= 0
-		bytes-read = bytes-read-or-err to-nat64
-		if bytes-read >= buffer.size
-			todo
-		else
-			buffer[0 .. bytes-read].cast-immutable.as-string.strip,
+		trusted
+			buffer nat8 mut-array = 0x2000 uninitialized-mut-array
+			# TODO: use a non-blocking API
+			bytes-read-or-err = stdin read buffer.begin-pointer, buffer.size
+			assert bytes-read-or-err >= 0
+			bytes-read = bytes-read-or-err to-nat64
+			if bytes-read >= buffer.size
+				todo
+			else
+				buffer[0 .. bytes-read].cast-immutable.as-string.strip,
 
 ###
 Keep reading from stdin until `parse` returns a non-empty option.

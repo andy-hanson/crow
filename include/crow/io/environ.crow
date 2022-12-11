@@ -17,12 +17,13 @@ get-environ-raw c-string*() summon, unsafe
 	__environ
 
 # Get all environment variables for this process.
-get-environ environ() summon, trusted
+get-environ environ() summon
 	with out : build
-		env mut = get-environ-raw
-		until *env == null
-			out ~= env->parse-environ-entry
-			env := env + 1
+		trusted
+			env mut = get-environ-raw
+			until *env == null
+				out ~= env->parse-environ-entry
+				env := env + 1
 
 .parse-environ-entry (string, string)(entry c-string) unsafe
 	if key-end ?= entry find-char-in-c-string "="

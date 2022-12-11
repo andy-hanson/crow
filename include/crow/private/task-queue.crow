@@ -27,11 +27,11 @@ task-queue record mut by-ref
 .nil-exclusion exclusion() noctx
 	max-nat64
 
-.timed-sentinel task-node-with-time(a task-queue) noctx, trusted
-	&a.timed-sentinel-val
+.timed-sentinel task-node-with-time(a task-queue) noctx
+	trusted &a.timed-sentinel-val
 
-.non-timed-sentinel task-node(a task-queue) noctx, trusted
-	&a.non-timed-sentinel-val
+.non-timed-sentinel task-node(a task-queue) noctx
+	trusted &a.non-timed-sentinel-val
 
 is-empty bool(a task-queue) noctx
 	a.timed-sentinel.next.is-empty && a.non-timed-sentinel.next.is-empty
@@ -81,8 +81,8 @@ pop-task pop-task-result(a task-queue, cur-time timestamp, thread-id nat64) noct
 			a add-task head.as-task-node
 			a move-timed-tasks cur-time
 
-.as-task-node task-node(a task-node-with-time) noctx, trusted
-	a ref-cast
+.as-task-node task-node(a task-node-with-time) noctx
+	trusted a ref-cast
 
 .try-pop-task task?(a task-queue, exclusions exclusion mut-array) noctx, unsafe
 	prev mut = a non-timed-sentinel
@@ -123,6 +123,6 @@ add-task void(a task-queue, task task-node) noctx
 	a.non-timed-last.next := task,
 	a.non-timed-last := task
 
-add-tasks void(a task-queue, tasks task-list) noctx, trusted
+add-tasks void(a task-queue, tasks task-list) noctx
 	a.non-timed-last.next := tasks.first,
 	a.non-timed-last := tasks last

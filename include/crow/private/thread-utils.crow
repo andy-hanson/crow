@@ -81,11 +81,12 @@ release void(a lock) noctx, unsafe
 	else
 		a.as-mutex.pthread_mutex_unlock hard-assert-posix-error
 
-with-lock[t] t(a lock, f act t()) trusted
-	a acquire
-	res = f[]
-	a release
-	res
+with-lock[t] t(a lock, f act t())
+	trusted
+		a acquire
+		res = f[]
+		a release
+		res
 
 condition record mut by-ref
 	# TODO: use union to save space instead of storing posix/windows side-by-side
@@ -136,8 +137,8 @@ destroy-condition void(a condition) noctx, unsafe
 .hard-assert-posix-error void(err err-t) noctx, unsafe
 	err == 0 hard-assert
 
-broadcast void(a condition) noctx, trusted
-	if is-single-threaded
+broadcast void(a condition) noctx
+	trusted if is-single-threaded
 		()
 	elif is-windows
 		&a.windows-critical-section EnterCriticalSection

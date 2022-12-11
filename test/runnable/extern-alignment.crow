@@ -1,16 +1,17 @@
 import
 	crow/io/print: out, print
 
-main nat^(_ string[]) summon, trusted
-	r r = (), (), ()
-	rp r* = &r
-	ap nat8* = &rp->a
-	bp nat8* = (&rp->b)::e* pointer-cast 
-	cp nat8* = (&rp->c)::e* pointer-cast
-	out print "b offset: {bp - ap}"
-	out print "c offset: {cp - ap}"
-	out print "size: {size-of@r}"
-	()
+main nat^(_ string[]) summon
+	trusted
+		r r = (), (), ()
+		rp r* = &r
+		ap nat8* = &rp->a
+		bp nat8* = (&rp->b)::e* pointer-cast 
+		cp nat8* = (&rp->c)::e* pointer-cast
+		out print "b offset: {bp - ap}"
+		out print "c offset: {cp - ap}"
+		out print "size: {size-of@r}"
+		()
 
 r record mut
 	a nat8

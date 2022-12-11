@@ -93,7 +93,7 @@ branch[t, lower] record
 .depth-l2[t] nat64(_ t l2)
 	2
 
-.as-branch[t, lower] (t, lower) branch(a (t, lower) node) noctx, unsafe
+.as-branch[t, lower] (t, lower) branch(a (t, lower) node) noctx
 	match a
 	as leaf _
 		unreachable
@@ -107,7 +107,7 @@ branch[t, lower] record
 	as branch _
 		()
 
-.get-l0-branch[t] (t, t l1) branch(a t[]) noctx, unsafe
+.get-l0-branch[t] (t, t l1) branch(a t[]) noctx
 	a.root.node as-branch
 
 .try-get-l1[t] t l1?(a t[]) noctx
@@ -117,13 +117,13 @@ branch[t, lower] record
 	as branch b
 		b.down,
 
-.get-l1[t] t l1(a t[]) noctx, unsafe
+.get-l1[t] t l1(a t[]) noctx
 	a.try-get-l1 force
 
-.get-l1-branch[t] (t array, t l2) branch(a t[]) noctx, unsafe
+.get-l1-branch[t] (t array, t l2) branch(a t[]) noctx
 	a.get-l0-branch.down.node as-branch
 
-.get-l2[t] t l2(a t[]) noctx, unsafe
+.get-l2[t] t l2(a t[]) noctx
 	a.get-l1-branch down
 
 # List containing the given elements.
@@ -220,23 +220,25 @@ size[t] nat64(a t[]) noctx
 		b.left.size-2d + b.down.size + b.right.size-2d
 .size[t] nat64(a t l2) noctx
 	a.nodes.size-3d
-.size-2d[t] nat64(a t array array) noctx, trusted
-	cur mut = a begin-pointer
-	end = a end-pointer
-	res mut = 0
-	until cur == end
-		res := res + cur->size
-		cur := cur + 1
-	res
+.size-2d[t] nat64(a t array array) noctx
+	trusted
+		cur mut = a begin-pointer
+		end = a end-pointer
+		res mut = 0
+		until cur == end
+			res := res + cur->size
+			cur := cur + 1
+		res
 
-.size-3d[t] nat64(a t array array array) noctx, trusted
-	cur mut = a begin-pointer
-	end = a end-pointer
-	res mut = 0
-	until cur == end
-		res := res + cur->size-2d
-		cur := cur + 1
-	res
+.size-3d[t] nat64(a t array array array) noctx
+	trusted
+		cur mut = a begin-pointer
+		end = a end-pointer
+		res mut = 0
+		until cur == end
+			res := res + cur->size-2d
+			cur := cur + 1
+		res
 
 ###
 Concatenate two lists.
@@ -275,7 +277,7 @@ This is O(log n), amortized O(1).
 	r (t, lower) node,
 	cat-left-array-lower act lower(t array, lower),
 	cat-left-node-lower act lower(lower, lower),
-) trusted, lower new
+) lower new
 	match l
 	as leaf xs
 		xs cat-left-array-level r, cat-left-array-lower
@@ -295,7 +297,7 @@ This is O(log n), amortized O(1).
 	r (t, lower) node,
 	cat-right-array-lower act lower(lower, t array),
 	cat-right-node-lower act lower(lower, lower),
-) trusted, lower new
+) lower new
 	match r
 	as leaf xs
 		l cat-right-array-level xs, cat-right-array-lower
@@ -393,8 +395,8 @@ This is O(log n), amortized O(1).
 	64
 
 # 'trusted' since we are just using it to guide branch sizes (which should have no observable effect)
-.size-bytes[t] nat64(a t array) trusted
-	a.size * size-of@t
+.size-bytes[t] nat64(a t array)
+	trusted a.size * size-of@t
 
 region iter and slice
 
@@ -451,12 +453,12 @@ peek[t] t?(a t list-iter)
 Returns the next element and next iterator.
 Returns an empty option if the iterator was already at the end of the list.
 ###
-next[t] (t, t list-iter) value-and-rest?(a t list-iter) noctx, trusted
+next[t] (t, t list-iter) value-and-rest?(a t list-iter) noctx
 	if n ?= a.cur next
 		(n.value, (a.list, n.rest, a.pos)),
 	elif pair ?= a.list next-position a.pos
 		(a.list, pair.a, pair.b) next
-.next-position[t] (t array-3d-iter, position)?(a t[], pos position) noctx, unsafe
+.next-position[t] (t array-3d-iter, position)?(a t[], pos position) noctx
 	match pos
 	as l0-leaf
 		()
@@ -473,12 +475,12 @@ next[t] (t, t list-iter) value-and-rest?(a t list-iter) noctx, trusted
 	as l2-leaf
 		(a.get-l1-branch.right.iter2d.to-iter3d, l1-right),
 
-prev[t] (t, t list-iter) value-and-rest?(a t list-iter) noctx, trusted
+prev[t] (t, t list-iter) value-and-rest?(a t list-iter) noctx
 	if p ?= a.cur prev
 		(p.value, (a.list, p.rest, a.pos)),
 	elif pair ?= a.list prev-position a.pos
 		(a.list, pair.a, pair.b) prev
-.prev-position[t] (t array-3d-iter, position)?(a t[], pos position) noctx, unsafe
+.prev-position[t] (t array-3d-iter, position)?(a t[], pos position) noctx
 	match pos
 	as l0-leaf
 		()
@@ -553,7 +555,7 @@ groups-of[t] t[][](a t[], group-size nat64)
 List of every element to the left of the iterator.
 This is O(log n).
 ###
-slice-left[t] t[](a t list-iter) trusted
+slice-left[t] t[](a t list-iter)
 	match a pos
 	as l0-leaf
 		a.cur.as-1d.slice-left to-list
@@ -581,7 +583,7 @@ slice-left[t] t[](a t list-iter) trusted
 List of every element to the right of the iterator.
 This is O(log n).
 ###
-slice-right[t] t[](a t list-iter) trusted
+slice-right[t] t[](a t list-iter)
 	match a pos
 	as l0-leaf
 		a.cur.as-1d.slice-right to-list
@@ -615,7 +617,7 @@ slice-right[t] t[](a t list-iter) trusted
 	left t array,
 	down lower,
 	right t array,
-) trusted, (lower, t) level
+) (lower, t) level
 	if down is-empty
 		if left is-empty
 			right leaf
@@ -684,17 +686,17 @@ slice-right[t] t[](a t list-iter) trusted
 .pop-right[t] (t l2, t array array)(a t l2)
 	(a.nodes.rtail,), a.nodes[a.nodes.size - 1]
 
-.slice-left-update-l1[t] t[](a t[], f act t l1(t l1)) unsafe
+.slice-left-update-l1[t] t[](a t[], f act t l1(t l1))
 	old-l0 = a get-l0-branch
 	new-l1 = f[old-l0 down]
 	(old-l0.left branch-or-leaf-l0 new-l1, ()),
 
-.slice-right-update-l1[t] t[](a t[], f act t l1(t l1)) unsafe
+.slice-right-update-l1[t] t[](a t[], f act t l1(t l1))
 	old-l0 = a get-l0-branch
 	new-l1 = f[old-l0 down]
 	(()::(t array) branch-or-leaf-l0 new-l1, old-l0.right),
 
-.slice-left-update-l2[t] t[](a t[], f act t l2(t l2)) unsafe
+.slice-left-update-l2[t] t[](a t[], f act t l2(t l2))
 	a slice-left-update-l1 old-l1 =>
 		b = old-l1.node as-branch
 		new-l2 = f[b down]
@@ -704,7 +706,7 @@ slice-right[t] t[](a t list-iter) trusted
 			pair = new-l2 pop-right
 			(b.left, pair.a, pair.b).branch,
 
-.slice-right-update-l2[t] t[](a t[], f act t l2(t l2)) unsafe
+.slice-right-update-l2[t] t[](a t[], f act t l2(t l2))
 	a slice-right-update-l1 old-l1 =>
 		b = old-l1.node as-branch
 		new-l2 = f[b down]
@@ -722,11 +724,11 @@ slice-right[t] t[](a t list-iter) trusted
 .new[t] t array-3d-iter() noctx
 	(), (), ()
 
-.as-2d[t] t array-2d-iter(a t array-3d-iter) trusted
+.as-2d[t] t array-2d-iter(a t array-3d-iter)
 	assert a.cur-3d.prev.is-empty && a.cur-3d.next.is-empty
 	a.cur-1d, a.cur-2d
 
-.as-1d[t] t array-iter(a t array-3d-iter) trusted
+.as-1d[t] t array-iter(a t array-3d-iter)
 	assert a.cur-2d.prev.is-empty && a.cur-2d.next.is-empty
 	assert a.cur-3d.prev.is-empty && a.cur-3d.next.is-empty
 	a cur-1d
@@ -751,17 +753,17 @@ slice-right[t] t[](a t list-iter) trusted
 .to-iter3d[t] t array-3d-iter(a t array-2d-iter) noctx
 	a.cur-1d, a.cur-2d, ()
 
-.iter3d[t] t array-3d-iter(a t array array array) noctx, unsafe
+.iter3d[t] t array-3d-iter(a t array array array) noctx
 	if n3 ?= a.iter next
 		n2 = n3.value.iter.next force
 		n2.value.iter, n2.rest, n3.rest
 
-.end-iter3d[t] t array-3d-iter(a t array array array) noctx, unsafe
+.end-iter3d[t] t array-3d-iter(a t array array array) noctx
 	if n3 ?= a.end-iter prev
 		n2 = n3.value.end-iter.prev force
 		n2.value.end-iter, n2.rest, n3.rest
 
-.next[t] (t, t array-3d-iter) value-and-rest?(a t array-3d-iter) noctx, trusted
+.next[t] (t, t array-3d-iter) value-and-rest?(a t array-3d-iter) noctx
 	if n1 ?= a.cur-1d next
 		(n1.value, (n1.rest, a.cur-2d, a.cur-3d)),
 	elif n2 ?= a.cur-2d next
@@ -772,7 +774,7 @@ slice-right[t] t[](a t list-iter) trusted
 		n1 = n2.value.iter.next force
 		(n1.value, (n1.rest, n2.rest, n3.rest)),
 
-.prev[t] (t, t array-3d-iter) value-and-rest?(a t array-3d-iter) noctx, trusted
+.prev[t] (t, t array-3d-iter) value-and-rest?(a t array-3d-iter) noctx
 	if p1 ?= a.cur-1d prev
 		(p1.value, (p1.rest, a.cur-2d, a.cur-3d)),
 	elif p2 ?= a.cur-2d prev
@@ -808,7 +810,7 @@ slice-right[t] t[](a t list-iter) trusted
 	b2 = a1.is-empty ? a2 : a1 ~ a2
 	b2.is-empty ? a3 : b2 ~ a3
 
-.l1-iter[t] (t array-3d-iter, position)(a t[]) noctx, unsafe
+.l1-iter[t] (t array-3d-iter, position)(a t[]) noctx
 	match a.get-l1 node
 	as leaf xs
 		if xs is-empty
@@ -818,7 +820,7 @@ slice-right[t] t[](a t list-iter) trusted
 	as branch b
 		b.left.iter2d.to-iter3d, l1-left
 
-.l1-end-iter[t] (t array-3d-iter, position)(a t[]) noctx, unsafe
+.l1-end-iter[t] (t array-3d-iter, position)(a t[]) noctx
 	match a.get-l1 node
 	as leaf xs
 		if xs is-empty
@@ -828,10 +830,10 @@ slice-right[t] t[](a t list-iter) trusted
 	as branch b
 		b.right.end-iter2d.to-iter3d, l1-right
 
-.l2-iter[t] (t array-3d-iter, position)(a t[]) noctx, unsafe
+.l2-iter[t] (t array-3d-iter, position)(a t[]) noctx
 	a.get-l2.nodes.iter3d, l2-leaf
 
-.l2-end-iter[t] (t array-3d-iter, position)(a t[]) noctx, unsafe
+.l2-end-iter[t] (t array-3d-iter, position)(a t[]) noctx
 	a.get-l2.nodes.end-iter3d, l2-leaf
 
 region iteration
@@ -961,7 +963,7 @@ for-loop[out, in] out[](a in[], f act out(in))
 for-loop[out, in] out[](a in[], f act out(in, nat64))
 	(a for-loop f)::(out array) to-list
 
-for-loop[out, in] out array(a in[], f act out(in)) trusted
+for-loop[out, in] out array(a in[], f act out(in))
 	with out : a.size build
 		for x : a
 			out ~= f[x]
@@ -1189,7 +1191,7 @@ reverse[t] t[](a t[])
 	for i : 0 .. a.size
 		a[a.size - 1 - i]
 
-.force[t] t(a t?) noctx, unsafe
+.force[t] t(a t?) noctx
 	if x ?= a
 		x
 	else

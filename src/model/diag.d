@@ -185,6 +185,7 @@ immutable struct Diag {
 		// This is implied by the first modifier
 		Sym redundantModifier;
 	}
+	immutable struct FunModifierTrustedOnNonExtern {}
 	immutable struct IfNeedsOpt {
 		Type actualType;
 	}
@@ -310,6 +311,14 @@ immutable struct Diag {
 		enum Kind { hasParams, hasSpecs, hasTypeParams, mustReturnPtrMut }
 		Kind kind;
 	}
+	immutable struct TrustedUnnecessary {
+		enum Reason {
+			inTrusted,
+			inUnsafeFunction,
+			unused,
+		}
+		Reason reason;
+	}
 	immutable struct TypeAnnotationUnnecessary {
 		Type type;
 	}
@@ -392,6 +401,7 @@ immutable struct Diag {
 		FunMissingBody,
 		FunModifierConflict,
 		FunModifierRedundant,
+		FunModifierTrustedOnNonExtern,
 		IfNeedsOpt,
 		ImportRefersToNothing,
 		LambdaCantInferParamTypes,
@@ -428,6 +438,7 @@ immutable struct Diag {
 		SpecImplTooDeep,
 		SpecNameMissing,
 		ThreadLocalError,
+		TrustedUnnecessary,
 		TypeAnnotationUnnecessary,
 		TypeConflict,
 		TypeParamCantHaveTypeArgs,

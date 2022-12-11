@@ -49,7 +49,7 @@ is-at-capacity[t] bool(a t mut[]) noctx, no-doc, unsafe
 capacity[t] nat64(a t mut[]) noctx, no-doc, unsafe
 	a.backing size
 
-mut-list-by-val[t] t mut[] by-val() noctx, no-doc, trusted
+mut-list-by-val[t] t mut[] by-val() noctx, no-doc
 	empty-mut-array, 0
 
 mut-list-by-val-with-capacity-from-unmanaged-memory[t] t mut[] by-val(capacity nat64) noctx, no-doc, unsafe
@@ -74,16 +74,18 @@ to-mut-list[t] t mut[](a t[])
 	res ~~= a
 	res
 
-clear[t] void(a t mut[]) noctx, trusted
-	a.begin-pointer set-zero-range a.size
-	a.size := 0
+clear[t] void(a t mut[]) noctx
+	trusted
+		# TODO: zero the memory for GC
+		a.begin-pointer set-zero-range a.size
+		a.size := 0
 
 ###
 Copies the `mut-list`.
 Writes to the original won't affect the copy.
 ###
-copy[t] t mut[](a t mut[]) trusted
-	a.temp-as-array.to-list to-mut-list
+copy[t] t mut[](a t mut[])
+	trusted a.temp-as-array.to-list to-mut-list
 
 ###
 Copies a `mut-list` to a `list`.
@@ -96,17 +98,18 @@ to-list[t] t[](a t mut[])
 Convert to a `dict`, clearning the original `mut-list` in the process.
 (This avoids copying but still ensures that the result is immutable.)
 ###
-move-to-list[t] t[](a t mut[]) noctx, trusted
+move-to-list[t] t[](a t mut[]) noctx
 	a.move-to-array to-list
 
-move-to-array[t] t array(a t mut[]) noctx, trusted
-	a.move-to-mut-array.cast-immutable
+move-to-array[t] t array(a t mut[]) noctx
+	trusted a.move-to-mut-array cast-immutable
 
-move-to-mut-array[t] t mut-array(a t mut[]) noctx, trusted
-	res = a.begin-pointer[0 .. a.size]
-	a.backing := empty-mut-array
-	a.size := 0
-	res
+move-to-mut-array[t] t mut-array(a t mut[]) noctx
+	trusted
+		res = a.begin-pointer[0 .. a.size]
+		a.backing := empty-mut-array
+		a.size := 0
+		res
 
 swap[t] void(a t mut[], b t mut[])
 	a-backing = a backing
@@ -123,9 +126,9 @@ swap[t] void(a t mut[], b t mut[])
 Gets the element at the index.
 Throws if `index >= a.size`.
 ###
-subscript[t] t(a t mut[], index nat64) noctx, trusted
+subscript[t] t(a t mut[], index nat64) noctx
 	a check-index index
-	a.begin-pointer[index]
+	trusted a.begin-pointer[index]
 
 first[t] t?(a t mut[])
 	unless a is-empty
@@ -164,68 +167,74 @@ is-empty[t] bool(a t mut[]) noctx
 Sets the element at the index.
 Throws if `index >= a.size`.
 ###
-set-subscript[t] void(a t mut[], index nat64, value t) noctx, trusted
+set-subscript[t] void(a t mut[], index nat64, value t) noctx
 	a check-index index
-	a.begin-pointer[index] := value
+	trusted
+		a.begin-pointer[index] := value
 
 ###
 True iff `a[i] == value` for some `i`.
 ###
-in[t] bool(value t, a t mut[]) noctx, trusted, t equal
-	value in a.temp-as-array
+in[t] bool(value t, a t mut[]) noctx, t equal
+	trusted value in a.temp-as-array
 
 # TODO: this should be 'subscript' with a range. And return a list.
-.copy-range-to-array[t] t array(a t mut[], begin nat64, size nat64) trusted
+.copy-range-to-array[t] t array(a t mut[], begin nat64, size nat64)
 	assert begin + size <= a.size : "range out of bounds"
-	res t mut* = size alloc-uninitialized
-	src = a.begin-pointer + begin
-	_ = res.as-any-mut-pointer memcpy src.as-any-const-pointer, size * size-of@t
-	res.as-const[0 .. size]
+	trusted
+		res t mut* = size alloc-uninitialized
+		src = a.begin-pointer + begin
+		_ = res.as-any-mut-pointer memcpy src.as-any-const-pointer, size * size-of@t
+		res.as-const[0 .. size]
 
 ###
 Removes the first `n` elements and returns them as an array.
 This is O(a.size - n) because of the cost of copying, and all remaining elements must be shifted.
 Throws if `n > a.size`.
 ###
-pop-n-from-start[t] t[](a t mut[], n nat64) trusted
+pop-n-from-start[t] t[](a t mut[], n nat64)
 	assert n <= a.size : "can't pop more than size of array"
 	res = a copy-range-to-array 0, n
-	dest = a.begin-pointer as-any-mut-pointer
-	src = a.begin-pointer + n as-any-const-pointer
-	new-size = a.size - n
-	_ = dest memmove src, new-size * size-of@t
-	a.size := new-size
+	trusted
+		dest = a.begin-pointer as-any-mut-pointer
+		src = a.begin-pointer + n as-any-const-pointer
+		new-size = a.size - n
+		_ = dest memmove src, new-size * size-of@t
+		a.size := new-size
 	res to-list
 
 ###
 Removes the last element and returns it.
 Returns `none` if `a` is empty.
 ###
-pop[t] t?(a t mut[]) trusted
+pop[t] t?(a t mut[])
 	unless a is-empty
 		new-size = a.size - 1
 		res = a[new-size]
-		# Ensure GC doesn't hold on to the memory there
-		a[new-size] := zeroed
-		a.size := new-size
-		res,
+		trusted
+			# Ensure GC doesn't hold on to the memory there
+			a[new-size] := zeroed
+			a.size := new-size
+			res,
 
 ###
 Pops `n` times, discarding the result.
 Throws if `n > a.size`.
 ###
-pop-n[t] void(a t mut[], n nat64) trusted
+pop-n[t] void(a t mut[], n nat64)
 	assert n <= a.size : "can't pop more than size of array"
 	new-size = a.size - n
-	a.begin-pointer + new-size set-zero-range n
-	a.size := new-size
+	trusted
+		a.begin-pointer + new-size set-zero-range n
+		a.size := new-size
 
 # Push a value onto the end of the list.
-~=[t] void(a t mut[], value t) trusted
-	a incr-capacity
-	assert a.size < a.capacity
-	a.begin-pointer[a size] := value
-	a.size := a.size + 1
+~=[t] void(a t mut[], value t)
+	trusted
+		a incr-capacity
+		assert a.size < a.capacity
+		a.begin-pointer[a size] := value
+		a.size := a.size + 1
 
 # TODO: Use an 'each' spec..
 # Push multiple values onto the end of the list.
@@ -277,13 +286,14 @@ This is more efficient than `a remove-at index`,
 which has to shift all values past `index` to the left.
 Throws if `index >= a.size`.
 ###
-remove-unordered-at[t] t(a t mut[], index nat64) noctx, no-doc, trusted
+remove-unordered-at[t] t(a t mut[], index nat64) noctx, no-doc
 	a check-index index
-	res = a.begin-pointer[index]
-	new-size = a.size - 1
-	a.begin-pointer[index] := a.begin-pointer[new-size]
-	a.size := new-size
-	res
+	trusted
+		res = a.begin-pointer[index]
+		new-size = a.size - 1
+		a.begin-pointer[index] := a.begin-pointer[new-size]
+		a.size := new-size
+		res
 
 uninitialized-mut-list[t] t mut[](size nat64) unsafe
 	res t mut[] = ()
@@ -309,8 +319,8 @@ reduce-size-if-more-than[t] void(a t mut[], new-size nat64)
 		a reduce-size-if-more-than new-size
 
 # Returns the first index where `a[i] == value`, or returns `none`.
-index-of[t] nat64?(a t mut[], value t) noctx, trusted, t equal
-	a.temp-as-array index-of value
+index-of[t] nat64?(a t mut[], value t) noctx, t equal
+	trusted a.temp-as-array index-of value
 
 ###
 Sets `a[index] := value`, but first shifts all elements from `index` onwards to the right to make room.
@@ -318,16 +328,17 @@ Increases the size by 1.
 This is O(a.size - index) due to having to move other elements.
 Throws if `index > a.size`.
 ###
-insert-at[t] void(a t mut[], index nat64, value t) trusted
+insert-at[t] void(a t mut[], index nat64, value t)
 	assert index <= a.size : "index out of bounds"
-	a incr-capacity
-	dest = a.begin-pointer + index + 1
-	src = a.begin-pointer + index
-	n = a.size - index
-	_ = dest.as-any-mut-pointer memmove src.as-any-const-pointer, n * size-of@t
-	a.size := a.size + 1
-	a[index] := value
-	assert a.size <= a.capacity
+	trusted
+		a incr-capacity
+		dest = a.begin-pointer + index + 1
+		src = a.begin-pointer + index
+		n = a.size - index
+		_ = dest.as-any-mut-pointer memmove src.as-any-const-pointer, n * size-of@t
+		a.size := a.size + 1
+		a[index] := value
+		assert a.size <= a.capacity
 
 insert-at[t] void(a t mut[], pointer t mut*, value t) no-doc, unsafe
 	a insert-at pointer - a.begin-pointer, value
@@ -339,30 +350,33 @@ Decreases the size by 1.
 This is O(a.size - index) due to having to move other elements.
 Throws if `index >= a.size`.
 ###
-remove-at[t] t(a t mut[], index nat64) trusted
+remove-at[t] t(a t mut[], index nat64)
 	a check-index index
 	res = a[index]
-	dest = a.begin-pointer + index
-	src = a.begin-pointer + index + 1
-	n = a.size - index - 1
-	_ = dest.as-any-mut-pointer memmove src.as-any-const-pointer, n * size-of@t
-	a.size := a.size - 1
+	trusted
+		dest = a.begin-pointer + index
+		src = a.begin-pointer + index + 1
+		n = a.size - index - 1
+		_ = dest.as-any-mut-pointer memmove src.as-any-const-pointer, n * size-of@t
+		a.size := a.size - 1
 	res
 
 remove-at[t] t(a t mut[], pointer t mut*) no-doc, unsafe
 	a remove-at pointer - a.begin-pointer
 
-set-reverse[t] void(a t mut[]) trusted
-	a.temp-as-mut-array set-reverse
+set-reverse[t] void(a t mut[])
+	trusted a.temp-as-mut-array set-reverse
 
 region iteration
 
 # TODO: What if it's mutated while searching ?
-find-index[t] nat64?(a t mut[], f act bool(t)) trusted
-	a.temp-as-array find-index f
+find-index[t] nat64?(a t mut[], f act bool(t))
+	# TODO: dangerous if mutated while looping
+	trusted a.temp-as-array find-index f
 
-exists[t] bool(a t mut[], f act bool(t)) trusted
-	a.temp-as-array exists f
+exists[t] bool(a t mut[], f act bool(t))
+	# TODO: dangerous if mutated while looping
+	trusted a.temp-as-array exists f
 
 reversed-mut-list[t] record mut
 	.inner t mut[]
@@ -373,25 +387,25 @@ for-loop[t] void(a t reversed-mut-list, f act void(t))
 	for i : 0 .. m.size reverse
 		f[m[i]]
 
-filter[t] t mut[](a t mut[], f act bool(t)) trusted
+filter[t] t mut[](a t mut[], f act bool(t))
 	res = a copy
 	res set-filter f
 	res
 
 # Calls `f` for each element in `a`.
-for-loop[t] void(a t mut[], f act void(t)) trusted
+for-loop[t] void(a t mut[], f act void(t))
 	# TODO: dangerous if mutated while looping
-	a.temp-as-array for-loop f
+	trusted a.temp-as-array for-loop f
 
-for-loop[t] void(a t mut[], f act void(t, nat64)) trusted
+for-loop[t] void(a t mut[], f act void(t, nat64))
 	# TODO: dangerous if mutated while looping
-	a.temp-as-array for-loop f
+	trusted a.temp-as-array for-loop f
 
-for-loop[out, in] out mut[](a in mut[], f act out(in)) trusted
-	a map-to-mut-array f as-mut-list
+for-loop[out, in] out mut[](a in mut[], f act out(in))
+	trusted a map-to-mut-array f as-mut-list
 
-for-loop[out, in] out[](a in mut[], f act out(in)) trusted
-	(a map-to-mut-array f).cast-immutable to-list
+for-loop[out, in] out[](a in mut[], f act out(in))
+	trusted (a map-to-mut-array f).cast-immutable to-list
 
 .map-to-mut-array[out, in] out mut-array(a in mut[], f act out(in))
 	# TODO: dangerous if mutated while looping
@@ -408,18 +422,21 @@ region mutating iteration
 Removes every element `x` where `!f[x]`.
 This can be written as `a.filter := f`.
 ###
-set-filter[t] void(a t mut[], f act bool(t)) trusted
-	out mut = a begin-pointer
-	for x : a
-		if f[x]
-			*out := x
-			out := out + 1
-	new-size = out - a.begin-pointer
-	a.backing[new-size .. a.size] set-zero-elements
-	a.size := new-size
+set-filter[t] void(a t mut[], f act bool(t))
+	# TOOD: this is unsafe if 'f' accesses to the list. Make it a 'fun' instead?
+	trusted
+		out mut = a begin-pointer
+		for x : a
+			if f[x]
+				*out := x
+				out := out + 1
+		new-size = out - a.begin-pointer
+		a.backing[new-size .. a.size] set-zero-elements
+		a.size := new-size
 
 ###
 Overwrites every element `x` with `f[x]`.
 ###
-set-map[t] void(a t mut[], f act t(t)) trusted
-	a.temp-as-mut-array set-map f
+set-map[t] void(a t mut[], f act t(t))
+	# TOOD: this is unsafe if 'f' accesses to the list. Make it a 'fun' instead?
+	trusted a.temp-as-mut-array set-map f

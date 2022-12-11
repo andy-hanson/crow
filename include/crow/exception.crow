@@ -45,9 +45,9 @@ to-string string(a backtrace)
 	"" join for x : a.entries.to-list
 		"\n\tat {x}"
 
-to-string string(a backtrace-entry) trusted
-	name = a.function-name to-string
-	path = a.file-path to-string
+to-string string(a backtrace-entry)
+	name = trusted a.function-name to-string
+	path = trusted a.file-path to-string
 	if name is-empty
 		"<<unknown>>"
 	elif path is-empty

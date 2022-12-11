@@ -7,7 +7,7 @@ import
 	./misc: break-or-continue, loop-break, new, void
 	./number: ==, +, -, nat64
 	./option: new, option
-	./pointer: ==, +, const-pointer
+	./pointer: ==, +, const-pointer, mut-pointer
 export
 	./private/range-low-level: .., low, high, range, size
 
@@ -25,6 +25,12 @@ for-loop void(a nat64 range, f act void(nat64))
 	cur mut = a low
 	high = a high
 	until cur == high
+		f[cur]
+		cur := cur + 1
+
+for-loop[t] void(a t mut* range, f act void(t mut*)) unsafe
+	cur mut = a low
+	until cur == a.high
 		f[cur]
 		cur := cur + 1
 
@@ -73,7 +79,7 @@ for-loop[out] out[](a nat64 range-reverse, f act out(nat64))
 		for x : a
 			out ~= f[x]
 
-for-loop[out] out[](a nat64 range, f act out(nat64)) trusted
+for-loop[out] out[](a nat64 range, f act out(nat64))
 	(a for-loop f)::(out array) to-list
 
 for-break[out] out(a nat64 range, f-loop act out break-or-continue(nat64), f-else act out())

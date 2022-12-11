@@ -24,13 +24,13 @@ board-cache[t] record mut
 	.keys nat32 mut-array
 	.values t mut-array
 
-new[t] t board-cache() trusted
+new[t] t board-cache() t new
 	size = 0xccce9
 	# Per the Chinese Remainder Theorem, if we know the key mod 2^32 and mod size, we know the key mod their product.
 	# If their product is > the max key, then we know the key.
 	assert 2 ** 32 * size > max-key
 	# Use max-nat as an impossible key
-	(size fill-mut-array max-nat32), (size fill-mut-array zeroed)
+	(size fill-mut-array max-nat32), (size fill-mut-array ())
 
 subscript[t] t?(a t board-cache, key board)
 	small-key = key board-key

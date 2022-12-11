@@ -33,78 +33,79 @@ import
 	./fragment.frag.essl as fragment-shader string
 	./vertex.vert.essl as vertex-shader string
 
-main nat^(_ string[]) summon, trusted
-	SDL_INIT_VIDEO.SDL_Init handle-sdl-error "SDL_INIT_VIDEO"
+main nat^(_ string[]) summon
+	trusted
+		SDL_INIT_VIDEO.SDL_Init handle-sdl-error "SDL_INIT_VIDEO"
 
-	# TODO: is this redundant?
-	# This should be done after initializing the video driver, but before creating any OpenGL windows.
-	if false
-		"C:\\Windows\\System32\\opengl32.dll" .SDL_GL_LoadLibrary handle-sdl-error "SDL_GL_LoadLibrary"
-	# Same bad results as the builtin driver..
-	#if false
-	#	"C:\\Users\\User\\code\\crow\\opengl32.dll".SDL_GL_LoadLibrary handle-sdl-error "SDL_GL_LoadLibrary"
+		# TODO: is this redundant?
+		# This should be done after initializing the video driver, but before creating any OpenGL windows.
+		if false
+			"C:\\Windows\\System32\\opengl32.dll" .SDL_GL_LoadLibrary handle-sdl-error "SDL_GL_LoadLibrary"
+		# Same bad results as the builtin driver..
+		#if false
+		#	"C:\\Users\\User\\code\\crow\\opengl32.dll".SDL_GL_LoadLibrary handle-sdl-error "SDL_GL_LoadLibrary"
 
-	SDL_GL_CONTEXT_PROFILE_MASK SDL_GL_SetAttribute SDL_GL_CONTEXT_PROFILE_ES.to-int32 handle-sdl-error "set GL ES"
-	SDL_GL_CONTEXT_MAJOR_VERSION SDL_GL_SetAttribute 3 handle-sdl-error "set major version"
-	SDL_GL_CONTEXT_MINOR_VERSION SDL_GL_SetAttribute 0 handle-sdl-error "set minor version"
-	SDL_GL_DOUBLEBUFFER SDL_GL_SetAttribute 1 handle-sdl-error "set double buffer"
+		SDL_GL_CONTEXT_PROFILE_MASK SDL_GL_SetAttribute SDL_GL_CONTEXT_PROFILE_ES.to-int32 handle-sdl-error "set GL ES"
+		SDL_GL_CONTEXT_MAJOR_VERSION SDL_GL_SetAttribute 3 handle-sdl-error "set major version"
+		SDL_GL_CONTEXT_MINOR_VERSION SDL_GL_SetAttribute 0 handle-sdl-error "set minor version"
+		SDL_GL_DOUBLEBUFFER SDL_GL_SetAttribute 1 handle-sdl-error "set double buffer"
 
-	wflags = SDL_WINDOW_OPENGL | SDL_WINDOW_SHOWN
-	window = "crube" SDL_CreateWindow SDL_WINDOWPOS_UNDEFINED, SDL_WINDOWPOS_UNDEFINED, 960, 720, wflags
-	if window == null
-		"SDL_CreateWindow" fail-sdl-error
+		wflags = SDL_WINDOW_OPENGL | SDL_WINDOW_SHOWN
+		window = "crube" SDL_CreateWindow SDL_WINDOWPOS_UNDEFINED, SDL_WINDOWPOS_UNDEFINED, 960, 720, wflags
+		if window == null
+			"SDL_CreateWindow" fail-sdl-error
 
-	context = window SDL_GL_CreateContext
-	if context == null
-		"SDL_GL_CreateContext" fail-sdl-error
+		context = window SDL_GL_CreateContext
+		if context == null
+			"SDL_GL_CreateContext" fail-sdl-error
 
-	gl gl-ext = ()
-	shader-prog = gl shader-prog-load vertex-shader, fragment-shader
+		gl gl-ext = ()
+		shader-prog = gl shader-prog-load vertex-shader, fragment-shader
 
-	gl gl-check-error "after shader-prog"
-	gl glUseProgram shader-prog
+		gl gl-check-error "after shader-prog"
+		gl glUseProgram shader-prog
 
-	tex-sampler-uniform-loc = gl glGetUniformLocation shader-prog, "texSampler"
-	gl gl-check-error "after tex-sampler-uniform-loc"
-	assert tex-sampler-uniform-loc >= 0
-	gl glUniform1i tex-sampler-uniform-loc, 0
-	gl gl-check-error "after glUniform1i"
+		tex-sampler-uniform-loc = gl glGetUniformLocation shader-prog, "texSampler"
+		gl gl-check-error "after tex-sampler-uniform-loc"
+		assert tex-sampler-uniform-loc >= 0
+		gl glUniform1i tex-sampler-uniform-loc, 0
+		gl gl-check-error "after glUniform1i"
 
-	rotation-uniform-loc = gl glGetUniformLocation shader-prog, "rotation"
-	gl gl-check-error "after rotation-uniform-loc"
-	assert tex-sampler-uniform-loc >= 0
-	gl glUniform1i tex-sampler-uniform-loc, 0
-	gl gl-check-error "after glUniform1i"
-	gl glUniformMatrix3fv rotation-uniform-loc, 1, false, I::mat3-32.to-array.begin-pointer
-	gl gl-check-error "after set rotation-uniform-loc"
+		rotation-loc = gl glGetUniformLocation shader-prog, "rotation"
+		gl gl-check-error "after rotation-loc"
+		assert tex-sampler-uniform-loc >= 0
+		gl glUniform1i tex-sampler-uniform-loc, 0
+		gl gl-check-error "after glUniform1i"
+		gl glUniformMatrix3fv rotation-loc, 1, false, I::mat3-32.to-array.begin-pointer
+		gl gl-check-error "after set rotation-loc"
 
-	texture = gl load-texture-from-bmp crow-bmp.to-list
+		texture = gl load-texture-from-bmp crow-bmp.to-list
 
-	vertices vertex array = make-cube
-	triangle-vbo = gl vbo-create vertices
-	forbid triangle-vbo == 0
+		vertices vertex array = make-cube
+		triangle-vbo = gl vbo-create vertices
+		forbid triangle-vbo == 0
 
-	renderer renderer = gl, cur-thread-id, window, shader-prog, vertices, triangle-vbo, texture, rotation-uniform-loc
-	renderer set-up-renderer
+		renderer renderer = gl, cur-thread-id, window, shader-prog, vertices, triangle-vbo, texture, rotation-loc
+		renderer set-up-renderer
 
-	<- for : 25.msec interval
-		SDL_PumpEvents
-		if look-for-quit-event
-			break
-		else
-			<- renderer main-loop-body
-			continue
+		<- for : 25.msec interval
+			SDL_PumpEvents
+			if look-for-quit-event
+				break
+			else
+				<- renderer main-loop-body
+				continue
 
-	# SDL_DestroyWindow hangs on Windows if called from a different thread
-	renderer.render-thread-id run-with-thread-id () =>
-		# TODO: use 'finally'
-		gl free-texture texture
-		gl vbo-free triangle-vbo
-		gl shader-prog-destroy shader-prog
-		context SDL_GL_DeleteContext
-		window SDL_DestroyWindow
-		SDL_Quit
-		()
+		# SDL_DestroyWindow hangs on Windows if called from a different thread
+		renderer.render-thread-id run-with-thread-id () =>
+			# TODO: use 'finally'
+			gl free-texture texture
+			gl vbo-free triangle-vbo
+			gl shader-prog-destroy shader-prog
+			context SDL_GL_DeleteContext
+			window SDL_DestroyWindow
+			SDL_Quit
+			()
 
 .make-cube vertex array()
 	front = I.cube-side ~~ (up rotation pi / 2 cube-side) ~~ (right rotation pi / 2 cube-side)
@@ -149,7 +150,7 @@ main nat^(_ string[]) summon, trusted
 	vertices vertex array
 	triangle-vbo GLuint
 	texture GLuint
-	rotation-uniform-loc GLint
+	rotation-loc GLint
 
 .set-up-renderer void(renderer renderer) summon, unsafe
 	gl = renderer gl
@@ -179,13 +180,14 @@ main nat^(_ string[]) summon, trusted
 	gl glActiveTexture GL_TEXTURE0
 	gl glBindTexture GL_TEXTURE_2D, renderer.texture
 
-.main-loop-body void^(renderer renderer) summon, trusted
-	key-states-pointer = null SDL_GetKeyboardState
-	key-states = key-states-pointer[0 .. SDL_NUM_SCANCODES.to-nat32.to-nat64]
-	if key-states[SDL_SCANCODE_RETURN.to-nat32 to-nat64] != 0
-		out print "return is pressed"
-	renderer.render-thread-id run-with-thread-id () =>
-		renderer render
+.main-loop-body void^(renderer renderer) summon
+	trusted
+		key-states-pointer = null SDL_GetKeyboardState
+		key-states = key-states-pointer[0 .. SDL_NUM_SCANCODES.to-nat32.to-nat64]
+		if key-states[SDL_SCANCODE_RETURN.to-nat32 to-nat64] != 0
+			out print "return is pressed"
+		renderer.render-thread-id run-with-thread-id () =>
+			renderer render
 .render void(renderer renderer) summon, unsafe
 	gl = renderer gl
 	gl glClearColor 0.5, 0.5, 0.5, 1
@@ -193,7 +195,7 @@ main nat^(_ string[]) summon, trusted
 
 	t = get-monotime-msec.to-float32 * 0.0003::float32
 	mat mat3-32 = (0.5::float32) * ((1, 2, 3) rotation t)
-	gl glUniformMatrix3fv renderer.rotation-uniform-loc, 1, false, mat.to-array.begin-pointer
+	gl glUniformMatrix3fv renderer.rotation-loc, 1, false, mat.to-array.begin-pointer
 
 	gl glDrawArrays GL_TRIANGLES, 0, renderer.vertices.size.to-int32
 	gl gl-check-error "after render"
@@ -207,8 +209,8 @@ main nat^(_ string[]) summon, trusted
 		<- delay
 		thread-id run-with-thread-id cb
 
-.look-for-quit-event bool() summon, trusted
-	loop
+.look-for-quit-event bool() summon
+	trusted loop
 		e mut SDL_Event = ()
 		if (&e).SDL_PollEvent == 0
 			break false
@@ -217,11 +219,11 @@ main nat^(_ string[]) summon, trusted
 		else
 			continue
 
-.handle-sdl-error void(err c-int, description string) summon, trusted
+.handle-sdl-error void(err c-int, description string) summon, unsafe
 	unless err == 0
 		description fail-sdl-error
 
-.fail-sdl-error void(description string) summon, trusted
+.fail-sdl-error void(description string) summon, unsafe
 	throw "sdl error in {description}: {SDL_GetError}"
 	SDL_Quit
 

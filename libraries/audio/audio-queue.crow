@@ -12,10 +12,11 @@ audio-queue record force-sendable by-ref
 .lock lock(a audio-queue) noctx, unsafe
 	&a.lock-by-val
 
-new audio-queue(format sound-format) trusted
-	res audio-queue = format, uninit, ()
-	res.lock init
-	res
+new audio-queue(format sound-format)
+	trusted
+		res audio-queue = format, uninit, ()
+		res.lock init
+		res
 
 .entry record by-ref force-sendable
 	samples float32 array
@@ -25,13 +26,14 @@ new audio-queue(format sound-format) trusted
 .reset-position void(a entry)
 	a.cur := a.samples begin-pointer
 
-.is-over bool(a entry) noctx, trusted
-	!a.looping && a.cur == a.samples.end-pointer
+.is-over bool(a entry) noctx
+	!a.looping && trusted a.cur == a.samples.end-pointer
 
-clear void(a audio-queue) noctx, trusted
-	a.lock acquire
-	a.playing clear
-	a.lock release
+clear void(a audio-queue) noctx
+	trusted
+		a.lock acquire
+		a.playing clear
+		a.lock release
 
 play playing-sound(a audio-queue, sound sound)
 	a play-common sound, false
@@ -78,35 +80,37 @@ pull void(a audio-queue, out float32 mut-array) noctx, unsafe
 		read := read + 1
 	assert read == b.end-pointer
 
-.play-common playing-sound(a audio-queue, sound sound, looping bool) trusted
+.play-common playing-sound(a audio-queue, sound sound, looping bool)
 	assert sound.format == a.format : "sound format mismatch: expected {a format}, got {sound format}"
-	a.lock acquire
-	# Can't use 'set-filter' in 'noctx' code, so do it here
-	a.playing.filter := x => !x.is-over
-	entry entry = sound.samples, sound.samples.begin-pointer, looping
-	a.playing ~= entry
-	a.lock release
-	reset fun void() = () =>
-		entry reset-position 
-	set-playing fun void(bool) = desired =>
-		a set-playing entry, desired
-	reset, set-playing
-
-.set-playing void(a audio-queue, entry entry, desired bool) trusted
-	a.lock acquire
-	is-playing mut bool = false
-	# Can't use 'set-filter' in 'noctx' code, so do it here
-	a.playing.filter := x =>
-		if x is-over
-			false
-		elif x ref-eq entry
-			is-playing := true
-			desired
-		else
-			true
-	if desired && !is-playing
+	trusted
+		a.lock acquire
+		# Can't use 'set-filter' in 'noctx' code, so do it here
+		a.playing.filter := x => !x.is-over
+		entry entry = sound.samples, sound.samples.begin-pointer, looping
 		a.playing ~= entry
-	a.lock release
+		a.lock release
+		reset fun void() = () =>
+			entry reset-position 
+		set-playing fun void(bool) = desired =>
+			a set-playing entry, desired
+		reset, set-playing
+
+.set-playing void(a audio-queue, entry entry, desired bool)
+	trusted
+		a.lock acquire
+		is-playing mut bool = false
+		# Can't use 'set-filter' in 'noctx' code, so do it here
+		a.playing.filter := x =>
+			if x is-over
+				false
+			elif x ref-eq entry
+				is-playing := true
+				desired
+			else
+				true
+		if desired && !is-playing
+			a.playing ~= entry
+		a.lock release
 
 test
 	format sound-format = 2, 44100

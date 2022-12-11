@@ -33,6 +33,7 @@ import frontend.parse.ast :
 	SeqAst,
 	ThenAst,
 	ThrowAst,
+	TrustedAst,
 	TypeAst,
 	TypedAst,
 	UnlessAst,
@@ -632,13 +633,23 @@ ExprAndDedent parseUnless(ref Lexer lexer, Pos start, uint curIndent) {
 		cb.dedents);
 }
 
-ExprAndMaybeDedent parseThrow(ref Lexer lexer, Pos start, AllowedBlock allowedBlock) {
-	ExprAndMaybeDedent thrown = parseExprAndAllCalls(lexer, allowedBlock);
-	return ExprAndMaybeDedent(
-		ExprAst(
-			range(lexer, start),
-			ExprAstKind(allocate(lexer.alloc, ThrowAst(thrown.expr)))),
-		thrown.dedents);
+ExprAndMaybeDedent parseThrow(ref Lexer lexer, Pos start, AllowedBlock allowedBlock) =>
+	parseThrowOrTrusted(lexer, start, allowedBlock, ParseDiag.NeedsBlockCtx.Kind.throw_, (ExprAst inner) =>
+		ExprAstKind(allocate(lexer.alloc, ThrowAst(inner))));
+
+ExprAndMaybeDedent parseTrusted(ref Lexer lexer, Pos start, AllowedBlock allowedBlock) =>
+	parseThrowOrTrusted(lexer, start, allowedBlock, ParseDiag.NeedsBlockCtx.Kind.trusted, (ExprAst inner) =>
+		ExprAstKind(allocate(lexer.alloc, TrustedAst(inner))));
+
+ExprAndMaybeDedent parseThrowOrTrusted(
+	ref Lexer lexer,
+	Pos start,
+	AllowedBlock allowedBlock,
+	ParseDiag.NeedsBlockCtx.Kind needsBlockKind,
+	in ExprAstKind delegate(ExprAst inner) @safe @nogc pure nothrow cbMakeExpr,
+) {
+	ExprAndMaybeDedent inner = parseExprInlineOrBlock(lexer, start, allowedBlock, needsBlockKind);
+	return ExprAndMaybeDedent(ExprAst(range(lexer, start), cbMakeExpr(inner.expr)), inner.dedents);
 }
 
 ExprAndMaybeDedent parseAssertOrForbid(ref Lexer lexer, Pos start, AllowedBlock allowedBlock, AssertOrForbidKind kind) {
@@ -811,22 +822,29 @@ ExprAndMaybeDedent parseLambdaAfterArrow(
 	AllowedBlock allowedBlock,
 	LambdaAst.Param[] parameters,
 ) {
-	bool inLine = peekTokenExpression(lexer);
-	ExprAndMaybeDedent body_ = () {
-		if (isAllowBlock(allowedBlock)) {
-			uint curIndent = asAllowBlock(allowedBlock).curIndent;
-			return inLine
-				? toMaybeDedent(parseExprNoLet(lexer, curIndent))
-				: toMaybeDedent(takeIndentOrFail_ExprAndDedent(lexer, curIndent, () =>
-					parseStatementsAndExtraDedents(lexer, curIndent + 1)));
-		} else
-			return inLine
-				? noDedent(parseExprNoBlock(lexer))
-				: exprBlockNotAllowed(lexer, start, ParseDiag.NeedsBlockCtx.Kind.lambda);
-	}();
+	ExprAndMaybeDedent body_ = parseExprInlineOrBlock(lexer, start, allowedBlock, ParseDiag.NeedsBlockCtx.Kind.lambda);
 	return ExprAndMaybeDedent(
 		ExprAst(range(lexer, start), ExprAstKind(allocate(lexer.alloc, LambdaAst(parameters, body_.expr)))),
 		body_.dedents);
+}
+
+ExprAndMaybeDedent parseExprInlineOrBlock(
+	ref Lexer lexer,
+	Pos start,
+	AllowedBlock allowedBlock,
+	ParseDiag.NeedsBlockCtx.Kind needsBlockKind,
+) {
+	bool inLine = peekTokenExpression(lexer);
+	if (isAllowBlock(allowedBlock)) {
+		uint curIndent = asAllowBlock(allowedBlock).curIndent;
+		return inLine
+			? parseExprAndAllCalls(lexer, allowBlock(curIndent))
+			: toMaybeDedent(takeIndentOrFail_ExprAndDedent(lexer, curIndent, () =>
+				parseStatementsAndExtraDedents(lexer, curIndent + 1)));
+	} else
+		return inLine
+			? noDedent(parseExprNoBlock(lexer))
+			: exprBlockNotAllowed(lexer, start, needsBlockKind);
 }
 
 ExprAndMaybeDedent skipRestOfLineAndReturnBogusNoDiag(ref Lexer lexer, Pos start) {
@@ -928,6 +946,8 @@ ExprAndMaybeDedent parseExprBeforeCall(ref Lexer lexer, AllowedBlock allowedBloc
 				: exprBlockNotAllowed(lexer, start, ParseDiag.NeedsBlockCtx.Kind.loop);
 		case Token.throw_:
 			return parseThrow(lexer, start, allowedBlock);
+		case Token.trusted:
+			return parseTrusted(lexer, start, allowedBlock);
 		case Token.underscore:
 			return tryTakeToken(lexer, Token.arrowLambda)
 				? parseLambdaAfterArrow(lexer, start, allowedBlock, none!Sym)

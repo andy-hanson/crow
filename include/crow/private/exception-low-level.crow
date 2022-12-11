@@ -29,36 +29,37 @@ unreachable[t] t() noctx
 Run `try` and return what it returns, or return the result of `catcher` if `try` threw an exception.
 (An exception thrown by `catcher` will not be caught.)
 ###
-catch[t] t(try act t(), catcher act t(exception)) trusted
-	old-jmp-buf = *cur-jmp-buf
-	store mut __jmp_buf_tag = ()
-	setjmp-result = if is-interpreted
-		&store setjmp
-	elif is-windows
-		&store _setjmp
-	else
-		&store setjmp
-	if setjmp-result == 0
-		# Get here after setting the jump
-		*cur-jmp-buf := &store
-		# If it throws, we'll go to the above branch.
-		res = try[]
-		*cur-jmp-buf := old-jmp-buf
-		res
-	else
-		# Get here after throwing from inside `try[]`
-		setjmp-result == number-to-throw hard-assert
-		thrown = *cur-thrown
-		*cur-thrown := zeroed
-		*cur-jmp-buf := old-jmp-buf
-		catcher[thrown]
+catch[t] t(try act t(), catcher act t(exception))
+	trusted
+		old-jmp-buf = *cur-jmp-buf
+		store mut __jmp_buf_tag = ()
+		setjmp-result = if is-interpreted
+			&store setjmp
+		elif is-windows
+			&store _setjmp
+		else
+			&store setjmp
+		if setjmp-result == 0
+			# Get here after setting the jump
+			*cur-jmp-buf := &store
+			# If it throws, we'll go to the above branch.
+			res = try[]
+			*cur-jmp-buf := old-jmp-buf
+			res
+		else
+			# Get here after throwing from inside `try[]`
+			setjmp-result == number-to-throw hard-assert
+			thrown = *cur-thrown
+			*cur-thrown := zeroed
+			*cur-jmp-buf := old-jmp-buf
+			catcher[thrown]
 
 # THis is called by the compiler on 'throw'
-throw-impl void(message c-string) noctx, trusted
+throw-impl void(message c-string) noctx
 	message throw-with-skip 2
 
-throw-with-skip void(message c-string, skip nat64) noctx, trusted
-	backtrace = if ctx ?= try-get-cur-gc-ctx
+throw-with-skip void(message c-string, skip nat64) noctx
+	backtrace = trusted if ctx ?= try-get-cur-gc-ctx
 		ctx get-backtrace skip
 	else
 		(),
@@ -73,15 +74,16 @@ Throw an existing exception object.
 This is useful for rethrowing an exception that was already caught.
 Throwing an exception does not modify its backtrace.
 ###
-rethrow[t] t(e exception) noctx, trusted
-	jmp-buf = *cur-jmp-buf
-	if jmp-buf == null
-		abort
-	else
-		*cur-thrown := e 
-		jmp-buf longjmp number-to-throw
-	# unreachable
-	zeroed
+rethrow[t] t(e exception) noctx
+	trusted
+		jmp-buf = *cur-jmp-buf
+		if jmp-buf == null
+			abort
+		else
+			*cur-thrown := e 
+			jmp-buf longjmp number-to-throw
+		# unreachable
+		zeroed
 
 .number-to-throw int32() noctx, unsafe
 	7

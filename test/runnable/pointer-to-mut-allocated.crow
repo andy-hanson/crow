@@ -1,20 +1,21 @@
 import
 	crow/io/print: out, print
 
-main nat^(_ string[]) summon, trusted
-	x mut nat = 0
-	get-x act nat() = () =>
-		x
-	set-x act void() = () =>
-		x := 1
+main nat^(_ string[]) summon
+	trusted
+		x mut nat = 0
+		get-x act nat() = () =>
+			x
+		set-x act void() = () =>
+			x := 1
 
-	out print "{get-x[]}"
-	&x print-x
+		out print "{get-x[]}"
+		&x print-x
 
-	set-x[]
-	out print "{get-x[]}"
-	&x print-x
-	()
+		set-x[]
+		out print "{get-x[]}"
+		&x print-x
+		()
 
 print-x void(x nat*) summon, unsafe
 	out print "{*x}"

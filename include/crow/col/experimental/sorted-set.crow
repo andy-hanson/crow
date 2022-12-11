@@ -130,7 +130,7 @@ If `value` is not in the set, returns `a` unmodified.
 If `value` is in the set, removes it and returns the new set.
 Else, returns an empty option.
 ###
-try-remove[t] t sorted-set?(a t sorted-set, value t) trusted, t is-data, t compare
+try-remove[t] t sorted-set?(a t sorted-set, value t) t is-data, t compare
 	if r ?= a.add find-in-add-for-remove value, 0
 		removals-here-and-right = 1 + (a.remove count-greater-or-equal r.size-left)
 		if r.size-here should-compact r.size-right, removals-here-and-right
@@ -139,7 +139,7 @@ try-remove[t] t sorted-set?(a t sorted-set, value t) trusted, t is-data, t compa
 		else
 			(a.add, a.remove ~ r.value-index),
 
-.add-and-maybe-compact[t] t sorted-set(a t sorted-set, value t) trusted, t compare
+.add-and-maybe-compact[t] t sorted-set(a t sorted-set, value t) t compare
 	add-size = a.add add-size
 	if add-size == 0
 		# TODO: type annotation should be unnecessary
@@ -184,16 +184,17 @@ Or a combination of the two.
 .should-compact bool(size-here nat64, size-right nat64, removals-here-and-right nat64)
 	(size-right + removals-here-and-right * 2) * 2 >= size-here
 
-.add-and-compact[t] t sorted-set(a t sorted-set, add-size nat64, plan compact-plan, value t) unsafe, t compare
+.add-and-compact[t] t sorted-set(a t sorted-set, add-size nat64, plan compact-plan, value t) t compare
 	assert plan.compacted-size > 1
-	compacted t mut-array = plan.compacted-size uninitialized-mut-array
-	begin = compacted begin-pointer
-	*begin := value
-	compactor t compactor = begin.as-const, begin + 1, compacted.end-pointer
-	new-add = compactor do-compact a.add, add-size, a.remove
-	new-add, (a.remove filter-less plan.add-size-left)
+	trusted
+		compacted t mut-array = plan.compacted-size uninitialized-mut-array
+		begin = compacted begin-pointer
+		*begin := value
+		compactor t compactor = begin.as-const, begin + 1, compacted.end-pointer
+		new-add = compactor do-compact a.add, add-size, a.remove
+		new-add, (a.remove filter-less plan.add-size-left)
 
-.remove-and-compact[t] t sorted-set(a t sorted-set, plan compact-plan, extra-removal nat64) unsafe, t is-data, t compare
+.remove-and-compact[t] t sorted-set(a t sorted-set, plan compact-plan, extra-removal nat64) t is-data, t compare
 	new-remove = a.remove filter-less plan.add-size-left
 	if plan.compacted-size == 0
 		if left ?= a.add left
@@ -201,12 +202,13 @@ Or a combination of the two.
 		else
 			()
 	else
-		compacted t mut-array = plan.compacted-size uninitialized-mut-array
-		begin = compacted begin-pointer
-		compactor t compactor = begin.as-const, begin, compacted.end-pointer
-		old-size = plan.add-size-left + plan.compacted-size + 1
-		new-add = compactor do-compact a.add, old-size, a.remove ~ extra-removal
-		new-add, new-remove
+		trusted
+			compacted t mut-array = plan.compacted-size uninitialized-mut-array
+			begin = compacted begin-pointer
+			compactor t compactor = begin.as-const, begin, compacted.end-pointer
+			old-size = plan.add-size-left + plan.compacted-size + 1
+			new-add = compactor do-compact a.add, old-size, a.remove ~ extra-removal
+			new-add, new-remove
 
 .compactor[t] record mut
 	begin t*
@@ -351,7 +353,7 @@ for-loop[t] void(a t sorted-set, f act void(t)) t is-data, t compare
 .tail[t] t iter-part(a t iter-part, remove index-set)
 	(a.values.tail, a.remove-index + 1) remove-from-front remove
 
-.init-iters[t] t iter-part mut-array(a t sorted-set) trusted
+.init-iters[t] t iter-part mut-array(a t sorted-set)
 	with out : a.add-node-count build
 		_ = out init-iters-recur a.add, a.remove
 		()
@@ -368,7 +370,7 @@ for-loop[t] void(a t sorted-set, f act void(t)) t is-data, t compare
 			break acc
 
 # Returns next remove index
-.init-iters-recur[t] nat64(out t iter-part mut-array-builder, a t add-node, remove index-set) unsafe
+.init-iters-recur[t] nat64(out t iter-part mut-array-builder, a t add-node, remove index-set)
 	prev = if left ?= a left
 		out init-iters-recur left, remove
 	else
@@ -388,7 +390,7 @@ for-loop[t] void(a t sorted-set, f act void(t)) t is-data, t compare
 for-loop[out, in] out sorted-set(a in sorted-set, f act out(in)) out is-data, out compare, in is-data, in compare
 	a for-loop f to-sorted-set
 
-for-loop[out, in] out[](a in sorted-set, f act out(in)) trusted, in is-data, in compare
+for-loop[out, in] out[](a in sorted-set, f act out(in)) in is-data, in compare
 	with out : a.size build
 		for x : a
 			out ~= f[x]

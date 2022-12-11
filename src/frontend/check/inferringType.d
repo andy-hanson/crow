@@ -103,12 +103,14 @@ struct ExprCtx {
 	CheckCtx* checkCtxPtr;
 	immutable StructsAndAliasesDict structsAndAliasesDict;
 	immutable FunsDict funsDict;
-	CommonTypes commonTypes;
+	immutable CommonTypes commonTypes;
 	immutable SpecInst*[] outermostFunSpecs;
 	immutable Param[] outermostFunParams;
 	immutable TypeParam[] outermostFunTypeParams;
 	immutable FunFlags outermostFunFlags;
 	FullIndexDict!(ModuleLocalFunIndex, bool) funsUsed;
+	private bool isInTrusted;
+	private bool usedTrusted;
 
 	ref Alloc alloc() return scope =>
 		checkCtx().alloc();
@@ -126,6 +128,36 @@ struct ExprCtx {
 
 	ref const(CheckCtx) checkCtx() return scope const =>
 		*checkCtxPtr;
+}
+
+T withTrusted(T)(ref ExprCtx ctx, FileAndRange range, in T delegate() @safe @nogc pure nothrow cb) {
+	Opt!(Diag.TrustedUnnecessary.Reason) reason = ctx.outermostFunFlags.safety != FunFlags.Safety.safe
+		? some(Diag.TrustedUnnecessary.Reason.inUnsafeFunction)
+		: ctx.isInTrusted
+		? some(Diag.TrustedUnnecessary.Reason.inTrusted)
+		: none!(Diag.TrustedUnnecessary.Reason);
+	if(has(reason)) {
+		addDiag2(ctx, range, Diag(Diag.TrustedUnnecessary(force(reason))));
+		return cb();
+	} else {
+		ctx.isInTrusted = true;
+		T res = cb();
+		ctx.isInTrusted = false;
+		if (!ctx.usedTrusted)
+			addDiag2(ctx, range, Diag(Diag.TrustedUnnecessary(Diag.TrustedUnnecessary.Reason.unused)));
+		ctx.usedTrusted = false;
+		return res;
+	}
+}
+
+bool checkCanDoUnsafe(ref ExprCtx ctx) {
+	if (ctx.outermostFunFlags.safety == FunFlags.Safety.unsafe)
+		return true;
+	else {
+		bool res = ctx.isInTrusted;
+		if (res) ctx.usedTrusted = true;
+		return res;
+	}
 }
 
 void markUsedLocalFun(ref ExprCtx a, ModuleLocalFunIndex index) {

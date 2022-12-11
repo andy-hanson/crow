@@ -135,7 +135,7 @@ try-add[t] t set?(a t set, value t) t is-data, t compare, t hash-mix
 	else
 		(a add-and-maybe-compact value),
 
-.add-and-maybe-compact[t] t set(a t set, value t) trusted, t is-data, t compare, t hash-mix
+.add-and-maybe-compact[t] t set(a t set, value t) t is-data, t compare, t hash-mix
 	add-size = a.add add-size
 	if add-size == 0
 		# TODO: type annotation should be unnecessary
@@ -235,7 +235,7 @@ filter[t] t set(a t set, f act bool(t)) t is-data, t compare, t hash-mix
 				out ~= x
 	list to-set
 
-for-loop[out, in] out[](a in set, f act out(in)) trusted, in is-data, in compare, in hash-mix
+for-loop[out, in] out[](a in set, f act out(in)) in is-data, in compare, in hash-mix
 	with out : a.size build
 		for x : a
 			out ~= f[x]

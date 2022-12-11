@@ -171,9 +171,6 @@ void addFunFlags(ref Alloc alloc, scope ref ArrBuilder!NameAndRepr fields, in Fu
 		case FunFlags.Safety.unsafe:
 			addFlag!"unsafe";
 			break;
-		case FunFlags.Safety.trusted:
-			addFlag!"trusted";
-			break;
 	}
 	if (a.preferred)
 		addFlag!"preferred";

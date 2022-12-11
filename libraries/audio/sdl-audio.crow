@@ -8,31 +8,32 @@ import
 	./audio-queue: audio-queue, clear, new, play, play-loop, pull
 	./sound: n-channels, new, sample-rate, sound-format
 
-start-sdl-audio audio() summon, trusted
-	err = SDL_INIT_AUDIO SDL_Init
-	assert err == 0
+start-sdl-audio audio() summon
+	trusted
+		err = SDL_INIT_AUDIO SDL_Init
+		assert err == 0
 
-	samples nat16 = 4096
-	format sound-format = 2, 48000
-	queue audio-queue = format, 
-	write-ctx write-ctx = queue, 
+		samples nat16 = 4096
+		format sound-format = 2, 48000
+		queue audio-queue = format, 
+		write-ctx write-ctx = queue, 
 
-	sr = format.sample-rate to-int32
-	nc = format.n-channels to-nat8
-	wc = write-ctx as-any-mut-pointer
-	aspec SDL_AudioSpec = sr, AUDIO_F32, nc, 0, samples, 0, 0, &audio-callback, wc
-	desired SDL_AudioSpec = aspec
-	obtained mut SDL_AudioSpec = ()
-	device = null SDL_OpenAudioDevice 0, &desired, &obtained, 0
-	forbid device == 0
+		sr = format.sample-rate to-int32
+		nc = format.n-channels to-nat8
+		wc = write-ctx as-any-mut-pointer
+		aspec SDL_AudioSpec = sr, AUDIO_F32, nc, 0, samples, 0, 0, &audio-callback, wc
+		desired SDL_AudioSpec = aspec
+		obtained mut SDL_AudioSpec = ()
+		device = null SDL_OpenAudioDevice 0, &desired, &obtained, 0
+		forbid device == 0
 
-	device SDL_PauseAudioDevice 0
+		device SDL_PauseAudioDevice 0
 
-	shut-down ref void() = () =>
-		device SDL_CloseAudioDevice
-		SDL_Quit
-		()
-	format, (() => queue clear), (x => queue play x), (x => queue play-loop x), shut-down
+		shut-down ref void() = () =>
+			device SDL_CloseAudioDevice
+			SDL_Quit
+			()
+		format, (() => queue clear), (x => queue play x), (x => queue play-loop x), shut-down
 
 .write-ctx record mut by-ref
 	queue audio-queue

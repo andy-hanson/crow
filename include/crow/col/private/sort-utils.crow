@@ -21,32 +21,37 @@ import
 		begin-pointer, clear, end-pointer, is-empty, move-to-list, mut-list, size, swap, temp-as-mut-array,
 		to-mut-list, unsafe-set-size
 
-binary-search-has[t] bool(a t array, value t) trusted, t compare
-	!(a binary-search-exact-pointer value is-empty)
+binary-search-has[t] bool(a t array, value t) t compare
+	!(a binary-search-exact-index value is-empty)
 
-binary-search-key[k, v] v?(a (k, v) array, key k) trusted, k compare
-	left mut = a begin-pointer
-	right mut = a end-pointer
-	loop
-		diff = right - left
-		if diff < 4
-			break for pair : (left .. right).as-array
-				if pair.from == key
-					break pair.to
-		else
-			mid = left + diff / 2
-			match key <=> mid->from
-			as less
-				right := mid
-				continue
-			as equal
-				break mid->to,
-			as greater
-				left := mid + 1
-				continue
+binary-search-key[k, v] v?(a (k, v) array, key k) k compare
+	trusted
+		left mut = a begin-pointer
+		right mut = a end-pointer
+		loop
+			diff = right - left
+			if diff < 4
+				break for pair : (left .. right).as-array
+					if pair.from == key
+						break pair.to
+			else
+				mid = left + diff / 2
+				match key <=> mid->from
+				as less
+					right := mid
+					continue
+				as equal
+					break mid->to,
+				as greater
+					left := mid + 1
+					continue
 
-binary-search-exact-index[t] nat64?(a t array, value t) trusted, t compare
-	if pointer ?= a binary-search-exact-pointer value
+binary-search-exact-index[t] nat64?(a t array, value t) t compare
+	trusted if pointer ?= a binary-search-exact-pointer value
+		pointer - a.begin-pointer,
+
+binary-search-exact-index[t] nat64?(a t mut[], compare act comparison(t))
+	trusted if pointer ?= a binary-search-exact-pointer compare
 		pointer - a.begin-pointer,
 
 binary-search-exact-pointer[t] t mut*?(a t mut[], compare act comparison(t)) unsafe
@@ -84,6 +89,9 @@ binary-search-exact-pointer[t] t*?(a t array, compare act comparison(t)) unsafe
 	elif compare[*pointer] == equal
 		pointer,
 
+binary-search-insert-index[t] nat64(a t mut[], compare act comparison(t))
+	trusted (a binary-search-insert-pointer compare) - a.begin-pointer
+
 binary-search-insert-pointer[t] t mut*(a t mut[], compare act comparison(t)) unsafe
 	a.temp-as-mut-array binary-search-insert-pointer compare
 
@@ -93,6 +101,9 @@ Returns `a end-pointer` if all values compare less.
 ###
 binary-search-insert-pointer[t] t mut*(a t mut-array, compare act comparison(t)) unsafe
 	a.temp-as-array binary-search-compare compare as-mut
+
+binary-search-insert-index[t] nat64(a t array, value t) t compare
+	trusted (a binary-search-insert-pointer value) - a.begin-pointer
 
 binary-search-insert-pointer[t] t*(a t array, value t) unsafe, t compare
 	# Left inclusive, right exclusive
@@ -146,7 +157,7 @@ unique-comparison enum
 	less
 	greater
 
-assert-comparison-not-equal unique-comparison(a comparison) unsafe
+assert-comparison-not-equal unique-comparison(a comparison)
 	match a
 	as less
 		less
@@ -156,11 +167,11 @@ assert-comparison-not-equal unique-comparison(a comparison) unsafe
 		greater
 
 # 'a' and 'b' must be sorted. Moves contents of 'b' into 'a' and preserves sorting.
-merge-no-duplicates[t] void(a t mut[], b t mut[], compare act unique-comparison(t, t)) trusted
+merge-no-duplicates[t] void(a t mut[], b t mut[], compare act unique-comparison(t, t))
 	if a.size < b.size
 		a swap b
 	assert a.size >= b.size
-	unless b is-empty
+	trusted unless b is-empty
 		a-old-size = a size
 		a unsafe-set-size a-old-size + b.size
 		a-read mut = a.begin-pointer.as-const + a-old-size - 1

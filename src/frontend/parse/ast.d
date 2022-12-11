@@ -402,6 +402,10 @@ immutable struct ThrowAst {
 	ExprAst thrown;
 }
 
+immutable struct TrustedAst {
+	ExprAst inner;
+}
+
 // expr :: t
 immutable struct TypedAst {
 	ExprAst expr;
@@ -449,6 +453,7 @@ immutable struct ExprAstKind {
 		SeqAst*,
 		ThenAst*,
 		ThrowAst*,
+		TrustedAst*,
 		TypedAst*,
 		UnlessAst*,
 		WithAst*);
@@ -1123,6 +1128,8 @@ Repr reprExprAstKind(ref Alloc alloc, in ExprAstKind ast) =>
 				reprExprAst(alloc, it.then)]),
 		(in ThrowAst it) =>
 			reprRecord!"throw"(alloc, [reprExprAst(alloc, it.thrown)]),
+		(in TrustedAst it) =>
+			reprRecord!"trusted"(alloc, [reprExprAst(alloc, it.inner)]),
 		(in TypedAst it) =>
 			reprRecord!"typed"(alloc, [
 				reprExprAst(alloc, it.expr),

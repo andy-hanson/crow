@@ -243,7 +243,7 @@ try-remove[k, v] (k, v) try-remove-result?(a v[k], key k) k is-data, k compare, 
 	remaining-hash nat64,
 	hash-shift nat64,
 	f act v get-or-update-action(v?),
-) trusted, k compare, k hash-mix
+) k compare, k hash-mix
 	match a
 	as inner-node i
 		which = remaining-hash low-bits
@@ -303,7 +303,7 @@ If `index > a.size`, entries between the and of `a` and the new entries will be 
 		a update-at which, new-child inner-node
 
 # Returns 'some' if we should change this to a leaf.
-.inner-node-to-leaf[k, v] (k, v) node?(a (k, v) node array , which nat64, new-child (k, v) node) trusted
+.inner-node-to-leaf[k, v] (k, v) node?(a (k, v) node array , which nat64, new-child (k, v) node)
 	total-size mut = 0
 	for child, child-index : a
 		total-size := match child-index == which ? new-child : child
@@ -313,18 +313,19 @@ If `index > a.size`, entries between the and of `a` and the new entries will be 
 			total-size + l.size
 	if total-size <= leaf-max-size
 		# TODO: if only one non-empty leaf, don't copy..
-		out (k, v) mut-array = total-size uninitialized-mut-array
-		out-index mut = 0
-		for child, child-index : a
-			match child-index == which ? new-child : child
-			as inner-node _
-				unreachable
-			as leaf-node l
-				new-out-index = out-index + l.size
-				out[out-index .. new-out-index] copy-from l
-				out-index := new-out-index
-		assert out-index == out.size
-		out.cast-immutable.leaf-node,
+		trusted
+			out (k, v) mut-array = total-size uninitialized-mut-array
+			out-index mut = 0
+			for child, child-index : a
+				match child-index == which ? new-child : child
+				as inner-node _
+					unreachable
+				as leaf-node l
+					new-out-index = out-index + l.size
+					out[out-index .. new-out-index] copy-from l
+					out-index := new-out-index
+			assert out-index == out.size
+			out.cast-immutable.leaf-node,
 
 .find-only-non-empty-child[k, v] (k, v) node?(children (k, v) node array)
 	first-non-empty-index = (children find-index it => !it.node-is-empty)!
@@ -374,22 +375,23 @@ If `index > a.size`, entries between the and of `a` and the new entries will be 
 	value v,
 	hash nat64,
 	hash-shift nat64,
-) trusted, k hash-mix
+) k hash-mix
 	key-hash = hash low-bits
 	max-hash mut = key-hash
 	for pair : a
 		max-hash := max-hash max (pair.from.hash >> hash-shift low-bits)
-	res (k, v) node mut-array = max-hash + 1 fill-mut-array empty-leaf-node
-	# TODO: avoid allocating the same leaf twice...
-	res[key-hash] := ((key, value),) leaf-node
-	for pair : a
-		x = pair.from.hash >> hash-shift low-bits
-		res[x] := match res[x]
-		as inner-node _
-			unreachable
-		as leaf-node l
-			l ~ pair leaf-node
-	res.cast-immutable inner-node
+	trusted
+		res (k, v) node mut-array = max-hash + 1 fill-mut-array empty-leaf-node
+		# TODO: avoid allocating the same leaf twice...
+		res[key-hash] := ((key, value),) leaf-node
+		for pair : a
+			x = pair.from.hash >> hash-shift low-bits
+			res[x] := match res[x]
+			as inner-node _
+				unreachable
+			as leaf-node l
+				l ~ pair leaf-node
+		res.cast-immutable inner-node
 
 region iteration
 
@@ -405,7 +407,7 @@ for-loop[k, v] void(a v[k], f act void(k, v)) k is-data, k compare, k hash-mix
 			f[pair.from, pair.to]
 
 # Calls `f` on every pair in the dictionary and returns an array of the results.
-for-loop[out, k, v] out[](a v[k], f act out(k, v)) trusted, k is-data, k compare, k hash-mix
+for-loop[out, k, v] out[](a v[k], f act out(k, v)) k is-data, k compare, k hash-mix
 	with out : build
 		for k, v : a
 			out ~= f[k, v]

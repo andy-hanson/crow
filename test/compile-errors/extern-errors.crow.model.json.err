@@ -26,4 +26,4 @@ test/compile-errors/extern-errors.crow 35:1-37:1 a function can't be both 'exter
 
 test/compile-errors/extern-errors.crow 37:1-37:2 'extern' function 'g' is missing the library name
 
-test/compile-errors/extern-errors.crow 43:1-44:1 a function can't be both 'global' and 'trusted'
+test/compile-errors/extern-errors.crow 43:1-44:1 only 'extern' functions can be 'trusted'; otherwise 'trusted' should be used as an expression

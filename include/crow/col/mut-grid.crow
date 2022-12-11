@@ -172,7 +172,7 @@ exists[t] bool(a t mut-grid, f act bool(t))
 
 set-map[t] void(a t mut-grid, f act t(t))
 	a.elements set-map f
-set-map[t] void(a t mut-grid, f act t(t, coord)) trusted
+set-map[t] void(a t mut-grid, f act t(t, coord))
 	coord mut coord = ()
 	a set-map x =>
 		res = f[x, coord]

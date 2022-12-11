@@ -11,15 +11,17 @@ db record force-sendable
 	db-path string
 open-sqlite3 open-sqlite3(db-path string)
 	db-path,
-with-block[t] t^(a open-sqlite3, cb ref t(db)) summon, trusted, t is-sendable
-	db mut sqlite3 mut* = null
-	# Create empty file if not exist
-	err = a.db-path.to-c-string sqlite3_open_v2 &db, SQLITE_OPEN_READWRITE | SQLITE_OPEN_CREATE, null
-	assert err == SQLITE_OK
-	res <- cb[(db,)]
-	err2 = db sqlite3_close
-	assert err2 == SQLITE_OK
-	res,
+with-block[t] t^(a open-sqlite3, cb ref t(db)) summon, t is-sendable
+	trusted
+		db mut sqlite3 mut* = null
+		# Create empty file if not exist
+		err = a.db-path.to-c-string sqlite3_open_v2 &db, SQLITE_OPEN_READWRITE | SQLITE_OPEN_CREATE, null
+		assert err == SQLITE_OK
+		res <- cb[(db,)]
+		# TODO: use 'finally'
+		err2 = db sqlite3_close
+		assert err2 == SQLITE_OK
+		res,
 
 run void(db db, command string) summon
 	for _, _ : db query command
@@ -41,16 +43,17 @@ for-loop[out] out[](a db-query, f act out(string[], string[])) summon
 		for columns, values : a
 			out ~= f[columns, values]
 
-.query-internal void(a db-query, cb-row act void break-or-continue(string[], string[])) summon, trusted
-	error-message mut c-string = null
-	ctx callback-ctx = cb-row,
-	ctx-ptr = (&ctx)::callback-ctx* as-any-mut-pointer
-	err = a.db.raw sqlite3_exec a.query.to-c-string, &callback, ctx-ptr, &error-message
-	# TODO: if err == SQLITE_ABORT, callback returned non-0
-	if err != SQLITE_OK
-		error-string = error-message to-string
-		error-message.as-any-mut-pointer sqlite3_free
-		throw "ERROR {err.enum-to-string}: {error-string}"
+.query-internal void(a db-query, cb-row act void break-or-continue(string[], string[])) summon
+	trusted
+		error-message mut c-string = null
+		ctx callback-ctx = cb-row,
+		ctx-ptr = (&ctx)::callback-ctx* as-any-mut-pointer
+		err = a.db.raw sqlite3_exec a.query.to-c-string, &callback, ctx-ptr, &error-message
+		# TODO: if err == SQLITE_ABORT, callback returned non-0
+		if err != SQLITE_OK
+			error-string = error-message to-string
+			error-message.as-any-mut-pointer sqlite3_free
+			throw "ERROR {err.enum-to-string}: {error-string}"
 
 .callback-ctx record by-val mut
 	cb-row act void break-or-continue(string[], string[])

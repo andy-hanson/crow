@@ -26,65 +26,68 @@ mut-deque[t] record mut
 	.right .mut t mut*
 
 # New empty `mut-deque`.
-new[t] t mut-deque() trusted
-	(), null, null
+new[t] t mut-deque()
+	trusted (), null, null
 
 ###
 Copy elements to a list.
 
 This is O(n).
 ###
-to-list[t] t[](a t mut-deque) trusted
-	a.to-mut-array.cast-immutable to-list
+to-list[t] t[](a t mut-deque)
+	trusted a.to-mut-array.cast-immutable to-list
 
-.to-mut-array[t] t mut-array(a t mut-deque) no-doc, trusted
-	unless a is-empty
+.to-mut-array[t] t mut-array(a t mut-deque) no-doc
+	trusted unless a is-empty
 		res t mut-array = a.size uninitialized-mut-array
 		res copy-from-deque a
 		res
 
 # Copy elements to a new deque.
-copy[t] t mut-deque(a t mut-deque) trusted
+copy[t] t mut-deque(a t mut-deque)
 	inner = a to-mut-array
-	inner, inner.begin-pointer, inner.begin-pointer
+	trusted inner, inner.begin-pointer, inner.begin-pointer
 
 # `true` iff `a.size == 0`.
-is-empty[t] bool(a t mut-deque) trusted
-	a.left == null
+is-empty[t] bool(a t mut-deque)
+	trusted a.left == null
 
 # Number of elements in the deque.
-size[t] nat64(a t mut-deque) trusted
-	match a.left <=> a.right
-	as less
-		a.right - a.left
-	as equal
-		unless a.left == null
-			a.inner size
-	as greater
-		(a.inner.end-pointer - a.left) + (a.right - a.inner.begin-pointer)
+size[t] nat64(a t mut-deque)
+	trusted
+		match a.left <=> a.right
+		as less
+			a.right - a.left
+		as equal
+			unless a.left == null
+				a.inner size
+		as greater
+			(a.inner.end-pointer - a.left) + (a.right - a.inner.begin-pointer)
 
 # Push a value to the left.
-push[t] void(value t, a t mut-deque) trusted
-	a ensure-capacity
-	if a.left == a.inner.begin-pointer
-		a.left := a.inner end-pointer
-	a.left := a.left - 1
-	*a.left := value
+push[t] void(value t, a t mut-deque)
+	trusted
+		a ensure-capacity
+		if a.left == a.inner.begin-pointer
+			a.left := a.inner end-pointer
+		a.left := a.left - 1
+		*a.left := value
 
 # Push a value to the right.
-push[t] void(a t mut-deque, value t) trusted
-	a ensure-capacity
-	assert a.right < a.inner.end-pointer
-	*a.right := value
-	a.right := a.right + 1
+push[t] void(a t mut-deque, value t)
+	trusted
+		a ensure-capacity
+		assert a.right < a.inner.end-pointer
+		*a.right := value
+		a.right := a.right + 1
 
 ###
 Returns the leftmost element without removing it.
 
 Returns an empty option iff `a` is empty.
 ###
-peek-left[t] t?(a t mut-deque) trusted
-	unless a.left == null
+peek-left[t] t?(a t mut-deque)
+	trusted unless a.left == null
 		*a.left,
 
 ###
@@ -92,8 +95,8 @@ Returns the rightmost element without removing it.
 
 Returns an empty option iff `a` is empty.
 ###
-peek-right[t] t?(a t mut-deque) trusted
-	unless a.right == null
+peek-right[t] t?(a t mut-deque)
+	trusted unless a.right == null
 		fixed-right = if a.right == a.inner.begin-pointer
 			a.inner end-pointer
 		else
@@ -105,8 +108,8 @@ Removes and returns the leftmost element.
 
 Returns an empty option iff `a` was empty (before calling `pop-left`).
 ###
-pop-left[t] t?(a t mut-deque) trusted
-	unless a.left == null
+pop-left[t] t?(a t mut-deque)
+	trusted unless a.left == null
 		res = *a.left
 		*a.left := zeroed
 		a.left := a.left + 1
@@ -123,8 +126,8 @@ Removes and returns the rightmost element.
 
 Returns an empty option iff `a` was empty (before calling `pop-right`).
 ###
-pop-right[t] t?(a t mut-deque) trusted
-	unless a.right == null
+pop-right[t] t?(a t mut-deque)
+	trusted unless a.right == null
 		if a.right == a.inner.begin-pointer
 			a.right := a.inner end-pointer
 		a.right := a.right - 1
@@ -158,21 +161,22 @@ pop-right[t] t?(a t mut-deque) trusted
 			a.left := a.inner begin-pointer
 			a.right := a.left + old-capacity
 
-.copy-from-deque[t] void(dest t mut-array, a t mut-deque) trusted
+.copy-from-deque[t] void(dest t mut-array, a t mut-deque)
 	assert dest.size == a.size
-	if a.left < a.right
+	trusted if a.left < a.right
 		dest copy-from (a.left .. a.right).as-array
 	else
 		left-to-end-size = a.inner.end-pointer - a.left
 		dest[0 .. left-to-end-size] copy-from (a.left .. a.inner.end-pointer).as-array
 		dest[left-to-end-size .. dest.size] copy-from (a.inner.begin-pointer .. a.right).as-array
 
-.dbg string(a nat64 mut-deque) trusted
-	right = a.right - a.inner.begin-pointer
-	left = a.left - a.inner.begin-pointer
-	# Note: can come in any order...
-	" " join for i : 0 .. a.inner.size
-		"{i == right ? "<-R "}{i == left ? "L-> "}{a.inner[i]}"
+.dbg string(a nat64 mut-deque)
+	trusted
+		right = a.right - a.inner.begin-pointer
+		left = a.left - a.inner.begin-pointer
+		# Note: can come in any order...
+		" " join for i : 0 .. a.inner.size
+			"{i == right ? "<-R "}{i == left ? "L-> "}{a.inner[i]}"
 
 .verify void(a nat64 mut-deque, expected nat64[], expected-dbg string)
 	a.peek-left is expected.first

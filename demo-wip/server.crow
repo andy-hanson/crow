@@ -4,7 +4,7 @@ import
 	crow/io/print: err, out, print
 	crow/io/stdin: read-stdin
 
-main nat^(args string[]) summon, trusted
+main nat^(args string[]) summon
 	if args.size == 1
 		port = args[0]
 		handler http-handler = req =>
@@ -19,7 +19,7 @@ main nat^(args string[]) summon, trusted
 		err print "Usage: server PORT"
 		1,
 
-.describe-request string(a http-request) trusted
+.describe-request string(a http-request)
 	h = "\n" join for k, v : a headers
 		"{k}: {v}"
 	"{a method} {a url}\n{h}\n\n{a.request-body as-string}"

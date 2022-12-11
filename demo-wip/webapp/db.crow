@@ -10,7 +10,7 @@ import
 		lmdb-env, lmdb-key-flags, lmdb-txn, open-lmdb-env, read-transaction, set, to-lmdb-key,
 		transaction-abort, transaction-commit, try-add, with-block, write-transaction, zip
 
-main nat^(_ string[]) summon, trusted
+main nat^(_ string[]) summon
 	with db : open-real-db
 		if true
 			match db register-user "alice", "swordfish"
@@ -88,7 +88,7 @@ open-db record
 open-real-db open-db()
 	db-path open-db
 
-with-block[t] t^(a open-db, f act t^(db)) summon, unsafe, t is-sendable
+with-block[t] t^(a open-db, f act t^(db)) summon, t is-sendable
 	with env : a.db-path open-lmdb-env true
 		with user-from-name : env database@(string, user) "user-from-name"
 			with user-name : env database@(user, string) "user-name"

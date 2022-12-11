@@ -1,0 +1,7 @@
+test/compile-errors/trusted-unnecessary.crow 5:5-5:17 'trusted' has no effect inside an 'unsafe' function
+
+test/compile-errors/trusted-unnecessary.crow 8:13-8:25 'trusted' is redundant inside another 'trusted'
+
+test/compile-errors/trusted-unnecessary.crow 12:9-12:18 there is no unsafe code inside this 'trusted'
+
+test/compile-errors/trusted-unnecessary.crow 13:5-13:14 there is no unsafe code inside this 'trusted'

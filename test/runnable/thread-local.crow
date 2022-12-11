@@ -1,14 +1,15 @@
 import
 	crow/io/print: out, print
 
-main nat^(_ string[]) summon, trusted
-	results <- for x : 0 .. 100 parallel
-		*foo := x
-		*foo := *foo + 1
-		*foo,
-	results is (1 .. 101).to-list
-	out print "{results[99]}"
-	()
+main nat^(_ string[]) summon
+	trusted
+		results <- for x : 0 .. 100 parallel
+			*foo := x
+			*foo := *foo + 1
+			*foo,
+		results is (1 .. 101).to-list
+		out print "{results[99]}"
+		()
 
 foo nat64 mut*() thread-local
 

@@ -14,8 +14,8 @@ timestamp alias
 Get the value from a monotonic clock.
 WARN: This should be 'summon', but I didn't mark it that way so 'perf' can use it.
 ###
-get-monotime-nsec timestamp() noctx, trusted
-	if is-windows
+get-monotime-nsec timestamp() noctx
+	trusted if is-windows
 		GetTickCount.to-nat64 msec-to-nsec
 	else
 		time mut timespec = ()
@@ -25,10 +25,10 @@ get-monotime-nsec timestamp() noctx, trusted
 		else
 			todo
 
-.msec-to-nsec nat64(a nat64) noctx, unsafe
+.msec-to-nsec nat64(a nat64) noctx
 	a * 1000000
 
-nsec-to-msec nat64(a nat64) noctx, trusted
+nsec-to-msec nat64(a nat64) noctx
 	a / 1000000
 
 to-timespec timespec(a timestamp) noctx, unsafe

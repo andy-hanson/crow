@@ -20,26 +20,27 @@ import
 	SDL2/SDL_video: SDL_CreateWindow, SDL_DestroyWindow, SDL_Window, SDL_WINDOW_SHOWN
 	./crow.bmp as crow-bmp nat8 array
 
-main nat^(_ string[]) summon, trusted
-	SDL_INIT_VIDEO.SDL_Init handle-sdl-error "SDL_INIT_VIDEO"
-	window = "SDL demo" SDL_CreateWindow 100, 100, window-width, window-height, SDL_WINDOW_SHOWN
-	if window == null
-		"SDL_CreateWindow" fail-sdl-error
-	renderer = window renderer
-	texture = renderer create-texture
-	<- for : 25.msec interval
-		SDL_PumpEvents
-		if look-for-quit-event
-			break
-		else
-			<- renderer main-loop-body texture
-			continue
-	# TODO: use 'finally'
-	texture SDL_DestroyTexture
-	renderer SDL_DestroyRenderer
-	window SDL_DestroyWindow
-	SDL_Quit
-	()
+main nat^(_ string[]) summon
+	trusted
+		SDL_INIT_VIDEO.SDL_Init handle-sdl-error "SDL_INIT_VIDEO"
+		window = "SDL demo" SDL_CreateWindow 100, 100, window-width, window-height, SDL_WINDOW_SHOWN
+		if window == null
+			"SDL_CreateWindow" fail-sdl-error
+		renderer = window renderer
+		texture = renderer create-texture
+		<- for : 25.msec interval
+			SDL_PumpEvents
+			if look-for-quit-event
+				break
+			else
+				<- renderer main-loop-body texture
+				continue
+		# TODO: use 'finally'
+		texture SDL_DestroyTexture
+		renderer SDL_DestroyRenderer
+		window SDL_DestroyWindow
+		SDL_Quit
+		()
 
 .window-width int32()
 	640
@@ -50,27 +51,28 @@ main nat^(_ string[]) summon, trusted
 .image-height int32()
 	200
 
-.main-loop-body void^(renderer SDL_Renderer mut*, texture SDL_Texture mut*) summon, trusted
-	key-states-pointer = null SDL_GetKeyboardState
-	# TODO: use a mut-enum-lookup type
-	key-states = key-states-pointer[0 .. SDL_NUM_SCANCODES.to-nat32.to-nat64]
-	if key-states[SDL_SCANCODE_RETURN.to-nat32.to-nat64] != 0
-		out print "return is pressed"
+.main-loop-body void^(renderer SDL_Renderer mut*, texture SDL_Texture mut*) summon
+	trusted
+		key-states-pointer = null SDL_GetKeyboardState
+		# TODO: use a mut-enum-lookup type
+		key-states = key-states-pointer[0 .. SDL_NUM_SCANCODES.to-nat32.to-nat64]
+		if key-states[SDL_SCANCODE_RETURN.to-nat32.to-nat64] != 0
+			out print "return is pressed"
 
-	renderer.SDL_RenderClear handle-sdl-error "SDL_RenderClear"
-	x = ((get-monotime-msec / 10) % window-width.to-nat64).to-int32
-	renderer draw-image texture, x
-	if x + image-width > window-width
-		renderer draw-image texture, x - window-width
-	renderer SDL_RenderPresent
-	()
+		renderer.SDL_RenderClear handle-sdl-error "SDL_RenderClear"
+		x = ((get-monotime-msec / 10) % window-width.to-nat64).to-int32
+		renderer draw-image texture, x
+		if x + image-width > window-width
+			renderer draw-image texture, x - window-width
+		renderer SDL_RenderPresent
+		()
 
-.draw-image void(renderer SDL_Renderer mut*, texture SDL_Texture mut*, x int32) summon, trusted
+.draw-image void(renderer SDL_Renderer mut*, texture SDL_Texture mut*, x int32) summon, unsafe
 	dest SDL_Rect = x, (window-height - image-height) / 2, image-width, image-height
 	renderer SDL_RenderCopy texture, null, &dest handle-sdl-error "SDL_RenderCopy"
 
-.look-for-quit-event bool() summon, trusted
-	loop
+.look-for-quit-event bool() summon
+	trusted loop
 		e mut SDL_Event = ()
 		if (&e).SDL_PollEvent == 0
 			break false
@@ -79,13 +81,13 @@ main nat^(_ string[]) summon, trusted
 		else
 			continue
 
-.renderer SDL_Renderer mut*(window SDL_Window mut*) summon, trusted
-	renderer = window SDL_CreateRenderer -1, SDL_RENDERER_ACCELERATED | SDL_RENDERER_PRESENTVSYNC
-	if renderer == null
+.renderer SDL_Renderer mut*(window SDL_Window mut*) summon, unsafe
+	res = window SDL_CreateRenderer -1, SDL_RENDERER_ACCELERATED | SDL_RENDERER_PRESENTVSYNC
+	if res == null
 		"SDL_CreateRenderer" fail-sdl-error
-	renderer
+	res
 
-.create-texture SDL_Texture mut*(renderer SDL_Renderer mut*) summon, trusted
+.create-texture SDL_Texture mut*(renderer SDL_Renderer mut*) summon, unsafe
 	bmp = crow-bmp.begin-pointer SDL_RWFromConstMem crow-bmp.size.to-int32 SDL_LoadBMP_RW 0
 	if bmp == null
 		"sdl-loadbmp-error" fail-sdl-error
@@ -95,10 +97,10 @@ main nat^(_ string[]) summon, trusted
 		"SDL_CreateTextureFromSurface" fail-sdl-error
 	texture
 
-.handle-sdl-error void(err c-int, description string) summon, trusted
+.handle-sdl-error void(err c-int, description string) summon, unsafe
 	unless err == 0
 		description fail-sdl-error
 
-.fail-sdl-error void(description string) summon, trusted
+.fail-sdl-error void(description string) summon, unsafe
 	throw "sdl error in {description}: {SDL_GetError}"
 	SDL_Quit

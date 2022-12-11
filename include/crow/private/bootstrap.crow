@@ -222,10 +222,12 @@ For flags: 0.
 ###
 safe-value[t] t() builtin
 
-todo[t] t() noctx, trusted
-	## TODO: soft-fail, remove 'noctx, trusted' above
-	abort
-	zeroed
+# TODO: remove this function
+todo[t] t() noctx
+	# this shouldn't really be trusted
+	trusted
+		abort
+		zeroed
 
 # Used in low-level code that should always abort on failure instead of throwing an exception
 hard-unreachable[t] t() noctx, unsafe

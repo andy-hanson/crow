@@ -3,7 +3,7 @@ import
 	crow/io/print: out, print
 	sqlite3/main: for-loop, open-sqlite3, query, run, with-block
 
-main nat^(_ string[]) summon, trusted
+main nat^(_ string[]) summon
 	file-name = "test.db"
 	<- with db : file-name open-sqlite3
 		db run "drop table if exists foo"

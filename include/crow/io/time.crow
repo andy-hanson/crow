@@ -20,11 +20,11 @@ unix-time record
 	seconds-since-epoch time_t
 
 # Get the current Unix timestamp.
-get-unix-time unix-time() summon, trusted
-	null.time,
+get-unix-time unix-time() summon
+	trusted null.time,
 
 # Returns a future that will resolve after `duration` has passed.
-delay void^(duration duration) summon, trusted
+delay void^(duration duration) summon
 	get-monotime-nsec + duration.nsec.to-nat64 delay-until-time
 
 interval record
@@ -36,28 +36,30 @@ interval interval(time duration)
 for-break[out] out^(
 	interval interval,
 	f-loop ref out break-or-continue(),
-) summon, trusted, out is-sendable, out break-or-continue is-sendable
+) summon, out is-sendable, out break-or-continue is-sendable
 	get-monotime-nsec repeat-interval-recur interval.time.nsec.to-nat64, f-loop
 .repeat-interval-recur[out] out^(
 	start-nsec nat64,
 	interval-nsec nat64,
 	action ref out break-or-continue(),
-) summon, trusted, out is-sendable, out break-or-continue is-sendable
+) summon, out is-sendable, out break-or-continue is-sendable
 	choice <- action[]
 	match choice
 	as loop-break v
 		v,
 	as loop-continue
 		next-time = get-monotime-nsec max start-nsec + interval-nsec
-		gctx = get-global-ctx
-		res out^ = unresolved
-		gctx add-timed-task next-time, gctx.new-exclusion, () =>
-			res forward-to (next-time repeat-interval-recur interval-nsec, action)
-		res
+		trusted
+			res out^ = unresolved
+			gctx = get-global-ctx
+			gctx add-timed-task next-time, gctx.new-exclusion, () =>
+				res forward-to (next-time repeat-interval-recur interval-nsec, action)
+			res
 
-.delay-until-time void^(target-nsec nat64) summon, unsafe
-	res void^ = unresolved
-	gctx = get-global-ctx
-	gctx add-timed-task target-nsec, gctx.new-exclusion, () =>
-		res resolve ()
-	res
+.delay-until-time void^(target-nsec nat64) summon
+	trusted
+		res void^ = unresolved
+		gctx = get-global-ctx
+		gctx add-timed-task target-nsec, gctx.new-exclusion, () =>
+			res resolve ()
+		res

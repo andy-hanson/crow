@@ -7,5 +7,5 @@ import
 export
 	./private/symbol-low-level: ==, <=>, symbol, to-string, string-to-symbol
 
-hash-mix void(hasher hasher, a symbol) trusted
-	hasher hash-mix a.to-c-string.to-nat64
+hash-mix void(hasher hasher, a symbol)
+	trusted hasher hash-mix a.to-c-string.to-nat64

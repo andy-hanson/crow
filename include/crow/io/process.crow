@@ -49,16 +49,17 @@ The child process' stdout and stderr will be sent to the `process-result`,
 not to the parent's stdout and stderr.
 EXE should be a file path and not just a name; this does not search the system path for `exe`.
 ###
-spawn-and-wait-result process-result(exe string, args string[]) summon, trusted
+spawn-and-wait-result process-result(exe string, args string[]) summon
 	out print (" " join "spawn-and-wait-result: {exe}" ~ args)
 
 	# TODO: kill, handle that error properly
 	assert exe is-file : "{exe} is not a file"
-	exe-c-string = exe to-c-string
-	if is-windows
-		exe-c-string spawn-and-wait-result-windows args
-	else
-		exe-c-string spawn-and-wait-result-posix (exe-c-string convert-args args)
+	trusted
+		exe-c-string = exe to-c-string
+		if is-windows
+			exe-c-string spawn-and-wait-result-windows args
+		else
+			exe-c-string spawn-and-wait-result-posix (exe-c-string convert-args args)
 
 .keep-reading void(res char8 mut[], file FILE mut*) summon, unsafe
 	read-at-a-time = 0x1000
@@ -79,25 +80,27 @@ spawn-and-wait-result process-result(exe string, args string[]) summon, trusted
 Launches a process and synchronously waits on the result.
 The child process shares stdout and stderr with the parent process.
 ###
-spawn-and-wait int32(exe string, args string[]) summon, trusted
+spawn-and-wait int32(exe string, args string[]) summon
 	# TODO: kill, handle that error properly
 	assert exe is-file : "{exe} is not a file"
 	# First argument should be the executable path
 	# TODO: &to-c-string
-	exe-c-string = exe.to-c-string
-	exe-c-string spawn-and-wait (exe-c-string convert-args args)
+	trusted
+		exe-c-string = exe to-c-string
+		exe-c-string spawn-and-wait (exe-c-string convert-args args)
 
 # Executes a shell command and returns its output.
-shell-exec string(command string) summon, trusted
-	cmd = command to-c-string
-	pipe = is-windows ? cmd _popen "r" : cmd popen "r"
-	if pipe.as-any-const-pointer == null
-		todo
-	res char8 mut[] = ()
-	res keep-reading pipe
-	err = is-windows ? pipe _pclose : pipe pclose
-	assert err == 0
-	res.move-to-list as-string
+shell-exec string(command string) summon
+	trusted
+		cmd = command to-c-string
+		pipe = is-windows ? cmd _popen "r" : cmd popen "r"
+		if pipe.as-any-const-pointer == null
+			todo
+		res char8 mut[] = ()
+		res keep-reading pipe
+		err = is-windows ? pipe _pclose : pipe pclose
+		assert err == 0
+		res.move-to-list as-string
 
 .convert-args c-string[](exe-c-string c-string, args string[]) unsafe
 	exe-c-string ~ (for x : args; x to-c-string) ~ null
@@ -237,24 +240,25 @@ shell-exec string(command string) summon, trusted
 		todo
 	had-POLLIN, hung-up
 
-.read-to-buffer-until-eof void(fd fd-t, buffer char8 mut[]) summon, trusted
+.read-to-buffer-until-eof void(fd fd-t, buffer char8 mut[]) summon
 	read-max = 1024
 	# It will write to the end of the buffer. So we must ensure that it has enough space at the end.
-	old-size = buffer.size
-	buffer unsafe-set-size old-size + read-max
-	add-data-to = buffer.begin-pointer + old-size
-	n-bytes-read = fd read add-data-to.as-any-mut-pointer, read-max
-	if n-bytes-read == -1
-		# Error
-		todo
-	elif n-bytes-read == 0
-		# EOF, done
-		buffer unsafe-set-size old-size
-	else
-		assert n-bytes-read.to-nat64 <= read-max
-		new-size = old-size + n-bytes-read.to-nat64
-		buffer unsafe-set-size new-size
-		fd read-to-buffer-until-eof buffer
+	old-size = buffer size
+	trusted
+		buffer unsafe-set-size old-size + read-max
+		add-data-to = buffer.begin-pointer + old-size
+		n-bytes-read = fd read add-data-to.as-any-mut-pointer, read-max
+		if n-bytes-read == -1
+			# Error
+			todo
+		elif n-bytes-read == 0
+			# EOF, done
+			buffer unsafe-set-size old-size
+		else
+			assert n-bytes-read.to-nat64 <= read-max
+			new-size = old-size + n-bytes-read.to-nat64
+			buffer unsafe-set-size new-size
+			fd read-to-buffer-until-eof buffer
 
 # Args should be terminated by null.
 # TODO: option to get stdout/stderr as a string rather than having them go to the terminal
