@@ -1,7 +1,7 @@
 import
 	crow/io/print: out, print
 
-main nat^(_ string[]) summon unsafe
+main nat^(_ string[]) summon, trusted
 	results <- for x : 0 .. 100 parallel
 		*foo := x
 		*foo := *foo + 1
@@ -12,11 +12,11 @@ main nat^(_ string[]) summon unsafe
 
 foo nat64 mut*() thread-local
 
-.parallel-range<a> record
-	.inner range a
-.parallel<a> parallel-range a(a range a)
+.parallel-range[t] record
+	.inner t range
+.parallel[t] t parallel-range(a t range)
 	a,
-.for-loop nat64[]^(a parallel-range nat64, f fun nat64^(nat64))
+.for-loop nat64[]^(a nat64 parallel-range, f fun nat64^(nat64))
 	tasks nat64^[] = for x : a.inner
 		with : parallel
 			f[x]

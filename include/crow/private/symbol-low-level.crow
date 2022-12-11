@@ -17,7 +17,7 @@ export
 	# TODO: ensure that 'symbol' constructor from c-string is not exported
 	../private/bootstrap: symbol, to-c-string
 
-== bool(a symbol, b symbol) noctx trusted
+== bool(a symbol, b symbol) noctx, trusted
 	# (this is pointer equality)
 	a.to-c-string == b.to-c-string
 
@@ -25,7 +25,7 @@ export
 <=> comparison(a symbol, b symbol)
 	a.to-string <=> b.to-string
 
-to-string string(a symbol) noctx trusted
+to-string string(a symbol) noctx, trusted
 	a.to-c-string literal
 
 init-symbol-table void(a global-ctx)

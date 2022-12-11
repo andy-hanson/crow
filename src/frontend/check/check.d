@@ -21,7 +21,7 @@ import frontend.check.funsForStruct : addFunsForStruct, countFunsForStruct;
 import frontend.check.instantiate :
 	DelayStructInsts, instantiateSpec, instantiateStruct, instantiateStructBody, TypeArgsArray, typeArgsArray;
 import frontend.check.typeFromAst :
-	checkTypeParams, tryFindSpec, typeArgsFromAsts, typeFromAst, typeFromAstNoTypeParamsNeverDelay;
+	checkTypeParams, getTypeArgsForSpecIfNumberMatches, tryFindSpec, typeFromAst, typeFromAstNoTypeParamsNeverDelay;
 import frontend.diagnosticsBuilder : addDiagnostic, DiagnosticsBuilder;
 import frontend.parse.ast :
 	ExprAst,
@@ -33,6 +33,7 @@ import frontend.parse.ast :
 	NameAndRange,
 	ParamAst,
 	ParamsAst,
+	range,
 	rangeOfNameAndRange,
 	SpecBodyAst,
 	SpecDeclAst,
@@ -90,7 +91,7 @@ import model.model :
 	Visibility,
 	visibility;
 import util.alloc.alloc : Alloc;
-import util.col.arr : empty, emptySmallArray, only, ptrsRange, sizeEq, small;
+import util.col.arr : empty, only, ptrsRange, small;
 import util.col.arrBuilder : add, ArrBuilder, finishArr;
 import util.col.arrUtil : cat, eachPair, map, mapOp, mapToMut, mapWithIndex, zip, zipPtrFirst;
 import util.col.dict : Dict, dictEach, dictEachIn, hasKey, KeyValuePair;
@@ -393,7 +394,7 @@ Params checkParams(
 	ref CommonTypes commonTypes,
 	in ParamsAst ast,
 	in StructsAndAliasesDict structsAndAliasesDict,
-	in TypeParam[] typeParamsScope,
+	TypeParam[] typeParamsScope,
 	ref DelayStructInsts delayStructInsts,
 ) =>
 	ast.matchIn!Params(
@@ -413,25 +414,26 @@ Params checkParams(
 		(in ParamsAst.Varargs varargs) {
 			Param param = checkParam(
 				ctx, commonTypes, structsAndAliasesDict, typeParamsScope, delayStructInsts, varargs.param, 0);
-			Type elementType = param.type.match!Type(
+			Opt!Type elementType = param.type.match!(Opt!Type)(
 				(Type.Bogus _) =>
-					Type(Type.Bogus()),
+					some(Type(Type.Bogus())),
 				(ref TypeParam _) =>
-					todo!Type("diagnostic"),
-				(ref StructInst x) {
-					if (decl(x) == commonTypes.array)
-						return only(typeArgs(x));
-					else
-						return todo!Type("diagnostic");
-				});
-			return Params(allocate(ctx.alloc, Params.Varargs(param, elementType)));
+					none!Type,
+				(ref StructInst x) =>
+					decl(x) == commonTypes.array
+					? some(only(typeArgs(x)))
+					: none!Type);
+			if (!has(elementType))
+				addDiag(ctx, varargs.param.range, Diag(Diag.VarargsParamMustBeArray()));
+			return Params(allocate(ctx.alloc,
+				Params.Varargs(param, has(elementType) ? force(elementType) : Type(Type.Bogus()))));
 		});
 
 Param checkParam(
 	ref CheckCtx ctx,
 	ref CommonTypes commonTypes,
 	in StructsAndAliasesDict structsAndAliasesDict,
-	in TypeParam[] typeParamsScope,
+	TypeParam[] typeParamsScope,
 	ref DelayStructInsts delayStructInsts,
 	in ParamAst ast,
 	size_t index,
@@ -451,7 +453,7 @@ ReturnTypeAndParams checkReturnTypeAndParams(
 	ref CommonTypes commonTypes,
 	in TypeAst returnTypeAst,
 	in ParamsAst paramsAst,
-	in TypeParam[] typeParams,
+	TypeParam[] typeParams,
 	in StructsAndAliasesDict structsAndAliasesDict,
 	DelayStructInsts delayStructInsts
 ) =>
@@ -474,7 +476,7 @@ SpecBody.Builtin.Kind getSpecBodyBuiltinKind(ref CheckCtx ctx, RangeWithinFile r
 SpecBody checkSpecBody(
 	ref CheckCtx ctx,
 	ref CommonTypes commonTypes,
-	in TypeParam[] typeParams,
+	TypeParam[] typeParams,
 	in StructsAndAliasesDict structsAndAliasesDict,
 	RangeWithinFile range,
 	Sym name,
@@ -591,60 +593,80 @@ FunFlagsAndSpecs checkFunModifiers(
 	in FunModifierAst[] asts,
 	in StructsAndAliasesDict structsAndAliasesDict,
 	in SpecsDict specsDict,
-	in TypeParam[] typeParamsScope,
+	TypeParam[] typeParamsScope,
 ) {
-	FunModifierAst.SpecialFlags allFlags = FunModifierAst.SpecialFlags.none;
+	FunModifierAst.Special.Flags allFlags = FunModifierAst.Special.Flags.none;
 	immutable SpecInst*[] specs =
-		mapOp!(immutable SpecInst*, FunModifierAst)(ctx.alloc, asts, (ref FunModifierAst ast) {
-			FunModifierAst.SpecialFlags flag = ast.specialFlags;
-			if (flag == FunModifierAst.SpecialFlags.none)
-				return checkFunModifierNonSpecial(
-					ctx, commonTypes, structsAndAliasesDict, specsDict, typeParamsScope, ast);
-			else {
-				if (!empty(ast.typeArgs) &&
-					flag != FunModifierAst.SpecialFlags.extern_ &&
-					flag != FunModifierAst.SpecialFlags.global)
-					addDiag(ctx, rangeOfNameAndRange(ast.name, ctx.allSymbols), Diag(
-						Diag.FunModifierTypeArgs(ast.name.name)));
-				if (allFlags & flag)
-					todo!void("diag: duplicate flag");
-				allFlags |= flag;
-				return none!(SpecInst*);
-			}
-		});
+		mapOp!(immutable SpecInst*, FunModifierAst)(ctx.alloc, asts, (scope ref FunModifierAst ast) =>
+			ast.matchIn!(Opt!(SpecInst*))(
+				(in FunModifierAst.Special flag) {
+					if (allFlags & flag.flag)
+						todo!void("diag: duplicate flag");
+					allFlags |= flag.flag;
+					return none!(SpecInst*);
+				},
+				(in FunModifierAst.ExternOrGlobal x) {
+					if (allFlags & x.flag)
+						todo!void("diag: duplicate flag");
+					allFlags |= x.flag;
+					return none!(SpecInst*);
+				},
+				(in TypeAst x) =>
+					checkFunModifierNonSpecial(
+						ctx, commonTypes, structsAndAliasesDict, specsDict, typeParamsScope, x)));
 	return FunFlagsAndSpecs(checkFunFlags(ctx, range, allFlags), specs);
 }
+
 Opt!(SpecInst*) checkFunModifierNonSpecial(
 	ref CheckCtx ctx,
 	ref CommonTypes commonTypes,
 	in StructsAndAliasesDict structsAndAliasesDict,
 	in SpecsDict specsDict,
-	in TypeParam[] typeParamsScope,
-	ref FunModifierAst ast,
+	TypeParam[] typeParamsScope,
+	in TypeAst ast,
 ) {
-	Opt!(SpecDecl*) opSpec = tryFindSpec(ctx, ast.name, specsDict);
+	if (ast.isA!NameAndRange) {
+		return checkSpecReference(
+			ctx, commonTypes, structsAndAliasesDict, specsDict, typeParamsScope, none!(TypeAst*), ast.as!NameAndRange);
+	} else if (ast.isA!(TypeAst.SuffixName*)) {
+		TypeAst.SuffixName* n = ast.as!(TypeAst.SuffixName*);
+		return checkSpecReference(
+			ctx, commonTypes, structsAndAliasesDict, specsDict, typeParamsScope, some(&n.left), n.name);
+	} else {
+		addDiag(ctx, range(ast, ctx.allSymbols), Diag(Diag.SpecNameMissing()));
+		return none!(SpecInst*);
+	}
+
+}
+
+Opt!(SpecInst*) checkSpecReference(
+	ref CheckCtx ctx,
+	ref CommonTypes commonTypes,
+	in StructsAndAliasesDict structsAndAliasesDict,
+	in SpecsDict specsDict,
+	TypeParam[] typeParamsScope,
+	in Opt!(TypeAst*) suffixLeft,
+	NameAndRange specName,
+) {
+	Opt!(SpecDecl*) opSpec = tryFindSpec(ctx, specName, specsDict);
 	if (has(opSpec)) {
 		SpecDecl* spec = force(opSpec);
 		TypeArgsArray typeArgs = typeArgsArray();
-		typeArgsFromAsts(
+		bool ok = getTypeArgsForSpecIfNumberMatches(
 			typeArgs,
 			ctx,
 			commonTypes,
-			ast.typeArgs,
+			rangeOfNameAndRange(specName, ctx.allSymbols),
 			structsAndAliasesDict,
-			typeParamsScope,
-			noneMut!(MutArr!(StructInst*)*));
-		if (!sizeEq(tempAsArr(typeArgs), spec.typeParams)) {
-			addDiag(ctx, rangeOfNameAndRange(ast.name, ctx.allSymbols), Diag(
-				Diag.WrongNumberTypeArgsForSpec(spec, spec.typeParams.length, tempAsArr(typeArgs).length)));
-			return none!(SpecInst*);
-		} else
-			return some(instantiateSpec(ctx.alloc, ctx.programState, spec, tempAsArr(typeArgs)));
+			spec,
+			suffixLeft,
+			typeParamsScope);
+		return ok ? some(instantiateSpec(ctx.alloc, ctx.programState, spec, tempAsArr(typeArgs))) : none!(SpecInst*);
 	} else
 		return none!(SpecInst*);
 }
 
-FunFlags checkFunFlags(ref CheckCtx ctx, RangeWithinFile range, FunModifierAst.SpecialFlags flags) {
+FunFlags checkFunFlags(ref CheckCtx ctx, RangeWithinFile range, FunModifierAst.Special.Flags flags) {
 	void warnConflict(Sym modifier0, Sym modifier1) {
 		addDiag(ctx, range, Diag(Diag.FunModifierConflict(modifier0, modifier1)));
 	}
@@ -652,16 +674,16 @@ FunFlags checkFunFlags(ref CheckCtx ctx, RangeWithinFile range, FunModifierAst.S
 		addDiag(ctx, range, Diag(Diag.FunModifierRedundant(modifier, redundantModifier)));
 	}
 
-	bool builtin = (flags & FunModifierAst.SpecialFlags.builtin) != 0;
-	bool extern_ = (flags & FunModifierAst.SpecialFlags.extern_) != 0;
-	bool global = (flags & FunModifierAst.SpecialFlags.global) != 0;
-	bool explicitNoctx = (flags & FunModifierAst.SpecialFlags.noctx) != 0;
-	bool forceCtx = (flags & FunModifierAst.SpecialFlags.forceCtx) != 0;
-	bool noDoc = (flags & FunModifierAst.SpecialFlags.no_doc) != 0;
-	bool summon = (flags & FunModifierAst.SpecialFlags.summon) != 0;
-	bool threadLocal = (flags & FunModifierAst.SpecialFlags.thread_local) != 0;
-	bool trusted = (flags & FunModifierAst.SpecialFlags.trusted) != 0;
-	bool explicitUnsafe = (flags & FunModifierAst.SpecialFlags.unsafe) != 0;
+	bool builtin = (flags & FunModifierAst.Special.Flags.builtin) != 0;
+	bool extern_ = (flags & FunModifierAst.Special.Flags.extern_) != 0;
+	bool global = (flags & FunModifierAst.Special.Flags.global) != 0;
+	bool explicitNoctx = (flags & FunModifierAst.Special.Flags.noctx) != 0;
+	bool forceCtx = (flags & FunModifierAst.Special.Flags.forceCtx) != 0;
+	bool noDoc = (flags & FunModifierAst.Special.Flags.no_doc) != 0;
+	bool summon = (flags & FunModifierAst.Special.Flags.summon) != 0;
+	bool threadLocal = (flags & FunModifierAst.Special.Flags.thread_local) != 0;
+	bool trusted = (flags & FunModifierAst.Special.Flags.trusted) != 0;
+	bool explicitUnsafe = (flags & FunModifierAst.Special.Flags.unsafe) != 0;
 
 	bool implicitUnsafe = extern_ || global || threadLocal;
 	bool unsafe = explicitUnsafe || implicitUnsafe;
@@ -801,12 +823,12 @@ FunsAndDict checkFuns(
 					if (has(funAst.body_))
 						todo!void("diag: builtin fun can't have body");
 					return FunBody(checkExternOrGlobalBody(
-						ctx, fun, getExternTypeArgs(funAst, FunModifierAst.SpecialFlags.extern_), false));
+						ctx, fun, getExternTypeArg(funAst, FunModifierAst.Special.Flags.extern_), false));
 				case FunFlags.SpecialBody.global:
 					if (has(funAst.body_))
 						todo!void("diag: global fun can't have body");
 					return FunBody(checkExternOrGlobalBody(
-						ctx, fun, getExternTypeArgs(funAst, FunModifierAst.SpecialFlags.global), true));
+						ctx, fun, getExternTypeArg(funAst, FunModifierAst.Special.Flags.global), true));
 				case FunFlags.SpecialBody.threadLocal:
 					if (has(funAst.body_))
 						todo!void("diag: thraed-local fun can't have body");
@@ -859,11 +881,19 @@ FunsAndDict checkFuns(
 	return FunsAndDict(funs, tests, funsDict);
 }
 
-TypeAst[] getExternTypeArgs(scope ref FunDeclAst a, FunModifierAst.SpecialFlags flags) {
-	foreach (ref FunModifierAst modifier; a.modifiers)
-		if (modifier.specialFlags == flags)
-			return modifier.typeArgs;
-	return unreachable!(TypeAst[]);
+Opt!TypeAst getExternTypeArg(ref FunDeclAst a, FunModifierAst.Special.Flags externOrGlobalFlag) {
+	foreach (ref FunModifierAst modifier; a.modifiers) {
+		Opt!(Opt!TypeAst) res = modifier.match!(Opt!(Opt!TypeAst))(
+			(FunModifierAst.Special x) =>
+				x.flag == externOrGlobalFlag ? some(none!TypeAst) : none!(Opt!TypeAst),
+			(FunModifierAst.ExternOrGlobal x) =>
+				x.flag == externOrGlobalFlag ? some(some(*x.left)) : none!(Opt!TypeAst),
+			(TypeAst x) =>
+				none!(Opt!TypeAst));
+		if (has(res))
+			return force(res);
+	}
+	return unreachable!(Opt!TypeAst);
 }
 
 FunBody getFileImportFunctionBody(
@@ -934,20 +964,18 @@ Type typeForFileImport(
 ) {
 	final switch (type) {
 		case ImportFileType.nat8Array:
-			TypeAst nat8 =
-				TypeAst(TypeAst.InstStruct(range, NameAndRange(range.start, sym!"nat8"), emptySmallArray!TypeAst));
-			scope TypeAst arrayNat8 =
-				TypeAst(TypeAst.InstStruct(range, NameAndRange(range.start, sym!"array"), small([nat8])));
+			TypeAst nat8 = TypeAst(NameAndRange(range.start, sym!"nat8"));
+			TypeAst.SuffixName suffixName = TypeAst.SuffixName(nat8, NameAndRange(range.start, sym!"array"));
+			scope TypeAst arrayNat8 = TypeAst(&suffixName);
 			return typeFromAstNoTypeParamsNeverDelay(ctx, commonTypes, arrayNat8, structsAndAliasesDict);
 		case ImportFileType.str:
 			//TODO: this sort of duplicates 'getStrType'
-			scope TypeAst ast =
-				TypeAst(TypeAst.InstStruct(range, NameAndRange(range.start, sym!"string"), emptySmallArray!TypeAst));
+			TypeAst ast = TypeAst(NameAndRange(range.start, sym!"string"));
 			return typeFromAstNoTypeParamsNeverDelay(ctx, commonTypes, ast, structsAndAliasesDict);
 	}
 }
 
-FunBody.Extern checkExternOrGlobalBody(ref CheckCtx ctx, FunDecl* fun, in TypeAst[] typeArgs, bool isGlobal) {
+FunBody.Extern checkExternOrGlobalBody(ref CheckCtx ctx, FunDecl* fun, in Opt!TypeAst typeArg, bool isGlobal) {
 	Linkage funLinkage = Linkage.extern_;
 
 	if (!empty(fun.typeParams))
@@ -970,20 +998,16 @@ FunBody.Extern checkExternOrGlobalBody(ref CheckCtx ctx, FunDecl* fun, in TypeAs
 	if (isGlobal && arityIsNonZero(arity(*fun)))
 		todo!void("'global' fun has parameters");
 
-	Opt!Sym libraryName = typeArgs.length != 1 ? none!Sym : only(typeArgs).match!(Opt!Sym)(
-		(ref TypeAst.Dict) =>
-			none!Sym,
-		(TypeAst.Fun) =>
-			none!Sym,
-		(TypeAst.InstStruct i) =>
-			empty(i.typeArgs) ? some(i.name.name) : none!Sym,
-		(ref TypeAst.Suffix) =>
-			none!Sym,
-		(ref TypeAst.Tuple) =>
-			none!Sym);
-	if (!has(libraryName))
-		addDiag(ctx, fun.range, Diag(Diag.ExternFunForbidden(fun, Diag.ExternFunForbidden.Reason.missingLibraryName)));
-	return FunBody.Extern(isGlobal, has(libraryName) ? force(libraryName) : sym!"bogus");
+	Sym libraryName = () {
+		if (has(typeArg) && force(typeArg).isA!NameAndRange)
+			return force(typeArg).as!NameAndRange.name;
+		else {
+			addDiag(ctx, fun.range, Diag(
+				Diag.ExternFunForbidden(fun, Diag.ExternFunForbidden.Reason.missingLibraryName)));
+			return sym!"bogus";
+		}
+	}();
+	return FunBody.Extern(isGlobal, libraryName);
 }
 
 FunBody.ThreadLocal checkThreadLocalBody(ref CheckCtx ctx, in CommonTypes commonTypes, FunDecl* fun) {

@@ -1,6 +1,6 @@
 r record extern
 	a string
-	b list nat64
+	b nat64 list
 
 r2 record extern by-val
 	a nat64
@@ -13,31 +13,31 @@ u union extern
 
 f void() extern
 
-f void() extern<c>
+f void() c extern
 
-f string() extern<c>
+f string() c extern
 
-f void(a string) extern<c>
+f void(a string) c extern
 
-f<a> void(a a) extern<c>
+f[t] void(a t) c extern
 
-f void(...a array nat64) extern<c>
+f void(...a nat64 array) c extern
 
 some-spec spec
 	foo void()
 
-f void() extern<c> some-spec
+f void() c extern, some-spec
 
-f void() extern<c> noctx
+f void() noctx, c extern
 
-f void() extern<c> unsafe
+f void() unsafe, c extern
 
-g nat() extern<c> global<c>
+g nat() c extern, c global
 
 g nat() global
 
-g nat() global<c> noctx
+g nat() c global, noctx
 
-g nat() global<c> unsafe
+g nat() c global, unsafe
 
-g nat() global<c> trusted
+g nat() c global, trusted

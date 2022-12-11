@@ -6,7 +6,7 @@ import
 	../../misc: is-data, new, void
 	../../number: nat64
 	../../option: is-empty
-	../../tuple: from, new, pair
+	../../tuple: from, new
 	../list: for-loop, list
 	./mut-sorted-dict:
 		clear, filter, for-loop, in, is-empty, move-to-list, mut-sorted-dict, new, remove-key,
@@ -19,50 +19,48 @@ This is like a `set` but mutable, or like a `mut-sorted-dict` with no values.
 Unlike `mut-list`, values are in sorted order, not insertion order,
 and it never stores two of the same value.
 ###
-mut-sorted-set<a> record mut
-	.inner mut-sorted-dict<a, void>
+mut-sorted-set[t] record mut
+	.inner (t, void) mut-sorted-dict
 
 # New empty `mut-sorted-set`.
-new<a> mut-sorted-set a() is-data<a> compare<a>
+new[t] t mut-sorted-set() t is-data, t compare
 	(),
 
-to-mut-sorted-set<a> mut-sorted-set a(a a[]) is-data<a> compare<a>
-	pairs (a, void)[] = for x : a
-		x, ()
-	pairs.to-mut-sorted-dict,
+to-mut-sorted-set[t] t mut-sorted-set(a t[]) t is-data, t compare
+	(for x : a; x, ()).to-mut-sorted-dict,
 
 # True iff the set has no elements.
-is-empty<a> bool(a mut-sorted-set a) is-data<a> compare<a>
+is-empty[t] bool(a t mut-sorted-set) t is-data, t compare
 	a.inner is-empty
 
 # Removes all elements.
-clear<a> void(a mut-sorted-set a) is-data<a> compare<a>
+clear[t] void(a t mut-sorted-set) t is-data, t compare
 	a.inner clear
 
 # Number of values in the set.
-size<a> nat64(a mut-sorted-set a) is-data<a> compare<a>
+size[t] nat64(a t mut-sorted-set) t is-data, t compare
 	a.inner size
 
 # True iff the value is in the set.
-subscript<a> bool(a mut-sorted-set a, value a) is-data<a> compare<a>
+subscript[t] bool(a t mut-sorted-set, value t) t is-data, t compare
 	value in a
 
-in<a> bool(value a, a mut-sorted-set a) is-data<a> compare<a>
+in[t] bool(value t, a t mut-sorted-set) t is-data, t compare
 	!a.inner[value].is-empty
 
 ###
 Adds a value to the set.
 Does nothing if the value is already in the set.
 ###
-~= <a> void(a mut-sorted-set a, value a) is-data<a> compare<a>
+~=[t] void(a t mut-sorted-set, value t) t is-data, t compare
 	a.inner[value] := ()
 
 # Adds multiple values to the set.
-~~= <a> void(a mut-sorted-set a, values a[]) is-data<a> compare<a>
+~~=[t] void(a t mut-sorted-set, values t[]) t is-data, t compare
 	for value : values
 		a ~= value
 
-try-add<a> bool(a mut-sorted-set a, value a) is-data<a> compare<a>
+try-add[t] bool(a t mut-sorted-set, value t) t is-data, t compare
 	# TODO:PERF do it without two lookups
 	unless value in a.inner
 		a.inner[value] := ()
@@ -73,40 +71,40 @@ Removes a value from the set.
 If the value was present, removes it and returns `true`.
 If the value was not present, does nothing and returns `false`.
 ###
-remove<a> bool(a mut-sorted-set a, value a) is-data<a> compare<a>
+remove[t] bool(a t mut-sorted-set, value t) t is-data, t compare
 	!(a.inner remove-key value is-empty)
 
 # Convert to a list, clearing the original `mut-sorted-set` in the process.
-move-to-list<a> a[](a mut-sorted-set a) is-data<a> compare<a>
+move-to-list[t] t[](a t mut-sorted-set) t is-data, t compare
 	for pair : a.inner move-to-list
 		pair from
 
 # Convert to a `sorted-set`, clearning the original `mut-sorted-set` in the process.
-move-to-sorted-set<a> sorted-set a(a mut-sorted-set a) is-data<a> compare<a>
+move-to-sorted-set[t] t sorted-set(a t mut-sorted-set) t is-data, t compare
 	# TODO:PERF avoid a copy: return a 'mut-list' which the sorted-set can move into to itself
 	a.move-to-list to-sorted-set
 
 region iteration
 
-for-loop<a> void(a mut-sorted-set a, f act void(a)) is-data<a> compare<a>
+for-loop[t] void(a t mut-sorted-set, f act void(t)) t is-data, t compare
 	for k, _ : a inner
 		f[k]
 
-for-loop<out, in> mut-sorted-set out(
-	a mut-sorted-set in,
+for-loop[out, in] out mut-sorted-set(
+	a in mut-sorted-set,
 	f act out(in),
-) is-data<in> compare<in> is-data<out> compare<out>
-	inner mut-sorted-dict<out, void> = for k, _ : a.inner
+) in is-data, in compare, out is-data, out compare
+	inner (out, void) mut-sorted-dict = for k, _ : a.inner
 		f[k], ()
 	inner,
 
-filter<a> mut-sorted-set a(a mut-sorted-set a, f act bool(a)) is-data<a> compare<a>
+filter[t] t mut-sorted-set(a t mut-sorted-set, f act bool(t)) t is-data, t compare
 	(a.inner filter (k, _) => f[k]),
 
 region mutating iteration
 
-set-filter<a> void(a mut-sorted-set a, f act bool(a)) is-data<a> compare<a>
+set-filter[t] void(a t mut-sorted-set, f fun bool(t)) t is-data, t compare
 	a.inner set-filter (k, _) => f[k]
 
-set-map<a> void(a mut-sorted-set a, f act a(a)) is-data<a> compare<a>
+set-map[t] void(a t mut-sorted-set, f fun t(t)) t is-data, t compare
 	a.inner set-map (k, _) => f[k], ()

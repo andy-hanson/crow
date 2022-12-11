@@ -6,9 +6,9 @@ import
 	crow/version: is-windows
 	./failure:
 		failure, flat-map-with-max-size, handle-output, max-failures, match-test, new,
-		overwrite-output, print-tests, test-options
+		overwrite-output, print-tests, test-options, test-result
 
-run-crow-tests result<string, failure[]>(path string, path-to-crow string, options test-options) summon
+run-crow-tests test-result(path string, path-to-crow string, options test-options) summon
 	tests = path list-tests options.match-test
 	failures = tests flat-map-with-max-size options.max-failures, x =>
 		path-to-crow run-single-crow-test x, options
@@ -33,7 +33,7 @@ run-crow-tests result<string, failure[]>(path string, path-to-crow string, optio
 	if ext ?= a.base-name get-extension
 		ext == "crow"
 
-.run-single-crow-test failure[](path-to-crow string, path string, options test-options) summon trusted
+.run-single-crow-test failure[](path-to-crow string, path string, options test-options) summon, trusted
 	op failure[]? = for print-kind : ("ast", "model")::string[]
 		if options print-tests
 			out print "crow print {print-kind} {path}"
@@ -53,7 +53,7 @@ run-crow-tests result<string, failure[]>(path string, path-to-crow string, optio
 		else
 			interpret-failures
 
-.run-print-test break-or-continue failure[](
+.run-print-test failure[] break-or-continue(
 	print-kind string,
 	path-to-crow string,
 	path string,

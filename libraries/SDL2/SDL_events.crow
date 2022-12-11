@@ -1,9 +1,9 @@
 import
 	crow/c-types: c-int, u-int
 
-SDL_PumpEvents void() extern<SDL2> summon
+SDL_PumpEvents void() summon, SDL2 extern
 
-SDL_PollEvent c-int(event SDL_Event mut*) extern<SDL2> summon trusted
+SDL_PollEvent c-int(event SDL_Event mut*) summon, trusted, SDL2 extern
 
 SDL_Event record extern mut
 	type SDL_EventType
@@ -13,7 +13,7 @@ SDL_Event record extern mut
 new SDL_Event() unsafe
 	SDL_FIRSTEVENT, 0, ()
 
-SDL_EventType enum<u-int> extern
+SDL_EventType enum(u-int) extern
 	SDL_FIRSTEVENT = 0
 
 	SDL_Quit = 0x100

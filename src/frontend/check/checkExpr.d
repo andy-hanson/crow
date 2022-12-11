@@ -120,7 +120,7 @@ import model.model :
 	VariableRef,
 	worstCasePurity;
 import util.alloc.alloc : Alloc, allocateUninitialized;
-import util.col.arr : empty, emptySmallArray, only, PtrAndSmallNumber, ptrsRange, sizeEq;
+import util.col.arr : empty, only, PtrAndSmallNumber, ptrsRange, sizeEq;
 import util.col.arrUtil : arrLiteral, arrsCorrespond, contains, exists, map, mapZip, mapZipWithIndex, zipPtrFirst;
 import util.col.fullIndexDict : FullIndexDict;
 import util.col.mutArr : MutArr, mutArrSize, push, tempAsArr;
@@ -283,9 +283,9 @@ Expr checkArrowAccess(
 	// TODO: NEATER (don't create a synthetic AST)
 	ExprAst[1] derefArgs = [ast.left];
 	scope CallAst callDeref =
-		CallAst(CallAst.style.single, NameAndRange(range.range.start, sym!"*"), [], castNonScope(derefArgs));
+		CallAst(CallAst.style.single, NameAndRange(range.range.start, sym!"*"), castNonScope(derefArgs));
 	ExprAst[1] callArgs = [ExprAst(range.range, ExprAstKind(callDeref))];
-	scope CallAst callName = CallAst(CallAst.style.infix, ast.name, ast.typeArgs, castNonScope(callArgs));
+	scope CallAst callName = CallAst(CallAst.style.infix, ast.name, castNonScope(callArgs));
 	return checkCall(ctx, locals, range, callName, expected);
 }
 
@@ -411,7 +411,6 @@ Expr checkInterpolated(
 			//TODO: new kind (not infix)
 			CallAst.Style.infix,
 			NameAndRange(range.start, sym!"to-c-string"),
-			[],
 			// TODO: NO ALLOC
 			arrLiteral!ExprAst(ctx.alloc, [ExprAst(range.range, ExprAstKind(call))]))
 		: call;
@@ -436,7 +435,6 @@ CallAst checkInterpolatedRecur(ref ExprCtx ctx, in InterpolatedPart[] parts, Pos
 				//TODO: new kind (not infix)
 				CallAst.Style.infix,
 				NameAndRange(pos, sym!"to-string"),
-				[],
 				// TODO: NO ALLOC
 				arrLiteral!ExprAst(ctx.alloc, [castNonScope_ref(e)])))));
 	Pos newPos = parts[0].matchIn!Pos(
@@ -452,7 +450,6 @@ CallAst checkInterpolatedRecur(ref ExprCtx ctx, in InterpolatedPart[] parts, Pos
 				//TODO: new kind (not infix)
 				CallAst.Style.infix,
 				NameAndRange(pos, sym!"~~"),
-				[],
 				// TODO: NO ALLOC
 				arrLiteral!ExprAst(ctx.alloc, [castNonScope_ref(force(left)), right]))))
 		: right;
@@ -794,7 +791,6 @@ Expr checkLiteralString(
 		scope CallAst ast = CallAst(
 			CallAst.Style.emptyParens,
 			NameAndRange(range.start, sym!"literal"),
-			[],
 			castNonScope(args));
 		return checkCallNoLocals(ctx, range, ast, expected);
 	}
@@ -814,10 +810,7 @@ void defaultExpectedToString(ref ExprCtx ctx, FileAndRange range, ref Expected e
 }
 
 Type getStrType(ref ExprCtx ctx, FileAndRange range) =>
-	typeFromAst2(ctx, TypeAst(TypeAst.InstStruct(
-		range.range,
-		NameAndRange(range.start, sym!"string"),
-		emptySmallArray!TypeAst)));
+	typeFromAst2(ctx, TypeAst(NameAndRange(range.start, sym!"string")));
 
 Expr checkWithLocal(
 	ref ExprCtx ctx,
@@ -1251,7 +1244,7 @@ Expr checkLoopBreak(
 		ExprAst[1] args = [has(ast.value) ? force(ast.value) : callNew(range.range)];
 		return checkCall(
 			ctx, locals, range,
-			CallAst(CallAst.Style.infix, NameAndRange(range.range.start, sym!"loop-break"), [], castNonScope(args)),
+			CallAst(CallAst.Style.infix, NameAndRange(range.range.start, sym!"loop-break"), castNonScope(args)),
 			expected);
 	} else {
 		LoopInfo* loop = force(optLoop);
@@ -1268,7 +1261,7 @@ Expr checkLoopContinue(ref ExprCtx ctx, ref LocalsInfo locals, FileAndRange rang
 	if (has(optLoop))
 		return Expr(range, ExprKind(ExprKind.LoopContinue(force(optLoop).loop)));
 	else {
-		scope CallAst call = CallAst(CallAst.Style.infix, NameAndRange(range.range.start, sym!"loop-continue"), [], []);
+		scope CallAst call = CallAst(CallAst.Style.infix, NameAndRange(range.range.start, sym!"loop-continue"), []);
 		return checkCall(ctx, locals, range, call, expected);
 	}
 }
@@ -1490,7 +1483,7 @@ bool hasBreakOrContinue(in ExprAst a) =>
 ExprAst callNew(RangeWithinFile range) =>
 	ExprAst(range, ExprAstKind(callNewCall(range)));
 CallAst callNewCall(RangeWithinFile range) =>
-	CallAst(CallAst.style.emptyParens, NameAndRange(range.start, sym!"new"), [], []);
+	CallAst(CallAst.style.emptyParens, NameAndRange(range.start, sym!"new"), []);
 
 Expr checkFor(ref ExprCtx ctx, ref LocalsInfo locals, FileAndRange range, in ForAst ast, ref Expected expected) {
 	// TODO: NEATER (don't create a synthetic AST)
@@ -1508,7 +1501,6 @@ Expr checkFor(ref ExprCtx ctx, ref LocalsInfo locals, FileAndRange range, in For
 	scope CallAst call = CallAst(
 		CallAst.Style.infix,
 		NameAndRange(range.range.start, isForBreak ? sym!"for-break" : sym!"for-loop"),
-		[],
 		has(ast.else_) ? castNonScope(allArgs) : castNonScope(allArgs)[0 .. 2]);
 	return checkCall(ctx, locals, range, call, expected);
 }
@@ -1523,7 +1515,7 @@ Expr checkWith(ref ExprCtx ctx, ref LocalsInfo locals, FileAndRange range, in Wi
 	ExprAst[2] args = [ast.arg, lambda];
 	return checkCall(
 		ctx, locals, range,
-		CallAst(CallAst.Style.infix, NameAndRange(range.range.start, sym!"with-block"), [], castNonScope(args)),
+		CallAst(CallAst.Style.infix, NameAndRange(range.range.start, sym!"with-block"), castNonScope(args)),
 		expected);
 }
 
@@ -1534,7 +1526,7 @@ Expr checkThen(ref ExprCtx ctx, ref LocalsInfo locals, FileAndRange range, in Th
 	ExprAst[2] args = [ast.futExpr, lambda];
 	return checkCall(
 		ctx, locals, range,
-		CallAst(CallAst.Style.infix, NameAndRange(range.range.start, sym!"then"), [], castNonScope(args)),
+		CallAst(CallAst.Style.infix, NameAndRange(range.range.start, sym!"then"), castNonScope(args)),
 		expected);
 }
 

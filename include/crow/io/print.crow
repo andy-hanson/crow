@@ -25,7 +25,7 @@ print void(pipe pipe, message string) summon
 	pipe print-no-newline "{message}\n"
 
 # Print to stdout or stderr, without appending a newline.
-print-no-newline void(pipe pipe, message string) summon trusted
+print-no-newline void(pipe pipe, message string) summon, trusted
 	if is-windows
 		handle = match out
 		as out
@@ -41,7 +41,7 @@ print-no-newline void(pipe pipe, message string) summon trusted
 			stderr
 		output write-posix message
 
-.write-windows void(console HANDLE, a string) summon unsafe
+.write-windows void(console HANDLE, a string) summon, unsafe
 	bytes = a.to-bytes to-array
 	written mut DWORD = 0
 	size32 = bytes.size to-nat32
@@ -51,8 +51,8 @@ print-no-newline void(pipe pipe, message string) summon trusted
 		# TODO: maybe retry
 		todo
 
-.write-posix void(fd fd-t, a string) summon unsafe
-	assert size-of@<char8> == size-of@<nat8>
+.write-posix void(fd fd-t, a string) summon, unsafe
+	assert size-of@char8 == size-of@nat8
 	bytes = a.to-bytes to-array
 	res = fd write bytes.begin-pointer, bytes.size
 	unless res == bytes.size.to-int64

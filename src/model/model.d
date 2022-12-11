@@ -2,9 +2,10 @@ module model.model;
 
 @safe @nogc pure nothrow:
 
+import frontend.check.typeFromAst : typeSyntaxKind;
 import model.concreteModel : TypeSize;
 import model.constant : Constant;
-import model.diag : Diagnostics, FilesInfo; // TODO: move FilesInfo here?
+import model.diag : Diag, Diagnostics, FilesInfo; // TODO: move FilesInfo here?
 import util.col.arr : empty, only, PtrAndSmallNumber, small, SmallArray;
 import util.col.arrUtil : arrEqual, exists;
 import util.col.dict : Dict;
@@ -1425,28 +1426,90 @@ void writeStructDecl(scope ref Writer writer, in AllSymbols allSymbols, in Struc
 }
 
 void writeStructInst(scope ref Writer writer, in AllSymbols allSymbols, in StructInst s) {
-	// TODO: more cases like this
-	if (decl(s).name == sym!"mut-list" && s.typeArgs.length == 1) {
+	void dict(string open) {
+		writeTypeUnquoted(writer, allSymbols, s.typeArgs[0]);
+		writer ~= open;
+		writeTypeUnquoted(writer, allSymbols, s.typeArgs[1]);
+		writer ~= ']';
+	}
+	void suffix(string suffix) {
 		writeTypeUnquoted(writer, allSymbols, only(s.typeArgs));
-		writer ~= " mut[]";
+		writer ~= suffix;	
+	}
+
+	Sym name = decl(s).name;
+	Opt!(Diag.TypeShouldUseSyntax.Kind) kind = typeSyntaxKind(name);
+	if (has(kind)) {
+		final switch (force(kind)) {
+			case Diag.TypeShouldUseSyntax.Kind.dict:
+				return dict("[");
+			case Diag.TypeShouldUseSyntax.Kind.future:
+				return suffix("^");
+			case Diag.TypeShouldUseSyntax.Kind.list:
+				return suffix("[]");
+			case Diag.TypeShouldUseSyntax.Kind.mutDict:
+				return dict(" mut[");
+			case Diag.TypeShouldUseSyntax.Kind.mutList:
+				return suffix(" mut[]");
+			case Diag.TypeShouldUseSyntax.Kind.mutPointer:
+				return suffix(" mut*");
+			case Diag.TypeShouldUseSyntax.Kind.opt:
+				return suffix("?");
+			case Diag.TypeShouldUseSyntax.Kind.pointer:
+				return suffix("*");
+			case Diag.TypeShouldUseSyntax.Kind.pair:
+				return writeTupleType(writer, allSymbols, s.typeArgs);
+		}
 	} else {
-		writeStructDecl(writer, allSymbols, *decl(s));
-		if (!empty(s.typeArgs)) {
-			writer ~= '<';
-			writeWithCommas!Type(writer, s.typeArgs, (in Type t) {
-				writeTypeUnquoted(writer, allSymbols, t);
-			});
-			writer ~= '>';
+		switch (s.typeArgs.length) {
+			case 0:
+				break;
+			case 1:
+				writeTypeUnquoted(writer, allSymbols, only(s.typeArgs));
+				writer ~= ' ';
+				break;
+			default:
+				writeTupleType(writer, allSymbols, s.typeArgs);
+				writer ~= ' ';
+				break;
+		}
+		writeSym(writer, allSymbols, name);
+	}
+}
+
+private void writeTupleType(scope ref Writer writer, in AllSymbols allSymbols, in Type[] members) {
+	writer ~= '(';
+	writeWithCommas!Type(writer, members, (in Type arg) {
+		writeTypeUnquoted(writer, allSymbols, arg);
+	});
+	writer ~= ')';
+}
+
+void writeTypeArgsGeneric(T)(
+	scope ref Writer writer,
+	in T[] typeArgs,
+	in bool delegate(in T) @safe @nogc pure nothrow isSimpleType,
+	in void delegate(in T) @safe @nogc pure nothrow cbWriteType,
+) {
+	if (!empty(typeArgs)) {
+		writer ~= '@';
+		if (typeArgs.length == 1 && isSimpleType(only(typeArgs)))
+			cbWriteType(only(typeArgs));
+		else {
+			writer ~= '(';
+			writeWithCommas!T(writer, typeArgs, cbWriteType);
+			writer ~= ')';
 		}
 	}
 }
 
-void writeTypeArgs(scope ref Writer writer, in AllSymbols allSymbols, in Type[] a) {
-	writer ~= '<';
-	writeWithCommas!Type(writer, a, (in Type x) {
-		writeTypeUnquoted(writer, allSymbols, x);
-	});
-	writer ~= '>';
+void writeTypeArgs(scope ref Writer writer, in AllSymbols allSymbols, in Type[] types) {
+	writeTypeArgsGeneric!Type(writer, types,
+		(in Type x) =>
+			!x.isA!(StructInst*) || empty(typeArgs(*x.as!(StructInst*))),
+		(in Type x) {
+			writeTypeUnquoted(writer, allSymbols, x);
+		});
 }
 
 void writeTypeQuoted(scope ref Writer writer, in AllSymbols allSymbols, in Type a) {

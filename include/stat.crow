@@ -32,7 +32,7 @@ stat record extern
 new stat()
 	0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0
 
-stat int32(path c-string, buf stat mut*) extern<c> summon
+stat int32(path c-string, buf stat mut*) summon, c extern
 
 S_IFMT nat32() noctx
 	# TODO: "octal170000"
@@ -46,4 +46,4 @@ S_IFREG nat32() noctx
 	# TODO: "octal100000"
 	32768
 
-mkdir err-t(path c-string, mode mode_t) extern<c> summon
+mkdir err-t(path c-string, mode mode_t) summon, c extern

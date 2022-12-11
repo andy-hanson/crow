@@ -20,11 +20,11 @@ board record by-val
 	.current-player nat64
 	.both-players nat64
 
-board-cache<a> record mut
-	.keys mut-array nat32
-	.values mut-array a
+board-cache[t] record mut
+	.keys nat32 mut-array
+	.values t mut-array
 
-new<a> board-cache a() trusted
+new[t] t board-cache() trusted
 	size = 0xccce9
 	# Per the Chinese Remainder Theorem, if we know the key mod 2^32 and mod size, we know the key mod their product.
 	# If their product is > the max key, then we know the key.
@@ -32,13 +32,13 @@ new<a> board-cache a() trusted
 	# Use max-nat as an impossible key
 	(size fill-mut-array max-nat32), (size fill-mut-array zeroed)
 
-subscript<a> a?(a board-cache a, key board)
+subscript[t] t?(a t board-cache, key board)
 	small-key = key board-key
 	index = small-key % a.keys.size
 	if a.keys[index] == small-key.wrap-to-nat32
 		a.values[index],
 
-set-subscript<a> void(a board-cache a, key board, value a)
+set-subscript[t] void(a t board-cache, key board, value t)
 	small-key = key board-key
 	index = small-key % a.keys.size
 	a.keys[index] := small-key wrap-to-nat32

@@ -13,32 +13,32 @@ import
 	./list: for-loop, list, to-list
 	./mut-dict: mut-dict, new, set-subscript, subscript, to-dict
 
-counter<a> record
-	.inner nat64[a]
+counter[k] record
+	.inner nat64[k]
 
-new<a> counter a(...a array a) is-data<a> compare<a> hash-mix<a>
+new[k] k counter(...a k array) k is-data, k compare, k hash-mix
 	a.to-list to-counter
 
-to-counter<a> counter a(values a[]) is-data<a> compare<a> hash-mix<a>
-	res nat64 mut[a] = ()
+to-counter[k] k counter(values k[]) k is-data, k compare, k hash-mix
+	res nat64 mut[k] = ()
 	for x : values
 		res[x] := (res[x] ?? 0) + 1
 	res.to-dict,
 
-to-dict<a> nat64[a](a counter a) is-data<a> compare<a> hash-mix<a>
+to-dict[k] nat64[k](a k counter) k is-data, k compare, k hash-mix
 	a inner
 
-subscript<a> nat64(a counter a, value a) is-data<a> compare<a> hash-mix<a>
+subscript[k] nat64(a k counter, value k) k is-data, k compare, k hash-mix
 	a.inner[value] ?? 0
 
-~ <a> counter a(a counter a, value a) is-data<a> compare<a> hash-mix<a>
+~[k] k counter(a k counter, value k) k is-data, k compare, k hash-mix
 	a.inner ~ (value, a[value] + 1),
 
-for-loop<a> void(a counter a, f act void(a, nat64)) is-data<a> compare<a> hash-mix<a>
+for-loop[k] void(a k counter, f act void(k, nat64)) k is-data, k compare, k hash-mix
 	a.inner for-loop f
 
 test
-	a counter nat64 = ()
+	a nat64 counter = ()
 	a[1] is 0
 	b = a ~ 3
 	b[3] is 1

@@ -38,7 +38,7 @@ import
 	./win32-util: show-win32-error
 
 # `true` iff anything (like a file or directory) exists at the path.
-path-exists bool(path string) summon trusted
+path-exists bool(path string) summon, trusted
 	!path.get-path-kind.is-empty
 
 ###
@@ -57,9 +57,9 @@ is-dir bool(path string) summon
 `true` if the path is a symlink to a file.
 `false` if nothing exists at the path.
 ###
-is-file bool(path string) trusted summon
+is-file bool(path string) summon, trusted
 	path.to-c-string is-file
-.is-file bool(path c-string) unsafe summon
+.is-file bool(path c-string) summon, unsafe
 	if kind ?= path get-path-kind
 		kind == file
 
@@ -69,9 +69,9 @@ is-file bool(path string) trusted summon
 	other
 
 # Returns an empty option iff nothing exists at the path.
-.get-path-kind path-kind?(path string) trusted summon
+.get-path-kind path-kind?(path string) summon, trusted
 	path.to-c-string get-path-kind
-.get-path-kind path-kind?(path c-string) unsafe summon
+.get-path-kind path-kind?(path c-string) summon, unsafe
 	if is-windows
 		attr = path GetFileAttributesA
 		if attr == INVALID_FILE_ATTRIBUTES
@@ -112,10 +112,10 @@ Returns the basename of all children of the directory.
 Does not include ".." or ".".
 Use `paths-in-dir` if you want full paths.
 ###
-names-in-dir string[](path string) summon trusted
+names-in-dir string[](path string) summon, trusted
 	path.to-c-string names-in-dir
 
-.names-in-dir string[](path c-string) trusted summon
+.names-in-dir string[](path c-string) summon, trusted
 	if is-windows
 		path-search = "{path}\\*" to-c-string
 		file-data mut WIN32_FIND_DATAA = ()
@@ -131,15 +131,15 @@ names-in-dir string[](path string) summon trusted
 		with : (() => dirp close-dir path) finally
 			dirp.names-in-dir-posix sort
 
-.find-close void(file HANDLE, path c-string) unsafe summon
+.find-close void(file HANDLE, path c-string) summon, unsafe
 	ok = file FindClose
 	assert ok : "failed to close dir {path}"
 
-.close-dir void(dirp DIR mut*, path c-string) unsafe summon
+.close-dir void(dirp DIR mut*, path c-string) summon, unsafe
 	err = dirp closedir
 	assert err == 0 : "failed to close dir {path}"
 
-.names-in-dir-windows string[](dir-path c-string, file HANDLE) unsafe summon
+.names-in-dir-windows string[](dir-path c-string, file HANDLE) summon, unsafe
 	with out : build
 		loop
 			file-data mut WIN32_FIND_DATAA = ()
@@ -154,7 +154,7 @@ names-in-dir string[](path string) summon trusted
 				assert err == ERROR_NO_MORE_FILES : "Error while reading directory {dir-path}: {err show-win32-error}"
 				break
 
-.names-in-dir-posix string[](dirp DIR mut*) unsafe summon
+.names-in-dir-posix string[](dirp DIR mut*) summon, unsafe
 	with out : build
 		loop
 			# Initial value of entry / result should not matter
@@ -173,16 +173,16 @@ names-in-dir string[](path string) summon trusted
 				continue
 
 # Gets the path a symbolic link refers to.
-read-link string(path string) summon trusted
+read-link string(path string) summon, trusted
 	# TODO: smart small and retry if necessAry
-	buff mut-array char8 = 1000 uninitialized-mut-array
+	buff char8 mut-array = 1000 uninitialized-mut-array
 	size = path.to-c-string readlink buff.begin-pointer, buff.size
 	if size == -1
 		check-errno
 	buff.cast-immutable[0 .. size.to-nat64] as-string
 
 # Create a symbolic link at `link` with the target `target`.
-make-symlink-to void(link string, target string) summon trusted
+make-symlink-to void(link string, target string) summon, trusted
 	if is-windows
 		link-flags = SYMBOLIC_LINK_FLAG_ALLOW_UNPRIVILEGED_CREATE | (target.is-dir ? SYMBOLIC_LINK_FLAG_DIRECTORY : ())
 		ok = link.to-c-string CreateSymbolicLinkA target.to-c-string, link-flags
@@ -199,11 +199,11 @@ Gets the path of the current executable.
 If this program was built to executable, this will return its path.
 Otherwise, this will be the path where `crow` is installed.
 ###
-current-executable-path string() summon trusted
+current-executable-path string() summon, trusted
 	"/proc/self/exe" read-link
 
 # Reads the full contents of the file.
-read-file string(path string) summon trusted
+read-file string(path string) summon, trusted
 	path.read-file-binary as-string
 
 # Reads the full contents of the file as bytes.
@@ -217,32 +217,32 @@ read-file-binary nat8[](path string) summon
 Writes the full contents of the file as a string.
 If the file already exists, overwrites it.
 ###
-write-file void(path string, content string) summon trusted
+write-file void(path string, content string) summon, trusted
 	path.to-c-string write-file content
 
-.write-file void(path c-string, content string) summon unsafe
+.write-file void(path c-string, content string) summon, unsafe
 	fd = path fopen "wb"
 	forbid fd.as-any-const-pointer == null : "failed to open file for write: {path}"
 	with : (() => fd close-fd path) finally
 		fd write-fd path, content.to-bytes.to-array
 
-.write-fd void(fd FILE mut*, path c-string, bytes array nat8) summon unsafe
-	wrote-bytes = bytes.begin-pointer fwrite size-of@<nat8>, bytes.size, fd
+.write-fd void(fd FILE mut*, path c-string, bytes nat8 array) summon, unsafe
+	wrote-bytes = bytes.begin-pointer fwrite size-of@nat8, bytes.size, fd
 	assert wrote-bytes == bytes.size : "error writing file {path}"
 
 ###
 Like `read-file`, but returns an empty option if the file does not exist.
 Will still throw on other errors, like permission errors.
 ###
-try-read-file string?(path string) summon trusted
+try-read-file string?(path string) summon, trusted
 	if bytes ?= path try-read-file-binary
 		bytes.as-string,
 
 # Like `try-read-file` but returns binary data.
-try-read-file-binary nat8[]?(path string) summon trusted
+try-read-file-binary nat8[]?(path string) summon, trusted
 	path.to-c-string try-read-file-binary
 
-.try-read-file-binary nat8[]?(path c-string) summon trusted
+.try-read-file-binary nat8[]?(path c-string) summon, trusted
 	if path is-file
 		fd = path fopen "rb"
 		if fd.as-any-const-pointer == null
@@ -255,7 +255,7 @@ try-read-file-binary nat8[]?(path string) summon trusted
 	else
 		()
 
-.read-fd nat8[](fd FILE mut*, path c-string) summon unsafe
+.read-fd nat8[](fd FILE mut*, path c-string) summon, unsafe
 	err = fd fseek 0, SEEK_END
 	assert err == 0 : "Error reading {path}"
 
@@ -270,19 +270,19 @@ try-read-file-binary nat8[]?(path string) summon trusted
 
 		# TODO: allocation can fail, then 'fd' is left open. Need finalizers
 		file-size-nat = file-size to-nat64
-		res mut-array nat8 = file-size-nat uninitialized-mut-array
-		n-bytes-read = res.begin-pointer.pointer-cast fread size-of@<nat8>, file-size-nat, fd
+		res nat8 mut-array = file-size-nat uninitialized-mut-array
+		n-bytes-read = res.begin-pointer.pointer-cast fread size-of@nat8, file-size-nat, fd
 		assert n-bytes-read == file-size-nat
 		forbid fd ferror : "Error reading {path}"
 		res.cast-immutable to-list
 
-.close-fd void(fd FILE mut*, path c-string) summon unsafe
+.close-fd void(fd FILE mut*, path c-string) summon, unsafe
 	err = fd fclose
 	assert err == 0 : "Error closing {path}"
 
 # Gets the current directory (of the user that ran the program).
-current-directory string() summon trusted
-	buff mut-array char8 = 256 uninitialized-mut-array
+current-directory string() summon, trusted
+	buff char8 mut-array = 256 uninitialized-mut-array
 	b = is-windows ? buff.begin-pointer _getcwd buff.size : buff.begin-pointer getcwd buff.size
 	if b == null
 		todo
@@ -347,13 +347,13 @@ make-directory void(path string) summon
 make-directory void(path string, permissions file-permissions) summon
 	path make-directory permissions.to-mode
 
-make-directory void(path string, permissions mode_t) trusted summon
+make-directory void(path string, permissions mode_t) summon, trusted
 	path-c-string = path to-c-string
 	err = is-windows ? path-c-string _mkdir permissions : path-c-string mkdir permissions
 	err check-posix-error
 
 # Deletes the file at `path`.
-remove-file void(path string) trusted summon
+remove-file void(path string) summon, trusted
 	if is-windows
 		ok = path.to-c-string DeleteFileA
 		assert ok : "error removing file at {path}: {GetLastError show-win32-error}"
@@ -364,13 +364,13 @@ remove-file void(path string) trusted summon
 Deletes the directory at `path`.
 It should be empty.
 ###
-remove-directory void(path string) trusted summon
+remove-directory void(path string) summon, trusted
 	path.to-c-string.rmdir check-posix-error
 
-remove-directory-and-contents-non-recursive void(path string) no-doc summon
+remove-directory-and-contents-non-recursive void(path string) no-doc, summon
 	path remove-directory-contents-non-recursive
 	path remove-directory
 
-remove-directory-contents-non-recursive void(path string) no-doc summon
+remove-directory-contents-non-recursive void(path string) no-doc, summon
 	for child : path names-in-dir
 		"{path}/{child}" remove-file

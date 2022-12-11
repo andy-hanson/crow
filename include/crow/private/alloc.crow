@@ -16,13 +16,13 @@ import
 	./range-low-level: .., high, low, range
 	./thread-utils: acquire, barrier, init, release, wait-barrier, uninit
 
-mem-copy<a> void(dest a mut*, src a*, size nat64) unsafe noctx
-	_ = dest.as-any-mut-pointer memcpy src.as-any-const-pointer, (size wrap-mul size-of@<a>)
+mem-copy[t] void(dest t mut*, src t*, size nat64) noctx, unsafe
+	_ = dest.as-any-mut-pointer memcpy src.as-any-const-pointer, (size wrap-mul size-of@t)
 	()
 
-set-zero-range<a> void(begin a mut*, size nat64) noctx unsafe
+set-zero-range[t] void(begin t mut*, size nat64) noctx, unsafe
 	# TODO: wrap-mul is unsafe
-	_ = begin.as-any-mut-pointer memset 0, (size wrap-mul size-of@<a>)
+	_ = begin.as-any-mut-pointer memset 0, (size wrap-mul size-of@t)
 	()
 
 mark-ctx record mut by-ref
@@ -30,11 +30,11 @@ mark-ctx record mut by-ref
 	marks bool mut*
 	memory-start nat64 mut*
 
-.to-word-aligned-range range nat64*(a any-const-pointer, size-bytes nat64) noctx unsafe
+.to-word-aligned-range nat64* range(a any-const-pointer, size-bytes nat64) noctx, unsafe
 	a.round-down-to-word .. (a + size-bytes).round-up-to-word
 
 # Returns true if the range is GC-allocated memory and was not already marked
-mark bool(ctx mark-ctx, pointer-any any-const-pointer, size-bytes nat64) noctx unsafe summon
+mark bool(ctx mark-ctx, pointer-any any-const-pointer, size-bytes nat64) noctx, summon, unsafe
 	words = pointer-any to-word-aligned-range size-bytes
 	indices = words.low - ctx.memory-start.as-const .. words.high - ctx.memory-start.as-const
 	if indices.low < ctx.memory-size-words
@@ -44,20 +44,20 @@ mark bool(ctx mark-ctx, pointer-any any-const-pointer, size-bytes nat64) noctx u
 		assert indices.high >= ctx.memory-size-words
 		false
 
-.is-word-aligned bool(a any-mut-pointer) noctx unsafe
+.is-word-aligned bool(a any-mut-pointer) noctx, unsafe
 	a.to-nat64 & 7 == 0
 
-words-of-bytes nat64(size-bytes nat64) noctx trusted
+words-of-bytes nat64(size-bytes nat64) noctx, trusted
 	size-bytes.round-up-to-multiple-of-8 unsafe-div 8
 
 round-up-to-multiple-of-8 nat64(n nat64) noctx
 	(n wrap-add 7) & ~7
-round-down-to-word nat64*(a nat8*) noctx unsafe
+round-down-to-word nat64*(a nat8*) noctx, unsafe
 	a - (a.to-nat64 & 7) pointer-cast
-round-up-to-word nat64*(a nat8*) noctx unsafe
+round-up-to-word nat64*(a nat8*) noctx, unsafe
 	a.to-nat64.round-up-to-multiple-of-8 to-const-pointer
 
-mark-range bool(start bool mut*, end bool mut*) noctx unsafe
+mark-range bool(start bool mut*, end bool mut*) noctx, unsafe
 	cur mut = start
 	marked-anything mut = false
 	until cur == end
@@ -67,11 +67,11 @@ mark-range bool(start bool mut*, end bool mut*) noctx unsafe
 		cur := cur + 1
 	marked-anything
 
-mark-visit<a> void(mark-ctx mark-ctx, value a) noctx unsafe builtin
+mark-visit[t] void(mark-ctx mark-ctx, value t) builtin, noctx, unsafe
 
 gc record mut by-ref
-	.lk mut by-val lock
-	.barrier mut by-val barrier
+	.lk mut lock by-val
+	.barrier mut barrier by-val
 	.gc-count mut nat64
 	.context-head mut gc-ctx?
 	needs-gc .mut bool
@@ -97,7 +97,7 @@ words-free nat64(a gc-stats) noctx
 
 # Super unsafe
 # WARN: Unfortunately this doesn't prevent the original allocation in new-gc, just forbids us to use it
-set-hard-limit void(gc gc, size-words nat64) noctx unsafe
+set-hard-limit void(gc gc, size-words nat64) noctx, unsafe
 	gc validate-gc
 	size-words <= gc.size-words hard-assert
 	cur-index = gc.mark-cur - gc.mark-begin
@@ -108,7 +108,7 @@ set-hard-limit void(gc gc, size-words nat64) noctx unsafe
 	gc validate-gc
 
 # WARN: this locks up the GC for a long time
-get-stats gc-stats(gc gc) noctx unsafe
+get-stats gc-stats(gc gc) noctx, unsafe
 	gc validate-gc
 	&gc.lk acquire
 	gc-count = gc gc-count
@@ -118,43 +118,43 @@ get-stats gc-stats(gc gc) noctx unsafe
 	&gc.lk release
 	gc-count, cur-word, total-words, (cur-word wrap-add used-words-remaining)
 
-words-used-in-range nat64(acc nat64, cur bool mut*, end bool mut*) noctx unsafe
+words-used-in-range nat64(acc nat64, cur bool mut*, end bool mut*) noctx, unsafe
 	if cur == end
 		acc
 	else
 		acc wrap-add cur->to-nat64 words-used-in-range cur + 1, end
 
-uninit by-val gc() noctx unsafe
+uninit gc by-val() noctx, unsafe
 	# TODO: handle malloc failure
 	# 3 * 2**24 words = 3 * 2**27 bytes = 3 * 2**8 MB = 1.5 GB
 	# If changing this, be sure `globalBuffer` in `wasm.d` is big enough
 	size-words = 0x3000000
 	# 8 GB
 	#size-words = 0x40000000
-	size-of@<bool> == size-of@<nat8> hard-assert
-	mark bool mut* = size-words.malloc pointer-cast@<bool, nat8>
+	size-of@bool == size-of@nat8 hard-assert
+	mark bool mut* = size-words.malloc pointer-cast
 	mark-end = mark + size-words
-	bytes nat64 mut* = (size-words wrap-mul size-of@<nat64>).malloc pointer-cast@<nat64, nat8>
+	bytes nat64 mut* = (size-words wrap-mul size-of@nat64).malloc pointer-cast
 	bytes.as-any-mut-pointer.is-word-aligned hard-assert
 	bytes-end = bytes + size-words
 
 	_ = mark.as-any-mut-pointer memset 0, size-words
 
-	res mut by-val gc = uninit, uninit, 0, (), false, size-words, mark, mark, mark-end, bytes, bytes, bytes-end
+	res mut gc by-val = uninit, uninit, 0, (), false, size-words, mark, mark, mark-end, bytes, bytes, bytes-end
 	&res validate-gc
 	res
 
-init void(a gc, n-threads nat64) noctx unsafe
+init void(a gc, n-threads nat64) noctx, unsafe
 	(&a.lk)::lock init
 	(&a.barrier)::barrier init n-threads
 
 # WARN: This should be called by all threads.
-run-garbage-collection<a> void(gc gc, gc-root a) noctx unsafe
+run-garbage-collection[t] void(gc gc, gc-root t) noctx, unsafe
 	gc.needs-gc hard-assert
 	if &gc.barrier wait-barrier
 		gc.gc-count := gc.gc-count wrap-add 1
 		_ = gc.mark-begin.as-any-mut-pointer memset 0, gc.size-words
-		mark-ctx by-val mark-ctx = gc.size-words, gc.mark-begin, gc.data-begin
+		mark-ctx mark-ctx by-val = gc.size-words, gc.mark-begin, gc.data-begin
 		&mark-ctx mark-visit gc-root
 		prev-mark-cur = gc.mark-cur
 		gc.mark-cur := gc.mark-begin
@@ -167,7 +167,7 @@ run-garbage-collection<a> void(gc gc, gc-root a) noctx unsafe
 	_ = &gc.barrier wait-barrier
 	()
 
-.clear-free-mem void(mark-pointer bool mut*, mark-end bool mut*, data-pointer nat64 mut*) noctx unsafe
+.clear-free-mem void(mark-pointer bool mut*, mark-end bool mut*, data-pointer nat64 mut*) noctx, unsafe
 	unless mark-pointer == mark-end
 		unless *mark-pointer
 			*data-pointer := 0xfadefadefadefade
@@ -184,7 +184,7 @@ gc-ctx record mut by-ref
 force-needs-gc void(gc gc) unsafe
 	gc.needs-gc := true
 
-.acquire-gc-ctx gc-ctx(gc gc) noctx unsafe
+.acquire-gc-ctx gc-ctx(gc gc) noctx, unsafe
 	&gc.lk acquire
 	res = if c ?= gc.context-head
 		gc.context-head := c next-ctx
@@ -193,15 +193,15 @@ force-needs-gc void(gc gc) unsafe
 	else
 		# NOTE: malloc'd memory is not traced for garbage col.
 		# This is fine as 'gc' is kept alive anyway.
-		# TODO: `size-of@<by-val<gc-ctx>>.malloc` should be legal
-		c gc-ctx = (size-of@<by-val<gc-ctx>> malloc) as-ref
+		# TODO: `size-of@(gc-ctx by-val).malloc` should be legal
+		c gc-ctx = (size-of@(gc-ctx by-val) malloc) as-ref
 		c.gc := gc
 		c.next-ctx := ()
 		c
 	&gc.lk release
 	res
 
-return-gc-ctx void() noctx unsafe
+return-gc-ctx void() noctx, unsafe
 	gc-ctx = try-get-cur-gc-ctx force
 	*cur-gc-ctx := ()
 	gc = gc-ctx gc
@@ -215,22 +215,22 @@ return-gc-ctx void() noctx unsafe
 get-gc-ctx gc-ctx() unsafe
 	try-get-cur-gc-ctx force
 
-.force<a> a(a a?) noctx unsafe
+.force[t] t(a t?) noctx, unsafe
 	if res ?= a
 		res
 	else
 		hard-unreachable
 
-try-get-cur-gc-ctx gc-ctx?() noctx unsafe
+try-get-cur-gc-ctx gc-ctx?() noctx, unsafe
 	*cur-gc-ctx
 
-set-gc-ctx-for-thread void(a gc) noctx unsafe
+set-gc-ctx-for-thread void(a gc) noctx, unsafe
 	*cur-gc-ctx := a.acquire-gc-ctx,
 
 get-gc gc() unsafe
 	get-gc-ctx gc
 
-validate-gc void(gc gc) noctx unsafe
+validate-gc void(gc gc) noctx, unsafe
 	gc.mark-begin.as-any-mut-pointer.is-word-aligned hard-assert
 	gc.data-begin.as-any-mut-pointer.is-word-aligned hard-assert
 	gc.data-cur.as-any-mut-pointer.is-word-aligned hard-assert
@@ -244,7 +244,7 @@ validate-gc void(gc gc) noctx unsafe
 	gc.data-end - gc.data-begin == gc.size-words hard-assert
 	mark-idx == data-idx hard-assert
 
-.try-gc-alloc any-mut-pointer?(gc-ctx gc-ctx, size-bytes nat64) noctx trusted
+.try-gc-alloc any-mut-pointer?(gc-ctx gc-ctx, size-bytes nat64) noctx, trusted
 	gc = gc-ctx.gc
 	&gc.lk acquire
 	res any-mut-pointer? = loop
@@ -269,12 +269,12 @@ validate-gc void(gc gc) noctx unsafe
 	&gc.lk release
 	res
 
-.maybe-set-needs-gc void(gc gc) noctx unsafe
+.maybe-set-needs-gc void(gc gc) noctx, unsafe
 	cur-word = gc.mark-cur - gc.mark-begin
 	if cur-word > (gc.size-words unsafe-div 2)
 		gc.needs-gc := true
 
-.first-non-free bool mut*?(mark bool mut*, end bool mut*) noctx unsafe
+.first-non-free bool mut*?(mark bool mut*, end bool mut*) noctx, unsafe
 	if mark == end
 		()
 	elif *mark
@@ -282,7 +282,7 @@ validate-gc void(gc gc) noctx unsafe
 	else
 		mark + 1 first-non-free end
 
-gc-alloc any-mut-pointer(gc gc-ctx, size nat64) noctx trusted
+gc-alloc any-mut-pointer(gc gc-ctx, size nat64) noctx, trusted
 	if res ?= gc try-gc-alloc size
 		res
 	else
@@ -292,54 +292,54 @@ gc-alloc any-mut-pointer(gc gc-ctx, size nat64) noctx trusted
 alloc any-mut-pointer(size-bytes nat64) unsafe
 	get-gc-ctx gc-alloc size-bytes
 
-alloc-uninitialized<a> a mut*() unsafe
+alloc-uninitialized[t] t mut*() unsafe
 	1 alloc-uninitialized
 
-alloc-uninitialized<a> a mut*(count nat64) unsafe
+alloc-uninitialized[t] t mut*(count nat64) unsafe
 	get-gc-ctx alloc-uninitialized count
 
-alloc-uninitialized<a> a mut*(gc gc-ctx, count nat64) noctx unsafe
-	gc gc-alloc (count wrap-mul size-of@<a>) pointer-cast
+alloc-uninitialized[t] t mut*(gc gc-ctx, count nat64) noctx, unsafe
+	gc gc-alloc (count wrap-mul size-of@t) pointer-cast
 
-alloc-uninitialized<a> a mut*(gc gc-ctx) noctx unsafe
+alloc-uninitialized[t] t mut*(gc gc-ctx) noctx, unsafe
 	gc alloc-uninitialized 1
 
-try-alloc-uninitialized<a> a mut*?(size nat64) unsafe
+try-alloc-uninitialized[t] t mut*?(size nat64) unsafe
 	get-gc-ctx try-alloc-uninitialized size
 
-try-alloc-uninitialized<a> a mut*?(gc gc-ctx, size nat64) noctx unsafe
-	if res ?= gc try-gc-alloc (size wrap-mul size-of@<a>)
+try-alloc-uninitialized[t] t mut*?(gc gc-ctx, size nat64) noctx, unsafe
+	if res ?= gc try-gc-alloc (size wrap-mul size-of@t)
 		res.pointer-cast,
 
-try-alloc-uninitialized<a> a mut*?() unsafe
+try-alloc-uninitialized[t] t mut*?() unsafe
 	1 try-alloc-uninitialized
 
-try-alloc-uninitialized<a> a mut*?(gc gc-ctx) noctx unsafe
+try-alloc-uninitialized[t] t mut*?(gc gc-ctx) noctx, unsafe
 	gc try-alloc-uninitialized 1
 
-unmanaged-alloc-uninitialized<a> a mut*() noctx unsafe
+unmanaged-alloc-uninitialized[t] t mut*() noctx, unsafe
 	1 unmanaged-alloc-elements
 
-unmanaged-alloc-bytes any-mut-pointer(size nat64) noctx unsafe
+unmanaged-alloc-bytes any-mut-pointer(size nat64) noctx, unsafe
 	res = size malloc
 	res != null hard-assert
 	res
 
-unmanaged-alloc-zeroed-elements<a> a mut*(size-elements nat64) noctx unsafe
-	res a mut* = size-elements unmanaged-alloc-elements
+unmanaged-alloc-zeroed-elements[t] t mut*(size-elements nat64) noctx, unsafe
+	res t mut* = size-elements unmanaged-alloc-elements
 	res set-zero-range size-elements
 	res
 
-unmanaged-alloc-elements<a> a mut*(size-elements nat64) noctx unsafe
+unmanaged-alloc-elements[t] t mut*(size-elements nat64) noctx, unsafe
 	# TODO: wrap-mul is unsafe!
-	(size-elements wrap-mul size-of@<a>).unmanaged-alloc-bytes pointer-cast
+	(size-elements wrap-mul size-of@t).unmanaged-alloc-bytes pointer-cast
 
-unmanaged-free-elements<a> void(begin a mut*, _ nat64) noctx unsafe
+unmanaged-free-elements[t] void(begin t mut*, _ nat64) noctx, unsafe
 	begin.as-any-mut-pointer free
 
-unmanaged-free<a> void(p a mut*) noctx unsafe
+unmanaged-free[t] void(p t mut*) noctx, unsafe
 	p.as-any-mut-pointer free
 
-copy-data-from<a> void(to a mut*, from a*, len nat64) noctx unsafe
-	_ = to.as-any-mut-pointer memcpy from.as-any-const-pointer, (len wrap-mul size-of@<a>)
+copy-data-from[t] void(to t mut*, from t*, len nat64) noctx, unsafe
+	_ = to.as-any-mut-pointer memcpy from.as-any-const-pointer, (len wrap-mul size-of@t)
 	()

@@ -1,6 +1,6 @@
 import
 	crow/parse:
-		/, ~~, and-return, exact, grammar, grammar-skip, many, map, parse, text-delimited,
+		/, ~~, and-return, exact, grammar, grammar-skip, many, map, nat, parse, text-delimited,
 		text-not-containing-any, to-string
 	./module:
 		body_, doc-comment, exports, fields, has-private-fields, is-mut, members, module,
@@ -73,9 +73,9 @@ module-top string(path string)
 
 .type-params-content string(a type-param[])
 	unless a is-empty
-		type-params = "," join for x : a
+		type-params = ", " join for x : a
 			"""<code class="type-param">{x name}</code>"""
-		"""<span class="type-params">{type-params}</span>"""
+		"""<span class="type-params">[{type-params}]</span>"""
 
 .export-header-extra string(a module-export-value)
 	match a
@@ -165,76 +165,69 @@ module-top string(path string)
 	"""<li class="sig"><code class="fun">{a name}</code> {rt}</li>"""
 
 .return-type-and-params-and-specs string(return-type type-ref, variadic bool, params param[], specs spec-ref[])
-	params-content = "," join for x : params
+	params-content = ", " join for x : params
 		x param-content variadic
 	specs-span = unless specs is-empty
-		contents = "" join for x : specs
+		contents = ", " join for x : specs
 			x spec-ref-content
-		"""<span class="specs">{contents}</span>"""
-	"""{return-type type-ref-content}<span class="params">{params-content}</span>{specs-span}"""
+		""" <span class="specs">{contents}</span>"""
+	"""{return-type type-ref-content}<span class="params">({params-content})</span>{specs-span}"""
 
 .param-content string(a param, variadic bool)
 	var = variadic ? """<code class="keyword">...</code>"""
 	"""<span class="param">{var}<code class="param">{a name}</code> {a.type type-ref-content}</span>"""
 
 .type-ref-content string(a type-ref)
-	a type-ref-content-recur false
-
-.type-ref-with-subscript string(a type-ref)
-	a type-ref-content-recur true
-
-.type-ref-content-recur string(a type-ref, has-subscript bool)
 	name = a name
 	if name == "option"
-		"{a.type-args.only type-ref-with-subscript}{"?" keyword}"
-	elif name == "arr"
-		"{a.type-args.only type-ref-with-subscript}{"[]" keyword}"
+		a type-ref-suffix "?"
+	elif name == "list"
+		a type-ref-suffix "[]"
 	elif name == "mut-list"
-		"{a.type-args.only type-ref-with-subscript}{" mut[]" keyword}"
+		a type-ref-suffix " mut[]"
 	elif name == "dict"
-		k = a.type-args[0] type-ref-content
-		v = a.type-args[1] type-ref-with-subscript
-		"{v}{"[" keyword}{k}{"]" keyword}"
+		a type-ref-dict "["
 	elif name == "mut-dict"
-		k = a.type-args[0] type-ref-content
-		v = a.type-args[1] type-ref-with-subscript
-		"{v}{" mut[" keyword}{k}{"]" keyword}"
+		a type-ref-dict " mut["
 	elif name == "const-pointer"
-		"{a.type-args.only type-ref-with-subscript}{"*" keyword}"
+		a type-ref-suffix "*"
 	elif name == "mut-pointer"
-		"{a.type-args.only type-ref-with-subscript}{" mut*" keyword}"
-	elif name in ("fun0", "fun1", "fun2", "fun3", "fun4", "fun5")::symbol[]
-		a fun-type "fun"
-	elif name in ("fun-act0", "fun-act1", "fun-act2", "fun-act3", "fun-act4", "fun-act5")::symbol[]
-		a fun-type "act"
-	elif name in ("fun-ref0", "fun-ref1", "fun-ref2", "fun-ref3", "fun-ref4", "fun-ref5")::symbol[]
-		a fun-type "ref"
+		a type-ref-suffix " mut*"
+	elif type ?= name get-fun-type
+		a type-ref-fun type
 	else
-		inner = if a.type-args.size == 1 && !has-subscript
-			"{name} {a.type-args.only type-ref-content}"
-		else
-			"{name}{a.type-args type-args-content}"
-		"""<code class="struct">{inner}</code>"""
-
-.fun-type string(a type-ref, type string)
+		"""{a.type-args type-args-content}<code class="struct">{name}</code>"""
+.type-ref-suffix string(a type-ref, suffix string)
+	"{a.type-args.only type-ref-content}{suffix keyword}"
+.type-ref-dict string(a type-ref, open string)
+	assert a.type-args.size == 2
+	"{a.type-args[0] type-ref-content}{open keyword}{a.type-args[1] type-ref-content}{"]" keyword}"
+.type-ref-fun string(a type-ref, type string)
 	params = ", " join for x : a.type-args tail
 		x type-ref-content
 	kw = " {type}" keyword
-	"{a.type-args[0] type-ref-with-subscript}{kw}({params})"
+	"{kw} {a.type-args[0] type-ref-content}({params})"
+
+.get-fun-type string?(name symbol)
+	("fun", "fun-act", "fun-ref") find type =>
+		if rest ?= name.to-string try-remove-start type
+			nat parse rest is-ok
 
 .spec-ref-content string(a spec-ref)
-	"""<span class="spec"><code class="spec">{a name}</code>{a.type-args type-args-content}</span>"""
+	"""<span class="spec">{a.type-args type-args-content}<code class="spec">{a name}</code></span>"""
 
 .type-args-content string(a type-ref[])
-	unless a is-empty
-		args = "," join for x : a
-			x type-ref-content
-		"&lt;{args}&gt;"
+	if a.size == 0
+		""
+	elif a.size == 1
+		"{a.only type-ref-content} "
+	else
+		"({", " join for x : a; x type-ref-content}) "
 
 .keyword string(a string)
 	"""<code class="keyword">{a}</code>"""
 
-.only<a> a(a a[])
+.only[t] t(a t[])
 	assert a.size == 1
 	a[0]
 
@@ -280,16 +273,16 @@ test
 	code-short string
 	code-block string
 
-.comment-part grammar comment-part()
+.comment-part comment-part grammar()
 	code-block / newlines / code-short / text
-.newlines grammar comment-part()
+.newlines comment-part grammar()
 	(("\n\n" ~~ skip-newlines) and-return multi-newline) / ("\n" exact newline)
-.code-block grammar comment-part()
+.code-block comment-part grammar()
 	block = "```" text-delimited "```"
 	skip-newlines ~~ block ~~ skip-newlines map x => x.strip code-block
 .skip-newlines grammar-skip()
 	"\n".exact many
-.code-short grammar comment-part()
+.code-short comment-part grammar()
 	"`" text-delimited "`" map x => x code-short
-.text grammar comment-part()
+.text comment-part grammar()
 	("\n", "`").text-not-containing-any map x => x text

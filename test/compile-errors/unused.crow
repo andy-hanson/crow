@@ -1,9 +1,9 @@
-foo<a> void(p nat, _ string)
+foo[t] void(p nat, _ string)
 	_ act void(nat) = x => ()
 	_ act void(nat) = _ => ()
 	()
 
-.bar<a> void() compare<a>
+.bar[t] void() t compare
 	()
 
 .r record mut

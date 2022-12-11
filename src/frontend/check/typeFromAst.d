@@ -14,7 +14,8 @@ import frontend.check.checkCtx :
 import frontend.check.dicts : SpecDeclAndIndex, SpecsDict, StructsAndAliasesDict, StructOrAliasAndIndex;
 import frontend.check.instantiate :
 	DelayStructInsts, instantiateStruct, instantiateStructNeverDelay, TypeArgsArray, typeArgsArray;
-import frontend.parse.ast : NameAndRange, range, rangeOfNameAndRange, symForTypeAstDict, symForTypeAstSuffix, TypeAst;
+import frontend.parse.ast :
+	NameAndRange, range, rangeOfNameAndRange, suffixRange, symForTypeAstDict, symForTypeAstSuffix, TypeAst;
 import frontend.programState : ProgramState;
 import model.diag : Diag;
 import model.model :
@@ -31,24 +32,24 @@ import model.model :
 	typeParams;
 import util.alloc.alloc : Alloc;
 import util.cell : Cell, cellGet, cellSet;
-import util.col.arr : empty;
+import util.col.arr : arrayOfSingle, empty;
 import util.col.arrUtil : eachPair, findPtr, mapWithIndex;
 import util.col.mutArr : MutArr;
 import util.col.mutMaxArr : fillMutMaxArr, mapTo, tempAsArr;
 import util.opt : force, has, none, noneMut, Opt, some;
-import util.ptr : castNonScope_ref;
+import util.ptr : castNonScope_ref, ptrTrustMe;
 import util.sourceRange : RangeWithinFile;
 import util.sym : Sym, sym;
-import util.util : todo;
+import util.util : drop, todo;
 
 private Type instStructFromAst(
 	ref CheckCtx ctx,
 	ref CommonTypes commonTypes,
 	Sym name,
-	RangeWithinFile range,
-	in TypeAst[] typeArgAsts,
+	RangeWithinFile suffixRange,
+	in Opt!(TypeAst*) typeArgsAst,
 	in StructsAndAliasesDict structsAndAliasesDict,
-	in TypeParam[] typeParamsScope,
+	TypeParam[] typeParamsScope,
 	DelayStructInsts delayStructInsts,
 ) {
 	Opt!StructOrAliasAndIndex opDeclFromHere = structsAndAliasesDict[name];
@@ -58,21 +59,21 @@ private Type instStructFromAst(
 		? some(force(opDeclFromHere).structOrAlias)
 		: none!StructOrAlias;
 	Opt!StructOrAlias opDecl = tryFindT!StructOrAlias(
-		ctx, name, range, here, Diag.DuplicateImports.Kind.type, Diag.NameNotFound.Kind.type, (in NameReferents nr) =>
-			nr.structOrAlias);
+		ctx, name, suffixRange, here,
+		Diag.DuplicateImports.Kind.type, Diag.NameNotFound.Kind.type,
+		(in NameReferents nr) => nr.structOrAlias);
 	if (!has(opDecl))
 		return Type(Type.Bogus());
 	else {
 		StructOrAlias sOrA = force(opDecl);
-		size_t nExpectedTypeArgs = typeParams(sOrA).length;
 		TypeArgsArray typeArgs = typeArgsArray();
-		getTypeArgsIfNumberMatches(
+		drop(getTypeArgsForStructOrAliasIfNumberMatches(
 			typeArgs,
-			ctx, commonTypes, range, structsAndAliasesDict,
-			sOrA, nExpectedTypeArgs, typeArgAsts, typeParamsScope, delayStructInsts);
+			ctx, commonTypes, suffixRange, structsAndAliasesDict,
+			sOrA, typeArgsAst, typeParamsScope, delayStructInsts));
 		return sOrA.matchWithPointers!Type(
 			(StructAlias* a) =>
-				nExpectedTypeArgs != 0
+				typeParams(sOrA).length != 0
 					? todo!Type("alias with type params")
 					: typeFromOptInst(target(*a)),
 			(StructDecl* decl) =>
@@ -80,24 +81,90 @@ private Type instStructFromAst(
 	}
 }
 
-private void getTypeArgsIfNumberMatches(
+bool getTypeArgsForSpecIfNumberMatches(
+	ref TypeArgsArray res,
+	ref CheckCtx ctx,
+	ref CommonTypes commonTypes,
+	RangeWithinFile range,
+	in StructsAndAliasesDict structsAndAliasesDict,
+	SpecDecl* spec,
+	in Opt!(TypeAst*) typeArgsAst,
+	TypeParam[] typeParamsScope,
+) =>
+	getTypeArgsIfNumberMatches(
+		res,
+		ctx,
+		commonTypes,
+		range,
+		structsAndAliasesDict,
+		spec.typeParams.length,
+		typeArgsAst,
+		typeParamsScope,
+		noneMut!(MutArr!(StructInst*)*),
+		(size_t expected, size_t actual) => Diag(Diag.WrongNumberTypeArgsForSpec(spec, expected, actual)));
+
+private bool getTypeArgsForStructOrAliasIfNumberMatches(
 	ref TypeArgsArray res,
 	ref CheckCtx ctx,
 	ref CommonTypes commonTypes,
 	RangeWithinFile range,
 	in StructsAndAliasesDict structsAndAliasesDict,
 	StructOrAlias sOrA,
-	size_t nExpectedTypeArgs,
-	in TypeAst[] typeArgAsts,
-	in TypeParam[] typeParamsScope,
+	in Opt!(TypeAst*) typeArgsAst,
+	TypeParam[] typeParamsScope,
 	DelayStructInsts delayStructInsts,
+) =>
+	getTypeArgsIfNumberMatches(
+		res,
+		ctx,
+		commonTypes,
+		range,
+		structsAndAliasesDict,
+		typeParams(sOrA).length,
+		typeArgsAst,
+		typeParamsScope,
+		delayStructInsts,
+		(size_t expected, size_t actual) => Diag(Diag.WrongNumberTypeArgsForStruct(sOrA, expected, actual)));
+
+private bool getTypeArgsIfNumberMatches(
+	ref TypeArgsArray res,
+	ref CheckCtx ctx,
+	ref CommonTypes commonTypes,
+	RangeWithinFile range,
+	in StructsAndAliasesDict structsAndAliasesDict,
+	size_t nExpectedTypeArgs,
+	in Opt!(TypeAst*) typeArgsAst,
+	TypeParam[] typeParamsScope,
+	DelayStructInsts delayStructInsts,
+	in Diag delegate(size_t expected, size_t actual) @safe @nogc pure nothrow makeDiag,
 ) {
-	if (typeArgAsts.length != nExpectedTypeArgs) {
-		addDiag(ctx, range, Diag(Diag.WrongNumberTypeArgsForStruct(sOrA, nExpectedTypeArgs, typeArgAsts.length)));
+	TypeAst[] typeArgsArray = tryGetMatchingTypeArgs(nExpectedTypeArgs, typeArgsAst);
+	if (typeArgsArray.length == nExpectedTypeArgs) {
+		mapTo(res, typeArgsArray, (ref TypeAst x) =>
+			typeFromAst(ctx, commonTypes, x, structsAndAliasesDict, typeParamsScope, delayStructInsts));
+		return true;
+	} else {
+		addDiag(ctx, range, makeDiag(nExpectedTypeArgs, typeArgsArray.length));
 		fillMutMaxArr(res, nExpectedTypeArgs, Type(Type.Bogus()));
-	} else
-		typeArgsFromAsts(res, ctx, commonTypes, typeArgAsts, structsAndAliasesDict, typeParamsScope, delayStructInsts);
+		return false;
+	}
 }
+
+// May return array of non-matching size
+TypeAst[] tryGetMatchingTypeArgs(size_t nTypeParams, Opt!(TypeAst*) typeArgsAst) {
+	if (has(typeArgsAst)) {
+		TypeAst* args = force(typeArgsAst);
+		if (nTypeParams >= 2) {
+			Opt!(TypeAst[]) unpacked = tryUnpackTupleType(*args);
+			return has(unpacked) ? force(unpacked) : arrayOfSingle(args);
+		} else
+			return arrayOfSingle(args);
+	} else
+		return [];
+}
+
+Opt!(TypeAst[]) tryUnpackTupleType(in TypeAst a) =>
+	a.isA!(TypeAst.Tuple*) ? some(a.as!(TypeAst.Tuple*).members) : none!(TypeAst[]);
 
 TypeParam[] checkTypeParams(ref CheckCtx ctx, in NameAndRange[] asts) {
 	TypeParam[] res = mapWithIndex!(TypeParam, NameAndRange)(
@@ -125,66 +192,106 @@ Type typeFromAst(
 	ref CommonTypes commonTypes,
 	in TypeAst ast,
 	in StructsAndAliasesDict structsAndAliasesDict,
-	in TypeParam[] typeParamsScope,
+	TypeParam[] typeParamsScope,
 	DelayStructInsts delayStructInsts,
 ) =>
 	ast.matchIn!Type(
-		(in TypeAst.Dict it) =>
-			instStructFromAst(
+		(in TypeAst.Bogus) =>
+			Type(Type.Bogus()),
+		(in TypeAst.Dict it) {
+			// TODO: don't create synthetic AST
+			TypeAst[2] tupleMembers = [it.k, it.v];
+			TypeAst.Tuple tuple = TypeAst.Tuple(RangeWithinFile.empty, castNonScope_ref(tupleMembers));
+			TypeAst typeArg = TypeAst(ptrTrustMe(tuple));
+			return instStructFromAst(
 				ctx,
 				commonTypes,
 				symForTypeAstDict(it.kind),
-				range(it),
-				[castNonScope_ref(it).k, castNonScope_ref(it).v],
+				range(it, ctx.allSymbols),
+				some(ptrTrustMe(typeArg)),
 				structsAndAliasesDict,
 				typeParamsScope,
-				delayStructInsts),
+				delayStructInsts);
+		},
 		(in TypeAst.Fun it) =>
 			typeFromFunAst(ctx, commonTypes, it, structsAndAliasesDict, typeParamsScope, delayStructInsts),
-		(in TypeAst.InstStruct iAst) {
-			Opt!(Diag.TypeShouldUseSyntax.Kind) optSyntax = typeSyntaxKind(iAst.name.name);
-			if (has(optSyntax))
-				addDiag(ctx, iAst.range, Diag(Diag.TypeShouldUseSyntax(force(optSyntax))));
-
-			Opt!(TypeParam*) found = findPtr!TypeParam(typeParamsScope, (in TypeParam x) =>
-				x.name == iAst.name.name);
-			if (has(found)) {
-				if (!empty(iAst.typeArgs))
-					addDiag(ctx, iAst.range, Diag(Diag.TypeParamCantHaveTypeArgs()));
-				return Type(force(found));
-			} else
-				return instStructFromAst(
+		(in NameAndRange name) {
+			Opt!(TypeParam*) typeParam = findTypeParam(typeParamsScope, name.name);
+			return has(typeParam)
+				? Type(force(typeParam))
+				: instStructFromAst(
 					ctx,
 					commonTypes,
-					iAst.name.name,
-					iAst.range,
-					iAst.typeArgs,
+					name.name,
+					rangeOfNameAndRange(name, ctx.allSymbols),
+					none!(TypeAst*),
 					structsAndAliasesDict,
 					typeParamsScope,
 					delayStructInsts);
 		},
-		(in TypeAst.Suffix it) =>
+		(in TypeAst.SuffixName x) @safe {
+			Opt!(Diag.TypeShouldUseSyntax.Kind) optSyntax = typeSyntaxKind(x.name.name);
+			if (has(optSyntax))
+				addDiag(ctx, suffixRange(x, ctx.allSymbols), Diag(Diag.TypeShouldUseSyntax(force(optSyntax))));
+			Opt!(TypeParam*) typeParam = findTypeParam(typeParamsScope, x.name.name);
+			if (has(typeParam)) {
+				addDiag(ctx, suffixRange(x, ctx.allSymbols), Diag(Diag.TypeParamCantHaveTypeArgs()));
+				return Type(force(typeParam));
+			} else
+				return instStructFromAst(
+					ctx,
+					commonTypes,
+					x.name.name,
+					suffixRange(x, ctx.allSymbols),
+					some(&castNonScope_ref(x).left),
+					structsAndAliasesDict,
+					typeParamsScope,
+					delayStructInsts);
+		},
+		(in TypeAst.SuffixSpecial it) =>
 			instStructFromAst(
 				ctx,
 				commonTypes,
 				symForTypeAstSuffix(it.kind),
-				range(it),
-				[castNonScope_ref(it).left],
+				suffixRange(it),
+				some(&castNonScope_ref(it).left),
 				structsAndAliasesDict,
 				typeParamsScope,
 				delayStructInsts),
-		(in TypeAst.Tuple it) =>
+		(in TypeAst.Tuple x) =>
 			instStructFromAst(
 				ctx,
 				commonTypes,
-				sym!"pair",
-				range(it),
-				[castNonScope_ref(it).a, castNonScope_ref(it).b],
+				nameForTuple(x.members.length),
+				x.range,
+				// TODO: this is somewhat hacky .. pass the tuple itself in so it is unpacked
+				some(ptrTrustMe(ast)),
 				structsAndAliasesDict,
 				typeParamsScope,
 				delayStructInsts));
 
-private Opt!(Diag.TypeShouldUseSyntax.Kind) typeSyntaxKind(Sym a) {
+private Sym nameForTuple(size_t length) {
+	switch (length) {
+		case 2:
+			return sym!"pair";
+		case 3:
+			return sym!"tuple3";
+		case 4:
+			return sym!"tuple4";
+		case 5:
+			return sym!"tuple5";
+		case 6:
+			return sym!"tuple6";
+		default:
+			return todo!Sym("support more");
+	}
+}
+
+private Opt!(TypeParam*) findTypeParam(TypeParam[] typeParamsScope, Sym name) =>
+	findPtr!TypeParam(typeParamsScope, (in TypeParam x) =>
+		x.name == name);
+
+Opt!(Diag.TypeShouldUseSyntax.Kind) typeSyntaxKind(Sym a) {
 	switch (a.value) {
 		case sym!"const-pointer".value:
 			return some(Diag.TypeShouldUseSyntax.Kind.pointer);
@@ -217,7 +324,7 @@ private Type typeFromFunAst(
 	ref CommonTypes commonTypes,
 	in TypeAst.Fun ast,
 	in StructsAndAliasesDict structsAndAliasesDict,
-	in TypeParam[] typeParamsScope,
+	TypeParam[] typeParamsScope,
 	DelayStructInsts delayStructInsts,
 ) {
 	immutable StructDecl*[] structs = commonTypes.funStructs[ast.kind];
@@ -247,19 +354,6 @@ Opt!(SpecDecl*) tryFindSpec(ref CheckCtx ctx, NameAndRange name, in SpecsDict sp
 		Diag.NameNotFound.Kind.spec,
 		(in NameReferents nr) =>
 			nr.spec);
-}
-
-void typeArgsFromAsts(
-	ref TypeArgsArray res,
-	ref CheckCtx ctx,
-	ref CommonTypes commonTypes,
-	in TypeAst[] typeAsts,
-	in StructsAndAliasesDict structsAndAliasesDict,
-	in TypeParam[] typeParamsScope,
-	DelayStructInsts delayStructInsts,
-) {
-	mapTo(res, typeAsts, (ref TypeAst ast) =>
-		typeFromAst(ctx, commonTypes, ast, structsAndAliasesDict, typeParamsScope, delayStructInsts));
 }
 
 Type makeFutType(ref Alloc alloc, ref ProgramState programState, ref CommonTypes commonTypes, Type type) =>

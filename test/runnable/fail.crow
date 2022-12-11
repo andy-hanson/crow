@@ -1,9 +1,9 @@
-main nat^(_ string[]) summon unsafe
+main nat^(_ string[])
 	foo
 	()
 
-foo void() unsafe summon
+foo void()
 	bar
 
-bar void() unsafe summon
+bar void()
 	throw "FOO"

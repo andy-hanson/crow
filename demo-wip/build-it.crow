@@ -10,15 +10,15 @@ main nat^(_ string[]) summon
 build-a-list record
 build build-a-list()
 	()
-with-block<a> a[](_ build-a-list, _ act void())
+with-block[t] t[](_ build-a-list, _ act void())
 	()
 
 build-a-array record
 build build-a-array()
 	()
-with-block<a> array a(_ build-a-array, _ act void())
+with-block[t] t array(_ build-a-array, _ act void())
 	()
 
-with-block<a> a[](_ float32, _ act void())
+with-block[t] t[](_ float32, _ act void())
 	()
 

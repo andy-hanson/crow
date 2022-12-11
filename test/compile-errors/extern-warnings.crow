@@ -1,7 +1,7 @@
-f void() extern<c> noctx
+f void() noctx, c extern
 
-f void() extern<c> unsafe
+f void() unsafe, c extern
 
-g nat() global<c> noctx
+g nat() noctx, c global
 
-g nat() global<c> unsafe
+g nat() unsafe, c global

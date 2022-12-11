@@ -20,7 +20,7 @@ Match a string against a grammar.
 THe whole string must match the grammar.
 If the string has leading or trailing spaces you must use a grammar that includes those.
 ###
-parse<a> result<a, parse-error>(a grammar a, text string)
+parse[t] (t, parse-error) result(a t grammar, text string)
 	iter = text mut-iter
 	match a.fn[iter]
 	as ok v
@@ -33,7 +33,7 @@ parse<a> result<a, parse-error>(a grammar a, text string)
 		(text, e.iter, e.expected) err
 
 # Return a parse result or throw on error.
-! <a> a(a result<a, parse-error>)
+![t] t(a (t, parse-error) result)
 	match a
 	as ok v
 		v
@@ -66,13 +66,13 @@ to-string string(a parse-error)
 Opaque grammar type parsing an 'a' value.
 Use the functions in this module to build a grammar.
 ###
-grammar<a> record mut
+grammar[t] record mut
 	# This function does *not* restore the iterator on error!
-	.fn act result<a, inner-parse-error>(mut-string-iter)
+	.fn act (t, inner-parse-error) result(mut-string-iter)
 
 # This is like 'grammar' but produces no result.
 grammar-skip record mut
-	inner grammar void
+	inner void grammar
 
 # Grammar matching empty strings
 new grammar-skip()
@@ -81,25 +81,25 @@ new grammar-skip()
 .make-grammar record
 .make-grammar make-grammar()
 	()
-.with-block<a> grammar a(_ make-grammar, f act result<a, inner-parse-error>(mut-string-iter))
+.with-block[t] t grammar(_ make-grammar, f act (t, inner-parse-error) result(mut-string-iter))
 	f,
 
 region basic building blocks
 
 # Use to discard the result of any grammar.
-skip<a> grammar-skip(a grammar a)
+skip[t] grammar-skip(a t grammar)
 	(a map _ => ()),
 
-and-return<a> grammar a(a grammar-skip, value a)
+and-return[t] t grammar(a grammar-skip, value t)
 	a.inner map _ => value
 
-text-delimited grammar string(begin string, end string)
+text-delimited string grammar(begin string, end string)
 	begin ~~ end.text-not-containing ~~ end
 
-text-not-containing grammar string(ending string)
+text-not-containing string grammar(ending string)
 	(ending,) text-not-containing-any
 
-text-not-containing-any grammar string(possible-endings string[])
+text-not-containing-any string grammar(possible-endings string[])
 	with iter : make-grammar
 		res string = with out : build
 			loop
@@ -119,7 +119,7 @@ text-not-containing-any grammar string(possible-endings string[])
 			res ok
 
 # Grammar for a single character matching the predicate.
-.char-matching-predicate grammar char8(description string, predicate fun bool(char8))
+.char-matching-predicate char8 grammar(description string, predicate fun bool(char8))
 	with iter : make-grammar
 		if n ?= iter next
 			if predicate[n]
@@ -147,28 +147,28 @@ text-not-containing-any grammar string(possible-endings string[])
 Expects to parse 'a' followed by 'b'.
 By default this does not allow spaces in between. For that, use `a ~~ spaces ~~ b`.
 ###
-~~ <a, b> grammar<(a, b)>(a grammar a, b grammar b)
+~~[t, u] (t, u) grammar(a t grammar, b u grammar)
 	with iter : make-grammar
 		x <- a.fn[iter]
 		y <- b.fn[iter]
 		(x, y) ok
-~~ <a> grammar a(a grammar a, b grammar-skip)
+~~[t] t grammar(a t grammar, b grammar-skip)
 	with iter : make-grammar
 		x <- a.fn[iter]
 		_ <- b.inner.fn[iter]
 		x ok
-~~ <a> grammar a(a grammar-skip, b grammar a)
+~~[t] t grammar(a grammar-skip, b t grammar)
 	with iter : make-grammar
 		_ <- a.inner.fn[iter]
 		x <- b.fn[iter]
 		x ok
 ~~ grammar-skip(a grammar-skip, b grammar-skip)
 	a.inner ~~ b,
-# Skips an exact string and parses 'b'
-~~ <a> grammar a(a string, b grammar a)
+# Skips an exact string, then parses 'b'
+~~[t] t grammar(a string, b t grammar)
 	a.exact ~~ b
-# Parses 'a' then skips an exact string
-~~ <a> grammar a(a grammar a, b string)
+# Parses 'a', then skips an exact string
+~~[t] t grammar(a t grammar, b string)
 	a ~~ b.exact
 ~~ grammar-skip(a string, b grammar-skip)
 	a.exact ~~ b
@@ -176,7 +176,7 @@ By default this does not allow spaces in between. For that, use `a ~~ spaces ~~ 
 	a ~~ b.exact
 
 # Tries to parse with 'a', and if that fails, tries to parse with 'b' instead.
-/ <a> grammar a(a grammar a, b grammar a)
+/[t] t grammar(a t grammar, b t grammar)
 	with iter : make-grammar
 		saved = iter save
 		match a.fn[iter]
@@ -188,18 +188,18 @@ By default this does not allow spaces in between. For that, use `a ~~ spaces ~~ 
 
 # TODO: use 'fun' not 'act'
 # Uses a function to transform the result if parsing is successful.
-map<out, in> grammar out(a grammar in, f act out(in))
+map[out, in] out grammar(a in grammar, f act out(in))
 	with iter : make-grammar
 		x <- a.fn[iter]
 		f[x] ok
-map<out, in0, in1> grammar out(a grammar (in0, in1), f act out(in0, in1))
+map[out, in0, in1] out grammar(a (in0, in1) grammar, f act out(in0, in1))
 	with iter : make-grammar
 		x <- a.fn[iter]
 		f[x.a, x.b] ok
 
 
 # Allows parsing to fail, returning an empty option if it does.
-optional<a> grammar a?(a grammar a)
+optional[t] t? grammar(a t grammar)
 	with iter : make-grammar
 		match a.fn[iter]
 		as ok v
@@ -211,9 +211,9 @@ optional grammar-skip(a string)
 	a.exact.inner.optional skip
 
 # Parses the same grammar as many times as possible (including 0 times).
-many<a> grammar a[](a grammar a)
+many[t] t[] grammar(a t grammar)
 	with iter : make-grammar
-		res a[] = with out : build
+		res t[] = with out : build
 			loop
 				saved = iter save
 				match a.fn[iter]
@@ -226,16 +226,16 @@ many<a> grammar a[](a grammar a)
 		res ok
 
 many grammar-skip(a grammar-skip)
-	inner grammar void[] = a.inner many
+	inner void[] grammar = a.inner many
 	(inner map _ => ()),
 
 # Parses 'a' at least once, then as many times as possible.
-one-or-more<a> grammar a[](a grammar a)
+one-or-more[t] t[] grammar(a t grammar)
 	a ~~ a.many map x =>
 		x.a ~ x.b
 
 one-or-more grammar-skip(a grammar-skip)
-	inner grammar void[] = a.inner one-or-more
+	inner void[] grammar = a.inner one-or-more
 	(inner map _ => ()),
 
 ###
@@ -244,15 +244,15 @@ Parses 'a' as many times as possible, with 'separator' in between.
 This does not allow a trailing separator;
 it is a parse error to have a separator not followed by another 'a'.
 ###
-separated-by<a> grammar a[](a grammar a, separator string)
+separated-by[t] t[] grammar(a t grammar, separator string)
 	a separated-by separator.exact
-separated-by<a> grammar a[](a grammar a, separator grammar-skip)
+separated-by[t] t[] grammar(a t grammar, separator grammar-skip)
 	with iter : make-grammar
 		saved = iter save
 		match a.fn[iter]
 		as ok first
 			error mut inner-parse-error? = ()
-			res a[] = with out : build
+			res t[] = with out : build
 				out ~= first
 				loop
 					match separator.inner.fn[iter]
@@ -279,7 +279,7 @@ separated-by<a> grammar a[](a grammar a, separator grammar-skip)
 lazy record
 lazy lazy()
 	()
-with-block<a> grammar a(_ lazy, f fun grammar a())
+with-block[t] t grammar(_ lazy, f fun t grammar())
 	with iter : make-grammar
 		# TODO: actually be lazy (cache it)
 		grammar = f[]
@@ -289,7 +289,7 @@ region basic elements
 
 # Matches 'a' exactly.
 exact grammar-skip(a string)
-	res grammar void = with iter : make-grammar
+	res void grammar = with iter : make-grammar
 		saved = iter save
 		if iter try-take-exact a
 			() ok
@@ -299,7 +299,7 @@ exact grammar-skip(a string)
 	res,
 
 # Equivalent to `a.exact map _ => value`
-exact<a> grammar a(a string, value a)
+exact[t] t grammar(a string, value t)
 	a.exact.inner map _ => value
 
 # Matches any amount of whitespace (including none) and discards it.
@@ -308,11 +308,11 @@ spaces grammar-skip()
 
 .is-space bool(a char8)
 	a in space-chars
-.space-chars set char8()
+.space-chars char8 set()
 	" ", "\r", "\n", "\t"
 
 # A double-quoted string as in JSON, including escape sequences.
-quoted-string grammar string()
+quoted-string string grammar()
 	with iter : make-grammar
 		saved = iter save
 		if iter try-take "\""
@@ -359,10 +359,10 @@ quoted-string grammar string()
 		"\0",
 
 # Matches and returns a sequence of letters.
-word grammar string()
+word string grammar()
 	letter.one-or-more map (x => x as-string)
 
-.letter grammar char8()
+.letter char8 grammar()
 	"letter" char-matching-predicate x => x is-letter
 
 .is-letter bool(a char8)
@@ -370,14 +370,14 @@ word grammar string()
 	"a".to-nat8 <= a.to-nat8 && a.to-nat8 <= "z".to-nat8
 
 # Parse a boolean as 'true' or 'false'
-bool grammar bool()
+bool bool grammar()
 	("true" exact true) / ("false" exact false)
 
 ###
 Parses a natural number in decimal format.
 This allows leading 0s which have no effect.
 ###
-nat grammar nat64()
+nat nat64 grammar()
 	with iter : make-grammar
 		saved = iter save
 		if x ?= iter take-nat-and-count-digits
@@ -389,7 +389,7 @@ nat grammar nat64()
 Parses a signed integer in decimal format.
 This allows e.g. "1", "+23", "-45".
 ###
-int grammar int64()
+int int64 grammar()
 	("+".optional ~~ (nat map x => x to-int64)) / ("+" ~~ (nat map x => -x.to-int64))
 
 .nat-and-count-digits record
@@ -417,7 +417,7 @@ int grammar int64()
 	if "0".to-nat8 <= c.to-nat8 && c.to-nat8 <= "9".to-nat8
 		(c.to-nat8 - "0".to-nat8).to-nat64,
 
-float grammar float64()
+float float64 grammar()
 	with iter : make-grammar
 		saved = iter save
 		sign float64 = if iter try-take "-"

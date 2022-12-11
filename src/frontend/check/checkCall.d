@@ -26,10 +26,11 @@ import frontend.check.inferringType :
 	tryGetInferred,
 	tryGetTypeArgFromInferringTypeArgs,
 	TypeAndInferring,
-	typeArgsFromAsts;
+	typeFromAst2;
 import frontend.check.instantiate :
 	instantiateFun, instantiateSpecInst, instantiateStructNeverDelay, TypeArgsArray, typeArgsArray, TypeParamsAndArgs;
-import frontend.parse.ast : CallAst, ExprAst, LambdaAst, NameAndRange, rangeOfNameAndRange;
+import frontend.check.typeFromAst : tryGetMatchingTypeArgs, tryUnpackTupleType;
+import frontend.parse.ast : CallAst, ExprAst, LambdaAst, NameAndRange, rangeOfNameAndRange, TypeAst;
 import frontend.programState : ProgramState;
 import model.diag : Diag;
 import model.model :
@@ -74,7 +75,6 @@ import util.col.mutMaxArr :
 	isEmpty,
 	isFull,
 	mapTo,
-	mapTo_mut,
 	mustPop,
 	MutMaxArr,
 	mutMaxArr,
@@ -95,11 +95,10 @@ import util.util : todo;
 
 Expr checkCall(ref ExprCtx ctx, ref LocalsInfo locals, FileAndRange range, in CallAst ast, ref Expected expected) {
 	PerfMeasurer perfMeasurer = startMeasure(ctx.alloc, ctx.perf, PerfMeasure.checkCall);
-	scope TypeArgsArray explicitTypeArgs = typeArgsFromAsts(ctx, ast.typeArgs);
 	Expr res = withCandidates!Expr(
-		ctx, ast.funName.name, tempAsArr(explicitTypeArgs), ast.args.length,
+		ctx, ast.funName.name, ast.typeArg, ast.args.length,
 		(ref Candidates candidates) =>
-			checkCallInner(ctx, locals, range, ast, expected, tempAsArr(explicitTypeArgs), perfMeasurer, candidates));
+			checkCallInner(ctx, locals, range, ast, expected, ast.typeArg, perfMeasurer, candidates));
 	endMeasure(ctx.alloc, ctx.perf, perfMeasurer);
 	return res;
 }
@@ -116,7 +115,7 @@ private Expr checkCallInner(
 	FileAndRange range,
 	in CallAst ast,
 	ref Expected expected,
-	in Type[] explicitTypeArgs,
+	in Opt!(TypeAst*) explicitTypeArg,
 	ref PerfMeasurer perfMeasurer,
 	ref Candidates candidates,
 ) {
@@ -173,7 +172,7 @@ private Expr checkCallInner(
 			addDiag2(ctx, diagRange, Diag(Diag.CallNoMatch(
 				funName,
 				tryGetInferred(expected),
-				explicitTypeArgs.length,
+				getNTypeArgs(explicitTypeArg),
 				arity,
 				finishArr(ctx.alloc, actualArgTypes),
 				allCandidates)));
@@ -184,6 +183,14 @@ private Expr checkCallInner(
 		return checkCallAfterChoosingOverload(ctx, isInLambda(locals), only(candidates), range, force(args), expected);
 }
 
+private size_t getNTypeArgs(Opt!(TypeAst*) explicitTypeArg) {
+	if (has(explicitTypeArg)) {
+		Opt!(TypeAst[]) unpacked = tryUnpackTupleType(*force(explicitTypeArg));
+		return has(unpacked) ? force(unpacked).length : 1;
+	} else
+		return 0;
+}
+
 Expr checkIdentifierCall(
 	ref ExprCtx ctx,
 	ref LocalsInfo locals,
@@ -192,7 +199,7 @@ Expr checkIdentifierCall(
 	ref Expected expected,
 ) {
 	//TODO:NEATER (don't make a synthetic AST, just directly call an appropriate function)
-	CallAst callAst = CallAst(CallAst.Style.single, NameAndRange(range.range.start, name), [], []);
+	CallAst callAst = CallAst(CallAst.Style.single, NameAndRange(range.range.start, name), []);
 	return checkCallNoLocals(ctx, range, callAst, expected);
 }
 
@@ -271,12 +278,12 @@ inout(InferringTypeArgs) inferringTypeArgs(return scope ref inout Candidate a) =
 T withCandidates(T)(
 	ref ExprCtx ctx,
 	Sym funName,
-	in Type[] explicitTypeArgs,
+	in Opt!(TypeAst*) explicitTypeArg,
 	size_t actualArity,
 	in T delegate(ref Candidates) @safe @nogc pure nothrow cb,
 ) {
 	Candidates candidates = mutMaxArr!(maxCandidates, Candidate);
-	getInitialCandidates(ctx, candidates, funName, explicitTypeArgs, actualArity);
+	getInitialCandidates(ctx, candidates, funName, explicitTypeArg, actualArity);
 	return cb(candidates);
 }
 
@@ -284,22 +291,19 @@ void getInitialCandidates(
 	ref ExprCtx ctx,
 	scope ref Candidates candidates,
 	Sym funName,
-	in Type[] explicitTypeArgs,
+	in Opt!(TypeAst*) explicitTypeArg,
 	size_t actualArity,
 ) {
 	eachFunInScope(ctx, funName, (UsedFun used, CalledDecl called) @trusted {
-		size_t nTypeParams = called.typeParams.length;
-		bool typeArgsMatch = empty(explicitTypeArgs) || nTypeParams == explicitTypeArgs.length;
-		if (arityMatches(arity(called), actualArity) && typeArgsMatch) {
-			Candidate* candidate = pushUninitialized(candidates);
-			initializeCandidate(*candidate, used, called);
-			if (empty(explicitTypeArgs))
-				fillMutMaxArr_mut(candidate.typeArgs, nTypeParams, () => SingleInferringType(none!Type));
-			else
-				mapTo_mut!(16, SingleInferringType, Type)(candidate.typeArgs,
-					explicitTypeArgs,
-					(scope ref Type explicitTypeArg) =>
-						SingleInferringType(some(explicitTypeArg)));
+		if (arityMatches(arity(called), actualArity)) {
+			size_t nTypeParams = called.typeParams.length;
+			TypeAst[] args = tryGetMatchingTypeArgs(nTypeParams, explicitTypeArg);
+			if (args.length == nTypeParams || args.length == 0) {
+				Candidate* candidate = pushUninitialized(candidates);
+				initializeCandidate(*candidate, used, called);
+				fillMutMaxArr_mut(candidate.typeArgs, nTypeParams, (size_t i) =>
+					SingleInferringType(args.length == 0 ? none!Type : some(typeFromAst2(ctx, args[i]))));
+			}
 		}
 	});
 }
@@ -477,7 +481,7 @@ Opt!Called findSpecSigImplementation(
 			n,
 		(Arity.Varargs) =>
 			todo!size_t("varargs in spec?"));
-	return withCandidates(ctx, specSig.name, [], nParams, (ref Candidates candidates) {
+	return withCandidates(ctx, specSig.name, none!(TypeAst*), nParams, (ref Candidates candidates) {
 		filterByReturnTypeForSpec(ctx.alloc, ctx.programState, candidates, specSig.returnType);
 		foreach (size_t argIdx; 0 .. nParams)
 			filterByParamType(ctx.alloc, ctx.programState, candidates, paramTypeAt(specSig.params, argIdx), argIdx);

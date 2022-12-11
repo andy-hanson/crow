@@ -21,10 +21,10 @@ import
 		begin-pointer, clear, end-pointer, is-empty, move-to-list, mut-list, size, swap, temp-as-mut-array,
 		to-mut-list, unsafe-set-size
 
-binary-search-has<a> bool(a array a, value a) compare<a> trusted
+binary-search-has[t] bool(a t array, value t) trusted, t compare
 	!(a binary-search-exact-pointer value is-empty)
 
-binary-search-key<k, v> v?(a array (k, v), key k) trusted compare<k>
+binary-search-key[k, v] v?(a (k, v) array, key k) trusted, k compare
 	left mut = a begin-pointer
 	right mut = a end-pointer
 	loop
@@ -45,18 +45,18 @@ binary-search-key<k, v> v?(a array (k, v), key k) trusted compare<k>
 				left := mid + 1
 				continue
 
-binary-search-exact-index<a> nat64?(a array a, value a) trusted compare<a>
+binary-search-exact-index[t] nat64?(a t array, value t) trusted, t compare
 	if pointer ?= a binary-search-exact-pointer value
 		pointer - a.begin-pointer,
 
-binary-search-exact-pointer<a> a mut*?(a a mut[], compare act comparison(a)) unsafe
+binary-search-exact-pointer[t] t mut*?(a t mut[], compare act comparison(t)) unsafe
 	a.temp-as-mut-array binary-search-exact-pointer compare
 
-binary-search-exact-pointer<a> a mut*?(a mut-array a, compare act comparison(a)) unsafe
+binary-search-exact-pointer[t] t mut*?(a t mut-array, compare act comparison(t)) unsafe
 	if x ?= a.cast-immutable binary-search-exact-pointer compare
 		x.as-mut,
 
-binary-search-exact-pointer<a> a*?(a array a, value a) compare<a> unsafe
+binary-search-exact-pointer[t] t*?(a t array, value t) unsafe, t compare
 	left mut = a begin-pointer
 	right mut = a end-pointer
 	loop
@@ -77,24 +77,24 @@ binary-search-exact-pointer<a> a*?(a array a, value a) compare<a> unsafe
 				left := mid + 1
 				continue
 
-binary-search-exact-pointer<a> a*?(a array a, compare act comparison(a)) unsafe
+binary-search-exact-pointer[t] t*?(a t array, compare act comparison(t)) unsafe
 	pointer = a binary-search-compare compare
 	if pointer == a.end-pointer
 		()
 	elif compare[*pointer] == equal
 		pointer,
 
-binary-search-insert-pointer<a> a mut*(a a mut[], compare act comparison(a)) unsafe
+binary-search-insert-pointer[t] t mut*(a t mut[], compare act comparison(t)) unsafe
 	a.temp-as-mut-array binary-search-insert-pointer compare
 
 ###
 Returns the pointer to the least value that is compared equal or greater.
 Returns `a end-pointer` if all values compare less.
 ###
-binary-search-insert-pointer<a> a mut*(a mut-array a, compare act comparison(a)) unsafe
+binary-search-insert-pointer[t] t mut*(a t mut-array, compare act comparison(t)) unsafe
 	a.temp-as-array binary-search-compare compare as-mut
 
-binary-search-insert-pointer<a> a*(a array a, value a) unsafe compare<a>
+binary-search-insert-pointer[t] t*(a t array, value t) unsafe, t compare
 	# Left inclusive, right exclusive
 	left mut = a begin-pointer
 	right mut = a end-pointer
@@ -114,7 +114,7 @@ binary-search-insert-pointer<a> a*(a array a, value a) unsafe compare<a>
 				continue
 
 test
-	a mut-array nat64 = 1, 3, 5, 7
+	a nat64 mut-array = 1, 3, 5, 7
 	(a binary-search-insert-pointer x => 0 <=> x) - a.begin-pointer is 0
 	(a binary-search-insert-pointer x => 3 <=> x) - a.begin-pointer is 1
 	(a binary-search-insert-pointer x => 4 <=> x) - a.begin-pointer is 2
@@ -123,7 +123,7 @@ test
 	(a binary-search-insert-pointer x => 7 <=> x) - a.begin-pointer is 3
 	(a binary-search-insert-pointer x => 8 <=> x) - a.begin-pointer is 4
 
-.binary-search-compare<a> a*(a array a, compare act comparison(a)) unsafe
+.binary-search-compare[t] t*(a t array, compare act comparison(t)) unsafe
 	# Left inclusive, right exclusive
 	left mut = a begin-pointer
 	right mut = a end-pointer
@@ -156,7 +156,7 @@ assert-comparison-not-equal unique-comparison(a comparison) unsafe
 		greater
 
 # 'a' and 'b' must be sorted. Moves contents of 'b' into 'a' and preserves sorting.
-merge-no-duplicates<a> void(a a mut[], b a mut[], compare act unique-comparison(a, a)) trusted
+merge-no-duplicates[t] void(a t mut[], b t mut[], compare act unique-comparison(t, t)) trusted
 	if a.size < b.size
 		a swap b
 	assert a.size >= b.size

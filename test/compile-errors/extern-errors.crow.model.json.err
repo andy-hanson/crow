@@ -1,6 +1,6 @@
 test/compile-errors/extern-errors.crow 2:5-2:13 extern type 'r' can't reference non-extern type 'string'
 
-test/compile-errors/extern-errors.crow 3:5-3:17 extern type 'r' can't reference non-extern type 'list<nat64>'
+test/compile-errors/extern-errors.crow 3:5-3:17 extern type 'r' can't reference non-extern type 'nat64[]'
 
 test/compile-errors/extern-errors.crow 5:1-8:1 'extern' record 'r2' is implicitly 'by-val'
 
@@ -16,7 +16,7 @@ test/compile-errors/extern-errors.crow 20:8-20:16 'extern' function 'f' paramete
 
 test/compile-errors/extern-errors.crow 22:1-22:2 'extern' function 'f' can't have type parameters
 
-test/compile-errors/extern-errors.crow 22:11-22:14 'extern' function 'f' parameter 'a' can't reference non-extern type 'a'
+test/compile-errors/extern-errors.crow 22:11-22:14 'extern' function 'f' parameter 'a' can't reference non-extern type 't'
 
 test/compile-errors/extern-errors.crow 24:1-24:2 'extern' function 'f' can't be variadic
 

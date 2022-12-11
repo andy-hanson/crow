@@ -32,7 +32,7 @@ uri record
 	after-hash string
 
 # Opens a socket, connects to the URI, and returns the fd.
-connect-to-uri SOCKET(u uri) trusted summon
+connect-to-uri SOCKET(u uri) summon, trusted
 	if is-windows
 		wsa-init
 
@@ -45,14 +45,14 @@ connect-to-uri SOCKET(u uri) trusted summon
 	# TODO: handle failure
 	op-sock!
 
-.wsa-init void() unsafe summon
+.wsa-init void() summon, unsafe
 	wsa-data mut WSADATA = () 
 	err = 2 MAKEWORD 2 WSAStartup &wsa-data
 	out print "initialized WSA, err is {err}"
 	if err != 0
 		todo
 
-.find-and-connect-working-socket SOCKET?(ap addrinfo*) unsafe summon
+.find-and-connect-working-socket SOCKET?(ap addrinfo*) summon, unsafe
 	unless ap == null
 		a = *ap
 		sock = a.ai_family socket a.ai_socktype, a.ai_protocol
@@ -71,7 +71,7 @@ connect-to-uri SOCKET(u uri) trusted summon
 				sock,
 
 # Returns a file descriptor bound to the given port.
-bind-to-port SOCKET(port string) unsafe summon
+bind-to-port SOCKET(port string) summon, unsafe
 	if is-windows
 		wsa-init
 
@@ -87,7 +87,7 @@ bind-to-port SOCKET(port string) unsafe summon
 		err print "Failed to bind to port {port}"
 		todo
 
-close-socket void(sock SOCKET) unsafe summon
+close-socket void(sock SOCKET) summon, unsafe
 	if is-windows
 		err = sock closesocket
 		if err != 0
@@ -95,7 +95,7 @@ close-socket void(sock SOCKET) unsafe summon
 	else
 		sock.as-fd.close check-posix-error
 
-.find-and-bind-working-socket SOCKET?(ap addrinfo*) unsafe summon
+.find-and-bind-working-socket SOCKET?(ap addrinfo*) summon, unsafe
 	unless ap == null
 		a = *ap
 		listen-fd = a.ai_family socket a.ai_socktype, 0
@@ -109,7 +109,7 @@ close-socket void(sock SOCKET) unsafe summon
 				listen-fd close-socket
 				a.ai_next find-and-bind-working-socket
 
-.check-getaddrinfo-error void(err int32) unsafe summon
+.check-getaddrinfo-error void(err int32) summon, unsafe
 	if err != 0
 		# TODO: convert to appropriate enum
 		throw "getaddrinfo error: {err}"

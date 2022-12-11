@@ -19,7 +19,7 @@ export
 Fail unconditionally.
 This function is used to mark part of an `if` or `match` that should not be possible.
 ###
-unreachable<a> a() noctx
+unreachable[t] t() noctx
 	throw "should be unreachable"
 
 # WARN: Need to set to null at end of catch
@@ -29,7 +29,7 @@ unreachable<a> a() noctx
 Run `try` and return what it returns, or return the result of `catcher` if `try` threw an exception.
 (An exception thrown by `catcher` will not be caught.)
 ###
-catch<a> a(try act a(), catcher act a(exception)) trusted
+catch[t] t(try act t(), catcher act t(exception)) trusted
 	old-jmp-buf = *cur-jmp-buf
 	store mut __jmp_buf_tag = ()
 	setjmp-result = if is-interpreted
@@ -54,17 +54,17 @@ catch<a> a(try act a(), catcher act a(exception)) trusted
 		catcher[thrown]
 
 # THis is called by the compiler on 'throw'
-throw-impl void(message c-string) noctx trusted
+throw-impl void(message c-string) noctx, trusted
 	message throw-with-skip 2
 
-throw-with-skip void(message c-string, skip nat64) noctx trusted
+throw-with-skip void(message c-string, skip nat64) noctx, trusted
 	backtrace = if ctx ?= try-get-cur-gc-ctx
 		ctx get-backtrace skip
 	else
 		(),
 	(message, backtrace) rethrow
 
-.new<a> array a(...a array a) noctx
+.new[t] t array(...a t array) noctx
 	a
 
 ###
@@ -73,7 +73,7 @@ Throw an existing exception object.
 This is useful for rethrowing an exception that was already caught.
 Throwing an exception does not modify its backtrace.
 ###
-rethrow<a> a(e exception) noctx trusted
+rethrow[t] t(e exception) noctx, trusted
 	jmp-buf = *cur-jmp-buf
 	if jmp-buf == null
 		abort
@@ -83,12 +83,12 @@ rethrow<a> a(e exception) noctx trusted
 	# unreachable
 	zeroed
 
-.number-to-throw int32() unsafe noctx
+.number-to-throw int32() noctx, unsafe
 	7
 
 ###
 Run `try` and return `ok` containing its return value,
 or `err` containing an exception if it threw one.
 ###
-catch<a> result<a, exception>(try act a())
+catch[t] (t, exception) result(try act t())
 	(() => try[] ok) catch e => e err

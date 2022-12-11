@@ -34,12 +34,12 @@ lmdb-env record mut
 open-lmdb-env open-lmdb-env(db-dir string, create-if-not-exists bool)
 	db-dir, create-if-not-exists
 # Calls `open-env`, then `f`, then `close-env` (in a `finally`).
-with-block<a> a^(options open-lmdb-env, f act a^(lmdb-env)) trusted summon is-sendable<a>
+with-block[t] t^(options open-lmdb-env, f act t^(lmdb-env)) summon, trusted, t is-sendable
 	env = options open-env
 	with : (() => env.close-env,) future-finally
 		f[env]
 
-.open-env lmdb-env(options open-lmdb-env) unsafe summon
+.open-env lmdb-env(options open-lmdb-env) summon, unsafe
 	env mut MDB_env mut* = null
 	(&env).mdb_env_create check-lmdb-error
 	env mdb_env_set_maxdbs 50 check-lmdb-error
@@ -57,7 +57,7 @@ with-block<a> a^(options open-lmdb-env, f act a^(lmdb-env)) trusted summon is-se
 		err check-lmdb-error
 	env,
 
-.close-env void(env lmdb-env) unsafe summon
+.close-env void(env lmdb-env) summon, unsafe
 	env.env mdb_env_close
 
 region lmdb-key
@@ -67,7 +67,7 @@ Keys in LMDB can be nat32, nat64, or string.
 
 Don't implement this spec for other types, since LMDB really only supports a few types.
 ###
-lmdb-key<k> spec
+lmdb-key[k] spec
 	== bool(a k, b k)
 	# NOTE: Parameter is a dummy, don't actually use it
 	lmdb-key-flags u-int(_ k)
@@ -99,24 +99,24 @@ from-lmdb-key string(a nat8[])
 region db
 
 # Single database (key-value store).
-lmdb-db<k, v> record mut
+lmdb-db[k, v] record mut
 	.dbi MDB_dbi
 
-database<k, v> record mut
+database[k, v] record mut
 	env lmdb-env
 	db-name string
-database<k, v> database<k, v>(env lmdb-env, db-name string)
+database[k, v] (k, v) database(env lmdb-env, db-name string)
 	env, db-name
 
-with-block<a, k, v> a^(
-	a database<k, v>,
-	f act a^(lmdb-db<k, v>),
-) trusted summon is-sendable<a> lmdb-key<k> serialize<v>
-	db lmdb-db<k, v> = a open-db
+with-block[t, k, v] t^(
+	a (k, v) database,
+	f act t^((k, v) lmdb-db),
+) summon, trusted, t is-sendable, k lmdb-key, v serialize
+	db (k, v) lmdb-db = a open-db
 	with : (() => (a.env close-db db),) future-finally
 		f[db]
 
-.open-db<k, v> lmdb-db<k, v>(a database<k, v>) unsafe summon lmdb-key<k> serialize<v>
+.open-db[k, v] (k, v) lmdb-db(a (k, v) database) summon, unsafe, k lmdb-key, v serialize
 	transaction mut MDB_txn mut* = null
 	a.env.env mdb_txn_begin null, 0, &transaction check-lmdb-error
 
@@ -127,7 +127,7 @@ with-block<a, k, v> a^(
 	transaction.mdb_txn_commit check-lmdb-error
 	dbi,
 
-.close-db<k, v> void(env lmdb-env, db lmdb-db<k, v>) unsafe summon
+.close-db[k, v] void(env lmdb-env, db (k, v) lmdb-db) summon, unsafe
 	env.env mdb_dbi_close db.dbi
 
 region transaction
@@ -145,7 +145,7 @@ Aborts the transaction iff `f` throws an exception.
 ###
 read-transaction read-transaction(env lmdb-env)
 	env,
-with-block<a> a(a read-transaction, f act a(lmdb-txn)) trusted summon
+with-block[t] t(a read-transaction, f act t(lmdb-txn)) summon, trusted
 	a.env with-transaction MDB_RDONLY, txn =>
 		f[txn], transaction-abort
 
@@ -154,7 +154,7 @@ write-transaction record mut
 # Like `write-transaction`, but the transaction can perform writes.
 write-transaction write-transaction(env lmdb-env)
 	env,
-with-block<a> a(a write-transaction, f act a(lmdb-txn)) trusted summon
+with-block[t] t(a write-transaction, f act t(lmdb-txn)) summon, trusted
 	with txn : a.env abortable-write-transaction
 		f[txn], transaction-commit
 
@@ -167,10 +167,10 @@ abortable-write-transaction record mut
 # Like `with-write-transaction`, but `f` returns a pair of the result and whether to commit the transaction.
 abortable-write-transaction abortable-write-transaction(env lmdb-env)
 	env,
-with-block<a> a(a abortable-write-transaction, f act (a, transaction-result)(lmdb-txn)) trusted summon
+with-block[t] t(a abortable-write-transaction, f act (t, transaction-result)(lmdb-txn)) summon, trusted
 	a.env with-transaction 0, f
 
-.with-transaction<a> a(env lmdb-env, mdb-flags u-int, f act (a, transaction-result)(lmdb-txn)) unsafe summon
+.with-transaction[t] t(env lmdb-env, mdb-flags u-int, f act (t, transaction-result)(lmdb-txn)) summon, unsafe
 	transaction mut MDB_txn mut* = null
 	env.env mdb_txn_begin null, mdb-flags, &transaction check-lmdb-error
 	(() => transaction mdb_txn_abort) do-if-error () =>
@@ -188,7 +188,7 @@ region get / set
 Gets the value associated with a key.
 Returns an empty option iff `key` is not in `db`.
 ###
-get<k, v> v?(txn lmdb-txn, db lmdb-db<k, v>, key k) trusted summon lmdb-key<k> serialize<v>
+get[k, v] v?(txn lmdb-txn, db (k, v) lmdb-db, key k) summon, trusted, k lmdb-key, v serialize
 	# TODO: this check should be unnecessary...
 	unless (txn count db) == 0
 		lmdb-key = key to-lmdb-key
@@ -205,11 +205,11 @@ get<k, v> v?(txn lmdb-txn, db lmdb-db<k, v>, key k) trusted summon lmdb-key<k> s
 Associates the value with the key.
 This may add the key or overwrite the value if the key is already in the database.
 ###
-set<k, v> void(txn lmdb-txn, db lmdb-db<k, v>, key k, value v) summon lmdb-key<k> serialize<v>
+set[k, v] void(txn lmdb-txn, db (k, v) lmdb-db, key k, value v) summon, k lmdb-key, v serialize
 	txn put-inner db, key, value, 0 check-lmdb-error
 
 # Like `set`, but throws if `key` is already in the `db`.
-add<k, v> void(txn lmdb-txn, db lmdb-db<k, v>, key k, value v) summon lmdb-key<k> serialize<v>
+add[k, v] void(txn lmdb-txn, db (k, v) lmdb-db, key k, value v) summon, k lmdb-key, v serialize
 	unless txn try-add db, key, value
 		throw "key already exists"
 
@@ -217,19 +217,19 @@ add<k, v> void(txn lmdb-txn, db lmdb-db<k, v>, key k, value v) summon lmdb-key<k
 If `key` is already in `db`, returns `false`.
 Else, adds the `key` and `value` and returns `true`.
 ###
-try-add<k, v> bool(txn lmdb-txn, db lmdb-db<k, v>, key k, value v) summon lmdb-key<k> serialize<v>
+try-add[k, v] bool(txn lmdb-txn, db (k, v) lmdb-db, key k, value v) summon, k lmdb-key, v serialize
 	err = txn put-inner db, key, value, MDB_NOOVERWRITE
 	unless err == MDB_KEYEXIST
 		err check-lmdb-error
 		true
 
-.put-inner<k, v> err-t(
+.put-inner[k, v] err-t(
 	txn lmdb-txn,
-	db lmdb-db<k, v>,
+	db (k, v) lmdb-db,
 	key k,
 	value v,
 	mdb-flags u-int,
-) trusted summon lmdb-key<k> serialize<v>
+) summon, trusted, k lmdb-key, v serialize
 	key-val = key.to-lmdb-key val-of-bytes
 	value-val = value.to-bytes val-of-bytes
 	txn.txn mdb_put db.dbi, &key-val, &value-val, mdb-flags
@@ -252,7 +252,7 @@ to-string string(a lmdb_stat)
 	"lmdb_stat:\n{x}\n{y}\n{z}"
 
 # Get statistics about `db`.
-stat<k, v> lmdb_stat(txn lmdb-txn, db lmdb-db<k, v>) trusted summon
+stat[k, v] lmdb_stat(txn lmdb-txn, db (k, v) lmdb-db) summon, trusted
 	s mut mdb_stat = 0, 0, 0, 0, 0, 0
 	txn.txn mdb_stat db.dbi, &s check-lmdb-error
 	psize = s.ms_psize to-nat64
@@ -263,18 +263,18 @@ stat<k, v> lmdb_stat(txn lmdb-txn, db lmdb-db<k, v>) trusted summon
 Get the number of entries in `db`.
 (This just uses `stat`.)
 ###
-count<k, v> nat(txn lmdb-txn, db lmdb-db<k, v>) summon
+count[k, v] nat(txn lmdb-txn, db (k, v) lmdb-db) summon
 	txn stat db entries
 
 region iteration
 
-each<k, v> record mut
+each[k, v] record mut
 	txn lmdb-txn
-	db lmdb-db<k, v>
-each<k, v> each<k, v>(txn lmdb-txn, db lmdb-db<k, v>)
+	db (k, v) lmdb-db
+each[k, v] (k, v) each(txn lmdb-txn, db (k, v) lmdb-db)
 	txn, db
 # Calls `f` for each key-value pair in `db`.
-for-loop<k, v> void(a each<k, v>, f act void(k, v)) trusted summon lmdb-key<k> serialize<v>
+for-loop[k, v] void(a (k, v) each, f act void(k, v)) summon, trusted, k lmdb-key, v serialize
 	a.txn with-cursor a.db, cursor =>
 		key mut = empty-val
 		value mut = empty-val
@@ -291,7 +291,7 @@ for-loop<k, v> void(a each<k, v>, f act void(k, v)) trusted summon lmdb-key<k> s
 				continue
 
 # Calls `f` for each key-value pair in `db` and returns an array of the results.
-for-loop<out, k, v> out[](a each<k, v>, f act out(k, v)) summon lmdb-key<k> serialize<v>
+for-loop[out, k, v] out[](a (k, v) each, f act out(k, v)) summon, k lmdb-key, v serialize
 	with out : a.txn count a.db build
 		for key, value : a.txn each a.db
 			out ~= f[key, value]
@@ -301,12 +301,12 @@ for-loop<out, k, v> out[](a each<k, v>, f act out(k, v)) summon lmdb-key<k> seri
 Iterates `db0` and `db1` in order, calling `f` with each key and with the values from both dbs.
 Returns an array of the results.
 ###
-zip<out, k, v0, v1> out[](
+zip[out, k, v0, v1] out[](
 	txn lmdb-txn,
-	db0 lmdb-db<k, v0>,
-	db1 lmdb-db<k, v1>,
+	db0 (k, v0) lmdb-db,
+	db1 (k, v1) lmdb-db,
 	f act out(k, v0, v1),
-) summon is-data<k> lmdb-key<k> serialize<v0> serialize<v1>
+) summon, k is-data, k lmdb-key, v0 serialize, v1 serialize
 	db0-count = txn count db0
 	db1-count = txn count db1
 	assert db0-count == db1-count
@@ -315,23 +315,23 @@ zip<out, k, v0, v1> out[](
 			txn zip-non-empty db0, db1, (key, value0, value1) =>
 				out ~= f[key, value0, value1]
 
-.zip-non-empty<k, v0, v1> void(
+.zip-non-empty[k, v0, v1] void(
 	txn lmdb-txn,
-	db0 lmdb-db<k, v0>,
-	db1 lmdb-db<k, v1>,
+	db0 (k, v0) lmdb-db,
+	db1 (k, v1) lmdb-db,
 	f act void(k, v0, v1),
-) trusted summon is-data<k> lmdb-key<k> serialize<v0> serialize<v1>
+) summon, trusted, k is-data, k lmdb-key, v0 serialize, v1 serialize
 	txn with-cursor db0, cursor0 =>
 		txn with-cursor db1, cursor1 =>
 			empty mut = empty-val
 			cursor0 mdb_cursor_get &empty, &empty, MDB_FIRST check-lmdb-error
 			cursor1 mdb_cursor_get &empty, &empty, MDB_FIRST check-lmdb-error
 			cursor0 zip-inner cursor1, f
-.zip-inner<k, v0, v1> void(
+.zip-inner[k, v0, v1] void(
 	cursor0 MDB_cursor mut*,
 	cursor1 MDB_cursor mut*,
 	f act void(k, v0, v1),
-) unsafe summon is-data<k> lmdb-key<k> serialize<v0> serialize<v1>
+) summon, unsafe, k is-data, k lmdb-key, v0 serialize, v1 serialize
 	loop
 		key0-val mut = empty-val
 		value0-val mut = empty-val
@@ -356,7 +356,7 @@ zip<out, k, v0, v1> out[](
 			err1 check-lmdb-error
 			continue
 
-.with-cursor<a, k, v> a(txn lmdb-txn, db lmdb-db<k, v>, f act a(MDB_cursor mut*)) unsafe summon
+.with-cursor[t, k, v] t(txn lmdb-txn, db (k, v) lmdb-db, f act t(MDB_cursor mut*)) summon, unsafe
 	cursor mut MDB_cursor mut* = null
 	open-err = txn.txn mdb_cursor_open db.dbi, &cursor
 	with : (() => cursor mdb_cursor_close) finally

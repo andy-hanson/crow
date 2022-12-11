@@ -3,7 +3,6 @@ module frontend.parse.parse;
 @safe @nogc pure nothrow:
 
 import frontend.parse.ast :
-	bogusTypeAst,
 	ExprAst,
 	FileAst,
 	FunDeclAst,
@@ -59,19 +58,18 @@ import frontend.parse.lexer :
 	takePathComponent,
 	takeOrAddDiagExpectedOperator,
 	takeOrAddDiagExpectedToken,
-	takeTypeArgsEnd,
 	Token,
 	tryTakeIndent,
 	tryTakeName,
 	tryTakeOperator,
 	tryTakeToken;
 import frontend.parse.parseExpr : parseFunExprBody;
-import frontend.parse.parseType : parseType, parseTypeNoTuple, tryParseTypeArg, tryParseTypeArgsBracketed;
+import frontend.parse.parseType : parseType, tryParseTypeArgForEnumOrFlags;
 import model.diag : DiagnosticWithinFile;
 import model.model : FieldMutability, ImportFileType, Visibility;
 import model.parseDiag : ParseDiag;
 import util.alloc.alloc : Alloc;
-import util.col.arr : empty, emptySmallArray, only, small;
+import util.col.arr : emptySmallArray, only, small;
 import util.col.arrBuilder : add, ArrBuilder, finishArr;
 import util.col.str : SafeCStr;
 import util.conv : safeToUshort;
@@ -104,12 +102,12 @@ FileAst parseFile(
 private:
 
 NameAndRange[] parseTypeParams(ref Lexer lexer) {
-	if (tryTakeOperator(lexer, sym!"<")) {
+	if (tryTakeToken(lexer, Token.bracketLeft)) {
 		ArrBuilder!NameAndRange res;
 		do {
 			add(lexer.alloc, res, takeNameAndRange(lexer));
 		} while (tryTakeToken(lexer, Token.comma));
-		takeTypeArgsEnd(lexer);
+		takeOrAddDiagExpectedToken(lexer, Token.bracketRight, ParseDiag.Expected.Kind.closingBracket);
 		return finishArr(lexer.alloc, res);
 	} else
 		return [];
@@ -200,24 +198,19 @@ ImportFileType parseImportFileType(ref Lexer lexer) {
 }
 
 Opt!ImportFileType toImportFileType(in TypeAst a) =>
-	isInstStructNoArgs(a, sym!"string")
+	isSimpleName(a, sym!"string")
 	? some(ImportFileType.str)
 	: isInstStructOneArg(a, sym!"nat8", sym!"array")
 	? some(ImportFileType.nat8Array)
 	: none!ImportFileType;
 
-bool isInstStructNoArgs(TypeAst a, Sym name) {
-	if (a.isA!(TypeAst.InstStruct)) {
-		TypeAst.InstStruct s = a.as!(TypeAst.InstStruct);
-		return s.name.name == name && empty(s.typeArgs);
-	} else
-		return false;
-}
+bool isSimpleName(TypeAst a, Sym name) =>
+	a.isA!NameAndRange && a.as!NameAndRange.name == name;
 
 bool isInstStructOneArg(TypeAst a, Sym typeArgName, Sym name) {
-	if (a.isA!(TypeAst.InstStruct)) {
-		TypeAst.InstStruct s = a.as!(TypeAst.InstStruct);
-		return s.name.name == name && s.typeArgs.length == 1 && isInstStructNoArgs(only(s.typeArgs), typeArgName);
+	if (a.isA!(TypeAst.SuffixName*)) {
+		TypeAst.SuffixName* s = a.as!(TypeAst.SuffixName*);
+		return isSimpleName(s.left, typeArgName) && s.name.name == name;
 	} else
 		return false;
 }
@@ -337,7 +330,7 @@ SpecSigAst parseSpecSig(ref Lexer lexer) {
 	SafeCStr comment = skipBlankLinesAndGetDocComment(lexer);
 	Pos start = curPos(lexer);
 	Sym name = takeNameOrOperator(lexer);
-	TypeAst returnType = parseTypeNoTuple(lexer);
+	TypeAst returnType = parseType(lexer);
 	ParamsAst params = parseParams(lexer);
 	return SpecSigAst(comment, range(lexer, start), name, returnType, params);
 }
@@ -457,7 +450,7 @@ FunDeclAst parseFun(
 	Sym name,
 	NameAndRange[] typeParams,
 ) {
-	TypeAst returnType = parseTypeNoTuple(lexer);
+	TypeAst returnType = parseType(lexer);
 	ParamsAst params = parseParams(lexer);
 	FunModifierAst[] modifiers = parseFunModifiers(lexer);
 	Opt!ExprAst body_ = parseFunExprBody(lexer);
@@ -474,47 +467,67 @@ FunDeclAst parseFun(
 }
 
 FunModifierAst[] parseFunModifiers(ref Lexer lexer) {
-	ArrBuilder!FunModifierAst res;
-	while (!peekToken(lexer, Token.newline) && !peekToken(lexer, Token.EOF))
-		parseFunModifier(lexer, res);
-	return finishArr(lexer.alloc, res);
-}
-
-void parseFunModifier(ref Lexer lexer, scope ref ArrBuilder!FunModifierAst res) {
-	Pos start = curPos(lexer);
-	Token token = nextToken(lexer);
-	Opt!Sym name = () {
-		switch (token) {
-			case Token.builtin:
-				return some(sym!"builtin");
-			case Token.extern_:
-				return some(sym!"extern");
-			case Token.global:
-				return some(sym!"global");
-			case Token.noCtx:
-				return some(sym!"noctx");
-			case Token.noDoc:
-				return some(sym!"no-doc");
-			case Token.summon:
-				return some(sym!"summon");
-			case Token.unsafe:
-				return some(sym!"unsafe");
-			case Token.thread_local:
-				return some(sym!"thread-local");
-			case Token.trusted:
-				return some(sym!"trusted");
-			case Token.name:
-				return some(getCurSym(lexer));
-			default:
-				addDiagUnexpectedCurToken(lexer, start, token);
-				return none!Sym;
-		}
-	}();
-	if (has(name)) {
-		TypeAst[] typeArgs = tryParseTypeArgsBracketed(lexer);
-		return add(lexer.alloc, res, FunModifierAst(NameAndRange(start, force(name)), small(typeArgs)));
+	if (peekToken(lexer, Token.newline) || peekToken(lexer, Token.EOF))
+		return [];
+	else {
+		ArrBuilder!FunModifierAst res;
+		add(lexer.alloc, res, parseFunModifier(lexer));
+		while (tryTakeToken(lexer, Token.comma))
+			add(lexer.alloc, res, parseFunModifier(lexer));
+		return finishArr(lexer.alloc, res);
 	}
 }
+
+FunModifierAst parseFunModifier(ref Lexer lexer) {
+	Pos start = curPos(lexer);
+	Opt!(FunModifierAst.Special.Flags) special = tryGetSpecialFunModifier(getPeekToken(lexer));
+	if (has(special)) {
+		nextToken(lexer);
+		return FunModifierAst(FunModifierAst.Special(start, force(special)));
+	} else {
+		TypeAst type = parseType(lexer);
+		Pos egPos = curPos(lexer);
+		Opt!(FunModifierAst.Special.Flags) eg = tryTakeExternOrGlobal(lexer);
+		return has(eg)
+			? FunModifierAst(FunModifierAst.ExternOrGlobal(allocate(lexer.alloc, type), egPos, force(eg)))
+			: FunModifierAst(type);
+	}
+}
+
+Opt!(FunModifierAst.Special.Flags) tryTakeExternOrGlobal(ref Lexer lexer) =>
+	tryTakeToken(lexer, Token.extern_)
+		? some(FunModifierAst.Special.Flags.extern_)
+		: tryTakeToken(lexer, Token.global)
+		? some(FunModifierAst.Special.Flags.global)
+		: none!(FunModifierAst.Special.Flags);
+
+Opt!(FunModifierAst.Special.Flags) tryGetSpecialFunModifier(Token token) {
+	switch (token) {
+		case Token.builtin:
+			return some(FunModifierAst.Special.Flags.builtin);
+		case Token.extern_:
+			return some(FunModifierAst.Special.Flags.extern_);
+		case Token.forceCtx:
+			return some(FunModifierAst.Special.Flags.forceCtx);
+		case Token.global:
+			return some(FunModifierAst.Special.Flags.global);
+		case Token.noCtx:
+			return some(FunModifierAst.Special.Flags.noctx);
+		case Token.noDoc:
+			return some(FunModifierAst.Special.Flags.no_doc);
+		case Token.summon:
+			return some(FunModifierAst.Special.Flags.summon);
+		case Token.thread_local:
+			return some(FunModifierAst.Special.Flags.thread_local);
+		case Token.trusted:
+			return some(FunModifierAst.Special.Flags.trusted);
+		case Token.unsafe:
+			return some(FunModifierAst.Special.Flags.unsafe);
+		default:
+			return none!(FunModifierAst.Special.Flags);
+	}
+}
+
 
 void parseSpecOrStructOrFunOrTest(
 	ref Lexer lexer,
@@ -563,7 +576,7 @@ void parseSpecOrStructOrFun(
 			TypeAst target = () {
 				final switch (takeNewlineOrIndent_topLevel(lexer)) {
 					case NewlineOrIndent.newline:
-						return bogusTypeAst(range(lexer, start));
+						return TypeAst(TypeAst.Bogus(range(lexer, start)));
 					case NewlineOrIndent.indent:
 						TypeAst res = parseType(lexer);
 						takeDedentFromIndent1(lexer);
@@ -591,7 +604,7 @@ void parseSpecOrStructOrFun(
 			break;
 		case Token.enum_:
 			nextToken(lexer);
-			Opt!(TypeAst*) typeArg = tryParseTypeArg(lexer);
+			Opt!(TypeAst*) typeArg = tryParseTypeArgForEnumOrFlags(lexer);
 			addStruct(() => StructDeclAst.Body(
 				StructDeclAst.Body.Enum(typeArg, small(parseEnumOrFlagsMembers(lexer)))));
 			break;
@@ -603,7 +616,7 @@ void parseSpecOrStructOrFun(
 			break;
 		case Token.flags:
 			nextToken(lexer);
-			Opt!(TypeAst*) typeArg = tryParseTypeArg(lexer);
+			Opt!(TypeAst*) typeArg = tryParseTypeArgForEnumOrFlags(lexer);
 			addStruct(() => StructDeclAst.Body(
 				StructDeclAst.Body.Flags(typeArg, small(parseEnumOrFlagsMembers(lexer)))));
 			break;

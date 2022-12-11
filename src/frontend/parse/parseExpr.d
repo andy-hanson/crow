@@ -75,10 +75,10 @@ import frontend.parse.lexer :
 	tryTakeNameOrOperatorAndRange,
 	tryTakeOperator,
 	tryTakeToken;
-import frontend.parse.parseType : parseType, parseTypeRequireBracket, tryParseTypeArgsForExpr;
+import frontend.parse.parseType : parseType, parseTypeForTypedExpr, tryParseTypeArgForExpr;
 import model.model : AssertOrForbidKind;
 import model.parseDiag : ParseDiag;
-import util.col.arr : empty, only, small;
+import util.col.arr : empty, only;
 import util.col.arrUtil : append, arrLiteral, prepend;
 import util.col.arrBuilder : add, ArrBuilder, finishArr;
 import util.memory : allocate;
@@ -281,11 +281,10 @@ ExprAndDedent parseMutEquals(ref Lexer lexer, Pos start, ref ExprAst before, uin
 			}
 		}();
 		return makeCall(
-			lexer, start, initAndDedent, beforeCall.funNameName, beforeCall.args, beforeCall.typeArgs, style);
+			lexer, start, initAndDedent, beforeCall.funNameName, beforeCall.args, style);
 	} else {
 		addDiag(lexer, range(lexer, start), ParseDiag(ParseDiag.CantPrecedeMutEquals()));
-		return makeCall(
-			lexer, start, initAndDedent, sym!"bogus", [], [], CallAst.Style.setDot);
+		return makeCall(lexer, start, initAndDedent, sym!"bogus", [], CallAst.Style.setDot);
 	}
 }
 
@@ -295,7 +294,6 @@ ExprAndDedent makeCall(
 	ExprAndDedent initAndDedent,
 	Sym name,
 	in ExprAst[] args,
-	TypeAst[] typeArgs,
 	CallAst.Style style,
 ) {
 	// TODO: range is wrong..
@@ -306,7 +304,6 @@ ExprAndDedent makeCall(
 			NameAndRange(
 				start,
 				style == CallAst.Style.setDeref ? sym!"set-deref" : prependSet(lexer.allSymbols, name)),
-			typeArgs,
 			append(lexer.alloc, args, initAndDedent.expr))));
 	return ExprAndDedent(call, initAndDedent.dedents);
 
@@ -411,7 +408,7 @@ ExprAndMaybeNameOrDedent parseCallsAfterComma(ref Lexer lexer, Pos start, ref Ex
 	return ExprAndMaybeNameOrDedent(
 		ExprAst(range, ExprAstKind(
 			//TODO: range is wrong..
-			CallAst(CallAst.Style.comma, NameAndRange(range.start, sym!"new"), [], args.args))),
+			CallAst(CallAst.Style.comma, NameAndRange(range.start, sym!"new"), args.args))),
 		args.nameOrDedent);
 }
 
@@ -425,14 +422,14 @@ ExprAndMaybeNameOrDedent parseCallsAfterName(
 	int precedence = symPrecedence(funName.name);
 	if (precedence > argCtx.allowedCalls.minPrecedenceExclusive) {
 		//TODO: don't do this for operators
-		TypeAst[] typeArgs = tryParseTypeArgsForExpr(lexer);
+		Opt!(TypeAst*) typeArg = tryParseTypeArgForExpr(lexer);
 		ArgCtx innerCtx = requirePrecedenceGt(argCtx, precedence);
 		ArgsAndMaybeNameOrDedent args = isSymOperator(funName.name)
 			? parseArgsForOperator(lexer, innerCtx)
 			: parseArgs(lexer, innerCtx);
 		ExprAst expr = ExprAst(
 			range(lexer, start),
-			ExprAstKind(CallAst(CallAst.Style.infix, funName, typeArgs, prepend!ExprAst(lexer.alloc, lhs, args.args))));
+			ExprAstKind(CallAst(CallAst.Style.infix, funName, prepend!ExprAst(lexer.alloc, lhs, args.args), typeArg)));
 		ExprAndMaybeNameOrDedent stopHere = ExprAndMaybeNameOrDedent(expr, args.nameOrDedent);
 		return args.nameOrDedent.match!ExprAndMaybeNameOrDedent(
 			(OptNameOrDedent.None) =>
@@ -523,24 +520,22 @@ ExprAst tryParseDotsAndSubscripts(ref Lexer lexer, ExprAst initial) {
 	Pos start = curPos(lexer);
 	if (tryTakeToken(lexer, Token.dot)) {
 		NameAndRange name = takeNameAndRange(lexer);
-		TypeAst[] typeArgs = tryParseTypeArgsForExpr(lexer);
-		CallAst call = CallAst(CallAst.Style.dot, name, typeArgs, arrLiteral!ExprAst(lexer.alloc, [initial]));
+		Opt!(TypeAst*) typeArg = tryParseTypeArgForExpr(lexer);
+		CallAst call = CallAst(CallAst.Style.dot, name, arrLiteral!ExprAst(lexer.alloc, [initial]), typeArg);
 		return tryParseDotsAndSubscripts(lexer, ExprAst(range(lexer, start), ExprAstKind(call)));
 	} else if (tryTakeToken(lexer, Token.arrowAccess)) {
 		NameAndRange name = takeNameAndRange(lexer);
-		TypeAst[] typeArgs = tryParseTypeArgsForExpr(lexer);
 		return tryParseDotsAndSubscripts(lexer, ExprAst(
 			range(lexer, start),
-			ExprAstKind(allocate(lexer.alloc, ArrowAccessAst(initial, name, small(typeArgs))))));
+			ExprAstKind(allocate(lexer.alloc, ArrowAccessAst(initial, name)))));
 	} else if (tryTakeToken(lexer, Token.bracketLeft)) {
 		ExprAst[] args = prepend(lexer.alloc, initial, parseSubscriptArgs(lexer));
 		//TODO: the range is wrong..
 		return tryParseDotsAndSubscripts(lexer, ExprAst(
 			range(lexer, start),
-			ExprAstKind(CallAst(
-			CallAst.Style.subscript, NameAndRange(start, sym!"subscript"), [], args))));
+			ExprAstKind(CallAst(CallAst.Style.subscript, NameAndRange(start, sym!"subscript"), args))));
 	} else if (tryTakeToken(lexer, Token.colon2)) {
-		TypeAst type = parseTypeRequireBracket(lexer);
+		TypeAst type = parseTypeForTypedExpr(lexer);
 		return tryParseDotsAndSubscripts(lexer, ExprAst(
 			range(lexer, start),
 			ExprAstKind(allocate(lexer.alloc, TypedAst(initial, type)))));
@@ -548,7 +543,7 @@ ExprAst tryParseDotsAndSubscripts(ref Lexer lexer, ExprAst initial) {
 		return tryParseDotsAndSubscripts(lexer, ExprAst(
 			range(lexer, start),
 			ExprAstKind(CallAst(
-				CallAst.Style.suffixOperator, NameAndRange(start, sym!"!"), [], arrLiteral(lexer.alloc, [initial])))));
+				CallAst.Style.suffixOperator, NameAndRange(start, sym!"!"), arrLiteral(lexer.alloc, [initial])))));
 	} else
 		return initial;
 }
@@ -857,12 +852,8 @@ ExprAndMaybeDedent parseExprBeforeCall(ref Lexer lexer, AllowedBlock allowedBloc
 			else if (tryTakeToken(lexer, Token.parenRight)) {
 				ExprAst expr = ExprAst(
 					range(lexer, start),
-					ExprAstKind(CallAst(
-						CallAst.Style.emptyParens,
-						//TODO: range is wrong..
-						NameAndRange(start, sym!"new"),
-						[],
-						[])));
+					//TODO: range is wrong..
+					ExprAstKind(CallAst(CallAst.Style.emptyParens, NameAndRange(start, sym!"new"), [])));
 				return noDedent(tryParseDotsAndSubscripts(lexer, expr));
 			} else {
 				ExprAst inner = parseExprNoBlock(lexer);
@@ -973,16 +964,16 @@ ExprAndMaybeDedent handlePrefixOperator(
 ) {
 	ExprAndMaybeDedent arg = parseExprBeforeCall(lexer, allowedBlock);
 	ExprAst expr = ExprAst(range(lexer, start), ExprAstKind(
-		CallAst(CallAst.Style.prefixOperator, NameAndRange(start, operator), [], arrLiteral(lexer.alloc, [arg.expr]))));
+		CallAst(CallAst.Style.prefixOperator, NameAndRange(start, operator), arrLiteral(lexer.alloc, [arg.expr]))));
 	return ExprAndMaybeDedent(expr, arg.dedents);
 }
 
 ExprAndMaybeDedent handleName(ref Lexer lexer, Pos start, NameAndRange name) {
-	TypeAst[] typeArgs = tryParseTypeArgsForExpr(lexer);
-	if (!empty(typeArgs))
+	Opt!(TypeAst*) typeArg = tryParseTypeArgForExpr(lexer);
+	if (has(typeArg))
 		return noDedent(ExprAst(
 			range(lexer, start),
-			ExprAstKind(CallAst(CallAst.Style.single, name, typeArgs, []))));
+			ExprAstKind(CallAst(CallAst.Style.single, name, [], typeArg))));
 	else {
 		ExprAst expr = ExprAst(range(lexer, start), ExprAstKind(IdentifierAst(name.name)));
 		return noDedent(tryParseDotsAndSubscripts(lexer, expr));

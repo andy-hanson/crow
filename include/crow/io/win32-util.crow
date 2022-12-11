@@ -11,8 +11,8 @@ import
 		DWORD, FormatMessageA, FORMAT_MESSAGE_FROM_SYSTEM, FORMAT_MESSAGE_IGNORE_INSERTS,
 		LANG_NEUTRAL, MAKELANGID, SUBLANG_NEUTRAL
 
-show-win32-error string(err DWORD) unsafe summon
-	res mut-array char8 = 1024 uninitialized-mut-array
+show-win32-error string(err DWORD) summon, unsafe
+	res char8 mut-array = 1024 uninitialized-mut-array
 	fmt = FORMAT_MESSAGE_FROM_SYSTEM | FORMAT_MESSAGE_IGNORE_INSERTS
 	lid = LANG_NEUTRAL MAKELANGID SUBLANG_NEUTRAL
 	size = fmt FormatMessageA null, err, lid, res.begin-pointer, res.size.to-nat32, null

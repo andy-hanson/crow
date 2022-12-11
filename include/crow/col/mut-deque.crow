@@ -17,16 +17,16 @@ import
 	./list: ==, first, last, list, new, size, to-list
 
 # Mutable double-ended queue.
-mut-deque<a> record mut
-	.inner .mut mut-array a
+mut-deque[t] record mut
+	.inner .mut t mut-array
 	# Points to the first element. Null for an empty queue.
-	.left .mut a mut*
+	.left .mut t mut*
 	# Points to the element after the last. Null for an empty queue.
 	# This should never be inner.end-pointer; it wraps around to inner.begin-pointer
-	.right .mut a mut*
+	.right .mut t mut*
 
 # New empty `mut-deque`.
-new<a> mut-deque a() trusted
+new[t] t mut-deque() trusted
 	(), null, null
 
 ###
@@ -34,26 +34,26 @@ Copy elements to a list.
 
 This is O(n).
 ###
-to-list<a> a[](a mut-deque a) trusted
+to-list[t] t[](a t mut-deque) trusted
 	a.to-mut-array.cast-immutable to-list
 
-.to-mut-array<a> mut-array a(a mut-deque a) no-doc trusted
+.to-mut-array[t] t mut-array(a t mut-deque) no-doc, trusted
 	unless a is-empty
-		res mut-array a = a.size uninitialized-mut-array
+		res t mut-array = a.size uninitialized-mut-array
 		res copy-from-deque a
 		res
 
 # Copy elements to a new deque.
-copy<a> mut-deque a(a mut-deque a) trusted
+copy[t] t mut-deque(a t mut-deque) trusted
 	inner = a to-mut-array
 	inner, inner.begin-pointer, inner.begin-pointer
 
 # `true` iff `a.size == 0`.
-is-empty<a> bool(a mut-deque a) trusted
+is-empty[t] bool(a t mut-deque) trusted
 	a.left == null
 
 # Number of elements in the deque.
-size<a> nat64(a mut-deque a) trusted
+size[t] nat64(a t mut-deque) trusted
 	match a.left <=> a.right
 	as less
 		a.right - a.left
@@ -64,7 +64,7 @@ size<a> nat64(a mut-deque a) trusted
 		(a.inner.end-pointer - a.left) + (a.right - a.inner.begin-pointer)
 
 # Push a value to the left.
-push<a> void(value a, a mut-deque a) trusted
+push[t] void(value t, a t mut-deque) trusted
 	a ensure-capacity
 	if a.left == a.inner.begin-pointer
 		a.left := a.inner end-pointer
@@ -72,7 +72,7 @@ push<a> void(value a, a mut-deque a) trusted
 	*a.left := value
 
 # Push a value to the right.
-push<a> void(a mut-deque a, value a) trusted
+push[t] void(a t mut-deque, value t) trusted
 	a ensure-capacity
 	assert a.right < a.inner.end-pointer
 	*a.right := value
@@ -83,7 +83,7 @@ Returns the leftmost element without removing it.
 
 Returns an empty option iff `a` is empty.
 ###
-peek-left<a> a?(a mut-deque a) trusted
+peek-left[t] t?(a t mut-deque) trusted
 	unless a.left == null
 		*a.left,
 
@@ -92,7 +92,7 @@ Returns the rightmost element without removing it.
 
 Returns an empty option iff `a` is empty.
 ###
-peek-right<a> a?(a mut-deque a) trusted
+peek-right[t] t?(a t mut-deque) trusted
 	unless a.right == null
 		fixed-right = if a.right == a.inner.begin-pointer
 			a.inner end-pointer
@@ -105,7 +105,7 @@ Removes and returns the leftmost element.
 
 Returns an empty option iff `a` was empty (before calling `pop-left`).
 ###
-pop-left<a> a?(a mut-deque a) trusted
+pop-left[t] t?(a t mut-deque) trusted
 	unless a.left == null
 		res = *a.left
 		*a.left := zeroed
@@ -123,7 +123,7 @@ Removes and returns the rightmost element.
 
 Returns an empty option iff `a` was empty (before calling `pop-right`).
 ###
-pop-right<a> a?(a mut-deque a) trusted
+pop-right[t] t?(a t mut-deque) trusted
 	unless a.right == null
 		if a.right == a.inner.begin-pointer
 			a.right := a.inner end-pointer
@@ -137,7 +137,7 @@ pop-right<a> a?(a mut-deque a) trusted
 		res,
 
 # This temporarily breaks the invariant that a.left and a.right are null for an empty queue.
-.ensure-capacity<a> void(a mut-deque a) unsafe
+.ensure-capacity[t] void(a t mut-deque) unsafe
 	if a.left == null
 		assert a.right == null
 		if a.inner is-empty
@@ -151,14 +151,14 @@ pop-right<a> a?(a mut-deque a) trusted
 			old-inner = a inner
 			old-capacity = old-inner size
 			new-capacity = old-capacity * 2
-			new-inner mut-array a = new-capacity uninitialized-mut-array
+			new-inner t mut-array = new-capacity uninitialized-mut-array
 			new-inner[0 .. old-capacity] copy-from-deque a
 			new-inner[old-capacity .. new-capacity] set-zero-elements
 			a.inner := new-inner
 			a.left := a.inner begin-pointer
 			a.right := a.left + old-capacity
 
-.copy-from-deque<a> void(dest mut-array a, a mut-deque a) trusted
+.copy-from-deque[t] void(dest t mut-array, a t mut-deque) trusted
 	assert dest.size == a.size
 	if a.left < a.right
 		dest copy-from (a.left .. a.right).as-array
@@ -167,14 +167,14 @@ pop-right<a> a?(a mut-deque a) trusted
 		dest[0 .. left-to-end-size] copy-from (a.left .. a.inner.end-pointer).as-array
 		dest[left-to-end-size .. dest.size] copy-from (a.inner.begin-pointer .. a.right).as-array
 
-.dbg string(a mut-deque nat64) trusted
+.dbg string(a nat64 mut-deque) trusted
 	right = a.right - a.inner.begin-pointer
 	left = a.left - a.inner.begin-pointer
 	# Note: can come in any order...
 	" " join for i : 0 .. a.inner.size
 		"{i == right ? "<-R "}{i == left ? "L-> "}{a.inner[i]}"
 
-.verify void(a mut-deque nat64, expected nat64[], expected-dbg string)
+.verify void(a nat64 mut-deque, expected nat64[], expected-dbg string)
 	a.peek-left is expected.first
 	a.peek-right is expected.last
 	a.size is expected.size
@@ -182,7 +182,7 @@ pop-right<a> a?(a mut-deque a) trusted
 	a.dbg is expected-dbg
 
 test
-	a mut-deque nat64 = ()
+	a nat64 mut-deque = ()
 	a.pop-left is ()
 	a.pop-right is ()
 	a verify (), ""

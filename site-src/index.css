@@ -315,13 +315,6 @@ code.lit-num { color: #ff6040; }
 	margin-left: 2em;
 }
 
-.doc span.type-params::before {
-	content: "<";
-}
-.doc span.type-params::after {
-	content: ">";
-}
-
 .doc .alias-target {
 	margin-left: var(--tab);
 }
@@ -341,29 +334,6 @@ h4 {
 .doc h4 {
 	color: #aaa;
 	font-family: 'hack', monospace;
-}
-
-.doc span.params::before {
-	content: "(";
-}
-.doc span.params::after {
-	content: ")";
-}
-
-.doc span.params span.param+span.param {
-	margin-left: 0.5em;
-}
-
-.doc ul.params li code.param {
-	margin-right: 0.25em;
-}
-
-.doc ul.params li:last-of-type::after {
-	content: none;
-}
-
-.doc.function span.specs span.spec {
-	margin-left: 0.5em;
 }
 
 .doc ul.members {

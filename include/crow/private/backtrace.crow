@@ -31,7 +31,7 @@ export
 	(),
 
 # Taking 'gc' explicitly to avoid accidental uses
-get-backtrace backtrace(gc gc-ctx, skip nat64) noctx unsafe
+get-backtrace backtrace(gc gc-ctx, skip nat64) noctx, unsafe
 	max-entries = 8
 	opt-entries backtrace-entry mut*? = gc try-alloc-uninitialized max-entries
 	if entries ?= opt-entries
@@ -53,15 +53,15 @@ Result entries are temporary, must copy!
 	out backtrace-entry mut*,
 	max-entries nat64,
 	skip nat64,
-) noctx unsafe builtin
+) builtin, noctx, unsafe
 
-.copy-strings void(gc gc-ctx, begin backtrace-entry mut*, end backtrace-entry mut*) noctx unsafe
+.copy-strings void(gc gc-ctx, begin backtrace-entry mut*, end backtrace-entry mut*) noctx, unsafe
 	cur mut = begin
 	until cur == end
 		*cur := gc copy-c-strings *cur
 		cur := cur + 1
 
-.copy-c-strings backtrace-entry(gc gc-ctx, a backtrace-entry) noctx unsafe
+.copy-c-strings backtrace-entry(gc gc-ctx, a backtrace-entry) noctx, unsafe
 	(gc copy-c-string-or-empty a.function-name), (gc copy-c-string-or-empty a.file-path), a.line-number, a.column-number
 
 .get-native-backtrace-windows backtrace(
@@ -69,7 +69,7 @@ Result entries are temporary, must copy!
 	entries backtrace-entry mut*,
 	max-entries nat64,
 	skip nat64,
-) noctx unsafe
+) noctx, unsafe
 	if vars ?= gc try-alloc-windows-backtrace-vars
 		gc get-windows-backtrace-with-vars entries, max-entries, (skip wrap-add 1), vars
 
@@ -79,7 +79,7 @@ Result entries are temporary, must copy!
 	max-entries nat64,
 	skip nat64,
 	vars windows-backtrace-vars,
-) noctx unsafe
+) noctx, unsafe
 	process = GetCurrentProcess
 	thread = GetCurrentThread
 
@@ -104,11 +104,11 @@ Result entries are temporary, must copy!
 	symbol IMAGEHLP_SYMBOL64 mut*
 	line IMAGEHLP_LINE64 mut*
 
-.try-alloc-windows-backtrace-vars windows-backtrace-vars?(gc gc-ctx) noctx unsafe
+.try-alloc-windows-backtrace-vars windows-backtrace-vars?(gc gc-ctx) noctx, unsafe
 	if offset ?= gc.try-alloc-uninitialized :: nat64 mut*?
 		if displacement ?= gc.try-alloc-uninitialized :: nat32 mut*?
 			symbol-max-name-length = 255
-			symbol-size = size-of@<IMAGEHLP_SYMBOL64> wrap-add symbol-max-name-length wrap-add 1
+			symbol-size = size-of@IMAGEHLP_SYMBOL64 wrap-add symbol-max-name-length wrap-add 1
 			if symbol-buffer ?= (gc try-alloc-uninitialized symbol-size) :: nat8 mut*?
 				symbol IMAGEHLP_SYMBOL64 mut* = symbol-buffer pointer-cast
 				*symbol := symbol-max-name-length.unsafe-to-nat32,
@@ -126,7 +126,7 @@ Result entries are temporary, must copy!
 	context CONTEXT mut*,
 	frame STACKFRAME64 mut*,
 	vars windows-backtrace-vars,
-) noctx unsafe
+) noctx, unsafe
 	ctx = context as-any-const-pointer
 	if out == out-end
 		out
@@ -146,7 +146,7 @@ Result entries are temporary, must copy!
 	else
 		out
 
-.copy-c-string-or-empty c-string(gc gc-ctx, a c-string) noctx unsafe
+.copy-c-string-or-empty c-string(gc gc-ctx, a c-string) noctx, unsafe
 	size = a c-string-size-incl-nul
 	if out ?= (gc try-alloc-uninitialized size) :: char8 mut*?
 		out copy-data-from a, size
@@ -159,7 +159,7 @@ Result entries are temporary, must copy!
 	entries backtrace-entry mut*,
 	max-entries nat64,
 	skip nat64,
-) noctx unsafe
+) noctx, unsafe
 	cursor mut unw_cursor_t = ()
 	context mut unw_context_t = ()
 	err0 = &context unw_getcontext
@@ -171,7 +171,7 @@ Result entries are temporary, must copy!
 	end = gc unwind entries, entries + max-entries, &cursor
 	(entries .. end).as-array,
 
-.unwind-skip void(cursor unw_cursor_t mut*, skip nat64) noctx unsafe
+.unwind-skip void(cursor unw_cursor_t mut*, skip nat64) noctx, unsafe
 	unless skip == 0
 		_ = cursor unw_step
 		cursor unwind-skip (skip wrap-sub 1)
@@ -182,7 +182,7 @@ Result entries are temporary, must copy!
 	out-begin backtrace-entry mut*,
 	out-end backtrace-entry mut*,
 	cursor unw_cursor_t mut*,
-) noctx unsafe
+) noctx, unsafe
 	out-cur mut = out-begin
 	loop
 		if out-cur == out-end || cursor.unw_step <= 0

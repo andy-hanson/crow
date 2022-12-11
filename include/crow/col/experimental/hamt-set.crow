@@ -11,49 +11,49 @@ import
 	../dict: dict, for-loop, get-or-add, is-empty, new, rest, size, subscript, to-dict, try-remove
 	../list: for-loop, list
 
-hamt-set<a> record
-	.inner void[a]
+hamt-set[t] record
+	.inner void[t]
 
-new<a> hamt-set a() is-data<a> compare<a> hash-mix<a>
+new[t] t hamt-set() t is-data, t compare, t hash-mix
 	(),
 
-to-hamt-set<a> hamt-set a(a a[]) is-data<a> compare<a> hash-mix<a>
+to-hamt-set[t] t hamt-set(a t[]) t is-data, t compare, t hash-mix
 	((for x : a; x, ()) to-dict),
 
-is-empty<a> bool(a hamt-set a) is-data<a> compare<a> hash-mix<a>
+is-empty[t] bool(a t hamt-set) t is-data, t compare, t hash-mix
 	a.inner is-empty
 
-size<a> nat64(a hamt-set a) is-data<a> compare<a> hash-mix<a>
+size[t] nat64(a t hamt-set) t is-data, t compare, t hash-mix
 	a.inner size
 
-in<a> bool(value a, a hamt-set a) is-data<a> compare<a> hash-mix<a>
+in[t] bool(value t, a t hamt-set) t is-data, t compare, t hash-mix
 	!a.inner[value].is-empty
 
-~ <a> hamt-set a(a hamt-set a, value a) is-data<a> compare<a> hash-mix<a>
+~[t] t hamt-set(a t hamt-set, value t) t is-data, t compare, t hash-mix
 	if res ?= a try-add value
 		res
 	else
 		a
 
-try-add<a> hamt-set<a>?(a hamt-set a, value a) is-data<a> compare<a> hash-mix<a>
+try-add[t] t hamt-set?(a t hamt-set, value t) t is-data, t compare, t hash-mix
 	match a.inner get-or-add value, () => ()
 	as got _
 		()
 	as added res
 		(res.a,),
 
-- <a> hamt-set a(a hamt-set a, value a) is-data<a> compare<a> hash-mix<a>
+-[t] t hamt-set(a t hamt-set, value t) t is-data, t compare, t hash-mix
 	if res ?= a try-remove value
 		res
 	else
 		a
 
-try-remove<a> hamt-set<a>?(a hamt-set a, value a) is-data<a> compare<a> hash-mix<a>
+try-remove[t] t hamt-set?(a t hamt-set, value t) t is-data, t compare, t hash-mix
 	if res ?= a.inner try-remove value
 		(res.rest,),
 
 region iteration
 
-for-loop<a> void(a hamt-set a, f act void(a)) is-data<a> compare<a> hash-mix<a>
+for-loop[t] void(a t hamt-set, f act void(t)) t is-data, t compare, t hash-mix
 	for k, _ : a inner
 		f[k]

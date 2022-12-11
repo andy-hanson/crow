@@ -9,7 +9,7 @@ import
 Walk a c-string and return a pointer to the first occurrence of `c`.
 If that is not found, return an empty option.
 ###
-find-char-in-c-string c-string?(a c-string, c char8) unsafe noctx
+find-char-in-c-string c-string?(a c-string, c char8) noctx, unsafe
 	cur mut = a
 	loop
 		if cur->to-nat8 == c.to-nat8
@@ -21,7 +21,7 @@ find-char-in-c-string c-string?(a c-string, c char8) unsafe noctx
 			continue
 
 # Pointer to the end of a c-string.
-find-c-string-end c-string(a c-string) unsafe noctx
+find-c-string-end c-string(a c-string) noctx, unsafe
 	cur mut = a
 	loop
 		if cur->to-nat8 == 0
@@ -31,11 +31,11 @@ find-c-string-end c-string(a c-string) unsafe noctx
 			continue
 
 # Pointer to the end of a c-string.
-find-c-string-end char8 mut*(a char8 mut*) unsafe noctx
+find-c-string-end char8 mut*(a char8 mut*) noctx, unsafe
 	a.as-const.find-c-string-end as-mut
 
-c-string-size nat64(a c-string) unsafe noctx
+c-string-size nat64(a c-string) noctx, unsafe
 	a.find-c-string-end - a
 
-c-string-size-incl-nul nat64(a c-string) unsafe noctx
+c-string-size-incl-nul nat64(a c-string) noctx, unsafe
 	a.c-string-size + 1

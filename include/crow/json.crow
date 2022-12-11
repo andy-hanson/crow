@@ -28,11 +28,11 @@ json union
 	json-list json[]
 	json-object json[string]
 
-new json(...pairs array (string, json))
+new json(...pairs (string, json) array)
 	pairs.to-list.to-dict json-object
 
-json<a> spec
-	json json(a a)
+json[t] spec
+	json json(a t)
 
 # Identity function to satisfy the 'json' spec
 json json(a json)
@@ -61,20 +61,20 @@ json json(a float64)
 	a json-number
 json json(a string)
 	a json-string
-json<a> json(a array a) json<a>
+json[t] json(a t array) t json
 	(for x : a to-list; x json) json-list
-json<a> json(a a[]) json<a>
+json[t] json(a t[]) t json
 	(for x : a; x json) json-list
 json json(a index-set)
 	a.to-list json
-json<a> json(a a?) json<a>
+json[t] json(a t?) t json
 	if x ?= a
 		(x.json,) json-list
 	else
 		()
-json<a, b> json(a (a, b)) json<a> json<b>
+json[t, u] json(a (t, u)) t json, u json
 	(a.a json, a.b json) json-list
-json<a, b> json(a result<a, b>) json<a> json<b>
+json[t, u] json(a (t, u) result) t json, u json
 	match a
 	as ok v
 		("ok", v json),
@@ -177,17 +177,17 @@ subscript json?(a json, key string)
 	if o ?= a.as-object
 		o[key]
 
-json grammar json()
+json json grammar()
 	with : lazy
 		(json-object map x => x.json-object) / (json-list map x => x.json-list) / json-primitive
-.json-object grammar json[string]()
-	pair grammar<(string, json)> = quoted-string ~~ spaces ~~ ":" ~~ spaces ~~ json
-	pairs grammar<(string, json)[]> = pair separated-by ","
-	pairs2 grammar<json[string]> = pairs map x => x.to-dict
+.json-object json[string] grammar()
+	pair (string, json) grammar = quoted-string ~~ spaces ~~ ":" ~~ spaces ~~ json
+	pairs (string, json)[] grammar = pair separated-by ","
+	pairs2 json[string] grammar = pairs map x => x.to-dict
 	"\{" ~~ spaces ~~ pairs2 ~~ spaces ~~ "}"
-.json-list grammar json[]()
+.json-list json[] grammar()
 	"[" ~~ spaces ~~ (json separated-by "," ~~ spaces) ~~ spaces ~~ "]"
-.json-primitive grammar json()
+.json-primitive json grammar()
 	literal = (bool map x => x json) / ("null" exact ())
 	(quoted-string map x => x json) / (float map x => x json-number) / literal
 

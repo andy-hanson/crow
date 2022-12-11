@@ -27,7 +27,7 @@ Popping removes the pair with the lowest key.
 
 If two pairs have the same key, the second pair added will be popped second.
 ###
-mut-priority-queue<k, v> record mut by-ref
+mut-priority-queue[k, v] record mut by-ref
 	# TODO: Use by-val
 	# The smallest value goes on the right
 	.mins (k, v) mut[]
@@ -35,29 +35,29 @@ mut-priority-queue<k, v> record mut by-ref
 	.buckets (k, v) mut[] mut[]
 
 # New priority queue containing the given pairs.
-new<k, v> mut-priority-queue<k, v>(...a array (k, v)) is-data<k> compare<k>
+new[k, v] (k, v) mut-priority-queue(...a (k, v) array) k is-data, k compare
 	a.to-list to-mut-priority-queue
 
 # Copies a list to a new priority queue.
-to-mut-priority-queue<k, v> mut-priority-queue<k, v>(a (k, v)[]) is-data<k> compare<k>
+to-mut-priority-queue[k, v] (k, v) mut-priority-queue(a (k, v)[]) k is-data, k compare
 	mins = a to-mut-list
 	mins.sort-reverse := pair => pair from
 	mins, ()
 
 # Removes all pairs from the queue.
-clear<k, v> void(a mut-priority-queue<k, v>) is-data<k> compare<k>
+clear[k, v] void(a (k, v) mut-priority-queue) k is-data, k compare
 	a.mins clear
 	a.buckets clear
 
 # True iff `a.size == 0`.
-is-empty<k, v> bool(a mut-priority-queue<k, v>) is-data<k> compare<k>
+is-empty[k, v] bool(a (k, v) mut-priority-queue) k is-data, k compare
 	a.mins is-empty
 
 ###
 Number of pairs in the queue.
 This is O(n).
 ###
-size<k, v> nat64(a mut-priority-queue<k, v>) is-data<k> compare<k>
+size[k, v] nat64(a (k, v) mut-priority-queue) k is-data, k compare
 	res mut = a.mins size
 	for b : a.buckets
 		res := res + b.size
@@ -67,7 +67,7 @@ size<k, v> nat64(a mut-priority-queue<k, v>) is-data<k> compare<k>
 Adds a pair to the queue.
 This is O(log n).
 ###
-~= <k, v> void(a mut-priority-queue<k, v>, pair (k, v)) trusted is-data<k> compare<k>
+~=[k, v] void(a (k, v) mut-priority-queue, pair (k, v)) trusted, k is-data, k compare
 	# Highest min is on the right, so comparing in reverse
 	pointer = a.mins binary-search-insert-pointer it => it.from <=> pair.from
 	index = pointer - a.mins.begin-pointer
@@ -83,7 +83,7 @@ Returns an empty option iff the queue was empty (before calling `pop`).
 
 This is amortized O(log n).
 ###
-pop<k, v> (k, v)?(a mut-priority-queue<k, v>) is-data<k> compare<k>
+pop[k, v] (k, v)?(a (k, v) mut-priority-queue) k is-data, k compare
 	res = a.mins pop
 	if a.mins.size < a.buckets.size
 		assert a.mins.size + 1 == a.buckets.size
@@ -96,7 +96,7 @@ pop<k, v> (k, v)?(a mut-priority-queue<k, v>) is-data<k> compare<k>
 	res
 
 # Like `pop`, but discards the key.
-pop-value<k, v> v?(a mut-priority-queue<k, v>) is-data<k> compare<k>
+pop-value[k, v] v?(a (k, v) mut-priority-queue) k is-data, k compare
 	if pair ?= a pop
 		pair.to,
 
@@ -104,15 +104,15 @@ pop-value<k, v> v?(a mut-priority-queue<k, v>) is-data<k> compare<k>
 Copy pairs to a new priority queue.
 This is O(n).
 ###
-copy<k, v> mut-priority-queue<k, v>(a mut-priority-queue<k, v>) is-data<k> compare<k>
+copy[k, v] (k, v) mut-priority-queue(a (k, v) mut-priority-queue) k is-data, k compare
 	a spread-all-buckets
 	a.mins.copy, ()
 
-to-list<k, v> (k, v)[](a mut-priority-queue<k, v>) trusted is-data<k> compare<k>
+to-list[k, v] (k, v)[](a (k, v) mut-priority-queue) trusted, k is-data, k compare
 	a spread-all-buckets
 	a.mins.to-list reverse
 
-.spread-all-buckets<k, v> void(a mut-priority-queue<k, v>) is-data<k> compare<k>
+.spread-all-buckets[k, v] void(a (k, v) mut-priority-queue) k is-data, k compare
 	old-mins = a.mins move-to-array
 	for index : 0 .. old-mins.size
 		if index < a.buckets.size
@@ -123,14 +123,14 @@ to-list<k, v> (k, v)[](a mut-priority-queue<k, v>) trusted is-data<k> compare<k>
 		a.mins ~= old-mins[index]
 	a.buckets clear
 
-.add-to-bucket<k, v> void(buckets (k, v) mut[] mut[], index nat64, pair (k, v))
+.add-to-bucket[k, v] void(buckets (k, v) mut[] mut[], index nat64, pair (k, v))
 	if index < buckets.size
 		buckets[index] ~= pair
 	else
 		buckets ~= ()
 		buckets add-to-bucket index, pair
 
-.dbg<k, v> string(a mut-priority-queue<k, v>) to-string<k> to-string<v> trusted
+.dbg[k, v] string(a (k, v) mut-priority-queue) trusted, k to-string, v to-string
 	# TODO: should be able to infer type arguments
 	mins = a.mins temp-as-array
 	buckets = a.buckets temp-as-array
@@ -143,14 +143,14 @@ to-list<k, v> (k, v)[](a mut-priority-queue<k, v>) trusted is-data<k> compare<k>
 				" [{parts}]"
 		"{mins[i] dbg}{show-bucket}"
 
-.dbg<k, v> string(a (k, v)) to-string<k> to-string<v>
+.dbg[k, v] string(a (k, v)) k to-string, v to-string
 	"{a from} -> {a to}"
 
-.verify void(a mut-priority-queue<nat64, string>, expected string)
+.verify void(a (nat64, string) mut-priority-queue, expected string)
 	a.dbg is expected
 
 test
-	a mut-priority-queue<nat64, string> = ()
+	a (nat64, string) mut-priority-queue = ()
 	a.is-empty is true
 	a.pop is ()
 	a verify ""
@@ -188,7 +188,7 @@ test
 	a verify "6 -> 6, 5 -> 5, 4 -> 4b"
 
 test
-	a mut-priority-queue<nat64, string> = ()
+	a (nat64, string) mut-priority-queue = ()
 	a ~= (5, "5")
 	a ~= (5, "five")
 	a.pop is ((5, "5"),)

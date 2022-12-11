@@ -12,7 +12,7 @@ sound-file-format enum
 	ogg-vorbis
 	wav
 
-write-sound-file void(path string, sound sound, format sound-file-format) trusted summon
+write-sound-file void(path string, sound sound, format sound-file-format) summon, trusted
 	n-channels = sound.format n-channels
 	n-frames = sound.samples.size / n-channels
 	sf-format = format to-sf-format

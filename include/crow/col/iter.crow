@@ -4,14 +4,14 @@ import
 	../fun-util: subscript
 	../option: option
 
-value-and-rest<a, iter> record by-val
-	value a
+value-and-rest[t, iter] record by-val
+	value t
 	rest iter
 
-iterator<i, a> spec
-	next value-and-rest<a, i>?(iter i)
+iterator[iter, t] spec
+	next (t, iter) value-and-rest?(iter iter)
 
-iter-find<i, a> i(iter i, f act bool(a)) iterator<i, a>
+iter-find[iter, t] iter(iter iter, f act bool(t)) (iter, t) iterator
 	if n ?= iter next
 		if f[n value]
 			iter

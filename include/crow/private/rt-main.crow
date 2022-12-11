@@ -23,10 +23,10 @@ import
 	fun* nat64^(string[])
 
 # Treated specially by the compiler
-rt-main int32(argc int32, argv c-string*, main-pointer main-pointer) trusted noctx summon
+rt-main int32(argc int32, argv c-string*, main-pointer main-pointer) noctx, summon, trusted
 	do-init-constants
 	n-threads = count-processors
-	gctx-by-val mut by-val global-ctx = n-threads uninit
+	gctx-by-val mut global-ctx by-val = n-threads uninit
 	gctx global-ctx = &gctx-by-val
 	gctx init
 	main-fut = gctx add-main-task argc, argv, main-pointer
@@ -35,7 +35,7 @@ rt-main int32(argc int32, argv c-string*, main-pointer main-pointer) trusted noc
 	gctx free
 	res
 
-.exit-code-from-main-fut int32(gctx global-ctx, main-fut nat64^) unsafe noctx
+.exit-code-from-main-fut int32(gctx global-ctx, main-fut nat64^) noctx, unsafe
 	match main-fut get-result
 	as ok v
 		# TODO: handle nat64 too big for int32
@@ -48,17 +48,17 @@ rt-main int32(argc int32, argv c-string*, main-pointer main-pointer) trusted noc
 		1
 
 # TODO:KILL (using this to narrow down scope of error)
-.do-init-constants void() unsafe noctx summon
+.do-init-constants void() noctx, summon, unsafe
 	init-constants
 
-init-constants void() unsafe noctx summon builtin
+init-constants void() builtin, noctx, summon, unsafe
 
 .add-main-task nat64^(
 	gctx global-ctx,
 	argc int32,
 	argv c-string*,
 	main-pointer main-pointer,
-) trusted noctx
+) noctx, trusted
 	# Create a ctx manually so we can call functions that need it when creating the task
 	gctx before-task 0
 	all-args = argv[0 .. argc.to-int64.to-nat64]
@@ -66,7 +66,7 @@ init-constants void() unsafe noctx summon builtin
 	after-task
 	res
 
-.invoke-main nat64^(all-args array c-string, main-pointer main-pointer) force-ctx unsafe
+.invoke-main nat64^(all-args c-string array, main-pointer main-pointer) force-ctx, unsafe
 	all-args add-first-task main-pointer
 
 .thread-args record mut by-ref
@@ -76,7 +76,7 @@ init-constants void() unsafe noctx summon builtin
 # TODO: if mut-bag-node is in unmanaged memory, don't need ctx for this
 # We want main-fut to be available immediately, not after having run some user code.
 # So we create main-fut now, and forward the result of 'main' to that.
-.add-first-task nat64^(all-args array c-string, main-pointer main-pointer) unsafe
+.add-first-task nat64^(all-args c-string array, main-pointer main-pointer) unsafe
 	# 'then' is useful here -- it handles any errors in 'main' and gets us main-fut immediately.
 	# TODO: 'then' overload for void^ taking lambda with 0 params
 	res = delay then () =>
@@ -87,9 +87,9 @@ init-constants void() unsafe noctx summon builtin
 	res
 
 # Each thread will get the thread ID, and the common arguments.
-.run-threads void(n-threads nat64, gctx global-ctx) noctx unsafe summon
+.run-threads void(n-threads nat64, gctx global-ctx) noctx, summon, unsafe
 	threads thread-handle mut* = n-threads unmanaged-alloc-elements
-	thread-args by-val<thread-args> mut* = n-threads unmanaged-alloc-elements
+	thread-args thread-args by-val mut* = n-threads unmanaged-alloc-elements
 
 	actual-n-threads = n-threads - 1
 
@@ -103,9 +103,9 @@ init-constants void() unsafe noctx summon builtin
 .start-threads void(
 	n-threads nat64,
 	threads thread-handle mut*,
-	thread-args-begin by-val<thread-args> mut*,
+	thread-args-begin thread-args by-val mut*,
 	gctx global-ctx,
-) noctx unsafe summon
+) noctx, summon, unsafe
 	i mut = 0
 	until i == n-threads
 		thread-arg-pointer = thread-args-begin + i
@@ -113,12 +113,12 @@ init-constants void() unsafe noctx summon builtin
 		threads[i] := thread-arg-pointer.as-any-mut-pointer create-one-thread &thread-fun
 		i := i + 1
 
-.thread-fun any-mut-pointer(args-pointer any-mut-pointer) noctx unsafe summon
+.thread-fun any-mut-pointer(args-pointer any-mut-pointer) noctx, summon, unsafe
 	args thread-args = args-pointer as-ref
 	args.thread-id thread-function args.gctx
 	null
 
-.join-threads void(n-threads nat64, threads thread-handle*) noctx unsafe summon
+.join-threads void(n-threads nat64, threads thread-handle*) noctx, summon, unsafe
 	i mut = 0
 	until i == n-threads
 		threads[i] join-one-thread

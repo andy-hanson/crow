@@ -5,7 +5,7 @@ import
 	crow/number: nat32, nat64
 	crow/pointer: mut-pointer
 
-epoll_create1 fd-t(epoll-flags c-int) extern<c> summon
+epoll_create1 fd-t(epoll-flags c-int) summon, c extern
 
 epoll_event record extern packed
 	events nat32
@@ -14,14 +14,14 @@ epoll_event record extern packed
 new epoll_event() noctx
 	0, 0
 
-epoll_ctl err-t(epfd fd-t, op c-int, fd fd-t, event epoll_event mut*) extern<c> summon
+epoll_ctl err-t(epfd fd-t, op c-int, fd fd-t, event epoll_event mut*) summon, c extern
 
 epoll_wait err-t(
 	epfd fd-t,
 	events epoll_event mut*,
 	max-events c-int,
 	timeout c-int,
-) extern<c> summon
+) summon, c extern
 
 EPOLLIN nat32() noctx
 	1

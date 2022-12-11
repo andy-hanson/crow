@@ -27,8 +27,8 @@ Popping removes the pair with the lowest key.
 
 If two pairs have the same key, the second pair added will be popped second.
 ###
-priority-queue<k, v> record
-	.root node<k, v>?
+priority-queue[k, v] record
+	.root (k, v) node?
 
 ###
 Priority queue consists of a linked list of nodes with two parts.
@@ -48,32 +48,32 @@ they would join with the `1` on the right to size 4, then with the `2` on the ri
 then with the `4` to size 10, then with the `8` to size 18, leaving only one node.)
 ###
 
-.node<k, v> record
+.node[k, v] record
 	min (k, v)
-	pairs array (k, v)
-	next node<k, v>?
+	pairs (k, v) array
+	next (k, v) node?
 
 # New priority queue containing the given pairs.
-new<k, v> priority-queue<k, v>(...a array (k, v)) is-data<k> compare<k>
+new[k, v] (k, v) priority-queue(...a (k, v) array) k is-data, k compare
 	a.to-list to-priority-queue
 
 # New priority queue containing the given pairs.
-to-priority-queue<k, v> priority-queue<k, v>(a (k, v)[]) is-data<k> compare<k>
+to-priority-queue[k, v] (k, v) priority-queue(a (k, v)[]) k is-data, k compare
 	if a is-empty
 		# TODO: type annotation should not be necessary
-		()::node<k, v>?,
+		()::((k, v) node?),
 	else
 		sorted = a sort pair => pair from
-		root node<k, v> = sorted.first!, sorted.tail.to-array, ()
+		root (k, v) node = sorted.first!, sorted.tail.to-array, ()
 		# TODO: type annotation should not be necessary
-		(root,)::node<k, v>?,
+		(root,)::((k, v) node?),
 
-to-list<k, v> (k, v)[](a priority-queue<k, v>) is-data<k> compare<k>
+to-list[k, v] (k, v)[](a (k, v) priority-queue) k is-data, k compare
 	for k, v : a
 		k, v
 
 # True iff `a.size == 0`.
-is-empty<k, v> bool(a priority-queue<k, v>) is-data<k> compare<k>
+is-empty[k, v] bool(a (k, v) priority-queue) k is-data, k compare
 	a.root is-empty
 
 ###
@@ -81,7 +81,7 @@ Number of pairs in the priority queue.
 
 This is O(n).
 ###
-size<k, v> nat64(a priority-queue<k, v>) is-data<k> compare<k>
+size[k, v] nat64(a (k, v) priority-queue) k is-data, k compare
 	acc mut = 0
 	cur mut = a root
 	loop
@@ -97,14 +97,14 @@ Adds a pair to the queue.
 
 This is O(1), since the work of sorting pairs is actually done in `pop`.
 ###
-~ <k, v> priority-queue<k, v>(a priority-queue<k, v>, b (k, v)) is-data<k> compare<k>
-	root node<k, v> = b, (), a.root
+~[k, v] (k, v) priority-queue(a (k, v) priority-queue, b (k, v)) k is-data, k compare
+	root (k, v) node = b, (), a.root
 	# TODO: type annotation should not be necessary
-	(root,)::node<k, v>?,
+	(root,)::((k, v) node?),
 
-popped<k, v> record
+popped[k, v] record
 	popped (k, v)
-	rest priority-queue<k, v>
+	rest (k, v) priority-queue
 
 ###
 Removes and returns the pair with the lowest key.
@@ -113,7 +113,7 @@ Returns an empty option iff `a` is empty.
 
 This is amortized O(log n).
 ###
-pop<k, v> popped<k, v>?(a priority-queue<k, v>) is-data<k> compare<k>
+pop[k, v] (k, v) popped?(a (k, v) priority-queue) k is-data, k compare
 	if root ?= a.compact-leading-nodes root
 		if next ?= root next
 			if popped ?= next pop-no-compact-recur root.min.from
@@ -123,16 +123,16 @@ pop<k, v> popped<k, v>?(a priority-queue<k, v>) is-data<k> compare<k>
 		else
 			root.pop-from-node,
 
-.pop-from-node<k, v> popped<k, v>(a node<k, v>)
-	# TODO: node<k, v>? should not be necessary
-	rest node<k, v>? = if first ?= a.pairs first
+.pop-from-node[k, v] (k, v) popped(a (k, v) node)
+	# TODO: type annotation should not be necessary
+	rest (k, v) node? = if first ?= a.pairs first
 		(first, a.pairs.tail, a.next),
 	else
 		a next
 	a.min, (rest,)
 
 # Returns none if this (or any following node) did not have a lower min.
-.pop-no-compact-recur<k, v> popped<k, v>?(a node<k, v>, min k) compare<k>
+.pop-no-compact-recur[k, v] (k, v) popped?(a (k, v) node, min k) k compare
 	is-min = a.min.from < min
 	next-popped = if next ?= a next
 		next pop-no-compact-recur if is-min
@@ -144,12 +144,12 @@ pop<k, v> popped<k, v>?(a priority-queue<k, v>) is-data<k> compare<k>
 	elif is-min
 		a.pop-from-node,
 
-.combine-with-popped<k, v> popped<k, v>(a node<k, v>, popped popped<k, v>)
-	root node<k, v> = a.min, a.pairs, popped.rest.root
+.combine-with-popped[k, v] (k, v) popped(a (k, v) node, popped (k, v) popped)
+	root (k, v) node = a.min, a.pairs, popped.rest.root
 	# TODO: type annotation should not be necessary
-	popped.popped, ((root,)::node<k, v>?,)
+	popped.popped, ((root,)::((k, v) node?),)
 
-.compact-leading-nodes<k, v> priority-queue<k, v>(a priority-queue<k, v>) compare<k> trusted
+.compact-leading-nodes[k, v] (k, v) priority-queue(a (k, v) priority-queue) trusted, k compare
 	mid = a.root find-mid 0
 	if mid.n-before-mid == 0
 		a
@@ -158,18 +158,18 @@ pop<k, v> popped<k, v>?(a priority-queue<k, v>) is-data<k> compare<k>
 		match mid.mid plan root, mid.n-before-mid
 		as plan-did-compact compacted
 			# TODO: type annotation should not be necessary
-			(compacted,)::node<k, v>?,
+			(compacted,)::((k, v) node)?,
 		as plan-will-compact n
 			# TODO: type annotation should not be necessary
-			((root do-compact n, mid.mid),)::node<k, v>?,
+			((root do-compact n, mid.mid),)::((k, v) node)?,
 
-.found-mid<k, v> record
-	mid node<k, v>?
+.found-mid[k, v] record
+	mid (k, v) node?
 	n-before-mid nat64
 
 # Finds the first node with 'pairs' non-empty.
 # Also returns the # of nodes before that
-.find-mid<k, v> found-mid<k, v>(a node<k, v>?, n-before nat64)
+.find-mid[k, v] (k, v) found-mid(a (k, v) node?, n-before nat64)
 	if node ?= a
 		if node.pairs is-empty
 			node.next find-mid n-before + 1
@@ -178,14 +178,14 @@ pop<k, v> popped<k, v>?(a priority-queue<k, v>) is-data<k> compare<k>
 	else
 		(), n-before
 
-.plan<k, v> union
-	plan-did-compact node<k, v>
+.plan[k, v] union
+	plan-did-compact (k, v) node
 	# has the number of elements to compact
 	plan-will-compact nat64
 
 # We only call this if we will definitely compact something,
 # TODO: 'plan' is misnamed, this now does the compaction during the recursion
-.plan<k, v> plan<k, v>(a node<k, v>?, root node<k, v>, n-singles nat64) compare<k>
+.plan[k, v] (k, v) plan(a (k, v) node?, root (k, v) node, n-singles nat64) k compare
 	if node ?= a
 		match node.next plan root, n-singles
 		as plan-did-compact compacted
@@ -200,8 +200,8 @@ pop<k, v> popped<k, v>?(a priority-queue<k, v>) is-data<k> compare<k>
 	else
 		n-singles plan-will-compact
 
-.do-compact<k, v> node<k, v>(root node<k, v>, n-to-compact nat64, nodes-to-compact node<k, v>?) trusted compare<k>
-	compacted mut-array (k, v) = n-to-compact uninitialized-mut-array
+.do-compact[k, v] (k, v) node(root (k, v) node, n-to-compact nat64, nodes-to-compact (k, v) node?) trusted, k compare
+	compacted (k, v) mut-array = n-to-compact uninitialized-mut-array
 	mid = compacted.begin-pointer compact-non-singles nodes-to-compact
 	end = mid compact-singles root
 	assert end == compacted.end-pointer
@@ -209,7 +209,7 @@ pop<k, v> popped<k, v>?(a priority-queue<k, v>) is-data<k> compare<k>
 	arr = compacted cast-immutable
 	arr.first!, arr.tail, ()
 
-.compact-singles<k, v> (k, v) mut*(out (k, v) mut*, a node<k, v>) unsafe
+.compact-singles[k, v] (k, v) mut*(out (k, v) mut*, a (k, v) node) unsafe
 	if a.pairs is-empty
 		# Output later nodes first to preserve insertion order (since they're inserted to the front)
 		pos = if next ?= a next
@@ -221,7 +221,7 @@ pop<k, v> popped<k, v>?(a priority-queue<k, v>) is-data<k> compare<k>
 	else
 		out
 
-.compact-non-singles<k, v> (k, v) mut*(out (k, v) mut*, a node<k, v>?) unsafe
+.compact-non-singles[k, v] (k, v) mut*(out (k, v) mut*, a (k, v) node?) unsafe
 	if node ?= a
 		*out := node min
 		cur mut = out + 1
@@ -232,9 +232,9 @@ pop<k, v> popped<k, v>?(a priority-queue<k, v>) is-data<k> compare<k>
 	else
 		out
 
-.dbg string(a priority-queue<nat64, string>)
+.dbg string(a (nat64, string) priority-queue)
 	a.root dbg
-.dbg string(a node<nat64, string>?)
+.dbg string(a (nat64, string) node?)
 	if node ?= a
 		pairs = ", " join for pair : node.pairs to-list
 			"{pair from} {pair to}"
@@ -243,37 +243,37 @@ pop<k, v> popped<k, v>?(a priority-queue<k, v>) is-data<k> compare<k>
 
 region iteration
 
-for-loop<k, v> void(a priority-queue<k, v>, f act void(k, v)) is-data<k> compare<k>
+for-loop[k, v] void(a (k, v) priority-queue, f act void(k, v)) k is-data, k compare
 	a.each-arr walk f
 
-.each-part<k, v> record mut
+.each-part[k, v] record mut
 	min mut (k, v)
-	pairs mut array (k, v)
+	pairs mut (k, v) array
 
-.each-arr<k, v> mut-array each-part<k, v>(a priority-queue<k, v>) trusted compare<k>
-	res mut-array each-part<k, v> = a.node-count uninitialized-mut-array
+.each-arr[k, v] (k, v) each-part mut-array(a (k, v) priority-queue) trusted, k compare
+	res (k, v) each-part mut-array = a.node-count uninitialized-mut-array
 	end = res.begin-pointer fill-each-arr a.root
 	assert end == res.end-pointer
 	res set-sort it => it.min from
 	res
 
-.node-count<k, v> nat64(a priority-queue<k, v>)
+.node-count[k, v] nat64(a (k, v) priority-queue)
 	0 node-count a.root
 
-.node-count<k, v> nat64(acc nat64, a node<k, v>?)
+.node-count[k, v] nat64(acc nat64, a (k, v) node?)
 	if node ?= a
 		acc + 1 node-count node.next
 	else
 		acc
 
-.fill-each-arr<k, v> each-part<k, v> mut*(out each-part<k, v> mut*, a node<k, v>?) unsafe
+.fill-each-arr[k, v] (k, v) each-part mut*(out (k, v) each-part mut*, a (k, v) node?) unsafe
 	if node ?= a
 		*out := node.min, node.pairs
 		out + 1 fill-each-arr node.next
 	else
 		out
 
-.walk<k, v> void(a mut-array each-part<k, v>, f act void(k, v)) compare<k>
+.walk[k, v] void(a (k, v) each-part mut-array, f act void(k, v)) k compare
 	if head ?= a first
 		min = head min
 		f[min from, min to]
@@ -285,7 +285,7 @@ for-loop<k, v> void(a priority-queue<k, v>, f act void(k, v)) is-data<k> compare
 		else
 			a.tail walk f
 
-.swap-sorted<k, v> void(a mut-array each-part<k, v>) compare<k>
+.swap-sorted[k, v] void(a (k, v) each-part mut-array) k compare
 	if a.size > 1 && a[0].min.from > a[1].min.from
 		# TODO: use a swap function
 		temp = a[0]
@@ -293,34 +293,34 @@ for-loop<k, v> void(a priority-queue<k, v>, f act void(k, v)) is-data<k> compare
 		a[1] := temp
 		a.tail swap-sorted
 
-filter<k, v> priority-queue<k, v>(a priority-queue<k, v>, f act bool(k, v)) trusted is-data<k> compare<k>
+filter[k, v] (k, v) priority-queue(a (k, v) priority-queue, f act bool(k, v)) trusted, k is-data, k compare
 	pairs (k, v)[] = with out : build
 		for k, v : a
 			if f[k, v]
 				out ~= (k, v)
 	pairs to-priority-queue
 
-for-loop<k-out, v-out, k-in, v-in> priority-queue<k-out, v-out>(
-	a priority-queue<k-in, v-in>,
+for-loop[k-out, v-out, k-in, v-in] (k-out, v-out) priority-queue(
+	a (k-in, v-in) priority-queue,
 	f act (k-out, v-out)(k-in, v-in),
-) is-data<k-in> compare<k-in> is-data<k-out> compare<k-out>
+) k-in is-data, k-in compare, k-out is-data, k-out compare
 	a for-loop f to-priority-queue
 
-for-loop<out, k, v> out[](a priority-queue<k, v>, f act out(k, v)) is-data<k> compare<k> trusted
+for-loop[out, k, v] out[](a (k, v) priority-queue, f act out(k, v)) trusted, k is-data, k compare
 	with out : a.size build
 		for k, v : a
 			out ~= f[k, v]
 
-keys<k, v> k[](a priority-queue<k, v>) is-data<k> compare<k>
+keys[k, v] k[](a (k, v) priority-queue) k is-data, k compare
 	for k, _ : a
 		k
 
-values<k, v> v[](a priority-queue<k, v>) is-data<k> compare<k>
+values[k, v] v[](a (k, v) priority-queue) k is-data, k compare
 	for _, v : a
 		v
 
 test
-	p priority-queue<nat64, string> = ()
+	p (nat64, string) priority-queue = ()
 
 	p1 = p ~ (5, "5")
 	p1.dbg is "5 5 []"
@@ -364,14 +364,14 @@ test
 		"{k} -> {v}"
 	joined is "6 -> 6, 6 -> 6b, 6 -> 6c, 7 -> 7, 7 -> 7b, 8 -> 8"
 
-	filter-order spy-act2<bool, nat64, string> = ((k, _) => k == 6),
+	filter-order (bool, nat64, string) spy-act2 = ((k, _) => k == 6),
 	filtered = p6 filter filter-order.fn
 	filter-calls = filter-order calls
 	filter-calls is p6-pairs
 	filtered.dbg is "6 6 [6 6b, 6 6c]"
 
-	map-order spy-act2<(nat64, string), nat64, string> = ((k, v) => (10 - k), "{v}x"),
-	mapped priority-queue<nat64, string> = p6 for-loop map-order.fn
+	map-order ((nat64, string), nat64, string) spy-act2 = ((k, v) => (10 - k), "{v}x"),
+	mapped (nat64, string) priority-queue = p6 for-loop map-order.fn
 	map-calls = map-order calls
 	map-calls is p6-pairs
 	mapped.dbg is "2 8x [3 7x, 3 7bx, 4 6x, 4 6bx, 4 6cx]"

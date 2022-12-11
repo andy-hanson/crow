@@ -1,13 +1,13 @@
 no-std
 import
-	./bool: bool, false
+	./bool: bool, false, true
 	./compare: equal
 	./exception: exception, rethrow
 	./fun-util: subscript
 export
 	./private/bootstrap: err, ok, result
 
-==<a, b> bool(a result<a, b>, b result<a, b>) equal<a> equal<b>
+==[t, u] bool(a (t, u) result, b (t, u) result) t equal, u equal
 	match a
 	as ok oa
 		match b
@@ -22,16 +22,23 @@ export
 		as err eb
 			ea == eb
 
-then<out, in, err> result<out, err>(a result<in, err>, f act result<out, err>(in))
+then[out, in, err] (out, err) result(a (in, err) result, f act (out, err) result(in))
 	match a
 	as ok v
 		f[v]
 	as err e
 		e err
 
-! <a> a(a result<a, exception>)
+![t] t(a (t, exception) result)
 	match a
 	as ok v
 		v
 	as err e
 		e rethrow
+
+is-ok[t, u] bool(a (t, u) result)
+	match a
+	as ok _
+		true
+	as err _
+		false

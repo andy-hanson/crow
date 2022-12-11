@@ -20,49 +20,49 @@ import
 ###
 Immutable unsorted set.
 ###
-set<a> record
-	.add add-node a
+set[t] record
+	.add t add-node
 	.remove index-set
 
 # TODO:KILL
-node-count<a> nat64(a set<a>) no-doc
+node-count[t] nat64(a t set) no-doc
 	0 node-count a.add
-.node-count<a> nat64(acc nat64, a add-node<a>)
+.node-count[t] nat64(acc nat64, a t add-node)
 	if left ?= a.left
 		acc + 1 node-count left
 	else
 		acc + 1
 
-.add-node<a> record
-	here frozen-set a
-	left add-node<a>?
+.add-node[t] record
+	here t frozen-set
+	left t add-node?
 
 # Set containing the given elements (with duplicates removed).
-new<a> set a(...a array a) is-data<a> compare<a> hash-mix<a>
+new[t] t set(...a t array) t is-data, t compare, t hash-mix
 	a.to-list to-set
 
 # Set containing the given elements (with duplicates removed).
-to-set<a> set a(a a[]) is-data<a> compare<a> hash-mix<a>
+to-set[t] t set(a t[]) t is-data, t compare, t hash-mix
 	# TODO: type annotation should be unnecessary
-	(a.to-frozen-set, ())::add-node<a>, ()
+	(a.to-frozen-set, ())::(t add-node), ()
 
 # Copies set elements to a list.
-to-list<a> a[](a set a) is-data<a> compare<a> hash-mix<a>
+to-list[t] t[](a t set) t is-data, t compare, t hash-mix
 	# TODO: If a has a single add node and no remove, just return that
 	for x : a
 		x
 
 # `true` iff `a.size == 0`.
-is-empty<a> bool(a set a) is-data<a> compare<a> hash-mix<a>
+is-empty[t] bool(a t set) t is-data, t compare, t hash-mix
 	a.add.here is-empty
 
 # Number of elements in the set.
-size<a> nat64(a set a) is-data<a> compare<a> hash-mix<a>
+size[t] nat64(a t set) t is-data, t compare, t hash-mix
 	a.add.add-size - a.remove.size
 
-.add-size<a> nat64(a add-node a)
+.add-size[t] nat64(a t add-node)
 	a.here.size + a.add-size-left
-.add-size-left<a> nat64(a add-node a)
+.add-size-left[t] nat64(a t add-node)
 	acc mut = 0
 	cur mut = a
 	loop
@@ -74,11 +74,11 @@ size<a> nat64(a set a) is-data<a> compare<a> hash-mix<a>
 			break acc
 
 # `true` iff `value` is an element of `a`.
-in<a> bool(value a, a set a) is-data<a> compare<a> hash-mix<a>
+in[t] bool(value t, a t set) t is-data, t compare, t hash-mix
 	if index ?= a.add find-in-add value
 		!(index in a.remove)
 
-.find-in-add<a> nat64?(a add-node a, value a) is-data<a> compare<a> hash-mix<a>
+.find-in-add[t] nat64?(a t add-node, value t) t is-data, t compare, t hash-mix
 	if index ?= a.here try-get-unordered-index value
 		a.add-size-left + index,
 	elif left ?= a left
@@ -89,11 +89,11 @@ Adds an element to the set.
 
 If `value` is alerady in the set, returns `a` unmodified.
 ###
-~ <a> set a(a set a, value a) is-data<a> compare<a> hash-mix<a>
+~[t] t set(a t set, value t) t is-data, t compare, t hash-mix
 	a try-add value ?? a
 
 # Same as `a | b`.
-~~ <a> set a(a set a, b set a) is-data<a> compare<a> hash-mix<a>
+~~[t] t set(a t set, b t set) t is-data, t compare, t hash-mix
 	a | b
 
 ###
@@ -101,7 +101,7 @@ Union of two sets.
 
 This is a set containing all elements in either `a` or `b`.
 ###
-| <a> set a(a set a, b set a) is-data<a> compare<a> hash-mix<a>
+|[t] t set(a t set, b t set) t is-data, t compare, t hash-mix
 	res mut = a
 	for x : b
 		res := res ~ x
@@ -112,7 +112,7 @@ Intersection of two sets.
 
 This is a set containing all elements in both `a` and `b`.
 ###
-& <a> set a(a set a, b set a) is-data<a> compare<a> hash-mix<a>
+&[t] t set(a t set, b t set) t is-data, t compare, t hash-mix
 	# TODO:PERF
 	a filter x => x in b
 
@@ -121,31 +121,31 @@ Set difference.
 
 This is a set containing all elements in `a` but not in `b`.
 ###
-- <a> set a(a set a, b set a) is-data<a> compare<a> hash-mix<a>
+-[t] t set(a t set, b t set) t is-data, t compare, t hash-mix
 	a filter x => !(x in b)
 
 ###
 If `value` is already in the set, returns an empty option.
 Else, adds it and returns the new set.
 ###
-try-add<a> set<a>?(a set a, value a) is-data<a> compare<a> hash-mix<a>
+try-add[t] t set?(a t set, value t) t is-data, t compare, t hash-mix
 	if index ?= a.add find-in-add value
 		if new-remove ?= a.remove try-remove index
 			(a.add, new-remove),
 	else
 		(a add-and-maybe-compact value),
 
-.add-and-maybe-compact<a> set a(a set a, value a) trusted is-data<a> compare<a> hash-mix<a>
+.add-and-maybe-compact[t] t set(a t set, value t) trusted, t is-data, t compare, t hash-mix
 	add-size = a.add add-size
 	if add-size == 0
 		# TODO: type annotation should be unnecessary
-		((value,), ())::add-node<a>, ()
+		((value,), ())::(t add-node), ()
 	else
 		# size-right starts as 1 because we're adding a value
 		plan = add-size add-and-compact-plan a.add, a.remove, 1
 		if plan.compacted-size == 1
 			# TODO: type annotation should be unnecessary
-			((value,), (a.add,))::add-node<a>, a.remove
+			((value,), (a.add,))::(t add-node), a.remove
 		else
 			a add-and-compact add-size, plan, value
 
@@ -155,7 +155,12 @@ try-add<a> set<a>?(a set a, value a) is-data<a> compare<a> hash-mix<a>
 	# Size that the compacted node will have (sum of 'depth' rightmost nodes)
 	compacted-size nat64
 
-.add-and-compact-plan<a> compact-plan(size-here-and-left nat64, a add-node a, remove index-set, size-right nat64)
+.add-and-compact-plan[t] compact-plan(
+	size-here-and-left nat64,
+	a t add-node,
+	remove index-set,
+	size-right nat64,
+)
 	size-here = a.here size
 	size-left = size-here-and-left - size-here
 	removals-here-and-right = remove count-greater-or-equal size-left
@@ -171,25 +176,25 @@ try-add<a> set<a>?(a set a, value a) is-data<a> compare<a> hash-mix<a>
 .should-compact bool(size-here nat64, size-right nat64, removals-here-and-right nat64)
 	size-right + removals-here-and-right * 2 >= size-here
 
-.add-and-compact<a> set a(
-	a set a,
+.add-and-compact[t] t set(
+	a t set,
 	add-size nat64,
 	plan compact-plan,
-	value a,
-) is-data<a> compare<a> hash-mix<a>
+	value t,
+) t is-data, t compare, t hash-mix
 	assert plan.compacted-size > 1
-	left mut add-node<a>? = ()
-	compacted frozen-set a = with out : plan.compacted-size build
+	left mut t add-node? = ()
+	compacted t frozen-set = with out : plan.compacted-size build
 		out ~= value
 		left := out do-compact a, add-size, plan.compacted-size
 	(compacted, left), (a.remove filter-less plan.add-size-left)
 
-.do-compact<a> add-node<a>?(
-	out frozen-set-builder a,
-	a set a,
+.do-compact[t] t add-node?(
+	out t frozen-set-builder,
+	a t set,
 	add-size nat64,
 	compacted-size nat64,
-) is-data<a> compare<a> hash-mix<a>
+) t is-data, t compare, t hash-mix
 	cur mut = a add
 	add-size-here-and-left mut = add-size
 	loop
@@ -202,14 +207,14 @@ try-add<a> set<a>?(a set a, value a) is-data<a> compare<a> hash-mix<a>
 			add-size-here-and-left := add-size-here-and-left - cur.here.size
 			continue
 
-.push<a> void(out frozen-set-builder a, here frozen-set a, add-size-here-and-left nat64, remove index-set)
+.push[t] void(out t frozen-set-builder, here t frozen-set, add-size-here-and-left nat64, remove index-set)
 	for x, i : here
 		unless add-size-here-and-left + i in remove
 			out ~= x
 
 region iteration
 
-for-loop<a> void(a set a, f act void(a)) is-data<a> compare<a> hash-mix<a>
+for-loop[t] void(a t set, f act void(t)) t is-data, t compare, t hash-mix
 	cur mut = a add
 	add-size-left mut = cur add-size-left
 	loop
@@ -223,26 +228,26 @@ for-loop<a> void(a set a, f act void(a)) is-data<a> compare<a> hash-mix<a>
 		else
 			break
 
-filter<a> set a(a set a, f act bool(a)) is-data<a> compare<a> hash-mix<a>
-	list a[] = with out : build
+filter[t] t set(a t set, f act bool(t)) t is-data, t compare, t hash-mix
+	list t[] = with out : build
 		for x : a
 			if f[x]
 				out ~= x
 	list to-set
 
-for-loop<out, in> out[](a set in, f act out(in)) trusted is-data<in> compare<in> hash-mix<in>
+for-loop[out, in] out[](a in set, f act out(in)) trusted, in is-data, in compare, in hash-mix
 	with out : a.size build
 		for x : a
 			out ~= f[x]
 
-dbg<a> string(a set a) no-doc to-string<a>
+dbg[t] string(a t set) no-doc, t to-string
 	add = a.add dbg
 	if a.remove is-empty
 		add
 	else
 		parts = " " join for i : a remove; "{i}"
 		"{add} - [{parts}]"
-.dbg<a> string(a add-node a) to-string<a>
+.dbg[t] string(a t add-node) t to-string
 	left = if l ?= a left
 		"{l dbg}, "
 	here = " " join for x : a here; "{x}"

@@ -11,7 +11,7 @@ db record force-sendable
 	db-path string
 open-sqlite3 open-sqlite3(db-path string)
 	db-path,
-with-block<a> a^(a open-sqlite3, cb ref a(db)) summon trusted is-sendable<a>
+with-block[t] t^(a open-sqlite3, cb ref t(db)) summon, trusted, t is-sendable
 	db mut sqlite3 mut* = null
 	# Create empty file if not exist
 	err = a.db-path.to-c-string sqlite3_open_v2 &db, SQLITE_OPEN_READWRITE | SQLITE_OPEN_CREATE, null
@@ -36,12 +36,12 @@ for-loop void(a db-query, f act void(string[], string[])) summon
 		f[columns, values]
 		continue
 
-for-loop<out> out[](a db-query, f act out(string[], string[])) summon
+for-loop[out] out[](a db-query, f act out(string[], string[])) summon
 	with out : build
 		for columns, values : a
 			out ~= f[columns, values]
 
-.query-internal void(a db-query, cb-row act break-or-continue void(string[], string[])) summon trusted
+.query-internal void(a db-query, cb-row act void break-or-continue(string[], string[])) summon, trusted
 	error-message mut c-string = null
 	ctx callback-ctx = cb-row,
 	ctx-ptr = (&ctx)::callback-ctx* as-any-mut-pointer
@@ -53,9 +53,9 @@ for-loop<out> out[](a db-query, f act out(string[], string[])) summon
 		throw "ERROR {err.enum-to-string}: {error-string}"
 
 .callback-ctx record by-val mut
-	cb-row act break-or-continue void(string[], string[])
+	cb-row act void break-or-continue(string[], string[])
 
-.callback c-int(ctx-pointer any-mut-pointer, argc c-int, argv c-string*, col-name c-string*) summon unsafe
+.callback c-int(ctx-pointer any-mut-pointer, argc c-int, argv c-string*, col-name c-string*) summon, unsafe
 	ctx callback-ctx = *(ctx-pointer.as-const.pointer-cast::callback-ctx*)
 	column-names string[] = for i : 0 .. argc.to-nat64
 		col-name[i] to-string

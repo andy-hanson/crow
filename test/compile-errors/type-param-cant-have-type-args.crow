@@ -1,2 +1,2 @@
-f<a> void(_ a nat)
+f[t] void(_ nat t)
 	void

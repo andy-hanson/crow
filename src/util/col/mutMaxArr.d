@@ -77,27 +77,17 @@ void fillMutMaxArr(size_t maxSize, T)(ref MutMaxArr!(maxSize, T) a, size_t size,
 void fillMutMaxArr_mut(size_t maxSize, T)(
 	ref MutMaxArr!(maxSize, T) a,
 	size_t size,
-	in T delegate() @safe @nogc pure nothrow cb,
+	in T delegate(size_t) @safe @nogc pure nothrow cb,
 ) {
 	a.size_ = size;
 	foreach (size_t i; 0 .. size)
-		overwriteMemory(&a.values[i], cb());
+		overwriteMemory(&a.values[i], cb(i));
 }
 
 void mapTo(size_t maxSize, Out, In)(
 	ref MutMaxArr!(maxSize, immutable Out) a,
 	in immutable In[] values,
 	in immutable(Out) delegate(ref immutable In) @safe @nogc pure nothrow cb,
-) {
-	verify(values.length < maxSize);
-	a.size_ = values.length;
-	foreach (size_t i; 0 .. values.length)
-		overwriteMemory(&a.values[i], cb(values[i]));
-}
-void mapTo_mut(size_t maxSize, Out, In)(
-	ref MutMaxArr!(maxSize, Out) a,
-	in immutable In[] values,
-	in Out delegate(ref immutable In) @safe @nogc pure nothrow cb,
 ) {
 	verify(values.length < maxSize);
 	a.size_ = values.length;

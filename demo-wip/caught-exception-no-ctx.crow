@@ -3,7 +3,7 @@ import
 	crow/io/time: delay
 	pthread: pthread_create, pthread_t
 
-main nat^(_ string[]) summon unsafe
+main nat^(_ string[]) summon, trusted
 	thread mut pthread_t = ()
 	err = &thread pthread_create null, &thread-fun, null
 	assert err == 0

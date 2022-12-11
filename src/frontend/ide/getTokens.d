@@ -191,15 +191,16 @@ void addSigReturnTypeAndParamsTokens(
 
 void addTypeTokens(ref Alloc alloc, ref TokensBuilder tokens, in AllSymbols allSymbols, in TypeAst a) {
 	a.matchIn!void(
+		(in TypeAst.Bogus) {},
 		(in TypeAst.Dict it) {
 			addTypeTokens(alloc, tokens, allSymbols, it.v);
 			add(alloc, tokens, Token(
 				Token.Kind.keyword,
-				RangeWithinFile(range(it.v).end, range(it.k).start)));
+				RangeWithinFile(range(it.v, allSymbols).end, range(it.k, allSymbols).start)));
 			addTypeTokens(alloc, tokens, allSymbols, it.k);
 			add(alloc, tokens, Token(
 				Token.Kind.keyword,
-				rangeOfStartAndLength(range(it.k).end, "]".length)));
+				rangeOfStartAndLength(range(it.k, allSymbols).end, "]".length)));
 		},
 		(in TypeAst.Fun it) {
 			add(alloc, tokens, Token(
@@ -208,27 +209,21 @@ void addTypeTokens(ref Alloc alloc, ref TokensBuilder tokens, in AllSymbols allS
 			foreach (TypeAst t; it.returnAndParamTypes)
 				addTypeTokens(alloc, tokens, allSymbols, t);
 		},
-		(in TypeAst.InstStruct it) {
-			addInstStructTokens(alloc, tokens, allSymbols, it);
+		(in NameAndRange x) {
+			add(alloc, tokens, Token(Token.Kind.struct_, rangeOfNameAndRange(x, allSymbols)));
 		},
-		(in TypeAst.Suffix it) {
+		(in TypeAst.SuffixName x) {
+			addTypeTokens(alloc, tokens, allSymbols, x.left);
+			add(alloc, tokens, Token(Token.Kind.struct_, rangeOfNameAndRange(x.name, allSymbols)));
+		},
+		(in TypeAst.SuffixSpecial it) {
 			addTypeTokens(alloc, tokens, allSymbols, it.left);
 			add(alloc, tokens, Token(Token.Kind.keyword, suffixRange(it)));
 		},
 		(in TypeAst.Tuple it) {
-			addTypeTokens(alloc, tokens, allSymbols, it.a);
-			addTypeTokens(alloc, tokens, allSymbols, it.b);
+			foreach (TypeAst t; it.members)
+				addTypeTokens(alloc, tokens, allSymbols, t);
 		});
-}
-
-void addInstStructTokens(ref Alloc alloc, ref TokensBuilder tokens, in AllSymbols allSymbols, in TypeAst.InstStruct a) {
-	add(alloc, tokens, Token(Token.Kind.struct_, rangeOfNameAndRange(a.name, allSymbols)));
-	addTypeArgsTokens(alloc, tokens, allSymbols, a.typeArgs);
-}
-
-void addTypeArgsTokens(ref Alloc alloc, ref TokensBuilder tokens, in AllSymbols allSymbols, in TypeAst[] typeArgs) {
-	foreach (TypeAst typeArg; typeArgs)
-		addTypeTokens(alloc, tokens, allSymbols, typeArg);
 }
 
 void addParamTokens(ref Alloc alloc, ref TokensBuilder tokens, in AllSymbols allSymbols, in ParamAst a) {
@@ -314,9 +309,24 @@ void addFunTokens(ref Alloc alloc, ref TokensBuilder tokens, in AllSymbols allSy
 	addTypeParamsTokens(alloc, tokens, allSymbols, a.typeParams);
 	addSigReturnTypeAndParamsTokens(alloc, tokens, allSymbols, a.returnType, a.params);
 	foreach (ref FunModifierAst modifier; a.modifiers) {
-		Token.Kind kind = modifier.isSpecial() ? Token.Kind.modifier : Token.Kind.spec;
-		add(alloc, tokens, Token(kind, rangeOfNameAndRange(modifier.name, allSymbols)));
-		addTypeArgsTokens(alloc, tokens, allSymbols, modifier.typeArgs);
+		modifier.matchIn!void(
+			(in FunModifierAst.Special x) {
+				add(alloc, tokens, Token(Token.Kind.modifier, x.range(allSymbols)));
+			},
+			(in FunModifierAst.ExternOrGlobal x) @safe {
+				addTypeTokens(alloc, tokens, allSymbols, *x.left);
+				add(alloc, tokens, Token(Token.Kind.modifier, x.suffixRange(allSymbols)));
+			},
+			(in TypeAst x) {
+				if (x.isA!NameAndRange)
+					add(alloc, tokens, Token(Token.Kind.spec, x.range(allSymbols)));
+				else if (x.isA!(TypeAst.SuffixName*)) {
+					TypeAst.SuffixName* n = x.as!(TypeAst.SuffixName*);
+					addTypeTokens(alloc, tokens, allSymbols, n.left);
+					add(alloc, tokens, Token(Token.Kind.spec, rangeOfNameAndRange(n.name, allSymbols)));
+				}
+				// else parse error, so ignore
+			});
 	}
 	if (has(a.body_))
 		addExprTokens(alloc, tokens, allSymbols, force(a.body_));
@@ -327,7 +337,6 @@ void addExprTokens(ref Alloc alloc, ref TokensBuilder tokens, in AllSymbols allS
 		(in ArrowAccessAst it) {
 			addExprTokens(alloc, tokens, allSymbols, it.left);
 			add(alloc, tokens, Token(Token.Kind.fun, rangeOfNameAndRange(it.name, allSymbols)));
-			addTypeArgsTokens(alloc, tokens, allSymbols, it.typeArgs);
 		},
 		(in AssertOrForbidAst it) {
 			add(alloc, tokens, Token(
@@ -339,7 +348,8 @@ void addExprTokens(ref Alloc alloc, ref TokensBuilder tokens, in AllSymbols allS
 		(in CallAst it) {
 			void addName() {
 				add(alloc, tokens, Token(Token.Kind.fun, rangeOfNameAndRange(it.funName, allSymbols)));
-				addTypeArgsTokens(alloc, tokens, allSymbols, it.typeArgs);
+				if (has(it.typeArg))
+					addTypeTokens(alloc, tokens, allSymbols, *force(it.typeArg));
 			}
 			final switch (it.style) {
 				case CallAst.Style.dot:

@@ -37,22 +37,22 @@ INVALID_SOCKET SOCKET() unsafe
 
 sockaddr extern
 
-accept err-t(a SOCKET, addr sockaddr mut*, addrlen socklen_t mut*) extern<c> summon
+accept err-t(a SOCKET, addr sockaddr mut*, addrlen socklen_t mut*) summon, c extern
 
-bind err-t(a SOCKET, addr sockaddr mut*, len socklen_t) extern<c> summon
+bind err-t(a SOCKET, addr sockaddr mut*, len socklen_t) summon, c extern
 
-recv ssize_t(a SOCKET, buf any-mut-pointer, n size_t, recv-flags int32) extern<c> summon
+recv ssize_t(a SOCKET, buf any-mut-pointer, n size_t, recv-flags int32) summon, c extern
 
-socket SOCKET(domain c-int, type c-int, protocol c-int) extern<c> summon
+socket SOCKET(domain c-int, type c-int, protocol c-int) summon, c extern
 
-connect int32(a SOCKET, addr sockaddr mut*, len socklen_t) extern<c> summon
+connect int32(a SOCKET, addr sockaddr mut*, len socklen_t) summon, c extern
 
-listen err-t(a SOCKET, n int32) extern<c> summon
+listen err-t(a SOCKET, n int32) summon, c extern
 
-shutdown err-t(a SOCKET, how int32) extern<c> summon
+shutdown err-t(a SOCKET, how int32) summon, c extern
 
 # Win32 only; on POSIX just use 'close'
-closesocket c-int(s SOCKET) extern<c> summon
+closesocket c-int(s SOCKET) summon, c extern
 
 SHUT_RD int32() noctx
 	0

@@ -11,24 +11,24 @@ import
 export
 	./private/range-low-level: .., low, high, range, size
 
-to-list nat64[](a range nat64)
+to-list nat64[](a nat64 range)
 	for x : a
 		x
 
 region iteration
 
-is-empty bool(a range nat64) noctx
+is-empty bool(a nat64 range) noctx
 	a.low == a.high
 
 # Calls `f` for each value in the range, from `a.low` to `a.high - 1`.
-for-loop void(a range nat64, f act void(nat64))
+for-loop void(a nat64 range, f act void(nat64))
 	cur mut = a low
 	high = a high
 	until cur == high
 		f[cur]
 		cur := cur + 1
 
-for-break<out, in> out?(a range in*, f act break-or-continue out(in*)) unsafe
+for-break[out, in] out?(a in* range, f act out break-or-continue(in*)) unsafe
 	cur mut = a low
 	high = a high
 	loop
@@ -42,21 +42,21 @@ for-break<out, in> out?(a range in*, f act break-or-continue out(in*)) unsafe
 				cur := cur + 1
 				continue
 
-range-reverse<a> record
-	low a
-	high a
+range-reverse[t] record
+	low t
+	high t
 
-size nat64(a range-reverse nat64)
+size nat64(a nat64 range-reverse)
 	a.high - a.low
 
-is-empty bool(a range-reverse nat64) noctx
+is-empty bool(a nat64 range-reverse) noctx
 	a.low == a.high
 
-reverse<a> range-reverse a(a range a)
+reverse[t] t range-reverse(a t range)
 	a.low, a.high
 
 # Calls `f` for each value in the range, from `a.high - 1` to `a.low`.
-for-loop void(a range-reverse nat64, f act void(nat64))
+for-loop void(a nat64 range-reverse, f act void(nat64))
 	unless a is-empty
 		low = a low
 		cur mut = a.high - 1
@@ -68,15 +68,15 @@ for-loop void(a range-reverse nat64, f act void(nat64))
 				cur := cur - 1
 				continue
 
-for-loop<out> out[](a range-reverse nat64, f act out(nat64))
+for-loop[out] out[](a nat64 range-reverse, f act out(nat64))
 	with out : a.size build
 		for x : a
 			out ~= f[x]
 
-for-loop<out> out[](a range nat64, f act out(nat64)) trusted
-	(a for-loop f)::array<out> to-list
+for-loop[out] out[](a nat64 range, f act out(nat64)) trusted
+	(a for-loop f)::(out array) to-list
 
-for-break<out> out(a range nat64, f-loop act break-or-continue out(nat64), f-else act out())
+for-break[out] out(a nat64 range, f-loop act out break-or-continue(nat64), f-else act out())
 	cur mut = a low
 	high = a high
 	loop
@@ -92,7 +92,7 @@ for-break<out> out(a range nat64, f-loop act break-or-continue out(nat64), f-els
 				continue
 
 # `true` iff `f` is `true` for some value in the range.
-exists bool(a range nat64, f act bool(nat64))
+exists bool(a nat64 range, f act bool(nat64))
 	for x : a
 		if f[x]
 			break true

@@ -1,1 +1,1 @@
-{"_type":"file-ast","specs":[],"aliases":[],"structs":[],"funs":[{"_type":"fun-decl","visibility":"public","range":{"_type":"range","args":[0,5]},"name":"f","return":{"_type":"inststruct","args":[{"_type":"range","args":[2,3]},{"_type":"name-range","args":[2,"t"]}]},"params":[]}]}
+{"_type":"file-ast","specs":[],"aliases":[],"structs":[],"funs":[{"_type":"fun-decl","visibility":"public","range":{"_type":"range","args":[0,5]},"name":"f","return":{"_type":"name-range","args":[2,"t"]},"params":[]}]}

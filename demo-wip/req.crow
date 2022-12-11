@@ -7,7 +7,7 @@ import
 	sys/socket: AF_INET, connect, sockaddr, socket, SOCK_STREAM
 	unistd: read, write
 
-main nat^(_ string[]) unsafe summon
+main nat^(_ string[]) summon, trusted
 	hostname = "duckduckgo.com"
 	socket = get-tcp-socket
 	socket connect-socket hostname, 80
@@ -18,14 +18,14 @@ main nat^(_ string[]) unsafe summon
 	socket receive-response
 	()
 
-.get-tcp-socket fd-t() unsafe summon
+.get-tcp-socket fd-t() summon, unsafe
 	protoent = "tcp" getprotobyname
 	forbid protoent == null
 	socket-file-descriptor = AF_INET socket SOCK_STREAM, protoent->p_proto
 	forbid socket-file-descriptor == max-nat64
 	socket-file-descriptor to-int32
 
-.connect-socket void(socket fd-t, hostname string, server-port nat16) unsafe summon
+.connect-socket void(socket fd-t, hostname string, server-port nat16) summon, unsafe
 	hostent = hostname.to-c-string gethostbyname
 	forbid hostent == null
 	in_addr0 in_addr* = hostent->h_addr_list->pointer-cast
@@ -33,10 +33,10 @@ main nat^(_ string[]) unsafe summon
 
 	sockaddr_in mut sockaddr_in = AF_INET, server-port.htons, (in_addr,)
 	sockaddr sockaddr mut* = (&sockaddr_in)::sockaddr_in mut* pointer-cast
-	err = socket.to-nat64 connect sockaddr, (size-of@<sockaddr_in> to-nat32)
+	err = socket.to-nat64 connect sockaddr, (size-of@sockaddr_in to-nat32)
 	assert err == 0
 
-.send-request void(socket fd-t, request string) unsafe summon
+.send-request void(socket fd-t, request string) summon, unsafe
 	forbid request is-empty
 	bytes mut = request.to-bytes to-array
 	loop
@@ -50,8 +50,8 @@ main nat^(_ string[]) unsafe summon
 			assert bytes-sent == bytes.size.to-int64
 			break
 
-.receive-response void(socket fd-t) unsafe summon
-	buffer mut-array nat8 = 0x2000 uninitialized-mut-array
+.receive-response void(socket fd-t) summon, trusted
+	buffer nat8 mut-array = 0x2000 uninitialized-mut-array
 	# TODO: use epoll like we did in the server, for a non-blocking read.
 	bytes-read = socket read buffer.begin-pointer, buffer.size
 	assert bytes-read >= 0

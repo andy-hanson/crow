@@ -6,14 +6,14 @@ import
 	crow/pointer: const-pointer, mut-pointer
 	crow/string: char8, c-string
 
-sodium_init err-t() extern<sodium>
+sodium_init err-t() sodium extern
 
-crypto_pwhash_strbytes size_t() extern<sodium>
+crypto_pwhash_strbytes size_t() sodium extern
 
-crypto_pwhash_opslimit_moderate size_t() extern<sodium>
-crypto_pwhash_opslimit_sensitive size_t() extern<sodium>
-crypto_pwhash_memlimit_moderate size_t() extern<sodium>
-crypto_pwhash_memlimit_sensitive size_t() extern<sodium>
+crypto_pwhash_opslimit_moderate size_t() sodium extern
+crypto_pwhash_opslimit_sensitive size_t() sodium extern
+crypto_pwhash_memlimit_moderate size_t() sodium extern
+crypto_pwhash_memlimit_sensitive size_t() sodium extern
 
 crypto_pwhash_str err-t(
 	# Length should be crypto_pwhash_strbytes
@@ -22,13 +22,13 @@ crypto_pwhash_str err-t(
 	passwdlen u-long-long,
 	opslimit u-long-long,
 	memlimit size_t,
-) extern<sodium>
+) sodium extern
 
 crypto_pwhash_str_verify err-t(
 	# Length should be crypto_pwhash_strbytes
 	str char8*,
 	passwd c-string,
 	passwdlen u-long-long,
-) extern<sodium>
+) sodium extern
 
-randombytes_random nat32() extern<sodium>
+randombytes_random nat32() sodium extern

@@ -10,10 +10,10 @@ export
 If `a` is `false`, returns `false` immediately and does not evaluate `b`.
 Else, returns `b`.
 ###
-&& bool(a bool, b bool) noctx builtin
+&& bool(a bool, b bool) builtin, noctx
 
 ###
 If `a` is `true`, returns `true` immediately and does not evaluate `b`.
 Else, returns `b`.
 ###
-|| bool(a bool, b bool) noctx builtin
+|| bool(a bool, b bool) builtin, noctx

@@ -25,7 +25,7 @@ POLLHUP int16()
 POLLNVAL int16()
 	0x20
 
-poll int32(fds pollfd mut*, nfds u-long, timeout int32) extern<c> summon
+poll int32(fds pollfd mut*, nfds u-long, timeout int32) summon, c extern
 
 has-POLLIN bool(revents int16)
 	revents bits-intersect POLLIN

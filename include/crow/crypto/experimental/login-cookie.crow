@@ -39,6 +39,6 @@ from-bytes login-cookie(a nat8[])
 to-string string(a login-cookie)
 	"{a.timestamp seconds-since-epoch}|{a cookie}"
 
-login-cookie grammar login-cookie()
+login-cookie login-cookie grammar()
 	int ~~ "|" ~~ nat map (time, cookie) =>
 		(time,), cookie

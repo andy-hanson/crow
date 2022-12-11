@@ -8,7 +8,7 @@ import
 	./audio-queue: audio-queue, clear, new, play, play-loop, pull
 	./sound: n-channels, new, sample-rate, sound-format
 
-start-sdl-audio audio() summon trusted
+start-sdl-audio audio() summon, trusted
 	err = SDL_INIT_AUDIO SDL_Init
 	assert err == 0
 
@@ -37,8 +37,8 @@ start-sdl-audio audio() summon trusted
 .write-ctx record mut by-ref
 	queue audio-queue
 
-.audio-callback void(userdata any-mut-pointer, stream nat8 mut*, len c-int) noctx unsafe
+.audio-callback void(userdata any-mut-pointer, stream nat8 mut*, len c-int) noctx, unsafe
 	write-ctx write-ctx = userdata as-ref
 	queue = write-ctx queue
-	floats = stream[0 .. len.to-nat64] cast-mut-array@<float32, nat8>
+	floats float32 mut-array = stream[0 .. len.to-nat64] cast-mut-array
 	queue pull floats

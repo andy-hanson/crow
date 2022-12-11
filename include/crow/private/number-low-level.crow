@@ -48,7 +48,7 @@ new float64() noctx
 <=> comparison(a float32, b float32) noctx
 	a cmp b
 
-.cmp<a> comparison(a a, b a) noctx less<a>
+.cmp[t] comparison(a t, b t) noctx, t less
 	if a is-less b
 		less
 	elif a == b
@@ -56,101 +56,101 @@ new float64() noctx
 	else
 		greater
 
-.less<a> spec
-	is-less bool(a a, b a)
-	== bool(a a, b a)
+.less[t] spec
+	is-less bool(a t, b t)
+	== bool(a t, b t)
 
-.is-less bool(a nat8, b nat8) noctx builtin
-.is-less bool(a nat16, b nat16) noctx builtin
-.is-less bool(a nat32, b nat32) noctx builtin
-.is-less bool(a nat64, b nat64) noctx builtin
-.is-less bool(a int8, b int8) noctx builtin
-.is-less bool(a int16, b int16) noctx builtin
-.is-less bool(a int32, b int32) noctx builtin
-.is-less bool(a int64, b int64) noctx builtin
-.is-less bool(a float32, b float32) noctx builtin
-.is-less bool(a float64, b float64) noctx builtin
-== bool(a nat8, b nat8) noctx builtin
-== bool(a nat16, b nat16) noctx builtin
-== bool(a nat32, b nat32) noctx builtin
-== bool(a nat64, b nat64) noctx builtin
-== bool(a int8, b int8) noctx builtin
-== bool(a int16, b int16) noctx builtin
-== bool(a int32, b int32) noctx builtin
-== bool(a int64, b int64) noctx builtin
-== bool(a float32, b float32) noctx builtin
-== bool(a float64, b float64) noctx builtin
+.is-less bool(a nat8, b nat8) builtin, noctx
+.is-less bool(a nat16, b nat16) builtin, noctx
+.is-less bool(a nat32, b nat32) builtin, noctx
+.is-less bool(a nat64, b nat64) builtin, noctx
+.is-less bool(a int8, b int8) builtin, noctx
+.is-less bool(a int16, b int16) builtin, noctx
+.is-less bool(a int32, b int32) builtin, noctx
+.is-less bool(a int64, b int64) builtin, noctx
+.is-less bool(a float32, b float32) builtin, noctx
+.is-less bool(a float64, b float64) builtin, noctx
+== bool(a nat8, b nat8) builtin, noctx
+== bool(a nat16, b nat16) builtin, noctx
+== bool(a nat32, b nat32) builtin, noctx
+== bool(a nat64, b nat64) builtin, noctx
+== bool(a int8, b int8) builtin, noctx
+== bool(a int16, b int16) builtin, noctx
+== bool(a int32, b int32) builtin, noctx
+== bool(a int64, b int64) builtin, noctx
+== bool(a float32, b float32) builtin, noctx
+== bool(a float64, b float64) builtin, noctx
 
-unsafe-mod nat64(a nat64, b nat64) noctx unsafe builtin
+unsafe-mod nat64(a nat64, b nat64) builtin, noctx, unsafe
 
-unsafe-to-nat8 nat8(a nat64) noctx unsafe builtin
-unsafe-to-nat16 nat16(a nat64) noctx unsafe builtin
-unsafe-to-nat32 nat32(a int32) noctx unsafe builtin
-unsafe-to-nat32 nat32(a nat64) noctx unsafe builtin
-unsafe-to-nat64 nat64(a int64) noctx unsafe builtin
+unsafe-to-nat8 nat8(a nat64) builtin, noctx, unsafe
+unsafe-to-nat16 nat16(a nat64) builtin, noctx, unsafe
+unsafe-to-nat32 nat32(a int32) builtin, noctx, unsafe
+unsafe-to-nat32 nat32(a nat64) builtin, noctx, unsafe
+unsafe-to-nat64 nat64(a int64) builtin, noctx, unsafe
 
 # UB for positive numbers >= 2 ** 63
-unsafe-to-int8 int8(a int64) noctx unsafe builtin
-unsafe-to-int16 int16(a int64) noctx unsafe builtin
-unsafe-to-int32 int32(a int64) noctx unsafe builtin
-unsafe-to-int64 int64(a nat64) noctx unsafe builtin
+unsafe-to-int8 int8(a int64) builtin, noctx, unsafe
+unsafe-to-int16 int16(a int64) builtin, noctx, unsafe
+unsafe-to-int32 int32(a int64) builtin, noctx, unsafe
+unsafe-to-int64 int64(a nat64) builtin, noctx, unsafe
 
-wrap-to-nat32 nat32(a nat64) noctx trusted
+wrap-to-nat32 nat32(a nat64) noctx, trusted
 	a unsafe-to-nat32
 
-to-nat16 nat16(a nat8) noctx trusted
+to-nat16 nat16(a nat8) noctx, trusted
 	a.to-nat64 unsafe-to-nat16
-to-nat64 nat64(a nat8) noctx builtin
-to-nat64 nat64(a nat16) noctx builtin
-to-nat32 nat32(a nat16) noctx trusted
+to-nat64 nat64(a nat8) builtin, noctx
+to-nat64 nat64(a nat16) builtin, noctx
+to-nat32 nat32(a nat16) noctx, trusted
 	a.to-nat64 unsafe-to-nat32
-to-nat64 nat64(a nat32) noctx builtin
+to-nat64 nat64(a nat32) builtin, noctx
 
-to-int64 int64(a int8) noctx builtin
-to-int64 int64(a int16) noctx builtin
-to-int64 int64(a int32) noctx builtin
+to-int64 int64(a int8) builtin, noctx
+to-int64 int64(a int16) builtin, noctx
+to-int64 int64(a int32) builtin, noctx
 
-wrap-add nat8(a nat8, b nat8) noctx builtin
-wrap-add nat16(a nat16, b nat16) noctx builtin
-wrap-add nat32(a nat32, b nat32) noctx builtin
-wrap-add nat64(a nat64, b nat64) noctx builtin
+wrap-add nat8(a nat8, b nat8) builtin, noctx
+wrap-add nat16(a nat16, b nat16) builtin, noctx
+wrap-add nat32(a nat32, b nat32) builtin, noctx
+wrap-add nat64(a nat64, b nat64) builtin, noctx
 
-unsafe-add int8(a int8, b int8) noctx unsafe builtin
-unsafe-add int16(a int16, b int16) noctx unsafe builtin
-unsafe-add int32(a int32, b int32) noctx unsafe builtin
-unsafe-add int64(a int64, b int64) noctx unsafe builtin
+unsafe-add int8(a int8, b int8) builtin, noctx, unsafe
+unsafe-add int16(a int16, b int16) builtin, noctx, unsafe
+unsafe-add int32(a int32, b int32) builtin, noctx, unsafe
+unsafe-add int64(a int64, b int64) builtin, noctx, unsafe
 
-wrap-sub nat8(a nat8, b nat8) noctx builtin
-wrap-sub nat16(a nat16, b nat16) noctx builtin
-wrap-sub nat32(a nat32, b nat32) noctx builtin
-wrap-sub nat64(a nat64, b nat64) noctx builtin
+wrap-sub nat8(a nat8, b nat8) builtin, noctx
+wrap-sub nat16(a nat16, b nat16) builtin, noctx
+wrap-sub nat32(a nat32, b nat32) builtin, noctx
+wrap-sub nat64(a nat64, b nat64) builtin, noctx
 
-unsafe-sub int8(a int8, b int8) noctx unsafe builtin
-unsafe-sub int16(a int16, b int16) noctx unsafe builtin
-unsafe-sub int32(a int32, b int32) noctx unsafe builtin
-unsafe-sub int64(a int64, b int64) noctx unsafe builtin
+unsafe-sub int8(a int8, b int8) builtin, noctx, unsafe
+unsafe-sub int16(a int16, b int16) builtin, noctx, unsafe
+unsafe-sub int32(a int32, b int32) builtin, noctx, unsafe
+unsafe-sub int64(a int64, b int64) builtin, noctx, unsafe
 
-wrap-mul nat8(a nat8, b nat8) noctx builtin
-wrap-mul nat16(a nat16, b nat16) noctx builtin
-wrap-mul nat32(a nat32, b nat32) noctx builtin
-wrap-mul nat64(a nat64, b nat64) noctx builtin
+wrap-mul nat8(a nat8, b nat8) builtin, noctx
+wrap-mul nat16(a nat16, b nat16) builtin, noctx
+wrap-mul nat32(a nat32, b nat32) builtin, noctx
+wrap-mul nat64(a nat64, b nat64) builtin, noctx
 
-unsafe-mul int8(a int8, b int8) noctx unsafe builtin
-unsafe-mul int16(a int16, b int16) noctx unsafe builtin
-unsafe-mul int32(a int32, b int32) noctx unsafe builtin
-unsafe-mul int64(a int64, b int64) noctx unsafe builtin
+unsafe-mul int8(a int8, b int8) builtin, noctx, unsafe
+unsafe-mul int16(a int16, b int16) builtin, noctx, unsafe
+unsafe-mul int32(a int32, b int32) builtin, noctx, unsafe
+unsafe-mul int64(a int64, b int64) builtin, noctx, unsafe
 
-unsafe-div nat64(a nat8, b nat8) noctx unsafe builtin
-unsafe-div nat64(a nat16, b nat16) noctx unsafe builtin
-unsafe-div nat64(a nat32, b nat32) noctx unsafe builtin
-unsafe-div nat64(a nat64, b nat64) noctx unsafe builtin
-unsafe-div int16(a int8, b int8) noctx unsafe builtin
-unsafe-div int16(a int16, b int16) noctx unsafe builtin
-unsafe-div int32(a int32, b int32) noctx unsafe builtin
-unsafe-div int64(a int64, b int64) noctx unsafe builtin
+unsafe-div nat64(a nat8, b nat8) builtin, noctx, unsafe
+unsafe-div nat64(a nat16, b nat16) builtin, noctx, unsafe
+unsafe-div nat64(a nat32, b nat32) builtin, noctx, unsafe
+unsafe-div nat64(a nat64, b nat64) builtin, noctx, unsafe
+unsafe-div int16(a int8, b int8) builtin, noctx, unsafe
+unsafe-div int16(a int16, b int16) builtin, noctx, unsafe
+unsafe-div int32(a int32, b int32) builtin, noctx, unsafe
+unsafe-div int64(a int64, b int64) builtin, noctx, unsafe
 
 # Equivlaent to `a is-multiple-of 2`.
-is-even bool(a nat64) noctx trusted
+is-even bool(a nat64) noctx, trusted
 	(a unsafe-mod 2) == 0
 
 # Equivalent to `!a.is-even`.

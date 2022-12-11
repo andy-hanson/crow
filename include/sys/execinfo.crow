@@ -5,7 +5,7 @@ import
 	crow/pointer: any-const-pointer, const-pointer, mut-pointer
 
 # Crow interpreter overrides this
-backtrace c-int(array any-const-pointer mut*, size c-int) unsafe noctx extern<c>
+backtrace c-int(array any-const-pointer mut*, size c-int) noctx, unsafe, c extern
 
 # Crow interpreter overrides this
-backtrace_symbols c-string mut*(array any-const-pointer*, size c-int) unsafe noctx extern<c>
+backtrace_symbols c-string mut*(array any-const-pointer*, size c-int) noctx, unsafe, c extern

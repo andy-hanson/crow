@@ -7,7 +7,7 @@ main nat^(_ string[]) summon
 	"[0-9" test-regex ("42",)
 	()
 
-test-regex void(source string, candidates string[]) summon trusted
+test-regex void(source string, candidates string[]) summon, trusted
 	match source parse
 	as ok regex
 		for x : candidates
@@ -65,7 +65,7 @@ regmatch_t record extern
 	rm_so regoff_t
 	rm_eo regoff_t
 
-reg_errcode_t enum<c-int> extern
+reg_errcode_t enum(c-int) extern
 	REG_ENOSYS = -1
 	REG_NOERROR
 	REG_NOMATCH
@@ -82,9 +82,9 @@ reg_errcode_t enum<c-int> extern
 	_REG_ESPACE
 	_REG_BADRPT
 
-regcomp reg_errcode_t(regex regex_t mut*, pattern c-string, cflags c-int) extern<c>
+regcomp reg_errcode_t(regex regex_t mut*, pattern c-string, cflags c-int) c extern
 
-regfree void(preg regex_t mut*) extern<c>
+regfree void(preg regex_t mut*) c extern
 
 regexec reg_errcode_t(
 	preg regex_t*,
@@ -92,11 +92,11 @@ regexec reg_errcode_t(
 	nmatch size_t,
 	pmatch regmatch_t mut*,
 	eflags c-int,
-) extern<c>
+) c extern
 
 regerror size_t(
 	errcode reg_errcode_t,
 	preg regex_t*,
 	errbuff char8 mut*,
 	errbuf_size size_t,
-) extern<c>
+) c extern

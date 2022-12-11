@@ -94,6 +94,9 @@ ref inout(T) only(T)(return scope inout T[] a) {
 	return a[0];
 }
 
+@trusted T[] arrayOfSingle(T)(T* a) =>
+	a[0 .. 1];
+
 @trusted PtrsRange!T ptrsRange(T)(T[] a) =>
 	PtrsRange!T(a.ptr, a.ptr + a.length);
 

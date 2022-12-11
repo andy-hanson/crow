@@ -409,7 +409,7 @@ public enum Token {
 	arrowThen, // '<-'
 	as, // 'as'
 	assert_, // 'assert'
-	atLess, // '!<'
+	at, // '@'
 	break_, // 'break'
 	builtin, // 'builtin'
 	builtinSpec, // 'builtin-spec'
@@ -436,6 +436,7 @@ public enum Token {
 	flags, // 'flags'
 	for_, // 'for'
 	forbid, // 'forbid'
+	forceCtx, // 'force-ctx'
 	forceSendable, // 'force-sendable'
 	fun, // 'fun'
 	global, // 'global'
@@ -495,9 +496,7 @@ public enum Token {
 				? tryTakeChar(lexer, '=') ? sym!"~~=" : sym!"~~"
 				: tryTakeChar(lexer, '=') ? sym!"~=" : sym!"~");
 		case '@':
-			return tryTakeChar(lexer, '<')
-				? Token.atLess
-				: Token.invalid;
+			return Token.at;
 		case '!':
 			return operatorToken(lexer, tryTakeChar(lexer, '=') ? sym!"!=" : sym!"!");
 		case '%':
@@ -626,6 +625,8 @@ Token tokenForSym(ref Lexer lexer, Sym a) {
 			return Token.for_;
 		case sym!"forbid".value:
 			return Token.forbid;
+		case sym!"force-ctx".value:
+			return Token.forceCtx;
 		case sym!"force-sendable".value:
 			return Token.forceSendable;
 		case sym!"fun".value:
@@ -738,30 +739,6 @@ public bool tryTakeOperator(ref Lexer lexer, Sym expected) {
 	}
 }
 
-public void takeTypeArgsEnd(ref Lexer lexer) {
-	//TODO: always have the next token ready, so we don't need to repeatedly lex the same token
-	Pos start = curPos(lexer);
-	immutable char* before = lexer.ptr;
-	Token actual = nextToken(lexer);
-	void fail() {
-		lexer.ptr = before;
-		addDiagAtCurToken(lexer, start, ParseDiag(ParseDiag.Expected(ParseDiag.Expected.Kind.typeArgsEnd)));
-	}
-	if (actual == Token.operator) {
-		switch (getCurOperator(lexer).value) {
-			case sym!">".value:
-				break;
-			case sym!">>".value:
-				backUp(lexer);
-				break;
-			default:
-				fail();
-				break;
-		}
-	} else
-		fail();
-}
-
 public Token getPeekToken(ref Lexer lexer) {
 	//TODO: always have the next token ready, so we don't need to repeatedly lex the same token
 	immutable char* before = lexer.ptr;
@@ -785,7 +762,7 @@ bool isExpressionStartToken(Token a) {
 		case Token.arrowLambda:
 		case Token.arrowThen:
 		case Token.as:
-		case Token.atLess:
+		case Token.at:
 		case Token.builtin:
 		case Token.builtinSpec:
 		case Token.braceLeft:
@@ -806,6 +783,7 @@ bool isExpressionStartToken(Token a) {
 		case Token.extern_:
 		case Token.EOF:
 		case Token.flags:
+		case Token.forceCtx:
 		case Token.forceSendable:
 		case Token.fun:
 		case Token.global:

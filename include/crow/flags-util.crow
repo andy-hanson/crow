@@ -13,32 +13,32 @@ Functions in this spec will be generated when you declare a `flags` type.
 
 (Declaring a `flags` type also generates other functions that aren't needed here.)
 ###
-flags-like<a> spec
-	new a()
-	all a()
-	flags-members array named-val a()
-	== bool(a a, b a)
-	~ a(a a)
-	& a(a a, b a)
-	| a(a a, b a)
+flags-like[t] spec
+	new t()
+	all t()
+	flags-members t named-val array()
+	== bool(a t, b t)
+	~ t(a t)
+	& t(a t, b t)
+	| t(a t, b t)
 
-min-flags-like<a> spec
-	== bool(a a, b a)
-	& a(a a, b a)
+min-flags-like[t] spec
+	== bool(a t, b t)
+	& t(a t, b t)
 
 ###
 True if every flag set in `a` is set in `b`.
 ###
-is-in<a> bool(a a, b a) min-flags-like<a>
+is-in[t] bool(a t, b t) t min-flags-like
 	a & b == a
 
 # Returns the names of every flag set in `a`.
-to-symbols<a> symbol[](a a) flags-like<a>
+to-symbols[t] symbol[](a t) t flags-like
 	() join for member : flags-members.to-list
 		if member.val is-in a
 			member.name,
 
 # Flag names separated by `|`, like `"foo | bar"`.
-flags-to-string<a> string(a a) flags-like<a>
+flags-to-string[t] string(a t) t flags-like
 	" | " join for x : a to-symbols
 		x to-string

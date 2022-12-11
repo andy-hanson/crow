@@ -13,26 +13,26 @@ no-std
 import
 	./bool: bool
 
-is-interpreted bool() noctx unsafe builtin
-is-jit bool() noctx unsafe builtin
+is-interpreted bool() builtin, noctx, unsafe
+is-jit bool() builtin, noctx, unsafe
 
 ###
 `true` iff the code is run in the interpreter.
 
 This will be `false` for non-interpreted code even on machines with multiple processors.
 ###
-is-single-threaded bool() noctx unsafe builtin
+is-single-threaded bool() builtin, noctx, unsafe
 
 ###
 `true` iff the code is run in the WASM interpreter.
 ###
-is-wasm bool() noctx unsafe builtin
+is-wasm bool() builtin, noctx, unsafe
 
 ###
 `true` iff the code is run on Windows.
 
 The WASM interpreter used for the website is not considered Windows, even if run on Windows.
 ###
-is-windows bool() noctx unsafe builtin
+is-windows bool() builtin, noctx, unsafe
 
-is-big-endian bool() noctx unsafe builtin
+is-big-endian bool() builtin, noctx, unsafe

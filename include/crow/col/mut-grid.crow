@@ -24,8 +24,8 @@ then the second row left-to-right, etc.
 
 Grid elements are mutable, but changing the width or height is not supported.
 ###
-mut-grid<a> record mut
-	.elements mut-array a
+mut-grid[t] record mut
+	.elements t mut-array
 	width nat64
 	height nat64
 
@@ -51,7 +51,7 @@ to-string string(a coord)
 	"<{a.x}, {a.y}>"
 
 # `true` if `coord` is a valid coordinate (within the width and height of the grid).
-has-coord<a> bool(a mut-grid a, coord coord)
+has-coord[t] bool(a t mut-grid, coord coord)
 	coord.x < a.width && coord.y < a.height
 
 ###
@@ -59,33 +59,33 @@ Returns the entire row `y`.
 This is O(1).
 Throws if `y` is out of range.
 ###
-row<a> mut-array a(a mut-grid a, y nat64)
+row[t] t mut-array(a t mut-grid, y nat64)
 	assert y < a.height
 	begin = y * a.width
 	a.elements[begin .. begin + a.width]
 
 # New empty grid with width and height 0.
-new<a> mut-grid a()
+new[t] t mut-grid()
 	(), 0, 0
 
 # Number of elements in the grid (width * height).
-size<a> nat64(a mut-grid a)
+size[t] nat64(a t mut-grid)
 	a.elements size
 
 # Creates a new grid with the given width and height, setting every element to `value`.
-fill-mut-grid<a> mut-grid a(width nat64, height nat64, value a)
+fill-mut-grid[t] t mut-grid(width nat64, height nat64, value t)
 	width make-mut-grid height, (_, _) => value
 
 # Creates a new grid with the given width and height, setting every element to `f[x, y]`.
-make-mut-grid<a> mut-grid a(width nat64, height nat64, f act a(nat64, nat64))
-	elements mut-array a = with out : width * height build
+make-mut-grid[t] t mut-grid(width nat64, height nat64, f act t(nat64, nat64))
+	elements t mut-array = with out : width * height build
 		for y : 0 .. height
 			for x : 0 .. width
 				out ~= f[x, y]
 	elements, width, height
 
 # Copy elements to a new grid.
-copy<a> mut-grid a(a mut-grid a)
+copy[t] t mut-grid(a t mut-grid)
 	a.elements.copy, a.width, a.height
 
 ###
@@ -93,12 +93,12 @@ Gets the element in the `x`th column and `y`th row.
 
 Throws if either `x` or `y` is out of bounds.
 ###
-subscript<a> a(a mut-grid a, x nat64, y nat64)
+subscript[t] t(a t mut-grid, x nat64, y nat64)
 	index = a index-for x, y
 	a.elements[index]
 
 # Same as the other `subscript`, but takes a `coord`.
-subscript<a> a(a mut-grid a, coord coord)
+subscript[t] t(a t mut-grid, coord coord)
 	a[coord.x, coord.y]
 
 ###
@@ -106,15 +106,15 @@ Sets the element in the `x`th column and `y`th row.
 
 Throws if either `x` or `y` is out of bounds.
 ###
-set-subscript<a> void(a mut-grid a, x nat64, y nat64, value a)
+set-subscript[t] void(a t mut-grid, x nat64, y nat64, value t)
 	index = a index-for x, y
 	a.elements[index] := value
 
 # Same as the other `set-subscript`, but takes a `coord`.
-set-subscript<a> void(a mut-grid a, coord coord, value a)
+set-subscript[t] void(a t mut-grid, coord coord, value t)
 	a[coord.x, coord.y] := value
 
-.index-for<a> nat64(a mut-grid a, x nat64, y nat64)
+.index-for[t] nat64(a t mut-grid, x nat64, y nat64)
 	assert x < a.width
 	assert y < a.height
 	res = y * a.width + x
@@ -127,52 +127,52 @@ Each row will have a space in between columns.
 
 This makes no attempt to add padding to ensure columns line up. (TODO?)
 ###
-to-string<a> string(a mut-grid a) to-string<a>
+to-string[t] string(a t mut-grid) t to-string
 	"\n" join for row : a.rows
 		" " join for value : row.to-array.to-list
 			"{value}"
 
 region iteration
 
-mut-grid-rows<a> record mut
-	.inner mut-grid a
+mut-grid-rows[t] record mut
+	.inner t mut-grid
 
-rows<a> mut-grid-rows a(a mut-grid a)
+rows[t] t mut-grid-rows(a t mut-grid)
 	a,
 
-for-loop<a> void(a mut-grid-rows a, f act void(mut-array a))
+for-loop[t] void(a t mut-grid-rows, f act void(t mut-array))
 	for y : 0 .. a.inner.height
 		f[a.inner row y]
 
-for-loop<out, in> out[](a mut-grid-rows in, f act out(mut-array in))
+for-loop[out, in] out[](a in mut-grid-rows, f act out(in mut-array))
 	for y : 0 .. a.inner.height
 		f[a.inner row y]
 
-for-loop<a> void(a mut-grid a, f act void(a))
+for-loop[t] void(a t mut-grid, f act void(t))
 	a.elements for-loop f
-for-loop<out, in> out[](a mut-grid in, f act out(in))
+for-loop[out, in] out[](a in mut-grid, f act out(in))
 	with out : a.size build
 		for x : a
 			out ~= f[x]
 
-for-loop<a> void(a mut-grid a, f act void(a, coord))
+for-loop[t] void(a t mut-grid, f act void(t, coord))
 	coord mut coord = ()
 	for x : a
 		f[x, coord]
 		coord := coord next-coord a.width
-for-loop<out, in> out[](a mut-grid in, f act out(in, coord))
+for-loop[out, in] out[](a in mut-grid, f act out(in, coord))
 	with out : a.size build
 		coord mut coord = ()
 		for x : a
 			out ~= f[x, coord]
 			coord := coord next-coord a.width
 
-exists<a> bool(a mut-grid a, f act bool(a))
+exists[t] bool(a t mut-grid, f act bool(t))
 	a.elements exists f
 
-set-map<a> void(a mut-grid a, f act a(a))
+set-map[t] void(a t mut-grid, f act t(t))
 	a.elements set-map f
-set-map<a> void(a mut-grid a, f act a(a, coord)) trusted
+set-map[t] void(a t mut-grid, f act t(t, coord)) trusted
 	coord mut coord = ()
 	a set-map x =>
 		res = f[x, coord]
@@ -187,7 +187,7 @@ set-map<a> void(a mut-grid a, f act a(a, coord)) trusted
 		new-x, a.y
 
 test
-	a mut-grid string = 3 make-mut-grid 2, (x, y) => "{x}|{y}"
+	a string mut-grid = 3 make-mut-grid 2, (x, y) => "{x}|{y}"
 	a.to-string is "0|0 1|0 2|0\n0|1 1|1 2|1"
 
 	values = " " join for value, coord : a

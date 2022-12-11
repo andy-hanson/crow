@@ -5,11 +5,11 @@ import
 
 audio-queue record force-sendable by-ref
 	format sound-format
-	.lock-by-val by-val lock
+	.lock-by-val lock by-val
 	# All sounds normalized to `format`
 	.playing entry mut[]
 
-.lock lock(a audio-queue) noctx unsafe
+.lock lock(a audio-queue) noctx, unsafe
 	&a.lock-by-val
 
 new audio-queue(format sound-format) trusted
@@ -18,17 +18,17 @@ new audio-queue(format sound-format) trusted
 	res
 
 .entry record by-ref force-sendable
-	samples array float32
+	samples float32 array
 	cur mut float32*
 	looping bool
 
 .reset-position void(a entry)
 	a.cur := a.samples begin-pointer
 
-.is-over bool(a entry) noctx trusted
+.is-over bool(a entry) noctx, trusted
 	!a.looping && a.cur == a.samples.end-pointer
 
-clear void(a audio-queue) noctx trusted
+clear void(a audio-queue) noctx, trusted
 	a.lock acquire
 	a.playing clear
 	a.lock release
@@ -40,20 +40,20 @@ play-loop playing-sound(a audio-queue, sound sound)
 	a play-common sound, true
 
 # This locks the queue, so make sure 'out' isn't huge
-pull void(a audio-queue, out mut-array float32) noctx unsafe
+pull void(a audio-queue, out float32 mut-array) noctx, unsafe
 	out fill 0
 	a.lock acquire
 	a.playing.begin-pointer each-playing a.playing.end-pointer, out
 	a.lock release
 
-.each-playing void(cur entry mut*, end entry mut*, out mut-array float32) noctx unsafe
+.each-playing void(cur entry mut*, end entry mut*, out float32 mut-array) noctx, unsafe
 	if cur != end
 		*cur add-to out
 		cur + 1 each-playing end, out
 	else
 		()
 
-.add-to void(a entry, out mut-array float32) noctx unsafe
+.add-to void(a entry, out float32 mut-array) noctx, unsafe
 	n-remaining = a.samples.end-pointer - a.cur
 	if n-remaining > out.size
 		end = a.cur + out.size
@@ -68,7 +68,7 @@ pull void(a audio-queue, out mut-array float32) noctx unsafe
 		else
 			a.cur := a.samples end-pointer
 
-.add void(a mut-array float32, b array float32) noctx unsafe
+.add void(a float32 mut-array, b float32 array) noctx, unsafe
 	assert a.size == b.size
 	out mut = a begin-pointer
 	read mut = b begin-pointer
@@ -112,7 +112,7 @@ test
 	format sound-format = 2, 44100
 	a audio-queue = format,
 	sound sound = format, (1, 2, 3, 4, 5, 6, 7, 8)
-	buf mut-array float32 = 0, 0, 0
+	buf float32 mut-array = 0, 0, 0
 	a pull buf
 	buf.to-array is (0, 0, 0)
 	_ = a play sound

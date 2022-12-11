@@ -16,9 +16,9 @@ pthread_create err-t(
 	attr any-const-pointer,
 	start-routine fun* any-mut-pointer(any-mut-pointer),
 	arg any-mut-pointer,
-) extern<pthread> summon
+) summon, pthread extern
 
-pthread_join err-t(thread pthread_t, thread-return any-mut-pointer mut*) extern<pthread> summon
+pthread_join err-t(thread pthread_t, thread-return any-mut-pointer mut*) summon, pthread extern
 
 region mutex
 
@@ -26,45 +26,45 @@ pthread_mutex_t extern(40) sendable
 
 pthread_mutexattr_t extern(4)
 
-pthread_mutexattr_init err-t(attr pthread_mutexattr_t mut*) extern<pthread>
-pthread_mutexattr_destroy err-t(attr pthread_mutexattr_t mut*) extern<pthread>
-pthread_mutexattr_getpshared err-t(attr pthread_mutexattr_t*, pshared int32 mut*) extern<c>
-pthread_mutexattr_setpshared err-t(attr pthread_mutexattr_t mut*, pshared int32) extern<c>
+pthread_mutexattr_init err-t(attr pthread_mutexattr_t mut*) pthread extern
+pthread_mutexattr_destroy err-t(attr pthread_mutexattr_t mut*) pthread extern
+pthread_mutexattr_getpshared err-t(attr pthread_mutexattr_t*, pshared int32 mut*) pthread extern
+pthread_mutexattr_setpshared err-t(attr pthread_mutexattr_t mut*, pshared int32) pthread extern
 
-pthread_mutex_init err-t(mutex pthread_mutex_t mut*, attr pthread_mutexattr_t*) extern<pthread>
-pthread_mutex_destroy err-t(mutex pthread_mutex_t mut*) extern<pthread>
-pthread_mutex_trylock err-t(mutex pthread_mutex_t mut*) extern<pthread>
-pthread_mutex_lock err-t(mutex pthread_mutex_t mut*) extern<pthread>
-pthread_mutex_unlock err-t(mutex pthread_mutex_t mut*) extern<pthread>
+pthread_mutex_init err-t(mutex pthread_mutex_t mut*, attr pthread_mutexattr_t*) pthread extern
+pthread_mutex_destroy err-t(mutex pthread_mutex_t mut*) pthread extern
+pthread_mutex_trylock err-t(mutex pthread_mutex_t mut*) pthread extern
+pthread_mutex_lock err-t(mutex pthread_mutex_t mut*) pthread extern
+pthread_mutex_unlock err-t(mutex pthread_mutex_t mut*) pthread extern
 
 region cond
 
 pthread_cond_t extern(48) sendable
 pthread_condattr_t extern(4)
 
-pthread_condattr_init err-t(attr pthread_condattr_t mut*) extern<c>
-pthread_condattr_destroy err-t(attr pthread_condattr_t mut*) extern<c>
-pthread_condattr_getpshared err-t(attr pthread_condattr_t*, pshared int32 mut*) extern<c>
-pthread_condattr_setpshared err-t(attr pthread_condattr_t mut*, pshared int32) extern<c>
-pthread_condattr_getclock err-t(attr pthread_condattr_t*, clock-id __clockid_t mut*) extern<c>
-pthread_condattr_setclock err-t(attr pthread_condattr_t mut*, clock-id __clockid_t) extern<c>
+pthread_condattr_init err-t(attr pthread_condattr_t mut*) pthread extern
+pthread_condattr_destroy err-t(attr pthread_condattr_t mut*) pthread extern
+pthread_condattr_getpshared err-t(attr pthread_condattr_t*, pshared int32 mut*) pthread extern
+pthread_condattr_setpshared err-t(attr pthread_condattr_t mut*, pshared int32) pthread extern
+pthread_condattr_getclock err-t(attr pthread_condattr_t*, clock-id __clockid_t mut*) pthread extern
+pthread_condattr_setclock err-t(attr pthread_condattr_t mut*, clock-id __clockid_t) pthread extern
 
-pthread_cond_init err-t(cond pthread_cond_t mut*, cond-attr pthread_condattr_t*) extern<c>
-pthread_cond_destroy err-t(cond pthread_cond_t mut*) extern<c>
-pthread_cond_signal err-t(cond pthread_cond_t mut*) extern<c>
-pthread_cond_broadcast err-t(cond pthread_cond_t mut*) extern<c>
-pthread_cond_wait err-t(cond pthread_cond_t mut*, mutex pthread_mutex_t mut*) extern<c>
-pthread_cond_timedwait err-t(cond pthread_cond_t mut*, mutex pthread_mutex_t mut*, abstime timespec*) extern<c>
+pthread_cond_init err-t(cond pthread_cond_t mut*, cond-attr pthread_condattr_t*) pthread extern
+pthread_cond_destroy err-t(cond pthread_cond_t mut*) pthread extern
+pthread_cond_signal err-t(cond pthread_cond_t mut*) pthread extern
+pthread_cond_broadcast err-t(cond pthread_cond_t mut*) pthread extern
+pthread_cond_wait err-t(cond pthread_cond_t mut*, mutex pthread_mutex_t mut*) pthread extern
+pthread_cond_timedwait err-t(cond pthread_cond_t mut*, mutex pthread_mutex_t mut*, abstime timespec*) pthread extern
 
 pthread_barrier_t extern(32) sendable
 pthread_barrierattr_t extern(4) sendable
 
-pthread_barrier_init err-t(barrier pthread_barrier_t mut*, attr pthread_barrierattr_t*, count u-int) extern<c>
-pthread_barrier_destroy err-t(barrier pthread_barrier_t mut*) extern<c>
-pthread_barrier_wait err-t(barrier pthread_barrier_t mut*) extern<c>
+pthread_barrier_init err-t(barrier pthread_barrier_t mut*, attr pthread_barrierattr_t*, count u-int) pthread extern
+pthread_barrier_destroy err-t(barrier pthread_barrier_t mut*) pthread extern
+pthread_barrier_wait err-t(barrier pthread_barrier_t mut*) pthread extern
 
-PTHREAD_BARRIER_SERIAL_THREAD err-t() unsafe noctx
+PTHREAD_BARRIER_SERIAL_THREAD err-t() noctx, unsafe
 	-1
 
-pthread_barrierattr_init err-t(attr pthread_barrierattr_t mut*) extern<c>
-pthread_barrierattr_destroy err-t(attr pthread_barrierattr_t mut*) extern<c>
+pthread_barrierattr_init err-t(attr pthread_barrierattr_t mut*) pthread extern
+pthread_barrierattr_destroy err-t(attr pthread_barrierattr_t mut*) pthread extern

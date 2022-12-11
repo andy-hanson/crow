@@ -119,12 +119,12 @@ Second from 00 to 60 inclusive.
 second string(locale time-locale, time unix-time) summon
 	locale format time, "%S", 2
 
-.format string(locale time-locale, time unix-time, format string, max-size nat64) trusted summon
+.format string(locale time-locale, time unix-time, format string, max-size nat64) summon, trusted
 	seconds = time.seconds-since-epoch
 	tm = if locale is-local-time
 		&seconds localtime
 	else
 		&seconds gmtime
-	res mut-array char8 = max-size + 1 uninitialized-mut-array
+	res char8 mut-array = max-size + 1 uninitialized-mut-array
 	len = res.begin-pointer strftime res.size, format.to-c-string, tm.as-const
 	res.cast-immutable[0 .. len] as-string

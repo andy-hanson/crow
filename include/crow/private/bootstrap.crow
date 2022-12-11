@@ -7,7 +7,7 @@ Empty type, for use by functions with nothing in particular to return.
 ###
 void builtin extern
 
-new-void void() noctx builtin
+new-void void() builtin, noctx
 
 ###
 Specifies that a type must be immutable data.
@@ -22,7 +22,7 @@ To put it another way, a type works with `is-data` if it is:
 * Immutable collections like `x[]`, where the type arguments are all `is-data`.
 * A constant pointer like `nat*`.
 ###
-is-data<a> builtin-spec
+is-data[t] builtin-spec
 
 ###
 Specifies that a type must be safe to share between tasks that may run in parallel.
@@ -33,7 +33,7 @@ In addition, `future` and `ref` types are sendable if their type arguments are.
 
 In the future, parallel-safe collections may be included here.
 ###
-is-sendable<a> builtin-spec
+is-sendable[t] builtin-spec
 
 region option.crow
 
@@ -42,9 +42,9 @@ Optional type. Read the tutorial to learn more.
 
 You never need to `match` on this union; use the `if x ?= y` syntax instead. 
 ###
-option<a> union
+option[t] union
 	none
-	some a
+	some t
 
 region result.crow
 
@@ -54,7 +54,7 @@ A `result` is either a success (`ok`) or failure (`err`) value.
 This provides a more explicit alternative to throwing an exception.
 Prefer this over throwing an exception if failure is likely.
 ###
-result<ok, err> union
+result[ok, err] union
 	ok ok
 	err err
 
@@ -68,7 +68,7 @@ You'll usually need to get `&x` in order to pass the value to functions.
 
 This even works on mutable types; passing a mutable record by-value does a shallow copy.
 ###
-by-val<a> builtin extern
+by-val[t] builtin extern
 
 ###
 A raw pointer. Equivalent to `const a*` in C.
@@ -80,12 +80,12 @@ If `a` is a reference type, `a*` is a pointer to a pointer.
 This is a read-only reference, is the pointee is not immutable;
 it could be modified if there are other references to it.
 ###
-const-pointer<a> builtin extern
+const-pointer[t] builtin extern
 
 ###
 This is like `const-pointer` but supports writing to the contents.
 ###
-mut-pointer<a> builtin mut extern
+mut-pointer[t] builtin mut extern
 
 any-const-pointer alias
 	nat8*
@@ -105,9 +105,9 @@ This means this is also the type for a slice of an array, and slicing is O(1).
 A slice does not keep the whole array alive, only the elements it can reach;
 elements not reachable by any slice will be garbage collected.
 ###
-array<a> record by-val
+array[t] record by-val
 	size nat64
-	begin-pointer a*
+	begin-pointer t*
 
 region string
 
@@ -122,8 +122,8 @@ Thus, all operations on `c-string` are unsafe.
 c-string alias
 	char8*
 
-to-char8 char8(a nat8) noctx builtin
-to-nat8 nat8(c char8) noctx builtin
+to-char8 char8(a nat8) builtin, noctx
+to-nat8 nat8(c char8) builtin, noctx
 
 region bool.crow
 
@@ -138,20 +138,20 @@ bool builtin extern
 False boolean value.
 This can also be written as `()`.
 ###
-false bool() noctx builtin
+false bool() builtin, noctx
 
 # True boolean value.
-true bool() noctx builtin
+true bool() builtin, noctx
 
 region symbol.crow
 
 symbol record by-val
 	.symbol-to-c-string c-string
 
-new-symbol symbol(a c-string) noctx unsafe
+new-symbol symbol(a c-string) noctx, unsafe
 	a,
 
-to-c-string c-string(a symbol) no-doc noctx unsafe
+to-c-string c-string(a symbol) noctx, no-doc, unsafe
 	a symbol-to-c-string
 
 region bootstrap arithmetic
@@ -205,13 +205,13 @@ float64 builtin extern
 
 region hard assertions
 
-abort void() extern<c>
+abort void() c extern
 
 ###
 Zeroed data isn't safe as it would contain null pointers.
 It's GC-safe though, since the GC treats a null pointer same as any external pointer.
 ###
-zeroed<a> a() noctx unsafe builtin
+zeroed[t] t() builtin, noctx, unsafe
 
 ###
 For a number: 0.
@@ -220,27 +220,27 @@ For a union: 'safe-value' of the first union member.
 For an enum: The first member.
 For flags: 0.
 ###
-safe-value<a> a() builtin
+safe-value[t] t() builtin
 
-todo<a> a() trusted noctx
-	## TODO: soft-fail, remove 'trusted noctx' above
+todo[t] t() noctx, trusted
+	## TODO: soft-fail, remove 'noctx, trusted' above
 	abort
 	zeroed
 
 # Used in low-level code that should always abort on failure instead of throwing an exception
-hard-unreachable<a> a() unsafe noctx
+hard-unreachable[t] t() noctx, unsafe
 	abort
 	zeroed
 
 # Used in low-level code that should always abort on failure instead of throwing an exception
-hard-assert void(condition bool) noctx unsafe
+hard-assert void(condition bool) noctx, unsafe
 	if condition
 		new-void
 	else
 		abort
 
 # Used in low-level code that should always abort on failure instead of throwing an exception
-hard-forbid void(condition bool) noctx unsafe
+hard-forbid void(condition bool) noctx, unsafe
 	if condition
 		abort
 	else
@@ -282,93 +282,93 @@ These aren't used much in crow code.
 
 Create a function pointer by writing `&foo` where `foo` is the name of a function in scope.
 ###
-fun-pointer0<r> builtin extern
-fun-pointer1<r, p0> builtin extern
-fun-pointer2<r, p0, p1> builtin extern
-fun-pointer3<r, p0, p1, p2> builtin extern
-fun-pointer4<r, p0, p1, p2, p3> builtin extern
-fun-pointer5<r, p0, p1, p2, p3, p4> builtin extern
-fun-pointer6<r, p0, p1, p2, p3, p4, p5> builtin extern
-fun-pointer7<r, p0, p1, p2, p3, p4, p5, p6> builtin extern
-fun-pointer8<r, p0, p1, p2, p3, p4, p5, p6, p7> builtin extern
-fun-pointer9<r, p0, p1, p2, p3, p4, p5, p6, p7, p8> builtin extern
+fun-pointer0[r] builtin extern
+fun-pointer1[r, p0] builtin extern
+fun-pointer2[r, p0, p1] builtin extern
+fun-pointer3[r, p0, p1, p2] builtin extern
+fun-pointer4[r, p0, p1, p2, p3] builtin extern
+fun-pointer5[r, p0, p1, p2, p3, p4] builtin extern
+fun-pointer6[r, p0, p1, p2, p3, p4, p5] builtin extern
+fun-pointer7[r, p0, p1, p2, p3, p4, p5, p6] builtin extern
+fun-pointer8[r, p0, p1, p2, p3, p4, p5, p6, p7] builtin extern
+fun-pointer9[r, p0, p1, p2, p3, p4, p5, p6, p7, p8] builtin extern
 
 ###
 Non-mutating function type.
-This is usually written as `fun nat(string)` instead of `fun1<nat, string>`.
+This is usually written as `fun nat(string)` instead of `(nat, string) fun1`.
 
 Contrasted with `act`, a `fun` can't close over mutable data.
 It can still close over `sendable` data and perform I/O, so it's not a completely pure function.
 ###
-fun0<r> builtin sendable
-fun1<r, p0> builtin sendable
-fun2<r, p0, p1> builtin sendable
-fun3<r, p0, p1, p2> builtin sendable
-fun4<r, p0, p1, p2, p3> builtin sendable
-fun5<r, p0, p1, p2, p3, p4> builtin sendable
-fun6<r, p0, p1, p2, p3, p4, p5> builtin sendable
-fun7<r, p0, p1, p2, p3, p4, p5, p6> builtin sendable
-fun8<r, p0, p1, p2, p3, p4, p5, p6, p7> builtin sendable
-fun9<r, p0, p1, p2, p3, p4, p5, p6, p7, p8> builtin sendable
+fun0[r] builtin sendable
+fun1[r, p0] builtin sendable
+fun2[r, p0, p1] builtin sendable
+fun3[r, p0, p1, p2] builtin sendable
+fun4[r, p0, p1, p2, p3] builtin sendable
+fun5[r, p0, p1, p2, p3, p4] builtin sendable
+fun6[r, p0, p1, p2, p3, p4, p5] builtin sendable
+fun7[r, p0, p1, p2, p3, p4, p5, p6] builtin sendable
+fun8[r, p0, p1, p2, p3, p4, p5, p6, p7] builtin sendable
+fun9[r, p0, p1, p2, p3, p4, p5, p6, p7, p8] builtin sendable
 
 ###
-This is usually written as `act nat(string, bool)` instead of `fun-act2<nat, string, bool>`.
+This is usually written as `act nat(string, bool)` instead of `(nat, string, bool) fun-act2`.
 
 An `act` can have anything in its closure, including mutable data, so it's considered mutable.
 ###
-fun-act0<r> builtin mut
-fun-act1<r, p0> builtin mut
-fun-act2<r, p0, p1> builtin mut
-fun-act3<r, p0, p1, p2> builtin mut
-fun-act4<r, p0, p1, p2, p3> builtin mut
-fun-act5<r, p0, p1, p2, p3, p4> builtin mut
-fun-act6<r, p0, p1, p2, p3, p4, p5> builtin mut
-fun-act7<r, p0, p1, p2, p3, p4, p5, p6> builtin mut
-fun-act8<r, p0, p1, p2, p3, p4, p5, p6, p7> builtin mut
-fun-act9<r, p0, p1, p2, p3, p4, p5, p6, p7, p8> builtin mut
+fun-act0[r] builtin mut
+fun-act1[r, p0] builtin mut
+fun-act2[r, p0, p1] builtin mut
+fun-act3[r, p0, p1, p2] builtin mut
+fun-act4[r, p0, p1, p2, p3] builtin mut
+fun-act5[r, p0, p1, p2, p3, p4] builtin mut
+fun-act6[r, p0, p1, p2, p3, p4, p5] builtin mut
+fun-act7[r, p0, p1, p2, p3, p4, p5, p6] builtin mut
+fun-act8[r, p0, p1, p2, p3, p4, p5, p6, p7] builtin mut
+fun-act9[r, p0, p1, p2, p3, p4, p5, p6, p7, p8] builtin mut
 
 ###
-This is usually written as `ref nat(string)` instead of `fun-ref1<nat, string>`.
+This is usually written as `ref nat(string)` instead of `(nat, string) fun-ref1`.
 
 This wraps an `act` combined with the exclusion it came from.
 This is sendable since the `act` isn't be called directly;
 instead a task is added that will call the `act` when its exclusion is available.
 ###
-fun-ref0<r> record force-sendable by-val
+fun-ref0[r] record force-sendable by-val
 	exclusion exclusion
 	action act r^()
-fun-ref1<r, p0> record force-sendable by-val
+fun-ref1[r, p0] record force-sendable by-val
 	exclusion exclusion
 	action act r^(p0)
-fun-ref2<r, p0, p1> record force-sendable by-val
+fun-ref2[r, p0, p1] record force-sendable by-val
 	exclusion exclusion
 	action act r^(p0, p1)
-fun-ref3<r, p0, p1, p2> record force-sendable by-val
+fun-ref3[r, p0, p1, p2] record force-sendable by-val
 	exclusion exclusion
 	action act r^(p0, p1, p2)
-fun-ref4<r, p0, p1, p2, p3> record force-sendable by-val
+fun-ref4[r, p0, p1, p2, p3] record force-sendable by-val
 	exclusion exclusion
 	action act r^(p0, p1, p2, p3)
-fun-ref5<r, p0, p1, p2, p3, p4> record force-sendable by-val
+fun-ref5[r, p0, p1, p2, p3, p4] record force-sendable by-val
 	exclusion exclusion
 	action act r^(p0, p1, p2, p3, p4)
-fun-ref6<r, p0, p1, p2, p3, p4, p5> record force-sendable by-val
+fun-ref6[r, p0, p1, p2, p3, p4, p5] record force-sendable by-val
 	exclusion exclusion
 	action act r^(p0, p1, p2, p3, p4, p5)
-fun-ref7<r, p0, p1, p2, p3, p4, p5, p6> record force-sendable by-val
+fun-ref7[r, p0, p1, p2, p3, p4, p5, p6] record force-sendable by-val
 	exclusion exclusion
 	action act r^(p0, p1, p2, p3, p4, p5, p6)
-fun-ref8<r, p0, p1, p2, p3, p4, p5, p6, p7> record force-sendable by-val
+fun-ref8[r, p0, p1, p2, p3, p4, p5, p6, p7] record force-sendable by-val
 	exclusion exclusion
 	action act r^(p0, p1, p2, p3, p4, p5, p6, p7)
-fun-ref9<r, p0, p1, p2, p3, p4, p5, p6, p7, p8> record force-sendable by-val
+fun-ref9[r, p0, p1, p2, p3, p4, p5, p6, p7, p8] record force-sendable by-val
 	exclusion exclusion
 	action act r^(p0, p1, p2, p3, p4, p5, p6, p7, p8)
 
 region future
 
 backtrace record by-val
-	entries array backtrace-entry
+	entries backtrace-entry array
 
 # 'extern' because interpreter also declares this type
 backtrace-entry record extern
@@ -400,12 +400,12 @@ Future type.
 
 Ignore the fields, they should be private.
 ###
-future<a> record force-sendable by-ref
+future[t] record force-sendable by-ref
 	# It's important to make future by-ref since its lock is by-val 
-	lk by-val lock
-	state mut future-state a
+	lk lock by-val
+	state mut t future-state
 
-future-state<a> union mut
+future-state[t] union mut
 	# The future hasn't been resolved or forwarded, and no tasks have been added.
 	empty
 	# The future has one task waiting for it to be resolved.
@@ -413,9 +413,9 @@ future-state<a> union mut
 	# The future has multiple tasks attached.
 	tasks task-list
 	# All operations should be directed to another future.
-	forwarded a^
+	forwarded t^
 	# The future was resolved successfully.
-	resolved a
+	resolved t
 	# The future resolved with an exception.
 	rejected exception
 
@@ -431,9 +431,9 @@ lock record sendable by-ref
 region reflect
 
 # General-purpose type that stores a name and value.
-named-val<a> record by-val
+named-val[t] record by-val
 	name symbol
-	val a
+	val t
 
 # All symbols that exist in the compiled code, in arbitrary order
-static-symbols array symbol() noctx builtin
+static-symbols symbol array() builtin, noctx

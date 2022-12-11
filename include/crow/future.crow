@@ -15,12 +15,12 @@ import
 export
 	./private/bootstrap: future
 
-loop-break<a> break-or-continue<a>^(a a)
+loop-break[t] t break-or-continue^(a t)
 	a.loop-break,
-loop-continue<a> break-or-continue<a>^()
+loop-continue[t] t break-or-continue^()
 	loop-continue,
 
-.lock<a> lock(a a^) unsafe
+.lock[t] lock(a t^) unsafe
 	&a.lk
 
 ###
@@ -34,34 +34,34 @@ delay void^()
 	()
 
 # Converts a value to a future resolved with that value.
-new<a> a^(value a) trusted
-	res a^ = uninit, value.resolved
+new[t] t^(value t) trusted
+	res t^ = uninit, value.resolved
 	res.lock init
 	res
 
 # Future resolved to `()`.
-new<a> a^() new<a>
+new[t] t^() t new
 	(),
 
 # Future resolved with an exception.
-rejected<a> a^(err exception) trusted
-	res a^ = uninit, err.rejected
+rejected[t] t^(err exception) trusted
+	res t^ = uninit, err.rejected
 	res.lock init
 	res
 
-# TODO: is-sendable<list a> should not be necessary
+# TODO: t[] is-sendable should not be necessary
 ###
 Waits for every one of `futures` to be resolved, then returns an array all of their results.
 
 If one of `futures` resolves with an exception, this resolves to the leftmost exception (discarding others),
 regardless of which exception happened first.
 ###
-wait-all<a> a[]^(futures a^[]) trusted is-sendable<a> is-sendable<a[]>
+wait-all[t] t[]^(futures t^[]) trusted, t is-sendable, t[] is-sendable
 	<- futures wait-all-complete
 	(for x : futures; x.get-result!),
 
 # Returns a future that is resolved once all inputs are resolved.
-.wait-all-complete<a> void^(futures a^[]) is-sendable<a> trusted
+.wait-all-complete[t] void^(futures t^[]) trusted, t is-sendable
 	res void^ = unresolved
 	count mut nat64 = futures.size
 	task task = cur-exclusion, () =>
@@ -75,8 +75,8 @@ wait-all<a> a[]^(futures a^[]) trusted is-sendable<a> is-sendable<a[]>
 ###
 Future resolved to `ok` if `a` succeeds and `err` if `a` fails with an exception.
 ###
-future-catch<a> result<a, exception>^(a a^) trusted is-sendable<a>
-	res result<a, exception>^ = unresolved
+future-catch[t] (t, exception) result^(a t^) trusted, t is-sendable
+	res (t, exception) result^ = unresolved
 	a add-task get-global-ctx.new-exclusion, () =>
 		res resolve a.get-result
 	res
@@ -85,9 +85,9 @@ future-catch<a> result<a, exception>^(a a^) trusted is-sendable<a>
 	cleanup ref void()
 future-finally future-finally(cleanup ref void())
 	cleanup,
-with-block<a> a^(a future-finally, f ref a()) trusted is-sendable<a>
+with-block[t] t^(a future-finally, f ref t()) trusted, t is-sendable
 	fut = f[]
-	res a^ = unresolved
+	res t^ = unresolved
 	fut add-task get-global-ctx.new-exclusion, () =>
 		result = fut get-result
 		cleanup-fut = a.cleanup[]
@@ -110,7 +110,7 @@ Returns a future for the result of `f`.
 If `a` is resolved with an exception, this never calls `f`,
 and the result of `then` will have the same exception as `a`.
 ###
-then<out, in> out^(a in^, f ref out(in)) trusted is-sendable<out> is-sendable<in>
+then[out, in] out^(a in^, f ref out(in)) trusted, out is-sendable, in is-sendable
 	res out^ = unresolved
 	action = f action
 	a add-task f.exclusion, () =>
@@ -126,24 +126,25 @@ then<out, in> out^(a in^, f ref out(in)) trusted is-sendable<out> is-sendable<in
 	res
 
 # Like `then`, but `f` takes no parameter (since it will be `void` anyway.)
-then<out> out^(a void^, f ref out()) is-sendable<out>
+then[out] out^(a void^, f ref out()) out is-sendable
 	a then _ =>
 		f[]
 
-# TODO: shouldn't need is-sendable<(in0, in1)>
+# TODO: shouldn't need (in0, in1) is-sendable
 ###
 Use like:
 	x, y <- f | g
 Where 'f' and 'g' are futures.
 ###
-then<out, in0, in1> out^(
+then[out, in0, in1] out^(
 	a (in0, in1)^,
 	f ref out(in0, in1),
-) trusted is-sendable<out> is-sendable<in0> is-sendable<in1> is-sendable<(in0, in1)>
+) trusted, out is-sendable, in0 is-sendable, in1 is-sendable, (in0, in1) is-sendable
 	pair <- a
 	f[pair.a, pair.b]
 
-| <a, b> (a, b)^(a a^, b b^) is-sendable<a> is-sendable<b> is-sendable<(a, b)>
+# TODO: shouldn't need (t, u) is-sendable
+|[t, u] (t, u)^(a t^, b u^) t is-sendable, u is-sendable, (t, u) is-sendable
 	x <- a
 	y <- b
 	(x, y),
@@ -157,8 +158,8 @@ Run `f` in a task with a new exclusion and return a future for its result.
 `f` must be a `fun` and not an `act` so that it can have a new exclusion,
 which allows it to run in parallel.
 ###
-with-block<a> a^(_ parallel, f fun a^()) trusted
-	res a^ = unresolved
+with-block[t] t^(_ parallel, f fun t^()) trusted
+	res t^ = unresolved
 	gctx = get-global-ctx
 	gctx add-task gctx.new-exclusion, () =>
 		match (() => f[]) catch
@@ -174,7 +175,7 @@ Calls a `ref`.
 This enqueues a task with the ref's exclusion for invoking its function,
 and returns a future for the result of that task.
 ###
-subscript<r> r^(f ref r()) trusted is-sendable<r>
+subscript[r] r^(f ref r()) trusted, r is-sendable
 	res r^ = unresolved
 	action = f action
 	get-global-ctx add-task f.exclusion, () =>
@@ -186,18 +187,18 @@ subscript<r> r^(f ref r()) trusted is-sendable<r>
 	res
 
 # Calls a `ref` with one argument.
-subscript<r, p0> r^(f ref r(p0), p0 p0) trusted is-sendable<r> is-sendable<p0>
+subscript[r, p0] r^(f ref r(p0), p0 p0) trusted, r is-sendable, p0 is-sendable
 	res r^ = unresolved
 	get-global-ctx add-task f.exclusion, () =>
 		(() => res forward-to f.action[p0]) catch err => res reject err
 	res
 
 # Calls a `ref` with two arguments.
-subscript<r, p0, p1> r^(
+subscript[r, p0, p1] r^(
 	f ref r(p0, p1),
 	p0 p0,
 	p1 p1,
-) trusted is-sendable<r> is-sendable<p0> is-sendable<p1>
+) trusted, r is-sendable, p0 is-sendable, p1 is-sendable
 	res r^ = unresolved
 	get-global-ctx add-task f.exclusion, () =>
 		(() => res forward-to f.action[p0, p1]) catch err => res reject err
@@ -207,7 +208,7 @@ subscript<r, p0, p1> r^(
 If the future resolves successfully, does nothing.
 Else, this will call the default exception handler.
 ###
-handle-exceptions<a> void(a a^) no-doc trusted
+handle-exceptions[t] void(a t^) no-doc, trusted
 	a add-task get-global-ctx.new-exclusion, () =>
 		match a get-result
 		as ok _

@@ -7,11 +7,11 @@ import
 	../string: ~~, literal, to-string
 
 # Run every `test` from all source files included in the compilation.
-run-all-tests void() summon trusted
+run-all-tests void() summon, trusted
 	tests = all-tests
 	out print "Running {tests size} tests"
 	for x : tests
 		x[]
 	out print "Done running tests"
 
-.all-tests array<fun* void()>() builtin
+.all-tests fun* void() array() builtin

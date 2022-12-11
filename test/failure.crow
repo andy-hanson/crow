@@ -29,7 +29,7 @@ handle-output failure[](
 	else
 		(original-path, "{output-path base-name} does not exist. actual was:\n{actual-normalized}"),
 
-flat-map-with-max-size<out, in> out[](a in[], max-size nat, mapper act out[](in)) trusted
+flat-map-with-max-size[out, in] out[](a in[], max-size nat, mapper act out[](in)) trusted
 	res out mut[] = ()
 	for x : a
 		if res.size < max-size
@@ -43,7 +43,10 @@ test-options record
 	max-failures nat
 	match-test string
 
-first-failures result<string, failure[]>(a result<string, failure[]>, b fun result<string, failure[]>())
+test-result alias
+	(string, failure[]) result
+
+first-failures test-result(a test-result, b fun test-result())
 	match a
 	as ok ok-a
 		match b[]
@@ -54,7 +57,7 @@ first-failures result<string, failure[]>(a result<string, failure[]>, b fun resu
 	as err e
 		e err
 
-print-failures nat(failures result<string, failure[]>, options test-options) summon
+print-failures nat(failures test-result, options test-options) summon
 	match failures
 	as ok o
 		out print o

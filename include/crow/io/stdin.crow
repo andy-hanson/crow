@@ -19,9 +19,9 @@ Reads from stdin.
 If that comes from the user typing at the terminal, this will block until they hit enter.
 Result will not have leading or trailing whitespace.
 ###
-read-stdin string^() trusted summon
+read-stdin string^() summon, trusted
 	with : parallel
-		buffer mut-array nat8 = 0x2000 uninitialized-mut-array
+		buffer nat8 mut-array = 0x2000 uninitialized-mut-array
 		# TODO: use a non-blocking API
 		bytes-read-or-err = stdin read buffer.begin-pointer, buffer.size
 		assert bytes-read-or-err >= 0
@@ -35,7 +35,7 @@ read-stdin string^() trusted summon
 Keep reading from stdin until `parse` returns a non-empty option.
 Print `error-message` after every failure.
 ###
-read-stdin-until-parse<a> a^(error-message string, parse act a?(string)) summon is-sendable<a>
+read-stdin-until-parse[t] t^(error-message string, parse act t?(string)) summon, t is-sendable
 	text <- read-stdin
 	if res ?= parse[text]
 		res,

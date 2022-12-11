@@ -13,11 +13,11 @@ import
 environ alias
 	string[string]
 
-get-environ-raw c-string*() summon unsafe
+get-environ-raw c-string*() summon, unsafe
 	__environ
 
 # Get all environment variables for this process.
-get-environ environ() summon trusted
+get-environ environ() summon, trusted
 	with out : build
 		env mut = get-environ-raw
 		until *env == null

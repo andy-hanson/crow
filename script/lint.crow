@@ -28,7 +28,7 @@ main nat^(_ string[]) summon
 		failures lint-imports-in-file file
 	failures move-to-list
 
-.get-all-imports set symbol(files file[])
+.get-all-imports symbol set(files file[])
 	(for file : files; file.imports to-list).flatten to-set
 
 .excluded-public symbol[]()
@@ -37,8 +37,8 @@ main nat^(_ string[]) summon
 .file record
 	path string
 	members members
-	imports set symbol
-	uses counter symbol
+	imports symbol set
+	uses symbol counter
 
 .members record
 	public symbol[]
@@ -55,8 +55,8 @@ all-files file[]() summon
 .get-members members(path string) summon
 	stdout = "dub run dscanner -- --ctags {path}" shell-exec
 
-	public mut-set symbol = ()
-	private mut-set symbol = ()
+	public symbol mut-set = ()
+	private symbol mut-set = ()
 
 	look-for = "!_TAG_PROGRAM_URL	https://github.com/dlang-community/D-Scanner/\n"
 	rest = (stdout try-split-once look-for)!.b
@@ -78,11 +78,11 @@ all-files file[]() summon
 	"Converter32", "Converter64", "DCValue", "DoubleToUlong", "StackDict2Key", "StackDict2Value"
 
 .imports-and-rest record
-	imports set symbol
+	imports symbol set
 	rest string
 
 .find-imports imports-and-rest(a string)
-	res mut-set symbol = ()
+	res symbol mut-set = ()
 	since-last-import mut = a
 	rest mut = a
 	loop

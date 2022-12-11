@@ -10,7 +10,7 @@ import
 		lmdb-env, lmdb-key-flags, lmdb-txn, open-lmdb-env, read-transaction, set, to-lmdb-key,
 		transaction-abort, transaction-commit, try-add, with-block, write-transaction, zip
 
-main nat^(_ string[]) unsafe summon
+main nat^(_ string[]) summon, trusted
 	with db : open-real-db
 		if true
 			match db register-user "alice", "swordfish"
@@ -64,7 +64,7 @@ user-cookie record
 	user nat
 	inner login-cookie
 
-user-cookie grammar user-cookie()
+user-cookie user-cookie grammar()
 	nat ~~ "|" ~~ login-cookie map (user, cookie) => 
 		user, cookie
 
@@ -73,12 +73,12 @@ to-string string(a user-cookie)
 
 db record mut
 	.env lmdb-env
-	.user-from-name lmdb-db<string, user>
-	.user-name lmdb-db<user, string>
-	.user-password-hash lmdb-db<user, nat8[]>
-	.user-login-cookie lmdb-db<user, login-cookie>
-	.post-user lmdb-db<post, user>
-	.post-content lmdb-db<post, string>
+	.user-from-name (string, user) lmdb-db
+	.user-name (user, string) lmdb-db
+	.user-password-hash (user, nat8[]) lmdb-db
+	.user-login-cookie (user, login-cookie) lmdb-db
+	.post-user (post, user) lmdb-db
+	.post-content (post, string) lmdb-db
 
 open-db record
 	db-path string
@@ -88,14 +88,14 @@ open-db record
 open-real-db open-db()
 	db-path open-db
 
-with-block<a> a^(a open-db, f act a^(db)) unsafe summon is-sendable<a>
+with-block[t] t^(a open-db, f act t^(db)) summon, unsafe, t is-sendable
 	with env : a.db-path open-lmdb-env true
-		with user-from-name : env database@<string, user> "user-from-name"
-			with user-name : env database@<user, string> "user-name"
-				with user-pw-hash : env database@<user, nat8[]> "user-password-hash"
-					with user-login : env database@<user, login-cookie> "user-login-cookie"
-						with post-user : env database@<post, user> "post-user"
-							with post-content : env database@<post, string> "post-content"
+		with user-from-name : env database@(string, user) "user-from-name"
+			with user-name : env database@(user, string) "user-name"
+				with user-pw-hash : env database@(user, nat8[]) "user-password-hash"
+					with user-login : env database@(user, login-cookie) "user-login-cookie"
+						with post-user : env database@(post, user) "post-user"
+							with post-content : env database@(post, string) "post-content"
 								f[(env, user-from-name, user-name, user-pw-hash, user-login, post-user, post-content)]
 
 list-users user-info[](db db) summon
@@ -165,7 +165,7 @@ login-error enum
 	user-does-not-exist
 	wrong-password
 
-login result<user-cookie, login-error>(db db, user-name string, password string) summon
+login (user-cookie, login-error) result(db db, user-name string, password string) summon
 	if user-name.is-empty || password.is-empty
 		empty-name-or-password err
 	else

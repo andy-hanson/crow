@@ -8,18 +8,18 @@ Range of values. `low` is inclusive and `high` is exclusive.
 
 Usable for any type with a comparison function.
 ###
-range<a> record by-val
-	low a
-	high a
+range[t] record by-val
+	low t
+	high t
 
 # Create a range from `low` (inclusive) to `high` (exclusive).
-.. <a> range<a>(low a, high a) noctx compare<a>
+..[t] t range(low t, high t) noctx, t compare
 	assert low <= high
 	low, high
 
 # Size of the range; depends on a `-` function existing.
-size<a> nat64(a range a) noctx minus<a>
+size[t] nat64(a t range) noctx, t minus
 	a.high - a.low
 
-minus<a> spec
-	- nat64(a a, b a)
+minus[t] spec
+	- nat64(a t, b t)

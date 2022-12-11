@@ -26,11 +26,11 @@ Mutable unordered dictionary.
 
 Unordered means that iteration functions like `each` reach each entry in arbitrary order.
 ###
-mut-dict<k, v> record mut
-	.entries .mut mut-array entry<k, v>
+mut-dict[k, v] record mut
+	.entries .mut (k, v) entry mut-array
 	.total-size .mut nat64
 
-.entry<k, v> union mut
+.entry[k, v] union mut
 	none
 	one (k, v)
 	many (k, v) mut[]
@@ -40,7 +40,7 @@ New dictionary containing the given pairs.
 
 Later pairs overwrite earlier pairs with the same key.
 ###
-new<k, v> v mut[k](...a array (k, v)) is-data<k> compare<k> hash-mix<k>
+new[k, v] v mut[k](...a (k, v) array) k is-data, k compare, k hash-mix
 	a.to-list to-mut-dict
 
 ###
@@ -48,7 +48,7 @@ Convert a list of pairs to a dictionary.
 
 Later pairs overwrite earlier pairs with the same key.
 ###
-to-mut-dict<k, v> v mut[k](a (k, v)[]) is-data<k> compare<k> hash-mix<k>
+to-mut-dict[k, v] v mut[k](a (k, v)[]) k is-data, k compare, k hash-mix
 	res v mut[k] = a.size mut-dict-with-capacity
 	for pair : a
 		res[pair from] := pair to
@@ -60,24 +60,24 @@ This can have a small performance benefit if you know that much space will be ne
 
 Since hash conflicts are possible, this makes no guarantees about whether more allocations will be needed.
 ###
-mut-dict-with-capacity<k, v> v mut[k](capacity nat64) is-data<k> compare<k> hash-mix<k>
+mut-dict-with-capacity[k, v] v mut[k](capacity nat64) k is-data, k compare, k hash-mix
 	# TODO: should not need type annotation
-	(capacity fill-mut-array none)::mut-array<entry<k, v>>, 0
+	(capacity fill-mut-array none)::((k, v) entry mut-array), 0
 
 # Copy pairs to a list.
-to-list<k, v> (k, v)[](a v mut[k]) is-data<k> compare<k> hash-mix<k>
+to-list[k, v] (k, v)[](a v mut[k]) k is-data, k compare, k hash-mix
 	for k, v : a
 		k, v
 
 # Copy pairs to a list and clear the dictionary.
-move-to-list<k, v> (k, v)[](a v mut[k]) is-data<k> compare<k> hash-mix<k>
+move-to-list[k, v] (k, v)[](a v mut[k]) k is-data, k compare, k hash-mix
 	res = a to-list
 	a clear
 	res
 
 # Copy pairs to a new dictionary.
-copy<k, v> v mut[k](a v mut[k]) is-data<k> compare<k> hash-mix<k>
-	entries mut-array entry<k, v> = for entry : a entries
+copy[k, v] v mut[k](a v mut[k]) k is-data, k compare, k hash-mix
+	entries (k, v) entry mut-array = for entry : a entries
 		match entry
 		as none
 			none
@@ -98,11 +98,11 @@ test
 	b verify "_ (1 -> 1) [2 -> 2, 5 -> 5]"
 
 # `true` iff `a.size == 0`.
-is-empty<k, v> bool(a v mut[k]) is-data<k> compare<k> hash-mix<k>
+is-empty[k, v] bool(a v mut[k]) k is-data, k compare, k hash-mix
 	a.size == 0
 
 # Number of unique keys in the dictionary.
-size<k, v> nat64(a v mut[k]) is-data<k> compare<k> hash-mix<k>
+size[k, v] nat64(a v mut[k]) k is-data, k compare, k hash-mix
 	a total-size
 
 ###
@@ -110,7 +110,7 @@ Gets the value associated with a key.
 
 Returns an empty option if the key is not in the dictionary.
 ###
-subscript<k, v> v?(a v mut[k], key k) trusted is-data<k> compare<k> hash-mix<k>
+subscript[k, v] v?(a v mut[k], key k) trusted, k is-data, k compare, k hash-mix
 	unless a is-empty
 		match a.entries[key.hash % a.entries.size]
 		as none
@@ -122,7 +122,7 @@ subscript<k, v> v?(a v mut[k], key k) trusted is-data<k> compare<k> hash-mix<k>
 				m[index].to,
 
 # `true` iff the key is in the dictinoary.
-in<k, v> bool(key k, a v mut[k]) is-data<k> compare<k> hash-mix<k>
+in[k, v] bool(key k, a v mut[k]) k is-data, k compare, k hash-mix
 	!a[key].is-empty
 
 ###
@@ -130,17 +130,17 @@ Sets the key to the given value, so that `a[key]` will return `value`.
 
 If the key is already in the dictionary, this overwrites the previous value.
 ###
-set-subscript<k, v> void(a v mut[k], key k, value v) is-data<k> compare<k> hash-mix<k>
+set-subscript[k, v] void(a v mut[k], key k, value v) k is-data, k compare, k hash-mix
 	_ = a update key, (value,)
 	()
 
 # Remove all keys, leaving the dictionary empty.
-clear<k, v> void(a v mut[k]) is-data<k> compare<k> hash-mix<k>
+clear[k, v] void(a v mut[k]) k is-data, k compare, k hash-mix
 	a.entries fill none
 	a.total-size := 0
 
 # Set the contents of `a` to the contents of `b` and vice versa.
-swap<k, v> void(a v mut[k], b v mut[k]) is-data<k> compare<k> hash-mix<k>
+swap[k, v] void(a v mut[k], b v mut[k]) k is-data, k compare, k hash-mix
 	temp-entries = a.entries
 	a.entries := b.entries
 	b.entries := temp-entries
@@ -153,14 +153,14 @@ If the key was in the dictionary, remove it and return the old value.
 
 Returns an empty option if the key was not in the dictionary.
 ###
-try-remove<k, v> v?(a v mut[k], key k) is-data<k> compare<k> hash-mix<k>
+try-remove[k, v] v?(a v mut[k], key k) k is-data, k compare, k hash-mix
 	a update key, ()
 
 ###
 f: Takes the value (if it exists), returns the new value (or none to remove).
 Returns the old value (if it exists).
 ###
-.update<k, v> v?(a v mut[k], key k, new-value v?) trusted is-data<k> compare<k> hash-mix<k>
+.update[k, v] v?(a v mut[k], key k, new-value v?) trusted, k is-data, k compare, k hash-mix
 	if a.entries is-empty
 		if value ?= new-value
 			a.entries := (key, value).one,
@@ -217,19 +217,19 @@ Returns the old value (if it exists).
 				()
 
 # This is the same as calling `a[b a] := b b`.
-~= <k, v> void(a v mut[k], b (k, v)) is-data<k> compare<k> hash-mix<k>
+~=[k, v] void(a v mut[k], b (k, v)) k is-data, k compare, k hash-mix
 	a[b from] := b to
 
 # This is the same as calling `a ~= x` for every `x` in `b`.
-~~= <k, v> void(a v mut[k], b (k, v)[]) is-data<k> compare<k> hash-mix<k>
+~~=[k, v] void(a v mut[k], b (k, v)[]) k is-data, k compare, k hash-mix
 	for pair : b
 		a ~= pair
 
 # Called when we're about to allocate a bigger bucket -- maybe we should expand the table instead
-.should-expand<k, v> bool(a v mut[k])
+.should-expand[k, v] bool(a v mut[k])
 	a.total-size >= a.entries.size
 
-.expand<k, v> void(a v mut[k]) is-data<k> compare<k> hash-mix<k>
+.expand[k, v] void(a v mut[k]) k is-data, k compare, k hash-mix
 	forbid a.entries.size == 0
 	new-size = a.entries.size * 2
 	bigger v mut[k] = new-size mut-dict-with-capacity
@@ -241,7 +241,7 @@ Returns the old value (if it exists).
 region iteration
 
 # Calls `f` for every key and value in the dictionary.
-for-loop<k, v> void(a v mut[k], f act void(k, v)) is-data<k> compare<k> hash-mix<k>
+for-loop[k, v] void(a v mut[k], f act void(k, v)) k is-data, k compare, k hash-mix
 	for entry : a entries
 		match entry
 		as none
@@ -255,15 +255,15 @@ for-loop<k, v> void(a v mut[k], f act void(k, v)) is-data<k> compare<k> hash-mix
 ###
 Calls `f` on every key and value and returns a list of the results.
 ###
-for-loop<out, k, v> out[](a v mut[k], f act out(k, v)) trusted is-data<k> compare<k> hash-mix<k>
+for-loop[out, k, v] out[](a v mut[k], f act out(k, v)) trusted, k is-data, k compare, k hash-mix
 	with out : a.size build
 		for key, value : a
 			out ~= f[key, value]
 
-for-loop<k-out, v-out, k, v> v-out[k-out](
+for-loop[k-out, v-out, k, v] v-out[k-out](
 	a v mut[k],
 	f act (k-out, v-out)(k, v),
-) is-data<k> compare<k> hash-mix<k> is-data<k-out> compare<k-out> hash-mix<k-out>
+) k is-data, k compare, k hash-mix, k-out is-data, k-out compare, k-out hash-mix
 	(a for-loop f)::(k-out, v-out)[] to-dict
 
 ###
@@ -271,7 +271,7 @@ Filters the dictionary in place.
 
 Calls `f` on every key and value and removes the key if `f` returns false.
 ###
-set-filter<k, v> void(a v mut[k], f act bool(k, v)) trusted is-data<k> compare<k> hash-mix<k>
+set-filter[k, v] void(a v mut[k], f act bool(k, v)) trusted, k is-data, k compare, k hash-mix
 	a.entries set-map entry =>
 		match entry
 		as none
@@ -290,13 +290,13 @@ set-filter<k, v> void(a v mut[k], f act bool(k, v)) trusted is-data<k> compare<k
 			else
 				m many
 
-to-dict<k, v> v[k](a v mut[k]) is-data<k> compare<k> hash-mix<k>
+to-dict[k, v] v[k](a v mut[k]) k is-data, k compare, k hash-mix
 	(for k, v : a; k, v)::(k, v)[] to-dict
 
 ###
 Calls `f` on every key and value, and replaces the value with the new value returned by `f`.
 ###
-set-map-values<k, v> void(a v mut[k], f act v(k, v)) trusted is-data<k> compare<k> hash-mix<k>
+set-map-values[k, v] void(a v mut[k], f act v(k, v)) trusted, k is-data, k compare, k hash-mix
 	a.entries set-map entry =>
 		match entry
 		as none
@@ -307,7 +307,7 @@ set-map-values<k, v> void(a v mut[k], f act v(k, v)) trusted is-data<k> compare<
 			m set-map pair => pair.from, f[pair.from, pair.to]
 			m many
 
-.dbg<k, v> string(a v mut[k]) to-string<k> to-string<v>
+.dbg[k, v] string(a v mut[k]) k to-string, v to-string
 	" " join for entry : a.entries.to-array.to-list
 		match entry
 		as none
@@ -316,7 +316,7 @@ set-map-values<k, v> void(a v mut[k], f act v(k, v)) trusted is-data<k> compare<
 			"({ar dbg})"
 		as many m
 			"[{", " join for pair : m; pair dbg}]"
-.dbg<k, v> string(a (k, v)) to-string<k> to-string<v>
+.dbg[k, v] string(a (k, v)) k to-string, v to-string
 	"{a from} -> {a to}"
 
 .verify void(a string mut[nat64], expected string)

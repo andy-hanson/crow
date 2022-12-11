@@ -14,8 +14,8 @@ SF_VIRTUAL_IO record extern mut
 	write fun* sf_count_t(nat8*, sf_count_t, any-mut-pointer)
 	tell fun* sf_count_t(any-mut-pointer)
 
-sf_error c-int(sndfile SNDFILE mut*) extern<sndfile>
-sf_error_number c-string(errnum c-int) extern<sndfile>
+sf_error c-int(sndfile SNDFILE mut*) sndfile extern
+sf_error_number c-string(errnum c-int) sndfile extern
 
 SF_INFO record extern
 	frames sf_count_t
@@ -28,28 +28,28 @@ SF_INFO record extern
 new SF_INFO() noctx
 	0, 0, 0, (), 0, 0
 
-sf_open SNDFILE mut*(path c-string, mode SndFileMode, sfinfo SF_INFO mut*) extern<sndfile> summon
+sf_open SNDFILE mut*(path c-string, mode SndFileMode, sfinfo SF_INFO mut*) summon, sndfile extern
 sf_open_virtual SNDFILE mut*(
 	sfvirtual SF_VIRTUAL_IO*,
 	mode SndFileMode,
 	sfinfo SF_INFO mut*,
 	user_data any-mut-pointer,
-) extern<sndfile>
-sf_close c-int(SNDFILE SNDFILE mut*) extern<sndfile>
+) sndfile extern
+sf_close c-int(SNDFILE SNDFILE mut*) sndfile extern
 
-SndFileMode enum<c-int> extern
+SndFileMode enum(c-int) extern
 	SFM_READ = 0x10
 	SFM_WRITE = 0x20
 	SFM_RDWR = 0x30
 
-sf_read_short sf_count_t(sndfile SNDFILE mut*, pointer short mut*, items sf_count_t) extern<sndfile>
-sf_write_short sf_count_t(sndfile SNDFILE mut*, pointer short*, items sf_count_t) extern<sndfile>
+sf_read_short sf_count_t(sndfile SNDFILE mut*, pointer short mut*, items sf_count_t) sndfile extern
+sf_write_short sf_count_t(sndfile SNDFILE mut*, pointer short*, items sf_count_t) sndfile extern
 
-sf_read_float sf_count_t(sndfile SNDFILE mut*, pointer float32 mut*, items sf_count_t) extern<sndfile>
-sf_write_float sf_count_t(sndfile SNDFILE mut*, pointer float32*, items sf_count_t) extern<sndfile>
+sf_read_float sf_count_t(sndfile SNDFILE mut*, pointer float32 mut*, items sf_count_t) sndfile extern
+sf_write_float sf_count_t(sndfile SNDFILE mut*, pointer float32*, items sf_count_t) sndfile extern
 
 # WARN: This is not a true flags type; can only be mixed in certain ways
-SF_FORMAT flags<u-int> extern
+SF_FORMAT flags(u-int) extern
 	SF_FORMAT_WAV = 0x010000
 	SF_FORMAT_AIFF = 0x020000
 	SF_FORMAT_AU = 0x030000

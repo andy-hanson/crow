@@ -19,19 +19,19 @@ import
 Immutable stack type.
 Iteration functions move from the bottom to the top.
 ###
-stack<a> record
-	.last-node node<a>?
+stack[t] record
+	.last-node t node?
 
-.node<a> record
-	prev node<a>?
-	value a
+.node[t] record
+	prev t node?
+	value t
 
 ###
 Stack containing the given elements.
 
 The first element of `a` goes on the bottom and the last element of `a` goes on the top.
 ###
-new<a> stack a(...a array a)
+new[t] t stack(...a t array)
 	a.to-list to-stack
 
 ###
@@ -39,33 +39,33 @@ Stack containing the given elements.
 
 The first element of `a` goes on the bottom and the last element of `a` goes on the top.
 ###
-to-stack<a> stack a(a a[])
-	res mut stack a = ()::node<a>?,
+to-stack[t] t stack(a t[])
+	res mut t stack = ()::(t node?),
 	for x : a
 		res := res ~ x
 	res
 
 # Copy elements a list.
-to-list<a> a[](a stack a) trusted
+to-list[t] t[](a t stack) trusted
 	for x : a; x
 
 # `true` iff `a.size == 0`.
-is-empty<a> bool(a stack a)
+is-empty[t] bool(a t stack)
 	a.last-node is-empty
 
 ###
 Appends an element to the stack.
 This is O(1).
 ###
-~ <a> stack a(a stack a, b a)
+~[t] t stack(a t stack, b t)
 	# TODO: type annotation should not be necessary
-	((a.last-node, b),)::node<a>?,
+	((a.last-node, b),)::(t node?),
 
 ###
 Number of elements in the stack.
 This is O(1).
 ###
-size<a> nat64(a stack a)
+size[t] nat64(a t stack)
 	res mut = 0
 	for _ : a
 		res := res + 1
@@ -76,37 +76,37 @@ Top element.
 Returns an empty option iff `a` is empty.
 This is O(1).
 ###
-peek<a> a?(a stack a)
+peek[t] t?(a t stack)
 	if node ?= a last-node
 		node.value,
 
-popped<a> record
-	value a
-	rest stack a
+popped[t] record
+	value t
+	rest t stack
 
 ###
-Returns the top element of the stack and a new stack with all elements but the top.
+Returns the top element of the a stacknd a new stack with all elements but the top.
 Returns an empty option iff `a` is empty.
 ###
-pop<a> popped<a>?(a stack a)
+pop[t] t popped?(a t stack)
 	if node ?= a last-node
 		(node.value, (node.prev,)),
 
 region iteration
 
-for-loop<a> void(a stack a, f act void(a))
+for-loop[t] void(a t stack, f act void(t))
 	a.last-node for-loop-recur f
-.for-loop-recur<a> void(a node<a>?, f act void(a))
+.for-loop-recur[t] void(a t node?, f act void(t))
 	if node ?= a
 		node.prev for-loop-recur f
 		f[node value]
 
-reversed-stack<a> record
-	.inner stack a
-reversed<a> reversed-stack a(a stack a)
+reversed-stack[t] record
+	.inner t stack
+reversed[t] t reversed-stack(a t stack)
 	a,
 
-for-loop<a> void(a reversed-stack a, f act void(a))
+for-loop[t] void(a t reversed-stack, f act void(t))
 	cur mut = a.inner last-node
 	loop
 		if node ?= cur
@@ -116,8 +116,8 @@ for-loop<a> void(a reversed-stack a, f act void(a))
 		else
 			break
 
-for-loop<out, in> out[](a reversed-stack in, f act out(in)) trusted
-	res mut-array out = a.inner.size uninitialized-mut-array
+for-loop[out, in] out[](a in reversed-stack, f act out(in)) trusted
+	res out mut-array = a.inner.size uninitialized-mut-array
 	out mut out mut* = res begin-pointer
 	for x : a
 		*out := f[x]
@@ -126,12 +126,12 @@ for-loop<out, in> out[](a reversed-stack in, f act out(in)) trusted
 	res.cast-immutable to-list
 
 # Copy elements to a list, from top to bottom.
-to-list<a> a[](a reversed-stack a) trusted
+to-list[t] t[](a t reversed-stack) trusted
 	for x : a
 		x
 
-for-loop<out, in> out[](a stack in, f act out(in)) trusted
-	res mut-array out = a.size uninitialized-mut-array
+for-loop[out, in] out[](a in stack, f act out(in)) trusted
+	res out mut-array = a.size uninitialized-mut-array
 	out mut out mut* = res begin-pointer
 	for x : a
 		*out := f[x]
@@ -140,15 +140,15 @@ for-loop<out, in> out[](a stack in, f act out(in)) trusted
 	res.cast-immutable to-list
 
 # Produce a stack with `f[x]` applied to each element `x` in the input.
-for-loop<out, in> stack out(a stack in, f act out(in))
+for-loop[out, in] out stack(a in stack, f act out(in))
 	(a.last-node map-recur f),
-.map-recur<out, in> node<out>?(a node<in>?, f act out(in))
+.map-recur[out, in] out node?(a in node?, f act out(in))
 	if node ?= a
 		((node.prev map-recur f), f[node value]),
 
-filter<a> stack a(a stack a, f act bool(a))
+filter[t] t stack(a t stack, f act bool(t))
 	(a.last-node filter-recur f),
-.filter-recur<a> node<a>?(a node<a>?, f act bool(a))
+.filter-recur[t] t node?(a t node?, f act bool(t))
 	if node ?= a
 		prev = node.prev filter-recur f
 		if f[node value]
@@ -156,9 +156,9 @@ filter<a> stack a(a stack a, f act bool(a))
 		else
 			prev
 
-find-and-get<out, in> out?(a stack in, f act out?(in))
+find-and-get[out, in] out?(a in stack, f act out?(in))
 	a.last-node find-and-get-recur f
-.find-and-get-recur<out, in> out?(a node<in>?, f act out?(in))
+.find-and-get-recur[out, in] out?(a in node?, f act out?(in))
 	if node ?= a
 		if x ?= node.prev find-and-get-recur f
 			x,
@@ -166,7 +166,7 @@ find-and-get<out, in> out?(a stack in, f act out?(in))
 			f[node value]
 
 test
-	a stack nat64 = ()
+	a nat64 stack = ()
 	assert a is-empty
 	a.to-list is ()
 	a.peek is ()
@@ -185,7 +185,7 @@ test
 	d = c ~ 3
 	d.to-list is (1, 2, 3)
 
-	for-loop-spy spy-act1<void, nat64> = (_ => ()),
+	for-loop-spy (void, nat64) spy-act1 = (_ => ()),
 	d for-loop for-loop-spy.fn
 	for-loop-spy.calls is (1, 2, 3)
 

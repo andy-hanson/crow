@@ -7,7 +7,7 @@ import
 	crow/pointer: *, any-const-pointer, any-mut-pointer, const-pointer, mut-pointer, null, size-of
 	win32: CONTEXT, DWORD, DWORD64, HANDLE, Rbp, Rip, Rsp, WORD
 
-ADDRESS_MODE enum<nat32> extern
+ADDRESS_MODE enum(nat32) extern
 	AddrMode1616
 	AddrMode1632
 	AddrModeReal
@@ -42,7 +42,7 @@ STACKFRAME64 record extern
 	Reserved2 DWORD64
 	KdHelp KDHELP64
 
-new STACKFRAME64(context CONTEXT*) noctx unsafe
+new STACKFRAME64(context CONTEXT*) noctx, unsafe
 	(context->Rip,), (), (context->Rbp,), (context->Rsp,), (), null, 0, 0, 0, 0, false, false, 0, 0, 0, ()
 
 KDHELP64 record extern
@@ -77,9 +77,9 @@ IMAGEHLP_SYMBOL64 record extern
 	# Actually may be more than one char, making the size of this struct actually bigger
 	Name c-char
 
-new IMAGEHLP_SYMBOL64(max-name-length DWORD) noctx unsafe
+new IMAGEHLP_SYMBOL64(max-name-length DWORD) noctx, unsafe
 	# TODO: should not need parentheses
-	(size-of@<IMAGEHLP_LINE64>).to-nat32, 0, 0, 0, max-name-length, "\0"
+	(size-of@IMAGEHLP_LINE64).to-nat32, 0, 0, 0, max-name-length, "\0"
 
 IMAGEHLP_LINE64 record extern
 	SizeOfStruct DWORD
@@ -88,11 +88,11 @@ IMAGEHLP_LINE64 record extern
 	FileName c-string
 	Address DWORD64
 
-new IMAGEHLP_LINE64() noctx unsafe
+new IMAGEHLP_LINE64() noctx, unsafe
 	# TODO: should not need parentheses
-	(size-of@<IMAGEHLP_LINE64>).to-nat32, null, 0, null, 0
+	(size-of@IMAGEHLP_LINE64).to-nat32, null, 0, null, 0
 
-IMAGEHLP_SYMBOL_TYPE_INFO enum<nat32> extern
+IMAGEHLP_SYMBOL_TYPE_INFO enum(nat32) extern
 	TI_GET_SYMTAG
 	TI_GET_SYMNAME
 	TI_GET_LENGTH
@@ -149,17 +149,17 @@ StackWalk64 bool(
 	FunctionTableAccessRoutine PFUNCTION_TABLE_ACCESS_ROUTINE64,
 	GetModuleBaseRoutine PGET_MODULE_BASE_ROUTINE64,
 	TranslateAddress PTRANSLATE_ADDRESS_ROUTINE64,
-) extern<DbgHelp>
+) DbgHelp extern
 
-SymFunctionTableAccess64 any-const-pointer(hProcess HANDLE, AddrBase DWORD64) extern<DbgHelp>
+SymFunctionTableAccess64 any-const-pointer(hProcess HANDLE, AddrBase DWORD64) DbgHelp extern
 
 # A process that calls SymInitialize should not call it again unless it calls SymCleanup first
-SymInitialize bool(hProcess HANDLE, UserSearchPath c-string, fInvadeProcess bool) extern<DbgHelp>
-SymCleanup bool(hProcess HANDLE) extern<DbgHelp>
+SymInitialize bool(hProcess HANDLE, UserSearchPath c-string, fInvadeProcess bool) DbgHelp extern
+SymCleanup bool(hProcess HANDLE) DbgHelp extern
 
-SymSetOptions DWORD(SymOptions SymOptions) extern<DbgHelp>
+SymSetOptions DWORD(SymOptions SymOptions) DbgHelp extern
 
-SymOptions flags<nat32> extern
+SymOptions flags(nat32) extern
 	SYMOPT_CASE_INSENSITIVE = 0x00000001
 	SYMOPT_UNDNAME = 0x00000002
 	SYMOPT_DEFERRED_LOADS = 0x00000004
@@ -198,11 +198,11 @@ SymGetSymFromAddr64 bool(
 	qwAddr DWORD64,
 	pdwDisplacement DWORD64 mut*,
 	Symbol IMAGEHLP_SYMBOL64 mut*,
-) extern<DbgHelp>
+) DbgHelp extern
 
 SymGetLineFromAddr64 bool(
 	hProcess HANDLE,
 	qwAddr DWORD64,
 	pdwDisplacement DWORD mut*,
 	Line64 IMAGEHLP_LINE64 mut*,
-) extern<DbgHelp>
+) DbgHelp extern

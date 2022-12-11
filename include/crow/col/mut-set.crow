@@ -17,58 +17,58 @@ Mutable unordered set.
 
 This is unordered, so functions like `to-array` and `each` provide elements in arbitrary order.
 ###
-mut-set<a> record mut
-	.inner void mut[a]
+mut-set[t] record mut
+	.inner void mut[t]
 
 # New set with the given elements (with duplicates removed).
-new<a> mut-set a(...a array a) is-data<a> compare<a> hash-mix<a>
+new[t] t mut-set(...a t array) t is-data, t compare, t hash-mix
 	# TODO: should not need type annotation
-	(for x : a.to-list; (x, ()))::(a, void)[].to-mut-dict,
+	(for x : a.to-list; (x, ()))::(t, void)[].to-mut-dict,
 
 # Copies an immutable set to a mutable set.
-to-mut-set<a> mut-set a(a set a) is-data<a> compare<a> hash-mix<a>
-	res mut-set a = ()
+to-mut-set[t] t mut-set(a t set) t is-data, t compare, t hash-mix
+	res t mut-set = ()
 	for x : a
 		res ~= x
 	res
 
 # Removes all elements.
-clear<a> void(a mut-set a) is-data<a> compare<a> hash-mix<a>
+clear[t] void(a t mut-set) t is-data, t compare, t hash-mix
 	a.inner clear
 
 # Copies elements to a list, and clears the `a`.
-move-to-list<a> a[](a mut-set a) is-data<a> compare<a> hash-mix<a>
+move-to-list[t] t[](a t mut-set) t is-data, t compare, t hash-mix
 	for x : a.inner move-to-list
 		x a
 
 # Copies elements to an immuttable set, and clears `a`.
-move-to-set<a> set a(a mut-set a) is-data<a> compare<a> hash-mix<a>
+move-to-set[t] t set(a t mut-set) t is-data, t compare, t hash-mix
 	a.move-to-list to-set
 
 ###
 Adds an element to the set.
 Does nothing if `value` is already in the set.
 ###
-~= <a> void(a mut-set a, value a) is-data<a> compare<a> hash-mix<a>
+~=[t] void(a t mut-set, value t) t is-data, t compare, t hash-mix
 	a.inner ~= (value, ())
 
 ###
 Adds many elements to the set.
 Ignores values already in the set.
 ###
-~~= <a> void(a mut-set a, values a[]) is-data<a> compare<a> hash-mix<a>
+~~=[t] void(a t mut-set, values t[]) t is-data, t compare, t hash-mix
 	for x : values
 		a ~= x
 
 # `true` iff `value` is a value in the set.
-in<a> bool(value a, a mut-set a) is-data<a> compare<a> hash-mix<a>
+in[t] bool(value t, a t mut-set) t is-data, t compare, t hash-mix
 	value in a.inner
 
 ###
 If `value` is already in the set, returns `false`.
 Else, adds it and returns `true`.
 ###
-try-add<a> bool(a mut-set a, value a) is-data<a> compare<a> hash-mix<a>
+try-add[t] bool(a t mut-set, value t) t is-data, t compare, t hash-mix
 	# TODO:PERF do it without two lookups
 	unless value in a
 		a ~= value
@@ -78,10 +78,10 @@ try-add<a> bool(a mut-set a, value a) is-data<a> compare<a> hash-mix<a>
 If `value` is in the set, return `false`.
 Else, remove it and return `true`.
 ###
-try-remove<a> bool(a mut-set a, value a) is-data<a> compare<a> hash-mix<a>
+try-remove[t] bool(a t mut-set, value t) t is-data, t compare, t hash-mix
 	!(a.inner try-remove value is-empty)
 
 # Calls `f` for every element in the set.
-for-loop<a> void(a mut-set a, f act void(a)) is-data<a> compare<a> hash-mix<a>
+for-loop[t] void(a t mut-set, f act void(t)) t is-data, t compare, t hash-mix
 	for k, _ : a inner
 		f[k]

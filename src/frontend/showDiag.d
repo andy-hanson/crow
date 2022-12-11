@@ -224,7 +224,7 @@ void writeParseDiag(
 			writer ~= "function type missing parentheses";
 		},
 		(in ParseDiag.ImportFileTypeNotSupported) {
-			writer ~= "import file type not allowed; the only supported types are 'array nat8' and 'str'";
+			writer ~= "import file type not allowed; the only supported types are 'nat8 array' and 'str'";
 		},
 		(in ParseDiag.IndentNotDivisible d) {
 			writer ~= "expected indentation by ";
@@ -449,7 +449,7 @@ void writeCallNoMatch(
 	bool someCandidateHasCorrectNTypeArgs =
 		d.actualNTypeArgs == 0 ||
 		exists!CalledDecl(d.allCandidates, (in CalledDecl c) =>
-			nTypeParams(c) == d.actualNTypeArgs);
+			nTypeParams(c) == 1 || nTypeParams(c) == d.actualNTypeArgs);
 	bool someCandidateHasCorrectArity =
 		exists!CalledDecl(d.allCandidates, (in CalledDecl c) =>
 			(d.actualNTypeArgs == 0 || nTypeParams(c) == d.actualNTypeArgs) &&
@@ -689,11 +689,6 @@ void writeDiag(
 			writer ~= " function is implicitly ";
 			writeName(writer, allSymbols, d.redundantModifier);
 		},
-		(in Diag.FunModifierTypeArgs d) {
-			writer ~= "function modifier ";
-			writeName(writer, allSymbols, d.modifier);
-			writer ~= " can not have type arguments";
-		},
 		(in Diag.IfNeedsOpt d) {
 			writer ~= "Expected an option type, but got ";
 			writeTypeQuoted(writer, allSymbols, d.actualType);
@@ -906,6 +901,9 @@ void writeDiag(
 			writer ~= "spec instantiation is too deep calling:";
 			writeSpecTrace(writer, allSymbols, allPaths, pathsInfo, options, fi, d.trace);
 		},
+		(in Diag.SpecNameMissing) {
+			writer ~= "spec name is missing";
+		},
 		(in Diag.ThreadLocalError d) {
 			writer ~= "thread-local ";
 			writeName(writer, allSymbols, d.fun.name);
@@ -1011,6 +1009,9 @@ void writeDiag(
 			writeSym(writer, allSymbols, it.alias_.name);
 			writer ~= " is unused";
 		},
+		(in Diag.VarargsParamMustBeArray x) {
+			writer ~= "variadic parameter must be an 'array'";
+		},
 		(in Diag.WrongNumberTypeArgsForSpec d) {
 			writeName(writer, allSymbols, d.decl.name);
 			writer ~= " expected to get ";
@@ -1115,8 +1116,8 @@ string describeTokenForUnexpected(Token token) {
 			return "unexpected keyword 'as'";
 		case Token.assert_:
 			return "unexpected keyword 'assert'";
-		case Token.atLess:
-			return "unexpected '@<'";
+		case Token.at:
+			return "unexpected '@'";
 		case Token.break_:
 			return "unexpected keyword 'break'";
 		case Token.builtin:
@@ -1167,6 +1168,8 @@ string describeTokenForUnexpected(Token token) {
 			return "unexpected keyword 'for'";
 		case Token.forbid:
 			return "unexpected keyword 'forbid'";
+		case Token.forceCtx:
+			return "unexpected keyword 'force-ctx'";
 		case Token.forceSendable:
 			return "unexpected keyword 'force-sendable'";
 		case Token.fun:

@@ -23,6 +23,6 @@ new dirent() unsafe
 d_name c-string(a dirent*) unsafe
 	(&a->d_name)::bytes256* pointer-cast
 
-opendir DIR mut*(name c-string) extern<c> summon
-closedir err-t(dirp DIR mut*) extern<c> summon
-readdir_r int32(dirp DIR mut*, entry dirent mut*, result dirent mut* mut*) extern<c> summon
+opendir DIR mut*(name c-string) summon, c extern
+closedir err-t(dirp DIR mut*) summon, c extern
+readdir_r int32(dirp DIR mut*, entry dirent mut*, result dirent mut* mut*) summon, c extern

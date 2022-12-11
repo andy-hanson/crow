@@ -24,10 +24,10 @@ SDL_AudioSpec record extern mut
 	callback SDL_AudioCallback
 	userdata any-mut-pointer
 
-new SDL_AudioSpec() noctx unsafe
+new SDL_AudioSpec() noctx, unsafe
 	0, 0, 0, 0, 0, 0, 0, null, null
 
-SDL_GetAudioDeviceName c-string(index c-int, iscapture c-int) extern<SDL2> summon
+SDL_GetAudioDeviceName c-string(index c-int, iscapture c-int) summon, SDL2 extern
 
 SDL_OpenAudioDevice SDL_AudioDeviceID(
 	device c-string,
@@ -35,8 +35,8 @@ SDL_OpenAudioDevice SDL_AudioDeviceID(
 	desired SDL_AudioSpec*,
 	obtained SDL_AudioSpec mut*,
 	allowed_changes c-int,
-) extern<SDL2> summon
+) summon, SDL2 extern
 
-SDL_PauseAudioDevice void(dev SDL_AudioDeviceID, pause_on c-int) extern<SDL2> summon
+SDL_PauseAudioDevice void(dev SDL_AudioDeviceID, pause_on c-int) summon, SDL2 extern
 
-SDL_CloseAudioDevice void(dev SDL_AudioDeviceID) extern<SDL2> summon
+SDL_CloseAudioDevice void(dev SDL_AudioDeviceID) summon, SDL2 extern

@@ -102,13 +102,13 @@ parse-settings ai-settings?(a string)
 	best strategy
 
 score-cache alias
-	board-cache int32
+	int32 board-cache
 
 # Return a future as this may do a lot of processing
 .ai-best-x nat^(board board, ai-depth nat)
 	<- delay
 	# Use a new cache each time, since each turn we're exploring to a further depth.
-	cache board-cache int32 = ()
+	cache score-cache = ()
 	(cache strategy-recur board, ai-depth, (0, min-int32), 0, 0 x),
 
 .strategy-score int32(cache score-cache, board board, ai-depth nat)

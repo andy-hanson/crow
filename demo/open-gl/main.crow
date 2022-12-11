@@ -29,11 +29,11 @@ import
 		SDL_WINDOWPOS_UNDEFINED, SDL_WINDOW_SHOWN, to-int32
 	./shader: shader-prog-destroy, shader-prog-load
 	./texture: load-texture-from-bmp, free-texture
-	./crow.bmp as crow-bmp array nat8
+	./crow.bmp as crow-bmp nat8 array
 	./fragment.frag.essl as fragment-shader string
 	./vertex.vert.essl as vertex-shader string
 
-main nat^(_ string[]) summon trusted
+main nat^(_ string[]) summon, trusted
 	SDL_INIT_VIDEO.SDL_Init handle-sdl-error "SDL_INIT_VIDEO"
 
 	# TODO: is this redundant?
@@ -80,7 +80,7 @@ main nat^(_ string[]) summon trusted
 
 	texture = gl load-texture-from-bmp crow-bmp.to-list
 
-	vertices array vertex = make-cube
+	vertices vertex array = make-cube
 	triangle-vbo = gl vbo-create vertices
 	forbid triangle-vbo == 0
 
@@ -106,7 +106,7 @@ main nat^(_ string[]) summon trusted
 		SDL_Quit
 		()
 
-.make-cube array vertex()
+.make-cube vertex array()
 	front = I.cube-side ~~ (up rotation pi / 2 cube-side) ~~ (right rotation pi / 2 cube-side)
 	back vertex[] = () join for xs : front groups-of 3
 		# Change order so that the triangles have reverse winding
@@ -146,12 +146,12 @@ main nat^(_ string[]) summon trusted
 	render-thread-id nat
 	window SDL_Window mut*
 	shader-prog GLuint
-	vertices array vertex
+	vertices vertex array
 	triangle-vbo GLuint
 	texture GLuint
 	rotation-uniform-loc GLint
 
-.set-up-renderer void(renderer renderer) unsafe summon
+.set-up-renderer void(renderer renderer) summon, unsafe
 	gl = renderer gl
 	gl glEnable GL_CULL_FACE
 	gl glCullFace GL_BACK
@@ -161,32 +161,32 @@ main nat^(_ string[]) summon trusted
 	gl glBindBuffer GL_ARRAY_BUFFER, renderer.triangle-vbo
 	n-vertices = renderer.vertices.size-bytes.to-int64
 	gl glBufferSubData GL_ARRAY_BUFFER, 0, n-vertices, renderer.vertices.begin-pointer.pointer-cast
-	stride = size-of@<vertex> to-int32
+	stride = size-of@vertex to-int32
 	# pos
 	gl glVertexAttribPointer 0, 3, GL_FLOAT, false, stride, 0.to-const-pointer
 	gl glEnableVertexAttribArray 0
 	# normal
 	# TODO: should not need parentheses
-	gl glVertexAttribPointer 1, 3, GL_FLOAT, false, stride, (size-of@<vec3-32>).to-const-pointer
+	gl glVertexAttribPointer 1, 3, GL_FLOAT, false, stride, (size-of@vec3-32).to-const-pointer
 	gl glEnableVertexAttribArray 1
 	# color
-	gl glVertexAttribPointer 2, 3, GL_FLOAT, false, stride, (2 * size-of@<vec3-32>).to-const-pointer
+	gl glVertexAttribPointer 2, 3, GL_FLOAT, false, stride, (2 * size-of@vec3-32).to-const-pointer
 	gl glEnableVertexAttribArray 2
 	# tex-coord
-	gl glVertexAttribPointer 3, 2, GL_FLOAT, false, stride, (3 * size-of@<vec3-32>).to-const-pointer
+	gl glVertexAttribPointer 3, 2, GL_FLOAT, false, stride, (3 * size-of@vec3-32).to-const-pointer
 	gl glEnableVertexAttribArray 3
 
 	gl glActiveTexture GL_TEXTURE0
 	gl glBindTexture GL_TEXTURE_2D, renderer.texture
 
-.main-loop-body void^(renderer renderer) summon trusted
+.main-loop-body void^(renderer renderer) summon, trusted
 	key-states-pointer = null SDL_GetKeyboardState
 	key-states = key-states-pointer[0 .. SDL_NUM_SCANCODES.to-nat32.to-nat64]
 	if key-states[SDL_SCANCODE_RETURN.to-nat32 to-nat64] != 0
 		out print "return is pressed"
 	renderer.render-thread-id run-with-thread-id () =>
 		renderer render
-.render void(renderer renderer) summon unsafe
+.render void(renderer renderer) summon, unsafe
 	gl = renderer gl
 	gl glClearColor 0.5, 0.5, 0.5, 1
 	gl glClear GL_COLOR_BUFFER_BIT
@@ -200,14 +200,14 @@ main nat^(_ string[]) summon trusted
 
 	renderer.window SDL_GL_SwapWindow
 
-.run-with-thread-id<a> a^(thread-id nat, cb act a()) unsafe is-sendable<a>
+.run-with-thread-id[t] t^(thread-id nat, cb act t()) unsafe, t is-sendable
 	if cur-thread-id == thread-id
 		cb[],
 	else
 		<- delay
 		thread-id run-with-thread-id cb
 
-.look-for-quit-event bool() summon trusted
+.look-for-quit-event bool() summon, trusted
 	loop
 		e mut SDL_Event = ()
 		if (&e).SDL_PollEvent == 0
@@ -217,15 +217,15 @@ main nat^(_ string[]) summon trusted
 		else
 			continue
 
-.handle-sdl-error void(err c-int, description string) summon trusted
+.handle-sdl-error void(err c-int, description string) summon, trusted
 	unless err == 0
 		description fail-sdl-error
 
-.fail-sdl-error void(description string) summon trusted
+.fail-sdl-error void(description string) summon, trusted
 	throw "sdl error in {description}: {SDL_GetError}"
 	SDL_Quit
 
-.vbo-create GLuint(gl gl-ext, vertices array vertex) summon unsafe
+.vbo-create GLuint(gl gl-ext, vertices vertex array) summon, unsafe
 	vbo mut GLuint = 0
 	n-buffers = 1 to-int32
 	gl glGenBuffers n-buffers, &vbo
@@ -238,10 +238,10 @@ main nat^(_ string[]) summon trusted
 		throw "Creating VBO failed: Code {err}"
 	vbo
 
-size-bytes nat(vertices array vertex) unsafe
-	vertices.size * size-of@<vertex>
+size-bytes nat(vertices vertex array) unsafe
+	vertices.size * size-of@vertex
 
-.vbo-free void(gl gl-ext, vbo GLuint) summon unsafe
+.vbo-free void(gl gl-ext, vbo GLuint) summon, unsafe
 	gl glDeleteBuffers 1, &vbo
 
 .gl-check-error void(gl gl-ext, desc string) summon

@@ -37,22 +37,22 @@ cur-exclusion exclusion() unsafe
 .cur-exclusion-var exclusion mut*() thread-local
 
 global-ctx record mut by-ref
-	global-lock mut by-val lock
-	may-be-work-to-do mut by-val condition
+	global-lock mut lock by-val
+	may-be-work-to-do mut condition by-val
 	# Set to true the first time the default exception handler is invoked.
 	# Can never be unset.
 	any-unhandled-exceptions mut bool
 
-	gc mut by-val gc
-	gc-root mut by-val gc-root
+	gc mut gc by-val
+	gc-root mut gc-root by-val
 	# All below must not be GC allocated
 
-	symbols-lock mut by-val lock
+	symbols-lock mut lock by-val
 	# protects 'gc-root.tasks'
-	.tasks-lock mut by-val lock
+	.tasks-lock mut lock by-val
 	.n-threads nat64
-	.n-waiting-threads mut by-val thread-safe-counter
-	.next-exclusion mut by-val thread-safe-counter
+	.n-waiting-threads mut thread-safe-counter by-val
+	.next-exclusion mut thread-safe-counter by-val
 	.is-shut-down mut bool
 
 get-global-lock lock() unsafe
@@ -64,13 +64,13 @@ get-global-lock lock() unsafe
 cur-thread-id nat64() unsafe
 	*thread-id-var
 
-uninit by-val global-ctx(n-threads nat64) noctx unsafe summon
-	q by-val task-queue = n-threads uninit
-	gc-root by-val gc-root = q, empty-dict, (exn => exn default-exception-handler), log =>
+uninit global-ctx by-val(n-threads nat64) noctx, summon, unsafe
+	q task-queue by-val = n-threads uninit
+	gc-root gc-root by-val = q, empty-dict, (exn => exn default-exception-handler), log =>
 		log default-log-handler
 	uninit, uninit, false, uninit, gc-root, uninit, uninit, n-threads, uninit, uninit, false
 
-init void(a global-ctx) noctx unsafe
+init void(a global-ctx) noctx, unsafe
 	(&a.global-lock)::lock init
 	(&a.may-be-work-to-do)::condition init
 	(&a.gc)::gc init a.n-threads
@@ -80,12 +80,12 @@ init void(a global-ctx) noctx unsafe
 	(&a.n-waiting-threads)::thread-safe-counter init
 	(&a.next-exclusion)::thread-safe-counter init
 
-free void(a global-ctx) noctx unsafe
+free void(a global-ctx) noctx, unsafe
 	&a.may-be-work-to-do destroy-condition
 
 gc-root record mut by-ref
 	# protected by 'tasks-lock' on the global ctx
-	tasks mut by-val task-queue
+	tasks mut task-queue by-val
 	symbols-table mut symbol[string]
 	# If there's an uncaught exception (e.g. in 'call-ref-and-drop'), we'll call this.
 	# Default is to print it and set `gctx.any-unhandled-exceptions`
@@ -93,42 +93,42 @@ gc-root record mut by-ref
 	# TODO: this should be a `global`. But need to atomically set.
 	default-log-handler mut log-handler
 
-.init void(a gc-root) noctx unsafe
+.init void(a gc-root) noctx, unsafe
 	(&a.tasks)::task-queue init
 
-symbols-table symbol[string](a global-ctx) trusted noctx
+symbols-table symbol[string](a global-ctx) noctx, trusted
 	(&a.gc-root)::gc-root symbols-table
-set-symbols-table void(a global-ctx, value symbol[string]) trusted noctx
+set-symbols-table void(a global-ctx, value symbol[string]) noctx, trusted
 	(&a.gc-root)::gc-root.symbols-table := value
 
-.tasks task-queue(a global-ctx) noctx unsafe
+.tasks task-queue(a global-ctx) noctx, unsafe
 	&(&a.gc-root).tasks
 
 exception-handler fun void(exception)(a global-ctx) trusted
 	(&a.gc-root)::gc-root exception-handler
 
-new-exclusion exclusion(v global-ctx) noctx trusted
+new-exclusion exclusion(v global-ctx) noctx, trusted
 	&v.next-exclusion get-and-increment
 
-default-exception-handler void(e exception) summon unsafe
+default-exception-handler void(e exception) summon, unsafe
 	err print-no-newline "uncaught exception: "
 	err print e.to-string
 	get-global-ctx.any-unhandled-exceptions := true
 
 # TODO: move to exception.crow ?
-set-exception-handler void(exception-handler fun void(exception)) summon trusted
+set-exception-handler void(exception-handler fun void(exception)) summon, trusted
 	(&get-global-ctx.gc-root).exception-handler := exception-handler
 
 add-task void(a global-ctx, exclusion exclusion, action act void()) unsafe
 	a add-task ((exclusion, action), ())
 
-add-task void(a global-ctx, task task-node) noctx unsafe
+add-task void(a global-ctx, task task-node) noctx, unsafe
 	&a.tasks-lock acquire
 	a.tasks add-task task
 	&a.tasks-lock release
 	&a.may-be-work-to-do broadcast
 
-add-tasks void(a global-ctx, task-list task-list) noctx unsafe
+add-tasks void(a global-ctx, task-list task-list) noctx, unsafe
 	&a.tasks-lock acquire
 	a.tasks add-tasks task-list
 	&a.tasks-lock release
@@ -141,7 +141,7 @@ add-timed-task void(a global-ctx, time timestamp, exclusion exclusion, action ac
 	&a.tasks-lock release
 	&a.may-be-work-to-do broadcast
 
-thread-function void(thread-id nat64, gctx global-ctx) noctx unsafe summon
+thread-function void(thread-id nat64, gctx global-ctx) noctx, summon, unsafe
 	*thread-id-var := thread-id
 	loop
 		# Get a task to do; or sleep.
@@ -161,7 +161,7 @@ thread-function void(thread-id nat64, gctx global-ctx) noctx unsafe summon
 		as shut-down
 			break gctx thread-shut-down
 
-.do-task void(gctx global-ctx, task task) noctx unsafe summon
+.do-task void(gctx global-ctx, task task) noctx, summon, unsafe
 	gctx before-task task.exclusion
 	task.action invoke-action
 	&gctx.tasks-lock acquire
@@ -172,19 +172,19 @@ thread-function void(thread-id nat64, gctx global-ctx) noctx unsafe summon
 .invoke-action void(action act void()) force-ctx
 	action[]
 
-.thread-shut-down void(gctx global-ctx) noctx unsafe summon
+.thread-shut-down void(gctx global-ctx) noctx, summon, unsafe
 	&gctx.may-be-work-to-do broadcast
 	&gctx.tasks-lock acquire
 	gctx.tasks.is-empty hard-assert
 	&gctx.tasks-lock release
 
-before-task void(gctx global-ctx, exclusion exclusion) noctx unsafe
+before-task void(gctx global-ctx, exclusion exclusion) noctx, unsafe
 	*global-ctx-var := gctx
 	*cur-exclusion-var := exclusion
 	&gctx.gc set-gc-ctx-for-thread
 	(&gctx.gc-root).default-log-handler set-log-handler
 
-after-task void() noctx unsafe
+after-task void() noctx, unsafe
 	return-gc-ctx
 
 .choose-task-result union mut
@@ -196,7 +196,7 @@ after-task void() noctx unsafe
 	# No task to do now or ever, so shut down
 	shut-down
 
-.choose-task choose-task-result(gctx global-ctx) noctx unsafe summon
+.choose-task choose-task-result(gctx global-ctx) noctx, summon, unsafe
 	cur-time = if is-wasm
 		0
 	else

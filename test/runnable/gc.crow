@@ -3,7 +3,7 @@ import
 	crow/private/alloc:
 		cur-word, gc-count, gc-stats, get-gc, get-stats, force-needs-gc, set-hard-limit, words-free, words-used
 
-main nat^(_ string[]) summon unsafe
+main nat^(_ string[]) summon, trusted
 	gc = get-gc
 	# To speed up 'gc.get-stats'
 	gc.hard-limit := 0x10000
@@ -11,7 +11,7 @@ main nat^(_ string[]) summon unsafe
 	# We'll keep a alive, but not b
 	a r = 1, 2, 3
 	b r = 4, 5, 6
-	assert size-of@<by-val<r>> == 24
+	assert size-of@(r by-val) == 24
 	assert b.as-any-const-pointer - a.as-any-const-pointer == 24
 
 	out print "stats: {gc get-stats}"

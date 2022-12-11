@@ -14,9 +14,9 @@ import model.model :
 	Visibility;
 import model.reprModel : reprVisibility;
 import util.alloc.alloc : Alloc;
-import util.col.arr : empty, emptySmallArray, SmallArray;
+import util.col.arr : empty, SmallArray;
 import util.col.arrBuilder : add, ArrBuilder, finishArr;
-import util.col.arrUtil : arrLiteral, exists;
+import util.col.arrUtil : exists;
 import util.col.str : SafeCStr, safeCStr, safeCStrIsEmpty;
 import util.conv : safeToUint;
 import util.opt : force, has, none, Opt, some;
@@ -38,7 +38,7 @@ import util.repr :
 import util.sourceRange : Pos, rangeOfStartAndLength, rangeOfStartAndName, RangeWithinFile, reprRangeWithinFile;
 import util.sym : AllSymbols, Sym, sym, symSize;
 import util.union_ : Union;
-import util.util : verify;
+import util.util : unreachable, verify;
 
 immutable struct NameAndRange {
 	@safe @nogc pure nothrow:
@@ -52,6 +52,7 @@ immutable struct NameAndRange {
 		start = s;
 	}
 }
+static assert(NameAndRange.sizeof == ulong.sizeof * 2);
 
 RangeWithinFile rangeOfNameAndRange(NameAndRange a, ref const AllSymbols allSymbols) =>
 	rangeOfStartAndName(a.start, a.name, allSymbols);
@@ -65,6 +66,10 @@ RangeWithinFile rangeOfOptNameAndRange(OptNameAndRange a, ref const AllSymbols a
 	rangeOfStartAndName(a.start, has(a.name) ? force(a.name) : sym!"_", allSymbols);
 
 immutable struct TypeAst {
+	immutable struct Bogus {
+		RangeWithinFile range;
+	}
+
 	immutable struct Dict {
 		enum Kind {
 			data,
@@ -81,13 +86,12 @@ immutable struct TypeAst {
 		TypeAst[] returnAndParamTypes;
 	}
 
-	immutable struct InstStruct {
-		RangeWithinFile range;
+	immutable struct SuffixName {
+		TypeAst left;
 		NameAndRange name;
-		SmallArray!TypeAst typeArgs;
 	}
 
-	immutable struct Suffix {
+	immutable struct SuffixSpecial {
 		enum Kind {
 			future,
 			list,
@@ -96,60 +100,64 @@ immutable struct TypeAst {
 			option,
 			ptr,
 		}
-		Kind kind;
 		TypeAst left;
+		Pos suffixPos;
+		Kind kind;
 	}
 
 	immutable struct Tuple {
-		TypeAst a;
-		TypeAst b;
+		@safe @nogc pure nothrow:
+
+		RangeWithinFile range;
+		TypeAst[] members;
+
+		this(RangeWithinFile r, TypeAst[] ms) {
+			range = r;
+			members = ms;
+			verify(members.length >= 2);
+		}
 	}
 
-	mixin Union!(Dict*, Fun, InstStruct, Suffix*, Tuple*);
+	mixin Union!(Bogus, Dict*, Fun*, NameAndRange, SuffixName*, SuffixSpecial*, Tuple*);
 }
-static assert(TypeAst.sizeof <= 40);
+//TODO: static assert(TypeAst.sizeof == ulong.sizeof);
 
-TypeAst bogusTypeAst(RangeWithinFile range) =>
-	TypeAst(TypeAst.InstStruct(
-		range,
-		NameAndRange(range.start, sym!"bogus"),
-		emptySmallArray!TypeAst));
-
-RangeWithinFile range(TypeAst a) =>
+RangeWithinFile range(in TypeAst a, in AllSymbols allSymbols) =>
 	a.matchIn!RangeWithinFile(
-		(in TypeAst.Dict it) => range(it),
-		(in TypeAst.Fun it) => it.range,
-		(in TypeAst.InstStruct it) => it.range,
-		(in TypeAst.Suffix it) => range(it),
-		(in TypeAst.Tuple it) => range(it));
+		(in TypeAst.Bogus x) => x.range,
+		(in TypeAst.Dict x) => range(x, allSymbols),
+		(in TypeAst.Fun x) => x.range,
+		(in NameAndRange x) => rangeOfNameAndRange(x, allSymbols),
+		(in TypeAst.SuffixName x) => range(x, allSymbols),
+		(in TypeAst.SuffixSpecial x) => range(x, allSymbols),
+		(in TypeAst.Tuple x) => x.range);
 
-RangeWithinFile range(TypeAst.Dict a) =>
-	RangeWithinFile(range(a.v).start, safeToUint(range(a.k).end + "]".length));
+RangeWithinFile range(in TypeAst.Dict a, in AllSymbols allSymbols) =>
+	RangeWithinFile(range(a.v, allSymbols).start, safeToUint(range(a.k, allSymbols).end + "]".length));
+RangeWithinFile range(in TypeAst.SuffixSpecial a, in AllSymbols allSymbols) =>
+	RangeWithinFile(range(a.left, allSymbols).start, suffixEnd(a));
+RangeWithinFile suffixRange(in TypeAst.SuffixSpecial a) =>
+	RangeWithinFile(a.suffixPos, suffixEnd(a));
+private Pos suffixEnd(in TypeAst.SuffixSpecial a) =>
+	a.suffixPos + suffixLength(a.kind);
+RangeWithinFile range(in TypeAst.SuffixName a, in AllSymbols allSymbols) =>
+	RangeWithinFile(range(a.left, allSymbols).start, suffixRange(a, allSymbols).end);
+RangeWithinFile suffixRange(in TypeAst.SuffixName a, in AllSymbols allSymbols) =>
+	rangeOfNameAndRange(a.name, allSymbols);
 
-RangeWithinFile range(TypeAst.Suffix a) {
-	RangeWithinFile leftRange = range(a.left);
-	return RangeWithinFile(leftRange.start, leftRange.end + suffixLength(a.kind));
-}
-RangeWithinFile suffixRange(TypeAst.Suffix a) {
-	uint leftEnd = range(a.left).end;
-	return RangeWithinFile(leftEnd, leftEnd + suffixLength(a.kind));
-}
-RangeWithinFile range(TypeAst.Tuple a) =>
-	RangeWithinFile(range(a.a).start, range(a.b).end);
-
-private uint suffixLength(TypeAst.Suffix.Kind a) {
+private uint suffixLength(TypeAst.SuffixSpecial.Kind a) {
 	final switch (a) {
-		case TypeAst.Suffix.Kind.future:
+		case TypeAst.SuffixSpecial.Kind.future:
 			return cast(uint) "$".length;
-		case TypeAst.Suffix.Kind.list:
+		case TypeAst.SuffixSpecial.Kind.list:
 			return cast(uint) "[]".length;
-		case TypeAst.Suffix.Kind.option:
+		case TypeAst.SuffixSpecial.Kind.option:
 			return cast(uint) "?".length;
-		case TypeAst.Suffix.Kind.mutList:
+		case TypeAst.SuffixSpecial.Kind.mutList:
 			return cast(uint) "mut[]".length;
-		case TypeAst.Suffix.Kind.mutPtr:
+		case TypeAst.SuffixSpecial.Kind.mutPtr:
 			return cast(uint) "mut*".length;
-		case TypeAst.Suffix.Kind.ptr:
+		case TypeAst.SuffixSpecial.Kind.ptr:
 			return cast(uint) "*".length;
 	}
 }
@@ -163,19 +171,19 @@ Sym symForTypeAstDict(TypeAst.Dict.Kind a) {
 	}
 }
 
-Sym symForTypeAstSuffix(TypeAst.Suffix.Kind a) {
+Sym symForTypeAstSuffix(TypeAst.SuffixSpecial.Kind a) {
 	final switch (a) {
-		case TypeAst.Suffix.Kind.future:
+		case TypeAst.SuffixSpecial.Kind.future:
 			return sym!"future";
-		case TypeAst.Suffix.Kind.list:
+		case TypeAst.SuffixSpecial.Kind.list:
 			return sym!"list";
-		case TypeAst.Suffix.Kind.mutList:
+		case TypeAst.SuffixSpecial.Kind.mutList:
 			return sym!"mut-list";
-		case TypeAst.Suffix.Kind.mutPtr:
+		case TypeAst.SuffixSpecial.Kind.mutPtr:
 			return sym!"mut-pointer";
-		case TypeAst.Suffix.Kind.option:
+		case TypeAst.SuffixSpecial.Kind.option:
 			return sym!"option";
-		case TypeAst.Suffix.Kind.ptr:
+		case TypeAst.SuffixSpecial.Kind.ptr:
 			return sym!"const-pointer";
 	}
 }
@@ -183,7 +191,6 @@ Sym symForTypeAstSuffix(TypeAst.Suffix.Kind a) {
 immutable struct ArrowAccessAst {
 	ExprAst left;
 	NameAndRange name;
-	SmallArray!TypeAst typeArgs;
 }
 
 immutable struct AssertOrForbidAst {
@@ -216,21 +223,21 @@ immutable struct CallAst {
 	Sym funNameName;
 	Pos funNameStart;
 	Style style;
-	SmallArray!TypeAst typeArgs;
+	Opt!(TypeAst*) typeArg;
 	SmallArray!ExprAst args_;
 
 	ExprAst[] args() return scope =>
 		args_;
 
-	this(Style s, NameAndRange f, TypeAst[] t, ExprAst[] a) {
+	this(Style s, NameAndRange f, ExprAst[] a, Opt!(TypeAst*) t = none!(TypeAst*)) {
 		funNameName = f.name;
 		funNameStart = f.start;
 		style = s;
-		typeArgs = t;
+		typeArg = t;
 		args_ = a;
 	}
 
-	NameAndRange funName() =>
+	NameAndRange funName() scope =>
 		NameAndRange(funNameStart, funNameName);
 }
 
@@ -595,52 +602,74 @@ immutable struct FunDeclAst {
 immutable struct FunModifierAst {
 	@safe @nogc pure nothrow:
 
-	// keywords like 'extern' are changed to symbols here
-	NameAndRange name;
-	SmallArray!TypeAst typeArgs;
+	immutable struct Special {
+		@safe @nogc pure nothrow:
 
-	enum SpecialFlags {
-		none = 0,
-		builtin = 1,
-		extern_ = 0b10,
-		global = 0b100,
-		noctx = 0b1000,
-		no_doc = 0b1_0000,
-		summon = 0b10_0000,
-		thread_local = 0b100_0000,
-		trusted = 0b1000_0000,
-		unsafe = 0b1_0000_0000,
-		forceCtx = 0b10_0000_0000,
+		enum Flags {
+			none = 0,
+			builtin = 1,
+			// It's a compile error to have extern/global without a type arg (for library name),
+			// so those will usually be a ExternOrGlobal instead
+			extern_ = 0b10,
+			global = 0b100,
+			noctx = 0b1000,
+			no_doc = 0b1_0000,
+			summon = 0b10_0000,
+			thread_local = 0b100_0000,
+			trusted = 0b1000_0000,
+			unsafe = 0b1_0000_0000,
+			forceCtx = 0b10_0000_0000,
+		}
+		Pos pos;
+		Flags flag;
+
+		RangeWithinFile range(in AllSymbols allSymbols) =>
+			rangeOfNameAndRange(NameAndRange(pos, symOfSpecialFlag(flag)), allSymbols);
 	}
 
-	bool isSpecial() scope =>
-		specialFlags() != SpecialFlags.none;
+	immutable struct ExternOrGlobal {
+		@safe @nogc pure nothrow:
 
-	SpecialFlags specialFlags() scope {
-		switch (name.name.value) {
-			case sym!"builtin".value:
-				return SpecialFlags.builtin;
-			case sym!"extern".value:
-				return SpecialFlags.extern_;
-			case sym!"force-ctx".value:
-				return SpecialFlags.forceCtx;
-			case sym!"global".value:
-				return SpecialFlags.global;
-			case sym!"noctx".value:
-				return SpecialFlags.noctx;
-			case sym!"no-doc".value:
-				return SpecialFlags.no_doc;
-			case sym!"summon".value:
-				return SpecialFlags.summon;
-			case sym!"thread-local".value:
-				return SpecialFlags.thread_local;
-			case sym!"trusted".value:
-				return SpecialFlags.trusted;
-			case sym!"unsafe".value:
-				return SpecialFlags.unsafe;
-			default:
-				return SpecialFlags.none;
-		}
+		TypeAst* left;
+		Pos flagPos;
+		Special.Flags flag;
+
+		RangeWithinFile range(in AllSymbols allSymbols) =>
+			RangeWithinFile(
+				.range(*left, allSymbols).start,
+				suffixRange(allSymbols).end);
+		RangeWithinFile suffixRange(in AllSymbols allSymbols) scope =>
+			rangeOfNameAndRange(NameAndRange(flagPos, symOfSpecialFlag(flag)), allSymbols);
+	}
+
+	// TypeAst will be interpreted as a spec inst
+	mixin Union!(Special, ExternOrGlobal, TypeAst);
+}
+
+private Sym symOfSpecialFlag(FunModifierAst.Special.Flags a) {
+	switch (a) {
+		case FunModifierAst.Special.Flags.builtin:
+			return sym!"builtin";
+		case FunModifierAst.Special.Flags.extern_:
+			return sym!"extern";
+		case FunModifierAst.Special.Flags.global:
+			return sym!"global";
+		case FunModifierAst.Special.Flags.noctx:
+			return sym!"noctx";
+		case FunModifierAst.Special.Flags.no_doc:
+			return sym!"no-doc";
+		case FunModifierAst.Special.Flags.summon:
+			return sym!"summon";
+		case FunModifierAst.Special.Flags.thread_local:
+			return sym!"thread-local";
+		case FunModifierAst.Special.Flags.trusted:
+			return sym!"trusted";
+		case FunModifierAst.Special.Flags.unsafe:
+			return sym!"unsafe";
+		case FunModifierAst.Special.Flags.forceCtx:
+			return sym!"force-ctx";
+		default:
+			return unreachable!Sym;
 	}
 }
 
@@ -912,13 +941,23 @@ Repr reprParamsAst(ref Alloc alloc, in ParamsAst a) =>
 			reprRecord!"varargs"(alloc, [reprParamAst(alloc, v.param)]));
 
 Repr reprFunModifierAst(ref Alloc alloc, in FunModifierAst a) =>
-	reprRecord!"modifier"(alloc, [
-		reprNameAndRange(alloc, a.name),
-		reprArr!TypeAst(alloc, a.typeArgs, (in TypeAst it) =>
-			reprTypeAst(alloc, it))]);
+	a.matchIn!Repr(
+		(in FunModifierAst.Special x) =>
+			reprRecord!"special"(alloc, [
+				reprNat(x.pos),
+				reprSym(symOfSpecialFlag(x.flag))]),
+		(in FunModifierAst.ExternOrGlobal x) =>
+			reprRecord!"special"(alloc, [
+				reprTypeAst(alloc, *x.left),
+				reprNat(x.flagPos),
+				reprSym(symOfSpecialFlag(x.flag))]),
+		(in TypeAst x) =>
+			reprTypeAst(alloc, x));
 
 Repr reprTypeAst(ref Alloc alloc, in TypeAst a) =>
 	a.matchIn!Repr(
+		(in TypeAst.Bogus x) =>
+			reprRecord!"bogus"(alloc, [reprRangeWithinFile(alloc, x.range)]),
 		(in TypeAst.Dict it) =>
 			reprRecord!"dict"(alloc, [
 				reprTypeAst(alloc, it.v),
@@ -927,30 +966,26 @@ Repr reprTypeAst(ref Alloc alloc, in TypeAst a) =>
 			reprRecord!"fun"(alloc, [
 				reprRangeWithinFile(alloc, it.range),
 				reprSym(symOfFunKind(it.kind)),
-				reprArr!TypeAst(alloc, it.returnAndParamTypes, (in TypeAst t) =>
-					reprTypeAst(alloc, t))]),
-		(in TypeAst.InstStruct i) =>
-			reprInstStructAst(alloc, i),
-		(in TypeAst.Suffix it) =>
+				reprTypeAsts(alloc, it.returnAndParamTypes)]),
+		(in NameAndRange x) =>
+			reprNameAndRange(alloc, x),
+		(in TypeAst.SuffixName it) =>
 			reprRecord!"suffix"(alloc, [
 				reprTypeAst(alloc, it.left),
+				reprNameAndRange(alloc, it.name)]),
+		(in TypeAst.SuffixSpecial it) =>
+			reprRecord!"suffix"(alloc, [
+				reprTypeAst(alloc, it.left),
+				reprNat(it.suffixPos),
 				reprSym(symForTypeAstSuffix(it.kind))]),
 		(in TypeAst.Tuple it) =>
 			reprRecord!"tuple"(alloc, [
-				reprTypeAst(alloc, it.a),
-				reprTypeAst(alloc, it.b)]));
+				reprRangeWithinFile(alloc, it.range),
+				reprTypeAsts(alloc, it.members)]));
 
-Repr reprInstStructAst(ref Alloc alloc, in TypeAst.InstStruct a) {
-	Repr range = reprRangeWithinFile(alloc, a.range);
-	Repr name = reprNameAndRange(alloc, a.name);
-	Opt!Repr typeArgs = empty(a.typeArgs)
-		? none!Repr
-		: some(reprArr!TypeAst(alloc, a.typeArgs, (in TypeAst t) =>
-			reprTypeAst(alloc, t)));
-	return reprRecord!"inststruct"(has(typeArgs)
-		? arrLiteral!Repr(alloc, [range, name, force(typeArgs)])
-		: arrLiteral!Repr(alloc, [range, name]));
-}
+Repr reprTypeAsts(ref Alloc alloc, in TypeAst[] a) =>
+	reprArr!TypeAst(alloc, a, (in TypeAst x) =>
+		reprTypeAst(alloc, x));
 
 Repr reprParamAst(ref Alloc alloc, in ParamAst a) =>
 	reprRecord!"param"(alloc, [
@@ -979,9 +1014,7 @@ Repr reprExprAstKind(ref Alloc alloc, in ExprAstKind ast) =>
 		(in ArrowAccessAst e) =>
 			reprRecord!"arrow-access"(alloc, [
 				reprExprAst(alloc, e.left),
-				reprNameAndRange(alloc, e.name),
-				reprArr!TypeAst(alloc, e.typeArgs, (in TypeAst it) =>
-					reprTypeAst(alloc, it))]),
+				reprNameAndRange(alloc, e.name)]),
 		(in AssertOrForbidAst e) =>
 			reprRecord(alloc, symOfAssertOrForbidKind(e.kind), [
 				reprExprAst(alloc, e.condition),
@@ -993,8 +1026,8 @@ Repr reprExprAstKind(ref Alloc alloc, in ExprAstKind ast) =>
 			reprRecord!"call"(alloc, [
 				reprSym(symOfCallAstStyle(e.style)),
 				reprNameAndRange(alloc, e.funName),
-				reprArr!TypeAst(alloc, e.typeArgs, (in TypeAst it) =>
-					reprTypeAst(alloc, it)),
+				reprOpt!(TypeAst*)(alloc, e.typeArg, (in TypeAst* it) =>
+					reprTypeAst(alloc, *it)),
 				reprArr!ExprAst(alloc, e.args, (in ExprAst it) =>
 					reprExprAst(alloc, it))]),
 		(in ForAst x) =>

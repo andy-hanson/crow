@@ -8,7 +8,7 @@ import
 	./load-bmp: height, image-data, width, with-bmp
 
 # Remember to call 'free-texture'
-load-texture-from-bmp GLuint(gl gl-ext, bmp-raw nat8[]) unsafe summon
+load-texture-from-bmp GLuint(gl gl-ext, bmp-raw nat8[]) summon, unsafe
 	bmp-raw with-bmp image =>
 		texture mut GLuint = 0
 		gl glGenTextures 1, &texture
@@ -27,9 +27,9 @@ load-texture-from-bmp GLuint(gl gl-ext, bmp-raw nat8[]) unsafe summon
 
 		texture
 
-.check-error void(gl gl-ext, step string) unsafe summon
+.check-error void(gl gl-ext, step string) summon, unsafe
 	err = gl glGetError
 	assert err == GL_NO_ERROR : "Error loading image (in {step}): code {err to-string}"
 
-free-texture void(gl gl-ext, tex-name GLuint) unsafe summon
+free-texture void(gl gl-ext, tex-name GLuint) summon, unsafe
 	gl glDeleteTextures 1, &tex-name

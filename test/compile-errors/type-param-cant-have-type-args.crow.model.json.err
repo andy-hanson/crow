@@ -1,3 +1,3 @@
-test/compile-errors/type-param-cant-have-type-args.crow 1:13-1:18 a type parameter can't take type arguments
+test/compile-errors/type-param-cant-have-type-args.crow 1:17-1:18 a type parameter can't take type arguments
 
 test/compile-errors/type-param-cant-have-type-args.crow 2:5-2:9 there is no function or variable named 'void'

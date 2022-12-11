@@ -21,11 +21,11 @@ usually just calls `hash-mix` for each value it contains.
 `hash-mix` on a union should mix a number or name for the union member,
 then mix its associated value, if any.
 ###
-hash-mix<a> spec
-	hash-mix void(hasher hasher, a a)
+hash-mix[t] spec
+	hash-mix void(hasher hasher, a t)
 
 # Get a hash code for any value.
-hash<a> nat64(a a) trusted hash-mix<a>
+hash[t] nat64(a t) trusted, t hash-mix
 	hasher hasher = 0,
 	hasher hash-mix a
 	hasher cur

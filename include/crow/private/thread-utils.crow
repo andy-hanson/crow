@@ -35,7 +35,7 @@ import
 export
 	./bootstrap: lock
 
-count-processors nat64() unsafe noctx summon
+count-processors nat64() noctx, summon, unsafe
 	if is-single-threaded
 		1
 	elif is-windows
@@ -45,18 +45,18 @@ count-processors nat64() unsafe noctx summon
 	else
 		get_nprocs.to-int64 to-nat64
 
-uninit by-val lock() noctx unsafe
+uninit lock by-val() noctx, unsafe
 	zeroed
 
-.as-critical-section CRITICAL_SECTION mut*(a lock) noctx unsafe
-	size-of@<by-val CRITICAL_SECTION> <= size-of@<by-val lock> hard-assert
+.as-critical-section CRITICAL_SECTION mut*(a lock) noctx, unsafe
+	size-of@(CRITICAL_SECTION by-val) <= size-of@(lock by-val) hard-assert
 	a.as-any-mut-pointer pointer-cast
 
-.as-mutex pthread_mutex_t mut*(a lock) noctx unsafe
-	size-of@<pthread_mutex_t> <= size-of@<by-val lock> hard-assert
+.as-mutex pthread_mutex_t mut*(a lock) noctx, unsafe
+	size-of@pthread_mutex_t <= size-of@(lock by-val) hard-assert
 	a.as-any-mut-pointer pointer-cast
 
-init void(a lock) noctx unsafe
+init void(a lock) noctx, unsafe
 	if is-single-threaded
 		()
 	elif is-windows
@@ -65,7 +65,7 @@ init void(a lock) noctx unsafe
 		attr pthread_mutexattr_t = zeroed
 		a.as-mutex pthread_mutex_init &attr hard-assert-posix-error
 
-acquire void(a lock) noctx unsafe
+acquire void(a lock) noctx, unsafe
 	if is-single-threaded
 		()
 	elif is-windows
@@ -73,7 +73,7 @@ acquire void(a lock) noctx unsafe
 	else
 		a.as-mutex.pthread_mutex_lock hard-assert-posix-error
 
-release void(a lock) noctx unsafe
+release void(a lock) noctx, unsafe
 	if is-single-threaded
 		()
 	elif is-windows
@@ -81,7 +81,7 @@ release void(a lock) noctx unsafe
 	else
 		a.as-mutex.pthread_mutex_unlock hard-assert-posix-error
 
-with-lock<a> a(a lock, f act a()) trusted
+with-lock[t] t(a lock, f act t()) trusted
 	a acquire
 	res = f[]
 	a release
@@ -104,12 +104,12 @@ condition record mut by-ref
 	###
 	.sequence .mut sequence-id
 
-uninit by-val condition() noctx unsafe
+uninit condition by-val() noctx, unsafe
 	# The only thing that actually has to be 0 is 'sequence'
 	zeroed
 
 # Remember to 'destroy-condition'!
-init void(a condition) noctx unsafe
+init void(a condition) noctx, unsafe
 	if is-single-threaded
 		()
 	elif is-windows
@@ -122,7 +122,7 @@ init void(a condition) noctx unsafe
 		&a.posix-cond-attr pthread_condattr_setclock CLOCK_MONOTONIC hard-assert-posix-error
 		&a.posix-cond pthread_cond_init &a.posix-cond-attr hard-assert-posix-error
 
-destroy-condition void(a condition) noctx unsafe
+destroy-condition void(a condition) noctx, unsafe
 	if is-single-threaded
 		()
 	elif is-windows
@@ -133,10 +133,10 @@ destroy-condition void(a condition) noctx unsafe
 		(&a.posix-cond-attr).pthread_condattr_destroy hard-assert-posix-error
 		(&a.posix-cond).pthread_cond_destroy hard-assert-posix-error
 	
-.hard-assert-posix-error void(err err-t) noctx unsafe
+.hard-assert-posix-error void(err err-t) noctx, unsafe
 	err == 0 hard-assert
 
-broadcast void(a condition) noctx trusted
+broadcast void(a condition) noctx, trusted
 	if is-single-threaded
 		()
 	elif is-windows
@@ -153,7 +153,7 @@ broadcast void(a condition) noctx trusted
 sequence-id alias
 	nat64
 
-get-sequence sequence-id(a condition) noctx unsafe
+get-sequence sequence-id(a condition) noctx, unsafe
 	if is-single-threaded
 		0
 	elif is-windows
@@ -172,7 +172,7 @@ WARN: May wake up early. Use only to be avoid consuming CPU.
 `until-time`, if set, should be from `get-monotime-nsec`.
 'last-sequence' is to ensure that we don't wait at all if the condition has already triggered.
 ###
-wait-on void(a condition, until-time timestamp?, last-sequence sequence-id) noctx unsafe summon
+wait-on void(a condition, until-time timestamp?, last-sequence sequence-id) noctx, summon, unsafe
 	if is-single-threaded
 		if t ?= until-time
 			now = get-monotime-nsec
@@ -220,10 +220,10 @@ barrier record mut by-ref
 	.posix mut pthread_barrier_t
 	.windows mut SYNCHRONIZATION_BARRIER
 
-uninit by-val barrier() noctx unsafe
+uninit barrier by-val() noctx, unsafe
 	zeroed
 
-init void(a barrier, n-threads nat64) noctx unsafe
+init void(a barrier, n-threads nat64) noctx, unsafe
 	if is-single-threaded
 		n-threads == 1 hard-assert
 	elif is-windows
@@ -231,7 +231,7 @@ init void(a barrier, n-threads nat64) noctx unsafe
 	else
 		&a.posix pthread_barrier_init null, n-threads.unsafe-to-nat32 hard-assert-posix-error
 
-free void(a barrier) noctx unsafe
+free void(a barrier) noctx, unsafe
 	if is-single-threaded
 		()
 	elif is-windows
@@ -240,7 +240,7 @@ free void(a barrier) noctx unsafe
 		(&a.posix).pthread_barrier_destroy hard-assert-posix-error
 
 # Returns true for one of the threads.
-wait-barrier bool(a barrier) noctx unsafe
+wait-barrier bool(a barrier) noctx, unsafe
 	if is-single-threaded
 		true
 	elif is-windows
@@ -255,32 +255,32 @@ wait-barrier bool(a barrier) noctx unsafe
 
 # TODO: use atomic operations for this
 thread-safe-counter record mut by-ref
-	lk mut by-val lock
+	lk mut lock by-val
 	value mut nat64
 
-uninit by-val thread-safe-counter() noctx unsafe
+uninit thread-safe-counter by-val() noctx, unsafe
 	uninit, 0
 
-init void(a thread-safe-counter) noctx unsafe
+init void(a thread-safe-counter) noctx, unsafe
 	(&a.lk)::lock init
 
-increment-and-get nat64(a thread-safe-counter) noctx unsafe
+increment-and-get nat64(a thread-safe-counter) noctx, unsafe
 	a.get-and-increment wrap-add 1
 
 # Returns the old value
-get-and-increment nat64(a thread-safe-counter) noctx unsafe
+get-and-increment nat64(a thread-safe-counter) noctx, unsafe
 	&a.lk acquire
 	old = a value
 	a.value := old wrap-add 1
 	&a.lk release
 	old
 
-decrement void(a thread-safe-counter) noctx unsafe
+decrement void(a thread-safe-counter) noctx, unsafe
 	_ = a get-and-decrement
 	()
 
 # Returns the old value
-get-and-decrement nat64(t thread-safe-counter) noctx unsafe
+get-and-decrement nat64(t thread-safe-counter) noctx, unsafe
 	&t.lk acquire
 	old = t value
 	old == 0 hard-forbid
@@ -290,15 +290,15 @@ get-and-decrement nat64(t thread-safe-counter) noctx unsafe
 
 thread-handle record mut by-val
 	.storage any-mut-pointer
-.as-windows-handle HANDLE(a thread-handle) noctx unsafe
+.as-windows-handle HANDLE(a thread-handle) noctx, unsafe
 	a.storage
-.as-pthread pthread_t(a thread-handle) noctx unsafe
+.as-pthread pthread_t(a thread-handle) noctx, unsafe
 	a.storage to-nat64
 
 create-one-thread thread-handle(
 	thread-arg any-mut-pointer,
 	thread-fun fun* any-mut-pointer(any-mut-pointer),
-) noctx unsafe summon
+) noctx, summon, unsafe
 	if is-single-threaded
 		hard-unreachable
 	elif is-windows
@@ -307,7 +307,7 @@ create-one-thread thread-handle(
 		res,
 	else
 		res mut thread-handle = null,
-		err = (&res).pointer-cast@<pthread_t, thread-handle> pthread_create null, thread-fun, thread-arg
+		err = (&res)::thread-handle mut*.pointer-cast pthread_create null, thread-fun, thread-arg
 		unless err == 0
 			if err == EAGAIN
 				# TODO: warn and make do with the threads it does let us create (so long as there's at least one)
@@ -317,7 +317,7 @@ create-one-thread thread-handle(
 				todo
 		res
 
-join-one-thread void(a thread-handle) noctx unsafe summon
+join-one-thread void(a thread-handle) noctx, summon, unsafe
 	if is-single-threaded
 		hard-unreachable
 	elif is-windows

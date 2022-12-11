@@ -23,12 +23,12 @@ Sorts the elements of `a` from least to greatest.
 
 The result satisfies `res[i] <= res[i + 1]`.
 ###
-sort<a> a[](a a[]) compare<a>
+sort[t] t[](a t[]) t compare
 	a sort x => x
 ###
 Same as `sort`, but use `get-key` to get the comparable part of each element.
 ###
-sort<a, b> a[](a a[], get-key fun b(a)) trusted compare<b>
+sort[t, k] t[](a t[], get-key fun k(t)) trusted, k compare
 	res = a.to-array to-mut-array
 	res set-sort get-key
 	res.cast-immutable to-list
@@ -38,7 +38,7 @@ Sort and remove duplicates.
 That means `res[i] < res[i + 1]` for each element in the result.
 `(2, 1, 2) sort-unique` is `1, 2`.
 ###
-sort-unique<a> a[](a a[]) compare<a> trusted
+sort-unique[t] t[](a t[]) trusted, t compare
 	a.to-array.to-mut-array.set-sort-unique.cast-immutable to-list
 
 test
@@ -46,7 +46,7 @@ test
 	(3, 1, 2)::nat64[].sort is (1, 2, 3)
 
 	# Test that it's a stable sort
-	arr mut-array string = "2a", "2b", "1a", "1b"
+	arr string mut-array = "2a", "2b", "1a", "1b"
 	arr.sort := x => x.first-char
 	arr.to-array is ("1a", "1b", "2a", "2b")
 	arr.sort := x => x.last-char
@@ -59,26 +59,26 @@ test
 	a.end-iter.prev!.rest slice-right
 
 # Sort the elements of `a` from least to greatest.
-set-sort<a> void(a a mut[]) compare<a> trusted
+set-sort[t] void(a t mut[]) trusted, t compare
 	a set-sort x => x
 # Like `set-sort`, but use `get-key` to get the comparable part of each element.
-set-sort<a, b> void(a a mut[], get-key fun b(a)) compare<b> trusted
+set-sort[t, k] void(a t mut[], get-key fun k(t)) trusted, k compare
 	a.temp-as-mut-array set-sort get-key
-set-sort-reverse<a, b> void(a a mut[]) compare<a>
+set-sort-reverse[t] void(a t mut[]) t compare
 	a set-sort-reverse x => x
-set-sort-reverse<a, b> void(a a mut[], get-key fun b(a)) compare<b>
+set-sort-reverse[t, k] void(a t mut[], get-key fun k(t)) k compare
 	a set-sort get-key
 	a set-reverse
 
-set-sort<a> void(a mut-array a) compare<a>
+set-sort[t] void(a t mut-array) t compare
 	a set-sort x => x
-set-sort<a, b> void(a mut-array a, get-key fun b(a)) compare<b>
+set-sort[t, k] void(a t mut-array, get-key fun k(t)) k compare
 	# TODO: PERF Try https://github.com/BonzaiThePenguin/WikiSort
 	# Given that a subarray is sorted, add one more element in sorted order
 	unless a is-empty
 		for i : 1 .. a.size + 1
 			a[0 .. i] move-last-sorted get-key
-.move-last-sorted<a, b> void(a mut-array a, get-key fun b(a)) compare<b>
+.move-last-sorted[t, k] void(a t mut-array, get-key fun k(t)) k compare
 	for i : 1 .. a.size reverse
 		if get-key[a[i - 1]] > get-key[a[i]]
 			a swap i, i - 1
@@ -87,7 +87,7 @@ set-sort<a, b> void(a mut-array a, get-key fun b(a)) compare<b>
 Sort `a` in place and remove unique elements.
 Returns is a slice of the original `a`, which will be shorter if non-unique elements were removed.
 ###
-.set-sort-unique<a> mut-array a(a mut-array a) compare<a>
+.set-sort-unique[t] t mut-array(a t mut-array) t compare
 	a set-sort
 	out-i mut = 0
 	for x, i : a
@@ -96,14 +96,14 @@ Returns is a slice of the original `a`, which will be shorter if non-unique elem
 			out-i := out-i + 1
 	a[0 .. out-i]
 
-.swap<a> void(a mut-array a, x nat64, y nat64)
+.swap[t] void(a t mut-array, x nat64, y nat64)
 	old-x = a[x]
 	a[x] := a[y]
 	a[y] := old-x
 
-sorted-by-first<a, b> record
-	a a[]
-	b b[]
+sorted-by-first[t, u] record
+	a t[]
+	b u[]
 
 ###
 Sort `a`, and move elements of `b` in the same permutation as `a`.
@@ -112,18 +112,18 @@ This is useful if `a` and `b` are parallel arrays, meaning `a[i]` and `b[i]` bel
 
 Every pair `a[i]` and `b[i]`, will move to `res.a[j]` and `res.b[j]` for some `j`.
 ###
-sort-by-first<a, b> sorted-by-first<a, b>(a a[], b b[]) compare<a> trusted
+sort-by-first[t, u] (t, u) sorted-by-first(a t[], b u[]) trusted, t compare
 	mut-a = a.to-array to-mut-array
 	mut-b = b.to-array to-mut-array
 	mut-a set-sort-by-first mut-b
 	mut-a.cast-immutable.to-list, mut-b.cast-immutable.to-list
 
 # Sort `a` in place, and move elements of `b` in the same permutation as `a`.
-set-sort-by-first<a, b> void(a a mut[], b b mut[]) compare<a> trusted
+set-sort-by-first[t, u] void(a t mut[], b u mut[]) trusted, t compare
 	a.temp-as-mut-array set-sort-by-first b.temp-as-mut-array
 
 # Sort `a` in place, and move elements of `b` in the same permutation as `a`.
-set-sort-by-first<a, b> void(a mut-array a, b mut-array b) compare<a>
+set-sort-by-first[t, u] void(a t mut-array, b u mut-array) t compare
 	assert a.size == b.size
 	if a.size > 1
 		a swap 0, a.size / 2
@@ -134,7 +134,7 @@ set-sort-by-first<a, b> void(a mut-array a, b mut-array b) compare<a>
 		a[0 .. new-pivot-index] set-sort-by-first b[0 .. new-pivot-index]
 		a[new-pivot-index + 1 .. a.size] set-sort-by-first b[new-pivot-index + 1 .. b.size]
 
-.set-partition-by-first<a, b> nat64(a mut-array a, b mut-array b, pivot a, l nat64, r nat64) compare<a>
+.set-partition-by-first[t, u] nat64(a t mut-array, b u mut-array, pivot t, l nat64, r nat64) t compare
 	assert l <= a.size
 	assert r < a.size
 	if l <= r

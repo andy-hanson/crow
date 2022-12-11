@@ -14,14 +14,14 @@ jmp_buf alias
 	__jmp_buf_tag mut*
 
 # WARN: Use _setjmp on Windows
-setjmp int32(env jmp_buf) extern<c>
+setjmp int32(env jmp_buf) c extern
 
 # WARN: Windows only
-_setjmp int32(env jmp_buf) extern<kernel32>
+_setjmp int32(env jmp_buf) kernel32 extern
 
 ###
 This is used internally by crow for `throw` and should not be used otherwise.
 
 The interpreter uses a fake implementation.
 ###
-longjmp void(env jmp_buf, val int32) extern<c>
+longjmp void(env jmp_buf, val int32) c extern

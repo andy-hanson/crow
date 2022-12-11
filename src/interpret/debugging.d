@@ -12,31 +12,38 @@ import model.concreteModel :
 	ConcreteType;
 import model.lowModel :
 	AllLowTypes, LowFun, LowFunIndex, LowFunSource, LowProgram, LowType, PrimitiveType, symOfPrimitiveType;
-import model.model : decl, FunInst, name, Param, Type, typeArgs, writeTypeUnquoted;
-import util.col.arr : empty;
+import model.model : decl, FunInst, name, Param, typeArgs, writeTypeArgs, writeTypeArgsGeneric;
+import util.col.arr : only;
 import util.opt : force, has;
 import util.writer : Writer, writeWithCommas;
 import util.sym : AllSymbols, writeSym;
 
-void writeFunName(ref Writer writer, in AllSymbols allSymbols, in LowProgram lowProgram, LowFunIndex fun) {
+void writeFunName(scope ref Writer writer, in AllSymbols allSymbols, in LowProgram lowProgram, LowFunIndex fun) {
 	writeFunName(writer, allSymbols, lowProgram, lowProgram.allFuns[fun]);
 }
 
-void writeFunName(ref Writer writer, in AllSymbols allSymbols, in LowProgram lowProgram, in LowFun a) {
+void writeFunName(scope ref Writer writer, in AllSymbols allSymbols, in LowProgram lowProgram, in LowFun a) {
 	a.source.matchIn!void(
 		(in ConcreteFun x) {
 			writeConcreteFunName(writer, allSymbols, x);
 		},
 		(in LowFunSource.Generated x) {
 			writeSym(writer, allSymbols, x.name);
-			if (!empty(x.typeArgs)) {
-				writer ~= '<';
-				writeWithCommas!LowType(writer, x.typeArgs, (in LowType typeArg) {
-					writeLowType(writer, allSymbols, lowProgram.allTypes, typeArg);
-				});
-				writer ~= '>';
-			}
+			writeLowTypeArgs(writer, allSymbols, lowProgram, x.typeArgs);
 			writer ~= " (generated)";
+		});
+}
+
+private void writeLowTypeArgs(
+	scope ref Writer writer,
+	in AllSymbols allSymbols,
+	in LowProgram lowProgram,
+	in LowType[] typeArgs,
+) {
+	writeTypeArgsGeneric!LowType(writer, typeArgs,
+		(in LowType x) => false,
+		(in LowType typeArg) {
+			writeLowType(writer, allSymbols, lowProgram.allTypes, typeArg);
 		});
 }
 
@@ -110,13 +117,7 @@ private void writeConcreteFunName(ref Writer writer, in AllSymbols allSymbols, i
 	a.source.matchIn!void(
 		(in FunInst it) {
 			writeSym(writer, allSymbols, it.name);
-			if (!empty(typeArgs(it))) {
-				writer ~= '<';
-				writeWithCommas!Type(writer, typeArgs(it), (in Type typeArg) {
-					writeTypeUnquoted(writer, allSymbols, typeArg);
-				});
-				writer ~= '>';
-			}
+			writeTypeArgs(writer, allSymbols, typeArgs(it));
 		},
 		(in ConcreteFunSource.Lambda it) {
 			writeConcreteFunName(writer, allSymbols, *it.containingFun);
@@ -134,14 +135,21 @@ private:
 void writeConcreteStruct(scope ref Writer writer, in AllSymbols allSymbols, in ConcreteStruct a) {
 	a.source.matchIn!void(
 		(in ConcreteStructSource.Inst it) {
-			writeSym(writer, allSymbols, decl(*it.inst).name);
-			if (!empty(it.typeArgs)) {
-				writer ~= '<';
-				writeWithCommas!ConcreteType(writer, it.typeArgs, (in ConcreteType t) {
-					writeConcreteType(writer, allSymbols, t);
-				});
-				writer ~= '>';
+			switch (it.typeArgs.length) {
+				case 0:
+					break;
+				case 1:
+					writeConcreteType(writer, allSymbols, only(it.typeArgs));
+					writer ~= ' ';
+					break;
+				default:
+					writer ~= '(';
+					writeWithCommas!ConcreteType(writer, it.typeArgs, (in ConcreteType x) {
+						writeConcreteType(writer, allSymbols, x);
+					});
+					writer ~= ") ";
 			}
+			writeSym(writer, allSymbols, decl(*it.inst).name);
 		},
 		(in ConcreteStructSource.Lambda it) {
 			writeConcreteFunName(writer, allSymbols, *it.containingFun);

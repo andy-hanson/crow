@@ -35,7 +35,7 @@ import util.col.arrUtil : arrLiteral, exists, indexOf, map;
 import util.col.enumDict : enumDictFindKey;
 import util.col.fullIndexDict : FullIndexDict;
 import util.col.mutArr : MutArr;
-import util.col.mutMaxArr : mapTo, MutMaxArr, push, tempAsArr;
+import util.col.mutMaxArr : MutMaxArr, push, tempAsArr;
 import util.opt : has, force, MutOpt, none, noneMut, Opt, someMut, some;
 import util.perf : Perf;
 import util.ptr : castNonScope_ref;
@@ -140,12 +140,6 @@ ref ProgramState programState(return scope ref ExprCtx ctx) =>
 
 void addDiag2(ref ExprCtx ctx, FileAndRange range, Diag diag) {
 	addDiag(ctx.checkCtx, range, diag);
-}
-
-TypeArgsArray typeArgsFromAsts(ref ExprCtx ctx, in TypeAst[] typeAsts) {
-	TypeArgsArray res = typeArgsArray();
-	mapTo(res, typeAsts, (ref TypeAst x) => typeFromAst2(ctx, x));
-	return res;
 }
 
 Opt!Type typeFromOptAst(ref ExprCtx ctx, in Opt!(TypeAst*) ast) =>

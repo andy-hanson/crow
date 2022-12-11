@@ -17,15 +17,15 @@ Immutable queue.
 
 Supports efficient removal from the left and insertion to the right.
 ###
-queue<a> record
-	.left array a
-	.right stack a
+queue[t] record
+	.left t array
+	.right t stack
 
 # Empty queue.
-new<a> queue a()
+new[t] t queue()
 	(), ()
 
-to-queue<a> queue a(a a[])
+to-queue[t] t queue(a t[])
 	a.to-array, ()
 
 ###
@@ -33,31 +33,31 @@ Copies queue elements to an array.
 
 This is O(n).
 ###
-to-list<a> a[](a queue a)
+to-list[t] t[](a t queue)
 	for x : a
 		x
 
 # `true` iff `a.size == 0`.
-is-empty<a> bool(a queue a)
+is-empty[t] bool(a t queue)
 	a.left.is-empty && a.right.is-empty
 
 # Number of elements in the queue.
-size<a> nat64(a queue a)
+size[t] nat64(a t queue)
 	a.left.size + a.right.size
 
 # Adds a new element on the right.
-~ <a> queue a(a queue a, value a)
+~[t] t queue(a t queue, value t)
 	a.left, a.right ~ value
 
-dequeued<a> record
-	value a
-	rest queue a
+dequeued[t] record
+	value t
+	rest t queue
 
 ###
 Removes and returns an element from the left.
 Returns an empty option iff `a` is empty.
 ###
-dequeue<a> dequeued<a>?(a queue a)
+dequeue[t] t dequeued?(a t queue)
 	if first ?= a.left first
 		(first, (a.left.tail, a.right)),
 	else
@@ -67,27 +67,27 @@ dequeue<a> dequeued<a>?(a queue a)
 
 region iteration
 
-for-loop<a> void(a queue a, f act void(a))
+for-loop[t] void(a t queue, f act void(t))
 	a.left for-loop f
 	a.right for-loop f
 
-for-loop<out, in> out[](a queue in, f act out(in))
+for-loop[out, in] out[](a in queue, f act out(in))
 	with out : a.size build
 		for x : a
 			out ~= f[x]
 
-for-loop<out, in> queue out(a queue in, f act out(in))
+for-loop[out, in] out queue(a in queue, f act out(in))
 	a for-loop f to-queue
 
-filter<a> queue a(a queue a, f act bool(a))
-	list a[] = with out : build
+filter[t] t queue(a t queue, f act bool(t))
+	list t[] = with out : build
 		for x : a
 			if f[x]
 				out ~= x
 	list to-queue
 
 test
-	a queue nat64 = ()
+	a nat64 queue = ()
 	assert a is-empty
 	a.to-list is ()
 	a.dequeue.is-empty is true
@@ -113,4 +113,4 @@ test
 	d.to-list is (1, 2, 3)
 
 	(d filter x => x != 2).to-list is (1, 3)
-	(for x : d; x + 10)::queue<nat64>.to-list is (11, 12, 13)
+	(for x : d; x + 10)::(nat64 queue).to-list is (11, 12, 13)

@@ -6,10 +6,10 @@ import
 	audio/sdl-audio: start-sdl-audio
 	audio/read-sound-file: sound-from-file-content
 	audio/sound: *, sample-rate, to-string, with-sample-rate
-	./toccata.ogg as toccata array nat8
-	./crow.wav as crow-wav array nat8
+	./toccata.ogg as toccata nat8 array
+	./crow.wav as crow-wav nat8 array
 
-main nat^(_ string[]) summon unsafe
+main nat^(_ string[]) summon, trusted
 	audio = start-sdl-audio
 	out print "Sound device format is {audio format}"
 	music = toccata.sound-from-file-content with-sample-rate audio.format.sample-rate

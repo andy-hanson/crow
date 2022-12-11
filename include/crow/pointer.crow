@@ -13,93 +13,93 @@ export
 	./private/bootstrap: any-const-pointer, any-mut-pointer, by-val, const-pointer, mut-pointer, zeroed
 
 # Treats a mutable pointer as constant.
-as-const<a> a*(a a mut*) noctx builtin
+as-const[t] t*(a t mut*) builtin, noctx
 ###
 Treats a constant pointer as mutable.
 Do not actually write to it.
 ###
-as-mut<a> a mut*(a a*) noctx unsafe builtin
+as-mut[t] t mut*(a t*) builtin, noctx, unsafe
 
 # Null pointer.
-null<a> a*() noctx unsafe
+null[t] t*() noctx, unsafe
 	null.as-const
-null<a> a mut*() noctx unsafe builtin
-null<r> fun* r()() noctx unsafe
+null[t] t mut*() builtin, noctx, unsafe
+null[r] fun* r()() noctx, unsafe
 	null as-fun-pointer
-null<r, p0> fun* r(p0)() noctx unsafe
+null[r, p0] fun* r(p0)() noctx, unsafe
 	null as-fun-pointer
-null<r, p0, p1> fun* r(p0, p1)() noctx unsafe
+null[r, p0, p1] fun* r(p0, p1)() noctx, unsafe
 	null as-fun-pointer
-null<r, p0, p1, p2> fun* r(p0, p1, p2)() noctx unsafe
+null[r, p0, p1, p2] fun* r(p0, p1, p2)() noctx, unsafe
 	null as-fun-pointer
-null<r, p0, p1, p2, p3> fun* r(p0, p1, p2, p3)() noctx unsafe
+null[r, p0, p1, p2, p3] fun* r(p0, p1, p2, p3)() noctx, unsafe
 	null as-fun-pointer
-null<r, p0, p1, p2, p3, p4> fun* r(p0, p1, p2, p3, p4)() noctx unsafe
+null[r, p0, p1, p2, p3, p4] fun* r(p0, p1, p2, p3, p4)() noctx, unsafe
 	null as-fun-pointer
 
 # Same as `null`.
-new<a> a*() noctx unsafe
+new[t] t*() noctx, unsafe
 	null
-new<a> a mut*() noctx unsafe
+new[t] t mut*() noctx, unsafe
 	null
 
-# `*a` reads from the pointee, like in C.
-* <a> a(a a*) noctx unsafe builtin
-* <a> a(a a mut*) noctx unsafe builtin
+# `*a` reads the value pointed to by `a`.
+*[t] t(a t*) builtin, noctx, unsafe
+*[t] t(a t mut*) builtin, noctx, unsafe
 
-# `*a := value` writes to the pointee, like in C.
-set-deref<a> void(a a mut*, value a) noctx unsafe builtin
+# `*a := value` writes `value` to the place pointed to be `a`.
+set-deref[t] void(a t mut*, value t) builtin, noctx, unsafe
 
-# `a[n]` is the same as `*(a + n)`, like in C.
-subscript<a> a(a a*, n nat64) noctx unsafe
+# `a[n]` is the same as `*(a + n)`.
+subscript[t] t(a t*, n nat64) noctx, unsafe
 	*(a + n)
-subscript<a> a(a a mut*, n nat64) noctx unsafe
+subscript[t] t(a t mut*, n nat64) noctx, unsafe
 	*(a + n)
 
-# `a[n] := value` is the same as `*(a + n) := value`, like in C.
-set-subscript<a> void(a a mut*, n nat64, value a) noctx unsafe
+# `a[n] := value` is the same as `*(a + n) := value`.
+set-subscript[t] void(a t mut*, n nat64, value t) noctx, unsafe
 	*(a + n) := value
 
 ###
 `true` iff the two pointers are identical.
 (That means: `false` if they point to equal values but are different pointers.)
 ###
-== <a> bool(a a*, b a*) noctx unsafe builtin
-== <a> bool(a a mut*, b a mut*) noctx unsafe builtin
+==[t] bool(a t*, b t*) builtin, noctx, unsafe
+==[t] bool(a t mut*, b t mut*) builtin, noctx, unsafe
 
 ###
 Advance the pointer past `offset` values of type `a`.
 
-Like in C, the raw address increases by `offset * size-of@<a>`.
+Like in C, the address increases by `offset * size-of@t`.
 ###
-+ <a> a*(a a*, offset nat64) noctx unsafe builtin
-+ <a> a mut*(a a mut*, offset nat64) noctx unsafe builtin
++[t] t*(a t*, offset nat64) builtin, noctx, unsafe
++[t] t mut*(a t mut*, offset nat64) builtin, noctx, unsafe
 
 # Back up the pointer by `offset` values of type `a`.
-- <a> a*(a a*, offset nat64) noctx unsafe builtin
-- <a> a mut*(a a mut*, offset nat64) noctx unsafe builtin
+-[t] t*(a t*, offset nat64) builtin, noctx, unsafe
+-[t] t mut*(a t mut*, offset nat64) builtin, noctx, unsafe
 
 ###
 Get the difference between two pointers, measured in strides of `a`.
 
-This is undefined behavior if `a < b` or if `size-of@<a> == 0`.
+This is undefined behavior if `a < b` or if `size-of@t == 0`.
 ###
-- <a> nat64(a a*, b a*) noctx unsafe
+-[t] nat64(a t*, b t*) noctx, unsafe
 	a.as-mut - b.as-mut
-- <a> nat64(a a mut*, b a mut*) noctx unsafe
-	(a.to-nat64 wrap-sub b.to-nat64) / size-of@<a>
+-[t] nat64(a t mut*, b t mut*) noctx, unsafe
+	(a.to-nat64 wrap-sub b.to-nat64) / size-of@t
 
-.is-less<a> bool(a a*, b a*) noctx unsafe builtin
-.is-less<a> bool(a a mut*, b a mut*) noctx unsafe builtin
+.is-less[t] bool(a t*, b t*) builtin, noctx, unsafe
+.is-less[t] bool(a t mut*, b t mut*) builtin, noctx, unsafe
 # Same as `a.to-nat64 <=> b.to-nat64`.
-<=> <a> comparison(a a*, b a*) noctx unsafe
+<=>[t] comparison(a t*, b t*) noctx, unsafe
 	if a is-less b
 		less
 	elif a == b
 		equal
 	else
 		greater
-<=> <a> comparison(a a mut*, b a mut*) noctx unsafe
+<=>[t] comparison(a t mut*, b t mut*) noctx, unsafe
 	if a is-less b
 		less
 	elif a == b
@@ -109,97 +109,97 @@ This is undefined behavior if `a < b` or if `size-of@<a> == 0`.
 
 ###
 Number of bytes taken up by a type.
-You'll need to manually supply a type argument, as in `size-of@<nat>`.
+You'll need to manually supply a type argument, as in `size-of@nat`.
 
 If `a` is a reference type, this is just the size of a pointer.
 Similarly, this is the same for all array types,
 regardless of the number of size of the array elements.
 ###
-size-of<a> nat64() noctx unsafe builtin
+size-of[t] nat64() builtin, noctx, unsafe
 
 ###
 Change the type of the pointee. This is like a pointer cast `(out*) a` in C.
 
 At a low level, this is just an identity function; it just changes the type.
 ###
-pointer-cast<out, in> out*(a in*) noctx unsafe
+pointer-cast[out, in] out*(a in*) noctx, unsafe
 	a.as-mut.pointer-cast as-const
-pointer-cast<out, in> out mut*(a in mut*) noctx unsafe builtin
+pointer-cast[out, in] out mut*(a in mut*) builtin, noctx, unsafe
 
-ref-cast<out, in> out(a in) no-doc noctx unsafe
+ref-cast[out, in] out(a in) noctx, no-doc, unsafe
 	a.as-any-mut-pointer as-ref
 
 # Raw address of a pointer.
-to-nat64<a> nat64(a a*) noctx unsafe builtin
-to-nat64<a> nat64(a a mut*) noctx unsafe builtin
+to-nat64[t] nat64(a t*) builtin, noctx, unsafe
+to-nat64[t] nat64(a t mut*) builtin, noctx, unsafe
 # Get a pointer from a raw address.
-to-const-pointer<a> a*(a nat64) noctx unsafe
+to-const-pointer[t] t*(a nat64) noctx, unsafe
 	a.to-mut-pointer as-const
-to-mut-pointer<a> a mut*(a nat64) noctx unsafe builtin
+to-mut-pointer[t] t mut*(a nat64) builtin, noctx, unsafe
 
-# Swap the pointees. Does not change the pointers theirselves.
-swap<a> void(a a mut*, b a mut*) noctx unsafe
+# Swap the value pointed to be 'a' with the value pointed to by 'b'.
+swap[t] void(a t mut*, b t mut*) noctx, unsafe
 	temp = *a
 	*a := *b
 	*b := temp
 
 # Maximum pointer value.
-max-pointer<a> a*() noctx unsafe
+max-pointer[t] t*() noctx, unsafe
 	max-pointer as-const
-max-pointer<a> a mut*() noctx unsafe
+max-pointer[t] t mut*() noctx, unsafe
 	null + 0xffffffffffffffff
 
 region Conversion between pointers and pointer-like types
 
 # TODO: this function only works for by-ref types -- currently that is not checked by the type checker
 # Convert a reference to `any-pointer`.
-as-any-const-pointer<a> any-const-pointer(reference a) no-doc noctx unsafe
+as-any-const-pointer[t] any-const-pointer(reference t) noctx, no-doc, unsafe
 	reference.as-any-mut-pointer.as-const
 # TODO: this could just use pointer-cast? Doesn't need to be builtin?
-as-any-mut-pointer<a> any-mut-pointer(reference a) no-doc noctx unsafe builtin
+as-any-mut-pointer[t] any-mut-pointer(reference t) builtin, noctx, no-doc, unsafe
 # TODO: this function only works for by-ref types -- currently that is not checked by the type checker
-as-ref<a> a(a any-const-pointer) no-doc noctx unsafe
+as-ref[t] t(a any-const-pointer) noctx, no-doc, unsafe
 	a.as-mut as-ref
 ###
 Convert a pointer to a reference of the chosen type.
 UB if a value of that type was not stored at the pointer.
 ###
-as-ref<a> a(a any-mut-pointer) no-doc noctx unsafe builtin
+as-ref[t] t(a any-mut-pointer) builtin, noctx, no-doc, unsafe
 
-as-fun-pointer<r> fun* r()(a any-const-pointer) noctx unsafe
+as-fun-pointer[r] fun* r()(a any-const-pointer) noctx, unsafe
 	a as-ref
-as-fun-pointer<r, p0> fun* r(p0)(a any-const-pointer) noctx unsafe
+as-fun-pointer[r, p0] fun* r(p0)(a any-const-pointer) noctx, unsafe
 	a as-ref
-as-fun-pointer<r, p0, p1> fun* r(p0, p1)(a any-const-pointer) noctx unsafe
+as-fun-pointer[r, p0, p1] fun* r(p0, p1)(a any-const-pointer) noctx, unsafe
 	a as-ref
-as-fun-pointer<r, p0, p1, p2> fun* r(p0, p1, p2)(a any-const-pointer) noctx unsafe
+as-fun-pointer[r, p0, p1, p2] fun* r(p0, p1, p2)(a any-const-pointer) noctx, unsafe
 	a as-ref
-as-fun-pointer<r, p0, p1, p2, p3> fun* r(p0, p1, p2, p3)(a any-const-pointer) noctx unsafe
+as-fun-pointer[r, p0, p1, p2, p3] fun* r(p0, p1, p2, p3)(a any-const-pointer) noctx, unsafe
 	a as-ref
-as-fun-pointer<r, p0, p1, p2, p3, p4> fun* r(p0, p1, p2, p3, p4)(
+as-fun-pointer[r, p0, p1, p2, p3, p4] fun* r(p0, p1, p2, p3, p4)(
 	a any-const-pointer,
-) noctx unsafe
+) noctx, unsafe
 	a as-ref
-as-fun-pointer<r, p0, p1, p2, p3, p4, p5> fun* r(p0, p1, p2, p3, p4, p5)(
+as-fun-pointer[r, p0, p1, p2, p3, p4, p5] fun* r(p0, p1, p2, p3, p4, p5)(
 	a any-const-pointer,
-) noctx unsafe
+) noctx, unsafe
 	a as-ref
-as-fun-pointer<r, p0, p1, p2, p3, p4, p5, p6> fun* r(p0, p1, p2, p3, p4, p5, p6)(
+as-fun-pointer[r, p0, p1, p2, p3, p4, p5, p6] fun* r(p0, p1, p2, p3, p4, p5, p6)(
 	a any-const-pointer,
-) noctx unsafe
+) noctx, unsafe
 	a as-ref
-as-fun-pointer<r, p0, p1, p2, p3, p4, p5, p6, p7> fun* r(p0, p1, p2, p3, p4, p5, p6, p7)(
+as-fun-pointer[r, p0, p1, p2, p3, p4, p5, p6, p7] fun* r(p0, p1, p2, p3, p4, p5, p6, p7)(
 	a any-const-pointer,
-) noctx unsafe
+) noctx, unsafe
 	a as-ref
-as-fun-pointer<r, p0, p1, p2, p3, p4, p5, p6, p7, p8> fun* r(p0, p1, p2, p3, p4, p5, p6, p7, p8)(
+as-fun-pointer[r, p0, p1, p2, p3, p4, p5, p6, p7, p8] fun* r(p0, p1, p2, p3, p4, p5, p6, p7, p8)(
 	a any-const-pointer,
-) noctx unsafe
+) noctx, unsafe
 	a as-ref
 
 ###
 True if two references have the same pointer.
 Contrast with `a == b` which can also e true for different pointers with equal contents.
 ###
-ref-eq<a> bool(a a, b a) no-doc noctx unsafe
+ref-eq[t] bool(a t, b t) noctx, no-doc, unsafe
 	a.as-any-const-pointer == b.as-any-const-pointer

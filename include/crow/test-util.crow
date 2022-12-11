@@ -15,13 +15,13 @@ import
 ###
 Asserts the the values are equal.
 ###
-is<a> void(a a, b a) equal<a> json<a>
+is[t] void(a t, b t) t equal, t json
 	assert a == b : "Test failure: Expected {a json} is {b json}"
 
 ###
 Calls `f` and asserts that it throws an exception with the specified `message`.
 ###
-throws<a> void(f act a(), message string)
+throws[t] void(f act t(), message string)
 	match f catch
 	as ok _
 		throw "Expected to throw an exception"

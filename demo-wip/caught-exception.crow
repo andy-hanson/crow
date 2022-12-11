@@ -1,8 +1,8 @@
 import
 	crow/io/print: out, print
 
-main nat^(_ string[]) summon unsafe
-	match (() => 1 - 2).catch :: result<nat64, exception>
+main nat^(_ string[]) summon, trusted
+	match (() => 1 - 2).catch :: (nat64, exception) result
 	as ok _
 		unreachable
 	as err e

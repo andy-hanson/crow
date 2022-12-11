@@ -5,7 +5,7 @@ import
 	audio/write-sound-file: flac, ogg-vorbis, sound-file-format, wav, write-sound-file
 	audio/sound: format, to-string, with-sample-rate
 
-main nat^(args string[]) summon unsafe
+main nat^(args string[]) summon, trusted
 	assert args.size == 2 : "Usage: crow run convert-file.crow -- [IN] [OUT]"
 	in-path = args[0]
 	out-path = args[1]

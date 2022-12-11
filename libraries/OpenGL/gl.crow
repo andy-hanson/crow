@@ -40,16 +40,16 @@ gl-ext record mut
 	.glUseProgram_ fun* void(GLuint)
 	.glVertexAttribPointer_ fun* void(GLuint, GLint, GLenum, GLboolean, GLsizei, any-const-pointer)
 
-glActiveTexture void(a gl-ext, texture GLenum) noctx summon unsafe
+glActiveTexture void(a gl-ext, texture GLenum) noctx, summon, unsafe
 	a.glActiveTexture_[texture]
 
-glAttachShader void(a gl-ext, program GLuint, shader GLuint) noctx summon unsafe
+glAttachShader void(a gl-ext, program GLuint, shader GLuint) noctx, summon, unsafe
 	a.glAttachShader_[program, shader]
 
-glBindBuffer void(a gl-ext, target GLenum, buffer GLuint) noctx summon unsafe
+glBindBuffer void(a gl-ext, target GLenum, buffer GLuint) noctx, summon, unsafe
 	a.glBindBuffer_[target, buffer]
 
-glBindTexture void(a gl-ext, target GLenum, texture GLuint) noctx summon unsafe
+glBindTexture void(a gl-ext, target GLenum, texture GLuint) noctx, summon, unsafe
 	a.glBindTexture_[target, texture]
 
 glBufferData void(
@@ -58,7 +58,7 @@ glBufferData void(
 	size GLsizeiptr,
 	buffer-data any-const-pointer,
 	usage GLenum,
-) noctx summon unsafe
+) noctx, summon, unsafe
 	a.glBufferData_[target, size, buffer-data, usage]
 
 glBufferSubData void(
@@ -67,55 +67,55 @@ glBufferSubData void(
 	offset GLintptr,
 	size GLsizeiptr,
 	buffer-data any-const-pointer,
-) noctx summon unsafe
+) noctx, summon, unsafe
 	a.glBufferSubData_[target, offset, size, buffer-data]
 
-glClear void(a gl-ext, mask GLbitfield) noctx summon unsafe
+glClear void(a gl-ext, mask GLbitfield) noctx, summon, unsafe
 	a.glClear_[mask]
 
-glClearColor void(a gl-ext, red GLfloat, green GLfloat, blue GLfloat, alpha GLfloat) noctx summon unsafe
+glClearColor void(a gl-ext, red GLfloat, green GLfloat, blue GLfloat, alpha GLfloat) noctx, summon, unsafe
 	a.glClearColor_[red, green, blue, alpha]
 
-glCompileShader void(a gl-ext, shader GLuint) noctx summon unsafe
+glCompileShader void(a gl-ext, shader GLuint) noctx, summon, unsafe
 	a.glCompileShader_[shader]
 
-glCreateProgram GLuint(a gl-ext) noctx summon unsafe
+glCreateProgram GLuint(a gl-ext) noctx, summon, unsafe
 	a.glCreateProgram_[]
 
-glCreateShader GLuint(a gl-ext, type GLenum) noctx summon unsafe
+glCreateShader GLuint(a gl-ext, type GLenum) noctx, summon, unsafe
 	a.glCreateShader_[type]
 
-glCullFace void(a gl-ext, mode GLenum) noctx summon unsafe
+glCullFace void(a gl-ext, mode GLenum) noctx, summon, unsafe
 	a.glCullFace_[mode]
 
-glDeleteBuffers void(a gl-ext, n GLsizei, buffers GLuint*) noctx summon unsafe
+glDeleteBuffers void(a gl-ext, n GLsizei, buffers GLuint*) noctx, summon, unsafe
 	a.glDeleteBuffers_[n, buffers]
 
-glDeleteProgram void(a gl-ext, program GLuint) noctx summon unsafe
+glDeleteProgram void(a gl-ext, program GLuint) noctx, summon, unsafe
 	a.glDeleteProgram_[program]
 
-glDeleteShader void(a gl-ext, shader GLuint) noctx summon unsafe
+glDeleteShader void(a gl-ext, shader GLuint) noctx, summon, unsafe
 	a.glDeleteShader_[shader]
 
-glDeleteTextures void(a gl-ext, n GLsizei, textures GLuint*) noctx summon unsafe
+glDeleteTextures void(a gl-ext, n GLsizei, textures GLuint*) noctx, summon, unsafe
 	a.glDeleteTextures_[n, textures]
 
-glEnable void(a gl-ext, cap GLenum) noctx summon unsafe
+glEnable void(a gl-ext, cap GLenum) noctx, summon, unsafe
 	a.glEnable_[cap]
 
-glEnableVertexAttribArray void(a gl-ext, index GLuint) noctx summon unsafe
+glEnableVertexAttribArray void(a gl-ext, index GLuint) noctx, summon, unsafe
 	a.glEnableVertexAttribArray_[index]
 
-glDrawArrays void(a gl-ext, mode GLenum, first GLint, count GLsizei) noctx summon unsafe
+glDrawArrays void(a gl-ext, mode GLenum, first GLint, count GLsizei) noctx, summon, unsafe
 	a.glDrawArrays_[mode, first, count]
 
-glGenBuffers void(a gl-ext, n GLsizei, buffers GLuint mut*) noctx summon unsafe
+glGenBuffers void(a gl-ext, n GLsizei, buffers GLuint mut*) noctx, summon, unsafe
 	a.glGenBuffers_[n, buffers]
 
-glGenTextures void(a gl-ext, n GLsizei, textures GLuint mut*) noctx summon unsafe
+glGenTextures void(a gl-ext, n GLsizei, textures GLuint mut*) noctx, summon, unsafe
 	a.glGenTextures_[n, textures]
 
-glGetError GLenum(a gl-ext) noctx summon
+glGetError GLenum(a gl-ext) noctx, summon
 	a.glGetError_[]
 
 glGetProgramInfoLog void(
@@ -124,10 +124,10 @@ glGetProgramInfoLog void(
 	bufSize GLsizei,
 	length GLsizei mut*,
 	infoLog GLchar mut*,
-) noctx summon unsafe
+) noctx, summon, unsafe
 	a.glGetProgramInfoLog_[program, bufSize, length, infoLog]
 
-glGetProgramiv void(a gl-ext, program GLuint, pname GLenum, params GLint mut*) noctx summon unsafe
+glGetProgramiv void(a gl-ext, program GLuint, pname GLenum, params GLint mut*) noctx, summon, unsafe
 	a.glGetProgramiv_[program, pname, params]
 
 glGetShaderInfoLog void(
@@ -136,16 +136,16 @@ glGetShaderInfoLog void(
 	bufSize GLsizei,
 	length GLsizei mut*,
 	infoLog GLchar mut*,
-) noctx summon unsafe
+) noctx, summon, unsafe
 	a.glGetShaderInfoLog_[shader, bufSize, length, infoLog]
 
-glGetShaderiv void(a gl-ext, reader GLuint, pname GLenum, params GLint mut*) noctx summon unsafe
+glGetShaderiv void(a gl-ext, reader GLuint, pname GLenum, params GLint mut*) noctx, summon, unsafe
 	a.glGetShaderiv_[reader, pname, params]
 
-glGetUniformLocation GLint(a gl-ext, program GLuint, name GLchar*) noctx summon unsafe
+glGetUniformLocation GLint(a gl-ext, program GLuint, name GLchar*) noctx, summon, unsafe
 	a.glGetUniformLocation_[program, name]
 
-glLinkProgram void(a gl-ext, program GLuint) noctx summon unsafe
+glLinkProgram void(a gl-ext, program GLuint) noctx, summon, unsafe
 	a.glLinkProgram_[program]
 
 glShaderSource void(
@@ -154,7 +154,7 @@ glShaderSource void(
 	count GLsizei,
 	string GLchar**,
 	length GLint*,
-) noctx summon unsafe
+) noctx, summon, unsafe
 	a.glShaderSource_[shader, count, string, length]
 
 glTexImage2D void(
@@ -168,13 +168,13 @@ glTexImage2D void(
 	format GLenum,
 	type GLenum,
 	pixels any-const-pointer,
-) noctx summon unsafe
+) noctx, summon, unsafe
 	a.glTexImage2D_[target, level, internalformat, width, height, border, format, type, pixels]
 
-glTexParameteri void(a gl-ext, target GLenum, pname GLenum, param GLenum) noctx summon unsafe
+glTexParameteri void(a gl-ext, target GLenum, pname GLenum, param GLenum) noctx, summon, unsafe
 	a.glTexParameteri_[target, pname, param]
 
-glUniform1i void(a gl-ext, location GLint, v0 GLint) noctx summon unsafe
+glUniform1i void(a gl-ext, location GLint, v0 GLint) noctx, summon, unsafe
 	a.glUniform1i_[location, v0]
 
 glUniformMatrix3fv void(
@@ -183,10 +183,10 @@ glUniformMatrix3fv void(
 	count GLsizei,
 	transpose GLboolean,
 	value GLfloat*,
-) noctx summon unsafe
+) noctx, summon, unsafe
 	a.glUniformMatrix3fv_[location, count, transpose, value]
 
-glUseProgram void(a gl-ext, program GLuint) noctx summon unsafe
+glUseProgram void(a gl-ext, program GLuint) noctx, summon, unsafe
 	a.glUseProgram_[program]
 
 glVertexAttribPointer void(
@@ -197,10 +197,10 @@ glVertexAttribPointer void(
 	normalized GLboolean,
 	stride GLsizei,
 	pointer any-const-pointer,
-) noctx summon unsafe
+) noctx, summon, unsafe
 	a.glVertexAttribPointer_[index, size, type, normalized, stride, pointer]
 
-new gl-ext() unsafe summon
+new gl-ext() summon, unsafe
 	glActiveTexture fun* void(GLenum) = "glActiveTexture".load as-fun-pointer
 	glAttachShader fun* void(GLuint, GLuint) = "glAttachShader".load as-fun-pointer
 	glBindBuffer fun* void(GLenum, GLuint) = "glBindBuffer".load as-fun-pointer
@@ -238,7 +238,7 @@ new gl-ext() unsafe summon
 	glVertexAttribPointer fun* void(GLuint, GLint, GLenum, GLboolean, GLsizei, any-const-pointer) = "glVertexAttribPointer".load as-fun-pointer
 	glActiveTexture, glAttachShader, glBindBuffer, glBindTexture, glBufferData, glBufferSubData, glClear, glClearColor, glCompileShader, glCreateProgram, glCreateShader, glCullFace, glDeleteBuffers, glDeleteProgram, glDeleteShader, glDeleteTextures, glDrawArrays, glEnable, glEnableVertexAttribArray, glGenBuffers, glGenTextures, glGetError, glGetProgramInfoLog, glGetProgramiv, glGetShaderInfoLog, glGetShaderiv, glGetUniformLocation, glLinkProgram, glShaderSource, glTexImage2D, glTexParameteri, glUniform1i, glUniformMatrix3fv, glUseProgram, glVertexAttribPointer
 
-.load any-const-pointer(name c-string) unsafe summon
+.load any-const-pointer(name c-string) summon, unsafe
 	proc = name SDL_GL_GetProcAddress
 	forbid proc == null : "Could not find {name}"
 	proc

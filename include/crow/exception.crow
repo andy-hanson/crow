@@ -21,7 +21,7 @@ Runs `try`, and then runs `cleanup`, even if `try` threw an exception.
 If there was an exception, it will be rethrown after `after` finishes.
 If `after` throws an exception, the original exception will be lost.
 ###
-with-block<a> a(a finally, try act a())
+with-block[t] t(a finally, try act t())
 	res = a.cleanup do-if-error () => try[]
 	a.cleanup[]
 	res
@@ -31,7 +31,7 @@ Rus `try`, and if it throws an exception, runs `on-error`.
 
 This is like `finally`, but does not run in the successful case.
 ###
-do-if-error<a> a(on-error act void(), try act a())
+do-if-error[t] t(on-error act void(), try act t())
 	try catch err =>
 		on-error[]
 		err rethrow

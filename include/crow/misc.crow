@@ -9,11 +9,11 @@ new void() noctx
 	new-void
 
 # Spec that is satisfied by a `new` function with no arguments.
-new<a> spec
-	new a()
+new[t] spec
+	new t()
 
-break-or-continue<a> union
-	loop-break a
+break-or-continue[t] union
+	loop-break t
 	loop-continue
-new<a> break-or-continue a()
+new[t] t break-or-continue()
 	continue

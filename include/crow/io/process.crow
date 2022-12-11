@@ -49,7 +49,7 @@ The child process' stdout and stderr will be sent to the `process-result`,
 not to the parent's stdout and stderr.
 EXE should be a file path and not just a name; this does not search the system path for `exe`.
 ###
-spawn-and-wait-result process-result(exe string, args string[]) trusted summon
+spawn-and-wait-result process-result(exe string, args string[]) summon, trusted
 	out print (" " join "spawn-and-wait-result: {exe}" ~ args)
 
 	# TODO: kill, handle that error properly
@@ -60,7 +60,7 @@ spawn-and-wait-result process-result(exe string, args string[]) trusted summon
 	else
 		exe-c-string spawn-and-wait-result-posix (exe-c-string convert-args args)
 
-.keep-reading void(res char8 mut[], file FILE mut*) unsafe summon
+.keep-reading void(res char8 mut[], file FILE mut*) summon, unsafe
 	read-at-a-time = 0x1000
 	old-size = res size
 	res unsafe-set-size old-size + read-at-a-time
@@ -79,7 +79,7 @@ spawn-and-wait-result process-result(exe string, args string[]) trusted summon
 Launches a process and synchronously waits on the result.
 The child process shares stdout and stderr with the parent process.
 ###
-spawn-and-wait int32(exe string, args string[]) trusted summon
+spawn-and-wait int32(exe string, args string[]) summon, trusted
 	# TODO: kill, handle that error properly
 	assert exe is-file : "{exe} is not a file"
 	# First argument should be the executable path
@@ -88,7 +88,7 @@ spawn-and-wait int32(exe string, args string[]) trusted summon
 	exe-c-string spawn-and-wait (exe-c-string convert-args args)
 
 # Executes a shell command and returns its output.
-shell-exec string(command string) trusted summon
+shell-exec string(command string) summon, trusted
 	cmd = command to-c-string
 	pipe = is-windows ? cmd _popen "r" : cmd popen "r"
 	if pipe.as-any-const-pointer == null
@@ -102,7 +102,7 @@ shell-exec string(command string) trusted summon
 .convert-args c-string[](exe-c-string c-string, args string[]) unsafe
 	exe-c-string ~ (for x : args; x to-c-string) ~ null
 
-.spawn-and-wait-result-windows process-result(exe c-string, args string[]) summon unsafe
+.spawn-and-wait-result-windows process-result(exe c-string, args string[]) summon, unsafe
 	all-args = " " join (exe.to-string ~ args) to-c-string
 
 	stdout-read mut HANDLE = ()
@@ -146,7 +146,7 @@ shell-exec string(command string) trusted summon
 
 	exit-code.to-int32, stdout, stderr
 
-.read-from-pipe-windows string(pipe HANDLE) summon unsafe
+.read-from-pipe-windows string(pipe HANDLE) summon, unsafe
 	res nat8 mut[] = ()
 	loop
 		read-at-a-time = 0x1000
@@ -165,7 +165,7 @@ shell-exec string(command string) trusted summon
 			assert err == ERROR_BROKEN_PIPE : "Error reading from pipe: {err show-win32-error}"
 			break res.move-to-list as-string
 
-.spawn-and-wait-result-posix process-result(exe c-string, args c-string[]) summon unsafe
+.spawn-and-wait-result-posix process-result(exe c-string, args c-string[]) summon, unsafe
 	stdout-pipes = make-pipes
 	stderr-pipes = make-pipes
 
@@ -195,7 +195,7 @@ shell-exec string(command string) trusted summon
 
 	exit-code, stdout-builder.move-to-list.as-string, stderr-builder.move-to-list.as-string
 
-.make-pipes pipes() summon unsafe
+.make-pipes pipes() summon, unsafe
 	res mut pipes = 0, 0
 	(&res).pipe check-posix-error
 	res
@@ -205,8 +205,8 @@ shell-exec string(command string) trusted summon
 	stderr-pipe fd-t,
 	stdout-builder char8 mut[],
 	stderr-builder char8 mut[],
-) summon unsafe
-	poll-fds mut-array pollfd = (stdout-pipe, POLLIN, 0), (stderr-pipe, POLLIN, 0)
+) summon, unsafe
+	poll-fds pollfd mut-array = (stdout-pipe, POLLIN, 0), (stderr-pipe, POLLIN, 0)
 	# timeout == -1 means we block
 	n-pollfds-with-events = poll-fds.begin-pointer poll poll-fds.size, -1 to-int64
 	if n-pollfds-with-events == 0
@@ -237,7 +237,7 @@ shell-exec string(command string) trusted summon
 		todo
 	had-POLLIN, hung-up
 
-.read-to-buffer-until-eof void(fd fd-t, buffer char8 mut[]) trusted summon
+.read-to-buffer-until-eof void(fd fd-t, buffer char8 mut[]) summon, trusted
 	read-max = 1024
 	# It will write to the end of the buffer. So we must ensure that it has enough space at the end.
 	old-size = buffer.size
@@ -258,13 +258,13 @@ shell-exec string(command string) trusted summon
 
 # Args should be terminated by null.
 # TODO: option to get stdout/stderr as a string rather than having them go to the terminal
-.spawn-and-wait int32(exe c-string, args c-string[]) summon unsafe
+.spawn-and-wait int32(exe c-string, args c-string[]) summon, unsafe
 	pid mut pid_t = 0
 	args-pointer = args.to-array begin-pointer
 	&pid posix_spawn exe, null, null, args-pointer, get-environ-raw check-posix-error
 	pid wait-and-get-exit-code
 
-.wait-and-get-exit-code int32(pid pid_t) summon unsafe
+.wait-and-get-exit-code int32(pid pid_t) summon, unsafe
 	wait-status mut status-t = 0
 	res-pid = pid waitpid &wait-status, 0
 	assert res-pid == pid

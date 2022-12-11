@@ -5,7 +5,7 @@ main nat^(_ string[]) summon
 	out print saturday.to-nat8.to-string
 	0,
 
-lucky-numbers enum<nat8>
+lucky-numbers enum(nat8)
 	friday = 13
 	saturday
 	route = 66

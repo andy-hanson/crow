@@ -8,7 +8,7 @@ import
 		database, from-lmdb-key, get, lmdb-key-flags, open-lmdb-env, read-transaction, set, stat,
 		to-lmdb-key, to-string, with-block, write-transaction
 
-main nat^(args string[]) unsafe summon
+main nat^(args string[]) summon, trusted
 	command-name = !args.is-empty ? args[0]
 	if command ?= command-name.parse-command_name
 		match command
@@ -18,7 +18,7 @@ main nat^(args string[]) unsafe summon
 			db-name = named-args[1] single-string-or-throw "db-name"
 			key = named-args[2] single-string-or-throw "key"
 			with env : db-path open-lmdb-env true
-				with db : env database@<string, string> db-name
+				with db : env database@(string, string) db-name
 					value = with txn : env read-transaction
 						txn get db, key ?? "none"
 					out print value
@@ -30,7 +30,7 @@ main nat^(args string[]) unsafe summon
 			key = named-args[2] single-string-or-throw "key"
 			value = named-args[3] single-string-or-throw "value"
 			with env : db-path open-lmdb-env true
-				with db : env database@<string, string> db-name
+				with db : env database@(string, string) db-name
 					with txn : env write-transaction
 						txn set db, key, value
 					()
@@ -39,7 +39,7 @@ main nat^(args string[]) unsafe summon
 			db-path = named-args[0] single-string-or-throw "db-path"
 			db-name = named-args[1] single-string-or-throw "db-name"
 			with env : db-path open-lmdb-env true
-				with db : env database@<string, string> db-name
+				with db : env database@(string, string) db-name
 					stats = with txn : env read-transaction
 						txn stat db to-string
 					out print stats

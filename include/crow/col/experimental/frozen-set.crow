@@ -18,35 +18,35 @@ import
 		with-block
 	../list: for-loop, list, to-array, to-list
 
-frozen-set<a> record
-	.values array a
+frozen-set[t] record
+	.values t array
 	# These are pointers into 'values', so it's fine that 'pointer' isn't GC traced.
-	.bucket-starts array a*
+	.bucket-starts t* array
 
-dbg-bucket-starts<a> nat64[](a frozen-set a) unsafe no-doc
+dbg-bucket-starts[t] nat64[](a t frozen-set) no-doc, unsafe
 	for pointer : a.bucket-starts to-list
 		pointer - a.values.begin-pointer
 
-new<a> frozen-set a(...a array a) is-data<a> compare<a> hash-mix<a>
+new[t] t frozen-set(...a t array) t is-data, t compare, t hash-mix
 	a.to-list to-frozen-set
 
-to-frozen-set<a> frozen-set a(a a[]) trusted is-data<a> compare<a> hash-mix<a>
+to-frozen-set[t] t frozen-set(a t[]) trusted, t is-data, t compare, t hash-mix
 	a.to-array.to-mut-array unsafe-frozen-set-from-mut-array-cast-immutable
 
 # This is O(1).
-to-list<a> a[](a frozen-set a)
+to-list[t] t[](a t frozen-set)
 	a.values to-list
 
-is-empty<a> bool(a frozen-set a)
+is-empty[t] bool(a t frozen-set)
 	a.values is-empty
 
-size<a> nat64(a frozen-set a)
+size[t] nat64(a t frozen-set)
 	a.values size
 
-in<a> bool(value a, a frozen-set a) is-data<a> compare<a> hash-mix<a>
+in[t] bool(value t, a t frozen-set) t is-data, t compare, t hash-mix
 	value in (a bucket-for value)
 
-.bucket-for<a> array a(a frozen-set a, value a) trusted is-data<a> compare<a> hash-mix<a>
+.bucket-for[t] t array(a t frozen-set, value t) trusted, t is-data, t compare, t hash-mix
 	if a.bucket-starts is-empty
 		a values
 	else
@@ -61,7 +61,7 @@ in<a> bool(value a, a frozen-set a) is-data<a> compare<a> hash-mix<a>
 # TODO: no-doc
 # WARN: The order of values is arbitrary,
 # but consistent for *identical* (not ==) sets.
-try-get-unordered-index<a> nat64?(a frozen-set a, value a) trusted is-data<a> compare<a> hash-mix<a>
+try-get-unordered-index[t] nat64?(a t frozen-set, value t) trusted, t is-data, t compare, t hash-mix
 	if a.bucket-starts is-empty
 		a.values index-of value
 	else
@@ -74,9 +74,9 @@ try-get-unordered-index<a> nat64?(a frozen-set a, value a) trusted is-data<a> co
 		if pointer ?= (bucket-start .. bucket-end).as-array pointer-of value
 			pointer - a.values.begin-pointer,
 
-.unsafe-frozen-set-from-mut-array-cast-immutable<a> frozen-set a(
-	a mut-array a,
-) unsafe is-data<a> compare<a> hash-mix<a>
+.unsafe-frozen-set-from-mut-array-cast-immutable[t] t frozen-set(
+	a t mut-array,
+) unsafe, t is-data, t compare, t hash-mix
 	if a.size <= 4
 		a.cast-immutable, ()
 	else
@@ -99,17 +99,17 @@ try-get-unordered-index<a> nat64?(a frozen-set a, value a) trusted is-data<a> co
 				cur swap bucket-cur-end
 		a.cast-immutable, bucket-starts.array-cast
 
-.get-bucket-counts<a> mut-array nat64(a mut-array a, n-buckets nat64) unsafe hash-mix<a>
+.get-bucket-counts[t] nat64 mut-array(a t mut-array, n-buckets nat64) unsafe, t hash-mix
 	res = n-buckets fill-mut-array 0
 	for value : a
 		bucket-index = value get-bucket-index n-buckets
 		res[bucket-index] := res[bucket-index] + 1
 	res
 
-.get-bucket-index<a> nat64(value a, n-buckets nat64) unsafe hash-mix<a>
+.get-bucket-index[t] nat64(value t, n-buckets nat64) unsafe, t hash-mix
 	value.hash % n-buckets
 
-.running-sum<a> array a mut*(initial a mut*, offsets array nat64) trusted
+.running-sum[t] t mut* array(initial t mut*, offsets nat64 array) trusted
 	with out : offsets.size build
 		acc mut = initial
 		for offset : offsets
@@ -125,26 +125,26 @@ build build-frozen-set()
 build build-frozen-set(size-hint nat64)
 	size-hint,
 
-frozen-set-builder<a> record mut
-	.inner mut-array-builder a
+frozen-set-builder[t] record mut
+	.inner t mut-array-builder
 
-with-block<a> frozen-set a(
+with-block[t] t frozen-set(
 	a build-frozen-set,
-	f act void(frozen-set-builder a),
-) trusted is-data<a> compare<a> hash-mix<a>
+	f act void(t frozen-set-builder),
+) trusted, t is-data, t compare, t hash-mix
 	(with out : a.size-hint build; f[(out,)]) unsafe-frozen-set-from-mut-array-cast-immutable
 
-~= <a> void(a frozen-set-builder a, value a)
+~=[t] void(a t frozen-set-builder, value t)
 	a.inner ~= value
 
-size<a> nat64(a frozen-set-builder a)
+size[t] nat64(a t frozen-set-builder)
 	a.inner size
 
 region iteration
 
-for-loop<a> void(a frozen-set a, f act void(a))
+for-loop[t] void(a t frozen-set, f act void(t))
 	a.values for-loop f
-for-loop<a> void(a frozen-set a, f act void(a, nat64))
+for-loop[t] void(a t frozen-set, f act void(t, nat64))
 	a.values for-loop f
-for-loop<out, in> out[](a frozen-set in, f act out(in)) trusted
+for-loop[out, in] out[](a in frozen-set, f act out(in)) trusted
 	a.values for-loop f to-list

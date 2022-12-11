@@ -4,7 +4,7 @@ import
 	crow/io/print: err, out, print
 	crow/io/stdin: read-stdin
 
-main nat^(args string[]) unsafe summon
+main nat^(args string[]) summon, trusted
 	if args.size == 1
 		port = args[0]
 		handler http-handler = req =>

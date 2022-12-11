@@ -5,7 +5,7 @@ import
 		date, day-of-week-long, gmt, iso-date, iso-timestamp, local-time, time-of-day,
 		timezone-name, timezone-offset, year
 
-main nat^(_ string[]) summon unsafe
+main nat^(_ string[]) summon, trusted
 	t = get-unix-time
 	out print """
 ISO time: {t iso-timestamp}

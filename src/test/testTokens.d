@@ -37,7 +37,7 @@ void testTokens(ref Test test) {
 		Token(Token.Kind.fun, RangeWithinFile(0, 1)),
 		Token(Token.Kind.struct_, RangeWithinFile(2, 5)),
 		Token(Token.Kind.param, RangeWithinFile(6, 7)),
-		Token(Token.Kind.struct_, RangeWithinFile(7, 12)),
+		Token(Token.Kind.struct_, RangeWithinFile(9, 12)),
 		Token(Token.Kind.literalNumber, RangeWithinFile(15, 16))]));
 }
 

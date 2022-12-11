@@ -1,5 +1,5 @@
-magic<out, in> out?(a in?)
+magic[out, in] out?(a in?)
 	()
 
-use-it<out, in> out?(a in?)
-	a magic@<out>
+use-it[out, in] out?(a in?)
+	a magic@out

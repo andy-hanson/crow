@@ -20,36 +20,36 @@ import
 	../sort: sort
 	../private/sort-utils: binary-search-key
 
-compact-sorted-dict<k, v> record by-val
-	.impl impl<k, v>
+compact-sorted-dict[k, v] record by-val
+	.impl (k, v) impl
 
-.impl<k, v> union
-	overlay overlay<k, v>
-	end-node array (k, v)
+.impl[k, v] union
+	overlay (k, v) overlay
+	end-node (k, v) array
 
-.overlay<k, v> record by-ref
+.overlay[k, v] record by-ref
 	# TODO: consider tracking the number of keys that are new, or change a value, or remove a value.
 	# We should merge more frequently if removing keys, less frequently if adding keys.
 	# never empty
-	pairs array (k, v?)
-	prev impl<k, v>
+	pairs (k, v?) array
+	prev (k, v) impl
 
-== <k, v> bool(a compact-sorted-dict<k, v>, b compact-sorted-dict<k, v>) is-data<k> compare<k> equal<v>
+==[k, v] bool(a (k, v) compact-sorted-dict, b (k, v) compact-sorted-dict) k is-data, k compare, v equal
 	a.to-sorted-pairs == b.to-sorted-pairs
-.to-sorted-pairs<k, v> (k, v)[](a compact-sorted-dict<k, v>) is-data<k> compare<k>
+.to-sorted-pairs[k, v] (k, v)[](a (k, v) compact-sorted-dict) k is-data, k compare
 	a.to-list sort pair => pair from
 
-json<k, v> json(a compact-sorted-dict<k, v>) is-data<k> compare<k> json<k> json<v>
+json[k, v] json(a (k, v) compact-sorted-dict) k is-data, k compare, k json, v json
 	a.to-sorted-pairs json
 
-new<k, v> compact-sorted-dict<k, v>(...a array (k, v)) is-data<k> compare<k>
+new[k, v] (k, v) compact-sorted-dict(...a (k, v) array) k is-data, k compare
 	a.to-list to-compact-sorted-dict
 
-to-compact-sorted-dict<k, v> compact-sorted-dict<k, v>(a (k, v)[]) is-data<k> compare<k>
+to-compact-sorted-dict[k, v] (k, v) compact-sorted-dict(a (k, v)[]) k is-data, k compare
 	sorted = a sort pair => pair from
 	(sorted.to-array end-node),
 
-is-empty<k, v> bool(a compact-sorted-dict<k, v>) is-data<k> compare<k>
+is-empty[k, v] bool(a (k, v) compact-sorted-dict) k is-data, k compare
 	match a impl
 	as overlay _
 		false
@@ -60,13 +60,13 @@ is-empty<k, v> bool(a compact-sorted-dict<k, v>) is-data<k> compare<k>
 Number of pairs.
 This is O(n).
 ###
-size<k, v> nat64(a compact-sorted-dict<k, v>) is-data<k> compare<k>
+size[k, v] nat64(a (k, v) compact-sorted-dict) k is-data, k compare
 	res mut = 0
 	for _, _ : a
 		res := res + 1
 	res
 
-to-list<k, v> (k, v)[](a compact-sorted-dict<k, v>) is-data<k> compare<k>
+to-list[k, v] (k, v)[](a (k, v) compact-sorted-dict) k is-data, k compare
 	# TODO:PERF Just use 'fold'?
 	match a.compact.impl
 	as overlay _
@@ -74,10 +74,10 @@ to-list<k, v> (k, v)[](a compact-sorted-dict<k, v>) is-data<k> compare<k>
 	as end-node e
 		e to-list
 
-~ <k, v> compact-sorted-dict<k, v>(a compact-sorted-dict<k, v>, pair (k, v)) is-data<k> compare<k>
+~[k, v] (k, v) compact-sorted-dict(a (k, v) compact-sorted-dict, pair (k, v)) k is-data, k compare
 	(a.impl add-or-remove pair.from, (pair.to,)),
 
-~~ <k, v> compact-sorted-dict<k, v>(a compact-sorted-dict<k, v>, b (k, v)[]) is-data<k> compare<k>
+~~[k, v] (k, v) compact-sorted-dict(a (k, v) compact-sorted-dict, b (k, v)[]) k is-data, k compare
 	if b is-empty
 		a
 	elif a is-empty
@@ -86,15 +86,15 @@ to-list<k, v> (k, v)[](a compact-sorted-dict<k, v>) is-data<k> compare<k>
 		# TODO: type annotation be unnecessary
 		pairs (k, v?)[] = (for x : b; x.from, (x.to,)) sort pair => pair from
 		# TODO: should not need type annotation
-		(pairs.to-array, a.impl)::overlay<k, v>.merge-as-needed,
+		(pairs.to-array, a.impl)::((k, v) overlay).merge-as-needed,
 
-- <k, v> compact-sorted-dict<k, v>(a compact-sorted-dict<k, v>, key k) is-data<k> compare<k>
+-[k, v] (k, v) compact-sorted-dict(a (k, v) compact-sorted-dict, key k) k is-data, k compare
 	if key in a
 		(a.impl add-or-remove key, ()),
 	else
 		a
 
-subscript<k, v> v?(a compact-sorted-dict<k, v>, key k) is-data<k> compare<k>
+subscript[k, v] v?(a (k, v) compact-sorted-dict, key k) k is-data, k compare
 	cur mut = a impl
 	loop
 		match cur
@@ -107,13 +107,13 @@ subscript<k, v> v?(a compact-sorted-dict<k, v>, key k) is-data<k> compare<k>
 		as end-node e
 			break e binary-search-key key
 
-in<k, v> bool(key k, a compact-sorted-dict<k, v>) is-data<k> compare<k>
+in[k, v] bool(key k, a (k, v) compact-sorted-dict) k is-data, k compare
 	!a[key].is-empty
 
-.add-or-remove<k, v> impl<k, v>(a impl<k, v>, key k, value v?) is-data<k> compare<k>
+.add-or-remove[k, v] (k, v) impl(a (k, v) impl, key k, value v?) k is-data, k compare
 	(((key, value),), a) merge-as-needed
 
-.merge-as-needed<k, v> impl<k, v>(a overlay<k, v>) is-data<k> compare<k>
+.merge-as-needed[k, v] (k, v) impl(a (k, v) overlay) k is-data, k compare
 	match a prev
 	as overlay o
 		if o.pairs.size should-merge a.pairs.size
@@ -127,7 +127,7 @@ in<k, v> bool(key k, a compact-sorted-dict<k, v>) is-data<k> compare<k>
 		else
 			a overlay
 
-.merge-unconditionally<k, v> array<(k, v)>(a overlay<k, v>) is-data<k> compare<k>
+.merge-unconditionally[k, v] (k, v) array(a (k, v) overlay) k is-data, k compare
 	match a prev
 	as overlay o
 		((o.pairs merge-overlays a.pairs), o.prev) merge-unconditionally
@@ -137,7 +137,7 @@ in<k, v> bool(key k, a compact-sorted-dict<k, v>) is-data<k> compare<k>
 .should-merge bool(prev-size nat64, overlay-size nat64)
 	prev-size <= (overlay-size max 3)
 
-.merge-overlays<k, v> array<(k, v?)>(left array (k, v?), right array (k, v?)) is-data<k> compare<k>
+.merge-overlays[k, v] (k, v?) array(left (k, v?) array, right (k, v?) array) k is-data, k compare
 	with out : left.size + right.size build
 		l = left mut-iter
 		r = right mut-iter
@@ -160,7 +160,7 @@ in<k, v> bool(key k, a compact-sorted-dict<k, v>) is-data<k> compare<k>
 				out ~~= r slice-right
 				break
 
-.merge-to-end<k, v> array<(k, v)>(left array (k, v), right array (k, v?)) is-data<k> compare<k>
+.merge-to-end[k, v] (k, v) array(left (k, v) array, right (k, v?) array) k is-data, k compare
 	with out : left.size + right.size build
 		l = left mut-iter
 		r = right mut-iter
@@ -183,12 +183,12 @@ in<k, v> bool(key k, a compact-sorted-dict<k, v>) is-data<k> compare<k>
 				for pair : r slice-right
 					out add-if-has-value pair
 				break
-.add-if-has-value<k, v> void(out array-builder (k, v), pair (k, v?))
+.add-if-has-value[k, v] void(out (k, v) array-builder, pair (k, v?))
 	if v ?= pair to
 		out ~= (pair.from, v)
 
 # Returns an equal dictionary that takes up less space.
-compact<k, v> compact-sorted-dict<k, v>(a compact-sorted-dict<k, v>) is-data<k> compare<k>
+compact[k, v] (k, v) compact-sorted-dict(a (k, v) compact-sorted-dict) k is-data, k compare
 	node = match a.impl
 	as overlay o
 		o.merge-unconditionally end-node
@@ -198,10 +198,10 @@ compact<k, v> compact-sorted-dict<k, v>(a compact-sorted-dict<k, v>) is-data<k> 
 
 region iteration
 
-for-loop<k, v> void(a compact-sorted-dict<k, v>, f act void(k, v)) is-data<k> compare<k>
-	overlays array<(k, v?)> mut[] = ()
+for-loop[k, v] void(a (k, v) compact-sorted-dict, f act void(k, v)) k is-data, k compare
+	overlays (k, v?) array mut[] = ()
 	cur mut = a impl
-	end-node mut array (k, v) = loop
+	end-node mut (k, v) array = loop
 		match cur
 		as overlay o
 			overlays ~= o pairs
@@ -226,7 +226,7 @@ for-loop<k, v> void(a compact-sorted-dict<k, v>, f act void(k, v)) is-data<k> co
 				f[least-key, val]
 			continue
 
-.find-least-key<k, v> k(current-least-key k, overlays array<(k, v)> mut[]) is-data<k> compare<k>
+.find-least-key[k, v] k(current-least-key k, overlays (k, v) array mut[]) k is-data, k compare
 	res mut = current-least-key
 	for overlay : overlays
 		res := res min overlay[0].from
@@ -237,7 +237,7 @@ Takes the key from the front of every overlay that has it.
 Removes rightmost overlays from the mut-array (by returning a new, smaller mut-array).
 Returns the rightmost value associated with that key.
 ###
-.take-key<k, v> v?(overlays array<(k, v?)> mut[], key k) is-data<k> compare<k>
+.take-key[k, v] v?(overlays (k, v?) array mut[], key k) k is-data, k compare
 	index mut = 0
 	res mut v? = ()
 	# Index can overshoot due to removing overlays
@@ -259,46 +259,46 @@ Returns the rightmost value associated with that key.
 			index := index + 1
 			continue
 
-.get-end<k, v> array<(k, v)>(a impl<k, v>)
+.get-end[k, v] (k, v) array(a (k, v) impl)
 	match a
 	as overlay o
 		o.prev get-end
 	as end-node e
 		e
 
-for-loop<out, k, v> out[](a compact-sorted-dict<k, v>, f act out(k, v)) is-data<k> compare<k>
+for-loop[out, k, v] out[](a (k, v) compact-sorted-dict, f act out(k, v)) k is-data, k compare
 	for pair : a to-list
 		f[pair.from, pair.to]
 
-for-loop<k-out, v-out, k-in, v-in> compact-sorted-dict<k-out, v-out>(
-	a compact-sorted-dict<k-in, v-in>,
+for-loop[k-out, v-out, k-in, v-in] (k-out, v-out) compact-sorted-dict(
+	a (k-in, v-in) compact-sorted-dict,
 	f act (k-out, v-out)(k-in, v-in),
-) is-data<k-in> compare<k-in> is-data<k-out> compare<k-out>
+) k-in is-data, k-in compare, k-out is-data, k-out compare
 	a for-loop f to-compact-sorted-dict
 
-filter<k, v> compact-sorted-dict<k, v>(a compact-sorted-dict<k, v>, f act bool(k, v)) is-data<k> compare<k>
+filter[k, v] (k, v) compact-sorted-dict(a (k, v) compact-sorted-dict, f act bool(k, v)) k is-data, k compare
 	# No need to re-sort
 	pairs = a.to-list filter pair =>
 		f[pair.from, pair.to]
 	(pairs.to-array end-node),
 
-keys<k, v> k[](a compact-sorted-dict<k, v>) is-data<k> compare<k>
+keys[k, v] k[](a (k, v) compact-sorted-dict) k is-data, k compare
 	for k, _ : a
 		k
 
-map-values<v-out, k, v-in> compact-sorted-dict<k, v-out>(
-	a compact-sorted-dict<k, v-in>,
+map-values[v-out, k, v-in] (k, v-out) compact-sorted-dict(
+	a (k, v-in) compact-sorted-dict,
 	f act v-out(k, v-in),
-) is-data<k> compare<k>
+) k is-data, k compare
 	# No need to re-sort
-	new-pairs array (k, v-out) = for pair : a to-list
+	new-pairs (k, v-out) array = for pair : a to-list
 		pair.from, f[pair.from, pair.to]
 	(new-pairs end-node),
 
 # TODO:PRIVATE
-dbg<k, v> string(a compact-sorted-dict<k, v>) to-string<k> to-string<v>
+dbg[k, v] string(a (k, v) compact-sorted-dict) k to-string, v to-string
 	a.impl dbg
-.dbg<k, v> string(a impl<k, v>) to-string<k> to-string<v>
+.dbg[k, v] string(a (k, v) impl) k to-string, v to-string
 	match a
 	as overlay o
 		pairs = ", " join for x : o.pairs to-list
@@ -313,11 +313,11 @@ dbg<k, v> string(a compact-sorted-dict<k, v>) to-string<k> to-string<v>
 			"{x from} -> {x to}"
 		"[{pairs}]"
 
-verify void(a compact-sorted-dict<nat64, string>, expected string)
+verify void(a (nat64, string) compact-sorted-dict, expected string)
 	a.dbg is expected
 
 test
-	a compact-sorted-dict<nat64, string> = ()
+	a (nat64, string) compact-sorted-dict = ()
 	a.is-empty is true
 	a.size is 0
 	a verify "[]"
@@ -359,11 +359,11 @@ test
 		k is-even
 	h-filtered verify "[10 -> 10b, 20 -> 20]"
 
-	h-mapped compact-sorted-dict<nat64, string> = h map-values (_, v) =>
+	h-mapped (nat64, string) compact-sorted-dict = h map-values (_, v) =>
 		"{v.end-iter.prev! value}"
 	h-mapped verify "[5 -> 5, 10 -> b, 20 -> 0]"
 
 test
-	a compact-sorted-dict<nat64, string> = (84, "84"),
+	a (nat64, string) compact-sorted-dict = (84, "84"),
 	b = a ~ (84, "84b")
 	b verify "[84 -> 84b]"

@@ -14,7 +14,7 @@ import
 	crow/private/alloc: force-needs-gc, gc, get-gc, get-stats, words-used
 	crow/private/bootstrap: todo
 
-main nat^(args string[]) summon unsafe
+main nat^(args string[]) summon, trusted
 	match args parse-options
 	as ok options
 		42 srand
@@ -214,7 +214,7 @@ This ensures the collection is kept in memory.
 .get-factor nat()
 	100
 
-.repeat<a> a(init a, iters nat, f fun a(a))
+.repeat[t] t(init t, iters nat, f fun t[t])
 	res mut = init
 	for _ : 0 .. iters
 		res := f[res]
@@ -236,11 +236,11 @@ This ensures the collection is kept in memory.
 	() repeat iters, x => x ~ max-value.rand-nat
 .add-test tree-set nat(iters nat, max-value nat) summon
 	() repeat iters, x => x ~ max-value.rand-nat
-.add-test frozen-dict<nat, void>(iters nat, max-value nat) trusted summon
+.add-test frozen-dict<nat, void>(iters nat, max-value nat) summon, trusted
 	with out : build
 		for _ : 0 .. iters
 			out ~= (max-value.rand-nat, ())
-.add-test frozen-set nat(iters nat, max-value nat) trusted summon
+.add-test frozen-set nat(iters nat, max-value nat) summon, trusted
 	with out : build
 		for _ : 0 .. iters
 			out ~= max-value rand-nat
@@ -291,6 +291,6 @@ This ensures the collection is kept in memory.
 .rand-nat nat(max nat) summon
 	rand.to-nat64 % max
 
-.rand int32() extern<c> trusted summon
+.rand int32() summon, trusted, c extern
 
-.srand void(a nat32) extern<c> summon
+.srand void(a nat32) summon, c extern

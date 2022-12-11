@@ -2,9 +2,9 @@ import
 	crow/io/file: each-child-recursive, read-file
 	crow/io/path: base-name, get-extension
 	crow/io/print: out, print
-	./failure: failure, flat-map-with-max-size, max-failures, new, print-tests, test-options
+	./failure: failure, flat-map-with-max-size, max-failures, new, print-tests, test-options, test-result
 
-lint result<string, failure[]>(path string, options test-options) summon
+lint test-result(path string, options test-options) summon
 	files = path list-lintable-files
 	failures = files flat-map-with-max-size options.max-failures, file =>
 		if options print-tests
@@ -28,9 +28,9 @@ lint result<string, failure[]>(path string, options test-options) summon
 	elif ext ?= name get-extension
 		ext in exclude-extensions
 
-.exclude-extensions set string()
+.exclude-extensions string set()
 	"bmp", "dll", "err", "exe", "ilk", "lib", "mdb", "obj", "ogg", "pdb", "png", "svg", "wasm", "wav", "woff2"
-.exclude-names set string()
+.exclude-names string set()
 	# TODO: gl.crow needs a multi-line call syntax
 	"bin", "COPYING.txt", "dyncall", "gl.crow", "node_modules", "package-lock.json", "site"
 

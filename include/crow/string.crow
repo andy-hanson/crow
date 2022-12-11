@@ -39,7 +39,7 @@ string record by-val
 char8s char8[](a string)
 	a inner
 
-literal string(a c-string) noctx trusted
+literal string(a c-string) noctx, trusted
 	(a .. a.find-c-string-end).as-list as-string
 
 ###
@@ -93,9 +93,9 @@ This is O(1).
 ###
 as-string string(a char8[]) noctx
 	a,
-as-string string(a array char8) noctx
+as-string string(a char8 array) noctx
 	a.to-list as-string
-as-string string(a range char8*) noctx unsafe
+as-string string(a char8* range) noctx, unsafe
 	a.as-array as-string
 
 ###
@@ -103,8 +103,8 @@ Treats UTF-8 bytes as a string.
 This is O(1).
 ###
 as-string string(bytes nat8[]) unsafe
-	bytes.list-cast@<char8, nat8> as-string
-as-string string(bytes array nat8) unsafe
+	bytes.list-cast::char8[] as-string
+as-string string(bytes nat8 array) unsafe
 	bytes.to-list as-string
 
 ###
@@ -112,7 +112,7 @@ Treats a string as a list of UTF-8 bytes.
 This is O(1).
 ###
 to-bytes nat8[](a string) trusted
-	a.char8s list-cast@<nat8, char8>
+	a.char8s list-cast
 
 # TODO: this should probably be 'unsafe', but safe functions like "throw" need a c-string
 ###
@@ -206,8 +206,8 @@ to-hex string(a nat8)
 	a.to-nat64 to-base base
 
 # Spec of any type that could be converted to a string.
-to-string<a> spec
-	to-string string(a a)
+to-string[t] spec
+	to-string string(a t)
 
 # Identity function to satisfy the `to-string` spec.
 to-string string(a string)
@@ -269,7 +269,7 @@ to-string string(a float64)
 region iterator
 
 string-iter record by-val
-	.inner list-iter char8
+	.inner char8 list-iter
 == bool(a string-iter, b string-iter)
 	a.inner == b.inner
 
@@ -282,11 +282,11 @@ end-iter string-iter(a string)
 peek char8?(a string-iter)
 	a.inner peek
 
-next value-and-rest<char8, string-iter>?(a string-iter)
+next (char8, string-iter) value-and-rest?(a string-iter)
 	if res ?= a.inner next
 		(res.value, (res.rest,)),
 
-prev value-and-rest<char8, string-iter>?(a string-iter)
+prev (char8, string-iter) value-and-rest?(a string-iter)
 	if res ?= a.inner prev
 		(res.value, (res.rest,)),
 
@@ -297,7 +297,7 @@ slice-right string(a string-iter)
 	a.inner.slice-right as-string
 
 mut-string-iter record mut
-	.inner mut-list-iter char8
+	.inner char8 mut-list-iter
 
 mut-iter mut-string-iter(a string)
 	a.char8s.mut-iter,
@@ -505,7 +505,7 @@ build build-string(size-hint nat64)
 	size-hint,
 
 string-builder record mut
-	.inner list-builder char8
+	.inner char8 list-builder
 
 with-block string(a build-string, f act void(string-builder))
 	(with out : a.size-hint build; f[(out,)])::char8[] as-string

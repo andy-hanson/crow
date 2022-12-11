@@ -18,7 +18,7 @@ Only names in `names` will be measured; others will be ignored.
 
 If measurement was already enabled, this sets all measurements to 0 (and may change measured names)
 ###
-perf-enable-low-level void(measure-names array symbol) summon trusted
+perf-enable-low-level void(measure-names symbol array) summon, trusted
 	*measure-names-var free-unmanaged-mut-array
 	*measure-values-var free-unmanaged-mut-array
 	*measure-names-var := measure-names.size unmanaged-uninitialized-mut-array
@@ -26,13 +26,13 @@ perf-enable-low-level void(measure-names array symbol) summon trusted
 	*measure-values-var := measure-names.size unmanaged-uninitialized-mut-array
 	*measure-values-var fill (0, 0)
 
-.measure-names-var mut-array<symbol> mut*() thread-local
-.measure-values-var mut-array<perf-measure-value> mut*() thread-local
+.measure-names-var symbol mut-array mut*() thread-local
+.measure-values-var perf-measure-value mut-array mut*() thread-local
 
-get-measure-index nat64?(measure-name symbol) noctx unsafe
+get-measure-index nat64?(measure-name symbol) noctx, unsafe
 	*measure-names-var index-of measure-name
 
-add-measure-value-at-index void(index nat64, nsec nat64) noctx unsafe
+add-measure-value-at-index void(index nat64, nsec nat64) noctx, unsafe
 	values = *measure-values-var
 	cur = values[index]
 	values[index] := cur.count + 1, cur.total-nsec + nsec

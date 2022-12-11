@@ -53,8 +53,6 @@ DiagSeverity getDiagnosticSeverity(in Diag a) =>
 			DiagSeverity.checkError,
 		(in Diag.FunModifierRedundant) =>
 			DiagSeverity.checkWarning,
-		(in Diag.FunModifierTypeArgs) =>
-			DiagSeverity.checkError,
 		(in Diag.IfNeedsOpt) =>
 			DiagSeverity.checkError,
 		(in Diag.ImportRefersToNothing) =>
@@ -123,6 +121,8 @@ DiagSeverity getDiagnosticSeverity(in Diag a) =>
 			DiagSeverity.checkError,
 		(in Diag.SpecImplTooDeep) =>
 			DiagSeverity.checkError,
+		(in Diag.SpecNameMissing) =>
+			DiagSeverity.checkError,
 		(in Diag.ThreadLocalError) =>
 			DiagSeverity.checkError,
 		(in Diag.TypeAnnotationUnnecessary) =>
@@ -147,6 +147,8 @@ DiagSeverity getDiagnosticSeverity(in Diag a) =>
 			DiagSeverity.unusedCode,
 		(in Diag.UnusedPrivateStructAlias) =>
 			DiagSeverity.unusedCode,
+		(in Diag.VarargsParamMustBeArray) =>
+			DiagSeverity.checkError,
 		(in Diag.WrongNumberTypeArgsForSpec) =>
 			DiagSeverity.checkError,
 		(in Diag.WrongNumberTypeArgsForStruct) =>

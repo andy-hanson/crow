@@ -23,9 +23,9 @@ Temporarily replaces the log handler.
 Only applies within this task. Even if you launch a task inside `with-log-handler`,
 that task will still have the default log handler.
 ###
-with-log-handler<a> a(handler log-handler, cb act a()) trusted
+with-log-handler[t] t(handler log-handler, cb act t()) trusted
 	original-handler = get-log-handler
-	action act a() = () =>
+	action act t() = () =>
 		handler set-log-handler
 		res = cb[]
 		original-handler set-log-handler
@@ -81,7 +81,7 @@ For example, this might write it to the console.
 log-handler alias
 	fun void(logged)
 
-default-log-handler void(a logged) no-doc summon
+default-log-handler void(a logged) no-doc, summon
 	out print a.level.to-string ~~ ": " ~~ a.message
 
 # GC doesn't trace thread-locals, but won't outlive a task anyway.
@@ -94,8 +94,8 @@ then fall back to the original log handler.
 
 If you just want to call the curent log handler, you could just use `log`.
 ###
-get-log-handler log-handler() noctx trusted
+get-log-handler log-handler() noctx, trusted
 	*cur-log-handler
 
-set-log-handler void(handler log-handler) no-doc noctx unsafe
+set-log-handler void(handler log-handler) noctx, no-doc, unsafe
 	*cur-log-handler := handler

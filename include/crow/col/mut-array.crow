@@ -30,18 +30,18 @@ You can't change what range of addresses a `mut-array` points to, though you can
 Like an immutable array, and unlike a `mut[]`, it's cheap to take a slice of a `mut-array`.
 Taking a slice aliases the elements, so writing to the slice writes to the original.
 ###
-mut-array<a> record mut by-val
-	.inner array a
+mut-array[t] record mut by-val
+	.inner t array
 
-empty-mut-array<a> mut-array a() no-doc noctx
+empty-mut-array[t] t mut-array() noctx, no-doc
 	# TODO: should not need type annotation
-	inner array a = ()
+	inner t array = ()
 	inner,
 
 ###
 Creates a new `mut-array` with the given elements.
 ###
-new<a> mut-array a(...a array a)
+new[t] t mut-array(...a t array)
 	a to-mut-array
 
 ###
@@ -49,13 +49,13 @@ Copies the array elements to a new `mut-array`.
 
 This is O(n).
 ###
-to-mut-array<a> mut-array a(a array a)
+to-mut-array[t] t mut-array(a t array)
 	a.size make-mut-array i => a[i]
 
 ###
 Treat a mutable as an array. Only do this if you are done mutating it.
 ###
-as-const<a> array a(a mut-array a) noctx unsafe
+as-const[t] t array(a t mut-array) noctx, unsafe
 	a inner
 
 ###
@@ -65,15 +65,15 @@ This is O(n).
 
 There is no `move-to-array` for `mut-array` since there might be slices that still refer to its elements.
 ###
-to-array<a> array a(a mut-array a)
+to-array[t] t array(a t mut-array)
 	a.copy.inner
 
 # Get a `mut-array` from a poitner and range of indices.
-subscript<a> mut-array a(a a mut*, range range nat64) noctx unsafe
-	a.as-const[range],
+subscript[t] t mut-array(a t mut*, indices nat64 range) noctx, unsafe
+	a.as-const[indices],
 
 # Creates a `mut-array` from a range of pointers.
-as-mut-array<a> mut-array a(a range a mut*) no-doc unsafe noctx
+as-mut-array[t] t mut-array(a t mut* range) noctx, no-doc, unsafe
 	assert a.low <= a.high
 	(a.low .. a.high).as-array,
 
@@ -81,7 +81,7 @@ as-mut-array<a> mut-array a(a range a mut*) no-doc unsafe noctx
 Gets the element at the index.
 Throws if `index >= a.size`.
 ###
-subscript<a> a(a mut-array a, index nat64) noctx trusted
+subscript[t] t(a t mut-array, index nat64) noctx, trusted
 	assert index < a.size
 	a.begin-pointer[index]
 
@@ -94,34 +94,34 @@ Slices alias the original: Writes to the slice will affect the original.
 
 Throws if the slice would be out of bounds.
 ###
-subscript<a> mut-array a(a mut-array a, range range nat64)
-	a.inner[range],
+subscript[t] t mut-array(a t mut-array, indices nat64 range)
+	a.inner[indices],
 
 ###
 Write to a single element.
 Throws if `index >= a.size`.
 ###
-set-subscript<a> void(a mut-array a, index nat64, value a) noctx trusted
+set-subscript[t] void(a t mut-array, index nat64, value t) noctx, trusted
 	assert index < a.size
 	a.begin-pointer[index] := value
 
 # `true` iff `a.size == 0`.
-is-empty<a> bool(a mut-array a) noctx
+is-empty[t] bool(a t mut-array) noctx
 	a.size == 0
 
 # Number of elements.
-size<a> nat64(a mut-array a) noctx
+size[t] nat64(a t mut-array) noctx
 	a.inner size
 
 # Pointer to the beginning of the `mut-array`.
-begin-pointer<a> a mut*(a mut-array a) noctx unsafe
+begin-pointer[t] t mut*(a t mut-array) noctx, unsafe
 	a.inner.begin-pointer as-mut
 
 ###
 Pointer to the end of the `mut-array`.
 This is one past the last valid pointer.
 ###
-end-pointer<a> a mut*(a mut-array a) noctx unsafe
+end-pointer[t] t mut*(a t mut-array) noctx, unsafe
 	a.begin-pointer + a.size
 
 ###
@@ -129,7 +129,7 @@ Copies the elements to a new `mut-array`.
 
 This is O(n).
 ###
-copy<a> mut-array a(a mut-array a)
+copy[t] t mut-array(a t mut-array)
 	for x : a
 		x
 
@@ -141,9 +141,9 @@ Throws if `dest` and `source` are not the same size.
 
 This is O(n).
 ###
-copy-from<a> void(dest mut-array a, source array a) trusted
+copy-from[t] void(dest t mut-array, source t array) trusted
 	assert dest.size == source.size
-	_ = dest.begin-pointer.as-any-mut-pointer memcpy source.begin-pointer.as-any-const-pointer, dest.size * size-of@<a>
+	_ = dest.begin-pointer.as-any-mut-pointer memcpy source.begin-pointer.as-any-const-pointer, dest.size * size-of@t
 	()
 
 ###
@@ -151,7 +151,7 @@ Copies elements from `source` to `dest`.
 
 This is O(n).
 ###
-copy-from<a> void(dest mut-array a, source mut-array a) trusted
+copy-from[t] void(dest t mut-array, source t mut-array) trusted
 	dest copy-from source.temp-as-array
 
 ###
@@ -166,15 +166,15 @@ since initialization code might throw an exception.
 
 See `zeroed-mut-array` for a safer alternative, or `make-mut-array` for a fully safe alternative.
 ###
-uninitialized-mut-array<a> mut-array a(size nat64) unsafe
-	pointer a mut* = size alloc-uninitialized
+uninitialized-mut-array[t] t mut-array(size nat64) unsafe
+	pointer t mut* = size alloc-uninitialized
 	pointer[0 .. size]
 
-unmanaged-uninitialized-mut-array<a> mut-array a(size nat64) no-doc noctx unsafe
-	pointer a mut* = size unmanaged-alloc-elements
+unmanaged-uninitialized-mut-array[t] t mut-array(size nat64) noctx, no-doc, unsafe
+	pointer t mut* = size unmanaged-alloc-elements
 	pointer[0 .. size]
 
-free-unmanaged-mut-array<a> void(a mut-array a) no-doc noctx unsafe
+free-unmanaged-mut-array[t] void(a t mut-array) noctx, no-doc, unsafe
 	a.begin-pointer unmanaged-free-elements a.size
 
 ###
@@ -185,23 +185,23 @@ but is still not safe to expose to readers (who may try to dereference the null 
 
 This is used by collections like `mut[]` that need some excess capacity that will be GC-safe.
 ###
-zeroed-mut-array<a> mut-array a(size nat64) unsafe
-	res mut-array a = size uninitialized-mut-array
+zeroed-mut-array[t] t mut-array(size nat64) unsafe
+	res t mut-array = size uninitialized-mut-array
 	res set-zero-elements
 	res
 
 ###
 Sets every element to `zeroed`. See comment on `zeroed-mut-array` for why this is useful.
 ###
-set-zero-elements<a> void(a mut-array a) noctx unsafe
+set-zero-elements[t] void(a t mut-array) noctx, unsafe
 	a.begin-pointer set-zero-range a.size
 
 ###
 `mut-array` where each element is `f[i]`.
 Equivalent to `f[0], f[1], ...`.
 ###
-.make-mut-array<a> mut-array a(size nat64, f act a(nat64)) trusted
-	res mut-array a = size uninitialized-mut-array
+.make-mut-array[t] t mut-array(size nat64, f act t(nat64)) trusted
+	res t mut-array = size uninitialized-mut-array
 	out mut = res begin-pointer
 	i mut = 0
 	loop
@@ -218,16 +218,16 @@ Equivalent to `f[0], f[1], ...`.
 `mut-array` where every element is `value`.
 Equivalent to `value, value, ...`.
 ###
-fill-mut-array<a> mut-array a(size nat64, value a)
+fill-mut-array[t] t mut-array(size nat64, value t)
 	size make-mut-array _ => value
 
 # Sets every element to `value`.
-fill<a> void(a mut-array a, value a) noctx trusted
+fill[t] void(a t mut-array, value t) noctx, trusted
 	unless a is-empty
 		*a.begin-pointer := value
 		(a.begin-pointer + 1 .. a.end-pointer).as-mut-array fill value
 
-in<a> bool(value a, a mut-array a) noctx trusted equal<a>
+in[t] bool(value t, a t mut-array) noctx, trusted, t equal
 	cur mut = a.begin-pointer as-const
 	end = a.end-pointer as-const
 	loop
@@ -244,22 +244,22 @@ Unsafe cast a mut-array to arr.
 Equivalent to `temp-as-array`, but the implication is that
 the `mut-array` will never be written to again, so the `arr` can be used forever.
 ###
-cast-immutable<a> array a(a mut-array a) noctx unsafe
+cast-immutable[t] t array(a t mut-array) noctx, unsafe
 	a inner
 
-first<a> a?(a mut-array a)
+first[t] t?(a t mut-array)
 	unless a is-empty
 		a[0],
 
-last<a> a?(a mut-array a)
+last[t] t?(a t mut-array)
 	unless a is-empty
 		a[0],
 
-tail<a> mut-array a(a mut-array a)
+tail[t] t mut-array(a t mut-array)
 	forbid a is-empty
 	a[1 .. a.size]
 
-rtail<a> mut-array a(a mut-array a)
+rtail[t] t mut-array(a t mut-array)
 	forbid a is-empty
 	a[0 .. a.size - 1]
 
@@ -271,18 +271,18 @@ This is O(1).
 Unsafe because an array is expected to be fully immutable (meaning: no mutable references exist),
 so this value should only be used temporarily.
 ###
-temp-as-array<a> array a(a mut-array a) noctx unsafe
+temp-as-array[t] t array(a t mut-array) noctx, unsafe
 	a inner
 
 # Equivalent to `a.temp-as-array index-of value`.
-index-of<a> nat64?(a mut-array a, value a) trusted noctx equal<a>
+index-of[t] nat64?(a t mut-array, value t) noctx, trusted, t equal
 	a.temp-as-array index-of value
 
 # Equivalent to `a.temp-as-array find-index f`.
-find-index<a> nat64?(a mut-array a, f act bool(a)) trusted
+find-index[t] nat64?(a t mut-array, f act bool(t)) trusted
 	a.temp-as-array find-index f
 
-set-reverse<a> void(a mut-array a) trusted
+set-reverse[t] void(a t mut-array) trusted
 	# avoid 'a.end-pointer - 1' overflowing for null arrays
 	unless a is-empty
 		left mut = a begin-pointer
@@ -294,42 +294,43 @@ set-reverse<a> void(a mut-array a) trusted
 
 region iteration
 
-exists<a> bool(a mut-array a, f act bool(a)) trusted
+exists[t] bool(a t mut-array, f act bool(t)) trusted
 	a.temp-as-array exists f
 
 # Calls 'f' on each element in the mut-array.
-for-loop<a> void(a mut-array a, f act void(a)) trusted
+for-loop[t] void(a t mut-array, f act void(t)) trusted
 	# TODO: dangerous if 'a' is modified while running 'f'
 	a.temp-as-array for-loop f
 
-for-loop<a> void(a mut-array a, f act void(a, nat64)) trusted
+for-loop[t] void(a t mut-array, f act void(t, nat64)) trusted
 	# TODO: dangerous if 'a' is modified while running 'f'
 	a.temp-as-array for-loop f
 
-set-map<a> void(a mut-array a, f act a(a)) trusted
+set-map[t] void(a t mut-array, f act t(t)) trusted
 	cur mut = a begin-pointer
 	until cur == a.end-pointer
 		*cur := f[*cur]
 		cur := cur + 1
 
-for-loop<out, in> mut-array out(a mut-array in, f act out(in)) trusted
+for-loop[out, in] out mut-array(a in mut-array, f act out(in)) trusted
 	a.size make-mut-array i => f[a[i]]
 
-for-loop<out, in> mut-array out(a mut-array in, f act out(in, nat64)) trusted
+for-loop[out, in] out mut-array(a in mut-array, f act out(in, nat64)) trusted
 	a.size make-mut-array i => f[a[i], i]
 
 ###
 Casts elements to a different type.
 If the element type is different, adjusts the size so that the number of bytes is the same.
 ###
-cast-mut-array<out, in> mut-array out(a mut-array in) noctx unsafe
-	assert size-of@<in> != 0 && size-of@<out> != 0
-	size-bytes = a.size * size-of@<in>
-	assert size-bytes % size-of@<out> == 0
-	size-out = size-bytes / size-of@<out>
-	a.begin-pointer.pointer-cast@<out, in>[0 .. size-out]
+cast-mut-array[out, in] out mut-array(a in mut-array) noctx, unsafe
+	assert size-of@in != 0 && size-of@out != 0
+	size-bytes = a.size * size-of@in
+	assert size-bytes % size-of@out == 0
+	size-out = size-bytes / size-of@out
+	# TODO: shouldn't need parentheses
+	(a.begin-pointer.pointer-cast::out mut*)[0 .. size-out]
 
-for-loop<out, in> array out(a mut-array in, f act out(in)) trusted
+for-loop[out, in] out array(a in mut-array, f act out(in)) trusted
 	a for-loop f cast-immutable
 
 region builder
@@ -341,14 +342,14 @@ build build-mut-array()
 build build-mut-array(size-hint nat64)
 	size-hint,
 
-mut-array-builder<a> record mut
-	.inner array-builder a
+mut-array-builder[t] record mut
+	.inner t array-builder
 
-with-block<a> mut-array a(a build-mut-array, f act void(mut-array-builder a))
-	(with out : a.size-hint build; f[(out,)])::array<a>,
+with-block[t] t mut-array(a build-mut-array, f act void(t mut-array-builder))
+	(with out : a.size-hint build; f[(out,)])::(t array),
 
-~= <a> void(a mut-array-builder a, value a)
+~=[t] void(a t mut-array-builder, value t)
 	a.inner ~= value
 
-size<a> nat64(a mut-array-builder a)
+size[t] nat64(a t mut-array-builder)
 	a.inner size

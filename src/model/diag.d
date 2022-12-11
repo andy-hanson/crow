@@ -89,7 +89,8 @@ immutable struct Diag {
 	immutable struct CallNoMatch {
 		Sym funName;
 		Opt!Type expectedReturnType;
-		// 0 for inferred type args
+		// 0 for inferred type args.
+		// This is the unpacked tuple, actualNTypeArgs > 1 may match candidates with 1 type arg.
 		size_t actualNTypeArgs;
 		size_t actualArity;
 		// NOTE: we may have given up early and this may not be as much as actualArity
@@ -183,9 +184,6 @@ immutable struct Diag {
 		Sym modifier;
 		// This is implied by the first modifier
 		Sym redundantModifier;
-	}
-	immutable struct FunModifierTypeArgs {
-		Sym modifier;
 	}
 	immutable struct IfNeedsOpt {
 		Type actualType;
@@ -306,6 +304,7 @@ immutable struct Diag {
 	immutable struct SpecImplTooDeep {
 		FunDeclAndTypeArgs[] trace;
 	}
+	immutable struct SpecNameMissing {}
 	immutable struct ThreadLocalError {
 		FunDecl* fun;
 		enum Kind { hasParams, hasSpecs, hasTypeParams, mustReturnPtrMut }
@@ -357,6 +356,7 @@ immutable struct Diag {
 	immutable struct UnusedPrivateStructAlias {
 		StructAlias* alias_;
 	}
+	immutable struct VarargsParamMustBeArray {}
 	immutable struct WrongNumberTypeArgsForSpec {
 		SpecDecl* decl;
 		size_t nExpectedTypeArgs;
@@ -392,7 +392,6 @@ immutable struct Diag {
 		FunMissingBody,
 		FunModifierConflict,
 		FunModifierRedundant,
-		FunModifierTypeArgs,
 		IfNeedsOpt,
 		ImportRefersToNothing,
 		LambdaCantInferParamTypes,
@@ -427,6 +426,7 @@ immutable struct Diag {
 		SpecImplFoundMultiple,
 		SpecImplNotFound,
 		SpecImplTooDeep,
+		SpecNameMissing,
 		ThreadLocalError,
 		TypeAnnotationUnnecessary,
 		TypeConflict,
@@ -439,6 +439,7 @@ immutable struct Diag {
 		UnusedPrivateSpec,
 		UnusedPrivateStruct,
 		UnusedPrivateStructAlias,
+		VarargsParamMustBeArray,
 		WrongNumberTypeArgsForSpec,
 		WrongNumberTypeArgsForStruct);
 }

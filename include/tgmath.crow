@@ -2,15 +2,15 @@ no-std
 import
 	crow/number: float64
 
-acos float64(a float64) extern<m> trusted
-atan float64(a float64) extern<m> trusted
-atan2 float64(y float64, x float64) extern<m> trusted
-cos float64(a float64) extern<m> trusted
-sin float64(a float64) extern<m> trusted
-tan float64(a float64) extern<m> trusted
-acosh float64(a float64) extern<m> trusted
-asinh float64(a float64) extern<m> trusted
-atanh float64(a float64) extern<m> trusted
-cosh float64(a float64) extern<m> trusted
-sinh float64(a float64) extern<m> trusted
-tanh float64(a float64) extern<m> trusted
+acos float64(a float64) trusted, m extern
+atan float64(a float64) trusted, m extern
+atan2 float64(y float64, x float64) trusted, m extern
+cos float64(a float64) trusted, m extern
+sin float64(a float64) trusted, m extern
+tan float64(a float64) trusted, m extern
+acosh float64(a float64) trusted, m extern
+asinh float64(a float64) trusted, m extern
+atanh float64(a float64) trusted, m extern
+cosh float64(a float64) trusted, m extern
+sinh float64(a float64) trusted, m extern
+tanh float64(a float64) trusted, m extern

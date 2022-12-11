@@ -10,21 +10,21 @@ import
 	./task-queue: exclusion, new, task, task-list, task-node
 	./thread-utils: acquire, init, lock, release, uninit
 
-unresolved<a> a^() unsafe
-	res a^ = uninit, empty
+unresolved[t] t^() unsafe
+	res t^ = uninit, empty
 	res.lock init
 	res
 
-.lock<a> lock(a a^) noctx unsafe
+.lock[t] lock(a t^) noctx, unsafe
 	&a.lk
 
-resolve<a> void(a a^, value a) unsafe
+resolve[t] void(a t^, value t) unsafe
 	a resolve-or-reject value.resolved
 
-reject<a> void(a a^, err exception) unsafe
+reject[t] void(a t^, err exception) unsafe
 	a resolve-or-reject err.rejected
 
-.resolve-or-reject<a> void(a a^, new-state future-state a) unsafe
+.resolve-or-reject[t] void(a t^, new-state t future-state) unsafe
 	a.lock acquire
 	old-state = a state
 	a.state := new-state
@@ -43,12 +43,12 @@ reject<a> void(a a^, err exception) unsafe
 	as rejected _
 		hard-unreachable
 
-.or-forwarded<a, b> union sendable
-	direct a
-	forwarded b^
+.or-forwarded[t, u] union sendable
+	direct t
+	forwarded u^
 
 # 'a' should be the result of 'unresolved-will-forward'; have it forward to 'target'
-forward-to<a> void(a a^, target a^) unsafe
+forward-to[t] void(a t^, target t^) unsafe
 	a.lock acquire
 	old-state = a state
 	a.state := target forwarded
@@ -68,15 +68,15 @@ forward-to<a> void(a a^, target a^) unsafe
 	as rejected _
 		hard-unreachable
 
-add-task<a> void(a a^, exclusion exclusion, action act void()) unsafe
+add-task[t] void(a t^, exclusion exclusion, action act void()) unsafe
 	a add-task (exclusion, action)
 
-add-task<a> void(a a^, task task) unsafe
+add-task[t] void(a t^, task task) unsafe
 	a add-task (task,)::task-node
 
-.add-task<a> void(a a^, task task-node) unsafe
+.add-task[t] void(a t^, task task-node) unsafe
 	a.lock acquire
-	choice add-tasks-choice a = match a state
+	choice t add-tasks-choice = match a state
 	as empty
 		a.state := task one-task
 		added
@@ -103,9 +103,9 @@ add-task<a> void(a a^, task task) unsafe
 	as tasks-are-ready
 		get-global-ctx add-task task
 
-.add-tasks<a> void(a a^, tasks task-list) unsafe
+.add-tasks[t] void(a t^, tasks task-list) unsafe
 	a.lock acquire
-	choice add-tasks-choice a = match a state
+	choice t add-tasks-choice = match a state
 	as empty
 		a.state := tasks tasks
 		added
@@ -132,9 +132,9 @@ add-task<a> void(a a^, task task) unsafe
 	as tasks-are-ready
 		get-global-ctx add-tasks tasks
 
-.add-tasks-choice<a> union sendable
+.add-tasks-choice[t] union sendable
 	added
-	forward a^
+	forward t^
 	tasks-are-ready
 
 .~= void(a task-list, b task-node) noctx
@@ -146,9 +146,9 @@ add-task<a> void(a a^, task task) unsafe
 	a.last := b last
 
 # Assuming the future is resolved, get the result.
-get-result<a> result<a, exception>(a a^) noctx unsafe
+get-result[t] (t, exception) result(a t^) noctx, unsafe
 	a.lock acquire
-	res or-forwarded<result<a, exception>, a> = match a state
+	res ((t, exception) result, t) or-forwarded = match a state
 	as empty
 		hard-unreachable
 	as one-task _

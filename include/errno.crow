@@ -4,13 +4,13 @@ import
 	crow/version: is-windows
 	crow/pointer: *, mut-pointer
 
-errno err-t() unsafe noctx
+errno err-t() noctx, unsafe
 	if is-windows
 		*_errno
 	else
 		*__errno_location
-._errno err-t mut*() extern<c>
-.__errno_location err-t mut*() extern<c>
+._errno err-t mut*() c extern
+.__errno_location err-t mut*() c extern
 
 ENOENT err-t() noctx
 	2

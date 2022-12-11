@@ -1,14 +1,14 @@
 f void(a string) summon
 	a foo
 
-foo<a> spec
-	foo void(a a)
+foo[t] spec
+	foo void(a t)
 
-bar<a> spec
-	bar void(a a)
+bar[t] spec
+	bar void(a t)
 
-foo<a> void(_ a) bar<a>
+foo[t] void(_ t) t bar
 	()
 
-bar<a> void(_ a) foo<a>
+bar[t] void(_ t) t foo
 	()

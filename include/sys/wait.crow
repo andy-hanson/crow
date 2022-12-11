@@ -7,7 +7,7 @@ import
 	crow/pointer: mut-pointer
 	./types: pid_t
 
-waitpid pid_t(pid pid_t, wait-status status-t mut*, options int32) extern<c> summon
+waitpid pid_t(pid pid_t, wait-status status-t mut*, options int32) summon, c extern
 
 status-t alias
 	int32

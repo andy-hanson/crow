@@ -13,28 +13,28 @@ import
 	./stack: ~, is-empty, for-loop, new, pop, rest, reversed, size, stack, to-list, value
 
 # Immutable double-ended queue.
-deque<a> record
+deque[t] record
 	# NOTE: This is in reverse (top of the stack furthest left)
-	.left stack a
-	.mid array a
-	.right stack a
+	.left t stack
+	.mid t array
+	.right t stack
 
 ###
 Deque containing the given elements.
 ###
-new<a> deque a(...a array a)
+new[t] t deque(...a t array)
 	a.to-list to-deque
 
 ###
 Convert a list to a deque. 
 This is O(1).
 ###
-to-deque<a> deque a(a a[])
+to-deque[t] t deque(a t[])
 	# TODO: should not need type annotation
-	()::stack<a>, a.to-array, ()
+	()::(t stack), a.to-array, ()
 
 # Copy elements to a list.
-to-list<a> a[](a deque a) trusted
+to-list[t] t[](a t deque) trusted
 	for x : a
 		x
 
@@ -42,38 +42,39 @@ to-list<a> a[](a deque a) trusted
 `true` iff `a.size == 0`.
 This is O(1).
 ###
-is-empty<a> bool(a deque a)
+is-empty[t] bool(a t deque)
 	a.left.is-empty && a.mid.is-empty && a.right.is-empty
 
 ###
 Number of elements in the deque.
 This is O(n).
 ###
-size<a> nat64(a deque a)
+size[t] nat64(a t deque)
 	a.left.size + a.mid.size + a.right.size
 
 # Pushes an element on the right.
-~ <a> deque a(a deque a, value a)
+~[t] t deque(a t deque, value t)
 	a.left, a.mid, a.right ~ value
 
 # Pushes an element on the left.
-~ <a> deque a(value a, a deque a)
+~[t] t deque(value t, a t deque)
 	a.left ~ value, a.mid, a.right
 
 # Result of popping (left or right): The value popped and remaining values.
-popped<a> record
-	value a
-	rest deque a
+popped[t] record
+	value t
+	rest t deque
 
 ###
 Remove a value from the left.
 Returns an empty option iff `a` is empty.
 ###
-pop-left<a> popped<a>?(a deque a)
+pop-left[t] t popped?(a t deque)
 	if popped ?= a.left pop
 		(popped.value, (popped.rest, a.mid, a.right)),
 	elif first ?= a.mid first
-		(first, (()::stack<a>, a.mid.tail, a.right)),
+		# TODO: should not need type annotation
+		(first, (()::(t stack), a.mid.tail, a.right)),
 	else
 		right-arr = a.right.to-list to-array
 		if first ?= right-arr first
@@ -83,7 +84,7 @@ pop-left<a> popped<a>?(a deque a)
 Remove a value from the right.
 Returns an empty option iff `a` is empty.
 ###
-pop-right<a> popped<a>?(a deque a)
+pop-right[t] t popped?(a t deque)
 	if popped ?= a.right pop
 		(popped.value, (a.left, a.mid, popped.rest)),
 	elif last ?= a.mid last
@@ -95,27 +96,27 @@ pop-right<a> popped<a>?(a deque a)
 
 region iteration
 
-for-loop<a> void(a deque a, f act void(a))
+for-loop[t] void(a t deque, f act void(t))
 	a.left.reversed for-loop f
 	a.mid for-loop f
 	a.right for-loop f
 
-for-loop<out, in> out[](a deque in, f act out(in)) trusted
+for-loop[out, in] out[](a in deque, f act out(in)) trusted
 	with out : a.size build
 		for x : a
 			out ~= f[x]
 
-for-loop<out, in> deque out(a deque in, f act out(in))
+for-loop[out, in] out deque(a in deque, f act out(in))
 	a for-loop f to-deque
 
-.dbg string(a deque nat64)
+.dbg string(a nat64 deque)
 	left = "" join for x : a.left.reversed; "{x} "
 	mid = " " join for x : a.mid.to-list; "{x}"
 	right = "" join for x : a.right; " {x}"
 	"{left}[{mid}]{right}"
 
 test
-	a deque nat64 = ()
+	a nat64 deque = ()
 	assert a is-empty
 	a.dbg is "[]"
 	a.to-list is ()
@@ -168,6 +169,6 @@ test
 	e-pop.value is 3
 	e-pop.rest.dbg is "[1 2]"
 
-	six deque nat64 = 1 ~ (2 ~ (3, 4)) ~ 5 ~ 6
+	six nat64 deque = 1 ~ (2 ~ (3, 4)) ~ 5 ~ 6
 	six.dbg is "1 2 [3 4] 5 6"
 	(for x : six; x + 10)::nat64[] is (11, 12, 13, 14, 15, 16)

@@ -27,36 +27,36 @@ Mutable sorted dictionary.
 
 This works like `mut-dict`, but iterates in sorted order.
 ###
-mut-sorted-dict<k, v> record mut by-ref
+mut-sorted-dict[k, v] record mut by-ref
 	# TODO: by-val
 	# Values are none if they have been deleted.
 	.pairs (k, v?) mut[]
 	# Number of pairs in this node that are not `none`.
 	# Does not include sizes of other nodes.
 	.node-size .mut nat64
-	.next .mut mut-sorted-dict<k, v>?
+	.next .mut (k, v) mut-sorted-dict?
 
 ###
 New dictionary containing the given pairs.
 
 Later pairs overwrite earlier pairs with the same key.
 ###
-new<k, v> mut-sorted-dict<k, v>(...a array (k, v)) is-data<k> compare<k>
+new[k, v] (k, v) mut-sorted-dict(...a (k, v) array) k is-data, k compare
 	a.to-list to-mut-sorted-dict
 
 # Copies pairs to a new dictionary.
-to-mut-sorted-dict<k, v> mut-sorted-dict<k, v>(a (k, v)[]) is-data<k> compare<k>
-	res mut-sorted-dict<k, v> = ()::(k, v?) mut[], 0, ()
+to-mut-sorted-dict[k, v] (k, v) mut-sorted-dict(a (k, v)[]) k is-data, k compare
+	res (k, v) mut-sorted-dict = ()::(k, v?) mut[], 0, ()
 	for pair : a
 		res[pair from] := pair to
 	res
 
 # `true` iff the `a.size == 0`.
-is-empty<k, v> bool(a mut-sorted-dict<k, v>)
+is-empty[k, v] bool(a (k, v) mut-sorted-dict)
 	a.pairs is-empty
 
 # Removes every pair.
-clear<k, v> void(a mut-sorted-dict<k, v>)
+clear[k, v] void(a (k, v) mut-sorted-dict)
 	a.next := ()
 	a.pairs clear
 
@@ -64,7 +64,7 @@ clear<k, v> void(a mut-sorted-dict<k, v>)
 Number of pairs in the dictionary.
 This is O(n).
 ###
-size<k, v> nat64(a mut-sorted-dict<k, v>)
+size[k, v] nat64(a (k, v) mut-sorted-dict)
 	acc mut = 0
 	cur mut = a
 	loop
@@ -81,23 +81,23 @@ Find the value associated with the key.
 Returns an empty option iff the key is not in the dictionary.
 This is O(log n).
 ###
-subscript<k, v> v?(a mut-sorted-dict<k, v>, key k) trusted is-data<k> compare<k>
+subscript[k, v] v?(a (k, v) mut-sorted-dict, key k) trusted, k is-data, k compare
 	if pointer ?= a find-exact-pointer key
 		*pointer to
 
 # Adds a key-value pair, replacing any existing one with that key.
-set-subscript<k, v> void(a mut-sorted-dict<k, v>, key k, value v) is-data<k> compare<k>
+set-subscript[k, v] void(a (k, v) mut-sorted-dict, key k, value v) k is-data, k compare
 	unless a insert-into-key-match-or-empty-slot key, value
 		a add-pair key, value
 
-in<k, v> bool(key k, a mut-sorted-dict<k, v>) trusted is-data<k> compare<k>
+in[k, v] bool(key k, a (k, v) mut-sorted-dict) trusted, k is-data, k compare
 	!(a find-exact-pointer key is-empty)
 
 ###
 Adds many key-value pairs, replacing existing ones with the same keys.
 Equivalent to adding each element of `b` separately.
 ###
-~~= <k, v> void(a mut-sorted-dict<k, v>, b (k, v)[]) is-data<k> compare<k>
+~~=[k, v] void(a (k, v) mut-sorted-dict, b (k, v)[]) k is-data, k compare
 	for pair : b
 		a[pair from] := pair to
 
@@ -106,7 +106,7 @@ Traverses nodes left-to-right looking for the key.
 If that fails, traverses back right-to-left and inserts into an empty slot if possible.
 Returns true if it succeeded.
 ###
-.insert-into-key-match-or-empty-slot<k, v> bool(a mut-sorted-dict<k, v>, key k, value v) trusted is-data<k> compare<k>
+.insert-into-key-match-or-empty-slot[k, v] bool(a (k, v) mut-sorted-dict, key k, value v) trusted, k is-data, k compare
 	insert-pointer = a find-insert-pointer key
 	can-insert = insert-pointer != a.pairs.end-pointer
 	if can-insert && insert-pointer->from == key
@@ -133,7 +133,7 @@ Returns true if it succeeded.
 			true
 
 # Returns the new physical size of this node and all nodes to the right
-.add-pair<k, v> void(a mut-sorted-dict<k, v>, key k, value v) is-data<k> compare<k>
+.add-pair[k, v] void(a (k, v) mut-sorted-dict, key k, value v) k is-data, k compare
 	if a.node-size < 4
 		if a.pairs is-empty
 			a.pairs ~= (key, (value,))
@@ -156,7 +156,7 @@ Returns true if it succeeded.
 			a.next := (new-pairs, 1, ()),
 
 # Insert at the last place where the key is < that value.
-.insert-linear<k, v> void(a (k, v?) mut[], index nat64, key k, value v) is-data<k> compare<k>
+.insert-linear[k, v] void(a (k, v?) mut[], index nat64, key k, value v) k is-data, k compare
 	if key < a[index].from
 		a move-right index
 		a[index] := key, (value,)
@@ -166,7 +166,7 @@ Returns true if it succeeded.
 		a insert-linear index + 1, key, value
 
 # If there's something here, move it so something else can be inserted.
-.move-right<k, v> void(a (k, v?) mut[], index nat64)
+.move-right[k, v] void(a (k, v?) mut[], index nat64)
 	unless a[index].to is-empty
 		# If this is the last value, push it
 		if index == a.size - 1
@@ -176,7 +176,7 @@ Returns true if it succeeded.
 			a[index + 1] := a[index]
 
 # Convert to an `array`, clearning the original `mut-sorted-dict` in the process.
-move-to-list<k, v> (k, v)[](a mut-sorted-dict<k, v>) is-data<k> compare<k>
+move-to-list[k, v] (k, v)[](a (k, v) mut-sorted-dict) k is-data, k compare
 	res (k, v)[] = for k, v : a
 		k, v
 	a clear
@@ -187,7 +187,7 @@ move-to-list<k, v> (k, v)[](a mut-sorted-dict<k, v>) is-data<k> compare<k>
 If the key is in the dictionary, removes it and returns the value that was associated with it.
 Else, returns an empty option.
 ###
-remove-key<k, v> v?(a mut-sorted-dict<k, v>, key k) trusted is-data<k> compare<k>
+remove-key[k, v] v?(a (k, v) mut-sorted-dict, key k) trusted, k is-data, k compare
 	if pointer ?= a find-exact-pointer key
 		res = if a.pairs.end-pointer - pointer < 4
 			a.pairs remove-at pointer to
@@ -202,13 +202,13 @@ remove-key<k, v> v?(a mut-sorted-dict<k, v>, key k) trusted is-data<k> compare<k
 	elif next ?= a next
 		next remove-key key
 
-.compact-if-needed<k, v> void(a mut-sorted-dict<k, v>) is-data<k> compare<k>
+.compact-if-needed[k, v] void(a (k, v) mut-sorted-dict) k is-data, k compare
 	physical-size = a total-pairs-size
 	if a.node-size * 2 <= physical-size
 		a compact
 		assert a.node-size == a.total-pairs-size
 
-.total-pairs-size<k, v> nat64(a mut-sorted-dict<k, v>)
+.total-pairs-size[k, v] nat64(a (k, v) mut-sorted-dict)
 	acc mut = 0
 	cur mut = a
 	loop
@@ -219,7 +219,7 @@ remove-key<k, v> v?(a mut-sorted-dict<k, v>, key k) trusted is-data<k> compare<k
 		else
 			break acc
 
-.compact<k, v> void(a mut-sorted-dict<k, v>) trusted is-data<k> compare<k>
+.compact[k, v] void(a (k, v) mut-sorted-dict) trusted, k is-data, k compare
 	if next ?= a next
 		next compact
 		a.pairs set-filter pair => !pair.to.is-empty
@@ -228,55 +228,55 @@ remove-key<k, v> v?(a mut-sorted-dict<k, v>, key k) trusted is-data<k> compare<k
 		a.next := ()
 		a.node-size := a.pairs.size
 
-.find-exact-pointer<k, v> (k, v?) mut*?(a mut-sorted-dict<k, v>, key k) is-data<k> compare<k> unsafe
+.find-exact-pointer[k, v] (k, v?) mut*?(a (k, v) mut-sorted-dict, key k) unsafe, k is-data, k compare
 	a.pairs binary-search-exact-pointer pair => key <=> pair.from
 
-.find-insert-pointer<k, v> (k, v?) mut*(a mut-sorted-dict<k, v>, key k) is-data<k> compare<k> unsafe
+.find-insert-pointer[k, v] (k, v?) mut*(a (k, v) mut-sorted-dict, key k) unsafe, k is-data, k compare
 	a.pairs binary-search-insert-pointer pair => key <=> pair.from
 
 region iteration
 
-for-loop<k, v> void(a mut-sorted-dict<k, v>, f act void(k, v)) is-data<k> compare<k>
+for-loop[k, v] void(a (k, v) mut-sorted-dict, f act void(k, v)) k is-data, k compare
 	a compact
 	for pair : a.pairs to-list
 		f[pair.from, pair.to!]
 
-for-loop<out, k, v> out[](a mut-sorted-dict<k, v>, f act out(k, v)) is-data<k> compare<k>
+for-loop[out, k, v] out[](a (k, v) mut-sorted-dict, f act out(k, v)) k is-data, k compare
 	a compact
 	for pair : a.pairs to-list
 		f[pair.from, pair.to!]
 
-for-loop<k-out, v-out, k-in, v-in> mut-sorted-dict<k-out, v-out>(
-	a mut-sorted-dict<k-in, v-in>,
+for-loop[k-out, v-out, k-in, v-in] (k-out, v-out) mut-sorted-dict(
+	a (k-in, v-in) mut-sorted-dict,
 	f act (k-out, v-out)(k-in, v-in),
-) is-data<k-in> compare<k-in> is-data<k-out> compare<k-out>
+) k-in is-data, k-in compare, k-out is-data, k-out compare
 	a for-loop f to-mut-sorted-dict
 
-filter<k, v> mut-sorted-dict<k, v>(a mut-sorted-dict<k, v>, f act bool(k, v)) is-data<k> compare<k>
+filter[k, v] (k, v) mut-sorted-dict(a (k, v) mut-sorted-dict, f act bool(k, v)) k is-data, k compare
 	a compact
 	(a.pairs filter pair => f[pair.from, pair.to!]) from-sorted-pairs
 
-map-values<v-out, k, v-in> mut-sorted-dict<k, v-out>(
-	a mut-sorted-dict<k, v-in>,
+map-values[v-out, k, v-in] (k, v-out) mut-sorted-dict(
+	a (k, v-in) mut-sorted-dict,
 	f act v-out(k, v-in),
-) is-data<k> compare<k>
+) k is-data, k compare
 	a compact
 	pairs (k, v-out?) mut[] = for pair : a pairs
 		# TODO: 'as' should be unnecessary
 		pair.from, (f[pair.from, pair.to!],)
 	pairs from-sorted-pairs
 
-.from-sorted-pairs<k, v> mut-sorted-dict<k, v>(a (k, v?) mut[])
+.from-sorted-pairs[k, v] (k, v) mut-sorted-dict(a (k, v?) mut[])
 	a, a.size, ()
 
 region mutating iteration
 
-set-filter<k, v> void(a mut-sorted-dict<k, v>, f act bool(k, v)) is-data<k> compare<k>
+set-filter[k, v] void(a (k, v) mut-sorted-dict, f act bool(k, v)) k is-data, k compare
 	a compact
 	a.pairs set-filter pair =>
 		f[pair.from, pair.to!]
 
-set-map<k, v> void(a mut-sorted-dict<k, v>, f act (k, v)(k, v)) is-data<k> compare<k>
+set-map[k, v] void(a (k, v) mut-sorted-dict, f act (k, v)(k, v)) k is-data, k compare
 	a compact
 	a.pairs set-map pair =>
 		new-pair = f[pair.from, pair.to!]
@@ -284,18 +284,18 @@ set-map<k, v> void(a mut-sorted-dict<k, v>, f act (k, v)(k, v)) is-data<k> compa
 	a.pairs set-sort pair => pair from
 
 test
-	a mut-sorted-dict<nat64, string> = (3, "30"), (6, "60")
+	a (nat64, string) mut-sorted-dict = (3, "30"), (6, "60")
 	a verify "[3 -> 30, 6 -> 60]"
 	a set-map (k, v) =>
 		10 - k, v.iter.next!.rest.slice-left
 	a verify "[4 -> 6, 7 -> 3]"
 
-set-map-values<k, v> void(a mut-sorted-dict<k, v>, f act v(k, v)) is-data<k> compare<k>
+set-map-values[k, v] void(a (k, v) mut-sorted-dict, f act v(k, v)) k is-data, k compare
 	a compact
 	a.pairs set-map pair =>
 		pair.from, (f[pair.from, pair.to!],)
 
-.dbg<k, v> string(a mut-sorted-dict<k, v>) to-string<k> to-string<v>
+.dbg[k, v] string(a (k, v) mut-sorted-dict) k to-string, v to-string
 	pairs = ", " join for pair : a pairs
 		to = if v ?= pair to
 			"{v}"
@@ -307,11 +307,11 @@ set-map-values<k, v> void(a mut-sorted-dict<k, v>, f act v(k, v)) is-data<k> com
 	else
 		"[{pairs}]"
 
-.verify void(a mut-sorted-dict<nat64, string>, expected string)
+.verify void(a (nat64, string) mut-sorted-dict, expected string)
 	a.dbg is expected
 	a verify-node-size
 
-.verify-node-size<k, v> void(a mut-sorted-dict<k, v>)
+.verify-node-size[k, v] void(a (k, v) mut-sorted-dict)
 	res mut = 0
 	for x : a pairs
 		res := res + x.to.size
@@ -320,7 +320,7 @@ set-map-values<k, v> void(a mut-sorted-dict<k, v>, f act v(k, v)) is-data<k> com
 		next verify-node-size
 
 test
-	a mut-sorted-dict<nat64, string> = (3, "3"), (5, "5"), (7, "7"), (8, "8"), (9, "9"), (10, "10")
+	a (nat64, string) mut-sorted-dict = (3, "3"), (5, "5"), (7, "7"), (8, "8"), (9, "9"), (10, "10")
 	a verify "[3 -> 3, 5 -> 5, 7 -> 7, 8 -> 8, 9 -> 9, 10 -> 10]"
 
 	# Insert into the previous slot
@@ -336,7 +336,7 @@ test
 	a verify "[3 -> 3, 5 -> 5, 7 -> 7, 8 -> 8, 9 -> 9, 10 -> 10]"
 
 test
-	a mut-sorted-dict<nat64, string> = ()
+	a (nat64, string) mut-sorted-dict = ()
 	a verify "[]"
 
 	a[5] := "5"

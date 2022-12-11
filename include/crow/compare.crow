@@ -21,27 +21,24 @@ comparison enum
 	equal
 	greater
 
-###
-Spec that only defines `==` but note `<=>`, since sometimes that's all that's needed.
-###
-equal<a> spec
-	== bool(a a, b a)
+equal[t] spec
+	== bool(a t, b t)
 
 ###
 When defined for mutable values, this should compare their content without regard to mutablility;
 so it may consider values equal that may not be equal in the future.
 ###
-compare<a> spec
-	== bool(a a, b a)
+compare[t] spec
+	== bool(a t, b t)
 	# This should return `equal` iff `==` would return `true`.
-	<=> comparison(a a, b a)
+	<=> comparison(a t, b t)
 
 # True iff `!(a == b)`.
-!= <a> bool(a a, b a) noctx equal<a>
+!=[t] bool(a t, b t) noctx, t equal
 	!(a == b)
 
 # True iff `(a <=> b) == less`.
-< <a> bool(a a, b a) noctx compare<a>
+<[t] bool(a t, b t) noctx, t compare
 	match a <=> b
 	as less
 		true
@@ -51,15 +48,15 @@ compare<a> spec
 		false
 
 # True iff `(a <=> b) != greater`.
-<= <a> bool(a a, b a) noctx compare<a>
+<=[t] bool(a t, b t) noctx, t compare
 	!(b < a)
 
 # True iff `(a <=> b) == greater`.
-> <a> bool(a a, b a) noctx compare<a>
+>[t] bool(a t, b t) noctx, t compare
 	b < a
 
 # True iff `(a <=> b) != less`.
->= <a> bool(a a, b a) noctx compare<a>
+>=[t] bool(a t, b t) noctx, t compare
 	!(a < b)
 
 ###
@@ -67,7 +64,7 @@ Returns the lesser argument.
 
 Returns `b` if they are equal.
 ###
-min<a> a(a a, b a) noctx compare<a>
+min[t] t(a t, b t) noctx, t compare
 	a < b ? a : b
 
 ###
@@ -75,7 +72,7 @@ Returns the greater argument.
 
 Returns `b` if they are equal.
 ###
-max<a> a(a a, b a) noctx compare<a>
+max[t] t(a t, b t) noctx, t compare
 	a > b ? a : b
 
 ###
@@ -84,5 +81,5 @@ Returns the closest value to `a` that is >= min and <= max.
 
 This means: If `a` is too small, return `min`. If `a` is too large, return `max`.
 ###
-clamp<a> a(a a, min a, max a) noctx compare<a>
+clamp[t] t(a t, min t, max t) noctx, t compare
 	a < min ? min : a > max ? max : a

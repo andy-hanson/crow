@@ -3,12 +3,12 @@ import
 	crow/c-types: c-int, size_t
 	crow/private/bootstrap: any-const-pointer, any-mut-pointer, c-string
 
-memcpy any-mut-pointer(dest any-mut-pointer, src any-const-pointer, size size_t) extern<c>
+memcpy any-mut-pointer(dest any-mut-pointer, src any-const-pointer, size size_t) c extern
 
-memmove any-mut-pointer(dest any-mut-pointer, src any-const-pointer, size size_t) extern<c>
+memmove any-mut-pointer(dest any-mut-pointer, src any-const-pointer, size size_t) c extern
 
-memset any-mut-pointer(begin any-mut-pointer, value c-int, size size_t) extern<c>
+memset any-mut-pointer(begin any-mut-pointer, value c-int, size size_t) c extern
 
-memcmp c-int(s1 any-const-pointer, s2 any-const-pointer, n size_t) extern<c>
+memcmp c-int(s1 any-const-pointer, s2 any-const-pointer, n size_t) c extern
 
-strlen size_t(a c-string) extern<c>
+strlen size_t(a c-string) c extern

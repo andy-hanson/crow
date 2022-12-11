@@ -18,35 +18,35 @@ import
 dummy-list-tests nat64()
 	0
 
-.verify<a> void(a a[], expected string) no-doc trusted to-string<a>
+.verify[t] void(a t[], expected string) no-doc, trusted, t to-string
 	a.dbg is expected
 	a.get-root check-structure
 
-.dbg<a> string(a a[]) to-string<a> no-doc
+.dbg[t] string(a t[]) t to-string
 	a.get-root dbg-l0
-.dbg-l0<a> string(a l0 a) to-string<a>
+.dbg-l0[t] string(a t l0) t to-string
 	a.node dbg-node (x => x dbg-arr), (x => x dbg-l1)
-.dbg-l1<a> string(a l1 a) to-string<a>
+.dbg-l1[t] string(a t l1) t to-string
 	a.node dbg-node (x => x dbg-arr2d), (x => x dbg-l2)
-.dbg-l2<a> string(a l2 a) to-string<a>
+.dbg-l2[t] string(a t l2) t to-string
 	a.nodes dbg-arr3d
-.dbg-node<a, lower> string(a node<a, lower>, dbg-a act string(array a), dbg-lower act string(lower))
+.dbg-node[t, lower] string(a (t, lower) node, dbg-a act string(t array), dbg-lower act string(lower))
 	match a
 	as leaf l
 		dbg-a[l]
 	as branch b
 		"({dbg-a[b left]} {dbg-lower[b down]} {dbg-a[b right]})"
-.dbg-arr<a> string(a array a) to-string<a>
+.dbg-arr[t] string(a t array) t to-string
 	parts = " " join for x : a.to-list; "{x}"
 	"[{parts}]"
-.dbg-arr2d<a> string(a array array a) to-string<a>
+.dbg-arr2d[t] string(a t array array) t to-string
 	parts = " " join for x : a.to-list; x dbg-arr
 	"[{parts}]"
-.dbg-arr3d<a> string(a array array array a) to-string<a>
+.dbg-arr3d[t] string(a t array array array) t to-string
 	parts = " " join for x : a.to-list; x dbg-arr2d
 	"[{parts}]"
 
-.check-structure<a> void(a l0 a) unsafe
+.check-structure[t] void(a t l0) unsafe
 	match a node
 	as leaf _
 		()
@@ -55,7 +55,7 @@ dummy-list-tests nat64()
 		forbid b.right is-empty
 		b.down check-structure 
 
-.check-structure<a> void(a l1 a) unsafe
+.check-structure[t] void(a t l1) unsafe
 	match a node
 	as leaf _
 		()
@@ -64,12 +64,12 @@ dummy-list-tests nat64()
 		b.down check-structure
 		b.right check-structure
 
-.check-structure<a> void(xs array array a) unsafe
+.check-structure[t] void(xs t array array) unsafe
 	forbid xs is-empty
 	for ys : xs
 		forbid ys is-empty
 
-.check-structure<a> void(a l2 a) unsafe
+.check-structure[t] void(a t l2) unsafe
 	for ys : a nodes
 		forbid ys is-empty
 		for zs : ys
@@ -121,7 +121,7 @@ test
 	a.a to-string
 
 test
-	assert size-of@<big-nat> == 24
+	assert size-of@big-nat == 24
 	a big-nat[] = 5.big, 6.big
 	b big-nat[] = 4.big ~ a
 	b verify "([4] [] [5 6])"

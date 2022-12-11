@@ -7,12 +7,12 @@ import
 	stdio: SEEK
 	./sound: new, sound
 
-read-sound-file sound(path string) trusted summon
+read-sound-file sound(path string) summon, trusted
 	info mut SF_INFO = ()
 	f = path.to-c-string sf_open SFM_READ, &info
 	f common info
 
-sound-from-file-content sound(content array nat8) trusted
+sound-from-file-content sound(content nat8 array) trusted
 	info mut SF_INFO = ()
 	user-data = content, content.begin-pointer
 	virtual SF_VIRTUAL_IO = &get_filelen, &seek, &read, &write, &tell
@@ -29,11 +29,11 @@ sound-from-file-content sound(content array nat8) trusted
 	assert n-read == samples.size
 	(n-channels, sample-rate), samples.move-to-array
 
-.get_filelen sf_count_t(user-data-pointer any-mut-pointer) noctx unsafe
+.get_filelen sf_count_t(user-data-pointer any-mut-pointer) noctx, unsafe
 	a user-data = user-data-pointer as-ref
 	a.content size
 
-.seek sf_count_t(offset sf_count_t, whence SEEK, user-data-pointer any-mut-pointer) noctx unsafe
+.seek sf_count_t(offset sf_count_t, whence SEEK, user-data-pointer any-mut-pointer) noctx, unsafe
 	a user-data = user-data-pointer as-ref
 	start = match whence
 	as SEEK_SET
@@ -47,20 +47,20 @@ sound-from-file-content sound(content array nat8) trusted
 	a.cur := pos
 	pos - a.content.begin-pointer
 
-.read sf_count_t(pointer nat8 mut*, count sf_count_t, user-data-pointer any-mut-pointer) noctx unsafe
+.read sf_count_t(pointer nat8 mut*, count sf_count_t, user-data-pointer any-mut-pointer) noctx, unsafe
 	a user-data = user-data-pointer as-ref
 	n-to-read = count min (a.content.end-pointer - a.cur)
 	pointer mem-copy a.cur, n-to-read
 	a.cur := a.cur + n-to-read
 	n-to-read
 
-.write sf_count_t(_ nat8*, _ sf_count_t, _ any-mut-pointer) noctx unsafe
+.write sf_count_t(_ nat8*, _ sf_count_t, _ any-mut-pointer) noctx, unsafe
 	unreachable
 
-.tell sf_count_t(user-data-pointer any-mut-pointer) noctx unsafe
+.tell sf_count_t(user-data-pointer any-mut-pointer) noctx, unsafe
 	a user-data = user-data-pointer as-ref
 	a.cur - a.content.begin-pointer
 
 .user-data record by-ref mut
-	content array nat8
+	content nat8 array
 	cur mut nat8*

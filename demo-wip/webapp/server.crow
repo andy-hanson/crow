@@ -13,7 +13,7 @@ import
 		post, post-info, register-user, to-string, user, user-cookie, user-info, user-name,
 		with-block
 
-main nat^(args string[]) unsafe summon
+main nat^(args string[]) summon, trusted
 	if args.size == 1
 		port = args[0]
 		with db : open-real-db
@@ -120,9 +120,9 @@ main nat^(args string[]) unsafe summon
 		error log "failed to parse query {s} with error {err}"
 		()
 
-.query grammar<(string, string)[]>()
+.query (string, string)[] grammar()
 	query-part separated-by "&"
-.query-part grammar<(string, string)>()
+.query-part (string, string) grammar()
 	identifier = ("=", "&").text-not-containing-any
 	identifier ~~ "=" ~~ identifier
 

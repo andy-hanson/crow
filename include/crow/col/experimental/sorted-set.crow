@@ -24,8 +24,8 @@ import
 		size, try-remove
 	
 # This is like `set`, but keeps elements in sorted order.
-sorted-set<a> record
-	.add add-node a
+sorted-set[t] record
+	.add t add-node
 	.remove index-set
 
 ###
@@ -33,35 +33,35 @@ We store add/remove separately.
 Add nodes are a linked list where links point to the left. Largest node is on the left. Nodes are added to the right.
 ###
 
-.add-node<a> record
-	values array a
-	left add-node<a>?
+.add-node[t] record
+	values t array
+	left t add-node?
 
 # Set containing the given elements (with duplicates removed).
-new<a> sorted-set a(...a array a) is-data<a> compare<a>
+new[t] t sorted-set(...a t array) t is-data, t compare
 	a.to-list to-sorted-set
 
 # Set containing the given elements (with duplicates removed).
-to-sorted-set<a> sorted-set a(a a[]) is-data<a> compare<a>
+to-sorted-set[t] t sorted-set(a t[]) t is-data, t compare
 	# TODO: type annotation should be unnecessary
-	(a.sort.to-array, ()) :: add-node<a>, ()
+	(a.sort.to-array, ()) :: (t add-node), ()
 
 # Copies elements to a list.
-to-list<a> a[](a sorted-set a) is-data<a> compare<a>
+to-list[t] t[](a t sorted-set) t is-data, t compare
 	for x : a
 		x
 
 # `true` iff `a.size == 0`.
-is-empty<a> bool(a sorted-set a)
+is-empty[t] bool(a t sorted-set)
 	# Compaction ensures that this is the only case where we store empty values.
 	a.add.values is-empty
 
 # Number of elements in the set.
-size<a> nat64(a sorted-set a)
+size[t] nat64(a t sorted-set)
 	a.add.add-size - a.remove.size
-.add-size<a> nat64(a add-node a)
+.add-size[t] nat64(a t add-node)
 	a.values.size + a.add-size-left
-.add-size-left<a> nat64(a add-node a)
+.add-size-left[t] nat64(a t add-node)
 	acc mut = 0
 	cur mut = a
 	loop
@@ -73,11 +73,11 @@ size<a> nat64(a sorted-set a)
 			break acc
 
 # True if `value` is an element of the set.
-in<a> bool(value a, a sorted-set a) is-data<a> compare<a>
+in[t] bool(value t, a t sorted-set) t is-data, t compare
 	if index ?= a.add find-in-add value
 		!(index in a.remove)
 
-.find-in-add<a> nat64?(a add-node a, value a) compare<a>
+.find-in-add[t] nat64?(a t add-node, value t) t compare
 	if index ?= a.values binary-search-exact-index value
 		a.add-size-left + index,
 	elif left ?= a left
@@ -89,7 +89,7 @@ in<a> bool(value a, a sorted-set a) is-data<a> compare<a>
 	size-here nat64
 	size-right nat64
 
-.find-in-add-for-remove<a> find-in-add-for-remove-result?(a add-node a, value a, size-right nat64) compare<a>
+.find-in-add-for-remove[t] find-in-add-for-remove-result?(a t add-node, value t, size-right nat64) t compare
 	if index ?= a.values binary-search-exact-index value
 		sl = a add-size-left
 		(sl + index, sl, a.values.size, size-right),
@@ -103,14 +103,14 @@ Adds an element to the set.
 
 If `value` is already in the set, returns `a` unmodified.
 ###
-~ <a> sorted-set a(a sorted-set a, value a) is-data<a> compare<a>
+~[t] t sorted-set(a t sorted-set, value t) t is-data, t compare
 	a try-add value ?? a
 
 ###
 If `value` is already in the set, returns an empty option.
 Else, adds it and returns the new set.
 ###
-try-add<a> sorted-set<a>?(a sorted-set a, value a) is-data<a> compare<a>
+try-add[t] t sorted-set?(a t sorted-set, value t) t is-data, t compare
 	if index ?= a.add find-in-add value
 		# In 'add', but may need to remove from removals
 		if new-remove ?= a.remove try-remove index
@@ -123,14 +123,14 @@ Removes a value from the set.
 
 If `value` is not in the set, returns `a` unmodified.
 ###
-- <a> sorted-set a(a sorted-set a, value a) is-data<a> compare<a>
+-[t] t sorted-set(a t sorted-set, value t) t is-data, t compare
 	a try-remove value ?? a
 
 ###
 If `value` is in the set, removes it and returns the new set.
 Else, returns an empty option.
 ###
-try-remove<a> sorted-set<a>?(a sorted-set a, value a) trusted is-data<a> compare<a>
+try-remove[t] t sorted-set?(a t sorted-set, value t) trusted, t is-data, t compare
 	if r ?= a.add find-in-add-for-remove value, 0
 		removals-here-and-right = 1 + (a.remove count-greater-or-equal r.size-left)
 		if r.size-here should-compact r.size-right, removals-here-and-right
@@ -139,17 +139,17 @@ try-remove<a> sorted-set<a>?(a sorted-set a, value a) trusted is-data<a> compare
 		else
 			(a.add, a.remove ~ r.value-index),
 
-.add-and-maybe-compact<a> sorted-set a(a sorted-set a, value a) trusted compare<a>
+.add-and-maybe-compact[t] t sorted-set(a t sorted-set, value t) trusted, t compare
 	add-size = a.add add-size
 	if add-size == 0
 		# TODO: type annotation should be unnecessary
-		((value,), ()) :: add-node<a>, ()
+		((value,), ()) :: (t add-node), ()
 	else
 		# size-right starts as 1 because we're adding a value
 		plan = add-size add-and-compact-plan a.add, a.remove, 1
 		if plan.compacted-size == 1
 			# TODO: type annotation should be unnecessary
-			((value,), (a.add,)) :: add-node<a>, a.remove
+			((value,), (a.add,)) :: (t add-node), a.remove
 		else
 			a add-and-compact add-size, plan, value
 
@@ -168,7 +168,7 @@ We compact a node if:
 * Half of the values of this node have been removed
 Or a combination of the two.	
 ###
-.add-and-compact-plan<a> compact-plan(size-here-and-left nat64, a add-node a, remove index-set, size-right nat64)
+.add-and-compact-plan[t] compact-plan(size-here-and-left nat64, a t add-node, remove index-set, size-right nat64)
 	size-here = a.values size
 	size-left = size-here-and-left - size-here
 	removals-here-and-right = remove count-greater-or-equal size-left
@@ -184,16 +184,16 @@ Or a combination of the two.
 .should-compact bool(size-here nat64, size-right nat64, removals-here-and-right nat64)
 	(size-right + removals-here-and-right * 2) * 2 >= size-here
 
-.add-and-compact<a> sorted-set a(a sorted-set a, add-size nat64, plan compact-plan, value a) unsafe compare<a>
+.add-and-compact[t] t sorted-set(a t sorted-set, add-size nat64, plan compact-plan, value t) unsafe, t compare
 	assert plan.compacted-size > 1
-	compacted mut-array a = plan.compacted-size uninitialized-mut-array
+	compacted t mut-array = plan.compacted-size uninitialized-mut-array
 	begin = compacted begin-pointer
 	*begin := value
-	compactor compactor a = begin.as-const, begin + 1, compacted.end-pointer
+	compactor t compactor = begin.as-const, begin + 1, compacted.end-pointer
 	new-add = compactor do-compact a.add, add-size, a.remove
 	new-add, (a.remove filter-less plan.add-size-left)
 
-.remove-and-compact<a> sorted-set a(a sorted-set a, plan compact-plan, extra-removal nat64) unsafe is-data<a> compare<a>
+.remove-and-compact[t] t sorted-set(a t sorted-set, plan compact-plan, extra-removal nat64) unsafe, t is-data, t compare
 	new-remove = a.remove filter-less plan.add-size-left
 	if plan.compacted-size == 0
 		if left ?= a.add left
@@ -201,24 +201,24 @@ Or a combination of the two.
 		else
 			()
 	else
-		compacted mut-array a = plan.compacted-size uninitialized-mut-array
+		compacted t mut-array = plan.compacted-size uninitialized-mut-array
 		begin = compacted begin-pointer
-		compactor compactor a = begin.as-const, begin, compacted.end-pointer
+		compactor t compactor = begin.as-const, begin, compacted.end-pointer
 		old-size = plan.add-size-left + plan.compacted-size + 1
 		new-add = compactor do-compact a.add, old-size, a.remove ~ extra-removal
 		new-add, new-remove
 
-.compactor<a> record mut
-	begin a*
-	cur mut a mut*
-	end a mut*
+.compactor[t] record mut
+	begin t*
+	cur mut t mut*
+	end t mut*
 
-.do-compact<a> add-node a(
-	compactor compactor a,
-	add add-node a,
+.do-compact[t] t add-node(
+	compactor t compactor,
+	add t add-node,
 	add-size nat64,
 	remove index-set,
-) unsafe compare<a>
+) unsafe, t compare
 	cur mut = add
 	add-size-here-and-left mut = add-size
 	loop
@@ -231,7 +231,7 @@ Or a combination of the two.
 			cur := cur.left!
 			continue
 
-.merge<a> void(a compactor a, values array a, add-size-here-and-left nat64, remove index-set) unsafe compare<a>
+.merge[t] void(a t compactor, values t array, add-size-here-and-left nat64, remove index-set) unsafe, t compare
 	n-remove = remove count-range (add-size-here-and-left - values.size), add-size-here-and-left
 	n-added = values.size - n-remove
 	unless n-added == 0
@@ -244,14 +244,14 @@ Or a combination of the two.
 			a.begin do-merge a-read, new-cur - 1, values, remove-index, remove
 		a.cur := new-cur
 
-.do-merge<a> void(
-	a-begin a*,
-	init-a-read a*,
-	init-a-write a mut*,
-	b array a,
+.do-merge[t] void(
+	a-begin t*,
+	init-a-read t*,
+	init-a-write t mut*,
+	b t array,
 	init-b-remove-index nat64,
 	b-remove index-set,
-) unsafe compare<a>
+) unsafe, t compare
 	a-read mut = init-a-read
 	a-write mut = init-a-write
 	b-begin = b begin-pointer
@@ -289,9 +289,9 @@ Or a combination of the two.
 				a-write := a-write - 1
 				continue
 
-.copy-from-b<a> void(
-	init-a-write a mut*,
-	b array a,
+.copy-from-b[t] void(
+	init-a-write t mut*,
+	b t array,
 	init-b-remove-index nat64,
 	b-remove index-set,
 ) unsafe
@@ -309,13 +309,13 @@ Or a combination of the two.
 			b-remove-index := b-remove-index - 1
 			continue
 
-.finish<a> array a(a compactor a) unsafe
+.finish[t] t array(a t compactor) unsafe
 	assert a.cur == a.end
 	a.begin .. a.end.as-const as-array
 
 region iteration
 
-for-loop<a> void(a sorted-set a, f act void(a)) is-data<a> compare<a>
+for-loop[t] void(a t sorted-set, f act void(t)) t is-data, t compare
 	iters mut = a init-iters
 	until iters is-empty
 		least-iter-index = iters[0].values[0] find-least-iter 0, 1, iters
@@ -326,12 +326,12 @@ for-loop<a> void(a sorted-set a, f act void(a)) is-data<a> compare<a>
 			iters := iters[0 .. iters.size - 1]
 		f[least-value]
 
-.find-least-iter<a> nat64(
-	current-least a,
+.find-least-iter[t] nat64(
+	current-least t,
 	current-least-index nat64,
 	iter-index nat64,
-	iters mut-array iter-part a,
-) compare<a>
+	iters t iter-part mut-array,
+) t compare
 	if iter-index == iters.size
 		current-least-index
 	else
@@ -341,22 +341,22 @@ for-loop<a> void(a sorted-set a, f act void(a)) is-data<a> compare<a>
 		else
 			current-least find-least-iter current-least-index, iter-index + 1, iters
 
-.iter-part<a> record by-val
-	values array a
+.iter-part[t] record by-val
+	values t array
 	remove-index nat64
 
-.is-empty<a> bool(a iter-part a)
+.is-empty[t] bool(a t iter-part)
 	a.values is-empty
 
-.tail<a> iter-part a(a iter-part a, remove index-set)
+.tail[t] t iter-part(a t iter-part, remove index-set)
 	(a.values.tail, a.remove-index + 1) remove-from-front remove
 
-.init-iters<a> mut-array iter-part a(a sorted-set a) trusted
+.init-iters[t] t iter-part mut-array(a t sorted-set) trusted
 	with out : a.add-node-count build
 		_ = out init-iters-recur a.add, a.remove
 		()
 
-.add-node-count<a> nat64(a sorted-set a)
+.add-node-count[t] nat64(a t sorted-set)
 	acc mut = 1
 	cur mut = a add
 	loop
@@ -368,7 +368,7 @@ for-loop<a> void(a sorted-set a, f act void(a)) is-data<a> compare<a>
 			break acc
 
 # Returns next remove index
-.init-iters-recur<a> nat64(out mut-array-builder iter-part a, a add-node a, remove index-set) unsafe
+.init-iters-recur[t] nat64(out t iter-part mut-array-builder, a t add-node, remove index-set) unsafe
 	prev = if left ?= a left
 		out init-iters-recur left, remove
 	else
@@ -378,24 +378,24 @@ for-loop<a> void(a sorted-set a, f act void(a)) is-data<a> compare<a>
 		out ~= here
 	prev + a.values.size
 
-.remove-from-front<a> iter-part a(a iter-part a, remove index-set)
+.remove-from-front[t] t iter-part(a t iter-part, remove index-set)
 	if !a.values.is-empty && a.remove-index in remove
 		(a.values.tail, a.remove-index + 1) remove-from-front remove
 	else
 		a
 
 # Returns a set containing `f[x]` for every element `x` in `a`.
-for-loop<out, in> sorted-set out(a sorted-set in, f act out(in)) is-data<out> compare<out> is-data<in> compare<in>
+for-loop[out, in] out sorted-set(a in sorted-set, f act out(in)) out is-data, out compare, in is-data, in compare
 	a for-loop f to-sorted-set
 
-for-loop<out, in> out[](a sorted-set in, f act out(in)) trusted is-data<in> compare<in>
+for-loop[out, in] out[](a in sorted-set, f act out(in)) trusted, in is-data, in compare
 	with out : a.size build
 		for x : a
 			out ~= f[x]
 
 # TODO: filter
 
-.dbg<a> string(a sorted-set a) to-string<a>
+.dbg[t] string(a t sorted-set) t to-string
 	add = a.add dbg
 	if a.remove is-empty
 		add
@@ -403,18 +403,18 @@ for-loop<out, in> out[](a sorted-set in, f act out(in)) trusted is-data<in> comp
 		parts = " " join for i : a remove; "{i}"
 		"{add} - [{parts}]"
 
-.dbg<a> string(a add-node a) to-string<a>
+.dbg[t] string(a t add-node) t to-string
 	left = if l ?= a left
 		"{l dbg}, "
 	values = " " join for x : a.values to-list; "{x}"
 	"{left}[{values}]"
 
-.verify void(a sorted-set string, expected string)
+.verify void(a string sorted-set, expected string)
 	a.dbg is expected
 
 test
 	# TODO: be sure to test removing and then adding back
-	a sorted-set string = ()
+	a string sorted-set = ()
 	a.is-empty is true
 	a.size is 0
 	a verify "[]"
@@ -440,7 +440,7 @@ test
 
 	# TODO: test filter
 
-	dm sorted-set string = for x : d
+	dm string sorted-set = for x : d
 		if x == "c"
 			"sea"
 		elif x == "r"
