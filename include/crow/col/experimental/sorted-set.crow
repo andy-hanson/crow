@@ -12,13 +12,13 @@ import
 	../../range: ..
 	../../string: ==, <=>, ~~, join, literal, new, string, to-string
 	../../test-util: is
-	../array: array, as-array, begin-pointer, end-pointer, is-empty, new, size, subscript, tail
+	../array: array, as-array, begin-pointer, end-pointer, index, is-empty, new, size, subscript, tail
 	../mut-array:
 		~=, begin-pointer, build, end-pointer, is-empty, mut-array, mut-array-builder,
 		set-subscript, size, subscript, uninitialized-mut-array, with-block
 	../list: ~=, build, for-loop, list, to-array, to-list, with-block
 	../sort: sort
-	../private/sort-utils: binary-search-exact-index
+	../private/sort-utils: binary-search-exact
 	./index-set:
 		~, count-greater-or-equal, count-range, filter-less, for-loop, in, index-set, is-empty, new,
 		size, try-remove
@@ -78,8 +78,8 @@ in[t] bool(value t, a t sorted-set) t is-data, t compare
 		!(index in a.remove)
 
 .find-in-add[t] nat64?(a t add-node, value t) t compare
-	if index ?= a.values binary-search-exact-index value
-		a.add-size-left + index,
+	if iter ?= a.values binary-search-exact value
+		a.add-size-left + iter.index,
 	elif left ?= a left
 		left find-in-add value
 
@@ -90,9 +90,9 @@ in[t] bool(value t, a t sorted-set) t is-data, t compare
 	size-right nat64
 
 .find-in-add-for-remove[t] find-in-add-for-remove-result?(a t add-node, value t, size-right nat64) t compare
-	if index ?= a.values binary-search-exact-index value
+	if iter ?= a.values binary-search-exact value
 		sl = a add-size-left
-		(sl + index, sl, a.values.size, size-right),
+		(sl + iter.index, sl, a.values.size, size-right),
 	elif left ?= a left
 		# TODO: should be able to write this inline
 		new-size-right = size-right + a.values.size

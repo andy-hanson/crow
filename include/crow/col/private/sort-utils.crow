@@ -8,62 +8,51 @@ import
 	../../misc: loop-break, new, void
 	../../number: ==, <=>, +, /
 	../../option: is-empty, new, option
-	../../pointer: ==, <=>, +, -, *, as-const, as-mut, const-pointer, mut-pointer, set-deref
+	../../pointer: ==, <=>, +, -, *, as-const, set-deref
 	../../range: .., for-break
 	../../test-util: is
 	../../tuple: from, pair, to
 	../../private/bootstrap: nat64
-	../array: array, as-array, begin-pointer, end-pointer, for-break
+	../array:
+		==, <=>, +, -, *, array, array-iter, as-array, end-iter, for-break, index, is-at-end, iter
 	../mut-array:
-		as-mut-array, begin-pointer, cast-immutable, copy-from, mut-array, new, temp-as-array
+		+, as-mut-array, copy-from, index, iter, mut-array, mut-array-iter, new, temp-as-array
 	../list: ==, list, new
 	../mut-list:
-		begin-pointer, clear, end-pointer, is-empty, move-to-list, mut-list, size, swap, temp-as-mut-array,
-		to-mut-list, unsafe-set-size
+		+, begin-pointer, clear, end-pointer, is-empty, iter, move-to-list, mut-list, mut-list-iter,
+		size, swap, temp-as-array, to-mut-list, unsafe-set-size
 
 binary-search-has[t] bool(a t array, value t) t compare
-	!(a binary-search-exact-index value is-empty)
+	!(a binary-search-exact value is-empty)
 
 binary-search-key[k, v] v?(a (k, v) array, key k) k compare
-	trusted
-		left mut = a begin-pointer
-		right mut = a end-pointer
-		loop
-			diff = right - left
-			if diff < 4
-				break for pair : (left .. right).as-array
-					if pair.from == key
-						break pair.to
-			else
-				mid = left + diff / 2
-				match key <=> mid->from
-				as less
-					right := mid
-					continue
-				as equal
-					break mid->to,
-				as greater
-					left := mid + 1
-					continue
+	left mut = a iter
+	right mut = a end-iter
+	loop
+		diff = right - left
+		if diff < 4
+			break for pair : (left .. right).as-array
+				if pair.from == key
+					break pair to
+		else
+			mid = left + diff / 2
+			match key <=> mid->from
+			as less
+				right := mid
+				continue
+			as equal
+				break mid->to,
+			as greater
+				left := mid + 1
+				continue
 
-binary-search-exact-index[t] nat64?(a t array, value t) t compare
-	trusted if pointer ?= a binary-search-exact-pointer value
-		pointer - a.begin-pointer,
+binary-search-exact[t] t mut-list-iter?(a t mut[], compare act comparison(t))
+	if iter ?= trusted a.temp-as-array binary-search-exact compare
+		a.iter + iter.index,
 
-binary-search-exact-index[t] nat64?(a t mut[], compare act comparison(t))
-	trusted if pointer ?= a binary-search-exact-pointer compare
-		pointer - a.begin-pointer,
-
-binary-search-exact-pointer[t] t mut*?(a t mut[], compare act comparison(t)) unsafe
-	a.temp-as-mut-array binary-search-exact-pointer compare
-
-binary-search-exact-pointer[t] t mut*?(a t mut-array, compare act comparison(t)) unsafe
-	if x ?= a.cast-immutable binary-search-exact-pointer compare
-		x.as-mut,
-
-binary-search-exact-pointer[t] t*?(a t array, value t) unsafe, t compare
-	left mut = a begin-pointer
-	right mut = a end-pointer
+binary-search-exact[t] t array-iter?(a t array, value t) t compare
+	left mut = a iter
+	right mut = a end-iter
 	loop
 		diff = right - left
 		if diff < 4
@@ -82,33 +71,27 @@ binary-search-exact-pointer[t] t*?(a t array, value t) unsafe, t compare
 				left := mid + 1
 				continue
 
-binary-search-exact-pointer[t] t*?(a t array, compare act comparison(t)) unsafe
-	pointer = a binary-search-compare compare
-	if pointer == a.end-pointer
+binary-search-exact[t] t array-iter?(a t array, compare act comparison(t))
+	iter = a binary-search-insert compare
+	if iter is-at-end
 		()
-	elif compare[*pointer] == equal
-		pointer,
-
-binary-search-insert-index[t] nat64(a t mut[], compare act comparison(t))
-	trusted (a binary-search-insert-pointer compare) - a.begin-pointer
-
-binary-search-insert-pointer[t] t mut*(a t mut[], compare act comparison(t)) unsafe
-	a.temp-as-mut-array binary-search-insert-pointer compare
+	elif compare[*iter] == equal
+		iter,
 
 ###
 Returns the pointer to the least value that is compared equal or greater.
 Returns `a end-pointer` if all values compare less.
 ###
-binary-search-insert-pointer[t] t mut*(a t mut-array, compare act comparison(t)) unsafe
-	a.temp-as-array binary-search-compare compare as-mut
+binary-search-insert[t] t mut-list-iter(a t mut[], compare act comparison(t))
+	a.iter + (trusted a.temp-as-array binary-search-insert compare).index
 
-binary-search-insert-index[t] nat64(a t array, value t) t compare
-	trusted (a binary-search-insert-pointer value) - a.begin-pointer
+binary-search-insert[t] t mut-array-iter(a t mut-array, compare act comparison(t))
+	a.iter + (trusted a.temp-as-array binary-search-insert compare).index
 
-binary-search-insert-pointer[t] t*(a t array, value t) unsafe, t compare
+binary-search-insert[t] t array-iter(a t array, value t) t compare
 	# Left inclusive, right exclusive
-	left mut = a begin-pointer
-	right mut = a end-pointer
+	left mut = a iter
+	right mut = a end-iter
 	loop
 		if left == right
 			break left
@@ -126,18 +109,18 @@ binary-search-insert-pointer[t] t*(a t array, value t) unsafe, t compare
 
 test
 	a nat64 mut-array = 1, 3, 5, 7
-	(a binary-search-insert-pointer x => 0 <=> x) - a.begin-pointer is 0
-	(a binary-search-insert-pointer x => 3 <=> x) - a.begin-pointer is 1
-	(a binary-search-insert-pointer x => 4 <=> x) - a.begin-pointer is 2
-	(a binary-search-insert-pointer x => 5 <=> x) - a.begin-pointer is 2
-	(a binary-search-insert-pointer x => 6 <=> x) - a.begin-pointer is 3
-	(a binary-search-insert-pointer x => 7 <=> x) - a.begin-pointer is 3
-	(a binary-search-insert-pointer x => 8 <=> x) - a.begin-pointer is 4
+	(a binary-search-insert x => 0 <=> x).index is 0
+	(a binary-search-insert x => 3 <=> x).index is 1
+	(a binary-search-insert x => 4 <=> x).index is 2
+	(a binary-search-insert x => 5 <=> x).index is 2
+	(a binary-search-insert x => 6 <=> x).index is 3
+	(a binary-search-insert x => 7 <=> x).index is 3
+	(a binary-search-insert x => 8 <=> x).index is 4
 
-.binary-search-compare[t] t*(a t array, compare act comparison(t)) unsafe
+.binary-search-insert[t] t array-iter(a t array, compare act comparison(t))
 	# Left inclusive, right exclusive
-	left mut = a begin-pointer
-	right mut = a end-pointer
+	left mut = a iter
+	right mut = a end-iter
 	loop
 		if left == right
 			break left
@@ -201,7 +184,7 @@ merge-no-duplicates[t] void(a t mut[], b t mut[], compare act unique-comparison(
 					continue
 		b clear
 
-.test-one void(a nat64[], b nat64[], expected nat64[]) unsafe
+.test-one void(a nat64[], b nat64[], expected nat64[])
 	a-mut = a to-mut-list
 	b-mut = b to-mut-list
 	a-mut merge-no-duplicates b-mut, (x, y) =>

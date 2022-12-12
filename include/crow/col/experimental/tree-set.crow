@@ -1,24 +1,24 @@
 no-std
 import
-	../../bool: !, &&, bool, false, new, true
-	../../compare: !=, <, >, >=, compare
+	../../bool: !, &&, ||, bool, false, new, true
+	../../compare: <, >, >=, compare
 	../../exception: unreachable
 	../../fun-util: subscript
 	../../json: json
 	../../misc: is-data, new, void
 	../../number: ==, <=>, +, -, /, nat64, new
 	../../option: !, new, option
-	../../range: ..
 	../../string: ==, <=>, ~~, iter, join, literal, next, slice-left, starts-with, string, to-string
 	../../test-util: is
 	../array:
-		~=, ~~=, array, array-builder, build, for-loop, index-of, insert-at, is-empty, last,
-		remove-at, rtail, size, subscript, tail, with-block
+		==, <=>, +, *, ~=, ~~=, array, array-builder, array-iter, build, for-loop, index, index-of,
+		insert-at, is-at-end, is-empty, iter, last, remove-at, rtail, size, slice-left, slice-right,
+		subscript, tail, with-block
 	../iter: rest
 	../list: ~=, build, for-loop, list, list-builder, size, to-array, to-list, with-block
 	../mut-stack: ~=, mut-stack, new, peek, pop
 	../sort: sort-unique
-	../private/sort-utils: binary-search-has, binary-search-insert-index
+	../private/sort-utils: binary-search-has, binary-search-insert
 
 ###
 Set of unique values.
@@ -309,30 +309,28 @@ try-remove[t] t tree-set?(a t tree-set, b t) t is-data, t compare
 			a handle-scapegoat value, a.left, f
 
 .add-to-array[t] t add-result(a t array, value t, max-height nat64) t compare
-	insert-index = a binary-search-insert-index value
-	if insert-index != a.size && a[insert-index] == value
+	insert = a binary-search-insert value
+	if !insert.is-at-end && *insert == value
 		none
 	elif a.size < 4
-		(a insert-at insert-index, value).leaf inserted
+		(a insert-at insert.index, value).leaf inserted
 	elif max-height == 0
 		# Can't add new nodes
 		(a.size + 1, 1) find-scapegoat
 	else
-		a break-up-arr value, insert-index, max-height
+		a break-up-arr value, insert, max-height
 
-.break-up-arr[t] t add-result(a t array, value t, insert-index nat64, max-height nat64) t compare
+.break-up-arr[t] t add-result(a t array, value t, insert-iter t array-iter, max-height nat64) t compare
 	# Break it up into nodes, adding to height
-	mid-index = a.size / 2
-	if insert-index == mid-index
-		(value, a[0 .. mid-index].leaf, a[mid-index .. a.size].leaf).inner inserted
+	mid-iter = a.iter + a.size / 2
+	if insert-iter == mid-iter
+		(value, mid-iter.slice-left.leaf, mid-iter.slice-right.leaf).inner inserted
 	else
-		mid = a[mid-index]
-		assert mid-index < a.size
-		left-arr = a[0 .. mid-index]
-		right-arr = a[mid-index + 1 .. a.size]
-		forbid left-arr is-empty
-		forbid right-arr is-empty
-		if insert-index < mid-index
+		left-arr = mid-iter slice-left
+		mid = *mid-iter
+		right-arr = (mid-iter + 1) slice-right
+		forbid left-arr.is-empty || right-arr.is-empty
+		if insert-iter < mid-iter
 			# TODO:PERF: This redundantly finds insert-index again
 			match left-arr add-to-array value, max-height - 1
 			as none
@@ -387,10 +385,10 @@ try-remove[t] t tree-set?(a t tree-set, b t) t is-data, t compare
 			out tree-to-array-recur i.right, value
 	as leaf l
 		# Find first x > value, insert it before there
-		index = l binary-search-insert-index value
-		out ~~= l[0 .. index]
+		insert = l binary-search-insert value
+		out ~~= insert slice-left
 		out ~= value
-		out ~~= l[index .. l.size]
+		out ~~= insert slice-right
 # Version where we know we don't have to insert value
 .tree-to-array-recur[t] void(out t array-builder, a t node)
 	match a

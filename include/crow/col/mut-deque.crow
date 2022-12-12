@@ -4,7 +4,7 @@ import
 	../compare: !=, <
 	../json: json
 	../misc: new, void
-	../number: ==, <=>, +, *, nat64, new
+	../number: ==, <=>, +, -, *, nat64, new
 	../option: ==, new, option
 	../pointer: ==, <=>, +, -, *, mut-pointer, null, set-deref, zeroed
 	../range: .., for-loop

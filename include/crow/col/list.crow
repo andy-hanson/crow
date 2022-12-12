@@ -498,39 +498,39 @@ prev[t] (t, t list-iter) value-and-rest?(a t list-iter) noctx
 		(a.get-l1-branch.left.end-iter2d.to-iter3d, l1-left),
 
 # Mutable iterator over a list.
-mut-list-iter[t] record mut
+list-mut-iter[t] record mut
 	.inner mut t list-iter
 
 # New mutable iterator at the beginning of the list.
-mut-iter[t] t mut-list-iter(a t[])
+mut-iter[t] t list-mut-iter(a t[])
 	a.iter,
 
-end-mut-iter[t] t mut-list-iter(a t[])
+end-mut-iter[t] t list-mut-iter(a t[])
 	a.end-iter,
 
 # Copy to an immutable iterator.
-save[t] t list-iter(a t mut-list-iter)
+save[t] t list-iter(a t list-mut-iter)
 	a.inner
 
-restore[t] void(a t mut-list-iter, saved t list-iter)
+restore[t] void(a t list-mut-iter, saved t list-iter)
 	a.inner := saved
 
-slice-left[t] t[](a t mut-list-iter)
+slice-left[t] t[](a t list-mut-iter)
 	a.inner slice-left
 
-slice-right[t] t[](a t mut-list-iter)
+slice-right[t] t[](a t list-mut-iter)
 	a.inner slice-right
 
 ###
 Advances the iterator and returns the next element.
 Returns an empty option if the iterator was already at the end of the list.
 ###
-next[t] t?(a t mut-list-iter)
+next[t] t?(a t list-mut-iter)
 	if pair ?= a.inner next
 		a.inner := pair rest
 		pair.value,
 
-prev[t] t?(a t mut-list-iter)
+prev[t] t?(a t list-mut-iter)
 	if pair ?= a.inner prev
 		a.inner := pair rest
 		pair.value,
@@ -539,7 +539,7 @@ prev[t] t?(a t mut-list-iter)
 Returns the next element without advancing the iterator.
 Returns an empty option if the iterator is at the end of the list.
 ###
-peek[t] t?(a t mut-list-iter)
+peek[t] t?(a t list-mut-iter)
 	if pair ?= a.inner next
 		pair.value,
 

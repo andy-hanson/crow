@@ -5,7 +5,7 @@ import
 	../fun-util: subscript
 	../json: json
 	../misc: void
-	../number: +, *, ==, <=>, nat64
+	../number: +, -, *, ==, <=>, nat64
 	../range: .., for-loop
 	../string: ==, ~~, join, literal, string, to-string
 	../test-util: is

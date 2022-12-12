@@ -2,13 +2,13 @@ no-std
 import
 	string: memcpy, memmove
 	../bool: bool
-	../compare: <, <=, >, equal
+	../compare: <, <=, >, >=, equal
 	../fun-util: subscript
 	../misc: new, void
 	../number: ==, <=>, +, -, *, nat64
 	../option: new, option
 	../pointer:
-		+, -, as-any-const-pointer, as-any-mut-pointer, as-const, by-val, mut-pointer, set-deref,
+		+, -, as-any-const-pointer, as-any-mut-pointer, as-const, by-val, mut-pointer, ref-eq, set-deref,
 		set-subscript, size-of, subscript, zeroed
 	../private/alloc:
 		alloc-uninitialized, copy-data-from, set-zero-range, unmanaged-alloc-zeroed-elements
@@ -31,6 +31,10 @@ mut-list[t] record mut
 	# For the GC's sake, unused parts of backing are filled with 'zeroed'
 	.backing .mut t mut-array
 	size .mut nat64
+
+# TODO: this should be generated for all mut by-ref records
+==[t] bool(a t mut[], b t mut[])
+	trusted a ref-eq b
 
 ###
 Pointer to the first element.
@@ -440,3 +444,36 @@ Overwrites every element `x` with `f[x]`.
 set-map[t] void(a t mut[], f act t(t))
 	# TOOD: this is unsafe if 'f' accesses to the list. Make it a 'fun' instead?
 	trusted a.temp-as-mut-array set-map f
+
+region iter
+
+mut-list-iter[t] record by-val mut
+	.xs t mut[]
+	index nat64
+
+is-at-end[t] bool(a t mut-list-iter)
+	a.index >= a.xs.size
+
+iter[t] t mut-list-iter(a t mut[]) noctx
+	a, 0
+
+end-iter[t] t mut-list-iter(a t mut[]) noctx
+	a, a.size
+
+*[t] t(a t mut-list-iter)
+	a.xs[a index]
+
+set-deref[t] void(a t mut-list-iter, value t)
+	a.xs[a index] := value
+
++[t] t mut-list-iter(a t mut-list-iter, n nat64)
+	new-index = a.index + n
+	assert new-index <= a.xs.size
+	a.xs, new-index
+
+-[t] t mut-list-iter(a t mut-list-iter, b nat64)
+	a.xs, a.index - b
+
+-[t] nat64(a t mut-list-iter, b t mut-list-iter)
+	assert a.xs == b.xs
+	a.index - b.index

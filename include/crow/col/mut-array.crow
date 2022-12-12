@@ -15,7 +15,7 @@ import
 	../range: .., for-loop, high, low, range
 	./array:
 		~=, ~~=, array, array-builder, as-array, begin-pointer, build, exists, find-index, for-loop,
-		index-of, new, size, subscript, with-block
+		index-of, new, reference-equal, size, subscript, with-block
 
 ###
 `mut-array` is a low-level type mostly useful for implementing other collections.
@@ -32,6 +32,9 @@ Taking a slice aliases the elements, so writing to the slice writes to the origi
 ###
 mut-array[t] record mut by-val
 	.inner t array
+
+==[t] bool(a t mut-array, b t mut-array)
+	trusted a.inner reference-equal b.inner
 
 empty-mut-array[t] t mut-array() noctx, no-doc
 	# TODO: should not need type annotation
@@ -363,3 +366,27 @@ with-block[t] t mut-array(a build-mut-array, f act void(t mut-array-builder))
 
 size[t] nat64(a t mut-array-builder)
 	a.inner size
+
+region iter
+
+mut-array-iter[t] record by-val mut
+	.xs t mut-array
+	index nat64
+
+iter[t] t mut-array-iter(a t mut-array) noctx
+	a, 0
+
+*[t] t(a t mut-array-iter)
+	a.xs[a index]
+
+set-deref[t] void(a t mut-array-iter, value t)
+	a.xs[a index] := value
+
++[t] t mut-array-iter(a t mut-array-iter, b nat64)
+	new-index = a.index + b
+	assert new-index <= a.xs.size
+	a.xs, new-index
+
+-[t] nat64(a t mut-array-iter, b t mut-array-iter)
+	assert a.xs == b.xs
+	a.index - b.index

@@ -8,7 +8,7 @@ import
 	../option: new, option
 	../private/alloc: alloc-uninitialized, copy-data-from
 	../private/bootstrap: new
-	../private/range-low-level: .., high, low, range, size
+	../private/range-low-level: .., high, low, rangable, range, size
 	../pointer:
 		==, <=>, +, -, *, as-const, const-pointer, mut-pointer, null, pointer-cast, set-deref,
 		size-of, subscript, to-mut-pointer, to-nat64
@@ -21,7 +21,7 @@ new[t] t array(...a t array) noctx
 	a
 
 # Make an array from a range
-for-loop[out] out array(a nat64 range, f act out(nat64))
+for-loop[out, in] out array(a in range, f act out(in)) in rangable
 	with out : a.size build
 		n mut = a low
 		loop
@@ -83,6 +83,9 @@ If you need concatenate many arrays, use a `mut[]` to accumulate elements, then 
 		res copy-data-from a.begin-pointer, a.size
 		res + a.size copy-data-from b.begin-pointer, b.size
 		res.as-const[0 .. res-size]
+
+reference-equal[t] bool(a t array, b t array) noctx, no-doc, unsafe
+	a.begin-pointer == b.begin-pointer && a.size == b.size
 
 ==[t] bool(a t array, b t array) noctx, no-doc, t equal
 	trusted if a.size == b.size
@@ -366,12 +369,25 @@ region iter
 
 array-iter[t] record by-val
 	.xs t array
-	# Index of the next value to return.
-	# If at the end of the array, this iterator is empty.
-	.index nat64
+	###
+	Index of the next value to return.
+	May be the array size when the iterator is empty.
+	###
+	index nat64
+
+==[t] bool(a t array-iter, b t array-iter) noctx
+	assert trusted a.xs reference-equal b.xs
+	a.index == b.index
+
+<=>[t] comparison(a t array-iter, b t array-iter) noctx
+	assert trusted a.xs reference-equal b.xs
+	a.index <=> b.index
 
 new[t] t array-iter() noctx
 	(), 0
+
+is-at-end[t] bool(a t array-iter) noctx
+	a.index == a.xs.size
 
 iter[t] t array-iter(a t array) noctx
 	a, 0
@@ -379,6 +395,9 @@ iter[t] t array-iter(a t array) noctx
 # Iterator at the end, suitable for iterating over `a` by calling `prev`.
 end-iter[t] t array-iter(a t array) noctx
 	a, a.size
+
+*[t] t(a t array-iter) noctx
+	a.xs[a.index]
 
 next[t] (t, t array-iter) value-and-rest?(a t array-iter) noctx
 	assert a.index <= a.xs.size
@@ -390,6 +409,18 @@ prev[t] (t, t array-iter) value-and-rest?(a t array-iter) noctx
 	if a.index != 0
 		prev-index = a.index - 1
 		(a.xs[prev-index], (a.xs, prev-index)),
+
++[t] t array-iter(a t array-iter, b nat64)
+	new-index = a.index + b
+	assert new-index <= a.xs.size
+	a.xs, new-index
+
+-[t] nat64(a t array-iter, b t array-iter)
+	assert trusted a.xs reference-equal b.xs
+	a.index - b.index
+
+-[t] t array-iter(a t array-iter, b nat64)
+	a.xs, a.index - b
 
 slice-left[t] t array(a t array-iter)
 	a.xs[0 .. a.index]
@@ -446,6 +477,9 @@ as-array[t] t array(pointers t* range) noctx, unsafe
 	pointers.size, pointers.low
 as-array[t] t array(pointers t mut* range) noctx, unsafe
 	pointers.size, pointers.low.as-const
+as-array[t] t array(iters t array-iter range) noctx
+	assert trusted iters.low.xs reference-equal iters.high.xs
+	iters.low.xs[iters.low.index .. iters.high.index]
 
 pointers[t] t* range(a t array) noctx, unsafe
 	a.begin-pointer .. a.end-pointer

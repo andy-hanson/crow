@@ -7,7 +7,7 @@ import
 	./col/list:
 		==, <=>, ~, ~~, ~=, ~~=, as-list, build, contains-sublist, drop-right-while, drop-while,
 		end-iter, ends-with, find-iter, for-loop, is-empty, iter, list, list-builder, list-cast,
-		list-iter, mut-iter, mut-list-iter, new, next, peek, prev, repeat, restore, reverse, save,
+		list-iter, list-mut-iter, mut-iter, new, next, peek, prev, repeat, restore, reverse, save,
 		size, slice-left, slice-right, split-by-sublist, starts-with, to-array, to-list,
 		try-remove-end, try-remove-start, try-split-once-by-sublist,
 		try-split-once-by-sublist-right, with-block
@@ -297,7 +297,7 @@ slice-right string(a string-iter)
 	a.inner.slice-right as-string
 
 mut-string-iter record mut
-	.inner char8 mut-list-iter
+	.inner char8 list-mut-iter
 
 mut-iter mut-string-iter(a string)
 	a.char8s.mut-iter,

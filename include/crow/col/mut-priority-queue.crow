@@ -4,7 +4,7 @@ import
 	../compare: <, compare
 	../json: json
 	../misc: is-data, new, void
-	../number: ==, <=>, +, nat64
+	../number: ==, <=>, +, -, nat64
 	../option: ==, !, new, option
 	../range: .., for-loop
 	../string: ==, ~~, join, literal, new, string, to-string
@@ -12,11 +12,11 @@ import
 	../tuple: ==, from, new, pair, to
 	./array: array, size, subscript
 	./mut-list:
-		~=, ~~=, clear, copy, for-loop, is-empty, move-to-array, mut-list, new, pop, reversed, size,
-		subscript, temp-as-array, to-list, to-mut-list
+		~=, ~~=, clear, copy, for-loop, index, is-at-end, is-empty, move-to-array, mut-list, new,
+		pop, reversed, size, subscript, temp-as-array, to-list, to-mut-list
 	./list: ==, list, new, reverse, to-list
 	./sort: set-sort, set-sort-reverse
-	./private/sort-utils: binary-search-insert-index
+	./private/sort-utils: binary-search-insert
 
 ###
 Mutable priority queue.
@@ -68,11 +68,11 @@ This is O(log n).
 ###
 ~=[k, v] void(a (k, v) mut-priority-queue, pair (k, v)) k is-data, k compare
 	# Highest min is on the right, so comparing in reverse
-	index = a.mins binary-search-insert-index it => it.from <=> pair.from
-	if index == a.mins.size
+	insert = a.mins binary-search-insert it => it.from <=> pair.from
+	if insert is-at-end
 		a.mins ~= pair
 	else
-		a.buckets add-to-bucket index, pair
+		a.buckets add-to-bucket insert.index, pair
 
 ###
 Removes and returns the pair with the lowest key.
