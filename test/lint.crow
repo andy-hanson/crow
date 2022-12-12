@@ -40,7 +40,7 @@ lint test-result(path string, options test-options) summon
 	res failure mut[] = ()
 	ext = path.get-extension!
 	allow-double-space = ext == "err" || ext == "sublime-syntax"
-	for line, line-num : text lines
+	for line-num, line : text lines
 		ln = line-num + 1 to-string
 		space-space = " " ~~ " "
 		if !allow-double-space && line contains-substr space-space

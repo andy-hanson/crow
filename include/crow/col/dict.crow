@@ -305,7 +305,7 @@ If `index > a.size`, entries between the and of `a` and the new entries will be 
 # Returns 'some' if we should change this to a leaf.
 .inner-node-to-leaf[k, v] (k, v) node?(a (k, v) node array , which nat64, new-child (k, v) node)
 	total-size mut = 0
-	for child, child-index : a
+	for child-index, child : a
 		total-size := match child-index == which ? new-child : child
 		as inner-node _
 			leaf-max-size + 1
@@ -316,7 +316,7 @@ If `index > a.size`, entries between the and of `a` and the new entries will be 
 		trusted
 			out (k, v) mut-array = total-size uninitialized-mut-array
 			out-index mut = 0
-			for child, child-index : a
+			for child-index, child : a
 				match child-index == which ? new-child : child
 				as inner-node _
 					unreachable
@@ -420,7 +420,7 @@ for-loop[k-out, v-out, k, v] v-out[k-out](
 
 for-loop[k, v, in] v[k](a in[], f act (k, v)(in)) k is-data, k compare, k hash-mix
 	a for-loop f to-dict
-for-loop[k, v, in] v[k](a in[], f act (k, v)(in, nat64)) k is-data, k compare, k hash-mix
+for-loop[k, v, in] v[k](a in[], f act (k, v)(nat64, in)) k is-data, k compare, k hash-mix
 	a for-loop f to-dict
 
 region builder

@@ -4,10 +4,10 @@ import
 main nat^(_ string[]) summon
 	for _ : ((), ())::(void array)
 		out print "array void"
-	for _, i : ((), ())::(void array)
+	for i, _ : ((), ())::(void array)
 		out print "array void {i}"
 	for _ : ((), ())::void[]
 		out print "list void"
-	for _, i : ((), ())::void[]
+	for i, _ : ((), ())::void[]
 		out print "list void {i}"
 	()

@@ -228,7 +228,7 @@ Returns the first index `i` for which `f[a[i]]` is true.
 Returns an empty option iff `f` returns `false` for every element of `a`.
 ###
 find-index[t] nat64?(a t array, f act bool(t)) no-doc
-	for x, i : a
+	for i, x : a
 		if f[x]
 			break i
 
@@ -246,9 +246,9 @@ exists[t] bool(a t array, f act bool(t))
 			break true
 	else
 		false
-exists[t] bool(a t array, f act bool(t, nat64))
-	for x, i : a
-		if f[x, i]
+exists[t] bool(a t array, f act bool(nat64, t))
+	for i, x : a
+		if f[i, x]
 			break true
 	else
 		false
@@ -294,16 +294,16 @@ Equivalent to calling `f[a[0], 0]`, `f[a[1], 1]`, etc.
 
 Calls `f` for each element in `a`, also providing the index.
 ###
-for-loop[t] void(a t array, f act void(t, nat64))
+for-loop[t] void(a t array, f act void(nat64, t))
 	i mut = 0
 	until i == a.size
-		f[a[i], i]
+		f[i, a[i]]
 		i := i + 1
 
-for-loop[out, in] out array(a in array, f act out(in, nat64))
+for-loop[out, in] out array(a in array, f act out(nat64, in))
 	with out : a.size build
-		for x, i : a
-			out ~= f[x, i]
+		for i, x : a
+			out ~= f[i, x]
 
 for-break[out, in] out?(a in array, f act out break-or-continue(in))
 	i mut nat64 = 0
@@ -329,25 +329,25 @@ for-break[out, in] out(a in array, f-loop act out break-or-continue(in), f-else 
 			as loop-continue
 				i := i + 1
 				continue
-for-break[out, in] out?(a in array, f act out break-or-continue(in, nat64))
+for-break[out, in] out?(a in array, f act out break-or-continue(nat64, in))
 	i mut nat64 = 0
 	loop
 		if i == a.size
 			break
 		else
-			match f[a[i], i]
+			match f[i, a[i]]
 			as loop-break x
 				break x,
 			as loop-continue
 				i := i + 1
 				continue
-for-break[out, in] out(a in array, f-loop act out break-or-continue(in, nat64), f-else act out())
+for-break[out, in] out(a in array, f-loop act out break-or-continue(nat64, in), f-else act out())
 	i mut nat64 = 0
 	loop
 		if i == a.size
 			break f-else[]
 		else
-			match f-loop[a[i], i]
+			match f-loop[i, a[i]]
 			as loop-break x
 				break x
 			as loop-continue
@@ -356,13 +356,16 @@ for-break[out, in] out(a in array, f-loop act out break-or-continue(in, nat64), 
 
 # Array containing only the elements of `a` for which `f[a[i]]` returns true.
 filter[t] t array(a t array, f act bool(t))
-	a filter (cur, _) => f[cur]
+	with out : build
+		for x : a
+			if f[x]
+				out ~= x
 
 # Like `filter`, but also provides the element index.
-filter[t] t array(a t array, f act bool(t, nat64))
+filter[t] t array(a t array, f act bool(nat64, t))
 	with out : build
-		for x, i : a
-			if f[x, i]
+		for i, x : a
+			if f[i, x]
 				out ~= x
 
 region iter

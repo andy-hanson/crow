@@ -208,7 +208,7 @@ try-add[t] t set?(a t set, value t) t is-data, t compare, t hash-mix
 			continue
 
 .push[t] void(out t frozen-set-builder, here t frozen-set, add-size-here-and-left nat64, remove index-set)
-	for x, i : here
+	for i, x : here
 		unless add-size-here-and-left + i in remove
 			out ~= x
 
@@ -218,8 +218,8 @@ for-loop[t] void(a t set, f act void(t)) t is-data, t compare, t hash-mix
 	cur mut = a add
 	add-size-left mut = cur add-size-left
 	loop
-		for x, index : cur here
-			unless add-size-left + index in a.remove
+		for i, x : cur here
+			unless add-size-left + i in a.remove
 				f[x]
 		if left ?= cur left
 			cur := left

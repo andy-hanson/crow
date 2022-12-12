@@ -433,7 +433,7 @@ for-loop void(a index-set, f act void(nat64))
 		i.c for-loop-recur offset + half, quarter, f
 		i.d for-loop-recur offset + three-quarters, quarter, f
 	as leaf l
-		for value, word-index : l values
+		for word-index, value : l values
 			bit-index-offset = offset + word-index * 64
 			for bit-index : value one-bits
 				f[bit-index-offset + bit-index]

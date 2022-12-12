@@ -136,7 +136,7 @@ mut-array-to-frozen-dict-promise-no-duplicates[k, v] (k, v) frozen-dict(
 	if a.bucket-starts is-empty
 		out write-bucket-without-duplicates a.pairs
 	else
-		for bucket-start, i : a bucket-starts
+		for i, bucket-start : a bucket-starts
 			trusted
 				bucket-end = if i == a.bucket-starts.size - 1
 					a.pairs end-pointer
@@ -145,7 +145,7 @@ mut-array-to-frozen-dict-promise-no-duplicates[k, v] (k, v) frozen-dict(
 				out write-bucket-without-duplicates (bucket-start .. bucket-end).as-array
 
 .write-bucket-without-duplicates[k, v] void(out (k, v) mut-array-builder, pairs (k, v) array) k equal
-	for pair, i : pairs
+	for i, pair : pairs
 		unless pair.from key-in-range pairs[i + 1 .. pairs.size]
 			out ~= pairs[i]
 
@@ -153,7 +153,7 @@ mut-array-to-frozen-dict-promise-no-duplicates[k, v] (k, v) frozen-dict(
 	if a.bucket-starts is-empty
 		a.pairs bucket-has-duplicates
 	else
-		a.bucket-starts exists (bucket-start, i) =>
+		a.bucket-starts exists (i, bucket-start) =>
 			trusted
 				bucket-end = if i == a.bucket-starts.size - 1
 					a.pairs end-pointer
@@ -162,7 +162,7 @@ mut-array-to-frozen-dict-promise-no-duplicates[k, v] (k, v) frozen-dict(
 				(bucket-start .. bucket-end).as-array bucket-has-duplicates
 
 .bucket-has-duplicates[k, v] bool(pairs (k, v) array) k equal
-	pairs exists (pair, i) =>
+	pairs exists (i, pair) =>
 		pair.from key-in-range pairs[i + 1 .. pairs.size]
 
 .key-in-range[k, v] bool(key k, pairs (k, v) array) k equal

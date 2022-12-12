@@ -401,7 +401,7 @@ for-loop[t] void(a t mut[], f act void(t))
 	# TODO: dangerous if mutated while looping
 	trusted a.temp-as-array for-loop f
 
-for-loop[t] void(a t mut[], f act void(t, nat64))
+for-loop[t] void(a t mut[], f act void(nat64, t))
 	# TODO: dangerous if mutated while looping
 	trusted a.temp-as-array for-loop f
 

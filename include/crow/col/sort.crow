@@ -90,7 +90,7 @@ Returns is a slice of the original `a`, which will be shorter if non-unique elem
 .set-sort-unique[t] t mut-array(a t mut-array) t compare
 	a set-sort
 	out-i mut = 0
-	for x, i : a
+	for i, x : a
 		if i == a.size - 1 || x != a[i + 1]
 			a[out-i] := x
 			out-i := out-i + 1

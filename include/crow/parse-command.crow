@@ -46,7 +46,7 @@ parse-command parsed-command(args string[])
 	named string mut[] mut[string] = ()
 	after mut string[] = ()
 	cur mut string mut[] = nameless
-	for arg, i : args
+	for i, arg : args
 		if arg == "--"
 			after := args[i + 1 .. args.size]
 			break

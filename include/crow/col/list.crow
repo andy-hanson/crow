@@ -912,7 +912,7 @@ drop-right-while[t] t[](a t[], f act bool(t))
 
 for-break[t] void(a t[], f act void break-or-continue(t))
 	a for-break f, () => ()
-for-break[t] void(a t[], f act void break-or-continue(t, nat64))
+for-break[t] void(a t[], f act void break-or-continue(nat64, t))
 	a for-break f, () => ()
 for-break[out, in] out?(a in[], f act out break-or-continue(in))
 	for x : a
@@ -923,10 +923,10 @@ for-break[out, in] out?(a in[], f act out break-or-continue(in))
 			continue
 	else
 		()
-for-break[out, in] out(a in[], f-loop act out break-or-continue(in, nat64), f-else act out())
+for-break[out, in] out(a in[], f-loop act out break-or-continue(nat64, in), f-else act out())
 	i mut = 0
 	inner-f-loop act out break-or-continue(in) = x =>
-		res = f-loop[x, i]
+		res = f-loop[i, x]
 		i := i + 1
 		res
 	a for-break inner-f-loop, f-else
@@ -951,16 +951,16 @@ for-loop[t] void(a t[], f act void(t))
 		for x : chunk
 			f[x]
 
-for-loop[t] void(a t[], f act void(t, nat64))
+for-loop[t] void(a t[], f act void(nat64, t))
 	i mut = 0
 	for x : a
-		f[x, i]
+		f[i, x]
 		i := i + 1
 
 for-loop[out, in] out[](a in[], f act out(in))
 	(a for-loop f)::(out array) to-list
 
-for-loop[out, in] out[](a in[], f act out(in, nat64))
+for-loop[out, in] out[](a in[], f act out(nat64, in))
 	(a for-loop f)::(out array) to-list
 
 for-loop[out, in] out array(a in[], f act out(in))
@@ -968,10 +968,10 @@ for-loop[out, in] out array(a in[], f act out(in))
 		for x : a
 			out ~= f[x]
 
-for-loop[out, in] out array(a in[], f act out(in, nat64))
+for-loop[out, in] out array(a in[], f act out(nat64, in))
 	with out : a.size build
-		for x, i : a
-			out ~= f[x, i]
+		for i, x : a
+			out ~= f[i, x]
 
 flatten[t] t[](a t[][])
 	res mut t[] = ()

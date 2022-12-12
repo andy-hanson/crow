@@ -315,7 +315,7 @@ exists[t] bool(a t mut-array, f act bool(t))
 for-loop[t] void(a t mut-array, f act void(t))
 	trusted a.temp-as-array for-loop f
 
-for-loop[t] void(a t mut-array, f act void(t, nat64))
+for-loop[t] void(a t mut-array, f act void(nat64, t))
 	trusted a.temp-as-array for-loop f
 
 set-map[t] void(a t mut-array, f act t(t))

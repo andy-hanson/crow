@@ -144,7 +144,7 @@ region iteration
 
 for-loop[t] void(a t frozen-set, f act void(t))
 	a.values for-loop f
-for-loop[t] void(a t frozen-set, f act void(t, nat64))
+for-loop[t] void(a t frozen-set, f act void(nat64, t))
 	a.values for-loop f
 for-loop[out, in] out[](a in frozen-set, f act out(in))
 	a.values for-loop f to-list
