@@ -17,10 +17,10 @@ candidates (with 1 arguments):
 	new json(...(string, json) array) (from include/crow/json.crow.crow line 31)
 	new t?(t) (from include/crow/option.crow.crow line 15)
 
-test/compile-errors/record-privacy-b.crow 9:11-9:12 there is no function or field named 'j'
+test/compile-errors/record-privacy-b.crow 9:11-9:12 there is no function named 'j'
 
 test/compile-errors/record-privacy-b.crow 10:5-10:10 there is no function named 'set-k'
 
 test/compile-errors/record-privacy-b.crow 12:5-12:10 there is no function named 'set-l'
 
-test/compile-errors/record-privacy-b.crow 13:11-13:12 there is no function or field named 'l'
+test/compile-errors/record-privacy-b.crow 13:11-13:12 there is no function named 'l'

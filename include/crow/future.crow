@@ -49,14 +49,13 @@ rejected[t] t^(err exception)
 	trusted res.lock init
 	res
 
-# TODO: t[] is-sendable should not be necessary
 ###
 Waits for every one of `futures` to be resolved, then returns an array all of their results.
 
 If one of `futures` resolves with an exception, this resolves to the leftmost exception (discarding others),
 regardless of which exception happened first.
 ###
-wait-all[t] t[]^(futures t^[]) t is-sendable, t[] is-sendable
+wait-all[t] t[]^(futures t^[]) t is-sendable
 	<- futures wait-all-complete
 	trusted (for x : futures; x.get-result!),
 
@@ -130,7 +129,6 @@ then[out] out^(a void^, f ref out()) out is-sendable
 	a then _ =>
 		f[]
 
-# TODO: shouldn't need (in0, in1) is-sendable
 ###
 Use like:
 	x, y <- f | g
@@ -139,12 +137,11 @@ Where 'f' and 'g' are futures.
 then[out, in0, in1] out^(
 	a (in0, in1)^,
 	f ref out(in0, in1),
-) out is-sendable, in0 is-sendable, in1 is-sendable, (in0, in1) is-sendable
+) out is-sendable, in0 is-sendable, in1 is-sendable
 	pair <- a
 	f[pair.a, pair.b]
 
-# TODO: shouldn't need (t, u) is-sendable
-|[t, u] (t, u)^(a t^, b u^) t is-sendable, u is-sendable, (t, u) is-sendable
+|[t, u] (t, u)^(a t^, b u^) t is-sendable, u is-sendable
 	x <- a
 	y <- b
 	(x, y),

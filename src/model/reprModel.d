@@ -213,7 +213,8 @@ Repr reprParam(ref Alloc alloc, in Ctx ctx, in Param a) =>
 		reprType(alloc, ctx, a.type)]);
 
 Repr reprSpecInst(ref Alloc alloc, in Ctx ctx, in SpecInst a) =>
-	todo!Repr("reprSpecInst");
+	reprRecord(decl(a).name, map(alloc, typeArgs(a), (ref Type it) =>
+		reprType(alloc, ctx, it)));
 
 Repr reprFunBody(ref Alloc alloc, in Ctx ctx, in FunBody a) =>
 	a.matchIn!Repr(
@@ -257,10 +258,8 @@ Repr reprType(ref Alloc alloc, in Ctx ctx, in Type a) =>
 			reprStructInst(alloc, ctx, x));
 
 Repr reprStructInst(ref Alloc alloc, in Ctx ctx, in StructInst a) =>
-	reprRecord(
-		a.declAndArgs.decl.name,
-		map(alloc, a.declAndArgs.typeArgs, (ref Type it) =>
-			reprType(alloc, ctx, it)));
+	reprRecord(decl(a).name, map(alloc, typeArgs(a), (ref Type it) =>
+		reprType(alloc, ctx, it)));
 
 Repr reprExprs(ref Alloc alloc, in Ctx ctx, in Expr[] a) =>
 	reprArr!Expr(alloc, a, (in Expr x) =>

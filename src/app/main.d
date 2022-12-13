@@ -452,8 +452,11 @@ ExitCode runBuild(
 		? runBuildInner(
 			alloc, perf, allSymbols, allPaths, pathsInfo, includeDir, tempDir,
 			mainPath, options, ExeKind.allowNoExe).err
-		: withReadOnlyStorage!ExitCode(allPaths, includeDir, (in ReadOnlyStorage storage) =>
-			justTypeCheck(alloc, perf, allSymbols, allPaths, storage, mainPath));
+		: withReadOnlyStorage!ExitCode(allPaths, includeDir, (in ReadOnlyStorage storage) {
+			Opt!SafeCStr error = justTypeCheck(
+				alloc, perf, allSymbols, allPaths, pathsInfo, storage, showDiagOptions, mainPath);
+			return has(error) ? printErr(force(error)) : println(safeCStr!"OK");
+		});
 
 enum ExeKind { ensureExe, allowNoExe }
 RunBuildResult runBuildInner(

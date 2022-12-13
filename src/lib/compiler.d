@@ -243,16 +243,27 @@ DiagsAndResultStrs printLowModel(
 			safeCStr!"");
 }
 
-public ExitCode justTypeCheck(
+public Opt!SafeCStr justTypeCheck(
 	ref Alloc alloc,
 	ref Perf perf,
 	ref AllSymbols allSymbols,
 	ref AllPaths allPaths,
+	in PathsInfo pathsInfo,
 	in ReadOnlyStorage storage,
+	in ShowDiagOptions showDiagOptions,
 	Path main,
 ) {
 	Program program = frontendCompile(alloc, perf, alloc, allPaths, allSymbols, storage, [main], none!Path);
-	return !hasDiags(program) ? ExitCode(0) : ExitCode(1);
+	return hasDiags(program)
+		? some(strOfDiagnostics(
+			alloc,
+			allSymbols,
+			allPaths,
+			pathsInfo,
+			showDiagOptions,
+			program.filesInfo,
+			program.diagnostics))
+		: none!SafeCStr;
 }
 
 version (WebAssembly) {} else {

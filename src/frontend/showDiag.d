@@ -465,8 +465,6 @@ void writeCallNoMatch(
 			// If there is no local variable by that name we try a call,
 			// but message should reflect that the user might not have wanted a call.
 			writer ~= "or variable ";
-		else if (d.actualArity == 1)
-			writer ~= "or field ";
 		writer ~= "named ";
 		writeName(writer, allSymbols, d.funName);
 

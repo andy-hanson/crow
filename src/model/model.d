@@ -40,6 +40,9 @@ private enum Purity_ : ubyte {
 	mut,
 }
 
+bool isPurityCompatible(Purity expected, Purity actual) =>
+	actual <= expected;
+
 immutable struct PurityRange {
 	Purity bestCase;
 	Purity worstCase;
@@ -111,9 +114,6 @@ PurityRange purityRange(Type a) =>
 
 Purity bestCasePurity(Type a) =>
 	purityRange(a).bestCase;
-
-Purity worstCasePurity(Type a) =>
-	purityRange(a).worstCase;
 
 LinkageRange linkageRange(Type a) =>
 	a.match!LinkageRange(

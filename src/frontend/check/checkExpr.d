@@ -3,7 +3,13 @@ module frontend.check.checkExpr;
 @safe @nogc pure nothrow:
 
 import frontend.check.checkCall :
-	checkCall, checkCallNoLocals, checkIdentifierCall, eachFunInScope, markUsedFun, UsedFun;
+	checkCall,
+	checkCallNoLocals,
+	checkIdentifierCall,
+	eachFunInScope,
+	isPurityAlwaysCompatibleConsideringSpecs,
+	markUsedFun,
+	UsedFun;
 import frontend.check.checkCtx : addDiag, CheckCtx;
 import frontend.check.dicts : FunsDict, ModuleLocalFunIndex, StructsAndAliasesDict;
 import frontend.check.inferringType :
@@ -120,8 +126,7 @@ import model.model :
 	typeArgs,
 	TypeParam,
 	UnionMember,
-	VariableRef,
-	worstCasePurity;
+	VariableRef;
 import util.alloc.alloc : Alloc, allocateUninitialized;
 import util.col.arr : empty, only, PtrAndSmallNumber, ptrsRange, sizeEq;
 import util.col.arrUtil : arrLiteral, arrsCorrespond, contains, exists, map, mapZip, mapZipWithIndex, zipPtrFirst;
@@ -1095,29 +1100,7 @@ Expr checkLambda(ref ExprCtx ctx, ref LocalsInfo locals, FileAndRange range, in 
 
 	checkUnusedParams(ctx.checkCtx, params, tempAsArr(lambdaInfo.paramsUsed));
 
-	final switch (kind) {
-		case FunKind.fun:
-			foreach (ref ClosureFieldBuilder cf; tempAsArr(lambdaInfo.closureFields)) {
-				final switch (cf.mutability) {
-					case Mutability.immut:
-						break;
-					case Mutability.mut:
-						addDiag2(ctx, range, Diag(Diag.LambdaClosesOverMut(cf.name, none!Type)));
-				}
-				if (worstCasePurity(cf.type) == Purity.mut)
-					addDiag2(ctx, range, Diag(Diag.LambdaClosesOverMut(cf.name, some(cf.type))));
-			}
-			break;
-		case FunKind.act:
-		case FunKind.ref_:
-			break;
-		case FunKind.pointer:
-			todo!void("ensure no closure");
-			break;
-	}
-	VariableRef[] closureFields =
-		map(ctx.alloc, tempAsArr(lambdaInfo.closureFields), (ref ClosureFieldBuilder x) =>
-			x.variableRef);
+	VariableRef[] closureFields = checkClosure(ctx, range, kind, tempAsArr(lambdaInfo.closureFields));
 
 	Opt!Type actualNonFutReturnType = kind == FunKind.ref_
 		? actualPossiblyFutReturnType.match!(Opt!Type)(
@@ -1147,6 +1130,32 @@ Expr checkLambda(ref ExprCtx ctx, ref LocalsInfo locals, FileAndRange range, in 
 		//TODO: this check should never fail, so could just set inferred directly with no check
 		return check(ctx, expected, Type(instFunStruct), Expr(range, ExprKind(castImmutable(lambda))));
 	}
+}
+
+VariableRef[] checkClosure(ref ExprCtx ctx, FileAndRange range, FunKind kind, ClosureFieldBuilder[] closureFields) {
+	final switch (kind) {
+		case FunKind.fun:
+			foreach (ref ClosureFieldBuilder cf; closureFields) {
+				if (!isPurityAlwaysCompatibleConsideringSpecs(ctx, cf.type, Purity.sendable))
+					addDiag2(ctx, range, Diag(Diag.LambdaClosesOverMut(cf.name, some(cf.type))));
+				else {
+					final switch (cf.mutability) {
+						case Mutability.immut:
+							break;
+						case Mutability.mut:
+							addDiag2(ctx, range, Diag(Diag.LambdaClosesOverMut(cf.name, none!Type)));
+					}
+				}
+			}
+			break;
+		case FunKind.act:
+		case FunKind.ref_:
+			break;
+		case FunKind.pointer:
+			todo!void("ensure no closure");
+			break;
+	}
+	return map(ctx.alloc, closureFields, (ref ClosureFieldBuilder x) => x.variableRef);
 }
 
 Expr checkLet(ref ExprCtx ctx, ref LocalsInfo locals, FileAndRange range, in LetAst ast, ref Expected expected) {

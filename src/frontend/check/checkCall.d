@@ -48,12 +48,14 @@ import model.model :
 	FunDecl,
 	FunDeclAndTypeArgs,
 	FunFlags,
+	isPurityCompatible,
 	isPurityAlwaysCompatible,
 	isVariadic,
 	NameReferents,
 	Param,
 	Params,
 	Purity,
+	PurityRange,
 	purityRange,
 	SpecBody,
 	SpecDeclSig,
@@ -67,7 +69,7 @@ import model.model :
 import util.alloc.alloc : Alloc;
 import util.col.arr : empty, only;
 import util.col.arrBuilder : add, ArrBuilder, finishArr;
-import util.col.arrUtil : exists, fillArrOrFail, map;
+import util.col.arrUtil : every, exists, fillArrOrFail, map;
 import util.col.mutMaxArr :
 	copyToFrom,
 	fillMutMaxArr_mut,
@@ -505,34 +507,35 @@ Opt!Called findSpecSigImplementation(
 	});
 }
 
-// See if e.g. 'data<t>' is declared on this function.
-bool findBuiltinSpecOnType(ref ExprCtx ctx, SpecBody.Builtin.Kind kind, Type type) =>
-	exists!(SpecInst*)(ctx.outermostFunSpecs, (in SpecInst* inst) =>
-		inst.body_.matchIn!bool(
-			(in SpecBody.Builtin b) =>
-				b.kind == kind && only(typeArgs(*inst)) == type,
-			(in SpecDeclSig[]) =>
-				//TODO: might inherit from builtin spec?
-				false));
-
-bool checkBuiltinSpec(
-	ref ExprCtx ctx,
-	FunDecl* called,
-	FileAndRange range,
-	SpecBody.Builtin.Kind kind,
-	Type typeArg,
-) {
-	bool typeIsGood = () {
-		final switch (kind) {
-			case SpecBody.Builtin.Kind.data:
-				return isPurityAlwaysCompatible(Purity.data, purityRange(typeArg));
-			case SpecBody.Builtin.Kind.send:
-				return isPurityAlwaysCompatible(Purity.sendable, purityRange(typeArg));
-		}
-	}() || findBuiltinSpecOnType(ctx, kind, typeArg);
+bool checkBuiltinSpec(ref ExprCtx ctx, FunDecl* called, FileAndRange range, SpecBody.Builtin.Kind kind, Type typeArg) {
+	bool typeIsGood = isPurityAlwaysCompatibleConsideringSpecs(ctx, typeArg, purityOfBuiltinSpec(kind));
 	if (!typeIsGood)
 		addDiag2(ctx, range, Diag(Diag.SpecBuiltinNotSatisfied(kind, typeArg, called)));
 	return typeIsGood;
+}
+
+Purity purityOfBuiltinSpec(SpecBody.Builtin.Kind kind) {
+	final switch (kind) {
+		case SpecBody.Builtin.Kind.data:
+			return Purity.data;
+		case SpecBody.Builtin.Kind.send:
+			return Purity.sendable;
+	}
+}
+
+public bool isPurityAlwaysCompatibleConsideringSpecs(ref ExprCtx ctx, Type type, Purity expected) {
+	PurityRange typePurity = purityRange(type);
+	return isPurityAlwaysCompatible(expected, typePurity) ||
+		exists!(SpecInst*)(ctx.outermostFunSpecs, (in SpecInst* inst) =>
+			inst.body_.matchIn!bool(
+				(in SpecBody.Builtin b) =>
+					only(typeArgs(*inst)) == type && isPurityCompatible(expected, purityOfBuiltinSpec(b.kind)),
+				(in SpecDeclSig[]) =>
+					false)) ||
+		(type.isA!(StructInst*) &&
+			isPurityCompatible(expected, typePurity.bestCase) &&
+			every!Type(typeArgs(*type.as!(StructInst*)), (in Type typeArg) =>
+				isPurityAlwaysCompatibleConsideringSpecs(ctx, typeArg, expected)));
 }
 
 size_t maxSpecImpls () =>
