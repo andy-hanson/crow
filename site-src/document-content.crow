@@ -4,7 +4,7 @@ import
 		text-not-containing-any, to-string
 	./module:
 		body_, doc-comment, exports, fields, has-private-fields, is-mut, members, module,
-		module-export, module-export-value, name, param, params, path, purity, record-field,
+		module-export, module-export-value, name, param, params, parents, path, purity, record-field,
 		return-type, spec-ref, spec-sig, specs, target, type-param, type-params, type, type-args,
 		type-ref, union-member, value, variadic
 
@@ -98,7 +98,7 @@ module-top string(path string)
 		as spec-builtin
 			"spec builtin" keyword
 		as spec-sigs _
-			"spec" keyword
+			"{"spec" keyword}{s.parents spec-refs-content}"
 	as union-decl u
 		"{"union" keyword}{u.purity purity-content}"
 
@@ -167,11 +167,7 @@ module-top string(path string)
 .return-type-and-params-and-specs string(return-type type-ref, variadic bool, params param[], specs spec-ref[])
 	params-content = ", " join for x : params
 		x param-content variadic
-	specs-span = unless specs is-empty
-		contents = ", " join for x : specs
-			x spec-ref-content
-		""" <span class="specs">{contents}</span>"""
-	"""{return-type type-ref-content}<span class="params">({params-content})</span>{specs-span}"""
+	"""{return-type type-ref-content}<span class="params">({params-content})</span>{specs spec-refs-content}"""
 
 .param-content string(a param, variadic bool)
 	var = variadic ? """<code class="keyword">...</code>"""
@@ -212,6 +208,12 @@ module-top string(path string)
 	("fun", "fun-act", "fun-ref") find type =>
 		if rest ?= name.to-string try-remove-start type
 			nat parse rest is-ok
+
+.spec-refs-content string(specs spec-ref[])
+	unless specs is-empty
+		contents = ", " join for x : specs
+			x spec-ref-content
+		""" <span class="specs">{contents}</span>"""
 
 .spec-ref-content string(a spec-ref)
 	"""<span class="spec">{a.type-args type-args-content}<code class="spec">{a name}</code></span>"""

@@ -1,14 +1,15 @@
 no-std
 import
 	../../bool: !, &&, ||, bool, false, new, true
-	../../compare: <, >, >=, compare
+	../../compare: <, >, >=
 	../../exception: unreachable
 	../../fun-util: subscript
 	../../json: json
-	../../misc: is-data, new, void
+	../../misc: key, new, void
 	../../number: ==, <=>, +, -, /, nat64, new
 	../../option: !, new, option
-	../../string: ==, <=>, ~~, iter, join, literal, next, slice-left, starts-with, string, to-string
+	../../string:
+		==, <=>, ~~, hash-mix, iter, join, literal, next, slice-left, starts-with, string, to-string
 	../../test-util: is
 	../array:
 		==, <=>, +, *, ~=, ~~=, array, array-builder, array-iter, build, for-loop, index, index-of,
@@ -38,19 +39,19 @@ tree-set[t] record
 	right t node
 
 # True iff the set is empty.
-is-empty[t] bool(a t tree-set) t is-data, t compare
+is-empty[t] bool(a t tree-set) t key
 	a.total-size == 0
 
 # Number of values in the set.
-size[t] nat64(a t tree-set) t is-data, t compare
+size[t] nat64(a t tree-set) t key
 	a total-size
 
 # Empty `tree-set`.
-new[t] t tree-set(...a t array) t is-data, t compare
+new[t] t tree-set(...a t array) t key
 	a.to-list to-tree-set
 
 # Copy a list to a `tree-set`.
-to-tree-set[t] t tree-set(a t[]) t is-data, t compare
+to-tree-set[t] t tree-set(a t[]) t key
 	values = a sort-unique
 	values.to-array.leaf, values.size
 
@@ -58,7 +59,7 @@ to-tree-set[t] t tree-set(a t[]) t is-data, t compare
 List of all values in the set, in sorted order.
 This is O(n).
 ###
-to-list[t] t[](a t tree-set) t is-data, t compare
+to-list[t] t[](a t tree-set) t key
 	match a.root
 	as inner i
 		i tree-to-array a.size to-list
@@ -66,9 +67,9 @@ to-list[t] t[](a t tree-set) t is-data, t compare
 		l to-list
 
 # True iff the value is in the set.
-in[t] bool(value t, a t tree-set) t is-data, t compare
+in[t] bool(value t, a t tree-set) t key
 	a.root has value
-.has[t] bool(a t node, value t) t compare
+.has[t] bool(a t node, value t) t key
 	match a
 	as inner i
 		match value <=> i.value
@@ -86,7 +87,7 @@ Add a value to the set.
 No effect if the value is already in the set.
 This is O(a.size ln)
 ###
-~[t] t tree-set(a t tree-set, value t) t is-data, t compare
+~[t] t tree-set(a t tree-set, value t) t key
 	new-size = a.size + 1
 	match a.root add-recur value, new-size.get-max-height
 	as none
@@ -100,7 +101,7 @@ This is O(a.size ln)
 Union of two sets.
 This is O(n).
 ###
-~~[t] t tree-set(a t tree-set, b t tree-set) t is-data, t compare
+~~[t] t tree-set(a t tree-set, b t tree-set) t key
 	list t[] = with out : a.size + b.size build
 		b-iter = b iter
 		for x : a
@@ -118,7 +119,7 @@ This is O(n).
 		else
 			break
 
-.walk-iter-union[t] void(out t list-builder, value t, a t iter) t is-data, t compare
+.walk-iter-union[t] void(out t list-builder, value t, a t iter) t key
 	if peek ?= a peek
 		match value <=> peek
 		as less
@@ -134,11 +135,11 @@ This is O(n).
 	else
 		out ~= value
 
-intersect[t] t tree-set(a t tree-set, b t tree-set) t is-data, t compare
+intersect[t] t tree-set(a t tree-set, b t tree-set) t key
 	b-iter = b iter
 	a filter x => b-iter walk-iter-has x
 
-.walk-iter-has[t] bool(a t iter, value t) t is-data, t compare
+.walk-iter-has[t] bool(a t iter, value t) t key
 	if peek ?= a peek
 		match value <=> peek
 		as less
@@ -155,7 +156,7 @@ Returns a set that does not contain 'b'.
 If 'b' is not in the set, returns it unmodified.
 This is O(a.size ln).
 ###
--[t] t tree-set(a t tree-set, b t) t is-data, t compare
+-[t] t tree-set(a t tree-set, b t) t key
 	if res ?= a try-remove b
 		res
 	else
@@ -165,7 +166,7 @@ This is O(a.size ln).
 If `value` is in `a`, returns `a` with the first instance of `value` removed.
 Else, returns an empty option.
 ###
-.try-remove[t] t array?(a t array, value t) t compare
+.try-remove[t] t array?(a t array, value t) t key
 	if index ?= a index-of value
 		(a remove-at index),
 
@@ -174,11 +175,11 @@ If 'b' is in the set, returns `none~.
 Else, returns a set with 'b' removed.
 This is O(a.size ln).
 ###
-try-remove[t] t tree-set?(a t tree-set, b t) t is-data, t compare
+try-remove[t] t tree-set?(a t tree-set, b t) t key
 	if node ?= a.root try-remove-recur b
 		(node, a.size - 1),
 
-.try-remove-recur[t] t node?(a t node, b t) t compare
+.try-remove-recur[t] t node?(a t node, b t) t key
 	match a
 	as inner i
 		match b <=> i.value
@@ -225,7 +226,7 @@ try-remove[t] t tree-set?(a t tree-set, b t) t is-data, t compare
 		if last ?= l last
 			(last, l.rtail.leaf),
 
--[t] t tree-set(a t tree-set, b t tree-set) t is-data, t compare
+-[t] t tree-set(a t tree-set, b t tree-set) t key
 	b-iter = b iter
 	a filter x => !(b-iter walk-iter-has x)
 
@@ -280,14 +281,14 @@ try-remove[t] t tree-set?(a t tree-set, b t) t is-data, t compare
 	inserted t node
 	find-scapegoat find-scapegoat
 
-.add-recur[t] t add-result(a t node, value t, max-height nat64) t compare
+.add-recur[t] t add-result(a t node, value t, max-height nat64) t key
 	match a
 	as inner i
 		i add-to-inner value, max-height
 	as leaf l
 		l add-to-array value, max-height
 
-.add-to-inner[t] t add-result(a t inner-node, value t, max-height nat64) t compare
+.add-to-inner[t] t add-result(a t inner-node, value t, max-height nat64) t key
 	match value <=> a.value
 	as less
 		match a.left add-recur value, max-height - 1
@@ -308,7 +309,7 @@ try-remove[t] t tree-set?(a t tree-set, b t) t is-data, t compare
 		as find-scapegoat f
 			a handle-scapegoat value, a.left, f
 
-.add-to-array[t] t add-result(a t array, value t, max-height nat64) t compare
+.add-to-array[t] t add-result(a t array, value t, max-height nat64) t key
 	insert = a binary-search-insert value
 	if !insert.is-at-end && *insert == value
 		none
@@ -320,7 +321,7 @@ try-remove[t] t tree-set?(a t tree-set, b t) t is-data, t compare
 	else
 		a break-up-arr value, insert, max-height
 
-.break-up-arr[t] t add-result(a t array, value t, insert-iter t array-iter, max-height nat64) t compare
+.break-up-arr[t] t add-result(a t array, value t, insert-iter t array-iter, max-height nat64) t key
 	# Break it up into nodes, adding to height
 	mid-iter = a.iter + a.size / 2
 	if insert-iter == mid-iter
@@ -348,7 +349,7 @@ try-remove[t] t tree-set?(a t tree-set, b t) t is-data, t compare
 			as find-scapegoat f
 				(a.size + 1, f.height + 1) find-scapegoat
 
-.handle-scapegoat[t] t add-result(a t inner-node, value t, other-subtree t node, f find-scapegoat) t compare
+.handle-scapegoat[t] t add-result(a t inner-node, value t, other-subtree t node, f find-scapegoat) t key
 	size-here = f.size + 1 + other-subtree.walk-size
 	height-here = f.height + 1
 	if height-here > size-here.get-max-height
@@ -363,13 +364,13 @@ try-remove[t] t tree-set?(a t tree-set, b t) t is-data, t compare
 	as leaf l
 		l size
 
-.tree-to-array[t] t array(a t inner-node, value t, size nat64) t compare
+.tree-to-array[t] t array(a t inner-node, value t, size nat64) t key
 	with out : size build
 		out tree-to-array-recur a.inner, value
-.tree-to-array[t] t array(a t inner-node, size nat64) t compare
+.tree-to-array[t] t array(a t inner-node, size nat64) t key
 	with out : size build
 		out tree-to-array-recur a.inner
-.tree-to-array-recur[t] void(out t array-builder, a t node, value t) t compare
+.tree-to-array-recur[t] void(out t array-builder, a t node, value t) t key
 	match a
 	as inner i
 		match value <=> i.value
@@ -406,7 +407,7 @@ try-remove[t] t tree-set?(a t tree-set, b t) t is-data, t compare
 
 region iteration
 
-for-loop[t] void(a t tree-set, f act void(t)) t is-data, t compare
+for-loop[t] void(a t tree-set, f act void(t)) t key
 	a.root for-loop-recur f
 .for-loop-recur[t] void(a t node, f act void(t))
 	match a
@@ -419,15 +420,15 @@ for-loop[t] void(a t tree-set, f act void(t)) t is-data, t compare
 	f[i.value]
 	i.right for-loop-recur f
 
-for-loop[out, in] out[](a in tree-set, f act out(in)) in is-data, in compare
+for-loop[out, in] out[](a in tree-set, f act out(in)) in key
 	with out : a.size build
 		for value : a
 			out ~= f[value]
 
-for-loop[out, in] out tree-set(a in tree-set, f act out(in)) in is-data, in compare, out is-data, out compare
+for-loop[out, in] out tree-set(a in tree-set, f act out(in)) in key, out key
 	a for-loop f to-tree-set
 
-filter[t] t tree-set(a t tree-set, f act bool(t)) t is-data, t compare
+filter[t] t tree-set(a t tree-set, f act bool(t)) t key
 	list t[] = with out : build
 		for value : a
 			if f[value]

@@ -22,6 +22,7 @@ import model.model :
 	Purity,
 	range,
 	SpecBody,
+	SpecDecl,
 	SpecDeclSig,
 	SpecSig,
 	symOfPurity,
@@ -908,6 +909,12 @@ void writeDiag(
 		},
 		(in Diag.SpecNameMissing) {
 			writer ~= "spec name is missing";
+		},
+		(in Diag.SpecRecursion d) {
+			writer ~= "spec's parents tree is too deep. trace: ";
+			writeWithCommas!(immutable SpecDecl*)(writer, d.trace, (in SpecDecl* x) {
+				writeName(writer, allSymbols, x.name);
+			});
 		},
 		(in Diag.ThreadLocalError d) {
 			writer ~= "thread-local ";

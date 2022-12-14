@@ -1,6 +1,8 @@
 no-std
 import
 	./private/bootstrap: new-void
+	./compare: compare
+	./hash: hash-mix
 export
 	./private/bootstrap: is-data, is-sendable, name, named-val, val, void
 
@@ -11,6 +13,9 @@ new void() noctx
 # Spec that is satisfied by a `new` function with no arguments.
 new[t] spec
 	new t()
+
+# Spec for values that can be used as keys in a dictionary or set.
+key[t] spec t is-data, t compare, t hash-mix
 
 break-or-continue[t] union
 	loop-break t

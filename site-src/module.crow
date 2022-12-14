@@ -53,6 +53,7 @@ record-field record
 	is-mut bool
 
 spec-decl record
+	parents spec-ref[]
 	body_ spec-body
 
 spec-body union

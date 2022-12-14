@@ -1,9 +1,8 @@
 no-std
 import
-	../compare: compare
 	../hash: hash-mix
 	../json: json
-	../misc: is-data, void
+	../misc: key, void
 	../number: ==, <=>, +, nat64
 	../option: ??
 	../test-util: is
@@ -16,25 +15,25 @@ import
 counter[k] record
 	.inner nat64[k]
 
-new[k] k counter(...a k array) k is-data, k compare, k hash-mix
+new[k] k counter(...a k array) k key
 	a.to-list to-counter
 
-to-counter[k] k counter(values k[]) k is-data, k compare, k hash-mix
+to-counter[k] k counter(values k[]) k key
 	res nat64 mut[k] = ()
 	for x : values
 		res[x] := (res[x] ?? 0) + 1
 	res.to-dict,
 
-to-dict[k] nat64[k](a k counter) k is-data, k compare, k hash-mix
+to-dict[k] nat64[k](a k counter) k key
 	a inner
 
-subscript[k] nat64(a k counter, value k) k is-data, k compare, k hash-mix
+subscript[k] nat64(a k counter, value k) k key
 	a.inner[value] ?? 0
 
-~[k] k counter(a k counter, value k) k is-data, k compare, k hash-mix
+~[k] k counter(a k counter, value k) k key
 	a.inner ~ (value, a[value] + 1),
 
-for-loop[k] void(a k counter, f act void(k, nat64)) k is-data, k compare, k hash-mix
+for-loop[k] void(a k counter, f act void(k, nat64)) k key
 	a.inner for-loop f
 
 test

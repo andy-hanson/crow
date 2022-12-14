@@ -1,7 +1,6 @@
 no-std
 import
-	../bool: bool
-	../compare: <=, compare
+	../compare: <=, equal, compare
 	./number-low-level: nat64
 
 ###
@@ -13,17 +12,14 @@ range[t] record by-val
 	low t
 	high t
 
-forward-rangable[t] spec
-	# TODO: inherit from 'equal' spec
-	== bool(a t, b t)
+forward-rangeable[t] spec t equal
 	+ t(a t, distance nat64)
 
-# Spec for types that support most range operations
-rangable[t] spec
-	# TODO: inherit from 'forward-rangable' spec
-	== bool(a t, b t)
-	+ t(a t, distance nat64)
+subtract-to-nat[t] spec
 	- nat64(a t, b t)
+
+# Spec for types that support most range operations
+rangeable[t] spec t forward-rangeable, t subtract-to-nat
 	- t(a t, distance nat64)
 
 # Create a range from `low` (inclusive) to `high` (exclusive).
@@ -32,8 +28,5 @@ rangable[t] spec
 	low, high
 
 # Size of the range; depends on a `-` function existing.
-size[t] nat64(a t range) noctx, t minus
+size[t] nat64(a t range) noctx, t subtract-to-nat
 	a.high - a.low
-
-minus[t] spec
-	- nat64(a t, b t)

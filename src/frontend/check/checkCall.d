@@ -29,7 +29,13 @@ import frontend.check.inferringType :
 	TypeAndInferring,
 	typeFromAst2;
 import frontend.check.instantiate :
-	instantiateFun, instantiateSpecInst, instantiateStructNeverDelay, TypeArgsArray, typeArgsArray, TypeParamsAndArgs;
+	instantiateFun,
+	instantiateSpecInst,
+	instantiateStructNeverDelay,
+	noDelaySpecInsts,
+	TypeArgsArray,
+	typeArgsArray,
+	TypeParamsAndArgs;
 import frontend.check.typeFromAst : tryGetMatchingTypeArgs, tryUnpackTupleType;
 import frontend.parse.ast : CallAst, ExprAst, LambdaAst, NameAndRange, rangeOfNameAndRange, TypeAst;
 import frontend.programState : ProgramState;
@@ -224,14 +230,7 @@ void markUsedFun(ref ExprCtx ctx, in UsedFun used) {
 void eachFunInScope(ref ExprCtx ctx, Sym funName, in void delegate(UsedFun, CalledDecl) @safe @nogc pure nothrow cb) {
 	size_t totalIndex = 0;
 	foreach (SpecInst* specInst; ctx.outermostFunSpecs)
-		specInst.body_.match!void(
-			(SpecBody.Builtin) {},
-			(SpecDeclSig[] sigs) {
-				foreach (size_t i, SpecDeclSig sig; sigs)
-					if (sig.name == funName)
-						cb(UsedFun(UsedFun.None()), CalledDecl(SpecSig(specInst, &sigs[i], totalIndex + i)));
-				totalIndex += sigs.length;
-			});
+		eachFunInScopeForSpec(specInst, totalIndex, funName, cb);
 
 	foreach (ref FunDeclAndIndex f; ctx.funsDict[funName])
 		cb(UsedFun(f.index), CalledDecl(f.decl));
@@ -240,6 +239,23 @@ void eachFunInScope(ref ExprCtx ctx, Sym funName, in void delegate(UsedFun, Call
 		foreach (FunDecl* f; it.funs)
 			cb(UsedFun(index), CalledDecl(f));
 	});
+}
+private void eachFunInScopeForSpec(
+	SpecInst* specInst,
+	ref size_t totalIndex,
+	Sym funName,
+	in void delegate(UsedFun, CalledDecl) @safe @nogc pure nothrow cb,
+) {
+	foreach (SpecInst* parent; specInst.parents)
+		eachFunInScopeForSpec(parent, totalIndex, funName, cb);
+	specInst.body_.match!void(
+		(SpecBody.Builtin) {},
+		(SpecDeclSig[] sigs) {
+			foreach (size_t i, SpecDeclSig sig; sigs)
+				if (sig.name == funName)
+					cb(UsedFun(UsedFun.None()), CalledDecl(SpecSig(specInst, &sigs[i], totalIndex + i)));
+			totalIndex += sigs.length;
+		});
 }
 
 private:
@@ -527,16 +543,22 @@ public bool isPurityAlwaysCompatibleConsideringSpecs(ref ExprCtx ctx, Type type,
 	PurityRange typePurity = purityRange(type);
 	return isPurityAlwaysCompatible(expected, typePurity) ||
 		exists!(SpecInst*)(ctx.outermostFunSpecs, (in SpecInst* inst) =>
-			inst.body_.matchIn!bool(
-				(in SpecBody.Builtin b) =>
-					only(typeArgs(*inst)) == type && isPurityCompatible(expected, purityOfBuiltinSpec(b.kind)),
-				(in SpecDeclSig[]) =>
-					false)) ||
+			specProvidesPurity(inst, type, expected)) ||
 		(type.isA!(StructInst*) &&
 			isPurityCompatible(expected, typePurity.bestCase) &&
 			every!Type(typeArgs(*type.as!(StructInst*)), (in Type typeArg) =>
 				isPurityAlwaysCompatibleConsideringSpecs(ctx, typeArg, expected)));
 }
+
+// Whether 'inst' tells us that 'type' has purity at least 'expected'
+bool specProvidesPurity(in SpecInst* inst, in Type type, Purity expected) =>
+	exists!(SpecInst*)(inst.parents, (in SpecInst* parent) =>
+		specProvidesPurity(parent, type, expected)) ||
+	inst.body_.matchIn!bool(
+		(in SpecBody.Builtin b) =>
+			only(typeArgs(*inst)) == type && isPurityCompatible(expected, purityOfBuiltinSpec(b.kind)),
+		(in SpecDeclSig[]) =>
+			false);
 
 size_t maxSpecImpls () =>
 	16;
@@ -560,26 +582,40 @@ bool checkSpecImpls(
 		// specInst was instantiated potentially based on f's params.
 		// Meed to instantiate it again.
 		SpecInst* specInstInstantiated = instantiateSpecInst(
-			ctx.alloc, ctx.programState, specInst, TypeParamsAndArgs(called.typeParams, calledTypeArgs));
-		Type[] typeArgs = typeArgs(*specInstInstantiated);
-		bool ok = specInstInstantiated.body_.match!bool(
-			(SpecBody.Builtin b) =>
-				checkBuiltinSpec(ctx, called, range, b.kind, only(typeArgs)),
-			(SpecDeclSig[] sigs) {
-				push(trace, FunDeclAndTypeArgs(called, typeArgs));
-				foreach (ref SpecDeclSig sig; sigs) {
-					Opt!Called impl = findSpecSigImplementation(ctx, isInLambda, range, sig, trace);
-					if (!has(impl))
-						return false;
-					push(res, force(impl));
-				}
-				mustPop(trace);
-				return true;
-			});
-		if (!ok)
+			ctx.alloc, ctx.programState, specInst,
+			TypeParamsAndArgs(called.typeParams, calledTypeArgs), noDelaySpecInsts);
+		if (!checkSpecImpl(res, ctx, isInLambda, range, called, trace, specInstInstantiated))
 			return false;
 	}
 	return true;
+}
+
+bool checkSpecImpl(
+	ref SpecImpls res,
+	ref ExprCtx ctx,
+	bool isInLambda,
+	FileAndRange range,
+	FunDecl* called,
+	ref SpecTrace trace,
+	SpecInst* specInstInstantiated) {
+	foreach (SpecInst* parent; specInstInstantiated.parents)
+		if (!checkSpecImpl(res, ctx, isInLambda, range, called, trace, parent))
+			return false;
+	Type[] typeArgs = typeArgs(*specInstInstantiated);
+	return specInstInstantiated.body_.match!bool(
+		(SpecBody.Builtin b) =>
+			checkBuiltinSpec(ctx, called, range, b.kind, only(typeArgs)),
+		(SpecDeclSig[] sigs) {
+			push(trace, FunDeclAndTypeArgs(called, typeArgs));
+			foreach (ref SpecDeclSig sig; sigs) {
+				Opt!Called impl = findSpecSigImplementation(ctx, isInLambda, range, sig, trace);
+				if (!has(impl))
+					return false;
+				push(res, force(impl));
+			}
+			mustPop(trace);
+			return true;
+		});
 }
 
 Opt!Called getCalledFromCandidate(

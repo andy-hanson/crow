@@ -28,8 +28,7 @@ equal[t] spec
 When defined for mutable values, this should compare their content without regard to mutablility;
 so it may consider values equal that may not be equal in the future.
 ###
-compare[t] spec
-	== bool(a t, b t)
+compare[t] spec t equal
 	# This should return `equal` iff `==` would return `true`.
 	<=> comparison(a t, b t)
 

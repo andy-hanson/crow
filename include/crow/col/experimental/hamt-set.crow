@@ -1,10 +1,8 @@
 no-std
 import
 	../../bool: !, bool
-	../../compare: compare
 	../../fun-util: subscript
-	../../hash: hash-mix
-	../../misc: is-data, new, void
+	../../misc: key, new, void
 	../../number: nat64
 	../../option: is-empty, new, option
 	../../tuple: a, new
@@ -14,46 +12,46 @@ import
 hamt-set[t] record
 	.inner void[t]
 
-new[t] t hamt-set() t is-data, t compare, t hash-mix
+new[t] t hamt-set() t key
 	(),
 
-to-hamt-set[t] t hamt-set(a t[]) t is-data, t compare, t hash-mix
+to-hamt-set[t] t hamt-set(a t[]) t key
 	((for x : a; x, ()) to-dict),
 
-is-empty[t] bool(a t hamt-set) t is-data, t compare, t hash-mix
+is-empty[t] bool(a t hamt-set) t key
 	a.inner is-empty
 
-size[t] nat64(a t hamt-set) t is-data, t compare, t hash-mix
+size[t] nat64(a t hamt-set) t key
 	a.inner size
 
-in[t] bool(value t, a t hamt-set) t is-data, t compare, t hash-mix
+in[t] bool(value t, a t hamt-set) t key
 	!a.inner[value].is-empty
 
-~[t] t hamt-set(a t hamt-set, value t) t is-data, t compare, t hash-mix
+~[t] t hamt-set(a t hamt-set, value t) t key
 	if res ?= a try-add value
 		res
 	else
 		a
 
-try-add[t] t hamt-set?(a t hamt-set, value t) t is-data, t compare, t hash-mix
+try-add[t] t hamt-set?(a t hamt-set, value t) t key
 	match a.inner get-or-add value, () => ()
 	as got _
 		()
 	as added res
 		(res.a,),
 
--[t] t hamt-set(a t hamt-set, value t) t is-data, t compare, t hash-mix
+-[t] t hamt-set(a t hamt-set, value t) t key
 	if res ?= a try-remove value
 		res
 	else
 		a
 
-try-remove[t] t hamt-set?(a t hamt-set, value t) t is-data, t compare, t hash-mix
+try-remove[t] t hamt-set?(a t hamt-set, value t) t key
 	if res ?= a.inner try-remove value
 		(res.rest,),
 
 region iteration
 
-for-loop[t] void(a t hamt-set, f act void(t)) t is-data, t compare, t hash-mix
+for-loop[t] void(a t hamt-set, f act void(t)) t key
 	for k, _ : a inner
 		f[k]

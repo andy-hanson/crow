@@ -1,10 +1,10 @@
 no-std
 import
 	../../bool: &&, bool
-	../../compare: <=, compare
+	../../compare: <=
 	../../fun-util: subscript
-	../../hash: hash, hash-mix
-	../../misc: is-data, new, void
+	../../hash: hash
+	../../misc: key, new, void
 	../../number: ==, <=>, +, -, /, %, nat64
 	../../option: new, option
 	../../pointer: ==, <=>, +, -, *, const-pointer, mut-pointer, swap
@@ -27,10 +27,10 @@ dbg-bucket-starts[t] nat64[](a t frozen-set) no-doc, unsafe
 	for pointer : a.bucket-starts to-list
 		pointer - a.values.begin-pointer
 
-new[t] t frozen-set(...a t array) t is-data, t compare, t hash-mix
+new[t] t frozen-set(...a t array) t key
 	a.to-list to-frozen-set
 
-to-frozen-set[t] t frozen-set(a t[]) t is-data, t compare, t hash-mix
+to-frozen-set[t] t frozen-set(a t[]) t key
 	trusted a.to-array.to-mut-array unsafe-frozen-set-from-mut-array-cast-immutable
 
 # This is O(1).
@@ -43,10 +43,10 @@ is-empty[t] bool(a t frozen-set)
 size[t] nat64(a t frozen-set)
 	a.values size
 
-in[t] bool(value t, a t frozen-set) t is-data, t compare, t hash-mix
+in[t] bool(value t, a t frozen-set) t key
 	value in (a bucket-for value)
 
-.bucket-for[t] t array(a t frozen-set, value t) t is-data, t compare, t hash-mix
+.bucket-for[t] t array(a t frozen-set, value t) t key
 	if a.bucket-starts is-empty
 		a values
 	else
@@ -61,7 +61,7 @@ in[t] bool(value t, a t frozen-set) t is-data, t compare, t hash-mix
 # TODO: no-doc
 # WARN: The order of values is arbitrary,
 # but consistent for *identical* (not ==) sets.
-try-get-unordered-index[t] nat64?(a t frozen-set, value t) t is-data, t compare, t hash-mix
+try-get-unordered-index[t] nat64?(a t frozen-set, value t) t key
 	if a.bucket-starts is-empty
 		a.values index-of value
 	else
@@ -76,7 +76,7 @@ try-get-unordered-index[t] nat64?(a t frozen-set, value t) t is-data, t compare,
 
 .unsafe-frozen-set-from-mut-array-cast-immutable[t] t frozen-set(
 	a t mut-array,
-) unsafe, t is-data, t compare, t hash-mix
+) unsafe, t key
 	if a.size <= 4
 		a.cast-immutable, ()
 	else
@@ -99,14 +99,14 @@ try-get-unordered-index[t] nat64?(a t frozen-set, value t) t is-data, t compare,
 				cur swap bucket-cur-end
 		a.cast-immutable, bucket-starts.array-cast
 
-.get-bucket-counts[t] nat64 mut-array(a t mut-array, n-buckets nat64) unsafe, t hash-mix
+.get-bucket-counts[t] nat64 mut-array(a t mut-array, n-buckets nat64) unsafe, t key
 	res = n-buckets fill-mut-array 0
 	for value : a
 		bucket-index = value get-bucket-index n-buckets
 		res[bucket-index] := res[bucket-index] + 1
 	res
 
-.get-bucket-index[t] nat64(value t, n-buckets nat64) unsafe, t hash-mix
+.get-bucket-index[t] nat64(value t, n-buckets nat64) unsafe, t key
 	value.hash % n-buckets
 
 .running-sum[t] t mut* array(initial t mut*, offsets nat64 array)
@@ -131,7 +131,7 @@ frozen-set-builder[t] record mut
 with-block[t] t frozen-set(
 	a build-frozen-set,
 	f act void(t frozen-set-builder),
-) t is-data, t compare, t hash-mix
+) t key
 	trusted (with out : a.size-hint build; f[(out,)]) unsafe-frozen-set-from-mut-array-cast-immutable
 
 ~=[t] void(a t frozen-set-builder, value t)

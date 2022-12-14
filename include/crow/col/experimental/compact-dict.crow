@@ -1,11 +1,11 @@
 no-std
 import
 	../../bool: !, ==, bool, false, true
-	../../compare: <=, compare, equal, max
+	../../compare: <=, equal, max
 	../../fun-util: subscript
 	../../hash: hash-mix
 	../../json: json
-	../../misc: is-data, new, void
+	../../misc: key, new, void
 	../../number: ==, <=>, +, nat64
 	../../option: ==, is-empty, new, option
 	../../string: ==, ~~, join, literal, string, to-string
@@ -23,12 +23,12 @@ compact-dict[k, v] record by-val
 	ignore void
 	impl (k, v) impl
 
-==[k, v] bool(a (k, v) compact-dict, b (k, v) compact-dict) k is-data, k compare, k hash-mix, v equal
+==[k, v] bool(a (k, v) compact-dict, b (k, v) compact-dict) k key, v equal
 	a.to-sorted-pairs == b.to-sorted-pairs
-.to-sorted-pairs[k, v] (k, v)[](a (k, v) compact-dict) k is-data, k compare, k hash-mix
+.to-sorted-pairs[k, v] (k, v)[](a (k, v) compact-dict) k key
 	a.to-list sort pair => pair from
 
-json[k, v] json(a (k, v) compact-dict) k is-data, k compare, k hash-mix, k json, v json
+json[k, v] json(a (k, v) compact-dict) k key, k json, v json
 	a.to-sorted-pairs json
 
 # TODO:KILL
@@ -49,28 +49,28 @@ node-count[k, v] nat64(a (k, v) compact-dict)
 	pairs (k, v?) frozen-dict
 	prev (k, v) impl
 
-new[k, v] (k, v) compact-dict() k is-data, k compare, k hash-mix
+new[k, v] (k, v) compact-dict() k key
 	(), ().end-node
 
-to-compact-dict[k, v] (k, v) compact-dict(a (k, v)[]) k is-data, k compare, k hash-mix
+to-compact-dict[k, v] (k, v) compact-dict(a (k, v)[]) k key
 	(), a.to-frozen-dict.end-node
 
-keys[k, v] k[](a (k, v) compact-dict) k is-data, k compare, k hash-mix
+keys[k, v] k[](a (k, v) compact-dict) k key
 	for k, _ : a
 		k
 
-values[k, v] v[](a (k, v) compact-dict) k is-data, k compare, k hash-mix
+values[k, v] v[](a (k, v) compact-dict) k key
 	for _, v : a
 		v
 
-is-empty[k, v] bool(a (k, v) compact-dict) k is-data, k compare, k hash-mix
+is-empty[k, v] bool(a (k, v) compact-dict) k key
 	match a impl
 	as overlay _
 		false
 	as end-node e
 		e is-empty
 
-to-list[k, v] (k, v)[](a (k, v) compact-dict) k is-data, k compare, k hash-mix
+to-list[k, v] (k, v)[](a (k, v) compact-dict) k key
 	for k, v : a
 		k, v
 
@@ -78,34 +78,34 @@ to-list[k, v] (k, v)[](a (k, v) compact-dict) k is-data, k compare, k hash-mix
 Number of pairs.
 This is O(n).
 ###
-size[k, v] nat64(a (k, v) compact-dict) k is-data, k compare, k hash-mix
+size[k, v] nat64(a (k, v) compact-dict) k key
 	res mut = 0
 	for _, _ : a
 		res := res + 1
 	res
 
-~[k, v] (k, v) compact-dict(a (k, v) compact-dict, pair (k, v)) k is-data, k compare, k hash-mix
+~[k, v] (k, v) compact-dict(a (k, v) compact-dict, pair (k, v)) k key
 	a add-or-remove pair.from, (pair.to,)
 
 ###
 TODO
-~[k, v] (k, v) compact-dict(a (k, v) compact-dict, b (k, v) compact-dict) k is-data, k compare, k hash-mix
+~[k, v] (k, v) compact-dict(a (k, v) compact-dict, b (k, v) compact-dict) k key
 	a ~ b.arr
 ###
 
-~~[k, v] (k, v) compact-dict(a (k, v) compact-dict, b (k, v)[]) k is-data, k compare, k hash-mix
+~~[k, v] (k, v) compact-dict(a (k, v) compact-dict, b (k, v)[]) k key
 	res mut = a
 	for pair : b
 		res := res ~ pair
 	res
 
--[k, v] (k, v) compact-dict(a (k, v) compact-dict, key k) k is-data, k compare, k hash-mix
+-[k, v] (k, v) compact-dict(a (k, v) compact-dict, key k) k key
 	if key in a
 		a add-or-remove key, ()
 	else
 		a
 
-subscript[k, v] v?(a (k, v) compact-dict, key k) k is-data, k compare, k hash-mix
+subscript[k, v] v?(a (k, v) compact-dict, key k) k key
 	cur mut = a impl
 	loop
 		match cur
@@ -118,13 +118,13 @@ subscript[k, v] v?(a (k, v) compact-dict, key k) k is-data, k compare, k hash-mi
 		as end-node e
 			break e[key]
 
-in[k, v] bool(key k, a (k, v) compact-dict) k is-data, k compare, k hash-mix
+in[k, v] bool(key k, a (k, v) compact-dict) k key
 	!a[key].is-empty
 
-.add-or-remove[k, v] (k, v) compact-dict(a (k, v) compact-dict, key k, value v?) k is-data, k compare, k hash-mix
+.add-or-remove[k, v] (k, v) compact-dict(a (k, v) compact-dict, key k, value v?) k key
 	(), ((((key, value),).to-frozen-dict, a.impl) merge-as-needed)
 
-.merge-as-needed[k, v] (k, v) impl(a (k, v) overlay) k is-data, k compare, k hash-mix
+.merge-as-needed[k, v] (k, v) impl(a (k, v) overlay) k key
 	match a prev
 	as overlay o
 		if o.pairs.size should-merge a.pairs.size
@@ -143,7 +143,7 @@ in[k, v] bool(key k, a (k, v) compact-dict) k is-data, k compare, k hash-mix
 .merge-overlays[k, v] (k, v?) frozen-dict(
 	l (k, v?) frozen-dict,
 	r (k, v?) frozen-dict,
-) k is-data, k compare, k hash-mix
+) k key
 	pairs (k, v?) mut-array = with out : l.size + r.size build
 		for k, vl : l
 			unless k in r
@@ -155,7 +155,7 @@ in[k, v] bool(key k, a (k, v) compact-dict) k is-data, k compare, k hash-mix
 .merge-to-end[k, v] (k, v) frozen-dict(
 	l (k, v) frozen-dict,
 	r (k, v?) frozen-dict,
-) k is-data, k compare, k hash-mix
+) k key
 	pairs (k, v) mut-array = with out : l.size + r.size build
 		for k, vl : l
 			unless k in r
@@ -167,7 +167,7 @@ in[k, v] bool(key k, a (k, v) compact-dict) k is-data, k compare, k hash-mix
 
 region iteration
 
-for-loop[k, v] void(a (k, v) compact-dict, f act void(k, v)) k is-data, k compare, k hash-mix
+for-loop[k, v] void(a (k, v) compact-dict, f act void(k, v)) k key
 	cur mut = a impl
 	seen k mut-set = ()
 	loop
@@ -186,7 +186,7 @@ for-loop[k, v] void(a (k, v) compact-dict, f act void(k, v)) k is-data, k compar
 					f[k, v]
 			break
 
-for-loop[a, k, v] a[](a (k, v) compact-dict, f act a(k, v)) k is-data, k compare, k hash-mix
+for-loop[a, k, v] a[](a (k, v) compact-dict, f act a(k, v)) k key
 	with out : a.size build
 		for k, v : a
 			out ~= f[k, v]

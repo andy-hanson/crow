@@ -494,6 +494,18 @@ FunModifierAst parseFunModifier(ref Lexer lexer) {
 	}
 }
 
+TypeAst[] parseSpecModifiers(ref Lexer lexer) {
+	if (peekToken(lexer, Token.newline) || peekToken(lexer, Token.EOF))
+		return [];
+	else {
+		ArrBuilder!TypeAst res;
+		add(lexer.alloc, res, parseType(lexer));
+		while (tryTakeToken(lexer, Token.comma))
+			add(lexer.alloc, res, parseType(lexer));
+		return finishArr(lexer.alloc, res);
+	}
+}
+
 Opt!(FunModifierAst.Special.Flags) tryTakeExternOrGlobal(ref Lexer lexer) =>
 	tryTakeToken(lexer, Token.extern_)
 		? some(FunModifierAst.Special.Flags.extern_)
@@ -599,6 +611,7 @@ void parseSpecOrStructOrFun(
 				visibility,
 				name,
 				small(typeParams),
+				emptySmallArray!TypeAst,
 				SpecBodyAst(SpecBodyAst.Builtin())));
 			takeNewline_topLevel(lexer);
 			break;
@@ -626,9 +639,10 @@ void parseSpecOrStructOrFun(
 			break;
 		case Token.spec:
 			nextToken(lexer);
-			SpecSigAst[] sigs = parseIndentedSigs(lexer);
+			TypeAst[] parents = parseSpecModifiers(lexer);
+			SpecBodyAst body_ = SpecBodyAst(parseIndentedSigs(lexer));
 			add(lexer.alloc, specs, SpecDeclAst(
-				range(lexer, start), docComment, visibility, name, small(typeParams), SpecBodyAst(sigs)));
+				range(lexer, start), docComment, visibility, name, small(typeParams), small(parents), body_));
 			break;
 		case Token.union_:
 			nextToken(lexer);

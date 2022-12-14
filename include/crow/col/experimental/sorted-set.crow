@@ -1,16 +1,16 @@
 no-std
 import
 	../../bool: !, &&, ==, bool, false, new, true
-	../../compare: <, <=, >, >=, compare
+	../../compare: <, <=, >, >=
 	../../exception: unreachable
 	../../fun-util: subscript
 	../../json: json
-	../../misc: is-data, new, void
+	../../misc: key, new, void
 	../../number: ==, <=>, +, -, *, nat64
 	../../option: !, ??, new, option
 	../../pointer: ==, <=>, +, -, *, as-const, const-pointer, mut-pointer, set-deref
 	../../range: ..
-	../../string: ==, <=>, ~~, join, literal, new, string, to-string
+	../../string: ==, <=>, ~~, hash-mix, join, literal, new, string, to-string
 	../../test-util: is
 	../array: array, as-array, begin-pointer, end-pointer, index, is-empty, new, size, subscript, tail
 	../mut-array:
@@ -38,16 +38,16 @@ Add nodes are a linked list where links point to the left. Largest node is on th
 	left t add-node?
 
 # Set containing the given elements (with duplicates removed).
-new[t] t sorted-set(...a t array) t is-data, t compare
+new[t] t sorted-set(...a t array) t key
 	a.to-list to-sorted-set
 
 # Set containing the given elements (with duplicates removed).
-to-sorted-set[t] t sorted-set(a t[]) t is-data, t compare
+to-sorted-set[t] t sorted-set(a t[]) t key
 	# TODO: type annotation should be unnecessary
 	(a.sort.to-array, ()) :: (t add-node), ()
 
 # Copies elements to a list.
-to-list[t] t[](a t sorted-set) t is-data, t compare
+to-list[t] t[](a t sorted-set) t key
 	for x : a
 		x
 
@@ -73,11 +73,11 @@ size[t] nat64(a t sorted-set)
 			break acc
 
 # True if `value` is an element of the set.
-in[t] bool(value t, a t sorted-set) t is-data, t compare
+in[t] bool(value t, a t sorted-set) t key
 	if index ?= a.add find-in-add value
 		!(index in a.remove)
 
-.find-in-add[t] nat64?(a t add-node, value t) t compare
+.find-in-add[t] nat64?(a t add-node, value t) t key
 	if iter ?= a.values binary-search-exact value
 		a.add-size-left + iter.index,
 	elif left ?= a left
@@ -89,7 +89,7 @@ in[t] bool(value t, a t sorted-set) t is-data, t compare
 	size-here nat64
 	size-right nat64
 
-.find-in-add-for-remove[t] find-in-add-for-remove-result?(a t add-node, value t, size-right nat64) t compare
+.find-in-add-for-remove[t] find-in-add-for-remove-result?(a t add-node, value t, size-right nat64) t key
 	if iter ?= a.values binary-search-exact value
 		sl = a add-size-left
 		(sl + iter.index, sl, a.values.size, size-right),
@@ -103,14 +103,14 @@ Adds an element to the set.
 
 If `value` is already in the set, returns `a` unmodified.
 ###
-~[t] t sorted-set(a t sorted-set, value t) t is-data, t compare
+~[t] t sorted-set(a t sorted-set, value t) t key
 	a try-add value ?? a
 
 ###
 If `value` is already in the set, returns an empty option.
 Else, adds it and returns the new set.
 ###
-try-add[t] t sorted-set?(a t sorted-set, value t) t is-data, t compare
+try-add[t] t sorted-set?(a t sorted-set, value t) t key
 	if index ?= a.add find-in-add value
 		# In 'add', but may need to remove from removals
 		if new-remove ?= a.remove try-remove index
@@ -123,14 +123,14 @@ Removes a value from the set.
 
 If `value` is not in the set, returns `a` unmodified.
 ###
--[t] t sorted-set(a t sorted-set, value t) t is-data, t compare
+-[t] t sorted-set(a t sorted-set, value t) t key
 	a try-remove value ?? a
 
 ###
 If `value` is in the set, removes it and returns the new set.
 Else, returns an empty option.
 ###
-try-remove[t] t sorted-set?(a t sorted-set, value t) t is-data, t compare
+try-remove[t] t sorted-set?(a t sorted-set, value t) t key
 	if r ?= a.add find-in-add-for-remove value, 0
 		removals-here-and-right = 1 + (a.remove count-greater-or-equal r.size-left)
 		if r.size-here should-compact r.size-right, removals-here-and-right
@@ -139,7 +139,7 @@ try-remove[t] t sorted-set?(a t sorted-set, value t) t is-data, t compare
 		else
 			(a.add, a.remove ~ r.value-index),
 
-.add-and-maybe-compact[t] t sorted-set(a t sorted-set, value t) t compare
+.add-and-maybe-compact[t] t sorted-set(a t sorted-set, value t) t key
 	add-size = a.add add-size
 	if add-size == 0
 		# TODO: type annotation should be unnecessary
@@ -184,7 +184,7 @@ Or a combination of the two.
 .should-compact bool(size-here nat64, size-right nat64, removals-here-and-right nat64)
 	(size-right + removals-here-and-right * 2) * 2 >= size-here
 
-.add-and-compact[t] t sorted-set(a t sorted-set, add-size nat64, plan compact-plan, value t) t compare
+.add-and-compact[t] t sorted-set(a t sorted-set, add-size nat64, plan compact-plan, value t) t key
 	assert plan.compacted-size > 1
 	trusted
 		compacted t mut-array = plan.compacted-size uninitialized-mut-array
@@ -194,7 +194,7 @@ Or a combination of the two.
 		new-add = compactor do-compact a.add, add-size, a.remove
 		new-add, (a.remove filter-less plan.add-size-left)
 
-.remove-and-compact[t] t sorted-set(a t sorted-set, plan compact-plan, extra-removal nat64) t is-data, t compare
+.remove-and-compact[t] t sorted-set(a t sorted-set, plan compact-plan, extra-removal nat64) t key
 	new-remove = a.remove filter-less plan.add-size-left
 	if plan.compacted-size == 0
 		if left ?= a.add left
@@ -220,7 +220,7 @@ Or a combination of the two.
 	add t add-node,
 	add-size nat64,
 	remove index-set,
-) unsafe, t compare
+) unsafe, t key
 	cur mut = add
 	add-size-here-and-left mut = add-size
 	loop
@@ -233,7 +233,7 @@ Or a combination of the two.
 			cur := cur.left!
 			continue
 
-.merge[t] void(a t compactor, values t array, add-size-here-and-left nat64, remove index-set) unsafe, t compare
+.merge[t] void(a t compactor, values t array, add-size-here-and-left nat64, remove index-set) unsafe, t key
 	n-remove = remove count-range (add-size-here-and-left - values.size), add-size-here-and-left
 	n-added = values.size - n-remove
 	unless n-added == 0
@@ -253,7 +253,7 @@ Or a combination of the two.
 	b t array,
 	init-b-remove-index nat64,
 	b-remove index-set,
-) unsafe, t compare
+) unsafe, t key
 	a-read mut = init-a-read
 	a-write mut = init-a-write
 	b-begin = b begin-pointer
@@ -317,7 +317,7 @@ Or a combination of the two.
 
 region iteration
 
-for-loop[t] void(a t sorted-set, f act void(t)) t is-data, t compare
+for-loop[t] void(a t sorted-set, f act void(t)) t key
 	iters mut = a init-iters
 	until iters is-empty
 		least-iter-index = iters[0].values[0] find-least-iter 0, 1, iters
@@ -333,7 +333,7 @@ for-loop[t] void(a t sorted-set, f act void(t)) t is-data, t compare
 	current-least-index nat64,
 	iter-index nat64,
 	iters t iter-part mut-array,
-) t compare
+) t key
 	if iter-index == iters.size
 		current-least-index
 	else
@@ -387,10 +387,10 @@ for-loop[t] void(a t sorted-set, f act void(t)) t is-data, t compare
 		a
 
 # Returns a set containing `f[x]` for every element `x` in `a`.
-for-loop[out, in] out sorted-set(a in sorted-set, f act out(in)) out is-data, out compare, in is-data, in compare
+for-loop[out, in] out sorted-set(a in sorted-set, f act out(in)) out key, in key
 	a for-loop f to-sorted-set
 
-for-loop[out, in] out[](a in sorted-set, f act out(in)) in is-data, in compare
+for-loop[out, in] out[](a in sorted-set, f act out(in)) in key
 	with out : a.size build
 		for x : a
 			out ~= f[x]

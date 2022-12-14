@@ -40,7 +40,7 @@ import model.model :
 import util.alloc.alloc : Alloc;
 import util.col.arr : empty;
 import util.col.arrBuilder : add, ArrBuilder, arrBuilderSort, finishArr;
-import util.col.arrUtil : exists, indexOf, mapOp;
+import util.col.arrUtil : exists, indexOf, map, mapOp;
 import util.col.dict : dictEachIn;
 import util.col.str : SafeCStr, safeCStrIsEmpty;
 import util.comparison : compareNat16, compareNat32, Comparison;
@@ -248,6 +248,8 @@ Repr documentUnionMember(ref Alloc alloc, in UnionMember a) {
 
 DocExport documentSpec(ref Alloc alloc, in SpecDecl a) =>
 	documentExport(alloc, a.range, a.name, a.docComment, a.typeParams, reprNamedRecord!"spec"(alloc, [
+		nameAndRepr!"parents"(reprArr(map(alloc, a.parents, (ref immutable SpecInst* x) =>
+			documentSpecInst(alloc, *x)))),
 		nameAndRepr!"body"(a.body_.matchIn!Repr(
 			(in SpecBody.Builtin) =>
 				reprNamedRecord!"builtin"(alloc, []),

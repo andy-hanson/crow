@@ -283,17 +283,6 @@ void zip(T, U)(
 		cb(a[i], b[i]);
 }
 
-void zip(T, U, V)(
-	scope T[] a,
-	scope U[] b,
-	scope V[] c,
-	in void delegate(ref T, ref U, ref V) @safe @nogc pure nothrow cb,
-) {
-	verify(sizeEq(a, b) && sizeEq(b, c));
-	foreach (size_t i; 0 .. a.length)
-		cb(at(a, i), at(b, i), at(c, i));
-}
-
 void zipPtrFirst(T, U)(
 	T[] a,
 	scope U[] b,

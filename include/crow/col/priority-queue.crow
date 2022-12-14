@@ -29,6 +29,8 @@ If two pairs have the same key, the second pair added will be popped second.
 priority-queue[k, v] record
 	.root (k, v) node?
 
+priority[k] spec k is-data, k compare
+
 ###
 Priority queue consists of a linked list of nodes with two parts.
 First part is recently inserted values. These all have a single pair in 'min' and nothing in 'pairs'.
@@ -53,11 +55,11 @@ then with the `4` to size 10, then with the `8` to size 18, leaving only one nod
 	next (k, v) node?
 
 # New priority queue containing the given pairs.
-new[k, v] (k, v) priority-queue(...a (k, v) array) k is-data, k compare
+new[k, v] (k, v) priority-queue(...a (k, v) array) k priority
 	a.to-list to-priority-queue
 
 # New priority queue containing the given pairs.
-to-priority-queue[k, v] (k, v) priority-queue(a (k, v)[]) k is-data, k compare
+to-priority-queue[k, v] (k, v) priority-queue(a (k, v)[]) k priority
 	if a is-empty
 		# TODO: type annotation should not be necessary
 		()::((k, v) node?),
@@ -67,12 +69,12 @@ to-priority-queue[k, v] (k, v) priority-queue(a (k, v)[]) k is-data, k compare
 		# TODO: type annotation should not be necessary
 		(root,)::((k, v) node?),
 
-to-list[k, v] (k, v)[](a (k, v) priority-queue) k is-data, k compare
+to-list[k, v] (k, v)[](a (k, v) priority-queue) k priority
 	for k, v : a
 		k, v
 
 # True iff `a.size == 0`.
-is-empty[k, v] bool(a (k, v) priority-queue) k is-data, k compare
+is-empty[k, v] bool(a (k, v) priority-queue) k priority
 	a.root is-empty
 
 ###
@@ -80,7 +82,7 @@ Number of pairs in the priority queue.
 
 This is O(n).
 ###
-size[k, v] nat64(a (k, v) priority-queue) k is-data, k compare
+size[k, v] nat64(a (k, v) priority-queue) k priority
 	acc mut = 0
 	cur mut = a root
 	loop
@@ -96,7 +98,7 @@ Adds a pair to the queue.
 
 This is O(1), since the work of sorting pairs is actually done in `pop`.
 ###
-~[k, v] (k, v) priority-queue(a (k, v) priority-queue, b (k, v)) k is-data, k compare
+~[k, v] (k, v) priority-queue(a (k, v) priority-queue, b (k, v)) k priority
 	root (k, v) node = b, (), a.root
 	# TODO: type annotation should not be necessary
 	(root,)::((k, v) node?),
@@ -112,7 +114,7 @@ Returns an empty option iff `a` is empty.
 
 This is amortized O(log n).
 ###
-pop[k, v] (k, v) popped?(a (k, v) priority-queue) k is-data, k compare
+pop[k, v] (k, v) popped?(a (k, v) priority-queue) k priority
 	if root ?= a.compact-leading-nodes root
 		if next ?= root next
 			if popped ?= next pop-no-compact-recur root.min.from
@@ -237,7 +239,7 @@ pop[k, v] (k, v) popped?(a (k, v) priority-queue) k is-data, k compare
 
 region iteration
 
-for-loop[k, v] void(a (k, v) priority-queue, f act void(k, v)) k is-data, k compare
+for-loop[k, v] void(a (k, v) priority-queue, f act void(k, v)) k priority
 	a.each-arr walk f
 
 .each-part[k, v] record mut
@@ -290,7 +292,7 @@ for-loop[k, v] void(a (k, v) priority-queue, f act void(k, v)) k is-data, k comp
 		a[1] := temp
 		a.tail swap-sorted
 
-filter[k, v] (k, v) priority-queue(a (k, v) priority-queue, f act bool(k, v)) k is-data, k compare
+filter[k, v] (k, v) priority-queue(a (k, v) priority-queue, f act bool(k, v)) k priority
 	pairs (k, v)[] = with out : build
 		for k, v : a
 			if f[k, v]
@@ -300,19 +302,19 @@ filter[k, v] (k, v) priority-queue(a (k, v) priority-queue, f act bool(k, v)) k 
 for-loop[k-out, v-out, k-in, v-in] (k-out, v-out) priority-queue(
 	a (k-in, v-in) priority-queue,
 	f act (k-out, v-out)(k-in, v-in),
-) k-in is-data, k-in compare, k-out is-data, k-out compare
+) k-in priority, k-out priority
 	a for-loop f to-priority-queue
 
-for-loop[out, k, v] out[](a (k, v) priority-queue, f act out(k, v)) k is-data, k compare
+for-loop[out, k, v] out[](a (k, v) priority-queue, f act out(k, v)) k priority
 	with out : a.size build
 		for k, v : a
 			out ~= f[k, v]
 
-keys[k, v] k[](a (k, v) priority-queue) k is-data, k compare
+keys[k, v] k[](a (k, v) priority-queue) k priority
 	for k, _ : a
 		k
 
-values[k, v] v[](a (k, v) priority-queue) k is-data, k compare
+values[k, v] v[](a (k, v) priority-queue) k priority
 	for _, v : a
 		v
 

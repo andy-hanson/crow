@@ -589,6 +589,7 @@ immutable struct SpecDeclAst {
 	Visibility visibility;
 	Sym name;
 	SmallArray!NameAndRange typeParams;
+	SmallArray!TypeAst parents;
 	SpecBodyAst body_;
 }
 
@@ -766,6 +767,7 @@ Repr reprSpecDeclAst(ref Alloc alloc, in SpecDeclAst a) =>
 		reprStr(alloc, a.docComment),
 		reprVisibility(a.visibility),
 		reprSym(a.name),
+		reprTypeAsts(alloc, a.parents),
 		reprTypeParams(alloc, a.typeParams),
 		reprSpecBodyAst(alloc, a.body_)]);
 

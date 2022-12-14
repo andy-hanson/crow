@@ -1,11 +1,11 @@
 no-std
 import
 	../../bool: !, &&, ==, bool, true
-	../../compare: <=, compare, equal
+	../../compare: <=
 	../../fun-util: subscript
 	../../hash: hash, hash-mix
 	../../json: json
-	../../misc: is-data, new, void
+	../../misc: key, new, void
 	../../number: ==, <=>, +, -, /, %, nat64
 	../../option: ==, is-empty, new, option
 	../../pointer: ==, <=>, +, -, *, const-pointer, mut-pointer, swap
@@ -30,10 +30,10 @@ frozen-dict[k, v] record by-val
 	.pairs (k, v) array
 	.bucket-starts (k, v)* array
 
-new[k, v] (k, v) frozen-dict(...a (k, v) array) k is-data, k compare, k hash-mix
+new[k, v] (k, v) frozen-dict(...a (k, v) array) k key
 	a.to-list to-frozen-dict
 
-to-frozen-dict[k, v] (k, v) frozen-dict(a (k, v)[]) k is-data, k compare, k hash-mix
+to-frozen-dict[k, v] (k, v) frozen-dict(a (k, v)[]) k key
 	trusted a.to-array.to-mut-array as-frozen-dict
 
 # This is O(1).
@@ -57,18 +57,18 @@ is-empty[k, v] bool(a (k, v) frozen-dict)
 size[k, v] nat64(a (k, v) frozen-dict)
 	a.pairs size
 
-subscript[k, v] v?(a (k, v) frozen-dict, key k) k is-data, k compare, k hash-mix
+subscript[k, v] v?(a (k, v) frozen-dict, key k) k key
 	trusted if pointer ?= a find-pointer key
 		pointer->to,
 
-in[k, v] bool(key k, a (k, v) frozen-dict) k is-data, k compare, k hash-mix
+in[k, v] bool(key k, a (k, v) frozen-dict) k key
 	!(a try-get-unordered-index key is-empty)
 
-try-get-unordered-index[k, v] nat64?(a (k, v) frozen-dict, key k) no-doc, k is-data, k compare, k hash-mix
+try-get-unordered-index[k, v] nat64?(a (k, v) frozen-dict, key k) no-doc, k key
 	trusted if pointer ?= a find-pointer key
 		pointer - a.pairs.begin-pointer,
 
-.find-pointer[k, v] (k, v)*?(a (k, v) frozen-dict, key k) unsafe, k is-data, k compare, k hash-mix
+.find-pointer[k, v] (k, v)*?(a (k, v) frozen-dict, key k) unsafe, k key
 	bucket = if a.bucket-starts is-empty
 		a pairs
 	else
@@ -82,11 +82,11 @@ try-get-unordered-index[k, v] nat64?(a (k, v) frozen-dict, key k) no-doc, k is-d
 
 	bucket.begin-pointer find-pointer bucket.end-pointer, key
 
-find-index[k, v] nat64?(pairs (k, v) array, key k) unsafe, k is-data, k compare, k hash-mix
+find-index[k, v] nat64?(pairs (k, v) array, key k) unsafe, k key
 	if pointer ?= pairs.begin-pointer find-pointer pairs.end-pointer, key
 		pointer - pairs.begin-pointer,
 
-find-pointer[k, v] (k, v)*?(cur (k, v)*, end (k, v)*, key k) unsafe, k is-data, k compare, k hash-mix
+find-pointer[k, v] (k, v)*?(cur (k, v)*, end (k, v)*, key k) unsafe, k key
 	if cur == end
 		()
 	elif cur->from == key
@@ -94,12 +94,12 @@ find-pointer[k, v] (k, v)*?(cur (k, v)*, end (k, v)*, key k) unsafe, k is-data, 
 	else
 		cur + 1 find-pointer end, key
 
-.as-frozen-dict[k, v] (k, v) frozen-dict(a (k, v) mut-array) unsafe, k is-data, k compare, k hash-mix
+.as-frozen-dict[k, v] (k, v) frozen-dict(a (k, v) mut-array) unsafe, k key
 	a.mut-array-to-frozen-dict-promise-no-duplicates remove-duplicates
 
 mut-array-to-frozen-dict-promise-no-duplicates[k, v] (k, v) frozen-dict(
 	a (k, v) mut-array,
-) no-doc, unsafe, k is-data, k compare, k hash-mix
+) no-doc, unsafe, k key
 	if a.size <= 4
 		a.cast-immutable, ()
 	else
@@ -122,7 +122,7 @@ mut-array-to-frozen-dict-promise-no-duplicates[k, v] (k, v) frozen-dict(
 				cur swap bucket-cur-end
 		a.cast-immutable, bucket-starts.array-cast
 
-.remove-duplicates[k, v] (k, v) frozen-dict(a (k, v) frozen-dict) unsafe, k is-data, k compare, k hash-mix
+.remove-duplicates[k, v] (k, v) frozen-dict(a (k, v) frozen-dict) unsafe, k key
 	if a has-duplicates
 		# Write out pairs from each bucket to a mut-array, omitting a pair if its key appears later in the same bucket.
 		# Then call mut-array-to-frozen-dict-promise-no-duplicates 
@@ -132,7 +132,7 @@ mut-array-to-frozen-dict-promise-no-duplicates[k, v] (k, v) frozen-dict(
 	else
 		a
 
-.write-without-duplicates[k, v] void(out (k, v) mut-array-builder, a (k, v) frozen-dict) k equal
+.write-without-duplicates[k, v] void(out (k, v) mut-array-builder, a (k, v) frozen-dict) k key
 	if a.bucket-starts is-empty
 		out write-bucket-without-duplicates a.pairs
 	else
@@ -144,12 +144,12 @@ mut-array-to-frozen-dict-promise-no-duplicates[k, v] (k, v) frozen-dict(
 					a.bucket-starts[i + 1]
 				out write-bucket-without-duplicates (bucket-start .. bucket-end).as-array
 
-.write-bucket-without-duplicates[k, v] void(out (k, v) mut-array-builder, pairs (k, v) array) k equal
+.write-bucket-without-duplicates[k, v] void(out (k, v) mut-array-builder, pairs (k, v) array) k key
 	for i, pair : pairs
 		unless pair.from key-in-range pairs[i + 1 .. pairs.size]
 			out ~= pairs[i]
 
-.has-duplicates[k, v] bool(a (k, v) frozen-dict) k equal
+.has-duplicates[k, v] bool(a (k, v) frozen-dict) k key
 	if a.bucket-starts is-empty
 		a.pairs bucket-has-duplicates
 	else
@@ -161,21 +161,21 @@ mut-array-to-frozen-dict-promise-no-duplicates[k, v] (k, v) frozen-dict(
 					a.bucket-starts[i + 1]
 				(bucket-start .. bucket-end).as-array bucket-has-duplicates
 
-.bucket-has-duplicates[k, v] bool(pairs (k, v) array) k equal
+.bucket-has-duplicates[k, v] bool(pairs (k, v) array) k key
 	pairs exists (i, pair) =>
 		pair.from key-in-range pairs[i + 1 .. pairs.size]
 
-.key-in-range[k, v] bool(key k, pairs (k, v) array) k equal
+.key-in-range[k, v] bool(key k, pairs (k, v) array) k key
 	pairs exists pair => key == pair.from
 
-.get-bucket-counts[k, v] nat64 mut-array(a (k, v) mut-array, n-buckets nat64) unsafe, k hash-mix
+.get-bucket-counts[k, v] nat64 mut-array(a (k, v) mut-array, n-buckets nat64) unsafe, k key
 	res = n-buckets fill-mut-array 0
 	for pair : a
 		bucket-index = pair.from get-bucket-index n-buckets
 		res[bucket-index] := res[bucket-index] + 1
 	res
 
-.get-bucket-index[k] nat64(key k, n-buckets nat64) k hash-mix
+.get-bucket-index[k] nat64(key k, n-buckets nat64) k key
 	key.hash % n-buckets
 
 .running-sum[k, v] (k, v) mut* array(initial (k, v) mut*, offsets nat64 array) unsafe
@@ -200,7 +200,7 @@ frozen-dict-builder[k, v] record mut
 with-block[k, v] (k, v) frozen-dict(
 	a build-frozen-dict,
 	f act void((k, v) frozen-dict-builder),
-) k is-data, k compare, k hash-mix
+) k key
 	trusted (with out : a.size-hint build; f[(out,)]) as-frozen-dict
 
 ~=[k, v] void(a(k, v) frozen-dict-builder, pair (k, v))

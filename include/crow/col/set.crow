@@ -1,10 +1,9 @@
 no-std
 import
 	../bool: !, bool, new
-	../compare: <=, >, >=, compare
+	../compare: <=, >, >=
 	../fun-util: subscript
-	../hash: hash-mix
-	../misc: is-data, new, void
+	../misc: key, new, void
 	../number: ==, <=>, +, -, *, nat64
 	../option: !, ??, new, option
 	../string: ~~, join, literal, new, string, to-string
@@ -38,26 +37,26 @@ node-count[t] nat64(a t set) no-doc
 	left t add-node?
 
 # Set containing the given elements (with duplicates removed).
-new[t] t set(...a t array) t is-data, t compare, t hash-mix
+new[t] t set(...a t array) t key
 	a.to-list to-set
 
 # Set containing the given elements (with duplicates removed).
-to-set[t] t set(a t[]) t is-data, t compare, t hash-mix
+to-set[t] t set(a t[]) t key
 	# TODO: type annotation should be unnecessary
 	(a.to-frozen-set, ())::(t add-node), ()
 
 # Copies set elements to a list.
-to-list[t] t[](a t set) t is-data, t compare, t hash-mix
+to-list[t] t[](a t set) t key
 	# TODO: If a has a single add node and no remove, just return that
 	for x : a
 		x
 
 # `true` iff `a.size == 0`.
-is-empty[t] bool(a t set) t is-data, t compare, t hash-mix
+is-empty[t] bool(a t set) t key
 	a.add.here is-empty
 
 # Number of elements in the set.
-size[t] nat64(a t set) t is-data, t compare, t hash-mix
+size[t] nat64(a t set) t key
 	a.add.add-size - a.remove.size
 
 .add-size[t] nat64(a t add-node)
@@ -74,11 +73,11 @@ size[t] nat64(a t set) t is-data, t compare, t hash-mix
 			break acc
 
 # `true` iff `value` is an element of `a`.
-in[t] bool(value t, a t set) t is-data, t compare, t hash-mix
+in[t] bool(value t, a t set) t key
 	if index ?= a.add find-in-add value
 		!(index in a.remove)
 
-.find-in-add[t] nat64?(a t add-node, value t) t is-data, t compare, t hash-mix
+.find-in-add[t] nat64?(a t add-node, value t) t key
 	if index ?= a.here try-get-unordered-index value
 		a.add-size-left + index,
 	elif left ?= a left
@@ -89,11 +88,11 @@ Adds an element to the set.
 
 If `value` is alerady in the set, returns `a` unmodified.
 ###
-~[t] t set(a t set, value t) t is-data, t compare, t hash-mix
+~[t] t set(a t set, value t) t key
 	a try-add value ?? a
 
 # Same as `a | b`.
-~~[t] t set(a t set, b t set) t is-data, t compare, t hash-mix
+~~[t] t set(a t set, b t set) t key
 	a | b
 
 ###
@@ -101,7 +100,7 @@ Union of two sets.
 
 This is a set containing all elements in either `a` or `b`.
 ###
-|[t] t set(a t set, b t set) t is-data, t compare, t hash-mix
+|[t] t set(a t set, b t set) t key
 	res mut = a
 	for x : b
 		res := res ~ x
@@ -112,7 +111,7 @@ Intersection of two sets.
 
 This is a set containing all elements in both `a` and `b`.
 ###
-&[t] t set(a t set, b t set) t is-data, t compare, t hash-mix
+&[t] t set(a t set, b t set) t key
 	# TODO:PERF
 	a filter x => x in b
 
@@ -121,21 +120,21 @@ Set difference.
 
 This is a set containing all elements in `a` but not in `b`.
 ###
--[t] t set(a t set, b t set) t is-data, t compare, t hash-mix
+-[t] t set(a t set, b t set) t key
 	a filter x => !(x in b)
 
 ###
 If `value` is already in the set, returns an empty option.
 Else, adds it and returns the new set.
 ###
-try-add[t] t set?(a t set, value t) t is-data, t compare, t hash-mix
+try-add[t] t set?(a t set, value t) t key
 	if index ?= a.add find-in-add value
 		if new-remove ?= a.remove try-remove index
 			(a.add, new-remove),
 	else
 		(a add-and-maybe-compact value),
 
-.add-and-maybe-compact[t] t set(a t set, value t) t is-data, t compare, t hash-mix
+.add-and-maybe-compact[t] t set(a t set, value t) t key
 	add-size = a.add add-size
 	if add-size == 0
 		# TODO: type annotation should be unnecessary
@@ -181,7 +180,7 @@ try-add[t] t set?(a t set, value t) t is-data, t compare, t hash-mix
 	add-size nat64,
 	plan compact-plan,
 	value t,
-) t is-data, t compare, t hash-mix
+) t key
 	assert plan.compacted-size > 1
 	left mut t add-node? = ()
 	compacted t frozen-set = with out : plan.compacted-size build
@@ -194,7 +193,7 @@ try-add[t] t set?(a t set, value t) t is-data, t compare, t hash-mix
 	a t set,
 	add-size nat64,
 	compacted-size nat64,
-) t is-data, t compare, t hash-mix
+) t key
 	cur mut = a add
 	add-size-here-and-left mut = add-size
 	loop
@@ -214,7 +213,7 @@ try-add[t] t set?(a t set, value t) t is-data, t compare, t hash-mix
 
 region iteration
 
-for-loop[t] void(a t set, f act void(t)) t is-data, t compare, t hash-mix
+for-loop[t] void(a t set, f act void(t)) t key
 	cur mut = a add
 	add-size-left mut = cur add-size-left
 	loop
@@ -228,14 +227,14 @@ for-loop[t] void(a t set, f act void(t)) t is-data, t compare, t hash-mix
 		else
 			break
 
-filter[t] t set(a t set, f act bool(t)) t is-data, t compare, t hash-mix
+filter[t] t set(a t set, f act bool(t)) t key
 	list t[] = with out : build
 		for x : a
 			if f[x]
 				out ~= x
 	list to-set
 
-for-loop[out, in] out[](a in set, f act out(in)) in is-data, in compare, in hash-mix
+for-loop[out, in] out[](a in set, f act out(in)) in key
 	with out : a.size build
 		for x : a
 			out ~= f[x]

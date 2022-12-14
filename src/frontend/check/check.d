@@ -19,7 +19,16 @@ import frontend.check.dicts :
 	StructOrAliasAndIndex;
 import frontend.check.funsForStruct : addFunsForStruct, countFunsForStruct;
 import frontend.check.instantiate :
-	DelayStructInsts, instantiateSpec, instantiateStruct, instantiateStructBody, TypeArgsArray, typeArgsArray;
+	DelaySpecInsts,
+	DelayStructInsts,
+	instantiateSpec,
+	instantiateSpecParents,
+	instantiateStruct,
+	instantiateStructBody,
+	noDelaySpecInsts,
+	noDelayStructInsts,
+	TypeArgsArray,
+	typeArgsArray;
 import frontend.check.typeFromAst :
 	checkTypeParams, getTypeArgsForSpecIfNumberMatches, tryFindSpec, typeFromAst, typeFromAstNoTypeParamsNeverDelay;
 import frontend.diagnosticsBuilder : addDiagnostic, DiagnosticsBuilder;
@@ -102,10 +111,11 @@ import util.col.fullIndexDict : FullIndexDict, fullIndexDictOfArr, fullIndexDict
 import util.col.multiDict : buildMultiDict, multiDictEach;
 import util.col.mutArr : mustPop, MutArr, mutArrIsEmpty;
 import util.col.mutDict : insertOrUpdate, moveToDict, MutDict;
-import util.col.mutMaxArr : MutMaxArr, mutMaxArr, mutMaxArrSize, pushIfUnderMaxSize, tempAsArr;
+import util.col.mutMaxArr :
+	isFull, mustPop, MutMaxArr, mutMaxArr, mutMaxArrSize, push, pushIfUnderMaxSize, tempAsArr, toArray;
 import util.col.str : copySafeCStr, SafeCStr, safeCStr, strOfSafeCStr;
 import util.memory : allocate;
-import util.opt : force, has, none, noneMut, Opt, someMut, some;
+import util.opt : force, has, none, Opt, someMut, some;
 import util.perf : Perf;
 import util.ptr : ptrTrustMe;
 import util.sourceRange : FileAndPos, FileAndRange, FileIndex, RangeWithinFile;
@@ -488,17 +498,11 @@ SpecBody checkSpecBody(
 		(in SpecSigAst[] sigs) =>
 			SpecBody(map(ctx.alloc, sigs, (ref SpecSigAst it) {
 				ReturnTypeAndParams rp = checkReturnTypeAndParams(
-					ctx,
-					commonTypes,
-					it.returnType,
-					it.params,
-					typeParams,
-					structsAndAliasesDict,
-					noneMut!(MutArr!(StructInst*)*));
+					ctx, commonTypes, it.returnType, it.params, typeParams, structsAndAliasesDict, noDelayStructInsts);
 				return SpecDeclSig(it.docComment, posInFile(ctx, it.range.start), it.name, rp.returnType, rp.params);
 			})));
 
-SpecDecl[] checkSpecDecls(
+SpecDecl[] checkSpecDeclsInitial(
 	ref CheckCtx ctx,
 	ref CommonTypes commonTypes,
 	ref StructsAndAliasesDict structsAndAliasesDict,
@@ -516,6 +520,52 @@ SpecDecl[] checkSpecDecls(
 			small(typeParams),
 			body_);
 	});
+
+void checkSpecDeclParents(
+	ref CheckCtx ctx,
+	ref CommonTypes commonTypes,
+	ref StructsAndAliasesDict structsAndAliasesDict,
+	ref SpecsDict specsDict,
+	in SpecDeclAst[] asts,
+	SpecDecl[] specs,
+) {
+	MutArr!(SpecInst*) delaySpecInsts;
+
+	zip!(SpecDeclAst, SpecDecl)(asts, specs, (ref SpecDeclAst ast, ref SpecDecl spec) {
+		spec.parents = mapOp!(immutable SpecInst*, TypeAst)(ctx.alloc, ast.parents, (ref TypeAst parent) =>
+			checkFunModifierNonSpecial(
+				ctx, commonTypes, structsAndAliasesDict, specsDict, spec.typeParams, parent,
+				someMut(ptrTrustMe(delaySpecInsts))));
+	});
+
+	foreach (SpecDecl* decl; ptrsRange(specs))
+		detectAndFixSpecRecursion(ctx, decl);
+
+	while (!mutArrIsEmpty(delaySpecInsts)) {
+		SpecInst* i = mustPop(delaySpecInsts);
+		instantiateSpecParents(ctx.alloc, ctx.programState, i, someMut(&delaySpecInsts));
+	}
+}
+
+void detectAndFixSpecRecursion(ref CheckCtx ctx, SpecDecl* decl) {
+	MutMaxArr!(8, immutable SpecDecl*) trace = mutMaxArr!(8, immutable SpecDecl*);
+	if (recurDetectSpecRecursion(decl, trace)) {
+		addDiag(ctx, decl.range, Diag(Diag.SpecRecursion(toArray(ctx.alloc, trace))));
+		decl.overwriteParents([]);
+	}
+}
+bool recurDetectSpecRecursion(SpecDecl* cur, ref MutMaxArr!(8, immutable SpecDecl*) trace) {
+	if (!empty(cur.parents) && isFull(trace))
+		return true;
+	foreach (SpecInst* parent; cur.parents) {
+		push(trace, decl(*parent));
+		if (recurDetectSpecRecursion(decl(*parent), trace))
+			return true;
+		else
+			mustPop(trace);
+	}
+	return false;
+}
 
 StructAlias[] checkStructAliasesInitial(ref CheckCtx ctx, scope StructAliasAst[] asts) =>
 	mapToMut!(StructAlias, StructAliasAst)(ctx.alloc, asts, (in StructAliasAst ast) @safe =>
@@ -613,7 +663,7 @@ FunFlagsAndSpecs checkFunModifiers(
 				},
 				(in TypeAst x) =>
 					checkFunModifierNonSpecial(
-						ctx, commonTypes, structsAndAliasesDict, specsDict, typeParamsScope, x)));
+						ctx, commonTypes, structsAndAliasesDict, specsDict, typeParamsScope, x, noDelaySpecInsts)));
 	return FunFlagsAndSpecs(checkFunFlags(ctx, range, allFlags), specs);
 }
 
@@ -624,14 +674,16 @@ Opt!(SpecInst*) checkFunModifierNonSpecial(
 	in SpecsDict specsDict,
 	TypeParam[] typeParamsScope,
 	in TypeAst ast,
+	DelaySpecInsts delaySpecInsts,
 ) {
 	if (ast.isA!NameAndRange) {
 		return checkSpecReference(
-			ctx, commonTypes, structsAndAliasesDict, specsDict, typeParamsScope, none!(TypeAst*), ast.as!NameAndRange);
+			ctx, commonTypes, structsAndAliasesDict, specsDict, typeParamsScope,
+			none!(TypeAst*), ast.as!NameAndRange, delaySpecInsts);
 	} else if (ast.isA!(TypeAst.SuffixName*)) {
 		TypeAst.SuffixName* n = ast.as!(TypeAst.SuffixName*);
 		return checkSpecReference(
-			ctx, commonTypes, structsAndAliasesDict, specsDict, typeParamsScope, some(&n.left), n.name);
+			ctx, commonTypes, structsAndAliasesDict, specsDict, typeParamsScope, some(&n.left), n.name, delaySpecInsts);
 	} else {
 		addDiag(ctx, range(ast, ctx.allSymbols), Diag(Diag.SpecNameMissing()));
 		return none!(SpecInst*);
@@ -647,6 +699,7 @@ Opt!(SpecInst*) checkSpecReference(
 	TypeParam[] typeParamsScope,
 	in Opt!(TypeAst*) suffixLeft,
 	NameAndRange specName,
+	DelaySpecInsts delaySpecInsts,
 ) {
 	Opt!(SpecDecl*) opSpec = tryFindSpec(ctx, specName, specsDict);
 	if (has(opSpec)) {
@@ -661,7 +714,9 @@ Opt!(SpecInst*) checkSpecReference(
 			spec,
 			suffixLeft,
 			typeParamsScope);
-		return ok ? some(instantiateSpec(ctx.alloc, ctx.programState, spec, tempAsArr(typeArgs))) : none!(SpecInst*);
+		return ok
+			? some(instantiateSpec(ctx.alloc, ctx.programState, spec, tempAsArr(typeArgs), delaySpecInsts))
+			: none!(SpecInst*);
 	} else
 		return none!(SpecInst*);
 }
@@ -757,7 +812,7 @@ FunsAndDict checkFuns(
 			funAst.params,
 			typeParams,
 			structsAndAliasesDict,
-			noneMut!(MutArr!(StructInst*)*));
+			noDelayStructInsts);
 		FunFlagsAndSpecs flagsAndSpecs = checkFunModifiers(
 			ctx, commonTypes, funAst.range, funAst.modifiers, structsAndAliasesDict, specsDict, typeParams);
 		exactSizeArrBuilderAdd(
@@ -1066,8 +1121,9 @@ Module checkWorkerAfterCommonTypes(
 			someMut(ptrTrustMe(delayStructInsts))));
 	}
 
-	SpecDecl[] specs = checkSpecDecls(ctx, commonTypes, structsAndAliasesDict, ast.specs);
+	SpecDecl[] specs = checkSpecDeclsInitial(ctx, commonTypes, structsAndAliasesDict, ast.specs);
 	SpecsDict specsDict = buildSpecsDict(ctx, specs);
+	checkSpecDeclParents(ctx, commonTypes, structsAndAliasesDict, specsDict, ast.specs, specs);
 	FunsAndDict funsAndDict = checkFuns(
 		ctx,
 		commonTypes,

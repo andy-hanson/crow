@@ -8,7 +8,7 @@ import
 	../option: new, option
 	../private/alloc: alloc-uninitialized, copy-data-from
 	../private/bootstrap: new
-	../private/range-low-level: .., high, low, rangable, range, size
+	../private/range-low-level: .., high, low, rangeable, range, size
 	../pointer:
 		==, <=>, +, -, *, as-const, const-pointer, mut-pointer, null, pointer-cast, set-deref,
 		size-of, subscript, to-mut-pointer, to-nat64
@@ -21,7 +21,7 @@ new[t] t array(...a t array) noctx
 	a
 
 # Make an array from a range
-for-loop[out, in] out array(a in range, f act out(in)) in rangable
+for-loop[out, in] out array(a in range, f act out(in)) in rangeable
 	with out : a.size build
 		n mut = a low
 		loop

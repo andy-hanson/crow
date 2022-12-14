@@ -138,6 +138,8 @@ get-modules module[](paths string[], remove-prefix string) summon
 			x to-spec-ref
 
 .to-spec-decl spec-decl(a json)
+	parents spec-ref[] = for x : a["parents"]!.as-list!
+		x to-spec-ref
 	body-json = a["body"]!
 	type = body-json get-node-type
 	body_ = if type == "builtin"
@@ -148,7 +150,7 @@ get-modules module[](paths string[], remove-prefix string) summon
 		sigs spec-sigs
 	else
 		throw "unexpected spec type {type}"
-	body_,
+	parents, body_
 
 .to-sig spec-sig(a json)
 	a.get-comment, a.get-name, a.get-return-type, a.get-params

@@ -13,7 +13,7 @@ import util.col.enumDict : EnumDict;
 import util.col.fullIndexDict : FullIndexDict;
 import util.col.str : SafeCStr;
 import util.hash : Hasher;
-import util.late : Late, lateGet, lateIsSet, lateSet;
+import util.late : Late, lateGet, lateIsSet, lateSet, lateSetOverwrite;
 import util.lineAndColumnGetter : LineAndColumnGetter;
 import util.opt : force, has, Opt, some;
 import util.path : Path;
@@ -454,6 +454,8 @@ immutable struct SpecBody {
 }
 
 immutable struct SpecDecl {
+	@safe @nogc pure nothrow:
+
 	// TODO: use NameAndRange (more compact)
 	FileAndRange range;
 	SafeCStr docComment;
@@ -461,6 +463,17 @@ immutable struct SpecDecl {
 	Sym name;
 	SmallArray!TypeParam typeParams;
 	SpecBody body_;
+	Late!(SmallArray!(immutable SpecInst*)) parents_;
+
+	bool parentsIsSet() =>
+		lateIsSet(parents_);
+	immutable(SpecInst*[]) parents() scope =>
+		lateGet(parents_);
+	void parents(immutable SpecInst*[] value) {
+		lateSet(parents_, small(value));
+	}
+	void overwriteParents(immutable SpecInst*[] value) =>
+		lateSetOverwrite(parents_, small(value));
 }
 
 immutable struct SpecDeclAndArgs {
@@ -480,8 +493,17 @@ immutable struct SpecDeclAndArgs {
 }
 
 immutable struct SpecInst {
+	@safe @nogc pure nothrow:
+
 	SpecDeclAndArgs declAndArgs;
 	SpecBody body_;
+	private Late!(SmallArray!(immutable SpecInst*)) parents_;
+
+	immutable(SpecInst*[]) parents() =>
+		lateGet(parents_);
+	void parents(immutable SpecInst*[] value) {
+		lateSet(parents_, small(value));
+	}
 }
 
 SpecDecl* decl(return scope ref SpecInst a) =>

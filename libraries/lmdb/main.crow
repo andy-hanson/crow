@@ -68,8 +68,7 @@ Keys in LMDB can be nat32, nat64, or string.
 
 Don't implement this spec for other types, since LMDB really only supports a few types.
 ###
-lmdb-key[k] spec
-	== bool(a k, b k)
+lmdb-key[k] spec k key
 	# NOTE: Parameter is a dummy, don't actually use it
 	lmdb-key-flags u-int(_ k)
 	# Don't use `serialize`, because lmdb expects integers to be fixed size
@@ -312,7 +311,7 @@ zip[out, k, v0, v1] out[](
 	db0 (k, v0) lmdb-db,
 	db1 (k, v1) lmdb-db,
 	f act out(k, v0, v1),
-) summon, k is-data, k lmdb-key, v0 serialize, v1 serialize
+) summon, k lmdb-key, v0 serialize, v1 serialize
 	db0-count = txn count db0
 	db1-count = txn count db1
 	assert db0-count == db1-count
@@ -326,7 +325,7 @@ zip[out, k, v0, v1] out[](
 	db0 (k, v0) lmdb-db,
 	db1 (k, v1) lmdb-db,
 	f act void(k, v0, v1),
-) summon, k is-data, k lmdb-key, v0 serialize, v1 serialize
+) summon, k lmdb-key, v0 serialize, v1 serialize
 	trusted txn with-cursor db0, cursor0 =>
 		txn with-cursor db1, cursor1 =>
 			empty mut = empty-val
@@ -337,7 +336,7 @@ zip[out, k, v0, v1] out[](
 	cursor0 MDB_cursor mut*,
 	cursor1 MDB_cursor mut*,
 	f act void(k, v0, v1),
-) summon, unsafe, k is-data, k lmdb-key, v0 serialize, v1 serialize
+) summon, unsafe, k lmdb-key, v0 serialize, v1 serialize
 	loop
 		key0-val mut = empty-val
 		value0-val mut = empty-val

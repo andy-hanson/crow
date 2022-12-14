@@ -125,6 +125,8 @@ DiagSeverity getDiagnosticSeverity(in Diag a) =>
 			DiagSeverity.checkError,
 		(in Diag.SpecNameMissing) =>
 			DiagSeverity.checkError,
+		(in Diag.SpecRecursion) =>
+			DiagSeverity.checkError,
 		(in Diag.ThreadLocalError) =>
 			DiagSeverity.checkError,
 		(in Diag.TrustedUnnecessary) =>

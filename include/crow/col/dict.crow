@@ -2,11 +2,11 @@ no-std
 import
 	../bits: &, >>
 	../bool: !, &&, bool, false, new, true
-	../compare: !=, <, <=, >=, compare, equal, max
+	../compare: !=, <, <=, >=, equal, max
 	../exception: unreachable
 	../fun-util: subscript
-	../hash: hash, hash-mix
-	../misc: is-data, loop-break, new, void
+	../hash: hash
+	../misc: key, loop-break, new, void
 	../number: ==, <=>, +, -, nat64
 	../option: !, is-empty, new, option
 	../range: .., for-loop
@@ -36,7 +36,7 @@ functions dealing with multiple elements (like `to-list` or `for-loop`) work in 
 dict[k, v] record by-val
 	.root (k, v) node
 
-==[k, v] bool(a v[k], b v[k]) no-doc, k is-data, k compare, k hash-mix, v equal
+==[k, v] bool(a v[k], b v[k]) k key, v equal
 	# TODO:PERF `a every` nto `a.to-list every`
 	a.size == b.size && a.to-list every pair =>
 		if bv ?= b[pair from]
@@ -67,14 +67,14 @@ Creates a new dict from the given key-value pairs.
 
 Later pairs overwrite earlier pairs with the same key.
 ###
-new[k, v] v[k](...a (k, v) array) k is-data, k compare, k hash-mix
+new[k, v] v[k](...a (k, v) array) k key
 	a.to-list to-dict
 
 ###
 Converts a list of pairs to a dictionary.
 Later pairs overwrite earlier pairs with the same key.
 ###
-to-dict[k, v] v[k](a (k, v)[]) k is-data, k compare, k hash-mix
+to-dict[k, v] v[k](a (k, v)[]) k key
 	if a.size <= 4 && a.no-duplicate-keys
 		a.to-array.leaf-node,
 	else
@@ -84,10 +84,10 @@ to-dict[k, v] v[k](a (k, v)[]) k is-data, k compare, k hash-mix
 		res
 
 # Returns all pairs in the dictionary.
-to-list[k, v] (k, v)[](a v[k]) k is-data, k compare, k hash-mix
+to-list[k, v] (k, v)[](a v[k]) k key
 	for k, v : a; k, v
 
-.no-duplicate-keys[k, v] bool(a (k, v)[]) k compare
+.no-duplicate-keys[k, v] bool(a (k, v)[]) k key
 	# O(n^2) but it doesn't matter since n <= 4
 	if a.size <= 1
 		true
@@ -96,7 +96,7 @@ to-list[k, v] (k, v)[](a v[k]) k is-data, k compare, k hash-mix
 		a.tail every (it => it.from != key) && a.tail.no-duplicate-keys
 
 # True iff the dict has no entries.
-is-empty[k, v] bool(a v[k]) k is-data, k compare, k hash-mix
+is-empty[k, v] bool(a v[k]) k key
 	a.root node-is-empty
 .node-is-empty[k, v] bool(a (k, v) node)
 	match a
@@ -106,7 +106,7 @@ is-empty[k, v] bool(a v[k]) k is-data, k compare, k hash-mix
 		l is-empty
 
 # Number of pairs.
-size[k, v] nat64(a v[k]) k is-data, k compare, k hash-mix
+size[k, v] nat64(a v[k]) k key
 	a.root size
 .size[k, v] nat64(a (k, v) node)
 	match a
@@ -122,7 +122,7 @@ size[k, v] nat64(a v[k]) k is-data, k compare, k hash-mix
 Gets the value associated with a key.
 Returns an empty option if the key is not in `a`.
 ###
-subscript[k, v] v?(a v[k], key k) k is-data, k compare, k hash-mix
+subscript[k, v] v?(a v[k], key k) k key
 	cur mut = a root
 	remaining-hash mut = key hash
 	loop
@@ -141,14 +141,14 @@ subscript[k, v] v?(a v[k], key k) k is-data, k compare, k hash-mix
 					break pair.to
 
 # `true` iff the key is in the dictionary.
-in[k, v] bool(key k, a v[k]) k is-data, k compare, k hash-mix
+in[k, v] bool(key k, a v[k]) k key
 	!a[key].is-empty
 
 ###
 Associates the key `pair.a` with the value `pair.b`.
 This may overwrite the key if it's already in `a`, or add a new entry.
 ###
-~[k, v] v[k](a v[k], pair (k, v)) k is-data, k compare, k hash-mix
+~[k, v] v[k](a v[k], pair (k, v)) k key
 	res = a get-or-update pair.from, _ =>
 		pair.to insert
 	if node ?= res new-node
@@ -159,7 +159,7 @@ This may overwrite the key if it's already in `a`, or add a new entry.
 ###
 Adds/updates many entries to `a`.
 ###
-~~[k, v] v[k](a v[k], pairs (k, v)[]) k is-data, k compare, k hash-mix
+~~[k, v] v[k](a v[k], pairs (k, v)[]) k key
 	res mut = a
 	for pair : pairs
 		res := res ~ pair
@@ -173,7 +173,7 @@ got-or-added[k, v] union
 If `key` is already in `a`, return `already-has-key` with the old value.
 Else, add a new pair `key, get-value[]` return `added`.
 ###
-get-or-add[k, v] (k, v) got-or-added(a v[k], key k, get-value act v()) k is-data, k compare, k hash-mix
+get-or-add[k, v] (k, v) got-or-added(a v[k], key k, get-value act v()) k key
 	res = a get-or-update key, old-value =>
 		if old-value is-empty
 			get-value[] insert
@@ -190,7 +190,7 @@ Removes a key and its associated value.
 If the key is not in the dictionary, returns `a` unmodified.
 (To distinguish that case, and to get the removed value, use `try-remove`.)
 ###
--[k, v] v[k](a v[k], key k) k is-data, k compare, k hash-mix
+-[k, v] v[k](a v[k], key k) k key
 	if res ?= a try-remove key
 		res rest
 	else
@@ -206,7 +206,7 @@ Removes a key and its associated value, and returns the value and the new dictio
 
 If the key is not in the dictionary, returns an empty option.
 ###
-try-remove[k, v] (k, v) try-remove-result?(a v[k], key k) k is-data, k compare, k hash-mix
+try-remove[k, v] (k, v) try-remove-result?(a v[k], key k) k key
 	res = a get-or-update key, _ => remove
 	if value ?= res old-value
 		(value, (res.new-node!,)),
@@ -229,7 +229,7 @@ try-remove[k, v] (k, v) try-remove-result?(a v[k], key k) k is-data, k compare, 
 	a v[k],
 	key k,
 	f act v get-or-update-action(v?),
-) k compare, k hash-mix
+) k key
 	hash = key hash
 	match a root
 	as inner-node _
@@ -243,7 +243,7 @@ try-remove[k, v] (k, v) try-remove-result?(a v[k], key k) k is-data, k compare, 
 	remaining-hash nat64,
 	hash-shift nat64,
 	f act v get-or-update-action(v?),
-) k compare, k hash-mix
+) k key
 	match a
 	as inner-node i
 		which = remaining-hash low-bits
@@ -338,7 +338,7 @@ If `index > a.size`, entries between the and of `a` and the new entries will be 
 	remaining-hash nat64,
 	hash-shift nat64,
 	f act v get-or-update-action(v?),
-) k compare, k hash-mix
+) k key
 	if index ?= a find-index it => it.from == key
 		old-value = a[index] to
 		match f[(old-value,)]
@@ -375,7 +375,7 @@ If `index > a.size`, entries between the and of `a` and the new entries will be 
 	value v,
 	hash nat64,
 	hash-shift nat64,
-) k hash-mix
+) k key
 	key-hash = hash low-bits
 	max-hash mut = key-hash
 	for pair : a
@@ -395,9 +395,9 @@ If `index > a.size`, entries between the and of `a` and the new entries will be 
 
 region iteration
 
-for-loop[k, v] void(a v[k], f act void(k, v)) k is-data, k compare, k hash-mix
+for-loop[k, v] void(a v[k], f act void(k, v)) k key
 	a.root for-loop f
-.for-loop[k, v] void(a (k, v) node, f act void(k, v)) k is-data, k compare, k hash-mix
+.for-loop[k, v] void(a (k, v) node, f act void(k, v)) k key
 	match a
 	as inner-node i
 		for child : i
@@ -407,20 +407,17 @@ for-loop[k, v] void(a v[k], f act void(k, v)) k is-data, k compare, k hash-mix
 			f[pair.from, pair.to]
 
 # Calls `f` on every pair in the dictionary and returns an array of the results.
-for-loop[out, k, v] out[](a v[k], f act out(k, v)) k is-data, k compare, k hash-mix
+for-loop[out, k, v] out[](a v[k], f act out(k, v)) k key
 	with out : build
 		for k, v : a
 			out ~= f[k, v]
 
-for-loop[k-out, v-out, k, v] v-out[k-out](
-	a v[k],
-	f act (k-out, v-out)(k, v),
-) k is-data, k compare, k hash-mix, k-out is-data, k-out compare, k-out hash-mix
+for-loop[k-out, v-out, k, v] v-out[k-out](a v[k], f act (k-out, v-out)(k, v)) k key, k-out key
 	a for-loop f to-dict
 
-for-loop[k, v, in] v[k](a in[], f act (k, v)(in)) k is-data, k compare, k hash-mix
+for-loop[k, v, in] v[k](a in[], f act (k, v)(in)) k key
 	a for-loop f to-dict
-for-loop[k, v, in] v[k](a in[], f act (k, v)(nat64, in)) k is-data, k compare, k hash-mix
+for-loop[k, v, in] v[k](a in[], f act (k, v)(nat64, in)) k key
 	a for-loop f to-dict
 
 region builder
@@ -435,7 +432,7 @@ build build-dict(size-hint nat64)
 dict-builder[k, v] record mut
 	.inner (k, v) array-builder
 
-with-block[k, v] v[k](a build-dict, f act void((k, v) dict-builder)) k is-data, k compare, k hash-mix
+with-block[k, v] v[k](a build-dict, f act void((k, v) dict-builder)) k key
 	(with out : a.size-hint build; f[(out,)])::((k, v) array).to-list to-dict
 
 ~=[k, v] void(a (k, v) dict-builder, pair (k, v))

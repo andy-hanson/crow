@@ -1,10 +1,8 @@
 no-std
 import
 	../bool: !, bool, new, true
-	../compare: compare
 	../fun-util: subscript
-	../hash: hash-mix
-	../misc: is-data, new, void
+	../misc: key, new, void
 	../option: is-empty
 	../tuple: a, new, pair
 	./array: array
@@ -21,54 +19,54 @@ mut-set[t] record mut
 	.inner void mut[t]
 
 # New set with the given elements (with duplicates removed).
-new[t] t mut-set(...a t array) t is-data, t compare, t hash-mix
+new[t] t mut-set(...a t array) t key
 	# TODO: should not need type annotation
 	(for x : a.to-list; (x, ()))::(t, void)[].to-mut-dict,
 
 # Copies an immutable set to a mutable set.
-to-mut-set[t] t mut-set(a t set) t is-data, t compare, t hash-mix
+to-mut-set[t] t mut-set(a t set) t key
 	res t mut-set = ()
 	for x : a
 		res ~= x
 	res
 
 # Removes all elements.
-clear[t] void(a t mut-set) t is-data, t compare, t hash-mix
+clear[t] void(a t mut-set) t key
 	a.inner clear
 
 # Copies elements to a list, and clears the `a`.
-move-to-list[t] t[](a t mut-set) t is-data, t compare, t hash-mix
+move-to-list[t] t[](a t mut-set) t key
 	for x : a.inner move-to-list
 		x a
 
 # Copies elements to an immuttable set, and clears `a`.
-move-to-set[t] t set(a t mut-set) t is-data, t compare, t hash-mix
+move-to-set[t] t set(a t mut-set) t key
 	a.move-to-list to-set
 
 ###
 Adds an element to the set.
 Does nothing if `value` is already in the set.
 ###
-~=[t] void(a t mut-set, value t) t is-data, t compare, t hash-mix
+~=[t] void(a t mut-set, value t) t key
 	a.inner ~= (value, ())
 
 ###
 Adds many elements to the set.
 Ignores values already in the set.
 ###
-~~=[t] void(a t mut-set, values t[]) t is-data, t compare, t hash-mix
+~~=[t] void(a t mut-set, values t[]) t key
 	for x : values
 		a ~= x
 
 # `true` iff `value` is a value in the set.
-in[t] bool(value t, a t mut-set) t is-data, t compare, t hash-mix
+in[t] bool(value t, a t mut-set) t key
 	value in a.inner
 
 ###
 If `value` is already in the set, returns `false`.
 Else, adds it and returns `true`.
 ###
-try-add[t] bool(a t mut-set, value t) t is-data, t compare, t hash-mix
+try-add[t] bool(a t mut-set, value t) t key
 	# TODO:PERF do it without two lookups
 	unless value in a
 		a ~= value
@@ -78,10 +76,10 @@ try-add[t] bool(a t mut-set, value t) t is-data, t compare, t hash-mix
 If `value` is in the set, return `false`.
 Else, remove it and return `true`.
 ###
-try-remove[t] bool(a t mut-set, value t) t is-data, t compare, t hash-mix
+try-remove[t] bool(a t mut-set, value t) t key
 	!(a.inner try-remove value is-empty)
 
 # Calls `f` for every element in the set.
-for-loop[t] void(a t mut-set, f act void(t)) t is-data, t compare, t hash-mix
+for-loop[t] void(a t mut-set, f act void(t)) t key
 	for k, _ : a inner
 		f[k]

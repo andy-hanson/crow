@@ -1,0 +1,1 @@
+{"_type":"file-ast","specs":[{"_type":"spec-decl","args":[{"_type":"range","args":[0,10]},"","public","a",[{"_type":"name-range","args":[7,"b"]}],[],[]]},{"_type":"spec-decl","args":[{"_type":"range","args":[10,19]},"","public","b",[{"_type":"name-range","args":[17,"a"]}],[],[]]}],"aliases":[],"structs":[],"funs":[]}

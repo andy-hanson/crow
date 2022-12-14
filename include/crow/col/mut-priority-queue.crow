@@ -1,9 +1,9 @@
 no-std
 import
 	../bool: ==, bool, false, true
-	../compare: <, compare
+	../compare: <
 	../json: json
-	../misc: is-data, new, void
+	../misc: new, void
 	../number: ==, <=>, +, -, nat64
 	../option: ==, !, new, option
 	../range: .., for-loop
@@ -11,10 +11,11 @@ import
 	../test-util: is
 	../tuple: ==, from, new, pair, to
 	./array: array, size, subscript
+	./list: ==, list, new, reverse, to-list
 	./mut-list:
 		~=, ~~=, clear, copy, for-loop, index, is-at-end, is-empty, move-to-array, mut-list, new,
 		pop, reversed, size, subscript, temp-as-array, to-list, to-mut-list
-	./list: ==, list, new, reverse, to-list
+	./priority-queue: priority
 	./sort: set-sort, set-sort-reverse
 	./private/sort-utils: binary-search-insert
 
@@ -34,29 +35,29 @@ mut-priority-queue[k, v] record mut by-ref
 	.buckets (k, v) mut[] mut[]
 
 # New priority queue containing the given pairs.
-new[k, v] (k, v) mut-priority-queue(...a (k, v) array) k is-data, k compare
+new[k, v] (k, v) mut-priority-queue(...a (k, v) array) k priority
 	a.to-list to-mut-priority-queue
 
 # Copies a list to a new priority queue.
-to-mut-priority-queue[k, v] (k, v) mut-priority-queue(a (k, v)[]) k is-data, k compare
+to-mut-priority-queue[k, v] (k, v) mut-priority-queue(a (k, v)[]) k priority
 	mins = a to-mut-list
 	mins.sort-reverse := pair => pair from
 	mins, ()
 
 # Removes all pairs from the queue.
-clear[k, v] void(a (k, v) mut-priority-queue) k is-data, k compare
+clear[k, v] void(a (k, v) mut-priority-queue) k priority
 	a.mins clear
 	a.buckets clear
 
 # True iff `a.size == 0`.
-is-empty[k, v] bool(a (k, v) mut-priority-queue) k is-data, k compare
+is-empty[k, v] bool(a (k, v) mut-priority-queue) k priority
 	a.mins is-empty
 
 ###
 Number of pairs in the queue.
 This is O(n).
 ###
-size[k, v] nat64(a (k, v) mut-priority-queue) k is-data, k compare
+size[k, v] nat64(a (k, v) mut-priority-queue) k priority
 	res mut = a.mins size
 	for b : a.buckets
 		res := res + b.size
@@ -66,7 +67,7 @@ size[k, v] nat64(a (k, v) mut-priority-queue) k is-data, k compare
 Adds a pair to the queue.
 This is O(log n).
 ###
-~=[k, v] void(a (k, v) mut-priority-queue, pair (k, v)) k is-data, k compare
+~=[k, v] void(a (k, v) mut-priority-queue, pair (k, v)) k priority
 	# Highest min is on the right, so comparing in reverse
 	insert = a.mins binary-search-insert it => it.from <=> pair.from
 	if insert is-at-end
@@ -81,7 +82,7 @@ Returns an empty option iff the queue was empty (before calling `pop`).
 
 This is amortized O(log n).
 ###
-pop[k, v] (k, v)?(a (k, v) mut-priority-queue) k is-data, k compare
+pop[k, v] (k, v)?(a (k, v) mut-priority-queue) k priority
 	res = a.mins pop
 	if a.mins.size < a.buckets.size
 		assert a.mins.size + 1 == a.buckets.size
@@ -94,7 +95,7 @@ pop[k, v] (k, v)?(a (k, v) mut-priority-queue) k is-data, k compare
 	res
 
 # Like `pop`, but discards the key.
-pop-value[k, v] v?(a (k, v) mut-priority-queue) k is-data, k compare
+pop-value[k, v] v?(a (k, v) mut-priority-queue) k priority
 	if pair ?= a pop
 		pair.to,
 
@@ -102,15 +103,15 @@ pop-value[k, v] v?(a (k, v) mut-priority-queue) k is-data, k compare
 Copy pairs to a new priority queue.
 This is O(n).
 ###
-copy[k, v] (k, v) mut-priority-queue(a (k, v) mut-priority-queue) k is-data, k compare
+copy[k, v] (k, v) mut-priority-queue(a (k, v) mut-priority-queue) k priority
 	a spread-all-buckets
 	a.mins.copy, ()
 
-to-list[k, v] (k, v)[](a (k, v) mut-priority-queue) k is-data, k compare
+to-list[k, v] (k, v)[](a (k, v) mut-priority-queue) k priority
 	a spread-all-buckets
 	a.mins.to-list reverse
 
-.spread-all-buckets[k, v] void(a (k, v) mut-priority-queue) k is-data, k compare
+.spread-all-buckets[k, v] void(a (k, v) mut-priority-queue) k priority
 	old-mins = a.mins move-to-array
 	for index : 0 .. old-mins.size
 		if index < a.buckets.size

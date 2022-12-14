@@ -306,6 +306,9 @@ immutable struct Diag {
 		FunDeclAndTypeArgs[] trace;
 	}
 	immutable struct SpecNameMissing {}
+	immutable struct SpecRecursion {
+		SpecDecl*[] trace;
+	}
 	immutable struct ThreadLocalError {
 		FunDecl* fun;
 		enum Kind { hasParams, hasSpecs, hasTypeParams, mustReturnPtrMut }
@@ -437,6 +440,7 @@ immutable struct Diag {
 		SpecImplNotFound,
 		SpecImplTooDeep,
 		SpecNameMissing,
+		SpecRecursion,
 		ThreadLocalError,
 		TrustedUnnecessary,
 		TypeAnnotationUnnecessary,
