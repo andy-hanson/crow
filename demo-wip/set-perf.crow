@@ -9,7 +9,6 @@ import
 	crow/col/experimental/tree-set: -, ~, in, new, size, tree-set
 	crow/io/print: err, out, print
 	crow/io/private/time-low-level: get-monotime-nsec
-	crow/log: info, log
 	crow/parse: nat, parse
 	crow/private/alloc: force-needs-gc, gc, get-gc, get-stats, words-used
 	crow/private/bootstrap: todo

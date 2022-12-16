@@ -8,7 +8,6 @@ import
 	crow/c-types: u-int
 	crow/extra-types: err-t
 	crow/io/file: make-directory, path-exists
-	crow/log: info, log
 	crow/serialize: from-bytes, serialize, to-4-bytes, to-8-bytes
 	./headers:
 		MDB_BAD_DBI, MDB_BAD_RSLOT, MDB_BAD_TXN, MDB_BAD_VALSIZE, MDB_CORRUPTED, MDB_CREATE,

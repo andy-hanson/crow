@@ -156,10 +156,7 @@ Returns an empty option if the key was not in the dictionary.
 try-remove[k, v] v?(a v mut[k], key k) k key
 	a update key, ()
 
-###
-f: Takes the value (if it exists), returns the new value (or none to remove).
-Returns the old value (if it exists).
-###
+# Returns the old value (if it exists).
 .update[k, v] v?(a v mut[k], key k, new-value v?) k key
 	if a.entries is-empty
 		if value ?= new-value

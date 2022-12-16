@@ -10,6 +10,7 @@ import
 	../string: ==, literal, string
 	../test-util: is
 	../test-util/spy: calls, fn, new, spy-act1
+	../tuple: a, b, new, pair
 	./array: array
 	./list: ~=, ==, build, for-loop, list, new, to-list, with-block
 
@@ -78,17 +79,13 @@ peek[t] t?(a t stack)
 	if node ?= a last-node
 		node.value,
 
-popped[t] record
-	value t
-	rest t stack
-
 ###
 Returns the top element of the a stacknd a new stack with all elements but the top.
 Returns an empty option iff `a` is empty.
 ###
-pop[t] t popped?(a t stack)
+pop[t] (t stack, t)?(a t stack)
 	if node ?= a last-node
-		(node.value, (node.prev,)),
+		((node.prev,), node.value),
 
 region iteration
 
@@ -164,13 +161,17 @@ test
 	b = a ~ 1
 	b.to-list is (1,)
 	b.peek is (1,)
-	b.pop!.rest.to-list is ()
+	b-popped = b.pop!
+	b.pop!.a.to-list is ()
+	b-popped.b is 1
 	forbid b is-empty
 
 	c = b ~ 2
 	c.to-list is (1, 2)
 	c.peek is (2,)
-	c.pop!.rest.to-list is (1,)
+	c-popped = c.pop!
+	c-popped.a.to-list is (1,)
+	c-popped.b is 2
 
 	d = c ~ 3
 	d.to-list is (1, 2, 3)

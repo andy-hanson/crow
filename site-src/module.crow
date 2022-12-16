@@ -1,5 +1,8 @@
+module-path alias
+	symbol
+
 module record
-	path string
+	path module-path
 	doc-comment string
 	exports module-export[]
 

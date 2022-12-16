@@ -29,7 +29,6 @@ import
 	crow/io/process: new, process-result
 	crow/io/terminal-color: bold
 	crow/io/time-format: gmt
-	crow/log: info
 	crow/math/mat: new, mat3-32
 	crow/math/vec: new, vec2-32
 	crow/parse: grammar-skip, new

@@ -5,7 +5,6 @@ import
 	crow/io/path: child-path
 	crow/io/print: err, out, print
 	crow/io/stdin: read-stdin
-	crow/log: info, log
 
 main nat^(args string[]) summon
 	if args.size != 1

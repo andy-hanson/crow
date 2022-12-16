@@ -27,9 +27,12 @@ get-modules module[](paths string[], remove-prefix string) summon
 
 .to-module module(a json, remove-prefix string)
 	a.get-node-type is "module"
-	path = (a["path"]!.as-string! try-remove-start remove-prefix)!
+	path = a["path"]! to-path remove-prefix
 	path, a.get-comment, for x : a["exports"]!.as-list!
 		x to-export
+
+.to-path symbol(a json, remove-prefix string)
+	(a.as-string! try-remove-start remove-prefix)! string-to-symbol
 
 .get-comment string(a json)
 	if c ?= a["comment"]

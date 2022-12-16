@@ -45,7 +45,7 @@ import util.col.dict : dictEachIn;
 import util.col.str : SafeCStr, safeCStrIsEmpty;
 import util.comparison : compareNat16, compareNat32, Comparison;
 import util.opt : force, has, none, Opt, some;
-import util.path : AllPaths, Path, PathsInfo, pathToSafeCStrPreferRelative;
+import util.path : AllPaths, PathsInfo, pathToSafeCStrPreferRelative;
 import util.repr :
 	jsonStrOfRepr,
 	NameAndRepr,
@@ -92,8 +92,6 @@ Repr documentModule(
 	in Program program,
 	in Module a,
 ) {
-	Path path = program.filesInfo.filePaths[a.fileIndex];
-	SafeCStr pathStr = pathToSafeCStrPreferRelative(alloc, allPaths, pathsInfo, path);
 	ArrBuilder!DocExport exports; // TODO: no alloc
 	dictEachIn!(Sym, NameReferents)(
 		a.allExportedNames,
@@ -109,13 +107,22 @@ Repr documentModule(
 	arrBuilderSort!DocExport(exports, (in DocExport x, in DocExport y) =>
 		compareRanges(x.range, y.range));
 	ArrBuilder!NameAndRepr fields;
-	add(alloc, fields, nameAndRepr!"path"(reprStr(pathStr)));
+	add(alloc, fields, nameAndRepr!"path"(reprModulePath(alloc, allPaths, pathsInfo, program, a)));
 	if (!safeCStrIsEmpty(a.docComment))
 		add(alloc, fields, nameAndRepr!"comment"(reprStr(a.docComment)));
 	add(alloc, fields, nameAndRepr!"exports"(
 		reprArr!DocExport(alloc, finishArr(alloc, exports), (in DocExport x) => x.repr)));
 	return reprNamedRecord!"module"(finishArr(alloc, fields));
 }
+
+Repr reprModulePath(
+	ref Alloc alloc,
+	in AllPaths allPaths,
+	in PathsInfo pathsInfo,
+	in Program program,
+	in Module module_,
+) =>
+	reprStr(pathToSafeCStrPreferRelative(alloc, allPaths, pathsInfo, program.filesInfo.filePaths[module_.fileIndex]));
 
 Comparison compareRanges(FileAndRange a, FileAndRange b) {
 	Comparison compareFile = compareNat16(a.fileIndex.index, b.fileIndex.index);

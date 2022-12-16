@@ -22,6 +22,7 @@ import model.model :
 	StructInst,
 	StructOrAlias,
 	Type,
+	UnionMember,
 	VariableRef,
 	Visibility;
 import model.parseDiag : ParseDiag;
@@ -225,10 +226,10 @@ immutable struct Diag {
 		Sym[] expectedNames;
 	}
 	immutable struct MatchCaseShouldHaveLocal {
-		Sym name;
+		UnionMember* member;
 	}
 	immutable struct MatchCaseShouldNotHaveLocal {
-		Sym name;
+		UnionMember* member;
 	}
 	immutable struct MatchOnNonUnion {
 		Type type;

@@ -1,5 +1,4 @@
 import
-	crow/log
 	crow/io/file: read-file
 	crow/io/net/http-server: http-handler, http-server, with-block
 	crow/io/net/http-types:

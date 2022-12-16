@@ -18,6 +18,7 @@ export
 	./future
 	./hash
 	./json
+	./log
 	./misc
 	./number
 	./option

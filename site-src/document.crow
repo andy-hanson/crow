@@ -2,9 +2,9 @@ import
 	crow/col/sort: sort
 	crow/io/file: read-file
 	crow/io/path: child-path
-	./document-content: module-content
+	./document-content: all-exports, module-content
 	./get-modules: get-modules
-	./module: path
+	./module: module-path, path
 	./page-template: page-template
 	./path-and-content: path-and-content
 	./search-dir-recursive: remove-include-and-crow, search-dir-recursive
@@ -12,26 +12,31 @@ import
 documentation path-and-content[]() summon
 	all-module-paths = "include/crow" search-dir-recursive (x => !x.ignore-dir), (x => x != "std.crow")
 	all-modules = all-module-paths get-modules "include/"
-	all-paths = (for x : all-module-paths; x remove-include-and-crow)::string[] sort x => x split-by "/"
+	all-paths module-path[] = for path : all-module-paths sort-paths
+		path.remove-include-and-crow string-to-symbol
+	all-exports = all-modules all-exports
 	modules path-and-content[] = for module : all-modules
-		module.path document-template "module {module.path}", module.module-content, all-paths
+		module.path document-template "module {module.path}", (module module-content all-exports), all-paths
 	index-content = "site-src/doc/index.html" read-file
 	index = "index" document-template "documentation", index-content, all-paths
 	index ~ modules
 
+.sort-paths string[](a string[])
+	a sort x => x split-by "/"
+
 .ignore-dir bool(a string)
 	a in ("experimental", "private")::string[]
 
-.document-template path-and-content(path string, title string, content string, all-paths string[])
+.document-template path-and-content(path module-path, title string, content string, all-paths module-path[])
 	out-path = "doc" child-path "{path}.html"
 	nav = all-paths generate-nav path
 	full = """<div class="documentation" id="side-nav-wrapper">{nav}<main>{content}</main></div>"""
 	out-path page-template title, full
 
-.generate-nav string(all-paths string[], cur-path string)
+.generate-nav string(all-paths module-path[], cur-path module-path)
 	parts = "" join for x : all-paths
 		x nav-part x == cur-path
 	"""<nav><ul>{parts}</ul></nav>"""
-.nav-part string(a string, is-current bool)
+.nav-part string(a module-path, is-current bool)
 	cur = is-current ? " class=\"current\""
 	"""<li><a href="/doc/{a}.html"{cur}>{a}</a></li>"""

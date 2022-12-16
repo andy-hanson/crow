@@ -80,8 +80,8 @@ future-catch[t] (t, exception) result^(a t^) t is-sendable
 		res resolve a.get-result
 	res
 
-.future-finally record mut
-	cleanup ref void()
+future-finally record mut
+	.cleanup ref void()
 future-finally future-finally(cleanup ref void())
 	cleanup,
 with-block[t] t^(a future-finally, f ref t()) t is-sendable

@@ -10,7 +10,7 @@ import
 	../string: ~~, ==, join, literal, new, string, to-string
 	../test-util: is
 	../test-util/spy: calls, fn, new, spy-act2
-	../tuple: ==, from, new, pair, to
+	../tuple: ==, a, b, from, new, pair, to
 	./array: array, first, is-empty, new, size, tail
 	./mut-array:
 		~=, ~~=, build, cast-immutable, first, mut-array, mut-array-builder, set-subscript, size,
@@ -103,10 +103,6 @@ This is O(1), since the work of sorting pairs is actually done in `pop`.
 	# TODO: type annotation should not be necessary
 	(root,)::((k, v) node?),
 
-popped[k, v] record
-	popped (k, v)
-	rest (k, v) priority-queue
-
 ###
 Removes and returns the pair with the lowest key.
 
@@ -114,7 +110,10 @@ Returns an empty option iff `a` is empty.
 
 This is amortized O(log n).
 ###
-pop[k, v] (k, v) popped?(a (k, v) priority-queue) k priority
+pop[k, v] ((k, v), (k, v) priority-queue)?(a (k, v) priority-queue) k priority
+	if x ?= a pop-inner
+		(x.value, x.rest),
+.pop-inner[k, v] (k, v) popped?(a (k, v) priority-queue) k priority
 	if root ?= a.compact-leading-nodes root
 		if next ?= root next
 			if popped ?= next pop-no-compact-recur root.min.from
@@ -123,6 +122,11 @@ pop[k, v] (k, v) popped?(a (k, v) priority-queue) k priority
 				root.pop-from-node,
 		else
 			root.pop-from-node,
+
+# TODO: use alias of tuple
+.popped[k, v] record
+	value (k, v)
+	rest (k, v) priority-queue
 
 .pop-from-node[k, v] (k, v) popped(a (k, v) node)
 	# TODO: type annotation should not be necessary
@@ -148,7 +152,7 @@ pop[k, v] (k, v) popped?(a (k, v) priority-queue) k priority
 .combine-with-popped[k, v] (k, v) popped(a (k, v) node, popped (k, v) popped)
 	root (k, v) node = a.min, a.pairs, popped.rest.root
 	# TODO: type annotation should not be necessary
-	popped.popped, ((root,)::((k, v) node?),)
+	popped.value, ((root,)::((k, v) node?),)
 
 .compact-leading-nodes[k, v] (k, v) priority-queue(a (k, v) priority-queue) k compare
 	mid = a.root find-mid 0
@@ -329,8 +333,8 @@ test
 	p2.compact-leading-nodes.dbg is "5 5 [6 6]"
 
 	p2pop = p2.pop!
-	p2pop.popped is (5, "5")
-	p2pop.rest.dbg is "6 6 []"
+	p2pop.a is (5, "5")
+	p2pop.b.dbg is "6 6 []"
 
 	p3 = p2 ~ (4, "4")
 	p4 = p3 ~ (7, "7")
@@ -338,17 +342,17 @@ test
 	p4.dbg is "7 7 []; 4 4 []; 6 6 []; 5 5 []"
 
 	p4pop = p4.pop!
-	p4pop.popped is (4, "4")
-	p4pop.rest.dbg is "5 5 [6 6, 7 7]"
+	p4pop.a is (4, "4")
+	p4pop.b.dbg is "5 5 [6 6, 7 7]"
 
-	p5 = p4pop.rest ~ (6, "6b") ~ (6, "6c")
+	p5 = p4pop.b ~ (6, "6b") ~ (6, "6c")
 	p5.dbg is "6 6c []; 6 6b []; 5 5 [6 6, 7 7]"
 
 	p5pop = p5.pop!
-	p5pop.popped is (5, "5")
-	p5pop.rest.dbg is "6 6 [7 7]; 6 6b [6 6c]"
+	p5pop.a is (5, "5")
+	p5pop.b.dbg is "6 6 [7 7]; 6 6b [6 6c]"
 
-	p6 = p5pop.rest ~ (7, "7b") ~ (8, "8")
+	p6 = p5pop.b ~ (7, "7b") ~ (8, "8")
 	p6.dbg is "8 8 []; 7 7b []; 6 6 [7 7]; 6 6b [6 6c]"
 	p6.size is 6
 	p6-pairs (nat64, string)[] = (6, "6"), (6, "6b"), (6, "6c"), (7, "7"), (7, "7b"), (8, "8")
@@ -357,7 +361,8 @@ test
 	p6.values is ("6", "6b", "6c", "7", "7b", "8")
 
 	p6pop = p6.pop!
-	p6pop.rest.dbg is "6 6b [6 6c, 7 7, 7 7b, 8 8]"
+	p6pop.a is (6, "6")
+	p6pop.b.dbg is "6 6b [6 6c, 7 7, 7 7b, 8 8]"
 
 	joined = ", " join for k, v : p6
 		"{k} -> {v}"

@@ -65,7 +65,7 @@ json[t] json(a t array) t json
 	(for x : a to-list; x json) json-list
 json[t] json(a t[]) t json
 	(for x : a; x json) json-list
-json json(a index-set)
+json json(a index-set) no-doc
 	a.to-list json
 json[t] json(a t?) t json
 	if x ?= a

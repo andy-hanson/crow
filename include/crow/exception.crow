@@ -5,14 +5,14 @@ import
 	./misc: void
 	./number: ==
 	./string: ~~, is-empty, join, literal, string, to-string
-	./private/backtrace: backtrace, backtrace-entry, entries, file-path, function-name, line-number
 export
+	./private/backtrace: backtrace, backtrace-entry, entries, file-path, function-name, line-number
 	./private/exception-low-level: catch, exception, message, rethrow, unreachable
 
 region handling
 
-.finally record mut
-	cleanup act void()
+finally record mut
+	.cleanup act void()
 finally finally(cleanup act void())
 	cleanup,
 ###
@@ -41,11 +41,11 @@ to-string string(a exception) unsafe
 	message = a.message to-string
 	"{message.is-empty ? "<<empty message>>" : message}{a.backtrace to-string}"
 
-to-string string(a backtrace)
+.to-string string(a backtrace)
 	"" join for x : a.entries.to-list
 		"\n\tat {x}"
 
-to-string string(a backtrace-entry)
+.to-string string(a backtrace-entry)
 	name = trusted a.function-name to-string
 	path = trusted a.file-path to-string
 	if name is-empty

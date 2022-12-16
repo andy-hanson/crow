@@ -129,7 +129,8 @@ import model.model :
 	VariableRef;
 import util.alloc.alloc : Alloc, allocateUninitialized;
 import util.col.arr : empty, only, PtrAndSmallNumber, ptrsRange, sizeEq;
-import util.col.arrUtil : arrLiteral, arrsCorrespond, contains, exists, map, mapZip, mapZipWithIndex, zipPtrFirst;
+import util.col.arrUtil :
+	arrLiteral, arrsCorrespond, contains, exists, map, mapZipPtrFirst, mapZipWithIndex, zipPtrFirst;
 import util.col.fullIndexDict : FullIndexDict;
 import util.col.mutArr : MutArr, mutArrSize, push, tempAsArr;
 import util.col.mutMaxArr : fillMutMaxArr, initializeMutMaxArr, mutMaxArrSize, push, pushLeft, tempAsArr;
@@ -1376,11 +1377,11 @@ Expr checkMatchUnion(
 			map(ctx.alloc, members, (ref UnionMember member) => member.name))));
 		return bogus(expected, range);
 	} else {
-		ExprKind.MatchUnion.Case[] cases = mapZip!(ExprKind.MatchUnion.Case, UnionMember, MatchAst.CaseAst)(
+		ExprKind.MatchUnion.Case[] cases = mapZipPtrFirst!(ExprKind.MatchUnion.Case, UnionMember, MatchAst.CaseAst)(
 			ctx.alloc,
 			members,
 			ast.cases,
-			(ref UnionMember member, ref MatchAst.CaseAst caseAst) =>
+			(UnionMember* member, in MatchAst.CaseAst caseAst) =>
 				checkMatchCase(ctx, locals, member, caseAst, expected));
 		return Expr(range, ExprKind(allocate(
 			ctx.alloc,
@@ -1391,7 +1392,7 @@ Expr checkMatchUnion(
 ExprKind.MatchUnion.Case checkMatchCase(
 	ref ExprCtx ctx,
 	ref LocalsInfo locals,
-	ref UnionMember member,
+	UnionMember* member,
 	in MatchAst.CaseAst caseAst,
 	ref Expected expected,
 ) {
@@ -1403,18 +1404,18 @@ ExprKind.MatchUnion.Case checkMatchCase(
 					ctx.alloc,
 					Local(localRange, name, LocalMutability.immut, force(member.type))));
 			else {
-				addDiag2(ctx, localRange, Diag(Diag.MatchCaseShouldNotHaveLocal(name)));
+				addDiag2(ctx, localRange, Diag(Diag.MatchCaseShouldNotHaveLocal(member)));
 				return none!(Local*);
 			}
 		},
 		(in NameOrUnderscoreOrNone.Underscore) {
 			if (!has(member.type))
-				addDiag2(ctx, localRange, Diag(Diag.MatchCaseShouldNotHaveLocal(sym!"_")));
+				addDiag2(ctx, localRange, Diag(Diag.MatchCaseShouldNotHaveLocal(member)));
 			return none!(Local*);
 		},
 		(in NameOrUnderscoreOrNone.None) {
 			if (has(member.type))
-				addDiag2(ctx, rangeInFile2(ctx, caseAst.range), Diag(Diag.MatchCaseShouldHaveLocal(member.name)));
+				addDiag2(ctx, rangeInFile2(ctx, caseAst.range), Diag(Diag.MatchCaseShouldHaveLocal(member)));
 			return none!(Local*);
 		});
 	Expr then = isBogus(expected)
