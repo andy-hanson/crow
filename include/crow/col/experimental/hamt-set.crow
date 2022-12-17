@@ -1,12 +1,12 @@
 no-std
 import
-	../../bool: !, bool
+	../../bool: bool, not
 	../../fun-util: subscript
 	../../misc: key, new, void
 	../../number: nat64
 	../../option: is-empty, new, option
-	../../tuple: a, new
-	../dict: dict, for-loop, get-or-add, is-empty, new, rest, size, subscript, to-dict, try-remove
+	../../tuple: a, b, new
+	../dict: dict, for-loop, get-or-add, is-empty, new, size, subscript, to-dict, try-remove
 	../list: for-loop, list
 
 hamt-set[t] record
@@ -48,7 +48,7 @@ try-add[t] t hamt-set?(a t hamt-set, value t) t key
 
 try-remove[t] t hamt-set?(a t hamt-set, value t) t key
 	if res ?= a.inner try-remove value
-		(res.rest,),
+		(res.b,),
 
 region iteration
 

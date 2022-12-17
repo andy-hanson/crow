@@ -13,7 +13,7 @@ Functions in this spec will be generated when you declare a `flags` type.
 
 (Declaring a `flags` type also generates other functions that aren't needed here.)
 ###
-flags-like[t] spec
+!flags-like[t] spec
 	new t()
 	all t()
 	flags-members t named-val array()
@@ -22,23 +22,23 @@ flags-like[t] spec
 	& t(a t, b t)
 	| t(a t, b t)
 
-min-flags-like[t] spec
+!min-flags-like[t] spec
 	== bool(a t, b t)
 	& t(a t, b t)
 
 ###
 True if every flag set in `a` is set in `b`.
 ###
-is-in[t] bool(a t, b t) t min-flags-like
+!is-in[t] bool(a t, b t) t min-flags-like
 	a & b == a
 
 # Returns the names of every flag set in `a`.
-to-symbols[t] symbol[](a t) t flags-like
+!to-symbols[t] symbol[](a t) t flags-like
 	() join for member : flags-members.to-list
 		if member.val is-in a
 			member.name,
 
 # Flag names separated by `|`, like `"foo | bar"`.
-flags-to-string[t] string(a t) t flags-like
+!flags-to-string[t] string(a t) t flags-like
 	" | " join for x : a to-symbols
 		x to-string

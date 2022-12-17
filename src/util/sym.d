@@ -118,17 +118,11 @@ uint symSize(in AllSymbols allSymbols, Sym a) {
 	return size;
 }
 
-Sym sym(string name)() =>
-	specialSym(name);
-
-private @trusted Sym specialSym(string name) {
+enum sym(string name) = getSym(name);
+private Sym getSym(string name) {
 	foreach (size_t i, string s; specialSyms)
 		if (strEq(s[0 .. $ - 1], name))
 			return Sym(i);
-	return shortSym(name);
-}
-
-private Sym shortSym(string name) {
 	Opt!Sym opt = tryPackShortSym(name);
 	return force(opt);
 }
@@ -343,6 +337,7 @@ immutable string[] specialSyms = [
 	".exe\0",
 	".json\0",
 	".lib\0",
+	"!new\0",
 	".new\0",
 	".so\0",
 	"as-any-mut-pointer\0",
@@ -368,6 +363,7 @@ immutable string[] specialSyms = [
 	"fun-pointer7\0",
 	"fun-pointer8\0",
 	"fun-pointer9\0",
+	"has-non-public-fields\0",
 	"init-constants\0",
 	"interpreter-backtrace\0",
 	"is-big-endian\0",

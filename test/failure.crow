@@ -14,7 +14,7 @@ handle-output failure[](
 	overwrite-output bool,
 ) summon
 	actual-normalized = actual normalize-newlines
-	if text ?= output-path try-read-file
+	if text ?= output-path.try-read-file :: string?
 		if text == actual-normalized
 			()
 		elif overwrite-output

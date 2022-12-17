@@ -83,11 +83,13 @@ void checkForUnused(ref CheckCtx ctx, StructAlias[] structAliases, StructDecl[] 
 		ctx.structAliasesUsed,
 		(ModuleLocalAliasIndex _, StructAlias* alias_, in bool used) {
 			final switch (alias_.visibility) {
-				case Visibility.public_:
-					break;
 				case Visibility.private_:
 					if (!used)
 						addDiag(ctx, alias_.range, Diag(Diag.UnusedPrivateStructAlias(alias_)));
+					break;
+				case Visibility.internal:
+				case Visibility.public_:
+					break;
 			}
 		});
 
@@ -96,11 +98,13 @@ void checkForUnused(ref CheckCtx ctx, StructAlias[] structAliases, StructDecl[] 
 		ctx.structsUsed,
 		(ModuleLocalStructIndex _, StructDecl* struct_, in bool used) {
 			final switch (struct_.visibility) {
-				case Visibility.public_:
-					break;
 				case Visibility.private_:
 					if (!used)
 						addDiag(ctx, struct_.range, Diag(Diag.UnusedPrivateStruct(struct_)));
+					break;
+				case Visibility.internal:
+				case Visibility.public_:
+					break;
 			}
 		});
 
@@ -109,11 +113,13 @@ void checkForUnused(ref CheckCtx ctx, StructAlias[] structAliases, StructDecl[] 
 		ctx.specsUsed,
 		(ModuleLocalSpecIndex _, SpecDecl* spec, in bool used) {
 			final switch (spec.visibility) {
-				case Visibility.public_:
-					break;
 				case Visibility.private_:
 					if (!used)
 						addDiag(ctx, spec.range, Diag(Diag.UnusedPrivateSpec(spec)));
+					break;
+				case Visibility.internal:
+				case Visibility.public_:
+					break;
 			}
 		});
 }

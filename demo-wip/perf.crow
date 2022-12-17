@@ -1,12 +1,15 @@
 import
-	crow/io/print: out, print
+	crow/io/print
 	crow/perf
 
 main nat^(_ string[]) summon
-	("foo",) perf-enable
-	for x : 1 .. 10
-		"foo" with-perf-measure () =>
-			out print x.to-string
-	for name, value : get-measured-perf
-		out print "{name}: {value}"
+	pair (nat[], perf-result) = with : ("is-prime",) measure-performance 
+		() join for x : 2 .. 1000
+			with : "is-prime" perf-measure
+				x.is-prime ? (x,) : ()
+	out print (" " join for x : pair a; "{x}")
+	out print "{pair b}"
 	()
+
+is-prime bool(a nat)
+	!(2 .. a exists x => a is-multiple-of x)

@@ -3,17 +3,17 @@ export
 	./bootstrap: bool, false, true
 
 # Changes `true` to `false`, and `false` to `true`.
-! bool(a bool) noctx
+!not bool(a bool) noctx
 	a ? false : true
 
 ###
 If `a` is `false`, returns `false` immediately and does not evaluate `b`.
 Else, returns `b`.
 ###
-&& bool(a bool, b bool) builtin, noctx
+!&& bool(a bool, b bool) builtin, noctx
 
 ###
 If `a` is `true`, returns `true` immediately and does not evaluate `b`.
 Else, returns `b`.
 ###
-|| bool(a bool, b bool) builtin, noctx
+!|| bool(a bool, b bool) builtin, noctx

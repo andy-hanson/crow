@@ -734,7 +734,6 @@ FunFlags checkFunFlags(ref CheckCtx ctx, RangeWithinFile range, FunModifierAst.S
 	bool global = (flags & FunModifierAst.Special.Flags.global) != 0;
 	bool explicitNoctx = (flags & FunModifierAst.Special.Flags.noctx) != 0;
 	bool forceCtx = (flags & FunModifierAst.Special.Flags.forceCtx) != 0;
-	bool noDoc = (flags & FunModifierAst.Special.Flags.no_doc) != 0;
 	bool summon = (flags & FunModifierAst.Special.Flags.summon) != 0;
 	bool threadLocal = (flags & FunModifierAst.Special.Flags.thread_local) != 0;
 	bool trusted = (flags & FunModifierAst.Special.Flags.trusted) != 0;
@@ -786,7 +785,7 @@ FunFlags checkFunFlags(ref CheckCtx ctx, RangeWithinFile range, FunModifierAst.S
 		verify(mutMaxArrSize(bodyModifiers) == 2);
 		addDiag(ctx, range, Diag(Diag.FunModifierConflict(bodyModifiers[0], bodyModifiers[1])));
 	}
-	return FunFlags(noctx, noDoc, summon, safety, false, false, specialBody, forceCtx);
+	return FunFlags.regular(noctx, summon, safety, specialBody, forceCtx);
 }
 
 FunsAndDict checkFuns(
@@ -869,6 +868,7 @@ FunsAndDict checkFuns(
 							*fun,
 							force(funAst.body_)));
 				case FunFlags.SpecialBody.builtin:
+				case FunFlags.SpecialBody.generated:
 					if (has(funAst.body_))
 						todo!void("diag: builtin fun can't have body");
 					return FunBody(FunBody.Builtin());
@@ -923,11 +923,13 @@ FunsAndDict checkFuns(
 		usedFuns,
 		(ModuleLocalFunIndex _, FunDecl* fun, in bool used) {
 			final switch (fun.visibility) {
-				case Visibility.public_:
-					break;
 				case Visibility.private_:
 					if (!used && !okIfUnused(*fun))
 						addDiag(ctx, fun.range, Diag(Diag.UnusedPrivateFun(fun)));
+					break;
+				case Visibility.internal:
+				case Visibility.public_:
+					break;
 			}
 		});
 
@@ -1202,22 +1204,24 @@ Dict!(Sym, NameReferents) getAllExportedNames(
 		structsAndAliasesDict,
 		(Sym name, ref StructOrAliasAndIndex it) {
 			final switch (visibility(it.structOrAlias)) {
+				case Visibility.private_:
+					break;
+				case Visibility.internal:
 				case Visibility.public_:
 					addExport(
 						name,
 						NameReferents(some(it.structOrAlias), none!(SpecDecl*), []),
 						range(it.structOrAlias));
 					break;
-				case Visibility.private_:
-					break;
 			}
 		});
 	dictEach!(Sym, SpecDeclAndIndex)(specsDict, (Sym name, ref SpecDeclAndIndex it) {
 		final switch (it.decl.visibility) {
+			case Visibility.private_:
+				break;
+			case Visibility.internal:
 			case Visibility.public_:
 				addExport(name, NameReferents(none!StructOrAlias, some(it.decl), []), it.decl.range);
-				break;
-			case Visibility.private_:
 				break;
 		}
 	});
@@ -1227,10 +1231,11 @@ Dict!(Sym, NameReferents) getAllExportedNames(
 			funs,
 			(ref FunDeclAndIndex it) {
 				final switch (it.decl.visibility) {
-					case Visibility.public_:
-						return some(it.decl);
 					case Visibility.private_:
 						return none!(FunDecl*);
+					case Visibility.internal:
+					case Visibility.public_:
+						return some(it.decl);
 				}
 			});
 		if (!empty(funDecls))

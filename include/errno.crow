@@ -1,6 +1,6 @@
 no-std
 import
-	crow/extra-types: err-t
+	crow/c-types: err-t
 	crow/version: is-windows
 	crow/pointer: *, mut-pointer
 

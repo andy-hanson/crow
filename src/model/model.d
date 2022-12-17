@@ -604,32 +604,33 @@ immutable struct FunFlags {
 	@safe @nogc pure nothrow:
 
 	bool noCtx;
-	bool noDoc;
 	bool summon;
 	enum Safety : ubyte { safe, unsafe }
 	Safety safety;
 	bool preferred;
 	bool okIfUnused;
-	// generated functions like record field getters are also builtins
-	enum SpecialBody : ubyte { none, builtin, extern_, global, threadLocal }
+	enum SpecialBody : ubyte { none, builtin, extern_, generated, global, threadLocal }
 	SpecialBody specialBody;
 	bool forceCtx;
 
 	FunFlags withOkIfUnused() =>
-		FunFlags(noDoc, noCtx, summon, safety, preferred, true, specialBody);
+		FunFlags(noCtx, summon, safety, preferred, true, specialBody, forceCtx);
+
+	static FunFlags regular(bool noCtx, bool summon, Safety safety, SpecialBody specialBody, bool forceCtx) =>
+		FunFlags(noCtx, summon, safety, false, false, specialBody, forceCtx);
 
 	static FunFlags none() =>
-		FunFlags(false, false, false, Safety.safe, false, false, SpecialBody.none);
+		FunFlags(false, false, Safety.safe, false, false, SpecialBody.none);
 	static FunFlags generatedNoCtx() =>
-		FunFlags(true, true, false, Safety.safe, false, true, SpecialBody.builtin);
+		FunFlags(true, false, Safety.safe, false, true, SpecialBody.generated);
 	static FunFlags generatedNoCtxUnsafe() =>
-		FunFlags(true, true, false, Safety.unsafe, false, true, SpecialBody.builtin);
+		FunFlags(true, false, Safety.unsafe, false, true, SpecialBody.generated);
 	static FunFlags generatedPreferred() =>
-		FunFlags(false, true, false, Safety.safe, true, true, SpecialBody.builtin);
+		FunFlags(false, false, Safety.safe, true, true, SpecialBody.generated);
 	static FunFlags unsafeSummon() =>
-		FunFlags(false, false, true, Safety.unsafe, false, false, SpecialBody.none);
+		FunFlags(false, true, Safety.unsafe, false, false, SpecialBody.none);
 }
-static assert(FunFlags.sizeof == 8);
+static assert(FunFlags.sizeof == 7);
 
 immutable struct FunDecl {
 	@safe @nogc pure nothrow:
@@ -712,8 +713,8 @@ Linkage linkage(ref FunDecl a) =>
 
 bool noCtx(in FunDecl a) =>
 	a.flags.noCtx;
-bool noDoc(in FunDecl a) =>
-	a.flags.noDoc;
+bool isGenerated(in FunDecl a) =>
+	a.flags.specialBody == FunFlags.SpecialBody.generated;
 bool summon(in FunDecl a) =>
 	a.flags.summon;
 bool unsafe(in FunDecl a) =>
@@ -1556,12 +1557,15 @@ void writeTypeUnquoted(ref Writer writer, in AllSymbols allSymbols, in Type a) {
 
 alias Visibility = immutable Visibility_;
 private enum Visibility_ : ubyte {
-	public_,
 	private_,
+	internal,
+	public_,
 }
 
 Sym symOfVisibility(Visibility a) {
 	final switch (a) {
+		case Visibility.internal:
+			return sym!"internal";
 		case Visibility.public_:
 			return sym!"public";
 		case Visibility.private_:
@@ -1569,11 +1573,5 @@ Sym symOfVisibility(Visibility a) {
 	}
 }
 
-Visibility leastVisibility(Visibility a, Visibility b) {
-	final switch (a) {
-		case Visibility.public_:
-			return b;
-		case Visibility.private_:
-			return Visibility.private_;
-	}
-}
+Visibility leastVisibility(Visibility a, Visibility b) =>
+	min(a, b);

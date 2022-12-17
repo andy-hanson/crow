@@ -402,7 +402,7 @@ StructDeclAst.Body.Record parseRecordBody(ref Lexer lexer) {
 
 void parseRecordFields(ref Lexer lexer, ref ArrBuilder!(StructDeclAst.Body.Record.Field) res) {
 	Pos start = curPos(lexer);
-	Visibility visibility = tryTakePrivate(lexer);
+	Visibility visibility = tryTakeVisibility(lexer);
 	Sym name = takeName(lexer);
 	FieldMutability mutability = parseFieldMutability(lexer);
 	TypeAst type = parseType(lexer);
@@ -525,8 +525,6 @@ Opt!(FunModifierAst.Special.Flags) tryGetSpecialFunModifier(Token token) {
 			return some(FunModifierAst.Special.Flags.global);
 		case Token.noCtx:
 			return some(FunModifierAst.Special.Flags.noctx);
-		case Token.noDoc:
-			return some(FunModifierAst.Special.Flags.no_doc);
 		case Token.summon:
 			return some(FunModifierAst.Special.Flags.summon);
 		case Token.thread_local:
@@ -565,7 +563,7 @@ void parseSpecOrStructOrFun(
 	SafeCStr docComment,
 ) {
 	Pos start = curPos(lexer);
-	Visibility visibility = tryTakePrivate(lexer);
+	Visibility visibility = tryTakeVisibility(lexer);
 	Sym name = takeNameOrOperator(lexer);
 	NameAndRange[] typeParams = parseTypeParams(lexer);
 
@@ -745,8 +743,12 @@ Opt!(ModifierAst.Kind) modifierKindFromSym(Sym a) {
 	}
 }
 
-Visibility tryTakePrivate(ref Lexer lexer) =>
-	tryTakeToken(lexer, Token.dot) ? Visibility.private_ : Visibility.public_;
+Visibility tryTakeVisibility(ref Lexer lexer) =>
+	tryTakeToken(lexer, Token.dot)
+		? Visibility.private_
+		: tryTakeToken(lexer, Token.bang)
+		? Visibility.public_
+		: Visibility.internal;
 
 Opt!ImportsOrExportsAst parseImportsOrExports(ref AllPaths allPaths, ref Lexer lexer, Token keyword) {
 	Pos start = curPos(lexer);

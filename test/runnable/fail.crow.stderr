@@ -4,6 +4,6 @@ uncaught exception: FOO
 	at main (test/runnable/fail:3)
 	at add-first-task.lambda0 (include/crow/private/rt-main:86)
 	at call-w-ctx@(gc-ptr(nat64 future)) (generated)
-	at catch@(out^).lambda0 (include/crow/private/exception-low-level:96)
+	at catch@(out^).lambda0 (include/crow/private/exception-low-level:62)
 	at call-w-ctx@((nat64 future, exception) result) (generated)
 	at catch@((t, exception) result) (include/crow/private/exception-low-level:47)

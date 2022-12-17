@@ -17,15 +17,15 @@ export
 	# TODO: ensure that 'symbol' constructor from c-string is not exported
 	../private/bootstrap: symbol, to-c-string
 
-== bool(a symbol, b symbol) noctx
+!== bool(a symbol, b symbol) noctx
 	# (this is pointer equality)
 	trusted a.to-c-string == b.to-c-string
 
 # Same as `a.to-string <=> b.to-string`.
-<=> comparison(a symbol, b symbol)
+!<=> comparison(a symbol, b symbol)
 	a.to-string <=> b.to-string
 
-to-string string(a symbol) noctx
+!to-string string(a symbol) noctx
 	trusted a.to-c-string literal
 
 init-symbol-table void(a global-ctx)
@@ -36,7 +36,7 @@ init-symbol-table void(a global-ctx)
 Interns a string.
 This is O(log n), where 'n' is the number of unique symbols that exist.
 ###
-string-to-symbol symbol(a string)
+!string-to-symbol symbol(a string)
 	gctx = trusted get-global-ctx
 	trusted &gctx.symbols-lock with-lock () =>
 		match gctx.symbols-table get-or-add a, () => a.to-malloced-c-string new-symbol

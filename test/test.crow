@@ -1,7 +1,7 @@
 import
 	crow/io/path: child-path, parent-path
 	crow/io/print: out, print
-	crow/parse: !, nat, parse
+	crow/parse: force, nat, parse
 	crow/parse-command: parse-named-args
 	crow/version: is-windows
 	./failure: first-failures, new, print-failures, test-options

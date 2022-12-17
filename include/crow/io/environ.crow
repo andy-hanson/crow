@@ -9,15 +9,11 @@ import
 	../string: ==, <=>, as-string, c-string, hash-mix, string
 	../tuple: new, pair
 
-# Represents the environment variables available to this process.
-environ alias
-	string[string]
-
 get-environ-raw c-string*() summon, unsafe
 	__environ
 
 # Get all environment variables for this process.
-get-environ environ() summon
+!get-environ string[string]() summon
 	with out : build
 		trusted
 			env mut = get-environ-raw

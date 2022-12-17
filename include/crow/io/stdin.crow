@@ -19,7 +19,7 @@ Reads from stdin.
 If that comes from the user typing at the terminal, this will block until they hit enter.
 Result will not have leading or trailing whitespace.
 ###
-read-stdin string^() summon
+!read-stdin string^() summon
 	with : parallel
 		trusted
 			buffer nat8 mut-array = 0x2000 uninitialized-mut-array
@@ -36,7 +36,7 @@ read-stdin string^() summon
 Keep reading from stdin until `parse` returns a non-empty option.
 Print `error-message` after every failure.
 ###
-read-stdin-until-parse[t] t^(error-message string, parse act t?(string)) summon, t is-sendable
+!read-stdin-until-parse[t] t^(error-message string, parse act t?(string)) summon, t is-sendable
 	text <- read-stdin
 	if res ?= parse[text]
 		res,

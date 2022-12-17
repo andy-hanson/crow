@@ -6,47 +6,57 @@ no-std
 import
 	./private/bootstrap: char8, float32, int16, int32, int64, nat16, nat32, nat64
 
-c-char alias
+!c-char alias
 	char8
 
 # Equivalent to C's `float` type.
-c-float alias
+!c-float alias
 	float32
 
-short alias
+!short alias
 	int16
 
 # Equivalent to C's `int` type.
-c-int alias
+!c-int alias
 	int32
 
 # Equivalent to C's `size_t` type.
-size_t alias
+!size_t alias
 	nat64
 
 # Equivalent to C's `ssize_t` type.
-ssize_t alias
+!ssize_t alias
 	int64
 
-u-short alias
+!u-short alias
 	nat16
 
 # Equivalent to C's `unsigned int` type.
-u-int alias
+!u-int alias
 	nat32
 
 # Equivalent to C's `unsigned long` type.
-u-long alias
+!u-long alias
 	nat64
 
 # Equivalent to C's `unsigned long long` type.
-u-long-long alias
+!u-long-long alias
 	nat64
 
 # Equivalent to C's `long` type.
-long alias
+!long alias
 	int64
 
 # Equivalent to C's `long long` type.
-long-long alias
+!long-long alias
 	int64
+
+###
+Error code typically returned by POSIX functions.
+###
+!err-t alias
+	int32
+
+# File descriptor type typically used by POSIX functions.
+!fd-t alias
+	int32

@@ -23,7 +23,7 @@ import
 	../col/list: ~, for-loop, to-array, list
 	../col/mut-list: begin-pointer, end-pointer, move-to-list, mut-list, new, size, unsafe-set-size
 	../compare: <=
-	../extra-types: fd-t
+	../c-types: fd-t
 	../misc: new, void
 	../number: ==, <=>, +, int32, nat8, nat32, to-int32, to-int64, to-nat32, to-nat64
 	../private/bootstrap: todo
@@ -38,7 +38,7 @@ import
 	./win32-util: show-win32-error
 
 # Represents the output of running a process.
-process-result record
+!process-result record
 	exit-code int32
 	stdout string
 	stderr string
@@ -49,7 +49,7 @@ The child process' stdout and stderr will be sent to the `process-result`,
 not to the parent's stdout and stderr.
 EXE should be a file path and not just a name; this does not search the system path for `exe`.
 ###
-spawn-and-wait-result process-result(exe string, args string[]) summon
+!spawn-and-wait-result process-result(exe string, args string[]) summon
 	out print (" " join "spawn-and-wait-result: {exe}" ~ args)
 
 	# TODO: kill, handle that error properly
@@ -80,7 +80,7 @@ spawn-and-wait-result process-result(exe string, args string[]) summon
 Launches a process and synchronously waits on the result.
 The child process shares stdout and stderr with the parent process.
 ###
-spawn-and-wait int32(exe string, args string[]) summon
+!spawn-and-wait int32(exe string, args string[]) summon
 	# TODO: kill, handle that error properly
 	assert exe is-file : "{exe} is not a file"
 	# First argument should be the executable path
@@ -90,7 +90,7 @@ spawn-and-wait int32(exe string, args string[]) summon
 		exe-c-string spawn-and-wait (exe-c-string convert-args args)
 
 # Executes a shell command and returns its output.
-shell-exec string(command string) summon
+!shell-exec string(command string) summon
 	trusted
 		cmd = command to-c-string
 		pipe = is-windows ? cmd _popen "r" : cmd popen "r"

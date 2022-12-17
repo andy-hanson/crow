@@ -71,14 +71,15 @@ contexts:
     - match: test$
       scope: keyword
       push: expression
-    - match: '(\.)?{{name}}'
+    - match: '(\!)?(\.)?{{name}}'
       # NOTE: Of course these won't all be functions.
       # But we don't know what kind of declaration it is yet unfortunately.
       # But luckily goto-definition will work even coming from a 'storage.type'.
       scope: entity.name.function.crow
       push: decl_after_name
       captures:
-        1: comment
+        1: keyword
+        2: comment
 
   decl_after_name:
     - match: '{{unindented_line}}'

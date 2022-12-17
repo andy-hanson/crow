@@ -5,7 +5,7 @@ import
 	../../json: json
 	../../misc: new, void
 	../../number: ==, nat64
-	../../option: !
+	../../option: force
 	../../pointer: size-of
 	../../string: ==, ~~, join, literal, string, to-string
 	../../test-util: is
@@ -18,7 +18,7 @@ import
 dummy-list-tests nat64()
 	0
 
-.verify[t] void(a t[], expected string) no-doc, t to-string
+.verify[t] void(a t[], expected string) t to-string
 	a.dbg is expected
 	a.get-root check-structure
 

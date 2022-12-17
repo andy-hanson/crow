@@ -1,7 +1,6 @@
 no-std
 import
-	crow/c-types: c-int, size_t, long
-	crow/extra-types: err-t
+	crow/c-types: c-int, err-t, size_t, long
 	crow/private/bootstrap: char8, c-string
 	crow/pointer: const-pointer, mut-pointer
 

@@ -1,6 +1,6 @@
 no-std
 import
-	../../bool: !, bool
+	../../bool: bool, not
 	../../compare: ==, <, >=, compare, comparison, equal
 	../../exception: unreachable
 	../../fun-util: subscript

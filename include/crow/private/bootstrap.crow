@@ -5,7 +5,7 @@ region basic types
 ###
 Empty type, for use by functions with nothing in particular to return.
 ###
-void builtin extern
+!void builtin extern
 
 new-void void() builtin, noctx
 
@@ -22,7 +22,7 @@ To put it another way, a type works with `is-data` if it is:
 * Immutable collections like `x[]`, where the type arguments are all `is-data`.
 * A constant pointer like `nat*`.
 ###
-is-data[t] builtin-spec
+!is-data[t] builtin-spec
 
 ###
 Specifies that a type must be safe to share between tasks that may run in parallel.
@@ -33,7 +33,7 @@ In addition, `future` and `ref` types are sendable if their type arguments are.
 
 In the future, parallel-safe collections may be included here.
 ###
-is-sendable[t] builtin-spec
+!is-sendable[t] builtin-spec
 
 region option.crow
 
@@ -42,7 +42,7 @@ Optional type. Read the tutorial to learn more.
 
 You never need to `match` on this union; use the `if x ?= y` syntax instead. 
 ###
-option[t] union
+!option[t] union
 	none
 	some t
 
@@ -54,7 +54,7 @@ A `result` is either a success (`ok`) or failure (`err`) value.
 This provides a more explicit alternative to throwing an exception.
 Prefer this over throwing an exception if failure is likely.
 ###
-result[ok, err] union
+!result[ok, err] union
 	ok ok
 	err err
 
@@ -80,16 +80,16 @@ If `a` is a reference type, `a*` is a pointer to a pointer.
 This is a read-only reference, is the pointee is not immutable;
 it could be modified if there are other references to it.
 ###
-const-pointer[t] builtin extern
+!const-pointer[t] builtin extern
 
 ###
 This is like `const-pointer` but supports writing to the contents.
 ###
-mut-pointer[t] builtin mut extern
+!mut-pointer[t] builtin mut extern
 
-any-const-pointer alias
+!any-const-pointer alias
 	nat8*
-any-mut-pointer alias
+!any-mut-pointer alias
 	nat8 mut*
 
 region arr
@@ -105,25 +105,25 @@ This means this is also the type for a slice of an array, and slicing is O(1).
 A slice does not keep the whole array alive, only the elements it can reach;
 elements not reachable by any slice will be garbage collected.
 ###
-array[t] record by-val
-	size nat64
-	begin-pointer t*
+!array[t] record by-val
+	!size nat64
+	!begin-pointer t*
 
 region string
 
 # Single character in a string.
 # This could be any UTF-8 code point.
-char8 builtin extern
+!char8 builtin extern
 ###
 C-style string. Always const.
 This should be a valid pointer whose content ends in a "\0", though this is not enforced.
 Thus, all operations on `c-string` are unsafe.
 ###
-c-string alias
+!c-string alias
 	char8*
 
-to-char8 char8(a nat8) builtin, noctx
-to-nat8 nat8(c char8) builtin, noctx
+!to-char8 char8(a nat8) builtin, noctx
+!to-nat8 nat8(c char8) builtin, noctx
 
 region bool.crow
 
@@ -132,26 +132,26 @@ Boolean type: either `false` or `true`.
 
 Unlike in other programming languages, this isn't a numeric type.
 ###
-bool builtin extern
+!bool builtin extern
 
 ###
 False boolean value.
 This can also be written as `()`.
 ###
-false bool() builtin, noctx
+!false bool() builtin, noctx
 
 # True boolean value.
-true bool() builtin, noctx
+!true bool() builtin, noctx
 
 region symbol.crow
 
-symbol record by-val
+!symbol record by-val
 	.symbol-to-c-string c-string
 
 new-symbol symbol(a c-string) noctx, unsafe
 	a,
 
-to-c-string c-string(a symbol) noctx, no-doc, unsafe
+to-c-string c-string(a symbol) noctx, unsafe
 	a symbol-to-c-string
 
 region bootstrap arithmetic
@@ -162,50 +162,50 @@ region bootstrap arithmetic
 8-bit natural number.
 An unsigned integer in the range 0 through 255.
 ###
-nat8 builtin extern
+!nat8 builtin extern
 ###
 16-bit natural number.
 An unsigned integer in the range 0 through 65_535.
 ###
-nat16 builtin extern
+!nat16 builtin extern
 ###
 32-bit natural number.
 An unsigned integer in the range 0 through 4_294_967_295 (4 billion).
 ###
-nat32 builtin extern
+!nat32 builtin extern
 ###
 64-bit natural number.
 An unsigned integer in the range 0 through 18_446_744_073_709_551_615 (18 quintillion).
 ###
-nat64 builtin extern
+!nat64 builtin extern
 ###
 8-bit signed integer.
 In the range -128 through 127.
 ###
-int8 builtin extern
+!int8 builtin extern
 ###
 16-bit signed integer.
 In the range -32_768 through 32_767.
 ###
-int16 builtin extern
+!int16 builtin extern
 ###
 32-bit signed integer.
 In the range -2_147_483_648 through 2_147_483_647 (-2 billion through 2 billion).
 ###
-int32 builtin extern
+!int32 builtin extern
 ###
 64-bit signed integer,
 In the range 9_223_372_036_854_775_808 through 9_223_372_036_854_775_807 (-9 quintillion through 9 quintillion).
 ###
-int64 builtin extern
+!int64 builtin extern
 # 32-bit IEEE floating point number.
-float32 builtin extern
+!float32 builtin extern
 # 64-bit IEEE floating point number.
-float64 builtin extern
+!float64 builtin extern
 
 region hard assertions
 
-abort void() c extern
+!abort void() c extern
 
 ###
 Zeroed data isn't safe as it would contain null pointers.
@@ -387,7 +387,7 @@ Type of a thrown exception.
 
 There is no exception subtyping in crow, so all exceptions have this type.
 ###
-exception record by-val
+!exception record by-val
 	# Message passed to `throw`.
 	message c-string
 	# TODO: accessing backtrace should be unsafe
@@ -397,12 +397,7 @@ exception record by-val
 	###
 	backtrace backtrace
 
-###
-Future type.
-
-Ignore the fields, they should be private.
-###
-future[t] record force-sendable by-ref
+!future[t] record force-sendable by-ref
 	# It's important to make future by-ref since its lock is by-val 
 	lk lock by-val
 	state mut t future-state
@@ -433,7 +428,7 @@ lock record sendable by-ref
 region reflect
 
 # General-purpose type that stores a name and value.
-named-val[t] record by-val
+!named-val[t] record by-val
 	name symbol
 	val t
 

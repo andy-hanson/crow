@@ -1,7 +1,6 @@
 no-std
 import
-	crow/c-types: u-int, u-long
-	crow/extra-types: err-t
+	crow/c-types: err-t, u-int, u-long
 	crow/number: int32
 	crow/pointer: any-const-pointer, any-mut-pointer, const-pointer, mut-pointer
 	time: __clockid_t, timespec

@@ -307,7 +307,7 @@ code.lit-num { color: #ff6040; }
 	margin-left: 2em;
 }
 
-.doc p.has-private {
+.doc p.has-non-public-fields {
 	margin-left: var(--tab);
 }
 

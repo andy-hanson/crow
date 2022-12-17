@@ -21,67 +21,67 @@ JSON data.
 
 This can be the result of parsing or the input to `to-string`.
 ###
-json union
+!json union
 	json-bool bool
 	json-number float64
 	json-string string
 	json-list json[]
 	json-object json[string]
 
-new json(...pairs (string, json) array)
+!new json(...pairs (string, json) array)
 	pairs.to-list.to-dict json-object
 
-json[t] spec
+!json[t] spec
 	json json(a t)
 
 # Identity function to satisfy the 'json' spec
-json json(a json)
+!json json(a json)
 	a
-json json(a bool)
+!json json(a bool)
 	a.json-bool
-json json(a nat8)
+!json json(a nat8)
 	a.to-nat64 json
-json json(a nat16)
+!json json(a nat16)
 	a.to-nat64 json
-json json(a nat32)
+!json json(a nat32)
 	a.to-nat64 json
-json json(a nat64)
+!json json(a nat64)
 	a.to-float64 json
-json json(a int8)
+!json json(a int8)
 	a.to-int64 json
-json json(a int16)
+!json json(a int16)
 	a.to-int64 json
-json json(a int32)
+!json json(a int32)
 	a.to-int64 json
-json json(a int64)
+!json json(a int64)
 	a.to-float64 json
-json json(a float32)
+!json json(a float32)
 	a.to-float64 json
-json json(a float64)
+!json json(a float64)
 	a json-number
-json json(a string)
+!json json(a string)
 	a json-string
-json[t] json(a t array) t json
+!json[t] json(a t array) t json
 	(for x : a to-list; x json) json-list
-json[t] json(a t[]) t json
+!json[t] json(a t[]) t json
 	(for x : a; x json) json-list
-json json(a index-set) no-doc
+json json(a index-set)
 	a.to-list json
-json[t] json(a t?) t json
+!json[t] json(a t?) t json
 	if x ?= a
 		(x.json,) json-list
 	else
 		()
-json[t, u] json(a (t, u)) t json, u json
+!json[t, u] json(a (t, u)) t json, u json
 	(a.a json, a.b json) json-list
-json[t, u] json(a (t, u) result) t json, u json
+!json[t, u] json(a (t, u) result) t json, u json
 	match a
 	as ok v
 		("ok", v json),
 	as err e
 		("err", e json),
 
-== bool(a json, b json)
+!== bool(a json, b json)
 	match a
 	as json-bool ba
 		if bb ?= b as-bool
@@ -100,7 +100,7 @@ json[t, u] json(a (t, u) result) t json, u json
 			oa == ob
 
 # If `a` is a boolean, returns that, else returns an empty option.
-as-bool bool?(a json) noctx
+!as-bool bool?(a json) noctx
 	match a
 	as json-bool b
 		b,
@@ -113,7 +113,7 @@ as-bool bool?(a json) noctx
 	as json-object _
 		()
 # If `a` is a number, returns that, else returns an empty option.
-as-number float64?(a json) noctx
+!as-number float64?(a json) noctx
 	match a
 	as json-bool _
 		()
@@ -130,7 +130,7 @@ If `a` is a string, returns that, else returns an empty option.
 
 This does not render as JSON; `to-string` does that.
 ###
-as-string string?(a json) noctx
+!as-string string?(a json) noctx
 	match a
 	as json-bool _
 		()
@@ -143,7 +143,7 @@ as-string string?(a json) noctx
 	as json-object _
 		()
 # If `a` is a list, returns that, else returns an empty option.
-as-list json[]?(a json) noctx
+!as-list json[]?(a json) noctx
 	match a
 	as json-bool _
 		()
@@ -156,7 +156,7 @@ as-list json[]?(a json) noctx
 	as json-object _
 		()
 # If `a` is an object, returns that, else returns an empty option.
-as-object json[string]?(a json) noctx
+!as-object json[string]?(a json) noctx
 	match a
 	as json-bool _
 		()
@@ -173,11 +173,11 @@ as-object json[string]?(a json) noctx
 If `a` is an `object` containing the key `key`, returns the associated value.
 Else, returns an empty option.
 ###
-subscript json?(a json, key string)
+!subscript json?(a json, key string)
 	if o ?= a.as-object
 		o[key]
 
-json json grammar()
+!json json grammar()
 	with : lazy
 		(json-object map x => x.json-object) / (json-list map x => x.json-list) / json-primitive
 .json-object json[string] grammar()
@@ -192,7 +192,7 @@ json json grammar()
 	(quoted-string map x => x json) / (float map x => x json-number) / literal
 
 # Renders a json value to JSON.
-to-string string(a json)
+!to-string string(a json)
 	match a
 	as json-bool b
 		"{b}"

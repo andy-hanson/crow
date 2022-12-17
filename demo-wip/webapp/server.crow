@@ -31,7 +31,7 @@ main nat^(args string[]) summon
 	path = su path
 	query = su query
 	match req method
-	as http-get
+	as GET
 		if path == "/"
 			"demo-wip/webapp/index.html".read-file http-ok
 		elif path == "/index.js"
@@ -49,7 +49,7 @@ main nat^(args string[]) summon
 			(("users", db.list-users.json),)::json.to-string http-ok
 		else
 			http-not-found
-	as http-post
+	as POST
 		if path == "/register"
 			args = req.request-body-string parse-query
 			match db register-user (args["user-name"] ?? ""), (args["password"] ?? "")
@@ -101,7 +101,7 @@ main nat^(args string[]) summon
 
 # Extra cookies are ignored
 .parse-cookies string?[](cookies-string string, cookie-names string[])
-	res string? mut[] = cookie-names.size fill-mut-list ()
+	res string? mut[] = cookie-names.size n-of ()
 	for part : cookies-string split-by "; "
 		if pair ?= part try-split-once "="
 			if index ?= cookie-names index-of pair.a

@@ -1,6 +1,6 @@
 no-std
 import
-	../bool: !, &&, bool
+	../bool: &&, bool, not
 	../col/mut-array: fill, mut-array, in, set-subscript, unmanaged-uninitialized-mut-array
 	../compare: <, <=
 	../io/private/time-low-level: timestamp

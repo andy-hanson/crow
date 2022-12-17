@@ -13,26 +13,27 @@ no-std
 import
 	./bool: bool
 
-is-interpreted bool() builtin, noctx, unsafe
-is-jit bool() builtin, noctx, unsafe
+# True if using 'crow run' (instead of 'crow build') without the '--jit' option.
+!is-interpreted bool() builtin, noctx, unsafe
+
+# True if using 'crow run my-program --jit'.
+!is-jit bool() builtin, noctx, unsafe
 
 ###
-`true` iff the code is run in the interpreter.
-
-This will be `false` for non-interpreted code even on machines with multiple processors.
+True if there will only be one crow thread.
+This allows skipping locks.
+Currently equivalent to 'is-wasm'.
 ###
 is-single-threaded bool() builtin, noctx, unsafe
 
-###
-`true` iff the code is run in the WASM interpreter.
-###
-is-wasm bool() builtin, noctx, unsafe
+# True if the code is run in the WASM interpreter.
+!is-wasm bool() builtin, noctx, unsafe
 
 ###
-`true` iff the code is run on Windows.
-
-The WASM interpreter used for the website is not considered Windows, even if run on Windows.
+True if the code is run on Windows.
+Always false if run in a browser (even on Windows).
 ###
-is-windows bool() builtin, noctx, unsafe
+!is-windows bool() builtin, noctx, unsafe
 
-is-big-endian bool() builtin, noctx, unsafe
+# True if integers on this machine are big-endian.
+!is-big-endian bool() builtin, noctx, unsafe

@@ -1,7 +1,6 @@
 no-std
 import
-	crow/c-types: c-int
-	crow/extra-types: fd-t
+	crow/c-types: c-int, fd-t
 	crow/number: nat32
 	crow/string: c-string
 

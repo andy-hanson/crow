@@ -3,7 +3,7 @@ import
 	stdlib: free, malloc
 	string: memcpy, memset
 	../bits: ~, &
-	../bool: !, bool, false, to-nat64, true
+	../bool: bool, false, not, to-nat64, true
 	../compare: !=, <, <=, >, >=
 	../misc: new
 	../option: new, option
@@ -202,7 +202,7 @@ force-needs-gc void(gc gc) unsafe
 	res
 
 return-gc-ctx void() noctx, unsafe
-	gc-ctx = try-get-cur-gc-ctx force
+	gc-ctx = try-get-cur-gc-ctx!
 	*cur-gc-ctx := ()
 	gc = gc-ctx gc
 	&gc.lk acquire
@@ -213,7 +213,7 @@ return-gc-ctx void() noctx, unsafe
 .cur-gc-ctx gc-ctx? mut*() thread-local
 
 get-gc-ctx gc-ctx() unsafe
-	try-get-cur-gc-ctx force
+	try-get-cur-gc-ctx!
 
 .force[t] t(a t?) noctx, unsafe
 	if res ?= a

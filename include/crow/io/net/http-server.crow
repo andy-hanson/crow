@@ -10,6 +10,7 @@ import
 	../../col/mut-dict: mut-dict, new, try-remove, set-subscript, subscript
 	../../col/mut-list: ~=, ~~=, index-of, move-to-list, mut-list, new, pop-n-from-start, size
 	../../compare: <=, >
+	../../enum-util: to-enum
 	../../exception: to-string
 	../../future: delay, future, future-catch, future-finally, new, subscript, then, with-block
 	../../hash: hash-mix
@@ -25,27 +26,27 @@ import
 	../../tuple: new, pair
 	../../private/bootstrap: todo
 	./http-types:
-		headers, http-get, http-internal-server-error, http-method, http-post, http-request,
+		==, enum-members, GET, headers, http-internal-server-error, http-method, http-request,
 		http-response, new, response-body, status, status-desc
 	./tcp-server: close-client, new, start-tcp-server, stop
 
 # Reference to a running server.
-http-server record
+!http-server record
 
 # Type of a function that can respond to HTTP requests.
-http-handler alias
+!http-handler alias
 	ref http-response(http-request)
 
-http-server-options record sendable
+!http-server-options record sendable
 	port string
 	handler http-handler
-http-server http-server-options(port string, handler http-handler)
+!http-server http-server-options(port string, handler http-handler)
 	port, handler
 
 ###
 Starts running an HTTP server. Stops it when `cb` returns.
 ###
-with-block[t] t^(a http-server-options, cb ref t(http-server)) summon, t is-sendable
+!with-block[t] t^(a http-server-options, cb ref t(http-server)) summon, t is-sendable
 	client-states http-parse-state mut[SOCKET] = ()
 
 	on-accepted-client ref void(SOCKET) = sock =>
@@ -132,7 +133,7 @@ with-block[t] t^(a http-server-options, cb ref t(http-server)) summon, t is-send
 				# Expect something like "GET / HTTP/1.1"
 				parts = line split-by " "
 				assert parts.size == 3
-				state.method := parts[0] parse-method
+				state.method := parts[0].to-enum ?? todo
 				state.url := parts[1]
 				assert parts[2] == "HTTP/1.1"
 				forbid state.url is-empty
@@ -154,14 +155,6 @@ with-block[t] t^(a http-server-options, cb ref t(http-server)) summon, t is-send
 		else
 			break false
 
-.parse-method http-method(name string)
-	if name == "GET"
-		http-get
-	elif name == "POST"
-		http-post
-	else
-		todo
-
 .try-take-first-line string?(a nat8 mut[])
 	if index ?= a index-of "\n".to-nat8
 		bytes = a pop-n-from-start index + 1 rtail
@@ -178,4 +171,4 @@ with-block[t] t^(a http-server-options, cb ref t(http-server)) summon, t is-send
 	unparsed nat8 mut[]
 
 .new http-parse-state()
-	http-get, "", (), 0, ()
+	GET, "", (), 0, ()

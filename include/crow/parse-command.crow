@@ -1,10 +1,10 @@
 no-std
 import
-	./bool: !, &&, bool, false, true
+	./bool: &&, bool, false, not, true
 	./col/dict: ==, dict, for-loop, new
 	./col/list: ==, ~~, for-break, index-of, is-empty, list, new, size, subscript
 	./col/mut-dict: for-loop, mut-dict, new, set-subscript
-	./col/mut-list: ~=, fill-mut-list, move-to-list, mut-list, new, set-subscript, subscript
+	./col/mut-list: ~=, move-to-list, mut-list, new, n-of, set-subscript, subscript
 	./json: json, json-object, new
 	./misc: loop-break, loop-continue, new
 	./number: ==, <=>, +
@@ -26,12 +26,12 @@ For example, if the command is: `foo bar --a 1 --b 2 3 -- x y z`:
 `named` will be: `("a", (1,)), ("b", (2, 3))`
 `after` will be: `"x", "y", "z"`
 ###
-parsed-command record
+!parsed-command record
 	nameless string[]
 	named string[][string]
 	after string[]
 
-== bool(a parsed-command, b parsed-command)
+!== bool(a parsed-command, b parsed-command)
 	a.nameless == b.nameless && a.named == b.named && a.after == b.after
 .json json(a parsed-command)
 	named = (for k, v : a named; k, v.json) json-object
@@ -41,7 +41,7 @@ parsed-command record
 See comment on `parsed-command` for syntax.
 Parse errors aren't possible with this syntax.
 ###
-parse-command parsed-command(args string[])
+!parse-command parsed-command(args string[])
 	nameless string mut[] = ()
 	named string mut[] mut[string] = ()
 	after mut string[] = ()
@@ -77,7 +77,7 @@ If the argument syntax is invalid, returns an empty option.
 ###
 parse-named-args string[]?[]?(args string[], arg-names string[])
 	parsed = args parse-command
-	values string[]? mut[] = arg-names.size fill-mut-list ()
+	values string[]? mut[] = arg-names.size n-of ()
 	err mut = false
 	for key, value : parsed named
 		if index ?= arg-names index-of key

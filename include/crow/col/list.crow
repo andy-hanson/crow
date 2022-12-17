@@ -1,6 +1,6 @@
 no-std
 import
-	../bool: !, &&, bool, false, true
+	../bool: &&, bool, false, not, true
 	../compare: ==, <, <=, compare, comparison, equal, greater, less, min
 	../fun-util: subscript
 	../misc: break-or-continue, loop-break, loop-continue, new, void
@@ -25,31 +25,26 @@ It also is efficient to split from an iterator.
 
 It does not support efficient access by an index, so iterators should be used instead.
 ###
-list[t] record by-val
+!list[t] record by-val
 	.root t l0
 
-get-root[t] t l0(a t[]) no-doc
+get-root[t] t l0(a t[]) 
 	a.root
 
-# TODO: no-doc
 l0[t] record by-val
 	node (t, t l1) node
 
-# TODO: no-doc
 l1[t] record by-val
 	node (t array, t l2) node
 
-# TODO: no-doc
 l2[t] record by-val
 	nodes t array array array
 
-# TODO: no-doc
 node[t, lower] union
 	leaf t array
 	branch (t, lower) branch
 
 ###
-TODO: no-doc
 'left', 'down', and 'right' should all be non-empty.
 (Else, this layer should be a leaf. See `branch-or-leaf`.)
 ###
@@ -127,32 +122,32 @@ branch[t, lower] record
 	a.get-l1-branch down
 
 # List containing the given elements.
-new[t] t[](...a t array) noctx
+!new[t] t[](...a t array) noctx
 	a to-list
 
-as-list[t] t[](a t* range) noctx, unsafe
+!as-list[t] t[](a t* range) noctx, unsafe
 	a.as-array to-list
-as-list[t] t[](a t mut* range) noctx, unsafe
+!as-list[t] t[](a t mut* range) noctx, unsafe
 	a.as-array to-list
 
 ###
 Convert an array to a list.
 This is O(1).
 ###
-to-list[t] t[](a t array) noctx
+!to-list[t] t[](a t array) noctx
 	l t l0 = a.leaf,
 	l,
 
-to-list[t] t[](a t?)
+!to-list[t] t[](a t?)
 	if x ?= a
 		x,
 
-list-cast[out, in] out[](a in[]) no-doc, unsafe
+list-cast[out, in] out[](a in[]) unsafe
 	assert size-of@out == size-of@in
 	# TODO:PERF
 	a.to-array.array-cast::(out array) to-list
 
-==[t] bool(a t[], b t[]) t equal
+!==[t] bool(a t[], b t[]) t equal
 	ai = a mut-iter
 	bi = b mut-iter
 	loop
@@ -167,7 +162,7 @@ list-cast[out, in] out[](a in[]) no-doc, unsafe
 		else
 			break bi.next is-empty
 
-<=>[t] comparison(a t[], b t[]) t compare
+!<=>[t] comparison(a t[], b t[]) t compare
 	ai = a mut-iter
 	bi = b mut-iter
 	loop
@@ -188,14 +183,14 @@ Convert a list to an array.
 This is O(n).
 This is O(1) if the list came from to-list of an array, meaning a round trip is free.
 ###
-to-array[t] t array(a t[])
+!to-array[t] t array(a t[])
 	a.try-as-l0-leaf ?? for x : a; x
 
 ###
 `true` iff `a.size == 0`.
 This is O(1).
 ###
-is-empty[t] bool(a t[]) noctx
+!is-empty[t] bool(a t[]) noctx
 	match a.root node
 	as leaf xs
 		xs is-empty
@@ -206,7 +201,7 @@ is-empty[t] bool(a t[]) noctx
 Number of elements in the list.
 This is O(n).
 ###
-size[t] nat64(a t[]) noctx
+!size[t] nat64(a t[]) noctx
 	match a.root node
 	as leaf l
 		l.size
@@ -244,7 +239,7 @@ size[t] nat64(a t[]) noctx
 Concatenate two lists.
 This is O(log n), where `n` is the size of the smaller list.
 ###
-~~[t] t[](a t[], b t[])
+!~~[t] t[](a t[], b t[])
 	# Concatenate the smaller list onto the bigger one.
 	match a.depth <=> b.depth
 	as less
@@ -261,14 +256,14 @@ This is O(log n), where `n` is the size of the smaller list.
 Prepend an element to a list.
 This is O(log n), amortized O(1).
 ###
-~[t] t[](a t, b t[])
+!~[t] t[](a t, b t[])
 	((a,)::(t array) cat-left-array-l0 b.root),
 
 ###
 Appendd an element to a list.
 This is O(log n), amortized O(1).
 ###
-~[t] t[](a t[], b t)
+!~[t] t[](a t[], b t)
 	(a.root cat-right-array-l0 (b,)),
 
 # 'r' is bigger, add 'l' to the left
@@ -401,15 +396,15 @@ This is O(log n), amortized O(1).
 region iter and slice
 
 # Immutable iterator over a list.
-list-iter[t] record by-val
+!list-iter[t] record by-val
 	.list t[]
 	.cur t array-3d-iter
 	.pos position
 
-==[t] bool(a t list-iter, b t list-iter) t equal
+!==[t] bool(a t list-iter, b t list-iter) t equal
 	a.list == b.list && a.index == b.index
 
-index[t] nat64(a t list-iter)
+!index[t] nat64(a t list-iter)
 	# TODO:PERF (this could be a lot faster than walking back)
 	acc mut = 0
 	cur mut t list-iter = a
@@ -431,21 +426,21 @@ index[t] nat64(a t list-iter)
 	l2-leaf
 
 # New iterator at the beginning of the list.
-iter[t] t list-iter(a t[]) noctx
+!iter[t] t list-iter(a t[]) noctx
 	match a.root node
 	as leaf xs
 		a, xs.iter.to-iter3d, l0-leaf
 	as branch b
 		a, b.left.iter.to-iter3d, l0-left
 
-end-iter[t] t list-iter(a t[])
+!end-iter[t] t list-iter(a t[])
 	match a.root node
 	as leaf xs
 		a, xs.end-iter.to-iter3d, l0-leaf
 	as branch b
 		a, b.right.end-iter.to-iter3d, l0-right
 
-peek[t] t?(a t list-iter)
+!peek[t] t?(a t list-iter)
 	if n ?= a next
 		n.value,
 
@@ -453,7 +448,7 @@ peek[t] t?(a t list-iter)
 Returns the next element and next iterator.
 Returns an empty option if the iterator was already at the end of the list.
 ###
-next[t] (t, t list-iter) value-and-rest?(a t list-iter) noctx
+!next[t] (t, t list-iter) value-and-rest?(a t list-iter) noctx
 	if n ?= a.cur next
 		(n.value, (a.list, n.rest, a.pos)),
 	elif pair ?= a.list next-position a.pos
@@ -475,7 +470,7 @@ next[t] (t, t list-iter) value-and-rest?(a t list-iter) noctx
 	as l2-leaf
 		(a.get-l1-branch.right.iter2d.to-iter3d, l1-right),
 
-prev[t] (t, t list-iter) value-and-rest?(a t list-iter) noctx
+!prev[t] (t, t list-iter) value-and-rest?(a t list-iter) noctx
 	if p ?= a.cur prev
 		(p.value, (a.list, p.rest, a.pos)),
 	elif pair ?= a.list prev-position a.pos
@@ -498,39 +493,39 @@ prev[t] (t, t list-iter) value-and-rest?(a t list-iter) noctx
 		(a.get-l1-branch.left.end-iter2d.to-iter3d, l1-left),
 
 # Mutable iterator over a list.
-list-mut-iter[t] record mut
+!list-mut-iter[t] record mut
 	.inner mut t list-iter
 
 # New mutable iterator at the beginning of the list.
-mut-iter[t] t list-mut-iter(a t[])
+!mut-iter[t] t list-mut-iter(a t[])
 	a.iter,
 
-end-mut-iter[t] t list-mut-iter(a t[])
+!end-mut-iter[t] t list-mut-iter(a t[])
 	a.end-iter,
 
 # Copy to an immutable iterator.
-save[t] t list-iter(a t list-mut-iter)
+!save[t] t list-iter(a t list-mut-iter)
 	a.inner
 
-restore[t] void(a t list-mut-iter, saved t list-iter)
+!restore[t] void(a t list-mut-iter, saved t list-iter)
 	a.inner := saved
 
-slice-left[t] t[](a t list-mut-iter)
+!slice-left[t] t[](a t list-mut-iter)
 	a.inner slice-left
 
-slice-right[t] t[](a t list-mut-iter)
+!slice-right[t] t[](a t list-mut-iter)
 	a.inner slice-right
 
 ###
 Advances the iterator and returns the next element.
 Returns an empty option if the iterator was already at the end of the list.
 ###
-next[t] t?(a t list-mut-iter)
+!next[t] t?(a t list-mut-iter)
 	if pair ?= a.inner next
 		a.inner := pair rest
 		pair.value,
 
-prev[t] t?(a t list-mut-iter)
+!prev[t] t?(a t list-mut-iter)
 	if pair ?= a.inner prev
 		a.inner := pair rest
 		pair.value,
@@ -539,11 +534,11 @@ prev[t] t?(a t list-mut-iter)
 Returns the next element without advancing the iterator.
 Returns an empty option if the iterator is at the end of the list.
 ###
-peek[t] t?(a t list-mut-iter)
+!peek[t] t?(a t list-mut-iter)
 	if pair ?= a.inner next
 		pair.value,
 
-groups-of[t] t[][](a t[], group-size nat64)
+!groups-of[t] t[][](a t[], group-size nat64)
 	forbid group-size == 0 : "group-size can't be 0"
 	div = a.size / group-size
 	out-size = div * group-size == a.size ? div : div + 1
@@ -555,7 +550,7 @@ groups-of[t] t[][](a t[], group-size nat64)
 List of every element to the left of the iterator.
 This is O(log n).
 ###
-slice-left[t] t[](a t list-iter)
+!slice-left[t] t[](a t list-iter)
 	match a pos
 	as l0-leaf
 		a.cur.as-1d.slice-left to-list
@@ -583,7 +578,7 @@ slice-left[t] t[](a t list-iter)
 List of every element to the right of the iterator.
 This is O(log n).
 ###
-slice-right[t] t[](a t list-iter)
+!slice-right[t] t[](a t list-iter)
 	match a pos
 	as l0-leaf
 		a.cur.as-1d.slice-right to-list
@@ -606,7 +601,6 @@ slice-right[t] t[](a t list-iter)
 	as l2-leaf
 		a.list slice-right-update-l2 _ =>
 			a.cur.slice-right,
-
 
 .level[l, t] spec
 	is-empty bool(level l)
@@ -838,46 +832,46 @@ slice-right[t] t[](a t list-iter)
 
 region iteration
 
-first[t] t?(a t[])
+!first[t] t?(a t[])
 	if i ?= a.iter next
 		i.value,
 
-tail[t] t[](a t[])
+!tail[t] t[](a t[])
 	if i ?= a.iter next
 		i.rest slice-right
 
-last[t] t?(a t[])
+!last[t] t?(a t[])
 	if i ?= a.end-iter prev
 		i.value,
 
-rtail[t] t[](a t[])
+!rtail[t] t[](a t[])
 	if i ?= a.end-iter prev
 		i.rest slice-left
 
-find[t] t?(a t[], f act bool(t))
+!find[t] t?(a t[], f act bool(t))
 	for x : a
 		if f[x]
 			break x
 
-in[t] bool(value t, a t[]) t equal
+!in[t] bool(value t, a t[]) t equal
 	a exists x =>
 		x == value
 
-exists[t] bool(a t[], f act bool(t))
+!exists[t] bool(a t[], f act bool(t))
 	for x : a
 		if f[x]
 			break true
 	else
 		false
 
-every[t] bool(a t[], f act bool(t))
+!every[t] bool(a t[], f act bool(t))
 	for x : a
 		if !f[x]
 			break false
 	else
 		true
 
-filter[t] t[](a t[], f act bool(t))
+!filter[t] t[](a t[], f act bool(t))
 	res t array = with out : build
 		for x : a
 			if f[x]
@@ -885,7 +879,7 @@ filter[t] t[](a t[], f act bool(t))
 	res to-list
 
 # Drops elements from the left that match `f`.
-drop-while[t] t[](a t[], f act bool(t))
+!drop-while[t] t[](a t[], f act bool(t))
 	iter = a mut-iter
 	loop
 		if x ?= iter next
@@ -898,7 +892,7 @@ drop-while[t] t[](a t[], f act bool(t))
 			break
 
 # Drops elements from the right that match `f`.
-drop-right-while[t] t[](a t[], f act bool(t))
+!drop-right-while[t] t[](a t[], f act bool(t))
 	iter = a end-mut-iter
 	loop
 		if x ?= iter prev
@@ -910,11 +904,11 @@ drop-right-while[t] t[](a t[], f act bool(t))
 		else
 			break
 
-for-break[t] void(a t[], f act void break-or-continue(t))
+!for-break[t] void(a t[], f act void break-or-continue(t))
 	a for-break f, () => ()
-for-break[t] void(a t[], f act void break-or-continue(nat64, t))
+!for-break[t] void(a t[], f act void break-or-continue(nat64, t))
 	a for-break f, () => ()
-for-break[out, in] out?(a in[], f act out break-or-continue(in))
+!for-break[out, in] out?(a in[], f act out break-or-continue(in))
 	for x : a
 		match f[x]
 		as loop-break v
@@ -923,14 +917,14 @@ for-break[out, in] out?(a in[], f act out break-or-continue(in))
 			continue
 	else
 		()
-for-break[out, in] out(a in[], f-loop act out break-or-continue(nat64, in), f-else act out())
+!for-break[out, in] out(a in[], f-loop act out break-or-continue(nat64, in), f-else act out())
 	i mut = 0
 	inner-f-loop act out break-or-continue(in) = x =>
 		res = f-loop[i, x]
 		i := i + 1
 		res
 	a for-break inner-f-loop, f-else
-for-break[out, in] out(a in[], f-loop act out break-or-continue(in), f-else act out())
+!for-break[out, in] out(a in[], f-loop act out break-or-continue(in), f-else act out())
 	x out break-or-continue = a for-break-chunk chunk =>
 		for x : chunk
 			match f-loop[x]
@@ -946,40 +940,40 @@ for-break[out, in] out(a in[], f-loop act out break-or-continue(in), f-else act 
 	as loop-continue
 		f-else[]
 
-for-loop[t] void(a t[], f act void(t))
+!for-loop[t] void(a t[], f act void(t))
 	a each-chunk chunk =>
 		for x : chunk
 			f[x]
 
-for-loop[t] void(a t[], f act void(nat64, t))
+!for-loop[t] void(a t[], f act void(nat64, t))
 	i mut = 0
 	for x : a
 		f[i, x]
 		i := i + 1
 
-for-loop[out, in] out[](a in[], f act out(in))
+!for-loop[out, in] out[](a in[], f act out(in))
 	(a for-loop f)::(out array) to-list
 
-for-loop[out, in] out[](a in[], f act out(nat64, in))
+!for-loop[out, in] out[](a in[], f act out(nat64, in))
 	(a for-loop f)::(out array) to-list
 
-for-loop[out, in] out array(a in[], f act out(in))
+!for-loop[out, in] out array(a in[], f act out(in))
 	with out : a.size build
 		for x : a
 			out ~= f[x]
 
-for-loop[out, in] out array(a in[], f act out(nat64, in))
+!for-loop[out, in] out array(a in[], f act out(nat64, in))
 	with out : a.size build
 		for i, x : a
 			out ~= f[i, x]
 
-flatten[t] t[](a t[][])
+!flatten[t] t[](a t[][])
 	res mut t[] = ()
 	for x : a
 		res := res ~~ x
 	res
 
-join[t] t[](joiner t[], parts t[][])
+!join[t] t[](joiner t[], parts t[][])
 	first mut = true
 	res mut t[] = ()
 	for x : parts
@@ -1062,29 +1056,29 @@ join[t] t[](joiner t[], parts t[][])
 	else
 		continue
 
-subscript[t] t(a t[], index nat64)
+!subscript[t] t(a t[], index nat64)
 	# TODO:PERF
 	a.to-array[index]
 
-subscript[t] t[](a t[], indices nat64 range)
+!subscript[t] t[](a t[], indices nat64 range)
 	# TODO:PERF
 	a.to-array[indices] to-list
 
-index-of[t] nat64?(a t[], value t) t equal
+!index-of[t] nat64?(a t[], value t) t equal
 	# TODO:PERF
 	a.to-array index-of value
 
-starts-with[t] bool(a t[], b t[]) t equal
+!starts-with[t] bool(a t[], b t[]) t equal
 	!(a.iter iter-starts-with b.iter).is-empty
 
-ends-with[t] bool(a t[], b t[]) t equal
+!ends-with[t] bool(a t[], b t[]) t equal
 	!(a.end-iter iter-ends-with b.end-iter).is-empty
 
-try-remove-start[t] t[]?(a t[], b t[]) t equal
+!try-remove-start[t] t[]?(a t[], b t[]) t equal
 	if iter ?= a.iter iter-starts-with b.iter
 		iter.slice-right,
 
-try-remove-end[t] t[]?(a t[], b t[]) t equal
+!try-remove-end[t] t[]?(a t[], b t[]) t equal
 	if iter ?= a.end-iter iter-ends-with b.end-iter
 		iter.slice-left,
 
@@ -1093,15 +1087,15 @@ try-remove-end[t] t[]?(a t[], b t[]) t equal
 
 That means: The characters in `b` appear in `a`, in order, without interruptions.
 ###
-contains-sublist[t] bool(a t[], b t[]) t equal
+!contains-sublist[t] bool(a t[], b t[]) t equal
 	!(a iters-of-sublist b).is-empty
 
-split-list[t] record
+!split-list[t] record
 	left t[]
 	middle t
 	right t[]
 
-find-iter[t] t list-iter?(a t[], f act bool(t)) t equal
+!find-iter[t] t list-iter?(a t[], f act bool(t)) t equal
 	iter = a mut-iter
 	loop
 		if x ?= iter next
@@ -1119,17 +1113,17 @@ and returns slices of `a` to the left and right of that.
 
 Returns an empty option iff `b` is not a sublist of `a`.
 ###
-try-split-once-by-sublist[t] (t[], t[])?(a t[], b t[]) t equal
+!try-split-once-by-sublist[t] (t[], t[])?(a t[], b t[]) t equal
 	forbid b is-empty : "can't split by empty list"
 	if pair ?= a iters-of-sublist b
 		(pair.a.slice-left, pair.b.slice-right),
 
-try-split-once-by-sublist-right[t] (t[], t[])?(a t[], b t[]) t equal
+!try-split-once-by-sublist-right[t] (t[], t[])?(a t[], b t[]) t equal
 	forbid b is-empty : "can't split by empty list"
 	if pair ?= a iters-of-sublist-right b
 		(pair.a.slice-left, pair.b.slice-right),
 
-split-by-sublist[t] t[][](a t[], b t[]) t equal
+!split-by-sublist[t] t[][](a t[], b t[]) t equal
 	if pair ?= a try-split-once-by-sublist b
 		pair.a ~ (pair.b split-by-sublist b)
 	else
@@ -1183,11 +1177,11 @@ split-by-sublist[t] t[][](a t[], b t[]) t equal
 		a,
 
 # Concatenate `n` copies of `a`.
-repeat[t] t[](a t[], n nat64)
+!repeat[t] t[](a t[], n nat64)
 	for i : 0 .. a.size * n
 		a[i % a.size]
 
-reverse[t] t[](a t[])
+!reverse[t] t[](a t[])
 	for i : 0 .. a.size
 		a[a.size - 1 - i]
 
@@ -1202,20 +1196,20 @@ reverse[t] t[](a t[])
 
 region builder
 
-build-list record
+!build-list record
 	.size-hint nat64
-build build-list()
+!build build-list()
 	0,
-build build-list(size-hint nat64)
+!build build-list(size-hint nat64)
 	size-hint,
 
-list-builder[t] record mut
+!list-builder[t] record mut
 	.inner t array-builder
 
-with-block[t] t[](a build-list, f act void(t list-builder))
+!with-block[t] t[](a build-list, f act void(t list-builder))
 	(with out : a.size-hint build; f[(out,)])::(t array) to-list
 
-~=[t] void(a t list-builder, value t)
+!~=[t] void(a t list-builder, value t)
 	a.inner ~= value
-~~=[t] void(a t list-builder, values t[])
+!~~=[t] void(a t list-builder, values t[])
 	a.inner ~~= values.to-array

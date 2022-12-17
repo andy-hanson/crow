@@ -1,7 +1,6 @@
 no-std
 import
-	crow/c-types: size_t, u-long-long
-	crow/extra-types: err-t
+	crow/c-types: err-t, size_t, u-long-long
 	crow/number: nat32
 	crow/pointer: const-pointer, mut-pointer
 	crow/string: char8, c-string

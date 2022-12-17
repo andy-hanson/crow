@@ -4,7 +4,7 @@ import
 	../fun-util: subscript
 	../option: option
 
-value-and-rest[t, iter] record by-val
+!value-and-rest[t, iter] record by-val
 	value t
 	rest iter
 

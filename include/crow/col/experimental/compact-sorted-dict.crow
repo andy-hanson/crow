@@ -1,6 +1,6 @@
 no-std
 import
-	../../bool: !, &&, ==, bool, false, true
+	../../bool: &&, ==, bool, false, not, true
 	../../compare: <=, >=, equal, max, min
 	../../exception: unreachable
 	../../fun-util: subscript
@@ -8,7 +8,7 @@ import
 	../../json: json
 	../../misc: key, new, void
 	../../number: ==, <=>, +, is-even, nat64
-	../../option: ==, !, ||, is-empty, new, option
+	../../option: ==, ||, force, is-empty, new, option
 	../../string: ==, ~~, end-iter, join, literal, prev, string, to-string
 	../../test-util: is
 	../../tuple: ==, from, new, pair, to

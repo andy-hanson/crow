@@ -210,13 +210,14 @@ immutable struct CallAst {
 		emptyParens, // `()`
 		infix, // `a b`, `a b c`, `a b c, d`, etc.
 		prefix, // `a: b`, `a: b, c`, etc.
-		prefixOperator, // `-x`, `!x`, `~x`
+		prefixBang,
+		prefixOperator, // `-x`, `x`, `~x`
 		setDeref, // `*a := b`
 		setDot, // a.x := b
 		setSubscript, // `a[b] := c` (or `a[b, c] := d`, etc.)
 		single, // `a<t>` (without the type arg, it would just be an Identifier)
 		subscript, // a[b]
-		suffixOperator, // 'x!'
+		suffixBang, // 'x!'
 	}
 	// For some reason we have to break this up to get the struct size lower
 	//immutable NameAndRange funName;
@@ -619,12 +620,11 @@ immutable struct FunModifierAst {
 			extern_ = 0b10,
 			global = 0b100,
 			noctx = 0b1000,
-			no_doc = 0b1_0000,
-			summon = 0b10_0000,
-			thread_local = 0b100_0000,
-			trusted = 0b1000_0000,
-			unsafe = 0b1_0000_0000,
-			forceCtx = 0b10_0000_0000,
+			summon = 0b1_0000,
+			thread_local = 0b10_0000,
+			trusted = 0b100_0000,
+			unsafe = 0b1000_0000,
+			forceCtx = 0b1_0000_0000,
 		}
 		Pos pos;
 		Flags flag;
@@ -662,8 +662,6 @@ private Sym symOfSpecialFlag(FunModifierAst.Special.Flags a) {
 			return sym!"global";
 		case FunModifierAst.Special.Flags.noctx:
 			return sym!"noctx";
-		case FunModifierAst.Special.Flags.no_doc:
-			return sym!"no-doc";
 		case FunModifierAst.Special.Flags.summon:
 			return sym!"summon";
 		case FunModifierAst.Special.Flags.thread_local:
@@ -1163,6 +1161,8 @@ Sym symOfCallAstStyle(CallAst.Style a) {
 			return sym!"infix";
 		case CallAst.Style.prefix:
 			return sym!"prefix";
+		case CallAst.Style.prefixBang:
+			return sym!"prefix-bang";
 		case CallAst.Style.prefixOperator:
 			return sym!"prefix-op";
 		case CallAst.Style.setDeref:
@@ -1175,8 +1175,8 @@ Sym symOfCallAstStyle(CallAst.Style a) {
 			return sym!"single";
 		case CallAst.Style.subscript:
 			return sym!"subscript";
-		case CallAst.Style.suffixOperator:
-			return sym!"suffix-op";
+		case CallAst.Style.suffixBang:
+			return sym!"suffix-bang";
 	}
 }
 

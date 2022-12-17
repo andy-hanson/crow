@@ -7,12 +7,12 @@ import model.model :
 	body_,
 	FieldMutability,
 	FunDecl,
+	isGenerated,
 	isVariadic,
 	Module,
 	name,
 	NameReferents,
 	noCtx,
-	noDoc,
 	Param,
 	paramsArray,
 	Program,
@@ -36,7 +36,8 @@ import model.model :
 	typeParams,
 	UnionMember,
 	unsafe,
-	Visibility;
+	Visibility,
+	visibility;
 import util.alloc.alloc : Alloc;
 import util.col.arr : empty;
 import util.col.arrBuilder : add, ArrBuilder, arrBuilderSort, finishArr;
@@ -96,12 +97,12 @@ Repr documentModule(
 	dictEachIn!(Sym, NameReferents)(
 		a.allExportedNames,
 		(in Sym _, in NameReferents referents) {
-			if (has(referents.structOrAlias))
+			if (has(referents.structOrAlias) && visibility(force(referents.structOrAlias)) == Visibility.public_)
 				add(alloc, exports, documentStructOrAlias(alloc, force(referents.structOrAlias)));
-			if (has(referents.spec))
+			if (has(referents.spec) && force(referents.spec).visibility == Visibility.public_)
 				add(alloc, exports, documentSpec(alloc, *force(referents.spec)));
 			foreach (FunDecl* fun; referents.funs)
-				if (!noDoc(*fun))
+				if (fun.visibility == Visibility.public_ && !isGenerated(*fun))
 					add(alloc, exports, documentFun(alloc, *fun));
 		});
 	arrBuilderSort!DocExport(exports, (in DocExport x, in DocExport y) =>
@@ -193,8 +194,8 @@ Repr reprEnumMembers(ref Alloc alloc, in StructBody.Enum.Member[] members) =>
 Repr documentRecord(ref Alloc alloc, in StructDecl decl, in StructBody.Record a) {
 	ArrBuilder!NameAndRepr fields;
 	maybeAddPurity(alloc, fields, decl);
-	if (hasPrivateFields(a))
-		add(alloc, fields, nameAndRepr!"has-private"(reprBool(true)));
+	if (hasNonPublicFields(a))
+		add(alloc, fields, nameAndRepr!"has-non-public-fields"(reprBool(true)));
 	add(alloc, fields, nameAndRepr!"fields"(reprArr(
 		mapOp!(Repr, RecordField)(alloc, a.fields, (ref RecordField field) =>
 			documentRecordField(alloc, field)))));
@@ -206,13 +207,14 @@ void maybeAddPurity(ref Alloc alloc, ref ArrBuilder!NameAndRepr fields, in Struc
 		add(alloc, fields, nameAndRepr!"purity"(reprSym(symOfPurity(decl.purity))));
 }
 
-bool hasPrivateFields(in StructBody.Record a) =>
+bool hasNonPublicFields(in StructBody.Record a) =>
 	exists!RecordField(a.fields, (in RecordField x) {
 		final switch (x.visibility) {
+			case Visibility.private_:
+			case Visibility.internal:
+				return true;
 			case Visibility.public_:
 				return false;
-			case Visibility.private_:
-				return true;
 		}
 	});
 
@@ -227,6 +229,7 @@ Repr documentUnion(ref Alloc alloc, in StructDecl decl, in StructBody.Union a) {
 Opt!Repr documentRecordField(ref Alloc alloc, in RecordField a) {
 	final switch (a.visibility) {
 		case Visibility.private_:
+		case Visibility.internal:
 			return none!Repr;
 		case Visibility.public_:
 			ArrBuilder!NameAndRepr fields;

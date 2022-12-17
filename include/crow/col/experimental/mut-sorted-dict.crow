@@ -1,13 +1,13 @@
 no-std
 import
-	../../bool: !, &&, bool, new, true
+	../../bool: &&, bool, new, not, true
 	../../compare: !=, <, >, <=
 	../../fun-util: subscript
 	../../hash: hash-mix
 	../../json: json
 	../../misc: key, new, void
 	../../number: ==, <=>, +, -, *, nat64
-	../../option: ==, !, is-empty, new, option, size
+	../../option: ==, force, is-empty, new, option, size
 	../../string: ==, ~~, iter, join, literal, next, slice-left, string, to-string
 	../../test-util: is
 	../../tuple: from, new, pair, to

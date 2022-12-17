@@ -1,6 +1,6 @@
 no-std
 import
-	crow/extra-types: err-t, fd-t
+	crow/c-types: err-t, fd-t
 	crow/number: int32
 	crow/pointer: any-const-pointer, const-pointer, mut-pointer
 	crow/string: c-string

@@ -9,35 +9,35 @@ Other functions like `!=` are defined here, derived from those.
 
 no-std
 import
-	./private/bool-low-level: !, bool, false, true
+	./private/bool-low-level: bool, false, not, true
 
 ###
 Result of comparison.
 
 If `a <=> b` is `equal`, then any function on `a` should return ths same result as a on `b`.
 ###
-comparison enum
+!comparison enum
 	less
 	equal
 	greater
 
-equal[t] spec
+!equal[t] spec
 	== bool(a t, b t)
 
 ###
 When defined for mutable values, this should compare their content without regard to mutablility;
 so it may consider values equal that may not be equal in the future.
 ###
-compare[t] spec t equal
+!compare[t] spec t equal
 	# This should return `equal` iff `==` would return `true`.
 	<=> comparison(a t, b t)
 
 # True iff `!(a == b)`.
-!=[t] bool(a t, b t) noctx, t equal
+!!=[t] bool(a t, b t) noctx, t equal
 	!(a == b)
 
 # True iff `(a <=> b) == less`.
-<[t] bool(a t, b t) noctx, t compare
+!<[t] bool(a t, b t) noctx, t compare
 	match a <=> b
 	as less
 		true
@@ -47,15 +47,15 @@ compare[t] spec t equal
 		false
 
 # True iff `(a <=> b) != greater`.
-<=[t] bool(a t, b t) noctx, t compare
+!<=[t] bool(a t, b t) noctx, t compare
 	!(b < a)
 
 # True iff `(a <=> b) == greater`.
->[t] bool(a t, b t) noctx, t compare
+!>[t] bool(a t, b t) noctx, t compare
 	b < a
 
 # True iff `(a <=> b) != less`.
->=[t] bool(a t, b t) noctx, t compare
+!>=[t] bool(a t, b t) noctx, t compare
 	!(a < b)
 
 ###
@@ -63,7 +63,7 @@ Returns the lesser argument.
 
 Returns `b` if they are equal.
 ###
-min[t] t(a t, b t) noctx, t compare
+!min[t] t(a t, b t) noctx, t compare
 	a < b ? a : b
 
 ###
@@ -71,14 +71,5 @@ Returns the greater argument.
 
 Returns `b` if they are equal.
 ###
-max[t] t(a t, b t) noctx, t compare
+!max[t] t(a t, b t) noctx, t compare
 	a > b ? a : b
-
-###
-Clamps a value to an inclusive range.
-Returns the closest value to `a` that is >= min and <= max.
-
-This means: If `a` is too small, return `min`. If `a` is too large, return `max`.
-###
-clamp[t] t(a t, min t, max t) noctx, t compare
-	a < min ? min : a > max ? max : a

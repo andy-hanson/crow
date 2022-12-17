@@ -586,8 +586,10 @@ Sym symOfNewVisibility(Visibility a) {
 	final switch (a) {
 		case Visibility.private_:
 			return sym!".new";
-		case Visibility.public_:
+		case Visibility.internal:
 			return sym!"new";
+		case Visibility.public_:
+			return sym!"!new";
 	}
 }
 

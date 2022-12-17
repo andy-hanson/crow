@@ -1,8 +1,7 @@
 no-std
 import
 	crow/bool: bool
-	crow/c-types: c-int, size_t, long
-	crow/extra-types: fd-t
+	crow/c-types: c-int, fd-t, size_t, long
 	crow/misc: void
 	crow/number: nat8, nat32
 	crow/private/bootstrap: char8, c-string

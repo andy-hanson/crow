@@ -1,9 +1,9 @@
 import
 	crow/io/process: exit-code, spawn-and-wait-result, stderr, stdout
-	crow/parse: !, ~~, parse, spaces
+	crow/parse: ~~, force, parse, spaces
 	crow/version: is-windows
 	./module:
-		alias-decl, builtin-decl, enum-decl, extern-decl, flags-decl, fun-decl, module,
+		alias-decl, builtin-decl, enum-decl, exports, extern-decl, flags-decl, fun-decl, module,
 		module-export, module-export-value, new, param, p-data, p-mut, p-sendable, purity,
 		spec-decl, spec-ref, type-param, type-ref, record-decl, record-field, spec-builtin,
 		spec-sig, spec-sigs, union-decl, union-member
@@ -22,8 +22,9 @@ get-modules module[](paths string[], remove-prefix string) summon
 
 .to-modules module[](a json, remove-prefix string)
 	a.get-node-type is "root"
-	for x : a["modules"]!.as-list!
+	res module[] = for x : a["modules"]!.as-list!
 		x to-module remove-prefix
+	res filter x => !x.exports.is-empty
 
 .to-module module(a json, remove-prefix string)
 	a.get-node-type is "module"
@@ -87,9 +88,9 @@ get-modules module[](paths string[], remove-prefix string) summon
 		x.as-string! string-to-symbol
 
 .to-record-decl record-decl(a json)
-	has-private = if h ?= a["has-private"]
+	has-non-public-fields = if h ?= a["has-non-public-fields"]
 		h.as-bool!
-	a.get-purity, has-private, for x : a["fields"]!.as-list!
+	a.get-purity, has-non-public-fields, for x : a["fields"]!.as-list!
 		x to-record-field
 
 .get-purity purity(a json)

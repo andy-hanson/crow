@@ -11,23 +11,23 @@ import
 export
 	./private/range-low-level: .., forward-rangeable, low, high, range, rangeable, size, subtract-to-nat
 
-to-list[t] t[](a t range) t rangeable
+!to-list[t] t[](a t range) t rangeable
 	for x : a
 		x
 
 region iteration
 
-is-empty[t] bool(a t range) noctx, t equal
+!is-empty[t] bool(a t range) noctx, t equal
 	a.low == a.high
 
 # Calls `f` for each value in the range, from `a.low` to `a.high - 1`.
-for-loop[t] void(a t range, f act void(t)) t forward-rangeable
+!for-loop[t] void(a t range, f act void(t)) t forward-rangeable
 	cur mut = a low
 	until cur == a.high
 		f[cur]
 		cur := cur + 1
 
-for-break[out, in] out?(a in range, f act out break-or-continue(in)) in forward-rangeable
+!for-break[out, in] out?(a in range, f act out break-or-continue(in)) in forward-rangeable
 	cur mut = a low
 	high = a high
 	loop
@@ -41,10 +41,10 @@ for-break[out, in] out?(a in range, f act out break-or-continue(in)) in forward-
 				cur := cur + 1
 				continue
 
-for-loop[out, in] out[](a in range, f act out(in)) in rangeable
+!for-loop[out, in] out[](a in range, f act out(in)) in rangeable
 	(a for-loop f)::(out array) to-list
 
-for-break[out, in] out(a in range, f-loop act out break-or-continue(in), f-else act out()) in forward-rangeable
+!for-break[out, in] out(a in range, f-loop act out break-or-continue(in), f-else act out()) in forward-rangeable
 	cur mut = a low
 	high = a high
 	loop
@@ -60,7 +60,7 @@ for-break[out, in] out(a in range, f-loop act out break-or-continue(in), f-else 
 				continue
 
 # `true` iff `f` is `true` for some value in the range.
-exists[t] bool(a t range, f act bool(t)) t forward-rangeable
+!exists[t] bool(a t range, f act bool(t)) t forward-rangeable
 	for x : a
 		if f[x]
 			break true
@@ -69,21 +69,21 @@ exists[t] bool(a t range, f act bool(t)) t forward-rangeable
 
 region reverse
 
-range-reverse[t] record
+!range-reverse[t] record by-val
 	low t
 	high t
 
-reverse[t] t range-reverse(a t range) noctx
+!reverse[t] t range-reverse(a t range) noctx
 	a.low, a.high
 
-size[t] nat64(a t range-reverse) noctx, t rangeable
+!size[t] nat64(a t range-reverse) noctx, t rangeable
 	a.high - a.low
 
-is-empty[t] bool(a t range-reverse) noctx, t equal
+!is-empty[t] bool(a t range-reverse) noctx, t equal
 	a.low == a.high
 
 # Calls `f` for each value in the range, from `a.high - 1` to `a.low`.
-for-loop[t] void(a t range-reverse, f act void(t)) t rangeable
+!for-loop[t] void(a t range-reverse, f act void(t)) t rangeable
 	unless a is-empty
 		low = a low
 		cur mut = a.high - 1
@@ -95,7 +95,7 @@ for-loop[t] void(a t range-reverse, f act void(t)) t rangeable
 				cur := cur - 1
 				continue
 
-for-loop[out, in] out[](a in range-reverse, f act out(in)) in rangeable
+!for-loop[out, in] out[](a in range-reverse, f act out(in)) in rangeable
 	with out : a.size build
 		for x : a
 			out ~= f[x]

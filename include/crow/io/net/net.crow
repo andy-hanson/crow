@@ -16,7 +16,7 @@ import
 	win32: new, MAKEWORD, WSADATA, WSAStartup
 	../../compare: !=
 	../../number: ==, int32, nat16, to-int32
-	../../option: !, new, option
+	../../option: force, new, option
 	../../pointer: ==, *, any-const-pointer, as-const, as-ref, const-pointer, mut-pointer, null
 	../../string: ~~, literal, string, to-c-string, to-string
 	../../private/bootstrap: todo

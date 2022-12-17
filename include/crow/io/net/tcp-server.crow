@@ -11,12 +11,11 @@ import
 	sys/types: socklen_t
 	unistd: close, read
 	../../bits: |, bits-intersect
-	../../bool: !, ||, bool, false, true
+	../../bool: ||, bool, false, not, true
 	../../col/array: array, subscript
 	../../col/mut-array: cast-immutable, begin-pointer, mut-array, size, uninitialized-mut-array
 	../../compare: !=, <
-	../../c-types: c-int
-	../../extra-types: fd-t
+	../../c-types: c-int, fd-t
 	../../future: future, handle-exceptions, then, new, subscript
 	../../misc: new, void
 	../../number: ==, <=>, int32, nat8, nat16, nat32, to-int32, to-int64, to-nat32, to-nat64

@@ -3,7 +3,7 @@ import
 		/, ~~, and-return, exact, grammar, grammar-skip, many, map, nat, parse, text-delimited,
 		text-not-containing-any, to-string
 	./module:
-		body_, doc-comment, exports, fields, has-private-fields, is-mut, members, module,
+		body_, doc-comment, exports, fields, has-non-public-fields, is-mut, members, module,
 		module-export, module-export-value, module-path, name, param, params, parents, path, purity,
 		record-field, return-type, spec-ref, spec-sig, specs, target, type-param, type-params, type,
 		type-args, type-ref, union-member, value, variadic
@@ -204,8 +204,8 @@ module-content string(a module, all-exports all-exports)
 	as fun-decl _
 		()
 	as record-decl r
-		pre = if r.has-private-fields
-			"""<p class="has-private">(has private fields)</p>"""
+		pre = if r.has-non-public-fields
+			"""<p class="has-non-public-fields">(has non-public fields)</p>"""
 		fields = "" join for x : r fields
 			x field-content ctx
 		"""{pre}<ul class="members">{fields}</ul>"""

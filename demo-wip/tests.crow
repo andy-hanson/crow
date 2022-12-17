@@ -25,7 +25,8 @@ import
 	crow/col/stack: new, stack
 	crow/col/queue: new, queue
 	crow/crypto/password-hash: quality-moderate
-	crow/io/environ: environ
+	crow/io/environ: get-environ
+	crow/io/file: current-directory
 	crow/io/process: new, process-result
 	crow/io/terminal-color: bold
 	crow/io/time-format: gmt
@@ -33,7 +34,7 @@ import
 	crow/math/vec: new, vec2-32
 	crow/parse: grammar-skip, new
 	crow/parse-command: parse-named-args
-	crow/perf: measure-total, new
+	crow/perf: measure-performance
 	crow/private/bits-tests: dummy-bits-tests
 	crow/private/json-tests: dummy-json-tests
 	crow/private/number-tests: dummy-number-tests
@@ -48,6 +49,7 @@ main nat^(_ string[]) summon
 	_ = () :: ((nat, nat) compact-dict)
 	_ = () :: ((nat, nat) compact-sorted-dict)
 	_ = () :: (nat counter)
+	_ = current-directory
 	_ = () :: (nat deque)
 	_ = dummy-array-tests
 	_ = dummy-bits-tests
@@ -60,7 +62,7 @@ main nat^(_ string[]) summon
 	_ = dummy-set-tests
 	_ = dummy-string-tests
 	_ = () :: nat[nat]
-	_ = () :: environ
+	_ = get-environ
 	_ = () :: ((nat, nat) frozen-dict)
 	_ = () :: (nat frozen-set)
 	_ = () :: grammar-skip
@@ -78,7 +80,7 @@ main nat^(_ string[]) summon
 	_ = () :: ((nat, nat) mut-sorted-dict)
 	_ = () :: (nat mut-sorted-set)
 	_ = () :: (nat mut-stack)
-	_ = () :: measure-total
+	_ = measure-performance
 	_ = () :: ((nat, nat) priority-queue)
 	_ = ((), (), ()) :: process-result
 	_ = () :: (nat set)

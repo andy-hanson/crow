@@ -7,7 +7,7 @@ import
 export
 	./private/bootstrap: err, ok, result
 
-==[t, u] bool(a (t, u) result, b (t, u) result) t equal, u equal
+!==[t, u] bool(a (t, u) result, b (t, u) result) t equal, u equal
 	match a
 	as ok oa
 		match b
@@ -22,21 +22,21 @@ export
 		as err eb
 			ea == eb
 
-then[out, in, err] (out, err) result(a (in, err) result, f act (out, err) result(in))
+!then[out, in, err] (out, err) result(a (in, err) result, f act (out, err) result(in))
 	match a
 	as ok v
 		f[v]
 	as err e
 		e err
 
-![t] t(a (t, exception) result)
+!force[t] t(a (t, exception) result)
 	match a
 	as ok v
 		v
 	as err e
 		e rethrow
 
-is-ok[t, u] bool(a (t, u) result)
+!is-ok[t, u] bool(a (t, u) result)
 	match a
 	as ok _
 		true

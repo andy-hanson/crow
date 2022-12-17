@@ -17,7 +17,7 @@ import
 	./list: ==, first, last, list, new, size, to-list
 
 # Mutable double-ended queue.
-mut-deque[t] record mut
+!mut-deque[t] record mut
 	.inner .mut t mut-array
 	# Points to the first element. Null for an empty queue.
 	.left .mut t mut*
@@ -26,7 +26,7 @@ mut-deque[t] record mut
 	.right .mut t mut*
 
 # New empty `mut-deque`.
-new[t] t mut-deque()
+!new[t] t mut-deque()
 	trusted (), null, null
 
 ###
@@ -34,26 +34,26 @@ Copy elements to a list.
 
 This is O(n).
 ###
-to-list[t] t[](a t mut-deque)
+!to-list[t] t[](a t mut-deque)
 	trusted a.to-mut-array.cast-immutable to-list
 
-.to-mut-array[t] t mut-array(a t mut-deque) no-doc
+.to-mut-array[t] t mut-array(a t mut-deque)
 	trusted unless a is-empty
 		res t mut-array = a.size uninitialized-mut-array
 		res copy-from-deque a
 		res
 
 # Copy elements to a new deque.
-copy[t] t mut-deque(a t mut-deque)
+!copy[t] t mut-deque(a t mut-deque)
 	inner = a to-mut-array
 	trusted inner, inner.begin-pointer, inner.begin-pointer
 
 # `true` iff `a.size == 0`.
-is-empty[t] bool(a t mut-deque)
+!is-empty[t] bool(a t mut-deque)
 	trusted a.left == null
 
 # Number of elements in the deque.
-size[t] nat64(a t mut-deque)
+!size[t] nat64(a t mut-deque)
 	trusted
 		match a.left <=> a.right
 		as less
@@ -65,7 +65,7 @@ size[t] nat64(a t mut-deque)
 			(a.inner.end-pointer - a.left) + (a.right - a.inner.begin-pointer)
 
 # Push a value to the left.
-push[t] void(value t, a t mut-deque)
+!push[t] void(value t, a t mut-deque)
 	trusted
 		a ensure-capacity
 		if a.left == a.inner.begin-pointer
@@ -74,7 +74,7 @@ push[t] void(value t, a t mut-deque)
 		*a.left := value
 
 # Push a value to the right.
-push[t] void(a t mut-deque, value t)
+!push[t] void(a t mut-deque, value t)
 	trusted
 		a ensure-capacity
 		assert a.right < a.inner.end-pointer
@@ -86,7 +86,7 @@ Returns the leftmost element without removing it.
 
 Returns an empty option iff `a` is empty.
 ###
-peek-left[t] t?(a t mut-deque)
+!peek-left[t] t?(a t mut-deque)
 	trusted unless a.left == null
 		*a.left,
 
@@ -95,7 +95,7 @@ Returns the rightmost element without removing it.
 
 Returns an empty option iff `a` is empty.
 ###
-peek-right[t] t?(a t mut-deque)
+!peek-right[t] t?(a t mut-deque)
 	trusted unless a.right == null
 		fixed-right = if a.right == a.inner.begin-pointer
 			a.inner end-pointer
@@ -108,7 +108,7 @@ Removes and returns the leftmost element.
 
 Returns an empty option iff `a` was empty (before calling `pop-left`).
 ###
-pop-left[t] t?(a t mut-deque)
+!pop-left[t] t?(a t mut-deque)
 	trusted unless a.left == null
 		res = *a.left
 		*a.left := zeroed
@@ -126,7 +126,7 @@ Removes and returns the rightmost element.
 
 Returns an empty option iff `a` was empty (before calling `pop-right`).
 ###
-pop-right[t] t?(a t mut-deque)
+!pop-right[t] t?(a t mut-deque)
 	trusted unless a.right == null
 		if a.right == a.inner.begin-pointer
 			a.right := a.inner end-pointer

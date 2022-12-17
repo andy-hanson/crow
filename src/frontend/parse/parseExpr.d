@@ -74,12 +74,11 @@ import frontend.parse.lexer :
 	takeStringPart,
 	Token,
 	tryTakeNameOrOperatorAndRange,
-	tryTakeOperator,
 	tryTakeToken;
 import frontend.parse.parseType : parseType, parseTypeForTypedExpr, tryParseTypeArgForExpr;
 import model.model : AssertOrForbidKind;
 import model.parseDiag : ParseDiag;
-import util.col.arr : empty, only;
+import util.col.arr : empty;
 import util.col.arrUtil : append, arrLiteral, prepend;
 import util.col.arrBuilder : add, ArrBuilder, finishArr;
 import util.memory : allocate;
@@ -262,13 +261,16 @@ ExprAndDedent parseMutEquals(ref Lexer lexer, Pos start, ref ExprAst before, uin
 					return todo!(CallAst.Style)("!");
 				case CallAst.Style.subscript:
 					return CallAst.Style.setSubscript;
+				case CallAst.Style.prefixBang:
+					// `!x := foo`
+					return todo!(CallAst.Style)("!");
 				case CallAst.Style.prefixOperator:
 					if (beforeCall.funName.name == sym!"*")
 						return CallAst.Style.setDeref;
 					else
 						// This is `~x := foo` or `-x := foo`. Have a diagnostic for this.
 						return todo!(CallAst.Style)("!");
-				case CallAst.Style.suffixOperator:
+				case CallAst.Style.suffixBang:
 					// `x! := foo`
 					return todo!(CallAst.Style)("!");
 				case CallAst.Style.comma:
@@ -503,9 +505,6 @@ int symPrecedence(Sym a) {
 			return 9;
 		case sym!"**".value:
 			return 10;
-		case sym!"!".value:
-			// prefix/suffix only
-			return unreachable!int();
 		default:
 			// All other names
 			return 0;
@@ -540,11 +539,11 @@ ExprAst tryParseDotsAndSubscripts(ref Lexer lexer, ExprAst initial) {
 		return tryParseDotsAndSubscripts(lexer, ExprAst(
 			range(lexer, start),
 			ExprAstKind(allocate(lexer.alloc, TypedAst(initial, type)))));
-	} else if (tryTakeOperator(lexer, sym!"!")) {
+	} else if (tryTakeToken(lexer, Token.bang)) {
 		return tryParseDotsAndSubscripts(lexer, ExprAst(
 			range(lexer, start),
 			ExprAstKind(CallAst(
-				CallAst.Style.suffixOperator, NameAndRange(start, sym!"!"), arrLiteral(lexer.alloc, [initial])))));
+				CallAst.Style.suffixBang, NameAndRange(start, sym!"force"), arrLiteral(lexer.alloc, [initial])))));
 	} else
 		return initial;
 }
@@ -896,6 +895,16 @@ ExprAndMaybeDedent parseExprBeforeCall(ref Lexer lexer, AllowedBlock allowedBloc
 			return noDedent(tryParseDotsAndSubscripts(lexer, quoted));
 		case Token.assert_:
 			return parseAssertOrForbid(lexer, start, allowedBlock, AssertOrForbidKind.assert_);
+		case Token.bang:
+			ExprAndMaybeDedent inner = parseExprBeforeCall(lexer, noBlock());
+			return ExprAndMaybeDedent(
+				ExprAst(
+					range(lexer, start),
+					ExprAstKind(CallAst(
+						CallAst.Style.prefixBang,
+						NameAndRange(start, sym!"not"),
+						arrLiteral(lexer.alloc, [inner.expr])))),
+				inner.dedents);
 		case Token.break_:
 			return isAllowBlock(allowedBlock)
 				? toMaybeDedent(parseLoopBreak(lexer, start, asAllowBlock(allowedBlock).curIndent))

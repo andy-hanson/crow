@@ -21,7 +21,7 @@ import
 		WakeAllConditionVariable
 	../bool: bool, false, true
 	../compare: !=, <, <=
-	../extra-types: err-t
+	../c-types: err-t
 	../fun-util: subscript
 	../io/private/time-low-level: get-monotime-nsec, nsec-to-msec, timestamp, to-timespec
 	../misc: new, void

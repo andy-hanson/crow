@@ -36,7 +36,7 @@ lint test-result(path string, options test-options) summon
 
 # Returns number of errors
 .lint-file failure[](path string) summon
-	text = path read-file
+	text string = path read-file
 	res failure mut[] = ()
 	ext = path.get-extension!
 	allow-double-space = ext == "err" || ext == "sublime-syntax"

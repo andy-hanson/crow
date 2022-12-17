@@ -161,8 +161,6 @@ void addFunFlags(ref Alloc alloc, scope ref ArrBuilder!NameAndRepr fields, in Fu
 
 	if (a.noCtx)
 		addFlag!"no-ctx";
-	if (a.noDoc)
-		addFlag!"no-doc";
 	if (a.summon)
 		addFlag!"summon";
 	final switch (a.safety) {
@@ -184,6 +182,9 @@ void addFunFlags(ref Alloc alloc, scope ref ArrBuilder!NameAndRepr fields, in Fu
 			break;
 		case FunFlags.SpecialBody.extern_:
 			addFlag!"extern";
+			break;
+		case FunFlags.SpecialBody.generated:
+			addFlag!"generated";
 			break;
 		case FunFlags.SpecialBody.global:
 			addFlag!"global";

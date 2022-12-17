@@ -2,78 +2,100 @@
 Functions for measuring performance.
 
 Even non-`summon` code is can measure perf, but only `summon` code can access the measurements.
-
-To measure performance:
-* First call `perf-enable`.
-* Then wrap the code you want to measure in `with-perf-measure`.
-* Then call `get-measured-perf` and output the results.
 ###
 no-std
 import
-	./col/dict: ~=, build, dict, with-block
-	./col/list: list, new, to-array
+	./col/array: array, index-of, new, size
+	./col/dict: dict, for-loop
+	./col/list: list, to-array, to-list
+	./col/mut-array: mut-array, n-of, set-subscript, subscript
+	./exception: finally, with-block
 	./fun-util: subscript
-	./io/duration: duration, new, nsec, to-string
+	./io/duration: duration, nsec, to-string
 	./io/private/time-low-level: get-monotime-nsec
 	./misc: void
-	./number: -, nat64, to-float64
-	./string: ~~, literal, string, to-string
-	./symbol: ==, <=>, hash-mix, symbol
-	./tuple: new
-	./private/perf-low-level:
-		add-measure-value-at-index, count, each-measure, get-measure-index, perf-enable-low-level,
-		perf-measure-value, total-nsec
+	./number: +, -, nat64, to-float64
+	./option: new, is-empty, option
+	./pointer: *, mut-pointer, set-deref
+	./string: ~~, join, literal, string, to-string
+	./symbol: ==, <=>, hash-mix, symbol, to-string
+	./tuple: new, pair
 
-perf-enable void(measure-names symbol[]) summon
-	measure-names.to-array perf-enable-low-level
+!perf-result record
+	total duration
+	measures measure-total[symbol]
+!to-string string(a perf-result)
+	measures = ", " join for name, total : a.measures
+		"{name}: {total}"
+	"total: {a total}, {measures}"
 
-# Disables performance measurement and clears all measurements.
-perf-disable void() summon
-	() perf-enable
+# Count and total duration of all measurements with the same name.
+!measure-total record
+	# Number of times a perf measure happend with this name.
+	!count nat64
+	# Total time spent in all measures with this name.
+	!total-duration duration
+!to-string string(a measure-total)
+	"{a count} × {a total-duration}"
 
-###
-Run `f` and measure its time.
-This will be added to the total time for this measure name.
-###
-with-perf-measure[t] t(measure-name symbol, f act t())
-	if index ?= measure-name get-measure-index
+# Use 'nsec' instead of 'duration' to avoid spending time converting to floats
+.measure-accum record
+	count nat64
+	total-nsec nat64
+.new measure-accum()
+	0, 0
+.+ measure-accum(a measure-accum, b measure-accum)
+	a.count + b.count, a.total-nsec + b.total-nsec
+
+!measure-performance record
+	measure-names symbol array
+!measure-performance measure-performance()
+	(),
+!measure-performance measure-performance(measure-names symbol[])
+	measure-names.to-array,
+
+# Enable performance, run the callback, then return its result and the measured performance.
+!with-block[t] (t, perf-result)(a measure-performance, f act t()) summon
+	assert (trusted local-perf->is-empty) : "Already measuring performance"
+	with : (() => trusted clear-perf) finally
+		measure-values measure-accum mut-array = a.measure-names.size n-of ()
+		trusted
+			*local-perf := (a.measure-names, measure-values),
 		start = perf-now
-		res = f[]
-		index add-measure-value-at-index perf-now.nsec - start.nsec
-		res
+		f-res = f[]
+		end = perf-now
+		perf-res perf-result = (end - start).to-float64.nsec, for i, name : a.measure-names.to-list
+			name, (measure-values[i].count, measure-values[i].total-nsec.to-float64.nsec)
+		f-res, perf-res
+
+!perf-measure record
+	measure-name symbol
+!perf-measure perf-measure(measure-name symbol)
+	measure-name,
+
+###
+Runs `f` and returns its result.
+If the performance measure `measure-name` is enabled, this contribues to its performance measurement.
+###
+!with-block[t] t(a perf-measure, f act t())
+	if perf ?= trusted *local-perf
+		if index ?= perf.measure-names index-of a.measure-name
+			start = perf-now
+			res = f[]
+			nsec = perf-now - start
+			perf.measure-accums[index] := perf.measure-accums[index] + (1, nsec)
+			res
+		else
+			f[]
 	else
 		f[]
 
-# Count and total duration of all measurements with the same name.
-measure-total record
-	# Number of times a perf measure happend with this name.
-	count nat64
-	# Total time spent in all measures with this name.
-	total-duration duration
+.local-perf perf? mut*() thread-local
+.perf record mut
+	measure-names symbol array
+	measure-accums measure-accum mut-array
+.clear-perf void() unsafe
+	*local-perf := ()
 
-new measure-total()
-	0, ()
-
-to-string string(a measure-total)
-	"{a count} times, totaling {a total-duration}"
-
-# TODO: what if a measurement is taken while this is running?
-###
-Calls `f` for each performance measurement and its total.
-
-This must be called before `perf-disable`.
-###
-get-measured-perf measure-total[symbol]() summon
-	with out : build
-		f act void(symbol, perf-measure-value) = (name, value) =>
-			out ~= (name, value.to-measure-total)
-		f each-measure
-
-.to-measure-total measure-total(a perf-measure-value)
-	a.count, a.total-nsec.to-float64.nsec
-
-.perf-now perf-time() noctx
-	get-monotime-nsec,
-
-perf-time record
-	.nsec nat64
+.perf-now nat64() noctx
+	get-monotime-nsec

@@ -5,7 +5,7 @@ import
 	../json: json
 	../misc: void
 	../number: ==, +, nat64
-	../option: !, is-empty, new, option
+	../option: force, is-empty, new, option
 	../string: ==, ~~, join, literal, string, to-string
 	../test-util: is
 	../tuple: a, b, new, pair
@@ -14,7 +14,7 @@ import
 	./stack: ~, is-empty, for-loop, new, pop, reversed, size, stack, to-list
 
 # Immutable double-ended queue.
-deque[t] record
+!deque[t] record
 	# NOTE: This is in reverse (top of the stack furthest left)
 	.left t stack
 	.mid t array
@@ -23,19 +23,19 @@ deque[t] record
 ###
 Deque containing the given elements.
 ###
-new[t] t deque(...a t array)
+!new[t] t deque(...a t array)
 	a.to-list to-deque
 
 ###
 Convert a list to a deque. 
 This is O(1).
 ###
-to-deque[t] t deque(a t[])
+!to-deque[t] t deque(a t[])
 	# TODO: should not need type annotation
 	()::(t stack), a.to-array, ()
 
 # Copy elements to a list.
-to-list[t] t[](a t deque)
+!to-list[t] t[](a t deque)
 	for x : a
 		x
 
@@ -43,29 +43,29 @@ to-list[t] t[](a t deque)
 `true` iff `a.size == 0`.
 This is O(1).
 ###
-is-empty[t] bool(a t deque)
+!is-empty[t] bool(a t deque)
 	a.left.is-empty && a.mid.is-empty && a.right.is-empty
 
 ###
 Number of elements in the deque.
 This is O(n).
 ###
-size[t] nat64(a t deque)
+!size[t] nat64(a t deque)
 	a.left.size + a.mid.size + a.right.size
 
 # Pushes an element on the right.
-~[t] t deque(a t deque, value t)
+!~[t] t deque(a t deque, value t)
 	a.left, a.mid, a.right ~ value
 
 # Pushes an element on the left.
-~[t] t deque(value t, a t deque)
+!~[t] t deque(value t, a t deque)
 	a.left ~ value, a.mid, a.right
 
 ###
 Remove a value from the left.
 Returns an empty option iff `a` is empty.
 ###
-pop-left[t] (t, t deque)?(a t deque)
+!pop-left[t] (t, t deque)?(a t deque)
 	if popped ?= a.left pop
 		(popped.b, (popped.a, a.mid, a.right)),
 	elif first ?= a.mid first
@@ -80,7 +80,7 @@ pop-left[t] (t, t deque)?(a t deque)
 Remove a value from the right.
 Returns an empty option iff `a` is empty.
 ###
-pop-right[t] (t deque, t)?(a t deque)
+!pop-right[t] (t deque, t)?(a t deque)
 	if popped ?= a.right pop
 		((a.left, a.mid, popped.a), popped.b),
 	elif last ?= a.mid last
@@ -92,17 +92,17 @@ pop-right[t] (t deque, t)?(a t deque)
 
 region iteration
 
-for-loop[t] void(a t deque, f act void(t))
+!for-loop[t] void(a t deque, f act void(t))
 	a.left.reversed for-loop f
 	a.mid for-loop f
 	a.right for-loop f
 
-for-loop[out, in] out[](a in deque, f act out(in))
+!for-loop[out, in] out[](a in deque, f act out(in))
 	with out : a.size build
 		for x : a
 			out ~= f[x]
 
-for-loop[out, in] out deque(a in deque, f act out(in))
+!for-loop[out, in] out deque(a in deque, f act out(in))
 	a for-loop f to-deque
 
 .dbg string(a nat64 deque)

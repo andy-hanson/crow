@@ -129,18 +129,18 @@ alias TokensBuilder = ArrBuilder!Token;
 RangeWithinFile rangeAtName(in AllSymbols allSymbols, Visibility visibility, Pos start, Sym name) {
 	uint offset = () {
 		final switch (visibility) {
-			case Visibility.public_:
-				return 0;
 			case Visibility.private_:
+			case Visibility.public_:
 				return 1;
+			case Visibility.internal:
+				return 0;
 		}
 	}();
-	Pos afterDot = start + offset;
-	return RangeWithinFile(afterDot, afterDot + symSize(allSymbols, name));
+	return rangeAtName(allSymbols, start + offset, name);
 }
 
 RangeWithinFile rangeAtName(in AllSymbols allSymbols, Pos start, Sym name) =>
-	rangeAtName(allSymbols, Visibility.public_, start, name);
+	RangeWithinFile(start, start + symSize(allSymbols, name));
 
 void addImportTokens(
 	ref Alloc alloc,
@@ -356,10 +356,17 @@ void addExprTokens(ref Alloc alloc, ref TokensBuilder tokens, in AllSymbols allS
 				case CallAst.Style.dot:
 				case CallAst.Style.setDot:
 				case CallAst.Style.infix:
-				case CallAst.Style.suffixOperator:
 					addExprTokens(alloc, tokens, allSymbols, it.args[0]);
 					addName();
 					addExprsTokens(alloc, tokens, allSymbols, it.args[1 .. $]);
+					break;
+				case CallAst.Style.prefixBang:
+					add(alloc, tokens, Token(Token.Kind.fun, rangeOfStartAndLength(it.funName.start, 1)));
+					addExprTokens(alloc, tokens, allSymbols, it.args[0]);
+					break;
+				case CallAst.Style.suffixBang:
+					addExprTokens(alloc, tokens, allSymbols, it.args[0]);
+					add(alloc, tokens, Token(Token.Kind.fun, rangeOfStartAndLength(it.funName.start, 1)));
 					break;
 				case CallAst.style.emptyParens:
 					break;

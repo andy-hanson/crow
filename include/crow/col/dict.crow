@@ -1,23 +1,23 @@
 no-std
 import
 	../bits: &, >>
-	../bool: !, &&, bool, false, new, true
+	../bool: &&, bool, false, new, not, true
 	../compare: !=, <, <=, >=, equal, max
 	../exception: unreachable
 	../fun-util: subscript
 	../hash: hash
 	../misc: key, loop-break, new, void
 	../number: ==, <=>, +, -, nat64
-	../option: !, is-empty, new, option
+	../option: force, is-empty, new, option
 	../range: .., for-loop
 	../string: ~~, literal, join, string, to-string
-	../tuple: from, new, pair, to
+	../tuple: b, from, new, pair, to
 	../private/bootstrap: todo
 	./array:
 		~, ~=, array, array-builder, build, every, find-index, for-break, for-loop, is-empty, new,
 		remove-at, rtail, size, subscript, update-at, with-block
 	./mut-array:
-		cast-immutable, copy-from, fill-mut-array, mut-array, set-subscript, size, subscript,
+		cast-immutable, copy-from, mut-array, n-of, set-subscript, size, subscript,
 		uninitialized-mut-array
 	./list:
 		~=, build, every, first, for-loop, join, list, new, size, tail, to-array, to-list,
@@ -33,10 +33,10 @@ There should be `==`, `<=>`, and `hash-mix` functions defined for the key type `
 This is unordered;
 functions dealing with multiple elements (like `to-list` or `for-loop`) work in arbitrary order.
 ###
-dict[k, v] record by-val
+!dict[k, v] record by-val
 	.root (k, v) node
 
-==[k, v] bool(a v[k], b v[k]) k key, v equal
+!==[k, v] bool(a v[k], b v[k]) k key, v equal
 	# TODO:PERF `a every` nto `a.to-list every`
 	a.size == b.size && a.to-list every pair =>
 		if bv ?= b[pair from]
@@ -58,7 +58,7 @@ dict[k, v] record by-val
 .leaf-max-size nat64()
 	8
 
-empty-dict[k, v] v[k]() noctx, no-doc
+empty-dict[k, v] v[k]() noctx
 	# TODO: type annotation should be unnecessary
 	empty-leaf-node::((k, v) node),
 
@@ -67,14 +67,14 @@ Creates a new dict from the given key-value pairs.
 
 Later pairs overwrite earlier pairs with the same key.
 ###
-new[k, v] v[k](...a (k, v) array) k key
+!new[k, v] v[k](...a (k, v) array) k key
 	a.to-list to-dict
 
 ###
 Converts a list of pairs to a dictionary.
 Later pairs overwrite earlier pairs with the same key.
 ###
-to-dict[k, v] v[k](a (k, v)[]) k key
+!to-dict[k, v] v[k](a (k, v)[]) k key
 	if a.size <= 4 && a.no-duplicate-keys
 		a.to-array.leaf-node,
 	else
@@ -84,7 +84,7 @@ to-dict[k, v] v[k](a (k, v)[]) k key
 		res
 
 # Returns all pairs in the dictionary.
-to-list[k, v] (k, v)[](a v[k]) k key
+!to-list[k, v] (k, v)[](a v[k]) k key
 	for k, v : a; k, v
 
 .no-duplicate-keys[k, v] bool(a (k, v)[]) k key
@@ -96,7 +96,7 @@ to-list[k, v] (k, v)[](a v[k]) k key
 		a.tail every (it => it.from != key) && a.tail.no-duplicate-keys
 
 # True iff the dict has no entries.
-is-empty[k, v] bool(a v[k]) k key
+!is-empty[k, v] bool(a v[k]) k key
 	a.root node-is-empty
 .node-is-empty[k, v] bool(a (k, v) node)
 	match a
@@ -106,7 +106,7 @@ is-empty[k, v] bool(a v[k]) k key
 		l is-empty
 
 # Number of pairs.
-size[k, v] nat64(a v[k]) k key
+!size[k, v] nat64(a v[k]) k key
 	a.root size
 .size[k, v] nat64(a (k, v) node)
 	match a
@@ -122,7 +122,7 @@ size[k, v] nat64(a v[k]) k key
 Gets the value associated with a key.
 Returns an empty option if the key is not in `a`.
 ###
-subscript[k, v] v?(a v[k], key k) k key
+!subscript[k, v] v?(a v[k], key k) k key
 	cur mut = a root
 	remaining-hash mut = key hash
 	loop
@@ -141,14 +141,14 @@ subscript[k, v] v?(a v[k], key k) k key
 					break pair.to
 
 # `true` iff the key is in the dictionary.
-in[k, v] bool(key k, a v[k]) k key
+!in[k, v] bool(key k, a v[k]) k key
 	!a[key].is-empty
 
 ###
 Associates the key `pair.a` with the value `pair.b`.
 This may overwrite the key if it's already in `a`, or add a new entry.
 ###
-~[k, v] v[k](a v[k], pair (k, v)) k key
+!~[k, v] v[k](a v[k], pair (k, v)) k key
 	res = a get-or-update pair.from, _ =>
 		pair.to insert
 	if node ?= res new-node
@@ -190,23 +190,18 @@ Removes a key and its associated value.
 If the key is not in the dictionary, returns `a` unmodified.
 (To distinguish that case, and to get the removed value, use `try-remove`.)
 ###
--[k, v] v[k](a v[k], key k) k key
+!-[k, v] v[k](a v[k], key k) k key
 	if res ?= a try-remove key
-		res rest
+		res b
 	else
 		a
-
-# Value removed from the dictionary, and the new dictionary.
-try-remove-result[k, v] record by-val
-	value v
-	rest v[k]
 
 ###
 Removes a key and its associated value, and returns the value and the new dictionary.
 
 If the key is not in the dictionary, returns an empty option.
 ###
-try-remove[k, v] (k, v) try-remove-result?(a v[k], key k) k key
+!try-remove[k, v] (v, v[k])?(a v[k], key k) k key
 	res = a get-or-update key, _ => remove
 	if value ?= res old-value
 		(value, (res.new-node!,)),
@@ -274,7 +269,7 @@ try-remove[k, v] (k, v) try-remove-result?(a v[k], key k) k key
 Unlike `update-at`, `index` doesn't need to be a valid index.
 If `index > a.size`, entries between the and of `a` and the new entries will be `default`.
 ###
-.update-at-with-default[t] t array(a t array, index nat64, new-value t, default t) no-doc
+.update-at-with-default[t] t array(a t array, index nat64, new-value t, default t)
 	if index < a.size
 		a update-at index, new-value
 	else
@@ -381,7 +376,7 @@ If `index > a.size`, entries between the and of `a` and the new entries will be 
 	for pair : a
 		max-hash := max-hash max (pair.from.hash >> hash-shift low-bits)
 	trusted
-		res (k, v) node mut-array = max-hash + 1 fill-mut-array empty-leaf-node
+		res (k, v) node mut-array = max-hash + 1 n-of empty-leaf-node
 		# TODO: avoid allocating the same leaf twice...
 		res[key-hash] := ((key, value),) leaf-node
 		for pair : a
@@ -395,7 +390,7 @@ If `index > a.size`, entries between the and of `a` and the new entries will be 
 
 region iteration
 
-for-loop[k, v] void(a v[k], f act void(k, v)) k key
+!for-loop[k, v] void(a v[k], f act void(k, v)) k key
 	a.root for-loop f
 .for-loop[k, v] void(a (k, v) node, f act void(k, v)) k key
 	match a
@@ -406,39 +401,39 @@ for-loop[k, v] void(a v[k], f act void(k, v)) k key
 		for pair : l
 			f[pair.from, pair.to]
 
-# Calls `f` on every pair in the dictionary and returns an array of the results.
-for-loop[out, k, v] out[](a v[k], f act out(k, v)) k key
+# Calls `f` on every pair in the dictionary and returns a list of the results.
+!for-loop[out, k, v] out[](a v[k], f act out(k, v)) k key
 	with out : build
 		for k, v : a
 			out ~= f[k, v]
 
-for-loop[k-out, v-out, k, v] v-out[k-out](a v[k], f act (k-out, v-out)(k, v)) k key, k-out key
+!for-loop[k-out, v-out, k, v] v-out[k-out](a v[k], f act (k-out, v-out)(k, v)) k key, k-out key
 	a for-loop f to-dict
 
-for-loop[k, v, in] v[k](a in[], f act (k, v)(in)) k key
+!for-loop[k, v, in] v[k](a in[], f act (k, v)(in)) k key
 	a for-loop f to-dict
-for-loop[k, v, in] v[k](a in[], f act (k, v)(nat64, in)) k key
+!for-loop[k, v, in] v[k](a in[], f act (k, v)(nat64, in)) k key
 	a for-loop f to-dict
 
 region builder
 
-build-dict record
+!build-dict record
 	.size-hint nat64
-build build-dict()
+!build build-dict()
 	0,
-build build-dict(size-hint nat64)
+!build build-dict(size-hint nat64)
 	size-hint,
 
-dict-builder[k, v] record mut
+!dict-builder[k, v] record mut
 	.inner (k, v) array-builder
 
-with-block[k, v] v[k](a build-dict, f act void((k, v) dict-builder)) k key
+!with-block[k, v] v[k](a build-dict, f act void((k, v) dict-builder)) k key
 	(with out : a.size-hint build; f[(out,)])::((k, v) array).to-list to-dict
 
-~=[k, v] void(a (k, v) dict-builder, pair (k, v))
+!~=[k, v] void(a (k, v) dict-builder, pair (k, v))
 	a.inner ~= pair
 
-dbg[k, v] string(a v[k]) no-doc, k to-string, v to-string
+dbg[k, v] string(a v[k]) k to-string, v to-string
 	a.root dbg ""
 
 .dbg[k, v] string(a (k, v) node, path string) k to-string, v to-string

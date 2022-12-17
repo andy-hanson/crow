@@ -430,7 +430,7 @@ void addFunsForRecord(
 		if (has(mutVisibility))
 			exactSizeArrBuilderAdd(funsBuilder, FunDecl(
 				safeCStr!"",
-				force(mutVisibility),
+				leastVisibility(struct_.visibility, force(mutVisibility)),
 				fileAndPosFromFileAndRange(field.range),
 				prependSet(ctx.allSymbols, field.name),
 				typeParams,

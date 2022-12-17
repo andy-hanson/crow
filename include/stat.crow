@@ -1,7 +1,6 @@
 no-std
 import
-	crow/c-types: u-long, u-long-long
-	crow/extra-types: err-t
+	crow/c-types: err-t, u-long, u-long-long
 	crow/number: int32, nat32
 	crow/pointer: mut-pointer
 	crow/string: c-string

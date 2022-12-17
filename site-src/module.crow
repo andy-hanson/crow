@@ -47,7 +47,7 @@ type-param record
 
 record-decl record
 	purity purity
-	has-private-fields bool
+	has-non-public-fields bool
 	fields record-field[]
 
 record-field record

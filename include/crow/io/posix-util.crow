@@ -1,7 +1,7 @@
 no-std
 import
 	errno: errno
-	../extra-types: err-t
+	../c-types: err-t
 	../misc: void
 	../number: ==
 	../string: ~~, literal, to-c-string, to-string

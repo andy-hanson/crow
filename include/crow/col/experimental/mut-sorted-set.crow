@@ -1,6 +1,6 @@
 no-std
 import
-	../../bool: !, bool, new, true
+	../../bool: bool, new, not, true
 	../../fun-util: subscript
 	../../misc: key, new, void
 	../../number: nat64

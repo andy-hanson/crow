@@ -2,8 +2,7 @@ no-std
 import
 	crow/bits: |, <<
 	crow/bool: bool
-	crow/c-types: c-char, c-int, long, u-short, u-int, size_t
-	crow/extra-types: err-t
+	crow/c-types: c-char, c-int, err-t, long, u-short, u-int, size_t
 	crow/misc: void
 	crow/number: int64, max-nat64, nat8, nat16, nat32, nat64, new, to-nat16, to-nat32
 	crow/private/bootstrap: c-string

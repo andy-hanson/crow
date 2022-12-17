@@ -14,7 +14,7 @@ import
 		SYMBOLIC_LINK_FLAG_ALLOW_UNPRIVILEGED_CREATE, SYMBOLIC_LINK_FLAG_DIRECTORY,
 		WIN32_FIND_DATAA
 	../bits: &, |, <<
-	../bool: !, ||, bool, false, new, to-nat64, true
+	../bool: ||, bool, false, new, not, to-nat64, true
 	../col/array: array, begin-pointer, size, subscript
 	../col/mut-array: cast-immutable, begin-pointer, mut-array, size, uninitialized-mut-array
 	../col/list: ~=, build, for-loop, list, new, to-array, to-list, with-block
@@ -25,7 +25,7 @@ import
 	../fun-util: subscript
 	../misc: new, void
 	../number: ==, <=>, nat8, to-nat32, to-nat64
-	../option: is-empty, new, option
+	../option: ??, is-empty, new, option
 	../private/bootstrap: todo
 	../pointer: ==, as-any-const-pointer, as-const, mut-pointer, null, pointer-cast, size-of
 	../range: ..
@@ -38,7 +38,7 @@ import
 	./win32-util: show-win32-error
 
 # `true` iff anything (like a file or directory) exists at the path.
-path-exists bool(path string) summon
+!path-exists bool(path string) summon
 	!path.get-path-kind.is-empty
 
 ###
@@ -47,7 +47,7 @@ path-exists bool(path string) summon
 `true` if the path is a symlink to a directory.
 `false` if nothing exists at the path.
 ###
-is-dir bool(path string) summon
+!is-dir bool(path string) summon
 	if kind ?= path get-path-kind
 		kind == directory
 
@@ -104,7 +104,7 @@ is-file bool(path string) summon
 Returns all children of the directory `path`, as full paths.
 Use `names-in-dir` if you just want their names.
 ###
-paths-in-dir string[](path string) summon
+!paths-in-dir string[](path string) summon
 	for x : path names-in-dir
 		path child-path x
 
@@ -113,7 +113,7 @@ Returns the basename of all children of the directory.
 Does not include ".." or ".".
 Use `paths-in-dir` if you want full paths.
 ###
-names-in-dir string[](path string) summon
+!names-in-dir string[](path string) summon
 	trusted path.to-c-string names-in-dir
 
 .names-in-dir string[](path c-string) summon, unsafe
@@ -174,7 +174,7 @@ names-in-dir string[](path string) summon
 				continue
 
 # Gets the path a symbolic link refers to.
-read-link string(path string) summon
+!read-link string(path string) summon
 	trusted
 		# TODO: smart small and retry if necessAry
 		buff char8 mut-array = 1000 uninitialized-mut-array
@@ -184,7 +184,7 @@ read-link string(path string) summon
 		buff.cast-immutable[0 .. size.to-nat64] as-string
 
 # Create a symbolic link at `link` with the target `target`.
-make-symlink-to void(link string, target string) summon
+!make-symlink-to void(link string, target string) summon
 	trusted if is-windows
 		link-flags = SYMBOLIC_LINK_FLAG_ALLOW_UNPRIVILEGED_CREATE | (target.is-dir ? SYMBOLIC_LINK_FLAG_DIRECTORY : ())
 		ok = link.to-c-string CreateSymbolicLinkA target.to-c-string, link-flags
@@ -201,25 +201,22 @@ Gets the path of the current executable.
 If this program was built to executable, this will return its path.
 Otherwise, this will be the path where `crow` is installed.
 ###
-current-executable-path string() summon
+!current-executable-path string() summon
 	"/proc/self/exe" read-link
 
 # Reads the full contents of the file.
-read-file string(path string) summon
-	path.read-file-binary as-string
+!read-file string(path string) summon
+	path.read-file::nat8[] as-string
 
 # Reads the full contents of the file as bytes.
-read-file-binary nat8[](path string) summon
-	if res ?= path try-read-file-binary
-		res
-	else
-		throw "file does not exist: {path}"
+!read-file nat8[](path string) summon
+	path.try-read-file ?? throw "file does not exist: {path}"
 
 ###
 Writes the full contents of the file as a string.
 If the file already exists, overwrites it.
 ###
-write-file void(path string, content string) summon
+!write-file void(path string, content string) summon
 	trusted path.to-c-string write-file content
 
 .write-file void(path c-string, content string) summon, unsafe
@@ -236,15 +233,15 @@ write-file void(path string, content string) summon
 Like `read-file`, but returns an empty option if the file does not exist.
 Will still throw on other errors, like permission errors.
 ###
-try-read-file string?(path string) summon
-	if bytes ?= path try-read-file-binary
+!try-read-file string?(path string) summon
+	if bytes ?= path.try-read-file :: nat8[]?
 		bytes.as-string,
 
 # Like `try-read-file` but returns binary data.
-try-read-file-binary nat8[]?(path string) summon
-	trusted path.to-c-string try-read-file-binary
+!try-read-file nat8[]?(path string) summon
+	trusted path.to-c-string try-read-file
 
-.try-read-file-binary nat8[]?(path c-string) summon, unsafe
+.try-read-file nat8[]?(path c-string) summon, unsafe
 	if path is-file
 		fd = path fopen "rb"
 		if fd.as-any-const-pointer == null
@@ -283,7 +280,7 @@ try-read-file-binary nat8[]?(path string) summon
 	assert err == 0 : "Error closing {path}"
 
 # Gets the current directory (of the user that ran the program).
-current-directory string() summon
+!current-directory string() summon
 	trusted
 		buff char8 mut-array = 256 uninitialized-mut-array
 		b = is-windows ? buff.begin-pointer _getcwd buff.size : buff.begin-pointer getcwd buff.size
@@ -313,13 +310,13 @@ each-child-recursive void(path string, filter act bool(string), f act void(strin
 		f[path]
 
 # POSIX file permissions.
-file-permissions record
+!file-permissions record
 	user permissions
 	group permissions
 	public permissions
 
 # Permissions for one of user, group, public.
-permissions record
+!permissions record
 	read bool
 	write bool
 	execute bool
@@ -327,37 +324,37 @@ permissions record
 .to-mode mode_t(a permissions)
 	a.read.to-nat64 << 2 | a.write.to-nat64 << 1 | a.execute.to-nat64 to-nat32
 
-no-permissions permissions()
+!no-permissions permissions()
 	false, false, false
 
-all-permissions permissions()
+!all-permissions permissions()
 	true, true, true
 
-user-only file-permissions(user-permissions permissions)
+!user-only file-permissions(user-permissions permissions)
 	user-permissions, no-permissions, no-permissions
 
 # Converts permissions to an integer.
-to-mode mode_t(a file-permissions)
+.to-mode mode_t(a file-permissions)
 	a.user.to-mode << 6 | a.group.to-mode << 3 | a.public.to-mode
 
 # TODO: this might not be the correct default permissions
 # Creates a new empty directory at `path`.
-make-directory void(path string) summon
+!make-directory void(path string) summon
 	# TODO: all-permissions.user-only instead of a number literal
 	# TODO: 'to-nat32' should not be necessary
 	path make-directory 0o777.to-nat32
 
-make-directory void(path string, permissions file-permissions) summon
+!make-directory void(path string, permissions file-permissions) summon
 	path make-directory permissions.to-mode
 
-make-directory void(path string, permissions mode_t) summon
+.make-directory void(path string, permissions mode_t) summon
 	trusted
 		path-c-string = path to-c-string
 		err = is-windows ? path-c-string _mkdir permissions : path-c-string mkdir permissions
 		err check-posix-error
 
 # Deletes the file at `path`.
-remove-file void(path string) summon
+!remove-file void(path string) summon
 	trusted if is-windows
 		ok = path.to-c-string DeleteFileA
 		assert ok : "error removing file at {path}: {GetLastError show-win32-error}"
@@ -368,13 +365,13 @@ remove-file void(path string) summon
 Deletes the directory at `path`.
 It should be empty.
 ###
-remove-directory void(path string) summon
+!remove-directory void(path string) summon
 	trusted path.to-c-string.rmdir check-posix-error
 
-remove-directory-and-contents-non-recursive void(path string) no-doc, summon
+remove-directory-and-contents-non-recursive void(path string) summon
 	path remove-directory-contents-non-recursive
 	path remove-directory
 
-remove-directory-contents-non-recursive void(path string) no-doc, summon
+remove-directory-contents-non-recursive void(path string) summon
 	for child : path names-in-dir
 		"{path}/{child}" remove-file

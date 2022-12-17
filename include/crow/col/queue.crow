@@ -6,8 +6,9 @@ import
 	../json: json
 	../misc: new, void
 	../number: ==, +, nat64
-	../option: !, is-empty, new, option
+	../option: force, is-empty, new, option
 	../test-util: is
+	../tuple: a, b, new, pair
 	./array: array, first, for-loop, is-empty, new, size, tail
 	./list: ==, ~=, build, list, new, to-array, with-block
 	./stack: ~, for-loop, is-empty, new, size, stack, to-list
@@ -17,15 +18,15 @@ Immutable queue.
 
 Supports efficient removal from the left and insertion to the right.
 ###
-queue[t] record
+!queue[t] record
 	.left t array
 	.right t stack
 
 # Empty queue.
-new[t] t queue()
+!new[t] t queue()
 	(), ()
 
-to-queue[t] t queue(a t[])
+!to-queue[t] t queue(a t[])
 	a.to-array, ()
 
 ###
@@ -33,31 +34,27 @@ Copies queue elements to an array.
 
 This is O(n).
 ###
-to-list[t] t[](a t queue)
+!to-list[t] t[](a t queue)
 	for x : a
 		x
 
 # `true` iff `a.size == 0`.
-is-empty[t] bool(a t queue)
+!is-empty[t] bool(a t queue)
 	a.left.is-empty && a.right.is-empty
 
 # Number of elements in the queue.
-size[t] nat64(a t queue)
+!size[t] nat64(a t queue)
 	a.left.size + a.right.size
 
 # Adds a new element on the right.
-~[t] t queue(a t queue, value t)
+!~[t] t queue(a t queue, value t)
 	a.left, a.right ~ value
-
-dequeued[t] record
-	value t
-	rest t queue
 
 ###
 Removes and returns an element from the left.
 Returns an empty option iff `a` is empty.
 ###
-dequeue[t] t dequeued?(a t queue)
+dequeue[t] (t, t queue)?(a t queue)
 	if first ?= a.left first
 		(first, (a.left.tail, a.right)),
 	else
@@ -67,19 +64,19 @@ dequeue[t] t dequeued?(a t queue)
 
 region iteration
 
-for-loop[t] void(a t queue, f act void(t))
+!for-loop[t] void(a t queue, f act void(t))
 	a.left for-loop f
 	a.right for-loop f
 
-for-loop[out, in] out[](a in queue, f act out(in))
+!for-loop[out, in] out[](a in queue, f act out(in))
 	with out : a.size build
 		for x : a
 			out ~= f[x]
 
-for-loop[out, in] out queue(a in queue, f act out(in))
+!for-loop[out, in] out queue(a in queue, f act out(in))
 	a for-loop f to-queue
 
-filter[t] t queue(a t queue, f act bool(t))
+!filter[t] t queue(a t queue, f act bool(t))
 	list t[] = with out : build
 		for x : a
 			if f[x]
@@ -95,19 +92,19 @@ test
 	b = a ~ 1
 	b.to-list is (1,)
 	bd = b.dequeue!
-	bd.value is 1
-	assert bd.rest is-empty
+	bd.a is 1
+	assert bd.b is-empty
 
 	c = b ~ 2
 	c.to-list is (1, 2)
 	cd = c.dequeue!
-	cd.value is 1
-	cdr = cd rest
+	cd.a is 1
+	cdr = cd b
 
 	cdr.to-list is (2,)
 	cdd = cdr.dequeue!
-	cdd.value is 2
-	assert cdd.rest is-empty
+	cdd.a is 2
+	assert cdd.b is-empty
 
 	d = c ~ 3
 	d.to-list is (1, 2, 3)

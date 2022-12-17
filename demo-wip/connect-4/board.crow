@@ -30,7 +30,7 @@ new[t] t board-cache() t new
 	# If their product is > the max key, then we know the key.
 	assert 2 ** 32 * size > max-key
 	# Use max-nat as an impossible key
-	(size fill-mut-array max-nat32), (size fill-mut-array ())
+	(size n-of max-nat32), (size n-of ())
 
 subscript[t] t?(a t board-cache, key board)
 	small-key = key board-key

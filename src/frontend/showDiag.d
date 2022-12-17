@@ -1142,6 +1142,8 @@ string describeTokenForUnexpected(Token token) {
 			return "unexpected keyword 'assert'";
 		case Token.at:
 			return "unexpected '@'";
+		case Token.bang:
+			return "unexpected '!'";
 		case Token.break_:
 			return "unexpected keyword 'break'";
 		case Token.builtin:
@@ -1223,8 +1225,6 @@ string describeTokenForUnexpected(Token token) {
 			return "unexpected newline";
 		case Token.noCtx:
 			return "unexpected keyword 'noctx'";
-		case Token.noDoc:
-			return "unexpected keyword 'no-doc'";
 		case Token.noStd:
 			return "unexpected keyword 'no-std'";
 		case Token.operator:

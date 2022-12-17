@@ -34,7 +34,7 @@ main nat^(_ string[]) summon
 		full-out-path make-symlink-to full-target
 
 .is-up-to-date bool(path string, content string) summon
-	if cur-content ?= path try-read-file
+	if cur-content ?= path.try-read-file :: string?
 		cur-content == content
 
 .ensure-directory-recursive void(path string) summon

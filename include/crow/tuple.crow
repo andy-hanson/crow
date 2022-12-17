@@ -8,17 +8,17 @@ Written `(a, b)`. Generic pair type.
 
 This is often used as a key-value pair in a dictionary or priority queue.
 ###
-pair[t, u] record by-val
+!pair[t, u] record by-val
 	a t
 	b u
 
-==[t, u] bool(a (t, u), b (t, u)) noctx, t equal, u equal
+!==[t, u] bool(a (t, u), b (t, u)) noctx, t equal, u equal
 	a.a == b.a && a.b == b.b
 
 # Same as `a.a`.
-from[t, u] t(a (t, u)) noctx, no-doc
+from[t, u] t(a (t, u)) noctx
 	a a
 
 # Same as `a.b`.
-to[t, u] u(a (t, u)) noctx, no-doc
+to[t, u] u(a (t, u)) noctx
 	a b

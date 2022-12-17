@@ -14,7 +14,7 @@ By default, this means the message is logged to the console.
 This is not considered `summon` since the I/O is done by the log handler,
 which is passed in via the crow context. `with-log-handler` can change it.
 ###
-log void(level log-level, message string)
+!log void(level log-level, message string)
 	get-log-handler[(level, message)]
 
 ###
@@ -23,7 +23,7 @@ Temporarily replaces the log handler.
 Only applies within this task. Even if you launch a task inside `with-log-handler`,
 that task will still have the default log handler.
 ###
-with-log-handler[t] t(handler log-handler, cb act t())
+!with-log-handler[t] t(handler log-handler, cb act t())
 	original-handler = get-log-handler
 	action act t() = () =>
 		trusted handler set-log-handler
@@ -40,7 +40,7 @@ Log severity.
 The log handler can use this any way it wants.
 The default log handler just prints the level at the beginning of each log.
 ###
-log-level enum
+!log-level enum
 	# Any log message not fitting in other levels can be 'info'.
 	info
 	###
@@ -56,10 +56,8 @@ log-level enum
 	###
 	error
 
-###
-`"info"`, `"warn"`, or `"error"`.
-###
-to-string string(a log-level)
+# TODO: this is what 'enum-to-string' would do, is there a way to use that?
+.to-string string(a log-level)
 	match a
 	as info
 		"info"
@@ -69,7 +67,7 @@ to-string string(a log-level)
 		"error"
 
 # Represents a single call to `log`.
-logged record
+!logged record
 	level log-level
 	message string
 
@@ -78,10 +76,10 @@ Function that handles a log message.
 
 For example, this might write it to the console.
 ###
-log-handler alias
+!log-handler alias
 	fun void(logged)
 
-default-log-handler void(a logged) no-doc, summon
+default-log-handler void(a logged) summon
 	out print a.level.to-string ~~ ": " ~~ a.message
 
 # GC doesn't trace thread-locals, but won't outlive a task anyway.
@@ -94,8 +92,8 @@ then fall back to the original log handler.
 
 If you just want to call the curent log handler, you could just use `log`.
 ###
-get-log-handler log-handler() noctx
+!get-log-handler log-handler() noctx
 	trusted *cur-log-handler
 
-set-log-handler void(handler log-handler) noctx, no-doc, unsafe
+set-log-handler void(handler log-handler) noctx, unsafe
 	*cur-log-handler := handler

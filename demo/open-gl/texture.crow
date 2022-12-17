@@ -18,7 +18,7 @@ load-texture-from-bmp GLuint(gl gl-ext, bmp-raw nat8[]) summon, unsafe
 		gl check-error "glBindTexture"
 		w = image.width to-int32
 		h = image.height to-int32
-		image-data = image.image-data as-const
+		image-data = image.image-data cast-immutable
 		gl glTexImage2D GL_TEXTURE_2D, 0, GL_RGBA, w, h, 0, GL_RGBA, GL_UNSIGNED_BYTE, image-data
 		gl check-error "glTexImage2D"
 

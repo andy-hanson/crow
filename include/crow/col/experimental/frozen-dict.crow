@@ -1,6 +1,6 @@
 no-std
 import
-	../../bool: !, &&, ==, bool, true
+	../../bool: &&, ==, bool, not, true
 	../../compare: <=
 	../../fun-util: subscript
 	../../hash: hash, hash-mix
@@ -17,9 +17,8 @@ import
 		~=, array, array-cast, as-array, begin-pointer, end-pointer, build, exists, for-loop,
 		is-empty, new, size, subscript, with-block
 	../mut-array:
-		~=, begin-pointer, build, cast-immutable, end-pointer, fill, fill-mut-array, mut-array,
-		mut-array-builder, for-loop, size, temp-as-array, to-mut-array, set-subscript, subscript,
-		with-block
+		~=, begin-pointer, build, cast-immutable, end-pointer, fill, mut-array, mut-array-builder,
+		for-loop, n-of, size, temp-as-array, to-mut-array, set-subscript, subscript, with-block
 	../list: ==, for-loop, list, new, to-array, to-list
 
 ###
@@ -64,7 +63,7 @@ subscript[k, v] v?(a (k, v) frozen-dict, key k) k key
 in[k, v] bool(key k, a (k, v) frozen-dict) k key
 	!(a try-get-unordered-index key is-empty)
 
-try-get-unordered-index[k, v] nat64?(a (k, v) frozen-dict, key k) no-doc, k key
+try-get-unordered-index[k, v] nat64?(a (k, v) frozen-dict, key k) k key
 	trusted if pointer ?= a find-pointer key
 		pointer - a.pairs.begin-pointer,
 
@@ -99,7 +98,7 @@ find-pointer[k, v] (k, v)*?(cur (k, v)*, end (k, v)*, key k) unsafe, k key
 
 mut-array-to-frozen-dict-promise-no-duplicates[k, v] (k, v) frozen-dict(
 	a (k, v) mut-array,
-) no-doc, unsafe, k key
+)unsafe, k key
 	if a.size <= 4
 		a.cast-immutable, ()
 	else
@@ -169,7 +168,7 @@ mut-array-to-frozen-dict-promise-no-duplicates[k, v] (k, v) frozen-dict(
 	pairs exists pair => key == pair.from
 
 .get-bucket-counts[k, v] nat64 mut-array(a (k, v) mut-array, n-buckets nat64) unsafe, k key
-	res = n-buckets fill-mut-array 0
+	res = n-buckets n-of 0
 	for pair : a
 		bucket-index = pair.from get-bucket-index n-buckets
 		res[bucket-index] := res[bucket-index] + 1

@@ -448,7 +448,7 @@ for-loop[out] out[](a index-set, f act out(nat64))
 		for x : a
 			out ~= f[x]
 
-dbg string(a index-set) no-doc
+dbg string(a index-set)
 	a.root dbg
 .dbg string(a node)
 	match a

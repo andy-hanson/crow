@@ -7,7 +7,7 @@ import
 		WriteFile
 	../col/array: begin-pointer, size
 	../col/list: to-array
-	../extra-types: fd-t
+	../c-types: fd-t
 	../misc: new, void
 	../number: ==, nat8, to-int64, to-nat32
 	../pointer: null, size-of
@@ -16,16 +16,16 @@ import
 	../private/bootstrap: todo
 	./win32-util: show-win32-error
 
-pipe enum
+!pipe enum
 	out
 	err
 
 # Print to stdout or stderr, including a newline.
-print void(pipe pipe, message string) summon
+!print void(pipe pipe, message string) summon
 	pipe print-no-newline "{message}\n"
 
 # Print to stdout or stderr, without appending a newline.
-print-no-newline void(pipe pipe, message string) summon
+!print-no-newline void(pipe pipe, message string) summon
 	if trusted is-windows
 		handle = match out
 		as out
@@ -60,5 +60,5 @@ print-no-newline void(pipe pipe, message string) summon
 		todo
 
 # Clear the terminal.
-clear-screen void() summon
+!clear-screen void() summon
 	out print-no-newline "\x1bc"

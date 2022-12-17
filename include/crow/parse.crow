@@ -11,16 +11,24 @@ import
 	./result: err, ok, result, then
 	./string:
 		==, <=>, ~~, ~=, as-string, build, char8, char8s, hash-mix, is-empty, join, literal,
-		mut-iter, mut-string-iter, next, peek, prev, restore, save, string, string-iter, to-nat8,
+		mut-iter, next, peek, prev, restore, save, string, string-iter, string-mut-iter, to-nat8,
 		to-c-string, to-string, with-block
 	./tuple: a, b, new, pair
+
+###
+Opaque grammar type parsing an 'a' value.
+Use the functions in this module to build a grammar.
+###
+!grammar[t] record mut
+	# This function does *not* restore the iterator on error!
+	.fn act (t, inner-parse-error) result(string-mut-iter)
 
 ###
 Match a string against a grammar.
 THe whole string must match the grammar.
 If the string has leading or trailing spaces you must use a grammar that includes those.
 ###
-parse[t] (t, parse-error) result(a t grammar, text string)
+!parse[t] (t, parse-error) result(a t grammar, text string)
 	iter = text mut-iter
 	match a.fn[iter]
 	as ok v
@@ -33,28 +41,28 @@ parse[t] (t, parse-error) result(a t grammar, text string)
 		(text, e.iter, e.expected) err
 
 # Return a parse result or throw on error.
-![t] t(a (t, parse-error) result)
+!force[t] t(a (t, parse-error) result)
 	match a
 	as ok v
 		v
 	as err e
 		throw "{e}"
 
-parse-error record
-	# The argument passed to 'parse'
+!parse-error record
+	# The argument passed to 'parse'.
 	input string
-	# Position where the parse error happened
+	# Position where the parse error happened.
 	iter string-iter
 	# Description of what was expected.
 	expected string
-== bool(a parse-error, b parse-error)
+!== bool(a parse-error, b parse-error)
 	a.input == b.input && a.iter == b.iter && a.expected == b.expected
 
 .inner-parse-error record
 	iter string-iter
 	expected string
 
-to-string string(a parse-error)
+!to-string string(a parse-error)
 	# TODO: show where it is
 	peek = if p ?= a.iter peek
 		"'{p}'"
@@ -62,38 +70,30 @@ to-string string(a parse-error)
 		"EOF"
 	"expected {a expected}, got {peek}"
 
-###
-Opaque grammar type parsing an 'a' value.
-Use the functions in this module to build a grammar.
-###
-grammar[t] record mut
-	# This function does *not* restore the iterator on error!
-	.fn act (t, inner-parse-error) result(mut-string-iter)
-
 # This is like 'grammar' but produces no result.
-grammar-skip record mut
+!grammar-skip record mut
 	inner void grammar
 
 # Grammar matching empty strings
-new grammar-skip()
+!new grammar-skip()
 	"" exact
 
 .make-grammar record
 .make-grammar make-grammar()
 	()
-.with-block[t] t grammar(_ make-grammar, f act (t, inner-parse-error) result(mut-string-iter))
+.with-block[t] t grammar(_ make-grammar, f act (t, inner-parse-error) result(string-mut-iter))
 	f,
 
 region basic building blocks
 
 # Use to discard the result of any grammar.
-skip[t] grammar-skip(a t grammar)
+!skip[t] grammar-skip(a t grammar)
 	(a map _ => ()),
 
-and-return[t] t grammar(a grammar-skip, value t)
+!and-return[t] t grammar(a grammar-skip, value t)
 	a.inner map _ => value
 
-text-delimited string grammar(begin string, end string)
+!text-delimited string grammar(begin string, end string)
 	begin ~~ end.text-not-containing ~~ end
 
 text-not-containing string grammar(ending string)
@@ -130,7 +130,7 @@ text-not-containing-any string grammar(possible-endings string[])
 		else
 			(iter.save, description) err
 
-.try-take-exact bool(iter mut-string-iter, expect string)
+.try-take-exact bool(iter string-mut-iter, expect string)
 	saved = iter save
 	for expected : expect.char8s
 		if actual ?= iter.next
@@ -147,36 +147,36 @@ text-not-containing-any string grammar(possible-endings string[])
 Expects to parse 'a' followed by 'b'.
 By default this does not allow spaces in between. For that, use `a ~~ spaces ~~ b`.
 ###
-~~[t, u] (t, u) grammar(a t grammar, b u grammar)
+!~~[t, u] (t, u) grammar(a t grammar, b u grammar)
 	with iter : make-grammar
 		x <- a.fn[iter]
 		y <- b.fn[iter]
 		(x, y) ok
-~~[t] t grammar(a t grammar, b grammar-skip)
+!~~[t] t grammar(a t grammar, b grammar-skip)
 	with iter : make-grammar
 		x <- a.fn[iter]
 		_ <- b.inner.fn[iter]
 		x ok
-~~[t] t grammar(a grammar-skip, b t grammar)
+!~~[t] t grammar(a grammar-skip, b t grammar)
 	with iter : make-grammar
 		_ <- a.inner.fn[iter]
 		x <- b.fn[iter]
 		x ok
-~~ grammar-skip(a grammar-skip, b grammar-skip)
+!~~ grammar-skip(a grammar-skip, b grammar-skip)
 	a.inner ~~ b,
 # Skips an exact string, then parses 'b'
-~~[t] t grammar(a string, b t grammar)
+!~~[t] t grammar(a string, b t grammar)
 	a.exact ~~ b
 # Parses 'a', then skips an exact string
-~~[t] t grammar(a t grammar, b string)
+!~~[t] t grammar(a t grammar, b string)
 	a ~~ b.exact
-~~ grammar-skip(a string, b grammar-skip)
+!~~ grammar-skip(a string, b grammar-skip)
 	a.exact ~~ b
-~~ grammar-skip(a grammar-skip, b string)
+!~~ grammar-skip(a grammar-skip, b string)
 	a ~~ b.exact
 
 # Tries to parse with 'a', and if that fails, tries to parse with 'b' instead.
-/[t] t grammar(a t grammar, b t grammar)
+!/[t] t grammar(a t grammar, b t grammar)
 	with iter : make-grammar
 		saved = iter save
 		match a.fn[iter]
@@ -188,18 +188,17 @@ By default this does not allow spaces in between. For that, use `a ~~ spaces ~~ 
 
 # TODO: use 'fun' not 'act'
 # Uses a function to transform the result if parsing is successful.
-map[out, in] out grammar(a in grammar, f act out(in))
+!map[out, in] out grammar(a in grammar, f act out(in))
 	with iter : make-grammar
 		x <- a.fn[iter]
 		f[x] ok
-map[out, in0, in1] out grammar(a (in0, in1) grammar, f act out(in0, in1))
+!map[out, in0, in1] out grammar(a (in0, in1) grammar, f act out(in0, in1))
 	with iter : make-grammar
 		x <- a.fn[iter]
 		f[x.a, x.b] ok
 
-
 # Allows parsing to fail, returning an empty option if it does.
-optional[t] t? grammar(a t grammar)
+!optional[t] t? grammar(a t grammar)
 	with iter : make-grammar
 		match a.fn[iter]
 		as ok v
@@ -207,11 +206,11 @@ optional[t] t? grammar(a t grammar)
 		as err _
 			() ok
 # Optionally skips an exact string.
-optional grammar-skip(a string)
+!optional grammar-skip(a string)
 	a.exact.inner.optional skip
 
 # Parses the same grammar as many times as possible (including 0 times).
-many[t] t[] grammar(a t grammar)
+!many[t] t[] grammar(a t grammar)
 	with iter : make-grammar
 		res t[] = with out : build
 			loop
@@ -225,16 +224,16 @@ many[t] t[] grammar(a t grammar)
 					break
 		res ok
 
-many grammar-skip(a grammar-skip)
+!many grammar-skip(a grammar-skip)
 	inner void[] grammar = a.inner many
 	(inner map _ => ()),
 
 # Parses 'a' at least once, then as many times as possible.
-one-or-more[t] t[] grammar(a t grammar)
+!one-or-more[t] t[] grammar(a t grammar)
 	a ~~ a.many map x =>
 		x.a ~ x.b
 
-one-or-more grammar-skip(a grammar-skip)
+!one-or-more grammar-skip(a grammar-skip)
 	inner void[] grammar = a.inner one-or-more
 	(inner map _ => ()),
 
@@ -244,9 +243,9 @@ Parses 'a' as many times as possible, with 'separator' in between.
 This does not allow a trailing separator;
 it is a parse error to have a separator not followed by another 'a'.
 ###
-separated-by[t] t[] grammar(a t grammar, separator string)
+!separated-by[t] t[] grammar(a t grammar, separator string)
 	a separated-by separator.exact
-separated-by[t] t[] grammar(a t grammar, separator grammar-skip)
+!separated-by[t] t[] grammar(a t grammar, separator grammar-skip)
 	with iter : make-grammar
 		saved = iter save
 		match a.fn[iter]
@@ -275,11 +274,11 @@ separated-by[t] t[] grammar(a t grammar, separator grammar-skip)
 			() ok
 
 
-# Use this to allow recursive grammars. WHen a grammar cycles into itself, make it lazy.
-lazy record
-lazy lazy()
+# Use this to allow recursive grammars.
+!lazy record
+!lazy lazy()
 	()
-with-block[t] t grammar(_ lazy, f fun t grammar())
+!with-block[t] t grammar(_ lazy, f fun t grammar())
 	with iter : make-grammar
 		# TODO: actually be lazy (cache it)
 		grammar = f[]
@@ -288,7 +287,7 @@ with-block[t] t grammar(_ lazy, f fun t grammar())
 region basic elements
 
 # Matches 'a' exactly.
-exact grammar-skip(a string)
+!exact grammar-skip(a string)
 	res void grammar = with iter : make-grammar
 		saved = iter save
 		if iter try-take-exact a
@@ -299,11 +298,11 @@ exact grammar-skip(a string)
 	res,
 
 # Equivalent to `a.exact map _ => value`
-exact[t] t grammar(a string, value t)
+!exact[t] t grammar(a string, value t)
 	a.exact.inner map _ => value
 
 # Matches any amount of whitespace (including none) and discards it.
-spaces grammar-skip()
+!spaces grammar-skip()
 	("" char-matching-predicate (x => x.is-space)).many skip
 
 .is-space bool(a char8)
@@ -312,7 +311,7 @@ spaces grammar-skip()
 	" ", "\r", "\n", "\t"
 
 # A double-quoted string as in JSON, including escape sequences.
-quoted-string string grammar()
+!quoted-string string grammar()
 	with iter : make-grammar
 		saved = iter save
 		if iter try-take "\""
@@ -322,7 +321,7 @@ quoted-string string grammar()
 				(saved, "quoted string") err
 		else
 			(saved, "quoted string") err
-.take-quoted-string-rest string?(iter mut-string-iter)
+.take-quoted-string-rest string?(iter string-mut-iter)
 	error mut bool = false
 	res string = with out : build
 		loop
@@ -358,8 +357,9 @@ quoted-string string grammar()
 	elif a == "0"
 		"\0",
 
+# TODO: support letters from more languages
 # Matches and returns a sequence of letters.
-word string grammar()
+!word string grammar()
 	letter.one-or-more map (x => x as-string)
 
 .letter char8 grammar()
@@ -370,14 +370,14 @@ word string grammar()
 	"a".to-nat8 <= a.to-nat8 && a.to-nat8 <= "z".to-nat8
 
 # Parse a boolean as 'true' or 'false'
-bool bool grammar()
+!bool bool grammar()
 	("true" exact true) / ("false" exact false)
 
 ###
 Parses a natural number in decimal format.
 This allows leading 0s which have no effect.
 ###
-nat nat64 grammar()
+!nat nat64 grammar()
 	with iter : make-grammar
 		saved = iter save
 		if x ?= iter take-nat-and-count-digits
@@ -389,13 +389,13 @@ nat nat64 grammar()
 Parses a signed integer in decimal format.
 This allows e.g. "1", "+23", "-45".
 ###
-int int64 grammar()
+!int int64 grammar()
 	("+".optional ~~ (nat map x => x to-int64)) / ("+" ~~ (nat map x => -x.to-int64))
 
 .nat-and-count-digits record
 	.value nat64
 	.count-digits nat64
-.take-nat-and-count-digits nat-and-count-digits?(a mut-string-iter)
+.take-nat-and-count-digits nat-and-count-digits?(a string-mut-iter)
 	acc mut = 0
 	count-digits mut = 0
 	loop
@@ -407,7 +407,7 @@ int int64 grammar()
 			break
 	unless count-digits == 0
 		(acc, count-digits),
-.next-digit nat64?(a mut-string-iter)
+.next-digit nat64?(a string-mut-iter)
 	if p ?= a peek
 		if digit ?= p char-to-nat64
 			_ = a next
@@ -417,7 +417,11 @@ int int64 grammar()
 	if "0".to-nat8 <= c.to-nat8 && c.to-nat8 <= "9".to-nat8
 		(c.to-nat8 - "0".to-nat8).to-nat64,
 
-float float64 grammar()
+###
+Parse a decimal number.
+This allows e.g. "+1.23".
+###
+!float float64 grammar()
 	with iter : make-grammar
 		saved = iter save
 		sign float64 = if iter try-take "-"
@@ -440,7 +444,7 @@ float float64 grammar()
 		else
 			(saved, "float") err
 
-.try-take bool(a mut-string-iter, c char8)
+.try-take bool(a string-mut-iter, c char8)
 	if a.peek == (c,)
 		_ = a next
 		true

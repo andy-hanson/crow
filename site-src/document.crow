@@ -7,22 +7,21 @@ import
 	./module: module-path, path
 	./page-template: page-template
 	./path-and-content: path-and-content
-	./search-dir-recursive: remove-include-and-crow, search-dir-recursive
+	./search-dir-recursive: search-dir-recursive
 
 documentation path-and-content[]() summon
 	all-module-paths = "include/crow" search-dir-recursive (x => !x.ignore-dir), (x => x != "std.crow")
 	all-modules = all-module-paths get-modules "include/"
-	all-paths module-path[] = for path : all-module-paths sort-paths
-		path.remove-include-and-crow string-to-symbol
+	all-paths = (for x : all-modules; x path) sort-paths
 	all-exports = all-modules all-exports
 	modules path-and-content[] = for module : all-modules
 		module.path document-template "module {module.path}", (module module-content all-exports), all-paths
-	index-content = "site-src/doc/index.html" read-file
+	index-content string = "site-src/doc/index.html" read-file
 	index = "index" document-template "documentation", index-content, all-paths
 	index ~ modules
 
-.sort-paths string[](a string[])
-	a sort x => x split-by "/"
+.sort-paths module-path[](a module-path[])
+	a sort x => "{x}" split-by "/"
 
 .ignore-dir bool(a string)
 	a in ("experimental", "private")::string[]

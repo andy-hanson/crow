@@ -1,7 +1,6 @@
 no-std
 import
-	crow/c-types: c-int, size_t
-	crow/extra-types: err-t, fd-t
+	crow/c-types: c-int, err-t, fd-t, size_t
 	crow/number: int32, max-nat64, nat16, nat64, to-int32, to-int64
 	crow/private/number-low-level: unsafe-to-nat64
 	crow/pointer: any-mut-pointer, mut-pointer
