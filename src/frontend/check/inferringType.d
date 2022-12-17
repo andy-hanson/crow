@@ -246,15 +246,8 @@ bool matchTypesNoDiagnostic(
 	Type expectedType,
 	scope InferringTypeArgs expectedTypeArgs,
 	Type actualType,
-) {
-	final switch (checkType(alloc, programState, expectedType, expectedTypeArgs, actualType)) {
-		case SetTypeResult.set:
-		case SetTypeResult.keep:
-			return true;
-		case SetTypeResult.fail:
-			return false;
-	}
-}
+) =>
+	checkType(alloc, programState, expectedType, expectedTypeArgs, actualType);
 
 struct LoopInfo {
 	immutable Type voidType;
@@ -487,29 +480,13 @@ private bool setTypeNoDiagnostic(ref Alloc alloc, ref ProgramState programState,
 			setToType(expected, actual);
 			return true;
 		},
-		(Type x) {
-			final switch (checkType(alloc, programState, x, InferringTypeArgs(), actual)) {
-				case SetTypeResult.set:
-					return unreachable!bool;
-				case SetTypeResult.keep:
-					return true;
-				case SetTypeResult.fail:
-					return false;
-			}
-		},
+		(Type x) =>
+			checkType(alloc, programState, x, InferringTypeArgs(), actual),
 		(TypeAndInferring[] choices) {
 			bool anyOk = false;
-			foreach (ref TypeAndInferring x; choices) {
-				final switch (checkType(alloc, programState, x.type, x.inferringTypeArgs, actual)) {
-					case SetTypeResult.set:
-						// we'll do the set at the end
-					case SetTypeResult.keep:
-						anyOk = true;
-						break;
-					case SetTypeResult.fail:
-						break;
-				}
-			}
+			foreach (ref TypeAndInferring x; choices)
+				if (checkType(alloc, programState, x.type, x.inferringTypeArgs, actual))
+					anyOk = true;
 			setToType(expected, anyOk ? actual : Type(Type.Bogus()));
 			return anyOk;
 		},
@@ -528,15 +505,6 @@ MutOpt!(const(SingleInferringType)*) tryGetTypeArgFromInferringTypeArgs(
 	tryGetTypeArg_mut(inferringTypeArgs.params, inferringTypeArgs.args, typeParam);
 
 private:
-
-enum SetTypeResult {
-	// Set expected to the actual type.
-	set,
-	// Keep the expected type (ignoring the actual type). This is useful when expected is bogus.
-	keep,
-	// Fail with a type error.
-	fail,
-}
 
 Opt!Type tryGetDeeplyInstantiatedTypeWorker(
 	ref Alloc alloc,
@@ -564,67 +532,58 @@ Opt!Type tryGetDeeplyInstantiatedTypeWorker(
 			return some(Type(instantiateStructNeverDelay(alloc, programState, decl(*i), tempAsArr(newTypeArgs))));
 		});
 
-SetTypeResult setTypeNoDiagnosticWorker_forSingleInferringType(
+bool setTypeNoDiagnosticWorker_forSingleInferringType(
 	ref Alloc alloc,
 	ref ProgramState programState,
 	ref SingleInferringType inferring,
 	Type actual,
 ) {
 	Opt!Type inferred = tryGetInferred(inferring);
-	SetTypeResult res = has(inferred)
-		? checkType(alloc, programState, force(inferred), InferringTypeArgs(), actual)
-		: SetTypeResult.set;
-	final switch (res) {
-		case SetTypeResult.set:
-			cellSet(inferring.type, some(actual));
-			break;
-		case SetTypeResult.keep:
-		case SetTypeResult.fail:
-			break;
-	}
-	return res;
+	bool ok = !has(inferred) || checkType(alloc, programState, force(inferred), InferringTypeArgs(), actual);
+	if (ok) cellSet(inferring.type, some(actual));
+	return ok;
 }
 
 // We are trying to assign 'a = b'.
 // 'a' may contain type parameters from inferringTypeArgs. We'll infer those here.
 // If 'allowConvertAToBUnion' is set, if 'b' is a union type and 'a' is a member, we'll set it to the union.
 // When matching a type, we may fill in type parameters, so we may want to set a new more specific expected type.
-SetTypeResult checkType(
+bool checkType(
 	ref Alloc alloc,
 	ref ProgramState programState,
 	Type a,
 	scope InferringTypeArgs aInferringTypeArgs,
 	Type b,
 ) =>
-	a.matchWithPointers!SetTypeResult(
+	a.matchWithPointers!bool(
 		(Type.Bogus) =>
 			// TODO: make sure to infer type params in this case!
-			SetTypeResult.keep,
+			true,
 		(TypeParam* pa) {
 			MutOpt!(SingleInferringType*) aInferring = tryGetTypeArgFromInferringTypeArgs(aInferringTypeArgs, pa);
 			return has(aInferring)
 				? setTypeNoDiagnosticWorker_forSingleInferringType(alloc, programState, *force(aInferring), b)
-				: b.matchWithPointers!(SetTypeResult)(
+				: b.matchWithPointers!bool(
 					(Type.Bogus) =>
 						// Bogus is assignable to anything
-						SetTypeResult.keep,
+						true,
 					(TypeParam* pb) =>
-						pa == pb ? SetTypeResult.keep : SetTypeResult.fail,
+						pa == pb,
 					(StructInst*) =>
 						// Expecting a type param, got a particular type
-						SetTypeResult.fail);
+						false);
 		},
 		(StructInst* ai) =>
-			b.matchWithPointers!SetTypeResult(
+			b.matchWithPointers!bool(
 				(Type.Bogus) =>
 					// Bogus is assignable to anything
-					SetTypeResult.keep,
+					true,
 				(TypeParam*) =>
-					SetTypeResult.fail,
+					false,
 				(StructInst* bi) =>
 					checkStructInsts(alloc, programState, *ai, aInferringTypeArgs, *bi)));
 
-SetTypeResult checkStructInsts(
+bool checkStructInsts(
 	ref Alloc alloc,
 	ref ProgramState programState,
 	ref StructInst ai,
@@ -632,26 +591,13 @@ SetTypeResult checkStructInsts(
 	ref StructInst bi,
 ) {
 	if (decl(ai) == decl(bi)) {
-		// If we need to set at least one type arg, return Set.
-		// If all passed, return Keep.
-		// Else, return Fail.
-		SetTypeResult res = SetTypeResult.keep;
 		verify(sizeEq(typeArgs(ai), typeArgs(bi)));
-		foreach (size_t i, a; typeArgs(ai)) {
-			Type b = typeArgs(bi)[i];
-			final switch (checkType(alloc, programState, a, aInferringTypeArgs, b)) {
-				case SetTypeResult.set:
-					res = SetTypeResult.set;
-					break;
-				case SetTypeResult.keep:
-					break;
-				case SetTypeResult.fail:
-					return SetTypeResult.fail;
-			}
-		}
-		return res;
+		foreach (size_t i, a; typeArgs(ai))
+			if (!checkType(alloc, programState, a, aInferringTypeArgs, typeArgs(bi)[i]))
+				return false;
+		return true;
 	} else
-		return SetTypeResult.fail;
+		return false;
 }
 
 bool isTypeMatchPossible(in Type a, in InferringTypeArgs aInferring, in Type b, in InferringTypeArgs bInferring) {
