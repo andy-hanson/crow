@@ -4,49 +4,44 @@ import
 		==, |, enum-members, sqlite3, sqlite3_close, sqlite3_exec, sqlite3_free, SQLITE_OK,
 		SQLITE_OPEN_CREATE, SQLITE_OPEN_READWRITE, sqlite3_open_v2
 
-db record force-sendable
+!db record force-sendable
 	raw sqlite3 mut*
 
-.open-sqlite3 record
+!open-sqlite3 record
 	db-path string
-open-sqlite3 open-sqlite3(db-path string)
+!open-sqlite3 open-sqlite3(db-path string)
 	db-path,
-with-block[t] t^(a open-sqlite3, cb ref t(db)) summon, t is-sendable
+!with-block[t] t(a open-sqlite3, cb act t(db)) summon, t is-sendable
 	trusted
 		db mut sqlite3 mut* = null
 		# Create empty file if not exist
 		err = a.db-path.to-c-string sqlite3_open_v2 &db, SQLITE_OPEN_READWRITE | SQLITE_OPEN_CREATE, null
 		assert err == SQLITE_OK
-		res <- cb[(db,)]
-		# TODO: use 'finally'
-		err2 = db sqlite3_close
-		assert err2 == SQLITE_OK
-		res,
+		with : (() => db close) finally
+			cb[(db,)]
 
-run void(db db, command string) summon
-	for _, _ : db query command
+.close void(db sqlite3 mut*) summon, unsafe
+	err2 = db sqlite3_close
+	assert err2 == SQLITE_OK
+
+!run void(db db, command string) summon
+	for _ : db query command
 		()
 
-db-query record mut
+!db-query record mut
 	db db
 	query string
-query db-query(db db, query string)
+!query db-query(db db, query string)
 	db, query
 
-for-loop void(a db-query, f act void(string[], string[])) summon
-	a query-internal (columns, values) =>
-		f[columns, values]
-		continue
+# TODO: this is just to get the size hint. Should be named 'size-hint'?
+!size nat64(_ db-query)
+	0
 
-for-loop[out] out[](a db-query, f act out(string[], string[])) summon
-	with out : build
-		for columns, values : a
-			out ~= f[columns, values]
-
-.query-internal void(a db-query, cb-row act void break-or-continue(string[], string[])) summon
+!iterate bool(a db-query, f act bool(string[symbol])) summon
 	trusted
 		error-message mut c-string = null
-		ctx callback-ctx = cb-row,
+		ctx callback-ctx = f,
 		ctx-ptr = (&ctx)::callback-ctx* as-any-mut-pointer
 		err = a.db.raw sqlite3_exec a.query.to-c-string, &callback, ctx-ptr, &error-message
 		# TODO: if err == SQLITE_ABORT, callback returned non-0
@@ -56,16 +51,9 @@ for-loop[out] out[](a db-query, f act out(string[], string[])) summon
 			throw "ERROR {err.enum-to-string}: {error-string}"
 
 .callback-ctx record by-val mut
-	cb-row act void break-or-continue(string[], string[])
+	cb-row act bool(string[symbol])
 
 .callback c-int(ctx-pointer any-mut-pointer, argc c-int, argv c-string*, col-name c-string*) summon, unsafe
-	ctx callback-ctx = *(ctx-pointer.as-const.pointer-cast::callback-ctx*)
-	column-names string[] = for i : 0 .. argc.to-nat64
-		col-name[i] to-string
-	values string[] = for i : 0 .. argc.to-nat64
-		argv[i] to-string
-	match ctx.cb-row[column-names, values]
-	as loop-break _
-		1
-	as loop-continue
-		0
+	row string[symbol] = for i : 0 .. argc.to-nat64
+		col-name[i].to-string.string-to-symbol, argv[i].to-string
+	(ctx-pointer.as-const.pointer-cast::callback-ctx*)->cb-row[row] ? 1 : 0

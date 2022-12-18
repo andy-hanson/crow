@@ -103,7 +103,7 @@ pull void(a audio-queue, out float32 mut-array) noctx, unsafe
 		a.playing.filter := x =>
 			if x is-over
 				false
-			elif x ref-eq entry
+			elif x reference-equal entry
 				is-playing := true
 				desired
 			else

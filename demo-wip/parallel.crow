@@ -2,27 +2,14 @@ import
 	crow/io/print: out, print
 	crow/private/thread-utils: count-processors
 
-main nat^(_ string[]) summon, trusted
-	out print "running with {count-processors} processors"
-	# TODO: a module with helpers to do things like filter in parallel
-	primes <- for x : 1_000_000 .. 1_010_000 parallel
+main nat^(_ string[]) summon
+	out print "running with {trusted count-processors} processors"
+	fprimes nat[][]^ = for x : 1_000_000 .. 1_010_000 parallel
 		if x is-prime
 			(x,),
+	primes <- fprimes
 	out print "primes: " ~~ (", " join (for x : primes.flatten; "{x}"))
 	()
-
-parallel-range record
-	.inner nat range
-
-parallel parallel-range(a nat range)
-	a,
-
-# TODO: be more generic!
-for-loop nat[][]^(a parallel-range, f fun nat[]^(nat))
-	tasks nat[]^[] = for x : a inner
-		with : parallel
-			f[x]
-	tasks wait-all
 
 # intentionally inefficient to demonstrate parallel speedup
 is-prime bool(a nat)

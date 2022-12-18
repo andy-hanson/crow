@@ -60,7 +60,7 @@ all-exports all-exports(modules module[])
 
 module-content string(a module, all-exports all-exports)
 	exports = "" join for x : a exports
-		ctx ctx = all-exports, a.path, x.name, (for p : x.type-params; p name).to-set
+		ctx ctx = all-exports, a.path, x.name, for p : x.type-params; p name
 		x export-content ctx
 	doc = unless a.doc-comment is-empty
 		"""\n<section class="module-doc">{a.doc-comment format-comment}</section>"""
@@ -288,7 +288,7 @@ module-content string(a module, all-exports all-exports)
 	k = a.type-args[1] type-ref-content ctx
 	"{v}{open keyword}{k}{"]" keyword}"
 .type-ref-fun string(a type-ref, type string, ctx ctx)
-	params = ", " join for x : a.type-args tail
+	params = ", " join for x : a.type-args[1 .. end]
 		x type-ref-content ctx
 	kw = " {type}" keyword
 	"{kw} {a.type-args[0] type-ref-content ctx}({params})"

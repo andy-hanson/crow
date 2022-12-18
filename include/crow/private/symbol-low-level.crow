@@ -1,8 +1,10 @@
 no-std
 import
 	../bool: bool
-	../col/dict: get-or-add, to-dict
-	../col/list: for-loop, size, to-list
+	../col/array: iterate, size
+	../col/collection: for-loop
+	../col/dict: ~=, build, get-or-add
+	../col/list: iterate, size
 	../compare: comparison
 	../misc: void
 	../number: +
@@ -14,7 +16,7 @@ import
 	./runtime: get-global-ctx, global-ctx, set-symbols-table, symbols-lock, symbols-table
 	./thread-utils: with-lock
 export
-	# TODO: ensure that 'symbol' constructor from c-string is not exported
+	# TODO: don't export to-c-string
 	../private/bootstrap: symbol, to-c-string
 
 !== bool(a symbol, b symbol) noctx
@@ -29,7 +31,8 @@ export
 	trusted a.to-c-string literal
 
 init-symbol-table void(a global-ctx)
-	a.symbols-table := (for x : static-symbols.to-list; (x.to-string, x)) to-dict
+	a.symbols-table := for x : static-symbols
+		x.to-string, x
 
 # TODO: name 'to-symbol'
 ###

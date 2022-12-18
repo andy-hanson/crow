@@ -1,101 +1,39 @@
 no-std
 import
-	./bool: bool, false, true
-	./col/array: array, for-loop
-	./col/list: ~=, build, list, to-list, with-block
-	./compare: equal
-	./fun-util: subscript
-	./misc: break-or-continue, loop-break, new, void
-	./number: nat64
+	./bool: &&, bool
+	./compare: <, >, compare, comparison, equal
 	./option: new, option
+	./private/tuple-low-level: new, pair
 export
-	./private/range-low-level: .., forward-rangeable, low, high, range, rangeable, size, subtract-to-nat
-
-!to-list[t] t[](a t range) t rangeable
-	for x : a
-		x
+	./private/range-low-level: .., forward-rangeable, iterate, low, high, range, rangeable, size, subtract-to-nat
 
 region iteration
+
+!==[t] bool(a t range, b t range) noctx, t equal
+	a.low == b.low && a.high == b.high
 
 !is-empty[t] bool(a t range) noctx, t equal
 	a.low == a.high
 
-# Calls `f` for each value in the range, from `a.low` to `a.high - 1`.
-!for-loop[t] void(a t range, f act void(t)) t forward-rangeable
-	cur mut = a low
-	until cur == a.high
-		f[cur]
-		cur := cur + 1
+!range-iterator[t] record by-val
+	collection t range
+	.next-value t
+!==[t] bool(a t range-iterator, b t range-iterator) noctx, t equal
+	assert a.collection == b.collection : "can't compare iterators from different ranges"
+	a.next-value == b.next-value
+!<=>[t] comparison(a t range-iterator, b t range-iterator) noctx, t compare
+	assert a.collection == b.collection : "can't compare iterators from different ranges"
+	a.next-value <=> b.next-value
 
-!for-break[out, in] out?(a in range, f act out break-or-continue(in)) in forward-rangeable
-	cur mut = a low
-	high = a high
-	loop
-		if cur == high
-			break
-		else
-			match f[cur]
-			as loop-break v
-				break v,
-			as loop-continue
-				cur := cur + 1
-				continue
+!begin[t] t range-iterator(a t range) noctx
+	a, a.low
+!end[t] t range-iterator(a t range) noctx
+	a, a.high
 
-!for-loop[out, in] out[](a in range, f act out(in)) in rangeable
-	(a for-loop f)::(out array) to-list
-
-!for-break[out, in] out(a in range, f-loop act out break-or-continue(in), f-else act out()) in forward-rangeable
-	cur mut = a low
-	high = a high
-	loop
-		if cur == high
-			break f-else[]
-		else
-			# TOOD: should it be possible to return f-loop[cur] directly here?
-			match f-loop[cur]
-			as loop-break x
-				break x
-			as loop-continue
-				cur := cur + 1
-				continue
-
-# `true` iff `f` is `true` for some value in the range.
-!exists[t] bool(a t range, f act bool(t)) t forward-rangeable
-	for x : a
-		if f[x]
-			break true
-	else
-		false
-
-region reverse
-
-!range-reverse[t] record by-val
-	low t
-	high t
-
-!reverse[t] t range-reverse(a t range) noctx
-	a.low, a.high
-
-!size[t] nat64(a t range-reverse) noctx, t rangeable
-	a.high - a.low
-
-!is-empty[t] bool(a t range-reverse) noctx, t equal
-	a.low == a.high
-
-# Calls `f` for each value in the range, from `a.high - 1` to `a.low`.
-!for-loop[t] void(a t range-reverse, f act void(t)) t rangeable
-	unless a is-empty
-		low = a low
-		cur mut = a.high - 1
-		loop
-			f[cur]
-			if cur == low
-				break
-			else
-				cur := cur - 1
-				continue
-
-!for-loop[out, in] out[](a in range-reverse, f act out(in)) in rangeable
-	with out : a.size build
-		for x : a
-			out ~= f[x]
+!prev[t] (t range-iterator, t)?(a t range-iterator) noctx, t rangeable
+	if a.next-value > a.collection.low
+		value = a.next-value - 1
+		((a.collection, value), value),
+!next[t] (t, t range-iterator)?(a t range-iterator) noctx, t forward-rangeable
+	if a.next-value < a.collection.high
+		(a.next-value, (a.collection, a.next-value + 1)),

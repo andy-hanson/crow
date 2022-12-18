@@ -32,7 +32,7 @@ export
 
 # Taking 'gc' explicitly to avoid accidental uses
 get-backtrace backtrace(gc gc-ctx, skip nat64) noctx, unsafe
-	max-entries = 8
+	max-entries = 16
 	opt-entries backtrace-entry mut*? = gc try-alloc-uninitialized max-entries
 	if entries ?= opt-entries
 		if is-interpreted

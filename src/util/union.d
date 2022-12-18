@@ -187,6 +187,7 @@ mixin template UnionMutable(Types...) {
 
 	import util.memory : overwriteMemory;
 	import util.union_ : toHandlersConst, toHandlersMutable;
+	import util.util : verify;
 
 	private uint kind;
 	union {

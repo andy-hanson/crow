@@ -273,6 +273,18 @@ T[] copyArr(T)(ref Alloc alloc, scope T[] a) =>
 	return res[0 .. resSize];
 }
 
+bool zipEvery(T, U)(
+	in T[] a,
+	in U[] b,
+	in bool delegate(in T, in U) @safe @nogc pure nothrow cb,
+) {
+	verify(sizeEq(a, b));
+	foreach (size_t i; 0 .. a.length)
+		if (!cb(a[i], b[i]))
+			return false;
+	return true;
+}
+
 void zip(T, U)(
 	scope T[] a,
 	scope U[] b,
@@ -335,14 +347,8 @@ void zipPtrFirst(T, U)(
 	return res[0 .. sz];
 }
 
-bool arrsCorrespond(T, U)(in T[] a, in U[] b, in bool delegate(in T, in U) @safe @nogc pure nothrow cb) {
-	if (!sizeEq(a, b))
-		return false;
-	foreach (size_t i; 0 .. a.length)
-		if (!cb(a[i], b[i]))
-			return false;
-	return true;
-}
+bool arrsCorrespond(T, U)(in T[] a, in U[] b, in bool delegate(in T, in U) @safe @nogc pure nothrow cb) =>
+	sizeEq(a, b) && zipEvery!(T, U)(a, b, cb);
 
 bool arrEqual(T)(in T[] a, in T[] b) =>
 	arrsCorrespond!(T, T)(a, b, (in T x, in T y) => x == y);

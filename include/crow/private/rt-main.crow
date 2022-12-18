@@ -1,7 +1,8 @@
 no-std
 import
-	../col/array: array, subscript
-	../col/list: for-loop, list, tail, to-list
+	../col/array: +, -, array, begin, end, iterate, size, slice, subscript
+	../col/collection: .., end, for-loop, subscript
+	../col/list: ~=, build, list
 	../fun-util: subscript
 	../future: delay, future, handle-exceptions, then
 	../misc: void
@@ -83,7 +84,7 @@ init-constants void() builtin, noctx, summon, unsafe
 	res = delay then () =>
 		get-global-ctx init-symbol-table
 		# First argument is the path to this executable; omit from crow main
-		main-pointer[for arg : all-args.to-list.tail; arg to-string]
+		main-pointer[for arg : all-args[1 .. end]; arg to-string]
 	res handle-exceptions
 	res
 

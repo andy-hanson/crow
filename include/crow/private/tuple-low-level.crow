@@ -1,0 +1,5 @@
+no-std
+
+!pair[t, u] record by-val
+	a t
+	b u

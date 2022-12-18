@@ -12,6 +12,9 @@ export
 !new[t] spec
 	new t()
 
+!copy[t] spec
+	copy t(a t)
+
 # Spec for values that can be used as keys in a dictionary or set.
 !key[t] spec t is-data, t compare, t hash-mix
 

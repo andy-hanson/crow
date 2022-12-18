@@ -4,16 +4,16 @@ import
 	crow/io/print: out, print
 	./failure: failure, flat-map-with-max-size, max-failures, new, print-tests, test-options, test-result
 
-lint test-result(path string, options test-options) summon
+lint test-result^(path string, options test-options) summon
 	files = path list-lintable-files
-	failures = files flat-map-with-max-size options.max-failures, file =>
+	failures <- files flat-map-with-max-size options.max-failures, file =>
 		if options print-tests
 			out print "lint {file}"
-		file lint-file
+		file.lint-file,
 	if failures is-empty
-		"linted {files size} files" ok
+		"linted {files size} files".ok,
 	else
-		failures err
+		failures.err,
 
 .list-lintable-files string[](path string) summon
 	res string mut[] = ()
@@ -43,7 +43,7 @@ lint test-result(path string, options test-options) summon
 	for line-num, line : text lines
 		ln = line-num + 1 to-string
 		space-space = " " ~~ " "
-		if !allow-double-space && line contains-substr space-space
+		if !allow-double-space && line contains-seq space-space
 			message = "line {ln} contains a double space"
 			res ~= (path, message)
 		width = line line-len
@@ -52,7 +52,7 @@ lint test-result(path string, options test-options) summon
 			res ~= (path, message)
 	res move-to-list
 
-.ignored-extensions string[]()
+.ignored-extensions string set()
 	"c", "data", "json", "o", "out", "repr", "tmLanguage"
 
 .should-ignore-extension bool(ext string)

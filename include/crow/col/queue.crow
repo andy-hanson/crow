@@ -1,17 +1,17 @@
 no-std
 import
-	../bool: &&, ==, bool, true
-	../compare: !=
+	../bool: &&, ||, ==, bool, true
 	../fun-util: subscript
 	../json: json
-	../misc: new, void
+	../misc: void
 	../number: ==, +, nat64
 	../option: force, is-empty, new, option
 	../test-util: is
 	../tuple: a, b, new, pair
-	./array: array, first, for-loop, is-empty, new, size, tail
-	./list: ==, ~=, build, list, new, to-array, with-block
-	./stack: ~, for-loop, is-empty, new, size, stack, to-list
+	./array: +, -, array, begin, end, is-empty, iterate, new, next, size, slice
+	./collection: .., build-options, end, for-loop, subscript
+	./list: ==, ~=, build, list, list-builder, new, to-array
+	./stack: ~, is-empty, iterate, new, size, stack, to-list
 
 ###
 Immutable queue.
@@ -54,34 +54,26 @@ This is O(n).
 Removes and returns an element from the left.
 Returns an empty option iff `a` is empty.
 ###
-dequeue[t] (t, t queue)?(a t queue)
-	if first ?= a.left first
-		(first, (a.left.tail, a.right)),
+!dequeue[t] (t, t queue)?(a t queue)
+	if a.left is-empty
+		unless a.right is-empty
+			(a.right.to-list.to-array, ()) dequeue
 	else
-		right-array = a.right.to-list to-array
-		if first ?= right-array first
-			(first, (right-array.tail, ())),
+		(a.left[0], (a.left[1 .. end], a.right)),
 
 region iteration
 
-!for-loop[t] void(a t queue, f act void(t))
-	a.left for-loop f
-	a.right for-loop f
+!iterate[t] bool(a t queue, f act bool(t))
+	a.left iterate f || a.right iterate f
 
-!for-loop[out, in] out[](a in queue, f act out(in))
-	with out : a.size build
-		for x : a
-			out ~= f[x]
+region build
 
-!for-loop[out, in] out queue(a in queue, f act out(in))
-	a for-loop f to-queue
-
-!filter[t] t queue(a t queue, f act bool(t))
-	list t[] = with out : build
-		for x : a
-			if f[x]
-				out ~= x
-	list to-queue
+!queue-builder[t] record mut
+	.inner t list-builder
+!build[t] t queue(a build-options, f act void(t queue-builder))
+	a build (out => f[(out,)]) to-queue
+!~=[t] void(a t queue-builder, value t)
+	a.inner ~= value
 
 test
 	a nat64 queue = ()
@@ -109,5 +101,4 @@ test
 	d = c ~ 3
 	d.to-list is (1, 2, 3)
 
-	(d filter x => x != 2).to-list is (1, 3)
 	(for x : d; x + 10)::(nat64 queue).to-list is (11, 12, 13)

@@ -1,14 +1,15 @@
 no-std
 import
 	../bool: false, true
-	../col/dict: new
-	../col/list: new
-	../json: ==, json, new, json-bool, json-list, json-number, json-object, json-string, to-string
+	../col/dict: dict, new
+	../col/list: list, new
+	../json: ==, new, null, json, to-string
 	../misc: void
 	../number: nat64
-	../parse: ==, expected, parse, parse-error
-	../result: ==, ok
-	../string: ==, <=>, hash-mix, literal, string
+	../parse: ==, expected, new, parse, parse-error
+	../result: ==, err, ok
+	../string: ==, begin, literal, string
+	../symbol: ==, <=>, hash-mix, symbol
 	../test-util: is
 	../tuple: new
 
@@ -25,19 +26,21 @@ dummy-json-tests nat64()
 	a.to-string is s
 
 test
-	true.json-bool verify "true"
-	false.json-bool verify "false"
-	-3.0.json-number verify "-3"
-	1.5.json-number verify "1.5"
-	-1.5.json-number verify "-1.5"
-	"j".json-string verify "\"j\""
-	"a\nb".json-string verify "\"a\\nb\""
-	"a\\nb".json-string verify "\"a\\\\nb\""
+	json parse "potato" is ("potato", "potato".begin, "expected 'null'").err
+	null verify "null"
+	true.json verify "true"
+	false.json verify "false"
+	-3.0.json verify "-3"
+	1.5.json verify "1.5"
+	-1.5.json verify "-1.5"
+	"j".json verify "\"j\""
+	"a\nb".json verify "\"a\\nb\""
+	"a\\nb".json verify "\"a\\\\nb\""
 
-	().json-list verify "[]"
-	(1.0.json-number,).json-list verify "[1]"
-	(1.0.json-number, true.json-bool).json-list verify "[1,true]"
+	()::json[].json verify "[]"
+	(1.0.json,).json verify "[1]"
+	(1.0.json, true.json)::json[].json verify "[1,true]"
 
-	().json-object verify "\{}"
-	(("a", 1.0.json-number),).json-object verify "\{\"a\":1}"
-	(("a", 1.0.json-number), ("x\ny", true.json-bool)).json-object verify "\{\"a\":1,\"x\\ny\":true}"
+	()::json[symbol].json verify "\{}"
+	(("a", 1.0.json),)::json[symbol].json verify "\{\"a\":1}"
+	(("a", 1.0.json), ("x\ny", true.json))::json[symbol].json verify "\{\"a\":1,\"x\\ny\":true}"

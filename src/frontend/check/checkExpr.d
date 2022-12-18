@@ -30,10 +30,10 @@ import frontend.check.inferringType :
 	LocalsInfo,
 	LoopInfo,
 	markIsUsedSetOnStack,
-	mustSetType,
 	Pair,
 	programState,
 	rangeInFile2,
+	setExpectedIfNoInferred,
 	shallowInstantiateType,
 	tryGetDeeplyInstantiatedTypeFor,
 	tryGetInferred,
@@ -412,7 +412,6 @@ Expr checkInterpolated(
 	in InterpolatedAst ast,
 	ref Expected expected,
 ) {
-	defaultExpectedToString(ctx, range, expected);
 	// TODO: NEATER (don't create a synthetic AST)
 	// "a{b}c" ==> "a" ~~ b.to-str ~~ "c"
 	CallAst call = checkInterpolatedRecur(ctx, ast.parts, range.start + 1, none!ExprAst);
@@ -815,9 +814,7 @@ StructInst* expectedStructOrNull(ref const Expected expected) {
 }
 
 void defaultExpectedToString(ref ExprCtx ctx, FileAndRange range, ref Expected expected) {
-	Opt!Type inferred = tryGetInferred(expected);
-	if (!has(inferred))
-		mustSetType(ctx.alloc, ctx.programState, expected, getStrType(ctx, range));
+	setExpectedIfNoInferred(expected, () => getStrType(ctx, range));
 }
 
 Type getStrType(ref ExprCtx ctx, FileAndRange range) =>

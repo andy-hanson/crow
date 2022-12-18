@@ -1,6 +1,7 @@
 no-std
 import
-	../col/array: array, for-loop, size
+	../col/array: array, iterate, size
+	../col/collection: for-loop
 	../fun-util: subscript
 	../io/print: out, print
 	../misc: void

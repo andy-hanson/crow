@@ -679,7 +679,7 @@ Program checkEverything(
 	ref FilesInfo filesInfo,
 	in CommonModuleIndices moduleIndices,
 ) {
-	ProgramState programState;
+	ProgramState programState = ProgramState();
 	ModulesAndCommonTypes modulesAndCommonTypes = getModules(
 		modelAlloc, perf, allSymbols, diagsBuilder, programState, moduleIndices.common[CommonPath.std], allAsts);
 	Module[] modules = modulesAndCommonTypes.modules;

@@ -9,19 +9,22 @@ import
 	../misc: key, loop-break, new, void
 	../number: ==, <=>, +, -, nat64
 	../option: force, is-empty, new, option
-	../range: .., for-loop
-	../string: ~~, literal, join, string, to-string
+	../range: .., iterate, size
+	../string: ~~, literal, new, string, to-string
 	../tuple: b, from, new, pair, to
 	../private/bootstrap: todo
 	./array:
-		~, ~=, array, array-builder, build, every, find-index, for-break, for-loop, is-empty, new,
-		remove-at, rtail, size, subscript, update-at, with-block
+		~, ~=, +, -, array, begin, build, end, is-empty, iterate, new, next, remove-at, size, slice,
+		update-at
+	./collection:
+		.., -, build-options, end, find-index, flatten, for-break, for-loop, every, join, n-of,
+		set-subscript, subscript
 	./mut-array:
-		cast-immutable, copy-from, mut-array, n-of, set-subscript, size, subscript,
+		~=, +, begin, build, cast-immutable, copy-from, mut-array, next, set-next, size, slice,
 		uninitialized-mut-array
 	./list:
-		~=, build, every, first, for-loop, join, list, new, size, tail, to-array, to-list,
-		with-block
+		~~, ~=, +, -, begin, build, end, iterate, list, list-builder, new, next, size, slice,
+		to-array, to-list
 
 ###
 Immutable unordered dictionary type.
@@ -37,10 +40,9 @@ functions dealing with multiple elements (like `to-list` or `for-loop`) work in 
 	.root (k, v) node
 
 !==[k, v] bool(a v[k], b v[k]) k key, v equal
-	# TODO:PERF `a every` nto `a.to-list every`
-	a.size == b.size && a.to-list every pair =>
-		if bv ?= b[pair from]
-			bv == pair.to
+	a.size == b.size && a every (k, v) =>
+		if bv ?= b[k]
+			bv == v
 
 .node[k, v] union
 	inner-node (k, v) node array
@@ -59,8 +61,7 @@ functions dealing with multiple elements (like `to-list` or `for-loop`) work in 
 	8
 
 empty-dict[k, v] v[k]() noctx
-	# TODO: type annotation should be unnecessary
-	empty-leaf-node::((k, v) node),
+	empty-leaf-node,
 
 ###
 Creates a new dict from the given key-value pairs.
@@ -92,8 +93,8 @@ Later pairs overwrite earlier pairs with the same key.
 	if a.size <= 1
 		true
 	else
-		key = a.first! from
-		a.tail every (it => it.from != key) && a.tail.no-duplicate-keys
+		key = a[0] from
+		a[1 .. end] every (it => it.from != key) && a[1 .. end].no-duplicate-keys
 
 # True iff the dict has no entries.
 !is-empty[k, v] bool(a v[k]) k key
@@ -286,7 +287,7 @@ If `index > a.size`, entries between the and of `a` and the new entries will be 
 		leaf
 	elif new-child node-is-empty
 		if which == a.size - 1
-			new-children = a rtail
+			new-children = a[0 .. end - 1]
 			new-children.size == 1 ? new-children[0] : new-children.inner-node
 		else
 			new-children = a update-at which, new-child
@@ -324,7 +325,7 @@ If `index > a.size`, entries between the and of `a` and the new entries will be 
 
 .find-only-non-empty-child[k, v] (k, v) node?(children (k, v) node array)
 	first-non-empty-index = (children find-index it => !it.node-is-empty)!
-	if children[first-non-empty-index + 1 .. children.size] every it => it node-is-empty
+	if children[first-non-empty-index + 1 .. end] every it => it node-is-empty
 		children[first-non-empty-index],
 
 .get-or-update-leaf[k, v] (k, v) get-or-update-result(
@@ -378,7 +379,7 @@ If `index > a.size`, entries between the and of `a` and the new entries will be 
 	trusted
 		res (k, v) node mut-array = max-hash + 1 n-of empty-leaf-node
 		# TODO: avoid allocating the same leaf twice...
-		res[key-hash] := ((key, value),) leaf-node
+		res[key-hash] := ((key, value),).leaf-node
 		for pair : a
 			x = pair.from.hash >> hash-shift low-bits
 			res[x] := match res[x]
@@ -388,63 +389,38 @@ If `index > a.size`, entries between the and of `a` and the new entries will be 
 				l ~ pair leaf-node
 		res.cast-immutable inner-node
 
-region iteration
+region spec impls (see collection.crow)
 
-!for-loop[k, v] void(a v[k], f act void(k, v)) k key
-	a.root for-loop f
-.for-loop[k, v] void(a (k, v) node, f act void(k, v)) k key
+!iterate[k, v] bool(a v[k], f-loop act bool(k, v))
+	a.root iterate-recur f-loop
+.iterate-recur[k, v] bool(a (k, v) node, f act bool(k, v))
 	match a
 	as inner-node i
-		for child : i
-			child for-loop f
+		i iterate child =>
+			child iterate-recur f
 	as leaf-node l
-		for pair : l
-			f[pair.from, pair.to]
+		l iterate pair =>
+			f[pair from, pair to]
 
-# Calls `f` on every pair in the dictionary and returns a list of the results.
-!for-loop[out, k, v] out[](a v[k], f act out(k, v)) k key
-	with out : build
-		for k, v : a
-			out ~= f[k, v]
-
-!for-loop[k-out, v-out, k, v] v-out[k-out](a v[k], f act (k-out, v-out)(k, v)) k key, k-out key
-	a for-loop f to-dict
-
-!for-loop[k, v, in] v[k](a in[], f act (k, v)(in)) k key
-	a for-loop f to-dict
-!for-loop[k, v, in] v[k](a in[], f act (k, v)(nat64, in)) k key
-	a for-loop f to-dict
-
-region builder
-
-!build-dict record
-	.size-hint nat64
-!build build-dict()
-	0,
-!build build-dict(size-hint nat64)
-	size-hint,
+subregion build
 
 !dict-builder[k, v] record mut
-	.inner (k, v) array-builder
-
-!with-block[k, v] v[k](a build-dict, f act void((k, v) dict-builder)) k key
-	(with out : a.size-hint build; f[(out,)])::((k, v) array).to-list to-dict
-
+	.inner (k, v) list-builder
+!build[k, v] v[k](a build-options, f act void((k, v) dict-builder)) k key
+	a build (out => f[(out,)]) to-dict
 !~=[k, v] void(a (k, v) dict-builder, pair (k, v))
 	a.inner ~= pair
 
 dbg[k, v] string(a v[k]) k to-string, v to-string
 	a.root dbg ""
-
 .dbg[k, v] string(a (k, v) node, path string) k to-string, v to-string
 	match a
 	as inner-node node
-		parts string[] = () join for index : 0 .. node.size
-			child = node[index]
+		parts string[][] = for index, child : node
 			unless child node-is-empty
 				(child dbg "{path}{index}"),
-		" " join parts
+		" " join parts.flatten
 	as leaf-node l
-		parts = ", " join for pair : l to-list
+		parts string[] = for pair : l
 			"{pair from} -> {pair to}"
-		"{path}[{parts}]"
+		"{path}[{", " join parts}]"

@@ -10,17 +10,21 @@ import
 	../../option: ??, force, new, option
 	../../pointer: ==, <=>, +, -, *, as-const, const-pointer, mut-pointer, set-deref
 	../../range: ..
-	../../string: ==, <=>, ~~, hash-mix, join, literal, new, string, to-string
+	../../string: ==, <=>, ~~, hash-mix, literal, new, string, to-string
 	../../test-util: is
-	../array: array, as-array, begin-pointer, end-pointer, index, is-empty, new, size, subscript, tail
+	../array:
+		~=, +, -, array, as-array, begin, begin-pointer, build, end, end-pointer, is-empty, iterate,
+		new, next, next-index, size, slice
+	../collection:
+		.., -, build, build-options, end, for-loop, join, set-subscript, subscript, with-block
 	../mut-array:
-		~=, begin-pointer, build, end-pointer, is-empty, mut-array, mut-array-builder,
-		set-subscript, size, subscript, uninitialized-mut-array, with-block
-	../list: ~=, build, for-loop, list, to-array, to-list, with-block
+		~=, +, -, begin, begin-pointer, build, end, end-pointer, is-empty, mut-array,
+		mut-array-builder, next, set-next, size, slice, uninitialized-mut-array
+	../list: ~=, build, iterate, list, list-builder, to-array, to-list
 	../sort: sort
 	../private/sort-utils: binary-search-exact
 	./index-set:
-		~, count-greater-or-equal, count-range, filter-less, for-loop, in, index-set, is-empty, new,
+		~, count-greater-or-equal, count-range, filter-less, in, index-set, is-empty, iterate, new,
 		size, try-remove
 	
 # This is like `set`, but keeps elements in sorted order.
@@ -43,8 +47,7 @@ new[t] t sorted-set(...a t array) t key
 
 # Set containing the given elements (with duplicates removed).
 to-sorted-set[t] t sorted-set(a t[]) t key
-	# TODO: type annotation should be unnecessary
-	(a.sort.to-array, ()) :: (t add-node), ()
+	(a.to-array.sort, ()) :: (t add-node), ()
 
 # Copies elements to a list.
 to-list[t] t[](a t sorted-set) t key
@@ -79,7 +82,7 @@ in[t] bool(value t, a t sorted-set) t key
 
 .find-in-add[t] nat64?(a t add-node, value t) t key
 	if iter ?= a.values binary-search-exact value
-		a.add-size-left + iter.index,
+		a.add-size-left + iter.next-index,
 	elif left ?= a left
 		left find-in-add value
 
@@ -92,7 +95,7 @@ in[t] bool(value t, a t sorted-set) t key
 .find-in-add-for-remove[t] find-in-add-for-remove-result?(a t add-node, value t, size-right nat64) t key
 	if iter ?= a.values binary-search-exact value
 		sl = a add-size-left
-		(sl + iter.index, sl, a.values.size, size-right),
+		(sl + iter.next-index, sl, a.values.size, size-right),
 	elif left ?= a left
 		# TODO: should be able to write this inline
 		new-size-right = size-right + a.values.size
@@ -315,18 +318,24 @@ Or a combination of the two.
 	assert a.cur == a.end
 	a.begin .. a.end.as-const as-array
 
-region iteration
+region spec impls (see collection.crow)
 
-for-loop[t] void(a t sorted-set, f act void(t)) t key
+iterate[t] bool(a t sorted-set, f act bool(t)) t key
 	iters mut = a init-iters
-	until iters is-empty
-		least-iter-index = iters[0].values[0] find-least-iter 0, 1, iters
-		least-value = iters[least-iter-index].values[0]
-		iters[least-iter-index] := iters[least-iter-index] tail a.remove
-		if iters[least-iter-index] is-empty
-			iters[least-iter-index] := iters[iters.size - 1]
-			iters := iters[0 .. iters.size - 1]
-		f[least-value]
+	loop
+		if iters is-empty
+			break false
+		else
+			least-iter-index = iters[0].values[0] find-least-iter 0, 1, iters
+			least-value = iters[least-iter-index].values[0]
+			iters[least-iter-index] := iters[least-iter-index] tail a.remove
+			if iters[least-iter-index] is-empty
+				iters[least-iter-index] := iters[end - 1]
+				iters := iters[0 .. iters.size - 1]
+			if f[least-value]
+				break true
+			else
+				continue
 
 .find-least-iter[t] nat64(
 	current-least t,
@@ -351,7 +360,7 @@ for-loop[t] void(a t sorted-set, f act void(t)) t key
 	a.values is-empty
 
 .tail[t] t iter-part(a t iter-part, remove index-set)
-	(a.values.tail, a.remove-index + 1) remove-from-front remove
+	(a.values[1 .. end], a.remove-index + 1) remove-from-front remove
 
 .init-iters[t] t iter-part mut-array(a t sorted-set)
 	with out : a.add-node-count build
@@ -382,20 +391,22 @@ for-loop[t] void(a t sorted-set, f act void(t)) t key
 
 .remove-from-front[t] t iter-part(a t iter-part, remove index-set)
 	if !a.values.is-empty && a.remove-index in remove
-		(a.values.tail, a.remove-index + 1) remove-from-front remove
+		(a.values[1 .. end], a.remove-index + 1) remove-from-front remove
 	else
 		a
 
-# Returns a set containing `f[x]` for every element `x` in `a`.
-for-loop[out, in] out sorted-set(a in sorted-set, f act out(in)) out key, in key
-	a for-loop f to-sorted-set
+subregion build
 
-for-loop[out, in] out[](a in sorted-set, f act out(in)) in key
-	with out : a.size build
-		for x : a
-			out ~= f[x]
+sorted-set-builder[t] record mut
+	.inner t list-builder
 
-# TODO: filter
+build[t] t sorted-set(a build-options, f act void(t sorted-set-builder)) t key
+	a build (out => f[(out,)]) to-sorted-set
+
+~=[t] void(a t sorted-set-builder, value t) t key
+	a.inner ~= value
+
+region test
 
 .dbg[t] string(a t sorted-set) t to-string
 	add = a.add dbg
@@ -408,7 +419,7 @@ for-loop[out, in] out[](a in sorted-set, f act out(in)) in key
 .dbg[t] string(a t add-node) t to-string
 	left = if l ?= a left
 		"{l dbg}, "
-	values = " " join for x : a.values to-list; "{x}"
+	values = " " join for x : a values; "{x}"
 	"{left}[{values}]"
 
 .verify void(a string sorted-set, expected string)

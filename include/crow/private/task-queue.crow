@@ -1,7 +1,8 @@
 no-std
 import
 	../bool: &&, bool, not
-	../col/mut-array: fill, mut-array, in, set-subscript, unmanaged-uninitialized-mut-array
+	../col/collection: fill, set-subscript
+	../col/mut-array: +, begin, mut-array, in, next, set-next, unmanaged-uninitialized-mut-array
 	../compare: <, <=
 	../io/private/time-low-level: timestamp
 	../misc: new, void

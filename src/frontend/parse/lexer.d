@@ -1082,7 +1082,7 @@ SafeCStr skipBlankLinesAndGetDocCommentRecur(ref Lexer lexer, SafeCStr comment) 
 		return skipBlankLinesAndGetDocCommentRecur(lexer, takeRestOfBlockComment(lexer));
 	else if (tryTakeChar(lexer, '#'))
 		return skipBlankLinesAndGetDocCommentRecur(lexer, takeRestOfLineAndNewline(lexer));
-	else if (tryTakeCStr(lexer, "region ")) {
+	else if (tryTakeCStr(lexer, "region ") || tryTakeCStr(lexer, "subregion ")) {
 		skipRestOfLineAndNewline(lexer);
 		return skipBlankLinesAndGetDocCommentRecur(lexer, safeCStr!"");
 	} else

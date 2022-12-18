@@ -5,8 +5,8 @@ main nat^(_ string[]) summon
 	# print(out, "crow")
 	out print "crow"
 
-	# print(out, reverse("worc"))
-	out print "worc".reverse
+	# print(out, upper_case("worc"))
+	out print "crow".upper-case
 
 	# print(out, concat("cr", "ow"))
 	out print "cr" ~~ "ow"
@@ -17,8 +17,8 @@ main nat^(_ string[]) summon
 	# print(out, to_str(max(4, 2 * 3)))
 	out print (4 max 2 * 3).to-string
 
-	# print(out, or_default(try_remove_start("escrow", "crow"), reverse("dove")))
-	out print ("escrow" try-remove-start "es" ?? "dove" reverse)
+	# print(out, or_default(try_remove_start("escrow", "crow"), upper_case("dove")))
+	out print ("escrow" try-remove-start "es" ?? "dove" upper-case)
 
 	# print(lower_case(replace(replace("SNOW", "S", "C"), "N", "R")))
 	out print ("SNOW" replace "S", "C" replace "N", "R" lower-case)

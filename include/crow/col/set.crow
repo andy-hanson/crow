@@ -1,20 +1,20 @@
 no-std
 import
-	../bool: bool, new, not
+	../bool: bool, false, new, not, true
 	../compare: <=, >, >=
 	../fun-util: subscript
 	../misc: key, new, void
 	../number: ==, <=>, +, -, *, nat64
 	../option: ??, force, new, option
-	../string: ~~, join, literal, new, string, to-string
+	../string: ~~, literal, new, string, to-string
 	./array: array
+	./collection: build, build-options, filter, for-loop, join, with-block
 	./experimental/index-set:
-		count-greater-or-equal, filter-less, for-loop, in, index-set, is-empty, new, size,
-		try-remove
+		count-greater-or-equal, filter-less, in, index-set, iterate, is-empty, new, size, try-remove
 	./experimental/frozen-set:
-		~=, build, for-loop, frozen-set, frozen-set-builder, is-empty, new, size, to-frozen-set,
-		try-get-unordered-index, with-block
-	./list: ~=, build, list, to-list, with-block
+		~=, build, frozen-set, frozen-set-builder, is-empty, iterate, new, size, to-frozen-set,
+		try-get-unordered-index
+	./list: ~=, build, iterate, list, to-list
 
 ###
 Immutable unsorted set.
@@ -22,15 +22,6 @@ Immutable unsorted set.
 !set[t] record
 	.add t add-node
 	.remove index-set
-
-# TODO:KILL
-node-count[t] nat64(a t set)
-	0 node-count a.add
-.node-count[t] nat64(acc nat64, a t add-node)
-	if left ?= a.left
-		acc + 1 node-count left
-	else
-		acc + 1
 
 .add-node[t] record
 	here t frozen-set
@@ -42,14 +33,16 @@ node-count[t] nat64(a t set)
 
 # Set containing the given elements (with duplicates removed).
 !to-set[t] t set(a t[]) t key
+	a.to-frozen-set to-set
+
+to-set[t] t set(a t frozen-set) t key
 	# TODO: type annotation should be unnecessary
-	(a.to-frozen-set, ())::(t add-node), ()
+	(a, ())::(t add-node), ()
 
 # Copies set elements to a list.
 !to-list[t] t[](a t set) t key
 	# TODO: If a has a single add node and no remove, just return that
-	for x : a
-		x
+	for x : a; x
 
 # `true` iff `a.size == 0`.
 !is-empty[t] bool(a t set) t key
@@ -78,10 +71,15 @@ node-count[t] nat64(a t set)
 		!(index in a.remove)
 
 .find-in-add[t] nat64?(a t add-node, value t) t key
-	if index ?= a.here try-get-unordered-index value
-		a.add-size-left + index,
-	elif left ?= a left
-		left find-in-add value
+	cur mut = a
+	loop
+		if index ?= cur.here try-get-unordered-index value
+			break cur.add-size-left + index,
+		elif left ?= cur left
+			cur := left
+			continue
+		else
+			break
 
 ###
 Adds an element to the set.
@@ -141,7 +139,7 @@ Else, adds it and returns the new set.
 		((value,), ())::(t add-node), ()
 	else
 		# size-right starts as 1 because we're adding a value
-		plan = add-size add-and-compact-plan a.add, a.remove, 1
+		plan = add-size add-and-compact-plan a
 		if plan.compacted-size == 1
 			# TODO: type annotation should be unnecessary
 			((value,), (a.add,))::(t add-node), a.remove
@@ -154,23 +152,26 @@ Else, adds it and returns the new set.
 	# Size that the compacted node will have (sum of 'depth' rightmost nodes)
 	compacted-size nat64
 
-.add-and-compact-plan[t] compact-plan(
-	size-here-and-left nat64,
-	a t add-node,
-	remove index-set,
-	size-right nat64,
-)
-	size-here = a.here size
-	size-left = size-here-and-left - size-here
-	removals-here-and-right = remove count-greater-or-equal size-left
-	if size-here should-compact size-right, removals-here-and-right
-		size-here-and-right = size-here + size-right
-		if left ?= a left
-			size-left add-and-compact-plan left, remove, size-here-and-right
+.add-and-compact-plan[t] compact-plan(full-add-size nat64, a t set)
+	cur-size-here-and-left mut = full-add-size
+	cur mut = a add
+	remove = a remove
+	cur-size-right mut = 1
+	loop
+		size-here = cur.here size
+		size-left = cur-size-here-and-left - size-here
+		removals-here-and-right = remove count-greater-or-equal size-left
+		if size-here should-compact cur-size-right, removals-here-and-right
+			size-here-and-right = size-here + cur-size-right
+			if left ?= cur left
+				cur-size-here-and-left := size-left
+				cur := left
+				cur-size-right := size-here-and-right
+				continue
+			else
+				break size-left, size-here-and-right
 		else
-			size-left, size-here-and-right
-	else
-		size-here-and-left, size-right
+			break cur-size-here-and-left, cur-size-right
 
 .should-compact bool(size-here nat64, size-right nat64, removals-here-and-right nat64)
 	size-right + removals-here-and-right * 2 >= size-here
@@ -211,33 +212,35 @@ Else, adds it and returns the new set.
 		unless add-size-here-and-left + i in remove
 			out ~= x
 
-region iteration
+region spec impls (see collection.crow)
 
-!for-loop[t] void(a t set, f act void(t)) t key
+!iterate[t] bool(a t set, f act bool(t)) t key
 	cur mut = a add
 	add-size-left mut = cur add-size-left
 	loop
-		for i, x : cur here
+		here = cur.here iterate (i, x) =>
 			unless add-size-left + i in a.remove
 				f[x]
-		if left ?= cur left
+		if here
+			break true
+		elif left ?= cur left
 			cur := left
 			add-size-left := add-size-left - cur.here.size
 			continue
 		else
-			break
+			break false
 
-!filter[t] t set(a t set, f act bool(t)) t key
-	list t[] = with out : build
-		for x : a
-			if f[x]
-				out ~= x
-	list to-set
+subregion build
 
-!for-loop[out, in] out[](a in set, f act out(in)) in key
-	with out : a.size build
-		for x : a
-			out ~= f[x]
+!set-builder[t] record mut
+	.inner t frozen-set-builder
+!build[t] t set(a build-options, f act void(t set-builder)) t key
+	inner t frozen-set = a build out => f[(out,)]
+	inner to-set
+!~=[t] void(a t set-builder, value t) t key
+	a.inner ~= value
+
+region test
 
 dbg[t] string(a t set) t to-string
 	add = a.add dbg

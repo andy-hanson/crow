@@ -7,61 +7,66 @@ import
 	../../json: json
 	../../misc: loop-break, new, void
 	../../number: ==, <=>, +, /
-	../../option: is-empty, new, option
+	../../option: force, is-empty, new, option
 	../../pointer: ==, <=>, +, -, *, as-const, set-deref
-	../../range: .., for-break
+	../../range: ..
 	../../test-util: is
-	../../tuple: from, pair, to
+	../../tuple: a, b, from, pair, to
 	../../private/bootstrap: nat64
 	../array:
-		==, <=>, +, -, *, array, array-iter, as-array, end-iter, for-break, index, is-at-end, iter
+		==, <=>, +, -, array, array-iterator, as-array, begin, end, iterate, next, next-index, slice
+	../collection: for-break
 	../mut-array:
-		+, as-mut-array, copy-from, index, iter, mut-array, mut-array-iter, new, temp-as-array
+		+, as-mut-array, copy-from, begin, mut-array, mut-array-iterator, new, next-index,
+		temp-as-array
 	../list: ==, list, new
 	../mut-list:
-		+, begin-pointer, clear, end-pointer, is-empty, iter, move-to-list, mut-list, mut-list-iter,
-		size, swap, temp-as-array, to-mut-list, unsafe-set-size
+		+, begin, begin-pointer, clear, end-pointer, is-empty, move-to-list, mut-list,
+		mut-list-iterator, size, swap, temp-as-array, to-mut-list, unsafe-set-size
 
 binary-search-has[t] bool(a t array, value t) t compare
 	!(a binary-search-exact value is-empty)
 
 binary-search-key[k, v] v?(a (k, v) array, key k) k compare
-	left mut = a iter
-	right mut = a end-iter
+	left mut = a begin
+	right mut = a end
 	loop
 		diff = right - left
 		if diff < 4
-			break for pair : (left .. right).as-array
+			break for pair : left slice right
 				if pair.from == key
 					break pair to
 		else
 			mid = left + diff / 2
-			match key <=> mid->from
+			next = mid.next!.a
+			match key <=> next.from
 			as less
 				right := mid
 				continue
 			as equal
-				break mid->to,
+				break next.to,
 			as greater
 				left := mid + 1
 				continue
 
-binary-search-exact[t] t mut-list-iter?(a t mut[], compare act comparison(t))
+binary-search-exact[t] t mut-list-iterator?(a t mut[], compare act comparison(t))
 	if iter ?= trusted a.temp-as-array binary-search-exact compare
-		a.iter + iter.index,
+		a.begin + iter.next-index,
 
-binary-search-exact[t] t array-iter?(a t array, value t) t compare
-	left mut = a iter
-	right mut = a end-iter
+###
+Assumes the array is sorted.
+Returns an iterator whose 'next' is the value, or nothing if the array does not contain the value.
+###
+binary-search-exact[t] t array-iterator?(a t array, value t) t compare
+	left mut = a begin
+	right mut = a end
 	loop
 		diff = right - left
 		if diff < 4
-			break for x : left .. right
-				if *x == value
-					break x
+			break left linear-search-exact right, value
 		else
 			mid = left + diff / 2
-			match value <=> *mid
+			match value <=> mid.next!.a
 			as less
 				right := mid
 				continue
@@ -70,34 +75,44 @@ binary-search-exact[t] t array-iter?(a t array, value t) t compare
 			as greater
 				left := mid + 1
 				continue
+.linear-search-exact[t] t array-iterator?(left t array-iterator, right t array-iterator, value t) t equal
+	cur mut = left
+	loop
+		if cur < right
+			pair = cur.next!
+			if pair.a == value
+				break cur,
+			else
+				cur := pair b
+				continue
+		else
+			break
 
-binary-search-exact[t] t array-iter?(a t array, compare act comparison(t))
+binary-search-exact[t] t array-iterator?(a t array, compare act comparison(t))
 	iter = a binary-search-insert compare
-	if iter is-at-end
-		()
-	elif compare[*iter] == equal
-		iter,
+	if pair ?= iter next
+		if compare[pair.a] == equal
+			iter,
 
 ###
 Returns the pointer to the least value that is compared equal or greater.
 Returns `a end-pointer` if all values compare less.
 ###
-binary-search-insert[t] t mut-list-iter(a t mut[], compare act comparison(t))
-	a.iter + (trusted a.temp-as-array binary-search-insert compare).index
+binary-search-insert[t] t mut-list-iterator(a t mut[], compare act comparison(t))
+	a.begin + (trusted a.temp-as-array binary-search-insert compare).next-index
 
-binary-search-insert[t] t mut-array-iter(a t mut-array, compare act comparison(t))
-	a.iter + (trusted a.temp-as-array binary-search-insert compare).index
+binary-search-insert[t] t mut-array-iterator(a t mut-array, compare act comparison(t))
+	a.begin + (trusted a.temp-as-array binary-search-insert compare).next-index
 
-binary-search-insert[t] t array-iter(a t array, value t) t compare
-	# Left inclusive, right exclusive
-	left mut = a iter
-	right mut = a end-iter
+binary-search-insert[t] t array-iterator(a t array, value t) t compare
+	left mut = a begin
+	right mut = a end
 	loop
-		if left == right
+		if left.next-index == right.next-index
 			break left
 		else
 			mid = left + (right - left) / 2
-			match value <=> *mid
+			match value <=> mid.next!.a
 			as less
 				right := mid
 				continue
@@ -109,24 +124,24 @@ binary-search-insert[t] t array-iter(a t array, value t) t compare
 
 test
 	a nat64 mut-array = 1, 3, 5, 7
-	(a binary-search-insert x => 0 <=> x).index is 0
-	(a binary-search-insert x => 3 <=> x).index is 1
-	(a binary-search-insert x => 4 <=> x).index is 2
-	(a binary-search-insert x => 5 <=> x).index is 2
-	(a binary-search-insert x => 6 <=> x).index is 3
-	(a binary-search-insert x => 7 <=> x).index is 3
-	(a binary-search-insert x => 8 <=> x).index is 4
+	(a binary-search-insert x => 0 <=> x).next-index is 0
+	(a binary-search-insert x => 3 <=> x).next-index is 1
+	(a binary-search-insert x => 4 <=> x).next-index is 2
+	(a binary-search-insert x => 5 <=> x).next-index is 2
+	(a binary-search-insert x => 6 <=> x).next-index is 3
+	(a binary-search-insert x => 7 <=> x).next-index is 3
+	(a binary-search-insert x => 8 <=> x).next-index is 4
 
-.binary-search-insert[t] t array-iter(a t array, compare act comparison(t))
-	# Left inclusive, right exclusive
-	left mut = a iter
-	right mut = a end-iter
+# Returns an iterator that the element should be inserted to the right of.
+.binary-search-insert[t] t array-iterator(a t array, compare act comparison(t))
+	left mut = a begin
+	right mut = a end
 	loop
-		if left == right
+		if left.next-index == right.next-index
 			break left
 		else
 			mid = left + (right - left) / 2
-			match compare[*mid]
+			match compare[mid.next!.a]
 			as less
 				right := mid
 				continue

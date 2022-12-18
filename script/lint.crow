@@ -1,18 +1,18 @@
 import
-	crow/col/counter: counter, for-loop, subscript, to-counter
+	crow/col/counter: counter, iterate, subscript, to-counter
 	crow/io/file: read-file
 	crow/io/print: err, print
 	crow/io/process: shell-exec
 	../site-src/search-dir-recursive: search-dir-recursive
 
 main nat^(_ string[]) summon
-	files = all-files
+	files <- all-files
 	failures = files lint-files
 	for x : failures
 		err print x
 	failures.size,
 
-.lint-files string[](files file[]) summon
+.lint-files string[](files file[])
 	failures string mut[] = ()
 	all-imports = files get-all-imports
 	for file : files
@@ -29,9 +29,9 @@ main nat^(_ string[]) summon
 	failures move-to-list
 
 .get-all-imports symbol set(files file[])
-	(for file : files; file.imports to-list).flatten to-set
+	() join for file : files; file imports
 
-.excluded-public symbol[]()
+.excluded-public symbol set()
 	"diffSymbols", "main"
 
 .file record
@@ -44,13 +44,14 @@ main nat^(_ string[]) summon
 	public symbol[]
 	private symbol[]
 
-all-files file[]() summon
-	for path : "src" search-dir-recursive
+all-files file[]^() summon
+	paths <- "src" search-dir-recursive
+	for path : paths parallel
 		path get-file
 
-.get-file file(path string) summon
+.get-file file^(path string) summon
 	imports-and-rest = path.read-file find-imports
-	path, path.get-members, imports-and-rest.imports, imports-and-rest.rest.words.to-counter
+	(path, path.get-members, imports-and-rest.imports, imports-and-rest.rest.words.to-counter),
 
 .get-members members(path string) summon
 	stdout = "dub run dscanner -- --ctags {path}" shell-exec
@@ -61,11 +62,13 @@ all-files file[]() summon
 	look-for = "!_TAG_PROGRAM_URL	https://github.com/dlang-community/D-Scanner/\n"
 	rest = (stdout try-split-once look-for)!.b
 	for line : rest lines
-		unless line == "" || line contains-substr "enum:" || line contains-substr "struct:"
-			name = (line find-iter x => x is-whitespace)!.slice-left string-to-symbol
-			if line contains-substr "access:public"
+		if line == "" || line contains-seq "enum:" || line contains-seq "struct:"
+			()
+		else
+			name = line take-while (x => !x.is-whitespace) string-to-symbol
+			if line contains-seq "access:public"
 				public ~= name
-			elif line contains-substr "access:private"
+			elif line contains-seq "access:private"
 				private ~= name
 			else
 				unless path == "src/wasm.d" || name in excluded-unknown-access
@@ -74,7 +77,7 @@ all-files file[]() summon
 	public.move-to-list, private.move-to-list
 
 # for some reason, dscanner doesn't give non-nested unions like Converter64 access:private
-.excluded-unknown-access symbol[]()
+.excluded-unknown-access symbol set()
 	"Converter32", "Converter64", "DCValue", "DoubleToUlong", "StackDict2Key", "StackDict2Value"
 
 .imports-and-rest record

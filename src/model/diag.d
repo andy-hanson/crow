@@ -112,7 +112,9 @@ immutable struct Diag {
 		FunDecl* callee;
 	}
 
-	immutable struct CantInferTypeArguments {}
+	immutable struct CantInferTypeArguments {
+		FunDecl* callee;
+	}
 	immutable struct CharLiteralMustBeOneChar {}
 	immutable struct CommonFunDuplicate {
 		Sym name;

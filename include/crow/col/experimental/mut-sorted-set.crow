@@ -5,11 +5,12 @@ import
 	../../misc: key, new, void
 	../../number: nat64
 	../../option: is-empty
-	../../tuple: from, new
-	../list: for-loop, list
+	../../tuple: new
+	../collection: build-options, for-loop
+	../list: ~=, build, iterate, list, size
 	./mut-sorted-dict:
-		clear, filter, for-loop, in, is-empty, move-to-list, mut-sorted-dict, new, remove-key,
-		set-filter, set-map, set-subscript, size, subscript, to-mut-sorted-dict
+		~=, build, clear, in, is-empty, iterate, mut-sorted-dict, new, remove-key, set-filter,
+		set-map, set-subscript, size, subscript
 	./sorted-set: sorted-set, to-sorted-set
 
 ###
@@ -26,7 +27,8 @@ new[t] t mut-sorted-set() t key
 	(),
 
 to-mut-sorted-set[t] t mut-sorted-set(a t[]) t key
-	(for x : a; x, ()).to-mut-sorted-dict,
+	inner (t, void) mut-sorted-dict = for x : a; x, ()
+	inner,
 
 # True iff the set has no elements.
 is-empty[t] bool(a t mut-sorted-set) t key
@@ -75,32 +77,29 @@ remove[t] bool(a t mut-sorted-set, value t) t key
 
 # Convert to a list, clearing the original `mut-sorted-set` in the process.
 move-to-list[t] t[](a t mut-sorted-set) t key
-	for pair : a.inner move-to-list
-		pair from
+	res t[] = for x : a; x
+	a clear
+	res
 
 # Convert to a `sorted-set`, clearning the original `mut-sorted-set` in the process.
 move-to-sorted-set[t] t sorted-set(a t mut-sorted-set) t key
 	# TODO:PERF avoid a copy: return a 'mut-list' which the sorted-set can move into to itself
 	a.move-to-list to-sorted-set
 
-region iteration
-
-for-loop[t] void(a t mut-sorted-set, f act void(t)) t key
-	for k, _ : a inner
-		f[k]
-
-for-loop[out, in] out mut-sorted-set(a in mut-sorted-set, f act out(in)) in key, out key
-	inner (out, void) mut-sorted-dict = for k, _ : a.inner
-		f[k], ()
-	inner,
-
-filter[t] t mut-sorted-set(a t mut-sorted-set, f act bool(t)) t key
-	(a.inner filter (k, _) => f[k]),
-
-region mutating iteration
-
 set-filter[t] void(a t mut-sorted-set, f fun bool(t)) t key
 	a.inner set-filter (k, _) => f[k]
 
 set-map[t] void(a t mut-sorted-set, f fun t(t)) t key
 	a.inner set-map (k, _) => f[k], ()
+
+region spec impls (see collection.crow)
+
+iterate[t] bool(a t mut-sorted-set, f act bool(t)) t key
+	a.inner iterate (k, _) => f[k]
+
+subregion build
+
+build[t] t mut-sorted-set(_ build-options, f act void(t mut-sorted-set)) t key
+	res t mut-sorted-set = ()
+	f[res]
+	res

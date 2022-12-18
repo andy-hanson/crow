@@ -3,10 +3,11 @@ import
 	../bool: bool
 	../misc: void
 	../number: nat64
-	../option: new, option
+	../option: option
+	./collection: iterate, for-loop
 	./list: list
 	./mut-list:
-		~=, ~~=, copy, for-loop, is-empty, last, mut-list, new, pop, set-filter, size, to-list,
+		~=, ~~=, copy, is-empty, iterate, mut-list, new, peek, pop, set-filter, size, to-list,
 		to-mut-list
 
 ###
@@ -51,7 +52,7 @@ This is O(n).
 	a.inner ~= value
 
 # Pushes many values to the top of the stack.
-!~~=[t] void(a t mut-stack, values t[])
+!~~=[t, col] void(a t mut-stack, values col) (col, t) iterate
 	a.inner ~~= values
 
 ###
@@ -60,8 +61,7 @@ Returns the top element of the stack without removing it.
 Returns an empty option iff `a` is empty.
 ###
 !peek[t] t?(a t mut-stack)
-	unless a is-empty
-		a.inner last
+	a.inner peek
 
 ###
 Removes and returns the top element of the stack.

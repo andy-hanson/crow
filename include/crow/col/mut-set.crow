@@ -5,10 +5,11 @@ import
 	../misc: key, new, void
 	../option: is-empty
 	../tuple: a, new, pair
-	./array: array
-	./list: for-loop, list, to-list
-	./mut-dict: ~=, clear, for-loop, move-to-list, mut-dict, in, try-remove, to-mut-dict
-	./set: for-loop, set, to-set
+	./array: array, iterate, size
+	./collection: for-loop
+	./list: ~=, build, iterate, list, size
+	./mut-dict: ~=, clear, iterate, move-to-list, mut-dict, in, try-remove, to-mut-dict
+	./set: iterate, set, to-set
 
 ###
 Mutable unordered set.
@@ -20,8 +21,9 @@ This is unordered, so functions like `to-array` and `each` provide elements in a
 
 # New set with the given elements (with duplicates removed).
 !new[t] t mut-set(...a t array) t key
-	# TODO: should not need type annotation
-	(for x : a.to-list; (x, ()))::(t, void)[].to-mut-dict,
+	pairs (t, void)[] = for x : a; (x, ())
+	# TODO: build the mut-dict directly
+	pairs.to-mut-dict,
 
 # Copies an immutable set to a mutable set.
 !to-mut-set[t] t mut-set(a t set) t key

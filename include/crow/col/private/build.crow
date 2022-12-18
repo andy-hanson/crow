@@ -1,0 +1,16 @@
+no-std
+import
+	../../misc: void
+	../../number: nat64
+
+!build[col, elem, builder] spec
+	build col(options build-options, f act void(builder))
+	~= void(a builder, value elem)
+!build-options record
+	size-hint nat64
+!build build-options()
+	0,
+!build build-options(size-hint nat64)
+	size-hint,
+!with-block[col, elem, builder] col(a build-options, f act void(builder)) (col, elem, builder) build
+	a build f

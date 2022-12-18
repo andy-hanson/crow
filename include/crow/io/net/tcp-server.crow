@@ -12,7 +12,8 @@ import
 	unistd: close, read
 	../../bits: |, bits-intersect
 	../../bool: ||, bool, false, not, true
-	../../col/array: array, subscript
+	../../col/array: +, array, begin, slice
+	../../col/collection: subscript
 	../../col/mut-array: cast-immutable, begin-pointer, mut-array, size, uninitialized-mut-array
 	../../compare: !=, <
 	../../c-types: c-int, fd-t

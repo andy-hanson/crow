@@ -31,7 +31,7 @@ contexts:
       push: block_comment
     - match: '#.*'
       scope: comment
-    - match: '^\s*region[^\n]*\n'
+    - match: '^\s*(sub)?region[^\n]*\n'
       scope: comment
 
   block_comment:

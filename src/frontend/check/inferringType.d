@@ -30,8 +30,8 @@ import model.model :
 	VariableRef;
 import util.alloc.alloc : Alloc;
 import util.cell : Cell, cellGet, cellSet;
-import util.col.arr : only, sizeEq;
-import util.col.arrUtil : arrLiteral, exists, indexOf, map;
+import util.col.arr : only;
+import util.col.arrUtil : arrLiteral, exists, indexOf, map, zip, zipEvery;
 import util.col.enumDict : enumDictFindKey;
 import util.col.fullIndexDict : FullIndexDict;
 import util.col.mutArr : MutArr;
@@ -42,7 +42,7 @@ import util.ptr : castNonScope_ref;
 import util.sourceRange : FileAndRange, RangeWithinFile;
 import util.sym : AllSymbols, Sym;
 import util.union_ : UnionMutable;
-import util.util : unreachable, verify;
+import util.util : unreachable;
 
 struct ClosureFieldBuilder {
 	@safe @nogc pure nothrow:
@@ -239,15 +239,16 @@ Opt!FunKind getFunKindFromStruct(in CommonTypes a, StructDecl* s) {
 private size_t arityForFunStruct(StructDecl* s) =>
 	s.typeParams.length - 1; // overflow OK, will fail 'arity < structs.length'
 
-// Inferring type args are in 'a', not 'b'
+// We can infer type args of 'a' but can't change inferred type args for 'b'
 bool matchTypesNoDiagnostic(
 	ref Alloc alloc,
 	ref ProgramState programState,
 	Type expectedType,
 	scope InferringTypeArgs expectedTypeArgs,
 	Type actualType,
+	in InferringTypeArgs actualTypeArgs,
 ) =>
-	checkType(alloc, programState, expectedType, expectedTypeArgs, actualType);
+	checkType(alloc, programState, expectedType, expectedTypeArgs, actualType, actualTypeArgs);
 
 struct LoopInfo {
 	immutable Type voidType;
@@ -408,13 +409,13 @@ bool matchExpectedVsReturnTypeNoDiagnostic(
 			true,
 		(Type t) =>
 			// We have a particular expected type, so infer its type args
-			matchTypesNoDiagnostic(alloc, programState, candidateReturnType, candidateTypeArgs, t),
+			matchTypesNoDiagnostic(alloc, programState, candidateReturnType, candidateTypeArgs, t, InferringTypeArgs()),
 		(const TypeAndInferring[] choices) {
 			if (choices.length == 1) {
 				Opt!Type t = tryGetDeeplyInstantiatedType(alloc, programState, expected);
 				if (has(t))
 					return matchTypesNoDiagnostic(
-						alloc, programState, candidateReturnType, candidateTypeArgs, force(t));
+						alloc, programState, candidateReturnType, candidateTypeArgs, force(t), InferringTypeArgs());
 			}
 			// Don't infer any type args here; multiple candidates and multiple possible return types.
 			return exists!(const TypeAndInferring)(choices, (in TypeAndInferring x) =>
@@ -468,9 +469,14 @@ Expr check(ref ExprCtx ctx, ref Expected expected, Type exprType, Expr expr) {
 	}
 }
 
-void mustSetType(ref Alloc alloc, ref ProgramState programState, ref Expected expected, Type setType) {
-	bool success = setTypeNoDiagnostic(alloc, programState, expected, setType);
-	verify(success);
+void setExpectedIfNoInferred(ref Expected expected, in Type delegate() @safe @nogc pure nothrow getType) {
+	expected.matchConst!void(
+		(Expected.Infer) {
+			setToType(expected, getType());
+		},
+		(Type _) {},
+		(const TypeAndInferring[]) {},
+		(const LoopInfo*) {});
 }
 
 // Note: this may infer type parameters
@@ -481,13 +487,13 @@ private bool setTypeNoDiagnostic(ref Alloc alloc, ref ProgramState programState,
 			return true;
 		},
 		(Type x) =>
-			checkType(alloc, programState, x, InferringTypeArgs(), actual),
+			checkType(alloc, programState, x, InferringTypeArgs(), actual, InferringTypeArgs()),
 		(TypeAndInferring[] choices) {
 			bool anyOk = false;
 			foreach (ref TypeAndInferring x; choices)
-				if (checkType(alloc, programState, x.type, x.inferringTypeArgs, actual))
+				if (checkType(alloc, programState, x.type, x.inferringTypeArgs, actual, InferringTypeArgs()))
 					anyOk = true;
-			setToType(expected, anyOk ? actual : Type(Type.Bogus()));
+			if (anyOk) setToType(expected, actual);
 			return anyOk;
 		},
 		(LoopInfo* loop) =>
@@ -510,20 +516,20 @@ Opt!Type tryGetDeeplyInstantiatedTypeWorker(
 	ref Alloc alloc,
 	ref ProgramState programState,
 	Type a,
-	in InferringTypeArgs inferringTypeArgs,
+	in InferringTypeArgs inferredTypeArgs,
 ) =>
 	a.matchWithPointers!(Opt!Type)(
 		(Type.Bogus) =>
 			some(Type(Type.Bogus())),
 		(TypeParam* p) {
-			MutOpt!(const(SingleInferringType)*) ta = tryGetTypeArgFromInferringTypeArgs(inferringTypeArgs, p);
+			MutOpt!(const(SingleInferringType)*) ta = tryGetTypeArgFromInferringTypeArgs(inferredTypeArgs, p);
 			// If it's not one of the inferring types, it's instantiated enough to return.
 			return has(ta) ? tryGetInferred(*force(ta)) : some(a);
 		},
 		(StructInst* i) {
 			scope TypeArgsArray newTypeArgs = typeArgsArray();
 			foreach (Type x; typeArgs(*i)) {
-				Opt!Type t = tryGetDeeplyInstantiatedTypeWorker(alloc, programState, x, inferringTypeArgs);
+				Opt!Type t = tryGetDeeplyInstantiatedTypeWorker(alloc, programState, x, inferredTypeArgs);
 				if (has(t))
 					push(newTypeArgs, force(t));
 				else
@@ -532,72 +538,139 @@ Opt!Type tryGetDeeplyInstantiatedTypeWorker(
 			return some(Type(instantiateStructNeverDelay(alloc, programState, decl(*i), tempAsArr(newTypeArgs))));
 		});
 
-bool setTypeNoDiagnosticWorker_forSingleInferringType(
-	ref Alloc alloc,
-	ref ProgramState programState,
-	ref SingleInferringType inferring,
-	Type actual,
-) {
-	Opt!Type inferred = tryGetInferred(inferring);
-	bool ok = !has(inferred) || checkType(alloc, programState, force(inferred), InferringTypeArgs(), actual);
-	if (ok) cellSet(inferring.type, some(actual));
-	return ok;
-}
-
-// We are trying to assign 'a = b'.
-// 'a' may contain type parameters from inferringTypeArgs. We'll infer those here.
-// If 'allowConvertAToBUnion' is set, if 'b' is a union type and 'a' is a member, we'll set it to the union.
-// When matching a type, we may fill in type parameters, so we may want to set a new more specific expected type.
+/*
+Tries to find a way for 'a' and 'b' to be the same type.
+It can filll in type arguments for 'a'. But unknown types in 'b' it will assume compatibility.
+Returns true if it succeeds.
+*/
 bool checkType(
 	ref Alloc alloc,
 	ref ProgramState programState,
 	Type a,
 	scope InferringTypeArgs aInferringTypeArgs,
 	Type b,
+	in InferringTypeArgs bInferredTypeArgs,
 ) =>
 	a.matchWithPointers!bool(
 		(Type.Bogus) =>
 			// TODO: make sure to infer type params in this case!
 			true,
-		(TypeParam* pa) {
-			MutOpt!(SingleInferringType*) aInferring = tryGetTypeArgFromInferringTypeArgs(aInferringTypeArgs, pa);
-			return has(aInferring)
-				? setTypeNoDiagnosticWorker_forSingleInferringType(alloc, programState, *force(aInferring), b)
-				: b.matchWithPointers!bool(
-					(Type.Bogus) =>
-						// Bogus is assignable to anything
-						true,
-					(TypeParam* pb) =>
-						pa == pb,
-					(StructInst*) =>
-						// Expecting a type param, got a particular type
-						false);
-		},
+		(TypeParam* pa) =>
+			checkType_TypeParam(alloc, programState, pa, aInferringTypeArgs, b, bInferredTypeArgs),
 		(StructInst* ai) =>
 			b.matchWithPointers!bool(
 				(Type.Bogus) =>
-					// Bogus is assignable to anything
 					true,
-				(TypeParam*) =>
-					false,
+				(TypeParam* pb) =>
+					checkType_TypeParamB(alloc, programState, a, aInferringTypeArgs, pb, bInferredTypeArgs),
 				(StructInst* bi) =>
-					checkStructInsts(alloc, programState, *ai, aInferringTypeArgs, *bi)));
+					decl(*ai) == decl(*bi) &&
+					zipEvery!(Type, Type)(typeArgs(*ai), typeArgs(*bi), (in Type argA, in Type argB) =>
+						checkType(alloc, programState, argA, aInferringTypeArgs, argB, bInferredTypeArgs))));
 
-bool checkStructInsts(
+bool checkType_TypeParam(
 	ref Alloc alloc,
 	ref ProgramState programState,
-	ref StructInst ai,
+	TypeParam* a,
 	scope InferringTypeArgs aInferringTypeArgs,
-	ref StructInst bi,
+	Type b,
+	in InferringTypeArgs bInferredTypeArgs,
 ) {
-	if (decl(ai) == decl(bi)) {
-		verify(sizeEq(typeArgs(ai), typeArgs(bi)));
-		foreach (size_t i, a; typeArgs(ai))
-			if (!checkType(alloc, programState, a, aInferringTypeArgs, typeArgs(bi)[i]))
-				return false;
-		return true;
+	MutOpt!(SingleInferringType*) aInferring = tryGetTypeArgFromInferringTypeArgs(aInferringTypeArgs, a);
+	MutOpt!(const(SingleInferringType)*) bInferring = tryGetTypeArgFromInferringTypeArgs(bInferredTypeArgs, a);
+	if (has(aInferring)) {
+		Opt!Type inferred = tryGetInferred(*force(aInferring));
+		bool ok = !has(inferred) || checkType(
+			alloc, programState, force(inferred), InferringTypeArgs(), b, bInferredTypeArgs);
+		if (ok) {
+			Opt!Type bInferred = tryGetDeeplyInstantiatedTypeWorker(alloc, programState, b, bInferredTypeArgs);
+			if (has(bInferred))
+				cellSet(force(aInferring).type, bInferred);
+		}
+		return ok;
+	} else if (has(bInferring)) {
+		Opt!Type inferred = tryGetInferred(*force(bInferring));
+		return has(inferred)
+			? checkType(alloc, programState, force(inferred), aInferringTypeArgs, b, InferringTypeArgs())
+			: b.isA!(TypeParam*) && a == b.as!(TypeParam*);
+	} else
+		// It's an outer type param (not in either inferring).
+		return b.matchWithPointers!bool(
+			(Type.Bogus) =>
+				true,
+			(TypeParam* bp) {
+				if (bp == a)
+					return true;
+				else {
+					MutOpt!(const(SingleInferringType)*) bInferringB =
+						tryGetTypeArgFromInferringTypeArgs(bInferredTypeArgs, bp);
+					if (has(bInferringB)) {
+						Opt!Type inferred = tryGetInferred(*force(bInferringB));
+						return !has(inferred) || force(inferred) == Type(a);
+					} else
+						return false;
+				}
+			},
+			(StructInst*) =>
+				false);
+}
+
+bool checkType_TypeParamB(
+	ref Alloc alloc,
+	ref ProgramState programState,
+	Type a,
+	scope InferringTypeArgs aInferringTypeArgs,
+	TypeParam* b,
+	in InferringTypeArgs bInferredTypeArgs,
+) {
+	MutOpt!(const(SingleInferringType)*) bInferred = tryGetTypeArgFromInferringTypeArgs(bInferredTypeArgs, b);
+	if (has(bInferred)) {
+		Opt!Type inferred = tryGetInferred(*force(bInferred));
+		return !has(inferred) || checkType(
+			alloc, programState, a, aInferringTypeArgs, force(inferred), InferringTypeArgs());
 	} else
 		return false;
+}
+
+public void inferTypeArgsFrom(
+	ref Alloc alloc,
+	ref ProgramState programState,
+	Type a,
+	scope InferringTypeArgs aInferringTypeArgs,
+	in Type b,
+	in InferringTypeArgs bInferredTypeArgs,
+) {
+	MutOpt!(const(SingleInferringType)*) bInferred =
+		b.isA!(TypeParam*)
+		? tryGetTypeArgFromInferringTypeArgs(bInferredTypeArgs, b.as!(TypeParam*))
+		: noneMut!(const(SingleInferringType)*);
+	if (has(bInferred)) {
+		Opt!Type optInferred = tryGetInferred(*force(bInferred));
+		if (has(optInferred))
+			inferTypeArgsFrom(alloc, programState, a, aInferringTypeArgs, force(optInferred), InferringTypeArgs());
+	} else {
+		a.matchWithPointers!void(
+			(Type.Bogus) {},
+			(TypeParam* ap) {
+				MutOpt!(SingleInferringType*) optAInferring =
+					tryGetTypeArgFromInferringTypeArgs(aInferringTypeArgs, ap);
+				SingleInferringType* aInferring = force(optAInferring);
+				if (!has(tryGetInferred(*aInferring))) {
+					Opt!Type t = tryGetDeeplyInstantiatedTypeWorker(alloc, programState, b, bInferredTypeArgs);
+					if (has(t))
+						cellSet(aInferring.type, t);
+				}
+			},
+			(StructInst* ai) {
+				if (b.isA!(StructInst*)) {
+					const StructInst* bi = b.as!(StructInst*);
+					if (decl(*ai) == decl(*bi))
+						zip(typeArgs(*ai), typeArgs(*bi), (ref Type ta, ref Type tb) {
+							inferTypeArgsFrom(alloc, programState, ta, aInferringTypeArgs, tb, bInferredTypeArgs);
+						});
+				}
+			});
+	}
 }
 
 bool isTypeMatchPossible(in Type a, in InferringTypeArgs aInferring, in Type b, in InferringTypeArgs bInferring) {

@@ -10,10 +10,11 @@ import
 
 main nat^(args string[]) summon
 	command-name = !args.is-empty ? args[0]
-	if command ?= command-name.parse-command_name
+	rest-args = !args.is-empty ? args[1 .. end]
+	if command ?= command-name parse-command_name
 		match command
 		as get
-			named-args = (args.tail parse-named-args ("db-path", "db-name", "key"))!
+			named-args = (rest-args parse-named-args ("db-path", "db-name", "key"))!
 			db-path = named-args[0] single-string-or-throw "db-path"
 			db-name = named-args[1] single-string-or-throw "db-name"
 			key = named-args[2] single-string-or-throw "key"
@@ -24,7 +25,7 @@ main nat^(args string[]) summon
 					out print value
 					()
 		as set
-			named-args = (args.tail parse-named-args ("db-path", "db-name", "key", "value"))!
+			named-args = (rest-args parse-named-args ("db-path", "db-name", "key", "value"))!
 			db-path = named-args[0] single-string-or-throw "db-path"
 			db-name = named-args[1] single-string-or-throw "db-name"
 			key = named-args[2] single-string-or-throw "key"
@@ -35,7 +36,7 @@ main nat^(args string[]) summon
 						txn set db, key, value
 					()
 		as stat
-			named-args = (args.tail parse-named-args ("db-path", "db-name"))!
+			named-args = (rest-args parse-named-args ("db-path", "db-name"))!
 			db-path = named-args[0] single-string-or-throw "db-path"
 			db-name = named-args[1] single-string-or-throw "db-name"
 			with env : db-path open-lmdb-env true

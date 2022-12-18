@@ -1,20 +1,22 @@
 no-std
 import
-	../bool: &&, bool
+	../bool: bool
 	../compare: <, >, <=, compare
 	../fun-util: subscript
 	../json: json
-	../misc: is-data, new, void
+	../misc: is-data, loop-break, loop-continue, new, void
 	../number: ==, <=>, +, -, nat64
 	../option: force, is-empty, new, option
-	../string: ~~, ==, join, literal, new, string, to-string
+	../range: .., iterate
+	../string: ~~, ==, literal, new, string, to-string
 	../test-util: is
 	../tuple: ==, a, b, from, new, pair, to
-	./array: array, first, is-empty, new, size, tail
+	./array: ~=, +, -, array, begin, build, end, is-empty, iterate, new, next, size, slice
+	./collection: .., build, end, for-break, for-loop, join, subscript, swap-at, with-block
 	./mut-array:
-		~=, ~~=, build, cast-immutable, first, mut-array, mut-array-builder, set-subscript, size,
-		subscript, tail, with-block
-	./list: ==, ~=, build, first, for-loop, is-empty, list, new, tail, to-array, to-list, with-block
+		~=, ~~=, +, -, begin, build, cast-immutable, end, is-empty, mut-array, mut-array-builder,
+		mut-array-iterator, next, prev, set-next, size, slice
+	./list: ==, ~=, build, is-empty, iterate, list, new, to-array, to-list
 	./sort: set-sort, sort
 
 ###
@@ -63,8 +65,8 @@ then with the `4` to size 10, then with the `8` to size 18, leaving only one nod
 		# TODO: type annotation should not be necessary
 		()::((k, v) node?),
 	else
-		sorted = a sort pair => pair from
-		root (k, v) node = sorted.first!, sorted.tail.to-array, ()
+		sorted (k, v) array = a.to-array sort pair => pair from
+		root (k, v) node = sorted[0], sorted[1 .. end], ()
 		# TODO: type annotation should not be necessary
 		(root,)::((k, v) node?),
 
@@ -129,10 +131,10 @@ This is amortized O(log n).
 
 .pop-from-node[k, v] (k, v) popped(a (k, v) node)
 	# TODO: type annotation should not be necessary
-	rest (k, v) node? = if first ?= a.pairs first
-		(first, a.pairs.tail, a.next),
-	else
+	rest (k, v) node? = if a.pairs is-empty
 		a next
+	else
+		(a.pairs[0], a.pairs[1 .. end], a.next),
 	a.min, (rest,)
 
 # Returns none if this (or any following node) did not have a lower min.
@@ -150,8 +152,7 @@ This is amortized O(log n).
 
 .combine-with-popped[k, v] (k, v) popped(a (k, v) node, popped (k, v) popped)
 	root (k, v) node = a.min, a.pairs, popped.rest.root
-	# TODO: type annotation should not be necessary
-	popped.value, ((root,)::((k, v) node?),)
+	popped.value, ((root,),)
 
 .compact-leading-nodes[k, v] (k, v) priority-queue(a (k, v) priority-queue) k compare
 	mid = a.root find-mid 0
@@ -209,9 +210,9 @@ This is amortized O(log n).
 		out compact-non-singles nodes-to-compact
 		out compact-singles root
 	assert compacted.size == n-to-compact
-	compacted set-sort pair => pair from
+	compacted set-sort@((k, v) mut-array, (k, v) mut-array-iterator, (k, v), k) pair => pair from
 	arr = trusted compacted cast-immutable
-	arr.first!, arr.tail, ()
+	arr[0], arr[1 .. end], ()
 
 .compact-singles[k, v] void(out (k, v) mut-array-builder, a (k, v) node)
 	if a.pairs is-empty
@@ -235,7 +236,7 @@ This is amortized O(log n).
 	a.root dbg
 .dbg string(a (nat64, string) node?)
 	if node ?= a
-		pairs = ", " join for pair : node.pairs to-list
+		pairs = ", " join for pair : node pairs
 			"{pair from} {pair to}"
 		rest = node.next.is-empty ? "" : "; {node.next dbg}"
 		"{node.min from} {node.min to} [{pairs}]{rest}"
@@ -276,24 +277,25 @@ region iteration
 			break
 
 .walk[k, v] void(a (k, v) each-part mut-array, f act void(k, v)) k compare
-	if head ?= a first
+	unless a is-empty
+		head = a[0]
 		min = head min
 		f[min from, min to]
-		if first-pair ?= head.pairs first
-			head.min := first-pair
-			head.pairs := head.pairs tail
+		if head.pairs is-empty
+			a[1 .. end] walk f
+		else
+			head.min := head.pairs[0]
+			head.pairs := head.pairs[1 .. end]
 			a swap-sorted
 			a walk f
-		else
-			a.tail walk f
 
 .swap-sorted[k, v] void(a (k, v) each-part mut-array) k compare
-	if a.size > 1 && a[0].min.from > a[1].min.from
-		# TODO: use a swap function
-		temp = a[0]
-		a[0] := a[1]
-		a[1] := temp
-		a.tail swap-sorted
+	for i : 0 .. a.size - 1
+		if a[i].min.from > a[i + 1].min.from
+			a swap-at i, i + 1
+			continue
+		else
+			break
 
 !filter[k, v] (k, v) priority-queue(a (k, v) priority-queue, f act bool(k, v)) k priority
 	pairs (k, v)[] = with out : build

@@ -24,10 +24,13 @@ import
 	crow/col/private/set-tests: dummy-set-tests
 	crow/col/stack: new, stack
 	crow/col/queue: new, queue
+	crow/crypto/experimental/login-cookie: generate-login-cookie
 	crow/crypto/password-hash: quality-moderate
 	crow/io/environ: get-environ
 	crow/io/file: current-directory
+	crow/io/net/http-server: http-server, new
 	crow/io/process: new, process-result
+	crow/io/stdin: read-stdin
 	crow/io/terminal-color: bold
 	crow/io/time-format: gmt
 	crow/math/mat: new, mat3-32
@@ -62,10 +65,12 @@ main nat^(_ string[]) summon
 	_ = dummy-set-tests
 	_ = dummy-string-tests
 	_ = () :: nat[nat]
-	_ = get-environ
 	_ = () :: ((nat, nat) frozen-dict)
 	_ = () :: (nat frozen-set)
+	_ = generate-login-cookie
+	_ = get-environ
 	_ = () :: grammar-skip
+	_ = () :: http-server
 	_ = () :: (nat hamt-set)
 	_ = "".strip
 	_ = () :: index-set
@@ -87,6 +92,7 @@ main nat^(_ string[]) summon
 	_ = () :: (nat sorted-set)
 	_ = () :: (nat stack)
 	_ = () :: (nat tree-set)
+	_ = (() => read-stdin)::act string^()
 	_ = () :: vec2-32
 	_ = () :: (nat queue)
 	_ = gmt

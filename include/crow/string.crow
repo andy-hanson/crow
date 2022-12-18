@@ -2,15 +2,13 @@ no-std
 import
 	./bool: ||, bool
 	./compare: <, comparison
-	./col/array: array, as-array, begin-pointer
-	./col/iter: new, rest, value, value-and-rest
+	./col/array: array, as-array, begin, begin-pointer, end, new, next, slice
+	./col/collection:
+		build-options, drop-right-while, drop-while, for-loop, join, split, strip-right, try-split-once
 	./col/list:
-		==, <=>, ~, ~~, ~=, ~~=, as-list, build, contains-sublist, drop-right-while, drop-while,
-		end-iter, ends-with, find-iter, for-loop, is-empty, iter, list, list-builder, list-cast,
-		list-iter, list-mut-iter, mut-iter, new, next, peek, prev, repeat, restore, reverse, save,
-		size, slice-left, slice-right, split-by-sublist, starts-with, to-array, to-list,
-		try-remove-end, try-remove-start, try-split-once-by-sublist,
-		try-split-once-by-sublist-right, with-block
+		==, <=>, ~=, ~, ~~, ~~=, +, -, as-list, begin, build, collection, end, is-empty, iterate,
+		list, list-builder, list-cast, list-iterator, new, next, next-index, prev, size, slice,
+		to-array, to-list
 	./col/mut-list: copy, move-to-list, to-mut-list
 	./fun-util: subscript
 	./hash: hasher, hash-mix
@@ -18,7 +16,7 @@ import
 	./number:
 		==, <=>, +, *, /, %, abs, float64, float32, int8, int16, int32, int64, is-nan, min-int64,
 		nat8, nat16, nat32, nat64, to-float64, to-int64, to-nat64, truncate-to-int64
-	./option: ??, new, option
+	./option: new, option
 	./pointer: ==, <=>, const-pointer
 	./private/c-string-util: find-c-string-end
 	./private/number-low-level: wrap-sub
@@ -34,7 +32,7 @@ They don't support efficient access by index, so use iterators instead.
 !string record by-val
 	.inner char8[]
 
-!char8s char8[](a string)
+!char8s char8[](a string) noctx
 	a inner
 
 !literal string(a c-string) noctx
@@ -54,11 +52,11 @@ If you need to concatenate many strings, consider using the `crow/writer` module
 	""
 
 # Same as `a == ""`.
-!is-empty bool(a string)
+!is-empty bool(a string) noctx
 	a.inner is-empty
 
 # Size in `char8`s
-!size nat64(a string)
+!size nat64(a string) noctx
 	a.inner size
 
 !== bool(a string, b string)
@@ -258,139 +256,66 @@ Result is only digits, no punctuation.
 	else
 		"{whole-part}.{d0}{d1}{d2}" strip-right "0"
 
-region iterator
+region spec impls (see collection.crow)
 
-!string-iter record by-val
-	.inner char8 list-iter
-!== bool(a string-iter, b string-iter)
+!iterate bool(a string, f act bool(char8))
+	a.char8s iterate f
+
+!string-iterator record by-val
+	.inner char8 list-iterator
+
+!== bool(a string-iterator, b string-iterator)
 	a.inner == b.inner
+!<=> comparison(a string-iterator, b string-iterator)
+	a.inner <=> b.inner
 
-!iter string-iter(a string)
-	a.char8s.iter,
+!begin string-iterator(a string) noctx
+	a.char8s.begin,
 
-!end-iter string-iter(a string)
-	a.char8s.end-iter,
+!end string-iterator(a string) noctx
+	a.char8s.end,
 
-!peek char8?(a string-iter)
-	a.inner peek
+!collection string(a string-iterator) noctx
+	a.inner.collection,
 
-!next (char8, string-iter) value-and-rest?(a string-iter)
-	if res ?= a.inner next
-		(res.value, (res.rest,)),
+!next-index nat64(a string-iterator) noctx
+	a.inner next-index
 
-!prev (char8, string-iter) value-and-rest?(a string-iter)
-	if res ?= a.inner prev
-		(res.value, (res.rest,)),
+!slice string(a string-iterator, b string-iterator)
+	(a.inner slice b.inner),
 
-!slice-left string(a string-iter)
-	a.inner.slice-left as-string
+!next (char8, string-iterator)?(a string-iterator) noctx
+	if pair ?= a.inner next
+		(pair.a, (pair.b,)),
 
-!slice-right string(a string-iter)
-	a.inner.slice-right as-string
+!prev (string-iterator, char8)?(a string-iterator) noctx
+	if pair ?= a.inner prev
+		((pair.a,), pair.b),
 
-!string-mut-iter record mut
-	.inner char8 list-mut-iter
+!+ string-iterator(a string-iterator, n nat64) noctx
+	a.inner + n,
+!- string-iterator(a string-iterator, n nat64) noctx
+	a.inner - n,
+!- nat64(a string-iterator, b string-iterator) noctx
+	a.inner - b.inner
 
-!mut-iter string-mut-iter(a string)
-	a.char8s.mut-iter,
+!string-builder record mut
+	.inner char8 list-builder
+!build string(a build-options, f act void(string-builder))
+	inner char8[] = a build out => f[(out,)]
+	inner as-string
+!~= void(a string-builder, c char8)
+	a.inner ~= c
+!~~= void(a string-builder, s string)
+	a.inner ~~= s.char8s
 
-!save string-iter(a string-mut-iter)
-	a.inner.save,
-
-!restore void(a string-mut-iter, saved string-iter)
-	a.inner restore saved.inner
-
-!peek char8?(a string-mut-iter)
-	a.inner peek
-
-!next char8?(a string-mut-iter)
-	a.inner next
-
-!prev char8?(a string-mut-iter)
-	a.inner prev
-
-region split
-
-###
-`true` iff `b` is a subtring of `a`.
-
-That means: The characters in `b` appear in `a`, in order, without interruptions.
-###
-!contains-substr bool(a string, b string)
-	a.char8s contains-sublist b.char8s
-
-# `true` iff the first characters of `a` are `b`.
-!starts-with bool(a string, b string)
-	a.char8s starts-with b.char8s
-
-# `true` iff the last characters of `a` are `b`.
-!ends-with bool(a string, b string)
-	a.char8s ends-with b.char8s
-
-###
-If `a` starts with `b`, returns the rest.
-Else, returns an empty option.
-###
-!try-remove-start string?(a string, b string)
-	if res ?= a.char8s try-remove-start b.char8s
-		res.as-string,
-
-###
-If `a` ends with `b`, returns the rest.
-Else, returns an empty option.
-###
-!try-remove-end string?(a string, b string)
-	if res ?= a.char8s try-remove-end b.char8s
-		res.as-string,
-
-###
-If `b` is a substring of `a`, removes it and return the parts of `a` before and after it.
-###
-!try-split-once (string, string)?(a string, b string)
-	if res ?= a.char8s try-split-once-by-sublist b.char8s
-		(res.a.as-string, res.b.as-string),
-
-# Like `try-split-once`, but splits on the rightmost occurrence of `b`.
-!try-split-once-right (string, string)?(a string, b string)
-	if res ?= a.char8s try-split-once-by-sublist-right b.char8s
-		(res.a.as-string, res.b.as-string),
-
-###
-Removes every occurrence of the substring `b` in `a` and return the remaining parts as an array.
-The result may include empty strings.
-###
-!split-by string[](a string, b string)
-	for x : a.char8s split-by-sublist b.char8s
-		x as-string
+region utilities
 
 !lines string[](a string)
-	a split-by "\n"
-
-!split-string record by-val
-	left string
-	middle char8
-	right string
-
-###
-Find the first character where `f` returns `true`, and return the parts of `a` before and after it.
-Returns an empty option if `f` does not returns `true` for any character in `a`.
-###
-!find-iter string-iter?(a string, f act bool(char8))
-	if res ?= a.char8s find-iter f
-		(res,),
-
-###
-Returns a string containing each element of `a`, with `b` as a separator.
-This is `parts[0] ~ joiner ~ parts[1] ~ joiner ~ ... ~ parts[parts.size - 1]`.
-###
-!join string(joiner string, parts string[])
-	res mut string? = ()
-	for part : parts
-		res := if cur ?= res
-			(cur ~~ joiner ~~ part),
-		else
-			part,
-	res ?? ""
+	# TODO:PERF should be better (or at least just as good) with just `a split "\n"`
+	arr = a.char8s to-array
+	for x : arr split ("\n",)
+		x as-string
 
 # Lower cases every character in `a`.
 !lower-case string(a string)
@@ -414,10 +339,6 @@ This is `parts[0] ~ joiner ~ parts[1] ~ joiner ~ ... ~ parts[parts.size - 1]`.
 	else
 		a
 
-# String with characters in reverse order.
-!reverse string(a string)
-	a.char8s.reverse as-string
-
 # Replaces every instance of the substring `find` with `replace-with`.
 !replace string(a string, find string, replace-with string)
 	# TODO:PERF
@@ -426,33 +347,17 @@ This is `parts[0] ~ joiner ~ parts[1] ~ joiner ~ ... ~ parts[parts.size - 1]`.
 	else
 		a
 
-region strip
-
 # Strips whitespace from both ends.
 !strip string(a string)
 	a.strip-left strip-right
 
 # Strips whitespace from the front.
 !strip-left string(a string)
-	a.char8s drop-while (x => x is-whitespace) as-string
-
-# Removes all occurrences of 'b' from the front of 'a'.
-!strip-left string(a string, b string)
-	if x ?= a try-remove-start b
-		x strip-left b
-	else
-		a
+	(a.char8s drop-while x => x is-whitespace)::char8[] as-string
 
 # Strips whitespace from the end.
 !strip-right string(a string)
 	a.char8s drop-right-while (x => x is-whitespace) as-string
-
-# Removes all occurrences of 'b' from the end of 'a'.
-!strip-right string(a string, b string)
-	if x ?= a try-remove-end b
-		x strip-right b
-	else
-		a
 
 !is-whitespace bool(a char8)
 	a == " " || a == "\r" || a == "\n" || a == "\t"
@@ -460,14 +365,9 @@ region strip
 !normalize-newlines string(a string)
 	a replace "\r\n", "\n" replace "\r", "\n"
 
-region other
-
-!repeat string(a string, n nat64)
-	a.char8s repeat n as-string
-
 # Enclose a string in quotes and escape special characters.
 !quote string(a string)
-	inner = "" join for x : a char8s
+	inner string[] = for x : a char8s
 		if x == "\""
 			"\\\""
 		elif x == "\n"
@@ -482,28 +382,7 @@ region other
 			# TODO: "{x}"
 			(x,)::char8[] as-string
 	# TODO: "\"{inner}\""
-	"\"" ~~ inner ~~ "\""
+	"\"" ~~ ("" join inner) ~~ "\""
 
 !unindent string(a string)
 	a replace "\t", ""
-
-region builder
-
-!build-string record
-	.size-hint nat64
-!build build-string()
-	0,
-!build build-string(size-hint nat64)
-	size-hint,
-
-!string-builder record mut
-	.inner char8 list-builder
-
-!with-block string(a build-string, f act void(string-builder))
-	(with out : a.size-hint build; f[(out,)])::char8[] as-string
-
-!~= void(a string-builder, c char8)
-	a.inner ~= c
-
-!~~= void(a string-builder, s string)
-	a.inner ~~= s.char8s

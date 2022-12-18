@@ -6,17 +6,20 @@ import
 	../../number: nat64
 	../../option: is-empty, new, option
 	../../tuple: a, b, new
-	../dict: dict, for-loop, get-or-add, is-empty, new, size, subscript, to-dict, try-remove
-	../list: for-loop, list
+	../array: array
+	../collection: for-loop
+	../dict: ~=, build, dict, get-or-add, is-empty, iterate, size, subscript, try-remove
+	../list: iterate, list, size, to-list
 
 hamt-set[t] record
 	.inner void[t]
 
-new[t] t hamt-set() t key
-	(),
+new[t] t hamt-set(...values t array) t key
+	values.to-list to-hamt-set
 
 to-hamt-set[t] t hamt-set(a t[]) t key
-	((for x : a; x, ()) to-dict),
+	inner void[t] = for x : a; x, ()
+	inner,
 
 is-empty[t] bool(a t hamt-set) t key
 	a.inner is-empty
@@ -50,8 +53,7 @@ try-remove[t] t hamt-set?(a t hamt-set, value t) t key
 	if res ?= a.inner try-remove value
 		(res.b,),
 
-region iteration
+region spec impls (see collection.crow)
 
-for-loop[t] void(a t hamt-set, f act void(t)) t key
-	for k, _ : a inner
-		f[k]
+iterate[t] bool(a t hamt-set, f act bool(t)) t key
+	a.inner iterate (k, _) => f[k]

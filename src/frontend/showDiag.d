@@ -21,11 +21,11 @@ import model.model :
 	Params,
 	Purity,
 	range,
-	SpecBody,
 	SpecDecl,
 	SpecDeclSig,
 	SpecSig,
 	symOfPurity,
+	symOfSpecBodyBuiltinKind,
 	symOfVisibility,
 	Type,
 	writeStructInst,
@@ -559,8 +559,9 @@ void writeDiag(
 			writer ~= ' ';
 			writeName(writer, allSymbols, it.callee.name);
 		},
-		(in Diag.CantInferTypeArguments) {
-			writer ~= "can't infer type arguments";
+		(in Diag.CantInferTypeArguments x) {
+			writer ~= "can't infer type arguments of ";
+			writeName(writer, allSymbols, x.callee.name);
 		},
 		(in Diag.CharLiteralMustBeOneChar) {
 			writer ~= "value of 'char' type must be a single character";
@@ -881,15 +882,9 @@ void writeDiag(
 			writeName(writer, allSymbols, d.called.name);
 			writer ~= ", but ";
 			writeTypeQuoted(writer, allSymbols, d.type);
-			string message = () {
-				final switch (d.kind) {
-					case SpecBody.Builtin.Kind.data:
-						return " is not 'data'";
-					case SpecBody.Builtin.Kind.send:
-						return " is not 'send'";
-				}
-			}();
-			writer ~= message;
+			writer ~= " is not '";
+			writeSym(writer, allSymbols, symOfSpecBodyBuiltinKind(d.kind));
+			writer ~= "'";
 		},
 		(in Diag.SpecImplFoundMultiple d) {
 			writer ~= "multiple implementations found for spec signature ";

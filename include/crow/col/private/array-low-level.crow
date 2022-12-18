@@ -1,0 +1,132 @@
+no-std
+import
+	../../bool: &&, bool, false, true
+	../../compare: <=, >
+	../../fun-util: subscript
+	../../misc: new, void
+	../../number: ==, +, -, *, nat64, round-up-to-power-of-two
+	../../pointer:
+		==, <=>, +, -, *, as-const, const-pointer, mut-pointer, null, pointer-cast, set-deref,
+		size-of, to-mut-pointer, to-nat64
+	../../range: .., low, range, size
+	../../private/alloc: alloc-uninitialized, copy-data-from
+	../../private/bootstrap: array, begin-pointer, new, size
+	./build: build-options, size-hint
+
+array-reference-equal[t] bool(a t array, b t array) noctx, unsafe
+	a.begin-pointer == b.begin-pointer && a.size == b.size
+
+# Pointer to the end of an array.
+!end-pointer[t] t*(a t array) noctx, unsafe
+	a.begin-pointer + a.size
+
+###
+Arr or the range from begin to end.
+`begin` is inclusive and `end` is exclusive.
+UB if begin > end.
+###
+!as-array[t] t array(pointers t* range) noctx, unsafe
+	pointers.size, pointers.low
+!as-array[t] t array(pointers t mut* range) noctx, unsafe
+	pointers.size, pointers.low.as-const
+
+!pointers[t] t* range(a t array) noctx, unsafe
+	a.begin-pointer .. a.end-pointer
+
+array-cast[out, in] out array(a in array) noctx, unsafe
+	assert size-of@out == size-of@in
+	a.size, a.begin-pointer.pointer-cast
+
+# Create an array from a range of pointers.
+!subscript[t] t array(a t*, r nat64 range) noctx, unsafe
+	r.size, a + r.low
+
+###
+Equivalent to calling `f[a[0]]`, `f[a[1]]`, etc.
+
+Calls `f` for each element in `a`.
+###
+!iterate[t] bool(a t array, f act bool(t))
+	trusted if size-of@t == 0
+		i mut = 0
+		loop
+			if i == a.size
+				break false
+			elif f[*a.begin-pointer]
+				break true
+			else
+				i := i + 1
+				continue
+	else
+		cur mut = a begin-pointer
+		end = a end-pointer
+		loop
+			if cur == end
+				break false
+			elif f[*cur]
+				break true
+			else
+				cur := cur + 1
+				continue
+
+!array-builder[t] record mut
+	.begin mut t mut*
+	# If `size-of@t == 0`, we store the size here instead of an actual pointer
+	.cur mut t mut*
+	.end mut t mut*
+!build[t] t array(a build-options, f act void(t array-builder))
+	trusted if size-of@t == 0
+		# store size in 'cur'
+		builder t array-builder = null, 0.to-mut-pointer, null
+		f[builder]
+		builder.size, null
+	else
+		begin t mut* = a.size-hint alloc-uninitialized
+		builder t array-builder = begin, begin, begin + a.size-hint
+		f[builder]
+		res = (builder.begin .. builder.cur) as-array
+		builder.begin := null
+		builder.cur := null
+		builder.end := null
+		res
+
+!~=[t] void(a t array-builder, value t)
+	trusted if size-of@t == 0
+		a.cur := (a.cur.to-nat64 + 1).to-mut-pointer
+	else
+		forbid a.begin == null
+		assert a.cur <= a.end
+		if a.cur == a.end
+			cur-size = a.end - a.begin
+			new-capacity = cur-size == 0 ? 4 : cur-size * 2
+			new-begin t mut* = new-capacity alloc-uninitialized
+			new-begin copy-data-from a.begin.as-const, cur-size
+			a.begin := new-begin
+			a.cur := new-begin + cur-size
+			a.end := new-begin + new-capacity
+		*a.cur := value
+		a.cur := a.cur + 1
+
+!~~=[t] void(a t array-builder, values t array)
+	trusted if size-of@t == 0
+		a.cur := (a.cur.to-nat64 + values.size).to-mut-pointer
+	else
+		forbid a.begin == null
+		assert a.cur <= a.end
+		if a.cur + values.size > a.end
+			cur-size = a.cur - a.begin
+			min-size = cur-size + values.size
+			new-capacity = min-size.round-up-to-power-of-two
+			new-begin t mut* = new-capacity alloc-uninitialized
+			new-begin copy-data-from a.begin.as-const, cur-size
+			a.begin := new-begin
+			a.cur := new-begin + cur-size
+			a.end := new-begin + new-capacity
+		a.cur copy-data-from values.begin-pointer, values.size
+		a.cur := a.cur + values.size
+
+!size[t] nat64(a t array-builder)
+	trusted if size-of@t == 0
+		a.cur to-nat64
+	else
+		a.cur - a.begin

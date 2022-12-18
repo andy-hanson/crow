@@ -527,7 +527,7 @@ SwitchDelayed writeSwitch0ToNDelay(scope ref ByteCodeWriter writer, ByteCodeSour
 	return SwitchDelayed(addresses, nextByteCodeIndex(writer));
 }
 
-private immutable ByteCodeOffsetUnsigned[64] emptyCases;
+private immutable ByteCodeOffsetUnsigned[256] emptyCases;
 
 @trusted void fillDelayedSwitchEntry(scope ref ByteCodeWriter writer, SwitchDelayed delayed, size_t switchEntry) {
 	ByteCodeOffsetUnsigned* start = cast(ByteCodeOffsetUnsigned*) &writer.operations[delayed.firstCase.index];

@@ -5,7 +5,7 @@ main nat^(_ string[]) summon
 	a string^ = "crow",
 	x <- a
 	out print x
-	b string^ = x.reverse,
+	b string^ = x.upper-case,
 	y <- b
 	out print y
 	()

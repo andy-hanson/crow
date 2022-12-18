@@ -9,22 +9,22 @@ import
 	./path-and-content: path-and-content
 	./search-dir-recursive: search-dir-recursive
 
-documentation path-and-content[]() summon
-	all-module-paths = "include/crow" search-dir-recursive (x => !x.ignore-dir), (x => x != "std.crow")
-	all-modules = all-module-paths get-modules "include/"
+documentation path-and-content[]^() summon
+	all-module-paths <- "include/crow" search-dir-recursive (x => !x.ignore-dir), (x => x != "std.crow")
+	all-modules <- all-module-paths get-modules "include/"
 	all-paths = (for x : all-modules; x path) sort-paths
 	all-exports = all-modules all-exports
 	modules path-and-content[] = for module : all-modules
 		module.path document-template "module {module.path}", (module module-content all-exports), all-paths
 	index-content string = "site-src/doc/index.html" read-file
 	index = "index" document-template "documentation", index-content, all-paths
-	index ~ modules
+	index ~ modules,
 
 .sort-paths module-path[](a module-path[])
-	a sort x => "{x}" split-by "/"
+	a sort x => ("{x}" split "/")::string[]
 
 .ignore-dir bool(a string)
-	a in ("experimental", "private")::string[]
+	a in ("experimental", "private")::(string set)
 
 .document-template path-and-content(path module-path, title string, content string, all-paths module-path[])
 	out-path = "doc" child-path "{path}.html"

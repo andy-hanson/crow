@@ -1,7 +1,8 @@
 no-std
 import
 	../../bool: &&, bool
-	../../col/list: ~~, list, size, subscript
+	../../col/collection: subscript
+	../../col/list: +, ~~, begin, list, size, slice
 	../../compare: <
 	../../io/time: get-unix-time, new, seconds-since-epoch, unix-time
 	../../log: info, log

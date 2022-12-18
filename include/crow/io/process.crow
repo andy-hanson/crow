@@ -19,8 +19,9 @@ import
 		STARTF_USESTDHANDLES, STARTUPINFOA, WaitForSingleObject
 	../bool: &&, ||, bool, to-nat64, true
 	../col/array: begin-pointer
-	../col/mut-array: begin-pointer, mut-array, new, size, subscript
-	../col/list: ~, for-loop, to-array, list
+	../col/collection: for-loop, join, subscript
+	../col/mut-array: +, begin, begin-pointer, mut-array, new, next, size
+	../col/list: ~, ~=, build, iterate, list, size, to-array
 	../col/mut-list: begin-pointer, end-pointer, move-to-list, mut-list, new, size, unsafe-set-size
 	../compare: <=
 	../c-types: fd-t
@@ -29,7 +30,7 @@ import
 	../private/bootstrap: todo
 	../private/c-string-util: find-c-string-end
 	../pointer: ==, +, -, as-any-const-pointer, as-any-mut-pointer, mut-pointer, new, null
-	../string: ~~, as-string, char8, c-string, join, literal, string, to-c-string, to-string
+	../string: ~~, as-string, char8, c-string, literal, new, string, to-c-string, to-string
 	../version: is-windows
 	./environ: get-environ-raw
 	./file: is-file

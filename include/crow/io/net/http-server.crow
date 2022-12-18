@@ -4,11 +4,14 @@ import
 	sys/socket: as-fd, SOCKET
 	unistd: write
 	../../bool: bool, false, true
-	../../col/array: array, begin-pointer, is-empty, size, subscript
-	../../col/dict: for-loop, in, to-dict
-	../../col/list: ~~, is-empty, rtail, size, subscript, to-array
+	../../col/array: +, -, array, begin, begin-pointer, end, is-empty, iterate, size, slice
+	../../col/collection:
+		.., -, contains, end, for-loop, index-of, join, split, subscript, try-remove-end
+	../../col/dict: in, iterate, size, to-dict
+	../../col/list:
+		~~, ~=, +, -, begin, build, end, is-empty, iterate, list, next, size, slice, to-array
 	../../col/mut-dict: mut-dict, new, try-remove, set-subscript, subscript
-	../../col/mut-list: ~=, ~~=, index-of, move-to-list, mut-list, new, pop-n-from-start, size
+	../../col/mut-list: ~=, ~~=, iterate, move-to-list, mut-list, new, pop-n-from-start, size
 	../../compare: <=, >
 	../../enum-util: to-enum
 	../../exception: to-string
@@ -19,10 +22,9 @@ import
 	../../number: ==, <=>, +, nat8, nat64, to-int64, to-nat64
 	../../option: ??, new, option
 	../../parse: nat, parse
-	../../range: ..
 	../../string:
-		==, <=>, ~~, as-string, contains-substr, hash-mix, is-empty, join, literal, split-by, string,
-		to-bytes, to-c-string, to-nat8, to-string, try-remove-end
+		==, <=>, ~~, as-string, begin, end, hash-mix, is-empty, iterate, literal, new, next, prev,
+		slice, string, to-bytes, to-c-string, to-nat8, to-string
 	../../tuple: new, pair
 	../../private/bootstrap: todo
 	./http-types:
@@ -104,18 +106,18 @@ Starts running an HTTP server. Stops it when `cb` returns.
 			else
 				assert wrote > 0
 				<- delay
-				sock write-until-finished content[wrote.to-nat64 .. content.size]
+				sock write-until-finished content[wrote.to-nat64 .. end]
 
 .finish-request http-request(state http-parse-state)
 	state.method, state.url, state.headers.move-to-list.to-dict, state.unparsed.move-to-list
 
 .response-to-array nat8 array(a http-response)
-	forbid a.status-desc contains-substr "\n"
+	forbid a.status-desc contains "\n"
 	# TODO: headers are case insensitive, maybe forbid any upper-case letters in headers to be consistent
 	forbid "Content-Length" in a.headers
 	headers = "" join for k, v : a headers
-		forbid k contains-substr "\n"
-		forbid v contains-substr "\n"
+		forbid k contains "\n"
+		forbid v contains "\n"
 		"\r\n{k}: {v}"
 	head = "HTTP/1.1 {a status} \r\n{a status-desc}{headers}"
 	if a.response-body is-empty
@@ -131,7 +133,7 @@ Starts running an HTTP server. Stops it when `cb` returns.
 				break state.content-length == 0
 			elif state.url is-empty
 				# Expect something like "GET / HTTP/1.1"
-				parts = line split-by " "
+				parts string[] = line split " "
 				assert parts.size == 3
 				state.method := parts[0].to-enum ?? todo
 				state.url := parts[1]
@@ -139,7 +141,7 @@ Starts running an HTTP server. Stops it when `cb` returns.
 				forbid state.url is-empty
 				continue
 			else
-				parts = line split-by ": "
+				parts string[] = line split ": "
 				assert parts.size == 2
 				key = parts[0]
 				value = parts[1]
@@ -157,7 +159,7 @@ Starts running an HTTP server. Stops it when `cb` returns.
 
 .try-take-first-line string?(a nat8 mut[])
 	if index ?= a index-of "\n".to-nat8
-		bytes = a pop-n-from-start index + 1 rtail
+		bytes = (a pop-n-from-start index + 1)[0 .. end - 1]
 		line = bytes as-string
 		(line try-remove-end "\r" ?? line),
 

@@ -1,16 +1,15 @@
 no-std
 import
-	../bool: bool
-	../compare: !=
+	../bool: ||, bool, new, true, false
 	../fun-util: subscript
 	../json: json
-	../misc: new, void
 	../number: ==, +, nat64
 	../option: ==, force, is-empty, new, option
 	../test-util: is
 	../tuple: a, b, new, pair
-	./array: array
-	./list: ~=, ==, build, for-loop, list, new, to-list, with-block
+	./array: ~=, array, array-iterator, begin, build, end, next, prev
+	./collection: build, for-loop, reverse, with-block
+	./list: ==, ~=, build, iterate, list, new, to-list
 
 ###
 Immutable stack type.
@@ -85,61 +84,49 @@ Returns an empty option iff `a` is empty.
 	if node ?= a last-node
 		((node.prev,), node.value),
 
-region iteration
+region spec impls (see collection.crow)
 
-!for-loop[t] void(a t stack, f act void(t))
-	a.last-node for-loop-recur f
-.for-loop-recur[t] void(a t node?, f act void(t))
+!iterate[t] bool(a t stack, f act bool(t))
+	a.last-node iterate-recur f
+.iterate-recur[t] bool(a t node?, f act bool(t))
 	if node ?= a
-		node.prev for-loop-recur f
-		f[node value]
-
-!reversed-stack[t] record
-	.inner t stack
-reversed[t] t reversed-stack(a t stack)
-	a,
-
-!for-loop[t] void(a t reversed-stack, f act void(t))
-	cur mut = a.inner last-node
+		node.prev iterate-recur f || f[node value]
+iterate-reverse[t] bool(a t stack, f act bool(t))
+	cur mut = a last-node
 	loop
-		if node ?= cur
-			f[node value]
-			cur := node prev
-			continue
+		if c ?= cur
+			if f[c value]
+				break true
+			else
+				cur := c prev
+				continue
 		else
-			break
+			break false
 
-!for-loop[out, in] out[](a in reversed-stack, f act out(in)) 
-	with out : a.inner.size build
-		for x : a
-			out ~= f[x]
+subregion iterator
 
-# Copy elements to a list, from top to bottom.
-!to-list[t] t[](a t reversed-stack)
-	for x : a
-		x
-
-!for-loop[out, in] out[](a in stack, f act out(in))
+to-array-reverse[t] t array(a t stack)
 	with out : a.size build
-		for x : a
-			out ~= f[x]
+		broke = a iterate-reverse x =>
+			out ~= x
+			false
+		forbid broke
 
-# Produce a stack with `f[x]` applied to each element `x` in the input.
-!for-loop[out, in] out stack(a in stack, f act out(in))
-	(a.last-node map-recur f),
-.map-recur[out, in] out node?(a in node?, f act out(in))
-	if node ?= a
-		((node.prev map-recur f), f[node value]),
+!stack-iterator[t] record by-val
+	collection t stack
+	.array-reverse t array-iterator
 
-!filter[t] t stack(a t stack, f act bool(t))
-	(a.last-node filter-recur f),
-.filter-recur[t] t node?(a t node?, f act bool(t))
-	if node ?= a
-		prev = node.prev filter-recur f
-		if f[node value]
-			(prev, node.value),
-		else
-			prev
+!begin[t] t stack-iterator(a t stack)
+	a, a.to-array-reverse.end
+!end[t] t stack-iterator(a t stack)
+	a, a.to-array-reverse.begin
+
+!prev[t] (t stack-iterator, t)?(a t stack-iterator)
+	if pair ?= a.array-reverse next
+		((a.collection, pair.b), pair.a),
+!next[t] (t, t stack-iterator)?(a t stack-iterator)
+	if pair ?= a.array-reverse prev
+		(pair.b, (a.collection, pair.a)),
 
 test
 	a nat64 stack = ()
@@ -167,9 +154,6 @@ test
 
 	(for x : d; x)::nat64[] is (1, 2, 3)
 
-	(for x : d.reversed; x)::nat64[] is (3, 2, 1)
+	(for x : d reverse; x)::nat64[] is (3, 2, 1)
 
 	(for x : d; x + 10)::nat64[] is (11, 12, 13)
-
-	d3 = d filter x => x != 2
-	d3.to-list is (1, 3)

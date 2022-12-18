@@ -1,6 +1,6 @@
 no-std
 import
-	../../bool: ==, bool, false, not, true
+	../../bool: ==, bool, false, new, not, true
 	../../compare: <=, equal, max
 	../../fun-util: subscript
 	../../hash: hash-mix
@@ -8,15 +8,16 @@ import
 	../../misc: key, new, void
 	../../number: ==, <=>, +, nat64
 	../../option: ==, is-empty, new, option
-	../../string: ==, ~~, join, literal, string, to-string
+	../../string: ==, ~~, literal, new, string, to-string
 	../../test-util: is
 	../../tuple: ==, from, new, pair, to
-	../mut-array: ~=, build, mut-array, with-block
-	../list: ==, ~=, build, for-loop, list, new, with-block
+	../collection: build, for-loop, join, with-block
+	../mut-array: ~=, build, mut-array
+	../list: ==, ~=, build, iterate, list, new, size
 	../mut-set: in, mut-set, new, try-add
 	../sort: sort
 	./frozen-dict:
-		for-loop, frozen-dict, in, is-empty, mut-array-to-frozen-dict-promise-no-duplicates, new,
+		frozen-dict, in, is-empty, iterate, mut-array-to-frozen-dict-promise-no-duplicates, new,
 		size, subscript, to-frozen-dict
 
 compact-dict[k, v] record by-val
@@ -26,7 +27,7 @@ compact-dict[k, v] record by-val
 ==[k, v] bool(a (k, v) compact-dict, b (k, v) compact-dict) k key, v equal
 	a.to-sorted-pairs == b.to-sorted-pairs
 .to-sorted-pairs[k, v] (k, v)[](a (k, v) compact-dict) k key
-	a.to-list sort pair => pair from
+	(for x : a; x) sort pair => pair from
 
 json[k, v] json(a (k, v) compact-dict) k key, k json, v json
 	a.to-sorted-pairs json
@@ -165,31 +166,32 @@ in[k, v] bool(key k, a (k, v) compact-dict) k key
 				out ~= (k, v)
 	trusted pairs mut-array-to-frozen-dict-promise-no-duplicates
 
-region iteration
+region spec impls (see collection.crow)
 
-for-loop[k, v] void(a (k, v) compact-dict, f act void(k, v)) k key
+iterate[k, v] bool(a (k, v) compact-dict, f act bool((k, v))) k key
+	a iterate (k, v) => f[(k, v)]
+iterate[k, v] bool(a (k, v) compact-dict, f act bool(k, v)) k key
 	cur mut = a impl
 	seen k mut-set = ()
 	loop
 		match cur
 		as overlay o
-			for k, v-opt : o pairs
+			broke = o.pairs iterate (k, v-opt) => 
 				if seen try-add k
 					if v ?= v-opt
 						f[k, v]
-			cur := o prev
-			continue
+			if broke
+				break true
+			else
+				cur := o prev
+				continue
 		as end-node e
-			for k, v : e
+			break e iterate (k, v) =>
 				unless k in seen
 					# Don't need to add to 'seen' because this is the last node.
 					f[k, v]
-			break
 
-for-loop[a, k, v] a[](a (k, v) compact-dict, f act a(k, v)) k key
-	with out : a.size build
-		for k, v : a
-			out ~= f[k, v]
+region test
 
 .dbg[k, v] string(a (k, v) compact-dict) k to-string, v to-string
 	a.impl dbg
@@ -209,7 +211,7 @@ for-loop[a, k, v] a[](a (k, v) compact-dict, f act a(k, v)) k key
 			"{k} -> {v}"
 		"[{parts}]"
 
-verify void(a (nat64, string) compact-dict, expected string)
+.verify void(a (nat64, string) compact-dict, expected string)
 	a.dbg is expected
 	for k, v : a
 		a[k] is (v,)

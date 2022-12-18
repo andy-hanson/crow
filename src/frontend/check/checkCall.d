@@ -15,6 +15,7 @@ import frontend.check.inferringType :
 	FunOrLambdaInfo,
 	inferred,
 	InferringTypeArgs,
+	inferTypeArgsFrom,
 	isInLambda,
 	LocalNode,
 	LocalsInfo,
@@ -37,7 +38,9 @@ import frontend.check.instantiate :
 	typeArgsArray,
 	TypeParamsAndArgs;
 import frontend.check.typeFromAst : tryGetMatchingTypeArgs, tryUnpackTupleType;
-import frontend.parse.ast : CallAst, ExprAst, LambdaAst, NameAndRange, rangeOfNameAndRange, TypeAst;
+import frontend.lang : maxSpecDepth, maxSpecImpls, maxTypeParams;
+import frontend.parse.ast :
+	CallAst, ExprAst, ExprAstKind, LambdaAst, NameAndRange, ParenthesizedAst, rangeOfNameAndRange, TypeAst;
 import frontend.programState : ProgramState;
 import model.diag : Diag;
 import model.model :
@@ -78,8 +81,10 @@ import util.col.arrBuilder : add, ArrBuilder, finishArr;
 import util.col.arrUtil : every, exists, fillArrOrFail, map;
 import util.col.mutMaxArr :
 	copyToFrom,
+	exists,
 	fillMutMaxArr_mut,
 	filterUnordered,
+	filterUnorderedButDontRemoveAll,
 	initializeMutMaxArr,
 	isEmpty,
 	isFull,
@@ -91,6 +96,7 @@ import util.col.mutMaxArr :
 	only,
 	push,
 	pushUninitialized,
+	size,
 	tempAsArr,
 	toArray;
 import util.memory : allocate, overwriteMemory;
@@ -142,8 +148,10 @@ private Expr checkCallInner(
 	bool someArgIsBogus = false;
 	Opt!(Expr[]) args = fillArrOrFail!Expr(ctx.alloc, arity, (size_t argIdx) {
 		if (isEmpty(candidates))
-			// Already certainly failed.
 			return none!Expr;
+
+		filterCandidatesButDontRemoveAll(candidates, (scope ref Candidate x) =>
+			inferCandidateTypeArgsFromSpecs(ctx, x));
 
 		ParamExpected paramExpected = mutMaxArr!(maxCandidates, TypeAndInferring);
 		getParamExpected(ctx.alloc, ctx.programState, paramExpected, candidates, argIdx);
@@ -160,15 +168,19 @@ private Expr checkCallInner(
 			return none!Expr;
 		}
 		add(ctx.alloc, actualArgTypes, actualArgType);
-		filterByParamType(ctx.alloc, ctx.programState, candidates, actualArgType, argIdx);
+		filterCandidates(candidates, (scope ref Candidate candidate) =>
+			testCandidateParamType(ctx.alloc, ctx.programState, candidate, actualArgType, argIdx, InferringTypeArgs()));
 		return some(arg);
 	});
 
 	if (someArgIsBogus)
 		return bogus(expected, range);
 
+	filterCandidatesButDontRemoveAll(candidates, (scope ref Candidate x) =>
+		inferCandidateTypeArgsFromSpecs(ctx, x));
+
 	if (mutMaxArrSize(candidates) != 1 &&
-		exists!Candidate(tempAsArr(candidates), (in Candidate it) => candidateIsPreferred(it))) {
+		exists!(maxCandidates, Candidate)(candidates, (in Candidate it) => candidateIsPreferred(it))) {
 		filterCandidates(candidates, (ref Candidate it) => candidateIsPreferred(it));
 	}
 
@@ -278,13 +290,14 @@ struct Candidate {
 	immutable UsedFun used;
 	immutable CalledDecl called;
 	// Note: this is always empty if calling a SpecSig
-	MutMaxArr!(16, SingleInferringType) typeArgs;
+	MutMaxArr!(maxTypeParams, SingleInferringType) typeArgs;
 }
 void initializeCandidate(ref Candidate a, UsedFun used, CalledDecl called) {
 	overwriteMemory(&a.used, used);
 	overwriteMemory(&a.called, called);
 	initializeMutMaxArr(a.typeArgs);
 }
+// TODO: 'b' isn't really const since we're getting mutable 'typeArgs' from it
 void overwriteCandidate(ref Candidate a, ref const Candidate b) {
 	overwriteMemory(&a.used, b.used);
 	overwriteMemory(&a.called, b.called);
@@ -352,7 +365,7 @@ Type getCandidateExpectedParameterTypeRecur(
 		},
 		(StructInst* i) {
 			scope TypeArgsArray outTypeArgs = typeArgsArray();
-			mapTo(outTypeArgs, typeArgs(*i), (ref Type t) =>
+			mapTo!(maxTypeParams, Type, Type)(outTypeArgs, typeArgs(*i), (ref Type t) =>
 				getCandidateExpectedParameterTypeRecur(alloc, programState, candidate, t));
 			return Type(instantiateStructNeverDelay(alloc, programState, decl(*i), tempAsArr(outTypeArgs)));
 		});
@@ -447,16 +460,47 @@ void checkCalledDeclFlags(
 		(SpecSig) {});
 }
 
-void filterByReturnTypeForSpec(
+bool testCandidateForSpecSig(
 	ref Alloc alloc,
 	ref ProgramState programState,
-	scope ref Candidates candidates,
-	Type expectedReturnType,
+	scope ref Candidate specCandidate,
+	in SpecDeclSig specSig,
+	in InferringTypeArgs callInferringTypeArgs,
 ) {
-	// Filter by return type. Also does type argument inference on the candidate.
-	filterCandidates(candidates, (ref Candidate candidate) =>
-		matchTypesNoDiagnostic(
-			alloc, programState, candidate.called.returnType, inferringTypeArgs(candidate), expectedReturnType));
+	bool res = matchTypesNoDiagnostic(
+		alloc, programState,
+		specCandidate.called.returnType, inferringTypeArgs(specCandidate),
+		specSig.returnType, callInferringTypeArgs);
+	return res && everyInRange(specSigNParams(specSig), (size_t argIdx) =>
+		testCandidateParamType(
+			alloc, programState,
+			specCandidate, paramTypeAt(specSig.params, argIdx), argIdx, callInferringTypeArgs));
+}
+
+void inferCandidateTypeArgsFromCheckedSpecSig(
+	ref Alloc alloc,
+	ref ProgramState programState,
+	in Candidate specCandidate,
+	in SpecDeclSig specSig,
+	scope InferringTypeArgs callInferringTypeArgs,
+) {
+	inferTypeArgsFrom(
+		alloc, programState, specSig.returnType, callInferringTypeArgs,
+		specCandidate.called.returnType, inferringTypeArgs(specCandidate));
+	foreach (size_t argIdx; 0 .. specSigNParams(specSig))
+		inferTypeArgsFrom(
+			alloc, programState,
+			paramTypeAt(specSig.params, argIdx),
+			callInferringTypeArgs,
+			getCandidateExpectedParameterType(alloc, programState, specCandidate, argIdx),
+			inferringTypeArgs(specCandidate));
+}
+
+bool everyInRange(size_t n, in bool delegate(size_t) @safe @nogc pure nothrow cb) {
+	foreach (size_t i; 0 .. n)
+		if (!cb(i))
+			return false;
+	return true;
 }
 
 void filterByLambdaArity(
@@ -467,8 +511,9 @@ void filterByLambdaArity(
 	in ExprAst arg,
 	size_t argIdx,
 ) {
-	if (arg.kind.isA!(LambdaAst*)) {
-		size_t arity = arg.kind.as!(LambdaAst*).params.length;
+	Opt!size_t optArity = getLambdaArity(arg.kind);
+	if (has(optArity)) {
+		size_t arity = force(optArity);
 		filterCandidates(candidates, (ref Candidate candidate) {
 			Type expectedArgType = getCandidateExpectedParameterType(alloc, programState, candidate, argIdx);
 			return mayBeFunTypeWithArity(commonTypes, expectedArgType, inferringTypeArgs(candidate), arity);
@@ -476,19 +521,97 @@ void filterByLambdaArity(
 	}
 }
 
-void filterByParamType(
+Opt!size_t getLambdaArity(in ExprAstKind a) =>
+	a.isA!(LambdaAst*)
+	? some(a.as!(LambdaAst*).params.length)
+	: a.isA!(ParenthesizedAst*)
+	? getLambdaArity(a.as!(ParenthesizedAst*).inner.kind)
+	: none!size_t;
+
+// Also does type inference on the candidate
+bool testCandidateParamType(
 	ref Alloc alloc,
 	ref ProgramState programState,
-	ref Candidates candidates,
+	scope ref Candidate candidate,
 	Type actualArgType,
 	size_t argIdx,
-) {
-	// Remove candidates that can't accept this as a param. Also does type argument inference on the candidate.
-	filterCandidates(candidates, (ref Candidate candidate) {
-		Type paramType = getCandidateExpectedParameterType(alloc, programState, candidate, argIdx);
-		return matchTypesNoDiagnostic(alloc, programState, paramType, inferringTypeArgs(candidate), actualArgType);
-	});
+	in InferringTypeArgs callInferringTypeArgs,
+) =>
+	matchTypesNoDiagnostic(
+		alloc, programState,
+		getCandidateExpectedParameterType(alloc, programState, candidate, argIdx),
+		inferringTypeArgs(candidate),
+		actualArgType,
+		callInferringTypeArgs);
+
+bool isPartiallyInferred(in MutMaxArr!(maxTypeParams, SingleInferringType) typeArgs) {
+	bool hasInferred = false;
+	bool hasUninferred = true;
+	foreach (ref const SingleInferringType x; tempAsArr(typeArgs)) {
+		if (has(tryGetInferred(x)))
+			hasInferred = true;
+		else
+			hasUninferred = true;
+	}
+	return hasInferred && hasUninferred;
 }
+
+bool inferCandidateTypeArgsFromSpecs(ref ExprCtx ctx, scope ref Candidate candidate) {
+	// For performance, don't bother unless we have something to infer from already
+	if (isPartiallyInferred(candidate.typeArgs)) {
+		return candidate.called.match!bool(
+			(ref FunDecl called) =>
+				every!(immutable SpecInst*)(called.specs, (in immutable SpecInst* spec) =>
+					inferCandidateTypeArgsFromSpecInst(ctx, candidate, called, *spec)),
+			(SpecSig _) => true);
+	} else
+		// figure this out at the end
+		return true; 
+}
+
+bool inferCandidateTypeArgsFromSpecInst(
+	ref ExprCtx ctx,
+	scope ref Candidate callCandidate,
+	in FunDecl called,
+	in SpecInst spec,
+) {
+	return every!(immutable SpecInst*)(spec.parents, (in immutable SpecInst* parent) =>
+		inferCandidateTypeArgsFromSpecInst(ctx, callCandidate, called, *parent)
+	) && spec.body_.match!bool(
+		(SpecBody.Builtin) =>
+			// figure this out at the end
+			true,
+		(SpecDeclSig[] sigs) {
+			foreach (ref SpecDeclSig sig; sigs)
+				if (!inferCandidateTypeArgsFromSpecSig(ctx, callCandidate, called, sig)) {
+					return false;
+				}
+			return true;
+		});
+}
+
+bool inferCandidateTypeArgsFromSpecSig(
+	ref ExprCtx ctx,
+	scope ref Candidate callCandidate,
+	in FunDecl called,
+	in SpecDeclSig specSig,
+) =>
+	withCandidates(ctx, specSig.name, none!(TypeAst*), specSigNParams(specSig), (ref Candidates specCandidates) {
+		const InferringTypeArgs constCallInferring = inferringTypeArgs(callCandidate);
+		filterCandidates(specCandidates, (ref Candidate specCandidate) =>
+			testCandidateForSpecSig(ctx.alloc, ctx.programState, specCandidate, specSig, constCallInferring));
+
+		switch (size(specCandidates)) {
+			case 0:
+				return false;
+			case 1:
+				inferCandidateTypeArgsFromCheckedSpecSig(
+					ctx.alloc, ctx.programState, only(specCandidates), specSig, inferringTypeArgs(callCandidate));
+				return true;
+			default:
+				return true;
+		}
+	});
 
 Opt!Called findSpecSigImplementation(
 	ref ExprCtx ctx,
@@ -497,15 +620,10 @@ Opt!Called findSpecSigImplementation(
 	ref SpecDeclSig specSig,
 	ref SpecTrace trace,
 ) {
-	size_t nParams = arity(specSig).match!size_t(
-		(size_t n) =>
-			n,
-		(Arity.Varargs) =>
-			todo!size_t("varargs in spec?"));
+	size_t nParams = specSigNParams(specSig);
 	return withCandidates(ctx, specSig.name, none!(TypeAst*), nParams, (ref Candidates candidates) {
-		filterByReturnTypeForSpec(ctx.alloc, ctx.programState, candidates, specSig.returnType);
-		foreach (size_t argIdx; 0 .. nParams)
-			filterByParamType(ctx.alloc, ctx.programState, candidates, paramTypeAt(specSig.params, argIdx), argIdx);
+		filterCandidates(candidates, (scope ref Candidate candidate) =>
+			testCandidateForSpecSig(ctx.alloc, ctx.programState, candidate, specSig, InferringTypeArgs()));
 
 		// If any candidates left take specs -- leave as a TODO
 		switch (mutMaxArrSize(candidates)) {
@@ -522,6 +640,13 @@ Opt!Called findSpecSigImplementation(
 		}
 	});
 }
+
+size_t specSigNParams(ref SpecDeclSig a) =>
+	arity(a).match!size_t(
+		(size_t n) =>
+			n,
+		(Arity.Varargs) =>
+			todo!size_t("varargs in spec?"));
 
 bool checkBuiltinSpec(ref ExprCtx ctx, FunDecl* called, FileAndRange range, SpecBody.Builtin.Kind kind, Type typeArg) {
 	bool typeIsGood = isPurityAlwaysCompatibleConsideringSpecs(ctx, typeArg, purityOfBuiltinSpec(kind));
@@ -559,11 +684,6 @@ bool specProvidesPurity(in SpecInst* inst, in Type type, Purity expected) =>
 			only(typeArgs(*inst)) == type && isPurityCompatible(expected, purityOfBuiltinSpec(b.kind)),
 		(in SpecDeclSig[]) =>
 			false);
-
-size_t maxSpecImpls () =>
-	16;
-size_t maxSpecDepth() =>
-	8;
 
 alias SpecImpls = MutMaxArr!(maxSpecImpls, Called);
 alias SpecTrace = MutMaxArr!(maxSpecDepth, FunDeclAndTypeArgs);
@@ -622,7 +742,7 @@ Opt!Called getCalledFromCandidate(
 	ref ExprCtx ctx,
 	bool isInLambda,
 	FileAndRange range,
-	in Candidate candidate,
+	ref const Candidate candidate,
 	ArgsKind argsKind,
 	ref SpecTrace trace,
 ) {
@@ -635,7 +755,7 @@ Opt!Called getCalledFromCandidate(
 		if (has(t))
 			push(candidateTypeArgs, force(t));
 		else {
-			addDiag2(ctx, range, Diag(Diag.CantInferTypeArguments()));
+			addDiag2(ctx, range, Diag(Diag.CantInferTypeArguments(candidate.called.as!(FunDecl*))));
 			return none!Called;
 		}
 	}
@@ -664,7 +784,7 @@ Opt!Called getCalledFromCandidate(
 Expr checkCallAfterChoosingOverload(
 	ref ExprCtx ctx,
 	bool isInLambda,
-	in Candidate candidate,
+	ref const Candidate candidate,
 	FileAndRange range,
 	Expr[] args,
 	ref Expected expected,
@@ -688,4 +808,13 @@ void filterCandidates(
 ) {
 	filterUnordered!(maxCandidates, Candidate)(candidates, pred, (ref Candidate a, ref const Candidate b) =>
 		overwriteCandidate(a, b));
+}
+
+void filterCandidatesButDontRemoveAll(
+	scope ref Candidates candidates,
+	in bool delegate(ref Candidate) @safe @nogc pure nothrow pred,
+) {
+	filterUnorderedButDontRemoveAll!(maxCandidates, Candidate)(
+		candidates, pred, (ref Candidate a, ref const Candidate b) =>
+			overwriteCandidate(a, b));
 }

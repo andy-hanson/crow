@@ -1,17 +1,20 @@
 no-std
 import
-	./col/list: for-loop, list, size
+	./col/collection: begin, for-loop, iterate, next, size
+	./col/list: ~=, build, iterate, list, size
+	./col/mut-list: ~=, hint-size, move-to-list, mut-list, new
 	./exception: catch, exception
 	./fun-util: subscript
-	./misc: break-or-continue, loop-break, loop-continue, new, void
+	./misc: break-or-continue, is-sendable, loop-break, loop-continue, new, void
 	./number: ==, -, nat64
-	./private/bootstrap: action, exclusion, is-sendable, lk, new, rejected, resolved
+	./option: new, option
+	./private/bootstrap: action, exclusion, lk, new, rejected, resolved
 	./private/future-low-level: add-task, get-result, forward-to, reject, resolve, unresolved
 	./private/runtime: add-task, cur-exclusion, exception-handler, get-global-ctx, new-exclusion
 	./private/task-queue: task
 	./private/thread-utils: init, lock, uninit
 	./result: force, result
-	./tuple: a, b, new, pair
+	./tuple: a, b, c, pair, tuple3
 export
 	./private/bootstrap: future
 
@@ -52,7 +55,7 @@ regardless of which exception happened first.
 ###
 !wait-all[t] t[]^(futures t^[]) t is-sendable
 	<- futures wait-all-complete
-	trusted (for x : futures; x.get-result!),
+	(for x : futures; trusted x.get-result!),
 
 # Returns a future that is resolved once all inputs are resolved.
 .wait-all-complete[t] void^(futures t^[]) t is-sendable
@@ -126,40 +129,24 @@ and the result of `then` will have the same exception as `a`.
 
 ###
 Use like:
-	x, y <- f | g
+	x, y <- f, g
 Where 'f' and 'g' are futures.
 ###
 !then[out, in0, in1] out^(
-	a (in0, in1)^,
+	a (in0^, in1^),
 	f ref out(in0, in1),
 ) out is-sendable, in0 is-sendable, in1 is-sendable
-	pair <- a
-	f[pair.a, pair.b]
-
-!|[t, u] (t, u)^(a t^, b u^) t is-sendable, u is-sendable
-	x <- a
-	y <- b
-	(x, y),
-
-!parallel record
-!parallel parallel()
-	()
-###
-Run `f` in a task with a new exclusion and return a future for its result.
-
-`f` must be a `fun` and not an `act` so that it can have a new exclusion,
-which allows it to run in parallel.
-###
-!with-block[t] t^(_ parallel, f fun t^())
-	res t^ = trusted unresolved
-	gctx = trusted get-global-ctx
-	trusted gctx add-task gctx.new-exclusion, () =>
-		match (() => f[]) catch
-		as ok fut
-			res forward-to fut
-		as err e
-			res reject e
-	res
+	x <- a.a
+	y <- a.b
+	f[x, y]
+!then[out, in0, in1, in2] out^(
+	a (in0^, in1^, in2^),
+	f ref out(in0, in1, in2),
+) out is-sendable, in0 is-sendable, in1 is-sendable, in2 is-sendable
+	x <- a.a
+	y <- a.b
+	z <- a.c
+	f[x, y, z]
 
 ###
 Calls a `ref`.
@@ -196,6 +183,17 @@ and returns a future for the result of that task.
 		(() => res forward-to f.action[p0, p1]) catch err => res reject err
 	res
 
+!subscript[r, p0, p1, p2] r^(
+	f ref r(p0, p1, p2),
+	p0 p0,
+	p1 p1,
+	p2 p2,
+) r is-sendable, p0 is-sendable, p1 is-sendable, p2 is-sendable
+	res r^ = trusted unresolved
+	trusted get-global-ctx add-task f.exclusion, () =>
+		(() => res forward-to f.action[p0, p1, p2]) catch err => res reject err
+	res
+
 ###
 If the future resolves successfully, does nothing.
 Else, this will call the default exception handler.
@@ -212,3 +210,94 @@ handle-exceptions[t] void(a t^)
 	a.loop-break,
 !loop-continue[t] t break-or-continue^()
 	loop-continue,
+
+!parallel record
+!parallel parallel()
+	()
+###
+Run `f` in a task with a new exclusion and return a future for its result.
+
+`f` must be a `fun` and not an `act` so that it can have a new exclusion,
+which allows it to run in parallel.
+###
+!with-block[t] t^(_ parallel, f fun t^())
+	res t^ = trusted unresolved
+	gctx = trusted get-global-ctx
+	trusted gctx add-task gctx.new-exclusion, () =>
+		match (() => f[]) catch
+		as ok fut
+			res forward-to fut
+		as err e
+			res reject e
+	res
+
+sequential-collection[col] record
+	.inner col
+sequential[col] col sequential-collection(a col)
+	a,
+
+for-loop[in-col, in-iter, in-elem] void^(
+	a in-col sequential-collection,
+	f ref void(in-elem),
+) (in-iter, in-col) begin, (in-elem, in-iter) next, in-elem is-sendable
+	a for-break x =>
+		<- f[x]
+		continue
+
+for-break[in-col, in-iter, in-elem] void^(
+	a in-col sequential-collection,
+	f ref void break-or-continue(in-elem),
+) (in-iter, in-col) begin, (in-elem, in-iter) next, in-elem is-sendable
+	# TODO: we need type annotations on LHS of '<-'
+	_ <- (a for-break f)::void?^
+	()
+
+for-break[out, in-col, in-iter, in-elem] out?^(
+	a in-col sequential-collection,
+	f ref out break-or-continue(in-elem),
+) (in-iter, in-col) begin, (in-elem, in-iter) next, out is-sendable, in-elem is-sendable
+	a.inner.begin for-break-recur f
+.for-break-recur[out, in-col, in-iter, in-elem] out?^(
+	iter in-iter,
+	f ref out break-or-continue(in-elem),
+) (in-iter, in-col) begin, (in-elem, in-iter) next, out is-sendable, in-elem is-sendable
+	if pair ?= iter next
+		b-or-c <- f[pair.a]
+		match b-or-c
+		as loop-break v
+			(v,),
+		as loop-continue
+			pair.b for-break-recur@(out, in-col, in-iter, in-elem) f
+
+for-loop[out-elem, in-col, in-iter, in-elem] out-elem[]^(
+	a in-col sequential-collection,
+	f ref out-elem(in-elem),
+) (in-iter, in-col) begin, (in-elem, in-iter) next, in-col size, out-elem is-sendable, in-elem is-sendable
+	res out-elem mut[] = ()
+	res hint-size a.inner.size
+	<- for x : a
+		y <- f[x]
+		res ~= y
+		()
+	res.move-to-list,
+
+parallel-collection[col] record
+	.inner col
+parallel[col] col parallel-collection(a col)
+	a,
+for-loop[in-col, in-elem] void^(
+	a in-col parallel-collection,
+	f fun void^(in-elem),
+) (in-col, in-elem) iterate, in-col size, in-elem is-sendable
+	tasks void^[] = for x : a inner
+		with : parallel
+			f[x]
+	tasks wait-all-complete
+for-loop[out-elem, in-col, in-elem] out-elem[]^(
+	a in-col parallel-collection,
+	f fun out-elem^(in-elem),
+) (in-col, in-elem) iterate, in-col size, out-elem is-sendable, in-elem is-sendable
+	tasks out-elem^[] = for x : a inner
+		with : parallel
+			f[x]
+	tasks wait-all

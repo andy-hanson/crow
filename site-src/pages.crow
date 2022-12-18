@@ -1,12 +1,13 @@
 import
 	crow/io/file: read-file
+	crow/parse
 	./page-template: page-template
 	./path-and-content: path-and-content
 
-pages path-and-content[]() summon
+pages path-and-content[]^() summon
 	index path-and-content = "index.html" page-template "index", "site-src/index.html".read-file
 	download path-and-content = "download.html" page-template "download", "site-src/download.html".read-file
-	(index, download) ~~ tutorial-pages
+	(index, download) ~~ tutorial-pages,
 
 tutorial-pages path-and-content[]() summon
 	metas = tutorial-metas
@@ -17,7 +18,7 @@ tutorial-pages path-and-content[]() summon
 		meta.path tutorial-template meta.title, "site-src/tutorial/{meta key}.html".read-file, next
 
 .tutorial-metas tutorial-meta[]()
-	lines = """index: hello, world!
+	input = """index: hello, world!
 	if: functions, 'if', and locals
 	types: basic types
 	infer: type inference
@@ -32,10 +33,12 @@ tutorial-pages path-and-content[]() summon
 	spec: specs
 	module: modules
 	extern: extern functions
-	next: where from here?""" split-by "\n"
-	for line : lines
-		pair = (line.strip try-split-once ":")!
-		pair.a.strip.string-to-symbol, pair.b.strip
+	next: where from here?"""
+	name symbol grammar = word map x => x string-to-symbol
+	line tutorial-meta grammar = (name ~~ ": " ~~ "\n".text-not-containing) map pair =>
+		pair.a, pair.b
+	lines tutorial-meta[] grammar = line separated-by "\n\t"
+	(lines parse input)!
 
 .tutorial-meta record
 	key symbol

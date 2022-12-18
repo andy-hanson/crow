@@ -1,5 +1,4 @@
 import
-	crow/col/iter: value
 	crow/io/print: clear-screen, out, print
 	crow/io/stdin: read-stdin-until-parse
 	./board:
@@ -86,7 +85,7 @@ parse-settings ai-settings?(a string)
 .letter-to-number nat?(a string)
 	chars = a char8s
 	if chars.size == 1
-		n = chars.iter.next!.value to-nat8
+		n = chars[0] to-nat8
 		# TODO: type annotation should be unnecessary
 		if "A"::char8.to-nat8 <= n && n < "Z"::char8.to-nat8
 			(n - "A"::char8.to-nat8 to-nat64),

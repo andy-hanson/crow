@@ -332,7 +332,7 @@ AllLowTypesWithCtx getAllLowTypes(ref Alloc alloc, in AllSymbols allSymbols, in 
 	immutable FullIndexDict!(LowType.Union, LowUnion) allUnions =
 		fullIndexDictOfArr!(LowType.Union, LowUnion)(
 			map(alloc, finishArr(alloc, allUnionSources), (ref immutable ConcreteStruct* it) =>
-				getLowUnion(program, getLowTypeCtx, it)));
+				getLowUnion(alloc, program, getLowTypeCtx, it)));
 
 	return AllLowTypesWithCtx(
 		AllLowTypes(
@@ -364,7 +364,7 @@ PrimitiveType typeForEnum(EnumBackingType a) {
 	}
 }
 
-LowUnion getLowUnion(in ConcreteProgram program, ref GetLowTypeCtx getLowTypeCtx, ConcreteStruct* s) =>
+LowUnion getLowUnion(ref Alloc alloc, in ConcreteProgram program, ref GetLowTypeCtx getLowTypeCtx, ConcreteStruct* s) =>
 	LowUnion(s, body_(*s).matchIn!(LowType[])(
 		(in ConcreteStructBody.Builtin it) {
 			verify(it.kind == BuiltinStructKind.fun);

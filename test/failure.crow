@@ -29,13 +29,14 @@ handle-output failure[](
 	else
 		(original-path, "{output-path base-name} does not exist. actual was:\n{actual-normalized}"),
 
-flat-map-with-max-size[out, in] out[](a in[], max-size nat, mapper act out[](in))
-	res out mut[] = ()
-	for x : a
-		if res.size < max-size
-			res ~~= mapper[x]
-			res reduce-size-if-more-than max-size
-	res move-to-list
+flat-map-with-max-size[in] failure[]^(a in[], max-size nat, mapper ref failure[](in)) in is-sendable
+	res failure mut[] = ()
+	<- for x : a sequential
+		out <- mapper[x]
+		res ~~= out
+		if res.size >= max-size
+			break
+	res.move-to-list,
 
 test-options record
 	print-tests bool
@@ -46,16 +47,20 @@ test-options record
 test-result alias
 	(string, failure[]) result
 
-first-failures test-result(a test-result, b fun test-result())
+first-failures test-result^(a test-result^, b fun test-result^())
+	a-res <- a
+	a-res first-failures b
+first-failures test-result^(a test-result, b fun test-result^())
 	match a
 	as ok ok-a
-		match b[]
+		b-res <- b[]
+		match b-res
 		as ok ok-b
-			"{ok-a}\n{ok-b}" ok
+			"{ok-a}\n{ok-b}".ok,
 		as err e
-			e err
+			e.err,
 	as err e
-		e err
+		e.err,
 
 print-failures nat(failures test-result, options test-options) summon
 	match failures

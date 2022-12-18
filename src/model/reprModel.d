@@ -26,7 +26,9 @@ import model.model :
 	Param,
 	Params,
 	Purity,
+	SpecBody,
 	SpecDecl,
+	SpecDeclSig,
 	specImpls,
 	SpecInst,
 	SpecSig,
@@ -36,6 +38,7 @@ import model.model :
 	symOfAssertOrForbidKind,
 	symOfFunKind,
 	symOfPurity,
+	symOfSpecBodyBuiltinKind,
 	symOfVisibility,
 	Type,
 	typeArgs,
@@ -48,7 +51,7 @@ import util.alloc.alloc : Alloc;
 import util.col.arr : empty;
 import util.col.arrBuilder : add, ArrBuilder, finishArr;
 import util.col.arrUtil : map;
-import util.col.str : safeCStrIsEmpty;
+import util.col.str : SafeCStr, safeCStrIsEmpty;
 import util.opt : force;
 import util.ptr : ptrTrustMe;
 import util.repr :
@@ -66,7 +69,6 @@ import util.repr :
 	reprSym;
 import util.sourceRange : RangeWithinFile, reprFileAndPos, reprFileAndRange, reprRangeWithinFile;
 import util.sym : Sym, sym;
-import util.util : todo;
 
 Repr reprModule(ref Alloc alloc, in Module a) {
 	Ctx ctx = Ctx(ptrTrustMe(a));
@@ -117,13 +119,7 @@ immutable struct Ctx {
 Repr reprStructDecl(ref Alloc alloc, in Ctx ctx, in StructDecl a) {
 	ArrBuilder!NameAndRepr fields;
 	add(alloc, fields, nameAndRepr!"range"(reprFileAndRange(alloc, a.range)));
-	if (!safeCStrIsEmpty(a.docComment))
-		add(alloc, fields, nameAndRepr!"doc"(reprStr(a.docComment)));
-	add(alloc, fields, nameAndRepr!"visibility"(reprVisibility(a.visibility)));
-	add(alloc, fields, nameAndRepr!"name"(reprSym(a.name)));
-	if (!empty(a.typeParams))
-		add(alloc, fields, nameAndRepr!"typeparams"(reprArr!TypeParam(alloc, a.typeParams, (in TypeParam it) =>
-			reprTypeParam(alloc, it))));
+	addReprCommon(alloc, fields, a.docComment, a.visibility, a.name, a.typeParams);
 	if (a.purity != Purity.data)
 		add(alloc, fields, nameAndRepr!"purity"(reprSym(symOfPurity(a.purity))));
 	if (a.purityIsForced)
@@ -131,27 +127,59 @@ Repr reprStructDecl(ref Alloc alloc, in Ctx ctx, in StructDecl a) {
 	return reprNamedRecord!"struct"(finishArr(alloc, fields));
 }
 
-Repr reprSpecDecl(ref Alloc alloc, in Ctx ctx, in SpecDecl a) =>
-	todo!Repr("reprSpecDecl");
+Repr reprSpecDecl(ref Alloc alloc, in Ctx ctx, in SpecDecl a) {
+	ArrBuilder!NameAndRepr fields;
+	add(alloc, fields, nameAndRepr!"range"(reprFileAndRange(alloc, a.range)));
+	addReprCommon(alloc, fields, a.docComment, a.visibility, a.name, a.typeParams);
+	add(alloc, fields, nameAndRepr!"parents"(reprSpecInsts(alloc, ctx, a.parents)));
+	add(alloc, fields, nameAndRepr!"body"(reprSpecBody(alloc, ctx, a.body_)));
+	return reprNamedRecord!"spec"(finishArr(alloc, fields));
+}
+
+Repr reprSpecBody(ref Alloc alloc, in Ctx ctx, in SpecBody a) =>
+	a.matchIn!Repr(
+		(in SpecBody.Builtin x) =>
+			reprSym(symOfSpecBodyBuiltinKind(x.kind)),
+		(in SpecDeclSig[] xs) =>
+			reprArr!SpecDeclSig(alloc, xs, (in SpecDeclSig x) =>
+				reprSpecDeclSig(alloc, ctx, x)));
+
+Repr reprSpecDeclSig(ref Alloc alloc, in Ctx ctx, in SpecDeclSig a) =>
+	reprRecord!"spec-sig"(alloc, [
+		reprStr(alloc, a.docComment),
+		reprFileAndPos(alloc, a.fileAndPos),
+		reprSym(a.name),
+		reprType(alloc, ctx, a.returnType),
+		reprParams(alloc, ctx, a.params)]);
 
 Repr reprFunDecl(ref Alloc alloc, in Ctx ctx, in FunDecl a) {
 	ArrBuilder!NameAndRepr fields;
-	if (!safeCStrIsEmpty(a.docComment))
-		add(alloc, fields, nameAndRepr!"doc"(reprStr(a.docComment)));
-	add(alloc, fields, nameAndRepr!"visibility"(reprVisibility(a.visibility)));
 	add(alloc, fields, nameAndRepr!"pos"(reprFileAndPos(alloc, a.fileAndPos)));
-	add(alloc, fields, nameAndRepr!"name"(reprSym(a.name)));
+	addReprCommon(alloc, fields, a.docComment, a.visibility, a.name, a.typeParams);
 	add(alloc, fields, nameAndRepr!"type"(reprType(alloc, ctx, a.returnType)));
 	add(alloc, fields, nameAndRepr!"params"(reprParams(alloc, ctx, a.params)));
-	if (!empty(a.typeParams))
-		add(alloc, fields, nameAndRepr!"typeparams"(reprArr!TypeParam(alloc, a.typeParams, (in TypeParam it) =>
-			reprTypeParam(alloc, it))));
 	addFunFlags(alloc, fields, a.flags);
 	if (!empty(a.specs))
-		add(alloc, fields, nameAndRepr!"specs"(reprArr!(SpecInst*)(alloc, a.specs, (in SpecInst* it) =>
-			reprSpecInst(alloc, ctx, *it))));
+		add(alloc, fields, nameAndRepr!"specs"(reprSpecInsts(alloc, ctx, a.specs)));
 	add(alloc, fields, nameAndRepr!"body"(reprFunBody(alloc, ctx, a.body_)));
 	return reprNamedRecord!"fun"(finishArr(alloc, fields));
+}
+
+void addReprCommon(
+	ref Alloc alloc,
+	scope ref ArrBuilder!NameAndRepr fields,
+	in SafeCStr docComment,
+	Visibility visibility,
+	Sym name,
+	in TypeParam[] typeParams,
+) {
+	if (!safeCStrIsEmpty(docComment))
+		add(alloc, fields, nameAndRepr!"doc"(reprStr(docComment)));
+	add(alloc, fields, nameAndRepr!"visibility"(reprVisibility(visibility)));
+	add(alloc, fields, nameAndRepr!"name"(reprSym(name)));
+	if (!empty(typeParams))
+		add(alloc, fields, nameAndRepr!"type-params"(reprArr!TypeParam(alloc, typeParams, (in TypeParam x) =>
+			reprTypeParam(alloc, x))));
 }
 
 void addFunFlags(ref Alloc alloc, scope ref ArrBuilder!NameAndRepr fields, in FunFlags a) {
@@ -212,6 +240,10 @@ Repr reprParam(ref Alloc alloc, in Ctx ctx, in Param a) =>
 		reprOpt!Sym(alloc, a.name, (in Sym it) =>
 			reprSym(it)),
 		reprType(alloc, ctx, a.type)]);
+
+Repr reprSpecInsts(ref Alloc alloc, in Ctx ctx, in immutable SpecInst*[] specs) =>
+	reprArr!(SpecInst*)(alloc, specs, (in SpecInst* x) =>
+		reprSpecInst(alloc, ctx, *x));
 
 Repr reprSpecInst(ref Alloc alloc, in Ctx ctx, in SpecInst a) =>
 	reprRecord(decl(a).name, map(alloc, typeArgs(a), (ref Type it) =>

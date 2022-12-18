@@ -102,7 +102,7 @@ main nat^(args string[]) summon
 # Extra cookies are ignored
 .parse-cookies string?[](cookies-string string, cookie-names string[])
 	res string? mut[] = cookie-names.size n-of ()
-	for part : cookies-string split-by "; "
+	for part : cookies-string split "; "
 		if pair ?= part try-split-once "="
 			if index ?= cookie-names index-of pair.a
 				res[index] := pair.b,

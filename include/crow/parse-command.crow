@@ -1,17 +1,19 @@
 no-std
 import
 	./bool: &&, bool, false, not, true
-	./col/dict: ==, dict, for-loop, new
-	./col/list: ==, ~~, for-break, index-of, is-empty, list, new, size, subscript
-	./col/mut-dict: for-loop, mut-dict, new, set-subscript
-	./col/mut-list: ~=, move-to-list, mut-list, new, n-of, set-subscript, subscript
+	./col/collection:
+		.., end, for-break, for-loop, index-of, n-of, set-subscript, split, subscript,
+		try-remove-start
+	./col/dict: ==, ~=, build, dict, iterate, new, size
+	./col/list: ==, ~~, +, -, begin, end, iterate, is-empty, list, new, next, size, slice
+	./col/mut-dict: iterate, mut-dict, new, set-subscript, size
+	./col/mut-list: ~=, +, begin, build, move-to-list, mut-list, new, next, set-next
 	./json: json, json-object, new
 	./misc: loop-break, loop-continue, new
-	./number: ==, <=>, +
+	./number: ==, +
 	./option: ??, new, option
-	./range: ..
-	./string:
-		==, <=>, ~~, hash-mix, literal, split-by, string, to-c-string, to-string, try-remove-start
+	./string: ==, ~~, begin, end, literal, next, slice, string, to-c-string, to-string
+	./symbol: ==, <=>, hash-mix, string-to-symbol, symbol
 	./test-util: is
 	./tuple: new
 
@@ -28,7 +30,7 @@ For example, if the command is: `foo bar --a 1 --b 2 3 -- x y z`:
 ###
 !parsed-command record
 	nameless string[]
-	named string[][string]
+	named string[][symbol]
 	after string[]
 
 !== bool(a parsed-command, b parsed-command)
@@ -43,16 +45,16 @@ Parse errors aren't possible with this syntax.
 ###
 !parse-command parsed-command(args string[])
 	nameless string mut[] = ()
-	named string mut[] mut[string] = ()
+	named string mut[] mut[symbol] = ()
 	after mut string[] = ()
 	cur mut string mut[] = nameless
 	for i, arg : args
 		if arg == "--"
-			after := args[i + 1 .. args.size]
+			after := args[i + 1 .. end]
 			break
 		elif name ?= arg try-remove-start "--"
 			cur := ()
-			named[name] := cur
+			named[name string-to-symbol] := cur
 			continue
 		else
 			cur ~= arg
@@ -60,7 +62,7 @@ Parse errors aren't possible with this syntax.
 	nameless.move-to-list, (for k, v : named; k, v.move-to-list), after
 
 test
-	("foo --bar baz -- bang" split-by " ").parse-command is (("foo",), (("bar", ("baz",)),), ("bang",))
+	("foo --bar baz -- bang" split " ").parse-command is (("foo",), (("bar", ("baz",)),), ("bang",))
 
 ###
 This is stricter than `parse-command`.
@@ -75,7 +77,7 @@ This will return `((),) (), (("d",),)`.
 
 If the argument syntax is invalid, returns an empty option.
 ###
-parse-named-args string[]?[]?(args string[], arg-names string[])
+parse-named-args string[]?[]?(args string[], arg-names symbol[])
 	parsed = args parse-command
 	values string[]? mut[] = arg-names.size n-of ()
 	err mut = false

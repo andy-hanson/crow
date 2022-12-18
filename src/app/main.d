@@ -588,6 +588,7 @@ SafeCStr[] cCompilerArgs(in CCompileOptions options) {
 			safeCStr!"-Wno-unused-variable",
 			safeCStr!"-Wno-unused-value",
 			safeCStr!"-Wno-builtin-declaration-mismatch",
+			safeCStr!"-Wno-address-of-packed-member",
 			safeCStr!"-Ofast",
 		];
 		static immutable SafeCStr[] regularArgs = optimizedArgs[0 .. $ - 1] ~ [safeCStr!"-g"];

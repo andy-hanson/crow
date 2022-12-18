@@ -1,6 +1,7 @@
 no-std
 import
-	./col/array: array, for-break
+	./col/array: array, iterate
+	./col/collection: for-break
 	./compare: equal
 	./misc: loop-break, name, new, named-val, val
 	./option: option
@@ -21,7 +22,7 @@ Functions in this spec will be generated when you declare an `enum`.
 !to-symbol[e] symbol(a e) e enum-like
 	for x : enum-members
 		if x.val == a
-			break x name
+			break x.name
 	else
 		throw "Invalid enum value"
 

@@ -141,7 +141,7 @@ void writeWithCommasZip(T, U)(
 	in void delegate(in T, in U) @safe @nogc pure nothrow cb,
 ) {
 	bool needsComma = false;
-	zip!(T, U)(a, b, (ref immutable T x, ref immutable U y) {
+	zip!(const T, const U)(a, b, (ref const T x, ref const U y) {
 		if (filter(x, y)) {
 			if (needsComma)
 				writer ~= ", ";

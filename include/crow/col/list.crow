@@ -1,74 +1,104 @@
 no-std
 import
-	../bool: &&, bool, false, not, true
-	../compare: ==, <, <=, compare, comparison, equal, greater, less, min
+	../bool: &&, ||, bool, false
+	../compare: !=, <, <=, >, compare, comparison, equal
 	../fun-util: subscript
-	../misc: break-or-continue, loop-break, loop-continue, new, void
-	../number: ==, <=>, +, -, *, /, %, nat64
-	../option: ??, is-empty, new, option
+	../misc: new
+	../number: ==, <=>, +, -, *, nat64
+	../option: ??, new, option
 	../pointer: const-pointer, mut-pointer
 	../private/exception-low-level: unreachable
 	../private/range-low-level: .., range
-	../pointer: ==, +, *, size-of
+	../pointer: size-of
 	../tuple: a, b, new, pair
 	./array:
-		~, ~~, ~=, ~~=, array, array-builder, array-cast, array-iter, as-array, begin-pointer,
-		build, end-iter, end-pointer, iter, for-break, for-loop, index-of, is-empty, new, next,
-		prev, rtail, size, slice-left, slice-right, subscript, tail, with-block
-	./iter: new, rest, value, value-and-rest
+		~~, ~=, +, -, array, array-cast, as-array, begin, build, end, is-empty, iterate, new, next,
+		size, slice
+	./collection:
+		.., -, concatenate, end, for-loop, index-relative-to-end, is-empty, range-relative-to-end,
+		sequence-compare, sequence-equal, subscript
+	./private/array-low-level: array-reference-equal
+export
+	# TODO: don't re-export everything
+	./private/list-low-level
 
-###
-Immutable list type.
-
-This type is designed so concatenation (`~` and `~~`) will be efficient.
-It also is efficient to split from an iterator.
-
-It does not support efficient access by an index, so iterators should be used instead.
-###
-!list[t] record by-val
-	.root t l0
-
-get-root[t] t l0(a t[]) 
+get-root[t] t l1(a t[]) 
 	a.root
 
-l0[t] record by-val
-	node (t, t l1) node
+.new[t] t array2d() noctx
+	0, ()
+.new[t] t array2d(a t array)
+	a.size, (a,)
+.is-empty[t] bool(a t array2d) noctx
+	a.arrays is-empty
+.~~[t] t array2d(a t array2d, b t array2d)
+	a.total-size + b.total-size, a.arrays ~~ b.arrays
+.subscript[t] t array(a t array2d, index nat64) noctx
+	a.arrays[index]
+.subscript[t] t array(a t array2d, index index-relative-to-end) noctx
+	a.arrays[index]
+.subscript[t] t array2d(a t array2d, indices nat64 range) noctx
+	a.arrays[indices] recompute-total-size
+.subscript[t] t array2d(a t array2d, indices range-relative-to-end) noctx
+	a.arrays[indices] recompute-total-size
+.recompute-total-size[t] t array2d(a t array array) noctx
+	a.compute-total-size, a
+.compute-total-size[t] nat64(a t array array) noctx
+	total-size mut = 0
+	iter mut = a begin
+	loop
+		if pair ?= iter next
+			total-size := total-size + pair.a.size
+			iter := pair b
+			continue
+		else
+			break total-size
+.new[t] t array3d() noctx
+	0, ()
+.new[t] t array3d(a t array2d)
+	a.total-size, (a,)
+.is-empty[t] bool(a t array3d) noctx
+	a.arrays is-empty
+.~~[t] t array3d(a t array3d, b t array3d)
+	a.total-size + b.total-size, a.arrays ~~ b.arrays
+.subscript[t] t array2d(a t array3d, index nat64) noctx
+	a.arrays[index]
+.subscript[t] t array2d(a t array3d, index index-relative-to-end) noctx
+	a.arrays[index]
+.subscript[t] t array3d(a t array3d, indices nat64 range) noctx
+	a.arrays[indices] recompute-total-size
+.subscript[t] t array3d(a t array3d, indices range-relative-to-end) noctx
+	a.arrays[indices] recompute-total-size
+.recompute-total-size[t] t array3d(a t array2d array) noctx
+	a.compute-total-size, a
+.compute-total-size[t] nat64(a t array2d array) noctx
+	total-size mut = 0
+	iter mut = a begin
+	loop
+		if pair ?= iter next
+			total-size := total-size + pair.a.total-size
+			iter := pair b
+			continue
+		else
+			break
+	total-size
 
-l1[t] record by-val
-	node (t array, t l2) node
-
-l2[t] record by-val
-	nodes t array array array
-
-node[t, lower] union
-	leaf t array
-	branch (t, lower) branch
-
-###
-'left', 'down', and 'right' should all be non-empty.
-(Else, this layer should be a leaf. See `branch-or-leaf`.)
-###
-branch[t, lower] record
-	left t array
-	down lower
-	right t array
-
-.new[t, lower] (t, lower) node()
+.new[leaf, lower] (leaf, lower) node() leaf new
 	() leaf
 
-.new[t] t l1()
-	(),
 .new[t] t l2()
 	(),
+.new[t] t l3()
+	(),
 
-.is-empty[t] bool(a t l1)
+.is-empty[t] bool(a t l2)
 	match a node
 	as leaf xs
 		xs is-empty
 	as branch _
 		false
 
-.is-empty[t] bool(a t l2)
+.is-empty[t] bool(a t l3)
 	a.nodes is-empty
 
 .depth[t] nat64(a t[])
@@ -76,50 +106,50 @@ branch[t, lower] record
 	as leaf _
 		0
 	as branch b
-		b.down depth-l1
+		b.down depth-l2
 
-.depth-l1[t] nat64(a t l1)
+.depth-l2[t] nat64(a t l2)
 	match a node
 	as leaf _
 		1
 	as branch b
-		b.down depth-l2
+		b.down depth-l3
 
-.depth-l2[t] nat64(_ t l2)
+.depth-l3[t] nat64(_ t l3)
 	2
 
-.as-branch[t, lower] (t, lower) branch(a (t, lower) node) noctx
+.as-branch[leaf, lower] (leaf, lower) branch(a (leaf, lower) node) noctx
 	match a
 	as leaf _
 		unreachable
 	as branch b
 		b
 
-.try-as-l0-leaf[t] t array?(a t[]) noctx
+.try-as-l1-leaf[t] t array?(a t[]) noctx
 	match a.root node
 	as leaf xs
 		xs,
 	as branch _
 		()
 
-.get-l0-branch[t] (t, t l1) branch(a t[]) noctx
+.get-l1-branch[t] (t array, t l2) branch(a t[]) noctx
 	a.root.node as-branch
 
-.try-get-l1[t] t l1?(a t[]) noctx
+.try-get-l2[t] t l2?(a t[]) noctx
 	match a.root node
 	as leaf _
 		()
 	as branch b
 		b.down,
 
-.get-l1[t] t l1(a t[]) noctx
-	a.try-get-l1 force
-
-.get-l1-branch[t] (t array, t l2) branch(a t[]) noctx
-	a.get-l0-branch.down.node as-branch
-
 .get-l2[t] t l2(a t[]) noctx
-	a.get-l1-branch down
+	a.try-get-l2 force
+
+.get-l2-branch[t] (t array2d, t l3) branch(a t[]) noctx
+	a.get-l1-branch.down.node as-branch
+
+.get-l3[t] t l3(a t[]) noctx
+	a.get-l2-branch down
 
 # List containing the given elements.
 !new[t] t[](...a t array) noctx
@@ -135,7 +165,7 @@ Convert an array to a list.
 This is O(1).
 ###
 !to-list[t] t[](a t array) noctx
-	l t l0 = a.leaf,
+	l t l1 = a.leaf,
 	l,
 
 !to-list[t] t[](a t?)
@@ -148,35 +178,13 @@ list-cast[out, in] out[](a in[]) unsafe
 	a.to-array.array-cast::(out array) to-list
 
 !==[t] bool(a t[], b t[]) t equal
-	ai = a mut-iter
-	bi = b mut-iter
-	loop
-		if na ?= ai next
-			if nb ?= bi next
-				if na == nb
-					continue
-				else
-					break false
-			else
-				break false
-		else
-			break bi.next is-empty
+	(trusted a list-reference-equal b) || a sequence-equal b
 
 !<=>[t] comparison(a t[], b t[]) t compare
-	ai = a mut-iter
-	bi = b mut-iter
-	loop
-		if na ?= ai next
-			if nb ?= bi next
-				cmp = na <=> nb
-				if cmp == equal
-					continue
-				else
-					break cmp
-			else
-				break greater
-		else
-			break bi.next.is-empty ? equal : less
+	if trusted a list-reference-equal b
+		equal
+	else
+		a sequence-compare b
 
 ###
 Convert a list to an array.
@@ -184,7 +192,7 @@ This is O(n).
 This is O(1) if the list came from to-list of an array, meaning a round trip is free.
 ###
 !to-array[t] t array(a t[])
-	a.try-as-l0-leaf ?? for x : a; x
+	a.try-as-l1-leaf ?? for x : a; x
 
 ###
 `true` iff `a.size == 0`.
@@ -198,44 +206,6 @@ This is O(1).
 		false
 
 ###
-Number of elements in the list.
-This is O(n).
-###
-!size[t] nat64(a t[]) noctx
-	match a.root node
-	as leaf l
-		l.size
-	as branch b
-		b.left.size + b.down.size + b.right.size
-.size[t] nat64(a t l1) noctx
-	match a node
-	as leaf l
-		l.size-2d
-	as branch b
-		b.left.size-2d + b.down.size + b.right.size-2d
-.size[t] nat64(a t l2) noctx
-	a.nodes.size-3d
-.size-2d[t] nat64(a t array array) noctx
-	trusted
-		cur mut = a begin-pointer
-		end = a end-pointer
-		res mut = 0
-		until cur == end
-			res := res + cur->size
-			cur := cur + 1
-		res
-
-.size-3d[t] nat64(a t array array array) noctx
-	trusted
-		cur mut = a begin-pointer
-		end = a end-pointer
-		res mut = 0
-		until cur == end
-			res := res + cur->size-2d
-			cur := cur + 1
-		res
-
-###
 Concatenate two lists.
 This is O(log n), where `n` is the size of the smaller list.
 ###
@@ -243,36 +213,36 @@ This is O(log n), where `n` is the size of the smaller list.
 	# Concatenate the smaller list onto the bigger one.
 	match a.depth <=> b.depth
 	as less
-		(a.root cat-left-node-l0 b.root),
+		(a.root cat-left-node-l1 b.root),
 	as equal
 		if a.size < b.size
-			(a.root cat-left-node-l0 b.root),
+			(a.root cat-left-node-l1 b.root),
 		else
-			(a.root cat-right-node-l0 b.root),
+			(a.root cat-right-node-l1 b.root),
 	as greater
-		(a.root cat-right-node-l0 b.root),
+		(a.root cat-right-node-l1 b.root),
 
 ###
 Prepend an element to a list.
 This is O(log n), amortized O(1).
 ###
 !~[t] t[](a t, b t[])
-	((a,)::(t array) cat-left-array-l0 b.root),
+	((a,)::(t array) cat-left-array-l1 b.root),
 
 ###
 Appendd an element to a list.
 This is O(log n), amortized O(1).
 ###
 !~[t] t[](a t[], b t)
-	(a.root cat-right-array-l0 (b,)),
+	(a.root cat-right-array-l1 (b,)),
 
 # 'r' is bigger, add 'l' to the left
-.cat-left-node-level[t, lower] (t, lower) node(
-	l (t, lower) node,
-	r (t, lower) node,
-	cat-left-array-lower act lower(t array, lower),
+.cat-left-node-level[leaf, lower] (leaf, lower) node(
+	l (leaf, lower) node,
+	r (leaf, lower) node,
+	cat-left-array-lower act lower(leaf, lower),
 	cat-left-node-lower act lower(lower, lower),
-) lower new
+) leaf concatenate, leaf size-bytes, lower new
 	match l
 	as leaf xs
 		xs cat-left-array-level r, cat-left-array-lower
@@ -287,12 +257,12 @@ This is O(log n), amortized O(1).
 			(bl.left, down2, br.right) branch
 
 # 'l' is bigger, add 'r' to right
-.cat-right-node-level[t, lower] (t, lower) node(
-	l (t, lower) node,
-	r (t, lower) node,
-	cat-right-array-lower act lower(lower, t array),
+.cat-right-node-level[leaf, lower] (leaf, lower) node(
+	l (leaf, lower) node,
+	r (leaf, lower) node,
+	cat-right-array-lower act lower(lower, leaf),
 	cat-right-node-lower act lower(lower, lower),
-) lower new
+) leaf concatenate, leaf size-bytes, lower new
 	match r
 	as leaf xs
 		l cat-right-array-level xs, cat-right-array-lower
@@ -307,11 +277,11 @@ This is O(log n), amortized O(1).
 			(bl.left, down2, br.right) branch
 
 # 'r' is bigger
-.cat-left-array-level[t, lower] (t, lower) node(
-	l t array,
-	r (t, lower) node,
-	cat-left-lower act lower(t array, lower),
-) lower new
+.cat-left-array-level[leaf, lower] (leaf, lower) node(
+	l leaf,
+	r (leaf, lower) node,
+	cat-left-lower act lower(leaf, lower),
+) leaf concatenate, leaf size-bytes, lower new
 	match r
 	as leaf xs
 		if l.size-bytes + xs.size-bytes <= max-leaf-bytes
@@ -324,11 +294,11 @@ This is O(log n), amortized O(1).
 		else
 			(l, cat-left-lower[br.left, br.down], br.right) branch
 
-.cat-right-array-level[t, lower] (t, lower) node(
-	l (t, lower) node,
-	r t array,
-	cat-right-lower act lower(lower, t array),
-) lower new
+.cat-right-array-level[leaf, lower] (leaf, lower) node(
+	l (leaf, lower) node,
+	r leaf,
+	cat-right-lower act lower(lower, leaf),
+) leaf concatenate, leaf size-bytes, lower new
 	match l
 	as leaf xs
 		if xs.size-bytes + r.size-bytes <= max-leaf-bytes
@@ -341,22 +311,6 @@ This is O(log n), amortized O(1).
 		else
 			(br.left, cat-right-lower[br.down, br.right], r) branch
 
-.cat-left-node-l0[t] t l0(l t l0, r t l0)
-	node = l.node cat-left-node-level r.node, ((xs, lower) => (xs,) cat-left-array-l1 lower), (x, y) =>
-		x cat-left-node-l1 y
-	node,
-
-.cat-right-node-l0[t] t l0(l t l0, r t l0)
-	node = l.node cat-right-node-level r.node, ((lower, xs) => lower cat-right-array-l1 (xs,)), (x, y) =>
-		x cat-right-node-l1 y
-	node,
-
-.cat-left-array-l0[t] t l0(l t array, r t l0)
-	(l cat-left-array-level r.node, (xs, lower) => (xs,) cat-left-array-l1 lower),
-
-.cat-right-array-l0[t] t l0(l t l0, r t array)
-	(l.node cat-right-array-level r, (lower, xs) => lower cat-right-array-l1 (xs,)),
-
 .cat-left-node-l1[t] t l1(l t l1, r t l1)
 	node = l.node cat-left-node-level r.node, ((xs, lower) => (xs,) cat-left-array-l2 lower), (x, y) =>
 		x cat-left-node-l2 y
@@ -367,266 +321,494 @@ This is O(log n), amortized O(1).
 		x cat-right-node-l2 y
 	node,
 
-.cat-left-array-l1[t] t l1(l t array array, r t l1)
+.cat-left-array-l1[t] t l1(l t array, r t l1)
 	(l cat-left-array-level r.node, (xs, lower) => (xs,) cat-left-array-l2 lower),
 
-.cat-right-array-l1[t] t l1(l t l1, r t array array)
+.cat-right-array-l1[t] t l1(l t l1, r t array)
 	(l.node cat-right-array-level r, (lower, xs) => lower cat-right-array-l2 (xs,)),
 
 .cat-left-node-l2[t] t l2(l t l2, r t l2)
-	l.nodes ~~ r.nodes,
+	node = l.node cat-left-node-level r.node, ((xs, lower) => (xs,) cat-left-array-l3 lower), (x, y) =>
+		x cat-left-node-l3 y
+	node,
 
 .cat-right-node-l2[t] t l2(l t l2, r t l2)
+	node = l.node cat-right-node-level r.node, ((lower, xs) => lower cat-right-array-l3 (xs,)), (x, y) =>
+		x cat-right-node-l3 y
+	node,
+
+.cat-left-array-l2[t] t l2(l t array2d, r t l2)
+	(l cat-left-array-level r.node, (xs, lower) => (xs,) cat-left-array-l3 lower),
+
+.cat-right-array-l2[t] t l2(l t l2, r t array2d)
+	(l.node cat-right-array-level r, (lower, xs) => lower cat-right-array-l3 (xs,)),
+
+.cat-left-node-l3[t] t l3(l t l3, r t l3)
 	l.nodes ~~ r.nodes,
 
-.cat-left-array-l2[t] t l2(l t array array array, r t l2)
+.cat-right-node-l3[t] t l3(l t l3, r t l3)
+	l.nodes ~~ r.nodes,
+
+.cat-left-array-l3[t] t l3(l t array3d, r t l3)
 	l ~~ r.nodes,
 
-.cat-right-array-l2[t] t l2(l t l2, r t array array array)
+.cat-right-array-l3[t] t l3(l t l3, r t array3d)
 	l.nodes ~~ r,
 
 # Leaves are allowed to be arbitrarily long, this is just the limit when we would normally make a branch
 .max-leaf-bytes nat64()
 	64
 
+.size-bytes[t] spec
+	size-bytes nat64(a t)
 # 'trusted' since we are just using it to guide branch sizes (which should have no observable effect)
 .size-bytes[t] nat64(a t array)
 	trusted a.size * size-of@t
+.size-bytes[t] nat64(a t array2d)
+	a.arrays size-bytes
 
-region iter and slice
+.force[t] t(a t?) noctx
+	if x ?= a
+		x
+	else
+		unreachable
 
-# Immutable iterator over a list.
-!list-iter[t] record by-val
+region spec impls (see collection.crow)
+
+###
+Number of elements in the list.
+This is O(n).
+###
+!size[t] nat64(a t[]) noctx
+	a.end - a.begin
+
+!iterate[t] bool(a t[], f act bool(t))
+	a iterate-chunks chunk =>
+		chunk iterate f
+
+!iterate[t] bool(a t[], f-loop act bool(nat64, t))
+	i mut = 0
+	a iterate x =>
+		res = f-loop[i, x]
+		i := i + 1
+		res
+
+!list-iterator[t] record by-val
 	.list t[]
-	.cur t array-3d-iter
-	.pos position
+	# Always non-empty
+	.cur-chunk t array
+	# Always be a valid index
+	.next-index-in-chunk nat64
+	# Identifies where cur-chunk is from
+	.pos t position
 
-!==[t] bool(a t list-iter, b t list-iter) t equal
-	a.list == b.list && a.index == b.index
-
-!index[t] nat64(a t list-iter)
-	# TODO:PERF (this could be a lot faster than walking back)
-	acc mut = 0
-	cur mut t list-iter = a
-	loop
-		if p ?= cur prev
-			acc := acc + 1
-			cur := p rest
-			continue
-		else
-			break acc
-
-.position enum
-	l0-leaf
-	l0-left
-	l0-right
+.position[t] union
 	l1-leaf
 	l1-left
 	l1-right
-	l2-leaf
+	l2-leaf t array-2d-iterator
+	l2-left t array-2d-iterator
+	l2-right t array-2d-iterator
+	l3-leaf t array-3d-iterator
 
-# New iterator at the beginning of the list.
-!iter[t] t list-iter(a t[]) noctx
-	match a.root node
-	as leaf xs
-		a, xs.iter.to-iter3d, l0-leaf
-	as branch b
-		a, b.left.iter.to-iter3d, l0-left
-
-!end-iter[t] t list-iter(a t[])
-	match a.root node
-	as leaf xs
-		a, xs.end-iter.to-iter3d, l0-leaf
-	as branch b
-		a, b.right.end-iter.to-iter3d, l0-right
-
-!peek[t] t?(a t list-iter)
-	if n ?= a next
-		n.value,
-
-###
-Returns the next element and next iterator.
-Returns an empty option if the iterator was already at the end of the list.
-###
-!next[t] (t, t list-iter) value-and-rest?(a t list-iter) noctx
-	if n ?= a.cur next
-		(n.value, (a.list, n.rest, a.pos)),
-	elif pair ?= a.list next-position a.pos
-		(a.list, pair.a, pair.b) next
-.next-position[t] (t array-3d-iter, position)?(a t[], pos position) noctx
-	match pos
-	as l0-leaf
-		()
-	as l0-left
-		a.l1-iter,
-	as l0-right
-		()
-	as l1-leaf
-		(a.get-l0-branch.right.iter.to-iter3d, l0-right),
-	as l1-left
-		a.l2-iter,
-	as l1-right
-		(a.get-l0-branch.right.iter.to-iter3d, l0-right),
-	as l2-leaf
-		(a.get-l1-branch.right.iter2d.to-iter3d, l1-right),
-
-!prev[t] (t, t list-iter) value-and-rest?(a t list-iter) noctx
-	if p ?= a.cur prev
-		(p.value, (a.list, p.rest, a.pos)),
-	elif pair ?= a.list prev-position a.pos
-		(a.list, pair.a, pair.b) prev
-.prev-position[t] (t array-3d-iter, position)?(a t[], pos position) noctx
-	match pos
-	as l0-leaf
-		()
-	as l0-left
-		()
-	as l0-right
-		a.l1-end-iter,
-	as l1-leaf
-		(a.get-l0-branch.left.end-iter.to-iter3d, l0-left),
-	as l1-left
-		(a.get-l0-branch.left.end-iter.to-iter3d, l0-left),
-	as l1-right
-		a.l2-end-iter,
-	as l2-leaf
-		(a.get-l1-branch.left.end-iter2d.to-iter3d, l1-left),
-
-# Mutable iterator over a list.
-!list-mut-iter[t] record mut
-	.inner mut t list-iter
-
-# New mutable iterator at the beginning of the list.
-!mut-iter[t] t list-mut-iter(a t[])
-	a.iter,
-
-!end-mut-iter[t] t list-mut-iter(a t[])
-	a.end-iter,
-
-# Copy to an immutable iterator.
-!save[t] t list-iter(a t list-mut-iter)
-	a.inner
-
-!restore[t] void(a t list-mut-iter, saved t list-iter)
-	a.inner := saved
-
-!slice-left[t] t[](a t list-mut-iter)
-	a.inner slice-left
-
-!slice-right[t] t[](a t list-mut-iter)
-	a.inner slice-right
-
-###
-Advances the iterator and returns the next element.
-Returns an empty option if the iterator was already at the end of the list.
-###
-!next[t] t?(a t list-mut-iter)
-	if pair ?= a.inner next
-		a.inner := pair rest
-		pair.value,
-
-!prev[t] t?(a t list-mut-iter)
-	if pair ?= a.inner prev
-		a.inner := pair rest
-		pair.value,
-
-###
-Returns the next element without advancing the iterator.
-Returns an empty option if the iterator is at the end of the list.
-###
-!peek[t] t?(a t list-mut-iter)
-	if pair ?= a.inner next
-		pair.value,
-
-!groups-of[t] t[][](a t[], group-size nat64)
-	forbid group-size == 0 : "group-size can't be 0"
-	div = a.size / group-size
-	out-size = div * group-size == a.size ? div : div + 1
-	for group-index : 0 .. out-size
-		start = group-index * group-size
-		a[start .. (start + group-size min a.size)]
-
-###
-List of every element to the left of the iterator.
-This is O(log n).
-###
-!slice-left[t] t[](a t list-iter)
-	match a pos
-	as l0-leaf
-		a.cur.as-1d.slice-left to-list
-	as l0-left
-		a.cur.as-1d.slice-left to-list
-	as l0-right
-		b = a.list get-l0-branch
-		(b.left branch-or-leaf-l0 b.down, a.cur.as-1d.slice-left),
-	as l1-leaf
-		a.list slice-left-update-l1 _ =>
-			a.cur.as-2d.slice-left.leaf,
-	as l1-left
-		a.list slice-left-update-l1 l1 =>
-			b = l1.node as-branch
-			a.cur.as-2d.slice-left branch-or-leaf-l1 b.down, b.right
-	as l1-right
-		a.list slice-left-update-l1 l1 =>
-			b = l1.node as-branch
-			b.left branch-or-leaf-l1 b.down, a.cur.as-2d.slice-left
-	as l2-leaf
-		a.list slice-left-update-l2 _ =>
-			a.cur.slice-left,
-
-###
-List of every element to the right of the iterator.
-This is O(log n).
-###
-!slice-right[t] t[](a t list-iter)
-	match a pos
-	as l0-leaf
-		a.cur.as-1d.slice-right to-list
-	as l0-left
-		b = a.list get-l0-branch
-		(a.cur.as-1d.slice-right branch-or-leaf-l0 b.down, b.right),
-	as l0-right
-		a.cur.as-1d.slice-right to-list
-	as l1-leaf
-		a.list slice-right-update-l1 _ =>
-			a.cur.as-2d.slice-right.leaf,
-	as l1-left
-		a.list slice-right-update-l1 l1 =>
-			b = l1.node as-branch
-			a.cur.as-2d.slice-right branch-or-leaf-l1 b.down, b.right
-	as l1-right
-		a.list slice-right-update-l1 l1 =>
-			b = l1.node as-branch
-			b.left branch-or-leaf-l1 b.down, a.cur.as-2d.slice-right
-	as l2-leaf
-		a.list slice-right-update-l2 _ =>
-			a.cur.slice-right,
-
-.level[l, t] spec
-	is-empty bool(level l)
-	pop-left (t array, l)(level l)
-	pop-right (l, t array)(level l)
-
-.branch-or-leaf-generic[t, lower] (t, lower) node(
-	left t array,
-	down lower,
-	right t array,
-) (lower, t) level
-	if down is-empty
-		if left is-empty
-			right leaf
-		elif right is-empty
-			left leaf
-		else
-			left ~~ right leaf
+!==[t] bool(a t list-iterator, b t list-iterator) t equal
+	assert a.list == b.list : "can't compare iterators from different lists"
+	if trusted a.list list-reference-equal b.list
+		# No need to test position since that determines cur-chunk
+		same-chunk = trusted a.cur-chunk array-reference-equal b.cur-chunk
+		same-chunk && a.next-index-in-chunk == b.next-index-in-chunk
 	else
-		forbid left.is-empty && right.is-empty
-		if left is-empty
-			pair = down pop-left
-			if pair.b is-empty
-				pair.a ~~ right leaf
+		a.next-index == b.next-index
+!<=>[t] comparison(a t list-iterator, b t list-iterator) t equal
+	assert a.list == b.list : "can't compare iterators from different lists"
+	a.next-index <=> b.next-index
+
+.level[t] t level(a t position) noctx
+	a.level-and-side a
+
+.side[t] side(a t position) noctx
+	a.level-and-side b
+
+.level-and-side[t] (t level, side)(a t position) noctx
+	match a
+	as l1-leaf
+		l1, leaf
+	as l1-left
+		l1, left
+	as l1-right
+		l1, right
+	as l2-leaf i
+		i l2, leaf
+	as l2-left i
+		i l2, left
+	as l2-right i
+		i l2, right
+	as l3-leaf i
+		i l3, leaf
+
+.level[t] union
+	l1
+	l2 t array-2d-iterator
+	l3 t array-3d-iterator
+
+.side enum
+	left
+	leaf
+	right
+# TODO: compiler should generate this
+.<=> comparison(a side, b side) noctx
+	a.to-nat32 <=> b.to-nat32
+
+!next-index[t] nat64(a t list-iterator) noctx
+	match a pos
+	as l1-leaf
+		a next-index-in-chunk
+	as l1-left
+		a next-index-in-chunk
+	as l1-right
+		b = a.list get-l1-branch
+		b.left.size + b.down.total-size + a.next-index-in-chunk
+	as l2-leaf i
+		a.list.get-l1-branch.left.size + (a next-index-2d i)
+	as l2-left i
+		a.list.get-l1-branch.left.size + (a next-index-2d i)
+	as l2-right i
+		b = a.list get-l2-branch
+		a.list.get-l1-branch.left.size + b.left.total-size + b.down.total-size + (a next-index-2d i)
+	as l3-leaf i
+		a.list.get-l1-branch.left.size + a.list.get-l2-branch.left.total-size + (a next-index-3d i)
+.total-size[t] spec
+	total-size nat64(a t)
+.total-size[t] nat64(a t l2) noctx
+	a.node total-size
+.total-size[t] nat64(a t l3) noctx
+	a.nodes total-size
+.total-size[leaf, lower] nat64(a (leaf, lower) node) leaf total-size, lower total-size, noctx
+	match a
+	as leaf xs
+		xs total-size
+	as branch b
+		b.left.total-size + b.down.total-size + b.right.total-size
+.next-index-2d[t] nat64(a t list-iterator, i t array-2d-iterator) noctx
+	i.slice-left.total-size + a.next-index-in-chunk
+.next-index-3d[t] nat64(a t list-iterator, i t array-3d-iterator) noctx
+	pair = i slice-left
+	pair.a.total-size + pair.b.total-size + a.next-index-in-chunk
+
+!begin[t] t list-iterator(a t[]) noctx
+	match a.root node
+	as leaf xs
+		a, xs, 0, l1-leaf
+	as branch b
+		a, b.left, 0, l1-left
+
+!end[t] t list-iterator(a t[]) noctx
+	match a.root node
+	as leaf xs
+		a, xs, xs.size, l1-leaf
+	as branch b
+		a, b.right, b.right.size, l1-right
+
+!collection[t] t[](a t list-iterator) noctx
+	a list
+
+!+[t] t list-iterator(a t list-iterator, n nat64) noctx
+	# TODO:PERF
+	cur mut = a
+	i mut = 0
+	loop
+		if i == n
+			break cur
+		elif pair ?= cur next
+			cur := pair b
+			i := i + 1
+			continue
+		else
+			break throw "iterator went too far"
+
+!-[t] t list-iterator(a t list-iterator, n nat64) noctx
+	# TODO:PERF
+	cur mut = a
+	i mut = 0
+	loop
+		if i == n
+			break cur
+		elif pair ?= cur prev
+			cur := pair a
+			i := i + 1
+			continue
+		else
+			break throw "iterator went too far"
+
+!-[t] nat64(a t list-iterator, b t list-iterator) noctx
+	# TODO:PERF
+	a.next-index - b.next-index
+
+!next[t] (t, t list-iterator)?(a t list-iterator) noctx
+	if a.next-index-in-chunk < a.cur-chunk.size
+		right t list-iterator = a.list, a.cur-chunk, a.next-index-in-chunk + 1, a.pos
+		(a.cur-chunk[a next-index-in-chunk], right),
+	else
+		match a pos
+		as l1-leaf
+			()
+		as l1-left
+			a next-to-l2-left
+		as l1-right
+			()
+		as l2-leaf i
+			if iter ?= i move-right
+				a next-set-chunk *iter, iter.l2-leaf
 			else
-				(pair.a, pair.b, right) branch
+				a next-to-l1-right
+		as l2-left i
+			if iter ?= i move-right
+				a next-set-chunk *iter, iter.l2-left
+			else
+				a next-to-l3
+		as l2-right i
+			if iter ?= i move-right
+				a next-set-chunk *iter, iter.l2-right
+			else
+				a next-to-l1-right
+		as l3-leaf i
+			if iter ?= i move-right
+				a next-set-chunk *iter, iter.l3-leaf
+			else
+				a next-to-l2-right
+
+
+!prev[t] (t list-iterator, t)?(a t list-iterator) noctx
+	if a.next-index-in-chunk != 0
+		left t list-iterator = a.list, a.cur-chunk, a.next-index-in-chunk - 1, a.pos
+		(left, a.cur-chunk[a.next-index-in-chunk - 1]),
+	else
+		match a pos
+		as l1-leaf
+			()
+		as l1-left
+			()
+		as l1-right
+			a prev-to-l2-right
+		as l2-leaf i
+			if iter ?= i move-left
+				a prev-set-chunk *iter, iter.l2-leaf
+			else
+				a prev-to-l1-left
+		as l2-left i
+			if iter ?= i move-left
+				a prev-set-chunk *iter, iter.l2-left
+			else
+				a prev-to-l1-left
+		as l2-right i
+			if iter ?= i move-left
+				a prev-set-chunk *iter, iter.l2-right
+			else
+				a prev-to-l3
+		as l3-leaf i
+			if iter ?= i move-left
+				a prev-set-chunk *iter, iter.l3-leaf
+			else
+				a prev-to-l2-left
+
+.next-set-chunk[t] (t, t list-iterator)?(a t list-iterator, chunk t array, pos t position) noctx
+	(chunk[0], (a.list, chunk, 1, pos)),
+
+.prev-set-chunk[t] (t list-iterator, t)?(a t list-iterator, chunk t array, pos t position) noctx
+	((a.list, chunk, chunk.size - 1, pos), chunk[end - 1]),
+
+.next-to-l1-right[t] (t, t list-iterator)?(a t list-iterator) noctx
+	a next-set-chunk a.list.get-l1-branch.right, l1-right
+
+.prev-to-l1-left[t] (t list-iterator, t)?(a t list-iterator) noctx
+	a prev-set-chunk a.list.get-l1-branch.left, l1-left
+
+.next-to-l2-left[t] (t, t list-iterator)?(a t list-iterator) noctx
+	match a.list.get-l2 node
+	as leaf xs
+		if xs is-empty
+			a next-to-l1-right
+		else
+			a next-set-chunk xs[0], xs.begin.l2-leaf
+	as branch b
+		a next-set-chunk b.left[0], b.left.begin.l2-left
+
+.prev-to-l2-left[t] (t list-iterator, t)?(a t list-iterator) noctx
+	iter2d = a.list.get-l2-branch.left end
+	a prev-set-chunk *iter2d, iter2d.l2-left
+
+.next-to-l2-right[t] (t, t list-iterator)?(a t list-iterator) noctx
+	iter2d = a.list.get-l2-branch.right begin
+	a next-set-chunk *iter2d, iter2d.l2-right
+
+.prev-to-l2-right[t] (t list-iterator, t)?(a t list-iterator) noctx
+	match a.list.get-l2 node
+	as leaf xs
+		if xs is-empty
+			a prev-to-l1-left
+		else
+			a prev-set-chunk xs[end - 1], xs.end.l2-leaf
+	as branch b
+		a prev-set-chunk b.right[end - 1], b.right.end.l2-right
+
+.next-to-l3[t] (t, t list-iterator)?(a t list-iterator) noctx
+	nodes = a.list.get-l3 nodes
+	if nodes is-empty
+		a next-to-l2-right
+	else
+		a next-set-chunk nodes[0][0], nodes.begin.l3-leaf
+
+.prev-to-l3[t] (t list-iterator, t)?(a t list-iterator) noctx
+	nodes = a.list.get-l3 nodes
+	if nodes is-empty
+		a prev-to-l2-left
+	else
+		a prev-set-chunk nodes[end - 1][end - 1], nodes.end.l3-leaf
+
+!slice[t] t[](begin t list-iterator, end t list-iterator)
+	end-of-same-list = if trusted begin.list list-reference-equal end.list
+		end
+	else
+		begin.list.begin + end.next-index
+	begin slice-same-list end-of-same-list ?? throw "Invalid slice: begin > end"
+
+# returns empty option if a > b
+.slice-same-list[t] t[]?(a t list-iterator, b t list-iterator)
+	a-level = a.pos level
+	b-level = b.pos level
+	a-side = a.pos side
+	b-side = b.pos side
+	match a-level
+	as l1
+		match b-level
+		as l1
+			match a-side <=> b-side
+			as less
+				(a.slice-right-cur-chunk make-l1 a.list.get-l2, b.slice-left-cur-chunk),
+			as equal
+				a slice-same-array1d b
+			as greater
+				()
+		as l2 bi
+			if a-side == left
+				if b-side == right
+					branch = a.list get-l2-branch
+					l2 = branch.left make-l2 branch.down, bi.slice-left
+					(a.slice-right-cur-chunk make-l1 l2, b.slice-left-cur-chunk),
+				else
+					(a.slice-right-cur-chunk make-l1 (bi.slice-left.leaf,), b.slice-left-cur-chunk),
+		as l3 bi
+			if a-side == left
+				branch = a.list get-l2-branch
+				pair = bi slice-left
+				l2 = branch.left make-l2 (pair.a,), pair.b
+				(a.slice-right-cur-chunk make-l1 l2, b.slice-left-cur-chunk),
+	as l2 ai
+		match b.pos level
+		as l1
+			if b-side == right
+				if a-side == left
+					branch = a.list get-l2-branch
+					l2 = ai.slice-right make-l2 branch.down, branch.right
+					(a.slice-right-cur-chunk make-l1 l2, b.slice-left-cur-chunk),
+				else
+					(a.slice-right-cur-chunk make-l1 (ai.slice-right.leaf,), b.slice-left-cur-chunk),
+		as l2 bi
+			match a-side <=> b-side
+			as less
+				assert a-side == left && b-side == right
+				l2 = ai.slice-right make-l2 a.list.get-l3, bi.slice-left
+				(a.slice-right-cur-chunk make-l1 l2, b.slice-left-cur-chunk),
+			as equal
+				a slice-same-array2d ai, b, bi
+			as greater
+				()
+		as l3 bi
+			if a-side == left
+				pair = bi slice-left
+				l2 = ai.slice-right make-l2 (pair.a,), pair.b
+				(a.slice-right-cur-chunk make-l1 l2, b.slice-left-cur-chunk),
+	as l3 ai
+		match b.pos level
+		as l1
+			if b-side == right
+				branch = a.list get-l2-branch
+				pair = ai slice-right
+				l2 = pair.a make-l2 (pair.b,), branch.right
+				(a.slice-right-cur-chunk make-l1 l2, b.slice-left-cur-chunk),
+		as l2 bi
+			if b-side == right
+				pair = ai slice-right
+				l2 t l2 = pair.a make-l2 (pair.b,), bi.slice-left
+				(a.slice-right-cur-chunk make-l1 l2, b.slice-left-cur-chunk),
+		as l3 bi
+			a slice-both-l3 ai, b, bi
+
+.slice-left-cur-chunk[t] t array(a t list-iterator)
+	a.cur-chunk[0 .. a.next-index-in-chunk]
+.slice-right-cur-chunk[t] t array(a t list-iterator)
+	a.cur-chunk[a.next-index-in-chunk .. end]
+
+.slice-same-array1d[t] t[]?(a t list-iterator, b t list-iterator)
+	assert trusted a.cur-chunk array-reference-equal b.cur-chunk
+	if a.next-index-in-chunk <= b.next-index-in-chunk
+		a.cur-chunk[a.next-index-in-chunk .. b.next-index-in-chunk].to-list,
+
+.slice-same-array2d[t] t[]?(a t list-iterator, ai t array-2d-iterator, b t list-iterator, bi t array-2d-iterator)
+	arrays = ai arrays
+	assert trusted bi.arrays.arrays array-reference-equal arrays.arrays
+	match ai.index-2d <=> bi.index-2d
+	as less
+		l2 t l2 = arrays[ai.index-2d + 1 .. bi.index-2d].leaf,
+		(a.slice-right-cur-chunk make-l1 l2, b.slice-left-cur-chunk),
+	as equal
+		a slice-same-array1d b
+	as greater
+		()
+
+.slice-both-l3[t] t[]?(a t list-iterator, ai t array-3d-iterator, b t list-iterator, bi t array-3d-iterator)
+	arrays = ai arrays
+	assert trusted bi.arrays.arrays array-reference-equal arrays.arrays
+	match ai.index-3d <=> bi.index-3d
+	as less
+		l3 t l3 = (arrays[ai.index-3d + 1 .. bi.index-3d],)
+		l2l = arrays[ai index-3d][ai.index-2d + 1 .. end]
+		l2r = arrays[bi index-3d][0 .. bi.index-2d]
+		l2 = l2l make-l2 l3, l2r
+		(a.slice-right-cur-chunk make-l1 l2, b.slice-left-cur-chunk),
+	as equal
+		array2d = arrays[ai index-3d]
+		a slice-same-array2d (array2d, ai.index-2d), b, (array2d, bi.index-2d)
+	as greater
+		()
+
+.level[l, leaf] spec
+	is-empty bool(level l)
+	pop-left (leaf, l)(level l)
+	pop-right (l, leaf)(level l)
+
+.make-level-generic[leaf, lower] (leaf, lower) node(
+	left leaf,
+	down lower,
+	right leaf,
+) leaf concatenate, leaf is-empty, (lower, leaf) level
+	if down is-empty
+		left ~~ right leaf
+	else
+		if left is-empty
+			if right is-empty
+				pair0 = down pop-left
+				if pair0.b is-empty
+					pair0.a leaf
+				else
+					pair1 = pair0.b pop-right
+					(pair0.a, pair1.a, pair1.b) branch
+			else
+				pair = down pop-left
+				if pair.b is-empty
+					pair.a ~~ right leaf
+				else
+					(pair.a, pair.b, right) branch
 		elif right is-empty
 			pair = down pop-right
 			if pair.a is-empty
@@ -636,580 +818,114 @@ This is O(log n).
 		else
 			(left, down, right) branch
 
-.branch-or-leaf-l0[t] t l0(left t array, down t l1, right t array)
-	(left branch-or-leaf-generic down, right),
+.make-l1[t] t[](left t array, down t l2, right t array)
+	l1 t l1 = (left make-level-generic down, right),
+	l1,
 
-.branch-or-leaf-l1[t] t l1(left t array array, down t l2, right t array array)
-	(left branch-or-leaf-generic down, right),
+.make-l2[t] t l2(left t array2d, down t l3, right t array2d)
+	(left make-level-generic down, right),
 
-.pop-left[t] (t array, t l1)(a t l1)
+.pop-left[t] (t array, t l2)(a t l2)
 	match a node
 	as leaf xs
-		xs[0], (xs.tail.leaf,)
+		xs[0], (xs[1 .. end].leaf,)
 	as branch b
-		popped = b.left[0]
-		rest t l1 = if b.left.tail is-empty
+		bl t array2d = b left
+		popped = bl[0]
+		rest t l2 = if b.left.arrays.size == 0
+			unreachable
+		elif b.left.arrays.size == 1
 			if b.down is-empty
 				b.right.leaf,
 			else
 				pair = b.down pop-left
 				(pair.a, pair.b, b.right).branch,
 		else
-			(b.left.tail, b.down, b.right).branch,
+			(b.left[1 .. end], b.down, b.right).branch,
 		popped, rest
 
-.pop-right[t] (t l1, t array)(a t l1)
+.pop-right[t] (t l2, t array)(a t l2)
 	match a node
 	as leaf xs
-		(xs.rtail.leaf,), xs[xs.size - 1]
+		(xs[0 .. end - 1].leaf,), xs[end - 1]
 	as branch b
-		popped = b.right[b.right.size - 1]
-		rest t l1 = if b.right.rtail is-empty
+		popped t array = b.right[end - 1]
+		rest t l2 = if b.right.arrays.size == 0
+			unreachable
+		elif b.right.arrays.size == 1
 			if b.down is-empty
 				b.left.leaf,
 			else
 				pair = b.down pop-right
 				(b.left, pair.a, pair.b).branch,
 		else
-			(b.left, b.down, b.right.rtail).branch,
+			(b.left, b.down, b.right[0 .. end - 1]).branch,
 		rest, popped
 
-.pop-left[t] (t array array, t l2)(a t l2)
-	a.nodes[0], (a.nodes.tail,)
+.pop-left[t] (t array2d, t l3)(a t l3)
+	a.nodes[0], (a.nodes[1 .. end],)
 
-.pop-right[t] (t l2, t array array)(a t l2)
-	(a.nodes.rtail,), a.nodes[a.nodes.size - 1]
+.pop-right[t] (t l3, t array2d)(a t l3)
+	(a.nodes[0 .. end - 1],), a.nodes[end - 1]
 
-.slice-left-update-l1[t] t[](a t[], f act t l1(t l1))
-	old-l0 = a get-l0-branch
-	new-l1 = f[old-l0 down]
-	(old-l0.left branch-or-leaf-l0 new-l1, ()),
+.array-2d-iterator[t] record by-val
+	arrays t array2d
+	# arrays[index-2d] is the current chunk
+	index-2d nat64
 
-.slice-right-update-l1[t] t[](a t[], f act t l1(t l1))
-	old-l0 = a get-l0-branch
-	new-l1 = f[old-l0 down]
-	(()::(t array) branch-or-leaf-l0 new-l1, old-l0.right),
+.begin[t] t array-2d-iterator(a t array2d) noctx
+	a, 0
 
-.slice-left-update-l2[t] t[](a t[], f act t l2(t l2))
-	a slice-left-update-l1 old-l1 =>
-		b = old-l1.node as-branch
-		new-l2 = f[b down]
-		if new-l2 is-empty
-			b.left.leaf,
-		else
-			pair = new-l2 pop-right
-			(b.left, pair.a, pair.b).branch,
+.end[t] t array-2d-iterator(a t array2d) noctx
+	a, a.arrays.size - 1
 
-.slice-right-update-l2[t] t[](a t[], f act t l2(t l2))
-	a slice-right-update-l1 old-l1 =>
-		b = old-l1.node as-branch
-		new-l2 = f[b down]
-		if new-l2 is-empty
-			b.right.leaf,
-		else
-			pair = new-l2 pop-left
-			(pair.a, pair.b, b.right).branch,
+.*[t] t array(a t array-2d-iterator) noctx
+	a.arrays[a index-2d]
 
-# Iterator through an a array array array
-.array-3d-iter[t] record by-val
-	cur-1d t array-iter
-	cur-2d t array array-iter
-	cur-3d t array array array-iter
-.new[t] t array-3d-iter() noctx
-	(), (), ()
+.move-left[t] t array-2d-iterator?(a t array-2d-iterator) noctx
+	if a.index-2d > 0
+		(a.arrays, a.index-2d - 1),
 
-.as-2d[t] t array-2d-iter(a t array-3d-iter)
-	assert a.cur-3d.prev.is-empty && a.cur-3d.next.is-empty
-	a.cur-1d, a.cur-2d
+.move-right[t] t array-2d-iterator?(a t array-2d-iterator) noctx
+	if a.index-2d < a.arrays.arrays.size - 1
+		(a.arrays, a.index-2d + 1),
 
-.as-1d[t] t array-iter(a t array-3d-iter)
-	assert a.cur-2d.prev.is-empty && a.cur-2d.next.is-empty
-	assert a.cur-3d.prev.is-empty && a.cur-3d.next.is-empty
-	a cur-1d
+.slice-left[t] t array2d(a t array-2d-iterator) noctx
+	a.arrays[0 .. a.index-2d]
 
-.to-iter3d[t] t array-3d-iter(a t array-iter) noctx
-	a, (), ()
+.slice-right[t] t array2d(a t array-2d-iterator) noctx
+	a.arrays[a.index-2d + 1 .. end]
 
-.array-2d-iter[t] record by-val
-	cur-1d t array-iter
-	cur-2d t array array-iter
-.new[t] t array-2d-iter() noctx
-	(), ()
+.array-3d-iterator[t] record by-val
+	arrays t array3d
+	index-3d nat64
+	index-2d nat64
 
-.iter2d[t] t array-2d-iter(a t array array) noctx
-	if n2 ?= a.iter next
-		n2.value.iter, n2.rest
+.begin[t] t array-3d-iterator(a t array3d) noctx
+	a, 0, 0
 
-.end-iter2d[t] t array-2d-iter(a t array array) noctx
-	if p2 ?= a.end-iter prev
-		p2.value.end-iter, p2.rest
+.end[t] t array-3d-iterator(a t array3d) noctx
+	a, a.arrays.size - 1, a[end - 1].arrays.size - 1
 
-.to-iter3d[t] t array-3d-iter(a t array-2d-iter) noctx
-	a.cur-1d, a.cur-2d, ()
+.*[t] t array(a t array-3d-iterator) noctx
+	a.arrays[a.index-3d][a.index-2d]
 
-.iter3d[t] t array-3d-iter(a t array array array) noctx
-	if n3 ?= a.iter next
-		n2 = n3.value.iter.next force
-		n2.value.iter, n2.rest, n3.rest
+.move-left[t] t array-3d-iterator?(a t array-3d-iterator) noctx
+	if a.index-2d > 0
+		(a.arrays, a.index-3d, a.index-2d - 1),
+	elif a.index-3d > 0
+		(a.arrays, a.index-3d - 1, a.arrays[a.index-3d - 1].arrays.size - 1),
 
-.end-iter3d[t] t array-3d-iter(a t array array array) noctx
-	if n3 ?= a.end-iter prev
-		n2 = n3.value.end-iter.prev force
-		n2.value.end-iter, n2.rest, n3.rest
+.move-right[t] t array-3d-iterator?(a t array-3d-iterator) noctx
+	if a.index-2d < a.arrays[a.index-3d].arrays.size - 1
+		(a.arrays, a.index-3d, a.index-2d + 1),
+	elif a.index-3d < a.arrays.arrays.size - 1
+		(a.arrays, a.index-3d + 1, 0),
 
-.next[t] (t, t array-3d-iter) value-and-rest?(a t array-3d-iter) noctx
-	if n1 ?= a.cur-1d next
-		(n1.value, (n1.rest, a.cur-2d, a.cur-3d)),
-	elif n2 ?= a.cur-2d next
-		n1 = n2.value.iter.next force
-		(n1.value, (n1.rest, n2.rest, a.cur-3d)),
-	elif n3 ?= a.cur-3d next
-		n2 = n3.value.iter.next force
-		n1 = n2.value.iter.next force
-		(n1.value, (n1.rest, n2.rest, n3.rest)),
+.slice-left[t] (t array3d, t array2d)(a t array-3d-iterator) noctx
+	a2d t array-2d-iterator = a.arrays[a index-3d], a.index-2d
+	a.arrays[0 .. a.index-3d], a2d.slice-left
 
-.prev[t] (t, t array-3d-iter) value-and-rest?(a t array-3d-iter) noctx
-	if p1 ?= a.cur-1d prev
-		(p1.value, (p1.rest, a.cur-2d, a.cur-3d)),
-	elif p2 ?= a.cur-2d prev
-		p1 = p2.value.end-iter.prev force
-		(p1.value, (p1.rest, p2.rest, a.cur-3d)),
-	elif p3 ?= a.cur-3d prev
-		p2 = p3.value.end-iter.prev force
-		p1 = p2.value.end-iter.prev force
-		(p1.value, (p1.rest, p2.rest, p3.rest)),
-
-.slice-left[t] t array array(a t array-2d-iter)
-	a1 = a.cur-1d slice-left
-	a2 = a.cur-2d.slice-left rtail
-	a1.is-empty ? a2 : a2 ~ a1
-
-.slice-left[t] t array array array(a t array-3d-iter)
-	a1 = a.cur-1d slice-left
-	# rtail since 'slice-left' includes the array 'a1' is iterating
-	a2 = a.cur-2d.slice-left rtail
-	a3 = a.cur-3d.slice-left rtail
-	b2 = a1.is-empty ? a2 : a2 ~ a1
-	b2.is-empty ? a3 : a3 ~ b2
-
-.slice-right[t] t array array(a t array-2d-iter)
-	a1 = a.cur-1d slice-right
-	a2 = a.cur-2d slice-right
-	a1.is-empty ? a2 : a1 ~ a2
-
-.slice-right[t] t array array array(a t array-3d-iter)
-	a1 = a.cur-1d slice-right
-	a2 = a.cur-2d slice-right
-	a3 = a.cur-3d slice-right
-	b2 = a1.is-empty ? a2 : a1 ~ a2
-	b2.is-empty ? a3 : b2 ~ a3
-
-.l1-iter[t] (t array-3d-iter, position)(a t[]) noctx
-	match a.get-l1 node
-	as leaf xs
-		if xs is-empty
-			a.get-l0-branch.right.iter.to-iter3d, l0-right
-		else
-			xs.iter2d.to-iter3d, l1-leaf
-	as branch b
-		b.left.iter2d.to-iter3d, l1-left
-
-.l1-end-iter[t] (t array-3d-iter, position)(a t[]) noctx
-	match a.get-l1 node
-	as leaf xs
-		if xs is-empty
-			a.get-l0-branch.left.end-iter.to-iter3d, l0-left
-		else
-			xs.end-iter2d.to-iter3d, l1-leaf
-	as branch b
-		b.right.end-iter2d.to-iter3d, l1-right
-
-.l2-iter[t] (t array-3d-iter, position)(a t[]) noctx
-	a.get-l2.nodes.iter3d, l2-leaf
-
-.l2-end-iter[t] (t array-3d-iter, position)(a t[]) noctx
-	a.get-l2.nodes.end-iter3d, l2-leaf
-
-region iteration
-
-!first[t] t?(a t[])
-	if i ?= a.iter next
-		i.value,
-
-!tail[t] t[](a t[])
-	if i ?= a.iter next
-		i.rest slice-right
-
-!last[t] t?(a t[])
-	if i ?= a.end-iter prev
-		i.value,
-
-!rtail[t] t[](a t[])
-	if i ?= a.end-iter prev
-		i.rest slice-left
-
-!find[t] t?(a t[], f act bool(t))
-	for x : a
-		if f[x]
-			break x
-
-!in[t] bool(value t, a t[]) t equal
-	a exists x =>
-		x == value
-
-!exists[t] bool(a t[], f act bool(t))
-	for x : a
-		if f[x]
-			break true
-	else
-		false
-
-!every[t] bool(a t[], f act bool(t))
-	for x : a
-		if !f[x]
-			break false
-	else
-		true
-
-!filter[t] t[](a t[], f act bool(t))
-	res t array = with out : build
-		for x : a
-			if f[x]
-				out ~= x
-	res to-list
-
-# Drops elements from the left that match `f`.
-!drop-while[t] t[](a t[], f act bool(t))
-	iter = a mut-iter
-	loop
-		if x ?= iter next
-			if f[x]
-				continue
-			else
-				_ = iter prev
-				break iter slice-right
-		else
-			break
-
-# Drops elements from the right that match `f`.
-!drop-right-while[t] t[](a t[], f act bool(t))
-	iter = a end-mut-iter
-	loop
-		if x ?= iter prev
-			if f[x]
-				continue
-			else
-				_ = iter next
-				break iter slice-left
-		else
-			break
-
-!for-break[t] void(a t[], f act void break-or-continue(t))
-	a for-break f, () => ()
-!for-break[t] void(a t[], f act void break-or-continue(nat64, t))
-	a for-break f, () => ()
-!for-break[out, in] out?(a in[], f act out break-or-continue(in))
-	for x : a
-		match f[x]
-		as loop-break v
-			break v,
-		as loop-continue
-			continue
-	else
-		()
-!for-break[out, in] out(a in[], f-loop act out break-or-continue(nat64, in), f-else act out())
-	i mut = 0
-	inner-f-loop act out break-or-continue(in) = x =>
-		res = f-loop[i, x]
-		i := i + 1
-		res
-	a for-break inner-f-loop, f-else
-!for-break[out, in] out(a in[], f-loop act out break-or-continue(in), f-else act out())
-	x out break-or-continue = a for-break-chunk chunk =>
-		for x : chunk
-			match f-loop[x]
-			as loop-break v
-				break break v
-			as loop-continue
-				continue
-		else
-			continue
-	match x
-	as loop-break v
-		v
-	as loop-continue
-		f-else[]
-
-!for-loop[t] void(a t[], f act void(t))
-	a each-chunk chunk =>
-		for x : chunk
-			f[x]
-
-!for-loop[t] void(a t[], f act void(nat64, t))
-	i mut = 0
-	for x : a
-		f[i, x]
-		i := i + 1
-
-!for-loop[out, in] out[](a in[], f act out(in))
-	(a for-loop f)::(out array) to-list
-
-!for-loop[out, in] out[](a in[], f act out(nat64, in))
-	(a for-loop f)::(out array) to-list
-
-!for-loop[out, in] out array(a in[], f act out(in))
-	with out : a.size build
-		for x : a
-			out ~= f[x]
-
-!for-loop[out, in] out array(a in[], f act out(nat64, in))
-	with out : a.size build
-		for i, x : a
-			out ~= f[i, x]
-
-!flatten[t] t[](a t[][])
-	res mut t[] = ()
-	for x : a
-		res := res ~~ x
-	res
-
-!join[t] t[](joiner t[], parts t[][])
-	first mut = true
-	res mut t[] = ()
-	for x : parts
-		if first
-			first := false
-		else
-			res := res ~~ joiner
-		res := res ~~ x
-	res
-
-.each-chunk[t] void(xs t[], f act void(t array))
-	match xs.root node
-	as leaf l
-		f[l]
-	as branch b
-		f[b left]
-		b.down each-chunk-l1 f
-		f[b right]
-
-.each-chunk-l1[t] void(xs t l1, f act void(t array))
-	match xs node
-	as leaf l
-		l for-loop f
-	as branch b
-		b.left for-loop f
-		b.down each-chunk-l2 f
-		b.right for-loop f
-
-.each-chunk-l2[t] void(xs t l2, f act void(t array))
-	for nodes : xs.nodes
-		nodes for-loop f
-
-.for-break-chunk[out, in] out break-or-continue(a in[], f act out break-or-continue(in array))
-	match a.root node
-	as leaf l
-		f[l]
-	as branch b
-		match f[b left]
-		as loop-break v
-			break v
-		as loop-continue
-			match b.down for-break-chunk-l1 f
-			as loop-break v
-				break v
-			as loop-continue
-				f[b right]
-
-.for-break-chunk-l1[out, in] out break-or-continue(a in l1, f act out break-or-continue(in array))
-	match a node
-	as leaf l
-		l for-break-chunk-l1-leaf f
-	as branch b
-		match b.left for-break-chunk-l1-leaf f
-		as loop-break v
-			break v
-		as loop-continue
-			match b.down for-break-chunk-l2 f
-			as loop-break v
-				break v
-			as loop-continue
-				b.right for-break-chunk-l1-leaf f
-
-.for-break-chunk-l1-leaf[out, in] out break-or-continue(a in array array, f act out break-or-continue(in array))
-	for xs : a
-		match f[xs]
-		as loop-break v
-			break break v
-		as loop-continue
-			continue
-	else
-		continue
-
-.for-break-chunk-l2[out, in] out break-or-continue(a in l2, f act out break-or-continue(in array))
-	for xs : a nodes
-		match xs for-break-chunk-l1-leaf f
-		as loop-break v
-			break break v
-		as loop-continue
-			continue
-	else
-		continue
-
-!subscript[t] t(a t[], index nat64)
-	# TODO:PERF
-	a.to-array[index]
-
-!subscript[t] t[](a t[], indices nat64 range)
-	# TODO:PERF
-	a.to-array[indices] to-list
-
-!index-of[t] nat64?(a t[], value t) t equal
-	# TODO:PERF
-	a.to-array index-of value
-
-!starts-with[t] bool(a t[], b t[]) t equal
-	!(a.iter iter-starts-with b.iter).is-empty
-
-!ends-with[t] bool(a t[], b t[]) t equal
-	!(a.end-iter iter-ends-with b.end-iter).is-empty
-
-!try-remove-start[t] t[]?(a t[], b t[]) t equal
-	if iter ?= a.iter iter-starts-with b.iter
-		iter.slice-right,
-
-!try-remove-end[t] t[]?(a t[], b t[]) t equal
-	if iter ?= a.end-iter iter-ends-with b.end-iter
-		iter.slice-left,
-
-###
-`true` iff `b` is a sublist of `a`.
-
-That means: The characters in `b` appear in `a`, in order, without interruptions.
-###
-!contains-sublist[t] bool(a t[], b t[]) t equal
-	!(a iters-of-sublist b).is-empty
-
-!split-list[t] record
-	left t[]
-	middle t
-	right t[]
-
-!find-iter[t] t list-iter?(a t[], f act bool(t)) t equal
-	iter = a mut-iter
-	loop
-		if x ?= iter next
-			if f[x]
-				_ = iter prev
-				break iter.save,
-			else
-				continue
-		else
-			break
-
-###
-Finds the first apperance of `b` as a sublist of `a`,
-and returns slices of `a` to the left and right of that.
-
-Returns an empty option iff `b` is not a sublist of `a`.
-###
-!try-split-once-by-sublist[t] (t[], t[])?(a t[], b t[]) t equal
-	forbid b is-empty : "can't split by empty list"
-	if pair ?= a iters-of-sublist b
-		(pair.a.slice-left, pair.b.slice-right),
-
-!try-split-once-by-sublist-right[t] (t[], t[])?(a t[], b t[]) t equal
-	forbid b is-empty : "can't split by empty list"
-	if pair ?= a iters-of-sublist-right b
-		(pair.a.slice-left, pair.b.slice-right),
-
-!split-by-sublist[t] t[][](a t[], b t[]) t equal
-	if pair ?= a try-split-once-by-sublist b
-		pair.a ~ (pair.b split-by-sublist b)
-	else
-		a,
-
-.iters-of-sublist[t] (t list-iter, t list-iter)?(a t[], b t[]) t equal
-	ai mut = a iter
-	loop
-		if end-iter ?= ai iter-starts-with b.iter
-			break (ai, end-iter),
-		elif n ?= ai next
-			ai := n rest
-			continue
-		else
-			break
-
-.iters-of-sublist-right[t] (t list-iter, t list-iter)?(a t[], b t[]) t equal
-	ai mut = a end-iter
-	loop
-		if start-iter ?= ai iter-ends-with b.end-iter
-			break (start-iter, ai),
-		elif p ?= ai prev
-			ai := p rest
-			continue
-		else
-			break
-
-.iter-starts-with[t] t list-iter?(a t list-iter, b t list-iter) t equal
-	ai mut = a
-	bi mut = b
-	loop
-		if bn ?= bi next
-			if an ?= ai next
-				if an.value == bn.value
-					ai := an rest
-					bi := bn rest
-					continue
-				else
-					break
-			else
-				break
-		else
-			break ai,
-
-.iter-ends-with[t] t list-iter?(a t list-iter, b t list-iter) t equal
-	if bp ?= b prev
-		if ap ?= a prev
-			if ap.value == bp.value
-				ap.rest iter-ends-with bp.rest
-	else
-		a,
-
-# Concatenate `n` copies of `a`.
-!repeat[t] t[](a t[], n nat64)
-	for i : 0 .. a.size * n
-		a[i % a.size]
-
-!reverse[t] t[](a t[])
-	for i : 0 .. a.size
-		a[a.size - 1 - i]
-
-.force[t] t(a t?) noctx
-	if x ?= a
-		x
-	else
-		unreachable
-
-.for-loop[out] out[](a nat64 range, f act out(nat64))
-	(a for-loop f)::(out array) to-list
-
-region builder
-
-!build-list record
-	.size-hint nat64
-!build build-list()
-	0,
-!build build-list(size-hint nat64)
-	size-hint,
-
-!list-builder[t] record mut
-	.inner t array-builder
-
-!with-block[t] t[](a build-list, f act void(t list-builder))
-	(with out : a.size-hint build; f[(out,)])::(t array) to-list
-
-!~=[t] void(a t list-builder, value t)
-	a.inner ~= value
-!~~=[t] void(a t list-builder, values t[])
-	a.inner ~~= values.to-array
+.slice-right[t] (t array2d, t array3d)(a t array-3d-iterator) noctx
+	a2d t array-2d-iterator = a.arrays[a index-3d], a.index-2d
+	a2d.slice-right, a.arrays[a.index-3d + 1 .. end]

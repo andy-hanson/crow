@@ -2,32 +2,31 @@ import
 	crow/io/print: out, print
 
 main nat^(_ string[]) summon
-	nats linked-list nat = 1 ~ (2 ~ ())
-	floats linked-list float = 0.5 ~ ()
+	nats nat linked-list = 1 ~ (2 ~ ())
+	floats float linked-list = 0.5 ~ ()
 	out print "nats size: {nats size}"
 	out print "floats size: {floats size}"
 	0,
 
-linked-list<a> record
-	head list-node<a>?
+linked-list[t] record
+	head t list-node?
 
-list-node<a> record
-	value a
-	next linked-list a
+list-node[t] record
+	value t
+	next t linked-list
 
-new<a> linked-list a()
+new[t] t linked-list()
 	(),
 
-~<a> linked-list a(head a, tail linked-list a)
+~[t] t linked-list(head t, tail t linked-list)
 	((head, tail),),
 
-size<a> nat(a linked-list a)
+size[t] nat(a t linked-list)
 	res mut = 0
 	for _ : a
 		res := res + 1
 	res
 
-for-loop<a> void(list linked-list a, f act void(a))
+iterate[t] bool(list t linked-list, f act bool(t))
 	if node ?= list head
-		f[node.value]
-		node.next for-loop f
+		f[node.value] || node.next iterate f

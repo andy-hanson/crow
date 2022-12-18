@@ -44,7 +44,7 @@ main nat^(_ string[]) summon, trusted
 		# TODO: might be 0 if the socket is overloaded -- delay and try again
 		assert bytes-sent > 0
 		if bytes-sent < bytes.size.to-int64
-			bytes := bytes[bytes-sent.to-nat64 .. bytes.size]
+			bytes := bytes[bytes-sent.to-nat64 .. end]
 			continue
 		else
 			assert bytes-sent == bytes.size.to-int64

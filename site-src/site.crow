@@ -10,21 +10,24 @@ import
 
 main nat^(_ string[]) summon
 	run-all-tests
-	all-content = documentation ~~ pages ~ include-all
-	for content : all-content
+	a, b, c <- (documentation, pages, include-all)
+	all-content = a ~~ b ~ c
+	<- for content : all-content parallel
 		content ensure-up-to-date
 	cwd = current-directory
-	for to-link : all-to-link
-		to-link ensure-link cwd
+	to-link <- all-to-link
+	<- for x : to-link parallel
+		x ensure-link cwd
 	()
 
-.ensure-up-to-date void(a path-and-content) summon
+.ensure-up-to-date void^(a path-and-content) summon
 	full-out-path = "site" child-path a.out-path
 	unless full-out-path is-up-to-date a.content
 		full-out-path.parent-path ensure-directory-recursive
 		full-out-path write-file a.content
+		()
 
-.ensure-link void(a link, cwd string) summon
+.ensure-link void^(a link, cwd string) summon
 	full-out-path = "site" child-path a.link-path
 	# TODO: check that link target is up to date
 	unless full-out-path path-exists
@@ -32,6 +35,7 @@ main nat^(_ string[]) summon
 		full-target = cwd child-path a.target
 		out print "link {full-out-path} -> {full-target}"
 		full-out-path make-symlink-to full-target
+		()
 
 .is-up-to-date bool(path string, content string) summon
 	if cur-content ?= path.try-read-file :: string?
@@ -46,33 +50,39 @@ link record
 	target string
 	link-path string
 
-.all-to-link link[]() summon
-	example = "site-src/example".search-dir-recursive to-links "site-src/"
+.all-to-link link[]^() summon
+	example-paths <- "site-src/example" search-dir-recursive
+	example = example-paths to-links "site-src/"
 	in-src-paths link[] = for x : ("crow.svg", "index.css")::string[]
 		("site-src" child-path x), x
-	script = ("site-src/script" search-dir-recursive x => x ends-with ".js") to-links "site-src/"
-	font = "site-src/font".search-dir-recursive to-links "site-src/"
+
+	script-paths <- "site-src/script" search-dir-recursive x => x ends-with ".js"
+	script = script-paths to-links "site-src/"
+
+	font-paths <- "site-src/font" search-dir-recursive
+	font = font-paths to-links "site-src/"
 	other link[] = for x : ("bin/crow.wasm", "bin/crow.tar.xz", "crow-js/crow.js")::string[]
 		x, x
-	example ~~ in-src-paths ~~ script ~~ font ~~ other
+	example ~~ in-src-paths ~~ script ~~ font ~~ other,
 
-.include-all path-and-content() summon
-	include = "include" search-all-with-content ""
-	pairs (string, json)[] = for x : include
-		x.out-path.remove-include-and-crow, x.content.json-string
-	content = pairs.to-dict.json-object to-string
-	"include-all.json", content
+.include-all path-and-content^() summon
+	include <- "include" search-all-with-content ""
+	pairs string[symbol] = for x : include
+		x.out-path.remove-include-and-crow.string-to-symbol, x.content
+	content = pairs.json to-string
+	("include-all.json", content),
 
-.search-all-with-content path-and-content[](path string, remove-prefix string) summon
-	path.search-dir-recursive to-paths-and-contents remove-prefix
+.search-all-with-content path-and-content[]^(path string, remove-prefix string) summon
+	paths <- path search-dir-recursive
+	paths to-paths-and-contents remove-prefix
 
 .to-links link[](targets string[], remove-prefix string)
 	for target : targets
 		target, target try-remove-start remove-prefix ?? throw "{target} didn't start with {remove-prefix}"
 
-.to-paths-and-contents path-and-content[](paths string[], remove-prefix string) summon
-	for path : paths
+.to-paths-and-contents path-and-content[]^(paths string[], remove-prefix string) summon
+	for path : paths parallel
 		if rel-path ?= path try-remove-start remove-prefix
-			rel-path, path.read-file
+			(rel-path, path.read-file),
 		else
 			throw "{path} didn't start with {remove-prefix}"

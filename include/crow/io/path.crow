@@ -5,11 +5,10 @@ There is technically no I/O here; for functions like reading from a path, see `c
 
 no-std
 import
+	../col/collection: last-iter-of, slice-left, slice-right
 	../json: json
 	../option: ==, new, option
-	../string: ==, literal, new, string
-	../tuple: a, b
-	../string: ~~, to-string, try-split-once-right
+	../string: ==, ~~, +, begin, collection, end, literal, new, prev, slice, string, to-string
 	../test-util: is
 
 ###
@@ -17,8 +16,8 @@ Parent of a path. This means removing the last path component.
 `""` if the path has no parent.
 ###
 !parent-path string(a string)
-	if x ?= a try-split-once-right "/"
-		x a
+	if x ?= a last-iter-of "/"
+		x slice-left
 
 # Adds a new path component onto the end.
 !child-path string(a string, child_name string)
@@ -30,8 +29,8 @@ Gets the extension from a file name or path.
 Returns an empty option if there is no extension.
 ###
 !get-extension string?(name string)
-	if x ?= name try-split-once-right "."
-		x.b,
+	if x ?= name last-iter-of "."
+		(x + 1).slice-right,
 test
 	"birds/crow.txt".get-extension is ("txt",)
 
@@ -42,8 +41,8 @@ This returns the path without the extension.
 For example: `"birds/crow.txt" remove-extension` is `"birds/crow"`.
 ###
 !remove-extension string(name string)
-	if x ?= name try-split-once-right "."
-		x a
+	if x ?= name last-iter-of "."
+		x slice-left
 	else
 		name
 test
@@ -66,8 +65,8 @@ test
 
 # Gets just the file name without any directory names in from of it.
 !base-name string(path string)
-	if x ?= path try-split-once-right "/"
-		x b
+	if x ?= path last-iter-of "/"
+		(x + 1) slice-right
 	else
 		path
 test

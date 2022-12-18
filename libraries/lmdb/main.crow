@@ -276,28 +276,28 @@ each[k, v] record mut
 	db (k, v) lmdb-db
 each[k, v] (k, v) each(txn lmdb-txn, db (k, v) lmdb-db)
 	txn, db
+
+size[k, v] nat64(a (k, v) each) summon
+	a.txn count a.db
+
 # Calls `f` for each key-value pair in `db`.
-for-loop[k, v] void(a (k, v) each, f act void(k, v)) summon, k lmdb-key, v serialize
+iterate[k, v] bool(a (k, v) each, f act bool(k, v)) summon, k lmdb-key, v serialize
 	trusted a.txn with-cursor a.db, cursor =>
 		key mut = empty-val
 		value mut = empty-val
 		cursor mdb_cursor_get &key, &value, MDB_FIRST check-lmdb-error
 		loop
 			cursor mdb_cursor_get &key, &value, MDB_GET_CURRENT check-lmdb-error
-			f[key.bytes-of-val.from-lmdb-key, value.bytes-of-val.from-bytes]
-			value := empty-val
-			err = cursor mdb_cursor_get &key, &value, MDB_NEXT
-			if err == MDB_NOTFOUND
-				break
+			if f[key.bytes-of-val.from-lmdb-key, value.bytes-of-val.from-bytes]
+				break true
 			else
-				err check-lmdb-error
-				continue
-
-# Calls `f` for each key-value pair in `db` and returns an array of the results.
-for-loop[out, k, v] out[](a (k, v) each, f act out(k, v)) summon, k lmdb-key, v serialize
-	with out : a.txn count a.db build
-		for key, value : a.txn each a.db
-			out ~= f[key, value]
+				value := empty-val
+				err = cursor mdb_cursor_get &key, &value, MDB_NEXT
+				if err == MDB_NOTFOUND
+					break false
+				else
+					err check-lmdb-error
+					continue
 
 ###
 `db0` and `db1` shuld have exactly the same keys.

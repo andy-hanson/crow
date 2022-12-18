@@ -4,7 +4,8 @@ import
 	../../misc: new, void
 	../../number: ==, nat64
 	../../test-util: is
-	../array: ~=, ~~=, array, build, new, size, with-block
+	../array: ~=, ~~=, array, build, new, size
+	../collection: build, with-block
 
 dummy-array-tests nat64()
 	0

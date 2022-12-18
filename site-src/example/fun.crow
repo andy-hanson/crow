@@ -12,4 +12,4 @@ main nat^(_ string[]) summon
 # converts (a, b, c, d, ...) to (f[a, b], f[c, d], ...)
 map-pairs string[](xs string[], f fun string(string, string))
 	if xs.size >= 2
-		f[xs[0], xs[1]] ~ (xs[2 .. xs.size] map-pairs f)
+		f[xs[0], xs[1]] ~ (xs[2 .. end] map-pairs f)

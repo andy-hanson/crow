@@ -8,7 +8,8 @@ no-std
 import
 	time: gmtime, localtime, strftime
 	../bool: bool, false, true
-	../col/array: subscript
+	../col/array: +, begin, slice
+	../col/collection: subscript
 	../col/mut-array: cast-immutable, begin-pointer, mut-array, size, uninitialized-mut-array
 	../number: ==, <=>, +, nat64
 	../pointer: as-const

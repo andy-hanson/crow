@@ -41,18 +41,18 @@ Lazily-evaluated.
 If `a` is non-empty, returns it and does not evaluate `b`.
 Else, returns `b`.
 ###
-!||[t] t?(a t?, b t?) builtin
+!||[t] t?(a t?, b t?) builtin, noctx
 
 ###
 Lazily-evaluated. 
 If `a` is non-empty, returns its value and does not evaluate `b`.
 Else, returns `b`.
 ###
-!??[t] t(a t?, default t) builtin
+!??[t] t(a t?, default t) builtin, noctx
 
 ###
 Called like 'a!'
 If `a` is non-empty, returns its value; else throws.
 ###
-!force[t] t(a t?)
+!force[t] t(a t?) noctx
 	a ?? throw "tried to force empty option"

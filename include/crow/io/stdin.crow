@@ -2,7 +2,9 @@ no-std
 import
 	stdio: stdin
 	unistd: read
-	../col/mut-array: begin-pointer, cast-immutable, mut-array, size, subscript, uninitialized-mut-array
+	../col/collection: subscript
+	../col/mut-array:
+		+, begin, begin-pointer, cast-immutable, mut-array, size, slice, uninitialized-mut-array
 	../compare: >=
 	../fun-util: subscript
 	../future: future, new, parallel, then, with-block

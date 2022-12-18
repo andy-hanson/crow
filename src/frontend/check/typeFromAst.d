@@ -14,6 +14,7 @@ import frontend.check.checkCtx :
 import frontend.check.dicts : SpecDeclAndIndex, SpecsDict, StructsAndAliasesDict, StructOrAliasAndIndex;
 import frontend.check.instantiate :
 	DelayStructInsts, instantiateStruct, instantiateStructNeverDelay, TypeArgsArray, typeArgsArray;
+import frontend.lang : maxTypeParams;
 import frontend.parse.ast :
 	NameAndRange, range, rangeOfNameAndRange, suffixRange, symForTypeAstDict, symForTypeAstSuffix, TypeAst;
 import frontend.programState : ProgramState;
@@ -140,7 +141,7 @@ private bool getTypeArgsIfNumberMatches(
 ) {
 	TypeAst[] typeArgsArray = tryGetMatchingTypeArgs(nExpectedTypeArgs, typeArgsAst);
 	if (typeArgsArray.length == nExpectedTypeArgs) {
-		mapTo(res, typeArgsArray, (ref TypeAst x) =>
+		mapTo!(maxTypeParams, Type, TypeAst)(res, typeArgsArray, (ref TypeAst x) =>
 			typeFromAst(ctx, commonTypes, x, structsAndAliasesDict, typeParamsScope, delayStructInsts));
 		return true;
 	} else {
@@ -333,7 +334,7 @@ private Type typeFromFunAst(
 		todo!void("!");
 	StructDecl* decl = structs[ast.returnAndParamTypes.length - 1];
 	TypeArgsArray typeArgs = typeArgsArray();
-	mapTo(typeArgs, ast.returnAndParamTypes, (ref TypeAst x) =>
+	mapTo!(maxTypeParams, Type, TypeAst)(typeArgs, ast.returnAndParamTypes, (ref TypeAst x) =>
 		typeFromAst(ctx, commonTypes, x, structsAndAliasesDict, typeParamsScope, delayStructInsts));
 	return Type(instantiateStruct(ctx.alloc, ctx.programState, decl, tempAsArr(typeArgs), delayStructInsts));
 }

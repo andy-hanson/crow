@@ -1,0 +1,658 @@
+no-std
+import
+	../bool: ==, bool, false, new, not, true
+	../compare: ==, >, compare, comparison, equal, greater, less, min
+	../fun-util: subscript
+	../misc: break-or-continue, loop-break, new, void
+	../number: ==, <=>, +, -, *, /, nat64
+	../option: ??, force, is-empty, new, option
+	../private/range-low-level: .., high, iterate, low, range, size, subtract-to-nat
+	../tuple: a, b, new, pair
+	./private/list-low-level: ~=, build, list
+export
+	./private/build
+
+!is-empty[t] spec
+	is-empty bool(a t)
+!size[t] spec
+	size nat64(a t)
+
+!iterate[col, elem] spec
+	iterate bool(a col, f act bool(elem))
+!iterate2[col, k, v] spec
+	iterate bool(a col, f act bool(k, v))
+
+!begin[iter, col] spec
+	begin iter(a col)
+!end[iter, col] spec
+	end iter(a col)
+!begin-end[iter, col] spec (iter, col) begin, (iter, col) end
+!collection[col, iter] spec
+	collection col(a iter)
+
+!prev[elem, iter] spec
+	prev (iter, elem)?(a iter)
+!next[elem, iter] spec
+	next (elem, iter)?(a iter)
+!prev-next[elem, iter] spec (elem, iter) prev, (elem, iter) next
+
+!set-prev[iter, elem] spec
+	set-prev void(a iter, value elem)
+!set-next[iter, elem] spec
+	set-next void(a iter, value elem)
+!set-prev-next[iter, elem] spec (iter, elem) set-prev, (iter, elem) set-next
+
+!slice[col, iter] spec
+	slice col(begin iter, end iter)
+
+!skip-prev[iter] spec
+	- iter(a iter, n nat64)
+!skip-next[iter] spec
+	+ iter(a iter, n nat64)
+!skip-prev-next[iter] spec iter skip-prev, iter skip-next
+
+is-at-begin[iter, elem] bool(a iter) (elem, iter) prev, noctx
+	a.prev is-empty
+is-at-end[iter, elem] bool(a iter) (elem, iter) next, noctx
+	a.next is-empty
+
+# Represents an index relative to the size of a collection
+!index-relative-to-end record by-val
+	subtract nat64
+
+!end index-relative-to-end() noctx
+	0,
+
+!- index-relative-to-end(a index-relative-to-end, n nat64) noctx
+	a.subtract + n,
+
+!subscript[col, iter, elem] elem(
+	a col,
+	index nat64,
+) (iter, col) begin, iter skip-next, (elem, iter) next, noctx
+	if pair ?= a.begin + index next
+		pair a
+	else
+		throw "bad index"
+
+!subscript[col, iter, elem] elem(
+	a col,
+	index index-relative-to-end,
+) (iter, col) end, iter skip-prev, (elem, iter) next, noctx
+	if pair ?= a.end - index.subtract next
+		pair a
+	else
+		throw "bad index"
+
+!set-subscript[col, iter, elem] void(
+	a col,
+	index nat64,
+	value elem,
+) (iter, col) begin, iter skip-next, (iter, elem) set-next, noctx
+	a.begin + index set-next value
+!set-subscript[col, iter, elem] void(
+	a col,
+	index index-relative-to-end,
+	value elem,
+) (iter, col) end, iter skip-prev, (iter, elem) set-next, noctx
+	a.end - index.subtract set-next value
+
+!fill[col, iter, elem] void(a col, value elem) (iter, col) begin, (elem, iter) next, (iter, elem) set-next, noctx
+	iter mut = a begin
+	loop
+		if pair ?= iter next
+			iter set-next value
+			iter := pair b
+			continue
+		else
+			break
+!set-map[col, iter, elem] void(a col, f act elem(elem)) (iter, col) begin, (elem, iter) next, (iter, elem) set-next
+	iter mut = a begin
+	loop
+		if pair ?= iter next
+			iter set-next f[pair a]
+			iter := pair b
+			continue
+		else
+			break
+
+!range-relative-to-end record by-val
+	low nat64
+	high index-relative-to-end
+
+!.. range-relative-to-end(low nat64, high index-relative-to-end) noctx
+	low, high
+
+!subscript[col, iter] col(
+	a col,
+	indices nat64 range,
+) (iter, col) begin, iter skip-next, (col, iter) slice, noctx
+	a.begin + indices.low slice a.begin + indices.high
+
+!subscript[col, iter] col(
+	a col,
+	indices range-relative-to-end,
+) (iter, col) begin-end, iter skip-prev-next, (col, iter) slice, noctx
+	a.begin + indices.low slice a.end - indices.high.subtract
+
+!slice-left[col, iter] col(a iter) (col, iter) collection, (iter, col) begin, (col, iter) slice
+	a.collection.begin slice a
+!slice-right[col, iter] col(a iter) (col, iter) collection, (iter, col) end, (col, iter) slice
+	a slice a.collection.end
+
+!set-reverse[col, iter, elem] void(
+	a col,
+) (iter, col) begin-end, (elem, iter) prev-next, iter subtract-to-nat, (iter, elem) set-prev-next
+	lo mut = a begin
+	hi mut = a end
+	while hi - lo > 1
+		pair0 = lo.next!
+		pair1 = hi.prev!
+		lo set-next pair1.b
+		hi set-prev pair0.a
+		lo := pair0 b
+		hi := pair1 a
+
+swap-at[col, iter, elem] void(
+	a col,
+	i nat64,
+	j nat64,
+) (iter, col) begin, iter skip-next, (elem, iter) next, (iter, elem) set-next
+	x = a.begin + i
+	y = a.begin + j
+	temp = x.next!.a
+	x set-next y.next!.a
+	y set-next temp
+
+region 'for' loops
+
+# Call 'f' for each element in the collection and return nothing.
+for-loop[col, elem] void(a col, f act void(elem)) (col, elem) iterate
+	res = a iterate x =>
+		f[x]
+		false
+	forbid res
+# Call 'f' for each key and value (or index and value for lists) and return nothing.
+for-loop[col, k, v] void(a col, f act void(k, v)) (col, k, v) iterate2
+	res = a iterate (k, v) =>
+		f[k, v]
+		false
+	forbid res
+
+# Call 'f' for each element in the input collection and return an output collection of the results of 'f'.
+!for-loop[out-col, out-e, out-builder, in-col, in-e] out-col(
+	in in-col,
+	f act out-e(in-e),
+) (out-col, out-e, out-builder) build, (in-col, in-e) iterate, in-col size
+	(in.size,) build builder =>
+		for x : in
+			builder ~= f[x]
+
+###
+Call 'f' for each key and value (or index and value for lists) in the input collection
+and return an output collection of the results of 'f'.
+###
+!for-loop[out-col, out-e, out-builder, in-col, in-k, in-v] out-col(
+	in in-col,
+	f act out-e(in-k, in-v),
+) (out-col, out-e, out-builder) build, (in-col, in-k, in-v) iterate2, in-col size
+	(in.size,) build builder =>
+		for k, v : in
+			builder ~= f[k, v]
+
+###
+Call `f` for each element in the collection, but stop and return the result of the first `break`.
+If there is no `break`, return `f-else` instead.
+###
+!for-break[out, col, elem] out(a col, f-loop act out break-or-continue(elem), f-else act out()) (col, elem) iterate
+	a for-break f-loop ?? f-else[]
+!for-break[out, col, k, v] out(a col, f-loop act out break-or-continue(k, v), f-else act out()) (col, k, v) iterate2
+	a for-break f-loop ?? f-else[]
+
+!for-break[col, elem] void(a col, f-loop act void break-or-continue(elem)) (col, elem) iterate
+	a for-break f-loop ?? ()
+!for-break[col, k, v] void(a col, f-loop act void break-or-continue(k, v)) (col, k, v) iterate2
+	a for-break f-loop ?? ()
+
+###
+Call `f` for each element in the collection, but stop and return the result of the first `break`.
+If there is no `break`, return an empty option instead.
+###
+!for-break[out, col, elem] out?(a col, f-loop act out break-or-continue(elem)) (col, elem) iterate
+	res mut out? = ()
+	broke = a iterate x =>
+		match f-loop[x]
+		as loop-break value
+			res := value,
+			true
+		as loop-continue
+			false
+	assert broke == !res.is-empty
+	res
+!for-break[out, col, k, v] out?(a col, f-loop act out break-or-continue(k, v)) (col, k, v) iterate2
+	res mut out? = ()
+	broke = a iterate (k, v) =>
+		match f-loop[k, v]
+		as loop-break value
+			res := value,
+			true
+		as loop-continue
+			false
+	assert broke == !res.is-empty
+	res
+
+###
+Call `f` for each element in the input collection,
+and return an output collection of the elements for which `f` was `true`.
+###
+!filter[out-col, elem, out-builder, in-col] out-col(
+	in in-col,
+	f act bool(elem),
+) (out-col, elem, out-builder) build, (in-col, elem) iterate
+	with out : build
+		for x : in
+			if f[x]
+				out ~= x
+
+sequence-equal[col, iter, elem] bool(a col, b col) col size, (iter, col) begin, (elem, iter) next, elem equal, noctx
+	if a.size == b.size
+		ai mut = a begin
+		bi mut = b begin
+		loop
+			if na ?= ai next
+				nb = bi.next!
+				if na.a == nb.a
+					ai := na b
+					bi := nb b
+					continue
+				else
+					break false
+			else
+				assert bi is-at-end
+				break true
+
+sequence-compare[col, iter, elem] comparison(a col, b col) (iter, col) begin, (elem, iter) next, elem compare, noctx
+	ai mut = a begin
+	bi mut = b begin
+	loop
+		if na ?= ai next
+			if nb ?= bi next
+				cmp = na.a <=> nb.a
+				if cmp == equal
+					ai := na b
+					bi := nb b
+					continue
+				else
+					break cmp
+			else
+				break greater
+		else
+			break bi.is-at-end ? equal : less
+
+###
+True if `value` is an element of `a`.
+For sets, prefer `in`.
+###
+!contains[col, elem] bool(a col, value elem) (col, elem) iterate, elem equal
+	a iterate x => x == value
+
+!starts-with[col, iter, elem] bool(a col, b col) (iter, col) begin, (elem, iter) next, elem equal
+	!(a.begin iter-starts-with b).is-empty
+
+!ends-with[col, iter, elem] bool(a col, b col) (iter, col) end, (elem, iter) prev, elem equal
+	!(a.end iter-ends-with b).is-empty
+
+!try-remove-start[col, iter, elem] col?(
+	a col,
+	start col,
+) (iter, col) begin-end, (elem, iter) next, (col, iter) slice, elem equal
+	if after ?= a.begin iter-starts-with start
+		(after slice a.end),
+!try-remove-end[col, iter, elem] col?(
+	a col,
+	end col,
+) (iter, col) begin-end, (elem, iter) prev, (col, iter) slice, elem equal
+	if before ?= a.end iter-ends-with end
+		(a.begin slice before),
+
+# Removes all occurrences of 'b' from the front of 'a'.
+!strip-left[col, iter, elem] col(
+	a col,
+	b col,
+) (iter, col) begin-end, (elem, iter) next, (col, iter) slice, elem equal
+	if x ?= a try-remove-start b
+		x strip-left b
+	else
+		a
+# Removes all occurrences of 'b' from the end of 'a'.
+!strip-right[col, iter, elem] col(
+	a col,
+	b col,
+) (iter, col) begin-end, (elem, iter) prev, (col, iter) slice, elem equal
+	if x ?= a try-remove-end b
+		x strip-right b
+	else
+		a
+
+# Returns iterator after 'start' if 'ai' starts with 'start'
+.iter-starts-with[col, iter, elem] iter?(
+	a iter,
+	start col,
+) (iter, col) begin, (elem, iter) next, elem equal
+	ai mut = a
+	bi mut = start begin
+	loop
+		if bp ?= bi next
+			if ap ?= ai next
+				if ap.a == bp.a
+					ai := ap b
+					bi := bp b
+					continue
+				else
+					break
+			else
+				break
+		else
+			break ai,
+.iter-ends-with[col, iter, elem] iter?(
+	a iter,
+	end col,
+) (iter, col) end, (elem, iter) prev, elem equal
+	ai mut = a
+	bi mut = end end
+	loop
+		if bp ?= bi prev
+			if ap ?= ai prev
+				if ap.b == bp.b
+					ai := ap a
+					bi := bp a
+					continue
+				else
+					break
+			else
+				break
+		else
+
+			break ai,
+
+###
+`true` iff `b` is contained in `a`.
+
+That means: The elements in `b` appear in `a`, in order, without interruptions.
+###
+!contains-seq[col, iter, elem] bool(a col, b col) (iter, col) begin, (elem, iter) next, elem equal
+	!(a iters-of-seq b).is-empty
+
+###
+Finds the first appearance of `b` in `a`,
+and returns slices of `a` to the left and right of that.
+
+Returns an empty option iff `b` is not a subsequence of `a`.
+###
+try-split-once[col, iter, elem] (col, col)?(
+	a col,
+	b col,
+) (iter, col) begin-end, (elem, iter) next, (col, iter) slice, elem equal
+	if pair ?= a iters-of-seq b
+		((a.begin slice pair.a), (pair.b slice a.end)),
+
+try-split-once-right[col, iter, elem] (col, col)?(
+	a col,
+	b col,
+) (iter, col) begin-end, (elem, iter) prev, (col, iter) slice, elem equal
+	if pair ?= a iters-of-seq-right b
+		((a.begin slice pair.a), (pair.b slice a.end)),
+
+!split[col, iter, elem] col[](
+	a col,
+	b col,
+) (iter, col) begin-end, (elem, iter) next, (col, iter) slice, elem equal
+	with out : build
+		cur mut = a
+		loop
+			if pair ?= cur try-split-once b
+				out ~= pair a
+				# TODO: just reuse the iterator instead of getting a slice of the rest
+				cur := pair b
+				continue
+			else
+				out ~= cur
+				break
+
+.iters-of-seq[col, iter, elem] (iter, iter)?(
+	a col,
+	b col,
+) (iter, col) begin, (elem, iter) next, elem equal
+	ai mut = a begin
+	loop
+		if after ?= ai iter-starts-with b
+			break (ai, after),
+		elif pair ?= ai next
+			ai := pair b
+			continue
+		else
+			break
+
+.iters-of-seq-right[col, iter, elem] (iter, iter)?(
+	a col,
+	b col,
+) (iter, col) end, (elem, iter) prev, elem equal
+	ai mut = a end
+	loop
+		if before ?= ai iter-ends-with b
+			break (before, ai),
+		elif pair ?= ai prev
+			ai := pair a
+			continue
+		else
+			break
+
+# Returns the first element for which `f` returns true, or an empty option if `f` was always `false`.
+!find[col, elem] elem?(a col, f act bool(elem)) (col, elem) iterate
+	for x : a
+		if f[x]
+			break x
+
+###
+Returns the first index `i` for which `f[a[i]]` is true.
+Returns an empty option iff `f` returns `false` for every elem of `a`.
+###
+!find-index[col, elem] nat64?(a col, f act bool(elem)) (col, nat64, elem) iterate2
+	for i, x : a
+		if f[x]
+			break i
+
+!last-iter-of[col, iter, elem] iter?(a col, value elem) (iter, col) end, (elem, iter) prev, elem equal
+	iter mut = a end
+	loop
+		if pair ?= iter prev
+			iter := pair a
+			if pair.b == value
+				break iter,
+			else
+				continue
+		else
+			break
+
+###
+If `search-value` is in `a`, return its index.
+###
+!index-of[col, elem] nat64?(a col, search-value elem) (col, nat64, elem) iterate2, elem equal
+	a find-index x => x == search-value
+
+###
+Equivalent to `f[a[0]] || f[a[1]] || ... || f[a[end - 1]]`
+
+Calls `f` on each element of `a` and returns `true` the first time `f` does.
+Returns `false` iff `f` returned `false` every time.
+###
+!exists[col, elem] bool(a col, f act bool(elem)) (col, elem) iterate
+	a iterate f
+!exists[col, k, v] bool(a col, f act bool(k, v)) (col, k, v) iterate2
+	a iterate f
+
+###
+Equivalent to `f[a[0]] && f[a[1]] && ... && f[a[end - 1]]`.
+
+Calls `f` on each element of `a` and returns `false` the fist time `f` does.
+Returns `true` iff `f` returned `true` every time.
+###
+!every[col, elem] bool(a col, f act bool(elem)) (col, elem) iterate
+	!(a iterate x => !f[x])
+!every[col, k, v] bool(a col, f act bool(k, v)) (col, k, v) iterate2
+	!(a iterate (k, v) => !f[k, v])
+
+###
+Drops elements from the left until `f` returns `false`.
+If `f` always returns true, this returns an empty collection.
+###
+!drop-while[col, iter, elem] col(
+	a col,
+	f act bool(elem),
+) (iter, col) begin-end, (elem, iter) next, (col, iter) slice
+	iter mut = a begin
+	loop
+		if pair ?= iter next
+			if f[pair a]
+				iter := pair b
+				continue
+			else
+				break
+		else
+			break
+	iter slice a.end
+
+# Drops elements from the right that match `f`.
+!drop-right-while[col, iter, elem] col(
+	a col,
+	f act bool(elem),
+) (iter, col) begin-end, (elem, iter) prev, (col, iter) slice
+	iter mut = a end
+	loop
+		if pair ?= iter prev
+			if f[pair b]
+				iter := pair a
+				continue
+			else
+				break
+		else
+			break
+	a.begin slice iter
+
+!take-while[col, iter, elem] col(
+	a col,
+	f act bool(elem),
+) (iter, col) begin, (elem, iter) next, (col, iter) slice
+	iter mut = a begin
+	loop
+		if pair ?= iter next
+			if f[pair a]
+				iter := pair b
+				continue
+			else
+				break
+		else
+			break
+	a.begin slice iter
+
+!take-right-while[col, iter, elem] col(
+	a col,
+	f act bool(elem),
+) (iter, col) end, (elem, iter) prev, (col, iter) slice
+	iter mut = a end
+	loop
+		if pair ?= iter prev
+			if f[pair b]
+				iter := pair a
+				continue
+			else
+				break
+		else
+			break
+	iter slice a.end
+
+!groups-of[col, iter] col[](
+	a col,
+	group-size nat64,
+) (iter, col) begin-end, iter subtract-to-nat, iter skip-next, (col, iter) slice, col size
+	forbid group-size == 0 : "group-size can't be 0"
+	div = a.size / group-size
+	out-size = div * group-size == a.size ? div : div + 1
+	iter mut = a begin
+	with out : out-size build
+		loop
+			diff = a.end - iter
+			if diff == 0
+				break
+			else
+				next-iter = iter + (diff min group-size)
+				out ~= iter slice next-iter
+				iter := next-iter
+				continue
+
+!concatenate[t] spec
+	~~ t(a t, b t)
+
+###
+Equivalent to `parts[0] ~~ joiner ~~ parts[1] ~~ joiner ~~ ... ~~ parts[n]`.
+###
+!join[col] col(joiner col, parts col[]) col concatenate, col new, (col[], col) iterate
+	# NOTE: parts can only be a list because otherwise
+	# `" " join for x : xs; "{x}"` is ambiguous (the 'for' could return any collection)
+	first mut = true
+	res mut col = ()
+	for x : parts
+		if first
+			first := false
+		else
+			res := res ~~ joiner
+		res := res ~~ x
+	res
+
+# Equivalent to `() join a`
+flatten[col, col-col] col(a col-col) (col-col, col) iterate, col concatenate, col new
+	res mut col = ()
+	for x : a
+		res := res ~~ x
+	res
+
+# Concatenate `n` copies of `a`.
+!repeat[col] col(a col, n nat64) col concatenate, col new
+	res mut col = ()
+	for _ : 0 .. n
+		res := res ~~ a
+	res
+
+!n-of[col, elem, builder] col(n nat64, value elem) (col, elem, builder) build
+	for _ : 0 .. n
+		value
+
+!reverse[col] record
+	.inner col
+!reverse[col] col reverse(a col)
+	a,
+!size[col] nat64(a col reverse) col size
+	a.inner size
+!for-loop[col, iter, elem] void(a col reverse, f act void(elem)) (iter, col) end, (elem, iter) prev
+	# TODO: define 'iterate' instead
+	iter mut = a.inner end
+	loop
+		if pair ?= iter prev
+			f[pair b]
+			iter := pair a
+			continue
+		else
+			break
+!for-loop[out-col, out-elem, out-builder, in-col, in-iter, in-elem] out-col(
+	a in-col reverse,
+	f act out-elem(in-elem),
+) (out-col, out-elem, out-builder) build, (in-iter, in-col) end, (in-elem, in-iter) prev, in-col size
+	with out : a.size build
+		iter mut = a.inner end
+		loop
+			if pair ?= iter prev
+				out ~= f[pair b]
+				iter := pair a
+				continue
+			else
+				break

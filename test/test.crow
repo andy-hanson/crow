@@ -9,8 +9,7 @@ import
 	./crow-tests: run-crow-tests
 
 main nat^(args string[]) summon
-	option-names string[] = "print-tests", "overwrite-output", "max-failures", "match"
-	if values ?= args parse-named-args option-names
+	if values ?= args parse-named-args ("print-tests", "overwrite-output", "max-failures", "match")
 		print-tests-strs = values[0]
 		overwrite-output-strs = values[1]
 		max-failures-strs = values[2]
@@ -28,7 +27,7 @@ main nat^(args string[]) summon
 		match-test = if strs ?= match-test-strs
 			assert strs.size == 1
 			strs[0]
-		(should-print-tests, overwrite-output, max-failures, match-test).do-test,
+		(should-print-tests, overwrite-output, max-failures, match-test) do-test
 	else
 		print-help
 		1,
@@ -39,15 +38,15 @@ options:
 	--print-tests: print every test run"
 	--max-failures: stop after this many failures. Defaults to 10."""
 
-.do-test nat(options test-options) summon
+.do-test nat^(options test-options) summon
 	test-path = "./test"
 	crow-dir = test-path parent-path
 	crow-exe = crow-dir crow-path
-	crow-failures = test-path child-path "parse-errors" run-crow-tests crow-exe, options first-failures () =>
+	crow-failures <- test-path child-path "parse-errors" run-crow-tests crow-exe, options first-failures () =>
 		test-path child-path "compile-errors" run-crow-tests crow-exe, options first-failures () =>
 			test-path child-path "runnable" run-crow-tests crow-exe, options
-	all-failures = crow-failures first-failures () => crow-dir lint options
-	all-failures print-failures options
+	all-failures <- crow-failures first-failures () => crow-dir lint options
+	(all-failures print-failures options),
 
 .crow-path string(crow-dir string)
 	crow-dir child-path "bin" child-path "crow" ~~ (trusted is-windows ? ".exe" : "")

@@ -1,15 +1,17 @@
 no-std
 import
+	../bool: bool
 	../hash: hash-mix
 	../json: json
-	../misc: key, void
+	../misc: key
 	../number: ==, <=>, +, nat64
 	../option: ??
 	../test-util: is
 	../tuple: new
 	./array: array
-	./dict: ~, dict, for-loop, subscript
-	./list: for-loop, list, to-list
+	./collection: for-loop
+	./dict: ~, dict, iterate, subscript
+	./list: iterate, list, to-list
 	./mut-dict: mut-dict, new, set-subscript, subscript, to-dict
 
 !counter[k] record
@@ -33,8 +35,10 @@ import
 !~[k] k counter(a k counter, value k) k key
 	a.inner ~ (value, a[value] + 1),
 
-!for-loop[k] void(a k counter, f act void(k, nat64)) k key
-	a.inner for-loop f
+region spec impls (see collection.crow)
+
+!iterate[k] bool(a k counter, f act bool(k, nat64)) k key
+	a.inner iterate f
 
 test
 	a nat64 counter = ()

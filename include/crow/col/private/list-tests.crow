@@ -1,79 +1,116 @@
 no-std
 import
 	../../bool: &&, bool
-	../../fun-util: subscript
+	../../compare: equal
 	../../json: json
-	../../misc: new, void
-	../../number: ==, nat64
-	../../option: force
+	../../misc: void
+	../../number: ==, <=>, +, -, nat64
+	../../option: force, is-empty
 	../../pointer: size-of
-	../../string: ==, ~~, join, literal, string, to-string
+	../../range: .., end, iterate, prev
+	../../string: ==, ~~, literal, new, string, to-string
 	../../test-util: is
 	../../tuple: a, b
-	../array: array, for-loop, is-empty
+	../array: +, -, array, begin, end, is-empty, iterate, size, slice
+	../collection: .., end, for-loop, groups-of, join, reverse, subscript, try-split-once
 	../list:
-		==, ~, ~~, down, for-loop, get-root, groups-of, left, l0, l1, l2, list, new, node, nodes,
-		right, to-list, try-split-once-by-sublist
+		==, ~=, ~, ~~, +, -, array2d, array3d, arrays, begin, build, down, end, get-root, iterate,
+		left, l1, l2, l3, list, new, next, next-index, node, nodes, prev, right, size, slice,
+		to-array, to-list, total-size
 
 dummy-list-tests nat64()
 	0
 
-.verify[t] void(a t[], expected string) t to-string
+.verify[t] void(a t[], expected string) t equal, t json, t to-string
 	a.dbg is expected
-	a.get-root check-structure
+	a.size is a.get-root.check-structure
 
+	(for x : a; x)::t[] is a
+
+	a-array = a to-array
+
+	iter mut = a begin
+	for index : 0 .. a.size
+		iter.next-index is index
+		a.begin slice iter is a-array[0 .. index].to-list
+		iter slice a.end is a-array[index .. end].to-list
+		next-pair = iter.next!
+		next-pair.a is a[index]
+		iter := next-pair b
+	iter.next-index is a.size
+	assert iter.next is-empty
+
+	iter := a.end
+	for index : 0 .. a.size reverse
+		prev-pair = iter.prev!
+		iter := prev-pair a
+		prev-pair.b is a[index]
+		iter.next-index is index
+		a.begin slice iter is a-array[0 .. iter.next-index].to-list
+		iter slice a.end is a-array[iter.next-index .. end].to-list
+	iter.next-index is 0
+	assert iter.prev is-empty
+
+	for i : 0 .. a.size
+		for j : i .. a.size
+			a[i .. j] is a-array[i .. j].to-list
+
+.dbg[t] spec
+	dbg string(a t)
 .dbg[t] string(a t[]) t to-string
-	a.get-root dbg-l0
-.dbg-l0[t] string(a t l0) t to-string
-	a.node dbg-node (x => x dbg-arr), (x => x dbg-l1)
-.dbg-l1[t] string(a t l1) t to-string
-	a.node dbg-node (x => x dbg-arr2d), (x => x dbg-l2)
-.dbg-l2[t] string(a t l2) t to-string
-	a.nodes dbg-arr3d
-.dbg-node[t, lower] string(a (t, lower) node, dbg-a act string(t array), dbg-lower act string(lower))
+	a.get-root.node dbg-node
+.dbg[t] string(a t l2) t to-string
+	a.node dbg-node
+.dbg[t] string(a t l3) t to-string
+	a.nodes dbg
+.dbg-node[leaf, lower] string(a (leaf, lower) node) leaf dbg, lower dbg
 	match a
 	as leaf l
-		dbg-a[l]
+		l dbg
 	as branch b
-		"({dbg-a[b left]} {dbg-lower[b down]} {dbg-a[b right]})"
-.dbg-arr[t] string(a t array) t to-string
-	parts = " " join for x : a.to-list; "{x}"
+		"({b.left dbg} {b.down dbg} {b.right dbg})"
+.dbg[t] string(a t array) t to-string
+	parts = " " join for x : a; "{x}"
 	"[{parts}]"
-.dbg-arr2d[t] string(a t array array) t to-string
-	parts = " " join for x : a.to-list; x dbg-arr
+.dbg[t] string(a t array2d) t to-string
+	parts = " " join for x : a arrays; x dbg
 	"[{parts}]"
-.dbg-arr3d[t] string(a t array array array) t to-string
-	parts = " " join for x : a.to-list; x dbg-arr2d
+.dbg[t] string(a t array3d) t to-string
+	parts = " " join for x : a arrays; x dbg
 	"[{parts}]"
 
-.check-structure[t] void(a t l0)
+.check-structure[t] nat64(a t l1)
 	match a node
-	as leaf _
-		()
+	as leaf xs
+		xs size
 	as branch b
 		forbid b.left is-empty
 		forbid b.right is-empty
-		b.down check-structure 
+		b.left.size + b.down.check-structure + b.right.size
 
-.check-structure[t] void(a t l1)
+.check-structure[t] nat64(a t l2)
 	match a node
-	as leaf _
-		()
+	as leaf xs
+		xs check-structure
 	as branch b
-		b.left check-structure
-		b.down check-structure
-		b.right check-structure
+		b.left.check-structure + b.down.nodes.check-structure + b.right.check-structure
 
-.check-structure[t] void(xs t array array)
-	forbid xs is-empty
-	for ys : xs
-		forbid ys is-empty
+.check-structure[t] nat64(a t array2d)
+	acc mut = 0
+	for a1d : a arrays
+		forbid a1d is-empty
+		acc := acc + a1d.size
+	assert acc == a.total-size
+	acc
 
-.check-structure[t] void(a t l2)
-	for ys : a nodes
-		forbid ys is-empty
-		for zs : ys
-			forbid zs is-empty
+.check-structure[t] nat64(a t array3d)
+	# TODO: check total-size is accurate
+	acc mut = 0
+	for a2d : a arrays
+		forbid a2d.arrays is-empty
+		acc := acc + a2d.check-structure
+	assert acc == a.total-size
+	acc
 
 test
 	a nat64[] = ()
@@ -117,6 +154,9 @@ test
 .big big-nat(a nat64)
 	a, a, a
 
+.json json(a big-nat)
+	a.a json
+
 .to-string string(a big-nat)
 	a.a to-string
 
@@ -126,34 +166,32 @@ test
 	b big-nat[] = 4.big ~ a
 	b verify "([4] [] [5 6])"
 	
-	#b-split = (b try-split-once-by-sublist (5.big,))!
-	#b-split.a verify "[4]"
-	#b-split.b verify "[6]"
+	b-split = (b try-split-once (5.big,))!
+	b-split.a verify "[4]"
+	b-split.b verify "[6]"
 
 	c big-nat[] = b ~ 7.big
 	c verify "([4] [[5 6]] [7])"
 
-	#c-split = (c try-split-once-by-sublist (5.big,))!
-	#c-split.a verify "[4]"
-	#c-split.b verify "[6 7]"
+	c-split = (c try-split-once (5.big,))!
+	c-split.a verify "[4]"
+	c-split.b verify "[6 7]"
 
 	d big-nat[] = c ~ 8.big ~ 9.big ~ 10.big ~ 11.big
 	d verify "([4] [[5 6] [7 8] [9 10]] [11])"
 
-	d-split = (d try-split-once-by-sublist (6.big, 7.big))!
+	d-split = (d try-split-once (6.big, 7.big))!
 	d-split.a verify "[4 5]"
 	d-split.b verify "([8] [[9 10]] [11])"
 
-	###
 	e big-nat[] = 0.big ~ (1.big ~ (2.big ~ (3.big ~ d)))
 	e verify "([0] ([[1 2]] [] [[3 4] [5 6] [7 8] [9 10]]) [11])"
 	f big-nat[] = e ~ 12.big ~ 13.big
 	f verify "([0] ([[1 2]] [[[3 4] [5 6] [7 8] [9 10]]] [[11 12]]) [13])"
 
-	f-split = (f try-split-once-by-sublist (4.big, 5.big))!
+	f-split = (f try-split-once (4.big, 5.big))!
 	f-split.a verify "([0] [[1 2]] [3])"
-	f-split.b verify "([6] ([[7 8] [9 10]] [] [[11 12]]) [13])"
-	###
+	f-split.b verify "([6] [[7 8] [9 10] [11 12]] [13])"
 
 test
 	a nat64[] = 1, 2, 3, 4, 5, 6, 7

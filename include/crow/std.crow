@@ -3,6 +3,7 @@ export
 	./bits
 	./bool
 	./col/array
+	./col/collection
 	./col/dict
 	./col/list
 	./col/mut-array

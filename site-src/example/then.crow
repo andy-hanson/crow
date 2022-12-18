@@ -5,7 +5,7 @@ main nat^(_ string[]) summon
 	a string^ = "crow",
 	b string^ = a then x =>
 		out print x
-		x.reverse,
+		x.upper-case,
 	c nat^ = b then y =>
 		out print y
 		()

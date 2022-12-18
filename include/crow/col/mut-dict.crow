@@ -1,6 +1,6 @@
 no-std
 import
-	../bool: &&, ||, bool, not
+	../bool: &&, ||, bool, false, not
 	../compare: >, >=
 	../fun-util: subscript
 	../hash: hash, hash-mix
@@ -8,18 +8,17 @@ import
 	../misc: key, new, void
 	../number: ==, <=>, +, -, *, %, nat64
 	../option: ==, is-empty, new, option
-	../string: ==, ~~, join, literal, string, to-string
+	../string: ==, ~~, literal, new, string, to-string
 	../test-util: is
 	../tuple: from, new, pair, to
 	./array: array
-	./dict: dict, to-dict
-	./mut-array:
-		fill, mut-array, for-loop, is-empty, new, n-of, set-map, set-subscript, size, subscript,
-		to-array
-	./list: ==, ~=, build, for-loop, list, new, size, to-list, with-block
+	./collection: fill, find, find-index, for-loop, join, n-of, set-map, set-subscript, subscript
+	./dict: ~=, build, dict
+	./mut-array: ~=, +, begin, build, iterate, mut-array, is-empty, new, next, set-next, size
+	./list: ==, ~=, build, iterate, list, new, size, to-list
 	./mut-list:
-		~=, copy, find-index, for-loop, is-at-capacity, is-empty, mut-list, new,
-		remove-unordered-at, set-filter, set-map, set-subscript, size, subscript
+		~=, +, begin, copy, is-at-capacity, is-empty, iterate, mut-list, new, next,
+		remove-unordered-at, set-filter, set-next, size
 
 ###
 Mutable unordered dictionary.
@@ -66,8 +65,7 @@ Since hash conflicts are possible, this makes no guarantees about whether more a
 
 # Copy pairs to a list.
 !to-list[k, v] (k, v)[](a v mut[k]) k key
-	for k, v : a
-		k, v
+	for k, v : a; k, v
 
 # Copy pairs to a list and clear the dictionary.
 !move-to-list[k, v] (k, v)[](a v mut[k]) k key
@@ -118,8 +116,8 @@ Returns an empty option if the key is not in the dictionary.
 		as one ar
 			ar.from == key ? ar.to,
 		as many m
-			if index ?= m find-index pair => pair.from == key
-				m[index].to,
+			if pair ?= m find pair => pair.from == key
+				pair.to,
 
 # `true` iff the key is in the dictinoary.
 !in[k, v] bool(key k, a v mut[k]) k key
@@ -198,9 +196,7 @@ Returns an empty option if the key was not in the dictionary.
 					if m is-empty
 						a.entries[entry-index] := none
 					elif m.size == 1
-						# TODO: should not need a local
-						z = m[0]
-						a.entries[entry-index] := z one
+						a.entries[entry-index] := m[0] one
 					a.total-size := a.total-size - 1
 				old-value,
 			else
@@ -235,31 +231,6 @@ Returns an empty option if the key was not in the dictionary.
 	a swap bigger
 	assert a.entries.size == new-size
 
-region iteration
-
-# Calls `f` for every key and value in the dictionary.
-!for-loop[k, v] void(a v mut[k], f act void(k, v)) k key
-	for entry : a entries
-		match entry
-		as none
-			()
-		as one pair
-			f[pair from, pair to]
-		as many m
-			for pair : m
-				f[pair from, pair to]
-
-###
-Calls `f` on every key and value and returns a list of the results.
-###
-!for-loop[out, k, v] out[](a v mut[k], f act out(k, v)) k key
-	with out : a.size build
-		for key, value : a
-			out ~= f[key, value]
-
-!for-loop[k-out, v-out, k, v] v-out[k-out](a v mut[k], f act (k-out, v-out)(k, v)) k key, k-out key
-	(a for-loop f)::(k-out, v-out)[] to-dict
-
 ###
 Filters the dictionary in place.
 
@@ -285,7 +256,7 @@ Calls `f` on every key and value and removes the key if `f` returns false.
 				m many
 
 !to-dict[k, v] v[k](a v mut[k]) k key
-	(for k, v : a; k, v)::(k, v)[] to-dict
+	for k, v : a; k, v
 
 ###
 Calls `f` on every key and value, and replaces the value with the new value returned by `f`.
@@ -301,8 +272,24 @@ Calls `f` on every key and value, and replaces the value with the new value retu
 			m set-map pair => pair.from, f[pair.from, pair.to]
 			m many
 
+region spec impls (see collection.crow)
+
+# Calls `f` for every key and value in the dictionary.
+!iterate[k, v] bool(a v mut[k], f act bool(k, v)) k key
+	a.entries iterate entry =>
+		match entry
+		as none
+			false
+		as one pair
+			f[pair from, pair to]
+		as many m
+			m iterate pair =>
+				f[pair from, pair to]
+
+region test
+
 .dbg[k, v] string(a v mut[k]) k to-string, v to-string
-	" " join for entry : a.entries.to-array.to-list
+	parts string[] = for entry : a entries
 		match entry
 		as none
 			"_"
@@ -310,6 +297,7 @@ Calls `f` on every key and value, and replaces the value with the new value retu
 			"({ar dbg})"
 		as many m
 			"[{", " join for pair : m; pair dbg}]"
+	" " join parts
 .dbg[k, v] string(a (k, v)) k to-string, v to-string
 	"{a from} -> {a to}"
 
@@ -324,8 +312,8 @@ test
 	a[6] is ("6",)
 	a.size is 1
 	# TODO: a.arr is ((6, "6"),)
-	(for pair : a to-list; pair from)::nat64[] is (6,)
-	(for pair : a to-list; pair to)::string[] is ("6",)
+	(for k, _ : a; k)::nat64[] is (6,)
+	(for _, v : a; v)::string[] is ("6",)
 
 	a verify "(6 -> 6)"
 
@@ -346,8 +334,8 @@ test
 	a[5] is ()
 
 	# TODO: a.to-list is ((4, "4"), (8, "8"), (6, "six"), (3, "3"))
-	(for pair : a to-list; pair from)::nat64[] is (4, 8, 6, 3)
-	(for pair : a to-list; pair to)::string[] is ("4", "8", "six", "3")
+	(for k, _ : a; k)::nat64[] is (4, 8, 6, 3)
+	(for _, v : a; v)::string[] is ("4", "8", "six", "3")
 
 	a[12] := "12"
 	a verify "(8 -> 8) _ _ (3 -> 3) [4 -> 4, 12 -> 12] _ (6 -> six) _"

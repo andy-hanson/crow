@@ -15,9 +15,10 @@ import
 		WIN32_FIND_DATAA
 	../bits: &, |, <<
 	../bool: ||, bool, false, new, not, to-nat64, true
-	../col/array: array, begin-pointer, size, subscript
+	../col/array: +, array, begin, begin-pointer, size, slice
+	../col/collection: build, for-loop, subscript, with-block
 	../col/mut-array: cast-immutable, begin-pointer, mut-array, size, uninitialized-mut-array
-	../col/list: ~=, build, for-loop, list, new, to-array, to-list, with-block
+	../col/list: ~=, build, iterate, list, new, size, to-array, to-list
 	../col/sort: sort
 	../compare: !=
 	../exception: finally, with-block

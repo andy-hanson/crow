@@ -8,15 +8,16 @@ import
 	../../misc: key, new, void
 	../../number: ==, <=>, +, -, /, nat64, new
 	../../option: force, new, option
-	../../string:
-		==, <=>, ~~, hash-mix, iter, join, literal, next, slice-left, starts-with, string, to-string
+	../../string: ==, <=>, ~~, +, begin, hash-mix, literal, new, next, string, to-string
 	../../test-util: is
+	../../tuple: a
 	../array:
-		==, <=>, +, *, ~=, ~~=, array, array-builder, array-iter, build, for-loop, index, index-of,
-		insert-at, is-at-end, is-empty, iter, last, remove-at, rtail, size, slice-left, slice-right,
-		subscript, tail, with-block
-	../iter: rest
-	../list: ~=, build, for-loop, list, list-builder, size, to-array, to-list, with-block
+		~=, ~~=, +, -, array, array-builder, array-iterator, begin, build, collection, end,
+		insert-at, is-empty, iterate, next, next-index, remove-at, size, slice
+	../collection:
+		.., -, build, build-options, end, filter, for-loop, index-of, is-at-end, join, slice-left,
+		slice-right, starts-with, subscript, with-block
+	../list: ~=, build, iterate, list, list-builder, to-array, to-list
 	../mut-stack: ~=, mut-stack, new, peek, pop
 	../sort: sort-unique
 	../private/sort-utils: binary-search-has, binary-search-insert
@@ -52,8 +53,8 @@ new[t] t tree-set(...a t array) t key
 
 # Copy a list to a `tree-set`.
 to-tree-set[t] t tree-set(a t[]) t key
-	values = a sort-unique
-	values.to-array.leaf, values.size
+	values t array = a.to-array sort-unique
+	values.leaf, values.size
 
 ###
 List of all values in the set, in sorted order.
@@ -223,8 +224,8 @@ try-remove[t] t tree-set?(a t tree-set, b t) t key
 			# Then this is rightmost
 			(i.value, i.left),
 	as leaf l
-		if last ?= l last
-			(last, l.rtail.leaf),
+		unless l is-empty
+			(l[end - 1], l[0 .. end - 1].leaf),
 
 -[t] t tree-set(a t tree-set, b t tree-set) t key
 	b-iter = b iter
@@ -267,7 +268,7 @@ try-remove[t] t tree-set?(a t tree-set, b t) t key
 			res,
 	else
 		res = a.cur[0]
-		a.cur := a.cur tail
+		a.cur := a.cur[1 .. end]
 		res,
 
 .find-scapegoat record
@@ -311,27 +312,28 @@ try-remove[t] t tree-set?(a t tree-set, b t) t key
 
 .add-to-array[t] t add-result(a t array, value t, max-height nat64) t key
 	insert = a binary-search-insert value
-	if !insert.is-at-end && *insert == value
+	if !insert.is-at-end && insert.next!.a == value
 		none
 	elif a.size < 4
-		(a insert-at insert.index, value).leaf inserted
+		(a insert-at insert.next-index, value).leaf inserted
 	elif max-height == 0
 		# Can't add new nodes
 		(a.size + 1, 1) find-scapegoat
 	else
 		a break-up-arr value, insert, max-height
 
-.break-up-arr[t] t add-result(a t array, value t, insert-iter t array-iter, max-height nat64) t key
+.break-up-arr[t] t add-result(a t array, value t, insert-iter t array-iterator, max-height nat64) t key
 	# Break it up into nodes, adding to height
-	mid-iter = a.iter + a.size / 2
-	if insert-iter == mid-iter
-		(value, mid-iter.slice-left.leaf, mid-iter.slice-right.leaf).inner inserted
+	mid-index = a.size / 2
+	if insert-iter.next-index == mid-index
+		(value, insert-iter.slice-left.leaf, insert-iter.slice-right.leaf).inner inserted
 	else
+		mid-iter = a.begin + mid-index
 		left-arr = mid-iter slice-left
-		mid = *mid-iter
+		mid = mid-iter.next!.a
 		right-arr = (mid-iter + 1) slice-right
 		forbid left-arr.is-empty || right-arr.is-empty
-		if insert-iter < mid-iter
+		if insert-iter.next-index < mid-index
 			# TODO:PERF: This redundantly finds insert-index again
 			match left-arr add-to-array value, max-height - 1
 			as none
@@ -405,37 +407,36 @@ try-remove[t] t tree-set?(a t tree-set, b t) t key
 	if size >= 4
 		(size / 2).get-max-height + 1
 
-region iteration
+region spec impls (see collection.crow)
 
-for-loop[t] void(a t tree-set, f act void(t)) t key
-	a.root for-loop-recur f
-.for-loop-recur[t] void(a t node, f act void(t))
+iterate[t] bool(a t tree-set, f act bool(t)) t key
+	a.root iterate-recur f
+.iterate-recur[t] bool(a t node, f act bool(t))
 	match a
 	as inner i
 		i each-inner f
 	as leaf l
-		l for-loop f
-.each-inner[t] void(i t inner-node, f act void(t))
-	i.left for-loop-recur f
-	f[i.value]
-	i.right for-loop-recur f
+		l iterate f
+.each-inner[t] bool(a t inner-node, f act bool(t))
+	a.left iterate-recur f || f[a value] || a.right iterate-recur f
+.each-inner[t] void(a t inner-node, f act void(t))
+	res bool = a each-inner x =>
+		f[x]
+		false
+	forbid res
 
-for-loop[out, in] out[](a in tree-set, f act out(in)) in key
-	with out : a.size build
-		for value : a
-			out ~= f[value]
+subregion build
 
-for-loop[out, in] out tree-set(a in tree-set, f act out(in)) in key, out key
-	a for-loop f to-tree-set
+tree-set-builder[t] record mut
+	.inner t list-builder
 
-filter[t] t tree-set(a t tree-set, f act bool(t)) t key
-	list t[] = with out : build
-		for value : a
-			if f[value]
-				out ~= value
-	list to-tree-set
+build[t] t tree-set(a build-options, f act void(t tree-set-builder)) t key
+	a build (out => f[(out,)]) to-tree-set
 
-# TODO: find-and-get
+~=[t] void(a t tree-set-builder, value t) t key
+	a.inner ~= value
+
+region test
 
 .dbg[t] string(a t tree-set) t to-string
 	a.root dbg
@@ -444,7 +445,7 @@ filter[t] t tree-set(a t tree-set, f act bool(t)) t key
 	as inner i
 		"({i.left dbg} {i value} {i.right dbg})"
 	as leaf l
-		parts = " " join for x : l.to-list; "{x}"
+		parts = " " join for x : l; "{x}"
 		"[{parts}]"
 
 .verify void(a string tree-set, expected string)
@@ -510,7 +511,4 @@ test
 
 	s8 filter (x => !(x starts-with "j")) verify "[h i k l]"
 
-	(for x : s8; x first-char) verify "[h i j k l]"
-
-.first-char string(a string)
-	a.iter.next!.rest slice-left
+	(for x : s8; "{x[0]}") verify "[h i j k l]"

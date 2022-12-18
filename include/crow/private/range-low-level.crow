@@ -1,6 +1,8 @@
 no-std
 import
-	../compare: <=, equal, compare
+	../bool: bool, false, true
+	../compare: <=, >=, compare
+	../fun-util: subscript
 	./number-low-level: nat64
 
 ###
@@ -12,7 +14,7 @@ Usable for any type with a comparison function.
 	low t
 	high t
 
-!forward-rangeable[t] spec t equal
+!forward-rangeable[t] spec t compare
 	+ t(a t, distance nat64)
 
 !subtract-to-nat[t] spec
@@ -30,3 +32,15 @@ Usable for any type with a comparison function.
 # Size of the range; depends on a `-` function existing.
 !size[t] nat64(a t range) noctx, t subtract-to-nat
 	a.high - a.low
+
+# Calls `f` for each value in the range, from `a.low` to `a.high - 1`.
+!iterate[t] bool(a t range, f act bool(t)) t forward-rangeable
+	cur mut = a low
+	loop
+		if cur >= a.high
+			break false
+		elif f[cur]
+			break true
+		else
+			cur := cur + 1
+			continue

@@ -73,3 +73,19 @@ Returns `b` if they are equal.
 ###
 !max[t] t(a t, b t) noctx, t compare
 	a > b ? a : b
+
+# Wraps a value and reverses comparison (so less becomes greater and vice versa)
+!compare-reverse[t] record by-val
+	.inner t
+!compare-reverse[t] t compare-reverse(a t) noctx
+	a,
+!==[t] bool(a t compare-reverse, b t compare-reverse) t equal, noctx
+	a.inner == b.inner
+!<=>[t] comparison(a t compare-reverse, b t compare-reverse) t compare, noctx
+	match a.inner <=> b.inner
+	as less
+		greater
+	as equal
+		equal
+	as greater
+		less

@@ -5,10 +5,11 @@ Even non-`summon` code is can measure perf, but only `summon` code can access th
 ###
 no-std
 import
-	./col/array: array, index-of, new, size
-	./col/dict: dict, for-loop
-	./col/list: list, to-array, to-list
-	./col/mut-array: mut-array, n-of, set-subscript, subscript
+	./col/array: array, iterate, new, size
+	./col/collection: for-loop, index-of, join, n-of, set-subscript, subscript
+	./col/dict: ~=, build, dict, iterate, size
+	./col/list: ~=, build, iterate, list, to-array
+	./col/mut-array: ~=, +, begin, build, mut-array, next, set-next
 	./exception: finally, with-block
 	./fun-util: subscript
 	./io/duration: duration, nsec, to-string
@@ -17,7 +18,7 @@ import
 	./number: +, -, nat64, to-float64
 	./option: new, is-empty, option
 	./pointer: *, mut-pointer, set-deref
-	./string: ~~, join, literal, string, to-string
+	./string: ~~, literal, new, string, to-string
 	./symbol: ==, <=>, hash-mix, symbol, to-string
 	./tuple: new, pair
 
@@ -25,7 +26,7 @@ import
 	total duration
 	measures measure-total[symbol]
 !to-string string(a perf-result)
-	measures = ", " join for name, total : a.measures
+	measures = ", " join for name, total : a measures
 		"{name}: {total}"
 	"total: {a total}, {measures}"
 
@@ -64,8 +65,9 @@ import
 		start = perf-now
 		f-res = f[]
 		end = perf-now
-		perf-res perf-result = (end - start).to-float64.nsec, for i, name : a.measure-names.to-list
-			name, (measure-values[i].count, measure-values[i].total-nsec.to-float64.nsec)
+		perf-res perf-result = (end - start).to-float64.nsec, for i, name : a measure-names
+			value = measure-values[i]
+			name, (value.count, value.total-nsec.to-float64.nsec)
 		f-res, perf-res
 
 !perf-measure record

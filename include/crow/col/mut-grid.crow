@@ -5,14 +5,13 @@ import
 	../fun-util: subscript
 	../json: json
 	../misc: void
-	../number: +, -, *, ==, <=>, nat64
-	../range: .., for-loop
-	../string: ==, ~~, join, literal, string, to-string
+	../number: +, *, ==, <=>, nat64
+	../range: .., iterate
+	../string: ==, ~~, literal, new, string, to-string
 	../test-util: is
-	./mut-array:
-		~=, build, copy, exists, for-loop, mut-array, new, set-map, set-subscript, size, subscript,
-		to-array, with-block
-	./list: ~=, build, for-loop, list, to-list, with-block
+	./collection: build, for-loop, join, set-subscript, subscript, with-block
+	./mut-array: ~=, +, begin, build, copy, iterate, mut-array, new, next, set-next, size, slice
+	./list: ~=, build, iterate
 
 ###
 Mutable grid (matrix) type.
@@ -90,8 +89,7 @@ Gets the element in the `x`th column and `y`th row.
 Throws if either `x` or `y` is out of bounds.
 ###
 !subscript[t] t(a t mut-grid, x nat64, y nat64)
-	index = a index-for x, y
-	a.elements[index]
+	a.elements[(a index-for x, y)]
 
 # Same as the other `subscript`, but takes a `coord`.
 !subscript[t] t(a t mut-grid, coord coord)
@@ -124,53 +122,30 @@ Each row will have a space in between columns.
 This makes no attempt to add padding to ensure columns line up. (TODO?)
 ###
 !to-string[t] string(a t mut-grid) t to-string
-	"\n" join for row : a.rows
-		" " join for value : row.to-array.to-list
+	"\n" join for row : a rows
+		" " join for value : row
 			"{value}"
 
-region iteration
+region rows
 
 !mut-grid-rows[t] record mut
 	.inner t mut-grid
 !rows[t] t mut-grid-rows(a t mut-grid)
 	a,
-
-!for-loop[t] void(a t mut-grid-rows, f act void(t mut-array))
-	for y : 0 .. a.inner.height
+!size[t] nat64(a t mut-grid-rows)
+	a.inner height
+!iterate[t] bool(a t mut-grid-rows, f act bool(t mut-array))
+	0 .. a.size iterate y =>
 		f[a.inner row y]
 
-!for-loop[out, in] out[](a in mut-grid-rows, f act out(in mut-array))
-	for y : 0 .. a.inner.height
-		f[a.inner row y]
+region spec impls (see collection.crow)
 
-!for-loop[t] void(a t mut-grid, f act void(t))
-	a.elements for-loop f
-!for-loop[out, in] out[](a in mut-grid, f act out(in))
-	with out : a.size build
-		for x : a
-			out ~= f[x]
-
-!for-loop[t] void(a t mut-grid, f act void(t, coord))
+!iterate[t] bool(a t mut-grid, f act bool(t))
+	a.elements iterate f
+!iterate[t] bool(a t mut-grid, f act bool(coord, t))
 	coord mut coord = ()
-	for x : a
-		f[x, coord]
-		coord := coord next-coord a.width
-!for-loop[out, in] out[](a in mut-grid, f act out(in, coord))
-	with out : a.size build
-		coord mut coord = ()
-		for x : a
-			out ~= f[x, coord]
-			coord := coord next-coord a.width
-
-!exists[t] bool(a t mut-grid, f act bool(t))
-	a.elements exists f
-
-!set-map[t] void(a t mut-grid, f act t(t))
-	a.elements set-map f
-!set-map[t] void(a t mut-grid, f act t(t, coord))
-	coord mut coord = ()
-	a set-map x =>
-		res = f[x, coord]
+	a iterate x =>
+		res = f[coord, x]
 		coord := coord next-coord a.width
 		res
 
@@ -185,6 +160,6 @@ test
 	a string mut-grid = 3 make 2, (x, y) => "{x}|{y}"
 	a.to-string is "0|0 1|0 2|0\n0|1 1|1 2|1"
 
-	values = " " join for value, coord : a
-		"{value}/{coord}"
-	values is "0|0/<0, 0> 1|0/<1, 0> 2|0/<2, 0> 0|1/<0, 1> 1|1/<1, 1> 2|1/<2, 1>"
+	values = " " join for coord, value : a
+		"{coord}/{value}"
+	values is "<0, 0>/0|0 <1, 0>/1|0 <2, 0>/2|0 <0, 1>/0|1 <1, 1>/1|1 <2, 1>/2|1"

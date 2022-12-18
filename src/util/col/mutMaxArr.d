@@ -3,7 +3,7 @@ module util.col.mutMaxArr;
 @safe @nogc pure nothrow:
 
 import util.alloc.alloc : Alloc;
-import util.col.arrUtil : arrLiteral;
+import util.col.arrUtil : arrLiteral, exists;
 import util.memory : overwriteMemory;
 import util.ptr : castNonScope;
 import util.util : verify;
@@ -34,6 +34,10 @@ struct MutMaxArr(size_t maxSize, T) {
 	T[maxSize] values = void;
 }
 
+size_t size(size_t maxSize, T)(in MutMaxArr!(maxSize, T) a) =>
+	a.size_;
+
+// TODO: 'b' must be mutable if T is
 void copyToFrom(size_t maxSize, T)(ref MutMaxArr!(maxSize, T) a, ref const MutMaxArr!(maxSize, T) b) {
 	a.size_ = b.size_;
 	foreach (size_t i, ref const T x; tempAsArr(b))
@@ -85,9 +89,9 @@ void fillMutMaxArr_mut(size_t maxSize, T)(
 }
 
 void mapTo(size_t maxSize, Out, In)(
-	ref MutMaxArr!(maxSize, immutable Out) a,
-	in immutable In[] values,
-	in immutable(Out) delegate(ref immutable In) @safe @nogc pure nothrow cb,
+	ref MutMaxArr!(maxSize, Out) a,
+	scope In[] values,
+	in Out delegate(ref In) @safe @nogc pure nothrow cb,
 ) {
 	verify(values.length < maxSize);
 	a.size_ = values.length;
@@ -123,13 +127,34 @@ T mustPop(size_t maxSize, T)(ref MutMaxArr!(maxSize, T) a) {
 	return a.values[a.size_];
 }
 
-ref const(T) only(size_t maxSize, T)(ref const MutMaxArr!(maxSize, T) a) {
+ref inout(T) only(size_t maxSize, T)(ref inout MutMaxArr!(maxSize, T) a) {
 	verify(a.size_ == 1);
 	return a.values[0];
 }
 
 @trusted inout(T[]) tempAsArr(size_t maxSize, T)(return scope ref inout MutMaxArr!(maxSize, T) a) =>
 	castNonScope(a.values[0 .. a.size_]);
+
+bool exists(size_t maxSize, T)(in MutMaxArr!(maxSize, T) a, in bool delegate(in T) @safe @nogc pure nothrow cb) =>
+	.exists!T(tempAsArr(a), cb);
+
+void filterUnorderedButDontRemoveAll(size_t maxSize, T)(
+	scope ref MutMaxArr!(maxSize, T) a,
+	in bool delegate(ref T) @safe @nogc pure nothrow pred,
+	in void delegate(ref T, ref T) @safe @nogc pure nothrow overwrite,
+) {
+	MutMaxArr!(maxSize, size_t) keep = mutMaxArr!(maxSize, size_t);
+	foreach (size_t i, ref T x; tempAsArr(a)) {
+		if (pred(x))
+			push(keep, i);
+	}
+	if (!isEmpty(keep)) {
+		foreach (size_t outI, size_t inI; tempAsArr(keep))
+			if (inI != outI)
+				overwrite(a.values[outI], a.values[inI]);
+		a.size_ = keep.size;
+	}
+}
 
 @trusted void filterUnordered(size_t maxSize, T)(
 	scope ref MutMaxArr!(maxSize, T) a,

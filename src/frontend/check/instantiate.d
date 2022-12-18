@@ -222,7 +222,7 @@ private StructInst* instantiateStructInst(
 	scope DelayStructInsts delayStructInsts,
 ) {
 	scope TypeArgsArray itsTypeArgs = typeArgsArray();
-	mapTo(itsTypeArgs, typeArgs(*structInst), (ref Type x) =>
+	mapTo!(maxTypeParams, Type, Type)(itsTypeArgs, typeArgs(*structInst), (ref Type x) =>
 		instantiateType(alloc, programState, x, typeParamsAndArgs, delayStructInsts));
 	return instantiateStruct(alloc, programState, decl(*structInst), tempAsArr(itsTypeArgs), delayStructInsts);
 }
@@ -303,7 +303,7 @@ SpecInst* instantiateSpecInst(
 	scope DelaySpecInsts delaySpecInsts,
 ) {
 	TypeArgsArray itsTypeArgs = typeArgsArray();
-	mapTo(itsTypeArgs, typeArgs(*specInst), (ref Type x) =>
+	mapTo!(maxTypeParams, Type, Type)(itsTypeArgs, typeArgs(*specInst), (ref Type x) =>
 		instantiateType(alloc, programState, x, typeParamsAndArgs, noDelayStructInsts));
 	return instantiateSpec(alloc, programState, decl(*specInst), tempAsArr(itsTypeArgs), delaySpecInsts);
 }

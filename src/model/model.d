@@ -453,6 +453,15 @@ immutable struct SpecBody {
 	mixin Union!(Builtin, SmallArray!SpecDeclSig);
 }
 
+Sym symOfSpecBodyBuiltinKind(SpecBody.Builtin.Kind kind) {
+	final switch (kind) {
+		case SpecBody.Builtin.Kind.data:
+			return sym!"data";
+		case SpecBody.Builtin.Kind.send:
+			return sym!"send";
+	}
+}
+
 immutable struct SpecDecl {
 	@safe @nogc pure nothrow:
 
@@ -499,7 +508,7 @@ immutable struct SpecInst {
 	SpecBody body_;
 	private Late!(SmallArray!(immutable SpecInst*)) parents_;
 
-	immutable(SpecInst*[]) parents() =>
+	immutable(SpecInst*[]) parents() return scope =>
 		lateGet(parents_);
 	void parents(immutable SpecInst*[] value) {
 		lateSet(parents_, small(value));

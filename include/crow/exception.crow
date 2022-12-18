@@ -1,10 +1,12 @@
 no-std
 import
-	./col/list: for-loop, to-list
+	./col/array: iterate, size
+	./col/collection: for-loop, join
+	./col/list: ~=, build, iterate
 	./fun-util: subscript
 	./misc: void
 	./number: ==
-	./string: ~~, is-empty, join, literal, string, to-string
+	./string: ~~, is-empty, literal, new, string, to-string
 export
 	./private/backtrace: backtrace, backtrace-entry, entries, file-path, function-name, line-number
 	./private/exception-low-level: catch, exception, message, rethrow, unreachable
@@ -42,7 +44,7 @@ This is like `finally`, but does not run in the successful case.
 	"{message.is-empty ? "<<empty message>>" : message}{a.backtrace to-string}"
 
 .to-string string(a backtrace)
-	"" join for x : a.entries.to-list
+	"" join for x : a entries
 		"\n\tat {x}"
 
 .to-string string(a backtrace-entry)

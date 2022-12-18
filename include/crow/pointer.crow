@@ -195,5 +195,5 @@ as-ref[t] t(a any-mut-pointer) builtin, noctx, unsafe
 True if two references have the same pointer.
 Contrast with `a == b` which can also e true for different pointers with equal contents.
 ###
-ref-eq[t] bool(a t, b t) noctx, unsafe
+reference-equal[t] bool(a t, b t) noctx, unsafe
 	a.as-any-const-pointer == b.as-any-const-pointer

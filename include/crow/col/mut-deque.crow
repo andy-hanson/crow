@@ -4,17 +4,19 @@ import
 	../compare: !=, <
 	../json: json
 	../misc: new, void
-	../number: ==, <=>, +, -, *, nat64, new
+	../number: ==, <=>, +, *, nat64, new
 	../option: ==, new, option
 	../pointer: ==, <=>, +, -, *, mut-pointer, null, set-deref, zeroed
-	../range: .., for-loop
-	../string: ==, ~~, literal, new, join, string, to-string
+	../range: ..
+	../string: ==, ~~, literal, new, string, to-string
 	../test-util: is
 	./array: as-array
+	./collection: .., -, end, for-loop, join, subscript
 	./mut-array:
-		begin-pointer, cast-immutable, copy-from, end-pointer, mut-array, is-empty, new, set-zero-elements,
-		size, subscript, uninitialized-mut-array, zeroed-mut-array
-	./list: ==, first, last, list, new, size, to-list
+		+, -, begin, begin-pointer, cast-immutable, copy-from, end, end-pointer, iterate, mut-array,
+		is-empty, new, set-zero-elements, size, slice, uninitialized-mut-array, zeroed-mut-array
+	./list:
+		==, ~=, +, -, begin, build, end, is-empty, iterate, list, new, next, size, to-list
 
 # Mutable double-ended queue.
 !mut-deque[t] record mut
@@ -168,19 +170,19 @@ Returns an empty option iff `a` was empty (before calling `pop-right`).
 	else
 		left-to-end-size = a.inner.end-pointer - a.left
 		dest[0 .. left-to-end-size] copy-from (a.left .. a.inner.end-pointer).as-array
-		dest[left-to-end-size .. dest.size] copy-from (a.inner.begin-pointer .. a.right).as-array
+		dest[left-to-end-size .. end] copy-from (a.inner.begin-pointer .. a.right).as-array
 
 .dbg string(a nat64 mut-deque)
 	trusted
 		right = a.right - a.inner.begin-pointer
 		left = a.left - a.inner.begin-pointer
 		# Note: can come in any order...
-		" " join for i : 0 .. a.inner.size
-			"{i == right ? "<-R "}{i == left ? "L-> "}{a.inner[i]}"
+		" " join for i, x : a inner
+			"{i == right ? "<-R "}{i == left ? "L-> "}{x}"
 
 .verify void(a nat64 mut-deque, expected nat64[], expected-dbg string)
-	a.peek-left is expected.first
-	a.peek-right is expected.last
+	a.peek-left is (expected.is-empty ? () : (expected[0],))
+	a.peek-right is (expected.is-empty ? () : (expected[end - 1],))
 	a.size is expected.size
 	a.to-list is expected
 	a.dbg is expected-dbg

@@ -5,13 +5,14 @@ import
 	../../../misc: void
 	../../../number: ==, <=>, +, -, nat64
 	../../../option: ==, new
-	../../../range: .., for-loop
+	../../../range: .., iterate
 	../../../string: ==, literal, string
 	../../../test-util: is
+	../../collection: for-loop
 	../../list: ==, list, new, size
 	../index-set:
-		==, ~, ~~, -, dbg, count-greater-or-equal, count-less, count-range, filter-less, for-loop,
-		in, index-set, new, size, to-list, try-add, try-remove
+		==, ~=, ~, ~~, -, build, dbg, count-greater-or-equal, count-less, count-range, filter-less, in,
+		index-set, iterate, new, size, to-list, try-add, try-remove
 
 dummy-index-set-tests nat64()
 	0

@@ -14,12 +14,14 @@ import
 	../../test-util: is
 	../../tuple: from, new, pair, to
 	../array:
-		~=, array, array-cast, as-array, begin-pointer, end-pointer, build, exists, for-loop,
-		is-empty, new, size, subscript, with-block
+		~=, +, -, array, array-cast, as-array, begin, begin-pointer, build, end, end-pointer,
+		is-empty, iterate, new, next, size, slice
+	../collection:
+		.., build, end, exists, fill, for-loop, n-of, set-subscript, subscript, with-block
 	../mut-array:
-		~=, begin-pointer, build, cast-immutable, end-pointer, fill, mut-array, mut-array-builder,
-		for-loop, n-of, size, temp-as-array, to-mut-array, set-subscript, subscript, with-block
-	../list: ==, for-loop, list, new, to-array, to-list
+		~=, +, begin-pointer, begin, build, cast-immutable, end-pointer, iterate, mut-array,
+		mut-array-builder, next, set-next, size, temp-as-array, to-mut-array
+	../list: ==, ~=, build, list, new, to-array, to-list
 
 ###
 Immutable dictionary that is not efficient to update.
@@ -145,7 +147,7 @@ mut-array-to-frozen-dict-promise-no-duplicates[k, v] (k, v) frozen-dict(
 
 .write-bucket-without-duplicates[k, v] void(out (k, v) mut-array-builder, pairs (k, v) array) k key
 	for i, pair : pairs
-		unless pair.from key-in-range pairs[i + 1 .. pairs.size]
+		unless pair.from key-in-range pairs[i + 1 .. end]
 			out ~= pairs[i]
 
 .has-duplicates[k, v] bool(a (k, v) frozen-dict) k key
@@ -162,13 +164,13 @@ mut-array-to-frozen-dict-promise-no-duplicates[k, v] (k, v) frozen-dict(
 
 .bucket-has-duplicates[k, v] bool(pairs (k, v) array) k key
 	pairs exists (i, pair) =>
-		pair.from key-in-range pairs[i + 1 .. pairs.size]
+		pair.from key-in-range pairs[i + 1 .. end]
 
 .key-in-range[k, v] bool(key k, pairs (k, v) array) k key
 	pairs exists pair => key == pair.from
 
 .get-bucket-counts[k, v] nat64 mut-array(a (k, v) mut-array, n-buckets nat64) unsafe, k key
-	res = n-buckets n-of 0
+	res nat64 mut-array = n-buckets n-of 0
 	for pair : a
 		bucket-index = pair.from get-bucket-index n-buckets
 		res[bucket-index] := res[bucket-index] + 1
@@ -184,7 +186,13 @@ mut-array-to-frozen-dict-promise-no-duplicates[k, v] (k, v) frozen-dict(
 			out ~= acc
 			acc := acc + offset
 
-region builder
+region spec impls (see collection.crow)
+
+iterate[k, v] bool(a (k, v) frozen-dict, f act bool(k, v))
+	a.pairs iterate pair =>
+		f[pair from, pair to]
+
+subregion build
 
 build-frozen-dict record
 	.size-hint nat64
@@ -205,19 +213,11 @@ with-block[k, v] (k, v) frozen-dict(
 ~=[k, v] void(a(k, v) frozen-dict-builder, pair (k, v))
 	a.inner ~= pair
 
-region iteration
-
-for-loop[k, v] void(a (k, v) frozen-dict, f act void(k, v))
-	for pair : a pairs
-		f[pair from, pair to]
-
-for-loop[out, k, v] out[](a (k, v) frozen-dict, f act out(k, v))
-	for pair : a.pairs to-list
-		f[pair from, pair to]
+region test
 
 .verify void(a (nat64, string) frozen-dict, keys-order nat64[], bucket-starts nat64[]) unsafe
-	(for pair : a.pairs to-list; pair from)::nat64[] is keys-order
-	(for pointer : a.bucket-starts to-list; pointer - a.pairs.begin-pointer)::nat64[] is bucket-starts
+	(for pair : a pairs; pair from)::nat64[] is keys-order
+	(for pointer : a bucket-starts; pointer - a.pairs.begin-pointer)::nat64[] is bucket-starts
 
 test
 	a (nat64, string) frozen-dict = ()

@@ -1,60 +1,28 @@
 no-std
 import
-	../bool: &&, ||, bool, false, new, true
-	../compare: ==, !=, <, <=, >, compare, comparison, equal, greater, less
+	../bool: ||, bool, false, true
+	../compare: !=, <, <=, compare, comparison, equal
 	../fun-util: subscript
-	../misc: break-or-continue, loop-break, new, void
-	../number: ==, <=>, +, -, *, nat64, round-up-to-power-of-two
+	../number: ==, <=>, +, -, nat64
 	../option: new, option
-	../private/alloc: alloc-uninitialized, copy-data-from
 	../private/bootstrap: new
-	../private/range-low-level: .., high, low, rangeable, range, size
-	../pointer:
-		==, <=>, +, -, *, as-const, const-pointer, mut-pointer, null, pointer-cast, set-deref,
-		size-of, subscript, to-mut-pointer, to-nat64
-	./iter: new, value-and-rest
+	../private/range-low-level: ..
+	../pointer: ==, +, *, const-pointer
+	../tuple: a, b, new, pair
+	./collection: .., build, end, sequence-compare, sequence-equal, subscript, with-block
 export
 	../private/bootstrap: array, begin-pointer, size
+	./private/array-low-level:
+		~=, ~~=, array-builder, array-cast, array-reference-equal, as-array, build, end-pointer,
+		iterate, pointers, size, subscript
 
 # Create an array with the given elements.
 !new[t] t array(...a t array) noctx
 	a
 
-# Make an array from a range.
-!for-loop[out, in] out array(a in range, f act out(in)) in rangeable
-	with out : a.size build
-		n mut = a low
-		loop
-			if n == a.high
-				break
-			else
-				out ~= f[n]
-				n := n + 1
-				continue
-
 # `true` iff `a.size == 0`.
 !is-empty[t] bool(a t array) noctx
 	a.size == 0
-
-###
-Gets the element at the index.
-Throws if `index >= a.size`.
-###
-!subscript[t] t(a t array, index nat64) noctx
-	assert index < a.size : "index out of bounds"
-	trusted a.begin-pointer[index]
-
-###
-Gets an array elements from 'range.low' (inclusive) to 'range.height' (exclusive).
-This works in O(1) without copying any elements.
-Throws if the slice would exceed the bounds of the array.
-###
-!subscript[t] t array(a t array, indices nat64 range) noctx
-	assert indices.high <= a.size : "slice out of bounds"
-	trusted if size-of@t == 0
-		indices.size, a.begin-pointer
-	else
-		a.begin-pointer + indices.low .. a.begin-pointer + indices.high as-array
 
 ###
 Prepend an element to an array.
@@ -77,50 +45,24 @@ This is O(n).
 If you need concatenate many arrays, use a `mut[]` to accumulate elements, then call `move-to-array`.
 ###
 !~~[t] t array(a t array, b t array)
-	res-size = a.size + b.size
-	trusted
-		res t mut* = res-size alloc-uninitialized
-		res copy-data-from a.begin-pointer, a.size
-		res + a.size copy-data-from b.begin-pointer, b.size
-		res.as-const[0 .. res-size]
-
-reference-equal[t] bool(a t array, b t array) noctx, unsafe
-	a.begin-pointer == b.begin-pointer && a.size == b.size
+	if a is-empty
+		b
+	elif b is-empty
+		a
+	else
+		with out : a.size + b.size build
+			out ~~= a
+			out ~~= b
 
 !==[t] bool(a t array, b t array) noctx, t equal
-	trusted if a.size == b.size
-		a-cur mut = a begin-pointer
-		a-end = a end-pointer
-		b-cur mut = b begin-pointer
-		loop
-			if a-cur == a-end
-				break true
-			elif *a-cur != *b-cur
-				break false
-			else
-				a-cur := a-cur + 1
-				b-cur := b-cur + 1
-				continue
+	(trusted a array-reference-equal b) || a sequence-equal b
 
 !<=>[t] comparison(a t array, b t array) noctx, t compare
-	trusted
-		a-cur mut = a begin-pointer
-		a-end = a end-pointer
-		b-cur mut = b begin-pointer
-		b-end = b end-pointer
-		loop
-			if a-cur == a-end
-				break b-cur == b-end ? equal : less
-			elif b-cur == b-end
-				break greater
-			else
-				cmp = *a-cur <=> *b-cur
-				if cmp == equal
-					a-cur := a-cur + 1
-					b-cur := b-cur + 1
-					continue
-				else
-					break cmp
+	if trusted a array-reference-equal b
+		equal
+	else
+		a sequence-compare b
+
 
 # region basic array operations
 
@@ -133,7 +75,7 @@ This is O(n).
 !update-at[t] t array(a t array, index nat64, new-value t)
 	assert index < a.size : "index out of bounds"
 	# TODO:PERF (only concat once)
-	a[0 .. index] ~ new-value ~~ a[index + 1 .. a.size]
+	a[0 .. index] ~ new-value ~~ a[index + 1 .. end]
 
 ###
 Inserts an element at index `index`, all elements there and after to the right.
@@ -142,70 +84,12 @@ Unlike for `update-at`, `index` can be `a.size`, though it still can't be higher
 !insert-at[t] t array(a t array, index nat64, value t)
 	assert index <= a.size : "index out of bounds"
 	# TODO:PERF (only concat once)
-	a[0 .. index] ~ value ~~ a[index .. a.size]
+	a[0 .. index] ~ value ~~ a[index .. end]
 
 # Removes the element at index `index`, shifting all later elements to the left.
 !remove-at[t] t array(a t array, index nat64)
 	assert index < a.size : "index out of bounds"
-	a[0 .. index] ~~ a[index + 1 .. a.size]
-
-# Same as `a[0]`, but returns an empty option if `a` is empty.
-!first[t] t?(a t array)
-	unless a is-empty
-		a[0],
-
-# Same as `a[a.size - 1]`, but returns an empty option if `a` is empty.
-!last[t] t?(a t array)
-	unless a is-empty
-		a[a.size - 1],
-
-###
-All but the first element.
-Same as `a[1 .. a.size]`.
-Throws if `a` is empty.
-###
-!tail[t] t array(a t array)
-	forbid a is-empty : "tail of empty array"
-	a[1 .. a.size]
-
-###
-All but the last element.
-Same as `a[0 .. a.size - 1]`.
-Throws if `a` is empty.
-###
-!rtail[t] t array(a t array)
-	forbid a is-empty : "rtail of empty array"
-	a[0 .. a.size - 1]
-
-region search
-
-# TODO: only written this way to be `noctx`, else could defer to `exists`
-###
-Equivalent to `a[0] == value || a[1] == value || ... || a[a.size - 1] == value`.
-Also equivalent to `a exists x => x == value`.
-###
-!in[t] bool(value t, a t array) noctx, t equal
-	trusted
-		cur mut = a begin-pointer
-		end = a end-pointer
-		loop
-			if cur == end
-				break false
-			elif *cur == value
-				break true
-			else
-				cur := cur + 1
-				continue
-
-###
-Returns the first index `i` where `a[i] == value`.
-
-Equivalent to `a find-index x => x == value`.
-Returns an empty option iff `value` is not in the array.
-###
-!index-of[t] nat64?(a t array, value t) noctx, t equal
-	trusted if v ?= a pointer-of value
-		v - a.begin-pointer,
+	a[0 .. index] ~~ a[index + 1 .. end]
 
 ###
 Returns a pointer to the first element equal to `value`.
@@ -223,346 +107,72 @@ pointer-of[t] t*?(a t array, value t) noctx, unsafe, t equal
 			cur := cur + 1
 			continue
 
-###
-Returns the first index `i` for which `f[a[i]]` is true.
-Returns an empty option iff `f` returns `false` for every element of `a`.
-###
-find-index[t] nat64?(a t array, f act bool(t))
-	for i, x : a
-		if f[x]
-			break i
-
-region iteration
-
-###
-Equivalent to `f[a[0]] || f[a[1]] || ... || f[a[a.size - 1]]`
-
-Calls `f` on each element of `a` and returns `true` the first time `f` does.
-Returns `false` iff `f` returned `false` every time.
-###
-!exists[t] bool(a t array, f act bool(t))
-	for x : a
-		if f[x]
-			break true
-	else
-		false
-!exists[t] bool(a t array, f act bool(nat64, t))
-	for i, x : a
-		if f[i, x]
-			break true
-	else
-		false
-
-###
-Equivalent to `f[a[0]] && f[a[1]] && ... && f[a[a.size - 1]]`.
-
-Calls `f` on each element of `a` and returns `false` the fist time `f` does.
-Returns `true` iff `f` returned `true` every time.
-###
-!every[t] bool(a t array, f act bool(t))
-	a.is-empty || (f[a[0]] && (a.tail every f))
-
-###
-Equivalent to calling `f[a[0]]`, `f[a[1]]`, etc.
-
-Calls `f` for each element in `a`.
-###
-!for-loop[t] void(a t array, f act void(t))
-	trusted if size-of@t == 0
-		i mut = 0
-		until i == a.size
-			f[a[i]]
-			i := i + 1
-	else
-		cur mut = a begin-pointer
-		end = a end-pointer
-		until cur == end
-			f[*cur]
-			cur := cur + 1
-
-###
-Equivalent to `f[a[0]], f[a[1]], ...`.
-Array containing `f[x]` for each `x` in `a`.
-###
-!for-loop[out, in] out array(a in array, f act out(in))
-	with out : a.size build
-		for x : a
-			out ~= f[x]
+region spec impls (see collection.crow)
 
 ###
 Equivalent to calling `f[a[0], 0]`, `f[a[1], 1]`, etc.
 
 Calls `f` for each element in `a`, also providing the index.
 ###
-!for-loop[t] void(a t array, f act void(nat64, t))
-	i mut = 0
-	until i == a.size
-		f[i, a[i]]
-		i := i + 1
-
-!for-loop[out, in] out array(a in array, f act out(nat64, in))
-	with out : a.size build
-		for i, x : a
-			out ~= f[i, x]
-
-!for-break[out, in] out?(a in array, f act out break-or-continue(in))
-	i mut nat64 = 0
+!iterate[t] bool(a t array, f act bool(nat64, t))
+	iter mut = a begin
 	loop
-		if i == a.size
-			break
-		else
-			match f[a[i]]
-			as loop-break x
-				break x,
-			as loop-continue
-				i := i + 1
+		if pair ?= iter next
+			if f[iter.next-index, pair.a]
+				break true
+			else
+				iter := pair b
 				continue
-!for-break[out, in] out(a in array, f-loop act out break-or-continue(in), f-else act out())
-	i mut nat64 = 0
-	loop
-		if i == a.size
-			break f-else[]
 		else
-			match f-loop[a[i]]
-			as loop-break x
-				break x
-			as loop-continue
-				i := i + 1
-				continue
-!for-break[out, in] out?(a in array, f act out break-or-continue(nat64, in))
-	i mut nat64 = 0
-	loop
-		if i == a.size
-			break
-		else
-			match f[i, a[i]]
-			as loop-break x
-				break x,
-			as loop-continue
-				i := i + 1
-				continue
-!for-break[out, in] out(a in array, f-loop act out break-or-continue(nat64, in), f-else act out())
-	i mut nat64 = 0
-	loop
-		if i == a.size
-			break f-else[]
-		else
-			match f-loop[i, a[i]]
-			as loop-break x
-				break x
-			as loop-continue
-				i := i + 1
-				continue
+			break false
 
-# Array containing only the elements of `a` for which `f[a[i]]` returns true.
-!filter[t] t array(a t array, f act bool(t))
-	with out : build
-		for x : a
-			if f[x]
-				out ~= x
+subregion iterator
 
-# Like `filter`, but also provides the element index.
-!filter[t] t array(a t array, f act bool(nat64, t))
-	with out : build
-		for i, x : a
-			if f[i, x]
-				out ~= x
+!array-iterator[t] record by-val
+	collection t array
+	next-index nat64
 
-region iter
+!==[t] bool(a t array-iterator, b t array-iterator) t equal
+	assert a.collection == b.collection : "can't compare iterators from different arrays"
+	a.next-index == b.next-index
+!<=>[t] comparison(a t array-iterator, b t array-iterator) t equal
+	assert a.collection == b.collection : "can't compare iterators from different arrays"
+	a.next-index <=> b.next-index
 
-!array-iter[t] record by-val
-	.xs t array
-	###
-	Index of the next value to return.
-	May be the array size when the iterator is empty.
-	###
-	index nat64
 
-!==[t] bool(a t array-iter, b t array-iter) noctx
-	assert trusted a.xs reference-equal b.xs
-	a.index == b.index
+!-[t] t array-iterator(a t array-iterator, n nat64) noctx
+	a.collection, a.next-index - n
 
-!<=>[t] comparison(a t array-iter, b t array-iter) noctx
-	assert trusted a.xs reference-equal b.xs
-	a.index <=> b.index
+!-[t] nat64(a t array-iterator, b t array-iterator) noctx
+	a.next-index - b.next-index
 
-!new[t] t array-iter() noctx
-	(), 0
+!+[t] t array-iterator(a t array-iterator, n nat64) noctx
+	new-index = a.next-index + n
+	assert new-index <= a.collection.size
+	a.collection, new-index
 
-!is-at-end[t] bool(a t array-iter) noctx
-	a.index == a.xs.size
-
-!iter[t] t array-iter(a t array) noctx
+!begin[t] t array-iterator(a t array) noctx
 	a, 0
 
-# Iterator at the end, suitable for iterating over `a` by calling `prev`.
-!end-iter[t] t array-iter(a t array) noctx
+!end[t] t array-iterator(a t array) noctx
 	a, a.size
 
-!*[t] t(a t array-iter) noctx
-	a.xs[a.index]
+!prev[t] (t array-iterator, t)?(a t array-iterator) noctx
+	if a.next-index != 0
+		new-index = a.next-index - 1
+		assert new-index < a.collection.size
+		value = trusted *(a.collection.begin-pointer + new-index)
+		rest t array-iterator = a.collection, new-index
+		(rest, value),
 
-!next[t] (t, t array-iter) value-and-rest?(a t array-iter) noctx
-	assert a.index <= a.xs.size
-	if a.index != a.xs.size
-		(a.xs[a index], (a.xs, a.index + 1)),
+!next[t] (t, t array-iterator)?(a t array-iterator) noctx
+	if a.next-index != a.collection.size
+		assert a.next-index < a.collection.size
+		value = trusted *(a.collection.begin-pointer + a.next-index)
+		rest t array-iterator = a.collection, a.next-index + 1
+		(value, rest),
 
-!prev[t] (t, t array-iter) value-and-rest?(a t array-iter) noctx
-	assert a.index <= a.xs.size
-	if a.index != 0
-		prev-index = a.index - 1
-		(a.xs[prev-index], (a.xs, prev-index)),
-
-!+[t] t array-iter(a t array-iter, b nat64)
-	new-index = a.index + b
-	assert new-index <= a.xs.size
-	a.xs, new-index
-
-!-[t] nat64(a t array-iter, b t array-iter)
-	assert trusted a.xs reference-equal b.xs
-	a.index - b.index
-
-!-[t] t array-iter(a t array-iter, b nat64)
-	a.xs, a.index - b
-
-!slice-left[t] t array(a t array-iter)
-	a.xs[0 .. a.index]
-
-!slice-right[t] t array(a t array-iter)
-	a.xs[a.index .. a.xs.size]
-
-!array-mut-iter[t] record mut
-	.xs t array
-	.index mut nat64
-
-!mut-iter[t] t array-mut-iter(a t array)
-	a, 0
-
-!save[t] t array-iter(a t array-mut-iter)
-	a.xs, a.index
-
-!restore[t] void(a t array-mut-iter, saved t array-iter)
-	assert a.xs.size == saved.xs.size
-	a.index := saved.index
-
-!next[t] t?(a t array-mut-iter)
-	if res ?= a.peek
-		a.index := a.index + 1
-		res,
-
-!peek[t] t?(a t array-mut-iter)
-	if a.index < a.xs.size
-		a.xs[a.index],
-
-!prev[t] t?(a t array-mut-iter)
-	if a.index > 0
-		a.index := a.index - 1
-		a.xs[a.index],
-
-!slice-left[t] t array(a t array-mut-iter)
-	a.save slice-left
-
-!slice-right[t] t array(a t array-mut-iter)
-	a.save slice-right
-
-region low-level
-
-# Pointer to the end of an array.
-!end-pointer[t] t*(a t array) noctx, unsafe
-	a.begin-pointer + a.size
-
-###
-Arr or the range from begin to end.
-`begin` is inclusive and `end` is exclusive.
-UB if begin > end.
-###
-!as-array[t] t array(pointers t* range) noctx, unsafe
-	pointers.size, pointers.low
-!as-array[t] t array(pointers t mut* range) noctx, unsafe
-	pointers.size, pointers.low.as-const
-!as-array[t] t array(iters t array-iter range) noctx
-	assert trusted iters.low.xs reference-equal iters.high.xs
-	iters.low.xs[iters.low.index .. iters.high.index]
-
-!pointers[t] t* range(a t array) noctx, unsafe
-	a.begin-pointer .. a.end-pointer
-
-array-cast[out, in] out array(a in array) noctx, unsafe
-	assert size-of@out == size-of@in
-	a.size, a.begin-pointer.pointer-cast
-
-# Create an array from a range of pointers.
-!subscript[t] t array(a t*, r nat64 range) noctx, unsafe
-	r.high - r.low, a + r.low
-
-region builder
-
-!build-array record
-	.size-hint nat64
-!build build-array()
-	0,
-!build build-array(size-hint nat64)
-	size-hint,
-
-!array-builder[t] record mut
-	.begin mut t mut*
-	# If `size-of@t == 0`, we store the size here instead of an actual pointer
-	.cur mut t mut*
-	.end mut t mut*
-
-!with-block[t] t array(a build-array, f act void(t array-builder))
-	trusted if size-of@t == 0
-		# store size in 'cur'
-		builder t array-builder = null, 0.to-mut-pointer, null
-		f[builder]
-		builder.size, null
-	else
-		begin t mut* = a.size-hint alloc-uninitialized
-		builder t array-builder = begin, begin, begin + a.size-hint
-		f[builder]
-		res = builder.begin .. builder.cur as-array
-		builder.begin := null
-		builder.cur := null
-		builder.end := null
-		res
-
-!~=[t] void(a t array-builder, value t)
-	trusted if size-of@t == 0
-		a.cur := (a.cur.to-nat64 + 1).to-mut-pointer
-	else
-		forbid a.begin == null
-		assert a.cur <= a.end
-		if a.cur == a.end
-			cur-size = a.end - a.begin
-			new-capacity = cur-size == 0 ? 4 : cur-size * 2
-			new-begin t mut* = new-capacity alloc-uninitialized
-			new-begin copy-data-from a.begin.as-const, cur-size
-			a.begin := new-begin
-			a.cur := new-begin + cur-size
-			a.end := new-begin + new-capacity
-		*a.cur := value
-		a.cur := a.cur + 1
-
-!~~=[t] void(a t array-builder, values t array)
-	trusted if size-of@t == 0
-		a.cur := (a.cur.to-nat64 + values.size).to-mut-pointer
-	else
-		forbid a.begin == null
-		assert a.cur <= a.end
-		if a.cur + values.size > a.end
-			cur-size = a.cur - a.begin
-			min-size = cur-size + values.size
-			new-capacity = min-size.round-up-to-power-of-two
-			new-begin t mut* = new-capacity alloc-uninitialized
-			new-begin copy-data-from a.begin.as-const, cur-size
-			a.begin := new-begin
-			a.cur := new-begin + cur-size
-			a.end := new-begin + new-capacity
-		a.cur copy-data-from values.begin-pointer, values.size
-		a.cur := a.cur + values.size
-
-!size[t] nat64(a t array-builder)
-	trusted if size-of@t == 0
-		a.cur to-nat64
-	else
-		a.cur - a.begin
+!slice[t] t array(begin t array-iterator, end t array-iterator) noctx
+	assert begin.next-index <= end.next-index
+	assert end.next-index <= begin.collection.size : "slice out of bounds"
+	trusted end.next-index - begin.next-index, begin.collection.begin-pointer + begin.next-index

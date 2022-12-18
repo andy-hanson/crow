@@ -1,7 +1,8 @@
 no-std
 import
 	unistd: __environ
-	../col/dict: ~=, build, dict, with-block
+	../col/collection: build, with-block
+	../col/dict: ~=, build, dict
 	../private/bootstrap: todo
 	../private/c-string-util: find-char-in-c-string, find-c-string-end
 	../pointer: ==, <=>, +, *, const-pointer, null

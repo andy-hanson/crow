@@ -8,11 +8,11 @@ import
 		spec-decl, spec-ref, type-param, type-ref, record-decl, record-field, spec-builtin,
 		spec-sig, spec-sigs, union-decl, union-member
 
-get-modules module[](paths string[], remove-prefix string) summon
+get-modules module[]^(paths string[], remove-prefix string) summon
 	result = crow-path spawn-and-wait-result "doc" ~ paths
 	unless result.exit-code == 0 && result.stderr.is-empty
 		throw "Could not get documentation: exit code {result exit-code}, stderr: {result stderr}"
-	((json ~~ spaces) parse result.stdout)! to-modules remove-prefix
+	(((json ~~ spaces) parse result.stdout)! to-modules remove-prefix),
 
 .crow-path string()
 	if trusted is-windows
