@@ -48,11 +48,11 @@ count-processors nat64() noctx, summon, unsafe
 uninit lock by-val() noctx, unsafe
 	zeroed
 
-.as-critical-section CRITICAL_SECTION mut*(a lock) noctx, unsafe
+-as-critical-section CRITICAL_SECTION mut*(a lock) noctx, unsafe
 	size-of@(CRITICAL_SECTION by-val) <= size-of@(lock by-val) hard-assert
 	a.as-any-mut-pointer pointer-cast
 
-.as-mutex pthread_mutex_t mut*(a lock) noctx, unsafe
+-as-mutex pthread_mutex_t mut*(a lock) noctx, unsafe
 	size-of@pthread_mutex_t <= size-of@(lock by-val) hard-assert
 	a.as-any-mut-pointer pointer-cast
 
@@ -90,20 +90,20 @@ with-lock[t] t(a lock, f act t())
 
 condition record mut by-ref
 	# TODO: use union to save space instead of storing posix/windows side-by-side
-	.posix-mutex-attr mut pthread_mutexattr_t
-	.posix-mutex mut pthread_mutex_t
-	.posix-cond-attr mut pthread_condattr_t
-	.posix-cond mut pthread_cond_t
+	-posix-mutex-attr mut pthread_mutexattr_t
+	-posix-mutex mut pthread_mutex_t
+	-posix-cond-attr mut pthread_condattr_t
+	-posix-cond mut pthread_cond_t
 
-	.windows-condition mut CONDITION_VARIABLE
-	.windows-critical-section mut CRITICAL_SECTION
+	-windows-condition mut CONDITION_VARIABLE
+	-windows-critical-section mut CRITICAL_SECTION
 
 	###
 	Incremented each time the condition fires.
 	Used to avoid waiting on a condition that has already changed.
 	WARN: this is mutable state, but should acquire the mutex first.
 	###
-	.sequence .mut sequence-id
+	-sequence .mut sequence-id
 
 uninit condition by-val() noctx, unsafe
 	# The only thing that actually has to be 0 is 'sequence'
@@ -134,7 +134,7 @@ destroy-condition void(a condition) noctx, unsafe
 		(&a.posix-cond-attr).pthread_condattr_destroy hard-assert-posix-error
 		(&a.posix-cond).pthread_cond_destroy hard-assert-posix-error
 	
-.hard-assert-posix-error void(err err-t) noctx, unsafe
+-hard-assert-posix-error void(err err-t) noctx, unsafe
 	err == 0 hard-assert
 
 broadcast void(a condition) noctx
@@ -218,8 +218,8 @@ wait-on void(a condition, until-time timestamp?, last-sequence sequence-id) noct
 
 barrier record mut by-ref
 	# TODO: use union to save space instead of storing posix/windows side-by-side
-	.posix mut pthread_barrier_t
-	.windows mut SYNCHRONIZATION_BARRIER
+	-posix mut pthread_barrier_t
+	-windows mut SYNCHRONIZATION_BARRIER
 
 uninit barrier by-val() noctx, unsafe
 	zeroed
@@ -290,10 +290,10 @@ get-and-decrement nat64(t thread-safe-counter) noctx, unsafe
 	old
 
 thread-handle record mut by-val
-	.storage any-mut-pointer
-.as-windows-handle HANDLE(a thread-handle) noctx, unsafe
+	-storage any-mut-pointer
+-as-windows-handle HANDLE(a thread-handle) noctx, unsafe
 	a.storage
-.as-pthread pthread_t(a thread-handle) noctx, unsafe
+-as-pthread pthread_t(a thread-handle) noctx, unsafe
 	a.storage to-nat64
 
 create-one-thread thread-handle(

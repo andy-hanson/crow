@@ -19,19 +19,19 @@ task-queue record mut by-ref
 	# sorted by time
 	# TODO: use a heap
 	# First node is an ignored sentinel.
-	.timed-sentinel-val .mut task-node-with-time by-val
-	.non-timed-sentinel-val .mut task-node by-val
-	.non-timed-last .mut task-node
+	-timed-sentinel-val .mut task-node-with-time by-val
+	-non-timed-sentinel-val .mut task-node by-val
+	-non-timed-last .mut task-node
 	# This is allocated with max-threads capacity on init, so never needs further allocation
-	.currently-running-exclusions exclusion mut-array
+	-currently-running-exclusions exclusion mut-array
 
-.nil-exclusion exclusion() noctx
+-nil-exclusion exclusion() noctx
 	max-nat64
 
-.timed-sentinel task-node-with-time(a task-queue) noctx
+-timed-sentinel task-node-with-time(a task-queue) noctx
 	trusted &a.timed-sentinel-val
 
-.non-timed-sentinel task-node(a task-queue) noctx
+-non-timed-sentinel task-node(a task-queue) noctx
 	trusted &a.non-timed-sentinel-val
 
 is-empty bool(a task-queue) noctx
@@ -74,7 +74,7 @@ pop-task pop-task-result(a task-queue, cur-time timestamp, thread-id nat64) noct
 		(!a.is-empty, first-task-time) no-task
 
 # Move timed tasks to the non-timed queue if they are ready
-.move-timed-tasks void(a task-queue, cur-time timestamp) noctx
+-move-timed-tasks void(a task-queue, cur-time timestamp) noctx
 	if head ?= a.timed-sentinel.next
 		if head.time <= cur-time
 			a.timed-sentinel.next := head next
@@ -82,10 +82,10 @@ pop-task pop-task-result(a task-queue, cur-time timestamp, thread-id nat64) noct
 			a add-task head.as-task-node
 			a move-timed-tasks cur-time
 
-.as-task-node task-node(a task-node-with-time) noctx
+-as-task-node task-node(a task-node-with-time) noctx
 	trusted a ref-cast
 
-.try-pop-task task?(a task-queue, exclusions exclusion mut-array) noctx, unsafe
+-try-pop-task task?(a task-queue, exclusions exclusion mut-array) noctx, unsafe
 	prev mut = a non-timed-sentinel
 	loop
 		if cur ?= prev next

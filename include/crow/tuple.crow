@@ -11,9 +11,9 @@ Written `(a, b)`. Generic pair type.
 This is often used as a key-value pair in a dictionary or priority queue.
 ###
 
-!==[t, u] bool(a (t, u), b (t, u)) noctx, t equal, u equal
++==[t, u] bool(a (t, u), b (t, u)) noctx, t equal, u equal
 	a.a == b.a && a.b == b.b
-!<=>[t, u] comparison(a (t, u), b (t, u)) noctx, t compare, u compare
++<=>[t, u] comparison(a (t, u), b (t, u)) noctx, t compare, u compare
 	match a.a <=> b.a
 	as less
 		less
@@ -30,25 +30,25 @@ from[t, u] t(a (t, u)) noctx
 to[t, u] u(a (t, u)) noctx
 	a b
 
-!tuple3[t0, t1, t2] record by-val
++tuple3[t0, t1, t2] record by-val
 	a t0
 	b t1
 	c t2
 
-!tuple4[t0, t1, t2, t3] record by-val
++tuple4[t0, t1, t2, t3] record by-val
 	a t0
 	b t1
 	c t2
 	d t3
 
-!tuple5[t0, t1, t2, t3, t4] record by-val
++tuple5[t0, t1, t2, t3, t4] record by-val
 	a t0
 	b t1
 	c t2
 	d t3
 	e t4
 
-!tuple6[t0, t1, t2, t3, t4, t5] record by-val
++tuple6[t0, t1, t2, t3, t4, t5] record by-val
 	a t0
 	b t1
 	c t2

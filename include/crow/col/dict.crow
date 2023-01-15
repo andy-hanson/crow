@@ -36,28 +36,28 @@ There should be `==`, `<=>`, and `hash-mix` functions defined for the key type `
 This is unordered;
 functions dealing with multiple elements (like `to-list` or `for-loop`) work in arbitrary order.
 ###
-!dict[k, v] record by-val
-	.root (k, v) node
++dict[k, v] record by-val
+	-root (k, v) node
 
-!==[k, v] bool(a v[k], b v[k]) k key, v equal
++==[k, v] bool(a v[k], b v[k]) k key, v equal
 	a.size == b.size && a every (k, v) =>
 		if bv ?= b[k]
 			bv == v
 
-.node[k, v] union
+-node[k, v] union
 	inner-node (k, v) node array
 	leaf-node (k, v) array
 
-.empty-leaf-node[k, v] (k, v) node() noctx
+-empty-leaf-node[k, v] (k, v) node() noctx
 	() leaf-node
 
-.low-bits nat64(a nat64)
+-low-bits nat64(a nat64)
 	a & 0b111
 
-.inner-node-n-bits nat64()
+-inner-node-n-bits nat64()
 	3
 
-.leaf-max-size nat64()
+-leaf-max-size nat64()
 	8
 
 empty-dict[k, v] v[k]() noctx
@@ -68,14 +68,14 @@ Creates a new dict from the given key-value pairs.
 
 Later pairs overwrite earlier pairs with the same key.
 ###
-!new[k, v] v[k](...a (k, v) array) k key
++new[k, v] v[k](...a (k, v) array) k key
 	a.to-list to-dict
 
 ###
 Converts a list of pairs to a dictionary.
 Later pairs overwrite earlier pairs with the same key.
 ###
-!to-dict[k, v] v[k](a (k, v)[]) k key
++to-dict[k, v] v[k](a (k, v)[]) k key
 	if a.size <= 4 && a.no-duplicate-keys
 		a.to-array.leaf-node,
 	else
@@ -85,10 +85,10 @@ Later pairs overwrite earlier pairs with the same key.
 		res
 
 # Returns all pairs in the dictionary.
-!to-list[k, v] (k, v)[](a v[k]) k key
++to-list[k, v] (k, v)[](a v[k]) k key
 	for k, v : a; k, v
 
-.no-duplicate-keys[k, v] bool(a (k, v)[]) k key
+-no-duplicate-keys[k, v] bool(a (k, v)[]) k key
 	# O(n^2) but it doesn't matter since n <= 4
 	if a.size <= 1
 		true
@@ -97,9 +97,9 @@ Later pairs overwrite earlier pairs with the same key.
 		a[1 .. end] every (it => it.from != key) && a[1 .. end].no-duplicate-keys
 
 # True iff the dict has no entries.
-!is-empty[k, v] bool(a v[k]) k key
++is-empty[k, v] bool(a v[k]) k key
 	a.root node-is-empty
-.node-is-empty[k, v] bool(a (k, v) node)
+-node-is-empty[k, v] bool(a (k, v) node)
 	match a
 	as inner-node _
 		false
@@ -107,9 +107,9 @@ Later pairs overwrite earlier pairs with the same key.
 		l is-empty
 
 # Number of pairs.
-!size[k, v] nat64(a v[k]) k key
++size[k, v] nat64(a v[k]) k key
 	a.root size
-.size[k, v] nat64(a (k, v) node)
+-size[k, v] nat64(a (k, v) node)
 	match a
 	as inner-node i
 		acc mut = 0
@@ -123,7 +123,7 @@ Later pairs overwrite earlier pairs with the same key.
 Gets the value associated with a key.
 Returns an empty option if the key is not in `a`.
 ###
-!subscript[k, v] v?(a v[k], key k) k key
++subscript[k, v] v?(a v[k], key k) k key
 	cur mut = a root
 	remaining-hash mut = key hash
 	loop
@@ -142,14 +142,14 @@ Returns an empty option if the key is not in `a`.
 					break pair.to
 
 # `true` iff the key is in the dictionary.
-!in[k, v] bool(key k, a v[k]) k key
++in[k, v] bool(key k, a v[k]) k key
 	!a[key].is-empty
 
 ###
 Associates the key `pair.a` with the value `pair.b`.
 This may overwrite the key if it's already in `a`, or add a new entry.
 ###
-!~[k, v] v[k](a v[k], pair (k, v)) k key
++~[k, v] v[k](a v[k], pair (k, v)) k key
 	res = a get-or-update pair.from, _ =>
 		pair.to insert
 	if node ?= res new-node
@@ -160,10 +160,10 @@ This may overwrite the key if it's already in `a`, or add a new entry.
 ###
 Adds/updates many entries to `a`.
 ###
-~~[k, v] v[k](a v[k], pairs (k, v)[]) k key
++~~[k, v] v[k](a v[k], pairs v[k]) k key
 	res mut = a
-	for pair : pairs
-		res := res ~ pair
+	for k, v : pairs
+		res := res ~ (k, v)
 	res
 
 got-or-added[k, v] union
@@ -191,7 +191,7 @@ Removes a key and its associated value.
 If the key is not in the dictionary, returns `a` unmodified.
 (To distinguish that case, and to get the removed value, use `try-remove`.)
 ###
-!-[k, v] v[k](a v[k], key k) k key
++-[k, v] v[k](a v[k], key k) k key
 	if res ?= a try-remove key
 		res b
 	else
@@ -202,18 +202,18 @@ Removes a key and its associated value, and returns the value and the new dictio
 
 If the key is not in the dictionary, returns an empty option.
 ###
-!try-remove[k, v] (v, v[k])?(a v[k], key k) k key
++try-remove[k, v] (v, v[k])?(a v[k], key k) k key
 	res = a get-or-update key, _ => remove
 	if value ?= res old-value
 		(value, (res.new-node!,)),
 
-.get-or-update-result[k, v] record by-val
+-get-or-update-result[k, v] record by-val
 	# If none, don't update anything
 	new-node (k, v) node?
 	old-value v?
 	new-value v?
 
-.get-or-update-action[v] union
+-get-or-update-action[v] union
 	no-change
 	remove
 	insert v
@@ -221,7 +221,7 @@ If the key is not in the dictionary, returns an empty option.
 ###
 `f` takes the old value and returns the new value, or 'none' to choose to preserve the old value.
 ###
-.get-or-update[k, v] (k, v) get-or-update-result(
+-get-or-update[k, v] (k, v) get-or-update-result(
 	a v[k],
 	key k,
 	f act v get-or-update-action(v?),
@@ -233,7 +233,7 @@ If the key is not in the dictionary, returns an empty option.
 	as leaf-node l
 		l get-or-update-leaf key, hash, 0, f
 
-.get-or-update-recur[k, v] (k, v) get-or-update-result(
+-get-or-update-recur[k, v] (k, v) get-or-update-result(
 	a (k, v) node,
 	key k,
 	remaining-hash nat64,
@@ -270,7 +270,7 @@ If the key is not in the dictionary, returns an empty option.
 Unlike `update-at`, `index` doesn't need to be a valid index.
 If `index > a.size`, entries between the and of `a` and the new entries will be `default`.
 ###
-.update-at-with-default[t] t array(a t array, index nat64, new-value t, default t)
+-update-at-with-default[t] t array(a t array, index nat64, new-value t, default t)
 	if index < a.size
 		a update-at index, new-value
 	else
@@ -282,7 +282,7 @@ If `index > a.size`, entries between the and of `a` and the new entries will be 
 			else
 				default
 
-.update-child[k, v] (k, v) node(a (k, v) node array, which nat64, new-child (k, v) node)
+-update-child[k, v] (k, v) node(a (k, v) node array, which nat64, new-child (k, v) node)
 	if leaf ?= a inner-node-to-leaf which, new-child
 		leaf
 	elif new-child node-is-empty
@@ -299,7 +299,7 @@ If `index > a.size`, entries between the and of `a` and the new entries will be 
 		a update-at which, new-child inner-node
 
 # Returns 'some' if we should change this to a leaf.
-.inner-node-to-leaf[k, v] (k, v) node?(a (k, v) node array , which nat64, new-child (k, v) node)
+-inner-node-to-leaf[k, v] (k, v) node?(a (k, v) node array , which nat64, new-child (k, v) node)
 	total-size mut = 0
 	for child-index, child : a
 		total-size := match child-index == which ? new-child : child
@@ -323,12 +323,12 @@ If `index > a.size`, entries between the and of `a` and the new entries will be 
 			assert out-index == out.size
 			out.cast-immutable.leaf-node,
 
-.find-only-non-empty-child[k, v] (k, v) node?(children (k, v) node array)
+-find-only-non-empty-child[k, v] (k, v) node?(children (k, v) node array)
 	first-non-empty-index = (children find-index it => !it.node-is-empty)!
 	if children[first-non-empty-index + 1 .. end] every it => it node-is-empty
 		children[first-non-empty-index],
 
-.get-or-update-leaf[k, v] (k, v) get-or-update-result(
+-get-or-update-leaf[k, v] (k, v) get-or-update-result(
 	a (k, v) array,
 	key k,
 	remaining-hash nat64,
@@ -365,7 +365,7 @@ If `index > a.size`, entries between the and of `a` and the new entries will be 
 			(new-node,), (), (ins,)
 
 # In order to get the hash, we need to know the shift amount
-.new-inner-node[k, v] (k, v) node(
+-new-inner-node[k, v] (k, v) node(
 	a (k, v) array,
 	key k,
 	value v,
@@ -391,9 +391,9 @@ If `index > a.size`, entries between the and of `a` and the new entries will be 
 
 region spec impls (see collection.crow)
 
-!iterate[k, v] bool(a v[k], f-loop act bool(k, v))
++iterate[k, v] bool(a v[k], f-loop act bool(k, v))
 	a.root iterate-recur f-loop
-.iterate-recur[k, v] bool(a (k, v) node, f act bool(k, v))
+-iterate-recur[k, v] bool(a (k, v) node, f act bool(k, v))
 	match a
 	as inner-node i
 		i iterate child =>
@@ -404,16 +404,16 @@ region spec impls (see collection.crow)
 
 subregion build
 
-!dict-builder[k, v] record mut
-	.inner (k, v) list-builder
-!build[k, v] v[k](a build-options, f act void((k, v) dict-builder)) k key
++dict-builder[k, v] record mut
+	-inner (k, v) list-builder
++build[k, v] v[k](a build-options, f act void((k, v) dict-builder)) k key
 	a build (out => f[(out,)]) to-dict
-!~=[k, v] void(a (k, v) dict-builder, pair (k, v))
++~=[k, v] void(a (k, v) dict-builder, pair (k, v))
 	a.inner ~= pair
 
 dbg[k, v] string(a v[k]) k to-string, v to-string
 	a.root dbg ""
-.dbg[k, v] string(a (k, v) node, path string) k to-string, v to-string
+-dbg[k, v] string(a (k, v) node, path string) k to-string, v to-string
 	match a
 	as inner-node node
 		parts string[][] = for index, child : node

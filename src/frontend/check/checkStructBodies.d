@@ -585,11 +585,11 @@ RecordModifiers withNewVisibility(ref CheckCtx ctx, RecordModifiers cur, RangeWi
 Sym symOfNewVisibility(Visibility a) {
 	final switch (a) {
 		case Visibility.private_:
-			return sym!".new";
+			return sym!"-new";
 		case Visibility.internal:
-			return sym!"new";
+			return sym!"~new";
 		case Visibility.public_:
-			return sym!"!new";
+			return sym!"+new";
 	}
 }
 

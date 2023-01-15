@@ -17,11 +17,11 @@ dummy-json-tests nat64()
 	0
 
 #TODO:MOVE
-.json json(a parse-error)
+-json json(a parse-error)
 	# TODO: include input/iter
 	("expected", a.expected.json),
 
-.verify void(a json, s string)
+-verify void(a json, s string)
 	json parse s is a.ok
 	a.to-string is s
 

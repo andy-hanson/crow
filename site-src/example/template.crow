@@ -18,7 +18,7 @@ list-node[t] record
 new[t] t linked-list()
 	(),
 
-~[t] t linked-list(head t, tail t linked-list)
+~ ~[t] t linked-list(head t, tail t linked-list)
 	((head, tail),),
 
 size[t] nat(a t linked-list)

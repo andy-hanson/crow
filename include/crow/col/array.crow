@@ -17,25 +17,25 @@ export
 		iterate, pointers, size, subscript
 
 # Create an array with the given elements.
-!new[t] t array(...a t array) noctx
++new[t] t array(...a t array) noctx
 	a
 
 # `true` iff `a.size == 0`.
-!is-empty[t] bool(a t array) noctx
++is-empty[t] bool(a t array) noctx
 	a.size == 0
 
 ###
 Prepend an element to an array.
 This is O(n).
 ###
-!~[t] t array(a t, b t array)
++~[t] t array(a t, b t array)
 	(a,) ~~ b
 
 ###
 Append an element to an array.
 This is O(n).
 ###
-!~[t] t array(a t array, b t)
++~[t] t array(a t array, b t)
 	a ~~ (b,)
 
 ###
@@ -44,7 +44,7 @@ This is O(n).
 
 If you need concatenate many arrays, use a `mut[]` to accumulate elements, then call `move-to-array`.
 ###
-!~~[t] t array(a t array, b t array)
++~~[t] t array(a t array, b t array)
 	if a is-empty
 		b
 	elif b is-empty
@@ -54,10 +54,10 @@ If you need concatenate many arrays, use a `mut[]` to accumulate elements, then 
 			out ~~= a
 			out ~~= b
 
-!==[t] bool(a t array, b t array) noctx, t equal
++==[t] bool(a t array, b t array) noctx, t equal
 	(trusted a array-reference-equal b) || a sequence-equal b
 
-!<=>[t] comparison(a t array, b t array) noctx, t compare
++<=>[t] comparison(a t array, b t array) noctx, t compare
 	if trusted a array-reference-equal b
 		equal
 	else
@@ -72,7 +72,7 @@ This is O(n).
 
 `index` must be a valid index into `a`. This can't be used to add a value to the end.
 ###
-!update-at[t] t array(a t array, index nat64, new-value t)
++update-at[t] t array(a t array, index nat64, new-value t)
 	assert index < a.size : "index out of bounds"
 	# TODO:PERF (only concat once)
 	a[0 .. index] ~ new-value ~~ a[index + 1 .. end]
@@ -81,13 +81,13 @@ This is O(n).
 Inserts an element at index `index`, all elements there and after to the right.
 Unlike for `update-at`, `index` can be `a.size`, though it still can't be higher.
 ###
-!insert-at[t] t array(a t array, index nat64, value t)
++insert-at[t] t array(a t array, index nat64, value t)
 	assert index <= a.size : "index out of bounds"
 	# TODO:PERF (only concat once)
 	a[0 .. index] ~ value ~~ a[index .. end]
 
 # Removes the element at index `index`, shifting all later elements to the left.
-!remove-at[t] t array(a t array, index nat64)
++remove-at[t] t array(a t array, index nat64)
 	assert index < a.size : "index out of bounds"
 	a[0 .. index] ~~ a[index + 1 .. end]
 
@@ -114,7 +114,7 @@ Equivalent to calling `f[a[0], 0]`, `f[a[1], 1]`, etc.
 
 Calls `f` for each element in `a`, also providing the index.
 ###
-!iterate[t] bool(a t array, f act bool(nat64, t))
++iterate[t] bool(a t array, f act bool(nat64, t))
 	iter mut = a begin
 	loop
 		if pair ?= iter next
@@ -128,36 +128,36 @@ Calls `f` for each element in `a`, also providing the index.
 
 subregion iterator
 
-!array-iterator[t] record by-val
++array-iterator[t] record by-val
 	collection t array
 	next-index nat64
 
-!==[t] bool(a t array-iterator, b t array-iterator) t equal
++==[t] bool(a t array-iterator, b t array-iterator) t equal
 	assert a.collection == b.collection : "can't compare iterators from different arrays"
 	a.next-index == b.next-index
-!<=>[t] comparison(a t array-iterator, b t array-iterator) t equal
++<=>[t] comparison(a t array-iterator, b t array-iterator) t equal
 	assert a.collection == b.collection : "can't compare iterators from different arrays"
 	a.next-index <=> b.next-index
 
 
-!-[t] t array-iterator(a t array-iterator, n nat64) noctx
++-[t] t array-iterator(a t array-iterator, n nat64) noctx
 	a.collection, a.next-index - n
 
-!-[t] nat64(a t array-iterator, b t array-iterator) noctx
++-[t] nat64(a t array-iterator, b t array-iterator) noctx
 	a.next-index - b.next-index
 
-!+[t] t array-iterator(a t array-iterator, n nat64) noctx
++ +[t] t array-iterator(a t array-iterator, n nat64) noctx
 	new-index = a.next-index + n
 	assert new-index <= a.collection.size
 	a.collection, new-index
 
-!begin[t] t array-iterator(a t array) noctx
++begin[t] t array-iterator(a t array) noctx
 	a, 0
 
-!end[t] t array-iterator(a t array) noctx
++end[t] t array-iterator(a t array) noctx
 	a, a.size
 
-!prev[t] (t array-iterator, t)?(a t array-iterator) noctx
++prev[t] (t array-iterator, t)?(a t array-iterator) noctx
 	if a.next-index != 0
 		new-index = a.next-index - 1
 		assert new-index < a.collection.size
@@ -165,14 +165,14 @@ subregion iterator
 		rest t array-iterator = a.collection, new-index
 		(rest, value),
 
-!next[t] (t, t array-iterator)?(a t array-iterator) noctx
++next[t] (t, t array-iterator)?(a t array-iterator) noctx
 	if a.next-index != a.collection.size
 		assert a.next-index < a.collection.size
 		value = trusted *(a.collection.begin-pointer + a.next-index)
 		rest t array-iterator = a.collection, a.next-index + 1
 		(value, rest),
 
-!slice[t] t array(begin t array-iterator, end t array-iterator) noctx
++slice[t] t array(begin t array-iterator, end t array-iterator) noctx
 	assert begin.next-index <= end.next-index
 	assert end.next-index <= begin.collection.size : "slice out of bounds"
 	trusted end.next-index - begin.next-index, begin.collection.begin-pointer + begin.next-index

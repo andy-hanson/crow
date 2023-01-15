@@ -77,7 +77,7 @@ print-failures nat(failures test-result, options test-options) summon
 			"{n-failures} failures"
 		n-failures
 
-.print-failure void(failure failure) summon
+-print-failure void(failure failure) summon
 	print-bold
 	out print-no-newline failure.path
 	print-reset
@@ -85,8 +85,8 @@ print-failures nat(failures test-result, options test-options) summon
 	out print failure.message
 
 # TODO:MOVE
-.print-bold void() summon
+-print-bold void() summon
 	out print-no-newline "\x1b[1m"
 
-.print-reset void() summon
+-print-reset void() summon
 	out print-no-newline "\x1b[m"

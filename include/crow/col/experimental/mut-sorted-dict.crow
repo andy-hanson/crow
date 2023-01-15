@@ -29,11 +29,11 @@ This works like `mut-dict`, but iterates in sorted order.
 mut-sorted-dict[k, v] record mut by-ref
 	# TODO: by-val
 	# Values are none if they have been deleted.
-	.pairs (k, v?) mut[]
+	-pairs (k, v?) mut[]
 	# Number of pairs in this node that are not `none`.
 	# Does not include sizes of other nodes.
-	.node-size .mut nat64
-	.next .mut (k, v) mut-sorted-dict?
+	-node-size .mut nat64
+	-next .mut (k, v) mut-sorted-dict?
 
 ###
 New dictionary containing the given pairs.
@@ -97,7 +97,7 @@ in[k, v] bool(key k, a (k, v) mut-sorted-dict) k key
 Adds many key-value pairs, replacing existing ones with the same keys.
 Equivalent to adding each element of `b` separately.
 ###
-~~=[k, v] void(a (k, v) mut-sorted-dict, b (k, v)[]) k key
+~ ~~=[k, v] void(a (k, v) mut-sorted-dict, b (k, v)[]) k key
 	for pair : b
 		a[pair from] := pair to
 
@@ -106,7 +106,7 @@ Traverses nodes left-to-right looking for the key.
 If that fails, traverses back right-to-left and inserts into an empty slot if possible.
 Returns true if it succeeded.
 ###
-.insert-into-key-match-or-empty-slot[k, v] bool(a (k, v) mut-sorted-dict, key k, value v) k key
+-insert-into-key-match-or-empty-slot[k, v] bool(a (k, v) mut-sorted-dict, key k, value v) k key
 	insert = a.pairs binary-search-insert pair => key <=> pair.from
 	next-pair (k, v?)? = if pair ?= insert.next
 		pair.a,
@@ -135,7 +135,7 @@ Returns true if it succeeded.
 			true
 
 # Returns the new physical size of this node and all nodes to the right
-.add-pair[k, v] void(a (k, v) mut-sorted-dict, key k, value v) k key
+-add-pair[k, v] void(a (k, v) mut-sorted-dict, key k, value v) k key
 	if a.node-size < 4
 		if a.pairs is-empty
 			a.pairs ~= (key, (value,))
@@ -158,7 +158,7 @@ Returns true if it succeeded.
 			a.next := (new-pairs, 1, ()),
 
 # Insert at the last place where the key is < that value.
-.insert-linear[k, v] void(a (k, v?) mut[], index nat64, key k, value v) k key
+-insert-linear[k, v] void(a (k, v?) mut[], index nat64, key k, value v) k key
 	if key < a[index].from
 		a move-right index
 		a[index] := key, (value,)
@@ -168,7 +168,7 @@ Returns true if it succeeded.
 		a insert-linear index + 1, key, value
 
 # If there's something here, move it so something else can be inserted.
-.move-right[k, v] void(a (k, v?) mut[], index nat64)
+-move-right[k, v] void(a (k, v?) mut[], index nat64)
 	unless a[index].to is-empty
 		# If this is the last value, push it
 		if index == a.size - 1
@@ -204,13 +204,13 @@ remove-key[k, v] v?(a (k, v) mut-sorted-dict, key k) k key
 	elif next ?= a next
 		next remove-key key
 
-.compact-if-needed[k, v] void(a (k, v) mut-sorted-dict) k key
+-compact-if-needed[k, v] void(a (k, v) mut-sorted-dict) k key
 	physical-size = a total-pairs-size
 	if a.node-size * 2 <= physical-size
 		a compact
 		assert a.node-size == a.total-pairs-size
 
-.total-pairs-size[k, v] nat64(a (k, v) mut-sorted-dict)
+-total-pairs-size[k, v] nat64(a (k, v) mut-sorted-dict)
 	acc mut = 0
 	cur mut = a
 	loop
@@ -221,7 +221,7 @@ remove-key[k, v] v?(a (k, v) mut-sorted-dict, key k) k key
 		else
 			break acc
 
-.compact[k, v] void(a (k, v) mut-sorted-dict) k key
+-compact[k, v] void(a (k, v) mut-sorted-dict) k key
 	if next ?= a next
 		next compact
 		a.pairs set-filter pair => !pair.to.is-empty
@@ -230,7 +230,7 @@ remove-key[k, v] v?(a (k, v) mut-sorted-dict, key k) k key
 		a.next := ()
 		a.node-size := a.pairs.size
 
-.find-exact[k, v] (k, v?) mut-list-iterator?(a (k, v) mut-sorted-dict, key k) k key
+-find-exact[k, v] (k, v?) mut-list-iterator?(a (k, v) mut-sorted-dict, key k) k key
 	a.pairs binary-search-exact pair => key <=> pair.from
 
 region mutating iteration
@@ -269,17 +269,17 @@ iterate[k, v] bool(a (k, v) mut-sorted-dict, f act bool(k, v)) k key
 subregion build
 
 mut-sorted-dict-builder[k, v] record mut
-	.inner (k, v) list-builder
+	-inner (k, v) list-builder
 
 build[k, v] (k, v) mut-sorted-dict(a build-options, f act void((k, v) mut-sorted-dict-builder)) k key
 	a build (out => f[(out,)]) to-mut-sorted-dict
 
-~=[k, v] void(a (k, v) mut-sorted-dict-builder, pair (k, v)) k key
+~ ~=[k, v] void(a (k, v) mut-sorted-dict-builder, pair (k, v)) k key
 	a.inner ~= pair
 
 region test
 
-.dbg[k, v] string(a (k, v) mut-sorted-dict) k to-string, v to-string
+-dbg[k, v] string(a (k, v) mut-sorted-dict) k to-string, v to-string
 	pairs = ", " join for pair : a pairs
 		to = if v ?= pair to
 			"{v}"
@@ -291,11 +291,11 @@ region test
 	else
 		"[{pairs}]"
 
-.verify void(a (nat64, string) mut-sorted-dict, expected string)
+-verify void(a (nat64, string) mut-sorted-dict, expected string)
 	a.dbg is expected
 	a verify-node-size
 
-.verify-node-size[k, v] void(a (k, v) mut-sorted-dict)
+-verify-node-size[k, v] void(a (k, v) mut-sorted-dict)
 	res mut = 0
 	for x : a pairs
 		res := res + x.to.size

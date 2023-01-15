@@ -32,13 +32,13 @@ main nat^(args string[]) summon
 		print-help
 		1,
 
-.print-help void() summon
+-print-help void() summon
 	out print """test -- runs tests
 options:
 	--print-tests: print every test run"
 	--max-failures: stop after this many failures. Defaults to 10."""
 
-.do-test nat^(options test-options) summon
+-do-test nat^(options test-options) summon
 	test-path = "./test"
 	crow-dir = test-path parent-path
 	crow-exe = crow-dir crow-path
@@ -48,5 +48,5 @@ options:
 	all-failures <- crow-failures first-failures () => crow-dir lint options
 	(all-failures print-failures options),
 
-.crow-path string(crow-dir string)
+-crow-path string(crow-dir string)
 	crow-dir child-path "bin" child-path "crow" ~~ (trusted is-windows ? ".exe" : "")

@@ -21,7 +21,7 @@ import
 	./tuple: a, b, new, pair
 
 #TODO: get from 'symbol'
-.hash-mix void(hasher hasher, a symbol)
+-hash-mix void(hasher hasher, a symbol)
 	hasher hash-mix a.to-string
 
 ###
@@ -29,7 +29,7 @@ JSON data.
 
 This can be the result of parsing or the input to `to-string`.
 ###
-!json union
++json union
 	json-null
 	json-bool bool
 	json-number float64
@@ -37,65 +37,65 @@ This can be the result of parsing or the input to `to-string`.
 	json-list json[]
 	json-object json[symbol]
 
-!null json()
++null json()
 	json-null
 
-!new json(...pairs (symbol, json) array)
++new json(...pairs (symbol, json) array)
 	pairs.to-list.to-dict json-object
 
-!json[t] spec
++json[t] spec
 	json json(a t)
 
 # Identity function to satisfy the 'json' spec
-!json json(a json)
++json json(a json)
 	a
-!json json(a bool)
++json json(a bool)
 	a.json-bool
-!json json(a nat8)
++json json(a nat8)
 	a.to-nat64 json
-!json json(a nat16)
++json json(a nat16)
 	a.to-nat64 json
-!json json(a nat32)
++json json(a nat32)
 	a.to-nat64 json
-!json json(a nat64)
++json json(a nat64)
 	a.to-float64 json
-!json json(a int8)
++json json(a int8)
 	a.to-int64 json
-!json json(a int16)
++json json(a int16)
 	a.to-int64 json
-!json json(a int32)
++json json(a int32)
 	a.to-int64 json
-!json json(a int64)
++json json(a int64)
 	a.to-float64 json
-!json json(a float32)
++json json(a float32)
 	a.to-float64 json
-!json json(a float64)
++json json(a float64)
 	a json-number
-!json json(a string)
++json json(a string)
 	a json-string
-!json[t] json(a t array) t json
++json[t] json(a t array) t json
 	(for x : a; x json) json-list
-!json[t] json(a t[]) t json
++json[t] json(a t[]) t json
 	(for x : a; x json) json-list
-!json[t] json(a t[symbol]) t json
++json[t] json(a t[symbol]) t json
 	(for k, v : a; k, v.json) json-object
 json json(a index-set)
 	(for x : a; x json) json-list
-!json[t] json(a t?) t json
++json[t] json(a t?) t json
 	if x ?= a
 		(x.json,) json-list
 	else
 		()
-!json[t, u] json(a (t, u)) t json, u json
++json[t, u] json(a (t, u)) t json, u json
 	(a.a json, a.b json) json-list
-!json[t, u] json(a (t, u) result) t json, u json
++json[t, u] json(a (t, u) result) t json, u json
 	match a
 	as ok v
 		("ok", v json),
 	as err e
 		("err", e json),
 
-!== bool(a json, b json)
++== bool(a json, b json)
 	match a
 	as json-null
 		b is-null
@@ -115,7 +115,7 @@ json json(a index-set)
 		if ob ?= b as-object
 			oa == ob
 
-!is-null bool(a json) noctx
++is-null bool(a json) noctx
 	match a
 	as json-null
 		true
@@ -131,7 +131,7 @@ json json(a index-set)
 		false
 
 # If `a` is a boolean, returns that, else returns an empty option.
-!as-bool bool?(a json) noctx
++as-bool bool?(a json) noctx
 	match a
 	as json-null
 		()
@@ -146,7 +146,7 @@ json json(a index-set)
 	as json-object _
 		()
 # If `a` is a number, returns that, else returns an empty option.
-!as-number float64?(a json) noctx
++as-number float64?(a json) noctx
 	match a
 	as json-null
 		()
@@ -165,7 +165,7 @@ If `a` is a string, returns that, else returns an empty option.
 
 This does not render as JSON; `to-string` does that.
 ###
-!as-string string?(a json) noctx
++as-string string?(a json) noctx
 	match a
 	as json-null
 		()
@@ -180,7 +180,7 @@ This does not render as JSON; `to-string` does that.
 	as json-object _
 		()
 # If `a` is a list, returns that, else returns an empty option.
-!as-list json[]?(a json) noctx
++as-list json[]?(a json) noctx
 	match a
 	as json-null
 		()
@@ -195,7 +195,7 @@ This does not render as JSON; `to-string` does that.
 	as json-object _
 		()
 # If `a` is an object, returns that, else returns an empty option.
-!as-object json[symbol]?(a json) noctx
++as-object json[symbol]?(a json) noctx
 	match a
 	as json-null
 		()
@@ -214,26 +214,26 @@ This does not render as JSON; `to-string` does that.
 If `a` is an `object` containing the key `key`, returns the associated value.
 Else, returns an empty option.
 ###
-!subscript json?(a json, key symbol)
++subscript json?(a json, key symbol)
 	if o ?= a as-object
 		o[key]
 
-!json json grammar()
++json json grammar()
 	with : lazy
 		(json-object map x => x.json-object) / (json-list map x => x.json-list) / json-primitive
-.json-object json[symbol] grammar()
+-json-object json[symbol] grammar()
 	pair (symbol, json) grammar = (quoted-string map s => s string-to-symbol) ~~ spaces ~~ ":" ~~ spaces ~~ json
 	pairs (symbol, json)[] grammar = pair separated-by "," ~~ spaces
 	pairs2 json[symbol] grammar = pairs map x => x to-dict
 	"\{" ~~ spaces ~~ pairs2 ~~ spaces ~~ "}"
-.json-list json[] grammar()
+-json-list json[] grammar()
 	"[" ~~ spaces ~~ (json separated-by "," ~~ spaces) ~~ spaces ~~ "]"
-.json-primitive json grammar()
+-json-primitive json grammar()
 	literal = (bool map x => x json) / ("null" exact null)
 	(quoted-string map x => x json) / (float map x => x json-number) / literal
 
 # Renders a json value to JSON.
-!to-string string(a json)
++to-string string(a json)
 	match a
 	as json-null
 		"null"

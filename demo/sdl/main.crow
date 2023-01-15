@@ -42,16 +42,16 @@ main nat^(_ string[]) summon
 		SDL_Quit
 		()
 
-.window-width int32()
+-window-width int32()
 	640
-.window-height int32()
+-window-height int32()
 	480
-.image-width int32()
+-image-width int32()
 	200
-.image-height int32()
+-image-height int32()
 	200
 
-.main-loop-body void^(renderer SDL_Renderer mut*, texture SDL_Texture mut*) summon
+-main-loop-body void^(renderer SDL_Renderer mut*, texture SDL_Texture mut*) summon
 	trusted
 		key-states-pointer = null SDL_GetKeyboardState
 		# TODO: use a mut-enum-lookup type
@@ -67,11 +67,11 @@ main nat^(_ string[]) summon
 		renderer SDL_RenderPresent
 		()
 
-.draw-image void(renderer SDL_Renderer mut*, texture SDL_Texture mut*, x int32) summon, unsafe
+-draw-image void(renderer SDL_Renderer mut*, texture SDL_Texture mut*, x int32) summon, unsafe
 	dest SDL_Rect = x, (window-height - image-height) / 2, image-width, image-height
 	renderer SDL_RenderCopy texture, null, &dest handle-sdl-error "SDL_RenderCopy"
 
-.look-for-quit-event bool() summon
+-look-for-quit-event bool() summon
 	trusted loop
 		e mut SDL_Event = ()
 		if (&e).SDL_PollEvent == 0
@@ -81,13 +81,13 @@ main nat^(_ string[]) summon
 		else
 			continue
 
-.renderer SDL_Renderer mut*(window SDL_Window mut*) summon, unsafe
+-renderer SDL_Renderer mut*(window SDL_Window mut*) summon, unsafe
 	res = window SDL_CreateRenderer -1, SDL_RENDERER_ACCELERATED | SDL_RENDERER_PRESENTVSYNC
 	if res == null
 		"SDL_CreateRenderer" fail-sdl-error
 	res
 
-.create-texture SDL_Texture mut*(renderer SDL_Renderer mut*) summon, unsafe
+-create-texture SDL_Texture mut*(renderer SDL_Renderer mut*) summon, unsafe
 	bmp = crow-bmp.begin-pointer SDL_RWFromConstMem crow-bmp.size.to-int32 SDL_LoadBMP_RW 0
 	if bmp == null
 		"sdl-loadbmp-error" fail-sdl-error
@@ -97,10 +97,10 @@ main nat^(_ string[]) summon
 		"SDL_CreateTextureFromSurface" fail-sdl-error
 	texture
 
-.handle-sdl-error void(err c-int, description string) summon, unsafe
+-handle-sdl-error void(err c-int, description string) summon, unsafe
 	unless err == 0
 		description fail-sdl-error
 
-.fail-sdl-error void(description string) summon, unsafe
+-fail-sdl-error void(description string) summon, unsafe
 	throw "sdl error in {description}: {SDL_GetError}"
 	SDL_Quit

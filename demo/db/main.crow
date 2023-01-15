@@ -49,7 +49,7 @@ main nat^(args string[]) summon
 		out print usage
 		1,
 
-.usage string()
+-usage string()
 	# TODO: Use a """ string
 	a = "Usage: crow run db <get | set | stat> --db-path <db file path> --db-name <db name> --key <key> --value <value>"
 
@@ -62,7 +62,7 @@ main nat^(args string[]) summon
 	g = "	crow run db -- get --db-path foo.db --db-name capitals --key indiana"
 	"{a}\n{b}\n{c}\n{d}\n{e}\n{f}\n{g}\n"
 
-.parse-command_name command?(a string)
+-parse-command_name command?(a string)
 	if a == "get"
 		get,
 	elif a == "set"
@@ -70,7 +70,7 @@ main nat^(args string[]) summon
 	elif a == "stat"
 		stat,
 
-.command enum
+-command enum
 	get
 	set
 	stat

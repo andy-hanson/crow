@@ -28,14 +28,14 @@ For example, if the command is: `foo bar --a 1 --b 2 3 -- x y z`:
 `named` will be: `("a", (1,)), ("b", (2, 3))`
 `after` will be: `"x", "y", "z"`
 ###
-!parsed-command record
++parsed-command record
 	nameless string[]
 	named string[][symbol]
 	after string[]
 
-!== bool(a parsed-command, b parsed-command)
++== bool(a parsed-command, b parsed-command)
 	a.nameless == b.nameless && a.named == b.named && a.after == b.after
-.json json(a parsed-command)
+-json json(a parsed-command)
 	named = (for k, v : a named; k, v.json) json-object
 	("nameless", a.nameless.json), ("named", named), ("after", a.after.json)
 
@@ -43,7 +43,7 @@ For example, if the command is: `foo bar --a 1 --b 2 3 -- x y z`:
 See comment on `parsed-command` for syntax.
 Parse errors aren't possible with this syntax.
 ###
-!parse-command parsed-command(args string[])
++parse-command parsed-command(args string[])
 	nameless string mut[] = ()
 	named string mut[] mut[symbol] = ()
 	after mut string[] = ()

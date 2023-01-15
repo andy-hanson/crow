@@ -22,9 +22,9 @@ import
 	../list: ~=, build, list, to-array, to-list
 
 frozen-set[t] record
-	.values t array
+	-values t array
 	# These are pointers into 'values', so it's fine that 'pointer' isn't GC traced.
-	.bucket-starts t* array
+	-bucket-starts t* array
 
 dbg-bucket-starts[t] nat64[](a t frozen-set) unsafe
 	for pointer : a bucket-starts
@@ -49,7 +49,7 @@ size[t] nat64(a t frozen-set)
 in[t] bool(value t, a t frozen-set) t key
 	a bucket-for value contains value
 
-.bucket-for[t] t array(a t frozen-set, value t) t key
+-bucket-for[t] t array(a t frozen-set, value t) t key
 	if a.bucket-starts is-empty
 		a values
 	else
@@ -77,7 +77,7 @@ try-get-unordered-index[t] nat64?(a t frozen-set, value t) t key
 		trusted if pointer ?= (bucket-start .. bucket-end).as-array pointer-of value
 			pointer - a.values.begin-pointer,
 
-.unsafe-frozen-set-from-mut-array-cast-immutable[t] t frozen-set(
+-unsafe-frozen-set-from-mut-array-cast-immutable[t] t frozen-set(
 	a t mut-array,
 ) unsafe, t key
 	if a.size <= 4
@@ -102,17 +102,17 @@ try-get-unordered-index[t] nat64?(a t frozen-set, value t) t key
 				cur swap bucket-cur-end
 		a.cast-immutable, bucket-starts.array-cast
 
-.get-bucket-counts[t] nat64 mut-array(a t mut-array, n-buckets nat64) unsafe, t key
+-get-bucket-counts[t] nat64 mut-array(a t mut-array, n-buckets nat64) unsafe, t key
 	res nat64 mut-array = n-buckets n-of 0
 	for value : a
 		bucket-index = value get-bucket-index n-buckets
 		res[bucket-index] := res[bucket-index] + 1
 	res
 
-.get-bucket-index[t] nat64(value t, n-buckets nat64) unsafe, t key
+-get-bucket-index[t] nat64(value t, n-buckets nat64) unsafe, t key
 	value.hash % n-buckets
 
-.running-sum[t] t mut* array(initial t mut*, offsets nat64 array)
+-running-sum[t] t mut* array(initial t mut*, offsets nat64 array)
 	with out : offsets.size build
 		acc mut = initial
 		for offset : offsets
@@ -129,11 +129,11 @@ iterate[t] bool(a t frozen-set, f act bool(nat64, t))
 subregion build
 
 frozen-set-builder[t] record mut
-	.inner t mut-array-builder
+	-inner t mut-array-builder
 build[t] t frozen-set(a build-options, f act void(t frozen-set-builder)) t key
 	inner t mut-array = a build out => f[(out,)]
 	trusted inner unsafe-frozen-set-from-mut-array-cast-immutable
-~=[t] void(a t frozen-set-builder, value t)
+~ ~=[t] void(a t frozen-set-builder, value t)
 	a.inner ~= value
 size[t] nat64(a t frozen-set-builder)
 	a.inner size

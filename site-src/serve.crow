@@ -22,7 +22,7 @@ main nat^(args string[]) summon
 			_ <- read-stdin
 			()
 
-.handle-request http-response(a http-request) summon
+-handle-request http-response(a http-request) summon
 	path = "site" child-path a.url
 	if content ?= path.try-read-file :: nat8[]?
 		path file-response content

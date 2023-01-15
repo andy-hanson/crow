@@ -15,27 +15,27 @@ lint test-result^(path string, options test-options) summon
 	else
 		failures.err,
 
-.list-lintable-files string[](path string) summon
+-list-lintable-files string[](path string) summon
 	res string mut[] = ()
 	path each-child-recursive (child => !child.excluded-from-lint), child =>
 		unless child.base-name should-ignore-extension-of-name
 			res ~= child
 	res move-to-list
 
-.excluded-from-lint bool(name string)
+-excluded-from-lint bool(name string)
 	if name starts-with "." || name in exclude-names
 		true
 	elif ext ?= name get-extension
 		ext in exclude-extensions
 
-.exclude-extensions string set()
+-exclude-extensions string set()
 	"bmp", "dll", "err", "exe", "ilk", "lib", "mdb", "obj", "ogg", "pdb", "png", "svg", "wasm", "wav", "woff2"
-.exclude-names string set()
+-exclude-names string set()
 	# TODO: gl.crow needs a multi-line call syntax
 	"bin", "COPYING.txt", "crow.sublime-syntax", "dyncall", "gl.crow", "node_modules", "package-lock.json", "site"
 
 # Returns number of errors
-.lint-file failure[](path string) summon
+-lint-file failure[](path string) summon
 	text string = path read-file
 	res failure mut[] = ()
 	ext = path.get-extension!
@@ -52,28 +52,28 @@ lint test-result^(path string, options test-options) summon
 			res ~= (path, message)
 	res move-to-list
 
-.ignored-extensions string set()
+-ignored-extensions string set()
 	"c", "data", "json", "o", "out", "repr", "tmLanguage"
 
-.should-ignore-extension bool(ext string)
+-should-ignore-extension bool(ext string)
 	ext in ignored-extensions
 
-.should-ignore-extension-of-name bool(name string)
+-should-ignore-extension-of-name bool(name string)
 	if ext ?= name get-extension
 		ext should-ignore-extension
 	else
 		# Ignore extensionless files
 		true
 
-.max-line-length nat()
+-max-line-length nat()
 	120
 
-.n-tabs nat(line string)
+-n-tabs nat(line string)
 	if rest ?= line try-remove-start "\t"
 		rest.n-tabs + 1
 
-.tab-size nat()
+-tab-size nat()
 	4
 
-.line-len nat(line string)
+-line-len nat(line string)
 	line.n-tabs * (tab-size - 1) + line.char8s.size

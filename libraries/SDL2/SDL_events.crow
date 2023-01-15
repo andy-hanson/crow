@@ -8,8 +8,8 @@ SDL_PollEvent c-int(event SDL_Event mut*) summon, trusted, SDL2 extern
 SDL_Event record extern mut
 	type SDL_EventType
 	timestamp nat32
-	.padding bytes48
-.bytes48 extern(48)
+	-padding bytes48
+-bytes48 extern(48)
 new SDL_Event() unsafe
 	SDL_FIRSTEVENT, 0, ()
 

@@ -6,7 +6,7 @@ import
 	../../string: ==, <=>, as-string, hash-mix, literal, string, to-bytes
 
 # Parsed HTTP request.
-!http-request record
++http-request record
 	method http-method
 	url string
 	headers string[string]
@@ -14,59 +14,59 @@ import
 
 # TODO: should this be trusted?
 # Request body as as string.
-!request-body-string string(a http-request)
++request-body-string string(a http-request)
 	a.request-body as-string
 
 # Response to an HTTP request.
-!http-response record
++http-response record
 	status nat64
 	status-desc string
 	headers string[string]
 	response-body nat8[]
 
 # Creates a 400 response with the message "Bad query".
-!http-bad-query http-response()
++http-bad-query http-response()
 	"Bad query" http-bad-query
 
 # Creates a 400 response with the given message.
-!http-bad-query http-response(message string)
++http-bad-query http-response(message string)
 	400, message, (), message.to-bytes
 
 # Creates a 403 response with the message "Forbidden".
-!http-forbidden http-response()
++http-forbidden http-response()
 	"Forbidden" http-forbidden
 
 # Creates a 403 response with the given message.
-!http-forbidden http-response(message string)
++http-forbidden http-response(message string)
 	403, message, (), message.to-bytes
 
 # Creates a 404 response with the message "Not found".
-!http-not-found http-response()
++http-not-found http-response()
 	"Not found" http-not-found
 
 # Creates a 404 response with the given message.
-!http-not-found http-response(message string)
++http-not-found http-response(message string)
 	404, message, (), message.to-bytes
 
-!http-internal-server-error http-response()
++http-internal-server-error http-response()
 	"Internal server error" http-internal-server-error
 
-!http-internal-server-error http-response(message string)
++http-internal-server-error http-response(message string)
 	500, message, (), message.to-bytes
 
 # Creates a 200 response with the message "OK".
-!http-ok http-response()
++http-ok http-response()
 	"OK" http-ok
 
 # Creates a 200 response with the given message.
-!http-ok http-response(message string)
++http-ok http-response(message string)
 	message http-ok ()
 
 # Creates a 200 response with the given message and headers.
-!http-ok http-response(message string, headers string[string])
++http-ok http-response(message string, headers string[string])
 	200, "OK", headers, message.to-bytes
 
 # Method used by an HTTP request.
-!http-method enum
++http-method enum
 	GET
 	POST

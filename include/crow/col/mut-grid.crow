@@ -23,8 +23,8 @@ then the second row left-to-right, etc.
 
 Grid elements are mutable, but changing the width or height is not supported.
 ###
-!mut-grid[t] record mut
-	.elements t mut-array
++mut-grid[t] record mut
+	-elements t mut-array
 	width nat64
 	height nat64
 
@@ -34,23 +34,23 @@ Coordinate in a grid.
 `x` is the column index. The leftmost column is 0; the rightmost column is `width - 1`.
 `y` is the row index. The top row is 0; the bottom row is `height - 1`.
 ###
-!coord record
++coord record
 	x nat64
 	y nat64
 
 # Same as `0, 0`.
-!new coord()
++new coord()
 	0, 0
 
-!== bool(a coord, b coord)
++== bool(a coord, b coord)
 	a.x == b.x && a.y == b.y
 
 # `"<x, y>"`
-!to-string string(a coord)
++to-string string(a coord)
 	"<{a.x}, {a.y}>"
 
 # `true` if `coord` is a valid coordinate (within the width and height of the grid).
-!has-coord[t] bool(a t mut-grid, coord coord)
++has-coord[t] bool(a t mut-grid, coord coord)
 	coord.x < a.width && coord.y < a.height
 
 ###
@@ -58,21 +58,21 @@ Returns the entire row `y`.
 This is O(1).
 Throws if `y` is out of range.
 ###
-!row[t] t mut-array(a t mut-grid, y nat64)
++row[t] t mut-array(a t mut-grid, y nat64)
 	assert y < a.height
 	begin = y * a.width
 	a.elements[begin .. begin + a.width]
 
 # New empty grid with width and height 0.
-!new[t] t mut-grid()
++new[t] t mut-grid()
 	(), 0, 0
 
 # Number of elements in the grid (width * height).
-!size[t] nat64(a t mut-grid)
++size[t] nat64(a t mut-grid)
 	a.elements size
 
 # Creates a new grid with the given width and height, setting every element to `f[x, y]`.
-!make[t] t mut-grid(width nat64, height nat64, f act t(nat64, nat64))
++make[t] t mut-grid(width nat64, height nat64, f act t(nat64, nat64))
 	elements t mut-array = with out : width * height build
 		for y : 0 .. height
 			for x : 0 .. width
@@ -80,7 +80,7 @@ Throws if `y` is out of range.
 	elements, width, height
 
 # Copy elements to a new grid.
-!copy[t] t mut-grid(a t mut-grid)
++copy[t] t mut-grid(a t mut-grid)
 	a.elements.copy, a.width, a.height
 
 ###
@@ -88,11 +88,11 @@ Gets the element in the `x`th column and `y`th row.
 
 Throws if either `x` or `y` is out of bounds.
 ###
-!subscript[t] t(a t mut-grid, x nat64, y nat64)
++subscript[t] t(a t mut-grid, x nat64, y nat64)
 	a.elements[(a index-for x, y)]
 
 # Same as the other `subscript`, but takes a `coord`.
-!subscript[t] t(a t mut-grid, coord coord)
++subscript[t] t(a t mut-grid, coord coord)
 	a[coord.x, coord.y]
 
 ###
@@ -100,15 +100,15 @@ Sets the element in the `x`th column and `y`th row.
 
 Throws if either `x` or `y` is out of bounds.
 ###
-!set-subscript[t] void(a t mut-grid, x nat64, y nat64, value t)
++set-subscript[t] void(a t mut-grid, x nat64, y nat64, value t)
 	index = a index-for x, y
 	a.elements[index] := value
 
 # Same as the other `set-subscript`, but takes a `coord`.
-!set-subscript[t] void(a t mut-grid, coord coord, value t)
++set-subscript[t] void(a t mut-grid, coord coord, value t)
 	a[coord.x, coord.y] := value
 
-.index-for[t] nat64(a t mut-grid, x nat64, y nat64)
+-index-for[t] nat64(a t mut-grid, x nat64, y nat64)
 	assert x < a.width
 	assert y < a.height
 	res = y * a.width + x
@@ -121,35 +121,35 @@ Each row will have a space in between columns.
 
 This makes no attempt to add padding to ensure columns line up. (TODO?)
 ###
-!to-string[t] string(a t mut-grid) t to-string
++to-string[t] string(a t mut-grid) t to-string
 	"\n" join for row : a rows
 		" " join for value : row
 			"{value}"
 
 region rows
 
-!mut-grid-rows[t] record mut
-	.inner t mut-grid
-!rows[t] t mut-grid-rows(a t mut-grid)
++mut-grid-rows[t] record mut
+	-inner t mut-grid
++rows[t] t mut-grid-rows(a t mut-grid)
 	a,
-!size[t] nat64(a t mut-grid-rows)
++size[t] nat64(a t mut-grid-rows)
 	a.inner height
-!iterate[t] bool(a t mut-grid-rows, f act bool(t mut-array))
++iterate[t] bool(a t mut-grid-rows, f act bool(t mut-array))
 	0 .. a.size iterate y =>
 		f[a.inner row y]
 
 region spec impls (see collection.crow)
 
-!iterate[t] bool(a t mut-grid, f act bool(t))
++iterate[t] bool(a t mut-grid, f act bool(t))
 	a.elements iterate f
-!iterate[t] bool(a t mut-grid, f act bool(coord, t))
++iterate[t] bool(a t mut-grid, f act bool(coord, t))
 	coord mut coord = ()
 	a iterate x =>
 		res = f[coord, x]
 		coord := coord next-coord a.width
 		res
 
-.next-coord coord(a coord, width nat64)
+-next-coord coord(a coord, width nat64)
 	new-x = a.x + 1
 	if new-x == width
 		0, a.y + 1

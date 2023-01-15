@@ -30,7 +30,7 @@ mark-ctx record mut by-ref
 	marks bool mut*
 	memory-start nat64 mut*
 
-.to-word-aligned-range nat64* range(a any-const-pointer, size-bytes nat64) noctx, unsafe
+-to-word-aligned-range nat64* range(a any-const-pointer, size-bytes nat64) noctx, unsafe
 	a.round-down-to-word .. (a + size-bytes).round-up-to-word
 
 # Returns true if the range is GC-allocated memory and was not already marked
@@ -44,7 +44,7 @@ mark bool(ctx mark-ctx, pointer-any any-const-pointer, size-bytes nat64) noctx, 
 		assert indices.high >= ctx.memory-size-words
 		false
 
-.is-word-aligned bool(a any-mut-pointer) noctx, unsafe
+-is-word-aligned bool(a any-mut-pointer) noctx, unsafe
 	a.to-nat64 & 7 == 0
 
 words-of-bytes nat64(size-bytes nat64) noctx
@@ -70,21 +70,21 @@ mark-range bool(start bool mut*, end bool mut*) noctx, unsafe
 mark-visit[t] void(mark-ctx mark-ctx, value t) builtin, noctx, unsafe
 
 gc record mut by-ref
-	.lk mut lock by-val
-	.barrier mut barrier by-val
-	.gc-count mut nat64
-	.context-head mut gc-ctx?
+	-lk mut lock by-val
+	-barrier mut barrier by-val
+	-gc-count mut nat64
+	-context-head mut gc-ctx?
 	needs-gc .mut bool
-	.size-words mut nat64
+	-size-words mut nat64
 	# 'mark-cur' and 'data-cur' run in parallel
 	# mark-end must be `mark-begin + size-words` and similar for data-end
-	.mark-begin bool mut*
-	.mark-cur mut bool mut*
-	.mark-end mut bool mut*
+	-mark-begin bool mut*
+	-mark-cur mut bool mut*
+	-mark-end mut bool mut*
 	# We allocate data in increments of nat64
-	.data-begin nat64 mut*
-	.data-cur mut nat64 mut*
-	.data-end mut nat64 mut*
+	-data-begin nat64 mut*
+	-data-cur mut nat64 mut*
+	-data-end mut nat64 mut*
 
 gc-stats record by-val
 	gc-count nat64
@@ -167,7 +167,7 @@ run-garbage-collection[t] void(gc gc, gc-root t) noctx, unsafe
 	_ = &gc.barrier wait-barrier
 	()
 
-.clear-free-mem void(mark-pointer bool mut*, mark-end bool mut*, data-pointer nat64 mut*) noctx, unsafe
+-clear-free-mem void(mark-pointer bool mut*, mark-end bool mut*, data-pointer nat64 mut*) noctx, unsafe
 	unless mark-pointer == mark-end
 		unless *mark-pointer
 			*data-pointer := 0xfadefadefadefade
@@ -184,7 +184,7 @@ gc-ctx record mut by-ref
 force-needs-gc void(gc gc) unsafe
 	gc.needs-gc := true
 
-.acquire-gc-ctx gc-ctx(gc gc) noctx, unsafe
+-acquire-gc-ctx gc-ctx(gc gc) noctx, unsafe
 	&gc.lk acquire
 	res = if c ?= gc.context-head
 		gc.context-head := c next-ctx
@@ -210,12 +210,12 @@ return-gc-ctx void() noctx, unsafe
 	gc.context-head := gc-ctx,
 	&gc.lk release
 
-.cur-gc-ctx gc-ctx? mut*() thread-local
+-cur-gc-ctx gc-ctx? mut*() thread-local
 
 get-gc-ctx gc-ctx() unsafe
 	try-get-cur-gc-ctx!
 
-.force[t] t(a t?) noctx, unsafe
+-force[t] t(a t?) noctx, unsafe
 	if res ?= a
 		res
 	else
@@ -244,7 +244,7 @@ validate-gc void(gc gc) noctx, unsafe
 	gc.data-end - gc.data-begin == gc.size-words hard-assert
 	mark-idx == data-idx hard-assert
 
-.try-gc-alloc any-mut-pointer?(gc-ctx gc-ctx, size-bytes nat64) noctx
+-try-gc-alloc any-mut-pointer?(gc-ctx gc-ctx, size-bytes nat64) noctx
 	trusted
 		gc = gc-ctx gc
 		&gc.lk acquire
@@ -270,12 +270,12 @@ validate-gc void(gc gc) noctx, unsafe
 		&gc.lk release
 		res
 
-.maybe-set-needs-gc void(gc gc) noctx, unsafe
+-maybe-set-needs-gc void(gc gc) noctx, unsafe
 	cur-word = gc.mark-cur - gc.mark-begin
 	if cur-word > (gc.size-words unsafe-div 2)
 		gc.needs-gc := true
 
-.first-non-free bool mut*?(mark bool mut*, end bool mut*) noctx, unsafe
+-first-non-free bool mut*?(mark bool mut*, end bool mut*) noctx, unsafe
 	if mark == end
 		()
 	elif *mark

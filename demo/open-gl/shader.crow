@@ -32,7 +32,7 @@ shader-prog-load GLuint(gl gl-ext, vert-shader-source string, frag-shader-source
 shader-prog-destroy void(gl gl-ext, shader-prog GLuint) summon, unsafe
 	gl glDeleteProgram shader-prog
 
-.shader-load GLuint(gl gl-ext, name string, source string, shader-type GLenum) summon, unsafe
+-shader-load GLuint(gl gl-ext, name string, source string, shader-type GLenum) summon, unsafe
 	shader = gl create-shader-from-source source, shader-type
 	gl glCompileShader shader
 	compile-succeeded mut GLint = GL_FALSE
@@ -47,7 +47,7 @@ shader-prog-destroy void(gl gl-ext, shader-prog GLuint) summon, unsafe
 		gl glDeleteShader shader
 		throw "error compiling GLSL {name}: {err-log.to-array as-string}"
 
-.create-shader-from-source GLuint(gl gl-ext, source string, shader-type GLenum) summon, unsafe
+-create-shader-from-source GLuint(gl gl-ext, source string, shader-type GLenum) summon, unsafe
 	shader = gl glCreateShader shader-type
 	shader-sources c-string array = source.to-c-string,
 	gl glShaderSource shader, shader-sources.size.to-int32, shader-sources.begin-pointer, null

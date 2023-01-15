@@ -25,7 +25,7 @@ get-monotime-nsec timestamp() noctx
 		else
 			todo
 
-.msec-to-nsec nat64(a nat64) noctx
+-msec-to-nsec nat64(a nat64) noctx
 	a * 1000000
 
 nsec-to-msec nat64(a nat64) noctx

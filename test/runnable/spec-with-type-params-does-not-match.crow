@@ -4,7 +4,7 @@ main nat^(_ string[]) summon
 loop-it[t1, b1] t1() (t1, b1) build2
 	throw "TODO"
 
-!build2[t2, b2] spec
+build2[t2, b2] spec
 	build2 t2(a b2)
 
 build2 string(_ nat64)

@@ -69,17 +69,17 @@ to-string string(a user-cookie)
 	"{a user}|{a inner}"
 
 db record mut
-	.env lmdb-env
-	.user-from-name (string, user) lmdb-db
-	.user-name (user, string) lmdb-db
-	.user-password-hash (user, nat8[]) lmdb-db
-	.user-login-cookie (user, login-cookie) lmdb-db
-	.post-user (post, user) lmdb-db
-	.post-content (post, string) lmdb-db
+	-env lmdb-env
+	-user-from-name (string, user) lmdb-db
+	-user-name (user, string) lmdb-db
+	-user-password-hash (user, nat8[]) lmdb-db
+	-user-login-cookie (user, login-cookie) lmdb-db
+	-post-user (post, user) lmdb-db
+	-post-content (post, string) lmdb-db
 
 open-db record
 	db-path string
-.open-db open-db(db-path string)
+-open-db open-db(db-path string)
 	db-path,
 
 open-real-db open-db()
@@ -178,7 +178,7 @@ login (user-cookie, login-error) result(db db, user-name string, password string
 			else
 				user-does-not-exist err
 
-.get-post-info post-info(db db, post post) summon
+-get-post-info post-info(db db, post post) summon
 	with txn : db.env read-transaction
 		user = (txn get db.post-user, post)!
 		user-name = (txn get db.user-name, user)!
@@ -193,20 +193,20 @@ add-post post(db db, cookie user-cookie, content string) summon
 		txn add db.post-content, post, content
 		post
 
-.get-user user?(db db, txn lmdb-txn, user-name string) summon
+-get-user user?(db db, txn lmdb-txn, user-name string) summon
 	txn get db.user-from-name, user-name
 
-.authenticate user(db db, txn lmdb-txn, cookie user-cookie) summon
+-authenticate user(db db, txn lmdb-txn, cookie user-cookie) summon
 	if db try-authenticate txn, cookie
 		cookie user
 	else
 		throw "Login cookie invalid (may have expired)"
 
-.try-authenticate bool(db db, txn lmdb-txn, cookie user-cookie) summon
+-try-authenticate bool(db db, txn lmdb-txn, cookie user-cookie) summon
 	if login-cookie ?= txn get db.user-login-cookie, cookie.user
 		login-cookie cookie-matches cookie.inner.cookie, cookie-expire-seconds
 
-.db-path string()
+-db-path string()
 	"demo-wip/webapp/db"
 
 cookie-expire-seconds nat()

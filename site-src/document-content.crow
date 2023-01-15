@@ -26,18 +26,18 @@ all-exports all-exports(modules module[])
 				()
 	types.to-dict, specs.to-dict
 
-.add-or-warn void(dict module-path mut[symbol], key symbol, value module-path)
+-add-or-warn void(dict module-path mut[symbol], key symbol, value module-path)
 	if cur ?= dict[key]
 		warn log "duplicate name {key}: in {cur} and {value}"
 	else
 		dict[key] := value
 
-.export-kind enum
+-export-kind enum
 	export-type
 	export-spec
 	export-fun
 
-.export-kind export-kind(a module-export-value)
+-export-kind export-kind(a module-export-value)
 	match a
 	as alias-decl _
 		export-type
@@ -66,34 +66,34 @@ module-content string(a module, all-exports all-exports)
 		"""\n<section class="module-doc">{a.doc-comment format-comment}</section>"""
 	"{a.path module-top}{doc}\n{exports}"
 
-.ctx record
+-ctx record
 	all-exports all-exports
 	current-module module-path
 	current-export symbol
 	type-params symbol set
 
-.type-name-reference string(name symbol, ctx ctx)
+-type-name-reference string(name symbol, ctx ctx)
 	if name in ctx.type-params || name in allowed-missing-reference
 		"""<code class="struct">{name}</code>"""
 	else
 		name type-or-spec-name-reference ctx.all-exports.types, "struct", ctx
-.allowed-missing-reference symbol set()
+-allowed-missing-reference symbol set()
 	# TODO: hiding these requires 'internal' visibility
 	"future-state", "lock"
-.spec-name-reference string(name symbol, ctx ctx)
+-spec-name-reference string(name symbol, ctx ctx)
 	name type-or-spec-name-reference ctx.all-exports.specs, "spec", ctx
-.type-or-spec-name-reference string(name symbol, dictionary module-path[symbol], kind string, ctx ctx)
+-type-or-spec-name-reference string(name symbol, dictionary module-path[symbol], kind string, ctx ctx)
 	if module ?= dictionary[name]
 		href = """{module != ctx.current-module ? "/doc/{module}.html"}#{name}"""
 		"""<a href="{href}"><code class="{kind}">{name}</code></a>"""
 	else
 		throw "could not find {kind} {name} in {ctx current-module}.{ctx current-export}"
 
-.module-top string(path module-path)
+-module-top string(path module-path)
 	url = "https://github.com/andy-hanson/crow/blob/master/include/{path}.crow"
 	"""<h1><code class="module">{path}</code> <a class="source-link" href="{url}">(source)</a></h1>"""
 
-.export-content string(a module-export, ctx ctx)
+-export-content string(a module-export, ctx ctx)
 	type-params = a.type-params type-params-content
 	header-extra = a.value export-header-extra ctx
 	section = """<section class="doc {a.value section-class}">
@@ -107,7 +107,7 @@ module-content string(a module, all-exports all-exports)
 	else
 		section
 
-.section-class string(a module-export-value)
+-section-class string(a module-export-value)
 	match a
 	as alias-decl _
 		"alias"
@@ -128,7 +128,7 @@ module-content string(a module, all-exports all-exports)
 	as union-decl _
 		"union"
 
-.name-class string(a module-export-value)
+-name-class string(a module-export-value)
 	match a
 	as alias-decl _
 		"struct"
@@ -149,13 +149,13 @@ module-content string(a module, all-exports all-exports)
 	as union-decl _
 		"struct"
 
-.type-params-content string(a type-param[])
+-type-params-content string(a type-param[])
 	unless a is-empty
 		type-params = ", " join for x : a
 			"""<code class="type-param">{x name}</code>"""
 		"""<span class="type-params">[{type-params}]</span>"""
 
-.export-header-extra string(a module-export-value, ctx ctx)
+-export-header-extra string(a module-export-value, ctx ctx)
 	match a
 	as alias-decl _
 		"alias" keyword
@@ -180,7 +180,7 @@ module-content string(a module, all-exports all-exports)
 	as union-decl u
 		"{"union" keyword}{u.purity purity-content}"
 
-.purity-content string(a purity)
+-purity-content string(a purity)
 	match a
 	as p-data
 		""
@@ -189,7 +189,7 @@ module-content string(a module, all-exports all-exports)
 	as p-mut
 		" mut" keyword
 
-.export-body string(a module-export-value, ctx ctx)
+-export-body string(a module-export-value, ctx ctx)
 	match a
 	as alias-decl al
 		"""<div class="alias-target">{al.target type-ref-content ctx}</div>"""
@@ -222,27 +222,27 @@ module-content string(a module, all-exports all-exports)
 			x union-member-content ctx
 		"""<ul class="members">{members}</ul>"""
 
-.enum-flags-members-content string(a symbol[])
+-enum-flags-members-content string(a symbol[])
 	members = "" join for x : a
 		"""<li><code class="member">{x}</code></li>"""
 	"""<ul class="members">{members}</ul>"""
 
-.field-content string(a record-field, ctx ctx)
+-field-content string(a record-field, ctx ctx)
 	name = """<code class="member">{a name}</code>"""
 	mut-kw = a.is-mut ? """ <code class="keyword">mut</code>"""
 	"<li>{name}{mut-kw} {a.type type-ref-content ctx}</li>"
 
-.union-member-content string(a union-member, ctx ctx)
+-union-member-content string(a union-member, ctx ctx)
 	name = """<code class="member">{a name}</code>"""
 	type = if t ?= a type
 		" {t type-ref-content ctx}"
 	"<li>{name}{type}</li>"
 
-.spec-sig-li string(a spec-sig, ctx ctx)
+-spec-sig-li string(a spec-sig, ctx ctx)
 	rt = a.return-type return-type-and-params-and-specs false, a.params, (), ctx
 	"""<li class="sig"><code class="fun">{a name}</code> {rt}</li>"""
 
-.return-type-and-params-and-specs string(
+-return-type-and-params-and-specs string(
 	return-type type-ref,
 	variadic bool,
 	params param[],
@@ -255,11 +255,11 @@ module-content string(a module, all-exports all-exports)
 	specs-content = specs spec-refs-content ctx
 	"""{return-content}<span class="params">({params-content})</span>{specs-content}"""
 
-.param-content string(a param, variadic bool, ctx ctx)
+-param-content string(a param, variadic bool, ctx ctx)
 	var = variadic ? """<code class="keyword">...</code>"""
 	"""<span class="param">{var}<code class="param">{a name}</code> {a.type type-ref-content ctx}</span>"""
 
-.type-ref-content string(a type-ref, ctx ctx)
+-type-ref-content string(a type-ref, ctx ctx)
 	name = a name
 	if name == "option"
 		a type-ref-suffix "?", ctx
@@ -280,35 +280,35 @@ module-content string(a module, all-exports all-exports)
 	else
 		"{a.type-args type-args-content ctx}{name type-name-reference ctx}"
 
-.type-ref-suffix string(a type-ref, suffix string, ctx ctx)
+-type-ref-suffix string(a type-ref, suffix string, ctx ctx)
 	"{a.type-args.only type-ref-content ctx}{suffix keyword}"
-.type-ref-dict string(a type-ref, open string, ctx ctx)
+-type-ref-dict string(a type-ref, open string, ctx ctx)
 	assert a.type-args.size == 2
 	v = a.type-args[0] type-ref-content ctx
 	k = a.type-args[1] type-ref-content ctx
 	"{v}{open keyword}{k}{"]" keyword}"
-.type-ref-fun string(a type-ref, type string, ctx ctx)
+-type-ref-fun string(a type-ref, type string, ctx ctx)
 	params = ", " join for x : a.type-args[1 .. end]
 		x type-ref-content ctx
 	kw = " {type}" keyword
 	"{kw} {a.type-args[0] type-ref-content ctx}({params})"
 
-.get-fun-type string?(name symbol)
+-get-fun-type string?(name symbol)
 	for x : fun-prefixes-and-keywords
 		if rest ?= name.to-string try-remove-start x.a
 			if nat parse rest is-ok
 				break x.b
 
-.fun-prefixes-and-keywords (string, string)[]()
+-fun-prefixes-and-keywords (string, string)[]()
 	("fun", "fun"), ("fun-act", "act"), ("fun-ref", "ref"), ("fun-pointer", "fun*")
 
-.spec-refs-content string(specs spec-ref[], ctx ctx)
+-spec-refs-content string(specs spec-ref[], ctx ctx)
 	unless specs is-empty
 		contents = ", " join for x : specs
 			x spec-ref-content ctx
 		""" <span class="specs">{contents}</span>"""
 
-.spec-ref-content string(a spec-ref, ctx ctx)
+-spec-ref-content string(a spec-ref, ctx ctx)
 	args = a.type-args type-args-content ctx
 	name = a.name in special-specs ? a.name.to-string : a.name spec-name-reference ctx
 	"""<span class="spec">{args}{name}</span>"""
@@ -316,7 +316,7 @@ module-content string(a module, all-exports all-exports)
 special-specs symbol set()
 	"noctx", "summon", "unsafe"
 
-.type-args-content string(a type-ref[], ctx ctx)
+-type-args-content string(a type-ref[], ctx ctx)
 	if a.size == 0
 		""
 	elif a.size == 1
@@ -324,10 +324,10 @@ special-specs symbol set()
 	else
 		"({", " join for x : a; x type-ref-content ctx}) "
 
-.keyword string(a string)
+-keyword string(a string)
 	"""<code class="keyword">{a}</code>"""
 
-.only[t] t(a t[])
+-only[t] t(a t[])
 	assert a.size == 1
 	a[0]
 
@@ -338,7 +338,7 @@ format-comment string(a string)
 	as err e
 		throw "Could not parse doc comment:\n{a}\n\nReason: {e}"
 
-.format-comment-parts string(parts comment-part[])
+-format-comment-parts string(parts comment-part[])
 	res mut string = "<p>"
 	for part : parts
 		res := res ~~ match part
@@ -363,26 +363,26 @@ test
 	actual = "It is:\n\n```\nfoo\n```\nGot it?".format-comment
 	actual is "<p>It is:</p><div class=\"code-block\">foo</div><p>Got it?</p>"
 
-.html-escape string(a string)
+-html-escape string(a string)
 	a replace "<", "&lt;"
 
-.comment-part union
+-comment-part union
 	text string
 	multi-newline
 	newline
 	code-short string
 	code-block string
 
-.comment-part comment-part grammar()
+-comment-part comment-part grammar()
 	code-block / newlines / code-short / text
-.newlines comment-part grammar()
+-newlines comment-part grammar()
 	(("\n\n" ~~ skip-newlines) and-return multi-newline) / ("\n" exact newline)
-.code-block comment-part grammar()
+-code-block comment-part grammar()
 	block = "```" text-delimited "```"
 	skip-newlines ~~ block ~~ skip-newlines map x => x.strip code-block
-.skip-newlines grammar-skip()
+-skip-newlines grammar-skip()
 	"\n".exact many
-.code-short comment-part grammar()
+-code-short comment-part grammar()
 	"`" text-delimited "`" map x => x code-short
-.text comment-part grammar()
+-text comment-part grammar()
 	("\n", "`").text-not-containing-any map x => x text

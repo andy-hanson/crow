@@ -14,35 +14,35 @@ get-modules module[]^(paths string[], remove-prefix string) summon
 		throw "Could not get documentation: exit code {result exit-code}, stderr: {result stderr}"
 	(((json ~~ spaces) parse result.stdout)! to-modules remove-prefix),
 
-.crow-path string()
+-crow-path string()
 	if trusted is-windows
 		"bin\\crow.exe"
 	else
 		"bin/crow"
 
-.to-modules module[](a json, remove-prefix string)
+-to-modules module[](a json, remove-prefix string)
 	a.get-node-type is "root"
 	res module[] = for x : a["modules"]!.as-list!
 		x to-module remove-prefix
 	res filter x => !x.exports.is-empty
 
-.to-module module(a json, remove-prefix string)
+-to-module module(a json, remove-prefix string)
 	a.get-node-type is "module"
 	path = a["path"]! to-path remove-prefix
 	path, a.get-comment, for x : a["exports"]!.as-list!
 		x to-export
 
-.to-path symbol(a json, remove-prefix string)
+-to-path symbol(a json, remove-prefix string)
 	(a.as-string! try-remove-start remove-prefix)! string-to-symbol
 
-.get-comment string(a json)
+-get-comment string(a json)
 	if c ?= a["comment"]
 		c.as-string!
 
-.get-node-type string(a json)
+-get-node-type string(a json)
 	a["_type"]!.as-string!
 
-.to-export module-export(a json)
+-to-export module-export(a json)
 	a.get-node-type is "export"
 	type-params type-param[] = if t ?= a["type-params"]
 		for x : t.as-list!
@@ -50,7 +50,7 @@ get-modules module[]^(paths string[], remove-prefix string) summon
 	value = a["value"]! to-export-value
 	a.get-name, a.get-comment, type-params, value
 
-.to-export-value module-export-value(a json)
+-to-export-value module-export-value(a json)
 	type = a get-node-type
 	if type == "alias"
 		a.to-alias-decl alias-decl
@@ -73,27 +73,27 @@ get-modules module[]^(paths string[], remove-prefix string) summon
 	else
 		throw "unexpected export type {type}"
 
-.to-alias-decl alias-decl(a json)
+-to-alias-decl alias-decl(a json)
 	target = a["target"]! to-type-ref
 	target,
 
-.to-enum-decl enum-decl(a json)
+-to-enum-decl enum-decl(a json)
 	a.get-enum-flags-members,
 
-.to-flags-decl flags-decl(a json)
+-to-flags-decl flags-decl(a json)
 	a.get-enum-flags-members,
 
-.get-enum-flags-members symbol[](a json)
+-get-enum-flags-members symbol[](a json)
 	for x : a["members"]!.as-list!
 		x.as-string! string-to-symbol
 
-.to-record-decl record-decl(a json)
+-to-record-decl record-decl(a json)
 	has-non-public-fields = if h ?= a["has-non-public-fields"]
 		h.as-bool!
 	a.get-purity, has-non-public-fields, for x : a["fields"]!.as-list!
 		x to-record-field
 
-.get-purity purity(a json)
+-get-purity purity(a json)
 	if p ?= a["purity"]
 		s = p.as-string!
 		if s == "sendable"
@@ -104,44 +104,44 @@ get-modules module[]^(paths string[], remove-prefix string) summon
 	else
 		p-data
 
-.to-record-field record-field(a json)
+-to-record-field record-field(a json)
 	a.get-node-type is "field"
 	is-mut = if m ?= a["mut"]
 		m.as-bool!
 	a.get-name, a.get-type, is-mut
 
-.to-union-decl union-decl(a json)
+-to-union-decl union-decl(a json)
 	a.get-purity, for x : a["members"]!.as-list!
 		x to-union-member
 
-.to-union-member union-member(a json)
+-to-union-member union-member(a json)
 	a.get-node-type is "member"
 	type type-ref? = if t ?= a["type"]
 		t.to-type-ref,
 	a.get-name, type
 
-.get-name symbol(a json)
+-get-name symbol(a json)
 	a["name"]!.as-string! string-to-symbol
 
-.to-type-param type-param(a json)
+-to-type-param type-param(a json)
 	a.get-name,
 
-.get-type type-ref(a json)
+-get-type type-ref(a json)
 	a["type"]! to-type-ref
 
-.get-type-args type-ref[](a json)
+-get-type-args type-ref[](a json)
 	if args ?= a["type-args"]
 		for x : args.as-list!
 			x to-type-ref
 
-.to-fun-decl fun-decl(a json)
+-to-fun-decl fun-decl(a json)
 	variadic = if v ?= a["variadic"]
 		v.as-bool!
 	a.get-return-type, variadic, a.get-params, if s ?= a["specs"]
 		for x : s.as-list!
 			x to-spec-ref
 
-.to-spec-decl spec-decl(a json)
+-to-spec-decl spec-decl(a json)
 	parents spec-ref[] = for x : a["parents"]!.as-list!
 		x to-spec-ref
 	body-json = a["body"]!
@@ -156,21 +156,21 @@ get-modules module[]^(paths string[], remove-prefix string) summon
 		throw "unexpected spec type {type}"
 	parents, body_
 
-.to-sig spec-sig(a json)
+-to-sig spec-sig(a json)
 	a.get-comment, a.get-name, a.get-return-type, a.get-params
 
-.get-return-type type-ref(a json)
+-get-return-type type-ref(a json)
 	a["return-type"]! to-type-ref
 
-.get-params param[](a json)
+-get-params param[](a json)
 	for x : a["params"]!.as-list!
 		x to-param
 
-.to-param param(a json)
+-to-param param(a json)
 	a.get-node-type is "param"
 	a.get-name, a.get-type
 
-.to-type-ref type-ref(a json)
+-to-type-ref type-ref(a json)
 	node-type = a get-node-type
 	name = a["name"]!.as-string! string-to-symbol
 	if node-type == "type-param"
@@ -179,7 +179,7 @@ get-modules module[]^(paths string[], remove-prefix string) summon
 		node-type is "struct"
 		name, a.get-type-args
 
-.to-spec-ref spec-ref(a json)
+-to-spec-ref spec-ref(a json)
 	node-type = a get-node-type
 	name = a["name"]!.as-string! string-to-symbol
 	if node-type == "special"

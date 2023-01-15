@@ -21,7 +21,7 @@ import
 	./list: ~=, ==, build, iterate, list, new, size, to-array, to-list
 	./mut-list: mut-list, temp-as-mut-array
 
-!is-sorted[col, elem] bool(a col) (col, elem) iterate, elem compare
++is-sorted[col, elem] bool(a col) (col, elem) iterate, elem compare
 	prev mut elem? = ()
 	for x : a
 		if p ?= prev
@@ -41,7 +41,7 @@ Sorts the elements of `a` from least to greatest.
 
 The result satisfies `res[i] <= res[i + 1]`.
 ###
-!sort[col, elem, builder] col(
++sort[col, elem, builder] col(
 	a col,
 ) (col, elem, builder) build, (col, elem) iterate, col size, elem compare
 	a sort x => x
@@ -49,7 +49,7 @@ The result satisfies `res[i] <= res[i + 1]`.
 ###
 Same as `sort`, but use `get-key` to get the comparable part of each element.
 ###
-!sort[col, elem, builder, k] col(
++sort[col, elem, builder, k] col(
 	a col,
 	get-key fun k(elem),
 ) (col, elem, builder) build, (col, elem) iterate, col size, k compare
@@ -62,7 +62,7 @@ Sort and remove duplicates.
 That means `res[i] < res[i + 1]` for each element in the result.
 `(2, 1, 2) sort-unique` is `1, 2`.
 ###
-!sort-unique[col, elem, builder] col(
++sort-unique[col, elem, builder] col(
 	a col,
 ) (col, elem, builder) build, (col, elem) iterate, col size, elem compare
 	m elem mut-array = for x : a; x
@@ -80,12 +80,12 @@ test
 	arr.to-array is ("1a", "2a", "1b", "2b")
 
 # Sort the elements of `a` from least to greatest.
-!set-sort[col, iter, elem] void(
++set-sort[col, iter, elem] void(
 	a col,
 ) (iter, col) begin, (elem, iter) prev-next, (iter, elem) set-next, elem compare
 	a set-sort x => x
 # Like `set-sort`, but use `get-key` to get the comparable part of each element.
-!set-sort[col, iter, elem, k] void(
++set-sort[col, iter, elem, k] void(
 	a col,
 	get-key fun k(elem),
 ) (iter, col) begin, (elem, iter) prev-next, (iter, elem) set-next, k compare
@@ -98,7 +98,7 @@ test
 			continue
 		else
 			break
-.move-last-sorted[iter, elem, k] void(
+-move-last-sorted[iter, elem, k] void(
 	init iter,
 	value-to-move elem,
 	get-key fun k(elem),
@@ -122,7 +122,7 @@ test
 Sort `a` in place and remove unique elements.
 Returns is a slice of the original `a`, which will be shorter if non-unique elements were removed.
 ###
-.set-sort-unique[t] t mut-array(a t mut-array) t compare
+-set-sort-unique[t] t mut-array(a t mut-array) t compare
 	a set-sort
 	out mut = a begin
 	in mut = a begin
@@ -146,18 +146,18 @@ This is useful if `a` and `b` are parallel arrays, meaning `a[i]` and `b[i]` bel
 
 Every pair `a[i]` and `b[i]`, will move to `res.a[j]` and `res.b[j]` for some `j`.
 ###
-!sort-by-first[t, u] (t[], u[])(a t[], b u[]) t compare
++sort-by-first[t, u] (t[], u[])(a t[], b u[]) t compare
 	mut-a = a.to-array to-mut-array
 	mut-b = b.to-array to-mut-array
 	mut-a set-sort-by-first mut-b
 	trusted mut-a.cast-immutable.to-list, mut-b.cast-immutable.to-list
 
 # Sort `a` in place, and move elements of `b` in the same permutation as `a`.
-!set-sort-by-first[t, u] void(a t mut[], b u mut[]) t compare
++set-sort-by-first[t, u] void(a t mut[], b u mut[]) t compare
 	trusted a.temp-as-mut-array set-sort-by-first b.temp-as-mut-array
 
 # Sort `a` in place, and move elements of `b` in the same permutation as `a`.
-!set-sort-by-first[t, u] void(a t mut-array, b u mut-array) t compare
++set-sort-by-first[t, u] void(a t mut-array, b u mut-array) t compare
 	assert a.size == b.size
 	if a.size > 1
 		a swap-at 0, a.size / 2
@@ -168,7 +168,7 @@ Every pair `a[i]` and `b[i]`, will move to `res.a[j]` and `res.b[j]` for some `j
 		a[0 .. new-pivot-index] set-sort-by-first b[0 .. new-pivot-index]
 		a[new-pivot-index + 1 .. end] set-sort-by-first b[new-pivot-index + 1 .. end]
 
-.set-partition-by-first[t, u] nat64(a t mut-array, b u mut-array, pivot t, l nat64, r nat64) t compare
+-set-partition-by-first[t, u] nat64(a t mut-array, b u mut-array, pivot t, l nat64, r nat64) t compare
 	assert l <= a.size
 	assert r < a.size
 	if l <= r

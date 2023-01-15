@@ -20,22 +20,22 @@ documentation path-and-content[]^() summon
 	index = "index" document-template "documentation", index-content, all-paths
 	index ~ modules,
 
-.sort-paths module-path[](a module-path[])
+-sort-paths module-path[](a module-path[])
 	a sort x => ("{x}" split "/")::string[]
 
-.ignore-dir bool(a string)
+-ignore-dir bool(a string)
 	a in ("experimental", "private")::(string set)
 
-.document-template path-and-content(path module-path, title string, content string, all-paths module-path[])
+-document-template path-and-content(path module-path, title string, content string, all-paths module-path[])
 	out-path = "doc" child-path "{path}.html"
 	nav = all-paths generate-nav path
 	full = """<div class="documentation" id="side-nav-wrapper">{nav}<main>{content}</main></div>"""
 	out-path page-template title, full
 
-.generate-nav string(all-paths module-path[], cur-path module-path)
+-generate-nav string(all-paths module-path[], cur-path module-path)
 	parts = "" join for x : all-paths
 		x nav-part x == cur-path
 	"""<nav><ul>{parts}</ul></nav>"""
-.nav-part string(a module-path, is-current bool)
+-nav-part string(a module-path, is-current bool)
 	cur = is-current ? " class=\"current\""
 	"""<li><a href="/doc/{a}.html"{cur}>{a}</a></li>"""

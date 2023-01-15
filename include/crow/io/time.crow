@@ -13,31 +13,31 @@ import
 export
 	./private/time-low-level: get-monotime-nsec
 
-!get-monotime-msec nat64() summon
++get-monotime-msec nat64() summon
 	get-monotime-nsec / 1000000
 
-!unix-time record
++unix-time record
 	seconds-since-epoch time_t
 
 # Get the current Unix timestamp.
-!get-unix-time unix-time() summon
++get-unix-time unix-time() summon
 	trusted null.time,
 
 # Returns a future that will resolve after `duration` has passed.
-!delay void^(duration duration) summon
++delay void^(duration duration) summon
 	get-monotime-nsec + duration.nsec.truncate-to-nat64 delay-until-time
 
-!interval record
-	.time duration
-!interval interval(time duration)
++interval record
+	-time duration
++interval interval(time duration)
 	time,
 # Call `action` now and on every `interval`.
-!for-break[out] out^(
++for-break[out] out^(
 	interval interval,
 	f-loop ref out break-or-continue(),
 ) summon, out is-sendable
 	get-monotime-nsec repeat-interval-recur interval.time.nsec.truncate-to-nat64, f-loop
-.repeat-interval-recur[out] out^(
+-repeat-interval-recur[out] out^(
 	start-nsec nat64,
 	interval-nsec nat64,
 	action ref out break-or-continue(),
@@ -55,7 +55,7 @@ export
 				res forward-to (next-time repeat-interval-recur interval-nsec, action)
 			res
 
-.delay-until-time void^(target-nsec nat64) summon
+-delay-until-time void^(target-nsec nat64) summon
 	trusted
 		res void^ = unresolved
 		gctx = get-global-ctx

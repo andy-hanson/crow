@@ -15,28 +15,28 @@ import
 		to-array-reverse, to-list
 
 # Immutable double-ended queue.
-!deque[t] record
++deque[t] record
 	# NOTE: This is in reverse (top of the stack furthest left)
-	.left t stack
-	.mid t array
-	.right t stack
+	-left t stack
+	-mid t array
+	-right t stack
 
 ###
 Deque containing the given elements.
 ###
-!new[t] t deque(...a t array)
++new[t] t deque(...a t array)
 	a.to-list to-deque
 
 ###
 Convert a list to a deque. 
 This is O(1).
 ###
-!to-deque[t] t deque(a t[])
++to-deque[t] t deque(a t[])
 	# TODO: should not need type annotation
 	()::(t stack), a.to-array, ()
 
 # Copy elements to a list.
-!to-list[t] t[](a t deque)
++to-list[t] t[](a t deque)
 	for x : a
 		x
 
@@ -44,29 +44,29 @@ This is O(1).
 `true` iff `a.size == 0`.
 This is O(1).
 ###
-!is-empty[t] bool(a t deque)
++is-empty[t] bool(a t deque)
 	a.left.is-empty && a.mid.is-empty && a.right.is-empty
 
 ###
 Number of elements in the deque.
 This is O(n).
 ###
-!size[t] nat64(a t deque)
++size[t] nat64(a t deque)
 	a.left.size + a.mid.size + a.right.size
 
 # Pushes an element on the right.
-!~[t] t deque(a t deque, value t)
++~[t] t deque(a t deque, value t)
 	a.left, a.mid, a.right ~ value
 
 # Pushes an element on the left.
-!~[t] t deque(value t, a t deque)
++~[t] t deque(value t, a t deque)
 	a.left ~ value, a.mid, a.right
 
 ###
 Remove a value from the left.
 Returns an empty option iff `a` is empty.
 ###
-!pop-left[t] (t, t deque)?(a t deque)
++pop-left[t] (t, t deque)?(a t deque)
 	if popped ?= a.left pop
 		(popped.b, (popped.a, a.mid, a.right)),
 	elif !a.mid.is-empty
@@ -81,7 +81,7 @@ Returns an empty option iff `a` is empty.
 Remove a value from the right.
 Returns an empty option iff `a` is empty.
 ###
-!pop-right[t] (t deque, t)?(a t deque)
++pop-right[t] (t deque, t)?(a t deque)
 	if popped ?= a.right pop
 		((a.left, a.mid, popped.a), popped.b),
 	elif !a.mid.is-empty
@@ -93,12 +93,12 @@ Returns an empty option iff `a` is empty.
 
 region spec impls (see collection.crow)
 
-!iterate[t] bool(a t deque, f act bool(t))
++iterate[t] bool(a t deque, f act bool(t))
 	a.left iterate-reverse f || a.mid iterate f || a.right iterate f
 
 region test
 
-.dbg string(a nat64 deque)
+-dbg string(a nat64 deque)
 	left = "" join for x : a.left reverse; "{x} "
 	mid = " " join for x : a mid; "{x}"
 	right = "" join for x : a right; " {x}"

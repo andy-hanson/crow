@@ -24,9 +24,9 @@ region env
 
 # LMDB environment.
 lmdb-env record mut
-	.env MDB_env mut*
+	-env MDB_env mut*
 
-.open-lmdb-env record
+-open-lmdb-env record
 	db-dir string
 	create-if-not-exists bool
 open-lmdb-env open-lmdb-env(db-dir string, create-if-not-exists bool)
@@ -38,7 +38,7 @@ with-block[t] t^(options open-lmdb-env, f act t^(lmdb-env)) summon, t is-sendabl
 		with : (() => env.close-env,) future-finally
 			f[env]
 
-.open-env lmdb-env(options open-lmdb-env) summon, unsafe
+-open-env lmdb-env(options open-lmdb-env) summon, unsafe
 	env mut MDB_env mut* = null
 	(&env).mdb_env_create check-lmdb-error
 	env mdb_env_set_maxdbs 50 check-lmdb-error
@@ -56,7 +56,7 @@ with-block[t] t^(options open-lmdb-env, f act t^(lmdb-env)) summon, t is-sendabl
 		err check-lmdb-error
 	env,
 
-.close-env void(env lmdb-env) summon, unsafe
+-close-env void(env lmdb-env) summon, unsafe
 	env.env mdb_env_close
 
 region lmdb-key
@@ -98,7 +98,7 @@ region db
 
 # Single database (key-value store).
 lmdb-db[k, v] record mut
-	.dbi MDB_dbi
+	-dbi MDB_dbi
 
 database[k, v] record mut
 	env lmdb-env
@@ -115,7 +115,7 @@ with-block[t, k, v] t^(
 		with : (() => (a.env close-db db),) future-finally
 			f[db]
 
-.open-db[k, v] (k, v) lmdb-db(a (k, v) database) summon, unsafe, k lmdb-key, v serialize
+-open-db[k, v] (k, v) lmdb-db(a (k, v) database) summon, unsafe, k lmdb-key, v serialize
 	transaction mut MDB_txn mut* = null
 	a.env.env mdb_txn_begin null, 0, &transaction check-lmdb-error
 
@@ -126,14 +126,14 @@ with-block[t, k, v] t^(
 	transaction.mdb_txn_commit check-lmdb-error
 	dbi,
 
-.close-db[k, v] void(env lmdb-env, db (k, v) lmdb-db) summon, unsafe
+-close-db[k, v] void(env lmdb-env, db (k, v) lmdb-db) summon, unsafe
 	env.env mdb_dbi_close db.dbi
 
 region transaction
 
 # LMDB transaction.
 lmdb-txn record mut
-	.txn MDB_txn mut*
+	-txn MDB_txn mut*
 
 read-transaction record mut
 	env lmdb-env
@@ -169,7 +169,7 @@ abortable-write-transaction abortable-write-transaction(env lmdb-env)
 with-block[t] t(a abortable-write-transaction, f act (t, transaction-result)(lmdb-txn)) summon
 	a.env with-transaction 0, f
 
-.with-transaction[t] t(env lmdb-env, mdb-flags u-int, f act (t, transaction-result)(lmdb-txn)) summon
+-with-transaction[t] t(env lmdb-env, mdb-flags u-int, f act (t, transaction-result)(lmdb-txn)) summon
 	trusted
 		transaction mut MDB_txn mut* = null
 		env.env mdb_txn_begin null, mdb-flags, &transaction check-lmdb-error
@@ -224,7 +224,7 @@ try-add[k, v] bool(txn lmdb-txn, db (k, v) lmdb-db, key k, value v) summon, k lm
 		err check-lmdb-error
 		true
 
-.put-inner[k, v] err-t(
+-put-inner[k, v] err-t(
 	txn lmdb-txn,
 	db (k, v) lmdb-db,
 	key k,
@@ -318,7 +318,7 @@ zip[out, k, v0, v1] out[](
 			txn zip-non-empty db0, db1, (key, value0, value1) =>
 				out ~= f[key, value0, value1]
 
-.zip-non-empty[k, v0, v1] void(
+-zip-non-empty[k, v0, v1] void(
 	txn lmdb-txn,
 	db0 (k, v0) lmdb-db,
 	db1 (k, v1) lmdb-db,
@@ -330,7 +330,7 @@ zip[out, k, v0, v1] out[](
 			cursor0 mdb_cursor_get &empty, &empty, MDB_FIRST check-lmdb-error
 			cursor1 mdb_cursor_get &empty, &empty, MDB_FIRST check-lmdb-error
 			cursor0 zip-inner cursor1, f
-.zip-inner[k, v0, v1] void(
+-zip-inner[k, v0, v1] void(
 	cursor0 MDB_cursor mut*,
 	cursor1 MDB_cursor mut*,
 	f act void(k, v0, v1),
@@ -359,27 +359,27 @@ zip[out, k, v0, v1] out[](
 			err1 check-lmdb-error
 			continue
 
-.with-cursor[t, k, v] t(txn lmdb-txn, db (k, v) lmdb-db, f act t(MDB_cursor mut*)) summon, unsafe
+-with-cursor[t, k, v] t(txn lmdb-txn, db (k, v) lmdb-db, f act t(MDB_cursor mut*)) summon, unsafe
 	cursor mut MDB_cursor mut* = null
 	open-err = txn.txn mdb_cursor_open db.dbi, &cursor
 	with : (() => cursor mdb_cursor_close) finally
 		open-err check-lmdb-error
 		f[cursor]
 
-.empty-val MDB_val() unsafe
+-empty-val MDB_val() unsafe
 	0, null
 
-.val-of-bytes MDB_val(a nat8[]) unsafe
+-val-of-bytes MDB_val(a nat8[]) unsafe
 	array = a to-array
 	array.size, array.begin-pointer.as-mut
 
-.bytes-of-val nat8[](a MDB_val) unsafe
+-bytes-of-val nat8[](a MDB_val) unsafe
 	a.mv_data .. a.mv_data + a.mv_size as-list
 
-.check-lmdb-error void(a err-t)
+-check-lmdb-error void(a err-t)
 	assert a == MDB_SUCCESS : "LMDB error code: {a} ({a error-name})"
 
-.error-name string(a err-t)
+-error-name string(a err-t)
 	if a == MDB_KEYEXIST
 		"MDB_KEYEXIST"
 	elif a == MDB_NOTFOUND

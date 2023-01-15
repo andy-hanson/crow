@@ -864,9 +864,9 @@ public Sym symOfModifierKind(ModifierAst.Kind a) {
 		case ModifierAst.Kind.mut:
 			return sym!"mut";
 		case ModifierAst.Kind.newPrivate:
-			return sym!".new";
+			return sym!"-new";
 		case ModifierAst.Kind.newPublic:
-			return sym!"new";
+			return sym!"+new";
 		case ModifierAst.Kind.packed:
 			return sym!"packed";
 		case ModifierAst.Kind.sendable:

@@ -28,7 +28,7 @@ write-sound-file void(path string, sound sound, format sound-file-format) summon
 	out print "n-written is {n-written}; samples size is {sound.samples.size}"
 	assert n-written == sound.samples.size
 
-.to-sf-format SF_FORMAT(a sound-file-format) summon
+-to-sf-format SF_FORMAT(a sound-file-format) summon
 	match a
 	as flac
 		SF_FORMAT_FLAC | SF_FORMAT_PCM_16

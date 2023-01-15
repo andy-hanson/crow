@@ -12,14 +12,14 @@ import
 export
 	./bootstrap: exception, message
 
-.cur-jmp-buf jmp_buf mut*() thread-local
-.cur-thrown exception mut*() thread-local
+-cur-jmp-buf jmp_buf mut*() thread-local
+-cur-thrown exception mut*() thread-local
 
 ###
 Fail unconditionally.
 This function is used to mark part of an `if` or `match` that should not be possible.
 ###
-!unreachable[t] t() noctx
++unreachable[t] t() noctx
 	throw "should be unreachable"
 
 # WARN: Need to set to null at end of catch
@@ -29,7 +29,7 @@ This function is used to mark part of an `if` or `match` that should not be poss
 Run `try` and return what it returns, or return the result of `catcher` if `try` threw an exception.
 (An exception thrown by `catcher` will not be caught.)
 ###
-!catch[t] t(try act t(), catcher act t(exception))
++catch[t] t(try act t(), catcher act t(exception))
 	trusted
 		old-jmp-buf = *cur-jmp-buf
 		store mut __jmp_buf_tag = ()
@@ -58,7 +58,7 @@ Run `try` and return what it returns, or return the result of `catcher` if `try`
 Run `try` and return `ok` containing its return value,
 or `err` containing an exception if it threw one.
 ###
-!catch[t] (t, exception) result(try act t())
++catch[t] (t, exception) result(try act t())
 	(() => try[] ok) catch e => e err
 
 # This is called by the compiler on 'throw'
@@ -72,7 +72,7 @@ throw-with-skip void(message c-string, skip nat64) noctx
 		(),
 	(message, backtrace) rethrow
 
-.new[t] t array(...a t array) noctx
+-new[t] t array(...a t array) noctx
 	a
 
 ###
@@ -81,7 +81,7 @@ Throw an existing exception object.
 This is useful for rethrowing an exception that was already caught.
 Throwing an exception does not modify its backtrace.
 ###
-!rethrow[t] t(e exception) noctx
++rethrow[t] t(e exception) noctx
 	trusted
 		jmp-buf = *cur-jmp-buf
 		if jmp-buf == null
@@ -92,5 +92,5 @@ Throwing an exception does not modify its backtrace.
 		# unreachable
 		zeroed
 
-.number-to-throw int32() noctx, unsafe
+-number-to-throw int32() noctx, unsafe
 	7

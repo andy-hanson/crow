@@ -26,7 +26,7 @@ compact-dict[k, v] record by-val
 
 ==[k, v] bool(a (k, v) compact-dict, b (k, v) compact-dict) k key, v equal
 	a.to-sorted-pairs == b.to-sorted-pairs
-.to-sorted-pairs[k, v] (k, v)[](a (k, v) compact-dict) k key
+-to-sorted-pairs[k, v] (k, v)[](a (k, v) compact-dict) k key
 	(for x : a; x) sort pair => pair from
 
 json[k, v] json(a (k, v) compact-dict) k key, k json, v json
@@ -35,18 +35,18 @@ json[k, v] json(a (k, v) compact-dict) k key, k json, v json
 # TODO:KILL
 node-count[k, v] nat64(a (k, v) compact-dict)
 	0 node-count a.impl
-.node-count[k, v] nat64(acc nat64, a (k, v) impl)
+-node-count[k, v] nat64(acc nat64, a (k, v) impl)
 	match a
 	as overlay o
 		acc + 1 node-count o.prev
 	as end-node _
 		acc + 1
 
-.impl[k, v] union
+-impl[k, v] union
 	overlay (k, v) overlay
 	end-node (k, v) frozen-dict
 
-.overlay[k, v] record by-ref
+-overlay[k, v] record by-ref
 	pairs (k, v?) frozen-dict
 	prev (k, v) impl
 
@@ -85,7 +85,7 @@ size[k, v] nat64(a (k, v) compact-dict) k key
 		res := res + 1
 	res
 
-~[k, v] (k, v) compact-dict(a (k, v) compact-dict, pair (k, v)) k key
+~ ~[k, v] (k, v) compact-dict(a (k, v) compact-dict, pair (k, v)) k key
 	a add-or-remove pair.from, (pair.to,)
 
 ###
@@ -94,13 +94,13 @@ TODO
 	a ~ b.arr
 ###
 
-~~[k, v] (k, v) compact-dict(a (k, v) compact-dict, b (k, v)[]) k key
+~ ~~[k, v] (k, v) compact-dict(a (k, v) compact-dict, b (k, v)[]) k key
 	res mut = a
 	for pair : b
 		res := res ~ pair
 	res
 
--[k, v] (k, v) compact-dict(a (k, v) compact-dict, key k) k key
+~ -[k, v] (k, v) compact-dict(a (k, v) compact-dict, key k) k key
 	if key in a
 		a add-or-remove key, ()
 	else
@@ -122,10 +122,10 @@ subscript[k, v] v?(a (k, v) compact-dict, key k) k key
 in[k, v] bool(key k, a (k, v) compact-dict) k key
 	!a[key].is-empty
 
-.add-or-remove[k, v] (k, v) compact-dict(a (k, v) compact-dict, key k, value v?) k key
+-add-or-remove[k, v] (k, v) compact-dict(a (k, v) compact-dict, key k, value v?) k key
 	(), ((((key, value),).to-frozen-dict, a.impl) merge-as-needed)
 
-.merge-as-needed[k, v] (k, v) impl(a (k, v) overlay) k key
+-merge-as-needed[k, v] (k, v) impl(a (k, v) overlay) k key
 	match a prev
 	as overlay o
 		if o.pairs.size should-merge a.pairs.size
@@ -138,10 +138,10 @@ in[k, v] bool(key k, a (k, v) compact-dict) k key
 		else
 			a overlay
 
-.should-merge bool(prev-size nat64, overlay-size nat64)
+-should-merge bool(prev-size nat64, overlay-size nat64)
 	prev-size <= (overlay-size max 3)
 
-.merge-overlays[k, v] (k, v?) frozen-dict(
+-merge-overlays[k, v] (k, v?) frozen-dict(
 	l (k, v?) frozen-dict,
 	r (k, v?) frozen-dict,
 ) k key
@@ -153,7 +153,7 @@ in[k, v] bool(key k, a (k, v) compact-dict) k key
 			out ~= (k, vr)
 	trusted pairs mut-array-to-frozen-dict-promise-no-duplicates
 
-.merge-to-end[k, v] (k, v) frozen-dict(
+-merge-to-end[k, v] (k, v) frozen-dict(
 	l (k, v) frozen-dict,
 	r (k, v?) frozen-dict,
 ) k key
@@ -193,9 +193,9 @@ iterate[k, v] bool(a (k, v) compact-dict, f act bool(k, v)) k key
 
 region test
 
-.dbg[k, v] string(a (k, v) compact-dict) k to-string, v to-string
+-dbg[k, v] string(a (k, v) compact-dict) k to-string, v to-string
 	a.impl dbg
-.dbg[k, v] string(a (k, v) impl) k to-string, v to-string
+-dbg[k, v] string(a (k, v) impl) k to-string, v to-string
 	match a
 	as overlay o
 		parts = ", " join for k, v : o pairs
@@ -211,7 +211,7 @@ region test
 			"{k} -> {v}"
 		"[{parts}]"
 
-.verify void(a (nat64, string) compact-dict, expected string)
+-verify void(a (nat64, string) compact-dict, expected string)
 	a.dbg is expected
 	for k, v : a
 		a[k] is (v,)

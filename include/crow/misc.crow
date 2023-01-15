@@ -6,21 +6,21 @@ import
 export
 	./private/bootstrap: is-data, is-sendable, name, named-val, val, void
 
-!new void() noctx
++new void() noctx
 	new-void
 
-!new[t] spec
++new[t] spec
 	new t()
 
-!copy[t] spec
++copy[t] spec
 	copy t(a t)
 
 # Spec for values that can be used as keys in a dictionary or set.
-!key[t] spec t is-data, t compare, t hash-mix
++key[t] spec t is-data, t compare, t hash-mix
 
-!break-or-continue[t] union
++break-or-continue[t] union
 	loop-break t
 	loop-continue
 # Default is to 'continue'
-!new[t] t break-or-continue()
++new[t] t break-or-continue()
 	continue

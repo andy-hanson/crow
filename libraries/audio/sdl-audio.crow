@@ -35,10 +35,10 @@ start-sdl-audio audio() summon
 			()
 		format, (() => queue clear), (x => queue play x), (x => queue play-loop x), shut-down
 
-.write-ctx record mut by-ref
+-write-ctx record mut by-ref
 	queue audio-queue
 
-.audio-callback void(userdata any-mut-pointer, stream nat8 mut*, len c-int) noctx, unsafe
+-audio-callback void(userdata any-mut-pointer, stream nat8 mut*, len c-int) noctx, unsafe
 	write-ctx write-ctx = userdata as-ref
 	queue = write-ctx queue
 	floats float32 mut-array = stream[0 .. len.to-nat64] cast-mut-array

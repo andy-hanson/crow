@@ -12,7 +12,7 @@ main nat^(_ string[]) summon
 		err print x
 	failures.size,
 
-.lint-files string[](files file[])
+-lint-files string[](files file[])
 	failures string mut[] = ()
 	all-imports = files get-all-imports
 	for file : files
@@ -28,19 +28,19 @@ main nat^(_ string[]) summon
 		failures lint-imports-in-file file
 	failures move-to-list
 
-.get-all-imports symbol set(files file[])
+-get-all-imports symbol set(files file[])
 	() join for file : files; file imports
 
-.excluded-public symbol set()
+-excluded-public symbol set()
 	"diffSymbols", "main"
 
-.file record
+-file record
 	path string
 	members members
 	imports symbol set
 	uses symbol counter
 
-.members record
+-members record
 	public symbol[]
 	private symbol[]
 
@@ -49,11 +49,11 @@ all-files file[]^() summon
 	for path : paths parallel
 		path get-file
 
-.get-file file^(path string) summon
+-get-file file^(path string) summon
 	imports-and-rest = path.read-file find-imports
 	(path, path.get-members, imports-and-rest.imports, imports-and-rest.rest.words.to-counter),
 
-.get-members members(path string) summon
+-get-members members(path string) summon
 	stdout = "dub run dscanner -- --ctags {path}" shell-exec
 
 	public symbol mut-set = ()
@@ -77,14 +77,14 @@ all-files file[]^() summon
 	public.move-to-list, private.move-to-list
 
 # for some reason, dscanner doesn't give non-nested unions like Converter64 access:private
-.excluded-unknown-access symbol set()
+-excluded-unknown-access symbol set()
 	"Converter32", "Converter64", "DCValue", "DoubleToUlong", "StackDict2Key", "StackDict2Value"
 
-.imports-and-rest record
+-imports-and-rest record
 	imports symbol set
 	rest string
 
-.find-imports imports-and-rest(a string)
+-find-imports imports-and-rest(a string)
 	res symbol mut-set = ()
 	since-last-import mut = a
 	rest mut = a
@@ -106,7 +106,7 @@ all-files file[]^() summon
 		else
 			break res.move-to-set, since-last-import
 
-.words symbol[](a string)
+-words symbol[](a string)
 	with out : build
 		word char8 mut[] = ()
 		for x : a char8s
@@ -118,10 +118,10 @@ all-files file[]^() summon
 		unless word is-empty
 			out ~= word.move-to-list.as-string string-to-symbol
 
-.is-identifier-char bool(a char8)
+-is-identifier-char bool(a char8)
 	"a"::char8 <= a && a <= "z" || "A"::char8 <= a && a <= "Z" || "0"::char8 <= a && a <= "9" || a == "_"
 
-.lint-imports-in-file void(failures string mut[], a file)
+-lint-imports-in-file void(failures string mut[], a file)
 	not-used = a.imports to-mut-set
 	for x, _ : a uses
 		_ = not-used try-remove x

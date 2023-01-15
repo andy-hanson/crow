@@ -15,7 +15,7 @@ unresolved[t] t^() unsafe
 	res.lock init
 	res
 
-.lock[t] lock(a t^) noctx, unsafe
+-lock[t] lock(a t^) noctx, unsafe
 	&a.lk
 
 resolve[t] void(a t^, value t) unsafe
@@ -24,7 +24,7 @@ resolve[t] void(a t^, value t) unsafe
 reject[t] void(a t^, err exception) unsafe
 	a resolve-or-reject err.rejected
 
-.resolve-or-reject[t] void(a t^, new-state t future-state) unsafe
+-resolve-or-reject[t] void(a t^, new-state t future-state) unsafe
 	a.lock acquire
 	old-state = a state
 	a.state := new-state
@@ -43,7 +43,7 @@ reject[t] void(a t^, err exception) unsafe
 	as rejected _
 		hard-unreachable
 
-.or-forwarded[t, u] union sendable
+-or-forwarded[t, u] union sendable
 	direct t
 	forwarded u^
 
@@ -74,7 +74,7 @@ add-task[t] void(a t^, exclusion exclusion, action act void()) unsafe
 add-task[t] void(a t^, task task) unsafe
 	a add-task (task,)::task-node
 
-.add-task[t] void(a t^, task task-node) unsafe
+-add-task[t] void(a t^, task task-node) unsafe
 	a.lock acquire
 	choice t add-tasks-choice = match a state
 	as empty
@@ -103,7 +103,7 @@ add-task[t] void(a t^, task task) unsafe
 	as tasks-are-ready
 		get-global-ctx add-task task
 
-.add-tasks[t] void(a t^, tasks task-list) unsafe
+-add-tasks[t] void(a t^, tasks task-list) unsafe
 	a.lock acquire
 	choice t add-tasks-choice = match a state
 	as empty
@@ -132,16 +132,16 @@ add-task[t] void(a t^, task task) unsafe
 	as tasks-are-ready
 		get-global-ctx add-tasks tasks
 
-.add-tasks-choice[t] union sendable
+-add-tasks-choice[t] union sendable
 	added
 	forward t^
 	tasks-are-ready
 
-.~= void(a task-list, b task-node) noctx
+-~= void(a task-list, b task-node) noctx
 	a.last.next := b,
 	a.last := b
 
-.~~= void(a task-list, b task-list) noctx
+-~~= void(a task-list, b task-list) noctx
 	a.last.next := b.first,
 	a.last := b last
 

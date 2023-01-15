@@ -17,12 +17,12 @@ without overflowing to produce the compact key.
 ###
 
 board record by-val
-	.current-player nat64
-	.both-players nat64
+	-current-player nat64
+	-both-players nat64
 
 board-cache[t] record mut
-	.keys nat32 mut-array
-	.values t mut-array
+	-keys nat32 mut-array
+	-values t mut-array
 
 new[t] t board-cache() t new
 	size = 0xccce9
@@ -51,7 +51,7 @@ E.g., suppose current player is 0010 and both players is 0111. Result is 1001.
 The high bit of the result depends on the value of both-players.
 The result is unique for any value of current-player.
 ###
-.board-key nat(a board)
+-board-key nat(a board)
 	a.current-player + a.both-players
 
 color enum
@@ -72,7 +72,7 @@ to-string string(a color)
 	as blue
 		"{blue foreground}blue{reset}"
 
-.to-short-string string(a color?)
+-to-short-string string(a color?)
 	if c ?= a
 		match c
 		as red
@@ -87,12 +87,12 @@ width nat()
 height nat()
 	6
 
-.grid-has bool(a nat, x nat, y nat)
+-grid-has bool(a nat, x nat, y nat)
 	x < width && y < height && a has-bit (x bit-index y)
-.grid-has bool(a nat, c coord)
+-grid-has bool(a nat, c coord)
 	a grid-has c.x, c.y
 
-.bit-index nat(x nat, y nat)
+-bit-index nat(x nat, y nat)
 	x * (height + 1) + y
 
 can-place bool(a board, x nat)
@@ -108,7 +108,7 @@ place board(a board, x nat)
 empty-board board()
 	0, 0
 
-.subscript color?(a board, x nat, y nat, cur-player color)
+-subscript color?(a board, x nat, y nat, cur-player color)
 	pos coord = x, y
 	if a.both-players grid-has pos
 		if a.current-player grid-has pos
@@ -129,14 +129,14 @@ to-string string(a board, cur-player color, last-column nat?)
 		"│{parts}│"
 	"{header}\n{rows}\n╰─┴─┴─┴─┴─┴─┴─╯"
 
-.letter-of-alphabet string(a nat)
+-letter-of-alphabet string(a nat)
 	# TODO: type annotation should be unnecessary
 	("A"::char8.to-nat8 + a.to-nat8).to-char8 to-string
 
 just-won bool(a board)
 	a.current-player ^ a.both-players is-win
 
-.is-win bool(a nat)
+-is-win bool(a nat)
 	horiz-mask = a & a >> height + 1
 	horiz-win = horiz-mask bits-intersect horiz-mask >> height * 2 + 2
 	diag-0-mask = a & a >> height
@@ -150,16 +150,16 @@ just-won bool(a board)
 has-empty bool(a board)
 	a.both-players != full-grid
 
-.full-grid nat()
+-full-grid nat()
 	0b0111111_0111111_0111111_0111111_0111111_0111111_0111111
 
-.max-key nat()
+-max-key nat()
 	0b1111111_1111111_1111111_1111111_1111111_1111111_1111111
 
 # Bit mask with a 1 at the top cell of the column
-.top-mask nat(col nat)
+-top-mask nat(col nat)
 	1 << (height - 1) << col * (height + 1)
 
 # Bit mask with a 1 at the bottom cell of the column
-.bottom-mask nat(col nat)
+-bottom-mask nat(col nat)
 	1 << col * (height + 1)

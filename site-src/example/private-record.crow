@@ -4,8 +4,8 @@ r record mut
 	public string
 	public-mutable mut string
 	public-readonly .mut string
-	.private string
-	.private-mutable .mut string
+	-private string
+	-private-mutable .mut string
 
 new r()
 	"public", "public-mutable", "public-readonly", "private", "private-mutable"
@@ -17,7 +17,7 @@ call-private-setters void(a r)
 	a.public-readonly := "updated {a public-readonly}"
 	a.private-mutable := "updated {a private-mutable}"
 
-r2 record .new
+r2 record -new
 	r2-field string
 
 new r2()

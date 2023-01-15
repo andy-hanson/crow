@@ -12,7 +12,7 @@ import
 	../list: iterate, list, size, to-list
 
 hamt-set[t] record
-	.inner void[t]
+	-inner void[t]
 
 new[t] t hamt-set(...values t array) t key
 	values.to-list to-hamt-set
@@ -30,7 +30,7 @@ size[t] nat64(a t hamt-set) t key
 in[t] bool(value t, a t hamt-set) t key
 	!a.inner[value].is-empty
 
-~[t] t hamt-set(a t hamt-set, value t) t key
+~ ~[t] t hamt-set(a t hamt-set, value t) t key
 	if res ?= a try-add value
 		res
 	else
@@ -43,7 +43,7 @@ try-add[t] t hamt-set?(a t hamt-set, value t) t key
 	as added res
 		(res.a,),
 
--[t] t hamt-set(a t hamt-set, value t) t key
+~ -[t] t hamt-set(a t hamt-set, value t) t key
 	if res ?= a try-remove value
 		res
 	else

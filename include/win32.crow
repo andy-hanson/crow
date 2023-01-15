@@ -138,8 +138,8 @@ WIN32_FIND_DATAA record extern mut
 	# TODO: use char[14]
 	cAlternateFileName_STORAGE chars14
 
-.chars260 extern(260, 1)
-.chars14 extern(14, 1)
+-chars260 extern(260, 1)
+-chars14 extern(14, 1)
 
 new WIN32_FIND_DATAA() noctx, unsafe
 	(), (), (), (), () , (), (), (), (), ()
@@ -343,8 +343,8 @@ WSADATA record mut extern
 	szDescription_STORAGE chars257
 	# TODO: use char[129]
 	szSystemStatus_STORAGE chars129
-.chars129 extern(129, 1)
-.chars257 extern(257, 1)
+-chars129 extern(129, 1)
+-chars257 extern(257, 1)
 
 new WSADATA() noctx, unsafe
 	(), (), (), (), (), (), ()
@@ -414,8 +414,8 @@ CONTEXT record extern mut
 
 	Rip DWORD64
 	# There's a lot more declared here, reserve enough space for it all
-	.opaque bytes2048
-.bytes2048 extern(2048)
+	-opaque bytes2048
+-bytes2048 extern(2048)
 
 new CONTEXT(ContextFlags DWORD) noctx, unsafe
 	cf = ContextFlags

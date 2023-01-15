@@ -16,27 +16,27 @@ Mutable stack.
 Elements are pushed and popped from the top of the stack.
 Iteration functions move from the bottom to the top.
 ###
-!mut-stack[t] record mut
-	.inner t mut[]
++mut-stack[t] record mut
+	-inner t mut[]
 
 # New empty stack.
-!new[t] t mut-stack()
++new[t] t mut-stack()
 	(),
 
 # Copy elements to a new stack.
-!copy[t] t mut-stack(a t mut-stack)
++copy[t] t mut-stack(a t mut-stack)
 	a.inner.copy,
 
 # Copy elements to a new stack.
-!to-mut-stack[t] t mut-stack(a t[])
++to-mut-stack[t] t mut-stack(a t[])
 	a.to-mut-list,
 
 # Copy elements to a list.
-!to-list[t] t[](a t mut-stack)
++to-list[t] t[](a t mut-stack)
 	a.inner to-list
 
 # True iff `a.size == 0`.
-!is-empty[t] bool(a t mut-stack)
++is-empty[t] bool(a t mut-stack)
 	a.inner is-empty
 
 ###
@@ -44,15 +44,15 @@ Number of elements in the stack.
 
 This is O(n).
 ###
-!size[t] nat64(a t mut-stack)
++size[t] nat64(a t mut-stack)
 	a.inner size
 
 # Pushes a value to the top of the stack.
-!~=[t] void(a t mut-stack, value t)
++~=[t] void(a t mut-stack, value t)
 	a.inner ~= value
 
 # Pushes many values to the top of the stack.
-!~~=[t, col] void(a t mut-stack, values col) (col, t) iterate
++~~=[t, col] void(a t mut-stack, values col) (col, t) iterate
 	a.inner ~~= values
 
 ###
@@ -60,7 +60,7 @@ Returns the top element of the stack without removing it.
 
 Returns an empty option iff `a` is empty.
 ###
-!peek[t] t?(a t mut-stack)
++peek[t] t?(a t mut-stack)
 	a.inner peek
 
 ###
@@ -68,17 +68,17 @@ Removes and returns the top element of the stack.
 
 Returns an empty option iff `a` is empty.
 ###
-!pop[t] t?(a t mut-stack)
++pop[t] t?(a t mut-stack)
 	a.inner pop
 
 region iteration
 
-!for-loop[t] void(a t mut-stack, f act void(t))
++for-loop[t] void(a t mut-stack, f act void(t))
 	a.inner for-loop f
 
 ###
 Removes every element `x` where `!f[x]`.
 This can be written as `a.filter := f`.
 ###
-!set-filter[t] void(a t mut-stack, f act bool(t))
++set-filter[t] void(a t mut-stack, f act bool(t))
 	a.inner set-filter f

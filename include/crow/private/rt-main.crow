@@ -20,7 +20,7 @@ import
 	./symbol-low-level: init-symbol-table
 	./thread-utils: count-processors, create-one-thread, join-one-thread, thread-handle
 
-.main-pointer alias
+-main-pointer alias
 	fun* nat64^(string[])
 
 # Treated specially by the compiler
@@ -36,7 +36,7 @@ rt-main int32(argc int32, argv c-string*, main-pointer main-pointer) noctx, summ
 	gctx free
 	res
 
-.exit-code-from-main-fut int32(gctx global-ctx, main-fut nat64^) noctx, unsafe
+-exit-code-from-main-fut int32(gctx global-ctx, main-fut nat64^) noctx, unsafe
 	match main-fut get-result
 	as ok v
 		# TODO: handle nat64 too big for int32
@@ -49,12 +49,12 @@ rt-main int32(argc int32, argv c-string*, main-pointer main-pointer) noctx, summ
 		1
 
 # TODO:KILL (using this to narrow down scope of error)
-.do-init-constants void() noctx, summon, unsafe
+-do-init-constants void() noctx, summon, unsafe
 	init-constants
 
 init-constants void() builtin, noctx, summon, unsafe
 
-.add-main-task nat64^(
+-add-main-task nat64^(
 	gctx global-ctx,
 	argc int32,
 	argv c-string*,
@@ -68,17 +68,17 @@ init-constants void() builtin, noctx, summon, unsafe
 		after-task
 		res
 
-.invoke-main nat64^(all-args c-string array, main-pointer main-pointer) force-ctx, unsafe
+-invoke-main nat64^(all-args c-string array, main-pointer main-pointer) force-ctx, unsafe
 	all-args add-first-task main-pointer
 
-.thread-args record mut by-ref
+-thread-args record mut by-ref
 	thread-id nat64
 	gctx global-ctx
 
 # TODO: if mut-bag-node is in unmanaged memory, don't need ctx for this
 # We want main-fut to be available immediately, not after having run some user code.
 # So we create main-fut now, and forward the result of 'main' to that.
-.add-first-task nat64^(all-args c-string array, main-pointer main-pointer) unsafe
+-add-first-task nat64^(all-args c-string array, main-pointer main-pointer) unsafe
 	# 'then' is useful here -- it handles any errors in 'main' and gets us main-fut immediately.
 	# TODO: 'then' overload for void^ taking lambda with 0 params
 	res = delay then () =>
@@ -89,7 +89,7 @@ init-constants void() builtin, noctx, summon, unsafe
 	res
 
 # Each thread will get the thread ID, and the common arguments.
-.run-threads void(n-threads nat64, gctx global-ctx) noctx, summon, unsafe
+-run-threads void(n-threads nat64, gctx global-ctx) noctx, summon, unsafe
 	threads thread-handle mut* = n-threads unmanaged-alloc-elements
 	thread-args thread-args by-val mut* = n-threads unmanaged-alloc-elements
 
@@ -102,7 +102,7 @@ init-constants void() builtin, noctx, summon, unsafe
 	threads unmanaged-free
 	thread-args unmanaged-free
 
-.start-threads void(
+-start-threads void(
 	n-threads nat64,
 	threads thread-handle mut*,
 	thread-args-begin thread-args by-val mut*,
@@ -115,12 +115,12 @@ init-constants void() builtin, noctx, summon, unsafe
 		threads[i] := thread-arg-pointer.as-any-mut-pointer create-one-thread &thread-fun
 		i := i + 1
 
-.thread-fun any-mut-pointer(args-pointer any-mut-pointer) noctx, summon, unsafe
+-thread-fun any-mut-pointer(args-pointer any-mut-pointer) noctx, summon, unsafe
 	args thread-args = args-pointer as-ref
 	args.thread-id thread-function args.gctx
 	null
 
-.join-threads void(n-threads nat64, threads thread-handle*) noctx, summon, unsafe
+-join-threads void(n-threads nat64, threads thread-handle*) noctx, summon, unsafe
 	i mut = 0
 	until i == n-threads
 		threads[i] join-one-thread

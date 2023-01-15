@@ -1,6 +1,6 @@
 # Represents a single sound.
 sound record
-	.ignore void
+	-ignore void
 	format sound-format
 	samples float32 array
 

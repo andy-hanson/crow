@@ -19,7 +19,7 @@ main nat^(args string[]) summon
 		err print "Usage: server PORT"
 		1,
 
-.describe-request string(a http-request)
+-describe-request string(a http-request)
 	h = "\n" join for k, v : a headers
 		"{k}: {v}"
 	"{a method} {a url}\n{h}\n\n{a.request-body as-string}"

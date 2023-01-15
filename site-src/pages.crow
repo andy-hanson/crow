@@ -17,7 +17,7 @@ tutorial-pages path-and-content[]() summon
 			metas[index + 1],
 		meta.path tutorial-template meta.title, "site-src/tutorial/{meta key}.html".read-file, next
 
-.tutorial-metas tutorial-meta[]()
+-tutorial-metas tutorial-meta[]()
 	input = """index: hello, world!
 	if: functions, 'if', and locals
 	types: basic types
@@ -40,7 +40,7 @@ tutorial-pages path-and-content[]() summon
 	lines tutorial-meta[] grammar = line separated-by "\n\t"
 	(lines parse input)!
 
-.tutorial-meta record
+-tutorial-meta record
 	key symbol
 	title string
 
@@ -56,7 +56,7 @@ tutorial-nav string(cur-path string)
 		"""<li><a href="/{path}"{cur}>{name}</a></li>"""
 	"<nav><ul>{lines}</ul></nav>"
 
-.tutorial-template path-and-content(page-path string, title string, content string, next tutorial-meta?)
+-tutorial-template path-and-content(page-path string, title string, content string, next tutorial-meta?)
 	next-link = if n ?= next
 		"""<a id="next" href="/{n path}">next: {n title}</a>"""
 	page-path page-template title, """

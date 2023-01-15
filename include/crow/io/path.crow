@@ -15,12 +15,12 @@ import
 Parent of a path. This means removing the last path component.
 `""` if the path has no parent.
 ###
-!parent-path string(a string)
++parent-path string(a string)
 	if x ?= a last-iter-of "/"
 		x slice-left
 
 # Adds a new path component onto the end.
-!child-path string(a string, child_name string)
++child-path string(a string, child_name string)
 	# TODO: ensure child-name doesn't contain "../"
 	"{a}/{child_name}"
 
@@ -28,7 +28,7 @@ Parent of a path. This means removing the last path component.
 Gets the extension from a file name or path.
 Returns an empty option if there is no extension.
 ###
-!get-extension string?(name string)
++get-extension string?(name string)
 	if x ?= name last-iter-of "."
 		(x + 1).slice-right,
 test
@@ -40,7 +40,7 @@ This returns the path without the extension.
 
 For example: `"birds/crow.txt" remove-extension` is `"birds/crow"`.
 ###
-!remove-extension string(name string)
++remove-extension string(name string)
 	if x ?= name last-iter-of "."
 		x slice-left
 	else
@@ -52,19 +52,19 @@ test
 Adds an extension to a file name or path.
 If an extension already exists, adds a second one, as in `foo.png.txt`.
 ###
-!add-extension string(name string, ext string)
++add-extension string(name string, ext string)
 	"{name}.{ext}"
 test
 	"birds/crow.txt" add-extension "exe" is "birds/crow.txt.exe"
 
 # Removes the extension (if it exists) and adds a new one.
-!change-extension string(name string, ext string)
++change-extension string(name string, ext string)
 	name.remove-extension add-extension ext
 test
 	"birds/crow.txt" change-extension "exe" is "birds/crow.exe"
 
 # Gets just the file name without any directory names in from of it.
-!base-name string(path string)
++base-name string(path string)
 	if x ?= path last-iter-of "/"
 		(x + 1) slice-right
 	else

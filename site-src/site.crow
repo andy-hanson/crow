@@ -20,14 +20,14 @@ main nat^(_ string[]) summon
 		x ensure-link cwd
 	()
 
-.ensure-up-to-date void^(a path-and-content) summon
+-ensure-up-to-date void^(a path-and-content) summon
 	full-out-path = "site" child-path a.out-path
 	unless full-out-path is-up-to-date a.content
 		full-out-path.parent-path ensure-directory-recursive
 		full-out-path write-file a.content
 		()
 
-.ensure-link void^(a link, cwd string) summon
+-ensure-link void^(a link, cwd string) summon
 	full-out-path = "site" child-path a.link-path
 	# TODO: check that link target is up to date
 	unless full-out-path path-exists
@@ -37,11 +37,11 @@ main nat^(_ string[]) summon
 		full-out-path make-symlink-to full-target
 		()
 
-.is-up-to-date bool(path string, content string) summon
+-is-up-to-date bool(path string, content string) summon
 	if cur-content ?= path.try-read-file :: string?
 		cur-content == content
 
-.ensure-directory-recursive void(path string) summon
+-ensure-directory-recursive void(path string) summon
 	unless path == "" || path.path-exists
 		path.parent-path ensure-directory-recursive
 		path make-directory
@@ -50,7 +50,7 @@ link record
 	target string
 	link-path string
 
-.all-to-link link[]^() summon
+-all-to-link link[]^() summon
 	example-paths <- "site-src/example" search-dir-recursive
 	example = example-paths to-links "site-src/"
 	in-src-paths link[] = for x : ("crow.svg", "index.css")::string[]
@@ -65,22 +65,22 @@ link record
 		x, x
 	example ~~ in-src-paths ~~ script ~~ font ~~ other,
 
-.include-all path-and-content^() summon
+-include-all path-and-content^() summon
 	include <- "include" search-all-with-content ""
 	pairs string[symbol] = for x : include
 		x.out-path.remove-include-and-crow.string-to-symbol, x.content
 	content = pairs.json to-string
 	("include-all.json", content),
 
-.search-all-with-content path-and-content[]^(path string, remove-prefix string) summon
+-search-all-with-content path-and-content[]^(path string, remove-prefix string) summon
 	paths <- path search-dir-recursive
 	paths to-paths-and-contents remove-prefix
 
-.to-links link[](targets string[], remove-prefix string)
+-to-links link[](targets string[], remove-prefix string)
 	for target : targets
 		target, target try-remove-start remove-prefix ?? throw "{target} didn't start with {remove-prefix}"
 
-.to-paths-and-contents path-and-content[]^(paths string[], remove-prefix string) summon
+-to-paths-and-contents path-and-content[]^(paths string[], remove-prefix string) summon
 	for path : paths parallel
 		if rel-path ?= path try-remove-start remove-prefix
 			(rel-path, path.read-file),

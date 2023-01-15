@@ -23,13 +23,13 @@ import
 	../private/sort-utils: binary-search-key
 
 compact-sorted-dict[k, v] record by-val
-	.impl (k, v) impl
+	-impl (k, v) impl
 
-.impl[k, v] union
+-impl[k, v] union
 	overlay (k, v) overlay
 	end-node (k, v) array
 
-.overlay[k, v] record by-ref
+-overlay[k, v] record by-ref
 	# TODO: consider tracking the number of keys that are new, or change a value, or remove a value.
 	# We should merge more frequently if removing keys, less frequently if adding keys.
 	# never empty
@@ -38,7 +38,7 @@ compact-sorted-dict[k, v] record by-val
 
 ==[k, v] bool(a (k, v) compact-sorted-dict, b (k, v) compact-sorted-dict) k key, v equal
 	a.to-sorted-pairs == b.to-sorted-pairs
-.to-sorted-pairs[k, v] (k, v)[](a (k, v) compact-sorted-dict) k key
+-to-sorted-pairs[k, v] (k, v)[](a (k, v) compact-sorted-dict) k key
 	a.to-list sort pair => pair from
 
 json[k, v] json(a (k, v) compact-sorted-dict) k key, k json, v json
@@ -74,10 +74,10 @@ to-list[k, v] (k, v)[](a (k, v) compact-sorted-dict) k key
 	as end-node e
 		e to-list
 
-~[k, v] (k, v) compact-sorted-dict(a (k, v) compact-sorted-dict, pair (k, v)) k key
+~ ~[k, v] (k, v) compact-sorted-dict(a (k, v) compact-sorted-dict, pair (k, v)) k key
 	(a.impl add-or-remove pair.from, (pair.to,)),
 
-~~[k, v] (k, v) compact-sorted-dict(a (k, v) compact-sorted-dict, b (k, v)[]) k key
+~ ~~[k, v] (k, v) compact-sorted-dict(a (k, v) compact-sorted-dict, b (k, v)[]) k key
 	if b is-empty
 		a
 	elif a is-empty
@@ -86,7 +86,7 @@ to-list[k, v] (k, v)[](a (k, v) compact-sorted-dict) k key
 		pairs (k, v?) array = (for x : b; x.from, (x.to,)) sort pair => pair from
 		(pairs, a.impl).merge-as-needed,
 
--[k, v] (k, v) compact-sorted-dict(a (k, v) compact-sorted-dict, key k) k key
+~ -[k, v] (k, v) compact-sorted-dict(a (k, v) compact-sorted-dict, key k) k key
 	if key in a
 		(a.impl add-or-remove key, ()),
 	else
@@ -108,10 +108,10 @@ subscript[k, v] v?(a (k, v) compact-sorted-dict, key k) k key
 in[k, v] bool(key k, a (k, v) compact-sorted-dict) k key
 	!a[key].is-empty
 
-.add-or-remove[k, v] (k, v) impl(a (k, v) impl, key k, value v?) k key
+-add-or-remove[k, v] (k, v) impl(a (k, v) impl, key k, value v?) k key
 	(((key, value),), a) merge-as-needed
 
-.merge-as-needed[k, v] (k, v) impl(a (k, v) overlay) k key
+-merge-as-needed[k, v] (k, v) impl(a (k, v) overlay) k key
 	match a prev
 	as overlay o
 		if o.pairs.size should-merge a.pairs.size
@@ -125,17 +125,17 @@ in[k, v] bool(key k, a (k, v) compact-sorted-dict) k key
 		else
 			a overlay
 
-.merge-unconditionally[k, v] (k, v) array(a (k, v) overlay) k key
+-merge-unconditionally[k, v] (k, v) array(a (k, v) overlay) k key
 	match a prev
 	as overlay o
 		((o.pairs merge-overlays a.pairs), o.prev) merge-unconditionally
 	as end-node e
 		e merge-to-end a.pairs
 
-.should-merge bool(prev-size nat64, overlay-size nat64)
+-should-merge bool(prev-size nat64, overlay-size nat64)
 	prev-size <= (overlay-size max 3)
 
-.merge-overlays[k, v] (k, v?) array(left (k, v?) array, right (k, v?) array) k key
+-merge-overlays[k, v] (k, v?) array(left (k, v?) array, right (k, v?) array) k key
 	with out : left.size + right.size build
 		l mut = left begin
 		r mut = right begin
@@ -161,7 +161,7 @@ in[k, v] bool(key k, a (k, v) compact-sorted-dict) k key
 				out ~~= r slice-right
 				break
 
-.merge-to-end[k, v] (k, v) array(left (k, v) array, right (k, v?) array) k key
+-merge-to-end[k, v] (k, v) array(left (k, v) array, right (k, v?) array) k key
 	with out : left.size + right.size build
 		l mut = left begin
 		r mut = right begin
@@ -187,7 +187,7 @@ in[k, v] bool(key k, a (k, v) compact-sorted-dict) k key
 				for pair : r slice-right
 					out add-if-has-value pair
 				break
-.add-if-has-value[k, v] void(out (k, v) array-builder, pair (k, v?))
+-add-if-has-value[k, v] void(out (k, v) array-builder, pair (k, v?))
 	if v ?= pair to
 		out ~= (pair.from, v)
 
@@ -240,7 +240,7 @@ iterate[k, v] bool(a (k, v) compact-sorted-dict, f act bool(k, v)) k key
 			f[k, v]
 	res || end-node iterate pair => f[pair from, pair to]
 
-.iterate-overlays[k, v] bool(overlays ((k, nat64), (k, v?) array) mut-priority-queue, f act bool(k, v?)) k key
+-iterate-overlays[k, v] bool(overlays ((k, nat64), (k, v?) array) mut-priority-queue, f act bool(k, v?)) k key
 	loop
 		if popped ?= overlays pop
 			key k = popped.a a
@@ -256,14 +256,14 @@ iterate[k, v] bool(a (k, v) compact-sorted-dict, f act bool(k, v)) k key
 		else
 			break false
 
-.maybe-add-back[k, v] void(
+-maybe-add-back[k, v] void(
 	overlays ((k, nat64), (k, v?) array) mut-priority-queue,
 	last-popped ((k, nat64), (k, v?) array),
 ) k key
 	if last-popped.b.size > 1
 		overlays ~= ((last-popped.b[1].from, last-popped.a.b), last-popped.b[1 .. end])
 
-.drop-overlays-with-key[k, v] void(overlays ((k, nat64), (k, v?) array) mut-priority-queue, key k) k key
+-drop-overlays-with-key[k, v] void(overlays ((k, nat64), (k, v?) array) mut-priority-queue, key k) k key
 	loop
 		# TODO: use 'drop-while'
 		if popped2 ?= overlays pop-if pair => pair.a.a == key
@@ -272,7 +272,7 @@ iterate[k, v] bool(a (k, v) compact-sorted-dict, f act bool(k, v)) k key
 		else
 			break
 
-.get-end[k, v] (k, v) array(a (k, v) impl)
+-get-end[k, v] (k, v) array(a (k, v) impl)
 	match a
 	as overlay o
 		o.prev get-end
@@ -282,7 +282,7 @@ iterate[k, v] bool(a (k, v) compact-sorted-dict, f act bool(k, v)) k key
 region build
 
 compact-sorted-dict-builder[k, v] record mut
-	.inner (k, v) list-builder
+	-inner (k, v) list-builder
 build[k, v] (k, v) compact-sorted-dict(a build-options, f act void((k, v) compact-sorted-dict-builder)) k key
 	a build (out => f[(out,)]) to-compact-sorted-dict
 ~=[k, v] void(a (k, v) compact-sorted-dict-builder, value (k, v)) k key
@@ -290,9 +290,9 @@ build[k, v] (k, v) compact-sorted-dict(a build-options, f act void((k, v) compac
 
 region test
 
-.dbg[k, v] string(a (k, v) compact-sorted-dict) k to-string, v to-string
+-dbg[k, v] string(a (k, v) compact-sorted-dict) k to-string, v to-string
 	a.impl dbg
-.dbg[k, v] string(a (k, v) impl) k to-string, v to-string
+-dbg[k, v] string(a (k, v) impl) k to-string, v to-string
 	match a
 	as overlay o
 		pairs = ", " join for x : o pairs

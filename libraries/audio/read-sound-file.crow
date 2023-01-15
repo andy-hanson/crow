@@ -21,7 +21,7 @@ sound-from-file-content sound(content nat8 array)
 		f = &virtual sf_open_virtual SFM_READ, &info, user-data.as-any-mut-pointer
 		f common info
 
-.common sound(f SNDFILE mut*, info SF_INFO) unsafe
+-common sound(f SNDFILE mut*, info SF_INFO) unsafe
 	f.sf_error check-sndfile-error
 	n-channels = info.channels to-nat64
 	sample-rate = info.samplerate to-nat64
@@ -31,11 +31,11 @@ sound-from-file-content sound(content nat8 array)
 	assert n-read == samples.size
 	(n-channels, sample-rate), samples.move-to-array
 
-.get_filelen sf_count_t(user-data-pointer any-mut-pointer) noctx, unsafe
+-get_filelen sf_count_t(user-data-pointer any-mut-pointer) noctx, unsafe
 	a user-data = user-data-pointer as-ref
 	a.content size
 
-.seek sf_count_t(offset sf_count_t, whence SEEK, user-data-pointer any-mut-pointer) noctx, unsafe
+-seek sf_count_t(offset sf_count_t, whence SEEK, user-data-pointer any-mut-pointer) noctx, unsafe
 	a user-data = user-data-pointer as-ref
 	start = match whence
 	as SEEK_SET
@@ -49,20 +49,20 @@ sound-from-file-content sound(content nat8 array)
 	a.cur := pos
 	pos - a.content.begin-pointer
 
-.read sf_count_t(pointer nat8 mut*, count sf_count_t, user-data-pointer any-mut-pointer) noctx, unsafe
+-read sf_count_t(pointer nat8 mut*, count sf_count_t, user-data-pointer any-mut-pointer) noctx, unsafe
 	a user-data = user-data-pointer as-ref
 	n-to-read = count min (a.content.end-pointer - a.cur)
 	pointer mem-copy a.cur, n-to-read
 	a.cur := a.cur + n-to-read
 	n-to-read
 
-.write sf_count_t(_ nat8*, _ sf_count_t, _ any-mut-pointer) noctx, unsafe
+-write sf_count_t(_ nat8*, _ sf_count_t, _ any-mut-pointer) noctx, unsafe
 	unreachable
 
-.tell sf_count_t(user-data-pointer any-mut-pointer) noctx, unsafe
+-tell sf_count_t(user-data-pointer any-mut-pointer) noctx, unsafe
 	a user-data = user-data-pointer as-ref
 	a.cur - a.content.begin-pointer
 
-.user-data record by-ref mut
+-user-data record by-ref mut
 	content nat8 array
 	cur mut nat8*

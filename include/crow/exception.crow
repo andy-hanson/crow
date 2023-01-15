@@ -13,9 +13,9 @@ export
 
 region handling
 
-!finally record mut
-	.cleanup act void()
-!finally finally(cleanup act void())
++finally record mut
+	-cleanup act void()
++finally finally(cleanup act void())
 	cleanup,
 ###
 Runs `try`, and then runs `cleanup`, even if `try` threw an exception.
@@ -23,7 +23,7 @@ Runs `try`, and then runs `cleanup`, even if `try` threw an exception.
 If there was an exception, it will be rethrown after `after` finishes.
 If `after` throws an exception, the original exception will be lost.
 ###
-!with-block[t] t(a finally, try act t())
++with-block[t] t(a finally, try act t())
 	res = a.cleanup do-if-error () => try[]
 	a.cleanup[]
 	res
@@ -33,21 +33,21 @@ Rus `try`, and if it throws an exception, runs `on-error`.
 
 This is like `finally`, but does not run in the successful case.
 ###
-!do-if-error[t] t(on-error act void(), try act t())
++do-if-error[t] t(on-error act void(), try act t())
 	try catch err =>
 		on-error[]
 		err rethrow
 
 # Outputs the exception's message and backtrace to a string.
-!to-string string(a exception) unsafe
++to-string string(a exception) unsafe
 	message = a.message to-string
 	"{message.is-empty ? "<<empty message>>" : message}{a.backtrace to-string}"
 
-.to-string string(a backtrace)
+-to-string string(a backtrace)
 	"" join for x : a entries
 		"\n\tat {x}"
 
-.to-string string(a backtrace-entry)
+-to-string string(a backtrace-entry)
 	name = trusted a.function-name to-string
 	path = trusted a.file-path to-string
 	if name is-empty

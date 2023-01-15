@@ -4,14 +4,14 @@ import
 		==, |, enum-members, sqlite3, sqlite3_close, sqlite3_exec, sqlite3_free, SQLITE_OK,
 		SQLITE_OPEN_CREATE, SQLITE_OPEN_READWRITE, sqlite3_open_v2
 
-!db record force-sendable
++db record force-sendable
 	raw sqlite3 mut*
 
-!open-sqlite3 record
++open-sqlite3 record
 	db-path string
-!open-sqlite3 open-sqlite3(db-path string)
++open-sqlite3 open-sqlite3(db-path string)
 	db-path,
-!with-block[t] t(a open-sqlite3, cb act t(db)) summon, t is-sendable
++with-block[t] t(a open-sqlite3, cb act t(db)) summon, t is-sendable
 	trusted
 		db mut sqlite3 mut* = null
 		# Create empty file if not exist
@@ -20,25 +20,25 @@ import
 		with : (() => db close) finally
 			cb[(db,)]
 
-.close void(db sqlite3 mut*) summon, unsafe
+-close void(db sqlite3 mut*) summon, unsafe
 	err2 = db sqlite3_close
 	assert err2 == SQLITE_OK
 
-!run void(db db, command string) summon
++run void(db db, command string) summon
 	for _ : db query command
 		()
 
-!db-query record mut
++db-query record mut
 	db db
 	query string
-!query db-query(db db, query string)
++query db-query(db db, query string)
 	db, query
 
 # TODO: this is just to get the size hint. Should be named 'size-hint'?
-!size nat64(_ db-query)
++size nat64(_ db-query)
 	0
 
-!iterate bool(a db-query, f act bool(string[symbol])) summon
++iterate bool(a db-query, f act bool(string[symbol])) summon
 	trusted
 		error-message mut c-string = null
 		ctx callback-ctx = f,
@@ -50,10 +50,10 @@ import
 			error-message.as-any-mut-pointer sqlite3_free
 			throw "ERROR {err.enum-to-string}: {error-string}"
 
-.callback-ctx record by-val mut
+-callback-ctx record by-val mut
 	cb-row act bool(string[symbol])
 
-.callback c-int(ctx-pointer any-mut-pointer, argc c-int, argv c-string*, col-name c-string*) summon, unsafe
+-callback c-int(ctx-pointer any-mut-pointer, argc c-int, argv c-string*, col-name c-string*) summon, unsafe
 	row string[symbol] = for i : 0 .. argc.to-nat64
 		col-name[i].to-string.string-to-symbol, argv[i].to-string
 	(ctx-pointer.as-const.pointer-cast::callback-ctx*)->cb-row[row] ? 1 : 0

@@ -45,14 +45,14 @@ connect-to-uri SOCKET(u uri) summon, unsafe
 	# TODO: handle failure
 	op-sock!
 
-.wsa-init void() summon, unsafe
+-wsa-init void() summon, unsafe
 	wsa-data mut WSADATA = () 
 	err = 2 MAKEWORD 2 WSAStartup &wsa-data
 	out print "initialized WSA, err is {err}"
 	if err != 0
 		todo
 
-.find-and-connect-working-socket SOCKET?(ap addrinfo*) summon, unsafe
+-find-and-connect-working-socket SOCKET?(ap addrinfo*) summon, unsafe
 	unless ap == null
 		a = *ap
 		sock = a.ai_family socket a.ai_socktype, a.ai_protocol
@@ -95,7 +95,7 @@ close-socket void(sock SOCKET) summon, unsafe
 	else
 		sock.as-fd.close check-posix-error
 
-.find-and-bind-working-socket SOCKET?(ap addrinfo*) summon, unsafe
+-find-and-bind-working-socket SOCKET?(ap addrinfo*) summon, unsafe
 	unless ap == null
 		a = *ap
 		listen-fd = a.ai_family socket a.ai_socktype, 0
@@ -109,7 +109,7 @@ close-socket void(sock SOCKET) summon, unsafe
 				listen-fd close-socket
 				a.ai_next find-and-bind-working-socket
 
-.check-getaddrinfo-error void(err int32) summon, unsafe
+-check-getaddrinfo-error void(err int32) summon, unsafe
 	if err != 0
 		# TODO: convert to appropriate enum
 		throw "getaddrinfo error: {err}"

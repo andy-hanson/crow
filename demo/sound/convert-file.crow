@@ -17,9 +17,9 @@ main nat^(args string[]) summon, trusted
 	out-path write-sound-file sound, format
 	()
 
-.describe-out-exts string()
+-describe-out-exts string()
 	supported = ", " join for key : default-file-types keys; key to-string
 	"Supported output file extensions: {supported}"
 
-.default-file-types sound-file-format[symbol]()
+-default-file-types sound-file-format[symbol]()
 	("flac", flac), ("ogg", ogg-vorbis), ("wav", wav)

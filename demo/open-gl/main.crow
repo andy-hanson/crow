@@ -107,7 +107,7 @@ main nat^(_ string[]) summon
 			SDL_Quit
 			()
 
-.make-cube vertex array()
+-make-cube vertex array()
 	front = I.cube-side ~~ (up rotation pi / 2 cube-side) ~~ (right rotation pi / 2 cube-side)
 	back vertex[] = () join for xs : front groups-of 3
 		# Change order so that the triangles have reverse winding
@@ -115,7 +115,7 @@ main nat^(_ string[]) summon
 	for v : front ~~ back to-array
 		v.pos, v.normal, (v.pos + (1, 1, 1)) * 0.5, v.tex-coord
 
-.cube-side vertex[](mat mat3-32)
+-cube-side vertex[](mat mat3-32)
 	t0 vec2-32 = 0.0, 1.0
 	t1 vec2-32 = 1.0, 1.0
 	t2 vec2-32 = 0.0, 0.0
@@ -128,20 +128,20 @@ main nat^(_ string[]) summon
 	ur vertex = (1, 1, -1), n, black, t3
 	(dl, dr, ul, ul, dr, ur) apply mat
 
-.apply vertex[](a vertex[], m mat3-32)
+-apply vertex[](a vertex[], m mat3-32)
 	for x : a
 		m * x.pos, m * x.normal, x.color, x.tex-coord
 
-.vertex record extern
+-vertex record extern
 	pos vec3-32
 	normal vec3-32
 	color vec3-32
 	tex-coord vec2-32
 
-.invert vertex(a vertex)
+-invert vertex(a vertex)
 	-a.pos, -a.normal, a.color, a.tex-coord
 
-.renderer record mut
+-renderer record mut
 	gl gl-ext
 	# OpenGL only allows renders on the same thread.
 	render-thread-id nat
@@ -152,7 +152,7 @@ main nat^(_ string[]) summon
 	texture GLuint
 	rotation-loc GLint
 
-.set-up-renderer void(renderer renderer) summon, unsafe
+-set-up-renderer void(renderer renderer) summon, unsafe
 	gl = renderer gl
 	gl glEnable GL_CULL_FACE
 	gl glCullFace GL_BACK
@@ -180,7 +180,7 @@ main nat^(_ string[]) summon
 	gl glActiveTexture GL_TEXTURE0
 	gl glBindTexture GL_TEXTURE_2D, renderer.texture
 
-.main-loop-body void^(renderer renderer) summon
+-main-loop-body void^(renderer renderer) summon
 	trusted
 		key-states-pointer = null SDL_GetKeyboardState
 		key-states = key-states-pointer[0 .. SDL_NUM_SCANCODES.to-nat32.to-nat64]
@@ -188,7 +188,7 @@ main nat^(_ string[]) summon
 			out print "return is pressed"
 		renderer.render-thread-id run-with-thread-id () =>
 			renderer render
-.render void(renderer renderer) summon, unsafe
+-render void(renderer renderer) summon, unsafe
 	gl = renderer gl
 	gl glClearColor 0.5, 0.5, 0.5, 1
 	gl glClear GL_COLOR_BUFFER_BIT
@@ -202,14 +202,14 @@ main nat^(_ string[]) summon
 
 	renderer.window SDL_GL_SwapWindow
 
-.run-with-thread-id[t] t^(thread-id nat, cb act t()) unsafe, t is-sendable
+-run-with-thread-id[t] t^(thread-id nat, cb act t()) unsafe, t is-sendable
 	if cur-thread-id == thread-id
 		cb[],
 	else
 		<- delay
 		thread-id run-with-thread-id cb
 
-.look-for-quit-event bool() summon
+-look-for-quit-event bool() summon
 	trusted loop
 		e mut SDL_Event = ()
 		if (&e).SDL_PollEvent == 0
@@ -219,15 +219,15 @@ main nat^(_ string[]) summon
 		else
 			continue
 
-.handle-sdl-error void(err c-int, description string) summon, unsafe
+-handle-sdl-error void(err c-int, description string) summon, unsafe
 	unless err == 0
 		description fail-sdl-error
 
-.fail-sdl-error void(description string) summon, unsafe
+-fail-sdl-error void(description string) summon, unsafe
 	throw "sdl error in {description}: {SDL_GetError}"
 	SDL_Quit
 
-.vbo-create GLuint(gl gl-ext, vertices vertex array) summon, unsafe
+-vbo-create GLuint(gl gl-ext, vertices vertex array) summon, unsafe
 	vbo mut GLuint = 0
 	n-buffers = 1 to-int32
 	gl glGenBuffers n-buffers, &vbo
@@ -243,9 +243,9 @@ main nat^(_ string[]) summon
 size-bytes nat(vertices vertex array) unsafe
 	vertices.size * size-of@vertex
 
-.vbo-free void(gl gl-ext, vbo GLuint) summon, unsafe
+-vbo-free void(gl gl-ext, vbo GLuint) summon, unsafe
 	gl glDeleteBuffers 1, &vbo
 
-.gl-check-error void(gl gl-ext, desc string) summon
+-gl-check-error void(gl gl-ext, desc string) summon
 	err = gl glGetError
 	assert err == GL_NO_ERROR : "Gl error at {desc}: code {err}"

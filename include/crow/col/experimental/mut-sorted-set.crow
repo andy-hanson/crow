@@ -20,7 +20,7 @@ Unlike `mut-list`, values are in sorted order, not insertion order,
 and it never stores two of the same value.
 ###
 mut-sorted-set[t] record mut
-	.inner (t, void) mut-sorted-dict
+	-inner (t, void) mut-sorted-dict
 
 # New empty `mut-sorted-set`.
 new[t] t mut-sorted-set() t key
@@ -53,11 +53,11 @@ in[t] bool(value t, a t mut-sorted-set) t key
 Adds a value to the set.
 Does nothing if the value is already in the set.
 ###
-~=[t] void(a t mut-sorted-set, value t) t key
+~ ~=[t] void(a t mut-sorted-set, value t) t key
 	a.inner[value] := ()
 
 # Adds multiple values to the set.
-~~=[t] void(a t mut-sorted-set, values t[]) t key
+~ ~~=[t] void(a t mut-sorted-set, values t[]) t key
 	for value : values
 		a ~= value
 

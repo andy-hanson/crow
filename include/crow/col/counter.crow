@@ -14,30 +14,30 @@ import
 	./list: iterate, list, to-list
 	./mut-dict: mut-dict, new, set-subscript, subscript, to-dict
 
-!counter[k] record
-	.inner nat64[k]
++counter[k] record
+	-inner nat64[k]
 
-!new[k] k counter(...a k array) k key
++new[k] k counter(...a k array) k key
 	a.to-list to-counter
 
-!to-counter[k] k counter(values k[]) k key
++to-counter[k] k counter(values k[]) k key
 	res nat64 mut[k] = ()
 	for x : values
 		res[x] := (res[x] ?? 0) + 1
 	res.to-dict,
 
-!to-dict[k] nat64[k](a k counter) k key
++to-dict[k] nat64[k](a k counter) k key
 	a inner
 
-!subscript[k] nat64(a k counter, value k) k key
++subscript[k] nat64(a k counter, value k) k key
 	a.inner[value] ?? 0
 
-!~[k] k counter(a k counter, value k) k key
++~[k] k counter(a k counter, value k) k key
 	a.inner ~ (value, a[value] + 1),
 
 region spec impls (see collection.crow)
 
-!iterate[k] bool(a k counter, f act bool(k, nat64)) k key
++iterate[k] bool(a k counter, f act bool(k, nat64)) k key
 	a.inner iterate f
 
 test

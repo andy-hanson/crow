@@ -6,5 +6,5 @@ import
 export
 	./private/symbol-low-level: ==, <=>, symbol, to-string, string-to-symbol
 
-!hash-mix void(hasher hasher, a symbol)
++hash-mix void(hasher hasher, a symbol)
 	hasher hash-mix a.to-string

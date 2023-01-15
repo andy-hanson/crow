@@ -5,11 +5,11 @@ import
 
 audio-queue record force-sendable by-ref
 	format sound-format
-	.lock-by-val lock by-val
+	-lock-by-val lock by-val
 	# All sounds normalized to `format`
-	.playing entry mut[]
+	-playing entry mut[]
 
-.lock lock(a audio-queue) noctx, unsafe
+-lock lock(a audio-queue) noctx, unsafe
 	&a.lock-by-val
 
 new audio-queue(format sound-format)
@@ -18,16 +18,16 @@ new audio-queue(format sound-format)
 		res.lock init
 		res
 
-.entry record by-ref force-sendable
+-entry record by-ref force-sendable
 	samples float32 array
 	cur mut float32*
 	looping bool
 
-.reset-position void(a entry)
+-reset-position void(a entry)
 	a.cur := a.samples begin-pointer
 
-.is-over bool(a entry) noctx
-	!a.looping && trusted a.cur == a.samples.end-pointer
+-is-over bool(a entry) noctx
+	+a.looping && trusted a.cur == a.samples.end-pointer
 
 clear void(a audio-queue) noctx
 	trusted
@@ -48,14 +48,14 @@ pull void(a audio-queue, out float32 mut-array) noctx, unsafe
 	a.playing.begin-pointer each-playing a.playing.end-pointer, out
 	a.lock release
 
-.each-playing void(cur entry mut*, end entry mut*, out float32 mut-array) noctx, unsafe
+-each-playing void(cur entry mut*, end entry mut*, out float32 mut-array) noctx, unsafe
 	if cur != end
 		*cur add-to out
 		cur + 1 each-playing end, out
 	else
 		()
 
-.add-to void(a entry, out float32 mut-array) noctx, unsafe
+-add-to void(a entry, out float32 mut-array) noctx, unsafe
 	n-remaining = a.samples.end-pointer - a.cur
 	if n-remaining > out.size
 		end = a.cur + out.size
@@ -70,7 +70,7 @@ pull void(a audio-queue, out float32 mut-array) noctx, unsafe
 		else
 			a.cur := a.samples end-pointer
 
-.add void(a float32 mut-array, b float32 array) noctx, unsafe
+-add void(a float32 mut-array, b float32 array) noctx, unsafe
 	assert a.size == b.size
 	out mut = a begin-pointer
 	read mut = b begin-pointer
@@ -80,7 +80,7 @@ pull void(a audio-queue, out float32 mut-array) noctx, unsafe
 		read := read + 1
 	assert read == b.end-pointer
 
-.play-common playing-sound(a audio-queue, sound sound, looping bool)
+-play-common playing-sound(a audio-queue, sound sound, looping bool)
 	assert sound.format == a.format : "sound format mismatch: expected {a format}, got {sound format}"
 	trusted
 		a.lock acquire
@@ -95,7 +95,7 @@ pull void(a audio-queue, out float32 mut-array) noctx, unsafe
 			a set-playing entry, desired
 		reset, set-playing
 
-.set-playing void(a audio-queue, entry entry, desired bool)
+-set-playing void(a audio-queue, entry entry, desired bool)
 	trusted
 		a.lock acquire
 		is-playing mut bool = false

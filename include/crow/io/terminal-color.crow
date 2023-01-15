@@ -3,10 +3,10 @@ Functions for adding colors to terminal output.
 ###
 
 # Resets any color.
-!reset string()
++reset string()
 	"\x1b[m"
 
-!term-foreground-color enum
++term-foreground-color enum
 	black = 30
 	red = 31
 	green = 32
@@ -17,16 +17,16 @@ Functions for adding colors to terminal output.
 	white = 37
 
 # String that when printed, will set the terminal's foreground color.
-!foreground string(a term-foreground-color)
++foreground string(a term-foreground-color)
 	"\x1b[{a to-nat32}m"
 
 # String that when printed, will set the terminal's foreground color.
-!foreground string(red float64, green float64, blue float64)
++foreground string(red float64, green float64, blue float64)
 	"\x1b[38;2;{red to-color};{green to-color};{blue to-color}m"
 
 # String that when printed, will make text bold.
-!bold string()
++bold string()
 	"\x1b[1m"
 
-.to-color nat8(f float64)
+-to-color nat8(f float64)
 	(f * 255).truncate-to-int64.clamp-to-nat64 clamp-to-nat8

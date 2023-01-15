@@ -15,10 +15,10 @@ import
 Immutable stack type.
 Iteration functions move from the bottom to the top.
 ###
-!stack[t] record
-	.last-node t node?
++stack[t] record
+	-last-node t node?
 
-.node[t] record
+-node[t] record
 	prev t node?
 	value t
 
@@ -27,7 +27,7 @@ Stack containing the given elements.
 
 The first element of `a` goes on the bottom and the last element of `a` goes on the top.
 ###
-!new[t] t stack(...a t array)
++new[t] t stack(...a t array)
 	a.to-list to-stack
 
 ###
@@ -35,25 +35,25 @@ Stack containing the given elements.
 
 The first element of `a` goes on the bottom and the last element of `a` goes on the top.
 ###
-!to-stack[t] t stack(a t[])
++to-stack[t] t stack(a t[])
 	res mut t stack = ()::(t node?),
 	for x : a
 		res := res ~ x
 	res
 
 # Copy elements a list.
-!to-list[t] t[](a t stack)
++to-list[t] t[](a t stack)
 	for x : a; x
 
 # `true` iff `a.size == 0`.
-!is-empty[t] bool(a t stack)
++is-empty[t] bool(a t stack)
 	a.last-node is-empty
 
 ###
 Appends an element to the stack.
 This is O(1).
 ###
-!~[t] t stack(a t stack, b t)
++~[t] t stack(a t stack, b t)
 	# TODO: type annotation should not be necessary
 	((a.last-node, b),)::(t node?),
 
@@ -61,7 +61,7 @@ This is O(1).
 Number of elements in the stack.
 This is O(1).
 ###
-!size[t] nat64(a t stack)
++size[t] nat64(a t stack)
 	res mut = 0
 	for _ : a
 		res := res + 1
@@ -72,7 +72,7 @@ Top element.
 Returns an empty option iff `a` is empty.
 This is O(1).
 ###
-!peek[t] t?(a t stack)
++peek[t] t?(a t stack)
 	if node ?= a last-node
 		node.value,
 
@@ -80,15 +80,15 @@ This is O(1).
 Returns the top element of the a stacknd a new stack with all elements but the top.
 Returns an empty option iff `a` is empty.
 ###
-!pop[t] (t stack, t)?(a t stack)
++pop[t] (t stack, t)?(a t stack)
 	if node ?= a last-node
 		((node.prev,), node.value),
 
 region spec impls (see collection.crow)
 
-!iterate[t] bool(a t stack, f act bool(t))
++iterate[t] bool(a t stack, f act bool(t))
 	a.last-node iterate-recur f
-.iterate-recur[t] bool(a t node?, f act bool(t))
+-iterate-recur[t] bool(a t node?, f act bool(t))
 	if node ?= a
 		node.prev iterate-recur f || f[node value]
 iterate-reverse[t] bool(a t stack, f act bool(t))
@@ -112,19 +112,19 @@ to-array-reverse[t] t array(a t stack)
 			false
 		forbid broke
 
-!stack-iterator[t] record by-val
++stack-iterator[t] record by-val
 	collection t stack
-	.array-reverse t array-iterator
+	-array-reverse t array-iterator
 
-!begin[t] t stack-iterator(a t stack)
++begin[t] t stack-iterator(a t stack)
 	a, a.to-array-reverse.end
-!end[t] t stack-iterator(a t stack)
++end[t] t stack-iterator(a t stack)
 	a, a.to-array-reverse.begin
 
-!prev[t] (t stack-iterator, t)?(a t stack-iterator)
++prev[t] (t stack-iterator, t)?(a t stack-iterator)
 	if pair ?= a.array-reverse next
 		((a.collection, pair.b), pair.a),
-!next[t] (t, t stack-iterator)?(a t stack-iterator)
++next[t] (t, t stack-iterator)?(a t stack-iterator)
 	if pair ?= a.array-reverse prev
 		(pair.b, (a.collection, pair.a)),
 

@@ -17,7 +17,7 @@ array-reference-equal[t] bool(a t array, b t array) noctx, unsafe
 	a.begin-pointer == b.begin-pointer && a.size == b.size
 
 # Pointer to the end of an array.
-!end-pointer[t] t*(a t array) noctx, unsafe
++end-pointer[t] t*(a t array) noctx, unsafe
 	a.begin-pointer + a.size
 
 ###
@@ -25,12 +25,12 @@ Arr or the range from begin to end.
 `begin` is inclusive and `end` is exclusive.
 UB if begin > end.
 ###
-!as-array[t] t array(pointers t* range) noctx, unsafe
++as-array[t] t array(pointers t* range) noctx, unsafe
 	pointers.size, pointers.low
-!as-array[t] t array(pointers t mut* range) noctx, unsafe
++as-array[t] t array(pointers t mut* range) noctx, unsafe
 	pointers.size, pointers.low.as-const
 
-!pointers[t] t* range(a t array) noctx, unsafe
++pointers[t] t* range(a t array) noctx, unsafe
 	a.begin-pointer .. a.end-pointer
 
 array-cast[out, in] out array(a in array) noctx, unsafe
@@ -38,7 +38,7 @@ array-cast[out, in] out array(a in array) noctx, unsafe
 	a.size, a.begin-pointer.pointer-cast
 
 # Create an array from a range of pointers.
-!subscript[t] t array(a t*, r nat64 range) noctx, unsafe
++subscript[t] t array(a t*, r nat64 range) noctx, unsafe
 	r.size, a + r.low
 
 ###
@@ -46,7 +46,7 @@ Equivalent to calling `f[a[0]]`, `f[a[1]]`, etc.
 
 Calls `f` for each element in `a`.
 ###
-!iterate[t] bool(a t array, f act bool(t))
++iterate[t] bool(a t array, f act bool(t))
 	trusted if size-of@t == 0
 		i mut = 0
 		loop
@@ -69,12 +69,12 @@ Calls `f` for each element in `a`.
 				cur := cur + 1
 				continue
 
-!array-builder[t] record mut
-	.begin mut t mut*
++array-builder[t] record mut
+	-begin mut t mut*
 	# If `size-of@t == 0`, we store the size here instead of an actual pointer
-	.cur mut t mut*
-	.end mut t mut*
-!build[t] t array(a build-options, f act void(t array-builder))
+	-cur mut t mut*
+	-end mut t mut*
++build[t] t array(a build-options, f act void(t array-builder))
 	trusted if size-of@t == 0
 		# store size in 'cur'
 		builder t array-builder = null, 0.to-mut-pointer, null
@@ -90,7 +90,7 @@ Calls `f` for each element in `a`.
 		builder.end := null
 		res
 
-!~=[t] void(a t array-builder, value t)
++~=[t] void(a t array-builder, value t)
 	trusted if size-of@t == 0
 		a.cur := (a.cur.to-nat64 + 1).to-mut-pointer
 	else
@@ -107,7 +107,7 @@ Calls `f` for each element in `a`.
 		*a.cur := value
 		a.cur := a.cur + 1
 
-!~~=[t] void(a t array-builder, values t array)
++~~=[t] void(a t array-builder, values t array)
 	trusted if size-of@t == 0
 		a.cur := (a.cur.to-nat64 + values.size).to-mut-pointer
 	else
@@ -125,7 +125,7 @@ Calls `f` for each element in `a`.
 		a.cur copy-data-from values.begin-pointer, values.size
 		a.cur := a.cur + values.size
 
-!size[t] nat64(a t array-builder)
++size[t] nat64(a t array-builder)
 	trusted if size-of@t == 0
 		a.cur to-nat64
 	else

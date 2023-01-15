@@ -15,8 +15,8 @@ dirent record extern packed
 	d_reclen nat16
 	d_type char8
 	# TODO: d_name char8[256]
-	.d_name bytes256
-.bytes256 extern(256) data
+	-d_name bytes256
+-bytes256 extern(256) data
 new dirent() unsafe
 	0, 0, 0, "\0", ()
 

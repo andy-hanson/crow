@@ -27,7 +27,7 @@ load-texture-from-bmp GLuint(gl gl-ext, bmp-raw nat8[]) summon, unsafe
 
 		texture
 
-.check-error void(gl gl-ext, step string) summon, unsafe
+-check-error void(gl gl-ext, step string) summon, unsafe
 	err = gl glGetError
 	assert err == GL_NO_ERROR : "Error loading image (in {step}): code {err to-string}"
 

@@ -28,37 +28,37 @@ Popping removes the pair with the lowest key.
 
 If two pairs have the same key, the second pair added will be popped second.
 ###
-!mut-priority-queue[k, v] record mut by-ref
++mut-priority-queue[k, v] record mut by-ref
 	# TODO: Use by-val
 	# The smallest value goes on the right
-	.mins (k, v) mut[]
+	-mins (k, v) mut[]
 	# This may be shorter than mins -- buckets on the right considered missing.
-	.buckets (k, v) mut[] mut[]
+	-buckets (k, v) mut[] mut[]
 
 # New priority queue containing the given pairs.
-!new[k, v] (k, v) mut-priority-queue(...a (k, v) array) k priority
++new[k, v] (k, v) mut-priority-queue(...a (k, v) array) k priority
 	a.to-list to-mut-priority-queue
 
 # Copies a list to a new priority queue.
-!to-mut-priority-queue[k, v] (k, v) mut-priority-queue(a (k, v)[]) k priority
++to-mut-priority-queue[k, v] (k, v) mut-priority-queue(a (k, v)[]) k priority
 	mins = a to-mut-list
 	mins set-sort pair => pair.from compare-reverse
 	mins, ()
 
 # Removes all pairs from the queue.
-!clear[k, v] void(a (k, v) mut-priority-queue) k priority
++clear[k, v] void(a (k, v) mut-priority-queue) k priority
 	a.mins clear
 	a.buckets clear
 
 # True iff `a.size == 0`.
-!is-empty[k, v] bool(a (k, v) mut-priority-queue) k priority
++is-empty[k, v] bool(a (k, v) mut-priority-queue) k priority
 	a.mins is-empty
 
 ###
 Number of pairs in the queue.
 This is O(n).
 ###
-!size[k, v] nat64(a (k, v) mut-priority-queue) k priority
++size[k, v] nat64(a (k, v) mut-priority-queue) k priority
 	res mut = a.mins size
 	for b : a.buckets
 		res := res + b.size
@@ -68,7 +68,7 @@ This is O(n).
 Adds a pair to the queue.
 This is O(log n).
 ###
-!~=[k, v] void(a (k, v) mut-priority-queue, pair (k, v)) k priority
++~=[k, v] void(a (k, v) mut-priority-queue, pair (k, v)) k priority
 	# Highest min is on the right, so comparing in reverse
 	insert = a.mins binary-search-insert it => it.from <=> pair.from
 	if insert is-at-end
@@ -83,7 +83,7 @@ Returns an empty option iff the queue was empty (before calling `pop`).
 
 This is amortized O(log n).
 ###
-!pop[k, v] (k, v)?(a (k, v) mut-priority-queue) k priority
++pop[k, v] (k, v)?(a (k, v) mut-priority-queue) k priority
 	res = a.mins pop
 	if a.mins.size < a.buckets.size
 		assert a.mins.size + 1 == a.buckets.size
@@ -97,13 +97,13 @@ This is amortized O(log n).
 		a.mins ~~= bucket
 	res
 
-!pop-if[k, v] (k, v)?(a (k, v) mut-priority-queue, f act bool((k, v))) k priority
++pop-if[k, v] (k, v)?(a (k, v) mut-priority-queue, f act bool((k, v))) k priority
 	if res ?= a.mins peek
 		if f[res]
 			a pop
 
 # Like `pop`, but discards the key.
-!pop-value[k, v] v?(a (k, v) mut-priority-queue) k priority
++pop-value[k, v] v?(a (k, v) mut-priority-queue) k priority
 	if pair ?= a pop
 		pair.to,
 
@@ -111,15 +111,15 @@ This is amortized O(log n).
 Copy pairs to a new priority queue.
 This is O(n).
 ###
-!copy[k, v] (k, v) mut-priority-queue(a (k, v) mut-priority-queue) k priority
++copy[k, v] (k, v) mut-priority-queue(a (k, v) mut-priority-queue) k priority
 	a spread-all-buckets
 	a.mins.copy, ()
 
-!to-list[k, v] (k, v)[](a (k, v) mut-priority-queue) k priority
++to-list[k, v] (k, v)[](a (k, v) mut-priority-queue) k priority
 	a spread-all-buckets
 	for x : a.mins reverse; x
 
-.spread-all-buckets[k, v] void(a (k, v) mut-priority-queue) k priority
+-spread-all-buckets[k, v] void(a (k, v) mut-priority-queue) k priority
 	old-mins = a.mins move-to-array
 	for index, old-min : old-mins
 		if index < a.buckets.size
@@ -130,14 +130,14 @@ This is O(n).
 		a.mins ~= old-min
 	a.buckets clear
 
-.add-to-bucket[k, v] void(buckets (k, v) mut[] mut[], index nat64, pair (k, v))
+-add-to-bucket[k, v] void(buckets (k, v) mut[] mut[], index nat64, pair (k, v))
 	if index < buckets.size
 		buckets[index] ~= pair
 	else
 		buckets ~= ()
 		buckets add-to-bucket index, pair
 
-.dbg[k, v] string(a (k, v) mut-priority-queue) k to-string, v to-string
+-dbg[k, v] string(a (k, v) mut-priority-queue) k to-string, v to-string
 	# TODO: should be able to infer type arguments
 	trusted
 		mins = a.mins temp-as-array
@@ -150,19 +150,19 @@ This is O(n).
 					" [{parts}]"
 			"{min dbg}{show-bucket}"
 
-.dbg[k, v] string(a (k, v)) k to-string, v to-string
+-dbg[k, v] string(a (k, v)) k to-string, v to-string
 	"{a from} -> {a to}"
 
-.verify void(a (nat64, string) mut-priority-queue, expected string)
+-verify void(a (nat64, string) mut-priority-queue, expected string)
 	a.dbg is expected
 
 region build
 
-mut-priority-queue-builder[k, v] record mut
-	.inner (k, v) list-builder
-build[k, v] (k, v) mut-priority-queue(a build-options, f act void((k, v) mut-priority-queue-builder)) k priority
++mut-priority-queue-builder[k, v] record mut
+	-inner (k, v) list-builder
++build[k, v] (k, v) mut-priority-queue(a build-options, f act void((k, v) mut-priority-queue-builder)) k priority
 	a build (out => f[(out,)]) to-mut-priority-queue
-~=[k, v] void(a (k, v) mut-priority-queue-builder, value (k, v)) k priority
++~=[k, v] void(a (k, v) mut-priority-queue-builder, value (k, v)) k priority
 	a.inner ~= value
 
 test

@@ -75,7 +75,7 @@ binary-search-exact[t] t array-iterator?(a t array, value t) t compare
 			as greater
 				left := mid + 1
 				continue
-.linear-search-exact[t] t array-iterator?(left t array-iterator, right t array-iterator, value t) t equal
+-linear-search-exact[t] t array-iterator?(left t array-iterator, right t array-iterator, value t) t equal
 	cur mut = left
 	loop
 		if cur < right
@@ -133,7 +133,7 @@ test
 	(a binary-search-insert x => 8 <=> x).next-index is 4
 
 # Returns an iterator that the element should be inserted to the right of.
-.binary-search-insert[t] t array-iterator(a t array, compare act comparison(t))
+-binary-search-insert[t] t array-iterator(a t array, compare act comparison(t))
 	left mut = a begin
 	right mut = a end
 	loop
@@ -199,7 +199,7 @@ merge-no-duplicates[t] void(a t mut[], b t mut[], compare act unique-comparison(
 					continue
 		b clear
 
-.test-one void(a nat64[], b nat64[], expected nat64[])
+-test-one void(a nat64[], b nat64[], expected nat64[])
 	a-mut = a to-mut-list
 	b-mut = b to-mut-list
 	a-mut merge-no-duplicates b-mut, (x, y) =>

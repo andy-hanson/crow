@@ -3,20 +3,20 @@ foo[t] void(p nat, _ string)
 	_ act void(nat) = _ => ()
 	()
 
-.bar[t] void() t compare
+-bar[t] void() t compare
 	()
 
-.r record mut
-	.r0 .mut nat
+-r record mut
+	-r0 .mut nat
 
-.u union
+-u union
 	u0 nat
 
-.a alias
+-a alias
 	nat
 
-.e enum
+-e enum
 	e0
 
-.f flags
+-f flags
 	f0

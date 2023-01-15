@@ -4,18 +4,18 @@ no-std
 `f[x]` calls the function and returns its return value.
 `f[]` calls a function with no arguments and `f[x, y, z]` calls a function with 3 arguments.
 ###
-!subscript[r] r(a fun* r()) builtin, noctx
-!subscript[r, p0] r(a fun* r(p0), p0 p0) builtin, noctx
-!subscript[r, p0, p1] r(a fun* r(p0, p1), p0 p0, p1 p1) builtin, noctx
-!subscript[r, p0, p1, p2] r(a fun* r(p0, p1, p2), p0 p0, p1 p1, p2 p2) builtin, noctx
-!subscript[r, p0, p1, p2, p3] r(
++subscript[r] r(a fun* r()) builtin, noctx
++subscript[r, p0] r(a fun* r(p0), p0 p0) builtin, noctx
++subscript[r, p0, p1] r(a fun* r(p0, p1), p0 p0, p1 p1) builtin, noctx
++subscript[r, p0, p1, p2] r(a fun* r(p0, p1, p2), p0 p0, p1 p1, p2 p2) builtin, noctx
++subscript[r, p0, p1, p2, p3] r(
 	a fun* r(p0, p1, p2, p3),
 	p0 p0,
 	p1 p1,
 	p2 p2,
 	p3 p3,
 ) builtin, noctx
-!subscript[r, p0, p1, p2, p3, p4] r(
++subscript[r, p0, p1, p2, p3, p4] r(
 	a fun* r(p0, p1, p2, p3, p4),
 	p0 p0,
 	p1 p1,
@@ -23,7 +23,7 @@ no-std
 	p3 p3,
 	p4 p4,
 ) builtin, noctx
-!subscript[r, p0, p1, p2, p3, p4, p5] r(
++subscript[r, p0, p1, p2, p3, p4, p5] r(
 	a fun* r(p0, p1, p2, p3, p4, p5),
 	p0 p0,
 	p1 p1,
@@ -32,7 +32,7 @@ no-std
 	p4 p4,
 	p5 p5,
 ) builtin, noctx
-!subscript[r, p0, p1, p2, p3, p4, p5, p6] r(
++subscript[r, p0, p1, p2, p3, p4, p5, p6] r(
 	a fun* r(p0, p1, p2, p3, p4, p5, p6),
 	p0 p0,
 	p1 p1,
@@ -42,7 +42,7 @@ no-std
 	p5 p5,
 	p6 p6,
 ) builtin, noctx
-!subscript[r, p0, p1, p2, p3, p4, p5, p6, p7] r(
++subscript[r, p0, p1, p2, p3, p4, p5, p6, p7] r(
 	a fun* r(p0, p1, p2, p3, p4, p5, p6, p7),
 	p0 p0,
 	p1 p1,
@@ -53,7 +53,7 @@ no-std
 	p6 p6,
 	p7 p7,
 ) builtin, noctx
-!subscript[r, p0, p1, p2, p3, p4, p5, p6, p7, p8] r(
++subscript[r, p0, p1, p2, p3, p4, p5, p6, p7, p8] r(
 	a fun* r(p0, p1, p2, p3, p4, p5, p6, p7, p8),
 	p0 p0,
 	p1 p1,
@@ -67,15 +67,15 @@ no-std
 ) builtin, noctx
 
 # Calls the function and returns its return value.
-!subscript[r] r(a fun r()) builtin
-!subscript[r, p0] r(a fun r(p0), p0 p0) builtin
-!subscript[r, p0, p1] r(a fun r(p0, p1), p0 p0, p1 p1) builtin
-!subscript[r, p0, p1, p2] r(a fun r(p0, p1, p2), p0 p0, p1 p1, p2 p2) builtin
-!subscript[r, p0, p1, p2, p3] r(a fun r(p0, p1, p2, p3), p0 p0, p1 p1, p2 p2, p3 p3) builtin
++subscript[r] r(a fun r()) builtin
++subscript[r, p0] r(a fun r(p0), p0 p0) builtin
++subscript[r, p0, p1] r(a fun r(p0, p1), p0 p0, p1 p1) builtin
++subscript[r, p0, p1, p2] r(a fun r(p0, p1, p2), p0 p0, p1 p1, p2 p2) builtin
++subscript[r, p0, p1, p2, p3] r(a fun r(p0, p1, p2, p3), p0 p0, p1 p1, p2 p2, p3 p3) builtin
 
 # Calls the function and returns its return value.
-!subscript[r] r(a act r()) builtin
-!subscript[r, p0] r(a act r(p0), p0 p0) builtin
-!subscript[r, p0, p1] r(a act r(p0, p1), p0 p0, p1 p1) builtin
-!subscript[r, p0, p1, p2] r(a act r(p0, p1, p2), p0 p0, p1 p1, p2 p2) builtin
-!subscript[r, p0, p1, p2, p3] r(a act r(p0, p1, p2, p3), p0 p0, p1 p1, p2 p2, p3 p3) builtin
++subscript[r] r(a act r()) builtin
++subscript[r, p0] r(a act r(p0), p0 p0) builtin
++subscript[r, p0, p1] r(a act r(p0, p1), p0 p0, p1 p1) builtin
++subscript[r, p0, p1, p2] r(a act r(p0, p1, p2), p0 p0, p1 p1, p2 p2) builtin
++subscript[r, p0, p1, p2, p3] r(a act r(p0, p1, p2, p3), p0 p0, p1 p1, p2 p2, p3 p3) builtin

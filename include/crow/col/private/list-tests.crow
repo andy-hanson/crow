@@ -21,7 +21,7 @@ import
 dummy-list-tests nat64()
 	0
 
-.verify[t] void(a t[], expected string) t equal, t json, t to-string
+-verify[t] void(a t[], expected string) t equal, t json, t to-string
 	a.dbg is expected
 	a.size is a.get-root.check-structure
 
@@ -55,31 +55,31 @@ dummy-list-tests nat64()
 		for j : i .. a.size
 			a[i .. j] is a-array[i .. j].to-list
 
-.dbg[t] spec
+-dbg[t] spec
 	dbg string(a t)
-.dbg[t] string(a t[]) t to-string
+-dbg[t] string(a t[]) t to-string
 	a.get-root.node dbg-node
-.dbg[t] string(a t l2) t to-string
+-dbg[t] string(a t l2) t to-string
 	a.node dbg-node
-.dbg[t] string(a t l3) t to-string
+-dbg[t] string(a t l3) t to-string
 	a.nodes dbg
-.dbg-node[leaf, lower] string(a (leaf, lower) node) leaf dbg, lower dbg
+-dbg-node[leaf, lower] string(a (leaf, lower) node) leaf dbg, lower dbg
 	match a
 	as leaf l
 		l dbg
 	as branch b
 		"({b.left dbg} {b.down dbg} {b.right dbg})"
-.dbg[t] string(a t array) t to-string
+-dbg[t] string(a t array) t to-string
 	parts = " " join for x : a; "{x}"
 	"[{parts}]"
-.dbg[t] string(a t array2d) t to-string
+-dbg[t] string(a t array2d) t to-string
 	parts = " " join for x : a arrays; x dbg
 	"[{parts}]"
-.dbg[t] string(a t array3d) t to-string
+-dbg[t] string(a t array3d) t to-string
 	parts = " " join for x : a arrays; x dbg
 	"[{parts}]"
 
-.check-structure[t] nat64(a t l1)
+-check-structure[t] nat64(a t l1)
 	match a node
 	as leaf xs
 		xs size
@@ -88,14 +88,14 @@ dummy-list-tests nat64()
 		forbid b.right is-empty
 		b.left.size + b.down.check-structure + b.right.size
 
-.check-structure[t] nat64(a t l2)
+-check-structure[t] nat64(a t l2)
 	match a node
 	as leaf xs
 		xs check-structure
 	as branch b
 		b.left.check-structure + b.down.nodes.check-structure + b.right.check-structure
 
-.check-structure[t] nat64(a t array2d)
+-check-structure[t] nat64(a t array2d)
 	acc mut = 0
 	for a1d : a arrays
 		forbid a1d is-empty
@@ -103,7 +103,7 @@ dummy-list-tests nat64()
 	assert acc == a.total-size
 	acc
 
-.check-structure[t] nat64(a t array3d)
+-check-structure[t] nat64(a t array3d)
 	# TODO: check total-size is accurate
 	acc mut = 0
 	for a2d : a arrays
@@ -143,21 +143,21 @@ test
 	e verify "([1 2 3 4 5] ([{s} {s} {s} {s}] [] [{s} {s} {s}]) [9 8 7 6])"
 
 # use a big type to force smaller leaves for easier testing
-.big-nat record by-val
+-big-nat record by-val
 	a nat64
 	b nat64
 	c nat64
 
-.== bool(a big-nat, b big-nat)
+-== bool(a big-nat, b big-nat)
 	a.a == b.a && a.b == b.b && a.c == b.c
 
-.big big-nat(a nat64)
+-big big-nat(a nat64)
 	a, a, a
 
-.json json(a big-nat)
+-json json(a big-nat)
 	a.a json
 
-.to-string string(a big-nat)
+-to-string string(a big-nat)
 	a.a to-string
 
 test

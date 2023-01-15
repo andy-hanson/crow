@@ -9,31 +9,31 @@ export
 
 region iteration
 
-!==[t] bool(a t range, b t range) noctx, t equal
++==[t] bool(a t range, b t range) noctx, t equal
 	a.low == b.low && a.high == b.high
 
-!is-empty[t] bool(a t range) noctx, t equal
++is-empty[t] bool(a t range) noctx, t equal
 	a.low == a.high
 
-!range-iterator[t] record by-val
++range-iterator[t] record by-val
 	collection t range
-	.next-value t
-!==[t] bool(a t range-iterator, b t range-iterator) noctx, t equal
+	-next-value t
++==[t] bool(a t range-iterator, b t range-iterator) noctx, t equal
 	assert a.collection == b.collection : "can't compare iterators from different ranges"
 	a.next-value == b.next-value
-!<=>[t] comparison(a t range-iterator, b t range-iterator) noctx, t compare
++<=>[t] comparison(a t range-iterator, b t range-iterator) noctx, t compare
 	assert a.collection == b.collection : "can't compare iterators from different ranges"
 	a.next-value <=> b.next-value
 
-!begin[t] t range-iterator(a t range) noctx
++begin[t] t range-iterator(a t range) noctx
 	a, a.low
-!end[t] t range-iterator(a t range) noctx
++end[t] t range-iterator(a t range) noctx
 	a, a.high
 
-!prev[t] (t range-iterator, t)?(a t range-iterator) noctx, t rangeable
++prev[t] (t range-iterator, t)?(a t range-iterator) noctx, t rangeable
 	if a.next-value > a.collection.low
 		value = a.next-value - 1
 		((a.collection, value), value),
-!next[t] (t, t range-iterator)?(a t range-iterator) noctx, t forward-rangeable
++next[t] (t, t range-iterator)?(a t range-iterator) noctx, t forward-rangeable
 	if a.next-value < a.collection.high
 		(a.next-value, (a.collection, a.next-value + 1)),

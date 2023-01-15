@@ -26,7 +26,7 @@ main nat^(args string[]) summon
 		err print "Usage: server PORT"
 		1,
 
-.handle-request http-response(req http-request, db db) summon
+-handle-request http-response(req http-request, db db) summon
 	su = req.url split-url
 	path = su path
 	query = su query
@@ -89,18 +89,18 @@ main nat^(args string[]) summon
 	#descr = req describe-request
 	#200, "OK", dict, "Your request:\n{descr}"
 
-.url record
+-url record
 	path string
 	query string
 
-.split-url url(url-string string)
+-split-url url(url-string string)
 	if split ?= url-string try-split-once "?"
 		split.a, split.b
 	else
 		url-string, ""
 
 # Extra cookies are ignored
-.parse-cookies string?[](cookies-string string, cookie-names string[])
+-parse-cookies string?[](cookies-string string, cookie-names string[])
 	res string? mut[] = cookie-names.size n-of ()
 	for part : cookies-string split "; "
 		if pair ?= part try-split-once "="
@@ -108,10 +108,10 @@ main nat^(args string[]) summon
 				res[index] := pair.b,
 	res move-to-list
 
-.parse-cookie string?(cookies-string string, cookie-name string)
+-parse-cookie string?(cookies-string string, cookie-name string)
 	(cookies-string parse-cookies (cookie-name,))[0]
 
-.parse-query string[string](s string)
+-parse-query string[string](s string)
 	match query parse s
 	as ok pairs
 		pairs to-dict
@@ -119,14 +119,14 @@ main nat^(args string[]) summon
 		error log "failed to parse query {s} with error {err}"
 		()
 
-.query (string, string)[] grammar()
+-query (string, string)[] grammar()
 	query-part separated-by "&"
-.query-part (string, string) grammar()
+-query-part (string, string) grammar()
 	identifier = ("=", "&").text-not-containing-any
 	identifier ~~ "=" ~~ identifier
 
-.json json(a user-info)
+-json json(a user-info)
 	("user", a.user.json), ("userName", a.user-name.json)
 
-.json json(a post-info)
+-json json(a post-info)
 	("post", a.post.json), ("user", a.user.json), ("userName", a.user-name.json), ("content", a.content.json)

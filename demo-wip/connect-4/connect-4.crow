@@ -30,24 +30,24 @@ parse-settings ai-settings?(a string)
 	elif a == "CPU"
 		((10,), (10,)),
 
-.show-winner string(winner color?)
+-show-winner string(winner color?)
 	if w ?= winner
 		"{w} wins!"
 	else
 		"It's a tie."
 
-.ai-settings record
+-ai-settings record
 	ai-depth-red nat?
 	ai-depth-blue nat?
 
-.ai-depth-for-color nat?(color color, ai-settings ai-settings)
+-ai-depth-for-color nat?(color color, ai-settings ai-settings)
 	match color
 	as red
 		ai-settings ai-depth-red
 	as blue
 		ai-settings ai-depth-blue
 
-.play-recur color?^(board board, cur-player color, ai-settings ai-settings) summon
+-play-recur color?^(board board, cur-player color, ai-settings ai-settings) summon
 	x <- if depth ?= cur-player ai-depth-for-color ai-settings
 		board ai-best-x depth
 	else
@@ -62,14 +62,14 @@ parse-settings ai-settings?(a string)
 	else
 		(),
 
-.print-board void(a board, cur-player color, last-x nat?) summon
+-print-board void(a board, cur-player color, last-x nat?) summon
 	clear-screen
 	out print (a to-string cur-player, last-x)
 
-.human-player-move nat^(board board, color color) summon
+-human-player-move nat^(board board, color color) summon
 	out print "{color} player, where will you go? (Type a letter A-G and hit enter)"
 	board human-player-move-recur
-.human-player-move-recur nat^(board board) summon
+-human-player-move-recur nat^(board board) summon
 	column <- "Not a valid column." read-stdin-until-parse it => it column-of-string
 	if board can-place column
 		column,
@@ -77,12 +77,12 @@ parse-settings ai-settings?(a string)
 		out print "Can't, column is full."
 		board human-player-move-recur
 
-.column-of-string nat?(a string)
+-column-of-string nat?(a string)
 	if n ?= a.strip letter-to-number
 		if n < width
 			n,
 
-.letter-to-number nat?(a string)
+-letter-to-number nat?(a string)
 	chars = a char8s
 	if chars.size == 1
 		n = chars[0] to-nat8
@@ -92,11 +92,11 @@ parse-settings ai-settings?(a string)
 		elif "a"::char8.to-nat8 <= n && n < "z"::char8.to-nat8
 			(n - "a"::char8.to-nat8 to-nat64),
 
-.strategy record by-val
+-strategy record by-val
 	x nat
 	score int32
 
-.score-and-best record by-val
+-score-and-best record by-val
 	score int32
 	best strategy
 
@@ -104,13 +104,13 @@ score-cache alias
 	int32 board-cache
 
 # Return a future as this may do a lot of processing
-.ai-best-x nat^(board board, ai-depth nat)
+-ai-best-x nat^(board board, ai-depth nat)
 	<- delay
 	# Use a new cache each time, since each turn we're exploring to a further depth.
 	cache score-cache = ()
 	(cache strategy-recur board, ai-depth, (0, min-int32), 0, 0 x),
 
-.strategy-score int32(cache score-cache, board board, ai-depth nat)
+-strategy-score int32(cache score-cache, board board, ai-depth nat)
 	if cached ?= cache[board]
 		cached
 	else
@@ -118,7 +118,7 @@ score-cache alias
 		cache[board] := res
 		res
 
-.strategy-recur strategy(cache score-cache, board board, ai-depth nat, best strategy, sum-score int, x nat)
+-strategy-recur strategy(cache score-cache, board board, ai-depth nat, best strategy, sum-score int, x nat)
 	if x == width
 		best.x, sum-score.clamp-to-int32
 	else

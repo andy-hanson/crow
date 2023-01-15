@@ -8,14 +8,14 @@ export
 	./private/bootstrap: option
 
 # Empty option.
-!new[t] t?() noctx
++new[t] t?() noctx
 	none
 
 # Option containing `a`.
-!new[t] t?(a t) noctx
++new[t] t?(a t) noctx
 	a some
 
-!==[t] bool(a t?, b t?) noctx, t equal
++==[t] bool(a t?, b t?) noctx, t equal
 	if va ?= a
 		if vb ?= b
 			va == vb
@@ -23,7 +23,7 @@ export
 		b is-empty
 
 # True iff `a` is an empty option.
-!is-empty[t] bool(a t?) noctx
++is-empty[t] bool(a t?) noctx
 	# TODO: `if _ ?= a`
 	if x ?= a
 		_ = x
@@ -32,7 +32,7 @@ export
 		true
 
 # 1 if `a` has a value, else 0.
-!size[t] nat64(a t?) noctx
++size[t] nat64(a t?) noctx
 	unless a is-empty
 		1
 
@@ -41,18 +41,18 @@ Lazily-evaluated.
 If `a` is non-empty, returns it and does not evaluate `b`.
 Else, returns `b`.
 ###
-!||[t] t?(a t?, b t?) builtin, noctx
++||[t] t?(a t?, b t?) builtin, noctx
 
 ###
 Lazily-evaluated. 
 If `a` is non-empty, returns its value and does not evaluate `b`.
 Else, returns `b`.
 ###
-!??[t] t(a t?, default t) builtin, noctx
++??[t] t(a t?, default t) builtin, noctx
 
 ###
 Called like 'a!'
 If `a` is non-empty, returns its value; else throws.
 ###
-!force[t] t(a t?) noctx
++force[t] t(a t?) noctx
 	a ?? throw "tried to force empty option"

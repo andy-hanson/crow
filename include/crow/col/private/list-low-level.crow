@@ -17,7 +17,7 @@ It also is efficient to split from an iterator.
 
 It does not support efficient access by an index, so iterators should be used instead.
 ###
-!list[t] record by-val
++list[t] record by-val
 	root t l1
 
 l1[t] record by-val
@@ -65,14 +65,14 @@ list-reference-equal[t] bool(a t[], b t[]) unsafe
 		as branch bb
 			ba reference-equal bb
 
-!list-builder[t] record mut
-	.inner t array-builder
-!build[t] t[](a build-options, f act void(t list-builder))
++list-builder[t] record mut
+	-inner t array-builder
++build[t] t[](a build-options, f act void(t list-builder))
 	inner t array = a build out => f[(out,)]
 	(inner.leaf,),
-!~=[t] void(a t list-builder, value t)
++~=[t] void(a t list-builder, value t)
 	a.inner ~= value
-!~~=[t] void(a t list-builder, values t[])
++~~=[t] void(a t list-builder, values t[])
 	broke = values iterate-chunks chunk =>
 		a.inner ~~= chunk
 		false
@@ -81,20 +81,20 @@ list-reference-equal[t] bool(a t[], b t[]) unsafe
 iterate-chunks[t] bool(a t[], f act bool(t array))
 	a.root iterate-l1 f
 
-.iterate-l1[t] bool(a t l1, f act bool(t array))
+-iterate-l1[t] bool(a t l1, f act bool(t array))
 	match a node
 	as leaf l
 		f[l]
 	as branch b
 		f[b left] || b.down iterate-l2 f || f[b right]
 
-.iterate-l2[t] bool(a t l2, f act bool(t array))
+-iterate-l2[t] bool(a t l2, f act bool(t array))
 	match a node
 	as leaf l
 		l.arrays iterate f
 	as branch b
 		b.left.arrays iterate f || b.down iterate-l3 f || b.right.arrays iterate f
 
-.iterate-l3[t] bool(a t l3, f act bool(t array))
+-iterate-l3[t] bool(a t l3, f act bool(t array))
 	a.nodes.arrays iterate nodes =>
 		nodes.arrays iterate f

@@ -71,7 +71,7 @@ contexts:
     - match: test$
       scope: keyword
       push: expression
-    - match: '(\!)?(\.)?{{name}}'
+    - match: '([+~-])?(operator)?{{name}}'
       # NOTE: Of course these won't all be functions.
       # But we don't know what kind of declaration it is yet unfortunately.
       # But luckily goto-definition will work even coming from a 'storage.type'.
@@ -79,7 +79,7 @@ contexts:
       push: decl_after_name
       captures:
         1: keyword
-        2: comment
+        2: keyword
 
   decl_after_name:
     - match: '{{unindented_line}}'
@@ -143,7 +143,7 @@ contexts:
   record:
     - match: '{{unindented_line}}'
       pop: true
-    - match: 'data|extern|force-sendable|mut|sendable|\.?new|by-ref|by-val|packed'
+    - match: 'data|extern|force-sendable|mut|sendable|\-?new|by-ref|by-val|packed'
       scope: keyword
     - match: $
       push: record_body
@@ -151,9 +151,11 @@ contexts:
   record_body:
     - match: '{{unindented_line}}'
       pop: true
-    - match: '{{name}}'
+    - match: '([+~\-]){{name}}'
       scope: identifier
       push: type_ending_in_nl
+      captures:
+        1: keyword
 
   spec:
     - match: '{{unindented_line}}'
@@ -311,10 +313,6 @@ contexts:
     # numbers
     - match: '{{number}}'
       scope: constant.numeric
-
-    # `foo. ` in a multiline new record
-    - match: '{{name}}(\.)\s+'
-      scope: comment
 
     # Keywords that are followed by a space
     - match: '\s*(\?|\:|\;|assert|break|continue|elif|for|forbid|if|loop|match|throw|trusted|unless|until|while|with)\s+'

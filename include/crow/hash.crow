@@ -21,37 +21,37 @@ usually just calls `hash-mix` for each value it contains.
 `hash-mix` on a union should mix a number or name for the union member,
 then mix its associated value, if any.
 ###
-!hash-mix[t] spec
++hash-mix[t] spec
 	hash-mix void(hasher hasher, a t)
 
 # Get a hash code for any value.
-!hash[t] nat64(a t) t hash-mix
++hash[t] nat64(a t) t hash-mix
 	hasher hasher = 0,
 	hasher hash-mix a
 	hasher cur
 
 # Type that stores the state of hashing.
-!hasher record mut
-	.cur mut nat64
++hasher record mut
+	-cur mut nat64
 
-!hash-mix void(hasher hasher, a nat8)
++hash-mix void(hasher hasher, a nat8)
 	hasher hash-mix a.to-nat64
-!hash-mix void(hasher hasher, a nat16)
++hash-mix void(hasher hasher, a nat16)
 	hasher hash-mix a.to-nat64
-!hash-mix void(hasher hasher, a nat32)
++hash-mix void(hasher hasher, a nat32)
 	hasher hash-mix a.to-nat64
-!hash-mix void(hasher hasher, a nat64)
++hash-mix void(hasher hasher, a nat64)
 	# TODO: better hash mixing algorithm
 	hasher.cur := hasher.cur wrap-add a
-!hash-mix void(hasher hasher, a int8)
++hash-mix void(hasher hasher, a int8)
 	hasher hash-mix a.to-int64
-!hash-mix void(hasher hasher, a int16)
++hash-mix void(hasher hasher, a int16)
 	hasher hash-mix a.to-int64
-!hash-mix void(hasher hasher, a int32)
++hash-mix void(hasher hasher, a int32)
 	hasher hash-mix a.to-int64
-!hash-mix void(hasher hasher, a int64)
++hash-mix void(hasher hasher, a int64)
 	# TODO: we need 'wrap-to-nat64'
 	trusted hasher hash-mix a.unsafe-to-nat64
 
-!hash-mix void(hasher hasher, a bool)
++hash-mix void(hasher hasher, a bool)
 	hasher hash-mix a.to-nat64

@@ -19,10 +19,10 @@ unw_step c-int(cursor unw_cursor_t mut*) noctx, unsafe
 unw_get_proc_name c-int(cursor unw_cursor_t mut*, begin c-char mut*, size size_t, offset unw_word_t mut*) noctx, unsafe
 	cursor _ULx86_64_get_proc_name begin, size, offset
 
-._Ux86_64_getcontext c-int(context unw_context_t mut*) unwind extern
-._ULx86_64_init_local c-int(cursor unw_cursor_t mut*, context unw_context_t mut*) unwind extern
-._ULx86_64_step c-int(cursor unw_cursor_t mut*) unwind extern
-._ULx86_64_get_proc_name c-int(
+-_Ux86_64_getcontext c-int(context unw_context_t mut*) unwind extern
+-_ULx86_64_init_local c-int(cursor unw_cursor_t mut*, context unw_context_t mut*) unwind extern
+-_ULx86_64_step c-int(cursor unw_cursor_t mut*) unwind extern
+-_ULx86_64_get_proc_name c-int(
 	cursor unw_cursor_t mut*,
 	begin c-char mut*,
 	size size_t,

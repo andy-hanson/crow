@@ -14,12 +14,12 @@ Functions in this spec will be generated when you declare an `enum`.
 
 (Declaring an `enum` also generates other functions that aren't needed here.)
 ###
-!enum-like[e] spec e equal
++enum-like[e] spec e equal
 	# Returns every name and value in the enum.
 	enum-members e named-val array()
 
 # Convert an enum value to name that was used to declare it.
-!to-symbol[e] symbol(a e) e enum-like
++to-symbol[e] symbol(a e) e enum-like
 	for x : enum-members
 		if x.val == a
 			break x.name
@@ -31,7 +31,7 @@ Converts a symbol to the enum value that was declared with that name.
 
 Returns an empty option if `a` is not the name of an enum member.
 ###
-!to-enum[e] e?(a symbol) e enum-like
++to-enum[e] e?(a symbol) e enum-like
 	for x : enum-members
 		if x.name == a
 			break x val
@@ -47,10 +47,10 @@ Converts to the output enum value with the same name.
 
 Returns an empty option if there is no corresponding output value.
 ###
-!enum-convert[out, in] out?(a in) in enum-like, out enum-like
++enum-convert[out, in] out?(a in) in enum-like, out enum-like
 	a.to-symbol to-enum
 
 # TODO: should just be called to-string, but that requires better overloading
 # Same as `a.to-symbol to-string`.
-!enum-to-string[e] string(a e) e enum-like
++enum-to-string[e] string(a e) e enum-like
 	a.to-symbol to-string

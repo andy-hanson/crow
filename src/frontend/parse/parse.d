@@ -694,11 +694,16 @@ void parseModifiersRecur(ref Lexer lexer, ref ArrBuilder!ModifierAst res) {
 }
 
 Opt!(ModifierAst.Kind) tryParseModifierKind(ref Lexer lexer) {
-	if (tryTakeToken(lexer, Token.dot)) {
+	if (tryTakeOperator(lexer, sym!"-")) {
 		Opt!Sym name = tryTakeName(lexer);
 		if (!(has(name) && force(name) == sym!"new"))
-			todo!void("diagnostic: expected 'new' after '.'");
+			todo!void("diagnostic: expected 'new' after '-'");
 		return some(ModifierAst.Kind.newPrivate);
+	} else if (tryTakeOperator(lexer, sym!"+")) {
+		Opt!Sym name = tryTakeName(lexer);
+		if (!(has(name) && force(name) == sym!"new"))
+			todo!void("diagnostic: expected 'new' after '+'");
+		return some(ModifierAst.Kind.newPublic);
 	} else {
 		Opt!(ModifierAst.Kind) res = () {
 			switch (getPeekToken(lexer)) {
@@ -734,8 +739,6 @@ Opt!(ModifierAst.Kind) modifierKindFromSym(Sym a) {
 			return some(ModifierAst.Kind.byVal);
 		case sym!"by-ref".value:
 			return some(ModifierAst.Kind.byRef);
-		case sym!"new".value:
-			return some(ModifierAst.Kind.newPublic);
 		case sym!"packed".value:
 			return some(ModifierAst.Kind.packed);
 		default:
@@ -744,10 +747,12 @@ Opt!(ModifierAst.Kind) modifierKindFromSym(Sym a) {
 }
 
 Visibility tryTakeVisibility(ref Lexer lexer) =>
-	tryTakeToken(lexer, Token.dot)
+	tryTakeOperator(lexer, sym!"-")
 		? Visibility.private_
-		: tryTakeToken(lexer, Token.bang)
+		: tryTakeOperator(lexer, sym!"+")
 		? Visibility.public_
+		: tryTakeOperator(lexer, sym!"~")
+		? Visibility.internal
 		: Visibility.internal;
 
 Opt!ImportsOrExportsAst parseImportsOrExports(ref AllPaths allPaths, ref Lexer lexer, Token keyword) {

@@ -10,7 +10,6 @@ import
 	../../test-util: is
 	../../tuple: new
 	../dict: ~, ~~, dbg, dict, is-empty, new, size, subscript
-	../list: new
 
 dummy-dict-tests nat64()
 	0

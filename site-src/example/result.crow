@@ -51,7 +51,7 @@ float-range record
 	min float
 	max float
 
-.rect record
+-rect record
 	left float
 	right float
 	bottom float
