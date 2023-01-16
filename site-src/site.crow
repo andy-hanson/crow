@@ -1,5 +1,7 @@
 import
-	crow/io/file: current-directory, make-directory, make-symlink-to, path-exists, read-file, try-read-file, write-file
+	crow/io/file:
+		current-directory, ensure-directory, make-symlink-to, path-exists, read-file, try-read-file,
+		write-file
 	crow/io/path: child-path, parent-path
 	crow/io/print: out, print
 	crow/test-util/test-runner: run-all-tests
@@ -44,7 +46,7 @@ main nat^(_ string[]) summon
 -ensure-directory-recursive void(path string) summon
 	unless path == "" || path.path-exists
 		path.parent-path ensure-directory-recursive
-		path make-directory
+		path ensure-directory
 
 link record
 	target string

@@ -1,7 +1,7 @@
 no-std
 import
 	dirent: closedir, DIR, dirent, d_name, new, opendir, readdir_r
-	errno: ENOENT, errno
+	errno: EEXIST, ENOENT, errno
 	stat: mkdir, new, S_IFDIR, S_IFMT, S_IFREG, stat, st_mode
 	stdio: fclose, ferror, FILE, fopen, fread, fseek, ftell, fwrite, SEEK_SET, SEEK_END
 	sys/types: mode_t
@@ -34,7 +34,7 @@ import
 		==, <=>, ~~, as-string, char8, c-string, literal, string, to-bytes, to-c-string, to-string
 	../version: is-windows
 	./path: child-path
-	./posix-util: check-errno, check-posix-error
+	./posix-util: check-errno, check-posix-error, throw-posix-error
 	./print: err, print
 	./win32-util: show-win32-error
 
@@ -341,18 +341,25 @@ each-child-recursive void(path string, filter act bool(string), f act void(strin
 # TODO: this might not be the correct default permissions
 # Creates a new empty directory at `path`.
 +make-directory void(path string) summon
-	# TODO: all-permissions.user-only instead of a number literal
-	# TODO: 'to-nat32' should not be necessary
-	path make-directory 0o777.to-nat32
+	path make-directory all-permissions.user-only
 
 +make-directory void(path string, permissions file-permissions) summon
-	path make-directory permissions.to-mode
+	unless path make-directory-inner permissions
+		trusted check-errno
 
--make-directory void(path string, permissions mode_t) summon
+# Like 'make-directory', but OK if it already exists.
++ensure-directory void(path string) summon
+	unless path make-directory-inner all-permissions.user-only
+		err = trusted errno
+		if err != EEXIST
+			err throw-posix-error
+
+-make-directory-inner bool(path string, permissions file-permissions) summon
 	trusted
 		path-c-string = path to-c-string
-		err = is-windows ? path-c-string _mkdir permissions : path-c-string mkdir permissions
-		err check-posix-error
+		mode = permissions to-mode
+		err = is-windows ? path-c-string _mkdir mode : path-c-string mkdir mode
+		err == 0
 
 # Deletes the file at `path`.
 +remove-file void(path string) summon

@@ -8,7 +8,7 @@ uncaught exception: FOO
 	at call-w-ctx@((nat64 future, exception) result) (generated)
 	at catch@((t, exception) result) (include/crow/private/exception-low-level:47)
 	at catch@(out^) (include/crow/private/exception-low-level:62)
-	at subscript@out.lambda0 (include/crow/future:161)
+	at subscript@out.lambda0 (include/crow/future:176)
 	at call-w-ctx@(void) (generated)
 	at invoke-action (include/crow/private/runtime:175)
 	at do-task (include/crow/private/runtime:169)

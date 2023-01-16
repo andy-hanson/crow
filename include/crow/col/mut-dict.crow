@@ -154,6 +154,16 @@ Returns an empty option if the key was not in the dictionary.
 +try-remove[k, v] v?(a v mut[k], key k) k key
 	a update key, ()
 
++ensure[k, v] v(a v mut[k], key k, get-value act v()) k key
+	if v ?= a[key]
+		v
+	else
+		value = get-value[]
+		a[key] := value
+		value
++ensure[k, v] v(a v mut[k], key k) k key, v new
+	a ensure key, () => ()
+
 # Returns the old value (if it exists).
 -update[k, v] v?(a v mut[k], key k, new-value v?) k key
 	if a.entries is-empty

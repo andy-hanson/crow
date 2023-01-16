@@ -41,40 +41,45 @@ main nat^(_ string[]) summon
 	uses symbol counter
 
 -members record
-	public symbol[]
-	private symbol[]
+	public symbol set
+	private symbol set
 
 all-files file[]^() summon
 	paths <- "src" search-dir-recursive
+	members = paths get-members-per-path
 	for path : paths parallel
-		path get-file
+		imports-and-rest = path.read-file find-imports
+		(path, members[path]!, imports-and-rest.imports, imports-and-rest.rest.words.to-counter),
 
--get-file file^(path string) summon
-	imports-and-rest = path.read-file find-imports
-	(path, path.get-members, imports-and-rest.imports, imports-and-rest.rest.words.to-counter),
-
--get-members members(path string) summon
-	stdout = "dub run dscanner -- --ctags {path}" shell-exec
-
-	public symbol mut-set = ()
-	private symbol mut-set = ()
-
+-get-members-per-path members[string](paths string[]) summon
+	"dub run dscanner -- --ctags {" " join paths}".shell-exec get-members-per-path
+-get-members-per-path members[string](stdout string)
+	members-by-path mut-members mut[string] = ()
 	look-for = "!_TAG_PROGRAM_URL	https://github.com/dlang-community/D-Scanner/\n"
 	rest = (stdout try-split-once look-for)!.b
 	for line : rest lines
-		if line == "" || line contains-seq "enum:" || line contains-seq "struct:"
-			()
-		else
-			name = line take-while (x => !x.is-whitespace) string-to-symbol
+		unless line == "" || line contains-seq "enum:" || line contains-seq "struct:"
+			parts = line split "\t"
+			name = parts[0] string-to-symbol
+			path = parts[1]
+			members = members-by-path ensure path
 			if line contains-seq "access:public"
-				public ~= name
+				members.public ~= name
 			elif line contains-seq "access:private"
-				private ~= name
+				members.private ~= name
 			else
 				unless path == "src/wasm.d" || name in excluded-unknown-access
 					throw "Unexpected non-public, non-private member {name} in {path}"
+	for k, v : members-by-path
+		k, v.move-to-members
 
-	public.move-to-list, private.move-to-list
+-mut-members record mut
+	public symbol mut-set
+	private symbol mut-set
+-new mut-members()
+	(), ()
+-move-to-members members(a mut-members)
+	a.public.move-to-set, a.private.move-to-set
 
 # for some reason, dscanner doesn't give non-nested unions like Converter64 access:private
 -excluded-unknown-access symbol set()

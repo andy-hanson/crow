@@ -48,16 +48,31 @@ This can be useful for breaking up big tasks.
 	res
 
 ###
-Waits for every one of `futures` to be resolved, then returns an array all of their results.
+Future that completes when every one in the list completes.
 
-If one of `futures` resolves with an exception, this resolves to the leftmost exception (discarding others),
+If one of `futures` has exception, this resolves to the leftmost exception (discarding others),
+regardless of which exception happened first.
+###
++wait-all void^(futures void^[])
+	<- futures wait-all-complete
+	for x : futures
+		trusted x.get-result!
+	()
+
+###
+Waits for every one of `futures` to complete, then returns a list all of their results.
+
+If one of `futures` has exception, this resolves to the leftmost exception (discarding others),
 regardless of which exception happened first.
 ###
 +wait-all[t] t[]^(futures t^[]) t shared
 	<- futures wait-all-complete
 	(for x : futures; trusted x.get-result!),
 
-# Returns a future that is resolved once all inputs are resolved.
+###
+Returns a future that is resolved once all inputs are resolved.
+WARN: This resolves successfully even if an input is rejected.
+###
 -wait-all-complete[t] void^(futures t^[]) t shared
 	res void^ = trusted unresolved
 	count mut nat64 = futures.size
@@ -292,7 +307,7 @@ for-loop[in-col, in-elem] void^(
 	tasks void^[] = for x : a inner
 		with : parallel
 			f[x]
-	tasks wait-all-complete
+	tasks wait-all
 for-loop[out-elem, in-col, in-elem] out-elem[]^(
 	a in-col parallel-collection,
 	f fun out-elem^(in-elem),

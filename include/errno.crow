@@ -20,6 +20,8 @@ EAGAIN err-t() noctx
 	11
 EWOULDBLOCK err-t() noctx
 	EAGAIN
+EEXIST err-t() noctx
+	17
 EINVAL err-t() noctx
 	22
 ETIMEDOUT err-t() noctx

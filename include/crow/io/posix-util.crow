@@ -2,7 +2,7 @@ no-std
 import
 	errno: errno
 	../c-types: err-t
-	../misc: void
+	../misc: new, void
 	../number: ==
 	../string: ~~, literal, to-c-string, to-string
 
@@ -12,4 +12,8 @@ check-errno void() unsafe
 
 # Fail if `e != 0`.
 check-posix-error void(e err-t)
-	assert e == 0 : "posix error {e}"
+	unless e == 0
+		e throw-posix-error
+
+throw-posix-error void(e err-t)
+	throw "posix error {e}"
