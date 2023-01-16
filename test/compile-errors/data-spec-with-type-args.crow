@@ -10,25 +10,25 @@ main nat^(_ string[]) summon
 	# type is data and type arg is data
 	dd d dt = (0,),
 	dd takes-dt
-	dd takes-dt-t-is-data
+	dd takes-dt-t-data
 	dd takes-data
 
 	# type is mut and type arg is mut
 	mm m mt = (0,),
 	mm takes-mt
-	mm takes-mt-t-is-data
+	mm takes-mt-t-data
 	mm takes-data
 
 	# type is mutable but type arg is data
 	dm d mt = (0,),
 	dm takes-mt
-	dm takes-mt-t-is-data
+	dm takes-mt-t-data
 	dm takes-data
 
 	# type is data but type arg is mut
 	md m dt = (0,),
 	md takes-dt
-	md takes-dt-t-is-data
+	md takes-dt-t-data
 	md takes-data
 
 	()
@@ -43,16 +43,16 @@ mt[t] record mut
 	value t
 
 takes-dt[t] void(a t dt)
-	a takes-dt-t-is-data
+	a takes-dt-t-data
 
 takes-mt[t] void(a t mt)
-	a takes-mt-t-is-data
+	a takes-mt-t-data
 
-takes-dt-t-is-data[t] void(a t dt) t is-data
+takes-dt-t-data[t] void(a t dt) t data
 	a takes-data
 
-takes-mt-t-is-data[t] void(a t mt) t is-data
+takes-mt-t-data[t] void(a t mt) t data
 	a takes-data
 
-takes-data[t] void(_ t) t is-data
+takes-data[t] void(_ t) t data
 	()

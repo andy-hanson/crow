@@ -473,10 +473,10 @@ ReturnTypeAndParams checkReturnTypeAndParams(
 
 SpecBody.Builtin.Kind getSpecBodyBuiltinKind(ref CheckCtx ctx, RangeWithinFile range, Sym name) {
 	switch (name.value) {
-		case sym!"is-data".value:
+		case sym!"data".value:
 			return SpecBody.Builtin.Kind.data;
-		case sym!"is-sendable".value:
-			return SpecBody.Builtin.Kind.send;
+		case sym!"shared".value:
+			return SpecBody.Builtin.Kind.shared_;
 		default:
 			addDiag(ctx, range, Diag(Diag.BuiltinUnsupported(name)));
 			return SpecBody.Builtin.Kind.data;

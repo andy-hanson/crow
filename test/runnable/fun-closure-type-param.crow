@@ -6,5 +6,5 @@ main nat^(_ string[]) summon
 	out print "{f[]}"
 	()
 
-getter[k] fun k()(k k) k is-data
+getter[k] fun k()(k k) k data
 	() => k

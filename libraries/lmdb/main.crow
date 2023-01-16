@@ -32,7 +32,7 @@ lmdb-env record mut
 open-lmdb-env open-lmdb-env(db-dir string, create-if-not-exists bool)
 	db-dir, create-if-not-exists
 # Calls `open-env`, then `f`, then `close-env` (in a `finally`).
-with-block[t] t^(options open-lmdb-env, f act t^(lmdb-env)) summon, t is-sendable
+with-block[t] t^(options open-lmdb-env, f act t^(lmdb-env)) summon, t shared
 	trusted
 		env = options open-env
 		with : (() => env.close-env,) future-finally
@@ -109,7 +109,7 @@ database[k, v] (k, v) database(env lmdb-env, db-name string)
 with-block[t, k, v] t^(
 	a (k, v) database,
 	f act t^((k, v) lmdb-db),
-) summon, t is-sendable, k lmdb-key, v serialize
+) summon, t shared, k lmdb-key, v serialize
 	trusted
 		db (k, v) lmdb-db = a open-db
 		with : (() => (a.env close-db db),) future-finally

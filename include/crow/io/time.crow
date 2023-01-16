@@ -3,7 +3,7 @@ import
 	time: time, time_t
 	../compare: max
 	../future: future, subscript, then
-	../misc: break-or-continue, is-sendable, new, void
+	../misc: break-or-continue, new, shared, void
 	../number: ==, <=>, +, /, nat64, truncate-to-nat64
 	../pointer: null
 	../future: new
@@ -35,13 +35,13 @@ export
 +for-break[out] out^(
 	interval interval,
 	f-loop ref out break-or-continue(),
-) summon, out is-sendable
+) summon, out shared
 	get-monotime-nsec repeat-interval-recur interval.time.nsec.truncate-to-nat64, f-loop
 -repeat-interval-recur[out] out^(
 	start-nsec nat64,
 	interval-nsec nat64,
 	action ref out break-or-continue(),
-) summon, out is-sendable
+) summon, out shared
 	choice <- action[]
 	match choice
 	as loop-break v

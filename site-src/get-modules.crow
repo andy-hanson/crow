@@ -3,10 +3,10 @@ import
 	crow/parse: ~~, force, parse, spaces
 	crow/version: is-windows
 	./module:
-		alias-decl, builtin-decl, enum-decl, exports, extern-decl, flags-decl, fun-decl, module,
-		module-export, module-export-value, new, param, p-data, p-mut, p-sendable, purity,
-		spec-decl, spec-ref, type-param, type-ref, record-decl, record-field, spec-builtin,
-		spec-sig, spec-sigs, union-decl, union-member
+		alias-decl, builtin-decl, data, enum-decl, exports, extern-decl, flags-decl, fun-decl,
+		module, module-export, module-export-value, mut_, new, param, purity, spec-decl, spec-ref,
+		type-param, type-ref, record-decl, record-field, shared, spec-builtin, spec-sig, spec-sigs,
+		union-decl, union-member
 
 get-modules module[]^(paths string[], remove-prefix string) summon
 	result = crow-path spawn-and-wait-result "doc" ~ paths
@@ -96,13 +96,13 @@ get-modules module[]^(paths string[], remove-prefix string) summon
 -get-purity purity(a json)
 	if p ?= a["purity"]
 		s = p.as-string!
-		if s == "sendable"
-			p-sendable
+		if s == "shared"
+			shared
 		else
 			s is "mut"
-			p-mut
+			mut_
 	else
-		p-data
+		data
 
 -to-record-field record-field(a json)
 	a.get-node-type is "field"

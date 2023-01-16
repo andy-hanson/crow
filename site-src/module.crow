@@ -86,6 +86,6 @@ spec-ref record
 	type-args type-ref[]
 
 purity enum
-	p-data
-	p-sendable
-	p-mut
+	data
+	shared
+	mut_

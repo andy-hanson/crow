@@ -1163,8 +1163,6 @@ string describeTokenForUnexpected(Token token) {
 			return "unexpected ','";
 		case Token.continue_:
 			return "unexpected keyword 'continue'";
-		case Token.data:
-			return "unexpected keyword 'data'";
 		case Token.dot:
 			return "unexpected '.'";
 		case Token.dot3:
@@ -1191,8 +1189,6 @@ string describeTokenForUnexpected(Token token) {
 			return "unexpected keyword 'forbid'";
 		case Token.forceCtx:
 			return "unexpected keyword 'force-ctx'";
-		case Token.forceSendable:
-			return "unexpected keyword 'force-sendable'";
 		case Token.fun:
 			return "unexpected keyword 'fun'";
 		case Token.global:
@@ -1243,8 +1239,6 @@ string describeTokenForUnexpected(Token token) {
 			return "unexpected keyword 'ref'";
 		case Token.semicolon:
 			return "unexpected ';'";
-		case Token.sendable:
-			return "unexpected keyword 'sendable'";
 		case Token.spec:
 			return "unexpected keyword 'spec'";
 		case Token.summon:

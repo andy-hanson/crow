@@ -504,12 +504,12 @@ immutable struct ModifierAst {
 		byVal,
 		data,
 		extern_,
-		forceSendable,
+		forceShared,
 		mut,
 		newPublic,
 		newPrivate,
 		packed,
-		sendable,
+		shared_,
 	}
 
 	Pos pos;
@@ -859,8 +859,8 @@ public Sym symOfModifierKind(ModifierAst.Kind a) {
 			return sym!"data";
 		case ModifierAst.Kind.extern_:
 			return sym!"extern";
-		case ModifierAst.Kind.forceSendable:
-			return sym!"force-sendable";
+		case ModifierAst.Kind.forceShared:
+			return sym!"force-shared";
 		case ModifierAst.Kind.mut:
 			return sym!"mut";
 		case ModifierAst.Kind.newPrivate:
@@ -869,8 +869,8 @@ public Sym symOfModifierKind(ModifierAst.Kind a) {
 			return sym!"+new";
 		case ModifierAst.Kind.packed:
 			return sym!"packed";
-		case ModifierAst.Kind.sendable:
-			return sym!"sendable";
+		case ModifierAst.Kind.shared_:
+			return sym!"shared";
 	}
 }
 

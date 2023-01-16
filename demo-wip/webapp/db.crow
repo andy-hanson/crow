@@ -85,7 +85,7 @@ open-db record
 open-real-db open-db()
 	db-path open-db
 
-with-block[t] t^(a open-db, f act t^(db)) summon, t is-sendable
+with-block[t] t^(a open-db, f act t^(db)) summon, t shared
 	with env : a.db-path open-lmdb-env true
 		with user-from-name : env database@(string, user) "user-from-name"
 			with user-name : env database@(user, string) "user-name"

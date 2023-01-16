@@ -3,7 +3,7 @@ import
 	./audio: new, playing-sound
 	./sound: ==, format, new, samples, sound, sound-format, to-string
 
-audio-queue record force-sendable by-ref
+audio-queue record force-shared by-ref
 	format sound-format
 	-lock-by-val lock by-val
 	# All sounds normalized to `format`
@@ -18,7 +18,7 @@ new audio-queue(format sound-format)
 		res.lock init
 		res
 
--entry record by-ref force-sendable
+-entry record by-ref force-shared
 	samples float32 array
 	cur mut float32*
 	looping bool

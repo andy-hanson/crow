@@ -13,27 +13,27 @@ new-void void() builtin, noctx
 Specifies that a type must be immutable data.
 
 This includes most types in crow that are not `mut`.
-This does not include `future` or `ref`, though these types work with `is-sendable`.
+This does not include `future` or `ref`, though these types work with `shared`.
 
-To put it another way, a type works with `is-data` if it is:
+To put it another way, a type works with `data` if it is:
 * A primitive like `nat`, an `enum`, or `flags`.
-* A record with no `mut` fields, whose fields are all `is-data`.
-* A union whose member types are all `is-data`.
-* Immutable collections like `x[]`, where the type arguments are all `is-data`.
+* A record with no `mut` fields, whose fields are all `data`.
+* A union whose member types are all `data`.
+* Immutable collections like `x[]`, where the type arguments are all `data`.
 * A constant pointer like `nat*`.
 ###
-+is-data[t] builtin-spec
++data[t] builtin-spec
 
 ###
 Specifies that a type must be safe to share between tasks that may run in parallel.
 
-Anything that satisfies `is-data` satisfies `is-sendable`.
-In addition, `future` and `ref` types are sendable if their type arguments are.
-(`nat mut[]^` is not sendable.)
+Anything that satisfies `data` satisfies `shared`.
+In addition, `future` and `ref` types are shared if their type arguments are.
+(`nat mut[]^` is not shared.)
 
 In the future, parallel-safe collections may be included here.
 ###
-+is-sendable[t] builtin-spec
++shared[t] builtin-spec
 
 region option.crow
 
@@ -300,18 +300,18 @@ Non-mutating function type.
 This is usually written as `fun nat(string)` instead of `(nat, string) fun1`.
 
 Contrasted with `act`, a `fun` can't close over mutable data.
-It can still close over `sendable` data and perform I/O, so it's not a completely pure function.
+It can still close over `shared` data and perform I/O, so it's not a completely pure function.
 ###
-+fun0[r] builtin sendable
-+fun1[r, p0] builtin sendable
-+fun2[r, p0, p1] builtin sendable
-+fun3[r, p0, p1, p2] builtin sendable
-+fun4[r, p0, p1, p2, p3] builtin sendable
-+fun5[r, p0, p1, p2, p3, p4] builtin sendable
-+fun6[r, p0, p1, p2, p3, p4, p5] builtin sendable
-+fun7[r, p0, p1, p2, p3, p4, p5, p6] builtin sendable
-+fun8[r, p0, p1, p2, p3, p4, p5, p6, p7] builtin sendable
-+fun9[r, p0, p1, p2, p3, p4, p5, p6, p7, p8] builtin sendable
++fun0[r] builtin shared
++fun1[r, p0] builtin shared
++fun2[r, p0, p1] builtin shared
++fun3[r, p0, p1, p2] builtin shared
++fun4[r, p0, p1, p2, p3] builtin shared
++fun5[r, p0, p1, p2, p3, p4] builtin shared
++fun6[r, p0, p1, p2, p3, p4, p5] builtin shared
++fun7[r, p0, p1, p2, p3, p4, p5, p6] builtin shared
++fun8[r, p0, p1, p2, p3, p4, p5, p6, p7] builtin shared
++fun9[r, p0, p1, p2, p3, p4, p5, p6, p7, p8] builtin shared
 
 ###
 This is usually written as `act nat(string, bool)` instead of `(nat, string, bool) fun-act2`.
@@ -333,37 +333,37 @@ An `act` can have anything in its closure, including mutable data, so it's consi
 This is usually written as `ref nat(string)` instead of `(nat, string) fun-ref1`.
 
 This wraps an `act` combined with the exclusion it came from.
-This is sendable since the `act` isn't be called directly;
+This is shared since the `act` can't be called directly;
 instead a task is added that will call the `act` when its exclusion is available.
 ###
-+fun-ref0[r] record force-sendable by-val
++fun-ref0[r] record force-shared by-val
 	exclusion exclusion
 	action act r^()
-+fun-ref1[r, p0] record force-sendable by-val
++fun-ref1[r, p0] record force-shared by-val
 	exclusion exclusion
 	action act r^(p0)
-+fun-ref2[r, p0, p1] record force-sendable by-val
++fun-ref2[r, p0, p1] record force-shared by-val
 	exclusion exclusion
 	action act r^(p0, p1)
-+fun-ref3[r, p0, p1, p2] record force-sendable by-val
++fun-ref3[r, p0, p1, p2] record force-shared by-val
 	exclusion exclusion
 	action act r^(p0, p1, p2)
-+fun-ref4[r, p0, p1, p2, p3] record force-sendable by-val
++fun-ref4[r, p0, p1, p2, p3] record force-shared by-val
 	exclusion exclusion
 	action act r^(p0, p1, p2, p3)
-+fun-ref5[r, p0, p1, p2, p3, p4] record force-sendable by-val
++fun-ref5[r, p0, p1, p2, p3, p4] record force-shared by-val
 	exclusion exclusion
 	action act r^(p0, p1, p2, p3, p4)
-+fun-ref6[r, p0, p1, p2, p3, p4, p5] record force-sendable by-val
++fun-ref6[r, p0, p1, p2, p3, p4, p5] record force-shared by-val
 	exclusion exclusion
 	action act r^(p0, p1, p2, p3, p4, p5)
-+fun-ref7[r, p0, p1, p2, p3, p4, p5, p6] record force-sendable by-val
++fun-ref7[r, p0, p1, p2, p3, p4, p5, p6] record force-shared by-val
 	exclusion exclusion
 	action act r^(p0, p1, p2, p3, p4, p5, p6)
-+fun-ref8[r, p0, p1, p2, p3, p4, p5, p6, p7] record force-sendable by-val
++fun-ref8[r, p0, p1, p2, p3, p4, p5, p6, p7] record force-shared by-val
 	exclusion exclusion
 	action act r^(p0, p1, p2, p3, p4, p5, p6, p7)
-+fun-ref9[r, p0, p1, p2, p3, p4, p5, p6, p7, p8] record force-sendable by-val
++fun-ref9[r, p0, p1, p2, p3, p4, p5, p6, p7, p8] record force-shared by-val
 	exclusion exclusion
 	action act r^(p0, p1, p2, p3, p4, p5, p6, p7, p8)
 
@@ -397,7 +397,7 @@ There is no exception subtyping in crow, so all exceptions have this type.
 	###
 	backtrace backtrace
 
-+future[t] record force-sendable by-ref
++future[t] record force-shared by-ref
 	# It's important to make future by-ref since its lock is by-val 
 	lk lock by-val
 	state mut t future-state
@@ -418,7 +418,7 @@ future-state[t] union mut
 
 region lock
 
-lock record sendable by-ref
+lock record shared by-ref
 	n0 nat64
 	n1 nat64
 	n2 nat64

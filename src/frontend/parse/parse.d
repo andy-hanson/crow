@@ -707,16 +707,10 @@ Opt!(ModifierAst.Kind) tryParseModifierKind(ref Lexer lexer) {
 	} else {
 		Opt!(ModifierAst.Kind) res = () {
 			switch (getPeekToken(lexer)) {
-				case Token.data:
-					return some(ModifierAst.Kind.data);
 				case Token.extern_:
 					return some(ModifierAst.Kind.extern_);
-				case Token.forceSendable:
-					return some(ModifierAst.Kind.forceSendable);
 				case Token.mut:
 					return some(ModifierAst.Kind.mut);
-				case Token.sendable:
-					return some(ModifierAst.Kind.sendable);
 				case Token.name:
 					Opt!(ModifierAst.Kind) kind = modifierKindFromSym(getCurSym(lexer));
 					if (!has(kind))
@@ -739,8 +733,14 @@ Opt!(ModifierAst.Kind) modifierKindFromSym(Sym a) {
 			return some(ModifierAst.Kind.byVal);
 		case sym!"by-ref".value:
 			return some(ModifierAst.Kind.byRef);
+		case sym!"data".value:
+			return some(ModifierAst.Kind.data);
+		case sym!"force-shared".value:
+			return some(ModifierAst.Kind.forceShared);
 		case sym!"packed".value:
 			return some(ModifierAst.Kind.packed);
+		case sym!"shared".value:
+			return some(ModifierAst.Kind.shared_);
 		default:
 			return none!(ModifierAst.Kind);
 	}

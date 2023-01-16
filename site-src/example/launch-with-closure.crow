@@ -12,7 +12,7 @@ main nat^(_ string[]) summon
 	out print "final value: {final-value}"
 	()
 
-store record sendable
+store record shared
 	get ref nat()
 	get-and-set ref nat(nat)
 

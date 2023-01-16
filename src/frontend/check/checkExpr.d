@@ -1134,7 +1134,7 @@ VariableRef[] checkClosure(ref ExprCtx ctx, FileAndRange range, FunKind kind, Cl
 	final switch (kind) {
 		case FunKind.fun:
 			foreach (ref ClosureFieldBuilder cf; closureFields) {
-				if (!isPurityAlwaysCompatibleConsideringSpecs(ctx, cf.type, Purity.sendable))
+				if (!isPurityAlwaysCompatibleConsideringSpecs(ctx, cf.type, Purity.shared_))
 					addDiag2(ctx, range, Diag(Diag.LambdaClosesOverMut(cf.name, some(cf.type))));
 				else {
 					final switch (cf.mutability) {

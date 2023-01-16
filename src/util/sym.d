@@ -352,7 +352,6 @@ immutable string[] specialSyms = [
 	"extern-pointer\0",
 	"extern-pointers\0",
 	"flags-members\0",
-	"force-sendable\0",
 	"fun-pointer0\0",
 	"fun-pointer1\0",
 	"fun-pointer2\0",

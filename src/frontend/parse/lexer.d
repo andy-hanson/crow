@@ -423,7 +423,6 @@ public enum Token {
 	colonEqual, // ':='
 	comma, // ','
 	continue_, // 'continue'
-	data, // 'data'
 	dot, // '.'
 	// '..' is Operator.range
 	dot3, // '...'
@@ -438,7 +437,6 @@ public enum Token {
 	for_, // 'for'
 	forbid, // 'forbid'
 	forceCtx, // 'force-ctx'
-	forceSendable, // 'force-sendable'
 	fun, // 'fun'
 	global, // 'global'
 	if_, // 'if'
@@ -464,7 +462,6 @@ public enum Token {
 	record, // 'record'
 	ref_, // 'ref'
 	semicolon, // ';'
-	sendable, // 'sendable'
 	spec, // 'spec'
 	summon, // 'summon'
 	test, // 'test'
@@ -609,8 +606,6 @@ Token tokenForSym(ref Lexer lexer, Sym a) {
 			return Token.builtinSpec;
 		case sym!"continue".value:
 			return Token.continue_;
-		case sym!"data".value:
-			return Token.data;
 		case sym!"elif".value:
 			return Token.elif;
 		case sym!"else".value:
@@ -629,8 +624,6 @@ Token tokenForSym(ref Lexer lexer, Sym a) {
 			return Token.forbid;
 		case sym!"force-ctx".value:
 			return Token.forceCtx;
-		case sym!"force-sendable".value:
-			return Token.forceSendable;
 		case sym!"fun".value:
 			return Token.fun;
 		case sym!"global".value:
@@ -653,8 +646,6 @@ Token tokenForSym(ref Lexer lexer, Sym a) {
 			return Token.record;
 		case sym!"ref".value:
 			return Token.ref_;
-		case sym!"sendable".value:
-			return Token.sendable;
 		case sym!"spec".value:
 			return Token.spec;
 		case sym!"summon".value:
@@ -772,7 +763,6 @@ bool isExpressionStartToken(Token a) {
 		case Token.colon2:
 		case Token.colonEqual:
 		case Token.comma:
-		case Token.data:
 		case Token.dot:
 		case Token.dot3:
 		case Token.elif:
@@ -784,7 +774,6 @@ bool isExpressionStartToken(Token a) {
 		case Token.EOF:
 		case Token.flags:
 		case Token.forceCtx:
-		case Token.forceSendable:
 		case Token.fun:
 		case Token.global:
 		case Token.import_:
@@ -799,7 +788,6 @@ bool isExpressionStartToken(Token a) {
 		case Token.record:
 		case Token.ref_:
 		case Token.semicolon:
-		case Token.sendable:
 		case Token.spec:
 		case Token.summon:
 		case Token.test:

@@ -4,14 +4,14 @@ import
 		==, |, enum-members, sqlite3, sqlite3_close, sqlite3_exec, sqlite3_free, SQLITE_OK,
 		SQLITE_OPEN_CREATE, SQLITE_OPEN_READWRITE, sqlite3_open_v2
 
-+db record force-sendable
++db record force-shared
 	raw sqlite3 mut*
 
 +open-sqlite3 record
 	db-path string
 +open-sqlite3 open-sqlite3(db-path string)
 	db-path,
-+with-block[t] t(a open-sqlite3, cb act t(db)) summon, t is-sendable
++with-block[t] t(a open-sqlite3, cb act t(db)) summon, t is-shared
 	trusted
 		db mut sqlite3 mut* = null
 		# Create empty file if not exist

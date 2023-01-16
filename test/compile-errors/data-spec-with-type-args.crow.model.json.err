@@ -1,17 +1,17 @@
 test/compile-errors/data-spec-with-type-args.crow 8:5-8:17 trying to call 'takes-data', but 'm' is not 'data'
 
-test/compile-errors/data-spec-with-type-args.crow 19:5-19:26 trying to call 'takes-mt-t-is-data', but 'm' is not 'data'
+test/compile-errors/data-spec-with-type-args.crow 19:5-19:23 trying to call 'takes-mt-t-data', but 'm' is not 'data'
 
 test/compile-errors/data-spec-with-type-args.crow 20:5-20:18 trying to call 'takes-data', but 'm mt' is not 'data'
 
 test/compile-errors/data-spec-with-type-args.crow 26:5-26:18 trying to call 'takes-data', but 'd mt' is not 'data'
 
-test/compile-errors/data-spec-with-type-args.crow 31:5-31:26 trying to call 'takes-dt-t-is-data', but 'm' is not 'data'
+test/compile-errors/data-spec-with-type-args.crow 31:5-31:23 trying to call 'takes-dt-t-data', but 'm' is not 'data'
 
 test/compile-errors/data-spec-with-type-args.crow 32:5-32:18 trying to call 'takes-data', but 'm dt' is not 'data'
 
-test/compile-errors/data-spec-with-type-args.crow 46:5-46:25 trying to call 'takes-dt-t-is-data', but 't' is not 'data'
+test/compile-errors/data-spec-with-type-args.crow 46:5-46:22 trying to call 'takes-dt-t-data', but 't' is not 'data'
 
-test/compile-errors/data-spec-with-type-args.crow 49:5-49:25 trying to call 'takes-mt-t-is-data', but 't' is not 'data'
+test/compile-errors/data-spec-with-type-args.crow 49:5-49:22 trying to call 'takes-mt-t-data', but 't' is not 'data'
 
 test/compile-errors/data-spec-with-type-args.crow 55:5-55:17 trying to call 'takes-data', but 't mt' is not 'data'

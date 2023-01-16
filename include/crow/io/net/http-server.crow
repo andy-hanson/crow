@@ -18,7 +18,7 @@ import
 	../../future: delay, future, future-catch, future-finally, new, subscript, then, with-block
 	../../hash: hash-mix
 	../../log: error, log, warn
-	../../misc: is-sendable, new, void
+	../../misc: new, shared, void
 	../../number: ==, <=>, +, nat8, nat64, to-int64, to-nat64
 	../../option: ??, new, option
 	../../parse: nat, parse
@@ -39,7 +39,7 @@ import
 +http-handler alias
 	ref http-response(http-request)
 
-+http-server-options record sendable
++http-server-options record shared
 	port string
 	handler http-handler
 +http-server http-server-options(port string, handler http-handler)
@@ -48,7 +48,7 @@ import
 ###
 Starts running an HTTP server. Stops it when `cb` returns.
 ###
-+with-block[t] t^(a http-server-options, cb ref t(http-server)) summon, t is-sendable
++with-block[t] t^(a http-server-options, cb ref t(http-server)) summon, t shared
 	client-states http-parse-state mut[SOCKET] = ()
 
 	on-accepted-client ref void(SOCKET) = sock =>

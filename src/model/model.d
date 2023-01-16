@@ -36,7 +36,7 @@ alias Purity = immutable Purity_;
 private enum Purity_ : ubyte {
 	// sorted best case to worst case
 	data,
-	sendable,
+	shared_,
 	mut,
 }
 
@@ -64,8 +64,8 @@ Sym symOfPurity(Purity a) {
 	final switch (a) {
 		case Purity.data:
 			return sym!"data";
-		case Purity.sendable:
-			return sym!"sendable";
+		case Purity.shared_:
+			return sym!"shared";
 		case Purity.mut:
 			return sym!"mut";
 	}
@@ -446,7 +446,7 @@ immutable struct SpecBody {
 	immutable struct Builtin {
 		enum Kind {
 			data,
-			send,
+			shared_,
 		}
 		Kind kind;
 	}
@@ -457,8 +457,8 @@ Sym symOfSpecBodyBuiltinKind(SpecBody.Builtin.Kind kind) {
 	final switch (kind) {
 		case SpecBody.Builtin.Kind.data:
 			return sym!"data";
-		case SpecBody.Builtin.Kind.send:
-			return sym!"send";
+		case SpecBody.Builtin.Kind.shared_:
+			return sym!"shared";
 	}
 }
 

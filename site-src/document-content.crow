@@ -182,11 +182,11 @@ module-content string(a module, all-exports all-exports)
 
 -purity-content string(a purity)
 	match a
-	as p-data
+	as data
 		""
-	as p-sendable
-		" sendable" keyword
-	as p-mut
+	as shared
+		" shared" keyword
+	as mut_
 		" mut" keyword
 
 -export-body string(a module-export-value, ctx ctx)

@@ -202,7 +202,7 @@ main nat^(_ string[]) summon
 
 	renderer.window SDL_GL_SwapWindow
 
--run-with-thread-id[t] t^(thread-id nat, cb act t()) unsafe, t is-sendable
+-run-with-thread-id[t] t^(thread-id nat, cb act t()) unsafe, t shared
 	if cur-thread-id == thread-id
 		cb[],
 	else

@@ -32,11 +32,11 @@ import
 	./net: bind-to-port, close-socket
 
 # Reference to a running server.
-tcp-server record sendable
+tcp-server record shared
 	stop ref void()
 
 # Interface that handles TCP requests.
-tcp-handler record sendable
+tcp-handler record shared
 	on-accepted-client ref void(SOCKET)
 	# Gives the handler a chunk of data.
 	# Handler needs to parse to determine when it has all the chunks, then write a response and call 'close-client'.

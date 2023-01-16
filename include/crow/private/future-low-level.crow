@@ -43,7 +43,7 @@ reject[t] void(a t^, err exception) unsafe
 	as rejected _
 		hard-unreachable
 
--or-forwarded[t, u] union sendable
+-or-forwarded[t, u] union shared
 	direct t
 	forwarded u^
 
@@ -132,7 +132,7 @@ add-task[t] void(a t^, task task) unsafe
 	as tasks-are-ready
 		get-global-ctx add-tasks tasks
 
--add-tasks-choice[t] union sendable
+-add-tasks-choice[t] union shared
 	added
 	forward t^
 	tasks-are-ready

@@ -4,7 +4,7 @@ import
 	../compare: <, >, <=, compare
 	../fun-util: subscript
 	../json: json
-	../misc: is-data, loop-break, loop-continue, new, void
+	../misc: data, loop-break, loop-continue, new, void
 	../number: ==, <=>, +, -, nat64
 	../option: force, is-empty, new, option
 	../range: .., iterate
@@ -30,7 +30,7 @@ If two pairs have the same key, the second pair added will be popped second.
 +priority-queue[k, v] record
 	-root (k, v) node?
 
-+priority[k] spec k is-data, k compare
++priority[k] spec k data, k compare
 
 ###
 Priority queue consists of a linked list of nodes with two parts.

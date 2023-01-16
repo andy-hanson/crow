@@ -5,7 +5,7 @@ import
 	./col/mut-list: ~=, hint-size, move-to-list, mut-list, new
 	./exception: catch, exception
 	./fun-util: subscript
-	./misc: break-or-continue, is-sendable, loop-break, loop-continue, new, void
+	./misc: break-or-continue, shared, loop-break, loop-continue, new, void
 	./number: ==, -, nat64
 	./option: new, option
 	./private/bootstrap: action, exclusion, lk, new, rejected, resolved
@@ -53,12 +53,12 @@ Waits for every one of `futures` to be resolved, then returns an array all of th
 If one of `futures` resolves with an exception, this resolves to the leftmost exception (discarding others),
 regardless of which exception happened first.
 ###
-+wait-all[t] t[]^(futures t^[]) t is-sendable
++wait-all[t] t[]^(futures t^[]) t shared
 	<- futures wait-all-complete
 	(for x : futures; trusted x.get-result!),
 
 # Returns a future that is resolved once all inputs are resolved.
--wait-all-complete[t] void^(futures t^[]) t is-sendable
+-wait-all-complete[t] void^(futures t^[]) t shared
 	res void^ = trusted unresolved
 	count mut nat64 = futures.size
 	task task = trusted cur-exclusion, () =>
@@ -72,7 +72,7 @@ regardless of which exception happened first.
 ###
 Future resolved to `ok` if `a` succeeds and `err` if `a` fails with an exception.
 ###
-+future-catch[t] (t, exception) result^(a t^) t is-sendable
++future-catch[t] (t, exception) result^(a t^) t shared
 	res (t, exception) result^ = trusted unresolved
 	trusted a add-task get-global-ctx.new-exclusion, () =>
 		res resolve a.get-result
@@ -82,7 +82,7 @@ Future resolved to `ok` if `a` succeeds and `err` if `a` fails with an exception
 	-cleanup ref void()
 +future-finally future-finally(cleanup ref void())
 	cleanup,
-+with-block[t] t^(a future-finally, f ref t()) t is-sendable
++with-block[t] t^(a future-finally, f ref t()) t shared
 	fut = f[]
 	res t^ = trusted unresolved
 	trusted fut add-task get-global-ctx.new-exclusion, () =>
@@ -107,7 +107,7 @@ Returns a future for the result of `f`.
 If `a` is resolved with an exception, this never calls `f`,
 and the result of `then` will have the same exception as `a`.
 ###
-+then[out, in] out^(a in^, f ref out(in)) out is-sendable, in is-sendable
++then[out, in] out^(a in^, f ref out(in)) out shared, in shared
 	res out^ = trusted unresolved
 	action = f action
 	trusted a add-task f.exclusion, () =>
@@ -123,7 +123,7 @@ and the result of `then` will have the same exception as `a`.
 	res
 
 # Like `then`, but `f` takes no parameter (since it will be `void` anyway.)
-+then[out] out^(a void^, f ref out()) out is-sendable
++then[out] out^(a void^, f ref out()) out shared
 	a then _ =>
 		f[]
 
@@ -135,14 +135,14 @@ Where 'f' and 'g' are futures.
 +then[out, in0, in1] out^(
 	a (in0^, in1^),
 	f ref out(in0, in1),
-) out is-sendable, in0 is-sendable, in1 is-sendable
+) out shared, in0 shared, in1 shared
 	x <- a.a
 	y <- a.b
 	f[x, y]
 +then[out, in0, in1, in2] out^(
 	a (in0^, in1^, in2^),
 	f ref out(in0, in1, in2),
-) out is-sendable, in0 is-sendable, in1 is-sendable, in2 is-sendable
+) out shared, in0 shared, in1 shared, in2 shared
 	x <- a.a
 	y <- a.b
 	z <- a.c
@@ -154,7 +154,7 @@ Calls a `ref`.
 This enqueues a task with the ref's exclusion for invoking its function,
 and returns a future for the result of that task.
 ###
-+subscript[r] r^(f ref r()) r is-sendable
++subscript[r] r^(f ref r()) r shared
 	res r^ = trusted unresolved
 	action = f action
 	trusted get-global-ctx add-task f.exclusion, () =>
@@ -166,7 +166,7 @@ and returns a future for the result of that task.
 	res
 
 # Calls a `ref` with one argument.
-+subscript[r, p0] r^(f ref r(p0), p0 p0) r is-sendable, p0 is-sendable
++subscript[r, p0] r^(f ref r(p0), p0 p0) r shared, p0 shared
 	res r^ = trusted unresolved
 	trusted get-global-ctx add-task f.exclusion, () =>
 		(() => res forward-to f.action[p0]) catch err => res reject err
@@ -177,7 +177,7 @@ and returns a future for the result of that task.
 	f ref r(p0, p1),
 	p0 p0,
 	p1 p1,
-) r is-sendable, p0 is-sendable, p1 is-sendable
+) r shared, p0 shared, p1 shared
 	res r^ = trusted unresolved
 	trusted get-global-ctx add-task f.exclusion, () =>
 		(() => res forward-to f.action[p0, p1]) catch err => res reject err
@@ -188,7 +188,7 @@ and returns a future for the result of that task.
 	p0 p0,
 	p1 p1,
 	p2 p2,
-) r is-sendable, p0 is-sendable, p1 is-sendable, p2 is-sendable
+) r shared, p0 shared, p1 shared, p2 shared
 	res r^ = trusted unresolved
 	trusted get-global-ctx add-task f.exclusion, () =>
 		(() => res forward-to f.action[p0, p1, p2]) catch err => res reject err
@@ -239,7 +239,7 @@ sequential[col] col sequential-collection(a col)
 for-loop[in-col, in-iter, in-elem] void^(
 	a in-col sequential-collection,
 	f ref void(in-elem),
-) (in-iter, in-col) begin, (in-elem, in-iter) next, in-elem is-sendable
+) (in-iter, in-col) begin, (in-elem, in-iter) next, in-elem shared
 	a for-break x =>
 		<- f[x]
 		continue
@@ -247,7 +247,7 @@ for-loop[in-col, in-iter, in-elem] void^(
 for-break[in-col, in-iter, in-elem] void^(
 	a in-col sequential-collection,
 	f ref void break-or-continue(in-elem),
-) (in-iter, in-col) begin, (in-elem, in-iter) next, in-elem is-sendable
+) (in-iter, in-col) begin, (in-elem, in-iter) next, in-elem shared
 	# TODO: we need type annotations on LHS of '<-'
 	_ <- (a for-break f)::void?^
 	()
@@ -255,12 +255,12 @@ for-break[in-col, in-iter, in-elem] void^(
 for-break[out, in-col, in-iter, in-elem] out?^(
 	a in-col sequential-collection,
 	f ref out break-or-continue(in-elem),
-) (in-iter, in-col) begin, (in-elem, in-iter) next, out is-sendable, in-elem is-sendable
+) (in-iter, in-col) begin, (in-elem, in-iter) next, out shared, in-elem shared
 	a.inner.begin for-break-recur f
 -for-break-recur[out, in-col, in-iter, in-elem] out?^(
 	iter in-iter,
 	f ref out break-or-continue(in-elem),
-) (in-iter, in-col) begin, (in-elem, in-iter) next, out is-sendable, in-elem is-sendable
+) (in-iter, in-col) begin, (in-elem, in-iter) next, out shared, in-elem shared
 	if pair ?= iter next
 		b-or-c <- f[pair.a]
 		match b-or-c
@@ -272,7 +272,7 @@ for-break[out, in-col, in-iter, in-elem] out?^(
 for-loop[out-elem, in-col, in-iter, in-elem] out-elem[]^(
 	a in-col sequential-collection,
 	f ref out-elem(in-elem),
-) (in-iter, in-col) begin, (in-elem, in-iter) next, in-col size, out-elem is-sendable, in-elem is-sendable
+) (in-iter, in-col) begin, (in-elem, in-iter) next, in-col size, out-elem shared, in-elem shared
 	res out-elem mut[] = ()
 	res hint-size a.inner.size
 	<- for x : a
@@ -288,7 +288,7 @@ parallel[col] col parallel-collection(a col)
 for-loop[in-col, in-elem] void^(
 	a in-col parallel-collection,
 	f fun void^(in-elem),
-) (in-col, in-elem) iterate, in-col size, in-elem is-sendable
+) (in-col, in-elem) iterate, in-col size, in-elem shared
 	tasks void^[] = for x : a inner
 		with : parallel
 			f[x]
@@ -296,7 +296,7 @@ for-loop[in-col, in-elem] void^(
 for-loop[out-elem, in-col, in-elem] out-elem[]^(
 	a in-col parallel-collection,
 	f fun out-elem^(in-elem),
-) (in-col, in-elem) iterate, in-col size, out-elem is-sendable, in-elem is-sendable
+) (in-col, in-elem) iterate, in-col size, out-elem shared, in-elem shared
 	tasks out-elem^[] = for x : a inner
 		with : parallel
 			f[x]

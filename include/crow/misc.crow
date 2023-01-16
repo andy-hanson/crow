@@ -4,7 +4,7 @@ import
 	./compare: compare
 	./hash: hash-mix
 export
-	./private/bootstrap: is-data, is-sendable, name, named-val, val, void
+	./private/bootstrap: data, shared, name, named-val, val, void
 
 +new void() noctx
 	new-void
@@ -16,7 +16,7 @@ export
 	copy t(a t)
 
 # Spec for values that can be used as keys in a dictionary or set.
-+key[t] spec t is-data, t compare, t hash-mix
++key[t] spec t data, t compare, t hash-mix
 
 +break-or-continue[t] union
 	loop-break t

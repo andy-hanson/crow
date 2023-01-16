@@ -1,7 +1,7 @@
 import
 	./sound: sound, sound-format
 
-audio record sendable
+audio record shared
 	format sound-format
 	clear fun void()
 	play fun playing-sound(sound)
@@ -22,7 +22,7 @@ shut-down void^(a audio)
 	cb ref void() = a shut-down
 	cb[]
 
-playing-sound record sendable
+playing-sound record shared
 	reset-position fun void()
 	# NOTE: This doesn't reset the sound's position
 	set-playing fun void(bool)

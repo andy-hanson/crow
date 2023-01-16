@@ -21,7 +21,7 @@ pthread_join err-t(thread pthread_t, thread-return any-mut-pointer mut*) summon,
 
 region mutex
 
-pthread_mutex_t extern(40) sendable
+pthread_mutex_t extern(40) shared
 
 pthread_mutexattr_t extern(4)
 
@@ -38,7 +38,7 @@ pthread_mutex_unlock err-t(mutex pthread_mutex_t mut*) pthread extern
 
 region cond
 
-pthread_cond_t extern(48) sendable
+pthread_cond_t extern(48) shared
 pthread_condattr_t extern(4)
 
 pthread_condattr_init err-t(attr pthread_condattr_t mut*) pthread extern
@@ -55,8 +55,8 @@ pthread_cond_broadcast err-t(cond pthread_cond_t mut*) pthread extern
 pthread_cond_wait err-t(cond pthread_cond_t mut*, mutex pthread_mutex_t mut*) pthread extern
 pthread_cond_timedwait err-t(cond pthread_cond_t mut*, mutex pthread_mutex_t mut*, abstime timespec*) pthread extern
 
-pthread_barrier_t extern(32) sendable
-pthread_barrierattr_t extern(4) sendable
+pthread_barrier_t extern(32) shared
+pthread_barrierattr_t extern(4) shared
 
 pthread_barrier_init err-t(barrier pthread_barrier_t mut*, attr pthread_barrierattr_t*, count u-int) pthread extern
 pthread_barrier_destroy err-t(barrier pthread_barrier_t mut*) pthread extern

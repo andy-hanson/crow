@@ -143,7 +143,7 @@ contexts:
   record:
     - match: '{{unindented_line}}'
       pop: true
-    - match: 'data|extern|force-sendable|mut|sendable|\-?new|by-ref|by-val|packed'
+    - match: 'data|extern|force-shared|mut|shared|\-?new|by-ref|by-val|packed'
       scope: keyword
     - match: $
       push: record_body

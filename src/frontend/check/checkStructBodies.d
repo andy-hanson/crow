@@ -239,12 +239,12 @@ Opt!PurityAndForced purityAndForcedFromModifier(ModifierAst.Kind a) {
 			return none!PurityAndForced;
 		case ModifierAst.Kind.data:
 			return some(PurityAndForced(Purity.data, false));
-		case ModifierAst.Kind.forceSendable:
-			return some(PurityAndForced(Purity.sendable, true));
+		case ModifierAst.Kind.forceShared:
+			return some(PurityAndForced(Purity.shared_, true));
 		case ModifierAst.Kind.mut:
 			return some(PurityAndForced(Purity.mut, false));
-		case ModifierAst.Kind.sendable:
-			return some(PurityAndForced(Purity.sendable, false));
+		case ModifierAst.Kind.shared_:
+			return some(PurityAndForced(Purity.shared_, false));
 	}
 }
 
@@ -618,9 +618,9 @@ RecordModifiers checkRecordModifiers(ref CheckCtx ctx, ModifierAst[] modifiers) 
 					return withPacked(ctx, cur, range);
 				case ModifierAst.Kind.data:
 				case ModifierAst.Kind.extern_:
-				case ModifierAst.Kind.forceSendable:
+				case ModifierAst.Kind.forceShared:
 				case ModifierAst.Kind.mut:
-				case ModifierAst.Kind.sendable:
+				case ModifierAst.Kind.shared_:
 					// already handled in getPurityFromModifiers
 					return cur;
 			}

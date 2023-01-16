@@ -659,8 +659,8 @@ Purity purityOfBuiltinSpec(SpecBody.Builtin.Kind kind) {
 	final switch (kind) {
 		case SpecBody.Builtin.Kind.data:
 			return Purity.data;
-		case SpecBody.Builtin.Kind.send:
-			return Purity.sendable;
+		case SpecBody.Builtin.Kind.shared_:
+			return Purity.shared_;
 	}
 }
 
