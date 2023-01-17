@@ -14,7 +14,7 @@ import
 		alloc-uninitialized, copy-data-from, set-zero-range, unmanaged-alloc-zeroed-elements
 	../private/number-low-level: round-up-to-power-of-two
 	../range: .., iterate
-	../tuple: a, b, new, pair
+	../tuple: a, b, new, tuple2
 	./array: array, subscript
 	./collection: .., -, build-options, end, for-loop, iterate, set-subscript, size-hint, subscript
 	./mut-array:

@@ -13,7 +13,7 @@ import
 	../private/alloc:
 		alloc-uninitialized, set-zero-range, unmanaged-alloc-elements, unmanaged-free-elements
 	../range: .., high, low, range
-	../tuple: new, pair
+	../tuple: new, tuple2
 	./array:
 		~=, ~~=, +, array, array-builder, as-array, begin, begin-pointer, build, iterate, new, next,
 		size, slice, subscript

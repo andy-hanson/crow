@@ -9,7 +9,7 @@ import
 	../option: ==, force, new, option
 	../string: ==, ~~, literal, new, string, to-string
 	../test-util: is
-	../tuple: ==, from, new, pair, to
+	../tuple: ==, from, new, to, tuple2
 	./array: +, array, begin, iterate, next, size
 	./collection: build-options, for-loop, is-at-end, join, reverse, set-reverse, subscript
 	./list: ==, ~=, build, iterate, list, list-builder, new, to-list

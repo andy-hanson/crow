@@ -6,7 +6,7 @@ import
 	../number: ==, +, nat64
 	../option: ==, force, is-empty, new, option
 	../test-util: is
-	../tuple: a, b, new, pair
+	../tuple: a, b, new, tuple2
 	./array: ~=, array, array-iterator, begin, build, end, next, prev
 	./collection: build, for-loop, reverse, with-block
 	./list: ==, ~=, build, iterate, list, new, to-list

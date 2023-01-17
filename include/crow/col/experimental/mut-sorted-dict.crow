@@ -10,7 +10,7 @@ import
 	../../option: ==, force, is-empty, new, option, size
 	../../string: ==, ~~, +, begin, literal, new, next, string, to-string
 	../../test-util: is
-	../../tuple: a, b, from, new, pair, to
+	../../tuple: a, b, from, new, to, tuple2
 	../array: array
 	../collection: -, build-options, end, for-loop, join, set-map, set-subscript, subscript
 	../mut-list:

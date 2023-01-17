@@ -1489,7 +1489,7 @@ void writeStructInst(scope ref Writer writer, in AllSymbols allSymbols, in Struc
 				return suffix("?");
 			case Diag.TypeShouldUseSyntax.Kind.pointer:
 				return suffix("*");
-			case Diag.TypeShouldUseSyntax.Kind.pair:
+			case Diag.TypeShouldUseSyntax.Kind.tuple:
 				return writeTupleType(writer, allSymbols, s.typeArgs);
 		}
 	} else {

@@ -11,7 +11,7 @@ import
 	../option: force, is-empty, new, option
 	../range: .., iterate, size
 	../string: ~~, literal, new, string, to-string
-	../tuple: b, from, new, pair, to
+	../tuple: b, from, new, to, tuple2
 	../private/bootstrap: todo
 	./array:
 		~, ~=, +, -, array, begin, build, end, is-empty, iterate, new, next, remove-at, size, slice,

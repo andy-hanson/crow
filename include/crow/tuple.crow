@@ -3,7 +3,7 @@ import
 	./bool: &&, bool
 	./compare: compare, comparison, equal, greater, less
 export
-	./private/tuple-low-level: a, b, new, pair
+	./private/tuple-low-level: a, b, new, tuple2
 
 ###
 Written `(a, b)`. Generic pair type.

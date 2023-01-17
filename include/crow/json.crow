@@ -18,7 +18,7 @@ import
 	./option: new, option
 	./result: result
 	./string: ==, ~~, hash-mix, literal, new, quote, string, to-string
-	./tuple: a, b, new, pair
+	./tuple: a, b, new, tuple2
 
 #TODO: get from 'symbol'
 -hash-mix void(hasher hasher, a symbol)

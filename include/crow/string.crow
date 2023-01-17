@@ -21,7 +21,7 @@ import
 	./private/c-string-util: find-c-string-end
 	./private/number-low-level: wrap-sub
 	./range: .., range
-	./tuple: a, b, new, pair
+	./tuple: a, b, new, tuple2
 export
 	./private/bootstrap: char8, c-string, to-char8, to-nat8
 

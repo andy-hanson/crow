@@ -11,7 +11,7 @@ import
 	../../pointer: ==, <=>, +, -, *, as-const, set-deref
 	../../range: ..
 	../../test-util: is
-	../../tuple: a, b, from, pair, to
+	../../tuple: a, b, from, to, tuple2
 	../../private/bootstrap: nat64
 	../array:
 		==, <=>, +, -, array, array-iterator, as-array, begin, end, iterate, next, next-index, slice

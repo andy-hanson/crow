@@ -342,8 +342,8 @@ immutable struct Diag {
 			mutList,
 			mutPointer,
 			opt,
-			pair,
 			pointer,
+			tuple,
 		}
 		Kind kind;
 	}

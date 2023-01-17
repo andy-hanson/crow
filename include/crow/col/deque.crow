@@ -6,7 +6,7 @@ import
 	../option: force, is-empty, new, option
 	../string: ==, ~~, literal, new, string, to-string
 	../test-util: is
-	../tuple: a, b, new, pair
+	../tuple: a, b, new, tuple2
 	./array: +, -, array, begin, end, is-empty, iterate, next, size, slice
 	./collection: .., -, end, for-loop, join, reverse, subscript
 	./list: ==, ~=, build, iterate, list, new, to-array, to-list

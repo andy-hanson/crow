@@ -13,7 +13,7 @@ import
 	./string:
 		==, <=>, ~~, ~=, as-string, begin, build, char8, char8s, hash-mix, is-empty, literal, new,
 		next, string, string-iterator, to-nat8, to-c-string, to-string
-	./tuple: a, b, new, pair
+	./tuple: a, b, new, tuple2
 
 ###
 Opaque grammar type parsing an 'a' value.

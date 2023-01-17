@@ -10,7 +10,7 @@ import
 	../private/exception-low-level: unreachable
 	../private/range-low-level: .., range
 	../pointer: size-of
-	../tuple: a, b, new, pair
+	../tuple: a, b, new, tuple2
 	./array:
 		~~, ~=, +, -, array, array-cast, as-array, begin, build, end, is-empty, iterate, new, next,
 		size, slice

@@ -960,23 +960,23 @@ void writeDiag(
 			writer ~= () {
 				final switch (it.kind) {
 					case Diag.TypeShouldUseSyntax.Kind.dict:
-						return "prefer to write 'v[k]' instead of 'dict<k, v>'";
+						return "prefer to write 'v[k]' instead of '(k, v) dict'";
 					case Diag.TypeShouldUseSyntax.Kind.future:
-						return "prefer to write 'a$' instead of 'future<a>";
+						return "prefer to write 'a$' instead of 'a future";
 					case Diag.TypeShouldUseSyntax.Kind.list:
-						return "prefer to write 'a[]' instead of 'list a'";
+						return "prefer to write 'a[]' instead of 'a list'";
 					case Diag.TypeShouldUseSyntax.Kind.mutDict:
-						return "prefer to write 'v mut[k]' instead of 'mut-dict<k, v>'";
+						return "prefer to write 'v mut[k]' instead of '(k, v) mut-dict'";
 					case Diag.TypeShouldUseSyntax.Kind.mutList:
-						return "prefer to write 'a mut[]' instead of 'mut-list a'";
+						return "prefer to write 'a mut[]' instead of 'a mut-list'";
 					case Diag.TypeShouldUseSyntax.Kind.mutPointer:
-						return "prefer to write 'a mut*' instead of 'mut-pointer a'";
+						return "prefer to write 'a mut*' instead of 'a mut-pointer'";
 					case Diag.TypeShouldUseSyntax.Kind.opt:
-						return "prefer to write 'a?' instead of 'opt a'";
-					case Diag.TypeShouldUseSyntax.Kind.pair:
-						return "prefer to write '(a, b)' instead of 'pair<a, b>'";
+						return "prefer to write 'a?' instead of 'a option'";
 					case Diag.TypeShouldUseSyntax.Kind.pointer:
-						return "prefer to write 'a*' instead of 'const-pointer a'";
+						return "prefer to write 'a*' instead of 'a const-pointer'";
+					case Diag.TypeShouldUseSyntax.Kind.tuple:
+						return "prefer to write '(a, b)' instead of '(a, b) tuple2'";
 				}
 			}();
 		},

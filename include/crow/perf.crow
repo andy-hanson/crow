@@ -20,7 +20,7 @@ import
 	./pointer: *, mut-pointer, set-deref
 	./string: ~~, literal, new, string, to-string
 	./symbol: ==, <=>, hash-mix, symbol, to-string
-	./tuple: new, pair
+	./tuple: new, tuple2
 
 +perf-result record
 	total duration

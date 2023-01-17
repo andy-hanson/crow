@@ -274,7 +274,7 @@ Type typeFromAst(
 private Sym nameForTuple(size_t length) {
 	switch (length) {
 		case 2:
-			return sym!"pair";
+			return sym!"tuple2";
 		case 3:
 			return sym!"tuple3";
 		case 4:
@@ -310,8 +310,15 @@ Opt!(Diag.TypeShouldUseSyntax.Kind) typeSyntaxKind(Sym a) {
 			return some(Diag.TypeShouldUseSyntax.Kind.mutPointer);
 		case sym!"option".value:
 			return some(Diag.TypeShouldUseSyntax.Kind.opt);
-		case sym!"pair".value:
-			return some(Diag.TypeShouldUseSyntax.Kind.pair);
+		case sym!"tuple2".value:
+		case sym!"tuple3".value:
+		case sym!"tuple4".value:
+		case sym!"tuple5".value:
+		case sym!"tuple6".value:
+		case sym!"tuple7".value:
+		case sym!"tuple8".value:
+		case sym!"tuple9".value:
+			return some(Diag.TypeShouldUseSyntax.Kind.tuple);
 		default:
 			return none!(Diag.TypeShouldUseSyntax.Kind);
 	}

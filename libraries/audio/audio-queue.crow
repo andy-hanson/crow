@@ -27,7 +27,7 @@ new audio-queue(format sound-format)
 	a.cur := a.samples begin-pointer
 
 -is-over bool(a entry) noctx
-	+a.looping && trusted a.cur == a.samples.end-pointer
+	!a.looping && trusted a.cur == a.samples.end-pointer
 
 clear void(a audio-queue) noctx
 	trusted

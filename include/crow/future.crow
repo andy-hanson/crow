@@ -14,7 +14,7 @@ import
 	./private/task-queue: task
 	./private/thread-utils: init, lock, uninit
 	./result: force, result
-	./tuple: a, b, c, pair, tuple3
+	./tuple: a, b, c, tuple2, tuple3
 export
 	./private/bootstrap: future
 

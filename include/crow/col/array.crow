@@ -8,7 +8,7 @@ import
 	../private/bootstrap: new
 	../private/range-low-level: ..
 	../pointer: ==, +, *, const-pointer
-	../tuple: a, b, new, pair
+	../tuple: a, b, new, tuple2
 	./collection: .., build, end, sequence-compare, sequence-equal, subscript, with-block
 export
 	../private/bootstrap: array, begin-pointer, size

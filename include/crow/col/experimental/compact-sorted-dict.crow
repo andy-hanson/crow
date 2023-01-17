@@ -11,7 +11,7 @@ import
 	../../option: ==, is-empty, new, option
 	../../string: ==, ~~, -, end, literal, new, next, string, to-string
 	../../test-util: is
-	../../tuple: ==, <=>, a, b, from, new, pair, to
+	../../tuple: ==, <=>, a, b, from, new, to, tuple2
 	../array:
 		~=, ~~=, +, -, array, array-builder, begin, build, collection, end, is-empty, iterate, new,
 		next, size, slice

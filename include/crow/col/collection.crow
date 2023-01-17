@@ -7,7 +7,7 @@ import
 	../number: ==, <=>, +, -, *, /, nat64
 	../option: ??, force, is-empty, new, option
 	../private/range-low-level: .., high, iterate, low, range, size, subtract-to-nat
-	../tuple: a, b, new, pair
+	../tuple: a, b, new, tuple2
 	./private/list-low-level: ~=, build, list
 export
 	./private/build
