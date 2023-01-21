@@ -372,6 +372,7 @@ immutable string[] specialSyms = [
 	"loop-continue\0",
 	"pointer-cast-from-extern\0",
 	"pointer-cast-to-extern\0",
+	"set-subscript\0",
 	"static-symbols\0",
 	"to-mut-pointer\0",
 	"truncate-to-int64\0",

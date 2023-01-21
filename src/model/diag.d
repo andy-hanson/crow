@@ -75,6 +75,8 @@ enum TypeKind {
 immutable struct Diag {
 	@safe @nogc pure nothrow:
 
+	immutable struct AssignmentNotAllowed {}
+
 	immutable struct BuiltinUnsupported {
 		Sym name;
 	}
@@ -384,6 +386,7 @@ immutable struct Diag {
 	}
 
 	mixin Union!(
+		AssignmentNotAllowed,
 		BuiltinUnsupported,
 		CallMultipleMatches,
 		CallNoMatch,

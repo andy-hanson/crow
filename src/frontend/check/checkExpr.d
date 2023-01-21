@@ -47,13 +47,13 @@ import frontend.check.typeFromAst : makeFutType;
 import frontend.parse.ast :
 	ArrowAccessAst,
 	AssertOrForbidAst,
+	AssignmentAst,
 	BogusAst,
 	CallAst,
 	ExprAst,
 	ExprAstKind,
 	ForAst,
 	IdentifierAst,
-	IdentifierSetAst,
 	IfAst,
 	IfOptionAst,
 	InterpolatedAst,
@@ -130,7 +130,7 @@ import model.model :
 import util.alloc.alloc : Alloc, allocateUninitialized;
 import util.col.arr : empty, only, PtrAndSmallNumber, ptrsRange, sizeEq;
 import util.col.arrUtil :
-	arrLiteral, arrsCorrespond, contains, exists, map, mapZipPtrFirst, mapZipWithIndex, zipPtrFirst;
+	append, arrLiteral, arrsCorrespond, contains, exists, map, mapZipPtrFirst, mapZipWithIndex, zipPtrFirst;
 import util.col.fullIndexDict : FullIndexDict;
 import util.col.mutArr : MutArr, mutArrSize, push, tempAsArr;
 import util.col.mutMaxArr : fillMutMaxArr, initializeMutMaxArr, mutMaxArrSize, push, pushLeft, tempAsArr;
@@ -140,7 +140,7 @@ import util.memory : allocate, initMemory, overwriteMemory;
 import util.opt : force, has, MutOpt, none, noneMut, Opt, someMut, some;
 import util.ptr : castImmutable, castNonScope, castNonScope_ref, ptrTrustMe;
 import util.sourceRange : FileAndRange, Pos, RangeWithinFile;
-import util.sym : Sym, sym, symOfStr;
+import util.sym : prependSet, Sym, sym, symOfStr;
 import util.union_ : Union;
 import util.util : max, todo, verify;
 
@@ -183,6 +183,8 @@ Expr checkExpr(ref ExprCtx ctx, ref LocalsInfo locals, in ExprAst ast, ref Expec
 			checkArrowAccess(ctx, locals, range, a, expected),
 		(in AssertOrForbidAst a) =>
 			checkAssertOrForbid(ctx, locals, range, a, expected),
+		(in AssignmentAst a) =>
+			checkAssignment(ctx, locals, range, a, expected),
 		(in BogusAst _) =>
 			bogus(expected, range),
 		(in CallAst a) =>
@@ -191,8 +193,6 @@ Expr checkExpr(ref ExprCtx ctx, ref LocalsInfo locals, in ExprAst ast, ref Expec
 			checkFor(ctx, locals, range, a, expected),
 		(in IdentifierAst a) =>
 			checkIdentifier(ctx, locals, range, a, expected),
-		(in IdentifierSetAst a) =>
-			checkIdentifierSet(ctx, locals, range, a, expected),
 		(in IfAst a) =>
 			checkIf(ctx, locals, range, a, expected),
 		(in IfOptionAst a) =>
@@ -332,6 +332,48 @@ Expr checkAssertOrForbid(
 	return check(ctx, expected, voidType(ctx), Expr(
 		range,
 		ExprKind(ExprKind.AssertOrForbid(ast.kind, condition, thrown))));
+}
+
+Expr checkAssignment(
+	ref ExprCtx ctx,
+	ref LocalsInfo locals,
+	FileAndRange range,
+	in AssignmentAst ast,
+	ref Expected expected,
+) {
+	if (ast.left.kind.isA!IdentifierAst)
+		return checkAssignIdentifier(ctx, locals, range, ast.left.kind.as!IdentifierAst.name, ast.right, expected);
+	else if (ast.left.kind.isA!CallAst) {
+		CallAst left = ast.left.kind.as!CallAst;
+		Opt!Sym name = () {
+			switch (left.style) {
+				case CallAst.Style.dot:
+					return some(prependSet(ctx.allSymbols, left.funNameName));
+				case CallAst.Style.prefixOperator:
+					return left.funNameName == sym!"*" ? some(sym!"set-deref") : none!Sym;
+				case CallAst.Style.subscript:
+					return some(sym!"set-subscript");
+				default:
+					return none!Sym;
+			}
+		}();
+		if (has(name)) {
+			//TODO:PERF use temp alloc
+			ExprAst[] args = append(ctx.alloc, left.args, ast.right);
+			return checkCall(
+				ctx,
+				locals,
+				range,
+				CallAst(CallAst.Style.infix, NameAndRange(ast.assignmentPos, force(name)), args),
+				expected);
+		} else {
+			addDiag2(ctx, range, Diag(Diag.AssignmentNotAllowed()));
+			return bogus(expected, range);
+		}
+	} else {
+		addDiag2(ctx, range, Diag(Diag.AssignmentNotAllowed()));
+		return bogus(expected, range);
+	}
 }
 
 Expr checkUnless(
@@ -626,17 +668,18 @@ Expr checkIdentifier(
 		: checkIdentifierCall(ctx, locals, range, ast.name, expected);
 }
 
-Expr checkIdentifierSet(
+Expr checkAssignIdentifier(
 	ref ExprCtx ctx,
 	ref LocalsInfo locals,
 	FileAndRange range,
-	in IdentifierSetAst ast,
+	in Sym left,
+	in ExprAst right,
 	ref Expected expected,
 ) {
-	MutOpt!VariableRefAndType optVar = getVariableRefForSet(ctx, locals, range, ast.name);
+	MutOpt!VariableRefAndType optVar = getVariableRefForSet(ctx, locals, range, left);
 	if (has(optVar)) {
 		VariableRefAndType var = force(optVar);
-		Expr value = checkAndExpect(ctx, locals, ast.value, var.type);
+		Expr value = checkAndExpect(ctx, locals, right, var.type);
 		return var.variableRef.matchWithPointers!Expr(
 			(Local* local) =>
 				check(ctx, expected, voidType(ctx), Expr(
@@ -1433,6 +1476,8 @@ bool hasBreakOrContinue(in ExprAst a) =>
 			false,
 		(in AssertOrForbidAst _) =>
 			false,
+		(in AssignmentAst _) =>
+			false,
 		(in BogusAst _) =>
 			false,
 		(in CallAst _) =>
@@ -1440,8 +1485,6 @@ bool hasBreakOrContinue(in ExprAst a) =>
 		(in ForAst _) =>
 			false,
 		(in IdentifierAst _) =>
-			false,
-		(in IdentifierSetAst _) =>
 			false,
 		(in IfAst x) =>
 			hasBreakOrContinue(x.then) || (has(x.else_) && hasBreakOrContinue(force(x.else_))),

@@ -5,13 +5,13 @@ module frontend.parse.parseExpr;
 import frontend.parse.ast :
 	ArrowAccessAst,
 	AssertOrForbidAst,
+	AssignmentAst,
 	BogusAst,
 	CallAst,
 	ExprAst,
 	ExprAstKind,
 	ForAst,
 	IdentifierAst,
-	IdentifierSetAst,
 	IfAst,
 	IfOptionAst,
 	InterpolatedAst,
@@ -43,7 +43,6 @@ import frontend.parse.lexer :
 	addDiagAtChar,
 	addDiagUnexpectedCurToken,
 	alloc,
-	allSymbols,
 	curPos,
 	EqualsOrThen,
 	getCurLiteralFloat,
@@ -79,12 +78,12 @@ import frontend.parse.parseType : parseType, parseTypeForTypedExpr, tryParseType
 import model.model : AssertOrForbidKind;
 import model.parseDiag : ParseDiag;
 import util.col.arr : empty;
-import util.col.arrUtil : append, arrLiteral, prepend;
+import util.col.arrUtil : arrLiteral, prepend;
 import util.col.arrBuilder : add, ArrBuilder, finishArr;
 import util.memory : allocate;
 import util.opt : force, has, none, Opt, some, some;
 import util.sourceRange : Pos, RangeWithinFile;
-import util.sym : prependSet, Sym, sym;
+import util.sym : Sym, sym;
 import util.union_ : Union;
 import util.util : max, todo, unreachable, verify;
 
@@ -240,76 +239,13 @@ ArgsAndMaybeNameOrDedent parseArgsRecur(ref Lexer lexer, ArgCtx ctx, ref ArrBuil
 		: ArgsAndMaybeNameOrDedent(finishArr(lexer.alloc, args), ad.nameOrDedent);
 }
 
-ExprAndDedent parseMutEquals(ref Lexer lexer, Pos start, ref ExprAst before, uint curIndent) {
-	ExprAndDedent initAndDedent = parseExprNoLet(lexer, curIndent);
-	if (before.kind.isA!IdentifierAst)
-		return ExprAndDedent(
-			ExprAst(range(lexer, start), ExprAstKind(allocate(lexer.alloc,
-				IdentifierSetAst(before.kind.as!IdentifierAst.name, initAndDedent.expr)))),
-			initAndDedent.dedents);
-	else if (before.kind.isA!CallAst) {
-		CallAst beforeCall = before.kind.as!CallAst;
-		CallAst.Style style = () {
-			final switch (beforeCall.style) {
-				case CallAst.Style.dot:
-					return CallAst.Style.setDot;
-				case CallAst.style.emptyParens:
-					// `() := foo` is a syntax error
-					return todo!(CallAst.Style)("!");
-				case CallAst.Style.single:
-					// `a@<t> := foo` is a syntax error
-					return todo!(CallAst.Style)("!");
-				case CallAst.Style.subscript:
-					return CallAst.Style.setSubscript;
-				case CallAst.Style.prefixBang:
-					// `!x := foo`
-					return todo!(CallAst.Style)("!");
-				case CallAst.Style.prefixOperator:
-					if (beforeCall.funName.name == sym!"*")
-						return CallAst.Style.setDeref;
-					else
-						// This is `~x := foo` or `-x := foo`. Have a diagnostic for this.
-						return todo!(CallAst.Style)("!");
-				case CallAst.Style.suffixBang:
-					// `x! := foo`
-					return todo!(CallAst.Style)("!");
-				case CallAst.Style.comma:
-				case CallAst.Style.infix:
-				case CallAst.Style.prefix:
-				case CallAst.Style.setDeref:
-				case CallAst.Style.setDot:
-				case CallAst.Style.setSubscript:
-					// We did parseExprBeforeCall before this, which can't parse any of these
-					return unreachable!(CallAst.Style)();
-			}
-		}();
-		return makeCall(
-			lexer, start, initAndDedent, beforeCall.funNameName, beforeCall.args, style);
-	} else {
-		addDiag(lexer, range(lexer, start), ParseDiag(ParseDiag.CantPrecedeMutEquals()));
-		return makeCall(lexer, start, initAndDedent, sym!"bogus", [], CallAst.Style.setDot);
-	}
-}
-
-ExprAndDedent makeCall(
-	ref Lexer lexer,
-	Pos start,
-	ExprAndDedent initAndDedent,
-	Sym name,
-	in ExprAst[] args,
-	CallAst.Style style,
-) {
-	// TODO: range is wrong..
-	ExprAst call = ExprAst(
-		range(lexer, start),
-		ExprAstKind(CallAst(
-			style,
-			NameAndRange(
-				start,
-				style == CallAst.Style.setDeref ? sym!"set-deref" : prependSet(lexer.allSymbols, name)),
-			append(lexer.alloc, args, initAndDedent.expr))));
-	return ExprAndDedent(call, initAndDedent.dedents);
-
+ExprAndDedent parseAssignment(ref Lexer lexer, Pos start, ref ExprAst left, Pos assignmentPos, uint curIndent) {
+	ExprAndDedent right = parseExprNoLet(lexer, curIndent);
+	return ExprAndDedent(
+		ExprAst(
+			range(lexer, start),
+			ExprAstKind(allocate(lexer.alloc, AssignmentAst(left, assignmentPos, right.expr)))),
+		right.dedents);
 }
 
 ExprAndDedent mustParseNextLines(ref Lexer lexer, Pos start, uint dedentsBefore, uint curIndent) {
@@ -1079,8 +1015,9 @@ ExprAndDedent parseSingleStatementLine(ref Lexer lexer, uint curIndent) {
 		return parseEqualsOrThen(lexer, curIndent, force(et));
 	else {
 		ExprAndMaybeDedent expr = parseExprBeforeCall(lexer, allowBlock(curIndent));
+		Pos assignmentPos = curPos(lexer);
 		if (!has(expr.dedents) && tryTakeToken(lexer, Token.colonEqual))
-			return parseMutEquals(lexer, start, expr.expr, curIndent);
+			return parseAssignment(lexer, start, expr.expr, assignmentPos, curIndent);
 		else {
 			ExprAndMaybeDedent fullExpr = has(expr.dedents)
 				? expr

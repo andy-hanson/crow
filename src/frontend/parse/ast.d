@@ -199,6 +199,13 @@ immutable struct AssertOrForbidAst {
 	Opt!ExprAst thrown;
 }
 
+// `left := right`
+immutable struct AssignmentAst {
+	ExprAst left;
+	Pos assignmentPos;
+	ExprAst right;
+}
+
 immutable struct BogusAst {}
 
 immutable struct CallAst {
@@ -212,9 +219,6 @@ immutable struct CallAst {
 		prefix, // `a: b`, `a: b, c`, etc.
 		prefixBang,
 		prefixOperator, // `-x`, `x`, `~x`
-		setDeref, // `*a := b`
-		setDot, // a.x := b
-		setSubscript, // `a[b] := c` (or `a[b, c] := d`, etc.)
 		single, // `a<t>` (without the type arg, it would just be an Identifier)
 		subscript, // a[b]
 		suffixBang, // 'x!'
@@ -251,12 +255,6 @@ immutable struct ForAst {
 
 immutable struct IdentifierAst {
 	Sym name;
-}
-
-// 'name := value'
-immutable struct IdentifierSetAst {
-	Sym name;
-	ExprAst value;
 }
 
 immutable struct IfAst {
@@ -429,11 +427,11 @@ immutable struct ExprAstKind {
 	mixin Union!(
 		ArrowAccessAst*,
 		AssertOrForbidAst*,
+		AssignmentAst*,
 		BogusAst,
 		CallAst,
 		ForAst*,
 		IdentifierAst,
-		IdentifierSetAst*,
 		IfAst*,
 		IfOptionAst*,
 		InterpolatedAst,
@@ -1025,6 +1023,10 @@ Repr reprExprAstKind(ref Alloc alloc, in ExprAstKind ast) =>
 				reprExprAst(alloc, e.condition),
 				reprOpt!ExprAst(alloc, e.thrown, (in ExprAst thrown) =>
 					reprExprAst(alloc, thrown))]),
+		(in AssignmentAst e) =>
+			reprRecord!"assign"(alloc, [
+				reprExprAst(alloc, e.left),
+				reprExprAst(alloc, e.right)]),
 		(in BogusAst _) =>
 			reprSym!"bogus" ,
 		(in CallAst e) =>
@@ -1044,10 +1046,6 @@ Repr reprExprAstKind(ref Alloc alloc, in ExprAstKind ast) =>
 					reprExprAst(alloc, else_))]),
 		(in IdentifierAst a) =>
 			reprSym(a.name),
-		(in IdentifierSetAst a) =>
-			reprRecord!"set"(alloc, [
-				reprSym(a.name),
-				reprExprAst(alloc, a.value)]),
 		(in IfAst e) =>
 			reprRecord!"if"(alloc, [
 				reprExprAst(alloc, e.cond),
@@ -1165,12 +1163,6 @@ Sym symOfCallAstStyle(CallAst.Style a) {
 			return sym!"prefix-bang";
 		case CallAst.Style.prefixOperator:
 			return sym!"prefix-op";
-		case CallAst.Style.setDeref:
-			return sym!"set-deref";
-		case CallAst.Style.setDot:
-			return sym!"set-dot";
-		case CallAst.Style.setSubscript:
-			return sym!"set-at";
 		case CallAst.Style.single:
 			return sym!"single";
 		case CallAst.Style.subscript:

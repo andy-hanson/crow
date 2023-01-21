@@ -5,6 +5,7 @@ module frontend.ide.getTokens;
 import frontend.parse.ast :
 	ArrowAccessAst,
 	AssertOrForbidAst,
+	AssignmentAst,
 	BogusAst,
 	CallAst,
 	ExprAst,
@@ -13,7 +14,6 @@ import frontend.parse.ast :
 	FunDeclAst,
 	FunModifierAst,
 	IdentifierAst,
-	IdentifierSetAst,
 	IfAst,
 	IfOptionAst,
 	ImportOrExportAst,
@@ -345,6 +345,11 @@ void addExprTokens(ref Alloc alloc, ref TokensBuilder tokens, in AllSymbols allS
 				// Only the length matters, and "assert" is same length as "forbid"
 				rangeOfNameAndRange(NameAndRange(a.range.start, sym!"assert"), allSymbols)));
 		},
+		(in AssignmentAst x) {
+			addExprTokens(alloc, tokens, allSymbols, x.left);
+			add(alloc, tokens, Token(Token.Kind.keyword, rangeOfStartAndLength(x.assignmentPos, ":=".length)));
+			addExprTokens(alloc, tokens, allSymbols, x.right);
+		},
 		(in BogusAst _) {},
 		(in CallAst it) {
 			void addName() {
@@ -354,7 +359,6 @@ void addExprTokens(ref Alloc alloc, ref TokensBuilder tokens, in AllSymbols allS
 			}
 			final switch (it.style) {
 				case CallAst.Style.dot:
-				case CallAst.Style.setDot:
 				case CallAst.Style.infix:
 					addExprTokens(alloc, tokens, allSymbols, it.args[0]);
 					addName();
@@ -377,8 +381,6 @@ void addExprTokens(ref Alloc alloc, ref TokensBuilder tokens, in AllSymbols allS
 					addExprsTokens(alloc, tokens, allSymbols, it.args);
 					break;
 				case CallAst.Style.comma:
-				case CallAst.Style.setDeref:
-				case CallAst.Style.setSubscript:
 				case CallAst.Style.subscript:
 					addExprsTokens(alloc, tokens, allSymbols, it.args);
 					break;
@@ -394,12 +396,6 @@ void addExprTokens(ref Alloc alloc, ref TokensBuilder tokens, in AllSymbols allS
 		},
 		(in IdentifierAst _) {
 			add(alloc, tokens, Token(Token.Kind.identifier, a.range));
-		},
-		(in IdentifierSetAst x) {
-			add(alloc, tokens, Token(
-				Token.Kind.identifier,
-				rangeOfNameAndRange(NameAndRange(a.range.start, x.name), allSymbols))) ;
-			addExprTokens(alloc, tokens, allSymbols, x.value);
 		},
 		(in IfAst it) {
 			addExprTokens(alloc, tokens, allSymbols, it.cond);

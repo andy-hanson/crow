@@ -120,9 +120,6 @@ void writeParseDiag(
 	in ParseDiag d,
 ) {
 	d.matchIn!void(
-		(in ParseDiag.CantPrecedeMutEquals) {
-			writer ~= "this expression can't appear in front of ':='";
-		},
 		(in ParseDiag.CantPrecedeOptEquals) {
 			writer ~= "only a plain identifier can appear in front of '?='";
 		},
@@ -529,6 +526,9 @@ void writeDiag(
 	in Diag d,
 ) {
 	d.matchIn!void(
+		(in Diag.AssignmentNotAllowed d) {
+			writer ~= "can't assign to this kind of expression";
+		},
 		(in Diag.BuiltinUnsupported d) {
 			writer ~= "the compiler does not implement a builtin named ";
 			writeName(writer, allSymbols, d.name);
