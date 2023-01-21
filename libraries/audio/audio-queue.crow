@@ -75,16 +75,16 @@ pull void(a audio-queue, out float32 mut-array) noctx, unsafe
 	out mut = a begin-pointer
 	read mut = b begin-pointer
 	until out == a.end-pointer
-		*out := *out + *read
-		out := out + 1
-		read := read + 1
+		*out +:= *read
+		out +:= 1
+		read +:= 1
 	assert read == b.end-pointer
 
 -play-common playing-sound(a audio-queue, sound sound, looping bool)
 	assert sound.format == a.format : "sound format mismatch: expected {a format}, got {sound format}"
 	trusted
 		a.lock acquire
-		# Can't use 'set-filter' in 'noctx' code, so do it here
+		# Can't use 'filter=' in 'noctx' code, so do it here
 		a.playing.filter := x => !x.is-over
 		entry entry = sound.samples, sound.samples.begin-pointer, looping
 		a.playing ~= entry

@@ -17,7 +17,7 @@ find-char-in-c-string c-string?(a c-string, c char8) noctx, unsafe
 		elif cur->to-nat8 == 0
 			break
 		else
-			cur := cur + 1
+			cur +:= 1
 			continue
 
 # Pointer to the end of a c-string.
@@ -27,7 +27,7 @@ find-c-string-end c-string(a c-string) noctx, unsafe
 		if cur->to-nat8 == 0
 			break cur
 		else
-			cur := cur + 1
+			cur +:= 1
 			continue
 
 # Pointer to the end of a c-string.

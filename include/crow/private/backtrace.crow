@@ -59,7 +59,7 @@ Result entries are temporary, must copy!
 	cur mut = begin
 	until cur == end
 		*cur := gc copy-c-strings *cur
-		cur := cur + 1
+		cur +:= 1
 
 -copy-c-strings backtrace-entry(gc gc-ctx, a backtrace-entry) noctx, unsafe
 	(gc copy-c-string-or-empty a.function-name), (gc copy-c-string-or-empty a.file-path), a.line-number, a.column-number
@@ -198,7 +198,7 @@ Result entries are temporary, must copy!
 					buf.as-const, "", 0, 0
 				else
 					"", "", 0, 0
-				out-cur := out-cur + 1
+				out-cur +:= 1
 				continue
 			else
 				*out-cur := "<<out of memory for backtrace>>", "", 0, 0

@@ -117,7 +117,7 @@ mut-array-to-frozen-dict-promise-no-duplicates[k, v] (k, v) frozen-dict(
 			if bucket-start <= cur && cur <= bucket-cur-end
 				if cur == bucket-cur-end
 					bucket-counts[bucket-index] := bucket-count + 1
-				cur := cur + 1
+				cur +:= 1
 			else
 				bucket-counts[bucket-index] := bucket-count + 1
 				cur swap bucket-cur-end
@@ -173,7 +173,7 @@ mut-array-to-frozen-dict-promise-no-duplicates[k, v] (k, v) frozen-dict(
 	res nat64 mut-array = n-buckets n-of 0
 	for pair : a
 		bucket-index = pair.from get-bucket-index n-buckets
-		res[bucket-index] := res[bucket-index] + 1
+		res[bucket-index] +:= 1
 	res
 
 -get-bucket-index[k] nat64(key k, n-buckets nat64) k key
@@ -184,7 +184,7 @@ mut-array-to-frozen-dict-promise-no-duplicates[k, v] (k, v) frozen-dict(
 		acc mut = initial
 		for offset : offsets
 			out ~= acc
-			acc := acc + offset
+			acc +:= offset
 
 region spec impls (see collection.crow)
 

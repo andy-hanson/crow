@@ -18,7 +18,7 @@ It also is efficient to split from an iterator.
 It does not support efficient access by an index, so iterators should be used instead.
 ###
 +list[t] record by-val
-	root t l1
+	~root t l1
 
 l1[t] record by-val
 	node (t array, t l2) node

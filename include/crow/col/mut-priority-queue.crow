@@ -17,7 +17,7 @@ import
 		~=, ~~=, +, -, begin, clear, copy, end, is-empty, iterate, move-to-array, mut-list, new,
 		next, next-index, peek, pop, prev, set-next, set-prev, size, temp-as-array, to-mut-list
 	./priority-queue: priority
-	./sort: set-sort
+	./sort: sort=
 	./private/sort-utils: binary-search-insert
 
 ###
@@ -42,7 +42,7 @@ If two pairs have the same key, the second pair added will be popped second.
 # Copies a list to a new priority queue.
 +to-mut-priority-queue[k, v] (k, v) mut-priority-queue(a (k, v)[]) k priority
 	mins = a to-mut-list
-	mins set-sort pair => pair.from compare-reverse
+	mins sort= pair => pair.from compare-reverse
 	mins, ()
 
 # Removes all pairs from the queue.
@@ -61,7 +61,7 @@ This is O(n).
 +size[k, v] nat64(a (k, v) mut-priority-queue) k priority
 	res mut = a.mins size
 	for b : a.buckets
-		res := res + b.size
+		res +:= b size
 	res
 
 ###
@@ -92,7 +92,7 @@ This is amortized O(log n).
 		# This preserves insertion order: 'sort' doesn't change that,
 		# then we reverse, then popping from the right reverses it again.
 		# Note: Handling equal keys is why we can't just use a reversed comparer
-		bucket set-sort it => it from
+		bucket sort= it => it from
 		bucket set-reverse
 		a.mins ~~= bucket
 	res
@@ -124,7 +124,7 @@ This is O(n).
 	for index, old-min : old-mins
 		if index < a.buckets.size
 			bucket = a.buckets[index]
-			bucket.sort := it => it from
+			bucket sort= it => it from
 			for x : bucket reverse
 				a.mins ~= x
 		a.mins ~= old-min

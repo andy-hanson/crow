@@ -64,7 +64,7 @@ This is O(n).
 size[k, v] nat64(a (k, v) compact-sorted-dict) k key
 	res mut = 0
 	for _, _ : a
-		res := res + 1
+		res +:= 1
 	res
 
 to-list[k, v] (k, v)[](a (k, v) compact-sorted-dict) k key
@@ -213,7 +213,7 @@ iterate[k, v] bool(a (k, v) compact-sorted-dict, f act bool(k, v)) k key
 			as overlay o
 				out ~= ((o.pairs[0].from, overlay-index), o pairs)
 				cur := o prev
-				overlay-index := overlay-index + 1
+				overlay-index +:= 1
 				continue
 			as end-node e
 				break e
@@ -285,7 +285,7 @@ compact-sorted-dict-builder[k, v] record mut
 	-inner (k, v) list-builder
 build[k, v] (k, v) compact-sorted-dict(a build-options, f act void((k, v) compact-sorted-dict-builder)) k key
 	a build (out => f[(out,)]) to-compact-sorted-dict
-~=[k, v] void(a (k, v) compact-sorted-dict-builder, value (k, v)) k key
++ ~=[k, v] void(a (k, v) compact-sorted-dict-builder, value (k, v)) k key
 	a.inner ~= value
 
 region test

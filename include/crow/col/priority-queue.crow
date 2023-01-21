@@ -15,9 +15,9 @@ import
 	./collection: .., build, end, for-break, for-loop, join, subscript, swap-at, with-block
 	./mut-array:
 		~=, ~~=, +, -, begin, build, cast-immutable, end, is-empty, mut-array, mut-array-builder,
-		mut-array-iterator, next, prev, set-next, size, slice
+		next, prev, set-next, size, slice
 	./list: ==, ~=, build, is-empty, iterate, list, new, to-array, to-list
-	./sort: set-sort, sort
+	./sort: sort, sort=
 
 ###
 Immutable priority queue.
@@ -88,7 +88,7 @@ This is O(n).
 	cur mut = a root
 	loop
 		if node ?= cur
-			acc := acc + 1 + node.pairs.size
+			acc +:= 1 + node.pairs.size
 			cur := node next
 			continue
 		else
@@ -210,7 +210,7 @@ This is amortized O(log n).
 		out compact-non-singles nodes-to-compact
 		out compact-singles root
 	assert compacted.size == n-to-compact
-	compacted set-sort@((k, v) mut-array, (k, v) mut-array-iterator, (k, v), k) pair => pair from
+	compacted sort= pair => pair from
 	arr = trusted compacted cast-immutable
 	arr[0], arr[1 .. end], ()
 
@@ -254,7 +254,7 @@ region iteration
 	res (k, v) each-part mut-array = with out : a.node-count build
 		out fill-each-arr a.root
 	assert res.size == a.node-count
-	res set-sort it => it.min from
+	res sort= it => it.min from
 	res
 
 -node-count[k, v] nat64(a (k, v) priority-queue)

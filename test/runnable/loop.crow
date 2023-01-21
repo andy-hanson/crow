@@ -7,15 +7,15 @@ main nat^(_ string[]) summon
 		if x == 5
 			break x * 2
 		else
-			x := x + 1
+			x +:= 1
 			continue
 	out print "x is {x}, y is {y}"
 
 	until x == 15
-		x := x + 1
+		x +:= 1
 	out print "x is {x}"
 
 	while x > 10
-		x := x - 1
+		x -:= 1
 	out print "x is {x}"
 	()

@@ -6,6 +6,7 @@ import frontend.parse.ast :
 	ArrowAccessAst,
 	AssertOrForbidAst,
 	AssignmentAst,
+	AssignmentCallAst,
 	BogusAst,
 	CallAst,
 	ExprAst,
@@ -94,7 +95,7 @@ Repr reprTokens(ref Alloc alloc, scope Token[] tokens) =>
 	reprArr!Token(alloc, tokens, (in Token it) =>
 		reprToken(alloc, it));
 
-Token[] tokensOfAst(ref Alloc alloc, in AllSymbols allSymbols, in FileAst ast) {
+Token[] tokensOfAst(ref Alloc alloc, ref AllSymbols allSymbols, in FileAst ast) {
 	TokensBuilder tokens;
 
 	addImportTokens(alloc, tokens, allSymbols, ast.imports, sym!"import");
@@ -303,7 +304,7 @@ void addEnumOrFlagsTokens(
 	}
 }
 
-void addFunTokens(ref Alloc alloc, ref TokensBuilder tokens, in AllSymbols allSymbols, in FunDeclAst a) {
+void addFunTokens(ref Alloc alloc, ref TokensBuilder tokens, ref AllSymbols allSymbols, in FunDeclAst a) {
 	add(alloc, tokens, Token(
 		Token.Kind.fun,
 		rangeAtName(allSymbols, a.visibility, a.range.start, a.name)));
@@ -333,7 +334,7 @@ void addFunTokens(ref Alloc alloc, ref TokensBuilder tokens, in AllSymbols allSy
 		addExprTokens(alloc, tokens, allSymbols, force(a.body_));
 }
 
-void addExprTokens(ref Alloc alloc, ref TokensBuilder tokens, in AllSymbols allSymbols, in ExprAst a) {
+void addExprTokens(ref Alloc alloc, ref TokensBuilder tokens, ref AllSymbols allSymbols, in ExprAst a) {
 	a.kind.matchIn!void(
 		(in ArrowAccessAst it) {
 			addExprTokens(alloc, tokens, allSymbols, it.left);
@@ -348,6 +349,11 @@ void addExprTokens(ref Alloc alloc, ref TokensBuilder tokens, in AllSymbols allS
 		(in AssignmentAst x) {
 			addExprTokens(alloc, tokens, allSymbols, x.left);
 			add(alloc, tokens, Token(Token.Kind.keyword, rangeOfStartAndLength(x.assignmentPos, ":=".length)));
+			addExprTokens(alloc, tokens, allSymbols, x.right);
+		},
+		(in AssignmentCallAst x) {
+			addExprTokens(alloc, tokens, allSymbols, x.left);
+			add(alloc, tokens, Token(Token.Kind.fun, rangeOfNameAndRange(x.funName, allSymbols)));
 			addExprTokens(alloc, tokens, allSymbols, x.right);
 		},
 		(in BogusAst _) {},
@@ -557,7 +563,7 @@ void addLambdaAstParam(ref Alloc alloc, ref TokensBuilder tokens, in AllSymbols 
 	add(alloc, tokens, Token(Token.Kind.param, rangeOfOptNameAndRange(param, allSymbols)));
 }
 
-void addExprsTokens(ref Alloc alloc, ref TokensBuilder tokens, in AllSymbols allSymbols, in ExprAst[] exprs) {
+void addExprsTokens(ref Alloc alloc, ref TokensBuilder tokens, ref AllSymbols allSymbols, in ExprAst[] exprs) {
 	foreach (ref ExprAst expr; exprs)
 		addExprTokens(alloc, tokens, allSymbols, expr);
 }

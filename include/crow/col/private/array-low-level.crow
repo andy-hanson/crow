@@ -55,7 +55,7 @@ Calls `f` for each element in `a`.
 			elif f[*a.begin-pointer]
 				break true
 			else
-				i := i + 1
+				i +:= 1
 				continue
 	else
 		cur mut = a begin-pointer
@@ -66,7 +66,7 @@ Calls `f` for each element in `a`.
 			elif f[*cur]
 				break true
 			else
-				cur := cur + 1
+				cur +:= 1
 				continue
 
 +array-builder[t] record mut
@@ -105,7 +105,7 @@ Calls `f` for each element in `a`.
 			a.cur := new-begin + cur-size
 			a.end := new-begin + new-capacity
 		*a.cur := value
-		a.cur := a.cur + 1
+		a.cur +:= 1
 
 +~~=[t] void(a t array-builder, values t array)
 	trusted if size-of@t == 0
@@ -123,7 +123,7 @@ Calls `f` for each element in `a`.
 			a.cur := new-begin + cur-size
 			a.end := new-begin + new-capacity
 		a.cur copy-data-from values.begin-pointer, values.size
-		a.cur := a.cur + values.size
+		a.cur +:= values size
 
 +size[t] nat64(a t array-builder)
 	trusted if size-of@t == 0

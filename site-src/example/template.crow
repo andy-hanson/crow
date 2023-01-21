@@ -24,7 +24,7 @@ new[t] t linked-list()
 size[t] nat(a t linked-list)
 	res mut = 0
 	for _ : a
-		res := res + 1
+		res +:= 1
 	res
 
 iterate[t] bool(list t linked-list, f act bool(t))

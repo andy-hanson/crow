@@ -64,7 +64,7 @@ mark-range bool(start bool mut*, end bool mut*) noctx, unsafe
 		if !*cur
 			*cur := true
 			marked-anything := true
-		cur := cur + 1
+		cur +:= 1
 	marked-anything
 
 mark-visit[t] void(mark-ctx mark-ctx, value t) builtin, noctx, unsafe
@@ -152,13 +152,13 @@ init void(a gc, n-threads nat64) noctx, unsafe
 run-garbage-collection[t] void(gc gc, gc-root t) noctx, unsafe
 	gc.needs-gc hard-assert
 	if &gc.barrier wait-barrier
-		gc.gc-count := gc.gc-count wrap-add 1
+		gc.gc-count wrap-add:= 1
 		_ = gc.mark-begin.as-any-mut-pointer memset 0, gc.size-words
 		mark-ctx mark-ctx by-val = gc.size-words, gc.mark-begin, gc.data-begin
 		&mark-ctx mark-visit gc-root
 		prev-mark-cur = gc.mark-cur
-		gc.mark-cur := gc.mark-begin
-		gc.data-cur := gc.data-begin
+		gc.mark-cur := gc mark-begin
+		gc.data-cur := gc data-begin
 		if false
 			# Expensive safety check
 			gc.mark-begin clear-free-mem prev-mark-cur, gc.data-begin
@@ -257,11 +257,11 @@ validate-gc void(gc gc) noctx, unsafe
 			next = cur + size-words
 			if next < gc.data-end
 				if non-free ?= gc.mark-cur first-non-free gc.mark-cur + size-words
-					gc.data-cur := gc.data-cur + (non-free - gc.mark-cur) + 1
+					gc.data-cur +:= (non-free - gc.mark-cur) wrap-add 1
 					gc.mark-cur := non-free + 1
 					continue
 				else
-					gc.mark-cur := gc.mark-cur + size-words
+					gc.mark-cur +:= size-words
 					gc.data-cur := next
 					break cur.pointer-cast,
 			else

@@ -202,5 +202,5 @@ round-up-to-power-of-two nat64(n nat64) noctx
 	# TODO: this needs to throw if 'n' is too big to round up!
 	acc mut = 1
 	until acc >= n
-		acc := acc wrap-mul 2
+		acc wrap-mul:= 2
 	acc

@@ -54,7 +54,7 @@ This is O(log n), where 'n' is the number of unique symbols that exist.
 	cur mut = res
 	for x : a char8s
 		*cur := x
-		cur := cur + 1
+		cur +:= 1
 	assert cur == res + a.char8s.size
 	*cur := "\0"
 	res as-const

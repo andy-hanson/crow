@@ -53,7 +53,7 @@ new index-set(...a nat64 array)
 to-index-set index-set(a nat64[])
 	res mut index-set = (0, empty)
 	for x : a
-		res := res ~ x
+		res ~:= x
 	res
 
 == bool(a index-set, b index-set)
@@ -198,7 +198,7 @@ try-add index-set?(a index-set, index nat64)
 ~ ~~ index-set(a index-set, indices nat64[])
 	res mut = a
 	for index : indices
-		res := res ~ index
+		res ~:= index
 	res
 
 ~ - index-set(a index-set, index nat64)
@@ -363,7 +363,7 @@ count-greater-or-equal nat64(a index-set, n nat64)
 -count-ones-in-array nat64(a nat64 array)
 	res mut = 0
 	for x : a
-		res := res + x.count-ones
+		res +:= x count-ones
 	res
 
 # Gets the set with only values < limit

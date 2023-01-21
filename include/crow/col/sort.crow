@@ -54,7 +54,7 @@ Same as `sort`, but use `get-key` to get the comparable part of each element.
 	get-key fun k(elem),
 ) (col, elem, builder) build, (col, elem) iterate, col size, k compare
 	res elem mut-array = for x : a; x
-	res set-sort get-key
+	res sort= get-key
 	for x : res; x
 
 ###
@@ -74,18 +74,18 @@ test
 
 	# Test that it's a stable sort
 	arr string mut-array = "2a", "2b", "1a", "1b"
-	arr set-sort x => x[0]
+	arr sort= x => x[0]
 	arr.to-array is ("1a", "1b", "2a", "2b")
-	arr set-sort x => x[end - 1]
+	arr sort= x => x[end - 1]
 	arr.to-array is ("1a", "2a", "1b", "2b")
 
 # Sort the elements of `a` from least to greatest.
 +set-sort[col, iter, elem] void(
 	a col,
 ) (iter, col) begin, (elem, iter) prev-next, (iter, elem) set-next, elem compare
-	a set-sort x => x
+	a sort= x => x
 # Like `set-sort`, but use `get-key` to get the comparable part of each element.
-+set-sort[col, iter, elem, k] void(
++sort=[col, iter, elem, k] void(
 	a col,
 	get-key fun k(elem),
 ) (iter, col) begin, (elem, iter) prev-next, (iter, elem) set-next, k compare
@@ -109,7 +109,7 @@ test
 		if prev-pair ?= cur prev
 			if get-key[prev-pair b] > key-to-move
 				cur set-next prev-pair.b
-				cur := prev-pair.a
+				cur := prev-pair a
 				continue
 			else
 				cur set-next value-to-move
@@ -131,7 +131,7 @@ Returns is a slice of the original `a`, which will be shorter if non-unique elem
 		if pair ?= in next
 			unless prev == (pair.a,)
 				out set-next pair.a
-				out := out + 1
+				out +:= 1
 				prev := pair.a,
 			in := pair b
 			continue

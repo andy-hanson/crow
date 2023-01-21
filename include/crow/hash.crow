@@ -42,7 +42,7 @@ then mix its associated value, if any.
 	hasher hash-mix a.to-nat64
 +hash-mix void(hasher hasher, a nat64)
 	# TODO: better hash mixing algorithm
-	hasher.cur := hasher.cur wrap-add a
+	hasher.cur wrap-add:= a
 +hash-mix void(hasher hasher, a int8)
 	hasher hash-mix a.to-int64
 +hash-mix void(hasher hasher, a int16)

@@ -5,7 +5,7 @@ main nat^(_ string[]) summon
 	xs string[] = "crow", "raven"
 	count mut nat = 0
 	ys string[] = for x : xs
-		count := count + 1
+		count +:= 1
 		"{count}: {x}"
 	out print ("; " join ys)
 	()

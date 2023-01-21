@@ -59,7 +59,8 @@ to-8-bytes nat8[](a nat64)
 	assert a.size <= 8
 	res mut = 0
 	for x : a
-		res := res << 8 | x.to-nat64
+		res <<:= 8
+		res |:= x to-nat64
 	res
 test
 	n = 0x0123456789abcdef

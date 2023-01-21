@@ -38,7 +38,7 @@ The first element of `a` goes on the bottom and the last element of `a` goes on 
 +to-stack[t] t stack(a t[])
 	res mut t stack = ()::(t node?),
 	for x : a
-		res := res ~ x
+		res ~:= x
 	res
 
 # Copy elements a list.
@@ -64,7 +64,7 @@ This is O(1).
 +size[t] nat64(a t stack)
 	res mut = 0
 	for _ : a
-		res := res + 1
+		res +:= 1
 	res
 
 ###

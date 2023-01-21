@@ -69,7 +69,7 @@ size[t] nat64(a t sorted-set)
 	cur mut = a
 	loop
 		if left ?= cur left
-			acc := acc + left.values.size
+			acc +:= left.values size
 			cur := left
 			continue
 		else
@@ -232,7 +232,7 @@ Or a combination of the two.
 		if compactor.cur == compactor.end
 			break compactor.finish, cur.left
 		else
-			add-size-here-and-left := add-size-here-and-left - cur.values.size
+			add-size-here-and-left -:= cur.values size
 			cur := cur.left!
 			continue
 
@@ -271,14 +271,14 @@ Or a combination of the two.
 		as less
 			unless b-remove-index in b-remove
 				*a-write := *b-read
-				a-write := a-write - 1
+				a-write -:= 1
 
 			if b-read == b-begin
 				# done, everything from 'a' is in place
 				break
 			else
-				b-read := b-read - 1
-				b-remove-index := b-remove-index - 1
+				b-read -:= 1
+				b-remove-index -:= 1
 				continue
 		as equal
 			# We shouldn't store the same value twice.
@@ -290,8 +290,8 @@ Or a combination of the two.
 				a-write - 1 copy-from-b (b-begin .. b-read + 1).as-array, b-remove-index, b-remove
 				break
 			else
-				a-read := a-read - 1
-				a-write := a-write - 1
+				a-read -:= 1
+				a-write -:= 1
 				continue
 
 -copy-from-b[t] void(
@@ -306,12 +306,12 @@ Or a combination of the two.
 	loop
 		unless b-remove-index in b-remove
 			*a-write := *b-read
-			a-write := a-write - 1
+			a-write -:= 1
 		if b-read == b.begin-pointer
 			break
 		else
-			b-read := b-read - 1
-			b-remove-index := b-remove-index - 1
+			b-read -:= 1
+			b-remove-index -:= 1
 			continue
 
 -finish[t] t array(a t compactor) unsafe
@@ -372,7 +372,7 @@ iterate[t] bool(a t sorted-set, f act bool(t)) t key
 	cur mut = a add
 	loop
 		if left ?= cur left
-			acc := acc + 1
+			acc +:= 1
 			cur := left
 			continue
 		else

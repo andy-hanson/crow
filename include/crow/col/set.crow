@@ -59,7 +59,7 @@ to-set[t] t set(a t frozen-set) t key
 	cur mut = a
 	loop
 		if left ?= cur left
-			acc := acc + left.here.size
+			acc +:= left.here size
 			cur := left
 			continue
 		else
@@ -101,7 +101,7 @@ This is a set containing all elements in either `a` or `b`.
 +|[t] t set(a t set, b t set) t key
 	res mut = a
 	for x : b
-		res := res ~ x
+		res ~:= x
 	res
 
 ###
@@ -204,7 +204,7 @@ Else, adds it and returns the new set.
 			break cur left
 		else
 			cur := cur.left!
-			add-size-here-and-left := add-size-here-and-left - cur.here.size
+			add-size-here-and-left -:= cur.here size
 			continue
 
 -push[t] void(out t frozen-set-builder, here t frozen-set, add-size-here-and-left nat64, remove index-set)
@@ -225,7 +225,7 @@ region spec impls (see collection.crow)
 			break true
 		elif left ?= cur left
 			cur := left
-			add-size-left := add-size-left - cur.here.size
+			add-size-left -:= cur.here size
 			continue
 		else
 			break false

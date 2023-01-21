@@ -85,7 +85,7 @@ If the performance measure `measure-name` is enabled, this contribues to its per
 			start = perf-now
 			res = f[]
 			nsec = perf-now - start
-			perf.measure-accums[index] := perf.measure-accums[index] + (1, nsec)
+			perf.measure-accums[index] +:= (1, nsec)
 			res
 		else
 			f[]

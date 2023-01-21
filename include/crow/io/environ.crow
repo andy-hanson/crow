@@ -20,7 +20,7 @@ get-environ-raw c-string*() summon, unsafe
 			env mut = get-environ-raw
 			until *env == null
 				out ~= env->parse-environ-entry
-				env := env + 1
+				env +:= 1
 
 -parse-environ-entry (string, string)(entry c-string) unsafe
 	if key-end ?= entry find-char-in-c-string "="

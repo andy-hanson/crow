@@ -4,8 +4,9 @@ module frontend.check.checkExpr;
 
 import frontend.check.checkCall :
 	checkCall,
-	checkCallNoLocals,
-	checkIdentifierCall,
+	checkCallIdentifier,
+	checkCallSpecial,
+	checkCallSpecialNoLocals,
 	eachFunInScope,
 	isPurityAlwaysCompatibleConsideringSpecs,
 	markUsedFun,
@@ -48,6 +49,7 @@ import frontend.parse.ast :
 	ArrowAccessAst,
 	AssertOrForbidAst,
 	AssignmentAst,
+	AssignmentCallAst,
 	BogusAst,
 	CallAst,
 	ExprAst,
@@ -185,6 +187,8 @@ Expr checkExpr(ref ExprCtx ctx, ref LocalsInfo locals, in ExprAst ast, ref Expec
 			checkAssertOrForbid(ctx, locals, range, a, expected),
 		(in AssignmentAst a) =>
 			checkAssignment(ctx, locals, range, a, expected),
+		(in AssignmentCallAst a) =>
+			checkAssignmentCall(ctx, locals, range, a, expected),
 		(in BogusAst _) =>
 			bogus(expected, range),
 		(in CallAst a) =>
@@ -216,7 +220,7 @@ Expr checkExpr(ref ExprCtx ctx, ref LocalsInfo locals, in ExprAst ast, ref Expec
 		(in LoopBreakAst a) =>
 			checkLoopBreak(ctx, locals, range, a, expected),
 		(in LoopContinueAst _) =>
-			checkLoopContinue(ctx, locals, range, expected),
+			checkLoopContinue(ctx, range, expected),
 		(in LoopUntilAst a) =>
 			checkLoopUntil(ctx, locals, range, a, expected),
 		(in LoopWhileAst a) =>
@@ -291,13 +295,11 @@ Expr checkArrowAccess(
 	in ArrowAccessAst ast,
 	ref Expected expected,
 ) {
-	// TODO: NEATER (don't create a synthetic AST)
 	ExprAst[1] derefArgs = [ast.left];
-	scope CallAst callDeref =
+	CallAst callDeref =
 		CallAst(CallAst.style.single, NameAndRange(range.range.start, sym!"*"), castNonScope(derefArgs));
-	ExprAst[1] callArgs = [ExprAst(range.range, ExprAstKind(callDeref))];
-	scope CallAst callName = CallAst(CallAst.style.infix, ast.name, castNonScope(callArgs));
-	return checkCall(ctx, locals, range, callName, expected);
+	return checkCallSpecial(
+		ctx, locals, range, ast.name.name, [ExprAst(range.range, ExprAstKind(callDeref))], expected);
 }
 
 Expr checkIf(ref ExprCtx ctx, ref LocalsInfo locals, FileAndRange range, in IfAst ast, ref Expected expected) {
@@ -340,17 +342,27 @@ Expr checkAssignment(
 	FileAndRange range,
 	in AssignmentAst ast,
 	ref Expected expected,
+) =>
+	checkAssignment(ctx, locals, range, ast.left, ast.right, expected);
+
+Expr checkAssignment(
+	ref ExprCtx ctx,
+	ref LocalsInfo locals,
+	FileAndRange range,
+	in ExprAst left,
+	in ExprAst right,
+	ref Expected expected,
 ) {
-	if (ast.left.kind.isA!IdentifierAst)
-		return checkAssignIdentifier(ctx, locals, range, ast.left.kind.as!IdentifierAst.name, ast.right, expected);
-	else if (ast.left.kind.isA!CallAst) {
-		CallAst left = ast.left.kind.as!CallAst;
+	if (left.kind.isA!IdentifierAst)
+		return checkAssignIdentifier(ctx, locals, range, left.kind.as!IdentifierAst.name, right, expected);
+	else if (left.kind.isA!CallAst) {
+		CallAst leftCall = left.kind.as!CallAst;
 		Opt!Sym name = () {
-			switch (left.style) {
+			switch (leftCall.style) {
 				case CallAst.Style.dot:
-					return some(prependSet(ctx.allSymbols, left.funNameName));
+					return some(prependSet(ctx.allSymbols, leftCall.funNameName));
 				case CallAst.Style.prefixOperator:
-					return left.funNameName == sym!"*" ? some(sym!"set-deref") : none!Sym;
+					return leftCall.funNameName == sym!"*" ? some(sym!"set-deref") : none!Sym;
 				case CallAst.Style.subscript:
 					return some(sym!"set-subscript");
 				default:
@@ -359,13 +371,8 @@ Expr checkAssignment(
 		}();
 		if (has(name)) {
 			//TODO:PERF use temp alloc
-			ExprAst[] args = append(ctx.alloc, left.args, ast.right);
-			return checkCall(
-				ctx,
-				locals,
-				range,
-				CallAst(CallAst.Style.infix, NameAndRange(ast.assignmentPos, force(name)), args),
-				expected);
+			ExprAst[] args = append(ctx.alloc, leftCall.args, right);
+			return checkCallSpecial(ctx, locals, range, force(name), args, expected);
 		} else {
 			addDiag2(ctx, range, Diag(Diag.AssignmentNotAllowed()));
 			return bogus(expected, range);
@@ -374,6 +381,23 @@ Expr checkAssignment(
 		addDiag2(ctx, range, Diag(Diag.AssignmentNotAllowed()));
 		return bogus(expected, range);
 	}
+}
+
+Expr checkAssignmentCall(
+	ref ExprCtx ctx,
+	ref LocalsInfo locals,
+	FileAndRange range,
+	in AssignmentCallAst ast,
+	ref Expected expected,
+) {
+	ExprAst[2] args = [castNonScope_ref(ast.left), castNonScope_ref(ast.right)];
+	return checkAssignment(
+		ctx, locals, range, ast.left,
+		ExprAst(range.range, ExprAstKind(CallAst(
+			CallAst.style.infix,
+			ast.funName,
+			args))),
+		expected);
 }
 
 Expr checkUnless(
@@ -412,7 +436,7 @@ Expr checkExprOrEmptyNew(
 		: checkEmptyNew(ctx, range, expected);
 
 Expr checkEmptyNew(ref ExprCtx ctx, in FileAndRange range, ref Expected expected) =>
-	checkCallNoLocals(ctx, range, callNewCall(range.range), expected);
+	checkCallIdentifier(ctx, range, sym!"new", expected);
 
 Expr checkIfOption(
 	ref ExprCtx ctx,
@@ -665,7 +689,7 @@ Expr checkIdentifier(
 	MutOpt!VariableRefAndType res = getIdentifierNonCall(ctx.alloc, locals, ast.name, LocalAccessKind.getOnStack);
 	return has(res)
 		? check(ctx, expected, force(res).type, toExpr(ctx.alloc, range, force(res).variableRef))
-		: checkIdentifierCall(ctx, locals, range, ast.name, expected);
+		: checkCallIdentifier(ctx, range, ast.name, expected);
 }
 
 Expr checkAssignIdentifier(
@@ -839,13 +863,7 @@ Expr checkLiteralString(
 		return Expr(range, ExprKind(ExprKind.LiteralCString(copyToSafeCStr(ctx.alloc, value))));
 	else {
 		defaultExpectedToString(ctx, range, expected);
-		scope ExprAst[1] args = [curAst];
-		// TODO: NEATER (don't create a synthetic AST)
-		scope CallAst ast = CallAst(
-			CallAst.Style.emptyParens,
-			NameAndRange(range.start, sym!"literal"),
-			castNonScope(args));
-		return checkCallNoLocals(ctx, range, ast, expected);
+		return checkCallSpecialNoLocals(ctx, range, sym!"literal", [castNonScope_ref(curAst)], expected);
 	}
 }
 
@@ -1294,14 +1312,10 @@ Expr checkLoopBreak(
 	ref Expected expected,
 ) {
 	MutOpt!(LoopInfo*) optLoop = tryGetLoop(expected);
-	if (!has(optLoop)) {
-		// TODO: NEATER (don't create a synthetic AST)
-		ExprAst[1] args = [has(ast.value) ? force(ast.value) : callNew(range.range)];
-		return checkCall(
-			ctx, locals, range,
-			CallAst(CallAst.Style.infix, NameAndRange(range.range.start, sym!"loop-break"), castNonScope(args)),
-			expected);
-	} else {
+	if (!has(optLoop))
+		return checkCallSpecial!1(
+			ctx, locals, range, sym!"loop-break", [has(ast.value) ? force(ast.value) : callNew(range.range)], expected);
+	else {
 		LoopInfo* loop = force(optLoop);
 		loop.hasBreak = true;
 		Expr value = checkExprOrEmptyNewAndExpect(ctx, locals, range, ast.value, loop.type);
@@ -1311,14 +1325,11 @@ Expr checkLoopBreak(
 	}
 }
 
-Expr checkLoopContinue(ref ExprCtx ctx, ref LocalsInfo locals, FileAndRange range, ref Expected expected) {
+Expr checkLoopContinue(ref ExprCtx ctx, FileAndRange range, ref Expected expected) {
 	MutOpt!(LoopInfo*) optLoop = tryGetLoop(expected);
-	if (has(optLoop))
-		return Expr(range, ExprKind(ExprKind.LoopContinue(force(optLoop).loop)));
-	else {
-		scope CallAst call = CallAst(CallAst.Style.infix, NameAndRange(range.range.start, sym!"loop-continue"), []);
-		return checkCall(ctx, locals, range, call, expected);
-	}
+	return has(optLoop)
+		? Expr(range, ExprKind(ExprKind.LoopContinue(force(optLoop).loop)))
+		: checkCallIdentifier(ctx, range, sym!"loop-continue", expected);
 }
 
 Expr checkLoopUntil(
@@ -1478,6 +1489,8 @@ bool hasBreakOrContinue(in ExprAst a) =>
 			false,
 		(in AssignmentAst _) =>
 			false,
+		(in AssignmentCallAst _) =>
+			false,
 		(in BogusAst _) =>
 			false,
 		(in CallAst _) =>
@@ -1543,48 +1556,30 @@ CallAst callNewCall(RangeWithinFile range) =>
 	CallAst(CallAst.style.emptyParens, NameAndRange(range.start, sym!"new"), []);
 
 Expr checkFor(ref ExprCtx ctx, ref LocalsInfo locals, FileAndRange range, in ForAst ast, ref Expected expected) {
-	// TODO: NEATER (don't create a synthetic AST)
 	bool isForBreak = hasBreakOrContinue(ast.body_);
 	scope LambdaAst lambdaAstBody = LambdaAst(ast.params, ast.body_);
 	scope ExprAst lambdaBody = ExprAst(range.range, ExprAstKind(ptrTrustMe(lambdaAstBody)));
-	scope ExprAst bogus = ExprAst(range.range, ExprAstKind(BogusAst())); // won't be used
-	scope LambdaAst lambdaAstElse = has(ast.else_)
-		? LambdaAst([], force(castNonScope_ref(ast.else_)))
-		: LambdaAst([], bogus);
-	scope ExprAst lambdaElse_ = has(ast.else_)
-		? ExprAst(force(ast.else_).range, ExprAstKind(ptrTrustMe(lambdaAstElse)))
-		: bogus;
-	ExprAst[3] allArgs = [ast.collection, lambdaBody, lambdaElse_];
-	scope CallAst call = CallAst(
-		CallAst.Style.infix,
-		NameAndRange(range.range.start, isForBreak ? sym!"for-break" : sym!"for-loop"),
-		has(ast.else_) ? castNonScope(allArgs) : castNonScope(allArgs)[0 .. 2]);
-	return checkCall(ctx, locals, range, call, expected);
+	Sym funName = isForBreak ? sym!"for-break" : sym!"for-loop";
+	if (has(ast.else_)) {
+		scope LambdaAst lambdaAstElse = LambdaAst([], force(castNonScope_ref(ast.else_)));
+		scope ExprAst lambdaElse_ = ExprAst(force(ast.else_).range, ExprAstKind(ptrTrustMe(lambdaAstElse)));
+		return checkCallSpecial!3(ctx, locals, range, funName, [ast.collection, lambdaBody, lambdaElse_], expected);
+	} else
+		return checkCallSpecial!2(ctx, locals, range, funName, [ast.collection, lambdaBody], expected);
 }
 
 Expr checkWith(ref ExprCtx ctx, ref LocalsInfo locals, FileAndRange range, in WithAst ast, ref Expected expected) {
 	if (has(ast.else_))
 		todo!void("diag: no 'else' for 'with'");
-
-	// TODO: NEATER (don't create a synthetic AST)
 	LambdaAst lambdaInner = LambdaAst(ast.params, ast.body_);
 	ExprAst lambda = ExprAst(range.range, ExprAstKind(ptrTrustMe(lambdaInner)));
-	ExprAst[2] args = [ast.arg, lambda];
-	return checkCall(
-		ctx, locals, range,
-		CallAst(CallAst.Style.infix, NameAndRange(range.range.start, sym!"with-block"), castNonScope(args)),
-		expected);
+	return checkCallSpecial!2(ctx, locals, range, sym!"with-block", [ast.arg, lambda], expected);
 }
 
 Expr checkThen(ref ExprCtx ctx, ref LocalsInfo locals, FileAndRange range, in ThenAst ast, ref Expected expected) {
-	// TODO: NEATER (don't create a synthetic AST)
 	LambdaAst lambdaInner = LambdaAst(ast.left, ast.then);
 	ExprAst lambda = ExprAst(range.range, ExprAstKind(ptrTrustMe(lambdaInner)));
-	ExprAst[2] args = [ast.futExpr, lambda];
-	return checkCall(
-		ctx, locals, range,
-		CallAst(CallAst.Style.infix, NameAndRange(range.range.start, sym!"then"), castNonScope(args)),
-		expected);
+	return checkCallSpecial!2(ctx, locals, range, sym!"then", [ast.futExpr, lambda], expected);
 }
 
 Expr checkTyped(ref ExprCtx ctx, ref LocalsInfo locals, FileAndRange range, in TypedAst ast, ref Expected expected) {

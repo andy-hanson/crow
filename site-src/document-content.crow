@@ -341,7 +341,7 @@ format-comment string(a string)
 -format-comment-parts string(parts comment-part[])
 	res mut string = "<p>"
 	for part : parts
-		res := res ~~ match part
+		res ~~:= match part
 		as text t
 			t
 		as multi-newline

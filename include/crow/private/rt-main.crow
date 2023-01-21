@@ -113,7 +113,7 @@ init-constants void() builtin, noctx, summon, unsafe
 		thread-arg-pointer = thread-args-begin + i
 		*thread-arg-pointer := i, gctx
 		threads[i] := thread-arg-pointer.as-any-mut-pointer create-one-thread &thread-fun
-		i := i + 1
+		i +:= 1
 
 -thread-fun any-mut-pointer(args-pointer any-mut-pointer) noctx, summon, unsafe
 	args thread-args = args-pointer as-ref
@@ -124,4 +124,4 @@ init-constants void() builtin, noctx, summon, unsafe
 	i mut = 0
 	until i == n-threads
 		threads[i] join-one-thread
-		i := i + 1
+		i +:= 1

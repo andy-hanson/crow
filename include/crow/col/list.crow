@@ -48,7 +48,7 @@ get-root[t] t l1(a t[])
 	iter mut = a begin
 	loop
 		if pair ?= iter next
-			total-size := total-size + pair.a.size
+			total-size +:= pair.a size
 			iter := pair b
 			continue
 		else
@@ -76,7 +76,7 @@ get-root[t] t l1(a t[])
 	iter mut = a begin
 	loop
 		if pair ?= iter next
-			total-size := total-size + pair.a.total-size
+			total-size +:= pair.a total-size
 			iter := pair b
 			continue
 		else
@@ -390,7 +390,7 @@ This is O(n).
 	i mut = 0
 	a iterate x =>
 		res = f-loop[i, x]
-		i := i + 1
+		i +:= 1
 		res
 
 +list-iterator[t] record by-val
@@ -521,7 +521,7 @@ This is O(n).
 			break cur
 		elif pair ?= cur next
 			cur := pair b
-			i := i + 1
+			i +:= 1
 			continue
 		else
 			break throw "iterator went too far"
@@ -535,7 +535,7 @@ This is O(n).
 			break cur
 		elif pair ?= cur prev
 			cur := pair a
-			i := i + 1
+			i +:= 1
 			continue
 		else
 			break throw "iterator went too far"

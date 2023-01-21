@@ -42,5 +42,5 @@ Usable for any type with a comparison function.
 		elif f[cur]
 			break true
 		else
-			cur := cur + 1
+			cur +:= 1
 			continue

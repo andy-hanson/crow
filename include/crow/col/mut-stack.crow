@@ -4,10 +4,10 @@ import
 	../misc: void
 	../number: nat64
 	../option: option
-	./collection: iterate, for-loop
+	./collection: iterate
 	./list: list
 	./mut-list:
-		~=, ~~=, copy, is-empty, iterate, mut-list, new, peek, pop, set-filter, size, to-list,
+		~=, ~~=, copy, filter=, is-empty, iterate, mut-list, new, peek, pop, size, to-list,
 		to-mut-list
 
 ###
@@ -73,12 +73,8 @@ Returns an empty option iff `a` is empty.
 
 region iteration
 
-+for-loop[t] void(a t mut-stack, f act void(t))
-	a.inner for-loop f
++iterate[t] bool(a t mut-stack, f act bool(t))
+	a.inner iterate f
 
-###
-Removes every element `x` where `!f[x]`.
-This can be written as `a.filter := f`.
-###
-+set-filter[t] void(a t mut-stack, f act bool(t))
-	a.inner set-filter f
++filter=[t] void(a t mut-stack, f act bool(t))
+	a.inner filter= f

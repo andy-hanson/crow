@@ -77,7 +77,7 @@ WARN: This resolves successfully even if an input is rejected.
 	res void^ = trusted unresolved
 	count mut nat64 = futures.size
 	task task = trusted cur-exclusion, () =>
-		count := count - 1
+		count -:= 1
 		if count == 0
 			res resolve ()
 	for x : futures

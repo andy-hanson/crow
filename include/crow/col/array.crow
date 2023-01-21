@@ -104,7 +104,7 @@ pointer-of[t] t*?(a t array, value t) noctx, unsafe, t equal
 		elif *cur == value
 			break cur,
 		else
-			cur := cur + 1
+			cur +:= 1
 			continue
 
 region spec impls (see collection.crow)

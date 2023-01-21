@@ -40,7 +40,7 @@ dummy-list-tests nat64()
 	iter.next-index is a.size
 	assert iter.next is-empty
 
-	iter := a.end
+	iter := a end
 	for index : 0 .. a.size reverse
 		prev-pair = iter.prev!
 		iter := prev-pair a
@@ -99,7 +99,7 @@ dummy-list-tests nat64()
 	acc mut = 0
 	for a1d : a arrays
 		forbid a1d is-empty
-		acc := acc + a1d.size
+		acc +:= a1d size
 	assert acc == a.total-size
 	acc
 
@@ -108,7 +108,7 @@ dummy-list-tests nat64()
 	acc mut = 0
 	for a2d : a arrays
 		forbid a2d.arrays is-empty
-		acc := acc + a2d.check-structure
+		acc +:= a2d check-structure
 	assert acc == a.total-size
 	acc
 

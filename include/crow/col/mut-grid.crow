@@ -146,7 +146,7 @@ region spec impls (see collection.crow)
 	coord mut coord = ()
 	a iterate x =>
 		res = f[coord, x]
-		coord := coord next-coord a.width
+		coord next-coord:= a.width
 		res
 
 -next-coord coord(a coord, width nat64)

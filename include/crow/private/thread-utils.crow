@@ -142,12 +142,12 @@ broadcast void(a condition) noctx
 		()
 	elif is-windows
 		&a.windows-critical-section EnterCriticalSection
-		a.sequence := a.sequence wrap-add 1
+		a.sequence wrap-add:= 1
 		&a.windows-condition WakeAllConditionVariable
 		&a.windows-critical-section LeaveCriticalSection
 	else
 		(&a.posix-mutex).pthread_mutex_lock hard-assert-posix-error
-		a.sequence := a.sequence wrap-add 1
+		a.sequence wrap-add:= 1
 		(&a.posix-cond).pthread_cond_broadcast hard-assert-posix-error
 		(&a.posix-mutex).pthread_mutex_unlock hard-assert-posix-error
 

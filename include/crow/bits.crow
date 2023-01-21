@@ -179,8 +179,8 @@ iterate bool(a one-bits, f act bool(nat64))
 		elif cur bits-intersect 1 && f[offset]
 			break true
 		else
-			cur := cur >> 1
-			offset := offset + 1
+			cur >>:= 1
+			offset +:= 1
 			continue
 
 ###

@@ -206,6 +206,15 @@ immutable struct AssignmentAst {
 	ExprAst right;
 }
 
+// `left f:= right`
+immutable struct AssignmentCallAst {
+	@safe @nogc pure nothrow:
+
+	ExprAst left;
+	NameAndRange funName;
+	ExprAst right;
+}
+
 immutable struct BogusAst {}
 
 immutable struct CallAst {
@@ -428,6 +437,7 @@ immutable struct ExprAstKind {
 		ArrowAccessAst*,
 		AssertOrForbidAst*,
 		AssignmentAst*,
+		AssignmentCallAst*,
 		BogusAst,
 		CallAst,
 		ForAst*,
@@ -1026,6 +1036,11 @@ Repr reprExprAstKind(ref Alloc alloc, in ExprAstKind ast) =>
 		(in AssignmentAst e) =>
 			reprRecord!"assign"(alloc, [
 				reprExprAst(alloc, e.left),
+				reprExprAst(alloc, e.right)]),
+		(in AssignmentCallAst e) =>
+			reprRecord!"assign-call"(alloc, [
+				reprExprAst(alloc, e.left),
+				reprNameAndRange(alloc, e.funName),
 				reprExprAst(alloc, e.right)]),
 		(in BogusAst _) =>
 			reprSym!"bogus" ,

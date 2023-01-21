@@ -66,6 +66,9 @@ Sym prependSet(ref AllSymbols allSymbols, Sym a) {
 	return has(short_) ? force(short_) : prependToLongStr!"set-"(allSymbols, a);
 }
 
+Sym appendEquals(ref AllSymbols allSymbols, Sym a) =>
+	appendToLongStr!"="(allSymbols, a);
+
 private @trusted Sym prependToLongStr(string prepend)(ref AllSymbols allSymbols, Sym a) {
 	char[0x100] temp = void;
 	temp[0 .. prepend.length] = prepend;
@@ -76,6 +79,19 @@ private @trusted Sym prependToLongStr(string prepend)(ref AllSymbols allSymbols,
 		verify(i <= temp.length);
 	});
 	return getSymFromLongStr(allSymbols, cast(immutable) temp[0 .. i]);
+}
+
+private @trusted Sym appendToLongStr(string append)(ref AllSymbols allSymbols, Sym a) {
+	char[0x100] temp = void;
+	size_t i = 0;
+	eachCharInSym(allSymbols, a, (char x) {
+		temp[i] = x;
+		i++;
+		verify(i <= temp.length);
+	});
+	verify(i + append.length <= temp.length);
+	temp[i .. i + append.length] = append;
+	return getSymFromLongStr(allSymbols, cast(immutable) temp[0 .. i + append.length]);
 }
 
 Sym concatSymsWithDot(ref AllSymbols allSymbols, Sym a, Sym b) =>

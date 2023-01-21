@@ -106,7 +106,7 @@ is-at-end[iter, elem] bool(a iter) (elem, iter) next, noctx
 			continue
 		else
 			break
-+set-map[col, iter, elem] void(a col, f act elem(elem)) (iter, col) begin, (elem, iter) next, (iter, elem) set-next
++map=[col, iter, elem] void(a col, f act elem(elem)) (iter, col) begin, (elem, iter) next, (iter, elem) set-next
 	iter mut = a begin
 	loop
 		if pair ?= iter next
@@ -605,22 +605,22 @@ Equivalent to `parts[0] ~~ joiner ~~ parts[1] ~~ joiner ~~ ... ~~ parts[n]`.
 		if first
 			first := false
 		else
-			res := res ~~ joiner
-		res := res ~~ x
+			res ~~:= joiner
+		res ~~:= x
 	res
 
 # Equivalent to `() join a`
 flatten[col, col-col] col(a col-col) (col-col, col) iterate, col concatenate, col new
 	res mut col = ()
 	for x : a
-		res := res ~~ x
+		res ~~:= x
 	res
 
 # Concatenate `n` copies of `a`.
 +repeat[col] col(a col, n nat64) col concatenate, col new
 	res mut col = ()
 	for _ : 0 .. n
-		res := res ~~ a
+		res ~~:= a
 	res
 
 +n-of[col, elem, builder] col(n nat64, value elem) (col, elem, builder) build

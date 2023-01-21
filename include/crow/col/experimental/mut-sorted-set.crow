@@ -9,8 +9,8 @@ import
 	../collection: build-options, for-loop
 	../list: ~=, build, iterate, list, size
 	./mut-sorted-dict:
-		~=, build, clear, in, is-empty, iterate, mut-sorted-dict, new, remove-key, set-filter,
-		set-map, set-subscript, size, subscript
+		~=, build, clear, filter=, in, is-empty, iterate, map=, mut-sorted-dict, new, remove-key,
+		set-subscript, size, subscript
 	./sorted-set: sorted-set, to-sorted-set
 
 ###
@@ -86,11 +86,11 @@ move-to-sorted-set[t] t sorted-set(a t mut-sorted-set) t key
 	# TODO:PERF avoid a copy: return a 'mut-list' which the sorted-set can move into to itself
 	a.move-to-list to-sorted-set
 
-set-filter[t] void(a t mut-sorted-set, f fun bool(t)) t key
-	a.inner set-filter (k, _) => f[k]
+filter=[t] void(a t mut-sorted-set, f fun bool(t)) t key
+	a.inner filter= (k, _) => f[k]
 
-set-map[t] void(a t mut-sorted-set, f fun t(t)) t key
-	a.inner set-map (k, _) => f[k], ()
+map=[t] void(a t mut-sorted-set, f fun t(t)) t key
+	a.inner map= (k, _) => f[k], ()
 
 region spec impls (see collection.crow)
 

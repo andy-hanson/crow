@@ -82,7 +82,7 @@ This is O(n).
 size[k, v] nat64(a (k, v) compact-dict) k key
 	res mut = 0
 	for _, _ : a
-		res := res + 1
+		res +:= 1
 	res
 
 ~ ~[k, v] (k, v) compact-dict(a (k, v) compact-dict, pair (k, v)) k key
@@ -97,7 +97,7 @@ TODO
 ~ ~~[k, v] (k, v) compact-dict(a (k, v) compact-dict, b (k, v)[]) k key
 	res mut = a
 	for pair : b
-		res := res ~ pair
+		res ~:= pair
 	res
 
 ~ -[k, v] (k, v) compact-dict(a (k, v) compact-dict, key k) k key

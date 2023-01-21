@@ -81,7 +81,7 @@ Later pairs overwrite earlier pairs with the same key.
 	else
 		res mut v[k] = empty-leaf-node::((k, v) node),
 		for x : a
-			res := res ~ x
+			res ~:= x
 		res
 
 # Returns all pairs in the dictionary.
@@ -114,7 +114,7 @@ Later pairs overwrite earlier pairs with the same key.
 	as inner-node i
 		acc mut = 0
 		for child : i
-			acc := acc + child.size
+			acc +:= child size
 		acc
 	as leaf-node l
 		l size
@@ -132,7 +132,7 @@ Returns an empty option if the key is not in `a`.
 			which = remaining-hash low-bits
 			if which < i.size
 				cur := i[which]
-				remaining-hash := remaining-hash >> inner-node-n-bits
+				remaining-hash >>:= inner-node-n-bits
 				continue
 			else
 				break
@@ -163,7 +163,7 @@ Adds/updates many entries to `a`.
 +~~[k, v] v[k](a v[k], pairs v[k]) k key
 	res mut = a
 	for k, v : pairs
-		res := res ~ (k, v)
+		res ~:= (k, v)
 	res
 
 got-or-added[k, v] union
@@ -375,7 +375,7 @@ If `index > a.size`, entries between the and of `a` and the new entries will be 
 	key-hash = hash low-bits
 	max-hash mut = key-hash
 	for pair : a
-		max-hash := max-hash max (pair.from.hash >> hash-shift low-bits)
+		max-hash max:= pair.from.hash >> hash-shift low-bits
 	trusted
 		res (k, v) node mut-array = max-hash + 1 n-of empty-leaf-node
 		# TODO: avoid allocating the same leaf twice...

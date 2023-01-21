@@ -263,7 +263,7 @@ This ensures the collection is kept in memory.
 	acc mut = 0
 	for _ : 0 .. iters
 		if f[]
-			acc := acc + 1
+			acc +:= 1
 	acc
 
 -get-test nat(a compact-dict<nat, void>, iters nat, max-value nat) summon

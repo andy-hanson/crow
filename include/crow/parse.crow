@@ -445,7 +445,8 @@ This allows e.g. "1", "+23", "-45".
 	loop
 		if pair ?= iter next-digit
 			iter := pair b
-			acc := acc * 10 + pair.a
+			acc *:= 10
+			acc +:= pair.a
 			count-digits := count-digits + 1
 			continue
 		else

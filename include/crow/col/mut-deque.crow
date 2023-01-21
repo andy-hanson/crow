@@ -72,7 +72,7 @@ This is O(n).
 		a ensure-capacity
 		if a.left == a.inner.begin-pointer
 			a.left := a.inner end-pointer
-		a.left := a.left - 1
+		a.left -:= 1
 		*a.left := value
 
 # Push a value to the right.
@@ -81,7 +81,7 @@ This is O(n).
 		a ensure-capacity
 		assert a.right < a.inner.end-pointer
 		*a.right := value
-		a.right := a.right + 1
+		a.right +:= 1
 
 ###
 Returns the leftmost element without removing it.
@@ -114,7 +114,7 @@ Returns an empty option iff `a` was empty (before calling `pop-left`).
 	trusted unless a.left == null
 		res = *a.left
 		*a.left := zeroed
-		a.left := a.left + 1
+		a.left +:= 1
 		if a.left == a.inner.end-pointer
 			a.left := a.inner begin-pointer
 		if a.left == a.right
@@ -132,7 +132,7 @@ Returns an empty option iff `a` was empty (before calling `pop-right`).
 	trusted unless a.right == null
 		if a.right == a.inner.begin-pointer
 			a.right := a.inner end-pointer
-		a.right := a.right - 1
+		a.right -:= 1
 		res = *a.right
 		*a.right := zeroed
 		if a.right == a.left

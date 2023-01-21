@@ -112,7 +112,7 @@ void writeJoin(T)(ref Writer writer, in T[] a, string joiner, in void delegate(i
 }
 
 void writeWithCommas(T)(ref Writer writer, in T[] a, in void delegate(in T) @safe @nogc pure nothrow cb) {
-	writeWithCommas!T(writer, a, (in T) => true, cb);
+	writeWithSeparator!T(writer, a, ", ", cb);
 }
 
 void writeWithCommas(T)(
@@ -121,16 +121,7 @@ void writeWithCommas(T)(
 	in bool delegate(in T) @safe @nogc pure nothrow filter,
 	in void delegate(in T) @safe @nogc pure nothrow cb,
 ) {
-	bool needsComma = false;
-	foreach (ref T x; a) {
-		if (filter(x)) {
-			if (needsComma)
-				writer ~= ", ";
-			else
-				needsComma = true;
-			cb(x);
-		}
-	}
+	writeWithSeparator!T(writer, a, ", ", filter, cb);
 }
 
 void writeWithCommasZip(T, U)(
@@ -153,11 +144,31 @@ void writeWithCommasZip(T, U)(
 }
 
 void writeWithNewlines(T)(ref Writer writer, in T[] a, in void delegate(in T) @safe @nogc pure nothrow cb) {
-	foreach (size_t i, ref T x; a) {
-		if (i != 0)
-			writer ~= "\n";
-		cb(x);
-	}
+	writeWithSeparator!T(writer, a, "\n", cb);
+}
+
+private void writeWithSeparator(T)(
+	ref Writer writer,
+	in T[] a,
+	in string separator,
+	in void delegate(in T) @safe @nogc pure nothrow cb,
+) {
+	writeWithSeparator!T(writer, a, separator, (in T _) => true, cb);
+}
+
+private void writeWithSeparator(T)(
+	ref Writer writer,
+	in T[] a,
+	in string separator,
+	in bool delegate(in T) @safe @nogc pure nothrow filter,
+	in void delegate(in T) @safe @nogc pure nothrow cb,
+) {
+	foreach (size_t i, ref T x; a)
+		if (filter(x)) {
+			if (i != 0)
+				writer ~= separator;
+			cb(x);
+		}
 }
 
 void writeQuotedStr(ref Writer writer, in string s) {

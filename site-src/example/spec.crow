@@ -16,5 +16,5 @@ add<a> spec
 sum<a> a(xs a[]) add<a>
 	acc mut a = ()
 	for x : xs
-		acc := acc + x
+		acc +:= x
 	acc

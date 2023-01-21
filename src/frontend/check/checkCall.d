@@ -39,8 +39,7 @@ import frontend.check.instantiate :
 	TypeParamsAndArgs;
 import frontend.check.typeFromAst : tryGetMatchingTypeArgs, tryUnpackTupleType;
 import frontend.lang : maxSpecDepth, maxSpecImpls, maxTypeParams;
-import frontend.parse.ast :
-	CallAst, ExprAst, ExprAstKind, LambdaAst, NameAndRange, ParenthesizedAst, rangeOfNameAndRange, TypeAst;
+import frontend.parse.ast : CallAst, ExprAst, ExprAstKind, LambdaAst, ParenthesizedAst, rangeOfNameAndRange, TypeAst;
 import frontend.programState : ProgramState;
 import model.diag : Diag;
 import model.model :
@@ -108,37 +107,81 @@ import util.sym : Sym;
 import util.union_ : Union;
 import util.util : todo;
 
-Expr checkCall(ref ExprCtx ctx, ref LocalsInfo locals, FileAndRange range, in CallAst ast, ref Expected expected) {
-	PerfMeasurer perfMeasurer = startMeasure(ctx.alloc, ctx.perf, PerfMeasure.checkCall);
-	Expr res = withCandidates!Expr(
-		ctx, ast.funName.name, ast.typeArg, ast.args.length,
-		(ref Candidates candidates) =>
-			checkCallInner(ctx, locals, range, ast, expected, ast.typeArg, perfMeasurer, candidates));
-	endMeasure(ctx.alloc, ctx.perf, perfMeasurer);
-	return res;
-}
+Expr checkCall(ref ExprCtx ctx, ref LocalsInfo locals, FileAndRange range, in CallAst ast, ref Expected expected) =>
+	checkCallCommon(
+		ctx, locals, range,
+		// Show diags at the function name and not at the whole call ast
+		FileAndRange(range.fileIndex, rangeOfNameAndRange(ast.funName, ctx.allSymbols)),
+		ast.funName.name, ast.typeArg, ast.args, expected);
 
-Expr checkCallNoLocals(ref ExprCtx ctx, FileAndRange range, in CallAst ast, ref Expected expected) {
+Expr checkCallSpecial(size_t n)(
+	ref ExprCtx ctx,
+	ref LocalsInfo locals,
+	FileAndRange range,
+	Sym funName,
+	in ExprAst[n] args,
+	ref Expected expected,
+) =>
+	checkCallCommon(ctx, locals, range, range, funName, none!(TypeAst*), castNonScope_ref(args), expected);
+
+Expr checkCallSpecial(
+	ref ExprCtx ctx,
+	ref LocalsInfo locals,
+	FileAndRange range,
+	Sym funName,
+	in ExprAst[] args,
+	ref Expected expected,
+) =>
+	checkCallCommon(ctx, locals, range, range, funName, none!(TypeAst*), castNonScope_ref(args), expected);
+
+Expr checkCallSpecialNoLocals(
+	ref ExprCtx ctx,
+	FileAndRange range,
+	Sym funName,
+	in ExprAst[] args,
+	ref Expected expected,
+) {
 	FunOrLambdaInfo emptyFunInfo = FunOrLambdaInfo(noneMut!(LocalsInfo*), [], none!(ExprKind.Lambda*));
 	LocalsInfo emptyLocals = LocalsInfo(ptrTrustMe(emptyFunInfo), noneMut!(LocalNode*));
-	return checkCall(ctx, emptyLocals, range, ast, expected);
+	return checkCallSpecial(ctx, emptyLocals, range, funName, args, expected);
+}
+
+private Expr checkCallCommon(
+	ref ExprCtx ctx,
+	ref LocalsInfo locals,
+	FileAndRange range,
+	FileAndRange diagRange,
+	Sym funName,
+	in Opt!(TypeAst*) typeArg,
+	in ExprAst[] args,
+	ref Expected expected,
+) {
+	PerfMeasurer perfMeasurer = startMeasure(ctx.alloc, ctx.perf, PerfMeasure.checkCall);
+	Expr res = withCandidates!Expr(
+		ctx, funName, typeArg, args.length,
+		(ref Candidates candidates) =>
+			checkCallInner(
+				ctx, locals, range, diagRange, funName, args, typeArg, perfMeasurer, candidates, expected));
+	endMeasure(ctx.alloc, ctx.perf, perfMeasurer);
+	return res;
 }
 
 private Expr checkCallInner(
 	ref ExprCtx ctx,
 	ref LocalsInfo locals,
 	FileAndRange range,
-	in CallAst ast,
-	ref Expected expected,
+	FileAndRange diagRange,
+	Sym funName,
+	in ExprAst[] argAsts,
 	in Opt!(TypeAst*) explicitTypeArg,
 	ref PerfMeasurer perfMeasurer,
 	ref Candidates candidates,
+	ref Expected expected,
 ) {
-	Sym funName = ast.funName.name;
-	size_t arity = ast.args.length;
+	size_t arity = argAsts.length;
 
 	foreach (size_t argIdx; 0 .. arity)
-		filterByLambdaArity(ctx.alloc, ctx.programState, ctx.commonTypes, candidates, ast.args[argIdx], argIdx);
+		filterByLambdaArity(ctx.alloc, ctx.programState, ctx.commonTypes, candidates, argAsts[argIdx], argIdx);
 
 	filterCandidates(candidates, (ref Candidate candidate) =>
 		matchExpectedVsReturnTypeNoDiagnostic(
@@ -158,7 +201,7 @@ private Expr checkCallInner(
 		Expected expected = Expected(tempAsArr(castNonScope_ref(paramExpected)));
 
 		pauseMeasure(ctx.alloc, ctx.perf, perfMeasurer);
-		Expr arg = checkExpr(ctx, locals, ast.args[argIdx], expected);
+		Expr arg = checkExpr(ctx, locals, argAsts[argIdx], expected);
 		resumeMeasure(ctx.alloc, ctx.perf, perfMeasurer);
 
 		Type actualArgType = inferred(expected);
@@ -183,9 +226,6 @@ private Expr checkCallInner(
 		exists!(maxCandidates, Candidate)(candidates, (in Candidate it) => candidateIsPreferred(it))) {
 		filterCandidates(candidates, (ref Candidate it) => candidateIsPreferred(it));
 	}
-
-	// Show diags at the function name and not at the whole call ast
-	FileAndRange diagRange = FileAndRange(range.fileIndex, rangeOfNameAndRange(ast.funName, ctx.allSymbols));
 
 	if (!has(args) || mutMaxArrSize(candidates) != 1) {
 		if (isEmpty(candidates)) {
@@ -212,17 +252,13 @@ private size_t getNTypeArgs(Opt!(TypeAst*) explicitTypeArg) {
 		return 0;
 }
 
-Expr checkIdentifierCall(
+Expr checkCallIdentifier(
 	ref ExprCtx ctx,
-	ref LocalsInfo locals,
 	FileAndRange range,
 	Sym name,
 	ref Expected expected,
-) {
-	//TODO:NEATER (don't make a synthetic AST, just directly call an appropriate function)
-	CallAst callAst = CallAst(CallAst.Style.single, NameAndRange(range.range.start, name), []);
-	return checkCallNoLocals(ctx, range, callAst, expected);
-}
+) =>
+	checkCallSpecialNoLocals(ctx, range, name, [], expected);
 
 immutable struct UsedFun {
 	immutable struct None {}
@@ -326,18 +362,28 @@ void getInitialCandidates(
 	in Opt!(TypeAst*) explicitTypeArg,
 	size_t actualArity,
 ) {
-	eachFunInScope(ctx, funName, (UsedFun used, CalledDecl called) @trusted {
+	eachFunInScope(ctx, funName, (UsedFun used, CalledDecl called) {
 		if (arityMatches(arity(called), actualArity)) {
 			size_t nTypeParams = called.typeParams.length;
 			TypeAst[] args = tryGetMatchingTypeArgs(nTypeParams, explicitTypeArg);
 			if (args.length == nTypeParams || args.length == 0) {
-				Candidate* candidate = pushUninitialized(candidates);
-				initializeCandidate(*candidate, used, called);
-				fillMutMaxArr_mut(candidate.typeArgs, nTypeParams, (size_t i) =>
-					SingleInferringType(args.length == 0 ? none!Type : some(typeFromAst2(ctx, args[i]))));
+				pushCandidate(ctx, candidates, used, called, args);
 			}
 		}
 	});
+}
+
+@trusted void pushCandidate(
+	ref ExprCtx ctx,
+	scope ref Candidates candidates,
+	UsedFun used,
+	CalledDecl called,
+	scope TypeAst[] typeArgs,
+) {
+	Candidate* candidate = pushUninitialized(candidates);
+	initializeCandidate(*candidate, used, called);
+	fillMutMaxArr_mut(candidate.typeArgs, called.typeParams.length, (size_t i) =>
+		SingleInferringType(empty(typeArgs) ? none!Type : some(typeFromAst2(ctx, typeArgs[i]))));
 }
 
 CalledDecl[] getAllCandidatesAsCalledDecls(ref ExprCtx ctx, Sym funName) {

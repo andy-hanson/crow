@@ -14,7 +14,7 @@ import util.col.str : copyStr, copyToSafeCStr, CStr, SafeCStr, safeCStr;
 import util.conv : safeIntFromUint, safeToUint;
 import util.opt : force, has, none, Opt, some;
 import util.sourceRange : Pos, RangeWithinFile;
-import util.sym : AllSymbols, concatSymsWithDot, Sym, sym, symOfStr;
+import util.sym : AllSymbols, appendEquals, concatSymsWithDot, Sym, sym, symOfStr;
 import util.union_ : Union;
 import util.util : drop, todo, unreachable, verify;
 
@@ -317,7 +317,8 @@ Opt!Sym tryTakeName(ref Lexer lexer) =>
 Sym takeName(ref Lexer lexer) =>
 	takeNameAndRange(lexer).name;
 
-Opt!NameAndRange tryTakeNameOrOperatorAndRange(ref Lexer lexer) {
+// Does not take the '=' in 'x='
+Opt!NameAndRange tryTakeNameOrOperatorAndRangeNoAssignment(ref Lexer lexer) {
 	Pos start = curPos(lexer);
 	return tryTakeToken(lexer, Token.name)
 		? some(NameAndRange(start, getCurSym(lexer)))
@@ -331,12 +332,16 @@ Opt!Sym takeNameOrUnderscore(ref Lexer lexer) =>
 		? none!Sym
 		: some(takeName(lexer));
 
+// This can take names like 'x='
 Sym takeNameOrOperator(ref Lexer lexer) {
 	Pos start = curPos(lexer);
-	Opt!NameAndRange res = tryTakeNameOrOperatorAndRange(lexer);
-	if (has(res))
-		return force(res).name;
-	else {
+	Opt!NameAndRange res = tryTakeNameOrOperatorAndRangeNoAssignment(lexer);
+	if (has(res)) {
+		Sym name = force(res).name;
+		return tryTakeChar(lexer, '=')
+			? appendEquals(lexer.allSymbols, name)
+			: name;
+	} else {
 		addDiag(lexer, range(lexer, start), ParseDiag(ParseDiag.Expected(ParseDiag.Expected.Kind.nameOrOperator)));
 		return sym!"bogus";
 	}
@@ -489,9 +494,7 @@ public enum Token {
 		case '\n':
 			return Token.newline;
 		case '~':
-			return operatorToken(lexer, tryTakeChar(lexer, '~')
-				? tryTakeChar(lexer, '=') ? sym!"~~=" : sym!"~~"
-				: tryTakeChar(lexer, '=') ? sym!"~=" : sym!"~");
+			return operatorToken(lexer, tryTakeChar(lexer, '~') ? sym!"~~" : sym!"~");
 		case '@':
 			return Token.at;
 		case '!':

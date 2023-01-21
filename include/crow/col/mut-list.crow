@@ -202,7 +202,7 @@ Throws if `n > a.size`.
 		a incr-capacity
 		assert a.size < a.capacity
 		a.begin-pointer[a size] := value
-		a.size := a.size + 1
+		a.size +:= 1
 
 # Push multiple values onto the end of the list.
 +~~=[t, col] void(a t mut[], values col) (col, t) iterate
@@ -215,7 +215,7 @@ Throws if `n > a.size`.
 push-capacity-must-be-sufficient[t] void(a t mut[], value t) noctx, unsafe
 	assert a.size < a.capacity
 	a.begin-pointer[a size] := value
-	a.size := a.size + 1
+	a.size +:= 1
 
 -increase-capacity-to[t] void(a t mut[], new-capacity nat64)
 	trusted
@@ -289,7 +289,7 @@ Throws if `index > a.size`.
 		src = a.begin-pointer + index
 		n = a.size - index
 		_ = dest.as-any-mut-pointer memmove src.as-any-const-pointer, n * size-of@t
-		a.size := a.size + 1
+		a.size +:= 1
 		a[index] := value
 		assert a.size <= a.capacity
 
@@ -308,7 +308,7 @@ Throws if `index >= a.size`.
 		src = a.begin-pointer + index + 1
 		n = a.size - index - 1
 		_ = dest.as-any-mut-pointer memmove src.as-any-const-pointer, n * size-of@t
-		a.size := a.size - 1
+		a.size -:= 1
 	res
 
 region mutating iteration
@@ -318,14 +318,14 @@ region mutating iteration
 Removes every element `x` where `!f[x]`.
 This can be written as `a.filter := f`.
 ###
-+set-filter[t] void(a t mut[], f act bool(t))
++filter=[t] void(a t mut[], f act bool(t))
 	# TOOD: this is unsafe if 'f' accesses to the list. Make it a 'fun' instead?
 	trusted
 		out mut = a begin-pointer
 		for x : a
 			if f[x]
 				*out := x
-				out := out + 1
+				out +:= 1
 		new-size = out - a.begin-pointer
 		a.backing[new-size .. a.size] set-zero-elements
 		a.size := new-size

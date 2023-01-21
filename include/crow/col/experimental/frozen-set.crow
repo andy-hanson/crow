@@ -96,7 +96,7 @@ try-get-unordered-index[t] nat64?(a t frozen-set, value t) t key
 			if bucket-start <= cur && cur <= bucket-cur-end
 				if cur == bucket-cur-end
 					bucket-counts[bucket-index] := bucket-count + 1
-				cur := cur + 1
+				cur +:= 1
 			else
 				bucket-counts[bucket-index] := bucket-count + 1
 				cur swap bucket-cur-end
@@ -106,7 +106,7 @@ try-get-unordered-index[t] nat64?(a t frozen-set, value t) t key
 	res nat64 mut-array = n-buckets n-of 0
 	for value : a
 		bucket-index = value get-bucket-index n-buckets
-		res[bucket-index] := res[bucket-index] + 1
+		res[bucket-index] +:= 1
 	res
 
 -get-bucket-index[t] nat64(value t, n-buckets nat64) unsafe, t key
@@ -117,7 +117,7 @@ try-get-unordered-index[t] nat64?(a t frozen-set, value t) t key
 		acc mut = initial
 		for offset : offsets
 			out ~= acc
-			acc := trusted acc + offset
+			trusted acc +:= offset
 
 region spec impls (see collection.crow)
 

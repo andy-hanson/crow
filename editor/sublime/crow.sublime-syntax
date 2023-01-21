@@ -300,11 +300,6 @@ contexts:
     # '<-' at beginning of line
     - match: '<-'
       scope: keyword
-    # `foo:`
-    - match: '{{name}}(\:)\s+'
-      scope: variable.function.crow
-      captures:
-        3: comment
     # `.foo`
     - match: (\.){{name}}
       scope: variable.function.crow
@@ -325,18 +320,9 @@ contexts:
     # FunAsLambda (&foo)
     - match: '\&{{name}}'
       scope: variable.function.crow
-    # Lambda `\x y`
-    - match: '(\\).*$'
-      # parameters are identifiers
-      scope: identifier
-      captures:
-        1: comment
     # `x = y` or `x <- y`
     - match: '\s+(\=|<-)\s+'
       scope: keyword
-    # `'foo'`
-    - match: "'.*'"
-      scope: constant.character.escape
     # """foo"""
     - match: '"""'
       push: string3
@@ -351,11 +337,11 @@ contexts:
     # `?=`, `??`, ||, &&
     - match: '\s+(\?=|\?\?|\|\||\&\&)\s+'
       scope: keyword
-    # Call ` foo ` or ` foo: `
-    - match: '\s+{{name}}(\:)?\s+'
+    # Call ` foo ` or ` foo= ` or `foo:=`
+    - match: '\s+{{name}}((\:\=)?|\=?)\s+'
       scope: variable.function.crow
       captures:
-        3: comment
+          1: keyword
     - match: '\s+(:=)\s+'
       scope: keyword
 

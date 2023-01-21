@@ -6,7 +6,7 @@ main nat^(_ string[]) summon
 		# TODO: we need type annotations on LHS of '<-'
 		results <- (0 .. 100).parallel for-loop@(nat, nat range, nat) x =>
 			*foo := x
-			*foo := *foo + 1
+			*foo +:= 1
 			*foo,
 		results is for x : 1 .. 101; x
 		out print "{results[99]}"

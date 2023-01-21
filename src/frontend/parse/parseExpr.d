@@ -6,6 +6,7 @@ import frontend.parse.ast :
 	ArrowAccessAst,
 	AssertOrForbidAst,
 	AssignmentAst,
+	AssignmentCallAst,
 	BogusAst,
 	CallAst,
 	ExprAst,
@@ -43,6 +44,7 @@ import frontend.parse.lexer :
 	addDiagAtChar,
 	addDiagUnexpectedCurToken,
 	alloc,
+	allSymbols,
 	curPos,
 	EqualsOrThen,
 	getCurLiteralFloat,
@@ -72,18 +74,18 @@ import frontend.parse.lexer :
 	takeOrAddDiagExpectedToken,
 	takeStringPart,
 	Token,
-	tryTakeNameOrOperatorAndRange,
+	tryTakeNameOrOperatorAndRangeNoAssignment,
 	tryTakeToken;
 import frontend.parse.parseType : parseType, parseTypeForTypedExpr, tryParseTypeArgForExpr;
 import model.model : AssertOrForbidKind;
 import model.parseDiag : ParseDiag;
-import util.col.arr : empty;
+import util.col.arr : empty, only;
 import util.col.arrUtil : arrLiteral, prepend;
 import util.col.arrBuilder : add, ArrBuilder, finishArr;
 import util.memory : allocate;
 import util.opt : force, has, none, Opt, some, some;
 import util.sourceRange : Pos, RangeWithinFile;
-import util.sym : Sym, sym;
+import util.sym : AllSymbols, appendEquals, Sym, sym;
 import util.union_ : Union;
 import util.util : max, todo, unreachable, verify;
 
@@ -276,7 +278,7 @@ ExprAndMaybeNameOrDedent parseCalls(ref Lexer lexer, Pos start, ref ExprAst lhs,
 	else if (tryTakeToken(lexer, Token.colon))
 		return ExprAndMaybeNameOrDedent(lhs, OptNameOrDedent(OptNameOrDedent.Colon()));
 	else {
-		Opt!NameAndRange funName = tryTakeNameOrOperatorAndRange(lexer);
+		Opt!NameAndRange funName = tryTakeNameOrOperatorAndRangeNoAssignment(lexer);
 		return has(funName)
 			? parseCallsAfterName(lexer, start, lhs, force(funName), argCtx)
 			: ExprAndMaybeNameOrDedent(lhs, noNameOrDedent());
@@ -358,17 +360,36 @@ ExprAndMaybeNameOrDedent parseCallsAfterName(
 	NameAndRange funName,
 	ArgCtx argCtx,
 ) {
-	int precedence = symPrecedence(funName.name);
+	int precedence = symPrecedence(funName.name, peekToken(lexer, Token.equal) || peekToken(lexer, Token.colonEqual));
 	if (precedence > argCtx.allowedCalls.minPrecedenceExclusive) {
+		Opt!AssignmentKind assignment = tryTakeToken(lexer, Token.colonEqual)
+			? some(AssignmentKind.replace)
+			: tryTakeToken(lexer, Token.equal)
+			? some(AssignmentKind.inPlace)
+			: none!AssignmentKind;
+		bool isOperator = precedence != 0;
 		//TODO: don't do this for operators
 		Opt!(TypeAst*) typeArg = tryParseTypeArgForExpr(lexer);
 		ArgCtx innerCtx = requirePrecedenceGt(argCtx, precedence);
-		ArgsAndMaybeNameOrDedent args = isSymOperator(funName.name)
+		ArgsAndMaybeNameOrDedent args = isOperator
 			? parseArgsForOperator(lexer, innerCtx)
 			: parseArgs(lexer, innerCtx);
-		ExprAst expr = ExprAst(
-			range(lexer, start),
-			ExprAstKind(CallAst(CallAst.Style.infix, funName, prepend!ExprAst(lexer.alloc, lhs, args.args), typeArg)));
+		ExprAstKind exprKind = () {
+			if (has(assignment)) {
+				final switch (force(assignment)) {
+					case AssignmentKind.inPlace:
+						return ExprAstKind(CallAst(
+							CallAst.Style.infix,
+							appendEquals(funName, allSymbols(lexer)),
+							prepend!ExprAst(lexer.alloc, lhs, args.args)));
+					case AssignmentKind.replace:
+						return ExprAstKind(allocate(lexer.alloc, AssignmentCallAst(lhs, funName, only(args.args))));
+				}
+			} else
+				return ExprAstKind(
+					CallAst(CallAst.Style.infix, funName, prepend!ExprAst(lexer.alloc, lhs, args.args), typeArg));
+		}();
+		ExprAst expr = ExprAst(range(lexer, start), exprKind);
 		ExprAndMaybeNameOrDedent stopHere = ExprAndMaybeNameOrDedent(expr, args.nameOrDedent);
 		return args.nameOrDedent.match!ExprAndMaybeNameOrDedent(
 			(OptNameOrDedent.None) =>
@@ -389,6 +410,14 @@ ExprAndMaybeNameOrDedent parseCallsAfterName(
 		return ExprAndMaybeNameOrDedent(lhs, OptNameOrDedent(funName));
 }
 
+enum AssignmentKind {
+	inPlace, // foo=
+	replace, // foo:=
+}
+
+NameAndRange appendEquals(NameAndRange a, ref AllSymbols allSymbols) =>
+	NameAndRange(a.start, .appendEquals(allSymbols, a.name));
+
 // This is for the , in `1, 2`, not the comma between args
 int commaPrecedence() =>
 	-6;
@@ -396,14 +425,9 @@ int commaPrecedence() =>
 int ternaryPrecedence() =>
 	-5;
 
-bool isSymOperator(Sym a) =>
-	symPrecedence(a) != 0;
-
-int symPrecedence(Sym a) {
+int symPrecedence(Sym a, bool isAssignment) {
+	if (isAssignment) return -4;
 	switch (a.value) {
-		case sym!"~=".value:
-		case sym!"~~=".value:
-			return -4;
 		case sym!"||".value:
 			return -3;
 		case sym!"&&".value:
