@@ -36,7 +36,7 @@ import util.repr :
 	reprStr,
 	reprSym;
 import util.sourceRange : Pos, rangeOfStartAndLength, rangeOfStartAndName, RangeWithinFile, reprRangeWithinFile;
-import util.sym : AllSymbols, Sym, sym, symSize;
+import util.sym : AllSymbols, Sym, sym;
 import util.union_ : Union;
 import util.util : unreachable, verify;
 
@@ -56,14 +56,6 @@ static assert(NameAndRange.sizeof == ulong.sizeof * 2);
 
 RangeWithinFile rangeOfNameAndRange(NameAndRange a, ref const AllSymbols allSymbols) =>
 	rangeOfStartAndName(a.start, a.name, allSymbols);
-
-immutable struct OptNameAndRange {
-	Pos start;
-	Opt!Sym name;
-}
-
-RangeWithinFile rangeOfOptNameAndRange(OptNameAndRange a, ref const AllSymbols allSymbols) =>
-	rangeOfStartAndName(a.start, has(a.name) ? force(a.name) : sym!"_", allSymbols);
 
 immutable struct TypeAst {
 	immutable struct Bogus {
@@ -256,7 +248,7 @@ immutable struct CallAst {
 }
 
 immutable struct ForAst {
-	LambdaAst.Param[] params;
+	DestructureAst param;
 	ExprAst collection;
 	ExprAst body_;
 	Opt!ExprAst else_;
@@ -273,7 +265,7 @@ immutable struct IfAst {
 }
 
 immutable struct IfOptionAst {
-	NameAndRange name;
+	DestructureAst destructure;
 	ExprAst option;
 	ExprAst then;
 	Opt!ExprAst else_;
@@ -296,15 +288,49 @@ immutable struct InterpolatedPart {
 }
 
 immutable struct LambdaAst {
-	alias Param = OptNameAndRange;
-	Param[] params;
+	DestructureAst param;
 	ExprAst body_;
 }
 
+immutable struct DestructureAst {
+	@safe @nogc pure nothrow:
+
+	// `()` is a destructure matcing only void values
+	immutable struct Single {
+		NameAndRange name; // Name may be '_', meaning ignore and don't create a local
+		bool mut;
+		Opt!(TypeAst*) type;
+	}
+	immutable struct Void {
+		Pos pos;
+	}
+	mixin Union!(Single, Void, DestructureAst[]);
+
+	Pos pos() scope =>
+		matchIn!Pos(
+			(in DestructureAst.Single x) =>
+				x.name.start,
+			(in DestructureAst.Void x) =>
+				x.pos,
+			(in DestructureAst[] parts) =>
+				parts[0].pos);
+
+	RangeWithinFile range(in AllSymbols allSymbols) scope =>
+		matchIn!RangeWithinFile(
+			(in DestructureAst.Single x) {
+				RangeWithinFile name = rangeOfNameAndRange(x.name, allSymbols);
+				return has(x.type)
+					? RangeWithinFile(name.start, .range(*force(x.type), allSymbols).end)
+					: name;
+			},
+			(in DestructureAst.Void x) =>
+				rangeOfStartAndLength(x.pos, "()".length),
+			(in DestructureAst[] parts) =>
+				RangeWithinFile(parts[0].range(allSymbols).start, parts[$ - 1].range(allSymbols).end));
+}
+
 immutable struct LetAst {
-	Opt!Sym name;
-	bool mut;
-	Opt!(TypeAst*) type;
+	DestructureAst destructure;
 	ExprAst initializer;
 	ExprAst then;
 }
@@ -348,39 +374,18 @@ immutable struct LoopWhileAst {
 	ExprAst body_;
 }
 
-immutable struct NameOrUnderscoreOrNone {
-	immutable struct Underscore {}
-	immutable struct None {}
-	mixin Union!(Sym, Underscore, None);
-}
-
-// Includes size of the ' ' before the name (but not for None)
-private size_t nameOrUnderscoreOrNoneSize(in AllSymbols allSymbols, NameOrUnderscoreOrNone a) =>
-	a.match!size_t(
-		(Sym s) =>
-			1 + symSize(allSymbols, s),
-		(NameOrUnderscoreOrNone.Underscore) =>
-			2,
-		(NameOrUnderscoreOrNone.None) =>
-			0);
-
 immutable struct MatchAst {
 	immutable struct CaseAst {
 		@safe @nogc pure nothrow:
 
 		RangeWithinFile range;
 		Sym memberName;
-		NameOrUnderscoreOrNone local;
+		// none for `as foo`, some(Ignore) for `as foo _`
+		Opt!DestructureAst destructure;
 		ExprAst then;
 
-		//TODO: NOT INSTANCE
 		RangeWithinFile memberNameRange(ref const AllSymbols allSymbols) scope =>
 			rangeOfStartAndName(safeToUint(range.start + "as ".length), memberName, allSymbols);
-
-		RangeWithinFile localRange(ref const AllSymbols allSymbols) scope =>
-			rangeOfStartAndLength(
-				memberNameRange(allSymbols).end,
-				nameOrUnderscoreOrNoneSize(allSymbols, local));
 	}
 
 	ExprAst matched;
@@ -401,7 +406,7 @@ immutable struct SeqAst {
 }
 
 immutable struct ThenAst {
-	LambdaAst.Param[] left;
+	DestructureAst left;
 	ExprAst futExpr;
 	ExprAst then;
 }
@@ -426,7 +431,7 @@ immutable struct UnlessAst {
 }
 
 immutable struct WithAst {
-	LambdaAst.Param[] params;
+	DestructureAst param;
 	ExprAst arg;
 	ExprAst body_;
 	Opt!ExprAst else_;
@@ -475,17 +480,11 @@ immutable struct ExprAst {
 }
 static assert(ExprAst.sizeof <= 6 * ulong.sizeof);
 
-immutable struct ParamAst {
-	RangeWithinFile range;
-	Opt!Sym name;
-	TypeAst type;
-}
-
 immutable struct ParamsAst {
 	immutable struct Varargs {
-		ParamAst param;
+		DestructureAst param;
 	}
-	mixin Union!(SmallArray!ParamAst, Varargs*);
+	mixin Union!(SmallArray!DestructureAst, Varargs*);
 }
 static assert(ParamsAst.sizeof == 8);
 
@@ -791,12 +790,7 @@ Repr reprSpecSig(ref Alloc alloc, in SpecSigAst a) =>
 		reprStr(alloc, a.docComment),
 		reprSym(a.name),
 		reprTypeAst(alloc, a.returnType),
-		a.params.matchIn!Repr(
-			(in ParamAst[] params) =>
-				reprArr!ParamAst(alloc, params, (in ParamAst p) =>
-					reprParamAst(alloc, p)),
-			(in ParamsAst.Varargs v) =>
-				reprRecord!"varargs"(alloc, [reprParamAst(alloc, v.param)]))]);
+		reprParamsAst(alloc, a.params)]);
 
 Repr reprStructAliasAst(ref Alloc alloc, in StructAliasAst a) =>
 	reprRecord!"alias"(alloc, [
@@ -947,11 +941,10 @@ Repr reprFunDeclAst(ref Alloc alloc, in FunDeclAst a) {
 
 Repr reprParamsAst(ref Alloc alloc, in ParamsAst a) =>
 	a.matchIn!Repr(
-		(in ParamAst[] params) =>
-			reprArr!ParamAst(alloc, params, (in ParamAst p) =>
-				reprParamAst(alloc, p)),
+		(in DestructureAst[] params) =>
+			reprDestructureAsts(alloc, params),
 		(in ParamsAst.Varargs v) =>
-			reprRecord!"varargs"(alloc, [reprParamAst(alloc, v.param)]));
+			reprRecord!"varargs"(alloc, [reprDestructureAst(alloc, v.param)]));
 
 Repr reprFunModifierAst(ref Alloc alloc, in FunModifierAst a) =>
 	a.matchIn!Repr(
@@ -1000,27 +993,29 @@ Repr reprTypeAsts(ref Alloc alloc, in TypeAst[] a) =>
 	reprArr!TypeAst(alloc, a, (in TypeAst x) =>
 		reprTypeAst(alloc, x));
 
-Repr reprParamAst(ref Alloc alloc, in ParamAst a) =>
-	reprRecord!"param"(alloc, [
-		reprRangeWithinFile(alloc, a.range),
-		reprOpt!Sym(alloc, a.name, (in Sym it) =>
-			reprSym(it)),
-		reprTypeAst(alloc, a.type)]);
+Repr reprDestructureAsts(ref Alloc alloc, in DestructureAst[] a) =>
+	reprArr!DestructureAst(alloc, a, (in DestructureAst x) =>
+		reprDestructureAst(alloc, x));
+
+Repr reprDestructureAst(ref Alloc alloc, in DestructureAst a) =>
+	a.matchIn!Repr(
+		(in DestructureAst.Single x) =>
+			reprRecord!"single"(alloc, [
+				reprNameAndRange(alloc, x.name),
+				reprBool(x.mut),
+				reprOpt!(TypeAst*)(alloc, x.type, (in TypeAst* t) =>
+					reprTypeAst(alloc, *t))]),
+		(in DestructureAst.Void x) =>
+			reprRecord!"void"(alloc, [reprNat(x.pos)]),
+		(in DestructureAst[] parts) =>
+			reprArr!DestructureAst(alloc, parts, (in DestructureAst part) =>
+				reprDestructureAst(alloc, part)));
 
 Repr reprExprAst(ref Alloc alloc, in ExprAst ast) =>
 	reprExprAstKind(alloc, ast.kind);
 
 Repr reprNameAndRange(ref Alloc alloc, in NameAndRange a) =>
 	reprRecord!"name-range"(alloc, [reprNat(a.start), reprSym(a.name)]);
-
-Repr reprLambdaParamAsts(ref Alloc alloc, in LambdaAst.Param[] a) =>
-	reprArr!(LambdaAst.Param)(alloc, a, (in LambdaAst.Param it) =>
-		reprLambdaParamAst(alloc, it));
-
-Repr reprLambdaParamAst(ref Alloc alloc, in LambdaAst.Param a) =>
-	reprRecord!"param"(alloc, [
-		reprNat(a.start),
-		reprSym(has(a.name) ? force(a.name) : sym!"_")]);
 
 Repr reprExprAstKind(ref Alloc alloc, in ExprAstKind ast) =>
 	ast.matchIn!Repr(
@@ -1054,7 +1049,7 @@ Repr reprExprAstKind(ref Alloc alloc, in ExprAstKind ast) =>
 					reprExprAst(alloc, it))]),
 		(in ForAst x) =>
 			reprRecord!"for"(alloc, [
-				reprLambdaParamAsts(alloc, x.params),
+				reprDestructureAst(alloc, x.param),
 				reprExprAst(alloc, x.collection),
 				reprExprAst(alloc, x.body_),
 				reprOpt!ExprAst(alloc, x.else_, (in ExprAst else_) =>
@@ -1069,7 +1064,7 @@ Repr reprExprAstKind(ref Alloc alloc, in ExprAstKind ast) =>
 					reprExprAst(alloc, it))]),
 		(in IfOptionAst it) =>
 			reprRecord!"if"(alloc, [
-				reprNameAndRange(alloc, it.name),
+				reprDestructureAst(alloc, it.destructure),
 				reprExprAst(alloc, it.option),
 				reprExprAst(alloc, it.then),
 				reprOpt!ExprAst(alloc, it.else_, (in ExprAst it) =>
@@ -1078,13 +1073,13 @@ Repr reprExprAstKind(ref Alloc alloc, in ExprAstKind ast) =>
 			reprRecord!"interpolated"(alloc, [
 				reprArr!InterpolatedPart(alloc, it.parts, (in InterpolatedPart part) =>
 					reprInterpolatedPart(alloc, part))]),
-		(in LambdaAst it) =>
+		(in LambdaAst x) =>
 			reprRecord!"lambda"(alloc, [
-				reprLambdaParamAsts(alloc, it.params),
-				reprExprAst(alloc, it.body_)]),
+				reprDestructureAst(alloc, x.param),
+				reprExprAst(alloc, x.body_)]),
 		(in LetAst a) =>
 			reprRecord!"let"(alloc, [
-				reprSym(has(a.name) ? force(a.name) : sym!"_"),
+				reprDestructureAst(alloc, a.destructure),
 				reprExprAst(alloc, a.initializer),
 				reprExprAst(alloc, a.then)]),
 		(in LiteralFloatAst a) =>
@@ -1118,13 +1113,8 @@ Repr reprExprAstKind(ref Alloc alloc, in ExprAstKind ast) =>
 					reprRecord!"case"(alloc, [
 						reprRangeWithinFile(alloc, case_.range),
 						reprSym(case_.memberName),
-						case_.local.match!Repr(
-							(Sym x) =>
-								reprSym(x),
-							(NameOrUnderscoreOrNone.Underscore) =>
-								reprSym!"_",
-							(NameOrUnderscoreOrNone.None) =>
-								reprSym!"none"),
+						reprOpt!DestructureAst(alloc, case_.destructure, (in DestructureAst x) =>
+							reprDestructureAst(alloc, x)),
 						reprExprAst(alloc, case_.then)]))]),
 		(in ParenthesizedAst it) =>
 			reprRecord!"paren"(alloc, [reprExprAst(alloc, it.inner)]),
@@ -1136,7 +1126,7 @@ Repr reprExprAstKind(ref Alloc alloc, in ExprAstKind ast) =>
 				reprExprAst(alloc, a.then)]),
 		(in ThenAst it) =>
 			reprRecord!"then"(alloc, [
-				reprLambdaParamAsts(alloc, it.left),
+				reprDestructureAst(alloc, it.left),
 				reprExprAst(alloc, it.futExpr),
 				reprExprAst(alloc, it.then)]),
 		(in ThrowAst it) =>
@@ -1153,7 +1143,7 @@ Repr reprExprAstKind(ref Alloc alloc, in ExprAstKind ast) =>
 				reprExprAst(alloc, it.body_)]),
 		(in WithAst x) =>
 			reprRecord!"with"(alloc, [
-				reprLambdaParamAsts(alloc, x.params),
+				reprDestructureAst(alloc, x.param),
 				reprExprAst(alloc, x.arg),
 				reprExprAst(alloc, x.body_)]));
 

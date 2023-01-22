@@ -9,6 +9,7 @@ import util.conv : safeToUint, safeToUshort;
 import util.path : Path;
 import util.repr : Repr, reprNat, reprRecord;
 import util.sym : AllSymbols, Sym, symSize;
+import util.util : verify;
 
 alias Pos = uint;
 
@@ -36,6 +37,11 @@ immutable struct RangeWithinFile {
 		RangeWithinFile(0, 0);
 }
 static assert(RangeWithinFile.sizeof == 8);
+
+RangeWithinFile combineRanges(RangeWithinFile a, RangeWithinFile b) {
+	verify(a.end <= b.start);
+	return RangeWithinFile(a.start, b.end);
+}
 
 bool hasPos(RangeWithinFile a, Pos p) =>
 	a.start <= p && p < a.end;

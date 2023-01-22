@@ -2,8 +2,7 @@ module frontend.parse.lexer;
 
 @safe @nogc pure nothrow:
 
-import frontend.parse.ast :
-	LiteralFloatAst, LiteralIntAst, LiteralNatAst, NameAndRange, NameOrUnderscoreOrNone, OptNameAndRange;
+import frontend.parse.ast : LiteralFloatAst, LiteralIntAst, LiteralNatAst, NameAndRange;
 import model.diag : Diag, DiagnosticWithinFile;
 import model.parseDiag : ParseDiag;
 import util.alloc.alloc : Alloc;
@@ -289,6 +288,13 @@ NameAndRange takeNameAndRange(ref Lexer lexer) {
 	}
 }
 
+NameAndRange takeNameAndRangeAllowUnderscore(ref Lexer lexer) {
+	Pos start = curPos(lexer);
+	return tryTakeToken(lexer, Token.underscore)
+		? NameAndRange(start, sym!"_")
+		: takeNameAndRange(lexer);
+}
+
 Sym takePathComponent(ref Lexer lexer) =>
 	takePathComponentRest(lexer, takeName(lexer));
 private Sym takePathComponentRest(ref Lexer lexer, Sym cur) {
@@ -297,16 +303,6 @@ private Sym takePathComponentRest(ref Lexer lexer, Sym cur) {
 		return takePathComponentRest(lexer, concatSymsWithDot(lexer.allSymbols, cur, extension));
 	} else
 		return cur;
-}
-
-OptNameAndRange takeOptNameAndRange(ref Lexer lexer) {
-	Pos start = curPos(lexer);
-	if (tryTakeToken(lexer, Token.underscore))
-		return OptNameAndRange(start, none!Sym);
-	else {
-		NameAndRange res = takeNameAndRange(lexer);
-		return OptNameAndRange(res.start, some(res.name));
-	}
 }
 
 Opt!Sym tryTakeName(ref Lexer lexer) =>
@@ -327,11 +323,6 @@ Opt!NameAndRange tryTakeNameOrOperatorAndRangeNoAssignment(ref Lexer lexer) {
 		: none!NameAndRange;
 }
 
-Opt!Sym takeNameOrUnderscore(ref Lexer lexer) =>
-	tryTakeToken(lexer, Token.underscore)
-		? none!Sym
-		: some(takeName(lexer));
-
 // This can take names like 'x='
 Sym takeNameOrOperator(ref Lexer lexer) {
 	Pos start = curPos(lexer);
@@ -346,13 +337,6 @@ Sym takeNameOrOperator(ref Lexer lexer) {
 		return sym!"bogus";
 	}
 }
-
-NameOrUnderscoreOrNone takeNameOrUnderscoreOrNone(ref Lexer lexer) =>
-	tryTakeToken(lexer, Token.name)
-		? NameOrUnderscoreOrNone(getCurSym(lexer))
-		: tryTakeToken(lexer, Token.underscore)
-		? NameOrUnderscoreOrNone(NameOrUnderscoreOrNone.Underscore())
-		: NameOrUnderscoreOrNone(NameOrUnderscoreOrNone.None());
 
 @trusted void skipUntilNewlineNoDiag(ref Lexer lexer) {
 	while (!isNewlineChar(*lexer.ptr) && *lexer.ptr != '\0')
@@ -1177,19 +1161,8 @@ public @trusted Opt!EqualsOrThen lookaheadWillTakeEqualsOrThen(ref Lexer lexer) 
 					return some(EqualsOrThen.then);
 				break;
 			// characters that appear in types
-			case '<':
-			case '>':
-			case ',':
-			case '?':
-			case '^':
-			case '*':
-			case '[':
-			case ']':
-			case '(':
-			case ')':
-				break;
 			default:
-				if (!isAlphaIdentifierContinue(*ptr))
+				if (!isTypeChar(*ptr))
 					return none!EqualsOrThen;
 				break;
 		}
@@ -1197,21 +1170,58 @@ public @trusted Opt!EqualsOrThen lookaheadWillTakeEqualsOrThen(ref Lexer lexer) 
 	}
 }
 
-public @trusted bool lookaheadWillTakeArrow(ref Lexer lexer) {
+public @trusted bool lookaheadWillTakeQuestionEquals(ref Lexer lexer) {
 	immutable(char)* ptr = lexer.ptr;
 	while (true) {
 		switch (*ptr) {
-			case '(':
-				// Arrow function parameters never have '(' in them
-				return false;
-			case ')':
-				return ptr[1] == ' ' && ptr[2] == '=' && ptr[3] == '>';
-			case '\r':
-			case '\n':
-			case '\0':
-				return false;
-			default:
+			case ' ':
+				if (ptr[1] == '?' && ptr[2] == '=' && ptr[3] == ' ')
+					return true;
 				break;
+			default:
+				// Destructure chars are same as type chars
+				if (!isTypeChar(*ptr))
+					return false;
+				break;
+		}
+		ptr++;
+	}
+}
+
+bool isTypeChar(char c) {
+	switch (c) {
+		case ' ':
+		case ',':
+		case '?':
+		case '^':
+		case '*':
+		case '[':
+		case ']':
+		case '(':
+		case ')':
+			return true;
+		default:
+			return isAlphaIdentifierContinue(c);
+	}
+}
+
+public @trusted bool lookaheadWillTakeArrowAfterParenLeft(ref Lexer lexer) {
+	immutable(char)* ptr = lexer.ptr;
+	size_t openParens = 0;
+	while (true) {
+		switch (*ptr) {
+			case '(':
+				openParens++;
+				break;
+			case ')':
+				openParens--;
+				//TODO: allow more or less whitespace
+				if (openParens == 0)
+					return ptr[1] == ' ' && ptr[2] == '=' && ptr[3] == '>';
+				break;
+			default:
+				if (!isTypeChar(*ptr))
+					return false;
 		}
 		ptr++;
 	}

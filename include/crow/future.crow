@@ -1,6 +1,6 @@
 no-std
 import
-	./col/collection: begin, for-loop, iterate, next, size
+	./col/collection: begin, concatenate, for-loop, iterate, next, size
 	./col/list: ~=, build, iterate, list, size
 	./col/mut-list: ~=, hint-size, move-to-list, mut-list, new
 	./exception: catch, exception
@@ -14,7 +14,6 @@ import
 	./private/task-queue: task
 	./private/thread-utils: init, lock, uninit
 	./result: force, result
-	./tuple: a, b, c, tuple2, tuple3
 export
 	./private/bootstrap: future
 
@@ -137,31 +136,11 @@ and the result of `then` will have the same exception as `a`.
 			res reject e
 	res
 
-# Like `then`, but `f` takes no parameter (since it will be `void` anyway.)
-+then[out] out^(a void^, f ref out()) out shared
-	a then _ =>
-		f[]
-
-###
-Use like:
-	x, y <- f, g
-Where 'f' and 'g' are futures.
-###
-+then[out, in0, in1] out^(
-	a (in0^, in1^),
-	f ref out(in0, in1),
-) out shared, in0 shared, in1 shared
-	x <- a.a
-	y <- a.b
-	f[x, y]
-+then[out, in0, in1, in2] out^(
-	a (in0^, in1^, in2^),
-	f ref out(in0, in1, in2),
-) out shared, in0 shared, in1 shared, in2 shared
-	x <- a.a
-	y <- a.b
-	z <- a.c
-	f[x, y, z]
+# Concatenates the values inside the futures.
+~~[col] col^(a col^, b col^) col shared, col concatenate
+	x <- a
+	y <- b
+	x ~~ y,
 
 ###
 Calls a `ref`.
@@ -169,44 +148,15 @@ Calls a `ref`.
 This enqueues a task with the ref's exclusion for invoking its function,
 and returns a future for the result of that task.
 ###
-+subscript[r] r^(f ref r()) r shared
++subscript[r, p] r^(function ref r(p), params p) r shared, p shared
 	res r^ = trusted unresolved
-	action = f action
-	trusted get-global-ctx add-task f.exclusion, () =>
-		match action catch
+	action = function action
+	trusted get-global-ctx add-task function.exclusion, () =>
+		match (() => action[params]) catch
 		as ok fut
 			res forward-to fut
 		as err e
 			res reject e
-	res
-
-# Calls a `ref` with one argument.
-+subscript[r, p0] r^(f ref r(p0), p0 p0) r shared, p0 shared
-	res r^ = trusted unresolved
-	trusted get-global-ctx add-task f.exclusion, () =>
-		(() => res forward-to f.action[p0]) catch err => res reject err
-	res
-
-# Calls a `ref` with two arguments.
-+subscript[r, p0, p1] r^(
-	f ref r(p0, p1),
-	p0 p0,
-	p1 p1,
-) r shared, p0 shared, p1 shared
-	res r^ = trusted unresolved
-	trusted get-global-ctx add-task f.exclusion, () =>
-		(() => res forward-to f.action[p0, p1]) catch err => res reject err
-	res
-
-+subscript[r, p0, p1, p2] r^(
-	f ref r(p0, p1, p2),
-	p0 p0,
-	p1 p1,
-	p2 p2,
-) r shared, p0 shared, p1 shared, p2 shared
-	res r^ = trusted unresolved
-	trusted get-global-ctx add-task f.exclusion, () =>
-		(() => res forward-to f.action[p0, p1, p2]) catch err => res reject err
 	res
 
 ###
@@ -251,14 +201,6 @@ sequential-collection[col] record
 sequential[col] col sequential-collection(a col)
 	a,
 
-for-loop[in-col, in-iter, in-elem] void^(
-	a in-col sequential-collection,
-	f ref void(in-elem),
-) (in-iter, in-col) begin, (in-elem, in-iter) next, in-elem shared
-	a for-break x =>
-		<- f[x]
-		continue
-
 for-break[in-col, in-iter, in-elem] void^(
 	a in-col sequential-collection,
 	f ref void break-or-continue(in-elem),
@@ -276,13 +218,21 @@ for-break[out, in-col, in-iter, in-elem] out?^(
 	iter in-iter,
 	f ref out break-or-continue(in-elem),
 ) (in-iter, in-col) begin, (in-elem, in-iter) next, out shared, in-elem shared
-	if pair ?= iter next
-		b-or-c <- f[pair.a]
+	if x, next ?= iter next
+		b-or-c <- f[x]
 		match b-or-c
 		as loop-break v
 			(v,),
 		as loop-continue
-			pair.b for-break-recur@(out, in-col, in-iter, in-elem) f
+			next for-break-recur@(out, in-col, in-iter, in-elem) f
+
+for-loop[in-col, in-iter, in-elem] void^(
+	a in-col sequential-collection,
+	f ref void(in-elem),
+) (in-iter, in-col) begin, (in-elem, in-iter) next, in-elem shared
+	a for-break x =>
+		<- f[x]
+		continue
 
 for-loop[out-elem, in-col, in-iter, in-elem] out-elem[]^(
 	a in-col sequential-collection,

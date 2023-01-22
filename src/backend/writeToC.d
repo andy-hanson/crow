@@ -9,7 +9,6 @@ import backend.mangle :
 	writeConstantPointerStorageName,
 	writeLowFunMangledName,
 	writeLowLocalName,
-	writeLowParamName,
 	writeLowThreadLocalMangledName,
 	writeMangledName,
 	writeRecordName,
@@ -36,8 +35,6 @@ import model.lowModel :
 	LowFunIndex,
 	LowFunPtrType,
 	LowLocal,
-	LowParam,
-	LowParamIndex,
 	LowPtrCombine,
 	LowProgram,
 	LowRecord,
@@ -275,10 +272,10 @@ void writeCastToType(scope ref Writer writer, in Ctx ctx, in LowType type) {
 	writer ~= ") ";
 }
 
-void writeParamDecl(scope ref Writer writer, in Ctx ctx, in LowParam a) {
+void writeParamDecl(scope ref Writer writer, in Ctx ctx, in LowLocal a) {
 	writeType(writer, ctx, a.type);
 	writer ~= ' ';
-	writeLowParamName(writer, ctx.mangledNames, a);
+	writeLowLocalName(writer, ctx.mangledNames, a);
 }
 
 void writeStructHead(scope ref Writer writer, in Ctx ctx, in ConcreteStruct* source) {
@@ -434,15 +431,15 @@ void writeFunReturnTypeNameAndParams(scope ref Writer writer, in Ctx ctx, LowFun
 	writeLowFunMangledName(writer, ctx.mangledNames, funIndex, fun);
 	if (!isGlobal(fun.body_)) {
 		writer ~= '(';
-		if (every!LowParam(fun.params, (in LowParam x) => isVoid(x.type)))
+		if (every!LowLocal(fun.params, (in LowLocal x) => isVoid(x.type)))
 			writer ~= "void";
 		else
-			writeWithCommas!LowParam(
+			writeWithCommas!LowLocal(
 				writer,
 				fun.params,
-				(in LowParam x) =>
+				(in LowLocal x) =>
 					!isVoid(x.type),
-				(in LowParam x) {
+				(in LowLocal x) {
 					writeParamDecl(writer, ctx, x);
 				});
 		writer ~= ')';
@@ -722,10 +719,6 @@ WriteExprResult writeExpr(
 		},
 		(in LowExprKind.MatchUnion it) =>
 			writeMatchUnion(writer, indent, ctx, locals, writeKind, type, it),
-		(in LowExprKind.ParamGet it) =>
-			inlineableSimple(() {
-				writeParamGet(writer, ctx, it.index);
-			}),
 		(in LowExprKind.PtrCast it) =>
 			inlineableSingleArg(it.target, (in WriteExprResult arg) {
 				writer ~= '(';
@@ -739,11 +732,6 @@ WriteExprResult writeExpr(
 			inlineableSimple(() {
 				writer ~= '&';
 				writeLowLocalName(writer, ctx.mangledNames, *it.local);
-			}),
-		(in LowExprKind.PtrToParam it) =>
-			inlineableSimple(() {
-				writer ~= '&';
-				writeParamGet(writer, ctx, it.index);
 			}),
 		(in LowExprKind.RecordFieldGet it) =>
 			writeRecordFieldGet(writer, indent, ctx, locals, writeKind, type, it),
@@ -971,7 +959,6 @@ void writeTailRecur(
 	in Locals locals,
 	in LowExprKind.TailRecur a,
 ) {
-	LowParam[] params = ctx.program.allFuns[ctx.curFun].params;
 	WriteExprResult[] newValues =
 		map(ctx.tempAlloc, a.updateParams, (ref UpdateParam updateParam) =>
 			writeExprTempOrInline(writer, indent, ctx, locals, updateParam.newValue));
@@ -979,10 +966,9 @@ void writeTailRecur(
 		a.updateParams,
 		newValues,
 		(ref UpdateParam updateParam, ref WriteExprResult newValue) {
-			LowParam param = params[updateParam.param.index];
-			if (!isVoid(param.type)) {
+			if (!isVoid(updateParam.param.type)) {
 				writeNewline(writer, indent);
-				writeLowParamName(writer, ctx.mangledNames, param);
+				writeLowLocalName(writer, ctx.mangledNames, *updateParam.param);
 				writer ~= " = ";
 				writeTempOrInline(writer, ctx, locals, updateParam.newValue, newValue);
 				writer ~= ';';
@@ -1015,10 +1001,6 @@ void writeCreateUnion(
 
 void writeFunPtr(scope ref Writer writer, in Ctx ctx, LowFunIndex a) {
 	writeLowFunMangledName(writer, ctx.mangledNames, a, ctx.program.allFuns[a]);
-}
-
-void writeParamGet(scope ref Writer writer, in FunBodyCtx ctx, LowParamIndex a) {
-	writeLowParamName(writer, ctx.mangledNames, ctx.program.allFuns[ctx.curFun].params[a.index]);
 }
 
 WriteExprResult writeMatchUnion(

@@ -163,9 +163,12 @@ private void writeWithSeparator(T)(
 	in bool delegate(in T) @safe @nogc pure nothrow filter,
 	in void delegate(in T) @safe @nogc pure nothrow cb,
 ) {
+	bool first = true;
 	foreach (size_t i, ref T x; a)
 		if (filter(x)) {
-			if (i != 0)
+			if (first)
+				first = false;
+			else
 				writer ~= separator;
 			cb(x);
 		}

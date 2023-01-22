@@ -11,7 +11,7 @@ import
 	../../option: ==, is-empty, new, option
 	../../string: ==, ~~, -, end, literal, new, next, string, to-string
 	../../test-util: is
-	../../tuple: ==, <=>, a, b, from, new, to, tuple2
+	../../tuple: ==, <=>, a, b, new
 	../array:
 		~=, ~~=, +, -, array, array-builder, begin, build, collection, end, is-empty, iterate, new,
 		next, size, slice
@@ -39,7 +39,7 @@ compact-sorted-dict[k, v] record by-val
 ==[k, v] bool(a (k, v) compact-sorted-dict, b (k, v) compact-sorted-dict) k key, v equal
 	a.to-sorted-pairs == b.to-sorted-pairs
 -to-sorted-pairs[k, v] (k, v)[](a (k, v) compact-sorted-dict) k key
-	a.to-list sort pair => pair from
+	a.to-list sort (k, _) => k
 
 json[k, v] json(a (k, v) compact-sorted-dict) k key, k json, v json
 	a.to-sorted-pairs json
@@ -48,7 +48,7 @@ new[k, v] (k, v) compact-sorted-dict(...a (k, v) array) k key
 	a.to-list to-compact-sorted-dict
 
 to-compact-sorted-dict[k, v] (k, v) compact-sorted-dict(a (k, v)[]) k key
-	(a.to-array sort pair => pair from).end-node,
+	(a.to-array sort (k, _) => k).end-node,
 
 is-empty[k, v] bool(a (k, v) compact-sorted-dict) k key
 	match a impl
@@ -63,7 +63,7 @@ This is O(n).
 ###
 size[k, v] nat64(a (k, v) compact-sorted-dict) k key
 	res mut = 0
-	for _, _ : a
+	for _ : a
 		res +:= 1
 	res
 
@@ -74,8 +74,8 @@ to-list[k, v] (k, v)[](a (k, v) compact-sorted-dict) k key
 	as end-node e
 		e to-list
 
-~ ~[k, v] (k, v) compact-sorted-dict(a (k, v) compact-sorted-dict, pair (k, v)) k key
-	(a.impl add-or-remove pair.from, (pair.to,)),
+~ ~[k, v] (k, v) compact-sorted-dict(a (k, v) compact-sorted-dict, (key k, value v)) k key
+	(a.impl add-or-remove key, (value,)),
 
 ~ ~~[k, v] (k, v) compact-sorted-dict(a (k, v) compact-sorted-dict, b (k, v)[]) k key
 	if b is-empty
@@ -83,7 +83,7 @@ to-list[k, v] (k, v)[](a (k, v) compact-sorted-dict) k key
 	elif a is-empty
 		b to-compact-sorted-dict
 	else
-		pairs (k, v?) array = (for x : b; x.from, (x.to,)) sort pair => pair from
+		pairs (k, v?) array = (for k, v : b; k, (v,)) sort (k, _) => k
 		(pairs, a.impl).merge-as-needed,
 
 ~ -[k, v] (k, v) compact-sorted-dict(a (k, v) compact-sorted-dict, key k) k key
@@ -140,19 +140,19 @@ in[k, v] bool(key k, a (k, v) compact-sorted-dict) k key
 		l mut = left begin
 		r mut = right begin
 		loop
-			if lpair ?= l next
-				if rpair ?= r next
-					match lpair.a.from <=> rpair.a.from
+			if (lk, lv), lnext ?= l next
+				if (rk, rv), rnext ?= r next
+					match lk <=> rk
 					as less
-						out ~= lpair a
-						l := lpair b
+						out ~= (lk, lv)
+						l := lnext
 					as equal
-						out ~= rpair a
-						l := lpair b
-						r := rpair b
+						out ~= (rk, rv)
+						l := lnext
+						r := rnext
 					as greater
-						out ~= rpair a
-						r := rpair b
+						out ~= (rk, rv)
+						r := rnext
 					continue
 				else
 					out ~~= l slice-right
@@ -166,19 +166,19 @@ in[k, v] bool(key k, a (k, v) compact-sorted-dict) k key
 		l mut = left begin
 		r mut = right begin
 		loop
-			if lpair ?= l next
-				if rpair ?= r next
-					match lpair.a.from <=> rpair.a.from
+			if (lk, lv), lnext ?= l next
+				if (rk, rv), rnext ?= r next
+					match lk <=> rk
 					as less
-						out ~= lpair a
-						l := lpair b
+						out ~= (lk, lv)
+						l := lnext
 					as equal
-						out add-if-has-value rpair.a
-						l := lpair b
-						r := rpair b
+						out add-if-has-value (rk, rv)
+						l := lnext
+						r := rnext
 					as greater
-						out add-if-has-value rpair.a
-						r := rpair b
+						out add-if-has-value (rk, rv)
+						r := rnext
 					continue
 				else
 					out ~~= l slice-right
@@ -187,9 +187,9 @@ in[k, v] bool(key k, a (k, v) compact-sorted-dict) k key
 				for pair : r slice-right
 					out add-if-has-value pair
 				break
--add-if-has-value[k, v] void(out (k, v) array-builder, pair (k, v?))
-	if v ?= pair to
-		out ~= (pair.from, v)
+-add-if-has-value[k, v] void(out (k, v) array-builder, (k k, v-opt v?))
+	if v ?= v-opt
+		out ~= (k, v)
 
 # Returns an equal dictionary that takes up less space.
 compact[k, v] (k, v) compact-sorted-dict(a (k, v) compact-sorted-dict) k key
@@ -211,7 +211,8 @@ iterate[k, v] bool(a (k, v) compact-sorted-dict, f act bool(k, v)) k key
 		end-node := loop
 			match cur
 			as overlay o
-				out ~= ((o.pairs[0].from, overlay-index), o pairs)
+				k, _ = o.pairs[0]
+				out ~= ((k, overlay-index), o pairs)
 				cur := o prev
 				overlay-index +:= 1
 				continue
@@ -222,9 +223,10 @@ iterate[k, v] bool(a (k, v) compact-sorted-dict, f act bool(k, v)) k key
 			if end-node is-empty
 				break false
 			else
-				match end-node[0].from <=> k
+				ek, ev = end-node[0]
+				match ek <=> k
 				as less
-					if f[end-node[0].from, end-node[0].to]
+					if f[ek, ev]
 						break true
 					else
 						end-node := end-node[1 .. end]
@@ -238,16 +240,16 @@ iterate[k, v] bool(a (k, v) compact-sorted-dict, f act bool(k, v)) k key
 			true
 		elif v ?= opt-v
 			f[k, v]
-	res || end-node iterate pair => f[pair from, pair to]
+	res || end-node iterate f
 
 -iterate-overlays[k, v] bool(overlays ((k, nat64), (k, v?) array) mut-priority-queue, f act bool(k, v?)) k key
 	loop
 		if popped ?= overlays pop
-			key k = popped.a a
+			(key, _), rest = popped
 			overlays drop-overlays-with-key key
 			overlays maybe-add-back popped
-			if !popped.b.is-empty
-				if f[key, popped.b[0] to]
+			if !rest.is-empty
+				if f[key, rest[0] b]
 					break true
 				else
 					continue
@@ -260,8 +262,9 @@ iterate[k, v] bool(a (k, v) compact-sorted-dict, f act bool(k, v)) k key
 	overlays ((k, nat64), (k, v?) array) mut-priority-queue,
 	last-popped ((k, nat64), (k, v?) array),
 ) k key
-	if last-popped.b.size > 1
-		overlays ~= ((last-popped.b[1].from, last-popped.a.b), last-popped.b[1 .. end])
+	(_, order), rest = last-popped
+	if rest.size > 1
+		overlays ~= ((rest[1].a, order), rest[1 .. end])
 
 -drop-overlays-with-key[k, v] void(overlays ((k, nat64), (k, v?) array) mut-priority-queue, key k) k key
 	loop
@@ -284,7 +287,7 @@ region build
 compact-sorted-dict-builder[k, v] record mut
 	-inner (k, v) list-builder
 build[k, v] (k, v) compact-sorted-dict(a build-options, f act void((k, v) compact-sorted-dict-builder)) k key
-	a build (out => f[(out,)]) to-compact-sorted-dict
+	a build (out => f[out,]) to-compact-sorted-dict
 + ~=[k, v] void(a (k, v) compact-sorted-dict-builder, value (k, v)) k key
 	a.inner ~= value
 
@@ -295,16 +298,16 @@ region test
 -dbg[k, v] string(a (k, v) impl) k to-string, v to-string
 	match a
 	as overlay o
-		pairs = ", " join for x : o pairs
-			to = if t ?= x to
-				t to-string
+		pairs = ", " join for k, v-opt : o pairs
+			vs = if v ?= v-opt
+				v to-string
 			else
 				"_"
-			"{x from} -> {to}"
+			"{k} -> {vs}"
 		"{o.prev dbg}, [{pairs}]"
 	as end-node e
-		pairs = ", " join for x : e
-			"{x from} -> {x to}"
+		pairs = ", " join for k, v : e
+			"{k} -> {v}"
 		"[{pairs}]"
 
 verify void(a (nat64, string) compact-sorted-dict, expected string)
@@ -347,7 +350,7 @@ test
 	i = h ~~ ((11, "11"), (25, "25"))
 	i verify "[5 -> 5, 10 -> 10b, 11 -> 11, 20 -> 20, 25 -> 25]"
 
-	", " join (for key, value : h; "{key} -> {value}") is "5 -> 5, 10 -> 10b, 20 -> 20"
+	", " join (for k, v : h; "{k} -> {v}") is "5 -> 5, 10 -> 10b, 20 -> 20"
 
 	h-mapped (nat64, string) compact-sorted-dict = for k, v : h
 		k, "{v[end - 1]}"

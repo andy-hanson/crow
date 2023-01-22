@@ -6,16 +6,15 @@ import model.concreteModel :
 	ConcreteField,
 	ConcreteFun,
 	concreteFunRange,
-	ConcreteLocal,
-	ConcreteParam,
 	ConcreteStruct,
 	ConcreteStructSource,
 	isArray,
+	isTuple,
 	name,
 	typeSize,
 	TypeSize;
 import model.constant : Constant;
-import model.model : body_, EnumValue, StructBody;
+import model.model : body_, EnumValue, Local, StructBody;
 import util.col.dict : Dict;
 import util.col.fullIndexDict : FullIndexDict;
 import util.col.str : SafeCStr;
@@ -54,6 +53,9 @@ TypeSize typeSize(in LowRecord a) =>
 
 bool isArray(in LowRecord a) =>
 	isArray(*a.source);
+
+bool isTuple(in LowRecord a) =>
+	isTuple(*a.source);
 
 immutable struct LowUnion {
 	ConcreteStruct* source;
@@ -256,6 +258,9 @@ private immutable struct LowTypeCombinePointer {
 	mixin Union!(LowType.Extern, LowType.FunPtr, PrimitiveType, LowPtrCombine, LowType.Record, LowType.Union);
 }
 
+bool isPrimitiveType(LowType a, PrimitiveType p) =>
+	a.isA!PrimitiveType && a.as!PrimitiveType == p;
+
 immutable struct LowField {
 	ConcreteField* source;
 	size_t offset;
@@ -265,25 +270,12 @@ immutable struct LowField {
 Sym debugName(in LowField a) =>
 	a.source.debugName;
 
-immutable struct LowParamSource {
-	immutable struct Generated {
-		Sym name;
-	}
-	mixin Union!(ConcreteParam*, Generated*);
-}
-static assert(LowParamSource.sizeof == ulong.sizeof);
-
-immutable struct LowParam {
-	LowParamSource source;
-	LowType type;
-}
-
 immutable struct LowLocalSource {
 	immutable struct Generated {
 		Sym name;
 		size_t index;
 	}
-	mixin Union!(ConcreteLocal*, Generated*);
+	mixin Union!(Local*, Generated*);
 }
 static assert(LowLocalSource.sizeof == ulong.sizeof);
 
@@ -333,7 +325,7 @@ immutable struct LowFun {
 	LowFunSource source;
 	LowType returnType;
 	// Includes closure param
-	LowParam[] params;
+	LowLocal[] params;
 	LowFunBody body_;
 }
 
@@ -366,10 +358,6 @@ immutable struct LowFunIndex {
 	void hash(ref Hasher hasher) scope const {
 		hashSizeT(hasher, index);
 	}
-}
-
-immutable struct LowParamIndex {
-	size_t index;
 }
 
 immutable struct LowExprKind {
@@ -441,10 +429,6 @@ immutable struct LowExprKind {
 		Case[] cases;
 	}
 
-	immutable struct ParamGet {
-		LowParamIndex index;
-	}
-
 	immutable struct PtrCast {
 		LowExpr target;
 	}
@@ -456,10 +440,6 @@ immutable struct LowExprKind {
 
 	immutable struct PtrToLocal {
 		LowLocal* local;
-	}
-
-	immutable struct PtrToParam {
-		LowParamIndex index;
 	}
 
 	immutable struct RecordFieldGet {
@@ -666,11 +646,9 @@ immutable struct LowExprKind {
 		LoopBreak*,
 		LoopContinue,
 		MatchUnion*,
-		ParamGet,
 		PtrCast*,
 		PtrToField*,
 		PtrToLocal,
-		PtrToParam,
 		RecordFieldGet*,
 		RecordFieldSet*,
 		Seq*,
@@ -706,7 +684,7 @@ LowType.Record targetRecordType(in LowExprKind.RecordFieldSet a) =>
 	asGcOrRawPointee(a.target.type).as!(LowType.Record);
 
 immutable struct UpdateParam {
-	LowParamIndex param;
+	LowLocal* param;
 	LowExpr newValue;
 }
 

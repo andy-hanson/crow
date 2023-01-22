@@ -30,9 +30,16 @@ import frontend.check.instantiate :
 	TypeArgsArray,
 	typeArgsArray;
 import frontend.check.typeFromAst :
-	checkTypeParams, getTypeArgsForSpecIfNumberMatches, tryFindSpec, typeFromAst, typeFromAstNoTypeParamsNeverDelay;
+	checkDestructure,
+	checkTypeParams,
+	getTypeArgsForSpecIfNumberMatches,
+	Status,
+	tryFindSpec,
+	typeFromAst,
+	typeFromAstNoTypeParamsNeverDelay;
 import frontend.diagnosticsBuilder : addDiagnostic, DiagnosticsBuilder;
 import frontend.parse.ast :
+	DestructureAst,
 	ExprAst,
 	ExprAstKind,
 	FileAst,
@@ -40,7 +47,6 @@ import frontend.parse.ast :
 	FunModifierAst,
 	LiteralStringAst,
 	NameAndRange,
-	ParamAst,
 	ParamsAst,
 	range,
 	rangeOfNameAndRange,
@@ -58,7 +64,7 @@ import model.model :
 	body_,
 	CommonTypes,
 	decl,
-	Expr,
+	Destructure,
 	FileContent,
 	FunBody,
 	FunDecl,
@@ -75,7 +81,6 @@ import model.model :
 	name,
 	NameReferents,
 	okIfUnused,
-	Param,
 	Params,
 	paramsArray,
 	Purity,
@@ -102,7 +107,7 @@ import model.model :
 import util.alloc.alloc : Alloc;
 import util.col.arr : empty, only, ptrsRange, small;
 import util.col.arrBuilder : add, ArrBuilder, finishArr;
-import util.col.arrUtil : cat, eachPair, map, mapOp, mapToMut, mapWithIndex, zip, zipPtrFirst;
+import util.col.arrUtil : cat, map, mapOp, mapToMut, zip, zipPtrFirst;
 import util.col.dict : Dict, dictEach, dictEachIn, hasKey, KeyValuePair;
 import util.col.dictBuilder : DictBuilder, finishDict, tryAddToDict;
 import util.col.enumDict : EnumDict;
@@ -309,58 +314,24 @@ CommonTypes getCommonTypes(
 	StructDecl* opt = getDecl!"option"(1);
 	StructDecl* pointerConst = getDecl!"const-pointer"(1);
 	StructDecl* pointerMut = getDecl!"mut-pointer"(1);
-	StructDecl*[10] funStructs = [
-		getDecl!"fun0"(1),
-		getDecl!"fun1"(2),
-		getDecl!"fun2"(3),
-		getDecl!"fun3"(4),
-		getDecl!"fun4"(5),
-		getDecl!"fun5"(6),
-		getDecl!"fun6"(7),
-		getDecl!"fun7"(8),
-		getDecl!"fun8"(9),
-		getDecl!"fun9"(10),
-	];
-	StructDecl*[10] funActStructs = [
-		getDecl!"fun-act0"(1),
-		getDecl!"fun-act1"(2),
-		getDecl!"fun-act2"(3),
-		getDecl!"fun-act3"(4),
-		getDecl!"fun-act4"(5),
-		getDecl!"fun-act5"(6),
-		getDecl!"fun-act6"(7),
-		getDecl!"fun-act7"(8),
-		getDecl!"fun-act8"(9),
-		getDecl!"fun-act9"(10),
-	];
-	StructDecl*[10] funPointerStructs = [
-		getDecl!"fun-pointer0"(1),
-		getDecl!"fun-pointer1"(2),
-		getDecl!"fun-pointer2"(3),
-		getDecl!"fun-pointer3"(4),
-		getDecl!"fun-pointer4"(5),
-		getDecl!"fun-pointer5"(6),
-		getDecl!"fun-pointer6"(7),
-		getDecl!"fun-pointer7"(8),
-		getDecl!"fun-pointer8"(9),
-		getDecl!"fun-pointer9"(10),
-	];
-	StructDecl*[10] funRefStructs = [
-		getDecl!"fun-ref0"(1),
-		getDecl!"fun-ref1"(2),
-		getDecl!"fun-ref2"(3),
-		getDecl!"fun-ref3"(4),
-		getDecl!"fun-ref4"(5),
-		getDecl!"fun-ref5"(6),
-		getDecl!"fun-ref6"(7),
-		getDecl!"fun-ref7"(8),
-		getDecl!"fun-ref8"(9),
-		getDecl!"fun-ref9"(10),
-	];
+	EnumDict!(FunKind, StructDecl*) funs = immutable EnumDict!(FunKind, StructDecl*)([
+		getDecl!"fun-fun"(2), getDecl!"fun-act"(2), getDecl!"fun-ref"(2), getDecl!"fun-pointer"(2),
+	]);
 
 	StructDecl* constPointer = getDecl!"const-pointer"(1);
 	StructInst* cStr = instantiateStruct(
 		ctx.alloc, ctx.programState, constPointer, [Type(char8)], someMut(ptrTrustMe(delayedStructInsts)));
+
+	StructDecl*[8] tuples = [
+		getDecl!"tuple2"(2),
+		getDecl!"tuple3"(3),
+		getDecl!"tuple4"(4),
+		getDecl!"tuple5"(5),
+		getDecl!"tuple6"(6),
+		getDecl!"tuple7"(7),
+		getDecl!"tuple8"(8),
+		getDecl!"tuple9"(9),
+	];
 
 	return CommonTypes(
 		bool_,
@@ -378,7 +349,8 @@ CommonTypes getCommonTypes(
 		opt,
 		pointerConst,
 		pointerMut,
-		immutable EnumDict!(FunKind, StructDecl*[10])([funStructs, funActStructs, funRefStructs, funPointerStructs]));
+		tuples,
+		funs);
 }
 
 StructDecl* bogusStructDecl(ref Alloc alloc, size_t nTypeParameters) {
@@ -408,22 +380,14 @@ Params checkParams(
 	ref DelayStructInsts delayStructInsts,
 ) =>
 	ast.matchIn!Params(
-		(in ParamAst[] asts) {
-			Param[] params = mapWithIndex!(Param, ParamAst)(
-				ctx.alloc,
-				asts,
-				(size_t index, scope ref ParamAst ast) =>
-					checkParam(ctx, commonTypes, structsAndAliasesDict, typeParamsScope, delayStructInsts, ast, index));
-			eachPair!Param(params, (in Param x, in Param y) {
-				if (has(x.name) && has(y.name) && force(x.name) == force(y.name))
-					addDiag(ctx, y.range, Diag(Diag.DuplicateDeclaration(
-						Diag.DuplicateDeclaration.Kind.paramOrLocal, force(y.name))));
-			});
-			return Params(params);
-		},
+		(in DestructureAst[] asts) =>
+			Params(map!(Destructure, DestructureAst)(ctx.alloc, asts, (ref DestructureAst ast) =>
+				checkDestructure(
+					ctx, commonTypes, structsAndAliasesDict, typeParamsScope, delayStructInsts,
+					ast, none!Type))),
 		(in ParamsAst.Varargs varargs) {
-			Param param = checkParam(
-				ctx, commonTypes, structsAndAliasesDict, typeParamsScope, delayStructInsts, varargs.param, 0);
+			Destructure param = checkDestructure(
+				ctx, commonTypes, structsAndAliasesDict, typeParamsScope, delayStructInsts, varargs.param, none!Type);
 			Opt!Type elementType = param.type.match!(Opt!Type)(
 				(Type.Bogus _) =>
 					some(Type(Type.Bogus())),
@@ -434,25 +398,10 @@ Params checkParams(
 					? some(only(typeArgs(x)))
 					: none!Type);
 			if (!has(elementType))
-				addDiag(ctx, varargs.param.range, Diag(Diag.VarargsParamMustBeArray()));
+				addDiag(ctx, varargs.param.range(ctx.allSymbols), Diag(Diag.VarargsParamMustBeArray()));
 			return Params(allocate(ctx.alloc,
 				Params.Varargs(param, has(elementType) ? force(elementType) : Type(Type.Bogus()))));
 		});
-
-Param checkParam(
-	ref CheckCtx ctx,
-	ref CommonTypes commonTypes,
-	in StructsAndAliasesDict structsAndAliasesDict,
-	TypeParam[] typeParamsScope,
-	ref DelayStructInsts delayStructInsts,
-	in ParamAst ast,
-	size_t index,
-) =>
-	Param(
-		rangeInFile(ctx, ast.range),
-		ast.name,
-		typeFromAst(ctx, commonTypes, ast.type, structsAndAliasesDict, typeParamsScope, delayStructInsts),
-		index);
 
 immutable struct ReturnTypeAndParams {
 	Type returnType;
@@ -705,7 +654,7 @@ Opt!(SpecInst*) checkSpecReference(
 	if (has(opSpec)) {
 		SpecDecl* spec = force(opSpec);
 		TypeArgsArray typeArgs = typeArgsArray();
-		bool ok = getTypeArgsForSpecIfNumberMatches(
+		Status status = getTypeArgsForSpecIfNumberMatches(
 			typeArgs,
 			ctx,
 			commonTypes,
@@ -714,9 +663,12 @@ Opt!(SpecInst*) checkSpecReference(
 			spec,
 			suffixLeft,
 			typeParamsScope);
-		return ok
-			? some(instantiateSpec(ctx.alloc, ctx.programState, spec, tempAsArr(typeArgs), delaySpecInsts))
-			: none!(SpecInst*);
+		final switch (status) {
+			case Status.ok:
+				return some(instantiateSpec(ctx.alloc, ctx.programState, spec, tempAsArr(typeArgs), delaySpecInsts));
+			case Status.error:
+				return none!(SpecInst*);
+		}
 	} else
 		return none!(SpecInst*);
 }
@@ -970,7 +922,7 @@ FunBody getFileImportFunctionBody(
 			return FunBody(getExprFunctionBody(ctx, commonTypes, structsAndAliasesDict, funsDict, usedFuns, f, ast));
 		});
 
-Expr getExprFunctionBody(
+FunBody.ExpressionBody getExprFunctionBody(
 	ref CheckCtx ctx,
 	in CommonTypes commonTypes,
 	in StructsAndAliasesDict structsAndAliasesDict,
@@ -979,7 +931,7 @@ Expr getExprFunctionBody(
 	in FunDecl f,
 	in ExprAst e,
 ) =>
-	checkFunctionBody(
+	FunBody.ExpressionBody(checkFunctionBody(
 		ctx,
 		structsAndAliasesDict,
 		commonTypes,
@@ -990,7 +942,7 @@ Expr getExprFunctionBody(
 		paramsArray(f.params),
 		f.specs,
 		f.flags,
-		e);
+		e));
 
 FunDecl funDeclForFileImportOrExport(
 	ref CheckCtx ctx,
@@ -1039,10 +991,10 @@ FunBody.Extern checkExternOrGlobalBody(ref CheckCtx ctx, FunDecl* fun, in Opt!Ty
 		addDiag(ctx, fun.range, Diag(Diag.ExternFunForbidden(fun, Diag.ExternFunForbidden.Reason.hasSpecs)));
 
 	if (!isLinkageAlwaysCompatible(funLinkage, linkageRange(fun.returnType)))
-		addDiag(ctx, fun.range, Diag(Diag.LinkageWorseThanContainingFun(fun, fun.returnType, none!(Param*))));
+		addDiag(ctx, fun.range, Diag(Diag.LinkageWorseThanContainingFun(fun, fun.returnType, none!(Destructure*))));
 	fun.params.match!void(
-		(Param[] params) {
-			foreach (Param* p; ptrsRange(params))
+		(Destructure[] params) {
+			foreach (Destructure* p; ptrsRange(params))
 				if (!isLinkageAlwaysCompatible(funLinkage, linkageRange(p.type)))
 					addDiag(ctx, p.range, Diag(Diag.LinkageWorseThanContainingFun(fun, p.type, some(p))));
 		},

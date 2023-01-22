@@ -97,7 +97,7 @@ void debugLog(in immutable char* message) {
 
 version (WebAssembly) {
 	// WARN: 'message' must be heap allocated, not on stack
-	extern(C) void debugLog(in immutable char* message, size_t value);
+	extern(C) void debugLog(scope immutable char* message, size_t value);
 } else {
 	void debugLog(in immutable char* message, size_t value) {
 		import core.stdc.stdio : printf;

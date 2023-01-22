@@ -8,7 +8,7 @@ import
 	../option: ??, force, new, option
 	../string: ~~, literal, new, string, to-string
 	./array: array
-	./collection: build, build-options, filter, for-loop, join, with-block
+	./collection: build, build-options, filter, for-loop, join, with-block, with-index
 	./experimental/index-set:
 		count-greater-or-equal, filter-less, in, index-set, iterate, is-empty, new, size, try-remove
 	./experimental/frozen-set:
@@ -208,7 +208,7 @@ Else, adds it and returns the new set.
 			continue
 
 -push[t] void(out t frozen-set-builder, here t frozen-set, add-size-here-and-left nat64, remove index-set)
-	for i, x : here
+	for i, x : here with-index
 		unless add-size-here-and-left + i in remove
 			out ~= x
 
@@ -218,8 +218,11 @@ region spec impls (see collection.crow)
 	cur mut = a add
 	add-size-left mut = cur add-size-left
 	loop
-		here = cur.here iterate (i, x) =>
-			unless add-size-left + i in a.remove
+		i mut = 0
+		here = cur.here iterate x =>
+			index = add-size-left + i
+			i +:= 1
+			unless index in a.remove
 				f[x]
 		if here
 			break true
@@ -235,7 +238,7 @@ subregion build
 +set-builder[t] record mut
 	-inner t frozen-set-builder
 +build[t] t set(a build-options, f act void(t set-builder)) t key
-	inner t frozen-set = a build out => f[(out,)]
+	inner t frozen-set = a build out => f[out,]
 	inner to-set
 +~=[t] void(a t set-builder, value t) t key
 	a.inner ~= value

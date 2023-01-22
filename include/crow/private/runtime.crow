@@ -7,7 +7,7 @@ import
 	../io/print: err, print, print-no-newline
 	../io/private/time-low-level: get-monotime-nsec, timestamp
 	../log: default-log-handler, set-log-handler, log-handler
-	../misc: void
+	../misc: new, void
 	../number: ==, nat64
 	../option: new, option
 	../pointer: *, by-val, mut-pointer, set-deref

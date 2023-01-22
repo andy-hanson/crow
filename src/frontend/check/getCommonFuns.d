@@ -11,13 +11,15 @@ import model.model :
 	CommonFuns,
 	CommonTypes,
 	decl,
+	Destructure,
 	FunDecl,
 	FunInst,
 	FunKind,
 	isTemplate,
+	Local,
+	LocalMutability,
 	Module,
 	NameReferents,
-	Param,
 	Params,
 	SpecDeclSig,
 	StructInst,
@@ -27,12 +29,12 @@ import model.model :
 	TypeParam;
 import util.alloc.alloc : Alloc;
 import util.col.arr : empty;
-import util.col.arrUtil : arrsCorrespond, mapWithIndex;
+import util.col.arrUtil : arrsCorrespond, map;
 import util.col.enumDict : EnumDict;
 import util.col.str : safeCStr;
 import util.late : late, Late, lateGet, lateIsSet, lateSet;
+import util.memory : allocate;
 import util.opt : force, has, none, Opt, some;
-import util.ptr : castNonScope_ref;
 import util.sourceRange : FileAndPos, FileAndRange, FileIndex, RangeWithinFile;
 import util.sym : Sym, sym;
 import util.util : unreachable, verify;
@@ -102,7 +104,7 @@ Opt!CommonFuns getCommonFuns(
 		Type cStringType = instantiateType(commonTypes.ptrConst, [Type(commonTypes.char8)]);
 		Type cStringConstPointerType = instantiateType(commonTypes.ptrConst, [cStringType]);
 		Type mainPointerType =
-			instantiateType(commonTypes.funPtrStructs[1], [nat64FutureType, stringListType]);
+			instantiateType(commonTypes.funPtrStruct, [nat64FutureType, stringListType]);
 
 		Opt!(FunInst*) allocFun =
 			getFun(CommonPath.alloc, sym!"alloc", nat8MutPointerType, [param!"size-bytes"(nat64Type)]);
@@ -175,6 +177,20 @@ Opt!CommonFuns getCommonFuns(
 		return none!CommonFuns;
 }
 
+Destructure makeParam(ref Alloc alloc, FileAndRange range, Sym name, Type type) =>
+	Destructure(allocate(alloc, Local(range, name, LocalMutability.immut, type)));
+
+Params makeParams(ref Alloc alloc, FileAndRange range, in ParamShort[] params) =>
+	Params(map(alloc, params, (ref ParamShort x) =>
+		makeParam(alloc, range, x.name, x.type)));
+
+immutable struct ParamShort {
+	Sym name;
+	Type type;
+}
+ParamShort param(string name)(Type type) =>
+	ParamShort(sym!name, type);
+
 private:
 
 immutable(FunDecl*[]) getFunOrActSubscriptFuns(in CommonTypes commonTypes, immutable FunDecl*[] subscripts) {
@@ -198,13 +214,12 @@ immutable(FunDecl*[]) getFunOrActSubscriptFuns(in CommonTypes commonTypes, immut
 }
 
 FunKind firstArgFunKind(in CommonTypes commonTypes, FunDecl* f) {
-	Param[] params = assertNonVariadic(f.params);
+	Destructure[] params = assertNonVariadic(f.params);
 	verify(!empty(params));
 	StructDecl* actual = decl(*params[0].type.as!(StructInst*));
 	foreach (FunKind kind; [FunKind.fun, FunKind.act, FunKind.pointer])
-		foreach (StructDecl* decl; castNonScope_ref(commonTypes.funStructs)[kind])
-			if (actual == decl)
-				return kind;
+		if (actual == commonTypes.funStructs[kind])
+			return kind;
 	return unreachable!FunKind;
 }
 
@@ -248,13 +263,6 @@ Opt!(StructDecl*) getStructDecl(in Module a, Sym name) {
 		return none!(StructDecl*);
 }
 
-immutable struct ParamShort {
-	Sym name;
-	Type type;
-}
-ParamShort param(string name)(Type type) =>
-	ParamShort(sym!name, type);
-
 bool signatureMatchesTemplate(
 	in FunDecl actual,
 	in TypeParam[] expectedTypeParams,
@@ -278,21 +286,21 @@ bool signatureMatchesTemplate(
 			return actualType == expectedType;
 	}
 	return typesMatch(actual.returnType, expected.returnType) &&
-		arrsCorrespond!(Param, Param)(
+		arrsCorrespond!(Destructure, Destructure)(
 			assertNonVariadic(actual.params),
 			assertNonVariadic(expected.params),
-			(in Param x, in Param y) =>
+			(in Destructure x, in Destructure y) =>
 				typesMatch(x.type, y.type));
 }
 
 bool signatureMatchesNonTemplate(ref FunDecl actual, ref SpecDeclSig expected) =>
 	!isTemplate(actual) &&
 		actual.returnType == expected.returnType &&
-		actual.params.isA!(Param[]) &&
-		arrsCorrespond!(Param, Param)(
+		actual.params.isA!(Destructure[]) &&
+		arrsCorrespond!(Destructure, Destructure)(
 			assertNonVariadic(actual.params),
 			assertNonVariadic(expected.params),
-			(in Param x, in Param y) =>
+			(in Destructure x, in Destructure y) =>
 				x.type == y.type);
 
 Opt!(FunDecl*) getCommonFunDecl(
@@ -362,8 +370,7 @@ SpecDeclSig toSig(ref Alloc alloc, Sym name, Type returnType, in ParamShort[] pa
 		name,
 		returnType,
 		// TODO: avoid alloc since this is temporary
-		Params(mapWithIndex!(Param, ParamShort)(alloc, params, (size_t index, ref ParamShort x) =>
-			Param(FileAndRange(FileIndex.none, RangeWithinFile.empty), some(x.name), x.type, index))));
+		makeParams(alloc, FileAndRange.empty, params));
 
 immutable(FunDecl*[]) getFuns(ref Module a, Sym name) {
 	Opt!NameReferents optReferents = a.allExportedNames[name];

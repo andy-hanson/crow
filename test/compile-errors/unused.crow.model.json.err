@@ -1,6 +1,6 @@
-test/compile-errors/unused.crow 1:13-1:18 parameter p is unused
+test/compile-errors/unused.crow 1:13-1:18 local p is unused
 
-test/compile-errors/unused.crow 2:23-2:24 parameter x is unused
+test/compile-errors/unused.crow 2:23-2:24 local x is unused
 
 test/compile-errors/unused.crow 6:1-6:2 private function bar is unused
 

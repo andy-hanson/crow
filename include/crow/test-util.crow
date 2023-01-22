@@ -10,7 +10,7 @@ import
 	./number: ==, nat64
 	./private/exception-low-level: catch, message
 	./string: ~~, ==, literal, string, to-c-string
-	./tuple: ==, new, tuple2
+	./tuple: ==, new
 
 ###
 Asserts the the values are equal.

@@ -7,7 +7,7 @@ import concretize.concretizeCtx :
 	ConcretizeCtx,
 	ConcreteFunKey,
 	concreteTypeFromClosure,
-	concretizeParams,
+	concretizeLambdaParams,
 	constantCStr,
 	constantSym,
 	ContainingFunInfo,
@@ -35,9 +35,8 @@ import model.concreteModel :
 	ConcreteFunBody,
 	ConcreteLambdaImpl,
 	ConcreteLocal,
+	ConcreteLocalSource,
 	ConcreteMutability,
-	ConcreteParam,
-	ConcreteParamSource,
 	ConcreteStruct,
 	ConcreteStructBody,
 	ConcreteStructSource,
@@ -56,7 +55,7 @@ import model.model :
 	Called,
 	ClosureRef,
 	ClosureReferenceKind,
-	debugName,
+	Destructure,
 	EnumFunction,
 	Expr,
 	ExprKind,
@@ -64,8 +63,7 @@ import model.model :
 	FunKind,
 	getClosureReferenceKind,
 	Local,
-	LocalMutability,
-	Param,
+	name,
 	Purity,
 	range,
 	specImpls,
@@ -76,7 +74,7 @@ import model.model :
 	VariableRef,
 	variableRefType;
 import util.alloc.alloc : Alloc;
-import util.col.arr : empty, only, PtrAndSmallNumber;
+import util.col.arr : empty, only, PtrAndSmallNumber, sizeEq;
 import util.col.arrUtil : arrLiteral, map, mapZip;
 import util.col.mutArr : MutArr, mutArrSize, push;
 import util.col.mutDict : getOrAdd;
@@ -85,24 +83,60 @@ import util.col.str : SafeCStr, safeCStr;
 import util.memory : allocate, overwriteMemory;
 import util.opt : force, has, none, Opt, some;
 import util.ptr : castNonScope, castNonScope_ref, ptrTrustMe;
-import util.sourceRange : FileAndRange;
+import util.sourceRange : FileAndRange, FileIndex, RangeWithinFile;
 import util.sym : Sym, sym;
 import util.union_ : Union;
 import util.util : todo, unreachable, verify;
 import versionInfo : VersionInfo;
 
-ConcreteExpr concretizeExpr(ref ConcretizeCtx ctx, ref ContainingFunInfo containing, ConcreteFun* cf, ref Expr e) {
-	ConcretizeExprCtx exprCtx = ConcretizeExprCtx(ptrTrustMe(ctx), containing, cf);
+ConcreteExpr concretizeFunBody(
+	ref ConcretizeCtx ctx,
+	ref ContainingFunInfo containing,
+	ConcreteFun* cf,
+	in Destructure[] params,
+	ref Expr e,
+) {
+	ConcretizeExprCtx exprCtx = ConcretizeExprCtx(ptrTrustMe(ctx), e.range.fileIndex, containing, cf);
 	Locals locals;
-	return concretizeExpr(exprCtx, locals, e);
+	// Ignore closure param, which is never destructured.
+	ConcreteLocal[] paramsToDestructure =
+		cf.paramsIncludingClosure[params.length + 1 == cf.paramsIncludingClosure.length ? 1 : 0 .. $];
+	return concretizeWithParamDestructures(exprCtx, locals, params, paramsToDestructure, e);
 }
 
 private:
+
+ConcreteExpr concretizeWithParamDestructures(
+	ref ConcretizeExprCtx ctx,
+	in Locals locals,
+	in Destructure[] params,
+	ConcreteLocal[] concreteParams,
+	ref Expr expr,
+) {
+	verify(sizeEq(params, concreteParams));
+	if (empty(params))
+		return concretizeExpr(ctx, locals, expr);
+	else {
+		ConcreteExpr rest(in Locals innerLocals) {
+			return concretizeWithParamDestructures(ctx, innerLocals, params[1 .. $], concreteParams[1 .. $], expr);
+		}
+		return params[0].matchWithPointers!ConcreteExpr(
+			(Destructure.Ignore*) =>
+				rest(locals),
+			(Local* local) =>
+				rest(addLocal(locals, local, LocalOrConstant(&concreteParams[0]))),
+			(Destructure.Split* x) =>
+				concretizeWithDestructureSplit(
+					ctx, toFileAndRange(ctx, params[0].range), locals, *x, &concreteParams[0],
+					(in Locals innerLocals) => rest(innerLocals)));
+	}
+}
 
 struct ConcretizeExprCtx {
 	@safe @nogc pure nothrow:
 
 	ConcretizeCtx* concretizeCtxPtr;
+	FileIndex curFileIndex;
 	immutable ContainingFunInfo containing;
 	immutable ConcreteFun* currentConcreteFunPtr; // This is the ConcreteFun* for a lambda, not its containing fun
 	size_t nextLambdaIndex = 0;
@@ -119,6 +153,9 @@ struct ConcretizeExprCtx {
 	ref inout(AllConstantsBuilder) allConstants() return scope inout =>
 		concretizeCtx.allConstants;
 }
+
+FileAndRange toFileAndRange(in ConcretizeExprCtx ctx, RangeWithinFile a) =>
+	FileAndRange(ctx.curFileIndex, a);
 
 immutable struct TypedConstant {
 	ConcreteType type;
@@ -153,7 +190,7 @@ ConcreteExpr concretizeCall(
 			? getConstantsOrExprs(ctx, locals, e.args)
 			: ConstantsOrExprs(getArgs(ctx, locals, e.args));
 	ConstantsOrExprs args2 = isVariadic(*concreteCalled)
-		? constantsOrExprsArr(ctx, range, args, only(concreteCalled.paramsExcludingClosure).type)
+		? constantsOrExprsArr(ctx, range, args, only(concreteCalled.paramsIncludingClosure).type)
 		: args;
 	ConcreteExprKind kind = args2.match!ConcreteExprKind(
 		(Constant[] constants) {
@@ -165,9 +202,9 @@ ConcreteExpr concretizeCall(
 					concreteCalled,
 					mapZip(
 						ctx.alloc,
-						concreteCalled.paramsExcludingClosure,
+						concreteCalled.paramsIncludingClosure,
 						constants,
-						(ref ConcreteParam p, ref Constant x) =>
+						(ref ConcreteLocal p, ref Constant x) =>
 							ConcreteExpr(p.type, FileAndRange.empty, ConcreteExprKind(x)))));
 		},
 		(ConcreteExpr[] exprs) =>
@@ -218,7 +255,7 @@ immutable struct ClosureFieldInfo {
 	ClosureReferenceKind referenceKind;
 }
 ClosureFieldInfo getClosureFieldInfo(ref ConcretizeExprCtx ctx, FileAndRange range, ClosureRef a) {
-	ConcreteParam* closureParam = force(ctx.currentConcreteFun.closureParam);
+	ConcreteLocal* closureParam = &ctx.currentConcreteFun.paramsIncludingClosure[0];
 	ConcreteType closureType = closureParam.type;
 	ConcreteStructBody.Record record = body_(*closureType.struct_).as!(ConcreteStructBody.Record);
 	ClosureReferenceKind referenceKind = getClosureReferenceKind(a);
@@ -232,7 +269,7 @@ ClosureFieldInfo getClosureFieldInfo(ref ConcretizeExprCtx ctx, FileAndRange ran
 		}
 	}();
 	return ClosureFieldInfo(
-		ConcreteClosureRef(PtrAndSmallNumber!ConcreteParam(closureParam, a.index)),
+		ConcreteClosureRef(PtrAndSmallNumber!ConcreteLocal(closureParam, a.index)),
 		pointeeType,
 		referenceKind);
 }
@@ -267,7 +304,7 @@ ConcreteField[] concretizeClosureFields(ref ConcretizeCtx ctx, VariableRef[] clo
 			}
 		}();
 		// Even if the variable is mutable, it's a const field holding a mut pointer
-		return ConcreteField(debugName(x), ConcreteMutability.const_, type);
+		return ConcreteField(name(x), ConcreteMutability.const_, type);
 	});
 
 ConcreteType addIndirection(ConcreteType a) =>
@@ -321,12 +358,6 @@ ConcreteExpr concretizeFunPtr(ref ConcretizeExprCtx ctx, FileAndRange range, Exp
 	return ConcreteExpr(concreteType, range, ConcreteExprKind(Constant(Constant.FunPtr(fun))));
 }
 
-ConcreteParam* closureParam(ref Alloc alloc, ConcreteType closureType) =>
-	allocate(alloc, ConcreteParam(
-		ConcreteParamSource(ConcreteParamSource.Closure()),
-		none!size_t,
-		closureType));
-
 ConcreteExpr concretizeLambda(ref ConcretizeExprCtx ctx, FileAndRange range, in Locals locals, ref ExprKind.Lambda e) {
 	// TODO: handle constants in closure
 	// (do *not* include in the closure type, instead remember them for when compiling the lambda fn)
@@ -336,19 +367,18 @@ ConcreteExpr concretizeLambda(ref ConcretizeExprCtx ctx, FileAndRange range, in 
 	ctx.nextLambdaIndex++;
 
 	TypeArgsScope tScope = typeScope(ctx);
-	ConcreteParam[] params = concretizeParams(ctx.concretizeCtx, e.params, tScope);
+	ConcreteField[] closureFields = concretizeClosureFields(ctx.concretizeCtx, e.closure, tScope);
+	ConcreteType closureType = concreteTypeFromClosure(
+		ctx.concretizeCtx,
+		closureFields,
+		ConcreteStructSource(ConcreteStructSource.Lambda(ctx.currentConcreteFunPtr, lambdaIndex)));
+	ConcreteLocal[] paramsIncludingClosure = concretizeLambdaParams(ctx.concretizeCtx, closureType, e.param, tScope);
 
 	ConcreteType concreteType = getConcreteType_forStructInst(ctx, e.funType);
 	ConcreteStruct* concreteStruct = mustBeByVal(concreteType);
 
 	ConcreteVariableRef[] closureArgs = map(ctx.alloc, e.closure, (ref VariableRef x) =>
 		concretizeVariableRefForClosure(ctx, range, locals, x));
-	ConcreteField[] closureFields = concretizeClosureFields(ctx.concretizeCtx, e.closure, tScope);
-	ConcreteType closureType = concreteTypeFromClosure(
-		ctx.concretizeCtx,
-		closureFields,
-		ConcreteStructSource(ConcreteStructSource.Lambda(ctx.currentConcreteFunPtr, lambdaIndex)));
-	ConcreteParam* closureParam = closureParam(ctx.alloc, closureType);
 	Opt!(ConcreteExpr*) closure = empty(closureArgs)
 		? none!(ConcreteExpr*)
 		: some(allocate(ctx.alloc, createAllocExpr(ctx.alloc, ConcreteExpr(
@@ -361,8 +391,8 @@ ConcreteExpr concretizeLambda(ref ConcretizeExprCtx ctx, FileAndRange range, in 
 		ctx.currentConcreteFunPtr,
 		lambdaIndex,
 		getConcreteType(ctx, e.returnType),
-		closureParam,
-		params,
+		e.param,
+		paramsIncludingClosure,
 		ctx.containing,
 		e.body_);
 	ConcreteLambdaImpl impl = ConcreteLambdaImpl(closureType, fun);
@@ -397,7 +427,7 @@ size_t nextLambdaImplIdInner(ref Alloc alloc, ConcreteLambdaImpl impl, ref MutAr
 }
 
 ConcreteLocal* makeLocalWorker(ref ConcretizeExprCtx ctx, Local* source, ConcreteType type) =>
-	allocate(ctx.alloc, ConcreteLocal(source, type));
+	allocate(ctx.alloc, ConcreteLocal(ConcreteLocalSource(source), type));
 
 ConcreteLocal* concretizeLocal(ref ConcretizeExprCtx ctx, Local* local) =>
 	makeLocalWorker(ctx, local, getConcreteType(ctx, local.type));
@@ -406,32 +436,120 @@ alias Locals = immutable StackDict2!(Local*, LocalOrConstant, ExprKind.Loop*, Co
 alias addLocal = stackDict2Add0!(Local*, LocalOrConstant, ExprKind.Loop*, ConcreteExprKind.Loop*);
 alias addLoop = stackDict2Add1!(Local*, LocalOrConstant, ExprKind.Loop*, ConcreteExprKind.Loop*);
 alias getLocal = stackDict2MustGet0!(Local*, LocalOrConstant, ExprKind.Loop*, ConcreteExprKind.Loop*);
+
 //TODO: use an alias
 ConcreteExprKind.Loop* getLoop(in Locals locals, ExprKind.Loop* key) =>
 	stackDict2MustGet1!(Local*, LocalOrConstant, ExprKind.Loop*, ConcreteExprKind.Loop*)(locals, key);
 
-ConcreteExpr concretizeWithLocal(
+ConcreteExpr concretizeLet(ref ConcretizeExprCtx ctx, FileAndRange range, in Locals locals, ref ExprKind.Let e) =>
+	concretizeWithDestructureAndLet(
+		ctx, range, locals, e.destructure, concretizeExpr(ctx, locals, e.value), (in Locals innerLocals) =>
+			concretizeExpr(ctx, innerLocals, e.then));
+
+ConcreteExprKind.MatchUnion.Case concretizeMatchCaseWithDestructure(
 	ref ConcretizeExprCtx ctx,
+	FileAndRange range,
 	in Locals locals,
-	Local* modelLocal,
-	in LocalOrConstant concreteLocal,
+	ref Destructure destructure,
 	ref Expr expr,
 ) {
-	scope Locals newLocals = addLocal(locals, modelLocal, concreteLocal);
-	return concretizeExpr(ctx, newLocals, expr);
+	RootLocalAndExpr res = concretizeExprWithDestructure(ctx, range, locals, destructure, expr);
+	return ConcreteExprKind.MatchUnion.Case(res.rootLocal, res.expr);
 }
 
-ConcreteExpr concretizeLet(ref ConcretizeExprCtx ctx, FileAndRange range, in Locals locals, ref ExprKind.Let e) {
-	ConcreteExpr value = concretizeExpr(ctx, locals, e.value);
-	if (e.local.mutability == LocalMutability.immut && value.kind.isA!Constant) {
-		LocalOrConstant lc = LocalOrConstant(TypedConstant(value.type, value.kind.as!Constant));
-		return concretizeWithLocal(ctx, locals, e.local, lc, e.then);
-	} else {
-		ConcreteLocal* local = concretizeLocal(ctx, e.local);
-		LocalOrConstant lc = LocalOrConstant(local);
-		ConcreteExpr then = concretizeWithLocal(ctx, locals, e.local, lc, e.then);
-		return ConcreteExpr(then.type, range, ConcreteExprKind(
-			allocate(ctx.alloc, ConcreteExprKind.Let(local, value, then))));
+RootLocalAndExpr concretizeExprWithDestructure(
+	ref ConcretizeExprCtx ctx,
+	FileAndRange range,
+	in Locals locals,
+	ref Destructure destructure,
+	ref Expr expr,
+) =>
+	concretizeWithDestructure(ctx, range, locals, destructure, (in Locals innerLocals) =>
+		concretizeExpr(ctx, innerLocals, expr));
+
+struct RootLocalAndExpr {
+	Opt!(ConcreteLocal*) rootLocal;
+	ConcreteExpr expr;
+}
+
+ConcreteExpr concretizeWithDestructureAndLet(
+	ref ConcretizeExprCtx ctx,
+	FileAndRange range,
+	in Locals locals,
+	ref Destructure destructure,
+	ConcreteExpr value,
+	in ConcreteExpr delegate(in Locals) @safe @nogc pure nothrow cb,
+) {
+	RootLocalAndExpr then = concretizeWithDestructure(ctx, range, locals, destructure, cb);
+	if (has(then.rootLocal))
+		return ConcreteExpr(then.expr.type, range, ConcreteExprKind(
+			allocate(ctx.alloc, ConcreteExprKind.Let(force(then.rootLocal), value, then.expr))));
+	else {
+		ConcreteExpr drop = ConcreteExpr(
+			voidType(ctx.concretizeCtx),
+			range,
+			ConcreteExprKind(allocate(ctx.alloc, ConcreteExprKind.Drop(value))));
+		return ConcreteExpr(then.expr.type, range, ConcreteExprKind(
+			allocate(ctx.alloc, ConcreteExprKind.Seq(drop, then.expr))));
+	}
+}
+
+RootLocalAndExpr concretizeWithDestructure(
+	ref ConcretizeExprCtx ctx,
+	FileAndRange range,
+	in Locals locals,
+	ref Destructure destructure,
+	in ConcreteExpr delegate(in Locals) @safe @nogc pure nothrow cb,
+) =>
+	destructure.matchWithPointers!RootLocalAndExpr(
+		(Destructure.Ignore*) {
+			ConcreteExpr then = cb(locals);
+			return RootLocalAndExpr(none!(ConcreteLocal*), then);
+		},
+		(Local* local) {
+			ConcreteLocal* concreteLocal = concretizeLocal(ctx, local);
+			ConcreteExpr then = cb(addLocal(locals, local, LocalOrConstant(concreteLocal)));
+			return RootLocalAndExpr(some(concreteLocal), then);
+		},
+		(Destructure.Split* x) {
+			ConcreteLocal* temp = allocate(ctx.alloc, ConcreteLocal(
+				ConcreteLocalSource(ConcreteLocalSource.Generated(sym!"destructure")),
+				getConcreteType(ctx, destructure.type)));
+			return RootLocalAndExpr(some(temp), concretizeWithDestructureSplit(ctx, range, locals, *x, temp, cb));
+		});
+
+ConcreteExpr makeLocalGet(FileAndRange range, ConcreteLocal* local) =>
+	ConcreteExpr(local.type, range, ConcreteExprKind(ConcreteExprKind.LocalGet(local)));
+
+ConcreteExpr concretizeWithDestructureSplit(
+	ref ConcretizeExprCtx ctx,
+	FileAndRange range,
+	in Locals locals,
+	in Destructure.Split split,
+	ConcreteLocal* destructured,
+	in ConcreteExpr delegate(in Locals) @safe @nogc pure nothrow cb,
+) =>
+	concretizeWithDestructurePartsRecur(
+		ctx, locals, allocate(ctx.alloc, makeLocalGet(range, destructured)), split.parts, 0, cb);
+ConcreteExpr concretizeWithDestructurePartsRecur(
+	ref ConcretizeExprCtx ctx,
+	in Locals locals,
+	ConcreteExpr* getTemp,
+	in Destructure[] parts,
+	size_t partIndex,
+	in ConcreteExpr delegate(in Locals) @safe @nogc pure nothrow cb,
+) {
+	if (partIndex == parts.length)
+		return cb(locals);
+	else {
+		Destructure part = parts[partIndex];
+		FileAndRange range = toFileAndRange(ctx, part.range);
+		ConcreteExpr value = ConcreteExpr(
+			body_(*mustBeByVal(getTemp.type)).as!(ConcreteStructBody.Record).fields[partIndex].type,
+			range,
+			ConcreteExprKind(ConcreteExprKind.RecordFieldGet(getTemp, partIndex)));
+		return concretizeWithDestructureAndLet(ctx, range, locals, part, value, (in Locals innerLocals) =>
+			concretizeWithDestructurePartsRecur(ctx, innerLocals, getTemp, parts, partIndex + 1, cb));
 	}
 }
 
@@ -445,14 +563,12 @@ ConcreteExpr concretizeIfOption(
 	if (option.kind.isA!Constant)
 		return todo!ConcreteExpr("constant option");
 	else {
-		ConcreteType someType = force(body_(*mustBeByVal(option.type)).as!(ConcreteStructBody.Union).members[1]);
 		ConcreteType type = getConcreteType(ctx, e.type);
 		ConcreteExprKind.MatchUnion.Case noneCase = ConcreteExprKind.MatchUnion.Case(
 			none!(ConcreteLocal*),
 			concretizeExpr(ctx, locals, e.else_));
-		ConcreteLocal* someLocal = makeLocalWorker(ctx, e.local, someType);
-		ConcreteExpr then = concretizeWithLocal(ctx, locals, e.local, LocalOrConstant(someLocal), e.then);
-		ConcreteExprKind.MatchUnion.Case someCase = ConcreteExprKind.MatchUnion.Case(some(someLocal), then);
+		RootLocalAndExpr then = concretizeExprWithDestructure(ctx, range, locals, e.destructure, e.then);
+		ConcreteExprKind.MatchUnion.Case someCase = ConcreteExprKind.MatchUnion.Case(then.rootLocal, then.expr);
 		return ConcreteExpr(type, range, ConcreteExprKind(
 			allocate(ctx.alloc, ConcreteExprKind.MatchUnion(
 				option,
@@ -460,7 +576,7 @@ ConcreteExpr concretizeIfOption(
 	}
 }
 
-ConcreteExpr concretizeLocalGet(FileAndRange range, in Locals locals, Local* local) =>
+ConcreteExpr concretizeLocalGet(ref ConcretizeExprCtx ctx, FileAndRange range, in Locals locals, Local* local) =>
 	castNonScope_ref(getLocal(locals, local)).matchWithPointers!ConcreteExpr(
 		(ConcreteLocal* local) =>
 			ConcreteExpr(local.type, range, ConcreteExprKind(ConcreteExprKind.LocalGet(local))),
@@ -610,53 +726,13 @@ ConcreteExpr concretizeMatchUnion(
 	ref ExprKind.MatchUnion e,
 ) {
 	ConcreteExpr matched = concretizeExpr(ctx, locals, e.matched);
-	ConcreteType ct = getConcreteType_forStructInst(ctx, e.matchedUnion);
-	ConcreteStruct* matchedUnion = mustBeByVal(ct);
 	ConcreteType type = getConcreteType(ctx, e.type);
-	if (matched.kind.isA!Constant) {
-		Constant.Union u = *matched.kind.as!Constant.as!(Constant.Union*);
-		ExprKind.MatchUnion.Case case_ = e.cases[u.memberIndex];
-		if (has(case_.local)) {
-			ConcreteType caseType =
-				force(body_(*matchedUnion).as!(ConcreteStructBody.Union).members[u.memberIndex]);
-			LocalOrConstant lc = LocalOrConstant(TypedConstant(caseType, u.arg));
-			return concretizeWithLocal(ctx, locals, force(case_.local), lc, case_.then);
-		} else
-			return concretizeExpr(ctx, locals, case_.then);
-	} else {
-		ConcreteExprKind.MatchUnion.Case[] cases = map(
-			ctx.alloc,
-			e.cases,
-			(ref ExprKind.MatchUnion.Case case_) {
-				if (has(case_.local)) {
-					ConcreteLocal* local = concretizeLocal(ctx, force(case_.local));
-					return ConcreteExprKind.MatchUnion.Case(
-						some(local),
-						concretizeWithLocal(ctx, locals, force(case_.local), LocalOrConstant(local), case_.then));
-				} else
-					return ConcreteExprKind.MatchUnion.Case(
-						none!(ConcreteLocal*),
-						concretizeExpr(ctx, locals, case_.then));
-			});
-		return ConcreteExpr(type, range, ConcreteExprKind(
-			allocate(ctx.alloc, ConcreteExprKind.MatchUnion(matched, cases))));
-	}
-}
-
-ConcreteParam* getParam(ref ConcretizeExprCtx ctx, in Param param) =>
-	&ctx.currentConcreteFun.paramsExcludingClosure[param.index];
-
-ConcreteExpr concretizeParamGet(ref ConcretizeExprCtx ctx, FileAndRange range, in Param param) {
-	ConcreteParam* concreteParam = getParam(ctx, param);
-	return ConcreteExpr(concreteParam.type, range, ConcreteExprKind(ConcreteExprKind.ParamGet(concreteParam)));
-}
-
-ConcreteExpr concretizePtrToParam(ref ConcretizeExprCtx ctx, FileAndRange range, in ExprKind.PtrToParam a) {
-	ConcreteParam* concreteParam = &ctx.currentConcreteFun.paramsExcludingClosure[a.param.index];
-	return ConcreteExpr(
-		getConcreteType(ctx, a.ptrType),
-		range,
-		ConcreteExprKind(ConcreteExprKind.PtrToParam(concreteParam)));
+	ConcreteExprKind.MatchUnion.Case[] cases = map(ctx.alloc, e.cases, (ref ExprKind.MatchUnion.Case case_) =>
+		has(case_.destructure)
+			? concretizeMatchCaseWithDestructure(ctx, range, locals, force(case_.destructure), case_.then)
+			: ConcreteExprKind.MatchUnion.Case(none!(ConcreteLocal*), concretizeExpr(ctx, locals, case_.then)));
+	return ConcreteExpr(type, range, ConcreteExprKind(
+		allocate(ctx.alloc, ConcreteExprKind.MatchUnion(matched, cases))));
 }
 
 ConcreteVariableRef concretizeVariableRefForClosure(
@@ -672,8 +748,6 @@ ConcreteVariableRef concretizeVariableRefForClosure(
 					ConcreteVariableRef(local),
 				(TypedConstant constant) =>
 					ConcreteVariableRef(constant.value)),
-		(Param* x) =>
-			ConcreteVariableRef(getParam(ctx, *x)),
 		(ClosureRef x) =>
 			ConcreteVariableRef(getClosureFieldInfo(ctx, range, x).closureRef));
 
@@ -765,7 +839,7 @@ ConcreteExpr concretizeExpr(ref ConcretizeExprCtx ctx, in Locals locals, ref Exp
 				range,
 				ConcreteExprKind(constantSym(ctx.concretizeCtx, e.value))),
 		(ExprKind.LocalGet e) =>
-			concretizeLocalGet(range, locals, e.local),
+			concretizeLocalGet(ctx, range, locals, e.local),
 		(ref ExprKind.LocalSet e) =>
 			concretizeLocalSet(ctx, range, locals, e),
 		(ref ExprKind.Loop e) =>
@@ -782,14 +856,10 @@ ConcreteExpr concretizeExpr(ref ConcretizeExprCtx ctx, in Locals locals, ref Exp
 			concretizeMatchEnum(ctx, range, locals, e),
 		(ref ExprKind.MatchUnion e) =>
 			concretizeMatchUnion(ctx, range, locals, e),
-		(ExprKind.ParamGet e) =>
-			concretizeParamGet(ctx, range, *e.param),
 		(ref ExprKind.PtrToField e) =>
 			concretizePtrToField(ctx, range, locals, e),
 		(ExprKind.PtrToLocal e) =>
 			concretizePtrToLocal(ctx, range, locals, e),
-		(ExprKind.PtrToParam e) =>
-			concretizePtrToParam(ctx, range, e),
 		(ref ExprKind.Seq e) {
 			ConcreteExpr first = concretizeExpr(ctx, locals, e.first);
 			ConcreteExpr then = concretizeExpr(ctx, locals, e.then);

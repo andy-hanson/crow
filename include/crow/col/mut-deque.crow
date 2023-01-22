@@ -11,7 +11,7 @@ import
 	../string: ==, ~~, literal, new, string, to-string
 	../test-util: is
 	./array: as-array
-	./collection: .., -, end, for-loop, join, subscript
+	./collection: .., -, end, for-loop, join, subscript, with-index
 	./mut-array:
 		+, -, begin, begin-pointer, cast-immutable, copy-from, end, end-pointer, iterate, mut-array,
 		is-empty, new, set-zero-elements, size, slice, uninitialized-mut-array, zeroed-mut-array
@@ -177,7 +177,7 @@ Returns an empty option iff `a` was empty (before calling `pop-right`).
 		right = a.right - a.inner.begin-pointer
 		left = a.left - a.inner.begin-pointer
 		# Note: can come in any order...
-		" " join for i, x : a inner
+		" " join for i, x : a.inner with-index
 			"{i == right ? "<-R "}{i == left ? "L-> "}{x}"
 
 -verify void(a nat64 mut-deque, expected nat64[], expected-dbg string)

@@ -112,7 +112,7 @@ private union StackDict2Value(V0, V1) {
 		cast(StackDict2Value!(V0, V1)) inout StackDict2Value!(V0, V1)(value));
 
 @trusted ref inout(V0) stackDict2MustGet0(K0, V0, K1, V1)(
-	scope ref inout(StackDict2!(K0, V0, K1, V1)) a,
+	scope ref inout StackDict2!(K0, V0, K1, V1) a,
 	scope immutable K0 key,
 ) =>
 	mutStackDictMustGet!(StackDict2Key!(K0, K1), StackDict2Value!(V0, V1))(
@@ -120,7 +120,7 @@ private union StackDict2Value(V0, V1) {
 		immutable StackDict2Key!(K0, K1)(key)).v0;
 
 @trusted inout(V1) stackDict2MustGet1(K0, V0, K1, V1)(
-	scope ref inout(StackDict2!(K0, V0, K1, V1)) a,
+	scope ref inout StackDict2!(K0, V0, K1, V1) a,
 	scope immutable K1 key,
 ) =>
 	mutStackDictMustGet!(StackDict2Key!(K0, K1), StackDict2Value!(V0, V1))(

@@ -21,8 +21,9 @@ struct MutMaxArr(size_t maxSize, T) {
 		return values[i];
 	}
 
-	int opApply(in int delegate(ref T) @safe @nogc pure nothrow cb) {
-		foreach (ref T x; values[0 .. size_]) {
+	// TODO: not @trusted (values[0 .. size_] should work)
+	@trusted int opApply(in int delegate(scope ref T) @safe @nogc pure nothrow cb) scope {
+		foreach (scope ref T x; values.ptr[0 .. size_]) {
 			int i = cb(x);
 			verify(i == 0);
 		}
@@ -73,12 +74,7 @@ void initializeMutMaxArr(size_t maxSize, T)(ref MutMaxArr!(maxSize, T) a) {
 	return res;
 }
 
-void fillMutMaxArr(size_t maxSize, T)(ref MutMaxArr!(maxSize, T) a, size_t size, immutable T value) {
-	a.size_ = size;
-	foreach (size_t i; 0 .. size)
-		overwriteMemory(&a.values[i], value);
-}
-void fillMutMaxArr_mut(size_t maxSize, T)(
+void fillMutMaxArr(size_t maxSize, T)(
 	ref MutMaxArr!(maxSize, T) a,
 	size_t size,
 	in T delegate(size_t) @safe @nogc pure nothrow cb,
@@ -106,14 +102,6 @@ void mapTo(size_t maxSize, Out, In)(
 void pushIfUnderMaxSize(size_t maxSize, T)(ref MutMaxArr!(maxSize, T) a, immutable T value) {
 	if (a.size_ < maxSize)
 		push(a, value);
-}
-
-void pushLeft(size_t maxSize, T)(ref MutMaxArr!(maxSize, T) a, T value) {
-	verify(a.size_ != maxSize);
-	a.size_++;
-	foreach_reverse (size_t i; 1 .. a.size_)
-		overwriteMemory(&a.values[i], a.values[i - 1]);
-	overwriteMemory(&a.values[0], value);
 }
 
 ref inout(T) mustPeek(size_t maxSize, T)(ref inout MutMaxArr!(maxSize, T) a) {

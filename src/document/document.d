@@ -5,6 +5,7 @@ module document.document;
 import model.concreteModel : TypeSize;
 import model.model :
 	body_,
+	Destructure,
 	FieldMutability,
 	FunDecl,
 	isGenerated,
@@ -13,7 +14,7 @@ import model.model :
 	name,
 	NameReferents,
 	noCtx,
-	Param,
+	Params,
 	paramsArray,
 	Program,
 	Purity,
@@ -274,16 +275,14 @@ Repr documentSpecDeclSig(ref Alloc alloc, in SpecDeclSig a) {
 		add(alloc, fields, nameAndRepr!"comment"(reprStr(a.docComment)));
 	add(alloc, fields, nameAndRepr!"name"(reprSym(a.name)));
 	add(alloc, fields, nameAndRepr!"return-type"(documentTypeRef(alloc, a.returnType)));
-	add(alloc, fields, nameAndRepr!"params"(reprArr!Param(alloc, paramsArray(a.params), (in Param x) =>
-		documentParam(alloc, x))));
+	add(alloc, fields, documentParams(alloc, a.params));
 	return reprNamedRecord!"sig"(finishArr(alloc, fields));
 }
 
 DocExport documentFun(ref Alloc alloc, in FunDecl a) {
 	ArrBuilder!NameAndRepr fields;
 	add(alloc, fields, nameAndRepr!"return-type"(documentTypeRef(alloc, a.returnType)));
-	add(alloc, fields, nameAndRepr!"params"(reprArr!Param(alloc, paramsArray(a.params), (in Param x) =>
-		documentParam(alloc, x))));
+	add(alloc, fields, documentParams(alloc, a.params));
 	if (isVariadic(a))
 		add(alloc, fields, nameAndRepr!"variadic"(reprBool(true)));
 	Repr[] specs = documentSpecs(alloc, a);
@@ -309,10 +308,16 @@ Repr[] documentSpecs(ref Alloc alloc, in FunDecl a) {
 Repr reprSpecialSpec(ref Alloc alloc, Sym name) =>
 	reprNamedRecord!"special"(alloc, [nameAndRepr!"name"(reprSym(name))]);
 
-Repr documentParam(ref Alloc alloc, in Param a) =>
-	reprNamedRecord!"param"(alloc, [
-		nameAndRepr!"name"(reprSym(a.nameOrUnderscore)),
+NameAndRepr documentParams(ref Alloc alloc, in Params params) =>
+	nameAndRepr!"params"(reprArr!Destructure(alloc, paramsArray(params), (in Destructure x) =>
+		documentParam(alloc, x)));
+
+Repr documentParam(ref Alloc alloc, in Destructure a) {
+	Opt!Sym name = a.name;
+	return reprNamedRecord!"param"(alloc, [
+		nameAndRepr!"name"(reprSym(has(name) ? force(name) : sym!"anonymous")),
 		nameAndRepr!"type"(documentTypeRef(alloc, a.type))]);
+}
 
 Repr documentTypeRef(ref Alloc alloc, Type a) =>
 	a.matchIn!Repr(

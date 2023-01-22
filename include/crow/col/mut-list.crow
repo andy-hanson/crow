@@ -14,7 +14,7 @@ import
 		alloc-uninitialized, copy-data-from, set-zero-range, unmanaged-alloc-zeroed-elements
 	../private/number-low-level: round-up-to-power-of-two
 	../range: .., iterate
-	../tuple: a, b, new, tuple2
+	../tuple: a, b, new
 	./array: array, subscript
 	./collection: .., -, build-options, end, for-loop, iterate, set-subscript, size-hint, subscript
 	./mut-array:
@@ -352,9 +352,6 @@ Throws if `index >= a.size`.
 +iterate[t] bool(a t mut[], f act bool(t))
 	0 .. a.size iterate i =>
 		f[a[i]]
-+iterate[t] bool(a t mut[], f act bool(nat64, t))
-	0 .. a.size iterate i =>
-		f[i, a[i]]
 
 subregion iterator
 

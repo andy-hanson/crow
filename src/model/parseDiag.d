@@ -10,7 +10,6 @@ import util.union_ : Union;
 
 immutable struct ParseDiag {
 	@safe @nogc pure nothrow:
-	immutable struct CantPrecedeOptEquals {}
 	immutable struct CircularImport {
 		Path from;
 		Path to;
@@ -35,6 +34,7 @@ immutable struct ParseDiag {
 			name,
 			nameOrOperator,
 			openParen,
+			questionEqual,
 			quoteDouble,
 			quoteDouble3,
 			slash,
@@ -107,7 +107,6 @@ immutable struct ParseDiag {
 	immutable struct WhenMustHaveElse {}
 
 	mixin Union!(
-		CantPrecedeOptEquals,
 		CircularImport,
 		Expected,
 		FileDoesNotExist,

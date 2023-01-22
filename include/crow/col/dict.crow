@@ -11,14 +11,14 @@ import
 	../option: force, is-empty, new, option
 	../range: .., iterate, size
 	../string: ~~, literal, new, string, to-string
-	../tuple: b, from, new, to, tuple2
+	../tuple: b, new
 	../private/bootstrap: todo
 	./array:
 		~, ~=, +, -, array, begin, build, end, is-empty, iterate, new, next, remove-at, size, slice,
 		update-at
 	./collection:
-		.., -, build-options, end, find-index, flatten, for-break, for-loop, every, join, n-of,
-		set-subscript, subscript
+		.., -, build-options, end, every, find-index, flatten, for-break, for-loop, join, n-of,
+		set-subscript, subscript, with-index
 	./mut-array:
 		~=, +, begin, build, cast-immutable, copy-from, mut-array, next, set-next, size, slice,
 		uninitialized-mut-array
@@ -93,8 +93,8 @@ Later pairs overwrite earlier pairs with the same key.
 	if a.size <= 1
 		true
 	else
-		key = a[0] from
-		a[1 .. end] every (it => it.from != key) && a[1 .. end].no-duplicate-keys
+		key, _ = a[0]
+		a[1 .. end] every ((k, _) => k != key) && a[1 .. end].no-duplicate-keys
 
 # True iff the dict has no entries.
 +is-empty[k, v] bool(a v[k]) k key
@@ -137,21 +137,21 @@ Returns an empty option if the key is not in `a`.
 			else
 				break
 		as leaf-node l
-			break for pair : l
-				if pair.from == key
-					break pair.to
+			break for k, v : l
+				if k == key
+					break v
 
 # `true` iff the key is in the dictionary.
 +in[k, v] bool(key k, a v[k]) k key
 	!a[key].is-empty
 
 ###
-Associates the key `pair.a` with the value `pair.b`.
+Associates the key with the value.
 This may overwrite the key if it's already in `a`, or add a new entry.
 ###
-+~[k, v] v[k](a v[k], pair (k, v)) k key
-	res = a get-or-update pair.from, _ =>
-		pair.to insert
++~[k, v] v[k](a v[k], (key k, value v)) k key
+	res = a get-or-update key, _ =>
+		value insert
 	if node ?= res new-node
 		node,
 	else
@@ -162,8 +162,8 @@ Adds/updates many entries to `a`.
 ###
 +~~[k, v] v[k](a v[k], pairs v[k]) k key
 	res mut = a
-	for k, v : pairs
-		res ~:= (k, v)
+	for pair : pairs
+		res ~:= pair
 	res
 
 got-or-added[k, v] union
@@ -252,7 +252,7 @@ If the key is not in the dictionary, returns an empty option.
 			else
 				child-res
 		else
-			match f[()]
+			match f[]
 			as no-change
 				(), (), ()
 			as remove
@@ -301,7 +301,7 @@ If `index > a.size`, entries between the and of `a` and the new entries will be 
 # Returns 'some' if we should change this to a leaf.
 -inner-node-to-leaf[k, v] (k, v) node?(a (k, v) node array , which nat64, new-child (k, v) node)
 	total-size mut = 0
-	for child-index, child : a
+	for child-index, child : a with-index
 		total-size := match child-index == which ? new-child : child
 		as inner-node _
 			leaf-max-size + 1
@@ -312,7 +312,7 @@ If `index > a.size`, entries between the and of `a` and the new entries will be 
 		trusted
 			out (k, v) mut-array = total-size uninitialized-mut-array
 			out-index mut = 0
-			for child-index, child : a
+			for child-index, child : a with-index
 				match child-index == which ? new-child : child
 				as inner-node _
 					unreachable
@@ -335,9 +335,9 @@ If `index > a.size`, entries between the and of `a` and the new entries will be 
 	hash-shift nat64,
 	f act v get-or-update-action(v?),
 ) k key
-	if index ?= a find-index it => it.from == key
-		old-value = a[index] to
-		match f[(old-value,)]
+	if index ?= a find-index (k, _) => k == key
+		_, old-value = a[index]
+		match f[old-value,]
 		as no-change
 			(), (old-value,), ()
 		as remove
@@ -346,7 +346,7 @@ If `index > a.size`, entries between the and of `a` and the new entries will be 
 			new-node (k, v) node = a update-at index, (key, ins) leaf-node
 			(new-node,), (old-value,), (ins,)
 	else
-		match f[()]
+		match f[]
 		as no-change
 			(), (), ()
 		as remove
@@ -374,40 +374,39 @@ If `index > a.size`, entries between the and of `a` and the new entries will be 
 ) k key
 	key-hash = hash low-bits
 	max-hash mut = key-hash
-	for pair : a
-		max-hash max:= pair.from.hash >> hash-shift low-bits
+	for k, _ : a
+		max-hash max:= k.hash >> hash-shift low-bits
 	trusted
 		res (k, v) node mut-array = max-hash + 1 n-of empty-leaf-node
 		# TODO: avoid allocating the same leaf twice...
 		res[key-hash] := ((key, value),).leaf-node
-		for pair : a
-			x = pair.from.hash >> hash-shift low-bits
+		for k, v : a
+			x = k.hash >> hash-shift low-bits
 			res[x] := match res[x]
 			as inner-node _
 				unreachable
 			as leaf-node l
-				l ~ pair leaf-node
+				l ~ (k, v) leaf-node
 		res.cast-immutable inner-node
 
 region spec impls (see collection.crow)
 
-+iterate[k, v] bool(a v[k], f-loop act bool(k, v))
-	a.root iterate-recur f-loop
++iterate[k, v] bool(a v[k], f act bool(k, v))
+	a.root iterate-recur f
 -iterate-recur[k, v] bool(a (k, v) node, f act bool(k, v))
 	match a
 	as inner-node i
 		i iterate child =>
 			child iterate-recur f
 	as leaf-node l
-		l iterate pair =>
-			f[pair from, pair to]
+		l iterate f
 
 subregion build
 
 +dict-builder[k, v] record mut
 	-inner (k, v) list-builder
 +build[k, v] v[k](a build-options, f act void((k, v) dict-builder)) k key
-	a build (out => f[(out,)]) to-dict
+	a build (out => f[out,]) to-dict
 +~=[k, v] void(a (k, v) dict-builder, pair (k, v))
 	a.inner ~= pair
 
@@ -416,11 +415,11 @@ dbg[k, v] string(a v[k]) k to-string, v to-string
 -dbg[k, v] string(a (k, v) node, path string) k to-string, v to-string
 	match a
 	as inner-node node
-		parts string[][] = for index, child : node
+		parts string[][] = for index, child : node with-index
 			unless child node-is-empty
 				(child dbg "{path}{index}"),
 		" " join parts.flatten
 	as leaf-node l
-		parts string[] = for pair : l
-			"{pair from} -> {pair to}"
+		parts string[] = for k, v : l
+			"{k} -> {v}"
 		"{path}[{", " join parts}]"

@@ -24,6 +24,7 @@ import
 	../../pointer: mut-pointer, pointer-cast, size-of
 	../../range: ..
 	../../string: literal, string
+	../../tuple: new
 	../../version: is-windows
 	../duration: msec
 	../posix-util: check-posix-error

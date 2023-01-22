@@ -8,7 +8,7 @@ import
 	../pointer: ==, <=>, +, *, const-pointer, null
 	../range: ..
 	../string: ==, <=>, as-string, c-string, hash-mix, string
-	../tuple: new, tuple2
+	../tuple: new
 
 get-environ-raw c-string*() summon, unsafe
 	__environ

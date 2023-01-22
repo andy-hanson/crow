@@ -105,8 +105,8 @@ TypeAst parseFunType(ref Lexer lexer, Pos start, FunKind kind) {
 		}
 	} else
 		addDiag(lexer, range(lexer, start), ParseDiag(ParseDiag.FunctionTypeMissingParens()));
-	return TypeAst(allocate(lexer.alloc,
-		TypeAst.Fun(range(lexer, start), kind, finishArr(lexer.alloc, returnAndParamTypes))));
+	TypeAst[] types = finishArr(lexer.alloc, returnAndParamTypes);
+	return TypeAst(allocate(lexer.alloc, TypeAst.Fun(range(lexer, start), kind, types)));
 }
 
 TypeAst parseTypeSuffixes(ref Lexer lexer, TypeAst left) {

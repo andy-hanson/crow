@@ -4,7 +4,7 @@ import
 	./col/collection: for-loop, join
 	./col/list: ~=, build, iterate
 	./fun-util: subscript
-	./misc: void
+	./misc: new, void
 	./number: ==
 	./string: ~~, is-empty, literal, new, string, to-string
 export

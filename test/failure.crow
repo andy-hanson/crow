@@ -36,6 +36,8 @@ flat-map-with-max-size[in] failure[]^(a in[], max-size nat, mapper ref failure[]
 		res ~~= out
 		if res.size >= max-size
 			break
+		else
+			continue
 	res.move-to-list,
 
 test-options record

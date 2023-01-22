@@ -174,7 +174,7 @@ with-block[t] t(a abortable-write-transaction, f act (t, transaction-result)(lmd
 		transaction mut MDB_txn mut* = null
 		env.env mdb_txn_begin null, mdb-flags, &transaction check-lmdb-error
 		(() => transaction mdb_txn_abort) do-if-error () =>
-			pair = f[(transaction,)]
+			pair = f[transaction,]
 			match pair.b
 			as transaction-abort
 				transaction mdb_txn_abort

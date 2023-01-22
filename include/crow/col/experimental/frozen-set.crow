@@ -123,15 +123,13 @@ region spec impls (see collection.crow)
 
 iterate[t] bool(a t frozen-set, f act bool(t))
 	a.values iterate f
-iterate[t] bool(a t frozen-set, f act bool(nat64, t))
-	a.values iterate f
 
 subregion build
 
 frozen-set-builder[t] record mut
 	-inner t mut-array-builder
 build[t] t frozen-set(a build-options, f act void(t frozen-set-builder)) t key
-	inner t mut-array = a build out => f[(out,)]
+	inner t mut-array = a build out => f[out,]
 	trusted inner unsafe-frozen-set-from-mut-array-cast-immutable
 ~ ~=[t] void(a t frozen-set-builder, value t)
 	a.inner ~= value

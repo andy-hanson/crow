@@ -9,6 +9,7 @@ import
 	../range: .., iterate
 	../string: ==, ~~, literal, new, string, to-string
 	../test-util: is
+	../tuple: new
 	./collection: build, for-loop, join, set-subscript, subscript, with-block
 	./mut-array: ~=, +, begin, build, copy, iterate, mut-array, new, next, set-next, size, slice
 	./list: ~=, build, iterate
@@ -83,35 +84,16 @@ Throws if `y` is out of range.
 +copy[t] t mut-grid(a t mut-grid)
 	a.elements.copy, a.width, a.height
 
-###
-Gets the element in the `x`th column and `y`th row.
-
-Throws if either `x` or `y` is out of bounds.
-###
-+subscript[t] t(a t mut-grid, x nat64, y nat64)
-	a.elements[(a index-for x, y)]
-
-# Same as the other `subscript`, but takes a `coord`.
 +subscript[t] t(a t mut-grid, coord coord)
-	a[coord.x, coord.y]
+	a.elements[a index-for coord]
 
-###
-Sets the element in the `x`th column and `y`th row.
-
-Throws if either `x` or `y` is out of bounds.
-###
-+set-subscript[t] void(a t mut-grid, x nat64, y nat64, value t)
-	index = a index-for x, y
-	a.elements[index] := value
-
-# Same as the other `set-subscript`, but takes a `coord`.
 +set-subscript[t] void(a t mut-grid, coord coord, value t)
-	a[coord.x, coord.y] := value
+	a.elements[a index-for coord] := value
 
--index-for[t] nat64(a t mut-grid, x nat64, y nat64)
-	assert x < a.width
-	assert y < a.height
-	res = y * a.width + x
+-index-for[t] nat64(a t mut-grid, coord coord)
+	assert coord.x < a.width
+	assert coord.y < a.height
+	res = coord.y * a.width + coord.x
 	assert res < a.elements.size
 	res
 
@@ -142,11 +124,17 @@ region spec impls (see collection.crow)
 
 +iterate[t] bool(a t mut-grid, f act bool(t))
 	a.elements iterate f
-+iterate[t] bool(a t mut-grid, f act bool(coord, t))
++with-coords[t] record mut
+	-inner t mut-grid
++with-coords[t] t with-coords(a t mut-grid)
+	a,
++size[t] nat64(a t with-coords)
+	a.inner size
++iterate[t] bool(a t with-coords, f act bool(coord, t))
 	coord mut coord = ()
-	a iterate x =>
+	a.inner iterate x =>
 		res = f[coord, x]
-		coord next-coord:= a.width
+		coord next-coord:= a.inner width
 		res
 
 -next-coord coord(a coord, width nat64)
@@ -160,6 +148,6 @@ test
 	a string mut-grid = 3 make 2, (x, y) => "{x}|{y}"
 	a.to-string is "0|0 1|0 2|0\n0|1 1|1 2|1"
 
-	values = " " join for coord, value : a
+	values = " " join for coord, value : a with-coords
 		"{coord}/{value}"
 	values is "<0, 0>/0|0 <1, 0>/1|0 <2, 0>/2|0 <0, 1>/0|1 <1, 1>/1|1 <2, 1>/2|1"

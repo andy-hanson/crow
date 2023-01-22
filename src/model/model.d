@@ -3,10 +3,11 @@ module model.model;
 @safe @nogc pure nothrow:
 
 import frontend.check.typeFromAst : typeSyntaxKind;
+import frontend.parse.ast : NameAndRange, rangeOfNameAndRange;
 import model.concreteModel : TypeSize;
 import model.constant : Constant;
 import model.diag : Diag, Diagnostics, FilesInfo; // TODO: move FilesInfo here?
-import util.col.arr : empty, only, PtrAndSmallNumber, small, SmallArray;
+import util.col.arr : arrayOfSingle, empty, only, only2, PtrAndSmallNumber, small, SmallArray;
 import util.col.arrUtil : arrEqual, exists;
 import util.col.dict : Dict;
 import util.col.enumDict : EnumDict;
@@ -15,14 +16,16 @@ import util.col.str : SafeCStr;
 import util.hash : Hasher;
 import util.late : Late, lateGet, lateIsSet, lateSet, lateSetOverwrite;
 import util.lineAndColumnGetter : LineAndColumnGetter;
-import util.opt : force, has, Opt, some;
+import util.opt : force, has, none, Opt, some;
 import util.path : Path;
 import util.ptr : hashPtr;
 import util.sourceRange :
+	combineRanges,
 	FileAndPos,
 	FileAndRange,
 	fileAndRangeFromFileAndPos,
 	FileIndex,
+	Pos,
 	rangeOfStartAndName,
 	RangeWithinFile;
 import util.sym : AllSymbols, Sym, sym, writeSym;
@@ -124,44 +127,25 @@ LinkageRange linkageRange(Type a) =>
 		(ref StructInst x) =>
 			x.linkageRange);
 
-immutable struct Param {
-	@safe @nogc pure nothrow:
-
-	//TODO: use NameAndRange (more compact)
-	FileAndRange range;
-	Opt!Sym name;
-	Type type;
-	size_t index;
-
-	Sym nameOrUnderscore() =>
-		has(name) ? force(name) : sym!"_";
-
-	RangeWithinFile nameRange(in AllSymbols allSymbols) =>
-		rangeOfStartAndName(range.range.start, nameOrUnderscore, allSymbols);
-}
-
-Param withType(Param a, Type t) =>
-	Param(a.range, a.name, t, a.index);
-
 immutable struct Params {
 	immutable struct Varargs {
-		Param param;
+		Destructure param;
 		Type elementType;
 	}
 
-	mixin Union!(SmallArray!Param, Varargs*);
+	mixin Union!(SmallArray!Destructure, Varargs*);
 }
 static assert(Params.sizeof == ulong.sizeof);
 
-Param[] paramsArray(Params a) =>
-	a.matchWithPointers!(Param[])(
-		(Param[] p) =>
-			p,
-		(Params.Varargs* v) @trusted =>
-			(&v.param)[0 .. 1]);
+Destructure[] paramsArray(Params a) =>
+	a.matchWithPointers!(Destructure[])(
+		(Destructure[] x) =>
+			x,
+		(Params.Varargs* x) =>
+			arrayOfSingle(&x.param));
 
-Param[] assertNonVariadic(Params a) =>
-	a.as!(Param[]);
+Destructure[] assertNonVariadic(Params a) =>
+	a.as!(Destructure[]);
 
 immutable struct Arity {
 	immutable struct Varargs {}
@@ -184,7 +168,7 @@ bool arityMatches(Arity sigArity, size_t nArgs) =>
 
 Arity arity(in Params a) =>
 	a.matchIn!Arity(
-		(in Param[] params) =>
+		(in Destructure[] params) =>
 			Arity(params.length),
 		(in Params.Varargs) =>
 			Arity(Arity.Varargs()));
@@ -226,11 +210,10 @@ immutable struct RecordField {
 	Sym name;
 	FieldMutability mutability;
 	Type type;
-	size_t index;
 }
 
 RecordField withType(RecordField a, Type t) =>
-	RecordField(a.range, a.visibility, a.name, a.mutability, t, a.index);
+	RecordField(a.range, a.visibility, a.name, a.mutability, t);
 
 immutable struct UnionMember {
 	//TODO: use NameAndRange (more compact)
@@ -423,8 +406,25 @@ bool isDefinitelyByRef(in StructInst a) {
 }
 
 bool isArray(in StructInst a) =>
-	// TODO: only do this for the arr in bootstrap, not anything named 'arr'
+	// TODO: only do this for the array in bootstrap, not anything named 'array'
 	decl(a).name == sym!"array";
+
+bool isTuple(in StructInst a) {
+	// TODO: only do this for the tuple in bootstrap, not anything named 'tupleN'
+	switch (decl(a).name.value) {
+		case sym!"tuple2".value:
+		case sym!"tuple3".value:
+		case sym!"tuple4".value:
+		case sym!"tuple5".value:
+		case sym!"tuple6".value:
+		case sym!"tuple7".value:
+		case sym!"tuple8".value:
+		case sym!"tuple9".value:
+			return true;
+		default:
+			return false;
+	}
+}
 
 Sym name(in StructInst a) =>
 	decl(a).name;
@@ -577,6 +577,9 @@ immutable struct FunBody {
 	immutable struct CreateUnion {
 		size_t memberIndex;
 	}
+	immutable struct ExpressionBody {
+		Expr expr;
+	}
 	immutable struct Extern {
 		bool isGlobal;
 		Sym libraryName;
@@ -601,7 +604,7 @@ immutable struct FunBody {
 		CreateUnion,
 		EnumFunction,
 		Extern,
-		Expr,
+		ExpressionBody,
 		FileBytes,
 		FlagsFunction,
 		RecordFieldGet,
@@ -773,7 +776,8 @@ immutable struct FunInst {
 
 	FunDeclAndArgs funDeclAndArgs;
 	Type returnType;
-	Params params;
+	// For a variadic function, this will be an array of 1.
+	Type[] paramTypes;
 
 	Sym name() scope =>
 		decl(this).name;
@@ -890,17 +894,14 @@ immutable struct Called {
 				f.returnType,
 			(ref SpecSig s) =>
 				s.sig.returnType);
-
-	Params params() scope =>
-		match!Params(
-			(ref FunInst f) =>
-				f.params,
-			(ref SpecSig s) =>
-				s.sig.params);
 }
 
 Arity arity(in Called a) =>
-	arity(a.params);
+	arity(a.match!Params(
+		(ref FunInst f) =>
+			f.decl.params,
+		(ref SpecSig s) =>
+			s.sig.params));
 
 immutable struct StructOrAlias {
 	mixin Union!(StructAlias*, StructDecl*);
@@ -1070,11 +1071,16 @@ immutable struct CommonTypes {
 	StructDecl* opt;
 	StructDecl* ptrConst;
 	StructDecl* ptrMut;
+	// No tuple0 and tuple1, so this is 2-9 inclusive
+	StructDecl*[8] tuples2Through9;
 	// Indexed by FunKind, then by arity. (arity = typeArgs.length - 1)
-	EnumDict!(FunKind, StructDecl*[10]) funStructs;
-
-	immutable(StructDecl*[]) funPtrStructs() return =>
+	EnumDict!(FunKind, StructDecl*) funStructs;
+	
+	StructDecl* funPtrStruct() =>
 		funStructs[FunKind.pointer];
+
+	Opt!(StructDecl*) tuple(size_t arity) =>
+		2 <= arity && arity <= 9 ? some(tuples2Through9[arity - 2]) : none!(StructDecl*);
 }
 
 immutable struct IntegralTypes {
@@ -1188,59 +1194,81 @@ Sym symOfClosureReferenceKind(ClosureReferenceKind a) {
 }
 ClosureReferenceKind getClosureReferenceKind(ClosureRef a) =>
 	getClosureReferenceKind(a.variableRef);
-private ClosureReferenceKind getClosureReferenceKind(VariableRef a) =>
-	toLocalOrParam(a).match!ClosureReferenceKind(
-		(ref Local l) {
-			final switch (l.mutability) {
-				case LocalMutability.immut:
-					return ClosureReferenceKind.direct;
-				case LocalMutability.mutOnStack:
-					return unreachable!ClosureReferenceKind;
-				case LocalMutability.mutAllocated:
-					return ClosureReferenceKind.allocated;
-			}
-		},
-		(ref Param) =>
-			ClosureReferenceKind.direct);
+private ClosureReferenceKind getClosureReferenceKind(VariableRef a) {
+	final switch (toLocal(a).mutability) {
+		case LocalMutability.immut:
+			return ClosureReferenceKind.direct;
+		case LocalMutability.mutOnStack:
+			return unreachable!ClosureReferenceKind;
+		case LocalMutability.mutAllocated:
+			return ClosureReferenceKind.allocated;
+	}
+}
 
 immutable struct VariableRef {
-	mixin Union!(Local*, Param*, ClosureRef);
+	mixin Union!(Local*, ClosureRef);
 }
 static assert(VariableRef.sizeof == ulong.sizeof);
 
-Sym debugName(VariableRef a) =>
-	toLocalOrParam(a).match!Sym(
-		(ref Local x) =>
-			x.name,
-		(ref Param x) =>
-			force(x.name));
-
+Sym name(VariableRef a) =>
+	toLocal(a).name;
 Type variableRefType(VariableRef a) =>
-	toLocalOrParam(a).match!Type(
-		(ref Local x) =>
-			x.type,
-		(ref Param x) =>
-			x.type);
+	toLocal(a).type;
 
-private immutable struct LocalOrParam {
-	mixin Union!(Local*, Param*);
-}
-
-Opt!Sym name(VariableRef a) =>
-	toLocalOrParam(a).match!(Opt!Sym)(
-		(ref Local x) =>
-			some(x.name),
-		(ref Param x) =>
-			x.name);
-
-private LocalOrParam toLocalOrParam(VariableRef a) =>
-	a.matchWithPointers!LocalOrParam(
+private Local* toLocal(VariableRef a) =>
+	a.matchWithPointers!(Local*)(
 		(Local* x) =>
-			LocalOrParam(x),
-		(Param* x) =>
-			LocalOrParam(x),
+			x,
 		(ClosureRef x) =>
-			toLocalOrParam(x.variableRef()));
+			toLocal(x.variableRef()));
+
+immutable struct Destructure {
+	@safe @nogc pure nothrow:
+
+	immutable struct Ignore {
+		Pos pos;
+		Type type;
+	}
+	immutable struct Split {
+		StructInst* type; // This will be a tuple instance
+		SmallArray!Destructure parts;
+	}
+	mixin Union!(Ignore*, Local*, Split*);
+
+	Opt!Sym name() scope =>
+		matchIn!(Opt!Sym)(
+			(in Destructure.Ignore _) =>
+				none!Sym,
+			(in Local x) =>
+				some(x.name),
+			(in Destructure.Split _) =>
+				none!Sym);
+
+	Opt!RangeWithinFile nameRange(in AllSymbols allSymbols) scope {
+		Opt!Sym name = name;
+		return has(name)
+			? some(rangeOfNameAndRange(NameAndRange(range.start, force(name)), allSymbols))
+			: none!RangeWithinFile;
+	}
+
+	RangeWithinFile range() scope =>
+		matchIn!RangeWithinFile(
+			(in Ignore x) =>
+				RangeWithinFile(x.pos, x.pos + 1),
+			(in Local x) =>
+				x.range.range,
+			(in Split x) =>
+				combineRanges(x.parts[0].range, x.parts[$ - 1].range));
+	
+	Type type() scope =>
+		matchIn!Type(
+			(in Ignore x) =>
+				x.type,
+			(in Local x) =>
+				x.type,
+			(in Split x) =>
+				Type(x.type));
+}
 
 immutable struct Expr {
 	FileAndRange range;
@@ -1292,18 +1320,17 @@ immutable struct ExprKind {
 
 	immutable struct IfOption {
 		Type type;
+		Destructure destructure;
 		Expr option;
-		Local* local;
 		Expr then;
 		Expr else_;
 	}
 
-	// type is the lambda's type (not the body's return type), e.g. a Fun1 or sendFun1 instance.
 	immutable struct Lambda {
-		Param[] params;
+		Destructure param;
 		Expr body_;
 		VariableRef[] closure;
-		// This is the function type;
+		// This is the function type
 		StructInst* funType;
 		FunKind kind;
 		// For FunKind.send this includes 'future' wrapper
@@ -1311,7 +1338,7 @@ immutable struct ExprKind {
 	}
 
 	immutable struct Let {
-		Local* local;
+		Destructure destructure;
 		Expr value;
 		Expr then;
 	}
@@ -1370,18 +1397,13 @@ immutable struct ExprKind {
 
 	immutable struct MatchUnion {
 		immutable struct Case {
-			Opt!(Local*) local;
+			Opt!Destructure destructure;
 			Expr then;
 		}
 
 		Expr matched;
-		StructInst* matchedUnion;
 		Case[] cases;
 		Type type;
-	}
-
-	immutable struct ParamGet {
-		Param* param;
 	}
 
 	immutable struct PtrToField {
@@ -1393,11 +1415,6 @@ immutable struct ExprKind {
 	immutable struct PtrToLocal {
 		Type ptrType;
 		Local* local;
-	}
-
-	immutable struct PtrToParam {
-		Type ptrType;
-		Param* param;
 	}
 
 	immutable struct Seq {
@@ -1434,10 +1451,8 @@ immutable struct ExprKind {
 		LoopWhile*,
 		MatchEnum*,
 		MatchUnion*,
-		ParamGet,
 		PtrToField*,
 		PtrToLocal,
-		PtrToParam,
 		Seq*,
 		Throw*);
 }
@@ -1459,10 +1474,22 @@ void writeStructDecl(scope ref Writer writer, in AllSymbols allSymbols, in Struc
 
 void writeStructInst(scope ref Writer writer, in AllSymbols allSymbols, in StructInst s) {
 	void dict(string open) {
-		writeTypeUnquoted(writer, allSymbols, s.typeArgs[0]);
+		Type[2] vk = only2(s.typeArgs);
+		writeTypeUnquoted(writer, allSymbols, vk[0]);
 		writer ~= open;
-		writeTypeUnquoted(writer, allSymbols, s.typeArgs[1]);
+		writeTypeUnquoted(writer, allSymbols, vk[1]);
 		writer ~= ']';
+	}
+	void fun(string keyword) {
+		writer ~= keyword;
+		writer ~= ' ';
+		Type[2] rp = only2(s.typeArgs);
+		writeTypeUnquoted(writer, allSymbols, rp[0]);
+		Type param = rp[1];
+		bool needParens = !(param.isA!(StructInst*) && isTuple(*param.as!(StructInst*)));
+		if (needParens) writer ~= '(';
+		writeTypeUnquoted(writer, allSymbols, param);
+		if (needParens) writer ~= ')';
 	}
 	void suffix(string suffix) {
 		writeTypeUnquoted(writer, allSymbols, only(s.typeArgs));
@@ -1475,6 +1502,12 @@ void writeStructInst(scope ref Writer writer, in AllSymbols allSymbols, in Struc
 		final switch (force(kind)) {
 			case Diag.TypeShouldUseSyntax.Kind.dict:
 				return dict("[");
+			case Diag.TypeShouldUseSyntax.Kind.funAct:
+				return fun("act");
+			case Diag.TypeShouldUseSyntax.Kind.funFun:
+				return fun("fun");
+			case Diag.TypeShouldUseSyntax.Kind.funRef:
+				return fun("ref");
 			case Diag.TypeShouldUseSyntax.Kind.future:
 				return suffix("^");
 			case Diag.TypeShouldUseSyntax.Kind.list:

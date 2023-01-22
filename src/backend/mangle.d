@@ -7,9 +7,6 @@ import model.concreteModel :
 	ConcreteFun,
 	ConcreteFunBody,
 	ConcreteFunSource,
-	ConcreteLocal,
-	ConcreteParam,
-	ConcreteParamSource,
 	ConcreteStruct,
 	ConcreteStructSource;
 import model.lowModel :
@@ -20,14 +17,12 @@ import model.lowModel :
 	LowFunSource,
 	LowLocal,
 	LowLocalSource,
-	LowParam,
-	LowParamSource,
 	LowProgram,
 	LowRecord,
 	LowThreadLocal,
 	LowType,
 	LowUnion;
-import model.model : FunInst, name, Param;
+import model.model : FunInst, Local, name;
 import util.alloc.alloc : Alloc;
 import util.col.dict : Dict;
 import util.col.dictBuilder : finishDict, mustAddToDict, DictBuilder;
@@ -172,39 +167,14 @@ private void maybeWriteIndexSuffix(scope ref Writer writer, Opt!size_t index) {
 
 void writeLowLocalName(scope ref Writer writer, in MangledNames mangledNames, in LowLocal a) {
 	a.source.matchIn!void(
-		(in ConcreteLocal it) {
+		(in Local it) {
 			// Need to distinguish local names from function names
 			writer ~= "__local";
-			writeMangledName(writer, mangledNames, it.source.name);
+			writeMangledName(writer, mangledNames, it.name);
 		},
 		(in LowLocalSource.Generated it) {
 			writeMangledName(writer, mangledNames, it.name);
 			writer ~= it.index;
-		});
-}
-
-void writeLowParamName(scope ref Writer writer, in MangledNames mangledNames, in LowParam a) {
-	a.source.matchIn!void(
-		(in ConcreteParam cp) {
-			cp.source.matchIn!void(
-				(in ConcreteParamSource.Closure) {
-					writer ~= "_closure";
-				},
-				(in Param p) {
-					if (has(p.name))
-						writeMangledName(writer, mangledNames, force(p.name));
-					else {
-						writer ~= "_p";
-						writer ~= p.index;
-					}
-				},
-				(in ConcreteParamSource.Synthetic it) {
-					writer ~= "_p";
-					writer ~= force(cp.index);
-				});
-		},
-		(in LowParamSource.Generated it) {
-			writeMangledName(writer, mangledNames, it.name);
 		});
 }
 

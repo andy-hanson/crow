@@ -431,7 +431,7 @@ tree-set-builder[t] record mut
 	-inner t list-builder
 
 build[t] t tree-set(a build-options, f act void(t tree-set-builder)) t key
-	a build (out => f[(out,)]) to-tree-set
+	a build (out => f[out,]) to-tree-set
 
 ~ ~=[t] void(a t tree-set-builder, value t) t key
 	a.inner ~= value

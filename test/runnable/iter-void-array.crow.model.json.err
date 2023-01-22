@@ -1,0 +1,7 @@
+test/runnable/iter-void-array.crow 5:14-5:17 cannot choose an overload of 'new'. multiple functions match:
+	new nat64() (from include/crow/private/number-low-level.crow.crow line 15)
+	new void() (from include/crow/misc.crow.crow line 9)
+
+test/runnable/iter-void-array.crow 7:17-7:20 cannot choose an overload of 'new'. multiple functions match:
+	new nat64() (from include/crow/private/number-low-level.crow.crow line 15)
+	new void() (from include/crow/misc.crow.crow line 9)

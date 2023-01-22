@@ -85,7 +85,7 @@ pull void(a audio-queue, out float32 mut-array) noctx, unsafe
 	trusted
 		a.lock acquire
 		# Can't use 'filter=' in 'noctx' code, so do it here
-		a.playing.filter := x => !x.is-over
+		a.playing filter= x => !x.is-over
 		entry entry = sound.samples, sound.samples.begin-pointer, looping
 		a.playing ~= entry
 		a.lock release
@@ -100,7 +100,7 @@ pull void(a audio-queue, out float32 mut-array) noctx, unsafe
 		a.lock acquire
 		is-playing mut bool = false
 		# Can't use 'set-filter' in 'noctx' code, so do it here
-		a.playing.filter := x =>
+		a.playing filter= x =>
 			if x is-over
 				false
 			elif x reference-equal entry

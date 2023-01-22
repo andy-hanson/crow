@@ -94,6 +94,11 @@ ref inout(T) only(T)(return scope inout T[] a) {
 	return a[0];
 }
 
+ref inout(T[2]) only2(T)(return scope inout T[] a) {
+	verify(a.length == 2);
+	return a[0 .. 2];
+}
+
 @trusted T[] arrayOfSingle(T)(T* a) =>
 	a[0 .. 1];
 

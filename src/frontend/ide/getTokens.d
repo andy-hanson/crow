@@ -9,6 +9,7 @@ import frontend.parse.ast :
 	AssignmentCallAst,
 	BogusAst,
 	CallAst,
+	DestructureAst,
 	ExprAst,
 	FileAst,
 	ForAst,
@@ -35,15 +36,12 @@ import frontend.parse.ast :
 	MatchAst,
 	ModifierAst,
 	NameAndRange,
-	NameOrUnderscoreOrNone,
-	ParamAst,
 	ParamsAst,
 	ParenthesizedAst,
 	PtrAst,
 	range,
 	rangeOfModifierAst,
 	rangeOfNameAndRange,
-	rangeOfOptNameAndRange,
 	SeqAst,
 	SpecBodyAst,
 	SpecDeclAst,
@@ -182,12 +180,12 @@ void addSigReturnTypeAndParamsTokens(
 ) {
 	addTypeTokens(alloc, tokens, allSymbols, returnType);
 	params.matchIn!void(
-		(in ParamAst[] regular) {
-			foreach (ref ParamAst param; regular)
-				addParamTokens(alloc, tokens, allSymbols, param);
+		(in DestructureAst[] regular) {
+			foreach (ref DestructureAst param; regular)
+				addDestructureTokens(alloc, tokens, allSymbols, param);
 		},
 		(in ParamsAst.Varargs) {
-			addParamTokens(alloc, tokens, allSymbols, params.as!(ParamsAst.Varargs*).param);
+			addDestructureTokens(alloc, tokens, allSymbols, params.as!(ParamsAst.Varargs*).param);
 		});
 }
 
@@ -226,12 +224,6 @@ void addTypeTokens(ref Alloc alloc, ref TokensBuilder tokens, in AllSymbols allS
 			foreach (TypeAst t; it.members)
 				addTypeTokens(alloc, tokens, allSymbols, t);
 		});
-}
-
-void addParamTokens(ref Alloc alloc, ref TokensBuilder tokens, in AllSymbols allSymbols, in ParamAst a) {
-	if (has(a.name))
-		add(alloc, tokens, Token(Token.Kind.param, rangeOfStartAndName(a.range.start, force(a.name), allSymbols)));
-	addTypeTokens(alloc, tokens, allSymbols, a.type);
 }
 
 void addTypeParamsTokens(ref Alloc alloc, ref TokensBuilder tokens, in AllSymbols allSymbols, in NameAndRange[] a) {
@@ -394,7 +386,7 @@ void addExprTokens(ref Alloc alloc, ref TokensBuilder tokens, ref AllSymbols all
 		},
 		(in ForAst x) {
 			add(alloc, tokens, Token(Token.Kind.keyword, rangeOfStartAndLength(a.range.start, "for".length)));
-			addLambdaAstParams(alloc, tokens, allSymbols, x.params);
+			addDestructureTokens(alloc, tokens, allSymbols, x.param);
 			addExprTokens(alloc, tokens, allSymbols, x.collection);
 			addExprTokens(alloc, tokens, allSymbols, x.body_);
 			if (has(x.else_))
@@ -410,7 +402,7 @@ void addExprTokens(ref Alloc alloc, ref TokensBuilder tokens, ref AllSymbols all
 				addExprTokens(alloc, tokens, allSymbols, force(it.else_));
 		},
 		(in IfOptionAst it) {
-			add(alloc, tokens, localDefOfNameAndRange(allSymbols, it.name));
+			addDestructureTokens(alloc, tokens, allSymbols, it.destructure);
 			addExprTokens(alloc, tokens, allSymbols, it.option);
 			addExprTokens(alloc, tokens, allSymbols, it.then);
 			if (has(it.else_))
@@ -448,15 +440,13 @@ void addExprTokens(ref Alloc alloc, ref TokensBuilder tokens, ref AllSymbols all
 			}
 		},
 		(in LambdaAst it) {
-			addLambdaAstParams(alloc, tokens, allSymbols, it.params);
+			addDestructureTokens(alloc, tokens, allSymbols, it.param);
 			addExprTokens(alloc, tokens, allSymbols, it.body_);
 		},
-		(in LetAst it) {
-			add(alloc, tokens, has(it.name)
-				? localDefOfNameAndRange(allSymbols, NameAndRange(a.range.start, force(it.name)))
-				: Token(Token.Kind.keyword, rangeOfStartAndLength(a.range.start, "_".length)));
-			addExprTokens(alloc, tokens, allSymbols, it.initializer);
-			addExprTokens(alloc, tokens, allSymbols, it.then);
+		(in LetAst x) {
+			addDestructureTokens(alloc, tokens, allSymbols, x.destructure);
+			addExprTokens(alloc, tokens, allSymbols, x.initializer);
+			addExprTokens(alloc, tokens, allSymbols, x.then);
 		},
 		(in LiteralFloatAst _) {
 			add(alloc, tokens, Token(Token.Kind.literalNumber, a.range));
@@ -498,12 +488,8 @@ void addExprTokens(ref Alloc alloc, ref TokensBuilder tokens, ref AllSymbols all
 			addExprTokens(alloc, tokens, allSymbols, it.matched);
 			foreach (ref MatchAst.CaseAst case_; it.cases) {
 				add(alloc, tokens, Token(Token.Kind.struct_, case_.memberNameRange(allSymbols)));
-				case_.local.match!void(
-					(Sym _) {
-						add(alloc, tokens, Token(Token.Kind.local, case_.localRange(allSymbols)));
-					},
-					(NameOrUnderscoreOrNone.Underscore) {},
-					(NameOrUnderscoreOrNone.None) {});
+				if (has(case_.destructure))
+					addDestructureTokens(alloc, tokens, allSymbols, force(case_.destructure));
 				addExprTokens(alloc, tokens, allSymbols, case_.then);
 			}
 		},
@@ -517,10 +503,10 @@ void addExprTokens(ref Alloc alloc, ref TokensBuilder tokens, ref AllSymbols all
 			addExprTokens(alloc, tokens, allSymbols, it.first);
 			addExprTokens(alloc, tokens, allSymbols, it.then);
 		},
-		(in ThenAst it) {
-			addLambdaAstParams(alloc, tokens, allSymbols, it.left);
-			addExprTokens(alloc, tokens, allSymbols, it.futExpr);
-			addExprTokens(alloc, tokens, allSymbols, it.then);
+		(in ThenAst x) {
+			addDestructureTokens(alloc, tokens, allSymbols, x.left);
+			addExprTokens(alloc, tokens, allSymbols, x.futExpr);
+			addExprTokens(alloc, tokens, allSymbols, x.then);
 		},
 		(in ThrowAst it) {
 			add(alloc, tokens, Token(Token.Kind.keyword, rangeOfStartAndLength(a.range.start, "throw".length)));
@@ -540,27 +526,29 @@ void addExprTokens(ref Alloc alloc, ref TokensBuilder tokens, ref AllSymbols all
 		},
 		(in WithAst x) {
 			add(alloc, tokens, Token(Token.Kind.keyword, rangeOfStartAndLength(a.range.start, "with".length)));
-			addLambdaAstParams(alloc, tokens, allSymbols, x.params);
+			addDestructureTokens(alloc, tokens, allSymbols, x.param);
 			addExprTokens(alloc, tokens, allSymbols, x.arg);
 			addExprTokens(alloc, tokens, allSymbols, x.body_);
 		});
 }
 
-Token localDefOfNameAndRange(in AllSymbols allSymbols, NameAndRange a) =>
-	Token(Token.Kind.local, rangeOfNameAndRange(a, allSymbols));
-
-void addLambdaAstParams(
-	ref Alloc alloc,
-	ref TokensBuilder tokens,
-	in AllSymbols allSymbols,
-	in LambdaAst.Param[] params,
-) {
-	foreach (ref LambdaAst.Param param; params)
-		addLambdaAstParam(alloc, tokens, allSymbols, param);
-}
-
-void addLambdaAstParam(ref Alloc alloc, ref TokensBuilder tokens, in AllSymbols allSymbols, in LambdaAst.Param param) {
-	add(alloc, tokens, Token(Token.Kind.param, rangeOfOptNameAndRange(param, allSymbols)));
+void addDestructureTokens(ref Alloc alloc, ref TokensBuilder tokens, in AllSymbols allSymbols, in DestructureAst a) {
+	a.matchIn!void(
+		(in DestructureAst.Single x) {
+			add(alloc, tokens, Token(
+				x.name.name == sym!"_" ? Token.Kind.keyword : Token.Kind.param,
+				rangeOfNameAndRange(x.name, allSymbols)));
+			//TODO: add 'mut' keyword
+			if (has(x.type))
+				addTypeTokens(alloc, tokens, allSymbols, *force(x.type));
+		},
+		(in DestructureAst.Void x) {
+			add(alloc, tokens, Token(Token.Kind.keyword, a.range(allSymbols)));
+		},
+		(in DestructureAst[] xs) {
+			foreach (ref DestructureAst x; xs)
+				addDestructureTokens(alloc, tokens, allSymbols, x);
+		});
 }
 
 void addExprsTokens(ref Alloc alloc, ref TokensBuilder tokens, ref AllSymbols allSymbols, in ExprAst[] exprs) {

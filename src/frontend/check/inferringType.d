@@ -4,22 +4,23 @@ module frontend.check.inferringType;
 
 import frontend.check.checkCtx : addDiag, CheckCtx, rangeInFile;
 import frontend.check.dicts : FunsDict, ModuleLocalFunIndex, StructsAndAliasesDict;
-import frontend.check.instantiate : instantiateStructNeverDelay, tryGetTypeArg_mut, TypeArgsArray, typeArgsArray;
+import frontend.check.instantiate :
+	instantiateStructNeverDelay, noDelayStructInsts, tryGetTypeArg_mut, TypeArgsArray, typeArgsArray;
 import frontend.check.typeFromAst : typeFromAst;
-import frontend.lang : maxClosureFields, maxParams;
+import frontend.lang : maxClosureFields;
 import frontend.parse.ast : TypeAst;
 import frontend.programState : ProgramState;
-import model.diag : Diag;
+import model.diag : Diag, ExpectedForDiag;
 import model.model :
 	CommonTypes,
 	decl,
+	Destructure,
 	Expr,
 	ExprKind,
 	FunFlags,
 	FunKind,
 	Local,
 	Mutability,
-	Param,
 	range,
 	SpecInst,
 	StructDecl,
@@ -30,11 +31,10 @@ import model.model :
 	VariableRef;
 import util.alloc.alloc : Alloc;
 import util.cell : Cell, cellGet, cellSet;
-import util.col.arr : only;
+import util.col.arr : only, only2;
 import util.col.arrUtil : arrLiteral, exists, indexOf, map, zip, zipEvery;
 import util.col.enumDict : enumDictFindKey;
 import util.col.fullIndexDict : FullIndexDict;
-import util.col.mutArr : MutArr;
 import util.col.mutMaxArr : MutMaxArr, push, tempAsArr;
 import util.opt : has, force, MutOpt, none, noneMut, Opt, someMut, some;
 import util.perf : Perf;
@@ -62,11 +62,9 @@ struct ClosureFieldBuilder {
 
 struct FunOrLambdaInfo {
 	MutOpt!(LocalsInfo*) outer;
-	immutable Param[] params;
 	// none for a function.
 	// WARN: This will not be initialized; but we allocate the pointer early.
 	immutable Opt!(ExprKind.Lambda*) lambda;
-	MutMaxArr!(maxParams, bool) paramsUsed = void;
 	// Will be uninitialized for a function
 	MutMaxArr!(maxClosureFields, ClosureFieldBuilder) closureFields = void;
 }
@@ -105,7 +103,7 @@ struct ExprCtx {
 	immutable FunsDict funsDict;
 	immutable CommonTypes commonTypes;
 	immutable SpecInst*[] outermostFunSpecs;
-	immutable Param[] outermostFunParams;
+	immutable Destructure[] outermostFunParams;
 	immutable TypeParam[] outermostFunTypeParams;
 	immutable FunFlags outermostFunFlags;
 	FullIndexDict!(ModuleLocalFunIndex, bool) funsUsed;
@@ -173,9 +171,9 @@ ref ProgramState programState(return scope ref ExprCtx ctx) =>
 void addDiag2(ref ExprCtx ctx, FileAndRange range, Diag diag) {
 	addDiag(ctx.checkCtx, range, diag);
 }
-
-Opt!Type typeFromOptAst(ref ExprCtx ctx, in Opt!(TypeAst*) ast) =>
-	has(ast) ? some(typeFromAst2(ctx, *force(ast))) : none!Type;
+void addDiag3(ref ExprCtx ctx, RangeWithinFile range, Diag diag) {
+	addDiag2(ctx, rangeInFile2(ctx, range), diag);
+}
 
 immutable(Type) typeFromAst2(ref ExprCtx ctx, in TypeAst ast) =>
 	typeFromAst(
@@ -184,7 +182,7 @@ immutable(Type) typeFromAst2(ref ExprCtx ctx, in TypeAst ast) =>
 		ast,
 		ctx.structsAndAliasesDict,
 		ctx.outermostFunTypeParams,
-		noneMut!(MutArr!(StructInst*)*));
+		noDelayStructInsts);
 
 struct SingleInferringType {
 	@safe @nogc pure nothrow:
@@ -205,39 +203,6 @@ struct InferringTypeArgs {
 	immutable TypeParam[] params;
 	SingleInferringType[] args;
 }
-
-bool mayBeFunTypeWithArity(
-	in CommonTypes commonTypes,
-	in Type type,
-	in InferringTypeArgs inferringTypeArgs,
-	size_t arity,
-) =>
-	type.matchWithPointers!bool(
-		(Type.Bogus) =>
-			false,
-		(TypeParam* p) {
-			MutOpt!(const(SingleInferringType)*) inferring = tryGetTypeArgFromInferringTypeArgs(inferringTypeArgs, p);
-			Opt!Type inferred = has(inferring) ? cellGet(force(inferring).type) : none!Type;
-			return has(inferred) && force(inferred).isA!(StructInst*)
-				? isFunTypeWithArity(commonTypes, force(inferred).as!(StructInst*), arity)
-				: true;
-		},
-		(StructInst* i) =>
-			isFunTypeWithArity(commonTypes, i, arity));
-
-private bool isFunTypeWithArity(in CommonTypes commonTypes, StructInst* a, size_t arity) {
-	StructDecl* decl = decl(*a);
-	return arityForFunStruct(decl) == arity && has(getFunKindFromStruct(commonTypes, decl));
-}
-
-Opt!FunKind getFunKindFromStruct(in CommonTypes a, StructDecl* s) {
-	size_t arity = arityForFunStruct(s);
-	return enumDictFindKey!(FunKind, StructDecl*[10])(a.funStructs, (in StructDecl*[10] structs) =>
-		arity < structs.length && structs[arity] == s);
-}
-
-private size_t arityForFunStruct(StructDecl* s) =>
-	s.typeParams.length - 1; // overflow OK, will fail 'arity < structs.length'
 
 // We can infer type args of 'a' but can't change inferred type args for 'b'
 bool matchTypesNoDiagnostic(
@@ -309,12 +274,6 @@ Opt!size_t findExpectedStruct(ref const Expected expected, immutable StructInst*
 		(const LoopInfo*) =>
 			none!size_t);
 
-// TODO: if we have a bogus expected type we should probably not be doing any more checking at all?
-bool isBogus(ref const Expected expected) {
-	Opt!Type t = tryGetInferred(expected);
-	return has(t) && force(t).isA!(Type.Bogus);
-}
-
 private @trusted void setToType(scope ref Expected expected, Type type) {
 	expected = type;
 }
@@ -329,41 +288,83 @@ struct Pair(T, U) {
 Pair!(T, Type) withCopyWithNewExpectedType(T)(
 	ref Expected expected,
 	Type newExpectedType,
+	InferringTypeArgs inferringTypeArgs,
 	in T delegate(ref Expected) @safe @nogc pure nothrow cb,
 ) {
-	TypeAndInferring[1] t = [TypeAndInferring(newExpectedType, getInferringTypeArgs(expected))];
+	TypeAndInferring[1] t = [TypeAndInferring(newExpectedType, inferringTypeArgs)];
 	Expected newExpected = Expected(t);
 	T res = cb(newExpected);
 	return Pair!(T, Type)(castNonScope_ref(res), inferred(newExpected));
 }
 
-Opt!Type shallowInstantiateType(ref const Expected expected) =>
-	expected.matchConst!(Opt!Type)(
-		(Expected.Infer) =>
-			none!Type,
-		(Type x) =>
-			some(x),
-		(const TypeAndInferring[] choices) {
-			if (choices.length == 1) {
-				const TypeAndInferring choice = only(choices);
-				if (choice.type.isA!(TypeParam*)) {
-					MutOpt!(const(SingleInferringType)*) typeArg =
-						tryGetTypeArgFromInferringTypeArgs(choice.inferringTypeArgs, choice.type.as!(TypeParam*));
-					return has(typeArg) ? tryGetInferred(*force(typeArg)) : none!Type;
-				} else
-					return some(choice.type);
-			} else
-				return none!Type;
-		},
-		(const LoopInfo*) => none!Type);
+struct OkSkipOrAbort(T) {
+	@safe @nogc pure nothrow:
 
-Opt!Type tryGetDeeplyInstantiatedTypeFor(
-	ref Alloc alloc,
-	ref ProgramState programState,
-	in Expected expected,
-	Type t,
+	struct Ok { T value; }
+	immutable struct Skip {}
+	immutable struct Abort { Diag diag; }
+
+	static OkSkipOrAbort ok(T value) =>
+		OkSkipOrAbort(Ok(value));
+	static OkSkipOrAbort skip() =>
+		OkSkipOrAbort(Skip());
+	static OkSkipOrAbort abort(Diag diag) =>
+		OkSkipOrAbort(Abort(diag));
+
+	mixin UnionMutable!(Ok, Skip, Abort);
+
+	OkSkipOrAbort!Out mapOk(Out)(in Out delegate(T) @safe @nogc pure nothrow cb) =>
+		match!(OkSkipOrAbort!Out)(
+			(ref Ok x) =>
+				OkSkipOrAbort!Out.ok(cb(x.value)),
+			(Skip _) =>
+				OkSkipOrAbort!Out.skip,
+			(Abort x) =>
+				OkSkipOrAbort!Out.abort(x.diag));
+}
+
+OkSkipOrAbort!T handleExpectedLambda(T)(
+	ref Alloc allocForDiag,
+	ref Expected expected,
+	in OkSkipOrAbort!T delegate(Type, InferringTypeArgs) @safe @nogc pure nothrow cb,
 ) =>
-	tryGetDeeplyInstantiatedTypeWorker(alloc, programState, t, getInferringTypeArgs(expected));
+	expected.match!(OkSkipOrAbort!T)(
+		(Expected.Infer) =>
+			OkSkipOrAbort!T.skip,
+		(Type x) =>
+			cb(x, InferringTypeArgs()),
+		(TypeAndInferring[] choices) {
+			Cell!(MutOpt!T) res = Cell!(MutOpt!T)();
+			foreach (TypeAndInferring choice; choices) {
+				Opt!Type t = () {
+					if (choice.type.isA!(TypeParam*)) {
+						MutOpt!(SingleInferringType*) typeArg =
+							tryGetTypeArgFromInferringTypeArgs(choice.inferringTypeArgs, choice.type.as!(TypeParam*));
+						return has(typeArg) ? tryGetInferred(*force(typeArg)) : none!Type;
+					} else
+						return some(choice.type);
+				}();
+				if (!has(t))
+					return OkSkipOrAbort!T.abort(Diag(Diag.LambdaCantInferParamType()));
+				Opt!Diag abort = cb(force(t), choice.inferringTypeArgs).match!(Opt!Diag)(
+					(ref OkSkipOrAbort!T.Ok x) {
+						if (has(cellGet(res)))
+							return some(Diag(Diag.LambdaMultipleMatch(getExpectedForDiag(allocForDiag, expected))));
+						else {
+							cellSet(res, someMut(x.value));
+							return none!Diag;
+						}
+					},
+					(OkSkipOrAbort!T.Skip) =>
+						none!Diag,
+					(OkSkipOrAbort!T.Abort x) =>
+						some(x.diag));
+				if (has(abort))
+					return OkSkipOrAbort!T.abort(force(abort));
+			}
+			return has(cellGet(res)) ? OkSkipOrAbort!T.ok(force(cellGet(res))) : OkSkipOrAbort!T.skip;
+		},
+		(const LoopInfo*) => OkSkipOrAbort!T.skip);
 
 private InferringTypeArgs getInferringTypeArgs(ref Expected expected) =>
 	expected.match!InferringTypeArgs(
@@ -393,7 +394,7 @@ private Opt!Type tryGetDeeplyInstantiatedType(
 ) {
 	Opt!Type t = tryGetInferred(expected);
 	return has(t)
-		? tryGetDeeplyInstantiatedTypeFor(alloc, programState, expected, force(t))
+		? tryGetDeeplyInstantiatedTypeWorker(alloc, programState, force(t), getInferringTypeArgs(expected))
 		: none!Type;
 }
 
@@ -454,20 +455,22 @@ Expr check(ref ExprCtx ctx, ref Expected expected, Type exprType, Expr expr) {
 	if (setTypeNoDiagnostic(ctx.alloc, ctx.programState, expected, exprType))
 		return expr;
 	else {
-		addDiag2(ctx, expr.range, expected.matchConst!Diag(
-			(Expected.Infer) =>
-				unreachable!Diag,
-			(Type x) =>
-				Diag(Diag.TypeConflict(arrLiteral!Type(ctx.alloc, [x]), exprType)),
-			(const TypeAndInferring[] xs) =>
-				Diag(Diag.TypeConflict(
-					map(ctx.alloc, xs, (scope ref const TypeAndInferring x) => x.type),
-					exprType)),
-			(const LoopInfo*) =>
-				Diag(Diag.LoopNeedsBreakOrContinue())));
+		addDiag2(ctx, expr.range, Diag(Diag.TypeConflict(getExpectedForDiag(ctx.alloc, expected), exprType)));
 		return bogus(expected, expr.range);
 	}
 }
+
+ExpectedForDiag getExpectedForDiag(ref Alloc alloc, ref const Expected expected) =>
+	expected.matchConst!ExpectedForDiag(
+		(Expected.Infer) =>
+			ExpectedForDiag(ExpectedForDiag.Infer()),
+		(Type x) =>
+			ExpectedForDiag(arrLiteral!Type(alloc, [x])),
+		(const TypeAndInferring[] xs) =>
+			// TODO: this should instantiate types as much as possible to reflect inference up to this point
+			ExpectedForDiag(map(alloc, xs, (scope ref const TypeAndInferring x) => x.type)),
+		(const LoopInfo*) =>
+			ExpectedForDiag(ExpectedForDiag.Loop()));
 
 void setExpectedIfNoInferred(ref Expected expected, in Type delegate() @safe @nogc pure nothrow getType) {
 	expected.matchConst!void(
@@ -510,8 +513,6 @@ MutOpt!(const(SingleInferringType)*) tryGetTypeArgFromInferringTypeArgs(
 ) =>
 	tryGetTypeArg_mut(inferringTypeArgs.params, inferringTypeArgs.args, typeParam);
 
-private:
-
 Opt!Type tryGetDeeplyInstantiatedTypeWorker(
 	ref Alloc alloc,
 	ref ProgramState programState,
@@ -537,6 +538,8 @@ Opt!Type tryGetDeeplyInstantiatedTypeWorker(
 			}
 			return some(Type(instantiateStructNeverDelay(alloc, programState, decl(*i), tempAsArr(newTypeArgs))));
 		});
+
+private:
 
 /*
 Tries to find a way for 'a' and 'b' to be the same type.
@@ -630,6 +633,43 @@ bool checkType_TypeParamB(
 			alloc, programState, a, aInferringTypeArgs, force(inferred), InferringTypeArgs());
 	} else
 		return false;
+}
+
+public immutable struct FunType {
+	FunKind kind;
+	StructInst* structInst;
+	StructDecl* structDecl;
+	Type nonInstantiatedNonFutReturnType;
+	Type nonInstantiatedParamType;
+}
+public Opt!FunType getFunType(in CommonTypes commonTypes, Type a) {
+	if (a.isA!(StructInst*)) {
+		StructInst* structInst = a.as!(StructInst*);
+		StructDecl* structDecl = decl(*structInst);
+		Opt!FunKind kind = enumDictFindKey!(FunKind, StructDecl*)(commonTypes.funStructs, (in StructDecl* x) =>
+			x == structDecl);
+		if (has(kind)) {
+			Type[2] typeArgs = only2(typeArgs(*structInst));
+			return some(FunType(force(kind), structInst, structDecl, typeArgs[0], typeArgs[1]));
+		} else
+			return none!FunType;
+	} else
+		return none!FunType;
+}
+
+public void inferTypeArgsFromLambdaParameterType(
+	ref Alloc alloc,
+	ref ProgramState programState,
+	in CommonTypes commonTypes,
+	Type a,
+	scope InferringTypeArgs aInferringTypeArgs,
+	in Type lambdaParameterType,
+) {
+	Opt!FunType funType = getFunType(commonTypes, a);
+	if (has(funType)) {
+		Type paramType = force(funType).nonInstantiatedParamType;
+		inferTypeArgsFrom(alloc, programState, paramType, aInferringTypeArgs, lambdaParameterType, InferringTypeArgs());
+	}
 }
 
 public void inferTypeArgsFrom(

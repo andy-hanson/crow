@@ -3,7 +3,7 @@ module lower.getBuiltinCall;
 @safe @nogc pure nothrow:
 
 import model.constant : Constant, constantBool, constantZero;
-import model.lowModel : isPtrRawConstOrMut, LowExprKind, LowType, PrimitiveType;
+import model.lowModel : isPrimitiveType, isPtrRawConstOrMut, LowExprKind, LowType, PrimitiveType;
 import util.alloc.alloc : Alloc;
 import util.sym : Sym, sym;
 import util.union_ : Union;
@@ -379,9 +379,6 @@ BuiltinKind getBuiltinKind(ref Alloc alloc, Sym name, LowType rt, LowType p0, Lo
 }
 
 private:
-
-bool isPrimitiveType(LowType a, PrimitiveType p) =>
-	a.isA!PrimitiveType && a.as!PrimitiveType == p;
 
 bool isBool(LowType a) =>
 	isPrimitiveType(a, PrimitiveType.bool_);

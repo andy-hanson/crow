@@ -401,7 +401,7 @@ sorted-set-builder[t] record mut
 	-inner t list-builder
 
 build[t] t sorted-set(a build-options, f act void(t sorted-set-builder)) t key
-	a build (out => f[(out,)]) to-sorted-set
+	a build (out => f[out,]) to-sorted-set
 
 ~ ~=[t] void(a t sorted-set-builder, value t) t key
 	a.inner ~= value

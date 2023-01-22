@@ -1,6 +1,6 @@
 import
 	crow/parse:
-		/, ~~, and-return, exact, grammar, grammar-skip, many, map, nat, parse, text-delimited,
+		/, ~~, and-return, exact, grammar, grammar-skip, many, map, parse, text-delimited,
 		text-not-containing-any, to-string
 	./module:
 		body_, doc-comment, exports, fields, has-non-public-fields, is-mut, members, module,
@@ -275,7 +275,7 @@ module-content string(a module, all-exports all-exports)
 		a type-ref-suffix "*", ctx
 	elif name == "mut-pointer"
 		a type-ref-suffix " mut*", ctx
-	elif type ?= name get-fun-type
+	elif type ?= fun-internal-name-to-keyword[name]
 		a type-ref-fun type, ctx
 	else
 		"{a.type-args type-args-content ctx}{name type-name-reference ctx}"
@@ -287,20 +287,14 @@ module-content string(a module, all-exports all-exports)
 	v = a.type-args[0] type-ref-content ctx
 	k = a.type-args[1] type-ref-content ctx
 	"{v}{open keyword}{k}{"]" keyword}"
--type-ref-fun string(a type-ref, type string, ctx ctx)
+-type-ref-fun string(a type-ref, keyword symbol, ctx ctx)
 	params = ", " join for x : a.type-args[1 .. end]
 		x type-ref-content ctx
-	kw = " {type}" keyword
+	kw = " {keyword}" keyword
 	"{kw} {a.type-args[0] type-ref-content ctx}({params})"
 
--get-fun-type string?(name symbol)
-	for x : fun-prefixes-and-keywords
-		if rest ?= name.to-string try-remove-start x.a
-			if nat parse rest is-ok
-				break x.b
-
--fun-prefixes-and-keywords (string, string)[]()
-	("fun", "fun"), ("fun-act", "act"), ("fun-ref", "ref"), ("fun-pointer", "fun*")
+-fun-internal-name-to-keyword symbol[symbol]()
+	("fun-fun", "fun"), ("fun-act", "act"), ("fun-ref", "ref"), ("fun-pointer", "fun*")
 
 -spec-refs-content string(specs spec-ref[], ctx ctx)
 	unless specs is-empty

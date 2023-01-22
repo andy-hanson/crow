@@ -103,9 +103,9 @@ main nat^(args string[]) summon
 -parse-cookies string?[](cookies-string string, cookie-names string[])
 	res string? mut[] = cookie-names.size n-of ()
 	for part : cookies-string split "; "
-		if pair ?= part try-split-once "="
-			if index ?= cookie-names index-of pair.a
-				res[index] := pair.b,
+		if name, value ?= part try-split-once "="
+			if index ?= cookie-names index-of name
+				res[index] := value,
 	res move-to-list
 
 -parse-cookie string?(cookies-string string, cookie-name string)

@@ -3,7 +3,7 @@ module concretize.concretizeCtx;
 @safe @nogc pure nothrow:
 
 import concretize.allConstantsBuilder : AllConstantsBuilder, getConstantArr, getConstantCStr, getConstantSym;
-import concretize.concretizeExpr : concretizeExpr;
+import concretize.concretizeExpr : concretizeFunBody;
 import concretize.safeValue : bodyForSafeValue;
 import model.concreteModel :
 	body_,
@@ -17,9 +17,9 @@ import model.concreteModel :
 	concreteFunRange,
 	ConcreteFunSource,
 	ConcreteLambdaImpl,
+	ConcreteLocal,
+	ConcreteLocalSource,
 	ConcreteMutability,
-	ConcreteParam,
-	ConcreteParamSource,
 	ConcreteType,
 	ConcreteStruct,
 	ConcreteStructBody,
@@ -38,6 +38,7 @@ import model.model :
 	body_,
 	CommonTypes,
 	decl,
+	Destructure,
 	EnumBackingType,
 	EnumFunction,
 	Expr,
@@ -47,9 +48,9 @@ import model.model :
 	FunBody,
 	FunDecl,
 	FunInst,
+	Local,
 	Module,
 	name,
-	Param,
 	paramsArray,
 	Program,
 	Purity,
@@ -69,17 +70,7 @@ import util.alloc.alloc : Alloc;
 import util.col.arr : empty, only, sizeEq;
 import util.col.arrBuilder : add, addAll, ArrBuilder, finishArr;
 import util.col.arrUtil :
-	arrEqual,
-	arrLiteral,
-	arrMax,
-	every,
-	everyWithIndex,
-	exists,
-	filterUnordered,
-	fold,
-	map,
-	mapPtrsWithIndex,
-	mapWithIndex;
+	arrEqual, arrLiteral, arrMax, every, everyWithIndex, exists, filterUnordered, fold, map, mapWithIndex;
 import util.col.mutArr : MutArr, mutArrIsEmpty, push;
 import util.col.mutDict : addToMutDict, getOrAdd, getOrAddAndDidAdd, mustDelete, MutDict, ValueAndDidAdd;
 import util.col.str : SafeCStr;
@@ -271,7 +262,7 @@ Constant constantSym(ref ConcretizeCtx a, Sym value) =>
 
 ConcreteFun* getOrAddConcreteFunAndFillBody(ref ConcretizeCtx ctx, ConcreteFunKey key) {
 	ConcreteFun* cf = getOrAddConcreteFunWithoutFillingBody(ctx, key);
-	fillInConcreteFunBody(ctx, cf);
+	fillInConcreteFunBody(ctx, paramsArray(decl(*key.inst).params), cf);
 	return cf;
 }
 
@@ -280,19 +271,18 @@ ConcreteFun* getConcreteFunForLambdaAndFillBody(
 	ConcreteFun* containingConcreteFun,
 	size_t index,
 	ConcreteType returnType,
-	ConcreteParam* closureParam,
-	in ConcreteParam[] params,
+	Destructure modelParam,
+	ConcreteLocal[] paramsIncludingClosure,
 	in ContainingFunInfo containing,
 	in Expr body_,
 ) {
 	ConcreteFun* res = allocate(ctx.alloc, ConcreteFun(
 		ConcreteFunSource(allocate(ctx.alloc, ConcreteFunSource.Lambda(body_.range, containingConcreteFun, index))),
 		returnType,
-		some(closureParam),
-		params));
-	ConcreteFunBodyInputs bodyInputs = ConcreteFunBodyInputs(containing, FunBody(body_));
+		paramsIncludingClosure));
+	ConcreteFunBodyInputs bodyInputs = ConcreteFunBodyInputs(containing, FunBody(FunBody.ExpressionBody(body_)));
 	addToMutDict(ctx.alloc, ctx.concreteFunToBodyInputs, res, bodyInputs);
-	fillInConcreteFunBody(ctx, res);
+	fillInConcreteFunBody(ctx, [modelParam], res);
 	addConcreteFun(ctx, res);
 	return res;
 }
@@ -405,15 +395,39 @@ ConcreteFun* getConcreteFunFromKey(ref ConcretizeCtx ctx, ref ConcreteFunKey key
 	FunDecl* decl = decl(*key.inst);
 	TypeArgsScope typeScope = typeArgsScope(key);
 	ConcreteType returnType = getConcreteType(ctx, decl.returnType, typeScope);
-	ConcreteParam[] params = concretizeParams(ctx, paramsArray(decl.params), typeScope);
-	ConcreteFun* res = allocate(ctx.alloc,
-		ConcreteFun(ConcreteFunSource(key.inst), returnType, none!(ConcreteParam*), params));
+	ConcreteLocal[] params = concretizeFunctionParams(ctx, paramsArray(decl.params), typeScope);
+	ConcreteFun* res = allocate(ctx.alloc, ConcreteFun(ConcreteFunSource(key.inst), returnType, params));
 	ConcreteFunBodyInputs bodyInputs = ConcreteFunBodyInputs(
 		toContainingFunInfo(key),
 		decl.body_);
 	addToMutDict(ctx.alloc, ctx.concreteFunToBodyInputs, res, bodyInputs);
 	return res;
 }
+
+ConcreteLocal[] concretizeFunctionParams(ref ConcretizeCtx ctx, Destructure[] params, TypeArgsScope typeArgsScope) =>
+	map(ctx.alloc, params, (ref Destructure x) => concretizeParamDestructure(ctx, x, typeArgsScope));
+
+public ConcreteLocal[] concretizeLambdaParams(
+	ref ConcretizeCtx ctx,
+	ConcreteType closureType,
+	Destructure param,
+	TypeArgsScope typeArgsScope,
+) =>
+	arrLiteral!ConcreteLocal(ctx.alloc, [
+		ConcreteLocal(ConcreteLocalSource(ConcreteLocalSource.Closure()), closureType),
+		concretizeParamDestructure(ctx, param, typeArgsScope),
+	]);
+
+ConcreteLocal concretizeParamDestructure(ref ConcretizeCtx ctx, ref Destructure x, TypeArgsScope typeArgsScope) =>
+	ConcreteLocal(
+		x.matchWithPointers!ConcreteLocalSource(
+			(Destructure.Ignore*) =>
+				ConcreteLocalSource(ConcreteLocalSource.Generated(sym!"ignore")),
+			(Local* x) =>
+				ConcreteLocalSource(x),
+			(Destructure.Split*) =>
+				ConcreteLocalSource(ConcreteLocalSource.Generated(sym!"destruct"))),
+		getConcreteType(ctx, x.type, typeArgsScope));
 
 void addConcreteFun(ref ConcretizeCtx ctx, ConcreteFun* fun) {
 	add(ctx.alloc, ctx.allConcreteFuns, fun);
@@ -423,10 +437,9 @@ ConcreteFun* concreteFunForTest(ref ConcretizeCtx ctx, ref Test test, size_t tes
 	ConcreteFun* res = allocate(ctx.alloc, ConcreteFun(
 		ConcreteFunSource(allocate(ctx.alloc, ConcreteFunSource.Test(test.body_.range, testIndex))),
 		voidType(ctx),
-		none!(ConcreteParam*),
 		[]));
 	ContainingFunInfo containing = ContainingFunInfo([], [], []);
-	ConcreteExpr body_ = concretizeExpr(ctx, containing, res, test.body_);
+	ConcreteExpr body_ = concretizeFunBody(ctx, containing, res, [], test.body_);
 	lateSet(res._body_, ConcreteFunBody(body_));
 	addConcreteFun(ctx, res);
 	return res;
@@ -637,7 +650,7 @@ public void deferredFillRecordAndUnionBodies(ref ConcretizeCtx ctx) {
 	}
 }
 
-void fillInConcreteFunBody(ref ConcretizeCtx ctx, ConcreteFun* cf) {
+void fillInConcreteFunBody(ref ConcretizeCtx ctx, in Destructure[] params, ConcreteFun* cf) {
 	// TODO: just assert it's not already set?
 	if (!lateIsSet(cf._body_)) {
 		// set to arbitrary temporarily
@@ -678,8 +691,8 @@ void fillInConcreteFunBody(ref ConcretizeCtx ctx, ConcreteFun* cf) {
 			},
 			(FunBody.Extern x) =>
 				ConcreteFunBody(ConcreteFunBody.Extern(x.isGlobal, x.libraryName)),
-			(Expr e) =>
-				ConcreteFunBody(concretizeExpr(ctx, inputs.containing, cf, e)),
+			(FunBody.ExpressionBody e) =>
+				ConcreteFunBody(concretizeFunBody(ctx, inputs.containing, cf, params, e.expr)),
 			(FunBody.FileBytes e) {
 				ConcreteType type = cf.returnType;
 				//TODO:PERF creating a Constant per byte is expensive
@@ -754,13 +767,6 @@ ConcreteFunBody bodyForAllTests(ref ConcretizeCtx ctx, ConcreteType returnType) 
 	return ConcreteFunBody(ConcreteExpr(returnType, FileAndRange.empty, ConcreteExprKind(arr)));
 }
 
-ConcreteParam[] concretizeParams(ref ConcretizeCtx ctx, Param[] params, TypeArgsScope typeArgsScope) =>
-	mapPtrsWithIndex(ctx.alloc, params, (size_t index, Param* p) =>
-		ConcreteParam(
-			ConcreteParamSource(p),
-			some(index),
-			getConcreteType(ctx, p.type, typeArgsScope)));
-
 BuiltinStructKind getBuiltinStructKind(Sym name) {
 	switch (name.value) {
 		case sym!"bool".value:
@@ -771,28 +777,11 @@ BuiltinStructKind getBuiltinStructKind(Sym name) {
 			return BuiltinStructKind.float32;
 		case sym!"float64".value:
 			return BuiltinStructKind.float64;
-		case sym!"fun0".value:
-		case sym!"fun1".value:
-		case sym!"fun2".value:
-		case sym!"fun3".value:
-		case sym!"fun4".value:
-		case sym!"fun-act0".value:
-		case sym!"fun-act1".value:
-		case sym!"fun-act2".value:
-		case sym!"fun-act3".value:
-		case sym!"fun-act4".value:
+		case sym!"fun-act".value:
+		case sym!"fun-fun".value:
 			return BuiltinStructKind.fun;
-		case sym!"fun-pointer0".value:
-		case sym!"fun-pointer1".value:
-		case sym!"fun-pointer2".value:
-		case sym!"fun-pointer3".value:
-		case sym!"fun-pointer4".value:
-		case sym!"fun-pointer5".value:
-		case sym!"fun-pointer6".value:
-		case sym!"fun-pointer7".value:
-		case sym!"fun-pointer8".value:
-		case sym!"fun-pointer9".value:
-			return BuiltinStructKind.funPointerN;
+		case sym!"fun-pointer".value:
+			return BuiltinStructKind.funPointer;
 		case sym!"int8".value:
 			return BuiltinStructKind.int8;
 		case sym!"int16".value:
@@ -837,7 +826,7 @@ TypeSize getBuiltinStructSize(BuiltinStructKind kind) {
 		case BuiltinStructKind.nat32:
 			return TypeSize(4, 4);
 		case BuiltinStructKind.float64:
-		case BuiltinStructKind.funPointerN:
+		case BuiltinStructKind.funPointer:
 		case BuiltinStructKind.int64:
 		case BuiltinStructKind.nat64:
 		case BuiltinStructKind.pointerConst:

@@ -5,7 +5,6 @@ module model.concreteModel;
 import model.constant : Constant;
 import model.model :
 	ClosureReferenceKind,
-	debugName,
 	decl,
 	EnumBackingType,
 	EnumFunction,
@@ -14,9 +13,9 @@ import model.model :
 	FunDecl,
 	FunInst,
 	isArray,
+	isTuple,
 	Local,
 	name,
-	Param,
 	Params,
 	Purity,
 	range,
@@ -41,7 +40,7 @@ enum BuiltinStructKind {
 	float32,
 	float64,
 	fun, // 'fun' or 'act'
-	funPointerN, // fun-pointer0, fun-pointer1, etc...
+	funPointer,
 	int8,
 	int16,
 	int32,
@@ -67,7 +66,7 @@ Sym symOfBuiltinStructKind(BuiltinStructKind a) {
 			return sym!"float-64";
 		case BuiltinStructKind.fun:
 			return sym!"fun";
-		case BuiltinStructKind.funPointerN:
+		case BuiltinStructKind.funPointer:
 			return sym!"fun-pointer";
 		case BuiltinStructKind.int8:
 			return sym!"int-8";
@@ -205,6 +204,13 @@ bool isArray(ref ConcreteStruct a) =>
 		(ConcreteStructSource.Lambda it) =>
 			false);
 
+bool isTuple(ref ConcreteStruct a) =>
+	a.source.match!bool(
+		(ConcreteStructSource.Inst x) =>
+			isTuple(*x.inst),
+		(ConcreteStructSource.Lambda x) =>
+			false);
+
 private ref ConcreteStructInfo info(return scope ref ConcreteStruct a) =>
 	lateGet(a.info_);
 
@@ -270,27 +276,23 @@ immutable struct ConcreteField {
 	ConcreteType type;
 }
 
-immutable struct ConcreteParamSource {
+immutable struct ConcreteLocalSource {
 	immutable struct Closure {}
-	immutable struct Synthetic {}
-	mixin Union!(Closure, Param*, Synthetic);
-}
-static assert(ConcreteParamSource.sizeof == ulong.sizeof);
-
-immutable struct ConcreteParam {
-	ConcreteParamSource source;
-	Opt!size_t index; // not present for closure param
-	ConcreteType type;
+	immutable struct Generated { Sym name; }
+	mixin Union!(Local*, Closure, Generated);
 }
 
 immutable struct ConcreteLocal {
 	@safe @nogc pure nothrow:
 
-	Local* source;
+	ConcreteLocalSource source;
 	ConcreteType type;
 
-	bool isAllocated() =>
-		source.isAllocated;
+	bool isAllocated() scope =>
+		source.matchIn!bool(
+			(in Local x) => x.isAllocated,
+			(in ConcreteLocalSource.Closure) => false,
+			(in ConcreteLocalSource.Generated) => false);
 }
 
 immutable struct ConcreteFunBody {
@@ -356,15 +358,14 @@ static assert(ConcreteFunSource.sizeof == ulong.sizeof);
 immutable struct ConcreteFun {
 	ConcreteFunSource source;
 	ConcreteType returnType;
-	Opt!(ConcreteParam*) closureParam;
-	ConcreteParam[] paramsExcludingClosure;
+	ConcreteLocal[] paramsIncludingClosure;
 	Late!ConcreteFunBody _body_;
 }
 
 bool isVariadic(ref ConcreteFun a) =>
 	a.source.match!bool(
 		(ref FunInst i) =>
-			i.params.isA!(Params.Varargs*),
+			i.decl.params.isA!(Params.Varargs*),
 		(ref ConcreteFunSource.Lambda) =>
 			false,
 		(ref ConcreteFunSource.Test) =>
@@ -423,9 +424,9 @@ immutable struct ConcreteExpr {
 immutable struct ConcreteClosureRef {
 	@safe @nogc pure nothrow:
 
-	PtrAndSmallNumber!ConcreteParam paramAndIndex;
+	PtrAndSmallNumber!ConcreteLocal paramAndIndex;
 
-	ConcreteParam* closureParam() =>
+	ConcreteLocal* closureParam() =>
 		paramAndIndex.ptr;
 
 	ushort fieldIndex() =>
@@ -541,10 +542,6 @@ immutable struct ConcreteExprKind {
 		Case[] cases;
 	}
 
-	immutable struct ParamGet {
-		ConcreteParam* param;
-	}
-
 	immutable struct PtrToField {
 		ConcreteExpr target;
 		size_t fieldIndex;
@@ -554,8 +551,11 @@ immutable struct ConcreteExprKind {
 		ConcreteLocal* local;
 	}
 
-	immutable struct PtrToParam {
-		ConcreteParam* param;
+	// Only used for destructuring.
+	immutable struct RecordFieldGet {
+		// This is always by-value
+		ConcreteExpr* record;
+		size_t fieldIndex;
 	}
 
 	immutable struct Seq {
@@ -589,16 +589,15 @@ immutable struct ConcreteExprKind {
 		LoopContinue,
 		MatchEnum*,
 		MatchUnion*,
-		ParamGet,
 		PtrToField*,
 		PtrToLocal,
-		PtrToParam,
+		RecordFieldGet,
 		Seq*,
 		Throw*);
 }
 
 immutable struct ConcreteVariableRef {
-	mixin Union!(Constant, ConcreteLocal*, ConcreteParam*, ConcreteClosureRef);
+	mixin Union!(Constant, ConcreteLocal*, ConcreteClosureRef);
 }
 
 ConcreteType elementType(ConcreteExprKind.CreateArr a) =>

@@ -13,7 +13,7 @@ import
 	../private/alloc:
 		alloc-uninitialized, set-zero-range, unmanaged-alloc-elements, unmanaged-free-elements
 	../range: .., high, low, range
-	../tuple: new, tuple2
+	../tuple: new
 	./array:
 		~=, ~~=, +, array, array-builder, as-array, begin, begin-pointer, build, iterate, new, next,
 		size, slice, subscript
@@ -242,9 +242,6 @@ region spec impls (see collection.crow)
 +iterate[t] bool(a t mut-array, f act bool(t))
 	trusted a.temp-as-array iterate f
 
-+iterate[t] bool(a t mut-array, f act bool(nat64, t))
-	trusted a.temp-as-array iterate f
-
 subregion iterator
 
 +mut-array-iterator[t] record mut by-val
@@ -298,7 +295,7 @@ subregion builder
 +mut-array-builder[t] record mut
 	-inner t array-builder
 +build[t] t mut-array(a build-options, f act void(t mut-array-builder))
-	(a build out => f[(out,)])::(t array),
+	(a build out => f[out,])::(t array),
 +~=[t] void(a t mut-array-builder, value t)
 	a.inner ~= value
 +~~=[t] void(a t mut-array-builder, values t array)

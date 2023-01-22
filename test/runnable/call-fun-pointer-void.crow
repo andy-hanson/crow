@@ -1,0 +1,16 @@
+import
+	crow/io/print: out, print
+
+main nat^(_ string[]) summon
+	xs string mut[] = ()
+	res = xs.get-fun[xs ~= "arg"]
+	out print (" " join xs.to-list)
+	out print "{res}"
+	()
+
+get-fun fun* nat()(xs string mut[])
+	xs ~= "get-fun"
+	&foo
+
+foo nat()
+	3

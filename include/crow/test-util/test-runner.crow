@@ -4,7 +4,7 @@ import
 	../col/collection: for-loop
 	../fun-util: subscript
 	../io/print: out, print
-	../misc: void
+	../misc: new, void
 	../string: ~~, literal, to-string
 
 # Run every `test` from all source files included in the compilation.

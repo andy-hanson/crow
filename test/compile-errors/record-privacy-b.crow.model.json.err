@@ -2,10 +2,10 @@ test/compile-errors/record-privacy-b.crow 5:22-6:1 there are functions named 'ne
 expected return type: 'private-ctor'
 actual argument types:  (other arguments not checked, gave up early)
 candidates (with 1 arguments):
-	new t array(...t array) (from include/crow/col/array.crow.crow line 20)
+	new t array(...t array) (from include/crow/col/array.crow.crow line 18)
 	new build-options(nat64) (from include/crow/col/private/build.crow.crow line 9)
 	new build-options by-val(nat64) (from include/crow/col/private/build.crow.crow line 9)
-	new index-relative-to-end(nat64) (from include/crow/col/collection.crow.crow line 60)
+	new index-relative-to-end(nat64) (from include/crow/col/collection.crow.crow line 58)
 	new k[v](...(k, v) array) (from include/crow/col/dict.crow.crow line 71)
 	new t[](t l1) (from include/crow/col/private/list-low-level.crow.crow line 20)
 	new t l1((t array, t l2) node) (from include/crow/col/private/list-low-level.crow.crow line 23)
@@ -17,9 +17,10 @@ candidates (with 1 arguments):
 	new k mut[v](...(k, v) array) (from include/crow/col/mut-dict.crow.crow line 42)
 	new t mut-set(...t array) (from include/crow/col/mut-set.crow.crow line 23)
 	new t set(...t array) (from include/crow/col/set.crow.crow line 31)
-	new t^(t) (from include/crow/future.crow.crow line 35)
+	new t^(t) (from include/crow/future.crow.crow line 34)
 	new json(...(symbol, json) array) (from include/crow/json.crow.crow line 43)
 	new t?(t) (from include/crow/option.crow.crow line 15)
+	new backtrace(backtrace-entry array) (from include/crow/private/bootstrap.crow.crow line 380)
 
 test/compile-errors/record-privacy-b.crow 9:11-9:12 there is no function named 'j'
 

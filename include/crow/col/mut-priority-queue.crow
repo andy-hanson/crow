@@ -9,9 +9,10 @@ import
 	../option: ==, force, new, option
 	../string: ==, ~~, literal, new, string, to-string
 	../test-util: is
-	../tuple: ==, from, new, to, tuple2
+	../tuple: ==, new
 	./array: +, array, begin, iterate, next, size
-	./collection: build-options, for-loop, is-at-end, join, reverse, set-reverse, subscript
+	./collection:
+		build-options, for-loop, is-at-end, join, reverse, set-reverse, subscript, with-index
 	./list: ==, ~=, build, iterate, list, list-builder, new, to-list
 	./mut-list:
 		~=, ~~=, +, -, begin, clear, copy, end, is-empty, iterate, move-to-array, mut-list, new,
@@ -42,7 +43,7 @@ If two pairs have the same key, the second pair added will be popped second.
 # Copies a list to a new priority queue.
 +to-mut-priority-queue[k, v] (k, v) mut-priority-queue(a (k, v)[]) k priority
 	mins = a to-mut-list
-	mins sort= pair => pair.from compare-reverse
+	mins sort= (k, _) => k compare-reverse
 	mins, ()
 
 # Removes all pairs from the queue.
@@ -68,13 +69,13 @@ This is O(n).
 Adds a pair to the queue.
 This is O(log n).
 ###
-+~=[k, v] void(a (k, v) mut-priority-queue, pair (k, v)) k priority
++~=[k, v] void(a (k, v) mut-priority-queue, (key k, value v)) k priority
 	# Highest min is on the right, so comparing in reverse
-	insert = a.mins binary-search-insert it => it.from <=> pair.from
+	insert = a.mins binary-search-insert (k, _) => k <=> key
 	if insert is-at-end
-		a.mins ~= pair
+		a.mins ~= (key, value)
 	else
-		a.buckets add-to-bucket insert.next-index, pair
+		a.buckets add-to-bucket insert.next-index, (key, value)
 
 ###
 Removes and returns the pair with the lowest key.
@@ -92,20 +93,20 @@ This is amortized O(log n).
 		# This preserves insertion order: 'sort' doesn't change that,
 		# then we reverse, then popping from the right reverses it again.
 		# Note: Handling equal keys is why we can't just use a reversed comparer
-		bucket sort= it => it from
+		bucket sort= (k, _) => k
 		bucket set-reverse
 		a.mins ~~= bucket
 	res
 
-+pop-if[k, v] (k, v)?(a (k, v) mut-priority-queue, f act bool((k, v))) k priority
++pop-if[k, v] (k, v)?(a (k, v) mut-priority-queue, f act bool(k, v)) k priority
 	if res ?= a.mins peek
 		if f[res]
 			a pop
 
 # Like `pop`, but discards the key.
 +pop-value[k, v] v?(a (k, v) mut-priority-queue) k priority
-	if pair ?= a pop
-		pair.to,
+	if _, v ?= a pop
+		v,
 
 ###
 Copy pairs to a new priority queue.
@@ -121,10 +122,10 @@ This is O(n).
 
 -spread-all-buckets[k, v] void(a (k, v) mut-priority-queue) k priority
 	old-mins = a.mins move-to-array
-	for index, old-min : old-mins
+	for index, old-min : old-mins with-index
 		if index < a.buckets.size
 			bucket = a.buckets[index]
-			bucket sort= it => it from
+			bucket sort= (k, _) => k
 			for x : bucket reverse
 				a.mins ~= x
 		a.mins ~= old-min
@@ -142,7 +143,7 @@ This is O(n).
 	trusted
 		mins = a.mins temp-as-array
 		buckets = a.buckets temp-as-array
-		", " join for i, min : mins
+		", " join for i, min : mins with-index
 			show-bucket = if i < buckets.size
 				bucket = buckets[i]
 				unless bucket is-empty
@@ -150,8 +151,8 @@ This is O(n).
 					" [{parts}]"
 			"{min dbg}{show-bucket}"
 
--dbg[k, v] string(a (k, v)) k to-string, v to-string
-	"{a from} -> {a to}"
+-dbg[k, v] string((k k, v v)) k to-string, v to-string
+	"{k} -> {v}"
 
 -verify void(a (nat64, string) mut-priority-queue, expected string)
 	a.dbg is expected
@@ -161,7 +162,7 @@ region build
 +mut-priority-queue-builder[k, v] record mut
 	-inner (k, v) list-builder
 +build[k, v] (k, v) mut-priority-queue(a build-options, f act void((k, v) mut-priority-queue-builder)) k priority
-	a build (out => f[(out,)]) to-mut-priority-queue
+	a build (out => f[out,]) to-mut-priority-queue
 +~=[k, v] void(a (k, v) mut-priority-queue-builder, value (k, v)) k priority
 	a.inner ~= value
 

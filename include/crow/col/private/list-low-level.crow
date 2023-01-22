@@ -68,7 +68,7 @@ list-reference-equal[t] bool(a t[], b t[]) unsafe
 +list-builder[t] record mut
 	-inner t array-builder
 +build[t] t[](a build-options, f act void(t list-builder))
-	inner t array = a build out => f[(out,)]
+	inner t array = a build out => f[out,]
 	(inner.leaf,),
 +~=[t] void(a t list-builder, value t)
 	a.inner ~= value

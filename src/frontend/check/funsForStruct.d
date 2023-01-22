@@ -3,12 +3,14 @@ module frontend.check.funsForStruct;
 @safe @nogc pure nothrow:
 
 import frontend.check.checkCtx : CheckCtx;
+import frontend.check.getCommonFuns : makeParam, makeParams, param, ParamShort;
 import frontend.check.instantiate :
 	instantiateStructNeverDelay, makeArrayType, makeNamedValType, TypeArgsArray, typeArgsArray;
 import frontend.programState : ProgramState;
 import model.model :
 	body_,
 	CommonTypes,
+	Destructure,
 	EnumBackingType,
 	EnumFunction,
 	FieldMutability,
@@ -20,7 +22,6 @@ import model.model :
 	IntegralTypes,
 	leastVisibility,
 	name,
-	Param,
 	Params,
 	range,
 	RecordField,
@@ -36,7 +37,7 @@ import model.model :
 	visibility;
 import util.alloc.alloc : Alloc;
 import util.col.arr : empty, ptrsRange;
-import util.col.arrUtil : arrLiteral, count, map, sum;
+import util.col.arrUtil : count, map, sum;
 import util.col.exactSizeArrBuilder : ExactSizeArrBuilder, exactSizeArrBuilderAdd;
 import util.col.mutMaxArr : push, tempAsArr;
 import util.col.str : safeCStr;
@@ -216,9 +217,7 @@ FunDecl enumEqualFunction(
 		sym!"==",
 		[],
 		Type(commonTypes.bool_),
-		Params(arrLiteral!Param(alloc, [
-			Param(fileAndRange, some(sym!"a"), enumType, 0),
-			Param(fileAndRange, some(sym!"b"), enumType, 1)])),
+		makeParams(alloc, fileAndRange, [param!"a"(enumType), param!"b"(enumType)]),
 		FunFlags.generatedNoCtx.withOkIfUnused(),
 		[],
 		FunBody(EnumFunction.equal));
@@ -257,7 +256,7 @@ FunDecl flagsNegateFunction(ref Alloc alloc, Visibility visibility, FileAndRange
 		sym!"~",
 		[],
 		enumType,
-		Params(arrLiteral!Param(alloc, [Param(fileAndRange, some(sym!"a"), enumType, 0)])),
+		makeParams(alloc, fileAndRange, [param!"a"(enumType)]),
 		FunFlags.generatedNoCtx.withOkIfUnused(),
 		[],
 		FunBody(FlagsFunction.negate));
@@ -277,7 +276,7 @@ FunDecl enumToIntegralFunction(
 		enumToIntegralName(enumBackingType),
 		[],
 		Type(getBackingTypeFromEnumType(enumBackingType, commonTypes)),
-		Params(arrLiteral!Param(alloc, [Param(fileAndRange, some(sym!"a"), enumType, 0)])),
+		makeParams(alloc, fileAndRange, [param!"a"(enumType)]),
 		FunFlags.generatedNoCtx.withOkIfUnused(),
 		[],
 		FunBody(EnumFunction.toIntegral));
@@ -344,9 +343,7 @@ FunDecl flagsUnionOrIntersectFunction(
 		name,
 		[],
 		enumType,
-		Params(arrLiteral!Param(alloc, [
-			Param(fileAndRange, some(sym!"a"), enumType, 0),
-			Param(fileAndRange, some(sym!"b"), enumType, 0)])),
+		makeParams(alloc, fileAndRange, [param!"a"(enumType), param!"b"(enumType)]),
 		FunFlags.generatedNoCtx.withOkIfUnused(),
 		[],
 		FunBody(fn));
@@ -387,8 +384,8 @@ void addFunsForRecord(
 		push(typeArgs, Type(p));
 	Type structType = Type(
 		instantiateStructNeverDelay(ctx.alloc, ctx.programState, struct_, tempAsArr(typeArgs)));
-	Param[] ctorParams = map(ctx.alloc, record.fields, (ref RecordField it) =>
-		Param(it.range, some(it.name), it.type, it.index));
+	Destructure[] ctorParams = map(ctx.alloc, record.fields, (ref RecordField it) =>
+		makeParam(ctx.alloc, it.range, it.name, it.type));
 	FunDecl constructor(Type returnType, FunFlags flags) {
 		return FunDecl(
 			safeCStr!"",
@@ -421,7 +418,7 @@ void addFunsForRecord(
 			field.name,
 			typeParams,
 			field.type,
-			Params(arrLiteral!Param(ctx.alloc, [Param(field.range, some(sym!"a"), structType, 0)])),
+			makeParams(ctx.alloc, field.range, [param!"a"(structType)]),
 			FunFlags.generatedNoCtx,
 			[],
 			FunBody(FunBody.RecordFieldGet(fieldIndex))));
@@ -435,9 +432,7 @@ void addFunsForRecord(
 				prependSet(ctx.allSymbols, field.name),
 				typeParams,
 				Type(commonTypes.void_),
-				Params(arrLiteral!Param(ctx.alloc, [
-					Param(field.range, some(sym!"a"), structType, 0),
-					Param(field.range, some(field.name), field.type, 1)])),
+				makeParams(ctx.alloc, field.range, [param!"a"(structType), ParamShort(field.name, field.type)]),
 				FunFlags.generatedNoCtx,
 				[],
 				FunBody(FunBody.RecordFieldSet(fieldIndex))));
@@ -468,9 +463,9 @@ void addFunsForUnion(
 		push(typeArgs, Type(x));
 	Type structType = Type(instantiateStructNeverDelay(ctx.alloc, ctx.programState, struct_, tempAsArr(typeArgs)));
 	foreach (size_t memberIndex, ref UnionMember member; union_.members) {
-		Param[] params = has(member.type)
-			? arrLiteral(ctx.alloc, [Param(member.range, some(sym!"a"), force(member.type), 0)])
-			: [];
+		Params params = has(member.type)
+			? makeParams(ctx.alloc, member.range, [param!"a"(force(member.type))])
+			: Params([]);
 		exactSizeArrBuilderAdd(funsBuilder, FunDecl(
 			safeCStr!"",
 			struct_.visibility,
@@ -478,7 +473,7 @@ void addFunsForUnion(
 			member.name,
 			typeParams,
 			structType,
-			Params(params),
+			params,
 			FunFlags.generatedNoCtx,
 			[],
 			FunBody(FunBody.CreateUnion(memberIndex))));

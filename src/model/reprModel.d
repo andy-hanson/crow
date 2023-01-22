@@ -5,8 +5,8 @@ module model.reprModel;
 import model.model :
 	body_,
 	Called,
-	debugName,
 	decl,
+	Destructure,
 	EnumFunction,
 	enumFunctionName,
 	Expr,
@@ -23,7 +23,6 @@ import model.model :
 	Module,
 	name,
 	noCtx,
-	Param,
 	Params,
 	Purity,
 	SpecBody,
@@ -52,7 +51,6 @@ import util.col.arr : empty;
 import util.col.arrBuilder : add, ArrBuilder, finishArr;
 import util.col.arrUtil : map;
 import util.col.str : SafeCStr, safeCStrIsEmpty;
-import util.opt : force;
 import util.ptr : ptrTrustMe;
 import util.repr :
 	nameAndRepr,
@@ -228,18 +226,14 @@ Repr reprTypeParam(ref Alloc alloc, in TypeParam a) =>
 
 Repr reprParams(ref Alloc alloc, in Ctx ctx, in Params a) =>
 	a.matchIn!Repr(
-		(in Param[] params) =>
-			reprArr!Param(alloc, params, (in Param it) =>
-				reprParam(alloc, ctx, it)),
+		(in Destructure[] params) =>
+			reprDestructures(alloc, ctx, params),
 		(in Params.Varargs v) =>
-			reprRecord!"varargs"(alloc, [reprParam(alloc, ctx, v.param)]));
+			reprRecord!"varargs"(alloc, [reprDestructure(alloc, ctx, v.param)]));
 
-Repr reprParam(ref Alloc alloc, in Ctx ctx, in Param a) =>
-	reprRecord!"param"(alloc, [
-		reprFileAndRange(alloc, a.range),
-		reprOpt!Sym(alloc, a.name, (in Sym it) =>
-			reprSym(it)),
-		reprType(alloc, ctx, a.type)]);
+Repr reprDestructures(ref Alloc alloc, in Ctx ctx, in Destructure[] a) =>
+	reprArr!Destructure(alloc, a, (in Destructure x) =>
+		reprDestructure(alloc, ctx, x));
 
 Repr reprSpecInsts(ref Alloc alloc, in Ctx ctx, in immutable SpecInst*[] specs) =>
 	reprArr!(SpecInst*)(alloc, specs, (in SpecInst* x) =>
@@ -268,8 +262,8 @@ Repr reprFunBody(ref Alloc alloc, in Ctx ctx, in FunBody a) =>
 			reprRecord!"enum-fn"(alloc, [reprSym(enumFunctionName(it))]),
 		(in FunBody.Extern x) =>
 			reprRecord!"extern"(alloc, [reprBool(x.isGlobal), reprSym(x.libraryName)]),
-		(in Expr it) =>
-			reprExpr(alloc, ctx, it),
+		(in FunBody.ExpressionBody x) =>
+			reprExpr(alloc, ctx, x.expr),
 		(in FunBody.FileBytes) =>
 			reprSym!"bytes" ,
 		(in FlagsFunction it) =>
@@ -328,23 +322,22 @@ Repr reprExpr(ref Alloc alloc, in Ctx ctx, in Expr a) =>
 				reprStructInst(alloc, ctx, *it.structInst)]),
 		(in ExprKind.IfOption it) =>
 			reprRecord!"if"(alloc, [
+				reprDestructure(alloc, ctx, it.destructure),
 				reprExpr(alloc, ctx, it.option),
-				reprLocal(alloc, ctx, *it.local),
 				reprExpr(alloc, ctx, it.then),
 				reprExpr(alloc, ctx, it.else_)]),
 		(in ExprKind.Lambda a) =>
 			reprRecord!"lambda"(alloc, [
-				reprArr!Param(alloc, a.params, (in Param it) =>
-					reprParam(alloc, ctx, it)),
+				reprDestructure(alloc, ctx, a.param),
 				reprExpr(alloc, ctx, a.body_),
-				reprArr!VariableRef(alloc, a.closure, (in VariableRef it) =>
-					reprSym(debugName(it))),
+				reprArr!VariableRef(alloc, a.closure, (in VariableRef x) =>
+					reprSym(x.name)),
 				reprStructInst(alloc, ctx, *a.funType),
 				reprSym(symOfFunKind(a.kind)),
 				reprType(alloc, ctx, a.returnType)]),
 		(in ExprKind.Let it) =>
 			reprRecord!"let"(alloc, [
-				reprLocal(alloc, ctx, *it.local),
+				reprDestructure(alloc, ctx, it.destructure),
 				reprExpr(alloc, ctx, it.value),
 				reprExpr(alloc, ctx, it.then)]),
 		(in ExprKind.Literal it) =>
@@ -380,11 +373,8 @@ Repr reprExpr(ref Alloc alloc, in Ctx ctx, in Expr a) =>
 		(in ExprKind.MatchUnion a) =>
 			reprRecord!"match-union"(alloc, [
 				reprExpr(alloc, ctx, a.matched),
-				reprStructInst(alloc, ctx, *a.matchedUnion),
 				reprArr!(ExprKind.MatchUnion.Case)(alloc, a.cases, (in ExprKind.MatchUnion.Case case_) =>
 					reprMatchUnionCase(alloc, ctx, case_))]),
-		(in ExprKind.ParamGet it) =>
-			reprRecord!"param-get"(alloc, [reprSym(force(it.param.name))]),
 		(in ExprKind.PtrToField it) =>
 			reprRecord!"ptr-to-field"(alloc, [
 				reprType(alloc, ctx, it.pointerType),
@@ -392,8 +382,6 @@ Repr reprExpr(ref Alloc alloc, in Ctx ctx, in Expr a) =>
 				reprNat(it.fieldIndex)]),
 		(in ExprKind.PtrToLocal it) =>
 			reprRecord!"ptr-to-local"(alloc, [reprSym(it.local.name)]),
-		(in ExprKind.PtrToParam it) =>
-			reprRecord!"ptr-to-param"(alloc, [reprSym(force(it.param.name))]),
 		(in ExprKind.Seq a) =>
 			reprRecord!"seq"(alloc, [
 				reprExpr(alloc, ctx, a.first),
@@ -401,10 +389,24 @@ Repr reprExpr(ref Alloc alloc, in Ctx ctx, in Expr a) =>
 		(in ExprKind.Throw a) =>
 			reprRecord!"throw"(alloc, [reprExpr(alloc, ctx, a.thrown)]));
 
+Repr reprDestructure(ref Alloc alloc, in Ctx ctx, in Destructure a) =>
+	a.matchIn!Repr(
+		(in Destructure.Ignore _) =>
+			reprSym!"_",
+		(in Local x) =>
+			reprLocal(alloc, ctx, x),
+		(in Destructure.Split split) =>
+			reprDestructureSplit(alloc, ctx, split));
+
+Repr reprDestructureSplit(ref Alloc alloc, in Ctx ctx, in Destructure.Split a) =>
+	reprRecord!"split"(alloc, [
+		reprStructInst(alloc, ctx, *a.type),
+		reprDestructures(alloc, ctx, a.parts)]);
+
 Repr reprMatchUnionCase(ref Alloc alloc, in Ctx ctx, in ExprKind.MatchUnion.Case a) =>
 	reprRecord!"case"(alloc, [
-		reprOpt!(Local*)(alloc, a.local, (in Local* local) =>
-			reprLocal(alloc, ctx, *local)),
+		reprOpt!Destructure(alloc, a.destructure, (in Destructure x) =>
+			reprDestructure(alloc, ctx, x)),
 		reprExpr(alloc, ctx, a.then)]);
 
 Repr reprLocal(ref Alloc alloc, in Ctx ctx, in Local a) =>

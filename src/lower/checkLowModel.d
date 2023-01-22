@@ -29,7 +29,7 @@ import model.lowModel :
 	LowFunExprBody,
 	LowFunIndex,
 	LowFunPtrType,
-	LowParam,
+	LowLocal,
 	LowProgram,
 	LowType,
 	PrimitiveType,
@@ -118,7 +118,7 @@ void checkLowExpr(ref FunCtx ctx, in InfoStack info, in LowType type, in LowExpr
 			LowFun* fun = &ctx.ctx.program.allFuns[it.called];
 			checkTypeEqual(ctx.ctx, type, fun.returnType);
 			verify(sizeEq(fun.params, it.args));
-			zip!(LowParam, LowExpr)(fun.params, it.args, (ref LowParam param, ref LowExpr arg) {
+			zip!(LowLocal, LowExpr)(fun.params, it.args, (ref LowLocal param, ref LowExpr arg) {
 				checkLowExpr(ctx, info, param.type, arg);
 			});
 		},
@@ -180,9 +180,6 @@ void checkLowExpr(ref FunCtx ctx, in InfoStack info, in LowType type, in LowExpr
 					checkLowExpr(ctx, info, type, case_.then);
 				});
 		},
-		(in LowExprKind.ParamGet it) {
-			checkTypeEqual(ctx.ctx, type, ctx.fun.params[it.index.index].type);
-		},
 		(in LowExprKind.PtrCast it) {
 			// TODO: there are some limitations on target...
 			checkLowExpr(ctx, info, it.target.type, it.target);
@@ -194,10 +191,6 @@ void checkLowExpr(ref FunCtx ctx, in InfoStack info, in LowType type, in LowExpr
 		},
 		(in LowExprKind.PtrToLocal it) {
 			checkTypeEqual(ctx.ctx, asGcOrRawPointee(type), it.local.type);
-		},
-		(in LowExprKind.PtrToParam it) {
-			checkTypeEqual(ctx.ctx, type, LowType(
-				LowType.PtrRawConst(&ctx.fun.params[it.index.index].type)));
 		},
 		(in LowExprKind.RecordFieldGet it) {
 			LowType.Record recordType = targetRecordType(it);
@@ -243,9 +236,8 @@ void checkLowExpr(ref FunCtx ctx, in InfoStack info, in LowType type, in LowExpr
 				checkLowExpr(ctx, info, type, case_);
 		},
 		(in LowExprKind.TailRecur it) {
-			checkTypeEqual(ctx.ctx, type, ctx.fun.returnType);
 			foreach (ref UpdateParam update; it.updateParams)
-				checkLowExpr(ctx, info, ctx.fun.params[update.param.index].type, update.newValue);
+				checkLowExpr(ctx, info, update.param.type, update.newValue);
 		},
 		(in LowExprKind.ThreadLocalPtr it) {
 			LowType pointee = ctx.ctx.program.threadLocals[it.threadLocalIndex].type;

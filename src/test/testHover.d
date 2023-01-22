@@ -96,12 +96,12 @@ void testFunction(ref Test test) {
 	a[b]
 `);
 
-	checkHover(test, a, 0, safeCStr!"fun f");
+	checkHover(test, a, 0, safeCStr!"function f");
 	checkHoverRange(test, a, 1, 5, safeCStr!"TODO: hover for type");
-	checkHover(test, a, 6, safeCStr!"param a");
+	checkHover(test, a, 6, safeCStr!"parameter a");
 	checkHoverRange(test, a, 7, 10, safeCStr!"TODO: hover for type");
 	checkHoverRange(test, a, 11, 13, safeCStr!"");
-	checkHover(test, a, 13, safeCStr!"param b");
+	checkHover(test, a, 13, safeCStr!"parameter b");
 	checkHoverRange(test, a, 15, 18, safeCStr!"TODO: hover for type");
 
 	//TODO: hover in function body

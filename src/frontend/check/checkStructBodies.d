@@ -41,7 +41,7 @@ import model.model :
 	Visibility,
 	visibility;
 import util.col.arr : empty, small;
-import util.col.arrUtil : eachPair, fold, map, mapAndFold, MapAndFold, mapToMut, mapWithIndex, zipPtrFirst;
+import util.col.arrUtil : eachPair, fold, map, mapAndFold, MapAndFold, mapToMut, zipPtrFirst;
 import util.col.mutArr : MutArr;
 import util.col.str : copySafeCStr;
 import util.conv : safeToSizeT;
@@ -470,10 +470,10 @@ StructBody.Record checkRecord(
 	if (isExtern && modifiers.byValOrRefOrNone != ForcedByValOrRefOrNone.none)
 		addDiag(ctx, struct_.range, Diag(Diag.ExternRecordImplicitlyByVal(struct_)));
 	bool forcedByVal = valOrRef == ForcedByValOrRefOrNone.byVal;
-	RecordField[] fields = mapWithIndex!(RecordField, StructDeclAst.Body.Record.Field)(
-		ctx.alloc, r.fields, (size_t index, scope ref StructDeclAst.Body.Record.Field field) =>
+	RecordField[] fields = map!(RecordField, StructDeclAst.Body.Record.Field)(
+		ctx.alloc, r.fields, (scope ref StructDeclAst.Body.Record.Field field) =>
 			checkRecordField(
-				ctx, commonTypes, structsAndAliasesDict, delayStructInsts, struct_, forcedByVal, index, field));
+				ctx, commonTypes, structsAndAliasesDict, delayStructInsts, struct_, forcedByVal, field));
 	eachPair!RecordField(fields, (in RecordField a, in RecordField b) {
 		if (a.name == b.name)
 			addDiag(ctx, b.range, Diag(Diag.DuplicateDeclaration(Diag.DuplicateDeclaration.Kind.recordField, a.name)));
@@ -490,7 +490,6 @@ RecordField checkRecordField(
 	ref MutArr!(StructInst*) delayStructInsts,
 	StructDecl* struct_,
 	bool forcedByVal,
-	size_t index,
 	in StructDeclAst.Body.Record.Field ast,
 ) {
 	Type fieldType = typeFromAst(
@@ -506,7 +505,7 @@ RecordField checkRecordField(
 		if (has(reason))
 			addDiag(ctx, ast.range, Diag(Diag.MutFieldNotAllowed(force(reason))));
 	}
-	return RecordField(rangeInFile(ctx, ast.range), ast.visibility, ast.name, ast.mutability, fieldType, index);
+	return RecordField(rangeInFile(ctx, ast.range), ast.visibility, ast.name, ast.mutability, fieldType);
 }
 
 StructBody.Union checkUnion(

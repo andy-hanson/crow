@@ -2,7 +2,7 @@ no-std
 import
 	setjmp: jmp_buf, __jmp_buf_tag, longjmp, new, setjmp, _setjmp
 	../fun-util: subscript
-	../misc: void
+	../misc: new, void
 	../number: ==, int32, nat64
 	../pointer: *, ==, mut-pointer, null, set-deref, zeroed
 	../version: is-interpreted, is-windows

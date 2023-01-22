@@ -1,0 +1,13 @@
+main nat^(_ string[]) summon
+	d = () => 1
+	3 foo (x string) => ()
+	3 bar x => ()
+	()
+
+foo void(x nat, f act void(nat))
+	()
+bar void(x nat, f act void(nat))
+	()
+bar void(x nat, f act void(string))
+	()
+

@@ -4,7 +4,7 @@ import
 	../fun-util: subscript
 	../misc: key, new, void
 	../option: is-empty
-	../tuple: a, new, tuple2
+	../tuple: a, new
 	./array: array, iterate, size
 	./collection: for-loop
 	./list: ~=, build, iterate, list, size

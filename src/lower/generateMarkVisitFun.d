@@ -13,8 +13,6 @@ import model.lowModel :
 	LowFunBody,
 	LowFunIndex,
 	LowLocal,
-	LowParam,
-	LowParamIndex,
 	LowType;
 import lower.lower : MarkVisitFuns, tryGetMarkVisitFun;
 import lower.lowExprHelpers :
@@ -31,13 +29,12 @@ import lower.lowExprHelpers :
 	genIncrPointer,
 	genLet,
 	genLocal,
+	genLocalByValue,
 	genLocalGet,
 	genLocalSet,
 	genLoop,
 	genLoopBreak,
 	genLoopContinue,
-	genParam,
-	genParamGet,
 	genPtrEq,
 	genRecordFieldGet,
 	genSeq,
@@ -63,11 +60,11 @@ LowFun generateMarkVisitGcPtr(
 	LowType pointerType = LowType(pointerTypePtrGc);
 	LowType pointeeType = *pointerTypePtrGc.pointee;
 	FileAndRange range = FileAndRange.empty;
-	LowParam[] params = arrLiteral!LowParam(alloc, [
-		genParam(alloc, sym!"mark-ctx", markCtxType),
-		genParam(alloc, sym!"value", pointerType)]);
-	LowExpr markCtx = genParamGet(range, markCtxType, LowParamIndex(0));
-	LowExpr value = genParamGet(range, pointerType, LowParamIndex(1));
+	LowLocal[] params = arrLiteral!LowLocal(alloc, [
+		genLocalByValue(alloc, sym!"mark-ctx", 0, markCtxType),
+		genLocalByValue(alloc, sym!"value", 1, pointerType)]);
+	LowExpr markCtx = genLocalGet(range, &params[0]);
+	LowExpr value = genLocalGet(range, &params[1]);
 	LowExpr sizeExpr = genSizeOf(range, pointeeType);
 	LowExpr valueAsAnyPtrConst = genAsAnyPtrConst(alloc, range, value);
 	LowExpr mark = genCall(
@@ -107,11 +104,11 @@ LowFun generateMarkVisitNonArr(
 	LowType paramType,
 ) {
 	FileAndRange range = FileAndRange.empty;
-	LowParam[] params = arrLiteral!LowParam(alloc, [
-		genParam(alloc, sym!"mark-ctx", markCtxType),
-		genParam(alloc, sym!"value", paramType)]);
-	LowExpr markCtx = genParamGet(range, markCtxType, LowParamIndex(0));
-	LowExpr value = genParamGet(range, paramType, LowParamIndex(1));
+	LowLocal[] params = arrLiteral!LowLocal(alloc, [
+		genLocalByValue(alloc, sym!"mark-ctx", 0, markCtxType),
+		genLocalByValue(alloc, sym!"value", 1, paramType)]);
+	LowExpr markCtx = genLocalGet(range, &params[0]);
+	LowExpr value = genLocalGet(range, &params[1]);
 	LowFunExprBody body_ = paramType.isA!(LowType.Record)
 		? visitRecordBody(
 			alloc, range, markVisitFuns, allTypes.allRecords[paramType.as!(LowType.Record)].fields, markCtx, value)
@@ -150,11 +147,11 @@ LowFun generateMarkVisitArr(
 ) {
 	LowType elementType = *elementPointerType.pointee;
 	FileAndRange range = FileAndRange.empty;
-	LowParam[] params = arrLiteral!LowParam(alloc, [
-		genParam(alloc, sym!"mark-ctx", markCtxType),
-		genParam(alloc, sym!"a", LowType(arrType))]);
-	LowExpr getMarkCtx = genParamGet(range, markCtxType, LowParamIndex(0));
-	LowExpr getA = genParamGet(range, LowType(arrType), LowParamIndex(1));
+	LowLocal[] params = arrLiteral!LowLocal(alloc, [
+		genLocalByValue(alloc, sym!"mark-ctx", 0, markCtxType),
+		genLocalByValue(alloc, sym!"a", 1, LowType(arrType))]);
+	LowExpr getMarkCtx = genLocalGet(range, &params[0]);
+	LowExpr getA = genLocalGet(range, &params[1]);
 	LowExpr getData = genGetArrData(alloc, range, getA, elementPointerType);
 	LowExpr getSize = genGetArrSize(alloc, range, getA);
 	// mark-ctx mark a.data.pointer-cast, a.size * size-of@<a>
@@ -170,9 +167,9 @@ LowFun generateMarkVisitArr(
 	LowExpr expr = () {
 		if (has(markVisitElementFun)) {
 			LowExpr voidValue = genVoid(range);
-			LowLocal* cur = genLocal(alloc, sym!"cur", 0, LowType(elementPointerType));
+			LowLocal* cur = genLocal(alloc, sym!"cur", 2, LowType(elementPointerType));
 			LowExpr getCur = genLocalGet(range, cur);
-			LowLocal* end = genLocal(alloc, sym!"end", 0, LowType(elementPointerType));
+			LowLocal* end = genLocal(alloc, sym!"end", 3, LowType(elementPointerType));
 			LowExpr getEnd = genLocalGet(range, end);
 			LowExpr theLoop = genLoop(alloc, range, voidType, (LowExprKind.Loop* loop) {
 				// mark-ctx mark-visit *cur

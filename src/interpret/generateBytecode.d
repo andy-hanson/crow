@@ -52,7 +52,7 @@ import model.lowModel :
 	lowFunRange,
 	LowFunIndex,
 	LowFunPtrType,
-	LowParam,
+	LowLocal,
 	LowProgram,
 	LowType,
 	LowUnion,
@@ -245,7 +245,7 @@ void generateBytecodeForFun(
 	}
 
 	size_t stackEntry = 0;
-	StackEntries[] parameters = map(tempAlloc, fun.params, (ref LowParam it) {
+	StackEntries[] parameters = map(tempAlloc, fun.params, (ref LowLocal it) {
 		StackEntry start = StackEntry(stackEntry);
 		size_t n = nStackEntriesForType(program, it.type);
 		stackEntry += n;
@@ -263,7 +263,7 @@ void generateBytecodeForFun(
 		(in LowFunExprBody body_) {
 			generateFunFromExpr(
 				tempAlloc, writer, allSymbols, program, textInfo, threadLocalsInfo, funIndex,
-				funToReferences, parameters, returnEntries, body_);
+				funToReferences, fun.params, parameters, returnEntries, body_);
 		});
 	verify(getNextStackEntry(writer).entry == returnEntries);
 	setNextStackEntry(writer, StackEntry(0));
@@ -321,7 +321,7 @@ void generateExternCallFunPtr(
 	MutMaxArr!(16, DynCallType) sigTypes = void;
 	initializeMutMaxArr(sigTypes);
 	push(sigTypes, toDynCallType(fun.returnType));
-	foreach (ref LowParam x; fun.params)
+	foreach (ref LowLocal x; fun.params)
 		toDynCallTypes(program, x.type, (DynCallType x) {
 		push(sigTypes, x);
 	});

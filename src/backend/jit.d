@@ -91,7 +91,6 @@ import backend.mangle :
 	writeConstantPointerStorageName,
 	writeLowLocalName,
 	writeLowFunMangledName,
-	writeLowParamName,
 	writeLowThreadLocalMangledName;
 import frontend.lang : JitOptions, OptimizationLevel;
 import model.constant : Constant, constantBool;
@@ -107,8 +106,6 @@ import model.lowModel :
 	LowFunExprBody,
 	LowFunIndex,
 	LowLocal,
-	LowParam,
-	LowParamIndex,
 	LowProgram,
 	LowPtrCombine,
 	LowThreadLocal,
@@ -124,13 +121,13 @@ import model.lowModel :
 import model.typeLayout : typeSizeBytes;
 import util.alloc.alloc : Alloc;
 import util.col.arr : empty;
-import util.col.arrUtil : makeArr, map, mapToMut, mapWithIndex, zip;
+import util.col.arrUtil : indexOfPointer, makeArr, map, mapToMut, mapWithIndex, zip;
 import util.col.dict : mustGetAt;
 import util.col.fullIndexDict : FullIndexDict, fullIndexDictZip, mapFullIndexDict_mut;
 import util.col.stackDict : MutStackDict, mutStackDictAdd, mutStackDictMustGet;
 import util.col.str : CStr, SafeCStr;
 import util.conv : safeToInt;
-import util.opt : force, has, MutOpt, none, noneMut, some, someMut;
+import util.opt : force, has, MutOpt, none, noneMut, Opt, some, someMut;
 import util.perf : Perf, PerfMeasure, withMeasure;
 import util.ptr : castImmutable, castNonScope, castNonScope_ref, ptrTrustMe;
 import util.sourceRange : FileAndRange;
@@ -300,6 +297,7 @@ void buildGccProgram(ref Alloc alloc, ref gcc_jit_context ctx, in AllSymbols all
 					gccFuns,
 					curFun,
 					fun.returnType,
+					fun.params,
 					entryBlock,
 					entryBlock,
 					nat64Type,
@@ -515,10 +513,10 @@ GlobalsForThreadLocals generateGlobalsForThreadLocals(
 
 	immutable gcc_jit_type* returnType = getGccType(gccTypes, fun.returnType);
 	//TODO:NO ALLOC
-	immutable gcc_jit_param*[] params = map(alloc, fun.params, (ref LowParam param) {
+	immutable gcc_jit_param*[] params = map(alloc, fun.params, (ref LowLocal param) {
 		//TODO:NO ALLOC
 		Writer writer = Writer(ptrTrustMe(alloc));
-		writeLowParamName(writer, mangledNames, param);
+		writeLowLocalName(writer, mangledNames, param);
 		return gcc_jit_context_new_param(ctx, null, getGccType(gccTypes, param.type), finishWriterToCStr(writer));
 	});
 	//TODO:NO ALLOC
@@ -785,7 +783,12 @@ ExprResult emitSwitch(
 
 alias Locals = MutStackDict!(LowLocal*, gcc_jit_lvalue*);
 alias addLocal = mutStackDictAdd!(LowLocal*, gcc_jit_lvalue*);
-alias getLocal = mutStackDictMustGet!(LowLocal*, gcc_jit_lvalue*);
+gcc_jit_lvalue* getLocal(ref ExprCtx ctx, ref Locals locals, in LowLocal* local) {
+	Opt!size_t paramIndex = indexOfPointer(ctx.curFunParams, local);
+	return has(paramIndex)
+		? gcc_jit_param_as_lvalue(gcc_jit_function_get_param(ctx.curFun, safeToInt(force(paramIndex))))
+		: mutStackDictMustGet!(LowLocal*, gcc_jit_lvalue*)(locals, local);
+}
 
 struct ExprCtx {
 	@safe @nogc pure nothrow:
@@ -801,6 +804,7 @@ struct ExprCtx {
 	FullIndexDict!(LowFunIndex, gcc_jit_function*) gccFuns;
 	gcc_jit_function* curFun;
 	LowType curFunReturnType;
+	LowLocal[] curFunParams;
 	gcc_jit_block* entryBlock;
 	gcc_jit_block* curBlock;
 	immutable gcc_jit_type* nat64Type;
@@ -859,16 +863,12 @@ ExprResult toGccExpr(ref ExprCtx ctx, ref Locals locals, ref ExprEmit emit, in L
 			loopContinueToGcc(ctx, locals, emit),
 		(in LowExprKind.MatchUnion it) =>
 			matchUnionToGcc(ctx, locals, emit, a, it),
-		(in LowExprKind.ParamGet it) =>
-			paramGetToGcc(ctx, emit, it),
 		(in LowExprKind.PtrCast it) =>
 			ptrCastToGcc(ctx, locals, emit, a, it),
 		(in LowExprKind.PtrToField it) =>
 			ptrToFieldToGcc(ctx, locals, emit, a, it),
 		(in LowExprKind.PtrToLocal it) =>
 			ptrToLocalToGcc(ctx, locals, emit, it),
-		(in LowExprKind.PtrToParam it) =>
-			ptrToParamToGcc(ctx, locals, emit, it),
 		(in LowExprKind.RecordFieldGet it) =>
 			recordFieldGetToGcc(ctx, locals, emit, it),
 		(in LowExprKind.RecordFieldSet it) =>
@@ -973,11 +973,10 @@ void emitToLValue(ref ExprCtx ctx, ref Locals locals, gcc_jit_lvalue* lvalue, in
 		updateParamLocals,
 		a.updateParams,
 		(ref gcc_jit_lvalue* local, ref UpdateParam updateParam) {
-			gcc_jit_param* param = getParam(ctx, updateParam.param);
 			gcc_jit_block_add_assignment(
 				ctx.curBlock,
 				null,
-				gcc_jit_param_as_lvalue(param),
+				getLocal(ctx, locals, updateParam.param),
 				gcc_jit_lvalue_as_rvalue(local));
 		});
 	gcc_jit_block_end_with_jump(ctx.curBlock, null, ctx.entryBlock);
@@ -1087,10 +1086,10 @@ ExprResult emitWithLocal(
 }
 
 ExprResult localGetToGcc(ref ExprCtx ctx, ref Locals locals, ref ExprEmit emit, in LowExprKind.LocalGet a) =>
-	emitSimpleNoSideEffects(ctx, emit, gcc_jit_lvalue_as_rvalue(getLocal(locals, a.local)));
+	emitSimpleNoSideEffects(ctx, emit, gcc_jit_lvalue_as_rvalue(getLocal(ctx, locals, a.local)));
 
 ExprResult localSetToGcc(ref ExprCtx ctx, ref Locals locals, ref ExprEmit emit, in LowExprKind.LocalSet a) {
-	emitToLValue(ctx, locals, getLocal(locals, a.local), a.value);
+	emitToLValue(ctx, locals, getLocal(ctx, locals, a.local), a.value);
 	return emitVoid(ctx, emit);
 }
 
@@ -1179,12 +1178,6 @@ ExprResult matchUnionToGcc(
 		});
 }
 
-ExprResult paramGetToGcc(ref ExprCtx ctx, ref ExprEmit emit, in LowExprKind.ParamGet a) =>
-	emitSimpleNoSideEffects(ctx, emit, gcc_jit_param_as_rvalue(getParam(ctx, a.index)));
-
-gcc_jit_param* getParam(ref ExprCtx ctx, LowParamIndex a) =>
-	gcc_jit_function_get_param(ctx.curFun, safeToInt(a.index));
-
 ExprResult ptrCastToGcc(
 	ref ExprCtx ctx,
 	ref Locals locals,
@@ -1219,12 +1212,7 @@ ExprResult ptrToFieldToGcc(
 }
 
 ExprResult ptrToLocalToGcc(ref ExprCtx ctx, ref Locals locals, ref ExprEmit emit, in LowExprKind.PtrToLocal a) =>
-	emitSimpleNoSideEffects(ctx, emit, gcc_jit_lvalue_get_address(getLocal(locals, a.local), null));
-
-ExprResult ptrToParamToGcc(ref ExprCtx ctx, ref Locals locals, ref ExprEmit emit, in LowExprKind.PtrToParam a) =>
-	emitSimpleNoSideEffects(ctx, emit, gcc_jit_lvalue_get_address(
-		gcc_jit_param_as_lvalue(getParam(ctx, a.index)),
-		null));
+	emitSimpleNoSideEffects(ctx, emit, gcc_jit_lvalue_get_address(getLocal(ctx, locals, a.local), null));
 
 ExprResult recordFieldGetToGcc(
 	ref ExprCtx ctx,

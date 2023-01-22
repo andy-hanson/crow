@@ -24,17 +24,7 @@ Do not actually write to it.
 +null[t] t*() noctx, unsafe
 	null.as-const
 +null[t] t mut*() builtin, noctx, unsafe
-+null[r] fun* r()() noctx, unsafe
-	null as-fun-pointer
-+null[r, p0] fun* r(p0)() noctx, unsafe
-	null as-fun-pointer
-+null[r, p0, p1] fun* r(p0, p1)() noctx, unsafe
-	null as-fun-pointer
-+null[r, p0, p1, p2] fun* r(p0, p1, p2)() noctx, unsafe
-	null as-fun-pointer
-+null[r, p0, p1, p2, p3] fun* r(p0, p1, p2, p3)() noctx, unsafe
-	null as-fun-pointer
-+null[r, p0, p1, p2, p3, p4] fun* r(p0, p1, p2, p3, p4)() noctx, unsafe
++null[r, p] fun* r(p)() noctx, unsafe
 	null as-fun-pointer
 
 # Same as `null`.
@@ -160,35 +150,7 @@ UB if a value of that type was not stored at the pointer.
 ###
 as-ref[t] t(a any-mut-pointer) builtin, noctx, unsafe
 
-+as-fun-pointer[r] fun* r()(a any-const-pointer) noctx, unsafe
-	a as-ref
-+as-fun-pointer[r, p0] fun* r(p0)(a any-const-pointer) noctx, unsafe
-	a as-ref
-+as-fun-pointer[r, p0, p1] fun* r(p0, p1)(a any-const-pointer) noctx, unsafe
-	a as-ref
-+as-fun-pointer[r, p0, p1, p2] fun* r(p0, p1, p2)(a any-const-pointer) noctx, unsafe
-	a as-ref
-+as-fun-pointer[r, p0, p1, p2, p3] fun* r(p0, p1, p2, p3)(a any-const-pointer) noctx, unsafe
-	a as-ref
-+as-fun-pointer[r, p0, p1, p2, p3, p4] fun* r(p0, p1, p2, p3, p4)(
-	a any-const-pointer,
-) noctx, unsafe
-	a as-ref
-+as-fun-pointer[r, p0, p1, p2, p3, p4, p5] fun* r(p0, p1, p2, p3, p4, p5)(
-	a any-const-pointer,
-) noctx, unsafe
-	a as-ref
-+as-fun-pointer[r, p0, p1, p2, p3, p4, p5, p6] fun* r(p0, p1, p2, p3, p4, p5, p6)(
-	a any-const-pointer,
-) noctx, unsafe
-	a as-ref
-+as-fun-pointer[r, p0, p1, p2, p3, p4, p5, p6, p7] fun* r(p0, p1, p2, p3, p4, p5, p6, p7)(
-	a any-const-pointer,
-) noctx, unsafe
-	a as-ref
-+as-fun-pointer[r, p0, p1, p2, p3, p4, p5, p6, p7, p8] fun* r(p0, p1, p2, p3, p4, p5, p6, p7, p8)(
-	a any-const-pointer,
-) noctx, unsafe
++as-fun-pointer[r, p] fun* r(p)(a any-const-pointer) noctx, unsafe
 	a as-ref
 
 ###

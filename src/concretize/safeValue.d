@@ -16,8 +16,8 @@ import model.concreteModel :
 	ConcreteFunBody,
 	ConcreteFunSource,
 	ConcreteLambdaImpl,
-	ConcreteParam,
-	ConcreteParamSource,
+	ConcreteLocal,
+	ConcreteLocalSource,
 	ConcreteStruct,
 	ConcreteStructBody,
 	ConcreteStructSource,
@@ -28,11 +28,12 @@ import model.concreteModel :
 import model.constant : Constant, constantZero;
 import model.model : EnumValue;
 import util.alloc.alloc : Alloc;
-import util.col.arrUtil : map, mapWithIndex;
+import util.col.arrUtil : map;
 import util.memory : allocate;
-import util.opt : force, has, none, some;
+import util.opt : force, has, none;
 import util.ptr : ptrTrustMe;
 import util.sourceRange : FileAndRange;
+import util.sym : sym;
 import util.util : todo;
 
 ConcreteFunBody bodyForSafeValue(
@@ -104,7 +105,7 @@ ConcreteExpr safeValueForStruct(ref Ctx ctx, FileAndRange range, ConcreteStruct*
 					return fromConstant(Constant(Constant.Float(0)));
 				case BuiltinStructKind.fun:
 					return safeFunValue(ctx, range, struct_);
-				case BuiltinStructKind.funPointerN:
+				case BuiltinStructKind.funPointer:
 				case BuiltinStructKind.pointerConst:
 				case BuiltinStructKind.pointerMut:
 				case BuiltinStructKind.void_:
@@ -151,18 +152,15 @@ ConcreteExpr safeValueForStruct(ref Ctx ctx, FileAndRange range, ConcreteStruct*
 ConcreteExpr safeFunValue(ref Ctx ctx, FileAndRange range, ConcreteStruct* struct_) {
 	ConcreteType[] typeArgs = struct_.source.as!(ConcreteStructSource.Inst).typeArgs;
 	ConcreteType returnType = typeArgs[0];
-	ConcreteParam[] params = mapWithIndex!(ConcreteParam, ConcreteType)(
-		ctx.alloc,
-		typeArgs[1 .. $],
-		(size_t index, ref ConcreteType paramType) =>
-			ConcreteParam(ConcreteParamSource(ConcreteParamSource.Synthetic()), some(index), paramType));
+	ConcreteLocal[] params =
+		map!(ConcreteLocal, ConcreteType)(ctx.alloc, typeArgs[1 .. $], (ref ConcreteType paramType) =>
+			ConcreteLocal(ConcreteLocalSource(ConcreteLocalSource.Generated(sym!"arg")), paramType));
 	size_t lambdaIndex = ctx.nextLambdaIndex;
 	ctx.nextLambdaIndex++;
 	ConcreteType closureType = voidType(ctx.concretizeCtx);
 	ConcreteFun* fun = allocate(ctx.alloc, ConcreteFun(
 		ConcreteFunSource(allocate(ctx.alloc, ConcreteFunSource.Lambda(range, ctx.containingFun, lambdaIndex))),
 		returnType,
-		none!(ConcreteParam*),
 		params));
 	setBody(*fun, ConcreteFunBody(safeValueForType(ctx, range, returnType)));
 	addConcreteFun(ctx.concretizeCtx, fun);

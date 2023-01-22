@@ -129,7 +129,7 @@ SafeCStr jsonStrOfRepr(ref Alloc alloc, in AllSymbols allSymbols, in Repr a) {
 	return finishWriterToSafeCStr(writer);
 }
 
-void writeReprJSON(ref Writer writer, in AllSymbols allSymbols, in Repr a) {
+void writeReprJSON(ref Writer writer, in AllSymbols allSymbols, in Repr a) =>
 	a.matchIn!void(
 		(in ReprArr x) {
 			writer ~= '[';
@@ -182,4 +182,3 @@ void writeReprJSON(ref Writer writer, in AllSymbols allSymbols, in Repr a) {
 		(in Sym it) {
 			writeQuotedSym(writer, allSymbols, it);
 		});
-}

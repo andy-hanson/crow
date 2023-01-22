@@ -12,9 +12,6 @@ import model.lowModel :
 	LowFunIndex,
 	LowLocal,
 	LowLocalSource,
-	LowParam,
-	LowParamIndex,
-	LowParamSource,
 	LowRecord,
 	LowType,
 	PrimitiveType;
@@ -100,12 +97,6 @@ LowExpr genLocalGet(FileAndRange range, LowLocal* local) =>
 
 LowExpr genLocalSet(ref Alloc alloc, FileAndRange range, LowLocal* local, LowExpr value) =>
 	LowExpr(voidType, range, LowExprKind(allocate(alloc, LowExprKind.LocalSet(local, value))));
-
-LowParam genParam(ref Alloc alloc, Sym name, LowType type) =>
-	LowParam(LowParamSource(allocate(alloc, LowParamSource.Generated(name))), type);
-
-LowExpr genParamGet(FileAndRange range, LowType type, LowParamIndex param) =>
-	LowExpr(type, range, LowExprKind(LowExprKind.ParamGet(param)));
 
 LowExpr genWrapMulNat64(ref Alloc alloc, FileAndRange range, LowExpr left, LowExpr right) =>
 	LowExpr(nat64Type, range, LowExprKind(allocate(alloc,
@@ -264,10 +255,23 @@ LowExpr genVoid(FileAndRange source) =>
 	LowExpr(voidType, source, LowExprKind(constantZero));
 
 LowLocal* genLocal(ref Alloc alloc, Sym name, size_t index, LowType type) =>
-	allocate(alloc, LowLocal(LowLocalSource(allocate(alloc, LowLocalSource.Generated(name, index))), type));
+	allocate(alloc, genLocalByValue(alloc, name, index, type));
+LowLocal genLocalByValue(ref Alloc alloc, Sym name, size_t index, LowType type) =>
+	LowLocal(LowLocalSource(allocate(alloc, LowLocalSource.Generated(name, index))), type);
 
 LowExpr genLet(ref Alloc alloc, FileAndRange range, LowLocal* local, LowExpr init, LowExpr then) =>
 	LowExpr(then.type, range, LowExprKind(allocate(alloc, LowExprKind.Let(local, init, then))));
+
+LowExpr genLetTemp(
+	ref Alloc alloc,
+	FileAndRange range,
+	size_t localIndex,
+	LowExpr value,
+	in LowExpr delegate(LowExpr) @safe @nogc pure nothrow cbThen,
+) {
+	LowLocal* local = genLocal(alloc, sym!"temp", localIndex, value.type);
+	return genLet(alloc, range, local, value, cbThen(genLocalGet(range, local)));
+}
 
 LowExpr genGetArrSize(ref Alloc alloc, FileAndRange range, LowExpr arr) =>
 	genRecordFieldGet(alloc, range, arr, nat64Type, 0);

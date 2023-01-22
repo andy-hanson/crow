@@ -3,7 +3,7 @@ import
 	./bool: &&, bool
 	./compare: <, >, compare, comparison, equal
 	./option: new, option
-	./private/tuple-low-level: new, tuple2
+	./private/bootstrap: new
 export
 	./private/range-low-level: .., forward-rangeable, iterate, low, high, range, rangeable, size, subtract-to-nat
 

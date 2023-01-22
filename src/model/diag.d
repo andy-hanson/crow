@@ -6,13 +6,13 @@ import frontend.lang : crowExtension;
 import frontend.showDiag : ShowDiagOptions;
 import model.model :
 	CalledDecl,
+	Destructure,
 	EnumBackingType,
 	FunDecl,
 	FunDeclAndTypeArgs,
 	LineAndColumnGetters,
 	Local,
 	Module,
-	Param,
 	Purity,
 	SpecBody,
 	SpecDecl,
@@ -127,6 +127,14 @@ immutable struct Diag {
 	immutable struct CommonTypeMissing {
 		Sym name;
 	}
+	immutable struct DestructureTypeMismatch {
+		immutable struct Expected {
+			immutable struct Tuple { size_t size; }
+			mixin Union!(Tuple, Type);
+		}
+		Expected expected;
+		Type actual;
+	}
 	immutable struct DuplicateDeclaration {
 		enum Kind {
 			enumMember,
@@ -197,22 +205,24 @@ immutable struct Diag {
 	immutable struct ImportRefersToNothing {
 		Sym name;
 	}
-	immutable struct LambdaCantInferParamTypes {}
+	immutable struct LambdaCantInferParamType {}
 	immutable struct LambdaClosesOverMut {
 		Sym name;
 		// If missing, the error is that the local itself is 'mut'.
 		// If present, the error is that the type is 'mut'.
 		Opt!Type type;
 	}
-	immutable struct LambdaWrongNumberParams {
-		StructInst* expectedLambdaType;
-		size_t actualNParams;
+	immutable struct LambdaMultipleMatch {
+		ExpectedForDiag expected;
+	}
+	immutable struct LambdaNotExpected {
+		ExpectedForDiag expected;
 	}
 	immutable struct LinkageWorseThanContainingFun {
 		FunDecl* containingFun;
 		Type referencedType;
 		// empty for return type
-		Opt!(Param*) param;
+		Opt!(Destructure*) param;
 	}
 	immutable struct LinkageWorseThanContainingType {
 		StructDecl* containingType;
@@ -221,10 +231,10 @@ immutable struct Diag {
 	immutable struct LiteralOverflow {
 		StructInst* type;
 	}
+	immutable struct LocalIgnoredButMutable {}
 	immutable struct LocalNotMutable {
 		VariableRef local;
 	}
-	immutable struct LoopNeedsBreakOrContinue {}
 	immutable struct LoopWithoutBreak {}
 	immutable struct MatchCaseNamesDoNotMatch {
 		Sym[] expectedNames;
@@ -273,6 +283,8 @@ immutable struct Diag {
 		}
 		Kind kind;
 	}
+	immutable struct ParamCantBeMutable {}
+	immutable struct ParamMissingType {}
 	immutable struct ParamNotMutable {}
 	immutable struct PtrIsUnsafe {}
 	immutable struct PtrMutToConst {
@@ -331,13 +343,16 @@ immutable struct Diag {
 		Type type;
 	}
 	immutable struct TypeConflict {
-		Type[] expected;
+		ExpectedForDiag expected;
 		Type actual;
 	}
 	immutable struct TypeParamCantHaveTypeArgs {}
 	immutable struct TypeShouldUseSyntax {
 		enum Kind {
 			dict,
+			funAct,
+			funFun,
+			funRef,
 			future,
 			list,
 			mutDict,
@@ -357,9 +372,6 @@ immutable struct Diag {
 		Local* local;
 		bool usedGet;
 		bool usedSet;
-	}
-	immutable struct UnusedParam {
-		Param* param;
 	}
 	immutable struct UnusedPrivateFun {
 		FunDecl* fun;
@@ -396,6 +408,7 @@ immutable struct Diag {
 		CommonFunDuplicate,
 		CommonFunMissing,
 		CommonTypeMissing,
+		DestructureTypeMismatch,
 		DuplicateDeclaration,
 		DuplicateExports,
 		DuplicateImports,
@@ -413,14 +426,15 @@ immutable struct Diag {
 		FunModifierTrustedOnNonExtern,
 		IfNeedsOpt,
 		ImportRefersToNothing,
-		LambdaCantInferParamTypes,
+		LambdaCantInferParamType,
 		LambdaClosesOverMut,
-		LambdaWrongNumberParams,
+		LambdaMultipleMatch,
+		LambdaNotExpected,
 		LinkageWorseThanContainingFun,
 		LinkageWorseThanContainingType,
 		LiteralOverflow,
+		LocalIgnoredButMutable,
 		LocalNotMutable,
-		LoopNeedsBreakOrContinue,
 		LoopWithoutBreak,
 		MatchCaseNamesDoNotMatch,
 		MatchCaseShouldHaveLocal,
@@ -432,6 +446,8 @@ immutable struct Diag {
 		MutFieldNotAllowed,
 		NameNotFound,
 		NeedsExpectedType,
+		ParamCantBeMutable,
+		ParamMissingType,
 		ParamNotMutable,
 		ParseDiag,
 		PtrIsUnsafe,
@@ -455,7 +471,6 @@ immutable struct Diag {
 		TypeShouldUseSyntax,
 		UnusedImport,
 		UnusedLocal,
-		UnusedParam,
 		UnusedPrivateFun,
 		UnusedPrivateSpec,
 		UnusedPrivateStruct,
@@ -463,6 +478,12 @@ immutable struct Diag {
 		VarargsParamMustBeArray,
 		WrongNumberTypeArgsForSpec,
 		WrongNumberTypeArgsForStruct);
+}
+
+immutable struct ExpectedForDiag {
+	immutable struct Infer {}
+	immutable struct Loop {}
+	mixin Union!(Type[], Infer, Loop);
 }
 
 immutable struct FilesInfo {

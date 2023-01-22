@@ -7,7 +7,7 @@ import
 	../number: ==, +, nat64
 	../option: force, is-empty, new, option
 	../test-util: is
-	../tuple: a, b, new, tuple2
+	../tuple: a, b, new
 	./array: +, -, array, begin, end, is-empty, iterate, new, next, size, slice
 	./collection: .., build-options, end, for-loop, subscript
 	./list: ==, ~=, build, list, list-builder, new, to-array
@@ -71,7 +71,7 @@ region build
 +queue-builder[t] record mut
 	-inner t list-builder
 +build[t] t queue(a build-options, f act void(t queue-builder))
-	a build (out => f[(out,)]) to-queue
+	a build (out => f[out,]) to-queue
 +~=[t] void(a t queue-builder, value t)
 	a.inner ~= value
 

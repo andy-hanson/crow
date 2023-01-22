@@ -3,6 +3,7 @@ module frontend.parse.parse;
 @safe @nogc pure nothrow:
 
 import frontend.parse.ast :
+	DestructureAst,
 	ExprAst,
 	FileAst,
 	FunDeclAst,
@@ -14,7 +15,6 @@ import frontend.parse.ast :
 	LiteralNatAst,
 	ModifierAst,
 	NameAndRange,
-	ParamAst,
 	ParamsAst,
 	SpecBodyAst,
 	SpecDeclAst,
@@ -50,7 +50,6 @@ import frontend.parse.lexer :
 	takeName,
 	takeNameAndRange,
 	takeNameOrOperator,
-	takeNameOrUnderscore,
 	takeNewlineOrDedentAmount,
 	takeNewlineOrIndent_topLevel,
 	takeNewlineOrSingleDedent,
@@ -63,7 +62,7 @@ import frontend.parse.lexer :
 	tryTakeName,
 	tryTakeOperator,
 	tryTakeToken;
-import frontend.parse.parseExpr : parseFunExprBody;
+import frontend.parse.parseExpr : parseDestructureRequireParens, parseFunExprBody;
 import frontend.parse.parseType : parseType, tryParseTypeArgForEnumOrFlags;
 import model.diag : DiagnosticWithinFile;
 import model.model : FieldMutability, ImportFileType, Visibility;
@@ -288,28 +287,21 @@ TrailingComma takeCommaSeparatedNames(ref Lexer lexer, ref ArrBuilder!Sym names)
 		: TrailingComma.no;
 }
 
-ParamAst parseSingleParam(ref Lexer lexer) {
-	Pos start = curPos(lexer);
-	Opt!Sym name = takeNameOrUnderscore(lexer);
-	TypeAst type = parseType(lexer);
-	return ParamAst(range(lexer, start), name, type);
-}
-
 ParamsAst parseParams(ref Lexer lexer) {
 	if (!takeOrAddDiagExpectedToken(lexer, Token.parenLeft, ParseDiag.Expected.Kind.openParen)) {
 		skipUntilNewlineNoDiag(lexer);
 		return ParamsAst([]);
 	} else if (tryTakeToken(lexer, Token.parenRight))
-		return ParamsAst(emptySmallArray!ParamAst);
+		return ParamsAst(emptySmallArray!DestructureAst);
 	else if (tryTakeToken(lexer, Token.dot3)) {
-		ParamAst param = parseSingleParam(lexer);
+		DestructureAst param = parseDestructureRequireParens(lexer);
 		takeOrAddDiagExpectedToken(lexer, Token.parenRight, ParseDiag.Expected.Kind.closingParen);
 		return ParamsAst(allocate(lexer.alloc, ParamsAst.Varargs(param)));
 	} else {
-		ArrBuilder!ParamAst res;
+		ArrBuilder!DestructureAst res;
 		for (;;) {
 			skipNewlinesIgnoreIndentation(lexer);
-			add(lexer.alloc, res, parseSingleParam(lexer));
+			add(lexer.alloc, res, parseDestructureRequireParens(lexer));
 			if (tryTakeToken(lexer, Token.parenRight))
 				break;
 			if (!takeOrAddDiagExpectedToken(lexer, Token.comma, ParseDiag.Expected.Kind.comma)) {

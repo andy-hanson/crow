@@ -276,6 +276,68 @@ task-node-with-time record mut by-ref
 exclusion alias
 	nat64
 
+region tuple
+
++tuple2[t, u] record extern
+	a t
+	b u
+
++tuple3[t0, t1, t2] record extern
+	a t0
+	b t1
+	c t2
+
++tuple4[t0, t1, t2, t3] record extern
+	a t0
+	b t1
+	c t2
+	d t3
+
++tuple5[t0, t1, t2, t3, t4] record extern
+	a t0
+	b t1
+	c t2
+	d t3
+	e t4
+
++tuple6[t0, t1, t2, t3, t4, t5] record extern
+	a t0
+	b t1
+	c t2
+	d t3
+	e t4
+	f t5
+
++tuple7[t0, t1, t2, t3, t4, t5, t6] record extern
+	a t0
+	b t1
+	c t2
+	d t3
+	e t4
+	f t5
+	g t6
+
++tuple8[t0, t1, t2, t3, t4, t5, t6, t7] record extern
+	a t0
+	b t1
+	c t2
+	d t3
+	e t4
+	f t5
+	g t6
+	h t7
+
++tuple9[t0, t1, t2, t3, t4, t5, t6, t7, t8] record extern
+	a t0
+	b t1
+	c t2
+	d t3
+	e t4
+	f t5
+	g t6
+	h t7
+	i t8
+
 region fun
 
 ###
@@ -284,88 +346,34 @@ These aren't used much in crow code.
 
 Create a function pointer by writing `&foo` where `foo` is the name of a function in scope.
 ###
-+fun-pointer0[r] builtin extern
-+fun-pointer1[r, p0] builtin extern
-+fun-pointer2[r, p0, p1] builtin extern
-+fun-pointer3[r, p0, p1, p2] builtin extern
-+fun-pointer4[r, p0, p1, p2, p3] builtin extern
-+fun-pointer5[r, p0, p1, p2, p3, p4] builtin extern
-+fun-pointer6[r, p0, p1, p2, p3, p4, p5] builtin extern
-+fun-pointer7[r, p0, p1, p2, p3, p4, p5, p6] builtin extern
-+fun-pointer8[r, p0, p1, p2, p3, p4, p5, p6, p7] builtin extern
-+fun-pointer9[r, p0, p1, p2, p3, p4, p5, p6, p7, p8] builtin extern
++fun-pointer[r, p] builtin extern
 
 ###
 Non-mutating function type.
-This is usually written as `fun nat(string)` instead of `(nat, string) fun1`.
+This is usually written as `fun nat(string)` instead of `(nat, string) fun-fun`.
 
 Contrasted with `act`, a `fun` can't close over mutable data.
 It can still close over `shared` data and perform I/O, so it's not a completely pure function.
 ###
-+fun0[r] builtin shared
-+fun1[r, p0] builtin shared
-+fun2[r, p0, p1] builtin shared
-+fun3[r, p0, p1, p2] builtin shared
-+fun4[r, p0, p1, p2, p3] builtin shared
-+fun5[r, p0, p1, p2, p3, p4] builtin shared
-+fun6[r, p0, p1, p2, p3, p4, p5] builtin shared
-+fun7[r, p0, p1, p2, p3, p4, p5, p6] builtin shared
-+fun8[r, p0, p1, p2, p3, p4, p5, p6, p7] builtin shared
-+fun9[r, p0, p1, p2, p3, p4, p5, p6, p7, p8] builtin shared
++fun-fun[r, p] builtin shared
 
 ###
-This is usually written as `act nat(string, bool)` instead of `(nat, string, bool) fun-act2`.
+This is usually written as `act nat(string)` instead of `(nat, string, bool) fun-act`.
 
 An `act` can have anything in its closure, including mutable data, so it's considered mutable.
 ###
-+fun-act0[r] builtin mut
-+fun-act1[r, p0] builtin mut
-+fun-act2[r, p0, p1] builtin mut
-+fun-act3[r, p0, p1, p2] builtin mut
-+fun-act4[r, p0, p1, p2, p3] builtin mut
-+fun-act5[r, p0, p1, p2, p3, p4] builtin mut
-+fun-act6[r, p0, p1, p2, p3, p4, p5] builtin mut
-+fun-act7[r, p0, p1, p2, p3, p4, p5, p6] builtin mut
-+fun-act8[r, p0, p1, p2, p3, p4, p5, p6, p7] builtin mut
-+fun-act9[r, p0, p1, p2, p3, p4, p5, p6, p7, p8] builtin mut
++fun-act[r, p] builtin mut
 
 ###
-This is usually written as `ref nat(string)` instead of `(nat, string) fun-ref1`.
+This is usually written as `ref nat(string)` instead of `(nat, string) fun-ref`.
 
 This wraps an `act` combined with the exclusion it came from.
 This is shared since the `act` can't be called directly;
 instead a task is added that will call the `act` when its exclusion is available.
 ###
-+fun-ref0[r] record force-shared by-val
++fun-ref[r, p] record force-shared by-val
 	exclusion exclusion
-	action act r^()
-+fun-ref1[r, p0] record force-shared by-val
-	exclusion exclusion
-	action act r^(p0)
-+fun-ref2[r, p0, p1] record force-shared by-val
-	exclusion exclusion
-	action act r^(p0, p1)
-+fun-ref3[r, p0, p1, p2] record force-shared by-val
-	exclusion exclusion
-	action act r^(p0, p1, p2)
-+fun-ref4[r, p0, p1, p2, p3] record force-shared by-val
-	exclusion exclusion
-	action act r^(p0, p1, p2, p3)
-+fun-ref5[r, p0, p1, p2, p3, p4] record force-shared by-val
-	exclusion exclusion
-	action act r^(p0, p1, p2, p3, p4)
-+fun-ref6[r, p0, p1, p2, p3, p4, p5] record force-shared by-val
-	exclusion exclusion
-	action act r^(p0, p1, p2, p3, p4, p5)
-+fun-ref7[r, p0, p1, p2, p3, p4, p5, p6] record force-shared by-val
-	exclusion exclusion
-	action act r^(p0, p1, p2, p3, p4, p5, p6)
-+fun-ref8[r, p0, p1, p2, p3, p4, p5, p6, p7] record force-shared by-val
-	exclusion exclusion
-	action act r^(p0, p1, p2, p3, p4, p5, p6, p7)
-+fun-ref9[r, p0, p1, p2, p3, p4, p5, p6, p7, p8] record force-shared by-val
-	exclusion exclusion
-	action act r^(p0, p1, p2, p3, p4, p5, p6, p7, p8)
+	action act r^(p)
 
 region future
 

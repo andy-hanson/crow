@@ -2,12 +2,12 @@ import
 	crow/io/print: out, print
 
 main nat^(_ string[]) summon
-	for _ : ((), ())::(void array)
+	for _ : (()::void, ())::(void array)
 		out print "array void"
-	for i, _ : ((), ())::(void array)
+	for i, _ : (()::void, ())::(void array) with-index
 		out print "array void {i}"
 	for _ : ((), ())::void[]
 		out print "list void"
-	for i, _ : ((), ())::void[]
+	for i, _ : ((), ())::void[] with-index
 		out print "list void {i}"
 	()

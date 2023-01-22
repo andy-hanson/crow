@@ -12,8 +12,7 @@ import
 
 main nat^(_ string[]) summon
 	run-all-tests
-	a, b, c <- (documentation, pages, include-all)
-	all-content = a ~~ b ~ c
+	all-content <- documentation ~~ pages ~~ include-all
 	<- for content : all-content parallel
 		content ensure-up-to-date
 	cwd = current-directory
@@ -67,12 +66,12 @@ link record
 		x, x
 	example ~~ in-src-paths ~~ script ~~ font ~~ other,
 
--include-all path-and-content^() summon
+-include-all path-and-content[]^() summon
 	include <- "include" search-all-with-content ""
 	pairs string[symbol] = for x : include
 		x.out-path.remove-include-and-crow.string-to-symbol, x.content
 	content = pairs.json to-string
-	("include-all.json", content),
+	(("include-all.json", content),),
 
 -search-all-with-content path-and-content[]^(path string, remove-prefix string) summon
 	paths <- path search-dir-recursive

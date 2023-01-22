@@ -1,14 +1,12 @@
 no-std
 import
-	../bool: ||, bool, false, true
+	../bool: ||, bool
 	../compare: !=, <, <=, compare, comparison, equal
-	../fun-util: subscript
 	../number: ==, <=>, +, -, nat64
 	../option: new, option
 	../private/bootstrap: new
 	../private/range-low-level: ..
 	../pointer: ==, +, *, const-pointer
-	../tuple: a, b, new, tuple2
 	./collection: .., build, end, sequence-compare, sequence-equal, subscript, with-block
 export
 	../private/bootstrap: array, begin-pointer, size
@@ -108,23 +106,6 @@ pointer-of[t] t*?(a t array, value t) noctx, unsafe, t equal
 			continue
 
 region spec impls (see collection.crow)
-
-###
-Equivalent to calling `f[a[0], 0]`, `f[a[1], 1]`, etc.
-
-Calls `f` for each element in `a`, also providing the index.
-###
-+iterate[t] bool(a t array, f act bool(nat64, t))
-	iter mut = a begin
-	loop
-		if pair ?= iter next
-			if f[iter.next-index, pair.a]
-				break true
-			else
-				iter := pair b
-				continue
-		else
-			break false
 
 subregion iterator
 

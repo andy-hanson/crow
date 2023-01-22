@@ -10,7 +10,7 @@ import
 	../range: ..
 	../string: ==, <=>, +, -, begin, end, literal, next, string
 	../test-util: is
-	../tuple: a, b, new, tuple2
+	../tuple: a, b, new
 	./array: ==, new
 	./collection:
 		.., -, begin, build, end, for-break, for-loop, iterate, prev, prev-next, set-next, size,

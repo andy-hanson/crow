@@ -4,20 +4,20 @@ module frontend.showDiag;
 
 import frontend.lang : crowExtension;
 import frontend.parse.lexer : Token;
-import model.diag : Diagnostic, Diag, Diagnostics, FilesInfo, TypeKind, writeFileAndRange;
+import model.diag : Diagnostic, Diag, Diagnostics, ExpectedForDiag, FilesInfo, TypeKind, writeFileAndRange;
 import model.model :
 	arity,
 	arityMatches,
 	bestCasePurity,
 	CalledDecl,
 	decl,
+	Destructure,
 	EnumBackingType,
 	FunDecl,
 	FunDeclAndTypeArgs,
 	LocalMutability,
 	name,
 	nTypeParams,
-	Param,
 	Params,
 	Purity,
 	range,
@@ -120,9 +120,6 @@ void writeParseDiag(
 	in ParseDiag d,
 ) {
 	d.matchIn!void(
-		(in ParseDiag.CantPrecedeOptEquals) {
-			writer ~= "only a plain identifier can appear in front of '?='";
-		},
 		(in ParseDiag.CircularImport it) {
 			writer ~= "circular import from ";
 			writePath(writer, allPaths, pathsInfo, it.from, crowExtension);
@@ -187,6 +184,9 @@ void writeParseDiag(
 					break;
 				case ParseDiag.Expected.Kind.then:
 					writer ~= "expected '<-'";
+					break;
+				case ParseDiag.Expected.Kind.questionEqual:
+					writer ~= "expected '?='";
 					break;
 				case ParseDiag.Expected.Kind.quoteDouble:
 					writer ~= "expected '\"'";
@@ -345,9 +345,9 @@ void writeSig(
 	writeTypeUnquoted(writer, allSymbols, returnType);
 	writer ~= '(';
 	params.matchIn!void(
-		(in Param[] paramsArray) {
-			writeWithCommas!Param(writer, paramsArray, (in Param p) {
-				writeTypeUnquoted(writer, allSymbols, p.type);
+		(in Destructure[] paramsArray) {
+			writeWithCommas!Destructure(writer, paramsArray, (in Destructure x) {
+				writeTypeUnquoted(writer, allSymbols, x.type);
 			});
 		},
 		(in Params.Varargs varargs) {
@@ -580,6 +580,20 @@ void writeDiag(
 			writeName(writer, allSymbols, d.name);
 			writer ~= " in this module";
 		},
+		(in Diag.DestructureTypeMismatch d) {
+			d.expected.matchIn!void(
+				(in Diag.DestructureTypeMismatch.Expected.Tuple x) {
+					writer ~= "expected a tuple with ";
+					writer ~= x.size;
+					writer ~= " elements, but got ";
+				},
+				(in Type t) {
+					writer ~= "expected type ";
+					writeTypeQuoted(writer, allSymbols, t);
+					writer ~= ", but got ";
+				});
+			writeTypeQuoted(writer, allSymbols, d.actual);
+		},
 		(in Diag.DuplicateDeclaration d) {
 			string desc = () {
 				final switch (d.kind) {
@@ -588,7 +602,7 @@ void writeDiag(
 					case Diag.DuplicateDeclaration.Kind.flagsMember:
 						return "flags member";
 					case Diag.DuplicateDeclaration.Kind.paramOrLocal:
-						return "variable";
+						return "local";
 					case Diag.DuplicateDeclaration.Kind.recordField:
 						return "record field";
 					case Diag.DuplicateDeclaration.Kind.spec:
@@ -705,8 +719,8 @@ void writeDiag(
 			writeName(writer, allSymbols, it.name);
 			writer ~= " does not refer to anything";
 		},
-		(in Diag.LambdaCantInferParamTypes) {
-			writer ~= "lambda expression needs an expected type";
+		(in Diag.LambdaCantInferParamType x) {
+			writer ~= "can't infer the lambda parameter's type.";
 		},
 		(in Diag.LambdaClosesOverMut d) {
 			writer ~= "this lambda is a 'fun' but references ";
@@ -718,12 +732,18 @@ void writeDiag(
 				writer ~= " which is 'mut'";
 			writer ~= " (should it be an 'act' or 'ref' fun?)";
 		},
-		(in Diag.LambdaWrongNumberParams d) {
-			writer ~= "expected a ";
-			writeStructInst(writer, allSymbols, *d.expectedLambdaType);
-			writer ~= " but lambda has ";
-			writer ~= d.actualNParams;
-			writer ~= " parameters";
+		(in Diag.LambdaMultipleMatch x) {
+			writer ~= "multiple lambda types are possible.\n";
+			writeExpected(writer, allSymbols, x.expected);
+			writer ~= "consider explicitly typing the lambda's parameter.";
+		},
+		(in Diag.LambdaNotExpected x) {
+			if (x.expected.isA!(ExpectedForDiag.Infer))
+				writer ~= "lambda expression needs an expected type";
+			else {
+				writer ~= "the lambda doesn't match the expected type at this location.\n";
+				writeExpected(writer, allSymbols, x.expected);
+			}
 		},
 		(in Diag.LinkageWorseThanContainingFun d) {
 			writer ~= "'extern' function ";
@@ -748,14 +768,13 @@ void writeDiag(
 			writer ~= "literal exceeds the range of a ";
 			writeStructInst(writer, allSymbols, *d.type);
 		},
+		(in Diag.LocalIgnoredButMutable) {
+			writer ~= "unnecessary 'mut' on ignored local variable";
+		},
 		(in Diag.LocalNotMutable d) {
 			writer ~= "local variable ";
-			Opt!Sym name = name(d.local);
-			writeName(writer, allSymbols, force(name));
+			writeName(writer, allSymbols, name(d.local));
 			writer ~= " was not marked 'mut'";
-		},
-		(in Diag.LoopNeedsBreakOrContinue) {
-			writer ~= "a loop must end in 'break' or 'continue'";
 		},
 		(in Diag.LoopWithoutBreak d) {
 			writer ~= "'loop' has no 'break'";
@@ -828,6 +847,12 @@ void writeDiag(
 				}
 			}();
 			writer ~= " expression needs an expected type";
+		},
+		(in Diag.ParamCantBeMutable) {
+			writer ~= "mutable parameters are not supported";
+		},
+		(in Diag.ParamMissingType) {
+			writer ~= "parameter needs a type";
 		},
 		(in Diag.ParamNotMutable) {
 			writer ~= "can't change the value of a parameter; consider introducing a mutable local instead";
@@ -945,11 +970,7 @@ void writeDiag(
 			writer ~= " was already inferred";
 		},
 		(in Diag.TypeConflict d) {
-			writer ~= "expected one of these types:";
-			foreach (Type t; d.expected) {
-				writer ~= "\n\t";
-				writeTypeQuoted(writer, allSymbols, t);
-			}
+			writeExpected(writer, allSymbols, d.expected);
 			writer ~= "\nactual:\n\t";
 			writeTypeQuoted(writer, allSymbols, d.actual);
 		},
@@ -961,6 +982,12 @@ void writeDiag(
 				final switch (it.kind) {
 					case Diag.TypeShouldUseSyntax.Kind.dict:
 						return "prefer to write 'v[k]' instead of '(k, v) dict'";
+					case Diag.TypeShouldUseSyntax.Kind.funAct:
+						return "prefer to write 'act r(p)' instead of '(r, p) fun-act'";
+					case Diag.TypeShouldUseSyntax.Kind.funFun:
+						return "prefer to write 'fun r(p)' instead of '(r, p) fun-fun'";
+					case Diag.TypeShouldUseSyntax.Kind.funRef:
+						return "prefer to write 'ref r(p)' instead of '(r, p) fun-ref'";
 					case Diag.TypeShouldUseSyntax.Kind.future:
 						return "prefer to write 'a$' instead of 'a future";
 					case Diag.TypeShouldUseSyntax.Kind.list:
@@ -1002,11 +1029,6 @@ void writeDiag(
 				: it.usedSet
 				? " is assigned to but unused"
 				: " is unused";
-		},
-		(in Diag.UnusedParam it) {
-			writer ~= "parameter ";
-			writeSym(writer, allSymbols, force(it.param.name));
-			writer ~= " is unused";
 		},
 		(in Diag.UnusedPrivateFun it) {
 			writer ~= "private function ";
@@ -1061,6 +1083,28 @@ void showDiagnostic(
 	writer ~= ' ';
 	writeDiag(tempAlloc, writer, allSymbols, allPaths, pathsInfo, options, fi, d.diag);
 	writeNl(writer);
+}
+
+void writeExpected(scope ref Writer writer, in AllSymbols allSymbols, in ExpectedForDiag a) {
+	a.matchIn!void(
+		(in Type[] types) {
+			if (types.length == 1) {
+				writer ~= "expected type: ";
+				writeTypeQuoted(writer, allSymbols, only(types));
+			} else {
+				writer ~= "expected one of these types:";
+				foreach (Type t; types) {
+					writer ~= "\n\t";
+					writeTypeQuoted(writer, allSymbols, t);
+				}
+			}
+		},
+		(in ExpectedForDiag.Infer) {
+			writer ~= "this location has no expected type";
+		},
+		(in ExpectedForDiag.Loop) {
+			writer ~= "expected a loop 'break' or 'continue'";
+		});
 }
 
 string aOrAnTypeKind(TypeKind a) {

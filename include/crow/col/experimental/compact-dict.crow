@@ -10,7 +10,7 @@ import
 	../../option: ==, is-empty, new, option
 	../../string: ==, ~~, literal, new, string, to-string
 	../../test-util: is
-	../../tuple: ==, from, new, to, tuple2
+	../../tuple: ==, new
 	../collection: build, for-loop, join, with-block
 	../mut-array: ~=, build, mut-array
 	../list: ==, ~=, build, iterate, list, new, size
@@ -27,7 +27,7 @@ compact-dict[k, v] record by-val
 ==[k, v] bool(a (k, v) compact-dict, b (k, v) compact-dict) k key, v equal
 	a.to-sorted-pairs == b.to-sorted-pairs
 -to-sorted-pairs[k, v] (k, v)[](a (k, v) compact-dict) k key
-	(for x : a; x) sort pair => pair from
+	(for x : a; x) sort (k, _) => k
 
 json[k, v] json(a (k, v) compact-dict) k key, k json, v json
 	a.to-sorted-pairs json
@@ -56,14 +56,6 @@ new[k, v] (k, v) compact-dict() k key
 to-compact-dict[k, v] (k, v) compact-dict(a (k, v)[]) k key
 	(), a.to-frozen-dict.end-node
 
-keys[k, v] k[](a (k, v) compact-dict) k key
-	for k, _ : a
-		k
-
-values[k, v] v[](a (k, v) compact-dict) k key
-	for _, v : a
-		v
-
 is-empty[k, v] bool(a (k, v) compact-dict) k key
 	match a impl
 	as overlay _
@@ -71,22 +63,18 @@ is-empty[k, v] bool(a (k, v) compact-dict) k key
 	as end-node e
 		e is-empty
 
-to-list[k, v] (k, v)[](a (k, v) compact-dict) k key
-	for k, v : a
-		k, v
-
 ###
 Number of pairs.
 This is O(n).
 ###
 size[k, v] nat64(a (k, v) compact-dict) k key
 	res mut = 0
-	for _, _ : a
+	for _ : a
 		res +:= 1
 	res
 
-~ ~[k, v] (k, v) compact-dict(a (k, v) compact-dict, pair (k, v)) k key
-	a add-or-remove pair.from, (pair.to,)
+~ ~[k, v] (k, v) compact-dict(a (k, v) compact-dict, (key k, value v)) k key
+	a add-or-remove key, (value,)
 
 ###
 TODO
@@ -149,8 +137,8 @@ in[k, v] bool(key k, a (k, v) compact-dict) k key
 		for k, vl : l
 			unless k in r
 				out ~= (k, vl)
-		for k, vr : r
-			out ~= (k, vr)
+		for x : r
+			out ~= x
 	trusted pairs mut-array-to-frozen-dict-promise-no-duplicates
 
 -merge-to-end[k, v] (k, v) frozen-dict(
@@ -168,8 +156,6 @@ in[k, v] bool(key k, a (k, v) compact-dict) k key
 
 region spec impls (see collection.crow)
 
-iterate[k, v] bool(a (k, v) compact-dict, f act bool((k, v))) k key
-	a iterate (k, v) => f[(k, v)]
 iterate[k, v] bool(a (k, v) compact-dict, f act bool(k, v)) k key
 	cur mut = a impl
 	seen k mut-set = ()

@@ -10,7 +10,6 @@ import model.model :
 	FunDecl,
 	StructDecl,
 	name,
-	Param,
 	Program,
 	SpecDecl,
 	StructBody,
@@ -20,9 +19,10 @@ import model.model :
 	writeTypeUnquoted;
 import util.alloc.alloc : Alloc, TempAlloc;
 import util.col.str : SafeCStr;
+import util.opt : force, Opt;
 import util.path : AllPaths, PathsInfo;
 import util.ptr : ptrTrustMe;
-import util.sym : AllSymbols, writeSym;
+import util.sym : AllSymbols, Sym, writeSym;
 import util.writer : finishWriterToSafeCStr, Writer;
 
 SafeCStr getHoverStr(
@@ -53,7 +53,7 @@ void getHover(
 			getExprHover(writer, it);
 		},
 		(in FunDecl it) {
-			writer ~= "fun ";
+			writer ~= "function ";
 			writeSym(writer, allSymbols, it.name);
 		},
 		(in Position.ImportedModule it) {
@@ -63,9 +63,10 @@ void getHover(
 		(in Position.ImportedName it) {
 			getImportedNameHover(writer, it);
 		},
-		(in Param it) {
-			writer ~= "param ";
-			writeSym(writer, allSymbols, it.nameOrUnderscore);
+		(in Position.Parameter x) {
+			writer ~= "parameter ";
+			Opt!Sym name = x.destructure.name;
+			writeSym(writer, allSymbols, force(name));
 		},
 		(in Position.RecordFieldPosition it) {
 			writer ~= "field ";

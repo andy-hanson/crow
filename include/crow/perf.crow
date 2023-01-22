@@ -5,7 +5,7 @@ Even non-`summon` code is can measure perf, but only `summon` code can access th
 ###
 no-std
 import
-	./col/array: array, iterate, new, size
+	./col/array: +, array, begin, iterate, new, next, size
 	./col/collection: for-loop, index-of, join, n-of, set-subscript, subscript
 	./col/dict: ~=, build, dict, iterate, size
 	./col/list: ~=, build, iterate, list, to-array
@@ -14,13 +14,14 @@ import
 	./fun-util: subscript
 	./io/duration: duration, nsec, to-string
 	./io/private/time-low-level: get-monotime-nsec
-	./misc: void
-	./number: +, -, nat64, to-float64
+	./misc: new, void
+	./number: ==, <=>, +, -, nat64, to-float64
 	./option: new, is-empty, option
 	./pointer: *, mut-pointer, set-deref
+	./range: .., iterate, size
 	./string: ~~, literal, new, string, to-string
 	./symbol: ==, <=>, hash-mix, symbol, to-string
-	./tuple: new, tuple2
+	./tuple: new
 
 +perf-result record
 	total duration
@@ -65,9 +66,10 @@ import
 		start = perf-now
 		f-res = f[]
 		end = perf-now
-		perf-res perf-result = (end - start).to-float64.nsec, for i, name : a measure-names
+		# TODO: 'zip'
+		perf-res perf-result = (end - start).to-float64.nsec, for i : 0 .. a.measure-names.size
 			value = measure-values[i]
-			name, (value.count, value.total-nsec.to-float64.nsec)
+			a.measure-names[i], (value.count, value.total-nsec.to-float64.nsec)
 		f-res, perf-res
 
 +perf-measure record

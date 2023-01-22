@@ -3,7 +3,7 @@ module frontend.check.checkCall;
 @safe @nogc pure nothrow:
 
 import frontend.check.checkCtx : eachImportAndReExport, ImportIndex, markUsedImport;
-import frontend.check.checkExpr : checkExpr;
+import frontend.check.checkExpr : checkExpr, typeFromDestructure;
 import frontend.check.dicts : FunDeclAndIndex, ModuleLocalFunIndex;
 import frontend.check.inferringType :
 	addDiag2,
@@ -16,13 +16,13 @@ import frontend.check.inferringType :
 	inferred,
 	InferringTypeArgs,
 	inferTypeArgsFrom,
+	inferTypeArgsFromLambdaParameterType,
 	isInLambda,
 	LocalNode,
 	LocalsInfo,
 	markUsedLocalFun,
 	matchExpectedVsReturnTypeNoDiagnostic,
 	matchTypesNoDiagnostic,
-	mayBeFunTypeWithArity,
 	programState,
 	SingleInferringType,
 	tryGetInferred,
@@ -39,7 +39,7 @@ import frontend.check.instantiate :
 	TypeParamsAndArgs;
 import frontend.check.typeFromAst : tryGetMatchingTypeArgs, tryUnpackTupleType;
 import frontend.lang : maxSpecDepth, maxSpecImpls, maxTypeParams;
-import frontend.parse.ast : CallAst, ExprAst, ExprAstKind, LambdaAst, ParenthesizedAst, rangeOfNameAndRange, TypeAst;
+import frontend.parse.ast : CallAst, ExprAst, LambdaAst, rangeOfNameAndRange, TypeAst;
 import frontend.programState : ProgramState;
 import model.diag : Diag;
 import model.model :
@@ -49,8 +49,8 @@ import model.model :
 	body_,
 	Called,
 	CalledDecl,
-	CommonTypes,
 	decl,
+	Destructure,
 	Expr,
 	ExprKind,
 	FunDecl,
@@ -60,7 +60,6 @@ import model.model :
 	isPurityAlwaysCompatible,
 	isVariadic,
 	NameReferents,
-	Param,
 	Params,
 	Purity,
 	PurityRange,
@@ -81,7 +80,7 @@ import util.col.arrUtil : every, exists, fillArrOrFail, map;
 import util.col.mutMaxArr :
 	copyToFrom,
 	exists,
-	fillMutMaxArr_mut,
+	fillMutMaxArr,
 	filterUnordered,
 	filterUnorderedButDontRemoveAll,
 	initializeMutMaxArr,
@@ -141,7 +140,7 @@ Expr checkCallSpecialNoLocals(
 	in ExprAst[] args,
 	ref Expected expected,
 ) {
-	FunOrLambdaInfo emptyFunInfo = FunOrLambdaInfo(noneMut!(LocalsInfo*), [], none!(ExprKind.Lambda*));
+	FunOrLambdaInfo emptyFunInfo = FunOrLambdaInfo(noneMut!(LocalsInfo*), none!(ExprKind.Lambda*));
 	LocalsInfo emptyLocals = LocalsInfo(ptrTrustMe(emptyFunInfo), noneMut!(LocalNode*));
 	return checkCallSpecial(ctx, emptyLocals, range, funName, args, expected);
 }
@@ -180,12 +179,14 @@ private Expr checkCallInner(
 ) {
 	size_t arity = argAsts.length;
 
-	foreach (size_t argIdx; 0 .. arity)
-		filterByLambdaArity(ctx.alloc, ctx.programState, ctx.commonTypes, candidates, argAsts[argIdx], argIdx);
-
 	filterCandidates(candidates, (ref Candidate candidate) =>
 		matchExpectedVsReturnTypeNoDiagnostic(
 			ctx.alloc, ctx.programState, expected, candidate.called.returnType, inferringTypeArgs(candidate)));
+
+	// Apply explicitly typed arguments first
+	foreach (size_t argIdx, ExprAst arg; argAsts)
+		if (inferCandidateTypeArgsFromExplicitlyTypedArgument(ctx, candidates, argIdx, arg) == ContinueOrAbort.abort)
+			return bogus(expected, range);
 
 	ArrBuilder!Type actualArgTypes;
 	bool someArgIsBogus = false;
@@ -382,7 +383,7 @@ void getInitialCandidates(
 ) {
 	Candidate* candidate = pushUninitialized(candidates);
 	initializeCandidate(*candidate, used, called);
-	fillMutMaxArr_mut(candidate.typeArgs, called.typeParams.length, (size_t i) =>
+	fillMutMaxArr(candidate.typeArgs, called.typeParams.length, (size_t i) =>
 		SingleInferringType(empty(typeArgs) ? none!Type : some(typeFromAst2(ctx, typeArgs[i]))));
 }
 
@@ -420,17 +421,17 @@ Type getCandidateExpectedParameterType(
 	ref Alloc alloc,
 	ref ProgramState programState,
 	in Candidate candidate,
-	size_t argIdx,
+	size_t argIndex,
 ) =>
 	getCandidateExpectedParameterTypeRecur(
 		alloc,
 		programState,
 		candidate,
-		paramTypeAt(candidate.called.params, argIdx));
+		paramTypeAt(candidate.called.params, argIndex));
 
 Type paramTypeAt(in Params params, size_t argIdx) =>
 	params.matchIn!Type(
-		(in Param[] x) =>
+		(in Destructure[] x) =>
 			x[argIdx].type,
 		(in Params.Varargs x) =>
 			x.elementType);
@@ -442,7 +443,7 @@ void getParamExpected(
 	ref Candidates candidates,
 	size_t argIdx,
 ) {
-	foreach (ref Candidate candidate; candidates) {
+	foreach (scope ref Candidate candidate; candidates) {
 		Type t = getCandidateExpectedParameterType(alloc, programState, candidate, argIdx);
 		InferringTypeArgs ita = inferringTypeArgs(candidate);
 		bool isDuplicate = ita.args.length == 0 &&
@@ -549,31 +550,6 @@ bool everyInRange(size_t n, in bool delegate(size_t) @safe @nogc pure nothrow cb
 	return true;
 }
 
-void filterByLambdaArity(
-	ref Alloc alloc,
-	ref ProgramState programState,
-	in CommonTypes commonTypes,
-	scope ref Candidates candidates,
-	in ExprAst arg,
-	size_t argIdx,
-) {
-	Opt!size_t optArity = getLambdaArity(arg.kind);
-	if (has(optArity)) {
-		size_t arity = force(optArity);
-		filterCandidates(candidates, (ref Candidate candidate) {
-			Type expectedArgType = getCandidateExpectedParameterType(alloc, programState, candidate, argIdx);
-			return mayBeFunTypeWithArity(commonTypes, expectedArgType, inferringTypeArgs(candidate), arity);
-		});
-	}
-}
-
-Opt!size_t getLambdaArity(in ExprAstKind a) =>
-	a.isA!(LambdaAst*)
-	? some(a.as!(LambdaAst*).params.length)
-	: a.isA!(ParenthesizedAst*)
-	? getLambdaArity(a.as!(ParenthesizedAst*).inner.kind)
-	: none!size_t;
-
 // Also does type inference on the candidate
 bool testCandidateParamType(
 	ref Alloc alloc,
@@ -600,6 +576,38 @@ bool isPartiallyInferred(in MutMaxArr!(maxTypeParams, SingleInferringType) typeA
 			hasUninferred = true;
 	}
 	return hasInferred && hasUninferred;
+}
+
+enum ContinueOrAbort { continue_, abort }
+
+ContinueOrAbort inferCandidateTypeArgsFromExplicitlyTypedArgument(
+	ref ExprCtx ctx,
+	scope ref Candidates candidates,
+	size_t argIndex,
+	in ExprAst arg,
+) {
+	if (arg.kind.isA!(LambdaAst*)) {
+		// TODO: this means we may do 'typeFromDestructure' twice, once here and once when checking,
+		// leading to duplicate diagnostics
+		Opt!Type optLambdaParamType = typeFromDestructure(ctx, arg.kind.as!(LambdaAst*).param);
+		if (has(optLambdaParamType)) {
+			Type lambdaParamType = force(optLambdaParamType);
+			if (lambdaParamType.isA!(Type.Bogus))
+				return ContinueOrAbort.abort;
+			else {
+				foreach (ref Candidate candidate; candidates) {
+					Type paramType = getCandidateExpectedParameterType(
+						ctx.alloc, ctx.programState, candidate, argIndex);
+					inferTypeArgsFromLambdaParameterType(
+						ctx.alloc, ctx.programState, ctx.commonTypes,
+						paramType, candidate.inferringTypeArgs, lambdaParamType);
+				}
+				return ContinueOrAbort.continue_;
+			}
+		} else
+			return ContinueOrAbort.continue_;
+	} else
+		return ContinueOrAbort.continue_;
 }
 
 bool inferCandidateTypeArgsFromSpecs(ref ExprCtx ctx, scope ref Candidate candidate) {

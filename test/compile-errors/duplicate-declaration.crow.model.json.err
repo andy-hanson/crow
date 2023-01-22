@@ -14,16 +14,16 @@ test/compile-errors/duplicate-declaration.crow 15:5-15:6 flags member name 'd' i
 
 test/compile-errors/duplicate-declaration.crow 17:1-18:1 spec name 's' is already used
 
-test/compile-errors/duplicate-declaration.crow 20:14-20:19 variable name 'a' is already used
+test/compile-errors/duplicate-declaration.crow 20:14-20:19 local name 'a' is already used
 
-test/compile-errors/duplicate-declaration.crow 25:5-25:6 variable name 'a' is already used
+test/compile-errors/duplicate-declaration.crow 25:5-25:6 local name 'a' is already used
 
-test/compile-errors/duplicate-declaration.crow 29:5-29:6 variable name 'a' is already used
+test/compile-errors/duplicate-declaration.crow 29:5-29:6 local name 'a' is already used
 
-test/compile-errors/duplicate-declaration.crow 34:9-34:10 variable name 'a' is already used
+test/compile-errors/duplicate-declaration.crow 34:9-34:10 local name 'a' is already used
 
-test/compile-errors/duplicate-declaration.crow 40:14-40:15 variable name 'b' is already used
+test/compile-errors/duplicate-declaration.crow 40:14-40:15 local name 'b' is already used
 
-test/compile-errors/duplicate-declaration.crow 41:13-41:14 variable name 'a' is already used
+test/compile-errors/duplicate-declaration.crow 41:13-41:14 local name 'a' is already used
 
-test/compile-errors/duplicate-declaration.crow 46:14-46:15 variable name 'a' is already used
+test/compile-errors/duplicate-declaration.crow 46:14-46:15 local name 'a' is already used

@@ -5,6 +5,7 @@ module frontend.ide.getPosition;
 import model.model :
 	body_,
 	decl,
+	Destructure,
 	EnumFunction,
 	Expr,
 	FlagsFunction,
@@ -13,7 +14,6 @@ import model.model :
 	ImportOrExport,
 	ImportOrExportKind,
 	Module,
-	Param,
 	paramsArray,
 	range,
 	RecordField,
@@ -38,6 +38,9 @@ immutable struct Position {
 		ImportOrExport* import_;
 		Sym name;
 	}
+	immutable struct Parameter {
+		Destructure destructure;
+	}
 	immutable struct RecordFieldPosition {
 		StructDecl* struct_;
 		RecordField* field;
@@ -48,7 +51,7 @@ immutable struct Position {
 		FunDecl*,
 		ImportedModule,
 		ImportedName,
-		Param*,
+		Parameter,
 		RecordFieldPosition,
 		SpecDecl*,
 		StructDecl*,
@@ -91,14 +94,14 @@ Opt!Position positionInFun(FunDecl* a, Pos pos, in AllSymbols allSymbols) {
 	if (hasPos(nameRange, pos))
 		return some(Position(a));
 
-	Param[] params = paramsArray(a.params);
+	Destructure[] params = paramsArray(a.params);
 	//TODO: have a way to get return type range if there are no parameters
-	if (!empty(params) && betweenRanges(nameRange, pos, params[0].range.range))
+	if (!empty(params) && betweenRanges(nameRange, pos, params[0].range))
 		return some(Position(a.returnType));
-	foreach (Param* x; ptrsRange(params))
-		if (hasPos(x.range.range, pos))
-			return some(hasPos(x.nameRange(allSymbols), pos)
-				? Position(x)
+	foreach (Destructure x; params)
+		if (hasPos(x.range, pos))
+			return some(optHasPos(x.nameRange(allSymbols), pos)
+				? Position(Position.Parameter(x))
 				: Position(x.type));
 	// TODO: specs
 	return a.body_.match!(Opt!Position)(
@@ -118,10 +121,10 @@ Opt!Position positionInFun(FunDecl* a, Pos pos, in AllSymbols allSymbols) {
 			none!Position,
 		(FunBody.Extern) =>
 			none!Position,
-		(Expr x) =>
-			hasPos(x.range.range, pos)
+		(FunBody.ExpressionBody x) =>
+			hasPos(x.expr.range.range, pos)
 				//TODO: delve inside!
-				? some(Position(x))
+				? some(Position(x.expr))
 				: none!Position,
 		(FunBody.FileBytes) =>
 			none!Position,
@@ -187,6 +190,9 @@ Opt!Position positionOfType(Type a) =>
 		(Type.Bogus) => none!Position,
 		(TypeParam* it) => some(Position(it)),
 		(StructInst* it) => some(Position(decl(*it))));
+
+bool optHasPos(Opt!RangeWithinFile range, Pos pos) =>
+	has(range) && hasPos(force(range), pos);
 
 bool nameHasPos(in AllSymbols allSymbols, Pos start, Sym name, Pos pos) =>
 	start <= pos && pos < start + symSize(allSymbols, name);

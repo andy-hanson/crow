@@ -12,8 +12,7 @@ import model.concreteModel :
 	ConcreteFunBody,
 	ConcreteFunSource,
 	ConcreteLocal,
-	ConcreteParam,
-	ConcreteParamSource,
+	ConcreteLocalSource,
 	ConcreteProgram,
 	ConcreteStruct,
 	ConcreteStructBody,
@@ -26,14 +25,15 @@ import model.concreteModel :
 	symOfConcreteMutability,
 	symOfReferenceKind;
 import model.constant : Constant;
-import model.model : EnumFunction, enumFunctionName, flagsFunctionName, FunInst, name, Param, symOfClosureReferenceKind;
+import model.model : EnumFunction, enumFunctionName, flagsFunctionName, FunInst, Local, name, symOfClosureReferenceKind;
 import model.reprConstant : reprOfConstant;
 import util.alloc.alloc : Alloc;
 import util.col.arrBuilder : add, ArrBuilder, finishArr;
-import util.opt : force, has, Opt;
+import util.opt : Opt;
 import util.repr :
-	NameAndRepr, nameAndRepr, Repr, reprArr, reprBool, reprNamedRecord, reprNat, reprOpt, reprRecord, reprStr, reprSym;
+	NameAndRepr, nameAndRepr, Repr, reprArr, reprBool, reprNamedRecord, reprNat, reprOpt, reprRecord, reprSym;
 import util.sourceRange : reprFileAndRange;
+import util.sym : Sym, sym;
 import util.util : todo;
 
 Repr reprOfConcreteProgram(ref Alloc alloc, in ConcreteProgram a) =>
@@ -114,10 +114,8 @@ Repr reprOfConcreteFun(ref Alloc alloc, in ConcreteFun a) =>
 	reprRecord!"fun"(alloc, [
 		reprOfConcreteFunSource(alloc, a.source),
 		reprOfConcreteType(alloc, a.returnType),
-		reprOpt!(ConcreteParam*)(alloc, a.closureParam, (in ConcreteParam* it) =>
-			reprOfParam(alloc, *it)),
-		reprArr!ConcreteParam(alloc, a.paramsExcludingClosure, (in ConcreteParam it) =>
-			reprOfParam(alloc, it)),
+		reprArr!ConcreteLocal(alloc, a.paramsIncludingClosure, (in ConcreteLocal x) =>
+			reprOfConcreteLocalDeclare(alloc, x)),
 		reprOfConcreteFunBody(alloc, body_(a))]);
 
 Repr reprOfConcreteFunSource(ref Alloc alloc, in ConcreteFunSource a) =>
@@ -133,20 +131,6 @@ Repr reprOfConcreteFunSource(ref Alloc alloc, in ConcreteFunSource a) =>
 
 public Repr reprOfConcreteFunRef(ref Alloc alloc, in ConcreteFun a) =>
 	reprOfConcreteFunSource(alloc, a.source);
-
-Repr reprOfParam(ref Alloc alloc, in ConcreteParam a) =>
-	reprRecord!"param"(alloc, [
-		reprOfConcreteParamGet(a),
-		reprOfConcreteType(alloc, a.type)]);
-
-public Repr reprOfConcreteParamGet(in ConcreteParam a) =>
-	a.source.match!Repr(
-		(ConcreteParamSource.Closure) =>
-			reprStr("<<closure>>"),
-		(ref Param a) =>
-			has(a.name) ? reprSym(force(a.name)) : reprStr("_"),
-		(ConcreteParamSource.Synthetic) =>
-			reprStr("<<synthetic>>"));
 
 Repr reprOfConcreteFunBody(ref Alloc alloc, in ConcreteFunBody a) =>
 	a.matchIn!Repr(
@@ -181,8 +165,22 @@ Repr reprOfConcreteFunBodyBuiltin(ref Alloc alloc, in ConcreteFunBody.Builtin a)
 	reprRecord!"builtin"(alloc, [reprArr!ConcreteType(alloc, a.typeArgs, (in ConcreteType it) =>
 			reprOfConcreteType(alloc, it))]);
 
-public Repr reprOfConcreteLocalGet(in ConcreteLocal a) =>
-	reprSym(a.source.name);
+Repr reprOfConcreteLocalDeclare(ref Alloc alloc, in ConcreteLocal a) =>
+	reprRecord!"local"(alloc, [
+		reprSym(name(a.source)),
+		reprOfConcreteType(alloc, a.type)]);
+
+Repr reprOfConcreteLocalRef(in ConcreteLocal a) =>
+	reprSym(name(a.source));
+
+Sym name(in ConcreteLocalSource a) =>
+	a.matchIn!Sym(
+		(in Local x) =>
+			x.name,
+		(in ConcreteLocalSource.Closure) =>
+			sym!"closure",
+		(in ConcreteLocalSource.Generated x) =>
+			x.name);
 
 Repr reprOfConcreteExpr(ref Alloc alloc, in ConcreteExpr a) {
 	// TODO: For brevity.. (change back once we have tail recursion and crow can handle long strings)
@@ -241,14 +239,14 @@ Repr reprOfConcreteExprKind(ref Alloc alloc, in ConcreteExprKind a) =>
 					reprOfConcreteExpr(alloc, *closure))]),
 		(in ConcreteExprKind.Let it) =>
 			reprRecord!"let"(alloc, [
-				reprOfConcreteLocalGet(*it.local),
+				reprOfConcreteLocalDeclare(alloc, *it.local),
 				reprOfConcreteExpr(alloc, it.value),
 				reprOfConcreteExpr(alloc, it.then)]),
 		(in ConcreteExprKind.LocalGet it) =>
-			reprRecord!"local-get"(alloc, [reprOfConcreteLocalGet(*it.local)]),
+			reprRecord!"local-get"(alloc, [reprOfConcreteLocalRef(*it.local)]),
 		(in ConcreteExprKind.LocalSet it) =>
 			reprRecord!"local-set"(alloc, [
-				reprOfConcreteLocalGet(*it.local),
+				reprOfConcreteLocalRef(*it.local),
 				reprOfConcreteExpr(alloc, it.value)]),
 		(in ConcreteExprKind.Loop it) =>
 			reprRecord!"loop"(alloc, [reprOfConcreteExpr(alloc, it.body_)]),
@@ -269,16 +267,16 @@ Repr reprOfConcreteExprKind(ref Alloc alloc, in ConcreteExprKind a) =>
 					(in ConcreteExprKind.MatchUnion.Case case_) =>
 						reprRecord!"case"(alloc, [
 							reprOpt!(ConcreteLocal*)(alloc, case_.local, (in ConcreteLocal* local) =>
-								reprOfConcreteLocalGet(*local)),
+								reprOfConcreteLocalDeclare(alloc, *local)),
 							reprOfConcreteExpr(alloc, case_.then)]))]),
-		(in ConcreteExprKind.ParamGet it) =>
-			reprRecord!"param-get"(alloc, [reprOfConcreteParamGet(*it.param)]),
 		(in ConcreteExprKind.PtrToField it) =>
 			reprRecord!"ptr-to-field"(alloc, [reprOfConcreteExpr(alloc, it.target), reprNat(it.fieldIndex)]),
 		(in ConcreteExprKind.PtrToLocal it) =>
-			reprRecord!"ptr-to-local"(alloc, [reprOfConcreteLocalGet(*it.local)]),
-		(in ConcreteExprKind.PtrToParam it) =>
-			reprRecord!"ptr-to-param"(alloc, [reprOfConcreteParamGet(*it.param)]),
+			reprRecord!"ptr-to-local"(alloc, [reprOfConcreteLocalRef(*it.local)]),
+		(in ConcreteExprKind.RecordFieldGet x) =>
+			reprRecord!"field-get"(alloc, [
+				reprOfConcreteExpr(alloc, *x.record),
+				reprNat(x.fieldIndex)]),
 		(in ConcreteExprKind.Seq it) =>
 			reprRecord!"seq"(alloc, [reprOfConcreteExpr(alloc, it.first), reprOfConcreteExpr(alloc, it.then)]),
 		(in ConcreteExprKind.Throw it) =>

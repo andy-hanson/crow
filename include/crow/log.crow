@@ -2,7 +2,7 @@ no-std
 import
 	./fun-util: subscript
 	./io/print: out, print
-	./misc: void
+	./misc: new, void
 	./pointer: *, mut-pointer, set-deref
 	./string: ~~, literal, string
 	./private/exception-low-level: catch, rethrow
@@ -15,7 +15,7 @@ This is not considered `summon` since the I/O is done by the log handler,
 which is passed in via the crow context. `with-log-handler` can change it.
 ###
 +log void(level log-level, message string)
-	get-log-handler[(level, message)]
+	get-log-handler[level, message]
 
 ###
 Temporarily replaces the log handler.

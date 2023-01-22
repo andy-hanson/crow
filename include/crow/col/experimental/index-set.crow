@@ -442,8 +442,10 @@ iterate bool(a index-set, f act bool(nat64))
 		else
 			i.d iterate-recur offset + three-quarters, quarter, f
 	as leaf l
-		l.values iterate (word-index, value) =>
+		word-index mut = 0
+		l.values iterate value =>
 			bit-index-offset = offset + word-index * 64
+			word-index +:= 1
 			value.one-bits iterate bit-index =>
 				f[bit-index-offset + bit-index]
 	as empty
@@ -455,7 +457,7 @@ index-set-builder record mut
 	-inner nat64 list-builder
 
 build index-set(a build-options, f act void(index-set-builder))
-	a build (out => f[(out,)]) to-index-set
+	a build (out => f[out,]) to-index-set
 
 ~ ~= void(a index-set-builder, value nat64)
 	a.inner ~= value

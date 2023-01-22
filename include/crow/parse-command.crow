@@ -3,7 +3,7 @@ import
 	./bool: &&, bool, false, not, true
 	./col/collection:
 		.., end, for-break, for-loop, index-of, n-of, set-subscript, split, subscript,
-		try-remove-start
+		try-remove-start, with-index
 	./col/dict: ==, ~=, build, dict, iterate, new, size
 	./col/list: ==, ~~, +, -, begin, end, iterate, is-empty, list, new, next, size, slice
 	./col/mut-dict: iterate, mut-dict, new, set-subscript, size
@@ -48,7 +48,7 @@ Parse errors aren't possible with this syntax.
 	named string mut[] mut[symbol] = ()
 	after mut string[] = ()
 	cur mut string mut[] = nameless
-	for i, arg : args
+	for i, arg : args with-index
 		if arg == "--"
 			after := args[i + 1 .. end]
 			break

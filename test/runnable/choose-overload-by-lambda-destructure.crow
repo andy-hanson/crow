@@ -1,0 +1,14 @@
+import
+	crow/io/print: out, print
+
+main nat^(_ string[]) summon
+	a = (() => 3) foo
+	b = ((x nat) => x * 2) foo
+	out print "a: {a}, b: {b}"
+	()
+
+foo nat(cb act nat(nat))
+	cb[1]
+
+foo nat(cb act nat())
+	cb[]

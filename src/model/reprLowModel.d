@@ -2,7 +2,7 @@ module model.reprLowModel;
 
 @safe @nogc pure nothrow:
 
-import model.concreteModel : ConcreteFun, ConcreteLocal, ConcreteParam;
+import model.concreteModel : ConcreteFun;
 import model.constant : Constant;
 import model.lowModel :
 	debugName,
@@ -18,8 +18,6 @@ import model.lowModel :
 	LowFunSource,
 	LowLocal,
 	LowLocalSource,
-	LowParam,
-	LowParamSource,
 	LowProgram,
 	LowRecord,
 	LowType,
@@ -27,12 +25,8 @@ import model.lowModel :
 	PrimitiveType,
 	symOfPrimitiveType,
 	UpdateParam;
-import model.model : EnumValue;
-import model.reprConcreteModel :
-	reprOfConcreteFunRef,
-	reprOfConcreteLocalGet,
-	reprOfConcreteParamGet,
-	reprOfConcreteStructRef;
+import model.model : EnumValue, Local;
+import model.reprConcreteModel : reprOfConcreteFunRef, reprOfConcreteStructRef;
 import model.reprConstant : reprOfConstant;
 import util.alloc.alloc : Alloc;
 import util.repr :
@@ -115,8 +109,8 @@ Repr reprOfLowFun(ref Alloc alloc, in LowFun a) =>
 	reprRecord!"fun"(alloc, [
 		reprOfLowFunSource(alloc, a.source),
 		reprOfLowType(alloc, a.returnType),
-		reprArr!LowParam(alloc, a.params, (in LowParam it) =>
-			reprRecord!"param"(alloc, [reprOfLowParamSource(it.source), reprOfLowType(alloc, it.type)])),
+		reprArr!LowLocal(alloc, a.params, (in LowLocal x) =>
+			reprOfLowLocal(alloc, x)),
 		reprOfLowFunBody(alloc, a.body_)]);
 
 Repr reprOfLowFunSource(ref Alloc alloc, in LowFunSource a) =>
@@ -126,13 +120,6 @@ Repr reprOfLowFunSource(ref Alloc alloc, in LowFunSource a) =>
 		(in LowFunSource.Generated x) =>
 			reprRecord!"generated"(alloc, [reprSym(x.name)]));
 
-Repr reprOfLowParamSource(in LowParamSource a) =>
-	a.matchIn!Repr(
-		(in ConcreteParam it) =>
-			reprOfConcreteParamGet(it),
-		(in LowParamSource.Generated it) =>
-			reprSym(it.name));
-
 Repr reprOfLowFunBody(ref Alloc alloc, in LowFunBody a) =>
 	a.matchIn!Repr(
 		(in LowFunBody.Extern) =>
@@ -140,10 +127,15 @@ Repr reprOfLowFunBody(ref Alloc alloc, in LowFunBody a) =>
 		(in LowFunExprBody x) =>
 			reprRecord!"expr-body"(alloc, [reprOfLowExpr(alloc, x.expr)]));
 
+Repr reprOfLowLocal(ref Alloc alloc, in LowLocal a) =>
+	reprRecord!"local"(alloc, [
+		reprOfLowLocalSource(alloc, a.source),
+		reprOfLowType(alloc, a.type)]);
+
 Repr reprOfLowLocalSource(ref Alloc alloc, in LowLocalSource a) =>
 	a.matchIn!Repr(
-		(in ConcreteLocal it) =>
-			reprOfConcreteLocalGet(it),
+		(in Local it) =>
+			reprSym(it.name),
 		(in LowLocalSource.Generated it) =>
 			reprRecord!"generated"(alloc, [reprSym(it.name), reprNat(it.index)]));
 
@@ -180,7 +172,7 @@ Repr reprOfLowExprKind(ref Alloc alloc, in LowExprKind a) =>
 			reprSym!"init-const" ,
 		(in LowExprKind.Let it) =>
 			reprRecord!"let"(alloc, [
-				reprOfLowLocalSource(alloc, it.local.source),
+				reprOfLowLocal(alloc, *it.local),
 				reprOfLowExpr(alloc, it.value),
 				reprOfLowExpr(alloc, it.then)]),
 		(in LowExprKind.LocalGet it) =>
@@ -197,8 +189,6 @@ Repr reprOfLowExprKind(ref Alloc alloc, in LowExprKind a) =>
 			reprSym!"continue" ,
 		(in LowExprKind.MatchUnion it) =>
 			reprOfMatchUnion(alloc, it),
-		(in LowExprKind.ParamGet it) =>
-			reprRecord!"param-get"(alloc, [reprNat(it.index.index)]),
 		(in LowExprKind.PtrCast it) =>
 			reprRecord!"ptr-cast"(alloc, [reprOfLowExpr(alloc, it.target)]),
 		(in LowExprKind.PtrToField it) =>
@@ -207,8 +197,6 @@ Repr reprOfLowExprKind(ref Alloc alloc, in LowExprKind a) =>
 				reprNat(it.fieldIndex)]),
 		(in LowExprKind.PtrToLocal it) =>
 			reprRecord!"ptr-to-local"(alloc, [reprOfLowLocalSource(alloc, it.local.source)]),
-		(in LowExprKind.PtrToParam it) =>
-			reprRecord!"ptr-to-param"(alloc, [reprNat(it.index.index)]),
 		(in LowExprKind.RecordFieldGet it) =>
 			reprRecord!"get-field"(alloc, [
 				reprOfLowExpr(alloc, it.target),
@@ -255,7 +243,7 @@ Repr reprOfLowExprKind(ref Alloc alloc, in LowExprKind a) =>
 			reprRecord!"tail-recur"(alloc, [
 				reprArr!UpdateParam(alloc, it.updateParams, (in UpdateParam updateParam) =>
 					reprRecord!"update"(alloc, [
-						reprNat(updateParam.param.index),
+						reprOfLowLocalSource(alloc, updateParam.param.source),
 						reprOfLowExpr(alloc, updateParam.newValue),
 					]))]),
 		(in LowExprKind.ThreadLocalPtr it) =>

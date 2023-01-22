@@ -25,7 +25,7 @@ import
 	../../string:
 		==, <=>, ~~, as-string, begin, end, hash-mix, is-empty, iterate, literal, new, next, prev,
 		slice, string, to-bytes, to-c-string, to-nat8, to-string
-	../../tuple: new, tuple2
+	../../tuple: new
 	../../private/bootstrap: todo
 	./http-types:
 		==, enum-members, GET, headers, http-internal-server-error, http-method, http-request,
@@ -68,7 +68,7 @@ Starts running an HTTP server. Stops it when `cb` returns.
 	trusted
 		tcp-server = a.port start-tcp-server (on-accepted-client, on-received-chunk)
 		with : tcp-server.stop future-finally
-			cb[()]
+			cb[]
 
 # Returns true when closed client
 -handle-chunk bool^(sock SOCKET, state http-parse-state, chunk nat8 array, handler http-handler) summon, unsafe

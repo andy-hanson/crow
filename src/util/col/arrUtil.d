@@ -35,8 +35,12 @@ import util.util : max, verify;
 
 pure:
 
-@trusted T[] arrLiteral(T)(scope ref Alloc alloc, scope T[] values) =>
-	copyArr(alloc, values);
+@trusted T[] arrLiteral(T)(scope ref Alloc alloc, scope T[] values) {
+	T* res = allocateT!T(alloc, values.length);
+	foreach (size_t i, ref T x; values)
+		initMemory!T(res + i, x);
+	return res[0 .. values.length];
+}
 
 @system Out[] allocateUninitialized(Out)(ref Alloc alloc, size_t size) =>
 	allocateT!Out(alloc, size)[0 .. size];
@@ -92,6 +96,11 @@ Opt!size_t findIndex(T)(in T[] a, in bool delegate(in T) @safe @nogc pure nothro
 Opt!size_t indexOf(T)(in T[] xs, in T value) =>
 	findIndex!T(xs, (in T x) => x == value);
 
+@trusted Opt!size_t indexOfPointer(T)(in T[] xs, in T* pointer) {
+	size_t res = pointer - xs.ptr;
+	return 0 <= res && res < xs.length ? some(res) : none!size_t;
+}
+
 Opt!(T*) findPtr(T)(T[] arr, in bool delegate(in T) @safe @nogc pure nothrow cb) {
 	foreach (T* x; ptrsRange!T(arr))
 		if (cb(*x))
@@ -129,21 +138,6 @@ T[] copyArr(T)(ref Alloc alloc, scope T[] a) =>
 	return res[0 .. a.length];
 }
 
-@trusted Out[] mapPtrsWithOptFirst(Out, In)(
-	ref Alloc alloc,
-	ref Opt!Out optFirst,
-	in In[] a,
-	in Out delegate(In*) @safe @nogc pure nothrow cb,
-) {
-	size_t offset = has(optFirst) ? 1 : 0;
-	Out* res = allocateT!Out(alloc, offset + a.length);
-	if (has(optFirst))
-		initMemory(res, force(optFirst));
-	foreach (size_t i; 0 .. a.length)
-		initMemory(res + offset + i, cb(&a[i]));
-	return res[0 .. offset + a.length];
-}
-
 @trusted Out[] mapWithFirst(Out, In)(
 	ref Alloc alloc,
 	Out first,
@@ -151,9 +145,9 @@ T[] copyArr(T)(ref Alloc alloc, scope T[] a) =>
 	in Out delegate(size_t, In) @safe @nogc pure nothrow cb,
 ) {
 	Out* res = allocateT!Out(alloc, 1 + a.length);
-	initMemory(res, first);
+	initMemory!Out(res, first);
 	foreach (size_t i, ref In x; a)
-		initMemory(res + 1 + i, cb(i, x));
+		initMemory!Out(res + 1 + i, cb(i, x));
 	return res[0 .. 1 + a.length];
 }
 
@@ -215,7 +209,7 @@ T[] copyArr(T)(ref Alloc alloc, scope T[] a) =>
 	return res[0 .. a.length];
 }
 
-@trusted Out[] mapPtrsWithIndex(Out, In)(
+@trusted Out[] mapPointersWithIndex(Out, In)(
 	ref Alloc alloc,
 	In[] a,
 	in Out delegate(size_t, In*) @safe @nogc pure nothrow cb,
@@ -224,6 +218,19 @@ T[] copyArr(T)(ref Alloc alloc, scope T[] a) =>
 	foreach (size_t i; 0 .. a.length)
 		initMemory(res + i, cb(i, &a[i]));
 	return res[0 .. a.length];
+}
+
+@trusted Out[] mapPointersWithFirst(Out, In)(
+	ref Alloc alloc,
+	In[] a,
+	Out first,
+	in Out delegate(In*) @safe @nogc pure nothrow cb,
+) {
+	Out* res = allocateT!Out(alloc, 1 + a.length);
+	initMemory!Out(res, first);
+	foreach (size_t i; 0 .. a.length)
+		initMemory!Out(res + 1 + i, cb(&a[i]));
+	return res[0 .. 1 + a.length];
 }
 
 @trusted Out[] mapWithSoFar(Out, In)(
@@ -330,20 +337,6 @@ void zipPtrFirst(T, U)(
 	Out* res = allocateT!Out(alloc, sz);
 	foreach (size_t i; 0 .. sz)
 		initMemory(res + i, cb(&in0[i], in1[i]));
-	return res[0 .. sz];
-}
-
-@trusted Out[] mapZipWithIndex(Out, In0, In1)(
-	ref Alloc alloc,
-	scope In0[] in0,
-	scope In1[] in1,
-	in Out delegate(in In0, in In1, size_t) @safe @nogc pure nothrow cb,
-) {
-	verify(sizeEq(in0, in1));
-	size_t sz = in0.length;
-	Out* res = allocateT!Out(alloc, sz);
-	foreach (size_t i; 0 .. sz)
-		initMemory(res + i, cb(in0[i], in1[i], i));
 	return res[0 .. sz];
 }
 

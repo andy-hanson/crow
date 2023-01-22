@@ -3,7 +3,7 @@ import
 	./bool: &&, bool
 	./compare: compare, comparison, equal, greater, less
 export
-	./private/tuple-low-level: a, b, new, tuple2
+	./private/bootstrap: a, b, c, d, e, f, new, tuple2, tuple3, tuple4, tuple5, tuple6
 
 ###
 Written `(a, b)`. Generic pair type.
@@ -21,37 +21,3 @@ This is often used as a key-value pair in a dictionary or priority queue.
 		a.b <=> b.b
 	as greater
 		greater
-
-# Same as `a.a`.
-from[t, u] t(a (t, u)) noctx
-	a a
-
-# Same as `a.b`.
-to[t, u] u(a (t, u)) noctx
-	a b
-
-+tuple3[t0, t1, t2] record by-val
-	a t0
-	b t1
-	c t2
-
-+tuple4[t0, t1, t2, t3] record by-val
-	a t0
-	b t1
-	c t2
-	d t3
-
-+tuple5[t0, t1, t2, t3, t4] record by-val
-	a t0
-	b t1
-	c t2
-	d t3
-	e t4
-
-+tuple6[t0, t1, t2, t3, t4, t5] record by-val
-	a t0
-	b t1
-	c t2
-	d t3
-	e t4
-	f t5

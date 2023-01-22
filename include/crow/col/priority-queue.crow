@@ -10,7 +10,7 @@ import
 	../range: .., iterate
 	../string: ~~, ==, literal, new, string, to-string
 	../test-util: is
-	../tuple: ==, a, b, from, new, to, tuple2
+	../tuple: ==, a, b, new
 	./array: ~=, +, -, array, begin, build, end, is-empty, iterate, new, next, size, slice
 	./collection: .., build, end, for-break, for-loop, join, subscript, swap-at, with-block
 	./mut-array:
@@ -65,7 +65,7 @@ then with the `4` to size 10, then with the `8` to size 18, leaving only one nod
 		# TODO: type annotation should not be necessary
 		()::((k, v) node?),
 	else
-		sorted (k, v) array = a.to-array sort pair => pair from
+		sorted (k, v) array = a.to-array sort (k, _) => k
 		root (k, v) node = sorted[0], sorted[1 .. end], ()
 		# TODO: type annotation should not be necessary
 		(root,)::((k, v) node?),
@@ -117,7 +117,7 @@ This is amortized O(log n).
 -pop-inner[k, v] (k, v) popped?(a (k, v) priority-queue) k priority
 	if root ?= a.compact-leading-nodes root
 		if next ?= root next
-			if popped ?= next pop-no-compact-recur root.min.from
+			if popped ?= next pop-no-compact-recur root.min.a
 				(root combine-with-popped popped),
 			else
 				root.pop-from-node,
@@ -139,10 +139,10 @@ This is amortized O(log n).
 
 # Returns none if this (or any following node) did not have a lower min.
 -pop-no-compact-recur[k, v] (k, v) popped?(a (k, v) node, min k) k compare
-	is-min = a.min.from < min
+	is-min = a.min.a < min
 	next-popped = if next ?= a next
 		next pop-no-compact-recur if is-min
-			a.min from
+			a.min a
 		else
 			min
 	if next ?= next-popped
@@ -210,7 +210,7 @@ This is amortized O(log n).
 		out compact-non-singles nodes-to-compact
 		out compact-singles root
 	assert compacted.size == n-to-compact
-	compacted sort= pair => pair from
+	compacted sort= ((k, _)) => k
 	arr = trusted compacted cast-immutable
 	arr[0], arr[1 .. end], ()
 
@@ -236,10 +236,11 @@ This is amortized O(log n).
 	a.root dbg
 -dbg string(a (nat64, string) node?)
 	if node ?= a
-		pairs = ", " join for pair : node pairs
-			"{pair from} {pair to}"
+		pairs = ", " join for k, v : node pairs
+			"{k} {v}"
 		rest = node.next.is-empty ? "" : "; {node.next dbg}"
-		"{node.min from} {node.min to} [{pairs}]{rest}"
+		k, v = node min
+		"{k} {v} [{pairs}]{rest}"
 
 region iteration
 
@@ -254,7 +255,7 @@ region iteration
 	res (k, v) each-part mut-array = with out : a.node-count build
 		out fill-each-arr a.root
 	assert res.size == a.node-count
-	res sort= it => it.min from
+	res sort= x => x.min a
 	res
 
 -node-count[k, v] nat64(a (k, v) priority-queue)
@@ -279,8 +280,7 @@ region iteration
 -walk[k, v] void(a (k, v) each-part mut-array, f act void(k, v)) k compare
 	unless a is-empty
 		head = a[0]
-		min = head min
-		f[min from, min to]
+		f[head min]
 		if head.pairs is-empty
 			a[1 .. end] walk f
 		else
@@ -291,18 +291,11 @@ region iteration
 
 -swap-sorted[k, v] void(a (k, v) each-part mut-array) k compare
 	for i : 0 .. a.size - 1
-		if a[i].min.from > a[i + 1].min.from
+		if a[i].min.a > a[i + 1].min.a
 			a swap-at i, i + 1
 			continue
 		else
 			break
-
-+filter[k, v] (k, v) priority-queue(a (k, v) priority-queue, f act bool(k, v)) k priority
-	pairs (k, v)[] = with out : build
-		for k, v : a
-			if f[k, v]
-				out ~= (k, v)
-	pairs to-priority-queue
 
 +for-loop[k-out, v-out, k-in, v-in] (k-out, v-out) priority-queue(
 	a (k-in, v-in) priority-queue,
@@ -312,8 +305,8 @@ region iteration
 
 +for-loop[out, k, v] out[](a (k, v) priority-queue, f act out(k, v)) k priority
 	with out : a.size build
-		for k, v : a
-			out ~= f[k, v]
+		for x : a
+			out ~= f[x]
 
 test
 	p (nat64, string) priority-queue = ()
@@ -358,9 +351,6 @@ test
 	joined = ", " join for k, v : p6
 		"{k} -> {v}"
 	joined is "6 -> 6, 6 -> 6b, 6 -> 6c, 7 -> 7, 7 -> 7b, 8 -> 8"
-
-	filtered = p6 filter (k, _) => k == 6
-	filtered.dbg is "6 6 [6 6b, 6 6c]"
 
 	mapped (nat64, string) priority-queue = p6 for-loop (k, v) => (10 - k), "{v}x"
 	mapped.dbg is "2 8x [3 7x, 3 7bx, 4 6x, 4 6bx, 4 6cx]"

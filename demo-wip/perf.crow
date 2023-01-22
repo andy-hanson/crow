@@ -3,13 +3,12 @@ import
 	crow/perf
 
 main nat^(_ string[]) summon
-	# TODO: should not need type annotation
-	pair (nat[], perf-result) = with : ("is-prime"::symbol,) measure-performance
+	xs nat[], perf perf-result = with : ("is-prime"::symbol,) measure-performance
 		() join for x : 2 .. 1000
 			with : "is-prime" perf-measure
 				x.is-prime ? (x,) : ()
-	out print (" " join for x : pair a; "{x}")
-	out print "{pair b}"
+	out print (" " join for x : xs; "{x}")
+	out print "{perf}"
 	()
 
 is-prime bool(a nat)

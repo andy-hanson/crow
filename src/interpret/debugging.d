@@ -5,16 +5,15 @@ module interpret.debugging;
 import model.concreteModel :
 	ConcreteFun,
 	ConcreteFunSource,
-	ConcreteParam,
-	ConcreteParamSource,
+	ConcreteLocal,
+	ConcreteLocalSource,
 	ConcreteStruct,
 	ConcreteStructSource,
 	ConcreteType;
 import model.lowModel :
 	AllLowTypes, LowFun, LowFunIndex, LowFunSource, LowProgram, LowType, PrimitiveType, symOfPrimitiveType;
-import model.model : decl, FunInst, name, Param, typeArgs, writeTypeArgs, writeTypeArgsGeneric;
+import model.model : decl, FunInst, name, Local, typeArgs, writeTypeArgs, writeTypeArgsGeneric;
 import util.col.arr : only;
-import util.opt : force, has;
 import util.writer : Writer, writeWithCommas;
 import util.sym : AllSymbols, writeSym;
 
@@ -52,22 +51,19 @@ void writeFunSig(scope ref Writer writer, in AllSymbols allSymbols, in LowProgra
 		(in ConcreteFun x) {
 			writeConcreteType(writer, allSymbols, x.returnType);
 			writer ~= '(';
-			writeWithCommas!ConcreteParam(
+			writeWithCommas!ConcreteLocal(
 				writer,
-				x.paramsExcludingClosure,
-				(in ConcreteParam param) {
+				x.paramsIncludingClosure,
+				(in ConcreteLocal param) {
 					param.source.matchIn!void(
-						(in ConcreteParamSource.Closure) {
+						(in Local p) {
+							writeSym(writer, allSymbols, p.name);
+						},
+						(in ConcreteLocalSource.Closure) {
 							writer ~= "<closure>";
 						},
-						(in Param p) {
-							if (has(p.name))
-								writeSym(writer, allSymbols, force(p.name));
-							else
-								writer ~= '_';
-						},
-						(in ConcreteParamSource.Synthetic) {
-							writer ~= '_';
+						(in ConcreteLocalSource.Generated x) {
+							writeSym(writer, allSymbols, x.name);
 						});
 					writer ~= ' ';
 					writeConcreteType(writer, allSymbols, param.type);
@@ -113,7 +109,9 @@ void writeLowType(ref Writer writer, in AllSymbols allSymbols, in AllLowTypes lo
 		});
 }
 
-private void writeConcreteFunName(ref Writer writer, in AllSymbols allSymbols, in ConcreteFun a) {
+private:
+
+void writeConcreteFunName(ref Writer writer, in AllSymbols allSymbols, in ConcreteFun a) {
 	a.source.matchIn!void(
 		(in FunInst it) {
 			writeSym(writer, allSymbols, it.name);
@@ -129,8 +127,6 @@ private void writeConcreteFunName(ref Writer writer, in AllSymbols allSymbols, i
 			writer ~= "test";
 		});
 }
-
-private:
 
 void writeConcreteStruct(scope ref Writer writer, in AllSymbols allSymbols, in ConcreteStruct a) {
 	a.source.matchIn!void(

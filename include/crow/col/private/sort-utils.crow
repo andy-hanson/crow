@@ -11,7 +11,7 @@ import
 	../../pointer: ==, <=>, +, -, *, as-const, set-deref
 	../../range: ..
 	../../test-util: is
-	../../tuple: a, b, from, to, tuple2
+	../../tuple: a, b, new
 	../../private/bootstrap: nat64
 	../array:
 		==, <=>, +, -, array, array-iterator, as-array, begin, end, iterate, next, next-index, slice
@@ -33,18 +33,18 @@ binary-search-key[k, v] v?(a (k, v) array, key k) k compare
 	loop
 		diff = right - left
 		if diff < 4
-			break for pair : left slice right
-				if pair.from == key
-					break pair to
+			break for k, v : left slice right
+				if k == key
+					break v
 		else
 			mid = left + diff / 2
-			next = mid.next!.a
-			match key <=> next.from
+			next-k, next-v = mid.next!.a
+			match key <=> next-k
 			as less
 				right := mid
 				continue
 			as equal
-				break next.to,
+				break next-v,
 			as greater
 				left := mid + 1
 				continue

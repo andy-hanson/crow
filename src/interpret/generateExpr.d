@@ -107,7 +107,6 @@ import model.lowModel :
 	LowFunExprBody,
 	LowFunIndex,
 	LowLocal,
-	LowParamIndex,
 	LowProgram,
 	LowRecord,
 	LowType,
@@ -120,6 +119,7 @@ import model.typeLayout : nStackEntriesForType, optPack, Pack, typeSizeBytes;
 import util.alloc.alloc : TempAlloc;
 import util.col.arr : empty;
 import util.col.arrBuilder : add;
+import util.col.arrUtil : indexOfPointer;
 import util.col.dict : mustGetAt;
 import util.col.mutArr : clearAndFree, MutArr, push, tempAsArr;
 import util.col.mutMaxArr : push, tempAsArr;
@@ -132,8 +132,7 @@ import util.union_ : UnionMutable;
 import util.util : divRoundUp, unreachable, verify;
 import util.writer : finishWriter, Writer;
 
-// TODO: not @trusted
-@trusted void generateFunFromExpr(
+void generateFunFromExpr(
 	ref TempAlloc tempAlloc,
 	scope ref ByteCodeWriter writer,
 	in AllSymbols allSymbols,
@@ -142,6 +141,7 @@ import util.writer : finishWriter, Writer;
 	in ThreadLocalsInfo threadLocalsInfo,
 	LowFunIndex funIndex,
 	ref FunToReferences funToReferences,
+	in LowLocal[] curFunParams,
 	in StackEntries[] parameters,
 	size_t returnEntries,
 	in LowFunExprBody body_,
@@ -156,11 +156,12 @@ import util.writer : finishWriter, Writer;
 		ptrTrustMe(tempAlloc),
 		ptrTrustMe(funToReferences),
 		nextByteCodeIndex(writer),
+		castNonScope(curFunParams),
 		castNonScope(parameters));
 	Locals locals;
 	StackEntries returnStackEntries = StackEntries(StackEntry(0), returnEntries);
 	ExprAfter after = ExprAfter(returnStackEntries, ExprAfterKind(ExprAfterKind.Return()));
-	generateExpr(writer, ctx, locals, after, body_.expr);
+	generateExpr(castNonScope_ref(writer), ctx, locals, after, body_.expr);
 	verify(getNextStackEntry(writer).entry == returnEntries);
 }
 
@@ -225,6 +226,7 @@ struct ExprCtx {
 	TempAlloc* tempAllocPtr;
 	FunToReferences* funToReferencesPtr;
 	immutable ByteCodeIndex startOfCurrentFun;
+	immutable LowLocal[] curFunParams;
 	immutable StackEntries[] parameterEntries;
 
 	ref const(AllSymbols) allSymbols() return scope const =>
@@ -261,7 +263,12 @@ size_t nStackEntriesForUnionType(in ExprCtx ctx, LowType.Union t) {
 
 alias Locals = StackDict!(LowLocal*, StackEntries);
 alias addLocal = stackDictAdd!(LowLocal*, StackEntries);
-alias getLocal = stackDictMustGet!(LowLocal*, StackEntries);
+StackEntries getLocal(in ExprCtx ctx, in Locals locals, in LowLocal* local) {
+	Opt!size_t paramIndex = indexOfPointer(ctx.curFunParams, local);
+	return has(paramIndex)
+		? ctx.parameterEntries[force(paramIndex)]
+		: stackDictMustGet!(LowLocal*, StackEntries)(locals, local);
+}
 
 void generateExpr(
 	ref ByteCodeWriter writer,
@@ -315,13 +322,13 @@ void generateExpr(
 		(in LowExprKind.Let it) =>
 			generateLet(writer, ctx, locals, after, it),
 		(in LowExprKind.LocalGet it) {
-			StackEntries entries = getLocal(locals, it.local);
+			StackEntries entries = getLocal(ctx, locals, it.local);
 			if (entries.size != 0)
 				writeDupEntries(writer, source, entries);
 			handleAfter(writer, ctx, source, after);
 		},
 		(in LowExprKind.LocalSet it) {
-			StackEntries entries = getLocal(locals, it.local);
+			StackEntries entries = getLocal(ctx, locals, it.local);
 			generateExprAndContinue(writer, ctx, locals, it.value);
 			if (entries.size != 0)
 				writeSet(writer, source, entries);
@@ -339,12 +346,6 @@ void generateExpr(
 		(in LowExprKind.MatchUnion it) {
 			generateMatchUnion(writer, ctx, source, locals, after, it);
 		},
-		(in LowExprKind.ParamGet it) {
-			StackEntries entries = ctx.parameterEntries[it.index.index];
-			if (entries.size != 0)
-				writeDupEntries(writer, source, entries);
-			handleAfter(writer, ctx, source, after);
-		},
 		(in LowExprKind.PtrCast it) {
 			generateExpr(writer, ctx, locals, after, it.target);
 		},
@@ -352,8 +353,6 @@ void generateExpr(
 			generatePtrToField(writer, ctx, source, locals, after, x),
 		(in LowExprKind.PtrToLocal x) =>
 			generatePtrToLocal(writer, ctx, source, locals, after, x.local),
-		(in LowExprKind.PtrToParam x) =>
-			generatePtrToParam(writer, ctx, source, after, x.index),
 		(in LowExprKind.RecordFieldGet it) {
 			generateRecordFieldGet(writer, ctx, source, locals, it);
 			handleAfter(writer, ctx, source, after);
@@ -594,7 +593,7 @@ void generateTailRecur(
 		generateExprAndContinue(writer, ctx, locals, updateParam.newValue);
 	// Now pop them in reverse and write to the appropriate params
 	foreach_reverse (ref UpdateParam updateParam; a.updateParams)
-		writeSet(writer, source, ctx.parameterEntries[updateParam.param.index]);
+		writeSet(writer, source, getLocal(ctx, locals, updateParam.param));
 
 	// Delete anything on the stack besides parameters
 	verify(after.kind.isA!(ExprAfterKind.Return));
@@ -898,18 +897,7 @@ void generatePtrToLocal(
 	scope ref ExprAfter after,
 	in LowLocal* local,
 ) {
-	writeStackRef(writer, source, getLocal(locals, local).start);
-	handleAfter(writer, ctx, source, after);
-}
-
-void generatePtrToParam(
-	ref ByteCodeWriter writer,
-	ref ExprCtx ctx,
-	ByteCodeSource source,
-	scope ref ExprAfter after,
-	LowParamIndex index,
-) {
-	writeStackRef(writer, source, ctx.parameterEntries[index.index].start);
+	writeStackRef(writer, source, getLocal(ctx, locals, local).start);
 	handleAfter(writer, ctx, source, after);
 }
 

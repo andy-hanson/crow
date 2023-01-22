@@ -27,6 +27,8 @@ DiagSeverity getDiagnosticSeverity(in Diag a) =>
 			DiagSeverity.checkError,
 		(in Diag.CommonTypeMissing) =>
 			DiagSeverity.checkError,
+		(in Diag.DestructureTypeMismatch) =>
+			DiagSeverity.checkError,
 		(in Diag.DuplicateDeclaration) =>
 			DiagSeverity.checkError,
 		(in Diag.DuplicateExports) =>
@@ -61,11 +63,13 @@ DiagSeverity getDiagnosticSeverity(in Diag a) =>
 			DiagSeverity.checkError,
 		(in Diag.ImportRefersToNothing) =>
 			DiagSeverity.nameNotFound,
-		(in Diag.LambdaCantInferParamTypes) =>
+		(in Diag.LambdaCantInferParamType) =>
 			DiagSeverity.checkError,
 		(in Diag.LambdaClosesOverMut) =>
 			DiagSeverity.checkError,
-		(in Diag.LambdaWrongNumberParams) =>
+		(in Diag.LambdaMultipleMatch) =>
+			DiagSeverity.checkError,
+		(in Diag.LambdaNotExpected) =>
 			DiagSeverity.checkError,
 		(in Diag.LinkageWorseThanContainingFun) =>
 			DiagSeverity.checkError,
@@ -73,9 +77,9 @@ DiagSeverity getDiagnosticSeverity(in Diag a) =>
 			DiagSeverity.checkError,
 		(in Diag.LiteralOverflow) =>
 			DiagSeverity.checkError,
-		(in Diag.LocalNotMutable) =>
+		(in Diag.LocalIgnoredButMutable) =>
 			DiagSeverity.checkWarning,
-		(in Diag.LoopNeedsBreakOrContinue) =>
+		(in Diag.LocalNotMutable) =>
 			DiagSeverity.checkError,
 		(in Diag.LoopWithoutBreak) =>
 			DiagSeverity.checkWarning,
@@ -98,6 +102,10 @@ DiagSeverity getDiagnosticSeverity(in Diag a) =>
 		(in Diag.NameNotFound) =>
 			DiagSeverity.nameNotFound,
 		(in Diag.NeedsExpectedType) =>
+			DiagSeverity.checkError,
+		(in Diag.ParamCantBeMutable) =>
+			DiagSeverity.checkError,
+		(in Diag.ParamMissingType) =>
 			DiagSeverity.checkError,
 		(in Diag.ParamNotMutable) =>
 			DiagSeverity.checkError,
@@ -144,8 +152,6 @@ DiagSeverity getDiagnosticSeverity(in Diag a) =>
 		(in Diag.UnusedImport) =>
 			DiagSeverity.unusedCode,
 		(in Diag.UnusedLocal) =>
-			DiagSeverity.unusedCode,
-		(in Diag.UnusedParam) =>
 			DiagSeverity.unusedCode,
 		(in Diag.UnusedPrivateFun) =>
 			DiagSeverity.unusedCode,

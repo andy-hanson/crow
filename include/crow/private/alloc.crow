@@ -186,7 +186,7 @@ force-needs-gc void(gc gc) unsafe
 
 -acquire-gc-ctx gc-ctx(gc gc) noctx, unsafe
 	&gc.lk acquire
-	res = if c ?= gc.context-head
+	res = if c ?= gc context-head
 		gc.context-head := c next-ctx
 		c.next-ctx := ()
 		c

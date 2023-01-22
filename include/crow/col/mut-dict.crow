@@ -10,7 +10,7 @@ import
 	../option: ==, is-empty, new, option
 	../string: ==, ~~, literal, new, string, to-string
 	../test-util: is
-	../tuple: from, new, to, tuple2
+	../tuple: new
 	./array: array
 	./collection: fill, find, find-index, for-loop, join, n-of, map=, set-subscript, subscript
 	./dict: ~=, build, dict
@@ -49,8 +49,8 @@ Later pairs overwrite earlier pairs with the same key.
 ###
 +to-mut-dict[k, v] v mut[k](a (k, v)[]) k key
 	res v mut[k] = a.size mut-dict-with-capacity
-	for pair : a
-		res[pair from] := pair to
+	for k, v : a
+		res[k] := v
 	res
 
 ###
@@ -63,9 +63,12 @@ Since hash conflicts are possible, this makes no guarantees about whether more a
 	# TODO: should not need type annotation
 	(capacity n-of none)::((k, v) entry mut-array), 0
 
++to-dict[k, v] v[k](a v mut[k]) k key
+	for x : a; x
+
 # Copy pairs to a list.
 +to-list[k, v] (k, v)[](a v mut[k]) k key
-	for k, v : a; k, v
+	for x : a; x
 
 # Copy pairs to a list and clear the dictionary.
 +move-to-list[k, v] (k, v)[](a v mut[k]) k key
@@ -113,11 +116,11 @@ Returns an empty option if the key is not in the dictionary.
 		match a.entries[key.hash % a.entries.size]
 		as none
 			()
-		as one ar
-			ar.from == key ? ar.to,
+		as one k, v
+			k == key ? v,
 		as many m
-			if pair ?= m find pair => pair.from == key
-				pair.to,
+			if (_, v) ?= m find (k, _) => k == key
+				v,
 
 # `true` iff the key is in the dictinoary.
 +in[k, v] bool(key k, a v mut[k]) k key
@@ -179,26 +182,26 @@ Returns an empty option if the key was not in the dictionary.
 				a.entries[entry-index] := (key, value) one
 				a.total-size +:= 1
 			()
-		as one ar
-			if ar.from == key
+		as one k, v
+			if k == key
 				a.entries[entry-index] := if value ?= new-value
 					(key, value) one
 				else
 					a.total-size -:= 1
 					none
-				ar.to,
+				v,
 			else
 				if value ?= new-value
 					if a should-expand
 						a expand
 						a[key] := value
 					else
-						a.entries[entry-index] := (ar, (key, value)) many
+						a.entries[entry-index] := ((k, v), (key, value)) many
 						a.total-size +:= 1
 				()
 		as many m
-			if index ?= m find-index pair => pair.from == key
-				old-value = m[index] to
+			if index ?= m find-index (k, _) => k == key
+				_, old-value = m[index]
 				if value ?= new-value
 					m[index] := key, value
 				else
@@ -220,12 +223,12 @@ Returns an empty option if the key was not in the dictionary.
 				()
 
 # This is the same as calling `a[b a] := b b`.
-+~=[k, v] void(a v mut[k], b (k, v)) k key
-	a[b from] := b to
++~=[k, v] void(a v mut[k], (key k, value v)) k key
+	a[key] := value
 
 # This is the same as calling `a ~= x` for every `x` in `b`.
-+~~=[k, v] void(a v mut[k], b (k, v)[]) k key
-	for pair : b
++~~=[k, v] void(a v mut[k], pairs (k, v)[]) k key
+	for pair : pairs
 		a ~= pair
 
 # Called when we're about to allocate a bigger bucket -- maybe we should expand the table instead
@@ -236,8 +239,8 @@ Returns an empty option if the key was not in the dictionary.
 	forbid a.entries.size == 0
 	new-size = a.entries.size * 2
 	bigger v mut[k] = new-size mut-dict-with-capacity
-	for key, value : a
-		bigger[key] := value
+	for k, v : a
+		bigger[k] := v
 	a swap bigger
 	assert a.entries.size == new-size
 
@@ -251,22 +254,19 @@ Calls `f` on every key and value and removes the key if `f` returns false.
 		match entry
 		as none
 			none
-		as one ar
-			if f[ar.from, ar.to]
-				ar one
+		as one k, v
+			if f[k, v]
+				(k, v) one
 			else
 				none
 		as many m
-			m filter= pair => f[pair.from, pair.to]
+			m filter= f
 			if m is-empty
 				none
 			elif m.size == 1
 				m[0] one
 			else
 				m many
-
-+to-dict[k, v] v[k](a v mut[k]) k key
-	for k, v : a; k, v
 
 ###
 Calls `f` on every key and value, and replaces the value with the new value returned by `f`.
@@ -276,10 +276,10 @@ Calls `f` on every key and value, and replaces the value with the new value retu
 		match entry
 		as none
 			none
-		as one ar
-			(ar.from, f[ar.from, ar.to]) one
+		as one k, v
+			(k, f[k, v]) one
 		as many m
-			m map= pair => pair.from, f[pair.from, pair.to]
+			m map= (k, v) => k, f[k, v]
 			m many
 
 region spec impls (see collection.crow)
@@ -290,11 +290,10 @@ region spec impls (see collection.crow)
 		match entry
 		as none
 			false
-		as one pair
-			f[pair from, pair to]
+		as one x
+			f[x]
 		as many m
-			m iterate pair =>
-				f[pair from, pair to]
+			m iterate f
 
 region test
 
@@ -308,8 +307,8 @@ region test
 		as many m
 			"[{", " join for pair : m; pair dbg}]"
 	" " join parts
--dbg[k, v] string(a (k, v)) k to-string, v to-string
-	"{a from} -> {a to}"
+-dbg[k, v] string((k k, v v)) k to-string, v to-string
+	"{k} -> {v}"
 
 -verify void(a string mut[nat64], expected string)
 	a.dbg is expected

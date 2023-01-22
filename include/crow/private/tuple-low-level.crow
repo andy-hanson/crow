@@ -1,5 +1,0 @@
-no-std
-
-+tuple2[t, u] record by-val
-	a t
-	b u
