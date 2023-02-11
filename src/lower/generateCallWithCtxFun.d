@@ -35,7 +35,7 @@ LowFun generateCallWithCtxFun(
 ) {
 	FileAndRange range = FileAndRange.empty;
 	LowLocal[] params = mapWithFirst!(LowLocal, LowType)(
-		alloc, genLocalByValue(alloc, sym!"a", 0, funType), nonFunParamTypes, (size_t i, LowType paramType) {
+		alloc, genLocalByValue(alloc, sym!"a", 0, funType), nonFunParamTypes, (size_t i, ref LowType paramType) {
 			verify(i < paramNames.length);
 			return genLocalByValue(alloc, paramNames[i], i + 1, paramType);
 		});

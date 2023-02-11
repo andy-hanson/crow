@@ -56,7 +56,7 @@ void writeHex(scope ref Writer writer, long a) {
 	writeHex(writer, cast(ulong) (a < 0 ? -a : a));
 }
 
-void writeFloatLiteral(ref Writer writer, double a) {
+void writeFloatLiteral(scope ref Writer writer, double a) {
 	// TODO: verify(!isNaN(a)); (needs an isnan function)
 
 	// Print simple floats as decimal
@@ -92,7 +92,7 @@ private union DoubleToUlong {
 	ulong ulong_;
 }
 
-private void writeNat(ref Writer writer, ulong n, ulong base = 10) {
+private void writeNat(scope ref Writer writer, ulong n, ulong base = 10) {
 	if (n >= base)
 		writeNat(writer, n / base, base);
 	writer ~= digitChar(n % base);
@@ -103,7 +103,12 @@ private char digitChar(ulong digit) {
 	return digit < 10 ? cast(char) ('0' + digit) : cast(char) ('a' + (digit - 10));
 }
 
-void writeJoin(T)(ref Writer writer, in T[] a, string joiner, in void delegate(in T) @safe @nogc pure nothrow cb) {
+void writeJoin(T)(
+	scope ref Writer writer,
+	in T[] a,
+	in string joiner,
+	in void delegate(in T) @safe @nogc pure nothrow cb,
+) {
 	foreach (size_t i, ref T x; a) {
 		if (i != 0)
 			writer ~= joiner;
@@ -111,12 +116,12 @@ void writeJoin(T)(ref Writer writer, in T[] a, string joiner, in void delegate(i
 	}
 }
 
-void writeWithCommas(T)(ref Writer writer, in T[] a, in void delegate(in T) @safe @nogc pure nothrow cb) {
+void writeWithCommas(T)(scope ref Writer writer, in T[] a, in void delegate(in T) @safe @nogc pure nothrow cb) {
 	writeWithSeparator!T(writer, a, ", ", cb);
 }
 
 void writeWithCommas(T)(
-	ref Writer writer,
+	scope ref Writer writer,
 	in T[] a,
 	in bool delegate(in T) @safe @nogc pure nothrow filter,
 	in void delegate(in T) @safe @nogc pure nothrow cb,
@@ -125,7 +130,16 @@ void writeWithCommas(T)(
 }
 
 void writeWithCommasZip(T, U)(
-	ref Writer writer,
+	scope ref Writer writer,
+	in T[] a,
+	in U[] b,
+	in void delegate(in T, in U) @safe @nogc pure nothrow cb,
+) {
+	writeWithCommasZip!(T, U)(writer, a, b, (in T x, in U y) => true, cb);
+}
+
+void writeWithCommasZip(T, U)(
+	scope ref Writer writer,
 	in T[] a,
 	in U[] b,
 	in bool delegate(in T, in U) @safe @nogc pure nothrow filter,
@@ -143,12 +157,12 @@ void writeWithCommasZip(T, U)(
 	});
 }
 
-void writeWithNewlines(T)(ref Writer writer, in T[] a, in void delegate(in T) @safe @nogc pure nothrow cb) {
+void writeWithNewlines(T)(scope ref Writer writer, in T[] a, in void delegate(in T) @safe @nogc pure nothrow cb) {
 	writeWithSeparator!T(writer, a, "\n", cb);
 }
 
 private void writeWithSeparator(T)(
-	ref Writer writer,
+	scope ref Writer writer,
 	in T[] a,
 	in string separator,
 	in void delegate(in T) @safe @nogc pure nothrow cb,
@@ -157,7 +171,7 @@ private void writeWithSeparator(T)(
 }
 
 private void writeWithSeparator(T)(
-	ref Writer writer,
+	scope ref Writer writer,
 	in T[] a,
 	in string separator,
 	in bool delegate(in T) @safe @nogc pure nothrow filter,
@@ -174,21 +188,21 @@ private void writeWithSeparator(T)(
 		}
 }
 
-void writeQuotedStr(ref Writer writer, in string s) {
+void writeQuotedStr(scope ref Writer writer, in string s) {
 	writer ~= '"';
 	foreach (char c; s)
 		writeEscapedChar_inner(writer, c);
 	writer ~= '"';
 }
 
-void writeEscapedChar(ref Writer writer, char c) {
+void writeEscapedChar(scope ref Writer writer, char c) {
 	if (c == '\'')
 		writer ~= "\\\'";
 	else
 		writeEscapedChar_inner(writer, c);
 }
 
-void writeEscapedChar_inner(ref Writer writer, char c) {
+void writeEscapedChar_inner(scope ref Writer writer, char c) {
 	switch (c) {
 		case '\n':
 			writer ~= "\\n";
@@ -220,27 +234,27 @@ void writeEscapedChar_inner(ref Writer writer, char c) {
 	}
 }
 
-void writeBold(ref Writer writer) {
+void writeBold(scope ref Writer writer) {
 	version (Windows) { } else {
 		writer ~= "\x1b[1m";
 	}
 }
 
-void writeRed(ref Writer writer) {
+void writeRed(scope ref Writer writer) {
 	version (Windows) { } else {
 		writer ~= "\x1b[31m";
 	}
 }
 
 // Undo bold, color, etc
-void writeReset(ref Writer writer) {
+void writeReset(scope ref Writer writer) {
 	version (Windows) { } else {
 		writer ~= "\x1b[m";
 	}
 }
 
 void writeHyperlink(
-	ref Writer writer,
+	scope ref Writer writer,
 	in void delegate() @safe @nogc pure nothrow writeUrl,
 	in void delegate() @safe @nogc pure nothrow writeText,
 ) {
@@ -266,7 +280,7 @@ private bool canWriteHyperlink() {
 	}
 }
 
-void writeNewline(ref Writer writer, size_t indent) {
+void writeNewline(scope ref Writer writer, size_t indent) {
 	writer ~= '\n';
 	foreach (size_t _; 0 .. indent)
 		writer ~= '\t';

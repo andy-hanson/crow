@@ -1,2 +1,2 @@
 test/compile-errors/wrong-number-type-args.crow 5:7-5:12 there are functions named 'magic', but none takes 1 type arguments. candidates:
-	magic out?(in?) (from test/compile-errors/wrong-number-type-args.crow.crow line 1)
+	magic out?(a in?) (from test/compile-errors/wrong-number-type-args.crow.crow line 1)

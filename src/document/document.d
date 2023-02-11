@@ -19,8 +19,8 @@ import model.model :
 	Program,
 	Purity,
 	RecordField,
-	SpecBody,
 	SpecDecl,
+	SpecDeclBody,
 	SpecDeclSig,
 	SpecInst,
 	StructAlias,
@@ -262,7 +262,7 @@ DocExport documentSpec(ref Alloc alloc, in SpecDecl a) =>
 		nameAndRepr!"parents"(reprArr(map(alloc, a.parents, (ref immutable SpecInst* x) =>
 			documentSpecInst(alloc, *x)))),
 		nameAndRepr!"body"(a.body_.matchIn!Repr(
-			(in SpecBody.Builtin) =>
+			(in SpecDeclBody.Builtin) =>
 				reprNamedRecord!"builtin"(alloc, []),
 			(in SpecDeclSig[] sigs) =>
 				reprNamedRecord!"sigs"(alloc, [
@@ -275,7 +275,7 @@ Repr documentSpecDeclSig(ref Alloc alloc, in SpecDeclSig a) {
 		add(alloc, fields, nameAndRepr!"comment"(reprStr(a.docComment)));
 	add(alloc, fields, nameAndRepr!"name"(reprSym(a.name)));
 	add(alloc, fields, nameAndRepr!"return-type"(documentTypeRef(alloc, a.returnType)));
-	add(alloc, fields, documentParams(alloc, a.params));
+	add(alloc, fields, nameAndRepr!"params"(documentParamDestructures(alloc, a.params)));
 	return reprNamedRecord!"sig"(finishArr(alloc, fields));
 }
 
@@ -309,8 +309,11 @@ Repr reprSpecialSpec(ref Alloc alloc, Sym name) =>
 	reprNamedRecord!"special"(alloc, [nameAndRepr!"name"(reprSym(name))]);
 
 NameAndRepr documentParams(ref Alloc alloc, in Params params) =>
-	nameAndRepr!"params"(reprArr!Destructure(alloc, paramsArray(params), (in Destructure x) =>
-		documentParam(alloc, x)));
+	nameAndRepr!"params"(documentParamDestructures(alloc, paramsArray(params)));
+
+Repr documentParamDestructures(ref Alloc alloc, in Destructure[] a) =>
+	reprArr!Destructure(alloc, a, (in Destructure x) =>
+		documentParam(alloc, x));
 
 Repr documentParam(ref Alloc alloc, in Destructure a) {
 	Opt!Sym name = a.name;

@@ -1,2 +1,2 @@
 [1mtest/compile-errors/main-missing.crow[31m 1:1-1:1[m module should have a function:
-	main nat64^(string[])
+	main nat64^(args string[])

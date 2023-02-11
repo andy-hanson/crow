@@ -87,8 +87,8 @@ import model.model :
 	range,
 	setBody,
 	setTarget,
-	SpecBody,
 	SpecDecl,
+	SpecDeclBody,
 	SpecDeclSig,
 	SpecInst,
 	StructAlias,
@@ -420,19 +420,19 @@ ReturnTypeAndParams checkReturnTypeAndParams(
 		typeFromAst(ctx, commonTypes, returnTypeAst, structsAndAliasesDict, typeParams, delayStructInsts),
 		checkParams(ctx, commonTypes, paramsAst, structsAndAliasesDict, typeParams, delayStructInsts));
 
-SpecBody.Builtin.Kind getSpecBodyBuiltinKind(ref CheckCtx ctx, RangeWithinFile range, Sym name) {
+SpecDeclBody.Builtin.Kind getSpecBodyBuiltinKind(ref CheckCtx ctx, RangeWithinFile range, Sym name) {
 	switch (name.value) {
 		case sym!"data".value:
-			return SpecBody.Builtin.Kind.data;
+			return SpecDeclBody.Builtin.Kind.data;
 		case sym!"shared".value:
-			return SpecBody.Builtin.Kind.shared_;
+			return SpecDeclBody.Builtin.Kind.shared_;
 		default:
 			addDiag(ctx, range, Diag(Diag.BuiltinUnsupported(name)));
-			return SpecBody.Builtin.Kind.data;
+			return SpecDeclBody.Builtin.Kind.data;
 	}
 }
 
-SpecBody checkSpecBody(
+SpecDeclBody checkSpecDeclBody(
 	ref CheckCtx ctx,
 	ref CommonTypes commonTypes,
 	TypeParam[] typeParams,
@@ -441,14 +441,19 @@ SpecBody checkSpecBody(
 	Sym name,
 	in SpecBodyAst ast,
 ) =>
-	ast.matchIn!SpecBody(
+	ast.matchIn!SpecDeclBody(
 		(in SpecBodyAst.Builtin) =>
-			SpecBody(SpecBody.Builtin(getSpecBodyBuiltinKind(ctx, range, name))),
+			SpecDeclBody(SpecDeclBody.Builtin(getSpecBodyBuiltinKind(ctx, range, name))),
 		(in SpecSigAst[] sigs) =>
-			SpecBody(map(ctx.alloc, sigs, (ref SpecSigAst it) {
+			SpecDeclBody(map(ctx.alloc, sigs, (ref SpecSigAst x) {
 				ReturnTypeAndParams rp = checkReturnTypeAndParams(
-					ctx, commonTypes, it.returnType, it.params, typeParams, structsAndAliasesDict, noDelayStructInsts);
-				return SpecDeclSig(it.docComment, posInFile(ctx, it.range.start), it.name, rp.returnType, rp.params);
+					ctx, commonTypes, x.returnType, x.params, typeParams, structsAndAliasesDict, noDelayStructInsts);
+				Destructure[] params = rp.params.match!(Destructure[])(
+					(Destructure[] x) =>
+						x,
+					(ref Params.Varargs _) =>
+						todo!(Destructure[])("diag: no varargs in spec"));
+				return SpecDeclSig(x.docComment, posInFile(ctx, x.range.start), x.name, rp.returnType, small(params));
 			})));
 
 SpecDecl[] checkSpecDeclsInitial(
@@ -459,8 +464,8 @@ SpecDecl[] checkSpecDeclsInitial(
 ) =>
 	map(ctx.alloc, asts, (ref SpecDeclAst ast) {
 		TypeParam[] typeParams = checkTypeParams(ctx, ast.typeParams);
-		SpecBody body_ =
-			checkSpecBody(ctx, commonTypes, typeParams, structsAndAliasesDict, ast.range, ast.name, ast.body_);
+		SpecDeclBody body_ =
+			checkSpecDeclBody(ctx, commonTypes, typeParams, structsAndAliasesDict, ast.range, ast.name, ast.body_);
 		return SpecDecl(
 			rangeInFile(ctx, ast.range),
 			copySafeCStr(ctx.alloc, ast.docComment),

@@ -28,7 +28,7 @@ import model.model :
 	Type,
 	TypeParam;
 import util.alloc.alloc : Alloc;
-import util.col.arr : empty;
+import util.col.arr : empty, small;
 import util.col.arrUtil : arrsCorrespond, map;
 import util.col.enumDict : EnumDict;
 import util.col.str : safeCStr;
@@ -181,8 +181,11 @@ Destructure makeParam(ref Alloc alloc, FileAndRange range, Sym name, Type type) 
 	Destructure(allocate(alloc, Local(range, name, LocalMutability.immut, type)));
 
 Params makeParams(ref Alloc alloc, FileAndRange range, in ParamShort[] params) =>
-	Params(map(alloc, params, (ref ParamShort x) =>
-		makeParam(alloc, range, x.name, x.type)));
+	Params(makeParamDestructures(alloc, range, params));
+
+private Destructure[] makeParamDestructures(ref Alloc alloc, FileAndRange range, in ParamShort[] params) =>
+	map(alloc, params, (ref ParamShort x) =>
+		makeParam(alloc, range, x.name, x.type));
 
 immutable struct ParamShort {
 	Sym name;
@@ -288,7 +291,7 @@ bool signatureMatchesTemplate(
 	return typesMatch(actual.returnType, expected.returnType) &&
 		arrsCorrespond!(Destructure, Destructure)(
 			assertNonVariadic(actual.params),
-			assertNonVariadic(expected.params),
+			expected.params,
 			(in Destructure x, in Destructure y) =>
 				typesMatch(x.type, y.type));
 }
@@ -299,7 +302,7 @@ bool signatureMatchesNonTemplate(ref FunDecl actual, ref SpecDeclSig expected) =
 		actual.params.isA!(Destructure[]) &&
 		arrsCorrespond!(Destructure, Destructure)(
 			assertNonVariadic(actual.params),
-			assertNonVariadic(expected.params),
+			expected.params,
 			(in Destructure x, in Destructure y) =>
 				x.type == y.type);
 
@@ -370,7 +373,7 @@ SpecDeclSig toSig(ref Alloc alloc, Sym name, Type returnType, in ParamShort[] pa
 		name,
 		returnType,
 		// TODO: avoid alloc since this is temporary
-		makeParams(alloc, FileAndRange.empty, params));
+		small(makeParamDestructures(alloc, FileAndRange.empty, params)));
 
 immutable(FunDecl*[]) getFuns(ref Module a, Sym name) {
 	Opt!NameReferents optReferents = a.allExportedNames[name];

@@ -14,8 +14,9 @@ import model.model :
 	Local,
 	Module,
 	Purity,
-	SpecBody,
+	ReturnAndParamTypes,
 	SpecDecl,
+	SpecDeclBody,
 	SpecDeclSig,
 	StructAlias,
 	StructDecl,
@@ -307,7 +308,7 @@ immutable struct Diag {
 		Type actualReturnType;
 	}
 	immutable struct SpecBuiltinNotSatisfied {
-		SpecBody.Builtin.Kind kind;
+		SpecDeclBody.Builtin.Kind kind;
 		Type type;
 		FunDecl* called;
 	}
@@ -316,7 +317,8 @@ immutable struct Diag {
 		CalledDecl[] matches;
 	}
 	immutable struct SpecImplNotFound {
-		SpecDeclSig sig;
+		SpecDeclSig* sigDecl;
+		ReturnAndParamTypes sigType;
 		FunDeclAndTypeArgs[] trace;
 	}
 	immutable struct SpecImplTooDeep {

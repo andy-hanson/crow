@@ -180,11 +180,8 @@ immutable struct SpecDeclSig {
 	FileAndPos fileAndPos;
 	Sym name;
 	Type returnType;
-	Params params;
+	SmallArray!Destructure params;
 }
-
-Arity arity(in SpecDeclSig a) =>
-	arity(a.params);
 
 enum FieldMutability {
 	const_,
@@ -442,7 +439,7 @@ void setBody(ref StructInst a, StructBody value) {
 	lateSet(a.lateBody, value);
 }
 
-immutable struct SpecBody {
+immutable struct SpecDeclBody {
 	immutable struct Builtin {
 		enum Kind {
 			data,
@@ -453,11 +450,11 @@ immutable struct SpecBody {
 	mixin Union!(Builtin, SmallArray!SpecDeclSig);
 }
 
-Sym symOfSpecBodyBuiltinKind(SpecBody.Builtin.Kind kind) {
+Sym symOfSpecBodyBuiltinKind(SpecDeclBody.Builtin.Kind kind) {
 	final switch (kind) {
-		case SpecBody.Builtin.Kind.data:
+		case SpecDeclBody.Builtin.Kind.data:
 			return sym!"data";
-		case SpecBody.Builtin.Kind.shared_:
+		case SpecDeclBody.Builtin.Kind.shared_:
 			return sym!"shared";
 	}
 }
@@ -471,7 +468,7 @@ immutable struct SpecDecl {
 	Visibility visibility;
 	Sym name;
 	SmallArray!TypeParam typeParams;
-	SpecBody body_;
+	SpecDeclBody body_;
 	Late!(SmallArray!(immutable SpecInst*)) parents_;
 
 	bool parentsIsSet() =>
@@ -505,8 +502,12 @@ immutable struct SpecInst {
 	@safe @nogc pure nothrow:
 
 	SpecDeclAndArgs declAndArgs;
-	SpecBody body_;
+	// Corresponds to the signatures in decl.body_
+	SmallArray!ReturnAndParamTypes sigTypes_;
 	private Late!(SmallArray!(immutable SpecInst*)) parents_;
+	
+	ReturnAndParamTypes[] sigTypes() return scope =>
+		sigTypes_;
 
 	immutable(SpecInst*[]) parents() return scope =>
 		lateGet(parents_);
@@ -775,12 +776,16 @@ immutable struct FunInst {
 	@safe @nogc pure nothrow:
 
 	FunDeclAndArgs funDeclAndArgs;
-	Type returnType;
-	// For a variadic function, this will be an array of 1.
-	Type[] paramTypes;
+	ReturnAndParamTypes instantiatedSig;
 
 	Sym name() scope =>
 		decl(this).name;
+
+	Type returnType() scope =>
+		instantiatedSig.returnType;
+
+	Type[] paramTypes() scope =>
+		instantiatedSig.paramTypes;
 }
 
 FunDecl* decl(ref FunInst a) =>
@@ -795,58 +800,77 @@ Called[] specImpls(ref FunInst a) =>
 Arity arity(in FunInst a) =>
 	arity(*decl(a));
 
-immutable struct SpecSig {
+immutable struct ReturnAndParamTypes {
+	@safe @nogc pure nothrow:
+
+	SmallArray!Type returnAndParamTypes;
+
+	Type returnType() scope =>
+		returnAndParamTypes[0];
+	
+	Type[] paramTypes() scope =>
+		returnAndParamTypes[1 .. $];
+}
+
+immutable struct CalledSpecSig {
 	@safe @nogc pure nothrow:
 
 	SpecInst* specInst;
-	SpecDeclSig* sig;
+	ReturnAndParamTypes instantiatedSig; // comes from the specInst
+	SpecDeclSig* nonInstantiatedSig;
 	size_t indexOverAllSpecUses; // this is redundant to specInst and sig
+
+	Type returnType() scope =>
+		instantiatedSig.returnType;
+	Type[] paramTypes() scope =>
+		instantiatedSig.paramTypes;
 
 	private:
 
-	bool opEquals(scope SpecSig b) scope {
+	bool opEquals(scope CalledSpecSig b) scope =>
 		// Don't bother with indexOverAllSpecUses, it's redundant if we checked sig
-		return specInst == b.specInst && sig == b.sig;
-	}
+		specInst == b.specInst && nonInstantiatedSig == b.nonInstantiatedSig;
 
 	void hash(ref Hasher hasher) scope {
 		hashPtr(hasher, specInst);
-		hashPtr(hasher, sig);
+		hashPtr(hasher, nonInstantiatedSig);
 	}
 }
 
-Sym name(ref SpecSig a) =>
-	a.sig.name;
+Sym name(ref CalledSpecSig a) =>
+	a.nonInstantiatedSig.name;
+
+Arity arity(in CalledSpecSig a) =>
+	Arity(a.nonInstantiatedSig.params.length);
 
 // Like 'Called', but we haven't fully instantiated yet. (This is used for Candidate when checking a call expr.)
 immutable struct CalledDecl {
 	@safe @nogc pure nothrow:
 
-	mixin Union!(FunDecl*, SpecSig);
+	mixin Union!(FunDecl*, CalledSpecSig);
 
 	Sym name() scope =>
 		matchIn!Sym(
 			(in FunDecl f) => f.name,
-			(in SpecSig s) => s.name);
+			(in CalledSpecSig s) => s.name);
 
 	TypeParam[] typeParams() return scope =>
 		match!(TypeParam[])(
 			(ref FunDecl f) => f.typeParams.toArray,
-			(SpecSig) => typeAs!(TypeParam[])([]));
+			(CalledSpecSig) => typeAs!(TypeParam[])([]));
 
 	Type returnType() scope =>
 		match!Type(
 			(ref FunDecl f) => f.returnType,
-			(SpecSig s) => s.sig.returnType);
-
-	Params params() scope =>
-		match!Params(
-			(ref FunDecl f) => f.params,
-			(SpecSig s) => s.sig.params);
+			(CalledSpecSig s) => s.returnType);
 }
 
 Arity arity(in CalledDecl a) =>
-	arity(a.params);
+	a.matchIn!Arity(
+		(in FunDecl x) =>
+			arity(x.params),
+		(in CalledSpecSig x) =>
+			arity(x));
 
 size_t nTypeParams(in CalledDecl a) =>
 	a.typeParams.length;
@@ -854,7 +878,7 @@ size_t nTypeParams(in CalledDecl a) =>
 immutable struct Called {
 	@safe @nogc pure nothrow:
 
-	mixin Union!(FunInst*, SpecSig*);
+	mixin Union!(FunInst*, CalledSpecSig*);
 
 	bool opEquals(scope Called b) scope =>
 		matchWithPointers!bool(
@@ -862,13 +886,13 @@ immutable struct Called {
 				b.matchWithPointers!bool(
 					(FunInst* fb) =>
 						fa == fb,
-					(SpecSig*) =>
+					(CalledSpecSig*) =>
 						false),
-			(SpecSig* sa) =>
+			(CalledSpecSig* sa) =>
 				b.matchWithPointers!bool(
 					(FunInst*) =>
 						false,
-					(SpecSig* sb) =>
+					(CalledSpecSig* sb) =>
 						*sa == *sb));
 
 	void hash(ref Hasher hasher) scope {
@@ -876,7 +900,7 @@ immutable struct Called {
 			(FunInst* f) {
 				hashPtr(hasher, f);
 			},
-			(SpecSig* s) {
+			(CalledSpecSig* s) {
 				s.hash(hasher);
 			});
 	}
@@ -885,23 +909,34 @@ immutable struct Called {
 		matchIn!Sym(
 			(in FunInst f) =>
 				f.name,
-			(in SpecSig s) =>
+			(in CalledSpecSig s) =>
 				s.name);
 
 	Type returnType() scope =>
 		match!Type(
 			(ref FunInst f) =>
 				f.returnType,
-			(ref SpecSig s) =>
-				s.sig.returnType);
+			(ref CalledSpecSig s) =>
+				s.instantiatedSig.returnType);
 }
 
+Type paramTypeAt(in Called a, size_t argIndex) scope =>
+	a.matchIn!Type(
+		(in FunInst f) =>
+			decl(f).params.matchIn!Type(
+				(in Destructure[]) =>
+					f.paramTypes[argIndex],
+				(in Params.Varargs) =>
+					f.paramTypes[0]),
+		(in CalledSpecSig s) =>
+			s.paramTypes[argIndex]);
+
 Arity arity(in Called a) =>
-	arity(a.match!Params(
+	a.match!Arity(
 		(ref FunInst f) =>
-			f.decl.params,
-		(ref SpecSig s) =>
-			s.sig.params));
+			arity(f),
+		(ref CalledSpecSig s) =>
+			arity(s));
 
 immutable struct StructOrAlias {
 	mixin Union!(StructAlias*, StructDecl*);

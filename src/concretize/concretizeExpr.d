@@ -53,6 +53,7 @@ import model.constant : asBool, Constant, constantBool, constantZero;
 import model.model :
 	AssertOrForbidKind,
 	Called,
+	CalledSpecSig,
 	ClosureRef,
 	ClosureReferenceKind,
 	Destructure,
@@ -67,7 +68,6 @@ import model.model :
 	Purity,
 	range,
 	specImpls,
-	SpecSig,
 	StructInst,
 	Type,
 	typeArgs,
@@ -216,7 +216,7 @@ ConcreteFun* getConcreteFunFromCalled(ref ConcretizeExprCtx ctx, ref Called call
 	called.matchWithPointers!(ConcreteFun*)(
 		(FunInst* funInst) =>
 			getConcreteFunFromFunInst(ctx, funInst),
-		(SpecSig* specSig) =>
+		(CalledSpecSig* specSig) =>
 			ctx.containing.specImpls[specSig.indexOverAllSpecUses]);
 
 ConcreteFun* getConcreteFunFromFunInst(ref ConcretizeExprCtx ctx, FunInst* funInst) {

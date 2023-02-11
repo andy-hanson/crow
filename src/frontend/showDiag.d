@@ -10,24 +10,28 @@ import model.model :
 	arityMatches,
 	bestCasePurity,
 	CalledDecl,
+	CalledSpecSig,
 	decl,
 	Destructure,
 	EnumBackingType,
 	FunDecl,
 	FunDeclAndTypeArgs,
+	Local,
 	LocalMutability,
 	name,
 	nTypeParams,
 	Params,
 	Purity,
 	range,
+	ReturnAndParamTypes,
 	SpecDecl,
 	SpecDeclSig,
-	SpecSig,
+	StructInst,
 	symOfPurity,
 	symOfSpecBodyBuiltinKind,
 	symOfVisibility,
 	Type,
+	typeArgs,
 	writeStructInst,
 	writeTypeArgs,
 	writeTypeQuoted,
@@ -38,12 +42,12 @@ import util.col.arr : empty, only;
 import util.col.arrUtil : exists;
 import util.col.str : SafeCStr;
 import util.lineAndColumnGetter : lineAndColumnAtPos;
-import util.opt : force, has, Opt;
+import util.opt : force, has, none, Opt, some;
 import util.path : AllPaths, baseName, Path, PathsInfo, writePath, writeRelPath;
 import util.ptr : ptrTrustMe;
 import util.sourceRange : FileAndPos;
 import util.sym : AllSymbols, Sym, writeSym;
-import util.util : unreachable;
+import util.util : todo, unreachable;
 import util.writer :
 	finishWriter,
 	finishWriterToSafeCStr,
@@ -52,6 +56,7 @@ import util.writer :
 	writeQuotedStr,
 	writeReset,
 	writeWithCommas,
+	writeWithCommasZip,
 	writeWithNewlines,
 	Writer;
 import util.writerUtils : showChar, writeName, writeNl;
@@ -329,32 +334,67 @@ void writePurity(scope ref Writer writer, in AllSymbols allSymbols, Purity p) {
 	writer ~= '\'';
 }
 
-void writeSpecDeclSig(scope ref Writer writer, in AllSymbols allSymbols, in SpecDeclSig sig) {
-	writeSig(writer, allSymbols, sig.name, sig.returnType, sig.params);
-}
-
 void writeSig(
 	scope ref Writer writer,
 	in AllSymbols allSymbols,
 	Sym name,
 	in Type returnType,
 	in Params params,
+	in Opt!ReturnAndParamTypes instantiated,
 ) {
 	writeSym(writer, allSymbols, name);
 	writer ~= ' ';
-	writeTypeUnquoted(writer, allSymbols, returnType);
+	writeTypeUnquoted(writer, allSymbols, has(instantiated) ? force(instantiated).returnType : returnType);
 	writer ~= '(';
 	params.matchIn!void(
 		(in Destructure[] paramsArray) {
-			writeWithCommas!Destructure(writer, paramsArray, (in Destructure x) {
-				writeTypeUnquoted(writer, allSymbols, x.type);
-			});
+			if (has(instantiated))
+				writeWithCommasZip!(Destructure, Type)(
+					writer,
+					paramsArray,
+					force(instantiated).paramTypes,
+					(in Destructure x, in Type t) {
+						writeDestructure(writer, allSymbols, x, some(t));
+					});
+			else
+				writeWithCommas!Destructure(writer, paramsArray, (in Destructure x) {
+					writeDestructure(writer, allSymbols, x, none!Type);
+				});
 		},
 		(in Params.Varargs varargs) {
 			writer ~= "...";
-			writeTypeUnquoted(writer, allSymbols, varargs.param.type);
+			writeTypeUnquoted(writer, allSymbols, has(instantiated)
+				? only(force(instantiated).paramTypes)
+				: varargs.param.type);
 		});
 	writer ~= ')';
+}
+
+void writeDestructure(
+	scope ref Writer writer,
+	in AllSymbols allSymbols,
+	in Destructure a,
+	in Opt!Type instantiated,
+) {
+	Type type = has(instantiated) ? force(instantiated) : a.type;
+	a.matchIn!void(
+		(in Destructure.Ignore) {
+			writer ~= "_ ";
+			writeTypeUnquoted(writer, allSymbols, type);
+		},
+		(in Local x) {
+			writeSym(writer, allSymbols, x.name);
+			writer ~= ' ';
+			writeTypeUnquoted(writer, allSymbols, type);
+		},
+		(in Destructure.Split x) {
+			writer ~= '(';
+			writeWithCommasZip!(Destructure, Type)(
+				writer, x.parts, typeArgs(*type.as!(StructInst*)), (in Destructure part, in Type partType) {
+					writeDestructure(writer, allSymbols, part, some(partType));
+				});
+			writer ~= ')';
+		});
 }
 
 void writeSpecTrace(
@@ -395,14 +435,16 @@ void writeCalledDecl(
 	in FilesInfo fi,
 	in CalledDecl a,
 ) {
-	writeSig(writer, allSymbols, a.name, a.returnType, a.params);
 	a.matchIn!void(
-		(in FunDecl funDecl) {
-			writeFunDeclLocation(writer, allSymbols, allPaths, pathsInfo, options, fi, funDecl);
+		(in FunDecl x) {
+			writeSig(writer, allSymbols, x.name, x.returnType, x.params, none!ReturnAndParamTypes);
+			writeFunDeclLocation(writer, allSymbols, allPaths, pathsInfo, options, fi, x);
 		},
-		(in SpecSig specSig) {
+		(in CalledSpecSig x) {
+			writeSig(
+				writer, allSymbols, x.name, x.returnType, Params(x.nonInstantiatedSig.params), some(x.instantiatedSig));
 			writer ~= " (from spec ";
-			writeName(writer, allSymbols, name(*specSig.specInst));
+			writeName(writer, allSymbols, name(*x.specInst));
 			writer ~= ')';
 		});
 }
@@ -573,7 +615,10 @@ void writeDiag(
 		},
 		(in Diag.CommonFunMissing x) {
 			writer ~= "module should have a function:\n\t";
-			writeSpecDeclSig(writer, allSymbols, x.expectedSig);
+			writeSig(
+				writer, allSymbols,
+				x.expectedSig.name, x.expectedSig.returnType,
+				Params(x.expectedSig.params), none!ReturnAndParamTypes);
 		},
 		(in Diag.CommonTypeMissing d) {
 			writer ~= "expected to find a type named ";
@@ -917,11 +962,12 @@ void writeDiag(
 			writer ~= ':';
 			writeCalledDecls(writer, allSymbols, allPaths, pathsInfo, options, fi, d.matches);
 		},
-		(in Diag.SpecImplNotFound d) {
+		(in Diag.SpecImplNotFound x) {
 			writer ~= "no implementation was found for spec signature ";
-			writeSpecDeclSig(writer, allSymbols, d.sig);
+			SpecDeclSig* sig = x.sigDecl;
+			writeSig(writer, allSymbols, sig.name, sig.returnType, Params(sig.params), some(x.sigType));
 			writer ~= " calling:";
-			writeSpecTrace(writer, allSymbols, allPaths, pathsInfo, options, fi, d.trace); 
+			writeSpecTrace(writer, allSymbols, allPaths, pathsInfo, options, fi, x.trace);
 		},
 		(in Diag.SpecImplTooDeep d) {
 			writer ~= "spec instantiation is too deep calling:";

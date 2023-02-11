@@ -43,12 +43,12 @@ import frontend.parse.ast : CallAst, ExprAst, LambdaAst, rangeOfNameAndRange, Ty
 import frontend.programState : ProgramState;
 import model.diag : Diag;
 import model.model :
-	Arity,
 	arity,
 	arityMatches,
 	body_,
 	Called,
 	CalledDecl,
+	CalledSpecSig,
 	decl,
 	Destructure,
 	Expr,
@@ -61,13 +61,14 @@ import model.model :
 	isVariadic,
 	NameReferents,
 	Params,
+	paramTypeAt,
 	Purity,
 	PurityRange,
 	purityRange,
-	SpecBody,
+	ReturnAndParamTypes,
+	SpecDeclBody,
 	SpecDeclSig,
 	SpecInst,
-	SpecSig,
 	StructInst,
 	Type,
 	typeArgs,
@@ -76,7 +77,7 @@ import model.model :
 import util.alloc.alloc : Alloc;
 import util.col.arr : empty, only;
 import util.col.arrBuilder : add, ArrBuilder, finishArr;
-import util.col.arrUtil : every, exists, fillArrOrFail, map;
+import util.col.arrUtil : every, everyWithIndex, exists, fillArrOrFail, map, zipEvery, zipEveryPtrFirst, zipPtrFirst;
 import util.col.mutMaxArr :
 	copyToFrom,
 	exists,
@@ -104,7 +105,6 @@ import util.ptr : castNonScope_ref, ptrTrustMe;
 import util.sourceRange : FileAndRange;
 import util.sym : Sym;
 import util.union_ : Union;
-import util.util : todo;
 
 Expr checkCall(ref ExprCtx ctx, ref LocalsInfo locals, FileAndRange range, in CallAst ast, ref Expected expected) =>
 	checkCallCommon(
@@ -297,13 +297,14 @@ private void eachFunInScopeForSpec(
 ) {
 	foreach (SpecInst* parent; specInst.parents)
 		eachFunInScopeForSpec(parent, totalIndex, funName, cb);
-	specInst.body_.match!void(
-		(SpecBody.Builtin) {},
+	decl(*specInst).body_.match!void(
+		(SpecDeclBody.Builtin) {},
 		(SpecDeclSig[] sigs) {
-			foreach (size_t i, SpecDeclSig sig; sigs)
+			zipPtrFirst(sigs, specInst.sigTypes, (SpecDeclSig* sig, ref ReturnAndParamTypes signatureTypes) {
 				if (sig.name == funName)
-					cb(UsedFun(UsedFun.None()), CalledDecl(SpecSig(specInst, &sigs[i], totalIndex + i)));
-			totalIndex += sigs.length;
+					cb(UsedFun(UsedFun.None()), CalledDecl(CalledSpecSig(specInst, signatureTypes, sig, totalIndex)));
+				totalIndex += 1;
+			});
 		});
 }
 
@@ -320,13 +321,13 @@ bool candidateIsPreferred(in Candidate a) =>
 	a.called.matchIn!bool(
 		(in FunDecl x) =>
 			x.flags.preferred,
-		(in SpecSig) =>
+		(in CalledSpecSig) =>
 			false);
 
 struct Candidate {
 	immutable UsedFun used;
 	immutable CalledDecl called;
-	// Note: this is always empty if calling a SpecSig
+	// Note: this is always empty if calling a CalledSpecSig
 	MutMaxArr!(maxTypeParams, SingleInferringType) typeArgs;
 }
 void initializeCandidate(ref Candidate a, UsedFun used, CalledDecl called) {
@@ -427,12 +428,19 @@ Type getCandidateExpectedParameterType(
 		alloc,
 		programState,
 		candidate,
-		paramTypeAt(candidate.called.params, argIndex));
+		paramTypeAt(candidate.called, argIndex));
 
-Type paramTypeAt(in Params params, size_t argIdx) =>
+Type paramTypeAt(ref CalledDecl called, size_t argIndex) =>
+	called.match!Type(
+		(ref FunDecl f) =>
+			paramTypeAt(f.params, argIndex),
+		(CalledSpecSig s) =>
+			s.paramTypes[argIndex]);
+
+Type paramTypeAt(in Params params, size_t argIndex) =>
 	params.matchIn!Type(
 		(in Destructure[] x) =>
-			x[argIdx].type,
+			x[argIndex].type,
 		(in Params.Varargs x) =>
 			x.elementType);
 
@@ -504,24 +512,22 @@ void checkCalledDeclFlags(
 			checkCallFlags(ctx, range, f, ctx.outermostFunFlags, isInLambda, argsKind);
 		},
 		// For a spec, we check the flags when providing the spec impl
-		(SpecSig) {});
+		(CalledSpecSig) {});
 }
 
 bool testCandidateForSpecSig(
 	ref Alloc alloc,
 	ref ProgramState programState,
 	scope ref Candidate specCandidate,
-	in SpecDeclSig specSig,
+	in ReturnAndParamTypes returnAndParamTypes,
 	in InferringTypeArgs callInferringTypeArgs,
 ) {
 	bool res = matchTypesNoDiagnostic(
 		alloc, programState,
 		specCandidate.called.returnType, inferringTypeArgs(specCandidate),
-		specSig.returnType, callInferringTypeArgs);
-	return res && everyInRange(specSigNParams(specSig), (size_t argIdx) =>
-		testCandidateParamType(
-			alloc, programState,
-			specCandidate, paramTypeAt(specSig.params, argIdx), argIdx, callInferringTypeArgs));
+		returnAndParamTypes.returnType, callInferringTypeArgs);
+	return res && everyWithIndex!Type(returnAndParamTypes.paramTypes, (size_t argIdx, in Type paramType) =>
+		testCandidateParamType(alloc, programState, specCandidate, paramType, argIdx, callInferringTypeArgs));
 }
 
 void inferCandidateTypeArgsFromCheckedSpecSig(
@@ -529,25 +535,19 @@ void inferCandidateTypeArgsFromCheckedSpecSig(
 	ref ProgramState programState,
 	in Candidate specCandidate,
 	in SpecDeclSig specSig,
+	in ReturnAndParamTypes sigTypes,
 	scope InferringTypeArgs callInferringTypeArgs,
 ) {
 	inferTypeArgsFrom(
-		alloc, programState, specSig.returnType, callInferringTypeArgs,
+		alloc, programState, sigTypes.returnType, callInferringTypeArgs,
 		specCandidate.called.returnType, inferringTypeArgs(specCandidate));
-	foreach (size_t argIdx; 0 .. specSigNParams(specSig))
+	foreach (size_t argIdx; 0 .. specSig.params.length)
 		inferTypeArgsFrom(
 			alloc, programState,
-			paramTypeAt(specSig.params, argIdx),
+			sigTypes.paramTypes[argIdx],
 			callInferringTypeArgs,
 			getCandidateExpectedParameterType(alloc, programState, specCandidate, argIdx),
 			inferringTypeArgs(specCandidate));
-}
-
-bool everyInRange(size_t n, in bool delegate(size_t) @safe @nogc pure nothrow cb) {
-	foreach (size_t i; 0 .. n)
-		if (!cb(i))
-			return false;
-	return true;
 }
 
 // Also does type inference on the candidate
@@ -617,7 +617,7 @@ bool inferCandidateTypeArgsFromSpecs(ref ExprCtx ctx, scope ref Candidate candid
 			(ref FunDecl called) =>
 				every!(immutable SpecInst*)(called.specs, (in immutable SpecInst* spec) =>
 					inferCandidateTypeArgsFromSpecInst(ctx, candidate, called, *spec)),
-			(SpecSig _) => true);
+			(CalledSpecSig _) => true);
 	} else
 		// figure this out at the end
 		return true; 
@@ -631,17 +631,14 @@ bool inferCandidateTypeArgsFromSpecInst(
 ) {
 	return every!(immutable SpecInst*)(spec.parents, (in immutable SpecInst* parent) =>
 		inferCandidateTypeArgsFromSpecInst(ctx, callCandidate, called, *parent)
-	) && spec.body_.match!bool(
-		(SpecBody.Builtin) =>
+	) && decl(spec).body_.match!bool(
+		(SpecDeclBody.Builtin) =>
 			// figure this out at the end
 			true,
-		(SpecDeclSig[] sigs) {
-			foreach (ref SpecDeclSig sig; sigs)
-				if (!inferCandidateTypeArgsFromSpecSig(ctx, callCandidate, called, sig)) {
-					return false;
-				}
-			return true;
-		});
+		(SpecDeclSig[] sigs) =>
+			zipEvery!(SpecDeclSig, ReturnAndParamTypes)(
+				sigs, spec.sigTypes, (in SpecDeclSig sig, in ReturnAndParamTypes returnAndParamTypes) =>
+					inferCandidateTypeArgsFromSpecSig(ctx, callCandidate, called, sig, returnAndParamTypes)));
 }
 
 bool inferCandidateTypeArgsFromSpecSig(
@@ -649,18 +646,21 @@ bool inferCandidateTypeArgsFromSpecSig(
 	scope ref Candidate callCandidate,
 	in FunDecl called,
 	in SpecDeclSig specSig,
+	in ReturnAndParamTypes returnAndParamTypes,
 ) =>
-	withCandidates(ctx, specSig.name, none!(TypeAst*), specSigNParams(specSig), (ref Candidates specCandidates) {
+	withCandidates(ctx, specSig.name, none!(TypeAst*), specSig.params.length, (ref Candidates specCandidates) {
 		const InferringTypeArgs constCallInferring = inferringTypeArgs(callCandidate);
 		filterCandidates(specCandidates, (ref Candidate specCandidate) =>
-			testCandidateForSpecSig(ctx.alloc, ctx.programState, specCandidate, specSig, constCallInferring));
+			testCandidateForSpecSig(
+				ctx.alloc, ctx.programState, specCandidate, returnAndParamTypes, constCallInferring));
 
 		switch (size(specCandidates)) {
 			case 0:
 				return false;
 			case 1:
 				inferCandidateTypeArgsFromCheckedSpecSig(
-					ctx.alloc, ctx.programState, only(specCandidates), specSig, inferringTypeArgs(callCandidate));
+					ctx.alloc, ctx.programState,
+					only(specCandidates), specSig, returnAndParamTypes, inferringTypeArgs(callCandidate));
 				return true;
 			default:
 				return true;
@@ -671,49 +671,48 @@ Opt!Called findSpecSigImplementation(
 	ref ExprCtx ctx,
 	bool isInLambda,
 	FileAndRange range,
-	ref SpecDeclSig specSig,
+	SpecDeclSig* sigDecl,
+	in ReturnAndParamTypes sigType,
 	ref SpecTrace trace,
 ) {
-	size_t nParams = specSigNParams(specSig);
-	return withCandidates(ctx, specSig.name, none!(TypeAst*), nParams, (ref Candidates candidates) {
+	return withCandidates(ctx, sigDecl.name, none!(TypeAst*), sigType.paramTypes.length, (ref Candidates candidates) {
 		filterCandidates(candidates, (scope ref Candidate candidate) =>
-			testCandidateForSpecSig(ctx.alloc, ctx.programState, candidate, specSig, InferringTypeArgs()));
+			testCandidateForSpecSig(ctx.alloc, ctx.programState, candidate, sigType, InferringTypeArgs()));
 
 		// If any candidates left take specs -- leave as a TODO
 		switch (mutMaxArrSize(candidates)) {
 			case 0:
 				// TODO: use initial candidates in the error message
-				addDiag2(ctx, range, Diag(Diag.SpecImplNotFound(specSig, toArray(ctx.alloc, trace))));
+				addDiag2(ctx, range, Diag(Diag.SpecImplNotFound(sigDecl, sigType, toArray(ctx.alloc, trace))));
 				return none!Called;
 			case 1:
 				return getCalledFromCandidate(ctx, isInLambda, range, only(candidates), ArgsKind.nonEmpty, trace);
 			default:
 				addDiag2(ctx, range, Diag(
-					Diag.SpecImplFoundMultiple(specSig.name, candidatesForDiag(ctx.alloc, candidates))));
+					Diag.SpecImplFoundMultiple(sigDecl.name, candidatesForDiag(ctx.alloc, candidates))));
 				return none!Called;
 		}
 	});
 }
 
-size_t specSigNParams(ref SpecDeclSig a) =>
-	arity(a).match!size_t(
-		(size_t n) =>
-			n,
-		(Arity.Varargs) =>
-			todo!size_t("varargs in spec?"));
-
-bool checkBuiltinSpec(ref ExprCtx ctx, FunDecl* called, FileAndRange range, SpecBody.Builtin.Kind kind, Type typeArg) {
+bool checkBuiltinSpec(
+	ref ExprCtx ctx,
+	FunDecl* called,
+	FileAndRange range,
+	SpecDeclBody.Builtin.Kind kind,
+	Type typeArg,
+) {
 	bool typeIsGood = isPurityAlwaysCompatibleConsideringSpecs(ctx, typeArg, purityOfBuiltinSpec(kind));
 	if (!typeIsGood)
 		addDiag2(ctx, range, Diag(Diag.SpecBuiltinNotSatisfied(kind, typeArg, called)));
 	return typeIsGood;
 }
 
-Purity purityOfBuiltinSpec(SpecBody.Builtin.Kind kind) {
+Purity purityOfBuiltinSpec(SpecDeclBody.Builtin.Kind kind) {
 	final switch (kind) {
-		case SpecBody.Builtin.Kind.data:
+		case SpecDeclBody.Builtin.Kind.data:
 			return Purity.data;
-		case SpecBody.Builtin.Kind.shared_:
+		case SpecDeclBody.Builtin.Kind.shared_:
 			return Purity.shared_;
 	}
 }
@@ -733,8 +732,8 @@ public bool isPurityAlwaysCompatibleConsideringSpecs(ref ExprCtx ctx, Type type,
 bool specProvidesPurity(in SpecInst* inst, in Type type, Purity expected) =>
 	exists!(SpecInst*)(inst.parents, (in SpecInst* parent) =>
 		specProvidesPurity(parent, type, expected)) ||
-	inst.body_.matchIn!bool(
-		(in SpecBody.Builtin b) =>
+	decl(*inst).body_.matchIn!bool(
+		(in SpecDeclBody.Builtin b) =>
 			only(typeArgs(*inst)) == type && isPurityCompatible(expected, purityOfBuiltinSpec(b.kind)),
 		(in SpecDeclSig[]) =>
 			false);
@@ -758,7 +757,7 @@ bool checkSpecImpls(
 		SpecInst* specInstInstantiated = instantiateSpecInst(
 			ctx.alloc, ctx.programState, specInst,
 			TypeParamsAndArgs(called.typeParams, calledTypeArgs), noDelaySpecInsts);
-		if (!checkSpecImpl(res, ctx, isInLambda, range, called, trace, specInstInstantiated))
+		if (!checkSpecImpl(res, ctx, isInLambda, range, called, trace, *specInstInstantiated))
 			return false;
 	}
 	return true;
@@ -771,23 +770,25 @@ bool checkSpecImpl(
 	FileAndRange range,
 	FunDecl* called,
 	ref SpecTrace trace,
-	SpecInst* specInstInstantiated) {
+	in SpecInst specInstInstantiated) {
 	foreach (SpecInst* parent; specInstInstantiated.parents)
-		if (!checkSpecImpl(res, ctx, isInLambda, range, called, trace, parent))
+		if (!checkSpecImpl(res, ctx, isInLambda, range, called, trace, *parent))
 			return false;
-	Type[] typeArgs = typeArgs(*specInstInstantiated);
-	return specInstInstantiated.body_.match!bool(
-		(SpecBody.Builtin b) =>
+	Type[] typeArgs = typeArgs(specInstInstantiated);
+	return specInstInstantiated.decl.body_.match!bool(
+		(SpecDeclBody.Builtin b) =>
 			checkBuiltinSpec(ctx, called, range, b.kind, only(typeArgs)),
-		(SpecDeclSig[] sigs) {
+		(SpecDeclSig[] sigDecls) {
 			push(trace, FunDeclAndTypeArgs(called, typeArgs));
-			foreach (ref SpecDeclSig sig; sigs) {
-				Opt!Called impl = findSpecSigImplementation(ctx, isInLambda, range, sig, trace);
-				if (!has(impl))
-					return false;
-				push(res, force(impl));
-			}
-			mustPop(trace);
+			bool res = zipEveryPtrFirst!(SpecDeclSig, ReturnAndParamTypes)(
+				sigDecls, specInstInstantiated.sigTypes, (SpecDeclSig* sigDecl, in ReturnAndParamTypes sigType) {
+					Opt!Called impl = findSpecSigImplementation(ctx, isInLambda, range, sigDecl, sigType, trace);
+					if (!has(impl))
+						return false;
+					push(res, force(impl));
+					return true;
+				});
+			if (res) mustPop(trace);
 			return true;
 		});
 }
@@ -831,7 +832,7 @@ Opt!Called getCalledFromCandidate(
 					: none!Called;
 			}
 		},
-		(SpecSig s) =>
+		(CalledSpecSig s) =>
 			some(Called(allocate(ctx.alloc, s))));
 }
 

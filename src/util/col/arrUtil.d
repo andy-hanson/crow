@@ -142,7 +142,7 @@ T[] copyArr(T)(ref Alloc alloc, scope T[] a) =>
 	ref Alloc alloc,
 	Out first,
 	in In[] a,
-	in Out delegate(size_t, In) @safe @nogc pure nothrow cb,
+	in Out delegate(size_t, ref In) @safe @nogc pure nothrow cb,
 ) {
 	Out* res = allocateT!Out(alloc, 1 + a.length);
 	initMemory!Out(res, first);
@@ -288,6 +288,18 @@ bool zipEvery(T, U)(
 	verify(sizeEq(a, b));
 	foreach (size_t i; 0 .. a.length)
 		if (!cb(a[i], b[i]))
+			return false;
+	return true;
+}
+
+bool zipEveryPtrFirst(T, U)(
+	T[] a,
+	in U[] b,
+	in bool delegate(T*, in U) @safe @nogc pure nothrow cb,
+) {
+	verify(sizeEq(a, b));
+	foreach (size_t i; 0 .. a.length)
+		if (!cb(&a[i], b[i]))
 			return false;
 	return true;
 }

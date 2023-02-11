@@ -5,6 +5,7 @@ module model.reprModel;
 import model.model :
 	body_,
 	Called,
+	CalledSpecSig,
 	decl,
 	Destructure,
 	EnumFunction,
@@ -25,12 +26,11 @@ import model.model :
 	noCtx,
 	Params,
 	Purity,
-	SpecBody,
 	SpecDecl,
+	SpecDeclBody,
 	SpecDeclSig,
 	specImpls,
 	SpecInst,
-	SpecSig,
 	StructDecl,
 	StructInst,
 	summon,
@@ -130,13 +130,13 @@ Repr reprSpecDecl(ref Alloc alloc, in Ctx ctx, in SpecDecl a) {
 	add(alloc, fields, nameAndRepr!"range"(reprFileAndRange(alloc, a.range)));
 	addReprCommon(alloc, fields, a.docComment, a.visibility, a.name, a.typeParams);
 	add(alloc, fields, nameAndRepr!"parents"(reprSpecInsts(alloc, ctx, a.parents)));
-	add(alloc, fields, nameAndRepr!"body"(reprSpecBody(alloc, ctx, a.body_)));
+	add(alloc, fields, nameAndRepr!"body"(reprSpecDeclBody(alloc, ctx, a.body_)));
 	return reprNamedRecord!"spec"(finishArr(alloc, fields));
 }
 
-Repr reprSpecBody(ref Alloc alloc, in Ctx ctx, in SpecBody a) =>
+Repr reprSpecDeclBody(ref Alloc alloc, in Ctx ctx, in SpecDeclBody a) =>
 	a.matchIn!Repr(
-		(in SpecBody.Builtin x) =>
+		(in SpecDeclBody.Builtin x) =>
 			reprSym(symOfSpecBodyBuiltinKind(x.kind)),
 		(in SpecDeclSig[] xs) =>
 			reprArr!SpecDeclSig(alloc, xs, (in SpecDeclSig x) =>
@@ -148,7 +148,7 @@ Repr reprSpecDeclSig(ref Alloc alloc, in Ctx ctx, in SpecDeclSig a) =>
 		reprFileAndPos(alloc, a.fileAndPos),
 		reprSym(a.name),
 		reprType(alloc, ctx, a.returnType),
-		reprParams(alloc, ctx, a.params)]);
+		reprDestructures(alloc, ctx, a.params)]);
 
 Repr reprFunDecl(ref Alloc alloc, in Ctx ctx, in FunDecl a) {
 	ArrBuilder!NameAndRepr fields;
@@ -419,8 +419,8 @@ Repr reprCalled(ref Alloc alloc, in Ctx ctx, in Called a) =>
 	a.matchIn!Repr(
 		(in FunInst x) =>
 			reprFunInst(alloc, ctx, x),
-		(in SpecSig x) =>
-			reprSpecSig(alloc, ctx, x));
+		(in CalledSpecSig x) =>
+			reprCalledSpecSig(alloc, ctx, x));
 
 Repr reprFunInst(ref Alloc alloc, in Ctx ctx, in FunInst a) {
 	ArrBuilder!NameAndRepr args;
@@ -434,10 +434,10 @@ Repr reprFunInst(ref Alloc alloc, in Ctx ctx, in FunInst a) {
 	return reprNamedRecord!"fun-inst"(finishArr(alloc, args));
 }
 
-Repr reprSpecSig(ref Alloc alloc, in Ctx ctx, in SpecSig a) =>
+Repr reprCalledSpecSig(ref Alloc alloc, in Ctx ctx, in CalledSpecSig a) =>
 	reprRecord!"spec-sig"(alloc, [
 		reprSym(name(*a.specInst)),
-		reprSym(a.sig.name)]);
+		reprSym(name(a))]);
 
 public Repr reprVisibility(Visibility a) =>
 	reprSym(symOfVisibility(a));

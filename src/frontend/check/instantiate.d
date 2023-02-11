@@ -19,16 +19,15 @@ import model.model :
 	Linkage,
 	LinkageRange,
 	linkageRange,
-	Local,
-	Params,
 	paramsArray,
 	Purity,
 	PurityRange,
 	purityRange,
 	RecordField,
+	ReturnAndParamTypes,
 	setBody,
-	SpecBody,
 	SpecDecl,
+	SpecDeclBody,
 	SpecDeclAndArgs,
 	SpecDeclSig,
 	SpecInst,
@@ -43,8 +42,8 @@ import model.model :
 	UnionMember,
 	withType;
 import util.alloc.alloc : Alloc;
-import util.col.arr : sizeEq, small;
-import util.col.arrUtil : copyArr, fold, map;
+import util.col.arr : emptySmallArray, sizeEq, small, SmallArray;
+import util.col.arrUtil : copyArr, fold, map, mapWithFirst;
 import util.col.mutDict : getOrAddPair, getOrAddPairAndDidAdd, KeyValuePair, PairAndDidAdd;
 import util.col.mutArr : MutArr, push;
 import util.col.mutMaxArr : mapTo, MutMaxArr, mutMaxArr, push, tempAsArr;
@@ -130,8 +129,8 @@ FunInst* instantiateFun(
 		TypeParamsAndArgs typeParamsAndArgs = TypeParamsAndArgs(decl.typeParams, key.typeArgs);
 		return KeyValuePair!(FunDeclAndArgs, FunInst*)(key, allocate(alloc, FunInst(
 			key,
-			instantiateTypeNoDelay(alloc, programState, decl.returnType, typeParamsAndArgs),
-			instantiateParamTypes(alloc, programState, decl.params, typeParamsAndArgs))));
+			instantiateReturnAndParamTypes(
+				alloc, programState, decl.returnType, paramsArray(decl.params), typeParamsAndArgs))));
 	}).value;
 }
 
@@ -264,19 +263,13 @@ SpecInst* instantiateSpec(
 	return getOrAddPair(alloc, programState.specInsts, tempKey, () {
 		SpecDeclAndArgs key = SpecDeclAndArgs(decl, copyArr(alloc, typeArgs));
 		TypeParamsAndArgs typeParamsAndArgs = TypeParamsAndArgs(decl.typeParams, key.typeArgs);
-		SpecBody body_ = decl.body_.match!SpecBody(
-			(SpecBody.Builtin b) =>
-				SpecBody(SpecBody.Builtin(b.kind)),
+		SpecInst* res = allocate(alloc, SpecInst(key, decl.body_.match!(SmallArray!ReturnAndParamTypes)(
+			(SpecDeclBody.Builtin b) =>
+				emptySmallArray!ReturnAndParamTypes,
 			(SpecDeclSig[] sigs) =>
-				SpecBody(map(alloc, sigs, (ref SpecDeclSig sig) {
-					return SpecDeclSig(
-						sig.docComment,
-						sig.fileAndPos,
-						sig.name,
-						instantiateTypeNoDelay(alloc, programState, sig.returnType, typeParamsAndArgs),
-						instantiateParams(alloc, programState, sig.params, typeParamsAndArgs));
-		 		})));
-		SpecInst* res = allocate(alloc, SpecInst(key, body_));
+				small(map(alloc, sigs, (ref SpecDeclSig sig) =>
+					instantiateReturnAndParamTypes(
+						alloc, programState, sig.returnType, sig.params, typeParamsAndArgs))))));
 		if (decl.parentsIsSet)
 			instantiateSpecParents(alloc, programState, res, delaySpecInsts);
 		else
@@ -312,50 +305,16 @@ SpecInst* instantiateSpecInst(
 
 private:
 
-Type[] instantiateParamTypes(
+ReturnAndParamTypes instantiateReturnAndParamTypes(
 	ref Alloc alloc,
 	ref ProgramState programState,
-	Params params,
+	Type declReturnType,
+	Destructure[] declParams,
 	TypeParamsAndArgs typeParamsAndArgs,
 ) =>
-	map(alloc, paramsArray(params), (ref Destructure x) =>
-		instantiateTypeNoDelay(alloc, programState, x.type, typeParamsAndArgs));
-
-Params instantiateParams(
-	ref Alloc alloc,
-	ref ProgramState programState,
-	Params params,
-	TypeParamsAndArgs typeParamsAndArgs,
-) =>
-	params.match!Params(
-		(Destructure[] paramsArray) =>
-			Params(map(alloc, paramsArray, (ref Destructure x) =>
-				instantiateDestructure(alloc, programState, typeParamsAndArgs, x))),
-		(ref Params.Varargs v) =>
-			Params(allocate(alloc, Params.Varargs(
-				instantiateDestructure(alloc, programState, typeParamsAndArgs, v.param),
-				instantiateTypeNoDelay(alloc, programState, v.elementType, typeParamsAndArgs)))));
-
-Destructure instantiateDestructure(
-	ref Alloc alloc,
-	ref ProgramState programState,
-	TypeParamsAndArgs typeParamsAndArgs,
-	in Destructure a,
-) {
-	Type instantiateType(Type x) {
-		return instantiateTypeNoDelay(alloc, programState, x, typeParamsAndArgs);
-	}
-	return a.matchIn!Destructure(
-		(in Destructure.Ignore x) =>
-			Destructure(allocate(alloc, Destructure.Ignore(x.pos, instantiateType(x.type)))),
-		(in Local x) =>
-			Destructure(allocate(alloc, Local(x.range, x.name, x.mutability, instantiateType(x.type)))),
-		(in Destructure.Split x) {
-			StructInst* type =
-				instantiateStructInst(alloc, programState, *x.type, typeParamsAndArgs, noDelayStructInsts);
-			return Destructure(allocate(alloc, Destructure.Split(
-				type,
-				small(map(alloc, x.parts, (ref Destructure part) =>
-					instantiateDestructure(alloc, programState, typeParamsAndArgs, part))))));
-		});
-}
+	ReturnAndParamTypes(small(mapWithFirst!(Type, Destructure)(
+		alloc,
+		instantiateTypeNoDelay(alloc, programState, declReturnType, typeParamsAndArgs),
+		declParams,
+		(size_t _, ref Destructure x) =>
+			instantiateTypeNoDelay(alloc, programState, x.type, typeParamsAndArgs))));
