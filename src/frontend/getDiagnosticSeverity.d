@@ -85,10 +85,6 @@ DiagSeverity getDiagnosticSeverity(in Diag a) =>
 			DiagSeverity.checkWarning,
 		(in Diag.MatchCaseNamesDoNotMatch) =>
 			DiagSeverity.checkError,
-		(in Diag.MatchCaseShouldHaveLocal) =>
-			DiagSeverity.checkWarning,
-		(in Diag.MatchCaseShouldNotHaveLocal) =>
-			DiagSeverity.checkError,
 		(in Diag.MatchOnNonUnion) =>
 			DiagSeverity.checkError,
 		(in Diag.ModifierConflict) =>

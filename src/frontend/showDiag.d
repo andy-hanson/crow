@@ -830,16 +830,6 @@ void writeDiag(
 				writeName(writer, allSymbols, name);
 			});
 		},
-		(in Diag.MatchCaseShouldHaveLocal d) {
-			writer ~= "union member ";
-			writeName(writer, allSymbols, d.member.name);
-			writer ~= " has an associated value that should be declared (or use '_')";
-		},
-		(in Diag.MatchCaseShouldNotHaveLocal d) {
-			writer ~= "union member ";
-			writeName(writer, allSymbols, d.member.name);
-			writer ~= " has no associated value";
-		},
 		(in Diag.MatchOnNonUnion d) {
 			writer ~= "can't match on non-union type ";
 			writeTypeQuoted(writer, allSymbols, d.type);

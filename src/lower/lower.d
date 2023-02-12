@@ -404,10 +404,8 @@ LowUnion getLowUnion(ref Alloc alloc, in ConcreteProgram program, ref GetLowType
 		(in ConcreteStructBody.Flags) => unreachable!(LowType[])(),
 		(in ConcreteStructBody.Record) => unreachable!(LowType[])(),
 		(in ConcreteStructBody.Union it) =>
-			map(getLowTypeCtx.alloc, it.members, (ref Opt!ConcreteType member) =>
-				has(member)
-					? lowTypeFromConcreteType(getLowTypeCtx, force(member))
-					: LowType(PrimitiveType.void_))));
+			map(getLowTypeCtx.alloc, it.members, (ref ConcreteType member) =>
+				lowTypeFromConcreteType(getLowTypeCtx, member))));
 
 LowType getLowRawPtrConstType(ref GetLowTypeCtx ctx, LowType pointee) {
 	//TODO:PERF Cache creation of pointer types by pointee

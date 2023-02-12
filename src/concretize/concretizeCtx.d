@@ -77,7 +77,7 @@ import util.col.str : SafeCStr;
 import util.hash : Hasher;
 import util.late : Late, lateGet, lateIsSet, lateSet, lateSetOverwrite, lazilySet;
 import util.memory : allocate;
-import util.opt : force, has, none, Opt, some;
+import util.opt : force, has, none;
 import util.ptr : castMutable, hashPtr;
 import util.sourceRange : FileAndRange;
 import util.sym : AllSymbols, Sym, sym;
@@ -180,7 +180,7 @@ private immutable struct DeferredRecordBody {
 
 private struct DeferredUnionBody {
 	ConcreteStruct* struct_;
-	immutable Opt!ConcreteType[] members;
+	immutable ConcreteType[] members;
 }
 
 struct ConcretizeCtx {
@@ -431,14 +431,14 @@ ConcreteFun* concreteFunForTest(ref ConcretizeCtx ctx, ref Test test, size_t tes
 	return res;
 }
 
-bool canGetUnionSize(in Opt!ConcreteType[] members) =>
-	every!(Opt!ConcreteType)(members, (in Opt!ConcreteType type) =>
-		!has(type) || hasSizeOrPointerSizeBytes(force(type)));
+bool canGetUnionSize(in ConcreteType[] members) =>
+	every!(ConcreteType)(members, (in ConcreteType type) =>
+		hasSizeOrPointerSizeBytes(type));
 
-TypeSize unionSize(in Opt!ConcreteType[] members) {
+TypeSize unionSize(in ConcreteType[] members) {
 	size_t unionAlign = 8;
-	size_t maxMember = arrMax!(size_t, Opt!ConcreteType)(0, members, (in Opt!ConcreteType t) =>
-		has(t) ? sizeOrPointerSizeBytes(force(t)).sizeBytes : 0);
+	size_t maxMember = arrMax!(size_t, ConcreteType)(0, members, (in ConcreteType x) =>
+		sizeOrPointerSizeBytes(x).sizeBytes);
 	size_t sizeBytes = roundUp(8 + maxMember, unionAlign);
 	return TypeSize(sizeBytes, unionAlign);
 }
@@ -555,11 +555,9 @@ void initializeConcreteStruct(
 		},
 		(StructBody.Union u) {
 			lateSet(res.defaultReferenceKind_, ReferenceKind.byVal);
-			Opt!ConcreteType[] members = mapZip(
+			ConcreteType[] members = mapZip(
 				ctx.alloc, u.members, i.instantiatedTypes, (ref UnionMember x, ref Type type) =>
-					has(x.type)
-						? some(getConcreteType(ctx, type, typeArgsScope))
-						: none!ConcreteType);
+					getConcreteType(ctx, type, typeArgsScope));
 			lateSet(res.info_, ConcreteStructInfo(ConcreteStructBody(ConcreteStructBody.Union(members)), false));
 			if (canGetUnionSize(members))
 				lateSet(res.typeSize_, unionSize(members));

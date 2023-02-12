@@ -728,9 +728,7 @@ ConcreteExpr concretizeMatchUnion(
 	ConcreteExpr matched = concretizeExpr(ctx, locals, e.matched);
 	ConcreteType type = getConcreteType(ctx, e.type);
 	ConcreteExprKind.MatchUnion.Case[] cases = map(ctx.alloc, e.cases, (ref ExprKind.MatchUnion.Case case_) =>
-		has(case_.destructure)
-			? concretizeMatchCaseWithDestructure(ctx, range, locals, force(case_.destructure), case_.then)
-			: ConcreteExprKind.MatchUnion.Case(none!(ConcreteLocal*), concretizeExpr(ctx, locals, case_.then)));
+		concretizeMatchCaseWithDestructure(ctx, range, locals, case_.destructure, case_.then));
 	return ConcreteExpr(type, range, ConcreteExprKind(
 		allocate(ctx.alloc, ConcreteExprKind.MatchUnion(matched, cases))));
 }

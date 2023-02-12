@@ -15,7 +15,6 @@ import frontend.check.checkCtx : CheckCtx;
 import frontend.check.dicts : FunsDict, ModuleLocalFunIndex, StructsAndAliasesDict;
 import frontend.check.inferringType :
 	addDiag2,
-	addDiag3,
 	bogus,
 	check,
 	checkCanDoUnsafe,
@@ -1399,21 +1398,10 @@ ExprKind.MatchUnion.Case checkMatchCase(
 	in MatchAst.CaseAst caseAst,
 	ref Expected expected,
 ) {
-	if (has(caseAst.destructure)) {
-		if (has(member.type)) {
-			Destructure destructure = checkDestructure(ctx, force(caseAst.destructure), memberType);
-			Expr then = checkExprWithDestructure(ctx, locals, destructure, caseAst.then, expected);
-			return ExprKind.MatchUnion.Case(some(destructure), then);
-		} else {
-			RangeWithinFile range = force(caseAst.destructure).range(ctx.allSymbols);
-			addDiag3(ctx, range, Diag(Diag.MatchCaseShouldNotHaveLocal(member)));
-			return ExprKind.MatchUnion.Case(none!Destructure, bogus(expected, rangeInFile2(ctx, range)));
-		}
-	} else {
-		if (has(member.type))
-			addDiag3(ctx, caseAst.range, Diag(Diag.MatchCaseShouldHaveLocal(member)));
-		return ExprKind.MatchUnion.Case(none!Destructure, checkExpr(ctx, locals, caseAst.then, expected));
-	}
+	Destructure destructure = checkDestructure(
+		ctx, has(caseAst.destructure) ? force(caseAst.destructure) : DestructureAst(DestructureAst.Void()), memberType);
+	return ExprKind.MatchUnion.Case(
+		destructure, checkExprWithDestructure(ctx, locals, destructure, caseAst.then, expected));
 }
 
 Expr checkSeq(ref ExprCtx ctx, ref LocalsInfo locals, FileAndRange range, in SeqAst ast, ref Expected expected) {

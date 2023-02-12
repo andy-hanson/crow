@@ -252,8 +252,7 @@ Opt!Repr documentRecordField(ref Alloc alloc, in RecordField a) {
 Repr documentUnionMember(ref Alloc alloc, in UnionMember a) {
 	ArrBuilder!NameAndRepr fields;
 	add(alloc, fields, nameAndRepr!"name"(reprSym(a.name)));
-	if (has(a.type))
-		add(alloc, fields, nameAndRepr!"type"(documentTypeRef(alloc, force(a.type))));
+	add(alloc, fields, nameAndRepr!"type"(documentTypeRef(alloc, a.type)));
 	return reprNamedRecord!"member"(finishArr(alloc, fields));
 }
 

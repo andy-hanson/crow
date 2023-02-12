@@ -171,9 +171,6 @@ ref ProgramState programState(return scope ref ExprCtx ctx) =>
 void addDiag2(ref ExprCtx ctx, FileAndRange range, Diag diag) {
 	addDiag(ctx.checkCtx, range, diag);
 }
-void addDiag3(ref ExprCtx ctx, RangeWithinFile range, Diag diag) {
-	addDiag2(ctx, rangeInFile2(ctx, range), diag);
-}
 
 immutable(Type) typeFromAst2(ref ExprCtx ctx, in TypeAst ast) =>
 	typeFromAst(

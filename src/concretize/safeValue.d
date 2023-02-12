@@ -30,7 +30,7 @@ import model.model : EnumValue;
 import util.alloc.alloc : Alloc;
 import util.col.arrUtil : map;
 import util.memory : allocate;
-import util.opt : force, has, none;
+import util.opt : none;
 import util.ptr : ptrTrustMe;
 import util.sourceRange : FileAndRange;
 import util.sym : sym;
@@ -137,9 +137,7 @@ ConcreteExpr safeValueForStruct(ref Ctx ctx, FileAndRange range, ConcreteStruct*
 					ConcreteExprKind(ConcreteExprKind.CreateRecord(exprs))));
 		},
 		(ConcreteStructBody.Union it) {
-			ConcreteExpr member = has(it.members[0])
-				? safeValueForType(ctx, range, force(it.members[0]))
-				: fromConstant(constantZero);
+			ConcreteExpr member = safeValueForType(ctx, range, it.members[0]);
 			//TODO: we need to find the function that creates that union...
 			return member.kind.isA!Constant
 				? fromConstant(Constant(

@@ -213,7 +213,7 @@ immutable struct UnionMember {
 	//TODO: use NameAndRange (more compact)
 	FileAndRange range;
 	Sym name;
-	Opt!Type type;
+	Type type;
 }
 
 enum ForcedByValOrRefOrNone {
@@ -1428,7 +1428,7 @@ immutable struct ExprKind {
 
 	immutable struct MatchUnion {
 		immutable struct Case {
-			Opt!Destructure destructure;
+			Destructure destructure;
 			Expr then;
 		}
 

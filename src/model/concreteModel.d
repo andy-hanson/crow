@@ -117,7 +117,7 @@ immutable struct ConcreteStructBody {
 	}
 	immutable struct Union {
 		// In the concrete model we identify members by index, so don't care about their names
-		Opt!ConcreteType[] members;
+		ConcreteType[] members;
 	}
 
 	mixin .Union!(Builtin, Enum, Extern, Flags, Record, Union);

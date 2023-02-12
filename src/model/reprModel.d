@@ -405,8 +405,7 @@ Repr reprDestructureSplit(ref Alloc alloc, in Ctx ctx, in Destructure.Split a) =
 
 Repr reprMatchUnionCase(ref Alloc alloc, in Ctx ctx, in ExprKind.MatchUnion.Case a) =>
 	reprRecord!"case"(alloc, [
-		reprOpt!Destructure(alloc, a.destructure, (in Destructure x) =>
-			reprDestructure(alloc, ctx, x)),
+		reprDestructure(alloc, ctx, a.destructure),
 		reprExpr(alloc, ctx, a.then)]);
 
 Repr reprLocal(ref Alloc alloc, in Ctx ctx, in Local a) =>

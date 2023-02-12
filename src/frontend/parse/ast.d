@@ -380,7 +380,6 @@ immutable struct MatchAst {
 
 		RangeWithinFile range;
 		Sym memberName;
-		// none for `as foo`, some(Ignore) for `as foo _`
 		Opt!DestructureAst destructure;
 		ExprAst then;
 

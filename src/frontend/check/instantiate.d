@@ -154,10 +154,8 @@ Type[] instantiateStructTypes(
 			map(alloc, r.fields, (ref RecordField f) =>
 				instantiateType(alloc, programState, f.type, typeParamsAndArgs, delayStructInsts)),
 		(StructBody.Union u) =>
-			map(alloc, u.members, (ref UnionMember it) =>
-				has(it.type)
-					? instantiateType(alloc, programState, force(it.type), typeParamsAndArgs, delayStructInsts)
-					: Type(Type.Bogus())));
+			map(alloc, u.members, (ref UnionMember x) =>
+				instantiateType(alloc, programState, x.type, typeParamsAndArgs, delayStructInsts)));
 }
 
 StructInst* instantiateStruct(

@@ -23,7 +23,6 @@ import model.model :
 	StructInst,
 	StructOrAlias,
 	Type,
-	UnionMember,
 	VariableRef,
 	Visibility;
 import model.parseDiag : ParseDiag;
@@ -240,12 +239,6 @@ immutable struct Diag {
 	immutable struct MatchCaseNamesDoNotMatch {
 		Sym[] expectedNames;
 	}
-	immutable struct MatchCaseShouldHaveLocal {
-		UnionMember* member;
-	}
-	immutable struct MatchCaseShouldNotHaveLocal {
-		UnionMember* member;
-	}
 	immutable struct MatchOnNonUnion {
 		Type type;
 	}
@@ -439,8 +432,6 @@ immutable struct Diag {
 		LocalNotMutable,
 		LoopWithoutBreak,
 		MatchCaseNamesDoNotMatch,
-		MatchCaseShouldHaveLocal,
-		MatchCaseShouldNotHaveLocal,
 		MatchOnNonUnion,
 		ModifierConflict,
 		ModifierDuplicate,

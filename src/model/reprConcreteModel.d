@@ -29,7 +29,6 @@ import model.model : EnumFunction, enumFunctionName, flagsFunctionName, FunInst,
 import model.reprConstant : reprOfConstant;
 import util.alloc.alloc : Alloc;
 import util.col.arrBuilder : add, ArrBuilder, finishArr;
-import util.opt : Opt;
 import util.repr :
 	NameAndRepr, nameAndRepr, Repr, reprArr, reprBool, reprNamedRecord, reprNat, reprOpt, reprRecord, reprSym;
 import util.sourceRange : reprFileAndRange;
@@ -106,9 +105,8 @@ Repr reprOfConcreteField(ref Alloc alloc, in ConcreteField a) =>
 		reprOfConcreteType(alloc, a.type)]);
 
 Repr reprOfConcreteStructBodyUnion(ref Alloc alloc, in ConcreteStructBody.Union a) =>
-	reprRecord!"union"(alloc, [reprArr!(Opt!ConcreteType)(alloc, a.members, (in Opt!ConcreteType it) =>
-		reprOpt!ConcreteType(alloc, it, (in ConcreteType t) =>
-			reprOfConcreteType(alloc, t)))]);
+	reprRecord!"union"(alloc, [reprArr!ConcreteType(alloc, a.members, (in ConcreteType x) =>
+		reprOfConcreteType(alloc, x))]);
 
 Repr reprOfConcreteFun(ref Alloc alloc, in ConcreteFun a) =>
 	reprRecord!"fun"(alloc, [

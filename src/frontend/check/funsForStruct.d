@@ -463,9 +463,9 @@ void addFunsForUnion(
 		push(typeArgs, Type(x));
 	Type structType = Type(instantiateStructNeverDelay(ctx.alloc, ctx.programState, struct_, tempAsArr(typeArgs)));
 	foreach (size_t memberIndex, ref UnionMember member; union_.members) {
-		Params params = has(member.type)
-			? makeParams(ctx.alloc, member.range, [param!"a"(force(member.type))])
-			: Params([]);
+		Params params = isVoid(commonTypes, member.type)
+			? Params([])
+			: makeParams(ctx.alloc, member.range, [param!"a"(member.type)]);
 		exactSizeArrBuilderAdd(funsBuilder, FunDecl(
 			safeCStr!"",
 			struct_.visibility,
@@ -479,3 +479,6 @@ void addFunsForUnion(
 			FunBody(FunBody.CreateUnion(memberIndex))));
 	}
 }
+
+bool isVoid(in CommonTypes commonTypes, Type a) =>
+	a.isA!(StructInst*) && a.as!(StructInst*) == commonTypes.void_;

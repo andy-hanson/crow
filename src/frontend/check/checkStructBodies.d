@@ -539,15 +539,16 @@ UnionMember checkUnionMember(
 	StructDecl* struct_,
 	in StructDeclAst.Body.Union.Member ast,
 ) {
-	Opt!Type type = !has(ast.type) ? none!Type : some(typeFromAst(
-		ctx,
-		commonTypes,
-		force(ast.type),
-		structsAndAliasesDict,
-		struct_.typeParams,
-		someMut(ptrTrustMe(delayStructInsts))));
-	if (has(type))
-		checkReferencePurity(ctx, struct_, ast.range, force(type));
+	Type type = !has(ast.type)
+		? Type(commonTypes.void_)
+		: typeFromAst(
+			ctx,
+			commonTypes,
+			force(ast.type),
+			structsAndAliasesDict,
+			struct_.typeParams,
+			someMut(ptrTrustMe(delayStructInsts)));
+	checkReferencePurity(ctx, struct_, ast.range, type);
 	return UnionMember(rangeInFile(ctx, ast.range), ast.name, type);
 }
 
