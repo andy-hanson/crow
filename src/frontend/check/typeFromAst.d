@@ -27,17 +27,14 @@ import frontend.parse.ast :
 import frontend.programState : ProgramState;
 import model.diag : Diag;
 import model.model :
-	body_,
 	CommonTypes,
 	decl,
 	Destructure,
 	Local,
 	LocalMutability,
 	NameReferents,
-	RecordField,
 	SpecDecl,
 	StructAlias,
-	StructBody,
 	StructDecl,
 	StructInst,
 	StructOrAlias,
@@ -48,14 +45,14 @@ import model.model :
 import util.alloc.alloc : Alloc;
 import util.cell : Cell, cellGet, cellSet;
 import util.col.arr : arrayOfSingle, empty, only, small;
-import util.col.arrUtil : eachPair, findPtr, map, mapOrNone, mapWithIndex, mapZipPtrFirst;
+import util.col.arrUtil : eachPair, findPtr, map, mapOrNone, mapWithIndex, mapZip;
 import util.col.mutMaxArr : mapTo, tempAsArr;
 import util.memory : allocate;
 import util.opt : force, has, none, Opt, some;
 import util.ptr : castNonScope_ref, ptrTrustMe;
 import util.sourceRange : RangeWithinFile;
 import util.sym : Sym, sym;
-import util.util : todo, verify;
+import util.util : todo;
 
 private Type instStructFromAst(
 	ref CheckCtx ctx,
@@ -471,15 +468,15 @@ Destructure checkDestructure(
 		(in DestructureAst[] partAsts) {
 			if (has(destructuredType)) {
 				Type tupleType = force(destructuredType);
-				Opt!(RecordField[]) fields = getTupleFields(commonTypes, partAsts.length, tupleType);
-				if (has(fields))
+				Opt!(Type[]) fieldTypes = getTupleFieldTypes(commonTypes, partAsts.length, tupleType);
+				if (has(fieldTypes))
 					return Destructure(allocate(ctx.alloc, Destructure.Split(
 						tupleType.as!(StructInst*),
-						small(mapZipPtrFirst!(Destructure, RecordField, DestructureAst)(
-							ctx.alloc, force(fields), partAsts, (RecordField* field, in DestructureAst part) =>
+						small(mapZip!(Destructure, Type, DestructureAst)(
+							ctx.alloc, force(fieldTypes), partAsts, (ref Type fieldType, ref DestructureAst part) =>
 								checkDestructure(
 									ctx, commonTypes, structsAndAliasesDict, typeParamsScope, delayStructInsts,
-									part, some(field.type)))))));
+									part, some(fieldType)))))));
 				else {
 					addDiag(ctx, ast.range(ctx.allSymbols), Diag(
 						Diag.DestructureTypeMismatch(
@@ -508,18 +505,11 @@ Destructure checkDestructure(
 
 private:
 
-Opt!(RecordField[]) getTupleFields(ref CommonTypes commonTypes, size_t nParts, Type type) {
-	if (2 <= nParts && nParts <= 9 && type.isA!(StructInst*)) {
-		StructInst* inst = type.as!(StructInst*);
-		StructDecl* decl = decl(*inst);
-		if (decl == commonTypes.tuples2Through9[nParts - 2]) {
-			RecordField[] fields = body_(*inst).as!(StructBody.Record).fields;
-			verify(fields.length == nParts);
-			return some(fields);
-		} else
-			return none!(RecordField[]);
-	} else
-		return none!(RecordField[]);
+Opt!(Type[]) getTupleFieldTypes(ref CommonTypes commonTypes, size_t nParts, Type type) {
+	StructInst* inst = type.isA!(StructInst*) ? type.as!(StructInst*) : null;
+	return 2 <= nParts && nParts <= 9 && decl(*inst) == commonTypes.tuples2Through9[nParts - 2]
+		? some(inst.instantiatedTypes)
+		: none!(Type[]);
 }
 
 Opt!T tryFindT(T)(

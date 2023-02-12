@@ -47,7 +47,7 @@ import util.path : AllPaths, baseName, Path, PathsInfo, writePath, writeRelPath;
 import util.ptr : ptrTrustMe;
 import util.sourceRange : FileAndPos;
 import util.sym : AllSymbols, Sym, writeSym;
-import util.util : todo, unreachable;
+import util.util : unreachable;
 import util.writer :
 	finishWriter,
 	finishWriterToSafeCStr,

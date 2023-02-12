@@ -14,7 +14,7 @@ import model.concreteModel :
 	typeSize,
 	TypeSize;
 import model.constant : Constant;
-import model.model : body_, EnumValue, Local, StructBody;
+import model.model : body_, decl, EnumValue, Local, StructBody;
 import util.col.dict : Dict;
 import util.col.fullIndexDict : FullIndexDict;
 import util.col.str : SafeCStr;
@@ -43,7 +43,7 @@ immutable struct LowRecord {
 	bool packed() scope =>
 		source.source.matchIn!bool(
 			(in ConcreteStructSource.Inst it) =>
-				body_(*it.inst).as!(StructBody.Record).flags.packed,
+				body_(*decl(*it.inst)).as!(StructBody.Record).flags.packed,
 			(in ConcreteStructSource.Lambda) =>
 				false);
 }

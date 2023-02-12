@@ -25,7 +25,6 @@ import model.model :
 	purityRange,
 	RecordField,
 	ReturnAndParamTypes,
-	setBody,
 	SpecDecl,
 	SpecDeclBody,
 	SpecDeclAndArgs,
@@ -39,8 +38,7 @@ import model.model :
 	typeArgs,
 	TypeParam,
 	typeParams,
-	UnionMember,
-	withType;
+	UnionMember;
 import util.alloc.alloc : Alloc;
 import util.col.arr : emptySmallArray, sizeEq, small, SmallArray;
 import util.col.arrUtil : copyArr, fold, map, mapWithFirst;
@@ -49,7 +47,7 @@ import util.col.mutArr : MutArr, push;
 import util.col.mutMaxArr : mapTo, MutMaxArr, mutMaxArr, push, tempAsArr;
 import util.memory : allocate;
 import util.opt : force, has, MutOpt, none, noneMut, Opt, some, someMut;
-import util.util : verify;
+import util.util : typeAs, verify;
 
 immutable struct TypeParamsAndArgs {
 	@safe @nogc pure nothrow:
@@ -134,36 +132,32 @@ FunInst* instantiateFun(
 	}).value;
 }
 
-StructBody instantiateStructBody(
+Type[] instantiateStructTypes(
 	ref Alloc alloc,
 	ref ProgramState programState,
 	StructDeclAndArgs declAndArgs,
 	scope DelayStructInsts delayStructInsts,
 ) {
 	TypeParamsAndArgs typeParamsAndArgs = TypeParamsAndArgs(declAndArgs.decl.typeParams, declAndArgs.typeArgs);
-	return body_(*declAndArgs.decl).match!StructBody(
+	return body_(*declAndArgs.decl).match!(Type[])(
 		(StructBody.Bogus) =>
-			StructBody(StructBody.Bogus()),
+			typeAs!(Type[])([]),
 		(StructBody.Builtin) =>
-			StructBody(StructBody.Builtin()),
+			typeAs!(Type[])([]),
 		(StructBody.Enum e) =>
-			StructBody(e),
+			typeAs!(Type[])([]),
 		(StructBody.Extern e) =>
-			StructBody(StructBody.Extern(e.size)),
+			typeAs!(Type[])([]),
 		(StructBody.Flags f) =>
-			StructBody(f),
+			typeAs!(Type[])([]),
 		(StructBody.Record r) =>
-			StructBody(StructBody.Record(
-				r.flags,
-				map(alloc, r.fields, (ref RecordField f) =>
-					withType(f, instantiateType(alloc, programState, f.type, typeParamsAndArgs, delayStructInsts))))),
+			map(alloc, r.fields, (ref RecordField f) =>
+				instantiateType(alloc, programState, f.type, typeParamsAndArgs, delayStructInsts)),
 		(StructBody.Union u) =>
-			StructBody(StructBody.Union(map(alloc, u.members, (ref UnionMember it) =>
+			map(alloc, u.members, (ref UnionMember it) =>
 				has(it.type)
-					? withType(
-						it,
-						instantiateType(alloc, programState, force(it.type), typeParamsAndArgs, delayStructInsts))
-					: it))));
+					? instantiateType(alloc, programState, force(it.type), typeParamsAndArgs, delayStructInsts)
+					: Type(Type.Bogus())));
 }
 
 StructInst* instantiateStruct(
@@ -188,7 +182,7 @@ StructInst* instantiateStruct(
 
 	if (res.didAdd) {
 		if (bodyIsSet(*decl))
-			setBody(*res.value, instantiateStructBody(alloc, programState, res.key, delayStructInsts));
+			res.value.instantiatedTypes = instantiateStructTypes(alloc, programState, res.key, delayStructInsts);
 		else {
 			// We should only need to do this in the initial phase of settings struct bodies,
 			// which is when delayedStructInst is set.

@@ -70,7 +70,7 @@ import util.alloc.alloc : Alloc;
 import util.col.arr : empty, only, sizeEq;
 import util.col.arrBuilder : add, addAll, ArrBuilder, finishArr;
 import util.col.arrUtil :
-	arrEqual, arrLiteral, arrMax, every, everyWithIndex, exists, filterUnordered, fold, map, mapWithIndex;
+	arrEqual, arrLiteral, arrMax, every, everyWithIndex, exists, filterUnordered, fold, map, mapWithIndex, mapZip;
 import util.col.mutArr : MutArr, mutArrIsEmpty, push;
 import util.col.mutDict : addToMutDict, getOrAdd, getOrAddAndDidAdd, mustDelete, MutDict, ValueAndDidAdd;
 import util.col.str : SafeCStr;
@@ -86,20 +86,6 @@ import versionInfo : VersionInfo;
 
 immutable struct TypeArgsScope {
 	@safe @nogc pure nothrow:
-
-	/*
-	Suppose we have:
-	pair<ts> record
-		a ts
-		b ts
-	make-pair<tf> pair tf(value tf)
-		value, value
-
-	When we instantiate the struct 'pair' for the return type, and are getting the type for 'a':
-	The StructInst* for that will already have an instantiated fieldTypes containing ?tf and not ?ts.
-	So the only type params and args we need here come from the concretefun.
-	TODO:PERF no need to store typeParams then.
-	*/
 
 	TypeParam[] typeParams;
 	ConcreteType[] typeArgs;
@@ -508,11 +494,11 @@ TypeSizeAndFieldOffsets recordSize(ref Alloc alloc, bool packed, in ConcreteFiel
 void initializeConcreteStruct(
 	ref ConcretizeCtx ctx,
 	ConcreteType[] typeArgs,
-	ref StructInst i,
+	in StructInst i,
 	ConcreteStruct* res,
 	in TypeArgsScope typeArgsScope,
 ) {
-	body_(i).match!void(
+	body_(*decl(i)).match!void(
 		(StructBody.Bogus) => unreachable!void,
 		(StructBody.Builtin) {
 			BuiltinStructKind kind = getBuiltinStructKind(i.decl.name);
@@ -554,8 +540,12 @@ void initializeConcreteStruct(
 					break;
 			}
 
-			ConcreteField[] fields = map(ctx.alloc, r.fields, (ref RecordField f) =>
-				ConcreteField(f.name, toConcreteMutability(f.mutability), getConcreteType(ctx, f.type, typeArgsScope)));
+			ConcreteField[] fields = mapZip(
+				ctx.alloc, r.fields, i.instantiatedTypes, (ref RecordField f, ref Type type) =>
+					ConcreteField(
+						f.name,
+						toConcreteMutability(f.mutability),
+						getConcreteType(ctx, type, typeArgsScope)));
 			bool packed = r.flags.packed;
 			ConcreteStructInfo info = getConcreteStructInfoForFields(fields);
 			lateSet(res.info_, info);
@@ -565,10 +555,11 @@ void initializeConcreteStruct(
 		},
 		(StructBody.Union u) {
 			lateSet(res.defaultReferenceKind_, ReferenceKind.byVal);
-			Opt!ConcreteType[] members = map(ctx.alloc, u.members, (ref UnionMember it) =>
-				has(it.type)
-					? some(getConcreteType(ctx, force(it.type), typeArgsScope))
-					: none!ConcreteType);
+			Opt!ConcreteType[] members = mapZip(
+				ctx.alloc, u.members, i.instantiatedTypes, (ref UnionMember x, ref Type type) =>
+					has(x.type)
+						? some(getConcreteType(ctx, type, typeArgsScope))
+						: none!ConcreteType);
 			lateSet(res.info_, ConcreteStructInfo(ConcreteStructBody(ConcreteStructBody.Union(members)), false));
 			if (canGetUnionSize(members))
 				lateSet(res.typeSize_, unionSize(members));

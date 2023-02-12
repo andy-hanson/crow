@@ -340,8 +340,8 @@ void zipPtrFirst(T, U)(
 
 @trusted Out[] mapZipPtrFirst(Out, In0, In1)(
 	ref Alloc alloc,
-	scope In0[] in0,
-	scope In1[] in1,
+	In0[] in0,
+	in In1[] in1,
 	in Out delegate(In0*, in In1) @safe @nogc pure nothrow cb,
 ) {
 	verify(sizeEq(in0, in1));
@@ -349,6 +349,21 @@ void zipPtrFirst(T, U)(
 	Out* res = allocateT!Out(alloc, sz);
 	foreach (size_t i; 0 .. sz)
 		initMemory(res + i, cb(&in0[i], in1[i]));
+	return res[0 .. sz];
+}
+
+@trusted Out[] mapZipPtrFirst3(Out, In0, In1, In2)(
+	ref Alloc alloc,
+	In0[] in0,
+	in In1[] in1,
+	in In2[] in2,
+	in Out delegate(In0*, ref In1, ref In2) @safe @nogc pure nothrow cb,
+) {
+	verify(sizeEq(in0, in1) && sizeEq(in1, in2));
+	size_t sz = in0.length;
+	Out* res = allocateT!Out(alloc, sz);
+	foreach (size_t i; 0 .. sz)
+		initMemory(res + i, cb(&in0[i], in1[i], in2[i]));
 	return res[0 .. sz];
 }
 

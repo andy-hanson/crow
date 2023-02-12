@@ -117,7 +117,6 @@ import model.model :
 	name,
 	Purity,
 	range,
-	RecordField,
 	SpecInst,
 	StructBody,
 	StructDecl,
@@ -130,7 +129,7 @@ import model.model :
 	VariableRef;
 import util.alloc.alloc : Alloc, allocateUninitialized;
 import util.col.arr : empty, only, PtrAndSmallNumber;
-import util.col.arrUtil : append, arrLiteral, arrsCorrespond, contains, exists, map, mapZipPtrFirst;
+import util.col.arrUtil : append, arrLiteral, arrsCorrespond, contains, exists, map, mapZipPtrFirst3;
 import util.col.fullIndexDict : FullIndexDict;
 import util.col.mutArr : MutArr, mutArrSize, push, tempAsArr;
 import util.col.mutMaxArr : initializeMutMaxArr, mutMaxArrSize, push, tempAsArr;
@@ -1023,20 +1022,20 @@ Expr checkPtrInner(
 	in PtrAst ast,
 	Type pointerType,
 	Type pointeeType,
-	PointerMutability pointerMutability,
+	PointerMutability expectedMutability,
 ) {
 	if (!checkCanDoUnsafe(ctx))
 		addDiag2(ctx, range, Diag(Diag.PtrIsUnsafe()));
 	Expr inner = checkAndExpect(ctx, locals, ast.inner, pointeeType);
 	if (inner.kind.isA!(ExprKind.LocalGet)) {
 		Local* local = inner.kind.as!(ExprKind.LocalGet).local;
-		if (local.mutability < pointerMutability)
+		if (local.mutability < expectedMutability)
 			addDiag2(ctx, range, Diag(Diag.PtrMutToConst(Diag.PtrMutToConst.Kind.local)));
-		if (pointerMutability == PointerMutability.mutable)
+		if (expectedMutability == PointerMutability.mutable)
 			markIsUsedSetOnStack(locals, local);
 		return Expr(range, ExprKind(ExprKind.PtrToLocal(pointerType, local)));
 	} else if (inner.kind.isA!(ExprKind.Call))
-		return checkPtrOfCall(ctx, range, inner.kind.as!(ExprKind.Call), pointerType, pointerMutability);
+		return checkPtrOfCall(ctx, range, inner.kind.as!(ExprKind.Call), pointerType, expectedMutability);
 	else {
 		addDiag2(ctx, range, Diag(Diag.PtrUnsupported()));
 		return Expr(range, ExprKind(ExprKind.Bogus()));
@@ -1048,7 +1047,7 @@ Expr checkPtrOfCall(
 	FileAndRange range,
 	ExprKind.Call call,
 	Type pointerType,
-	PointerMutability pointerMutability,
+	PointerMutability expectedMutability,
 ) {
 	Expr fail() {
 		addDiag2(ctx, range, Diag(Diag.PtrUnsupported()));
@@ -1061,10 +1060,10 @@ Expr checkPtrOfCall(
 			FunBody.RecordFieldGet rfg = decl(*getFieldFun).body_.as!(FunBody.RecordFieldGet);
 			Expr target = only(call.args);
 			StructInst* recordType = only(getFieldFun.paramTypes).as!(StructInst*);
-			RecordField field = body_(*recordType).as!(StructBody.Record).fields[rfg.fieldIndex];
-			PointerMutability fieldMutability = pointerMutabilityFromField(field.mutability);
+			PointerMutability fieldMutability = pointerMutabilityFromField(
+				body_(*decl(*recordType)).as!(StructBody.Record).fields[rfg.fieldIndex].mutability);
 			if (isDefinitelyByRef(*recordType)) {
-				if (fieldMutability < pointerMutability)
+				if (fieldMutability < expectedMutability)
 					addDiag2(ctx, range, Diag(Diag.PtrMutToConst(Diag.PtrMutToConst.Kind.field)));
 				return Expr(range, ExprKind(allocate(ctx.alloc,
 					ExprKind.PtrToField(pointerType, target, rfg.fieldIndex))));
@@ -1073,9 +1072,10 @@ Expr checkPtrOfCall(
 				Called called = targetCall.called;
 				if (called.isA!(FunInst*) && isDerefFunction(ctx, called.as!(FunInst*))) {
 					FunInst* derefFun = called.as!(FunInst*);
-					StructInst* ptrStructInst = only(derefFun.paramTypes).as!(StructInst*);
+					PointerMutability pointerMutability =
+						mutabilityForPtrDecl(ctx, decl(*only(derefFun.paramTypes).as!(StructInst*)));
 					Expr targetPtr = only(targetCall.args);
-					if (max(fieldMutability, mutabilityForPtrDecl(ctx, decl(*ptrStructInst))) < pointerMutability)
+					if (max(fieldMutability, pointerMutability) < expectedMutability)
 						todo!void("diag: can't get mut* to immutable field");
 					return Expr(range, ExprKind(allocate(ctx.alloc,
 						ExprKind.PtrToField(pointerType, targetPtr, rfg.fieldIndex))));
@@ -1237,33 +1237,6 @@ Expr checkLet(ref ExprCtx ctx, ref LocalsInfo locals, FileAndRange range, in Let
 	return Expr(range, ExprKind(allocate(ctx.alloc, ExprKind.Let(destructure, init.expr, then))));
 }
 
-immutable struct EnumOrUnionMembers {
-	mixin Union!(StructBody.Enum.Member[], UnionMember[]);
-}
-
-Opt!EnumOrUnionMembers getEnumOrUnionBody(Type a) =>
-	a.matchWithPointers!(Opt!EnumOrUnionMembers)(
-		(Type.Bogus) =>
-			none!EnumOrUnionMembers,
-		(TypeParam*) =>
-			none!EnumOrUnionMembers,
-		(StructInst* structInst) =>
-			body_(*structInst).match!(Opt!EnumOrUnionMembers)(
-				(StructBody.Bogus) =>
-					none!EnumOrUnionMembers,
-				(StructBody.Builtin) =>
-					none!EnumOrUnionMembers,
-				(StructBody.Enum it) =>
-					some(EnumOrUnionMembers(it.members)),
-				(StructBody.Extern) =>
-					none!EnumOrUnionMembers,
-				(StructBody.Flags) =>
-					none!EnumOrUnionMembers,
-				(StructBody.Record) =>
-					none!EnumOrUnionMembers,
-				(StructBody.Union it) =>
-					some(EnumOrUnionMembers(it.members))));
-
 Expr checkLoop(ref ExprCtx ctx, ref LocalsInfo locals, FileAndRange range, in LoopAst ast, ref Expected expected) {
 	Opt!Type expectedType = tryGetInferred(expected);
 	if (has(expectedType)) {
@@ -1340,16 +1313,21 @@ Expr checkLoopWhile(
 
 Expr checkMatch(ref ExprCtx ctx, ref LocalsInfo locals, FileAndRange range, in MatchAst ast, ref Expected expected) {
 	ExprAndType matchedAndType = checkAndInfer(ctx, locals, ast.matched);
-	Opt!EnumOrUnionMembers enumOrUnionMembers = getEnumOrUnionBody(matchedAndType.type);
-	if (has(enumOrUnionMembers))
-		return force(enumOrUnionMembers).match!Expr(
-			(StructBody.Enum.Member[] members) =>
-				checkMatchEnum(ctx, locals, range, ast, expected, matchedAndType.expr, members),
-			(UnionMember[] members) =>
-				checkMatchUnion(ctx, locals, range, ast, expected, matchedAndType.expr, members));
+	Expr matched = matchedAndType.expr;
+	Type matchedType = matchedAndType.type;
+	StructBody body_ = matchedType.isA!(StructInst*)
+		? body_(*decl(*matchedType.as!(StructInst*)))
+		: StructBody(StructBody.Bogus());
+	if (body_.isA!(StructBody.Enum))
+		return checkMatchEnum(ctx, locals, range, ast, expected, matched, body_.as!(StructBody.Enum).members);
+	else if (body_.isA!(StructBody.Union))
+		return checkMatchUnion(
+			ctx, locals, range, ast, expected, matched,
+			body_.as!(StructBody.Union).members,
+			matchedType.as!(StructInst*).instantiatedTypes);
 	else {
-		if (!matchedAndType.type.isA!(Type.Bogus))
-			addDiag2(ctx, rangeInFile2(ctx, ast.matched.range), Diag(Diag.MatchOnNonUnion(matchedAndType.type)));
+		if (!matchedType.isA!(Type.Bogus))
+			addDiag2(ctx, rangeInFile2(ctx, ast.matched.range), Diag(Diag.MatchOnNonUnion(matchedType)));
 		return bogus(expected, rangeInFile2(ctx, ast.matched.range));
 	}
 }
@@ -1391,24 +1369,24 @@ Expr checkMatchUnion(
 	in MatchAst ast,
 	ref Expected expected,
 	ref Expr matched,
-	in UnionMember[] members,
+	in UnionMember[] declaredMembers,
+	in Type[] instantiatedTypes,
 ) {
 	bool goodCases = arrsCorrespond!(UnionMember, MatchAst.CaseAst)(
-		members,
+		declaredMembers,
 		ast.cases,
 		(in UnionMember member, in MatchAst.CaseAst caseAst) =>
 			member.name == caseAst.memberName);
 	if (!goodCases) {
 		addDiag2(ctx, range, Diag(Diag.MatchCaseNamesDoNotMatch(
-			map(ctx.alloc, members, (ref UnionMember member) => member.name))));
+			map(ctx.alloc, declaredMembers, (ref UnionMember member) => member.name))));
 		return bogus(expected, range);
 	} else {
-		ExprKind.MatchUnion.Case[] cases = mapZipPtrFirst!(ExprKind.MatchUnion.Case, UnionMember, MatchAst.CaseAst)(
-			ctx.alloc,
-			members,
-			ast.cases,
-			(UnionMember* member, in MatchAst.CaseAst caseAst) =>
-				checkMatchCase(ctx, locals, member, caseAst, expected));
+		ExprKind.MatchUnion.Case[] cases =
+			mapZipPtrFirst3!(ExprKind.MatchUnion.Case, UnionMember, Type, MatchAst.CaseAst)(
+				ctx.alloc, declaredMembers, instantiatedTypes, ast.cases,
+				(UnionMember* member, ref Type type, ref MatchAst.CaseAst caseAst) =>
+					checkMatchCase(ctx, locals, member, type, caseAst, expected));
 		return Expr(range, ExprKind(allocate(ctx.alloc, ExprKind.MatchUnion(matched, cases, inferred(expected)))));
 	}
 }
@@ -1417,12 +1395,13 @@ ExprKind.MatchUnion.Case checkMatchCase(
 	ref ExprCtx ctx,
 	ref LocalsInfo locals,
 	UnionMember* member,
+	Type memberType,
 	in MatchAst.CaseAst caseAst,
 	ref Expected expected,
 ) {
 	if (has(caseAst.destructure)) {
 		if (has(member.type)) {
-			Destructure destructure = checkDestructure(ctx, force(caseAst.destructure), force(member.type));
+			Destructure destructure = checkDestructure(ctx, force(caseAst.destructure), memberType);
 			Expr then = checkExprWithDestructure(ctx, locals, destructure, caseAst.then, expected);
 			return ExprKind.MatchUnion.Case(some(destructure), then);
 		} else {

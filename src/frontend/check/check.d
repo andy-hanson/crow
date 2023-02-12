@@ -24,7 +24,7 @@ import frontend.check.instantiate :
 	instantiateSpec,
 	instantiateSpecParents,
 	instantiateStruct,
-	instantiateStructBody,
+	instantiateStructTypes,
 	noDelaySpecInsts,
 	noDelayStructInsts,
 	TypeArgsArray,
@@ -1073,11 +1073,8 @@ Module checkWorkerAfterCommonTypes(
 
 	while (!mutArrIsEmpty(delayStructInsts)) {
 		StructInst* i = mustPop(delayStructInsts);
-		setBody(*i, instantiateStructBody(
-			ctx.alloc,
-			ctx.programState,
-			i.declAndArgs,
-			someMut(ptrTrustMe(delayStructInsts))));
+		i.instantiatedTypes =
+			instantiateStructTypes(ctx.alloc, ctx.programState, i.declAndArgs, someMut(ptrTrustMe(delayStructInsts)));
 	}
 
 	SpecDecl[] specs = checkSpecDeclsInitial(ctx, commonTypes, structsAndAliasesDict, ast.specs);

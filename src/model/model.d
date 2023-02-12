@@ -209,18 +209,12 @@ immutable struct RecordField {
 	Type type;
 }
 
-RecordField withType(RecordField a, Type t) =>
-	RecordField(a.range, a.visibility, a.name, a.mutability, t);
-
 immutable struct UnionMember {
 	//TODO: use NameAndRange (more compact)
 	FileAndRange range;
 	Sym name;
 	Opt!Type type;
 }
-
-UnionMember withType(UnionMember a, Type t) =>
-	UnionMember(a.range, a.name, some(t));
 
 enum ForcedByValOrRefOrNone {
 	none,
@@ -378,15 +372,24 @@ immutable struct StructDeclAndArgs {
 }
 
 immutable struct StructInst {
+	@safe @nogc pure nothrow:
+
 	StructDeclAndArgs declAndArgs;
 
 	// these are inferred from declAndArgs:
 	LinkageRange linkageRange;
 	PurityRange purityRange;
+	// For a Record, this is the field types.
+	// For a Union, this is the member types (Bogus for members with no type).
+	// Otherwise this is empty.
+	private Late!(SmallArray!Type) lateInstantiatedTypes;
 
-	private:
-	// Like decl.body but has type args filled in.
-	Late!StructBody lateBody;
+	Type[] instantiatedTypes() return scope =>
+		lateGet(lateInstantiatedTypes);
+
+	void instantiatedTypes(Type[] value) {
+		lateSet(lateInstantiatedTypes, small(value));
+	}
 }
 
 bool hasMutableField(in StructInst a) {
@@ -431,13 +434,6 @@ StructDecl* decl(ref StructInst a) =>
 
 Type[] typeArgs(ref StructInst a) =>
 	a.declAndArgs.typeArgs;
-
-StructBody body_(ref StructInst a) =>
-	lateGet(a.lateBody);
-
-void setBody(ref StructInst a, StructBody value) {
-	lateSet(a.lateBody, value);
-}
 
 immutable struct SpecDeclBody {
 	immutable struct Builtin {
