@@ -4,7 +4,7 @@ import
 	../number: -, float32, float64
 	../string: ~~, literal, string
 	./trig: cos, sin
-	./vec: +, *, dot, new, normalize, to-array, to-string, vec3-32, vec3-64, x, y, z
+	./vec: +, *, dot, new, normalize, to, vec3-32, vec3-64, x, y, z
 
 # 3x3 matrix of float32
 +mat3-32 record extern
@@ -17,9 +17,9 @@ import
 	row1 vec3-64
 	row2 vec3-64
 
-+to-string string(a mat3-32)
++to string(a mat3-32)
 	"[{a row0} {a row1} {a row2}]"
-+to-string string(a mat3-64)
++to string(a mat3-64)
 	"[{a row0} {a row1} {a row2}]"
 
 # 0 matrix.
@@ -34,10 +34,10 @@ import
 +I mat3-64() noctx
 	(1, 0, 0), (0, 1, 0), (0, 0, 1)
 
-+to-array float32 array(a mat3-32)
-	a.row0.to-array ~~ a.row1.to-array ~~ a.row2.to-array
-+to-array float64 array(a mat3-64)
-	a.row0.to-array ~~ a.row1.to-array ~~ a.row2.to-array
++to float32 array(a mat3-32)
+	a.row0.to ~~ a.row1.to ~~ a.row2.to
++to float64 array(a mat3-64)
+	a.row0.to ~~ a.row1.to ~~ a.row2.to
 
 +col0 vec3-32(a mat3-32) noctx
 	a.row0.x, a.row1.x, a.row2.x

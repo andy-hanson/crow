@@ -2,7 +2,7 @@ no-std
 import
 	../bool: &&, ||, ==, bool, true
 	../fun-util: subscript
-	../json: json
+	../json: to
 	../misc: void
 	../number: ==, +, nat64
 	../option: force, is-empty, new, option
@@ -10,8 +10,8 @@ import
 	../tuple: a, b, new
 	./array: +, -, array, begin, end, is-empty, iterate, new, next, size, slice
 	./collection: .., build-options, end, for-loop, subscript
-	./list: ==, ~=, build, list, list-builder, new, to-array
-	./stack: ~, is-empty, iterate, new, size, stack, to-list
+	./list: ==, ~=, build, list, list-builder, new, to
+	./stack: ~, is-empty, iterate, new, size, stack, to
 
 ###
 Immutable queue.
@@ -26,15 +26,15 @@ Supports efficient removal from the left and insertion to the right.
 +new[t] t queue()
 	(), ()
 
-+to-queue[t] t queue(a t[])
-	a.to-array, ()
++to[t] t queue(a t[])
+	a.to, ()
 
 ###
 Copies queue elements to an array.
 
 This is O(n).
 ###
-+to-list[t] t[](a t queue)
++to[t] t[](a t queue)
 	for x : a
 		x
 
@@ -57,7 +57,7 @@ Returns an empty option iff `a` is empty.
 +dequeue[t] (t, t queue)?(a t queue)
 	if a.left is-empty
 		unless a.right is-empty
-			(a.right.to-list.to-array, ()) dequeue
+			(a.right.to::t[].to, ()) dequeue
 	else
 		(a.left[0], (a.left[1 .. end], a.right)),
 
@@ -71,34 +71,34 @@ region build
 +queue-builder[t] record mut
 	-inner t list-builder
 +build[t] t queue(a build-options, f act void(t queue-builder))
-	a build (out => f[out,]) to-queue
+	a build (out => f[out,]) to
 +~=[t] void(a t queue-builder, value t)
 	a.inner ~= value
 
 test
 	a nat64 queue = ()
 	assert a is-empty
-	a.to-list is ()
+	a.to is ()
 	a.dequeue.is-empty is true
 
 	b = a ~ 1
-	b.to-list is (1,)
+	b.to::nat64[] is (1,)
 	bd = b.dequeue!
 	bd.a is 1
 	assert bd.b is-empty
 
 	c = b ~ 2
-	c.to-list is (1, 2)
+	c.to::nat64[] is (1, 2)
 	cd = c.dequeue!
 	cd.a is 1
 	cdr = cd b
 
-	cdr.to-list is (2,)
+	cdr.to::nat64[] is (2,)
 	cdd = cdr.dequeue!
 	cdd.a is 2
 	assert cdd.b is-empty
 
 	d = c ~ 3
-	d.to-list is (1, 2, 3)
+	d.to::nat64[] is (1, 2, 3)
 
-	(for x : d; x + 10)::(nat64 queue).to-list is (11, 12, 13)
+	(for x : d; x + 10)::(nat64 queue).to::nat64[] is (11, 12, 13)

@@ -1,7 +1,7 @@
 import
 	crow/parse:
 		/, ~~, and-return, exact, grammar, grammar-skip, many, map, parse, text-delimited,
-		text-not-containing-any, to-string
+		text-not-containing-any, to
 	./module:
 		body_, doc-comment, exports, fields, has-non-public-fields, is-mut, members, module,
 		module-export, module-export-value, module-path, name, param, params, parents, path, purity,
@@ -24,7 +24,7 @@ all-exports all-exports(modules module[])
 				specs add-or-warn x.name, module.path
 			as export-fun
 				()
-	types.to-dict, specs.to-dict
+	types.move-to, specs.move-to
 
 -add-or-warn void(dict module-path mut[symbol], key symbol, value module-path)
 	if cur ?= dict[key]
@@ -304,7 +304,7 @@ module-content string(a module, all-exports all-exports)
 
 -spec-ref-content string(a spec-ref, ctx ctx)
 	args = a.type-args type-args-content ctx
-	name = a.name in special-specs ? a.name.to-string : a.name spec-name-reference ctx
+	name = a.name in special-specs ? "{a name}" : a.name spec-name-reference ctx
 	"""<span class="spec">{args}{name}</span>"""
 
 special-specs symbol set()

@@ -33,8 +33,8 @@ r record
 	b nat
 	c nat
 
-to-string string(a r)
+to string(a r)
 	"a={a a}, b={a b}, c={a c}"
 
-to-string string(a gc-stats) summon
+to string(a gc-stats) summon
 	"gc-count={a gc-count}, cur-word={a cur-word}, words-used={a words-used}, words-free={a words-free}"

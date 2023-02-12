@@ -14,5 +14,5 @@ bird record
 mix bird(a bird, b bird)
 	a.species, b.hat
 
-to-string string(a bird)
+to string(a bird)
 	"{a species} in a {a hat}"

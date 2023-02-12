@@ -6,7 +6,7 @@ import
 	./fun-util: subscript
 	./misc: new, void
 	./number: ==
-	./string: ~~, is-empty, literal, new, string, to-string
+	./string: ~~, is-empty, literal, new, string, to
 export
 	./private/backtrace: backtrace, backtrace-entry, entries, file-path, function-name, line-number
 	./private/exception-low-level: catch, exception, message, rethrow, unreachable
@@ -39,17 +39,17 @@ This is like `finally`, but does not run in the successful case.
 		err rethrow
 
 # Outputs the exception's message and backtrace to a string.
-+to-string string(a exception) unsafe
-	message = a.message to-string
-	"{message.is-empty ? "<<empty message>>" : message}{a.backtrace to-string}"
++to string(a exception) unsafe
+	message string = a.message to
+	"{message.is-empty ? "<<empty message>>" : message}{a.backtrace}"
 
--to-string string(a backtrace)
+-to string(a backtrace)
 	"" join for x : a entries
 		"\n\tat {x}"
 
--to-string string(a backtrace-entry)
-	name = trusted a.function-name to-string
-	path = trusted a.file-path to-string
+-to string(a backtrace-entry)
+	name string = trusted a.function-name to
+	path string = trusted a.file-path to
 	if name is-empty
 		"<<unknown>>"
 	elif path is-empty

@@ -4,16 +4,16 @@ import
 	./col/collection:
 		.., end, for-break, for-loop, index-of, n-of, set-subscript, split, subscript,
 		try-remove-start, with-index
-	./col/dict: ==, ~=, build, dict, iterate, new, size
+	./col/dict: ==, ~=, build, dict, iterate, new
 	./col/list: ==, ~~, +, -, begin, end, iterate, is-empty, list, new, next, size, slice
 	./col/mut-dict: iterate, mut-dict, new, set-subscript, size
-	./col/mut-list: ~=, +, begin, build, move-to-list, mut-list, new, next, set-next
-	./json: json, json-object, new
+	./col/mut-list: ~=, +, begin, build, move-to, mut-list, new, next, set-next
+	./json: json, new, to
 	./misc: loop-break, loop-continue, new
 	./number: ==, +
 	./option: ??, new, option
-	./string: ==, ~~, begin, end, literal, next, slice, string, to-c-string, to-string
-	./symbol: ==, <=>, hash-mix, string-to-symbol, symbol
+	./string: ==, ~~, begin, end, literal, next, slice, string, to
+	./symbol: ==, <=>, hash-mix, symbol, to
 	./test-util: is
 	./tuple: new
 
@@ -35,9 +35,8 @@ For example, if the command is: `foo bar --a 1 --b 2 3 -- x y z`:
 
 +== bool(a parsed-command, b parsed-command)
 	a.nameless == b.nameless && a.named == b.named && a.after == b.after
--json json(a parsed-command)
-	named = (for k, v : a named; k, v.json) json-object
-	("nameless", a.nameless.json), ("named", named), ("after", a.after.json)
+-to json(a parsed-command)
+	("nameless", a.nameless.to), ("named", a.named.to), ("after", a.after.to)
 
 ###
 See comment on `parsed-command` for syntax.
@@ -54,12 +53,12 @@ Parse errors aren't possible with this syntax.
 			break
 		elif name ?= arg try-remove-start "--"
 			cur := ()
-			named[name string-to-symbol] := cur
+			named[name to] := cur
 			continue
 		else
 			cur ~= arg
 			continue
-	nameless.move-to-list, (for k, v : named; k, v.move-to-list), after
+	nameless.move-to, (for k, v : named; k, v.move-to), after
 
 test
 	("foo --bar baz -- bang" split " ").parse-command is (("foo",), (("bar", ("baz",)),), ("bang",))
@@ -87,7 +86,7 @@ parse-named-args string[]?[]?(args string[], arg-names symbol[])
 		else
 			err := true
 	if parsed.nameless.is-empty && parsed.after.is-empty && !err
-		values.move-to-list,
+		values.move-to,
 
 ###
 If `a` as a single element, returns that; else throws an exception.

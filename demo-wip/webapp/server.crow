@@ -6,11 +6,10 @@ import
 		http-response, method, request-body-string, url
 	crow/io/print: err, out, print
 	crow/io/stdin: read-stdin
-	crow/parse: ~~, grammar, nat, parse, separated-by, text-not-containing-any, to-string
+	crow/parse: ~~, grammar, nat, parse, separated-by, text-not-containing-any, to
 	./db:
 		add-post, content, cookie-expire-seconds, db, list-posts, list-users, login, open-real-db,
-		post, post-info, register-user, to-string, user, user-cookie, user-info, user-name,
-		with-block
+		post, post-info, register-user, to, user, user-cookie, user-info, user-name, with-block
 
 main nat^(args string[]) summon
 	if args.size == 1
@@ -37,7 +36,7 @@ main nat^(args string[]) summon
 		elif path == "/index.js"
 			"demo-wip/webapp/index.js".read-file http-ok
 		elif path == "/posts"
-			(("posts", db.list-posts.json),)::json.to-string http-ok
+			(("posts", db.list-posts.to),)::json.to http-ok
 		elif path == "/user-name"
 			user = query.parse-query["user"] ?? ""
 			match nat parse user
@@ -46,7 +45,7 @@ main nat^(args string[]) summon
 			as err e
 				"{e}" http-bad-query
 		elif path == "/users"
-			(("users", db.list-users.json),)::json.to-string http-ok
+			(("users", db.list-users.to),)::json.to http-ok
 		else
 			http-not-found
 	as POST
@@ -55,7 +54,7 @@ main nat^(args string[]) summon
 			match db register-user (args["user-name"] ?? ""), (args["password"] ?? "")
 			as register-user-success user-id
 				# We need to get: user-name and password
-				(("userId", user-id.json),)::json.to-string http-ok
+				(("userId", user-id.to),)::json.to http-ok
 			as bad-user-name message
 				"Bad user name: {message}" http-bad-query
 			as user-already-exists
@@ -79,7 +78,7 @@ main nat^(args string[]) summon
 				match user-cookie parse cookie
 				as ok user-cookie
 					post = db add-post user-cookie, req.request-body-string
-					(("postId", post.json),)::json.to-string http-ok
+					(("postId", post.to),)::json.to http-ok
 				as err e
 					"Error parsing 'login' cookie: {e}" http-forbidden
 			else
@@ -106,7 +105,7 @@ main nat^(args string[]) summon
 		if name, value ?= part try-split-once "="
 			if index ?= cookie-names index-of name
 				res[index] := value,
-	res move-to-list
+	res move-to
 
 -parse-cookie string?(cookies-string string, cookie-name string)
 	(cookies-string parse-cookies (cookie-name,))[0]
@@ -114,7 +113,7 @@ main nat^(args string[]) summon
 -parse-query string[string](s string)
 	match query parse s
 	as ok pairs
-		pairs to-dict
+		pairs to
 	as err err
 		error log "failed to parse query {s} with error {err}"
 		()
@@ -125,8 +124,8 @@ main nat^(args string[]) summon
 	identifier = ("=", "&").text-not-containing-any
 	identifier ~~ "=" ~~ identifier
 
--json json(a user-info)
-	("user", a.user.json), ("userName", a.user-name.json)
+-to json(a user-info)
+	("user", a.user.to), ("userName", a.user-name.to)
 
--json json(a post-info)
-	("post", a.post.json), ("user", a.user.json), ("userName", a.user-name.json), ("content", a.content.json)
+-to json(a post-info)
+	("post", a.post.to), ("user", a.user.to), ("userName", a.user-name.to), ("content", a.content.to)

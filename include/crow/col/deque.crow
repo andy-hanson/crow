@@ -1,18 +1,18 @@
 no-std
 import
 	../bool: &&, ||, ==, bool, not, true
-	../json: json
+	../json: to
 	../number: ==, +, nat64
 	../option: force, is-empty, new, option
-	../string: ==, ~~, literal, new, string, to-string
+	../string: ==, ~~, literal, new, string, to
 	../test-util: is
 	../tuple: a, b, new
 	./array: +, -, array, begin, end, is-empty, iterate, next, size, slice
 	./collection: .., -, end, for-loop, join, reverse, subscript
-	./list: ==, ~=, build, iterate, list, new, to-array, to-list
+	./list: ==, ~=, build, iterate, list, new, to
 	./stack:
 		~, end, is-empty, iterate, iterate-reverse, new, prev, pop, size, stack,
-		to-array-reverse, to-list
+		to, to-array-reverse
 
 # Immutable double-ended queue.
 +deque[t] record
@@ -25,18 +25,16 @@ import
 Deque containing the given elements.
 ###
 +new[t] t deque(...a t array)
-	a.to-list to-deque
+	a to
 
-###
-Convert a list to a deque. 
-This is O(1).
-###
-+to-deque[t] t deque(a t[])
++to[t] t deque(a t array)
 	# TODO: should not need type annotation
-	()::(t stack), a.to-array, ()
+	()::(t stack), a, ()
 
-# Copy elements to a list.
-+to-list[t] t[](a t deque)
++to[t] t deque(a t[])
+	a.to::(t array) to
+
++to[t] t[](a t deque)
 	for x : a
 		x
 
@@ -73,9 +71,9 @@ Returns an empty option iff `a` is empty.
 		# TODO: should not need type annotation
 		(a.mid[0], (()::(t stack), a.mid[1 .. end], a.right)),
 	else
-		right-arr = a.right.to-list to-array
+		right-arr t array = a.right to
 		unless right-arr is-empty
-			(right-arr[0], right-arr[1 .. end].to-list.to-deque),
+			(right-arr[0], right-arr[1 .. end].to),
 
 ###
 Remove a value from the right.
@@ -89,7 +87,7 @@ Returns an empty option iff `a` is empty.
 	else
 		left-arr = a.left to-array-reverse
 		unless left-arr is-empty
-			(left-arr[0 .. end - 1].to-list.to-deque, left-arr[end - 1]),
+			(left-arr[0 .. end - 1].to, left-arr[end - 1]),
 
 region spec impls (see collection.crow)
 
@@ -108,31 +106,31 @@ test
 	a nat64 deque = ()
 	assert a is-empty
 	a.dbg is "[]"
-	a.to-list is ()
+	a.to::nat64[] is ()
 	# TODO: 'a.pop-left is ()'
 	a.pop-left.is-empty is true
 	a.pop-right.is-empty is true
 
 	bl = 1 ~ a
 	bl.dbg is "1 []"
-	bl.to-list is (1,)
+	bl.to::nat64[] is (1,)
 	bl-pop-left = bl.pop-left!
 	bl-pop-left.a is 1
 	# TODO: 'is deque'
-	bl-pop-left.b.to-list is ()
+	bl-pop-left.b.to::nat64[] is ()
 	bl-pop-right = bl.pop-right!
 	bl-pop-right.b is 1
-	bl-pop-right.a.to-list is ()
+	bl-pop-right.a.to::nat64[] is ()
 
 	br = a ~ 1
 	br.dbg is "[] 1"
-	br.to-list is bl.to-list
+	br.to::nat64[] is bl.to
 	br-pop-left = br.pop-left!
 	br-pop-left.a is 1
-	br-pop-left.b.to-list is ()
+	br-pop-left.b.to::nat64[] is ()
 	br-pop-right = br.pop-right!
 	br-pop-right.b is 1
-	br-pop-right.a.to-list is ()
+	br-pop-right.a.to::nat64[] is ()
 
 	c = bl ~ 2 ~ 3
 	c.dbg is "1 [] 2 3"
@@ -144,7 +142,7 @@ test
 	d.dbg is "[] 2 3"
 	d-pop-left = d.pop-left!
 	d-pop-left.a is 2
-	d-pop-left.b.to-list is (3,)
+	d-pop-left.b.to::nat64[] is (3,)
 
 	d-pop = d.pop-left!
 	d-pop.a is 2
@@ -152,7 +150,7 @@ test
 
 	# Test converting right stack to array
 	e = 1 ~ (2 ~ (3 ~ ()))
-	e.to-list is (1, 2, 3)
+	e.to::nat64[] is (1, 2, 3)
 	e.dbg is "1 2 3 []"
 	e-pop = e.pop-right!
 	e-pop.b is 3

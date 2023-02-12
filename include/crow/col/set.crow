@@ -3,18 +3,18 @@ import
 	../bool: bool, false, new, not, true
 	../compare: <=, >, >=
 	../fun-util: subscript
-	../misc: key, new, void
+	../misc: key, new, to, void
 	../number: ==, <=>, +, -, *, nat64
 	../option: ??, force, new, option
-	../string: ~~, literal, new, string, to-string
+	../string: ~~, literal, new, string, to
 	./array: array
 	./collection: build, build-options, filter, for-loop, join, with-block, with-index
 	./experimental/index-set:
 		count-greater-or-equal, filter-less, in, index-set, iterate, is-empty, new, size, try-remove
 	./experimental/frozen-set:
-		~=, build, frozen-set, frozen-set-builder, is-empty, iterate, new, size, to-frozen-set,
+		~=, build, frozen-set, frozen-set-builder, is-empty, iterate, new, size, to,
 		try-get-unordered-index
-	./list: ~=, build, iterate, list, to-list
+	./list: ~=, build, iterate, list, to
 
 ###
 Immutable unsorted set.
@@ -29,18 +29,18 @@ Immutable unsorted set.
 
 # Set containing the given elements (with duplicates removed).
 +new[t] t set(...a t array) t key
-	a.to-list to-set
+	a.to::t[] to
 
 # Set containing the given elements (with duplicates removed).
-+to-set[t] t set(a t[]) t key
-	a.to-frozen-set to-set
++to[t] t set(a t[]) t key
+	a.to::(t frozen-set) to
 
-to-set[t] t set(a t frozen-set) t key
+to[t] t set(a t frozen-set) t key
 	# TODO: type annotation should be unnecessary
 	(a, ())::(t add-node), ()
 
 # Copies set elements to a list.
-+to-list[t] t[](a t set) t key
++to[t] t[](a t set) t key
 	# TODO: If a has a single add node and no remove, just return that
 	for x : a; x
 
@@ -238,21 +238,20 @@ subregion build
 +set-builder[t] record mut
 	-inner t frozen-set-builder
 +build[t] t set(a build-options, f act void(t set-builder)) t key
-	inner t frozen-set = a build out => f[out,]
-	inner to-set
+	(a build out => f[out,])::(t frozen-set) to
 +~=[t] void(a t set-builder, value t) t key
 	a.inner ~= value
 
 region test
 
-dbg[t] string(a t set) t to-string
+dbg[t] string(a t set) (string, t) to
 	add = a.add dbg
 	if a.remove is-empty
 		add
 	else
 		parts = " " join for i : a remove; "{i}"
 		"{add} - [{parts}]"
--dbg[t] string(a t add-node) t to-string
+-dbg[t] string(a t add-node) (string, t) to
 	left = if l ?= a left
 		"{l dbg}, "
 	here = " " join for x : a here; "{x}"

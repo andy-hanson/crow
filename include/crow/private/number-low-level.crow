@@ -83,32 +83,38 @@ new float64() noctx
 
 unsafe-mod nat64(a nat64, b nat64) builtin, noctx, unsafe
 
-unsafe-to-nat8 nat8(a nat64) builtin, noctx, unsafe
-unsafe-to-nat16 nat16(a nat64) builtin, noctx, unsafe
-unsafe-to-nat32 nat32(a int32) builtin, noctx, unsafe
-unsafe-to-nat32 nat32(a nat64) builtin, noctx, unsafe
-unsafe-to-nat64 nat64(a int64) builtin, noctx, unsafe
+unsafe-to nat8(a nat64) builtin, noctx, unsafe
+unsafe-to nat16(a nat64) builtin, noctx, unsafe
+unsafe-to nat32(a int32) builtin, noctx, unsafe
+unsafe-to nat32(a nat64) builtin, noctx, unsafe
+unsafe-to nat64(a int64) builtin, noctx, unsafe
+unsafe-to nat64(a int32) noctx, unsafe
+	# TODO: breaking this local out to avoid a libgccjit bug
+	b int64 = a.to
+	b unsafe-to
 
 # UB for positive numbers >= 2 ** 63
-unsafe-to-int8 int8(a int64) builtin, noctx, unsafe
-unsafe-to-int16 int16(a int64) builtin, noctx, unsafe
-unsafe-to-int32 int32(a int64) builtin, noctx, unsafe
-unsafe-to-int64 int64(a nat64) builtin, noctx, unsafe
+unsafe-to int8(a int64) builtin, noctx, unsafe
+unsafe-to int16(a int64) builtin, noctx, unsafe
+unsafe-to int32(a int64) builtin, noctx, unsafe
+unsafe-to int32(a nat64) noctx, unsafe
+	# TODO: breaking this local out to avoid a libgccjit bug
+	b int64 = a unsafe-to
+	b unsafe-to
+unsafe-to int64(a nat64) builtin, noctx, unsafe
 
-wrap-to-nat32 nat32(a nat64) noctx
-	trusted a unsafe-to-nat32
+wrap-to nat32(a nat64) noctx
+	trusted a unsafe-to
 
-to-nat16 nat16(a nat8) noctx
-	trusted a.to-nat64 unsafe-to-nat16
-to-nat64 nat64(a nat8) builtin, noctx
-to-nat64 nat64(a nat16) builtin, noctx
-to-nat32 nat32(a nat16) noctx
-	trusted a.to-nat64 unsafe-to-nat32
-to-nat64 nat64(a nat32) builtin, noctx
+to nat16(a nat8) noctx
+	trusted a.to unsafe-to
+to nat64(a nat8) builtin, noctx
+to nat64(a nat16) builtin, noctx
+to nat64(a nat32) builtin, noctx
 
-to-int64 int64(a int8) builtin, noctx
-to-int64 int64(a int16) builtin, noctx
-to-int64 int64(a int32) builtin, noctx
+to int64(a int8) builtin, noctx
+to int64(a int16) builtin, noctx
+to int64(a int32) builtin, noctx
 
 wrap-add nat8(a nat8, b nat8) builtin, noctx
 wrap-add nat16(a nat16, b nat16) builtin, noctx
@@ -159,43 +165,32 @@ is-odd bool(a nat64) noctx
 
 region constants
 
-# Least possible `int8`.
-min-int8 int8() noctx
+# Least possible value for a type.
+min-value int8() noctx
 	-0x80
-# Least possible `int16`.
-min-int16 int16() noctx
+min-value int16() noctx
 	-0x8000
-# Least possible `int32`.
-min-int32 int32() noctx
+min-value int32() noctx
 	-0x80000000
-# Least possible `int64`.
-min-int64 int64() noctx
+min-value int64() noctx
 	-0x8000000000000000
 
-# Greatest possible `int8`.
-max-int8 int8() noctx
+# Greatest possible value for a type.
+max-value int8() noctx
 	0x7f
-# Greatest possible `int16`.
-max-int16 int16() noctx
+max-value int16() noctx
 	0x7fff
-# Greatest possible `int32`.
-max-int32 int32() noctx
+max-value int32() noctx
 	0x7fffffff
-# Greatest possible `int64`.
-max-int64 int64() noctx
+max-value int64() noctx
 	0x7fffffffffffffff
-
-# Greatest possible `nat8`.
-max-nat8 nat8() noctx
+max-value nat8() noctx
 	0xff
-# Greatest possible `nat16`.
-max-nat16 nat16() noctx
+max-value nat16() noctx
 	0xffff
-# Greatest possible `nat32`.
-max-nat32 nat32() noctx
+max-value nat32() noctx
 	0xffffffff
-# Greatest possible `nat64`.
-max-nat64 nat64() noctx
+max-value nat64() noctx
 	0xffffffffffffffff
 
 round-up-to-power-of-two nat64(n nat64) noctx

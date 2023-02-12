@@ -4,7 +4,7 @@ import
 	../compare: max
 	../future: future, subscript, then
 	../misc: break-or-continue, new, shared, void
-	../number: ==, <=>, +, /, nat64, truncate-to-nat64
+	../number: ==, <=>, +, /, nat64, to
 	../pointer: null
 	../future: new
 	../private/future-low-level: forward-to, resolve, unresolved
@@ -25,7 +25,7 @@ export
 
 # Returns a future that will resolve after `duration` has passed.
 +delay void^(duration duration) summon
-	get-monotime-nsec + duration.nsec.truncate-to-nat64 delay-until-time
+	get-monotime-nsec + duration.nsec.to delay-until-time
 
 +interval record
 	-time duration
@@ -36,7 +36,7 @@ export
 	interval interval,
 	f-loop ref out break-or-continue(),
 ) summon, out shared
-	get-monotime-nsec repeat-interval-recur interval.time.nsec.truncate-to-nat64, f-loop
+	get-monotime-nsec repeat-interval-recur interval.time.nsec.to, f-loop
 -repeat-interval-recur[out] out^(
 	start-nsec nat64,
 	interval-nsec nat64,

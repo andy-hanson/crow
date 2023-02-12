@@ -4,7 +4,7 @@ import
 main nat^(_ string[]) summon
 	xs string mut[] = ()
 	res = xs.get-fun[xs ~= "arg"]
-	out print (" " join xs.to-list)
+	out print (" " join xs.move-to)
 	out print "{res}"
 	()
 

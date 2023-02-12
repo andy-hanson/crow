@@ -18,7 +18,7 @@ Functions for adding colors to terminal output.
 
 # String that when printed, will set the terminal's foreground color.
 +foreground string(a term-foreground-color)
-	"\x1b[{a to-nat32}m"
+	"\x1b[{a.to::nat32}m"
 
 # String that when printed, will set the terminal's foreground color.
 +foreground string(red float64, green float64, blue float64)
@@ -29,4 +29,4 @@ Functions for adding colors to terminal output.
 	"\x1b[1m"
 
 -to-color nat8(f float64)
-	(f * 255).truncate-to-int64.clamp-to-nat64 clamp-to-nat8
+	f * 255 to

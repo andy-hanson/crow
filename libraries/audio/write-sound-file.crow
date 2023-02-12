@@ -1,7 +1,7 @@
 import
 	crow/io/print: out, print
 	sndfile/headers:
-		|, to-nat32, ~, &, ==, all, flags-members, new, sf_close, sf_error, SF_FORMAT,
+		|, ~, &, ==, all, flags-members, new, sf_close, sf_error, SF_FORMAT,
 		SF_FORMAT_FLAC, SF_FORMAT_OGG, SF_FORMAT_PCM_16, SF_FORMAT_PCM_32, SF_FORMAT_VORBIS,
 		SF_FORMAT_WAV, SF_INFO, SFM_WRITE, sf_open, sf_write_float
 	sndfile/util: check-sndfile-error
@@ -12,21 +12,21 @@ sound-file-format enum
 	ogg-vorbis
 	wav
 
-write-sound-file void(path string, sound sound, format sound-file-format) summon, trusted
+write-sound-file void(path string, sound sound, format sound-file-format) summon
 	n-channels = sound.format n-channels
 	n-frames = sound.samples.size / n-channels
 	sf-format = format to-sf-format
-	out print "sf-format is {sf-format to-nat32} = {sf-format flags-to-string}"
-	info SF_INFO = n-frames, sound.format.sample-rate.to-nat32, n-channels.to-nat32, sf-format, 1, 1
-	info-cell cell SF_INFO = info,
-	f = path.to-c-string sf_open SFM_WRITE, info-cell.as-mut-pointer
-	out print "f.sf_error is {f sf_error}"
-	f.sf_error check-sndfile-error
-	out print "write {sound.samples.size} samples"
-	n-written = f sf_write_float sound.samples.begin-pointer, sound.samples.size
-	f.sf_close check-sndfile-error
-	out print "n-written is {n-written}; samples size is {sound.samples.size}"
-	assert n-written == sound.samples.size
+	out print "sf-format is {sf-format}"
+	trusted
+		info mut SF_INFO = n-frames, sound.format.sample-rate.to, n-channels.to, sf-format, 1, 1
+		f = path.to sf_open SFM_WRITE, &info
+		out print "f.sf_error is {f sf_error}"
+		f.sf_error check-sndfile-error
+		out print "write {sound.samples.size} samples"
+		n-written = f sf_write_float sound.samples.begin-pointer, sound.samples.size
+		f.sf_close check-sndfile-error
+		out print "n-written is {n-written}; samples size is {sound.samples.size}"
+		assert n-written == sound.samples.size
 
 -to-sf-format SF_FORMAT(a sound-file-format) summon
 	match a

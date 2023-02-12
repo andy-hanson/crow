@@ -19,7 +19,7 @@ import
 	../../c-types: c-int, fd-t
 	../../future: future, handle-exceptions, then, new, subscript
 	../../misc: new, void
-	../../number: ==, <=>, int32, nat8, nat16, nat32, to-int32, to-int64, to-nat32, to-nat64
+	../../number: ==, <=>, int32, nat8, nat16, nat32, to
 	../../private/bootstrap: todo
 	../../pointer: mut-pointer, pointer-cast, size-of
 	../../range: ..
@@ -66,7 +66,7 @@ start-tcp-server tcp-server(port string, handler tcp-handler) summon, unsafe
 		todo
 	else
 		event-flags = EPOLLIN | EPOLLET
-		accept-event mut epoll_event = event-flags, port-fd.to-int64.to-nat64
+		accept-event mut epoll_event = event-flags, port-fd.to
 		ctl-err = epoll-fd epoll_ctl EPOLL_CTL_ADD, port-fd, &accept-event
 		unless ctl-err == 0
 			"epoll_ctl failed" perror
@@ -118,7 +118,7 @@ close-client void(client SOCKET) summon, unsafe
 		else
 			assert num-events == 1
 			event-flags = event events
-			fd = event.event_data.to-int64 to-int32
+			fd int32 = event.event_data to
 			if event-flags bits-intersect EPOLLERR | EPOLLHUP || !(event-flags bits-intersect EPOLLIN)
 				err print "SOME KINDA ERROR"
 				err = fd close
@@ -132,7 +132,7 @@ close-client void(client SOCKET) summon, unsafe
 -accept-clients void(listen-fd SOCKET, epoll-fd fd-t, on-accepted-client ref void(SOCKET)) summon, unsafe
 	clientaddr mut sockaddr_in = ()
 	clientaddr-as-sockaddr sockaddr mut* = (&clientaddr)::sockaddr_in mut* pointer-cast
-	addrlen mut socklen_t = size-of@sockaddr_in to-nat32
+	addrlen mut socklen_t = size-of@sockaddr_in to
 	client-fd = listen-fd accept clientaddr-as-sockaddr, &addrlen
 	if client-fd < 0
 		e = errno
@@ -141,7 +141,7 @@ close-client void(client SOCKET) summon, unsafe
 			todo
 	else
 		client-fd set-non-blocking
-		client-event mut epoll_event = EPOLLIN | EPOLLET, client-fd.to-int64.to-nat64
+		client-event mut epoll_event = EPOLLIN | EPOLLET, client-fd.to
 		err = epoll-fd epoll_ctl EPOLL_CTL_ADD, client-fd, &client-event
 		assert err == 0
 		on-accepted-client[client-fd as-socket] handle-exceptions
@@ -155,7 +155,7 @@ close-client void(client SOCKET) summon, unsafe
 		unless err == EAGAIN
 			"read() failed" perror
 	elif count != 0
-		chunk = buf.cast-immutable[0 .. count.to-nat64]
+		chunk = buf.cast-immutable[0 .. count.to]
 		on-received-chunk[fd.as-socket, chunk] handle-exceptions
 		fd handle-client-linux on-received-chunk
 

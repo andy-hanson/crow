@@ -185,8 +185,5 @@ GLenum enum(u-int) extern
 	GL_TEXTURE_SWIZZLE_A = 0x8e45
 	GL_CULL_FACE = 0x0B44
 
-to-string string(a GLenum)
-	a enum-to-string
-
 GL_COLOR_BUFFER_BIT GLbitfield() noctx
 	0x00004000

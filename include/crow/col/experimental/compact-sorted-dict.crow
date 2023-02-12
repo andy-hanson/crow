@@ -5,11 +5,11 @@ import
 	../../fun-util: subscript
 	../../exception: unreachable
 	../../hash: hash-mix
-	../../json: json
-	../../misc: key, new, void
+	../../json: json, to
+	../../misc: key, new, to, void
 	../../number: ==, <=>, +, nat64
 	../../option: ==, is-empty, new, option
-	../../string: ==, ~~, -, end, literal, new, next, string, to-string
+	../../string: ==, ~~, -, end, literal, new, next, string, to
 	../../test-util: is
 	../../tuple: ==, <=>, a, b, new
 	../array:
@@ -18,7 +18,7 @@ import
 	../collection:
 		.., -, build, build-options, end, for-loop, join, slice-right, subscript, with-block
 	../mut-priority-queue: ~=, build, mut-priority-queue, pop, pop-if
-	../list: ==, ~=, build, is-empty, iterate, list, list-builder, new, size, to-array, to-list
+	../list: ==, ~=, build, is-empty, iterate, list, list-builder, new, size, to
 	../sort: sort
 	../private/sort-utils: binary-search-key
 
@@ -39,16 +39,16 @@ compact-sorted-dict[k, v] record by-val
 ==[k, v] bool(a (k, v) compact-sorted-dict, b (k, v) compact-sorted-dict) k key, v equal
 	a.to-sorted-pairs == b.to-sorted-pairs
 -to-sorted-pairs[k, v] (k, v)[](a (k, v) compact-sorted-dict) k key
-	a.to-list sort (k, _) => k
+	a.to sort (k, _) => k
 
-json[k, v] json(a (k, v) compact-sorted-dict) k key, k json, v json
-	a.to-sorted-pairs json
+to[k, v] json(a (k, v) compact-sorted-dict) k key, (json, k) to, (json, v) to
+	a.to-sorted-pairs to
 
 new[k, v] (k, v) compact-sorted-dict(...a (k, v) array) k key
-	a.to-list to-compact-sorted-dict
+	a.to to
 
-to-compact-sorted-dict[k, v] (k, v) compact-sorted-dict(a (k, v)[]) k key
-	(a.to-array sort (k, _) => k).end-node,
+to[k, v] (k, v) compact-sorted-dict(a (k, v)[]) k key
+	(a.to::((k, v) array) sort (k, _) => k).end-node,
 
 is-empty[k, v] bool(a (k, v) compact-sorted-dict) k key
 	match a impl
@@ -67,12 +67,12 @@ size[k, v] nat64(a (k, v) compact-sorted-dict) k key
 		res +:= 1
 	res
 
-to-list[k, v] (k, v)[](a (k, v) compact-sorted-dict) k key
+to[k, v] (k, v)[](a (k, v) compact-sorted-dict) k key
 	match a.compact impl
 	as overlay _
 		unreachable
 	as end-node e
-		e to-list
+		e to
 
 ~ ~[k, v] (k, v) compact-sorted-dict(a (k, v) compact-sorted-dict, (key k, value v)) k key
 	(a.impl add-or-remove key, (value,)),
@@ -81,7 +81,7 @@ to-list[k, v] (k, v)[](a (k, v) compact-sorted-dict) k key
 	if b is-empty
 		a
 	elif a is-empty
-		b to-compact-sorted-dict
+		b to
 	else
 		pairs (k, v?) array = (for k, v : b; k, (v,)) sort (k, _) => k
 		(pairs, a.impl).merge-as-needed,
@@ -287,20 +287,20 @@ region build
 compact-sorted-dict-builder[k, v] record mut
 	-inner (k, v) list-builder
 build[k, v] (k, v) compact-sorted-dict(a build-options, f act void((k, v) compact-sorted-dict-builder)) k key
-	a build (out => f[out,]) to-compact-sorted-dict
+	a build (out => f[out,]) to
 + ~=[k, v] void(a (k, v) compact-sorted-dict-builder, value (k, v)) k key
 	a.inner ~= value
 
 region test
 
--dbg[k, v] string(a (k, v) compact-sorted-dict) k to-string, v to-string
+-dbg[k, v] string(a (k, v) compact-sorted-dict) (string, k) to, (string, v) to
 	a.impl dbg
--dbg[k, v] string(a (k, v) impl) k to-string, v to-string
+-dbg[k, v] string(a (k, v) impl) (string, k) to, (string, v) to
 	match a
 	as overlay o
 		pairs = ", " join for k, v-opt : o pairs
 			vs = if v ?= v-opt
-				v to-string
+				"{v}"
 			else
 				"_"
 			"{k} -> {vs}"

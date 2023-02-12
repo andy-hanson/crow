@@ -1,7 +1,7 @@
 no-std
 import
 	../bits: high-n-bits, low-n-bits
-	../json: json
+	../json: to
 	../number: ==, nat64
 	../test-util: is
 

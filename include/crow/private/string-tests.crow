@@ -1,15 +1,15 @@
 no-std
 import
-	../json: json
+	../json: to
 	../number: nat64
-	../string: ==, literal, to-string
+	../string: ==, literal, string, to
 	../test-util: is
 
 dummy-string-tests nat64()
 	0
 
 test
-	12.3.to-string is "12.3"
-	0.04.to-string is "0.04"
-	0.123.to-string is "0.123"
-	0.001.to-string is "0.001"
+	12.3.to::string is "12.3"
+	0.04.to::string is "0.04"
+	0.123.to::string is "0.123"
+	0.001.to::string is "0.001"

@@ -77,11 +77,11 @@ This is undefined behavior if `a < b` or if `size-of@t == 0`.
 +-[t] nat64(a t*, b t*) noctx, unsafe
 	a.as-mut - b.as-mut
 +-[t] nat64(a t mut*, b t mut*) noctx, unsafe
-	(a.to-nat64 wrap-sub b.to-nat64) / size-of@t
+	(a.to wrap-sub b.to) / size-of@t
 
 -is-less[t] bool(a t*, b t*) builtin, noctx, unsafe
 -is-less[t] bool(a t mut*, b t mut*) builtin, noctx, unsafe
-# Same as `a.to-nat64 <=> b.to-nat64`.
+# Same as `a.to::nat64 <=> b.to::nat64`.
 +<=>[t] comparison(a t*, b t*) noctx, unsafe
 	if a is-less b
 		less
@@ -120,8 +120,8 @@ ref-cast[out, in] out(a in) noctx, unsafe
 	a.as-any-mut-pointer as-ref
 
 # Raw address of a pointer.
-+to-nat64[t] nat64(a t*) builtin, noctx, unsafe
-+to-nat64[t] nat64(a t mut*) builtin, noctx, unsafe
++to[t] nat64(a t*) builtin, noctx, unsafe
++to[t] nat64(a t mut*) builtin, noctx, unsafe
 # Get a pointer from a raw address.
 +to-const-pointer[t] t*(a nat64) noctx, unsafe
 	a.to-mut-pointer as-const

@@ -1,7 +1,7 @@
 no-std
 import
 	../../../bool: ==, false, true
-	../../../json: json
+	../../../json: to
 	../../../misc: void
 	../../../number: ==, <=>, +, -, nat64
 	../../../option: ==, new
@@ -12,22 +12,22 @@ import
 	../../list: ==, list, new, size
 	../index-set:
 		==, ~=, ~, ~~, -, build, dbg, count-greater-or-equal, count-less, count-range, filter-less, in,
-		index-set, iterate, new, size, to-list, try-add, try-remove
+		index-set, iterate, new, size, to, try-add, try-remove
 
 dummy-index-set-tests nat64()
 	0
 
 -verify void(a index-set, expected string, expected-list nat64[])
 	a.dbg is expected
-	r = a to-list
-	r is expected-list
+	actual-list nat64[] = a to
+	actual-list is expected-list
 	prev mut = 0
 	for cur : a
 		for x : prev .. cur
 			x in a is false
 		cur in a is true
 		prev := cur + 1
-	a.size is r.size
+	a.size is actual-list.size
 
 test
 	a index-set = ()

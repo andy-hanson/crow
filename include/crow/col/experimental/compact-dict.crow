@@ -4,11 +4,11 @@ import
 	../../compare: <=, equal, max
 	../../fun-util: subscript
 	../../hash: hash-mix
-	../../json: json
-	../../misc: key, new, void
+	../../json: json, to
+	../../misc: key, new, to, void
 	../../number: ==, <=>, +, nat64
 	../../option: ==, is-empty, new, option
-	../../string: ==, ~~, literal, new, string, to-string
+	../../string: ==, ~~, literal, new, string, to
 	../../test-util: is
 	../../tuple: ==, new
 	../collection: build, for-loop, join, with-block
@@ -18,7 +18,7 @@ import
 	../sort: sort
 	./frozen-dict:
 		frozen-dict, in, is-empty, iterate, mut-array-to-frozen-dict-promise-no-duplicates, new,
-		size, subscript, to-frozen-dict
+		size, subscript, to
 
 compact-dict[k, v] record by-val
 	ignore void
@@ -29,8 +29,8 @@ compact-dict[k, v] record by-val
 -to-sorted-pairs[k, v] (k, v)[](a (k, v) compact-dict) k key
 	(for x : a; x) sort (k, _) => k
 
-json[k, v] json(a (k, v) compact-dict) k key, k json, v json
-	a.to-sorted-pairs json
+to[k, v] json(a (k, v) compact-dict) k key, (json, k) to, (json, v) to
+	a.to-sorted-pairs to
 
 # TODO:KILL
 node-count[k, v] nat64(a (k, v) compact-dict)
@@ -53,8 +53,8 @@ node-count[k, v] nat64(a (k, v) compact-dict)
 new[k, v] (k, v) compact-dict() k key
 	(), ().end-node
 
-to-compact-dict[k, v] (k, v) compact-dict(a (k, v)[]) k key
-	(), a.to-frozen-dict.end-node
+to[k, v] (k, v) compact-dict(a (k, v)[]) k key
+	(), a.to.end-node
 
 is-empty[k, v] bool(a (k, v) compact-dict) k key
 	match a impl
@@ -111,7 +111,7 @@ in[k, v] bool(key k, a (k, v) compact-dict) k key
 	!a[key].is-empty
 
 -add-or-remove[k, v] (k, v) compact-dict(a (k, v) compact-dict, key k, value v?) k key
-	(), ((((key, value),).to-frozen-dict, a.impl) merge-as-needed)
+	(), ((((key, value),).to, a.impl) merge-as-needed)
 
 -merge-as-needed[k, v] (k, v) impl(a (k, v) overlay) k key
 	match a prev
@@ -179,9 +179,9 @@ iterate[k, v] bool(a (k, v) compact-dict, f act bool(k, v)) k key
 
 region test
 
--dbg[k, v] string(a (k, v) compact-dict) k to-string, v to-string
+-dbg[k, v] string(a (k, v) compact-dict) (string, k) to, (string, v) to
 	a.impl dbg
--dbg[k, v] string(a (k, v) impl) k to-string, v to-string
+-dbg[k, v] string(a (k, v) impl) (string, k) to, (string, v) to
 	match a
 	as overlay o
 		parts = ", " join for k, v : o pairs

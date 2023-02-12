@@ -8,25 +8,25 @@ import
 	./col/array: +, array, begin, iterate, new, next, size
 	./col/collection: for-loop, index-of, join, n-of, set-subscript, subscript
 	./col/dict: ~=, build, dict, iterate, size
-	./col/list: ~=, build, iterate, list, to-array
+	./col/list: ~=, build, iterate, list, to
 	./col/mut-array: ~=, +, begin, build, mut-array, next, set-next
 	./exception: finally, with-block
 	./fun-util: subscript
-	./io/duration: duration, nsec, to-string
+	./io/duration: duration, nsec, to
 	./io/private/time-low-level: get-monotime-nsec
 	./misc: new, void
-	./number: ==, <=>, +, -, nat64, to-float64
+	./number: ==, <=>, +, -, nat64, to
 	./option: new, is-empty, option
 	./pointer: *, mut-pointer, set-deref
 	./range: .., iterate, size
-	./string: ~~, literal, new, string, to-string
-	./symbol: ==, <=>, hash-mix, symbol, to-string
+	./string: ~~, literal, new, string, to
+	./symbol: ==, <=>, hash-mix, symbol, to
 	./tuple: new
 
 +perf-result record
 	total duration
 	measures measure-total[symbol]
-+to-string string(a perf-result)
++to string(a perf-result)
 	measures = ", " join for name, total : a measures
 		"{name}: {total}"
 	"total: {a total}, {measures}"
@@ -37,7 +37,7 @@ import
 	+count nat64
 	# Total time spent in all measures with this name.
 	+total-duration duration
-+to-string string(a measure-total)
++to string(a measure-total)
 	"{a count} × {a total-duration}"
 
 # Use 'nsec' instead of 'duration' to avoid spending time converting to floats
@@ -54,7 +54,7 @@ import
 +measure-performance measure-performance()
 	(),
 +measure-performance measure-performance(measure-names symbol[])
-	measure-names.to-array,
+	measure-names.to,
 
 # Enable performance, run the callback, then return its result and the measured performance.
 +with-block[t] (t, perf-result)(a measure-performance, f act t()) summon
@@ -67,9 +67,9 @@ import
 		f-res = f[]
 		end = perf-now
 		# TODO: 'zip'
-		perf-res perf-result = (end - start).to-float64.nsec, for i : 0 .. a.measure-names.size
+		perf-res perf-result = (end - start).to.nsec, for i : 0 .. a.measure-names.size
 			value = measure-values[i]
-			a.measure-names[i], (value.count, value.total-nsec.to-float64.nsec)
+			a.measure-names[i], (value.count, value.total-nsec.to.nsec)
 		f-res, perf-res
 
 +perf-measure record

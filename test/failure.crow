@@ -38,7 +38,7 @@ flat-map-with-max-size[in] failure[]^(a in[], max-size nat, mapper ref failure[]
 			break
 		else
 			continue
-	res.move-to-list,
+	res.move-to,
 
 test-options record
 	print-tests bool

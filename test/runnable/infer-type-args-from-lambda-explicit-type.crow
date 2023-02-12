@@ -3,7 +3,7 @@ import
 
 main nat^(_ string[]) summon
 	a = () sum-by (x nat) => x
-	b = ("foo", "bar") sum-by (s symbol) => s.to-string.size
+	b = ("foo", "bar") sum-by (s symbol) => s.to::string.size
 	out print "a: {a}, b: {b}"
 	()
 

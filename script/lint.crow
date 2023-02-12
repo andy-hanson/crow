@@ -1,5 +1,5 @@
 import
-	crow/col/counter: counter, iterate, subscript, to-counter
+	crow/col/counter: counter, iterate, subscript, to
 	crow/io/file: read-file
 	crow/io/print: err, print
 	crow/io/process: shell-exec
@@ -26,7 +26,7 @@ main nat^(_ string[]) summon
 				failures ~= "{file path} private member not used: {private-member}"
 	for file : files
 		failures lint-imports-in-file file
-	failures move-to-list
+	failures move-to
 
 -get-all-imports symbol set(files file[])
 	() join for file : files; file imports
@@ -49,7 +49,7 @@ all-files file[]^() summon
 	members = paths get-members-per-path
 	for path : paths parallel
 		imports-and-rest = path.read-file find-imports
-		(path, members[path]!, imports-and-rest.imports, imports-and-rest.rest.words.to-counter),
+		(path, members[path]!, imports-and-rest.imports, imports-and-rest.rest.words.to),
 
 -get-members-per-path members[string](paths string[]) summon
 	"dub run dscanner -- --ctags {" " join paths}".shell-exec get-members-per-path
@@ -60,7 +60,7 @@ all-files file[]^() summon
 	for line : rest lines
 		unless line == "" || line contains-seq "enum:" || line contains-seq "struct:"
 			parts = line split "\t"
-			name = parts[0] string-to-symbol
+			name symbol = parts[0] to
 			path = parts[1]
 			members = members-by-path ensure path
 			if line contains-seq "access:public"
@@ -71,15 +71,15 @@ all-files file[]^() summon
 				unless path == "src/wasm.d" || name in excluded-unknown-access
 					throw "Unexpected non-public, non-private member {name} in {path}"
 	for k, v : members-by-path
-		k, v.move-to-members
+		k, v.move-to
 
 -mut-members record mut
 	public symbol mut-set
 	private symbol mut-set
 -new mut-members()
 	(), ()
--move-to-members members(a mut-members)
-	a.public.move-to-set, a.private.move-to-set
+-move-to members(a mut-members)
+	a.public.move-to, a.private.move-to
 
 # for some reason, dscanner doesn't give non-nested unions like Converter64 access:private
 -excluded-unknown-access symbol set()
@@ -109,25 +109,25 @@ all-files file[]^() summon
 				rest := pair b
 				continue
 		else
-			break res.move-to-set, since-last-import
+			break res.move-to, since-last-import
 
 -words symbol[](a string)
 	with out : build
 		word char8 mut[] = ()
-		for x : a char8s
+		for x : a
 			if x is-identifier-char
 				word ~= x
 			else
 				unless word is-empty
-					out ~= word.move-to-list.as-string string-to-symbol
+					out ~= word.move-to::string to
 		unless word is-empty
-			out ~= word.move-to-list.as-string string-to-symbol
+			out ~= word.move-to::string to
 
 -is-identifier-char bool(a char8)
 	"a"::char8 <= a && a <= "z" || "A"::char8 <= a && a <= "Z" || "0"::char8 <= a && a <= "9" || a == "_"
 
 -lint-imports-in-file void(failures string mut[], a file)
-	not-used = a.imports to-mut-set
+	not-used symbol mut-set = a.imports to
 	for x, _ : a uses
 		_ = not-used try-remove x
 		()

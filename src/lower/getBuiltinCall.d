@@ -206,42 +206,44 @@ BuiltinKind getBuiltinKind(ref Alloc alloc, Sym name, LowType rt, LowType p0, Lo
 				? BuiltinKind(BuiltinKind.CallFunPointer())
 				// 'subscript' for fun / act is handled elsewhere, see concreteFunWillBecomeNonExternLowFun
 				: fail();
-		case sym!"to-char8".value:
-			return unary(isNat8(p0)
-				? LowExprKind.SpecialUnary.Kind.toChar8FromNat8
-				: failUnary());
-		case sym!"to-float32".value:
-			return unary(isFloat64(p0)
-				? LowExprKind.SpecialUnary.Kind.toFloat32FromFloat64
-				: failUnary());
-		case sym!"to-float64".value:
-			return unary(isInt64(p0)
-				? LowExprKind.SpecialUnary.Kind.toFloat64FromInt64
-				: isNat64(p0)
-				? LowExprKind.SpecialUnary.Kind.toFloat64FromNat64
-				: isFloat32(p0)
-				? LowExprKind.SpecialUnary.Kind.toFloat64FromFloat32
-				: failUnary());
-		case sym!"to-int64".value:
-			return unary(isInt16(p0)
-				? LowExprKind.SpecialUnary.Kind.toInt64FromInt16
-				: isInt32(p0)
-				? LowExprKind.SpecialUnary.Kind.toInt64FromInt32
-				: failUnary());
-		case sym!"to-nat64".value:
-			return unary(isNat8(p0)
-				? LowExprKind.SpecialUnary.Kind.toNat64FromNat8
-				: isNat16(p0)
-				? LowExprKind.SpecialUnary.Kind.toNat64FromNat16
-				: isNat32(p0)
-				? LowExprKind.SpecialUnary.Kind.toNat64FromNat32
-				: isPtrRawConstOrMut(p0)
-				? LowExprKind.SpecialUnary.Kind.toNat64FromPtr
-				: failUnary());
-		case sym!"to-nat8".value:
-			return unary(isChar(p0)
-				? LowExprKind.SpecialUnary.Kind.toNat8FromChar8
-				: failUnary());
+		case sym!"to".value:
+			return unary(isChar8(rt)
+				? isNat8(p0)
+					? LowExprKind.SpecialUnary.Kind.toChar8FromNat8
+					: failUnary()
+			: isFloat32(rt)
+				? isFloat64(p0)
+					? LowExprKind.SpecialUnary.Kind.toFloat32FromFloat64
+					: failUnary()
+			: isFloat64(rt)
+				? isInt64(p0)
+					? LowExprKind.SpecialUnary.Kind.toFloat64FromInt64
+					: isNat64(p0)
+					? LowExprKind.SpecialUnary.Kind.toFloat64FromNat64
+					: isFloat32(p0)
+					? LowExprKind.SpecialUnary.Kind.toFloat64FromFloat32
+					: failUnary()
+			: isInt64(rt)
+				? isInt16(p0)
+					? LowExprKind.SpecialUnary.Kind.toInt64FromInt16
+					: isInt32(p0)
+					? LowExprKind.SpecialUnary.Kind.toInt64FromInt32
+					: failUnary()
+			: isNat8(rt)
+				? isChar8(p0)
+					? LowExprKind.SpecialUnary.Kind.toNat8FromChar8
+					: failUnary()
+			: isNat64(rt)
+				? isNat8(p0)
+					? LowExprKind.SpecialUnary.Kind.toNat64FromNat8
+					: isNat16(p0)
+					? LowExprKind.SpecialUnary.Kind.toNat64FromNat16
+					: isNat32(p0)
+					? LowExprKind.SpecialUnary.Kind.toNat64FromNat32
+					: isPtrRawConstOrMut(p0)
+					? LowExprKind.SpecialUnary.Kind.toNat64FromPtr
+					: failUnary()
+			: failUnary());
 		case sym!"to-mut-pointer".value:
 			return unary(isNat64(p0)
 				? LowExprKind.SpecialUnary.Kind.toPtrFromNat64
@@ -343,7 +345,7 @@ BuiltinKind getBuiltinKind(ref Alloc alloc, Sym name, LowType rt, LowType p0, Lo
 			return BuiltinKind(BuiltinKind.PointerCast());
 		case sym!"static-symbols".value:
 			return BuiltinKind(BuiltinKind.StaticSymbols());
-		case sym!"truncate-to-int64".value:
+		case sym!"truncate-to".value:
 			return unary(isFloat64(p0)
 				? LowExprKind.SpecialUnary.Kind.truncateToInt64FromFloat64
 				: failUnary());
@@ -353,26 +355,42 @@ BuiltinKind getBuiltinKind(ref Alloc alloc, Sym name, LowType rt, LowType p0, Lo
 			return isNat64(rt)
 				? binary(LowExprKind.SpecialBinary.Kind.unsafeBitShiftRightNat64)
 				: fail();
-		case sym!"unsafe-to-int8".value:
-			return isInt64(p0) ? unary(LowExprKind.SpecialUnary.Kind.unsafeInt64ToInt8) : fail();
-		case sym!"unsafe-to-int16".value:
-			return isInt64(p0) ? unary(LowExprKind.SpecialUnary.Kind.unsafeInt64ToInt16) : fail();
-		case sym!"unsafe-to-int32".value:
-			return isInt64(p0) ? unary(LowExprKind.SpecialUnary.Kind.unsafeInt64ToInt32) : fail();
-		case sym!"unsafe-to-int64".value:
-			return isNat64(p0) ? unary(LowExprKind.SpecialUnary.Kind.unsafeNat64ToInt64) : fail();
-		case sym!"unsafe-to-nat8".value:
-			return isNat64(p0) ? unary(LowExprKind.SpecialUnary.Kind.unsafeNat64ToNat8) : fail();
-		case sym!"unsafe-to-nat16".value:
-			return isNat64(p0) ? unary(LowExprKind.SpecialUnary.Kind.unsafeNat64ToNat16): fail();
-		case sym!"unsafe-to-nat32".value:
-			return unary(isInt32(p0)
-				? LowExprKind.SpecialUnary.Kind.unsafeInt32ToNat32
-				: isNat64(p0)
-				? LowExprKind.SpecialUnary.Kind.unsafeNat64ToNat32
+		case sym!"unsafe-to".value:
+			return unary(isInt8(rt)
+				? isInt64(p0)
+					? LowExprKind.SpecialUnary.Kind.unsafeToInt8FromInt64
+					: failUnary()
+				: isInt16(rt)
+					? isInt64(p0)
+						? LowExprKind.SpecialUnary.Kind.unsafeToInt16FromInt64
+						: failUnary()
+				: isInt32(rt)
+					? isInt64(p0)
+						? LowExprKind.SpecialUnary.Kind.unsafeToInt32FromInt64
+						: failUnary()
+				: isInt64(rt)
+					? isNat64(p0)
+						? LowExprKind.SpecialUnary.Kind.unsafeToInt64FromNat64
+						: failUnary()
+				: isNat8(rt)
+					? isNat64(p0)
+						? LowExprKind.SpecialUnary.Kind.unsafeToNat8FromNat64
+						: failUnary()
+				: isNat16(rt)
+					? isNat64(p0)
+						? LowExprKind.SpecialUnary.Kind.unsafeToNat16FromNat64
+						: failUnary()
+				: isNat32(rt)
+					? isInt32(p0)
+						? LowExprKind.SpecialUnary.Kind.unsafeToNat32FromInt32
+						: isNat64(p0)
+						? LowExprKind.SpecialUnary.Kind.unsafeToNat32FromNat64
+						: failUnary()
+				: isNat64(rt)
+					? isInt64(p0)
+						? LowExprKind.SpecialUnary.Kind.unsafeToNat64FromInt64
+						: failUnary()
 				: failUnary());
-		case sym!"unsafe-to-nat64".value:
-			return isInt64(p0) ? unary(LowExprKind.SpecialUnary.Kind.unsafeInt64ToNat64) : fail();
 		default:
 			return fail();
 	}
@@ -383,7 +401,7 @@ private:
 bool isBool(LowType a) =>
 	isPrimitiveType(a, PrimitiveType.bool_);
 
-bool isChar(LowType a) =>
+bool isChar8(LowType a) =>
 	isPrimitiveType(a, PrimitiveType.char8);
 
 bool isInt8(LowType a) =>

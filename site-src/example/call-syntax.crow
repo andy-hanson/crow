@@ -15,7 +15,7 @@ main nat^(_ string[]) summon
 	out print ("craw" replace "a", "o")
 
 	# print(out, to_str(max(4, 2 * 3)))
-	out print (4 max 2 * 3).to-string
+	out print "{4 max 2 * 3}"
 
 	# print(out, or_default(try_remove_start("escrow", "crow"), upper_case("dove")))
 	out print ("escrow" try-remove-start "es" ?? "dove" upper-case)

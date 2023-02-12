@@ -17,5 +17,5 @@ steal-hat void(a bird, b bird)
 	a.hat := "{a hat} and {b hat}"
 	b.hat := "missing hat"
 
-to-string string(a bird)
+to string(a bird)
 	"{a species} in a {a hat}"

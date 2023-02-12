@@ -4,18 +4,18 @@ import
 	../compare: >, >=
 	../fun-util: subscript
 	../hash: hash, hash-mix
-	../json: json
-	../misc: key, new, void
+	../json: to
+	../misc: key, new, void, to
 	../number: ==, <=>, +, -, *, %, nat64
 	../option: ==, is-empty, new, option
-	../string: ==, ~~, literal, new, string, to-string
+	../string: ==, ~~, literal, new, string, to
 	../test-util: is
-	../tuple: new
+	../tuple: ==, new
 	./array: array
 	./collection: fill, find, find-index, for-loop, join, n-of, map=, set-subscript, subscript
 	./dict: ~=, build, dict
 	./mut-array: ~=, +, begin, build, iterate, mut-array, is-empty, new, next, set-next, size
-	./list: ==, ~=, build, iterate, list, new, size, to-list
+	./list: ==, ~=, build, iterate, list, new, size, to
 	./mut-list:
 		~=, +, begin, copy, filter=, is-at-capacity, is-empty, iterate, mut-list, new, next,
 		remove-unordered-at, set-next, size
@@ -40,18 +40,7 @@ New dictionary containing the given pairs.
 Later pairs overwrite earlier pairs with the same key.
 ###
 +new[k, v] v mut[k](...a (k, v) array) k key
-	a.to-list to-mut-dict
-
-###
-Convert a list of pairs to a dictionary.
-
-Later pairs overwrite earlier pairs with the same key.
-###
-+to-mut-dict[k, v] v mut[k](a (k, v)[]) k key
-	res v mut[k] = a.size mut-dict-with-capacity
-	for k, v : a
-		res[k] := v
-	res
+	a.to to
 
 ###
 New empty dictionary with space for about `capacity` entries.
@@ -59,20 +48,36 @@ This can have a small performance benefit if you know that much space will be ne
 
 Since hash conflicts are possible, this makes no guarantees about whether more allocations will be needed.
 ###
-+mut-dict-with-capacity[k, v] v mut[k](capacity nat64) k key
+-mut-dict-with-capacity[k, v] v mut[k](capacity nat64) k key
 	# TODO: should not need type annotation
 	(capacity n-of none)::((k, v) entry mut-array), 0
 
-+to-dict[k, v] v[k](a v mut[k]) k key
+###
+Convert a list of pairs to a dictionary.
+
+Later pairs overwrite earlier pairs with the same key.
+###
++to[k, v] v mut[k](a (k, v)[]) k key
+	res v mut[k] = a.size mut-dict-with-capacity
+	for k, v : a
+		res[k] := v
+	res
+
++to[k, v] v[k](a v mut[k]) k key
 	for x : a; x
 
 # Copy pairs to a list.
-+to-list[k, v] (k, v)[](a v mut[k]) k key
++to[k, v] (k, v)[](a v mut[k]) k key
 	for x : a; x
 
 # Copy pairs to a list and clear the dictionary.
-+move-to-list[k, v] (k, v)[](a v mut[k]) k key
-	res = a to-list
++move-to[k, v] (k, v)[](a v mut[k]) k key
+	res (k, v)[] = a to
+	a clear
+	res
+
++move-to[k, v] v[k](a v mut[k]) k key
+	res v[k] = a to
 	a clear
 	res
 
@@ -297,7 +302,7 @@ region spec impls (see collection.crow)
 
 region test
 
--dbg[k, v] string(a v mut[k]) k to-string, v to-string
+-dbg[k, v] string(a v mut[k]) (string, k) to, (string, v) to
 	parts string[] = for entry : a entries
 		match entry
 		as none
@@ -307,7 +312,7 @@ region test
 		as many m
 			"[{", " join for pair : m; pair dbg}]"
 	" " join parts
--dbg[k, v] string((k k, v v)) k to-string, v to-string
+-dbg[k, v] string((k k, v v)) (string, k) to, (string, v) to
 	"{k} -> {v}"
 
 -verify void(a string mut[nat64], expected string)
@@ -342,9 +347,7 @@ test
 	a[8] is ("8",)
 	a[5] is ()
 
-	# TODO: a.to-list is ((4, "4"), (8, "8"), (6, "six"), (3, "3"))
-	(for k, _ : a; k)::nat64[] is (4, 8, 6, 3)
-	(for _, v : a; v)::string[] is ("4", "8", "six", "3")
+	a.to::(nat64, string)[] is ((4, "4"), (8, "8"), (6, "six"), (3, "3"))
 
 	a[12] := "12"
 	a verify "(8 -> 8) _ _ (3 -> 3) [4 -> 4, 12 -> 12] _ (6 -> six) _"

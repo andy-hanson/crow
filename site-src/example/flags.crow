@@ -3,11 +3,11 @@ import
 
 main nat^(_ string[]) summon
 	x = shoes
-	out print "{x flags-to-string} receives service? {x receives-service}"
+	out print "{x} receives service? {x receives-service}"
 	y = x | shirt
-	out print "{y flags-to-string} receives service? {y receives-service}"
-	out print "negate: {~y flags-to-string}"
-	out print "take off shoes: {y & ~shoes flags-to-string}"
+	out print "{y} receives service? {y receives-service}"
+	out print "negate: {~y}"
+	out print "take off shoes: {y & ~shoes}"
 	()
 
 clothes flags

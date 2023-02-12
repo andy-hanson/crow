@@ -3,7 +3,7 @@ import
 	crow/io/duration: msec
 	crow/io/print: out, print
 	crow/io/time: for-break, get-monotime-msec, interval
-	crow/math/mat: *, I, mat3-32, rotation, to-array
+	crow/math/mat: *, I, mat3-32, rotation, to
 	crow/math/trig: pi
 	crow/math/vec: +, -, *, new, right, up, vec2-32, vec3-32
 	crow/private/runtime: cur-thread-id
@@ -13,20 +13,20 @@ import
 		glEnableVertexAttribArray, gl-ext, glGenBuffers, glGetError, glGetUniformLocation,
 		glUniform1i, glUniformMatrix3fv, glUseProgram, glVertexAttribPointer, new
 	OpenGL/headers:
-		==, GL_ARRAY_BUFFER, GL_BACK, GL_COLOR_BUFFER_BIT, GL_CULL_FACE, GL_FLOAT, GLint,
-		GL_NO_ERROR, GL_STATIC_DRAW, GL_TEXTURE0, GL_TEXTURE_2D, GL_TRIANGLES, GLuint, to-string
+		==, enum-members, GL_ARRAY_BUFFER, GL_BACK, GL_COLOR_BUFFER_BIT, GL_CULL_FACE, GL_FLOAT,
+		GLint, GL_NO_ERROR, GL_STATIC_DRAW, GL_TEXTURE0, GL_TEXTURE_2D, GL_TRIANGLES, GLuint
 	SDL2/SDL:
 		SDL_GetError, SDL_Init, SDL_INIT_VIDEO, SDL_Quit
 	SDL2/SDL_events:
 		==, new, SDL_Event, SDL_PollEvent, SDL_PumpEvents, SDL_Quit, type
 	SDL2/SDL_keyboard: SDL_GetKeyboardState
-	SDL2/SDL_scancode: SDL_NUM_SCANCODES, SDL_SCANCODE_RETURN, to-nat32
+	SDL2/SDL_scancode: SDL_NUM_SCANCODES, SDL_SCANCODE_RETURN, to
 	SDL2/SDL_video:
 		|, SDL_CreateWindow, SDL_DestroyWindow, SDL_GL_CONTEXT_PROFILE_ES, SDL_GL_CreateContext,
 		SDL_GL_DeleteContext, SDL_GL_DOUBLEBUFFER, SDL_GL_CONTEXT_MAJOR_VERSION,
 		SDL_GL_CONTEXT_MINOR_VERSION, SDL_GL_CONTEXT_PROFILE_MASK, SDL_GL_LoadLibrary,
 		SDL_GL_SetAttribute, SDL_GL_SwapWindow, SDL_Window, SDL_WINDOW_OPENGL,
-		SDL_WINDOWPOS_UNDEFINED, SDL_WINDOW_SHOWN, to-int32
+		SDL_WINDOWPOS_UNDEFINED, SDL_WINDOW_SHOWN, to
 	./shader: shader-prog-destroy, shader-prog-load
 	./texture: load-texture-from-bmp, free-texture
 	./crow.bmp as crow-bmp nat8 array
@@ -45,7 +45,7 @@ main nat^(_ string[]) summon
 		#if false
 		#	"C:\\Users\\User\\code\\crow\\opengl32.dll".SDL_GL_LoadLibrary handle-sdl-error "SDL_GL_LoadLibrary"
 
-		SDL_GL_CONTEXT_PROFILE_MASK SDL_GL_SetAttribute SDL_GL_CONTEXT_PROFILE_ES.to-int32 handle-sdl-error "set GL ES"
+		SDL_GL_CONTEXT_PROFILE_MASK SDL_GL_SetAttribute SDL_GL_CONTEXT_PROFILE_ES.to handle-sdl-error "set GL ES"
 		SDL_GL_CONTEXT_MAJOR_VERSION SDL_GL_SetAttribute 3 handle-sdl-error "set major version"
 		SDL_GL_CONTEXT_MINOR_VERSION SDL_GL_SetAttribute 0 handle-sdl-error "set minor version"
 		SDL_GL_DOUBLEBUFFER SDL_GL_SetAttribute 1 handle-sdl-error "set double buffer"
@@ -76,10 +76,10 @@ main nat^(_ string[]) summon
 		assert tex-sampler-uniform-loc >= 0
 		gl glUniform1i tex-sampler-uniform-loc, 0
 		gl gl-check-error "after glUniform1i"
-		gl glUniformMatrix3fv rotation-loc, 1, false, I::mat3-32.to-array.begin-pointer
+		gl glUniformMatrix3fv rotation-loc, 1, false, I.to.begin-pointer
 		gl gl-check-error "after set rotation-loc"
 
-		texture = gl load-texture-from-bmp crow-bmp.to-list
+		texture = gl load-texture-from-bmp crow-bmp.to
 
 		vertices vertex array = make-cube
 		triangle-vbo = gl vbo-create vertices
@@ -112,7 +112,7 @@ main nat^(_ string[]) summon
 	back vertex[] = () join for xs : front groups-of 3
 		# Change order so that the triangles have reverse winding
 		xs[1].invert, xs[0].invert, xs[2].invert
-	for v : front ~~ back to-array
+	for v : front ~~ back
 		v.pos, v.normal, (v.pos + (1, 1, 1)) * 0.5, v.tex-coord
 
 -cube-side vertex[](mat mat3-32)
@@ -160,9 +160,9 @@ main nat^(_ string[]) summon
 	gl glUseProgram renderer.shader-prog
 
 	gl glBindBuffer GL_ARRAY_BUFFER, renderer.triangle-vbo
-	n-vertices = renderer.vertices.size-bytes.to-int64
+	n-vertices int64 = renderer.vertices.size-bytes to
 	gl glBufferSubData GL_ARRAY_BUFFER, 0, n-vertices, renderer.vertices.begin-pointer.pointer-cast
-	stride = size-of@vertex to-int32
+	stride int32 = size-of@vertex to
 	# pos
 	gl glVertexAttribPointer 0, 3, GL_FLOAT, false, stride, 0.to-const-pointer
 	gl glEnableVertexAttribArray 0
@@ -183,8 +183,8 @@ main nat^(_ string[]) summon
 -main-loop-body void^(renderer renderer) summon
 	trusted
 		key-states-pointer = null SDL_GetKeyboardState
-		key-states = key-states-pointer[0 .. SDL_NUM_SCANCODES.to-nat32.to-nat64]
-		if key-states[SDL_SCANCODE_RETURN.to-nat32 to-nat64] != 0
+		key-states = key-states-pointer[0 .. SDL_NUM_SCANCODES.to::nat32.to]
+		if key-states[SDL_SCANCODE_RETURN.to::nat32 to] != 0
 			out print "return is pressed"
 		renderer.render-thread-id run-with-thread-id () =>
 			renderer render
@@ -193,11 +193,11 @@ main nat^(_ string[]) summon
 	gl glClearColor 0.5, 0.5, 0.5, 1
 	gl glClear GL_COLOR_BUFFER_BIT
 
-	t = get-monotime-msec.to-float32 * 0.0003::float32
+	t float32 = get-monotime-msec.to * 0.0003
 	mat mat3-32 = (0.5::float32) * ((1, 2, 3) rotation t)
-	gl glUniformMatrix3fv renderer.rotation-loc, 1, false, mat.to-array.begin-pointer
+	gl glUniformMatrix3fv renderer.rotation-loc, 1, false, mat.to.begin-pointer
 
-	gl glDrawArrays GL_TRIANGLES, 0, renderer.vertices.size.to-int32
+	gl glDrawArrays GL_TRIANGLES, 0, renderer.vertices.size.to
 	gl gl-check-error "after render"
 
 	renderer.window SDL_GL_SwapWindow
@@ -229,10 +229,10 @@ main nat^(_ string[]) summon
 
 -vbo-create GLuint(gl gl-ext, vertices vertex array) summon, unsafe
 	vbo mut GLuint = 0
-	n-buffers = 1 to-int32
+	n-buffers int32 = 1
 	gl glGenBuffers n-buffers, &vbo
 	gl glBindBuffer GL_ARRAY_BUFFER, vbo
-	gl glBufferData GL_ARRAY_BUFFER, vertices.size-bytes.to-int64, vertices.begin-pointer.pointer-cast, GL_STATIC_DRAW
+	gl glBufferData GL_ARRAY_BUFFER, vertices.size-bytes.to, vertices.begin-pointer.pointer-cast, GL_STATIC_DRAW
 	gl glBindBuffer GL_ARRAY_BUFFER, 0
 	err = gl glGetError
 	unless err == GL_NO_ERROR

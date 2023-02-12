@@ -5,18 +5,18 @@ Functions for use in tests.
 no-std
 import
 	./compare: equal
-	./json: json, to-string
-	./misc: void
+	./json: json, to
+	./misc: to, void
 	./number: ==, nat64
 	./private/exception-low-level: catch, message
-	./string: ~~, ==, literal, string, to-c-string
+	./string: ~~, ==, literal, string, to
 	./tuple: ==, new
 
 ###
 Asserts the the values are equal.
 ###
-+is[t] void(a t, b t) t equal, t json
-	assert a == b : "Test failure: Expected {a json} is {b json}"
++is[t] void(a t, b t) t equal, (json, t) to
+	assert a == b : "Test failure: Expected {a to} is {b to}"
 
 ###
 Calls `f` and asserts that it throws an exception with the specified `message`.

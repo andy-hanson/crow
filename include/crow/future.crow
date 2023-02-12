@@ -2,7 +2,7 @@ no-std
 import
 	./col/collection: begin, concatenate, for-loop, iterate, next, size
 	./col/list: ~=, build, iterate, list, size
-	./col/mut-list: ~=, hint-size, move-to-list, mut-list, new
+	./col/mut-list: ~=, hint-size, move-to, mut-list, new
 	./exception: catch, exception
 	./fun-util: subscript
 	./misc: break-or-continue, shared, loop-break, loop-continue, new, void
@@ -244,7 +244,7 @@ for-loop[out-elem, in-col, in-iter, in-elem] out-elem[]^(
 		y <- f[x]
 		res ~= y
 		()
-	res.move-to-list,
+	res.move-to,
 
 parallel-collection[col] record
 	-inner col

@@ -13,14 +13,14 @@ main nat^(_ string[]) summon
 	"""
 	()
 
-to-string string(a result<rect, float>)
+to string(a (rect, float) result)
 	match a
 	as ok r
 		"intersection: {r bottom-left} to {r top-right}"
 	as err d
 		"distance: {d}"
 
-intersection-or-distance result<rect, float>(a rect, b rect)
+intersection-or-distance (rect, float) result(a rect, b rect)
 	x = a.x-range intersection-or-distance b.x-range
 	y = a.y-range intersection-or-distance b.y-range
 	match x
@@ -39,7 +39,7 @@ intersection-or-distance result<rect, float>(a rect, b rect)
 		d vec2-64 = dx, dy
 		d.length err
 
-intersection-or-distance result<float-range, float>(a float-range, b float-range)
+intersection-or-distance (float-range, float) result(a float-range, b float-range)
 	if a.max < b.min
 		b.min - a.max err
 	elif a.min > b.max

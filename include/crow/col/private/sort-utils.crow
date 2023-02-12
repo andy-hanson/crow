@@ -4,7 +4,7 @@ import
 	../../compare: ==, <, >=, compare, comparison, equal
 	../../exception: unreachable
 	../../fun-util: subscript
-	../../json: json
+	../../json: to
 	../../misc: loop-break, new, void
 	../../number: ==, <=>, +, /
 	../../option: force, is-empty, new, option
@@ -21,8 +21,8 @@ import
 		temp-as-array
 	../list: ==, list, new
 	../mut-list:
-		+, begin, begin-pointer, clear, end-pointer, is-empty, move-to-list, mut-list,
-		mut-list-iterator, size, swap, temp-as-array, to-mut-list, unsafe-set-size
+		+, begin, begin-pointer, clear, end-pointer, is-empty, move-to, mut-list, mut-list-iterator,
+		size, swap, temp-as-array, to, unsafe-set-size
 
 binary-search-has[t] bool(a t array, value t) t compare
 	!(a binary-search-exact value is-empty)
@@ -200,11 +200,11 @@ merge-no-duplicates[t] void(a t mut[], b t mut[], compare act unique-comparison(
 		b clear
 
 -test-one void(a nat64[], b nat64[], expected nat64[])
-	a-mut = a to-mut-list
-	b-mut = b to-mut-list
+	a-mut nat64 mut[] = a to
+	b-mut nat64 mut[] = b to
 	a-mut merge-no-duplicates b-mut, (x, y) =>
 		x <=> y assert-comparison-not-equal
-	a-mut.move-to-list is expected
+	a-mut.move-to::nat64[] is expected
 
 test
 	(1, 2, 3) test-one (4, 5, 6), (1, 2, 3, 4, 5, 6)

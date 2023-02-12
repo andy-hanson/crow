@@ -17,9 +17,8 @@ import
 		with-block
 	../mut-array:
 		~=, +, begin, begin-pointer, build, cast-immutable, end-pointer, mut-array,
-		mut-array-builder, mut-array-iterator, iterate, next, set-next, size, temp-as-array,
-		to-mut-array
-	../list: ~=, build, list, to-array, to-list
+		mut-array-builder, mut-array-iterator, iterate, next, set-next, size, temp-as-array, to
+	../list: ~=, build, list, to
 
 frozen-set[t] record
 	-values t array
@@ -31,14 +30,14 @@ dbg-bucket-starts[t] nat64[](a t frozen-set) unsafe
 		pointer - a.values.begin-pointer
 
 new[t] t frozen-set(...a t array) t key
-	a.to-list to-frozen-set
+	a.to to
 
-to-frozen-set[t] t frozen-set(a t[]) t key
-	trusted a.to-array.to-mut-array unsafe-frozen-set-from-mut-array-cast-immutable
+to[t] t frozen-set(a t[]) t key
+	trusted a.to::(t array).to unsafe-frozen-set-from-mut-array-cast-immutable
 
 # This is O(1).
-to-list[t] t[](a t frozen-set)
-	a.values to-list
+to[t] t[](a t frozen-set)
+	a.values to
 
 is-empty[t] bool(a t frozen-set)
 	a.values is-empty

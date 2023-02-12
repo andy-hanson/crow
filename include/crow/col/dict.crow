@@ -6,16 +6,16 @@ import
 	../exception: unreachable
 	../fun-util: subscript
 	../hash: hash
-	../misc: key, loop-break, new, void
+	../misc: key, loop-break, new, to, void
 	../number: ==, <=>, +, -, nat64
 	../option: force, is-empty, new, option
 	../range: .., iterate, size
-	../string: ~~, literal, new, string, to-string
+	../string: ~~, literal, new, string, to
 	../tuple: b, new
 	../private/bootstrap: todo
 	./array:
-		~, ~=, +, -, array, begin, build, end, is-empty, iterate, new, next, remove-at, size, slice,
-		update-at
+		~, ~=, +, -, array, array-builder, begin, build, end, is-empty, iterate, new, next,
+		remove-at, size, slice, update-at
 	./collection:
 		.., -, build-options, end, every, find-index, flatten, for-break, for-loop, join, n-of,
 		set-subscript, subscript, with-index
@@ -23,8 +23,7 @@ import
 		~=, +, begin, build, cast-immutable, copy-from, mut-array, next, set-next, size, slice,
 		uninitialized-mut-array
 	./list:
-		~~, ~=, +, -, begin, build, end, iterate, list, list-builder, new, next, size, slice,
-		to-array, to-list
+		~~, ~=, +, -, begin, build, end, iterate, list, new, next, size, slice, to
 
 ###
 Immutable unordered dictionary type.
@@ -32,9 +31,6 @@ A dictionary is logically a collection of key-value pairs (`(k, v)`).
 A key can appear at most once, and given a key, you can access the associated value in O(1).
 
 There should be `==`, `<=>`, and `hash-mix` functions defined for the key type `k`.
-
-This is unordered;
-functions dealing with multiple elements (like `to-list` or `for-loop`) work in arbitrary order.
 ###
 +dict[k, v] record by-val
 	-root (k, v) node
@@ -69,23 +65,25 @@ Creates a new dict from the given key-value pairs.
 Later pairs overwrite earlier pairs with the same key.
 ###
 +new[k, v] v[k](...a (k, v) array) k key
-	a.to-list to-dict
+	a.to::((k, v)[]) to
 
 ###
 Converts a list of pairs to a dictionary.
 Later pairs overwrite earlier pairs with the same key.
 ###
-+to-dict[k, v] v[k](a (k, v)[]) k key
++to[k, v] v[k](a (k, v)[]) k key
 	if a.size <= 4 && a.no-duplicate-keys
-		a.to-array.leaf-node,
+		a.to.leaf-node,
 	else
 		res mut v[k] = empty-leaf-node::((k, v) node),
 		for x : a
 			res ~:= x
 		res
++to[k, v] v[k](a (k, v) array) k key
+	a.to::((k, v)[]) to
 
 # Returns all pairs in the dictionary.
-+to-list[k, v] (k, v)[](a v[k]) k key
++to[k, v] (k, v)[](a v[k]) k key
 	for k, v : a; k, v
 
 -no-duplicate-keys[k, v] bool(a (k, v)[]) k key
@@ -404,15 +402,15 @@ region spec impls (see collection.crow)
 subregion build
 
 +dict-builder[k, v] record mut
-	-inner (k, v) list-builder
+	-inner (k, v) array-builder
 +build[k, v] v[k](a build-options, f act void((k, v) dict-builder)) k key
-	a build (out => f[out,]) to-dict
+	(a build out => f[out,])::((k, v) array) to
 +~=[k, v] void(a (k, v) dict-builder, pair (k, v))
 	a.inner ~= pair
 
-dbg[k, v] string(a v[k]) k to-string, v to-string
+dbg[k, v] string(a v[k]) (string, k) to, (string, v) to
 	a.root dbg ""
--dbg[k, v] string(a (k, v) node, path string) k to-string, v to-string
+-dbg[k, v] string(a (k, v) node, path string) (string, k) to, (string, v) to
 	match a
 	as inner-node node
 		parts string[][] = for index, child : node with-index

@@ -3,7 +3,7 @@ import
 	../bool: bool, false, true
 	../compare: <, <=, >, compare
 	../fun-util: subscript
-	../json: json
+	../json: to
 	../misc: loop-break, loop-continue, new, void
 	../number: ==, <=>, +, -, /, nat64
 	../option: ==, new, option
@@ -11,14 +11,14 @@ import
 	../string: ==, <=>, +, -, begin, end, literal, next, string
 	../test-util: is
 	../tuple: a, b, new
-	./array: ==, new
+	./array: ==, array, new
 	./collection:
 		.., -, begin, build, end, for-break, for-loop, iterate, prev, prev-next, set-next, size,
 		subscript, swap-at
 	./mut-array:
 		~=, +, -, begin, build, cast-immutable, end, iterate, mut-array, new, next, prev, set-next,
-		size, slice, to-array, to-mut-array
-	./list: ~=, ==, build, iterate, list, new, size, to-array, to-list
+		size, slice, to
+	./list: ~=, ==, build, iterate, list, new, size, to
 	./mut-list: mut-list, temp-as-mut-array
 
 +is-sorted[col, elem] bool(a col) (col, elem) iterate, elem compare
@@ -75,9 +75,9 @@ test
 	# Test that it's a stable sort
 	arr string mut-array = "2a", "2b", "1a", "1b"
 	arr sort= x => x[0]
-	arr.to-array is ("1a", "1b", "2a", "2b")
+	arr.to::(string array) is ("1a", "1b", "2a", "2b")
 	arr sort= x => x[end - 1]
-	arr.to-array is ("1a", "2a", "1b", "2b")
+	arr.to::(string array) is ("1a", "2a", "1b", "2b")
 
 # Sort the elements of `a` from least to greatest.
 +set-sort[col, iter, elem] void(
@@ -147,10 +147,10 @@ This is useful if `a` and `b` are parallel arrays, meaning `a[i]` and `b[i]` bel
 Every pair `a[i]` and `b[i]`, will move to `res.a[j]` and `res.b[j]` for some `j`.
 ###
 +sort-by-first[t, u] (t[], u[])(a t[], b u[]) t compare
-	mut-a = a.to-array to-mut-array
-	mut-b = b.to-array to-mut-array
+	mut-a t mut-array = a to
+	mut-b u mut-array = b to
 	mut-a set-sort-by-first mut-b
-	trusted mut-a.cast-immutable.to-list, mut-b.cast-immutable.to-list
+	trusted mut-a.cast-immutable.to, mut-b.cast-immutable.to
 
 # Sort `a` in place, and move elements of `b` in the same permutation as `a`.
 +set-sort-by-first[t, u] void(a t mut[], b u mut[]) t compare

@@ -4,23 +4,23 @@ import
 	../../compare: <, <=, >, >=
 	../../exception: unreachable
 	../../fun-util: subscript
-	../../json: json
-	../../misc: key, new, void
+	../../json: to
+	../../misc: key, new, to, void
 	../../number: ==, <=>, +, -, *, nat64
 	../../option: ??, force, new, option
 	../../pointer: ==, <=>, +, -, *, as-const, const-pointer, mut-pointer, set-deref
 	../../range: ..
-	../../string: ==, <=>, ~~, hash-mix, literal, new, string, to-string
+	../../string: ==, <=>, ~~, hash-mix, literal, new, string, to
 	../../test-util: is
 	../array:
-		~=, +, -, array, as-array, begin, begin-pointer, build, end, end-pointer, is-empty, iterate,
+		+, -, ~=, array, as-array, begin, begin-pointer, build, end, end-pointer, is-empty, iterate,
 		new, next, next-index, size, slice
 	../collection:
 		.., -, build, build-options, end, for-loop, join, set-subscript, subscript, with-block
 	../mut-array:
 		~=, +, -, begin, begin-pointer, build, end, end-pointer, is-empty, mut-array,
 		mut-array-builder, next, set-next, size, slice, uninitialized-mut-array
-	../list: ~=, build, iterate, list, list-builder, to-array, to-list
+	../list: ~=, build, iterate, list, list-builder, to
 	../sort: sort
 	../private/sort-utils: binary-search-exact
 	./index-set:
@@ -41,16 +41,13 @@ Add nodes are a linked list where links point to the left. Largest node is on th
 	values t array
 	left t add-node?
 
-# Set containing the given elements (with duplicates removed).
 new[t] t sorted-set(...a t array) t key
-	a.to-list to-sorted-set
+	a.to to
 
-# Set containing the given elements (with duplicates removed).
-to-sorted-set[t] t sorted-set(a t[]) t key
-	(a.to-array.sort, ()) :: (t add-node), ()
+to[t] t sorted-set(a t[]) t key
+	(a.to.sort, ()) :: (t add-node), ()
 
-# Copies elements to a list.
-to-list[t] t[](a t sorted-set) t key
+to[t] t[](a t sorted-set) t key
 	for x : a
 		x
 
@@ -401,14 +398,14 @@ sorted-set-builder[t] record mut
 	-inner t list-builder
 
 build[t] t sorted-set(a build-options, f act void(t sorted-set-builder)) t key
-	a build (out => f[out,]) to-sorted-set
+	a build (out => f[out,]) to
 
 ~ ~=[t] void(a t sorted-set-builder, value t) t key
 	a.inner ~= value
 
 region test
 
--dbg[t] string(a t sorted-set) t to-string
+-dbg[t] string(a t sorted-set) (string, t) to
 	add = a.add dbg
 	if a.remove is-empty
 		add
@@ -416,7 +413,7 @@ region test
 		parts = " " join for i : a remove; "{i}"
 		"{add} - [{parts}]"
 
--dbg[t] string(a t add-node) t to-string
+-dbg[t] string(a t add-node) (string, t) to
 	left = if l ?= a left
 		"{l dbg}, "
 	values = " " join for x : a values; "{x}"

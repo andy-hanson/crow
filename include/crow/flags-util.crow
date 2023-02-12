@@ -6,7 +6,7 @@ import
 	./col/list: ~~, ~=, build, iterate, list, new, size
 	./misc: name, named-val, val
 	./string: ~~, literal, new, string
-	./symbol: symbol, to-string
+	./symbol: symbol, to
 
 ###
 Spec that will be satisfied by generated functions for any `flags` type.
@@ -34,12 +34,12 @@ True if every flag set in `a` is set in `b`.
 	a & b == a
 
 # Returns the names of every flag set in `a`.
-+to-symbols[t] symbol[](a t) t flags-like
++to[t] symbol[](a t) t flags-like
 	parts symbol[][] = for member : flags-members
 		if member.val is-in a
 			member.name,
 	() join parts
 
 # Flag names separated by `|`, like `"foo | bar"`.
-+flags-to-string[t] string(a t) t flags-like
-	" | " join for x : a to-symbols; x to-string
++to[t] string(a t) t flags-like
+	" | " join for x : a.to::symbol[]; x to

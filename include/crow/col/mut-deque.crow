@@ -2,13 +2,13 @@ no-std
 import
 	../bool: bool
 	../compare: !=, <
-	../json: json
+	../json: to
 	../misc: new, void
 	../number: ==, <=>, +, *, nat64, new
 	../option: ==, new, option
 	../pointer: ==, <=>, +, -, *, mut-pointer, null, set-deref, zeroed
 	../range: ..
-	../string: ==, ~~, literal, new, string, to-string
+	../string: ==, ~~, literal, new, string, to
 	../test-util: is
 	./array: as-array
 	./collection: .., -, end, for-loop, join, subscript, with-index
@@ -16,7 +16,7 @@ import
 		+, -, begin, begin-pointer, cast-immutable, copy-from, end, end-pointer, iterate, mut-array,
 		is-empty, new, set-zero-elements, size, slice, uninitialized-mut-array, zeroed-mut-array
 	./list:
-		==, ~=, +, -, begin, build, end, is-empty, iterate, list, new, next, size, to-list
+		==, ~=, +, -, begin, build, end, is-empty, iterate, list, new, next, size, to
 
 # Mutable double-ended queue.
 +mut-deque[t] record mut
@@ -36,10 +36,10 @@ Copy elements to a list.
 
 This is O(n).
 ###
-+to-list[t] t[](a t mut-deque)
-	trusted a.to-mut-array.cast-immutable to-list
++to[t] t[](a t mut-deque)
+	trusted a.to.cast-immutable to
 
--to-mut-array[t] t mut-array(a t mut-deque)
+-to[t] t mut-array(a t mut-deque)
 	trusted unless a is-empty
 		res t mut-array = a.size uninitialized-mut-array
 		res copy-from-deque a
@@ -47,7 +47,7 @@ This is O(n).
 
 # Copy elements to a new deque.
 +copy[t] t mut-deque(a t mut-deque)
-	inner = a to-mut-array
+	inner t mut-array = a to
 	trusted inner, inner.begin-pointer, inner.begin-pointer
 
 # `true` iff `a.size == 0`.
@@ -184,7 +184,7 @@ Returns an empty option iff `a` was empty (before calling `pop-right`).
 	a.peek-left is (expected.is-empty ? () : (expected[0],))
 	a.peek-right is (expected.is-empty ? () : (expected[end - 1],))
 	a.size is expected.size
-	a.to-list is expected
+	a.to::nat64[] is expected
 	a.dbg is expected-dbg
 
 test

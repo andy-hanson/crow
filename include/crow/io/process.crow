@@ -17,20 +17,20 @@ import
 		GetLastError, HANDLE, HANDLE_FLAG_INHERIT, hProcess, hThread, INFINITE, new, _pclose,
 		_popen, PROCESS_INFORMATION, ReadFile, SECURITY_ATTRIBUTES, SetHandleInformation,
 		STARTF_USESTDHANDLES, STARTUPINFOA, WaitForSingleObject
-	../bool: &&, ||, bool, to-nat64, true
-	../col/array: begin-pointer
+	../bool: &&, ||, bool, to, true
+	../col/array: array, begin-pointer
 	../col/collection: for-loop, join, subscript
 	../col/mut-array: +, begin, begin-pointer, mut-array, new, next, size
-	../col/list: ~, ~=, build, iterate, list, size, to-array
-	../col/mut-list: begin-pointer, end-pointer, move-to-list, mut-list, new, size, unsafe-set-size
+	../col/list: ~, ~=, build, iterate, list, size, to
+	../col/mut-list: begin-pointer, end-pointer, move-to, mut-list, new, size, unsafe-set-size
 	../compare: <=
 	../c-types: fd-t
 	../misc: new, void
-	../number: ==, <=>, +, int32, nat8, nat32, to-int32, to-int64, to-nat32, to-nat64
+	../number: ==, <=>, +, int32, int64, nat8, nat32, nat64, to
 	../private/bootstrap: todo
 	../private/c-string-util: find-c-string-end
 	../pointer: ==, +, -, as-any-const-pointer, as-any-mut-pointer, mut-pointer, new, null
-	../string: ~~, as-string, char8, c-string, literal, new, string, to-c-string, to-string
+	../string: ~~, as-string, char8, c-string, literal, move-to, new, string, to
 	../version: is-windows
 	./environ: get-environ-raw
 	./file: is-file
@@ -56,7 +56,7 @@ EXE should be a file path and not just a name; this does not search the system p
 	# TODO: kill, handle that error properly
 	assert exe is-file : "{exe} is not a file"
 	trusted
-		exe-c-string = exe to-c-string
+		exe-c-string c-string = exe to
 		if is-windows
 			exe-c-string spawn-and-wait-result-windows args
 		else
@@ -67,7 +67,7 @@ EXE should be a file path and not just a name; this does not search the system p
 	old-size = res size
 	res unsafe-set-size old-size + read-at-a-time
 	old-end = res.end-pointer - read-at-a-time
-	err = old-end fgets read-at-a-time.to-int32, file
+	err = old-end fgets read-at-a-time.to, file
 	if err == null
 		res unsafe-set-size old-size
 		unless file feof
@@ -85,29 +85,27 @@ The child process shares stdout and stderr with the parent process.
 	# TODO: kill, handle that error properly
 	assert exe is-file : "{exe} is not a file"
 	# First argument should be the executable path
-	# TODO: &to-c-string
 	trusted
-		exe-c-string = exe to-c-string
+		exe-c-string c-string = exe to
 		exe-c-string spawn-and-wait (exe-c-string convert-args args)
 
 # Executes a shell command and returns its output.
 +shell-exec string(command string) summon
 	trusted
-		cmd = command to-c-string
-		pipe = is-windows ? cmd _popen "r" : cmd popen "r"
+		pipe = is-windows ? command.to _popen "r" : command.to popen "r"
 		if pipe.as-any-const-pointer == null
 			todo
 		res char8 mut[] = ()
 		res keep-reading pipe
 		err = is-windows ? pipe _pclose : pipe pclose
 		assert err == 0
-		res.move-to-list as-string
+		res move-to
 
 -convert-args c-string[](exe-c-string c-string, args string[]) unsafe
-	exe-c-string ~ (for x : args; x to-c-string) ~ null
+	exe-c-string ~ (for x : args; x to) ~ null
 
 -spawn-and-wait-result-windows process-result(exe c-string, args string[]) summon, unsafe
-	all-args = " " join (exe.to-string ~ args) to-c-string
+	all-args c-string = " " join (exe.to::string ~ args) to
 
 	stdout-read mut HANDLE = ()
 	stdout-write mut HANDLE = ()
@@ -148,7 +146,7 @@ The child process shares stdout and stderr with the parent process.
 	unless process-info.hProcess.CloseHandle && process-info.hThread.CloseHandle
 		todo
 
-	exit-code.to-int32, stdout, stderr
+	exit-code.to, stdout, stderr
 
 -read-from-pipe-windows string(pipe HANDLE) summon, unsafe
 	res nat8 mut[] = ()
@@ -158,16 +156,16 @@ The child process shares stdout and stderr with the parent process.
 		res unsafe-set-size old-size + read-at-a-time
 		old-end = res.end-pointer - read-at-a-time
 		n-read mut nat32 = 0
-		ok = pipe ReadFile old-end, read-at-a-time.to-nat32, &n-read, null
+		ok = pipe ReadFile old-end, read-at-a-time.to, &n-read, null
 		if ok
-			assert n-read.to-nat64 <= read-at-a-time
-			res unsafe-set-size old-size + n-read.to-nat64
+			assert n-read.to::nat64 <= read-at-a-time
+			res unsafe-set-size old-size + n-read.to
 			continue
 		else
 			res unsafe-set-size old-size
 			err = GetLastError
 			assert err == ERROR_BROKEN_PIPE : "Error reading from pipe: {err show-win32-error}"
-			break res.move-to-list as-string
+			break res.move-to::nat8[] as-string
 
 -spawn-and-wait-result-posix process-result(exe c-string, args c-string[]) summon, unsafe
 	stdout-pipes = make-pipes
@@ -184,7 +182,7 @@ The child process shares stdout and stderr with the parent process.
 	&actions posix_spawn_file_actions_addclose stderr-pipes.read-pipe check-posix-error
 
 	pid mut pid_t = 0
-	&pid posix_spawn exe, &actions, null, args.to-array.begin-pointer, get-environ-raw check-posix-error
+	&pid posix_spawn exe, &actions, null, args.to.begin-pointer, get-environ-raw check-posix-error
 
 	# Close child-side of pipes (from this process, child still has them)
 	stdout-pipes.read-pipe.close check-posix-error
@@ -197,7 +195,7 @@ The child process shares stdout and stderr with the parent process.
 
 	exit-code = pid wait-and-get-exit-code
 
-	exit-code, stdout-builder.move-to-list.as-string, stderr-builder.move-to-list.as-string
+	exit-code, stdout-builder.move-to, stderr-builder.move-to
 
 -make-pipes pipes() summon, unsafe
 	res mut pipes = 0, 0
@@ -212,14 +210,14 @@ The child process shares stdout and stderr with the parent process.
 ) summon, unsafe
 	poll-fds pollfd mut-array = (stdout-pipe, POLLIN, 0), (stderr-pipe, POLLIN, 0)
 	# timeout == -1 means we block
-	n-pollfds-with-events = poll-fds.begin-pointer poll poll-fds.size, -1 to-int64
+	n-pollfds-with-events int64 = poll-fds.begin-pointer poll poll-fds.size, -1 to
 	if n-pollfds-with-events == 0
 		# TODO: is this even possible to reach ? I think we always get has-POLLHUP instead.
 		()
 	else
 		a = poll-fds[0] handle-revents stdout-builder
 		b = poll-fds[1] handle-revents stderr-builder
-		assert a.any.to-nat64 + b.any.to-nat64 == n-pollfds-with-events.to-nat64
+		assert a.any.to + b.any.to == n-pollfds-with-events.to
 		# Apparently stdout and stderr can hang up at slightly different times.
 		unless a.hung-up && b.hung-up
 			stdout-pipe keep-polling stderr-pipe, stdout-builder, stderr-builder
@@ -256,8 +254,8 @@ The child process shares stdout and stderr with the parent process.
 			# EOF, done
 			buffer unsafe-set-size old-size
 		else
-			assert n-bytes-read.to-nat64 <= read-max
-			new-size = old-size + n-bytes-read.to-nat64
+			assert n-bytes-read.to::nat64 <= read-max
+			new-size = old-size + n-bytes-read.to
 			buffer unsafe-set-size new-size
 			fd read-to-buffer-until-eof buffer
 
@@ -265,7 +263,7 @@ The child process shares stdout and stderr with the parent process.
 # TODO: option to get stdout/stderr as a string rather than having them go to the terminal
 -spawn-and-wait int32(exe c-string, args c-string[]) summon, unsafe
 	pid mut pid_t = 0
-	args-pointer = args.to-array begin-pointer
+	args-pointer = args.to::(c-string array) begin-pointer
 	&pid posix_spawn exe, null, null, args-pointer, get-environ-raw check-posix-error
 	pid wait-and-get-exit-code
 

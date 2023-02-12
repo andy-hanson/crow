@@ -3,8 +3,8 @@ import
 	../bool: false, true
 	../col/dict: dict, new
 	../col/list: list, new
-	../json: ==, new, null, json, to-string
-	../misc: void
+	../json: ==, new, null, json, to
+	../misc: to, void
 	../number: nat64
 	../parse: ==, expected, new, parse, parse-error
 	../result: ==, err, ok
@@ -17,30 +17,31 @@ dummy-json-tests nat64()
 	0
 
 #TODO:MOVE
--json json(a parse-error)
+-to json(a parse-error)
 	# TODO: include input/iter
-	("expected", a.expected.json),
+	("expected", a.expected.to),
 
--verify void(a json, s string)
-	json parse s is a.ok
-	a.to-string is s
+-verify[t] void(a t, s string) (json, t) to
+	json parse s is a.to.ok
+	json json = a to
+	json.to::string is s
 
 test
 	json parse "potato" is ("potato", "potato".begin, "expected 'null'").err
 	null verify "null"
-	true.json verify "true"
-	false.json verify "false"
-	-3.0.json verify "-3"
-	1.5.json verify "1.5"
-	-1.5.json verify "-1.5"
-	"j".json verify "\"j\""
-	"a\nb".json verify "\"a\\nb\""
-	"a\\nb".json verify "\"a\\\\nb\""
+	true verify "true"
+	false verify "false"
+	-3.0 verify "-3"
+	1.5 verify "1.5"
+	-1.5 verify "-1.5"
+	"j" verify "\"j\""
+	"a\nb" verify "\"a\\nb\""
+	"a\\nb" verify "\"a\\\\nb\""
 
-	()::json[].json verify "[]"
-	(1.0.json,).json verify "[1]"
-	(1.0.json, true.json)::json[].json verify "[1,true]"
+	()::json[] verify "[]"
+	(1.0.to,) verify "[1]"
+	(1.0.to, true.to)::json[] verify "[1,true]"
 
-	()::json[symbol].json verify "\{}"
-	(("a", 1.0.json),)::json[symbol].json verify "\{\"a\":1}"
-	(("a", 1.0.json), ("x\ny", true.json))::json[symbol].json verify "\{\"a\":1,\"x\\ny\":true}"
+	()::json[symbol] verify "\{}"
+	(("a", 1.0.to),)::json[symbol] verify "\{\"a\":1}"
+	(("a", 1.0.to), ("x\ny", true.to))::json[symbol] verify "\{\"a\":1,\"x\\ny\":true}"

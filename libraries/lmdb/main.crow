@@ -50,7 +50,7 @@ with-block[t] t^(options open-lmdb-env, f act t^(lmdb-env)) summon, t shared
 		info log "Creating database directory {db-dir}"
 		db-dir make-directory
 
-	err = env mdb_env_open db-dir.to-c-string, 0, 0o666
+	err = env mdb_env_open db-dir.to, 0, 0o666
 	unless err == 0
 		env mdb_env_close
 		err check-lmdb-error
@@ -121,7 +121,7 @@ with-block[t, k, v] t^(
 
 	dbi mut MDB_dbi = zeroed
 	mdb-flags = MDB_CREATE | zeroed::k.lmdb-key-flags
-	transaction mdb_dbi_open a.db-name.to-c-string, mdb-flags, &dbi check-lmdb-error
+	transaction mdb_dbi_open a.db-name.to, mdb-flags, &dbi check-lmdb-error
 
 	transaction.mdb_txn_commit check-lmdb-error
 	dbi,
@@ -246,7 +246,7 @@ lmdb_stat record
 	overflow-pages nat
 	entries nat
 
-to-string string(a lmdb_stat)
+to string(a lmdb_stat)
 	# TODO: Use """ string
 	x = "	psize = {a psize}\n	depth = {a depth}\n	branch-pages = {a branch-pages}"
 	y = "	leaf-pages = {a leaf-pages}\n	overflow-pages = {a overflow-pages}"
@@ -258,8 +258,8 @@ stat[k, v] lmdb_stat(txn lmdb-txn, db (k, v) lmdb-db) summon
 	trusted
 		s mut mdb_stat = ()
 		txn.txn mdb_stat db.dbi, &s check-lmdb-error
-		psize = s.ms_psize to-nat64
-		depth = s.ms_depth to-nat64
+		psize nat64 = s.ms_psize to
+		depth nat64 = s.ms_depth to
 		psize, depth, s.ms_branch_pages, s.ms_leaf_pages, s.ms_overflow_pages, s.ms_entries
 
 ###
@@ -370,7 +370,7 @@ zip[out, k, v0, v1] out[](
 	0, null
 
 -val-of-bytes MDB_val(a nat8[]) unsafe
-	array = a to-array
+	array nat8 array = a to
 	array.size, array.begin-pointer.as-mut
 
 -bytes-of-val nat8[](a MDB_val) unsafe
@@ -380,6 +380,7 @@ zip[out, k, v0, v1] out[](
 	assert a == MDB_SUCCESS : "LMDB error code: {a} ({a error-name})"
 
 -error-name string(a err-t)
+	# TODO: convert to enum then enum to string
 	if a == MDB_KEYEXIST
 		"MDB_KEYEXIST"
 	elif a == MDB_NOTFOUND
@@ -421,4 +422,4 @@ zip[out, k, v0, v1] out[](
 	elif a == MDB_BAD_DBI
 		"MDB_BAD_DBI"
 	else
-		a to-string
+		"{a}"

@@ -3,15 +3,12 @@ import
 	./bool: &&, bool, false, new, true
 	./compare: !=, <, <=, >, >=
 	./private/number-low-level:
-		unsafe-add, unsafe-div, unsafe-mod, unsafe-mul, unsafe-sub, unsafe-to-int64,
-		unsafe-to-int8, unsafe-to-int16, unsafe-to-int32, unsafe-to-nat8, unsafe-to-nat32,
-		unsafe-to-nat64, wrap-add, wrap-mul, wrap-sub
+		unsafe-add, unsafe-div, unsafe-mod, unsafe-mul, unsafe-sub, unsafe-to, wrap-add, wrap-mul,
+		wrap-sub
 export
 	./private/number-low-level:
-		==, <=>, float32, float64, int8, int16, int32, int64, is-even, is-odd, max-int8, max-int16,
-		max-int32, max-int64, max-nat8, max-nat16, max-nat32, max-nat64, min-int8, min-int16,
-		min-int32, min-int64, nat8, nat16, nat32, nat64, new, round-up-to-power-of-two, to-int64,
-		to-nat16, to-nat64
+		==, <=>, float32, float64, int8, int16, int32, int64, is-even, is-odd, max-value, min-value,
+		nat8, nat16, nat32, nat64, new, round-up-to-power-of-two, to
 
 +int alias
 	int64
@@ -98,7 +95,7 @@ Throws if `b == 0`.
 		if abs-mod != 0
 			b - abs-mod
 	else
-		a.to-nat64 % b
+		a.to::nat64 % b
 
 # `true` iff `b * x == a` for some `x`.
 +is-multiple-of bool(a nat64, b nat64) noctx
@@ -117,37 +114,37 @@ Throws if the result would overflow.
 Be less than the least possible value or greater than the greatest possible value.
 ###
 + + int32(a int32, b int32) noctx
-	trusted a.to-int64 unsafe-add b.to-int64 to-int32
+	trusted a.to unsafe-add b.to to
 + + int64(a int64, b int64) noctx
-	forbid (b > 0 ? a > (trusted max-int64 unsafe-sub b) : a < (trusted min-int64 unsafe-sub b)) : "integer overflow"
+	forbid (b > 0 ? a > (trusted max-value unsafe-sub b) : a < (trusted min-value unsafe-sub b)) : "integer overflow"
 	trusted a unsafe-add b
 
 +- int32(a int32, b int32) noctx
-	trusted a.to-int64 unsafe-sub b.to-int64 to-int32
+	trusted a.to unsafe-sub b.to to
 +- int64(a int64, b int64) noctx
 	overflow = if b > 0
-		a < (trusted min-int64 unsafe-add b)
+		a < (trusted min-value unsafe-add b)
 	else
-		a > (trusted max-int64 unsafe-add b)
+		a > (trusted max-value unsafe-add b)
 	forbid overflow : "integer overflow"
 	trusted a unsafe-sub b
 
 +* int8(a int8, b int8) noctx
-	trusted a.to-int64 unsafe-mul b.to-int64 to-int8
+	trusted a.to unsafe-mul b.to to
 +* int16(a int16, b int16) noctx
-	trusted a.to-int64 unsafe-mul b.to-int64 to-int16
+	trusted a.to unsafe-mul b.to to
 +* int32(a int32, b int32) noctx
-	trusted a.to-int64 unsafe-mul b.to-int64 to-int32
+	trusted a.to unsafe-mul b.to to
 +* int64(a int64, b int64) noctx
 	overflow = if a == -1
-		b == min-int64
+		b == min-value
 	elif b == -1
-		a == min-int64
+		a == min-value
 	elif b == 0
 		false
-	elif a > max-int64 / b
+	elif a > max-value / b
 		true
-	elif a < min-int64 / b
+	elif a < min-value / b
 		true
 	forbid overflow : "integer overflow"
 	trusted a unsafe-mul b
@@ -175,22 +172,21 @@ Throws if the result would overflow, which only happens if
 ###
 +/ int32(a int32, b int32) noctx
 	forbid b == 0 : "divide by 0"
-	forbid a == min-int32 && b == -1 : "integer overflow"
+	forbid a == min-value && b == -1 : "integer overflow"
 	trusted a unsafe-div b
 +/ int64(a int64, b int64) noctx
 	forbid b == 0 : "divide by 0"
-	forbid a == min-int64 && b == -1 : "integer overflow"
+	forbid a == min-value && b == -1 : "integer overflow"
 	trusted a unsafe-div b
 
 region misc
 
 ###
-Absolute value of an int, as a nat.
-
-Throws for `min-int64`.
+Absolute value.
+For an integer type, throws for `min-value`.
 ###
 +abs nat64(a int64) noctx
-	(a < 0 ? -a : a) to-nat64
+	(a < 0 ? -a : a) to
 
 +abs float32(a float32) noctx
 	a < 0 ? -a : a
@@ -249,10 +245,11 @@ unsafe-div float64(a float64, b float64) builtin, noctx, unsafe
 		a * a ** (b wrap-sub 1)
 
 +square-root float32(a float32) noctx
-	a.to-float64.sqrt to-float32
+	a.to.sqrt to
 +square-root float64(a float64) noctx
 	a sqrt
 -sqrt float64(a float64) trusted, m extern
+-round float64(a float64) trusted, m extern
 
 # `true` iff `a` is "Not A Number".
 +is-nan bool(a float32) noctx
@@ -262,90 +259,96 @@ unsafe-div float64(a float64, b float64) builtin, noctx, unsafe
 
 region conversion
 
-+to-float32 float32(a nat64) noctx
-	a.to-float64 to-float32
-+to-float32 float32(a int64) noctx
-	a.to-float64 to-float32
-+to-float32 float32(a float64) builtin, noctx
+###
+Conversions between integral types throw on overflow or underflow.
+Conversions involving floats (in either direction) are approximate and never throw.
+###
++to float32(a nat64) noctx
+	a.to::float64 to
++to float32(a int64) noctx
+	a.to::float64 to
++to float32(a float64) builtin, noctx
 
-# Never throws, but for very high values of `a`, the result will be approximate.
-+to-float64 float64(a nat64) builtin, noctx
-# Never throws, but for very low or very high values of `a`, the result will be approximate.
-+to-float64 float64(a int64) builtin, noctx
-+to-float64 float64(a float32) builtin, noctx
++to float64(a nat64) builtin, noctx
++to float64(a int64) builtin, noctx
++to float64(a float32) builtin, noctx
 
-# Convert a float to int by discarding the fractional part.
-+truncate-to-int64 int64(a float64) builtin, noctx
++to int64(a float64) noctx
+	a.round truncate-to
 
-# Throws if the result would be negative.
-+truncate-to-nat64 nat64(a float64)
-	a.truncate-to-int64 to-nat64
++to nat64(a float64) noctx
+	a.to::int64 to
 
 # Throws if the result would overflow.
-+to-int64 int64(a nat64) noctx
-	assert a < max-int64.to-nat64 : "integer overflow"
-	trusted a unsafe-to-int64
++to int64(a nat64) noctx
+	assert a < max-value::int64.to : "integer overflow"
+	trusted a unsafe-to
 
-+to-int8 int8(a int64) noctx
-	assert a >= min-int8.to-int64 : "integer overflow"
-	assert a <= max-int8.to-int64 : "integer overflow"
-	trusted a unsafe-to-int8
++to int8(a int64) noctx
+	assert a >= min-value::int8.to : "integer overflow"
+	assert a <= max-value::int8.to : "integer overflow"
+	trusted a unsafe-to
 
-+to-int16 int16(a int64) noctx
-	assert a >= min-int16.to-int64 : "integer overflow"
-	assert a <= max-int16.to-int64 : "integer overflow"
-	trusted a unsafe-to-int16
++to int16(a int64) noctx
+	assert a >= min-value::int16.to : "integer overflow"
+	assert a <= max-value::int16.to : "integer overflow"
+	trusted a unsafe-to
 
 # Convert an int to 32 bits. Fail if the result would overflow.
-+to-int32 int32(a int64) noctx
-	assert a >= min-int32.to-int64 : "integer overflow"
-	assert a <= max-int32.to-int64 : "integer overflow"
-	trusted a unsafe-to-int32
-+to-int32 int32(a nat32) noctx
-	a.to-nat64 to-int32
-+to-int32 int32(a nat16) noctx
-	trusted a.to-nat64.unsafe-to-int64 unsafe-to-int32
-+to-int32 int32(a nat64) noctx
-	a.to-int64 to-int32
++to int32(a int64) noctx
+	assert a >= min-value::int32.to : "integer overflow"
+	assert a <= max-value::int32.to : "integer overflow"
+	trusted a unsafe-to
++to int32(a nat32) noctx
+	a.to::nat64 to
++to int32(a nat16) noctx
+	trusted a.to::nat64.unsafe-to
++to int32(a nat64) noctx
+	a.to::int64 to
 
-# Return the closest `nat8`. Never throws.
-+clamp-to-nat8 nat8(a nat64) noctx
+# Return the closest value. Never throws.
++clamp-to int32(a int64) noctx
+	if a < min-value::int32.to
+		min-value
+	elif a > max-value::int32.to
+		max-value
+	else
+		trusted a unsafe-to
++clamp-to int32(a nat64) noctx
+	a.clamp-to::int64 clamp-to
++clamp-to int64(a nat64) noctx
+	if a > max-value::int64.to
+		max-value
+	else
+		trusted a unsafe-to
++clamp-to nat8(a nat64) noctx
 	if a > 255
 		255
 	else
-		trusted a unsafe-to-nat8
-
-# Return the closest `nat64`. Never throws.
-+clamp-to-nat64 nat64(a int64) noctx
+		trusted a unsafe-to
++clamp-to nat64(a int64) noctx
 	if a >= 0
-		trusted a unsafe-to-nat64
-
-+clamp-to-int32 int32(a int64) noctx
-	if a < min-int32.to-int64
-		min-int32
-	elif a > max-int32.to-int64
-		max-int32
-	else
-		trusted a unsafe-to-int32
+		trusted a unsafe-to
 
 # Return the closest possible value to `a + b`. Never throws.
 +clamp-add int32(a int32, b int32) noctx
-	trusted a.to-int64 unsafe-add b.to-int64 clamp-to-int32
+	trusted a.to unsafe-add b.to clamp-to
 
-# Throws if `a` is negative.
-+to-nat64 nat64(a int64) noctx
+# Throws if the result would not have the same value as the input (due to overflow or underflow)
++to nat64(a int64) noctx
 	assert a >= 0 : "integer overflow"
-	trusted a unsafe-to-nat64
-+to-nat64 nat64(a int32) noctx
-	a.to-int64 to-nat64
+	trusted a unsafe-to
++to nat64(a int32) noctx
+	a.to::int64 to
++to nat8(a nat64) noctx
+	assert a <= max-value::nat8.to : "integer overflow"
+	trusted a unsafe-to
++to nat8(a float64) noctx
+	a.to clamp-to
++to nat32(a nat16) noctx
+	trusted a.to::nat64 unsafe-to
++to nat32(a nat64) noctx
+	assert a < max-value::nat32.to : "integer overflow"
+	trusted a unsafe-to
 
-+to-nat8 nat8(a nat64) noctx
-	assert a <= max-nat8.to-nat64 : "integer overflow"
-	trusted a unsafe-to-nat8
-+to-nat32 nat32(a nat16) noctx
-	trusted a.to-nat64 unsafe-to-nat32
-
-# Convert a nat to 32 bits. Fail if the result would overflow.
-+to-nat32 nat32(a nat64) noctx
-	assert a < max-nat32.to-nat64 : "integer overflow"
-	trusted a unsafe-to-nat32
+truncate-to int64(a float64) builtin, noctx

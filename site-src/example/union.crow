@@ -22,7 +22,7 @@ describe string(a string)
 parse entity(a string)
 	if d ?= a try-remove-start "dr. "
 		d doctor
-	elif b ?= a.to-enum :: bird?
+	elif b ?= a.to::bird?
 		b bird
 	else
 		unknown
@@ -30,7 +30,7 @@ parse entity(a string)
 greet string(a entity)
 	match a
 	as bird b
-		"hello, you {b enum-to-string}"
+		"hello, you {b}"
 	as doctor d
 		"greetings, doctor {d}"
 	as unknown

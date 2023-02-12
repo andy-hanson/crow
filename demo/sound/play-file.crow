@@ -6,7 +6,7 @@ import
 	audio/read-sound-file: read-sound-file
 	audio/sound: sample-rate, with-sample-rate
 
-main nat^(args string[]) summon, trusted
+main nat^(args string[]) summon
 	assert args.size == 1 : "Usage: crow run play-file.crow -- [IN]"
 	audio = start-sdl-audio
 	sound = args[0].read-sound-file with-sample-rate audio.format.sample-rate

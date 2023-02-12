@@ -5,13 +5,12 @@ import
 	win32:
 		DWORD, GetLastError, GetStdHandle, HANDLE, STD_ERROR_HANDLE, STD_OUTPUT_HANDLE,
 		WriteFile
-	../col/array: begin-pointer, size
-	../col/list: to-array
+	../col/array: array, begin-pointer, size
 	../c-types: fd-t
 	../misc: new, void
-	../number: ==, nat8, to-int64, to-nat32
+	../number: ==, nat8, nat32, to
 	../pointer: null, size-of
-	../string: ~~, char8, literal, string, to-bytes, to-c-string, to-string
+	../string: ~~, char8, literal, string, to, to-bytes
 	../version: is-windows
 	../private/bootstrap: todo
 	./win32-util: show-win32-error
@@ -42,9 +41,9 @@ import
 		trusted output write-posix message
 
 -write-windows void(console HANDLE, a string) summon, unsafe
-	bytes = a.to-bytes to-array
+	bytes nat8 array = a to-bytes
 	written mut DWORD = 0
-	size32 = bytes.size to-nat32
+	size32 nat32 = bytes.size to
 	ok = console WriteFile bytes.begin-pointer, size32, &written, null
 	assert ok : "{GetLastError show-win32-error}"
 	unless written == size32
@@ -53,9 +52,9 @@ import
 
 -write-posix void(fd fd-t, a string) summon, unsafe
 	assert size-of@char8 == size-of@nat8
-	bytes = a.to-bytes to-array
+	bytes nat8 array = a to-bytes
 	res = fd write bytes.begin-pointer, bytes.size
-	unless res == bytes.size.to-int64
+	unless res == bytes.size.to
 		# TODO: Maybe retry
 		todo
 

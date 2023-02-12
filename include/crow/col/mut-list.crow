@@ -21,7 +21,7 @@ import
 		+, -, begin, begin-pointer, cast-immutable, copy, empty-mut-array, end, mut-array,
 		mut-array-iterator, prev, next, next-index, set-next, set-prev, set-zero-elements, size,
 		slice, subscript, temp-as-array, uninitialized-mut-array
-	./list: iterate, list, to-list
+	./list: iterate, list, to
 
 ###
 Mutable array type that can change in size.
@@ -68,9 +68,12 @@ mut-list-by-val-with-capacity-from-unmanaged-memory[t] t mut[] by-val(capacity n
 Creates a new list with the given elements.
 ###
 +new[t] t mut[](...a t array)
-	a.to-list to-mut-list
+	a to
 
-+to-mut-list[t] t mut[](a t[])
++to[t] t mut[](a t array)
+	a.to to
+
++to[t] t mut[](a t[])
 	backing t mut-array = empty-mut-array
 	res t mut[] = backing, 0
 	res ~~= a
@@ -93,20 +96,17 @@ Writes to the original won't affect the copy.
 Copies a `mut-list` to a `list`.
 Writes to the `mut-list` won't affect the `list`.
 ###
-+to-list[t] t[](a t mut[])
-	a.copy move-to-list
++to[t] t[](a t mut[])
+	a.copy move-to
 
 ###
-Convert to a `dict`, clearning the original `mut-list` in the process.
-(This avoids copying but still ensures that the result is immutable.)
+'move-to' is like 'to' but sets the input to empty.
 ###
-+move-to-list[t] t[](a t mut[]) noctx
-	a.move-to-array to-list
-
-+move-to-array[t] t array(a t mut[]) noctx
-	trusted a.move-to-mut-array cast-immutable
-
-+move-to-mut-array[t] t mut-array(a t mut[]) noctx
++move-to[t] t[](a t mut[]) noctx
+	a.move-to::(t array) to
++move-to[t] t array(a t mut[]) noctx
+	trusted a.move-to cast-immutable
++move-to[t] t mut-array(a t mut[]) noctx
 	trusted
 		res = a.begin-pointer[0 .. a.size]
 		a.backing := empty-mut-array
@@ -165,7 +165,7 @@ Throws if `n > a.size`.
 		new-size = a.size - n
 		_ = dest memmove src, new-size * size-of@t
 		a.size := new-size
-	res to-list
+	res to
 
 +peek[t] t?(a t mut[])
 	unless a is-empty

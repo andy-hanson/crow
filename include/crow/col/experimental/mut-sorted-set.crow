@@ -11,7 +11,7 @@ import
 	./mut-sorted-dict:
 		~=, build, clear, filter=, in, is-empty, iterate, map=, mut-sorted-dict, new, remove-key,
 		set-subscript, size, subscript
-	./sorted-set: sorted-set, to-sorted-set
+	./sorted-set: sorted-set, to
 
 ###
 Mutable sorted set of unique values.
@@ -26,7 +26,7 @@ mut-sorted-set[t] record mut
 new[t] t mut-sorted-set() t key
 	(),
 
-to-mut-sorted-set[t] t mut-sorted-set(a t[]) t key
+to[t] t mut-sorted-set(a t[]) t key
 	inner (t, void) mut-sorted-dict = for x : a; x, ()
 	inner,
 
@@ -76,15 +76,15 @@ remove[t] bool(a t mut-sorted-set, value t) t key
 	!(a.inner remove-key value is-empty)
 
 # Convert to a list, clearing the original `mut-sorted-set` in the process.
-move-to-list[t] t[](a t mut-sorted-set) t key
+move-to[t] t[](a t mut-sorted-set) t key
 	res t[] = for x : a; x
 	a clear
 	res
 
 # Convert to a `sorted-set`, clearning the original `mut-sorted-set` in the process.
-move-to-sorted-set[t] t sorted-set(a t mut-sorted-set) t key
+move-to[t] t sorted-set(a t mut-sorted-set) t key
 	# TODO:PERF avoid a copy: return a 'mut-list' which the sorted-set can move into to itself
-	a.move-to-list to-sorted-set
+	a.move-to to
 
 filter=[t] void(a t mut-sorted-set, f fun bool(t)) t key
 	a.inner filter= (k, _) => f[k]

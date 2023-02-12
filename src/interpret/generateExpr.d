@@ -814,15 +814,15 @@ void generateSpecialUnary(
 		case LowExprKind.SpecialUnary.Kind.toNat8FromChar8:
 		case LowExprKind.SpecialUnary.Kind.toNat64FromPtr:
 		case LowExprKind.SpecialUnary.Kind.toPtrFromNat64:
-		case LowExprKind.SpecialUnary.Kind.unsafeInt32ToNat32:
-		case LowExprKind.SpecialUnary.Kind.unsafeInt64ToInt8:
-		case LowExprKind.SpecialUnary.Kind.unsafeInt64ToInt16:
-		case LowExprKind.SpecialUnary.Kind.unsafeInt64ToInt32:
-		case LowExprKind.SpecialUnary.Kind.unsafeInt64ToNat64:
-		case LowExprKind.SpecialUnary.Kind.unsafeNat64ToInt64:
-		case LowExprKind.SpecialUnary.Kind.unsafeNat64ToNat8:
-		case LowExprKind.SpecialUnary.Kind.unsafeNat64ToNat16:
-		case LowExprKind.SpecialUnary.Kind.unsafeNat64ToNat32:
+		case LowExprKind.SpecialUnary.Kind.unsafeToInt8FromInt64:
+		case LowExprKind.SpecialUnary.Kind.unsafeToInt16FromInt64:
+		case LowExprKind.SpecialUnary.Kind.unsafeToInt32FromInt64:
+		case LowExprKind.SpecialUnary.Kind.unsafeToInt64FromNat64:
+		case LowExprKind.SpecialUnary.Kind.unsafeToNat8FromNat64:
+		case LowExprKind.SpecialUnary.Kind.unsafeToNat16FromNat64:
+		case LowExprKind.SpecialUnary.Kind.unsafeToNat32FromInt32:
+		case LowExprKind.SpecialUnary.Kind.unsafeToNat32FromNat64:
+		case LowExprKind.SpecialUnary.Kind.unsafeToNat64FromInt64:
 			// do nothing (doesn't change the bits, just their type)
 			// Some of these widen, but all fit within the one stack entry so nothing to do
 			// NOTE: we treat the upper bits of <64-bit types as arbitrary, so those are no-ops too

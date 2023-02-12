@@ -9,15 +9,15 @@ import
 	../array: array
 	../collection: for-loop
 	../dict: ~=, build, dict, get-or-add, is-empty, iterate, size, subscript, try-remove
-	../list: iterate, list, size, to-list
+	../list: iterate, list, size, to
 
 hamt-set[t] record
 	-inner void[t]
 
 new[t] t hamt-set(...values t array) t key
-	values.to-list to-hamt-set
+	values.to to
 
-to-hamt-set[t] t hamt-set(a t[]) t key
+to[t] t hamt-set(a t[]) t key
 	inner void[t] = for x : a; x, ()
 	inner,
 

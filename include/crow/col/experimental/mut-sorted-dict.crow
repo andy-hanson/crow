@@ -4,11 +4,11 @@ import
 	../../compare: !=, <, >, <=
 	../../fun-util: subscript
 	../../hash: hash-mix
-	../../json: json
-	../../misc: key, new, void
+	../../json: to
+	../../misc: key, new, to, void
 	../../number: ==, <=>, +, -, *, nat64
 	../../option: ==, force, is-empty, new, option, size
-	../../string: ==, ~~, +, begin, literal, new, next, string, to-string
+	../../string: ==, ~~, +, begin, literal, new, next, string, to
 	../../test-util: is
 	../../tuple: a, b, new
 	../array: array
@@ -16,7 +16,7 @@ import
 	../mut-list:
 		~=, +, -, begin, clear, end, filter=, is-empty, iterate, mut-list, mut-list-iterator,
 		new, next, next-index, prev, remove-at, set-next, set-prev, size
-	../list: ~=, build, iterate, list, list-builder, new, to-list
+	../list: ~=, build, iterate, list, list-builder, new, to
 	../sort: sort=
 	../private/sort-utils:
 		binary-search-exact, binary-search-insert, assert-comparison-not-equal, merge-no-duplicates
@@ -41,10 +41,9 @@ New dictionary containing the given pairs.
 Later pairs overwrite earlier pairs with the same key.
 ###
 new[k, v] (k, v) mut-sorted-dict(...a (k, v) array) k key
-	a.to-list to-mut-sorted-dict
+	a.to to
 
-# Copies pairs to a new dictionary.
-to-mut-sorted-dict[k, v] (k, v) mut-sorted-dict(a (k, v)[]) k key
+to[k, v] (k, v) mut-sorted-dict(a (k, v)[]) k key
 	res (k, v) mut-sorted-dict = ()::(k, v?) mut[], 0, ()
 	for k, v : a
 		res[k] := v
@@ -177,8 +176,7 @@ Returns true if it succeeded.
 			a move-right index + 1
 			a[index + 1] := a[index]
 
-# Convert to an `array`, clearning the original `mut-sorted-dict` in the process.
-move-to-list[k, v] (k, v)[](a (k, v) mut-sorted-dict) k key
+move-to[k, v] (k, v)[](a (k, v) mut-sorted-dict) k key
 	res (k, v)[] = for x : a; x
 	a clear
 	res
@@ -270,14 +268,14 @@ mut-sorted-dict-builder[k, v] record mut
 	-inner (k, v) list-builder
 
 build[k, v] (k, v) mut-sorted-dict(a build-options, f act void((k, v) mut-sorted-dict-builder)) k key
-	a build (out => f[out,]) to-mut-sorted-dict
+	a build (out => f[out,]) to
 
 ~ ~=[k, v] void(a (k, v) mut-sorted-dict-builder, pair (k, v)) k key
 	a.inner ~= pair
 
 region test
 
--dbg[k, v] string(a (k, v) mut-sorted-dict) k to-string, v to-string
+-dbg[k, v] string(a (k, v) mut-sorted-dict) (string, k) to, (string, v) to
 	pairs = ", " join for k, v-opt : a pairs
 		vs = if v ?= v-opt
 			"{v}"

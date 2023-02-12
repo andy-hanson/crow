@@ -1365,15 +1365,15 @@ ExprResult constantToGcc(ref ExprCtx ctx, ref ExprEmit emit, in LowType type, in
 		case LowExprKind.SpecialUnary.Kind.toNat64FromNat16:
 		case LowExprKind.SpecialUnary.Kind.toNat64FromNat32:
 		case LowExprKind.SpecialUnary.Kind.truncateToInt64FromFloat64:
-		case LowExprKind.SpecialUnary.Kind.unsafeInt32ToNat32:
-		case LowExprKind.SpecialUnary.Kind.unsafeInt64ToInt8:
-		case LowExprKind.SpecialUnary.Kind.unsafeInt64ToInt16:
-		case LowExprKind.SpecialUnary.Kind.unsafeInt64ToInt32:
-		case LowExprKind.SpecialUnary.Kind.unsafeInt64ToNat64:
-		case LowExprKind.SpecialUnary.Kind.unsafeNat64ToInt64:
-		case LowExprKind.SpecialUnary.Kind.unsafeNat64ToNat8:
-		case LowExprKind.SpecialUnary.Kind.unsafeNat64ToNat16:
-		case LowExprKind.SpecialUnary.Kind.unsafeNat64ToNat32:
+		case LowExprKind.SpecialUnary.Kind.unsafeToInt8FromInt64:
+		case LowExprKind.SpecialUnary.Kind.unsafeToInt16FromInt64:
+		case LowExprKind.SpecialUnary.Kind.unsafeToInt32FromInt64:
+		case LowExprKind.SpecialUnary.Kind.unsafeToInt64FromNat64:
+		case LowExprKind.SpecialUnary.Kind.unsafeToNat8FromNat64:
+		case LowExprKind.SpecialUnary.Kind.unsafeToNat16FromNat64:
+		case LowExprKind.SpecialUnary.Kind.unsafeToNat32FromInt32:
+		case LowExprKind.SpecialUnary.Kind.unsafeToNat32FromNat64:
+		case LowExprKind.SpecialUnary.Kind.unsafeToNat64FromInt64:
 			return emitSimpleNoSideEffects(ctx, emit, gcc_jit_context_new_cast(
 				ctx.gcc,
 				null,

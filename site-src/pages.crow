@@ -34,7 +34,7 @@ tutorial-pages path-and-content[]() summon
 	module: modules
 	extern: extern functions
 	next: where from here?"""
-	name symbol grammar = word map x => x string-to-symbol
+	name symbol grammar = word map x => x to
 	line tutorial-meta grammar = (name ~~ ": " ~~ "\n".text-not-containing) map pair =>
 		pair.a, pair.b
 	lines tutorial-meta[] grammar = line separated-by "\n\t"

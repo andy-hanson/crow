@@ -3,14 +3,14 @@ import
 	stdlib: free, malloc
 	string: memcpy, memset
 	../bits: ~, &
-	../bool: bool, false, not, to-nat64, true
+	../bool: bool, false, not, to, true
 	../compare: !=, <, <=, >, >=
 	../misc: new
 	../option: new, option
 	../pointer:
 		==, <=>, +, -, *, any-const-pointer, any-mut-pointer, as-any-const-pointer,
 		as-any-mut-pointer, as-const, as-ref, by-val, const-pointer, mut-pointer, null,
-		pointer-cast, set-deref, size-of, to-const-pointer, to-nat64
+		pointer-cast, set-deref, size-of, to-const-pointer, to
 	./bootstrap: hard-assert, hard-unreachable, lock, nat64, todo, void
 	./number-low-level: ==, <=>, nat8, unsafe-div, wrap-add, wrap-mul, wrap-sub
 	./range-low-level: .., high, low, range
@@ -45,7 +45,7 @@ mark bool(ctx mark-ctx, pointer-any any-const-pointer, size-bytes nat64) noctx, 
 		false
 
 -is-word-aligned bool(a any-mut-pointer) noctx, unsafe
-	a.to-nat64 & 7 == 0
+	a.to::nat64 & 7 == 0
 
 words-of-bytes nat64(size-bytes nat64) noctx
 	trusted size-bytes.round-up-to-multiple-of-8 unsafe-div 8
@@ -53,9 +53,9 @@ words-of-bytes nat64(size-bytes nat64) noctx
 round-up-to-multiple-of-8 nat64(n nat64) noctx
 	(n wrap-add 7) & ~7
 round-down-to-word nat64*(a nat8*) noctx, unsafe
-	a - (a.to-nat64 & 7) pointer-cast
+	a - (a.to & 7) pointer-cast
 round-up-to-word nat64*(a nat8*) noctx, unsafe
-	a.to-nat64.round-up-to-multiple-of-8 to-const-pointer
+	a.to.round-up-to-multiple-of-8 to-const-pointer
 
 mark-range bool(start bool mut*, end bool mut*) noctx, unsafe
 	cur mut = start
@@ -122,7 +122,7 @@ words-used-in-range nat64(acc nat64, cur bool mut*, end bool mut*) noctx, unsafe
 	if cur == end
 		acc
 	else
-		acc wrap-add cur->to-nat64 words-used-in-range cur + 1, end
+		acc wrap-add cur->to words-used-in-range cur + 1, end
 
 uninit gc by-val() noctx, unsafe
 	# TODO: handle malloc failure

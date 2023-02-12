@@ -10,7 +10,7 @@ import
 read-sound-file sound(path string) summon
 	trusted
 		info mut SF_INFO = ()
-		f = path.to-c-string sf_open SFM_READ, &info
+		f = path.to sf_open SFM_READ, &info
 		f common info
 
 sound-from-file-content sound(content nat8 array)
@@ -23,13 +23,13 @@ sound-from-file-content sound(content nat8 array)
 
 -common sound(f SNDFILE mut*, info SF_INFO) unsafe
 	f.sf_error check-sndfile-error
-	n-channels = info.channels to-nat64
-	sample-rate = info.samplerate to-nat64
+	n-channels nat64 = info.channels to
+	sample-rate nat64 = info.samplerate to
 	samples float32 mut[] = info.frames * n-channels uninitialized-mut-list
 	n-read = f sf_read_float samples.begin-pointer, samples.size
 	f.sf_close check-sndfile-error
 	assert n-read == samples.size
-	(n-channels, sample-rate), samples.move-to-array
+	(n-channels, sample-rate), samples.move-to
 
 -get_filelen sf_count_t(user-data-pointer any-mut-pointer) noctx, unsafe
 	a user-data = user-data-pointer as-ref

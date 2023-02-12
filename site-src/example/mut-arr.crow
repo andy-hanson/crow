@@ -7,7 +7,7 @@ main nat^(_ string[]) summon
 		out print "popped {popped}"
 	xs ~= "crow"
 	xs[1] := "crow"
-	a = xs move-to-list
+	a string[] = xs move-to
 	out print "{xs is-empty}"
 	out print (" " join a)
 	()

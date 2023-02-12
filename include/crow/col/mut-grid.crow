@@ -3,11 +3,11 @@ import
 	../bool: &&, bool
 	../compare: <
 	../fun-util: subscript
-	../json: json
-	../misc: void
+	../json: to
+	../misc: to, void
 	../number: +, *, ==, <=>, nat64
 	../range: .., iterate
-	../string: ==, ~~, literal, new, string, to-string
+	../string: ==, ~~, literal, new, string, to
 	../test-util: is
 	../tuple: new
 	./collection: build, for-loop, join, set-subscript, subscript, with-block
@@ -47,7 +47,7 @@ Coordinate in a grid.
 	a.x == b.x && a.y == b.y
 
 # `"<x, y>"`
-+to-string string(a coord)
++to string(a coord)
 	"<{a.x}, {a.y}>"
 
 # `true` if `coord` is a valid coordinate (within the width and height of the grid).
@@ -103,7 +103,7 @@ Each row will have a space in between columns.
 
 This makes no attempt to add padding to ensure columns line up. (TODO?)
 ###
-+to-string[t] string(a t mut-grid) t to-string
++to[t] string(a t mut-grid) (string, t) to
 	"\n" join for row : a rows
 		" " join for value : row
 			"{value}"
@@ -146,7 +146,7 @@ region spec impls (see collection.crow)
 
 test
 	a string mut-grid = 3 make 2, (x, y) => "{x}|{y}"
-	a.to-string is "0|0 1|0 2|0\n0|1 1|1 2|1"
+	a.to::string is "0|0 1|0 2|0\n0|1 1|1 2|1"
 
 	values = " " join for coord, value : a with-coords
 		"{coord}/{value}"

@@ -10,11 +10,9 @@ import
 	./bool: &&, bool, false, true
 	./compare: !=, <, >
 	./fun-util: subscript
-	./number: ==, <=>, +, int8, int16, int32, int64, nat8, nat16, nat32, nat64, new, to-int64, to-nat64
+	./number: ==, <=>, +, int8, int16, int32, int64, nat8, nat16, nat32, nat64, new, to
 	./private/bootstrap: todo
-	./private/number-low-level:
-		unsafe-mul, unsafe-to-int32, unsafe-to-int64, unsafe-to-nat8, unsafe-to-nat64,
-		unsafe-to-nat16, unsafe-to-nat32, wrap-sub
+	./private/number-low-level: unsafe-mul, unsafe-to, wrap-sub
 
 ###
 Negates every bit.
@@ -67,24 +65,24 @@ Does not rotate.
 ###
 +<< nat8(a nat8, b nat8) noctx
 	if b < 8
-		trusted a.to-nat64 unsafe-bit-shift-left b.to-nat64 unsafe-to-nat8
+		trusted a.to unsafe-bit-shift-left b.to unsafe-to
 +<< nat16(a nat16, b nat16) noctx
 	if b < 16
-		trusted a.to-nat64 unsafe-bit-shift-left b.to-nat64 unsafe-to-nat16
+		trusted a.to unsafe-bit-shift-left b.to unsafe-to
 +<< nat32(a nat32, b nat32) noctx
 	if b < 32
-		trusted a.to-nat64 unsafe-bit-shift-left b.to-nat64 unsafe-to-nat32
+		trusted a.to unsafe-bit-shift-left b.to unsafe-to
 +<< nat64(a nat64, b nat64) noctx
 	if b < 64
 		trusted a unsafe-bit-shift-left b
 +<< nat64(a nat64, b int64) noctx
 	if b < 0
 		if b > -64
-			a >> (trusted b unsafe-mul -1 unsafe-to-nat64)
+			a >> trusted b unsafe-mul -1 unsafe-to
 		else
 			0
 	else
-		a << (trusted b unsafe-to-nat64)
+		a << trusted b unsafe-to
 
 ###
 Shifts the bits of 'a' right by 'b' bits.
@@ -93,25 +91,25 @@ Does not rotate.
 ###
 +>> nat32(a nat32, b nat32) noctx
 	if b < 32
-		trusted a.to-nat64 unsafe-bit-shift-right b.to-nat64 unsafe-to-nat32
+		trusted a.to unsafe-bit-shift-right b.to unsafe-to
 +>> nat64(a nat64, b nat64) noctx
 	if b < 64
 		trusted a unsafe-bit-shift-right b
 +>> nat64(a nat64, b int64) noctx
 	if b < 0
 		if b > -64
-			a << (trusted b unsafe-mul -1 unsafe-to-nat64)
+			a << trusted b unsafe-mul -1 unsafe-to
 		else
 			0
 	else
-		a >> (trusted b unsafe-to-nat64)
+		a >> trusted b unsafe-to
 +>> int32(a int32, b int32) noctx
 	if a < 0
 		todo
 	elif b < 0
 		todo
 	elif b < 32
-		trusted a.unsafe-to-nat64 unsafe-bit-shift-right b.unsafe-to-nat64 unsafe-to-int32
+		trusted a.unsafe-to unsafe-bit-shift-right b.unsafe-to unsafe-to
 	else
 		todo
 
@@ -131,16 +129,6 @@ Does not rotate.
 
 unsafe-bit-shift-left nat64(a nat64, b nat64) builtin, noctx, unsafe
 unsafe-bit-shift-right nat64(a nat64, b nat64) builtin, noctx, unsafe
-
-# TODO:MOVE
--unsafe-to-nat64 nat64(a int32) noctx, unsafe
-	# TODO: breaking this local out to avoid a libgccjit bug
-	b = a.to-int64
-	b unsafe-to-nat64
--unsafe-to-int32 int32(a nat64) noctx, unsafe
-	# TODO: breaking this local out to avoid a libgccjit bug
-	b = a.unsafe-to-int64
-	b unsafe-to-int32
 
 ###
 Number with only the bit at `bit-index` set.
@@ -189,7 +177,7 @@ Concatenates two 32-bit numbers to a 64-bit number.
 `a` will be the high bits and `b` will be the low bits.
 ###
 bits-cat nat64(a nat32, b nat32)
-	a.to-nat64 << 32 | b.to-nat64
+	a.to << 32 | b.to
 
 # Number with the highest `n` bits set.
 high-n-bits nat64(n nat64)

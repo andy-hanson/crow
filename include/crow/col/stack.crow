@@ -2,14 +2,14 @@ no-std
 import
 	../bool: ||, bool, new, true, false
 	../fun-util: subscript
-	../json: json
+	../json: to
 	../number: ==, +, nat64
 	../option: ==, force, is-empty, new, option
 	../test-util: is
 	../tuple: a, b, new
 	./array: ~=, array, array-iterator, begin, build, end, next, prev
 	./collection: build, for-loop, reverse, with-block
-	./list: ==, ~=, build, iterate, list, new, to-list
+	./list: ==, ~=, build, iterate, list, new, to
 
 ###
 Immutable stack type.
@@ -28,21 +28,24 @@ Stack containing the given elements.
 The first element of `a` goes on the bottom and the last element of `a` goes on the top.
 ###
 +new[t] t stack(...a t array)
-	a.to-list to-stack
+	a to
 
 ###
 Stack containing the given elements.
 
 The first element of `a` goes on the bottom and the last element of `a` goes on the top.
 ###
-+to-stack[t] t stack(a t[])
++to[t] t stack(a t array)
+	a.to::t[] to
++to[t] t stack(a t[])
 	res mut t stack = ()::(t node?),
 	for x : a
 		res ~:= x
 	res
 
-# Copy elements a list.
-+to-list[t] t[](a t stack)
++to[t] t array(a t stack)
+	for x : a; x
++to[t] t[](a t stack)
 	for x : a; x
 
 # `true` iff `a.size == 0`.
@@ -105,7 +108,7 @@ iterate-reverse[t] bool(a t stack, f act bool(t))
 
 subregion iterator
 
-to-array-reverse[t] t array(a t stack)
+~to-array-reverse[t] t array(a t stack)
 	with out : a.size build
 		broke = a iterate-reverse x =>
 			out ~= x
@@ -131,26 +134,26 @@ to-array-reverse[t] t array(a t stack)
 test
 	a nat64 stack = ()
 	assert a is-empty
-	a.to-list is ()
+	a.to::nat64[] is ()
 	a.peek is ()
 
 	b = a ~ 1
-	b.to-list is (1,)
+	b.to::nat64[] is (1,)
 	b.peek is (1,)
 	b-popped = b.pop!
-	b.pop!.a.to-list is ()
+	b.pop!.a.to::nat64[] is ()
 	b-popped.b is 1
 	forbid b is-empty
 
 	c = b ~ 2
-	c.to-list is (1, 2)
+	c.to::nat64[] is (1, 2)
 	c.peek is (2,)
 	c-popped = c.pop!
-	c-popped.a.to-list is (1,)
+	c-popped.a.to::nat64[] is (1,)
 	c-popped.b is 2
 
 	d = c ~ 3
-	d.to-list is (1, 2, 3)
+	d.to::nat64[] is (1, 2, 3)
 
 	(for x : d; x)::nat64[] is (1, 2, 3)
 

@@ -4,7 +4,7 @@ import
 	crow/bool: bool
 	crow/c-types: c-char, c-int, err-t, long, u-short, u-int, size_t
 	crow/misc: void
-	crow/number: int64, max-nat64, nat8, nat16, nat32, nat64, new, to-nat16, to-nat32
+	crow/number: int64, max-value, nat8, nat16, nat32, nat64, new, to
 	crow/private/bootstrap: c-string
 	crow/pointer:
 		*, any-const-pointer, any-mut-pointer, const-pointer, mut-pointer, new, pointer-cast,
@@ -90,7 +90,7 @@ HANDLE alias
 	any-mut-pointer
 
 INVALID_HANDLE_VALUE HANDLE() noctx, unsafe
-	max-nat64 to-mut-pointer
+	max-value to-mut-pointer
 
 WaitForSingleObject DWORD(handle HANDLE, milliseconds DWORD) kernel32 extern, summon
 
@@ -225,7 +225,7 @@ SUBLANG_NEUTRAL WORD()
 	0
 
 MAKELANGID DWORD(p WORD, s WORD) noctx
-	(s.to-nat32 << 10) | p.to-nat32
+	(s.to << 10) | p.to
 
 STARTUPINFOA record mut extern
 	cb DWORD
@@ -259,7 +259,7 @@ startup-flags enum(DWORD) extern
 	STARTF_USESTDHANDLES = 0x100
 
 new STARTUPINFOA(dwFlags startup-flags, hStdInput HANDLE, hStdOutput HANDLE, hStdError HANDLE) noctx, unsafe
-	size = size-of@STARTUPINFOA to-nat32
+	size DWORD = size-of@STARTUPINFOA to
 	size, (), (), (), (), (), (), (), (), (), (), dwFlags, (), (), (), hStdInput, hStdOutput, hStdError
 
 SECURITY_ATTRIBUTES record mut extern
@@ -269,7 +269,7 @@ SECURITY_ATTRIBUTES record mut extern
 
 new SECURITY_ATTRIBUTES(lpSecurityDescriptor any-mut-pointer, bInheritHandle bool) noctx, unsafe
 	# TODO: shouldn't need parens
-	(size-of@SECURITY_ATTRIBUTES).to-nat32, lpSecurityDescriptor, bInheritHandle ? 1 : 0
+	(size-of@SECURITY_ATTRIBUTES).to, lpSecurityDescriptor, bInheritHandle ? 1 : 0
 
 PROCESS_INFORMATION record mut extern
 	hProcess HANDLE
@@ -329,7 +329,7 @@ ReadFile bool(
 ) kernel32 extern, summon
 
 MAKEWORD WORD(a nat8, b nat8)
-	(a.to-nat16 | (b.to-nat16 << 8))
+	(a.to | (b.to << 8))
 
 WSAStartup c-int(wVersionRequested WORD, lpWSAData WSADATA mut*) kernel32 extern, summon
 

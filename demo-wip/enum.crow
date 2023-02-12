@@ -7,32 +7,20 @@ main nat^(_ string[]) summon
 	_ = "hop"::symbol
 	_ = "pop"::symbol
 
-	fosho = "fosho" string-to-symbol
-	out print fosho.to-string
+	fosho symbol = "fosho" to
+	out print "{fosho}"
 
 	for s : static-symbols
-		out print s.to-string
+		out print "{s}"
 
-	out print (fosho == "fosho".string-to-symbol).to-string
-	out print (fosho == "foshoe".string-to-symbol).to-string
+	out print "{fosho == "fosho".to}"
+	out print "{fosho == "foshoe".to}"
 
-	#enum-members each m =>
-	#	out print "{m name} = {m.val to-symbol}"
-
-	#f0 = a
-	#f1 = b
-	#f2 = c
-	#f02 = f0 | f2
-	#fnot = ~f02
-	#print: fnot.to-nat8.to-string
+	for m : enum-members::(e named-val array)
+		out print "{m name} = {m val}"
 	()
 
 e enum(nat8)
 	x = 1
 	y = 2
 	z = 3
-
-#f flags<nat8>
-#	a
-#	b
-#	c

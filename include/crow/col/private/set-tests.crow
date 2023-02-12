@@ -2,13 +2,13 @@ no-std
 import
 	../../bool: ==, false, true
 	../../hash: hash-mix
-	../../json: json
+	../../json: to
 	../../misc: void
 	../../number: ==, <=>, nat64
-	../../string: ==, literal, string, to-string
+	../../string: ==, literal, string, to
 	../../test-util: is
-	../list: ==, new
-	../set: ~, ~~, dbg, in, is-empty, new, set, size, to-list
+	../list: ==, list, new
+	../set: ~, ~~, dbg, in, is-empty, new, set, size, to
 
 dummy-set-tests nat64()
 	0
@@ -25,7 +25,7 @@ test
 	b = a ~ 5
 	b.is-empty is false
 	b.size is 1
-	b.to-list is (5,)
+	b.to::nat64[] is (5,)
 	b verify "[5]"
 
 	c = b ~~ (6, 4, 1)

@@ -1,7 +1,7 @@
 import
 	crow/private/thread-utils: acquire, init, lock, release, uninit
 	./audio: new, playing-sound
-	./sound: ==, format, new, samples, sound, sound-format, to-string
+	./sound: ==, format, new, samples, sound, sound-format, to
 
 audio-queue record force-shared by-ref
 	format sound-format
@@ -118,13 +118,13 @@ test
 	sound sound = format, (1, 2, 3, 4, 5, 6, 7, 8)
 	buf float32 mut-array = 0, 0, 0
 	a pull buf
-	buf.to-array is (0, 0, 0)
+	buf.to::float32[] is (0, 0, 0)
 	_ = a play sound
 	a pull buf
-	buf.to-array is (1, 2, 3)
+	buf.to::float32[] is (1, 2, 3)
 	a pull buf
-	buf.to-array is (4, 5, 6)
+	buf.to::float32[] is (4, 5, 6)
 	a pull buf
-	buf.to-array is (7, 8, 0)
+	buf.to::float32[] is (7, 8, 0)
 	a pull buf
-	buf.to-array is (0, 0, 0)
+	buf.to::float32[] is (0, 0, 0)

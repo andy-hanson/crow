@@ -4,6 +4,5 @@ import
 
 main nat^(_ string[]) summon
 	s = safe-value::act nat(string)
-	out print s["hello"].to-string
+	out print "{s["hello"]}"
 	()
-

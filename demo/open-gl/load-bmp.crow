@@ -9,11 +9,11 @@ rgba-image record mut
 	height nat64
 
 with-bmp[t] t(src nat8[], cb act t(rgba-image)) summon, unsafe
-	src-array = src to-array
-	surface = src-array.begin-pointer SDL_RWFromConstMem src-array.size.to-int32 SDL_LoadBMP_RW 0
+	src-array nat8 array = src to
+	surface = src-array.begin-pointer SDL_RWFromConstMem src-array.size.to SDL_LoadBMP_RW 0
 	converted = surface SDL_ConvertSurfaceFormat SDL_PIXELFORMAT_RGBA32, 0
 	surface SDL_FreeSurface
-	image rgba-image = converted->pixels, converted->w.to-nat64, converted->h.to-nat64
+	image rgba-image = converted->pixels, converted->w.to, converted->h.to
 	res = cb[image]
 	converted SDL_FreeSurface
 	res

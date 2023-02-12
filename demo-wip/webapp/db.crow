@@ -1,6 +1,6 @@
 import
 	crow/crypto/experimental/login-cookie:
-		cookie, cookie-matches, from-bytes, generate-login-cookie, login-cookie, to-bytes, to-string
+		cookie, cookie-matches, from-bytes, generate-login-cookie, login-cookie, to, to-bytes
 	crow/crypto/password-hash: password-hash, password-matches-hash, quality-moderate
 	crow/io/print: err, out, print
 	crow/parse: ~~, grammar, map, nat
@@ -29,10 +29,10 @@ main nat^(_ string[]) summon
 
 		out print "users:"
 		for user : db list-users
-			out print user.to-string
+			out print "{user}"
 		out print "posts:"
 		for post : db list-posts
-			out print post.to-string
+			out print "{post}"
 		()
 
 user alias
@@ -42,7 +42,7 @@ user-info record
 	user user
 	user-name string
 
-to-string string(a user-info)
+to string(a user-info)
 	"user {a user}: {a user-name}"
 
 post alias
@@ -54,7 +54,7 @@ post-info record
 	user-name string
 	content string
 
-to-string string(a post-info)
+to string(a post-info)
 	"post {a post}: {a user-name} (user {a user}) says: {a content}"
 
 user-cookie record
@@ -65,7 +65,7 @@ user-cookie user-cookie grammar()
 	nat ~~ "|" ~~ login-cookie map (user, cookie) => 
 		user, cookie
 
-to-string string(a user-cookie)
+to string(a user-cookie)
 	"{a user}|{a inner}"
 
 db record mut

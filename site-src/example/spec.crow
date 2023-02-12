@@ -1,6 +1,6 @@
 import
 	crow/io/print: out, print
-	crow/math/vec: +, new, to-string, vec2-64
+	crow/math/vec: +, new, to, vec2-64
 
 main nat^(_ string[]) summon
 	nats nat[] = 0, 1
@@ -9,12 +9,12 @@ main nat^(_ string[]) summon
 	out print "vecs sum: {vecs sum}"
 	()
 
-add<a> spec
-	new a()
-	+ a(a a, b a)
+add[t] spec
+	new t()
+	+ t(a t, b t)
 
-sum<a> a(xs a[]) add<a>
-	acc mut a = ()
+sum[t] t(xs t[]) t add
+	acc mut t = ()
 	for x : xs
 		acc +:= x
 	acc

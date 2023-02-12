@@ -7,24 +7,23 @@ import
 	../../col/array: +, -, array, begin, begin-pointer, end, is-empty, iterate, size, slice
 	../../col/collection:
 		.., -, contains, end, for-loop, index-of, join, split, subscript, try-remove-end
-	../../col/dict: in, iterate, size, to-dict
-	../../col/list:
-		~~, ~=, +, -, begin, build, end, is-empty, iterate, list, next, size, slice, to-array
+	../../col/dict: in, iterate, size, to
+	../../col/list: ~~, ~=, +, -, begin, build, end, is-empty, iterate, list, next, size, slice, to
 	../../col/mut-dict: mut-dict, new, try-remove, set-subscript, subscript
-	../../col/mut-list: ~=, ~~=, iterate, move-to-list, mut-list, new, pop-n-from-start, size
+	../../col/mut-list: ~=, ~~=, iterate, move-to, mut-list, new, pop-n-from-start, size
 	../../compare: <=, >
 	../../enum-util: to-enum
-	../../exception: to-string
+	../../exception: to
 	../../future: delay, future, future-catch, future-finally, new, subscript, then, with-block
 	../../hash: hash-mix
 	../../log: error, log, warn
 	../../misc: new, shared, void
-	../../number: ==, <=>, +, nat8, nat64, to-int64, to-nat64
+	../../number: ==, <=>, +, nat8, nat64, to
 	../../option: ??, new, option
 	../../parse: nat, parse
 	../../string:
-		==, <=>, ~~, as-string, begin, end, hash-mix, is-empty, iterate, literal, new, next, prev,
-		slice, string, to-bytes, to-c-string, to-nat8, to-string
+		==, <=>, ~~, as-string, begin, char8, end, hash-mix, is-empty, iterate, literal, new, next,
+		prev, slice, string, to-bytes, to
 	../../tuple: new
 	../../private/bootstrap: todo
 	./http-types:
@@ -86,7 +85,7 @@ Starts running an HTTP server. Stops it when `cb` returns.
 		as ok o
 			o
 		as err e
-			error log e.to-string
+			error log "{e}"
 			http-internal-server-error
 		<- sock write-until-finished response.response-to-array
 		sock close-client
@@ -97,7 +96,7 @@ Starts running an HTTP server. Stops it when `cb` returns.
 -write-until-finished void^(sock SOCKET, content nat8 array) unsafe
 	unless content is-empty
 		wrote = sock.as-fd write content.begin-pointer, content.size
-		unless wrote == content.size.to-int64
+		unless wrote == content.size.to
 			if wrote == -1
 				err = errno
 				assert err == EAGAIN : "can't write to socket, errno {err}"
@@ -106,10 +105,10 @@ Starts running an HTTP server. Stops it when `cb` returns.
 			else
 				assert wrote > 0
 				<- delay
-				sock write-until-finished content[wrote.to-nat64 .. end]
+				sock write-until-finished content[wrote.to .. end]
 
 -finish-request http-request(state http-parse-state)
-	state.method, state.url, state.headers.move-to-list.to-dict, state.unparsed.move-to-list
+	state.method, state.url, state.headers.move-to::(string, string)[].to, state.unparsed.move-to
 
 -response-to-array nat8 array(a http-response)
 	forbid a.status-desc contains "\n"
@@ -121,9 +120,9 @@ Starts running an HTTP server. Stops it when `cb` returns.
 		"\r\n{k}: {v}"
 	head = "HTTP/1.1 {a status} \r\n{a status-desc}{headers}"
 	if a.response-body is-empty
-		"{head}\r\n\r\n".to-bytes to-array
+		"{head}\r\n\r\n" to-bytes
 	else
-		"{head}\r\nContent-Length:{a.response-body size}\r\n\r\n".to-bytes ~~ a.response-body to-array
+		"{head}\r\nContent-Length:{a.response-body size}\r\n\r\n".to-bytes ~~ a.response-body to
 
 # returns true if ready to call handler
 -handle-http-initial bool(state http-parse-state)
@@ -158,7 +157,7 @@ Starts running an HTTP server. Stops it when `cb` returns.
 			break false
 
 -try-take-first-line string?(a nat8 mut[])
-	if index ?= a index-of "\n".to-nat8
+	if index ?= a index-of "\n"::char8.to
 		bytes = (a pop-n-from-start index + 1)[0 .. end - 1]
 		line = bytes as-string
 		(line try-remove-end "\r" ?? line),

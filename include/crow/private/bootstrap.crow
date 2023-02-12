@@ -122,9 +122,6 @@ Thus, all operations on `c-string` are unsafe.
 +c-string alias
 	char8*
 
-+to-char8 char8(a nat8) builtin, noctx
-+to-nat8 nat8(c char8) builtin, noctx
-
 region bool.crow
 
 ###
@@ -151,7 +148,7 @@ region symbol.crow
 new-symbol symbol(a c-string) noctx, unsafe
 	a,
 
-to-c-string c-string(a symbol) noctx, unsafe
+to c-string(a symbol) noctx, unsafe
 	a symbol-to-c-string
 
 region bootstrap arithmetic

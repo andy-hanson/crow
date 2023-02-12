@@ -4,7 +4,7 @@ import
 	../../compare: <=
 	../../fun-util: subscript
 	../../hash: hash, hash-mix
-	../../json: json
+	../../json: to
 	../../misc: key, new, void
 	../../number: ==, <=>, +, -, /, %, nat64
 	../../option: ==, is-empty, new, option
@@ -21,8 +21,8 @@ import
 		with-index
 	../mut-array:
 		~=, +, begin-pointer, begin, build, cast-immutable, end-pointer, iterate, mut-array,
-		mut-array-builder, next, set-next, size, temp-as-array, to-mut-array
-	../list: ==, ~=, build, list, new, to-array, to-list
+		mut-array-builder, next, set-next, size, temp-as-array
+	../list: ==, ~=, build, list, new, to
 
 ###
 Immutable dictionary that is not efficient to update.
@@ -33,18 +33,16 @@ frozen-dict[k, v] record by-val
 	-bucket-starts (k, v)* array
 
 new[k, v] (k, v) frozen-dict(...a (k, v) array) k key
-	a.to-list to-frozen-dict
+	a.to to
 
-to-frozen-dict[k, v] (k, v) frozen-dict(a (k, v)[]) k key
-	trusted a.to-array.to-mut-array as-frozen-dict
+to[k, v] (k, v) frozen-dict(a (k, v)[]) k key
+	trusted a.to as-frozen-dict
 
 # This is O(1).
-to-array[k, v] (k, v) array(a (k, v) frozen-dict) noctx
+to[k, v] (k, v) array(a (k, v) frozen-dict) noctx
 	a pairs
-
-# This is O(1).
-to-list[k, v] (k, v)[](a (k, v) frozen-dict) noctx
-	a.to-array to-list
+to[k, v] (k, v)[](a (k, v) frozen-dict) noctx
+	a.to::((k, v) array) to
 
 # TODO:INTERNAL
 begin-pointer[k, v] (k, v)*(a (k, v) frozen-dict) unsafe

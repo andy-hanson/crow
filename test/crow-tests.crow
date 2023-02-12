@@ -22,7 +22,7 @@ run-crow-tests test-result^(path string, path-to-crow string, options test-optio
 	path each-child-recursive child =>
 		if child contains-seq match-test && child.ext-is-crow && !child.is-excluded
 			res ~= child
-	res move-to-list
+	res move-to
 
 # Some tests have different output on Windows
 -is-excluded bool(a string)

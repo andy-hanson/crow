@@ -12,7 +12,7 @@ import
 	../compare: <=
 	../misc: new, void
 	../option: new, option
-	../private/number-low-level: ==, <=>, nat8, nat32, nat64, unsafe-to-nat32, wrap-add, wrap-sub
+	../private/number-low-level: ==, <=>, nat8, nat32, nat64, unsafe-to, wrap-add, wrap-sub
 	../pointer:
 		==, <=>, +, *, as-any-const-pointer, as-const, mut-pointer, null, pointer-cast, set-deref,
 		size-of
@@ -111,7 +111,7 @@ Result entries are temporary, must copy!
 			symbol-size = size-of@IMAGEHLP_SYMBOL64 wrap-add symbol-max-name-length wrap-add 1
 			if symbol-buffer ?= (gc try-alloc-uninitialized symbol-size) :: nat8 mut*?
 				symbol IMAGEHLP_SYMBOL64 mut* = symbol-buffer pointer-cast
-				*symbol := symbol-max-name-length.unsafe-to-nat32,
+				*symbol := symbol-max-name-length.unsafe-to,
 				if line ?= gc.try-alloc-uninitialized :: IMAGEHLP_LINE64 mut*?
 					*line := ()
 					(offset, displacement, symbol, line),

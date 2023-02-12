@@ -5,10 +5,9 @@ import
 	../number: nat64
 	../option: option
 	./collection: iterate
+	./array: array
 	./list: list
-	./mut-list:
-		~=, ~~=, copy, filter=, is-empty, iterate, mut-list, new, peek, pop, size, to-list,
-		to-mut-list
+	./mut-list: ~=, ~~=, copy, filter=, is-empty, iterate, mut-list, peek, pop, size, to
 
 ###
 Mutable stack.
@@ -19,21 +18,17 @@ Iteration functions move from the bottom to the top.
 +mut-stack[t] record mut
 	-inner t mut[]
 
-# New empty stack.
-+new[t] t mut-stack()
-	(),
++new[t] t mut-stack(...a t array)
+	a.to,
 
-# Copy elements to a new stack.
 +copy[t] t mut-stack(a t mut-stack)
 	a.inner.copy,
 
-# Copy elements to a new stack.
-+to-mut-stack[t] t mut-stack(a t[])
-	a.to-mut-list,
++to[t] t mut-stack(a t[])
+	a.to,
 
-# Copy elements to a list.
-+to-list[t] t[](a t mut-stack)
-	a.inner to-list
++to[t] t[](a t mut-stack)
+	a.inner to
 
 # True iff `a.size == 0`.
 +is-empty[t] bool(a t mut-stack)

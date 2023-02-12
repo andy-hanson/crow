@@ -6,12 +6,12 @@ import
 	../fun-util: subscript
 	../future: delay, future, handle-exceptions, then
 	../misc: void
-	../number: ==, <=>, +, -, int32, nat64, to-int32, to-int64, to-nat64
+	../number: ==, <=>, +, -, int32, nat64, to
 	../pointer:
 		+, any-mut-pointer, as-any-mut-pointer, as-const, as-ref, by-val, const-pointer, mut-pointer, null,
 		set-deref, set-subscript, subscript
 	../range: ..
-	../string: c-string, string, to-string
+	../string: c-string, string, to
 	./alloc: unmanaged-alloc-elements, unmanaged-free
 	./future-low-level: get-result
 	./runtime:
@@ -43,7 +43,7 @@ rt-main int32(argc int32, argv c-string*, main-pointer main-pointer) noctx, summ
 		if gctx any-unhandled-exceptions
 			1
 		else
-			v.to-int64 to-int32
+			v to
 	as err _
 		# 'handle-exceptions' should have logged the error
 		1
@@ -63,7 +63,7 @@ init-constants void() builtin, noctx, summon, unsafe
 	# Create a ctx manually so we can call functions that need it when creating the task
 	trusted
 		gctx before-task 0
-		all-args = argv[0 .. argc.to-int64.to-nat64]
+		all-args = argv[0 .. argc.to]
 		res = all-args invoke-main main-pointer
 		after-task
 		res
@@ -84,7 +84,7 @@ init-constants void() builtin, noctx, summon, unsafe
 	res nat64^ = delay then () =>
 		get-global-ctx init-symbol-table
 		# First argument is the path to this executable; omit from crow main
-		main-pointer[for arg : all-args[1 .. end]; arg to-string]
+		main-pointer[for arg : all-args[1 .. end]; arg to]
 	res handle-exceptions
 	res
 

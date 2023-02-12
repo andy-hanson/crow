@@ -6,24 +6,24 @@ import
 	./col/collection:
 		build-options, drop-right-while, drop-while, for-loop, join, split, strip-right, try-split-once
 	./col/list:
-		==, <=>, ~=, ~, ~~, ~~=, +, -, as-list, begin, build, collection, end, is-empty, iterate,
-		list, list-builder, list-cast, list-iterator, new, next, next-index, prev, size, slice,
-		to-array, to-list
-	./col/mut-list: copy, move-to-list, to-mut-list
+		==, <=>, ~=, ~, ~~, ~~=, +, -, begin, build, collection, end, is-empty, iterate,
+		list, list-builder, list-cast, list-iterator, new, next, next-index, prev, size, slice, to
+	./col/mut-list: copy, move-to, mut-list, to
 	./fun-util: subscript
 	./hash: hasher, hash-mix
 	./misc: void
 	./number:
-		==, <=>, +, *, /, %, abs, float64, float32, int8, int16, int32, int64, is-nan, min-int64,
-		nat8, nat16, nat32, nat64, to-float64, to-int64, to-nat64, truncate-to-int64
+		==, <=>, +, *, /, %, abs, float64, float32, int8, int16, int32, int64, is-nan, min-value,
+		nat8, nat16, nat32, nat64, to, truncate-to
 	./option: new, option
 	./pointer: ==, <=>, const-pointer
-	./private/c-string-util: find-c-string-end
 	./private/number-low-level: wrap-sub
 	./range: .., range
 	./tuple: new
 export
-	./private/bootstrap: char8, c-string, to-char8, to-nat8
+	# TODO: don't export find-c-string-end
+	./private/c-string-util: find-c-string-end, to
+	./private/bootstrap: char8, c-string
 
 ###
 Strings are optimized for fast concatenation and splitting.
@@ -32,11 +32,13 @@ They don't support efficient access by index, so use iterators instead.
 +string record by-val
 	-inner char8[]
 
-+char8s char8[](a string) noctx
++to char8 array(a string)
+	a.inner to
++to char8[](a string) noctx
 	a inner
 
 +literal string(a c-string) noctx
-	trusted (a .. a.find-c-string-end).as-list as-string
+	trusted a .. a.find-c-string-end as-string
 
 ###
 Concatenate two strings.
@@ -62,18 +64,18 @@ If you need to concatenate many strings, consider using the `crow/writer` module
 +== bool(a string, b string)
 	a.inner == b.inner
 +== bool(a char8, b char8) noctx
-	a.to-nat8 == b.to-nat8
+	a.to::nat8 == b.to
 
 +<=> comparison(a string, b string)
 	a.inner <=> b.inner
 +<=> comparison(a char8, b char8) noctx
-	a.to-nat8 <=> b.to-nat8
+	a.to::nat8 <=> b.to
 
 +hash-mix void(hasher hasher, a string)
-	for c : a char8s
+	for c : a inner
 		hasher hash-mix c
 +hash-mix void(hasher hasher, a char8)
-	hasher hash-mix a.to-nat8.to-nat64
+	hasher hash-mix a.to::nat8.to::nat64
 
 region conversion
 
@@ -84,7 +86,7 @@ This is O(1).
 +as-string string(a char8[]) noctx
 	a,
 as-string string(a char8 array) noctx
-	a.to-list as-string
+	a.to::char8[] as-string
 as-string string(a char8* range) noctx, unsafe
 	a.as-array as-string
 
@@ -95,14 +97,22 @@ This is O(1).
 +as-string string(bytes nat8[])
 	trusted bytes.list-cast::char8[] as-string
 as-string string(bytes nat8 array)
-	bytes.to-list as-string
+	bytes.to::nat8[] as-string
+
++to nat64(a char8) noctx
+	a.to::nat8 to
 
 ###
 Treats a string as a list of UTF-8 bytes.
 This is O(1).
 ###
 +to-bytes nat8[](a string)
-	trusted a.char8s list-cast
+	trusted a.inner list-cast
++to-bytes nat8 array(a string)
+	a.to-bytes to
+
++to nat8 array(a string)
+	a to-bytes
 
 # TODO: this should probably be 'unsafe', but safe functions like "throw" need a c-string
 ###
@@ -112,8 +122,8 @@ This is O(n).
 WARN: The resulting string is allocated from GC memory but isn't traced by the garbage collector,
 so it may be freed after the current task.
 ###
-+to-c-string c-string(a string)
-	(a.char8s ~ "\0").to-array begin-pointer
++to c-string(a string)
+	(a.inner ~ "\0")::char8[].to begin-pointer
 
 ###
 Treats a c-string as a string by walking to the end.
@@ -121,26 +131,26 @@ This copies the memory, so the result is safe to use immutably.
 
 Unsafe because `a` must end in a `"\0"` character somewhere.
 ###
-+to-string string(a c-string) unsafe
-	# TODO: 'copy' seems unnecessary since 'to-mut-list' should do that?
-	a.literal.char8s.to-mut-list.copy.move-to-list as-string
++to string(a c-string) unsafe
+	# TODO: 'copy' seems unnecessary since 'to' should do that?
+	a.literal.inner.to.copy.move-to
 
 # `"true"` or `"false"`.
-+to-string string(b bool) noctx
-	if b
++to string(a bool) noctx
+	if a
 		"true"
 	else
 		"false"
 
 # String containing a single character.
-+to-string string(c char8)
-	(c,)::char8[] as-string
++to string(a char8)
+	(a,)::char8[] as-string
 
 ###
 Converts a nat64 to a string.
 Result is only digits, no punctuation.
 ###
-+to-string string(a nat64)
++to string(a nat64)
 	a to-base 10
 
 -digit-to-string string(a nat64)
@@ -193,45 +203,40 @@ Result is only digits, no punctuation.
 	else
 		(a / base to-base base) ~~ (a % base).digit-to-string
 -to-base string(a nat8, base nat64)
-	a.to-nat64 to-base base
+	a.to::nat64 to-base base
 
-# Spec of any type that could be converted to a string.
-+to-string[t] spec
-	to-string string(a t)
-
-# Identity function to satisfy the `to-string` spec.
-+to-string string(a string)
++to string(a string)
 	a
 
-+to-string string(a nat8)
-	a.to-nat64 to-string
++to string(a nat8)
+	a.to::nat64 to
 
-+to-string string(a nat16)
-	a.to-nat64 to-string
++to string(a nat16)
+	a.to::nat64 to
 
-+to-string string(a nat32)
-	a.to-nat64 to-string
++to string(a nat32)
+	a.to::nat64 to
 
-+to-string string(a int8)
-	a.to-int64 to-string
++to string(a int8)
+	a.to::int64 to
 
-+to-string string(a int16)
-	a.to-int64 to-string
++to string(a int16)
+	a.to::int64 to
 
-+to-string string(a int32)
-	a.to-int64 to-string
++to string(a int32)
+	a.to::int64 to
 
-+to-string string(a int64)
-	if a == min-int64
++to string(a int64)
+	if a == min-value
 		"-9223372036854775808"
 	else
-		s = a.abs to-string
+		s = "{a abs}"
 		a < 0 ? "-{s}" : s
 
-+to-string string(a float32)
-	a.to-float64 to-string
++to string(a float32)
+	a.to::float64 to
 
-+to-string string(a float64)
++to string(a float64)
 	if a is-nan
 		"NaN"
 	else
@@ -243,7 +248,7 @@ Result is only digits, no punctuation.
 
 -to-string-positive string(a float64)
 	# TODO: Use a real float to string algorithm
-	times-1000 = (a * 1000.0).truncate-to-int64
+	times-1000 int64 = a * 1000.0 truncate-to
 	thousandths = times-1000 % 1000
 	whole-part = "{times-1000 / 1000}"
 	hundredths = thousandths / 10
@@ -256,10 +261,13 @@ Result is only digits, no punctuation.
 	else
 		"{whole-part}.{d0}{d1}{d2}" strip-right "0"
 
++move-to string(a char8 mut[])
+	a.move-to::(char8 array) as-string
+
 region spec impls (see collection.crow)
 
 +iterate bool(a string, f act bool(char8))
-	a.char8s iterate f
+	a.inner iterate f
 
 +string-iterator record by-val
 	-inner char8 list-iterator
@@ -270,10 +278,10 @@ region spec impls (see collection.crow)
 	a.inner <=> b.inner
 
 +begin string-iterator(a string) noctx
-	a.char8s.begin,
+	a.inner.begin,
 
 +end string-iterator(a string) noctx
-	a.char8s.end,
+	a.inner.end,
 
 +collection string(a string-iterator) noctx
 	a.inner.collection,
@@ -302,40 +310,39 @@ region spec impls (see collection.crow)
 +string-builder record mut
 	-inner char8 list-builder
 +build string(a build-options, f act void(string-builder))
-	inner char8[] = a build out => f[out,]
-	inner as-string
+	(a build out => f[out,])::char8[] as-string
 +~= void(a string-builder, c char8)
 	a.inner ~= c
 +~~= void(a string-builder, s string)
-	a.inner ~~= s.char8s
+	a.inner ~~= s.inner
 
 region utilities
 
 +lines string[](a string)
 	# TODO:PERF should be better (or at least just as good) with just `a split "\n"`
-	arr = a.char8s to-array
+	arr char8 array = a to
 	for x : arr split ("\n",)
 		x as-string
 
 # Lower cases every character in `a`.
 +lower-case string(a string)
-	(for x : a char8s; x lower-case-char)::char8[] as-string
+	for x : a inner; x lower-case-char
 
 -lower-case-char char8(a char8) noctx
-	diff = a.to-nat8 wrap-sub "A".to-nat8
+	diff = a.to::nat8 wrap-sub "A"::char8.to
 	if diff < 26
-		"a".to-nat8 + diff to-char8
+		"a"::char8.to + diff to
 	else
 		a
 
 # Capitalizes every character in `a`.
 +upper-case string(a string)
-	(for x : a char8s; x upper-case-char)::char8[] as-string
+	for x : a inner; x upper-case-char
 
 -upper-case-char char8(a char8) noctx
-	diff = a.to-nat8 wrap-sub "a".to-nat8
+	diff = a.to::nat8 wrap-sub "a"::char8.to
 	if diff < 26
-		"A".to-nat8 + diff to-char8
+		"A"::char8.to + diff to
 	else
 		a
 
@@ -353,11 +360,11 @@ region utilities
 
 # Strips whitespace from the front.
 +strip-left string(a string)
-	(a.char8s drop-while x => x is-whitespace)::char8[] as-string
+	a drop-while x => x is-whitespace
 
 # Strips whitespace from the end.
 +strip-right string(a string)
-	a.char8s drop-right-while (x => x is-whitespace) as-string
+	a drop-right-while x => x is-whitespace
 
 +is-whitespace bool(a char8)
 	a == " " || a == "\r" || a == "\n" || a == "\t"
@@ -367,7 +374,7 @@ region utilities
 
 # Enclose a string in quotes and escape special characters.
 +quote string(a string)
-	inner string[] = for x : a char8s
+	inner string[] = for x : a inner
 		if x == "\""
 			"\\\""
 		elif x == "\n"
@@ -379,8 +386,7 @@ region utilities
 		elif x == "\\"
 			"\\\\"
 		else
-			# TODO: "{x}"
-			(x,)::char8[] as-string
+			"{x}"
 	# TODO: "\"{inner}\""
 	"\"" ~~ ("" join inner) ~~ "\""
 

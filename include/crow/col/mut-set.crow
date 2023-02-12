@@ -8,13 +8,11 @@ import
 	./array: array, iterate, size
 	./collection: for-loop
 	./list: ~=, build, iterate, list, size
-	./mut-dict: ~=, clear, iterate, move-to-list, mut-dict, in, try-remove, to-mut-dict
-	./set: iterate, set, to-set
+	./mut-dict: ~=, clear, iterate, move-to, mut-dict, in, to, try-remove
+	./set: iterate, set, to
 
 ###
 Mutable unordered set.
-
-This is unordered, so functions like `to-array` and `each` provide elements in arbitrary order.
 ###
 +mut-set[t] record mut
 	-inner void mut[t]
@@ -23,10 +21,10 @@ This is unordered, so functions like `to-array` and `each` provide elements in a
 +new[t] t mut-set(...a t array) t key
 	pairs (t, void)[] = for x : a; (x, ())
 	# TODO: build the mut-dict directly
-	pairs.to-mut-dict,
+	pairs.to,
 
 # Copies an immutable set to a mutable set.
-+to-mut-set[t] t mut-set(a t set) t key
++to[t] t mut-set(a t set) t key
 	res t mut-set = ()
 	for x : a
 		res ~= x
@@ -37,13 +35,13 @@ This is unordered, so functions like `to-array` and `each` provide elements in a
 	a.inner clear
 
 # Copies elements to a list, and clears the `a`.
-+move-to-list[t] t[](a t mut-set) t key
-	for x : a.inner move-to-list
++move-to[t] t[](a t mut-set) t key
+	for x : a.inner.move-to::(t, void)[]
 		x a
 
 # Copies elements to an immuttable set, and clears `a`.
-+move-to-set[t] t set(a t mut-set) t key
-	a.move-to-list to-set
++move-to[t] t set(a t mut-set) t key
+	a.move-to::t[] to
 
 ###
 Adds an element to the set.

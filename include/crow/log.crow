@@ -4,7 +4,7 @@ import
 	./io/print: out, print
 	./misc: new, void
 	./pointer: *, mut-pointer, set-deref
-	./string: ~~, literal, string
+	./string: ~~, literal, string, to
 	./private/exception-low-level: catch, rethrow
 
 ###
@@ -56,8 +56,8 @@ The default log handler just prints the level at the beginning of each log.
 	###
 	error
 
-# TODO: this is what 'enum-to-string' would do, is there a way to use that?
--to-string string(a log-level)
+# TODO: this is what 'to string' in enum.crow would do, is there a way to use that?
+-to string(a log-level)
 	match a
 	as info
 		"info"
@@ -80,7 +80,7 @@ For example, this might write it to the console.
 	fun void(logged)
 
 default-log-handler void(a logged) summon
-	out print a.level.to-string ~~ ": " ~~ a.message
+	out print "{a level}: {a message}"
 
 # GC doesn't trace thread-locals, but won't outlive a task anyway.
 -cur-log-handler log-handler mut*() thread-local

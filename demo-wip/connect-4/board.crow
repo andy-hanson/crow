@@ -1,7 +1,7 @@
 import
 	crow/col/mut-grid: coord, new, x, y
 	crow/io/terminal-color: bold, blue, foreground, red, reset
-	crow/private/number-low-level: wrap-to-nat32
+	crow/private/number-low-level: wrap-to
 
 ###
 Board representation is bits: 7 bits for a column (max of 6 entries), over 6 rows.
@@ -30,18 +30,18 @@ new[t] t board-cache() t new
 	# If their product is > the max key, then we know the key.
 	assert 2 ** 32 * size > max-key
 	# Use max-nat as an impossible key
-	(size n-of max-nat32), (size n-of ())
+	(size n-of max-value), (size n-of ())
 
 subscript[t] t?(a t board-cache, key board)
 	small-key = key board-key
 	index = small-key % a.keys.size
-	if a.keys[index] == small-key.wrap-to-nat32
+	if a.keys[index] == small-key.wrap-to
 		a.values[index],
 
 set-subscript[t] void(a t board-cache, key board, value t)
 	small-key = key board-key
 	index = small-key % a.keys.size
-	a.keys[index] := small-key wrap-to-nat32
+	a.keys[index] := small-key wrap-to
 	a.values[index] := value
 
 ###
@@ -65,7 +65,7 @@ opposite color(a color)
 	as blue
 		red
 
-to-string string(a color)
+to string(a color)
 	match a
 	as red
 		"{red foreground}red{reset}"
@@ -108,7 +108,7 @@ place board(a board, x nat)
 empty-board board()
 	0, 0
 
--subscript color?(a board, x nat, y nat, cur-player color)
+-subscript color?(a board, (x nat, y nat, cur-player color))
 	pos coord = x, y
 	if a.both-players grid-has pos
 		if a.current-player grid-has pos
@@ -116,7 +116,7 @@ empty-board board()
 		else
 			cur-player.opposite,
 
-to-string string(a board, cur-player color, last-column nat?)
+show string(a board, cur-player color, last-column nat?)
 	header = "" join for x : 0 .. width
 		text = " {x letter-of-alphabet}"
 		if last-column == (x,)
@@ -130,8 +130,8 @@ to-string string(a board, cur-player color, last-column nat?)
 	"{header}\n{rows}\n╰─┴─┴─┴─┴─┴─┴─╯"
 
 -letter-of-alphabet string(a nat)
-	# TODO: type annotation should be unnecessary
-	("A"::char8.to-nat8 + a.to-nat8).to-char8 to-string
+	assert a < 26
+	("A"::char8.to + a.to).to::char8 to
 
 just-won bool(a board)
 	a.current-player ^ a.both-players is-win

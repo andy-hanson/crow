@@ -5,7 +5,7 @@ import
 	audio/audio: clear, format, pause, play, play-loop, restart, resume, shut-down
 	audio/sdl-audio: start-sdl-audio
 	audio/read-sound-file: sound-from-file-content
-	audio/sound: *, sample-rate, to-string, with-sample-rate
+	audio/sound: *, sample-rate, to, with-sample-rate
 	./toccata.ogg as toccata nat8 array
 	./crow.wav as crow-wav nat8 array
 

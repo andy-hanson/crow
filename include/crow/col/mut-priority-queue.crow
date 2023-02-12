@@ -3,20 +3,20 @@ import
 	../bool: ==, bool, false, true
 	../compare: ==, <=>, <, compare-reverse
 	../fun-util: subscript
-	../json: json
-	../misc: new, void
+	../json: to
+	../misc: new, to, void
 	../number: ==, <=>, +, nat64
 	../option: ==, force, new, option
-	../string: ==, ~~, literal, new, string, to-string
+	../string: ==, ~~, literal, new, string, to
 	../test-util: is
 	../tuple: ==, new
 	./array: +, array, begin, iterate, next, size
 	./collection:
 		build-options, for-loop, is-at-end, join, reverse, set-reverse, subscript, with-index
-	./list: ==, ~=, build, iterate, list, list-builder, new, to-list
+	./list: ==, ~=, build, iterate, list, list-builder, new, to
 	./mut-list:
-		~=, ~~=, +, -, begin, clear, copy, end, is-empty, iterate, move-to-array, mut-list, new,
-		next, next-index, peek, pop, prev, set-next, set-prev, size, temp-as-array, to-mut-list
+		~=, ~~=, +, -, begin, clear, copy, end, is-empty, iterate, move-to, mut-list, new, next,
+		next-index, peek, pop, prev, set-next, set-prev, size, temp-as-array, to
 	./priority-queue: priority
 	./sort: sort=
 	./private/sort-utils: binary-search-insert
@@ -38,11 +38,11 @@ If two pairs have the same key, the second pair added will be popped second.
 
 # New priority queue containing the given pairs.
 +new[k, v] (k, v) mut-priority-queue(...a (k, v) array) k priority
-	a.to-list to-mut-priority-queue
+	a.to to
 
 # Copies a list to a new priority queue.
-+to-mut-priority-queue[k, v] (k, v) mut-priority-queue(a (k, v)[]) k priority
-	mins = a to-mut-list
++to[k, v] (k, v) mut-priority-queue(a (k, v)[]) k priority
+	mins (k, v) mut[] = a to
 	mins sort= (k, _) => k compare-reverse
 	mins, ()
 
@@ -116,12 +116,12 @@ This is O(n).
 	a spread-all-buckets
 	a.mins.copy, ()
 
-+to-list[k, v] (k, v)[](a (k, v) mut-priority-queue) k priority
++to[k, v] (k, v)[](a (k, v) mut-priority-queue) k priority
 	a spread-all-buckets
 	for x : a.mins reverse; x
 
 -spread-all-buckets[k, v] void(a (k, v) mut-priority-queue) k priority
-	old-mins = a.mins move-to-array
+	old-mins (k, v) array = a.mins move-to
 	for index, old-min : old-mins with-index
 		if index < a.buckets.size
 			bucket = a.buckets[index]
@@ -138,7 +138,7 @@ This is O(n).
 		buckets ~= ()
 		buckets add-to-bucket index, pair
 
--dbg[k, v] string(a (k, v) mut-priority-queue) k to-string, v to-string
+-dbg[k, v] string(a (k, v) mut-priority-queue) (string, k) to, (string, v) to
 	# TODO: should be able to infer type arguments
 	trusted
 		mins = a.mins temp-as-array
@@ -151,7 +151,7 @@ This is O(n).
 					" [{parts}]"
 			"{min dbg}{show-bucket}"
 
--dbg[k, v] string((k k, v v)) k to-string, v to-string
+-dbg[k, v] string((k k, v v)) (string, k) to, (string, v) to
 	"{k} -> {v}"
 
 -verify void(a (nat64, string) mut-priority-queue, expected string)
@@ -162,7 +162,7 @@ region build
 +mut-priority-queue-builder[k, v] record mut
 	-inner (k, v) list-builder
 +build[k, v] (k, v) mut-priority-queue(a build-options, f act void((k, v) mut-priority-queue-builder)) k priority
-	a build (out => f[out,]) to-mut-priority-queue
+	a build (out => f[out,]) to
 +~=[k, v] void(a (k, v) mut-priority-queue-builder, value (k, v)) k priority
 	a.inner ~= value
 
@@ -201,7 +201,7 @@ test
 	a.pop is ((4, "4"),)
 	a verify "5 -> 5 [6 -> 6], 4 -> 4b"
 
-	a.to-list is ((4, "4b"), (5, "5"), (6, "6"))
+	a.to::(nat64, string)[] is ((4, "4b"), (5, "5"), (6, "6"))
 	a verify "6 -> 6, 5 -> 5, 4 -> 4b"
 
 test

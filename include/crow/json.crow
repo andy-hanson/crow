@@ -3,31 +3,27 @@ import
 	./bool: ==, bool, false, new, true
 	./col/array: array, iterate, size
 	./col/collection: for-loop, join
-	./col/dict: ==, ~=, build, dict, iterate, size, subscript, to-dict
+	./col/dict: ==, ~=, build, dict, iterate, size, subscript, to
 	./col/experimental/index-set: iterate, index-set, size
 	./hash: hasher
-	./col/list: ==, ~=, build, iterate, list, new, size, to-list
+	./col/list: ==, ~=, build, iterate, list, new, size
 	./parse:
 		/, ~~, bool, exact, float, grammar, lazy, map, quoted-string, separated-by, spaces,
 		with-block
-	./private/symbol-low-level: ==, <=>, string-to-symbol, symbol, to-string
-	./misc: void
-	./number:
-		==, float32, float64, int8, int16, int32, int64, nat8, nat16, nat32, nat64, to-float64,
-		to-int64, to-nat64
+	./private/symbol-low-level: ==, <=>, symbol, to
+	./misc: to, void
+	./number: ==, float32, float64, int8, int16, int32, int64, nat8, nat16, nat32, nat64, to
 	./option: new, option
 	./result: result
-	./string: ==, ~~, hash-mix, literal, new, quote, string, to-string
+	./string: ==, ~~, hash-mix, literal, new, quote, string, to
 	./tuple: a, b, new
 
 #TODO: get from 'symbol'
 -hash-mix void(hasher hasher, a symbol)
-	hasher hash-mix a.to-string
+	hasher hash-mix a.to::string
 
 ###
 JSON data.
-
-This can be the result of parsing or the input to `to-string`.
 ###
 +json union
 	json-null
@@ -41,59 +37,57 @@ This can be the result of parsing or the input to `to-string`.
 	json-null
 
 +new json(...pairs (symbol, json) array)
-	pairs.to-list.to-dict json-object
+	pairs.to json-object
 
-+json[t] spec
-	json json(a t)
-
-# Identity function to satisfy the 'json' spec
-+json json(a json)
++to json(a json)
 	a
-+json json(a bool)
++to json(a bool)
 	a.json-bool
-+json json(a nat8)
-	a.to-nat64 json
-+json json(a nat16)
-	a.to-nat64 json
-+json json(a nat32)
-	a.to-nat64 json
-+json json(a nat64)
-	a.to-float64 json
-+json json(a int8)
-	a.to-int64 json
-+json json(a int16)
-	a.to-int64 json
-+json json(a int32)
-	a.to-int64 json
-+json json(a int64)
-	a.to-float64 json
-+json json(a float32)
-	a.to-float64 json
-+json json(a float64)
++to json(a nat8)
+	a.to::nat64 to
++to json(a nat16)
+	a.to::nat64 to
++to json(a nat32)
+	a.to::nat64 to
++to json(a nat64)
+	a.to::float64 to
++to json(a int8)
+	a.to::int64 to
++to json(a int16)
+	a.to::int64 to
++to json(a int32)
+	a.to::int64 to
++to json(a int64)
+	a.to::float64 to
++to json(a float32)
+	a.to::float64 to
++to json(a float64)
 	a json-number
-+json json(a string)
++to json(a string)
 	a json-string
-+json[t] json(a t array) t json
-	(for x : a; x json) json-list
-+json[t] json(a t[]) t json
-	(for x : a; x json) json-list
-+json[t] json(a t[symbol]) t json
-	(for k, v : a; k, v.json) json-object
-json json(a index-set)
-	(for x : a; x json) json-list
-+json[t] json(a t?) t json
++to json(a symbol)
+	a.to::string to
++to[t] json(a t array) (json, t) to
+	(for x : a; x to) json-list
++to[t] json(a t[]) (json, t) to
+	(for x : a; x to) json-list
++to[t] json(a t[symbol]) (json, t) to
+	(for k, v : a; k, v.to) json-object
+to json(a index-set)
+	(for x : a; x to) json-list
++to[t] json(a t?) (json, t) to
 	if x ?= a
-		(x.json,) json-list
+		(x.to,) json-list
 	else
 		()
-+json[t, u] json(a (t, u)) t json, u json
-	(a.a json, a.b json) json-list
-+json[t, u] json(a (t, u) result) t json, u json
++to[t, u] json(a (t, u)) (json, t) to, (json, u) to
+	(a.a to, a.b to) json-list
++to[t, u] json(a (t, u) result) (json, t) to, (json, u) to
 	match a
 	as ok v
-		("ok", v json),
+		("ok", v to),
 	as err e
-		("err", e json),
+		("err", e to),
 
 +== bool(a json, b json)
 	match a
@@ -163,7 +157,7 @@ json json(a index-set)
 ###
 If `a` is a string, returns that, else returns an empty option.
 
-This does not render as JSON; `to-string` does that.
+This does not render as JSON; `to::string` does that.
 ###
 +as-string string?(a json) noctx
 	match a
@@ -222,18 +216,18 @@ Else, returns an empty option.
 	with : lazy
 		(json-object map x => x.json-object) / (json-list map x => x.json-list) / json-primitive
 -json-object json[symbol] grammar()
-	pair (symbol, json) grammar = (quoted-string map s => s string-to-symbol) ~~ spaces ~~ ":" ~~ spaces ~~ json
+	pair (symbol, json) grammar = (quoted-string map s => s.to::symbol) ~~ spaces ~~ ":" ~~ spaces ~~ json
 	pairs (symbol, json)[] grammar = pair separated-by "," ~~ spaces
-	pairs2 json[symbol] grammar = pairs map x => x to-dict
+	pairs2 json[symbol] grammar = pairs map x => x to
 	"\{" ~~ spaces ~~ pairs2 ~~ spaces ~~ "}"
 -json-list json[] grammar()
 	"[" ~~ spaces ~~ (json separated-by "," ~~ spaces) ~~ spaces ~~ "]"
 -json-primitive json grammar()
-	literal = (bool map x => x json) / ("null" exact null)
-	(quoted-string map x => x json) / (float map x => x json-number) / literal
+	literal json grammar = (bool map x => x to) / ("null" exact null)
+	(quoted-string map x => x.to) / (float map x => x.to) / literal
 
 # Renders a json value to JSON.
-+to-string string(a json)
++to string(a json)
 	match a
 	as json-null
 		"null"
@@ -248,5 +242,5 @@ Else, returns an empty option.
 		"[{parts}]"
 	as json-object o
 		parts = "," join for k, v : o
-			"{k.to-string quote}:{v}"
+			"{k.to quote}:{v}"
 		"\{{parts}}"

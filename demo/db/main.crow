@@ -6,7 +6,7 @@ import
 	crow/serialize: from-bytes
 	lmdb/main:
 		database, from-lmdb-key, get, lmdb-key-flags, open-lmdb-env, read-transaction, set, stat,
-		to-lmdb-key, to-string, with-block, write-transaction
+		to, to-lmdb-key, with-block, write-transaction
 
 main nat^(args string[]) summon
 	command-name = !args.is-empty ? args[0]
@@ -41,8 +41,8 @@ main nat^(args string[]) summon
 			db-name = named-args[1] single-string-or-throw "db-name"
 			with env : db-path open-lmdb-env true
 				with db : env database@(string, string) db-name
-					stats = with txn : env read-transaction
-						txn stat db to-string
+					stats string = with txn : env read-transaction
+						txn stat db to
 					out print stats
 					()
 	else

@@ -305,24 +305,24 @@ ExpectUnary unaryExpected(
 			return ExpectUnary(none!LowType, some(nat64Type));
 		case LowExprKind.SpecialUnary.Kind.truncateToInt64FromFloat64:
 			return expect(int64Type, float64Type);
-		case LowExprKind.SpecialUnary.Kind.unsafeInt32ToNat32:
-			return expect(nat32Type, int32Type);
-		case LowExprKind.SpecialUnary.Kind.unsafeInt64ToInt8:
+		case LowExprKind.SpecialUnary.Kind.unsafeToInt8FromInt64:
 			return expect(int8Type, int64Type);
-		case LowExprKind.SpecialUnary.Kind.unsafeInt64ToInt16:
+		case LowExprKind.SpecialUnary.Kind.unsafeToInt16FromInt64:
 			return expect(int16Type, int64Type);
-		case LowExprKind.SpecialUnary.Kind.unsafeInt64ToInt32:
+		case LowExprKind.SpecialUnary.Kind.unsafeToInt32FromInt64:
 			return expect(int32Type, int64Type);
-		case LowExprKind.SpecialUnary.Kind.unsafeInt64ToNat64:
-			return expect(nat64Type, int64Type);
-		case LowExprKind.SpecialUnary.Kind.unsafeNat64ToInt64:
+		case LowExprKind.SpecialUnary.Kind.unsafeToInt64FromNat64:
 			return expect(int64Type, nat64Type);
-		case LowExprKind.SpecialUnary.Kind.unsafeNat64ToNat8:
+		case LowExprKind.SpecialUnary.Kind.unsafeToNat8FromNat64:
 			return expect(nat8Type, nat64Type);
-		case LowExprKind.SpecialUnary.Kind.unsafeNat64ToNat16:
+		case LowExprKind.SpecialUnary.Kind.unsafeToNat16FromNat64:
 			return expect(nat16Type, nat64Type);
-		case LowExprKind.SpecialUnary.Kind.unsafeNat64ToNat32:
+		case LowExprKind.SpecialUnary.Kind.unsafeToNat32FromInt32:
+			return expect(nat32Type, int32Type);
+		case LowExprKind.SpecialUnary.Kind.unsafeToNat32FromNat64:
 			return expect(nat32Type, nat64Type);
+		case LowExprKind.SpecialUnary.Kind.unsafeToNat64FromInt64:
+			return expect(nat64Type, int64Type);
 	}
 }
 

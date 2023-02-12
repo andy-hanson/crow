@@ -4,42 +4,40 @@ import
 	../col/array: iterate, size
 	../col/collection: for-loop
 	../col/dict: ~=, build, get-or-add
-	../col/list: iterate, size
 	../compare: comparison
 	../misc: void
 	../number: +
 	../pointer: ==, +, as-const, mut-pointer, set-deref
-	../string: ==, <=>, char8, char8s, c-string, hash-mix, literal, string
+	../string: ==, <=>, char8, c-string, hash-mix, iterate, literal, size, string
 	../tuple: a, b, new
 	./alloc: unmanaged-alloc-elements
 	./bootstrap: new-symbol, static-symbols
 	./runtime: get-global-ctx, global-ctx, set-symbols-table, symbols-lock, symbols-table
 	./thread-utils: with-lock
 export
-	# TODO: don't export to-c-string
-	../private/bootstrap: symbol, to-c-string
+	# TODO: don't export to
+	../private/bootstrap: symbol, to
 
 +== bool(a symbol, b symbol) noctx
 	# (this is pointer equality)
-	trusted a.to-c-string == b.to-c-string
+	trusted a.to::c-string == b.to
 
-# Same as `a.to-string <=> b.to-string`.
+# Same as `a.to::string <=> b.to::string`.
 +<=> comparison(a symbol, b symbol)
-	a.to-string <=> b.to-string
+	a.to::string <=> b.to
 
-+to-string string(a symbol) noctx
-	trusted a.to-c-string literal
++to string(a symbol) noctx
+	trusted a.to literal
 
 init-symbol-table void(a global-ctx)
 	a.symbols-table := for x : static-symbols
-		x.to-string, x
+		x.to, x
 
-# TODO: name 'to-symbol'
 ###
 Interns a string.
 This is O(log n), where 'n' is the number of unique symbols that exist.
 ###
-+string-to-symbol symbol(a string)
++to symbol(a string)
 	gctx = trusted get-global-ctx
 	trusted &gctx.symbols-lock with-lock () =>
 		match gctx.symbols-table get-or-add a, () => a.to-malloced-c-string new-symbol
@@ -50,11 +48,11 @@ This is O(log n), where 'n' is the number of unique symbols that exist.
 			pair b
 
 -to-malloced-c-string c-string(a string) unsafe
-	res char8 mut* = a.char8s.size + 1 unmanaged-alloc-elements
+	res char8 mut* = a.size + 1 unmanaged-alloc-elements
 	cur mut = res
-	for x : a char8s
+	for x : a
 		*cur := x
 		cur +:= 1
-	assert cur == res + a.char8s.size
+	assert cur == res + a.size
 	*cur := "\0"
 	res as-const

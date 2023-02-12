@@ -6,7 +6,7 @@ import
 	../compare: <, <=
 	../io/private/time-low-level: timestamp
 	../misc: new, void
-	../number: ==, <=>, max-nat64, nat64
+	../number: ==, <=>, max-value, nat64
 	../option: is-empty, new, option
 	../pointer: by-val, ref-cast, zeroed
 	./bootstrap: hard-unreachable, first, last, new, next, set-next, time
@@ -26,7 +26,7 @@ task-queue record mut by-ref
 	-currently-running-exclusions exclusion mut-array
 
 -nil-exclusion exclusion() noctx
-	max-nat64
+	max-value
 
 -timed-sentinel task-node-with-time(a task-queue) noctx
 	trusted &a.timed-sentinel-val

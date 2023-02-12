@@ -12,14 +12,14 @@ describe string(a string)
 vowels string[](a string)
 	() join for c : a char8s
 		if c is-vowel
-			c.to-string,
+			"{c}",
 
 a-an string(a string)
-	starts-with-vowel = (a.char8s.first ?? "a") is-vowel
+	starts-with-vowel = !a.is-empty && a.char8s[0].is-vowel
 	starts-with-vowel ? "an {a}" : "a {a}"
 
 is-vowel bool(a char8)
 	a in vowels
 
-vowels char8[]()
+vowels char8 set()
 	"a", "e", "i", "o", "u"

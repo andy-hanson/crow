@@ -3,12 +3,12 @@ import
 	../bool: bool
 	../compare: <, >, <=, compare
 	../fun-util: subscript
-	../json: json
+	../json: to
 	../misc: data, loop-break, loop-continue, new, void
 	../number: ==, <=>, +, -, nat64
 	../option: force, is-empty, new, option
 	../range: .., iterate
-	../string: ~~, ==, literal, new, string, to-string
+	../string: ~~, ==, literal, new, string, to
 	../test-util: is
 	../tuple: ==, a, b, new
 	./array: ~=, +, -, array, begin, build, end, is-empty, iterate, new, next, size, slice
@@ -16,7 +16,7 @@ import
 	./mut-array:
 		~=, ~~=, +, -, begin, build, cast-immutable, end, is-empty, mut-array, mut-array-builder,
 		next, prev, set-next, size, slice
-	./list: ==, ~=, build, is-empty, iterate, list, new, to-array, to-list
+	./list: ==, ~=, build, is-empty, iterate, list, new, to
 	./sort: sort, sort=
 
 ###
@@ -55,22 +55,20 @@ then with the `4` to size 10, then with the `8` to size 18, leaving only one nod
 	pairs (k, v) array
 	next (k, v) node?
 
-# New priority queue containing the given pairs.
 +new[k, v] (k, v) priority-queue(...a (k, v) array) k priority
-	a.to-list to-priority-queue
+	a.to to
 
-# New priority queue containing the given pairs.
-+to-priority-queue[k, v] (k, v) priority-queue(a (k, v)[]) k priority
++to[k, v] (k, v) priority-queue(a (k, v)[]) k priority
 	if a is-empty
 		# TODO: type annotation should not be necessary
 		()::((k, v) node?),
 	else
-		sorted (k, v) array = a.to-array sort (k, _) => k
+		sorted (k, v) array = a.to sort (k, _) => k
 		root (k, v) node = sorted[0], sorted[1 .. end], ()
 		# TODO: type annotation should not be necessary
 		(root,)::((k, v) node?),
 
-+to-list[k, v] (k, v)[](a (k, v) priority-queue) k priority
++to[k, v] (k, v)[](a (k, v) priority-queue) k priority
 	for k, v : a
 		k, v
 
@@ -301,7 +299,7 @@ region iteration
 	a (k-in, v-in) priority-queue,
 	f act (k-out, v-out)(k-in, v-in),
 ) k-in priority, k-out priority
-	a for-loop f to-priority-queue
+	a for-loop f to
 
 +for-loop[out, k, v] out[](a (k, v) priority-queue, f act out(k, v)) k priority
 	with out : a.size build
@@ -342,7 +340,7 @@ test
 	p6.dbg is "8 8 []; 7 7b []; 6 6 [7 7]; 6 6b [6 6c]"
 	p6.size is 6
 	p6-pairs (nat64, string)[] = (6, "6"), (6, "6b"), (6, "6c"), (7, "7"), (7, "7b"), (8, "8")
-	p6.to-list is p6-pairs
+	p6.to::(nat64, string)[] is p6-pairs
 
 	p6pop = p6.pop!
 	p6pop.a is (6, "6")

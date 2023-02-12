@@ -1,6 +1,6 @@
 no-std
 import
-	../number: float32, to-float32, to-float64
+	../number: float32, to
 export
 	tgmath: cos, sin
 
@@ -9,7 +9,7 @@ export
 	3.14159
 
 +cos float32(a float32) noctx
-	a.to-float64.cos to-float32
+	a.to.cos to
 
 +sin float32(a float32) noctx
-	a.to-float64.sin to-float32
+	a.to.sin to

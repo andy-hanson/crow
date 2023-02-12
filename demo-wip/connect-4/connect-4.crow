@@ -1,9 +1,10 @@
 import
 	crow/io/print: clear-screen, out, print
 	crow/io/stdin: read-stdin-until-parse
+	crow/version: is-interpreted
 	./board:
 		board, board-cache, can-place, color, empty-board, has-empty, just-won, new, opposite,
-		place, red, set-subscript, subscript, to-string, width
+		place, red, set-subscript, show, subscript, to, width
 
 main nat^(_ string[]) summon
 	out print "Select a game:\n(If using hard CPU, compile with --optimize)\n"
@@ -64,7 +65,9 @@ parse-settings ai-settings?(a string)
 
 -print-board void(a board, cur-player color, last-x nat?) summon
 	clear-screen
-	out print (a to-string cur-player, last-x)
+	if trusted is-interpreted
+		warn log "AI may be slow in interpreter, try running with '--jit'"
+	out print (a show cur-player, last-x)
 
 -human-player-move nat^(board board, color color) summon
 	out print "{color} player, where will you go? (Type a letter A-G and hit enter)"
@@ -83,14 +86,13 @@ parse-settings ai-settings?(a string)
 			n,
 
 -letter-to-number nat?(a string)
-	chars = a char8s
+	chars char8[] = a to
 	if chars.size == 1
-		n = chars[0] to-nat8
-		# TODO: type annotation should be unnecessary
-		if "A"::char8.to-nat8 <= n && n < "Z"::char8.to-nat8
-			(n - "A"::char8.to-nat8 to-nat64),
-		elif "a"::char8.to-nat8 <= n && n < "z"::char8.to-nat8
-			(n - "a"::char8.to-nat8 to-nat64),
+		n nat = chars[0] to
+		if "A"::char8.to::nat <= n && n < "Z"::char8.to
+			(n - "A"::char8.to),
+		elif "a"::char8.to::nat <= n && n < "z"::char8.to
+			(n - "a"::char8.to),
 
 -strategy record by-val
 	x nat
@@ -108,24 +110,24 @@ score-cache alias
 	<- delay
 	# Use a new cache each time, since each turn we're exploring to a further depth.
 	cache score-cache = ()
-	(cache strategy-recur board, ai-depth, (0, min-int32), 0, 0 x),
+	(cache strategy-recur board, ai-depth, (0, min-value), 0, 0 x),
 
 -strategy-score int32(cache score-cache, board board, ai-depth nat)
 	if cached ?= cache[board]
 		cached
 	else
-		res = cache strategy-recur board, ai-depth, (0, min-int32), 0, 0 score
+		res = cache strategy-recur board, ai-depth, (0, min-value), 0, 0 score
 		cache[board] := res
 		res
 
 -strategy-recur strategy(cache score-cache, board board, ai-depth nat, best strategy, sum-score int, x nat)
 	if x == width
-		best.x, sum-score.clamp-to-int32
+		best.x, sum-score.clamp-to
 	else
 		score-and-best score-and-best = if board can-place x
 			new-board = board place x
-			score = if new-board just-won
-				(width ** ai-depth).to-int64 clamp-to-int32
+			score int32 = if new-board just-won
+				width ** ai-depth clamp-to
 			elif ai-depth == 0
 				0
 			else
@@ -134,7 +136,7 @@ score-cache alias
 			score, new-strategy
 		else
 			0, best
-		cache strategy-recur board, ai-depth, score-and-best.best, (sum-score + score-and-best.score.to-int64), x + 1
+		cache strategy-recur board, ai-depth, score-and-best.best, (sum-score + score-and-best.score.to), x + 1
 
 indent string(depth nat)
 	" " repeat 2 * (9 - depth)

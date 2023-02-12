@@ -18,6 +18,10 @@ export
 # Spec for values that can be used as keys in a dictionary or set.
 +key[t] spec t data, t compare, t hash-mix
 
+# Spec for functions that convert `in` to `out`.
++to[out, in] spec
+	to out(a in)
+
 +break-or-continue[t] union
 	loop-break t
 	loop-continue

@@ -2,18 +2,18 @@ no-std
 import
 	../../../bool: ==, false, true
 	../../../hash: hash-mix
-	../../../json: json
+	../../../json: to
 	../../../misc: void
 	../../../number: ==, <=>, nat64
 	../../../test-util: is
 	../../list: ==, list, new
-	../frozen-set: dbg-bucket-starts, frozen-set, in, is-empty, new, size, to-list
+	../frozen-set: dbg-bucket-starts, frozen-set, in, is-empty, new, size, to
 
 dummy-frozen-set-tests nat64()
 	0
 
 -verify void(a nat64 frozen-set, values nat64[], bucket-starts nat64[]) unsafe
-	a.to-list is values
+	a.to::nat64[] is values
 	a.dbg-bucket-starts is bucket-starts
 
 test

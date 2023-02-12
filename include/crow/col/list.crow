@@ -4,7 +4,7 @@ import
 	../compare: !=, <, <=, >, compare, comparison, equal
 	../fun-util: subscript
 	../misc: new
-	../number: ==, <=>, +, -, *, nat64
+	../number: ==, <=>, +, -, *, nat32, nat64
 	../option: ??, new, option
 	../pointer: const-pointer, mut-pointer
 	../private/exception-low-level: unreachable
@@ -17,6 +17,7 @@ import
 	./collection:
 		.., -, concatenate, end, for-loop, index-relative-to-end, is-empty, range-relative-to-end,
 		sequence-compare, sequence-equal, subscript
+	./mut-array: ~=, build, mut-array, to
 	./private/array-low-level: array-reference-equal
 export
 	# TODO: don't re-export everything
@@ -153,29 +154,41 @@ get-root[t] t l1(a t[])
 
 # List containing the given elements.
 +new[t] t[](...a t array) noctx
-	a to-list
+	a to
 
 +as-list[t] t[](a t* range) noctx, unsafe
-	a.as-array to-list
+	a.as-array to
 +as-list[t] t[](a t mut* range) noctx, unsafe
-	a.as-array to-list
+	a.as-array to
 
 ###
 Convert an array to a list.
 This is O(1).
 ###
-+to-list[t] t[](a t array) noctx
++to[t] t[](a t array) noctx
 	l t l1 = a.leaf,
 	l,
++to[t] t[](a t mut-array)
+	a.to::(t array) to
 
-+to-list[t] t[](a t?)
++to[t] t[](a t?)
 	if x ?= a
 		x,
+
+###
+Convert a list to an array.
+This is O(n).
+This is O(1) if the list was converted from an array, meaning a round trip is free.
+###
++to[t] t array(a t[])
+	a.try-as-l1-leaf ?? for x : a; x
++to[t] t mut-array(a t[])
+	for x : a; x
 
 list-cast[out, in] out[](a in[]) unsafe
 	assert size-of@out == size-of@in
 	# TODO:PERF
-	a.to-array.array-cast::(out array) to-list
+	a.to.array-cast::(out array) to
 
 +==[t] bool(a t[], b t[]) t equal
 	(trusted a list-reference-equal b) || a sequence-equal b
@@ -185,14 +198,6 @@ list-cast[out, in] out[](a in[]) unsafe
 		equal
 	else
 		a sequence-compare b
-
-###
-Convert a list to an array.
-This is O(n).
-This is O(1) if the list came from to-list of an array, meaning a round trip is free.
-###
-+to-array[t] t array(a t[])
-	a.try-as-l1-leaf ?? for x : a; x
 
 ###
 `true` iff `a.size == 0`.
@@ -450,7 +455,7 @@ This is O(n).
 	right
 # TODO: compiler should generate this
 -<=> comparison(a side, b side) noctx
-	a.to-nat32 <=> b.to-nat32
+	a.to::nat32 <=> b.to
 
 +next-index[t] nat64(a t list-iterator) noctx
 	match a pos
@@ -745,7 +750,7 @@ This is O(n).
 -slice-same-array1d[t] t[]?(a t list-iterator, b t list-iterator)
 	assert trusted a.cur-chunk array-reference-equal b.cur-chunk
 	if a.next-index-in-chunk <= b.next-index-in-chunk
-		a.cur-chunk[a.next-index-in-chunk .. b.next-index-in-chunk].to-list,
+		a.cur-chunk[a.next-index-in-chunk .. b.next-index-in-chunk].to,
 
 -slice-same-array2d[t] t[]?(a t list-iterator, ai t array-2d-iterator, b t list-iterator, bi t array-2d-iterator)
 	arrays = ai arrays

@@ -69,8 +69,8 @@ link record
 -include-all path-and-content[]^() summon
 	include <- "include" search-all-with-content ""
 	pairs string[symbol] = for x : include
-		x.out-path.remove-include-and-crow.string-to-symbol, x.content
-	content = pairs.json to-string
+		x.out-path.remove-include-and-crow.to, x.content
+	content = "{pairs.to::json}"
 	(("include-all.json", content),),
 
 -search-all-with-content path-and-content[]^(path string, remove-prefix string) summon

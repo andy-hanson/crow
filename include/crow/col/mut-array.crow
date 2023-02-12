@@ -49,7 +49,7 @@ empty-mut-array[t] t mut-array() noctx
 Creates a new `mut-array` with the given elements.
 ###
 +new[t] t mut-array(...a t array)
-	a to-mut-array
+	a to
 
 # Get a `mut-array` from a pointer and range of indices.
 +subscript[t] t mut-array(a t mut*, indices nat64 range) noctx, unsafe
@@ -60,7 +60,7 @@ Copies the array elements to a new `mut-array`.
 
 This is O(n).
 ###
-+to-mut-array[t] t mut-array(a t array)
++to[t] t mut-array(a t array)
 	a.size make i => a[i]
 
 ###
@@ -68,9 +68,9 @@ Copies the elements to an immutable array.
 
 This is O(n).
 
-There is no `move-to-array` for `mut-array` since there might be slices that still refer to its elements.
+There is no `move-to` for `mut-array` since there might be slices that still refer to its elements.
 ###
-+to-array[t] t array(a t mut-array)
++to[t] t array(a t mut-array)
 	a.copy.inner
 
 # Creates a `mut-array` from a range of pointers.

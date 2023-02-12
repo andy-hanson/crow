@@ -11,11 +11,11 @@ import
 	db-path string
 +open-sqlite3 open-sqlite3(db-path string)
 	db-path,
-+with-block[t] t(a open-sqlite3, cb act t(db)) summon, t is-shared
++with-block[t] t(a open-sqlite3, cb act t(db)) summon, t shared
 	trusted
 		db mut sqlite3 mut* = null
 		# Create empty file if not exist
-		err = a.db-path.to-c-string sqlite3_open_v2 &db, SQLITE_OPEN_READWRITE | SQLITE_OPEN_CREATE, null
+		err = a.db-path.to sqlite3_open_v2 &db, SQLITE_OPEN_READWRITE | SQLITE_OPEN_CREATE, null
 		assert err == SQLITE_OK
 		with : (() => db close) finally
 			cb[db,]
@@ -43,17 +43,17 @@ import
 		error-message mut c-string = null
 		ctx callback-ctx = f,
 		ctx-ptr = (&ctx)::callback-ctx* as-any-mut-pointer
-		err = a.db.raw sqlite3_exec a.query.to-c-string, &callback, ctx-ptr, &error-message
+		err = a.db.raw sqlite3_exec a.query.to, &callback, ctx-ptr, &error-message
 		# TODO: if err == SQLITE_ABORT, callback returned non-0
 		if err != SQLITE_OK
-			error-string = error-message to-string
+			error-string string = error-message to
 			error-message.as-any-mut-pointer sqlite3_free
-			throw "ERROR {err.enum-to-string}: {error-string}"
+			throw "ERROR {err}: {error-string}"
 
 -callback-ctx record by-val mut
 	cb-row act bool(string[symbol])
 
 -callback c-int(ctx-pointer any-mut-pointer, argc c-int, argv c-string*, col-name c-string*) summon, unsafe
-	row string[symbol] = for i : 0 .. argc.to-nat64
-		col-name[i].to-string.string-to-symbol, argv[i].to-string
+	row string[symbol] = for i : 0 .. argc.to::nat64
+		col-name[i].to::string.to, argv[i].to
 	(ctx-pointer.as-const.pointer-cast::callback-ctx*)->cb-row[row] ? 1 : 0

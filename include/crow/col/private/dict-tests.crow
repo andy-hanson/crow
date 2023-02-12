@@ -2,11 +2,11 @@ no-std
 import
 	../../bool: ==, false, true
 	../../hash: hash-mix
-	../../json: json
+	../../json: to
 	../../misc: void
 	../../number: ==, <=>, nat64
 	../../option: ==, new
-	../../string: ==, literal, string, to-string
+	../../string: ==, literal, string, to
 	../../test-util: is
 	../../tuple: new
 	../dict: ~, ~~, dbg, dict, is-empty, new, size, subscript

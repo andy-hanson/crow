@@ -25,11 +25,11 @@ import
 	../fun-util: subscript
 	../io/private/time-low-level: get-monotime-nsec, nsec-to-msec, timestamp, to-timespec
 	../misc: new, void
-	../number: ==, <=>, nat32, nat64, to-int64, to-nat64
-	./number-low-level: unsafe-to-int64, unsafe-to-nat32, wrap-add, wrap-sub
+	../number: ==, <=>, nat32, nat64, to
+	./number-low-level: unsafe-to, wrap-add, wrap-sub
 	../pointer:
 		==, any-mut-pointer, as-any-mut-pointer, by-val, mut-pointer, null, pointer-cast, size-of,
-		to-nat64, zeroed
+		to, zeroed
 	../version: is-single-threaded, is-windows
 	./bootstrap: hard-assert, hard-forbid, hard-unreachable, option, todo
 export
@@ -41,9 +41,9 @@ count-processors nat64() noctx, summon, unsafe
 	elif is-windows
 		res mut SYSTEM_INFO = ()
 		&res GetSystemInfo
-		res.dwNumberOfProcessors to-nat64
+		res.dwNumberOfProcessors to
 	else
-		get_nprocs.to-int64 to-nat64
+		get_nprocs to
 
 uninit lock by-val() noctx, unsafe
 	zeroed
@@ -180,8 +180,8 @@ wait-on void(a condition, until-time timestamp?, last-sequence sequence-id) noct
 			if now < t
 				nsec = t wrap-sub now
 				if is-windows
-					# TODO: should be clamp-to-nat32
-					nsec.nsec-to-msec.unsafe-to-nat32 Sleep
+					# TODO: should be clamp-to
+					nsec.nsec-to-msec.unsafe-to Sleep
 				else
 					ts = nsec to-timespec
 					_ = &ts nanosleep null
@@ -191,10 +191,10 @@ wait-on void(a condition, until-time timestamp?, last-sequence sequence-id) noct
 	elif is-windows
 		&a.windows-critical-section EnterCriticalSection
 		if a.sequence == last-sequence
-			wait = if t ?= until-time
+			wait nat32 = if t ?= until-time
 				now = get-monotime-nsec
 				if now < t
-					(t wrap-sub now).nsec-to-msec unsafe-to-nat32
+					(t wrap-sub now).nsec-to-msec unsafe-to
 				else
 					0
 			else
@@ -228,9 +228,9 @@ init void(a barrier, n-threads nat64) noctx, unsafe
 	if is-single-threaded
 		n-threads == 1 hard-assert
 	elif is-windows
-		&a.windows InitializeSynchronizationBarrier n-threads.unsafe-to-int64, 0 hard-assert
+		&a.windows InitializeSynchronizationBarrier n-threads.unsafe-to, 0 hard-assert
 	else
-		&a.posix pthread_barrier_init null, n-threads.unsafe-to-nat32 hard-assert-posix-error
+		&a.posix pthread_barrier_init null, n-threads.unsafe-to hard-assert-posix-error
 
 free void(a barrier) noctx, unsafe
 	if is-single-threaded
@@ -294,7 +294,7 @@ thread-handle record mut by-val
 -as-windows-handle HANDLE(a thread-handle) noctx, unsafe
 	a.storage
 -as-pthread pthread_t(a thread-handle) noctx, unsafe
-	a.storage to-nat64
+	a.storage to
 
 create-one-thread thread-handle(
 	thread-arg any-mut-pointer,

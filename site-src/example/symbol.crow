@@ -5,5 +5,5 @@ main nat^(_ string[]) summon
 	x symbol = "flabbergast"
 	out print "{x}"
 	out print "{x == "glabberfast"}"
-	out print "{x == ("flabber" ~~ "gast").string-to-symbol}"
+	out print "{x == ("flabber" ~~ "gast").to}"
 	()

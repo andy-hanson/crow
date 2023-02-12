@@ -10,5 +10,5 @@ area float(a rect)
 
 main nat^(_ string[]) summon
 	r rect = 1.5, 2.5
-	out print r.area.to-string
+	out print "{r area}"
 	()

@@ -4,11 +4,11 @@ import
 	../../compare: <, >, >=
 	../../exception: unreachable
 	../../fun-util: subscript
-	../../json: json
-	../../misc: key, new, void
+	../../json: to
+	../../misc: key, new, to, void
 	../../number: ==, <=>, +, -, /, nat64, new
 	../../option: force, new, option
-	../../string: ==, <=>, ~~, +, begin, hash-mix, literal, new, next, string, to-string
+	../../string: ==, <=>, ~~, +, begin, hash-mix, literal, new, next, string, to
 	../../test-util: is
 	../../tuple: a
 	../array:
@@ -17,7 +17,7 @@ import
 	../collection:
 		.., -, build, build-options, end, filter, for-loop, index-of, is-at-end, join, slice-left,
 		slice-right, starts-with, subscript, with-block
-	../list: ~=, build, iterate, list, list-builder, to-array, to-list
+	../list: ~=, build, iterate, list, list-builder, to
 	../mut-stack: ~=, mut-stack, new, peek, pop
 	../sort: sort-unique
 	../private/sort-utils: binary-search-has, binary-search-insert
@@ -49,23 +49,23 @@ size[t] nat64(a t tree-set) t key
 
 # Empty `tree-set`.
 new[t] t tree-set(...a t array) t key
-	a.to-list to-tree-set
+	a.to to
 
 # Copy a list to a `tree-set`.
-to-tree-set[t] t tree-set(a t[]) t key
-	values t array = a.to-array sort-unique
+to[t] t tree-set(a t[]) t key
+	values t array = a.to sort-unique
 	values.leaf, values.size
 
 ###
 List of all values in the set, in sorted order.
 This is O(n).
 ###
-to-list[t] t[](a t tree-set) t key
+to[t] t[](a t tree-set) t key
 	match a.root
 	as inner i
-		i tree-to-array a.size to-list
+		i tree-to-array a.size to
 	as leaf l
-		l to-list
+		l to
 
 # True iff the value is in the set.
 in[t] bool(value t, a t tree-set) t key
@@ -108,7 +108,7 @@ This is O(n).
 		for x : a
 			out walk-iter-union x, b-iter
 		b-iter consume-rest out
-	list to-tree-set
+	list to
 -consume-rest[t] void(a t iter, out t list-builder)
 	for x : a cur
 		out ~= x
@@ -431,16 +431,16 @@ tree-set-builder[t] record mut
 	-inner t list-builder
 
 build[t] t tree-set(a build-options, f act void(t tree-set-builder)) t key
-	a build (out => f[out,]) to-tree-set
+	a build (out => f[out,]) to
 
 ~ ~=[t] void(a t tree-set-builder, value t) t key
 	a.inner ~= value
 
 region test
 
--dbg[t] string(a t tree-set) t to-string
+-dbg[t] string(a t tree-set) (string, t) to
 	a.root dbg
--dbg[t] string(a t node) t to-string
+-dbg[t] string(a t node) (string, t) to
 	match a
 	as inner i
 		"({i.left dbg} {i value} {i.right dbg})"

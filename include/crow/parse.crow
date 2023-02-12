@@ -7,12 +7,12 @@ import
 	./compare: !=, <=
 	./fun-util: subscript
 	./misc: loop-break, new, void
-	./number: ==, <=>, +, -, *, **, float64, int64, nat64, to-float64, to-int64, to-nat64
+	./number: ==, <=>, +, -, *, **, float64, int64, nat8, nat64, to
 	./option: is-empty, new, option
 	./result: err, ok, result
 	./string:
-		==, <=>, ~~, ~=, as-string, begin, build, char8, char8s, hash-mix, is-empty, literal, new,
-		next, string, string-iterator, to-nat8, to-c-string, to-string
+		==, <=>, ~~, ~=, as-string, begin, build, char8, hash-mix, is-empty, iterate, literal, new,
+		next, string, string-iterator, to
 	./tuple: a, b, new
 
 ###
@@ -77,7 +77,7 @@ If the string has leading or trailing spaces you must use a grammar that include
 -inner-parse-error record
 	expected string
 
-+to-string string(a parse-error)
++to string(a parse-error)
 	# TODO: show where it is
 	peek = if x, _ ?= a.iter next
 		"'{x}'"
@@ -146,7 +146,7 @@ text-not-containing-any string grammar(possible-endings string[])
 
 -try-take-exact string-iterator?(iter string-iterator, expect string)
 	cur mut = iter
-	for expected : expect char8s
+	for expected : expect
 		if x, rest ?= cur next
 			if x != expected
 				break
@@ -401,14 +401,14 @@ region basic elements
 # TODO: support letters from more languages
 # Matches and returns a sequence of letters.
 +word string grammar()
-	letter.one-or-more map (x => x as-string)
+	letter.one-or-more map x => x as-string
 
 -letter char8 grammar()
 	"letter" char-matching-predicate x => x is-letter
 
 -is-letter bool(a char8)
 	# TODO: support other alphabets
-	"a".to-nat8 <= a.to-nat8 && a.to-nat8 <= "z".to-nat8
+	"a"::char8.to::nat8 <= a.to && a.to::nat8 <= "z"::char8.to
 
 # Parse a boolean as 'true' or 'false'
 +bool bool grammar()
@@ -430,7 +430,7 @@ Parses a signed integer in decimal format.
 This allows e.g. "1", "+23", "-45".
 ###
 +int int64 grammar()
-	("+".optional ~~ (nat map x => x to-int64)) / ("+" ~~ (nat map x => -x.to-int64))
+	("+".optional ~~ (nat map x => x.to)) / ("+" ~~ (nat map x => -x.to))
 
 -nat-and-count-digits record
 	-end string-iterator
@@ -457,8 +457,8 @@ This allows e.g. "1", "+23", "-45".
 			(digit, rest),
 
 -char-to-nat64 nat64?(c char8)
-	if "0".to-nat8 <= c.to-nat8 && c.to-nat8 <= "9".to-nat8
-		(c.to-nat8 - "0".to-nat8).to-nat64,
+	if "0"::char8.to::nat8 <= c.to && c.to::nat8 <= "9"::char8.to
+		(c.to - "0"::char8.to).to,
 
 ###
 Parse a decimal number.
@@ -476,11 +476,11 @@ This allows e.g. "+1.23".
 			1
 		if whole-nat ?= iter take-nat-and-count-digits
 			iter := whole-nat end
-			whole-part = whole-nat.value to-float64
+			whole-part float64 = whole-nat.value to
 			if after-dot ?= iter try-take "."
 				if nd ?= after-dot take-nat-and-count-digits
 					# TODO: more accurate methods exist
-					nd.end, sign * (whole-part + nd.value.to-float64 * 0.1 ** nd.count-digits) ok
+					nd.end, sign * (whole-part + nd.value.to * 0.1 ** nd.count-digits) ok
 				else
 					iter, sign * whole-part ok
 			else

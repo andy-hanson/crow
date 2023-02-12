@@ -9,7 +9,7 @@ import
 	../fun-util: subscript
 	../future: future, new, parallel, then, with-block
 	../misc: shared
-	../number: ==, <=>, nat8, to-nat64
+	../number: ==, <=>, nat8, nat64, to
 	../option: option
 	../range: ..
 	../string: as-string, string, strip
@@ -28,7 +28,7 @@ Result will not have leading or trailing whitespace.
 			# TODO: use a non-blocking API
 			bytes-read-or-err = stdin read buffer.begin-pointer, buffer.size
 			assert bytes-read-or-err >= 0
-			bytes-read = bytes-read-or-err to-nat64
+			bytes-read nat64 = bytes-read-or-err to
 			if bytes-read >= buffer.size
 				todo
 			else

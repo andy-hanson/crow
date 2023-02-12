@@ -1,8 +1,8 @@
 no-std
 import
 	../col/array: array, new
-	../number: +, -, *, /, float32, float64, square-root, to-float32, to-float64
-	../string: ~~, literal, string, to-string
+	../number: +, -, *, /, float32, float64, square-root, to
+	../string: ~~, literal, string, to
 	../test-util: throws
 
 # 2-dimensional vector with 32-bit elements.
@@ -36,23 +36,23 @@ import
 	0, 0, 0
 
 # `"<x, y>"`
-+to-string string(a vec2-32)
++to string(a vec2-32)
 	"<{a x}, {a y}>"
-+to-string string(a vec2-64)
++to string(a vec2-64)
 	"<{a x}, {a y}>"
 # `"<x, y, z>"`
-+to-string string(a vec3-32)
++to string(a vec3-32)
 	"<{a x}, {a y}, {a z}>"
-+to-string string(a vec3-64)
++to string(a vec3-64)
 	"<{a x}, {a y}, {a z}>"
 
-+to-array float32 array(a vec2-32)
++to float32 array(a vec2-32)
 	a.x, a.y
-+to-array float64 array(a vec2-64)
++to float64 array(a vec2-64)
 	a.x, a.y
-+to-array float32 array(a vec3-32)
++to float32 array(a vec3-32)
 	a.x, a.y, a.z
-+to-array float64 array(a vec3-64)
++to float64 array(a vec3-64)
 	a.x, a.y, a.z
 
 region named directions
@@ -199,12 +199,11 @@ test
 +dot float64(a vec3-64, b vec3-64) noctx
 	a.x * b.x + a.y * b.y + a.z * b.z
 
-+to-vec2-32 vec2-32(a vec2-64) noctx
-	a.x.to-float32, a.y.to-float32
-+to-vec2-64 vec2-64(a vec2-32) noctx
-	a.x.to-float64, a.y.to-float64
-
-+to-vec3-32 vec3-32(a vec3-64) noctx
-	a.x.to-float32, a.y.to-float32, a.z.to-float32
-+to-vec3-64 vec3-64(a vec3-32) noctx
-	a.x.to-float64, a.y.to-float64, a.z.to-float64
++to vec2-32(a vec2-64) noctx
+	a.x.to, a.y.to
++to vec2-64(a vec2-32) noctx
+	a.x.to, a.y.to
++to vec3-32(a vec3-64) noctx
+	a.x.to, a.y.to, a.z.to
++to vec3-64(a vec3-32) noctx
+	a.x.to, a.y.to, a.z.to

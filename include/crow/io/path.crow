@@ -6,9 +6,9 @@ There is technically no I/O here; for functions like reading from a path, see `c
 no-std
 import
 	../col/collection: last-iter-of, slice-left, slice-right
-	../json: json
+	../json: to
 	../option: ==, new, option
-	../string: ==, ~~, +, begin, collection, end, literal, new, prev, slice, string, to-string
+	../string: ==, ~~, +, begin, collection, end, literal, new, prev, slice, string, to
 	../test-util: is
 
 ###

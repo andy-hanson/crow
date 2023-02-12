@@ -11,12 +11,12 @@ export
 
 # Boolean equality.
 +== bool(a bool, b bool) noctx
-	a.to-nat64 == b.to-nat64
+	a.to == b.to
 
 # Compares `false` less than `true`.
 +<=> comparison(a bool, b bool) noctx
-	a.to-nat64 <=> b.to-nat64
+	a.to <=> b.to
 
 # `0` for `false`, `1` for `true`.
-+to-nat64 nat64(a bool) noctx
++to nat64(a bool) noctx
 	a ? 1

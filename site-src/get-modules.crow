@@ -33,7 +33,7 @@ get-modules module[]^(paths string[], remove-prefix string) summon
 		x to-export
 
 -to-path symbol(a json, remove-prefix string)
-	(a.as-string! try-remove-start remove-prefix)! string-to-symbol
+	(a.as-string! try-remove-start remove-prefix)! to
 
 -get-comment string(a json)
 	if c ?= a["comment"]
@@ -85,7 +85,7 @@ get-modules module[]^(paths string[], remove-prefix string) summon
 
 -get-enum-flags-members symbol[](a json)
 	for x : a["members"]!.as-list!
-		x.as-string! string-to-symbol
+		x.as-string! to
 
 -to-record-decl record-decl(a json)
 	has-non-public-fields = if h ?= a["has-non-public-fields"]
@@ -121,7 +121,7 @@ get-modules module[]^(paths string[], remove-prefix string) summon
 	a.get-name, type
 
 -get-name symbol(a json)
-	a["name"]!.as-string! string-to-symbol
+	a["name"]!.as-string! to
 
 -to-type-param type-param(a json)
 	a.get-name,
@@ -172,7 +172,7 @@ get-modules module[]^(paths string[], remove-prefix string) summon
 
 -to-type-ref type-ref(a json)
 	node-type = a get-node-type
-	name = a["name"]!.as-string! string-to-symbol
+	name symbol = a["name"]!.as-string! to
 	if node-type == "type-param"
 		name, ()
 	else
@@ -181,7 +181,7 @@ get-modules module[]^(paths string[], remove-prefix string) summon
 
 -to-spec-ref spec-ref(a json)
 	node-type = a get-node-type
-	name = a["name"]!.as-string! string-to-symbol
+	name symbol = a["name"]!.as-string! to
 	if node-type == "special"
 		name, ()
 	else

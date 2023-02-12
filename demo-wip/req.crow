@@ -7,56 +7,58 @@ import
 	sys/socket: AF_INET, connect, sockaddr, socket, SOCK_STREAM
 	unistd: read, write
 
-main nat^(_ string[]) summon, trusted
-	hostname = "duckduckgo.com"
-	socket = get-tcp-socket
-	socket connect-socket hostname, 80
+main nat^(_ string[]) summon
+	hostname = "crow-lang.org"
+	trusted
+		socket = get-tcp-socket
+		socket connect-socket hostname, 80
 
-	request = "GET / HTTP/1.1\r\nHost: duckduckgo.com\r\n\r\n"
+		request = "GET / HTTP/1.1\r\nHost: crow-lang.org\r\n\r\n"
 
-	socket send-request request
-	socket receive-response
+		socket send-request request
+		socket receive-response
 	()
 
 -get-tcp-socket fd-t() summon, unsafe
 	protoent = "tcp" getprotobyname
 	forbid protoent == null
 	socket-file-descriptor = AF_INET socket SOCK_STREAM, protoent->p_proto
-	forbid socket-file-descriptor == max-nat64
-	socket-file-descriptor to-int32
+	forbid socket-file-descriptor == max-value
+	socket-file-descriptor to
 
 -connect-socket void(socket fd-t, hostname string, server-port nat16) summon, unsafe
-	hostent = hostname.to-c-string gethostbyname
+	hostent = hostname.to gethostbyname
 	forbid hostent == null
 	in_addr0 in_addr* = hostent->h_addr_list->pointer-cast
 	in_addr = in_addr0->inet_ntoa inet_addr
 
 	sockaddr_in mut sockaddr_in = AF_INET, server-port.htons, (in_addr,)
 	sockaddr sockaddr mut* = (&sockaddr_in)::sockaddr_in mut* pointer-cast
-	err = socket.to-nat64 connect sockaddr, (size-of@sockaddr_in to-nat32)
+	# TODO: should be able to write size-of@sockaddr_in.to
+	err = socket.to connect sockaddr, (size-of@sockaddr_in to)
 	assert err == 0
 
 -send-request void(socket fd-t, request string) summon, unsafe
 	forbid request is-empty
-	bytes mut = request.to-bytes to-array
+	bytes mut nat8 array = request to
 	loop
 		bytes-sent = socket write bytes.begin-pointer, bytes.size
 		# TODO: might be 0 if the socket is overloaded -- delay and try again
 		assert bytes-sent > 0
-		if bytes-sent < bytes.size.to-int64
-			bytes := bytes[bytes-sent.to-nat64 .. end]
+		if bytes-sent < bytes.size.to
+			bytes := bytes[bytes-sent.to::nat64 .. end]
 			continue
 		else
-			assert bytes-sent == bytes.size.to-int64
+			assert bytes-sent == bytes.size.to
 			break
 
--receive-response void(socket fd-t) summon, trusted
-	buffer nat8 mut-array = 0x2000 uninitialized-mut-array
-	# TODO: use epoll like we did in the server, for a non-blocking read.
-	bytes-read = socket read buffer.begin-pointer, buffer.size
-	assert bytes-read >= 0
-	if bytes-read > 0
-		out print "Read (possibly partial) response:"
-		out print buffer[0 .. bytes-read.to-nat64].cast-immutable.to-list.as-string
-		# TODO: Response might be partial. The parser will have to tell us that.
-
+-receive-response void(socket fd-t) summon
+	trusted
+		buffer nat8 mut-array = 0x2000 uninitialized-mut-array
+		# TODO: use epoll like we did in the server, for a non-blocking read.
+		bytes-read = socket read buffer.begin-pointer, buffer.size
+		assert bytes-read >= 0
+		if bytes-read > 0
+			out print "Read (possibly partial) response:"
+			out print buffer[0 .. bytes-read.to].cast-immutable.as-string
+			# TODO: Response might be partial. The parser will have to tell us that.

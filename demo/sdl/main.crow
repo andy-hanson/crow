@@ -15,7 +15,7 @@ import
 		SDL_DestroyRenderer, SDL_RenderClear, SDL_RenderCopy, SDL_Renderer,
 		SDL_RENDERER_ACCELERATED, SDL_RENDERER_PRESENTVSYNC, SDL_RenderPresent, SDL_Texture
 	SDL2/SDL_rwops: SDL_RWFromConstMem
-	SDL2/SDL_scancode: SDL_NUM_SCANCODES, SDL_SCANCODE_RETURN, to-nat32
+	SDL2/SDL_scancode: SDL_NUM_SCANCODES, SDL_SCANCODE_RETURN, to
 	SDL2/SDL_surface: SDL_FreeSurface, SDL_LoadBMP_RW
 	SDL2/SDL_video: SDL_CreateWindow, SDL_DestroyWindow, SDL_Window, SDL_WINDOW_SHOWN
 	./crow.bmp as crow-bmp nat8 array
@@ -55,12 +55,12 @@ main nat^(_ string[]) summon
 	trusted
 		key-states-pointer = null SDL_GetKeyboardState
 		# TODO: use a mut-enum-lookup type
-		key-states = key-states-pointer[0 .. SDL_NUM_SCANCODES.to-nat32.to-nat64]
-		if key-states[SDL_SCANCODE_RETURN.to-nat32.to-nat64] != 0
+		key-states = key-states-pointer[0 .. SDL_NUM_SCANCODES.to::nat32.to]
+		if key-states[SDL_SCANCODE_RETURN.to::nat32.to] != 0
 			out print "return is pressed"
 
 		renderer.SDL_RenderClear handle-sdl-error "SDL_RenderClear"
-		x = ((get-monotime-msec / 10) % window-width.to-nat64).to-int32
+		x int32 = ((get-monotime-msec / 10) % window-width.to).to
 		renderer draw-image texture, x
 		if x + image-width > window-width
 			renderer draw-image texture, x - window-width
@@ -88,7 +88,7 @@ main nat^(_ string[]) summon
 	res
 
 -create-texture SDL_Texture mut*(renderer SDL_Renderer mut*) summon, unsafe
-	bmp = crow-bmp.begin-pointer SDL_RWFromConstMem crow-bmp.size.to-int32 SDL_LoadBMP_RW 0
+	bmp = crow-bmp.begin-pointer SDL_RWFromConstMem crow-bmp.size.to SDL_LoadBMP_RW 0
 	if bmp == null
 		"sdl-loadbmp-error" fail-sdl-error
 	texture = renderer SDL_CreateTextureFromSurface bmp

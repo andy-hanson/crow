@@ -2,38 +2,38 @@ no-std
 import
 	../../bool: &&, bool
 	../../compare: equal
-	../../json: json
-	../../misc: void
+	../../json: json, to
+	../../misc: to, void
 	../../number: ==, <=>, +, -, nat64
 	../../option: force, is-empty
 	../../pointer: size-of
 	../../range: .., end, iterate, prev
-	../../string: ==, ~~, literal, new, string, to-string
+	../../string: ==, ~~, literal, new, string, to
 	../../test-util: is
 	../../tuple: a, b
 	../array: +, -, array, begin, end, is-empty, iterate, size, slice
 	../collection: .., end, for-loop, groups-of, join, reverse, subscript, try-split-once
 	../list:
 		==, ~=, ~, ~~, +, -, array2d, array3d, arrays, begin, build, down, end, get-root, iterate,
-		left, l1, l2, l3, list, new, next, next-index, node, nodes, prev, right, size, slice,
-		to-array, to-list, total-size
+		left, l1, l2, l3, list, new, next, next-index, node, nodes, prev, right, size, slice, to,
+		total-size
 
 dummy-list-tests nat64()
 	0
 
--verify[t] void(a t[], expected string) t equal, t json, t to-string
+-verify[t] void(a t[], expected string) t equal, (json, t) to, (string, t) to
 	a.dbg is expected
 	a.size is a.get-root.check-structure
 
 	(for x : a; x)::t[] is a
 
-	a-array = a to-array
+	a-array t array = a to
 
 	iter mut = a begin
 	for index : 0 .. a.size
 		iter.next-index is index
-		a.begin slice iter is a-array[0 .. index].to-list
-		iter slice a.end is a-array[index .. end].to-list
+		a.begin slice iter is a-array[0 .. index].to
+		iter slice a.end is a-array[index .. end].to
 		next-pair = iter.next!
 		next-pair.a is a[index]
 		iter := next-pair b
@@ -46,22 +46,22 @@ dummy-list-tests nat64()
 		iter := prev-pair a
 		prev-pair.b is a[index]
 		iter.next-index is index
-		a.begin slice iter is a-array[0 .. iter.next-index].to-list
-		iter slice a.end is a-array[iter.next-index .. end].to-list
+		a.begin slice iter is a-array[0 .. iter.next-index].to
+		iter slice a.end is a-array[iter.next-index .. end].to
 	iter.next-index is 0
 	assert iter.prev is-empty
 
 	for i : 0 .. a.size
 		for j : i .. a.size
-			a[i .. j] is a-array[i .. j].to-list
+			a[i .. j] is a-array[i .. j].to
 
 -dbg[t] spec
 	dbg string(a t)
--dbg[t] string(a t[]) t to-string
+-dbg[t] string(a t[]) (string, t) to
 	a.get-root.node dbg-node
--dbg[t] string(a t l2) t to-string
+-dbg[t] string(a t l2) (string, t) to
 	a.node dbg-node
--dbg[t] string(a t l3) t to-string
+-dbg[t] string(a t l3) (string, t) to
 	a.nodes dbg
 -dbg-node[leaf, lower] string(a (leaf, lower) node) leaf dbg, lower dbg
 	match a
@@ -69,13 +69,13 @@ dummy-list-tests nat64()
 		l dbg
 	as branch b
 		"({b.left dbg} {b.down dbg} {b.right dbg})"
--dbg[t] string(a t array) t to-string
+-dbg[t] string(a t array) (string, t) to
 	parts = " " join for x : a; "{x}"
 	"[{parts}]"
--dbg[t] string(a t array2d) t to-string
+-dbg[t] string(a t array2d) (string, t) to
 	parts = " " join for x : a arrays; x dbg
 	"[{parts}]"
--dbg[t] string(a t array3d) t to-string
+-dbg[t] string(a t array3d) (string, t) to
 	parts = " " join for x : a arrays; x dbg
 	"[{parts}]"
 
@@ -154,11 +154,11 @@ test
 -big big-nat(a nat64)
 	a, a, a
 
--json json(a big-nat)
-	a.a json
+-to json(a big-nat)
+	a.a to
 
--to-string string(a big-nat)
-	a.a to-string
+-to string(a big-nat)
+	"{a a}"
 
 test
 	assert size-of@big-nat == 24

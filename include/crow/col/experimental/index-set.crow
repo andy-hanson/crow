@@ -7,15 +7,15 @@ import
 	../../exception: unreachable
 	../../fun-util: subscript
 	../../misc: void
-	../../number: ==, <=>, +, -, *, /, %, max-nat64, nat64, new
+	../../number: ==, <=>, +, -, *, /, %, max-value, nat64, new
 	../../option: ??, new, option
 	../../pointer: const-pointer
 	../../private/number-low-level: wrap-sub
 	../../range: ..
-	../../string: ~~, literal, new, string, to-hex, to-string
+	../../string: ~~, literal, new, string, to-hex, to
 	../array: +, array, begin, iterate, next, slice, subscript
 	../collection: build-options, for-loop, join, subscript
-	../list: ~=, build, iterate, list, list-builder, to-list
+	../list: ~=, build, iterate, list, list-builder, to
 
 index-set record by-ref
 	# This is one more than the highest number that would currently fit in the tree.
@@ -48,9 +48,9 @@ subscript nat64(a leaf-node, n nat64)
 	256
 
 new index-set(...a nat64 array)
-	a.to-list to-index-set
+	a.to to
 
-to-index-set index-set(a nat64[])
+to index-set(a nat64[])
 	res mut index-set = (0, empty)
 	for x : a
 		res ~:= x
@@ -108,7 +108,7 @@ size nat64(a index-set)
 	as empty
 		acc
 
-to-list nat64[](a index-set)
+to nat64[](a index-set)
 	for x : a
 		x
 
@@ -349,7 +349,7 @@ count-less nat64(a index-set, n nat64)
 	a count-range 0, n
 
 count-greater-or-equal nat64(a index-set, n nat64)
-	a count-range n, max-nat64
+	a count-range n, max-value
 
 -count-range-in-nat64 nat64(a nat64, lo-bit-index nat64, hi-bit-index nat64)
 	a >> lo-bit-index count-less-in-nat64 (hi-bit-index - lo-bit-index)
@@ -417,7 +417,7 @@ filter-less index-set(a index-set, limit nat64)
 -bit-index nat64(a nat64)
 	a % 64
 
-to-string string(a index-set)
+to string(a index-set)
 	", " join for x : a; "{x}"
 
 region spec impls (see collection.crow)
@@ -457,7 +457,7 @@ index-set-builder record mut
 	-inner nat64 list-builder
 
 build index-set(a build-options, f act void(index-set-builder))
-	a build (out => f[out,]) to-index-set
+	a build (out => f[out,]) to
 
 ~ ~= void(a index-set-builder, value nat64)
 	a.inner ~= value

@@ -54,7 +54,7 @@ SDL_PIXELFORMAT_RGBA32 nat32() noctx, unsafe
 	bits nat32,
 	bytes nat32,
 ) noctx
-	format = (type.to-nat32 << 24) | (order.to-nat32 << 20) | (layout.to-nat32 << 16)
+	format nat32 = (type.to << 24) | (order.to << 20) | (layout.to << 16)
 	(1 << 28) | format | (bits << 8) | bytes
 
 SDL_PixelType enum(nat32)

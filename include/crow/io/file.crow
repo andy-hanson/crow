@@ -14,24 +14,24 @@ import
 		SYMBOLIC_LINK_FLAG_ALLOW_UNPRIVILEGED_CREATE, SYMBOLIC_LINK_FLAG_DIRECTORY,
 		WIN32_FIND_DATAA
 	../bits: &, |, <<
-	../bool: ||, bool, false, new, not, to-nat64, true
+	../bool: ||, bool, false, new, not, to, true
 	../col/array: +, array, begin, begin-pointer, size, slice
 	../col/collection: build, for-loop, subscript, with-block
 	../col/mut-array: cast-immutable, begin-pointer, mut-array, size, uninitialized-mut-array
-	../col/list: ~=, build, iterate, list, new, size, to-array, to-list
+	../col/list: ~=, build, iterate, list, new, size, to
 	../col/sort: sort
 	../compare: !=
 	../exception: finally, with-block
 	../flags-util: is-in
 	../fun-util: subscript
 	../misc: new, void
-	../number: ==, <=>, nat8, to-nat32, to-nat64
+	../number: ==, <=>, nat8, nat64, to
 	../option: ??, is-empty, new, option
 	../private/bootstrap: todo
 	../pointer: ==, as-any-const-pointer, as-const, mut-pointer, null, pointer-cast, size-of
 	../range: ..
 	../string:
-		==, <=>, ~~, as-string, char8, c-string, literal, string, to-bytes, to-c-string, to-string
+		==, <=>, ~~, as-string, char8, c-string, literal, string, to, to-bytes
 	../version: is-windows
 	./path: child-path
 	./posix-util: check-errno, check-posix-error, throw-posix-error
@@ -72,7 +72,7 @@ is-file bool(path string) summon
 
 # Returns an empty option iff nothing exists at the path.
 -get-path-kind path-kind?(path string) summon
-	trusted path.to-c-string get-path-kind
+	trusted path.to::c-string get-path-kind
 -get-path-kind path-kind?(path c-string) summon, unsafe
 	if is-windows
 		attr = path GetFileAttributesA
@@ -115,11 +115,11 @@ Does not include ".." or ".".
 Use `paths-in-dir` if you want full paths.
 ###
 +names-in-dir string[](path string) summon
-	trusted path.to-c-string names-in-dir
+	trusted path.to::c-string names-in-dir
 
 -names-in-dir string[](path c-string) summon, unsafe
 	if is-windows
-		path-search = "{path}\\*" to-c-string
+		path-search c-string = "{path}\\*" to
 		file-data mut WIN32_FIND_DATAA = ()
 		file = path-search FindFirstFileA &file-data
 		if file == INVALID_HANDLE_VALUE
@@ -147,7 +147,7 @@ Use `paths-in-dir` if you want full paths.
 			file-data mut WIN32_FIND_DATAA = ()
 			ok = file FindNextFileA &file-data
 			if ok
-				s = (&file-data).cFileName.as-const to-string
+				s string = (&file-data).cFileName.as-const to
 				if s != ".."
 					out ~= s
 				continue
@@ -169,7 +169,7 @@ Use `paths-in-dir` if you want full paths.
 				break
 			else
 				assert result == &entry
-				name = result.as-const.d_name to-string
+				name string = result.as-const.d_name to
 				unless name == "." || name == ".."
 					out ~= name
 				continue
@@ -179,20 +179,20 @@ Use `paths-in-dir` if you want full paths.
 	trusted
 		# TODO: smart small and retry if necessAry
 		buff char8 mut-array = 1000 uninitialized-mut-array
-		size = path.to-c-string readlink buff.begin-pointer, buff.size
+		size = path.to readlink buff.begin-pointer, buff.size
 		if size == -1
 			check-errno
-		buff.cast-immutable[0 .. size.to-nat64] as-string
+		buff.cast-immutable[0 .. size.to] as-string
 
 # Create a symbolic link at `link` with the target `target`.
 +make-symlink-to void(link string, target string) summon
 	trusted if is-windows
 		link-flags = SYMBOLIC_LINK_FLAG_ALLOW_UNPRIVILEGED_CREATE | (target.is-dir ? SYMBOLIC_LINK_FLAG_DIRECTORY : ())
-		ok = link.to-c-string CreateSymbolicLinkA target.to-c-string, link-flags
+		ok = link.to CreateSymbolicLinkA target.to, link-flags
 		unless ok
 			throw "Error creating link {link}: {GetLastError show-win32-error}"
 	else
-		err = target.to-c-string symlink link.to-c-string
+		err = target.to symlink link.to
 		unless err == 0
 			assert err == -1
 			check-errno
@@ -218,13 +218,13 @@ Writes the full contents of the file as a string.
 If the file already exists, overwrites it.
 ###
 +write-file void(path string, content string) summon
-	trusted path.to-c-string write-file content
+	trusted path.to::c-string write-file content
 
 -write-file void(path c-string, content string) summon, unsafe
 	fd = path fopen "wb"
 	forbid fd.as-any-const-pointer == null : "failed to open file for write: {path}"
 	with : (() => fd close-fd path) finally
-		fd write-fd path, content.to-bytes.to-array
+		fd write-fd path, content.to-bytes
 
 -write-fd void(fd FILE mut*, path c-string, bytes nat8 array) summon, unsafe
 	wrote-bytes = bytes.begin-pointer fwrite size-of@nat8, bytes.size, fd
@@ -240,7 +240,7 @@ Will still throw on other errors, like permission errors.
 
 # Like `try-read-file` but returns binary data.
 +try-read-file nat8[]?(path string) summon
-	trusted path.to-c-string try-read-file
+	trusted path.to::c-string try-read-file
 
 -try-read-file nat8[]?(path c-string) summon, unsafe
 	if path is-file
@@ -269,12 +269,12 @@ Will still throw on other errors, like permission errors.
 		assert err2 == 0
 
 		# TODO: allocation can fail, then 'fd' is left open. Need finalizers
-		file-size-nat = file-size to-nat64
+		file-size-nat nat64 = file-size to
 		res nat8 mut-array = file-size-nat uninitialized-mut-array
 		n-bytes-read = res.begin-pointer.pointer-cast fread size-of@nat8, file-size-nat, fd
 		assert n-bytes-read == file-size-nat
 		forbid fd ferror : "Error reading {path}"
-		res.cast-immutable to-list
+		res.cast-immutable to
 
 -close-fd void(fd FILE mut*, path c-string) summon, unsafe
 	err = fd fclose
@@ -289,7 +289,7 @@ Will still throw on other errors, like permission errors.
 			todo
 		else
 			assert b == buff.begin-pointer
-			b.as-const to-string
+			b.as-const to
 
 ###
 If `path` is a directory, calls `each-child-recursive` on every child of the directory.
@@ -323,7 +323,7 @@ each-child-recursive void(path string, filter act bool(string), f act void(strin
 	execute bool
 
 -to-mode mode_t(a permissions)
-	a.read.to-nat64 << 2 | a.write.to-nat64 << 1 | a.execute.to-nat64 to-nat32
+	a.read.to << 2 | a.write.to << 1 | a.execute.to to
 
 +no-permissions permissions()
 	false, false, false
@@ -356,25 +356,24 @@ each-child-recursive void(path string, filter act bool(string), f act void(strin
 
 -make-directory-inner bool(path string, permissions file-permissions) summon
 	trusted
-		path-c-string = path to-c-string
 		mode = permissions to-mode
-		err = is-windows ? path-c-string _mkdir mode : path-c-string mkdir mode
+		err = is-windows ? path.to _mkdir mode : path.to mkdir mode
 		err == 0
 
 # Deletes the file at `path`.
 +remove-file void(path string) summon
 	trusted if is-windows
-		ok = path.to-c-string DeleteFileA
+		ok = path.to DeleteFileA
 		assert ok : "error removing file at {path}: {GetLastError show-win32-error}"
 	else
-		path.to-c-string.unlink check-posix-error
+		path.to.unlink check-posix-error
 
 ###
 Deletes the directory at `path`.
 It should be empty.
 ###
 +remove-directory void(path string) summon
-	trusted path.to-c-string.rmdir check-posix-error
+	trusted path.to.rmdir check-posix-error
 
 remove-directory-and-contents-non-recursive void(path string) summon
 	path remove-directory-contents-non-recursive

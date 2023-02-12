@@ -484,28 +484,25 @@ Expr checkInterpolated(
 	in InterpolatedAst ast,
 	ref Expected expected,
 ) {
+	defaultExpectedToString(ctx, range, expected);
 	// TODO: NEATER (don't create a synthetic AST)
-	// "a{b}c" ==> "a" ~~ b.to-str ~~ "c"
+	// "a{b}c" ==> "a" ~~ b.to ~~ "c"
 	CallAst call = checkInterpolatedRecur(ctx, ast.parts, range.start + 1, none!ExprAst);
 	Opt!Type inferred = tryGetInferred(expected);
-	CallAst callAndConvert = has(inferred) && isCStr(ctx.commonTypes, force(inferred))
+	CallAst callAndConvert = has(inferred) && !isString(force(inferred))
 		? CallAst(
 			//TODO: new kind (not infix)
 			CallAst.Style.infix,
-			NameAndRange(range.start, sym!"to-c-string"),
+			NameAndRange(range.start, sym!"to"),
 			// TODO: NO ALLOC
 			arrLiteral!ExprAst(ctx.alloc, [ExprAst(range.range, ExprAstKind(call))]))
 		: call;
 	return checkCall(ctx, locals, range, callAndConvert, expected);
 }
 
-bool isCStr(in CommonTypes commonTypes, Type a) {
-	if (a.isA!(StructInst*)) {
-		StructInst* inst = a.as!(StructInst*);
-		return decl(*inst) == commonTypes.ptrConst && only(typeArgs(*inst)) == Type(commonTypes.char8);
-	} else
-		return false;
-}
+bool isString(Type a) =>
+	// TODO: better
+	a.isA!(StructInst*) && decl(*a.as!(StructInst*)).name == sym!"string";
 
 CallAst checkInterpolatedRecur(ref ExprCtx ctx, in InterpolatedPart[] parts, Pos pos, in Opt!ExprAst left) {
 	ExprAst right = parts[0].matchIn!ExprAst(
@@ -516,7 +513,7 @@ CallAst checkInterpolatedRecur(ref ExprCtx ctx, in InterpolatedPart[] parts, Pos
 			ExprAst(e.range, ExprAstKind(CallAst(
 				//TODO: new kind (not infix)
 				CallAst.Style.infix,
-				NameAndRange(pos, sym!"to-string"),
+				NameAndRange(pos, sym!"to"),
 				// TODO: NO ALLOC
 				arrLiteral!ExprAst(ctx.alloc, [castNonScope_ref(e)])))));
 	Pos newPos = parts[0].matchIn!Pos(
@@ -889,10 +886,10 @@ StructInst* expectedStructOrNull(ref const Expected expected) {
 }
 
 void defaultExpectedToString(ref ExprCtx ctx, FileAndRange range, ref Expected expected) {
-	setExpectedIfNoInferred(expected, () => getStrType(ctx, range));
+	setExpectedIfNoInferred(expected, () => getStringType(ctx, range));
 }
 
-Type getStrType(ref ExprCtx ctx, FileAndRange range) =>
+Type getStringType(ref ExprCtx ctx, FileAndRange range) =>
 	typeFromAst2(ctx, TypeAst(NameAndRange(range.start, sym!"string")));
 
 Expr checkExprWithDestructure(

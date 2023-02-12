@@ -5,7 +5,7 @@ import
 	../fun-util: subscript
 	../io/print: out, print
 	../misc: new, void
-	../string: ~~, literal, to-string
+	../string: ~~, literal, to
 
 # Run every `test` from all source files included in the compilation.
 +run-all-tests void() summon

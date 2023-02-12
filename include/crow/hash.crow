@@ -7,10 +7,10 @@ which require a `hash-mix` implementation for the key type.
 
 no-std
 import
-	./bool: bool, to-nat64
-	./number: int8, int16, int32, int64, nat8, nat16, nat32, nat64, to-int64, to-nat64
+	./bool: bool, to
+	./number: int8, int16, int32, int64, nat8, nat16, nat32, nat64, to
 	./private/bootstrap: void
-	./private/number-low-level: unsafe-to-nat64, wrap-add
+	./private/number-low-level: unsafe-to, wrap-add
 
 ###
 Spec that should be implemented for any type used as a dictionary key.
@@ -35,23 +35,23 @@ then mix its associated value, if any.
 	-cur mut nat64
 
 +hash-mix void(hasher hasher, a nat8)
-	hasher hash-mix a.to-nat64
+	hasher hash-mix a.to::nat64
 +hash-mix void(hasher hasher, a nat16)
-	hasher hash-mix a.to-nat64
+	hasher hash-mix a.to::nat64
 +hash-mix void(hasher hasher, a nat32)
-	hasher hash-mix a.to-nat64
+	hasher hash-mix a.to::nat64
 +hash-mix void(hasher hasher, a nat64)
 	# TODO: better hash mixing algorithm
 	hasher.cur wrap-add:= a
 +hash-mix void(hasher hasher, a int8)
-	hasher hash-mix a.to-int64
+	hasher hash-mix a.to::int64
 +hash-mix void(hasher hasher, a int16)
-	hasher hash-mix a.to-int64
+	hasher hash-mix a.to::int64
 +hash-mix void(hasher hasher, a int32)
-	hasher hash-mix a.to-int64
+	hasher hash-mix a.to::int64
 +hash-mix void(hasher hasher, a int64)
-	# TODO: we need 'wrap-to-nat64'
-	trusted hasher hash-mix a.unsafe-to-nat64
+	# TODO: we need 'wrap-to'
+	trusted hasher hash-mix a.unsafe-to::nat64
 
 +hash-mix void(hasher hasher, a bool)
-	hasher hash-mix a.to-nat64
+	hasher hash-mix a.to::nat64

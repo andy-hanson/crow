@@ -53,12 +53,12 @@ size_t countFunsForStruct(in StructDecl[] structs) =>
 			(in StructBody.Builtin) =>
 				0,
 			(in StructBody.Enum it) =>
-				// '==', 'to-intXX'/'to-natXX', 'enum-members', and a constructor for each member
+				// '==', 'to', 'enum-members', and a constructor for each member
 				3 + it.members.length,
 			(in StructBody.Extern x) =>
 				size_t(has(x.size) ? 1 : 0),
 			(in StructBody.Flags it) =>
-				// '()', 'all', '==', '~', '|', '&', 'to-intXX'/'to-natXX', 'flags-members',
+				// '()', 'all', '==', '~', '|', '&', 'to', 'flags-members',
 				// and a constructor for each member
 				8 + it.members.length,
 			(in StructBody.Record it) {
@@ -273,7 +273,7 @@ FunDecl enumToIntegralFunction(
 		safeCStr!"",
 		visibility,
 		fileAndPosFromFileAndRange(fileAndRange),
-		enumToIntegralName(enumBackingType),
+		sym!"to",
 		[],
 		Type(getBackingTypeFromEnumType(enumBackingType, commonTypes)),
 		makeParams(alloc, fileAndRange, [param!"a"(enumType)]),
@@ -347,29 +347,6 @@ FunDecl flagsUnionOrIntersectFunction(
 		FunFlags.generatedNoCtx.withOkIfUnused(),
 		[],
 		FunBody(fn));
-
-//TODO: actually, we should record the type name used,
-//so if they had 'e enum<size_t>' we should have 'to-size_t' not 'to-nat64'
-Sym enumToIntegralName(EnumBackingType a) {
-	final switch (a) {
-		case EnumBackingType.int8:
-			return sym!"to-int8";
-		case EnumBackingType.int16:
-			return sym!"to-int16";
-		case EnumBackingType.int32:
-			return sym!"to-int32";
-		case EnumBackingType.int64:
-			return sym!"to-int64";
-		case EnumBackingType.nat8:
-			return sym!"to-nat8";
-		case EnumBackingType.nat16:
-			return sym!"to-nat16";
-		case EnumBackingType.nat32:
-			return sym!"to-nat32";
-		case EnumBackingType.nat64:
-			return sym!"to-nat64";
-	}
-}
 
 void addFunsForRecord(
 	ref CheckCtx ctx,

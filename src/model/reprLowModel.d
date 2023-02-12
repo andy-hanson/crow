@@ -280,51 +280,51 @@ string strOfSpecialUnaryKind(LowExprKind.SpecialUnary.Kind a) {
 		case LowExprKind.SpecialUnary.Kind.enumToIntegral:
 			return "to integral (from enum)";
 		case LowExprKind.SpecialUnary.Kind.toChar8FromNat8:
-			return "to-char8 (from nat8)";
+			return "to char8(nat8)";
 		case LowExprKind.SpecialUnary.Kind.toFloat32FromFloat64:
-			return "to-float32 (from float64)";
+			return "to float32(float64)";
 		case LowExprKind.SpecialUnary.Kind.toFloat64FromFloat32:
-			return "to-float64 (from float32)";
+			return "to float64(float32)";
 		case LowExprKind.SpecialUnary.Kind.toFloat64FromInt64:
-			return "to-float64 (from int64)";
+			return "to float64(int64)";
 		case LowExprKind.SpecialUnary.Kind.toFloat64FromNat64:
-			return "to-float64 (from nat64)";
+			return "to float64(nat64)";
 		case LowExprKind.SpecialUnary.Kind.toInt64FromInt16:
-			return "to-int (from int16)";
+			return "to int64(int16)";
 		case LowExprKind.SpecialUnary.Kind.toInt64FromInt32:
-			return "to-int (from int32)";
+			return "to int64(int32)";
 		case LowExprKind.SpecialUnary.Kind.toNat8FromChar8:
-			return "to-nat8 (from char8)";
+			return "to nat8(char8)";
 		case LowExprKind.SpecialUnary.Kind.toNat64FromNat8:
-			return "to-nat (from nat8)";
+			return "to nat64(nat8)";
 		case LowExprKind.SpecialUnary.Kind.toNat64FromNat16:
-			return "to-nat (from nat16)";
+			return "to nat64(nat16)";
 		case LowExprKind.SpecialUnary.Kind.toNat64FromNat32:
-			return "to-nat (from nat32)";
+			return "to nat64(nat32)";
 		case LowExprKind.SpecialUnary.Kind.toNat64FromPtr:
-			return "to-nat (from ptr)";
+			return "to nat64(ptr)";
 		case LowExprKind.SpecialUnary.Kind.toPtrFromNat64:
-			return "to-ptr (from nat64)";
+			return "to ptr(nat64)";
 		case LowExprKind.SpecialUnary.Kind.truncateToInt64FromFloat64:
-			return "truncate-to-int (from float64)";
-		case LowExprKind.SpecialUnary.Kind.unsafeInt32ToNat32:
-			return "unsafe-int32-to-nat32";
-		case LowExprKind.SpecialUnary.Kind.unsafeInt64ToInt8:
-			return "unsafe-int64-to-int8";
-		case LowExprKind.SpecialUnary.Kind.unsafeInt64ToInt16:
-			return "unsafe-int64-to-int16";
-		case LowExprKind.SpecialUnary.Kind.unsafeInt64ToInt32:
-			return "unsafe-int64-to-int32";
-		case LowExprKind.SpecialUnary.Kind.unsafeInt64ToNat64:
-			return "unsafe-int64-to-nat64";
-		case LowExprKind.SpecialUnary.Kind.unsafeNat64ToInt64:
-			return "unsafe-nat64-to-int64";
-		case LowExprKind.SpecialUnary.Kind.unsafeNat64ToNat8:
-			return "unsafe-nat64-to-nat8";
-		case LowExprKind.SpecialUnary.Kind.unsafeNat64ToNat16:
-			return "unsafe-nat64-to-nat16";
-		case LowExprKind.SpecialUnary.Kind.unsafeNat64ToNat32:
-			return "unsafe-nat64-to-nat32";
+			return "truncate-to int64(float64)";
+		case LowExprKind.SpecialUnary.Kind.unsafeToInt8FromInt64:
+			return "unsafe-to int8(int64)";
+		case LowExprKind.SpecialUnary.Kind.unsafeToInt16FromInt64:
+			return "unsafe-to int16(int64)";
+		case LowExprKind.SpecialUnary.Kind.unsafeToInt32FromInt64:
+			return "unsafe-to int32(int64)";
+		case LowExprKind.SpecialUnary.Kind.unsafeToInt64FromNat64:
+			return "unsafe-to int64(nat64)";
+		case LowExprKind.SpecialUnary.Kind.unsafeToNat8FromNat64:
+			return "unsafe-to nat8(nat64)";
+		case LowExprKind.SpecialUnary.Kind.unsafeToNat16FromNat64:
+			return "unsafe-to nat16(nat64)";
+		case LowExprKind.SpecialUnary.Kind.unsafeToNat32FromInt32:
+			return "unsafe-to nat32(int32)";
+		case LowExprKind.SpecialUnary.Kind.unsafeToNat32FromNat64:
+			return "unsafe-to nat32(nat64)";
+		case LowExprKind.SpecialUnary.Kind.unsafeToNat64FromInt64:
+			return "unsafe-to int64(nat64)";
 	}
 }
 

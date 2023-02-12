@@ -7,7 +7,7 @@ import
 	../../number: ==, +, -, *, nat64, round-up-to-power-of-two
 	../../pointer:
 		==, <=>, +, -, *, as-const, const-pointer, mut-pointer, null, pointer-cast, set-deref,
-		size-of, to-mut-pointer, to-nat64
+		size-of, to-mut-pointer, to
 	../../range: .., low, range, size
 	../../private/alloc: alloc-uninitialized, copy-data-from
 	../../private/bootstrap: array, begin-pointer, new, size
@@ -92,7 +92,7 @@ Calls `f` for each element in `a`.
 
 +~=[t] void(a t array-builder, value t)
 	trusted if size-of@t == 0
-		a.cur := (a.cur.to-nat64 + 1).to-mut-pointer
+		a.cur := (a.cur.to + 1).to-mut-pointer
 	else
 		forbid a.begin == null
 		assert a.cur <= a.end
@@ -109,7 +109,7 @@ Calls `f` for each element in `a`.
 
 +~~=[t] void(a t array-builder, values t array)
 	trusted if size-of@t == 0
-		a.cur := (a.cur.to-nat64 + values.size).to-mut-pointer
+		a.cur := (a.cur.to + values.size).to-mut-pointer
 	else
 		forbid a.begin == null
 		assert a.cur <= a.end
@@ -127,6 +127,6 @@ Calls `f` for each element in `a`.
 
 +size[t] nat64(a t array-builder)
 	trusted if size-of@t == 0
-		a.cur to-nat64
+		a.cur to
 	else
 		a.cur - a.begin

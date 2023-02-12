@@ -310,7 +310,7 @@ private void eachFunInScopeForSpec(
 
 private:
 
-size_t maxCandidates() => 64;
+size_t maxCandidates() => 256;
 alias Candidates = MutMaxArr!(maxCandidates, Candidate);
 alias ParamExpected = MutMaxArr!(maxCandidates, TypeAndInferring);
 

@@ -9,5 +9,5 @@ main nat^(_ string[]) summon
 	c float = 3
 	out print "{c / 2}"
 
-	out print "{a.to-int64 + b}"
+	out print "{a.to::int64 + b}"
 	()

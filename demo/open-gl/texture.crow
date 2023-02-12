@@ -3,8 +3,8 @@ import
 		glBindTexture, glDeleteTextures, gl-ext, glGenTextures, glGetError, glTexImage2D,
 		glTexParameteri
 	OpenGL/headers:
-		==, GL_LINEAR, GL_NO_ERROR, GL_RGBA, GL_TEXTURE_MAG_FILTER, GL_TEXTURE_MIN_FILTER,
-		GL_TEXTURE_2D, GLuint, GL_UNSIGNED_BYTE, to-string
+		==, enum-members, GL_LINEAR, GL_NO_ERROR, GL_RGBA, GL_TEXTURE_MAG_FILTER,
+		GL_TEXTURE_MIN_FILTER, GL_TEXTURE_2D, GLuint, GL_UNSIGNED_BYTE
 	./load-bmp: height, image-data, width, with-bmp
 
 # Remember to call 'free-texture'
@@ -16,8 +16,8 @@ load-texture-from-bmp GLuint(gl gl-ext, bmp-raw nat8[]) summon, unsafe
 
 		gl glBindTexture GL_TEXTURE_2D, texture
 		gl check-error "glBindTexture"
-		w = image.width to-int32
-		h = image.height to-int32
+		w int32 = image.width to
+		h int32 = image.height to
 		image-data = image.image-data as-const
 		gl glTexImage2D GL_TEXTURE_2D, 0, GL_RGBA, w, h, 0, GL_RGBA, GL_UNSIGNED_BYTE, image-data
 		gl check-error "glTexImage2D"
@@ -29,7 +29,7 @@ load-texture-from-bmp GLuint(gl gl-ext, bmp-raw nat8[]) summon, unsafe
 
 -check-error void(gl gl-ext, step string) summon, unsafe
 	err = gl glGetError
-	assert err == GL_NO_ERROR : "Error loading image (in {step}): code {err to-string}"
+	assert err == GL_NO_ERROR : "Error loading image (in {step}): code {err}"
 
 free-texture void(gl gl-ext, tex-name GLuint) summon, unsafe
 	gl glDeleteTextures 1, &tex-name

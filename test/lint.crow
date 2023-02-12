@@ -20,7 +20,7 @@ lint test-result^(path string, options test-options) summon
 	path each-child-recursive (child => !child.excluded-from-lint), child =>
 		unless child.base-name should-ignore-extension-of-name
 			res ~= child
-	res move-to-list
+	res move-to
 
 -excluded-from-lint bool(name string)
 	if name starts-with "." || name in exclude-names
@@ -41,7 +41,7 @@ lint test-result^(path string, options test-options) summon
 	ext = path.get-extension!
 	allow-double-space = ext == "err" || ext == "sublime-syntax"
 	for line-num, line : text.lines with-index
-		ln = line-num + 1 to-string
+		ln = line-num + 1
 		space-space = " " ~~ " "
 		if !allow-double-space && line contains-seq space-space
 			message = "line {ln} contains a double space"
@@ -50,7 +50,7 @@ lint test-result^(path string, options test-options) summon
 		if width > max-line-length
 			message = "line {ln} is {width} columns long, should be <= {max-line-length}"
 			res ~= (path, message)
-	res move-to-list
+	res move-to
 
 -ignored-extensions string set()
 	"c", "data", "json", "o", "out", "repr", "tmLanguage"
@@ -76,4 +76,4 @@ lint test-result^(path string, options test-options) summon
 	4
 
 -line-len nat(line string)
-	line.n-tabs * (tab-size - 1) + line.char8s.size
+	line.n-tabs * (tab-size - 1) + line.size
