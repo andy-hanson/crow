@@ -314,7 +314,7 @@ CommonTypes getCommonTypes(
 	StructDecl* pointerConst = getDecl!"const-pointer"(1);
 	StructDecl* pointerMut = getDecl!"mut-pointer"(1);
 	EnumDict!(FunKind, StructDecl*) funs = immutable EnumDict!(FunKind, StructDecl*)([
-		getDecl!"fun-fun"(2), getDecl!"fun-act"(2), getDecl!"fun-ref"(2), getDecl!"fun-pointer"(2),
+		getDecl!"fun-fun"(2), getDecl!"fun-act"(2), getDecl!"fun-far"(2), getDecl!"fun-pointer"(2),
 	]);
 
 	StructDecl* constPointer = getDecl!"const-pointer"(1);

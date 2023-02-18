@@ -4,7 +4,7 @@ import
 main nat^(_ string[]) summon
 	out print "Hello world"
 
-	my-fun ref void() = () =>
+	my-fun far void() = () =>
 		throw "I am error"
 
 	my-fun[] handle-exceptions

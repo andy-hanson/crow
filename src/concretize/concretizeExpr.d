@@ -399,8 +399,8 @@ ConcreteExpr concretizeLambda(ref ConcretizeExprCtx ctx, FileAndRange range, in 
 	ConcreteExprKind lambda(ConcreteStruct* funStruct) {
 		return ConcreteExprKind(ConcreteExprKind.Lambda(nextLambdaImplId(ctx.concretizeCtx, funStruct, impl), closure));
 	}
-	if (e.kind == FunKind.ref_) {
-		// For a fun-ref this is the inner 'act' type.
+	if (e.kind == FunKind.far) {
+		// For a 'far' function this is the inner 'act' type.
 		ConcreteField[] fields = body_(*concreteStruct).as!(ConcreteStructBody.Record).fields;
 		verify(fields.length == 2);
 		ConcreteField exclusionField = fields[0];

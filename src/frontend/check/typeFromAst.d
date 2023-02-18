@@ -315,10 +315,10 @@ Opt!(Diag.TypeShouldUseSyntax.Kind) typeSyntaxKind(Sym a) {
 	switch (a.value) {
 		case sym!"fun-act".value:
 			return some(Diag.TypeShouldUseSyntax.Kind.funAct);
+		case sym!"fun-far".value:
+			return some(Diag.TypeShouldUseSyntax.Kind.funFar);
 		case sym!"fun-fun".value:
 			return some(Diag.TypeShouldUseSyntax.Kind.funFun);
-		case sym!"fun-ref".value:
-			return some(Diag.TypeShouldUseSyntax.Kind.funRef);
 		case sym!"const-pointer".value:
 			return some(Diag.TypeShouldUseSyntax.Kind.pointer);
 		case sym!"dict".value:

@@ -346,8 +346,8 @@ immutable struct Diag {
 		enum Kind {
 			dict,
 			funAct,
+			funFar,
 			funFun,
-			funRef,
 			future,
 			list,
 			mutDict,

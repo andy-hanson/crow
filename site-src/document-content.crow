@@ -294,7 +294,7 @@ module-content string(a module, all-exports all-exports)
 	"{kw} {a.type-args[0] type-ref-content ctx}({params})"
 
 -fun-internal-name-to-keyword symbol[symbol]()
-	("fun-fun", "fun"), ("fun-act", "act"), ("fun-ref", "ref"), ("fun-pointer", "fun*")
+	("fun-fun", "fun"), ("fun-act", "act"), ("fun-far", "far"), ("fun-pointer", "fun*")
 
 -spec-refs-content string(specs spec-ref[], ctx ctx)
 	unless specs is-empty

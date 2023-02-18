@@ -498,8 +498,8 @@ immutable struct ConcreteExprKind {
 		ConcreteExpr then;
 	}
 
-	// May be a fun or fun-mut.
-	// (A fun-ref is a lambda wrapped in CreateRecord.)
+	// May be a 'fun' or 'act'.
+	// (A 'far' function is a lambda wrapped in CreateRecord.)
 	immutable struct Lambda {
 		size_t memberIndex; // Member index of a Union (which hasn't been created yet)
 		Opt!(ConcreteExpr*) closure;

@@ -1020,10 +1020,10 @@ void writeDiag(
 						return "prefer to write 'v[k]' instead of '(k, v) dict'";
 					case Diag.TypeShouldUseSyntax.Kind.funAct:
 						return "prefer to write 'act r(p)' instead of '(r, p) fun-act'";
+					case Diag.TypeShouldUseSyntax.Kind.funFar:
+						return "prefer to write 'far r(p)' instead of '(r, p) fun-far'";
 					case Diag.TypeShouldUseSyntax.Kind.funFun:
 						return "prefer to write 'fun r(p)' instead of '(r, p) fun-fun'";
-					case Diag.TypeShouldUseSyntax.Kind.funRef:
-						return "prefer to write 'ref r(p)' instead of '(r, p) fun-ref'";
 					case Diag.TypeShouldUseSyntax.Kind.future:
 						return "prefer to write 'a$' instead of 'a future";
 					case Diag.TypeShouldUseSyntax.Kind.list:
@@ -1261,6 +1261,8 @@ string describeTokenForUnexpected(Token token) {
 			return "unexpected keyword 'extern'";
 		case Token.EOF:
 			return "unexpected end of file";
+		case Token.far:
+			return "unexpected keyword 'far'";
 		case Token.flags:
 			return "unexpected keyword 'flags'";
 		case Token.for_:
@@ -1315,8 +1317,6 @@ string describeTokenForUnexpected(Token token) {
 			return "unexpected '\"\"\"'";
 		case Token.record:
 			return "unexpected keyword 'record'";
-		case Token.ref_:
-			return "unexpected keyword 'ref'";
 		case Token.semicolon:
 			return "unexpected ';'";
 		case Token.spec:

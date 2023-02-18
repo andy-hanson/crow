@@ -36,7 +36,7 @@ import
 
 # Type of a function that can respond to HTTP requests.
 +http-handler alias
-	ref http-response(http-request)
+	far http-response(http-request)
 
 +http-server-options record shared
 	port string
@@ -47,13 +47,13 @@ import
 ###
 Starts running an HTTP server. Stops it when `cb` returns.
 ###
-+with-block[t] t^(a http-server-options, cb ref t(http-server)) summon, t shared
++with-block[t] t^(a http-server-options, cb far t(http-server)) summon, t shared
 	client-states http-parse-state mut[SOCKET] = ()
 
-	on-accepted-client ref void(SOCKET) = sock =>
+	on-accepted-client far void(SOCKET) = sock =>
 		client-states[sock] := ()
 		()
-	on-received-chunk ref void(SOCKET, nat8 array) = (sock, bytes) =>
+	on-received-chunk far void(SOCKET, nat8 array) = (sock, bytes) =>
 		if state ?= client-states[sock]
 			closed <- trusted sock handle-chunk state, bytes, a.handler
 			if closed

@@ -204,7 +204,7 @@ immutable(FunDecl*[]) getFunOrActSubscriptFuns(in CommonTypes commonTypes, immut
 			case FunKind.act:
 				if (cutIndex == size_t.max) cutIndex = index;
 				break;
-			case FunKind.ref_:
+			case FunKind.far:
 				unreachable!void;
 				break;
 			case FunKind.pointer:

@@ -577,7 +577,7 @@ MutOpt!ExpectedLambdaType getExpectedLambdaType(
 							: OkSkipOrAbort!Type.abort(Diag(Diag.LambdaCantInferParamType()));
 				}();
 				return actualParamType.mapOk((Type paramType) {
-					Type nonInstantiatedReturnType = funType.kind == FunKind.ref_
+					Type nonInstantiatedReturnType = funType.kind == FunKind.far
 						? makeFutType(
 							ctx.alloc, ctx.programState, ctx.commonTypes, funType.nonInstantiatedNonFutReturnType)
 						: funType.nonInstantiatedNonFutReturnType;
@@ -1163,7 +1163,7 @@ Expr checkLambda(ref ExprCtx ctx, ref LocalsInfo locals, FileAndRange range, in 
 
 	VariableRef[] closureFields = checkClosure(ctx, range, kind, tempAsArr(lambdaInfo.closureFields));
 
-	Opt!Type actualNonFutReturnType = kind == FunKind.ref_
+	Opt!Type actualNonFutReturnType = kind == FunKind.far
 		? actualPossiblyFutReturnType.match!(Opt!Type)(
 			(Type.Bogus _) =>
 				some(Type(Type.Bogus())),
@@ -1209,7 +1209,7 @@ VariableRef[] checkClosure(ref ExprCtx ctx, FileAndRange range, FunKind kind, Cl
 			}
 			break;
 		case FunKind.act:
-		case FunKind.ref_:
+		case FunKind.far:
 			break;
 		case FunKind.pointer:
 			todo!void("ensure no closure");

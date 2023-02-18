@@ -71,10 +71,10 @@ TypeAst parseTypeBeforeSuffixes(ref Lexer lexer) {
 			return parseTupleType(lexer, start);
 		case Token.act:
 			return parseFunType(lexer, start, FunKind.act);
+		case Token.far:
+			return parseFunType(lexer, start, FunKind.far);
 		case Token.fun:
 			return parseFunType(lexer, start, tryTakeOperator(lexer, sym!"*") ? FunKind.pointer : FunKind.fun);
-		case Token.ref_:
-			return parseFunType(lexer, start, FunKind.ref_);
 		default:
 			addDiagUnexpectedCurToken(lexer, start, token);
 			return TypeAst(TypeAst.Bogus(range(lexer, start)));

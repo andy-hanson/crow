@@ -422,6 +422,7 @@ public enum Token {
 	extern_, // 'extern'
 	EOF, // end of file
 	export_, // 'export'
+	far, // 'far'
 	flags, // 'flags'
 	for_, // 'for'
 	forbid, // 'forbid'
@@ -449,7 +450,6 @@ public enum Token {
 	quoteDouble, // '"'
 	quoteDouble3, // '"""'
 	record, // 'record'
-	ref_, // 'ref'
 	semicolon, // ';'
 	spec, // 'spec'
 	summon, // 'summon'
@@ -603,6 +603,8 @@ Token tokenForSym(ref Lexer lexer, Sym a) {
 			return Token.export_;
 		case sym!"extern".value:
 			return Token.extern_;
+		case sym!"far".value:
+			return Token.far;
 		case sym!"flags".value:
 			return Token.flags;
 		case sym!"for".value:
@@ -631,8 +633,6 @@ Token tokenForSym(ref Lexer lexer, Sym a) {
 			return Token.noStd;
 		case sym!"record".value:
 			return Token.record;
-		case sym!"ref".value:
-			return Token.ref_;
 		case sym!"spec".value:
 			return Token.spec;
 		case sym!"summon".value:
@@ -759,6 +759,7 @@ bool isExpressionStartToken(Token a) {
 		case Token.export_:
 		case Token.extern_:
 		case Token.EOF:
+		case Token.far:
 		case Token.flags:
 		case Token.forceCtx:
 		case Token.fun:
@@ -773,7 +774,6 @@ bool isExpressionStartToken(Token a) {
 		case Token.question:
 		case Token.questionEqual:
 		case Token.record:
-		case Token.ref_:
 		case Token.semicolon:
 		case Token.spec:
 		case Token.summon:

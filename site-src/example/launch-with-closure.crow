@@ -13,14 +13,14 @@ main nat^(_ string[]) summon
 	()
 
 store record shared
-	get ref nat()
-	get-and-set ref nat(nat)
+	get far nat()
+	get-and-set far nat(nat)
 
 make-store store^(initial-value nat)
 	with : parallel
 		cur mut nat = initial-value
-		get ref nat() = () => cur,
-		get-and-set ref nat(nat) = x =>
+		get far nat() = () => cur,
+		get-and-set far nat(nat) = x =>
 			prev-value = cur
 			cur := x
 			prev-value,

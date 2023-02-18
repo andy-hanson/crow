@@ -1055,7 +1055,7 @@ immutable struct NameReferents {
 enum FunKind {
 	fun,
 	act,
-	ref_,
+	far,
 	pointer,
 }
 
@@ -1065,8 +1065,8 @@ Sym symOfFunKind(FunKind a) {
 			return sym!"fun";
 		case FunKind.act:
 			return sym!"act";
-		case FunKind.ref_:
-			return sym!"ref";
+		case FunKind.far:
+			return sym!"far";
 		case FunKind.pointer:
 			return sym!"pointer";
 	}
@@ -1534,10 +1534,10 @@ void writeStructInst(scope ref Writer writer, in AllSymbols allSymbols, in Struc
 				return dict("[");
 			case Diag.TypeShouldUseSyntax.Kind.funAct:
 				return fun("act");
+			case Diag.TypeShouldUseSyntax.Kind.funFar:
+				return fun("far");
 			case Diag.TypeShouldUseSyntax.Kind.funFun:
 				return fun("fun");
-			case Diag.TypeShouldUseSyntax.Kind.funRef:
-				return fun("ref");
 			case Diag.TypeShouldUseSyntax.Kind.future:
 				return suffix("^");
 			case Diag.TypeShouldUseSyntax.Kind.list:

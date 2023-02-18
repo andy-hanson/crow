@@ -34,13 +34,13 @@ export
 # Call `action` now and on every `interval`.
 +for-break[out] out^(
 	interval interval,
-	f-loop ref out break-or-continue(),
+	f-loop far out break-or-continue(),
 ) summon, out shared
 	get-monotime-nsec repeat-interval-recur interval.time.nsec.to, f-loop
 -repeat-interval-recur[out] out^(
 	start-nsec nat64,
 	interval-nsec nat64,
-	action ref out break-or-continue(),
+	action far out break-or-continue(),
 ) summon, out shared
 	choice <- action[]
 	match choice

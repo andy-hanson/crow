@@ -6,7 +6,7 @@ audio record shared
 	clear fun void()
 	play fun playing-sound(sound)
 	play-loop fun playing-sound(sound)
-	shut-down ref void()
+	shut-down far void()
 
 clear void(a audio)
 	cb fun void() = a clear
@@ -19,7 +19,7 @@ play-loop playing-sound(a audio, sound sound)
 	a.play-loop[sound]
 
 shut-down void^(a audio)
-	cb ref void() = a shut-down
+	cb far void() = a shut-down
 	cb[]
 
 playing-sound record shared

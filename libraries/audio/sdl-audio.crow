@@ -29,7 +29,7 @@ start-sdl-audio audio() summon
 
 		device SDL_PauseAudioDevice 0
 
-		shut-down ref void() = () =>
+		shut-down far void() = () =>
 			device SDL_CloseAudioDevice
 			SDL_Quit
 			()
