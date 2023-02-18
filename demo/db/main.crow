@@ -41,9 +41,8 @@ main nat^(args string[]) summon
 			db-name = named-args[1] single-string-or-throw "db-name"
 			with env : db-path open-lmdb-env true
 				with db : env database@(string, string) db-name
-					stats string = with txn : env read-transaction
+					out print with txn : env read-transaction
 						txn stat db to
-					out print stats
 					()
 	else
 		out print usage

@@ -781,7 +781,6 @@ bool isExpressionStartToken(Token a) {
 		case Token.thread_local:
 		case Token.union_:
 		case Token.unsafe:
-		case Token.with_:
 			return false;
 		case Token.assert_:
 		case Token.bang:
@@ -806,6 +805,7 @@ bool isExpressionStartToken(Token a) {
 		case Token.underscore:
 		case Token.unless:
 		case Token.until:
+		case Token.with_:
 		case Token.while_:
 			return true;
 	}
