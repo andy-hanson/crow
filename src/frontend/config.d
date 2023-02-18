@@ -16,7 +16,8 @@ import util.col.str : SafeCStr;
 import util.readOnlyStorage : ReadFileResult, ReadOnlyStorage, withFileText;
 import util.opt : force, has, none, Opt, some;
 import util.jsonParse : Json, parseJson;
-import util.path : AllPaths, childPath, commonAncestor, parent, parseAbsoluteOrRelPath, Path, PathAndRange;
+import util.path :
+	AllPaths, childPath, commonAncestor, emptyRootPath, parent, parseAbsoluteOrRelPath, Path, PathAndRange;
 import util.sourceRange : RangeWithinFile;
 import util.sym : AllSymbols, Sym, sym;
 import util.util : todo;
@@ -142,17 +143,40 @@ Dict!(Sym, Path) parseIncludeOrExtern(
 	Path dirContainingConfig,
 	scope ref ArrBuilder!DiagnosticWithinFile diags,
 	in Json json,
+) =>
+	parseSymDict!Path(alloc, allSymbols, diags, json, (in Json value) {
+		Opt!Path res = parsePath(allPaths, dirContainingConfig, diags, value);
+		return has(res) ? force(res) : emptyRootPath(allPaths);
+	});
+
+Opt!Path parsePath(
+	ref AllPaths allPaths,
+	Path dirContainingConfig,
+	scope ref ArrBuilder!DiagnosticWithinFile diags,
+	in Json json,
+) {
+	if (json.isA!SafeCStr)
+		return some(parseAbsoluteOrRelPath(allPaths, dirContainingConfig, json.as!SafeCStr));
+	else {
+		todo!void("diag -- 'include' values should be strings");
+		return none!Path;
+	}
+}
+
+Dict!(Sym, T) parseSymDict(T)(
+	ref Alloc alloc,
+	ref AllSymbols allSymbols,
+	scope ref ArrBuilder!DiagnosticWithinFile diags,
+	in Json json,
+	in T delegate(in Json) @safe @nogc pure nothrow cbValue,
 ) {
 	DictBuilder!(Sym, Path) res;
 	if (json.isA!(Json.Object)) {
 		foreach (ref Json.ObjectField field; json.as!(Json.Object)) {
-			if (field.value.isA!SafeCStr) {
-				Path value = parseAbsoluteOrRelPath(allPaths, dirContainingConfig, field.value.as!SafeCStr);
-				Opt!Path before = tryAddToDict(alloc, res, field.key, value);
-				if (has(before))
-					todo!void("diag -- duplicate include key");
-			} else
-				todo!void("diag -- 'include' values should be strings");
+			T value = cbValue(field.value);
+			Opt!T before = tryAddToDict(alloc, res, field.key, value);
+			if (has(before))
+				todo!void("diag -- duplicate include key");
 		}
 	} else
 		todo!void("diag -- include should be an object");

@@ -1,6 +1,6 @@
 no-std
 import
-	../bool: bool
+	../bool: bool, new, true
 	../compare: <, >, <=, compare
 	../fun-util: subscript
 	../json: to
@@ -11,12 +11,15 @@ import
 	../string: ~~, ==, literal, new, string, to
 	../test-util: is
 	../tuple: ==, a, b, new
-	./array: ~=, +, -, array, begin, build, end, is-empty, iterate, new, next, size, slice
-	./collection: .., build, end, for-break, for-loop, join, subscript, swap-at, with-block
+	./array:
+		~=, ~~=, +, -, array, array-builder, begin, build, end, is-empty, iterate, new, next, size,
+		slice
+	./collection:
+		.., build, build-options, end, for-break, for-loop, join, subscript, swap-at, with-block
 	./mut-array:
 		~=, ~~=, +, -, begin, build, cast-immutable, end, is-empty, mut-array, mut-array-builder,
 		next, prev, set-next, size, slice
-	./list: ==, ~=, build, is-empty, iterate, list, new, to
+	./list: ==, ~=, build, iterate, list, new, to
 	./sort: sort, sort=
 
 ###
@@ -58,15 +61,18 @@ then with the `4` to size 10, then with the `8` to size 18, leaving only one nod
 +new[k, v] (k, v) priority-queue(...a (k, v) array) k priority
 	a.to to
 
-+to[k, v] (k, v) priority-queue(a (k, v)[]) k priority
++to[k, v] (k, v) priority-queue(a (k, v) array) k priority
 	if a is-empty
 		# TODO: type annotation should not be necessary
 		()::((k, v) node?),
 	else
-		sorted (k, v) array = a.to sort (k, _) => k
+		sorted = a sort (k, _) => k
 		root (k, v) node = sorted[0], sorted[1 .. end], ()
 		# TODO: type annotation should not be necessary
 		(root,)::((k, v) node?),
+
++to[k, v] (k, v) priority-queue(a (k, v)[]) k priority
+	a.to::((k, v) array) to
 
 +to[k, v] (k, v)[](a (k, v) priority-queue) k priority
 	for k, v : a
@@ -240,9 +246,9 @@ This is amortized O(log n).
 		k, v = node min
 		"{k} {v} [{pairs}]{rest}"
 
-region iteration
+region spec impls (see collection.crow)
 
-+for-loop[k, v] void(a (k, v) priority-queue, f act void(k, v)) k priority
++iterate[k, v] bool(a (k, v) priority-queue, f act bool(k, v)) k priority
 	a.each-arr walk f
 
 -each-part[k, v] record mut
@@ -275,11 +281,12 @@ region iteration
 		else
 			break
 
--walk[k, v] void(a (k, v) each-part mut-array, f act void(k, v)) k compare
+-walk[k, v] bool(a (k, v) each-part mut-array, f act bool(k, v)) k compare
 	unless a is-empty
 		head = a[0]
-		f[head min]
-		if head.pairs is-empty
+		if f[head min]
+			true
+		elif head.pairs is-empty
 			a[1 .. end] walk f
 		else
 			head.min := head.pairs[0]
@@ -295,16 +302,14 @@ region iteration
 		else
 			break
 
-+for-loop[k-out, v-out, k-in, v-in] (k-out, v-out) priority-queue(
-	a (k-in, v-in) priority-queue,
-	f act (k-out, v-out)(k-in, v-in),
-) k-in priority, k-out priority
-	a for-loop f to
-
-+for-loop[out, k, v] out[](a (k, v) priority-queue, f act out(k, v)) k priority
-	with out : a.size build
-		for x : a
-			out ~= f[x]
++priority-queue-builder[k, v] record mut
+	-inner (k, v) array-builder
++build[k, v] (k, v) priority-queue(a build-options, f act void((k, v) priority-queue-builder)) k priority
+	(a build out => f[out,])::((k, v) array) to
++~=[k, v] void(a (k, v) priority-queue-builder, value (k, v)) k priority
+	a.inner ~= value
++~~=[k, v] void(a (k, v) priority-queue-builder, values (k, v) array) k priority
+	a.inner ~~= values
 
 test
 	p (nat64, string) priority-queue = ()

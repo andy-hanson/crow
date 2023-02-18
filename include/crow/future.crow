@@ -205,8 +205,7 @@ for-break[in-col, in-iter, in-elem] void^(
 	a in-col sequential-collection,
 	f ref void break-or-continue(in-elem),
 ) (in-iter, in-col) begin, (in-elem, in-iter) next, in-elem shared
-	# TODO: we need type annotations on LHS of '<-'
-	_ <- (a for-break f)::void?^
+	_ void? <- a for-break f
 	()
 
 for-break[out, in-col, in-iter, in-elem] out?^(

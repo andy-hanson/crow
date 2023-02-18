@@ -1128,7 +1128,7 @@ Expr checkFunPointer(ref ExprCtx ctx, FileAndRange range, in PtrAst ast, ref Exp
 	if (isTemplate(*funDecl))
 		todo!void("can't point to template");
 	FunInst* funInst = instantiateFun(ctx.alloc, ctx.programState, funDecl, [], []);
-	Type paramType = makeTupleType(ctx.checkCtx, ctx.commonTypes, funInst.paramTypes);
+	Type paramType = makeTupleType(ctx.alloc, ctx.programState, ctx.commonTypes, funInst.paramTypes);
 	StructInst* structInst = instantiateStructNeverDelay(
 		ctx.alloc, ctx.programState, ctx.commonTypes.funPtrStruct, [funInst.returnType, paramType]);
 	return check(ctx, expected, Type(structInst), Expr(range, ExprKind(ExprKind.FunPtr(funInst, structInst))));

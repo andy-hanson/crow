@@ -4,7 +4,7 @@ import
 	./col/collection: for-break, for-loop
 	./col/list: ~=, build, list
 	./compare: equal
-	./misc: loop-break, name, new, named-val, val
+	./misc: loop-break, new
 	./option: ??, option
 	./private/symbol-low-level: ==, symbol, to
 	./string: ==, ~~, literal, string, to
@@ -17,16 +17,16 @@ Functions in this spec will be generated when you declare an `enum`.
 ###
 +enum-like[e] spec e equal
 	# Returns every name and value in the enum.
-	enum-members e named-val array()
+	enum-members (symbol, e) array()
 
 +values[e] e[]() e enum-like
-	for x : enum-members
-		x val
+	for _, value : enum-members
+		value
 
 +to[e] symbol(a e) e enum-like
-	for x : enum-members
-		if x.val == a
-			break x.name
+	for name, value : enum-members
+		if value == a
+			break name
 	else
 		throw "Invalid enum value"
 
@@ -36,18 +36,18 @@ Converts a symbol to the enum value that was declared with that name.
 Returns an empty option if `a` is not the name of an enum member.
 ###
 +to-enum[e] e?(a symbol) e enum-like
-	for x : enum-members
-		if x.name == a
-			break x val
+	for name, value : enum-members
+		if name == a
+			break value
 
 +to-enum[e] e(a symbol) e enum-like
 	a.to-enum ?? throw "unexpected enum member {a}"
 
 # Same as `a.to-symbol to-enum`.
 to-enum[e] e?(a string) e enum-like
-	for x : enum-members
-		if x.name.to::string == a
-			break x val
+	for name, value : enum-members
+		if name.to::string == a
+			break value
 
 +to-enum[e] e(a string) e enum-like
 	a.to-enum ?? throw "unexpected enum member {a}"

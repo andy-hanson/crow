@@ -432,10 +432,5 @@ lock record shared by-ref
 
 region reflect
 
-# General-purpose type that stores a name and value.
-+named-val[t] record by-val
-	name symbol
-	val t
-
 # All symbols that exist in the compiled code, in arbitrary order
 static-symbols symbol array() builtin, noctx

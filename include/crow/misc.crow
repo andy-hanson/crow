@@ -4,7 +4,7 @@ import
 	./compare: compare
 	./hash: hash-mix
 export
-	./private/bootstrap: data, shared, name, named-val, val, void
+	./private/bootstrap: data, shared, void
 
 +new void() noctx
 	new-void

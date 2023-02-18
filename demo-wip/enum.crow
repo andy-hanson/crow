@@ -16,8 +16,8 @@ main nat^(_ string[]) summon
 	out print "{fosho == "fosho".to}"
 	out print "{fosho == "foshoe".to}"
 
-	for m : enum-members::(e named-val array)
-		out print "{m name} = {m val}"
+	for name, value : enum-members::((symbol, e) array)
+		out print "{name} = {value.to::nat8}"
 	()
 
 e enum(nat8)

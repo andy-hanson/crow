@@ -34,8 +34,7 @@ run-crow-tests test-result^(path string, path-to-crow string, options test-optio
 		ext == "crow"
 
 -run-single-crow-test failure[]^(path-to-crow string, path string, options test-options) summon
-	# TODO: we need type annotations on LHS of '<-'
-	f ref failure[] break-or-continue(string) = print-kind =>
+	op failure[]? <- for print-kind : ("ast", "model")::string[] sequential
 		if options print-tests
 			out print "crow print {print-kind} {path}"
 		res <- print-kind run-print-test path-to-crow, path, options.overwrite-output
@@ -44,7 +43,6 @@ run-crow-tests test-result^(path string, path-to-crow string, options test-optio
 			break v
 		as loop-continue
 			continue
-	op <- ("ast", "model")::string[].sequential for-break f
 	if res ?= op
 		res,
 	else

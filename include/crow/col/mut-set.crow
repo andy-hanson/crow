@@ -80,7 +80,7 @@ Else, remove it and return `true`.
 +try-remove[t] bool(a t mut-set, value t) t key
 	!(a.inner try-remove value is-empty)
 
-# Calls `f` for every element in the set.
-+for-loop[t] void(a t mut-set, f act void(t)) t key
-	for k, _ : a inner
-		f[k]
+region spec impls (see collection.crow)
+
++iterate[t] bool(a t mut-set, f act bool(t)) t key
+	a.inner iterate (k, _) => f[k]

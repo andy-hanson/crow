@@ -121,7 +121,7 @@ Status getTypeArgsForSpecIfNumberMatches(
 		noDelayStructInsts,
 		(size_t expected, size_t actual) => Diag(Diag.WrongNumberTypeArgsForSpec(spec, expected, actual)));
 
-Type makeTupleType(ref CheckCtx ctx, ref CommonTypes commonTypes, in Type[] args) {
+Type makeTupleType(ref Alloc alloc, ref ProgramState programState, ref CommonTypes commonTypes, in Type[] args) {
 	if (args.length == 0)
 		return Type(commonTypes.void_);
 	else if (args.length == 1)
@@ -129,7 +129,7 @@ Type makeTupleType(ref CheckCtx ctx, ref CommonTypes commonTypes, in Type[] args
 	else {
 		Opt!(StructDecl*) decl = commonTypes.tuple(args.length);
 		return has(decl)
-			? Type(instantiateStructNeverDelay(ctx.alloc, ctx.programState, force(decl), args))
+			? Type(instantiateStructNeverDelay(alloc, programState, force(decl), args))
 			: Type(Type.Bogus());
 	}
 }
@@ -304,7 +304,7 @@ private Type typeFromTupleAst(
 	//TODO:PERF Use temp aloc
 	Type[] args = map(ctx.alloc, members, (ref TypeAst x) =>
 		typeFromAst(ctx, commonTypes, x, structsAndAliasesDict, typeParamsScope, delayStructInsts));
-	return makeTupleType(ctx, commonTypes, args);
+	return makeTupleType(ctx.alloc, ctx.programState, commonTypes, args);
 }
 
 private Opt!(TypeParam*) findTypeParam(TypeParam[] typeParamsScope, Sym name) =>
@@ -415,7 +415,7 @@ Opt!Type typeFromDestructure(
 			// TODO:PERF use temp alloc
 			Opt!(Type[]) types = mapOrNone!(Type, DestructureAst)(ctx.alloc, parts, (ref DestructureAst part) =>
 				typeFromDestructure(ctx, commonTypes, part, structsAndAliasesDict, typeParamsScope));
-			return has(types) ? some(makeTupleType(ctx, commonTypes, force(types))) : none!Type;
+			return has(types) ? some(makeTupleType(ctx.alloc, ctx.programState, commonTypes, force(types))) : none!Type;
 		});
 
 Destructure checkDestructure(
@@ -496,8 +496,10 @@ Destructure checkDestructure(
 					checkDestructure(
 						ctx, commonTypes, structsAndAliasesDict, typeParamsScope, delayStructInsts,
 						part, none!Type));
-				//TODO:PERF Use temp alloc
-				Type type = makeTupleType(ctx, commonTypes, map(ctx.alloc, parts, (ref Destructure part) => part.type));
+				Type type = makeTupleType(
+					ctx.alloc, ctx.programState, commonTypes,
+					//TODO:PERF Use temp alloc
+					map(ctx.alloc, parts, (ref Destructure part) => part.type));
 				return Destructure(allocate(ctx.alloc, Destructure.Split(type.as!(StructInst*), small(parts))));
 			}
 		});

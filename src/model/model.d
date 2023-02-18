@@ -1098,7 +1098,6 @@ immutable struct CommonTypes {
 	StructDecl* byVal;
 	StructDecl* array;
 	StructDecl* future;
-	StructDecl* namedVal;
 	StructDecl* opt;
 	StructDecl* ptrConst;
 	StructDecl* ptrMut;

@@ -4,8 +4,8 @@ module frontend.check.funsForStruct;
 
 import frontend.check.checkCtx : CheckCtx;
 import frontend.check.getCommonFuns : makeParam, makeParams, param, ParamShort;
-import frontend.check.instantiate :
-	instantiateStructNeverDelay, makeArrayType, makeNamedValType, TypeArgsArray, typeArgsArray;
+import frontend.check.instantiate : instantiateStructNeverDelay, makeArrayType, TypeArgsArray, typeArgsArray;
+import frontend.check.typeFromAst : makeTupleType;
 import frontend.programState : ProgramState;
 import model.model :
 	body_,
@@ -322,7 +322,7 @@ FunDecl enumOrFlagsMembersFunction(
 			alloc,
 			programState,
 			commonTypes,
-			Type(makeNamedValType(alloc, programState, commonTypes, enumType)))),
+			makeTupleType(alloc, programState, commonTypes, [Type(commonTypes.symbol), enumType]))),
 		Params([]),
 		FunFlags.generatedNoCtx.withOkIfUnused(),
 		[],

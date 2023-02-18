@@ -67,7 +67,7 @@ import model.model :
 	UnionMember,
 	worsePurity;
 import util.alloc.alloc : Alloc;
-import util.col.arr : empty, only, sizeEq;
+import util.col.arr : empty, only, only2, sizeEq;
 import util.col.arrBuilder : add, addAll, ArrBuilder, finishArr;
 import util.col.arrUtil :
 	arrEqual, arrLiteral, arrMax, every, everyWithIndex, exists, filterUnordered, fold, map, mapWithIndex, mapZip;
@@ -711,8 +711,9 @@ ulong getAllValue(ConcreteStructBody.Flags flags) =>
 
 ConcreteFunBody bodyForEnumOrFlagsMembers(ref ConcretizeCtx ctx, ConcreteType returnType) {
 	ConcreteStruct* arrayStruct = mustBeByVal(returnType);
-	ConcreteType elementType = only(arrayStruct.source.as!(ConcreteStructSource.Inst).typeArgs); // named<e>
-	ConcreteType enumOrFlagsType = only(mustBeByVal(elementType).source.as!(ConcreteStructSource.Inst).typeArgs);
+	ConcreteType elementType = only(arrayStruct.source.as!(ConcreteStructSource.Inst).typeArgs);
+	// First type arg is 'symbol'
+	ConcreteType enumOrFlagsType = only2(mustBeByVal(elementType).source.as!(ConcreteStructSource.Inst).typeArgs)[1];
 	Constant[] elements = map(ctx.alloc, enumOrFlagsMembers(enumOrFlagsType), (ref StructBody.Enum.Member member) =>
 		Constant(Constant.Record(arrLiteral!Constant(ctx.alloc, [
 			constantSym(ctx, member.name),

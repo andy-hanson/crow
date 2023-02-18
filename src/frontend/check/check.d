@@ -310,7 +310,6 @@ CommonTypes getCommonTypes(
 	StructDecl* byVal = getDecl!"by-val"(1);
 	StructDecl* array = getDecl!"array"(1);
 	StructDecl* future = getDecl!"future"(1);
-	StructDecl* namedVal = getDecl!"named-val"(1);
 	StructDecl* opt = getDecl!"option"(1);
 	StructDecl* pointerConst = getDecl!"const-pointer"(1);
 	StructDecl* pointerMut = getDecl!"mut-pointer"(1);
@@ -345,7 +344,6 @@ CommonTypes getCommonTypes(
 		byVal,
 		array,
 		future,
-		namedVal,
 		opt,
 		pointerConst,
 		pointerMut,

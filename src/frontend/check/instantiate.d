@@ -228,14 +228,6 @@ StructInst* instantiateStructNeverDelay(
 ) =>
 	instantiateStruct(alloc, programState, decl, typeArgs, noDelayStructInsts);
 
-StructInst* makeNamedValType(
-	ref Alloc alloc,
-	ref ProgramState programState,
-	ref CommonTypes commonTypes,
-	Type valueType,
-) =>
-	instantiateStructNeverDelay(alloc, programState, commonTypes.namedVal, [valueType]);
-
 StructInst* makeArrayType(
 	ref Alloc alloc,
 	ref ProgramState programState,

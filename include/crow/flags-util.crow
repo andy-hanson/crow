@@ -4,7 +4,6 @@ import
 	./col/array: array, iterate, size
 	./col/collection: for-loop, join
 	./col/list: ~~, ~=, build, iterate, list, new, size
-	./misc: name, named-val, val
 	./string: ~~, literal, new, string
 	./symbol: symbol, to
 
@@ -17,7 +16,7 @@ Functions in this spec will be generated when you declare a `flags` type.
 +flags-like[t] spec
 	new t()
 	all t()
-	flags-members t named-val array()
+	flags-members (symbol, t) array()
 	== bool(a t, b t)
 	~ t(a t)
 	& t(a t, b t)
@@ -35,11 +34,11 @@ True if every flag set in `a` is set in `b`.
 
 # Returns the names of every flag set in `a`.
 +to[t] symbol[](a t) t flags-like
-	parts symbol[][] = for member : flags-members
-		if member.val is-in a
-			member.name,
+	parts symbol[][] = for name, value : flags-members
+		if value is-in a
+			name,
 	() join parts
 
 # Flag names separated by `|`, like `"foo | bar"`.
-+to[t] string(a t) t flags-like
++to-string[t] string(a t) t flags-like
 	" | " join for x : a.to::symbol[]; x to

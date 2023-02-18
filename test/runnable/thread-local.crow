@@ -3,8 +3,7 @@ import
 
 main nat^(_ string[]) summon
 	trusted
-		# TODO: we need type annotations on LHS of '<-'
-		results <- (0 .. 100).parallel for-loop@(nat, nat range, nat) x =>
+		results nat[] <- for x : 0 .. 100 parallel
 			*foo := x
 			*foo +:= 1
 			*foo,

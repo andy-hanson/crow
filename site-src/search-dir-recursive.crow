@@ -12,8 +12,7 @@ search-dir-recursive string[]^(path string, file-filter fun bool(string)) summon
 	path search-dir-recursive (_ => true), file-filter
 
 search-dir-recursive string[]^(path string, dir-filter fun bool(string), file-filter fun bool(string)) summon
-	# TODO: we need type annotations on LHS of '<-'
-	parts <- path.names-in-dir.parallel for-loop@(string[], string[], string) name =>
+	parts string[][] <- for name : path.names-in-dir parallel
 		child = path child-path name
 		if child is-dir
 			if dir-filter[name]

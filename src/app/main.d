@@ -669,14 +669,17 @@ SafeCStr[] cCompileArgs(
 						break;
 				}
 		} else {
-			if (has(x.configuredPath))
-				todo!void("link to library at custom path on Posix");
-			else {
+			if (has(x.configuredPath)) {
 				Writer writer = Writer(ptrTrustMe(alloc));
-				writer ~= "-l";
-				writeSym(writer, allSymbols, x.libraryName);
+				writer ~= "-L";
+				writePathPlain(writer, allPaths, force(x.configuredPath));
 				add(alloc, args, finishWriterToSafeCStr(writer));
 			}
+
+			Writer writer = Writer(ptrTrustMe(alloc));
+			writer ~= "-l";
+			writeSym(writer, allSymbols, x.libraryName);
+			add(alloc, args, finishWriterToSafeCStr(writer));
 		}
 	}
 	version (Windows) {

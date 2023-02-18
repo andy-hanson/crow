@@ -2,8 +2,8 @@ import
 	crow/io/print: out, print
 
 main nat^(_ string[]) summon
-	for e : enum-members::((lucky-numbers named-val) array)
-		out print "{e.name} = {e.val.to::nat8}"
+	for name, value : enum-members::((symbol, lucky-numbers) array)
+		out print "{name} = {value.to::nat8}"
 	0,
 
 lucky-numbers enum(nat8)
