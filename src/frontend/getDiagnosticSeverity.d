@@ -145,17 +145,7 @@ DiagSeverity getDiagnosticSeverity(in Diag a) =>
 			DiagSeverity.checkError,
 		(in Diag.TypeShouldUseSyntax) =>
 			DiagSeverity.checkWarning,
-		(in Diag.UnusedImport) =>
-			DiagSeverity.unusedCode,
-		(in Diag.UnusedLocal) =>
-			DiagSeverity.unusedCode,
-		(in Diag.UnusedPrivateFun) =>
-			DiagSeverity.unusedCode,
-		(in Diag.UnusedPrivateSpec) =>
-			DiagSeverity.unusedCode,
-		(in Diag.UnusedPrivateStruct) =>
-			DiagSeverity.unusedCode,
-		(in Diag.UnusedPrivateStructAlias) =>
+		(in Diag.Unused) =>
 			DiagSeverity.unusedCode,
 		(in Diag.VarargsParamMustBeArray) =>
 			DiagSeverity.checkError,

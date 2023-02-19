@@ -8,11 +8,9 @@ import frontend.check.checkCall :
 	checkCallSpecial,
 	checkCallSpecialNoLocals,
 	eachFunInScope,
-	isPurityAlwaysCompatibleConsideringSpecs,
-	markUsedFun,
-	UsedFun;
-import frontend.check.checkCtx : CheckCtx;
-import frontend.check.dicts : FunsDict, ModuleLocalFunIndex, StructsAndAliasesDict;
+	isPurityAlwaysCompatibleConsideringSpecs;
+import frontend.check.checkCtx : CheckCtx, markUsed;
+import frontend.check.dicts : FunsDict, StructsAndAliasesDict;
 import frontend.check.inferringType :
 	addDiag2,
 	bogus,
@@ -129,7 +127,6 @@ import model.model :
 import util.alloc.alloc : Alloc, allocateUninitialized;
 import util.col.arr : empty, only, PtrAndSmallNumber;
 import util.col.arrUtil : append, arrLiteral, arrsCorrespond, contains, exists, map, mapZipPtrFirst3;
-import util.col.fullIndexDict : FullIndexDict;
 import util.col.mutArr : MutArr, mutArrSize, push, tempAsArr;
 import util.col.mutMaxArr : initializeMutMaxArr, mutMaxArrSize, push, tempAsArr;
 import util.col.str : copyToSafeCStr;
@@ -147,7 +144,6 @@ Expr checkFunctionBody(
 	in StructsAndAliasesDict structsAndAliasesDict,
 	in CommonTypes commonTypes,
 	in FunsDict funsDict,
-	scope FullIndexDict!(ModuleLocalFunIndex, bool) usedFuns,
 	Type returnType,
 	TypeParam[] typeParams,
 	Destructure[] params,
@@ -163,8 +159,7 @@ Expr checkFunctionBody(
 		specs,
 		params,
 		typeParams,
-		flags,
-		usedFuns);
+		flags);
 	// leave funInfo.closureFields uninitialized, it won't be used
 	FunOrLambdaInfo funInfo = FunOrLambdaInfo(noneMut!(LocalsInfo*), none!(ExprKind.Lambda*));
 	Expr res = checkWithParamDestructures(castNonScope_ref(exprCtx), funInfo, params, (ref LocalsInfo innerLocals) =>
@@ -960,7 +955,7 @@ void addUnusedLocalDiags(ref ExprCtx ctx, Local* local, scope ref LocalNode node
 	bool isGot = node.isUsed[LocalAccessKind.getOnStack] || node.isUsed[LocalAccessKind.getThroughClosure];
 	bool isSet = node.isUsed[LocalAccessKind.setOnStack] || node.isUsed[LocalAccessKind.setThroughClosure];
 	if (!isGot || (!isSet && local.mutability != LocalMutability.immut))
-		addDiag2(ctx, local.range, Diag(Diag.UnusedLocal(local, isGot, isSet)));
+		addDiag2(ctx, local.range, Diag(Diag.Unused(Diag.Unused.Kind(Diag.Unused.Kind.Local(local, isGot, isSet)))));
 }
 
 Expr checkPtr(ref ExprCtx ctx, ref LocalsInfo locals, FileAndRange range, in PtrAst ast, ref Expected expected) {
@@ -1112,10 +1107,10 @@ Expr checkFunPointer(ref ExprCtx ctx, FileAndRange range, in PtrAst ast, ref Exp
 		todo!void("diag: fun-pointer ast should just be an identifier");
 	Sym name = ast.inner.kind.as!IdentifierAst.name;
 	MutArr!(FunDecl*) funsInScope = MutArr!(FunDecl*)();
-	eachFunInScope(ctx, name, (UsedFun used, CalledDecl cd) {
+	eachFunInScope(ctx, name, (CalledDecl cd) {
 		cd.matchWithPointers!void(
 			(FunDecl* x) {
-				markUsedFun(ctx, used);
+				markUsed(ctx.checkCtx, x);
 				push(ctx.alloc, funsInScope, x);
 			},
 			(SpecSig) {

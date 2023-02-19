@@ -12,7 +12,7 @@ test/compile-errors/duplicate-declaration.crow 13:1-17:1 type name 'foo' is alre
 
 test/compile-errors/duplicate-declaration.crow 15:5-15:6 flags member name 'd' is already used
 
-test/compile-errors/duplicate-declaration.crow 17:1-18:1 spec name 's' is already used
+test/compile-errors/duplicate-declaration.crow 18:1-20:1 spec name 's' is already used
 
 test/compile-errors/duplicate-declaration.crow 20:14-20:19 local name 'a' is already used
 

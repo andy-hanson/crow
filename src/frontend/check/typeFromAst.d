@@ -2,16 +2,8 @@ module frontend.check.typeFromAst;
 
 @safe @nogc pure nothrow:
 
-import frontend.check.checkCtx :
-	addDiag,
-	CheckCtx,
-	eachImportAndReExport,
-	ImportIndex,
-	markUsedImport,
-	markUsedSpec,
-	markUsedStructOrAlias,
-	rangeInFile;
-import frontend.check.dicts : SpecDeclAndIndex, SpecsDict, StructsAndAliasesDict, StructOrAliasAndIndex;
+import frontend.check.checkCtx : addDiag, CheckCtx, eachImportAndReExport, markUsed, rangeInFile;
+import frontend.check.dicts : SpecsDict, StructsAndAliasesDict;
 import frontend.check.instantiate :
 	DelayStructInsts, instantiateStruct, instantiateStructNeverDelay, noDelayStructInsts, TypeArgsArray, typeArgsArray;
 import frontend.lang : maxTypeParams;
@@ -64,16 +56,10 @@ private Type instStructFromAst(
 	TypeParam[] typeParamsScope,
 	DelayStructInsts delayStructInsts,
 ) {
-	Opt!StructOrAliasAndIndex opDeclFromHere = structsAndAliasesDict[name];
-	if (has(opDeclFromHere))
-		markUsedStructOrAlias(ctx, force(opDeclFromHere));
-	Opt!StructOrAlias here = has(opDeclFromHere)
-		? some(force(opDeclFromHere).structOrAlias)
-		: none!StructOrAlias;
 	Opt!StructOrAlias opDecl = tryFindT!StructOrAlias(
-		ctx, name, suffixRange, here,
+		ctx, name, suffixRange, structsAndAliasesDict[name],
 		Diag.DuplicateImports.Kind.type, Diag.NameNotFound.Kind.type,
-		(in NameReferents nr) => nr.structOrAlias);
+		(in NameReferents x) => x.structOrAlias);
 	if (!has(opDecl))
 		return Type(Type.Bogus());
 	else {
@@ -261,7 +247,7 @@ Type typeFromAst(
 					typeParamsScope,
 					delayStructInsts);
 		},
-		(in TypeAst.SuffixName x) @safe {
+		(in TypeAst.SuffixName x) {
 			Opt!(Diag.TypeShouldUseSyntax.Kind) optSyntax = typeSyntaxKind(x.name.name);
 			if (has(optSyntax))
 				addDiag(ctx, suffixRange(x, ctx.allSymbols), Diag(Diag.TypeShouldUseSyntax(force(optSyntax))));
@@ -370,23 +356,15 @@ private Type typeFromFunAst(
 		ctx.alloc, ctx.programState, commonTypes.funStructs[ast.kind], [returnType, paramType], delayStructInsts));
 }
 
-Opt!(SpecDecl*) tryFindSpec(ref CheckCtx ctx, NameAndRange name, in SpecsDict specsDict) {
-	Opt!SpecDeclAndIndex opDeclFromHere = specsDict[name.name];
-	if (has(opDeclFromHere))
-		markUsedSpec(ctx, force(opDeclFromHere).index);
-	Opt!(SpecDecl*) here = has(opDeclFromHere)
-		? some(force(opDeclFromHere).decl)
-		: none!(SpecDecl*);
-	return tryFindT!(SpecDecl*)(
+Opt!(SpecDecl*) tryFindSpec(ref CheckCtx ctx, NameAndRange name, in SpecsDict specsDict) =>
+	tryFindT!(SpecDecl*)(
 		ctx,
 		name.name,
 		rangeOfNameAndRange(name, ctx.allSymbols),
-		here,
+		specsDict[name.name],
 		Diag.DuplicateImports.Kind.spec,
 		Diag.NameNotFound.Kind.spec,
-		(in NameReferents nr) =>
-			nr.spec);
-}
+		(in NameReferents x) => x.spec);
 
 Type makeFutType(ref Alloc alloc, ref ProgramState programState, ref CommonTypes commonTypes, Type type) =>
 	Type(instantiateStructNeverDelay(alloc, programState, commonTypes.future, [type]));
@@ -524,10 +502,9 @@ Opt!T tryFindT(T)(
 	in Opt!T delegate(in NameReferents) @safe @nogc pure nothrow getFromNameReferents,
 ) {
 	Cell!(Opt!T) res = Cell!(Opt!T)(fromThisModule);
-	eachImportAndReExport(ctx, name, (ImportIndex index, in NameReferents referents) {
+	eachImportAndReExport(ctx, name, (in NameReferents referents) {
 		Opt!T got = getFromNameReferents(referents);
 		if (has(got)) {
-			markUsedImport(ctx, index);
 			if (has(cellGet(res)))
 				// TODO: include both modules in the diag
 				addDiag(ctx, range, Diag(Diag.DuplicateImports(duplicateImportKind, name)));
@@ -535,7 +512,10 @@ Opt!T tryFindT(T)(
 				cellSet(res, got);
 		}
 	});
-	if (!has(cellGet(res)))
+	Opt!T ret = cellGet(res);
+	if (has(ret))
+		markUsed(ctx, force(ret));
+	else
 		addDiag(ctx, range, Diag(Diag.NameNotFound(nameNotFoundKind, name)));
-	return cellGet(res);
+	return ret;
 }

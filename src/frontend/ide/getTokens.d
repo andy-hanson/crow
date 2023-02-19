@@ -307,7 +307,7 @@ void addFunTokens(ref Alloc alloc, ref TokensBuilder tokens, ref AllSymbols allS
 			(in FunModifierAst.Special x) {
 				add(alloc, tokens, Token(Token.Kind.modifier, x.range(allSymbols)));
 			},
-			(in FunModifierAst.ExternOrGlobal x) @safe {
+			(in FunModifierAst.ExternOrGlobal x) {
 				addTypeTokens(alloc, tokens, allSymbols, *x.left);
 				add(alloc, tokens, Token(Token.Kind.modifier, x.suffixRange(allSymbols)));
 			},

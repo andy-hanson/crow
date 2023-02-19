@@ -935,7 +935,14 @@ Arity arity(in Called a) =>
 			arity(s));
 
 immutable struct StructOrAlias {
+	@safe @nogc pure nothrow:
+	
 	mixin Union!(StructAlias*, StructDecl*);
+
+	immutable(void*) asVoidPointer() =>
+		matchWithPointers!(immutable void*)(
+			(StructAlias* x) => typeAs!(immutable void*)(x),
+			(StructDecl* x) => typeAs!(immutable void*)(x));
 }
 static assert(StructOrAlias.sizeof == ulong.sizeof);
 

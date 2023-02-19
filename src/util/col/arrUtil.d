@@ -151,6 +151,10 @@ T[] copyArr(T)(ref Alloc alloc, scope T[] a) =>
 	return res[0 .. 1 + a.length];
 }
 
+@trusted T[] filter(T)(ref Alloc alloc, in T[] a, in bool delegate(in T) @safe @nogc pure nothrow cb) =>
+	mapOp!(T, T)(alloc, a, (ref T x) =>
+		cb(x) ? some(x) : none!T);
+
 @trusted Out[] mapOp(Out, In)(
 	ref Alloc alloc,
 	in In[] a,

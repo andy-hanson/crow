@@ -47,6 +47,7 @@ src_files_common = src\concretize\allConstantsBuilder.d \
 	src\concretize\safeValue.d \
 	src\frontend\check\check.d \
 	src\frontend\check\checkCall.d \
+	src\frontend\check\checkCallFlags.d \
 	src\frontend\check\checkCtx.d \
 	src\frontend\check\checkExpr.d \
 	src\frontend\check\checkStructBodies.d \

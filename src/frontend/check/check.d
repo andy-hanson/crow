@@ -2,21 +2,10 @@ module frontend.check.check;
 
 @safe @nogc pure nothrow:
 
-import frontend.check.checkCtx : addDiag, CheckCtx, checkForUnused, newUsedImportsAndReExports, posInFile, rangeInFile;
+import frontend.check.checkCtx : addDiag, CheckCtx, checkForUnused, posInFile, rangeInFile;
 import frontend.check.checkExpr : checkFunctionBody;
 import frontend.check.checkStructs : checkStructBodies, checkStructsInitial;
-import frontend.check.dicts :
-	FunDeclAndIndex,
-	FunsDict,
-	ModuleLocalAliasIndex,
-	ModuleLocalFunIndex,
-	ModuleLocalSpecIndex,
-	ModuleLocalStructIndex,
-	ModuleLocalStructOrAliasIndex,
-	SpecDeclAndIndex,
-	SpecsDict,
-	StructsAndAliasesDict,
-	StructOrAliasAndIndex;
+import frontend.check.dicts : FunsDict, SpecsDict, StructsAndAliasesDict;
 import frontend.check.funsForStruct : addFunsForStruct, countFunsForStruct;
 import frontend.check.instantiate :
 	DelaySpecInsts,
@@ -80,7 +69,6 @@ import model.model :
 	Module,
 	name,
 	NameReferents,
-	okIfUnused,
 	Params,
 	paramsArray,
 	Purity,
@@ -107,12 +95,11 @@ import model.model :
 import util.alloc.alloc : Alloc;
 import util.col.arr : empty, only, ptrsRange, small;
 import util.col.arrBuilder : add, ArrBuilder, finishArr;
-import util.col.arrUtil : cat, map, mapOp, mapToMut, zip, zipPtrFirst;
+import util.col.arrUtil : cat, filter, map, mapOp, mapToMut, zip, zipPtrFirst;
 import util.col.dict : Dict, dictEach, dictEachIn, hasKey, KeyValuePair;
 import util.col.dictBuilder : DictBuilder, finishDict, tryAddToDict;
 import util.col.enumDict : EnumDict;
 import util.col.exactSizeArrBuilder : ExactSizeArrBuilder, exactSizeArrBuilderAdd, finish, newExactSizeArrBuilder;
-import util.col.fullIndexDict : FullIndexDict, fullIndexDictOfArr, fullIndexDictZipPtrFirst, makeFullIndexDict_mut;
 import util.col.multiDict : buildMultiDict, multiDictEach;
 import util.col.mutArr : mustPop, MutArr, mutArrIsEmpty;
 import util.col.mutDict : insertOrUpdate, moveToDict, MutDict;
@@ -202,10 +189,10 @@ Opt!(StructDecl*) getCommonTemplateType(
 	Sym name,
 	size_t expectedTypeParams,
 ) {
-	Opt!StructOrAliasAndIndex res = structsAndAliasesDict[name];
+	Opt!StructOrAlias res = structsAndAliasesDict[name];
 	if (has(res)) {
 		// TODO: may fail -- builtin Template should not be an alias
-		StructDecl* decl = force(res).structOrAlias.as!(StructDecl*);
+		StructDecl* decl = force(res).as!(StructDecl*);
 		if (decl.typeParams.length != expectedTypeParams)
 			todo!void("getCommonTemplateType");
 		return some(decl);
@@ -220,13 +207,9 @@ Opt!(StructInst*) getCommonNonTemplateType(
 	Sym name,
 	scope ref MutArr!(StructInst*) delayedStructInsts,
 ) {
-	Opt!StructOrAliasAndIndex opStructOrAlias = structsAndAliasesDict[name];
+	Opt!StructOrAlias opStructOrAlias = structsAndAliasesDict[name];
 	return has(opStructOrAlias)
-		? instantiateNonTemplateStructOrAlias(
-			alloc,
-			programState,
-			delayedStructInsts,
-			force(opStructOrAlias).structOrAlias)
+		? instantiateNonTemplateStructOrAlias(alloc, programState, delayedStructInsts, force(opStructOrAlias))
 		: none!(StructInst*);
 }
 
@@ -555,26 +538,23 @@ void checkStructAliasTargets(
 }
 
 StructsAndAliasesDict buildStructsAndAliasesDict(ref CheckCtx ctx, StructDecl[] structs, StructAlias[] aliases) {
-	DictBuilder!(Sym, StructOrAliasAndIndex) builder;
-	void warnOnDup(Sym name, FileAndRange range, Opt!StructOrAliasAndIndex opt) {
-		if (has(opt))
-			addDiag(ctx, range, Diag(Diag.DuplicateDeclaration(Diag.DuplicateDeclaration.Kind.structOrAlias, name)));
-	}
-	foreach (size_t index; 0 .. structs.length) {
-		StructDecl* decl = &structs[index];
-		Sym name = decl.name;
-		warnOnDup(name, decl.range, tryAddToDict(ctx.alloc, builder, name, StructOrAliasAndIndex(
-			StructOrAlias(decl),
-			ModuleLocalStructOrAliasIndex(index))));
-	}
-	foreach (size_t index; 0 .. aliases.length) {
-		StructAlias* alias_ = &aliases[index];
-		Sym name = alias_.name;
-		warnOnDup(name, alias_.range, tryAddToDict(ctx.alloc, builder, name, StructOrAliasAndIndex(
-			StructOrAlias(alias_),
-			ModuleLocalStructOrAliasIndex(index))));
-	}
+	DictBuilder!(Sym, StructOrAlias) builder;
+	foreach (StructDecl* decl; ptrsRange(structs))
+		addToDeclsDict!StructOrAlias(ctx, builder, StructOrAlias(decl), Diag.DuplicateDeclaration.Kind.structOrAlias);
+	foreach (StructAlias* alias_; ptrsRange(aliases))
+		addToDeclsDict!StructOrAlias(ctx, builder, StructOrAlias(alias_), Diag.DuplicateDeclaration.Kind.structOrAlias);
 	return finishDict(ctx.alloc, builder);
+}
+
+void addToDeclsDict(T)(
+	ref CheckCtx ctx,
+	ref DictBuilder!(Sym, T) builder,
+	T added,
+	Diag.DuplicateDeclaration.Kind kind,
+) {
+	Opt!T old = tryAddToDict(ctx.alloc, builder, added.name, added);
+	if (has(old))
+		addDiag(ctx, added.range, Diag(Diag.DuplicateDeclaration(kind, added.name)));
 }
 
 immutable struct FunsAndDict {
@@ -794,16 +774,9 @@ FunsAndDict checkFuns(
 	foreach (StructDecl* struct_; ptrsRange(structs))
 		addFunsForStruct(ctx, funsBuilder, commonTypes, struct_);
 	FunDecl[] funs = finish(funsBuilder);
-	FullIndexDict!(ModuleLocalFunIndex, bool) usedFuns =
-		makeFullIndexDict_mut!(ModuleLocalFunIndex, bool)(ctx.alloc, funs.length, (size_t) => false);
 
-	FunsDict funsDict = buildMultiDict!(Sym, FunDeclAndIndex, FunDecl)(
-		ctx.alloc,
-		funs,
-		(size_t index, FunDecl* it) =>
-			KeyValuePair!(Sym, FunDeclAndIndex)(
-				it.name,
-				FunDeclAndIndex(ModuleLocalFunIndex(index), it)));
+	FunsDict funsDict = buildMultiDict!(Sym, immutable FunDecl*, FunDecl)(
+		ctx.alloc, funs, (size_t index, FunDecl* x) => KeyValuePair!(Sym, immutable FunDecl*)(x.name, x));
 
 	FunDecl[] funsWithAsts = funs[0 .. asts.length];
 	zipPtrFirst!(FunDecl, FunDeclAst)(funsWithAsts, asts, (FunDecl* fun, ref FunDeclAst funAst) {
@@ -819,7 +792,6 @@ FunsAndDict checkFuns(
 							commonTypes,
 							structsAndAliasesDict,
 							funsDict,
-							usedFuns,
 							*fun,
 							force(funAst.body_)));
 				case FunFlags.SpecialBody.builtin:
@@ -846,13 +818,11 @@ FunsAndDict checkFuns(
 	});
 	foreach (size_t i, ref ImportOrExportFile f; fileImports) {
 		FunDecl* fun = &funs[asts.length + i];
-		fun.setBody(getFileImportFunctionBody(
-			ctx, commonTypes, structsAndAliasesDict, funsDict, usedFuns, *fun, f));
+		fun.setBody(getFileImportFunctionBody(ctx, commonTypes, structsAndAliasesDict, funsDict, *fun, f));
 	}
 	foreach (size_t i, ref ImportOrExportFile f; fileExports) {
 		FunDecl* fun = &funs[asts.length + fileImports.length + i];
-		fun.setBody(getFileImportFunctionBody(
-			ctx, commonTypes, structsAndAliasesDict, funsDict, usedFuns, *fun, f));
+		fun.setBody(getFileImportFunctionBody(ctx, commonTypes, structsAndAliasesDict, funsDict, *fun, f));
 	}
 
 	Test[] tests = map(ctx.alloc, testAsts, (scope ref TestAst ast) {
@@ -864,7 +834,6 @@ FunsAndDict checkFuns(
 			structsAndAliasesDict,
 			commonTypes,
 			funsDict,
-			usedFuns,
 			voidType,
 			[],
 			[],
@@ -872,21 +841,6 @@ FunsAndDict checkFuns(
 			FunFlags.unsafeSummon,
 			force(ast.body_)));
 	});
-
-	fullIndexDictZipPtrFirst!(ModuleLocalFunIndex, FunDecl, bool)(
-		fullIndexDictOfArr!(ModuleLocalFunIndex, FunDecl)(funs),
-		usedFuns,
-		(ModuleLocalFunIndex _, FunDecl* fun, in bool used) {
-			final switch (fun.visibility) {
-				case Visibility.private_:
-					if (!used && !okIfUnused(*fun))
-						addDiag(ctx, fun.range, Diag(Diag.UnusedPrivateFun(fun)));
-					break;
-				case Visibility.internal:
-				case Visibility.public_:
-					break;
-			}
-		});
 
 	return FunsAndDict(funs, tests, funsDict);
 }
@@ -911,7 +865,6 @@ FunBody getFileImportFunctionBody(
 	in CommonTypes commonTypes,
 	in StructsAndAliasesDict structsAndAliasesDict,
 	ref FunsDict funsDict,
-	ref FullIndexDict!(ModuleLocalFunIndex, bool) usedFuns,
 	ref FunDecl f,
 	ref ImportOrExportFile ie,
 ) =>
@@ -922,7 +875,7 @@ FunBody getFileImportFunctionBody(
 			ExprAst ast = ExprAst(
 				f.range.range,
 				ExprAstKind(LiteralStringAst(strOfSafeCStr(str))));
-			return FunBody(getExprFunctionBody(ctx, commonTypes, structsAndAliasesDict, funsDict, usedFuns, f, ast));
+			return FunBody(getExprFunctionBody(ctx, commonTypes, structsAndAliasesDict, funsDict, f, ast));
 		});
 
 FunBody.ExpressionBody getExprFunctionBody(
@@ -930,7 +883,6 @@ FunBody.ExpressionBody getExprFunctionBody(
 	in CommonTypes commonTypes,
 	in StructsAndAliasesDict structsAndAliasesDict,
 	in FunsDict funsDict,
-	scope ref FullIndexDict!(ModuleLocalFunIndex, bool) usedFuns,
 	in FunDecl f,
 	in ExprAst e,
 ) =>
@@ -939,7 +891,6 @@ FunBody.ExpressionBody getExprFunctionBody(
 		structsAndAliasesDict,
 		commonTypes,
 		funsDict,
-		usedFuns,
 		f.returnType,
 		f.typeParams,
 		paramsArray(f.params),
@@ -1042,17 +993,9 @@ bool paramsIsEmpty(scope Params a) =>
 	empty(paramsArray(a));
 
 SpecsDict buildSpecsDict(ref CheckCtx ctx, SpecDecl[] specs) {
-	DictBuilder!(Sym, SpecDeclAndIndex) res;
-	foreach (size_t index; 0 .. specs.length) {
-		SpecDecl* spec = &specs[index];
-		Sym name = spec.name;
-		Opt!SpecDeclAndIndex b = tryAddToDict(ctx.alloc, res, name, SpecDeclAndIndex(
-			spec,
-			ModuleLocalSpecIndex(index)));
-		if (has(b))
-			addDiag(ctx, force(b).decl.range, Diag(
-				Diag.DuplicateDeclaration(Diag.DuplicateDeclaration.Kind.spec, name)));
-	}
+	DictBuilder!(Sym, SpecDecl*) res;
+	foreach (SpecDecl* spec; ptrsRange(specs))
+		addToDeclsDict(ctx, res, spec, Diag.DuplicateDeclaration.Kind.spec);
 	return finishDict(ctx.alloc, res);
 }
 
@@ -1088,7 +1031,7 @@ Module checkWorkerAfterCommonTypes(
 		importsAndExports.fileExports,
 		ast.funs,
 		ast.tests);
-	checkForUnused(ctx, structAliases, structs, specs);
+	checkForUnused(ctx, structAliases, structs, specs, funsAndDict.funs);
 	return Module(
 		fileIndex,
 		copySafeCStr(ctx.alloc, ast.docComment),
@@ -1152,44 +1095,31 @@ Dict!(Sym, NameReferents) getAllExportedNames(
 						addExport(name, force(value), FileAndRange(fileIndex, force(e.importSource)));
 				}
 			});
-	dictEach!(Sym, StructOrAliasAndIndex)(
+	dictEach!(Sym, StructOrAlias)(
 		structsAndAliasesDict,
-		(Sym name, ref StructOrAliasAndIndex it) {
-			final switch (visibility(it.structOrAlias)) {
+		(Sym name, ref StructOrAlias x) {
+			final switch (visibility(x)) {
 				case Visibility.private_:
 					break;
 				case Visibility.internal:
 				case Visibility.public_:
-					addExport(
-						name,
-						NameReferents(some(it.structOrAlias), none!(SpecDecl*), []),
-						range(it.structOrAlias));
+					addExport(name, NameReferents(some(x), none!(SpecDecl*), []), range(x));
 					break;
 			}
 		});
-	dictEach!(Sym, SpecDeclAndIndex)(specsDict, (Sym name, ref SpecDeclAndIndex it) {
-		final switch (it.decl.visibility) {
+	dictEach!(Sym, SpecDecl*)(specsDict, (Sym name, ref SpecDecl* x) {
+		final switch (x.visibility) {
 			case Visibility.private_:
 				break;
 			case Visibility.internal:
 			case Visibility.public_:
-				addExport(name, NameReferents(none!StructOrAlias, some(it.decl), []), it.decl.range);
+				addExport(name, NameReferents(none!StructOrAlias, some(x), []), x.range);
 				break;
 		}
 	});
-	multiDictEach!(Sym, FunDeclAndIndex)(funsDict, (Sym name, FunDeclAndIndex[] funs) {
-		immutable FunDecl*[] funDecls = mapOp!(immutable FunDecl*, FunDeclAndIndex)(
-			alloc,
-			funs,
-			(ref FunDeclAndIndex it) {
-				final switch (it.decl.visibility) {
-					case Visibility.private_:
-						return none!(FunDecl*);
-					case Visibility.internal:
-					case Visibility.public_:
-						return some(it.decl);
-				}
-			});
+	multiDictEach!(Sym, immutable FunDecl*)(funsDict, (Sym name, immutable FunDecl*[] funs) {
+		immutable FunDecl*[] funDecls = filter!(immutable FunDecl*)(alloc, funs, (in immutable FunDecl* x) =>
+			x.visibility != Visibility.private_);
 		if (!empty(funDecls))
 			addExport(
 				name,
@@ -1226,17 +1156,6 @@ BootstrapCheck checkWorker(
 		pathAndAst.fileIndex,
 		importsAndExports.moduleImports,
 		importsAndExports.moduleExports,
-		// TODO: use temp alloc
-		newUsedImportsAndReExports(alloc, importsAndExports.moduleImports, importsAndExports.moduleExports),
-		// TODO: use temp alloc
-		makeFullIndexDict_mut!(ModuleLocalAliasIndex, bool)(
-			alloc, ast.structAliases.length, (ModuleLocalAliasIndex _) => false),
-		// TODO: use temp alloc
-		makeFullIndexDict_mut!(ModuleLocalStructIndex, bool)(
-			alloc, ast.structs.length, (ModuleLocalStructIndex _) => false),
-		// TODO: use temp alloc
-		makeFullIndexDict_mut!(ModuleLocalSpecIndex, bool)(
-			alloc, ast.specs.length, (ModuleLocalSpecIndex _) => false),
 		ptrTrustMe(diagsBuilder));
 
 	// Since structs may refer to each other, first get a structsAndAliasesDict, *then* fill in bodies

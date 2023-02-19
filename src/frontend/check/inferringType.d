@@ -3,7 +3,7 @@ module frontend.check.inferringType;
 @safe @nogc pure nothrow:
 
 import frontend.check.checkCtx : addDiag, CheckCtx, rangeInFile;
-import frontend.check.dicts : FunsDict, ModuleLocalFunIndex, StructsAndAliasesDict;
+import frontend.check.dicts : FunsDict, StructsAndAliasesDict;
 import frontend.check.instantiate :
 	instantiateStructNeverDelay, noDelayStructInsts, tryGetTypeArg_mut, TypeArgsArray, typeArgsArray;
 import frontend.check.typeFromAst : typeFromAst;
@@ -34,7 +34,6 @@ import util.cell : Cell, cellGet, cellSet;
 import util.col.arr : only, only2;
 import util.col.arrUtil : arrLiteral, exists, indexOf, map, zip, zipEvery;
 import util.col.enumDict : enumDictFindKey;
-import util.col.fullIndexDict : FullIndexDict;
 import util.col.mutMaxArr : MutMaxArr, push, tempAsArr;
 import util.opt : has, force, MutOpt, none, noneMut, Opt, someMut, some;
 import util.perf : Perf;
@@ -106,7 +105,6 @@ struct ExprCtx {
 	immutable Destructure[] outermostFunParams;
 	immutable TypeParam[] outermostFunTypeParams;
 	immutable FunFlags outermostFunFlags;
-	FullIndexDict!(ModuleLocalFunIndex, bool) funsUsed;
 	private bool isInTrusted;
 	private bool usedTrusted;
 
@@ -156,10 +154,6 @@ bool checkCanDoUnsafe(ref ExprCtx ctx) {
 		if (res) ctx.usedTrusted = true;
 		return res;
 	}
-}
-
-void markUsedLocalFun(ref ExprCtx a, ModuleLocalFunIndex index) {
-	a.funsUsed[index] = true;
 }
 
 FileAndRange rangeInFile2(in ExprCtx ctx, RangeWithinFile range) =>

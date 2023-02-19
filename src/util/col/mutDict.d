@@ -164,7 +164,7 @@ ref KeyValuePair!(K, V) getOrAddPair(K, V)(
 	}
 }
 
-immutable(V) mustDelete(K, V)(ref MutDict!(K, V) a, K key) {
+immutable(V) mustDelete(K, V)(ref MutDict!(K, V) a, in K key) {
 	verify(a.pairs.length != 0);
 	size_t i = getHash(key) % a.pairs.length;
 	while (true) {
@@ -274,7 +274,7 @@ immutable(V[]) valuesArray(K, V)(ref Alloc alloc, in MutDict!(K, V) a) =>
 	mapToArr_const!(V, K, V)(alloc, a, (immutable(K), ref V v) => v);
 
 void mutDictEach(K, V)(in MutDict!(K, V) a, in void delegate(const K, ref const V) @safe @nogc pure nothrow cb) {
-	foreach (ref const Opt!(KeyValuePair!(K, V)) pair; a.pairs)
+	foreach (ref const MutOpt!(KeyValuePair!(K, V)) pair; a.pairs)
 		if (has(pair))
 			cb(force(pair).key, force(pair).value);
 }
@@ -290,11 +290,19 @@ void mutDictEachIn(K, V)(
 	in MutDict!(K, V) a,
 	in void delegate(in K, in V) @safe @nogc pure nothrow cb,
 ) {
-	foreach (ref const MutOpt!(KeyValuePair!(K, V)) pair; a.pairs)
+	foreach (scope ref const MutOpt!(KeyValuePair!(K, V)) pair; a.pairs)
 		if (has(pair))
 			cb(force(pair).key, force(pair).value);
 }
-
+bool existsInMutDict(K, V)(
+	in MutDict!(K, V) a,
+	in bool delegate(in K, in V) @safe @nogc pure nothrow cb,
+) {
+	foreach (scope ref const MutOpt!(KeyValuePair!(K, V)) pair; a.pairs)
+		if (has(pair) && cb(force(pair).key, force(pair).value))
+			return true;
+	return false;
+}
 
 private:
 

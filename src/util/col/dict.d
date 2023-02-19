@@ -5,7 +5,15 @@ module util.col.dict;
 import util.alloc.alloc : Alloc;
 import util.col.arrUtil : zip;
 import util.col.mutDict :
-	addToMutDict, getAt_mut, hasKey_mut, moveToDict, mustGetAt_mut, MutDict, mutDictEach, mutDictEachIn;
+	addToMutDict,
+	existsInMutDict,
+	getAt_mut,
+	hasKey_mut,
+	moveToDict,
+	mustGetAt_mut,
+	MutDict,
+	mutDictEach,
+	mutDictEachIn;
 public import util.col.mutDict : KeyValuePair;
 import util.opt : Opt;
 
@@ -66,6 +74,8 @@ void dictEach(K, V)(in Dict!(K, V) a, in void delegate(immutable K, ref immutabl
 void dictEachIn(K, V)(in Dict!(K, V) a, in void delegate(in K, in V) @safe @nogc pure nothrow cb) {
 	mutDictEachIn!(immutable K, immutable V)(a.inner, cb);
 }
+bool existsInDict(K, V)(in Dict!(K, V) a, in bool delegate(in K, in V) @safe @nogc pure nothrow cb) =>
+	existsInMutDict!(immutable K, immutable V)(a.inner, cb);
 
 Dict!(K, V) dictLiteral(K, V)(ref Alloc alloc, immutable K key, immutable V value) {
 	MutDict!(immutable K, immutable V) res;

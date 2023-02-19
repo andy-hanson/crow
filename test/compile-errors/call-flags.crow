@@ -1,0 +1,32 @@
+main void() noctx
+	()::string foo
+	()::string[] foo
+	()::string[][] foo
+
+	()::bool foo
+	()::bool[] foo
+	()::bool[][] foo
+
+	()::nat foo
+	()::nat[] foo
+	()::nat[][] foo
+
+	_ nat[] = 1,
+
+	()
+
+# testing indirect call flags
+foo[t] spec
+	foo void(a t)
+
+foo[t] void(a t[]) noctx, t foo
+	a[0] foo
+
+foo void(_ string) noctx, unsafe
+	()
+
+foo void(_ bool)
+	()
+
+foo void(_ nat) noctx, summon
+	()

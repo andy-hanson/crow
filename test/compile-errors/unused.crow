@@ -1,6 +1,22 @@
+import
+	# unused fun
+	crow/io/duration: sec
+	# unused type
+	crow/io/time-format: time-locale
+	# unused type alias
+	unistd: ssize_t
+	# unused spec
+	crow/col/collection: begin-end
+	# unused module
+	crow/io/process
+
+main nat64^(_ string[])
+	()
+
 foo[t] void(p nat, _ string)
 	_ act void(nat) = x => ()
 	_ act void(nat) = _ => ()
+	y = 2
 	()
 
 -bar[t] void() t compare
@@ -20,3 +36,6 @@ foo[t] void(p nat, _ string)
 
 -f flags
 	f0
+
+-s spec
+	foo void()

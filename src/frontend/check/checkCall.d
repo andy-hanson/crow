@@ -2,14 +2,13 @@ module frontend.check.checkCall;
 
 @safe @nogc pure nothrow:
 
-import frontend.check.checkCtx : eachImportAndReExport, ImportIndex, markUsedImport;
+import frontend.check.checkCalled : ArgsKind, checkCalled;
+import frontend.check.checkCtx : eachImportAndReExport;
 import frontend.check.checkExpr : checkExpr, typeFromDestructure;
-import frontend.check.dicts : FunDeclAndIndex, ModuleLocalFunIndex;
 import frontend.check.inferringType :
 	addDiag2,
 	bogus,
 	check,
-	checkCanDoUnsafe,
 	Expected,
 	ExprCtx,
 	FunOrLambdaInfo,
@@ -20,7 +19,6 @@ import frontend.check.inferringType :
 	isInLambda,
 	LocalNode,
 	LocalsInfo,
-	markUsedLocalFun,
 	matchExpectedVsReturnTypeNoDiagnostic,
 	matchTypesNoDiagnostic,
 	programState,
@@ -55,10 +53,8 @@ import model.model :
 	ExprKind,
 	FunDecl,
 	FunDeclAndTypeArgs,
-	FunFlags,
 	isPurityCompatible,
 	isPurityAlwaysCompatible,
-	isVariadic,
 	NameReferents,
 	Params,
 	paramTypeAt,
@@ -104,7 +100,6 @@ import util.perf : endMeasure, PerfMeasure, PerfMeasurer, pauseMeasure, resumeMe
 import util.ptr : castNonScope_ref, ptrTrustMe;
 import util.sourceRange : FileAndRange;
 import util.sym : Sym;
-import util.union_ : Union;
 
 Expr checkCall(ref ExprCtx ctx, ref LocalsInfo locals, FileAndRange range, in CallAst ast, ref Expected expected) =>
 	checkCallCommon(
@@ -261,39 +256,24 @@ Expr checkCallIdentifier(
 ) =>
 	checkCallSpecialNoLocals(ctx, range, name, [], expected);
 
-immutable struct UsedFun {
-	immutable struct None {}
-	mixin Union!(None, ImportIndex, ModuleLocalFunIndex);
-}
-static assert(UsedFun.sizeof <= 16);
-
-void markUsedFun(ref ExprCtx ctx, in UsedFun used) {
-	used.matchIn!void(
-		(in UsedFun.None) {},
-		(in ImportIndex it) =>
-			markUsedImport(ctx.checkCtx, it),
-		(in ModuleLocalFunIndex it) =>
-			markUsedLocalFun(ctx, it));
-}
-
-void eachFunInScope(ref ExprCtx ctx, Sym funName, in void delegate(UsedFun, CalledDecl) @safe @nogc pure nothrow cb) {
+void eachFunInScope(ref ExprCtx ctx, Sym funName, in void delegate(CalledDecl) @safe @nogc pure nothrow cb) {
 	size_t totalIndex = 0;
 	foreach (SpecInst* specInst; ctx.outermostFunSpecs)
 		eachFunInScopeForSpec(specInst, totalIndex, funName, cb);
 
-	foreach (ref FunDeclAndIndex f; ctx.funsDict[funName])
-		cb(UsedFun(f.index), CalledDecl(f.decl));
+	foreach (FunDecl* f; ctx.funsDict[funName])
+		cb(CalledDecl(f));
 
-	eachImportAndReExport(ctx.checkCtx, funName, (ImportIndex index, in NameReferents it) {
-		foreach (FunDecl* f; it.funs)
-			cb(UsedFun(index), CalledDecl(f));
+	eachImportAndReExport(ctx.checkCtx, funName, (in NameReferents x) {
+		foreach (FunDecl* f; x.funs)
+			cb(CalledDecl(f));
 	});
 }
 private void eachFunInScopeForSpec(
 	SpecInst* specInst,
 	ref size_t totalIndex,
 	Sym funName,
-	in void delegate(UsedFun, CalledDecl) @safe @nogc pure nothrow cb,
+	in void delegate(CalledDecl) @safe @nogc pure nothrow cb,
 ) {
 	foreach (SpecInst* parent; specInst.parents)
 		eachFunInScopeForSpec(parent, totalIndex, funName, cb);
@@ -302,7 +282,7 @@ private void eachFunInScopeForSpec(
 		(SpecDeclSig[] sigs) {
 			zipPtrFirst(sigs, specInst.sigTypes, (SpecDeclSig* sig, ref ReturnAndParamTypes signatureTypes) {
 				if (sig.name == funName)
-					cb(UsedFun(UsedFun.None()), CalledDecl(CalledSpecSig(specInst, signatureTypes, sig, totalIndex)));
+					cb(CalledDecl(CalledSpecSig(specInst, signatureTypes, sig, totalIndex)));
 				totalIndex += 1;
 			});
 		});
@@ -325,19 +305,16 @@ bool candidateIsPreferred(in Candidate a) =>
 			false);
 
 struct Candidate {
-	immutable UsedFun used;
 	immutable CalledDecl called;
 	// Note: this is always empty if calling a CalledSpecSig
 	MutMaxArr!(maxTypeParams, SingleInferringType) typeArgs;
 }
-void initializeCandidate(ref Candidate a, UsedFun used, CalledDecl called) {
-	overwriteMemory(&a.used, used);
+void initializeCandidate(ref Candidate a, CalledDecl called) {
 	overwriteMemory(&a.called, called);
 	initializeMutMaxArr(a.typeArgs);
 }
 // TODO: 'b' isn't really const since we're getting mutable 'typeArgs' from it
 void overwriteCandidate(ref Candidate a, ref const Candidate b) {
-	overwriteMemory(&a.used, b.used);
 	overwriteMemory(&a.called, b.called);
 	copyToFrom(a.typeArgs, b.typeArgs);
 }
@@ -364,12 +341,12 @@ void getInitialCandidates(
 	in Opt!(TypeAst*) explicitTypeArg,
 	size_t actualArity,
 ) {
-	eachFunInScope(ctx, funName, (UsedFun used, CalledDecl called) {
+	eachFunInScope(ctx, funName, (CalledDecl called) {
 		if (arityMatches(arity(called), actualArity)) {
 			size_t nTypeParams = called.typeParams.length;
 			TypeAst[] args = tryGetMatchingTypeArgs(nTypeParams, explicitTypeArg);
 			if (args.length == nTypeParams || args.length == 0) {
-				pushCandidate(ctx, candidates, used, called, args);
+				pushCandidate(ctx, candidates, called, args);
 			}
 		}
 	});
@@ -378,19 +355,18 @@ void getInitialCandidates(
 @trusted void pushCandidate(
 	ref ExprCtx ctx,
 	scope ref Candidates candidates,
-	UsedFun used,
 	CalledDecl called,
 	scope TypeAst[] typeArgs,
 ) {
 	Candidate* candidate = pushUninitialized(candidates);
-	initializeCandidate(*candidate, used, called);
+	initializeCandidate(*candidate, called);
 	fillMutMaxArr(candidate.typeArgs, called.typeParams.length, (size_t i) =>
 		SingleInferringType(empty(typeArgs) ? none!Type : some(typeFromAst2(ctx, typeArgs[i]))));
 }
 
 CalledDecl[] getAllCandidatesAsCalledDecls(ref ExprCtx ctx, Sym funName) {
 	ArrBuilder!CalledDecl res = ArrBuilder!CalledDecl();
-	eachFunInScope(ctx, funName, (UsedFun, CalledDecl called) {
+	eachFunInScope(ctx, funName, (CalledDecl called) {
 		add(ctx.alloc, res, called);
 	});
 	return finishArr(ctx.alloc, res);
@@ -460,59 +436,6 @@ void getParamExpected(
 		if (!isDuplicate)
 			paramExpected.push(TypeAndInferring(t, ita));
 	}
-}
-
-Opt!(Diag.CantCall.Reason) getCantCallReason(
-	ref ExprCtx ctx,
-	bool calledIsVariadicNonEmpty,
-	FunFlags calledFlags,
-	FunFlags callerFlags,
-	bool isCallerInLambda,
-) =>
-	!calledFlags.noCtx && callerFlags.noCtx && !calledFlags.forceCtx && !isCallerInLambda
-		// TODO: need to explain this better in the case where noCtx is due to the lambda
-		? some(Diag.CantCall.Reason.nonNoCtx)
-		: calledFlags.summon && !callerFlags.summon
-		? some(Diag.CantCall.Reason.summon)
-		: calledFlags.safety == FunFlags.Safety.unsafe && !checkCanDoUnsafe(ctx)
-		? some(Diag.CantCall.Reason.unsafe)
-		: calledIsVariadicNonEmpty && callerFlags.noCtx
-		? some(Diag.CantCall.Reason.variadicFromNoctx)
-		: none!(Diag.CantCall.Reason);
-
-enum ArgsKind { empty, nonEmpty }
-
-void checkCallFlags(
-	ref ExprCtx ctx,
-	FileAndRange range,
-	FunDecl* called,
-	FunFlags caller,
-	bool isCallerInLambda,
-	ArgsKind argsKind,
-) {
-	Opt!(Diag.CantCall.Reason) reason = getCantCallReason(
-		ctx,
-		isVariadic(*called) && argsKind == ArgsKind.nonEmpty,
-		called.flags,
-		caller,
-		isCallerInLambda);
-	if (has(reason))
-		addDiag2(ctx, range, Diag(Diag.CantCall(force(reason), called)));
-}
-
-void checkCalledDeclFlags(
-	ref ExprCtx ctx,
-	bool isInLambda,
-	in CalledDecl res,
-	FileAndRange range,
-	ArgsKind argsKind,
-) {
-	res.matchWithPointers!void(
-		(FunDecl* f) {
-			checkCallFlags(ctx, range, f, ctx.outermostFunFlags, isInLambda, argsKind);
-		},
-		// For a spec, we check the flags when providing the spec impl
-		(CalledSpecSig) {});
 }
 
 bool testCandidateForSpecSig(
@@ -669,7 +592,6 @@ bool inferCandidateTypeArgsFromSpecSig(
 
 Opt!Called findSpecSigImplementation(
 	ref ExprCtx ctx,
-	bool isInLambda,
 	FileAndRange range,
 	SpecDeclSig* sigDecl,
 	in ReturnAndParamTypes sigType,
@@ -686,7 +608,7 @@ Opt!Called findSpecSigImplementation(
 				addDiag2(ctx, range, Diag(Diag.SpecImplNotFound(sigDecl, sigType, toArray(ctx.alloc, trace))));
 				return none!Called;
 			case 1:
-				return getCalledFromCandidate(ctx, isInLambda, range, only(candidates), ArgsKind.nonEmpty, trace);
+				return getCalledFromCandidate(ctx, range, only(candidates), trace);
 			default:
 				addDiag2(ctx, range, Diag(
 					Diag.SpecImplFoundMultiple(sigDecl.name, candidatesForDiag(ctx.alloc, candidates))));
@@ -745,7 +667,6 @@ alias SpecTrace = MutMaxArr!(maxSpecDepth, FunDeclAndTypeArgs);
 bool checkSpecImpls(
 	ref SpecImpls res,
 	ref ExprCtx ctx,
-	bool isInLambda,
 	FileAndRange range,
 	FunDecl* called,
 	Type[] calledTypeArgs,
@@ -757,7 +678,7 @@ bool checkSpecImpls(
 		SpecInst* specInstInstantiated = instantiateSpecInst(
 			ctx.alloc, ctx.programState, specInst,
 			TypeParamsAndArgs(called.typeParams, calledTypeArgs), noDelaySpecInsts);
-		if (!checkSpecImpl(res, ctx, isInLambda, range, called, trace, *specInstInstantiated))
+		if (!checkSpecImpl(res, ctx, range, called, trace, *specInstInstantiated))
 			return false;
 	}
 	return true;
@@ -766,13 +687,12 @@ bool checkSpecImpls(
 bool checkSpecImpl(
 	ref SpecImpls res,
 	ref ExprCtx ctx,
-	bool isInLambda,
 	FileAndRange range,
 	FunDecl* called,
 	ref SpecTrace trace,
 	in SpecInst specInstInstantiated) {
 	foreach (SpecInst* parent; specInstInstantiated.parents)
-		if (!checkSpecImpl(res, ctx, isInLambda, range, called, trace, *parent))
+		if (!checkSpecImpl(res, ctx, range, called, trace, *parent))
 			return false;
 	Type[] typeArgs = typeArgs(specInstInstantiated);
 	return specInstInstantiated.decl.body_.match!bool(
@@ -782,7 +702,7 @@ bool checkSpecImpl(
 			push(trace, FunDeclAndTypeArgs(called, typeArgs));
 			bool res = zipEveryPtrFirst!(SpecDeclSig, ReturnAndParamTypes)(
 				sigDecls, specInstInstantiated.sigTypes, (SpecDeclSig* sigDecl, in ReturnAndParamTypes sigType) {
-					Opt!Called impl = findSpecSigImplementation(ctx, isInLambda, range, sigDecl, sigType, trace);
+					Opt!Called impl = findSpecSigImplementation(ctx, range, sigDecl, sigType, trace);
 					if (!has(impl))
 						return false;
 					push(res, force(impl));
@@ -795,15 +715,10 @@ bool checkSpecImpl(
 
 Opt!Called getCalledFromCandidate(
 	ref ExprCtx ctx,
-	bool isInLambda,
 	FileAndRange range,
 	ref const Candidate candidate,
-	ArgsKind argsKind,
 	ref SpecTrace trace,
 ) {
-	markUsedFun(ctx, candidate.used);
-	checkCalledDeclFlags(ctx, isInLambda, candidate.called, range, argsKind);
-
 	TypeArgsArray candidateTypeArgs = typeArgsArray();
 	foreach (ref const SingleInferringType x; tempAsArr(candidate.typeArgs)) {
 		Opt!Type t = tryGetInferred(x);
@@ -821,7 +736,7 @@ Opt!Called getCalledFromCandidate(
 				return none!Called;
 			} else {
 				SpecImpls specImpls = mutMaxArr!(maxSpecImpls, Called);
-				return checkSpecImpls(specImpls, ctx, isInLambda, range, f, tempAsArr(candidateTypeArgs), trace)
+				return checkSpecImpls(specImpls, ctx, range, f, tempAsArr(candidateTypeArgs), trace)
 					? some(Called(
 						instantiateFun(
 							ctx.alloc,
@@ -845,10 +760,10 @@ Expr checkCallAfterChoosingOverload(
 	ref Expected expected,
 ) {
 	SpecTrace trace = mutMaxArr!(maxSpecDepth, FunDeclAndTypeArgs);
-	Opt!Called opCalled = getCalledFromCandidate(
-		ctx, isInLambda, range, candidate, empty(args) ? ArgsKind.empty : ArgsKind.nonEmpty, trace);
+	Opt!Called opCalled = getCalledFromCandidate(ctx, range, candidate, trace);
 	if (has(opCalled)) {
 		Called called = force(opCalled);
+		checkCalled(ctx, range, called, isInLambda, empty(args) ? ArgsKind.empty : ArgsKind.nonEmpty);
 		Expr calledExpr = Expr(range, ExprKind(ExprKind.Call(called, args)));
 		//TODO: PERF second return type check may be unnecessary
 		// if we already filtered by return type at the beginning

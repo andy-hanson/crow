@@ -97,6 +97,43 @@ string strOfDiagnostic(
 
 private:
 
+void writeUnusedDiag(
+	scope ref Writer writer,
+	in AllSymbols allSymbols,
+	in AllPaths allPaths,
+	in FilesInfo filesInfo,
+	in Diag.Unused a,
+) {
+	a.kind.matchIn!void(
+		(in Diag.Unused.Kind.Import x) {
+			if (has(x.importedName)) {
+				writer ~= "imported name ";
+				writeSym(writer, allSymbols, force(x.importedName));
+			} else {
+				writer ~= "imported module ";
+				// TODO: helper fn
+				Sym moduleName = baseName(allPaths, filesInfo.filePaths[x.importedModule.fileIndex]);
+				writeSym(writer, allSymbols, moduleName);
+			}
+			writer ~= " is unused";
+		},
+		(in Diag.Unused.Kind.Local x) {
+			writer ~= "local ";
+			writeSym(writer, allSymbols, x.local.name);
+			writer ~= (x.local.mutability == LocalMutability.immut)
+				? " is unused"
+				: x.usedGet
+				? " is mutable but never reassigned"
+				: x.usedSet
+				? " is assigned to but unused"
+				: " is unused";
+		},
+		(in Diag.Unused.Kind.PrivateDecl x) {
+			writeSym(writer, allSymbols, x.name);
+			writer ~= " is unused";
+		});
+}
+
 void writeLineNumber(
 	scope ref Writer writer,
 	in AllPaths allPaths,
@@ -437,8 +474,7 @@ void writeCalledDecl(
 ) {
 	a.matchIn!void(
 		(in FunDecl x) {
-			writeSig(writer, allSymbols, x.name, x.returnType, x.params, none!ReturnAndParamTypes);
-			writeFunDeclLocation(writer, allSymbols, allPaths, pathsInfo, options, fi, x);
+			writeFunDecl(writer, allSymbols, allPaths, pathsInfo, options, fi, x);
 		},
 		(in CalledSpecSig x) {
 			writeSig(
@@ -447,6 +483,19 @@ void writeCalledDecl(
 			writeName(writer, allSymbols, name(*x.specInst));
 			writer ~= ')';
 		});
+}
+
+void writeFunDecl(
+	scope ref Writer writer,
+	in AllSymbols allSymbols,
+	in AllPaths allPaths,
+	in PathsInfo pathsInfo,
+	in ShowDiagOptions options,
+	in FilesInfo fi,
+	in FunDecl a,
+) {
+	writeSig(writer, allSymbols, a.name, a.returnType, a.params, none!ReturnAndParamTypes);
+	writeFunDeclLocation(writer, allSymbols, allPaths, pathsInfo, options, fi, a);
 }
 
 void writeFunDeclLocation(
@@ -584,22 +633,23 @@ void writeDiag(
 		(in Diag.CallNoMatch d) {
 			writeCallNoMatch(writer, allSymbols, allPaths, pathsInfo, options, fi, d);
 		},
-		(in Diag.CantCall it) {
-			string descr = () {
-				final switch (it.reason) {
+		(in Diag.CantCall x) {
+			writer ~= () {
+				final switch (x.reason) {
 					case Diag.CantCall.Reason.nonNoCtx:
 						return "a 'noctx' function can't call a non-'noctx' function";
 					case Diag.CantCall.Reason.summon:
 						return "a non-'summon' function can't call a 'summon' function";
 					case Diag.CantCall.Reason.unsafe:
-						return "a non-'trusted' and non-'unsafe' function can't call an 'unsafe' function";
+						return "a non-'unsafe' function can't call an 'unsafe' function";
 					case Diag.CantCall.Reason.variadicFromNoctx:
 						return "a 'noctx' function can't call a variadic function";
 				}
 			}();
-			writer ~= descr;
 			writer ~= ' ';
-			writeName(writer, allSymbols, it.callee.name);
+			writeFunDecl(writer, allSymbols, allPaths, pathsInfo, options, fi, *x.callee);
+			if (x.reason == Diag.CantCall.Reason.unsafe)
+				writer ~= "\n(consider putting the call in a 'trusted' expression)";
 		},
 		(in Diag.CantInferTypeArguments x) {
 			writer ~= "can't infer type arguments of ";
@@ -1043,48 +1093,8 @@ void writeDiag(
 				}
 			}();
 		},
-		(in Diag.UnusedImport it) {
-			if (has(it.importedName)) {
-				writer ~= "imported name ";
-				writeSym(writer, allSymbols, force(it.importedName));
-			} else {
-				writer ~= "imported module ";
-				// TODO: helper fn
-				Sym moduleName = baseName(allPaths, fi.filePaths[it.importedModule.fileIndex]);
-				writeSym(writer, allSymbols, moduleName);
-			}
-			writer ~= " is unused";
-		},
-		(in Diag.UnusedLocal it) {
-			writer ~= "local ";
-			writeSym(writer, allSymbols, it.local.name);
-			writer ~= (it.local.mutability == LocalMutability.immut)
-				? " is unused"
-				: it.usedGet
-				? " is mutable but never reassigned"
-				: it.usedSet
-				? " is assigned to but unused"
-				: " is unused";
-		},
-		(in Diag.UnusedPrivateFun it) {
-			writer ~= "private function ";
-			writeSym(writer, allSymbols, it.fun.name);
-			writer ~= " is unused";
-		},
-		(in Diag.UnusedPrivateSpec it) {
-			writer ~= "private spec ";
-			writeSym(writer, allSymbols, it.spec.name);
-			writer ~= " is unused";
-		},
-		(in Diag.UnusedPrivateStruct it) {
-			writer ~= "private type ";
-			writeSym(writer, allSymbols, it.struct_.name);
-			writer ~= " is unused";
-		},
-		(in Diag.UnusedPrivateStructAlias it) {
-			writer ~= "private type ";
-			writeSym(writer, allSymbols, it.alias_.name);
-			writer ~= " is unused";
+		(in Diag.Unused x) {
+			writeUnusedDiag(writer, allSymbols, allPaths, fi, x);
 		},
 		(in Diag.VarargsParamMustBeArray x) {
 			writer ~= "variadic parameter must be an 'array'";

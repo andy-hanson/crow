@@ -18,7 +18,6 @@ import model.model :
 	SpecDecl,
 	SpecDeclBody,
 	SpecDeclSig,
-	StructAlias,
 	StructDecl,
 	StructInst,
 	StructOrAlias,
@@ -359,26 +358,23 @@ immutable struct Diag {
 		}
 		Kind kind;
 	}
-	immutable struct UnusedImport {
-		Module* importedModule;
-		Opt!Sym importedName;
-	}
-	immutable struct UnusedLocal {
-		Local* local;
-		bool usedGet;
-		bool usedSet;
-	}
-	immutable struct UnusedPrivateFun {
-		FunDecl* fun;
-	}
-	immutable struct UnusedPrivateSpec {
-		SpecDecl* spec;
-	}
-	immutable struct UnusedPrivateStruct {
-		StructDecl* struct_;
-	}
-	immutable struct UnusedPrivateStructAlias {
-		StructAlias* alias_;
+	immutable struct Unused {
+		immutable struct Kind {
+			immutable struct Import {
+				Module* importedModule;
+				Opt!Sym importedName;
+			}
+			immutable struct Local {
+				.Local* local;
+				bool usedGet;
+				bool usedSet;
+			}
+			immutable struct PrivateDecl {
+				Sym name;
+			}
+			mixin Union!(Import, Local, PrivateDecl);
+		}
+		Kind kind;
 	}
 	immutable struct VarargsParamMustBeArray {}
 	immutable struct WrongNumberTypeArgsForSpec {
@@ -462,12 +458,7 @@ immutable struct Diag {
 		TypeConflict,
 		TypeParamCantHaveTypeArgs,
 		TypeShouldUseSyntax,
-		UnusedImport,
-		UnusedLocal,
-		UnusedPrivateFun,
-		UnusedPrivateSpec,
-		UnusedPrivateStruct,
-		UnusedPrivateStructAlias,
+		Unused,
 		VarargsParamMustBeArray,
 		WrongNumberTypeArgsForSpec,
 		WrongNumberTypeArgsForStruct);

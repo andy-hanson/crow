@@ -95,16 +95,6 @@ void fullIndexDictZip(K, V0, V1)(
 		cb(K(i), a.values[i], b.values[i]);
 }
 
-void fullIndexDictZipPtrFirst(K, V0, V1)(
-	FullIndexDict!(K, V0) a,
-	FullIndexDict!(K, V1) b,
-	in void delegate(K, V0*, in V1) @safe @nogc pure nothrow cb,
-) {
-	verify(fullIndexDictSize(a) == fullIndexDictSize(b));
-	foreach (size_t i; 0 .. fullIndexDictSize(a))
-		cb(K(i), &a.values[i], b.values[i]);
-}
-
 void fullIndexDictZip3(K, V0, V1, V2)(
 	immutable FullIndexDict!(K, V0) a,
 	immutable FullIndexDict!(K, V1) b,
