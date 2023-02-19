@@ -2,13 +2,9 @@ module frontend.check.checkExpr;
 
 @safe @nogc pure nothrow:
 
-import frontend.check.checkCall :
-	checkCall,
-	checkCallIdentifier,
-	checkCallSpecial,
-	checkCallSpecialNoLocals,
-	eachFunInScope,
-	isPurityAlwaysCompatibleConsideringSpecs;
+import frontend.check.checkCall.candidates : eachFunInScope;
+import frontend.check.checkCall.checkCall : checkCall, checkCallIdentifier, checkCallSpecial, checkCallSpecialNoLocals;
+import frontend.check.checkCall.checkCallSpecs : isPurityAlwaysCompatibleConsideringSpecs;
 import frontend.check.checkCtx : CheckCtx, markUsed;
 import frontend.check.dicts : FunsDict, StructsAndAliasesDict;
 import frontend.check.inferringType :
