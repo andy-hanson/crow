@@ -36,10 +36,11 @@ import frontend.check.inferringType :
 	programState,
 	SingleInferringType,
 	tryGetInferred,
-	TypeAndInferring;
-import frontend.check.typeFromAst : tryUnpackTupleType;
+	TypeAndInferring,
+	typeFromAst2;
+import frontend.check.typeFromAst : getNTypeArgsForDiagnostic, unpackTupleIfNeeded;
 import frontend.lang : maxTypeParams;
-import frontend.parse.ast : CallAst, ExprAst, LambdaAst, rangeOfNameAndRange, TypeAst;
+import frontend.parse.ast : CallAst, ExprAst, LambdaAst, rangeOfNameAndRange;
 import frontend.programState : ProgramState;
 import model.diag : Diag;
 import model.model :
@@ -61,7 +62,8 @@ import util.alloc.alloc : Alloc;
 import util.col.arr : empty, only;
 import util.col.arrBuilder : add, ArrBuilder, finishArr;
 import util.col.arrUtil : every, exists, fillArrOrFail, zipEvery;
-import util.col.mutMaxArr : exists, isEmpty, MutMaxArr, mutMaxArr, mutMaxArrSize, only, push, size, tempAsArr;
+import util.col.mutMaxArr :
+	exists, isEmpty, fillMutMaxArr, MutMaxArr, mutMaxArr, mutMaxArrSize, only, push, size, tempAsArr;
 import util.opt : force, has, none, noneMut, Opt, some, some;
 import util.perf : endMeasure, PerfMeasure, PerfMeasurer, pauseMeasure, resumeMeasure, startMeasure;
 import util.ptr : castNonScope_ref, ptrTrustMe;
@@ -73,7 +75,10 @@ Expr checkCall(ref ExprCtx ctx, ref LocalsInfo locals, FileAndRange range, in Ca
 		ctx, locals, range,
 		// Show diags at the function name and not at the whole call ast
 		FileAndRange(range.fileIndex, rangeOfNameAndRange(ast.funName, ctx.allSymbols)),
-		ast.funName.name, ast.typeArg, ast.args, expected);
+		ast.funName.name,
+		has(ast.typeArg) ? some(typeFromAst2(ctx, *force(ast.typeArg))) : none!Type,
+		ast.args,
+		expected);
 
 Expr checkCallSpecial(size_t n)(
 	ref ExprCtx ctx,
@@ -83,7 +88,7 @@ Expr checkCallSpecial(size_t n)(
 	in ExprAst[n] args,
 	ref Expected expected,
 ) =>
-	checkCallCommon(ctx, locals, range, range, funName, none!(TypeAst*), castNonScope_ref(args), expected);
+	checkCallCommon(ctx, locals, range, range, funName, none!Type, castNonScope_ref(args), expected);
 
 Expr checkCallSpecial(
 	ref ExprCtx ctx,
@@ -93,7 +98,7 @@ Expr checkCallSpecial(
 	in ExprAst[] args,
 	ref Expected expected,
 ) =>
-	checkCallCommon(ctx, locals, range, range, funName, none!(TypeAst*), castNonScope_ref(args), expected);
+	checkCallCommon(ctx, locals, range, range, funName, none!Type, castNonScope_ref(args), expected);
 
 Expr checkCallSpecialNoLocals(
 	ref ExprCtx ctx,
@@ -113,13 +118,13 @@ private Expr checkCallCommon(
 	FileAndRange range,
 	FileAndRange diagRange,
 	Sym funName,
-	in Opt!(TypeAst*) typeArg,
+	in Opt!Type typeArg,
 	in ExprAst[] args,
 	ref Expected expected,
 ) {
 	PerfMeasurer perfMeasurer = startMeasure(ctx.alloc, ctx.perf, PerfMeasure.checkCall);
 	Expr res = withCandidates!Expr(
-		ctx, funName, typeArg, args.length,
+		ctx, funName, args.length,
 		(ref Candidates candidates) =>
 			checkCallInner(
 				ctx, locals, range, diagRange, funName, args, typeArg, perfMeasurer, candidates, expected));
@@ -134,12 +139,15 @@ private Expr checkCallInner(
 	FileAndRange diagRange,
 	Sym funName,
 	in ExprAst[] argAsts,
-	in Opt!(TypeAst*) explicitTypeArg,
+	in Opt!Type explicitTypeArg,
 	ref PerfMeasurer perfMeasurer,
 	ref Candidates candidates,
 	ref Expected expected,
 ) {
 	size_t arity = argAsts.length;
+
+	if (has(explicitTypeArg))
+		filterCandidatesByExplicitTypeArg(ctx, candidates, force(explicitTypeArg));
 
 	filterCandidates(candidates, (ref Candidate candidate) =>
 		matchExpectedVsReturnTypeNoDiagnostic(
@@ -196,7 +204,7 @@ private Expr checkCallInner(
 			addDiag2(ctx, diagRange, Diag(Diag.CallNoMatch(
 				funName,
 				tryGetInferred(expected),
-				getNTypeArgs(explicitTypeArg),
+				getNTypeArgsForDiagnostic(ctx.commonTypes, explicitTypeArg),
 				arity,
 				finishArr(ctx.alloc, actualArgTypes),
 				allCandidates)));
@@ -205,14 +213,6 @@ private Expr checkCallInner(
 		return bogus(expected, range);
 	} else
 		return checkCallAfterChoosingOverload(ctx, isInLambda(locals), only(candidates), range, force(args), expected);
-}
-
-private size_t getNTypeArgs(Opt!(TypeAst*) explicitTypeArg) {
-	if (has(explicitTypeArg)) {
-		Opt!(TypeAst[]) unpacked = tryUnpackTupleType(*force(explicitTypeArg));
-		return has(unpacked) ? force(unpacked).length : 1;
-	} else
-		return 0;
 }
 
 Expr checkCallIdentifier(
@@ -224,6 +224,18 @@ Expr checkCallIdentifier(
 	checkCallSpecialNoLocals(ctx, range, name, [], expected);
 
 private:
+
+void filterCandidatesByExplicitTypeArg(ref ExprCtx ctx, scope ref Candidates candidates, in Type typeArg) {
+	filterCandidates(candidates, (ref Candidate candidate) {
+		size_t nTypeParams = mutMaxArrSize(candidate.typeArgs);
+		Type[] args = unpackTupleIfNeeded(ctx.commonTypes, nTypeParams, &typeArg);
+		bool ok = args.length == nTypeParams;
+		if (ok)
+			fillMutMaxArr(candidate.typeArgs, size(candidate.typeArgs), (size_t i) =>
+				SingleInferringType(some(args[i])));
+		return ok;
+	});
+}
 
 alias ParamExpected = MutMaxArr!(maxCandidates, TypeAndInferring);
 
@@ -354,7 +366,7 @@ bool inferCandidateTypeArgsFromSpecSig(
 	in SpecDeclSig specSig,
 	in ReturnAndParamTypes returnAndParamTypes,
 ) =>
-	withCandidates(ctx, specSig.name, none!(TypeAst*), specSig.params.length, (ref Candidates specCandidates) {
+	withCandidates(ctx, specSig.name, specSig.params.length, (ref Candidates specCandidates) {
 		const InferringTypeArgs constCallInferring = inferringTypeArgs(callCandidate);
 		filterCandidates(specCandidates, (ref Candidate specCandidate) =>
 			testCandidateForSpecSig(

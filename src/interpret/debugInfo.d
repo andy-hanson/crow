@@ -10,6 +10,7 @@ import interpret.stacks : returnPeek, returnStackSize, Stacks;
 import model.diag : FilesInfo, writeFileAndPos;
 import model.concreteModel : ConcreteFun, concreteFunRange;
 import model.lowModel : LowFunIndex, LowFunSource, LowProgram;
+import model.model : Program;
 import util.alloc.alloc : Alloc;
 import util.lineAndColumnGetter : LineAndColumn, lineAndColumnAtPos;
 import util.col.str : CStr;
@@ -24,15 +25,17 @@ import util.writer : finishWriterToSafeCStr, writeHex, Writer;
 
 const struct InterpreterDebugInfo {
 	@safe @nogc pure nothrow:
+	Program* programPtr;
 	LowProgram* lowProgramPtr;
 	ByteCode* byteCodePtr;
 	AllSymbols* allSymbolsPtr;
 	AllPaths* allPathsPtr;
 	PathsInfo* pathsInfoPtr;
-	FilesInfo* filesInfoPtr;
 
 	ref ByteCode byteCode() return scope =>
 		*byteCodePtr;
+	ref Program program() return scope =>
+		*programPtr;
 	ref LowProgram lowProgram() return scope =>
 		*lowProgramPtr;
 	ref const(AllSymbols) allSymbols() return scope =>
@@ -42,7 +45,7 @@ const struct InterpreterDebugInfo {
 	ref PathsInfo pathsInfo() return scope =>
 		*pathsInfoPtr;
 	ref FilesInfo filesInfo() return scope =>
-		*filesInfoPtr;
+		program.filesInfo;
 }
 
 // matches `backtrace-entry` from `bootstrap.crow`.
@@ -110,7 +113,7 @@ private @trusted BacktraceEntry backtraceEntryFromSource(
 	ByteCodeSource source,
 ) {
 	Writer writer = Writer(ptrTrustMe(alloc));
-	writeFunName(writer, info.allSymbols, info.lowProgram, source.fun);
+	writeFunName(writer, info.allSymbols, info.program, info.lowProgram, source.fun);
 	CStr funName = finishWriterToSafeCStr(writer).ptr;
 
 	Opt!FileIndex opFileIndex = getFileIndex(info.allSymbols, info.lowProgram, source.fun);
@@ -153,7 +156,7 @@ void printDebugInfo(
 			if (has(source)) {
 				writeByteCodeSource(
 					writer, a.allSymbols, a.allPaths, a.pathsInfo, showDiagOptions,
-					a.lowProgram, a.filesInfo, force(source));
+					a.program, a.lowProgram, a.filesInfo, force(source));
 			} else
 				writer ~= "opStopInterpretation";
 			printf("%s\n", finishWriterToSafeCStr(writer).ptr);
@@ -197,11 +200,12 @@ void writeByteCodeSource(
 	in AllPaths allPaths,
 	in PathsInfo pathsInfo,
 	in ShowDiagOptions showDiagOptions,
+	in Program program,
 	in LowProgram lowProgram,
 	in FilesInfo filesInfo,
 	ByteCodeSource source,
 ) {
-	writeFunName(writer, allSymbols, lowProgram, source.fun);
+	writeFunName(writer, allSymbols, program, lowProgram, source.fun);
 	writer ~= ' ';
 	Opt!FileIndex where = getFileIndex(allSymbols, lowProgram, source.fun);
 	if (has(where))
@@ -216,7 +220,9 @@ Opt!FileIndex getFileIndex(in AllSymbols allSymbols, in LowProgram lowProgram, L
 			none!FileIndex);
 
 void writeFunNameAtIndex(scope ref Writer writer, in InterpreterDebugInfo debugInfo, ByteCodeIndex index) {
-	writeFunName(writer, debugInfo.allSymbols, debugInfo.lowProgram, byteCodeSourceAtIndex(debugInfo, index).fun);
+	writeFunName(
+		writer, debugInfo.allSymbols, debugInfo.program, debugInfo.lowProgram,
+		byteCodeSourceAtIndex(debugInfo, index).fun);
 }
 
 @trusted void writeFunNameAtByteCodePtr(

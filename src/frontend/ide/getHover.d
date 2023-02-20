@@ -70,11 +70,11 @@ void getHover(
 		},
 		(in Position.RecordFieldPosition it) {
 			writer ~= "field ";
-			writeStructDecl(writer, allSymbols, *it.struct_);
+			writeStructDecl(writer, allSymbols, program, *it.struct_);
 			writer ~= '.';
 			writeSym(writer, allSymbols, it.field.name);
 			writer ~= " (";
-			writeTypeUnquoted(writer, allSymbols, it.field.type);
+			writeTypeUnquoted(writer, allSymbols, program, it.field.type);
 			writer ~= ')';
 		},
 		(in SpecDecl _) {

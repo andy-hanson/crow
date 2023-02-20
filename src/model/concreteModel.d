@@ -187,7 +187,14 @@ immutable struct ConcreteStructSource {
 immutable struct ConcreteStruct {
 	@safe @nogc pure nothrow:
 
+	enum SpecialKind {
+		none,
+		array,
+		tuple,	
+	}
+
 	Purity purity;
+	SpecialKind specialKind;
 	ConcreteStructSource source;
 	Late!ConcreteStructInfo info_;
 	//TODO: this isn't needed outside of concretizeCtx.d
@@ -197,19 +204,10 @@ immutable struct ConcreteStruct {
 	Late!(immutable size_t[]) fieldOffsets_;
 }
 
-bool isArray(ref ConcreteStruct a) =>
-	a.source.match!bool(
-		(ConcreteStructSource.Inst it) =>
-			isArray(*it.inst),
-		(ConcreteStructSource.Lambda it) =>
-			false);
-
-bool isTuple(ref ConcreteStruct a) =>
-	a.source.match!bool(
-		(ConcreteStructSource.Inst x) =>
-			isTuple(*x.inst),
-		(ConcreteStructSource.Lambda x) =>
-			false);
+bool isArray(in ConcreteStruct a) =>
+	a.specialKind == ConcreteStruct.SpecialKind.array;
+bool isTuple(in ConcreteStruct a) =>
+	a.specialKind == ConcreteStruct.SpecialKind.tuple;
 
 private ref ConcreteStructInfo info(return scope ref ConcreteStruct a) =>
 	lateGet(a.info_);

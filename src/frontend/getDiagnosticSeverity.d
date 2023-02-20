@@ -149,7 +149,5 @@ DiagSeverity getDiagnosticSeverity(in Diag a) =>
 			DiagSeverity.unusedCode,
 		(in Diag.VarargsParamMustBeArray) =>
 			DiagSeverity.checkError,
-		(in Diag.WrongNumberTypeArgsForSpec) =>
-			DiagSeverity.checkError,
-		(in Diag.WrongNumberTypeArgsForStruct) =>
+		(in Diag.WrongNumberTypeArgs) =>
 			DiagSeverity.checkError);

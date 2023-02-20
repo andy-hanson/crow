@@ -92,7 +92,6 @@ import interpret.bytecodeWriter :
 	writeSwitchWithValuesDelay,
 	writeThreadLocalPtr,
 	writeWrite;
-import interpret.debugging : writeLowType;
 import interpret.extern_ : FunPtr;
 import interpret.funToReferences : FunPtrTypeToDynCallSig, FunToReferences, registerCall, registerFunPtrReference;
 import interpret.generateText :
@@ -130,7 +129,6 @@ import util.ptr : castNonScope, castNonScope_ref, ptrTrustMe;
 import util.sym : AllSymbols;
 import util.union_ : UnionMutable;
 import util.util : divRoundUp, unreachable, verify;
-import util.writer : finishWriter, Writer;
 
 void generateFunFromExpr(
 	ref TempAlloc tempAlloc,
@@ -711,17 +709,6 @@ void generateConstant(
 	in LowType type,
 	in Constant constant,
 ) {
-	debug {
-		if (false) {
-			Writer w = Writer(ptrTrustMe(ctx.tempAlloc));
-			w ~= "generateConstant of type ";
-			writeLowType(w, ctx.allSymbols, ctx.program.allTypes, type);
-			w ~= '\n';
-			//print()
-			finishWriter(w);
-		}
-	}
-
 	constant.matchIn!void(
 		(in Constant.ArrConstant it) {
 			TextArrInfo info = getTextInfoForArray(ctx.textInfo, ctx.program.allConstants, it);

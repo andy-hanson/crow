@@ -95,11 +95,11 @@ void mapTo(size_t maxSize, Out, In)(
 		overwriteMemory(&a.values[i], cb(values[i]));
 }
 
-@trusted void push(size_t maxSize, T)(ref MutMaxArr!(maxSize, T) a, T value) {
+@trusted void push(size_t maxSize, T)(scope ref MutMaxArr!(maxSize, T) a, T value) {
 	overwriteMemory(pushUninitialized(a), value);
 }
 
-void pushIfUnderMaxSize(size_t maxSize, T)(ref MutMaxArr!(maxSize, T) a, immutable T value) {
+void pushIfUnderMaxSize(size_t maxSize, T)(scope ref MutMaxArr!(maxSize, T) a, immutable T value) {
 	if (a.size_ < maxSize)
 		push(a, value);
 }

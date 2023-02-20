@@ -20,7 +20,6 @@ import model.model :
 	SpecDeclSig,
 	StructDecl,
 	StructInst,
-	StructOrAlias,
 	Type,
 	VariableRef,
 	Visibility;
@@ -377,13 +376,8 @@ immutable struct Diag {
 		Kind kind;
 	}
 	immutable struct VarargsParamMustBeArray {}
-	immutable struct WrongNumberTypeArgsForSpec {
-		SpecDecl* decl;
-		size_t nExpectedTypeArgs;
-		size_t nActualTypeArgs;
-	}
-	immutable struct WrongNumberTypeArgsForStruct {
-		StructOrAlias decl;
+	immutable struct WrongNumberTypeArgs {
+		Sym name;
 		size_t nExpectedTypeArgs;
 		size_t nActualTypeArgs;
 	}
@@ -460,8 +454,7 @@ immutable struct Diag {
 		TypeShouldUseSyntax,
 		Unused,
 		VarargsParamMustBeArray,
-		WrongNumberTypeArgsForSpec,
-		WrongNumberTypeArgsForStruct);
+		WrongNumberTypeArgs);
 }
 
 immutable struct ExpectedForDiag {

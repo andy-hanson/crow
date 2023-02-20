@@ -14,7 +14,6 @@ import frontend.check.instantiate :
 	typeArgsArray,
 	TypeParamsAndArgs;
 import frontend.lang : maxSpecDepth, maxSpecImpls;
-import frontend.parse.ast : TypeAst;
 import model.diag : Diag;
 import model.model :
 	Called,
@@ -110,8 +109,8 @@ Opt!Called findSpecSigImplementation(
 	SpecDeclSig* sigDecl,
 	in ReturnAndParamTypes sigType,
 	ref SpecTrace trace,
-) {
-	return withCandidates(ctx, sigDecl.name, none!(TypeAst*), sigType.paramTypes.length, (ref Candidates candidates) {
+) =>
+	withCandidates(ctx, sigDecl.name, sigType.paramTypes.length, (ref Candidates candidates) {
 		filterCandidates(candidates, (scope ref Candidate candidate) =>
 			testCandidateForSpecSig(ctx.alloc, ctx.programState, candidate, sigType, InferringTypeArgs()));
 
@@ -129,7 +128,6 @@ Opt!Called findSpecSigImplementation(
 				return none!Called;
 		}
 	});
-}
 
 bool checkBuiltinSpec(
 	ref ExprCtx ctx,

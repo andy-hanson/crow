@@ -16,7 +16,7 @@ import interpret.runBytecode : runBytecode;
 import lower.lower : lower;
 import model.concreteModel : ConcreteProgram;
 import model.lowModel : ExternLibraries, LowProgram;
-import model.model : hasDiags, Program;
+import model.model : fakeProgramForDiagnostics, hasDiags, Program;
 import model.reprConcreteModel : reprOfConcreteProgram;
 import model.reprLowModel : reprOfLowProgram;
 import model.reprModel : reprModule;
@@ -115,23 +115,16 @@ ExitCode buildAndInterpret(
 				allPaths,
 				pathsInfo,
 				extern_.doDynCall,
+				programs.program,
 				lowProgram,
 				byteCode,
-				programs.program.filesInfo,
 				allArgs));
 		} else {
 			writeError(safeCStr!"Failed to load external libraries\n");
 			return ExitCode.error;
 		}
 	} else {
-		writeError(strOfDiagnostics(
-			alloc,
-			allSymbols,
-			allPaths,
-			pathsInfo,
-			showDiagOptions,
-			programs.program.filesInfo,
-			programs.program.diagnostics));
+		writeError(strOfDiagnostics(alloc, allSymbols, allPaths, pathsInfo, showDiagOptions, programs.program));
 		return ExitCode.error;
 	}
 }
@@ -151,10 +144,12 @@ DiagsAndResultStrs printTokens(
 	FileAstAndDiagnostics astResult = parseSingleAst(alloc, perf, allSymbols, allPaths, storage, main);
 	Token[] tokens = tokensOfAst(alloc, allSymbols, astResult.ast);
 	return DiagsAndResultStrs(
-		strOfDiagnostics(
-			alloc, allSymbols, allPaths, pathsInfo, showDiagOptions, astResult.filesInfo, astResult.diagnostics),
+		strOfDiagnostics(alloc, allSymbols, allPaths, pathsInfo, showDiagOptions, fakeProgram(astResult)),
 		jsonStrOfRepr(alloc, allSymbols, reprTokens(alloc, tokens)));
 }
+
+Program fakeProgram(FileAstAndDiagnostics astResult) =>
+	fakeProgramForDiagnostics(astResult.filesInfo, astResult.diagnostics);
 
 DiagsAndResultStrs printAst(
 	ref Alloc alloc,
@@ -168,8 +163,7 @@ DiagsAndResultStrs printAst(
 ) {
 	FileAstAndDiagnostics astResult = parseSingleAst(alloc, perf, allSymbols, allPaths, storage, main);
 	return DiagsAndResultStrs(
-		strOfDiagnostics(
-			alloc, allSymbols, allPaths, pathsInfo, showDiagOptions, astResult.filesInfo, astResult.diagnostics),
+		strOfDiagnostics(alloc, allSymbols, allPaths, pathsInfo, showDiagOptions, fakeProgram(astResult)),
 		jsonStrOfRepr(alloc, allSymbols, reprAst(alloc, allPaths, astResult.ast)));
 }
 
@@ -189,8 +183,7 @@ DiagsAndResultStrs printModel(
 			safeCStr!"",
 			jsonStrOfRepr(alloc, allSymbols, reprModule(alloc, *only(program.rootModules))))
 		: DiagsAndResultStrs(
-			strOfDiagnostics(
-				alloc, allSymbols, allPaths, pathsInfo, showDiagOptions, program.filesInfo, program.diagnostics),
+			strOfDiagnostics(alloc, allSymbols, allPaths, pathsInfo, showDiagOptions, program),
 			safeCStr!"");
 }
 
@@ -213,8 +206,7 @@ DiagsAndResultStrs printConcreteModel(
 			jsonStrOfRepr(alloc, allSymbols, reprOfConcreteProgram(alloc, concreteProgram)));
 	} else
 		return DiagsAndResultStrs(
-			strOfDiagnostics(
-				alloc, allSymbols, allPaths, pathsInfo, showDiagOptions, program.filesInfo, program.diagnostics),
+			strOfDiagnostics(alloc, allSymbols, allPaths, pathsInfo, showDiagOptions, program),
 			safeCStr!"");
 }
 
@@ -238,8 +230,7 @@ DiagsAndResultStrs printLowModel(
 			jsonStrOfRepr(alloc, allSymbols, reprOfLowProgram(alloc, lowProgram)));
 	} else
 		return DiagsAndResultStrs(
-			strOfDiagnostics(
-				alloc, allSymbols, allPaths, pathsInfo, showDiagOptions, program.filesInfo, program.diagnostics),
+			strOfDiagnostics(alloc, allSymbols, allPaths, pathsInfo, showDiagOptions, program),
 			safeCStr!"");
 }
 
@@ -255,14 +246,7 @@ public Opt!SafeCStr justTypeCheck(
 ) {
 	Program program = frontendCompile(alloc, perf, alloc, allPaths, allSymbols, storage, [main], none!Path);
 	return hasDiags(program)
-		? some(strOfDiagnostics(
-			alloc,
-			allSymbols,
-			allPaths,
-			pathsInfo,
-			showDiagOptions,
-			program.filesInfo,
-			program.diagnostics))
+		? some(strOfDiagnostics(alloc, allSymbols, allPaths, pathsInfo, showDiagOptions, program))
 		: none!SafeCStr;
 }
 
@@ -286,19 +270,12 @@ version (WebAssembly) {} else {
 			buildToLowProgram(alloc, perf, versionInfoForBuildToC(), allSymbols, allPaths, storage, main);
 		return !hasDiags(programs.program)
 			? BuildToCResult(
-				writeToC(alloc, alloc, allSymbols, force(programs.concreteAndLowProgram).lowProgram),
+				writeToC(alloc, alloc, allSymbols, programs.program, force(programs.concreteAndLowProgram).lowProgram),
 				safeCStr!"",
 				force(programs.concreteAndLowProgram).lowProgram.externLibraries)
 			: BuildToCResult(
 				safeCStr!"",
-				strOfDiagnostics(
-					alloc,
-					allSymbols,
-					allPaths,
-					pathsInfo,
-					showDiagOptions,
-					programs.program.filesInfo,
-					programs.program.diagnostics),
+				strOfDiagnostics(alloc, allSymbols, allPaths, pathsInfo, showDiagOptions, programs.program),
 				[]);
 	}
 }
@@ -326,8 +303,7 @@ public DocumentResult compileAndDocument(
 			safeCStr!"")
 		: DocumentResult(
 			safeCStr!"",
-			strOfDiagnostics(
-				alloc, allSymbols, allPaths, pathsInfo, showDiagOptions, program.filesInfo, program.diagnostics));
+			strOfDiagnostics(alloc, allSymbols, allPaths, pathsInfo, showDiagOptions, program));
 }
 
 immutable struct ConcreteAndLowProgram {

@@ -48,6 +48,8 @@ import model.model :
 	FunBody,
 	FunDecl,
 	FunInst,
+	isArray,
+	isTuple,
 	Local,
 	Module,
 	name,
@@ -288,8 +290,14 @@ ConcreteType getConcreteType_forStructInst(ref ConcretizeCtx ctx, StructInst* i,
 					Purity purity = fold!(Purity, ConcreteType)(
 						i.purityRange.bestCase, typeArgs, (Purity p, in ConcreteType ta) =>
 							worsePurity(p, purity(ta)));
+					ConcreteStruct.SpecialKind specialKind = isArray(ctx.commonTypes, *i)
+						? ConcreteStruct.SpecialKind.array
+						: isTuple(ctx.commonTypes, *i)
+						? ConcreteStruct.SpecialKind.tuple
+						: ConcreteStruct.SpecialKind.none;
 					ConcreteStruct* res = allocate(ctx.alloc, ConcreteStruct(
 						purity,
+						specialKind,
 						ConcreteStructSource(ConcreteStructSource.Inst(i, key.typeArgs))));
 					add(ctx.alloc, ctx.allConcreteStructs, res);
 					return res;
@@ -333,7 +341,7 @@ ConcreteType concreteTypeFromClosure(
 			verify(f.mutability == ConcreteMutability.const_);
 			return worsePurity(p, purity(f.type));
 		});
-		ConcreteStruct* cs = allocate(ctx.alloc, ConcreteStruct(purity, source));
+		ConcreteStruct* cs = allocate(ctx.alloc, ConcreteStruct(purity, ConcreteStruct.SpecialKind.none, source));
 		lateSet(cs.info_, getConcreteStructInfoForFields(closureFields));
 		setConcreteStructRecordSizeOrDefer(
 			ctx, cs, false, closureFields, false, FieldsType.closure);

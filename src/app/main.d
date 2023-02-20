@@ -546,8 +546,7 @@ version (Windows) { } else { ExitCode buildAndJit(
 			allPaths,
 			pathsInfo,
 			showDiagOptions,
-			programs.program.filesInfo,
-			programs.program.diagnostics))
+			programs.program))
 		: ExitCode(jitAndRun(alloc, perf, allSymbols, programs.lowProgram, jitOptions, programArgs));
 } }
 

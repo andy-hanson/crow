@@ -29,8 +29,8 @@ import interpret.stacks :
 	setReturnPeek,
 	Stacks,
 	withStacks;
-import model.diag : FilesInfo; // TODO: FilesInfo probably belongs elsewhere
 import model.lowModel : LowProgram;
+import model.model : Program;
 import model.typeLayout : PackField;
 import util.alloc.alloc : Alloc;
 import util.col.str : SafeCStr;
@@ -50,13 +50,13 @@ import util.util : debugLog, divRoundUp, drop, unreachable, verify;
 	in AllPaths allPaths,
 	in PathsInfo pathsInfo,
 	in DoDynCall doDynCall,
+	in Program program,
 	in LowProgram lowProgram,
 	in ByteCode byteCode,
-	in FilesInfo filesInfo,
 	in SafeCStr[] allArgs,
 ) =>
 	withInterpreter!int(
-		alloc, doDynCall, lowProgram, byteCode, allSymbols, allPaths, pathsInfo, filesInfo,
+		alloc, doDynCall, program, lowProgram, byteCode, allSymbols, allPaths, pathsInfo,
 		(ref Stacks stacks) {
 			dataPush(stacks, allArgs.length);
 			dataPush(stacks, cast(ulong) allArgs.ptr);
@@ -116,21 +116,21 @@ void stepUntilBreak(ref Stacks stacks, ref Operation* operation) {
 @safe T withInterpreter(T)(
 	ref Alloc alloc,
 	in DoDynCall doDynCall_,
+	in Program program,
 	in LowProgram lowProgram,
 	in ByteCode byteCode,
 	in AllSymbols allSymbols,
 	in AllPaths allPaths,
 	in PathsInfo pathsInfo,
-	in FilesInfo filesInfo,
 	in T delegate(ref Stacks) @nogc nothrow cb,
 ) {
 	InterpreterDebugInfo debugInfo = InterpreterDebugInfo(
+		ptrTrustMe(program),
 		ptrTrustMe(lowProgram),
 		ptrTrustMe(byteCode),
 		ptrTrustMe(allSymbols),
 		ptrTrustMe(allPaths),
-		ptrTrustMe(pathsInfo),
-		ptrTrustMe(filesInfo));
+		ptrTrustMe(pathsInfo));
 	setGlobals(InterpreterGlobals(
 		ptrTrustMe(debugInfo),
 		castNonScope_ref(byteCode).funPtrToOperationPtr,

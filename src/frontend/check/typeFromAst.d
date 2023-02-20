@@ -5,8 +5,12 @@ module frontend.check.typeFromAst;
 import frontend.check.checkCtx : addDiag, CheckCtx, eachImportAndReExport, markUsed, rangeInFile;
 import frontend.check.dicts : SpecsDict, StructsAndAliasesDict;
 import frontend.check.instantiate :
-	DelayStructInsts, instantiateStruct, instantiateStructNeverDelay, noDelayStructInsts, TypeArgsArray, typeArgsArray;
-import frontend.lang : maxTypeParams;
+	DelaySpecInsts,
+	DelayStructInsts,
+	instantiateSpec,
+	instantiateStruct,
+	instantiateStructNeverDelay,
+	noDelayStructInsts;
 import frontend.parse.ast :
 	DestructureAst,
 	NameAndRange,
@@ -19,6 +23,7 @@ import frontend.parse.ast :
 import frontend.programState : ProgramState;
 import model.diag : Diag;
 import model.model :
+	asTuple,
 	CommonTypes,
 	decl,
 	Destructure,
@@ -26,6 +31,7 @@ import model.model :
 	LocalMutability,
 	NameReferents,
 	SpecDecl,
+	SpecInst,
 	StructAlias,
 	StructDecl,
 	StructInst,
@@ -38,9 +44,8 @@ import util.alloc.alloc : Alloc;
 import util.cell : Cell, cellGet, cellSet;
 import util.col.arr : arrayOfSingle, empty, only, small;
 import util.col.arrUtil : eachPair, findPtr, map, mapOrNone, mapWithIndex, mapZip;
-import util.col.mutMaxArr : mapTo, tempAsArr;
 import util.memory : allocate;
-import util.opt : force, has, none, Opt, some;
+import util.opt : force, has, none, Opt, optOr, some;
 import util.ptr : castNonScope_ref, ptrTrustMe;
 import util.sourceRange : RangeWithinFile;
 import util.sym : Sym, sym;
@@ -64,48 +69,21 @@ private Type instStructFromAst(
 		return Type(Type.Bogus());
 	else {
 		StructOrAlias sOrA = force(opDecl);
-		TypeArgsArray typeArgs = typeArgsArray();
-		Status status = getTypeArgsForStructOrAliasIfNumberMatches(
-			typeArgs,
-			ctx, commonTypes, suffixRange, structsAndAliasesDict,
-			sOrA, typeArgsAst, typeParamsScope, delayStructInsts);
-		final switch (status) {
-			case Status.ok:
-				return sOrA.matchWithPointers!Type(
-					(StructAlias* a) =>
-						typeParams(sOrA).length != 0
-							? todo!Type("alias with type params")
-							: typeFromOptInst(target(*a)),
-					(StructDecl* decl) =>
-						Type(instantiateStruct(
-							ctx.alloc, ctx.programState, decl, tempAsArr(typeArgs), delayStructInsts)));
-			case Status.error:
-				return Type(Type.Bogus());
-		}
+		Opt!Type typeArg = optTypeFromOptAst(
+			ctx, commonTypes, typeArgsAst, structsAndAliasesDict, typeParamsScope, delayStructInsts);
+		Opt!(Type[]) typeArgs = getTypeArgsIfNumberMatches(
+			ctx, commonTypes, suffixRange, name, typeParams(sOrA).length, &typeArg);
+		return has(typeArgs)
+			? sOrA.matchWithPointers!Type(
+				(StructAlias* a) =>
+					typeParams(sOrA).length != 0
+						? todo!Type("alias with type params")
+						: typeFromOptInst(target(*a)),
+				(StructDecl* decl) =>
+					Type(instantiateStruct(ctx.alloc, ctx.programState, decl, force(typeArgs), delayStructInsts)))
+			: Type(Type.Bogus());
 	}
 }
-
-Status getTypeArgsForSpecIfNumberMatches(
-	ref TypeArgsArray res,
-	ref CheckCtx ctx,
-	ref CommonTypes commonTypes,
-	RangeWithinFile range,
-	in StructsAndAliasesDict structsAndAliasesDict,
-	SpecDecl* spec,
-	in Opt!(TypeAst*) typeArgsAst,
-	TypeParam[] typeParamsScope,
-) =>
-	getTypeArgsIfNumberMatches(
-		res,
-		ctx,
-		commonTypes,
-		range,
-		structsAndAliasesDict,
-		spec.typeParams.length,
-		typeArgsAst,
-		typeParamsScope,
-		noDelayStructInsts,
-		(size_t expected, size_t actual) => Diag(Diag.WrongNumberTypeArgsForSpec(spec, expected, actual)));
 
 Type makeTupleType(ref Alloc alloc, ref ProgramState programState, ref CommonTypes commonTypes, in Type[] args) {
 	if (args.length == 0)
@@ -120,69 +98,38 @@ Type makeTupleType(ref Alloc alloc, ref ProgramState programState, ref CommonTyp
 	}
 }
 
-enum Status { ok, error }
-
-private Status getTypeArgsForStructOrAliasIfNumberMatches(
-	ref TypeArgsArray res,
+private Opt!(Type[]) getTypeArgsIfNumberMatches(
 	ref CheckCtx ctx,
 	ref CommonTypes commonTypes,
 	RangeWithinFile range,
-	in StructsAndAliasesDict structsAndAliasesDict,
-	StructOrAlias sOrA,
-	in Opt!(TypeAst*) typeArgsAst,
-	TypeParam[] typeParamsScope,
-	DelayStructInsts delayStructInsts,
-) =>
-	getTypeArgsIfNumberMatches(
-		res,
-		ctx,
-		commonTypes,
-		range,
-		structsAndAliasesDict,
-		typeParams(sOrA).length,
-		typeArgsAst,
-		typeParamsScope,
-		delayStructInsts,
-		(size_t expected, size_t actual) => Diag(Diag.WrongNumberTypeArgsForStruct(sOrA, expected, actual)));
-
-private Status getTypeArgsIfNumberMatches(
-	ref TypeArgsArray res,
-	ref CheckCtx ctx,
-	ref CommonTypes commonTypes,
-	RangeWithinFile range,
-	in StructsAndAliasesDict structsAndAliasesDict,
+	Sym name,
 	size_t nExpectedTypeArgs,
-	in Opt!(TypeAst*) typeArgsAst,
-	TypeParam[] typeParamsScope,
-	DelayStructInsts delayStructInsts,
-	in Diag delegate(size_t expected, size_t actual) @safe @nogc pure nothrow makeDiag,
+	return in Opt!Type* type,
 ) {
-	TypeAst[] typeArgsArray = tryGetMatchingTypeArgs(nExpectedTypeArgs, typeArgsAst);
-	if (typeArgsArray.length == nExpectedTypeArgs) {
-		mapTo!(maxTypeParams, Type, TypeAst)(res, typeArgsArray, (ref TypeAst x) =>
-			typeFromAst(ctx, commonTypes, x, structsAndAliasesDict, typeParamsScope, delayStructInsts));
-		return Status.ok;
-	} else {
-		addDiag(ctx, range, makeDiag(nExpectedTypeArgs, typeArgsArray.length));
-		return Status.error;
+	Type[] res = has(*type)
+		? unpackTupleIfNeeded(commonTypes, nExpectedTypeArgs, &force(*type))
+		: [];
+	if (res.length == nExpectedTypeArgs)
+		return some(res);
+	else {
+		addDiag(ctx, range, Diag(Diag.WrongNumberTypeArgs(name, nExpectedTypeArgs, res.length)));
+		return none!(Type[]);
 	}
 }
 
-// May return array of non-matching size
-TypeAst[] tryGetMatchingTypeArgs(size_t nTypeParams, Opt!(TypeAst*) typeArgsAst) {
-	if (has(typeArgsAst)) {
-		TypeAst* args = force(typeArgsAst);
-		if (nTypeParams >= 2) {
-			Opt!(TypeAst[]) unpacked = tryUnpackTupleType(*args);
-			return has(unpacked) ? force(unpacked) : arrayOfSingle(args);
-		} else
-			return arrayOfSingle(args);
-	} else
-		return [];
-}
+// Tries to return array of length 'nExpectedTypeArgs', but may fail
+Type[] unpackTupleIfNeeded(in CommonTypes commonTypes, size_t nExpectedTypeArgs, Type* type) =>
+	nExpectedTypeArgs == 1
+		? arrayOfSingle(type)
+		: optOr!(Type[])(asTuple(commonTypes, *type), () => arrayOfSingle(type));
 
-Opt!(TypeAst[]) tryUnpackTupleType(in TypeAst a) =>
-	a.isA!(TypeAst.Tuple*) ? some(a.as!(TypeAst.Tuple*).members) : none!(TypeAst[]);
+size_t getNTypeArgsForDiagnostic(in CommonTypes commonTypes, in Opt!Type explicitTypeArg) {
+	if (has(explicitTypeArg)) {
+		Opt!(Type[]) unpacked = asTuple(commonTypes, force(explicitTypeArg));
+		return has(unpacked) ? force(unpacked).length : 1;
+	} else
+		return 0;
+}
 
 TypeParam[] checkTypeParams(ref CheckCtx ctx, in NameAndRange[] asts) {
 	TypeParam[] res = mapWithIndex!(TypeParam, NameAndRange)(
@@ -279,6 +226,43 @@ Type typeFromAst(
 		(in TypeAst.Tuple x) =>
 			typeFromTupleAst(ctx, commonTypes, x.members, structsAndAliasesDict, typeParamsScope, delayStructInsts));
 
+private Opt!Type optTypeFromOptAst(
+	ref CheckCtx ctx,
+	ref CommonTypes commonTypes,
+	in Opt!(TypeAst*) ast,
+	in StructsAndAliasesDict structsAndAliasesDict,
+	TypeParam[] typeParamsScope,
+	DelayStructInsts delayStructInsts,
+) =>
+	has(ast)
+		? some(typeFromAst(ctx, commonTypes, *force(ast), structsAndAliasesDict, typeParamsScope, delayStructInsts))
+		: none!Type;
+
+Opt!(SpecInst*) specFromAst(
+	ref CheckCtx ctx,
+	ref CommonTypes commonTypes,
+	in StructsAndAliasesDict structsAndAliasesDict,
+	in SpecsDict specsDict,
+	TypeParam[] typeParamsScope,
+	in Opt!(TypeAst*) suffixLeft,
+	NameAndRange specName,
+	DelaySpecInsts delaySpecInsts,
+) {
+	Opt!(SpecDecl*) opSpec = tryFindSpec(ctx, specName, specsDict);
+	if (has(opSpec)) {
+		SpecDecl* spec = force(opSpec);
+		Opt!Type typeArg = optTypeFromOptAst(
+			ctx, commonTypes, suffixLeft, structsAndAliasesDict, typeParamsScope, noDelayStructInsts);
+		Opt!(Type[]) typeArgs = getTypeArgsIfNumberMatches(
+			ctx, commonTypes,
+			rangeOfNameAndRange(specName, ctx.allSymbols), spec.name, spec.typeParams.length, &typeArg);
+		return has(typeArgs)
+			? some(instantiateSpec(ctx.alloc, ctx.programState, spec, force(typeArgs), delaySpecInsts))
+			: none!(SpecInst*);
+	} else
+		return none!(SpecInst*);
+}
+
 private Type typeFromTupleAst(
 	ref CheckCtx ctx,
 	ref CommonTypes commonTypes,
@@ -356,7 +340,7 @@ private Type typeFromFunAst(
 		ctx.alloc, ctx.programState, commonTypes.funStructs[ast.kind], [returnType, paramType], delayStructInsts));
 }
 
-Opt!(SpecDecl*) tryFindSpec(ref CheckCtx ctx, NameAndRange name, in SpecsDict specsDict) =>
+private Opt!(SpecDecl*) tryFindSpec(ref CheckCtx ctx, NameAndRange name, in SpecsDict specsDict) =>
 	tryFindT!(SpecDecl*)(
 		ctx,
 		name.name,
@@ -446,8 +430,8 @@ Destructure checkDestructure(
 		(in DestructureAst[] partAsts) {
 			if (has(destructuredType)) {
 				Type tupleType = force(destructuredType);
-				Opt!(Type[]) fieldTypes = getTupleFieldTypes(commonTypes, partAsts.length, tupleType);
-				if (has(fieldTypes))
+				Opt!(Type[]) fieldTypes = asTuple(commonTypes, tupleType);
+				if (has(fieldTypes) && force(fieldTypes).length == partAsts.length)
 					return Destructure(allocate(ctx.alloc, Destructure.Split(
 						tupleType.as!(StructInst*),
 						small(mapZip!(Destructure, Type, DestructureAst)(
@@ -484,13 +468,6 @@ Destructure checkDestructure(
 }
 
 private:
-
-Opt!(Type[]) getTupleFieldTypes(ref CommonTypes commonTypes, size_t nParts, Type type) {
-	StructInst* inst = type.isA!(StructInst*) ? type.as!(StructInst*) : null;
-	return 2 <= nParts && nParts <= 9 && decl(*inst) == commonTypes.tuples2Through9[nParts - 2]
-		? some(inst.instantiatedTypes)
-		: none!(Type[]);
-}
 
 Opt!T tryFindT(T)(
 	ref CheckCtx ctx,

@@ -13,8 +13,8 @@ import frontend.parse.parse : parseFile;
 import frontend.showDiag : ShowDiagOptions, strOfDiagnostic;
 import interpret.extern_ : Extern;
 import interpret.fakeExtern : FakeExternResult, FakeStdOutput, withFakeExtern;
-import model.diag : Diagnostic, DiagnosticWithinFile, FilesInfo;
-import model.model : Program;
+import model.diag : Diagnostic, Diagnostics, DiagnosticWithinFile, DiagSeverity, FilesInfo;
+import model.model : fakeProgramForDiagnostics, Program;
 import util.alloc.alloc : Alloc;
 import util.col.arrBuilder : ArrBuilder;
 import util.col.arrUtil : arrLiteral, map;
@@ -105,14 +105,13 @@ pure StrParseDiagnostic[] getParseDiagnostics(
 		dictLiteral!(Path, FileIndex)(alloc, key, FileIndex(0)),
 		fullIndexDictOfArr!(FileIndex, LineAndColumnGetter)(
 			arrLiteral!LineAndColumnGetter(alloc, [lineAndColumnGetterForText(alloc, text)])));
-	return map(
-		alloc,
-		diagnosticsForFile(alloc, FileIndex(0), diagsBuilder, filesInfo.filePaths).diags,
-		(ref Diagnostic it) =>
-			 StrParseDiagnostic(
-				it.where.range,
-				strOfDiagnostic(
-					alloc, server.allSymbols, server.allPaths, server.pathsInfo, showDiagOptions, filesInfo, it)));
+	Program program = fakeProgramForDiagnostics(filesInfo, Diagnostics(
+		DiagSeverity.parseError,
+		diagnosticsForFile(alloc, FileIndex(0), diagsBuilder, filesInfo.filePaths).diags));
+	return map(alloc, program.diagnostics.diags, (ref Diagnostic x) =>
+		StrParseDiagnostic(
+			x.where.range,
+			strOfDiagnostic(alloc, server.allSymbols, server.allPaths, server.pathsInfo, showDiagOptions, program, x)));
 }
 
 SafeCStr getHover(ref Perf perf, ref Alloc alloc, ref Server server, in SafeCStr path, Pos pos) {

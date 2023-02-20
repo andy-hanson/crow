@@ -49,3 +49,8 @@ ref inout(T) force(T)(ref inout Option!T a) {
 	verify(has(a));
 	return a.value_;
 }
+
+T optOr(T)(Opt!T a, in T delegate() @safe @nogc pure nothrow cb) =>
+	has(a)
+		? force(a)
+		: cb();

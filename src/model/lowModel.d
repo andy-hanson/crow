@@ -53,7 +53,6 @@ TypeSize typeSize(in LowRecord a) =>
 
 bool isArray(in LowRecord a) =>
 	isArray(*a.source);
-
 bool isTuple(in LowRecord a) =>
 	isTuple(*a.source);
 

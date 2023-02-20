@@ -405,26 +405,19 @@ bool isDefinitelyByRef(in StructInst a) {
 		body_.as!(StructBody.Record).flags.forcedByValOrRef == ForcedByValOrRefOrNone.byRef;
 }
 
-bool isArray(in StructInst a) =>
-	// TODO: only do this for the array in bootstrap, not anything named 'array'
-	decl(a).name == sym!"array";
+bool isArray(in CommonTypes commonTypes, in StructInst a) =>
+	decl(a) == commonTypes.array;
 
-bool isTuple(in StructInst a) {
-	// TODO: only do this for the tuple in bootstrap, not anything named 'tupleN'
-	switch (decl(a).name.value) {
-		case sym!"tuple2".value:
-		case sym!"tuple3".value:
-		case sym!"tuple4".value:
-		case sym!"tuple5".value:
-		case sym!"tuple6".value:
-		case sym!"tuple7".value:
-		case sym!"tuple8".value:
-		case sym!"tuple9".value:
-			return true;
-		default:
-			return false;
-	}
+bool isTuple(in CommonTypes commonTypes, in Type a) =>
+	a.isA!(StructInst*) && isTuple(commonTypes, *a.as!(StructInst*));
+bool isTuple(in CommonTypes commonTypes, in StructInst a) =>
+	isTuple(commonTypes, decl(a));
+bool isTuple(in CommonTypes commonTypes, in StructDecl* a) {
+	Opt!(StructDecl*) actual = commonTypes.tuple(a.typeParams.length);
+	return has(actual) && force(actual) == a;
 }
+Opt!(Type[]) asTuple(in CommonTypes commonTypes, Type type) =>
+	isTuple(commonTypes, type) ? some(typeArgs(*type.as!(StructInst*))) : none!(Type[]);
 
 Sym name(in StructInst a) =>
 	decl(a).name;
@@ -1116,7 +1109,7 @@ immutable struct CommonTypes {
 	StructDecl* funPtrStruct() =>
 		funStructs[FunKind.pointer];
 
-	Opt!(StructDecl*) tuple(size_t arity) =>
+	Opt!(StructDecl*) tuple(size_t arity) return scope =>
 		2 <= arity && arity <= 9 ? some(tuples2Through9[arity - 2]) : none!(StructDecl*);
 }
 
@@ -1152,6 +1145,10 @@ immutable struct Program {
 	CommonTypes commonTypes;
 	Diagnostics diagnostics;
 }
+Program fakeProgramForTest(FilesInfo filesInfo) =>
+	fakeProgramForDiagnostics(filesInfo, Diagnostics());
+Program fakeProgramForDiagnostics(FilesInfo filesInfo, Diagnostics diagnostics) =>
+	Program(filesInfo, Config(), [], [], none!CommonFuns, CommonTypes(), diagnostics);
 
 immutable struct Config {
 	ConfigImportPaths include;
@@ -1505,31 +1502,31 @@ Sym symOfAssertOrForbidKind(AssertOrForbidKind a) {
 	}
 }
 
-void writeStructDecl(scope ref Writer writer, in AllSymbols allSymbols, in StructDecl a) {
+void writeStructDecl(scope ref Writer writer, in AllSymbols allSymbols, in Program program, in StructDecl a) {
 	writeSym(writer, allSymbols, a.name);
 }
 
-void writeStructInst(scope ref Writer writer, in AllSymbols allSymbols, in StructInst s) {
+void writeStructInst(scope ref Writer writer, in AllSymbols allSymbols, in Program program, in StructInst s) {
 	void dict(string open) {
 		Type[2] vk = only2(s.typeArgs);
-		writeTypeUnquoted(writer, allSymbols, vk[0]);
+		writeTypeUnquoted(writer, allSymbols, program, vk[0]);
 		writer ~= open;
-		writeTypeUnquoted(writer, allSymbols, vk[1]);
+		writeTypeUnquoted(writer, allSymbols, program, vk[1]);
 		writer ~= ']';
 	}
 	void fun(string keyword) {
 		writer ~= keyword;
 		writer ~= ' ';
 		Type[2] rp = only2(s.typeArgs);
-		writeTypeUnquoted(writer, allSymbols, rp[0]);
+		writeTypeUnquoted(writer, allSymbols, program, rp[0]);
 		Type param = rp[1];
-		bool needParens = !(param.isA!(StructInst*) && isTuple(*param.as!(StructInst*)));
+		bool needParens = !(param.isA!(StructInst*) && isTuple(program.commonTypes, *param.as!(StructInst*)));
 		if (needParens) writer ~= '(';
-		writeTypeUnquoted(writer, allSymbols, param);
+		writeTypeUnquoted(writer, allSymbols, program, param);
 		if (needParens) writer ~= ')';
 	}
 	void suffix(string suffix) {
-		writeTypeUnquoted(writer, allSymbols, only(s.typeArgs));
+		writeTypeUnquoted(writer, allSymbols, program, only(s.typeArgs));
 		writer ~= suffix;	
 	}
 
@@ -1560,18 +1557,18 @@ void writeStructInst(scope ref Writer writer, in AllSymbols allSymbols, in Struc
 			case Diag.TypeShouldUseSyntax.Kind.pointer:
 				return suffix("*");
 			case Diag.TypeShouldUseSyntax.Kind.tuple:
-				return writeTupleType(writer, allSymbols, s.typeArgs);
+				return writeTupleType(writer, allSymbols, program, s.typeArgs);
 		}
 	} else {
 		switch (s.typeArgs.length) {
 			case 0:
 				break;
 			case 1:
-				writeTypeUnquoted(writer, allSymbols, only(s.typeArgs));
+				writeTypeUnquoted(writer, allSymbols, program, only(s.typeArgs));
 				writer ~= ' ';
 				break;
 			default:
-				writeTupleType(writer, allSymbols, s.typeArgs);
+				writeTupleType(writer, allSymbols, program, s.typeArgs);
 				writer ~= ' ';
 				break;
 		}
@@ -1579,10 +1576,10 @@ void writeStructInst(scope ref Writer writer, in AllSymbols allSymbols, in Struc
 	}
 }
 
-private void writeTupleType(scope ref Writer writer, in AllSymbols allSymbols, in Type[] members) {
+private void writeTupleType(scope ref Writer writer, in AllSymbols allSymbols, in Program program, in Type[] members) {
 	writer ~= '(';
 	writeWithCommas!Type(writer, members, (in Type arg) {
-		writeTypeUnquoted(writer, allSymbols, arg);
+		writeTypeUnquoted(writer, allSymbols, program, arg);
 	});
 	writer ~= ')';
 }
@@ -1605,23 +1602,23 @@ void writeTypeArgsGeneric(T)(
 	}
 }
 
-void writeTypeArgs(scope ref Writer writer, in AllSymbols allSymbols, in Type[] types) {
+void writeTypeArgs(scope ref Writer writer, in AllSymbols allSymbols, in Program program, in Type[] types) {
 	writeTypeArgsGeneric!Type(writer, types,
 		(in Type x) =>
 			!x.isA!(StructInst*) || empty(typeArgs(*x.as!(StructInst*))),
 		(in Type x) {
-			writeTypeUnquoted(writer, allSymbols, x);
+			writeTypeUnquoted(writer, allSymbols, program, x);
 		});
 }
 
-void writeTypeQuoted(scope ref Writer writer, in AllSymbols allSymbols, in Type a) {
+void writeTypeQuoted(scope ref Writer writer, in AllSymbols allSymbols, in Program program, in Type a) {
 	writer ~= '\'';
-	writeTypeUnquoted(writer, allSymbols, a);
+	writeTypeUnquoted(writer, allSymbols, program, a);
 	writer ~= '\'';
 }
 
 //TODO:MOVE
-void writeTypeUnquoted(ref Writer writer, in AllSymbols allSymbols, in Type a) {
+void writeTypeUnquoted(ref Writer writer, in AllSymbols allSymbols, in Program program, in Type a) {
 	a.matchIn!void(
 		(in Type.Bogus) {
 			writer ~= "<<bogus>>";
@@ -1630,7 +1627,7 @@ void writeTypeUnquoted(ref Writer writer, in AllSymbols allSymbols, in Type a) {
 			writeSym(writer, allSymbols, x.name);
 		},
 		(in StructInst x) {
-			writeStructInst(writer, allSymbols, x);
+			writeStructInst(writer, allSymbols, program, x);
 		});
 }
 

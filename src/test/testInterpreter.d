@@ -70,6 +70,7 @@ import model.lowModel :
 	LowThreadLocalIndex,
 	LowType,
 	LowUnion;
+import model.model : fakeProgramForTest;
 import model.typeLayout : Pack, PackField;
 import test.testUtil : expectDataStack, expectReturnStack, Test;
 import util.alloc.alloc : Alloc;
@@ -146,7 +147,8 @@ void doInterpret(
 	withFakeExtern(test.alloc, test.allSymbols, (scope ref Extern extern_, scope ref FakeStdOutput _) @trusted {
 		PathsInfo pathsInfo = emptyPathsInfo;
 		withInterpreter!void(
-			test.alloc, extern_.doDynCall, lowProgram, byteCode, test.allSymbols, test.allPaths, pathsInfo, filesInfo,
+			test.alloc, extern_.doDynCall, fakeProgramForTest(filesInfo), lowProgram,
+			byteCode, test.allSymbols, test.allPaths, pathsInfo,
 			(ref Stacks stacks) {
 				runInterpreter(stacks, initialOperationPointer(byteCode));
 			});

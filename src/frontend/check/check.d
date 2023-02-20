@@ -10,22 +10,13 @@ import frontend.check.funsForStruct : addFunsForStruct, countFunsForStruct;
 import frontend.check.instantiate :
 	DelaySpecInsts,
 	DelayStructInsts,
-	instantiateSpec,
 	instantiateSpecParents,
 	instantiateStruct,
 	instantiateStructTypes,
 	noDelaySpecInsts,
-	noDelayStructInsts,
-	TypeArgsArray,
-	typeArgsArray;
+	noDelayStructInsts;
 import frontend.check.typeFromAst :
-	checkDestructure,
-	checkTypeParams,
-	getTypeArgsForSpecIfNumberMatches,
-	Status,
-	tryFindSpec,
-	typeFromAst,
-	typeFromAstNoTypeParamsNeverDelay;
+	checkDestructure, checkTypeParams, specFromAst, typeFromAst, typeFromAstNoTypeParamsNeverDelay;
 import frontend.diagnosticsBuilder : addDiagnostic, DiagnosticsBuilder;
 import frontend.parse.ast :
 	DestructureAst,
@@ -38,7 +29,6 @@ import frontend.parse.ast :
 	NameAndRange,
 	ParamsAst,
 	range,
-	rangeOfNameAndRange,
 	SpecBodyAst,
 	SpecDeclAst,
 	SpecSigAst,
@@ -103,8 +93,7 @@ import util.col.exactSizeArrBuilder : ExactSizeArrBuilder, exactSizeArrBuilderAd
 import util.col.multiDict : buildMultiDict, multiDictEach;
 import util.col.mutArr : mustPop, MutArr, mutArrIsEmpty;
 import util.col.mutDict : insertOrUpdate, moveToDict, MutDict;
-import util.col.mutMaxArr :
-	isFull, mustPop, MutMaxArr, mutMaxArr, mutMaxArrSize, push, pushIfUnderMaxSize, tempAsArr, toArray;
+import util.col.mutMaxArr : isFull, mustPop, MutMaxArr, mutMaxArr, mutMaxArrSize, push, pushIfUnderMaxSize, toArray;
 import util.col.str : copySafeCStr, SafeCStr, safeCStr, strOfSafeCStr;
 import util.memory : allocate;
 import util.opt : force, has, none, Opt, someMut, some;
@@ -609,51 +598,17 @@ Opt!(SpecInst*) checkFunModifierNonSpecial(
 	DelaySpecInsts delaySpecInsts,
 ) {
 	if (ast.isA!NameAndRange) {
-		return checkSpecReference(
+		return specFromAst(
 			ctx, commonTypes, structsAndAliasesDict, specsDict, typeParamsScope,
 			none!(TypeAst*), ast.as!NameAndRange, delaySpecInsts);
 	} else if (ast.isA!(TypeAst.SuffixName*)) {
 		TypeAst.SuffixName* n = ast.as!(TypeAst.SuffixName*);
-		return checkSpecReference(
+		return specFromAst(
 			ctx, commonTypes, structsAndAliasesDict, specsDict, typeParamsScope, some(&n.left), n.name, delaySpecInsts);
 	} else {
 		addDiag(ctx, range(ast, ctx.allSymbols), Diag(Diag.SpecNameMissing()));
 		return none!(SpecInst*);
 	}
-
-}
-
-Opt!(SpecInst*) checkSpecReference(
-	ref CheckCtx ctx,
-	ref CommonTypes commonTypes,
-	in StructsAndAliasesDict structsAndAliasesDict,
-	in SpecsDict specsDict,
-	TypeParam[] typeParamsScope,
-	in Opt!(TypeAst*) suffixLeft,
-	NameAndRange specName,
-	DelaySpecInsts delaySpecInsts,
-) {
-	Opt!(SpecDecl*) opSpec = tryFindSpec(ctx, specName, specsDict);
-	if (has(opSpec)) {
-		SpecDecl* spec = force(opSpec);
-		TypeArgsArray typeArgs = typeArgsArray();
-		Status status = getTypeArgsForSpecIfNumberMatches(
-			typeArgs,
-			ctx,
-			commonTypes,
-			rangeOfNameAndRange(specName, ctx.allSymbols),
-			structsAndAliasesDict,
-			spec,
-			suffixLeft,
-			typeParamsScope);
-		final switch (status) {
-			case Status.ok:
-				return some(instantiateSpec(ctx.alloc, ctx.programState, spec, tempAsArr(typeArgs), delaySpecInsts));
-			case Status.error:
-				return none!(SpecInst*);
-		}
-	} else
-		return none!(SpecInst*);
 }
 
 FunFlags checkFunFlags(ref CheckCtx ctx, RangeWithinFile range, FunModifierAst.Special.Flags flags) {

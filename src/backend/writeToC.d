@@ -47,7 +47,7 @@ import model.lowModel :
 	targetIsPointer,
 	targetRecordType,
 	UpdateParam;
-import model.model : EnumValue, name;
+import model.model : EnumValue, name, Program;
 import model.typeLayout : sizeOfType, typeSizeBytes;
 import util.alloc.alloc : Alloc, TempAlloc;
 import util.col.arr : empty, only, sizeEq;
@@ -70,7 +70,13 @@ import util.writer :
 	writeWithCommas,
 	writeWithCommasZip;
 
-SafeCStr writeToC(ref Alloc alloc, ref TempAlloc tempAlloc, in AllSymbols allSymbols, in LowProgram program) {
+SafeCStr writeToC(
+	ref Alloc alloc,
+	ref TempAlloc tempAlloc,
+	in AllSymbols allSymbols,
+	in Program modelProgram,
+	in LowProgram program,
+) {
 	Writer writer = Writer(ptrTrustMe(alloc));
 
 	writer ~= "#include <stddef.h>\n"; // for NULL
@@ -81,7 +87,8 @@ SafeCStr writeToC(ref Alloc alloc, ref TempAlloc tempAlloc, in AllSymbols allSym
 		writer ~= "unsigned __int64 __popcnt64(unsigned __int64 value);\n";
 	}
 
-	Ctx ctx = Ctx(ptrTrustMe(program), buildMangledNames(alloc, ptrTrustMe(allSymbols), program));
+	Ctx ctx = Ctx(
+		ptrTrustMe(modelProgram), ptrTrustMe(program), buildMangledNames(alloc, ptrTrustMe(allSymbols), program));
 
 	writeStructs(alloc, writer, ctx);
 
@@ -199,9 +206,12 @@ void declareConstantPointerStorage(
 const struct Ctx {
 	@safe @nogc pure nothrow:
 
+	Program* modelProgramPtr;
 	LowProgram* programPtr;
 	MangledNames mangledNames;
 
+	ref Program modelProgram() return scope =>
+		*modelProgramPtr;
 	ref LowProgram program() return scope =>
 		*programPtr;
 	ref const(AllSymbols) allSymbols() return scope =>
@@ -467,9 +477,9 @@ void writeFunDefinition(
 		(in LowFunExprBody x) {
 			// TODO: only if a flag is set
 			writer ~= "/* ";
-			writeFunName(writer, ctx.allSymbols, ctx.program, funIndex);
+			writeFunName(writer, ctx.allSymbols, ctx.modelProgram, ctx.program, funIndex);
 			writer ~= ' ';
-			writeFunSig(writer, ctx.allSymbols, ctx.program, fun);
+			writeFunSig(writer, ctx.allSymbols, ctx.modelProgram, ctx.program, fun);
 			writer ~= " */\n";
 			writeFunWithExprBody(writer, tempAlloc, ctx, funIndex, fun, x);
 		});

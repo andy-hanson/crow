@@ -3,17 +3,14 @@ module frontend.check.checkCall.candidates;
 @safe @nogc pure nothrow:
 
 import frontend.check.checkCtx : eachImportAndReExport;
-import frontend.parse.ast : TypeAst;
 import frontend.check.inferringType :
 	ExprCtx,
 	InferringTypeArgs,
 	matchTypesNoDiagnostic,
 	SingleInferringType,
 	tryGetInferred,
-	tryGetTypeArgFromInferringTypeArgs,
-	typeFromAst2;
+	tryGetTypeArgFromInferringTypeArgs;
 import frontend.check.instantiate : instantiateStructNeverDelay, TypeArgsArray, typeArgsArray;
-import frontend.check.typeFromAst : tryGetMatchingTypeArgs;
 import frontend.lang : maxTypeParams;
 import frontend.programState : ProgramState;
 import model.model :
@@ -51,7 +48,7 @@ import util.col.mutMaxArr :
 	mutMaxArr,
 	pushUninitialized,
 	tempAsArr;
-import util.opt : force, has, MutOpt, none, Opt, some;
+import util.opt : force, has, MutOpt, none, Opt;
 import util.sym : Sym;
 
 size_t maxCandidates() => 256;
@@ -80,6 +77,7 @@ inout(InferringTypeArgs) inferringTypeArgs(return scope ref inout Candidate a) =
 private void initializeCandidate(ref Candidate a, CalledDecl called) {
 	overwriteMemory(&a.called, called);
 	initializeMutMaxArr(a.typeArgs);
+	fillMutMaxArr(a.typeArgs, called.typeParams.length, (size_t i) => SingleInferringType());
 }
 // TODO: 'b' isn't really const since we're getting mutable 'typeArgs' from it
 private void overwriteCandidate(ref Candidate a, ref const Candidate b) {
@@ -88,14 +86,16 @@ private void overwriteCandidate(ref Candidate a, ref const Candidate b) {
 }
 
 T withCandidates(T)(
-	ref ExprCtx ctx,
+	in ExprCtx ctx,
 	Sym funName,
-	in Opt!(TypeAst*) explicitTypeArg,
 	size_t actualArity,
 	in T delegate(ref Candidates) @safe @nogc pure nothrow cb,
 ) {
 	Candidates candidates = mutMaxArr!(maxCandidates, Candidate);
-	getInitialCandidates(ctx, candidates, funName, explicitTypeArg, actualArity);
+	eachFunInScope(ctx, funName, (CalledDecl called) @trusted {
+		if (arityMatches(arity(called), actualArity))
+			initializeCandidate(*pushUninitialized(candidates), called);
+	});
 	return cb(candidates);
 }
 
@@ -116,7 +116,7 @@ void filterCandidatesButDontRemoveAll(
 			overwriteCandidate(a, b));
 }
 
-void eachFunInScope(ref ExprCtx ctx, Sym funName, in void delegate(CalledDecl) @safe @nogc pure nothrow cb) {
+void eachFunInScope(in ExprCtx ctx, Sym funName, in void delegate(CalledDecl) @safe @nogc pure nothrow cb) {
 	size_t totalIndex = 0;
 	foreach (SpecInst* specInst; ctx.outermostFunSpecs)
 		eachFunInScopeForSpec(specInst, totalIndex, funName, cb);
@@ -208,36 +208,6 @@ private Type paramTypeAt(in Params params, size_t argIndex) =>
 			x[argIndex].type,
 		(in Params.Varargs x) =>
 			x.elementType);
-
-private void getInitialCandidates(
-	ref ExprCtx ctx,
-	scope ref Candidates candidates,
-	Sym funName,
-	in Opt!(TypeAst*) explicitTypeArg,
-	size_t actualArity,
-) {
-	eachFunInScope(ctx, funName, (CalledDecl called) {
-		if (arityMatches(arity(called), actualArity)) {
-			size_t nTypeParams = called.typeParams.length;
-			TypeAst[] args = tryGetMatchingTypeArgs(nTypeParams, explicitTypeArg);
-			if (args.length == nTypeParams || args.length == 0) {
-				pushCandidate(ctx, candidates, called, args);
-			}
-		}
-	});
-}
-
-private @trusted void pushCandidate(
-	ref ExprCtx ctx,
-	scope ref Candidates candidates,
-	CalledDecl called,
-	scope TypeAst[] typeArgs,
-) {
-	Candidate* candidate = pushUninitialized(candidates);
-	initializeCandidate(*candidate, called);
-	fillMutMaxArr(candidate.typeArgs, called.typeParams.length, (size_t i) =>
-		SingleInferringType(empty(typeArgs) ? none!Type : some(typeFromAst2(ctx, typeArgs[i]))));
-}
 
 private void eachFunInScopeForSpec(
 	SpecInst* specInst,

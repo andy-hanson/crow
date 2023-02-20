@@ -118,6 +118,7 @@ import model.lowModel :
 	targetIsPointer,
 	targetRecordType,
 	UpdateParam;
+import model.model : Program;
 import model.typeLayout : typeSizeBytes;
 import util.alloc.alloc : Alloc;
 import util.col.arr : empty;
@@ -311,24 +312,13 @@ void buildGccProgram(ref Alloc alloc, ref gcc_jit_context ctx, in AllSymbols all
 						import core.stdc.stdio : printf;
 						import interpret.debugging : writeFunName, writeFunSig;
 						Writer writer = Writer(ptrTrustMe(alloc));
-						writeFunName(writer, allSymbols, program, funIndex);
+						writeFunName(writer, allSymbols, todo!Program("!"), program, funIndex);
 						writer ~= ' ';
-						writeFunSig(writer, allSymbols, program, fun);
+						writeFunSig(writer, allSymbols, todo!Program("!"), program, fun);
 						printf("Stub %llu %s\n", funIndex.index, finishWriterToCStr(writer));
 					}
 					gcc_jit_block_end_with_return(exprCtx.curBlock, null, arbitraryValue(exprCtx, expr.expr.type));
 				} else {
-					debug {
-						if (false) {
-							import core.stdc.stdio : printf;
-							import interpret.debugging : writeFunName, writeFunSig;
-							Writer writer = Writer(ptrTrustMe(alloc));
-							writeFunName(writer, allSymbols, program, funIndex);
-							writer ~= ' ';
-							writeFunSig(writer, allSymbols, program, fun);
-							printf("Generate %llu %s\n", funIndex.index, finishWriterToCStr(writer));
-						}
-					}
 					ExprEmit emit = ExprEmit(ExprEmit.Return());
 					Locals locals;
 					ExprResult result = toGccExpr(exprCtx, locals, emit, expr.expr);

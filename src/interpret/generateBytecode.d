@@ -239,7 +239,7 @@ void generateBytecodeForFun(
 			import core.stdc.stdio : printf;
 			import interpret.debugging : writeFunName;
 			Writer w = Writer(ptrTrustMe(tempAlloc));
-			writeFunName(w, allSymbols, program, fun);
+			writeFunName(w, allSymbols, todo!(Program)("!"), program, fun);
 			printf("generateBytecodeForFun %s\n", finishWriterToCStr(w));
 		}
 	}
