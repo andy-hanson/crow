@@ -479,7 +479,7 @@ Opt!T tryFindT(T)(
 	in Opt!T delegate(in NameReferents) @safe @nogc pure nothrow getFromNameReferents,
 ) {
 	Cell!(Opt!T) res = Cell!(Opt!T)(fromThisModule);
-	eachImportAndReExport(ctx, name, (in NameReferents referents) {
+	eachImportAndReExport(ctx.importsAndReExports, name, (in NameReferents referents) {
 		Opt!T got = getFromNameReferents(referents);
 		if (has(got)) {
 			if (has(cellGet(res)))

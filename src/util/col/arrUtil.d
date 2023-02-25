@@ -101,6 +101,15 @@ Opt!size_t indexOf(T)(in T[] xs, in T value) =>
 	return 0 <= res && res < xs.length ? some(res) : none!size_t;
 }
 
+Opt!Out first(Out, In)(in In[] a, in Opt!Out delegate(In) @safe @nogc pure nothrow cb) {
+	foreach (ref In x; a) {
+		Opt!Out res = cb(x);
+		if (has(res))
+			return res;
+	}
+	return none!Out;
+}
+
 Opt!(T*) findPtr(T)(T[] arr, in bool delegate(in T) @safe @nogc pure nothrow cb) {
 	foreach (T* x; ptrsRange!T(arr))
 		if (cb(*x))
@@ -296,16 +305,18 @@ bool zipEvery(T, U)(
 	return true;
 }
 
-bool zipEveryPtrFirst(T, U)(
+Opt!Out zipFirst(Out, T, U)(
 	T[] a,
 	in U[] b,
-	in bool delegate(T*, in U) @safe @nogc pure nothrow cb,
+	in Opt!Out delegate(T*, in U) @safe @nogc pure nothrow cb,
 ) {
 	verify(sizeEq(a, b));
-	foreach (size_t i; 0 .. a.length)
-		if (!cb(&a[i], b[i]))
-			return false;
-	return true;
+	foreach (size_t i; 0 .. a.length) {
+		Opt!Out res = cb(&a[i], b[i]);
+		if (has(res))
+			return res;
+	}
+	return none!Out;
 }
 
 void zip(T, U)(

@@ -3,9 +3,16 @@ module frontend.check.checkCall.checkCallSpecs;
 @safe @nogc pure nothrow:
 
 import frontend.check.checkCall.candidates :
-	Candidate, Candidates, candidatesForDiag, filterCandidates, testCandidateForSpecSig, withCandidates;
+	Candidate,
+	Candidates,
+	candidatesForDiag,
+	filterCandidates,
+	FunsInScope,
+	funsInScope,
+	testCandidateForSpecSig,
+	withCandidates;
 import frontend.check.inferringType :
-	addDiag2, ExprCtx, InferringTypeArgs, programState, SingleInferringType, tryGetInferred;
+	addDiag2, ExprCtx, InferringTypeArgs, programStatePtr, SingleInferringType, tryGetInferred;
 import frontend.check.instantiate :
 	instantiateFun,
 	instantiateSpecInst,
@@ -14,6 +21,7 @@ import frontend.check.instantiate :
 	typeArgsArray,
 	TypeParamsAndArgs;
 import frontend.lang : maxSpecDepth, maxSpecImpls;
+import frontend.programState : ProgramState;
 import model.diag : Diag;
 import model.model :
 	Called,
@@ -33,114 +41,144 @@ import model.model :
 	StructInst,
 	Type,
 	typeArgs;
+import util.alloc.alloc : Alloc;
 import util.col.arr : only;
-import util.col.arrUtil : every, exists, zipEveryPtrFirst;
+import util.col.arrUtil : every, exists, first, zipFirst;
 import util.col.mutMaxArr : isFull, mustPop, MutMaxArr, mutMaxArr, mutMaxArrSize, only, push, tempAsArr, toArray;
 import util.memory : allocate;
 import util.opt : force, has, none, Opt, some;
 import util.sourceRange : FileAndRange;
+import util.union_ : Union;
 
-Opt!Called checkCallSpecs(
-	ref ExprCtx ctx,
-	FileAndRange range,
-	ref const Candidate candidate,
-) {
+Opt!Called checkCallSpecs(ref ExprCtx ctx, FileAndRange range, ref const Candidate candidate) {
 	SpecTrace trace = mutMaxArr!(maxSpecDepth, FunDeclAndTypeArgs);
-	return getCalledFromCandidate(ctx, range, candidate, trace);
+	CheckSpecsCtx checkSpecsCtx = CheckSpecsCtx(ctx.allocPtr, ctx.programStatePtr, funsInScope(ctx));
+	return getCalledFromCandidate(checkSpecsCtx, candidate, trace).match!(Opt!Called)(
+		(Called x) =>
+			some(x),
+		(SpecDiag x) {
+			addDiag2(ctx, range, diag(x));
+			return none!Called;
+		});
 }
 
-bool isPurityAlwaysCompatibleConsideringSpecs(ref ExprCtx ctx, Type type, Purity expected) {
+bool isPurityAlwaysCompatibleConsideringSpecs(in immutable SpecInst*[] funSpecs, Type type, Purity expected) {
 	PurityRange typePurity = purityRange(type);
 	return isPurityAlwaysCompatible(expected, typePurity) ||
-		exists!(SpecInst*)(ctx.outermostFunSpecs, (in SpecInst* inst) =>
+		exists!(SpecInst*)(funSpecs, (in SpecInst* inst) =>
 			specProvidesPurity(inst, type, expected)) ||
 		(type.isA!(StructInst*) &&
 			isPurityCompatible(expected, typePurity.bestCase) &&
 			every!Type(typeArgs(*type.as!(StructInst*)), (in Type typeArg) =>
-				isPurityAlwaysCompatibleConsideringSpecs(ctx, typeArg, expected)));
+				isPurityAlwaysCompatibleConsideringSpecs(funSpecs, typeArg, expected)));
 }
 
 private:
 
+struct CheckSpecsCtx {
+	@safe @nogc pure nothrow:
+
+	Alloc* allocPtr;
+	ProgramState* programStatePtr;
+	immutable FunsInScope funsInScope;
+
+	ref Alloc alloc() =>
+		*allocPtr;
+	ref ProgramState programState() =>
+		*programStatePtr;
+}
+
 alias SpecImpls = MutMaxArr!(maxSpecImpls, Called);
 alias SpecTrace = MutMaxArr!(maxSpecDepth, FunDeclAndTypeArgs);
 
-Opt!Called getCalledFromCandidate(
-	ref ExprCtx ctx,
-	FileAndRange range,
+immutable struct SpecResult {
+	mixin Union!(Called, SpecDiag);
+}
+
+immutable struct SpecDiag {
+	@safe @nogc pure nothrow:
+	mixin Union!(
+		Diag.SpecBuiltinNotSatisfied,
+		Diag.SpecImplFoundMultiple,
+		Diag.SpecImplNotFound,
+		Diag.CantInferTypeArguments,
+		Diag.SpecImplTooDeep);
+}
+
+Diag diag(SpecDiag a) =>
+	a.match!Diag(
+		(Diag.SpecBuiltinNotSatisfied x) => Diag(x),
+		(Diag.SpecImplFoundMultiple x) => Diag(x),
+		(Diag.SpecImplNotFound x) => Diag(x),
+		(Diag.CantInferTypeArguments x) => Diag(x),
+		(Diag.SpecImplTooDeep x) => Diag(x));
+
+SpecResult getCalledFromCandidate(
+	ref CheckSpecsCtx ctx,
 	ref const Candidate candidate,
-	ref SpecTrace trace,
+	scope ref SpecTrace trace,
 ) {
 	TypeArgsArray candidateTypeArgs = typeArgsArray();
 	foreach (ref const SingleInferringType x; tempAsArr(candidate.typeArgs)) {
 		Opt!Type t = tryGetInferred(x);
 		if (has(t))
 			push(candidateTypeArgs, force(t));
-		else {
-			addDiag2(ctx, range, Diag(Diag.CantInferTypeArguments(candidate.called.as!(FunDecl*))));
-			return none!Called;
-		}
+		else
+			return SpecResult(SpecDiag(Diag.CantInferTypeArguments(candidate.called.as!(FunDecl*))));
 	}
-	return candidate.called.matchWithPointers!(Opt!Called)(
+	return candidate.called.matchWithPointers!SpecResult(
 		(FunDecl* f) {
-			if (isFull(trace)) {
-				addDiag2(ctx, range, Diag(Diag.SpecImplTooDeep(toArray(ctx.alloc, trace))));
-				return none!Called;
-			} else {
+			if (isFull(trace))
+				return SpecResult(SpecDiag(Diag.SpecImplTooDeep(toArray(ctx.alloc, trace))));
+			else {
 				SpecImpls specImpls = mutMaxArr!(maxSpecImpls, Called);
-				return checkSpecImpls(specImpls, ctx, range, f, tempAsArr(candidateTypeArgs), trace)
-					? some(Called(
+				Opt!SpecDiag res = checkSpecImpls(specImpls, ctx, f, tempAsArr(candidateTypeArgs), trace);
+				return has(res)
+					? SpecResult(force(res))
+					: SpecResult(Called(
 						instantiateFun(
 							ctx.alloc,
 							ctx.programState,
 							f,
 							tempAsArr(candidateTypeArgs),
-							tempAsArr(specImpls))))
-					: none!Called;
+							tempAsArr(specImpls))));
 			}
 		},
 		(CalledSpecSig s) =>
-			some(Called(allocate(ctx.alloc, s))));
+			SpecResult(Called(allocate(ctx.alloc, s))));
 }
 
-Opt!Called findSpecSigImplementation(
-	ref ExprCtx ctx,
-	FileAndRange range,
+SpecResult findSpecSigImplementation(
+	ref CheckSpecsCtx ctx,
 	SpecDeclSig* sigDecl,
 	in ReturnAndParamTypes sigType,
-	ref SpecTrace trace,
+	scope ref SpecTrace trace,
 ) =>
-	withCandidates(ctx, sigDecl.name, sigType.paramTypes.length, (ref Candidates candidates) {
+	withCandidates(ctx.funsInScope, sigDecl.name, sigType.paramTypes.length, (ref Candidates candidates) {
 		filterCandidates(candidates, (scope ref Candidate candidate) =>
 			testCandidateForSpecSig(ctx.alloc, ctx.programState, candidate, sigType, InferringTypeArgs()));
 
 		// If any candidates left take specs -- leave as a TODO
 		switch (mutMaxArrSize(candidates)) {
 			case 0:
-				// TODO: use initial candidates in the error message
-				addDiag2(ctx, range, Diag(Diag.SpecImplNotFound(sigDecl, sigType, toArray(ctx.alloc, trace))));
-				return none!Called;
+				return SpecResult(SpecDiag(Diag.SpecImplNotFound(sigDecl, sigType, toArray(ctx.alloc, trace))));
 			case 1:
-				return getCalledFromCandidate(ctx, range, only(candidates), trace);
+				return getCalledFromCandidate(ctx, only(candidates), trace);
 			default:
-				addDiag2(ctx, range, Diag(
+				return SpecResult(SpecDiag(
 					Diag.SpecImplFoundMultiple(sigDecl.name, candidatesForDiag(ctx.alloc, candidates))));
-				return none!Called;
 		}
 	});
 
-bool checkBuiltinSpec(
-	ref ExprCtx ctx,
+Opt!SpecDiag checkBuiltinSpec(
+	ref CheckSpecsCtx ctx,
 	FunDecl* called,
-	FileAndRange range,
 	SpecDeclBody.Builtin.Kind kind,
 	Type typeArg,
-) {
-	bool typeIsGood = isPurityAlwaysCompatibleConsideringSpecs(ctx, typeArg, purityOfBuiltinSpec(kind));
-	if (!typeIsGood)
-		addDiag2(ctx, range, Diag(Diag.SpecBuiltinNotSatisfied(kind, typeArg, called)));
-	return typeIsGood;
-}
+) =>
+	isPurityAlwaysCompatibleConsideringSpecs(ctx.funsInScope.outermostFunSpecs, typeArg, purityOfBuiltinSpec(kind))
+		? none!SpecDiag
+		: some(SpecDiag(Diag.SpecBuiltinNotSatisfied(kind, typeArg, called)));
 
 Purity purityOfBuiltinSpec(SpecDeclBody.Builtin.Kind kind) {
 	final switch (kind) {
@@ -161,52 +199,44 @@ bool specProvidesPurity(in SpecInst* inst, in Type type, Purity expected) =>
 		(in SpecDeclSig[]) =>
 			false);
 
-// On failure, returns false
-bool checkSpecImpls(
+Opt!SpecDiag checkSpecImpls(
 	ref SpecImpls res,
-	ref ExprCtx ctx,
-	FileAndRange range,
+	ref CheckSpecsCtx ctx,
 	FunDecl* called,
-	Type[] calledTypeArgs,
-	ref SpecTrace trace,
-) {
-	foreach (SpecInst* specInst; called.specs) {
+	in Type[] calledTypeArgs,
+	scope ref SpecTrace trace,
+) =>
+	first!(SpecDiag, immutable SpecInst*)(called.specs, (SpecInst* specInst) @safe =>
 		// specInst was instantiated potentially based on f's params.
 		// Meed to instantiate it again.
-		SpecInst* specInstInstantiated = instantiateSpecInst(
+		checkSpecImpl(res, ctx, called, trace, *instantiateSpecInst(
 			ctx.alloc, ctx.programState, specInst,
-			TypeParamsAndArgs(called.typeParams, calledTypeArgs), noDelaySpecInsts);
-		if (!checkSpecImpl(res, ctx, range, called, trace, *specInstInstantiated))
-			return false;
-	}
-	return true;
-}
+			TypeParamsAndArgs(called.typeParams, calledTypeArgs), noDelaySpecInsts)));
 
-bool checkSpecImpl(
+Opt!SpecDiag checkSpecImpl(
 	ref SpecImpls res,
-	ref ExprCtx ctx,
-	FileAndRange range,
+	ref CheckSpecsCtx ctx,
 	FunDecl* called,
-	ref SpecTrace trace,
+	scope ref SpecTrace trace,
 	in SpecInst specInstInstantiated) {
-	foreach (SpecInst* parent; specInstInstantiated.parents)
-		if (!checkSpecImpl(res, ctx, range, called, trace, *parent))
-			return false;
 	Type[] typeArgs = typeArgs(specInstInstantiated);
-	return specInstInstantiated.decl.body_.match!bool(
+	Opt!SpecDiag diag = first!(SpecDiag, immutable SpecInst*)(specInstInstantiated.parents, (SpecInst* parent) =>
+		checkSpecImpl(res, ctx, called, trace, *parent));
+	return has(diag) ? diag : specInstInstantiated.decl.body_.match!(Opt!SpecDiag)(
 		(SpecDeclBody.Builtin b) =>
-			checkBuiltinSpec(ctx, called, range, b.kind, only(typeArgs)),
+			checkBuiltinSpec(ctx, called, b.kind, only(typeArgs)),
 		(SpecDeclSig[] sigDecls) {
 			push(trace, FunDeclAndTypeArgs(called, typeArgs));
-			bool res = zipEveryPtrFirst!(SpecDeclSig, ReturnAndParamTypes)(
-				sigDecls, specInstInstantiated.sigTypes, (SpecDeclSig* sigDecl, in ReturnAndParamTypes sigType) {
-					Opt!Called impl = findSpecSigImplementation(ctx, range, sigDecl, sigType, trace);
-					if (!has(impl))
-						return false;
-					push(res, force(impl));
-					return true;
-				});
-			if (res) mustPop(trace);
-			return true;
+			Opt!SpecDiag res = zipFirst!(SpecDiag, SpecDeclSig, ReturnAndParamTypes)(
+				sigDecls, specInstInstantiated.sigTypes, (SpecDeclSig* sigDecl, in ReturnAndParamTypes sigType) =>
+					findSpecSigImplementation(ctx, sigDecl, sigType, trace).match!(Opt!SpecDiag)(
+						(Called x) {
+							push(res, x);
+							return none!SpecDiag;
+						},
+						(SpecDiag x) =>
+							some(x)));
+			if (!has(res)) mustPop(trace);
+			return res;
 		});
 }

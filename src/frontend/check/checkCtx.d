@@ -32,13 +32,12 @@ struct CheckCtx {
 
 	private:
 
-	Alloc* allocPtr;
+	public Alloc* allocPtr;
 	Perf* perfPtr;
-	ProgramState* programStatePtr;
+	public ProgramState* programStatePtr;
 	AllSymbols* allSymbolsPtr;
 	public immutable FileIndex fileIndex;
-	immutable ImportOrExport[] imports;
-	immutable ImportOrExport[] reExports;
+	public ImportsAndReExports importsAndReExports;
 	DiagnosticsBuilder* diagsBuilderPtr;
 	UsedSet used;
 
@@ -96,7 +95,7 @@ void checkForUnused(ref CheckCtx ctx, StructAlias[] aliases, StructDecl[] struct
 }
 
 private void checkUnusedImports(ref CheckCtx ctx) {
-	foreach (ref ImportOrExport x; ctx.imports)
+	foreach (ref ImportOrExport x; ctx.importsAndReExports.imports)
 		x.kind.match!void(
 			(ImportOrExportKind.ModuleWhole m) {
 				if (!isUsedModuleWhole(ctx, m.module_) && has(x.importSource))
@@ -126,7 +125,16 @@ private bool containsUsed(in NameReferents a, in UsedSet used) =>
 	exists!(immutable FunDecl*)(a.funs, (in FunDecl* x) =>
 		isUsed(used, x));
 
-void eachImportAndReExport(in CheckCtx ctx, Sym name, in void delegate(in NameReferents) @safe @nogc pure nothrow cb) {
+immutable struct ImportsAndReExports {
+	immutable ImportOrExport[] imports;
+	immutable ImportOrExport[] reExports;
+}
+
+void eachImportAndReExport(
+	in ImportsAndReExports a,
+	Sym name,
+	in void delegate(in NameReferents) @safe @nogc pure nothrow cb,
+) {
 	void inner(ref ImportOrExport m) {
 		Opt!NameReferents imported = m.kind.match!(Opt!NameReferents)(
 			(ImportOrExportKind.ModuleWhole m) =>
@@ -136,9 +144,9 @@ void eachImportAndReExport(in CheckCtx ctx, Sym name, in void delegate(in NameRe
 		if (has(imported))
 			cb(force(imported));
 	}
-	foreach (ref ImportOrExport m; ctx.imports)
+	foreach (ref ImportOrExport m; a.imports)
 		inner(m);
-	foreach (ref ImportOrExport m; ctx.reExports)
+	foreach (ref ImportOrExport m; a.reExports)
 		inner(m);
 }
 

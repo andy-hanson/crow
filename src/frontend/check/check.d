@@ -2,7 +2,7 @@ module frontend.check.check;
 
 @safe @nogc pure nothrow:
 
-import frontend.check.checkCtx : addDiag, CheckCtx, checkForUnused, posInFile, rangeInFile;
+import frontend.check.checkCtx : addDiag, CheckCtx, checkForUnused, ImportsAndReExports, posInFile, rangeInFile;
 import frontend.check.checkExpr : checkFunctionBody;
 import frontend.check.checkStructs : checkStructBodies, checkStructsInitial;
 import frontend.check.dicts : FunsDict, SpecsDict, StructsAndAliasesDict;
@@ -1109,8 +1109,7 @@ BootstrapCheck checkWorker(
 		ptrTrustMe(programState),
 		ptrTrustMe(allSymbols),
 		pathAndAst.fileIndex,
-		importsAndExports.moduleImports,
-		importsAndExports.moduleExports,
+		ImportsAndReExports(importsAndExports.moduleImports, importsAndExports.moduleExports),
 		ptrTrustMe(diagsBuilder));
 
 	// Since structs may refer to each other, first get a structsAndAliasesDict, *then* fill in bodies

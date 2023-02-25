@@ -110,6 +110,8 @@ struct ExprCtx {
 
 	ref Alloc alloc() return scope =>
 		checkCtx().alloc();
+	Alloc* allocPtr() =>
+		checkCtx().allocPtr;
 
 	ref const(AllSymbols) allSymbols() return scope const =>
 		checkCtx().allSymbols();
@@ -161,6 +163,8 @@ FileAndRange rangeInFile2(in ExprCtx ctx, RangeWithinFile range) =>
 
 ref ProgramState programState(return scope ref ExprCtx ctx) =>
 	ctx.checkCtx.programState;
+ProgramState* programStatePtr(ref ExprCtx ctx) =>
+	ctx.checkCtx.programStatePtr;
 
 void addDiag2(ref ExprCtx ctx, FileAndRange range, Diag diag) {
 	addDiag(ctx.checkCtx, range, diag);

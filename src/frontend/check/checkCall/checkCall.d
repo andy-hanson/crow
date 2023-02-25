@@ -8,6 +8,7 @@ import frontend.check.checkCall.candidates :
 	candidatesForDiag,
 	filterCandidates,
 	filterCandidatesButDontRemoveAll,
+	funsInScope,
 	getAllCandidatesAsCalledDecls,
 	getCandidateExpectedParameterType,
 	inferringTypeArgs,
@@ -124,7 +125,7 @@ private Expr checkCallCommon(
 ) {
 	PerfMeasurer perfMeasurer = startMeasure(ctx.alloc, ctx.perf, PerfMeasure.checkCall);
 	Expr res = withCandidates!Expr(
-		ctx, funName, args.length,
+		funsInScope(ctx), funName, args.length,
 		(ref Candidates candidates) =>
 			checkCallInner(
 				ctx, locals, range, diagRange, funName, args, typeArg, perfMeasurer, candidates, expected));
@@ -366,7 +367,7 @@ bool inferCandidateTypeArgsFromSpecSig(
 	in SpecDeclSig specSig,
 	in ReturnAndParamTypes returnAndParamTypes,
 ) =>
-	withCandidates(ctx, specSig.name, specSig.params.length, (ref Candidates specCandidates) {
+	withCandidates(funsInScope(ctx), specSig.name, specSig.params.length, (ref Candidates specCandidates) {
 		const InferringTypeArgs constCallInferring = inferringTypeArgs(callCandidate);
 		filterCandidates(specCandidates, (ref Candidate specCandidate) =>
 			testCandidateForSpecSig(

@@ -93,7 +93,7 @@ private Type instantiateType(
 	ref Alloc alloc,
 	ref ProgramState programState,
 	Type type,
-	TypeParamsAndArgs typeParamsAndArgs,
+	in TypeParamsAndArgs typeParamsAndArgs,
 	scope DelayStructInsts delayStructInsts,
 ) =>
 	type.matchWithPointers!Type(
@@ -211,7 +211,7 @@ private StructInst* instantiateStructInst(
 	ref Alloc alloc,
 	ref ProgramState programState,
 	ref StructInst structInst,
-	TypeParamsAndArgs typeParamsAndArgs,
+	in TypeParamsAndArgs typeParamsAndArgs,
 	scope DelayStructInsts delayStructInsts,
 ) {
 	scope TypeArgsArray itsTypeArgs = typeArgsArray();
@@ -278,7 +278,7 @@ SpecInst* instantiateSpecInst(
 	ref Alloc alloc,
 	ref ProgramState programState,
 	SpecInst* specInst,
-	TypeParamsAndArgs typeParamsAndArgs,
+	in TypeParamsAndArgs typeParamsAndArgs,
 	scope DelaySpecInsts delaySpecInsts,
 ) {
 	TypeArgsArray itsTypeArgs = typeArgsArray();

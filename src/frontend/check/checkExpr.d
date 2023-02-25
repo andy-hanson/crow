@@ -2,7 +2,7 @@ module frontend.check.checkExpr;
 
 @safe @nogc pure nothrow:
 
-import frontend.check.checkCall.candidates : eachFunInScope;
+import frontend.check.checkCall.candidates : eachFunInScope, funsInScope;
 import frontend.check.checkCall.checkCall : checkCall, checkCallIdentifier, checkCallSpecial, checkCallSpecialNoLocals;
 import frontend.check.checkCall.checkCallSpecs : isPurityAlwaysCompatibleConsideringSpecs;
 import frontend.check.checkCtx : CheckCtx, markUsed;
@@ -1102,20 +1102,20 @@ Expr checkFunPointer(ref ExprCtx ctx, FileAndRange range, in PtrAst ast, ref Exp
 	if (!ast.inner.kind.isA!IdentifierAst)
 		todo!void("diag: fun-pointer ast should just be an identifier");
 	Sym name = ast.inner.kind.as!IdentifierAst.name;
-	MutArr!(FunDecl*) funsInScope = MutArr!(FunDecl*)();
-	eachFunInScope(ctx, name, (CalledDecl cd) {
+	MutArr!(FunDecl*) funs = MutArr!(FunDecl*)();
+	eachFunInScope(funsInScope(ctx), name, (CalledDecl cd) {
 		cd.matchWithPointers!void(
 			(FunDecl* x) {
 				markUsed(ctx.checkCtx, x);
-				push(ctx.alloc, funsInScope, x);
+				push(ctx.alloc, funs, x);
 			},
 			(SpecSig) {
 				todo!void("!");
 			});
 	});
-	if (mutArrSize(funsInScope) != 1)
+	if (mutArrSize(funs) != 1)
 		todo!void("did not find or found too many");
-	FunDecl* funDecl = funsInScope[0];
+	FunDecl* funDecl = funs[0];
 	if (isTemplate(*funDecl))
 		todo!void("can't point to template");
 	FunInst* funInst = instantiateFun(ctx.alloc, ctx.programState, funDecl, [], []);
@@ -1187,7 +1187,7 @@ VariableRef[] checkClosure(ref ExprCtx ctx, FileAndRange range, FunKind kind, Cl
 	final switch (kind) {
 		case FunKind.fun:
 			foreach (ref ClosureFieldBuilder cf; closureFields) {
-				if (!isPurityAlwaysCompatibleConsideringSpecs(ctx, cf.type, Purity.shared_))
+				if (!isPurityAlwaysCompatibleConsideringSpecs(ctx.outermostFunSpecs, cf.type, Purity.shared_))
 					addDiag2(ctx, range, Diag(Diag.LambdaClosesOverMut(cf.name, some(cf.type))));
 				else {
 					final switch (cf.mutability) {

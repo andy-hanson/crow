@@ -2,7 +2,8 @@ module frontend.check.checkCall.candidates;
 
 @safe @nogc pure nothrow:
 
-import frontend.check.checkCtx : eachImportAndReExport;
+import frontend.check.checkCtx : eachImportAndReExport, ImportsAndReExports;
+import frontend.check.dicts : FunsDict;
 import frontend.check.inferringType :
 	ExprCtx,
 	InferringTypeArgs,
@@ -59,7 +60,7 @@ CalledDecl[] candidatesForDiag(ref Alloc alloc, in Candidates candidates) =>
 
 CalledDecl[] getAllCandidatesAsCalledDecls(ref ExprCtx ctx, Sym funName) {
 	ArrBuilder!CalledDecl res = ArrBuilder!CalledDecl();
-	eachFunInScope(ctx, funName, (CalledDecl called) {
+	eachFunInScope(funsInScope(ctx), funName, (CalledDecl called) {
 		add(ctx.alloc, res, called);
 	});
 	return finishArr(ctx.alloc, res);
@@ -86,13 +87,13 @@ private void overwriteCandidate(ref Candidate a, ref const Candidate b) {
 }
 
 T withCandidates(T)(
-	in ExprCtx ctx,
+	in FunsInScope funs,
 	Sym funName,
 	size_t actualArity,
 	in T delegate(ref Candidates) @safe @nogc pure nothrow cb,
 ) {
 	Candidates candidates = mutMaxArr!(maxCandidates, Candidate);
-	eachFunInScope(ctx, funName, (CalledDecl called) @trusted {
+	eachFunInScope(funs, funName, (CalledDecl called) @trusted {
 		if (arityMatches(arity(called), actualArity))
 			initializeCandidate(*pushUninitialized(candidates), called);
 	});
@@ -116,15 +117,24 @@ void filterCandidatesButDontRemoveAll(
 			overwriteCandidate(a, b));
 }
 
-void eachFunInScope(in ExprCtx ctx, Sym funName, in void delegate(CalledDecl) @safe @nogc pure nothrow cb) {
+immutable struct FunsInScope {
+	SpecInst*[] outermostFunSpecs;
+	FunsDict funsDict;
+	ImportsAndReExports importsAndReExports;
+}
+FunsInScope funsInScope(ref const ExprCtx ctx) {
+	return FunsInScope(ctx.outermostFunSpecs, ctx.funsDict, ctx.checkCtx.importsAndReExports);
+}
+
+void eachFunInScope(in FunsInScope a, Sym funName, in void delegate(CalledDecl) @safe @nogc pure nothrow cb) {
 	size_t totalIndex = 0;
-	foreach (SpecInst* specInst; ctx.outermostFunSpecs)
+	foreach (SpecInst* specInst; a.outermostFunSpecs)
 		eachFunInScopeForSpec(specInst, totalIndex, funName, cb);
 
-	foreach (FunDecl* f; ctx.funsDict[funName])
+	foreach (FunDecl* f; a.funsDict[funName])
 		cb(CalledDecl(f));
 
-	eachImportAndReExport(ctx.checkCtx, funName, (in NameReferents x) {
+	eachImportAndReExport(a.importsAndReExports, funName, (in NameReferents x) {
 		foreach (FunDecl* f; x.funs)
 			cb(CalledDecl(f));
 	});
