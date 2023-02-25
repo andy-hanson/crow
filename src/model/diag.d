@@ -5,6 +5,7 @@ module model.diag;
 import frontend.lang : crowExtension;
 import frontend.showDiag : ShowDiagOptions;
 import model.model :
+	Called,
 	CalledDecl,
 	Destructure,
 	EnumBackingType,
@@ -112,9 +113,6 @@ immutable struct Diag {
 		FunDecl* callee;
 	}
 
-	immutable struct CantInferTypeArguments {
-		FunDecl* callee;
-	}
 	immutable struct CharLiteralMustBeOneChar {}
 	immutable struct CommonFunDuplicate {
 		Sym name;
@@ -298,21 +296,33 @@ immutable struct Diag {
 	immutable struct SendFunDoesNotReturnFut {
 		Type actualReturnType;
 	}
-	immutable struct SpecBuiltinNotSatisfied {
-		SpecDeclBody.Builtin.Kind kind;
-		Type type;
-		FunDecl* called;
-	}
-	immutable struct SpecImplFoundMultiple {
-		Sym sigName;
-		CalledDecl[] matches;
-	}
-	immutable struct SpecImplNotFound {
-		SpecDeclSig* sigDecl;
-		ReturnAndParamTypes sigType;
+	// spec did have a match, but there was an error
+	immutable struct SpecMatchError {
+		immutable struct Reason {
+			immutable struct MultipleMatches {
+				Sym sigName;
+				Called[] matches;
+			}
+			mixin Union!(MultipleMatches);
+		}
+		Reason reason;
 		FunDeclAndTypeArgs[] trace;
 	}
-	immutable struct SpecImplTooDeep {
+	immutable struct SpecNoMatch {
+		immutable struct Reason {
+			immutable struct BuiltinNotSatisfied {
+				SpecDeclBody.Builtin.Kind kind;
+				Type type;
+			}
+			immutable struct CantInferTypeArguments {}
+			immutable struct SpecImplNotFound {
+				SpecDeclSig* sigDecl;
+				ReturnAndParamTypes sigType;
+			}
+			immutable struct TooDeep {}
+			mixin Union!(BuiltinNotSatisfied, CantInferTypeArguments, SpecImplNotFound, TooDeep);
+		}
+		Reason reason;
 		FunDeclAndTypeArgs[] trace;
 	}
 	immutable struct SpecNameMissing {}
@@ -388,7 +398,6 @@ immutable struct Diag {
 		CallMultipleMatches,
 		CallNoMatch,
 		CantCall,
-		CantInferTypeArguments,
 		CharLiteralMustBeOneChar,
 		CommonFunDuplicate,
 		CommonFunMissing,
@@ -440,10 +449,8 @@ immutable struct Diag {
 		PuritySpecifierRedundant,
 		RecordNewVisibilityIsRedundant,
 		SendFunDoesNotReturnFut,
-		SpecBuiltinNotSatisfied,
-		SpecImplFoundMultiple,
-		SpecImplNotFound,
-		SpecImplTooDeep,
+		SpecMatchError,
+		SpecNoMatch,
 		SpecNameMissing,
 		SpecRecursion,
 		ThreadLocalError,

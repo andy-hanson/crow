@@ -9,6 +9,7 @@ import model.model :
 	arity,
 	arityMatches,
 	bestCasePurity,
+	Called,
 	CalledDecl,
 	CalledSpecSig,
 	decl,
@@ -48,7 +49,7 @@ import util.path : AllPaths, baseName, Path, PathsInfo, writePath, writeRelPath;
 import util.ptr : ptrTrustMe;
 import util.sourceRange : FileAndPos;
 import util.sym : AllSymbols, Sym, writeSym;
-import util.util : unreachable;
+import util.util : todo, unreachable;
 import util.writer :
 	finishWriter,
 	finishWriterToSafeCStr,
@@ -465,6 +466,18 @@ void writeFunDeclAndTypeArgs(
 	writeFunDeclLocation(writer, allSymbols, allPaths, pathsInfo, options, program.filesInfo, *a.decl);
 }
 
+void writeCalled(
+	scope ref Writer writer,
+	in AllSymbols allSymbols,
+	in AllPaths allPaths,
+	in PathsInfo pathsInfo,
+	in ShowDiagOptions options,
+	in Program program,
+	in Called a,
+) {
+	todo!void("writeCalled");
+}
+
 void writeCalledDecl(
 	scope ref Writer writer,
 	in AllSymbols allSymbols,
@@ -513,6 +526,22 @@ void writeFunDeclLocation(
 	writer ~= " (from ";
 	writeLineNumber(writer, allPaths, pathsInfo, options, fi, funDecl.fileAndPos);
 	writer ~= ')';
+}
+
+void writeCalleds(
+	scope ref Writer writer,
+	in AllSymbols allSymbols,
+	in AllPaths allPaths,
+	in PathsInfo pathsInfo,
+	in ShowDiagOptions options,
+	in Program program,
+	in Called[] cs,
+) {
+	foreach (ref Called x; cs) {
+		writeNl(writer);
+		writer ~= '\t';
+		writeCalled(writer, allSymbols, allPaths, pathsInfo, options, program, x);
+	}
 }
 
 void writeCalledDecls(
@@ -653,10 +682,6 @@ void writeDiag(
 			writeFunDecl(writer, allSymbols, allPaths, pathsInfo, options, program, *x.callee);
 			if (x.reason == Diag.CantCall.Reason.unsafe)
 				writer ~= "\n(consider putting the call in a 'trusted' expression)";
-		},
-		(in Diag.CantInferTypeArguments x) {
-			writer ~= "can't infer type arguments of ";
-			writeName(writer, allSymbols, x.callee.name);
 		},
 		(in Diag.CharLiteralMustBeOneChar) {
 			writer ~= "value of 'char' type must be a single character";
@@ -990,31 +1015,40 @@ void writeDiag(
 			writer ~= "a 'ref' should return a 'future', but this returns ";
 			writeTypeQuoted(writer, allSymbols, program, d.actualReturnType);
 		},
-		(in Diag.SpecBuiltinNotSatisfied d) {
-			writer ~= "trying to call ";
-			writeName(writer, allSymbols, d.called.name);
-			writer ~= ", but ";
-			writeTypeQuoted(writer, allSymbols, program, d.type);
-			writer ~= " is not '";
-			writeSym(writer, allSymbols, symOfSpecBodyBuiltinKind(d.kind));
-			writer ~= "'";
-		},
-		(in Diag.SpecImplFoundMultiple d) {
-			writer ~= "multiple implementations found for spec signature ";
-			writeName(writer, allSymbols, d.sigName);
-			writer ~= ':';
-			writeCalledDecls(writer, allSymbols, allPaths, pathsInfo, options, program, d.matches);
-		},
-		(in Diag.SpecImplNotFound x) {
-			writer ~= "no implementation was found for spec signature ";
-			SpecDeclSig* sig = x.sigDecl;
-			writeSig(writer, allSymbols, program, sig.name, sig.returnType, Params(sig.params), some(x.sigType));
-			writer ~= " calling:";
+		(in Diag.SpecMatchError x) {
+			x.reason.matchIn!void(
+				(in Diag.SpecMatchError.Reason.MultipleMatches y) {
+					writer ~= "multiple implementations found for spec signature ";
+					writeName(writer, allSymbols, y.sigName);
+					writer ~= ':';
+					writeCalleds(writer, allSymbols, allPaths, pathsInfo, options, program, y.matches);
+				});
+			writer ~= "\n\tcalling:";
 			writeSpecTrace(writer, allSymbols, allPaths, pathsInfo, options, program, x.trace);
 		},
-		(in Diag.SpecImplTooDeep d) {
-			writer ~= "spec instantiation is too deep calling:";
-			writeSpecTrace(writer, allSymbols, allPaths, pathsInfo, options, program, d.trace);
+		(in Diag.SpecNoMatch x) {
+			writer ~= "a spec was not satisfied.\n\t";
+			x.reason.matchIn!void(
+				(in Diag.SpecNoMatch.Reason.BuiltinNotSatisfied y) {
+					writeTypeQuoted(writer, allSymbols, program, y.type);
+					writer ~= " is not '";
+					writeSym(writer, allSymbols, symOfSpecBodyBuiltinKind(y.kind));
+					writer ~= "'";
+				},
+				(in Diag.SpecNoMatch.Reason.CantInferTypeArguments _) {
+					writer ~= "can't infer type arguments";
+				},
+				(in Diag.SpecNoMatch.Reason.SpecImplNotFound y) {
+					writer ~= "no implementation was found for spec signature";
+					SpecDeclSig* sig = y.sigDecl;
+					writeSig(
+						writer, allSymbols, program, sig.name, sig.returnType, Params(sig.params), some(y.sigType));
+				},
+				(in Diag.SpecNoMatch.Reason.TooDeep _) {
+					writer ~= "spec instantiation is too deep";
+				});
+			writer ~= " calling:";
+			writeSpecTrace(writer, allSymbols, allPaths, pathsInfo, options, program, x.trace);
 		},
 		(in Diag.SpecNameMissing) {
 			writer ~= "spec name is missing";

@@ -20,7 +20,7 @@ import model.model :
 import util.alloc.alloc : Alloc;
 import util.col.arr : ptrsRange;
 import util.col.arrUtil : contains, exists;
-import util.col.dict : existsInDict, mustGetAt;
+import util.col.dict : existsInDict;
 import util.col.mutDict : hasKey_mut, MutDict, setInDict;
 import util.opt : force, has, none, Opt, some;
 import util.perf : Perf;
@@ -116,8 +116,10 @@ private bool isUsedModuleWhole(in CheckCtx ctx, in Module module_) =>
 		module_.allExportedNames, (in Sym _, in NameReferents x) =>
 			containsUsed(x, ctx.used));
 
-private bool isUsedNamedImport(in CheckCtx ctx, in Module module_, Sym name) =>
-	containsUsed(mustGetAt(module_.allExportedNames, name), ctx.used);
+private bool isUsedNamedImport(in CheckCtx ctx, in Module module_, Sym name) {
+	Opt!NameReferents opt = module_.allExportedNames[name];
+	return has(opt) && containsUsed(force(opt), ctx.used);
+}
 
 private bool containsUsed(in NameReferents a, in UsedSet used) =>
 	(has(a.structOrAlias) && isUsed(used, force(a.structOrAlias).asVoidPointer())) ||

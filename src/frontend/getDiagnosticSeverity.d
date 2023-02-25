@@ -17,8 +17,6 @@ DiagSeverity getDiagnosticSeverity(in Diag a) =>
 			DiagSeverity.checkError,
 		(in Diag.CantCall) =>
 			DiagSeverity.checkError,
-		(in Diag.CantInferTypeArguments) =>
-			DiagSeverity.checkError,
 		(in Diag.CharLiteralMustBeOneChar) =>
 			DiagSeverity.checkError,
 		(in Diag.CommonFunDuplicate) =>
@@ -121,13 +119,9 @@ DiagSeverity getDiagnosticSeverity(in Diag a) =>
 			DiagSeverity.checkWarning,
 		(in Diag.SendFunDoesNotReturnFut) =>
 			DiagSeverity.checkError,
-		(in Diag.SpecBuiltinNotSatisfied) =>
+		(in Diag.SpecMatchError) =>
 			DiagSeverity.checkError,
-		(in Diag.SpecImplFoundMultiple) =>
-			DiagSeverity.checkError,
-		(in Diag.SpecImplNotFound) =>
-			DiagSeverity.checkError,
-		(in Diag.SpecImplTooDeep) =>
+		(in Diag.SpecNoMatch) =>
 			DiagSeverity.checkError,
 		(in Diag.SpecNameMissing) =>
 			DiagSeverity.checkError,

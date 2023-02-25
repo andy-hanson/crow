@@ -1,4 +1,5 @@
-test/compile-errors/spec-inst-recursion.crow 2:5-2:10 spec instantiation is too deep calling:
+test/compile-errors/spec-inst-recursion.crow 2:5-2:10 a spec was not satisfied.
+	spec instantiation is too deep calling:
 	foo@string (from test/compile-errors/spec-inst-recursion.crow.crow line 10)
 	bar@string (from test/compile-errors/spec-inst-recursion.crow.crow line 13)
 	foo@string (from test/compile-errors/spec-inst-recursion.crow.crow line 10)

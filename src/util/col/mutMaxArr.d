@@ -22,7 +22,7 @@ struct MutMaxArr(size_t maxSize, T) {
 	}
 
 	// TODO: not @trusted (values[0 .. size_] should work)
-	@trusted int opApply(in int delegate(scope ref T) @safe @nogc pure nothrow cb) scope {
+	@trusted int opApply(in int delegate(ref T) @safe @nogc pure nothrow cb) scope {
 		foreach (scope ref T x; values.ptr[0 .. size_]) {
 			int i = cb(x);
 			verify(i == 0);
@@ -45,7 +45,7 @@ void copyToFrom(size_t maxSize, T)(ref MutMaxArr!(maxSize, T) a, ref const MutMa
 		overwriteMemory(&a.values[i], x);
 }
 
-immutable(T[]) toArray(size_t maxSize, T)(ref Alloc alloc, return scope ref MutMaxArr!(maxSize, T) a) =>
+immutable(T[]) toArray(size_t maxSize, T)(ref Alloc alloc, scope ref MutMaxArr!(maxSize, T) a) =>
 	arrLiteral!T(alloc, tempAsArr(a));
 
 bool isEmpty(size_t maxSize, T)(in MutMaxArr!(maxSize, T) a) =>

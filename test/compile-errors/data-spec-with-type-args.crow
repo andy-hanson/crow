@@ -31,6 +31,9 @@ main nat^(_ string[]) summon
 	md takes-dt-t-data
 	md takes-data
 
+	d indirect
+	m indirect
+
 	()
 
 d record
@@ -55,4 +58,9 @@ takes-mt-t-data[t] void(a t mt) t data
 	a takes-data
 
 takes-data[t] void(_ t) t data
+	()
+
+takes-data[t] spec
+	takes-data void(_ t)
+indirect[t] void(_ t) t takes-data
 	()

@@ -185,7 +185,7 @@ region test
 	match a
 	as overlay o
 		parts = ", " join for k, v : o pairs
-			# TODO: v?.to-string ?? "_"
+			# TODO: v?.to::string ?? "_"
 			v-str = if val ?= v
 				"{val}"
 			else

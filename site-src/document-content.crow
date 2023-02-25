@@ -84,8 +84,8 @@ module-content string(a module, all-exports all-exports)
 	name type-or-spec-name-reference ctx.all-exports.specs, "spec", ctx
 -type-or-spec-name-reference string(name symbol, dictionary module-path[symbol], kind string, ctx ctx)
 	if module ?= dictionary[name]
-		href = """{module != ctx.current-module ? "/doc/{module}.html"}#{name}"""
-		"""<a href="{href}"><code class="{kind}">{name}</code></a>"""
+		module-path = module != ctx.current-module ? "/doc/{module}.html"
+		"""<a href="{module-path}#{name}"><code class="{kind}">{name}</code></a>"""
 	else
 		throw "could not find {kind} {name} in {ctx current-module}.{ctx current-export}"
 

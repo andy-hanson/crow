@@ -4,6 +4,7 @@ import
 	./col/array: array, iterate, size
 	./col/collection: for-loop, join
 	./col/list: ~~, ~=, build, iterate, list, new, size
+	./json: json, to
 	./string: ~~, literal, new, string
 	./symbol: symbol, to
 
@@ -40,5 +41,8 @@ True if every flag set in `a` is set in `b`.
 	() join parts
 
 # Flag names separated by `|`, like `"foo | bar"`.
-+to-string[t] string(a t) t flags-like
++to[t] string(a t) t flags-like
 	" | " join for x : a.to::symbol[]; x to
+
++to[t] json(a t) t flags-like
+	a.to::symbol[] to

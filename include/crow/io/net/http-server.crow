@@ -12,7 +12,7 @@ import
 	../../col/mut-dict: mut-dict, new, try-remove, set-subscript, subscript
 	../../col/mut-list: ~=, ~~=, iterate, move-to, mut-list, new, pop-n-from-start, size
 	../../compare: <=, >
-	../../enum-util: to-enum
+	../../enum-util: to
 	../../exception: to
 	../../future: delay, future, future-catch, future-finally, new, subscript, then, with-block
 	../../hash: hash-mix
@@ -134,7 +134,7 @@ Starts running an HTTP server. Stops it when `cb` returns.
 				# Expect something like "GET / HTTP/1.1"
 				parts string[] = line split " "
 				assert parts.size == 3
-				state.method := parts[0].to-enum ?? todo
+				state.method := parts[0].to ?? todo
 				state.url := parts[1]
 				assert parts[2] == "HTTP/1.1"
 				forbid state.url is-empty
