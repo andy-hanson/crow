@@ -178,9 +178,10 @@ ParsedEverything parseEverything(
 			ImportAndExportPaths importsAndExports = mustPeek(stack).importsAndExports;
 			Opt!(FullyResolvedImport[]) imports =
 				resolveImportsOrExports(mustPeek(stack).diags, path, importsAndExports.imports);
-			Opt!(FullyResolvedImport[]) exports =
-				resolveImportsOrExports(mustPeek(stack).diags, path, importsAndExports.exports);
-			if (has(imports) && has(exports)) {
+			Opt!(FullyResolvedImport[]) exports = has(imports)
+				? resolveImportsOrExports(mustPeek(stack).diags, path, importsAndExports.exports)
+				: none!(FullyResolvedImport[]);
+			if (has(exports)) {
 				ParseStackEntry entry = mustPop(stack);
 				FileIndex fileIndex = FileIndex(safeToUshort(arrBuilderSize(res)));
 

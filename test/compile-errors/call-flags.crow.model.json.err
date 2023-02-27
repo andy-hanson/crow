@@ -19,4 +19,4 @@ test/compile-errors/call-flags.crow 11:5-11:18 a non-'summon' function can't cal
 
 test/compile-errors/call-flags.crow 12:5-12:20 a non-'summon' function can't call a 'summon' function foo void(_ nat64) (from test/compile-errors/call-flags.crow.crow line 31)
 
-test/compile-errors/call-flags.crow 14:15-14:17 a 'noctx' function can't call a variadic function new t[](...t array) (from include/crow/col/list.crow.crow line 156)
+test/compile-errors/call-flags.crow 14:15-14:17 a 'noctx' function can't call a variadic function new t[](...t array) (from include/crow/col/list.crow.crow line 155)

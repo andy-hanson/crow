@@ -19,12 +19,11 @@ import
 		sequence-compare, sequence-equal, subscript
 	./mut-array: ~=, build, mut-array, to
 	./private/array-low-level: array-reference-equal
+	./private/list-low-level:
+		array2d, array3d, arrays, branch, down, iterate-chunks, l1, l2, l3, leaf, left,
+		list-reference-equal, new, node, nodes, right, root, total-size
 export
-	# TODO: don't re-export everything
-	./private/list-low-level
-
-get-root[t] t l1(a t[]) 
-	a.root
+	./private/list-low-level: ~=, ~~=, build, list, list-builder
 
 -new[t] t array2d() noctx
 	0, ()

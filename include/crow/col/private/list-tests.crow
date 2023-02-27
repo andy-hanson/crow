@@ -14,16 +14,17 @@ import
 	../array: +, -, array, begin, end, is-empty, iterate, size, slice
 	../collection: .., end, for-loop, groups-of, join, reverse, subscript, try-split-once
 	../list:
-		==, ~=, ~, ~~, +, -, array2d, array3d, arrays, begin, build, down, end, get-root, iterate,
-		left, l1, l2, l3, list, new, next, next-index, node, nodes, prev, right, size, slice, to,
-		total-size
+		==, ~=, ~, ~~, +, -, begin, build, end, iterate, list, new, next, next-index, prev, size,
+		slice, to
+	../private/list-low-level:
+		array2d, array3d, arrays, down, l1, l2, l3, left, node, nodes, right, root, total-size
 
 dummy-list-tests nat64()
 	0
 
 -verify[t] void(a t[], expected string) t equal, (json, t) to, (string, t) to
 	a.dbg is expected
-	a.size is a.get-root.check-structure
+	a.size is a.root.check-structure
 
 	(for x : a; x)::t[] is a
 
@@ -58,7 +59,7 @@ dummy-list-tests nat64()
 -dbg[t] spec
 	dbg string(a t)
 -dbg[t] string(a t[]) (string, t) to
-	a.get-root.node dbg-node
+	a.root.node dbg-node
 -dbg[t] string(a t l2) (string, t) to
 	a.node dbg-node
 -dbg[t] string(a t l3) (string, t) to
