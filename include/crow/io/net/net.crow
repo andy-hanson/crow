@@ -17,7 +17,7 @@ import
 	../../compare: !=
 	../../number: ==, int32, nat16, to
 	../../option: force, new, option
-	../../pointer: ==, *, any-const-pointer, as-const, as-ref, const-pointer, mut-pointer, null
+	../../pointer: ==, *, as-const, const-pointer, mut-pointer, null
 	../../string: ~~, literal, string, to
 	../../private/bootstrap: todo
 	../posix-util: check-posix-error
@@ -36,8 +36,7 @@ connect-to-uri SOCKET(u uri) summon, unsafe
 	if is-windows
 		wsa-init
 
-	# TODO: null.as-ref is evil
-	hints addrinfo = 0, AF_UNSPEC.to, SOCK_STREAM, 0, 0, null::any-const-pointer.as-ref, null, null
+	hints addrinfo = 0, AF_UNSPEC.to, SOCK_STREAM, 0, 0, null, null, null
 	result mut addrinfo mut* = null
 	u.host.to getaddrinfo "{u port}".to, &hints, &result check-getaddrinfo-error
 	op-sock = result.as-const find-and-connect-working-socket
@@ -75,8 +74,7 @@ bind-to-port SOCKET(port string) summon, unsafe
 	if is-windows
 		wsa-init
 
-	# TODO: null.as-ref is evil
-	hints addrinfo = ai-passive, AF_INET, SOCK_STREAM, 0, 0, null::any-const-pointer.as-ref, null, null
+	hints addrinfo = ai-passive, AF_INET, SOCK_STREAM, 0, 0, null, null, null
 	result mut addrinfo mut* = null
 	null getaddrinfo port.to, &hints, &result check-getaddrinfo-error
 	op-sock = result.as-const find-and-bind-working-socket
