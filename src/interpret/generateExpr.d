@@ -92,10 +92,10 @@ import interpret.bytecodeWriter :
 	writeSwitchWithValuesDelay,
 	writeThreadLocalPtr,
 	writeWrite;
-import interpret.extern_ : FunPtr;
+import interpret.extern_ : ExternFunPtrsForAllLibraries, FunPtr;
 import interpret.funToReferences : FunPtrTypeToDynCallSig, FunToReferences, registerCall, registerFunPtrReference;
 import interpret.generateText :
-	getTextInfoForArray, getTextPointer, getTextPointerForCString, TextArrInfo, TextInfo, ThreadLocalsInfo;
+	getTextInfoForArray, getTextPointer, getTextPointerForCString, TextArrInfo, TextInfo, VarsInfo;
 import model.constant : Constant;
 import model.lowModel :
 	asPtrRawPointee,
@@ -109,6 +109,8 @@ import model.lowModel :
 	LowProgram,
 	LowRecord,
 	LowType,
+	LowVar,
+	LowVarIndex,
 	PrimitiveType,
 	targetIsPointer,
 	targetRecordType,
@@ -126,7 +128,7 @@ import util.col.stackDict : StackDict, stackDictAdd, stackDictMustGet;
 import util.conv : bitsOfFloat32, bitsOfFloat64;
 import util.opt : force, has, Opt;
 import util.ptr : castNonScope, castNonScope_ref, ptrTrustMe;
-import util.sym : AllSymbols;
+import util.sym : AllSymbols, Sym;
 import util.union_ : UnionMutable;
 import util.util : divRoundUp, unreachable, verify;
 
@@ -136,7 +138,8 @@ void generateFunFromExpr(
 	in AllSymbols allSymbols,
 	in LowProgram program,
 	in TextInfo textInfo,
-	in ThreadLocalsInfo threadLocalsInfo,
+	in VarsInfo varsInfo,
+	ExternFunPtrsForAllLibraries externFunPtrs,
 	LowFunIndex funIndex,
 	ref FunToReferences funToReferences,
 	in LowLocal[] curFunParams,
@@ -148,7 +151,8 @@ void generateFunFromExpr(
 		ptrTrustMe(allSymbols),
 		ptrTrustMe(program),
 		ptrTrustMe(textInfo),
-		ptrTrustMe(threadLocalsInfo),
+		ptrTrustMe(varsInfo),
+		externFunPtrs,
 		funIndex,
 		returnEntries,
 		ptrTrustMe(tempAlloc),
@@ -218,7 +222,8 @@ struct ExprCtx {
 	const AllSymbols* allSymbolsPtr;
 	immutable LowProgram* programPtr;
 	immutable TextInfo* textInfoPtr;
-	immutable ThreadLocalsInfo* threadLocalsInfoPtr;
+	immutable VarsInfo* varsInfoPtr;
+	ExternFunPtrsForAllLibraries externFunPtrs;
 	immutable LowFunIndex curFunIndex;
 	immutable size_t returnTypeSizeInStackEntries;
 	TempAlloc* tempAllocPtr;
@@ -233,8 +238,8 @@ struct ExprCtx {
 		*programPtr;
 	ref TextInfo textInfo() return scope const =>
 		*textInfoPtr;
-	ref ThreadLocalsInfo threadLocalsInfo() return scope const =>
-		*threadLocalsInfoPtr;
+	ref VarsInfo varsInfo() return scope const =>
+		*varsInfoPtr;
 	ref TempAlloc tempAlloc() return scope =>
 		*tempAllocPtr;
 	ref FunToReferences funToReferences() return scope =>
@@ -397,10 +402,51 @@ void generateExpr(
 		(in LowExprKind.TailRecur it) {
 			generateTailRecur(writer, ctx, source, locals, after, it);
 		},
-		(in LowExprKind.ThreadLocalPtr x) {
-			writeThreadLocalPtr(writer, source, ctx.threadLocalsInfo.offsetsInWords[x.threadLocalIndex]);
+		(in LowExprKind.VarGet x) {
+			LowVar var = ctx.program.vars[x.varIndex];
+			writeVarPtr(writer, ctx, source, x.varIndex, var);
+			writeRead(writer, source, 0, typeSizeBytes(ctx, var.type));
+			handleAfter(writer, ctx, source, after);
+		},
+		(in LowExprKind.VarSet x) {
+			LowVar var = ctx.program.vars[x.varIndex];
+			writeVarPtr(writer, ctx, source, x.varIndex, var);
+			generateExprAndContinue(writer, ctx, locals, *x.value);
+			writeWrite(writer, source, 0, typeSizeBytes(ctx, var.type));
 			handleAfter(writer, ctx, source, after);
 		});
+}
+
+void writeVarPtr(
+	scope ref ByteCodeWriter writer,
+	scope ref ExprCtx ctx,
+	ByteCodeSource source,
+	LowVarIndex varIndex,
+	LowVar var,
+) {
+	final switch (var.kind) {
+		case LowVar.Kind.externGlobal:
+			Opt!Sym libName = var.externLibraryName;
+			writePushConstant(
+				writer, source,
+				cast(ulong) mustGetAt(mustGetAt(ctx.externFunPtrs, force(libName)), var.name).fn);
+			break;
+		case LowVar.Kind.global:
+			writePushConstant(writer, source, cast(ulong) getGlobalsPointer(ctx.varsInfo.offsetsInWords[varIndex]));
+			break;
+		case LowVar.Kind.threadLocal:
+			writeThreadLocalPtr(writer, source, ctx.varsInfo.offsetsInWords[varIndex]);
+			break;
+	}
+}
+public @safe pure ulong maxGlobalsSizeWords() =>
+	256;
+__gshared ulong[maxGlobalsSizeWords] globalsStorage;
+@trusted ulong* getGlobalsPointer(ulong offsetInWords) {
+	ulong* function() @nogc pure nothrow getIt = cast(ulong* function() @nogc pure nothrow) () =>
+		globalsStorage.ptr;
+	verify(offsetInWords < maxGlobalsSizeWords);
+	return getIt() + offsetInWords;
 }
 
 void generateExprAndContinue(

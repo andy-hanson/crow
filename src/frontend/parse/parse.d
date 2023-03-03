@@ -22,7 +22,8 @@ import frontend.parse.ast :
 	StructAliasAst,
 	StructDeclAst,
 	TestAst,
-	TypeAst;
+	TypeAst,
+	VarDeclAst;
 import frontend.parse.lexer :
 	addDiag,
 	addDiagAtChar,
@@ -63,9 +64,9 @@ import frontend.parse.lexer :
 	tryTakeOperator,
 	tryTakeToken;
 import frontend.parse.parseExpr : parseDestructureRequireParens, parseFunExprBody;
-import frontend.parse.parseType : parseType, tryParseTypeArgForEnumOrFlags;
+import frontend.parse.parseType : parseType, parseTypeArgForVarDecl, tryParseTypeArgForEnumOrFlags;
 import model.diag : DiagnosticWithinFile;
-import model.model : FieldMutability, ImportFileType, Visibility;
+import model.model : FieldMutability, ImportFileType, VarKind, Visibility;
 import model.parseDiag : ParseDiag;
 import util.alloc.alloc : Alloc;
 import util.col.arr : emptySmallArray, only, small;
@@ -478,10 +479,9 @@ FunModifierAst parseFunModifier(ref Lexer lexer) {
 		return FunModifierAst(FunModifierAst.Special(start, force(special)));
 	} else {
 		TypeAst type = parseType(lexer);
-		Pos egPos = curPos(lexer);
-		Opt!(FunModifierAst.Special.Flags) eg = tryTakeExternOrGlobal(lexer);
-		return has(eg)
-			? FunModifierAst(FunModifierAst.ExternOrGlobal(allocate(lexer.alloc, type), egPos, force(eg)))
+		Pos externPos = curPos(lexer);
+		return tryTakeToken(lexer, Token.extern_)
+			? FunModifierAst(FunModifierAst.Extern(allocate(lexer.alloc, type), externPos))
 			: FunModifierAst(type);
 	}
 }
@@ -498,13 +498,6 @@ TypeAst[] parseSpecModifiers(ref Lexer lexer) {
 	}
 }
 
-Opt!(FunModifierAst.Special.Flags) tryTakeExternOrGlobal(ref Lexer lexer) =>
-	tryTakeToken(lexer, Token.extern_)
-		? some(FunModifierAst.Special.Flags.extern_)
-		: tryTakeToken(lexer, Token.global)
-		? some(FunModifierAst.Special.Flags.global)
-		: none!(FunModifierAst.Special.Flags);
-
 Opt!(FunModifierAst.Special.Flags) tryGetSpecialFunModifier(Token token) {
 	switch (token) {
 		case Token.builtin:
@@ -513,14 +506,10 @@ Opt!(FunModifierAst.Special.Flags) tryGetSpecialFunModifier(Token token) {
 			return some(FunModifierAst.Special.Flags.extern_);
 		case Token.forceCtx:
 			return some(FunModifierAst.Special.Flags.forceCtx);
-		case Token.global:
-			return some(FunModifierAst.Special.Flags.global);
 		case Token.noCtx:
 			return some(FunModifierAst.Special.Flags.noctx);
 		case Token.summon:
 			return some(FunModifierAst.Special.Flags.summon);
-		case Token.thread_local:
-			return some(FunModifierAst.Special.Flags.thread_local);
 		case Token.trusted:
 			return some(FunModifierAst.Special.Flags.trusted);
 		case Token.unsafe:
@@ -533,25 +522,27 @@ Opt!(FunModifierAst.Special.Flags) tryGetSpecialFunModifier(Token token) {
 
 void parseSpecOrStructOrFunOrTest(
 	ref Lexer lexer,
-	ref ArrBuilder!SpecDeclAst specs,
-	ref ArrBuilder!StructAliasAst structAliases,
-	ref ArrBuilder!StructDeclAst structs,
-	ref ArrBuilder!FunDeclAst funs,
-	ref ArrBuilder!TestAst tests,
+	scope ref ArrBuilder!SpecDeclAst specs,
+	scope ref ArrBuilder!StructAliasAst structAliases,
+	scope ref ArrBuilder!StructDeclAst structs,
+	scope ref ArrBuilder!FunDeclAst funs,
+	scope ref ArrBuilder!TestAst tests,
+	scope ref ArrBuilder!VarDeclAst vars,
 	SafeCStr docComment,
 ) {
 	if (tryTakeToken(lexer, Token.test))
 		add(lexer.alloc, tests, TestAst(parseFunExprBody(lexer)));
 	else
-		parseSpecOrStructOrFun(lexer, specs, structAliases, structs, funs, docComment);
+		parseSpecOrStructOrFun(lexer, specs, structAliases, structs, funs, vars, docComment);
 }
 
 void parseSpecOrStructOrFun(
 	ref Lexer lexer,
-	ref ArrBuilder!SpecDeclAst specs,
-	ref ArrBuilder!StructAliasAst structAliases,
-	ref ArrBuilder!StructDeclAst structs,
-	ref ArrBuilder!FunDeclAst funs,
+	scope ref ArrBuilder!SpecDeclAst specs,
+	scope ref ArrBuilder!StructAliasAst structAliases,
+	scope ref ArrBuilder!StructDeclAst structs,
+	scope ref ArrBuilder!FunDeclAst funs,
+	scope ref ArrBuilder!VarDeclAst varDecls,
 	SafeCStr docComment,
 ) {
 	Pos start = curPos(lexer);
@@ -623,6 +614,11 @@ void parseSpecOrStructOrFun(
 			addStruct(() => StructDeclAst.Body(
 				StructDeclAst.Body.Flags(typeArg, small(parseEnumOrFlagsMembers(lexer)))));
 			break;
+		case Token.global:
+			nextToken(lexer);
+			add(lexer.alloc, varDecls, parseVarDecl(
+				lexer, start, docComment, visibility, name, typeParams, VarKind.global));
+			break;
 		case Token.record:
 			nextToken(lexer);
 			addStruct(() => StructDeclAst.Body(parseRecordBody(lexer)));
@@ -633,6 +629,11 @@ void parseSpecOrStructOrFun(
 			SpecBodyAst body_ = SpecBodyAst(parseIndentedSigs(lexer));
 			add(lexer.alloc, specs, SpecDeclAst(
 				range(lexer, start), docComment, visibility, name, small(typeParams), small(parents), body_));
+			break;
+		case Token.thread_local:
+			nextToken(lexer);
+			add(lexer.alloc, varDecls, parseVarDecl(
+				lexer, start, docComment, visibility, name, typeParams, VarKind.threadLocal));
 			break;
 		case Token.union_:
 			nextToken(lexer);
@@ -659,6 +660,20 @@ Opt!(LiteralNatAst*) parseNat(ref Lexer lexer) =>
 	takeOrAddDiagExpectedToken(lexer, Token.literalNat, ParseDiag.Expected.Kind.literalNat)
 		? some(allocate(lexer.alloc, getCurLiteralNat(lexer)))
 		: none!(LiteralNatAst*);
+
+VarDeclAst parseVarDecl(
+	ref Lexer lexer,
+	Pos start,
+	SafeCStr docComment,
+	Visibility visibility,
+	Sym name,
+	NameAndRange[] typeParams,
+	VarKind kind,
+) {
+	TypeAst type = parseTypeArgForVarDecl(lexer);
+	FunModifierAst[] modifiers = parseFunModifiers(lexer);
+	return VarDeclAst(range(lexer, start), docComment, visibility, name, typeParams, kind, type, modifiers);
+}
 
 StructDeclAst.Body.Union.Member[] parseUnionMembersOrDiag(ref Lexer lexer) {
 	final switch (takeNewlineOrIndent_topLevel(lexer)) {
@@ -778,7 +793,16 @@ FileAst parseFileInner(ref AllPaths allPaths, ref Lexer lexer) {
 	ArrBuilder!StructDeclAst structs;
 	ArrBuilder!FunDeclAst funs;
 	ArrBuilder!TestAst tests;
-	parseFileRecur(lexer, specs, structAliases, structs, funs, tests);
+	ArrBuilder!VarDeclAst vars;
+
+	while (true) {
+		SafeCStr docComment = skipBlankLinesAndGetDocComment(lexer);
+		if (tryTakeToken(lexer, Token.EOF))
+			break;
+		else
+			parseSpecOrStructOrFunOrTest(lexer, specs, structAliases, structs, funs, tests, vars, docComment);
+	}
+
 	return FileAst(
 		moduleDocComment,
 		noStd,
@@ -788,20 +812,6 @@ FileAst parseFileInner(ref AllPaths allPaths, ref Lexer lexer) {
 		finishArr(lexer.alloc, structAliases),
 		finishArr(lexer.alloc, structs),
 		finishArr(lexer.alloc, funs),
-		finishArr(lexer.alloc, tests));
-}
-
-void parseFileRecur(
-	ref Lexer lexer,
-	ref ArrBuilder!SpecDeclAst specs,
-	ref ArrBuilder!StructAliasAst structAliases,
-	ref ArrBuilder!StructDeclAst structs,
-	ref ArrBuilder!FunDeclAst funs,
-	ref ArrBuilder!TestAst tests,
-) {
-	SafeCStr docComment = skipBlankLinesAndGetDocComment(lexer);
-	if (!tryTakeToken(lexer, Token.EOF)) {
-		parseSpecOrStructOrFunOrTest(lexer, specs, structAliases, structs, funs, tests, docComment);
-		parseFileRecur(lexer, specs, structAliases, structs, funs, tests);
-	}
+		finishArr(lexer.alloc, tests),
+		finishArr(lexer.alloc, vars));
 }

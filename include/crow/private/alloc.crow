@@ -202,18 +202,21 @@ force-needs-gc void(gc gc) unsafe
 	res
 
 return-gc-ctx void() noctx, unsafe
-	gc-ctx = try-get-cur-gc-ctx!
-	*cur-gc-ctx := ()
+	gc-ctx = cur-gc-ctx!
+	cur-gc-ctx := ()
 	gc = gc-ctx gc
 	&gc.lk acquire
 	gc-ctx.next-ctx := gc context-head
 	gc.context-head := gc-ctx,
 	&gc.lk release
 
--cur-gc-ctx gc-ctx? mut*() thread-local
+-cur-gc-ctx thread-local(gc-ctx?)
 
-get-gc-ctx gc-ctx() unsafe
-	try-get-cur-gc-ctx!
+try-get-cur-gc-ctx gc-ctx?() noctx, unsafe
+	cur-gc-ctx
+
+-get-gc-ctx gc-ctx() unsafe
+	cur-gc-ctx!
 
 -force[t] t(a t?) noctx, unsafe
 	if res ?= a
@@ -221,11 +224,8 @@ get-gc-ctx gc-ctx() unsafe
 	else
 		hard-unreachable
 
-try-get-cur-gc-ctx gc-ctx?() noctx, unsafe
-	*cur-gc-ctx
-
 set-gc-ctx-for-thread void(a gc) noctx, unsafe
-	*cur-gc-ctx := a.acquire-gc-ctx,
+	cur-gc-ctx := a.acquire-gc-ctx,
 
 get-gc gc() unsafe
 	get-gc-ctx gc

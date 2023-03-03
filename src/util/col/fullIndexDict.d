@@ -110,7 +110,7 @@ void fullIndexDictZip3(K, V0, V1, V2)(
 immutable(FullIndexDict!(K, VOut)) mapFullIndexDict(K, VOut, VIn)(
 	ref Alloc alloc,
 	in immutable FullIndexDict!(K, VIn) a,
-	in immutable(VOut) delegate(K, scope ref immutable VIn) @safe @nogc pure nothrow cb,
+	in immutable(VOut) delegate(K, in immutable VIn) @safe @nogc pure nothrow cb,
 ) =>
 	fullIndexDictOfArr!(K, VOut)(
 		mapWithIndex!(immutable VOut, immutable VIn)(alloc, a.values, (size_t index, scope ref immutable VIn v) =>
@@ -119,7 +119,7 @@ immutable(FullIndexDict!(K, VOut)) mapFullIndexDict(K, VOut, VIn)(
 FullIndexDict!(K, VOut) mapFullIndexDict_mut(K, VOut, VIn)(
 	ref Alloc alloc,
 	immutable FullIndexDict!(K, VIn) a,
-	in VOut delegate(K, scope ref immutable VIn) @safe @nogc pure nothrow cb,
+	in VOut delegate(K, in immutable VIn) @safe @nogc pure nothrow cb,
 ) =>
 	fullIndexDictOfArr_mut!(K, VOut)(
 		mapWithIndex!(VOut, VIn)(alloc, a.values, (size_t index, scope ref immutable VIn v) =>

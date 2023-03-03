@@ -175,11 +175,12 @@ immutable struct Diag {
 		Opt!Type expectedType;
 	}
 	immutable struct ExternFunForbidden {
-		enum Reason { hasSpecs, hasTypeParams, missingLibraryName, variadic }
+		enum Reason { hasSpecs, hasTypeParams, variadic }
 		FunDecl* fun;
 		Reason reason;
 	}
 	immutable struct ExternHasTypeParams {}
+	immutable struct ExternMissingLibraryName {}
 	immutable struct ExternRecordImplicitlyByVal {
 		StructDecl* struct_;
 	}
@@ -412,6 +413,7 @@ immutable struct Diag {
 		ExpectedTypeIsNotALambda,
 		ExternFunForbidden,
 		ExternHasTypeParams,
+		ExternMissingLibraryName,
 		ExternRecordImplicitlyByVal,
 		ExternUnion,
 		FunMissingBody,

@@ -77,7 +77,7 @@ bool every(T)(in T[] arr, in bool delegate(in T) @safe @nogc pure nothrow cb) =>
 	everyWithIndex!T(arr, (size_t _, in T x) => cb(x));
 
 bool everyWithIndex(T)(in T[] arr, in bool delegate(size_t, in T) @safe @nogc pure nothrow cb) {
-	foreach (size_t i, ref T x; arr)
+	foreach (size_t i, ref const T x; arr)
 		if (!cb(i, x))
 			return false;
 	return true;

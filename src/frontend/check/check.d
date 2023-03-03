@@ -6,7 +6,7 @@ import frontend.check.checkCtx : addDiag, CheckCtx, checkForUnused, ImportsAndRe
 import frontend.check.checkExpr : checkFunctionBody;
 import frontend.check.checkStructs : checkStructBodies, checkStructsInitial;
 import frontend.check.dicts : FunsDict, SpecsDict, StructsAndAliasesDict;
-import frontend.check.funsForStruct : addFunsForStruct, countFunsForStruct;
+import frontend.check.funsForStruct : addFunsForStruct, addFunsForVar, countFunsForStructs, countFunsForVars;
 import frontend.check.instantiate :
 	DelaySpecInsts,
 	DelayStructInsts,
@@ -34,12 +34,11 @@ import frontend.parse.ast :
 	SpecSigAst,
 	StructAliasAst,
 	TestAst,
-	TypeAst;
+	TypeAst,
+	VarDeclAst;
 import frontend.programState : ProgramState;
 import model.diag : Diag;
 import model.model :
-	arity,
-	arityIsNonZero,
 	body_,
 	CommonTypes,
 	decl,
@@ -80,9 +79,11 @@ import model.model :
 	typeArgs,
 	TypeParam,
 	typeParams,
+	VarDecl,
 	Visibility,
 	visibility;
 import util.alloc.alloc : Alloc;
+import util.cell : Cell, cellGet, cellSet;
 import util.col.arr : empty, only, ptrsRange, small;
 import util.col.arrBuilder : add, ArrBuilder, finishArr;
 import util.col.arrUtil : cat, filter, map, mapOp, mapToMut, zip, zipPtrFirst;
@@ -535,6 +536,56 @@ StructsAndAliasesDict buildStructsAndAliasesDict(ref CheckCtx ctx, StructDecl[] 
 	return finishDict(ctx.alloc, builder);
 }
 
+VarDecl[] checkVars(
+	ref CheckCtx ctx,
+	ref CommonTypes commonTypes,
+	in StructsAndAliasesDict structsAndAliasesDict,
+	in VarDeclAst[] asts,
+) =>
+	map(ctx.alloc, asts, (ref VarDeclAst ast) =>
+		checkVarDecl(ctx, commonTypes, structsAndAliasesDict, ast));
+
+VarDecl checkVarDecl(
+	ref CheckCtx ctx,
+	ref CommonTypes commonTypes,
+	in StructsAndAliasesDict structsAndAliasesDict,
+	in VarDeclAst ast,
+) {
+	if (!empty(ast.typeParams))
+		todo!void("diag");
+	return VarDecl(
+		FileAndPos(ctx.fileIndex, ast.range.start),
+		copySafeCStr(ctx.alloc, ast.docComment),
+		ast.visibility,
+		ast.name,
+		ast.kind,
+		typeFromAstNoTypeParamsNeverDelay(ctx, commonTypes, ast.type, structsAndAliasesDict),
+		checkVarModifiers(ctx, ast.modifiers));
+}
+
+Opt!Sym checkVarModifiers(ref CheckCtx ctx, in FunModifierAst[] modifiers) {
+	Cell!(Opt!Sym) externLibraryName;
+	foreach (ref FunModifierAst modifier; modifiers) {
+		modifier.matchIn!void(
+			(in FunModifierAst.Special x) {
+				if (x.flag == FunModifierAst.Special.Flags.extern_)
+					todo!void("diag: 'extern' missing library name");
+				else
+					todo!void("diag: unsupported modifier");
+			},
+			(in FunModifierAst.Extern x) {
+				if (has(cellGet(externLibraryName)))
+					todo!void("diag: duplicate modifier");
+				cellSet(externLibraryName, some(
+					externLibraryNameFromTypeArg(ctx, x.suffixRange(ctx.allSymbols), some(*x.left))));
+			},
+			(in TypeAst _) {
+				todo!void("diag: unsupported modifier");
+			});
+	}
+	return cellGet(externLibraryName);
+}
+
 void addToDeclsDict(T)(
 	ref CheckCtx ctx,
 	ref DictBuilder!(Sym, T) builder,
@@ -576,10 +627,10 @@ FunFlagsAndSpecs checkFunModifiers(
 					allFlags |= flag.flag;
 					return none!(SpecInst*);
 				},
-				(in FunModifierAst.ExternOrGlobal x) {
-					if (allFlags & x.flag)
+				(in FunModifierAst.Extern x) {
+					if (allFlags & FunModifierAst.Special.Flags.extern_)
 						todo!void("diag: duplicate flag");
-					allFlags |= x.flag;
+					allFlags |= FunModifierAst.Special.Flags.extern_;
 					return none!(SpecInst*);
 				},
 				(in TypeAst x) =>
@@ -612,26 +663,21 @@ Opt!(SpecInst*) checkFunModifierNonSpecial(
 }
 
 FunFlags checkFunFlags(ref CheckCtx ctx, RangeWithinFile range, FunModifierAst.Special.Flags flags) {
-	void warnConflict(Sym modifier0, Sym modifier1) {
-		addDiag(ctx, range, Diag(Diag.FunModifierConflict(modifier0, modifier1)));
-	}
 	void warnRedundant(Sym modifier, Sym redundantModifier) {
 		addDiag(ctx, range, Diag(Diag.FunModifierRedundant(modifier, redundantModifier)));
 	}
 
 	bool builtin = (flags & FunModifierAst.Special.Flags.builtin) != 0;
 	bool extern_ = (flags & FunModifierAst.Special.Flags.extern_) != 0;
-	bool global = (flags & FunModifierAst.Special.Flags.global) != 0;
 	bool explicitNoctx = (flags & FunModifierAst.Special.Flags.noctx) != 0;
 	bool forceCtx = (flags & FunModifierAst.Special.Flags.forceCtx) != 0;
 	bool summon = (flags & FunModifierAst.Special.Flags.summon) != 0;
-	bool threadLocal = (flags & FunModifierAst.Special.Flags.thread_local) != 0;
 	bool trusted = (flags & FunModifierAst.Special.Flags.trusted) != 0;
 	bool explicitUnsafe = (flags & FunModifierAst.Special.Flags.unsafe) != 0;
 
-	bool implicitUnsafe = extern_ || global || threadLocal;
+	bool implicitUnsafe = extern_;
 	bool unsafe = explicitUnsafe || implicitUnsafe;
-	bool implicitNoctx = extern_ || global || threadLocal;
+	bool implicitNoctx = extern_;
 	bool noctx = explicitNoctx || implicitNoctx;
 
 	Sym bodyModifier() {
@@ -639,10 +685,6 @@ FunFlags checkFunFlags(ref CheckCtx ctx, RangeWithinFile range, FunModifierAst.S
 			? sym!"builtin"
 			: extern_
 			? sym!"extern"
-			: global
-			? sym!"global"
-			: threadLocal
-			? sym!"thread-local"
 			: unreachable!Sym;
 	}
 
@@ -661,17 +703,11 @@ FunFlags checkFunFlags(ref CheckCtx ctx, RangeWithinFile range, FunModifierAst.S
 		? FunFlags.SpecialBody.builtin
 		: extern_
 		? FunFlags.SpecialBody.extern_
-		: global
-		? FunFlags.SpecialBody.global
-		: threadLocal
-		? FunFlags.SpecialBody.threadLocal
 		: FunFlags.SpecialBody.none;
-	if (builtin + extern_ + global + threadLocal > 1) {
+	if (builtin + extern_ > 1) {
 		MutMaxArr!(2, Sym) bodyModifiers = mutMaxArr!(2, Sym);
 		if (builtin) pushIfUnderMaxSize(bodyModifiers, sym!"builtin");
 		if (extern_) pushIfUnderMaxSize(bodyModifiers, sym!"extern");
-		if (global) pushIfUnderMaxSize(bodyModifiers, sym!"global");
-		if (threadLocal) pushIfUnderMaxSize(bodyModifiers, sym!"thread-local");
 		verify(mutMaxArrSize(bodyModifiers) == 2);
 		addDiag(ctx, range, Diag(Diag.FunModifierConflict(bodyModifiers[0], bodyModifiers[1])));
 	}
@@ -684,6 +720,7 @@ FunsAndDict checkFuns(
 	in SpecsDict specsDict,
 	StructDecl[] structs,
 	in StructsAndAliasesDict structsAndAliasesDict,
+	VarDecl[] vars,
 	ImportOrExportFile[] fileImports,
 	ImportOrExportFile[] fileExports,
 	in FunDeclAst[] asts,
@@ -691,7 +728,7 @@ FunsAndDict checkFuns(
 ) {
 	ExactSizeArrBuilder!FunDecl funsBuilder = newExactSizeArrBuilder!FunDecl(
 		ctx.alloc,
-		asts.length + fileImports.length + fileExports.length + countFunsForStruct(structs));
+		asts.length + fileImports.length + fileExports.length + countFunsForStructs(structs) + countFunsForVars(vars));
 	foreach (ref FunDeclAst funAst; asts) {
 		TypeParam[] typeParams = checkTypeParams(ctx, funAst.typeParams);
 		ReturnTypeAndParams rp = checkReturnTypeAndParams(
@@ -728,6 +765,8 @@ FunsAndDict checkFuns(
 
 	foreach (StructDecl* struct_; ptrsRange(structs))
 		addFunsForStruct(ctx, funsBuilder, commonTypes, struct_);
+	foreach (VarDecl* var; ptrsRange(vars))
+		addFunsForVar(ctx, funsBuilder, commonTypes, var);
 	FunDecl[] funs = finish(funsBuilder);
 
 	FunsDict funsDict = buildMultiDict!(Sym, immutable FunDecl*, FunDecl)(
@@ -757,17 +796,8 @@ FunsAndDict checkFuns(
 				case FunFlags.SpecialBody.extern_:
 					if (has(funAst.body_))
 						todo!void("diag: builtin fun can't have body");
-					return FunBody(checkExternOrGlobalBody(
-						ctx, fun, getExternTypeArg(funAst, FunModifierAst.Special.Flags.extern_), false));
-				case FunFlags.SpecialBody.global:
-					if (has(funAst.body_))
-						todo!void("diag: global fun can't have body");
-					return FunBody(checkExternOrGlobalBody(
-						ctx, fun, getExternTypeArg(funAst, FunModifierAst.Special.Flags.global), true));
-				case FunFlags.SpecialBody.threadLocal:
-					if (has(funAst.body_))
-						todo!void("diag: thraed-local fun can't have body");
-					return FunBody(checkThreadLocalBody(ctx, commonTypes, fun));
+					return FunBody(checkExternBody(
+						ctx, fun, getExternTypeArg(funAst, FunModifierAst.Special.Flags.extern_)));
 			}
 		}());
 	});
@@ -805,8 +835,8 @@ Opt!TypeAst getExternTypeArg(ref FunDeclAst a, FunModifierAst.Special.Flags exte
 		Opt!(Opt!TypeAst) res = modifier.match!(Opt!(Opt!TypeAst))(
 			(FunModifierAst.Special x) =>
 				x.flag == externOrGlobalFlag ? some(none!TypeAst) : none!(Opt!TypeAst),
-			(FunModifierAst.ExternOrGlobal x) =>
-				x.flag == externOrGlobalFlag ? some(some(*x.left)) : none!(Opt!TypeAst),
+			(FunModifierAst.Extern x) =>
+				externOrGlobalFlag == FunModifierAst.Special.Flags.extern_ ? some(some(*x.left)) : none!(Opt!TypeAst),
 			(TypeAst x) =>
 				none!(Opt!TypeAst));
 		if (has(res))
@@ -891,7 +921,7 @@ Type typeForFileImport(
 	}
 }
 
-FunBody.Extern checkExternOrGlobalBody(ref CheckCtx ctx, FunDecl* fun, in Opt!TypeAst typeArg, bool isGlobal) {
+FunBody.Extern checkExternBody(ref CheckCtx ctx, FunDecl* fun, in Opt!TypeAst typeArg) {
 	Linkage funLinkage = Linkage.extern_;
 
 	if (!empty(fun.typeParams))
@@ -910,42 +940,17 @@ FunBody.Extern checkExternOrGlobalBody(ref CheckCtx ctx, FunDecl* fun, in Opt!Ty
 		(ref Params.Varargs) {
 			addDiag(ctx, fun.range, Diag(Diag.ExternFunForbidden(fun, Diag.ExternFunForbidden.Reason.variadic)));
 		});
-
-	if (isGlobal && arityIsNonZero(arity(*fun)))
-		todo!void("'global' fun has parameters");
-
-	Sym libraryName = () {
-		if (has(typeArg) && force(typeArg).isA!NameAndRange)
-			return force(typeArg).as!NameAndRange.name;
-		else {
-			addDiag(ctx, fun.range, Diag(
-				Diag.ExternFunForbidden(fun, Diag.ExternFunForbidden.Reason.missingLibraryName)));
-			return sym!"bogus";
-		}
-	}();
-	return FunBody.Extern(isGlobal, libraryName);
+	return FunBody.Extern(externLibraryNameFromTypeArg(ctx, fun.nameRange(ctx.allSymbols), typeArg));
 }
 
-FunBody.ThreadLocal checkThreadLocalBody(ref CheckCtx ctx, in CommonTypes commonTypes, FunDecl* fun) {
-	void err(Diag.ThreadLocalError.Kind kind) {
-		addDiag(ctx, fun.range, Diag(Diag.ThreadLocalError(fun, kind)));
+Sym externLibraryNameFromTypeArg(ref CheckCtx ctx, RangeWithinFile range, in Opt!TypeAst typeArg) {
+	if (has(typeArg) && force(typeArg).isA!NameAndRange)
+		return force(typeArg).as!NameAndRange.name;
+	else {
+		addDiag(ctx, range, Diag(Diag.ExternMissingLibraryName()));
+		return sym!"bogus";
 	}
-	if (!empty(fun.typeParams))
-		err(Diag.ThreadLocalError.Kind.hasTypeParams);
-	if (!isPtrMutType(commonTypes, fun.returnType))
-		err(Diag.ThreadLocalError.Kind.mustReturnPtrMut);
-	if (!paramsIsEmpty(fun.params))
-		err(Diag.ThreadLocalError.Kind.hasParams);
-	if (!empty(fun.specs))
-		err(Diag.ThreadLocalError.Kind.hasSpecs);
-	return FunBody.ThreadLocal();
 }
-
-bool isPtrMutType(in CommonTypes commonTypes, Type a) =>
-	a.isA!(StructInst*) && decl(*a.as!(StructInst*)) == commonTypes.ptrMut;
-
-bool paramsIsEmpty(scope Params a) =>
-	empty(paramsArray(a));
 
 SpecsDict buildSpecsDict(ref CheckCtx ctx, SpecDecl[] specs) {
 	DictBuilder!(Sym, SpecDecl*) res;
@@ -973,6 +978,7 @@ Module checkWorkerAfterCommonTypes(
 			instantiateStructTypes(ctx.alloc, ctx.programState, i.declAndArgs, someMut(ptrTrustMe(delayStructInsts)));
 	}
 
+	VarDecl[] vars = checkVars(ctx, commonTypes, structsAndAliasesDict, ast.vars);
 	SpecDecl[] specs = checkSpecDeclsInitial(ctx, commonTypes, structsAndAliasesDict, ast.specs);
 	SpecsDict specsDict = buildSpecsDict(ctx, specs);
 	checkSpecDeclParents(ctx, commonTypes, structsAndAliasesDict, specsDict, ast.specs, specs);
@@ -982,6 +988,7 @@ Module checkWorkerAfterCommonTypes(
 		specsDict,
 		structs,
 		structsAndAliasesDict,
+		vars,
 		importsAndExports.fileImports,
 		importsAndExports.fileExports,
 		ast.funs,
@@ -992,7 +999,7 @@ Module checkWorkerAfterCommonTypes(
 		copySafeCStr(ctx.alloc, ast.docComment),
 		importsAndExports.moduleImports,
 		importsAndExports.moduleExports,
-		structs, specs, funsAndDict.funs, funsAndDict.tests,
+		structs, vars, specs, funsAndDict.funs, funsAndDict.tests,
 		getAllExportedNames(
 			ctx.alloc,
 			ctx.diagsBuilder,

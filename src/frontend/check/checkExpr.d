@@ -722,7 +722,7 @@ Expr checkAssignIdentifier(
 					range,
 					ExprKind(ExprKind.ClosureSet(allocate(ctx.alloc, cr), allocate(ctx.alloc, value))))));
 	} else
-		return bogus(expected, range);
+		return checkCallSpecial!1(ctx, locals, range, prependSet(ctx.allSymbols, left), [right], expected);
 }
 
 MutOpt!VariableRefAndType getVariableRefForSet(ref ExprCtx ctx, ref LocalsInfo locals, FileAndRange range, Sym name) {

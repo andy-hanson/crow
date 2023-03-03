@@ -3,7 +3,6 @@ import
 	./fun-util: subscript
 	./io/print: out, print
 	./misc: new, void
-	./pointer: *, mut-pointer, set-deref
 	./string: ~~, literal, string, to
 	./private/exception-low-level: catch, rethrow
 
@@ -83,7 +82,7 @@ default-log-handler void(a logged) summon
 	out print "{a level}: {a message}"
 
 # GC doesn't trace thread-locals, but won't outlive a task anyway.
--cur-log-handler log-handler mut*() thread-local
+-cur-log-handler thread-local(log-handler)
 
 ###
 This gets the current log handler.
@@ -93,7 +92,7 @@ then fall back to the original log handler.
 If you just want to call the curent log handler, you could just use `log`.
 ###
 +get-log-handler log-handler() noctx
-	trusted *cur-log-handler
+	trusted cur-log-handler
 
 set-log-handler void(handler log-handler) noctx, unsafe
-	*cur-log-handler := handler
+	cur-log-handler := handler

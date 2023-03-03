@@ -11,6 +11,7 @@ import model.model :
 	symOfFieldMutability,
 	symOfFunKind,
 	symOfImportFileType,
+	VarKind,
 	Visibility;
 import model.reprModel : reprVisibility;
 import util.alloc.alloc : Alloc;
@@ -621,13 +622,11 @@ immutable struct FunModifierAst {
 		enum Flags {
 			none = 0,
 			builtin = 1,
-			// It's a compile error to have extern/global without a type arg (for library name),
-			// so those will usually be a ExternOrGlobal instead
+			// It's a compile error to have extern without a library name,
+			// so those will usually be a Extern instead
 			extern_ = 0b10,
-			global = 0b100,
-			noctx = 0b1000,
-			summon = 0b1_0000,
-			thread_local = 0b10_0000,
+			noctx = 0b100,
+			summon = 0b1000,
 			trusted = 0b100_0000,
 			unsafe = 0b1000_0000,
 			forceCtx = 0b1_0000_0000,
@@ -639,23 +638,22 @@ immutable struct FunModifierAst {
 			rangeOfNameAndRange(NameAndRange(pos, symOfSpecialFlag(flag)), allSymbols);
 	}
 
-	immutable struct ExternOrGlobal {
+	immutable struct Extern {
 		@safe @nogc pure nothrow:
 
 		TypeAst* left;
-		Pos flagPos;
-		Special.Flags flag;
+		Pos externPos;
 
 		RangeWithinFile range(in AllSymbols allSymbols) =>
 			RangeWithinFile(
 				.range(*left, allSymbols).start,
 				suffixRange(allSymbols).end);
 		RangeWithinFile suffixRange(in AllSymbols allSymbols) scope =>
-			rangeOfNameAndRange(NameAndRange(flagPos, symOfSpecialFlag(flag)), allSymbols);
+			rangeOfNameAndRange(NameAndRange(externPos, sym!"extern"), allSymbols);
 	}
 
 	// TypeAst will be interpreted as a spec inst
-	mixin Union!(Special, ExternOrGlobal, TypeAst);
+	mixin Union!(Special, Extern, TypeAst);
 }
 
 private Sym symOfSpecialFlag(FunModifierAst.Special.Flags a) {
@@ -664,14 +662,10 @@ private Sym symOfSpecialFlag(FunModifierAst.Special.Flags a) {
 			return sym!"builtin";
 		case FunModifierAst.Special.Flags.extern_:
 			return sym!"extern";
-		case FunModifierAst.Special.Flags.global:
-			return sym!"global";
 		case FunModifierAst.Special.Flags.noctx:
 			return sym!"noctx";
 		case FunModifierAst.Special.Flags.summon:
 			return sym!"summon";
-		case FunModifierAst.Special.Flags.thread_local:
-			return sym!"thread-local";
 		case FunModifierAst.Special.Flags.trusted:
 			return sym!"trusted";
 		case FunModifierAst.Special.Flags.unsafe:
@@ -685,6 +679,18 @@ private Sym symOfSpecialFlag(FunModifierAst.Special.Flags a) {
 
 immutable struct TestAst {
 	Opt!ExprAst body_;
+}
+
+// 'extern' or 'thread-local'
+immutable struct VarDeclAst {
+	RangeWithinFile range;
+	SafeCStr docComment;
+	Visibility visibility;
+	Sym name;
+	NameAndRange[] typeParams; // This will be a compile error
+	VarKind kind;
+	TypeAst type;
+	FunModifierAst[] modifiers; // Any but 'extern' will be a compile error
 }
 
 immutable struct ImportOrExportAst {
@@ -719,6 +725,7 @@ immutable struct FileAst {
 	StructDeclAst[] structs;
 	FunDeclAst[] funs;
 	TestAst[] tests;
+	VarDeclAst[] vars;
 }
 
 private ImportsOrExportsAst emptyImportsOrExports() =>
@@ -951,11 +958,10 @@ Repr reprFunModifierAst(ref Alloc alloc, in FunModifierAst a) =>
 			reprRecord!"special"(alloc, [
 				reprNat(x.pos),
 				reprSym(symOfSpecialFlag(x.flag))]),
-		(in FunModifierAst.ExternOrGlobal x) =>
-			reprRecord!"special"(alloc, [
+		(in FunModifierAst.Extern x) =>
+			reprRecord!"extern"(alloc, [
 				reprTypeAst(alloc, *x.left),
-				reprNat(x.flagPos),
-				reprSym(symOfSpecialFlag(x.flag))]),
+				reprNat(x.externPos)]),
 		(in TypeAst x) =>
 			reprTypeAst(alloc, x));
 

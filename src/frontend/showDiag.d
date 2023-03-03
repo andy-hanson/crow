@@ -797,8 +797,6 @@ void writeDiag(
 						return " can't have specs";
 					case Diag.ExternFunForbidden.Reason.hasTypeParams:
 						return " can't have type parameters";
-					case Diag.ExternFunForbidden.Reason.missingLibraryName:
-						return " is missing the library name";
 					case Diag.ExternFunForbidden.Reason.variadic:
 						return " can't be variadic";
 				}
@@ -806,6 +804,9 @@ void writeDiag(
 		},
 		(in Diag.ExternHasTypeParams) {
 			writer ~= "an 'extern' type should not be a template";
+		},
+		(in Diag.ExternMissingLibraryName) {
+			writer ~= "expected 'extern' to be preceded by the library name";
 		},
 		(in Diag.ExternRecordImplicitlyByVal d) {
 			writer ~= "'extern' record ";

@@ -3,9 +3,11 @@ module util.col.sortUtil;
 @safe @nogc pure nothrow:
 
 import util.col.arr : empty;
+import util.col.arrUtil : every;
 import util.comparison : Comparer, Comparison;
-import util.opt : none, Opt, some;
+import util.opt : force, has, none, Opt, some;
 import util.memory : overwriteMemory;
+import util.util : verify;
 
 //TODO:PERF More efficient than bubble sort..
 void sortInPlace(T)(scope T[] a, in Comparer!T compare) {
@@ -33,69 +35,68 @@ private void swap(T)(scope T[] a, size_t i, size_t j) {
 	overwriteMemory(&a[j], tmp);
 }
 
-void eachSorted(T, A0, A1, A2, A3)(
-	in T lastComparable,
-	in Comparer!T comparer,
+void eachSorted(K, A0, A1, A2, A3, A4)(
+	in K lastComparable,
+	in Comparer!K comparer,
 	in A0[] a0,
-	in T delegate(in A0) @safe @nogc pure nothrow getComparable0,
+	in K delegate(in A0) @safe @nogc pure nothrow getComparable0,
 	in void delegate(in A0) @safe @nogc pure nothrow cb0,
 	in A1[] a1,
-	in T delegate(in A1) @safe @nogc pure nothrow getComparable1,
+	in K delegate(in A1) @safe @nogc pure nothrow getComparable1,
 	in void delegate(in A1) @safe @nogc pure nothrow cb1,
 	in A2[] a2,
-	in T delegate(in A2) @safe @nogc pure nothrow getComparable2,
+	in K delegate(in A2) @safe @nogc pure nothrow getComparable2,
 	in void delegate(in A2) @safe @nogc pure nothrow cb2,
 	in A3[] a3,
-	in T delegate(in A3) @safe @nogc pure nothrow getComparable3,
+	in K delegate(in A3) @safe @nogc pure nothrow getComparable3,
 	in void delegate(in A3) @safe @nogc pure nothrow cb3,
+	in A4[] a4,
+	in K delegate(in A4) @safe @nogc pure nothrow getComparable4,
+	in void delegate(in A4) @safe @nogc pure nothrow cb4,
 ) {
-	if (!empty(a0) || !empty(a1) || !empty(a2) || !empty(a3)) {
-		T c0 = empty(a0) ? lastComparable : getComparable0(a0[0]);
-		T c1 = empty(a1) ? lastComparable : getComparable1(a1[0]);
-		bool less01 = comparer(c0, c1) != Comparison.greater;
-		T min01 = less01 ? c0 : c1;
-		T c2 = empty(a2) ? lastComparable : getComparable2(a2[0]);
-		T c3 = empty(a3) ? lastComparable : getComparable3(a3[0]);
-		bool less23 = comparer(c2, c3) != Comparison.greater;
-		T min23 = less23 ? c2 : c3;
-		if (comparer(min01, min23) != Comparison.greater) {
-			if (less01) {
-				cb0(a0[0]);
-				eachSorted!(T, A0, A1, A2, A3)(
-					lastComparable, comparer,
-					a0[1 .. $], getComparable0, cb0,
-					a1, getComparable1, cb1,
-					a2, getComparable2, cb2,
-					a3, getComparable3, cb3);
-			} else {
-				cb1(a1[0]);
-				eachSorted!(T, A0, A1, A2, A3)(
-					lastComparable, comparer,
-					a0, getComparable0, cb0,
-					a1[1 .. $], getComparable1, cb1,
-					a2, getComparable2, cb2,
-					a3, getComparable3, cb3);
-			}
-		} else {
-			if (less23) {
-				cb2(a2[0]);
-				eachSorted!(T, A0, A1, A2, A3)(
-					lastComparable, comparer,
-					a0, getComparable0, cb0,
-					a1, getComparable1, cb1,
-					a2[1 .. $], getComparable2, cb2,
-					a3, getComparable3, cb3);
-			} else {
-				cb3(a3[0]);
-				eachSorted!(T, A0, A1, A2, A3)(
-					lastComparable, comparer,
-					a0, getComparable0, cb0,
-					a1, getComparable1, cb1,
-					a2, getComparable2, cb2,
-					a3[1 .. $], getComparable3, cb3);
-			}
+	size_t[5] indices;
+
+	Opt!K getComparable(size_t i) {
+		Opt!K get(T)(in T[] a, in K delegate(in T) @safe @nogc pure nothrow getComparable) {
+			return indices[i] == a.length ? none!K : some(getComparable(a[indices[i]]));
+		}
+		final switch (i) {
+			case 0: return get!A0(a0, getComparable0);
+			case 1: return get!A1(a1, getComparable1);
+			case 2: return get!A2(a2, getComparable2);
+			case 3: return get!A3(a3, getComparable3);
+			case 4: return get!A4(a4, getComparable4);
 		}
 	}
+	void consume(size_t i) {
+		size_t index = indices[i];
+		final switch (i) {
+			case 0: cb0(a0[index]); break;
+			case 1: cb1(a1[index]); break;
+			case 2: cb2(a2[index]); break;
+			case 3: cb3(a3[index]); break;
+			case 4: cb4(a4[index]); break;
+		}
+		indices[i]++;
+	}
+
+	while (true) {
+		size_t best = indices.length;
+		foreach (size_t i; 0 .. indices.length) {
+			Opt!K k = getComparable(i);
+			if (has(k)) {
+				Opt!K bestK = best == indices.length ? none!K : getComparable(best);
+				if (!has(bestK) || comparer(force(k), force(bestK)) != Comparison.greater)
+					best = i;
+			}
+		}
+		if (best == indices.length)
+			break;
+		else
+			consume(best);
+	}
+
+	verify(every!size_t(indices, (in size_t i) => !has(getComparable(i))));
 }
 
 immutable struct UnsortedPair {

@@ -13,6 +13,7 @@ import frontend.parse.lexer :
 	Lexer,
 	nextToken,
 	range,
+	rangeAtChar,
 	takeOrAddDiagExpectedToken,
 	Token,
 	tryTakeOperator,
@@ -34,6 +35,15 @@ Opt!(TypeAst*) tryParseTypeArgForEnumOrFlags(ref Lexer lexer) {
 		return some(allocate(lexer.alloc, res));
 	} else
 		return none!(TypeAst*);
+}
+
+TypeAst parseTypeArgForVarDecl(ref Lexer lexer) {
+	if (takeOrAddDiagExpectedToken(lexer, Token.parenLeft, ParseDiag.Expected.Kind.openParen)) {
+		TypeAst res = parseType(lexer);
+		takeOrAddDiagExpectedToken(lexer, Token.parenRight, ParseDiag.Expected.Kind.closingParen);
+		return res;
+	} else
+		return TypeAst(TypeAst.Bogus(rangeAtChar(lexer)));
 }
 
 Opt!(TypeAst*) tryParseTypeArgForExpr(ref Lexer lexer) =>

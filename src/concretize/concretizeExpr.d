@@ -911,7 +911,8 @@ Opt!Constant tryEvalConstant(
 		(in ConcreteFunBody.FlagsFn) => none!Constant,
 		(in ConcreteFunBody.RecordFieldGet) => none!Constant,
 		(in ConcreteFunBody.RecordFieldSet) => none!Constant,
-		(in ConcreteFunBody.ThreadLocal) => none!Constant);
+		(in ConcreteFunBody.VarGet) => none!Constant,
+		(in ConcreteFunBody.VarSet) => none!Constant);
 
 Opt!Constant tryEvalConstantBuiltin(Sym name, in VersionInfo versionInfo) {
 	switch (name.value) {

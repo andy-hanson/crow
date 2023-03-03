@@ -239,9 +239,12 @@ void checkLowExpr(ref FunCtx ctx, in InfoStack info, in LowType type, in LowExpr
 			foreach (ref UpdateParam update; it.updateParams)
 				checkLowExpr(ctx, info, update.param.type, update.newValue);
 		},
-		(in LowExprKind.ThreadLocalPtr it) {
-			LowType pointee = ctx.ctx.program.threadLocals[it.threadLocalIndex].type;
-			checkTypeEqual(ctx.ctx, type, LowType(LowType.PtrRawMut(&pointee)));
+		(in LowExprKind.VarGet x) {
+			checkTypeEqual(ctx.ctx, type, ctx.ctx.program.vars[x.varIndex].type);
+		},
+		(in LowExprKind.VarSet x) {
+			checkTypeEqual(ctx.ctx, type, voidType);
+			checkLowExpr(ctx, info, ctx.ctx.program.vars[x.varIndex].type, *x.value);
 		});
 }
 

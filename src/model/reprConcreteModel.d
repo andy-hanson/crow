@@ -156,8 +156,10 @@ Repr reprOfConcreteFunBody(ref Alloc alloc, in ConcreteFunBody a) =>
 			reprRecord!"field-get"(alloc, [reprNat(x.fieldIndex)]),
 		(in ConcreteFunBody.RecordFieldSet x) =>
 			reprRecord!"field-set"(alloc, [reprNat(x.fieldIndex)]),
-		(in ConcreteFunBody.ThreadLocal x) =>
-			reprSym!"thread-local" );
+		(in ConcreteFunBody.VarGet) =>
+			reprSym!"var-get",
+		(in ConcreteFunBody.VarSet) =>
+			reprSym!"var-set");
 
 Repr reprOfConcreteFunBodyBuiltin(ref Alloc alloc, in ConcreteFunBody.Builtin a) =>
 	reprRecord!"builtin"(alloc, [reprArr!ConcreteType(alloc, a.typeArgs, (in ConcreteType it) =>

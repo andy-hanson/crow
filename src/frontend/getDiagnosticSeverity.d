@@ -45,6 +45,8 @@ DiagSeverity getDiagnosticSeverity(in Diag a) =>
 			DiagSeverity.checkError,
 		(in Diag.ExternHasTypeParams) =>
 			DiagSeverity.checkError,
+		(in Diag.ExternMissingLibraryName) =>
+			DiagSeverity.checkError,
 		(in Diag.ExternRecordImplicitlyByVal) =>
 			DiagSeverity.checkError,
 		(in Diag.ExternUnion) =>

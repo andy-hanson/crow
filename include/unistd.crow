@@ -23,7 +23,7 @@ pipes record mut extern
 	write-pipe fd-t
 	read-pipe fd-t
 
-__environ c-string*() c global
+__environ global(c-string*) c extern
 
 usleep c-int(micro-seconds nat32) c extern
 

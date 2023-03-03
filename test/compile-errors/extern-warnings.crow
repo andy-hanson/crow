@@ -1,7 +1,3 @@
 f void() noctx, c extern
 
 f void() unsafe, c extern
-
-g nat() noctx, c global
-
-g nat() unsafe, c global

@@ -66,14 +66,15 @@ import model.lowModel :
 	LowFunSource,
 	LowProgram,
 	LowRecord,
-	LowThreadLocal,
-	LowThreadLocalIndex,
+	LowVar,
+	LowVarIndex,
 	LowType,
 	LowUnion;
-import model.model : fakeProgramForTest;
+import model.model : fakeProgramForTest, VarKind;
 import model.typeLayout : Pack, PackField;
 import test.testUtil : expectDataStack, expectReturnStack, Test;
 import util.alloc.alloc : Alloc;
+import util.col.enumDict : EnumDict;
 import util.col.fullIndexDict : emptyFullIndexDict, fullIndexDictOfArr;
 import util.lineAndColumnGetter : lineAndColumnGetterForEmptyFile;
 import util.memory : allocate;
@@ -111,7 +112,13 @@ ByteCode makeByteCode(
 }
 
 ByteCode dummyByteCode(Operations operations) =>
-	ByteCode(operations, FunPtrToOperationPtr(), dummyFileToFuns(), [], 0, ByteCodeIndex(0));
+	ByteCode(
+		operations,
+		FunPtrToOperationPtr(),
+		dummyFileToFuns(),
+		[],
+		EnumDict!(VarKind, size_t)([0, 0]),
+		ByteCodeIndex(0));
 
 FileToFuns dummyFileToFuns() {
 	static immutable FunNameAndPos[][] dummy = [[FunNameAndPos(sym!"a", Pos(0))]];
@@ -131,11 +138,11 @@ void doInterpret(
 		LowFunSource(allocate(test.alloc, LowFunSource.Generated(sym!"test", []))),
 		nat64Type,
 		[],
-		LowFunBody(LowFunBody.Extern(false, sym!"bogus")))];
+		LowFunBody(LowFunBody.Extern(sym!"bogus")))];
 	LowProgram lowProgram = LowProgram(
 		ConcreteFunToLowFunIndex(),
 		AllConstantsLow([], [], []),
-		emptyFullIndexDict!(LowThreadLocalIndex, LowThreadLocal),
+		emptyFullIndexDict!(LowVarIndex, LowVar),
 		AllLowTypes(
 			emptyFullIndexDict!(LowType.Extern, LowExternType),
 			emptyFullIndexDict!(LowType.FunPtr, LowFunPtrType),

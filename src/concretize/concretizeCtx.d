@@ -20,11 +20,12 @@ import model.concreteModel :
 	ConcreteLocal,
 	ConcreteLocalSource,
 	ConcreteMutability,
-	ConcreteType,
 	ConcreteStruct,
 	ConcreteStructBody,
 	ConcreteStructInfo,
 	ConcreteStructSource,
+	ConcreteType,
+	ConcreteVar,
 	EnumValues,
 	hasSizeOrPointerSizeBytes,
 	isSelfMutable,
@@ -67,6 +68,7 @@ import model.model :
 	TypeParam,
 	typeParams,
 	UnionMember,
+	VarDecl,
 	worsePurity;
 import util.alloc.alloc : Alloc;
 import util.col.arr : empty, only, only2, sizeEq;
@@ -197,6 +199,7 @@ struct ConcretizeCtx {
 	AllConstantsBuilder allConstants;
 	MutDict!(ConcreteStructKey, ConcreteStruct*) nonLambdaConcreteStructs;
 	ArrBuilder!(ConcreteStruct*) allConcreteStructs;
+	MutDict!(immutable VarDecl*, immutable ConcreteVar*) concreteVarLookup;
 	MutDict!(ConcreteFunKey, ConcreteFun*) nonLambdaConcreteFuns;
 	MutArr!DeferredRecordBody deferredRecords;
 	MutArr!DeferredUnionBody deferredUnions;
@@ -651,7 +654,7 @@ void fillInConcreteFunBody(ref ConcretizeCtx ctx, in Destructure[] params, Concr
 	// TODO: just assert it's not already set?
 	if (!lateIsSet(cf._body_)) {
 		// set to arbitrary temporarily
-		lateSet(cf._body_, ConcreteFunBody(ConcreteFunBody.Extern(false, sym!"bogus")));
+		lateSet(cf._body_, ConcreteFunBody(ConcreteFunBody.Builtin([])));
 		ConcreteFunBodyInputs inputs = mustDelete(ctx.concreteFunToBodyInputs, cf);
 		ConcreteFunBody body_ = inputs.body_.match!ConcreteFunBody(
 			(FunBody.Bogus) =>
@@ -687,7 +690,7 @@ void fillInConcreteFunBody(ref ConcretizeCtx ctx, in Destructure[] params, Concr
 				}
 			},
 			(FunBody.Extern x) =>
-				ConcreteFunBody(ConcreteFunBody.Extern(x.isGlobal, x.libraryName)),
+				ConcreteFunBody(ConcreteFunBody.Extern(x.libraryName)),
 			(FunBody.ExpressionBody e) =>
 				ConcreteFunBody(concretizeFunBody(ctx, inputs.containing, cf, params, e.expr)),
 			(FunBody.FileBytes e) {
@@ -707,11 +710,17 @@ void fillInConcreteFunBody(ref ConcretizeCtx ctx, in Destructure[] params, Concr
 				ConcreteFunBody(ConcreteFunBody.RecordFieldGet(it.fieldIndex)),
 			(FunBody.RecordFieldSet it) =>
 				ConcreteFunBody(ConcreteFunBody.RecordFieldSet(it.fieldIndex)),
-			(FunBody.ThreadLocal) =>
-				ConcreteFunBody(ConcreteFunBody.ThreadLocal()));
+			(FunBody.VarGet x) =>
+				ConcreteFunBody(ConcreteFunBody.VarGet(getVar(ctx, x.var))),
+			(FunBody.VarSet x) =>
+				ConcreteFunBody(ConcreteFunBody.VarSet(getVar(ctx, x.var))));
 		lateSetOverwrite(cf._body_, body_);
 	}
 }
+
+ConcreteVar* getVar(ref ConcretizeCtx ctx, VarDecl* decl) =>
+	getOrAdd!(immutable VarDecl*, immutable ConcreteVar*)(ctx.alloc, ctx.concreteVarLookup, decl, () =>
+		allocate(ctx.alloc, ConcreteVar(decl, getConcreteType(ctx, decl.type, TypeArgsScope()))));
 
 ulong getAllValue(ConcreteStructBody.Flags flags) =>
 	fold!(ulong, ulong)(0, flags.values, (ulong a, in ulong b) =>

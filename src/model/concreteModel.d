@@ -20,7 +20,8 @@ import model.model :
 	Purity,
 	range,
 	StructInst,
-	summon;
+	summon,
+	VarDecl;
 import util.col.arr : empty, only, PtrAndSmallNumber;
 import util.col.arrUtil : contains;
 import util.col.dict : Dict;
@@ -302,7 +303,6 @@ immutable struct ConcreteFunBody {
 		size_t memberIndex;
 	}
 	immutable struct Extern {
-		bool isGlobal;
 		Sym libraryName;
 	}
 	immutable struct FlagsFn {
@@ -315,7 +315,8 @@ immutable struct ConcreteFunBody {
 	immutable struct RecordFieldSet {
 		size_t fieldIndex;
 	}
-	immutable struct ThreadLocal {}
+	immutable struct VarGet { ConcreteVar* var; }
+	immutable struct VarSet { ConcreteVar* var; }
 
 	mixin Union!(
 		Builtin,
@@ -328,11 +329,9 @@ immutable struct ConcreteFunBody {
 		FlagsFn,
 		RecordFieldGet,
 		RecordFieldSet,
-		ThreadLocal);
+		VarGet,
+		VarSet);
 }
-
-bool isGlobal(in ConcreteFunBody a) =>
-	a.isA!(ConcreteFunBody.Extern) && a.as!(ConcreteFunBody.Extern).isGlobal;
 
 immutable struct ConcreteFunSource {
 	immutable struct Lambda {
@@ -409,9 +408,6 @@ ref ConcreteFunBody body_(return scope ref ConcreteFun a) =>
 void setBody(ref ConcreteFun a, ConcreteFunBody value) {
 	lateSet(a._body_, value);
 }
-
-bool isGlobal(ref ConcreteFun a) =>
-	isGlobal(body_(a));
 
 immutable struct ConcreteExpr {
 	ConcreteType type;
@@ -624,11 +620,17 @@ immutable struct AllConstantsConcrete {
 	PointerTypeAndConstantsConcrete[] pointers;
 }
 
+immutable struct ConcreteVar {
+	VarDecl* source;
+	ConcreteType type;
+}
+
 immutable struct ConcreteProgram {
 	@safe @nogc pure nothrow:
 
 	AllConstantsConcrete allConstants;
 	ConcreteStruct*[] allStructs;
+	ConcreteVar*[] allVars;
 	ConcreteFun*[] allFuns;
 	Dict!(ConcreteStruct*, ConcreteLambdaImpl[]) funStructToImpls;
 	ConcreteCommonFuns commonFuns;

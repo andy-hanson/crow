@@ -55,6 +55,7 @@ import frontend.parse.ast :
 	TypeAst,
 	TypedAst,
 	UnlessAst,
+	VarDeclAst,
 	WithAst;
 import model.model : Visibility;
 import util.alloc.alloc : Alloc;
@@ -100,7 +101,7 @@ Token[] tokensOfAst(ref Alloc alloc, ref AllSymbols allSymbols, in FileAst ast) 
 	addImportTokens(alloc, tokens, allSymbols, ast.exports, sym!"export");
 
 	//TODO: also tests...
-	eachSorted!(RangeWithinFile, SpecDeclAst, StructAliasAst, StructDeclAst, FunDeclAst)(
+	eachSorted!(RangeWithinFile, SpecDeclAst, StructAliasAst, StructDeclAst, FunDeclAst, VarDeclAst)(
 		RangeWithinFile.max,
 		(in RangeWithinFile a, in RangeWithinFile b) =>
 			compareRangeWithinFile(a, b),
@@ -115,6 +116,9 @@ Token[] tokensOfAst(ref Alloc alloc, ref AllSymbols allSymbols, in FileAst ast) 
 		},
 		ast.funs, (in FunDeclAst it) => it.range, (in FunDeclAst it) {
 			addFunTokens(alloc, tokens, allSymbols, it);
+		},
+		ast.vars, (in VarDeclAst x) => x.range, (in VarDeclAst x) {
+			todo!void("addVarDeclTokens");
 		});
 	Token[] res = finishArr(alloc, tokens);
 	assertTokensSorted(res);
@@ -307,7 +311,7 @@ void addFunTokens(ref Alloc alloc, ref TokensBuilder tokens, ref AllSymbols allS
 			(in FunModifierAst.Special x) {
 				add(alloc, tokens, Token(Token.Kind.modifier, x.range(allSymbols)));
 			},
-			(in FunModifierAst.ExternOrGlobal x) {
+			(in FunModifierAst.Extern x) {
 				addTypeTokens(alloc, tokens, allSymbols, *x.left);
 				add(alloc, tokens, Token(Token.Kind.modifier, x.suffixRange(allSymbols)));
 			},

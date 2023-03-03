@@ -25,8 +25,6 @@ import interpret.bytecodeWriter :
 	StackEntry,
 	writeCallFunPtrExtern,
 	writeLongjmp,
-	writePushConstant,
-	writeRead,
 	writeReturn,
 	writeSetjmp;
 import interpret.extern_ :
@@ -39,9 +37,9 @@ import interpret.funToReferences :
 	FunReferences,
 	FunToReferences,
 	initFunToReferences;
-import interpret.generateExpr : generateFunFromExpr;
+import interpret.generateExpr : generateFunFromExpr, maxGlobalsSizeWords;
 import interpret.generateText :
-	generateText, generateThreadLocalsInfo, TextAndInfo, TextIndex, TextInfo, ThreadLocalsInfo;
+	generateText, generateVarsInfo, TextAndInfo, TextIndex, TextInfo, VarsInfo;
 import interpret.runBytecode : maxThreadLocalsSizeWords;
 import model.concreteModel : ConcreteStructSource, name;
 import model.lowModel :
@@ -59,8 +57,8 @@ import model.lowModel :
 	name,
 	PrimitiveType,
 	typeSize;
-import model.model : FunDecl, Module, name, Program, range;
-import model.typeLayout : nStackEntriesForType, typeSizeBytes;
+import model.model : FunDecl, Module, name, Program, range, VarKind;
+import model.typeLayout : nStackEntriesForType;
 import util.alloc.alloc : Alloc, TempAlloc;
 import util.col.arr : castImmutable;
 import util.col.arrBuilder : add, ArrBuilder, finishArr;
@@ -105,20 +103,20 @@ private ByteCode generateBytecodeInner(
 		mapFullIndexDict!(LowType.FunPtr, DynCallSig, LowFunPtrType)(
 			codeAlloc,
 			program.allFunPtrTypes,
-			(LowType.FunPtr, scope ref LowFunPtrType x) =>
+			(LowType.FunPtr, in LowFunPtrType x) =>
 				funPtrDynCallSig(codeAlloc, program, x));
 
 	FunToReferences funToReferences =
 		initFunToReferences(tempAlloc, funPtrTypeToDynCallSig, fullIndexDictSize(program.allFuns));
 	TextAndInfo text = generateText(codeAlloc, tempAlloc, program, funToReferences);
-	ThreadLocalsInfo threadLocals = generateThreadLocalsInfo(codeAlloc, program);
+	VarsInfo vars = generateVarsInfo(codeAlloc, program);
 	ByteCodeWriter writer = newByteCodeWriter(ptrTrustMe(codeAlloc));
 
 	immutable FullIndexDict!(LowFunIndex, ByteCodeIndex) funToDefinition =
 		mapFullIndexDict!(LowFunIndex, ByteCodeIndex, LowFun)(
 			tempAlloc,
 			program.allFuns,
-			(LowFunIndex funIndex, scope ref LowFun fun) {
+			(LowFunIndex funIndex, in LowFun fun) {
 				ByteCodeIndex funPos = nextByteCodeIndex(writer);
 				generateBytecodeForFun(
 					tempAlloc,
@@ -126,7 +124,7 @@ private ByteCode generateBytecodeInner(
 					allSymbols,
 					funToReferences,
 					text.info,
-					threadLocals,
+					vars,
 					program,
 					externFunPtrs,
 					funIndex,
@@ -161,7 +159,7 @@ private ByteCode generateBytecodeInner(
 		syntheticFunPtrs.funPtrToOperationPtr,
 		fileToFuns(codeAlloc, allSymbols, modelProgram),
 		castImmutable(text.text),
-		threadLocals.totalSizeWords,
+		vars.totalSizeWords,
 		funToDefinition[program.main]);
 }
 
@@ -214,7 +212,7 @@ FileToFuns fileToFuns(ref Alloc alloc, in AllSymbols allSymbols, in Program prog
 	return mapFullIndexDict!(FileIndex, FunNameAndPos[], Module)(
 		alloc,
 		modulesDict,
-		(FileIndex, ref Module module_) =>
+		(FileIndex, in Module module_) =>
 			map(alloc, module_.funs, (ref FunDecl it) =>
 				FunNameAndPos(it.name, it.fileAndPos.pos)));
 }
@@ -225,13 +223,14 @@ void generateBytecodeForFun(
 	in AllSymbols allSymbols,
 	ref FunToReferences funToReferences,
 	in TextInfo textInfo,
-	in ThreadLocalsInfo threadLocalsInfo,
+	in VarsInfo varsInfo,
 	in LowProgram program,
 	ExternFunPtrsForAllLibraries externFunPtrs,
 	LowFunIndex funIndex,
 	in LowFun fun,
 ) {
-	verify(threadLocalsInfo.totalSizeWords < maxThreadLocalsSizeWords);
+	verify(varsInfo.totalSizeWords[VarKind.global] < maxGlobalsSizeWords);
+	verify(varsInfo.totalSizeWords[VarKind.threadLocal] < maxThreadLocalsSizeWords);
 
 	debug {
 		if (false) {
@@ -262,7 +261,7 @@ void generateBytecodeForFun(
 		},
 		(in LowFunExprBody body_) {
 			generateFunFromExpr(
-				tempAlloc, writer, allSymbols, program, textInfo, threadLocalsInfo, funIndex,
+				tempAlloc, writer, allSymbols, program, textInfo, varsInfo, externFunPtrs, funIndex,
 				funToReferences, fun.params, parameters, returnEntries, body_);
 		});
 	verify(getNextStackEntry(writer).entry == returnEntries);
@@ -289,26 +288,11 @@ void generateExternCall(
 			writeSetjmp(writer, source);
 			break;
 		default:
-			FunPtr funPtr = mustGetAt(mustGetAt(externFunPtrs, a.libraryName), name);
-			if (a.isGlobal)
-				generateExternGetGlobal(writer, source, program, fun.returnType, funPtr.fn);
-			else
-				generateExternCallFunPtr(writer, source, program, fun, funPtr);
+			generateExternCallFunPtr(
+				writer, source, program, fun, mustGetAt(mustGetAt(externFunPtrs, a.libraryName), name));
 			break;
 	}
 	writeReturn(writer, source);
-}
-
-void generateExternGetGlobal(
-	scope ref ByteCodeWriter writer,
-	ByteCodeSource source,
-	in LowProgram program,
-	in LowType type,
-	// TODO: not really immutable
-	immutable void* ptr,
-) {
-	writePushConstant(writer, source, cast(ulong) ptr);
-	writeRead(writer, source, 0, typeSizeBytes(program, type));
 }
 
 void generateExternCallFunPtr(

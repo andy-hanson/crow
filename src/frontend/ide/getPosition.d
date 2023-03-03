@@ -134,7 +134,9 @@ Opt!Position positionInFun(FunDecl* a, Pos pos, in AllSymbols allSymbols) {
 			none!Position,
 		(FunBody.RecordFieldSet) =>
 			none!Position,
-		(FunBody.ThreadLocal) =>
+		(FunBody.VarGet) =>
+			none!Position,
+		(FunBody.VarSet) =>
 			none!Position);
 }
 

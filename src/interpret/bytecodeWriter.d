@@ -320,9 +320,9 @@ void writeStackRef(
 		writeAddConstantNat64(writer, source, byteOffset);
 }
 
-void writeThreadLocalPtr(scope ref ByteCodeWriter writer, ByteCodeSource source, size_t offset) {
+void writeThreadLocalPtr(scope ref ByteCodeWriter writer, ByteCodeSource source, size_t offsetWords) {
 	pushOperationFn(writer, source, &opThreadLocalPtr);
-	pushSizeT(writer, source, offset);	
+	pushSizeT(writer, source, offsetWords);	
 	writer.nextStackEntry += 1;
 }
 

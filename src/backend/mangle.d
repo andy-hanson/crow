@@ -19,22 +19,25 @@ import model.lowModel :
 	LowLocalSource,
 	LowProgram,
 	LowRecord,
-	LowThreadLocal,
 	LowType,
-	LowUnion;
+	LowUnion,
+	LowVar,
+	LowVarIndex;
 import model.model : FunInst, Local, name;
 import util.alloc.alloc : Alloc;
 import util.col.dict : Dict;
 import util.col.dictBuilder : finishDict, mustAddToDict, DictBuilder;
-import util.col.fullIndexDict : fullIndexDictEachValue;
-import util.col.mutDict : insertOrUpdate, MutDict, setInDict;
+import util.col.fullIndexDict : FullIndexDict, fullIndexDictEachValue, mapFullIndexDict;
+import util.col.mutDict : getOrAdd, insertOrUpdate, MutDict, setInDict;
 import util.opt : force, has, none, Opt, some;
 import util.sym : AllSymbols, eachCharInSym, Sym, sym, writeSym;
 import util.union_ : Union;
+import util.util : todo;
 import util.writer : Writer;
 
 const struct MangledNames {
 	AllSymbols* allSymbols;
+	FullIndexDict!(LowVarIndex, size_t) varToNameIndex;
 	Dict!(ConcreteFun*, size_t) funToNameIndex;
 	//TODO:PERF we could use separate FullIndexDict for record, union, etc.
 	Dict!(ConcreteStruct*, size_t) structToNameIndex;
@@ -90,7 +93,27 @@ MangledNames buildMangledNames(
 		build(it.source);
 	});
 
-	return MangledNames(allSymbols, finishDict(alloc, funToNameIndex), finishDict(alloc, structToNameIndex));
+	return MangledNames(
+		allSymbols,
+		makeVarToNameIndex(alloc, program.vars),
+		finishDict(alloc, funToNameIndex),
+		finishDict(alloc, structToNameIndex));
+}
+
+private immutable(FullIndexDict!(LowVarIndex, size_t)) makeVarToNameIndex(
+	ref Alloc alloc,
+	in FullIndexDict!(LowVarIndex, LowVar) vars,
+) {
+	MutDict!(Sym, size_t) counts;
+	return mapFullIndexDict!(LowVarIndex, size_t, LowVar)(alloc, vars, (LowVarIndex _, in LowVar x) {
+		//TODO:PERF use temp alloc
+		size_t* index = &getOrAdd!(Sym, size_t)(alloc, counts, x.name, () => 0);
+		size_t res = *index;
+		(*index)++;
+		if (x.isExtern && res != 0)
+			todo!void("'extern' vars can't have same name");
+		return res;
+	});
 }
 
 void writeStructMangledName(scope ref Writer writer, in MangledNames mangledNames, in ConcreteStruct* source) {
@@ -104,6 +127,20 @@ void writeStructMangledName(scope ref Writer writer, in MangledNames mangledName
 			writer ~= "__lambda";
 			writer ~= it.index;
 		});
+}
+
+void writeLowVarMangledName(
+	scope ref Writer writer,
+	in MangledNames mangledNames,
+	LowVarIndex varIndex,
+	in LowVar var,
+) {
+	writeMangledName(writer, mangledNames, var.name);
+	size_t index = mangledNames.varToNameIndex[varIndex];
+	if (index != 0) {
+		writer ~= '_';
+		writer ~= index;
+	}
 }
 
 void writeLowFunMangledName(
@@ -123,14 +160,6 @@ void writeLowFunMangledName(
 				writer ~= funIndex.index;
 			}
 		});
-}
-
-void writeLowThreadLocalMangledName(
-	scope ref Writer writer,
-	in MangledNames mangledNames,
-	in LowThreadLocal threadLocal,
-) {
-	writeConcreteFunMangledName(writer, mangledNames, threadLocal.source);
 }
 
 private void writeConcreteFunMangledName(

@@ -16,7 +16,7 @@ import model.model : CommonFuns, Program;
 import util.alloc.alloc : Alloc;
 import util.col.arrBuilder : finishArr;
 import util.col.mutArr : moveToArr, MutArr;
-import util.col.mutDict : mapToDict, mutDictIsEmpty;
+import util.col.mutDict : mapToDict, moveToValues, mutDictIsEmpty;
 import util.late : lateSet;
 import util.opt : force;
 import util.perf : Perf, PerfMeasure, withMeasure;
@@ -72,6 +72,7 @@ ConcreteProgram concretizeInner(
 	return ConcreteProgram(
 		finishAllConstants(alloc, ctx.allConstants, mustBeByVal(staticSymbolsFun.returnType)),
 		finishArr(alloc, ctx.allConcreteStructs),
+		moveToValues(alloc, ctx.concreteVarLookup),
 		allConcreteFuns,
 		mapToDict!(ConcreteStruct*, ConcreteLambdaImpl[], MutArr!ConcreteLambdaImpl)(
 			alloc,

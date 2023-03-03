@@ -243,14 +243,24 @@ private @trusted immutable(Out[]) mapToArr_const(Out, K, V)(
 	mapToArr_const!(Out, K, V)(alloc, a, (immutable K k, ref const V v) =>
 		cb(k, cast(V) v));
 
+immutable(V[]) moveToValues(K, V)(ref Alloc alloc, ref MutDict!(immutable K, immutable V) a) {
+	immutable V[] res = valuesArray(alloc, a);
+	clear(a);
+	return res;
+}
+
 @trusted immutable(Dict!(K, V)) moveToDict(K, V)(
 	ref Alloc alloc,
 	ref MutDict!(immutable K, immutable V) a,
 ) {
 	immutable Dict!(K, V) res = immutable Dict!(K, V)(cast(immutable) a);
+	clear(a);
+	return res;
+}
+
+private void clear(K, V)(scope ref MutDict!(K, V) a) {
 	a.size = 0;
 	a.pairs = [];
-	return res;
 }
 
 immutable(Dict!(K, VOut)) mapToDict(K, VOut, VIn)(

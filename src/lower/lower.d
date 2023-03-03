@@ -51,6 +51,7 @@ import model.concreteModel :
 	ConcreteStruct,
 	ConcreteStructBody,
 	ConcreteType,
+	ConcreteVar,
 	ConcreteVariableRef,
 	elementType,
 	fieldOffsets,
@@ -86,8 +87,8 @@ import model.lowModel :
 	LowLocalSource,
 	LowProgram,
 	LowRecord,
-	LowThreadLocal,
-	LowThreadLocalIndex,
+	LowVar,
+	LowVarIndex,
 	LowType,
 	LowUnion,
 	PointerTypeAndConstantsLow,
@@ -103,7 +104,8 @@ import model.model :
 	FunInst,
 	Local,
 	name,
-	range;
+	range,
+	VarKind;
 import util.alloc.alloc : Alloc;
 import util.col.arr : empty, only, only2;
 import util.col.arrBuilder : add, ArrBuilder, arrBuilderSize, finishArr;
@@ -118,9 +120,9 @@ import util.col.arrUtil :
 	mapZip,
 	mapZipPtrFirst,
 	zipPtrFirst;
-import util.col.dict : mustGetAt, Dict;
+import util.col.dict : KeyValuePair, makeDictWithIndex, mustGetAt, Dict;
 import util.col.dictBuilder : finishDict, mustAddToDict, DictBuilder;
-import util.col.fullIndexDict : FullIndexDict, fullIndexDictOfArr, fullIndexDictSize;
+import util.col.fullIndexDict : FullIndexDict, fullIndexDictEachValue, fullIndexDictOfArr, fullIndexDictSize;
 import util.col.mutIndexDict : getOrAddAndDidAdd, mustGetAt, MutIndexDict, newMutIndexDict;
 import util.col.mutArr : moveToArr, MutArr, push;
 import util.col.mutDict : getAt_mut, getOrAdd, mapToArr_mut, MutDict, MutDict, ValueAndDidAdd;
@@ -133,7 +135,7 @@ import util.ptr : castNonScope_ref, ptrTrustMe;
 import util.sourceRange : FileAndRange;
 import util.sym : AllSymbols, Sym, sym;
 import util.union_ : Union;
-import util.util : typeAs, unreachable, verify;
+import util.util : todo, typeAs, unreachable, verify;
 
 LowProgram lower(
 	ref Alloc alloc,
@@ -153,12 +155,13 @@ private LowProgram lowerInner(
 	ref ConcreteProgram a,
 ) {
 	AllLowTypesWithCtx allTypes = getAllLowTypes(alloc, allSymbols, a);
-	AllLowFuns allFuns = getAllLowFuns(allTypes.allTypes, allTypes.getLowTypeCtx, configExtern, a);
+	FullIndexDict!(LowVarIndex, LowVar) vars = getAllLowVars(alloc, allTypes.getLowTypeCtx, a.allVars);
+	AllLowFuns allFuns = getAllLowFuns(allTypes.allTypes, allTypes.getLowTypeCtx, configExtern, a, vars);
 	AllConstantsLow allConstants = convertAllConstants(allTypes.getLowTypeCtx, a.allConstants);
 	LowProgram res = LowProgram(
 		allFuns.concreteFunToLowFunIndex,
 		allConstants,
-		allFuns.threadLocals,
+		vars,
 		allTypes.allTypes,
 		allFuns.allLowFuns,
 		allFuns.main,
@@ -166,6 +169,27 @@ private LowProgram lowerInner(
 	checkLowProgram(alloc, allSymbols, res);
 	return res;
 }
+
+private FullIndexDict!(LowVarIndex, LowVar) getAllLowVars(
+	ref Alloc alloc,
+	ref GetLowTypeCtx ctx,
+	immutable ConcreteVar*[] vars,
+) =>
+	fullIndexDictOfArr!(LowVarIndex, LowVar)(map(alloc, vars, (ref immutable ConcreteVar* source) {
+		LowVar.Kind kind = () {
+			final switch (source.source.kind) {
+				case VarKind.global:
+					return has(source.source.externLibraryName)
+						? LowVar.Kind.externGlobal
+						: LowVar.Kind.global;
+				case VarKind.threadLocal:
+					return has(source.source.externLibraryName)
+						? todo!(LowVar.Kind)("extern thread-local")
+						: LowVar.Kind.threadLocal;
+			}
+		}();
+		return LowVar(source, kind, lowTypeFromConcreteType(ctx, source.type));
+	}));
 
 struct MarkVisitFuns {
 	MutIndexDict!(LowType.Record, LowFunIndex) recordValToVisit;
@@ -215,7 +239,6 @@ immutable struct AllLowFuns {
 	FullIndexDict!(LowFunIndex, LowFun) allLowFuns;
 	LowFunIndex main;
 	ExternLibraries allExternFuns;
-	FullIndexDict!(LowThreadLocalIndex, LowThreadLocal) threadLocals;
 }
 
 struct GetLowTypeCtx {
@@ -503,6 +526,7 @@ AllLowFuns getAllLowFuns(
 	ref GetLowTypeCtx getLowTypeCtx,
 	in ConfigExternPaths configExtern,
 	ref ConcreteProgram program,
+	in FullIndexDict!(LowVarIndex, LowVar) allVars,
 ) {
 	DictBuilder!(ConcreteFun*, LowFunIndex) concreteFunToLowFunIndexBuilder;
 	ArrBuilder!LowFunCause lowFunCausesBuilder;
@@ -578,10 +602,19 @@ AllLowFuns getAllLowFuns(
 
 	Late!LowType markCtxTypeLate = late!LowType;
 
-	MutDict!(Sym, MutArr!Sym) allExternFuns;
+	MutDict!(Sym, MutArr!Sym) allExternSymbols; // Fun and Var combined
+	void addExternSymbol(Sym libraryName, Sym symbolName) {
+		push(
+			getLowTypeCtx.alloc,
+			getOrAdd(getLowTypeCtx.alloc, allExternSymbols, libraryName, () => MutArr!Sym()),
+			symbolName);
+	}
 
-	ArrBuilder!LowThreadLocal threadLocals;
-	DictBuilder!(ConcreteFun*, LowThreadLocalIndex) threadLocalIndicesBuilder;
+	fullIndexDictEachValue!(LowVarIndex, LowVar)(allVars, (ref LowVar x) {
+		Opt!Sym libraryName = x.externLibraryName;
+		if (has(libraryName))
+			addExternSymbol(force(libraryName), x.name);
+	});
 
 	foreach (ConcreteFun* fun; program.allFuns) {
 		Opt!LowFunIndex opIndex = body_(*fun).match!(Opt!LowFunIndex)(
@@ -622,10 +655,7 @@ AllLowFuns getAllLowFuns(
 				none!LowFunIndex,
 			(ConcreteFunBody.Extern x) {
 				Opt!Sym optName = name(*fun);
-				push(
-					getLowTypeCtx.alloc,
-					getOrAdd(getLowTypeCtx.alloc, allExternFuns, x.libraryName, () => MutArr!Sym()),
-					force(optName));
+				addExternSymbol(x.libraryName, force(optName));
 				return some(addLowFun(LowFunCause(fun)));
 			},
 			(ConcreteExpr _) =>
@@ -636,14 +666,10 @@ AllLowFuns getAllLowFuns(
 				none!LowFunIndex,
 			(ConcreteFunBody.RecordFieldSet) =>
 				none!LowFunIndex,
-			(ConcreteFunBody.ThreadLocal) {
-				LowThreadLocalIndex index = LowThreadLocalIndex(arrBuilderSize(threadLocals));
-				LowType type =
-					*lowTypeFromConcreteType(getLowTypeCtx, fun.returnType).as!(LowType.PtrRawMut).pointee;
-				add(getLowTypeCtx.alloc, threadLocals, LowThreadLocal(fun, type));
-				mustAddToDict(getLowTypeCtx.alloc, threadLocalIndicesBuilder, fun, index);
-				return none!LowFunIndex;
-			});
+			(ConcreteFunBody.VarGet x) =>
+				none!LowFunIndex,
+			(ConcreteFunBody.VarSet) =>
+				none!LowFunIndex);
 		if (concreteFunWillBecomeNonExternLowFun(program, *fun))
 			verify(has(opIndex));
 		if (has(opIndex))
@@ -655,12 +681,14 @@ AllLowFuns getAllLowFuns(
 	LowFunCause[] lowFunCauses = finishArr(getLowTypeCtx.alloc, lowFunCausesBuilder);
 	ConcreteFunToLowFunIndex concreteFunToLowFunIndex =
 		finishDict(getLowTypeCtx.alloc, concreteFunToLowFunIndexBuilder);
-	//TODO: use temp alloc
-	ConcreteFunToThreadLocalIndex concreteFunToThreadLocalIndex =
-		finishDict(getLowTypeCtx.alloc, threadLocalIndicesBuilder);
 
 	LowType userMainFunPtrType =
 		lowTypeFromConcreteType(getLowTypeCtx, program.rtMain.paramsIncludingClosure[2].type);
+
+	//TODO: use temp alloc
+	VarIndices varIndices = makeDictWithIndex!(ConcreteVar*, LowVarIndex, ConcreteVar*)(
+		getLowTypeCtx.alloc, program.allVars, (size_t i, in ConcreteVar* x) =>
+			immutable KeyValuePair!(ConcreteVar*, LowVarIndex)(x, LowVarIndex(i)));
 
 	LowFunIndex markFunIndex = mustGetAt(concreteFunToLowFunIndex, program.markFun);
 	LowFunIndex allocFunIndex = mustGetAt(concreteFunToLowFunIndex, program.allocFun);
@@ -677,7 +705,7 @@ AllLowFuns getAllLowFuns(
 					allocFunIndex,
 					throwImplFunIndex,
 					concreteFunToLowFunIndex,
-					concreteFunToThreadLocalIndex,
+					varIndices,
 					lowFunCauses,
 					markVisitFuns,
 					markCtxType,
@@ -696,16 +724,15 @@ AllLowFuns getAllLowFuns(
 		LowFunIndex(lowFunCauses.length),
 		mapToArr_mut!(ExternLibrary, Sym, MutArr!Sym)(
 			getLowTypeCtx.alloc,
-			allExternFuns,
+			allExternSymbols,
 			(Sym libraryName, ref MutArr!Sym xs) =>
 				ExternLibrary(
 					libraryName,
 					configExtern[libraryName],
-					moveToArr!Sym(getLowTypeCtx.alloc, xs))),
-		fullIndexDictOfArr!(LowThreadLocalIndex, LowThreadLocal)(finishArr(getLowTypeCtx.alloc, threadLocals)));
+					moveToArr!Sym(getLowTypeCtx.alloc, xs))));
 }
 
-alias ConcreteFunToThreadLocalIndex = Dict!(ConcreteFun*, LowThreadLocalIndex);
+alias VarIndices = Dict!(ConcreteVar*, LowVarIndex);
 
 bool concreteFunWillBecomeNonExternLowFun(in ConcreteProgram program, in ConcreteFun a) =>
 	body_(a).match!bool(
@@ -729,7 +756,9 @@ bool concreteFunWillBecomeNonExternLowFun(in ConcreteProgram program, in Concret
 			false,
 		(ConcreteFunBody.RecordFieldSet) =>
 			false,
-		(ConcreteFunBody.ThreadLocal) =>
+		(ConcreteFunBody.VarGet) =>
+			false,
+		(ConcreteFunBody.VarSet) =>
 			false);
 
 LowFun lowFunFromCause(
@@ -739,7 +768,7 @@ LowFun lowFunFromCause(
 	LowFunIndex allocFunIndex,
 	LowFunIndex throwImplFunIndex,
 	in ConcreteFunToLowFunIndex concreteFunToLowFunIndex,
-	in ConcreteFunToThreadLocalIndex concreteFunToThreadLocalIndex,
+	in VarIndices varIndices,
 	in LowFunCause[] lowFunCauses,
 	in MarkVisitFuns markVisitFuns,
 	LowType markCtxType,
@@ -767,7 +796,7 @@ LowFun lowFunFromCause(
 				staticSymbols,
 				getLowTypeCtx,
 				concreteFunToLowFunIndex,
-				concreteFunToThreadLocalIndex,
+				varIndices,
 				allocFunIndex,
 				throwImplFunIndex,
 				thisFunIndex,
@@ -859,7 +888,7 @@ LowFunBody getLowFunBody(
 	in Constant staticSymbols,
 	ref GetLowTypeCtx getLowTypeCtx,
 	in ConcreteFunToLowFunIndex concreteFunToLowFunIndex,
-	in ConcreteFunToThreadLocalIndex concreteFunToThreadLocalIndex,
+	in VarIndices varIndices,
 	LowFunIndex allocFunIndex,
 	LowFunIndex throwImplFunIndex,
 	LowFunIndex thisFunIndex,
@@ -878,15 +907,15 @@ LowFunBody getLowFunBody(
 		(EnumFunction) =>
 			unreachable!LowFunBody,
 		(ConcreteFunBody.Extern x) =>
-			LowFunBody(LowFunBody.Extern(x.isGlobal, x.libraryName)),
-		(ConcreteExpr x) @trusted {
+			LowFunBody(LowFunBody.Extern(x.libraryName)),
+		(ConcreteExpr x) @safe {
 			GetLowExprCtx exprCtx = GetLowExprCtx(
 				thisFunIndex,
 				ptrTrustMe(allTypes),
-				staticSymbols,
+				castNonScope_ref(staticSymbols),
 				ptrTrustMe(getLowTypeCtx),
-				concreteFunToLowFunIndex,
-				concreteFunToThreadLocalIndex,
+				castNonScope_ref(concreteFunToLowFunIndex),
+				castNonScope_ref(varIndices),
 				allocFunIndex,
 				throwImplFunIndex,
 				a.paramsIncludingClosure,
@@ -903,7 +932,9 @@ LowFunBody getLowFunBody(
 			unreachable!LowFunBody,
 		(ConcreteFunBody.RecordFieldSet) =>
 			unreachable!LowFunBody,
-		(ConcreteFunBody.ThreadLocal) =>
+		(ConcreteFunBody.VarGet) =>
+			unreachable!LowFunBody,
+		(ConcreteFunBody.VarSet) =>
 			unreachable!LowFunBody);
 
 struct GetLowExprCtx {
@@ -914,7 +945,7 @@ struct GetLowExprCtx {
 	immutable Constant staticSymbols;
 	GetLowTypeCtx* getLowTypeCtxPtr;
 	immutable ConcreteFunToLowFunIndex concreteFunToLowFunIndex;
-	immutable ConcreteFunToThreadLocalIndex concreteFunToThreadLocalIndex;
+	immutable VarIndices varIndices;
 	immutable LowFunIndex allocFunIndex;
 	immutable LowFunIndex throwImplFunIndex;
 	ConcreteLocal[] concreteParams;
@@ -1197,10 +1228,12 @@ LowExprKind getCallSpecial(
 				x.fieldIndex,
 				getLowExpr(ctx, locals, a.args[1], ExprPos.nonTail))));
 		},
-		(ConcreteFunBody.ThreadLocal) {
-			LowThreadLocalIndex index = mustGetAt(ctx.concreteFunToThreadLocalIndex, a.called);
-			return LowExprKind(LowExprKind.ThreadLocalPtr(index));
-		});
+		(ConcreteFunBody.VarGet x) =>
+			LowExprKind(LowExprKind.VarGet(mustGetAt(ctx.varIndices, x.var))),
+		(ConcreteFunBody.VarSet x) =>
+			LowExprKind(LowExprKind.VarSet(
+				mustGetAt(ctx.varIndices, x.var),
+				allocate(ctx.alloc, getLowExpr(ctx, locals, only(a.args), ExprPos.nonTail)))));
 
 
 LowExprKind getRecordFieldGet(ref GetLowExprCtx ctx, in Locals locals, ref ConcreteExpr record, size_t fieldIndex) =>

@@ -8,6 +8,7 @@ import model.concreteModel :
 	concreteFunRange,
 	ConcreteStruct,
 	ConcreteStructSource,
+	ConcreteVar,
 	isArray,
 	isTuple,
 	name,
@@ -19,7 +20,7 @@ import util.col.dict : Dict;
 import util.col.fullIndexDict : FullIndexDict;
 import util.col.str : SafeCStr;
 import util.hash : Hasher, hashSizeT, hashUint;
-import util.opt : none, Opt;
+import util.opt : has, none, Opt;
 import util.path : Path;
 import util.sourceRange : FileAndRange;
 import util.sym : AllSymbols, Sym, sym;
@@ -298,15 +299,11 @@ immutable struct LowFunExprBody {
 // Unlike ConcreteFunBody, this is always an expr or extern.
 immutable struct LowFunBody {
 	immutable struct Extern {
-		bool isGlobal;
 		Sym libraryName;
 	}
 
 	mixin Union!(Extern, LowFunExprBody);
 }
-
-bool isGlobal(in LowFunBody a) =>
-	a.isA!(LowFunBody.Extern) && a.as!(LowFunBody.Extern).isGlobal;
 
 immutable struct LowFunSource {
 	immutable struct Generated {
@@ -627,8 +624,12 @@ immutable struct LowExprKind {
 		UpdateParam[] updateParams;
 	}
 
-	immutable struct ThreadLocalPtr {
-		LowThreadLocalIndex threadLocalIndex;
+	immutable struct VarGet {
+		LowVarIndex varIndex;
+	}
+	immutable struct VarSet {
+		LowVarIndex varIndex;
+		LowExpr* value;
 	}
 
 	mixin Union!(
@@ -659,7 +660,8 @@ immutable struct LowExprKind {
 		Switch0ToN*,
 		SwitchWithValues*,
 		TailRecur,
-		ThreadLocalPtr);
+		VarGet,
+		VarSet);
 }
 static assert(LowExprKind.sizeof <= 32);
 
@@ -724,13 +726,28 @@ immutable struct AllConstantsLow {
 
 alias ConcreteFunToLowFunIndex = Dict!(ConcreteFun*, LowFunIndex);
 
-immutable struct LowThreadLocalIndex {
+immutable struct LowVarIndex {
 	size_t index;
 }
 
-immutable struct LowThreadLocal {
-	ConcreteFun* source;
+immutable struct LowVar {
+	@safe @nogc pure nothrow:
+
+	ConcreteVar* source;
+	enum Kind {
+		externGlobal,
+		global,
+		threadLocal,
+	}
+	Kind kind;
 	LowType type;
+
+	bool isExtern() scope =>
+		has(externLibraryName);
+	Opt!Sym externLibraryName() scope =>
+		source.source.externLibraryName;
+	Sym name() scope =>
+		source.source.name;
 }
 
 immutable struct LowProgram {
@@ -738,7 +755,7 @@ immutable struct LowProgram {
 
 	ConcreteFunToLowFunIndex concreteFunToLowFunIndex;
 	AllConstantsLow allConstants;
-	FullIndexDict!(LowThreadLocalIndex, LowThreadLocal) threadLocals;
+	FullIndexDict!(LowVarIndex, LowVar) vars;
 	AllLowTypes allTypes;
 	FullIndexDict!(LowFunIndex, LowFun) allFuns;
 	LowFunIndex main;

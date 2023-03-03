@@ -212,12 +212,6 @@ void addFunFlags(ref Alloc alloc, scope ref ArrBuilder!NameAndRepr fields, in Fu
 		case FunFlags.SpecialBody.generated:
 			addFlag!"generated";
 			break;
-		case FunFlags.SpecialBody.global:
-			addFlag!"global";
-			break;
-		case FunFlags.SpecialBody.threadLocal:
-			addFlag!"thread-local";
-			break;
 	}
 }
 
@@ -261,7 +255,7 @@ Repr reprFunBody(ref Alloc alloc, in Ctx ctx, in FunBody a) =>
 		(in EnumFunction it) =>
 			reprRecord!"enum-fn"(alloc, [reprSym(enumFunctionName(it))]),
 		(in FunBody.Extern x) =>
-			reprRecord!"extern"(alloc, [reprBool(x.isGlobal), reprSym(x.libraryName)]),
+			reprRecord!"extern"(alloc, [reprSym(x.libraryName)]),
 		(in FunBody.ExpressionBody x) =>
 			reprExpr(alloc, ctx, x.expr),
 		(in FunBody.FileBytes) =>
@@ -272,8 +266,10 @@ Repr reprFunBody(ref Alloc alloc, in Ctx ctx, in FunBody a) =>
 			reprRecord!"field-get"(alloc, [reprNat(it.fieldIndex)]),
 		(in FunBody.RecordFieldSet it) =>
 			reprRecord!"field-set"(alloc, [reprNat(it.fieldIndex)]),
-		(in FunBody.ThreadLocal) =>
-			reprSym!"thread-local");
+		(in FunBody.VarGet) =>
+			reprSym!"var-get",
+		(in FunBody.VarSet) =>
+			reprSym!"var-set");
 
 Repr reprType(ref Alloc alloc, in Ctx ctx, in Type a) =>
 	a.matchIn!Repr(

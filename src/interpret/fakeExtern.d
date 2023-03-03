@@ -71,9 +71,7 @@ Opt!ExternFunPtrsForAllLibraries getAllFakeExternFuns(
 ) {
 	MutArr!(immutable KeyValuePair!(Sym, Sym)) failures;
 	ExternFunPtrsForAllLibraries res = makeDict!(Sym, ExternFunPtrsForLibrary, ExternLibrary)(
-		alloc,
-		libraries,
-		(scope ref ExternLibrary x) =>
+		alloc, libraries, (in ExternLibrary x) =>
 			immutable KeyValuePair!(Sym, ExternFunPtrsForLibrary)(
 				x.libraryName,
 				fakeExternFunsForLibrary(alloc, failures, allSymbols, x)));
@@ -128,7 +126,7 @@ ExternFunPtrsForLibrary fakeExternFunsForLibrary(
 	in AllSymbols allSymbols,
 	in ExternLibrary lib,
 ) =>
-	makeDict!(Sym, FunPtr, Sym)(alloc, lib.importNames, (ref Sym importName) {
+	makeDict!(Sym, FunPtr, Sym)(alloc, lib.importNames, (in Sym importName) {
 		Opt!FunPtr res = getFakeExternFun(lib.libraryName, importName);
 		if (!has(res))
 			push(alloc, failures, KeyValuePair!(Sym, Sym)(lib.libraryName, importName));

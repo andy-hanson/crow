@@ -32,12 +32,8 @@ f void() noctx, c extern
 
 f void() unsafe, c extern
 
-g nat() c extern, c global
+g global(nat) c extern
 
-g nat() global
+g global(nat)
 
-g nat() c global, noctx
-
-g nat() c global, unsafe
-
-g nat() c global, trusted
+g nat() builtin, c extern

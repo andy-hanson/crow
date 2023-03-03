@@ -10,7 +10,7 @@ import
 	../misc: new, void
 	../number: ==, nat64
 	../option: new, option
-	../pointer: *, by-val, mut-pointer, set-deref
+	../pointer: by-val
 	../string: literal, string
 	../version: is-wasm
 	./alloc:
@@ -25,16 +25,16 @@ import
 		get-sequence, increment-and-get, init, lock, release, thread-safe-counter, uninit, wait-on
 
 get-global-ctx global-ctx() unsafe
-	*global-ctx-var
+	global-ctx-var
 
 # TODO: this should be a global instead
--global-ctx-var global-ctx mut*() thread-local
+-global-ctx-var thread-local(global-ctx)
 
 # This fun is required by the compiler.
 cur-exclusion exclusion() unsafe
-	*cur-exclusion-var
+	cur-exclusion-var
 
--cur-exclusion-var exclusion mut*() thread-local
+-cur-exclusion-var thread-local(exclusion)
 
 global-ctx record mut by-ref
 	global-lock mut lock by-val
@@ -58,11 +58,11 @@ global-ctx record mut by-ref
 get-global-lock lock() unsafe
 	&get-global-ctx.global-lock
 
--thread-id-var nat64 mut*() thread-local
+-thread-id-var thread-local(nat64)
 
 # This is not 'noctx' since a non-crow thread won't have an ID
 cur-thread-id nat64() unsafe
-	*thread-id-var
+	thread-id-var
 
 uninit global-ctx by-val(n-threads nat64) noctx, summon, unsafe
 	q task-queue by-val = n-threads uninit
@@ -144,7 +144,7 @@ add-timed-task void(a global-ctx, time timestamp, exclusion exclusion, action ac
 	&a.may-be-work-to-do broadcast
 
 thread-function void(thread-id nat64, gctx global-ctx) noctx, summon, unsafe
-	*thread-id-var := thread-id
+	thread-id-var := thread-id
 	loop
 		# Get a task to do; or sleep.
 		last-checked = &gctx.may-be-work-to-do get-sequence
@@ -167,7 +167,7 @@ thread-function void(thread-id nat64, gctx global-ctx) noctx, summon, unsafe
 	gctx before-task task.exclusion
 	task.action invoke-action
 	&gctx.tasks-lock acquire
-	gctx.tasks return-task task, *thread-id-var
+	gctx.tasks return-task task, thread-id-var
 	&gctx.tasks-lock release
 	after-task
 
@@ -181,8 +181,8 @@ thread-function void(thread-id nat64, gctx global-ctx) noctx, summon, unsafe
 	&gctx.tasks-lock release
 
 before-task void(gctx global-ctx, exclusion exclusion) noctx, unsafe
-	*global-ctx-var := gctx
-	*cur-exclusion-var := exclusion
+	global-ctx-var := gctx
+	cur-exclusion-var := exclusion
 	&gctx.gc set-gc-ctx-for-thread
 	(&gctx.gc-root).default-log-handler set-log-handler
 
@@ -208,7 +208,7 @@ after-task void() noctx, unsafe
 	res = if &gctx.gc needs-gc
 		gc
 	else
-		match gctx.tasks pop-task cur-time, *thread-id-var
+		match gctx.tasks pop-task cur-time, thread-id-var
 		as task t
 			t task
 		as no-task n

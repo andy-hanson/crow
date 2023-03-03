@@ -112,27 +112,27 @@ GccTypes getGccTypes(
 		mapFullIndexDict_mut!(LowType.FunPtr, MutOpt!(gcc_jit_type*), LowFunPtrType)(
 			alloc,
 			program.allFunPtrTypes,
-			(LowType.FunPtr, ref LowFunPtrType) =>
+			(LowType.FunPtr, in LowFunPtrType) =>
 				noneMut!(gcc_jit_type*)),
 		mapFullIndexDict_mut!(LowType.Record, gcc_jit_struct*, LowRecord)(
 			alloc,
 			program.allRecords,
-			(LowType.Record, scope ref LowRecord record) =>
+			(LowType.Record, in LowRecord record) =>
 				structStub(alloc, ctx, mangledNames, record.source)),
 		mapFullIndexDict_mut!(LowType.Record, immutable gcc_jit_field*[], LowRecord)(
 			alloc,
 			program.allRecords,
-			(LowType.Record, ref LowRecord record) => 
+			(LowType.Record, in LowRecord record) => 
 				typeAs!(immutable gcc_jit_field*[])([])),
 		mapFullIndexDict_mut!(LowType.Union, gcc_jit_struct*, LowUnion)(
 			alloc,
 			program.allUnions,
-			(LowType.Union, ref LowUnion union_) =>
+			(LowType.Union, in LowUnion union_) =>
 				structStub(alloc, ctx, mangledNames, union_.source)),
 		mapFullIndexDict_mut!(LowType.Union, Opt!UnionFields, LowUnion)(
 			alloc,
 			program.allUnions,
-			(LowType.Union, ref LowUnion) =>
+			(LowType.Union, in LowUnion) =>
 				none!UnionFields));
 
 	scope TypeWriters writers = TypeWriters(
@@ -160,7 +160,7 @@ GccTypes getGccTypes(
 		mapFullIndexDict!(LowType.FunPtr, gcc_jit_type*, MutOpt!(gcc_jit_type*))(
 			alloc,
 			fullIndexDictCastImmutable(typesWip.funPtrs),
-			(LowType.FunPtr, scope ref immutable MutOpt!(gcc_jit_type*) a) =>
+			(LowType.FunPtr, in immutable MutOpt!(gcc_jit_type*) a) =>
 				force(a)),
 		fullIndexDictCastImmutable(typesWip.records),
 		fullIndexDictCastImmutable2!(LowType.Record, gcc_jit_field*[])(typesWip.recordFields),
@@ -168,7 +168,7 @@ GccTypes getGccTypes(
 		mapFullIndexDict!(LowType.Union, UnionFields, MutOpt!UnionFields)(
 			alloc,
 			fullIndexDictCastImmutable2(typesWip.unionFields),
-			(LowType.Union, scope ref Opt!UnionFields it) =>
+			(LowType.Union, in Opt!UnionFields it) =>
 				force(it)));
 }
 
@@ -423,7 +423,7 @@ GccExternTypes gccExternTypes(
 	mapFullIndexDict!(LowType.Extern, ExternTypeInfo, LowExternType)(
 		alloc,
 		program.allExternTypes,
-		(LowType.Extern, ref LowExternType extern_) {
+		(LowType.Extern, in LowExternType extern_) {
 			gcc_jit_struct* struct_ = structStub(alloc, ctx, mangledNames, extern_.source);
 			Opt!ElementAndCount ec = getElementAndCountForExtern(typeSize(extern_));
 			Opt!ExternTypeArrayInfo arrayInfo = () {

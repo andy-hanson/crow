@@ -4,7 +4,9 @@ module interpret.bytecode;
 
 import interpret.extern_ : FunPtr;
 import model.lowModel : LowFunIndex;
+import model.model : VarKind;
 import util.col.dict : Dict;
+import util.col.enumDict : EnumDict;
 import util.col.fullIndexDict : FullIndexDict;
 import util.sym : Sym;
 import util.sourceRange : FileIndex, Pos;
@@ -54,7 +56,7 @@ immutable struct ByteCode {
 	FunPtrToOperationPtr funPtrToOperationPtr;
 	FileToFuns fileToFuns; // Look up in 'sources' first, then can find the corresponding function here
 	ubyte[] text;
-	size_t threadLocalsSizeWords;
+	EnumDict!(VarKind, size_t) varsSizeWords;
 	ByteCodeIndex main;
 
 	Operation[] byteCode() =>

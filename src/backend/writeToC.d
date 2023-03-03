@@ -9,7 +9,7 @@ import backend.mangle :
 	writeConstantPointerStorageName,
 	writeLowFunMangledName,
 	writeLowLocalName,
-	writeLowThreadLocalMangledName,
+	writeLowVarMangledName,
 	writeMangledName,
 	writeRecordName,
 	writeStructMangledName;
@@ -24,7 +24,6 @@ import model.lowModel :
 	asPtrGcPointee,
 	debugName,
 	isChar8,
-	isGlobal,
 	isVoid,
 	LowExpr,
 	LowExprKind,
@@ -38,8 +37,8 @@ import model.lowModel :
 	LowPtrCombine,
 	LowProgram,
 	LowRecord,
-	LowThreadLocal,
-	LowThreadLocalIndex,
+	LowVar,
+	LowVarIndex,
 	LowType,
 	LowUnion,
 	PointerTypeAndConstantsLow,
@@ -53,7 +52,7 @@ import util.alloc.alloc : Alloc, TempAlloc;
 import util.col.arr : empty, only, sizeEq;
 import util.col.arrUtil : every, exists, map, zip;
 import util.col.dict : mustGetAt;
-import util.col.fullIndexDict : FullIndexDict, fullIndexDictEach, fullIndexDictEachKey, fullIndexDictEachValue;
+import util.col.fullIndexDict : FullIndexDict, fullIndexDictEach, fullIndexDictEachKey;
 import util.col.stackDict : StackDict, stackDictAdd, stackDictLastAdded, stackDictMustGet;
 import util.col.str : eachChar, SafeCStr;
 import util.opt : force, has, Opt, some;
@@ -97,7 +96,7 @@ SafeCStr writeToC(
 	});
 
 	writeConstants(writer, ctx, program.allConstants);
-	writeThreadLocals(writer, ctx, program.threadLocals);
+	writeVars(writer, ctx, program.vars);
 
 	fullIndexDictEach!(LowFunIndex, LowFun)(
 		program.allFuns,
@@ -161,16 +160,21 @@ void writeConstants(scope ref Writer writer, in Ctx ctx, in AllConstantsLow allC
 	}
 }
 
-void writeThreadLocals(
-	scope ref Writer writer,
-	in Ctx ctx,
-	in FullIndexDict!(LowThreadLocalIndex, LowThreadLocal) threadLocals,
-) {
-	fullIndexDictEachValue!(LowThreadLocalIndex, LowThreadLocal)(threadLocals, (ref LowThreadLocal x) {
-		writer ~= "static _Thread_local ";
-		writeType(writer, ctx, x.type);
+void writeVars(scope ref Writer writer, in Ctx ctx, in FullIndexDict!(LowVarIndex, LowVar) vars) {
+	fullIndexDictEach!(LowVarIndex, LowVar)(vars, (LowVarIndex varIndex, ref LowVar var) {
+		writer ~= () {
+			final switch (var.kind) {
+				case LowVar.Kind.externGlobal:
+					return "extern ";
+				case LowVar.Kind.global:
+					return "static ";
+				case LowVar.Kind.threadLocal:
+					return "static _Thread_local ";
+			}
+		}();
+		writeType(writer, ctx, var.type);
 		writer ~= ' ';
-		writeLowThreadLocalMangledName(writer, ctx.mangledNames, x);
+		writeLowVarMangledName(writer, ctx.mangledNames, varIndex, var);
 		writer ~= ";\n";
 	});
 }
@@ -439,21 +443,19 @@ void writeFunReturnTypeNameAndParams(scope ref Writer writer, in Ctx ctx, LowFun
 		writeType(writer, ctx, fun.returnType);
 	writer ~= ' ';
 	writeLowFunMangledName(writer, ctx.mangledNames, funIndex, fun);
-	if (!isGlobal(fun.body_)) {
-		writer ~= '(';
-		if (every!LowLocal(fun.params, (in LowLocal x) => isVoid(x.type)))
-			writer ~= "void";
-		else
-			writeWithCommas!LowLocal(
-				writer,
-				fun.params,
-				(in LowLocal x) =>
-					!isVoid(x.type),
-				(in LowLocal x) {
-					writeParamDecl(writer, ctx, x);
-				});
-		writer ~= ')';
-	}
+	writer ~= '(';
+	if (every!LowLocal(fun.params, (in LowLocal x) => isVoid(x.type)))
+		writer ~= "void";
+	else
+		writeWithCommas!LowLocal(
+			writer,
+			fun.params,
+			(in LowLocal x) =>
+				!isVoid(x.type),
+			(in LowLocal x) {
+				writeParamDecl(writer, ctx, x);
+			});
+	writer ~= ')';
 }
 
 void writeFunDeclaration(scope ref Writer writer, in Ctx ctx, LowFunIndex funIndex, in LowFun fun) {
@@ -598,7 +600,7 @@ immutable struct WriteKind {
 	// Simple statement, don't return anything
 	immutable struct Void {}
 
-	mixin Union!(Inline, InlineOrTemp, LowLocal*, MakeTemp, Return, UseTemp, Void);
+	mixin Union!(Inline, InlineOrTemp, LowLocal*, LowVarIndex, MakeTemp, Return, UseTemp, Void);
 }
 static assert(WriteKind.sizeof == size_t.sizeof * 3);
 
@@ -789,11 +791,15 @@ WriteExprResult writeExpr(
 			writeTailRecur(writer, indent, ctx, locals, it);
 			return writeExprDone();
 		},
-		(in LowExprKind.ThreadLocalPtr x) =>
+		(in LowExprKind.VarGet x) =>
 			inlineableSimple(() {
-				writer ~= '&';
-				writeLowThreadLocalMangledName(writer, ctx.mangledNames, ctx.program.threadLocals[x.threadLocalIndex]);
-			}));
+				writeLowVarMangledName(writer, ctx.mangledNames, x.varIndex, ctx.program.vars[x.varIndex]);
+			}),
+		(in LowExprKind.VarSet x) {
+			WriteKind varWriteKind = WriteKind(x.varIndex);
+			drop(writeExpr(writer, indent, ctx, locals, varWriteKind, *x.value));
+			return writeReturnVoid(writer, indent, ctx, writeKind);
+		});
 }
 
 WriteExprResult writeNonInlineable(
@@ -821,6 +827,11 @@ WriteExprResult writeNonInlineable(
 			makeTemp(),
 		(in LowLocal x) {
 			writeLowLocalName(writer, ctx.mangledNames, x);
+			writer ~= " = ";
+			return writeExprDone();
+		},
+		(in LowVarIndex x) {
+			writeLowVarMangledName(writer, ctx.mangledNames, x, ctx.program.vars[x]);
 			writer ~= " = ";
 			return writeExprDone();
 		},
@@ -918,6 +929,8 @@ WriteExprResult writeReturnVoid(
 			unreachable!WriteExprResult,
 		(in LowLocal) =>
 			unreachable!WriteExprResult,
+		(in LowVarIndex) =>
+			unreachable!WriteExprResult,
 		(in WriteKind.MakeTemp) =>
 			unreachable!WriteExprResult,
 		(in WriteKind.Return) {
@@ -952,13 +965,10 @@ WriteExprResult writeCallExpr(
 ) {
 	WriteExprResult[] args = writeExprsTempOrInline(writer, indent, ctx, locals, a.args);
 	return writeNonInlineable(writer, indent, ctx, writeKind, type, () {
-		LowFun* called = &ctx.program.allFuns[a.called];
-		writeLowFunMangledName(writer, ctx.mangledNames, a.called, *called);
-		if (!isGlobal(called.body_)) {
-			writer ~= '(';
-			writeTempOrInlines(writer, ctx, locals, a.args, args);
-			writer ~= ')';
-		}
+		writeLowFunMangledName(writer, ctx.mangledNames, a.called, ctx.program.allFuns[a.called]);
+		writer ~= '(';
+		writeTempOrInlines(writer, ctx, locals, a.args, args);
+		writer ~= ')';
 	});
 }
 

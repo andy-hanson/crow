@@ -33,6 +33,7 @@ import model.model :
 	TypeParam,
 	typeParams,
 	UnionMember,
+	VarDecl,
 	Visibility,
 	visibility;
 import util.alloc.alloc : Alloc;
@@ -45,30 +46,35 @@ import util.opt : force, has, none, Opt, some;
 import util.sourceRange : fileAndPosFromFileAndRange, FileAndRange;
 import util.sym : prependSet, Sym, sym;
 
-size_t countFunsForStruct(in StructDecl[] structs) =>
-	sum!StructDecl(structs, (in StructDecl s) =>
-		body_(s).matchIn!size_t(
-			(in StructBody.Bogus) =>
-				0,
-			(in StructBody.Builtin) =>
-				0,
-			(in StructBody.Enum it) =>
-				// '==', 'to', 'enum-members', and a constructor for each member
-				3 + it.members.length,
-			(in StructBody.Extern x) =>
-				size_t(has(x.size) ? 1 : 0),
-			(in StructBody.Flags it) =>
-				// '()', 'all', '==', '~', '|', '&', 'to', 'flags-members',
-				// and a constructor for each member
-				8 + it.members.length,
-			(in StructBody.Record it) {
-				size_t nConstructors = recordIsAlwaysByVal(it) ? 1 : 2;
-				size_t nMutableFields = count!RecordField(it.fields, (in RecordField field) =>
-					field.mutability != FieldMutability.const_);
-				return nConstructors + it.fields.length + nMutableFields;
-			},
-			(in StructBody.Union it) =>
-				it.members.length));
+size_t countFunsForStructs(in StructDecl[] structs) =>
+	sum!StructDecl(structs, (in StructDecl x) => countFunsForStruct(x));
+
+private size_t countFunsForStruct(in StructDecl a) =>
+	body_(a).matchIn!size_t(
+		(in StructBody.Bogus) =>
+			0,
+		(in StructBody.Builtin) =>
+			0,
+		(in StructBody.Enum it) =>
+			// '==', 'to', 'enum-members', and a constructor for each member
+			3 + it.members.length,
+		(in StructBody.Extern x) =>
+			size_t(has(x.size) ? 1 : 0),
+		(in StructBody.Flags it) =>
+			// '()', 'all', '==', '~', '|', '&', 'to', 'flags-members',
+			// and a constructor for each member
+			8 + it.members.length,
+		(in StructBody.Record it) {
+			size_t nConstructors = recordIsAlwaysByVal(it) ? 1 : 2;
+			size_t nMutableFields = count!RecordField(it.fields, (in RecordField field) =>
+				field.mutability != FieldMutability.const_);
+			return nConstructors + it.fields.length + nMutableFields;
+		},
+		(in StructBody.Union it) =>
+			it.members.length);
+
+size_t countFunsForVars(in VarDecl[] vars) =>
+	vars.length * 2;
 
 void addFunsForStruct(
 	ref CheckCtx ctx,
@@ -96,6 +102,36 @@ void addFunsForStruct(
 		(StructBody.Union it) {
 			addFunsForUnion(ctx, funsBuilder, commonTypes, struct_, it);
 		});
+}
+
+void addFunsForVar(
+	ref CheckCtx ctx,
+	ref ExactSizeArrBuilder!FunDecl funsBuilder,
+	ref CommonTypes commonTypes,
+	VarDecl* var,
+) {
+	exactSizeArrBuilderAdd(funsBuilder, FunDecl(
+		safeCStr!"",
+		var.visibility,
+		var.pos,
+		var.name,
+		[],
+		var.type,
+		Params([]),
+		FunFlags.generatedNoCtxUnsafe,
+		[],
+		FunBody(FunBody.VarGet(var))));
+	exactSizeArrBuilderAdd(funsBuilder, FunDecl(
+		safeCStr!"",
+		var.visibility,
+		var.pos,
+		prependSet(ctx.allSymbols, var.name),
+		[],
+		Type(commonTypes.void_),
+		makeParams(ctx.alloc, var.range, [param!"a"(var.type)]),
+		FunFlags.generatedNoCtxUnsafe,
+		[],
+		FunBody(FunBody.VarSet(var))));
 }
 
 private:

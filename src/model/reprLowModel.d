@@ -246,9 +246,12 @@ Repr reprOfLowExprKind(ref Alloc alloc, in LowExprKind a) =>
 						reprOfLowLocalSource(alloc, updateParam.param.source),
 						reprOfLowExpr(alloc, updateParam.newValue),
 					]))]),
-		(in LowExprKind.ThreadLocalPtr it) =>
-			reprRecord!"thread-local"(alloc, [
-				reprNat(it.threadLocalIndex.index)]));
+		(in LowExprKind.VarGet x) =>
+			reprRecord!"var-get"(alloc, [reprNat(x.varIndex.index)]),
+		(in LowExprKind.VarSet x) =>
+			reprRecord!"var-set"(alloc, [
+				reprNat(x.varIndex.index),
+				reprOfLowExpr(alloc, *x.value)]));
 
 Repr reprOfMatchUnion(ref Alloc alloc, in LowExprKind.MatchUnion a) =>
 	reprRecord!"match"(alloc, [

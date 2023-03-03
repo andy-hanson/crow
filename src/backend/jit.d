@@ -91,13 +91,12 @@ import backend.mangle :
 	writeConstantPointerStorageName,
 	writeLowLocalName,
 	writeLowFunMangledName,
-	writeLowThreadLocalMangledName;
+	writeLowVarMangledName;
 import frontend.lang : JitOptions, OptimizationLevel;
 import model.constant : Constant, constantBool;
 import model.lowModel :
 	ArrTypeAndConstantsLow,
 	ExternLibrary,
-	isGlobal,
 	LowExpr,
 	LowExprKind,
 	LowField,
@@ -108,8 +107,8 @@ import model.lowModel :
 	LowLocal,
 	LowProgram,
 	LowPtrCombine,
-	LowThreadLocal,
-	LowThreadLocalIndex,
+	LowVar,
+	LowVarIndex,
 	LowType,
 	lowTypeEqualCombinePtr,
 	name,
@@ -243,8 +242,7 @@ void buildGccProgram(ref Alloc alloc, ref gcc_jit_context ctx, in AllSymbols all
 	generateAssertFieldOffsetsFunction(alloc, ctx, program, gccTypes);
 
 	GlobalsForConstants globalsForConstants = generateGlobalsForConstants(alloc, ctx, program, gccTypes, mangledNames);
-	GlobalsForThreadLocals globalsForThreadLocals =
-		generateGlobalsForThreadLocals(alloc, ctx, program, gccTypes, mangledNames);
+	GccVars gccVars = generateGccVars(alloc, ctx, program, gccTypes, mangledNames);
 
 	immutable gcc_jit_type* crowVoidType = getGccType(gccTypes, LowType(PrimitiveType.void_));
 	gcc_jit_rvalue* globalVoid = gcc_jit_lvalue_as_rvalue(
@@ -260,7 +258,7 @@ void buildGccProgram(ref Alloc alloc, ref gcc_jit_context ctx, in AllSymbols all
 		mapFullIndexDict_mut!(LowFunIndex, gcc_jit_function*, LowFun)(
 			alloc,
 			program.allFuns,
-			(LowFunIndex funIndex, scope ref LowFun fun) =>
+			(LowFunIndex funIndex, in LowFun fun) =>
 				toGccFunctionSignature(alloc, ctx, program, mangledNames, gccTypes, funIndex, fun));
 
 	immutable gcc_jit_type* nat64Type = getGccType(gccTypes, LowType(PrimitiveType.nat64));
@@ -294,7 +292,7 @@ void buildGccProgram(ref Alloc alloc, ref gcc_jit_context ctx, in AllSymbols all
 					ptrTrustMe(mangledNames),
 					ptrTrustMe(gccTypes),
 					ptrTrustMe(globalsForConstants),
-					ptrTrustMe(globalsForThreadLocals),
+					ptrTrustMe(gccVars),
 					gccFuns,
 					curFun,
 					fun.returnType,
@@ -459,25 +457,36 @@ GlobalsForConstants generateGlobalsForConstants(
 	return GlobalsForConstants(arrGlobals, ptrGlobals);
 }
 
-alias GlobalsForThreadLocals = FullIndexDict!(LowThreadLocalIndex, gcc_jit_lvalue*);
+alias GccVars = FullIndexDict!(LowVarIndex, gcc_jit_lvalue*);
 
-GlobalsForThreadLocals generateGlobalsForThreadLocals(
+GccVars generateGccVars(
 	ref Alloc alloc,
 	ref gcc_jit_context ctx,
 	in LowProgram program,
 	in GccTypes types,
 	in MangledNames mangledNames,
 ) =>
-	mapFullIndexDict_mut!(LowThreadLocalIndex, gcc_jit_lvalue*, LowThreadLocal)(
-		alloc, program.threadLocals, (LowThreadLocalIndex _, scope ref LowThreadLocal x) {
-			immutable gcc_jit_type* type = getGccType(types, x.type);
+	mapFullIndexDict_mut!(LowVarIndex, gcc_jit_lvalue*, LowVar)(
+		alloc, program.vars, (LowVarIndex varIndex, in LowVar var) {
+			immutable gcc_jit_type* type = getGccType(types, var.type);
 			//TODO:NO ALLOC
 			Writer writer = Writer(ptrTrustMe(alloc));
-			writeLowThreadLocalMangledName(writer, mangledNames, x);
+			writeLowVarMangledName(writer, mangledNames, varIndex, var);
 			CStr name = finishWriterToCStr(writer);
-			gcc_jit_lvalue* res =
-				gcc_jit_context_new_global(ctx, null, gcc_jit_global_kind.GCC_JIT_GLOBAL_INTERNAL, type, name);
-			gcc_jit_lvalue_set_tls_model(res, gcc_jit_tls_model.GCC_JIT_TLS_MODEL_LOCAL_DYNAMIC);
+			gcc_jit_lvalue* res = gcc_jit_context_new_global(
+				ctx, null,
+				var.isExtern
+					? gcc_jit_global_kind.GCC_JIT_GLOBAL_IMPORTED
+					: gcc_jit_global_kind.GCC_JIT_GLOBAL_INTERNAL,
+				type, name);
+			final switch (var.kind) {
+				case LowVar.Kind.externGlobal:
+				case LowVar.Kind.global:
+					break;
+				case LowVar.Kind.threadLocal:
+					gcc_jit_lvalue_set_tls_model(res, gcc_jit_tls_model.GCC_JIT_TLS_MODEL_LOCAL_DYNAMIC);	
+					break;
+			}
 			return castNonScope(res);
 		});
 
@@ -492,9 +501,7 @@ GlobalsForThreadLocals generateGlobalsForThreadLocals(
 ) {
 	gcc_jit_function_kind kind = fun.body_.matchIn!gcc_jit_function_kind(
 		(in LowFunBody.Extern x) =>
-			x.isGlobal
-				? gcc_jit_function_kind.GCC_JIT_FUNCTION_INTERNAL
-				: gcc_jit_function_kind.GCC_JIT_FUNCTION_IMPORTED,
+			gcc_jit_function_kind.GCC_JIT_FUNCTION_IMPORTED,
 		(in LowFunExprBody _) =>
 			// TODO: A GCC bug breaks functions that return more than 16 bytes.
 			funIndex == program.main || typeSizeBytes(program, fun.returnType) > 16
@@ -512,32 +519,8 @@ GlobalsForThreadLocals generateGlobalsForThreadLocals(
 	//TODO:NO ALLOC
 	Writer writer = Writer(ptrTrustMe(alloc));
 	writeLowFunMangledName(writer, mangledNames, funIndex, fun);
-	if (isGlobal(fun.body_))
-		// The function name needs to be different from the global name, else libgccjit gets confused.
-		writer ~= "__getter";
 	CStr name = finishWriterToCStr(writer);
-	gcc_jit_function* res =
-		gcc_jit_context_new_function(ctx, null, kind, returnType, name, cast(int) params.length, params.ptr, false);
-
-	fun.body_.matchIn!void(
-		(in LowFunBody.Extern it) {
-			if (it.isGlobal) {
-				Writer globalWriter = Writer(ptrTrustMe(alloc));
-				writeLowFunMangledName(globalWriter, mangledNames, funIndex, fun);
-				CStr globalName = finishWriterToCStr(globalWriter);
-				gcc_jit_lvalue* global = gcc_jit_context_new_global(
-					ctx,
-					null,
-					gcc_jit_global_kind.GCC_JIT_GLOBAL_IMPORTED,
-					returnType,
-					globalName);
-				gcc_jit_block* block = gcc_jit_function_new_block(res, null);
-				gcc_jit_block_end_with_return(block, null, gcc_jit_lvalue_as_rvalue(global));
-			}
-		},
-		(in LowFunExprBody _) {});
-
-	return res;
+	return gcc_jit_context_new_function(ctx, null, kind, returnType, name, cast(int) params.length, params.ptr, false);
 }
 
 struct ExprEmit {
@@ -790,7 +773,7 @@ struct ExprCtx {
 	const MangledNames* mangledNamesPtr;
 	immutable GccTypes* typesPtr;
 	GlobalsForConstants* globalsForConstantsPtr;
-	GlobalsForThreadLocals* GlobalsForThreadLocalsPtr;
+	GccVars* gccVarsPtr;
 	FullIndexDict!(LowFunIndex, gcc_jit_function*) gccFuns;
 	gcc_jit_function* curFun;
 	LowType curFunReturnType;
@@ -818,8 +801,8 @@ struct ExprCtx {
 	ref GlobalsForConstants globalsForConstants() return scope =>
 		*globalsForConstantsPtr;
 
-	ref GlobalsForThreadLocals globalsForThreadLocals() return scope =>
-		*GlobalsForThreadLocalsPtr;
+	ref GccVars gccVars() return scope =>
+		*gccVarsPtr;
 
 	ref gcc_jit_context gcc() return scope =>
 		*gccPtr;
@@ -881,8 +864,10 @@ ExprResult toGccExpr(ref ExprCtx ctx, ref Locals locals, ref ExprEmit emit, in L
 			todo!ExprResult("!"),
 		(in LowExprKind.TailRecur it) =>
 			tailRecurToGcc(ctx, locals, emit, it),
-		(in LowExprKind.ThreadLocalPtr it) =>
-			threadLocalPtrToGcc(ctx, locals, emit, it));
+		(in LowExprKind.VarGet x) =>
+			varGetToGcc(ctx, locals, emit, x),
+		(in LowExprKind.VarSet x) =>
+			varSetToGcc(ctx, locals, emit, x));
 
 gcc_jit_rvalue* emitToRValueCb(
 	in ExprResult delegate(ref ExprEmit) @safe @nogc pure nothrow cbEmit,
@@ -973,14 +958,12 @@ void emitToLValue(ref ExprCtx ctx, ref Locals locals, gcc_jit_lvalue* lvalue, in
 	return ExprResult(ExprResult.BreakContinueOrReturn());
 }
 
-ExprResult threadLocalPtrToGcc(
-	ref ExprCtx ctx,
-	ref Locals locals,
-	ref ExprEmit emit,
-	in LowExprKind.ThreadLocalPtr a,
-) {
-	gcc_jit_lvalue* var = ctx.globalsForThreadLocals[a.threadLocalIndex];
-	return emitSimpleNoSideEffects(ctx, emit, gcc_jit_lvalue_get_address(var, null));
+ExprResult varGetToGcc(ref ExprCtx ctx, ref Locals locals, ref ExprEmit emit, in LowExprKind.VarGet a) {
+	return emitSimpleNoSideEffects(ctx, emit, gcc_jit_lvalue_as_rvalue(ctx.gccVars[a.varIndex]));
+}
+ExprResult varSetToGcc(ref ExprCtx ctx, ref Locals locals, ref ExprEmit emit, in LowExprKind.VarSet a) {
+	emitToLValue(ctx, locals, ctx.gccVars[a.varIndex], *a.value);
+	return emitVoid(ctx, emit);
 }
 
 ExprResult emitRecordCb(

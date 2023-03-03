@@ -152,13 +152,6 @@ immutable struct Arity {
 	mixin Union!(size_t, Varargs);
 }
 
-bool arityIsNonZero(Arity a) =>
-	a.match!bool(
-		(size_t size) =>
-			size != 0,
-		(Arity.Varargs) =>
-			true);
-
 bool arityMatches(Arity sigArity, size_t nArgs) =>
 	sigArity.match!bool(
 		(size_t nParams) =>
@@ -556,6 +549,8 @@ Sym flagsFunctionName(FlagsFunction a) {
 	}
 }
 
+enum VarKind { global, threadLocal }
+
 immutable struct FunBody {
 	immutable struct Bogus {}
 	immutable struct Builtin {}
@@ -571,7 +566,6 @@ immutable struct FunBody {
 		Expr expr;
 	}
 	immutable struct Extern {
-		bool isGlobal;
 		Sym libraryName;
 	}
 	immutable struct FileBytes {
@@ -583,7 +577,8 @@ immutable struct FunBody {
 	immutable struct RecordFieldSet {
 		size_t fieldIndex;
 	}
-	immutable struct ThreadLocal {}
+	immutable struct VarGet { VarDecl* var; }
+	immutable struct VarSet { VarDecl* var; }
 
 	mixin Union!(
 		Bogus,
@@ -599,7 +594,8 @@ immutable struct FunBody {
 		FlagsFunction,
 		RecordFieldGet,
 		RecordFieldSet,
-		ThreadLocal);
+		VarGet,
+		VarSet);
 }
 
 immutable struct FunFlags {
@@ -611,7 +607,7 @@ immutable struct FunFlags {
 	Safety safety;
 	bool preferred;
 	bool okIfUnused;
-	enum SpecialBody : ubyte { none, builtin, extern_, generated, global, threadLocal }
+	enum SpecialBody : ubyte { none, builtin, extern_, generated }
 	SpecialBody specialBody;
 	bool forceCtx;
 
@@ -959,6 +955,22 @@ Sym name(ref StructOrAlias a) =>
 		(ref StructAlias x) => x.name,
 		(ref StructDecl x) => x.name);
 
+// No VarInst since these can't be templates
+immutable struct VarDecl {
+	@safe @nogc pure nothrow:
+
+	FileAndPos pos;
+	SafeCStr docComment;
+	Visibility visibility;
+	Sym name;
+	VarKind kind;
+	Type type;
+	Opt!Sym externLibraryName;
+
+	FileAndRange range() scope =>
+		fileAndRangeFromFileAndPos(pos);
+}
+
 immutable struct Module {
 	@safe @nogc pure nothrow:
 
@@ -967,6 +979,7 @@ immutable struct Module {
 	ImportOrExport[] imports; // includes import of std (if applicable)
 	ImportOrExport[] reExports;
 	StructDecl[] structs;
+	VarDecl[] vars;
 	SpecDecl[] specs;
 	FunDecl[] funs;
 	Test[] tests;

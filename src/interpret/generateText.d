@@ -12,16 +12,18 @@ import model.lowModel :
 	LowFunIndex,
 	LowProgram,
 	LowRecord,
-	LowThreadLocal,
-	LowThreadLocalIndex,
+	LowVar,
+	LowVarIndex,
 	LowType,
 	PointerTypeAndConstantsLow,
 	PrimitiveType;
+import model.model : VarKind;
 import model.typeLayout : nStackEntriesForType, typeSizeBytes;
 import util.alloc.alloc : Alloc, TempAlloc;
 import util.col.arr : castImmutable, empty;
 import util.col.arrUtil : map, mapToMut, sum, zip;
 import util.col.dict : mustGetAt;
+import util.col.enumDict : EnumDict;
 import util.col.exactSizeArrBuilder :
 	exactSizeArrBuilderAdd,
 	add0Bytes,
@@ -41,24 +43,33 @@ import util.conv : bitsOfFloat32, bitsOfFloat64;
 import util.ptr : castNonScope, ptrTrustMe;
 import util.util : todo, unreachable, verify;
 
-immutable struct ThreadLocalsInfo {
-	// Thread locals can't take up a fraction of a word
-	FullIndexDict!(LowThreadLocalIndex, size_t) offsetsInWords;
-	size_t totalSizeWords;
+immutable struct VarsInfo {
+	// Thread-locals and globals offsets are in different buffers.
+	// Vars can't take up a fraction of a word.
+	FullIndexDict!(LowVarIndex, size_t) offsetsInWords;
+	EnumDict!(VarKind, size_t) totalSizeWords;
 }
 
-ThreadLocalsInfo generateThreadLocalsInfo(ref Alloc alloc, in LowProgram program) {
-	size_t curWord = 0;
-	immutable FullIndexDict!(LowThreadLocalIndex, size_t) offsetsInWords =
-		mapFullIndexDict!(LowThreadLocalIndex, size_t, LowThreadLocal)(
-			alloc,
-			program.threadLocals,
-			(LowThreadLocalIndex _, ref LowThreadLocal x) {
-				size_t res = curWord;
-				curWord += nStackEntriesForType(program, x.type);
+VarsInfo generateVarsInfo(ref Alloc alloc, in LowProgram program) {
+	EnumDict!(VarKind, size_t) curWords;
+	immutable FullIndexDict!(LowVarIndex, size_t) offsetsInWords =
+		mapFullIndexDict!(LowVarIndex, size_t, LowVar)(alloc, program.vars, (LowVarIndex _, in LowVar x) {
+			size_t handle(VarKind kind) {
+				size_t res = curWords[kind];
+				curWords[kind] += nStackEntriesForType(program, x.type);
 				return res;
-			});
-	return ThreadLocalsInfo(offsetsInWords, curWord);
+			}
+			final switch (x.kind) {
+				case LowVar.Kind.externGlobal:
+					// See 'writeVarPtr' -- we don't use VarsInfo for these
+					return size_t.max;
+				case LowVar.Kind.global:
+					return handle(VarKind.global);
+				case LowVar.Kind.threadLocal:
+					return handle(VarKind.threadLocal);
+			}
+		});
+	return VarsInfo(offsetsInWords, curWords);
 }
 
 immutable struct TextIndex {

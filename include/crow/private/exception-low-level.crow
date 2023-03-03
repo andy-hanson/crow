@@ -4,7 +4,7 @@ import
 	../fun-util: subscript
 	../misc: new, void
 	../number: ==, int32, nat64
-	../pointer: *, ==, mut-pointer, null, set-deref, zeroed
+	../pointer: ==, null, zeroed
 	../version: is-interpreted, is-windows
 	./alloc: try-get-cur-gc-ctx
 	./backtrace: get-backtrace
@@ -12,8 +12,8 @@ import
 export
 	./bootstrap: exception, message
 
--cur-jmp-buf jmp_buf mut*() thread-local
--cur-thrown exception mut*() thread-local
+-cur-jmp-buf thread-local(jmp_buf)
+-cur-thrown thread-local(exception)
 
 ###
 Fail unconditionally.
@@ -31,7 +31,7 @@ Run `try` and return what it returns, or return the result of `catcher` if `try`
 ###
 +catch[t] t(try act t(), catcher act t(exception))
 	trusted
-		old-jmp-buf = *cur-jmp-buf
+		old-jmp-buf = cur-jmp-buf
 		store mut __jmp_buf_tag = ()
 		setjmp-result = if is-interpreted
 			&store setjmp
@@ -41,17 +41,17 @@ Run `try` and return what it returns, or return the result of `catcher` if `try`
 			&store setjmp
 		if setjmp-result == 0
 			# Get here after setting the jump
-			*cur-jmp-buf := &store
+			cur-jmp-buf := &store
 			# If it throws, we'll go to the above branch.
 			res = try[]
-			*cur-jmp-buf := old-jmp-buf
+			cur-jmp-buf := old-jmp-buf
 			res
 		else
 			# Get here after throwing from inside `try[]`
 			setjmp-result == number-to-throw hard-assert
-			thrown = *cur-thrown
-			*cur-thrown := zeroed
-			*cur-jmp-buf := old-jmp-buf
+			thrown = cur-thrown
+			cur-thrown := zeroed
+			cur-jmp-buf := old-jmp-buf
 			catcher[thrown]
 
 ###
@@ -83,11 +83,11 @@ Throwing an exception does not modify its backtrace.
 ###
 +rethrow[t] t(e exception) noctx
 	trusted
-		jmp-buf = *cur-jmp-buf
+		jmp-buf = cur-jmp-buf
 		if jmp-buf == null
 			abort
 		else
-			*cur-thrown := e 
+			cur-thrown := e 
 			jmp-buf longjmp number-to-throw
 		# unreachable
 		zeroed

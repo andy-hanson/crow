@@ -46,12 +46,19 @@ Dict!(immutable K, immutable V) zipToDict(K, V, X, Y)(
 
 Dict!(K, V) makeDict(K, V, T)(
 	ref Alloc alloc,
-	in immutable T[] inputs,
-	in immutable(KeyValuePair!(K, V)) delegate(scope ref immutable T) @safe @nogc pure nothrow getPair,
+	in T[] inputs,
+	in immutable(KeyValuePair!(K, V)) delegate(in T) @safe @nogc pure nothrow getPair,
+) =>
+	makeDictWithIndex!(K, V, T)(alloc, inputs, (size_t _, in T x) => getPair(x));
+
+Dict!(K, V) makeDictWithIndex(K, V, T)(
+	ref Alloc alloc,
+	in T[] inputs,
+	in immutable(KeyValuePair!(K, V)) delegate(size_t, in T) @safe @nogc pure nothrow getPair,
 ) {
 	MutDict!(immutable K, immutable V) res;
-	foreach (ref immutable T input; inputs) {
-		immutable KeyValuePair!(K, V) pair = getPair(input);
+	foreach (size_t i, ref const T input; inputs) {
+		immutable KeyValuePair!(K, V) pair = getPair(i, input);
 		addToMutDict!(immutable K, immutable V)(alloc, res, pair.key, pair.value);
 	}
 	return moveToDict!(K, V)(alloc, res);
@@ -62,7 +69,7 @@ Dict!(K, V) makeDictFromKeys(K, V)(
 	scope immutable K[] keys,
 	in immutable(V) delegate(immutable K) @safe @nogc pure nothrow getValue,
 ) =>
-	makeDict!(K, V, K)(alloc, keys, (scope ref immutable K key) =>
+	makeDict!(K, V, K)(alloc, keys, (in K key) =>
 		immutable KeyValuePair!(K, V)(key, getValue(key)));
 
 @trusted immutable(V) mustGetAt(K, V)(Dict!(K, V) a, in K key) =>

@@ -1,14 +1,18 @@
 import
+	crow/io/file: write-file
 	crow/io/print: out, print
 
 main nat^(_ string[]) summon
 	trusted
 		results nat[] <- for x : 0 .. 100 parallel
-			*foo := x
-			*foo +:= 1
-			*foo,
+			foo := x
+			foo +:= 1
+			# This gives 'foo' time to change before returning,
+			# which would reliably cause the test to fail if 'foo' were global
+			"/dev/null" write-file "{x}"
+			foo,
 		results is for x : 1 .. 101; x
 		out print "{results[99]}"
 		()
 
-foo nat64 mut*() thread-local
+foo thread-local(nat64)
