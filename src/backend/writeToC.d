@@ -1225,18 +1225,24 @@ void writeConstantRef(
 				writer ~= ')';
 		},
 		(in Constant.Integral it) {
-			if (isSignedIntegral(type.as!PrimitiveType)) {
+			PrimitiveType primitive = type.as!PrimitiveType;
+			if (isSignedIntegral(primitive)) {
 				if (it.value == int.min)
 					writer ~= "INT32_MIN";
 				else if (it.value == long.min)
 					// Can't write this as a literal since the '-' and rest are parsed separately,
 					// and the abs of the minimum integer is out of range.
 					writer ~= "INT64_MIN";
-				else
+				else {
 					writer ~= it.value;
+					if (primitive == PrimitiveType.int64)
+						writer ~= 'l';
+				}
 			} else {
 				writer ~= cast(ulong) it.value;
 				writer ~= 'u';
+				if (primitive == PrimitiveType.nat64)
+					writer ~= 'l';
 			}
 		},
 		(in Constant.Pointer it) {
