@@ -8,8 +8,8 @@ import
 	../number: ==, <=>, +, -, *, nat64
 	../option: new, option
 	../pointer:
-		+, -, as-any-const-pointer, as-any-mut-pointer, as-const, by-val, mut-pointer,
-		reference-equal, set-deref, set-subscript, size-of, subscript, zeroed
+		+, -, as-const, by-val, mut-pointer, pointer-cast, reference-equal, set-deref,
+		set-subscript, size-of, subscript, zeroed
 	../private/alloc:
 		alloc-uninitialized, copy-data-from, set-zero-range, unmanaged-alloc-zeroed-elements
 	../private/number-low-level: round-up-to-power-of-two
@@ -147,8 +147,8 @@ temp-as-array[t] t array(a t mut[]) noctx, unsafe
 	assert begin + size <= a.size : "range out of bounds"
 	trusted
 		res t mut* = size alloc-uninitialized
-		src = a.begin-pointer + begin
-		_ = res.as-any-mut-pointer memcpy src.as-any-const-pointer, size * size-of@t
+		src = a.begin-pointer + begin as-const
+		_ = res.pointer-cast memcpy src.pointer-cast, size * size-of@t
 		res.as-const[0 .. size]
 
 ###
@@ -160,10 +160,9 @@ Throws if `n > a.size`.
 	assert n <= a.size : "can't pop more than size of array"
 	res = a copy-range-to-array 0, n
 	trusted
-		dest = a.begin-pointer as-any-mut-pointer
-		src = a.begin-pointer + n as-any-const-pointer
+		src = a.begin-pointer + n as-const
 		new-size = a.size - n
-		_ = dest memmove src, new-size * size-of@t
+		_ = a.begin-pointer.pointer-cast memmove src.pointer-cast, new-size * size-of@t
 		a.size := new-size
 	res to
 
@@ -286,9 +285,9 @@ Throws if `index > a.size`.
 	trusted
 		a incr-capacity
 		dest = a.begin-pointer + index + 1
-		src = a.begin-pointer + index
+		src = a.begin-pointer + index as-const
 		n = a.size - index
-		_ = dest.as-any-mut-pointer memmove src.as-any-const-pointer, n * size-of@t
+		_ = dest.pointer-cast memmove src.pointer-cast, n * size-of@t
 		a.size +:= 1
 		a[index] := value
 		assert a.size <= a.capacity
@@ -305,9 +304,9 @@ Throws if `index >= a.size`.
 	res = a[index]
 	trusted
 		dest = a.begin-pointer + index
-		src = a.begin-pointer + index + 1
+		src = a.begin-pointer + index + 1 as-const
 		n = a.size - index - 1
-		_ = dest.as-any-mut-pointer memmove src.as-any-const-pointer, n * size-of@t
+		_ = dest.pointer-cast memmove src.pointer-cast, n * size-of@t
 		a.size -:= 1
 	res
 

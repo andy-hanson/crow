@@ -41,13 +41,13 @@ import
 +iterate bool(a db-query, f act bool(string[symbol])) summon
 	trusted
 		error-message mut c-string = null
-		ctx callback-ctx = f,
-		ctx-ptr = (&ctx)::callback-ctx* as-any-mut-pointer
-		err = a.db.raw sqlite3_exec a.query.to, &callback, ctx-ptr, &error-message
+		ctx mut callback-ctx = f,
+		ctx-ptr callback-ctx mut* = &ctx
+		err = a.db.raw sqlite3_exec a.query.to, &callback, ctx-ptr.pointer-cast, &error-message
 		# TODO: if err == SQLITE_ABORT, callback returned non-0
 		if err != SQLITE_OK
 			error-string string = error-message to
-			error-message.as-any-mut-pointer sqlite3_free
+			error-message.as-mut.pointer-cast sqlite3_free
 			throw "ERROR {err}: {error-string}"
 
 -callback-ctx record by-val mut

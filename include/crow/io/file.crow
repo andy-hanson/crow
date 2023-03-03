@@ -28,7 +28,7 @@ import
 	../number: ==, <=>, nat8, nat64, to
 	../option: ??, is-empty, new, option
 	../private/bootstrap: todo
-	../pointer: ==, as-any-const-pointer, as-const, mut-pointer, null, pointer-cast, size-of
+	../pointer: ==, as-const, mut-pointer, null, pointer-cast, size-of
 	../range: ..
 	../string:
 		==, <=>, ~~, as-string, char8, c-string, literal, string, to, to-bytes
@@ -222,7 +222,7 @@ If the file already exists, overwrites it.
 
 -write-file void(path c-string, content string) summon, unsafe
 	fd = path fopen "wb"
-	forbid fd.as-any-const-pointer == null : "failed to open file for write: {path}"
+	forbid fd == null : "failed to open file for write: {path}"
 	with : (() => fd close-fd path) finally
 		fd write-fd path, content.to-bytes
 
@@ -245,7 +245,7 @@ Will still throw on other errors, like permission errors.
 -try-read-file nat8[]?(path c-string) summon, unsafe
 	if path is-file
 		fd = path fopen "rb"
-		if fd.as-any-const-pointer == null
+		if fd == null
 			unless errno == ENOENT
 				err print "failed to open file {path}"
 				todo

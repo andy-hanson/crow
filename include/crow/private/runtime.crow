@@ -13,8 +13,7 @@ import
 	../pointer: by-val
 	../string: literal, string
 	../version: is-wasm
-	./alloc:
-		gc, init, needs-gc, return-gc-ctx, run-garbage-collection, set-gc-ctx-for-thread, uninit
+	./alloc: gc, init, needs-gc, mutator-begin, mutator-end, run-garbage-collection, uninit
 	./bootstrap: hard-assert, new, symbol
 	./task-queue:
 		action, add-task, add-tasks, add-timed-task, any-tasks, exclusion, first-task-time, init,
@@ -183,11 +182,11 @@ thread-function void(thread-id nat64, gctx global-ctx) noctx, summon, unsafe
 before-task void(gctx global-ctx, exclusion exclusion) noctx, unsafe
 	global-ctx-var := gctx
 	cur-exclusion-var := exclusion
-	&gctx.gc set-gc-ctx-for-thread
+	&gctx.gc mutator-begin
 	(&gctx.gc-root).default-log-handler set-log-handler
 
 after-task void() noctx, unsafe
-	return-gc-ctx
+	mutator-end
 
 -choose-task-result union mut
 	task task

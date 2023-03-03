@@ -116,6 +116,7 @@ At a low level, this is just an identity function; it just changes the type.
 	a.as-mut.pointer-cast as-const
 +pointer-cast[out, in] out mut*(a in mut*) builtin, noctx, unsafe
 
+# TODO:KILL
 ref-cast[out, in] out(a in) noctx, unsafe
 	a.as-any-mut-pointer as-ref
 
@@ -141,21 +142,14 @@ as-any-const-pointer[t] any-const-pointer(reference t) noctx, unsafe
 	reference.as-any-mut-pointer.as-const
 # TODO: this could just use pointer-cast? Doesn't need to be builtin?
 as-any-mut-pointer[t] any-mut-pointer(reference t) builtin, noctx, unsafe
-# TODO: this function only works for by-ref types -- currently that is not checked by the type checker
-as-ref[t] t(a any-const-pointer) noctx, unsafe
-	a.as-mut as-ref
-###
-Convert a pointer to a reference of the chosen type.
-UB if a value of that type was not stored at the pointer.
-###
-as-ref[t] t(a any-mut-pointer) builtin, noctx, unsafe
 
-+as-fun-pointer[r, p] fun* r(p)(a any-const-pointer) noctx, unsafe
-	a as-ref
+# TODO:KILL
+-as-ref[t] t(a any-mut-pointer) builtin, noctx, unsafe
+
++as-fun-pointer[r, p] fun* r(p)(a any-const-pointer) builtin, noctx, unsafe
 
 ###
 True if two references have the same pointer.
 Contrast with `a == b` which can also e true for different pointers with equal contents.
 ###
-reference-equal[t] bool(a t, b t) noctx, unsafe
-	a.as-any-const-pointer == b.as-any-const-pointer
+reference-equal[t] bool(a t, b t) builtin, noctx, unsafe

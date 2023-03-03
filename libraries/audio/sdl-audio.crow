@@ -1,5 +1,6 @@
 import
 	crow/c-types: c-int
+	crow/private/alloc: unmanaged-alloc, unmanaged-free
 	SDL2/SDL: SDL_Init, SDL_INIT_AUDIO, SDL_Quit
 	SDL2/SDL_audio:
 		AUDIO_F32, new, SDL_AudioSpec, SDL_CloseAudioDevice, SDL_OpenAudioDevice,
@@ -16,12 +17,11 @@ start-sdl-audio audio() summon
 		samples nat16 = 4096
 		format sound-format = 2, 48000
 		queue audio-queue = format, 
-		write-ctx write-ctx = queue, 
+		write-ctx write-ctx mut* = (queue,) unmanaged-alloc
 
 		sr int32 = format.sample-rate to
 		nc nat8 = format.n-channels to
-		wc = write-ctx as-any-mut-pointer
-		aspec SDL_AudioSpec = sr, AUDIO_F32, nc, 0, samples, 0, 0, &audio-callback, wc
+		aspec SDL_AudioSpec = sr, AUDIO_F32, nc, 0, samples, 0, 0, &audio-cb, write-ctx.pointer-cast
 		desired SDL_AudioSpec = aspec
 		obtained mut SDL_AudioSpec = ()
 		device = null SDL_OpenAudioDevice 0, &desired, &obtained, 0
@@ -32,14 +32,16 @@ start-sdl-audio audio() summon
 		shut-down far void() = () =>
 			device SDL_CloseAudioDevice
 			SDL_Quit
+			write-ctx unmanaged-free
+			# Make sure GC keeps this alive
+			_ = queue
 			()
 		format, (() => queue clear), (x => queue play x), (x => queue play-loop x), shut-down
 
--write-ctx record mut by-ref
+-write-ctx record mut by-val
 	queue audio-queue
 
--audio-callback void(userdata any-mut-pointer, stream nat8 mut*, len c-int) noctx, unsafe
-	write-ctx write-ctx = userdata as-ref
-	queue = write-ctx queue
+-audio-cb void(userdata any-mut-pointer, stream nat8 mut*, len c-int) noctx, unsafe
+	queue = (userdata.pointer-cast::write-ctx mut*)->queue
 	floats float32 mut-array = stream[0 .. len.to] cast-mut-array
 	queue pull floats

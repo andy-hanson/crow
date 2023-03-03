@@ -8,7 +8,7 @@ import
 	../misc: void
 	../number: ==, <=>, +, -, int32, nat64, to
 	../pointer:
-		+, any-mut-pointer, as-any-mut-pointer, as-const, as-ref, by-val, const-pointer, mut-pointer, null,
+		+, *, any-mut-pointer, as-const, by-val, const-pointer, mut-pointer, null, pointer-cast,
 		set-deref, set-subscript, subscript
 	../range: ..
 	../string: c-string, string, to
@@ -71,7 +71,7 @@ init-constants void() builtin, noctx, summon, unsafe
 -invoke-main nat64^(all-args c-string array, main-pointer main-pointer) force-ctx, unsafe
 	all-args add-first-task main-pointer
 
--thread-args record mut by-ref
+-thread-args record mut by-val
 	thread-id nat64
 	gctx global-ctx
 
@@ -91,7 +91,7 @@ init-constants void() builtin, noctx, summon, unsafe
 # Each thread will get the thread ID, and the common arguments.
 -run-threads void(n-threads nat64, gctx global-ctx) noctx, summon, unsafe
 	threads thread-handle mut* = n-threads unmanaged-alloc-elements
-	thread-args thread-args by-val mut* = n-threads unmanaged-alloc-elements
+	thread-args thread-args mut* = n-threads unmanaged-alloc-elements
 
 	actual-n-threads = n-threads - 1
 
@@ -105,19 +105,19 @@ init-constants void() builtin, noctx, summon, unsafe
 -start-threads void(
 	n-threads nat64,
 	threads thread-handle mut*,
-	thread-args-begin thread-args by-val mut*,
+	thread-args-begin thread-args mut*,
 	gctx global-ctx,
 ) noctx, summon, unsafe
 	i mut = 0
 	until i == n-threads
 		thread-arg-pointer = thread-args-begin + i
 		*thread-arg-pointer := i, gctx
-		threads[i] := thread-arg-pointer.as-any-mut-pointer create-one-thread &thread-fun
+		threads[i] := thread-arg-pointer.pointer-cast create-one-thread &thread-fun
 		i +:= 1
 
 -thread-fun any-mut-pointer(args-pointer any-mut-pointer) noctx, summon, unsafe
-	args thread-args = args-pointer as-ref
-	args.thread-id thread-function args.gctx
+	args thread-args mut* = args-pointer pointer-cast
+	args->thread-id thread-function args->gctx
 	null
 
 -join-threads void(n-threads nat64, threads thread-handle*) noctx, summon, unsafe

@@ -164,6 +164,7 @@ BuiltinKind getBuiltinKind(ref Alloc alloc, Sym name, LowType rt, LowType p0, Lo
 				? LowExprKind.SpecialBinary.Kind.bitwiseXorNat64
 				: failBinary());
 		case sym!"as-const".value:
+		case sym!"as-fun-pointer".value:
 		case sym!"as-mut".value:
 		case sym!"pointer-cast".value:
 			return BuiltinKind(BuiltinKind.PointerCast());
@@ -197,6 +198,8 @@ BuiltinKind getBuiltinKind(ref Alloc alloc, Sym name, LowType rt, LowType p0, Lo
 				: fail();
 		case sym!"null".value:
 			return BuiltinKind(constantZero);
+		case sym!"reference-equal".value:
+			return binary(LowExprKind.SpecialBinary.Kind.eqPtr);
 		case sym!"set-deref".value:
 			return binary(p0.isA!(LowType.PtrRawMut) ? LowExprKind.SpecialBinary.Kind.writeToPtr : failBinary());
 		case sym!"size-of".value:

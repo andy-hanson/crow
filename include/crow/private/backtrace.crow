@@ -14,8 +14,7 @@ import
 	../option: new, option
 	../private/number-low-level: ==, <=>, nat8, nat32, nat64, unsafe-to, wrap-add, wrap-sub
 	../pointer:
-		==, <=>, +, *, as-any-const-pointer, as-const, mut-pointer, null, pointer-cast, set-deref,
-		size-of
+		==, <=>, +, *, any-const-pointer, as-const, mut-pointer, null, pointer-cast, set-deref, size-of
 	../version: is-interpreted, is-windows
 	./alloc: copy-data-from, gc-ctx, try-alloc-uninitialized
 	./bootstrap: char8, c-string, hard-assert
@@ -127,7 +126,7 @@ Result entries are temporary, must copy!
 	frame STACKFRAME64 mut*,
 	vars windows-backtrace-vars,
 ) noctx, unsafe
-	ctx = context as-any-const-pointer
+	ctx any-const-pointer = context.as-const pointer-cast
 	if out == out-end
 		out
 	elif IMAGE_FILE_MACHINE_AMD64 StackWalk64 process, thread, frame, ctx, null, &SymFunctionTableAccess64, null, null

@@ -29,7 +29,7 @@ import
 	../number: ==, <=>, +, int32, int64, nat8, nat32, nat64, to
 	../private/bootstrap: todo
 	../private/c-string-util: find-c-string-end
-	../pointer: ==, +, -, as-any-const-pointer, as-any-mut-pointer, mut-pointer, new, null
+	../pointer: ==, +, -, mut-pointer, new, null, pointer-cast
 	../string: ~~, as-string, char8, c-string, literal, move-to, new, string, to
 	../version: is-windows
 	./environ: get-environ-raw
@@ -93,7 +93,7 @@ The child process shares stdout and stderr with the parent process.
 +shell-exec string(command string) summon
 	trusted
 		pipe = is-windows ? command.to _popen "r" : command.to popen "r"
-		if pipe.as-any-const-pointer == null
+		if pipe == null
 			todo
 		res char8 mut[] = ()
 		res keep-reading pipe
@@ -246,7 +246,7 @@ The child process shares stdout and stderr with the parent process.
 	trusted
 		buffer unsafe-set-size old-size + read-max
 		add-data-to = buffer.begin-pointer + old-size
-		n-bytes-read = fd read add-data-to.as-any-mut-pointer, read-max
+		n-bytes-read = fd read add-data-to.pointer-cast, read-max
 		if n-bytes-read == -1
 			# Error
 			todo
