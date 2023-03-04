@@ -560,8 +560,6 @@ void initializeConcreteStruct(
 			bool packed = r.flags.packed;
 			ConcreteStructInfo info = getConcreteStructInfoForFields(fields);
 			lateSet(res.info_, info);
-			if (r.flags.forcedByValOrRef == ForcedByValOrRefOrNone.byVal)
-				verify(!info.isSelfMutable);
 			setConcreteStructRecordSizeOrDefer(ctx, res, packed, fields, info.isSelfMutable, FieldsType.record);
 		},
 		(StructBody.Union u) {
@@ -708,6 +706,8 @@ void fillInConcreteFunBody(ref ConcretizeCtx ctx, in Destructure[] params, Concr
 					it)),
 			(FunBody.RecordFieldGet it) =>
 				ConcreteFunBody(ConcreteFunBody.RecordFieldGet(it.fieldIndex)),
+			(FunBody.RecordFieldPointer x) =>
+				ConcreteFunBody(ConcreteFunBody.RecordFieldPointer(x.fieldIndex)),
 			(FunBody.RecordFieldSet it) =>
 				ConcreteFunBody(ConcreteFunBody.RecordFieldSet(it.fieldIndex)),
 			(FunBody.VarGet x) =>

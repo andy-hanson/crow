@@ -264,6 +264,8 @@ Repr reprFunBody(ref Alloc alloc, in Ctx ctx, in FunBody a) =>
 			reprRecord!"flags-fn"(alloc, [reprSym(flagsFunctionName(it))]),
 		(in FunBody.RecordFieldGet it) =>
 			reprRecord!"field-get"(alloc, [reprNat(it.fieldIndex)]),
+		(in FunBody.RecordFieldPointer it) =>
+			reprRecord!"field-ptr"(alloc, [reprNat(it.fieldIndex)]),
 		(in FunBody.RecordFieldSet it) =>
 			reprRecord!"field-set"(alloc, [reprNat(it.fieldIndex)]),
 		(in FunBody.VarGet) =>

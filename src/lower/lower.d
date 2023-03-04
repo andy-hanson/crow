@@ -664,6 +664,8 @@ AllLowFuns getAllLowFuns(
 				none!LowFunIndex,
 			(ConcreteFunBody.RecordFieldGet) =>
 				none!LowFunIndex,
+			(ConcreteFunBody.RecordFieldPointer) =>
+				none!LowFunIndex,
 			(ConcreteFunBody.RecordFieldSet) =>
 				none!LowFunIndex,
 			(ConcreteFunBody.VarGet x) =>
@@ -735,31 +737,8 @@ AllLowFuns getAllLowFuns(
 alias VarIndices = Dict!(ConcreteVar*, LowVarIndex);
 
 bool concreteFunWillBecomeNonExternLowFun(in ConcreteProgram program, in ConcreteFun a) =>
-	body_(a).match!bool(
-		(ConcreteFunBody.Builtin) =>
-			isFunOrActSubscript(program, a) || isMarkVisitFun(program, a),
-		(Constant _) =>
-			false,
-		(ConcreteFunBody.CreateRecord) =>
-			false,
-		(ConcreteFunBody.CreateUnion) =>
-			false,
-		(EnumFunction _) =>
-			false,
-		(ConcreteFunBody.Extern) =>
-			false,
-		(ConcreteExpr _) =>
-			true,
-		(ConcreteFunBody.FlagsFn) =>
-			false,
-		(ConcreteFunBody.RecordFieldGet) =>
-			false,
-		(ConcreteFunBody.RecordFieldSet) =>
-			false,
-		(ConcreteFunBody.VarGet) =>
-			false,
-		(ConcreteFunBody.VarSet) =>
-			false);
+	body_(a).isA!(ConcreteExpr) || (
+		body_(a).isA!(ConcreteFunBody.Builtin) && (isFunOrActSubscript(program, a) || isMarkVisitFun(program, a)));
 
 LowFun lowFunFromCause(
 	ref AllLowTypes allTypes,
@@ -908,7 +887,7 @@ LowFunBody getLowFunBody(
 			unreachable!LowFunBody,
 		(ConcreteFunBody.Extern x) =>
 			LowFunBody(LowFunBody.Extern(x.libraryName)),
-		(ConcreteExpr x) @safe {
+		(ConcreteExpr x) {
 			GetLowExprCtx exprCtx = GetLowExprCtx(
 				thisFunIndex,
 				ptrTrustMe(allTypes),
@@ -929,6 +908,8 @@ LowFunBody getLowFunBody(
 		(ConcreteFunBody.FlagsFn) =>
 			unreachable!LowFunBody,
 		(ConcreteFunBody.RecordFieldGet) =>
+			unreachable!LowFunBody,
+		(ConcreteFunBody.RecordFieldPointer) =>
 			unreachable!LowFunBody,
 		(ConcreteFunBody.RecordFieldSet) =>
 			unreachable!LowFunBody,
@@ -1057,8 +1038,8 @@ LowExprKind getLowExprKind(
 			getMatchEnumExpr(ctx, locals, exprPos, it),
 		(ref ConcreteExprKind.MatchUnion it) =>
 			getMatchUnionExpr(ctx, locals, exprPos, it),
-		(ref ConcreteExprKind.PtrToField it) =>
-			getPtrToFieldExpr(ctx, locals, it),
+		(ref ConcreteExprKind.PtrToField x) =>
+			getPtrToFieldExpr(ctx, locals, x.target, x.fieldIndex),
 		(ConcreteExprKind.PtrToLocal it) =>
 			getPtrToLocalExpr(ctx, locals, expr.range, it),
 		(ConcreteExprKind.RecordFieldGet x) =>
@@ -1221,6 +1202,8 @@ LowExprKind getCallSpecial(
 		},
 		(ConcreteFunBody.RecordFieldGet x) =>
 			getRecordFieldGet(ctx, locals, only(a.args), x.fieldIndex),
+		(ConcreteFunBody.RecordFieldPointer x) =>
+			getPtrToFieldExpr(ctx, locals, only(a.args), x.fieldIndex),
 		(ConcreteFunBody.RecordFieldSet x) {
 			verify(a.args.length == 2);
 			return LowExprKind(allocate(ctx.alloc, LowExprKind.RecordFieldSet(
@@ -1234,7 +1217,6 @@ LowExprKind getCallSpecial(
 			LowExprKind(LowExprKind.VarSet(
 				mustGetAt(ctx.varIndices, x.var),
 				allocate(ctx.alloc, getLowExpr(ctx, locals, only(a.args), ExprPos.nonTail)))));
-
 
 LowExprKind getRecordFieldGet(ref GetLowExprCtx ctx, in Locals locals, ref ConcreteExpr record, size_t fieldIndex) =>
 	LowExprKind(allocate(ctx.alloc, LowExprKind.RecordFieldGet(
@@ -1608,9 +1590,14 @@ LowExpr getClosureField(ref GetLowExprCtx ctx, FileAndRange range, ConcreteClosu
 		LowExprKind.RecordFieldGet(closureGet, closureRef.fieldIndex))));
 }
 
-LowExprKind getPtrToFieldExpr(ref GetLowExprCtx ctx, in Locals locals, ref ConcreteExprKind.PtrToField a) =>
+LowExprKind getPtrToFieldExpr(
+	ref GetLowExprCtx ctx,
+	in Locals locals,
+	ref ConcreteExpr target,
+	size_t fieldIndex,
+) =>
 	LowExprKind(allocate(ctx.alloc,
-		LowExprKind.PtrToField(getLowExpr(ctx, locals, a.target, ExprPos.nonTail), a.fieldIndex)));
+		LowExprKind.PtrToField(getLowExpr(ctx, locals, target, ExprPos.nonTail), fieldIndex)));
 
 LowExprKind getThrowExpr(
 	ref GetLowExprCtx ctx,

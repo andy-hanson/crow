@@ -131,7 +131,7 @@ import util.memory : allocate, initMemory, overwriteMemory;
 import util.opt : force, has, MutOpt, none, noneMut, Opt, someMut, some;
 import util.ptr : castImmutable, castNonScope, castNonScope_ref, ptrTrustMe;
 import util.sourceRange : FileAndRange, Pos, RangeWithinFile;
-import util.sym : prependSet, Sym, sym, symOfStr;
+import util.sym : prependSet, prependSetDeref, Sym, sym, symOfStr;
 import util.union_ : Union;
 import util.util : max, todo, unreachable, verify;
 
@@ -296,7 +296,7 @@ Expr checkArrowAccess(
 	in ArrowAccessAst ast,
 	ref Expected expected,
 ) {
-	ExprAst[1] derefArgs = [ast.left];
+	ExprAst[1] derefArgs = [*ast.left];
 	CallAst callDeref =
 		CallAst(CallAst.style.single, NameAndRange(range.range.start, sym!"*"), castNonScope(derefArgs));
 	return checkCallSpecial(
@@ -378,6 +378,11 @@ Expr checkAssignment(
 			addDiag2(ctx, range, Diag(Diag.AssignmentNotAllowed()));
 			return bogus(expected, range);
 		}
+	} else if (left.kind.isA!ArrowAccessAst) {
+		ArrowAccessAst leftArrow = left.kind.as!ArrowAccessAst;
+		ExprAst[2] args = [*leftArrow.left, right];
+		return checkCallSpecial(
+			ctx, locals, range, prependSetDeref(ctx.allSymbols, leftArrow.name.name), args, expected);
 	} else {
 		addDiag2(ctx, range, Diag(Diag.AssignmentNotAllowed()));
 		return bogus(expected, range);

@@ -236,6 +236,22 @@ StructInst* makeArrayType(
 ) =>
 	instantiateStructNeverDelay(alloc, programState, commonTypes.array, [elementType]);
 
+StructInst* makeConstPointerType(
+	ref Alloc alloc,
+	ref ProgramState programState,
+	ref CommonTypes commonTypes,
+	Type pointeeType,
+) =>
+	instantiateStructNeverDelay(alloc, programState, commonTypes.ptrConst, [pointeeType]);
+
+StructInst* makeMutPointerType(
+	ref Alloc alloc,
+	ref ProgramState programState,
+	ref CommonTypes commonTypes,
+	Type pointeeType,
+) =>
+	instantiateStructNeverDelay(alloc, programState, commonTypes.ptrMut, [pointeeType]);
+
 SpecInst* instantiateSpec(
 	ref Alloc alloc,
 	ref ProgramState programState,

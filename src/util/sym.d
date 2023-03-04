@@ -66,6 +66,10 @@ Sym prependSet(ref AllSymbols allSymbols, Sym a) {
 	return has(short_) ? force(short_) : prependToLongStr!"set-"(allSymbols, a);
 }
 
+Sym prependSetDeref(ref AllSymbols allSymbols, Sym a) {
+	return prependToLongStr!"set-deref-"(allSymbols, a);
+}
+
 Sym appendEquals(ref AllSymbols allSymbols, Sym a) =>
 	appendToLongStr!"="(allSymbols, a);
 

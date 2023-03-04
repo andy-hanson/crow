@@ -928,14 +928,7 @@ void writeDiag(
 			writer ~= aOrAnTypeKind(d.typeKind);
 		},
 		(in Diag.MutFieldNotAllowed d) {
-			writer ~= () {
-				final switch (d.reason) {
-					case Diag.MutFieldNotAllowed.Reason.recordIsNotMut:
-						return "field is mut, but containing record was not marked mut";
-					case Diag.MutFieldNotAllowed.Reason.recordIsForcedByVal:
-						return "field is mut, but containing record was forced by-val";
-				}
-			}();
+			writer ~= "field is mut, but containing record was not marked mut";
 		},
 		(in Diag.NameNotFound d) {
 			writer ~= () {

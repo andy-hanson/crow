@@ -1,0 +1,19 @@
+import
+	crow/io/print: out, print
+
+main nat^(_ string[]) unsafe, summon
+	r mut r = 0,
+	rp r mut* = &r
+	x nat mut* = rp x
+	*x := 3
+	assert x == &rp->x
+
+	rc r* = &r
+	xc nat* = rc x
+	assert xc == &rc->x
+	assert *xc == r.x
+	out print "{*xc}"
+	()
+
+r record mut by-val
+	x mut nat

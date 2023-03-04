@@ -333,7 +333,7 @@ void addFunTokens(ref Alloc alloc, ref TokensBuilder tokens, ref AllSymbols allS
 void addExprTokens(ref Alloc alloc, ref TokensBuilder tokens, ref AllSymbols allSymbols, in ExprAst a) {
 	a.kind.matchIn!void(
 		(in ArrowAccessAst it) {
-			addExprTokens(alloc, tokens, allSymbols, it.left);
+			addExprTokens(alloc, tokens, allSymbols, *it.left);
 			add(alloc, tokens, Token(Token.Kind.fun, rangeOfNameAndRange(it.name, allSymbols)));
 		},
 		(in AssertOrForbidAst it) {

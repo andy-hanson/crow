@@ -312,6 +312,10 @@ immutable struct ConcreteFunBody {
 	immutable struct RecordFieldGet {
 		size_t fieldIndex;
 	}
+	// Note: This is redundant to the 'PtrToField' expression; low model will unify them
+	immutable struct RecordFieldPointer {
+		size_t fieldIndex;
+	}
 	immutable struct RecordFieldSet {
 		size_t fieldIndex;
 	}
@@ -328,6 +332,7 @@ immutable struct ConcreteFunBody {
 		ConcreteExpr,
 		FlagsFn,
 		RecordFieldGet,
+		RecordFieldPointer,
 		RecordFieldSet,
 		VarGet,
 		VarSet);

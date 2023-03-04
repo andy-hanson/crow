@@ -443,6 +443,8 @@ immutable struct LowExprKind {
 		size_t fieldIndex;
 	}
 
+	// No 'RecordFieldPointer', use 'PtrToField'
+
 	immutable struct RecordFieldSet {
 		LowExpr target;
 		size_t fieldIndex;

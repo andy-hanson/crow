@@ -4,7 +4,8 @@ module frontend.check.funsForStruct;
 
 import frontend.check.checkCtx : CheckCtx;
 import frontend.check.getCommonFuns : makeParam, makeParams, param, ParamShort;
-import frontend.check.instantiate : instantiateStructNeverDelay, makeArrayType, TypeArgsArray, typeArgsArray;
+import frontend.check.instantiate :
+	instantiateStructNeverDelay, makeArrayType, makeConstPointerType, makeMutPointerType, TypeArgsArray, typeArgsArray;
 import frontend.check.typeFromAst : makeTupleType;
 import frontend.programState : ProgramState;
 import model.model :
@@ -43,8 +44,8 @@ import util.col.exactSizeArrBuilder : ExactSizeArrBuilder, exactSizeArrBuilderAd
 import util.col.mutMaxArr : push, tempAsArr;
 import util.col.str : safeCStr;
 import util.opt : force, has, none, Opt, some;
-import util.sourceRange : fileAndPosFromFileAndRange, FileAndRange;
-import util.sym : prependSet, Sym, sym;
+import util.sourceRange : FileAndPos, fileAndPosFromFileAndRange, FileAndRange;
+import util.sym : prependSet, prependSetDeref, Sym, sym;
 
 size_t countFunsForStructs(in StructDecl[] structs) =>
 	sum!StructDecl(structs, (in StructDecl x) => countFunsForStruct(x));
@@ -65,10 +66,11 @@ private size_t countFunsForStruct(in StructDecl a) =>
 			// and a constructor for each member
 			8 + it.members.length,
 		(in StructBody.Record it) {
-			size_t nConstructors = recordIsAlwaysByVal(it) ? 1 : 2;
+			bool byVal = recordIsAlwaysByVal(it);
+			size_t nConstructors = byVal ? 1 : 2;
 			size_t nMutableFields = count!RecordField(it.fields, (in RecordField field) =>
 				field.mutability != FieldMutability.const_);
-			return nConstructors + it.fields.length + nMutableFields;
+			return nConstructors + it.fields.length * (byVal ? 2 : 1) + nMutableFields * (byVal ? 2 : 1);
 		},
 		(in StructBody.Union it) =>
 			it.members.length);
@@ -397,7 +399,22 @@ void addFunsForRecord(
 		push(typeArgs, Type(p));
 	Type structType = Type(
 		instantiateStructNeverDelay(ctx.alloc, ctx.programState, struct_, tempAsArr(typeArgs)));
-	Destructure[] ctorParams = map(ctx.alloc, record.fields, (ref RecordField it) =>
+	bool byVal = recordIsAlwaysByVal(record);
+	addFunsForRecordConstructor(ctx, funsBuilder, commonTypes, struct_, record, structType, byVal);
+	foreach (size_t fieldIndex, ref RecordField field; record.fields)
+		addFunsForRecordField(ctx, funsBuilder, commonTypes, struct_, structType, byVal, fieldIndex, field);
+}
+
+void addFunsForRecordConstructor(
+	ref CheckCtx ctx,
+	ref ExactSizeArrBuilder!FunDecl funsBuilder,
+	ref CommonTypes commonTypes,
+	StructDecl* struct_,
+	ref StructBody.Record record,
+	Type structType,
+	bool byVal,
+) {
+	Destructure[] params = map(ctx.alloc, record.fields, (ref RecordField it) =>
 		makeParam(ctx.alloc, it.range, it.name, it.type));
 	FunDecl constructor(Type returnType, FunFlags flags) {
 		return FunDecl(
@@ -405,15 +422,15 @@ void addFunsForRecord(
 			record.flags.newVisibility,
 			fileAndPosFromFileAndRange(struct_.range),
 			sym!"new",
-			typeParams,
+			struct_.typeParams,
 			returnType,
-			Params(ctorParams),
+			Params(params),
 			flags.withOkIfUnused(),
 			[],
 			FunBody(FunBody.CreateRecord()));
 	}
 
-	if (recordIsAlwaysByVal(record)) {
+	if (byVal) {
 		exactSizeArrBuilderAdd(funsBuilder, constructor(structType, FunFlags.generatedNoCtx));
 	} else {
 		exactSizeArrBuilderAdd(funsBuilder, constructor(structType, FunFlags.generatedPreferred));
@@ -421,29 +438,82 @@ void addFunsForRecord(
 			instantiateStructNeverDelay(ctx.alloc, ctx.programState, commonTypes.byVal, [structType]));
 		exactSizeArrBuilderAdd(funsBuilder, constructor(byValType, FunFlags.generatedNoCtx));
 	}
+}
 
-	foreach (size_t fieldIndex, ref RecordField field; record.fields) {
-		Visibility fieldVisibility = leastVisibility(struct_.visibility, field.visibility);
+void addFunsForRecordField(
+	ref CheckCtx ctx,
+	ref ExactSizeArrBuilder!FunDecl funsBuilder,
+	ref CommonTypes commonTypes,
+	StructDecl* struct_,
+	Type structType,
+	bool recordIsByVal,
+	size_t fieldIndex,
+	ref RecordField field,
+) {
+	FileAndPos pos = fileAndPosFromFileAndRange(field.range);
+	Visibility fieldVisibility = leastVisibility(struct_.visibility, field.visibility);
+	exactSizeArrBuilderAdd(funsBuilder, FunDecl(
+		safeCStr!"",
+		fieldVisibility,
+		pos,
+		field.name,
+		struct_.typeParams,
+		field.type,
+		makeParams(ctx.alloc, field.range, [param!"a"(structType)]),
+		FunFlags.generatedNoCtx,
+		[],
+		FunBody(FunBody.RecordFieldGet(fieldIndex))));
+	
+	void addRecordFieldPointer(Visibility visibility, Type recordPointer, Type fieldPointer) {
 		exactSizeArrBuilderAdd(funsBuilder, FunDecl(
 			safeCStr!"",
-			fieldVisibility,
-			fileAndPosFromFileAndRange(field.range),
+			visibility,
+			pos,
 			field.name,
-			typeParams,
-			field.type,
-			makeParams(ctx.alloc, field.range, [param!"a"(structType)]),
-			FunFlags.generatedNoCtx,
+			struct_.typeParams,
+			fieldPointer,
+			makeParams(ctx.alloc, field.range, [param!"a"(recordPointer)]),
+			FunFlags.generatedNoCtxUnsafe,
 			[],
-			FunBody(FunBody.RecordFieldGet(fieldIndex))));
+			FunBody(FunBody.RecordFieldPointer(fieldIndex))));
+	}
 
-		Opt!Visibility mutVisibility = visibilityOfFieldMutability(field.mutability);
-		if (has(mutVisibility))
+	if (recordIsByVal)
+		addRecordFieldPointer(
+			fieldVisibility,
+			Type(makeConstPointerType(ctx.alloc, ctx.programState, commonTypes, structType)),
+			Type(makeConstPointerType(ctx.alloc, ctx.programState, commonTypes, field.type)));
+
+	Opt!Visibility mutVisibility = visibilityOfFieldMutability(field.mutability);
+	if (has(mutVisibility)) {
+		Visibility setVisibility = leastVisibility(struct_.visibility, force(mutVisibility));
+		Type recordMutPointer = Type(makeMutPointerType(ctx.alloc, ctx.programState, commonTypes, structType));
+		if (recordIsByVal) {
 			exactSizeArrBuilderAdd(funsBuilder, FunDecl(
 				safeCStr!"",
-				leastVisibility(struct_.visibility, force(mutVisibility)),
-				fileAndPosFromFileAndRange(field.range),
+				setVisibility,
+				pos,
+				prependSetDeref(ctx.allSymbols, field.name),
+				struct_.typeParams,
+				Type(commonTypes.void_),
+				makeParams(ctx.alloc, field.range, [
+					param!"a"(recordMutPointer),
+					ParamShort(field.name, field.type),
+				]),
+				FunFlags.generatedNoCtxUnsafe,
+				[],
+				FunBody(FunBody.RecordFieldSet(fieldIndex))));
+			addRecordFieldPointer(
+				setVisibility,
+				recordMutPointer,
+				Type(makeMutPointerType(ctx.alloc, ctx.programState, commonTypes, field.type)));
+		} else
+			exactSizeArrBuilderAdd(funsBuilder, FunDecl(
+				safeCStr!"",
+				setVisibility,
+				pos,
 				prependSet(ctx.allSymbols, field.name),
-				typeParams,
+				struct_.typeParams,
 				Type(commonTypes.void_),
 				makeParams(ctx.alloc, field.range, [param!"a"(structType), ParamShort(field.name, field.type)]),
 				FunFlags.generatedNoCtx,

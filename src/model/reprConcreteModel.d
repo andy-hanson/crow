@@ -154,6 +154,8 @@ Repr reprOfConcreteFunBody(ref Alloc alloc, in ConcreteFunBody a) =>
 			]),
 		(in ConcreteFunBody.RecordFieldGet x) =>
 			reprRecord!"field-get"(alloc, [reprNat(x.fieldIndex)]),
+		(in ConcreteFunBody.RecordFieldPointer x) =>
+			reprRecord!"field-ptr"(alloc, [reprNat(x.fieldIndex)]),
 		(in ConcreteFunBody.RecordFieldSet x) =>
 			reprRecord!"field-set"(alloc, [reprNat(x.fieldIndex)]),
 		(in ConcreteFunBody.VarGet) =>

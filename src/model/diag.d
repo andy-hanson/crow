@@ -251,13 +251,7 @@ immutable struct Diag {
 		Sym modifier;
 		TypeKind typeKind;
 	}
-	immutable struct MutFieldNotAllowed {
-		enum Reason {
-			recordIsNotMut,
-			recordIsForcedByVal,
-		}
-		Reason reason;
-	}
+	immutable struct MutFieldNotAllowed {}
 	immutable struct NameNotFound {
 		enum Kind {
 			spec,

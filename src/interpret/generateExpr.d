@@ -360,16 +360,8 @@ void generateExpr(
 			generateRecordFieldGet(writer, ctx, source, locals, it);
 			handleAfter(writer, ctx, source, after);
 		},
-		(in LowExprKind.RecordFieldSet it) {
-			StackEntry before = getNextStackEntry(writer);
-			verify(targetIsPointer(it));
-			generateExprAndContinue(writer, ctx, locals, it.target);
-			StackEntry mid = getNextStackEntry(writer);
-			generateExprAndContinue(writer, ctx, locals, it.value);
-			FieldOffsetAndSize offsetAndSize = getFieldOffsetAndSize(ctx, targetRecordType(it), it.fieldIndex);
-			verify(mid.entry + divRoundUp(offsetAndSize.size, stackEntrySize) == getNextStackEntry(writer).entry);
-			writeWrite(writer, source, offsetAndSize.offset, offsetAndSize.size);
-			verify(getNextStackEntry(writer) == before);
+		(in LowExprKind.RecordFieldSet x) {
+			generateRecordFieldSet(writer, ctx, source, locals, x);
 			handleAfter(writer, ctx, source, after);
 		},
 		(in LowExprKind.Seq it) {
@@ -981,6 +973,24 @@ void generateRecordFieldGet(
 		}
 		writeRemove(writer, source, targetEntries);
 	}
+}
+
+void generateRecordFieldSet(
+	ref ByteCodeWriter writer,
+	ref ExprCtx ctx,
+	ByteCodeSource source,
+	in Locals locals,
+	in LowExprKind.RecordFieldSet a,
+) {
+	StackEntry before = getNextStackEntry(writer);
+	verify(targetIsPointer(a));
+	generateExprAndContinue(writer, ctx, locals, a.target);
+	StackEntry mid = getNextStackEntry(writer);
+	generateExprAndContinue(writer, ctx, locals, a.value);
+	FieldOffsetAndSize offsetAndSize = getFieldOffsetAndSize(ctx, targetRecordType(a), a.fieldIndex);
+	verify(mid.entry + divRoundUp(offsetAndSize.size, stackEntrySize) == getNextStackEntry(writer).entry);
+	writeWrite(writer, source, offsetAndSize.offset, offsetAndSize.size);
+	verify(getNextStackEntry(writer) == before);
 }
 
 void generateSpecialTernary(

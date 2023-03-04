@@ -910,6 +910,7 @@ Opt!Constant tryEvalConstant(
 				: none!Constant,
 		(in ConcreteFunBody.FlagsFn) => none!Constant,
 		(in ConcreteFunBody.RecordFieldGet) => none!Constant,
+		(in ConcreteFunBody.RecordFieldPointer) => none!Constant,
 		(in ConcreteFunBody.RecordFieldSet) => none!Constant,
 		(in ConcreteFunBody.VarGet) => none!Constant,
 		(in ConcreteFunBody.VarSet) => none!Constant);

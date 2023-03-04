@@ -574,6 +574,9 @@ immutable struct FunBody {
 	immutable struct RecordFieldGet {
 		size_t fieldIndex;
 	}
+	immutable struct RecordFieldPointer {
+		size_t fieldIndex;
+	}
 	immutable struct RecordFieldSet {
 		size_t fieldIndex;
 	}
@@ -593,6 +596,7 @@ immutable struct FunBody {
 		FileBytes,
 		FlagsFunction,
 		RecordFieldGet,
+		RecordFieldPointer,
 		RecordFieldSet,
 		VarGet,
 		VarSet);

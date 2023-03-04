@@ -459,7 +459,7 @@ ExprAst tryParseDotsAndSubscripts(ref Lexer lexer, ExprAst initial) {
 		NameAndRange name = takeNameAndRange(lexer);
 		return tryParseDotsAndSubscripts(lexer, ExprAst(
 			range(lexer, start),
-			ExprAstKind(allocate(lexer.alloc, ArrowAccessAst(initial, name)))));
+			ExprAstKind(ArrowAccessAst(allocate(lexer.alloc, initial), name))));
 	} else if (tryTakeToken(lexer, Token.bracketLeft))
 		return parseSubscript(lexer, initial, start);
 	else if (tryTakeToken(lexer, Token.colon2)) {

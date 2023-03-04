@@ -182,7 +182,7 @@ Sym symForTypeAstSuffix(TypeAst.SuffixSpecial.Kind a) {
 }
 
 immutable struct ArrowAccessAst {
-	ExprAst left;
+	ExprAst* left;
 	NameAndRange name;
 }
 
@@ -439,7 +439,7 @@ immutable struct WithAst {
 
 immutable struct ExprAstKind {
 	mixin Union!(
-		ArrowAccessAst*,
+		ArrowAccessAst,
 		AssertOrForbidAst*,
 		AssignmentAst*,
 		AssignmentCallAst*,
@@ -1026,7 +1026,7 @@ Repr reprExprAstKind(ref Alloc alloc, in ExprAstKind ast) =>
 	ast.matchIn!Repr(
 		(in ArrowAccessAst e) =>
 			reprRecord!"arrow-access"(alloc, [
-				reprExprAst(alloc, e.left),
+				reprExprAst(alloc, *e.left),
 				reprNameAndRange(alloc, e.name)]),
 		(in AssertOrForbidAst e) =>
 			reprRecord(alloc, symOfAssertOrForbidKind(e.kind), [

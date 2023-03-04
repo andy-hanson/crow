@@ -469,11 +469,10 @@ StructBody.Record checkRecord(
 	ForcedByValOrRefOrNone valOrRef = isExtern ? ForcedByValOrRefOrNone.byVal : modifiers.byValOrRefOrNone;
 	if (isExtern && modifiers.byValOrRefOrNone != ForcedByValOrRefOrNone.none)
 		addDiag(ctx, struct_.range, Diag(Diag.ExternRecordImplicitlyByVal(struct_)));
-	bool forcedByVal = valOrRef == ForcedByValOrRefOrNone.byVal;
 	RecordField[] fields = map!(RecordField, StructDeclAst.Body.Record.Field)(
 		ctx.alloc, r.fields, (scope ref StructDeclAst.Body.Record.Field field) =>
 			checkRecordField(
-				ctx, commonTypes, structsAndAliasesDict, delayStructInsts, struct_, forcedByVal, field));
+				ctx, commonTypes, structsAndAliasesDict, delayStructInsts, struct_, field));
 	eachPair!RecordField(fields, (in RecordField a, in RecordField b) {
 		if (a.name == b.name)
 			addDiag(ctx, b.range, Diag(Diag.DuplicateDeclaration(Diag.DuplicateDeclaration.Kind.recordField, a.name)));
@@ -489,22 +488,13 @@ RecordField checkRecordField(
 	ref StructsAndAliasesDict structsAndAliasesDict,
 	ref MutArr!(StructInst*) delayStructInsts,
 	StructDecl* struct_,
-	bool forcedByVal,
 	in StructDeclAst.Body.Record.Field ast,
 ) {
 	Type fieldType = typeFromAst(
 		ctx, commonTypes, ast.type, structsAndAliasesDict, struct_.typeParams, someMut(ptrTrustMe(delayStructInsts)));
 	checkReferenceLinkageAndPurity(ctx, struct_, ast.range, fieldType);
-	if (ast.mutability != FieldMutability.const_) {
-		Opt!(Diag.MutFieldNotAllowed.Reason) reason =
-			struct_.purity != Purity.mut && !struct_.purityIsForced
-				? some(Diag.MutFieldNotAllowed.Reason.recordIsNotMut)
-				: forcedByVal
-				? some(Diag.MutFieldNotAllowed.Reason.recordIsForcedByVal)
-				: none!(Diag.MutFieldNotAllowed.Reason);
-		if (has(reason))
-			addDiag(ctx, ast.range, Diag(Diag.MutFieldNotAllowed(force(reason))));
-	}
+	if (ast.mutability != FieldMutability.const_ && struct_.purity != Purity.mut && !struct_.purityIsForced)
+		addDiag(ctx, ast.range, Diag(Diag.MutFieldNotAllowed()));
 	return RecordField(rangeInFile(ctx, ast.range), ast.visibility, ast.name, ast.mutability, fieldType);
 }
 

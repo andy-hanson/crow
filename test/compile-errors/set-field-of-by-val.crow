@@ -1,0 +1,10 @@
+import
+	crow/io/print: out, print
+
+main nat^(_ string[]) unsafe, summon
+	r mut r = 0,
+	r.x := 3
+	()
+
+r record mut by-val
+	x mut nat
