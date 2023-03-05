@@ -168,8 +168,6 @@ BuiltinKind getBuiltinKind(ref Alloc alloc, Sym name, LowType rt, LowType p0, Lo
 		case sym!"as-mut".value:
 		case sym!"pointer-cast".value:
 			return BuiltinKind(BuiltinKind.PointerCast());
-		case sym!"as-ref".value:
-			return unary(LowExprKind.SpecialUnary.Kind.asRef);
 		case sym!"count-ones".value:
 			return unary(isNat64(p0)
 				? LowExprKind.SpecialUnary.Kind.countOnesNat64

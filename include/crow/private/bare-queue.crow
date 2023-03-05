@@ -1,0 +1,93 @@
+no-std
+import
+	../bool: bool
+	../compare: <=
+	../misc: new, void
+	../number: +, *, nat64
+	../option: new, option
+	../pointer: ==, <=>, +, -, *, as-const, const-pointer, mut-pointer, set-deref
+	../range: .., in
+	./alloc: gc, gc-add-root, unmanaged-alloc-elements, unmanaged-free-elements
+
+bare-queue[t] record mut by-val
+	###
+	See 'verify' for invariants.
+	'begin == end' indicates an empty queue; there is never a 'full' queue (meaning always one unused slot).
+	###
+	-alloc-begin mut t mut*
+	-alloc-end mut t mut*
+	# These should never point to alloc-end
+	-begin mut t mut*
+	-end mut t mut*
+
+new[t] t bare-queue() noctx, unsafe
+	capacity = 2
+	alloc-begin t mut* = capacity unmanaged-alloc-elements
+	alloc-begin, alloc-begin + capacity, alloc-begin, alloc-begin
+
+destroy[t] void(a t bare-queue mut*) noctx, unsafe
+	a->alloc-begin unmanaged-free-elements (a->alloc-end - a->alloc-begin)
+
+size[t] nat64(a t bare-queue*) noctx, unsafe
+	if a->begin <= a->end
+		a->end - a->begin
+	else
+		(a->alloc-end - a->begin) + (a->end - a->alloc-begin)
+
+dequeue[t] t?(a t bare-queue mut*) noctx, unsafe
+	a.as-const verify
+	unless a->begin == a->end
+		res = *a->begin
+		a->begin := a.as-const advance a->begin
+		a.as-const verify
+		res,
+
+enqueue[t] void(a t bare-queue mut*, value t) noctx, unsafe
+	a.as-const verify
+	new-end = a.as-const advance a->end
+	if new-end == a->begin
+		new-capacity = (a->alloc-end - a->alloc-begin) * 2
+		new-alloc-begin t mut* = new-capacity unmanaged-alloc-elements
+		new-alloc-end = new-alloc-begin + new-capacity
+		out mut = new-alloc-begin
+		loop
+			if x ?= a dequeue
+				*out := x
+				out +:= 1
+				continue
+			else
+				break
+		*out := value
+		out +:= 1
+		a->alloc-begin := new-alloc-begin
+		a->alloc-end := new-alloc-end
+		a->begin := new-alloc-begin
+		a->end := out
+	else
+		*a->end := value
+		a->end := new-end
+	a.as-const verify
+
+is-empty[t] bool(a t bare-queue*) noctx, unsafe
+	a->begin == a->end
+
+-advance[t] t mut*(a t bare-queue*, ptr t mut*) noctx, unsafe
+	res = ptr + 1
+	if res == a->alloc-end
+		a->alloc-begin
+	else
+		res
+
+-verify[t] void(a t bare-queue*) noctx, unsafe
+	assert a->begin in a->alloc-begin .. a->alloc-end
+	assert a->end in a->alloc-begin .. a->alloc-end
+
+add-gc-roots[t] void(a t bare-queue*, gc gc mut*) noctx, unsafe
+	ptr mut = a->begin
+	loop
+		if ptr == a->end
+			break
+		else
+			gc gc-add-root *ptr
+			ptr := a advance ptr
+			continue

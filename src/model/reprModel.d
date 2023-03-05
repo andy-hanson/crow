@@ -196,8 +196,6 @@ void addFunFlags(ref Alloc alloc, scope ref ArrBuilder!NameAndRepr fields, in Fu
 			addFlag!"unsafe";
 			break;
 	}
-	if (a.preferred)
-		addFlag!"preferred";
 	if (a.okIfUnused)
 		addFlag!"ok-unused";
 	final switch (a.specialBody) {

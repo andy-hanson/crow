@@ -1,0 +1,71 @@
+no-std
+import
+	../bool: ||, bool
+	../compare: <=, >=, compare
+	../misc: new, void
+	../number: ==, *
+	../option: force, new, option
+	../pointer: ==, +, -, *, as-const, const-pointer, mut-pointer, new, set-deref, swap
+	../tuple: a, b
+	./alloc: gc, gc-add-root, mem-copy, mem-move, unmanaged-alloc-elements, unmanaged-free-elements
+
+# TODO: actual heap implementation
+bare-priority-queue[k, v] record mut by-val
+	# This is also alloc-begin
+	-begin mut (k, v) mut*
+	-end mut (k, v) mut*
+	-alloc-end mut (k, v) mut*
+
+new[k, v] (k, v) bare-priority-queue() noctx, unsafe
+	(), (), ()
+
+destroy[k, v] void(a (k, v) bare-priority-queue mut*) noctx, unsafe
+	a->begin unmanaged-free-elements (a->alloc-end - a->begin)
+
+is-empty[k, v] bool(a (k, v) bare-priority-queue*) noctx, unsafe
+	a->begin == a->end
+
+peek-key[k, v] k?(a (k, v) bare-priority-queue*) noctx, unsafe
+	unless a is-empty
+		a->begin->a,
+
+dequeue-if-less-or-equal[k, v] v?(a (k, v) bare-priority-queue mut*, max-key k) noctx, unsafe, k compare
+	if k ?= a.as-const peek-key
+		if k <= max-key
+			a.dequeue!.b,
+
+-dequeue[k, v] (k, v)?(a (k, v) bare-priority-queue mut*) noctx, unsafe
+	unless a.as-const is-empty
+		res = *a->begin
+		a->end -:= 1
+		a->begin mem-move a->begin.as-const + 1, a->end - a->begin
+		res,
+
+enqueue[k, v] void(a (k, v) bare-priority-queue mut*, pair (k, v)) noctx, unsafe, k compare
+	a push pair
+	cur mut = a->end - 1
+	loop
+		if cur == a->begin || cur->a >= (cur - 1)->a
+			break
+		else
+			cur swap cur - 1
+			cur := cur - 1
+			continue
+
+-push[k, v] void(a (k, v) bare-priority-queue mut*, pair (k, v)) noctx, unsafe
+	if a->end == a->alloc-end
+		old-capacity = a->end - a->begin
+		new-capacity = old-capacity == 0 ? 4 : old-capacity * 2
+		new-begin (k, v) mut* = new-capacity unmanaged-alloc-elements
+		new-begin mem-copy a->begin.as-const, old-capacity
+		a->begin := new-begin
+		a->end := new-begin + old-capacity
+		a->alloc-end := new-begin + new-capacity
+	*a->end := pair
+	a->end +:= 1
+
+add-gc-roots[k, v] void(a (k, v) bare-priority-queue*, gc gc mut*) noctx, unsafe
+	cur mut = a->begin
+	until cur == a->end
+		gc gc-add-root *cur
+		cur := cur + 1

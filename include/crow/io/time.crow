@@ -8,7 +8,7 @@ import
 	../pointer: null
 	../future: new
 	../private/future-low-level: forward-to, resolve, unresolved
-	../private/runtime: add-timed-task, get-global-ctx, new-exclusion
+	../private/runtime: enqueue-timed-task-no-exclusion, get-global-ctx
 	./duration: duration, nsec
 export
 	./private/time-low-level: get-monotime-nsec
@@ -50,15 +50,13 @@ export
 		next-time = get-monotime-nsec max start-nsec + interval-nsec
 		trusted
 			res out^ = unresolved
-			gctx = get-global-ctx
-			gctx add-timed-task next-time, gctx.new-exclusion, () =>
+			get-global-ctx enqueue-timed-task-no-exclusion next-time, () =>
 				res forward-to (next-time repeat-interval-recur interval-nsec, action)
 			res
 
 -delay-until-time void^(target-nsec nat64) summon
 	trusted
 		res void^ = unresolved
-		gctx = get-global-ctx
-		gctx add-timed-task target-nsec, gctx.new-exclusion, () =>
+		get-global-ctx enqueue-timed-task-no-exclusion target-nsec, () =>
 			res resolve ()
 		res

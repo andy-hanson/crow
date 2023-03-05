@@ -264,7 +264,6 @@ ExpectUnary unaryExpected(
 		case LowExprKind.SpecialUnary.Kind.asAnyPtr:
 			//TODO: returns one of anyPtrConstType or anyPtrMutType. Maybe split these up
 			return ExpectUnary();
-		case LowExprKind.SpecialUnary.Kind.asRef:
 		case LowExprKind.SpecialUnary.Kind.enumToIntegral:
 			return ExpectUnary();
 		case LowExprKind.SpecialUnary.Kind.bitwiseNotNat8:

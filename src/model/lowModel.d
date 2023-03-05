@@ -464,7 +464,6 @@ immutable struct LowExprKind {
 		alias Kind = immutable Kind_;
 		enum Kind_ {
 			asAnyPtr,
-			asRef,
 			bitwiseNotNat8,
 			bitwiseNotNat16,
 			bitwiseNotNat32,

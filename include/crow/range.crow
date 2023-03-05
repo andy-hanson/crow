@@ -1,7 +1,7 @@
 no-std
 import
 	./bool: &&, bool
-	./compare: <, >, compare, comparison, equal
+	./compare: <, <=, >, compare, comparison, equal
 	./option: new, option
 	./private/bootstrap: new
 export
@@ -37,3 +37,6 @@ region iteration
 +next[t] (t, t range-iterator)?(a t range-iterator) noctx, t forward-rangeable
 	if a.next-value < a.collection.high
 		(a.next-value, (a.collection, a.next-value + 1)),
+
++in[t] bool(a t, b t range) noctx, t compare
+	b.low <= a && a < b.high

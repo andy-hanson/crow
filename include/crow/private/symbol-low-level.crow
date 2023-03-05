@@ -7,12 +7,12 @@ import
 	../compare: comparison
 	../misc: void
 	../number: +
-	../pointer: ==, +, as-const, mut-pointer, set-deref
+	../pointer: ==, +, *, as-const, mut-pointer, set-deref
 	../string: ==, <=>, char8, c-string, hash-mix, iterate, literal, size, string
-	../tuple: a, b, new
+	../tuple: new
 	./alloc: unmanaged-alloc-elements
 	./bootstrap: new-symbol, static-symbols
-	./runtime: get-global-ctx, global-ctx, set-symbols-table, symbols-lock, symbols-table
+	./runtime: get-global-ctx, global-ctx, set-deref-symbols-table, symbols-lock, symbols-table
 	./thread-utils: with-lock
 export
 	# TODO: don't export to
@@ -29,8 +29,8 @@ export
 +to string(a symbol) noctx
 	trusted a.to literal
 
-init-symbol-table void(a global-ctx)
-	a.symbols-table := for x : static-symbols
+init-symbol-table void(a global-ctx mut*) unsafe
+	a->symbols-table := for x : static-symbols
 		x.to, x
 
 ###
@@ -39,13 +39,13 @@ This is O(log n), where 'n' is the number of unique symbols that exist.
 ###
 +to symbol(a string)
 	gctx = trusted get-global-ctx
-	trusted &gctx.symbols-lock with-lock () =>
-		match gctx.symbols-table get-or-add a, () => a.to-malloced-c-string new-symbol
+	trusted gctx.symbols-lock with-lock () =>
+		match gctx->symbols-table get-or-add a, () => a.to-malloced-c-string new-symbol
 		as got x
 			x
-		as added pair
-			gctx.symbols-table := pair a
-			pair b
+		as added new-table, symbol
+			gctx->symbols-table := new-table
+			symbol
 
 -to-malloced-c-string c-string(a string) unsafe
 	res char8 mut* = a.size + 1 unmanaged-alloc-elements

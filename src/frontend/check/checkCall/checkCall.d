@@ -194,11 +194,6 @@ private Expr checkCallInner(
 	filterCandidatesButDontRemoveAll(candidates, (scope ref Candidate x) =>
 		inferCandidateTypeArgsFromSpecs(ctx, x));
 
-	if (mutMaxArrSize(candidates) != 1 &&
-		exists!(maxCandidates, Candidate)(candidates, (in Candidate it) => candidateIsPreferred(it))) {
-		filterCandidates(candidates, (ref Candidate it) => candidateIsPreferred(it));
-	}
-
 	if (!has(args) || mutMaxArrSize(candidates) != 1) {
 		if (isEmpty(candidates)) {
 			CalledDecl[] allCandidates = getAllCandidatesAsCalledDecls(ctx, funName);
@@ -239,13 +234,6 @@ void filterCandidatesByExplicitTypeArg(ref ExprCtx ctx, scope ref Candidates can
 }
 
 alias ParamExpected = MutMaxArr!(maxCandidates, TypeAndInferring);
-
-bool candidateIsPreferred(in Candidate a) =>
-	a.called.matchIn!bool(
-		(in FunDecl x) =>
-			x.flags.preferred,
-		(in CalledSpecSig) =>
-			false);
 
 void getParamExpected(
 	ref Alloc alloc,

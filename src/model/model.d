@@ -8,7 +8,7 @@ import model.concreteModel : TypeSize;
 import model.constant : Constant;
 import model.diag : Diag, Diagnostics, FilesInfo; // TODO: move FilesInfo here?
 import util.col.arr : arrayOfSingle, empty, only, only2, PtrAndSmallNumber, small, SmallArray;
-import util.col.arrUtil : arrEqual, exists;
+import util.col.arrUtil : arrEqual;
 import util.col.dict : Dict;
 import util.col.enumDict : EnumDict;
 import util.col.fullIndexDict : FullIndexDict;
@@ -385,13 +385,6 @@ immutable struct StructInst {
 	}
 }
 
-bool hasMutableField(in StructInst a) {
-	StructBody body_ = body_(*decl(a));
-	return body_.isA!(StructBody.Record) &&
-		exists!RecordField(body_.as!(StructBody.Record).fields, (in RecordField x) =>
-			x.mutability != FieldMutability.const_);
-}
-
 bool isDefinitelyByRef(in StructInst a) {
 	StructBody body_ = body_(*decl(a));
 	return body_.isA!(StructBody.Record) &&
@@ -627,8 +620,8 @@ immutable struct FunFlags {
 		FunFlags(true, false, Safety.safe, false, true, SpecialBody.generated);
 	static FunFlags generatedNoCtxUnsafe() =>
 		FunFlags(true, false, Safety.unsafe, false, true, SpecialBody.generated);
-	static FunFlags generatedPreferred() =>
-		FunFlags(false, false, Safety.safe, true, true, SpecialBody.generated);
+	static FunFlags generated() =>
+		FunFlags(false, false, Safety.safe, false, true, SpecialBody.generated);
 	static FunFlags unsafeSummon() =>
 		FunFlags(false, true, Safety.unsafe, false, false, SpecialBody.none);
 }
@@ -1112,7 +1105,6 @@ immutable struct CommonTypes {
 	IntegralTypes integrals;
 	StructInst* symbol;
 	StructInst* void_;
-	StructDecl* byVal;
 	StructDecl* array;
 	StructDecl* future;
 	StructDecl* opt;

@@ -280,7 +280,6 @@ CommonTypes getCommonTypes(
 		return getDeclFromSym(sym!name, nTypeParameters);
 	}
 
-	StructDecl* byVal = getDecl!"by-val"(1);
 	StructDecl* array = getDecl!"array"(1);
 	StructDecl* future = getDecl!"future"(1);
 	StructDecl* opt = getDecl!"option"(1);
@@ -314,7 +313,6 @@ CommonTypes getCommonTypes(
 		IntegralTypes(int8, int16, int32, int64, nat8, nat16, nat32, nat64),
 		symbol,
 		void_,
-		byVal,
 		array,
 		future,
 		opt,

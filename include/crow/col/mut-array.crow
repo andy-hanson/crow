@@ -10,8 +10,7 @@ import
 	../pointer:
 		==, <=>, +, *, any-const-pointer, any-mut-pointer, as-const, as-mut, mut-pointer,
 		pointer-cast, set-deref, set-subscript, size-of, subscript
-	../private/alloc:
-		alloc-uninitialized, set-zero-range, unmanaged-alloc-elements, unmanaged-free-elements
+	../private/alloc: alloc-uninitialized, set-zero-range
 	../range: .., high, low, range
 	../tuple: new
 	./array:
@@ -143,13 +142,6 @@ See `zeroed-mut-array` for a safer alternative, or `make` for a fully safe alter
 uninitialized-mut-array[t] t mut-array(size nat64) unsafe
 	pointer t mut* = size alloc-uninitialized
 	pointer[0 .. size]
-
-unmanaged-uninitialized-mut-array[t] t mut-array(size nat64) noctx, unsafe
-	pointer t mut* = size unmanaged-alloc-elements
-	pointer[0 .. size]
-
-free-unmanaged-mut-array[t] void(a t mut-array) noctx, unsafe
-	a.begin-pointer unmanaged-free-elements a.size
 
 ###
 This is like `uninitialized-mut-array` but fills memory with zeroes.

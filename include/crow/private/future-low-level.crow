@@ -1,13 +1,15 @@
 no-std
 import
-	../option: new
 	../misc: new, void
+	../option: new
+	../pointer: mut-pointer
 	../result: err, ok, result
 	./bootstrap:
-		empty, exception, first, forwarded, future, future-state, hard-unreachable, last, lk,
-		new, one-task, rejected, resolved, set-last, set-next, set-state, state, tasks
-	./runtime: add-task, add-tasks, get-global-ctx
-	./task-queue: exclusion, new, task, task-list, task-node
+		empty, exception, first, forwarded, future, future-state, hard-unreachable, last, lk, new,
+		one-task, rejected, resolved, set-last, set-next, set-state, state, task-list, task-node,
+		tasks
+	./runtime: enqueue-task, enqueue-tasks, get-global-ctx, new-exclusion
+	./task-queue: exclusion, task
 	./thread-utils: acquire, init, lock, release, uninit
 
 unresolved[t] t^() unsafe
@@ -15,7 +17,7 @@ unresolved[t] t^() unsafe
 	res.lock init
 	res
 
--lock[t] lock(a t^) noctx, unsafe
+-lock[t] lock mut*(a t^) noctx, unsafe
 	&a.lk
 
 resolve[t] void(a t^, value t) unsafe
@@ -33,9 +35,9 @@ reject[t] void(a t^, err exception) unsafe
 	as empty
 		()
 	as one-task task
-		get-global-ctx add-task task
+		get-global-ctx enqueue-task task
 	as tasks tasks
-		get-global-ctx add-tasks tasks
+		get-global-ctx enqueue-tasks tasks
 	as forwarded _
 		hard-unreachable
 	as resolved _
@@ -68,21 +70,22 @@ forward-to[t] void(a t^, target t^) unsafe
 	as rejected _
 		hard-unreachable
 
+add-task-no-exclusion[t] void(a t^, action act void()) unsafe
+	a add-task get-global-ctx.new-exclusion, action
+
 add-task[t] void(a t^, exclusion exclusion, action act void()) unsafe
 	a add-task (exclusion, action)
 
 add-task[t] void(a t^, task task) unsafe
-	a add-task (task,)::task-node
-
--add-task[t] void(a t^, task task-node) unsafe
 	a.lock acquire
 	choice t add-tasks-choice = match a state
 	as empty
 		a.state := task one-task
 		added
 	as one-task existing-task
-		existing-task.next := task,
-		a.state := (existing-task, task) tasks
+		second-node task-node = task, ()
+		first-node task-node = existing-task, (second-node,)
+		a.state := (first-node, second-node) tasks
 		added
 	as tasks existing-tasks
 		existing-tasks ~= task
@@ -101,7 +104,7 @@ add-task[t] void(a t^, task task) unsafe
 	as forward to
 		to add-task task
 	as tasks-are-ready
-		get-global-ctx add-task task
+		get-global-ctx enqueue-task task
 
 -add-tasks[t] void(a t^, tasks task-list) unsafe
 	a.lock acquire
@@ -110,8 +113,8 @@ add-task[t] void(a t^, task task) unsafe
 		a.state := tasks tasks
 		added
 	as one-task existing-task
-		existing-task.next := tasks.first,
-		a.state := (existing-task, tasks.last) tasks
+		node task-node = existing-task, (tasks.first,)
+		a.state := (node, tasks.last) tasks
 		added
 	as tasks existing-tasks
 		existing-tasks ~~= tasks
@@ -130,16 +133,17 @@ add-task[t] void(a t^, task task) unsafe
 	as forward to
 		to add-tasks tasks
 	as tasks-are-ready
-		get-global-ctx add-tasks tasks
+		get-global-ctx enqueue-tasks tasks
 
 -add-tasks-choice[t] union shared
 	added
 	forward t^
 	tasks-are-ready
 
--~= void(a task-list, b task-node) noctx
-	a.last.next := b,
-	a.last := b
+-~= void(a task-list, task task)
+	node task-node = task, ()
+	a.last.next := node,
+	a.last := node
 
 -~~= void(a task-list, b task-list) noctx
 	a.last.next := b.first,

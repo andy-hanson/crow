@@ -283,36 +283,32 @@ ConcreteFun* getOrAddNonTemplateConcreteFunAndFillBody(ref ConcretizeCtx ctx, Fu
 
 ConcreteType getConcreteType_forStructInst(ref ConcretizeCtx ctx, StructInst* i, in TypeArgsScope typeArgsScope) {
 	ConcreteType[] typeArgs = typesToConcreteTypes(ctx, typeArgs(*i), typeArgsScope);
-	if (decl(*i) == ctx.commonTypes.byVal)
-		return byVal(only(typeArgs));
-	else {
-		ConcreteStructKey key = ConcreteStructKey(decl(*i), typeArgs);
-		ValueAndDidAdd!(ConcreteStruct*) res =
-			getOrAddAndDidAdd!(ConcreteStructKey, ConcreteStruct*)(
-				ctx.alloc, ctx.nonLambdaConcreteStructs, key, () {
-					Purity purity = fold!(Purity, ConcreteType)(
-						i.purityRange.bestCase, typeArgs, (Purity p, in ConcreteType ta) =>
-							worsePurity(p, purity(ta)));
-					ConcreteStruct.SpecialKind specialKind = isArray(ctx.commonTypes, *i)
-						? ConcreteStruct.SpecialKind.array
-						: isTuple(ctx.commonTypes, *i)
-						? ConcreteStruct.SpecialKind.tuple
-						: ConcreteStruct.SpecialKind.none;
-					ConcreteStruct* res = allocate(ctx.alloc, ConcreteStruct(
-						purity,
-						specialKind,
-						ConcreteStructSource(ConcreteStructSource.Inst(i, key.typeArgs))));
-					add(ctx.alloc, ctx.allConcreteStructs, res);
-					return res;
-				});
-		if (res.didAdd)
-			initializeConcreteStruct(ctx, typeArgs, *i, castMutable(res.value), typeArgsScope);
-		if (!lateIsSet(res.value.defaultReferenceKind_))
-			// The only way 'defaultIsPointer' would not be set is if we are still computing the size of 's'.
-			// In that case, it's a recursive record, so it should be by-ref.
-			lateSet(castMutable(res.value).defaultReferenceKind_, ReferenceKind.byRef);
-		return ConcreteType(lateGet(res.value.defaultReferenceKind_), res.value);
-	}
+	ConcreteStructKey key = ConcreteStructKey(decl(*i), typeArgs);
+	ValueAndDidAdd!(ConcreteStruct*) res =
+		getOrAddAndDidAdd!(ConcreteStructKey, ConcreteStruct*)(
+			ctx.alloc, ctx.nonLambdaConcreteStructs, key, () {
+				Purity purity = fold!(Purity, ConcreteType)(
+					i.purityRange.bestCase, typeArgs, (Purity p, in ConcreteType ta) =>
+						worsePurity(p, purity(ta)));
+				ConcreteStruct.SpecialKind specialKind = isArray(ctx.commonTypes, *i)
+					? ConcreteStruct.SpecialKind.array
+					: isTuple(ctx.commonTypes, *i)
+					? ConcreteStruct.SpecialKind.tuple
+					: ConcreteStruct.SpecialKind.none;
+				ConcreteStruct* res = allocate(ctx.alloc, ConcreteStruct(
+					purity,
+					specialKind,
+					ConcreteStructSource(ConcreteStructSource.Inst(i, key.typeArgs))));
+				add(ctx.alloc, ctx.allConcreteStructs, res);
+				return res;
+			});
+	if (res.didAdd)
+		initializeConcreteStruct(ctx, typeArgs, *i, castMutable(res.value), typeArgsScope);
+	if (!lateIsSet(res.value.defaultReferenceKind_))
+		// The only way 'defaultIsPointer' would not be set is if we are still computing the size of 's'.
+		// In that case, it's a recursive record, so it should be by-ref.
+		lateSet(castMutable(res.value).defaultReferenceKind_, ReferenceKind.byRef);
+	return ConcreteType(lateGet(res.value.defaultReferenceKind_), res.value);
 }
 
 ConcreteType getConcreteType(ref ConcretizeCtx ctx, in Type t, in TypeArgsScope typeArgsScope) =>

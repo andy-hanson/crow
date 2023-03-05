@@ -449,10 +449,6 @@ size_t sum(T)(in T[] a, in size_t delegate(in T) @safe @nogc pure nothrow cb) =>
 	fold!(size_t, T)(0, a, (size_t l, in T t) =>
 		size_t(l + cb(t)));
 
-size_t count(T)(in T[] a, in bool delegate(in T) @safe @nogc pure nothrow pred) =>
-	sum!T(a, (in T it) =>
-		pred(it) ? 1 : 0);
-
 void filterUnordered(T)(ref MutArr!T a, in bool delegate(ref T) @safe @nogc pure nothrow pred) {
 	size_t i = 0;
 	while (i < mutArrSize(a)) {

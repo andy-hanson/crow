@@ -8,16 +8,19 @@ import
 	./misc: break-or-continue, shared, loop-break, loop-continue, new, void
 	./number: ==, -, nat64
 	./option: new, option
+	./pointer: *, mut-pointer
 	./private/bootstrap: action, exclusion, lk, new, rejected, resolved
-	./private/future-low-level: add-task, get-result, forward-to, reject, resolve, unresolved
-	./private/runtime: add-task, cur-exclusion, exception-handler, get-global-ctx, new-exclusion
+	./private/future-low-level:
+		add-task, add-task-no-exclusion, get-result, forward-to, reject, resolve, unresolved
+	./private/runtime:
+		enqueue-task, enqueue-task-no-exclusion, cur-exclusion, exception-handler, get-global-ctx
 	./private/task-queue: task
 	./private/thread-utils: init, lock, uninit
 	./result: force, result
 export
 	./private/bootstrap: future
 
--lock[t] lock(a t^) unsafe
+-lock[t] lock mut*(a t^) unsafe
 	&a.lk
 
 ###
@@ -88,7 +91,7 @@ Future resolved to `ok` if `a` succeeds and `err` if `a` fails with an exception
 ###
 +future-catch[t] (t, exception) result^(a t^) t shared
 	res (t, exception) result^ = trusted unresolved
-	trusted a add-task get-global-ctx.new-exclusion, () =>
+	trusted a add-task-no-exclusion () =>
 		res resolve a.get-result
 	res
 
@@ -99,10 +102,10 @@ Future resolved to `ok` if `a` succeeds and `err` if `a` fails with an exception
 +with-block[t] t^(a future-finally, f far t()) t shared
 	fut = f[]
 	res t^ = trusted unresolved
-	trusted fut add-task get-global-ctx.new-exclusion, () =>
+	trusted fut add-task-no-exclusion () =>
 		result = fut get-result
 		cleanup-fut = a.cleanup[]
-		cleanup-fut add-task get-global-ctx.new-exclusion, () =>
+		cleanup-fut add-task-no-exclusion () =>
 			match result
 			as ok value
 				match cleanup-fut get-result
@@ -151,7 +154,7 @@ and returns a future for the result of that task.
 +subscript[r, p] r^(function far r(p), params p) r shared, p shared
 	res r^ = trusted unresolved
 	action = function action
-	trusted get-global-ctx add-task function.exclusion, () =>
+	trusted get-global-ctx enqueue-task function.exclusion, () =>
 		match (() => action[params]) catch
 		as ok fut
 			res forward-to fut
@@ -164,12 +167,12 @@ If the future resolves successfully, does nothing.
 Else, this will call the default exception handler.
 ###
 handle-exceptions[t] void(a t^)
-	trusted a add-task get-global-ctx.new-exclusion, () =>
+	trusted a add-task-no-exclusion () =>
 		match a get-result
 		as ok _
 			()
 		as err e
-			get-global-ctx.exception-handler[e]
+			get-global-ctx->exception-handler[e]
 
 +loop-break[t] t break-or-continue^(a t)
 	a.loop-break,
@@ -188,7 +191,7 @@ which allows it to run in parallel.
 +with-block[t] t^(_ parallel, f fun t^())
 	res t^ = trusted unresolved
 	gctx = trusted get-global-ctx
-	trusted gctx add-task gctx.new-exclusion, () =>
+	trusted gctx enqueue-task-no-exclusion () =>
 		match (() => f[]) catch
 		as ok fut
 			res forward-to fut

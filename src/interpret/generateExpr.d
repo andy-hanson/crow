@@ -833,7 +833,6 @@ void generateSpecialUnary(
 
 	final switch (a.kind) {
 		case LowExprKind.SpecialUnary.Kind.asAnyPtr:
-		case LowExprKind.SpecialUnary.Kind.asRef:
 		case LowExprKind.SpecialUnary.Kind.enumToIntegral:
 		case LowExprKind.SpecialUnary.Kind.toChar8FromNat8:
 		case LowExprKind.SpecialUnary.Kind.toNat8FromChar8:

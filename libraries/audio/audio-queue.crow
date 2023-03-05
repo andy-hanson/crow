@@ -5,12 +5,12 @@ import
 
 audio-queue record force-shared by-ref
 	format sound-format
-	-lock-by-val lock by-val
+	-lk mut lock
 	# All sounds normalized to `format`
 	-playing entry mut[]
 
--lock lock(a audio-queue) noctx, unsafe
-	&a.lock-by-val
+-lock lock mut*(a audio-queue) noctx, unsafe
+	&a.lk
 
 new audio-queue(format sound-format)
 	trusted

@@ -11,7 +11,6 @@ import frontend.programState : ProgramState;
 import model.model :
 	body_,
 	CommonTypes,
-	Destructure,
 	EnumBackingType,
 	EnumFunction,
 	FieldMutability,
@@ -39,7 +38,7 @@ import model.model :
 	visibility;
 import util.alloc.alloc : Alloc;
 import util.col.arr : empty, ptrsRange;
-import util.col.arrUtil : count, map, sum;
+import util.col.arrUtil : map, sum;
 import util.col.exactSizeArrBuilder : ExactSizeArrBuilder, exactSizeArrBuilderAdd;
 import util.col.mutMaxArr : push, tempAsArr;
 import util.col.str : safeCStr;
@@ -65,12 +64,11 @@ private size_t countFunsForStruct(in StructDecl a) =>
 			// '()', 'all', '==', '~', '|', '&', 'to', 'flags-members',
 			// and a constructor for each member
 			8 + it.members.length,
-		(in StructBody.Record it) {
-			bool byVal = recordIsAlwaysByVal(it);
-			size_t nConstructors = byVal ? 1 : 2;
-			size_t nMutableFields = count!RecordField(it.fields, (in RecordField field) =>
-				field.mutability != FieldMutability.const_);
-			return nConstructors + it.fields.length * (byVal ? 2 : 1) + nMutableFields * (byVal ? 2 : 1);
+		(in StructBody.Record x) {
+			size_t forFields = sum!RecordField(x.fields, (in RecordField field) =>
+				field.mutability == FieldMutability.const_ ? 1 : 2);
+			// byVal has get/set for pointer too
+			return 1 + forFields * (recordIsAlwaysByVal(x) ? 2 : 1);
 		},
 		(in StructBody.Union it) =>
 			it.members.length);
@@ -414,30 +412,18 @@ void addFunsForRecordConstructor(
 	Type structType,
 	bool byVal,
 ) {
-	Destructure[] params = map(ctx.alloc, record.fields, (ref RecordField it) =>
-		makeParam(ctx.alloc, it.range, it.name, it.type));
-	FunDecl constructor(Type returnType, FunFlags flags) {
-		return FunDecl(
-			safeCStr!"",
-			record.flags.newVisibility,
-			fileAndPosFromFileAndRange(struct_.range),
-			sym!"new",
-			struct_.typeParams,
-			returnType,
-			Params(params),
-			flags.withOkIfUnused(),
-			[],
-			FunBody(FunBody.CreateRecord()));
-	}
-
-	if (byVal) {
-		exactSizeArrBuilderAdd(funsBuilder, constructor(structType, FunFlags.generatedNoCtx));
-	} else {
-		exactSizeArrBuilderAdd(funsBuilder, constructor(structType, FunFlags.generatedPreferred));
-		Type byValType = Type(
-			instantiateStructNeverDelay(ctx.alloc, ctx.programState, commonTypes.byVal, [structType]));
-		exactSizeArrBuilderAdd(funsBuilder, constructor(byValType, FunFlags.generatedNoCtx));
-	}
+	exactSizeArrBuilderAdd(funsBuilder, FunDecl(
+		safeCStr!"",
+		record.flags.newVisibility,
+		fileAndPosFromFileAndRange(struct_.range),
+		sym!"new",
+		struct_.typeParams,
+		structType,
+		Params(map(ctx.alloc, record.fields, (ref RecordField it) =>
+			makeParam(ctx.alloc, it.range, it.name, it.type))),
+		byVal ? FunFlags.generatedNoCtx : FunFlags.generated,
+		[],
+		FunBody(FunBody.CreateRecord())));
 }
 
 void addFunsForRecordField(

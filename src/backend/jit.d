@@ -1324,7 +1324,6 @@ ExprResult constantToGcc(ref ExprCtx ctx, ref ExprEmit emit, in LowType type, in
 			return emitSimpleNoSideEffects(ctx, emit, gcc_jit_lvalue_as_rvalue(
 				gcc_jit_rvalue_dereference(emitToRValue(ctx, locals, a.arg), null)));
 		case LowExprKind.SpecialUnary.Kind.asAnyPtr:
-		case LowExprKind.SpecialUnary.Kind.asRef:
 		case LowExprKind.SpecialUnary.Kind.enumToIntegral:
 		case LowExprKind.SpecialUnary.Kind.toChar8FromNat8:
 		case LowExprKind.SpecialUnary.Kind.toFloat32FromFloat64:

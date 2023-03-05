@@ -8,10 +8,9 @@ import
 	../number: ==, <=>, +, -, *, nat64
 	../option: new, option
 	../pointer:
-		+, -, as-const, by-val, mut-pointer, pointer-cast, reference-equal, set-deref,
-		set-subscript, size-of, subscript, zeroed
-	../private/alloc:
-		alloc-uninitialized, copy-data-from, set-zero-range, unmanaged-alloc-zeroed-elements
+		+, -, as-const, mut-pointer, pointer-cast, reference-equal, set-deref, set-subscript,
+		size-of, subscript, zeroed
+	../private/alloc: alloc-uninitialized, copy-data-from, set-zero-range
 	../private/number-low-level: round-up-to-power-of-two
 	../range: .., iterate
 	../tuple: a, b, new
@@ -56,13 +55,6 @@ is-at-capacity[t] bool(a t mut[]) noctx, unsafe
 
 -capacity[t] nat64(a t mut[]) noctx, unsafe
 	a.backing size
-
-mut-list-by-val[t] t mut[] by-val() noctx
-	empty-mut-array, 0
-
-mut-list-by-val-with-capacity-from-unmanaged-memory[t] t mut[] by-val(capacity nat64) noctx, unsafe
-	backing t mut* = capacity unmanaged-alloc-zeroed-elements
-	backing[0 .. capacity], 0
 
 ###
 Creates a new list with the given elements.

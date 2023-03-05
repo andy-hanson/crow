@@ -61,16 +61,6 @@ Prefer this over throwing an exception if failure is likely.
 region pointer.crow
 
 ###
-Avoid using this; this may change in a future version.
-Forces a type to be passed by-value instead of by-reference.
-
-You'll usually need to get `&x` in order to pass the value to functions.
-
-This even works on mutable types; passing a mutable record by-value does a shallow copy.
-###
-by-val[t] builtin extern
-
-###
 A raw pointer. Equivalent to `const a*` in C.
 
 The garbage collector does not trace raw pointers.
@@ -251,25 +241,6 @@ task record mut by-val
 	exclusion exclusion
 	action act void()
 
-###
-NOTE: This mutable value is often *shared*.
-If on a future, the lock on the future should be held while working with this.
-WARN: Keep in sync with 'task-node-with-time', which casts to this.
-###
-task-node record mut by-ref
-	task task
-	next mut task-node?
-
-task-list record mut
-	first mut task-node
-	last mut task-node
-
-# WARN: Keep in sync with 'task-node'.
-task-node-with-time record mut by-ref
-	task task
-	next mut task-node-with-time?
-	time nat64
-
 exclusion alias
 	nat64
 
@@ -403,17 +374,16 @@ There is no exception subtyping in crow, so all exceptions have this type.
 	backtrace backtrace
 
 +future[t] record force-shared by-ref
-	# It's important to make future by-ref since its lock is by-val 
-	lk lock by-val
+	lk mut lock
 	state mut t future-state
 
 future-state[t] union mut
 	# The future hasn't been resolved or forwarded, and no tasks have been added.
 	empty
-	# The future has one task waiting for it to be resolved.
-	one-task task-node
+	# Optimization for 'tasks' when there is only one
+	one-task task
 	# The future has multiple tasks attached.
-	tasks task-list
+	tasks task-list 
 	# All operations should be directed to another future.
 	forwarded t^
 	# The future was resolved successfully.
@@ -421,9 +391,16 @@ future-state[t] union mut
 	# The future resolved with an exception.
 	rejected exception
 
+task-list record mut
+	first task-node
+	last mut task-node
+task-node record mut
+	task task
+	next mut task-node?
+
 region lock
 
-lock record shared by-ref
+lock record shared by-val
 	n0 nat64
 	n1 nat64
 	n2 nat64

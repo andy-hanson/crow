@@ -100,7 +100,6 @@ import model.model :
 	FunFlags,
 	FunInst,
 	FunKind,
-	hasMutableField,
 	IntegralTypes,
 	isDefinitelyByRef,
 	isTemplate,
@@ -996,11 +995,6 @@ ExpectedPointee getExpectedPointee(ref ExprCtx ctx, in Expected expected) {
 				Type(inst), only(typeArgs(*inst)), PointerMutability.mutable));
 		else if (decl == ctx.commonTypes.funPtrStruct)
 			return ExpectedPointee(ExpectedPointee.FunPointer());
-		else if (isDefinitelyByRef(*inst))
-			return ExpectedPointee(ExpectedPointee.Pointer(
-				Type(inst),
-				Type(instantiateStructNeverDelay(ctx.alloc, ctx.programState, ctx.commonTypes.byVal, [Type(inst)])),
-				hasMutableField(*inst) ? PointerMutability.mutable : PointerMutability.immutable_));
 		else
 			return ExpectedPointee(ExpectedPointee.None());
 	} else

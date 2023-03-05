@@ -10,7 +10,7 @@ import
 	./number: /, nat64
 	./private/number-low-level: wrap-sub
 export
-	./private/bootstrap: any-const-pointer, any-mut-pointer, by-val, const-pointer, mut-pointer, zeroed
+	./private/bootstrap: any-const-pointer, any-mut-pointer, const-pointer, mut-pointer, zeroed
 
 # Treats a mutable pointer as constant.
 +as-const[t] t*(a t mut*) builtin, noctx, unsafe
@@ -116,10 +116,6 @@ At a low level, this is just an identity function; it just changes the type.
 	a.as-mut.pointer-cast as-const
 +pointer-cast[out, in] out mut*(a in mut*) builtin, noctx, unsafe
 
-# TODO:KILL
-ref-cast[out, in] out(a in) noctx, unsafe
-	a.as-any-mut-pointer as-ref
-
 # Raw address of a pointer.
 +to[t] nat64(a t*) builtin, noctx, unsafe
 +to[t] nat64(a t mut*) builtin, noctx, unsafe
@@ -136,15 +132,15 @@ ref-cast[out, in] out(a in) noctx, unsafe
 
 region Conversion between pointers and pointer-like types
 
-# TODO: this function only works for by-ref types -- currently that is not checked by the type checker
-# Convert a reference to `any-pointer`.
+###
+Convert a 'by-ref' type to a pointer.
+WARN: GC references and pointers should generally not mix. Use this only in the GC.
+WARN: If the type is not 'by-ref', this may crash the compiler.
+###
 as-any-const-pointer[t] any-const-pointer(reference t) noctx, unsafe
 	reference.as-any-mut-pointer.as-const
-# TODO: this could just use pointer-cast? Doesn't need to be builtin?
+# WARN: See comment on 'as-any-const-pointer'.
 as-any-mut-pointer[t] any-mut-pointer(reference t) builtin, noctx, unsafe
-
-# TODO:KILL
--as-ref[t] t(a any-mut-pointer) builtin, noctx, unsafe
 
 +as-fun-pointer[r, p] fun* r(p)(a any-const-pointer) builtin, noctx, unsafe
 

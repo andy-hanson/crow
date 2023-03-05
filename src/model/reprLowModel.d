@@ -266,8 +266,6 @@ string strOfSpecialUnaryKind(LowExprKind.SpecialUnary.Kind a) {
 	final switch (a) {
 		case LowExprKind.SpecialUnary.Kind.asAnyPtr:
 			return "as-any-ptr";
-		case LowExprKind.SpecialUnary.Kind.asRef:
-			return "as-ref";
 		case LowExprKind.SpecialUnary.Kind.bitwiseNotNat8:
 			return "bitwise-not (nat8)";
 		case LowExprKind.SpecialUnary.Kind.bitwiseNotNat16:
