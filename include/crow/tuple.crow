@@ -5,12 +5,6 @@ import
 export
 	./private/bootstrap: a, b, c, d, e, f, new, tuple2, tuple3, tuple4, tuple5, tuple6
 
-###
-Written `(a, b)`. Generic pair type.
-
-This is often used as a key-value pair in a dictionary or priority queue.
-###
-
 +==[t, u] bool(a (t, u), b (t, u)) noctx, t equal, u equal
 	a.a == b.a && a.b == b.b
 +<=>[t, u] comparison(a (t, u), b (t, u)) noctx, t compare, u compare

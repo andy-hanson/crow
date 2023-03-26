@@ -77,8 +77,8 @@ import util.alloc.alloc : Alloc;
 import util.col.arr : empty, only, PtrAndSmallNumber, sizeEq;
 import util.col.arrUtil : arrLiteral, map, mapZip;
 import util.col.mutArr : MutArr, mutArrSize, push;
-import util.col.mutDict : getOrAdd;
-import util.col.stackDict : StackDict2, stackDict2Add0, stackDict2Add1, stackDict2MustGet0, stackDict2MustGet1;
+import util.col.mutMap : getOrAdd;
+import util.col.stackMap : StackMap2, stackMap2Add0, stackMap2Add1, stackMap2MustGet0, stackMap2MustGet1;
 import util.col.str : SafeCStr, safeCStr;
 import util.memory : allocate, overwriteMemory;
 import util.opt : force, has, none, Opt, some;
@@ -432,14 +432,14 @@ ConcreteLocal* makeLocalWorker(ref ConcretizeExprCtx ctx, Local* source, Concret
 ConcreteLocal* concretizeLocal(ref ConcretizeExprCtx ctx, Local* local) =>
 	makeLocalWorker(ctx, local, getConcreteType(ctx, local.type));
 
-alias Locals = immutable StackDict2!(Local*, LocalOrConstant, ExprKind.Loop*, ConcreteExprKind.Loop*);
-alias addLocal = stackDict2Add0!(Local*, LocalOrConstant, ExprKind.Loop*, ConcreteExprKind.Loop*);
-alias addLoop = stackDict2Add1!(Local*, LocalOrConstant, ExprKind.Loop*, ConcreteExprKind.Loop*);
-alias getLocal = stackDict2MustGet0!(Local*, LocalOrConstant, ExprKind.Loop*, ConcreteExprKind.Loop*);
+alias Locals = immutable StackMap2!(Local*, LocalOrConstant, ExprKind.Loop*, ConcreteExprKind.Loop*);
+alias addLocal = stackMap2Add0!(Local*, LocalOrConstant, ExprKind.Loop*, ConcreteExprKind.Loop*);
+alias addLoop = stackMap2Add1!(Local*, LocalOrConstant, ExprKind.Loop*, ConcreteExprKind.Loop*);
+alias getLocal = stackMap2MustGet0!(Local*, LocalOrConstant, ExprKind.Loop*, ConcreteExprKind.Loop*);
 
 //TODO: use an alias
 ConcreteExprKind.Loop* getLoop(in Locals locals, ExprKind.Loop* key) =>
-	stackDict2MustGet1!(Local*, LocalOrConstant, ExprKind.Loop*, ConcreteExprKind.Loop*)(locals, key);
+	stackMap2MustGet1!(Local*, LocalOrConstant, ExprKind.Loop*, ConcreteExprKind.Loop*)(locals, key);
 
 ConcreteExpr concretizeLet(ref ConcretizeExprCtx ctx, FileAndRange range, in Locals locals, ref ExprKind.Let e) =>
 	concretizeWithDestructureAndLet(

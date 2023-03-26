@@ -122,9 +122,9 @@ import model.typeLayout : typeSizeBytes;
 import util.alloc.alloc : Alloc;
 import util.col.arr : empty;
 import util.col.arrUtil : indexOfPointer, makeArr, map, mapToMut, mapWithIndex, zip;
-import util.col.dict : mustGetAt;
-import util.col.fullIndexDict : FullIndexDict, fullIndexDictZip, mapFullIndexDict_mut;
-import util.col.stackDict : MutStackDict, mutStackDictAdd, mutStackDictMustGet;
+import util.col.map : mustGetAt;
+import util.col.fullIndexMap : FullIndexMap, fullIndexMapZip, mapFullIndexMap_mut;
+import util.col.stackMap : MutStackMap, mutStackMapAdd, mutStackMapMustGet;
 import util.col.str : CStr, SafeCStr;
 import util.conv : safeToInt;
 import util.opt : force, has, MutOpt, none, noneMut, Opt, some, someMut;
@@ -253,9 +253,9 @@ void buildGccProgram(ref Alloc alloc, ref gcc_jit_context ctx, in AllSymbols all
 			crowVoidType,
 			"void"));
 
-	//immutable FullIndexDict!(LowFunIndex, LowFun) allFuns;
-	FullIndexDict!(LowFunIndex, gcc_jit_function*) gccFuns =
-		mapFullIndexDict_mut!(LowFunIndex, gcc_jit_function*, LowFun)(
+	//immutable FullIndexMap!(LowFunIndex, LowFun) allFuns;
+	FullIndexMap!(LowFunIndex, gcc_jit_function*) gccFuns =
+		mapFullIndexMap_mut!(LowFunIndex, gcc_jit_function*, LowFun)(
 			alloc,
 			program.allFuns,
 			(LowFunIndex funIndex, in LowFun fun) =>
@@ -276,7 +276,7 @@ void buildGccProgram(ref Alloc alloc, ref gcc_jit_context ctx, in AllSymbols all
 		gcc_jit_context_get_builtin_function(ctx, "__builtin_popcountl");
 
 	// Now fill in the body of every function.
-	fullIndexDictZip!(LowFunIndex, LowFun, gcc_jit_function*)(
+	fullIndexMapZip!(LowFunIndex, LowFun, gcc_jit_function*)(
 		program.allFuns,
 		gccFuns,
 		(LowFunIndex funIndex, ref LowFun fun, ref gcc_jit_function* curFun) {
@@ -457,7 +457,7 @@ GlobalsForConstants generateGlobalsForConstants(
 	return GlobalsForConstants(arrGlobals, ptrGlobals);
 }
 
-alias GccVars = FullIndexDict!(LowVarIndex, gcc_jit_lvalue*);
+alias GccVars = FullIndexMap!(LowVarIndex, gcc_jit_lvalue*);
 
 GccVars generateGccVars(
 	ref Alloc alloc,
@@ -466,7 +466,7 @@ GccVars generateGccVars(
 	in GccTypes types,
 	in MangledNames mangledNames,
 ) =>
-	mapFullIndexDict_mut!(LowVarIndex, gcc_jit_lvalue*, LowVar)(
+	mapFullIndexMap_mut!(LowVarIndex, gcc_jit_lvalue*, LowVar)(
 		alloc, program.vars, (LowVarIndex varIndex, in LowVar var) {
 			immutable gcc_jit_type* type = getGccType(types, var.type);
 			//TODO:NO ALLOC
@@ -754,13 +754,13 @@ ExprResult emitSwitch(
 				&cases[0]);
 		});
 
-alias Locals = MutStackDict!(LowLocal*, gcc_jit_lvalue*);
-alias addLocal = mutStackDictAdd!(LowLocal*, gcc_jit_lvalue*);
+alias Locals = MutStackMap!(LowLocal*, gcc_jit_lvalue*);
+alias addLocal = mutStackMapAdd!(LowLocal*, gcc_jit_lvalue*);
 gcc_jit_lvalue* getLocal(ref ExprCtx ctx, ref Locals locals, in LowLocal* local) {
 	Opt!size_t paramIndex = indexOfPointer(ctx.curFunParams, local);
 	return has(paramIndex)
 		? gcc_jit_param_as_lvalue(gcc_jit_function_get_param(ctx.curFun, safeToInt(force(paramIndex))))
-		: mutStackDictMustGet!(LowLocal*, gcc_jit_lvalue*)(locals, local);
+		: mutStackMapMustGet!(LowLocal*, gcc_jit_lvalue*)(locals, local);
 }
 
 struct ExprCtx {
@@ -774,7 +774,7 @@ struct ExprCtx {
 	immutable GccTypes* typesPtr;
 	GlobalsForConstants* globalsForConstantsPtr;
 	GccVars* gccVarsPtr;
-	FullIndexDict!(LowFunIndex, gcc_jit_function*) gccFuns;
+	FullIndexMap!(LowFunIndex, gcc_jit_function*) gccFuns;
 	gcc_jit_function* curFun;
 	LowType curFunReturnType;
 	LowLocal[] curFunParams;

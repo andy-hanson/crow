@@ -1,13 +1,13 @@
 import
 	crow/col/counter: counter, new
 	crow/col/deque: deque, new
-	crow/col/experimental/compact-dict: compact-dict, new
-	crow/col/experimental/compact-sorted-dict: compact-sorted-dict, new
-	crow/col/experimental/frozen-dict: frozen-dict, new
+	crow/col/experimental/compact-map: compact-map, new
+	crow/col/experimental/compact-sorted-map: compact-sorted-map, new
+	crow/col/experimental/frozen-map: frozen-map, new
 	crow/col/experimental/frozen-set: frozen-set, new
 	crow/col/experimental/hamt-set: hamt-set, new
 	crow/col/experimental/index-set: index-set, new
-	crow/col/experimental/mut-sorted-dict: mut-sorted-dict, new
+	crow/col/experimental/mut-sorted-map: mut-sorted-map, new
 	crow/col/experimental/mut-sorted-set: mut-sorted-set, new
 	crow/col/experimental/private/frozen-set-tests: dummy-frozen-set-tests
 	crow/col/experimental/private/index-set-tests: dummy-index-set-tests
@@ -20,7 +20,7 @@ import
 	crow/col/mut-stack: mut-stack, new
 	crow/col/priority-queue: new, priority-queue
 	crow/col/private/array-tests: dummy-array-tests
-	crow/col/private/dict-tests: dummy-dict-tests
+	crow/col/private/map-tests: dummy-map-tests
 	crow/col/private/list-tests: dummy-list-tests
 	crow/col/private/set-tests: dummy-set-tests
 	crow/col/stack: new, stack
@@ -53,8 +53,8 @@ main nat^(_ string[]) summon
 	_ = ().from-bytes :: nat8[]
 	_ = quality-moderate
 	_ = bold
-	_ = () :: ((nat, nat) compact-dict)
-	_ = () :: ((nat, nat) compact-sorted-dict)
+	_ = () :: ((nat, nat) compact-map)
+	_ = () :: ((nat, nat) compact-sorted-map)
 	_ = () :: (nat counter)
 	_ = current-directory
 	_ = () :: (nat deque)
@@ -62,7 +62,7 @@ main nat^(_ string[]) summon
 	_ = dummy-bare-map-tests
 	_ = dummy-bare-queue-tests
 	_ = dummy-bits-tests
-	_ = dummy-dict-tests
+	_ = dummy-map-tests
 	_ = dummy-exclusion-queue-tests
 	_ = dummy-frozen-set-tests
 	_ = dummy-index-set-tests
@@ -72,7 +72,7 @@ main nat^(_ string[]) summon
 	_ = dummy-set-tests
 	_ = dummy-string-tests
 	_ = () :: nat[nat]
-	_ = () :: ((nat, nat) frozen-dict)
+	_ = () :: ((nat, nat) frozen-map)
 	_ = () :: (nat frozen-set)
 	_ = generate-login-cookie
 	_ = get-environ
@@ -89,7 +89,7 @@ main nat^(_ string[]) summon
 	_ = () :: (nat mut-grid)
 	_ = () :: ((nat, nat) mut-priority-queue)
 	_ = () :: (nat mut-set)
-	_ = () :: ((nat, nat) mut-sorted-dict)
+	_ = () :: ((nat, nat) mut-sorted-map)
 	_ = () :: (nat mut-sorted-set)
 	_ = () :: (nat mut-queue)
 	_ = () :: (nat mut-stack)

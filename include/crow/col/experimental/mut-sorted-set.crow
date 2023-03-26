@@ -8,26 +8,26 @@ import
 	../../tuple: new
 	../collection: build-options, for-loop
 	../list: ~=, build, iterate, list, size
-	./mut-sorted-dict:
-		~=, build, clear, filter=, in, is-empty, iterate, map=, mut-sorted-dict, new, remove-key,
+	./mut-sorted-map:
+		~=, build, clear, filter=, in, is-empty, iterate, map=, mut-sorted-map, new, remove-key,
 		set-subscript, size, subscript
 	./sorted-set: sorted-set, to
 
 ###
 Mutable sorted set of unique values.
-This is like a `set` but mutable, or like a `mut-sorted-dict` with no values.
+This is like a `set` but mutable, or like a `mut-sorted-map` with no values.
 Unlike `mut-list`, values are in sorted order, not insertion order,
 and it never stores two of the same value.
 ###
 mut-sorted-set[t] record mut
-	-inner (t, void) mut-sorted-dict
+	-inner (t, void) mut-sorted-map
 
 # New empty `mut-sorted-set`.
 new[t] t mut-sorted-set() t key
 	(),
 
 to[t] t mut-sorted-set(a t[]) t key
-	inner (t, void) mut-sorted-dict = for x : a; x, ()
+	inner (t, void) mut-sorted-map = for x : a; x, ()
 	inner,
 
 # True iff the set has no elements.

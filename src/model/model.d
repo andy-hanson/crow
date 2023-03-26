@@ -9,9 +9,9 @@ import model.constant : Constant;
 import model.diag : Diag, Diagnostics, FilesInfo; // TODO: move FilesInfo here?
 import util.col.arr : arrayOfSingle, empty, only, only2, PtrAndSmallNumber, small, SmallArray;
 import util.col.arrUtil : arrEqual;
-import util.col.dict : Dict;
-import util.col.enumDict : EnumDict;
-import util.col.fullIndexDict : FullIndexDict;
+import util.col.map : Map;
+import util.col.enumMap : EnumMap;
+import util.col.fullIndexMap : FullIndexMap;
 import util.col.str : SafeCStr;
 import util.hash : Hasher;
 import util.late : Late, lateGet, lateIsSet, lateSet, lateSetOverwrite;
@@ -33,7 +33,7 @@ import util.union_ : Union;
 import util.util : max, min, typeAs, unreachable, verify;
 import util.writer : Writer, writeWithCommas;
 
-alias LineAndColumnGetters = immutable FullIndexDict!(FileIndex, LineAndColumnGetter);
+alias LineAndColumnGetters = immutable FullIndexMap!(FileIndex, LineAndColumnGetter);
 
 alias Purity = immutable Purity_;
 private enum Purity_ : ubyte {
@@ -981,7 +981,7 @@ immutable struct Module {
 	FunDecl[] funs;
 	Test[] tests;
 	// Includes re-exports
-	Dict!(Sym, NameReferents) allExportedNames;
+	Map!(Sym, NameReferents) allExportedNames;
 }
 
 immutable struct ImportOrExport {
@@ -1113,7 +1113,7 @@ immutable struct CommonTypes {
 	// No tuple0 and tuple1, so this is 2-9 inclusive
 	StructDecl*[8] tuples2Through9;
 	// Indexed by FunKind, then by arity. (arity = typeArgs.length - 1)
-	EnumDict!(FunKind, StructDecl*) funStructs;
+	EnumMap!(FunKind, StructDecl*) funStructs;
 	
 	StructDecl* funPtrStruct() =>
 		funStructs[FunKind.pointer];
@@ -1164,8 +1164,8 @@ immutable struct Config {
 	ConfigExternPaths extern_;
 }
 
-alias ConfigImportPaths = Dict!(Sym, Path);
-alias ConfigExternPaths = Dict!(Sym, Path);
+alias ConfigImportPaths = Map!(Sym, Path);
+alias ConfigExternPaths = Map!(Sym, Path);
 
 bool hasDiags(in Program a) =>
 	!empty(a.diagnostics.diags);
@@ -1516,13 +1516,6 @@ void writeStructDecl(scope ref Writer writer, in AllSymbols allSymbols, in Progr
 }
 
 void writeStructInst(scope ref Writer writer, in AllSymbols allSymbols, in Program program, in StructInst s) {
-	void dict(string open) {
-		Type[2] vk = only2(s.typeArgs);
-		writeTypeUnquoted(writer, allSymbols, program, vk[0]);
-		writer ~= open;
-		writeTypeUnquoted(writer, allSymbols, program, vk[1]);
-		writer ~= ']';
-	}
 	void fun(string keyword) {
 		writer ~= keyword;
 		writer ~= ' ';
@@ -1534,6 +1527,13 @@ void writeStructInst(scope ref Writer writer, in AllSymbols allSymbols, in Progr
 		writeTypeUnquoted(writer, allSymbols, program, param);
 		if (needParens) writer ~= ')';
 	}
+	void map(string open) {
+		Type[2] vk = only2(s.typeArgs);
+		writeTypeUnquoted(writer, allSymbols, program, vk[0]);
+		writer ~= open;
+		writeTypeUnquoted(writer, allSymbols, program, vk[1]);
+		writer ~= ']';
+	}
 	void suffix(string suffix) {
 		writeTypeUnquoted(writer, allSymbols, program, only(s.typeArgs));
 		writer ~= suffix;	
@@ -1543,8 +1543,8 @@ void writeStructInst(scope ref Writer writer, in AllSymbols allSymbols, in Progr
 	Opt!(Diag.TypeShouldUseSyntax.Kind) kind = typeSyntaxKind(name);
 	if (has(kind)) {
 		final switch (force(kind)) {
-			case Diag.TypeShouldUseSyntax.Kind.dict:
-				return dict("[");
+			case Diag.TypeShouldUseSyntax.Kind.map:
+				return map("[");
 			case Diag.TypeShouldUseSyntax.Kind.funAct:
 				return fun("act");
 			case Diag.TypeShouldUseSyntax.Kind.funFar:
@@ -1555,8 +1555,8 @@ void writeStructInst(scope ref Writer writer, in AllSymbols allSymbols, in Progr
 				return suffix("^");
 			case Diag.TypeShouldUseSyntax.Kind.list:
 				return suffix("[]");
-			case Diag.TypeShouldUseSyntax.Kind.mutDict:
-				return dict(" mut[");
+			case Diag.TypeShouldUseSyntax.Kind.mutMap:
+				return map(" mut[");
 			case Diag.TypeShouldUseSyntax.Kind.mutList:
 				return suffix(" mut[]");
 			case Diag.TypeShouldUseSyntax.Kind.mutPointer:

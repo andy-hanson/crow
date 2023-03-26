@@ -26,11 +26,11 @@ all-exports all-exports(modules module[])
 				()
 	types.move-to, specs.move-to
 
--add-or-warn void(dict module-path mut[symbol], key symbol, value module-path)
-	if cur ?= dict[key]
+-add-or-warn void(map module-path mut[symbol], key symbol, value module-path)
+	if cur ?= map[key]
 		warn log "duplicate name {key}: in {cur} and {value}"
 	else
-		dict[key] := value
+		map[key] := value
 
 -export-kind enum
 	export-type
@@ -82,8 +82,8 @@ module-content string(a module, all-exports all-exports)
 	"future-state", "lock"
 -spec-name-reference string(name symbol, ctx ctx)
 	name type-or-spec-name-reference ctx.all-exports.specs, "spec", ctx
--type-or-spec-name-reference string(name symbol, dictionary module-path[symbol], kind string, ctx ctx)
-	if module ?= dictionary[name]
+-type-or-spec-name-reference string(name symbol, map module-path[symbol], kind string, ctx ctx)
+	if module ?= map[name]
 		module-path = module != ctx.current-module ? "/doc/{module}.html"
 		"""<a href="{module-path}#{name}"><code class="{kind}">{name}</code></a>"""
 	else
@@ -267,10 +267,10 @@ module-content string(a module, all-exports all-exports)
 		a type-ref-suffix "[]", ctx
 	elif name == "mut-list"
 		a type-ref-suffix " mut[]", ctx
-	elif name == "dict"
-		a type-ref-dict "[", ctx
-	elif name == "mut-dict"
-		a type-ref-dict " mut[", ctx
+	elif name == "map"
+		a type-ref-map "[", ctx
+	elif name == "mut-map"
+		a type-ref-map " mut[", ctx
 	elif name == "const-pointer"
 		a type-ref-suffix "*", ctx
 	elif name == "mut-pointer"
@@ -282,7 +282,7 @@ module-content string(a module, all-exports all-exports)
 
 -type-ref-suffix string(a type-ref, suffix string, ctx ctx)
 	"{a.type-args.only type-ref-content ctx}{suffix keyword}"
--type-ref-dict string(a type-ref, open string, ctx ctx)
+-type-ref-map string(a type-ref, open string, ctx ctx)
 	assert a.type-args.size == 2
 	v = a.type-args[0] type-ref-content ctx
 	k = a.type-args[1] type-ref-content ctx

@@ -7,8 +7,8 @@ no-std
 import
 	./col/array: +, array, begin, is-empty, iterate, new, next, size
 	./col/collection: for-loop, index-of, join, set-subscript, subscript
-	./col/dict: ~=, build, dict, iterate, size
 	./col/list: ~=, build, iterate, list, to
+	./col/map: ~=, build, iterate, map, size
 	./col/mut-array: ~=, +, begin, build, mut-array, next, new, set-next
 	./exception: finally, with-block
 	./fun-util: subscript

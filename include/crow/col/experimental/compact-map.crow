@@ -16,24 +16,24 @@ import
 	../list: ==, ~=, build, iterate, list, new, size
 	../mut-set: in, mut-set, new, try-add
 	../sort: sort
-	./frozen-dict:
-		frozen-dict, in, is-empty, iterate, mut-array-to-frozen-dict-promise-no-duplicates, new,
+	./frozen-map:
+		frozen-map, in, is-empty, iterate, mut-array-to-frozen-map-promise-no-duplicates, new,
 		size, subscript, to
 
-compact-dict[k, v] record by-val
+compact-map[k, v] record by-val
 	ignore void
 	impl (k, v) impl
 
-==[k, v] bool(a (k, v) compact-dict, b (k, v) compact-dict) k key, v equal
+==[k, v] bool(a (k, v) compact-map, b (k, v) compact-map) k key, v equal
 	a.to-sorted-pairs == b.to-sorted-pairs
--to-sorted-pairs[k, v] (k, v)[](a (k, v) compact-dict) k key
+-to-sorted-pairs[k, v] (k, v)[](a (k, v) compact-map) k key
 	(for x : a; x) sort (k, _) => k
 
-to[k, v] json(a (k, v) compact-dict) k key, (json, k) to, (json, v) to
+to[k, v] json(a (k, v) compact-map) k key, (json, k) to, (json, v) to
 	a.to-sorted-pairs to
 
 # TODO:KILL
-node-count[k, v] nat64(a (k, v) compact-dict)
+node-count[k, v] nat64(a (k, v) compact-map)
 	0 node-count a.impl
 -node-count[k, v] nat64(acc nat64, a (k, v) impl)
 	match a
@@ -44,19 +44,19 @@ node-count[k, v] nat64(a (k, v) compact-dict)
 
 -impl[k, v] union
 	overlay (k, v) overlay
-	end-node (k, v) frozen-dict
+	end-node (k, v) frozen-map
 
 -overlay[k, v] record by-ref
-	pairs (k, v?) frozen-dict
+	pairs (k, v?) frozen-map
 	prev (k, v) impl
 
-new[k, v] (k, v) compact-dict() k key
+new[k, v] (k, v) compact-map() k key
 	(), ().end-node
 
-to[k, v] (k, v) compact-dict(a (k, v)[]) k key
+to[k, v] (k, v) compact-map(a (k, v)[]) k key
 	(), a.to.end-node
 
-is-empty[k, v] bool(a (k, v) compact-dict) k key
+is-empty[k, v] bool(a (k, v) compact-map) k key
 	match a impl
 	as overlay _
 		false
@@ -67,34 +67,34 @@ is-empty[k, v] bool(a (k, v) compact-dict) k key
 Number of pairs.
 This is O(n).
 ###
-size[k, v] nat64(a (k, v) compact-dict) k key
+size[k, v] nat64(a (k, v) compact-map) k key
 	res mut = 0
 	for _ : a
 		res +:= 1
 	res
 
-~ ~[k, v] (k, v) compact-dict(a (k, v) compact-dict, (key k, value v)) k key
+~ ~[k, v] (k, v) compact-map(a (k, v) compact-map, (key k, value v)) k key
 	a add-or-remove key, (value,)
 
 ###
 TODO
-~[k, v] (k, v) compact-dict(a (k, v) compact-dict, b (k, v) compact-dict) k key
+~[k, v] (k, v) compact-map(a (k, v) compact-map, b (k, v) compact-map) k key
 	a ~ b.arr
 ###
 
-~ ~~[k, v] (k, v) compact-dict(a (k, v) compact-dict, b (k, v)[]) k key
+~ ~~[k, v] (k, v) compact-map(a (k, v) compact-map, b (k, v)[]) k key
 	res mut = a
 	for pair : b
 		res ~:= pair
 	res
 
-~ -[k, v] (k, v) compact-dict(a (k, v) compact-dict, key k) k key
+~ -[k, v] (k, v) compact-map(a (k, v) compact-map, key k) k key
 	if key in a
 		a add-or-remove key, ()
 	else
 		a
 
-subscript[k, v] v?(a (k, v) compact-dict, key k) k key
+subscript[k, v] v?(a (k, v) compact-map, key k) k key
 	cur mut = a impl
 	loop
 		match cur
@@ -107,10 +107,10 @@ subscript[k, v] v?(a (k, v) compact-dict, key k) k key
 		as end-node e
 			break e[key]
 
-in[k, v] bool(key k, a (k, v) compact-dict) k key
+in[k, v] bool(key k, a (k, v) compact-map) k key
 	!a[key].is-empty
 
--add-or-remove[k, v] (k, v) compact-dict(a (k, v) compact-dict, key k, value v?) k key
+-add-or-remove[k, v] (k, v) compact-map(a (k, v) compact-map, key k, value v?) k key
 	(), ((((key, value),).to, a.impl) merge-as-needed)
 
 -merge-as-needed[k, v] (k, v) impl(a (k, v) overlay) k key
@@ -129,9 +129,9 @@ in[k, v] bool(key k, a (k, v) compact-dict) k key
 -should-merge bool(prev-size nat64, overlay-size nat64)
 	prev-size <= (overlay-size max 3)
 
--merge-overlays[k, v] (k, v?) frozen-dict(
-	l (k, v?) frozen-dict,
-	r (k, v?) frozen-dict,
+-merge-overlays[k, v] (k, v?) frozen-map(
+	l (k, v?) frozen-map,
+	r (k, v?) frozen-map,
 ) k key
 	pairs (k, v?) mut-array = with out : l.size + r.size build
 		for k, vl : l
@@ -139,11 +139,11 @@ in[k, v] bool(key k, a (k, v) compact-dict) k key
 				out ~= (k, vl)
 		for x : r
 			out ~= x
-	trusted pairs mut-array-to-frozen-dict-promise-no-duplicates
+	trusted pairs mut-array-to-frozen-map-promise-no-duplicates
 
--merge-to-end[k, v] (k, v) frozen-dict(
-	l (k, v) frozen-dict,
-	r (k, v?) frozen-dict,
+-merge-to-end[k, v] (k, v) frozen-map(
+	l (k, v) frozen-map,
+	r (k, v?) frozen-map,
 ) k key
 	pairs (k, v) mut-array = with out : l.size + r.size build
 		for k, vl : l
@@ -152,11 +152,11 @@ in[k, v] bool(key k, a (k, v) compact-dict) k key
 		for k, vr : r
 			if v ?= vr
 				out ~= (k, v)
-	trusted pairs mut-array-to-frozen-dict-promise-no-duplicates
+	trusted pairs mut-array-to-frozen-map-promise-no-duplicates
 
 region spec impls (see collection.crow)
 
-iterate[k, v] bool(a (k, v) compact-dict, f act bool(k, v)) k key
+iterate[k, v] bool(a (k, v) compact-map, f act bool(k, v)) k key
 	cur mut = a impl
 	seen k mut-set = ()
 	loop
@@ -179,7 +179,7 @@ iterate[k, v] bool(a (k, v) compact-dict, f act bool(k, v)) k key
 
 region test
 
--dbg[k, v] string(a (k, v) compact-dict) (string, k) to, (string, v) to
+-dbg[k, v] string(a (k, v) compact-map) (string, k) to, (string, v) to
 	a.impl dbg
 -dbg[k, v] string(a (k, v) impl) (string, k) to, (string, v) to
 	match a
@@ -197,13 +197,13 @@ region test
 			"{k} -> {v}"
 		"[{parts}]"
 
--verify void(a (nat64, string) compact-dict, expected string)
+-verify void(a (nat64, string) compact-map, expected string)
 	a.dbg is expected
 	for k, v : a
 		a[k] is (v,)
 
 test
-	a (nat64, string) compact-dict = ()
+	a (nat64, string) compact-map = ()
 	a.is-empty is true
 	a.size is 0
 	a verify "[]"

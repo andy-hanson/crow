@@ -2,7 +2,7 @@ no-std
 import
 	../bool: &&, ||, bool, false, true
 	../col/array: array
-	../col/dict: dict, empty-dict
+	../col/map: empty-map, map
 	../exception: exception, to
 	../fun-util: subscript
 	../io/print: err, print, print-no-newline
@@ -77,7 +77,7 @@ cur-thread-id nat64() unsafe
 uninit global-ctx(n-threads nat64) noctx, summon, unsafe
 	exn fun void(exception) = exn => exn default-exception-handler
 	lh log-handler = log => log default-log-handler
-	uninit, uninit, false, uninit, uninit, empty-dict, exn, lh, uninit, uninit, n-threads, uninit, uninit, false
+	uninit, uninit, false, uninit, uninit, empty-map, exn, lh, uninit, uninit, n-threads, uninit, uninit, false
 
 init void(a global-ctx mut*) noctx, unsafe
 	a.global-lock init

@@ -41,8 +41,8 @@ import model.reprConcreteModel : reprOfConcreteStructRef;
 import util.alloc.alloc : Alloc;
 import util.col.arr : sizeEq;
 import util.col.arrUtil : zip;
-import util.col.stackDict : StackDict, stackDictAdd, stackDictMustGet;
-import util.col.fullIndexDict : fullIndexDictEachValue;
+import util.col.stackMap : StackMap, stackMapAdd, stackMapMustGet;
+import util.col.fullIndexMap : fullIndexMapEachValue;
 import util.opt : force, has, none, Opt, some;
 import util.ptr : castNonScope_ref, ptrTrustMe;
 import util.repr : Repr, reprRecord, reprSym;
@@ -51,7 +51,7 @@ import util.util : drop, verify;
 
 void checkLowProgram(ref Alloc alloc, in AllSymbols allSymbols, in LowProgram a) {
 	Ctx ctx = Ctx(ptrTrustMe(alloc), ptrTrustMe(allSymbols), ptrTrustMe(a));
-	fullIndexDictEachValue!(LowFunIndex, LowFun)(a.allFuns, (ref LowFun fun) {
+	fullIndexMapEachValue!(LowFunIndex, LowFun)(a.allFuns, (ref LowFun fun) {
 		checkLowFun(ctx, fun);
 	});
 }
@@ -109,7 +109,7 @@ void checkLowFun(ref Ctx ctx, in LowFun fun) {
 		});
 }
 
-alias InfoStack = StackDict!(LowExprKind.Loop*, LowType);
+alias InfoStack = StackMap!(LowExprKind.Loop*, LowType);
 
 void checkLowExpr(ref FunCtx ctx, in InfoStack info, in LowType type, in LowExpr expr) {
 	checkTypeEqual(ctx.ctx, type, expr.type);
@@ -160,14 +160,14 @@ void checkLowExpr(ref FunCtx ctx, in InfoStack info, in LowType type, in LowExpr
 			checkLowExpr(ctx, info, it.local.type, it.value);
 		},
 		(in LowExprKind.Loop x) {
-			InfoStack innerInfo = stackDictAdd(castNonScope_ref(info), ptrTrustMe(x), type);
+			InfoStack innerInfo = stackMapAdd(castNonScope_ref(info), ptrTrustMe(x), type);
 			checkLowExpr(ctx, innerInfo, voidType, x.body_);
 		},
 		(in LowExprKind.LoopBreak x) {
-			checkLowExpr(ctx, info, stackDictMustGet(info, x.loop), x.value);
+			checkLowExpr(ctx, info, stackMapMustGet(info, x.loop), x.value);
 		},
 		(in LowExprKind.LoopContinue x) {
-			drop(stackDictMustGet(info, x.loop));
+			drop(stackMapMustGet(info, x.loop));
 		},
 		(in LowExprKind.MatchUnion it) {
 			checkLowExpr(ctx, info, it.matchedValue.type, it.matchedValue);

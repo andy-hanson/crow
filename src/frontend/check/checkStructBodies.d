@@ -3,7 +3,7 @@ module frontend.check.checkStructs;
 @safe @nogc pure nothrow:
 
 import frontend.check.checkCtx : addDiag, CheckCtx, rangeInFile;
-import frontend.check.dicts : StructsAndAliasesDict;
+import frontend.check.maps : StructsAndAliasesMap;
 import frontend.check.typeFromAst : checkTypeParams, typeFromAst;
 import frontend.parse.ast :
 	LiteralIntAst, LiteralNatAst, ModifierAst, rangeOfModifierAst, StructDeclAst, symOfModifierKind, TypeAst;
@@ -68,7 +68,7 @@ StructDecl[] checkStructsInitial(ref CheckCtx ctx, in StructDeclAst[] asts) =>
 void checkStructBodies(
 	ref CheckCtx ctx,
 	ref CommonTypes commonTypes,
-	ref StructsAndAliasesDict structsAndAliasesDict,
+	ref StructsAndAliasesMap structsAndAliasesMap,
 	ref StructDecl[] structs,
 	in StructDeclAst[] asts,
 	ref MutArr!(StructInst*) delayStructInsts,
@@ -81,20 +81,20 @@ void checkStructBodies(
 			},
 			(in StructDeclAst.Body.Enum it) {
 				checkOnlyStructModifiers(ctx, TypeKind.enum_, ast.modifiers);
-				return StructBody(checkEnum(ctx, commonTypes, structsAndAliasesDict, ast.range, it, delayStructInsts));
+				return StructBody(checkEnum(ctx, commonTypes, structsAndAliasesMap, ast.range, it, delayStructInsts));
 			},
 			(in StructDeclAst.Body.Extern it) =>
 				StructBody(checkExtern(ctx, ast, it)),
 			(in StructDeclAst.Body.Flags it) {
 				checkOnlyStructModifiers(ctx, TypeKind.flags, ast.modifiers);
-				return StructBody(checkFlags(ctx, commonTypes, structsAndAliasesDict, ast.range, it, delayStructInsts));
+				return StructBody(checkFlags(ctx, commonTypes, structsAndAliasesMap, ast.range, it, delayStructInsts));
 			},
 			(in StructDeclAst.Body.Record it) =>
 				StructBody(checkRecord(
-					ctx, commonTypes, structsAndAliasesDict, struct_, ast.modifiers, it, delayStructInsts)),
+					ctx, commonTypes, structsAndAliasesMap, struct_, ast.modifiers, it, delayStructInsts)),
 			(in StructDeclAst.Body.Union it) {
 				checkOnlyStructModifiers(ctx, TypeKind.union_, ast.modifiers);
-				return StructBody(checkUnion(ctx, commonTypes, structsAndAliasesDict, struct_, it, delayStructInsts));
+				return StructBody(checkUnion(ctx, commonTypes, structsAndAliasesMap, struct_, it, delayStructInsts));
 			}));
 	});
 }
@@ -267,13 +267,13 @@ bool isStructModifier(ModifierAst.Kind a) {
 StructBody.Enum checkEnum(
 	ref CheckCtx ctx,
 	ref CommonTypes commonTypes,
-	ref StructsAndAliasesDict structsAndAliasesDict,
+	ref StructsAndAliasesMap structsAndAliasesMap,
 	RangeWithinFile range,
 	in StructDeclAst.Body.Enum e,
 	ref MutArr!(StructInst*) delayStructInsts,
 ) {
 	EnumOrFlagsTypeAndMembers tm = checkEnumOrFlagsMembers(
-		ctx, commonTypes, structsAndAliasesDict, range, e.typeArg, e.members, delayStructInsts,
+		ctx, commonTypes, structsAndAliasesMap, range, e.typeArg, e.members, delayStructInsts,
 		Diag.DuplicateDeclaration.Kind.enumMember,
 		(Opt!EnumValue lastValue, EnumBackingType enumType) =>
 			has(lastValue)
@@ -285,13 +285,13 @@ StructBody.Enum checkEnum(
 StructBody.Flags checkFlags(
 	ref CheckCtx ctx,
 	ref CommonTypes commonTypes,
-	ref StructsAndAliasesDict structsAndAliasesDict,
+	ref StructsAndAliasesMap structsAndAliasesMap,
 	RangeWithinFile range,
 	in StructDeclAst.Body.Flags f,
 	ref MutArr!(StructInst*) delayStructInsts,
 ) {
 	EnumOrFlagsTypeAndMembers tm = checkEnumOrFlagsMembers(
-		ctx, commonTypes, structsAndAliasesDict, range, f.typeArg, f.members, delayStructInsts,
+		ctx, commonTypes, structsAndAliasesMap, range, f.typeArg, f.members, delayStructInsts,
 		Diag.DuplicateDeclaration.Kind.flagsMember,
 		(Opt!EnumValue lastValue, EnumBackingType enumType) =>
 			has(lastValue)
@@ -316,7 +316,7 @@ immutable struct ValueAndOverflow {
 EnumOrFlagsTypeAndMembers checkEnumOrFlagsMembers(
 	ref CheckCtx ctx,
 	ref CommonTypes commonTypes,
-	ref StructsAndAliasesDict structsAndAliasesDict,
+	ref StructsAndAliasesMap structsAndAliasesMap,
 	RangeWithinFile range,
 	in Opt!(TypeAst*) typeArg,
 	in StructDeclAst.Body.Enum.Member[] memberAsts,
@@ -326,7 +326,7 @@ EnumOrFlagsTypeAndMembers checkEnumOrFlagsMembers(
 ) {
 	Type implementationType = has(typeArg)
 		? typeFromAst(
-			ctx, commonTypes, *force(typeArg), structsAndAliasesDict, [], someMut(ptrTrustMe(delayStructInsts)))
+			ctx, commonTypes, *force(typeArg), structsAndAliasesMap, [], someMut(ptrTrustMe(delayStructInsts)))
 		: Type(commonTypes.integrals.nat32);
 	EnumBackingType enumType = getEnumTypeFromType(ctx, range, commonTypes, implementationType);
 
@@ -458,7 +458,7 @@ EnumBackingType getEnumTypeFromType(ref CheckCtx ctx, RangeWithinFile range, in 
 StructBody.Record checkRecord(
 	ref CheckCtx ctx,
 	ref CommonTypes commonTypes,
-	ref StructsAndAliasesDict structsAndAliasesDict,
+	ref StructsAndAliasesMap structsAndAliasesMap,
 	StructDecl* struct_,
 	ModifierAst[] modifierAsts,
 	in StructDeclAst.Body.Record r,
@@ -472,7 +472,7 @@ StructBody.Record checkRecord(
 	RecordField[] fields = map!(RecordField, StructDeclAst.Body.Record.Field)(
 		ctx.alloc, r.fields, (scope ref StructDeclAst.Body.Record.Field field) =>
 			checkRecordField(
-				ctx, commonTypes, structsAndAliasesDict, delayStructInsts, struct_, field));
+				ctx, commonTypes, structsAndAliasesMap, delayStructInsts, struct_, field));
 	eachPair!RecordField(fields, (in RecordField a, in RecordField b) {
 		if (a.name == b.name)
 			addDiag(ctx, b.range, Diag(Diag.DuplicateDeclaration(Diag.DuplicateDeclaration.Kind.recordField, a.name)));
@@ -485,13 +485,13 @@ StructBody.Record checkRecord(
 RecordField checkRecordField(
 	ref CheckCtx ctx,
 	ref CommonTypes commonTypes,
-	ref StructsAndAliasesDict structsAndAliasesDict,
+	ref StructsAndAliasesMap structsAndAliasesMap,
 	ref MutArr!(StructInst*) delayStructInsts,
 	StructDecl* struct_,
 	in StructDeclAst.Body.Record.Field ast,
 ) {
 	Type fieldType = typeFromAst(
-		ctx, commonTypes, ast.type, structsAndAliasesDict, struct_.typeParams, someMut(ptrTrustMe(delayStructInsts)));
+		ctx, commonTypes, ast.type, structsAndAliasesMap, struct_.typeParams, someMut(ptrTrustMe(delayStructInsts)));
 	checkReferenceLinkageAndPurity(ctx, struct_, ast.range, fieldType);
 	if (ast.mutability != FieldMutability.const_ && struct_.purity != Purity.mut && !struct_.purityIsForced)
 		addDiag(ctx, ast.range, Diag(Diag.MutFieldNotAllowed()));
@@ -501,7 +501,7 @@ RecordField checkRecordField(
 StructBody.Union checkUnion(
 	ref CheckCtx ctx,
 	ref CommonTypes commonTypes,
-	ref StructsAndAliasesDict structsAndAliasesDict,
+	ref StructsAndAliasesMap structsAndAliasesMap,
 	StructDecl* struct_,
 	in StructDeclAst.Body.Union ast,
 	ref MutArr!(StructInst*) delayStructInsts,
@@ -513,7 +513,7 @@ StructBody.Union checkUnion(
 			addDiag(ctx, struct_.range, Diag(Diag.ExternUnion()));
 	}
 	UnionMember[] members = map(ctx.alloc, ast.members, (ref StructDeclAst.Body.Union.Member memberAst) =>
-		checkUnionMember(ctx, commonTypes, structsAndAliasesDict, delayStructInsts, struct_, memberAst));
+		checkUnionMember(ctx, commonTypes, structsAndAliasesMap, delayStructInsts, struct_, memberAst));
 	eachPair!UnionMember(members, (in UnionMember a, in UnionMember b) {
 		if (a.name == b.name)
 			addDiag(ctx, b.range, Diag(Diag.DuplicateDeclaration(Diag.DuplicateDeclaration.Kind.unionMember, a.name)));
@@ -524,7 +524,7 @@ StructBody.Union checkUnion(
 UnionMember checkUnionMember(
 	ref CheckCtx ctx,
 	ref CommonTypes commonTypes,
-	ref StructsAndAliasesDict structsAndAliasesDict,
+	ref StructsAndAliasesMap structsAndAliasesMap,
 	ref MutArr!(StructInst*) delayStructInsts,
 	StructDecl* struct_,
 	in StructDeclAst.Body.Union.Member ast,
@@ -535,7 +535,7 @@ UnionMember checkUnionMember(
 			ctx,
 			commonTypes,
 			force(ast.type),
-			structsAndAliasesDict,
+			structsAndAliasesMap,
 			struct_.typeParams,
 			someMut(ptrTrustMe(delayStructInsts)));
 	checkReferencePurity(ctx, struct_, ast.range, type);

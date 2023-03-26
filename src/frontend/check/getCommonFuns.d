@@ -30,7 +30,7 @@ import model.model :
 import util.alloc.alloc : Alloc;
 import util.col.arr : empty, small;
 import util.col.arrUtil : arrsCorrespond, map;
-import util.col.enumDict : EnumDict;
+import util.col.enumMap : EnumMap;
 import util.col.str : safeCStr;
 import util.late : late, Late, lateGet, lateIsSet, lateSet;
 import util.memory : allocate;
@@ -59,7 +59,7 @@ Opt!CommonFuns getCommonFuns(
 	scope ref DiagnosticsBuilder diagsBuilder,
 	ref CommonTypes commonTypes,
 	Opt!(Module*) mainModule,
-	ref immutable EnumDict!(CommonPath, Module*) modules,
+	ref immutable EnumMap!(CommonPath, Module*) modules,
 ) {
 	ref Module getModule(CommonPath path) {
 		return *modules[path];

@@ -9,9 +9,9 @@ import
 	../../string: ==, literal, string, to
 	../../test-util: is
 	../../tuple: new
-	../dict: ~, ~~, dbg, dict, is-empty, new, size, subscript
+	../map: ~, ~~, dbg, is-empty, map, new, size, subscript
 
-dummy-dict-tests nat64()
+dummy-map-tests nat64()
 	0
 
 verify void(a string[nat64], expected string)

@@ -63,7 +63,13 @@ immutable struct TypeAst {
 		RangeWithinFile range;
 	}
 
-	immutable struct Dict {
+	immutable struct Fun {
+		RangeWithinFile range;
+		FunKind kind;
+		TypeAst[] returnAndParamTypes;
+	}
+
+	immutable struct Map {
 		enum Kind {
 			data,
 			mut,
@@ -71,12 +77,6 @@ immutable struct TypeAst {
 		Kind kind;
 		TypeAst v;
 		TypeAst k;
-	}
-
-	immutable struct Fun {
-		RangeWithinFile range;
-		FunKind kind;
-		TypeAst[] returnAndParamTypes;
 	}
 
 	immutable struct SuffixName {
@@ -111,21 +111,21 @@ immutable struct TypeAst {
 		}
 	}
 
-	mixin Union!(Bogus, Dict*, Fun*, NameAndRange, SuffixName*, SuffixSpecial*, Tuple*);
+	mixin Union!(Bogus, Fun*, Map*, NameAndRange, SuffixName*, SuffixSpecial*, Tuple*);
 }
 //TODO: static assert(TypeAst.sizeof == ulong.sizeof);
 
 RangeWithinFile range(in TypeAst a, in AllSymbols allSymbols) =>
 	a.matchIn!RangeWithinFile(
 		(in TypeAst.Bogus x) => x.range,
-		(in TypeAst.Dict x) => range(x, allSymbols),
 		(in TypeAst.Fun x) => x.range,
+		(in TypeAst.Map x) => range(x, allSymbols),
 		(in NameAndRange x) => rangeOfNameAndRange(x, allSymbols),
 		(in TypeAst.SuffixName x) => range(x, allSymbols),
 		(in TypeAst.SuffixSpecial x) => range(x, allSymbols),
 		(in TypeAst.Tuple x) => x.range);
 
-RangeWithinFile range(in TypeAst.Dict a, in AllSymbols allSymbols) =>
+RangeWithinFile range(in TypeAst.Map a, in AllSymbols allSymbols) =>
 	RangeWithinFile(range(a.v, allSymbols).start, safeToUint(range(a.k, allSymbols).end + "]".length));
 RangeWithinFile range(in TypeAst.SuffixSpecial a, in AllSymbols allSymbols) =>
 	RangeWithinFile(range(a.left, allSymbols).start, suffixEnd(a));
@@ -155,12 +155,12 @@ private uint suffixLength(TypeAst.SuffixSpecial.Kind a) {
 	}
 }
 
-Sym symForTypeAstDict(TypeAst.Dict.Kind a) {
+Sym symForTypeAstMap(TypeAst.Map.Kind a) {
 	final switch (a) {
-		case TypeAst.Dict.Kind.data:
-			return sym!"dict";
-		case TypeAst.Dict.Kind.mut:
-			return sym!"mut-dict";
+		case TypeAst.Map.Kind.data:
+			return sym!"map";
+		case TypeAst.Map.Kind.mut:
+			return sym!"mut-map";
 	}
 }
 
@@ -969,15 +969,15 @@ Repr reprTypeAst(ref Alloc alloc, in TypeAst a) =>
 	a.matchIn!Repr(
 		(in TypeAst.Bogus x) =>
 			reprRecord!"bogus"(alloc, [reprRangeWithinFile(alloc, x.range)]),
-		(in TypeAst.Dict it) =>
-			reprRecord!"dict"(alloc, [
-				reprTypeAst(alloc, it.v),
-				reprTypeAst(alloc, it.k)]),
 		(in TypeAst.Fun it) =>
 			reprRecord!"fun"(alloc, [
 				reprRangeWithinFile(alloc, it.range),
 				reprSym(symOfFunKind(it.kind)),
 				reprTypeAsts(alloc, it.returnAndParamTypes)]),
+		(in TypeAst.Map it) =>
+			reprRecord!"map"(alloc, [
+				reprTypeAst(alloc, it.v),
+				reprTypeAst(alloc, it.k)]),
 		(in NameAndRange x) =>
 			reprNameAndRange(alloc, x),
 		(in TypeAst.SuffixName it) =>

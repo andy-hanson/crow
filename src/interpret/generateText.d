@@ -22,8 +22,8 @@ import model.typeLayout : nStackEntriesForType, typeSizeBytes;
 import util.alloc.alloc : Alloc, TempAlloc;
 import util.col.arr : castImmutable, empty;
 import util.col.arrUtil : map, mapToMut, sum, zip;
-import util.col.dict : mustGetAt;
-import util.col.enumDict : EnumDict;
+import util.col.map : mustGetAt;
+import util.col.enumMap : EnumMap;
 import util.col.exactSizeArrBuilder :
 	exactSizeArrBuilderAdd,
 	add0Bytes,
@@ -37,7 +37,7 @@ import util.col.exactSizeArrBuilder :
 	finish,
 	newExactSizeArrBuilder,
 	padTo;
-import util.col.fullIndexDict : FullIndexDict, mapFullIndexDict;
+import util.col.fullIndexMap : FullIndexMap, mapFullIndexMap;
 import util.col.str : SafeCStr, safeCStrSize;
 import util.conv : bitsOfFloat32, bitsOfFloat64;
 import util.ptr : castNonScope, ptrTrustMe;
@@ -46,14 +46,14 @@ import util.util : todo, unreachable, verify;
 immutable struct VarsInfo {
 	// Thread-locals and globals offsets are in different buffers.
 	// Vars can't take up a fraction of a word.
-	FullIndexDict!(LowVarIndex, size_t) offsetsInWords;
-	EnumDict!(VarKind, size_t) totalSizeWords;
+	FullIndexMap!(LowVarIndex, size_t) offsetsInWords;
+	EnumMap!(VarKind, size_t) totalSizeWords;
 }
 
 VarsInfo generateVarsInfo(ref Alloc alloc, in LowProgram program) {
-	EnumDict!(VarKind, size_t) curWords;
-	immutable FullIndexDict!(LowVarIndex, size_t) offsetsInWords =
-		mapFullIndexDict!(LowVarIndex, size_t, LowVar)(alloc, program.vars, (LowVarIndex _, in LowVar x) {
+	EnumMap!(VarKind, size_t) curWords;
+	immutable FullIndexMap!(LowVarIndex, size_t) offsetsInWords =
+		mapFullIndexMap!(LowVarIndex, size_t, LowVar)(alloc, program.vars, (LowVarIndex _, in LowVar x) {
 			size_t handle(VarKind kind) {
 				size_t res = curWords[kind];
 				curWords[kind] += nStackEntriesForType(program, x.type);

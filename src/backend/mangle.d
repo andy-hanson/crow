@@ -25,10 +25,10 @@ import model.lowModel :
 	LowVarIndex;
 import model.model : FunInst, Local, name;
 import util.alloc.alloc : Alloc;
-import util.col.dict : Dict;
-import util.col.dictBuilder : finishDict, mustAddToDict, DictBuilder;
-import util.col.fullIndexDict : FullIndexDict, fullIndexDictEachValue, mapFullIndexDict;
-import util.col.mutDict : getOrAdd, insertOrUpdate, MutDict, setInDict;
+import util.col.map : Map;
+import util.col.mapBuilder : finishMap, mustAddToMap, MapBuilder;
+import util.col.fullIndexMap : FullIndexMap, fullIndexMapEachValue, mapFullIndexMap;
+import util.col.mutMap : getOrAdd, insertOrUpdate, MutMap, setInMap;
 import util.opt : force, has, none, Opt, some;
 import util.sym : AllSymbols, eachCharInSym, Sym, sym, writeSym;
 import util.union_ : Union;
@@ -37,10 +37,10 @@ import util.writer : Writer;
 
 const struct MangledNames {
 	AllSymbols* allSymbols;
-	FullIndexDict!(LowVarIndex, size_t) varToNameIndex;
-	Dict!(ConcreteFun*, size_t) funToNameIndex;
-	//TODO:PERF we could use separate FullIndexDict for record, union, etc.
-	Dict!(ConcreteStruct*, size_t) structToNameIndex;
+	FullIndexMap!(LowVarIndex, size_t) varToNameIndex;
+	Map!(ConcreteFun*, size_t) funToNameIndex;
+	//TODO:PERF we could use separate FullIndexMap for record, union, etc.
+	Map!(ConcreteStruct*, size_t) structToNameIndex;
 }
 
 MangledNames buildMangledNames(
@@ -50,12 +50,12 @@ MangledNames buildMangledNames(
 ) {
 	// First time we see a fun with a name, we'll store the fun-pointer here in case it's not overloaded.
 	// After that, we'll start putting them in funToNameIndex, and store the next index here.
-	MutDict!(Sym, PrevOrIndex!ConcreteFun) funNameToIndex;
+	MutMap!(Sym, PrevOrIndex!ConcreteFun) funNameToIndex;
 	// This will not have an entry for non-overloaded funs.
-	DictBuilder!(ConcreteFun*, size_t) funToNameIndex;
+	MapBuilder!(ConcreteFun*, size_t) funToNameIndex;
 	// HAX: Ensure "main" has that name.
-	setInDict(alloc, funNameToIndex, sym!"main", PrevOrIndex!ConcreteFun(0));
-	fullIndexDictEachValue!(LowFunIndex, LowFun)(program.allFuns, (ref LowFun fun) {
+	setInMap(alloc, funNameToIndex, sym!"main", PrevOrIndex!ConcreteFun(0));
+	fullIndexMapEachValue!(LowFunIndex, LowFun)(program.allFuns, (ref LowFun fun) {
 		fun.source.matchWithPointers!void(
 			(ConcreteFun* cf) {
 				cf.source.matchIn!void(
@@ -69,9 +69,9 @@ MangledNames buildMangledNames(
 			(LowFunSource.Generated*) {});
 	});
 
-	MutDict!(Sym, PrevOrIndex!ConcreteStruct) structNameToIndex;
+	MutMap!(Sym, PrevOrIndex!ConcreteStruct) structNameToIndex;
 	// This will not have an entry for non-overloaded structs.
-	DictBuilder!(ConcreteStruct*, size_t) structToNameIndex;
+	MapBuilder!(ConcreteStruct*, size_t) structToNameIndex;
 
 	void build(ConcreteStruct* s) {
 		s.source.match!void(
@@ -80,32 +80,32 @@ MangledNames buildMangledNames(
 			},
 			(ConcreteStructSource.Lambda) {});
 	}
-	fullIndexDictEachValue!(LowType.Extern, LowExternType)(program.allExternTypes, (ref LowExternType it) {
+	fullIndexMapEachValue!(LowType.Extern, LowExternType)(program.allExternTypes, (ref LowExternType it) {
 		build(it.source);
 	});
-	fullIndexDictEachValue!(LowType.FunPtr, LowFunPtrType)(program.allFunPtrTypes, (ref LowFunPtrType it) {
+	fullIndexMapEachValue!(LowType.FunPtr, LowFunPtrType)(program.allFunPtrTypes, (ref LowFunPtrType it) {
 		build(it.source);
 	});
-	fullIndexDictEachValue!(LowType.Record, LowRecord)(program.allRecords, (ref LowRecord it) {
+	fullIndexMapEachValue!(LowType.Record, LowRecord)(program.allRecords, (ref LowRecord it) {
 		build(it.source);
 	});
-	fullIndexDictEachValue!(LowType.Union, LowUnion)(program.allUnions, (ref LowUnion it) {
+	fullIndexMapEachValue!(LowType.Union, LowUnion)(program.allUnions, (ref LowUnion it) {
 		build(it.source);
 	});
 
 	return MangledNames(
 		allSymbols,
 		makeVarToNameIndex(alloc, program.vars),
-		finishDict(alloc, funToNameIndex),
-		finishDict(alloc, structToNameIndex));
+		finishMap(alloc, funToNameIndex),
+		finishMap(alloc, structToNameIndex));
 }
 
-private immutable(FullIndexDict!(LowVarIndex, size_t)) makeVarToNameIndex(
+private immutable(FullIndexMap!(LowVarIndex, size_t)) makeVarToNameIndex(
 	ref Alloc alloc,
-	in FullIndexDict!(LowVarIndex, LowVar) vars,
+	in FullIndexMap!(LowVarIndex, LowVar) vars,
 ) {
-	MutDict!(Sym, size_t) counts;
-	return mapFullIndexDict!(LowVarIndex, size_t, LowVar)(alloc, vars, (LowVarIndex _, in LowVar x) {
+	MutMap!(Sym, size_t) counts;
+	return mapFullIndexMap!(LowVarIndex, size_t, LowVar)(alloc, vars, (LowVarIndex _, in LowVar x) {
 		//TODO:PERF use temp alloc
 		size_t* index = &getOrAdd!(Sym, size_t)(alloc, counts, x.name, () => 0);
 		size_t res = *index;
@@ -245,8 +245,8 @@ immutable struct PrevOrIndex(T) {
 
 void addToPrevOrIndex(T)(
 	ref Alloc alloc,
-	ref MutDict!(Sym, PrevOrIndex!T) nameToIndex,
-	ref DictBuilder!(T*, size_t) toNameIndex,
+	ref MutMap!(Sym, PrevOrIndex!T) nameToIndex,
+	ref MapBuilder!(T*, size_t) toNameIndex,
 	immutable T* cur,
 	Sym name,
 ) {
@@ -259,12 +259,12 @@ void addToPrevOrIndex(T)(
 		(ref PrevOrIndex!T x) =>
 			PrevOrIndex!T(x.matchWithPointers!size_t(
 				(T* prev) {
-					mustAddToDict(alloc, toNameIndex, prev, 0);
-					mustAddToDict(alloc, toNameIndex, cur, 1);
+					mustAddToMap(alloc, toNameIndex, prev, 0);
+					mustAddToMap(alloc, toNameIndex, cur, 1);
 					return size_t(2);
 				},
 				(size_t index) {
-					mustAddToDict(alloc, toNameIndex, cur, index);
+					mustAddToMap(alloc, toNameIndex, cur, index);
 					return index + 1;
 				})));
 }

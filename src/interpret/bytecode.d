@@ -5,9 +5,9 @@ module interpret.bytecode;
 import interpret.extern_ : FunPtr;
 import model.lowModel : LowFunIndex;
 import model.model : VarKind;
-import util.col.dict : Dict;
-import util.col.enumDict : EnumDict;
-import util.col.fullIndexDict : FullIndexDict;
+import util.col.map : Map;
+import util.col.enumMap : EnumMap;
+import util.col.fullIndexMap : FullIndexMap;
 import util.sym : Sym;
 import util.sourceRange : FileIndex, Pos;
 import util.util : verify;
@@ -42,7 +42,7 @@ immutable struct FunNameAndPos {
 	Pos pos;
 }
 
-alias FileToFuns = immutable FullIndexDict!(FileIndex, FunNameAndPos[]);
+alias FileToFuns = immutable FullIndexMap!(FileIndex, FunNameAndPos[]);
 
 immutable struct ByteCodeSource {
 	LowFunIndex fun;
@@ -56,20 +56,20 @@ immutable struct ByteCode {
 	FunPtrToOperationPtr funPtrToOperationPtr;
 	FileToFuns fileToFuns; // Look up in 'sources' first, then can find the corresponding function here
 	ubyte[] text;
-	EnumDict!(VarKind, size_t) varsSizeWords;
+	EnumMap!(VarKind, size_t) varsSizeWords;
 	ByteCodeIndex main;
 
 	Operation[] byteCode() =>
 		operations.byteCode;
-	FullIndexDict!(ByteCodeIndex, ByteCodeSource) sources() return scope =>
+	FullIndexMap!(ByteCodeIndex, ByteCodeSource) sources() return scope =>
 		operations.sources;
 }
 
-alias FunPtrToOperationPtr = immutable Dict!(FunPtr, immutable Operation*);
+alias FunPtrToOperationPtr = immutable Map!(FunPtr, immutable Operation*);
 
 immutable struct Operations {
 	Operation[] byteCode;
-	FullIndexDict!(ByteCodeIndex, ByteCodeSource) sources; // parallel to byteCode
+	FullIndexMap!(ByteCodeIndex, ByteCodeSource) sources; // parallel to byteCode
 }
 
 @trusted Operation* initialOperationPointer(return scope ref immutable ByteCode a) =>

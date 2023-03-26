@@ -3,7 +3,7 @@ import
 	../bool: bool
 	../col/array: iterate, size
 	../col/collection: for-loop
-	../col/dict: ~=, build, get-or-add
+	../col/map: ~=, build, get-or-add
 	../compare: comparison
 	../misc: void
 	../number: +

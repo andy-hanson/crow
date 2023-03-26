@@ -74,8 +74,8 @@ import model.model : fakeProgramForTest, VarKind;
 import model.typeLayout : Pack, PackField;
 import test.testUtil : expectDataStack, expectReturnStack, Test;
 import util.alloc.alloc : Alloc;
-import util.col.enumDict : EnumDict;
-import util.col.fullIndexDict : emptyFullIndexDict, fullIndexDictOfArr;
+import util.col.enumMap : EnumMap;
+import util.col.fullIndexMap : emptyFullIndexMap, fullIndexMapOfArr;
 import util.lineAndColumnGetter : lineAndColumnGetterForEmptyFile;
 import util.memory : allocate;
 import util.path : emptyPathsInfo, Path, PathsInfo, rootPath;
@@ -117,12 +117,12 @@ ByteCode dummyByteCode(Operations operations) =>
 		FunPtrToOperationPtr(),
 		dummyFileToFuns(),
 		[],
-		EnumDict!(VarKind, size_t)([0, 0]),
+		EnumMap!(VarKind, size_t)([0, 0]),
 		ByteCodeIndex(0));
 
 FileToFuns dummyFileToFuns() {
 	static immutable FunNameAndPos[][] dummy = [[FunNameAndPos(sym!"a", Pos(0))]];
-	return fullIndexDictOfArr!(FileIndex, FunNameAndPos[])(dummy);
+	return fullIndexMapOfArr!(FileIndex, FunNameAndPos[])(dummy);
 }
 
 void doInterpret(
@@ -142,13 +142,13 @@ void doInterpret(
 	LowProgram lowProgram = LowProgram(
 		ConcreteFunToLowFunIndex(),
 		AllConstantsLow([], [], []),
-		emptyFullIndexDict!(LowVarIndex, LowVar),
+		emptyFullIndexMap!(LowVarIndex, LowVar),
 		AllLowTypes(
-			emptyFullIndexDict!(LowType.Extern, LowExternType),
-			emptyFullIndexDict!(LowType.FunPtr, LowFunPtrType),
-			emptyFullIndexDict!(LowType.Record, LowRecord),
-			emptyFullIndexDict!(LowType.Union, LowUnion)),
-		fullIndexDictOfArr!(LowFunIndex, LowFun)(lowFun),
+			emptyFullIndexMap!(LowType.Extern, LowExternType),
+			emptyFullIndexMap!(LowType.FunPtr, LowFunPtrType),
+			emptyFullIndexMap!(LowType.Record, LowRecord),
+			emptyFullIndexMap!(LowType.Union, LowUnion)),
+		fullIndexMapOfArr!(LowFunIndex, LowFun)(lowFun),
 		LowFunIndex(0),
 		[]);
 	withFakeExtern(test.alloc, test.allSymbols, (scope ref Extern extern_, scope ref FakeStdOutput _) @trusted {
@@ -238,7 +238,7 @@ void testCallFunPtr(ref Test test) {
 	DynCallSig sig = DynCallSig(sigTypes);
 	DynCallSig[1] sigsStorage = [castNonScope(sig)];
 	FunPtrTypeToDynCallSig funPtrTypeToDynCallSig =
-		castNonScope(fullIndexDictOfArr!(LowType.FunPtr, DynCallSig)(castNonScope(sigsStorage)));
+		castNonScope(fullIndexMapOfArr!(LowType.FunPtr, DynCallSig)(castNonScope(sigsStorage)));
 	LowFunIndex funIndex = LowFunIndex(0);
 	LowType.FunPtr funType = LowType.FunPtr(0);
 	ByteCodeSource source = emptyByteCodeSource;

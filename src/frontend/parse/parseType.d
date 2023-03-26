@@ -149,10 +149,10 @@ Opt!TypeAst parseTypeSuffixNonName(ref Lexer lexer, TypeAst left) {
 				suffixPos + 1,
 				kind1))));
 	}
-	Opt!TypeAst dictLike(TypeAst.Dict.Kind kind) {
+	Opt!TypeAst mapLike(TypeAst.Map.Kind kind) {
 		TypeAst key = parseType(lexer);
 		takeOrAddDiagExpectedToken(lexer, Token.bracketRight, ParseDiag.Expected.Kind.closingBracket);
-		return some(TypeAst(allocate(lexer.alloc, TypeAst.Dict(kind, left, key))));
+		return some(TypeAst(allocate(lexer.alloc, TypeAst.Map(kind, left, key))));
 	}
 
 	if (tryTakeToken(lexer, Token.question))
@@ -160,7 +160,7 @@ Opt!TypeAst parseTypeSuffixNonName(ref Lexer lexer, TypeAst left) {
 	else if (tryTakeToken(lexer, Token.bracketLeft))
 		return tryTakeToken(lexer, Token.bracketRight)
 			? suffix(TypeAst.SuffixSpecial.Kind.list)
-			: dictLike(TypeAst.Dict.Kind.data);
+			: mapLike(TypeAst.Map.Kind.data);
 	else if (tryTakeOperator(lexer, sym!"^"))
 		return suffix(TypeAst.SuffixSpecial.Kind.future);
 	else if (tryTakeOperator(lexer, sym!"*"))
@@ -171,7 +171,7 @@ Opt!TypeAst parseTypeSuffixNonName(ref Lexer lexer, TypeAst left) {
 		if (tryTakeToken(lexer, Token.bracketLeft))
 			return tryTakeToken(lexer, Token.bracketRight)
 				? suffix(TypeAst.SuffixSpecial.Kind.mutList)
-				: dictLike(TypeAst.Dict.Kind.mut);
+				: mapLike(TypeAst.Map.Kind.mut);
 		else if (tryTakeOperator(lexer, sym!"*"))
 			return suffix(TypeAst.SuffixSpecial.Kind.mutPtr);
 		else if (tryTakeOperator(lexer, sym!"**"))

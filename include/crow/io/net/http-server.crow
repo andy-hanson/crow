@@ -7,9 +7,9 @@ import
 	../../col/array: +, -, array, begin, begin-pointer, end, is-empty, iterate, size, slice
 	../../col/collection:
 		.., -, contains, end, for-loop, index-of, join, split, subscript, try-remove-end
-	../../col/dict: in, iterate, size, to
 	../../col/list: ~~, ~=, +, -, begin, build, end, is-empty, iterate, list, next, size, slice, to
-	../../col/mut-dict: mut-dict, new, try-remove, set-subscript, subscript
+	../../col/map: in, iterate, size, to
+	../../col/mut-map: mut-map, new, try-remove, set-subscript, subscript
 	../../col/mut-list: ~=, ~~=, iterate, move-to, mut-list, new, pop-n-from-start, size
 	../../compare: <=, >
 	../../enum-util: to

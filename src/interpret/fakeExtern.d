@@ -18,7 +18,7 @@ import lib.compiler : ExitCode;
 import model.lowModel : ExternLibraries, ExternLibrary;
 import util.alloc.alloc : Alloc, allocateBytes;
 import util.col.arrUtil : map;
-import util.col.dict : KeyValuePair, makeDict;
+import util.col.map : KeyValuePair, makeMap;
 import util.col.mutArr : moveToArr, MutArr, mutArrIsEmpty, push, pushAll, tempAsArr;
 import util.col.str : safeCStr;
 import util.memory : memmove, memset;
@@ -70,7 +70,7 @@ Opt!ExternFunPtrsForAllLibraries getAllFakeExternFuns(
 	scope WriteError writeError,
 ) {
 	MutArr!(immutable KeyValuePair!(Sym, Sym)) failures;
-	ExternFunPtrsForAllLibraries res = makeDict!(Sym, ExternFunPtrsForLibrary, ExternLibrary)(
+	ExternFunPtrsForAllLibraries res = makeMap!(Sym, ExternFunPtrsForLibrary, ExternLibrary)(
 		alloc, libraries, (in ExternLibrary x) =>
 			immutable KeyValuePair!(Sym, ExternFunPtrsForLibrary)(
 				x.libraryName,
@@ -126,7 +126,7 @@ ExternFunPtrsForLibrary fakeExternFunsForLibrary(
 	in AllSymbols allSymbols,
 	in ExternLibrary lib,
 ) =>
-	makeDict!(Sym, FunPtr, Sym)(alloc, lib.importNames, (in Sym importName) {
+	makeMap!(Sym, FunPtr, Sym)(alloc, lib.importNames, (in Sym importName) {
 		Opt!FunPtr res = getFakeExternFun(lib.libraryName, importName);
 		if (!has(res))
 			push(alloc, failures, KeyValuePair!(Sym, Sym)(lib.libraryName, importName));

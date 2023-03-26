@@ -18,13 +18,13 @@ import model.model : fakeProgramForDiagnostics, Program;
 import util.alloc.alloc : Alloc;
 import util.col.arrBuilder : ArrBuilder;
 import util.col.arrUtil : arrLiteral, map;
-import util.col.dict : dictLiteral;
-import util.col.fullIndexDict : fullIndexDictOfArr;
+import util.col.map : mapLiteral;
+import util.col.fullIndexMap : fullIndexMapOfArr;
 import util.col.mutArr : pushAll;
-import util.col.mutDict : getAt_mut, insertOrUpdate, mustDelete, mustGetAt_mut;
+import util.col.mutMap : getAt_mut, insertOrUpdate, mustDelete, mustGetAt_mut;
 import util.col.str : copySafeCStr, freeSafeCStr, SafeCStr, safeCStr, strOfSafeCStr;
-import util.dictReadOnlyStorage : withDictReadOnlyStorage, MutFiles;
 import util.lineAndColumnGetter : LineAndColumnGetter, lineAndColumnGetterForText;
+import util.memoryReadOnlyStorage : withMemoryReadOnlyStorage, MutFiles;
 import util.opt : force, has, none, Opt;
 import util.path : AllPaths, childPath, emptyPathsInfo, emptyRootPath, parsePath, Path, PathsInfo;
 import util.perf : Perf;
@@ -101,9 +101,9 @@ pure StrParseDiagnostic[] getParseDiagnostics(
 	parseFile(alloc, perf, server.allPaths, server.allSymbols, diagsBuilder, text);
 	//TODO: use 'scope' to avoid allocating things here
 	FilesInfo filesInfo = FilesInfo(
-		fullIndexDictOfArr!(FileIndex, Path)(arrLiteral!Path(alloc, [key])),
-		dictLiteral!(Path, FileIndex)(alloc, key, FileIndex(0)),
-		fullIndexDictOfArr!(FileIndex, LineAndColumnGetter)(
+		fullIndexMapOfArr!(FileIndex, Path)(arrLiteral!Path(alloc, [key])),
+		mapLiteral!(Path, FileIndex)(alloc, key, FileIndex(0)),
+		fullIndexMapOfArr!(FileIndex, LineAndColumnGetter)(
 			arrLiteral!LineAndColumnGetter(alloc, [lineAndColumnGetterForText(alloc, text)])));
 	Program program = fakeProgramForDiagnostics(filesInfo, Diagnostics(
 		DiagSeverity.parseError,
@@ -116,7 +116,7 @@ pure StrParseDiagnostic[] getParseDiagnostics(
 
 SafeCStr getHover(ref Perf perf, ref Alloc alloc, ref Server server, in SafeCStr path, Pos pos) {
 	Path key = toPath(server, path);
-	Program program = withDictReadOnlyStorage!Program(server.includeDir, server.files, (in ReadOnlyStorage storage) =>
+	Program program = withMemoryReadOnlyStorage!Program(server.includeDir, server.files, (in ReadOnlyStorage storage) =>
 		frontendCompile(alloc, perf, alloc, server.allPaths, server.allSymbols, storage, [key], none!Path));
 	return getHoverFromProgram(alloc, server, key, program, pos);
 }
@@ -137,7 +137,7 @@ FakeExternResult run(ref Perf perf, ref Alloc alloc, ref Server server, in SafeC
 	// TODO: use an arena so anything allocated during interpretation is cleaned up.
 	// Or just have interpreter free things.
 	SafeCStr[1] allArgs = [safeCStr!"/usr/bin/fakeExecutable"];
-	return withDictReadOnlyStorage!FakeExternResult(server.includeDir, server.files, (in ReadOnlyStorage storage) =>
+	return withMemoryReadOnlyStorage!FakeExternResult(server.includeDir, server.files, (in ReadOnlyStorage storage) =>
 		withFakeExtern(alloc, server.allSymbols, (scope ref Extern extern_, scope ref FakeStdOutput std) =>
 			buildAndInterpret(
 				alloc, perf, server.allSymbols, server.allPaths, server.pathsInfo, storage, extern_,

@@ -3,10 +3,10 @@ module frontend.programState;
 @safe @nogc pure nothrow:
 
 import model.model : FunDeclAndArgs, FunInst, SpecDeclAndArgs, SpecInst, StructDeclAndArgs, StructInst;
-import util.col.mutDict : MutDict;
+import util.col.mutMap : MutMap;
 
 struct ProgramState {
-	MutDict!(FunDeclAndArgs, FunInst*) funInsts;
-	MutDict!(StructDeclAndArgs, StructInst*) structInsts;
-	MutDict!(SpecDeclAndArgs, SpecInst*) specInsts;
+	MutMap!(FunDeclAndArgs, FunInst*) funInsts;
+	MutMap!(StructDeclAndArgs, StructInst*) structInsts;
+	MutMap!(SpecDeclAndArgs, SpecInst*) specInsts;
 }

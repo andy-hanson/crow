@@ -4,9 +4,9 @@ import
 	./col/collection:
 		.., end, for-break, for-loop, index-of, n-of, set-subscript, split, subscript,
 		try-remove-start, with-index
-	./col/dict: ==, ~=, build, dict, iterate, new
 	./col/list: ==, ~~, +, -, begin, end, iterate, is-empty, list, new, next, size, slice
-	./col/mut-dict: iterate, mut-dict, new, set-subscript, size
+	./col/map: ==, ~=, build, iterate, map, new
+	./col/mut-map: iterate, mut-map, new, set-subscript, size
 	./col/mut-list: ~=, +, begin, build, move-to, mut-list, new, next, set-next
 	./json: json, new, to
 	./misc: loop-break, loop-continue, new

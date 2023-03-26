@@ -85,8 +85,6 @@ main nat^(args string[]) summon
 				"Missing login cookie" http-forbidden
 		else
 			http-not-found
-	#descr = req describe-request
-	#200, "OK", dict, "Your request:\n{descr}"
 
 -url record
 	path string

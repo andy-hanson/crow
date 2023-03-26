@@ -10,8 +10,8 @@ import util.alloc.alloc : Alloc;
 import util.col.arr : only;
 import util.col.arrBuilder : add, ArrBuilder, finishArr;
 import util.col.arrUtil : fold;
-import util.col.dict : Dict;
-import util.col.dictBuilder : finishDict, DictBuilder, tryAddToDict;
+import util.col.map : Map;
+import util.col.mapBuilder : finishMap, MapBuilder, tryAddToMap;
 import util.col.str : SafeCStr;
 import util.readOnlyStorage : ReadFileResult, ReadOnlyStorage, withFileText;
 import util.opt : force, has, none, Opt, some;
@@ -136,7 +136,7 @@ Config parseConfigRecur(
 		}
 	});
 
-Dict!(Sym, Path) parseIncludeOrExtern(
+Map!(Sym, Path) parseIncludeOrExtern(
 	ref Alloc alloc,
 	ref AllSymbols allSymbols,
 	ref AllPaths allPaths,
@@ -144,7 +144,7 @@ Dict!(Sym, Path) parseIncludeOrExtern(
 	scope ref ArrBuilder!DiagnosticWithinFile diags,
 	in Json json,
 ) =>
-	parseSymDict!Path(alloc, allSymbols, diags, json, (in Json value) {
+	parseSymMap!Path(alloc, allSymbols, diags, json, (in Json value) {
 		Opt!Path res = parsePath(allPaths, dirContainingConfig, diags, value);
 		return has(res) ? force(res) : emptyRootPath(allPaths);
 	});
@@ -163,22 +163,22 @@ Opt!Path parsePath(
 	}
 }
 
-Dict!(Sym, T) parseSymDict(T)(
+Map!(Sym, T) parseSymMap(T)(
 	ref Alloc alloc,
 	ref AllSymbols allSymbols,
 	scope ref ArrBuilder!DiagnosticWithinFile diags,
 	in Json json,
 	in T delegate(in Json) @safe @nogc pure nothrow cbValue,
 ) {
-	DictBuilder!(Sym, Path) res;
+	MapBuilder!(Sym, Path) res;
 	if (json.isA!(Json.Object)) {
 		foreach (ref Json.ObjectField field; json.as!(Json.Object)) {
 			T value = cbValue(field.value);
-			Opt!T before = tryAddToDict(alloc, res, field.key, value);
+			Opt!T before = tryAddToMap(alloc, res, field.key, value);
 			if (has(before))
 				todo!void("diag -- duplicate include key");
 		}
 	} else
 		todo!void("diag -- include should be an object");
-	return finishDict(alloc, res);
+	return finishMap(alloc, res);
 }

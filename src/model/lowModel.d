@@ -16,8 +16,8 @@ import model.concreteModel :
 	TypeSize;
 import model.constant : Constant;
 import model.model : body_, decl, EnumValue, Local, StructBody;
-import util.col.dict : Dict;
-import util.col.fullIndexDict : FullIndexDict;
+import util.col.map : Map;
+import util.col.fullIndexMap : FullIndexMap;
 import util.col.str : SafeCStr;
 import util.hash : Hasher, hashSizeT, hashUint;
 import util.opt : has, none, Opt;
@@ -718,14 +718,14 @@ immutable struct PointerTypeAndConstantsLow {
 // TODO: rename -- this is not all constants, just the ones by-ref
 immutable struct AllConstantsLow {
 	SafeCStr[] cStrings;
-	//TODO:FullIndexDict
+	//TODO:FullIndexMap
 	ArrTypeAndConstantsLow[] arrs;
-	//TODO:FullIndexDict
+	//TODO:FullIndexMap
 	// These are just the by-ref records
 	PointerTypeAndConstantsLow[] pointers;
 }
 
-alias ConcreteFunToLowFunIndex = Dict!(ConcreteFun*, LowFunIndex);
+alias ConcreteFunToLowFunIndex = Map!(ConcreteFun*, LowFunIndex);
 
 immutable struct LowVarIndex {
 	size_t index;
@@ -756,22 +756,22 @@ immutable struct LowProgram {
 
 	ConcreteFunToLowFunIndex concreteFunToLowFunIndex;
 	AllConstantsLow allConstants;
-	FullIndexDict!(LowVarIndex, LowVar) vars;
+	FullIndexMap!(LowVarIndex, LowVar) vars;
 	AllLowTypes allTypes;
-	FullIndexDict!(LowFunIndex, LowFun) allFuns;
+	FullIndexMap!(LowFunIndex, LowFun) allFuns;
 	LowFunIndex main;
 	ExternLibraries externLibraries;
 
-	ref immutable(FullIndexDict!(LowType.Extern, LowExternType)) allExternTypes() scope return =>
+	ref immutable(FullIndexMap!(LowType.Extern, LowExternType)) allExternTypes() scope return =>
 		allTypes.allExternTypes;
 
-	ref immutable(FullIndexDict!(LowType.FunPtr, LowFunPtrType)) allFunPtrTypes() scope return =>
+	ref immutable(FullIndexMap!(LowType.FunPtr, LowFunPtrType)) allFunPtrTypes() scope return =>
 		allTypes.allFunPtrTypes;
 
-	ref immutable(FullIndexDict!(LowType.Record, LowRecord)) allRecords() scope return =>
+	ref immutable(FullIndexMap!(LowType.Record, LowRecord)) allRecords() scope return =>
 		allTypes.allRecords;
 
-	ref immutable(FullIndexDict!(LowType.Union, LowUnion)) allUnions() scope return =>
+	ref immutable(FullIndexMap!(LowType.Union, LowUnion)) allUnions() scope return =>
 		allTypes.allUnions;
 }
 
@@ -784,8 +784,8 @@ immutable struct ExternLibrary {
 }
 
 immutable struct AllLowTypes {
-	FullIndexDict!(LowType.Extern, LowExternType) allExternTypes;
-	FullIndexDict!(LowType.FunPtr, LowFunPtrType) allFunPtrTypes;
-	FullIndexDict!(LowType.Record, LowRecord) allRecords;
-	FullIndexDict!(LowType.Union, LowUnion) allUnions;
+	FullIndexMap!(LowType.Extern, LowExternType) allExternTypes;
+	FullIndexMap!(LowType.FunPtr, LowFunPtrType) allFunPtrTypes;
+	FullIndexMap!(LowType.Record, LowRecord) allRecords;
+	FullIndexMap!(LowType.Union, LowUnion) allUnions;
 }

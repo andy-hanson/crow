@@ -7,9 +7,9 @@ import frontend.ide.getHover : getHoverStr;
 import frontend.ide.getPosition : getPosition, Position;
 import model.model : Module, Program;
 import test.testUtil : Test;
-import util.col.mutDict : addToMutDict;
+import util.col.mutMap : addToMutMap;
 import util.col.str : end, SafeCStr, safeCStr, safeCStrEq;
-import util.dictReadOnlyStorage : withDictReadOnlyStorage, MutFiles;
+import util.memoryReadOnlyStorage : withMemoryReadOnlyStorage, MutFiles;
 import util.opt : force, has, none, Opt;
 import util.path : emptyPathsInfo, Path, rootPath;
 import util.perf : Perf, withNullPerf;
@@ -33,8 +33,8 @@ immutable struct HoverTest {
 HoverTest initHoverTest(ref Test test, SafeCStr content) {
 	Path path = rootPath(test.allPaths, sym!"main");
 	MutFiles files;
-	addToMutDict(test.alloc, files, path, content);
-	Program program = withDictReadOnlyStorage!Program(
+	addToMutMap(test.alloc, files, path, content);
+	Program program = withMemoryReadOnlyStorage!Program(
 		rootPath(test.allPaths, sym!"include"),
 		files,
 		(in ReadOnlyStorage storage) =>

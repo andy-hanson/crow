@@ -43,7 +43,7 @@ import util.alloc.alloc : Alloc;
 import util.col.arr : empty;
 import util.col.arrBuilder : add, ArrBuilder, arrBuilderSort, finishArr;
 import util.col.arrUtil : exists, indexOf, map, mapOp;
-import util.col.dict : dictEachIn;
+import util.col.map : mapEachIn;
 import util.col.str : SafeCStr, safeCStrIsEmpty;
 import util.comparison : compareNat16, compareNat32, Comparison;
 import util.opt : force, has, none, Opt, some;
@@ -95,7 +95,7 @@ Repr documentModule(
 	in Module a,
 ) {
 	ArrBuilder!DocExport exports; // TODO: no alloc
-	dictEachIn!(Sym, NameReferents)(
+	mapEachIn!(Sym, NameReferents)(
 		a.allExportedNames,
 		(in Sym _, in NameReferents referents) {
 			if (has(referents.structOrAlias) && visibility(force(referents.structOrAlias)) == Visibility.public_)

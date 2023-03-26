@@ -1,7 +1,7 @@
 no-std
 import
-	../../col/dict: dict, new
 	../../col/list: list
+	../../col/map: map, new
 	../../number: nat8, nat64
 	../../string: ==, <=>, as-string, hash-mix, literal, string, to-bytes
 

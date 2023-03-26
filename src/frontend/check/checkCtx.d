@@ -20,8 +20,8 @@ import model.model :
 import util.alloc.alloc : Alloc;
 import util.col.arr : ptrsRange;
 import util.col.arrUtil : contains, exists;
-import util.col.dict : existsInDict;
-import util.col.mutDict : hasKey_mut, MutDict, setInDict;
+import util.col.map : existsInMap;
+import util.col.mutMap : hasKey_mut, MutMap, setInMap;
 import util.opt : force, has, none, Opt, some;
 import util.perf : Perf;
 import util.sourceRange : FileAndPos, FileAndRange, FileIndex, Pos, RangeWithinFile;
@@ -60,14 +60,14 @@ struct CheckCtx {
 }
 
 private struct UsedSet {
-	private MutDict!(immutable void*, immutable void[0]) used;
+	private MutMap!(immutable void*, immutable void[0]) used;
 }
 
 private bool isUsed(in UsedSet a, in immutable void* value) =>
 	hasKey_mut!(immutable void*, immutable void[0])(a.used, value);
 
 private void markUsed(ref Alloc alloc, scope ref UsedSet a, immutable void* value) {
-	setInDict!(immutable void*, immutable void[0])(alloc, a.used, value, []);
+	setInMap!(immutable void*, immutable void[0])(alloc, a.used, value, []);
 }
 
 void markUsed(ref CheckCtx ctx, immutable void* a) {
@@ -112,7 +112,7 @@ private void checkUnusedImports(ref CheckCtx ctx) {
 }
 
 private bool isUsedModuleWhole(in CheckCtx ctx, in Module module_) =>
-	existsInDict!(Sym, NameReferents)(
+	existsInMap!(Sym, NameReferents)(
 		module_.allExportedNames, (in Sym _, in NameReferents x) =>
 			containsUsed(x, ctx.used));
 

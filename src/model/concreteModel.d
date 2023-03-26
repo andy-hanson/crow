@@ -24,7 +24,7 @@ import model.model :
 	VarDecl;
 import util.col.arr : empty, only, PtrAndSmallNumber;
 import util.col.arrUtil : contains;
-import util.col.dict : Dict;
+import util.col.map : Map;
 import util.col.str : SafeCStr;
 import util.hash : hashEnum, Hasher;
 import util.late : Late, lateGet, lateIsSet, lateSet;
@@ -637,7 +637,7 @@ immutable struct ConcreteProgram {
 	ConcreteStruct*[] allStructs;
 	ConcreteVar*[] allVars;
 	ConcreteFun*[] allFuns;
-	Dict!(ConcreteStruct*, ConcreteLambdaImpl[]) funStructToImpls;
+	Map!(ConcreteStruct*, ConcreteLambdaImpl[]) funStructToImpls;
 	ConcreteCommonFuns commonFuns;
 
 	//TODO:NOT INSTANCE

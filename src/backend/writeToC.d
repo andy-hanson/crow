@@ -51,9 +51,9 @@ import model.typeLayout : sizeOfType, typeSizeBytes;
 import util.alloc.alloc : Alloc, TempAlloc;
 import util.col.arr : empty, only, sizeEq;
 import util.col.arrUtil : every, exists, map, zip;
-import util.col.dict : mustGetAt;
-import util.col.fullIndexDict : FullIndexDict, fullIndexDictEach, fullIndexDictEachKey;
-import util.col.stackDict : StackDict, stackDictAdd, stackDictLastAdded, stackDictMustGet;
+import util.col.map : mustGetAt;
+import util.col.fullIndexMap : FullIndexMap, fullIndexMapEach, fullIndexMapEachKey;
+import util.col.stackMap : StackMap, stackMapAdd, stackMapLastAdded, stackMapMustGet;
 import util.col.str : eachChar, SafeCStr;
 import util.opt : force, has, Opt, some;
 import util.ptr : castNonScope, castNonScope_ref, ptrTrustMe;
@@ -91,14 +91,14 @@ SafeCStr writeToC(
 
 	writeStructs(alloc, writer, ctx);
 
-	fullIndexDictEach!(LowFunIndex, LowFun)(program.allFuns, (LowFunIndex funIndex, ref LowFun fun) {
+	fullIndexMapEach!(LowFunIndex, LowFun)(program.allFuns, (LowFunIndex funIndex, ref LowFun fun) {
 		writeFunDeclaration(writer, ctx, funIndex, fun);
 	});
 
 	writeConstants(writer, ctx, program.allConstants);
 	writeVars(writer, ctx, program.vars);
 
-	fullIndexDictEach!(LowFunIndex, LowFun)(
+	fullIndexMapEach!(LowFunIndex, LowFun)(
 		program.allFuns,
 		(LowFunIndex funIndex, ref LowFun fun) {
 			writeFunDefinition(writer, tempAlloc, ctx, funIndex, fun);
@@ -160,8 +160,8 @@ void writeConstants(scope ref Writer writer, in Ctx ctx, in AllConstantsLow allC
 	}
 }
 
-void writeVars(scope ref Writer writer, in Ctx ctx, in FullIndexDict!(LowVarIndex, LowVar) vars) {
-	fullIndexDictEach!(LowVarIndex, LowVar)(vars, (LowVarIndex varIndex, ref LowVar var) {
+void writeVars(scope ref Writer writer, in Ctx ctx, in FullIndexMap!(LowVarIndex, LowVar) vars) {
+	fullIndexMapEach!(LowVarIndex, LowVar)(vars, (LowVarIndex varIndex, ref LowVar var) {
 		writer ~= () {
 			final switch (var.kind) {
 				case LowVar.Kind.externGlobal:
@@ -428,10 +428,10 @@ void writeStructs(ref Alloc alloc, scope ref Writer writer, in Ctx ctx) {
 	}
 
 	//TODO: use a temp alloc
-	fullIndexDictEachKey!(LowType.Record, LowRecord)(ctx.program.allRecords, (LowType.Record it) {
+	fullIndexMapEachKey!(LowType.Record, LowRecord)(ctx.program.allRecords, (LowType.Record it) {
 		assertSize(LowType(it));
 	});
-	fullIndexDictEachKey!(LowType.Union, LowUnion)(ctx.program.allUnions, (LowType.Union it) {
+	fullIndexMapEachKey!(LowType.Union, LowUnion)(ctx.program.allUnions, (LowType.Union it) {
 		assertSize(LowType(it));
 	});
 }
@@ -653,11 +653,11 @@ immutable struct LoopInfo {
 }
 
 // Currently only needed to map loop to a unique (within the function) identifier
-alias Locals = StackDict!(LowExprKind.Loop*, LoopInfo*);
-alias addLoop = stackDictAdd!(LowExprKind.Loop*, LoopInfo*);
-alias getLoop = stackDictMustGet!(LowExprKind.Loop*, LoopInfo*);
+alias Locals = StackMap!(LowExprKind.Loop*, LoopInfo*);
+alias addLoop = stackMapAdd!(LowExprKind.Loop*, LoopInfo*);
+alias getLoop = stackMapMustGet!(LowExprKind.Loop*, LoopInfo*);
 uint nextLoopIndex(in Locals locals) {
-	Opt!(LoopInfo*) last = stackDictLastAdded(locals);
+	Opt!(LoopInfo*) last = stackMapLastAdded(locals);
 	return has(last) ? force(last).index + 1 : 0;
 }
 

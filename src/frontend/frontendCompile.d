@@ -18,11 +18,11 @@ import util.alloc.alloc : Alloc;
 import util.col.arr : empty;
 import util.col.arrBuilder : add, ArrBuilder, arrBuilderSize, finishArr;
 import util.col.arrUtil : contains, copyArr, map, mapOp, mapOrNoneImpure, mapWithSoFar, prepend;
-import util.col.dict : mapValues;
-import util.col.enumDict : EnumDict, enumDictMapValues;
-import util.col.fullIndexDict : asArray, FullIndexDict, fullIndexDictOfArr;
+import util.col.map : mapValues;
+import util.col.enumMap : EnumMap, enumMapMapValues;
+import util.col.fullIndexMap : asArray, FullIndexMap, fullIndexMapOfArr;
 import util.col.mutMaxArr : isEmpty, mustPeek, mustPop, MutMaxArr, mutMaxArr, push;
-import util.col.mutDict : addToMutDict, getAt_mut, hasKey_mut, moveToDict, mustGetAt_mut, MutDict, setInDict;
+import util.col.mutMap : addToMutMap, getAt_mut, hasKey_mut, moveToMap, mustGetAt_mut, MutMap, setInMap;
 import util.col.str : copySafeCStr, SafeCStr, safeCStr;
 import util.conv : safeToUshort;
 import util.late : late, Late, lateGet, lateIsSet, lateSet;
@@ -114,17 +114,17 @@ immutable struct ParseStatus {
 	mixin Union!(Started, Done);
 }
 
-alias PathToStatus = MutDict!(Path, ParseStatus);
+alias PathToStatus = MutMap!(Path, ParseStatus);
 
 immutable struct ParsedEverything {
 	FilesInfo filesInfo;
 	CommonModuleIndices commonModuleIndices;
-	FullIndexDict!(FileIndex, AstAndResolvedImports) asts;
+	FullIndexMap!(FileIndex, AstAndResolvedImports) asts;
 }
 
 immutable struct CommonModuleIndices {
 	Opt!FileIndex main;
-	EnumDict!(CommonPath, FileIndex) common;
+	EnumMap!(CommonPath, FileIndex) common;
 	FileIndex[] rootPaths;
 }
 
@@ -191,7 +191,7 @@ ParsedEverything parseEverything(
 				add(astAlloc, res, AstAndResolvedImports(entry.ast, force(imports), force(exports)));
 				add(modelAlloc, fileIndexToPath, path);
 				add(modelAlloc, lineAndColumnGetters, entry.lineAndColumnGetter);
-				setInDict(astAlloc, statuses, path, ParseStatus(ParseStatus.Done(fileIndex)));
+				setInMap(astAlloc, statuses, path, ParseStatus(ParseStatus.Done(fileIndex)));
 			}
 			// else, we just pushed a dependency to the stack, so repeat.
 		}
@@ -206,7 +206,7 @@ ParsedEverything parseEverything(
 		}
 	}
 
-	immutable EnumDict!(CommonPath, Path) commonPaths = commonPaths(allPaths, storage.includeDir);
+	immutable EnumMap!(CommonPath, Path) commonPaths = commonPaths(allPaths, storage.includeDir);
 	foreach (Path path; commonPaths)
 		processRootPath(path);
 	foreach (Path path; rootPaths)
@@ -220,27 +220,27 @@ ParsedEverything parseEverything(
 
 	CommonModuleIndices commonModuleIndices = CommonModuleIndices(
 		has(mainPath) ? some(getIndex(force(mainPath))) : none!FileIndex,
-		enumDictMapValues!(CommonPath, FileIndex, Path)(commonPaths, (in Path path) => getIndex(path)),
+		enumMapMapValues!(CommonPath, FileIndex, Path)(commonPaths, (in Path path) => getIndex(path)),
 		map(modelAlloc, rootPaths, (ref Path path) => getIndex(path)));
 
 	return ParsedEverything(
 		FilesInfo(
-			fullIndexDictOfArr!(FileIndex, Path)(finishArr(modelAlloc, fileIndexToPath)),
+			fullIndexMapOfArr!(FileIndex, Path)(finishArr(modelAlloc, fileIndexToPath)),
 			mapValues!(Path, FileIndex, ParseStatus)(
 				modelAlloc,
-				moveToDict!(Path, ParseStatus)(astAlloc, statuses),
+				moveToMap!(Path, ParseStatus)(astAlloc, statuses),
 				(Path, ref ParseStatus x) =>
 					x.as!(ParseStatus.Done).fileIndex),
-			fullIndexDictOfArr!(FileIndex, LineAndColumnGetter)(finishArr(modelAlloc, lineAndColumnGetters))),
+			fullIndexMapOfArr!(FileIndex, LineAndColumnGetter)(finishArr(modelAlloc, lineAndColumnGetters))),
 		commonModuleIndices,
-		fullIndexDictOfArr!(FileIndex, AstAndResolvedImports)(finishArr(astAlloc, res)));
+		fullIndexMapOfArr!(FileIndex, AstAndResolvedImports)(finishArr(astAlloc, res)));
 }
 
-immutable(EnumDict!(CommonPath, Path)) commonPaths(ref AllPaths allPaths, Path includeDir) {
+immutable(EnumMap!(CommonPath, Path)) commonPaths(ref AllPaths allPaths, Path includeDir) {
 	Path includeCrow = childPath(allPaths, includeDir, sym!"crow");
 	Path private_ = childPath(allPaths, includeCrow, sym!"private");
 	Path col = childPath(allPaths, includeCrow, sym!"col");
-	return immutable EnumDict!(CommonPath, Path)([
+	return immutable EnumMap!(CommonPath, Path)([
 		childPath(allPaths, private_, sym!"bootstrap"),
 		childPath(allPaths, private_, sym!"alloc"),
 		childPath(allPaths, private_, sym!"exception-low-level"),
@@ -272,7 +272,7 @@ void pushIt(
 		FileAst ast = parseSingle(modelAlloc, astAlloc, perf, allPaths, allSymbols, diags, importedFrom, fileContent);
 		ImportAndExportPaths importsAndExports = resolveImportAndExportPaths(
 			modelAlloc, astAlloc, allPaths, diags, storage.includeDir, config, path, ast.imports, ast.exports);
-		addToMutDict(astAlloc, statuses, path, ParseStatus(ParseStatus.Started()));
+		addToMutMap(astAlloc, statuses, path, ParseStatus(ParseStatus.Started()));
 		push(stack, ParseStackEntry(path, ast, lineAndColumnGetter, importsAndExports, diags));
 	});
 }
@@ -571,7 +571,7 @@ immutable struct ImportsOrExports {
 ImportsOrExports mapImportsOrExports(
 	ref Alloc modelAlloc,
 	in FullyResolvedImport[] paths,
-	in FullIndexDict!(FileIndex, Module) compiled,
+	in FullIndexMap!(FileIndex, Module) compiled,
 ) {
 	ArrBuilder!ImportOrExportFile fileImports;
 	ImportOrExport[] moduleImports = mapOp!(ImportOrExport, FullyResolvedImport)(
@@ -615,14 +615,14 @@ ModulesAndCommonTypes getModules(
 	scope ref DiagnosticsBuilder diagsBuilder,
 	ref ProgramState programState,
 	FileIndex stdIndex,
-	in FullIndexDict!(FileIndex, AstAndResolvedImports) fileAsts,
+	in FullIndexMap!(FileIndex, AstAndResolvedImports) fileAsts,
 ) {
 	Late!CommonTypes commonTypes = late!CommonTypes;
 	Module[] modules = mapWithSoFar!(Module, AstAndResolvedImports)(
 		modelAlloc,
 		asArray(fileAsts),
 		(in AstAndResolvedImports ast, in Module[] soFar, size_t index) {
-			immutable FullIndexDict!(FileIndex, Module) compiled = fullIndexDictOfArr!(FileIndex, Module)(soFar);
+			immutable FullIndexMap!(FileIndex, Module) compiled = fullIndexMapOfArr!(FileIndex, Module)(soFar);
 			PathAndAst pathAndAst = PathAndAst(FileIndex(safeToUshort(index)), ast.ast);
 			if (lateIsSet(commonTypes))
 				return checkNonBootstrapModule(
@@ -648,7 +648,7 @@ Module checkNonBootstrapModule(
 	ref ProgramState programState,
 	FileIndex stdIndex,
 	in AstAndResolvedImports ast,
-	in FullIndexDict!(FileIndex, Module) compiled,
+	in FullIndexMap!(FileIndex, Module) compiled,
 	in PathAndAst pathAndAst,
 	in CommonTypes commonTypes,
 ) {
@@ -676,7 +676,7 @@ Program checkEverything(
 	ref AllSymbols allSymbols,
 	ref DiagnosticsBuilder diagsBuilder,
 	Config config,
-	in FullIndexDict!(FileIndex, AstAndResolvedImports) allAsts,
+	in FullIndexMap!(FileIndex, AstAndResolvedImports) allAsts,
 	ref FilesInfo filesInfo,
 	in CommonModuleIndices moduleIndices,
 ) {
@@ -684,8 +684,8 @@ Program checkEverything(
 	ModulesAndCommonTypes modulesAndCommonTypes = getModules(
 		modelAlloc, perf, allSymbols, diagsBuilder, programState, moduleIndices.common[CommonPath.std], allAsts);
 	Module[] modules = modulesAndCommonTypes.modules;
-	immutable EnumDict!(CommonPath, Module*) commonModules =
-		enumDictMapValues!(CommonPath, Module*, FileIndex)(moduleIndices.common, (in FileIndex index) =>
+	immutable EnumMap!(CommonPath, Module*) commonModules =
+		enumMapMapValues!(CommonPath, Module*, FileIndex)(moduleIndices.common, (in FileIndex index) =>
 			&modules[index.index]);
 	Opt!CommonFuns commonFuns = getCommonFuns(
 		modelAlloc,

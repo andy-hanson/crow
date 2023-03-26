@@ -5,7 +5,7 @@ module frontend.check.check;
 import frontend.check.checkCtx : addDiag, CheckCtx, checkForUnused, ImportsAndReExports, posInFile, rangeInFile;
 import frontend.check.checkExpr : checkFunctionBody;
 import frontend.check.checkStructs : checkStructBodies, checkStructsInitial;
-import frontend.check.dicts : FunsDict, SpecsDict, StructsAndAliasesDict;
+import frontend.check.maps : FunsMap, SpecsMap, StructsAndAliasesMap;
 import frontend.check.funsForStruct : addFunsForStruct, addFunsForVar, countFunsForStructs, countFunsForVars;
 import frontend.check.instantiate :
 	DelaySpecInsts,
@@ -87,13 +87,13 @@ import util.cell : Cell, cellGet, cellSet;
 import util.col.arr : empty, only, ptrsRange, small;
 import util.col.arrBuilder : add, ArrBuilder, finishArr;
 import util.col.arrUtil : cat, filter, map, mapOp, mapToMut, zip, zipPtrFirst;
-import util.col.dict : Dict, dictEach, dictEachIn, hasKey, KeyValuePair;
-import util.col.dictBuilder : DictBuilder, finishDict, tryAddToDict;
-import util.col.enumDict : EnumDict;
+import util.col.map : Map, mapEach, mapEachIn, hasKey, KeyValuePair;
+import util.col.mapBuilder : MapBuilder, finishMap, tryAddToMap;
+import util.col.enumMap : EnumMap;
 import util.col.exactSizeArrBuilder : ExactSizeArrBuilder, exactSizeArrBuilderAdd, finish, newExactSizeArrBuilder;
-import util.col.multiDict : buildMultiDict, multiDictEach;
+import util.col.multiMap : buildMultiMap, multiMapEach;
 import util.col.mutArr : mustPop, MutArr, mutArrIsEmpty;
-import util.col.mutDict : insertOrUpdate, moveToDict, MutDict;
+import util.col.mutMap : insertOrUpdate, moveToMap, MutMap;
 import util.col.mutMaxArr : isFull, mustPop, MutMaxArr, mutMaxArr, mutMaxArrSize, push, pushIfUnderMaxSize, toArray;
 import util.col.str : copySafeCStr, SafeCStr, safeCStr, strOfSafeCStr;
 import util.memory : allocate;
@@ -132,9 +132,9 @@ BootstrapCheck checkBootstrap(
 		emptyImportsAndExports,
 		pathAndAst,
 		(ref CheckCtx ctx,
-		in StructsAndAliasesDict structsAndAliasesDict,
+		in StructsAndAliasesMap structsAndAliasesMap,
 		scope ref MutArr!(StructInst*) delayedStructInsts) @safe =>
-			getCommonTypes(ctx, structsAndAliasesDict, delayedStructInsts));
+			getCommonTypes(ctx, structsAndAliasesMap, delayedStructInsts));
 }
 
 immutable struct ImportsAndExports {
@@ -169,17 +169,17 @@ Module check(
 		programState,
 		importsAndExports,
 		pathAndAst,
-		(ref CheckCtx _, in StructsAndAliasesDict _2, scope ref MutArr!(StructInst*)) => commonTypes,
+		(ref CheckCtx _, in StructsAndAliasesMap _2, scope ref MutArr!(StructInst*)) => commonTypes,
 	).module_;
 
 private:
 
 Opt!(StructDecl*) getCommonTemplateType(
-	in StructsAndAliasesDict structsAndAliasesDict,
+	in StructsAndAliasesMap structsAndAliasesMap,
 	Sym name,
 	size_t expectedTypeParams,
 ) {
-	Opt!StructOrAlias res = structsAndAliasesDict[name];
+	Opt!StructOrAlias res = structsAndAliasesMap[name];
 	if (has(res)) {
 		// TODO: may fail -- builtin Template should not be an alias
 		StructDecl* decl = force(res).as!(StructDecl*);
@@ -193,11 +193,11 @@ Opt!(StructDecl*) getCommonTemplateType(
 Opt!(StructInst*) getCommonNonTemplateType(
 	ref Alloc alloc,
 	ref ProgramState programState,
-	in StructsAndAliasesDict structsAndAliasesDict,
+	in StructsAndAliasesMap structsAndAliasesMap,
 	Sym name,
 	scope ref MutArr!(StructInst*) delayedStructInsts,
 ) {
-	Opt!StructOrAlias opStructOrAlias = structsAndAliasesDict[name];
+	Opt!StructOrAlias opStructOrAlias = structsAndAliasesMap[name];
 	return has(opStructOrAlias)
 		? instantiateNonTemplateStructOrAlias(alloc, programState, delayedStructInsts, force(opStructOrAlias))
 		: none!(StructInst*);
@@ -227,7 +227,7 @@ StructInst* instantiateNonTemplateStructDecl(
 
 CommonTypes getCommonTypes(
 	ref CheckCtx ctx,
-	in StructsAndAliasesDict structsAndAliasesDict,
+	in StructsAndAliasesMap structsAndAliasesMap,
 	scope ref MutArr!(StructInst*) delayedStructInsts,
 ) {
 	void addDiagMissing(Sym name) {
@@ -236,7 +236,7 @@ CommonTypes getCommonTypes(
 
 	StructInst* nonTemplateFromSym(Sym name) {
 		Opt!(StructInst*) res =
-			getCommonNonTemplateType(ctx.alloc, ctx.programState, structsAndAliasesDict, name, delayedStructInsts);
+			getCommonNonTemplateType(ctx.alloc, ctx.programState, structsAndAliasesMap, name, delayedStructInsts);
 		if (has(res))
 			return force(res);
 		else {
@@ -268,7 +268,7 @@ CommonTypes getCommonTypes(
 	StructInst* void_ = nonTemplate!"void";
 
 	StructDecl* getDeclFromSym(Sym name, size_t nTypeParameters) {
-		Opt!(StructDecl*) res = getCommonTemplateType(structsAndAliasesDict, name, nTypeParameters);
+		Opt!(StructDecl*) res = getCommonTemplateType(structsAndAliasesMap, name, nTypeParameters);
 		if (has(res))
 			return force(res);
 		else {
@@ -285,7 +285,7 @@ CommonTypes getCommonTypes(
 	StructDecl* opt = getDecl!"option"(1);
 	StructDecl* pointerConst = getDecl!"const-pointer"(1);
 	StructDecl* pointerMut = getDecl!"mut-pointer"(1);
-	EnumDict!(FunKind, StructDecl*) funs = immutable EnumDict!(FunKind, StructDecl*)([
+	EnumMap!(FunKind, StructDecl*) funs = immutable EnumMap!(FunKind, StructDecl*)([
 		getDecl!"fun-fun"(2), getDecl!"fun-act"(2), getDecl!"fun-far"(2), getDecl!"fun-pointer"(2),
 	]);
 
@@ -344,7 +344,7 @@ Params checkParams(
 	ref CheckCtx ctx,
 	ref CommonTypes commonTypes,
 	in ParamsAst ast,
-	in StructsAndAliasesDict structsAndAliasesDict,
+	in StructsAndAliasesMap structsAndAliasesMap,
 	TypeParam[] typeParamsScope,
 	ref DelayStructInsts delayStructInsts,
 ) =>
@@ -352,11 +352,11 @@ Params checkParams(
 		(in DestructureAst[] asts) =>
 			Params(map!(Destructure, DestructureAst)(ctx.alloc, asts, (ref DestructureAst ast) =>
 				checkDestructure(
-					ctx, commonTypes, structsAndAliasesDict, typeParamsScope, delayStructInsts,
+					ctx, commonTypes, structsAndAliasesMap, typeParamsScope, delayStructInsts,
 					ast, none!Type))),
 		(in ParamsAst.Varargs varargs) {
 			Destructure param = checkDestructure(
-				ctx, commonTypes, structsAndAliasesDict, typeParamsScope, delayStructInsts, varargs.param, none!Type);
+				ctx, commonTypes, structsAndAliasesMap, typeParamsScope, delayStructInsts, varargs.param, none!Type);
 			Opt!Type elementType = param.type.match!(Opt!Type)(
 				(Type.Bogus _) =>
 					some(Type(Type.Bogus())),
@@ -382,12 +382,12 @@ ReturnTypeAndParams checkReturnTypeAndParams(
 	in TypeAst returnTypeAst,
 	in ParamsAst paramsAst,
 	TypeParam[] typeParams,
-	in StructsAndAliasesDict structsAndAliasesDict,
+	in StructsAndAliasesMap structsAndAliasesMap,
 	DelayStructInsts delayStructInsts
 ) =>
 	ReturnTypeAndParams(
-		typeFromAst(ctx, commonTypes, returnTypeAst, structsAndAliasesDict, typeParams, delayStructInsts),
-		checkParams(ctx, commonTypes, paramsAst, structsAndAliasesDict, typeParams, delayStructInsts));
+		typeFromAst(ctx, commonTypes, returnTypeAst, structsAndAliasesMap, typeParams, delayStructInsts),
+		checkParams(ctx, commonTypes, paramsAst, structsAndAliasesMap, typeParams, delayStructInsts));
 
 SpecDeclBody.Builtin.Kind getSpecBodyBuiltinKind(ref CheckCtx ctx, RangeWithinFile range, Sym name) {
 	switch (name.value) {
@@ -405,7 +405,7 @@ SpecDeclBody checkSpecDeclBody(
 	ref CheckCtx ctx,
 	ref CommonTypes commonTypes,
 	TypeParam[] typeParams,
-	in StructsAndAliasesDict structsAndAliasesDict,
+	in StructsAndAliasesMap structsAndAliasesMap,
 	RangeWithinFile range,
 	Sym name,
 	in SpecBodyAst ast,
@@ -416,7 +416,7 @@ SpecDeclBody checkSpecDeclBody(
 		(in SpecSigAst[] sigs) =>
 			SpecDeclBody(map(ctx.alloc, sigs, (ref SpecSigAst x) {
 				ReturnTypeAndParams rp = checkReturnTypeAndParams(
-					ctx, commonTypes, x.returnType, x.params, typeParams, structsAndAliasesDict, noDelayStructInsts);
+					ctx, commonTypes, x.returnType, x.params, typeParams, structsAndAliasesMap, noDelayStructInsts);
 				Destructure[] params = rp.params.match!(Destructure[])(
 					(Destructure[] x) =>
 						x,
@@ -428,13 +428,13 @@ SpecDeclBody checkSpecDeclBody(
 SpecDecl[] checkSpecDeclsInitial(
 	ref CheckCtx ctx,
 	ref CommonTypes commonTypes,
-	ref StructsAndAliasesDict structsAndAliasesDict,
+	ref StructsAndAliasesMap structsAndAliasesMap,
 	in SpecDeclAst[] asts,
 ) =>
 	map(ctx.alloc, asts, (ref SpecDeclAst ast) {
 		TypeParam[] typeParams = checkTypeParams(ctx, ast.typeParams);
 		SpecDeclBody body_ =
-			checkSpecDeclBody(ctx, commonTypes, typeParams, structsAndAliasesDict, ast.range, ast.name, ast.body_);
+			checkSpecDeclBody(ctx, commonTypes, typeParams, structsAndAliasesMap, ast.range, ast.name, ast.body_);
 		return SpecDecl(
 			rangeInFile(ctx, ast.range),
 			copySafeCStr(ctx.alloc, ast.docComment),
@@ -447,8 +447,8 @@ SpecDecl[] checkSpecDeclsInitial(
 void checkSpecDeclParents(
 	ref CheckCtx ctx,
 	ref CommonTypes commonTypes,
-	ref StructsAndAliasesDict structsAndAliasesDict,
-	ref SpecsDict specsDict,
+	ref StructsAndAliasesMap structsAndAliasesMap,
+	ref SpecsMap specsMap,
 	in SpecDeclAst[] asts,
 	SpecDecl[] specs,
 ) {
@@ -457,7 +457,7 @@ void checkSpecDeclParents(
 	zip!(SpecDeclAst, SpecDecl)(asts, specs, (ref SpecDeclAst ast, ref SpecDecl spec) {
 		spec.parents = mapOp!(immutable SpecInst*, TypeAst)(ctx.alloc, ast.parents, (ref TypeAst parent) =>
 			checkFunModifierNonSpecial(
-				ctx, commonTypes, structsAndAliasesDict, specsDict, spec.typeParams, parent,
+				ctx, commonTypes, structsAndAliasesMap, specsMap, spec.typeParams, parent,
 				someMut(ptrTrustMe(delaySpecInsts))));
 	});
 
@@ -502,7 +502,7 @@ StructAlias[] checkStructAliasesInitial(ref CheckCtx ctx, scope StructAliasAst[]
 void checkStructAliasTargets(
 	ref CheckCtx ctx,
 	ref CommonTypes commonTypes,
-	in StructsAndAliasesDict structsAndAliasesDict,
+	in StructsAndAliasesMap structsAndAliasesMap,
 	StructAlias[] aliases,
 	in StructAliasAst[] asts,
 	ref MutArr!(StructInst*) delayStructInsts,
@@ -512,7 +512,7 @@ void checkStructAliasTargets(
 			ctx,
 			commonTypes,
 			ast.target,
-			structsAndAliasesDict,
+			structsAndAliasesMap,
 			structAlias.typeParams,
 			someMut!(MutArr!(StructInst*)*)(ptrTrustMe(delayStructInsts)));
 		if (type.isA!(StructInst*))
@@ -525,28 +525,28 @@ void checkStructAliasTargets(
 	});
 }
 
-StructsAndAliasesDict buildStructsAndAliasesDict(ref CheckCtx ctx, StructDecl[] structs, StructAlias[] aliases) {
-	DictBuilder!(Sym, StructOrAlias) builder;
+StructsAndAliasesMap buildStructsAndAliasesMap(ref CheckCtx ctx, StructDecl[] structs, StructAlias[] aliases) {
+	MapBuilder!(Sym, StructOrAlias) builder;
 	foreach (StructDecl* decl; ptrsRange(structs))
-		addToDeclsDict!StructOrAlias(ctx, builder, StructOrAlias(decl), Diag.DuplicateDeclaration.Kind.structOrAlias);
+		addToDeclsMap!StructOrAlias(ctx, builder, StructOrAlias(decl), Diag.DuplicateDeclaration.Kind.structOrAlias);
 	foreach (StructAlias* alias_; ptrsRange(aliases))
-		addToDeclsDict!StructOrAlias(ctx, builder, StructOrAlias(alias_), Diag.DuplicateDeclaration.Kind.structOrAlias);
-	return finishDict(ctx.alloc, builder);
+		addToDeclsMap!StructOrAlias(ctx, builder, StructOrAlias(alias_), Diag.DuplicateDeclaration.Kind.structOrAlias);
+	return finishMap(ctx.alloc, builder);
 }
 
 VarDecl[] checkVars(
 	ref CheckCtx ctx,
 	ref CommonTypes commonTypes,
-	in StructsAndAliasesDict structsAndAliasesDict,
+	in StructsAndAliasesMap structsAndAliasesMap,
 	in VarDeclAst[] asts,
 ) =>
 	map(ctx.alloc, asts, (ref VarDeclAst ast) =>
-		checkVarDecl(ctx, commonTypes, structsAndAliasesDict, ast));
+		checkVarDecl(ctx, commonTypes, structsAndAliasesMap, ast));
 
 VarDecl checkVarDecl(
 	ref CheckCtx ctx,
 	ref CommonTypes commonTypes,
-	in StructsAndAliasesDict structsAndAliasesDict,
+	in StructsAndAliasesMap structsAndAliasesMap,
 	in VarDeclAst ast,
 ) {
 	if (!empty(ast.typeParams))
@@ -557,7 +557,7 @@ VarDecl checkVarDecl(
 		ast.visibility,
 		ast.name,
 		ast.kind,
-		typeFromAstNoTypeParamsNeverDelay(ctx, commonTypes, ast.type, structsAndAliasesDict),
+		typeFromAstNoTypeParamsNeverDelay(ctx, commonTypes, ast.type, structsAndAliasesMap),
 		checkVarModifiers(ctx, ast.modifiers));
 }
 
@@ -584,21 +584,21 @@ Opt!Sym checkVarModifiers(ref CheckCtx ctx, in FunModifierAst[] modifiers) {
 	return cellGet(externLibraryName);
 }
 
-void addToDeclsDict(T)(
+void addToDeclsMap(T)(
 	ref CheckCtx ctx,
-	ref DictBuilder!(Sym, T) builder,
+	ref MapBuilder!(Sym, T) builder,
 	T added,
 	Diag.DuplicateDeclaration.Kind kind,
 ) {
-	Opt!T old = tryAddToDict(ctx.alloc, builder, added.name, added);
+	Opt!T old = tryAddToMap(ctx.alloc, builder, added.name, added);
 	if (has(old))
 		addDiag(ctx, added.range, Diag(Diag.DuplicateDeclaration(kind, added.name)));
 }
 
-immutable struct FunsAndDict {
+immutable struct FunsAndMap {
 	FunDecl[] funs;
 	Test[] tests;
-	FunsDict funsDict;
+	FunsMap funsMap;
 }
 
 immutable struct FunFlagsAndSpecs {
@@ -611,8 +611,8 @@ FunFlagsAndSpecs checkFunModifiers(
 	ref CommonTypes commonTypes,
 	RangeWithinFile range,
 	in FunModifierAst[] asts,
-	in StructsAndAliasesDict structsAndAliasesDict,
-	in SpecsDict specsDict,
+	in StructsAndAliasesMap structsAndAliasesMap,
+	in SpecsMap specsMap,
 	TypeParam[] typeParamsScope,
 ) {
 	FunModifierAst.Special.Flags allFlags = FunModifierAst.Special.Flags.none;
@@ -633,27 +633,27 @@ FunFlagsAndSpecs checkFunModifiers(
 				},
 				(in TypeAst x) =>
 					checkFunModifierNonSpecial(
-						ctx, commonTypes, structsAndAliasesDict, specsDict, typeParamsScope, x, noDelaySpecInsts)));
+						ctx, commonTypes, structsAndAliasesMap, specsMap, typeParamsScope, x, noDelaySpecInsts)));
 	return FunFlagsAndSpecs(checkFunFlags(ctx, range, allFlags), specs);
 }
 
 Opt!(SpecInst*) checkFunModifierNonSpecial(
 	ref CheckCtx ctx,
 	ref CommonTypes commonTypes,
-	in StructsAndAliasesDict structsAndAliasesDict,
-	in SpecsDict specsDict,
+	in StructsAndAliasesMap structsAndAliasesMap,
+	in SpecsMap specsMap,
 	TypeParam[] typeParamsScope,
 	in TypeAst ast,
 	DelaySpecInsts delaySpecInsts,
 ) {
 	if (ast.isA!NameAndRange) {
 		return specFromAst(
-			ctx, commonTypes, structsAndAliasesDict, specsDict, typeParamsScope,
+			ctx, commonTypes, structsAndAliasesMap, specsMap, typeParamsScope,
 			none!(TypeAst*), ast.as!NameAndRange, delaySpecInsts);
 	} else if (ast.isA!(TypeAst.SuffixName*)) {
 		TypeAst.SuffixName* n = ast.as!(TypeAst.SuffixName*);
 		return specFromAst(
-			ctx, commonTypes, structsAndAliasesDict, specsDict, typeParamsScope, some(&n.left), n.name, delaySpecInsts);
+			ctx, commonTypes, structsAndAliasesMap, specsMap, typeParamsScope, some(&n.left), n.name, delaySpecInsts);
 	} else {
 		addDiag(ctx, range(ast, ctx.allSymbols), Diag(Diag.SpecNameMissing()));
 		return none!(SpecInst*);
@@ -712,12 +712,12 @@ FunFlags checkFunFlags(ref CheckCtx ctx, RangeWithinFile range, FunModifierAst.S
 	return FunFlags.regular(noctx, summon, safety, specialBody, forceCtx);
 }
 
-FunsAndDict checkFuns(
+FunsAndMap checkFuns(
 	ref CheckCtx ctx,
 	ref CommonTypes commonTypes,
-	in SpecsDict specsDict,
+	in SpecsMap specsMap,
 	StructDecl[] structs,
-	in StructsAndAliasesDict structsAndAliasesDict,
+	in StructsAndAliasesMap structsAndAliasesMap,
 	VarDecl[] vars,
 	ImportOrExportFile[] fileImports,
 	ImportOrExportFile[] fileExports,
@@ -735,10 +735,10 @@ FunsAndDict checkFuns(
 			funAst.returnType,
 			funAst.params,
 			typeParams,
-			structsAndAliasesDict,
+			structsAndAliasesMap,
 			noDelayStructInsts);
 		FunFlagsAndSpecs flagsAndSpecs = checkFunModifiers(
-			ctx, commonTypes, funAst.range, funAst.modifiers, structsAndAliasesDict, specsDict, typeParams);
+			ctx, commonTypes, funAst.range, funAst.modifiers, structsAndAliasesMap, specsMap, typeParams);
 		exactSizeArrBuilderAdd(
 			funsBuilder,
 			FunDecl(
@@ -755,11 +755,11 @@ FunsAndDict checkFuns(
 	foreach (ref ImportOrExportFile f; fileImports)
 		exactSizeArrBuilderAdd(
 			funsBuilder,
-			funDeclForFileImportOrExport(ctx, commonTypes, structsAndAliasesDict, f, Visibility.private_));
+			funDeclForFileImportOrExport(ctx, commonTypes, structsAndAliasesMap, f, Visibility.private_));
 	foreach (ref ImportOrExportFile f; fileExports)
 		exactSizeArrBuilderAdd(
 			funsBuilder,
-			funDeclForFileImportOrExport(ctx, commonTypes, structsAndAliasesDict, f, Visibility.public_));
+			funDeclForFileImportOrExport(ctx, commonTypes, structsAndAliasesMap, f, Visibility.public_));
 
 	foreach (StructDecl* struct_; ptrsRange(structs))
 		addFunsForStruct(ctx, funsBuilder, commonTypes, struct_);
@@ -767,7 +767,7 @@ FunsAndDict checkFuns(
 		addFunsForVar(ctx, funsBuilder, commonTypes, var);
 	FunDecl[] funs = finish(funsBuilder);
 
-	FunsDict funsDict = buildMultiDict!(Sym, immutable FunDecl*, FunDecl)(
+	FunsMap funsMap = buildMultiMap!(Sym, immutable FunDecl*, FunDecl)(
 		ctx.alloc, funs, (size_t index, FunDecl* x) => KeyValuePair!(Sym, immutable FunDecl*)(x.name, x));
 
 	FunDecl[] funsWithAsts = funs[0 .. asts.length];
@@ -782,8 +782,8 @@ FunsAndDict checkFuns(
 						return FunBody(getExprFunctionBody(
 							ctx,
 							commonTypes,
-							structsAndAliasesDict,
-							funsDict,
+							structsAndAliasesMap,
+							funsMap,
 							*fun,
 							force(funAst.body_)));
 				case FunFlags.SpecialBody.builtin:
@@ -801,11 +801,11 @@ FunsAndDict checkFuns(
 	});
 	foreach (size_t i, ref ImportOrExportFile f; fileImports) {
 		FunDecl* fun = &funs[asts.length + i];
-		fun.setBody(getFileImportFunctionBody(ctx, commonTypes, structsAndAliasesDict, funsDict, *fun, f));
+		fun.setBody(getFileImportFunctionBody(ctx, commonTypes, structsAndAliasesMap, funsMap, *fun, f));
 	}
 	foreach (size_t i, ref ImportOrExportFile f; fileExports) {
 		FunDecl* fun = &funs[asts.length + fileImports.length + i];
-		fun.setBody(getFileImportFunctionBody(ctx, commonTypes, structsAndAliasesDict, funsDict, *fun, f));
+		fun.setBody(getFileImportFunctionBody(ctx, commonTypes, structsAndAliasesMap, funsMap, *fun, f));
 	}
 
 	Test[] tests = map(ctx.alloc, testAsts, (scope ref TestAst ast) {
@@ -814,9 +814,9 @@ FunsAndDict checkFuns(
 			todo!void("diag: test needs body");
 		return Test(checkFunctionBody(
 			ctx,
-			structsAndAliasesDict,
+			structsAndAliasesMap,
 			commonTypes,
-			funsDict,
+			funsMap,
 			voidType,
 			[],
 			[],
@@ -825,7 +825,7 @@ FunsAndDict checkFuns(
 			force(ast.body_)));
 	});
 
-	return FunsAndDict(funs, tests, funsDict);
+	return FunsAndMap(funs, tests, funsMap);
 }
 
 Opt!TypeAst getExternTypeArg(ref FunDeclAst a, FunModifierAst.Special.Flags externOrGlobalFlag) {
@@ -846,8 +846,8 @@ Opt!TypeAst getExternTypeArg(ref FunDeclAst a, FunModifierAst.Special.Flags exte
 FunBody getFileImportFunctionBody(
 	ref CheckCtx ctx,
 	in CommonTypes commonTypes,
-	in StructsAndAliasesDict structsAndAliasesDict,
-	ref FunsDict funsDict,
+	in StructsAndAliasesMap structsAndAliasesMap,
+	ref FunsMap funsMap,
 	ref FunDecl f,
 	ref ImportOrExportFile ie,
 ) =>
@@ -858,22 +858,22 @@ FunBody getFileImportFunctionBody(
 			ExprAst ast = ExprAst(
 				f.range.range,
 				ExprAstKind(LiteralStringAst(strOfSafeCStr(str))));
-			return FunBody(getExprFunctionBody(ctx, commonTypes, structsAndAliasesDict, funsDict, f, ast));
+			return FunBody(getExprFunctionBody(ctx, commonTypes, structsAndAliasesMap, funsMap, f, ast));
 		});
 
 FunBody.ExpressionBody getExprFunctionBody(
 	ref CheckCtx ctx,
 	in CommonTypes commonTypes,
-	in StructsAndAliasesDict structsAndAliasesDict,
-	in FunsDict funsDict,
+	in StructsAndAliasesMap structsAndAliasesMap,
+	in FunsMap funsMap,
 	in FunDecl f,
 	in ExprAst e,
 ) =>
 	FunBody.ExpressionBody(checkFunctionBody(
 		ctx,
-		structsAndAliasesDict,
+		structsAndAliasesMap,
 		commonTypes,
-		funsDict,
+		funsMap,
 		f.returnType,
 		f.typeParams,
 		paramsArray(f.params),
@@ -884,7 +884,7 @@ FunBody.ExpressionBody getExprFunctionBody(
 FunDecl funDeclForFileImportOrExport(
 	ref CheckCtx ctx,
 	ref CommonTypes commonTypes,
-	in StructsAndAliasesDict structsAndAliasesDict,
+	in StructsAndAliasesMap structsAndAliasesMap,
 	in ImportOrExportFile a,
 	Visibility visibility,
 ) =>
@@ -894,7 +894,7 @@ FunDecl funDeclForFileImportOrExport(
 		FileAndPos(ctx.fileIndex, a.range.start),
 		a.name,
 		[],
-		typeForFileImport(ctx, commonTypes, structsAndAliasesDict, a.range, a.type),
+		typeForFileImport(ctx, commonTypes, structsAndAliasesMap, a.range, a.type),
 		Params([]),
 		FunFlags.generatedNoCtx,
 		[]);
@@ -902,7 +902,7 @@ FunDecl funDeclForFileImportOrExport(
 Type typeForFileImport(
 	ref CheckCtx ctx,
 	ref CommonTypes commonTypes,
-	in StructsAndAliasesDict structsAndAliasesDict,
+	in StructsAndAliasesMap structsAndAliasesMap,
 	RangeWithinFile range,
 	ImportFileType type,
 ) {
@@ -911,11 +911,11 @@ Type typeForFileImport(
 			TypeAst nat8 = TypeAst(NameAndRange(range.start, sym!"nat8"));
 			TypeAst.SuffixName suffixName = TypeAst.SuffixName(nat8, NameAndRange(range.start, sym!"array"));
 			scope TypeAst arrayNat8 = TypeAst(&suffixName);
-			return typeFromAstNoTypeParamsNeverDelay(ctx, commonTypes, arrayNat8, structsAndAliasesDict);
+			return typeFromAstNoTypeParamsNeverDelay(ctx, commonTypes, arrayNat8, structsAndAliasesMap);
 		case ImportFileType.str:
 			//TODO: this sort of duplicates 'getStrType'
 			TypeAst ast = TypeAst(NameAndRange(range.start, sym!"string"));
-			return typeFromAstNoTypeParamsNeverDelay(ctx, commonTypes, ast, structsAndAliasesDict);
+			return typeFromAstNoTypeParamsNeverDelay(ctx, commonTypes, ast, structsAndAliasesMap);
 	}
 }
 
@@ -950,17 +950,17 @@ Sym externLibraryNameFromTypeArg(ref CheckCtx ctx, RangeWithinFile range, in Opt
 	}
 }
 
-SpecsDict buildSpecsDict(ref CheckCtx ctx, SpecDecl[] specs) {
-	DictBuilder!(Sym, SpecDecl*) res;
+SpecsMap buildSpecsMap(ref CheckCtx ctx, SpecDecl[] specs) {
+	MapBuilder!(Sym, SpecDecl*) res;
 	foreach (SpecDecl* spec; ptrsRange(specs))
-		addToDeclsDict(ctx, res, spec, Diag.DuplicateDeclaration.Kind.spec);
-	return finishDict(ctx.alloc, res);
+		addToDeclsMap(ctx, res, spec, Diag.DuplicateDeclaration.Kind.spec);
+	return finishMap(ctx.alloc, res);
 }
 
 Module checkWorkerAfterCommonTypes(
 	ref CheckCtx ctx,
 	ref CommonTypes commonTypes,
-	ref StructsAndAliasesDict structsAndAliasesDict,
+	ref StructsAndAliasesMap structsAndAliasesMap,
 	StructAlias[] structAliases,
 	StructDecl[] structs,
 	ref MutArr!(StructInst*) delayStructInsts,
@@ -968,7 +968,7 @@ Module checkWorkerAfterCommonTypes(
 	ref ImportsAndExports importsAndExports,
 	in FileAst ast,
 ) {
-	checkStructBodies(ctx, commonTypes, structsAndAliasesDict, structs, ast.structs, delayStructInsts);
+	checkStructBodies(ctx, commonTypes, structsAndAliasesMap, structs, ast.structs, delayStructInsts);
 
 	while (!mutArrIsEmpty(delayStructInsts)) {
 		StructInst* i = mustPop(delayStructInsts);
@@ -976,48 +976,48 @@ Module checkWorkerAfterCommonTypes(
 			instantiateStructTypes(ctx.alloc, ctx.programState, i.declAndArgs, someMut(ptrTrustMe(delayStructInsts)));
 	}
 
-	VarDecl[] vars = checkVars(ctx, commonTypes, structsAndAliasesDict, ast.vars);
-	SpecDecl[] specs = checkSpecDeclsInitial(ctx, commonTypes, structsAndAliasesDict, ast.specs);
-	SpecsDict specsDict = buildSpecsDict(ctx, specs);
-	checkSpecDeclParents(ctx, commonTypes, structsAndAliasesDict, specsDict, ast.specs, specs);
-	FunsAndDict funsAndDict = checkFuns(
+	VarDecl[] vars = checkVars(ctx, commonTypes, structsAndAliasesMap, ast.vars);
+	SpecDecl[] specs = checkSpecDeclsInitial(ctx, commonTypes, structsAndAliasesMap, ast.specs);
+	SpecsMap specsMap = buildSpecsMap(ctx, specs);
+	checkSpecDeclParents(ctx, commonTypes, structsAndAliasesMap, specsMap, ast.specs, specs);
+	FunsAndMap funsAndMap = checkFuns(
 		ctx,
 		commonTypes,
-		specsDict,
+		specsMap,
 		structs,
-		structsAndAliasesDict,
+		structsAndAliasesMap,
 		vars,
 		importsAndExports.fileImports,
 		importsAndExports.fileExports,
 		ast.funs,
 		ast.tests);
-	checkForUnused(ctx, structAliases, structs, specs, funsAndDict.funs);
+	checkForUnused(ctx, structAliases, structs, specs, funsAndMap.funs);
 	return Module(
 		fileIndex,
 		copySafeCStr(ctx.alloc, ast.docComment),
 		importsAndExports.moduleImports,
 		importsAndExports.moduleExports,
-		structs, vars, specs, funsAndDict.funs, funsAndDict.tests,
+		structs, vars, specs, funsAndMap.funs, funsAndMap.tests,
 		getAllExportedNames(
 			ctx.alloc,
 			ctx.diagsBuilder,
 			importsAndExports.moduleExports,
-			structsAndAliasesDict,
-			specsDict,
-			funsAndDict.funsDict,
+			structsAndAliasesMap,
+			specsMap,
+			funsAndMap.funsMap,
 			fileIndex));
 }
 
-Dict!(Sym, NameReferents) getAllExportedNames(
+Map!(Sym, NameReferents) getAllExportedNames(
 	ref Alloc alloc,
 	scope ref DiagnosticsBuilder diagsBuilder,
 	in ImportOrExport[] reExports,
-	in StructsAndAliasesDict structsAndAliasesDict,
-	in SpecsDict specsDict,
-	in FunsDict funsDict,
+	in StructsAndAliasesMap structsAndAliasesMap,
+	in SpecsMap specsMap,
+	in FunsMap funsMap,
 	FileIndex fileIndex,
 ) {
-	MutDict!(Sym, NameReferents) res;
+	MutMap!(Sym, NameReferents) res;
 	void addExport(Sym name, NameReferents cur, FileAndRange range) {
 		insertOrUpdate!(Sym, NameReferents)(
 			alloc,
@@ -1042,7 +1042,7 @@ Dict!(Sym, NameReferents) getAllExportedNames(
 	foreach (ref ImportOrExport e; reExports)
 		e.kind.matchIn!void(
 			(in ImportOrExportKind.ModuleWhole m) {
-				dictEachIn!(Sym, NameReferents)(
+				mapEachIn!(Sym, NameReferents)(
 					m.module_.allExportedNames,
 					(in Sym name, in NameReferents value) {
 						addExport(name, value, FileAndRange(fileIndex, force(e.importSource)));
@@ -1055,8 +1055,8 @@ Dict!(Sym, NameReferents) getAllExportedNames(
 						addExport(name, force(value), FileAndRange(fileIndex, force(e.importSource)));
 				}
 			});
-	dictEach!(Sym, StructOrAlias)(
-		structsAndAliasesDict,
+	mapEach!(Sym, StructOrAlias)(
+		structsAndAliasesMap,
 		(Sym name, ref StructOrAlias x) {
 			final switch (visibility(x)) {
 				case Visibility.private_:
@@ -1067,7 +1067,7 @@ Dict!(Sym, NameReferents) getAllExportedNames(
 					break;
 			}
 		});
-	dictEach!(Sym, SpecDecl*)(specsDict, (Sym name, ref SpecDecl* x) {
+	mapEach!(Sym, SpecDecl*)(specsMap, (Sym name, ref SpecDecl* x) {
 		final switch (x.visibility) {
 			case Visibility.private_:
 				break;
@@ -1077,7 +1077,7 @@ Dict!(Sym, NameReferents) getAllExportedNames(
 				break;
 		}
 	});
-	multiDictEach!(Sym, immutable FunDecl*)(funsDict, (Sym name, immutable FunDecl*[] funs) {
+	multiMapEach!(Sym, immutable FunDecl*)(funsMap, (Sym name, immutable FunDecl*[] funs) {
 		immutable FunDecl*[] funDecls = filter!(immutable FunDecl*)(alloc, funs, (in immutable FunDecl* x) =>
 			x.visibility != Visibility.private_);
 		if (!empty(funDecls))
@@ -1088,7 +1088,7 @@ Dict!(Sym, NameReferents) getAllExportedNames(
 				FileAndRange(fileIndex, RangeWithinFile.empty));
 	});
 
-	return moveToDict!(Sym, NameReferents)(alloc, res);
+	return moveToMap!(Sym, NameReferents)(alloc, res);
 }
 
 BootstrapCheck checkWorker(
@@ -1101,7 +1101,7 @@ BootstrapCheck checkWorker(
 	in PathAndAst pathAndAst,
 	in CommonTypes delegate(
 		ref CheckCtx,
-		in StructsAndAliasesDict,
+		in StructsAndAliasesMap,
 		scope ref MutArr!(StructInst*),
 	) @safe @nogc pure nothrow getCommonTypes,
 ) {
@@ -1117,10 +1117,10 @@ BootstrapCheck checkWorker(
 		ImportsAndReExports(importsAndExports.moduleImports, importsAndExports.moduleExports),
 		ptrTrustMe(diagsBuilder));
 
-	// Since structs may refer to each other, first get a structsAndAliasesDict, *then* fill in bodies
+	// Since structs may refer to each other, first get a structsAndAliasesMap, *then* fill in bodies
 	StructDecl[] structs = checkStructsInitial(ctx, ast.structs);
 	StructAlias[] structAliases = checkStructAliasesInitial(ctx, ast.structAliases);
-	StructsAndAliasesDict structsAndAliasesDict = buildStructsAndAliasesDict(ctx, structs, structAliases);
+	StructsAndAliasesMap structsAndAliasesMap = buildStructsAndAliasesMap(ctx, structs, structAliases);
 
 	// We need to create StructInsts when filling in struct bodies.
 	// But when creating a StructInst, we usually want to fill in its body.
@@ -1128,12 +1128,12 @@ BootstrapCheck checkWorker(
 	// we'll delay creating the StructInst body, which isn't needed until expr checking.
 	MutArr!(StructInst*) delayStructInsts;
 
-	CommonTypes commonTypes = getCommonTypes(ctx, structsAndAliasesDict, delayStructInsts);
+	CommonTypes commonTypes = getCommonTypes(ctx, structsAndAliasesMap, delayStructInsts);
 
 	checkStructAliasTargets(
 		ctx,
 		commonTypes,
-		structsAndAliasesDict,
+		structsAndAliasesMap,
 		structAliases,
 		ast.structAliases,
 		delayStructInsts);
@@ -1141,7 +1141,7 @@ BootstrapCheck checkWorker(
 	Module res = checkWorkerAfterCommonTypes(
 		ctx,
 		commonTypes,
-		structsAndAliasesDict,
+		structsAndAliasesMap,
 		structAliases,
 		structs,
 		delayStructInsts,

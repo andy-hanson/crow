@@ -1,8 +1,8 @@
 no-std
 import
 	../bool: false, true
-	../col/dict: dict, new
 	../col/list: list, new
+	../col/map: map, new
 	../json: ==, new, null, json, to
 	../misc: to, void
 	../number: nat64

@@ -27,8 +27,8 @@ import model.model :
 import model.parseDiag : ParseDiag;
 import util.alloc.alloc : Alloc;
 import util.col.arrUtil : arrLiteral;
-import util.col.dict : dictLiteral;
-import util.col.fullIndexDict : fullIndexDictOfArr;
+import util.col.map : mapLiteral;
+import util.col.fullIndexMap : fullIndexMapOfArr;
 import util.lineAndColumnGetter : LineAndColumnGetter;
 import util.opt : Opt;
 import util.path : AllPaths, Path, PathsInfo, writePath;
@@ -347,13 +347,13 @@ immutable struct Diag {
 	immutable struct TypeParamCantHaveTypeArgs {}
 	immutable struct TypeShouldUseSyntax {
 		enum Kind {
-			dict,
 			funAct,
 			funFar,
 			funFun,
 			future,
 			list,
-			mutDict,
+			map,
+			mutMap,
 			mutList,
 			mutPointer,
 			opt,
@@ -474,9 +474,9 @@ immutable struct FilesInfo {
 
 FilesInfo filesInfoForSingle(ref Alloc alloc, Path path, LineAndColumnGetter lineAndColumnGetter) =>
 	FilesInfo(
-		fullIndexDictOfArr!(FileIndex, Path)(arrLiteral!Path(alloc, [path])),
-		dictLiteral!(Path, FileIndex)(alloc, path, FileIndex(0)),
-		fullIndexDictOfArr!(FileIndex, LineAndColumnGetter)(
+		fullIndexMapOfArr!(FileIndex, Path)(arrLiteral!Path(alloc, [path])),
+		mapLiteral!(Path, FileIndex)(alloc, path, FileIndex(0)),
+		fullIndexMapOfArr!(FileIndex, LineAndColumnGetter)(
 			arrLiteral!LineAndColumnGetter(alloc, [lineAndColumnGetter])));
 
 void writeFileAndRange(

@@ -5,7 +5,7 @@ module util.repr;
 import util.alloc.alloc : Alloc;
 import util.col.arr : small, SmallArray;
 import util.col.arrUtil : arrLiteral, map;
-import util.col.fullIndexDict : FullIndexDict;
+import util.col.fullIndexMap : FullIndexMap;
 import util.col.str : copyStr, SafeCStr, strOfSafeCStr;
 import util.memory : allocate;
 import util.opt : force, has, none, Opt, some;
@@ -52,9 +52,9 @@ Repr reprArr(Repr[] xs) =>
 Repr reprArr(T)(ref Alloc alloc, in T[] xs, in Repr delegate(in T) @safe @nogc pure nothrow cb) =>
 	reprArr(map!(Repr, const T)(alloc, xs, (ref const T x) => cb(x)));
 
-Repr reprFullIndexDict(K, V)(
+Repr reprFullIndexMap(K, V)(
 	ref Alloc alloc,
-	in immutable FullIndexDict!(K, V) a,
+	in immutable FullIndexMap!(K, V) a,
 	in Repr delegate(ref immutable V) @safe @nogc pure nothrow cb,
 ) =>
 	Repr(ReprArr(map(alloc, a.values, cb)));

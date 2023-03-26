@@ -6,7 +6,7 @@ import frontend.parse.lexer : isWhitespace;
 import util.alloc.alloc : Alloc;
 import util.col.arrBuilder : add, ArrBuilder, finishArr;
 import util.col.arrUtil : arrEqual;
-import util.col.dict : KeyValuePair;
+import util.col.map : KeyValuePair;
 import util.col.str : copyToSafeCStr, CStr, SafeCStr, safeCStrEq;
 import util.opt : force, has, none, Opt, some;
 import util.sym : AllSymbols, Sym, symOfStr;

@@ -4,7 +4,7 @@ module test.test;
 
 import lib.compiler : ExitCode;
 import test.testApplyFn : testApplyFn;
-import test.testDict : testDict;
+import test.testMap : testMap;
 import test.testFakeExtern : testFakeExtern;
 import test.testHover : testHover;
 import test.testInterpreter : testInterpreter;
@@ -36,12 +36,12 @@ private:
 
 NameAndTest[] allTests = [
 	NameAndTest(sym!"apply-fn", &testApplyFn),
-	NameAndTest(sym!"dict", &testDict),
 	NameAndTest(sym!"fake-extern", &testFakeExtern),
 	NameAndTest(sym!"hover", &testHover),
 	NameAndTest(sym!"interpreter", &testInterpreter),
 	NameAndTest(sym!"json", &testJson),
 	NameAndTest(sym!"line-and-column-getter", &testLineAndColumnGetter),
+	NameAndTest(sym!"map", &testMap),
 	NameAndTest(sym!"memory", &testMemory),
 	NameAndTest(sym!"path", &testPath),
 	NameAndTest(sym!"server", &testServer),

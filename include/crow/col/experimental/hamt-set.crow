@@ -8,7 +8,7 @@ import
 	../../tuple: a, b, new
 	../array: array
 	../collection: for-loop
-	../dict: ~=, build, dict, get-or-add, is-empty, iterate, size, subscript, try-remove
+	../map: ~=, build, get-or-add, is-empty, iterate, map, size, subscript, try-remove
 	../list: iterate, list, size, to
 
 hamt-set[t] record

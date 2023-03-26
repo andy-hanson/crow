@@ -26,13 +26,13 @@ import
 		~~, ~=, +, -, begin, build, end, iterate, list, new, next, size, slice, to
 
 ###
-Immutable unordered dictionary type.
-A dictionary is logically a collection of key-value pairs (`(k, v)`).
+Immutable unordered map type.
+A map is logically a collection of key-value pairs (`(k, v)`).
 A key can appear at most once, and given a key, you can access the associated value in O(1).
 
 There should be `==`, `<=>`, and `hash-mix` functions defined for the key type `k`.
 ###
-+dict[k, v] record by-val
++map[k, v] record by-val
 	-root (k, v) node
 
 +==[k, v] bool(a v[k], b v[k]) k key, v equal
@@ -56,11 +56,11 @@ There should be `==`, `<=>`, and `hash-mix` functions defined for the key type `
 -leaf-max-size nat64()
 	8
 
-empty-dict[k, v] v[k]() noctx
+empty-map[k, v] v[k]() noctx
 	empty-leaf-node,
 
 ###
-Creates a new dict from the given key-value pairs.
+Creates a new map from the given key-value pairs.
 
 Later pairs overwrite earlier pairs with the same key.
 ###
@@ -68,7 +68,7 @@ Later pairs overwrite earlier pairs with the same key.
 	a.to::((k, v)[]) to
 
 ###
-Converts a list of pairs to a dictionary.
+Converts a list of pairs to a map.
 Later pairs overwrite earlier pairs with the same key.
 ###
 +to[k, v] v[k](a (k, v)[]) k key
@@ -82,7 +82,7 @@ Later pairs overwrite earlier pairs with the same key.
 +to[k, v] v[k](a (k, v) array) k key
 	a.to::((k, v)[]) to
 
-# Returns all pairs in the dictionary.
+# Returns all pairs in the map.
 +to[k, v] (k, v)[](a v[k]) k key
 	for k, v : a; k, v
 
@@ -94,7 +94,7 @@ Later pairs overwrite earlier pairs with the same key.
 		key, _ = a[0]
 		a[1 .. end] every ((k, _) => k != key) && a[1 .. end].no-duplicate-keys
 
-# True iff the dict has no entries.
+# True iff the map has no entries.
 +is-empty[k, v] bool(a v[k]) k key
 	a.root node-is-empty
 -node-is-empty[k, v] bool(a (k, v) node)
@@ -139,7 +139,7 @@ Returns an empty option if the key is not in `a`.
 				if k == key
 					break v
 
-# `true` iff the key is in the dictionary.
+# `true` iff the key is in the map.
 +in[k, v] bool(key k, a v[k]) k key
 	!a[key].is-empty
 
@@ -186,7 +186,7 @@ get-or-add[k, v] (k, v) got-or-added(a v[k], key k, get-value act v()) k key
 ###
 Removes a key and its associated value.
 
-If the key is not in the dictionary, returns `a` unmodified.
+If the key is not in the map, returns `a` unmodified.
 (To distinguish that case, and to get the removed value, use `try-remove`.)
 ###
 +-[k, v] v[k](a v[k], key k) k key
@@ -196,9 +196,9 @@ If the key is not in the dictionary, returns `a` unmodified.
 		a
 
 ###
-Removes a key and its associated value, and returns the value and the new dictionary.
+Removes a key and its associated value, and returns the value and the new map.
 
-If the key is not in the dictionary, returns an empty option.
+If the key is not in the map, returns an empty option.
 ###
 +try-remove[k, v] (v, v[k])?(a v[k], key k) k key
 	res = a get-or-update key, _ => remove
@@ -353,7 +353,7 @@ If `index > a.size`, entries between the and of `a` and the new entries will be 
 			new-node (k, v) node = if a.size >= leaf-max-size
 				if hash-shift >= 64
 					# We've exhausted the hash.
-					# TODO: fall back to a sorted dict ?
+					# TODO: fall back to a sorted map?
 					todo
 				# If we get here, it's guaranteed that we don't need to recursively create leaves.
 				# Just group by hash.
@@ -401,11 +401,11 @@ region spec impls (see collection.crow)
 
 subregion build
 
-+dict-builder[k, v] record mut
++map-builder[k, v] record mut
 	-inner (k, v) array-builder
-+build[k, v] v[k](a build-options, f act void((k, v) dict-builder)) k key
++build[k, v] v[k](a build-options, f act void((k, v) map-builder)) k key
 	(a build out => f[out,])::((k, v) array) to
-+~=[k, v] void(a (k, v) dict-builder, pair (k, v))
++~=[k, v] void(a (k, v) map-builder, pair (k, v))
 	a.inner ~= pair
 
 dbg[k, v] string(a v[k]) (string, k) to, (string, v) to

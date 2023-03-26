@@ -1,16 +1,16 @@
-module util.dictReadOnlyStorage;
+module util.memoryReadOnlyStorage;
 
 @safe @nogc nothrow: // not pure
 
 import frontend.lang : crowExtension;
-import util.col.mutDict : getAt_mut, MutDict;
+import util.col.mutMap : getAt_mut, MutMap;
 import util.col.str : SafeCStr;
 import util.opt : force, has, none, Opt;
 import util.path : Path;
 import util.readOnlyStorage : ReadFileResult, ReadOnlyStorage;
 import util.sym : Sym;
 
-T withDictReadOnlyStorage(T)(
+T withMemoryReadOnlyStorage(T)(
 	Path includeDir,
 	in MutFiles files,
 	in T delegate(in ReadOnlyStorage) @safe @nogc nothrow cb,
@@ -37,4 +37,4 @@ T withDictReadOnlyStorage(T)(
 	return cb(storage);
 }
 
-alias MutFiles = MutDict!(Path, SafeCStr);
+alias MutFiles = MutMap!(Path, SafeCStr);

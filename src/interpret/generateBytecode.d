@@ -63,9 +63,9 @@ import util.alloc.alloc : Alloc, TempAlloc;
 import util.col.arr : castImmutable;
 import util.col.arrBuilder : add, ArrBuilder, finishArr;
 import util.col.arrUtil : map;
-import util.col.dict : Dict, KeyValuePair, mustGetAt, zipToDict;
-import util.col.fullIndexDict :
-	FullIndexDict, fullIndexDictEach, fullIndexDictOfArr, fullIndexDictSize, mapFullIndexDict;
+import util.col.map : Map, KeyValuePair, mustGetAt, zipToMap;
+import util.col.fullIndexMap :
+	FullIndexMap, fullIndexMapEach, fullIndexMapOfArr, fullIndexMapSize, mapFullIndexMap;
 import util.col.mutMaxArr : initializeMutMaxArr, MutMaxArr, push, tempAsArr;
 import util.opt : force, has, Opt;
 import util.perf : Perf, PerfMeasure, withMeasure;
@@ -100,20 +100,20 @@ private ByteCode generateBytecodeInner(
 	in MakeSyntheticFunPtrs cbMakeSyntheticFunPtrs,
 ) {
 	FunPtrTypeToDynCallSig funPtrTypeToDynCallSig =
-		mapFullIndexDict!(LowType.FunPtr, DynCallSig, LowFunPtrType)(
+		mapFullIndexMap!(LowType.FunPtr, DynCallSig, LowFunPtrType)(
 			codeAlloc,
 			program.allFunPtrTypes,
 			(LowType.FunPtr, in LowFunPtrType x) =>
 				funPtrDynCallSig(codeAlloc, program, x));
 
 	FunToReferences funToReferences =
-		initFunToReferences(tempAlloc, funPtrTypeToDynCallSig, fullIndexDictSize(program.allFuns));
+		initFunToReferences(tempAlloc, funPtrTypeToDynCallSig, fullIndexMapSize(program.allFuns));
 	TextAndInfo text = generateText(codeAlloc, tempAlloc, program, funToReferences);
 	VarsInfo vars = generateVarsInfo(codeAlloc, program);
 	ByteCodeWriter writer = newByteCodeWriter(ptrTrustMe(codeAlloc));
 
-	immutable FullIndexDict!(LowFunIndex, ByteCodeIndex) funToDefinition =
-		mapFullIndexDict!(LowFunIndex, ByteCodeIndex, LowFun)(
+	immutable FullIndexMap!(LowFunIndex, ByteCodeIndex) funToDefinition =
+		mapFullIndexMap!(LowFunIndex, ByteCodeIndex, LowFun)(
 			tempAlloc,
 			program.allFuns,
 			(LowFunIndex funIndex, in LowFun fun) {
@@ -137,7 +137,7 @@ private ByteCode generateBytecodeInner(
 	SyntheticFunPtrs syntheticFunPtrs = makeSyntheticFunPtrs(
 		codeAlloc, allSymbols, program, operations.byteCode, funToDefinition, funToReferences, cbMakeSyntheticFunPtrs);
 
-	fullIndexDictEach!(LowFunIndex, ByteCodeIndex)(
+	fullIndexMapEach!(LowFunIndex, ByteCodeIndex)(
 		funToDefinition,
 		(LowFunIndex funIndex, ref ByteCodeIndex definitionIndex) @trusted {
 			Operation* definition = &operations.byteCode[definitionIndex.index];
@@ -180,10 +180,10 @@ SyntheticFunPtrs makeSyntheticFunPtrs(
 	});
 	FunPtrInputs[] inputs = finishArr(alloc, inputsBuilder);
 	FunPtr[] funPtrs = cbMakeSyntheticFunPtrs(inputs);
-	FunToFunPtr funToFunPtr = zipToDict!(LowFunIndex, FunPtr, FunPtrInputs, FunPtr)(
+	FunToFunPtr funToFunPtr = zipToMap!(LowFunIndex, FunPtr, FunPtrInputs, FunPtr)(
 		alloc, inputs, funPtrs, (ref FunPtrInputs inputs, ref FunPtr funPtr) =>
 			immutable KeyValuePair!(LowFunIndex, FunPtr)(inputs.funIndex, funPtr));
-	FunPtrToOperationPtr funPtrToOperationPtr = zipToDict!(FunPtr, Operation*, FunPtrInputs, FunPtr)(
+	FunPtrToOperationPtr funPtrToOperationPtr = zipToMap!(FunPtr, Operation*, FunPtrInputs, FunPtr)(
 		alloc, inputs, funPtrs, (ref FunPtrInputs inputs, ref FunPtr funPtr) =>
 			immutable KeyValuePair!(FunPtr, immutable Operation*)(funPtr, inputs.operationPtr));
 	return SyntheticFunPtrs(funToFunPtr, funPtrToOperationPtr);
@@ -193,8 +193,8 @@ immutable struct SyntheticFunPtrs {
 	FunToFunPtr funToFunPtr;
 	FunPtrToOperationPtr funPtrToOperationPtr;
 }
-alias FunToFunPtr = Dict!(LowFunIndex, FunPtr);
-alias FunToDefinition = immutable FullIndexDict!(LowFunIndex, ByteCodeIndex);
+alias FunToFunPtr = Map!(LowFunIndex, FunPtr);
+alias FunToDefinition = immutable FullIndexMap!(LowFunIndex, ByteCodeIndex);
 
 DynCallSig funPtrDynCallSig(ref Alloc alloc, in LowProgram program, in LowFunPtrType a) {
 	ArrBuilder!DynCallType sigTypes;
@@ -207,11 +207,11 @@ DynCallSig funPtrDynCallSig(ref Alloc alloc, in LowProgram program, in LowFunPtr
 }
 
 FileToFuns fileToFuns(ref Alloc alloc, in AllSymbols allSymbols, in Program program) {
-	immutable FullIndexDict!(FileIndex, Module) modulesDict =
-		fullIndexDictOfArr!(FileIndex, Module)(program.allModules);
-	return mapFullIndexDict!(FileIndex, FunNameAndPos[], Module)(
+	immutable FullIndexMap!(FileIndex, Module) modulesMap =
+		fullIndexMapOfArr!(FileIndex, Module)(program.allModules);
+	return mapFullIndexMap!(FileIndex, FunNameAndPos[], Module)(
 		alloc,
-		modulesDict,
+		modulesMap,
 		(FileIndex, in Module module_) =>
 			map(alloc, module_.funs, (ref FunDecl it) =>
 				FunNameAndPos(it.name, it.fileAndPos.pos)));

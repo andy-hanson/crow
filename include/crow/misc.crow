@@ -15,7 +15,7 @@ export
 +copy[t] spec
 	copy t(a t)
 
-# Spec for values that can be used as keys in a dictionary or set.
+# Spec for values that can be used as keys in a map or set.
 +key[t] spec t data, t compare, t hash-mix
 
 # Spec for functions that convert `in` to `out`.

@@ -42,7 +42,7 @@ import model.model :
 import util.alloc.alloc : Alloc;
 import util.col.arr : emptySmallArray, sizeEq, small, SmallArray;
 import util.col.arrUtil : copyArr, fold, map, mapWithFirst;
-import util.col.mutDict : getOrAddPair, getOrAddPairAndDidAdd, KeyValuePair, PairAndDidAdd;
+import util.col.mutMap : getOrAddPair, getOrAddPairAndDidAdd, KeyValuePair, PairAndDidAdd;
 import util.col.mutArr : MutArr, push;
 import util.col.mutMaxArr : mapTo, MutMaxArr, mutMaxArr, push, tempAsArr;
 import util.memory : allocate;

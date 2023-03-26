@@ -76,7 +76,7 @@ import util.col.arrBuilder : add, addAll, ArrBuilder, finishArr;
 import util.col.arrUtil :
 	arrEqual, arrLiteral, arrMax, every, everyWithIndex, exists, filterUnordered, fold, map, mapWithIndex, mapZip;
 import util.col.mutArr : MutArr, mutArrIsEmpty, push;
-import util.col.mutDict : addToMutDict, getOrAdd, getOrAddAndDidAdd, mustDelete, MutDict, ValueAndDidAdd;
+import util.col.mutMap : addToMutMap, getOrAdd, getOrAddAndDidAdd, mustDelete, MutMap, ValueAndDidAdd;
 import util.col.str : SafeCStr;
 import util.hash : Hasher;
 import util.late : Late, lateGet, lateIsSet, lateSet, lateSetOverwrite, lazilySet;
@@ -197,18 +197,18 @@ struct ConcretizeCtx {
 	immutable Program* programPtr;
 	Late!(ConcreteFun*) curExclusionFun_;
 	AllConstantsBuilder allConstants;
-	MutDict!(ConcreteStructKey, ConcreteStruct*) nonLambdaConcreteStructs;
+	MutMap!(ConcreteStructKey, ConcreteStruct*) nonLambdaConcreteStructs;
 	ArrBuilder!(ConcreteStruct*) allConcreteStructs;
-	MutDict!(immutable VarDecl*, immutable ConcreteVar*) concreteVarLookup;
-	MutDict!(ConcreteFunKey, ConcreteFun*) nonLambdaConcreteFuns;
+	MutMap!(immutable VarDecl*, immutable ConcreteVar*) concreteVarLookup;
+	MutMap!(ConcreteFunKey, ConcreteFun*) nonLambdaConcreteFuns;
 	MutArr!DeferredRecordBody deferredRecords;
 	MutArr!DeferredUnionBody deferredUnions;
 	ArrBuilder!(ConcreteFun*) allConcreteFuns;
 
 	// This will only have an entry while a ConcreteFun hasn't had it's body filled in yet.
-	MutDict!(ConcreteFun*, ConcreteFunBodyInputs) concreteFunToBodyInputs;
+	MutMap!(ConcreteFun*, ConcreteFunBodyInputs) concreteFunToBodyInputs;
 	// Index in the MutArr!ConcreteLambdaImpl is the fun ID
-	MutDict!(ConcreteStruct*, MutArr!ConcreteLambdaImpl) funStructToImpls;
+	MutMap!(ConcreteStruct*, MutArr!ConcreteLambdaImpl) funStructToImpls;
 	// TODO: do these eagerly
 	Late!ConcreteType _boolType;
 	Late!ConcreteType _voidType;
@@ -272,7 +272,7 @@ ConcreteFun* getConcreteFunForLambdaAndFillBody(
 		returnType,
 		paramsIncludingClosure));
 	ConcreteFunBodyInputs bodyInputs = ConcreteFunBodyInputs(containing, FunBody(FunBody.ExpressionBody(body_)));
-	addToMutDict(ctx.alloc, ctx.concreteFunToBodyInputs, res, bodyInputs);
+	addToMutMap(ctx.alloc, ctx.concreteFunToBodyInputs, res, bodyInputs);
 	fillInConcreteFunBody(ctx, [modelParam], res);
 	addConcreteFun(ctx, res);
 	return res;
@@ -393,7 +393,7 @@ ConcreteFun* getConcreteFunFromKey(ref ConcretizeCtx ctx, ref ConcreteFunKey key
 	ConcreteFunBodyInputs bodyInputs = ConcreteFunBodyInputs(
 		toContainingFunInfo(key),
 		decl.body_);
-	addToMutDict(ctx.alloc, ctx.concreteFunToBodyInputs, res, bodyInputs);
+	addToMutMap(ctx.alloc, ctx.concreteFunToBodyInputs, res, bodyInputs);
 	return res;
 }
 

@@ -3,9 +3,9 @@ module frontend.check.inferringType;
 @safe @nogc pure nothrow:
 
 import frontend.check.checkCtx : addDiag, CheckCtx, rangeInFile;
-import frontend.check.dicts : FunsDict, StructsAndAliasesDict;
 import frontend.check.instantiate :
 	instantiateStructNeverDelay, noDelayStructInsts, tryGetTypeArg_mut, TypeArgsArray, typeArgsArray;
+import frontend.check.maps : FunsMap, StructsAndAliasesMap;
 import frontend.check.typeFromAst : typeFromAst;
 import frontend.lang : maxClosureFields;
 import frontend.parse.ast : TypeAst;
@@ -33,7 +33,7 @@ import util.alloc.alloc : Alloc;
 import util.cell : Cell, cellGet, cellSet;
 import util.col.arr : only, only2;
 import util.col.arrUtil : arrLiteral, exists, indexOf, map, zip, zipEvery;
-import util.col.enumDict : enumDictFindKey;
+import util.col.enumMap : enumMapFindKey;
 import util.col.mutMaxArr : MutMaxArr, push, tempAsArr;
 import util.opt : has, force, MutOpt, none, noneMut, Opt, someMut, some;
 import util.perf : Perf;
@@ -98,8 +98,8 @@ struct ExprCtx {
 	@safe @nogc pure nothrow:
 
 	CheckCtx* checkCtxPtr;
-	immutable StructsAndAliasesDict structsAndAliasesDict;
-	immutable FunsDict funsDict;
+	immutable StructsAndAliasesMap structsAndAliasesMap;
+	immutable FunsMap funsMap;
 	immutable CommonTypes commonTypes;
 	immutable SpecInst*[] outermostFunSpecs;
 	immutable Destructure[] outermostFunParams;
@@ -175,7 +175,7 @@ immutable(Type) typeFromAst2(ref ExprCtx ctx, in TypeAst ast) =>
 		ctx.checkCtx,
 		ctx.commonTypes,
 		ast,
-		ctx.structsAndAliasesDict,
+		ctx.structsAndAliasesMap,
 		ctx.outermostFunTypeParams,
 		noDelayStructInsts);
 
@@ -641,7 +641,7 @@ public Opt!FunType getFunType(in CommonTypes commonTypes, Type a) {
 	if (a.isA!(StructInst*)) {
 		StructInst* structInst = a.as!(StructInst*);
 		StructDecl* structDecl = decl(*structInst);
-		Opt!FunKind kind = enumDictFindKey!(FunKind, StructDecl*)(commonTypes.funStructs, (in StructDecl* x) =>
+		Opt!FunKind kind = enumMapFindKey!(FunKind, StructDecl*)(commonTypes.funStructs, (in StructDecl* x) =>
 			x == structDecl);
 		if (has(kind)) {
 			Type[2] typeArgs = only2(typeArgs(*structInst));

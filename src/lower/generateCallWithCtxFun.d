@@ -17,7 +17,7 @@ import model.lowModel :
 	LowType;
 import util.alloc.alloc : Alloc;
 import util.col.arrUtil : mapPointersWithFirst, mapWithFirst, mapZip, prepend;
-import util.col.dict : mustGetAt;
+import util.col.map : mustGetAt;
 import util.memory : allocate;
 import util.opt : some;
 import util.sourceRange : FileAndRange;

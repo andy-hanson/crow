@@ -25,50 +25,50 @@ import
 	../list: ==, ~=, build, list, new, to
 
 ###
-Immutable dictionary that is not efficient to update.
-However, this is more compact than `dict` and has faster lookups.
+Immutable map that is not efficient to update.
+However, this is more compact than `map` and has faster lookups.
 ###
-frozen-dict[k, v] record by-val
+frozen-map[k, v] record by-val
 	-pairs (k, v) array
 	-bucket-starts (k, v)* array
 
-new[k, v] (k, v) frozen-dict(...a (k, v) array) k key
+new[k, v] (k, v) frozen-map(...a (k, v) array) k key
 	a.to to
 
-to[k, v] (k, v) frozen-dict(a (k, v)[]) k key
-	trusted a.to as-frozen-dict
+to[k, v] (k, v) frozen-map(a (k, v)[]) k key
+	trusted a.to as-frozen-map
 
 # This is O(1).
-to[k, v] (k, v) array(a (k, v) frozen-dict) noctx
+to[k, v] (k, v) array(a (k, v) frozen-map) noctx
 	a pairs
-to[k, v] (k, v)[](a (k, v) frozen-dict) noctx
+to[k, v] (k, v)[](a (k, v) frozen-map) noctx
 	a.to::((k, v) array) to
 
 # TODO:INTERNAL
-begin-pointer[k, v] (k, v)*(a (k, v) frozen-dict) unsafe
+begin-pointer[k, v] (k, v)*(a (k, v) frozen-map) unsafe
 	a.pairs begin-pointer
 
-end-pointer[k, v] (k, v)*(a (k, v) frozen-dict) unsafe
+end-pointer[k, v] (k, v)*(a (k, v) frozen-map) unsafe
 	a.pairs end-pointer
 
-is-empty[k, v] bool(a (k, v) frozen-dict)
+is-empty[k, v] bool(a (k, v) frozen-map)
 	a.pairs is-empty
 
-size[k, v] nat64(a (k, v) frozen-dict)
+size[k, v] nat64(a (k, v) frozen-map)
 	a.pairs size
 
-subscript[k, v] v?(a (k, v) frozen-dict, key k) k key
+subscript[k, v] v?(a (k, v) frozen-map, key k) k key
 	trusted if pointer ?= a find-pointer key
 		pointer->b,
 
-in[k, v] bool(key k, a (k, v) frozen-dict) k key
+in[k, v] bool(key k, a (k, v) frozen-map) k key
 	!(a try-get-unordered-index key is-empty)
 
-try-get-unordered-index[k, v] nat64?(a (k, v) frozen-dict, key k) k key
+try-get-unordered-index[k, v] nat64?(a (k, v) frozen-map, key k) k key
 	trusted if pointer ?= a find-pointer key
 		pointer - a.pairs.begin-pointer,
 
--find-pointer[k, v] (k, v)*?(a (k, v) frozen-dict, key k) unsafe, k key
+-find-pointer[k, v] (k, v)*?(a (k, v) frozen-map, key k) unsafe, k key
 	bucket = if a.bucket-starts is-empty
 		a pairs
 	else
@@ -94,10 +94,10 @@ find-pointer[k, v] (k, v)*?(cur (k, v)*, end (k, v)*, key k) unsafe, k key
 	else
 		cur + 1 find-pointer end, key
 
--as-frozen-dict[k, v] (k, v) frozen-dict(a (k, v) mut-array) unsafe, k key
-	a.mut-array-to-frozen-dict-promise-no-duplicates remove-duplicates
+-as-frozen-map[k, v] (k, v) frozen-map(a (k, v) mut-array) unsafe, k key
+	a.mut-array-to-frozen-map-promise-no-duplicates remove-duplicates
 
-mut-array-to-frozen-dict-promise-no-duplicates[k, v] (k, v) frozen-dict(
+mut-array-to-frozen-map-promise-no-duplicates[k, v] (k, v) frozen-map(
 	a (k, v) mut-array,
 )unsafe, k key
 	if a.size <= 4
@@ -122,17 +122,17 @@ mut-array-to-frozen-dict-promise-no-duplicates[k, v] (k, v) frozen-dict(
 				cur swap bucket-cur-end
 		a.cast-immutable, bucket-starts.array-cast
 
--remove-duplicates[k, v] (k, v) frozen-dict(a (k, v) frozen-dict) unsafe, k key
+-remove-duplicates[k, v] (k, v) frozen-map(a (k, v) frozen-map) unsafe, k key
 	if a has-duplicates
 		# Write out pairs from each bucket to a mut-array, omitting a pair if its key appears later in the same bucket.
-		# Then call mut-array-to-frozen-dict-promise-no-duplicates 
+		# Then call mut-array-to-frozen-map-promise-no-duplicates 
 		xs (k, v) mut-array = with out : a.size build
 			out write-without-duplicates a
-		xs mut-array-to-frozen-dict-promise-no-duplicates
+		xs mut-array-to-frozen-map-promise-no-duplicates
 	else
 		a
 
--write-without-duplicates[k, v] void(out (k, v) mut-array-builder, a (k, v) frozen-dict) k key
+-write-without-duplicates[k, v] void(out (k, v) mut-array-builder, a (k, v) frozen-map) k key
 	if a.bucket-starts is-empty
 		out write-bucket-without-duplicates a.pairs
 	else
@@ -149,7 +149,7 @@ mut-array-to-frozen-dict-promise-no-duplicates[k, v] (k, v) frozen-dict(
 		unless pair.a key-in-range pairs[i + 1 .. end]
 			out ~= pair
 
--has-duplicates[k, v] bool(a (k, v) frozen-dict) k key
+-has-duplicates[k, v] bool(a (k, v) frozen-map) k key
 	if a.bucket-starts is-empty
 		a.pairs bucket-has-duplicates
 	else
@@ -186,44 +186,44 @@ mut-array-to-frozen-dict-promise-no-duplicates[k, v] (k, v) frozen-dict(
 
 region spec impls (see collection.crow)
 
-iterate[k, v] bool(a (k, v) frozen-dict, f act bool(k, v))
+iterate[k, v] bool(a (k, v) frozen-map, f act bool(k, v))
 	a.pairs iterate f
 
 subregion build
 
-build-frozen-dict record
+build-frozen-map record
 	-size-hint nat64
-build build-frozen-dict()
+build build-frozen-map()
 	0,
-build build-frozen-dict(size-hint nat64)
+build build-frozen-map(size-hint nat64)
 	size-hint,
 
-frozen-dict-builder[k, v] record mut
+frozen-map-builder[k, v] record mut
 	-inner (k, v) mut-array-builder
 
-with-block[k, v] (k, v) frozen-dict(
-	a build-frozen-dict,
-	f act void((k, v) frozen-dict-builder),
+with-block[k, v] (k, v) frozen-map(
+	a build-frozen-map,
+	f act void((k, v) frozen-map-builder),
 ) k key
-	trusted (with out : a.size-hint build; f[out,]) as-frozen-dict
+	trusted (with out : a.size-hint build; f[out,]) as-frozen-map
 
-~ ~=[k, v] void(a(k, v) frozen-dict-builder, pair (k, v))
+~ ~=[k, v] void(a(k, v) frozen-map-builder, pair (k, v))
 	a.inner ~= pair
 
 region test
 
--verify void(a (nat64, string) frozen-dict, keys-order nat64[], bucket-starts nat64[]) unsafe
+-verify void(a (nat64, string) frozen-map, keys-order nat64[], bucket-starts nat64[]) unsafe
 	(for k, _ : a pairs; k)::nat64[] is keys-order
 	(for pointer : a bucket-starts; pointer - a.pairs.begin-pointer)::nat64[] is bucket-starts
 
 test
-	a (nat64, string) frozen-dict = ()
+	a (nat64, string) frozen-map = ()
 	a.is-empty is true
 	a.size is 0
 	a verify (), ()
 	a[0] is ()
 	
-	b (nat64, string) frozen-dict = (3, "3"), (1, "1"), (5, "5"), (2, "2")
+	b (nat64, string) frozen-map = (3, "3"), (1, "1"), (5, "5"), (2, "2")
 	b verify (3, 1, 5, 2), ()
 	b[0] is ()
 	b[1] is ("1",)
@@ -233,7 +233,7 @@ test
 	b[5] is ("5",)
 	b[6] is ()
 
-	c (nat64, string) frozen-dict = (3, "3"), (1, "1"), (5, "5"), (2, "2"), (8, "8")
+	c (nat64, string) frozen-map = (3, "3"), (1, "1"), (5, "5"), (2, "2"), (8, "8")
 	c verify (2, 8, 3, 5, 1), (0, 2)
 	c[0] is ()
 	c[1] is ("1",)
@@ -247,7 +247,7 @@ test
 	c[9] is ()
 
 test
-	a (nat64, string) frozen-dict = (1, "1"), (1, "2")
+	a (nat64, string) frozen-map = (1, "1"), (1, "2")
 	a.size is 1
 	a verify (1,), ()
 	a[1] is ("2",)

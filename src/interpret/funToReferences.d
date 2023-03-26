@@ -8,7 +8,7 @@ import interpret.generateText : TextIndex;
 import model.lowModel : LowFunIndex, LowType;
 import util.alloc.alloc : TempAlloc;
 import util.col.arrBuilder : add, ArrBuilder, finishArr;
-import util.col.fullIndexDict : FullIndexDict, fullIndexDictEach_const, makeFullIndexDict_mut;
+import util.col.fullIndexMap : FullIndexMap, fullIndexMapEach_const, makeFullIndexMap_mut;
 import util.memory : allocate;
 import util.opt : force, has, MutOpt, none, some, someMut;
 import util.ptr : castNonScope_ref;
@@ -16,16 +16,16 @@ import util.ptr : castNonScope_ref;
 struct FunToReferences {
 	immutable FunPtrTypeToDynCallSig funPtrTypeToDynCallSig;
 	private:
-	FullIndexDict!(LowFunIndex, FunReferencesBuilder) inner;
+	FullIndexMap!(LowFunIndex, FunReferencesBuilder) inner;
 }
 
-alias FunPtrTypeToDynCallSig = immutable FullIndexDict!(LowType.FunPtr, DynCallSig);
+alias FunPtrTypeToDynCallSig = immutable FullIndexMap!(LowType.FunPtr, DynCallSig);
 
 void eachFunPtr(
 	in FunToReferences a,
 	in void delegate(LowFunIndex, DynCallSig) @safe @nogc pure nothrow cb,
 ) {
-	fullIndexDictEach_const!(LowFunIndex, FunReferencesBuilder)(
+	fullIndexMapEach_const!(LowFunIndex, FunReferencesBuilder)(
 		a.inner,
 		(LowFunIndex index, ref const FunReferencesBuilder b) {
 			if (has(b.ptrRefs))
@@ -50,7 +50,7 @@ FunToReferences initFunToReferences(
 ) =>
 	FunToReferences(
 		funPtrTypeToDynCallSig,
-		makeFullIndexDict_mut!(LowFunIndex, FunReferencesBuilder)(tempAlloc, nLowFuns, (LowFunIndex _) =>
+		makeFullIndexMap_mut!(LowFunIndex, FunReferencesBuilder)(tempAlloc, nLowFuns, (LowFunIndex _) =>
 			FunReferencesBuilder()));
 
 FunReferences finishAt(ref TempAlloc tempAlloc, ref FunToReferences a, LowFunIndex index) {

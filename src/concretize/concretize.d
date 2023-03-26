@@ -16,7 +16,7 @@ import model.model : CommonFuns, Program;
 import util.alloc.alloc : Alloc;
 import util.col.arrBuilder : finishArr;
 import util.col.mutArr : moveToArr, MutArr;
-import util.col.mutDict : mapToDict, moveToValues, mutDictIsEmpty;
+import util.col.mutMap : mapToMap, moveToValues, mutMapIsEmpty;
 import util.late : lateSet;
 import util.opt : force;
 import util.perf : Perf, PerfMeasure, withMeasure;
@@ -56,14 +56,14 @@ ConcreteProgram concretizeInner(
 	lateSet(ctx.curExclusionFun_, getOrAddNonTemplateConcreteFunAndFillBody(ctx, commonFuns.curExclusion));
 	ConcreteFun* markFun = getOrAddNonTemplateConcreteFunAndFillBody(ctx, commonFuns.mark);
 	ConcreteFun* rtMainConcreteFun = getOrAddNonTemplateConcreteFunAndFillBody(ctx, commonFuns.rtMain);
-	// We remove items from these dicts when we process them.
-	verify(mutDictIsEmpty(ctx.concreteFunToBodyInputs));
+	// We remove items from these maps when we process them.
+	verify(mutMapIsEmpty(ctx.concreteFunToBodyInputs));
 	ConcreteFun* userMainConcreteFun = getOrAddNonTemplateConcreteFunAndFillBody(ctx, commonFuns.main);
 	ConcreteFun* allocFun = getOrAddNonTemplateConcreteFunAndFillBody(ctx, commonFuns.alloc);
 	ConcreteFun* throwImplFun = getOrAddNonTemplateConcreteFunAndFillBody(ctx, commonFuns.throwImpl);
 	ConcreteFun* staticSymbolsFun = getOrAddNonTemplateConcreteFunAndFillBody(ctx, commonFuns.staticSymbols);
-	// We remove items from these dicts when we process them.
-	verify(mutDictIsEmpty(ctx.concreteFunToBodyInputs));
+	// We remove items from these maps when we process them.
+	verify(mutMapIsEmpty(ctx.concreteFunToBodyInputs));
 
 	immutable ConcreteFun*[] allConcreteFuns = finishArr(alloc, ctx.allConcreteFuns);
 
@@ -74,7 +74,7 @@ ConcreteProgram concretizeInner(
 		finishArr(alloc, ctx.allConcreteStructs),
 		moveToValues(alloc, ctx.concreteVarLookup),
 		allConcreteFuns,
-		mapToDict!(ConcreteStruct*, ConcreteLambdaImpl[], MutArr!ConcreteLambdaImpl)(
+		mapToMap!(ConcreteStruct*, ConcreteLambdaImpl[], MutArr!ConcreteLambdaImpl)(
 			alloc,
 			ctx.funStructToImpls,
 			(ref MutArr!ConcreteLambdaImpl it) =>

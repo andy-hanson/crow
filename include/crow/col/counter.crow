@@ -10,9 +10,9 @@ import
 	../tuple: new
 	./array: array
 	./collection: for-loop
-	./dict: ~, dict, iterate, subscript
 	./list: iterate, list, to
-	./mut-dict: mut-dict, new, set-subscript, subscript, to
+	./map: ~, iterate, map, subscript
+	./mut-map: mut-map, new, set-subscript, subscript, to
 
 +counter[k] record
 	-inner nat64[k]

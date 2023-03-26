@@ -14,7 +14,7 @@ import util.alloc.alloc : Alloc;
 import util.col.arr : empty, only;
 import util.col.arrUtil : arrEqual, arrLiteral, findIndex;
 import util.col.mutArr : moveToArr, MutArr, mutArrSize, push, tempAsArr;
-import util.col.mutDict : getOrAdd, mapToArr_mut, MutDict, mutDictSize, valuesArray;
+import util.col.mutMap : getOrAdd, mapToArr_mut, MutMap, mutMapSize, valuesArray;
 import util.col.str : SafeCStr;
 import util.opt : force, has, Opt;
 import util.ptr : ptrTrustMe;
@@ -24,11 +24,11 @@ import util.util : verify;
 struct AllConstantsBuilder {
 	private:
 	@disable this(ref const AllConstantsBuilder);
-	MutDict!(SafeCStr, Constant.CString) cStrings;
-	MutDict!(Sym, Constant) syms;
+	MutMap!(SafeCStr, Constant.CString) cStrings;
+	MutMap!(Sym, Constant) syms;
 	MutArr!SafeCStr cStringValues;
-	MutDict!(ConcreteType, ArrTypeAndConstants) arrs;
-	MutDict!(ConcreteStruct*, PointerTypeAndConstants) pointers;
+	MutMap!(ConcreteType, ArrTypeAndConstants) arrs;
+	MutMap!(ConcreteStruct*, PointerTypeAndConstants) pointers;
 }
 
 private struct ArrTypeAndConstants {
@@ -68,7 +68,7 @@ AllConstantsConcrete finishAllConstants(
 // TODO: this will be used when creating constant records by-ref.
 Constant getConstantPtr(ref Alloc alloc, ref AllConstantsBuilder constants, ConcreteStruct* pointee, Constant value) {
 	PointerTypeAndConstants* d = ptrTrustMe(getOrAdd(alloc, constants.pointers, pointee, () =>
-		PointerTypeAndConstants(mutDictSize(constants.pointers), MutArr!(immutable Constant)())));
+		PointerTypeAndConstants(mutMapSize(constants.pointers), MutArr!(immutable Constant)())));
 	return Constant(Constant.Pointer(
 		d.typeIndex,
 		findOrPush!Constant(alloc, d.constants, (in Constant a) => a == value, () => value)));
@@ -88,7 +88,7 @@ Constant getConstantArr(
 			ArrTypeAndConstants(
 				arrStruct,
 				elementType,
-				mutDictSize(allConstants.arrs), MutArr!(immutable Constant[])())));
+				mutMapSize(allConstants.arrs), MutArr!(immutable Constant[])())));
 		size_t index = findOrPush!(immutable Constant[])(
 			alloc,
 			d.constants,
@@ -118,7 +118,7 @@ Constant getConstantCStr(ref Alloc alloc, ref AllConstantsBuilder allConstants, 
 		value,
 		() {
 			size_t index = mutArrSize(allConstants.cStringValues);
-			verify(mutDictSize(allConstants.cStrings) == index);
+			verify(mutMapSize(allConstants.cStrings) == index);
 			push(alloc, allConstants.cStringValues, value);
 			return Constant.CString(index);
 		}));

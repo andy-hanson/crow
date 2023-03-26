@@ -8,7 +8,7 @@ import
 	./array: array, iterate, size
 	./collection: for-loop
 	./list: ~=, build, iterate, list, size
-	./mut-dict: ~=, clear, iterate, move-to, mut-dict, in, to, try-remove
+	./mut-map: ~=, clear, iterate, move-to, mut-map, in, to, try-remove
 	./set: iterate, set, to
 
 ###
@@ -20,7 +20,7 @@ Mutable unordered set.
 # New set with the given elements (with duplicates removed).
 +new[t] t mut-set(...a t array) t key
 	pairs (t, void)[] = for x : a; (x, ())
-	# TODO: build the mut-dict directly
+	# TODO: build the mut-map directly
 	pairs.to,
 
 # Copies an immutable set to a mutable set.

@@ -3,7 +3,6 @@ module frontend.check.checkCall.candidates;
 @safe @nogc pure nothrow:
 
 import frontend.check.checkCtx : eachImportAndReExport, ImportsAndReExports;
-import frontend.check.dicts : FunsDict;
 import frontend.check.inferringType :
 	ExprCtx,
 	InferringTypeArgs,
@@ -12,6 +11,7 @@ import frontend.check.inferringType :
 	tryGetInferred,
 	tryGetTypeArgFromInferringTypeArgs;
 import frontend.check.instantiate : instantiateStructNeverDelay, TypeArgsArray, typeArgsArray;
+import frontend.check.maps : FunsMap;
 import frontend.lang : maxTypeParams;
 import frontend.programState : ProgramState;
 import model.model :
@@ -119,11 +119,11 @@ void filterCandidatesButDontRemoveAll(
 
 immutable struct FunsInScope {
 	SpecInst*[] outermostFunSpecs;
-	FunsDict funsDict;
+	FunsMap funsMap;
 	ImportsAndReExports importsAndReExports;
 }
 FunsInScope funsInScope(ref const ExprCtx ctx) {
-	return FunsInScope(ctx.outermostFunSpecs, ctx.funsDict, ctx.checkCtx.importsAndReExports);
+	return FunsInScope(ctx.outermostFunSpecs, ctx.funsMap, ctx.checkCtx.importsAndReExports);
 }
 
 void eachFunInScope(in FunsInScope a, Sym funName, in void delegate(CalledDecl) @safe @nogc pure nothrow cb) {
@@ -131,7 +131,7 @@ void eachFunInScope(in FunsInScope a, Sym funName, in void delegate(CalledDecl) 
 	foreach (SpecInst* specInst; a.outermostFunSpecs)
 		eachFunInScopeForSpec(specInst, totalIndex, funName, cb);
 
-	foreach (FunDecl* f; a.funsDict[funName])
+	foreach (FunDecl* f; a.funsMap[funName])
 		cb(CalledDecl(f));
 
 	eachImportAndReExport(a.importsAndReExports, funName, (in NameReferents x) {

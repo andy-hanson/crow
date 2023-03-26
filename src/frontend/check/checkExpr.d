@@ -6,7 +6,6 @@ import frontend.check.checkCall.candidates : eachFunInScope, funsInScope;
 import frontend.check.checkCall.checkCall : checkCall, checkCallIdentifier, checkCallSpecial, checkCallSpecialNoLocals;
 import frontend.check.checkCall.checkCallSpecs : isPurityAlwaysCompatibleConsideringSpecs;
 import frontend.check.checkCtx : CheckCtx, markUsed;
-import frontend.check.dicts : FunsDict, StructsAndAliasesDict;
 import frontend.check.inferringType :
 	addDiag2,
 	bogus,
@@ -40,6 +39,7 @@ import frontend.check.inferringType :
 	withCopyWithNewExpectedType,
 	withTrusted;
 import frontend.check.instantiate : instantiateFun, instantiateStructNeverDelay, noDelayStructInsts;
+import frontend.check.maps : FunsMap, StructsAndAliasesMap;
 import frontend.check.typeFromAst : checkDestructure, makeFutType, makeTupleType, typeFromDestructure;
 import frontend.parse.ast :
 	ArrowAccessAst,
@@ -136,9 +136,9 @@ import util.util : max, todo, unreachable, verify;
 
 Expr checkFunctionBody(
 	ref CheckCtx checkCtx,
-	in StructsAndAliasesDict structsAndAliasesDict,
+	in StructsAndAliasesMap structsAndAliasesMap,
 	in CommonTypes commonTypes,
-	in FunsDict funsDict,
+	in FunsMap funsMap,
 	Type returnType,
 	TypeParam[] typeParams,
 	Destructure[] params,
@@ -148,8 +148,8 @@ Expr checkFunctionBody(
 ) {
 	ExprCtx exprCtx = ExprCtx(
 		ptrTrustMe(checkCtx),
-		structsAndAliasesDict,
-		funsDict,
+		structsAndAliasesMap,
+		funsMap,
 		commonTypes,
 		specs,
 		params,
@@ -1209,11 +1209,11 @@ VariableRef[] checkClosure(ref ExprCtx ctx, FileAndRange range, FunKind kind, Cl
 }
 
 Opt!Type typeFromDestructure(ref ExprCtx ctx, in DestructureAst ast) =>
-	.typeFromDestructure(ctx.checkCtx, ctx.commonTypes, ast, ctx.structsAndAliasesDict, ctx.outermostFunTypeParams);
+	.typeFromDestructure(ctx.checkCtx, ctx.commonTypes, ast, ctx.structsAndAliasesMap, ctx.outermostFunTypeParams);
 
 Destructure checkDestructure(ref ExprCtx ctx, in DestructureAst ast, Type type) =>
 	.checkDestructure(
-		ctx.checkCtx, ctx.commonTypes, ctx.structsAndAliasesDict, ctx.outermostFunTypeParams,
+		ctx.checkCtx, ctx.commonTypes, ctx.structsAndAliasesMap, ctx.outermostFunTypeParams,
 		noDelayStructInsts, ast, some(type));
 
 Expr checkLet(ref ExprCtx ctx, ref LocalsInfo locals, FileAndRange range, in LetAst ast, ref Expected expected) {

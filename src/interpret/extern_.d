@@ -4,7 +4,7 @@ module interpret.extern_;
 
 import interpret.bytecode : Operation;
 import model.lowModel : ExternLibraries, LowFunIndex;
-import util.col.dict : Dict;
+import util.col.map : Map;
 import util.col.str : SafeCStr;
 import util.hash : Hasher;
 import util.opt : Opt;
@@ -36,8 +36,8 @@ alias WriteError = immutable void delegate(in SafeCStr) @safe @nogc nothrow;
 	writeError(SafeCStr(buf.ptr));
 }
 
-alias ExternFunPtrsForAllLibraries = Dict!(Sym, ExternFunPtrsForLibrary);
-alias ExternFunPtrsForLibrary = Dict!(Sym, FunPtr);
+alias ExternFunPtrsForAllLibraries = Map!(Sym, ExternFunPtrsForLibrary);
+alias ExternFunPtrsForLibrary = Map!(Sym, FunPtr);
 
 immutable struct FunPtr {
 	@safe @nogc pure nothrow:

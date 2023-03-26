@@ -13,7 +13,7 @@ import
 	../tuple: ==, new
 	./array: array
 	./collection: fill, find, find-index, for-loop, join, n-of, map=, set-subscript, subscript
-	./dict: ~=, build, dict
+	./map: ~=, build, map
 	./mut-array: ~=, +, begin, build, iterate, mut-array, is-empty, new, next, set-next, size
 	./list: ==, ~=, build, iterate, list, new, size, to
 	./mut-list:
@@ -21,11 +21,11 @@ import
 		remove-unordered-at, set-next, size
 
 ###
-Mutable unordered dictionary.
+Mutable unordered map.
 
 Unordered means that iteration functions like `each` reach each entry in arbitrary order.
 ###
-+mut-dict[k, v] record mut
++mut-map[k, v] record mut
 	-entries .mut (k, v) entry mut-array
 	-total-size .mut nat64
 
@@ -35,7 +35,7 @@ Unordered means that iteration functions like `each` reach each entry in arbitra
 	many (k, v) mut[]
 
 ###
-New dictionary containing the given pairs.
+New map containing the given pairs.
 
 Later pairs overwrite earlier pairs with the same key.
 ###
@@ -43,22 +43,22 @@ Later pairs overwrite earlier pairs with the same key.
 	a.to to
 
 ###
-New empty dictionary with space for about `capacity` entries.
+New empty map with space for about `capacity` entries.
 This can have a small performance benefit if you know that much space will be needed.
 
 Since hash conflicts are possible, this makes no guarantees about whether more allocations will be needed.
 ###
--mut-dict-with-capacity[k, v] v mut[k](capacity nat64) k key
+-mut-map-with-capacity[k, v] v mut[k](capacity nat64) k key
 	# TODO: should not need type annotation
 	(capacity n-of none)::((k, v) entry mut-array), 0
 
 ###
-Convert a list of pairs to a dictionary.
+Convert a list of pairs to a map.
 
 Later pairs overwrite earlier pairs with the same key.
 ###
 +to[k, v] v mut[k](a (k, v)[]) k key
-	res v mut[k] = a.size mut-dict-with-capacity
+	res v mut[k] = a.size mut-map-with-capacity
 	for k, v : a
 		res[k] := v
 	res
@@ -70,7 +70,7 @@ Later pairs overwrite earlier pairs with the same key.
 +to[k, v] (k, v)[](a v mut[k]) k key
 	for x : a; x
 
-# Copy pairs to a list and clear the dictionary.
+# Copy pairs to a list and clear the map.
 +move-to[k, v] (k, v)[](a v mut[k]) k key
 	res (k, v)[] = a to
 	a clear
@@ -81,7 +81,7 @@ Later pairs overwrite earlier pairs with the same key.
 	a clear
 	res
 
-# Copy pairs to a new dictionary.
+# Copy pairs to a new map.
 +copy[k, v] v mut[k](a v mut[k]) k key
 	entries (k, v) entry mut-array = for entry : a entries
 		match entry
@@ -107,14 +107,14 @@ test
 +is-empty[k, v] bool(a v mut[k]) k key
 	a.size == 0
 
-# Number of unique keys in the dictionary.
+# Number of unique keys in the map.
 +size[k, v] nat64(a v mut[k]) k key
 	a total-size
 
 ###
 Gets the value associated with a key.
 
-Returns an empty option if the key is not in the dictionary.
+Returns an empty option if the key is not in the map.
 ###
 +subscript[k, v] v?(a v mut[k], key k) k key
 	unless a is-empty
@@ -127,20 +127,20 @@ Returns an empty option if the key is not in the dictionary.
 			if (_, v) ?= m find (k, _) => k == key
 				v,
 
-# `true` iff the key is in the dictinoary.
+# `true` iff the key is in the map.
 +in[k, v] bool(key k, a v mut[k]) k key
 	!a[key].is-empty
 
 ###
 Sets the key to the given value, so that `a[key]` will return `value`.
 
-If the key is already in the dictionary, this overwrites the previous value.
+If the key is already in the map, this overwrites the previous value.
 ###
 +set-subscript[k, v] void(a v mut[k], key k, value v) k key
 	_ = a update key, (value,)
 	()
 
-# Remove all keys, leaving the dictionary empty.
+# Remove all keys, leaving the map empty.
 +clear[k, v] void(a v mut[k]) k key
 	a.entries fill none
 	a.total-size := 0
@@ -155,9 +155,9 @@ If the key is already in the dictionary, this overwrites the previous value.
 	b.total-size := temp-size
 
 ###
-If the key was in the dictionary, remove it and return the old value.
+If the key was in the map, remove it and return the old value.
 
-Returns an empty option if the key was not in the dictionary.
+Returns an empty option if the key was not in the map.
 ###
 +try-remove[k, v] v?(a v mut[k], key k) k key
 	a update key, ()
@@ -247,14 +247,14 @@ Returns an empty option if the key was not in the dictionary.
 -expand[k, v] void(a v mut[k]) k key
 	forbid a.entries.size == 0
 	new-size = a.entries.size * 2
-	bigger v mut[k] = new-size mut-dict-with-capacity
+	bigger v mut[k] = new-size mut-map-with-capacity
 	for k, v : a
 		bigger[k] := v
 	a swap bigger
 	assert a.entries.size == new-size
 
 ###
-Filters the dictionary in place.
+Filters the map in place.
 
 Calls `f` on every key and value and removes the key if `f` returns false.
 ###
@@ -293,7 +293,7 @@ Calls `f` on every key and value, and replaces the value with the new value retu
 
 region spec impls (see collection.crow)
 
-# Calls `f` for every key and value in the dictionary.
+# Calls `f` for every key and value in the map.
 +iterate[k, v] bool(a v mut[k], f act bool(k, v)) k key
 	a.entries iterate entry =>
 		match entry

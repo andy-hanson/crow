@@ -121,10 +121,10 @@ import util.alloc.alloc : TempAlloc;
 import util.col.arr : empty;
 import util.col.arrBuilder : add;
 import util.col.arrUtil : indexOfPointer;
-import util.col.dict : mustGetAt;
+import util.col.map : mustGetAt;
 import util.col.mutArr : clearAndFree, MutArr, push, tempAsArr;
 import util.col.mutMaxArr : push, tempAsArr;
-import util.col.stackDict : StackDict, stackDictAdd, stackDictMustGet;
+import util.col.stackMap : StackMap, stackMapAdd, stackMapMustGet;
 import util.conv : bitsOfFloat32, bitsOfFloat64;
 import util.opt : force, has, Opt;
 import util.ptr : castNonScope, castNonScope_ref, ptrTrustMe;
@@ -264,13 +264,13 @@ size_t nStackEntriesForUnionType(in ExprCtx ctx, LowType.Union t) {
 	return nStackEntriesForType(ctx, type);
 }
 
-alias Locals = StackDict!(LowLocal*, StackEntries);
-alias addLocal = stackDictAdd!(LowLocal*, StackEntries);
+alias Locals = StackMap!(LowLocal*, StackEntries);
+alias addLocal = stackMapAdd!(LowLocal*, StackEntries);
 StackEntries getLocal(in ExprCtx ctx, in Locals locals, in LowLocal* local) {
 	Opt!size_t paramIndex = indexOfPointer(ctx.curFunParams, local);
 	return has(paramIndex)
 		? ctx.parameterEntries[force(paramIndex)]
-		: stackDictMustGet!(LowLocal*, StackEntries)(locals, local);
+		: stackMapMustGet!(LowLocal*, StackEntries)(locals, local);
 }
 
 void generateExpr(

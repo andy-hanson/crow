@@ -3,8 +3,8 @@ import
 	./bool: ==, bool, false, new, true
 	./col/array: array, iterate, size
 	./col/collection: for-loop, join
-	./col/dict: ==, ~=, build, dict, iterate, size, subscript, to
 	./col/experimental/index-set: iterate, index-set, size
+	./col/map: ==, ~=, build, iterate, map, size, subscript, to
 	./hash: hasher
 	./col/list: ==, ~=, build, iterate, list, new, size
 	./parse:

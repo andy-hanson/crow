@@ -52,10 +52,10 @@ src_files_common = src\concretize\allConstantsBuilder.d \
 	src\frontend\check\checkCtx.d \
 	src\frontend\check\checkExpr.d \
 	src\frontend\check\checkStructBodies.d \
-	src\frontend\check\dicts.d \
 	src\frontend\check\funsForStruct.d \
 	src\frontend\check\inferringType.d \
 	src\frontend\check\instantiate.d \
+	src\frontend\check\maps.d \
 	src\frontend\check\typeFromAst.d \
 	src\frontend\ide\getHover.d \
 	src\frontend\ide\getPosition.d \
@@ -109,28 +109,28 @@ src_files_common = src\concretize\allConstantsBuilder.d \
 	src\util\col\arr.d \
 	src\util\col\arrBuilder.d \
 	src\util\col\arrUtil.d \
-	src\util\col\dict.d \
-	src\util\col\dictBuilder.d \
 	src\util\col\exactSizeArrBuilder.d \
-	src\util\col\fullIndexDict.d \
-	src\util\col\multiDict.d \
+	src\util\col\fullIndexMap.d \
+	src\util\col\map.d \
+	src\util\col\mapBuilder.d \
+	src\util\col\multiMap.d \
 	src\util\col\mutArr.d \
-	src\util\col\mutDict.d \
-	src\util\col\mutIndexDict.d \
+	src\util\col\mutIndexMap.d \
+	src\util\col\mutMap.d \
 	src\util\col\mutMaxArr.d \
 	src\util\col\sortUtil.d \
-	src\util\col\stackDict.d \
+	src\util\col\stackMap.d \
 	src\util\col\str.d \
 	src\util\cell.d \
 	src\util\comparison.d \
 	src\util\conv.d \
-	src\util\dictReadOnlyStorage.d \
 	src\util\diff.d \
 	src\util\hash.d \
 	src\util\jsonParse.d \
 	src\util\late.d \
 	src\util\lineAndColumnGetter.d \
 	src\util\memory.d \
+	src\util\memoryReadOnlyStorage.d \
 	src\util\opt.d \
 	src\util\path.d \
 	src\util\perf.d \
@@ -153,12 +153,12 @@ app_src_no_test = $(app_only_files) \
 app_src_with_test = $(app_src_no_test) \
 	src\test\test.d \
 	src\test\testApplyFn.d \
-	src\test\testDict.d \
 	src\test\testFakeExtern.d \
 	src\test\testHover.d \
 	src\test\testInterpreter.d \
 	src\test\testJson.d \
 	src\test\testLineAndColumnGetter.d \
+	src\test\testMap.d \
 	src\test\testMemory.d \
 	src\test\testPath.d \
 	src\test\testServer.d \

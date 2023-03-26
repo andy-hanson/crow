@@ -5,7 +5,7 @@ module util.sym;
 import util.alloc.alloc : Alloc;
 import util.col.arr : only;
 import util.col.mutArr : MutArr, mutArrSize, push;
-import util.col.mutDict : addToMutDict, getAt_mut, MutDict, mutDictSize;
+import util.col.mutMap : addToMutMap, getAt_mut, MutMap, mutMapSize;
 import util.col.str : copyToSafeCStr, eachChar, SafeCStr, strEq, strOfSafeCStr;
 import util.hash : Hasher, hashUlong;
 import util.opt : force, has, Opt, none, some;
@@ -44,7 +44,7 @@ struct AllSymbols {
 
 	private:
 	Alloc* allocPtr;
-	MutDict!(immutable string, Sym) largeStringToIndex;
+	MutMap!(immutable string, Sym) largeStringToIndex;
 	MutArr!SafeCStr largeStringFromIndex;
 
 	ref Alloc alloc() return scope =>
@@ -54,9 +54,9 @@ struct AllSymbols {
 // WARN: 'value' must have been allocated by a.alloc
 private Sym addLargeString(ref AllSymbols a, SafeCStr value) {
 	size_t index = mutArrSize(a.largeStringFromIndex);
-	verify(mutDictSize(a.largeStringToIndex) == index);
+	verify(mutMapSize(a.largeStringToIndex) == index);
 	Sym res = Sym(index);
-	addToMutDict(a.alloc, a.largeStringToIndex, strOfSafeCStr(value), res);
+	addToMutMap(a.alloc, a.largeStringToIndex, strOfSafeCStr(value), res);
 	push(a.alloc, a.largeStringFromIndex, value);
 	return res;
 }

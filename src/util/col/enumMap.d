@@ -1,4 +1,4 @@
-module util.col.enumDict;
+module util.col.enumMap;
 
 @safe @nogc pure nothrow:
 
@@ -7,7 +7,7 @@ import std.traits : EnumMembers;
 import util.opt : none, Opt, some;
 import util.util : verify;
 
-struct EnumDict(E, V) {
+struct EnumMap(E, V) {
 	@safe @nogc nothrow:
 
 	int opApply(in int delegate(immutable V) @safe @nogc nothrow cb) immutable {
@@ -45,18 +45,18 @@ struct EnumDict(E, V) {
 	}
 }
 
-immutable(EnumDict!(E, V)) makeEnumDict(E, V)(in immutable(V) delegate(E) @safe @nogc pure nothrow cb) {
+immutable(EnumMap!(E, V)) makeEnumMap(E, V)(in immutable(V) delegate(E) @safe @nogc pure nothrow cb) {
 	immutable(V) getAt(E e)() =>
 		cb(e);
-	return immutable EnumDict!(E, V)([staticMap!(getAt, EnumMembers!E)]);
+	return immutable EnumMap!(E, V)([staticMap!(getAt, EnumMembers!E)]);
 }
 
-void enumDictEach(E, V)(in EnumDict!(E, V) a, in void delegate(E, in V) @safe @nogc pure nothrow cb) {
+void enumMapEach(E, V)(in EnumMap!(E, V) a, in void delegate(E, in V) @safe @nogc pure nothrow cb) {
 	foreach (E e; cast(E) 0 .. cast(E) a.size)
 		cb(e, a[e]);
 }
 
-Opt!E enumDictFindKey(E, V)(in EnumDict!(E, V) a, in bool delegate(in V) @safe @nogc pure nothrow cb) {
+Opt!E enumMapFindKey(E, V)(in EnumMap!(E, V) a, in bool delegate(in V) @safe @nogc pure nothrow cb) {
 	foreach (E e; cast(E) 0 .. cast(E) a.size) {
 		if (cb(a[e]))
 			return some(e);
@@ -64,9 +64,9 @@ Opt!E enumDictFindKey(E, V)(in EnumDict!(E, V) a, in bool delegate(in V) @safe @
 	return none!E;
 }
 
-@trusted immutable(EnumDict!(E, VOut)) enumDictMapValues(E, VOut, VIn)(
-	in EnumDict!(E, VIn) a,
+@trusted immutable(EnumMap!(E, VOut)) enumMapMapValues(E, VOut, VIn)(
+	in EnumMap!(E, VIn) a,
 	in immutable(VOut) delegate(in VIn) @safe @nogc pure nothrow cb,
 ) =>
-	makeEnumDict!(E, VOut)((E e) =>
+	makeEnumMap!(E, VOut)((E e) =>
 		cb(a[e]));

@@ -53,7 +53,7 @@ import model.typeLayout : Pack;
 import util.alloc.alloc : Alloc;
 import util.col.arr : empty;
 import util.col.arrBuilder : add, ArrBuilder, backUp, finishArr;
-import util.col.fullIndexDict : fullIndexDictOfArr;
+import util.col.fullIndexMap : fullIndexMapOfArr;
 import util.col.mutArr : moveToArr_mut, mustPop, MutArr, mutArrEnd, mutArrSize, push;
 import util.memory : initMemory, overwriteMemory;
 import util.util : divRoundUp, isMultipleOf, todo, verify;
@@ -85,7 +85,7 @@ StackEntry stackEntriesEnd(StackEntries a) =>
 Operations finishOperations(ref ByteCodeWriter writer) =>
 	Operations(
 		moveToArr_mut!Operation(*writer.alloc, writer.operations),
-		fullIndexDictOfArr!(ByteCodeIndex, ByteCodeSource)(finishArr(*writer.alloc, writer.sources)));
+		fullIndexMapOfArr!(ByteCodeIndex, ByteCodeSource)(finishArr(*writer.alloc, writer.sources)));
 
 StackEntry getNextStackEntry(in ByteCodeWriter writer) =>
 	StackEntry(writer.nextStackEntry);

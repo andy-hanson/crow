@@ -53,14 +53,14 @@ import model.lowModel :
 import util.alloc.alloc : Alloc;
 import util.col.arr : empty;
 import util.col.arrUtil : map, mapWithIndex, zip;
-import util.col.enumDict : EnumDict, makeEnumDict;
-import util.col.fullIndexDict :
-	FullIndexDict,
-	fullIndexDictCastImmutable,
-	fullIndexDictCastImmutable2,
-	fullIndexDictZip3,
-	mapFullIndexDict,
-	mapFullIndexDict_mut;
+import util.col.enumMap : EnumMap, makeEnumMap;
+import util.col.fullIndexMap :
+	FullIndexMap,
+	fullIndexMapCastImmutable,
+	fullIndexMapCastImmutable2,
+	fullIndexMapZip3,
+	mapFullIndexMap,
+	mapFullIndexMap_mut;
 import util.col.str : CStr;
 import util.conv : safeToInt;
 import util.opt : force, has, MutOpt, none, noneMut, Opt, some, someMut;
@@ -73,15 +73,15 @@ immutable struct GccTypes {
 	private:
 	GccPrimitiveTypes primitiveTypes;
 	public GccExternTypes extern_;
-	FullIndexDict!(LowType.FunPtr, gcc_jit_type*) funPtrs;
-	FullIndexDict!(LowType.Record, gcc_jit_struct*) records;
-	public FullIndexDict!(LowType.Record, gcc_jit_field*[]) recordFields;
-	FullIndexDict!(LowType.Union, gcc_jit_struct*) unions;
-	public FullIndexDict!(LowType.Union, UnionFields) unionFields;
+	FullIndexMap!(LowType.FunPtr, gcc_jit_type*) funPtrs;
+	FullIndexMap!(LowType.Record, gcc_jit_struct*) records;
+	public FullIndexMap!(LowType.Record, gcc_jit_field*[]) recordFields;
+	FullIndexMap!(LowType.Union, gcc_jit_struct*) unions;
+	public FullIndexMap!(LowType.Union, UnionFields) unionFields;
 }
 
-private alias GccPrimitiveTypes = immutable EnumDict!(PrimitiveType, gcc_jit_type*);
-private alias GccExternTypes = immutable FullIndexDict!(LowType.Extern, ExternTypeInfo);
+private alias GccPrimitiveTypes = immutable EnumMap!(PrimitiveType, gcc_jit_type*);
+private alias GccExternTypes = immutable FullIndexMap!(LowType.Extern, ExternTypeInfo);
 
 immutable struct ExternTypeInfo {
 	gcc_jit_type* type;
@@ -109,27 +109,27 @@ GccTypes getGccTypes(
 	GccTypesWip typesWip = GccTypesWip(
 		getPrimitiveTypes(ctx),
 		gccExternTypes(alloc, ctx, program, mangledNames),
-		mapFullIndexDict_mut!(LowType.FunPtr, MutOpt!(gcc_jit_type*), LowFunPtrType)(
+		mapFullIndexMap_mut!(LowType.FunPtr, MutOpt!(gcc_jit_type*), LowFunPtrType)(
 			alloc,
 			program.allFunPtrTypes,
 			(LowType.FunPtr, in LowFunPtrType) =>
 				noneMut!(gcc_jit_type*)),
-		mapFullIndexDict_mut!(LowType.Record, gcc_jit_struct*, LowRecord)(
+		mapFullIndexMap_mut!(LowType.Record, gcc_jit_struct*, LowRecord)(
 			alloc,
 			program.allRecords,
 			(LowType.Record, in LowRecord record) =>
 				structStub(alloc, ctx, mangledNames, record.source)),
-		mapFullIndexDict_mut!(LowType.Record, immutable gcc_jit_field*[], LowRecord)(
+		mapFullIndexMap_mut!(LowType.Record, immutable gcc_jit_field*[], LowRecord)(
 			alloc,
 			program.allRecords,
 			(LowType.Record, in LowRecord record) => 
 				typeAs!(immutable gcc_jit_field*[])([])),
-		mapFullIndexDict_mut!(LowType.Union, gcc_jit_struct*, LowUnion)(
+		mapFullIndexMap_mut!(LowType.Union, gcc_jit_struct*, LowUnion)(
 			alloc,
 			program.allUnions,
 			(LowType.Union, in LowUnion union_) =>
 				structStub(alloc, ctx, mangledNames, union_.source)),
-		mapFullIndexDict_mut!(LowType.Union, Opt!UnionFields, LowUnion)(
+		mapFullIndexMap_mut!(LowType.Union, Opt!UnionFields, LowUnion)(
 			alloc,
 			program.allUnions,
 			(LowType.Union, in LowUnion) =>
@@ -157,17 +157,17 @@ GccTypes getGccTypes(
 		typesWip.primitiveTypes,
 		typesWip.extern_,
 		//TODO:PERF just cast, since Opt!Ptr and Ptr representations are the same
-		mapFullIndexDict!(LowType.FunPtr, gcc_jit_type*, MutOpt!(gcc_jit_type*))(
+		mapFullIndexMap!(LowType.FunPtr, gcc_jit_type*, MutOpt!(gcc_jit_type*))(
 			alloc,
-			fullIndexDictCastImmutable(typesWip.funPtrs),
+			fullIndexMapCastImmutable(typesWip.funPtrs),
 			(LowType.FunPtr, in immutable MutOpt!(gcc_jit_type*) a) =>
 				force(a)),
-		fullIndexDictCastImmutable(typesWip.records),
-		fullIndexDictCastImmutable2!(LowType.Record, gcc_jit_field*[])(typesWip.recordFields),
-		fullIndexDictCastImmutable(typesWip.unions),
-		mapFullIndexDict!(LowType.Union, UnionFields, MutOpt!UnionFields)(
+		fullIndexMapCastImmutable(typesWip.records),
+		fullIndexMapCastImmutable2!(LowType.Record, gcc_jit_field*[])(typesWip.recordFields),
+		fullIndexMapCastImmutable(typesWip.unions),
+		mapFullIndexMap!(LowType.Union, UnionFields, MutOpt!UnionFields)(
 			alloc,
-			fullIndexDictCastImmutable2(typesWip.unionFields),
+			fullIndexMapCastImmutable2(typesWip.unionFields),
 			(LowType.Union, in Opt!UnionFields it) =>
 				force(it)));
 }
@@ -200,7 +200,7 @@ immutable(gcc_jit_function*) generateAssertFieldOffsetsFunction(
 		false);
 
 	gcc_jit_rvalue* accum = gcc_jit_context_new_rvalue_from_long(ctx, boolType, 1);
-	fullIndexDictZip3!(LowType.Record, LowRecord, gcc_jit_struct*, gcc_jit_field*[])(
+	fullIndexMapZip3!(LowType.Record, LowRecord, gcc_jit_struct*, gcc_jit_field*[])(
 		program.allRecords,
 		types.records,
 		types.recordFields,
@@ -283,7 +283,7 @@ immutable(gcc_jit_type*) getGccType(ref GccTypesWip typesWip, LowType a) =>
 			gcc_jit_struct_as_type(typesWip.unions[x]));
 
 GccPrimitiveTypes getPrimitiveTypes(ref gcc_jit_context ctx) =>
-	makeEnumDict!(PrimitiveType, gcc_jit_type*)((PrimitiveType type) =>
+	makeEnumMap!(PrimitiveType, gcc_jit_type*)((PrimitiveType type) =>
 		getOnePrimitiveType(ctx, type));
 
 immutable(gcc_jit_type*) getOnePrimitiveType(ref gcc_jit_context ctx, PrimitiveType a) {
@@ -320,11 +320,11 @@ immutable(gcc_jit_type*) getOnePrimitiveType(ref gcc_jit_context ctx, PrimitiveT
 struct GccTypesWip {
 	immutable GccPrimitiveTypes primitiveTypes;
 	immutable GccExternTypes extern_;
-	FullIndexDict!(LowType.FunPtr, MutOpt!(gcc_jit_type*)) funPtrs;
-	FullIndexDict!(LowType.Record, gcc_jit_struct*) records;
-	FullIndexDict!(LowType.Record, immutable gcc_jit_field*[]) recordFields;
-	FullIndexDict!(LowType.Union, gcc_jit_struct*) unions;
-	FullIndexDict!(LowType.Union, Opt!UnionFields) unionFields;
+	FullIndexMap!(LowType.FunPtr, MutOpt!(gcc_jit_type*)) funPtrs;
+	FullIndexMap!(LowType.Record, gcc_jit_struct*) records;
+	FullIndexMap!(LowType.Record, immutable gcc_jit_field*[]) recordFields;
+	FullIndexMap!(LowType.Union, gcc_jit_struct*) unions;
+	FullIndexMap!(LowType.Union, Opt!UnionFields) unionFields;
 }
 
 @trusted void writeFunPtrType(
@@ -420,7 +420,7 @@ GccExternTypes gccExternTypes(
 	in LowProgram program,
 	in MangledNames mangledNames,
 ) =>
-	mapFullIndexDict!(LowType.Extern, ExternTypeInfo, LowExternType)(
+	mapFullIndexMap!(LowType.Extern, ExternTypeInfo, LowExternType)(
 		alloc,
 		program.allExternTypes,
 		(LowType.Extern, in LowExternType extern_) {

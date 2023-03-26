@@ -120,13 +120,13 @@ import util.col.arrUtil :
 	mapZip,
 	mapZipPtrFirst,
 	zipPtrFirst;
-import util.col.dict : KeyValuePair, makeDictWithIndex, mustGetAt, Dict;
-import util.col.dictBuilder : finishDict, mustAddToDict, DictBuilder;
-import util.col.fullIndexDict : FullIndexDict, fullIndexDictEachValue, fullIndexDictOfArr, fullIndexDictSize;
-import util.col.mutIndexDict : getOrAddAndDidAdd, mustGetAt, MutIndexDict, newMutIndexDict;
+import util.col.map : KeyValuePair, makeMapWithIndex, mustGetAt, Map;
+import util.col.mapBuilder : finishMap, mustAddToMap, MapBuilder;
+import util.col.fullIndexMap : FullIndexMap, fullIndexMapEachValue, fullIndexMapOfArr, fullIndexMapSize;
+import util.col.mutIndexMap : getOrAddAndDidAdd, mustGetAt, MutIndexMap, newMutIndexMap;
 import util.col.mutArr : moveToArr, MutArr, push;
-import util.col.mutDict : getAt_mut, getOrAdd, mapToArr_mut, MutDict, MutDict, ValueAndDidAdd;
-import util.col.stackDict : StackDict2, stackDict2Add0, stackDict2Add1, stackDict2MustGet0, stackDict2MustGet1;
+import util.col.mutMap : getAt_mut, getOrAdd, mapToArr_mut, MutMap, MutMap, ValueAndDidAdd;
+import util.col.stackMap : StackMap2, stackMap2Add0, stackMap2Add1, stackMap2MustGet0, stackMap2MustGet1;
 import util.late : Late, late, lateGet, lateIsSet, lateSet;
 import util.memory : allocate, overwriteMemory;
 import util.opt : force, has, none, Opt, some;
@@ -155,7 +155,7 @@ private LowProgram lowerInner(
 	ref ConcreteProgram a,
 ) {
 	AllLowTypesWithCtx allTypes = getAllLowTypes(alloc, allSymbols, a);
-	FullIndexDict!(LowVarIndex, LowVar) vars = getAllLowVars(alloc, allTypes.getLowTypeCtx, a.allVars);
+	FullIndexMap!(LowVarIndex, LowVar) vars = getAllLowVars(alloc, allTypes.getLowTypeCtx, a.allVars);
 	AllLowFuns allFuns = getAllLowFuns(allTypes.allTypes, allTypes.getLowTypeCtx, configExtern, a, vars);
 	AllConstantsLow allConstants = convertAllConstants(allTypes.getLowTypeCtx, a.allConstants);
 	LowProgram res = LowProgram(
@@ -170,12 +170,12 @@ private LowProgram lowerInner(
 	return res;
 }
 
-private FullIndexDict!(LowVarIndex, LowVar) getAllLowVars(
+private FullIndexMap!(LowVarIndex, LowVar) getAllLowVars(
 	ref Alloc alloc,
 	ref GetLowTypeCtx ctx,
 	immutable ConcreteVar*[] vars,
 ) =>
-	fullIndexDictOfArr!(LowVarIndex, LowVar)(map(alloc, vars, (ref immutable ConcreteVar* source) {
+	fullIndexMapOfArr!(LowVarIndex, LowVar)(map(alloc, vars, (ref immutable ConcreteVar* source) {
 		LowVar.Kind kind = () {
 			final switch (source.source.kind) {
 				case VarKind.global:
@@ -192,9 +192,9 @@ private FullIndexDict!(LowVarIndex, LowVar) getAllLowVars(
 	}));
 
 struct MarkVisitFuns {
-	MutIndexDict!(LowType.Record, LowFunIndex) recordValToVisit;
-	MutIndexDict!(LowType.Union, LowFunIndex) unionToVisit;
-	MutDict!(LowType, LowFunIndex) gcPointeeToVisit;
+	MutIndexMap!(LowType.Record, LowFunIndex) recordValToVisit;
+	MutIndexMap!(LowType.Union, LowFunIndex) unionToVisit;
+	MutMap!(LowType, LowFunIndex) gcPointeeToVisit;
 }
 
 Opt!LowFunIndex tryGetMarkVisitFun(ref const MarkVisitFuns funs, LowType type) =>
@@ -236,7 +236,7 @@ struct AllLowTypesWithCtx {
 
 immutable struct AllLowFuns {
 	ConcreteFunToLowFunIndex concreteFunToLowFunIndex;
-	FullIndexDict!(LowFunIndex, LowFun) allLowFuns;
+	FullIndexMap!(LowFunIndex, LowFun) allLowFuns;
 	LowFunIndex main;
 	ExternLibraries allExternFuns;
 }
@@ -246,9 +246,9 @@ struct GetLowTypeCtx {
 
 	Alloc* allocPtr;
 	const AllSymbols* allSymbolsPtr;
-	immutable Dict!(ConcreteStruct*, LowType) concreteStructToType;
-	MutDict!(ConcreteStruct*, LowType) concreteStructToPtrType;
-	MutDict!(ConcreteStruct*, LowType) concreteStructToPtrPtrType;
+	immutable Map!(ConcreteStruct*, LowType) concreteStructToType;
+	MutMap!(ConcreteStruct*, LowType) concreteStructToPtrType;
+	MutMap!(ConcreteStruct*, LowType) concreteStructToPtrPtrType;
 
 	ref Alloc alloc() return scope =>
 		*allocPtr;
@@ -258,7 +258,7 @@ struct GetLowTypeCtx {
 }
 
 AllLowTypesWithCtx getAllLowTypes(ref Alloc alloc, in AllSymbols allSymbols, in ConcreteProgram program) {
-	DictBuilder!(ConcreteStruct*, LowType) concreteStructToTypeBuilder;
+	MapBuilder!(ConcreteStruct*, LowType) concreteStructToTypeBuilder;
 	ArrBuilder!(ConcreteStruct*) allFunPointerSources;
 	ArrBuilder!LowExternType allExternTypes;
 	ArrBuilder!(ConcreteStruct*) allRecordSources;
@@ -329,14 +329,14 @@ AllLowTypesWithCtx getAllLowTypes(ref Alloc alloc, in AllSymbols allSymbols, in 
 			(in ConcreteStructBody.Union it) =>
 				some(addUnion(concrete)));
 		if (has(lowType))
-			mustAddToDict(alloc, concreteStructToTypeBuilder, concrete, force(lowType));
+			mustAddToMap(alloc, concreteStructToTypeBuilder, concrete, force(lowType));
 	}
 
 	GetLowTypeCtx getLowTypeCtx =
-		GetLowTypeCtx(ptrTrustMe(alloc), ptrTrustMe(allSymbols), finishDict(alloc, concreteStructToTypeBuilder));
+		GetLowTypeCtx(ptrTrustMe(alloc), ptrTrustMe(allSymbols), finishMap(alloc, concreteStructToTypeBuilder));
 
-	immutable FullIndexDict!(LowType.Record, LowRecord) allRecords =
-		fullIndexDictOfArr!(LowType.Record, LowRecord)(
+	immutable FullIndexMap!(LowType.Record, LowRecord) allRecords =
+		fullIndexMapOfArr!(LowType.Record, LowRecord)(
 			map(alloc, finishArr(alloc, allRecordSources), (ref immutable ConcreteStruct* it) =>
 				LowRecord(
 					it,
@@ -346,8 +346,8 @@ AllLowTypesWithCtx getAllLowTypes(ref Alloc alloc, in AllSymbols allSymbols, in 
 						fieldOffsets(*it),
 						(ConcreteField* field, in immutable size_t fieldOffset) =>
 							LowField(field, fieldOffset, lowTypeFromConcreteType(getLowTypeCtx, field.type))))));
-	immutable FullIndexDict!(LowType.FunPtr, LowFunPtrType) allFunPointers =
-		fullIndexDictOfArr!(LowType.FunPtr, LowFunPtrType)(
+	immutable FullIndexMap!(LowType.FunPtr, LowFunPtrType) allFunPointers =
+		fullIndexMapOfArr!(LowType.FunPtr, LowFunPtrType)(
 			map(alloc, finishArr(alloc, allFunPointerSources), (ref immutable ConcreteStruct* x) {
 				ConcreteType[2] typeArgs = only2(body_(*x).as!(ConcreteStructBody.Builtin).typeArgs);
 				return LowFunPtrType(
@@ -355,14 +355,14 @@ AllLowTypesWithCtx getAllLowTypes(ref Alloc alloc, in AllSymbols allSymbols, in 
 					lowTypeFromConcreteType(getLowTypeCtx, typeArgs[0]),
 					maybeUnpackTuple(alloc, allRecords, lowTypeFromConcreteType(getLowTypeCtx, typeArgs[1])));
 			}));
-	immutable FullIndexDict!(LowType.Union, LowUnion) allUnions =
-		fullIndexDictOfArr!(LowType.Union, LowUnion)(
+	immutable FullIndexMap!(LowType.Union, LowUnion) allUnions =
+		fullIndexMapOfArr!(LowType.Union, LowUnion)(
 			map(alloc, finishArr(alloc, allUnionSources), (ref immutable ConcreteStruct* it) =>
 				getLowUnion(alloc, program, getLowTypeCtx, it)));
 
 	return AllLowTypesWithCtx(
 		AllLowTypes(
-			fullIndexDictOfArr!(LowType.Extern, LowExternType)(finishArr(alloc, allExternTypes)),
+			fullIndexMapOfArr!(LowType.Extern, LowExternType)(finishArr(alloc, allExternTypes)),
 			allFunPointers,
 			allRecords,
 			allUnions),
@@ -371,7 +371,7 @@ AllLowTypesWithCtx getAllLowTypes(ref Alloc alloc, in AllSymbols allSymbols, in 
 
 LowType[] maybeUnpackTuple(
 	ref Alloc alloc,
-	FullIndexDict!(LowType.Record, LowRecord) allRecords,
+	FullIndexMap!(LowType.Record, LowRecord) allRecords,
 	LowType a,
 ) {
 	Opt!(LowType[]) res = tryUnpackTuple(alloc, allRecords, a);
@@ -380,7 +380,7 @@ LowType[] maybeUnpackTuple(
 
 Opt!(LowType[]) tryUnpackTuple(
 	ref Alloc alloc,
-	FullIndexDict!(LowType.Record, LowRecord) allRecords,
+	FullIndexMap!(LowType.Record, LowRecord) allRecords,
 	LowType a,
 ) {
 	if (isPrimitiveType(a, PrimitiveType.void_))
@@ -526,14 +526,14 @@ AllLowFuns getAllLowFuns(
 	ref GetLowTypeCtx getLowTypeCtx,
 	in ConfigExternPaths configExtern,
 	ref ConcreteProgram program,
-	in FullIndexDict!(LowVarIndex, LowVar) allVars,
+	in FullIndexMap!(LowVarIndex, LowVar) allVars,
 ) {
-	DictBuilder!(ConcreteFun*, LowFunIndex) concreteFunToLowFunIndexBuilder;
+	MapBuilder!(ConcreteFun*, LowFunIndex) concreteFunToLowFunIndexBuilder;
 	ArrBuilder!LowFunCause lowFunCausesBuilder;
 
 	MarkVisitFuns markVisitFuns = MarkVisitFuns(
-		newMutIndexDict!(LowType.Record, LowFunIndex)(getLowTypeCtx.alloc, fullIndexDictSize(allTypes.allRecords)),
-		newMutIndexDict!(LowType.Union, LowFunIndex)(getLowTypeCtx.alloc, fullIndexDictSize(allTypes.allUnions)));
+		newMutIndexMap!(LowType.Record, LowFunIndex)(getLowTypeCtx.alloc, fullIndexMapSize(allTypes.allRecords)),
+		newMutIndexMap!(LowType.Union, LowFunIndex)(getLowTypeCtx.alloc, fullIndexMapSize(allTypes.allUnions)));
 
 	LowFunIndex addLowFun(LowFunCause source) {
 		LowFunIndex res = LowFunIndex(arrBuilderSize(lowFunCausesBuilder));
@@ -602,7 +602,7 @@ AllLowFuns getAllLowFuns(
 
 	Late!LowType markCtxTypeLate = late!LowType;
 
-	MutDict!(Sym, MutArr!Sym) allExternSymbols; // Fun and Var combined
+	MutMap!(Sym, MutArr!Sym) allExternSymbols; // Fun and Var combined
 	void addExternSymbol(Sym libraryName, Sym symbolName) {
 		push(
 			getLowTypeCtx.alloc,
@@ -610,7 +610,7 @@ AllLowFuns getAllLowFuns(
 			symbolName);
 	}
 
-	fullIndexDictEachValue!(LowVarIndex, LowVar)(allVars, (ref LowVar x) {
+	fullIndexMapEachValue!(LowVarIndex, LowVar)(allVars, (ref LowVar x) {
 		Opt!Sym libraryName = x.externLibraryName;
 		if (has(libraryName))
 			addExternSymbol(force(libraryName), x.name);
@@ -675,27 +675,27 @@ AllLowFuns getAllLowFuns(
 		if (concreteFunWillBecomeNonExternLowFun(program, *fun))
 			verify(has(opIndex));
 		if (has(opIndex))
-			mustAddToDict(getLowTypeCtx.alloc, concreteFunToLowFunIndexBuilder, fun, force(opIndex));
+			mustAddToMap(getLowTypeCtx.alloc, concreteFunToLowFunIndexBuilder, fun, force(opIndex));
 	}
 
 	LowType markCtxType = lateIsSet(markCtxTypeLate) ? lateGet(markCtxTypeLate) : voidType;
 
 	LowFunCause[] lowFunCauses = finishArr(getLowTypeCtx.alloc, lowFunCausesBuilder);
 	ConcreteFunToLowFunIndex concreteFunToLowFunIndex =
-		finishDict(getLowTypeCtx.alloc, concreteFunToLowFunIndexBuilder);
+		finishMap(getLowTypeCtx.alloc, concreteFunToLowFunIndexBuilder);
 
 	LowType userMainFunPtrType =
 		lowTypeFromConcreteType(getLowTypeCtx, program.rtMain.paramsIncludingClosure[2].type);
 
 	//TODO: use temp alloc
-	VarIndices varIndices = makeDictWithIndex!(ConcreteVar*, LowVarIndex, ConcreteVar*)(
+	VarIndices varIndices = makeMapWithIndex!(ConcreteVar*, LowVarIndex, ConcreteVar*)(
 		getLowTypeCtx.alloc, program.allVars, (size_t i, in ConcreteVar* x) =>
 			immutable KeyValuePair!(ConcreteVar*, LowVarIndex)(x, LowVarIndex(i)));
 
 	LowFunIndex markFunIndex = mustGetAt(concreteFunToLowFunIndex, program.markFun);
 	LowFunIndex allocFunIndex = mustGetAt(concreteFunToLowFunIndex, program.allocFun);
 	LowFunIndex throwImplFunIndex = mustGetAt(concreteFunToLowFunIndex, program.throwImplFun);
-	FullIndexDict!(LowFunIndex, LowFun) allLowFuns = fullIndexDictOfArr!(LowFunIndex, LowFun)(
+	FullIndexMap!(LowFunIndex, LowFun) allLowFuns = fullIndexMapOfArr!(LowFunIndex, LowFun)(
 		mapWithIndexAndConcatOne(
 			getLowTypeCtx.alloc,
 			lowFunCauses,
@@ -734,7 +734,7 @@ AllLowFuns getAllLowFuns(
 					moveToArr!Sym(getLowTypeCtx.alloc, xs))));
 }
 
-alias VarIndices = Dict!(ConcreteVar*, LowVarIndex);
+alias VarIndices = Map!(ConcreteVar*, LowVarIndex);
 
 bool concreteFunWillBecomeNonExternLowFun(in ConcreteProgram program, in ConcreteFun a) =>
 	body_(a).isA!(ConcreteExpr) || (
@@ -944,18 +944,18 @@ struct GetLowExprCtx {
 		typeCtx.allSymbols();
 }
 
-alias Locals = immutable StackDict2!(ConcreteLocal*, LowLocal*, ConcreteExprKind.Loop*, LowExprKind.Loop*);
-alias addLocal = stackDict2Add0!(ConcreteLocal*, LowLocal*, ConcreteExprKind.Loop*, LowExprKind.Loop*);
-alias addLoop = stackDict2Add1!(ConcreteLocal*, LowLocal*, ConcreteExprKind.Loop*, LowExprKind.Loop*);
+alias Locals = immutable StackMap2!(ConcreteLocal*, LowLocal*, ConcreteExprKind.Loop*, LowExprKind.Loop*);
+alias addLocal = stackMap2Add0!(ConcreteLocal*, LowLocal*, ConcreteExprKind.Loop*, LowExprKind.Loop*);
+alias addLoop = stackMap2Add1!(ConcreteLocal*, LowLocal*, ConcreteExprKind.Loop*, LowExprKind.Loop*);
 LowLocal* getLocal(ref GetLowExprCtx ctx, in Locals locals, in ConcreteLocal* local) {
 	Opt!size_t paramIndex = indexOfPointer(ctx.concreteParams, local);
 	return has(paramIndex)
 		? &ctx.lowParams[force(paramIndex)]
-		: stackDict2MustGet0!(ConcreteLocal*, LowLocal*, ConcreteExprKind.Loop*, LowExprKind.Loop*)(
+		: stackMap2MustGet0!(ConcreteLocal*, LowLocal*, ConcreteExprKind.Loop*, LowExprKind.Loop*)(
 			castNonScope_ref(locals), local);
 }
 
-alias getLoop = stackDict2MustGet1!(ConcreteLocal*, LowLocal*, ConcreteExprKind.Loop*, LowExprKind.Loop*);
+alias getLoop = stackMap2MustGet1!(ConcreteLocal*, LowLocal*, ConcreteExprKind.Loop*, LowExprKind.Loop*);
 
 Opt!LowFunIndex tryGetLowFunIndex(in GetLowExprCtx ctx, ConcreteFun* it) =>
 	ctx.concreteFunToLowFunIndex[it];

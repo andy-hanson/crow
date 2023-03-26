@@ -8,7 +8,7 @@ import interpret.fakeExtern : FakeExternResult, FakeStdOutput, withFakeExtern;
 import lib.compiler : ExitCode;
 import model.lowModel : ExternLibrary;
 import test.testUtil : Test;
-import util.col.dict : mustGetAt;
+import util.col.map : mustGetAt;
 import util.col.str : CStr, SafeCStr, strEq;
 import util.opt : force, none, Opt;
 import util.path : Path;

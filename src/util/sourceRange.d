@@ -3,8 +3,8 @@ module util.sourceRange;
 @safe @nogc pure nothrow:
 
 import util.alloc.alloc : Alloc;
-import util.col.fullIndexDict : FullIndexDict;
-import util.col.dict : Dict;
+import util.col.fullIndexMap : FullIndexMap;
+import util.col.map : Map;
 import util.conv : safeToUint, safeToUshort;
 import util.path : Path;
 import util.repr : Repr, reprNat, reprRecord;
@@ -13,8 +13,8 @@ import util.util : verify;
 
 alias Pos = uint;
 
-alias FilePaths = FullIndexDict!(FileIndex, Path);
-alias PathToFile = Dict!(Path, FileIndex);
+alias FilePaths = FullIndexMap!(FileIndex, Path);
+alias PathToFile = Map!(Path, FileIndex);
 
 immutable struct FileIndex {
 	@safe @nogc pure nothrow:

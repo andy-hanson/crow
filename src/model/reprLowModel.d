@@ -33,7 +33,7 @@ import util.repr :
 	nameAndRepr,
 	Repr,
 	reprArr,
-	reprFullIndexDict,
+	reprFullIndexMap,
 	reprInt,
 	reprNamedRecord,
 	reprNat,
@@ -46,18 +46,18 @@ import util.sourceRange : reprFileAndRange;
 Repr reprOfLowProgram(ref Alloc alloc, in LowProgram a) =>
 	reprNamedRecord!"program"(alloc, [
 		nameAndRepr!"extern"(
-			reprFullIndexDict!(LowType.Extern, LowExternType)(alloc, a.allExternTypes, (ref LowExternType it) =>
+			reprFullIndexMap!(LowType.Extern, LowExternType)(alloc, a.allExternTypes, (ref LowExternType it) =>
 				reprOfExternType(alloc, it))),
-		nameAndRepr!"fun-pointers"(reprFullIndexDict!(LowType.FunPtr, LowFunPtrType)(
+		nameAndRepr!"fun-pointers"(reprFullIndexMap!(LowType.FunPtr, LowFunPtrType)(
 			alloc,
 			a.allFunPtrTypes,
 			(ref LowFunPtrType it) =>
 				reprOfLowFunPtrType(alloc, it))),
-		nameAndRepr!"records"(reprFullIndexDict!(LowType.Record, LowRecord)(alloc, a.allRecords, (ref LowRecord it) =>
+		nameAndRepr!"records"(reprFullIndexMap!(LowType.Record, LowRecord)(alloc, a.allRecords, (ref LowRecord it) =>
 			reprOfLowRecord(alloc, it))),
-		nameAndRepr!"unions"(reprFullIndexDict!(LowType.Union, LowUnion)(alloc, a.allUnions, (ref LowUnion it) =>
+		nameAndRepr!"unions"(reprFullIndexMap!(LowType.Union, LowUnion)(alloc, a.allUnions, (ref LowUnion it) =>
 			reprOfLowUnion(alloc, it))),
-		nameAndRepr!"funs"(reprFullIndexDict!(LowFunIndex, LowFun)(alloc, a.allFuns, (ref LowFun it) =>
+		nameAndRepr!"funs"(reprFullIndexMap!(LowFunIndex, LowFun)(alloc, a.allFuns, (ref LowFun it) =>
 			reprOfLowFun(alloc, it))),
 		nameAndRepr!"main"(reprNat(a.main.index))]);
 

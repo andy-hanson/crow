@@ -3,7 +3,7 @@ module util.perf;
 @safe @nogc nothrow: // not pure
 
 import util.alloc.alloc : Alloc, curBytes;
-import util.col.enumDict : EnumDict, enumDictEach;
+import util.col.enumMap : EnumMap, enumMapEach;
 import util.col.sortUtil : sortInPlace;
 import util.col.str : SafeCStr, safeCStr;
 import util.comparison : compareUlong, oppositeComparison;
@@ -34,7 +34,7 @@ T withNullPerf(T, alias cb)() {
 
 struct Perf {
 	ulong delegate() @safe @nogc pure nothrow cbGetTimeNSec;
-	private EnumDict!(PerfMeasure, PerfMeasureResult) measures;
+	private EnumMap!(PerfMeasure, PerfMeasureResult) measures;
 }
 
 pure bool perfEnabled() =>
@@ -114,7 +114,7 @@ private struct PerfResultWithMeasure {
 
 void eachMeasure(in Perf perf, in void delegate(in SafeCStr, in PerfMeasureResult) @safe @nogc nothrow cb) {
 	PerfResultWithMeasure[PerfMeasure.max + 1] results;
-	enumDictEach!(PerfMeasure, PerfMeasureResult)(
+	enumMapEach!(PerfMeasure, PerfMeasureResult)(
 		perf.measures,
 		(PerfMeasure measure, in PerfMeasureResult result) {
 			results[measure] = PerfResultWithMeasure(measure, perf.measures[measure]);

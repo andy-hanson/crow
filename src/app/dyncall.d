@@ -20,8 +20,8 @@ import lib.compiler : ExitCode;
 import model.lowModel : ExternLibraries, ExternLibrary;
 import util.alloc.alloc : Alloc;
 import util.col.arrUtil : map, mapImpure;
-import util.col.dict : Dict, KeyValuePair, makeDictFromKeys, Dict, zipToDict;
-import util.col.dictBuilder : DictBuilder, finishDict, tryAddToDict;
+import util.col.map : Map, KeyValuePair, makeMapFromKeys, zipToMap;
+import util.col.mapBuilder : MapBuilder, finishMap, tryAddToMap;
 import util.col.mutArr : MutArr, mutArrIsEmpty, push, tempAsArr;
 import util.col.str : CStr, SafeCStr, safeCStr;
 import util.conv : bitsOfFloat32, bitsOfFloat64, float32OfBits, float64OfBits, safeToUshort;
@@ -54,7 +54,7 @@ import util.util : todo, unreachable, verify;
 
 private:
 
-alias DebugNames = immutable Dict!(FunPtr, Sym);
+alias DebugNames = immutable Map!(FunPtr, Sym);
 
 immutable struct LoadedLibraries {
 	DebugNames debugNames;
@@ -154,21 +154,21 @@ LoadedLibraries loadLibrariesInner(
 	immutable DLLib*[] libs,
 	in WriteError writeError,
 ) {
-	DictBuilder!(FunPtr, Sym) debugNames;
+	MapBuilder!(FunPtr, Sym) debugNames;
 	MutArr!(KeyValuePair!(Sym, Sym)) failures;
-	ExternFunPtrsForAllLibraries res = zipToDict!(Sym, Dict!(Sym, FunPtr), ExternLibrary, DLLib*)(
+	ExternFunPtrsForAllLibraries res = zipToMap!(Sym, Map!(Sym, FunPtr), ExternLibrary, DLLib*)(
 		alloc,
 		libraries,
 		libs,
 		(ref ExternLibrary x, ref DLLib* lib) {
-			ExternFunPtrsForLibrary funPtrs = makeDictFromKeys!(Sym, FunPtr)(
+			ExternFunPtrsForLibrary funPtrs = makeMapFromKeys!(Sym, FunPtr)(
 				alloc,
 				x.importNames,
 				(Sym importName) {
 					Opt!FunPtr p = getExternFunPtr(allSymbols, lib, importName);
 					if (has(p)) {
 						// sometimes two names refer to the same function -- just go with the first name
-						tryAddToDict!(FunPtr, Sym)(alloc, debugNames, force(p), importName);
+						tryAddToMap!(FunPtr, Sym)(alloc, debugNames, force(p), importName);
 						return force(p);
 					} else {
 						push(alloc, failures, KeyValuePair!(Sym, Sym)(x.libraryName, importName));
@@ -185,7 +185,7 @@ LoadedLibraries loadLibrariesInner(
 		writeError(safeCStr!"\n");
 	}
 	return LoadedLibraries(
-		finishDict(alloc, debugNames),
+		finishMap(alloc, debugNames),
 		mutArrIsEmpty(failures) ? some(res) : none!ExternFunPtrsForAllLibraries);
 }
 

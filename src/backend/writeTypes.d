@@ -16,28 +16,28 @@ import model.lowModel :
 	typeSize;
 import util.alloc.alloc : Alloc;
 import util.col.arrUtil : every;
-import util.col.fullIndexDict :
-	FullIndexDict, fullIndexDictEachKey, fullIndexDictEachValue, fullIndexDictSize, makeFullIndexDict_mut;
+import util.col.fullIndexMap :
+	FullIndexMap, fullIndexMapEachKey, fullIndexMapEachValue, fullIndexMapSize, makeFullIndexMap_mut;
 import util.opt : none, Opt, some;
 import util.util : isMultipleOf, unreachable, verify;
 
 void writeTypes(ref Alloc alloc, in LowProgram program, in TypeWriters writers) {
-	fullIndexDictEachValue!(LowType.Extern, LowExternType)(program.allExternTypes, (ref LowExternType it) {
+	fullIndexMapEachValue!(LowType.Extern, LowExternType)(program.allExternTypes, (ref LowExternType it) {
 		writers.cbWriteExternWithSize(it.source, getElementAndCountForExtern(typeSize(it)));
 	});
 
 	// TODO: use a temp alloc...
 	scope StructStates structStates = StructStates(
-		makeFullIndexDict_mut!(LowType.FunPtr, bool)(
-			alloc, fullIndexDictSize(program.allFunPtrTypes), (LowType.FunPtr) => false),
-		makeFullIndexDict_mut!(LowType.Record, StructState)(
-			alloc, fullIndexDictSize(program.allRecords), (LowType.Record) => StructState.none),
-		makeFullIndexDict_mut!(LowType.Union, StructState)(
-			alloc, fullIndexDictSize(program.allUnions), (LowType.Union) => StructState.none));
+		makeFullIndexMap_mut!(LowType.FunPtr, bool)(
+			alloc, fullIndexMapSize(program.allFunPtrTypes), (LowType.FunPtr) => false),
+		makeFullIndexMap_mut!(LowType.Record, StructState)(
+			alloc, fullIndexMapSize(program.allRecords), (LowType.Record) => StructState.none),
+		makeFullIndexMap_mut!(LowType.Union, StructState)(
+			alloc, fullIndexMapSize(program.allUnions), (LowType.Union) => StructState.none));
 	for (;;) {
 		bool madeProgress = false;
 		bool someIncomplete = false;
-		fullIndexDictEachKey!(LowType.FunPtr, LowFunPtrType)(
+		fullIndexMapEachKey!(LowType.FunPtr, LowFunPtrType)(
 			program.allFunPtrTypes,
 			(LowType.FunPtr funPtrIndex) {
 				bool curState = structStates.funPtrStates[funPtrIndex];
@@ -49,8 +49,8 @@ void writeTypes(ref Alloc alloc, in LowProgram program, in TypeWriters writers) 
 						someIncomplete = true;
 				}
 			});
-		//TODO: each over structStates.recordStates once that's a MutFullIndexDict
-		fullIndexDictEachKey!(LowType.Record, LowRecord)(
+		//TODO: each over structStates.recordStates once that's a MutFullIndexMap
+		fullIndexMapEachKey!(LowType.Record, LowRecord)(
 			program.allRecords,
 			(LowType.Record recordIndex) {
 				StructState curState = structStates.recordStates[recordIndex];
@@ -64,8 +64,8 @@ void writeTypes(ref Alloc alloc, in LowProgram program, in TypeWriters writers) 
 						someIncomplete = true;
 				}
 			});
-		//TODO: each over structStates.unionStates once that's a MutFullIndexDict
-		fullIndexDictEachKey!(LowType.Union, LowUnion)(program.allUnions, (LowType.Union unionIndex) {
+		//TODO: each over structStates.unionStates once that's a MutFullIndexMap
+		fullIndexMapEachKey!(LowType.Union, LowUnion)(program.allUnions, (LowType.Union unionIndex) {
 			StructState curState = structStates.unionStates[unionIndex];
 			if (curState != StructState.defined) {
 				StructState didWork = writeUnionDeclarationOrDefinition(
@@ -125,9 +125,9 @@ enum StructState {
 }
 
 struct StructStates {
-	FullIndexDict!(LowType.FunPtr, bool) funPtrStates; // No need to define, just declared or not
-	FullIndexDict!(LowType.Record, StructState) recordStates;
-	FullIndexDict!(LowType.Union, StructState) unionStates;
+	FullIndexMap!(LowType.FunPtr, bool) funPtrStates; // No need to define, just declared or not
+	FullIndexMap!(LowType.Record, StructState) recordStates;
+	FullIndexMap!(LowType.Union, StructState) unionStates;
 }
 
 bool canReferenceTypeAsValue(in StructStates states, in LowType a) =>

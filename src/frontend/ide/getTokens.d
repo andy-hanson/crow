@@ -196,22 +196,22 @@ void addSigReturnTypeAndParamsTokens(
 void addTypeTokens(ref Alloc alloc, ref TokensBuilder tokens, in AllSymbols allSymbols, in TypeAst a) {
 	a.matchIn!void(
 		(in TypeAst.Bogus) {},
-		(in TypeAst.Dict it) {
-			addTypeTokens(alloc, tokens, allSymbols, it.v);
+		(in TypeAst.Fun x) {
 			add(alloc, tokens, Token(
 				Token.Kind.keyword,
-				RangeWithinFile(range(it.v, allSymbols).end, range(it.k, allSymbols).start)));
-			addTypeTokens(alloc, tokens, allSymbols, it.k);
-			add(alloc, tokens, Token(
-				Token.Kind.keyword,
-				rangeOfStartAndLength(range(it.k, allSymbols).end, "]".length)));
-		},
-		(in TypeAst.Fun it) {
-			add(alloc, tokens, Token(
-				Token.Kind.keyword,
-				rangeOfStartAndName(it.range.start, sym!"fun", allSymbols)));
-			foreach (TypeAst t; it.returnAndParamTypes)
+				rangeOfStartAndName(x.range.start, sym!"fun", allSymbols)));
+			foreach (TypeAst t; x.returnAndParamTypes)
 				addTypeTokens(alloc, tokens, allSymbols, t);
+		},
+		(in TypeAst.Map x) {
+			addTypeTokens(alloc, tokens, allSymbols, x.v);
+			add(alloc, tokens, Token(
+				Token.Kind.keyword,
+				RangeWithinFile(range(x.v, allSymbols).end, range(x.k, allSymbols).start)));
+			addTypeTokens(alloc, tokens, allSymbols, x.k);
+			add(alloc, tokens, Token(
+				Token.Kind.keyword,
+				rangeOfStartAndLength(range(x.k, allSymbols).end, "]".length)));
 		},
 		(in NameAndRange x) {
 			add(alloc, tokens, Token(Token.Kind.struct_, rangeOfNameAndRange(x, allSymbols)));

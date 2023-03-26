@@ -1097,8 +1097,6 @@ void writeDiag(
 		(in Diag.TypeShouldUseSyntax it) {
 			writer ~= () {
 				final switch (it.kind) {
-					case Diag.TypeShouldUseSyntax.Kind.dict:
-						return "prefer to write 'v[k]' instead of '(k, v) dict'";
 					case Diag.TypeShouldUseSyntax.Kind.funAct:
 						return "prefer to write 'act r(p)' instead of '(r, p) fun-act'";
 					case Diag.TypeShouldUseSyntax.Kind.funFar:
@@ -1109,8 +1107,10 @@ void writeDiag(
 						return "prefer to write 'a$' instead of 'a future";
 					case Diag.TypeShouldUseSyntax.Kind.list:
 						return "prefer to write 'a[]' instead of 'a list'";
-					case Diag.TypeShouldUseSyntax.Kind.mutDict:
-						return "prefer to write 'v mut[k]' instead of '(k, v) mut-dict'";
+					case Diag.TypeShouldUseSyntax.Kind.map:
+						return "prefer to write 'v[k]' instead of '(k, v) map'";
+					case Diag.TypeShouldUseSyntax.Kind.mutMap:
+						return "prefer to write 'v mut[k]' instead of '(k, v) mut-map'";
 					case Diag.TypeShouldUseSyntax.Kind.mutList:
 						return "prefer to write 'a mut[]' instead of 'a mut-list'";
 					case Diag.TypeShouldUseSyntax.Kind.mutPointer:

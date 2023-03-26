@@ -1,11 +1,11 @@
-module util.col.mutDict;
+module util.col.mutMap;
 
 @safe @nogc pure nothrow:
 
 import util.alloc.alloc : Alloc, allocateT;
 import util.col.arr : empty;
 import util.col.arrUtil : map;
-import util.col.dict : Dict;
+import util.col.map : Map;
 import util.hash : Hasher, hashSizeT, hashUbyte;
 import util.memory : initMemory, overwriteMemory;
 import util.opt : force, has, MutOpt, none, noneMut, Opt, some, someMut;
@@ -13,7 +13,7 @@ import util.ptr : hashPtr;
 import util.col.str : strEq;
 import util.util : drop, unreachable, verify;
 
-struct MutDict(K, V) {
+struct MutMap(K, V) {
 	private:
 	size_t size;
 	MutOpt!(KeyValuePair!(K, V))[] pairs;
@@ -24,16 +24,16 @@ struct KeyValuePair(K, V) {
 	V value;
 }
 
-bool mutDictIsEmpty(K, V)(ref const MutDict!(K, V) a) =>
+bool mutMapIsEmpty(K, V)(ref const MutMap!(K, V) a) =>
 	a.size == 0;
 
-size_t mutDictSize(K, V)(ref const MutDict!(K, V) a) =>
+size_t mutMapSize(K, V)(ref const MutMap!(K, V) a) =>
 	a.size;
 
-bool hasKey_mut(K, V)(ref const MutDict!(K, immutable V) a, in K key) =>
+bool hasKey_mut(K, V)(ref const MutMap!(K, immutable V) a, in K key) =>
 	has(getAt_mut(a, key));
 
-Opt!V getAt_mut(K, V)(ref const MutDict!(immutable K, immutable V) a, in immutable K key) {
+Opt!V getAt_mut(K, V)(ref const MutMap!(immutable K, immutable V) a, in immutable K key) {
 	if (empty(a.pairs)) return none!V;
 
 	verify(a.size < a.pairs.length);
@@ -49,7 +49,7 @@ Opt!V getAt_mut(K, V)(ref const MutDict!(immutable K, immutable V) a, in immutab
 	}
 }
 
-ref const(V) mustGetAt_mut(K, V)(ref const MutDict!(K, V) a, in K key) {
+ref const(V) mustGetAt_mut(K, V)(ref const MutMap!(K, V) a, in K key) {
 	verify(!empty(a.pairs));
 	verify(a.size < a.pairs.length);
 	size_t i = getHash(key) % a.pairs.length;
@@ -63,13 +63,13 @@ ref const(V) mustGetAt_mut(K, V)(ref const MutDict!(K, V) a, in K key) {
 	}
 }
 
-void addToMutDict(K, V)(ref Alloc alloc, scope ref MutDict!(K, V) a, K key, V value) {
+void addToMutMap(K, V)(ref Alloc alloc, scope ref MutMap!(K, V) a, K key, V value) {
 	size_t sizeBefore = a.size;
-	drop(setInDict(alloc, a, key, value));
+	drop(setInMap(alloc, a, key, value));
 	verify(a.size == sizeBefore + 1);
 }
 
-ref KeyValuePair!(K, V) setInDict(K, V)(ref Alloc alloc, scope ref MutDict!(K, V) a, K key, V value) =>
+ref KeyValuePair!(K, V) setInMap(K, V)(ref Alloc alloc, scope ref MutMap!(K, V) a, K key, V value) =>
 	insertOrUpdate!(K, V)(alloc, a, key, () => value, (ref const(V)) => value);
 
 struct ValueAndDidAdd(V) {
@@ -79,7 +79,7 @@ struct ValueAndDidAdd(V) {
 
 ValueAndDidAdd!V getOrAddAndDidAdd(K, V)(
 	ref Alloc alloc,
-	ref MutDict!(K, V) a,
+	ref MutMap!(K, V) a,
 	scope K key,
 	in V delegate() @safe @nogc pure nothrow getValue,
 ) {
@@ -100,7 +100,7 @@ Useful for when you want to allocate the key only if it is needed.
 */
 PairAndDidAdd!(K, V) getOrAddPairAndDidAdd(K, V)(
 	ref Alloc alloc,
-	ref MutDict!(K, V) a,
+	ref MutMap!(K, V) a,
 	scope K key,
 	in KeyValuePair!(K, V) delegate() @safe @nogc pure nothrow getPair,
 ) {
@@ -111,7 +111,7 @@ PairAndDidAdd!(K, V) getOrAddPairAndDidAdd(K, V)(
 
 ref V getOrAdd(K, V)(
 	ref Alloc alloc,
-	return scope ref MutDict!(K, V) a,
+	return scope ref MutMap!(K, V) a,
 	K key,
 	in V delegate() @safe @nogc pure nothrow getValue,
 ) =>
@@ -119,7 +119,7 @@ ref V getOrAdd(K, V)(
 
 ref KeyValuePair!(K, V) getOrAddPair(K, V)(
 	ref Alloc alloc,
-	return scope ref MutDict!(K, V) a,
+	return scope ref MutMap!(K, V) a,
 	scope K key,
 	in KeyValuePair!(K, V) delegate() @safe @nogc pure nothrow getPair,
 ) {
@@ -143,7 +143,7 @@ ref KeyValuePair!(K, V) getOrAddPair(K, V)(
 
 @trusted ref KeyValuePair!(K, V) insertOrUpdate(K, V)(
 	ref Alloc alloc,
-	return scope ref MutDict!(K, V) a,
+	return scope ref MutMap!(K, V) a,
 	K key,
 	in V delegate() @safe @nogc pure nothrow cbInsert,
 	in V delegate(ref const V) @safe @nogc pure nothrow cbUpdate,
@@ -164,7 +164,7 @@ ref KeyValuePair!(K, V) getOrAddPair(K, V)(
 	}
 }
 
-immutable(V) mustDelete(K, V)(ref MutDict!(K, V) a, in K key) {
+immutable(V) mustDelete(K, V)(ref MutMap!(K, V) a, in K key) {
 	verify(a.pairs.length != 0);
 	size_t i = getHash(key) % a.pairs.length;
 	while (true) {
@@ -184,7 +184,7 @@ immutable(V) mustDelete(K, V)(ref MutDict!(K, V) a, in K key) {
 
 // When there is a hole, move anything there that would be closer to where it should be.
 private void fillHole(K, V)(
-	ref MutDict!(K, V) a,
+	ref MutMap!(K, V) a,
 	immutable size_t holeI,
 	immutable size_t i,
 ) {
@@ -202,7 +202,7 @@ private void fillHole(K, V)(
 }
 
 private immutable(size_t) nextI(K, V)(
-	ref const MutDict!(K, V) a,
+	ref const MutMap!(K, V) a,
 	immutable size_t i,
 ) {
 	verify(a.size < a.pairs.length);
@@ -211,7 +211,7 @@ private immutable(size_t) nextI(K, V)(
 }
 
 private immutable(size_t) walkDistance(K, V)(
-	ref const MutDict!(K, V) a,
+	ref const MutMap!(K, V) a,
 	immutable size_t i0,
 	immutable size_t i1,
 ) =>
@@ -221,7 +221,7 @@ private immutable(size_t) walkDistance(K, V)(
 
 private @trusted immutable(Out[]) mapToArr_const(Out, K, V)(
 	ref Alloc alloc,
-	in MutDict!(K, V) a,
+	in MutMap!(K, V) a,
 	in immutable(Out) delegate(immutable K, ref const V) @safe @nogc pure nothrow cb,
 ) {
 	Out* res = allocateT!Out(alloc, a.size);
@@ -237,35 +237,35 @@ private @trusted immutable(Out[]) mapToArr_const(Out, K, V)(
 }
 @trusted immutable(Out[]) mapToArr_mut(Out, K, V)(
 	ref Alloc alloc,
-	ref MutDict!(K, V) a,
+	ref MutMap!(K, V) a,
 	in immutable(Out) delegate(immutable K, ref V) @safe @nogc pure nothrow cb,
 ) =>
 	mapToArr_const!(Out, K, V)(alloc, a, (immutable K k, ref const V v) =>
 		cb(k, cast(V) v));
 
-immutable(V[]) moveToValues(K, V)(ref Alloc alloc, ref MutDict!(immutable K, immutable V) a) {
+immutable(V[]) moveToValues(K, V)(ref Alloc alloc, ref MutMap!(immutable K, immutable V) a) {
 	immutable V[] res = valuesArray(alloc, a);
 	clear(a);
 	return res;
 }
 
-@trusted immutable(Dict!(K, V)) moveToDict(K, V)(
+@trusted immutable(Map!(K, V)) moveToMap(K, V)(
 	ref Alloc alloc,
-	ref MutDict!(immutable K, immutable V) a,
+	ref MutMap!(immutable K, immutable V) a,
 ) {
-	immutable Dict!(K, V) res = immutable Dict!(K, V)(cast(immutable) a);
+	immutable Map!(K, V) res = immutable Map!(K, V)(cast(immutable) a);
 	clear(a);
 	return res;
 }
 
-private void clear(K, V)(scope ref MutDict!(K, V) a) {
+private void clear(K, V)(scope ref MutMap!(K, V) a) {
 	a.size = 0;
 	a.pairs = [];
 }
 
-immutable(Dict!(K, VOut)) mapToDict(K, VOut, VIn)(
+immutable(Map!(K, VOut)) mapToMap(K, VOut, VIn)(
 	ref Alloc alloc,
-	scope ref MutDict!(K, VIn) a,
+	scope ref MutMap!(K, VIn) a,
 	in immutable(VOut) delegate(ref VIn) @safe @nogc pure nothrow cb,
 ) {
 	immutable MutOpt!(KeyValuePair!(immutable K, immutable VOut))[] outPairs =
@@ -277,35 +277,35 @@ immutable(Dict!(K, VOut)) mapToDict(K, VOut, VIn)(
 					KeyValuePair!(immutable K, immutable VOut)(force(pair).key, cb(force(pair).value)))
 				: cast(immutable) noneMut!(KeyValuePair!(immutable K, immutable VOut)));
 
-	return immutable Dict!(K, VOut)(immutable MutDict!(immutable K, immutable VOut)(a.size, outPairs));
+	return immutable Map!(K, VOut)(immutable MutMap!(immutable K, immutable VOut)(a.size, outPairs));
 }
 
-immutable(V[]) valuesArray(K, V)(ref Alloc alloc, in MutDict!(K, V) a) =>
+immutable(V[]) valuesArray(K, V)(ref Alloc alloc, in MutMap!(K, V) a) =>
 	mapToArr_const!(V, K, V)(alloc, a, (immutable(K), ref V v) => v);
 
-void mutDictEach(K, V)(in MutDict!(K, V) a, in void delegate(const K, ref const V) @safe @nogc pure nothrow cb) {
+void mutMapEach(K, V)(in MutMap!(K, V) a, in void delegate(const K, ref const V) @safe @nogc pure nothrow cb) {
 	foreach (ref const MutOpt!(KeyValuePair!(K, V)) pair; a.pairs)
 		if (has(pair))
 			cb(force(pair).key, force(pair).value);
 }
-void mutDictEach(K, V)(
-	in immutable MutDict!(K, V) a,
+void mutMapEach(K, V)(
+	in immutable MutMap!(K, V) a,
 	in void delegate(immutable K, ref immutable V) @safe @nogc pure nothrow cb,
 ) {
 	foreach (ref immutable MutOpt!(KeyValuePair!(K, V)) pair; a.pairs)
 		if (has(pair))
 			cb(force(pair).key, force(pair).value);
 }
-void mutDictEachIn(K, V)(
-	in MutDict!(K, V) a,
+void mutMapEachIn(K, V)(
+	in MutMap!(K, V) a,
 	in void delegate(in K, in V) @safe @nogc pure nothrow cb,
 ) {
 	foreach (scope ref const MutOpt!(KeyValuePair!(K, V)) pair; a.pairs)
 		if (has(pair))
 			cb(force(pair).key, force(pair).value);
 }
-bool existsInMutDict(K, V)(
-	in MutDict!(K, V) a,
+bool existsInMutMap(K, V)(
+	in MutMap!(K, V) a,
 	in bool delegate(in K, in V) @safe @nogc pure nothrow cb,
 ) {
 	foreach (scope ref const MutOpt!(KeyValuePair!(K, V)) pair; a.pairs)
@@ -316,19 +316,19 @@ bool existsInMutDict(K, V)(
 
 private:
 
-void ensureNonEmptyCapacity(K, V)(ref Alloc alloc, scope ref MutDict!(K, V) a) {
+void ensureNonEmptyCapacity(K, V)(ref Alloc alloc, scope ref MutMap!(K, V) a) {
 	if (empty(a.pairs)) doExpand(alloc, a);
 }
 
 ref KeyValuePair!(K, V) addAt(K, V)(
 	ref Alloc alloc,
-	scope ref MutDict!(K, V) a,
+	scope ref MutMap!(K, V) a,
 	 size_t i,
 	KeyValuePair!(K, V) pair,
 ) {
 	if (shouldExpand(a)) {
 		doExpand(alloc, a);
-		return setInDict(alloc, a, pair.key, pair.value);
+		return setInMap(alloc, a, pair.key, pair.value);
 	} else {
 		a.size++;
 		overwriteMemory(&a.pairs[i], someMut(pair));
@@ -336,20 +336,20 @@ ref KeyValuePair!(K, V) addAt(K, V)(
 	}
 }
 
-immutable(bool) shouldExpand(K, V)(ref const MutDict!(K, V) a) =>
+immutable(bool) shouldExpand(K, V)(ref const MutMap!(K, V) a) =>
 	a.size <= 8
 		? a.size + 1 >= a.pairs.length
 		: a.size * 9 / 8 >= a.pairs.length;
 
-@trusted void doExpand(K, V)(ref Alloc alloc, scope ref MutDict!(K, V) a) {
+@trusted void doExpand(K, V)(ref Alloc alloc, scope ref MutMap!(K, V) a) {
 	immutable size_t newSize = a.pairs.length < 2 ? 2 : a.pairs.length * 2;
 	MutOpt!(KeyValuePair!(K, V))* newPairs = allocateT!(MutOpt!(KeyValuePair!(K, V)))(alloc, newSize);
-	MutDict!(K, V) bigger = MutDict!(K, V)(0, newPairs[0 .. newSize]);
+	MutMap!(K, V) bigger = MutMap!(K, V)(0, newPairs[0 .. newSize]);
 	foreach (ref MutOpt!(KeyValuePair!(K, V)) pair; bigger.pairs)
 		initMemory(&pair, noneMut!(KeyValuePair!(K, V)));
 	foreach (ref MutOpt!(KeyValuePair!(K, V)) pair; a.pairs)
 		if (has(pair))
-			drop(setInDict!(K, V)(alloc, bigger, force(pair).key, force(pair).value));
+			drop(setInMap!(K, V)(alloc, bigger, force(pair).key, force(pair).value));
 	a.pairs = bigger.pairs;
 }
 
