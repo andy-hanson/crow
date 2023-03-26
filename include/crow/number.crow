@@ -86,6 +86,9 @@ Throws if `b == 0`.
 +% nat64(a nat64, b nat64) noctx
 	forbid b == 0 : "modulo by 0"
 	trusted a unsafe-mod b
++% nat32(a nat32, b nat32) noctx
+	forbid b == 0 : "modulo by 0"
+	trusted (a.to unsafe-mod b.to) to
 
 # This returns a `nat64` since modulo always returns a non-negative number.
 +% nat64(a int64, b nat64) noctx

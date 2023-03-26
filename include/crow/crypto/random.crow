@@ -6,12 +6,16 @@ no-std
 import
 	sodium: randombytes_random
 	../bits: bits-cat
-	../number: nat32, nat64
+	../bool: bool
+	../number: ==, %, nat32, nat64
 	./private/sodium: ensure-sodium-initialized
 
-+random-nat32 nat32() summon
++random nat32() summon
 	ensure-sodium-initialized
 	trusted randombytes_random
 
-+random-nat64 nat64() summon
-	random-nat32 bits-cat random-nat32
++random bool() summon
+	random::nat32 % 2 == 0
+
++random nat64() summon
+	random bits-cat random

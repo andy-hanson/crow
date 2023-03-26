@@ -1,0 +1,102 @@
+no-std
+import
+	../bool: bool, false, new, true
+	../compare: <
+	../fun-util: subscript
+	../json: to
+	../misc: new, void
+	../number: ==, <=>, +, -, *, nat64
+	../option: ==, new, option
+	../test-util: is
+	./array: array
+	./collection: for-loop, iterate, set-subscript, subscript, with-index
+	./list: ~=, ==, build, iterate, list, new
+	./mut-array: +, begin, is-empty, mut-array, new, next, set-next, size, to, zeroed-mut-array
+
++mut-queue[t] record mut
+	# Queue is empty iff 'values' is.
+	-values mut t mut-array
+	# 'end' is exclusive, but will always be a valid index unless 'values' is empty.
+	-begin mut nat64
+	-end mut nat64
+
++new[t] t mut-queue(...values t array)
+	values.to, 0, 0
+
++to[t] t[](a t mut-queue)
+	for x : a
+		x
+
++is-empty[t] bool(a t mut-queue)
+	a.values is-empty
+
++size[t] nat64(a t mut-queue)
+	if a.begin < a.end
+		a.end - a.begin
+	else
+		(a.values.size - a.end) + a.begin
+
++~=[t] void(a t mut-queue, value t)
+	if a.begin == a.end
+		old-size = a.values.size
+		new-values t mut-array = trusted (old-size == 0 ? 2 : old-size * 2) zeroed-mut-array
+		for i, x : a with-index
+			new-values[i] := x
+		new-values[old-size] := value
+		a.values := new-values
+		a.begin := 0
+		a.end := a advance old-size
+	else
+		a.values[a end] := value
+		a.end := a advance a.end
+
++~~=[t, col] void(a t mut-queue, values col) (col, t) iterate
+	for x : values
+		a ~= x
+
++dequeue[t] t?(a t mut-queue)
+	unless a is-empty
+		res = a.values[a.begin]
+		a.begin := a advance a.begin
+		if a.begin == a.end
+			a.values := ()
+		res,
+
+-advance[t] nat64(a t mut-queue, index nat64)
+	res = index + 1
+	res == a.values.size ? 0 : res
+
+region spec impls (see collection.crow)
+
++iterate[t] bool(a t mut-queue, f act bool(t))
+	unless a is-empty
+		cur mut = a begin
+		loop
+			if f[a.values[cur]]
+				break true
+			else
+				cur := a advance cur
+				if cur == a.end
+					break false
+				else
+					continue
+
+test
+	a nat64 mut-queue = ()
+	assert a is-empty
+	a.to::nat64[] is ()
+
+	a ~= 1
+	a.to::nat64[] is (1,)
+	forbid a is-empty
+	a.dequeue is (1,)
+	assert a is-empty
+	a.dequeue is ()
+	assert a is-empty
+
+	a ~~= (2, 3, 4)::nat64[]
+	a.to::nat64[] is (2, 3, 4)
+	a.dequeue is (2,)
+	a.dequeue is (3,)
+	a.dequeue is (4,)
+	a.dequeue is ()

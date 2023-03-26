@@ -16,6 +16,7 @@ import
 	crow/col/mut-deque: mut-deque, new
 	crow/col/mut-grid: mut-grid, new
 	crow/col/mut-priority-queue: mut-priority-queue, new
+	crow/col/mut-queue: mut-queue, new
 	crow/col/mut-stack: mut-stack, new
 	crow/col/priority-queue: new, priority-queue
 	crow/col/private/array-tests: dummy-array-tests
@@ -38,6 +39,9 @@ import
 	crow/parse: grammar-skip, new
 	crow/parse-command: parse-named-args
 	crow/perf: measure-performance
+	crow/private/exclusion-queue-tests: dummy-exclusion-queue-tests
+	crow/private/bare-map-tests: dummy-bare-map-tests
+	crow/private/bare-queue-tests: dummy-bare-queue-tests
 	crow/private/bits-tests: dummy-bits-tests
 	crow/private/json-tests: dummy-json-tests
 	crow/private/number-tests: dummy-number-tests
@@ -55,8 +59,11 @@ main nat^(_ string[]) summon
 	_ = current-directory
 	_ = () :: (nat deque)
 	_ = dummy-array-tests
+	_ = dummy-bare-map-tests
+	_ = dummy-bare-queue-tests
 	_ = dummy-bits-tests
 	_ = dummy-dict-tests
+	_ = dummy-exclusion-queue-tests
 	_ = dummy-frozen-set-tests
 	_ = dummy-index-set-tests
 	_ = dummy-json-tests
@@ -84,6 +91,7 @@ main nat^(_ string[]) summon
 	_ = () :: (nat mut-set)
 	_ = () :: ((nat, nat) mut-sorted-dict)
 	_ = () :: (nat mut-sorted-set)
+	_ = () :: (nat mut-queue)
 	_ = () :: (nat mut-stack)
 	_ = measure-performance
 	_ = () :: ((nat, nat) priority-queue)

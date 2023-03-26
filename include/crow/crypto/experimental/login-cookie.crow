@@ -12,7 +12,7 @@ import
 	../../range: ..
 	../../serialize: from-bytes, to-8-bytes
 	../../string: ~~, literal, string, to
-	../random: random-nat64
+	../random: random
 
 login-cookie record
 	timestamp unix-time
@@ -28,7 +28,7 @@ cookie-matches bool(a login-cookie, cookie nat64, expire-seconds nat64) summon
 	recent && a.cookie == cookie
 
 generate-login-cookie login-cookie() summon
-	get-unix-time, random-nat64
+	get-unix-time, random
 
 to-bytes nat8[](a login-cookie)
 	a.timestamp.seconds-since-epoch.to-8-bytes ~~ a.cookie.to-8-bytes

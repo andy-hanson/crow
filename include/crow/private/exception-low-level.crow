@@ -92,5 +92,16 @@ Throwing an exception does not modify its backtrace.
 		# unreachable
 		zeroed
 
+abort-on-exceptions record
+abort-on-exceptions abort-on-exceptions()
+	()
+# Makes exceptions in callback non-catchable.
+with-block[t] t(_ abort-on-exceptions, cb act t()) unsafe
+	jmp-buf = cur-jmp-buf
+	cur-jmp-buf := null
+	res = cb[]
+	cur-jmp-buf := jmp-buf
+	res
+
 -number-to-throw int32() noctx, unsafe
 	7

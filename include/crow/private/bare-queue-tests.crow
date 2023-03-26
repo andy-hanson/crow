@@ -1,0 +1,24 @@
+import
+	./bare-queue
+
+dummy-bare-queue-tests nat()
+	0
+
+-queue record
+-queue queue()
+	()
+-with-block void(_ queue, cb act void(nat bare-queue mut*)) unsafe
+	storage mut nat bare-queue = ()
+	a nat bare-queue mut* = &storage
+	with : (() => a destroy) finally
+		cb[a]
+
+test
+	with a : queue
+		assert a.as-const is-empty
+		for i : 0 .. 3
+			a enqueue i
+		forbid a.as-const is-empty
+		for i : 0 .. 3
+			a.dequeue is (i,)
+		assert a.as-const is-empty

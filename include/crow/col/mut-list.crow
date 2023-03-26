@@ -10,7 +10,8 @@ import
 	../pointer:
 		+, -, as-const, mut-pointer, pointer-cast, reference-equal, set-deref, set-subscript,
 		size-of, subscript, zeroed
-	../private/alloc: alloc-uninitialized, copy-data-from, set-zero-range
+	../private/alloc: alloc-uninitialized, copy-data-from, mem-move, set-zero-range
+	../private/bootstrap: backing, mut-list-size, set-backing, set-mut-list-size
 	../private/number-low-level: round-up-to-power-of-two
 	../range: .., iterate
 	../tuple: a, b, new
@@ -21,18 +22,13 @@ import
 		mut-array-iterator, prev, next, next-index, set-next, set-prev, set-zero-elements, size,
 		slice, subscript, temp-as-array, uninitialized-mut-array
 	./list: iterate, list, to
+export
+	../private/bootstrap: mut-list
 
-###
-Mutable array type that can change in size.
-This is represented as a reference to a `mut-array` with extra capacity.
-Appending (or removing) elements to the end is amortized O(1),
-but appending (or removing) from the beginning is always O(N).
-###
-+mut-list[t] record mut
-	# backing.size is the capacity
-	# For the GC's sake, unused parts of backing are filled with 'zeroed'
-	-backing .mut t mut-array
-	size .mut nat64
++size[t] nat64(a t mut[]) noctx
+	a mut-list-size
+-set-size[t] void(a t mut[], size nat64) noctx
+	a.mut-list-size := size
 
 # True if they are identical.
 +==[t] bool(a t mut[], b t mut[]) noctx
@@ -186,6 +182,13 @@ Throws if `n > a.size`.
 	trusted
 		a.begin-pointer + new-size set-zero-range n
 		a.size := new-size
+
++prepend=[t] void(a t mut[], value t)
+	trusted
+		a incr-capacity
+		a.begin-pointer + 1 mem-move a.begin-pointer.as-const, a.size
+		*a.begin-pointer := value
+		a.size +:= 1
 
 # Push a value onto the end of the list.
 +~=[t] void(a t mut[], value t)

@@ -1,13 +1,12 @@
 no-std
 import
+	../col/mut-list: ~=, ~~=, iterate, new, move-to, mut-list, prepend=
 	../misc: new, void
-	../option: new
 	../pointer: mut-pointer
 	../result: err, ok, result
 	./bootstrap:
-		empty, exception, first, forwarded, future, future-state, hard-unreachable, last, lk, new,
-		one-task, rejected, resolved, set-last, set-next, set-state, state, task-list, task-node,
-		tasks
+		empty, exception, forwarded, future, future-state, hard-unreachable, lk, new, one-task,
+		rejected, resolved, set-state, state, tasks
 	./runtime: enqueue-task, enqueue-tasks, get-global-ctx, new-exclusion
 	./task-queue: exclusion, task
 	./thread-utils: acquire, init, lock, release, uninit
@@ -37,7 +36,7 @@ reject[t] void(a t^, err exception) unsafe
 	as one-task task
 		get-global-ctx enqueue-task task
 	as tasks tasks
-		get-global-ctx enqueue-tasks tasks
+		get-global-ctx enqueue-tasks tasks.move-to
 	as forwarded _
 		hard-unreachable
 	as resolved _
@@ -83,9 +82,7 @@ add-task[t] void(a t^, task task) unsafe
 		a.state := task one-task
 		added
 	as one-task existing-task
-		second-node task-node = task, ()
-		first-node task-node = existing-task, (second-node,)
-		a.state := (first-node, second-node) tasks
+		a.state := (existing-task, task) tasks
 		added
 	as tasks existing-tasks
 		existing-tasks ~= task
@@ -106,15 +103,15 @@ add-task[t] void(a t^, task task) unsafe
 	as tasks-are-ready
 		get-global-ctx enqueue-task task
 
--add-tasks[t] void(a t^, tasks task-list) unsafe
+-add-tasks[t] void(a t^, tasks task mut[]) unsafe
 	a.lock acquire
 	choice t add-tasks-choice = match a state
 	as empty
 		a.state := tasks tasks
 		added
 	as one-task existing-task
-		node task-node = existing-task, (tasks.first,)
-		a.state := (node, tasks.last) tasks
+		tasks prepend= existing-task
+		a.state := tasks tasks
 		added
 	as tasks existing-tasks
 		existing-tasks ~~= tasks
@@ -133,21 +130,12 @@ add-task[t] void(a t^, task task) unsafe
 	as forward to
 		to add-tasks tasks
 	as tasks-are-ready
-		get-global-ctx enqueue-tasks tasks
+		get-global-ctx enqueue-tasks tasks.move-to
 
 -add-tasks-choice[t] union shared
 	added
 	forward t^
 	tasks-are-ready
-
--~= void(a task-list, task task)
-	node task-node = task, ()
-	a.last.next := node,
-	a.last := node
-
--~~= void(a task-list, b task-list) noctx
-	a.last.next := b.first,
-	a.last := b last
 
 # Assuming the future is resolved, get the result.
 get-result[t] (t, exception) result(a t^) noctx, unsafe

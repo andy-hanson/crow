@@ -11,6 +11,7 @@ import
 		==, <=>, +, *, any-const-pointer, any-mut-pointer, as-const, as-mut, mut-pointer,
 		pointer-cast, set-deref, set-subscript, size-of, subscript
 	../private/alloc: alloc-uninitialized, set-zero-range
+	../private/bootstrap: inner
 	../range: .., high, low, range
 	../tuple: new
 	./array:
@@ -18,22 +19,8 @@ import
 		size, slice, subscript
 	./private/array-low-level: array-reference-equal
 	./collection: build-options, for-loop, subscript
-
-###
-`mut-array` is a low-level type mostly useful for implementing other collections.
-For normal code, a `mut[]` is preferable.
-
-A `mut-array` is like a `mut[]`, but while a `mut[]` has capacity for pushing elements, `mut-array` is fixed-size.
-This has a small performance benefit, since (like an immutable array)
-a `mut-array` is just a pointer and size which can be stored by value.
-
-You can't change what range of addresses a `mut-array` points to, though you can write to its elements.
-
-Like an immutable array, and unlike a `mut[]`, it's cheap to take a slice of a `mut-array`.
-Taking a slice aliases the elements, so writing to the slice writes to the original.
-###
-+mut-array[t] record mut by-val
-	-inner t array
+export
+	../private/bootstrap: mut-array
 
 # True if they are identical.
 +==[t] bool(a t mut-array, b t mut-array) noctx

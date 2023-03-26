@@ -1,0 +1,34 @@
+import
+	./exclusion-queue
+
+dummy-exclusion-queue-tests nat()
+	0
+
+-eq record
+-eq eq()
+	()
+-with-block void(_ eq, cb act void(string exclusion-queue mut*)) unsafe
+	storage mut string exclusion-queue = uninit
+	a string exclusion-queue mut* = &storage
+	a init
+	with : (() => a destroy) finally
+		cb[a]
+
+test
+	with a : eq
+		a.dequeue is ()
+		a enqueue 0, "a"
+		a.dequeue is ((0, "a"),)
+		a.dequeue is ()
+		a release-exclusion 0
+
+test
+	with a : eq
+		a.dequeue is ()
+		a enqueue 0, "a"
+		a.dequeue is ((0, "a"),)
+		a.dequeue is ()
+		a enqueue 0, "b"
+		a.dequeue is ()
+		a release-exclusion 0
+		a.dequeue is ((0, "b"),)

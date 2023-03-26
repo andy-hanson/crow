@@ -1,0 +1,230 @@
+no-std
+import
+	../bits: ^, >>
+	../bool: ||, bool, false, new, true
+	../compare: equal
+	../misc: data, new, void
+	../number: ==, *, %, nat64
+	../option: force, new, option
+	../pointer: ==, +, *, as-const, as-mut, const-pointer, mut-pointer, set-deref, zeroed
+	../tuple: new
+	./alloc: gc, unmanaged-alloc-elements, unmanaged-free-elements
+	./number-low-level: wrap-mul
+
+###
+Note: All values in the map will be kept valid, including unused entries.
+So 'new' initializes all values, and 'destroy' and 'add-gc-roots' ignore keys entirely.
+###
+bare-map[k, v] record mut by-val
+	###
+	There are logically 2 different maps, each of size 'half-capacity'.
+	Keys prefer to be in the left map; if that is empty the key won't be in the right map.
+	###
+	-begin-full mut (k, v) map-pair mut*
+	-half-capacity nat64
+
+-full-capacity[k, v] nat64(a (k, v) bare-map) noctx, unsafe
+	a.half-capacity * 2
+-end-full[k, v] (k, v) map-pair mut*(a (k, v) bare-map) noctx, unsafe
+	a.begin-full + a.full-capacity
+
+-begin-left[k, v] (k, v) map-pair mut*(a (k, v) bare-map) noctx, unsafe
+	a.begin-full
+-end-left[k, v] (k, v) map-pair mut*(a (k, v) bare-map) noctx, unsafe
+	a.begin-left + a.half-capacity
+-begin-right[k, v] (k, v) map-pair mut*(a (k, v) bare-map) noctx, unsafe
+	a.end-left
+
+-hash-left nat64(a nat64) noctx
+	a
+-hash-right nat64(a mut nat64) noctx
+	# https://xorshift.di.unimi.it/splitmix64.c
+	a := (a ^ (a >> 30)) wrap-mul 0xbf58476d1ce4e5b9
+	a := (a ^ (a >> 27)) wrap-mul 0x94d049bb133111eb
+	a ^ (a >> 31)
+
+-entry-left[k, v] (k, v) map-pair mut*(a (k, v) bare-map mut*, hash nat64) noctx, unsafe
+	a->begin-left + (hash.hash-left % a->half-capacity)
+-entry-right[k, v] (k, v) map-pair mut*(a (k, v) bare-map mut*, hash nat64) noctx, unsafe
+	a->begin-right + (hash.hash-right % a->half-capacity)
+
+map-pair[k, v] record mut by-val
+	key mut k
+	value mut v
+
+key[k] spec k data, k equal
+	invalid k()
+	hash nat64(a k)
+
+move[t] spec
+	# Move value to 'dest' from 'src'.
+	# 'src' will be free memory.
+	move-from void(dest t mut*, src t*)
+
+new[k, v] (k, v) bare-map(half-capacity nat64) noctx, unsafe, k key, v new
+	forbid half-capacity == 0
+	full-capacity = half-capacity * 2
+	begin (k, v) map-pair mut* = full-capacity unmanaged-alloc-elements
+	cur mut = begin
+	until cur == begin + full-capacity
+		*cur := (invalid, ())
+		cur +:= 1
+	begin, half-capacity
+
+destroy[t] spec
+	destroy void(a t mut*)
+destroy[k, v] void(a (k, v) bare-map mut*) noctx, unsafe, k key, v destroy
+	cur mut = a->begin-full
+	until cur == a->end-full
+		cur.value destroy
+		cur +:= 1
+-free-table-not-values[k, v] void(a (k, v) bare-map mut*) noctx, unsafe
+	a->begin-full unmanaged-free-elements a->full-capacity
+
+must-find[k, v] (k, v) map-pair*(a (k, v) bare-map*, key k) noctx, unsafe, k key
+	(a.as-mut must-find key).as-const
+
+must-find[k, v] (k, v) map-pair mut*(a (k, v) bare-map mut*, key k) noctx, unsafe, k key
+	(a find key)!
+
+remove[k, v] void(_ (k, v) bare-map mut*, entry (k, v) map-pair mut*) noctx, unsafe, k key, v destroy
+	entry->key := invalid
+	# Don't remove 'value'. We keep those valid until the map is freed.
+
+find[k, v] (k, v) map-pair mut*?(a (k, v) bare-map mut*, key k) noctx, unsafe, k key
+	hash = key hash
+	left = a entry-left hash
+	if left->key == key
+		left,
+	else
+		right = a entry-right hash
+		if right->key == key
+			right,
+
+find-or-insert[k, v] (k, v) map-pair mut*(
+	a (k, v) bare-map mut*,
+	key k,
+) noctx, unsafe, k key, v new, (k, v) map-pair move
+	res, _ = a find-or-insert-and-inserted key
+	res
+
+found-or-inserted enum
+	found
+	inserted
+find-or-insert-and-inserted[k, v] ((k, v) map-pair mut*, found-or-inserted)(
+	a (k, v) bare-map mut*,
+	key k,
+) noctx, unsafe, k key, v new, (k, v) map-pair move
+	hash = key hash
+	loop
+		left = a entry-left hash
+		right = a entry-right hash
+		if left->key == key
+			break left, found
+		elif right->key == key
+			break right, found
+		elif left try-insert key
+			break left, inserted
+		elif right try-insert key
+			break right, inserted
+		elif evicted ?= a try-evict left, right
+			*evicted := (key, ())
+			break evicted, inserted
+		else
+			a increase-capacity
+			continue
+
+-try-insert[k, v] bool(entry (k, v) map-pair mut*, key k) noctx, unsafe, k key, v new
+	if entry->key == invalid
+		*entry := (key, ())
+		true
+
+-try-evict[k, v] (k, v) map-pair mut*?(
+	a (k, v) bare-map mut*,
+	left (k, v) map-pair mut*,
+	right (k, v) map-pair mut*,
+) noctx, unsafe, k key, (k, v) map-pair move, v new
+	# left and right are both occupied. See if we can evict one.
+	evict-left-to-right = a entry-right left->key.hash
+	if evict-left-to-right->key == invalid
+		evict-left-to-right move-from left.as-const
+		left,
+	else
+		evict-right-to-left = a entry-left right->key.hash
+		if evict-right-to-left->key == invalid
+			evict-right-to-left move-from right.as-const
+			right,
+
+-increase-capacity[k, v] void(a (k, v) bare-map mut*) noctx, unsafe, k key, v new, (k, v) map-pair move
+	forbid a->half-capacity == 0
+	new-half-capacity mut = a->half-capacity
+	out mut (k, v) bare-map = zeroed
+	loop
+		new-half-capacity *:= 2
+		out := new-half-capacity,
+		# First loop: Move keys only
+		cur mut = a->begin-full.as-const
+		worked bool = loop
+			if cur == a->end-full.as-const
+				break true
+			elif cur->key == invalid
+				cur +:= 1
+				continue
+			else
+				# TODO: should not need type annotation
+				if (&out)::((k, v) bare-map mut*) try-add-key cur->key
+					cur +:= 1
+					continue
+				else
+					break false
+		if worked
+			break
+		else
+			# TODO: should not need type annotation
+			(&out)::((k, v) bare-map mut*) free-table-not-values
+			continue
+
+	# Now move values
+	cur mut = a->begin-full.as-const
+	until cur == a->end-full.as-const
+		unless cur->key == invalid
+			&out must-find cur->key move-from cur
+		cur +:= 1
+
+	a free-table-not-values
+	*a := out
+
+-try-add-key[k, v] bool(a (k, v) bare-map mut*, key k) noctx, unsafe, k key, v new, (k, v) map-pair move
+	hash = key hash
+	left = a entry-left hash
+	right = a entry-right hash
+	forbid left->key == key || right->key == key
+	entry (k, v) map-pair mut*? = if left->key == invalid
+		left,
+	elif right->key == invalid
+		right,
+	else
+		a try-evict left, right
+	if e ?= entry
+		e->key := key
+		true
+
+slow-is-empty[k, v] bool(a (k, v) bare-map*) noctx, unsafe, k key
+	cur mut = a->begin-full.as-const
+	loop
+		if cur == a->end-full.as-const
+			break true
+		elif cur->key == invalid
+			cur +:= 1
+			continue
+		else
+			break false
+
+add-gc-roots[t] spec
+	add-gc-roots void(a t*, gc gc mut*)
+
+add-gc-roots[k, v] void(a (k, v) bare-map*, gc gc mut*) noctx, unsafe, v add-gc-roots
+	cur mut = a->begin-full.as-const
+	until cur == a->end-full.as-const
+		cur.value add-gc-roots gc
+		cur +:= 1

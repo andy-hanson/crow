@@ -99,6 +99,34 @@ elements not reachable by any slice will be garbage collected.
 	+size nat64
 	+begin-pointer t*
 
+###
+`mut-array` is a low-level type mostly useful for implementing other collections.
+For normal code, a `mut[]` is preferable.
+
+A `mut-array` is like a `mut[]`, but while a `mut[]` has capacity for pushing elements, `mut-array` is fixed-size.
+This has a small performance benefit, since (like an immutable array)
+a `mut-array` is just a pointer and size which can be stored by value.
+
+You can't change what range of addresses a `mut-array` points to, though you can write to its elements.
+
+Like an immutable array, and unlike a `mut[]`, it's cheap to take a slice of a `mut-array`.
+Taking a slice aliases the elements, so writing to the slice writes to the original.
+###
++mut-array[t] record mut by-val
+	~inner t array
+
+###
+Mutable array type that can change in size.
+This is represented as a reference to a `mut-array` with extra capacity.
+Appending (or removing) elements to the end is amortized O(1),
+but appending (or removing) from the beginning is always O(N).
+###
++mut-list[t] record mut
+	# backing.size is the capacity
+	# For the GC's sake, unused parts of backing are filled with 'zeroed'
+	~backing mut t mut-array
+	~mut-list-size mut nat64
+
 region string
 
 # Single character in a string.
@@ -383,20 +411,13 @@ future-state[t] union mut
 	# Optimization for 'tasks' when there is only one
 	one-task task
 	# The future has multiple tasks attached.
-	tasks task-list 
+	tasks task mut[]
 	# All operations should be directed to another future.
 	forwarded t^
 	# The future was resolved successfully.
 	resolved t
 	# The future resolved with an exception.
 	rejected exception
-
-task-list record mut
-	first task-node
-	last mut task-node
-task-node record mut
-	task task
-	next mut task-node?
 
 region lock
 

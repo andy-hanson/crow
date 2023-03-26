@@ -162,6 +162,10 @@ Returns an empty option if the key was not in the dictionary.
 +try-remove[k, v] v?(a v mut[k], key k) k key
 	a update key, ()
 
++remove[k, v] void(a v mut[k], key k) k key
+	_ = a try-remove key
+	()
+
 +ensure[k, v] v(a v mut[k], key k, get-value act v()) k key
 	if v ?= a[key]
 		v

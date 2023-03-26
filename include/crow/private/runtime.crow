@@ -1,6 +1,7 @@
 no-std
 import
-	../bool: &&, ||, bool, false, not, true
+	../bool: &&, ||, bool, false, true
+	../col/array: array
 	../col/dict: dict, empty-dict
 	../exception: exception, to
 	../fun-util: subscript
@@ -9,17 +10,17 @@ import
 	../log: default-log-handler, set-log-handler, log-handler
 	../misc: new, void
 	../number: ==, nat64
-	../option: option
+	../option: is-empty, option
 	../pointer: *, as-const, mut-pointer
 	../string: literal, string
 	../version: is-wasm
 	./alloc:
 		gc, gc-add-root, gc-begin, gc-complete, gc-end, init, needs-gc, mutator-begin, mutator-end,
 		uninit
-	./bootstrap: hard-assert, new, symbol, task-list
+	./bootstrap: hard-assert, new, symbol
 	./task-queue:
-		action, add-gc-roots, any-tasks, destroy, enqueue-task, enqueue-tasks, enqueue-timed-task,
-		exclusion, first-task-time, is-empty, new, pop-task, return-task, task, task-queue
+		action, add-gc-roots, destroy, enqueue-task, enqueue-tasks, enqueue-timed-task, exclusion,
+		init, pop-task, release-exclusion, slow-is-empty, task, task-queue, uninit
 	./thread-utils:
 		acquire, broadcast, condition, decrement, destroy-condition, get-and-increment,
 		get-sequence, increment-and-get, init, lock, release, thread-safe-counter, uninit, wait-on
@@ -76,12 +77,13 @@ cur-thread-id nat64() unsafe
 uninit global-ctx(n-threads nat64) noctx, summon, unsafe
 	exn fun void(exception) = exn => exn default-exception-handler
 	lh log-handler = log => log default-log-handler
-	uninit, uninit, false, uninit, (n-threads,), empty-dict, exn, lh, uninit, uninit, n-threads, uninit, uninit, false
+	uninit, uninit, false, uninit, uninit, empty-dict, exn, lh, uninit, uninit, n-threads, uninit, uninit, false
 
 init void(a global-ctx mut*) noctx, unsafe
 	a.global-lock init
 	a.may-be-work-to-do init
 	a.gc init a->n-threads
+	a.tasks init
 	a.symbols-lock init
 	a.tasks-lock init
 	a.n-waiting-threads init
@@ -111,7 +113,7 @@ enqueue-task void(a global-ctx mut*, task task) noctx, unsafe
 	a.tasks-lock release
 	a.may-be-work-to-do broadcast
 
-enqueue-tasks void(a global-ctx mut*, tasks task-list) noctx, unsafe
+enqueue-tasks void(a global-ctx mut*, tasks task array) noctx, unsafe
 	a.tasks-lock acquire
 	a.tasks enqueue-tasks tasks
 	a.tasks-lock release
@@ -147,7 +149,7 @@ thread-function void(thread-id nat64, gctx global-ctx mut*) noctx, summon, unsaf
 	gctx before-task task.exclusion
 	task.action invoke-action
 	gctx.tasks-lock acquire
-	gctx.tasks return-task task, thread-id-var
+	gctx.tasks release-exclusion task.exclusion
 	gctx.tasks-lock release
 	after-task
 
@@ -165,7 +167,7 @@ thread-function void(thread-id nat64, gctx global-ctx mut*) noctx, summon, unsaf
 -thread-shut-down void(gctx global-ctx mut*) noctx, summon, unsafe
 	gctx.may-be-work-to-do broadcast
 	gctx.tasks-lock acquire
-	gctx.as-const.tasks.is-empty hard-assert
+	gctx.as-const.tasks.slow-is-empty hard-assert
 	gctx.tasks-lock release
 
 before-task void(gctx global-ctx mut*, exclusion exclusion) noctx, unsafe
@@ -196,17 +198,17 @@ after-task void() noctx, unsafe
 	res = if gctx.gc->needs-gc
 		gc
 	else
-		match gctx.tasks pop-task cur-time, thread-id-var
+		match gctx.tasks pop-task cur-time
 		as task t
 			t task
-		as no-task n
+		as no-task first-task-time
 			n-waiting = gctx.n-waiting-threads increment-and-get
-			if (n-waiting == gctx->n-threads && !n.any-tasks) || gctx->is-shut-down
+			if (n-waiting == gctx->n-threads && first-task-time.is-empty) || gctx->is-shut-down
 				# Can't possibly be any more tasks: No timed tasks, no threads doing work to add tasks.
 				gctx->is-shut-down := true
 				shut-down
 			else
-				n.first-task-time wait-for-task
+				first-task-time wait-for-task
 
 	gctx.tasks-lock release
 	res

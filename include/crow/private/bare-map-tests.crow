@@ -1,0 +1,85 @@
+import
+	./bare-map
+
+dummy-bare-map-tests nat()
+	0
+
+-map record
+-map map()
+	()
+-with-block void(_ map, cb act void((nat, value) bare-map mut*)) unsafe
+	storage mut (nat, value) bare-map = 1,
+	a (nat, value) bare-map mut* = &storage
+	with : (() => a destroy) finally
+		cb[a]
+
+-invalid nat()
+	max-value
+
+-value record mut by-val
+	id mut string
+	moved mut nat
+	destroyed mut bool
+
+-new value() noctx
+	"default",
+
+-new value(id string) noctx
+	id, 0, false
+
+-move-from void(dest (nat, value) map-pair mut*, src (nat, value) map-pair*) noctx, unsafe
+	*dest := *src
+	dest.value->moved +:= 1
+
+-destroy void(a value mut*) noctx, unsafe
+	forbid a->destroyed
+	a->destroyed := true
+
+-to[t] json(a t mut*) unsafe
+	a.to::nat64 to
+
+test
+	with a : map
+		ptr, f = a find-or-insert-and-inserted 0
+		f is inserted
+		ptr.value->id is "default"
+		ptr.value->id := "a"
+
+		ptr2, f2 = a find-or-insert-and-inserted 0
+		f2 is found
+		assert ptr2 == ptr
+
+		a must-find 0 is ptr
+		a.as-const.slow-is-empty is false
+		a remove ptr
+		a.as-const.slow-is-empty is true
+
+test
+	with a : map
+		p3 = a find-or-insert 3
+		p7 = a find-or-insert 7
+		assert (a must-find 3) == p3
+		assert (a must-find 7) == p7
+		a remove p3
+
+		assert a find 3 is-empty
+		assert (a must-find 7) == p7
+		a find-or-insert 7 is p7
+		()
+
+test
+	with a : map
+		for i : 0 .. 10
+			p = a find-or-insert i * 4
+			p.value->id := "{i}"
+		for i : 0 .. 10
+			(a.as-const must-find i * 4).value->id is "{i}"
+
+test
+	with a : map
+		for i : 0 .. 10
+			p = a find-or-insert i
+			p.value->id := "{i}"
+		for i : 0 .. 10
+			a remove (a must-find i)
+		assert a.as-const slow-is-empty

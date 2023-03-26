@@ -66,7 +66,7 @@ Returns an empty option iff `a` is empty.
 +pop[t] t?(a t mut-stack)
 	a.inner pop
 
-region iteration
+region spec impls (see collection.crow)
 
 +iterate[t] bool(a t mut-stack, f act bool(t))
 	a.inner iterate f
