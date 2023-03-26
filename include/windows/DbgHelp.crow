@@ -18,10 +18,10 @@ ADDRESS64 record extern
 	Segment WORD
 	Mode ADDRESS_MODE
 
-new ADDRESS64() noctx
+new ADDRESS64() bare
 	0,
 
-new ADDRESS64(offset DWORD64) noctx
+new ADDRESS64(offset DWORD64) bare
 	offset, 0, AddrModeFlat
 
 STACKFRAME64 record extern
@@ -42,7 +42,7 @@ STACKFRAME64 record extern
 	Reserved2 DWORD64
 	KdHelp KDHELP64
 
-new STACKFRAME64(context CONTEXT*) noctx, unsafe
+new STACKFRAME64(context CONTEXT*) bare, unsafe
 	(context->Rip,), (), (context->Rbp,), (context->Rsp,), (), null, 0, 0, 0, 0, false, false, 0, 0, 0, ()
 
 KDHELP64 record extern
@@ -65,7 +65,7 @@ KDHELP64 record extern
 	Reserved00 DWORD64
 	Reserved01 DWORD64
 
-new KDHELP64() noctx
+new KDHELP64() bare
 	0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0
 
 IMAGEHLP_SYMBOL64 record extern
@@ -77,7 +77,7 @@ IMAGEHLP_SYMBOL64 record extern
 	# Actually may be more than one char, making the size of this struct actually bigger
 	Name c-char
 
-new IMAGEHLP_SYMBOL64(max-name-length DWORD) noctx, unsafe
+new IMAGEHLP_SYMBOL64(max-name-length DWORD) bare, unsafe
 	# TODO: should not need parentheses
 	(size-of@IMAGEHLP_LINE64).to, 0, 0, 0, max-name-length, "\0"
 
@@ -88,7 +88,7 @@ IMAGEHLP_LINE64 record extern
 	FileName c-string
 	Address DWORD64
 
-new IMAGEHLP_LINE64() noctx, unsafe
+new IMAGEHLP_LINE64() bare, unsafe
 	# TODO: should not need parentheses
 	(size-of@IMAGEHLP_LINE64).to, null, 0, null, 0
 

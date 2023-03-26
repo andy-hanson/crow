@@ -49,25 +49,25 @@ export
 	+ iter(a iter, n nat64)
 +skip-prev-next[iter] spec iter skip-prev, iter skip-next
 
-is-at-begin[iter, elem] bool(a iter) (elem, iter) prev, noctx
+is-at-begin[iter, elem] bool(a iter) (elem, iter) prev, bare
 	a.prev is-empty
-is-at-end[iter, elem] bool(a iter) (elem, iter) next, noctx
+is-at-end[iter, elem] bool(a iter) (elem, iter) next, bare
 	a.next is-empty
 
 # Represents an index relative to the size of a collection
 +index-relative-to-end record by-val
 	subtract nat64
 
-+end index-relative-to-end() noctx
++end index-relative-to-end() bare
 	0,
 
-+- index-relative-to-end(a index-relative-to-end, n nat64) noctx
++- index-relative-to-end(a index-relative-to-end, n nat64) bare
 	a.subtract + n,
 
 +subscript[col, iter, elem] elem(
 	a col,
 	index nat64,
-) (iter, col) begin, iter skip-next, (elem, iter) next, noctx
+) (iter, col) begin, iter skip-next, (elem, iter) next, bare
 	if x, _ ?= a.begin + index next
 		x
 	else
@@ -76,7 +76,7 @@ is-at-end[iter, elem] bool(a iter) (elem, iter) next, noctx
 +subscript[col, iter, elem] elem(
 	a col,
 	index index-relative-to-end,
-) (iter, col) end, iter skip-prev, (elem, iter) next, noctx
+) (iter, col) end, iter skip-prev, (elem, iter) next, bare
 	if x, _ ?= a.end - index.subtract next
 		x
 	else
@@ -86,16 +86,16 @@ is-at-end[iter, elem] bool(a iter) (elem, iter) next, noctx
 	a col,
 	index nat64,
 	value elem,
-) (iter, col) begin, iter skip-next, (iter, elem) set-next, noctx
+) (iter, col) begin, iter skip-next, (iter, elem) set-next, bare
 	a.begin + index set-next value
 +set-subscript[col, iter, elem] void(
 	a col,
 	index index-relative-to-end,
 	value elem,
-) (iter, col) end, iter skip-prev, (iter, elem) set-next, noctx
+) (iter, col) end, iter skip-prev, (iter, elem) set-next, bare
 	a.end - index.subtract set-next value
 
-+fill[col, iter, elem] void(a col, value elem) (iter, col) begin, (elem, iter) next, (iter, elem) set-next, noctx
++fill[col, iter, elem] void(a col, value elem) (iter, col) begin, (elem, iter) next, (iter, elem) set-next, bare
 	iter mut = a begin
 	loop
 		if _, next ?= iter next
@@ -118,19 +118,19 @@ is-at-end[iter, elem] bool(a iter) (elem, iter) next, noctx
 	low nat64
 	high index-relative-to-end
 
-+.. range-relative-to-end(low nat64, high index-relative-to-end) noctx
++.. range-relative-to-end(low nat64, high index-relative-to-end) bare
 	low, high
 
 +subscript[col, iter] col(
 	a col,
 	indices nat64 range,
-) (iter, col) begin, iter skip-next, (col, iter) slice, noctx
+) (iter, col) begin, iter skip-next, (col, iter) slice, bare
 	a.begin + indices.low slice a.begin + indices.high
 
 +subscript[col, iter] col(
 	a col,
 	indices range-relative-to-end,
-) (iter, col) begin-end, iter skip-prev-next, (col, iter) slice, noctx
+) (iter, col) begin-end, iter skip-prev-next, (col, iter) slice, bare
 	a.begin + indices.low slice a.end - indices.high.subtract
 
 +slice-left[col, iter] col(a iter) (col, iter) collection, (iter, col) begin, (col, iter) slice
@@ -221,7 +221,7 @@ and return an output collection of the elements for which `f` was `true`.
 			if f[x]
 				out ~= x
 
-sequence-equal[col, iter, elem] bool(a col, b col) col size, (iter, col) begin, (elem, iter) next, elem equal, noctx
+sequence-equal[col, iter, elem] bool(a col, b col) col size, (iter, col) begin, (elem, iter) next, elem equal, bare
 	if a.size == b.size
 		ai mut = a begin
 		bi mut = b begin
@@ -238,7 +238,7 @@ sequence-equal[col, iter, elem] bool(a col, b col) col size, (iter, col) begin, 
 				assert bi is-at-end
 				break true
 
-sequence-compare[col, iter, elem] comparison(a col, b col) (iter, col) begin, (elem, iter) next, elem compare, noctx
+sequence-compare[col, iter, elem] comparison(a col, b col) (iter, col) begin, (elem, iter) next, elem compare, bare
 	ai mut = a begin
 	bi mut = b begin
 	loop

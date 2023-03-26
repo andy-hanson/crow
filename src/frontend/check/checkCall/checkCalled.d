@@ -55,13 +55,13 @@ Opt!(Diag.CantCall.Reason) getCantCallReason(
 	FunFlags callerFlags,
 	bool isCallerInLambda,
 ) =>
-	!calledFlags.noCtx && callerFlags.noCtx && !calledFlags.forceCtx && !isCallerInLambda
-		// TODO: need to explain this better in the case where noCtx is due to the lambda
-		? some(Diag.CantCall.Reason.nonNoCtx)
+	!calledFlags.bare && callerFlags.bare && !calledFlags.forceCtx && !isCallerInLambda
+		// TODO: need to explain this better in the case where 'bare' is due to the lambda
+		? some(Diag.CantCall.Reason.nonBare)
 		: calledFlags.summon && !callerFlags.summon
 		? some(Diag.CantCall.Reason.summon)
 		: calledFlags.safety == FunFlags.Safety.unsafe && !checkCanDoUnsafe(ctx)
 		? some(Diag.CantCall.Reason.unsafe)
-		: calledIsVariadicNonEmpty && callerFlags.noCtx
-		? some(Diag.CantCall.Reason.variadicFromNoctx)
+		: calledIsVariadicNonEmpty && callerFlags.bare
+		? some(Diag.CantCall.Reason.variadicFromBare)
 		: none!(Diag.CantCall.Reason);

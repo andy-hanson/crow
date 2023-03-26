@@ -668,14 +668,14 @@ void writeDiag(
 		(in Diag.CantCall x) {
 			writer ~= () {
 				final switch (x.reason) {
-					case Diag.CantCall.Reason.nonNoCtx:
-						return "a 'noctx' function can't call a non-'noctx' function";
+					case Diag.CantCall.Reason.nonBare:
+						return "a 'bare' function can't call a non-'bare' function";
 					case Diag.CantCall.Reason.summon:
 						return "a non-'summon' function can't call a 'summon' function";
 					case Diag.CantCall.Reason.unsafe:
 						return "a non-'unsafe' function can't call an 'unsafe' function";
-					case Diag.CantCall.Reason.variadicFromNoctx:
-						return "a 'noctx' function can't call a variadic function";
+					case Diag.CantCall.Reason.variadicFromBare:
+						return "a 'bare' function can't call a variadic function";
 				}
 			}();
 			writer ~= ' ';
@@ -1253,6 +1253,8 @@ string describeTokenForUnexpected(Token token) {
 			return "unexpected '@'";
 		case Token.bang:
 			return "unexpected '!'";
+		case Token.bare:
+			return "unexpected keyword 'bare'";
 		case Token.break_:
 			return "unexpected keyword 'break'";
 		case Token.builtin:
@@ -1330,8 +1332,6 @@ string describeTokenForUnexpected(Token token) {
 			return "did not expect a name here";
 		case Token.newline:
 			return "unexpected newline";
-		case Token.noCtx:
-			return "unexpected keyword 'noctx'";
 		case Token.noStd:
 			return "unexpected keyword 'no-std'";
 		case Token.operator:

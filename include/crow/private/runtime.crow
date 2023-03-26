@@ -70,16 +70,16 @@ get-global-lock lock mut*() unsafe
 
 -thread-id-var thread-local(nat64)
 
-# This is not 'noctx' since a non-crow thread won't have an ID
+# This is not 'bare' since a non-crow thread won't have an ID
 cur-thread-id nat64() unsafe
 	thread-id-var
 
-uninit global-ctx(n-threads nat64) noctx, summon, unsafe
+uninit global-ctx(n-threads nat64) bare, summon, unsafe
 	exn fun void(exception) = exn => exn default-exception-handler
 	lh log-handler = log => log default-log-handler
 	uninit, uninit, false, uninit, uninit, empty-map, exn, lh, uninit, uninit, n-threads, uninit, uninit, false
 
-init void(a global-ctx mut*) noctx, unsafe
+init void(a global-ctx mut*) bare, unsafe
 	a.global-lock init
 	a.may-be-work-to-do init
 	a.gc init a->n-threads
@@ -89,11 +89,11 @@ init void(a global-ctx mut*) noctx, unsafe
 	a.n-waiting-threads init
 	a.next-exclusion init
 
-destroy void(a global-ctx mut*) noctx, unsafe
+destroy void(a global-ctx mut*) bare, unsafe
 	a.tasks destroy
 	a.may-be-work-to-do destroy-condition
 
-new-exclusion exclusion(a global-ctx mut*) noctx
+new-exclusion exclusion(a global-ctx mut*) bare
 	trusted a.next-exclusion get-and-increment
 
 default-exception-handler void(e exception) summon, unsafe
@@ -107,13 +107,13 @@ enqueue-task-no-exclusion void(a global-ctx mut*, action act void()) unsafe
 enqueue-task void(a global-ctx mut*, exclusion exclusion, action act void()) unsafe
 	a enqueue-task (exclusion, action)
 
-enqueue-task void(a global-ctx mut*, task task) noctx, unsafe
+enqueue-task void(a global-ctx mut*, task task) bare, unsafe
 	a.tasks-lock acquire
 	a.tasks enqueue-task task
 	a.tasks-lock release
 	a.may-be-work-to-do broadcast
 
-enqueue-tasks void(a global-ctx mut*, tasks task array) noctx, unsafe
+enqueue-tasks void(a global-ctx mut*, tasks task array) bare, unsafe
 	a.tasks-lock acquire
 	a.tasks enqueue-tasks tasks
 	a.tasks-lock release
@@ -125,7 +125,7 @@ enqueue-timed-task-no-exclusion void(a global-ctx mut*, time timestamp, action a
 	a.tasks-lock release
 	a.may-be-work-to-do broadcast
 
-thread-function void(thread-id nat64, gctx global-ctx mut*) noctx, summon, unsafe
+thread-function void(thread-id nat64, gctx global-ctx mut*) bare, summon, unsafe
 	thread-id-var := thread-id
 	loop
 		# Get a task to do; or sleep.
@@ -145,7 +145,7 @@ thread-function void(thread-id nat64, gctx global-ctx mut*) noctx, summon, unsaf
 		as shut-down
 			break gctx thread-shut-down
 
--do-task void(gctx global-ctx mut*, task task) noctx, summon, unsafe
+-do-task void(gctx global-ctx mut*, task task) bare, summon, unsafe
 	gctx before-task task.exclusion
 	task.action invoke-action
 	gctx.tasks-lock acquire
@@ -153,7 +153,7 @@ thread-function void(thread-id nat64, gctx global-ctx mut*) noctx, summon, unsaf
 	gctx.tasks-lock release
 	after-task
 
--do-gc void(gctx global-ctx mut*) noctx, unsafe
+-do-gc void(gctx global-ctx mut*) bare, unsafe
 	gc = gctx gc
 	if gc gc-begin
 		gctx.as-const.tasks add-gc-roots gc
@@ -164,19 +164,19 @@ thread-function void(thread-id nat64, gctx global-ctx mut*) noctx, summon, unsaf
 -invoke-action void(action act void()) force-ctx
 	action[]
 
--thread-shut-down void(gctx global-ctx mut*) noctx, summon, unsafe
+-thread-shut-down void(gctx global-ctx mut*) bare, summon, unsafe
 	gctx.may-be-work-to-do broadcast
 	gctx.tasks-lock acquire
 	gctx.as-const.tasks.slow-is-empty hard-assert
 	gctx.tasks-lock release
 
-before-task void(gctx global-ctx mut*, exclusion exclusion) noctx, unsafe
+before-task void(gctx global-ctx mut*, exclusion exclusion) bare, unsafe
 	global-ctx-var := gctx
 	cur-exclusion-var := exclusion
 	gctx.gc mutator-begin
 	gctx->default-log-handler set-log-handler
 
-after-task void() noctx, unsafe
+after-task void() bare, unsafe
 	mutator-end
 
 -choose-task-result union mut
@@ -188,7 +188,7 @@ after-task void() noctx, unsafe
 	# No task to do now or ever, so shut down
 	shut-down
 
--choose-task choose-task-result(gctx global-ctx mut*) noctx, summon, unsafe
+-choose-task choose-task-result(gctx global-ctx mut*) bare, summon, unsafe
 	cur-time = if is-wasm
 		0
 	else

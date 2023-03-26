@@ -33,15 +33,15 @@ new stat()
 
 stat int32(path c-string, buf stat mut*) summon, c extern
 
-S_IFMT nat32() noctx
+S_IFMT nat32() bare
 	# TODO: "octal170000"
 	61440
 
-S_IFDIR nat32() noctx
+S_IFDIR nat32() bare
 	# TODO: "octal40000"
 	16384
 
-S_IFREG nat32() noctx
+S_IFREG nat32() bare
 	# TODO: "octal100000"
 	32768
 

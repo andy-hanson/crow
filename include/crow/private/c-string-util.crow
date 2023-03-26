@@ -5,14 +5,14 @@ import
 	../pointer: +, -, *, as-const, as-mut, mut-pointer
 	./bootstrap: char8, c-string
 
-+to char8(a nat8) builtin, noctx
-+to nat8(a char8) builtin, noctx
++to char8(a nat8) builtin, bare
++to nat8(a char8) builtin, bare
 
 ###
 Walk a c-string and return a pointer to the first occurrence of `c`.
 If that is not found, return an empty option.
 ###
-find-char-in-c-string c-string?(a c-string, c char8) noctx, unsafe
+find-char-in-c-string c-string?(a c-string, c char8) bare, unsafe
 	cur mut = a
 	loop
 		if cur->to == c.to
@@ -24,7 +24,7 @@ find-char-in-c-string c-string?(a c-string, c char8) noctx, unsafe
 			continue
 
 # Pointer to the end of a c-string.
-find-c-string-end c-string(a c-string) noctx, unsafe
+find-c-string-end c-string(a c-string) bare, unsafe
 	cur mut = a
 	loop
 		if cur->to::nat8 == 0
@@ -34,11 +34,11 @@ find-c-string-end c-string(a c-string) noctx, unsafe
 			continue
 
 # Pointer to the end of a c-string.
-find-c-string-end char8 mut*(a char8 mut*) noctx, unsafe
+find-c-string-end char8 mut*(a char8 mut*) bare, unsafe
 	a.as-const.find-c-string-end as-mut
 
-c-string-size nat64(a c-string) noctx, unsafe
+c-string-size nat64(a c-string) bare, unsafe
 	a.find-c-string-end - a
 
-c-string-size-incl-nul nat64(a c-string) noctx, unsafe
+c-string-size-incl-nul nat64(a c-string) bare, unsafe
 	a.c-string-size + 1

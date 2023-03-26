@@ -31,10 +31,10 @@ sound-from-file-content sound(content nat8 array)
 	assert n-read == samples.size
 	(n-channels, sample-rate), samples.move-to
 
--get_filelen sf_count_t(user-data-pointer any-mut-pointer) noctx, unsafe
+-get_filelen sf_count_t(user-data-pointer any-mut-pointer) bare, unsafe
 	(user-data-pointer.pointer-cast::user-data mut*)->content size
 
--seek sf_count_t(offset sf_count_t, whence SEEK, user-data-pointer any-mut-pointer) noctx, unsafe
+-seek sf_count_t(offset sf_count_t, whence SEEK, user-data-pointer any-mut-pointer) bare, unsafe
 	ap user-data mut* = user-data-pointer pointer-cast
 	a = *ap
 	start = match whence
@@ -49,7 +49,7 @@ sound-from-file-content sound(content nat8 array)
 	*ap := a.content, pos
 	pos - a.content.begin-pointer
 
--read sf_count_t(pointer nat8 mut*, count sf_count_t, user-data-pointer any-mut-pointer) noctx, unsafe
+-read sf_count_t(pointer nat8 mut*, count sf_count_t, user-data-pointer any-mut-pointer) bare, unsafe
 	ap user-data mut* = user-data-pointer pointer-cast
 	a = *ap
 	n-to-read = count min (a.content.end-pointer - a.cur)
@@ -57,10 +57,10 @@ sound-from-file-content sound(content nat8 array)
 	*ap := a.content, a.cur + n-to-read
 	n-to-read
 
--write sf_count_t(_ nat8*, _ sf_count_t, _ any-mut-pointer) noctx, unsafe
+-write sf_count_t(_ nat8*, _ sf_count_t, _ any-mut-pointer) bare, unsafe
 	unreachable
 
--tell sf_count_t(user-data-pointer any-mut-pointer) noctx, unsafe
+-tell sf_count_t(user-data-pointer any-mut-pointer) bare, unsafe
 	a user-data mut* = user-data-pointer pointer-cast
 	a->cur - a->content.begin-pointer
 

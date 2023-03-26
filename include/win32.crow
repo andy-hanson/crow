@@ -40,7 +40,7 @@ SleepConditionVariableCS bool(
 
 WakeAllConditionVariable void(a CONDITION_VARIABLE mut*) kernel32 extern
 
-INFINITE DWORD() noctx
+INFINITE DWORD() bare
 	0xffffffff
 
 SYNCHRONIZATION_BARRIER record mut extern
@@ -81,15 +81,15 @@ ULONG_PTR alias
 GetLastError DWORD() kernel32 extern, summon
 SetLastError void(err-code DWORD) kernel32 extern, summon
 
-ERROR_BROKEN_PIPE DWORD() noctx
+ERROR_BROKEN_PIPE DWORD() bare
 	109
-ERROR_TIMEOUT DWORD() noctx
+ERROR_TIMEOUT DWORD() bare
 	1460
 
 HANDLE alias
 	any-mut-pointer
 
-INVALID_HANDLE_VALUE HANDLE() noctx, unsafe
+INVALID_HANDLE_VALUE HANDLE() bare, unsafe
 	max-value to-mut-pointer
 
 WaitForSingleObject DWORD(handle HANDLE, milliseconds DWORD) kernel32 extern, summon
@@ -105,7 +105,7 @@ _beginthreadex HANDLE(
 	thrdaddr u-int mut*,
 ) c extern
 
-WAIT_OBJECT_0 DWORD() noctx
+WAIT_OBJECT_0 DWORD() bare
 	0
 
 GetStdHandle HANDLE(stdHandle std-handle) kernel32 extern, summon
@@ -141,7 +141,7 @@ WIN32_FIND_DATAA record extern mut
 -chars260 extern(260, 1)
 -chars14 extern(14, 1)
 
-new WIN32_FIND_DATAA() noctx, unsafe
+new WIN32_FIND_DATAA() bare, unsafe
 	(), (), (), (), () , (), (), (), (), ()
 
 cFileName c-char mut*(a WIN32_FIND_DATAA mut*) unsafe
@@ -151,7 +151,7 @@ FILETIME record extern
 	dwLowDateTime DWORD
 	dwHighDateTime DWORD
 
-new FILETIME() noctx
+new FILETIME() bare
 	(), ()
 
 DeleteFileA bool(lpFileName c-string) kernel32 extern, summon
@@ -191,11 +191,11 @@ _mkdir err-t(path c-string, mode mode_t) summon, c extern
 _pclose err-t(stream FILE mut*) summon, c extern
 _popen FILE mut*(command c-string, mode c-string) summon, c extern
 
-ERROR_FILE_NOT_FOUND DWORD() noctx
+ERROR_FILE_NOT_FOUND DWORD() bare
 	2
-ERROR_PATH_NOT_FOUND DWORD() noctx
+ERROR_PATH_NOT_FOUND DWORD() bare
 	3
-ERROR_NO_MORE_FILES DWORD() noctx
+ERROR_NO_MORE_FILES DWORD() bare
 	18
 
 FormatMessageA DWORD(
@@ -208,15 +208,15 @@ FormatMessageA DWORD(
 	arguments any-mut-pointer,
 ) kernel32 extern, summon
 
-FORMAT_MESSAGE_IGNORE_INSERTS DWORD() noctx
+FORMAT_MESSAGE_IGNORE_INSERTS DWORD() bare
 	0x200
-FORMAT_MESSAGE_FROM_STRING DWORD() noctx
+FORMAT_MESSAGE_FROM_STRING DWORD() bare
 	0x400
-FORMAT_MESSAGE_FROM_HMODULE DWORD() noctx
+FORMAT_MESSAGE_FROM_HMODULE DWORD() bare
 	0x800
-FORMAT_MESSAGE_FROM_SYSTEM DWORD() noctx
+FORMAT_MESSAGE_FROM_SYSTEM DWORD() bare
 	0x1000
-FORMAT_MESSAGE_ARGUMENT_ARRAY DWORD() noctx
+FORMAT_MESSAGE_ARGUMENT_ARRAY DWORD() bare
 	0x2000
 
 LANG_NEUTRAL WORD()
@@ -224,7 +224,7 @@ LANG_NEUTRAL WORD()
 SUBLANG_NEUTRAL WORD()
 	0
 
-MAKELANGID DWORD(p WORD, s WORD) noctx
+MAKELANGID DWORD(p WORD, s WORD) bare
 	(s.to << 10) | p.to
 
 STARTUPINFOA record mut extern
@@ -258,7 +258,7 @@ startup-flags enum(DWORD) extern
 	STARTF_FORCEOFFFEEDBACK = 0x80
 	STARTF_USESTDHANDLES = 0x100
 
-new STARTUPINFOA(dwFlags startup-flags, hStdInput HANDLE, hStdOutput HANDLE, hStdError HANDLE) noctx, unsafe
+new STARTUPINFOA(dwFlags startup-flags, hStdInput HANDLE, hStdOutput HANDLE, hStdError HANDLE) bare, unsafe
 	size DWORD = size-of@STARTUPINFOA to
 	size, (), (), (), (), (), (), (), (), (), (), dwFlags, (), (), (), hStdInput, hStdOutput, hStdError
 
@@ -267,7 +267,7 @@ SECURITY_ATTRIBUTES record mut extern
 	lpSecurityDescriptor any-mut-pointer
 	bInheritHandle c-int
 
-new SECURITY_ATTRIBUTES(lpSecurityDescriptor any-mut-pointer, bInheritHandle bool) noctx, unsafe
+new SECURITY_ATTRIBUTES(lpSecurityDescriptor any-mut-pointer, bInheritHandle bool) bare, unsafe
 	# TODO: shouldn't need parens
 	(size-of@SECURITY_ATTRIBUTES).to, lpSecurityDescriptor, bInheritHandle ? 1 : 0
 
@@ -277,7 +277,7 @@ PROCESS_INFORMATION record mut extern
 	dwProcessId DWORD
 	dwThreadId DWORD
 
-new PROCESS_INFORMATION() noctx, unsafe
+new PROCESS_INFORMATION() bare, unsafe
 	(), (), (), ()
 
 CreatePipe bool(
@@ -299,9 +299,9 @@ link-flags flags(DWORD) extern
 
 SetHandleInformation bool(hObject HANDLE, dwMask DWORD, dwFlags DWORD) kernel32 extern, summon
 
-HANDLE_FLAG_INHERIT DWORD() noctx
+HANDLE_FLAG_INHERIT DWORD() bare
 	1
-HANDLE_FLAG_PROTECT_FROM_CLOSE DWORD() noctx
+HANDLE_FLAG_PROTECT_FROM_CLOSE DWORD() bare
 	2
 
 CreateProcessA bool(
@@ -346,7 +346,7 @@ WSADATA record mut extern
 -chars129 extern(129, 1)
 -chars257 extern(257, 1)
 
-new WSADATA() noctx, unsafe
+new WSADATA() bare, unsafe
 	(), (), (), (), (), (), ()
 
 GetSystemInfo void(lpSystemInfo SYSTEM_INFO mut*) summon, kernel32 extern
@@ -363,7 +363,7 @@ SYSTEM_INFO record mut extern
 	wProcessorLevel WORD
 	wProcessorRevision WORD
 
-new SYSTEM_INFO() noctx, unsafe
+new SYSTEM_INFO() bare, unsafe
 	(), (), (), (), (), (), (), (), (), ()
 
 # TODO: should be 'summon'
@@ -417,34 +417,34 @@ CONTEXT record extern mut
 	-opaque bytes2048
 -bytes2048 extern(2048)
 
-new CONTEXT(ContextFlags DWORD) noctx, unsafe
+new CONTEXT(ContextFlags DWORD) bare, unsafe
 	cf = ContextFlags
 	0, 0, 0, 0, 0, 0, cf, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, ()
 
 RtlCaptureContext void(context CONTEXT mut*) kernel32 extern
 
 # TODO: use a flags enum
-CONTEXT_AMD64 DWORD() noctx
+CONTEXT_AMD64 DWORD() bare
 	0x00100000
-CONTEXT_CONTROL DWORD() noctx
+CONTEXT_CONTROL DWORD() bare
 	CONTEXT_AMD64 | 0x00000001
-CONTEXT_INTEGER DWORD() noctx
+CONTEXT_INTEGER DWORD() bare
 	CONTEXT_AMD64 | 0x00000002
-CONTEXT_SEGMENTS DWORD() noctx
+CONTEXT_SEGMENTS DWORD() bare
 	CONTEXT_AMD64 | 0x00000004
-CONTEXT_FLOATING_POINT DWORD() noctx
+CONTEXT_FLOATING_POINT DWORD() bare
 	CONTEXT_AMD64 | 0x00000008
-CONTEXT_DEBUG_REGISTERS DWORD() noctx
+CONTEXT_DEBUG_REGISTERS DWORD() bare
 	CONTEXT_AMD64 | 0x00000010
-CONTEXT_FULL DWORD() noctx
+CONTEXT_FULL DWORD() bare
 	CONTEXT_CONTROL | CONTEXT_INTEGER | CONTEXT_FLOATING_POINT
-CONTEXT_ALL DWORD() noctx
+CONTEXT_ALL DWORD() bare
 	CONTEXT_CONTROL | CONTEXT_INTEGER | CONTEXT_SEGMENTS | CONTEXT_FLOATING_POINT | CONTEXT_DEBUG_REGISTERS
-CONTEXT_XSTATE DWORD() noctx
+CONTEXT_XSTATE DWORD() bare
 	CONTEXT_AMD64 | 0x00000040
 
 GetCurrentProcess HANDLE() kernel32 extern
 GetCurrentThread HANDLE() kernel32 extern
 
-IMAGE_FILE_MACHINE_AMD64 DWORD() noctx
+IMAGE_FILE_MACHINE_AMD64 DWORD() bare
 	0x8664

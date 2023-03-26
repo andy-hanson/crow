@@ -500,14 +500,14 @@ TypeAst[] parseSpecModifiers(ref Lexer lexer) {
 
 Opt!(FunModifierAst.Special.Flags) tryGetSpecialFunModifier(Token token) {
 	switch (token) {
+		case Token.bare:
+			return some(FunModifierAst.Special.Flags.bare);
 		case Token.builtin:
 			return some(FunModifierAst.Special.Flags.builtin);
 		case Token.extern_:
 			return some(FunModifierAst.Special.Flags.extern_);
 		case Token.forceCtx:
 			return some(FunModifierAst.Special.Flags.forceCtx);
-		case Token.noCtx:
-			return some(FunModifierAst.Special.Flags.noctx);
 		case Token.summon:
 			return some(FunModifierAst.Special.Flags.summon);
 		case Token.trusted:

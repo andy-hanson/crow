@@ -1,4 +1,4 @@
-main void() noctx
+main void() bare
 	()::string foo
 	()::string[] foo
 	()::string[][] foo
@@ -19,14 +19,14 @@ main void() noctx
 foo[t] spec
 	foo void(a t)
 
-foo[t] void(a t[]) noctx, t foo
+foo[t] void(a t[]) bare, t foo
 	a[0] foo
 
-foo void(_ string) noctx, unsafe
+foo void(_ string) bare, unsafe
 	()
 
 foo void(_ bool)
 	()
 
-foo void(_ nat) noctx, summon
+foo void(_ nat) bare, summon
 	()

@@ -4,7 +4,7 @@ import
 	crow/version: is-windows
 	crow/pointer: *, mut-pointer
 
-errno err-t() noctx, unsafe
+errno err-t() bare, unsafe
 	if is-windows
 		*_errno
 	else
@@ -12,17 +12,17 @@ errno err-t() noctx, unsafe
 -_errno err-t mut*() c extern
 -__errno_location err-t mut*() c extern
 
-ENOENT err-t() noctx
+ENOENT err-t() bare
 	2
-ESRCH err-t() noctx
+ESRCH err-t() bare
 	3
-EAGAIN err-t() noctx
+EAGAIN err-t() bare
 	11
-EWOULDBLOCK err-t() noctx
+EWOULDBLOCK err-t() bare
 	EAGAIN
-EEXIST err-t() noctx
+EEXIST err-t() bare
 	17
-EINVAL err-t() noctx
+EINVAL err-t() bare
 	22
-ETIMEDOUT err-t() noctx
+ETIMEDOUT err-t() bare
 	110

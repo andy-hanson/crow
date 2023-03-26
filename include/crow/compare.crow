@@ -33,11 +33,11 @@ so it may consider values equal that may not be equal in the future.
 	<=> comparison(a t, b t)
 
 # True iff `!(a == b)`.
-+!=[t] bool(a t, b t) noctx, t equal
++!=[t] bool(a t, b t) bare, t equal
 	!(a == b)
 
 # True iff `(a <=> b) == less`.
-+<[t] bool(a t, b t) noctx, t compare
++<[t] bool(a t, b t) bare, t compare
 	match a <=> b
 	as less
 		true
@@ -47,15 +47,15 @@ so it may consider values equal that may not be equal in the future.
 		false
 
 # True iff `(a <=> b) != greater`.
-+<=[t] bool(a t, b t) noctx, t compare
++<=[t] bool(a t, b t) bare, t compare
 	!(b < a)
 
 # True iff `(a <=> b) == greater`.
-+>[t] bool(a t, b t) noctx, t compare
++>[t] bool(a t, b t) bare, t compare
 	b < a
 
 # True iff `(a <=> b) != less`.
-+>=[t] bool(a t, b t) noctx, t compare
++>=[t] bool(a t, b t) bare, t compare
 	!(a < b)
 
 ###
@@ -63,7 +63,7 @@ Returns the lesser argument.
 
 Returns `b` if they are equal.
 ###
-+min[t] t(a t, b t) noctx, t compare
++min[t] t(a t, b t) bare, t compare
 	a < b ? a : b
 
 ###
@@ -71,17 +71,17 @@ Returns the greater argument.
 
 Returns `b` if they are equal.
 ###
-+max[t] t(a t, b t) noctx, t compare
++max[t] t(a t, b t) bare, t compare
 	a > b ? a : b
 
 # Wraps a value and reverses comparison (so less becomes greater and vice versa)
 +compare-reverse[t] record by-val
 	-inner t
-+compare-reverse[t] t compare-reverse(a t) noctx
++compare-reverse[t] t compare-reverse(a t) bare
 	a,
-+==[t] bool(a t compare-reverse, b t compare-reverse) t equal, noctx
++==[t] bool(a t compare-reverse, b t compare-reverse) t equal, bare
 	a.inner == b.inner
-+<=>[t] comparison(a t compare-reverse, b t compare-reverse) t compare, noctx
++<=>[t] comparison(a t compare-reverse, b t compare-reverse) t compare, bare
 	match a.inner <=> b.inner
 	as less
 		greater

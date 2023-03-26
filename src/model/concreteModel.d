@@ -13,6 +13,7 @@ import model.model :
 	FunDecl,
 	FunInst,
 	isArray,
+	isSummon,
 	isTuple,
 	Local,
 	name,
@@ -20,7 +21,6 @@ import model.model :
 	Purity,
 	range,
 	StructInst,
-	summon,
 	VarDecl;
 import util.col.arr : empty, only, PtrAndSmallNumber;
 import util.col.arrUtil : contains;
@@ -385,7 +385,7 @@ Opt!Sym name(ref ConcreteFun a) =>
 bool isSummon(ref ConcreteFun a) =>
 	a.source.match!bool(
 		(ref FunInst it) =>
-			summon(*decl(it)),
+			isSummon(*decl(it)),
 		(ref ConcreteFunSource.Lambda it) =>
 			isSummon(*it.containingFun),
 		(ref ConcreteFunSource.Test) =>

@@ -25,7 +25,7 @@ SF_INFO record extern
 	sections u-int
 	seekable u-int
 
-new SF_INFO() noctx
+new SF_INFO() bare
 	0, 0, 0, (), 0, 0
 
 sf_open SNDFILE mut*(path c-string, mode SndFileMode, sfinfo SF_INFO mut*) summon, sndfile extern

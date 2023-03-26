@@ -5,9 +5,9 @@ import
 export
 	./private/bootstrap: a, b, c, d, e, f, new, tuple2, tuple3, tuple4, tuple5, tuple6
 
-+==[t, u] bool(a (t, u), b (t, u)) noctx, t equal, u equal
++==[t, u] bool(a (t, u), b (t, u)) bare, t equal, u equal
 	a.a == b.a && a.b == b.b
-+<=>[t, u] comparison(a (t, u), b (t, u)) noctx, t compare, u compare
++<=>[t, u] comparison(a (t, u), b (t, u)) bare, t compare, u compare
 	match a.a <=> b.a
 	as less
 		less

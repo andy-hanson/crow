@@ -308,7 +308,7 @@ module-content string(a module, all-exports all-exports)
 	"""<span class="spec">{args}{name}</span>"""
 
 special-specs symbol set()
-	"noctx", "summon", "unsafe"
+	"bare", "summon", "unsafe"
 
 -type-args-content string(a type-ref[], ctx ctx)
 	if a.size == 0

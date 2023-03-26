@@ -8,7 +8,7 @@ timespec record extern
 	tv_sec long
 	tv_nsec long
 
-new timespec() noctx
+new timespec() bare
 	0, 0
 
 tm extern
@@ -26,7 +26,7 @@ time time_t(timer time_t mut*) summon, c extern
 
 strftime size_t(s char8 mut*, max-size size_t, format c-string, tp tm*) summon, c extern
 
-CLOCK_MONOTONIC __clockid_t() noctx
+CLOCK_MONOTONIC __clockid_t() bare
 	1
 
 __clockid_t alias

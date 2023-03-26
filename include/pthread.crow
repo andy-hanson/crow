@@ -62,7 +62,7 @@ pthread_barrier_init err-t(barrier pthread_barrier_t mut*, attr pthread_barriera
 pthread_barrier_destroy err-t(barrier pthread_barrier_t mut*) pthread extern
 pthread_barrier_wait err-t(barrier pthread_barrier_t mut*) pthread extern
 
-PTHREAD_BARRIER_SERIAL_THREAD err-t() noctx, unsafe
+PTHREAD_BARRIER_SERIAL_THREAD err-t() bare, unsafe
 	-1
 
 pthread_barrierattr_init err-t(attr pthread_barrierattr_t mut*) pthread extern

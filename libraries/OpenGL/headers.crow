@@ -140,9 +140,9 @@ glVertexAttribPointer void(
 	pointer any-const-pointer,
 ) summon, GL extern
 
-GL_FALSE GLint() noctx
+GL_FALSE GLint() bare
 	0
-GL_TRUE GLint() noctx
+GL_TRUE GLint() bare
 	1
 
 GLenum enum(u-int) extern
@@ -185,5 +185,5 @@ GLenum enum(u-int) extern
 	GL_TEXTURE_SWIZZLE_A = 0x8e45
 	GL_CULL_FACE = 0x0B44
 
-GL_COLOR_BUFFER_BIT GLbitfield() noctx
+GL_COLOR_BUFFER_BIT GLbitfield() bare
 	0x00004000

@@ -7,7 +7,7 @@ Empty type, for use by functions with nothing in particular to return.
 ###
 +void builtin extern
 
-new-void void() builtin, noctx
+new-void void() builtin, bare
 
 ###
 Specifies that a type must be immutable data.
@@ -153,20 +153,20 @@ Unlike in other programming languages, this isn't a numeric type.
 False boolean value.
 This can also be written as `()`.
 ###
-+false bool() builtin, noctx
++false bool() builtin, bare
 
 # True boolean value.
-+true bool() builtin, noctx
++true bool() builtin, bare
 
 region symbol.crow
 
 +symbol record by-val
 	-symbol-to-c-string c-string
 
-new-symbol symbol(a c-string) noctx, unsafe
+new-symbol symbol(a c-string) bare, unsafe
 	a,
 
-to c-string(a symbol) noctx, unsafe
+to c-string(a symbol) bare, unsafe
 	a symbol-to-c-string
 
 region bootstrap arithmetic
@@ -226,7 +226,7 @@ abort void() c extern
 Zeroed data isn't safe as it would contain null pointers.
 It's GC-safe though, since the GC treats a null pointer same as any external pointer.
 ###
-zeroed[t] t() builtin, noctx, unsafe
+zeroed[t] t() builtin, bare, unsafe
 
 ###
 For a number: 0.
@@ -238,26 +238,26 @@ For flags: 0.
 safe-value[t] t() builtin
 
 # TODO: remove this function
-todo[t] t() noctx
+todo[t] t() bare
 	# this shouldn't really be trusted
 	trusted
 		abort
 		zeroed
 
 # Used in low-level code that should always abort on failure instead of throwing an exception
-hard-unreachable[t] t() noctx, unsafe
+hard-unreachable[t] t() bare, unsafe
 	abort
 	zeroed
 
 # Used in low-level code that should always abort on failure instead of throwing an exception
-hard-assert void(condition bool) noctx, unsafe
+hard-assert void(condition bool) bare, unsafe
 	if condition
 		new-void
 	else
 		abort
 
 # Used in low-level code that should always abort on failure instead of throwing an exception
-hard-forbid void(condition bool) noctx, unsafe
+hard-forbid void(condition bool) bare, unsafe
 	if condition
 		abort
 	else
@@ -337,7 +337,7 @@ region tuple
 region fun
 
 ###
-Low-level function pointer type. Must point to `noctx` code.
+Low-level function pointer type. Must point to `bare` code.
 These aren't used much in crow code.
 
 Create a function pointer by writing `&foo` where `foo` is the name of a function in scope.
@@ -431,4 +431,4 @@ lock record shared by-val
 region reflect
 
 # All symbols that exist in the compiled code, in arbitrary order
-static-symbols symbol array() builtin, noctx
+static-symbols symbol array() builtin, bare

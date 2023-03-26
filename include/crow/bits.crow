@@ -18,64 +18,64 @@ import
 Negates every bit.
 0 bits become 1 bits and vice versa.
 ###
-+~ nat64(a nat64) builtin, noctx
++~ nat64(a nat64) builtin, bare
 
 ###
 Intersection of bits; 'and's each corresponding bit in parallel.
 An output bit will be 1 iff both corresponding input bits are 1.
 ###
-+& nat8(a nat8, b nat8) builtin, noctx
-+& nat16(a nat16, b nat16) builtin, noctx
-+& nat32(a nat32, b nat32) builtin, noctx
-+& nat64(a nat64, b nat64) builtin, noctx
-+& int8(a int8, b int8) builtin, noctx
-+& int16(a int16, b int16) builtin, noctx
-+& int32(a int32, b int32) builtin, noctx
-+& int64(a int64, b int64) builtin, noctx
++& nat8(a nat8, b nat8) builtin, bare
++& nat16(a nat16, b nat16) builtin, bare
++& nat32(a nat32, b nat32) builtin, bare
++& nat64(a nat64, b nat64) builtin, bare
++& int8(a int8, b int8) builtin, bare
++& int16(a int16, b int16) builtin, bare
++& int32(a int32, b int32) builtin, bare
++& int64(a int64, b int64) builtin, bare
 
 ###
 Union of bits; 'or's each corresponding bit in parallel.
 An output bit will be 1 iff either corresponding input bit is 1.
 ###
-+| nat8(a nat8, b nat8) builtin, noctx
-+| nat16(a nat16, b nat16) builtin, noctx
-+| nat32(a nat32, b nat32) builtin, noctx
-+| nat64(a nat64, b nat64) builtin, noctx
-+| int16(a int16, b int16) builtin, noctx
-+| int32(a int32, b int32) builtin, noctx
-+| int64(a int64, b int64) builtin, noctx
++| nat8(a nat8, b nat8) builtin, bare
++| nat16(a nat16, b nat16) builtin, bare
++| nat32(a nat32, b nat32) builtin, bare
++| nat64(a nat64, b nat64) builtin, bare
++| int16(a int16, b int16) builtin, bare
++| int32(a int32, b int32) builtin, bare
++| int64(a int64, b int64) builtin, bare
 
 ###
 Performs exclusive or of each bit in parallel.
 Output bits will be 1 iff the corresponding input bits are not equal.
 ###
-+^ nat8(a nat8, b nat8) builtin, noctx
-+^ nat16(a nat16, b nat16) builtin, noctx
-+^ nat32(a nat32, b nat32) builtin, noctx
-+^ nat64(a nat64, b nat64) builtin, noctx
-+^ int8(a int8, b int8) builtin, noctx
-+^ int16(a int16, b int16) builtin, noctx
-+^ int32(a int32, b int32) builtin, noctx
-+^ int64(a int64, b int64) builtin, noctx
++^ nat8(a nat8, b nat8) builtin, bare
++^ nat16(a nat16, b nat16) builtin, bare
++^ nat32(a nat32, b nat32) builtin, bare
++^ nat64(a nat64, b nat64) builtin, bare
++^ int8(a int8, b int8) builtin, bare
++^ int16(a int16, b int16) builtin, bare
++^ int32(a int32, b int32) builtin, bare
++^ int64(a int64, b int64) builtin, bare
 
 ###
 Shifts the bits of 'a' left by 'b' bits.
 
 Does not rotate.
 ###
-+<< nat8(a nat8, b nat8) noctx
++<< nat8(a nat8, b nat8) bare
 	if b < 8
 		trusted a.to unsafe-bit-shift-left b.to unsafe-to
-+<< nat16(a nat16, b nat16) noctx
++<< nat16(a nat16, b nat16) bare
 	if b < 16
 		trusted a.to unsafe-bit-shift-left b.to unsafe-to
-+<< nat32(a nat32, b nat32) noctx
++<< nat32(a nat32, b nat32) bare
 	if b < 32
 		trusted a.to unsafe-bit-shift-left b.to unsafe-to
-+<< nat64(a nat64, b nat64) noctx
++<< nat64(a nat64, b nat64) bare
 	if b < 64
 		trusted a unsafe-bit-shift-left b
-+<< nat64(a nat64, b int64) noctx
++<< nat64(a nat64, b int64) bare
 	if b < 0
 		if b > -64
 			a >> trusted b unsafe-mul -1 unsafe-to
@@ -89,13 +89,13 @@ Shifts the bits of 'a' right by 'b' bits.
 
 Does not rotate.
 ###
-+>> nat32(a nat32, b nat32) noctx
++>> nat32(a nat32, b nat32) bare
 	if b < 32
 		trusted a.to unsafe-bit-shift-right b.to unsafe-to
-+>> nat64(a nat64, b nat64) noctx
++>> nat64(a nat64, b nat64) bare
 	if b < 64
 		trusted a unsafe-bit-shift-right b
-+>> nat64(a nat64, b int64) noctx
++>> nat64(a nat64, b int64) bare
 	if b < 0
 		if b > -64
 			a << trusted b unsafe-mul -1 unsafe-to
@@ -103,7 +103,7 @@ Does not rotate.
 			0
 	else
 		a >> trusted b unsafe-to
-+>> int32(a int32, b int32) noctx
++>> int32(a int32, b int32) bare
 	if a < 0
 		todo
 	elif b < 0
@@ -114,21 +114,21 @@ Does not rotate.
 		todo
 
 # True iff the numbers have at least one bit in common.
-+bits-intersect bool(a int16, b int16) noctx
++bits-intersect bool(a int16, b int16) bare
 	a & b != 0
-+bits-intersect bool(a int32, b int32) noctx
++bits-intersect bool(a int32, b int32) bare
 	a & b != 0
-+bits-intersect bool(a nat32, b nat32) noctx
++bits-intersect bool(a nat32, b nat32) bare
 	a & b != 0
-+bits-intersect bool(a nat64, b nat64) noctx
++bits-intersect bool(a nat64, b nat64) bare
 	a & b != 0
 
 # True iff for every 1 bit in `b`, the corresponding bit in `a` is also a 1.
-+has-all-bits bool(a nat64, b nat64) noctx
++has-all-bits bool(a nat64, b nat64) bare
 	a & b == b
 
-unsafe-bit-shift-left nat64(a nat64, b nat64) builtin, noctx, unsafe
-unsafe-bit-shift-right nat64(a nat64, b nat64) builtin, noctx, unsafe
+unsafe-bit-shift-left nat64(a nat64, b nat64) builtin, bare, unsafe
+unsafe-bit-shift-right nat64(a nat64, b nat64) builtin, bare, unsafe
 
 ###
 Number with only the bit at `bit-index` set.
@@ -151,7 +151,7 @@ Same as `1 << bit-index`.
 	a & ~bit-index.nth-bit
 
 # Returns the number of 1 bits in `a`.
-+count-ones nat64(a nat64) builtin, noctx
++count-ones nat64(a nat64) builtin, bare
 
 one-bits record
 	-inner nat64

@@ -159,7 +159,7 @@ close-client void(client SOCKET) summon, unsafe
 		on-received-chunk[fd.as-socket, chunk] handle-exceptions
 		fd handle-client-linux on-received-chunk
 
--set-non-blocking void(fd fd-t) noctx, summon, unsafe
+-set-non-blocking void(fd fd-t) bare, summon, unsafe
 	file-flags = fd fcntl F_GETFL, 0
 	if file-flags < 0
 		"fcntl() error" perror

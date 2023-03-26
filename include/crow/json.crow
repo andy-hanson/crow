@@ -109,7 +109,7 @@ to json(a index-set)
 		if ob ?= b as-object
 			oa == ob
 
-+is-null bool(a json) noctx
++is-null bool(a json) bare
 	match a
 	as json-null
 		true
@@ -125,7 +125,7 @@ to json(a index-set)
 		false
 
 # If `a` is a boolean, returns that, else returns an empty option.
-+as-bool bool?(a json) noctx
++as-bool bool?(a json) bare
 	match a
 	as json-null
 		()
@@ -140,7 +140,7 @@ to json(a index-set)
 	as json-object _
 		()
 # If `a` is a number, returns that, else returns an empty option.
-+as-number float64?(a json) noctx
++as-number float64?(a json) bare
 	match a
 	as json-null
 		()
@@ -159,7 +159,7 @@ If `a` is a string, returns that, else returns an empty option.
 
 This does not render as JSON; `to::string` does that.
 ###
-+as-string string?(a json) noctx
++as-string string?(a json) bare
 	match a
 	as json-null
 		()
@@ -174,7 +174,7 @@ This does not render as JSON; `to::string` does that.
 	as json-object _
 		()
 # If `a` is a list, returns that, else returns an empty option.
-+as-list json[]?(a json) noctx
++as-list json[]?(a json) bare
 	match a
 	as json-null
 		()
@@ -189,7 +189,7 @@ This does not render as JSON; `to::string` does that.
 	as json-object _
 		()
 # If `a` is an object, returns that, else returns an empty option.
-+as-object json[symbol]?(a json) noctx
++as-object json[symbol]?(a json) bare
 	match a
 	as json-null
 		()

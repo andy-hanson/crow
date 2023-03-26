@@ -625,7 +625,7 @@ immutable struct FunModifierAst {
 			// It's a compile error to have extern without a library name,
 			// so those will usually be a Extern instead
 			extern_ = 0b10,
-			noctx = 0b100,
+			bare = 0b100,
 			summon = 0b1000,
 			trusted = 0b100_0000,
 			unsafe = 0b1000_0000,
@@ -658,12 +658,12 @@ immutable struct FunModifierAst {
 
 private Sym symOfSpecialFlag(FunModifierAst.Special.Flags a) {
 	switch (a) {
+		case FunModifierAst.Special.Flags.bare:
+			return sym!"bare";
 		case FunModifierAst.Special.Flags.builtin:
 			return sym!"builtin";
 		case FunModifierAst.Special.Flags.extern_:
 			return sym!"extern";
-		case FunModifierAst.Special.Flags.noctx:
-			return sym!"noctx";
 		case FunModifierAst.Special.Flags.summon:
 			return sym!"summon";
 		case FunModifierAst.Special.Flags.trusted:

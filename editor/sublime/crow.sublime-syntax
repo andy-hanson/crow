@@ -13,7 +13,7 @@ variables:
   # We don't want to consume any characters at that line,
   # so use lookahead to match the beginning of a line, then any non-whitespace character.
   unindented_line: '(?=^\S)'
-  spec_use_keyword: 'builtin|extern|global|noctx|no-doc|summon|trusted|unsafe'
+  spec_use_keyword: 'bare|builtin|extern|global|no-doc|summon|trusted|unsafe'
 
 name: crow
 file_extensions:

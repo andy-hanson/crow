@@ -26,13 +26,13 @@ import
 	z float64
 
 # 0 vector.
-+new vec2-32() noctx
++new vec2-32() bare
 	0, 0
-+new vec2-64() noctx
++new vec2-64() bare
 	0, 0
-+new vec3-32() noctx
++new vec3-32() bare
 	0, 0, 0
-+new vec3-64() noctx
++new vec3-64() bare
 	0, 0, 0
 
 # `"<x, y>"`
@@ -57,93 +57,93 @@ import
 
 region named directions
 
-+left vec2-32() noctx
++left vec2-32() bare
 	-1, 0
-+left vec2-64() noctx
++left vec2-64() bare
 	-1, 0
-+left vec3-32() noctx
++left vec3-32() bare
 	-1, 0, 0
-+left vec3-64() noctx
++left vec3-64() bare
 	-1, 0, 0
-+right vec2-32() noctx
++right vec2-32() bare
 	1, 0
-+right vec2-64() noctx
++right vec2-64() bare
 	1, 0
-+right vec3-32() noctx
++right vec3-32() bare
 	1, 0, 0
-+right vec3-64() noctx
++right vec3-64() bare
 	1, 0, 0
-+up vec2-32() noctx
++up vec2-32() bare
 	0, 1
-+up vec2-64() noctx
++up vec2-64() bare
 	0, 1
-+up vec3-32() noctx
++up vec3-32() bare
 	0, 1, 0
-+up vec3-64() noctx
++up vec3-64() bare
 	0, 1, 0
-+down vec2-32() noctx
++down vec2-32() bare
 	0, -1
-+down vec2-64() noctx
++down vec2-64() bare
 	0, -1
-+down vec3-32() noctx
++down vec3-32() bare
 	0, -1, 0
-+down vec3-64() noctx
++down vec3-64() bare
 	0, -1, 0
-+forward vec3-32() noctx
++forward vec3-32() bare
 	0, 0, 1
-+forward vec3-64() noctx
++forward vec3-64() bare
 	0, 0, 1
-+backward vec3-32() noctx
++backward vec3-32() bare
 	0, 0, -1
-+backward vec3-64() noctx
++backward vec3-64() bare
 	0, 0, -1
 
 # Vector addition -- adds corresponding elements.
-+ + vec2-32(a vec2-32, b vec2-32) noctx
++ + vec2-32(a vec2-32, b vec2-32) bare
 	a.x + b.x, a.y + b.y
-+ + vec2-64(a vec2-64, b vec2-64) noctx
++ + vec2-64(a vec2-64, b vec2-64) bare
 	a.x + b.x, a.y + b.y
-+ + vec3-32(a vec3-32, b vec3-32) noctx
++ + vec3-32(a vec3-32, b vec3-32) bare
 	a.x + b.x, a.y + b.y, a.z + b.z
-+ + vec3-64(a vec3-64, b vec3-64) noctx
++ + vec3-64(a vec3-64, b vec3-64) bare
 	a.x + b.x, a.y + b.y, a.z + b.z
 
 # Vector subtraction -- subtracts corresponding elements.
-+- vec2-32(a vec2-32, b vec2-32) noctx
++- vec2-32(a vec2-32, b vec2-32) bare
 	a.x - b.x, a.y - b.y
-+- vec2-64(a vec2-64, b vec2-64) noctx
++- vec2-64(a vec2-64, b vec2-64) bare
 	a.x - b.x, a.y - b.y
-+- vec3-32(a vec3-32, b vec3-32) noctx
++- vec3-32(a vec3-32, b vec3-32) bare
 	a.x - b.x, a.y - b.y, a.z - b.z
-+- vec3-64(a vec3-64, b vec3-64) noctx
++- vec3-64(a vec3-64, b vec3-64) bare
 	a.x - b.x, a.y - b.y, a.z - b.z
 
-+- vec2-32(a vec2-32) noctx
++- vec2-32(a vec2-32) bare
 	a * -1
-+- vec2-64(a vec2-64) noctx
++- vec2-64(a vec2-64) bare
 	a * -1
-+- vec3-32(a vec3-32) noctx
++- vec3-32(a vec3-32) bare
 	a * -1
-+- vec3-64(a vec3-64) noctx
++- vec3-64(a vec3-64) bare
 	a * -1
 
 # Scales a vector by a scalar.
-+* vec2-32(a vec2-32, b float32) noctx
++* vec2-32(a vec2-32, b float32) bare
 	a.x * b, a.y * b
-+* vec2-64(a vec2-64, b float64) noctx
++* vec2-64(a vec2-64, b float64) bare
 	a.x * b, a.y * b
-+* vec3-32(a vec3-32, b float32) noctx
++* vec3-32(a vec3-32, b float32) bare
 	a.x * b, a.y * b, a.z * b
-+* vec3-64(a vec3-64, b float64) noctx
++* vec3-64(a vec3-64, b float64) bare
 	a.x * b, a.y * b, a.z * b
 
-+* vec2-32(a float32, b vec2-32) noctx
++* vec2-32(a float32, b vec2-32) bare
 	b * a
-+* vec2-64(a float64, b vec2-64) noctx
++* vec2-64(a float64, b vec2-64) bare
 	b * a
-+* vec3-32(a float32, b vec3-32) noctx
++* vec3-32(a float32, b vec3-32) bare
 	b * a
-+* vec3-64(a float64, b vec3-64) noctx
++* vec3-64(a float64, b vec3-64) bare
 	b * a
 
 +/ vec2-32(a vec2-32, b float32)
@@ -156,23 +156,23 @@ region named directions
 	a * (1 / b)
 
 # Equivalent to `a.length ** 2` (but more efficient).
-+length-squared float32(a vec2-32) noctx
++length-squared float32(a vec2-32) bare
 	a dot a
-+length-squared float64(a vec2-64) noctx
++length-squared float64(a vec2-64) bare
 	a dot a
-+length-squared float32(a vec3-32) noctx
++length-squared float32(a vec3-32) bare
 	a dot a
-+length-squared float64(a vec3-64) noctx
++length-squared float64(a vec3-64) bare
 	a dot a
 
 # Vector length, also known as the magnitude or norm.
-+length float32(a vec2-32) noctx
++length float32(a vec2-32) bare
 	a.length-squared square-root
-+length float64(a vec2-64) noctx
++length float64(a vec2-64) bare
 	a.length-squared square-root
-+length float32(a vec3-32) noctx
++length float32(a vec3-32) bare
 	a.length-squared square-root
-+length float64(a vec3-64) noctx
++length float64(a vec3-64) bare
 	a.length-squared square-root
 
 ###
@@ -190,20 +190,20 @@ Throws if length is 0.
 test
 	(() => ()::vec2-32.normalize) throws "divide by 0"
 
-+dot float32(a vec2-32, b vec2-32) noctx
++dot float32(a vec2-32, b vec2-32) bare
 	a.x * b.x + a.y * b.y
-+dot float64(a vec2-64, b vec2-64) noctx
++dot float64(a vec2-64, b vec2-64) bare
 	a.x * b.x + a.y * b.y
-+dot float32(a vec3-32, b vec3-32) noctx
++dot float32(a vec3-32, b vec3-32) bare
 	a.x * b.x + a.y * b.y + a.z * b.z
-+dot float64(a vec3-64, b vec3-64) noctx
++dot float64(a vec3-64, b vec3-64) bare
 	a.x * b.x + a.y * b.y + a.z * b.z
 
-+to vec2-32(a vec2-64) noctx
++to vec2-32(a vec2-64) bare
 	a.x.to, a.y.to
-+to vec2-64(a vec2-32) noctx
++to vec2-64(a vec2-32) bare
 	a.x.to, a.y.to
-+to vec3-32(a vec3-64) noctx
++to vec3-32(a vec3-64) bare
 	a.x.to, a.y.to, a.z.to
-+to vec3-64(a vec3-32) noctx
++to vec3-64(a vec3-32) bare
 	a.x.to, a.y.to, a.z.to

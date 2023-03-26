@@ -39,9 +39,9 @@ to[k, v] (k, v) frozen-map(a (k, v)[]) k key
 	trusted a.to as-frozen-map
 
 # This is O(1).
-to[k, v] (k, v) array(a (k, v) frozen-map) noctx
+to[k, v] (k, v) array(a (k, v) frozen-map) bare
 	a pairs
-to[k, v] (k, v)[](a (k, v) frozen-map) noctx
+to[k, v] (k, v)[](a (k, v) frozen-map) bare
 	a.to::((k, v) array) to
 
 # TODO:INTERNAL

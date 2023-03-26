@@ -404,6 +404,7 @@ public enum Token {
 	assert_, // 'assert'
 	at, // '@'
 	bang, // '!'
+	bare, // 'bare'
 	break_, // 'break'
 	builtin, // 'builtin'
 	builtinSpec, // 'builtin-spec'
@@ -444,7 +445,6 @@ public enum Token {
 	mut, // 'mut'
 	name, // Any non-keyword, non-operator name; use getCurSym with this
 	newline, // end of line
-	noCtx, // 'noctx'
 	noStd, // 'no-std'
 	operator, // Any operator; use getCurOperator with this
 	parenLeft, // '('
@@ -589,6 +589,8 @@ Token tokenForSym(ref Lexer lexer, Sym a) {
 			return Token.as;
 		case sym!"assert".value:
 			return Token.assert_;
+		case sym!"bare".value:
+			return Token.bare;
 		case sym!"break".value:
 			return Token.break_;
 		case sym!"builtin".value:
@@ -631,8 +633,6 @@ Token tokenForSym(ref Lexer lexer, Sym a) {
 			return Token.match;
 		case sym!"mut".value:
 			return Token.mut;
-		case sym!"noctx".value:
-			return Token.noCtx;
 		case sym!"no-std".value:
 			return Token.noStd;
 		case sym!"record".value:
@@ -745,6 +745,7 @@ bool isExpressionStartToken(Token a) {
 		case Token.arrowThen:
 		case Token.as:
 		case Token.at:
+		case Token.bare:
 		case Token.builtin:
 		case Token.builtinSpec:
 		case Token.braceLeft:
@@ -772,7 +773,6 @@ bool isExpressionStartToken(Token a) {
 		case Token.invalid:
 		case Token.mut:
 		case Token.newline:
-		case Token.noCtx:
 		case Token.noStd:
 		case Token.parenRight:
 		case Token.question:

@@ -118,7 +118,7 @@ void addFunsForVar(
 		[],
 		var.type,
 		Params([]),
-		FunFlags.generatedNoCtxUnsafe,
+		FunFlags.generatedBareUnsafe,
 		[],
 		FunBody(FunBody.VarGet(var))));
 	exactSizeArrBuilderAdd(funsBuilder, FunDecl(
@@ -129,7 +129,7 @@ void addFunsForVar(
 		[],
 		Type(commonTypes.void_),
 		makeParams(ctx.alloc, var.range, [param!"a"(var.type)]),
-		FunFlags.generatedNoCtxUnsafe,
+		FunFlags.generatedBareUnsafe,
 		[],
 		FunBody(FunBody.VarSet(var))));
 }
@@ -145,7 +145,7 @@ FunDecl newExtern(ref Alloc alloc, ref ProgramState programState, StructDecl* st
 		[],
 		Type(instantiateNonTemplateStructDeclNeverDelay(alloc, programState, struct_)),
 		Params([]),
-		FunFlags.generatedNoCtxUnsafe,
+		FunFlags.generatedBareUnsafe,
 		[],
 		FunBody(FunBody.CreateExtern()));
 
@@ -235,7 +235,7 @@ FunDecl enumOrFlagsConstructor(
 		[],
 		enumType,
 		Params([]),
-		FunFlags.generatedNoCtx,
+		FunFlags.generatedBare,
 		[],
 		FunBody(FunBody.CreateEnum(member.value)));
 
@@ -254,7 +254,7 @@ FunDecl enumEqualFunction(
 		[],
 		Type(commonTypes.bool_),
 		makeParams(alloc, fileAndRange, [param!"a"(enumType), param!"b"(enumType)]),
-		FunFlags.generatedNoCtx.withOkIfUnused(),
+		FunFlags.generatedBare.withOkIfUnused(),
 		[],
 		FunBody(EnumFunction.equal));
 
@@ -267,7 +267,7 @@ FunDecl flagsNewFunction(ref Alloc alloc, Visibility visibility, FileAndRange fi
 		[],
 		enumType,
 		Params([]),
-		FunFlags.generatedNoCtx.withOkIfUnused(),
+		FunFlags.generatedBare.withOkIfUnused(),
 		[],
 		FunBody(FlagsFunction.new_));
 
@@ -280,7 +280,7 @@ FunDecl flagsAllFunction(ref Alloc alloc, Visibility visibility, FileAndRange fi
 		[],
 		enumType,
 		Params([]),
-		FunFlags.generatedNoCtx.withOkIfUnused(),
+		FunFlags.generatedBare.withOkIfUnused(),
 		[],
 		FunBody(FlagsFunction.all));
 
@@ -293,7 +293,7 @@ FunDecl flagsNegateFunction(ref Alloc alloc, Visibility visibility, FileAndRange
 		[],
 		enumType,
 		makeParams(alloc, fileAndRange, [param!"a"(enumType)]),
-		FunFlags.generatedNoCtx.withOkIfUnused(),
+		FunFlags.generatedBare.withOkIfUnused(),
 		[],
 		FunBody(FlagsFunction.negate));
 
@@ -313,7 +313,7 @@ FunDecl enumToIntegralFunction(
 		[],
 		Type(getBackingTypeFromEnumType(enumBackingType, commonTypes)),
 		makeParams(alloc, fileAndRange, [param!"a"(enumType)]),
-		FunFlags.generatedNoCtx.withOkIfUnused(),
+		FunFlags.generatedBare.withOkIfUnused(),
 		[],
 		FunBody(EnumFunction.toIntegral));
 
@@ -360,7 +360,7 @@ FunDecl enumOrFlagsMembersFunction(
 			commonTypes,
 			makeTupleType(alloc, programState, commonTypes, [Type(commonTypes.symbol), enumType]))),
 		Params([]),
-		FunFlags.generatedNoCtx.withOkIfUnused(),
+		FunFlags.generatedBare.withOkIfUnused(),
 		[],
 		FunBody(EnumFunction.members));
 
@@ -380,7 +380,7 @@ FunDecl flagsUnionOrIntersectFunction(
 		[],
 		enumType,
 		makeParams(alloc, fileAndRange, [param!"a"(enumType), param!"b"(enumType)]),
-		FunFlags.generatedNoCtx.withOkIfUnused(),
+		FunFlags.generatedBare.withOkIfUnused(),
 		[],
 		FunBody(fn));
 
@@ -421,7 +421,7 @@ void addFunsForRecordConstructor(
 		structType,
 		Params(map(ctx.alloc, record.fields, (ref RecordField it) =>
 			makeParam(ctx.alloc, it.range, it.name, it.type))),
-		byVal ? FunFlags.generatedNoCtx : FunFlags.generated,
+		byVal ? FunFlags.generatedBare : FunFlags.generated,
 		[],
 		FunBody(FunBody.CreateRecord())));
 }
@@ -446,7 +446,7 @@ void addFunsForRecordField(
 		struct_.typeParams,
 		field.type,
 		makeParams(ctx.alloc, field.range, [param!"a"(structType)]),
-		FunFlags.generatedNoCtx,
+		FunFlags.generatedBare,
 		[],
 		FunBody(FunBody.RecordFieldGet(fieldIndex))));
 	
@@ -459,7 +459,7 @@ void addFunsForRecordField(
 			struct_.typeParams,
 			fieldPointer,
 			makeParams(ctx.alloc, field.range, [param!"a"(recordPointer)]),
-			FunFlags.generatedNoCtxUnsafe,
+			FunFlags.generatedBareUnsafe,
 			[],
 			FunBody(FunBody.RecordFieldPointer(fieldIndex))));
 	}
@@ -486,7 +486,7 @@ void addFunsForRecordField(
 					param!"a"(recordMutPointer),
 					ParamShort(field.name, field.type),
 				]),
-				FunFlags.generatedNoCtxUnsafe,
+				FunFlags.generatedBareUnsafe,
 				[],
 				FunBody(FunBody.RecordFieldSet(fieldIndex))));
 			addRecordFieldPointer(
@@ -502,7 +502,7 @@ void addFunsForRecordField(
 				struct_.typeParams,
 				Type(commonTypes.void_),
 				makeParams(ctx.alloc, field.range, [param!"a"(structType), ParamShort(field.name, field.type)]),
-				FunFlags.generatedNoCtx,
+				FunFlags.generatedBare,
 				[],
 				FunBody(FunBody.RecordFieldSet(fieldIndex))));
 	}
@@ -543,7 +543,7 @@ void addFunsForUnion(
 			typeParams,
 			structType,
 			params,
-			FunFlags.generatedNoCtx,
+			FunFlags.generatedBare,
 			[],
 			FunBody(FunBody.CreateUnion(memberIndex))));
 	}

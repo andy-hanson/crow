@@ -25,13 +25,13 @@ import
 export
 	../private/bootstrap: mut-list
 
-+size[t] nat64(a t mut[]) noctx
++size[t] nat64(a t mut[]) bare
 	a mut-list-size
--set-size[t] void(a t mut[], size nat64) noctx
+-set-size[t] void(a t mut[], size nat64) bare
 	a.mut-list-size := size
 
 # True if they are identical.
-+==[t] bool(a t mut[], b t mut[]) noctx
++==[t] bool(a t mut[], b t mut[]) bare
 	# TODO: this should be generated for all mut by-ref records
 	trusted a reference-equal b
 
@@ -40,16 +40,16 @@ Pointer to the first element.
 Since `mut-list` changes its underlying data occasionally,
 it's UB if this is used after the size of `a` changes.
 ###
-begin-pointer[t] t mut*(a t mut[]) noctx, unsafe
+begin-pointer[t] t mut*(a t mut[]) bare, unsafe
 	a.backing begin-pointer
 
-end-pointer[t] t mut*(a t mut[]) noctx, unsafe
+end-pointer[t] t mut*(a t mut[]) bare, unsafe
 	a.begin-pointer + a.size
 
-is-at-capacity[t] bool(a t mut[]) noctx, unsafe
+is-at-capacity[t] bool(a t mut[]) bare, unsafe
 	a.capacity == a.size
 
--capacity[t] nat64(a t mut[]) noctx, unsafe
+-capacity[t] nat64(a t mut[]) bare, unsafe
 	a.backing size
 
 ###
@@ -67,7 +67,7 @@ Creates a new list with the given elements.
 	res ~~= a
 	res
 
-+clear[t] void(a t mut[]) noctx
++clear[t] void(a t mut[]) bare
 	trusted
 		# TODO: zero the memory for GC
 		a.begin-pointer set-zero-range a.size
@@ -90,11 +90,11 @@ Writes to the `mut-list` won't affect the `list`.
 ###
 'move-to' is like 'to' but sets the input to empty.
 ###
-+move-to[t] t[](a t mut[]) noctx
++move-to[t] t[](a t mut[]) bare
 	a.move-to::(t array) to
-+move-to[t] t array(a t mut[]) noctx
++move-to[t] t array(a t mut[]) bare
 	trusted a.move-to cast-immutable
-+move-to[t] t mut-array(a t mut[]) noctx
++move-to[t] t mut-array(a t mut[]) bare
 	trusted
 		res = a.begin-pointer[0 .. a.size]
 		a.backing := empty-mut-array
@@ -109,25 +109,25 @@ Writes to the `mut-list` won't affect the `list`.
 	b.backing := a-backing
 	b.size := a-size
 
--check-index[t] void(a t mut[], index nat64) noctx
+-check-index[t] void(a t mut[], index nat64) bare
 	assert index < a.size : "index out of bounds"
 
 ###
 Converts to an `mut-array`.
 "Temp" because it's UB if the result is used after ths size of `a` changes.
 ###
-temp-as-mut-array[t] t mut-array(a t mut[]) noctx, unsafe
+temp-as-mut-array[t] t mut-array(a t mut[]) bare, unsafe
 	a.begin-pointer[0 .. a.size]
 
 ###
 Converts to an `array`.
 "Temp" because it's UB if the result is used after `a` is written to.
 ###
-temp-as-array[t] t array(a t mut[]) noctx, unsafe
+temp-as-array[t] t array(a t mut[]) bare, unsafe
 	a.temp-as-mut-array temp-as-array
 
 # True iff `a.size == 0`.
-+is-empty[t] bool(a t mut[]) noctx
++is-empty[t] bool(a t mut[]) bare
 	a.size == 0
 
 # TODO: this should be 'subscript' with a range. And return a list.
@@ -206,7 +206,7 @@ Throws if `n > a.size`.
 -incr-capacity[t] void(a t mut[]) unsafe
 	a ensure-capacity (a.size + 1 round-up-to-power-of-two)
 
-push-capacity-must-be-sufficient[t] void(a t mut[], value t) noctx, unsafe
+push-capacity-must-be-sufficient[t] void(a t mut[], value t) bare, unsafe
 	assert a.size < a.capacity
 	a.begin-pointer[a size] := value
 	a.size +:= 1
@@ -246,7 +246,7 @@ This is more efficient than `a remove-at index`,
 which has to shift all values past `index` to the left.
 Throws if `index >= a.size`.
 ###
-remove-unordered-at[t] t(a t mut[], index nat64) noctx
+remove-unordered-at[t] t(a t mut[], index nat64) bare
 	a check-index index
 	trusted
 		res = a.begin-pointer[index]
@@ -330,7 +330,7 @@ region spec impls (see collection.crow)
 Gets the element at the index.
 Throws if `index >= a.size`.
 ###
-+at-index[t] t(a t mut[], index nat64) noctx
++at-index[t] t(a t mut[], index nat64) bare
 	a check-index index
 	trusted a.begin-pointer[index]
 
@@ -338,7 +338,7 @@ Throws if `index >= a.size`.
 Sets the element at the index.
 Throws if `index >= a.size`.
 ###
-+set-at-index[t] void(a t mut[], index nat64, value t) noctx
++set-at-index[t] void(a t mut[], index nat64, value t) bare
 	a check-index index
 	trusted
 		a.begin-pointer[index] := value
@@ -353,41 +353,41 @@ subregion iterator
 	collection t mut[]
 	next-index nat64
 
-+begin[t] t mut-list-iterator(a t mut[]) noctx
++begin[t] t mut-list-iterator(a t mut[]) bare
 	a, 0
 
-+end[t] t mut-list-iterator(a t mut[]) noctx
++end[t] t mut-list-iterator(a t mut[]) bare
 	a, a.size
 
--as-backing-iter[t] t mut-array-iterator(a t mut-list-iterator) noctx
+-as-backing-iter[t] t mut-array-iterator(a t mut-list-iterator) bare
 	assert a.next-index <= a.collection.size
 	a.collection.backing.begin + a.next-index
 
-+prev[t] (t mut-list-iterator, t)?(a t mut-list-iterator) noctx
++prev[t] (t mut-list-iterator, t)?(a t mut-list-iterator) bare
 	if res ?= a.as-backing-iter prev
 		((a.collection, res.a.next-index), res.b),
 
-+next[t] (t, t mut-list-iterator)?(a t mut-list-iterator) noctx
++next[t] (t, t mut-list-iterator)?(a t mut-list-iterator) bare
 	if res ?= a.as-backing-iter next
 		if res.b.next-index <= a.collection.size
 			(res.a, (a.collection, res.b.next-index)),
 
-+ +[t] t mut-list-iterator(a t mut-list-iterator, n nat64) noctx
++ +[t] t mut-list-iterator(a t mut-list-iterator, n nat64) bare
 	new-next-index = a.next-index + n
 	assert new-next-index <= a.collection.size
 	a.collection, new-next-index
 
-+-[t] t mut-list-iterator(a t mut-list-iterator, n nat64) noctx
++-[t] t mut-list-iterator(a t mut-list-iterator, n nat64) bare
 	a.collection, a.next-index - n
 
-+-[t] nat64(a t mut-list-iterator, b t mut-list-iterator) noctx
++-[t] nat64(a t mut-list-iterator, b t mut-list-iterator) bare
 	assert a.collection == b.collection
 	a.next-index - b.next-index
 
-+set-prev[t] void(a t mut-list-iterator, value t) noctx
++set-prev[t] void(a t mut-list-iterator, value t) bare
 	a.as-backing-iter set-prev value
 
-+set-next[t] void(a t mut-list-iterator, value t) noctx
++set-next[t] void(a t mut-list-iterator, value t) bare
 	a.as-backing-iter set-next value
 
 +slice[t] t mut[](a t mut-list-iterator, b t mut-list-iterator)

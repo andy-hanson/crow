@@ -6,7 +6,7 @@ import
 export
 	./private/bootstrap: data, shared, void
 
-+new void() noctx
++new void() bare
 	new-void
 
 +new[t] spec

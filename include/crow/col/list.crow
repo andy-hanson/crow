@@ -25,25 +25,25 @@ import
 export
 	./private/list-low-level: ~=, ~~=, build, list, list-builder
 
--new[t] t array2d() noctx
+-new[t] t array2d() bare
 	0, ()
 -new[t] t array2d(a t array)
 	a.size, (a,)
--is-empty[t] bool(a t array2d) noctx
+-is-empty[t] bool(a t array2d) bare
 	a.arrays is-empty
 -~~[t] t array2d(a t array2d, b t array2d)
 	a.total-size + b.total-size, a.arrays ~~ b.arrays
--subscript[t] t array(a t array2d, index nat64) noctx
+-subscript[t] t array(a t array2d, index nat64) bare
 	a.arrays[index]
--subscript[t] t array(a t array2d, index index-relative-to-end) noctx
+-subscript[t] t array(a t array2d, index index-relative-to-end) bare
 	a.arrays[index]
--subscript[t] t array2d(a t array2d, indices nat64 range) noctx
+-subscript[t] t array2d(a t array2d, indices nat64 range) bare
 	a.arrays[indices] recompute-total-size
--subscript[t] t array2d(a t array2d, indices range-relative-to-end) noctx
+-subscript[t] t array2d(a t array2d, indices range-relative-to-end) bare
 	a.arrays[indices] recompute-total-size
--recompute-total-size[t] t array2d(a t array array) noctx
+-recompute-total-size[t] t array2d(a t array array) bare
 	a.compute-total-size, a
--compute-total-size[t] nat64(a t array array) noctx
+-compute-total-size[t] nat64(a t array array) bare
 	total-size mut = 0
 	iter mut = a begin
 	loop
@@ -53,25 +53,25 @@ export
 			continue
 		else
 			break total-size
--new[t] t array3d() noctx
+-new[t] t array3d() bare
 	0, ()
 -new[t] t array3d(a t array2d)
 	a.total-size, (a,)
--is-empty[t] bool(a t array3d) noctx
+-is-empty[t] bool(a t array3d) bare
 	a.arrays is-empty
 -~~[t] t array3d(a t array3d, b t array3d)
 	a.total-size + b.total-size, a.arrays ~~ b.arrays
--subscript[t] t array2d(a t array3d, index nat64) noctx
+-subscript[t] t array2d(a t array3d, index nat64) bare
 	a.arrays[index]
--subscript[t] t array2d(a t array3d, index index-relative-to-end) noctx
+-subscript[t] t array2d(a t array3d, index index-relative-to-end) bare
 	a.arrays[index]
--subscript[t] t array3d(a t array3d, indices nat64 range) noctx
+-subscript[t] t array3d(a t array3d, indices nat64 range) bare
 	a.arrays[indices] recompute-total-size
--subscript[t] t array3d(a t array3d, indices range-relative-to-end) noctx
+-subscript[t] t array3d(a t array3d, indices range-relative-to-end) bare
 	a.arrays[indices] recompute-total-size
--recompute-total-size[t] t array3d(a t array2d array) noctx
+-recompute-total-size[t] t array3d(a t array2d array) bare
 	a.compute-total-size, a
--compute-total-size[t] nat64(a t array2d array) noctx
+-compute-total-size[t] nat64(a t array2d array) bare
 	total-size mut = 0
 	iter mut = a begin
 	loop
@@ -118,53 +118,53 @@ export
 -depth-l3[t] nat64(_ t l3)
 	2
 
--as-branch[leaf, lower] (leaf, lower) branch(a (leaf, lower) node) noctx
+-as-branch[leaf, lower] (leaf, lower) branch(a (leaf, lower) node) bare
 	match a
 	as leaf _
 		unreachable
 	as branch b
 		b
 
--try-as-l1-leaf[t] t array?(a t[]) noctx
+-try-as-l1-leaf[t] t array?(a t[]) bare
 	match a.root node
 	as leaf xs
 		xs,
 	as branch _
 		()
 
--get-l1-branch[t] (t array, t l2) branch(a t[]) noctx
+-get-l1-branch[t] (t array, t l2) branch(a t[]) bare
 	a.root.node as-branch
 
--try-get-l2[t] t l2?(a t[]) noctx
+-try-get-l2[t] t l2?(a t[]) bare
 	match a.root node
 	as leaf _
 		()
 	as branch b
 		b.down,
 
--get-l2[t] t l2(a t[]) noctx
+-get-l2[t] t l2(a t[]) bare
 	a.try-get-l2 force
 
--get-l2-branch[t] (t array2d, t l3) branch(a t[]) noctx
+-get-l2-branch[t] (t array2d, t l3) branch(a t[]) bare
 	a.get-l1-branch.down.node as-branch
 
--get-l3[t] t l3(a t[]) noctx
+-get-l3[t] t l3(a t[]) bare
 	a.get-l2-branch down
 
 # List containing the given elements.
-+new[t] t[](...a t array) noctx
++new[t] t[](...a t array) bare
 	a to
 
-+as-list[t] t[](a t* range) noctx, unsafe
++as-list[t] t[](a t* range) bare, unsafe
 	a.as-array to
-+as-list[t] t[](a t mut* range) noctx, unsafe
++as-list[t] t[](a t mut* range) bare, unsafe
 	a.as-array to
 
 ###
 Convert an array to a list.
 This is O(1).
 ###
-+to[t] t[](a t array) noctx
++to[t] t[](a t array) bare
 	l t l1 = a.leaf,
 	l,
 +to[t] t[](a t mut-array)
@@ -202,7 +202,7 @@ list-cast[out, in] out[](a in[]) unsafe
 `true` iff `a.size == 0`.
 This is O(1).
 ###
-+is-empty[t] bool(a t[]) noctx
++is-empty[t] bool(a t[]) bare
 	match a.root node
 	as leaf xs
 		xs is-empty
@@ -371,7 +371,7 @@ This is O(log n), amortized O(1).
 -size-bytes[t] nat64(a t array2d)
 	a.arrays size-bytes
 
--force[t] t(a t?) noctx
+-force[t] t(a t?) bare
 	if x ?= a
 		x
 	else
@@ -383,7 +383,7 @@ region spec impls (see collection.crow)
 Number of elements in the list.
 This is O(n).
 ###
-+size[t] nat64(a t[]) noctx
++size[t] nat64(a t[]) bare
 	a.end - a.begin
 
 +iterate[t] bool(a t[], f act bool(t))
@@ -420,13 +420,13 @@ This is O(n).
 	assert a.list == b.list : "can't compare iterators from different lists"
 	a.next-index <=> b.next-index
 
--level[t] t level(a t position) noctx
+-level[t] t level(a t position) bare
 	a.level-and-side a
 
--side[t] side(a t position) noctx
+-side[t] side(a t position) bare
 	a.level-and-side b
 
--level-and-side[t] (t level, side)(a t position) noctx
+-level-and-side[t] (t level, side)(a t position) bare
 	match a
 	as l1-leaf
 		l1, leaf
@@ -453,10 +453,10 @@ This is O(n).
 	leaf
 	right
 # TODO: compiler should generate this
--<=> comparison(a side, b side) noctx
+-<=> comparison(a side, b side) bare
 	a.to::nat32 <=> b.to
 
-+next-index[t] nat64(a t list-iterator) noctx
++next-index[t] nat64(a t list-iterator) bare
 	match a pos
 	as l1-leaf
 		a next-index-in-chunk
@@ -476,40 +476,40 @@ This is O(n).
 		a.list.get-l1-branch.left.size + a.list.get-l2-branch.left.total-size + (a next-index-3d i)
 -total-size[t] spec
 	total-size nat64(a t)
--total-size[t] nat64(a t l2) noctx
+-total-size[t] nat64(a t l2) bare
 	a.node total-size
--total-size[t] nat64(a t l3) noctx
+-total-size[t] nat64(a t l3) bare
 	a.nodes total-size
--total-size[leaf, lower] nat64(a (leaf, lower) node) leaf total-size, lower total-size, noctx
+-total-size[leaf, lower] nat64(a (leaf, lower) node) leaf total-size, lower total-size, bare
 	match a
 	as leaf xs
 		xs total-size
 	as branch b
 		b.left.total-size + b.down.total-size + b.right.total-size
--next-index-2d[t] nat64(a t list-iterator, i t array-2d-iterator) noctx
+-next-index-2d[t] nat64(a t list-iterator, i t array-2d-iterator) bare
 	i.slice-left.total-size + a.next-index-in-chunk
--next-index-3d[t] nat64(a t list-iterator, i t array-3d-iterator) noctx
+-next-index-3d[t] nat64(a t list-iterator, i t array-3d-iterator) bare
 	left, cur = i slice-left
 	left.total-size + cur.total-size + a.next-index-in-chunk
 
-+begin[t] t list-iterator(a t[]) noctx
++begin[t] t list-iterator(a t[]) bare
 	match a.root node
 	as leaf xs
 		a, xs, 0, l1-leaf
 	as branch b
 		a, b.left, 0, l1-left
 
-+end[t] t list-iterator(a t[]) noctx
++end[t] t list-iterator(a t[]) bare
 	match a.root node
 	as leaf xs
 		a, xs, xs.size, l1-leaf
 	as branch b
 		a, b.right, b.right.size, l1-right
 
-+collection[t] t[](a t list-iterator) noctx
++collection[t] t[](a t list-iterator) bare
 	a list
 
-+ +[t] t list-iterator(a t list-iterator, n nat64) noctx
++ +[t] t list-iterator(a t list-iterator, n nat64) bare
 	# TODO:PERF
 	cur mut = a
 	i mut = 0
@@ -523,7 +523,7 @@ This is O(n).
 		else
 			break throw "iterator went too far"
 
-+ -[t] t list-iterator(a t list-iterator, n nat64) noctx
++ -[t] t list-iterator(a t list-iterator, n nat64) bare
 	# TODO:PERF
 	cur mut = a
 	i mut = 0
@@ -537,11 +537,11 @@ This is O(n).
 		else
 			break throw "iterator went too far"
 
-+ -[t] nat64(a t list-iterator, b t list-iterator) noctx
++ -[t] nat64(a t list-iterator, b t list-iterator) bare
 	# TODO:PERF
 	a.next-index - b.next-index
 
-+next[t] (t, t list-iterator)?(a t list-iterator) noctx
++next[t] (t, t list-iterator)?(a t list-iterator) bare
 	if a.next-index-in-chunk < a.cur-chunk.size
 		right t list-iterator = a.list, a.cur-chunk, a.next-index-in-chunk + 1, a.pos
 		(a.cur-chunk[a next-index-in-chunk], right),
@@ -575,7 +575,7 @@ This is O(n).
 				a next-to-l2-right
 
 
-+prev[t] (t list-iterator, t)?(a t list-iterator) noctx
++prev[t] (t list-iterator, t)?(a t list-iterator) bare
 	if a.next-index-in-chunk != 0
 		left t list-iterator = a.list, a.cur-chunk, a.next-index-in-chunk - 1, a.pos
 		(left, a.cur-chunk[a.next-index-in-chunk - 1]),
@@ -608,19 +608,19 @@ This is O(n).
 			else
 				a prev-to-l2-left
 
--next-set-chunk[t] (t, t list-iterator)?(a t list-iterator, chunk t array, pos t position) noctx
+-next-set-chunk[t] (t, t list-iterator)?(a t list-iterator, chunk t array, pos t position) bare
 	(chunk[0], (a.list, chunk, 1, pos)),
 
--prev-set-chunk[t] (t list-iterator, t)?(a t list-iterator, chunk t array, pos t position) noctx
+-prev-set-chunk[t] (t list-iterator, t)?(a t list-iterator, chunk t array, pos t position) bare
 	((a.list, chunk, chunk.size - 1, pos), chunk[end - 1]),
 
--next-to-l1-right[t] (t, t list-iterator)?(a t list-iterator) noctx
+-next-to-l1-right[t] (t, t list-iterator)?(a t list-iterator) bare
 	a next-set-chunk a.list.get-l1-branch.right, l1-right
 
--prev-to-l1-left[t] (t list-iterator, t)?(a t list-iterator) noctx
+-prev-to-l1-left[t] (t list-iterator, t)?(a t list-iterator) bare
 	a prev-set-chunk a.list.get-l1-branch.left, l1-left
 
--next-to-l2-left[t] (t, t list-iterator)?(a t list-iterator) noctx
+-next-to-l2-left[t] (t, t list-iterator)?(a t list-iterator) bare
 	match a.list.get-l2 node
 	as leaf xs
 		if xs is-empty
@@ -630,15 +630,15 @@ This is O(n).
 	as branch b
 		a next-set-chunk b.left[0], b.left.begin.l2-left
 
--prev-to-l2-left[t] (t list-iterator, t)?(a t list-iterator) noctx
+-prev-to-l2-left[t] (t list-iterator, t)?(a t list-iterator) bare
 	iter2d = a.list.get-l2-branch.left end
 	a prev-set-chunk *iter2d, iter2d.l2-left
 
--next-to-l2-right[t] (t, t list-iterator)?(a t list-iterator) noctx
+-next-to-l2-right[t] (t, t list-iterator)?(a t list-iterator) bare
 	iter2d = a.list.get-l2-branch.right begin
 	a next-set-chunk *iter2d, iter2d.l2-right
 
--prev-to-l2-right[t] (t list-iterator, t)?(a t list-iterator) noctx
+-prev-to-l2-right[t] (t list-iterator, t)?(a t list-iterator) bare
 	match a.list.get-l2 node
 	as leaf xs
 		if xs is-empty
@@ -648,14 +648,14 @@ This is O(n).
 	as branch b
 		a prev-set-chunk b.right[end - 1], b.right.end.l2-right
 
--next-to-l3[t] (t, t list-iterator)?(a t list-iterator) noctx
+-next-to-l3[t] (t, t list-iterator)?(a t list-iterator) bare
 	nodes = a.list.get-l3 nodes
 	if nodes is-empty
 		a next-to-l2-right
 	else
 		a next-set-chunk nodes[0][0], nodes.begin.l3-leaf
 
--prev-to-l3[t] (t list-iterator, t)?(a t list-iterator) noctx
+-prev-to-l3[t] (t list-iterator, t)?(a t list-iterator) bare
 	nodes = a.list.get-l3 nodes
 	if nodes is-empty
 		a prev-to-l2-left
@@ -870,27 +870,27 @@ This is O(n).
 	# arrays[index-2d] is the current chunk
 	index-2d nat64
 
--begin[t] t array-2d-iterator(a t array2d) noctx
+-begin[t] t array-2d-iterator(a t array2d) bare
 	a, 0
 
--end[t] t array-2d-iterator(a t array2d) noctx
+-end[t] t array-2d-iterator(a t array2d) bare
 	a, a.arrays.size - 1
 
--*[t] t array(a t array-2d-iterator) noctx
+-*[t] t array(a t array-2d-iterator) bare
 	a.arrays[a index-2d]
 
--move-left[t] t array-2d-iterator?(a t array-2d-iterator) noctx
+-move-left[t] t array-2d-iterator?(a t array-2d-iterator) bare
 	if a.index-2d > 0
 		(a.arrays, a.index-2d - 1),
 
--move-right[t] t array-2d-iterator?(a t array-2d-iterator) noctx
+-move-right[t] t array-2d-iterator?(a t array-2d-iterator) bare
 	if a.index-2d < a.arrays.arrays.size - 1
 		(a.arrays, a.index-2d + 1),
 
--slice-left[t] t array2d(a t array-2d-iterator) noctx
+-slice-left[t] t array2d(a t array-2d-iterator) bare
 	a.arrays[0 .. a.index-2d]
 
--slice-right[t] t array2d(a t array-2d-iterator) noctx
+-slice-right[t] t array2d(a t array-2d-iterator) bare
 	a.arrays[a.index-2d + 1 .. end]
 
 -array-3d-iterator[t] record by-val
@@ -898,31 +898,31 @@ This is O(n).
 	index-3d nat64
 	index-2d nat64
 
--begin[t] t array-3d-iterator(a t array3d) noctx
+-begin[t] t array-3d-iterator(a t array3d) bare
 	a, 0, 0
 
--end[t] t array-3d-iterator(a t array3d) noctx
+-end[t] t array-3d-iterator(a t array3d) bare
 	a, a.arrays.size - 1, a[end - 1].arrays.size - 1
 
--*[t] t array(a t array-3d-iterator) noctx
+-*[t] t array(a t array-3d-iterator) bare
 	a.arrays[a.index-3d][a.index-2d]
 
--move-left[t] t array-3d-iterator?(a t array-3d-iterator) noctx
+-move-left[t] t array-3d-iterator?(a t array-3d-iterator) bare
 	if a.index-2d > 0
 		(a.arrays, a.index-3d, a.index-2d - 1),
 	elif a.index-3d > 0
 		(a.arrays, a.index-3d - 1, a.arrays[a.index-3d - 1].arrays.size - 1),
 
--move-right[t] t array-3d-iterator?(a t array-3d-iterator) noctx
+-move-right[t] t array-3d-iterator?(a t array-3d-iterator) bare
 	if a.index-2d < a.arrays[a.index-3d].arrays.size - 1
 		(a.arrays, a.index-3d, a.index-2d + 1),
 	elif a.index-3d < a.arrays.arrays.size - 1
 		(a.arrays, a.index-3d + 1, 0),
 
--slice-left[t] (t array3d, t array2d)(a t array-3d-iterator) noctx
+-slice-left[t] (t array3d, t array2d)(a t array-3d-iterator) bare
 	a2d t array-2d-iterator = a.arrays[a index-3d], a.index-2d
 	a.arrays[0 .. a.index-3d], a2d.slice-left
 
--slice-right[t] (t array2d, t array3d)(a t array-3d-iterator) noctx
+-slice-right[t] (t array2d, t array3d)(a t array-3d-iterator) bare
 	a2d t array-2d-iterator = a.arrays[a index-3d], a.index-2d
 	a2d.slice-right, a.arrays[a.index-3d + 1 .. end]

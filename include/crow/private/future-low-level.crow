@@ -16,7 +16,7 @@ unresolved[t] t^() unsafe
 	res.lock init
 	res
 
--lock[t] lock mut*(a t^) noctx, unsafe
+-lock[t] lock mut*(a t^) bare, unsafe
 	&a.lk
 
 resolve[t] void(a t^, value t) unsafe
@@ -138,7 +138,7 @@ add-task[t] void(a t^, task task) unsafe
 	tasks-are-ready
 
 # Assuming the future is resolved, get the result.
-get-result[t] (t, exception) result(a t^) noctx, unsafe
+get-result[t] (t, exception) result(a t^) bare, unsafe
 	a.lock acquire
 	res ((t, exception) result, t) or-forwarded = match a state
 	as empty

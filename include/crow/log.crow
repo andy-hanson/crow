@@ -91,8 +91,8 @@ then fall back to the original log handler.
 
 If you just want to call the curent log handler, you could just use `log`.
 ###
-+get-log-handler log-handler() noctx
++get-log-handler log-handler() bare
 	trusted cur-log-handler
 
-set-log-handler void(handler log-handler) noctx, unsafe
+set-log-handler void(handler log-handler) bare, unsafe
 	cur-log-handler := handler

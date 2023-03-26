@@ -21,17 +21,17 @@ dummy-bare-map-tests nat()
 	moved mut nat
 	destroyed mut bool
 
--new value() noctx
+-new value() bare
 	"default",
 
--new value(id string) noctx
+-new value(id string) bare
 	id, 0, false
 
--move-from void(dest (nat, value) map-pair mut*, src (nat, value) map-pair*) noctx, unsafe
+-move-from void(dest (nat, value) map-pair mut*, src (nat, value) map-pair*) bare, unsafe
 	*dest := *src
 	dest.value->moved +:= 1
 
--destroy void(a value mut*) noctx, unsafe
+-destroy void(a value mut*) bare, unsafe
 	forbid a->destroyed
 	a->destroyed := true
 

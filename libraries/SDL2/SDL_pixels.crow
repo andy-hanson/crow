@@ -35,16 +35,16 @@ SDL_PixelFormat record mut extern
 	refcount c-int
 	next SDL_PixelFormat mut*
 
-SDL_PIXELFORMAT_RGBA32 nat32() noctx, unsafe
+SDL_PIXELFORMAT_RGBA32 nat32() bare, unsafe
 	if is-big-endian
 		SDL_PIXELFORMAT_RGBA8888
 	else
 		SDL_PIXELFORMAT_ABGR8888
 
--SDL_PIXELFORMAT_RGBA8888 nat32() noctx, unsafe
+-SDL_PIXELFORMAT_RGBA8888 nat32() bare, unsafe
 	SDL_PIXELTYPE_PACKED32 SDL_DEFINE_PIXELFORMAT SDL_PACKEDORDER_RGBA, SDL_PACKEDLAYOUT_8888, 32, 4
 
--SDL_PIXELFORMAT_ABGR8888 nat32() noctx, unsafe
+-SDL_PIXELFORMAT_ABGR8888 nat32() bare, unsafe
 	SDL_PIXELTYPE_PACKED32 SDL_DEFINE_PIXELFORMAT SDL_PACKEDORDER_ABGR, SDL_PACKEDLAYOUT_8888, 32, 4
 
 -SDL_DEFINE_PIXELFORMAT nat32(
@@ -53,7 +53,7 @@ SDL_PIXELFORMAT_RGBA32 nat32() noctx, unsafe
 	layout SDL_PackedLayout,
 	bits nat32,
 	bytes nat32,
-) noctx
+) bare
 	format nat32 = (type.to << 24) | (order.to << 20) | (layout.to << 16)
 	(1 << 28) | format | (bits << 8) | bytes
 

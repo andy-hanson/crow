@@ -34,10 +34,10 @@ They don't support efficient access by index, so use iterators instead.
 
 +to char8 array(a string)
 	a.inner to
-+to char8[](a string) noctx
++to char8[](a string) bare
 	a inner
 
-+literal string(a c-string) noctx
++literal string(a c-string) bare
 	trusted a .. a.find-c-string-end as-string
 
 ###
@@ -50,25 +50,25 @@ If you need to concatenate many strings, consider using the `crow/writer` module
 	a.inner ~~ b.inner,
 
 # Same as `""`.
-+new string() noctx
++new string() bare
 	""
 
 # Same as `a == ""`.
-+is-empty bool(a string) noctx
++is-empty bool(a string) bare
 	a.inner is-empty
 
 # Size in `char8`s
-+size nat64(a string) noctx
++size nat64(a string) bare
 	a.inner size
 
 +== bool(a string, b string)
 	a.inner == b.inner
-+== bool(a char8, b char8) noctx
++== bool(a char8, b char8) bare
 	a.to::nat8 == b.to
 
 +<=> comparison(a string, b string)
 	a.inner <=> b.inner
-+<=> comparison(a char8, b char8) noctx
++<=> comparison(a char8, b char8) bare
 	a.to::nat8 <=> b.to
 
 +hash-mix void(hasher hasher, a string)
@@ -83,11 +83,11 @@ region conversion
 Treat a list of UTF-8 character codes as a string.
 This is O(1).
 ###
-+as-string string(a char8[]) noctx
++as-string string(a char8[]) bare
 	a,
-as-string string(a char8 array) noctx
+as-string string(a char8 array) bare
 	a.to::char8[] as-string
-as-string string(a char8* range) noctx, unsafe
+as-string string(a char8* range) bare, unsafe
 	a.as-array as-string
 
 ###
@@ -99,7 +99,7 @@ This is O(1).
 as-string string(bytes nat8 array)
 	bytes.to::nat8[] as-string
 
-+to nat64(a char8) noctx
++to nat64(a char8) bare
 	a.to::nat8 to
 
 ###
@@ -136,7 +136,7 @@ Unsafe because `a` must end in a `"\0"` character somewhere.
 	a.literal.inner.to.copy.move-to
 
 # `"true"` or `"false"`.
-+to string(a bool) noctx
++to string(a bool) bare
 	if a
 		"true"
 	else
@@ -277,34 +277,34 @@ region spec impls (see collection.crow)
 +<=> comparison(a string-iterator, b string-iterator)
 	a.inner <=> b.inner
 
-+begin string-iterator(a string) noctx
++begin string-iterator(a string) bare
 	a.inner.begin,
 
-+end string-iterator(a string) noctx
++end string-iterator(a string) bare
 	a.inner.end,
 
-+collection string(a string-iterator) noctx
++collection string(a string-iterator) bare
 	a.inner.collection,
 
-+next-index nat64(a string-iterator) noctx
++next-index nat64(a string-iterator) bare
 	a.inner next-index
 
 +slice string(a string-iterator, b string-iterator)
 	(a.inner slice b.inner),
 
-+next (char8, string-iterator)?(a string-iterator) noctx
++next (char8, string-iterator)?(a string-iterator) bare
 	if x, next ?= a.inner next
 		(x, (next,)),
 
-+prev (string-iterator, char8)?(a string-iterator) noctx
++prev (string-iterator, char8)?(a string-iterator) bare
 	if prev, x ?= a.inner prev
 		((prev,), x),
 
-+ + string-iterator(a string-iterator, n nat64) noctx
++ + string-iterator(a string-iterator, n nat64) bare
 	a.inner + n,
-+- string-iterator(a string-iterator, n nat64) noctx
++- string-iterator(a string-iterator, n nat64) bare
 	a.inner - n,
-+- nat64(a string-iterator, b string-iterator) noctx
++- nat64(a string-iterator, b string-iterator) bare
 	a.inner - b.inner
 
 +string-builder record mut
@@ -328,7 +328,7 @@ region utilities
 +lower-case string(a string)
 	for x : a inner; x lower-case-char
 
--lower-case-char char8(a char8) noctx
+-lower-case-char char8(a char8) bare
 	diff = a.to::nat8 wrap-sub "A"::char8.to
 	if diff < 26
 		"a"::char8.to + diff to
@@ -339,7 +339,7 @@ region utilities
 +upper-case string(a string)
 	for x : a inner; x upper-case-char
 
--upper-case-char char8(a char8) noctx
+-upper-case-char char8(a char8) bare
 	diff = a.to::nat8 wrap-sub "a"::char8.to
 	if diff < 26
 		"A"::char8.to + diff to

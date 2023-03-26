@@ -71,7 +71,7 @@ test
 	0x500.to-bytes is (5, 0)
 
 # TODO:MOVE
--wrap-to nat8(a nat64) noctx
+-wrap-to nat8(a nat64) bare
 	# TODO: gccjit has a bug if I inline 'masked'
 	masked = a & 0xff
 	masked to

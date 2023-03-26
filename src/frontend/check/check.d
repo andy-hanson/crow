@@ -667,7 +667,7 @@ FunFlags checkFunFlags(ref CheckCtx ctx, RangeWithinFile range, FunModifierAst.S
 
 	bool builtin = (flags & FunModifierAst.Special.Flags.builtin) != 0;
 	bool extern_ = (flags & FunModifierAst.Special.Flags.extern_) != 0;
-	bool explicitNoctx = (flags & FunModifierAst.Special.Flags.noctx) != 0;
+	bool explicitBare = (flags & FunModifierAst.Special.Flags.bare) != 0;
 	bool forceCtx = (flags & FunModifierAst.Special.Flags.forceCtx) != 0;
 	bool summon = (flags & FunModifierAst.Special.Flags.summon) != 0;
 	bool trusted = (flags & FunModifierAst.Special.Flags.trusted) != 0;
@@ -675,8 +675,8 @@ FunFlags checkFunFlags(ref CheckCtx ctx, RangeWithinFile range, FunModifierAst.S
 
 	bool implicitUnsafe = extern_;
 	bool unsafe = explicitUnsafe || implicitUnsafe;
-	bool implicitNoctx = extern_;
-	bool noctx = explicitNoctx || implicitNoctx;
+	bool implicitBare = extern_;
+	bool bare = explicitBare || implicitBare;
 
 	Sym bodyModifier() {
 		return builtin
@@ -691,8 +691,8 @@ FunFlags checkFunFlags(ref CheckCtx ctx, RangeWithinFile range, FunModifierAst.S
 		: trusted
 		? FunFlags.Safety.safe
 		: FunFlags.Safety.unsafe;
-	if (implicitNoctx && explicitNoctx)
-		warnRedundant(bodyModifier(), sym!"noctx");
+	if (implicitBare && explicitBare)
+		warnRedundant(bodyModifier(), sym!"bare");
 	if (implicitUnsafe && explicitUnsafe)
 		warnRedundant(bodyModifier(), sym!"unsafe");
 	if (trusted && !extern_)
@@ -709,7 +709,7 @@ FunFlags checkFunFlags(ref CheckCtx ctx, RangeWithinFile range, FunModifierAst.S
 		verify(mutMaxArrSize(bodyModifiers) == 2);
 		addDiag(ctx, range, Diag(Diag.FunModifierConflict(bodyModifiers[0], bodyModifiers[1])));
 	}
-	return FunFlags.regular(noctx, summon, safety, specialBody, forceCtx);
+	return FunFlags.regular(bare, summon, safety, specialBody, forceCtx);
 }
 
 FunsAndMap checkFuns(
@@ -896,7 +896,7 @@ FunDecl funDeclForFileImportOrExport(
 		[],
 		typeForFileImport(ctx, commonTypes, structsAndAliasesMap, a.range, a.type),
 		Params([]),
-		FunFlags.generatedNoCtx,
+		FunFlags.generatedBare,
 		[]);
 
 Type typeForFileImport(

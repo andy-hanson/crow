@@ -598,7 +598,7 @@ immutable struct FunBody {
 immutable struct FunFlags {
 	@safe @nogc pure nothrow:
 
-	bool noCtx;
+	bool bare;
 	bool summon;
 	enum Safety : ubyte { safe, unsafe }
 	Safety safety;
@@ -609,16 +609,16 @@ immutable struct FunFlags {
 	bool forceCtx;
 
 	FunFlags withOkIfUnused() =>
-		FunFlags(noCtx, summon, safety, preferred, true, specialBody, forceCtx);
+		FunFlags(bare, summon, safety, preferred, true, specialBody, forceCtx);
 
-	static FunFlags regular(bool noCtx, bool summon, Safety safety, SpecialBody specialBody, bool forceCtx) =>
-		FunFlags(noCtx, summon, safety, false, false, specialBody, forceCtx);
+	static FunFlags regular(bool bare, bool summon, Safety safety, SpecialBody specialBody, bool forceCtx) =>
+		FunFlags(bare, summon, safety, false, false, specialBody, forceCtx);
 
 	static FunFlags none() =>
 		FunFlags(false, false, Safety.safe, false, false, SpecialBody.none);
-	static FunFlags generatedNoCtx() =>
+	static FunFlags generatedBare() =>
 		FunFlags(true, false, Safety.safe, false, true, SpecialBody.generated);
-	static FunFlags generatedNoCtxUnsafe() =>
+	static FunFlags generatedBareUnsafe() =>
 		FunFlags(true, false, Safety.unsafe, false, true, SpecialBody.generated);
 	static FunFlags generated() =>
 		FunFlags(false, false, Safety.safe, false, true, SpecialBody.generated);
@@ -706,13 +706,13 @@ immutable struct FunDecl {
 Linkage linkage(ref FunDecl a) =>
 	a.body_.isA!(FunBody.Extern) ? Linkage.extern_ : Linkage.internal;
 
-bool noCtx(in FunDecl a) =>
-	a.flags.noCtx;
+bool isBare(in FunDecl a) =>
+	a.flags.bare;
 bool isGenerated(in FunDecl a) =>
 	a.flags.specialBody == FunFlags.SpecialBody.generated;
-bool summon(in FunDecl a) =>
+bool isSummon(in FunDecl a) =>
 	a.flags.summon;
-bool unsafe(in FunDecl a) =>
+bool isUnsafe(in FunDecl a) =>
 	a.flags.safety == FunFlags.Safety.unsafe;
 bool okIfUnused(in FunDecl a) =>
 	a.flags.okIfUnused;

@@ -18,7 +18,7 @@ export
 	# TODO: don't export to
 	../private/bootstrap: symbol, to
 
-+== bool(a symbol, b symbol) noctx
++== bool(a symbol, b symbol) bare
 	# (this is pointer equality)
 	trusted a.to::c-string == b.to
 
@@ -26,7 +26,7 @@ export
 +<=> comparison(a symbol, b symbol)
 	a.to::string <=> b.to
 
-+to string(a symbol) noctx
++to string(a symbol) bare
 	trusted a.to literal
 
 init-symbol-table void(a global-ctx mut*) unsafe

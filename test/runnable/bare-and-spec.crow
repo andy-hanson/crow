@@ -1,5 +1,5 @@
 ###
-`<` is marked `noctx`, but might call a `ctx` function.
+`<` is marked `bare`, but might call a `ctx` function.
 In that case, the particular instance of `<` should actually get a ctx.
 ###
 
@@ -13,6 +13,6 @@ t record
 == bool(_ t, _ t)
 	false
 
-# This is not marked `noctx`, but `<`, which calls it, is.
+# This is not marked `bare`, but `<`, which calls it, is.
 <=> comparison(_ t, _ t)
 	less

@@ -28,7 +28,7 @@ some-spec spec
 
 f void() c extern, some-spec
 
-f void() noctx, c extern
+f void() bare, c extern
 
 f void() unsafe, c extern
 

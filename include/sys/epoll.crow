@@ -10,7 +10,7 @@ epoll_event record extern packed
 	events nat32
 	event_data nat64
 
-new epoll_event() noctx
+new epoll_event() bare
 	0, 0
 
 epoll_ctl err-t(epfd fd-t, op c-int, fd fd-t, event epoll_event mut*) summon, c extern
@@ -22,18 +22,18 @@ epoll_wait err-t(
 	timeout c-int,
 ) summon, c extern
 
-EPOLLIN nat32() noctx
+EPOLLIN nat32() bare
 	1
-EPOLLERR nat32() noctx
+EPOLLERR nat32() bare
 	8
-EPOLLHUP nat32() noctx
+EPOLLHUP nat32() bare
 	0x10
-EPOLLET nat32() noctx
+EPOLLET nat32() bare
 	0x80000000
 
-EPOLL_CTL_ADD c-int() noctx
+EPOLL_CTL_ADD c-int() bare
 	1
-EPOLL_CTL_DEL c-int() noctx
+EPOLL_CTL_DEL c-int() bare
 	2
-EPOLL_CTL_MOD c-int() noctx
+EPOLL_CTL_MOD c-int() bare
 	3

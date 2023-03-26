@@ -25,12 +25,12 @@ Usable for any type with a comparison function.
 	- t(a t, distance nat64)
 
 # Create a range from `low` (inclusive) to `high` (exclusive).
-+..[t] t range(low t, high t) noctx, t compare
++..[t] t range(low t, high t) bare, t compare
 	assert low <= high
 	low, high
 
 # Size of the range; depends on a `-` function existing.
-+size[t] nat64(a t range) noctx, t subtract-to-nat
++size[t] nat64(a t range) bare, t subtract-to-nat
 	a.high - a.low
 
 # Calls `f` for each value in the range, from `a.low` to `a.high - 1`.

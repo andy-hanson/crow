@@ -4,7 +4,7 @@ import
 SDL_AudioFormat alias
 	nat16
 
-AUDIO_F32 SDL_AudioFormat() noctx
+AUDIO_F32 SDL_AudioFormat() bare
 	0x8120
 
 SDL_AudioDeviceID alias
@@ -24,7 +24,7 @@ SDL_AudioSpec record extern mut
 	callback SDL_AudioCallback
 	userdata any-mut-pointer
 
-new SDL_AudioSpec() noctx, unsafe
+new SDL_AudioSpec() bare, unsafe
 	0, 0, 0, 0, 0, 0, 0, null, null
 
 SDL_GetAudioDeviceName c-string(index c-int, iscapture c-int) summon, SDL2 extern

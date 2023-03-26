@@ -103,10 +103,10 @@ immutable struct Diag {
 
 	immutable struct CantCall {
 		enum Reason {
-			nonNoCtx,
+			nonBare,
 			summon,
 			unsafe,
-			variadicFromNoctx,
+			variadicFromBare,
 		}
 
 		Reason reason;

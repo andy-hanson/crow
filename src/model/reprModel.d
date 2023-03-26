@@ -23,7 +23,6 @@ import model.model :
 	Local,
 	Module,
 	name,
-	noCtx,
 	Params,
 	Purity,
 	SpecDecl,
@@ -33,7 +32,6 @@ import model.model :
 	SpecInst,
 	StructDecl,
 	StructInst,
-	summon,
 	symOfAssertOrForbidKind,
 	symOfFunKind,
 	symOfPurity,
@@ -185,8 +183,8 @@ void addFunFlags(ref Alloc alloc, scope ref ArrBuilder!NameAndRepr fields, in Fu
 		add(alloc, fields, nameAndRepr!a(reprBool(true)));
 	}
 
-	if (a.noCtx)
-		addFlag!"no-ctx";
+	if (a.bare)
+		addFlag!"bare";
 	if (a.summon)
 		addFlag!"summon";
 	final switch (a.safety) {

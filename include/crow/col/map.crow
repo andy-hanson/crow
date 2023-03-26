@@ -44,7 +44,7 @@ There should be `==`, `<=>`, and `hash-mix` functions defined for the key type `
 	inner-node (k, v) node array
 	leaf-node (k, v) array
 
--empty-leaf-node[k, v] (k, v) node() noctx
+-empty-leaf-node[k, v] (k, v) node() bare
 	() leaf-node
 
 -low-bits nat64(a nat64)
@@ -56,7 +56,7 @@ There should be `==`, `<=>`, and `hash-mix` functions defined for the key type `
 -leaf-max-size nat64()
 	8
 
-empty-map[k, v] v[k]() noctx
+empty-map[k, v] v[k]() bare
 	empty-leaf-node,
 
 ###

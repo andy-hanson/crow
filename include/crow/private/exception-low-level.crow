@@ -19,7 +19,7 @@ export
 Fail unconditionally.
 This function is used to mark part of an `if` or `match` that should not be possible.
 ###
-+unreachable[t] t() noctx
++unreachable[t] t() bare
 	throw "should be unreachable"
 
 # WARN: Need to set to null at end of catch
@@ -62,17 +62,17 @@ or `err` containing an exception if it threw one.
 	(() => try[] ok) catch e => e err
 
 # This is called by the compiler on 'throw'
-throw-impl void(message c-string) noctx
+throw-impl void(message c-string) bare
 	message throw-with-skip 2
 
-throw-with-skip void(message c-string, skip nat64) noctx
+throw-with-skip void(message c-string, skip nat64) bare
 	backtrace = trusted if ctx ?= try-get-cur-gc-ctx
 		ctx get-backtrace skip
 	else
 		(),
 	(message, backtrace) rethrow
 
--new[t] t array(...a t array) noctx
+-new[t] t array(...a t array) bare
 	a
 
 ###
@@ -81,7 +81,7 @@ Throw an existing exception object.
 This is useful for rethrowing an exception that was already caught.
 Throwing an exception does not modify its backtrace.
 ###
-+rethrow[t] t(e exception) noctx
++rethrow[t] t(e exception) bare
 	trusted
 		jmp-buf = cur-jmp-buf
 		if jmp-buf == null
@@ -103,5 +103,5 @@ with-block[t] t(_ abort-on-exceptions, cb act t()) unsafe
 	cur-jmp-buf := jmp-buf
 	res
 
--number-to-throw int32() noctx, unsafe
+-number-to-throw int32() bare, unsafe
 	7

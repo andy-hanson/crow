@@ -8,12 +8,14 @@ import model.model :
 	Destructure,
 	FieldMutability,
 	FunDecl,
+	isBare,
 	isGenerated,
+	isSummon,
+	isUnsafe,
 	isVariadic,
 	Module,
 	name,
 	NameReferents,
-	noCtx,
 	Params,
 	paramsArray,
 	Program,
@@ -28,7 +30,6 @@ import model.model :
 	StructDecl,
 	StructInst,
 	StructOrAlias,
-	summon,
 	symOfPurity,
 	target,
 	Type,
@@ -36,7 +37,6 @@ import model.model :
 	TypeParam,
 	typeParams,
 	UnionMember,
-	unsafe,
 	Visibility,
 	visibility;
 import util.alloc.alloc : Alloc;
@@ -293,12 +293,12 @@ DocExport documentFun(ref Alloc alloc, in FunDecl a) {
 
 Repr[] documentSpecs(ref Alloc alloc, in FunDecl a) {
 	ArrBuilder!Repr res;
-	if (summon(a))
+	if (isBare(a))
+		add(alloc, res, reprSpecialSpec(alloc, sym!"bare"));
+	if (isSummon(a))
 		add(alloc, res, reprSpecialSpec(alloc, sym!"summon"));
-	if (unsafe(a))
+	if (isUnsafe(a))
 		add(alloc, res, reprSpecialSpec(alloc, sym!"unsafe"));
-	if (noCtx(a))
-		add(alloc, res, reprSpecialSpec(alloc, sym!"noctx"));
 	foreach (SpecInst* spec; a.specs)
 		add(alloc, res, documentSpecInst(alloc, *spec));
 	return finishArr(alloc, res);

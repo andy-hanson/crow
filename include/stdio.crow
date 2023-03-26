@@ -9,11 +9,11 @@ import
 
 perror void(s c-string) summon, c extern
 
-stdin fd-t() noctx
+stdin fd-t() bare
 	0
-stdout fd-t() noctx
+stdout fd-t() bare
 	1
-stderr fd-t() noctx
+stderr fd-t() bare
 	2
 
 FILE extern

@@ -25,20 +25,20 @@ task-queue record mut by-val
 	-timed mut (nat64, task) bare-priority-queue
 
 # Use for asserts only
-slow-is-empty bool(a task-queue*) noctx, unsafe
+slow-is-empty bool(a task-queue*) bare, unsafe
 	a.non-timed.slow-is-empty && a.timed.is-empty
 
-uninit task-queue() noctx, unsafe
+uninit task-queue() bare, unsafe
 	uninit, ()
 
-init void(a task-queue mut*) noctx, unsafe
+init void(a task-queue mut*) bare, unsafe
 	a.non-timed init
 
-destroy void(a task-queue mut*) noctx, unsafe
+destroy void(a task-queue mut*) bare, unsafe
 	a.non-timed destroy
 	a.timed destroy
 
-add-gc-roots void(a task-queue*, gc gc mut*) noctx, unsafe
+add-gc-roots void(a task-queue*, gc gc mut*) bare, unsafe
 	a.non-timed add-gc-roots gc
 	a.timed add-gc-roots gc
 
@@ -49,7 +49,7 @@ pop-task-result union mut
 	no-task timestamp?
 
 # Caller should call 'release-exclusion' after running the task
-pop-task pop-task-result(a task-queue mut*, cur-time timestamp) noctx, unsafe
+pop-task pop-task-result(a task-queue mut*, cur-time timestamp) bare, unsafe
 	a move-timed-tasks cur-time
 	if exclusion, action ?= a.non-timed dequeue
 		(exclusion, action) task
@@ -57,7 +57,7 @@ pop-task pop-task-result(a task-queue mut*, cur-time timestamp) noctx, unsafe
 		a.timed.as-const.peek-key no-task
 
 # Move timed tasks to the non-timed queue if they are ready
--move-timed-tasks void(a task-queue mut*, cur-time timestamp) noctx, unsafe
+-move-timed-tasks void(a task-queue mut*, cur-time timestamp) bare, unsafe
 	loop
 		if t ?= a.timed dequeue-if-less-or-equal cur-time
 			a.non-timed enqueue t.exclusion, t.action
@@ -65,16 +65,16 @@ pop-task pop-task-result(a task-queue mut*, cur-time timestamp) noctx, unsafe
 		else
 			break
 
-release-exclusion void(a task-queue mut*, exclusion exclusion) noctx, unsafe
+release-exclusion void(a task-queue mut*, exclusion exclusion) bare, unsafe
 	a.non-timed release-exclusion exclusion
 
-enqueue-timed-task void(a task-queue mut*, time nat64, task task) noctx, unsafe
+enqueue-timed-task void(a task-queue mut*, time nat64, task task) bare, unsafe
 	a.timed enqueue (time, task)
 
-enqueue-task void(a task-queue mut*, task task) noctx, unsafe
+enqueue-task void(a task-queue mut*, task task) bare, unsafe
 	a.non-timed enqueue task.exclusion, task.action
 
-enqueue-tasks void(a task-queue mut*, tasks task array) noctx, unsafe
+enqueue-tasks void(a task-queue mut*, tasks task array) bare, unsafe
 	cur mut = tasks begin
 	loop
 		if task, next ?= cur next

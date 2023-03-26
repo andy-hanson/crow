@@ -4,12 +4,12 @@ import
 export
 	tgmath: cos, sin
 
-+pi float32() noctx
++pi float32() bare
 	# TODO: more digits
 	3.14159
 
-+cos float32(a float32) noctx
++cos float32(a float32) bare
 	a.to.cos to
 
-+sin float32(a float32) noctx
++sin float32(a float32) bare
 	a.to.sin to

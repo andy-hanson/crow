@@ -13,11 +13,11 @@ import
 	../../private/bootstrap: array, begin-pointer, new, size
 	./build: build-options, size-hint
 
-array-reference-equal[t] bool(a t array, b t array) noctx, unsafe
+array-reference-equal[t] bool(a t array, b t array) bare, unsafe
 	a.begin-pointer == b.begin-pointer && a.size == b.size
 
 # Pointer to the end of an array.
-+end-pointer[t] t*(a t array) noctx, unsafe
++end-pointer[t] t*(a t array) bare, unsafe
 	a.begin-pointer + a.size
 
 ###
@@ -25,20 +25,20 @@ Arr or the range from begin to end.
 `begin` is inclusive and `end` is exclusive.
 UB if begin > end.
 ###
-+as-array[t] t array(pointers t* range) noctx, unsafe
++as-array[t] t array(pointers t* range) bare, unsafe
 	pointers.size, pointers.low
-+as-array[t] t array(pointers t mut* range) noctx, unsafe
++as-array[t] t array(pointers t mut* range) bare, unsafe
 	pointers.size, pointers.low.as-const
 
-+pointers[t] t* range(a t array) noctx, unsafe
++pointers[t] t* range(a t array) bare, unsafe
 	a.begin-pointer .. a.end-pointer
 
-array-cast[out, in] out array(a in array) noctx, unsafe
+array-cast[out, in] out array(a in array) bare, unsafe
 	assert size-of@out == size-of@in
 	a.size, a.begin-pointer.pointer-cast
 
 # Create an array from a range of pointers.
-+subscript[t] t array(a t*, r nat64 range) noctx, unsafe
++subscript[t] t array(a t*, r nat64 range) bare, unsafe
 	r.size, a + r.low
 
 ###

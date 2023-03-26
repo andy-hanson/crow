@@ -6,15 +6,15 @@ import
 
 fcntl c-int(fd fd-t, cmd c-int, oflags oflag-t) summon, GL extern
 
-F_DUPFD c-int() noctx
+F_DUPFD c-int() bare
 	0
-F_GETFD c-int() noctx
+F_GETFD c-int() bare
 	1
-F_SETFD c-int() noctx
+F_SETFD c-int() bare
 	2
-F_GETFL c-int() noctx
+F_GETFL c-int() bare
 	3
-F_SETFL c-int() noctx
+F_SETFL c-int() bare
 	4
 
 open fd-t(path c-string, oflag oflag-t, permission nat32) summon, GL extern
@@ -22,15 +22,15 @@ open fd-t(path c-string, oflag oflag-t, permission nat32) summon, GL extern
 oflag-t alias
 	c-int
 
-O_RDONLY oflag-t() noctx
+O_RDONLY oflag-t() bare
 	0
-O_WRONLY oflag-t() noctx
+O_WRONLY oflag-t() bare
 	1
-O_RDWR oflag-t() noctx
+O_RDWR oflag-t() bare
 	2
-O_CREAT oflag-t() noctx
+O_CREAT oflag-t() bare
 	0x40
-O_TRUNC oflag-t() noctx
+O_TRUNC oflag-t() bare
 	0x200
-O_NONBLOCK oflag-t() noctx
+O_NONBLOCK oflag-t() bare
 	0x800
