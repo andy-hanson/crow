@@ -17,7 +17,7 @@ import
 		~=, +, -, array, array-cast, as-array, begin, begin-pointer, build, end, end-pointer,
 		is-empty, iterate, new, next, size, slice
 	../collection:
-		.., build, end, exists, fill, for-loop, n-of, set-subscript, subscript, with-block,
+		.., build, build-options, end, exists, fill, for-loop, n-of, set-subscript, subscript, with-block,
 		with-index
 	../mut-array:
 		~=, +, begin-pointer, begin, build, cast-immutable, end-pointer, iterate, mut-array,
@@ -191,22 +191,10 @@ iterate[k, v] bool(a (k, v) frozen-map, f act bool(k, v))
 
 subregion build
 
-build-frozen-map record
-	-size-hint nat64
-build build-frozen-map()
-	0,
-build build-frozen-map(size-hint nat64)
-	size-hint,
-
 frozen-map-builder[k, v] record mut
 	-inner (k, v) mut-array-builder
-
-with-block[k, v] (k, v) frozen-map(
-	a build-frozen-map,
-	f act void((k, v) frozen-map-builder),
-) k key
-	trusted (with out : a.size-hint build; f[out,]) as-frozen-map
-
+build[k, v] (k, v) frozen-map(a build-options, f act void((k, v) frozen-map-builder)) k key
+	trusted (a build out => f[out,]) as-frozen-map
 ~ ~=[k, v] void(a(k, v) frozen-map-builder, pair (k, v))
 	a.inner ~= pair
 
