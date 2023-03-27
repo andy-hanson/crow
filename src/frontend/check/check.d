@@ -662,7 +662,7 @@ Opt!(SpecInst*) checkFunModifierNonSpecial(
 
 FunFlags checkFunFlags(ref CheckCtx ctx, RangeWithinFile range, FunModifierAst.Special.Flags flags) {
 	void warnRedundant(Sym modifier, Sym redundantModifier) {
-		addDiag(ctx, range, Diag(Diag.FunModifierRedundant(modifier, redundantModifier)));
+		addDiag(ctx, range, Diag(Diag.ModifierRedundantDueToModifier(modifier, redundantModifier)));
 	}
 
 	bool builtin = (flags & FunModifierAst.Special.Flags.builtin) != 0;
@@ -707,7 +707,7 @@ FunFlags checkFunFlags(ref CheckCtx ctx, RangeWithinFile range, FunModifierAst.S
 		if (builtin) pushIfUnderMaxSize(bodyModifiers, sym!"builtin");
 		if (extern_) pushIfUnderMaxSize(bodyModifiers, sym!"extern");
 		verify(mutMaxArrSize(bodyModifiers) == 2);
-		addDiag(ctx, range, Diag(Diag.FunModifierConflict(bodyModifiers[0], bodyModifiers[1])));
+		addDiag(ctx, range, Diag(Diag.ModifierConflict(bodyModifiers[0], bodyModifiers[1])));
 	}
 	return FunFlags.regular(bare, summon, safety, specialBody, forceCtx);
 }

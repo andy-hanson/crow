@@ -1,0 +1,30 @@
+main nat^(_ string[]) summon
+	()
+
+b builtin data
+
+e extern mut
+
+ee extern extern
+
+en enum data
+
+f flags data
+
+r record data
+
+u union data
+	r
+
+uv union by-val
+	r
+
+dd extern data data
+
+mm record mut mut
+
+ss record shared shared
+
+rr record by-ref by-ref
+
+vv record by-val by-val

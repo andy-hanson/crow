@@ -34,6 +34,7 @@ import model.model :
 	StructDecl,
 	StructInst,
 	symOfForcedByValOrRefOrNone,
+	symOfLinkage,
 	Type,
 	TypeParam,
 	typeParams,
@@ -45,11 +46,11 @@ import util.col.arrUtil : eachPair, fold, map, mapAndFold, MapAndFold, mapToMut,
 import util.col.mutArr : MutArr;
 import util.col.str : copySafeCStr;
 import util.conv : safeToSizeT;
-import util.opt : force, has, none, Opt, some, someMut;
+import util.opt : force, has, none, Opt, optOr, some, someMut;
 import util.ptr : ptrTrustMe;
 import util.sourceRange : RangeWithinFile;
 import util.sym : Sym, sym;
-import util.util : isMultipleOf, todo, unreachable;
+import util.util : isMultipleOf, todo, unreachable, verify;
 
 StructDecl[] checkStructsInitial(ref CheckCtx ctx, in StructDeclAst[] asts) =>
 	mapToMut!(StructDecl, StructDeclAst)(ctx.alloc, asts, (in StructDeclAst ast) {
@@ -153,6 +154,10 @@ immutable struct LinkageAndPurity {
 	Linkage linkage;
 	PurityAndForced purityAndForced;
 }
+immutable struct OptLinkageAndPurity {
+	Opt!Linkage linkage;
+	Opt!PurityAndForced purityAndForced;
+}
 
 immutable struct PurityAndForced {
 	Purity purity;
@@ -160,32 +165,50 @@ immutable struct PurityAndForced {
 }
 
 // Note: purity is taken for granted here, and verified later when we check the body.
-LinkageAndPurity getStructModifiers(ref CheckCtx ctx, TypeKind typeKind, in ModifierAst[] modifiers) =>
-	fold!(LinkageAndPurity, ModifierAst)(
-		LinkageAndPurity(defaultLinkage(typeKind), PurityAndForced(defaultPurity(typeKind), false)),
+LinkageAndPurity getStructModifiers(ref CheckCtx ctx, TypeKind typeKind, in ModifierAst[] modifiers) {
+	Linkage defaultLinkage = defaultLinkage(typeKind);
+	PurityAndForced defaultPurity = PurityAndForced(defaultPurity(typeKind), false);
+	OptLinkageAndPurity opts = fold!(OptLinkageAndPurity, ModifierAst)(
+		OptLinkageAndPurity(),
 		modifiers,
-		(LinkageAndPurity cur, in ModifierAst mod) {
+		(OptLinkageAndPurity cur, in ModifierAst mod) {
+			void addDiagConflictOrDuplicate(Sym prev) {
+				addDiag(
+					ctx,
+					rangeOfModifierAst(mod, ctx.allSymbols),
+					modifierConflictOrDuplicate(prev, symOfModifierKind(mod.kind)));
+			}
+			void addDiagRedundant() {
+				addDiag(ctx, rangeOfModifierAst(mod, ctx.allSymbols), Diag(Diag.ModifierRedundantDueToTypeKind(
+					symOfModifierKind(mod.kind),
+					typeKind)));
+			}
+
 			if (mod.kind == ModifierAst.Kind.extern_) {
-				if (cur.linkage != Linkage.internal)
-					addDiag(ctx, rangeOfModifierAst(mod, ctx.allSymbols), Diag(
-						Diag.ModifierDuplicate(symOfModifierKind(mod.kind))));
-				return LinkageAndPurity(Linkage.extern_, cur.purityAndForced);
+				if (has(cur.linkage))
+					addDiagConflictOrDuplicate(symOfLinkage(force(cur.linkage)));
+				else if (Linkage.extern_ == defaultLinkage)
+					addDiagRedundant();
+				return OptLinkageAndPurity(some(Linkage.extern_), cur.purityAndForced);
 			} else {
 				Opt!PurityAndForced op = purityAndForcedFromModifier(mod.kind);
 				if (has(op)) {
-					PurityAndForced next = force(op);
-					if (next.purity == cur.purityAndForced.purity)
-						addDiag(
-							ctx,
-							rangeOfModifierAst(mod, ctx.allSymbols),
-							cur.purityAndForced.purity == defaultPurity(typeKind)
-								? Diag(Diag.PuritySpecifierRedundant(next.purity, typeKind))
-								: Diag(Diag.ModifierDuplicate(symOfModifierKind(mod.kind))));
-					return LinkageAndPurity(cur.linkage, next);
+					if (has(cur.purityAndForced))
+						addDiagConflictOrDuplicate(symOfPurityAndForced(force(cur.purityAndForced)));
+					else if (force(op) == defaultPurity)
+						addDiagRedundant();
+					return OptLinkageAndPurity(cur.linkage, op);
 				} else
 					return cur;
 			}
 		});
+	return LinkageAndPurity(
+		optOr!Linkage(opts.linkage, () => defaultLinkage),
+		optOr!PurityAndForced(opts.purityAndForced, () => defaultPurity));
+}
+
+Diag modifierConflictOrDuplicate(Sym a, Sym b) =>
+	a == b ? Diag(Diag.ModifierDuplicate(a)) : Diag(Diag.ModifierConflict(a, b));
 
 Linkage defaultLinkage(TypeKind a) {
 	final switch (a) {
@@ -248,11 +271,27 @@ Opt!PurityAndForced purityAndForcedFromModifier(ModifierAst.Kind a) {
 	}
 }
 
+Sym symOfPurityAndForced(PurityAndForced a) {
+	final switch (a.purity) {
+		case Purity.data:
+			verify(!a.forced);
+			return sym!"data";
+		case Purity.shared_:
+			return a.forced ? sym!"force-shared" : sym!"shared";
+		case Purity.mut:
+			verify(!a.forced);
+			return sym!"mut";
+	}
+}
+
 void checkOnlyStructModifiers(ref CheckCtx ctx, TypeKind typeKind, in ModifierAst[] modifiers) {
 	foreach (ref ModifierAst modifier; modifiers)
-		if (!isStructModifier(modifier.kind))
-			addDiag(ctx, rangeOfModifierAst(modifier, ctx.allSymbols), Diag(
-				Diag.ModifierInvalid(symOfModifierKind(modifier.kind), typeKind)));
+		if (!isStructModifier(modifier.kind)) {
+			Sym sym = symOfModifierKind(modifier.kind);
+			addDiag(ctx, rangeOfModifierAst(modifier, ctx.allSymbols), modifier.kind == ModifierAst.Kind.byVal
+				? Diag(Diag.ModifierRedundantDueToTypeKind(sym, typeKind))
+				: Diag(Diag.ModifierInvalid(sym, typeKind)));
+		}
 }
 
 bool isStructModifier(ModifierAst.Kind a) {
@@ -611,7 +650,7 @@ RecordModifiers checkRecordModifiers(ref CheckCtx ctx, ModifierAst[] modifiers) 
 				case ModifierAst.Kind.forceShared:
 				case ModifierAst.Kind.mut:
 				case ModifierAst.Kind.shared_:
-					// already handled in getPurityFromModifiers
+					// already handled in getStructModifiers
 					return cur;
 			}
 		});

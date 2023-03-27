@@ -367,9 +367,7 @@ void writeParseDiag(
 }
 
 void writePurity(scope ref Writer writer, in AllSymbols allSymbols, Purity p) {
-	writer ~= '\'';
-	writeSym(writer, allSymbols, symOfPurity(p));
-	writer ~= '\'';
+	writeName(writer, allSymbols, symOfPurity(p));
 }
 
 void writeSig(
@@ -819,18 +817,6 @@ void writeDiag(
 		(in Diag.FunMissingBody) {
 			writer ~= "this function needs a body";
 		},
-		(in Diag.FunModifierConflict d) {
-			writer ~= "a function can't be both ";
-			writeName(writer, allSymbols, d.modifier0);
-			writer ~= " and ";
-			writeName(writer, allSymbols, d.modifier1);
-		},
-		(in Diag.FunModifierRedundant d) {
-			writer ~= "redundant; ";
-			writeName(writer, allSymbols, d.modifier);
-			writer ~= " function is implicitly ";
-			writeName(writer, allSymbols, d.redundantModifier);
-		},
 		(in Diag.FunModifierTrustedOnNonExtern) {
 			writer ~= "only 'extern' functions can be 'trusted'; otherwise 'trusted' should be used as an expression";
 		},
@@ -927,6 +913,17 @@ void writeDiag(
 			writer ~= " is not supported for ";
 			writer ~= aOrAnTypeKind(d.typeKind);
 		},
+		(in Diag.ModifierRedundantDueToModifier d) {
+			writeName(writer, allSymbols, d.redundantModifier);
+			writer ~= " is redundant given ";
+			writeName(writer, allSymbols, d.modifier);
+		},
+		(in Diag.ModifierRedundantDueToTypeKind d) {
+			writeName(writer, allSymbols, d.modifier);
+			writer ~= " is already the default for ";
+			writer ~= aOrAnTypeKind(d.typeKind);
+			writer ~= " type";
+		},
 		(in Diag.MutFieldNotAllowed d) {
 			writer ~= "field is mut, but containing record was not marked mut";
 		},
@@ -992,13 +989,6 @@ void writeDiag(
 			writeTypeQuoted(writer, allSymbols, program, d.child);
 			writer ~= " has purity ";
 			writePurity(writer, allSymbols, bestCasePurity(d.child));
-		},
-		(in Diag.PuritySpecifierRedundant d) {
-			writer ~= "redundant purity specifier of ";
-			writePurity(writer, allSymbols, d.purity);
-			writer ~= " is already the default for ";
-			writer ~= aOrAnTypeKind(d.typeKind);
-			writer ~= " type";
 		},
 		(in Diag.RecordNewVisibilityIsRedundant d) {
 			writer ~= "the 'new' function for this record is already ";

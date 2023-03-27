@@ -22,4 +22,4 @@ test/compile-errors/extern-errors.crow 24:1-24:2 'extern' function 'f' can't be 
 
 test/compile-errors/extern-errors.crow 29:1-29:2 'extern' function 'f' can't have specs
 
-test/compile-errors/extern-errors.crow 39:1-40:1 a function can't be both 'builtin' and 'extern'
+test/compile-errors/extern-errors.crow 39:1-40:1 'extern' conflicts with 'builtin'

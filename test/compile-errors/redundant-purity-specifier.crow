@@ -1,8 +1,0 @@
-b builtin data
-
-e extern mut
-
-r record data
-
-u union data
-	r

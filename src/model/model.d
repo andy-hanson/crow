@@ -300,6 +300,15 @@ void setTarget(ref StructAlias a, Opt!(StructInst*) value) {
 // sorted least strict to most strict
 enum Linkage : ubyte { internal, extern_ }
 
+Sym symOfLinkage(Linkage a) {
+	final switch (a) {
+		case Linkage.internal:
+			return sym!"internal";
+		case Linkage.extern_:
+			return sym!"extern";
+	}
+}
+
 // Range of possible linkage
 immutable struct LinkageRange {
 	Linkage leastStrict;

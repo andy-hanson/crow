@@ -14,7 +14,6 @@ import model.model :
 	LineAndColumnGetters,
 	Local,
 	Module,
-	Purity,
 	ReturnAndParamTypes,
 	SpecDecl,
 	SpecDeclBody,
@@ -186,15 +185,6 @@ immutable struct Diag {
 	}
 	immutable struct ExternUnion {}
 	immutable struct FunMissingBody {}
-	immutable struct FunModifierConflict {
-		Sym modifier0;
-		Sym modifier1;
-	}
-	immutable struct FunModifierRedundant {
-		Sym modifier;
-		// This is implied by the first modifier
-		Sym redundantModifier;
-	}
 	immutable struct FunModifierTrustedOnNonExtern {}
 	immutable struct IfNeedsOpt {
 		Type actualType;
@@ -251,6 +241,17 @@ immutable struct Diag {
 		Sym modifier;
 		TypeKind typeKind;
 	}
+	// This is like 'ModifierDuplicate' but the modifiers are not identical.
+	// E.g., 'extern unsafe', since 'extern' implies 'unsafe'.
+	immutable struct ModifierRedundantDueToModifier {
+		Sym modifier;
+		// This is implied by the first modifier
+		Sym redundantModifier;
+	}
+	immutable struct ModifierRedundantDueToTypeKind {
+		Sym modifier;
+		TypeKind typeKind;
+	}
 	immutable struct MutFieldNotAllowed {}
 	immutable struct NameNotFound {
 		enum Kind {
@@ -280,10 +281,6 @@ immutable struct Diag {
 	immutable struct PurityWorseThanParent {
 		StructDecl* parent;
 		Type child;
-	}
-	immutable struct PuritySpecifierRedundant {
-		Purity purity;
-		TypeKind typeKind;
 	}
 	immutable struct RecordNewVisibilityIsRedundant {
 		Visibility visibility;
@@ -411,8 +408,6 @@ immutable struct Diag {
 		ExternRecordImplicitlyByVal,
 		ExternUnion,
 		FunMissingBody,
-		FunModifierConflict,
-		FunModifierRedundant,
 		FunModifierTrustedOnNonExtern,
 		IfNeedsOpt,
 		ImportRefersToNothing,
@@ -431,6 +426,8 @@ immutable struct Diag {
 		ModifierConflict,
 		ModifierDuplicate,
 		ModifierInvalid,
+		ModifierRedundantDueToModifier,
+		ModifierRedundantDueToTypeKind,
 		MutFieldNotAllowed,
 		NameNotFound,
 		NeedsExpectedType,
@@ -442,7 +439,6 @@ immutable struct Diag {
 		PtrMutToConst,
 		PtrUnsupported,
 		PurityWorseThanParent,
-		PuritySpecifierRedundant,
 		RecordNewVisibilityIsRedundant,
 		SendFunDoesNotReturnFut,
 		SpecMatchError,

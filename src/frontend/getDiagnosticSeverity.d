@@ -53,10 +53,6 @@ DiagSeverity getDiagnosticSeverity(in Diag a) =>
 			DiagSeverity.checkError,
 		(in Diag.FunMissingBody) =>
 			DiagSeverity.checkError,
-		(in Diag.FunModifierConflict) =>
-			DiagSeverity.checkError,
-		(in Diag.FunModifierRedundant) =>
-			DiagSeverity.checkWarning,
 		(in FunModifierTrustedOnNonExtern) =>
 			DiagSeverity.checkError,
 		(in Diag.IfNeedsOpt) =>
@@ -93,6 +89,10 @@ DiagSeverity getDiagnosticSeverity(in Diag a) =>
 			DiagSeverity.checkWarning,
 		(in Diag.ModifierInvalid) =>
 			DiagSeverity.checkError,
+		(in Diag.ModifierRedundantDueToModifier) =>
+			DiagSeverity.checkWarning,
+		(in Diag.ModifierRedundantDueToTypeKind) =>
+			DiagSeverity.checkWarning,
 		(in Diag.MutFieldNotAllowed) =>
 			DiagSeverity.checkError,
 		(in Diag.NameNotFound) =>
@@ -115,8 +115,6 @@ DiagSeverity getDiagnosticSeverity(in Diag a) =>
 			DiagSeverity.checkError,
 		(in Diag.PurityWorseThanParent) =>
 			DiagSeverity.checkError,
-		(in Diag.PuritySpecifierRedundant) =>
-			DiagSeverity.checkWarning,
 		(in Diag.RecordNewVisibilityIsRedundant) =>
 			DiagSeverity.checkWarning,
 		(in Diag.SendFunDoesNotReturnFut) =>
