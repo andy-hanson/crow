@@ -53,7 +53,7 @@ import util.col.arr : empty, only, sizeEq;
 import util.col.arrUtil : every, exists, map, zip;
 import util.col.map : mustGetAt;
 import util.col.fullIndexMap : FullIndexMap, fullIndexMapEach, fullIndexMapEachKey;
-import util.col.stackMap : StackMap, stackMapAdd, stackMapLastAdded, stackMapMustGet;
+import util.col.stackMap : StackMap, stackMapAdd, stackMapMustGet;
 import util.col.str : eachChar, SafeCStr;
 import util.opt : force, has, Opt, some;
 import util.ptr : castNonScope, castNonScope_ref, ptrTrustMe;
@@ -242,6 +242,12 @@ struct FunBodyCtx {
 
 	ref MangledNames mangledNames() return scope const =>
 		ctx.mangledNames;
+}
+
+size_t nextLoopIndex(ref FunBodyCtx ctx) {
+	size_t res = ctx.nextTemp;
+	ctx.nextTemp++;
+	return res;
 }
 
 Temp getNextTemp(ref FunBodyCtx ctx) {
@@ -648,7 +654,7 @@ WriteExprResult writeExprTempOrInline(
 }
 
 immutable struct LoopInfo {
-	uint index;
+	size_t index;
 	WriteKind writeKind;
 }
 
@@ -656,10 +662,6 @@ immutable struct LoopInfo {
 alias Locals = StackMap!(LowExprKind.Loop*, LoopInfo*);
 alias addLoop = stackMapAdd!(LowExprKind.Loop*, LoopInfo*);
 alias getLoop = stackMapMustGet!(LowExprKind.Loop*, LoopInfo*);
-uint nextLoopIndex(in Locals locals) {
-	Opt!(LoopInfo*) last = stackMapLastAdded(locals);
-	return has(last) ? force(last).index + 1 : 0;
-}
 
 WriteExprResult writeExpr(
 	scope ref Writer writer,
@@ -1770,7 +1772,7 @@ WriteExprResult writeLoop(
 ) {
 	WriteExprResultAndNested nested = getNestedWriteKind(writer, indent, ctx, type, castNonScope_ref(writeKind));
 
-	uint index = nextLoopIndex(locals);
+	size_t index = nextLoopIndex(ctx);
 	LoopInfo loopInfo = LoopInfo(index, nested.writeKind);
 	Locals innerLocals = addLoop(castNonScope_ref(locals), ptrTrustMe(a), &loopInfo);
 

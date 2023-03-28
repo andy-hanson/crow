@@ -2,7 +2,6 @@ module util.col.stackMap;
 
 @safe @nogc pure nothrow:
 
-import util.opt : none, Opt, some;
 import util.ptr : castNonScope_ref, ptrTrustMe;
 import util.util : verify;
 
@@ -34,9 +33,6 @@ ref immutable(V) stackMapMustGet(K, V)(return ref StackMap!(K, V) a, scope immut
 	verify(key != invalid!K);
 	return StackMap!(K, V)(key, value, ptrTrustMe(a));
 }
-
-Opt!V stackMapLastAdded(K, V)(return scope ref StackMap!(K, V) a) =>
-	a.key == invalid!K ? none!V : some(a.value);
 
 struct MutStackMap(K, V) {
 	private:
