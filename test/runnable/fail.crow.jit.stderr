@@ -3,15 +3,15 @@ uncaught exception: FOO
 	at foo
 	at main_0
 	at add__sfirst__stask__lambda0
-	at call__sw__sctx_675
+	at call_675
 	at then__lambda0__lambda0
-	at call__sw__sctx_675
+	at call_675
 	at catch_0__lambda0
-	at call__sw__sctx_672
+	at call_672
 	at catch_1
 	at catch_0
 	at then__lambda0
-	at call__sw__sctx_1221
+	at call_1221
 	at invoke__saction
 	at do__stask
 	at thread__sfunction

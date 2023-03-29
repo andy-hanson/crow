@@ -3,7 +3,7 @@ module lower.lower;
 @safe @nogc pure nothrow:
 
 import lower.checkLowModel : checkLowProgram;
-import lower.generateCallWithCtxFun : generateCallWithCtxFun;
+import lower.generateCallFunOrAct : generateCallFunOrAct;
 import lower.generateMarkVisitFun : generateMarkVisitArr, generateMarkVisitNonArr, generateMarkVisitGcPtr;
 import lower.getBuiltinCall : BuiltinKind, getBuiltinKind;
 import lower.lowExprHelpers :
@@ -129,7 +129,7 @@ import util.col.mutMap : getAt_mut, getOrAdd, mapToArr_mut, MutMap, MutMap, Valu
 import util.col.stackMap : StackMap2, stackMap2Add0, stackMap2Add1, stackMap2MustGet0, stackMap2MustGet1;
 import util.late : Late, late, lateGet, lateIsSet, lateSet;
 import util.memory : allocate, overwriteMemory;
-import util.opt : force, has, none, Opt, some;
+import util.opt : force, has, none, Opt, optOr, some;
 import util.perf : Perf, PerfMeasure, withMeasure;
 import util.ptr : castNonScope_ref, ptrTrustMe;
 import util.sourceRange : FileAndRange;
@@ -478,10 +478,10 @@ LowType lowTypeFromConcreteType(ref GetLowTypeCtx ctx, in ConcreteType it) {
 }
 
 immutable struct LowFunCause {
-	immutable struct CallWithCtx {
+	immutable struct CallFunOrAct {
 		LowType funType;
 		LowType returnType;
-		LowType[] nonFunParamTypes;
+		LowType funParamType;
 		ConcreteLambdaImpl[] impls;
 	}
 	immutable struct MarkVisitArrOuter {
@@ -495,7 +495,7 @@ immutable struct LowFunCause {
 		Opt!LowFunIndex visitPointee;
 	}
 
-	mixin Union!(CallWithCtx, ConcreteFun*, MarkVisitArrOuter, MarkVisitNonArr, MarkVisitGcPtr);
+	mixin Union!(CallFunOrAct, ConcreteFun*, MarkVisitArrOuter, MarkVisitNonArr, MarkVisitGcPtr);
 }
 
 bool needsMarkVisitFun(in AllLowTypes allTypes, in LowType a) =>
@@ -620,22 +620,13 @@ AllLowFuns getAllLowFuns(
 		Opt!LowFunIndex opIndex = body_(*fun).match!(Opt!LowFunIndex)(
 			(ConcreteFunBody.Builtin it) {
 				if (isFunOrActSubscript(program, *fun)) {
-					ConcreteStruct* funStruct = mustBeByVal(fun.paramsIncludingClosure[0].type);
-					LowType funType = lowTypeFromConcreteStruct(getLowTypeCtx, funStruct);
-					LowType returnType =
-						lowTypeFromConcreteType(getLowTypeCtx, fun.returnType);
-					LowType[] nonFunParamTypes = map(
-						getLowTypeCtx.alloc,
-						fun.paramsIncludingClosure[1 .. $],
-						(ref ConcreteLocal x) =>
-							lowTypeFromConcreteType(getLowTypeCtx, x.type));
-					// TODO: is it possible that we call a fun type but it's not implemented anywhere?
-					Opt!(ConcreteLambdaImpl[]) optImpls = program.funStructToImpls[funStruct];
-					ConcreteLambdaImpl[] impls = has(optImpls)
-						? force(optImpls)
-						: [];
-					return some(addLowFun(LowFunCause(
-						LowFunCause.CallWithCtx(funType, returnType, nonFunParamTypes, impls))));
+					ConcreteLocal[2] params = only2(fun.paramsIncludingClosure);
+					return some(addLowFun(LowFunCause(LowFunCause.CallFunOrAct(
+						lowTypeFromConcreteType(getLowTypeCtx, params[0].type),
+						lowTypeFromConcreteType(getLowTypeCtx, fun.returnType),
+						lowTypeFromConcreteType(getLowTypeCtx, params[1].type),
+						optOr!(ConcreteLambdaImpl[])(program.funStructToImpls[mustBeByVal(params[0].type)], () =>
+							typeAs!(ConcreteLambdaImpl[])([]))))));
 				} else if (isMarkVisitFun(program, *fun)) {
 					if (!lateIsSet(markCtxTypeLate))
 						lateSet(markCtxTypeLate, lowTypeFromConcreteType(
@@ -756,15 +747,8 @@ LowFun lowFunFromCause(
 	LowFunCause cause,
 ) =>
 	cause.matchWithPointers!LowFun(
-		(LowFunCause.CallWithCtx it) =>
-			generateCallWithCtxFun(
-				getLowTypeCtx.alloc,
-				allTypes,
-				concreteFunToLowFunIndex,
-				it.returnType,
-				it.funType,
-				it.nonFunParamTypes,
-				it.impls),
+		(LowFunCause.CallFunOrAct x) =>
+			generateCallFunOrAct(getLowTypeCtx.alloc, allTypes, concreteFunToLowFunIndex, x),
 		(ConcreteFun* cf) {
 			LowType returnType = lowTypeFromConcreteType(getLowTypeCtx, cf.returnType);
 			LowLocal[] params = mapPointersWithIndex!(LowLocal, ConcreteLocal)(

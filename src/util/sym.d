@@ -364,7 +364,6 @@ immutable string[] specialSyms = [
 	"as-fun-pointer\0",
 	"begin-pointer\0",
 	"call-fun-pointer\0",
-	"call-with-ctx\0",
 	"clock_gettime\0",
 	"concrete-model\0",
 	"const-pointer\0",

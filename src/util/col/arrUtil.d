@@ -233,19 +233,6 @@ T[] copyArr(T)(ref Alloc alloc, scope T[] a) =>
 	return res[0 .. a.length];
 }
 
-@trusted Out[] mapPointersWithFirst(Out, In)(
-	ref Alloc alloc,
-	In[] a,
-	Out first,
-	in Out delegate(In*) @safe @nogc pure nothrow cb,
-) {
-	Out* res = allocateT!Out(alloc, 1 + a.length);
-	initMemory!Out(res, first);
-	foreach (size_t i; 0 .. a.length)
-		initMemory!Out(res + 1 + i, cb(&a[i]));
-	return res[0 .. 1 + a.length];
-}
-
 @trusted Out[] mapWithSoFar(Out, In)(
 	ref Alloc alloc,
 	in In[] inputs,

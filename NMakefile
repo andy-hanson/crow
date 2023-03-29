@@ -89,7 +89,7 @@ src_files_common = src\concretize\allConstantsBuilder.d \
 	src\lib\compiler.d \
 	src\lib\server.d \
 	src\lower\checkLowModel.d \
-	src\lower\generateCallWithCtxFun.d \
+	src\lower\generateCallFunOrAct.d \
 	src\lower\generateMarkVisitFun.d \
 	src\lower\getBuiltinCall.d \
 	src\lower\lower.d \
