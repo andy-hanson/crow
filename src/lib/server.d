@@ -75,8 +75,8 @@ pure SafeCStr getFile(ref Server server, in SafeCStr path) {
 	return has(text) ? force(text) : safeCStr!"";
 }
 
-pure Token[] getTokens(ref Alloc alloc, scope ref Perf perf, ref Server server, in SafeCStr path) {
-	SafeCStr text = mustGetAt_mut(server.files, toPath(server, path));
+pure Token[] getTokens(ref Alloc alloc, scope ref Perf perf, ref Server server, in Path path) {
+	SafeCStr text = mustGetAt_mut(server.files, path);
 	// diagnostics not used
 	ArrBuilder!DiagnosticWithinFile diagnosticsBuilder;
 	FileAst ast = parseFile(alloc, perf, server.allPaths, server.allSymbols, diagnosticsBuilder, text);
@@ -92,17 +92,16 @@ pure StrParseDiagnostic[] getParseDiagnostics(
 	ref Alloc alloc,
 	scope ref Perf perf,
 	ref Server server,
-	in SafeCStr path,
+	in Path path,
 ) {
-	Path key = toPath(server, path);
-	SafeCStr text = mustGetAt_mut(server.files, key);
+	SafeCStr text = mustGetAt_mut(server.files, path);
 	ArrBuilder!DiagnosticWithinFile diagsBuilder;
 	// AST not used
 	parseFile(alloc, perf, server.allPaths, server.allSymbols, diagsBuilder, text);
 	//TODO: use 'scope' to avoid allocating things here
 	FilesInfo filesInfo = FilesInfo(
-		fullIndexMapOfArr!(FileIndex, Path)(arrLiteral!Path(alloc, [key])),
-		mapLiteral!(Path, FileIndex)(alloc, key, FileIndex(0)),
+		fullIndexMapOfArr!(FileIndex, Path)(arrLiteral!Path(alloc, [path])),
+		mapLiteral!(Path, FileIndex)(alloc, path, FileIndex(0)),
 		fullIndexMapOfArr!(FileIndex, LineAndColumnGetter)(
 			arrLiteral!LineAndColumnGetter(alloc, [lineAndColumnGetterForText(alloc, text)])));
 	Program program = fakeProgramForDiagnostics(filesInfo, Diagnostics(
@@ -114,11 +113,10 @@ pure StrParseDiagnostic[] getParseDiagnostics(
 			strOfDiagnostic(alloc, server.allSymbols, server.allPaths, server.pathsInfo, showDiagOptions, program, x)));
 }
 
-SafeCStr getHover(ref Perf perf, ref Alloc alloc, ref Server server, in SafeCStr path, Pos pos) {
-	Path key = toPath(server, path);
+SafeCStr getHover(ref Perf perf, ref Alloc alloc, ref Server server, in Path path, Pos pos) {
 	Program program = withMemoryReadOnlyStorage!Program(server.includeDir, server.files, (in ReadOnlyStorage storage) =>
-		frontendCompile(alloc, perf, alloc, server.allPaths, server.allSymbols, storage, [key], none!Path));
-	return getHoverFromProgram(alloc, server, key, program, pos);
+		frontendCompile(alloc, perf, alloc, server.allPaths, server.allSymbols, storage, [path], none!Path));
+	return getHoverFromProgram(alloc, server, path, program, pos);
 }
 
 private SafeCStr getHoverFromProgram(ref Alloc alloc, ref Server server, Path path, in Program program, Pos pos) {
@@ -132,8 +130,7 @@ private SafeCStr getHoverFromProgram(ref Alloc alloc, ref Server server, Path pa
 		return safeCStr!"";
 }
 
-FakeExternResult run(ref Perf perf, ref Alloc alloc, ref Server server, in SafeCStr mainPath) {
-	Path main = toPath(server, mainPath);
+FakeExternResult run(ref Perf perf, ref Alloc alloc, ref Server server, in Path main) {
 	// TODO: use an arena so anything allocated during interpretation is cleaned up.
 	// Or just have interpreter free things.
 	SafeCStr[1] allArgs = [safeCStr!"/usr/bin/fakeExecutable"];
@@ -147,10 +144,8 @@ FakeExternResult run(ref Perf perf, ref Alloc alloc, ref Server server, in SafeC
 				showDiagOptions, main, allArgs)));
 }
 
-private:
-
 pure Path toPath(ref Server server, in SafeCStr path) =>
 	parsePath(server.allPaths, path);
 
-pure ShowDiagOptions showDiagOptions() =>
+private pure ShowDiagOptions showDiagOptions() =>
 	ShowDiagOptions(false);

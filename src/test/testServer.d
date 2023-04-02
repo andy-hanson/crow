@@ -4,17 +4,17 @@ module test.testServer;
 
 import lib.server : addOrChangeFile, getFile, Server;
 import test.testUtil : Test;
-import util.alloc.alloc : Alloc;
-import util.col.arrUtil : allocateUninitialized;
+import util.alloc.alloc : Alloc, withStackAlloc;
 import util.col.str : SafeCStr, safeCStr, safeCStrEq;
 import util.util : verify;
 
 @trusted void testServer(ref Test test) {
-	ubyte[] bytes = allocateUninitialized!ubyte(test.alloc, 0x4000);
-	Server server = Server(Alloc(bytes.ptr, bytes.length));
-	SafeCStr path = safeCStr!"main";
-	SafeCStr content = safeCStr!"content";
-	addOrChangeFile(server, path, content);
-	SafeCStr res = getFile(server, path);
-	verify(safeCStrEq(res, content));
+	withStackAlloc!0x1000((ref Alloc alloc) {
+		Server server = Server(alloc.move());
+		SafeCStr path = safeCStr!"main";
+		SafeCStr content = safeCStr!"content";
+		addOrChangeFile(server, path, content);
+		SafeCStr res = getFile(server, path);
+		verify(safeCStrEq(res, content));
+	});
 }

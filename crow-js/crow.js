@@ -11,16 +11,18 @@ if (typeof global !== "undefined")
 /** @typedef {number} CStr */
 
 /**
+Exports of `wasm.d`:
+
 @typedef ExportFunctions
-@property {function(): number} getGlobalBufferSizeBytes
-@property {function(): number} getGlobalBufferPtr
-@property {function(Ptr, number): Server} newServer
+@property {function(): number} getParameterBufferPointer
+@property {function(): number} getParameterBufferSizeBytes
+@property {function(): Server} newServer
 @property {function(Server, CStr, CStr): void} addOrChangeFile
 @property {function(Server, CStr): void} deleteFile
 @property {function(Server, CStr): CStr} getFile
-@property {function(Ptr, number, Server, CStr): CStr} getTokens
-@property {function(Ptr, number, Server, CStr): CStr} getParseDiagnostics
-@property {function(Ptr, number, Ptr, number, Server, CStr, number): CStr} getHover
+@property {function(Server, CStr): CStr} getTokens
+@property {function(Server, CStr): CStr} getParseDiagnostics
+@property {functionServer, CStr, number): CStr} getHover
 @property {function(Ptr, number, Ptr, number, Server, CStr): number} run
 */
 
@@ -102,7 +104,7 @@ class Allocator {
 		for (let i = 0; i < str.length; i++)
 			this._view.setUint8(res + i, str.charCodeAt(i))
 		this._view.setUint8(res + str.length, 0)
-		if (readCString(this._view, res, this._end - res) !== str)
+		if (readCString(this._view, res, this._end) !== str)
 			throw new Error()
 		return res
 	}
@@ -169,24 +171,15 @@ class Compiler {
 	*/
 	constructor(exports) {
 		this._exports = exports
-		const { getGlobalBufferSizeBytes, getGlobalBufferPtr, memory } = exports
-
-		const view = new DataView(memory.buffer)
-		this._view = view
-		const bufferSize = getGlobalBufferSizeBytes()
-		const buffer = getGlobalBufferPtr()
-		this._bufferEnd = buffer + bufferSize
-
-		const half = Math.floor(bufferSize / 2)
-		this._serverRangeStart = buffer
-		this._serverRangeSize = half
-		this._tempAlloc = new Allocator(view, this._serverRangeStart + half, half)
-		this._server = this._exports.newServer(this._serverRangeStart, this._serverRangeSize)
+		const { getParameterBufferPointer, getParameterBufferSizeBytes, memory, newServer } = exports
+		this._view = new DataView(memory.buffer)
+		this._paramAlloc = new Allocator(this._view, getParameterBufferPointer(), getParameterBufferSizeBytes())
+		this._server = newServer()
 	}
 
 	/** @param {number} begin */
 	_readCStr(begin) {
-		return readCString(this._view, begin, this._bufferEnd - begin)
+		return readCString(this._view, begin, this._exports.memory.buffer.byteLength)
 	}
 
 	/**
@@ -198,10 +191,10 @@ class Compiler {
 		try {
 			this._exports.addOrChangeFile(
 				this._server,
-				this._tempAlloc.writeCStr(path),
-				this._tempAlloc.writeCStr(content))
+				this._paramAlloc.writeCStr(path),
+				this._paramAlloc.writeCStr(content))
 		} finally {
-			this._tempAlloc.clear()
+			this._paramAlloc.clear()
 		}
 	}
 
@@ -211,21 +204,22 @@ class Compiler {
 	*/
 	deleteFile(path) {
 		try {
-			this._exports.deleteFile(this._server, this._tempAlloc.writeCStr(path))
+			this._exports.deleteFile(this._server, this._paramAlloc.writeCStr(path))
 		} finally {
-			this._tempAlloc.clear()
+			this._paramAlloc.clear()
 		}
 	}
 
 	/**
+	For debug/test.
 	@param {string} path
 	@return {string}
 	*/
 	getFile(path) {
 		try {
-			return this._readCStr(this._exports.getFile(this._server, this._tempAlloc.writeCStr(path)))
+			return this._readCStr(this._exports.getFile(this._server, this._paramAlloc.writeCStr(path)))
 		} finally {
-			this._tempAlloc.clear()
+			this._paramAlloc.clear()
 		}
 	}
 
@@ -235,12 +229,9 @@ class Compiler {
 	*/
 	getTokens(path) {
 		try {
-			const pathCStr = this._tempAlloc.writeCStr(path)
-			const resultBuf = this._tempAlloc.reserveRest()
-			const res = this._exports.getTokens(resultBuf.begin, resultBuf.size, this._server, pathCStr)
-			return JSON.parse(this._readCStr(res))
+			return JSON.parse(this._readCStr(this._exports.getTokens(this._server, this._paramAlloc.writeCStr(path))))
 		} finally {
-			this._tempAlloc.clear()
+			this._paramAlloc.clear()
 		}
 	}
 
@@ -250,12 +241,10 @@ class Compiler {
 	*/
 	getParseDiagnostics(path) {
 		try {
-			const pathCStr = this._tempAlloc.writeCStr(path)
-			const resultBuf = this._tempAlloc.reserveRest()
-			const res = this._exports.getParseDiagnostics(resultBuf.begin, resultBuf.size, this._server, pathCStr)
-			return JSON.parse(this._readCStr(res))
+			return JSON.parse(this._readCStr(
+				this._exports.getParseDiagnostics(this._server, this._paramAlloc.writeCStr(path))))
 		} finally {
-			this._tempAlloc.clear()
+			this._paramAlloc.clear()
 		}
 	}
 
@@ -266,12 +255,11 @@ class Compiler {
 	*/
 	getHover(path, pos) {
 		try {
-			const pathCStr = this._tempAlloc.writeCStr(path)
-			const resultBuf = this._tempAlloc.reserveRest()
-			const res = this._exports.getHover(resultBuf.begin, resultBuf.size, this._server, pathCStr, pos)
-			return this._readCStr(res)
+			return JSON.parse(this._readCStr(
+				this._exports.getHover(this._server, this._paramAlloc.writeCStr(path), pos)
+			)).hover
 		} finally {
-			this._tempAlloc.clear()
+			this._paramAlloc.clear()
 		}
 	}
 
@@ -281,12 +269,9 @@ class Compiler {
 	*/
 	run(path) {
 		try {
-			const pathCStr = this._tempAlloc.writeCStr(path)
-			const resultBuf = this._tempAlloc.reserveRest()
-			const res = this._exports.run(resultBuf.begin, resultBuf.size, this._server, pathCStr)
-			return JSON.parse(this._readCStr(res))
+			return JSON.parse(this._readCStr(this._exports.run(this._server, this._paramAlloc.writeCStr(path))))
 		} finally {
-			this._tempAlloc.clear()
+			this._paramAlloc.clear()
 		}
 	}
 }
@@ -301,16 +286,16 @@ compiler.Compiler = Compiler
 compiler.RunResult = {}
 
 /** @type {function(DataView, number, number): string} */
-const readCString = (view, buffer, bufferSize) => {
+const readCString = (view, begin, maxPointer) => {
 	let s = ""
-	let i;
-	for (i = 0; i < bufferSize; i++) {
-		const code = view.getUint8(buffer + i)
+	let ptr;
+	for (ptr = begin; ptr < maxPointer; ptr++) {
+		const code = view.getUint8(ptr)
 		if (code === 0)
 			break
 		s += String.fromCharCode(code)
 	}
-	if (i == bufferSize) {
+	if (ptr == maxPointer) {
 		console.log("Trying to read a string, but it's too long", {
 			bufferSize,
 		})

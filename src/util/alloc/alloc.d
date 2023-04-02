@@ -9,13 +9,10 @@ struct Alloc {
 
 	@disable this();
 	@disable this(ref const Alloc);
-	@trusted this(return scope ubyte* ptr, size_t sizeBytes) {
-		verify(isWordAligned(ptr));
-		verify(sizeBytes > 0);
-		verify(sizeBytes % word.sizeof == 0);
-		start = cast(word*) ptr;
+	@trusted this(return scope word[] words) {
+		start = words.ptr;
 		cur = start;
-		end = start + sizeBytes / word.sizeof;
+		end = start + words.length;
 	}
 
 	Alloc move() {
@@ -51,6 +48,12 @@ size_t curBytes(ref Alloc alloc) =>
 ubyte* allocateBytes(ref Alloc alloc, size_t size) =>
 	cast(ubyte*) allocateWords(alloc, divRoundUp(size, word.sizeof));
 
+void withStackAlloc(size_t sizeWords, T)(in T delegate(ref Alloc) @safe @nogc pure nothrow cb) {
+	ulong[sizeWords] mem = void;
+	scope Alloc alloc = Alloc(mem);
+	return cb(alloc);
+}
+
 private word* allocateWords(ref Alloc alloc, size_t nWords) {
 	word* res = alloc.cur;
 	alloc.cur += nWords;
@@ -80,9 +83,4 @@ void freeTPartial(T)(ref Alloc alloc, T* ptr, size_t count) {
 	freeBytesPartial(alloc, cast(ubyte*) ptr, T.sizeof * count);
 }
 
-private:
-
-alias word = ulong;
-
-bool isWordAligned(const ubyte* a) =>
-	(cast(immutable size_t) a) % word.sizeof == 0;
+private alias word = ulong;

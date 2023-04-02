@@ -11,10 +11,12 @@ import lib.server :
 	getTokens,
 	run,
 	Server,
-	StrParseDiagnostic;
+	StrParseDiagnostic,
+	toPath;
 import util.alloc.alloc : Alloc, allocateT;
 import util.col.str : CStr, SafeCStr;
 import util.memory : utilMemcpy = memcpy, utilMemmove = memmove;
+import util.path : Path;
 import util.perf : eachMeasure, Perf, PerfMeasureResult, withNullPerf;
 import util.ptr : ptrTrustMe;
 import util.repr : Repr, jsonStrOfRepr, nameAndRepr, reprArr, reprNamedRecord, reprStr;
@@ -45,14 +47,21 @@ extern(C) @system pure void* memcpy(return scope ubyte* dest, scope const ubyte*
 extern(C) @system pure void* memmove(return scope ubyte* dest, scope const ubyte* src, size_t n) =>
 	utilMemmove(dest, src, n);
 
-extern(C) size_t getGlobalBufferSizeBytes() =>
-	globalBuffer.length * globalBuffer[0].sizeof;
+// Used for the server (and compiler allocation)
+private ulong[900 * 1024 * 1024 / ulong.sizeof] serverBuffer;
+// Used to pass strings in
+private ulong[100 * 1024 * 1024 / ulong.sizeof] parameterBuffer;
+// Used to pass strings out and for fake 'malloc' from 'callFakeExternFun'
+private ulong[1000 * 1024 * 1024 / ulong.sizeof] resultBuffer;
 
-@system extern(C) ubyte* getGlobalBufferPtr() =>
-	cast(ubyte*) globalBuffer.ptr;
+@system extern(C) ubyte* getParameterBufferPointer() =>
+	cast(ubyte*) parameterBuffer.ptr;
 
-@system extern(C) Server* newServer(ubyte* allocStart, size_t allocLength) {
-	Alloc alloc = Alloc(allocStart, allocLength);
+extern(C) size_t getParameterBufferSizeBytes() =>
+	parameterBuffer.length * ulong.sizeof;
+
+@system extern(C) Server* newServer() {
+	Alloc alloc = Alloc(serverBuffer);
 	Server* ptr = allocateT!Server(alloc, 1);
 	ptr.__ctor(alloc.move());
 	return ptr;
@@ -69,34 +78,37 @@ extern(C) size_t getGlobalBufferSizeBytes() =>
 @system extern(C) CStr getFile(Server* server, scope CStr path) =>
 	getFile(*server, SafeCStr(path)).ptr;
 
-@system extern(C) CStr getTokens(ubyte* resultStart, size_t resultLength, Server* server, scope CStr path) {
-	Alloc resultAlloc = Alloc(resultStart, resultLength);
-	SafeCStr safePath = SafeCStr(path);
+@system extern(C) CStr getTokens(Server* server, scope CStr pathPtr) {
+	Path path = toPath(*server, SafeCStr(pathPtr));
+	Alloc resultAlloc = Alloc(resultBuffer);
 	Token[] tokens = withNullPerf!(Token[], (ref Perf perf) =>
-		getTokens(resultAlloc, perf, *server, safePath));
+		getTokens(resultAlloc, perf, *server, path));
 	Repr repr = reprTokens(resultAlloc, tokens);
 	return jsonStrOfRepr(resultAlloc, server.allSymbols, repr).ptr;
 }
 
-@system extern(C) CStr getParseDiagnostics(ubyte* resultStart, size_t resultLength, Server* server, scope CStr path) {
-	Alloc resultAlloc = Alloc(resultStart, resultLength);
-	SafeCStr safePath = SafeCStr(path);
+@system extern(C) CStr getParseDiagnostics(Server* server, scope CStr pathPtr) {
+	Path path = toPath(*server, SafeCStr(pathPtr));
+	Alloc resultAlloc = Alloc(resultBuffer);
 	StrParseDiagnostic[] diags = withNullPerf!(StrParseDiagnostic[], (ref Perf perf) =>
-		getParseDiagnostics(resultAlloc, perf, *server, safePath));
+		getParseDiagnostics(resultAlloc, perf, *server, path));
 	return jsonStrOfRepr(resultAlloc, server.allSymbols, reprParseDiagnostics(resultAlloc, diags)).ptr;
 }
 
-@system extern(C) CStr getHover(ubyte* resultStart, size_t resultLength, Server* server, scope CStr path, Pos pos) {
-	Alloc resultAlloc = Alloc(resultStart, resultLength);
-	SafeCStr safePath = SafeCStr(path);
-	return withNullPerf!(SafeCStr, (ref Perf perf) =>
-		getHover(perf, resultAlloc, *server, safePath, pos)).ptr;
+@system extern(C) CStr getHover(Server* server, scope CStr pathPtr, Pos pos) {
+	Path path = toPath(*server, SafeCStr(pathPtr));
+	Alloc resultAlloc = Alloc(resultBuffer);
+	return withNullPerf!(CStr, (ref Perf perf) =>
+		jsonStrOfRepr(resultAlloc, server.allSymbols, reprNamedRecord!"hover"(resultAlloc, [
+			nameAndRepr!"hover"(reprStr(getHover(perf, resultAlloc, *server, path, pos))),
+		])).ptr);
 }
 
-@system extern(C) CStr run(ubyte* resultStart, size_t resultLength, Server* server, scope CStr path) {
-	Alloc resultAlloc = Alloc(resultStart, resultLength);
+@system extern(C) CStr run(Server* server, scope CStr pathPtr) {
+	Path path = toPath(*server, SafeCStr(pathPtr));
+	Alloc resultAlloc = Alloc(resultBuffer);
 	FakeExternResult result = withWebPerf!FakeExternResult((scope ref Perf perf) =>
-		run(perf, resultAlloc, *server, SafeCStr(path)));
+		run(perf, resultAlloc, *server, path));
 	return writeRunResult(server.alloc, result);
 }
 
@@ -114,10 +126,6 @@ private:
 	});
 	return res;
 }
-
-// declaring as ulong[] to ensure it's word aligned
-// Almost 2GB (which is size limit for a global array)
-ulong[2000 * 1024 * 1024 / ulong.sizeof] globalBuffer;
 
 Repr reprParseDiagnostics(ref Alloc alloc, scope StrParseDiagnostic[] a) =>
 	reprArr!StrParseDiagnostic(alloc, a, (in StrParseDiagnostic it) =>

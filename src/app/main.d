@@ -111,20 +111,20 @@ import util.writer : finishWriterToSafeCStr, Writer;
 import versionInfo : versionInfoForJIT;
 
 @system extern(C) int main(int argc, CStr* argv) {
-	size_t memorySizeBytes = 1536 * 1024 * 1024; // 1.5 GB
-	ubyte* mem = cast(ubyte*) pureMalloc(memorySizeBytes);
-	scope(exit) pureFree(mem);
-	verify(mem != null);
-	Alloc alloc = Alloc(mem, memorySizeBytes);
-	AllSymbols allSymbols = AllSymbols(ptrTrustMe(alloc));
-	AllPaths allPaths = AllPaths(ptrTrustMe(alloc), ptrTrustMe(allSymbols));
-	ulong function() @safe @nogc pure nothrow getTimeNanosPure =
-		cast(ulong function() @safe @nogc pure nothrow) &getTimeNanos;
-	scope Perf perf = Perf(() => getTimeNanosPure());
-	int res = go(alloc, perf, allSymbols, allPaths, cast(SafeCStr[]) argv[1 .. argc]).value;
-	if (perfEnabled)
-		logPerf(perf);
-	return res;
+	size_t GB = 1024 * 1024 * 1024;
+	size_t memorySizeWords = GB * 3 / 2 / ulong.sizeof;
+	return withBuffer!(int, ulong)(memorySizeWords, (scope ulong[] mem) {
+		Alloc alloc = Alloc(mem);
+		AllSymbols allSymbols = AllSymbols(ptrTrustMe(alloc));
+		AllPaths allPaths = AllPaths(ptrTrustMe(alloc), ptrTrustMe(allSymbols));
+		ulong function() @safe @nogc pure nothrow getTimeNanosPure =
+			cast(ulong function() @safe @nogc pure nothrow) &getTimeNanos;
+		scope Perf perf = Perf(() => getTimeNanosPure());
+		int res = go(alloc, perf, allSymbols, allPaths, cast(SafeCStr[]) argv[1 .. argc]).value;
+		if (perfEnabled)
+			logPerf(perf);
+		return res;
+	});
 }
 
 private:
@@ -741,17 +741,16 @@ T withReadOnlyStorage(T)(
 
 enum NulTerminate { no, yes }
 
-@system void withBufferPossiblyOnStack(size_t maxSizeOnStack)(
-	size_t size,
-	in void delegate(scope ubyte*) @nogc nothrow cb,
-) {
+@system Out withBuffer(Out, T)(size_t size, in Out delegate(scope T[]) @nogc nothrow cb) {
+	static immutable size_t maxSizeOnStack = 0x100000 / T.sizeof;
 	if (size <= maxSizeOnStack) {
-		ubyte[maxSizeOnStack] buf = void;
-		cb(buf.ptr);
+		T[maxSizeOnStack] buf = void;
+		return cb(buf[0 .. size]);
 	} else {
-		ubyte* buf = cast(ubyte*) pureMalloc(size);
-		cb(buf);
-		pureFree(buf);
+		T* buf = cast(T*) pureMalloc(size * T.sizeof);
+		verify(buf != null);
+		scope(exit) pureFree(buf);
+		return cb(buf[0 .. size]);
 	}
 }
 
@@ -786,18 +785,18 @@ enum NulTerminate { no, yes }
 		} else
 			cb(ReadFileResult!(ubyte[])([]));
 	} else {
-		withBufferPossiblyOnStack!0x100000(fileSize + (nulTerminate ? 1 : 0), (scope ubyte* contentBuf) {
+		withBuffer!(void, ubyte)(fileSize + (nulTerminate ? 1 : 0), (scope ubyte[] contentBuf) {
 			// Go back to the beginning so we can read
 			int err2 = fseek(fd, 0, SEEK_SET);
 			verify(err2 == 0);
 
-			size_t nBytesRead = fread(contentBuf, ubyte.sizeof, fileSize, fd);
+			size_t nBytesRead = fread(contentBuf.ptr, ubyte.sizeof, fileSize, fd);
 			verify(nBytesRead == fileSize);
 			if (ferror(fd))
 				todo!void("error reading file");
 			if (nulTerminate) contentBuf[nBytesRead] = '\0';
 
-			return cb(ReadFileResult!(ubyte[])(cast(immutable) contentBuf[0 .. nBytesRead + (nulTerminate ? 1 : 0)]));
+			cb(ReadFileResult!(ubyte[])(cast(immutable) contentBuf[0 .. nBytesRead + (nulTerminate ? 1 : 0)]));
 		});
 	}
 }

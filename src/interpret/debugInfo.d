@@ -11,7 +11,7 @@ import model.diag : FilesInfo, writeFileAndPos;
 import model.concreteModel : ConcreteFun, concreteFunRange;
 import model.lowModel : LowFunIndex, LowFunSource, LowProgram;
 import model.model : Program;
-import util.alloc.alloc : Alloc;
+import util.alloc.alloc : Alloc, withStackAlloc;
 import util.lineAndColumnGetter : LineAndColumn, lineAndColumnAtPos;
 import util.col.str : CStr;
 import util.memory : overwriteMemory;
@@ -87,9 +87,7 @@ private struct Ptr64(T) {
 	size_t skip,
 	in Stacks stacks,
 ) {
-	Alloc alloc = Alloc(
-		cast(ubyte*) backtraceStringsStorage.ptr,
-		backtraceStringsStorage.length * backtraceStringsStorage[0].sizeof);
+	Alloc alloc = Alloc(backtraceStringsStorage);
 	size_t resSize = min(returnStackSize(stacks) - skip, max);
 	foreach (size_t i, ref BacktraceEntry entry; out_[0 .. resSize])
 		overwriteMemory(&entry, getBacktraceEntry(alloc, info, returnPeek(stacks, skip + i)));
@@ -138,18 +136,14 @@ void printDebugInfo(
 
 	debug {
 		import core.stdc.stdio : printf;
-		{
-			ubyte[10_000] mem;
-			scope Alloc dbgAlloc = Alloc(&mem[0], mem.length);
+		withStackAlloc!0x1000((ref Alloc dbgAlloc) {
 			scope Writer writer = Writer(ptrTrustMe(dbgAlloc));
 			showDataArr(writer, dataStack);
 			showReturnStack(writer, a, returnStackReverse, cur);
 			printf("%s\n", finishWriterToSafeCStr(writer).ptr);
-		}
+		});
 
-		{
-			ubyte[10_000] mem;
-			scope Alloc dbgAlloc = Alloc(&mem[0], mem.length);
+		withStackAlloc!0x1000((ref Alloc dbgAlloc) {
 			scope Writer writer = Writer(ptrTrustMe(dbgAlloc));
 			writer ~= "STEP: ";
 			ShowDiagOptions showDiagOptions = ShowDiagOptions(false);
@@ -160,7 +154,7 @@ void printDebugInfo(
 			} else
 				writer ~= "opStopInterpretation";
 			printf("%s\n", finishWriterToSafeCStr(writer).ptr);
-		}
+		});
 	}
 }
 

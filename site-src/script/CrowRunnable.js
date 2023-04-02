@@ -67,7 +67,7 @@ const connected = (shadowRoot, src, noRun, comp, initialText) => {
 	const tokens = new MutableObservable(/** @type {ReadonlyArray<Token>} */ ([]))
 	/** @type {function(number): string} */
 	const getHover = pos =>
-		comp.getHover(src, pos)
+		comp.getHover(MAIN, pos)
 	const crowText = CrowText.create({getHover, tokens, text})
 
 	for (const [name, content] of Object.entries(includeAll))
