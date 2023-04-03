@@ -303,17 +303,17 @@ Repr reprExpr(ref Alloc alloc, in Ctx ctx, in Expr a) =>
 			reprRecord!"closure-get"(alloc, [reprNat(a.closureRef.index)]),
 		(in ExprKind.ClosureSet a) =>
 			reprRecord!"closure-set"(alloc, [reprNat(a.closureRef.index)]),
-		(in ExprKind.Cond e) =>
-			reprRecord!"cond"(alloc, [
-				reprExpr(alloc, ctx, e.cond),
-				reprExpr(alloc, ctx, e.then),
-				reprExpr(alloc, ctx, e.else_)]),
 		(in ExprKind.Drop x) =>
 			reprRecord!"drop"(alloc, [reprExpr(alloc, ctx, x.arg)]),
 		(in ExprKind.FunPtr it) =>
 			reprRecord!"fun-pointer"(alloc, [
 				reprFunInst(alloc, ctx, *it.funInst),
 				reprStructInst(alloc, ctx, *it.structInst)]),
+		(in ExprKind.If x) =>
+			reprRecord!"if"(alloc, [
+				reprExpr(alloc, ctx, x.cond),
+				reprExpr(alloc, ctx, x.then),
+				reprExpr(alloc, ctx, x.else_)]),
 		(in ExprKind.IfOption it) =>
 			reprRecord!"if"(alloc, [
 				reprDestructure(alloc, ctx, it.destructure),

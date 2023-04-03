@@ -215,11 +215,6 @@ Repr reprOfConcreteExprKind(ref Alloc alloc, in ConcreteExprKind a) =>
 			reprRecord!"closure-set"(alloc, [
 				reprConcreteClosureRef(alloc, it.closureRef),
 				reprOfConcreteExpr(alloc, it.value)]),
-		(in ConcreteExprKind.Cond it) =>
-			reprRecord!"cond"(alloc, [
-				reprOfConcreteExpr(alloc, it.cond),
-				reprOfConcreteExpr(alloc, it.then),
-				reprOfConcreteExpr(alloc, it.else_)]),
 		(in Constant it) =>
 			reprOfConstant(alloc, it),
 		(in ConcreteExprKind.CreateArr it) =>
@@ -234,6 +229,11 @@ Repr reprOfConcreteExprKind(ref Alloc alloc, in ConcreteExprKind a) =>
 				reprOfConcreteExpr(alloc, it.arg)]),
 		(in ConcreteExprKind.Drop it) =>
 			reprRecord!"drop"(alloc, [reprOfConcreteExpr(alloc, it.arg)]),
+		(in ConcreteExprKind.If x) =>
+			reprRecord!"cond"(alloc, [
+				reprOfConcreteExpr(alloc, x.cond),
+				reprOfConcreteExpr(alloc, x.then),
+				reprOfConcreteExpr(alloc, x.else_)]),
 		(in ConcreteExprKind.Lambda it) =>
 			reprRecord!"lambda"(alloc, [
 				reprNat(it.memberIndex),

@@ -457,12 +457,6 @@ immutable struct ConcreteExprKind {
 		// referenceKind is always allocated
 	}
 
-	immutable struct Cond {
-		ConcreteExpr cond;
-		ConcreteExpr then;
-		ConcreteExpr else_;
-	}
-
 	immutable struct CreateArr {
 		@safe @nogc pure nothrow:
 
@@ -489,6 +483,12 @@ immutable struct ConcreteExprKind {
 
 	immutable struct Drop {
 		ConcreteExpr arg;
+	}
+
+	immutable struct If {
+		ConcreteExpr cond;
+		ConcreteExpr then;
+		ConcreteExpr else_;
 	}
 
 	immutable struct Let {
@@ -573,12 +573,12 @@ immutable struct ConcreteExprKind {
 		ClosureCreate,
 		ClosureGet*,
 		ClosureSet*,
-		Cond*,
 		Constant,
 		CreateArr*,
 		CreateRecord,
 		CreateUnion*,
 		Drop*,
+		If*,
 		Lambda,
 		Let*,
 		LocalGet,

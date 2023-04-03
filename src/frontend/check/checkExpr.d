@@ -306,7 +306,7 @@ Expr checkIf(ref ExprCtx ctx, ref LocalsInfo locals, FileAndRange range, in IfAs
 	Expr cond = checkAndExpectBool(ctx, locals, ast.cond);
 	Expr then = checkExpr(ctx, locals, ast.then, expected);
 	Expr else_ = checkExprOrEmptyNew(ctx, locals, range, ast.else_, expected);
-	return Expr(range, ExprKind(allocate(ctx.alloc, ExprKind.Cond(inferred(expected), cond, then, else_))));
+	return Expr(range, ExprKind(allocate(ctx.alloc, ExprKind.If(inferred(expected), cond, then, else_))));
 }
 
 Expr checkThrow(ref ExprCtx ctx, ref LocalsInfo locals, FileAndRange range, in ThrowAst ast, ref Expected expected) {
@@ -415,7 +415,7 @@ Expr checkUnless(
 	Expr cond = checkAndExpectBool(ctx, locals, ast.cond);
 	Expr else_ = checkExpr(ctx, locals, ast.body_, expected);
 	Expr then = checkEmptyNew(ctx, range, expected);
-	return Expr(range, ExprKind(allocate(ctx.alloc, ExprKind.Cond(inferred(expected), cond, then, else_))));
+	return Expr(range, ExprKind(allocate(ctx.alloc, ExprKind.If(inferred(expected), cond, then, else_))));
 }
 
 Expr checkExprOrEmptyNewAndExpect(

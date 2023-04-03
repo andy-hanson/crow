@@ -986,11 +986,6 @@ LowExprKind getLowExprKind(
 			getClosureGetExpr(ctx, expr.range, it),
 		(ref ConcreteExprKind.ClosureSet it) =>
 			getClosureSetExpr(ctx, locals, expr.range, it),
-		(ref ConcreteExprKind.Cond it) =>
-			LowExprKind(allocate(ctx.alloc, LowExprKind.If(
-				getLowExpr(ctx, locals, it.cond, ExprPos.nonTail),
-				getLowExpr(ctx, locals, it.then, exprPos),
-				getLowExpr(ctx, locals, it.else_, exprPos)))),
 		(Constant it) =>
 			LowExprKind(it),
 		(ref ConcreteExprKind.CreateArr it) =>
@@ -1003,6 +998,11 @@ LowExprKind getLowExprKind(
 				getLowExpr(ctx, locals, it.arg, ExprPos.nonTail)))),
 		(ref ConcreteExprKind.Drop it) =>
 			getDropExpr(ctx, locals, expr.range, it),
+		(ref ConcreteExprKind.If x) =>
+			LowExprKind(allocate(ctx.alloc, LowExprKind.If(
+				getLowExpr(ctx, locals, x.cond, ExprPos.nonTail),
+				getLowExpr(ctx, locals, x.then, exprPos),
+				getLowExpr(ctx, locals, x.else_, exprPos)))),
 		(ConcreteExprKind.Lambda it) =>
 			getLambdaExpr(ctx, locals, expr.range, it),
 		(ref ConcreteExprKind.Let it) =>

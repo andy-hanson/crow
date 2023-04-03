@@ -1354,13 +1354,6 @@ immutable struct ExprKind {
 		Expr* value;
 	}
 
-	immutable struct Cond {
-		Type type;
-		Expr cond;
-		Expr then;
-		Expr else_;
-	}
-
 	immutable struct Drop {
 		Expr arg;
 	}
@@ -1368,6 +1361,13 @@ immutable struct ExprKind {
 	immutable struct FunPtr {
 		FunInst* funInst;
 		StructInst* structInst;
+	}
+
+	immutable struct If {
+		Type type;
+		Expr cond;
+		Expr then;
+		Expr else_;
 	}
 
 	immutable struct IfOption {
@@ -1485,9 +1485,9 @@ immutable struct ExprKind {
 		Call,
 		ClosureGet,
 		ClosureSet,
-		Cond*,
 		Drop*,
 		FunPtr,
+		If*,
 		IfOption*,
 		Lambda*,
 		Let*,

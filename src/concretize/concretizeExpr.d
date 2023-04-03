@@ -694,13 +694,13 @@ ConcreteExpr concretizeLoopUntilOrWhile(
 				range,
 				ConcreteExprKind(ConcreteExprKind.LoopContinue(res)))))));
 	ConcreteExpr condition = concretizeExpr(ctx, locals, conditionExpr);
-	ConcreteExprKind.Cond cond = isUntil
-		? ConcreteExprKind.Cond(condition, breakVoid, doAndContinue)
-		: ConcreteExprKind.Cond(condition, doAndContinue, breakVoid);
+	ConcreteExprKind.If if_ = isUntil
+		? ConcreteExprKind.If(condition, breakVoid, doAndContinue)
+		: ConcreteExprKind.If(condition, doAndContinue, breakVoid);
 	overwriteMemory(&res.body_, ConcreteExpr(
 		voidType(ctx.concretizeCtx),
 		range,
-		ConcreteExprKind(allocate(ctx.alloc, cond))));
+		ConcreteExprKind(allocate(ctx.alloc, if_))));
 	return ConcreteExpr(voidType(ctx.concretizeCtx), range, ConcreteExprKind(res));
 }
 
@@ -772,15 +772,15 @@ ConcreteExpr concretizeAssertOrForbid(
 		voidType,
 		range,
 		ConcreteExprKind(allocate(ctx.alloc, ConcreteExprKind.Throw(thrown))));
-	ConcreteExprKind.Cond cond = () {
+	ConcreteExprKind.If if_ = () {
 		final switch (a.kind) {
 			case AssertOrForbidKind.assert_:
-				return ConcreteExprKind.Cond(condition, void_, throw_);
+				return ConcreteExprKind.If(condition, void_, throw_);
 			case AssertOrForbidKind.forbid:
-				return ConcreteExprKind.Cond(condition, throw_, void_);
+				return ConcreteExprKind.If(condition, throw_, void_);
 		}
 	}();
-	return ConcreteExpr(voidType, range, ConcreteExprKind(allocate(ctx.alloc, cond)));
+	return ConcreteExpr(voidType, range, ConcreteExprKind(allocate(ctx.alloc, if_)));
 }
 
 SafeCStr defaultAssertOrForbidMessage(AssertOrForbidKind a) {
@@ -805,22 +805,22 @@ ConcreteExpr concretizeExpr(ref ConcretizeExprCtx ctx, in Locals locals, ref Exp
 			concretizeClosureGet(ctx, range, e),
 		(ExprKind.ClosureSet e) =>
 			concretizeClosureSet(ctx, range, locals, e),
-		(ref ExprKind.Cond e) {
-			ConcreteExpr cond = concretizeExpr(ctx, locals, e.cond);
-			return cond.kind.isA!Constant
-				? concretizeExpr(ctx, locals, asBool(cond.kind.as!Constant) ? e.then : e.else_)
-				: ConcreteExpr(
-					getConcreteType(ctx, e.type),
-					range,
-					ConcreteExprKind(allocate(ctx.alloc, ConcreteExprKind.Cond(
-						cond,
-						concretizeExpr(ctx, locals, e.then),
-						concretizeExpr(ctx, locals, e.else_)))));
-		},
 		(ref ExprKind.Drop e) =>
 			concretizeDrop(ctx, range, locals, e),
 		(ExprKind.FunPtr e) =>
 			concretizeFunPtr(ctx, range, e),
+		(ref ExprKind.If x) {
+			ConcreteExpr cond = concretizeExpr(ctx, locals, x.cond);
+			return cond.kind.isA!Constant
+				? concretizeExpr(ctx, locals, asBool(cond.kind.as!Constant) ? x.then : x.else_)
+				: ConcreteExpr(
+					getConcreteType(ctx, x.type),
+					range,
+					ConcreteExprKind(allocate(ctx.alloc, ConcreteExprKind.If(
+						cond,
+						concretizeExpr(ctx, locals, x.then),
+						concretizeExpr(ctx, locals, x.else_)))));
+		},
 		(ref ExprKind.IfOption e) =>
 			concretizeIfOption(ctx, range, locals, e),
 		(ref ExprKind.Lambda e) =>
