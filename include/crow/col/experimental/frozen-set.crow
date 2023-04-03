@@ -1,136 +1,59 @@
 no-std
 import
-	../../bool: &&, bool
-	../../compare: <=
+	../../bool: bool
 	../../fun-util: subscript
-	../../hash: hash
 	../../misc: key, new, void
-	../../number: ==, <=>, +, -, /, %, nat64
-	../../option: new, option
-	../../pointer: ==, <=>, +, -, *, const-pointer, mut-pointer, swap
-	../../range: ..
-	../array:
-		~=, +, array, array-cast, array-iterator, as-array, begin, begin-pointer, build, end-pointer,
-		is-empty, iterate, new, next, pointer-of, size
-	../collection:
-		build, build-options, contains, fill, for-loop, index-of, n-of, set-subscript, subscript,
-		with-block
-	../mut-array:
-		~=, +, begin, begin-pointer, build, cast-immutable, end-pointer, mut-array,
-		mut-array-builder, mut-array-iterator, iterate, next, set-next, size, temp-as-array, to
-	../list: ~=, build, list, to
+	../../number: nat64
+	../../option: option
+	../../tuple: new
+	../array: array
+	../collection: build-options
+	../list: list, list-cast, to
+	./frozen-map:
+		~=, build, frozen-map, frozen-map-builder, in, is-empty, iterate, size, to,
+		try-get-unordered-index
 
-frozen-set[t] record
-	-values t array
-	# These are pointers into 'values', so it's fine that 'pointer' isn't GC traced.
-	-bucket-starts t* array
-
-dbg-bucket-starts[t] nat64[](a t frozen-set) unsafe
-	for pointer : a bucket-starts
-		pointer - a.values.begin-pointer
+frozen-set[t] record by-val
+	-inner (t, void) frozen-map
 
 new[t] t frozen-set(...a t array) t key
 	a.to to
 
 to[t] t frozen-set(a t[]) t key
-	trusted a.to::(t array).to unsafe-frozen-set-from-mut-array-cast-immutable
+	(trusted a.list-cast::((t, void)[])).to,
 
 # This is O(1).
 to[t] t[](a t frozen-set)
-	a.values to
+	trusted a.inner.to::((t, void)[]).list-cast
 
 is-empty[t] bool(a t frozen-set)
-	a.values is-empty
+	a.inner is-empty
 
 size[t] nat64(a t frozen-set)
-	a.values size
+	a.inner size
 
 in[t] bool(value t, a t frozen-set) t key
-	a bucket-for value contains value
+	value in a.inner
 
--bucket-for[t] t array(a t frozen-set, value t) t key
-	if a.bucket-starts is-empty
-		a values
-	else
-		bucket-index = value.hash % a.bucket-starts.size
-		bucket-start = a.bucket-starts[bucket-index]
-		bucket-end = if bucket-index == a.bucket-starts.size - 1
-			trusted a.values end-pointer
-		else
-			a.bucket-starts subscript@(t* array, t* array-iterator, t*) bucket-index + 1
-		trusted bucket-start .. bucket-end as-array
-
-# TODO: no-doc
-# WARN: The order of values is arbitrary,
-# but consistent for *identical* (not ==) sets.
+###
+WARN: The order of values is arbitrary.
+Equal sets may have different indices for the same values.
+###
 try-get-unordered-index[t] nat64?(a t frozen-set, value t) t key
-	if a.bucket-starts is-empty
-		a.values index-of value
-	else
-		bucket-index = value.hash % a.bucket-starts.size
-		bucket-start = a.bucket-starts[bucket-index]
-		bucket-end = if bucket-index == a.bucket-starts.size - 1
-			trusted a.values end-pointer
-		else
-			a.bucket-starts subscript@(t* array, t* array-iterator, t*) bucket-index + 1
-		trusted if pointer ?= (bucket-start .. bucket-end).as-array pointer-of value
-			pointer - a.values.begin-pointer,
-
--unsafe-frozen-set-from-mut-array-cast-immutable[t] t frozen-set(
-	a t mut-array,
-) unsafe, t key
-	if a.size <= 4
-		a.cast-immutable, ()
-	else
-		n-buckets = a.size / 2
-		bucket-counts = a get-bucket-counts n-buckets
-		bucket-starts = a.begin-pointer running-sum bucket-counts.temp-as-array
-		bucket-counts fill 0
-		cur mut = a begin-pointer
-		until cur == a.end-pointer
-			bucket-index = *cur get-bucket-index bucket-counts.size
-			bucket-count = bucket-counts subscript@(nat64 mut-array, nat64 mut-array-iterator, nat64) bucket-index
-			bucket-start = bucket-starts[bucket-index]
-			bucket-cur-end = bucket-start + bucket-count
-			if bucket-start <= cur && cur <= bucket-cur-end
-				if cur == bucket-cur-end
-					bucket-counts[bucket-index] := bucket-count + 1
-				cur +:= 1
-			else
-				bucket-counts[bucket-index] := bucket-count + 1
-				cur swap bucket-cur-end
-		a.cast-immutable, bucket-starts.array-cast
-
--get-bucket-counts[t] nat64 mut-array(a t mut-array, n-buckets nat64) unsafe, t key
-	res nat64 mut-array = n-buckets n-of 0
-	for value : a
-		bucket-index = value get-bucket-index n-buckets
-		res[bucket-index] +:= 1
-	res
-
--get-bucket-index[t] nat64(value t, n-buckets nat64) unsafe, t key
-	value.hash % n-buckets
-
--running-sum[t] t mut* array(initial t mut*, offsets nat64 array)
-	with out : offsets.size build
-		acc mut = initial
-		for offset : offsets
-			out ~= acc
-			trusted acc +:= offset
+	a.inner try-get-unordered-index value
 
 region spec impls (see collection.crow)
 
 iterate[t] bool(a t frozen-set, f act bool(t))
-	a.values iterate f
+	a.inner iterate (k, _) => f[k]
 
 subregion build
 
 frozen-set-builder[t] record mut
-	-inner t mut-array-builder
+	-inner (t, void) frozen-map-builder
 build[t] t frozen-set(a build-options, f act void(t frozen-set-builder)) t key
-	inner t mut-array = a build out => f[out,]
-	trusted inner unsafe-frozen-set-from-mut-array-cast-immutable
+	(a build out => f[out,])::((t, void) frozen-map),
 ~ ~=[t] void(a t frozen-set-builder, value t)
-	a.inner ~= value
+	a.inner ~= (value, ())
 size[t] nat64(a t frozen-set-builder)
 	a.inner size

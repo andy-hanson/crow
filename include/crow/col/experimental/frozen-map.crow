@@ -1,18 +1,15 @@
 no-std
 import
-	../../bool: &&, ==, bool, not, true
+	../../bool: &&, bool, not
 	../../compare: <=
 	../../fun-util: subscript
-	../../hash: hash, hash-mix
-	../../json: to
+	../../hash: hash
 	../../misc: key, new, void
 	../../number: ==, <=>, +, -, /, %, nat64
-	../../option: ==, is-empty, new, option
+	../../option: is-empty, new, option
 	../../pointer: ==, <=>, +, -, *, const-pointer, mut-pointer, swap
 	../../range: ..
-	../../string: ==, literal, string
-	../../test-util: is
-	../../tuple: a, b, new
+	../../tuple: a, b
 	../array:
 		~=, +, -, array, array-cast, as-array, begin, begin-pointer, build, end, end-pointer,
 		is-empty, iterate, new, next, size, slice
@@ -22,15 +19,19 @@ import
 	../mut-array:
 		~=, +, begin-pointer, begin, build, cast-immutable, end-pointer, iterate, mut-array,
 		mut-array-builder, next, set-next, size, temp-as-array
-	../list: ==, ~=, build, list, new, to
+	../list: ~=, build, list, to
 
 ###
 Immutable map that is not efficient to update.
 However, this is more compact than `map` and has faster lookups.
 ###
 frozen-map[k, v] record by-val
-	-pairs (k, v) array
+	pairs (k, v) array
 	-bucket-starts (k, v)* array
+
+debug-bucket-starts[k, v] nat64[](a (k, v) frozen-map) unsafe
+	for pointer : a bucket-starts
+		pointer - a.pairs.begin-pointer
 
 new[k, v] (k, v) frozen-map(...a (k, v) array) k key
 	a.to to
@@ -197,45 +198,5 @@ build[k, v] (k, v) frozen-map(a build-options, f act void((k, v) frozen-map-buil
 	trusted (a build out => f[out,]) as-frozen-map
 ~ ~=[k, v] void(a(k, v) frozen-map-builder, pair (k, v))
 	a.inner ~= pair
-
-region test
-
--verify void(a (nat64, string) frozen-map, keys-order nat64[], bucket-starts nat64[]) unsafe
-	(for k, _ : a pairs; k)::nat64[] is keys-order
-	(for pointer : a bucket-starts; pointer - a.pairs.begin-pointer)::nat64[] is bucket-starts
-
-test
-	a (nat64, string) frozen-map = ()
-	a.is-empty is true
-	a.size is 0
-	a verify (), ()
-	a[0] is ()
-	
-	b (nat64, string) frozen-map = (3, "3"), (1, "1"), (5, "5"), (2, "2")
-	b verify (3, 1, 5, 2), ()
-	b[0] is ()
-	b[1] is ("1",)
-	b[2] is ("2",)
-	b[3] is ("3",)
-	b[4] is ()
-	b[5] is ("5",)
-	b[6] is ()
-
-	c (nat64, string) frozen-map = (3, "3"), (1, "1"), (5, "5"), (2, "2"), (8, "8")
-	c verify (2, 8, 3, 5, 1), (0, 2)
-	c[0] is ()
-	c[1] is ("1",)
-	c[2] is ("2",)
-	c[3] is ("3",)
-	c[4] is ()
-	c[5] is ("5",)
-	c[6] is ()
-	c[7] is ()
-	c[8] is ("8",)
-	c[9] is ()
-
-test
-	a (nat64, string) frozen-map = (1, "1"), (1, "2")
-	a.size is 1
-	a verify (1,), ()
-	a[1] is ("2",)
+size[k, v] nat64(a (k, v) frozen-map-builder)
+	a.inner size
