@@ -269,7 +269,7 @@ private void opThreadLocalPtrInner(ref Stacks stacks, ref Operation* cur) {
 	size_t offsetWords = readSizeT(cur);
 	dataPush(stacks, cast(ulong) (threadLocalsStorage.ptr + offsetWords));
 }
-@safe pure ulong maxThreadLocalsSizeWords() =>
+@safe pure size_t maxThreadLocalsSizeWords() =>
 	256;
 private static ulong[maxThreadLocalsSizeWords] threadLocalsStorage;
 

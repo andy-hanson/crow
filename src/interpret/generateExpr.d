@@ -431,7 +431,7 @@ void writeVarPtr(
 			break;
 	}
 }
-public @safe pure ulong maxGlobalsSizeWords() =>
+public @safe pure size_t maxGlobalsSizeWords() =>
 	256;
 __gshared ulong[maxGlobalsSizeWords] globalsStorage;
 @trusted ulong* getGlobalsPointer(ulong offsetInWords) {
