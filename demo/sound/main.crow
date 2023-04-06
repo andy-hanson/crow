@@ -42,4 +42,3 @@ main nat^(_ string[]) summon
 	<- 3.sec delay
 	out print "shut down"
 	<- audio shut-down
-	()

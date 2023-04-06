@@ -19,7 +19,6 @@ main nat^(_ string[]) summon
 	to-link <- all-to-link
 	<- for x : to-link parallel
 		x ensure-link cwd
-	()
 
 -ensure-up-to-date void^(a path-and-content) summon
 	full-out-path = "site" child-path a.out-path

@@ -1,7 +1,6 @@
 main nat^(_ string[])
 	a r = (),
 	_ = a
-	()
 
 r record
 	next r?

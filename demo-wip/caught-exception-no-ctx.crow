@@ -3,12 +3,11 @@ import
 	crow/io/time: delay
 	pthread: pthread_create, pthread_t
 
-main nat^(_ string[]) summon, trusted
+main nat^(_ string[]) summon
 	thread mut pthread_t = ()
-	err = &thread pthread_create null, &thread-fun, null
+	err = trusted &thread pthread_create null, &thread-fun, null
 	assert err == 0
 	<- 1.sec delay
-	()
 
 -thread-fun any-mut-pointer(a any-mut-pointer) bare
 	assert 1 + 1 == 3

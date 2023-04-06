@@ -1,7 +1,7 @@
 import
 	crow/col/experimental/compact-map: -, ~, compact-map, in, new, node-count, size
 	crow/col/experimental/compact-sorted-map: -, ~, compact-sorted-map, in, new, size
-	crow/col/experimental/frozen-map: ~=, build, frozen-map, in, size, with-block
+	crow/col/experimental/frozen-map: ~=, build, frozen-map, in, size
 	crow/col/experimental/frozen-set: ~=, build, frozen-set, in, size
 	crow/col/experimental/hamt-set: -, ~, hamt-set, in, new, size
 	crow/col/experimental/index-set: -, ~, index-set, in, new, size
@@ -64,7 +64,7 @@ main nat^(args string[]) summon
 	else
 		"bad col-kind" err
 
--current-kb nat(gc gc) unsafe
+-current-kb nat(gc gc mut*) unsafe
 	gc.get-stats.words-used words-to-kb
 
 -words-to-kb nat(words nat)

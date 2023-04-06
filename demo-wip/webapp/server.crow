@@ -20,7 +20,6 @@ main nat^(args string[]) summon
 			with _ : port http-server handler
 				out print "Press enter to stop"
 				_ <- read-stdin
-				()
 	else
 		err print "Usage: server PORT"
 		1,

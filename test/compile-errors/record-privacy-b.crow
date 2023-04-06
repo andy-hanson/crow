@@ -11,4 +11,3 @@ foo void()
 	_ = b.k
 	b.l := 0
 	_ = b.l
-	()

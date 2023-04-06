@@ -14,4 +14,3 @@ main nat^(args string[]) summon
 	out print "Press enter to exit"
 	_ <- read-stdin
 	<- audio shut-down
-	()

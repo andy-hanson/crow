@@ -130,7 +130,6 @@ all-files file[]^() summon
 	not-used symbol mut-set = a.imports to
 	for x, _ : a uses
 		_ = not-used try-remove x
-		()
 	for x : not-used
 		if a.path != "src/util/union.d"
 			failures ~= "{a path}: unused import {x}"

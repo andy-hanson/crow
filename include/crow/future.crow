@@ -209,7 +209,6 @@ for-break[in-col, in-iter, in-elem] void^(
 	f far void break-or-continue(in-elem),
 ) (in-iter, in-col) begin, (in-elem, in-iter) next, in-elem shared
 	_ void? <- a for-break f
-	()
 
 for-break[out, in-col, in-iter, in-elem] out?^(
 	a in-col sequential-collection,

@@ -20,16 +20,13 @@ mem-copy[t] void(dest t mut*, src t*, size nat64) bare, unsafe
 	d = dest as-const
 	assert d < src ? d + size <= src : src + size <= d
 	_ = dest.pointer-cast memcpy src.pointer-cast, (size wrap-mul size-of@t)
-	()
 
 mem-move[t] void(dest t mut*, src t*, size nat64) bare, unsafe
 	_ = dest.pointer-cast memmove src.pointer-cast, (size wrap-mul size-of@t)
-	()
 
 set-zero-range[t] void(begin t mut*, size nat64) bare, unsafe
 	# TODO: wrap-mul is unsafe
 	_ = begin.pointer-cast memset 0, (size wrap-mul size-of@t)
-	()
 
 mark-ctx record mut by-val
 	memory-size-words nat64
@@ -171,7 +168,6 @@ gc-begin bool(gc gc mut*) bare, unsafe
 	if res
 		gc->gc-count +:= 1
 		_ = gc->mark-begin.pointer-cast memset 0, gc->size-words
-		()
 	res
 
 # See comment on 'gc-begin'
@@ -192,7 +188,6 @@ gc-complete void(gc gc mut*) bare, unsafe
 # See comment on 'garbage-collection-begin'
 gc-end void(gc gc mut*) bare, unsafe
 	_ = gc.barrier wait-barrier
-	()
 
 -clear-free-mem void(mark-pointer bool mut*, mark-end bool mut*, data-pointer nat64 mut*) bare, unsafe
 	unless mark-pointer == mark-end
@@ -346,4 +341,3 @@ unmanaged-free[t] void(p t mut*) bare, unsafe
 
 copy-data-from[t] void(to t mut*, from t*, len nat64) bare, unsafe
 	_ = to.pointer-cast memcpy from.pointer-cast, (len wrap-mul size-of@t)
-	()

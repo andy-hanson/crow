@@ -656,7 +656,6 @@ region with-index
 		as loop-continue
 			i +:= 1
 			false
-	()
 +exists[col, elem] bool(a col with-index, f act bool(nat64, elem)) (col, elem) iterate
 	i mut = 0
 	a.inner iterate x =>

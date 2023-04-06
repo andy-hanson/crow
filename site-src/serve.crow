@@ -20,7 +20,6 @@ main nat^(args string[]) summon
 			out print "serving on http://localhost:{port}/"
 			out print "press enter to stop"
 			_ <- read-stdin
-			()
 
 -handle-request http-response(a http-request) summon
 	path = "site" child-path a.url

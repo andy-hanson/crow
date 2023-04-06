@@ -65,7 +65,6 @@ immutable struct ParseDiag {
 	immutable struct InvalidStringEscape {
 		char actual;
 	}
-	immutable struct LetMustHaveThen {}
 	immutable struct NeedsBlockCtx {
 		enum Kind {
 			break_,
@@ -118,7 +117,6 @@ immutable struct ParseDiag {
 		IndentWrongCharacter,
 		InvalidName,
 		InvalidStringEscape,
-		LetMustHaveThen,
 		NeedsBlockCtx,
 		RelativeImportReachesPastRoot,
 		Unexpected,

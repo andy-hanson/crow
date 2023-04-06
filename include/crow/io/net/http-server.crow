@@ -58,7 +58,6 @@ Starts running an HTTP server. Stops it when `cb` returns.
 			closed <- trusted sock handle-chunk state, bytes, a.handler
 			if closed
 				_ = client-states try-remove sock
-				()
 			()
 		else
 			warn log "Ignoring unrecognized client"

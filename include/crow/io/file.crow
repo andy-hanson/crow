@@ -252,8 +252,6 @@ Will still throw on other errors, like permission errors.
 		else
 			with : (() => fd close-fd path) finally
 				(fd read-fd path),
-	else
-		()
 
 -read-fd nat8[](fd FILE mut*, path c-string) summon, unsafe
 	err = fd fseek 0, SEEK_END

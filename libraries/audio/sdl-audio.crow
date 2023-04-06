@@ -35,7 +35,6 @@ start-sdl-audio audio() summon
 			write-ctx unmanaged-free
 			# Make sure GC keeps this alive
 			_ = queue
-			()
 		format, (() => queue clear), (x => queue play x), (x => queue play-loop x), shut-down
 
 -write-ctx record mut by-val

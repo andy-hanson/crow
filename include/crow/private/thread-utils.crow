@@ -184,7 +184,6 @@ wait-on void(a condition mut*, until-time timestamp?, last-sequence sequence-id)
 				else
 					ts = nsec to-timespec
 					_ = &ts nanosleep null
-					()
 		else
 			hard-unreachable
 	elif is-windows
@@ -277,7 +276,6 @@ get-and-increment nat64(a thread-safe-counter mut*) bare, unsafe
 
 decrement void(a thread-safe-counter mut*) bare, unsafe
 	_ = a get-and-decrement
-	()
 
 # Returns the old value
 get-and-decrement nat64(t thread-safe-counter mut*) bare, unsafe

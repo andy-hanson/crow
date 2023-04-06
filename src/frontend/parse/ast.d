@@ -248,11 +248,14 @@ immutable struct CallAst {
 		NameAndRange(funNameStart, funNameName);
 }
 
+// Used for implicit 'else ()' or implicit '()' after a Let
+immutable struct EmptyAst {}
+
 immutable struct ForAst {
 	DestructureAst param;
 	ExprAst collection;
 	ExprAst body_;
-	Opt!ExprAst else_;
+	ExprAst else_;
 }
 
 immutable struct IdentifierAst {
@@ -262,14 +265,14 @@ immutable struct IdentifierAst {
 immutable struct IfAst {
 	ExprAst cond;
 	ExprAst then;
-	Opt!ExprAst else_;
+	ExprAst else_;
 }
 
 immutable struct IfOptionAst {
 	DestructureAst destructure;
 	ExprAst option;
 	ExprAst then;
-	Opt!ExprAst else_;
+	ExprAst else_;
 }
 
 immutable struct InterpolatedAst {
@@ -360,7 +363,7 @@ immutable struct LoopAst {
 }
 
 immutable struct LoopBreakAst {
-	Opt!ExprAst value;
+	ExprAst value;
 }
 
 immutable struct LoopContinueAst {}
@@ -434,7 +437,7 @@ immutable struct WithAst {
 	DestructureAst param;
 	ExprAst arg;
 	ExprAst body_;
-	Opt!ExprAst else_;
+	ExprAst else_;
 }
 
 immutable struct ExprAstKind {
@@ -445,6 +448,7 @@ immutable struct ExprAstKind {
 		AssignmentCallAst*,
 		BogusAst,
 		CallAst,
+		EmptyAst,
 		ForAst*,
 		IdentifierAst,
 		IfAst*,
@@ -1052,28 +1056,27 @@ Repr reprExprAstKind(ref Alloc alloc, in ExprAstKind ast) =>
 					reprTypeAst(alloc, *it)),
 				reprArr!ExprAst(alloc, e.args, (in ExprAst it) =>
 					reprExprAst(alloc, it))]),
+		(in EmptyAst e) =>
+			reprSym!"empty",
 		(in ForAst x) =>
 			reprRecord!"for"(alloc, [
 				reprDestructureAst(alloc, x.param),
 				reprExprAst(alloc, x.collection),
 				reprExprAst(alloc, x.body_),
-				reprOpt!ExprAst(alloc, x.else_, (in ExprAst else_) =>
-					reprExprAst(alloc, else_))]),
+				reprExprAst(alloc, x.else_)]),
 		(in IdentifierAst a) =>
 			reprSym(a.name),
 		(in IfAst e) =>
 			reprRecord!"if"(alloc, [
 				reprExprAst(alloc, e.cond),
 				reprExprAst(alloc, e.then),
-				reprOpt!ExprAst(alloc, e.else_, (in ExprAst it) =>
-					reprExprAst(alloc, it))]),
+				reprExprAst(alloc, e.else_)]),
 		(in IfOptionAst it) =>
 			reprRecord!"if"(alloc, [
 				reprDestructureAst(alloc, it.destructure),
 				reprExprAst(alloc, it.option),
 				reprExprAst(alloc, it.then),
-				reprOpt!ExprAst(alloc, it.else_, (in ExprAst it) =>
-					reprExprAst(alloc, it))]),
+				reprExprAst(alloc, it.else_)]),
 		(in InterpolatedAst it) =>
 			reprRecord!"interpolated"(alloc, [
 				reprArr!InterpolatedPart(alloc, it.parts, (in InterpolatedPart part) =>
@@ -1098,9 +1101,7 @@ Repr reprExprAstKind(ref Alloc alloc, in ExprAstKind ast) =>
 		(in LoopAst a) =>
 			reprRecord!"loop"(alloc, [reprExprAst(alloc, a.body_)]),
 		(in LoopBreakAst e) =>
-			reprRecord!"break"(alloc, [
-				reprOpt!ExprAst(alloc, e.value, (in ExprAst value) =>
-					reprExprAst(alloc, value))]),
+			reprRecord!"break"(alloc, [reprExprAst(alloc, e.value)]),
 		(in LoopContinueAst _) =>
 			reprSym!"continue",
 		(in LoopUntilAst e) =>

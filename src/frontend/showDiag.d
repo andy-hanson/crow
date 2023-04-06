@@ -292,9 +292,6 @@ void writeParseDiag(
 			writeEscapedChar(writer, it.actual);
 			writer ~= '\'';
 		},
-		(in ParseDiag.LetMustHaveThen) {
-			writer ~= "the final line of a block can not be 'x = y'\n(hint: remove 'x =', or add another line)";
-		},
 		(in ParseDiag.NeedsBlockCtx it) {
 			writer ~= () {
 				final switch (it.kind) {

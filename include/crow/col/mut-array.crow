@@ -104,7 +104,6 @@ This is O(n).
 		dest-ptr any-mut-pointer = dest.begin-pointer pointer-cast
 		src-ptr any-const-pointer = source.begin-pointer pointer-cast
 		_ = dest-ptr memcpy src-ptr, dest.size * size-of@t
-		()
 
 ###
 Copies elements from `source` to `dest`.

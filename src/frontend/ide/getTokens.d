@@ -10,6 +10,7 @@ import frontend.parse.ast :
 	BogusAst,
 	CallAst,
 	DestructureAst,
+	EmptyAst,
 	ExprAst,
 	FileAst,
 	ForAst,
@@ -388,13 +389,13 @@ void addExprTokens(ref Alloc alloc, ref TokensBuilder tokens, ref AllSymbols all
 					break;
 			}
 		},
+		(in EmptyAst x) {},
 		(in ForAst x) {
 			add(alloc, tokens, Token(Token.Kind.keyword, rangeOfStartAndLength(a.range.start, "for".length)));
 			addDestructureTokens(alloc, tokens, allSymbols, x.param);
 			addExprTokens(alloc, tokens, allSymbols, x.collection);
 			addExprTokens(alloc, tokens, allSymbols, x.body_);
-			if (has(x.else_))
-				addExprTokens(alloc, tokens, allSymbols, force(x.else_));
+			addExprTokens(alloc, tokens, allSymbols, x.else_);
 		},
 		(in IdentifierAst _) {
 			add(alloc, tokens, Token(Token.Kind.identifier, a.range));
@@ -402,15 +403,13 @@ void addExprTokens(ref Alloc alloc, ref TokensBuilder tokens, ref AllSymbols all
 		(in IfAst it) {
 			addExprTokens(alloc, tokens, allSymbols, it.cond);
 			addExprTokens(alloc, tokens, allSymbols, it.then);
-			if (has(it.else_))
-				addExprTokens(alloc, tokens, allSymbols, force(it.else_));
+			addExprTokens(alloc, tokens, allSymbols, it.else_);
 		},
 		(in IfOptionAst it) {
 			addDestructureTokens(alloc, tokens, allSymbols, it.destructure);
 			addExprTokens(alloc, tokens, allSymbols, it.option);
 			addExprTokens(alloc, tokens, allSymbols, it.then);
-			if (has(it.else_))
-				addExprTokens(alloc, tokens, allSymbols, force(it.else_));
+			addExprTokens(alloc, tokens, allSymbols, it.else_);
 		},
 		(in InterpolatedAst it) {
 			Pos pos = a.range.start;
@@ -472,8 +471,7 @@ void addExprTokens(ref Alloc alloc, ref TokensBuilder tokens, ref AllSymbols all
 		},
 		(in LoopBreakAst it) {
 			add(alloc, tokens, Token(Token.Kind.keyword, rangeOfStartAndLength(a.range.start, "break".length)));
-			if (has(it.value))
-				addExprTokens(alloc, tokens, allSymbols, force(it.value));
+			addExprTokens(alloc, tokens, allSymbols, it.value);
 		},
 		(in LoopContinueAst _) {
 			add(alloc, tokens, Token(Token.Kind.keyword, rangeOfStartAndLength(a.range.start, "continue".length)));

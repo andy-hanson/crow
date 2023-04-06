@@ -128,7 +128,6 @@ This is O(n).
 		as equal
 			out ~= value
 			_ = a next
-			()
 		as greater
 			out ~= peek
 			_ = a next

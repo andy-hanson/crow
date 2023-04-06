@@ -52,8 +52,6 @@ pull void(a audio-queue, out float32 mut-array) bare, unsafe
 	if cur != end
 		*cur add-to out
 		cur + 1 each-playing end, out
-	else
-		()
 
 -add-to void(a entry, out float32 mut-array) bare, unsafe
 	n-remaining = a.samples.end-pointer - a.cur

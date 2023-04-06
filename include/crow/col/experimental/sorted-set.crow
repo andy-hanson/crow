@@ -199,8 +199,6 @@ Or a combination of the two.
 	if plan.compacted-size == 0
 		if left ?= a.add left
 			left, new-remove
-		else
-			()
 	else
 		trusted
 			compacted t mut-array = plan.compacted-size uninitialized-mut-array
@@ -362,7 +360,6 @@ iterate[t] bool(a t sorted-set, f act bool(t)) t key
 -init-iters[t] t iter-part mut-array(a t sorted-set)
 	with out : a.add-node-count build
 		_ = out init-iters-recur a.add, a.remove
-		()
 
 -add-node-count[t] nat64(a t sorted-set)
 	acc mut = 1

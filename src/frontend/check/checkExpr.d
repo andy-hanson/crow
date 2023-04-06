@@ -49,6 +49,7 @@ import frontend.parse.ast :
 	BogusAst,
 	CallAst,
 	DestructureAst,
+	EmptyAst,
 	ExprAst,
 	ExprAstKind,
 	ForAst,
@@ -177,6 +178,8 @@ Expr checkExpr(ref ExprCtx ctx, ref LocalsInfo locals, in ExprAst ast, ref Expec
 			bogus(expected, range),
 		(in CallAst a) =>
 			checkCall(ctx, locals, range, a, expected),
+		(in EmptyAst a) =>
+			checkEmptyNew(ctx, range, expected),
 		(in ForAst a) =>
 			checkFor(ctx, locals, range, a, expected),
 		(in IdentifierAst a) =>
@@ -305,7 +308,7 @@ Expr checkArrowAccess(
 Expr checkIf(ref ExprCtx ctx, ref LocalsInfo locals, FileAndRange range, in IfAst ast, ref Expected expected) {
 	Expr cond = checkAndExpectBool(ctx, locals, ast.cond);
 	Expr then = checkExpr(ctx, locals, ast.then, expected);
-	Expr else_ = checkExprOrEmptyNew(ctx, locals, range, ast.else_, expected);
+	Expr else_ = checkExpr(ctx, locals, ast.else_, expected);
 	return Expr(range, ExprKind(allocate(ctx.alloc, ExprKind.If(inferred(expected), cond, then, else_))));
 }
 
@@ -418,28 +421,6 @@ Expr checkUnless(
 	return Expr(range, ExprKind(allocate(ctx.alloc, ExprKind.If(inferred(expected), cond, then, else_))));
 }
 
-Expr checkExprOrEmptyNewAndExpect(
-	ref ExprCtx ctx,
-	ref LocalsInfo locals,
-	FileAndRange range,
-	in Opt!ExprAst ast,
-	Type expected,
-) {
-	Expected e = Expected(expected);
-	return checkExprOrEmptyNew(ctx, locals, range, ast, e);
-}
-
-Expr checkExprOrEmptyNew(
-	ref ExprCtx ctx,
-	ref LocalsInfo locals,
-	FileAndRange range,
-	in Opt!ExprAst ast,
-	ref Expected expected,
-) =>
-	has(ast)
-		? checkExpr(ctx, locals, force(ast), expected)
-		: checkEmptyNew(ctx, range, expected);
-
 Expr checkEmptyNew(ref ExprCtx ctx, in FileAndRange range, ref Expected expected) =>
 	checkCallIdentifier(ctx, range, sym!"new", expected);
 
@@ -466,7 +447,7 @@ Expr checkIfOption(
 		Type nonOptionalType = only(typeArgs(*inst));
 		Destructure destructure = checkDestructure(ctx, ast.destructure, nonOptionalType);
 		Expr then = checkExprWithDestructure(ctx, locals, destructure, ast.then, expected);
-		Expr else_ = checkExprOrEmptyNew(ctx, locals, range, ast.else_, expected);
+		Expr else_ = checkExpr(ctx, locals, ast.else_, expected);
 		return Expr(range, ExprKind(
 			allocate(ctx.alloc, ExprKind.IfOption(inferred(expected), destructure, option, then, else_))));
 	}
@@ -1252,12 +1233,11 @@ Expr checkLoopBreak(
 ) {
 	MutOpt!(LoopInfo*) optLoop = tryGetLoop(expected);
 	if (!has(optLoop))
-		return checkCallSpecial!1(
-			ctx, locals, range, sym!"loop-break", [has(ast.value) ? force(ast.value) : callNew(range.range)], expected);
+		return checkCallSpecial!1(ctx, locals, range, sym!"loop-break", [ast.value], expected);
 	else {
 		LoopInfo* loop = force(optLoop);
 		loop.hasBreak = true;
-		Expr value = checkExprOrEmptyNewAndExpect(ctx, locals, range, ast.value, loop.type);
+		Expr value = checkAndExpect(ctx, locals, ast.value, loop.type);
 		return Expr(
 			range,
 			ExprKind(allocate(ctx.alloc, ExprKind.LoopBreak(loop.loop, value))));
@@ -1411,14 +1391,16 @@ bool hasBreakOrContinue(in ExprAst a) =>
 			false,
 		(in CallAst _) =>
 			false,
+		(in EmptyAst _) =>
+			false,
 		(in ForAst _) =>
 			false,
 		(in IdentifierAst _) =>
 			false,
 		(in IfAst x) =>
-			hasBreakOrContinue(x.then) || (has(x.else_) && hasBreakOrContinue(force(x.else_))),
+			hasBreakOrContinue(x.then) || hasBreakOrContinue(x.else_),
 		(in IfOptionAst x) =>
-			hasBreakOrContinue(x.then) || (has(x.else_) && hasBreakOrContinue(force(x.else_))),
+			hasBreakOrContinue(x.then) || hasBreakOrContinue(x.else_),
 		(in InterpolatedAst _) =>
 			false,
 		(in LambdaAst _) =>
@@ -1466,28 +1448,23 @@ bool hasBreakOrContinue(in ExprAst a) =>
 		(in WithAst _) =>
 			false);
 
-ExprAst callNew(RangeWithinFile range) =>
-	ExprAst(range, ExprAstKind(callNewCall(range)));
-CallAst callNewCall(RangeWithinFile range) =>
-	CallAst(CallAst.style.emptyParens, NameAndRange(range.start, sym!"new"), []);
-
 Expr checkFor(ref ExprCtx ctx, ref LocalsInfo locals, FileAndRange range, in ForAst ast, ref Expected expected) {
 	bool isForBreak = hasBreakOrContinue(ast.body_);
 	scope LambdaAst lambdaAstBody = LambdaAst(ast.param, ast.body_);
 	scope ExprAst lambdaBody = ExprAst(range.range, ExprAstKind(ptrTrustMe(lambdaAstBody)));
 	Sym funName = isForBreak ? sym!"for-break" : sym!"for-loop";
-	if (has(ast.else_)) {
+	if (!ast.else_.kind.isA!EmptyAst) {
 		scope LambdaAst lambdaAstElse = LambdaAst(
 			DestructureAst(DestructureAst.Void(range.range.start)),
-			force(castNonScope_ref(ast.else_)));
-		scope ExprAst lambdaElse_ = ExprAst(force(ast.else_).range, ExprAstKind(ptrTrustMe(lambdaAstElse)));
+			castNonScope_ref(ast.else_));
+		scope ExprAst lambdaElse_ = ExprAst(ast.else_.range, ExprAstKind(ptrTrustMe(lambdaAstElse)));
 		return checkCallSpecial!3(ctx, locals, range, funName, [ast.collection, lambdaBody, lambdaElse_], expected);
 	} else
 		return checkCallSpecial!2(ctx, locals, range, funName, [ast.collection, lambdaBody], expected);
 }
 
 Expr checkWith(ref ExprCtx ctx, ref LocalsInfo locals, FileAndRange range, in WithAst ast, ref Expected expected) {
-	if (has(ast.else_))
+	if (!ast.else_.kind.isA!(EmptyAst))
 		todo!void("diag: no 'else' for 'with'");
 	LambdaAst lambdaInner = LambdaAst(ast.param, ast.body_);
 	ExprAst lambda = ExprAst(range.range, ExprAstKind(ptrTrustMe(lambdaInner)));

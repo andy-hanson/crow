@@ -6,7 +6,6 @@ In that case, the particular instance of `<` should actually get a ctx.
 main nat^(_ string[]) summon
 	x t = ()
 	_ = x < x
-	()
 
 t record
 

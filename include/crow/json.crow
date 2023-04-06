@@ -78,8 +78,6 @@ to json(a index-set)
 +to[t] json(a t?) (json, t) to
 	if x ?= a
 		(x.to,) json-list
-	else
-		()
 +to[t, u] json(a (t, u)) (json, t) to, (json, u) to
 	(a.a to, a.b to) json-list
 +to[t, u] json(a (t, u) result) (json, t) to, (json, u) to
