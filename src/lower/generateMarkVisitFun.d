@@ -84,7 +84,7 @@ LowFun generateMarkVisitGcPtr(
 				arrLiteral!LowExpr(alloc, [markCtx, valueDeref]));
 			return genIf(alloc, range, mark, recur, genVoid(range));
 		} else
-			return genDrop(alloc, range, mark, 0);
+			return genDrop(alloc, range, mark);
 	}();
 	LowFunExprBody body_ = LowFunExprBody(false, expr);
 	return LowFun(
@@ -196,7 +196,7 @@ LowFun generateMarkVisitArr(
 					theLoop));
 			return genIf(alloc, range, callMark, ifBody, voidValue);			
 		} else
-			return genDrop(alloc, range, callMark, 0);
+			return genDrop(alloc, range, callMark);
 	}();
 	return LowFun(
 		LowFunSource(allocate(alloc, LowFunSource.Generated(sym!"mark-arr", arrLiteral!LowType(alloc, [elementType])))),

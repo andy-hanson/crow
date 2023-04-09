@@ -277,6 +277,8 @@ ExpectUnary unaryExpected(
 			return expect(nat64Type, nat64Type);
 		case LowExprKind.SpecialUnary.Kind.deref:
 			return ExpectUnary(some(asGcOrRawPointee(argType)), none!LowType);
+		case LowExprKind.SpecialUnary.Kind.drop:
+			return ExpectUnary(some(voidType), none!LowType);
 		case LowExprKind.SpecialUnary.Kind.toChar8FromNat8:
 			return expect(char8Type, nat8Type);
 		case LowExprKind.SpecialUnary.Kind.toFloat32FromFloat64:

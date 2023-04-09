@@ -861,6 +861,10 @@ void generateSpecialUnary(
 		case LowExprKind.SpecialUnary.Kind.countOnesNat64:
 			fn!fnCountOnesNat64();
 			break;
+		case LowExprKind.SpecialUnary.Kind.drop:
+			generateExprAndContinue(writer, ctx, locals, a.arg);
+			handleAfter(writer, ctx, source, after);
+			break;
 		case LowExprKind.SpecialUnary.Kind.toInt64FromInt16:
 			fn!fnInt64FromInt16();
 			break;

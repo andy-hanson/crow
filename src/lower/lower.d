@@ -1410,10 +1410,8 @@ LowExprKind getCreateArrExpr(
 	return LowExprKind(allocate(ctx.alloc, LowExprKind.Let(temp, allocatePtr, writeAndGetArr)));
 }
 
-LowExprKind getDropExpr(ref GetLowExprCtx ctx, in Locals locals, FileAndRange range, ref ConcreteExprKind.Drop a) {
-	LowExpr arg = getLowExpr(ctx, locals, a.arg, ExprPos.nonTail);
-	return genDrop(ctx.alloc, range, arg, nextTempLocalIndex(ctx)).kind;
-}
+LowExprKind getDropExpr(ref GetLowExprCtx ctx, in Locals locals, FileAndRange range, ref ConcreteExprKind.Drop a) =>
+	genDrop(ctx.alloc, range, getLowExpr(ctx, locals, a.arg, ExprPos.nonTail)).kind;
 
 LowExprKind getLambdaExpr(ref GetLowExprCtx ctx, in Locals locals, FileAndRange range, in ConcreteExprKind.Lambda a) =>
 	LowExprKind(allocate(ctx.alloc, LowExprKind.CreateUnion(

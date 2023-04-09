@@ -50,11 +50,9 @@ LowExpr genAsAnyPtrConst(ref Alloc alloc, FileAndRange range, LowExpr a) =>
 	LowExpr(anyPtrConstType, range, LowExprKind(allocate(alloc,
 		LowExprKind.SpecialUnary(LowExprKind.SpecialUnary.Kind.asAnyPtr, a))));
 
-LowExpr genDrop(ref Alloc alloc, FileAndRange range, LowExpr a, size_t localIndex) {
-	// TODO: less hacky way?
-	return LowExpr(voidType, range, LowExprKind(allocate(alloc,
-		LowExprKind.Let(genLocal(alloc, sym!"dropped", localIndex, a.type), a, genVoid(range)))));
-}
+LowExpr genDrop(ref Alloc alloc, FileAndRange range, LowExpr a) =>
+	LowExpr(voidType, range, LowExprKind(allocate(alloc,
+		LowExprKind.SpecialUnary(LowExprKind.SpecialUnary.Kind.drop, a))));
 
 private LowExpr genDerefGcOrRawPtr(ref Alloc alloc, FileAndRange range, LowExpr ptr) =>
 	genUnary(alloc, range, asGcOrRawPointee(ptr.type), LowExprKind.SpecialUnary.Kind.deref, ptr);

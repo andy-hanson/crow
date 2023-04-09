@@ -534,7 +534,6 @@ struct ExprEmit {
 	// Return some.
 	immutable struct Value {}
 	// Don't return anything. (Don't even return_void).
-	// Only used for the first part of a Seq.
 	immutable struct Void {}
 	// Write to this local. Return none.
 	struct WriteTo {
@@ -894,6 +893,12 @@ void emitToLValue(ref ExprCtx ctx, ref Locals locals, gcc_jit_lvalue* lvalue, in
 		toGccExpr(ctx, locals, emitArg, a));
 }
 
+void emitToVoid(ref ExprCtx ctx, ref Locals locals, in LowExpr a) {
+	ExprEmit emitVoid = ExprEmit(ExprEmit.Void());
+	ExprResult result = toGccExpr(ctx, locals, emitVoid, a);
+	verify(result.isA!(ExprResult.Void));
+}
+
 @trusted ExprResult callToGcc(
 	ref ExprCtx ctx,
 	ref Locals locals,
@@ -1215,9 +1220,7 @@ ExprResult recordFieldSetToGcc(
 }
 
 ExprResult seqToGcc(ref ExprCtx ctx, ref Locals locals, ref ExprEmit emit, in LowExprKind.Seq a) {
-	ExprEmit emitVoid = ExprEmit(ExprEmit.Void());
-	ExprResult result = toGccExpr(ctx, locals, emitVoid, a.first);
-	verify(result.isA!(ExprResult.Void));
+	emitToVoid(ctx, locals, a.first);
 	return toGccExpr(ctx, locals, emit, a.then);
 }
 
@@ -1323,6 +1326,9 @@ ExprResult constantToGcc(ref ExprCtx ctx, ref ExprEmit emit, in LowType type, in
 		case LowExprKind.SpecialUnary.Kind.deref:
 			return emitSimpleNoSideEffects(ctx, emit, gcc_jit_lvalue_as_rvalue(
 				gcc_jit_rvalue_dereference(emitToRValue(ctx, locals, a.arg), null)));
+		case LowExprKind.SpecialUnary.Kind.drop:
+			emitToVoid(ctx, locals, a.arg);
+			return emitVoid(ctx, emit);
 		case LowExprKind.SpecialUnary.Kind.asAnyPtr:
 		case LowExprKind.SpecialUnary.Kind.enumToIntegral:
 		case LowExprKind.SpecialUnary.Kind.toChar8FromNat8:

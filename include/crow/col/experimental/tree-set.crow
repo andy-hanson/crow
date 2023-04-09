@@ -456,7 +456,7 @@ test
 	s ~ "d" verify "([a c] d [e g])"
 
 test
-	s0 string tree-set = new
+	s0 string tree-set = ()
 	s0 verify "[]"
 
 	s1 = s0 ~ "h"

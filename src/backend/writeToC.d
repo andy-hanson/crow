@@ -1345,6 +1345,7 @@ WriteExprResult writeSpecialUnary(
 	final switch (a.kind) {
 		case LowExprKind.SpecialUnary.Kind.asAnyPtr:
 			return prefix("(uint8_t*) ");
+		case LowExprKind.SpecialUnary.Kind.drop:
 		case LowExprKind.SpecialUnary.Kind.enumToIntegral:
 		case LowExprKind.SpecialUnary.Kind.toChar8FromNat8:
 		case LowExprKind.SpecialUnary.Kind.toFloat32FromFloat64:

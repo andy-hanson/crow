@@ -278,6 +278,8 @@ string strOfSpecialUnaryKind(LowExprKind.SpecialUnary.Kind a) {
 			return "count-ones (nat64)";
 		case LowExprKind.SpecialUnary.Kind.deref:
 			return "deref";
+		case LowExprKind.SpecialUnary.Kind.drop:
+			return "drop";
 		case LowExprKind.SpecialUnary.Kind.enumToIntegral:
 			return "to integral (from enum)";
 		case LowExprKind.SpecialUnary.Kind.toChar8FromNat8:

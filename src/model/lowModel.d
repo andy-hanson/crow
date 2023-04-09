@@ -470,6 +470,7 @@ immutable struct LowExprKind {
 			bitwiseNotNat64,
 			countOnesNat64,
 			deref,
+			drop,
 			enumToIntegral,
 			toChar8FromNat8,
 			toFloat32FromFloat64,
