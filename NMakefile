@@ -53,6 +53,8 @@ src_files_common = src\concretize\allConstantsBuilder.d \
 	src\frontend\check\checkExpr.d \
 	src\frontend\check\checkStructBodies.d \
 	src\frontend\check\funsForStruct.d \
+	src\frontend\check\getCommonFuns.d \
+	src\frontend\check\getCommonTypes.d \
 	src\frontend\check\inferringType.d \
 	src\frontend\check\instantiate.d \
 	src\frontend\check\maps.d \

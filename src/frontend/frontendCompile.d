@@ -582,15 +582,11 @@ ImportsOrExports mapImportsOrExports(
 				(FullyResolvedImportKind.ModuleWhole m) =>
 					m.fileIndex == FileIndex.none
 						? none!ImportOrExportKind
-						// TODO: Should just be `&compiled[m.fileIndex]``
-						: some(ImportOrExportKind(
-							ImportOrExportKind.ModuleWhole(&compiled.values[m.fileIndex.index]))),
+						: some(ImportOrExportKind(ImportOrExportKind.ModuleWhole(&compiled[m.fileIndex]))),
 				(FullyResolvedImportKind.ModuleNamed m) =>
 					m.fileIndex == FileIndex.none
 						? none!ImportOrExportKind
-						// TODO: Should just be `&compiled[m.fileIndex]``
-						: some(ImportOrExportKind(
-							ImportOrExportKind.ModuleNamed(&compiled.values[m.fileIndex.index], m.names))),
+						: some(ImportOrExportKind(ImportOrExportKind.ModuleNamed(&compiled[m.fileIndex], m.names))),
 				(FullyResolvedImportKind.File f) {
 					//TODO: could be a temp alloc
 					add(modelAlloc, fileImports, ImportOrExportFile(force(x.range), f.name, f.type, f.content));
