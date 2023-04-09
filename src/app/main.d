@@ -60,7 +60,7 @@ version (Windows) {
 version (Windows) { } else {
 	import backend.jit : jitAndRun;
 }
-import frontend.lang : JitOptions, OptimizationLevel;
+import frontend.lang : cExtension, JitOptions, OptimizationLevel;
 import frontend.showDiag : ShowDiagOptions, strOfDiagnostics;
 import interpret.extern_ : Extern;
 import lib.cliParser : BuildOptions, CCompileOptions, Command, defaultExeExtension, hasAnyOut, parseCommand, RunOptions;
@@ -89,14 +89,13 @@ import util.memory : memset;
 import util.opt : force, has, none, Opt, some;
 import util.path :
 	AllPaths,
+	alterExtension,
 	baseName,
 	childPath,
 	Path,
-	PathAndExtension,
 	parent,
 	parentOrEmpty,
 	parsePath,
-	parsePathDropExtension,
 	PathsInfo,
 	pathToSafeCStr,
 	pathToTempStr,
@@ -105,7 +104,7 @@ import util.path :
 import util.perf : eachMeasure, Perf, perfEnabled, PerfMeasure, PerfMeasureResult, withMeasure;
 import util.ptr : ptrTrustMe;
 import util.readOnlyStorage : ReadFileResult, ReadOnlyStorage;
-import util.sym : AllSymbols, concatSyms, safeCStrOfSym, Sym, sym, symOfStr, writeSym;
+import util.sym : alterExtension, AllSymbols, concatSyms, safeCStrOfSym, Sym, sym, symOfStr, writeSym;
 import util.util : todo, verify;
 import util.writer : finishWriterToSafeCStr, Writer;
 import versionInfo : versionInfoForJIT;
@@ -249,11 +248,11 @@ SafeCStr[] getAllArgs(
 	Path main,
 	in SafeCStr[] programArgs,
 ) =>
-	prepend(alloc, pathToSafeCStr(alloc, allPaths, main, sym!".crow"), programArgs);
+	prepend(alloc, pathToSafeCStr(alloc, allPaths, main), programArgs);
 
 @trusted ExitCode setupTempDir(ref AllSymbols allSymbols, ref AllPaths allPaths, Path tempDir) {
 	TempStrForPath dirPathBuf = void;
-	CStr dirPath = pathToTempStr(dirPathBuf, allPaths, tempDir, sym!"").ptr;
+	CStr dirPath = pathToTempStr(dirPathBuf, allPaths, tempDir).ptr;
 	version (Windows) {
 		if (GetFileAttributesA(dirPath) == INVALID_FILE_ATTRIBUTES) {
 			int ok = CreateDirectoryA(dirPath, null);
@@ -434,7 +433,7 @@ ExitCode runDocument(
 
 immutable struct RunBuildResult {
 	ExitCode err;
-	Opt!PathAndExtension exePath;
+	Opt!Path exePath;
 }
 
 ExitCode runBuild(
@@ -472,14 +471,14 @@ RunBuildResult runBuildInner(
 	ExeKind exeKind,
 ) {
 	Sym name = baseName(allPaths, mainPath);
-	PathAndExtension cPath = has(options.out_.outC)
+	Path cPath = has(options.out_.outC)
 		? force(options.out_.outC)
-		: PathAndExtension(childPath(allPaths, tempDir, name), sym!".c");
-	Opt!PathAndExtension exePath = has(options.out_.outExecutable)
+		: childPath(allPaths, tempDir, alterExtension!cExtension(allSymbols, name));
+	Opt!Path exePath = has(options.out_.outExecutable)
 		? options.out_.outExecutable
 		: exeKind == ExeKind.ensureExe
-		? some(PathAndExtension(childPath(allPaths, tempDir, name), defaultExeExtension))
-		: none!PathAndExtension;
+		? some(childPath(allPaths, tempDir, alterExtension!defaultExeExtension(allSymbols, name)))
+		: none!Path;
 	ExitCode err = buildToCAndCompile(
 		alloc,
 		perf,
@@ -507,8 +506,8 @@ ExitCode buildToCAndCompile(
 	in ShowDiagOptions showDiagOptions,
 	Path includeDir,
 	Path mainPath,
-	PathAndExtension cPath,
-	in Opt!PathAndExtension exePath,
+	Path cPath,
+	in Opt!Path exePath,
 	in CCompileOptions cCompileOptions,
 ) =>
 	withReadOnlyStorage!ExitCode(allPaths, includeDir, (in ReadOnlyStorage storage) {
@@ -605,8 +604,8 @@ SafeCStr[] cCompilerArgs(in CCompileOptions options) {
 	ref Perf perf,
 	ref AllSymbols allSymbols,
 	ref AllPaths allPaths,
-	in PathAndExtension cPath,
-	in PathAndExtension exePath,
+	in Path cPath,
+	in Path exePath,
 	in ExternLibrary[] externLibraries,
 	in CCompileOptions options,
 ) {
@@ -641,8 +640,8 @@ SafeCStr[] cCompileArgs(
 	ref Alloc alloc,
 	ref AllSymbols allSymbols,
 	ref AllPaths allPaths,
-	in PathAndExtension cPath,
-	in PathAndExtension exePath,
+	in Path cPath,
+	in Path exePath,
 	in ExternLibrary[] externLibraries,
 	in CCompileOptions options,
 ) {
@@ -722,13 +721,12 @@ T withReadOnlyStorage(T)(
 			Path path,
 			in void delegate(in ReadFileResult!(ubyte[])) @safe @nogc pure nothrow cb,
 		) =>
-			tryReadFile(allPaths, path, sym!"", NulTerminate.no, cb),
+			tryReadFile(allPaths, path, NulTerminate.no, cb),
 		(
 			Path path,
-			Sym extension,
 			in void delegate(in ReadFileResult!SafeCStr) @safe @nogc pure nothrow cb,
 		) =>
-			tryReadFile(allPaths, path, extension, NulTerminate.yes, (in ReadFileResult!(ubyte[]) x) =>
+			tryReadFile(allPaths, path, NulTerminate.yes, (in ReadFileResult!(ubyte[]) x) =>
 				x.matchIn!void(
 					(in immutable ubyte[] bytes) @trusted =>
 						cb(ReadFileResult!SafeCStr(SafeCStr(cast(immutable char*) bytes.ptr))),
@@ -757,12 +755,11 @@ enum NulTerminate { no, yes }
 @trusted void tryReadFile(
 	in AllPaths allPaths,
 	Path path,
-	Sym extension,
 	NulTerminate nulTerminate,
 	in void delegate(in ReadFileResult!(ubyte[])) @safe @nogc pure nothrow cb,
 ) {
 	TempStrForPath pathBuf = void;
-	CStr pathCStr = pathToTempStr(pathBuf, allPaths, path, extension).ptr;
+	CStr pathCStr = pathToTempStr(pathBuf, allPaths, path).ptr;
 
 	FILE* fd = fopen(pathCStr, "rb");
 	if (fd == null)
@@ -801,7 +798,7 @@ enum NulTerminate { no, yes }
 	}
 }
 
-@trusted ExitCode writeFile(in AllPaths allPaths, in PathAndExtension path, in SafeCStr content) {
+@trusted ExitCode writeFile(in AllPaths allPaths, in Path path, in SafeCStr content) {
 	FILE* fd = tryOpenFileForWrite(allPaths, path);
 	if (fd == null)
 		return ExitCode.error;
@@ -820,13 +817,13 @@ enum NulTerminate { no, yes }
 	}
 }
 
-@system FILE* tryOpenFileForWrite(in AllPaths allPaths, in PathAndExtension path) {
+@system FILE* tryOpenFileForWrite(in AllPaths allPaths, in Path path) {
 	TempStrForPath buf = void;
 	CStr pathCStr = pathToTempStr(buf, allPaths, path).ptr;
 	FILE* fd = fopen(pathCStr, "w");
 	if (fd == null) {
 		if (errno == ENOENT) {
-			Opt!Path par = parent(allPaths, path.path);
+			Opt!Path par = parent(allPaths, path);
 			if (has(par)) {
 				ExitCode res = mkdirRecur(allPaths, force(par));
 				if (res == ExitCode.ok)
@@ -869,7 +866,7 @@ Path getCrowDir(ref AllPaths allPaths) =>
 	}
 	verify(size > 0 && size < res.length);
 	res[size] = '\0';
-	return parsePathDropExtension(allPaths, SafeCStr(cast(immutable) res.ptr));
+	return parsePath(allPaths, SafeCStr(cast(immutable) res.ptr));
 }
 
 // Returns the child process' error code.

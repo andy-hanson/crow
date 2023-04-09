@@ -2,7 +2,6 @@ module model.diag;
 
 @safe @nogc pure nothrow:
 
-import frontend.lang : crowExtension;
 import frontend.showDiag : ShowDiagOptions;
 import model.model :
 	Called,
@@ -544,11 +543,11 @@ private void writeFileNoResetWriter(
 		if (options.color) {
 			writeHyperlink(
 				writer,
-				() { writePath(writer, allPaths, pathsInfo, path, crowExtension); },
-				() { writePath(writer, allPaths, pathsInfo, path, crowExtension); });
+				() { writePath(writer, allPaths, pathsInfo, path); },
+				() { writePath(writer, allPaths, pathsInfo, path); });
 			writeRed(writer);
 		} else
-			writePath(writer, allPaths, pathsInfo, path, crowExtension);
+			writePath(writer, allPaths, pathsInfo, path);
 		writer ~= ' ';
 	}
 }

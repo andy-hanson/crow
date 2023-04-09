@@ -1,9 +1,9 @@
-const compiler = {}
+const crow = {}
 
 if (typeof window !== "undefined")
-	Object.assign(window, {compiler})
+	Object.assign(window, {crow})
 if (typeof global !== "undefined")
-	Object.assign(global, {compiler})
+	Object.assign(global, {crow})
 
 /** @typedef {number & {_isServer:true}} Server */
 
@@ -50,29 +50,29 @@ Exports of `wasm.d`:
 	| "type-param"
 } TokenKind
 */
-compiler.TokenKind = {}
+crow.TokenKind = {}
 
 /**
  * @typedef Token
  * @property {TokenKind} kind
  * @property {DiagRange} range
  */
-compiler.Token = {}
+crow.Token = {}
 
 /**
  * @typedef Diagnostic
  * @property {string} message
  * @property {DiagRange} range
  */
-compiler.Diagnostic = {}
+crow.Diagnostic = {}
 
 /** @type {Promise<Compiler> | null} */
 let globalCompiler = null
 
 /** @type {function(): Promise<Compiler>} */
-compiler.getGlobalCompiler = async () => {
+crow.getGlobalCompiler = async () => {
 	if (globalCompiler === null)
-		globalCompiler = compiler.Compiler.make()
+		globalCompiler = crow.Compiler.make()
 	return globalCompiler
 }
 
@@ -275,7 +275,13 @@ class Compiler {
 		}
 	}
 }
-compiler.Compiler = Compiler
+crow.Compiler = Compiler
+
+/**
+Currently `includeDir` is hardcoded in the constructor in `server.d`.
+TODO someday: Make this configurable.
+*/
+crow.includeDir = '/include'
 
 /**
 @typedef RunResult
@@ -283,7 +289,7 @@ compiler.Compiler = Compiler
 @property {string} stdout
 @property {string} stderr
 */
-compiler.RunResult = {}
+crow.RunResult = {}
 
 /** @type {function(DataView, number, number): string} */
 const readCString = (view, begin, maxPointer) => {

@@ -29,6 +29,8 @@ import util.late : late, Late, lateGet, lateIsSet, lateSet;
 import util.lineAndColumnGetter : LineAndColumnGetter, lineAndColumnGetterForEmptyFile, lineAndColumnGetterForText;
 import util.opt : force, has, Opt, none, some;
 import util.path :
+	addExtension,
+	addExtensionIfNone,
 	AllPaths,
 	childPath,
 	concatPaths,
@@ -84,7 +86,7 @@ FileAstAndDiagnostics parseSingleAst(
 	Path path,
 ) {
 	// In this case model alloc and AST alloc are the same
-	return withFileText!FileAstAndDiagnostics(storage, path, crowExtension, (in ReadFileResult!SafeCStr fileContent) {
+	return withFileText!FileAstAndDiagnostics(storage, path, (in ReadFileResult!SafeCStr fileContent) {
 		ArrBuilder!DiagnosticWithinFile diags;
 		FileAst ast = parseSingle(
 			alloc,
@@ -240,7 +242,7 @@ immutable(EnumMap!(CommonPath, Path)) commonPaths(ref AllPaths allPaths, Path in
 	Path includeCrow = childPath(allPaths, includeDir, sym!"crow");
 	Path private_ = childPath(allPaths, includeCrow, sym!"private");
 	Path col = childPath(allPaths, includeCrow, sym!"col");
-	return immutable EnumMap!(CommonPath, Path)([
+	return enumMapMapValues!(CommonPath, Path, Path)(immutable EnumMap!(CommonPath, Path)([
 		childPath(allPaths, private_, sym!"bootstrap"),
 		childPath(allPaths, private_, sym!"alloc"),
 		childPath(allPaths, private_, sym!"exception-low-level"),
@@ -250,7 +252,7 @@ immutable(EnumMap!(CommonPath, Path)) commonPaths(ref AllPaths allPaths, Path in
 		childPath(allPaths, includeCrow, sym!"string"),
 		childPath(allPaths, private_, sym!"runtime"),
 		childPath(allPaths, private_, sym!"rt-main"),
-	]);
+	]), (in Path x) => addExtension!crowExtension(allPaths, x));
 }
 
 void pushIt(
@@ -266,7 +268,7 @@ void pushIt(
 	Path path,
 	Opt!PathAndRange importedFrom,
 ) {
-	withFileText!void(storage, path, crowExtension, (in ReadFileResult!SafeCStr fileContent) {
+	withFileText!void(storage, path, (in ReadFileResult!SafeCStr fileContent) {
 		ArrBuilder!DiagnosticWithinFile diags;
 		LineAndColumnGetter lineAndColumnGetter = lineAndColumnGetterForOptText(modelAlloc, asOption(fileContent));
 		FileAst ast = parseSingle(modelAlloc, astAlloc, perf, allPaths, allSymbols, diags, importedFrom, fileContent);
@@ -358,13 +360,11 @@ FileContent readFileContent(
 						(in immutable ubyte[] content) => copyArr(modelAlloc, content),
 						() => typeAs!(immutable ubyte[])([]))));
 		case ImportFileType.str:
-			return FileContent(withFileText!SafeCStr(
-				storage, path, sym!"",
-				(in ReadFileResult!SafeCStr res) =>
-					handleReadFileResult!(SafeCStr, SafeCStr)(
-						modelAlloc, diags, importedFrom, res,
-						(in SafeCStr content) => copySafeCStr(modelAlloc, content),
-						() => safeCStr!"")));
+			return FileContent(withFileText!SafeCStr(storage, path, (in ReadFileResult!SafeCStr res) =>
+				handleReadFileResult!(SafeCStr, SafeCStr)(
+					modelAlloc, diags, importedFrom, res,
+					(in SafeCStr content) => copySafeCStr(modelAlloc, content),
+					() => safeCStr!"")));
 	}
 }
 
@@ -469,8 +469,8 @@ ResolvedImport tryResolveImport(
 	Path fromPath,
 	in ImportOrExportAst ast,
 ) {
-	ResolvedImport resolved(Path pk) {
-		return ResolvedImport(ast.range, some(pk), ast.kind);
+	ResolvedImport resolved(Path path) {
+		return ResolvedImport(ast.range, some(addExtensionIfNone!crowExtension(allPaths, path)), ast.kind);
 	}
 	return matchPathOrRelPath!ResolvedImport(
 		ast.path,

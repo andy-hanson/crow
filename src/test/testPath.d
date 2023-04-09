@@ -6,13 +6,13 @@ import test.testUtil : Test;
 import util.col.str : safeCStr, safeCStrEq;
 import util.comparison : Comparison;
 import util.path :
+	AllPaths,
 	childPath,
 	commonAncestor,
 	comparePath,
-	AllPaths,
+	getExtension,
 	Path,
-	PathAndExtension,
-	parseAbsoluteOrRelPathAndExtension,
+	parseAbsoluteOrRelPath,
 	pathToSafeCStr,
 	rootPath,
 	TEST_countPathParts;
@@ -36,15 +36,15 @@ void testPath(ref Test test) {
 	verify(safeCStrEq(pathToSafeCStr(test.alloc, allPaths, aX), safeCStr!"a/x"));
 	verify(safeCStrEq(pathToSafeCStr(test.alloc, allPaths, aY), safeCStr!"a/y"));
 
-	PathAndExtension zW = parseAbsoluteOrRelPathAndExtension(allPaths, aX, safeCStr!"/z/w.crow");
-	verify(safeCStrEq(pathToSafeCStr(test.alloc, allPaths, zW.path), safeCStr!"/z/w"));
-	verify(zW.extension == sym!".crow");
-	Path aXZW = parseAbsoluteOrRelPathAndExtension(allPaths, aX, safeCStr!"./z/w").path;
+	Path zW = parseAbsoluteOrRelPath(allPaths, aX, safeCStr!"/z/w.crow");
+	verify(safeCStrEq(pathToSafeCStr(test.alloc, allPaths, zW), safeCStr!"/z/w.crow"));
+	verify(getExtension(allPaths, zW) == sym!".crow");
+	Path aXZW = parseAbsoluteOrRelPath(allPaths, aX, safeCStr!"./z/w");
 	verify(safeCStrEq(pathToSafeCStr(test.alloc, allPaths, aXZW), safeCStr!"a/x/z/w"));
-	verify(aXZW == parseAbsoluteOrRelPathAndExtension(allPaths, aX, safeCStr!"z/w").path);
-	verify(aY == parseAbsoluteOrRelPathAndExtension(allPaths, aX, safeCStr!"../y").path);
+	verify(aXZW == parseAbsoluteOrRelPath(allPaths, aX, safeCStr!"z/w"));
+	verify(aY == parseAbsoluteOrRelPath(allPaths, aX, safeCStr!"../y"));
 
-	verify(TEST_countPathParts(allPaths, zW.path) == 3); // initial empty part before the leading "/"
+	verify(TEST_countPathParts(allPaths, zW) == 3); // initial empty part before the leading "/"
 
 	verify(commonAncestor(allPaths, [aX, aY]) == a);
 	verify(commonAncestor(allPaths, [aX, aXZW]) == aX);

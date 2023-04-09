@@ -38,6 +38,10 @@ struct MutMaxArr(size_t maxSize, T) {
 size_t size(size_t maxSize, T)(in MutMaxArr!(maxSize, T) a) =>
 	a.size_;
 
+void clear(size_t maxSize, T)(ref MutMaxArr!(maxSize, T) a) {
+	a.size_ = 0;
+}
+
 // TODO: 'b' must be mutable if T is
 void copyToFrom(size_t maxSize, T)(ref MutMaxArr!(maxSize, T) a, ref const MutMaxArr!(maxSize, T) b) {
 	a.size_ = b.size_;

@@ -2,7 +2,7 @@ module lib.cliParser;
 
 @safe @nogc pure nothrow:
 
-import frontend.lang : crowExtension, JitOptions, OptimizationLevel;
+import frontend.lang : cExtension, crowExtension, JitOptions, OptimizationLevel;
 import lib.compiler : PrintKind;
 import util.alloc.alloc : Alloc;
 import util.col.arr : empty, only;
@@ -10,7 +10,7 @@ import util.col.arrBuilder : add, ArrBuilder, finishArr;
 import util.col.arrUtil : findIndex, foldOrStop, mapOrNone;
 import util.col.str : SafeCStr, safeCStr, safeCStrEq, strOfSafeCStr;
 import util.opt : force, has, none, Opt, some;
-import util.path : AllPaths, parseAbsoluteOrRelPathAndExtension, Path, PathAndExtension;
+import util.path : addExtension, alterExtension, AllPaths, getExtension, parseAbsoluteOrRelPath, Path;
 import util.ptr : castNonScope;
 import util.sym : AllSymbols, Sym, sym, symOfSafeCStr, symOfStr;
 import util.union_ : Union;
@@ -74,8 +74,8 @@ immutable struct CCompileOptions {
 }
 
 private immutable struct BuildOut {
-	Opt!PathAndExtension outC;
-	Opt!PathAndExtension outExecutable;
+	Opt!Path outC;
+	Opt!Path outExecutable;
 }
 
 bool hasAnyOut(in BuildOut a) =>
@@ -114,16 +114,18 @@ Command parseCommand(
 	}
 }
 
-version (Windows) {
-	Sym defaultExeExtension() => sym!".exe";
-} else {
-	Sym defaultExeExtension() => sym!"";
+Sym defaultExeExtension() {
+	version (Windows) {
+		return sym!".exe";
+	} else {
+		return sym!"";
+	}
 }
 
 private:
 
 BuildOut emptyBuildOut() =>
-	BuildOut(none!PathAndExtension, none!PathAndExtension);
+	BuildOut(none!Path, none!Path);
 
 bool isHelp(Sym a) {
 	switch (a.value) {
@@ -163,10 +165,15 @@ Command withRootPaths(
 }
 
 Opt!Path tryParseCrowPath(ref Alloc alloc, ref AllPaths allPaths, Path cwd, in SafeCStr arg) {
-	PathAndExtension path = parseAbsoluteOrRelPathAndExtension(allPaths, cwd, arg);
-	return path.extension == sym!"" || path.extension == crowExtension
-		? some(path.path)
-		: none!Path;
+	Path path = parseAbsoluteOrRelPath(allPaths, cwd, arg);
+	switch (getExtension(allPaths, path).value) {
+		case sym!"".value:
+			return some(addExtension!crowExtension(allPaths, path));
+		case crowExtension.value:
+			return some(path);
+		default:
+			return none!Path;
+	}
 }
 
 Opt!(Path[]) tryParseRootPaths(ref Alloc alloc, ref AllPaths allPaths, Path cwd, in SafeCStr[] args) {
@@ -308,7 +315,7 @@ Opt!BuildOptions parseBuildOptions(
 	foldOrStop!(BuildOptions, ArgsPart)(
 		// Default: unoptimized, compiled next to the source file
 		BuildOptions(
-			BuildOut(none!PathAndExtension, some(PathAndExtension(mainPath, defaultExeExtension))),
+			BuildOut(none!Path, some(alterExtension!defaultExeExtension(allPaths, mainPath))),
 			CCompileOptions(OptimizationLevel.none)),
 		argParts,
 		(BuildOptions cur, ref ArgsPart part) {
@@ -318,7 +325,7 @@ Opt!BuildOptions parseBuildOptions(
 					return has(buildOut) ? some(withBuildOut(cur, force(buildOut))) : none!BuildOptions;
 				case sym!"--no-out".value:
 					return empty(part.args)
-						? some(withBuildOut(cur, BuildOut(none!PathAndExtension, none!PathAndExtension)))
+						? some(withBuildOut(cur, BuildOut(none!Path, none!Path)))
 						: none!BuildOptions;
 				case sym!"--optimize".value:
 					return empty(part.args)
@@ -339,16 +346,19 @@ Opt!BuildOut parseBuildOut(
 		emptyBuildOut(),
 		args,
 		(BuildOut o, ref SafeCStr arg) {
-			PathAndExtension path = parseAbsoluteOrRelPathAndExtension(allPaths, cwd, arg);
-			return path.extension == sym!""
-				? has(o.outExecutable)
-					? none!BuildOut
-					: some(BuildOut(o.outC, some(path)))
-				: path.extension == sym!".c"
-					? has(o.outC)
+			Path path = parseAbsoluteOrRelPath(allPaths, cwd, arg);
+			switch (getExtension(allPaths, path).value) {
+				case sym!"".value:
+					return has(o.outExecutable)
 						? none!BuildOut
-						: some(BuildOut(some(path), o.outExecutable))
-				: none!BuildOut;
+						: some(BuildOut(o.outC, some(path)));
+				case cExtension.value:
+					return has(o.outC)
+						? none!BuildOut
+						: some(BuildOut(some(path), o.outExecutable));
+				default:
+					return none!BuildOut;
+			}
 		});
 
 immutable struct ArgsPart {

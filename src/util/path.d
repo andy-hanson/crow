@@ -5,14 +5,25 @@ module util.path;
 import util.alloc.alloc : Alloc, allocateT;
 import util.col.arrUtil : reduce;
 import util.col.mutArr : MutArr, mutArrRange, mutArrSize, push;
-import util.col.str : CStr, end, SafeCStr;
+import util.col.str : end, SafeCStr;
 import util.comparison : compareNat16, Comparison;
 import util.conv : safeToUshort;
 import util.hash : Hasher, hashUshort;
 import util.opt : has, force, none, Opt, some;
 import util.ptr : ptrTrustMe;
 import util.sourceRange : RangeWithinFile;
-import util.sym : AllSymbols, eachCharInSym, Sym, sym, symOfStr, symSize, writeSym;
+import util.sym :
+	addExtension,
+	alterExtension,
+	AllSymbols,
+	eachCharInSym,
+	getExtension,
+	hasExtension,
+	Sym,
+	sym,
+	symOfStr,
+	symSize,
+	writeSym;
 import util.util : todo, verify;
 import util.writer : finishWriterToSafeCStr, Writer;
 
@@ -49,6 +60,31 @@ Path parentOrEmpty(ref AllPaths allPaths, Path a) {
 	Opt!Path res = parent(allPaths, a);
 	return has(res) ? force(res) : emptyRootPath(allPaths);
 }
+
+// Removes an existing extension and adds a new one.
+Path alterExtension(Sym newExtension)(ref AllPaths allPaths, Path a) =>
+	modifyBaseName(allPaths, a, (Sym name) =>
+		.alterExtension!newExtension(allPaths.allSymbols, name));
+
+// Adds an extension after any already existing extension.
+Path addExtension(Sym extension)(ref AllPaths allPaths, Path a) =>
+	modifyBaseName(allPaths, a, (Sym name) =>
+		.addExtension!extension(allPaths.allSymbols, name));
+
+Path addExtensionIfNone(Sym extension)(ref AllPaths allPaths, Path a) =>
+	hasExtension(allPaths, a) ? a : addExtension!extension(allPaths, a);
+
+private bool hasExtension(in AllPaths allPaths, Path a) =>
+	hasExtension(allPaths.allSymbols, baseName(allPaths, a));
+
+private Path modifyBaseName(ref AllPaths allPaths, Path a, in Sym delegate(Sym) @safe @nogc pure nothrow cb) {
+	Sym newBaseName = cb(baseName(allPaths, a));
+	Opt!Path parent = parent(allPaths, a);
+	return has(parent) ? childPath(allPaths, force(parent), newBaseName) : rootPath(allPaths, newBaseName);
+}
+
+Sym getExtension(ref AllPaths allPaths, Path a) =>
+	getExtension(allPaths.allSymbols, baseName(allPaths, a));
 
 Sym baseName(in AllPaths allPaths, Path a) =>
 	allPaths.pathToBaseName[a.index];
@@ -144,7 +180,7 @@ private void walkPathBackwards(
 		walkPathBackwards(allPaths, force(par), cb);
 }
 
-private size_t pathToStrLength(in AllPaths allPaths, string prefix, size_t prefixMultiple, Path path, Sym extension) {
+private size_t pathToStrLength(in AllPaths allPaths, string prefix, size_t prefixMultiple, Path path) {
 	size_t res = 0;
 	if (prefixMultiple != 0)
 		res += prefix.length * prefixMultiple + 1;
@@ -152,28 +188,20 @@ private size_t pathToStrLength(in AllPaths allPaths, string prefix, size_t prefi
 		// 1 for '/'
 		res += (isFirstPart ? 0 : 1) + symSize(allPaths.allSymbols, part);
 	});
-	return res + symSize(allPaths.allSymbols, extension) + 1;
+	return res + 1;
 }
 
 alias TempStrForPath = char[0x1000];
 
-@trusted SafeCStr pathToTempStr(scope return ref TempStrForPath temp, in AllPaths allPaths, PathAndExtension path) =>
-	pathToTempStr(temp, allPaths, path.path, path.extension);
-
-@trusted SafeCStr pathToTempStr(
-	scope return ref TempStrForPath temp,
-	in AllPaths allPaths,
-	Path path,
-	Sym extension = sym!"",
-) {
-	size_t length = pathToStrLength(allPaths, "", 0, path, extension);
+@trusted SafeCStr pathToTempStr(scope return ref TempStrForPath temp, in AllPaths allPaths, Path path) {
+	size_t length = pathToStrLength(allPaths, "", 0, path);
 	verify(length < temp.length);
-	pathToStrWorker2(allPaths, "", 0, path, extension, temp.ptr, temp.ptr + length);
+	pathToStrWorker2(allPaths, "", 0, path, temp.ptr, temp.ptr + length);
 	return SafeCStr(cast(immutable) temp.ptr);
 }
 
-private string pathToStrWorker(ref Alloc alloc, in AllPaths allPaths, Path path, Sym extension) =>
-	pathToStrWorker(alloc, allPaths, "", 0, path, extension);
+private string pathToStrWorker(ref Alloc alloc, in AllPaths allPaths, Path path,) =>
+	pathToStrWorker(alloc, allPaths, "", 0, path);
 
 private @trusted string pathToStrWorker(
 	ref Alloc alloc,
@@ -181,11 +209,10 @@ private @trusted string pathToStrWorker(
 	in string prefix,
 	size_t prefixCount,
 	Path path,
-	Sym extension,
 ) {
-	size_t length = pathToStrLength(allPaths, prefix, prefixCount, path, extension);
+	size_t length = pathToStrLength(allPaths, prefix, prefixCount, path);
 	char* begin = allocateT!char(alloc, length);
-	pathToStrWorker2(allPaths, prefix, prefixCount, path, extension, begin, begin + length);
+	pathToStrWorker2(allPaths, prefix, prefixCount, path, begin, begin + length);
 	return cast(immutable) begin[0 .. length];
 }
 
@@ -194,20 +221,11 @@ private @system void pathToStrWorker2(
 	in string prefix,
 	size_t prefixMultiple,
 	Path path,
-	Sym extension,
 	scope char* begin,
 	scope char* end,
 ) {
 	char* cur = end - 1;
 	*cur = '\0';
-	size_t extensionSize = symSize(allPaths.allSymbols, extension);
-	cur -= extensionSize;
-	eachCharInSym(allPaths.allSymbols, extension, (char c) @trusted {
-		*cur = c;
-		cur++;
-	});
-	cur -= extensionSize;
-	verify(cur == end - 1 - extensionSize);
 	walkPathBackwards(allPaths, path, (Sym part, bool isFirstPart) @trusted {
 		cur -= symSize(allPaths.allSymbols, part);
 		char* j = cur;
@@ -240,70 +258,38 @@ SafeCStr pathOrRelPathToStr(ref Alloc alloc, in AllPaths allPaths, PathOrRelPath
 	matchPathOrRelPath(
 		a,
 		(Path global) =>
-			pathToSafeCStr(alloc, allPaths, global, sym!""),
+			pathToSafeCStr(alloc, allPaths, global),
 		(RelPath relPath) =>
 			relPathToSafeCStr(alloc, allPaths, relPath));
 
 private @trusted SafeCStr relPathToSafeCStr(ref Alloc alloc, in AllPaths allPaths, RelPath a) =>
 	SafeCStr(a.nParents == 0
-		? pathToStrWorker(alloc, allPaths, "./", 1, a.path, sym!"").ptr
-		: pathToStrWorker(alloc, allPaths, "../", a.nParents, a.path, sym!"").ptr);
+		? pathToStrWorker(alloc, allPaths, "./", 1, a.path).ptr
+		: pathToStrWorker(alloc, allPaths, "../", a.nParents, a.path).ptr);
 
-SafeCStr pathToSafeCStr(ref Alloc alloc, in AllPaths allPaths, PathAndExtension path) =>
-	pathToSafeCStr(alloc, allPaths, path.path, path.extension);
-
-@trusted SafeCStr pathToSafeCStr(ref Alloc alloc, in AllPaths allPaths, Path path, Sym extension = sym!"") =>
-	immutable SafeCStr(pathToStrWorker(alloc, allPaths, path, extension).ptr);
+@trusted SafeCStr pathToSafeCStr(ref Alloc alloc, in AllPaths allPaths, Path path) =>
+	immutable SafeCStr(pathToStrWorker(alloc, allPaths, path).ptr);
 
 public SafeCStr pathToSafeCStrPreferRelative(ref Alloc alloc, in AllPaths allPaths, ref PathsInfo pathsInfo, Path a) {
 	Writer writer = Writer(ptrTrustMe(alloc));
-	writePath(writer, allPaths, pathsInfo, a, sym!"");
+	writePath(writer, allPaths, pathsInfo, a);
 	return finishWriterToSafeCStr(writer);
 }
 
 @trusted Path parsePath(ref AllPaths allPaths, in SafeCStr str) {
-	PathAndExtension pe = parsePathAndExtension(allPaths, str);
-	verify(pe.extension == sym!"");
-	return pe.path;
-}
-
-Path parsePathDropExtension(ref AllPaths allPaths, in SafeCStr str) =>
-	parsePathAndExtension(allPaths, str).path;
-
-immutable struct PathAndExtension {
-	Path path;
-	Sym extension;
-}
-
-private @trusted PathAndExtension parsePathAndExtension(ref AllPaths allPaths, in SafeCStr str) {
 	immutable(char)* ptr = str.ptr;
 	string part = parsePathPart(allPaths, ptr);
-	if (*ptr == '\0') {
-		StrAndExtension se = removeExtension(allPaths.allSymbols, part.ptr);
-		return PathAndExtension(
-			rootPath(allPaths, symOfStr(allPaths.allSymbols, se.withoutExtension)),
-			se.extension);
-	} else
-		return parsePathAndExtensionRecur(allPaths, ptr, rootPath(allPaths, symOfStr(allPaths.allSymbols, part)));
+	return parsePathRecur(allPaths, ptr, rootPath(allPaths, symOfStr(allPaths.allSymbols, part)));
 }
-private @system PathAndExtension parsePathAndExtensionRecur(ref AllPaths allPaths, immutable(char)* ptr, Path path) {
+private @system Path parsePathRecur(ref AllPaths allPaths, immutable(char)* ptr, Path path) {
 	while (isSlash(*ptr))
 		ptr++;
 
 	if (*ptr == '\0')
-		return PathAndExtension(path, sym!"");
+		return path;
 	else {
 		string part = parsePathPart(allPaths, ptr);
-		if (*ptr == '\0') {
-			StrAndExtension se = removeExtension(allPaths.allSymbols, part.ptr);
-			return PathAndExtension(
-				childPath(allPaths, path, symOfStr(allPaths.allSymbols, se.withoutExtension)),
-				se.extension);
-		} else
-			return parsePathAndExtensionRecur(
-				allPaths,
-				ptr,
-				childPath(allPaths, path, symOfStr(allPaths.allSymbols, part)));
+		return parsePathRecur(allPaths, ptr, childPath(allPaths, path, symOfStr(allPaths.allSymbols, part)));
 	}
 }
 private @system string parsePathPart(ref AllPaths allPaths, ref immutable(char)* ptr) {
@@ -313,61 +299,30 @@ private @system string parsePathPart(ref AllPaths allPaths, ref immutable(char)*
 	return begin[0 .. (ptr - begin)];
 }
 
-private immutable struct RelPathAndExtension {
-	RelPath relPath;
-	Sym extension;
-}
+private @trusted RelPath parseRelPath(ref AllPaths allPaths, SafeCStr a) =>
+	parseRelPathRecur(allPaths, 0, a);
+private @system RelPath parseRelPathRecur(ref AllPaths allPaths, size_t nParents, SafeCStr a) =>
+	a.ptr[0] == '.' && isSlash(a.ptr[1])
+		? parseRelPathRecur(allPaths, nParents, SafeCStr(a.ptr + 2))
+		: a.ptr[0] == '.' && a.ptr[1] == '.' && isSlash(a.ptr[2])
+		? parseRelPathRecur(allPaths, nParents + 1, SafeCStr(a.ptr + 3))
+		: RelPath(safeToUshort(nParents), parsePath(allPaths, a));
 
-private @trusted RelPathAndExtension parseRelPathAndExtension(ref AllPaths allPaths, SafeCStr a) =>
-	parseRelPathAndExtensionRecur(allPaths, 0, a);
-private @system RelPathAndExtension parseRelPathAndExtensionRecur(ref AllPaths allPaths, size_t nParents, SafeCStr a) {
-	if (a.ptr[0] == '.' && isSlash(a.ptr[1]))
-		return parseRelPathAndExtensionRecur(allPaths, nParents, SafeCStr(a.ptr + 2));
-	else if (a.ptr[0] == '.' && a.ptr[1] == '.' && isSlash(a.ptr[2]))
-		return parseRelPathAndExtensionRecur(allPaths, nParents + 1, SafeCStr(a.ptr + 3));
-	else {
-		PathAndExtension pe = parsePathAndExtension(allPaths, a);
-		return RelPathAndExtension(RelPath(safeToUshort(nParents), pe.path), pe.extension);
-	}
-}
-
-Path parseAbsoluteOrRelPath(ref AllPaths allPaths, Path cwd, in SafeCStr a) {
-	PathAndExtension res = parseAbsoluteOrRelPathAndExtension(allPaths, cwd, a);
-	if (res.extension != sym!"")
-		todo!void("!");
-	return res.path;
-}
-
-@trusted PathAndExtension parseAbsoluteOrRelPathAndExtension(ref AllPaths allPaths, Path cwd, in SafeCStr a) {
+@trusted Path parseAbsoluteOrRelPath(ref AllPaths allPaths, Path cwd, in SafeCStr a) {
 	if (looksLikeAbsolutePath(a))
-		return parsePathAndExtension(allPaths, a);
+		return parsePath(allPaths, a);
 	else {
 		//TODO: handle parse error (return none if so)
-		RelPathAndExtension rp = parseRelPathAndExtension(allPaths, a);
-		Opt!Path resolved = resolvePath(allPaths, cwd, rp.relPath);
+		RelPath rp = parseRelPath(allPaths, a);
+		Opt!Path resolved = resolvePath(allPaths, cwd, rp);
 		return has(resolved)
-			? PathAndExtension(force(resolved), rp.extension)
-			: todo!PathAndExtension("relative path reaches past file system root");
+			? force(resolved)
+			: todo!Path("relative path reaches past file system root");
 	}
 }
 
 private @trusted bool looksLikeAbsolutePath(SafeCStr a) =>
 	*a.ptr == '/' || (a.ptr[0] == 'C' && a.ptr[1] == ':' && isSlash(a.ptr[2]));
-
-private immutable struct StrAndExtension {
-	string withoutExtension;
-	Sym extension; // Includes the '.' (if it exists)
-}
-
-private @system StrAndExtension removeExtension(ref AllSymbols allSymbols, CStr a) {
-	CStr end = end(a);
-	immutable(char)* ptr = end;
-	while (ptr > a && *ptr != '.')
-		ptr--;
-	return ptr == a
-		? StrAndExtension(a[0 .. (end - a)], sym!"")
-		: StrAndExtension(a[0 .. (ptr - a)], symOfStr(allSymbols, ptr[0 .. (end - ptr)]));
-}
 
 Comparison comparePath(Path a, Path b) =>
 	compareNat16(a.index, b.index);
@@ -485,24 +440,16 @@ public void writePathPlain(ref Writer writer, in AllPaths allPaths, Path p) {
 	writeSym(writer, allPaths.allSymbols, baseName(allPaths, p));
 }
 
-public void writePathPlain(ref Writer writer, in AllPaths allPaths, PathAndExtension p) {
-	writePathPlain(writer, allPaths, p.path);
-	writer ~= '.';
-	writeSym(writer, allPaths.allSymbols, p.extension);
-}
-
-public void writePath(ref Writer writer, in AllPaths allPaths, ref PathsInfo pathsInfo, Path a, Sym extension) {
+public void writePath(ref Writer writer, in AllPaths allPaths, ref PathsInfo pathsInfo, Path a) {
 	eachPartPreferRelative(allPaths, pathsInfo, a, (Sym part, bool isLast) {
 		writeSym(writer, allPaths.allSymbols, part);
 		if (!isLast)
 			writer ~= '/';
 	});
-	writeSym(writer, allPaths.allSymbols, extension);
 }
 
-public void writeRelPath(ref Writer writer, in AllPaths allPaths, RelPath p, Sym extension) {
+public void writeRelPath(ref Writer writer, in AllPaths allPaths, RelPath p) {
 	foreach (ushort i; 0 .. p.nParents)
 		writer ~= "../";
 	writePathPlain(writer, allPaths, p.path);
-	writeSym(writer, allPaths.allSymbols, extension);
 }

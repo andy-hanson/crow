@@ -6,7 +6,6 @@ import util.cell : Cell, cellGet, cellSet;
 import util.opt : force, none, Opt, some;
 import util.path : Path;
 import util.col.str : SafeCStr;
-import util.sym : Sym;
 import util.union_ : Union;
 
 immutable struct ReadOnlyStorage {
@@ -18,7 +17,6 @@ immutable struct ReadOnlyStorage {
 	) @safe @nogc nothrow withFileBinary_;
 	private void delegate(
 		Path,
-		Sym extension,
 		in void delegate(in ReadFileResult!SafeCStr) @safe @nogc pure nothrow cb,
 	) @safe @nogc nothrow withFileText_;
 }
@@ -53,16 +51,15 @@ T withFileBinary(T)(
 T withFileText(T)(
 	in ReadOnlyStorage storage,
 	Path path,
-	Sym extension,
 	in T delegate(in ReadFileResult!SafeCStr) @safe @nogc pure nothrow cb,
 ) {
 	static if (is(T == void)) {
-		storage.withFileText_(path, extension, (in ReadFileResult!SafeCStr content) {
+		storage.withFileText_(path, (in ReadFileResult!SafeCStr content) {
 			cb(content);
 		});
 	} else {
 		Cell!(Opt!T) res = Cell!(Opt!(T))(none!T);
-		storage.withFileText_(path, extension, (in ReadFileResult!SafeCStr content) {
+		storage.withFileText_(path, (in ReadFileResult!SafeCStr content) {
 			cellSet!(Opt!T)(res, some(cb(content)));
 		});
 		return force(cellGet(res));

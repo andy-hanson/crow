@@ -4,18 +4,19 @@ require("../crow-js/crow.js")
 const fs = require("fs")
 
 const main = async () => {
-	const comp = await compiler.Compiler.makeFromBytes(fs.readFileSync('bin/crow.wasm'))
+	const comp = await crow.Compiler.makeFromBytes(fs.readFileSync('bin/crow.wasm'))
 	const include = JSON.parse(fs.readFileSync("site/include-all.json", "utf-8"))
-	for (const path in include) {
-		const fullPath = `/include/${path}`
-		comp.addOrChangeFile(fullPath, include[path])
-		if (comp.getFile(fullPath) !== include[path])
-			throw new Error(`Can't read back ${fullPath}`)
+	for (const [path, content] of Object.entries(include)) {
+		const fullPath = `${crow.includeDir}/${path}`
+		comp.addOrChangeFile(fullPath, content)
+		if (comp.getFile(fullPath) !== content)
+			throw new Error(`Can't read back ${path}`)
 	}
 
-	const content = fs.readFileSync("demo/hello.crow", "utf-8")
-	comp.addOrChangeFile("hello", content)
-	const result = comp.run('hello')
+	const path = "demo/hello.crow"
+	const content = fs.readFileSync(path, "utf-8")
+	comp.addOrChangeFile(path, content)
+	const result = comp.run(path)
 	if (result.stdout !== "hello, world!\n" || result.err != 0 || result.stderr != '') {
 		console.error(result)
 		throw new Error("Bad result")

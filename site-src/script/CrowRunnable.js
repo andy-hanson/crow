@@ -50,7 +50,7 @@ export class CrowRunnable extends HTMLElement {
 
 	connectedCallback() {
 		const src = nonNull(this.getAttribute("src"))
-		Promise.all([compiler.getGlobalCompiler(), fetch(`/example/${src}.crow`).then(x => x.text())])
+		Promise.all([crow.getGlobalCompiler(), fetch(`/example/${src}.crow`).then(x => x.text())])
 			.then(([comp, initialText]) =>
 				connected(this.shadowRoot, src, this.getAttribute("no-run") !== null, comp, initialText))
 			.catch(console.error)
@@ -70,8 +70,8 @@ const connected = (shadowRoot, src, noRun, comp, initialText) => {
 		comp.getHover(MAIN, pos)
 	const crowText = CrowText.create({getHover, tokens, text})
 
-	for (const [name, content] of Object.entries(includeAll))
-		comp.addOrChangeFile(`/include/${name}`, content)
+	for (const [path, content] of Object.entries(includeAll))
+		comp.addOrChangeFile(`${crow.includeDir}/${path}`, content)
 
 	text.nowAndSubscribe(value => {
 		comp.addOrChangeFile(MAIN, value)

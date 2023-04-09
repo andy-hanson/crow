@@ -2,7 +2,6 @@ module frontend.showDiag;
 
 @safe @nogc pure nothrow:
 
-import frontend.lang : crowExtension;
 import frontend.parse.lexer : Token;
 import model.diag : Diagnostic, Diag, ExpectedForDiag, FilesInfo, TypeKind, writeFileAndRange;
 import model.model :
@@ -146,7 +145,7 @@ void writeLineNumber(
 	Path where = fi.filePaths[pos.fileIndex];
 	if (options.color)
 		writeBold(writer);
-	writePath(writer, allPaths, pathsInfo, where, crowExtension);
+	writePath(writer, allPaths, pathsInfo, where);
 	writer ~= ".crow";
 	if (options.color)
 		writeReset(writer);
@@ -165,9 +164,9 @@ void writeParseDiag(
 	d.matchIn!void(
 		(in ParseDiag.CircularImport it) {
 			writer ~= "circular import from ";
-			writePath(writer, allPaths, pathsInfo, it.from, crowExtension);
+			writePath(writer, allPaths, pathsInfo, it.from);
 			writer ~= " to ";
-			writePath(writer, allPaths, pathsInfo, it.to, crowExtension);
+			writePath(writer, allPaths, pathsInfo, it.to);
 		},
 		(in ParseDiag.Expected it) {
 			final switch (it.kind) {
@@ -249,7 +248,7 @@ void writeParseDiag(
 			writer ~= "file does not exist";
 			if (has(d.importedFrom)) {
 				writer ~= " (imported from ";
-				writePath(writer, allPaths, pathsInfo, force(d.importedFrom).path, crowExtension);
+				writePath(writer, allPaths, pathsInfo, force(d.importedFrom).path);
 				writer ~= ')';
 			}
 		},
@@ -257,7 +256,7 @@ void writeParseDiag(
 			writer ~= "unable to read file";
 			if (has(d.importedFrom)) {
 				writer ~= " (imported from ";
-				writePath(writer, allPaths, pathsInfo, force(d.importedFrom).path, crowExtension);
+				writePath(writer, allPaths, pathsInfo, force(d.importedFrom).path);
 				writer ~= ')';
 			}
 		},
@@ -328,7 +327,7 @@ void writeParseDiag(
 		},
 		(in ParseDiag.RelativeImportReachesPastRoot d) {
 			writer ~= "importing ";
-			writeRelPath(writer, allPaths, d.imported, crowExtension);
+			writeRelPath(writer, allPaths, d.imported);
 			writer ~= " reaches above the source directory";
 			//TODO: recommend a compiler option to fix this
 		},

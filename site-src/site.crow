@@ -8,7 +8,7 @@ import
 	./document: documentation
 	./pages: pages
 	./path-and-content: content, out-path, new, path-and-content
-	./search-dir-recursive: remove-include-and-crow, search-dir-recursive
+	./search-dir-recursive: search-dir-recursive
 
 main nat^(_ string[]) summon
 	run-all-tests
@@ -68,9 +68,12 @@ link record
 -include-all path-and-content[]^() summon
 	include <- "include" search-all-with-content ""
 	pairs string[symbol] = for x : include
-		x.out-path.remove-include-and-crow.to, x.content
+		x.out-path.remove-include.to, x.content
 	content = "{pairs.to::json}"
 	(("include-all.json", content),),
+
+-remove-include string(a string)
+	(a try-remove-start "include/")!
 
 -search-all-with-content path-and-content[]^(path string, remove-prefix string) summon
 	paths <- path search-dir-recursive

@@ -6,6 +6,7 @@ import util.alloc.alloc : Alloc;
 import util.col.arr : only;
 import util.col.mutArr : MutArr, mutArrSize, push;
 import util.col.mutMap : addToMutMap, getAt_mut, MutMap, mutMapSize;
+import util.col.mutMaxArr : clear, MutMaxArr, mutMaxArr, push, tempAsArr;
 import util.col.str : copyToSafeCStr, eachChar, SafeCStr, strEq, strOfSafeCStr;
 import util.hash : Hasher, hashUlong;
 import util.opt : force, has, Opt, none, some;
@@ -61,6 +62,57 @@ private Sym addLargeString(ref AllSymbols a, SafeCStr value) {
 	return res;
 }
 
+Sym addExtension(Sym extension)(ref AllSymbols allSymbols, Sym a) {
+	static if (extension == sym!"")
+		return a;
+	else {
+		return appendToLongStr!extension(allSymbols, a);
+	}
+}
+
+Sym alterExtension(Sym extension)(ref AllSymbols allSymbols, Sym a) =>
+	addExtension!extension(allSymbols, removeExtension(allSymbols, a));
+
+// TODO:PERF This could be cached (with getExtension)
+private Sym removeExtension(ref AllSymbols allSymbols, Sym a) {
+	MutMaxArr!(0x100, immutable char) res = mutMaxArr!(0x100, immutable char);
+	bool hasDot = false;
+	eachCharInSym(allSymbols, a, (char x) {
+		if (!hasDot) {
+			if (x == '.') {
+				hasDot = true;
+			} else {
+				push(res, x);
+			}
+		}
+	});
+	return symOfStr(allSymbols, tempAsArr(res));
+}
+
+// TODO:PERF This could be cached (with removeExtension)
+Sym getExtension(ref AllSymbols allSymbols, Sym a) {
+	MutMaxArr!(0x100, immutable char) res = mutMaxArr!(0x100, immutable char);
+	bool hasDot = false;
+	eachCharInSym(allSymbols, a, (char x) {
+		if (x == '.') {
+			hasDot = true;
+			clear(res);
+		}
+		if (hasDot) {
+			push(res, x);
+		}
+	});
+	return symOfStr(allSymbols, tempAsArr(res));
+}
+
+bool hasExtension(in AllSymbols allSymbols, Sym a) {
+	bool hasDot = false;
+	eachCharInSym(allSymbols, a, (char x) {
+		hasDot = hasDot || x == '.';
+	});
+	return hasDot;
+}
+
 Sym prependSet(ref AllSymbols allSymbols, Sym a) {
 	Opt!Sym short_ = tryPrefixShortSymWithSet(a);
 	return has(short_) ? force(short_) : prependToLongStr!"set-"(allSymbols, a);
@@ -71,7 +123,7 @@ Sym prependSetDeref(ref AllSymbols allSymbols, Sym a) {
 }
 
 Sym appendEquals(ref AllSymbols allSymbols, Sym a) =>
-	appendToLongStr!"="(allSymbols, a);
+	appendToLongStr!(sym!"=")(allSymbols, a);
 
 private @trusted Sym prependToLongStr(string prepend)(ref AllSymbols allSymbols, Sym a) {
 	char[0x100] temp = void;
@@ -85,17 +137,16 @@ private @trusted Sym prependToLongStr(string prepend)(ref AllSymbols allSymbols,
 	return getSymFromLongStr(allSymbols, cast(immutable) temp[0 .. i]);
 }
 
-private @trusted Sym appendToLongStr(string append)(ref AllSymbols allSymbols, Sym a) {
+private @trusted Sym appendToLongStr(Sym append)(ref AllSymbols allSymbols, Sym a) {
 	char[0x100] temp = void;
 	size_t i = 0;
-	eachCharInSym(allSymbols, a, (char x) {
-		temp[i] = x;
-		i++;
-		verify(i <= temp.length);
-	});
-	verify(i + append.length <= temp.length);
-	temp[i .. i + append.length] = append;
-	return getSymFromLongStr(allSymbols, cast(immutable) temp[0 .. i + append.length]);
+	foreach (Sym sym; [a, append])
+		eachCharInSym(allSymbols, sym, (char x) {
+			temp[i] = x;
+			i++;
+			verify(i <= temp.length);
+		});
+	return getSymFromLongStr(allSymbols, cast(immutable) temp[0 .. i]);
 }
 
 Sym concatSymsWithDot(ref AllSymbols allSymbols, Sym a, Sym b) =>
@@ -326,6 +377,7 @@ immutable string[] specialSyms = [
 	"||\0",
 	"&&\0",
 	"??\0",
+	"=\0",
 	"==\0",
 	"!=\0",
 	"<\0",
@@ -367,6 +419,7 @@ immutable string[] specialSyms = [
 	"clock_gettime\0",
 	"concrete-model\0",
 	"const-pointer\0",
+	"crow-config.json\0",
 	"cur-exclusion\0",
 	"exception-low-level\0",
 	"extern-pointer\0",

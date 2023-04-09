@@ -2,9 +2,6 @@ import
 	crow/io/file: is-dir, names-in-dir
 	crow/io/path: child-path
 
-remove-include-and-crow string(a string)
-	((a try-remove-start "include/")! try-remove-end ".crow")!
-
 search-dir-recursive string[]^(path string) summon
 	path search-dir-recursive _ => true
 

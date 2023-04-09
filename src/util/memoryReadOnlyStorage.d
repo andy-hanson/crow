@@ -2,13 +2,11 @@ module util.memoryReadOnlyStorage;
 
 @safe @nogc nothrow: // not pure
 
-import frontend.lang : crowExtension;
 import util.col.mutMap : getAt_mut, MutMap;
 import util.col.str : SafeCStr;
-import util.opt : force, has, none, Opt;
+import util.opt : force, has, Opt;
 import util.path : Path;
 import util.readOnlyStorage : ReadFileResult, ReadOnlyStorage;
-import util.sym : Sym;
 
 T withMemoryReadOnlyStorage(T)(
 	Path includeDir,
@@ -24,12 +22,9 @@ T withMemoryReadOnlyStorage(T)(
 			cb(ReadFileResult!(ubyte[])(ReadFileResult!(ubyte[]).NotFound())),
 		(
 			Path path,
-			Sym extension,
 			in void delegate(in ReadFileResult!SafeCStr) @safe @nogc pure nothrow cb,
 		) {
-			Opt!SafeCStr res = extension == crowExtension
-				? getAt_mut(files, path)
-				: none!SafeCStr;
+			Opt!SafeCStr res = getAt_mut(files, path);
 			return cb(has(res)
 				? ReadFileResult!SafeCStr(force(res))
 				: ReadFileResult!SafeCStr(ReadFileResult!SafeCStr.NotFound()));

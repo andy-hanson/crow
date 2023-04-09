@@ -48,23 +48,19 @@ Config getConfigRecur(
 	scope ref DiagnosticsBuilder diagsBuilder,
 	Path searchPath,
 ) {
-	Path configPath = childPath(allPaths, searchPath, sym!"crow-config");
+	Path configPath = childPath(allPaths, searchPath, sym!"crow-config.json");
 	ArrBuilder!DiagnosticWithinFile diags;
-	Opt!Config res = withFileText!(Opt!Config)(
-		storage,
-		configPath,
-		sym!".json",
-		(in ReadFileResult!SafeCStr a) =>
-			a.matchIn!(Opt!Config)(
-				(in SafeCStr content) @safe =>
-					some(parseConfig(alloc, allSymbols, allPaths, searchPath, diags, content)),
-				(in ReadFileResult!SafeCStr.NotFound) =>
-					none!Config,
-				(in ReadFileResult!SafeCStr.Error) {
-					add(alloc, diags, DiagnosticWithinFile(RangeWithinFile.empty, Diag(
-						ParseDiag(ParseDiag.FileReadError(none!PathAndRange)))));
-					return some(emptyConfig);
-				}));
+	Opt!Config res = withFileText!(Opt!Config)(storage, configPath, (in ReadFileResult!SafeCStr a) =>
+		a.matchIn!(Opt!Config)(
+			(in SafeCStr content) =>
+				some(parseConfig(alloc, allSymbols, allPaths, searchPath, diags, content)),
+			(in ReadFileResult!SafeCStr.NotFound) =>
+				none!Config,
+			(in ReadFileResult!SafeCStr.Error) {
+				add(alloc, diags, DiagnosticWithinFile(RangeWithinFile.empty, Diag(
+					ParseDiag(ParseDiag.FileReadError(none!PathAndRange)))));
+				return some(emptyConfig);
+			}));
 	foreach (ref DiagnosticWithinFile d; finishArr(alloc, diags))
 		todo!void("!");
 	if (has(res))
