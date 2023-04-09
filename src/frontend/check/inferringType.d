@@ -101,6 +101,7 @@ struct ExprCtx {
 	immutable StructsAndAliasesMap structsAndAliasesMap;
 	immutable FunsMap funsMap;
 	immutable CommonTypes commonTypes;
+	immutable Sym outermostFunName;
 	immutable SpecInst*[] outermostFunSpecs;
 	immutable Destructure[] outermostFunParams;
 	immutable TypeParam[] outermostFunTypeParams;
@@ -167,6 +168,9 @@ ProgramState* programStatePtr(ref ExprCtx ctx) =>
 	ctx.checkCtx.programStatePtr;
 
 void addDiag2(ref ExprCtx ctx, FileAndRange range, Diag diag) {
+	addDiag(ctx.checkCtx, range, diag);
+}
+void addDiag2(ref ExprCtx ctx, RangeWithinFile range, Diag diag) {
 	addDiag(ctx.checkCtx, range, diag);
 }
 

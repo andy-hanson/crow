@@ -378,7 +378,6 @@ void addExprTokens(ref Alloc alloc, ref TokensBuilder tokens, ref AllSymbols all
 				case CallAst.style.emptyParens:
 					break;
 				case CallAst.style.prefixOperator:
-				case CallAst.Style.prefix:
 				case CallAst.Style.single:
 					addName();
 					addExprsTokens(alloc, tokens, allSymbols, it.args);

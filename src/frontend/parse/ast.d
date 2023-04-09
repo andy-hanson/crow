@@ -218,7 +218,6 @@ immutable struct CallAst {
 		dot, // `a.b`
 		emptyParens, // `()`
 		infix, // `a b`, `a b c`, `a b c, d`, etc.
-		prefix, // `a: b`, `a: b, c`, etc.
 		prefixBang,
 		prefixOperator, // `-x`, `x`, `~x`
 		single, // `a<t>` (without the type arg, it would just be an Identifier)
@@ -1168,8 +1167,6 @@ Sym symOfCallAstStyle(CallAst.Style a) {
 			return sym!"empty-parens";
 		case CallAst.Style.infix:
 			return sym!"infix";
-		case CallAst.Style.prefix:
-			return sym!"prefix";
 		case CallAst.Style.prefixBang:
 			return sym!"prefix-bang";
 		case CallAst.Style.prefixOperator:

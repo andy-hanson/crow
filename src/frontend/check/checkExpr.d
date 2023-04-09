@@ -141,6 +141,7 @@ Expr checkFunctionBody(
 	in CommonTypes commonTypes,
 	in FunsMap funsMap,
 	Type returnType,
+	Sym funName,
 	TypeParam[] typeParams,
 	Destructure[] params,
 	in immutable SpecInst*[] specs,
@@ -152,6 +153,7 @@ Expr checkFunctionBody(
 		structsAndAliasesMap,
 		funsMap,
 		commonTypes,
+		funName,
 		specs,
 		params,
 		typeParams,
@@ -422,7 +424,7 @@ Expr checkUnless(
 }
 
 Expr checkEmptyNew(ref ExprCtx ctx, in FileAndRange range, ref Expected expected) =>
-	checkCallIdentifier(ctx, range, sym!"new", expected);
+	checkCallSpecialNoLocals(ctx, range, sym!"new", [], expected);
 
 Expr checkIfOption(
 	ref ExprCtx ctx,
@@ -1248,7 +1250,7 @@ Expr checkLoopContinue(ref ExprCtx ctx, FileAndRange range, ref Expected expecte
 	MutOpt!(LoopInfo*) optLoop = tryGetLoop(expected);
 	return has(optLoop)
 		? Expr(range, ExprKind(ExprKind.LoopContinue(force(optLoop).loop)))
-		: checkCallIdentifier(ctx, range, sym!"loop-continue", expected);
+		: checkCallSpecialNoLocals(ctx, range, sym!"loop-continue", [], expected);
 }
 
 Expr checkLoopUntil(

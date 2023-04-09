@@ -15,6 +15,8 @@ DiagSeverity getDiagnosticSeverity(in Diag a) =>
 			DiagSeverity.checkError,
 		(in Diag.CallNoMatch) =>
 			DiagSeverity.checkError,
+		(in Diag.CallShouldUseSyntax) =>
+			DiagSeverity.checkWarning,
 		(in Diag.CantCall) =>
 			DiagSeverity.checkError,
 		(in Diag.CharLiteralMustBeOneChar) =>

@@ -231,7 +231,7 @@ for-loop[in-col, in-iter, in-elem] void^(
 	a in-col sequential-collection,
 	f far void(in-elem),
 ) (in-iter, in-col) begin, (in-elem, in-iter) next, in-elem shared
-	a for-break x =>
+	for x : a
 		<- f[x]
 		continue
 

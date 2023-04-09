@@ -660,6 +660,35 @@ void writeDiag(
 		(in Diag.CallNoMatch d) {
 			writeCallNoMatch(writer, allSymbols, allPaths, pathsInfo, options, program, d);
 		},
+		(in Diag.CallShouldUseSyntax x) {
+			writer ~= () {
+				final switch (x.kind) {
+					case Diag.CallShouldUseSyntax.Kind.for_break:
+						return "prefer to write a 'for' loop instead of calling 'for-break'";
+					case Diag.CallShouldUseSyntax.Kind.force:
+						return "prefer to write 'x!' instead of 'x.force'";
+					case Diag.CallShouldUseSyntax.Kind.for_loop:
+						return "prefer to write a 'for' loop instead of calling 'for-loop'";
+					case Diag.CallShouldUseSyntax.Kind.new_:
+						switch (x.arity) {
+							case 0:
+								return "prefer to write '()' instead of 'new'";
+							case 1:
+								return "prefer to write '(x,)' instead of 'x.new'";
+							default:
+								return "prefer to write 'x, y' instead of 'x new y'";
+						}
+					case Diag.CallShouldUseSyntax.Kind.not:
+						return "prefer to write '!x' instead of 'x.not'";
+					case Diag.CallShouldUseSyntax.Kind.set_subscript:
+						return "prefer to write 'x[i] := y' instead of 'x set-subscript i, y'";
+					case Diag.CallShouldUseSyntax.Kind.subscript:
+						return "prefer to write 'x[i]' instead of 'x subscript i'";
+					case Diag.CallShouldUseSyntax.Kind.with_block:
+						return "prefer to write a 'with' block instead of calling 'with-block'";
+				}
+			}();
+		},
 		(in Diag.CantCall x) {
 			writer ~= () {
 				final switch (x.reason) {

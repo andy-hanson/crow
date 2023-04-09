@@ -100,6 +100,21 @@ immutable struct Diag {
 		CalledDecl[] allCandidates;
 	}
 
+	immutable struct CallShouldUseSyntax {
+		enum Kind {
+			for_break,
+			force,
+			for_loop,
+			new_,
+			not,
+			set_subscript,
+			subscript,
+			with_block,
+		}
+		size_t arity;
+		Kind kind;
+	}
+
 	immutable struct CantCall {
 		enum Reason {
 			nonBare,
@@ -389,6 +404,7 @@ immutable struct Diag {
 		BuiltinUnsupported,
 		CallMultipleMatches,
 		CallNoMatch,
+		CallShouldUseSyntax,
 		CantCall,
 		CharLiteralMustBeOneChar,
 		CommonFunDuplicate,

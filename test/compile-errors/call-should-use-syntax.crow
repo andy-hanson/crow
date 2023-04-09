@@ -1,0 +1,16 @@
+import
+	crow/io/print: out, print
+
+main nat^(_ string[]) summon
+	xs string mut[] = "hello", "world"
+	_ nat? = xs for-break x => break 0
+	_ = ()::string? force
+	_ char8[] = xs for-loop x => x[0]
+	_ string[] = new
+	_ string[] = "hello" new
+	_ string[] = "hello" new "world"
+	_ = xs.is-empty not
+	xs set-subscript 0, "goodbye"
+	_ = xs subscript 0
+	(() => ()).finally with-block () => ()
+	()

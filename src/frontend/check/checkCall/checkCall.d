@@ -68,11 +68,20 @@ import util.col.mutMaxArr :
 import util.opt : force, has, none, noneMut, Opt, some, some;
 import util.perf : endMeasure, PerfMeasure, PerfMeasurer, pauseMeasure, resumeMeasure, startMeasure;
 import util.ptr : castNonScope_ref, ptrTrustMe;
-import util.sourceRange : FileAndRange;
-import util.sym : Sym;
+import util.sourceRange : FileAndRange, RangeWithinFile;
+import util.sym : Sym, sym;
 
-Expr checkCall(ref ExprCtx ctx, ref LocalsInfo locals, FileAndRange range, in CallAst ast, ref Expected expected) =>
-	checkCallCommon(
+Expr checkCall(ref ExprCtx ctx, ref LocalsInfo locals, FileAndRange range, in CallAst ast, ref Expected expected) {
+	switch (ast.style) {
+		case CallAst.Style.dot:
+		case CallAst.Style.infix:
+			checkCallShouldUseSyntax(
+				ctx, rangeOfNameAndRange(ast.funName, ctx.allSymbols), ast.funNameName, ast.args.length);
+			break;
+		default:
+			break;
+	}
+	return checkCallCommon(
 		ctx, locals, range,
 		// Show diags at the function name and not at the whole call ast
 		FileAndRange(range.fileIndex, rangeOfNameAndRange(ast.funName, ctx.allSymbols)),
@@ -80,6 +89,7 @@ Expr checkCall(ref ExprCtx ctx, ref LocalsInfo locals, FileAndRange range, in Ca
 		has(ast.typeArg) ? some(typeFromAst2(ctx, *force(ast.typeArg))) : none!Type,
 		ast.args,
 		expected);
+}
 
 Expr checkCallSpecial(size_t n)(
 	ref ExprCtx ctx,
@@ -133,7 +143,19 @@ private Expr checkCallCommon(
 	return res;
 }
 
-private Expr checkCallInner(
+Expr checkCallIdentifier(
+	ref ExprCtx ctx,
+	FileAndRange range,
+	Sym name,
+	ref Expected expected,
+) {
+	checkCallShouldUseSyntax(ctx, range.range, name, 0);
+	return checkCallSpecialNoLocals(ctx, range, name, [], expected);
+}
+
+private:
+
+Expr checkCallInner(
 	ref ExprCtx ctx,
 	ref LocalsInfo locals,
 	FileAndRange range,
@@ -211,15 +233,36 @@ private Expr checkCallInner(
 		return checkCallAfterChoosingOverload(ctx, isInLambda(locals), only(candidates), range, force(args), expected);
 }
 
-Expr checkCallIdentifier(
-	ref ExprCtx ctx,
-	FileAndRange range,
-	Sym name,
-	ref Expected expected,
-) =>
-	checkCallSpecialNoLocals(ctx, range, name, [], expected);
+void checkCallShouldUseSyntax(ref ExprCtx ctx, RangeWithinFile range, Sym funName, size_t arity) {
+	Opt!(Diag.CallShouldUseSyntax.Kind) kind = shouldUseSyntaxKind(funName, ctx.outermostFunName);
+	if (has(kind))
+		addDiag2(ctx, range, Diag(Diag.CallShouldUseSyntax(arity, force(kind))));
+}
 
-private:
+Opt!(Diag.CallShouldUseSyntax.Kind) shouldUseSyntaxKind(Sym calledFunName, Sym outermostFunName) {
+	switch (calledFunName.value) {
+		case sym!"for-break".value:
+			return outermostFunName == sym!"for-break"
+				? none!(Diag.CallShouldUseSyntax.Kind)
+				: some(Diag.CallShouldUseSyntax.Kind.for_break);
+		case sym!"force".value:
+			return some(Diag.CallShouldUseSyntax.Kind.force);
+		case sym!"for_loop".value:
+			return some(Diag.CallShouldUseSyntax.Kind.for_loop);
+		case sym!"new".value:
+			return some(Diag.CallShouldUseSyntax.Kind.new_);
+		case sym!"not".value:
+			return some(Diag.CallShouldUseSyntax.Kind.not);
+		case sym!"set-subscript".value:
+			return some(Diag.CallShouldUseSyntax.Kind.set_subscript);
+		case sym!"subscript".value:
+			return some(Diag.CallShouldUseSyntax.Kind.subscript);
+		case sym!"with-block".value:
+			return some(Diag.CallShouldUseSyntax.Kind.with_block);
+		default:
+			return none!(Diag.CallShouldUseSyntax.Kind);
+	}
+}
 
 void filterCandidatesByExplicitTypeArg(ref ExprCtx ctx, scope ref Candidates candidates, in Type typeArg) {
 	filterCandidates(candidates, (ref Candidate candidate) {
