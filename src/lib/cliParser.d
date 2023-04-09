@@ -114,6 +114,8 @@ Command parseCommand(
 	}
 }
 
+private:
+
 Sym defaultExeExtension() {
 	version (Windows) {
 		return sym!".exe";
@@ -121,8 +123,6 @@ Sym defaultExeExtension() {
 		return sym!"";
 	}
 }
-
-private:
 
 BuildOut emptyBuildOut() =>
 	BuildOut(none!Path, none!Path);

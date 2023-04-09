@@ -6,13 +6,13 @@ import util.alloc.alloc : Alloc;
 import util.col.arr : only;
 import util.col.mutArr : MutArr, mutArrSize, push;
 import util.col.mutMap : addToMutMap, getAt_mut, MutMap, mutMapSize;
-import util.col.mutMaxArr : clear, MutMaxArr, mutMaxArr, push, tempAsArr;
+import util.col.mutMaxArr : clear, MutMaxArr, mutMaxArr, push, pushAll, tempAsArr;
 import util.col.str : copyToSafeCStr, eachChar, SafeCStr, strEq, strOfSafeCStr;
 import util.hash : Hasher, hashUlong;
 import util.opt : force, has, Opt, none, some;
 import util.ptr : ptrTrustMe;
 import util.util : drop, verify;
-import util.writer : finishWriterToSafeCStr, Writer;
+import util.writer : digitChar, finishWriterToSafeCStr, Writer;
 
 immutable struct Sym {
 	@safe @nogc pure nothrow:
@@ -62,6 +62,17 @@ private Sym addLargeString(ref AllSymbols a, SafeCStr value) {
 	return res;
 }
 
+Sym appendHexExtension(ref AllSymbols allSymbols, Sym a, in ubyte[] bytes) {
+	MutMaxArr!(0x100, immutable char) res = mutMaxArr!(0x100, immutable char);
+	eachCharInSym(allSymbols, a, (char x) {
+		push(res, x);
+	});
+	push(res, '.');
+	foreach (ubyte x; bytes)
+		pushAll!(0x100, immutable char)(res, [digitChar(x / 16), digitChar(x % 16)]);
+	return symOfStr(allSymbols, tempAsArr(res));
+}
+
 Sym addExtension(Sym extension)(ref AllSymbols allSymbols, Sym a) {
 	static if (extension == sym!"")
 		return a;
@@ -74,7 +85,7 @@ Sym alterExtension(Sym extension)(ref AllSymbols allSymbols, Sym a) =>
 	addExtension!extension(allSymbols, removeExtension(allSymbols, a));
 
 // TODO:PERF This could be cached (with getExtension)
-private Sym removeExtension(ref AllSymbols allSymbols, Sym a) {
+Sym removeExtension(ref AllSymbols allSymbols, Sym a) {
 	MutMaxArr!(0x100, immutable char) res = mutMaxArr!(0x100, immutable char);
 	bool hasDot = false;
 	eachCharInSym(allSymbols, a, (char x) {

@@ -39,10 +39,6 @@ immutable struct SafeCStr {
 	return ptr;
 }
 
-@trusted string strOfCStr(return scope CStr c) {
-	return c[0 .. (end(c) - c)];
-}
-
 @trusted SafeCStr copyToSafeCStr(ref Alloc alloc, in char[] s) {
 	if (empty(s))
 		return safeCStr!"";
@@ -72,8 +68,8 @@ bool strEq(string a, string b) =>
 bool safeCStrIsEmpty(SafeCStr a) =>
 	*a.ptr == '\0';
 
-string strOfSafeCStr(return scope SafeCStr a) =>
-	strOfCStr(a.ptr);
+@trusted string strOfSafeCStr(return scope SafeCStr a) =>
+	a.ptr[0 .. (end(a.ptr) - a.ptr)];
 
 string copyStr(ref Alloc alloc, in string a) =>
 	map!(char, immutable char)(alloc, a, (ref immutable char x) => x);

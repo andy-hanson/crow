@@ -98,7 +98,7 @@ private void writeNat(scope ref Writer writer, ulong n, ulong base = 10) {
 	writer ~= digitChar(n % base);
 }
 
-private char digitChar(ulong digit) {
+char digitChar(ulong digit) {
 	verify(digit < 16);
 	return digit < 10 ? cast(char) ('0' + digit) : cast(char) ('a' + (digit - 10));
 }

@@ -12,48 +12,35 @@ import core.stdc.string : strerror;
 version (Windows) {
 	import core.sys.windows.core :
 		CloseHandle,
-		CreateDirectoryA,
 		CreatePipe,
 		CreateProcessA,
 		DeleteFileA,
 		DWORD,
 		ERROR_BROKEN_PIPE,
-		ERROR_NO_MORE_FILES,
-		FILE_ATTRIBUTE_DIRECTORY,
-		FindClose,
-		FindFirstFileA,
-		FindNextFileA,
 		FormatMessageA,
 		FORMAT_MESSAGE_FROM_SYSTEM,
 		FORMAT_MESSAGE_IGNORE_INSERTS,
 		GetExitCodeProcess,
-		GetFileAttributesA,
 		GetLastError,
 		GetModuleFileNameA,
 		GetModuleHandle,
 		GetTickCount,
-		ERROR_PATH_NOT_FOUND,
 		HANDLE,
 		HANDLE_FLAG_INHERIT,
 		HMODULE,
 		INFINITE,
-		INVALID_FILE_ATTRIBUTES,
-		INVALID_HANDLE_VALUE,
 		PROCESS_INFORMATION,
 		ReadFile,
-		RemoveDirectoryA,
 		SearchPathA,
 		SECURITY_ATTRIBUTES,
 		SetHandleInformation,
 		STARTF_USESTDHANDLES,
 		STARTUPINFOA,
-		WaitForSingleObject,
-		WIN32_FIND_DATAA;
+		WaitForSingleObject;
 } else {
 	import core.sys.posix.spawn : posix_spawn;
 	import core.sys.posix.sys.wait : waitpid;
-	import core.sys.posix.dirent : DIR, dirent, opendir, readdir;
-	import core.sys.posix.sys.stat : mkdir, pid_t, S_IFDIR, S_IFMT, S_IRWXU, stat, stat_t;
+	import core.sys.posix.sys.stat : mkdir, pid_t, S_IRWXU;
 	import core.sys.posix.time : clock_gettime, CLOCK_MONOTONIC, timespec;
 	import core.sys.posix.unistd : getcwd, read, readlink, unlink;
 }
@@ -63,7 +50,7 @@ version (Windows) { } else {
 import frontend.lang : cExtension, JitOptions, OptimizationLevel;
 import frontend.showDiag : ShowDiagOptions, strOfDiagnostics;
 import interpret.extern_ : Extern;
-import lib.cliParser : BuildOptions, CCompileOptions, Command, defaultExeExtension, hasAnyOut, parseCommand, RunOptions;
+import lib.cliParser : BuildOptions, CCompileOptions, Command, hasAnyOut, parseCommand, RunOptions;
 import lib.compiler :
 	buildAndInterpret,
 	buildToC,
@@ -84,13 +71,12 @@ version(Test) {
 import util.alloc.alloc : Alloc, TempAlloc;
 import util.col.arrBuilder : add, addAll, ArrBuilder, finishArr;
 import util.col.arrUtil : prepend;
-import util.col.str : CStr, SafeCStr, safeCStr, safeCStrIsEmpty, safeCStrSize, strEq, strOfCStr;
+import util.col.str : CStr, SafeCStr, safeCStr, safeCStrIsEmpty, safeCStrSize;
 import util.memory : memset;
 import util.opt : force, has, none, Opt, some;
 import util.path :
 	AllPaths,
-	alterExtension,
-	baseName,
+	alterExtensionWithHex,
 	childPath,
 	Path,
 	parent,
@@ -104,7 +90,7 @@ import util.path :
 import util.perf : eachMeasure, Perf, perfEnabled, PerfMeasure, PerfMeasureResult, withMeasure;
 import util.ptr : ptrTrustMe;
 import util.readOnlyStorage : ReadFileResult, ReadOnlyStorage;
-import util.sym : alterExtension, AllSymbols, concatSyms, safeCStrOfSym, Sym, sym, symOfStr, writeSym;
+import util.sym : AllSymbols, concatSyms, safeCStrOfSym, Sym, sym, writeSym;
 import util.util : todo, verify;
 import util.writer : finishWriterToSafeCStr, Writer;
 import versionInfo : versionInfoForJIT;
@@ -160,11 +146,6 @@ static assert(divRound(14, 10) == 1);
 ExitCode go(ref Alloc alloc, ref Perf perf, ref AllSymbols allSymbols, ref AllPaths allPaths, in SafeCStr[] args) {
 	Path crowDir = getCrowDir(allPaths);
 	Path includeDir = childPath(allPaths, crowDir, sym!"include");
-	Path tempDir = childPath(allPaths, crowDir, sym!"temp");
-	ExitCode setupTempExitCode = setupTempDir(allSymbols, allPaths, tempDir);
-	if (setupTempExitCode != ExitCode.ok)
-		return printErr(safeCStr!"Failed to set up temporary directory\n");
-
 	Path cwd = getCwd(allPaths);
 	PathsInfo pathsInfo = PathsInfo(some(cwd));
 	Command command = parseCommand(alloc, allSymbols, allPaths, cwd, args);
@@ -172,7 +153,7 @@ ExitCode go(ref Alloc alloc, ref Perf perf, ref AllSymbols allSymbols, ref AllPa
 
 	return command.matchImpure!ExitCode(
 		(in Command.Build it) =>
-			runBuild(alloc, perf, allSymbols, allPaths, pathsInfo, includeDir, tempDir, it.mainPath, it.options),
+			runBuild(alloc, perf, allSymbols, allPaths, pathsInfo, includeDir, it.mainPath, it.options),
 		(in Command.Document it) =>
 			runDocument(alloc, perf, allSymbols, allPaths, pathsInfo, includeDir, it.rootPaths),
 		(in Command.Help it) =>
@@ -250,126 +231,6 @@ SafeCStr[] getAllArgs(
 ) =>
 	prepend(alloc, pathToSafeCStr(alloc, allPaths, main), programArgs);
 
-@trusted ExitCode setupTempDir(ref AllSymbols allSymbols, ref AllPaths allPaths, Path tempDir) {
-	TempStrForPath dirPathBuf = void;
-	CStr dirPath = pathToTempStr(dirPathBuf, allPaths, tempDir).ptr;
-	version (Windows) {
-		if (GetFileAttributesA(dirPath) == INVALID_FILE_ATTRIBUTES) {
-			int ok = CreateDirectoryA(dirPath, null);
-			if (!ok) {
-				fprintf(stderr, "error creating directory %s\n", dirPath);
-				return ExitCode.error;
-			}
-		} else {
-			ExitCode err = clearDir(allSymbols, allPaths, tempDir);
-			if (err != ExitCode.ok)
-				return err;
-		}
-	} else {
-		DIR* dir = opendir(dirPath);
-		if (dir == null) {
-			if (errno == ENOENT) {
-				int err = mkdir(dirPath, S_IRWXU);
-				if (err != 0) {
-					fprintf(stderr, "error creating directory %s\n", dirPath);
-					return ExitCode.error;
-				}
-			} else {
-				fprintf(stderr, "error opening directory %s: error code %d\n", dirPath, errno);
-				return ExitCode.error;
-			}
-		} else {
-			ExitCode err = clearDirRecur(allSymbols, allPaths, tempDir, dir);
-			if (err != ExitCode.ok)
-				return err;
-		}
-	}
-	return ExitCode.ok;
-}
-
-version (Windows) {
-	@system ExitCode clearDir(ref AllSymbols allSymbols, ref AllPaths allPaths, Path dirPath) {
-		TempStrForPath searchPathBuf = void;
-		CStr searchPath = pathToTempStr(searchPathBuf, allPaths, childPath(allPaths, dirPath, sym!"*")).ptr;
-		WIN32_FIND_DATAA fileData;
-		HANDLE fileHandle = FindFirstFileA(searchPath, &fileData);
-		if (fileHandle == INVALID_HANDLE_VALUE) {
-			DWORD error = GetLastError();
-			if (error != ERROR_PATH_NOT_FOUND) {
-				printLastError(error, "clearing temp directory");
-				return ExitCode.error;
-			}
-			return ExitCode.ok;
-		} else {
-			ExitCode err = clearDirRecur(allSymbols, allPaths, dirPath, fileHandle);
-			int closeOk = FindClose(fileHandle);
-			verify(cast(bool) closeOk);
-			return err;
-		}
-	}
-
-	@system ExitCode clearDirRecur(ref AllSymbols allSymbols, ref AllPaths allPaths, Path dirPath, HANDLE fileHandle) {
-		WIN32_FIND_DATAA fileData;
-		if (FindNextFileA(fileHandle, &fileData)) {
-			string name = strOfCStr(cast(immutable) fileData.cFileName.ptr);
-			if (!strEq(name, "..")) {
-				Path child = childPath(allPaths, dirPath, symOfStr(allSymbols, name));
-				TempStrForPath childBuf = void;
-				CStr childCStr = pathToTempStr(childBuf, allPaths, child).ptr;
-				if (fileData.dwFileAttributes & FILE_ATTRIBUTE_DIRECTORY) {
-					ExitCode clearErr = clearDir(allSymbols, allPaths, child);
-					if (clearErr != ExitCode.ok)
-						return clearErr;
-					if (!RemoveDirectoryA(childCStr)) {
-						fprintf(stderr, "Error deleting directory %s\n", childCStr);
-						return ExitCode.error;
-					}
-				} else {
-					if (!DeleteFileA(childCStr)) {
-						fprintf(stderr, "Error deleting file %s\n", childCStr);
-						return ExitCode.error;
-					}
-				}
-			}
-			return clearDirRecur(allSymbols, allPaths, dirPath, fileHandle);
-		} else {
-			verify(GetLastError() == ERROR_NO_MORE_FILES);
-			return ExitCode.ok;
-		}
-	}
-} else {
-	@system ExitCode clearDirRecur(ref AllSymbols allSymbols, ref AllPaths allPaths, Path dirPath, DIR* dir) {
-		immutable dirent* entry = cast(immutable) readdir(dir);
-		if (entry == null)
-			return ExitCode.ok;
-		string entryName = strOfCStr(entry.d_name.ptr);
-		if (!strEq(entryName, ".") && !strEq(entryName, "..")) {
-			Path child = childPath(allPaths, dirPath, symOfStr(allSymbols, entryName));
-			stat_t s;
-			TempStrForPath buf = void;
-			CStr childCStr = pathToTempStr(buf, allPaths, child).ptr;
-			stat(childCStr, &s);
-			if ((s.st_mode & S_IFMT) == S_IFDIR) {
-				DIR* innerDir = opendir(childCStr);
-				if (innerDir == null) {
-					fprintf(stderr, "error opening directory %s (to delete contents)\n", childCStr);
-					return ExitCode.error;
-				}
-				ExitCode err = clearDirRecur(allSymbols, allPaths, child, innerDir);
-				if (err != ExitCode.ok)
-					return err;
-			} else {
-				int err = unlink(childCStr);
-				if (err != 0) {
-					fprintf(stderr, "error removing %s\n", childCStr);
-					return ExitCode.error;
-				}
-			}
-		}
-		return clearDirRecur(allSymbols, allPaths, dirPath, dir);
-	}
-}
-
 @system ExitCode mkdirRecur(in AllPaths allPaths, Path dir) {
 	version (Windows) {
 		return todo!ExitCode("!");
@@ -396,6 +257,22 @@ version (Windows) {
 		if (err != 0)
 			fprintf(stderr, "Error making directory %s: %s\n", dir, strerror(errno));
 		return ExitCode(err);
+	}
+}
+
+@trusted void removeFile(in AllPaths allPaths, Path path) {
+	TempStrForPath buf = void;
+	CStr cStr = pathToTempStr(buf, allPaths, path).ptr;
+	version (Windows) {
+		bool res = DeleteFileA(cStr);
+		if (!res) todo!void("error removing file");
+	} else {
+		final switch (unlink(cStr)) {
+			case 0:
+				break;
+			case -1:
+				todo!void("error removing file");
+		}
 	}
 }
 
@@ -431,11 +308,6 @@ ExitCode runDocument(
 		return safeCStrIsEmpty(result.diagnostics) ? println(result.document) : printErr(result.diagnostics);
 	});
 
-immutable struct RunBuildResult {
-	ExitCode err;
-	Opt!Path exePath;
-}
-
 ExitCode runBuild(
 	ref Alloc alloc,
 	ref Perf perf,
@@ -443,56 +315,17 @@ ExitCode runBuild(
 	ref AllPaths allPaths,
 	in PathsInfo pathsInfo,
 	Path includeDir,
-	Path tempDir,
 	Path mainPath,
 	in BuildOptions options,
 ) =>
 	hasAnyOut(options.out_)
-		? runBuildInner(
-			alloc, perf, allSymbols, allPaths, pathsInfo, includeDir, tempDir,
-			mainPath, options, ExeKind.allowNoExe).err
+		? buildToCAndCompile(
+			alloc, perf, allSymbols, allPaths, pathsInfo, showDiagOptions, includeDir, mainPath, options)
 		: withReadOnlyStorage!ExitCode(allPaths, includeDir, (in ReadOnlyStorage storage) {
 			Opt!SafeCStr error = justTypeCheck(
 				alloc, perf, allSymbols, allPaths, pathsInfo, storage, showDiagOptions, mainPath);
 			return has(error) ? printErr(force(error)) : println(safeCStr!"OK");
 		});
-
-enum ExeKind { ensureExe, allowNoExe }
-RunBuildResult runBuildInner(
-	ref Alloc alloc,
-	ref Perf perf,
-	ref AllSymbols allSymbols,
-	ref AllPaths allPaths,
-	in PathsInfo pathsInfo,
-	Path includeDir,
-	Path tempDir,
-	Path mainPath,
-	in BuildOptions options,
-	ExeKind exeKind,
-) {
-	Sym name = baseName(allPaths, mainPath);
-	Path cPath = has(options.out_.outC)
-		? force(options.out_.outC)
-		: childPath(allPaths, tempDir, alterExtension!cExtension(allSymbols, name));
-	Opt!Path exePath = has(options.out_.outExecutable)
-		? options.out_.outExecutable
-		: exeKind == ExeKind.ensureExe
-		? some(childPath(allPaths, tempDir, alterExtension!defaultExeExtension(allSymbols, name)))
-		: none!Path;
-	ExitCode err = buildToCAndCompile(
-		alloc,
-		perf,
-		allSymbols,
-		allPaths,
-		pathsInfo,
-		showDiagOptions,
-		includeDir,
-		mainPath,
-		cPath,
-		exePath,
-		options.cCompileOptions);
-	return RunBuildResult(err, exePath);
-}
 
 ShowDiagOptions showDiagOptions() =>
 	ShowDiagOptions(true);
@@ -506,23 +339,56 @@ ExitCode buildToCAndCompile(
 	in ShowDiagOptions showDiagOptions,
 	Path includeDir,
 	Path mainPath,
-	Path cPath,
-	in Opt!Path exePath,
-	in CCompileOptions cCompileOptions,
+	BuildOptions options,
 ) =>
 	withReadOnlyStorage!ExitCode(allPaths, includeDir, (in ReadOnlyStorage storage) {
 		BuildToCResult result =
 			buildToC(alloc, perf, allSymbols, allPaths, pathsInfo, storage, showDiagOptions, mainPath);
-		if (safeCStrIsEmpty(result.diagnostics)) {
-			ExitCode res = writeFile(allPaths, cPath, result.cSource);
-			return res == ExitCode.ok && has(exePath)
-				? compileC(
-					alloc, perf, allSymbols, allPaths,
-					cPath, force(exePath), result.externLibraries, cCompileOptions)
-				: res;
-		} else
-			return printErr(result.diagnostics);
+		return safeCStrIsEmpty(result.diagnostics)
+			? withPathOrTemp!cExtension(allPaths, options.out_.outC, mainPath, (Path cPath) {
+				ExitCode res = writeFile(allPaths, cPath, result.cSource);
+				return res == ExitCode.ok && has(options.out_.outExecutable)
+					? compileC(
+						alloc, perf, allSymbols, allPaths,
+						cPath, force(options.out_.outExecutable), result.externLibraries, options.cCompileOptions)
+					: res;
+			})
+			: printErr(result.diagnostics);
 	});
+
+/**
+This doesn't create the path, 'cb' should do that.
+But if it is a temp path, this deletes it after the callback finishes.
+*/
+ExitCode withPathOrTemp(Sym extension)(
+	ref AllPaths allPaths,
+	Opt!Path path,
+	Path tempBasePath,
+	in ExitCode delegate(Path) @safe @nogc nothrow cb,
+) {
+	if (has(path))
+		return cb(force(path));
+	else {
+		ubyte[8] bytes = getRandomBytes();
+		Path tempPath = alterExtensionWithHex!extension(allPaths, tempBasePath, bytes);
+		scope(exit) removeFile(allPaths, tempPath);
+		return cb(tempPath);
+	}
+}
+
+@trusted ubyte[8] getRandomBytes() {
+	version (Windows) {
+		todo!string("use rand_s");
+	} else {
+		ubyte[8] out_;
+		FILE* fd = fopen("/dev/urandom", "rb");
+		if (fd == null)
+			return todo!(ubyte[8])("missing /dev/urandom");
+		scope(exit) fclose(fd);
+		fread(out_.ptr, ubyte.sizeof, out_.length, fd);
+		return out_;
+	}
+}
 
 version (Windows) { } else { ExitCode buildAndJit(
 	ref Alloc alloc,
@@ -619,7 +485,6 @@ SafeCStr[] cCompilerArgs(in CCompileOptions options) {
 	} else {
 		scope SafeCStr executable = safeCStr!"/usr/bin/cc";
 	}
-
 	return withMeasure!(ExitCode, () =>
 		spawnAndWait(alloc, allPaths, executable, args)
 	)(alloc, perf, PerfMeasure.cCompile);
@@ -953,6 +818,15 @@ Path getCrowDir(ref AllPaths allPaths) =>
 
 		return ExitCode(exitCode);
 	} else {
+		debug {
+			import core.stdc.stdio : printf;
+			printf("compile with: ");
+			foreach (SafeCStr arg; args) {
+				printf("%s ", arg.ptr);
+			}
+			printf("\n");
+		}
+
 		pid_t pid;
 		int spawnStatus = posix_spawn(
 			&pid,

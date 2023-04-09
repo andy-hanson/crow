@@ -16,9 +16,11 @@ import util.sym :
 	addExtension,
 	alterExtension,
 	AllSymbols,
+	appendHexExtension,
 	eachCharInSym,
 	getExtension,
 	hasExtension,
+	removeExtension,
 	Sym,
 	sym,
 	symOfStr,
@@ -70,6 +72,13 @@ Path alterExtension(Sym newExtension)(ref AllPaths allPaths, Path a) =>
 Path addExtension(Sym extension)(ref AllPaths allPaths, Path a) =>
 	modifyBaseName(allPaths, a, (Sym name) =>
 		.addExtension!extension(allPaths.allSymbols, name));
+
+// E.g., changes 'foo.crow' to 'foo.deadbeef.c'
+Path alterExtensionWithHex(Sym newExtension)(ref AllPaths allPaths, Path a, in ubyte[] bytes) =>
+	modifyBaseName(allPaths, a, (Sym name) =>
+		addExtension!newExtension(
+			allPaths.allSymbols,
+			appendHexExtension(allPaths.allSymbols, removeExtension(allPaths.allSymbols, name), bytes)));
 
 Path addExtensionIfNone(Sym extension)(ref AllPaths allPaths, Path a) =>
 	hasExtension(allPaths, a) ? a : addExtension!extension(allPaths, a);

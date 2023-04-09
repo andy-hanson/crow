@@ -4,7 +4,7 @@ module test.testSym;
 
 import test.testUtil : Test;
 import util.col.str : safeCStr, safeCStrEq;
-import util.sym : AllSymbols, isShortSym, isLongSym, prependSet, safeCStrOfSym, Sym, sym, symOfStr;
+import util.sym : AllSymbols, appendHexExtension, isShortSym, isLongSym, prependSet, safeCStrOfSym, Sym, sym, symOfStr;
 import util.util : verify;
 
 void testSym(ref Test test) {
@@ -54,4 +54,7 @@ void testSym(ref Test test) {
 
 	Sym setN0 = prependSet(allSymbols, staticSym!"n0");
 	verify(setN0 == staticSym!"set-n0");
+
+	Sym goodFood = appendHexExtension(allSymbols, staticSym!"good", [0xf0, 0x0d]);
+	verify(goodFood == nonStaticSym!"good.f00d");
 }
