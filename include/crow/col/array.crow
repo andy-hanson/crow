@@ -9,10 +9,10 @@ import
 	../pointer: ==, +, *, const-pointer
 	./collection: .., build, end, sequence-compare, sequence-equal, subscript, with-block
 export
-	../private/bootstrap: array, begin-pointer, size
+	../private/bootstrap: array, size
 	./private/array-low-level:
-		~=, ~~=, array-builder, array-cast, array-reference-equal, as-array, build, end-pointer,
-		iterate, pointers, size, subscript
+		~=, ~~=, array-builder, array-cast, array-reference-equal, as-array, begin-pointer, build,
+		end-pointer, iterate, pointers, size, subscript
 
 # Create an array with the given elements.
 +new[t] t array(...a t array) bare

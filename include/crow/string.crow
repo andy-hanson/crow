@@ -123,7 +123,8 @@ WARN: The resulting string is allocated from GC memory but isn't traced by the g
 so it may be freed after the current task.
 ###
 +to c-string(a string)
-	(a.inner ~ "\0")::char8[].to begin-pointer
+	# TODO: not trusted
+	trusted (a.inner ~ "\0")::char8[].to begin-pointer
 
 ###
 Treats a c-string as a string by walking to the end.

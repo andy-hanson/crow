@@ -283,7 +283,7 @@ LowType.PtrRawConst getElementPtrTypeFromArrType(ref AllLowTypes allTypes, LowTy
 	LowRecord arrRecord = allTypes.allRecords[arrType];
 	verify(arrRecord.fields.length == 2);
 	verify(debugName(arrRecord.fields[0]) == sym!"size");
-	verify(debugName(arrRecord.fields[1]) == sym!"begin-pointer");
+	verify(debugName(arrRecord.fields[1]) == sym!"pointer");
 	return arrRecord.fields[1].type.as!(LowType.PtrRawConst);
 }
 

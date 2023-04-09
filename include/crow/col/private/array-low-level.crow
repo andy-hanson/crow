@@ -10,15 +10,20 @@ import
 		size-of, to-mut-pointer, to
 	../../range: .., low, range, size
 	../../private/alloc: alloc-uninitialized, copy-data-from
-	../../private/bootstrap: array, begin-pointer, new, size
+	../../private/bootstrap: new, pointer, size
 	./build: build-options, size-hint
+export
+	../../private/bootstrap: array
 
 array-reference-equal[t] bool(a t array, b t array) bare, unsafe
-	a.begin-pointer == b.begin-pointer && a.size == b.size
+	a.pointer == b.pointer && a.size == b.size
+
++begin-pointer[t] t*(a t array) bare, unsafe
+	a.pointer
 
 # Pointer to the end of an array.
 +end-pointer[t] t*(a t array) bare, unsafe
-	a.begin-pointer + a.size
+	a.pointer + a.size
 
 ###
 Arr or the range from begin to end.

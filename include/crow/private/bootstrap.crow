@@ -97,7 +97,7 @@ elements not reachable by any slice will be garbage collected.
 ###
 +array[t] record by-val
 	+size nat64
-	+begin-pointer t*
+	pointer t*
 
 ###
 `mut-array` is a low-level type mostly useful for implementing other collections.
