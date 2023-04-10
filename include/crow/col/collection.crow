@@ -626,6 +626,9 @@ flatten[col, col-col] col(a col-col) (col-col, col) iterate, col concatenate, co
 
 region with-index
 
++indices[col] nat64 range(a col) col size
+	0 .. a.size
+
 +with-index[col] record
 	-inner col
 +with-index[col] col with-index(a col)

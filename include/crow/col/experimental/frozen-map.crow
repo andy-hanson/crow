@@ -4,34 +4,28 @@ import
 	../../compare: <=
 	../../fun-util: subscript
 	../../hash: hash
-	../../misc: key, new, void
+	../../misc: key, loop-break, new, void
 	../../number: ==, <=>, +, -, /, %, nat64
 	../../option: is-empty, new, option
-	../../pointer: ==, <=>, +, -, *, const-pointer, mut-pointer, swap
-	../../range: ..
+	../../range: .., iterate, range
 	../../tuple: a, b
-	../array:
-		~=, +, -, array, array-cast, as-array, begin, begin-pointer, build, end, end-pointer,
-		is-empty, iterate, new, next, size, slice
+	../array: +, -, array, begin, end, is-empty, iterate, new, next, size, slice
 	../collection:
-		.., build, build-options, end, exists, fill, for-loop, n-of, set-subscript, subscript, with-block,
-		with-index
+		.., build, build-options, end, exists, for-break, for-loop, indices, n-of, map=,
+		set-subscript, subscript, swap-at, with-block, with-index
 	../mut-array:
-		~=, +, begin-pointer, begin, build, cast-immutable, end-pointer, iterate, mut-array,
-		mut-array-builder, next, set-next, size, temp-as-array
-	../list: ~=, build, list, to
+		~=, +, begin, build, cast-immutable, iterate, mut-array, mut-array-builder, next, set-next,
+		size
+	../list: list, to
 
 ###
 Immutable map that is not efficient to update.
 However, this is more compact than `map` and has faster lookups.
 ###
 frozen-map[k, v] record by-val
+	# exposed for tests only
 	pairs (k, v) array
-	-bucket-starts (k, v)* array
-
-debug-bucket-starts[k, v] nat64[](a (k, v) frozen-map) unsafe
-	for pointer : a bucket-starts
-		pointer - a.pairs.begin-pointer
+	bucket-starts nat64 array
 
 new[k, v] (k, v) frozen-map(...a (k, v) array) k key
 	a.to to
@@ -45,13 +39,6 @@ to[k, v] (k, v) array(a (k, v) frozen-map) bare
 to[k, v] (k, v)[](a (k, v) frozen-map) bare
 	a.to::((k, v) array) to
 
-# TODO:INTERNAL
-begin-pointer[k, v] (k, v)*(a (k, v) frozen-map) unsafe
-	a.pairs begin-pointer
-
-end-pointer[k, v] (k, v)*(a (k, v) frozen-map) unsafe
-	a.pairs end-pointer
-
 is-empty[k, v] bool(a (k, v) frozen-map)
 	a.pairs is-empty
 
@@ -59,58 +46,50 @@ size[k, v] nat64(a (k, v) frozen-map)
 	a.pairs size
 
 subscript[k, v] v?(a (k, v) frozen-map, key k) k key
-	trusted if pointer ?= a find-pointer key
-		pointer->b,
+	if index ?= a try-get-unordered-index key
+		a.pairs[index].b,
 
 in[k, v] bool(key k, a (k, v) frozen-map) k key
 	!(a try-get-unordered-index key is-empty)
 
 try-get-unordered-index[k, v] nat64?(a (k, v) frozen-map, key k) k key
-	trusted if pointer ?= a find-pointer key
-		pointer - a.pairs.begin-pointer,
+	for i : a bucket-indices key
+		if a.pairs[i].a == key
+			break i
 
--find-pointer[k, v] (k, v)*?(a (k, v) frozen-map, key k) unsafe, k key
-	bucket = if a.bucket-starts is-empty
-		a pairs
+-bucket-indices[k, v] nat64 range(a (k, v) frozen-map, key k) k key
+	if a.bucket-starts is-empty
+		a.pairs indices
 	else
-		bucket-index = key.hash % a.bucket-starts.size
-		bucket-start = a.bucket-starts[bucket-index]
-		bucket-end = if bucket-index == a.bucket-starts.size - 1
-			a.pairs end-pointer
-		else
-			a.bucket-starts[bucket-index + 1]
-		bucket-start .. bucket-end as-array
+		a bucket-indices-at-index key.hash % a.bucket-starts.size
 
-	bucket.begin-pointer find-pointer bucket.end-pointer, key
-
-find-index[k, v] nat64?(pairs (k, v) array, key k) unsafe, k key
-	if pointer ?= pairs.begin-pointer find-pointer pairs.end-pointer, key
-		pointer - pairs.begin-pointer,
-
-find-pointer[k, v] (k, v)*?(cur (k, v)*, end (k, v)*, key k) unsafe, k key
-	if cur == end
-		()
-	elif cur->a == key
-		cur,
+# Returns a slice of 'a.pairs'
+-bucket-indices-at-index[k, v] nat64 range(a (k, v) frozen-map, bucket-index nat64)
+	bucket-start = a.bucket-starts[bucket-index]
+	bucket-end = if bucket-index == a.bucket-starts.size - 1
+		a.pairs size
 	else
-		cur + 1 find-pointer end, key
+		a.bucket-starts[bucket-index + 1]
+	bucket-start .. bucket-end
+
+-bucket-at-index[k, v] (k, v) array(a (k, v) frozen-map, bucket-index nat64)
+	a.pairs[a bucket-indices-at-index bucket-index]
 
 -as-frozen-map[k, v] (k, v) frozen-map(a (k, v) mut-array) unsafe, k key
 	a.mut-array-to-frozen-map-promise-no-duplicates remove-duplicates
 
 mut-array-to-frozen-map-promise-no-duplicates[k, v] (k, v) frozen-map(
 	a (k, v) mut-array,
-)unsafe, k key
+) unsafe, k key
 	if a.size <= 4
 		a.cast-immutable, ()
 	else
 		n-buckets = a.size / 2
-		bucket-counts = a get-bucket-counts n-buckets
-		bucket-starts = a.begin-pointer running-sum bucket-counts.temp-as-array
-		bucket-counts fill 0
-		cur mut = a begin-pointer
-		until cur == a.end-pointer
-			bucket-index = cur->a get-bucket-index bucket-counts.size
+		bucket-starts = a get-bucket-starts n-buckets
+		bucket-counts nat64 mut-array = n-buckets n-of 0
+		cur mut = 0
+		until cur == a.size
+			bucket-index = a[cur].a get-bucket-index bucket-counts.size
 			bucket-count = bucket-counts[bucket-index]
 			bucket-start = bucket-starts[bucket-index]
 			bucket-cur-end = bucket-start + bucket-count
@@ -120,8 +99,8 @@ mut-array-to-frozen-map-promise-no-duplicates[k, v] (k, v) frozen-map(
 				cur +:= 1
 			else
 				bucket-counts[bucket-index] := bucket-count + 1
-				cur swap bucket-cur-end
-		a.cast-immutable, bucket-starts.array-cast
+				a swap-at cur, bucket-cur-end
+		a.cast-immutable, bucket-starts
 
 -remove-duplicates[k, v] (k, v) frozen-map(a (k, v) frozen-map) unsafe, k key
 	if a has-duplicates
@@ -137,13 +116,8 @@ mut-array-to-frozen-map-promise-no-duplicates[k, v] (k, v) frozen-map(
 	if a.bucket-starts is-empty
 		out write-bucket-without-duplicates a.pairs
 	else
-		for i, bucket-start : a.bucket-starts with-index
-			trusted
-				bucket-end = if i == a.bucket-starts.size - 1
-					a.pairs end-pointer
-				else
-					a.bucket-starts[i + 1]
-				out write-bucket-without-duplicates (bucket-start .. bucket-end).as-array
+		for i : a.bucket-starts indices
+			out write-bucket-without-duplicates (a bucket-at-index i)
 
 -write-bucket-without-duplicates[k, v] void(out (k, v) mut-array-builder, pairs (k, v) array) k key
 	for i, pair : pairs with-index
@@ -154,13 +128,8 @@ mut-array-to-frozen-map-promise-no-duplicates[k, v] (k, v) frozen-map(
 	if a.bucket-starts is-empty
 		a.pairs bucket-has-duplicates
 	else
-		a.bucket-starts.with-index exists (i, bucket-start) =>
-			trusted
-				bucket-end = if i == a.bucket-starts.size - 1
-					a.pairs end-pointer
-				else
-					a.bucket-starts[i + 1]
-				(bucket-start .. bucket-end).as-array bucket-has-duplicates
+		a.bucket-starts.indices exists i =>
+			a bucket-at-index i bucket-has-duplicates
 
 -bucket-has-duplicates[k, v] bool(pairs (k, v) array) k key
 	pairs.with-index exists (i, (k, _)) =>
@@ -169,21 +138,22 @@ mut-array-to-frozen-map-promise-no-duplicates[k, v] (k, v) frozen-map(
 -key-in-range[k, v] bool(key k, pairs (k, v) array) k key
 	pairs exists (k, _) => k == key
 
--get-bucket-counts[k, v] nat64 mut-array(a (k, v) mut-array, n-buckets nat64) unsafe, k key
+-get-bucket-starts[k, v] nat64 array(a (k, v) mut-array, n-buckets nat64) unsafe, k key
 	res nat64 mut-array = n-buckets n-of 0
 	for k, _ : a
 		res[k get-bucket-index n-buckets] +:= 1
-	res
+	res running-sum
+	res cast-immutable
 
 -get-bucket-index[k] nat64(key k, n-buckets nat64) k key
 	key.hash % n-buckets
 
--running-sum[k, v] (k, v) mut* array(initial (k, v) mut*, offsets nat64 array) unsafe
-	with out : offsets.size build
-		acc mut = initial
-		for offset : offsets
-			out ~= acc
-			acc +:= offset
+-running-sum void(a nat64 mut-array)
+	acc mut = 0
+	a map= x =>
+		start = acc
+		acc +:= x
+		start
 
 region spec impls (see collection.crow)
 

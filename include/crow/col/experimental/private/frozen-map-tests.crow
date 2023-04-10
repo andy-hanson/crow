@@ -9,17 +9,17 @@ import
 	../../../string: ==, literal, string
 	../../../test-util: is
 	../../../tuple: new
+	../../array: ==, array, iterate, new, size
 	../../collection: for-loop
-	../../array: iterate, size
 	../../list: ==, ~=, build, list, new
-	../frozen-map: debug-bucket-starts, frozen-map, is-empty, new, pairs, size, subscript
+	../frozen-map: bucket-starts, frozen-map, is-empty, new, pairs, size, subscript
 
 dummy-frozen-map-tests nat64()
 	0
 
--verify void(a (nat64, string) frozen-map, keys-order nat64[], bucket-starts nat64[]) unsafe
+-verify void(a (nat64, string) frozen-map, keys-order nat64[], bucket-starts nat64 array) unsafe
 	(for k, _ : a pairs; k)::nat64[] is keys-order
-	a.debug-bucket-starts is bucket-starts
+	a.bucket-starts is bucket-starts
 
 test
 	a (nat64, string) frozen-map = ()
