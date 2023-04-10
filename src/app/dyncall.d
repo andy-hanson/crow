@@ -1,6 +1,6 @@
 module app.dyncall;
 
-@safe @nogc nothrow:
+@safe @nogc nothrow: // not pure
 
 import interpret.applyFn : u64OfI32, u64OfI64;
 import interpret.bytecode : Operation;

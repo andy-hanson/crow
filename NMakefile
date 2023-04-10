@@ -145,7 +145,7 @@ src_files_common = src\concretize\allConstantsBuilder.d \
 	src\util\writer.d \
 	src\util\writerUtils.d \
 	src\versionInfo.d
-app_only_files = src\app\main.d src\app\dyncall.d
+app_only_files = src\app\main.d src\app\dyncall.d src\app\fileSystem.d
 app_src_no_test = $(app_only_files) \
 	$(src_files_common) \
 	src\backend\mangle.d \
