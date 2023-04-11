@@ -1,0 +1,9 @@
+exit code: 1
+stderr:
+test/compile-errors/modifier-conflict.crow 8:16-8:19 'mut' conflicts with 'data'
+
+test/compile-errors/modifier-conflict.crow 10:15-10:21 'shared' conflicts with 'mut'
+
+test/compile-errors/modifier-conflict.crow 12:19-12:31 'force-shared' conflicts with 'shared'
+
+test/compile-errors/modifier-conflict.crow 14:20-14:26 'by-ref' conflicts with 'by-val'

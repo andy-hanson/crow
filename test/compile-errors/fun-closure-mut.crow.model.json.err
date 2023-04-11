@@ -1,3 +1,0 @@
-test/compile-errors/fun-closure-mut.crow 6:19-6:26 this lambda is a 'fun' but references 'x' which is 'mut' (should it be an 'act' or 'ref' fun?)
-
-test/compile-errors/fun-closure-mut.crow 9:25-9:32 this lambda is a 'fun' but references 'y' of 'mut' type 'nat64 mut[]' (should it be an 'act' or 'ref' fun?)

@@ -1,0 +1,15 @@
+exit code: 1
+stderr:
+test/compile-errors/spec-inst-recursion.crow 1:1-1:1 module should have a function:
+	main nat64^(args string[])
+
+test/compile-errors/spec-inst-recursion.crow 2:5-2:10 a spec was not satisfied.
+	spec instantiation is too deep calling:
+	foo@string (from test/compile-errors/spec-inst-recursion.crow.crow line 10)
+	bar@string (from test/compile-errors/spec-inst-recursion.crow.crow line 13)
+	foo@string (from test/compile-errors/spec-inst-recursion.crow.crow line 10)
+	bar@string (from test/compile-errors/spec-inst-recursion.crow.crow line 13)
+	foo@string (from test/compile-errors/spec-inst-recursion.crow.crow line 10)
+	bar@string (from test/compile-errors/spec-inst-recursion.crow.crow line 13)
+	foo@string (from test/compile-errors/spec-inst-recursion.crow.crow line 10)
+	bar@string (from test/compile-errors/spec-inst-recursion.crow.crow line 13)

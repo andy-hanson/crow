@@ -1,1 +1,0 @@
-test/compile-errors/destructure-non-tuple.crow 2:6-2:10 expected a tuple with 2 elements, but got 'nat64'

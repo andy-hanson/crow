@@ -1,0 +1,42 @@
+exit code: 1
+stderr:
+test/compile-errors/data-spec-with-type-args.crow 8:5-8:17 a spec was not satisfied.
+	'm' is not 'data' calling:
+	takes-data@m (from test/compile-errors/data-spec-with-type-args.crow.crow line 60)
+
+test/compile-errors/data-spec-with-type-args.crow 19:5-19:23 a spec was not satisfied.
+	'm' is not 'data' calling:
+	takes-mt-t-data@m (from test/compile-errors/data-spec-with-type-args.crow.crow line 57)
+
+test/compile-errors/data-spec-with-type-args.crow 20:5-20:18 a spec was not satisfied.
+	'm mt' is not 'data' calling:
+	takes-data@(m mt) (from test/compile-errors/data-spec-with-type-args.crow.crow line 60)
+
+test/compile-errors/data-spec-with-type-args.crow 26:5-26:18 a spec was not satisfied.
+	'd mt' is not 'data' calling:
+	takes-data@(d mt) (from test/compile-errors/data-spec-with-type-args.crow.crow line 60)
+
+test/compile-errors/data-spec-with-type-args.crow 31:5-31:23 a spec was not satisfied.
+	'm' is not 'data' calling:
+	takes-dt-t-data@m (from test/compile-errors/data-spec-with-type-args.crow.crow line 54)
+
+test/compile-errors/data-spec-with-type-args.crow 32:5-32:18 a spec was not satisfied.
+	'm dt' is not 'data' calling:
+	takes-data@(m dt) (from test/compile-errors/data-spec-with-type-args.crow.crow line 60)
+
+test/compile-errors/data-spec-with-type-args.crow 35:5-35:15 a spec was not satisfied.
+	'm' is not 'data' calling:
+	indirect@m (from test/compile-errors/data-spec-with-type-args.crow.crow line 65)
+	takes-data@m (from test/compile-errors/data-spec-with-type-args.crow.crow line 60)
+
+test/compile-errors/data-spec-with-type-args.crow 49:5-49:22 a spec was not satisfied.
+	't' is not 'data' calling:
+	takes-dt-t-data@t (from test/compile-errors/data-spec-with-type-args.crow.crow line 54)
+
+test/compile-errors/data-spec-with-type-args.crow 52:5-52:22 a spec was not satisfied.
+	't' is not 'data' calling:
+	takes-mt-t-data@t (from test/compile-errors/data-spec-with-type-args.crow.crow line 57)
+
+test/compile-errors/data-spec-with-type-args.crow 58:5-58:17 a spec was not satisfied.
+	't mt' is not 'data' calling:
+	takes-data@(t mt) (from test/compile-errors/data-spec-with-type-args.crow.crow line 60)

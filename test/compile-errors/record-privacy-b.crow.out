@@ -1,0 +1,32 @@
+exit code: 1
+stderr:
+test/compile-errors/record-privacy-b.crow 1:1-1:1 module should have a function:
+	main nat64^(args string[])
+
+test/compile-errors/record-privacy-b.crow 5:22-6:1 there are functions named 'new', but they do not match the expected return type and actual argument types.
+expected return type: 'private-ctor'
+actual argument types:  (other arguments not checked, gave up early)
+candidates (with 1 arguments):
+	new t array(...t array) (from include/crow/col/array.crow.crow line 18)
+	new build-options(size-hint nat64) (from include/crow/col/private/build.crow.crow line 9)
+	new index-relative-to-end(subtract nat64) (from include/crow/col/collection.crow.crow line 58)
+	new t[](...t array) (from include/crow/col/list.crow.crow line 155)
+	new k[v](...(k, v) array) (from include/crow/col/map.crow.crow line 67)
+	new t mut-array(...t array) (from include/crow/col/mut-array.crow.crow line 37)
+	new t mut[](...t array) (from include/crow/col/mut-list.crow.crow line 58)
+	new k mut[v](...(k, v) array) (from include/crow/col/mut-map.crow.crow line 42)
+	new t mut-set(...t array) (from include/crow/col/mut-set.crow.crow line 21)
+	new t set(...t array) (from include/crow/col/set.crow.crow line 31)
+	new t^(value t) (from include/crow/future.crow.crow line 37)
+	new json(...(symbol, json) array) (from include/crow/json.crow.crow line 39)
+	new t?(a t) (from include/crow/option.crow.crow line 15)
+	new t mut-array(inner t array) (from include/crow/private/bootstrap.crow.crow line 115)
+	new backtrace(entries backtrace-entry array) (from include/crow/private/bootstrap.crow.crow line 376)
+
+test/compile-errors/record-privacy-b.crow 9:11-9:12 there is no function named 'j'
+
+test/compile-errors/record-privacy-b.crow 10:5-11:5 there is no function named 'set-k'
+
+test/compile-errors/record-privacy-b.crow 12:5-13:5 there is no function named 'set-l'
+
+test/compile-errors/record-privacy-b.crow 13:11-13:12 there is no function named 'l'

@@ -2,10 +2,10 @@ import
 	crow/io/file: each-child-recursive
 	crow/io/path: base-name, get-extension
 	crow/io/print: out, print
-	crow/io/process: exit-code, spawn-and-wait-result, stderr, stdout
+	crow/io/process: exit-code, process-result, spawn-and-wait-result, stderr, stdout
 	crow/version: is-windows
 	./failure:
-		failure, flat-map-with-max-size, handle-output, max-failures, match-test, new,
+		failure, flat-map-with-max-size, handle-output, max-failures, match-test,
 		overwrite-output, print-tests, test-options, test-result
 
 run-crow-tests test-result^(path string, path-to-crow string, options test-options) summon
@@ -34,52 +34,13 @@ run-crow-tests test-result^(path string, path-to-crow string, options test-optio
 		ext == "crow"
 
 -run-single-crow-test failure[]^(path-to-crow string, path string, options test-options) summon
-	op failure[]? <- for print-kind : ("ast", "model")::string[] sequential
-		if options print-tests
-			out print "crow print {print-kind} {path}"
-		res <- print-kind run-print-test path-to-crow, path, options.overwrite-output
-		match res
-		as loop-break v
-			break v
-		as loop-continue
-			continue
-	if res ?= op
-		res,
+	if options print-tests
+		out print "crow run {path}"
+	interpret-failures <- path-to-crow run-single-runnable-test path, interpret, options.overwrite-output
+	if interpret-failures.is-empty && !(trusted is-windows)
+		path-to-crow run-single-runnable-test path, jit, options.overwrite-output
 	else
-		if options print-tests
-			out print "crow run {path}"
-		interpret-failures <- path-to-crow run-single-runnable-test path, interpret, options.overwrite-output
-		if interpret-failures.is-empty && !(trusted is-windows)
-			path-to-crow run-single-runnable-test path, jit, options.overwrite-output
-		else
-			interpret-failures,
-
--run-print-test failure[] break-or-continue^(
-	print-kind string,
-	path-to-crow string,
-	path string,
-	overwrite-output bool,
-) summon
-	res = path-to-crow spawn-and-wait-result ("print", print-kind, path)
-	output-path = "{path}.{print-kind}.json"
-	# NOTE: compiler may have both stderr and stdout!
-	output-failures failure[] = if res.stdout.is-empty && res.exit-code != 0
-		# Just have a file for the err
-		()
-	else
-		path handle-output output-path, res.stdout, overwrite-output
-
-	if !output-failures.is-empty
-		break output-failures
-	elif res.exit-code == 0
-		assert res.stderr == ""
-		()
-	elif res.exit-code == 1
-		stderr-no-color = res.stderr remove-colors
-		# We should stop even if no test failure in handling the output
-		break path handle-output "{output-path}.err", stderr-no-color, overwrite-output
-	else
-		break (path, "unexpected exit code: {res exit-code}"),
+		interpret-failures,
 
 run-kind enum
 	interpret
@@ -97,19 +58,23 @@ run-kind enum
 	as jit
 		"run", path, "--jit"
 	res = path-to-crow spawn-and-wait-result args
-	stdout-failures = path handle-output "{path}.stdout", res.stdout, overwrite-output
-	stderr-failures failure[] = if res.exit-code != 0 || res.stderr != ""
-		# Exceptions differ between interpreter and JIT
-		err-path = if path ends-with "/fail.crow"
-			match run-kind
-			as interpret
-				"{path}.stderr"
-			as jit
-				"{path}.jit.stderr"
-		else
-			"{path}.stderr"
-		path handle-output err-path, res.stderr, overwrite-output
-	(stdout-failures ~~ stderr-failures),
+	# Exceptions differ between interpreter and JIT
+	out-path = if path ends-with "/fail.crow"
+		match run-kind
+		as interpret
+			"{path}.interpret.out"
+		as jit
+			"{path}.jit.out"
+	else
+		"{path}.out"
+	(path handle-output out-path, res.format-output, overwrite-output),
+
+format-output string(a process-result)
+	if a.exit-code == 0 && a.stderr == ""
+		a.stdout remove-colors
+	else
+		stdout = a.stdout == "" ? "" : "stdout:\n{a.stdout remove-colors}"
+		"exit code: {a exit-code}\n{stdout}stderr:\n{a.stderr remove-colors}"
 
 remove-colors string(a string)
 	if pair ?= a try-split-once "\x1b"

@@ -1,0 +1,4 @@
+exit code: 1
+stderr:
+test/compile-errors/extern-warnings.crow 1:1-1:1 module should have a function:
+	main nat64^(args string[])

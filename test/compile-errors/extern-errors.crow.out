@@ -1,0 +1,30 @@
+exit code: 1
+stderr:
+test/compile-errors/extern-errors.crow 1:1-1:1 module should have a function:
+	main nat64^(args string[])
+
+test/compile-errors/extern-errors.crow 2:5-2:13 extern type 'r' can't reference non-extern type 'string'
+
+test/compile-errors/extern-errors.crow 3:5-3:17 extern type 'r' can't reference non-extern type 'nat64[]'
+
+test/compile-errors/extern-errors.crow 5:1-8:1 'extern' record 'r2' is implicitly 'by-val'
+
+test/compile-errors/extern-errors.crow 8:1-11:1 'extern' record 'r3' is implicitly 'by-val'
+
+test/compile-errors/extern-errors.crow 11:1-14:1 a union can't be 'extern'
+
+test/compile-errors/extern-errors.crow 14:1-14:2 expected 'extern' to be preceded by the library name
+
+test/compile-errors/extern-errors.crow 18:1-18:2 'extern' function 'f' can't reference non-extern type 'string'
+
+test/compile-errors/extern-errors.crow 20:8-20:16 'extern' function 'f' parameter 'a' can't reference non-extern type 'string'
+
+test/compile-errors/extern-errors.crow 22:1-22:2 'extern' function 'f' can't have type parameters
+
+test/compile-errors/extern-errors.crow 22:11-22:14 'extern' function 'f' parameter 'a' can't reference non-extern type 't'
+
+test/compile-errors/extern-errors.crow 24:1-24:2 'extern' function 'f' can't be variadic
+
+test/compile-errors/extern-errors.crow 29:1-29:2 'extern' function 'f' can't have specs
+
+test/compile-errors/extern-errors.crow 39:1-40:1 'extern' conflicts with 'builtin'
