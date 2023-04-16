@@ -6,8 +6,8 @@ import util.alloc.alloc : Alloc;
 import util.col.fullIndexMap : FullIndexMap;
 import util.col.map : Map;
 import util.conv : safeToUint, safeToUshort;
+import util.json : field, Json, jsonObject;
 import util.path : Path;
-import util.repr : Repr, reprNat, reprRecord;
 import util.sym : AllSymbols, Sym, symSize;
 import util.util : verify;
 
@@ -84,11 +84,16 @@ immutable struct FileAndRange {
 }
 static assert(FileAndRange.sizeof == 8);
 
-Repr reprFileAndPos(ref Alloc alloc, FileAndPos a) =>
-	reprRecord!"file-pos"(alloc, [reprNat(a.fileIndex.index), reprNat(a.pos)]);
+FileAndPos toFileAndPos(FileAndRange a) =>
+	FileAndPos(a.fileIndex, a.start);
 
-Repr reprFileAndRange(ref Alloc alloc, FileAndRange a) =>
-	reprRecord!"file-range"(alloc, [reprNat(a.fileIndex.index), reprRangeWithinFile(alloc, a.range)]);
+Json jsonOfFileAndPos(ref Alloc alloc, FileAndPos a) =>
+	jsonObject(alloc, [field!"file"(a.fileIndex.index), field!"pos"(a.pos)]);
 
-Repr reprRangeWithinFile(ref Alloc alloc, RangeWithinFile a) =>
-	reprRecord!"range"(alloc, [reprNat(a.start), reprNat(a.end)]);
+Json jsonOfFileAndRange(ref Alloc alloc, FileAndRange a) =>
+	jsonObject(alloc, [
+		field!"file"(a.fileIndex.index),
+		field!"range"(jsonOfRangeWithinFile(alloc, a.range))]);
+
+Json jsonOfRangeWithinFile(ref Alloc alloc, RangeWithinFile a) =>
+	jsonObject(alloc, [field!"start"(a.start), field!"end"(a.end)]);

@@ -1050,21 +1050,21 @@ LowExpr getAllocateExpr(
 }
 
 LowExprKind getAllocExpr(ref GetLowExprCtx ctx, in Locals locals, FileAndRange range, ref ConcreteExprKind.Alloc a) {
-	// (temp0 = (T*) alloc(sizeof(T)), *temp0 = inner, temp0)
-	LowExpr inner = getLowExpr(ctx, locals, a.inner, ExprPos.nonTail);
-	LowType ptrType = getLowGcPtrType(ctx.typeCtx, inner.type);
-	return getAllocExpr2(ctx, range, inner, ptrType);
+	LowExpr arg = getLowExpr(ctx, locals, a.arg, ExprPos.nonTail);
+	LowType ptrType = getLowGcPtrType(ctx.typeCtx, arg.type);
+	return getAllocExpr2(ctx, range, arg, ptrType);
 }
 
-LowExpr getAllocExpr2Expr(ref GetLowExprCtx ctx, FileAndRange range, ref LowExpr inner, LowType ptrType) =>
-	LowExpr(ptrType, range, getAllocExpr2(ctx, range, inner, ptrType));
+LowExpr getAllocExpr2Expr(ref GetLowExprCtx ctx, FileAndRange range, ref LowExpr arg, LowType ptrType) =>
+	LowExpr(ptrType, range, getAllocExpr2(ctx, range, arg, ptrType));
 
-LowExprKind getAllocExpr2(ref GetLowExprCtx ctx, FileAndRange range, ref LowExpr inner, LowType ptrType) {
+LowExprKind getAllocExpr2(ref GetLowExprCtx ctx, FileAndRange range, ref LowExpr arg, LowType ptrType) {
+	// (temp0 = (T*) alloc(sizeof(T)), *temp0 = arg, temp0)
 	LowLocal* local = addTempLocal(ctx, ptrType);
 	LowExpr sizeofT = genSizeOf(range, asPtrGcPointee(ptrType));
 	LowExpr allocatePtr = getAllocateExpr(ctx.alloc, ctx.allocFunIndex, range, ptrType, sizeofT);
 	LowExpr getTemp = genLocalGet(range, local);
-	LowExpr setTemp = genWriteToPtr(ctx.alloc, range, getTemp, inner);
+	LowExpr setTemp = genWriteToPtr(ctx.alloc, range, getTemp, arg);
 	return LowExprKind(allocate(ctx.alloc, LowExprKind.Let(
 		local, allocatePtr, genSeq(ctx.alloc, range, setTemp, getTemp))));
 }
@@ -1321,10 +1321,9 @@ LowExprKind getCallBuiltinExpr(
 						return ExprPos.nonTail;
 				}
 			}();
-			return LowExprKind(allocate(ctx.alloc, LowExprKind.SpecialBinary(
-				kind,
+			return LowExprKind(allocate(ctx.alloc, LowExprKind.SpecialBinary(kind, [
 				getArg(a.args[0], ExprPos.nonTail),
-				getArg(a.args[1], arg1Pos))));
+				getArg(a.args[1], arg1Pos)])));
 		},
 		(LowExprKind.SpecialTernary.Kind kind) {
 			verify(a.args.length == 3);

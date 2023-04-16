@@ -5,7 +5,7 @@ module util.path;
 import util.alloc.alloc : Alloc, allocateT;
 import util.col.arrUtil : reduce;
 import util.col.mutArr : MutArr, mutArrRange, mutArrSize, push;
-import util.col.str : end, SafeCStr;
+import util.col.str : end, SafeCStr, strOfSafeCStr;
 import util.comparison : compareNat16, Comparison;
 import util.conv : safeToUshort;
 import util.hash : Hasher, hashUshort;
@@ -285,39 +285,40 @@ public SafeCStr pathToSafeCStrPreferRelative(ref Alloc alloc, in AllPaths allPat
 	return finishWriterToSafeCStr(writer);
 }
 
-@trusted Path parsePath(ref AllPaths allPaths, in SafeCStr str) {
-	immutable(char)* ptr = str.ptr;
-	string part = parsePathPart(allPaths, ptr);
-	return parsePathRecur(allPaths, ptr, rootPath(allPaths, symOfStr(allPaths.allSymbols, part)));
+Path parsePath(ref AllPaths allPaths, in SafeCStr str) =>
+	parsePath(allPaths, strOfSafeCStr(str));
+Path parsePath(ref AllPaths allPaths, in string str) {
+	StringIter iter = StringIter(str);
+	string part = parsePathPart(allPaths, iter);
+	return parsePathRecur(allPaths, iter, rootPath(allPaths, symOfStr(allPaths.allSymbols, part)));
 }
-private @system Path parsePathRecur(ref AllPaths allPaths, immutable(char)* ptr, Path path) {
-	while (isSlash(*ptr))
-		ptr++;
-
-	if (*ptr == '\0')
+private Path parsePathRecur(ref AllPaths allPaths, scope ref StringIter iter, Path path) {
+	skipWhile(iter, (char x) => isSlash(x));
+	if (done(iter))
 		return path;
 	else {
-		string part = parsePathPart(allPaths, ptr);
-		return parsePathRecur(allPaths, ptr, childPath(allPaths, path, symOfStr(allPaths.allSymbols, part)));
+		string part = parsePathPart(allPaths, iter);
+		return parsePathRecur(allPaths, iter, childPath(allPaths, path, symOfStr(allPaths.allSymbols, part)));
 	}
 }
-private @system string parsePathPart(ref AllPaths allPaths, ref immutable(char)* ptr) {
-	immutable char* begin = ptr;
-	while (*ptr != '\0' && !isSlash(*ptr))
-		ptr++;
-	return begin[0 .. (ptr - begin)];
+private @trusted string parsePathPart(ref AllPaths allPaths, return scope ref StringIter iter) {
+	immutable char* begin = iter.cur;
+	skipWhile(iter, (char x) => !isSlash(x));
+	return begin[0 .. (iter.cur - begin)];
 }
 
-private @trusted RelPath parseRelPath(ref AllPaths allPaths, SafeCStr a) =>
+private @trusted RelPath parseRelPath(ref AllPaths allPaths, in string a) =>
 	parseRelPathRecur(allPaths, 0, a);
-private @system RelPath parseRelPathRecur(ref AllPaths allPaths, size_t nParents, SafeCStr a) =>
-	a.ptr[0] == '.' && isSlash(a.ptr[1])
-		? parseRelPathRecur(allPaths, nParents, SafeCStr(a.ptr + 2))
-		: a.ptr[0] == '.' && a.ptr[1] == '.' && isSlash(a.ptr[2])
-		? parseRelPathRecur(allPaths, nParents + 1, SafeCStr(a.ptr + 3))
+private @system RelPath parseRelPathRecur(ref AllPaths allPaths, size_t nParents, in string a) =>
+	a.length >= 2 && a[0] == '.' && isSlash(a[1])
+		? parseRelPathRecur(allPaths, nParents, a[2 .. $])
+		: a.length >= 3 && a[0] == '.' && a[1] == '.' && isSlash(a[2])
+		? parseRelPathRecur(allPaths, nParents + 1, a[3 .. $])
 		: RelPath(safeToUshort(nParents), parsePath(allPaths, a));
 
-@trusted Path parseAbsoluteOrRelPath(ref AllPaths allPaths, Path cwd, in SafeCStr a) {
+Path parseAbsoluteOrRelPath(ref AllPaths allPaths, Path cwd, in SafeCStr a) =>
+	parseAbsoluteOrRelPath(allPaths, cwd, strOfSafeCStr(a));
+Path parseAbsoluteOrRelPath(ref AllPaths allPaths, Path cwd, in string a) {
 	if (looksLikeAbsolutePath(a))
 		return parsePath(allPaths, a);
 	else {
@@ -330,8 +331,9 @@ private @system RelPath parseRelPathRecur(ref AllPaths allPaths, size_t nParents
 	}
 }
 
-private @trusted bool looksLikeAbsolutePath(SafeCStr a) =>
-	*a.ptr == '/' || (a.ptr[0] == 'C' && a.ptr[1] == ':' && isSlash(a.ptr[2]));
+private @trusted bool looksLikeAbsolutePath(string a) =>
+	(a.length >= 1 && a[0] == '/') ||
+	(a.length >= 3 && a[0] == 'C' && a[1] == ':' && isSlash(a[2]));
 
 Comparison comparePath(Path a, Path b) =>
 	compareNat16(a.index, b.index);
@@ -461,4 +463,22 @@ public void writeRelPath(ref Writer writer, in AllPaths allPaths, RelPath p) {
 	foreach (ushort i; 0 .. p.nParents)
 		writer ~= "../";
 	writePathPlain(writer, allPaths, p.path);
+}
+
+struct StringIter {
+	@safe @nogc pure nothrow:
+
+	immutable(char)* cur;
+	immutable(char)* end;
+
+	@trusted this(return scope string a) {
+		cur = a.ptr;
+		end = a.ptr + a.length;
+	}
+}
+bool done(in StringIter a) =>
+	a.cur == a.end;
+@trusted void skipWhile(ref StringIter a, in bool delegate(char) @safe @nogc pure nothrow cb) {
+	while (!done(a) && cb(*a.cur))
+		a.cur++;
 }

@@ -4,11 +4,12 @@ module test.testJson;
 
 import test.testUtil : Test;
 import util.col.str : SafeCStr, safeCStr;
-import util.jsonParse : Json, parseJson;
+import util.json : Json, writeJson;
+import util.jsonParse : parseJson;
 import util.opt : force, has, Opt;
-import util.sym : AllSymbols, sym, writeQuotedSym;
+import util.sym : sym;
 import util.util : debugLog, typeAs, verify, verifyFail;
-import util.writer : finishWriterToSafeCStr, Writer, writeWithCommas;
+import util.writer : finishWriterToSafeCStr, Writer;
 
 void testJson(ref Test test) {
 	testBoolean(test);
@@ -26,9 +27,9 @@ void testBoolean(ref Test test) {
 }
 
 void testString(ref Test test) {
-	verifyParseJson(test, safeCStr!"\"\"", Json(safeCStr!""));
-	verifyParseJson(test, safeCStr!"\"abc\"", Json(safeCStr!"abc"));
-	verifyParseJson(test, safeCStr!"\"a\\nb\"", Json(safeCStr!"a\\nb"));
+	verifyParseJson(test, safeCStr!"\"\"", Json(""));
+	verifyParseJson(test, safeCStr!"\"abc\"", Json("abc"));
+	verifyParseJson(test, safeCStr!"\"a\\nb\"", Json("a\\nb"));
 }
 
 @trusted void testArray(ref Test test) {
@@ -37,7 +38,7 @@ void testString(ref Test test) {
 	verifyParseJson(test, safeCStr!"[ false , ]", Json(valuesA));
 	scope Json[4] valuesB = [
 		Json(true),
-		Json(safeCStr!"foo"),
+		Json("foo"),
 		Json(valuesA),
 		Json(typeAs!(Json.Object)([])),
 	];
@@ -73,29 +74,4 @@ void verifyParseJson(ref Test test, in SafeCStr source, in Json expected) {
 		debugLog(finishWriterToSafeCStr(writer).ptr);
 		verifyFail();
 	}
-}
-
-void writeJson(scope ref Writer writer, in AllSymbols allSymbols, in Json a) {
-	a.matchIn!void(
-		(bool x) {
-			writer ~= x ? "true" : "false";
-		},
-		(in SafeCStr x) {
-			writer ~= x;
-		},
-		(in Json.List x) {
-			writer ~= '[';
-			writeWithCommas!Json(writer, x, (in Json y) {
-				writeJson(writer, allSymbols, y);
-			});
-			writer ~= ']';
-		},
-		(in Json.Object x) {
-			writer ~= '{';
-			writeWithCommas!(Json.ObjectField)(writer, x, (in Json.ObjectField y) {
-				writeQuotedSym(writer, allSymbols, y.key);
-				writer ~= ':';
-				writeJson(writer, allSymbols, y.value);
-			});
-		});
 }

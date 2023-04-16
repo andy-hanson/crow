@@ -1,6 +1,6 @@
 @safe @nogc nothrow: // not pure
 
-import frontend.ide.getTokens : reprTokens, Token;
+import frontend.ide.getTokens : jsonOfTokens, Token;
 import interpret.fakeExtern : FakeExternResult;
 import lib.server :
 	addOrChangeFile,
@@ -15,12 +15,12 @@ import lib.server :
 	toPath;
 import util.alloc.alloc : Alloc, allocateT;
 import util.col.str : CStr, SafeCStr;
+import util.json : field, jsonObject, Json, jsonToString, jsonList, jsonString;
 import util.memory : utilMemcpy = memcpy, utilMemmove = memmove;
 import util.path : Path;
 import util.perf : eachMeasure, Perf, PerfMeasureResult, withNullPerf;
 import util.ptr : ptrTrustMe;
-import util.repr : Repr, jsonStrOfRepr, nameAndRepr, reprArr, reprNamedRecord, reprStr;
-import util.sourceRange : Pos, reprRangeWithinFile;
+import util.sourceRange : Pos, jsonOfRangeWithinFile;
 import util.writer : finishWriterToCStr, writeQuotedStr, Writer;
 
 // seems to be the required entry point
@@ -83,8 +83,7 @@ extern(C) size_t getParameterBufferSizeBytes() =>
 	Alloc resultAlloc = Alloc(resultBuffer);
 	Token[] tokens = withNullPerf!(Token[], (ref Perf perf) =>
 		getTokens(resultAlloc, perf, *server, path));
-	Repr repr = reprTokens(resultAlloc, tokens);
-	return jsonStrOfRepr(resultAlloc, server.allSymbols, repr).ptr;
+	return jsonToString(resultAlloc, server.allSymbols, jsonOfTokens(resultAlloc, tokens)).ptr;
 }
 
 @system extern(C) CStr getParseDiagnostics(Server* server, scope CStr pathPtr) {
@@ -92,15 +91,15 @@ extern(C) size_t getParameterBufferSizeBytes() =>
 	Alloc resultAlloc = Alloc(resultBuffer);
 	StrParseDiagnostic[] diags = withNullPerf!(StrParseDiagnostic[], (ref Perf perf) =>
 		getParseDiagnostics(resultAlloc, perf, *server, path));
-	return jsonStrOfRepr(resultAlloc, server.allSymbols, reprParseDiagnostics(resultAlloc, diags)).ptr;
+	return jsonToString(resultAlloc, server.allSymbols, jsonOfParseDiagnostics(resultAlloc, diags)).ptr;
 }
 
 @system extern(C) CStr getHover(Server* server, scope CStr pathPtr, Pos pos) {
 	Path path = toPath(*server, SafeCStr(pathPtr));
 	Alloc resultAlloc = Alloc(resultBuffer);
 	return withNullPerf!(CStr, (ref Perf perf) =>
-		jsonStrOfRepr(resultAlloc, server.allSymbols, reprNamedRecord!"hover"(resultAlloc, [
-			nameAndRepr!"hover"(reprStr(getHover(perf, resultAlloc, *server, path, pos))),
+		jsonToString(resultAlloc, server.allSymbols, jsonObject(resultAlloc, [
+			field!"hover"(getHover(perf, resultAlloc, *server, path, pos)),
 		])).ptr);
 }
 
@@ -127,11 +126,11 @@ private:
 	return res;
 }
 
-Repr reprParseDiagnostics(ref Alloc alloc, scope StrParseDiagnostic[] a) =>
-	reprArr!StrParseDiagnostic(alloc, a, (in StrParseDiagnostic it) =>
-		reprNamedRecord!"diagnostic"(alloc, [
-			nameAndRepr!"range"(reprRangeWithinFile(alloc, it.range)),
-			nameAndRepr!"message"(reprStr(alloc, it.message))]));
+Json jsonOfParseDiagnostics(ref Alloc alloc, scope StrParseDiagnostic[] a) =>
+	jsonList!StrParseDiagnostic(alloc, a, (in StrParseDiagnostic it) =>
+		jsonObject(alloc, [
+			field!"range"(jsonOfRangeWithinFile(alloc, it.range)),
+			field!"message"(jsonString(alloc, it.message))]));
 
 CStr writeRunResult(ref Alloc alloc, in FakeExternResult result) {
 	Writer writer = Writer(ptrTrustMe(alloc));

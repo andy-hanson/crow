@@ -317,12 +317,10 @@ private Type typeFromFunAst(
 	TypeParam[] typeParamsScope,
 	DelayStructInsts delayStructInsts,
 ) {
-	TypeAst returnTypeAst = ast.returnAndParamTypes[0];
-	TypeAst[] paramTypeAsts = ast.returnAndParamTypes[1 .. $];
 	Type returnType = typeFromAst(
-		ctx, commonTypes, returnTypeAst, structsAndAliasesMap, typeParamsScope, delayStructInsts);
+		ctx, commonTypes, ast.returnType, structsAndAliasesMap, typeParamsScope, delayStructInsts);
 	Type paramType = typeFromTupleAst(
-		ctx, commonTypes, paramTypeAsts, structsAndAliasesMap, typeParamsScope, delayStructInsts);
+		ctx, commonTypes, ast.paramTypes, structsAndAliasesMap, typeParamsScope, delayStructInsts);
 	return Type(instantiateStruct(
 		ctx.alloc, ctx.programState, commonTypes.funStructs[ast.kind], [returnType, paramType], delayStructInsts));
 }

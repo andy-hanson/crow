@@ -1389,16 +1389,17 @@ ExprResult binaryToGcc(
 	in LowType type,
 	in LowExprKind.SpecialBinary a,
 ) {
+	LowExpr left = a.args[0], right = a.args[1];
 	ExprResult operator(gcc_jit_binary_op op) {
-		return binaryOperator(ctx, locals, emit, type, op, a.left, a.right);
+		return binaryOperator(ctx, locals, emit, type, op, left, right);
 	}
 	ExprResult comparison(gcc_jit_comparison cmp) {
 		return emitSimpleNoSideEffects(ctx, emit, gcc_jit_context_new_comparison(
 			ctx.gcc,
 			null,
 			cmp,
-			emitToRValue(ctx, locals, a.left),
-			emitToRValue(ctx, locals, a.right)));
+			emitToRValue(ctx, locals, left),
+			emitToRValue(ctx, locals, right)));
 	}
 
 	final switch (a.kind) {
@@ -1415,9 +1416,9 @@ ExprResult binaryToGcc(
 			// TODO: does this handle wrapping?
 			return operator(gcc_jit_binary_op.GCC_JIT_BINARY_OP_PLUS);
 		case LowExprKind.SpecialBinary.Kind.addPtrAndNat64:
-			return ptrArithmeticToGcc(ctx, locals, emit, PtrArith.addNat, a.left, a.right);
+			return ptrArithmeticToGcc(ctx, locals, emit, PtrArith.addNat, left, right);
 		case LowExprKind.SpecialBinary.Kind.and:
-			return logicalOperatorToGcc(ctx, locals, emit, LogicalOperator.and, a.left, a.right);
+			return logicalOperatorToGcc(ctx, locals, emit, LogicalOperator.and, left, right);
 		case LowExprKind.SpecialBinary.Kind.bitwiseAndInt8:
 		case LowExprKind.SpecialBinary.Kind.bitwiseAndInt16:
 		case LowExprKind.SpecialBinary.Kind.bitwiseAndInt32:
@@ -1483,7 +1484,7 @@ ExprResult binaryToGcc(
 			// TODO: does this handle wrapping?
 			return operator(gcc_jit_binary_op.GCC_JIT_BINARY_OP_MULT);
 		case LowExprKind.SpecialBinary.Kind.orBool:
-			return logicalOperatorToGcc(ctx, locals, emit, LogicalOperator.or, a.left, a.right);
+			return logicalOperatorToGcc(ctx, locals, emit, LogicalOperator.or, left, right);
 		case LowExprKind.SpecialBinary.Kind.subFloat32:
 		case LowExprKind.SpecialBinary.Kind.subFloat64:
 		case LowExprKind.SpecialBinary.Kind.unsafeSubInt8:
@@ -1497,7 +1498,7 @@ ExprResult binaryToGcc(
 			// TODO: does this handle wrapping?
 			return operator(gcc_jit_binary_op.GCC_JIT_BINARY_OP_MINUS);
 		case LowExprKind.SpecialBinary.Kind.subPtrAndNat64:
-			return ptrArithmeticToGcc(ctx, locals, emit, PtrArith.subtractNat, a.left, a.right);
+			return ptrArithmeticToGcc(ctx, locals, emit, PtrArith.subtractNat, left, right);
 		case LowExprKind.SpecialBinary.Kind.unsafeBitShiftLeftNat64:
 			return operator(gcc_jit_binary_op.GCC_JIT_BINARY_OP_LSHIFT);
 		case LowExprKind.SpecialBinary.Kind.unsafeBitShiftRightNat64:
@@ -1516,9 +1517,9 @@ ExprResult binaryToGcc(
 		case LowExprKind.SpecialBinary.Kind.unsafeModNat64:
 			return operator(gcc_jit_binary_op.GCC_JIT_BINARY_OP_MODULO);
 		case LowExprKind.SpecialBinary.Kind.writeToPtr:
-			gcc_jit_rvalue* left = emitToRValue(ctx, locals, a.left);
-			gcc_jit_rvalue* right = emitToRValue(ctx, locals, a.right);
-			gcc_jit_block_add_assignment(ctx.curBlock, null, gcc_jit_rvalue_dereference(left, null), right);
+			gcc_jit_rvalue* gccLeft = emitToRValue(ctx, locals, left);
+			gcc_jit_rvalue* gccRight = emitToRValue(ctx, locals, right);
+			gcc_jit_block_add_assignment(ctx.curBlock, null, gcc_jit_rvalue_dereference(gccLeft, null), gccRight);
 			return emitVoid(ctx, emit);
 	}
 }

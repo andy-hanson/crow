@@ -5,9 +5,9 @@ module lib.compiler;
 import backend.writeToC : writeToC;
 import concretize.concretize : concretize;
 import document.document : documentJSON;
-import frontend.parse.ast : reprAst;
 import frontend.frontendCompile : FileAstAndDiagnostics, frontendCompile, parseSingleAst;
-import frontend.ide.getTokens : Token, tokensOfAst, reprTokens;
+import frontend.ide.getTokens : jsonOfTokens, Token, tokensOfAst;
+import frontend.parse.jsonOfAst : jsonOfAst;
 import frontend.showDiag : ShowDiagOptions, strOfDiagnostics;
 import interpret.bytecode : ByteCode;
 import interpret.extern_ : Extern, ExternFunPtrsForAllLibraries, WriteError;
@@ -17,17 +17,17 @@ import lower.lower : lower;
 import model.concreteModel : ConcreteProgram;
 import model.lowModel : ExternLibraries, LowProgram;
 import model.model : fakeProgramForDiagnostics, hasDiags, Program;
-import model.reprConcreteModel : reprOfConcreteProgram;
-import model.reprLowModel : reprOfLowProgram;
-import model.reprModel : reprModule;
+import model.jsonOfConcreteModel : jsonOfConcreteProgram;
+import model.jsonOfLowModel : jsonOfLowProgram;
+import model.jsonOfModel : jsonOfModule;
 import util.alloc.alloc : Alloc;
 import util.col.arr : only;
 import util.col.str : SafeCStr, safeCStr;
+import util.json : jsonToString;
 import util.opt : force, has, none, Opt, some;
 import util.path : AllPaths, Path, PathsInfo;
 import util.perf : Perf;
 import util.readOnlyStorage : ReadOnlyStorage;
-import util.repr : jsonStrOfRepr;
 import util.sym : AllSymbols;
 import versionInfo : VersionInfo, versionInfoForInterpret;
 version (WebAssembly) {} else {
@@ -145,7 +145,7 @@ DiagsAndResultStrs printTokens(
 	Token[] tokens = tokensOfAst(alloc, allSymbols, astResult.ast);
 	return DiagsAndResultStrs(
 		strOfDiagnostics(alloc, allSymbols, allPaths, pathsInfo, showDiagOptions, fakeProgram(astResult)),
-		jsonStrOfRepr(alloc, allSymbols, reprTokens(alloc, tokens)));
+		jsonToString(alloc, allSymbols, jsonOfTokens(alloc, tokens)));
 }
 
 Program fakeProgram(FileAstAndDiagnostics astResult) =>
@@ -164,7 +164,7 @@ DiagsAndResultStrs printAst(
 	FileAstAndDiagnostics astResult = parseSingleAst(alloc, perf, allSymbols, allPaths, storage, main);
 	return DiagsAndResultStrs(
 		strOfDiagnostics(alloc, allSymbols, allPaths, pathsInfo, showDiagOptions, fakeProgram(astResult)),
-		jsonStrOfRepr(alloc, allSymbols, reprAst(alloc, allPaths, astResult.ast)));
+		jsonToString(alloc, allSymbols, jsonOfAst(alloc, allPaths, astResult.ast)));
 }
 
 DiagsAndResultStrs printModel(
@@ -181,7 +181,7 @@ DiagsAndResultStrs printModel(
 	return !hasDiags(program)
 		? DiagsAndResultStrs(
 			safeCStr!"",
-			jsonStrOfRepr(alloc, allSymbols, reprModule(alloc, *only(program.rootModules))))
+			jsonToString(alloc, allSymbols, jsonOfModule(alloc, *only(program.rootModules))))
 		: DiagsAndResultStrs(
 			strOfDiagnostics(alloc, allSymbols, allPaths, pathsInfo, showDiagOptions, program),
 			safeCStr!"");
@@ -203,7 +203,7 @@ DiagsAndResultStrs printConcreteModel(
 		ConcreteProgram concreteProgram = concretize(alloc, perf, versionInfo, allSymbols, program);
 		return DiagsAndResultStrs(
 			safeCStr!"",
-			jsonStrOfRepr(alloc, allSymbols, reprOfConcreteProgram(alloc, concreteProgram)));
+			jsonToString(alloc, allSymbols, jsonOfConcreteProgram(alloc, concreteProgram)));
 	} else
 		return DiagsAndResultStrs(
 			strOfDiagnostics(alloc, allSymbols, allPaths, pathsInfo, showDiagOptions, program),
@@ -227,7 +227,7 @@ DiagsAndResultStrs printLowModel(
 		LowProgram lowProgram = lower(alloc, perf, allSymbols, program.config.extern_, concreteProgram);
 		return DiagsAndResultStrs(
 			safeCStr!"",
-			jsonStrOfRepr(alloc, allSymbols, reprOfLowProgram(alloc, lowProgram)));
+			jsonToString(alloc, allSymbols, jsonOfLowProgram(alloc, lowProgram)));
 	} else
 		return DiagsAndResultStrs(
 			strOfDiagnostics(alloc, allSymbols, allPaths, pathsInfo, showDiagOptions, program),

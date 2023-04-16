@@ -15,7 +15,8 @@ import util.col.mapBuilder : finishMap, MapBuilder, tryAddToMap;
 import util.col.str : SafeCStr;
 import util.readOnlyStorage : ReadFileResult, ReadOnlyStorage, withFileText;
 import util.opt : force, has, none, Opt, some;
-import util.jsonParse : Json, parseJson;
+import util.json : Json;
+import util.jsonParse : parseJson;
 import util.path :
 	AllPaths, childPath, commonAncestor, emptyRootPath, parent, parseAbsoluteOrRelPath, Path, PathAndRange;
 import util.sourceRange : RangeWithinFile;
@@ -151,8 +152,8 @@ Opt!Path parsePath(
 	scope ref ArrBuilder!DiagnosticWithinFile diags,
 	in Json json,
 ) {
-	if (json.isA!SafeCStr)
-		return some(parseAbsoluteOrRelPath(allPaths, dirContainingConfig, json.as!SafeCStr));
+	if (json.isA!string)
+		return some(parseAbsoluteOrRelPath(allPaths, dirContainingConfig, json.as!string));
 	else {
 		todo!void("diag -- 'include' values should be strings");
 		return none!Path;

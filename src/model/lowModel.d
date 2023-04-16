@@ -600,8 +600,7 @@ immutable struct LowExprKind {
 			writeToPtr,
 		}
 		Kind kind;
-		LowExpr left;
-		LowExpr right;
+		LowExpr[2] args;
 	}
 
 	immutable struct SpecialTernary {

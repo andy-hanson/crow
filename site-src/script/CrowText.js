@@ -416,12 +416,10 @@ const tokensAndDiagsToNodes = (tokens, diags, text) => {
 	startLine()
 
 	let diagIndex = 0
-	for (const token of tokens) {
-		const tokenPos = token.range.args[0]
-		const tokenEnd = token.range.args[1]
+	for (const {token, range:{start:tokenPos, end:tokenEnd}} of tokens) {
 		walkTo(tokenPos)
 		maybeStartDiag(tokenPos)
-		addSpan(token.kind, tokenEnd)
+		addSpan(token, tokenEnd)
 		maybeStopDiag(tokenEnd)
 	}
 

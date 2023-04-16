@@ -1441,31 +1441,32 @@ WriteExprResult writeSpecialBinary(
 	in Locals locals,
 	in WriteKind writeKind,
 	in LowType type,
-	in LowExprKind.SpecialBinary it,
+	in LowExprKind.SpecialBinary a,
 ) {
+	LowExpr left = a.args[0], right = a.args[1];
 	WriteExprResult arg0() {
-		return writeExprTempOrInline(writer, indent, ctx, locals, it.left);
+		return writeExprTempOrInline(writer, indent, ctx, locals, left);
 	}
 	WriteExprResult arg1() {
-		return writeExprTempOrInline(writer, indent, ctx, locals, it.right);
+		return writeExprTempOrInline(writer, indent, ctx, locals, right);
 	}
 
 	WriteExprResult operator(string op) {
 		return writeInlineable(
-			writer, indent, ctx, locals, writeKind, type, [castNonScope_ref(it).left, castNonScope_ref(it).right],
+			writer, indent, ctx, locals, writeKind, type, [castNonScope_ref(left), castNonScope_ref(right)],
 			(in WriteExprResult[] args) {
 				verify(args.length == 2);
 				writer ~= '(';
-				writeTempOrInline(writer, ctx, locals, it.left, args[0]);
+				writeTempOrInline(writer, ctx, locals, left, args[0]);
 				writer ~= ' ';
 				writer ~= op;
 				writer ~= ' ';
-				writeTempOrInline(writer, ctx, locals, it.right, args[1]);
+				writeTempOrInline(writer, ctx, locals, right, args[1]);
 				writer ~= ')';
 			});
 	}
 
-	final switch (it.kind) {
+	final switch (a.kind) {
 		case LowExprKind.SpecialBinary.Kind.addFloat32:
 		case LowExprKind.SpecialBinary.Kind.addFloat64:
 		case LowExprKind.SpecialBinary.Kind.addPtrAndNat64:
@@ -1486,8 +1487,8 @@ WriteExprResult writeSpecialBinary(
 				locals,
 				writeKind,
 				LogicalOperator.and,
-				it.left,
-				it.right);
+				left,
+				right);
 		case LowExprKind.SpecialBinary.Kind.bitwiseAndInt8:
 		case LowExprKind.SpecialBinary.Kind.bitwiseAndInt16:
 		case LowExprKind.SpecialBinary.Kind.bitwiseAndInt32:
@@ -1559,8 +1560,8 @@ WriteExprResult writeSpecialBinary(
 				locals,
 				writeKind,
 				LogicalOperator.or,
-				it.left,
-				it.right);
+				left,
+				right);
 		case LowExprKind.SpecialBinary.Kind.subFloat32:
 		case LowExprKind.SpecialBinary.Kind.subFloat64:
 		case LowExprKind.SpecialBinary.Kind.subPtrAndNat64:
@@ -1594,11 +1595,11 @@ WriteExprResult writeSpecialBinary(
 			WriteExprResult temp0 = arg0();
 			WriteExprResult temp1 = arg1();
 			return writeReturnVoid(writer, indent, ctx, writeKind, () {
-				if (!isVoid(it.right.type)) {
+				if (!isVoid(right.type)) {
 					writer ~= "*";
-					writeTempOrInline(writer, ctx, locals, it.left, temp0);
+					writeTempOrInline(writer, ctx, locals, left, temp0);
 					writer ~= " = ";
-					writeTempOrInline(writer, ctx, locals, it.right, temp1);
+					writeTempOrInline(writer, ctx, locals, right, temp1);
 				}
 			});
 	}

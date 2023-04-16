@@ -37,15 +37,15 @@ import model.lowModel :
 	targetIsPointer,
 	targetRecordType,
 	UpdateParam;
-import model.reprConcreteModel : reprOfConcreteStructRef;
+import model.jsonOfConcreteModel : jsonOfConcreteStructRef;
 import util.alloc.alloc : Alloc;
 import util.col.arr : sizeEq;
 import util.col.arrUtil : zip;
 import util.col.stackMap : StackMap, stackMapAdd, stackMapMustGet;
 import util.col.fullIndexMap : fullIndexMapEachValue;
+import util.json : field, Json, jsonObject, jsonString, kindField;
 import util.opt : force, has, none, Opt, some;
 import util.ptr : castNonScope_ref, ptrTrustMe;
-import util.repr : Repr, reprRecord, reprSym;
 import util.sym : AllSymbols;
 import util.util : drop, verify;
 
@@ -340,11 +340,11 @@ ExpectUnary expect(LowType return_, LowType arg) =>
 	ExpectUnary(some(return_), some(arg));
 
 void checkSpecialBinary(ref FunCtx ctx, in InfoStack info, in LowType type, in LowExprKind.SpecialBinary a) {
-	ExpectBinary expected = binaryExpected(a.kind, type, a.left.type, a.right.type);
+	ExpectBinary expected = binaryExpected(a.kind, type, a.args[0].type, a.args[1].type);
 	if (has(expected.return_))
 		checkTypeEqual(ctx.ctx, force(expected.return_), type);
-	checkLowExpr(ctx, info, has(expected.arg0) ? force(expected.arg0) : a.left.type, a.left);
-	checkLowExpr(ctx, info, has(expected.arg1) ? force(expected.arg1) : a.right.type, a.right);
+	foreach (size_t i; 0 .. a.args.length)
+		checkLowExpr(ctx, info, has(expected.args[i]) ? force(expected.args[i]) : a.args[i].type, a.args[i]);
 }
 
 ExpectBinary binaryExpected(
@@ -368,7 +368,7 @@ ExpectBinary binaryExpected(
 		case LowExprKind.SpecialBinary.Kind.subPtrAndNat64:
 			verify(returnType == arg0Type);
 			verify(isPtrGcOrRaw(returnType));
-			return ExpectBinary(none!LowType, none!LowType, some(nat64Type));
+			return ExpectBinary(none!LowType, [none!LowType, some(nat64Type)]);
 		case LowExprKind.SpecialBinary.Kind.and:
 		case LowExprKind.SpecialBinary.Kind.orBool:
 			return expect(boolType, boolType, boolType);
@@ -472,54 +472,59 @@ ExpectBinary binaryExpected(
 		case LowExprKind.SpecialBinary.Kind.eqPtr:
 		case LowExprKind.SpecialBinary.Kind.lessPtr:
 			verify(arg0Type == arg1Type);
-			return ExpectBinary(some(boolType), none!LowType, none!LowType);
+			return ExpectBinary(some(boolType), [none!LowType, none!LowType]);
 		case LowExprKind.SpecialBinary.Kind.lessChar8:
 			return expect(boolType, char8Type, char8Type);
 		case LowExprKind.SpecialBinary.Kind.writeToPtr:
-			return ExpectBinary(some(voidType), none!LowType, some(asGcOrRawPointee(arg0Type)));
+			return ExpectBinary(some(voidType), [none!LowType, some(asGcOrRawPointee(arg0Type))]);
 	}
 }
 
 immutable struct ExpectBinary {
 	Opt!LowType return_;
-	Opt!LowType arg0;
-	Opt!LowType arg1;
+	Opt!LowType[2] args;
 }
 ExpectBinary expect(LowType return_, LowType arg0, LowType arg1) =>
-	ExpectBinary(some(return_), some(arg0), some(arg1));
+	ExpectBinary(some(return_), [some(arg0), some(arg1)]);
 
 void checkTypeEqual(ref Ctx ctx, in LowType expected, in LowType actual) {
 	static if (false) debug {
 		if (expected != actual) {
 			import core.stdc.stdio : printf;
-			import util.repr : writeReprJSON;
+			import util.json : writeJson;
 			import util.writer : finishWriterToCStr, Writer;
 			Writer writer = Writer(ctx.allocPtr);
 			writer ~= "Type is not as expected. Expected:\n";
-			writeReprJSON(writer, ctx.allSymbols, reprOfLowType2(ctx.alloc, ctx.program, expected));
+			writeJson(writer, ctx.allSymbols, jsonOfLowType2(ctx.alloc, ctx.program, expected));
 			writer ~= "\nActual:\n";
-			writeReprJSON(writer, ctx.allSymbols, reprOfLowType2(ctx.alloc, ctx.program, actual));
+			writeJson(writer, ctx.allSymbols, jsonOfLowType2(ctx.alloc, ctx.program, actual));
 			printf("%s\n", finishWriterToCStr(writer));
 		}
 	}
 	verify(expected == actual);
 }
 
-Repr reprOfLowType2(ref Alloc alloc, in LowProgram program, in LowType a) =>
-	a.matchIn!Repr(
+Json jsonOfLowType2(ref Alloc alloc, in LowProgram program, in LowType a) =>
+	a.matchIn!Json(
 		(in LowType.Extern) =>
-			reprSym!"some-extern", //TODO: more detail
+			jsonString!"some-extern", //TODO: more detail
 		(in LowType.FunPtr) =>
-			reprSym!"some-fun-ptr", //TODO: more detail
+			jsonString!"some-fun-ptr", //TODO: more detail
 		(in PrimitiveType x) =>
-			reprSym(symOfPrimitiveType(x)),
-		(in LowType.PtrGc it) =>
-			reprRecord!"gc-ptr"(alloc, [reprOfLowType2(alloc, program, *it.pointee)]),
-		(in LowType.PtrRawConst it) =>
-			reprRecord!"ptr-const"(alloc, [reprOfLowType2(alloc, program, *it.pointee)]),
-		(in LowType.PtrRawMut it) =>
-			reprRecord!"ptr-mut"(alloc, [reprOfLowType2(alloc, program, *it.pointee)]),
-		(in LowType.Record it) =>
-			reprOfConcreteStructRef(alloc, *program.allRecords[it].source),
-		(in LowType.Union it) =>
-			reprOfConcreteStructRef(alloc, *program.allUnions[it].source));
+			jsonString(symOfPrimitiveType(x)),
+		(in LowType.PtrGc x) =>
+			jsonObject(alloc, [
+				kindField!"gc-pointer",
+				field!"pointee"(jsonOfLowType2(alloc, program, *x.pointee))]),
+		(in LowType.PtrRawConst x) =>
+			jsonObject(alloc, [
+				kindField!"ptr-const",
+				field!"pointee"(jsonOfLowType2(alloc, program, *x.pointee))]),
+		(in LowType.PtrRawMut x) =>
+			jsonObject(alloc, [
+				kindField!"ptr-mut",
+				field!"pointee"(jsonOfLowType2(alloc, program, *x.pointee))]),
+		(in LowType.Record x) =>
+			jsonOfConcreteStructRef(alloc, *program.allRecords[x].source),
+		(in LowType.Union x) =>
+			jsonOfConcreteStructRef(alloc, *program.allUnions[x].source));

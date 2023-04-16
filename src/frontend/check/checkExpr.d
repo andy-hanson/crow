@@ -1200,10 +1200,10 @@ Destructure checkDestructure(ref ExprCtx ctx, in DestructureAst ast, Type type) 
 		noDelayStructInsts, ast, some(type));
 
 Expr checkLet(ref ExprCtx ctx, ref LocalsInfo locals, FileAndRange range, in LetAst ast, ref Expected expected) {
-	ExprAndType init = checkAndExpectOrInfer(ctx, locals, ast.initializer, typeFromDestructure(ctx, ast.destructure));
-	Destructure destructure = checkDestructure(ctx, ast.destructure, init.type);
+	ExprAndType value = checkAndExpectOrInfer(ctx, locals, ast.value, typeFromDestructure(ctx, ast.destructure));
+	Destructure destructure = checkDestructure(ctx, ast.destructure, value.type);
 	Expr then = checkExprWithDestructure(ctx, locals, destructure, ast.then, expected);
-	return Expr(range, ExprKind(allocate(ctx.alloc, ExprKind.Let(destructure, init.expr, then))));
+	return Expr(range, ExprKind(allocate(ctx.alloc, ExprKind.Let(destructure, value.expr, then))));
 }
 
 Expr checkLoop(ref ExprCtx ctx, ref LocalsInfo locals, FileAndRange range, in LoopAst ast, ref Expected expected) {

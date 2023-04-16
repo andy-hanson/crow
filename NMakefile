@@ -63,6 +63,7 @@ src_files_common = src\concretize\allConstantsBuilder.d \
 	src\frontend\ide\getPosition.d \
 	src\frontend\ide\getTokens.d \
 	src\frontend\parse\ast.d \
+	src\frontend\parse\jsonOfAst.d \
 	src\frontend\parse\lexer.d \
 	src\frontend\parse\parse.d \
 	src\frontend\parse\parseExpr.d \
@@ -99,13 +100,13 @@ src_files_common = src\concretize\allConstantsBuilder.d \
 	src\model\concreteModel.d \
 	src\model\constant.d \
 	src\model\diag.d \
+	src\model\jsonOfConcreteModel.d \
+	src\model\jsonOfConstant.d \
+	src\model\jsonOfLowModel.d \
+	src\model\jsonOfModel.d \
 	src\model\lowModel.d \
 	src\model\model.d \
 	src\model\parseDiag.d \
-	src\model\reprConcreteModel.d \
-	src\model\reprConstant.d \
-	src\model\reprLowModel.d \
-	src\model\reprModel.d \
 	src\model\typeLayout.d \
 	src\util\alloc\alloc.d \
 	src\util\col\arr.d \
@@ -128,6 +129,7 @@ src_files_common = src\concretize\allConstantsBuilder.d \
 	src\util\conv.d \
 	src\util\diff.d \
 	src\util\hash.d \
+	src\util\json.d \
 	src\util\jsonParse.d \
 	src\util\late.d \
 	src\util\lineAndColumnGetter.d \
@@ -138,7 +140,6 @@ src_files_common = src\concretize\allConstantsBuilder.d \
 	src\util\perf.d \
 	src\util\ptr.d \
 	src\util\readOnlyStorage.d \
-	src\util\repr.d \
 	src\util\sourceRange.d \
 	src\util\sym.d \
 	src\util\util.d \

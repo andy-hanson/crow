@@ -54,7 +54,7 @@ crow.TokenKind = {}
 
 /**
  * @typedef Token
- * @property {TokenKind} kind
+ * @property {TokenKind} token
  * @property {DiagRange} range
  */
 crow.Token = {}

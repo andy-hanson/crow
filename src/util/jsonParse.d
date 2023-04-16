@@ -5,33 +5,10 @@ module util.jsonParse;
 import frontend.parse.lexer : isWhitespace;
 import util.alloc.alloc : Alloc;
 import util.col.arrBuilder : add, ArrBuilder, finishArr;
-import util.col.arrUtil : arrEqual;
-import util.col.map : KeyValuePair;
-import util.col.str : copyToSafeCStr, CStr, SafeCStr, safeCStrEq;
+import util.col.str : copyStr, CStr, SafeCStr;
+import util.json : Json;
 import util.opt : force, has, none, Opt, some;
-import util.sym : AllSymbols, Sym, symOfStr;
-import util.union_ : Union;
-
-// NOTE: doesn't support number since I don't use that anywhere
-immutable struct Json {
-	@safe @nogc pure nothrow:
-
-	alias List = immutable Json[];
-	alias ObjectField = immutable KeyValuePair!(Sym, Json);
-	alias Object = immutable ObjectField[];
-	mixin Union!(bool, SafeCStr, List, Object);
-
-	bool opEquals(in Json b) scope =>
-		matchIn!bool(
-			(bool x) =>
-				b.isA!bool && b.as!bool == x,
-			(in SafeCStr x) =>
-				b.isA!SafeCStr && safeCStrEq(b.as!SafeCStr, x),
-			(in List x) =>
-				b.isA!List && arrEqual!Json(x, b.as!List),
-			(in Object oa) =>
-				b.isA!Object && arrEqual(oa, b.as!Object));
-}
+import util.sym : AllSymbols, symOfStr;
 
 Opt!Json parseJson(ref Alloc alloc, ref AllSymbols allSymbols, in SafeCStr source) {
 	immutable(char)* ptr = source.ptr;
@@ -66,7 +43,7 @@ Opt!Json parseValue(ref Alloc alloc, ref AllSymbols allSymbols, scope ref immuta
 
 Opt!Json parseString(ref Alloc alloc, scope ref immutable(char)* ptr) {
 	Opt!string res = parseStringTemp(ptr);
-	return has(res) ? some(Json(copyToSafeCStr(alloc, force(res)))) : none!Json;
+	return has(res) ? some(Json(copyStr(alloc, force(res)))) : none!Json;
 }
 
 @trusted Opt!string parseStringTemp(return scope ref immutable(char)* ptr) {

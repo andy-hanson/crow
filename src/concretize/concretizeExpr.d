@@ -354,7 +354,7 @@ ConcreteExprKind constantVoidKind() =>
 
 ConcreteExpr concretizeFunPtr(ref ConcretizeExprCtx ctx, FileAndRange range, ExprKind.FunPtr e) {
 	ConcreteFun* fun = getOrAddNonTemplateConcreteFunAndFillBody(ctx.concretizeCtx, e.funInst);
-	ConcreteType concreteType = getConcreteType_forStructInst(ctx, e.structInst);
+	ConcreteType concreteType = getConcreteType_forStructInst(ctx, e.type);
 	return ConcreteExpr(concreteType, range, ConcreteExprKind(Constant(Constant.FunPtr(fun))));
 }
 
@@ -828,7 +828,7 @@ ConcreteExpr concretizeExpr(ref ConcretizeExprCtx ctx, in Locals locals, ref Exp
 		(ref ExprKind.Let e) =>
 			concretizeLet(ctx, range, locals, e),
 		(ref ExprKind.Literal e) =>
-			ConcreteExpr(getConcreteType_forStructInst(ctx, e.structInst), range, ConcreteExprKind(e.value)),
+			ConcreteExpr(getConcreteType_forStructInst(ctx, e.type), range, ConcreteExprKind(e.value)),
 		(ExprKind.LiteralCString e) =>
 			cStrConcreteExpr(ctx.concretizeCtx, range, e.value),
 		(ExprKind.LiteralSymbol e) =>

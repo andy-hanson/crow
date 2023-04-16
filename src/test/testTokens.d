@@ -2,16 +2,17 @@ module test.testTokens;
 
 @safe @nogc pure nothrow:
 
-import frontend.ide.getTokens : reprTokens, Token, tokensOfAst;
-import frontend.parse.ast : FileAst, reprAst;
+import frontend.ide.getTokens : jsonOfTokens, Token, tokensOfAst;
+import frontend.parse.ast : FileAst;
+import frontend.parse.jsonOfAst : jsonOfAst;
 import frontend.parse.parse : parseFile;
 import model.diag : DiagnosticWithinFile;
 import test.testUtil : Test;
 import util.col.arrBuilder : ArrBuilder;
 import util.col.arrUtil : arrEqual, arrLiteral;
 import util.col.str : SafeCStr, safeCStr;
+import util.json : writeJson;
 import util.perf : Perf, withNullPerf;
-import util.repr : writeReprJSON;
 import util.sourceRange : RangeWithinFile;
 import util.sym : AllSymbols;
 import util.util : verifyFail;
@@ -54,12 +55,12 @@ void testOne(ref Test test, SafeCStr source, Token[] expectedTokens) {
 			import core.stdc.stdio : printf;
 			Writer writer = Writer(test.allocPtr);
 			writer ~= "expected tokens:\n";
-			writeReprJSON(writer, allSymbols, reprTokens(test.alloc, expectedTokens));
+			writeJson(writer, allSymbols, jsonOfTokens(test.alloc, expectedTokens));
 			writer ~= "\nactual tokens:\n";
-			writeReprJSON(writer, allSymbols, reprTokens(test.alloc, tokens));
+			writeJson(writer, allSymbols, jsonOfTokens(test.alloc, tokens));
 
 			writer ~= "\n\n(hint: ast is:)\n";
-			writeReprJSON(writer, allSymbols, reprAst(test.alloc, test.allPaths, ast));
+			writeJson(writer, allSymbols, jsonOfAst(test.alloc, test.allPaths, ast));
 			printf("%s\n", finishWriterToSafeCStr(writer).ptr);
 		}
 		verifyFail();

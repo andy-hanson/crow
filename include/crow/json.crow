@@ -171,6 +171,9 @@ This does not render as JSON; `to::string` does that.
 		()
 	as json-object _
 		()
++as-symbol symbol?(a json)
+	if x ?= a.as-string
+		x.to,
 # If `a` is a list, returns that, else returns an empty option.
 +as-list json[]?(a json) bare
 	match a

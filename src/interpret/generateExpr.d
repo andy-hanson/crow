@@ -1021,9 +1021,10 @@ void generateSpecialBinary(
 	scope ref ExprAfter after,
 	in LowExprKind.SpecialBinary a,
 ) {
+	LowExpr left = a.args[0], right = a.args[1];
 	void fn(alias cb)() {
-		generateExprAndContinue(writer, ctx, locals, a.left);
-		generateExprAndContinue(writer, ctx, locals, a.right);
+		generateExprAndContinue(writer, ctx, locals, left);
+		generateExprAndContinue(writer, ctx, locals, right);
 		writeFnBinary!cb(writer, source);
 		handleAfter(writer, ctx, source, after);
 	}
@@ -1031,10 +1032,10 @@ void generateSpecialBinary(
 	final switch (a.kind) {
 		case LowExprKind.SpecialBinary.Kind.addPtrAndNat64:
 		case LowExprKind.SpecialBinary.Kind.subPtrAndNat64:
-			LowType pointee = asPtrRawPointee(a.left.type);
-			generateExprAndContinue(writer, ctx, locals, a.left);
+			LowType pointee = asPtrRawPointee(left.type);
+			generateExprAndContinue(writer, ctx, locals, left);
 			StackEntry afterLeft = getNextStackEntry(writer);
-			generateExprAndContinue(writer, ctx, locals, a.right);
+			generateExprAndContinue(writer, ctx, locals, right);
 			size_t pointeeSize = typeSizeBytes(ctx, pointee);
 			if (pointeeSize != 0 && pointeeSize != 1)
 				writeMulConstantNat64(writer, source, pointeeSize);
@@ -1056,9 +1057,9 @@ void generateSpecialBinary(
 			break;
 		case LowExprKind.SpecialBinary.Kind.and:
 			generateIf(
-				writer, ctx, source, locals, after, a.left,
+				writer, ctx, source, locals, after, left,
 				(ref ExprAfter innerAfter) {
-					generateExpr(writer, ctx, locals, innerAfter, a.right);
+					generateExpr(writer, ctx, locals, innerAfter, right);
 				},
 				(ref ExprAfter innerAfter) {
 					writePushConstant(writer, source, false);
@@ -1158,13 +1159,13 @@ void generateSpecialBinary(
 			break;
 		case LowExprKind.SpecialBinary.Kind.orBool:
 			generateIf(
-				writer, ctx, source, locals, after, a.left,
+				writer, ctx, source, locals, after, left,
 				(ref ExprAfter innerAfter) {
 					writePushConstant(writer, source, true);
 					handleAfter(writer, ctx, source, innerAfter);
 				},
 				(ref ExprAfter innerAfter) {
-					generateExpr(writer, ctx, locals, innerAfter, a.right);
+					generateExpr(writer, ctx, locals, innerAfter, right);
 				});
 			break;
 		case LowExprKind.SpecialBinary.Kind.subFloat32:
@@ -1237,9 +1238,9 @@ void generateSpecialBinary(
 			fn!fnWrapMulIntegral();
 			break;
 		case LowExprKind.SpecialBinary.Kind.writeToPtr:
-			generateExprAndContinue(writer, ctx, locals, a.left);
-			generateExprAndContinue(writer, ctx, locals, a.right);
-			size_t size = typeSizeBytes(ctx, a.right.type);
+			generateExprAndContinue(writer, ctx, locals, left);
+			generateExprAndContinue(writer, ctx, locals, right);
+			size_t size = typeSizeBytes(ctx, right.type);
 			if (size != 0) {
 				writeWrite(writer, source, 0, size);
 			}

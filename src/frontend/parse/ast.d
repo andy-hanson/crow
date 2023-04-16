@@ -2,41 +2,14 @@ module frontend.parse.ast;
 
 @safe @nogc pure nothrow:
 
-import model.model :
-	AssertOrForbidKind,
-	FieldMutability,
-	FunKind,
-	ImportFileType,
-	symOfAssertOrForbidKind,
-	symOfFieldMutability,
-	symOfFunKind,
-	symOfImportFileType,
-	VarKind,
-	Visibility;
-import model.reprModel : reprVisibility;
-import util.alloc.alloc : Alloc;
+import model.model : AssertOrForbidKind, FieldMutability, FunKind, ImportFileType, VarKind, Visibility;
 import util.col.arr : empty, SmallArray;
-import util.col.arrBuilder : add, ArrBuilder, finishArr;
 import util.col.arrUtil : exists;
-import util.col.str : SafeCStr, safeCStr, safeCStrIsEmpty;
+import util.col.str : SafeCStr, safeCStr;
 import util.conv : safeToUint;
 import util.opt : force, has, none, Opt, some;
-import util.path : PathOrRelPath, pathOrRelPathToStr, AllPaths;
-import util.repr :
-	NameAndRepr,
-	nameAndRepr,
-	Repr,
-	reprArr,
-	reprBool,
-	reprFloat,
-	reprInt,
-	reprNamedRecord,
-	reprNat,
-	reprOpt,
-	reprRecord,
-	reprStr,
-	reprSym;
-import util.sourceRange : Pos, rangeOfStartAndLength, rangeOfStartAndName, RangeWithinFile, reprRangeWithinFile;
+import util.path : PathOrRelPath;
+import util.sourceRange : Pos, rangeOfStartAndLength, rangeOfStartAndName, RangeWithinFile;
 import util.sym : AllSymbols, Sym, sym;
 import util.union_ : Union;
 import util.util : unreachable, verify;
@@ -64,9 +37,16 @@ immutable struct TypeAst {
 	}
 
 	immutable struct Fun {
+		@safe @nogc pure nothrow:
+
 		RangeWithinFile range;
 		FunKind kind;
 		TypeAst[] returnAndParamTypes;
+
+		TypeAst returnType() return scope =>
+			returnAndParamTypes[0];
+		TypeAst[] paramTypes() return scope =>
+			returnAndParamTypes[1 .. $];
 	}
 
 	immutable struct Map {
@@ -334,7 +314,7 @@ immutable struct DestructureAst {
 
 immutable struct LetAst {
 	DestructureAst destructure;
-	ExprAst initializer;
+	ExprAst value;
 	ExprAst then;
 }
 
@@ -659,7 +639,7 @@ immutable struct FunModifierAst {
 	mixin Union!(Special, Extern, TypeAst);
 }
 
-private Sym symOfSpecialFlag(FunModifierAst.Special.Flags a) {
+Sym symOfSpecialFlag(FunModifierAst.Special.Flags a) {
 	switch (a) {
 		case FunModifierAst.Special.Flags.bare:
 			return sym!"bare";
@@ -736,131 +716,7 @@ private ImportsOrExportsAst emptyImportsOrExports() =>
 FileAst emptyFileAst() =>
 	FileAst(safeCStr!"", true, some(emptyImportsOrExports), some(emptyImportsOrExports), [], [], [], [], []);
 
-Repr reprAst(ref Alloc alloc, in AllPaths allPaths, in FileAst ast) {
-	ArrBuilder!NameAndRepr args;
-	if (has(ast.imports))
-		add(alloc, args, nameAndRepr!"imports"(reprImportsOrExports(alloc, allPaths, force(ast.imports))));
-	if (has(ast.exports))
-		add(alloc, args, nameAndRepr!"exports"(reprImportsOrExports(alloc, allPaths, force(ast.exports))));
-	add(alloc, args, nameAndRepr!"specs"(reprArr!SpecDeclAst(alloc, ast.specs, (in SpecDeclAst a) =>
-		reprSpecDeclAst(alloc, a))));
-	add(alloc, args, nameAndRepr!"aliases"(reprArr!StructAliasAst(alloc, ast.structAliases, (in StructAliasAst a) =>
-		reprStructAliasAst(alloc, a))));
-	add(alloc, args, nameAndRepr!"structs"(reprArr!StructDeclAst(alloc, ast.structs, (in StructDeclAst a) =>
-		reprStructDeclAst(alloc, a))));
-	add(alloc, args, nameAndRepr!"funs"(reprArr!FunDeclAst(alloc, ast.funs, (in FunDeclAst a) =>
-		reprFunDeclAst(alloc, a))));
-	return reprNamedRecord(sym!"file-ast", finishArr(alloc, args));
-}
-
-private:
-
-Repr reprImportsOrExports(ref Alloc alloc, in AllPaths allPaths, in ImportsOrExportsAst a) =>
-	reprRecord!"ports"(alloc, [
-		reprRangeWithinFile(alloc, a.range),
-		reprArr!ImportOrExportAst(alloc, a.paths, (in ImportOrExportAst a) =>
-			reprImportOrExportAst(alloc, allPaths, a))]);
-
-Repr reprImportOrExportAst(ref Alloc alloc, in AllPaths allPaths, in ImportOrExportAst a) =>
-	reprRecord!"port"(alloc, [
-		reprStr(pathOrRelPathToStr(alloc, allPaths, a.path)),
-		a.kind.matchIn!Repr(
-			(in ImportOrExportAstKind.ModuleWhole) =>
-				reprSym!"whole",
-			(in Sym[] names) =>
-				reprRecord!"named"(alloc, [reprArr!Sym(alloc, names, (in Sym name) =>
-					reprSym(name))]),
-			(in ImportOrExportAstKind.File f) =>
-				reprRecord!"file"(alloc, [
-					reprSym(f.name),
-					reprSym(symOfImportFileType(f.type))]))]);
-
-Repr reprSpecDeclAst(ref Alloc alloc, in SpecDeclAst a) =>
-	reprRecord!"spec-decl"(alloc, [
-		reprRangeWithinFile(alloc, a.range),
-		reprStr(alloc, a.docComment),
-		reprVisibility(a.visibility),
-		reprSym(a.name),
-		reprTypeAsts(alloc, a.parents),
-		reprTypeParams(alloc, a.typeParams),
-		reprSpecBodyAst(alloc, a.body_)]);
-
-Repr reprSpecBodyAst(ref Alloc alloc, in SpecBodyAst a) =>
-	a.matchIn!Repr(
-		(in SpecBodyAst.Builtin) =>
-			reprSym!"builtin",
-		(in SpecSigAst[] sigs) =>
-			reprArr!SpecSigAst(alloc, sigs, (in SpecSigAst sig) =>
-				reprSpecSig(alloc, sig)));
-
-Repr reprSpecSig(ref Alloc alloc, in SpecSigAst a) =>
-	reprRecord!"spec-sig"(alloc, [
-		reprRangeWithinFile(alloc, a.range),
-		reprStr(alloc, a.docComment),
-		reprSym(a.name),
-		reprTypeAst(alloc, a.returnType),
-		reprParamsAst(alloc, a.params)]);
-
-Repr reprStructAliasAst(ref Alloc alloc, in StructAliasAst a) =>
-	reprRecord!"alias"(alloc, [
-		reprRangeWithinFile(alloc, a.range),
-		reprStr(alloc, a.docComment),
-		reprVisibility(a.visibility),
-		reprSym(a.name),
-		reprTypeParams(alloc, a.typeParams),
-		reprTypeAst(alloc, a.target)]);
-
-Repr reprEnumOrFlags(
-	ref Alloc alloc,
-	Sym name,
-	in Opt!(TypeAst*) typeArg,
-	in StructDeclAst.Body.Enum.Member[] members,
-) =>
-	reprRecord(alloc, name, [
-		reprOpt!(TypeAst*)(alloc, typeArg, (in TypeAst* it) =>
-			reprTypeAst(alloc, *it)),
-		reprArr!(StructDeclAst.Body.Enum.Member)(alloc, members, (in StructDeclAst.Body.Enum.Member it) =>
-			reprEnumMember(alloc, it))]);
-
-Repr reprEnumMember(ref Alloc alloc, in StructDeclAst.Body.Enum.Member a) =>
-	reprRecord!"member"(alloc, [
-		reprRangeWithinFile(alloc, a.range),
-		reprSym(a.name),
-		reprOpt!LiteralIntOrNat(alloc, a.value, (in LiteralIntOrNat v) =>
-			reprLiteralIntOrNat(alloc, v))]);
-
-Repr reprLiteralFloatAst(ref Alloc alloc, in LiteralFloatAst a) =>
-	reprRecord!"float"(alloc, [reprFloat(a.value), reprBool(a.overflow)]);
-
-Repr reprLiteralIntAst(ref Alloc alloc, in LiteralIntAst a) =>
-	reprRecord!"int"(alloc, [reprInt(a.value), reprBool(a.overflow)]);
-
-Repr reprLiteralNatAst(ref Alloc alloc, in LiteralNatAst a) =>
-	reprRecord!"nat"(alloc, [reprNat(a.value), reprBool(a.overflow)]);
-
-Repr reprLiteralStringAst(ref Alloc alloc, in LiteralStringAst a) =>
-	reprRecord!"string"(alloc, [reprStr(alloc, a.value)]);
-
-Repr reprLiteralIntOrNat(ref Alloc alloc, in LiteralIntOrNat a) =>
-	a.matchIn!Repr(
-		(in LiteralIntAst it) =>
-			reprLiteralIntAst(alloc, it),
-		(in LiteralNatAst it) =>
-			reprLiteralNatAst(alloc, it));
-
-Repr reprField(ref Alloc alloc, in StructDeclAst.Body.Record.Field a) =>
-	reprRecord!"field"(alloc, [
-		reprRangeWithinFile(alloc, a.range),
-		reprSym(symOfFieldMutability(a.mutability)),
-		reprSym(a.name),
-		reprTypeAst(alloc, a.type)]);
-
-Repr reprRecordAst(ref Alloc alloc, in StructDeclAst.Body.Record a) =>
-	reprRecord!"record"(alloc, [
-		reprArr!(StructDeclAst.Body.Record.Field)(alloc, a.fields, (in StructDeclAst.Body.Record.Field it) =>
-			reprField(alloc, it))]);
-
-public Sym symOfModifierKind(ModifierAst.Kind a) {
+Sym symOfModifierKind(ModifierAst.Kind a) {
 	final switch (a) {
 		case ModifierAst.Kind.byRef:
 			return sym!"by-ref";
@@ -884,302 +740,3 @@ public Sym symOfModifierKind(ModifierAst.Kind a) {
 			return sym!"shared";
 	}
 }
-
-Repr reprUnion(ref Alloc alloc, in StructDeclAst.Body.Union a) =>
-	reprRecord!"union"(alloc, [
-		reprArr!(StructDeclAst.Body.Union.Member)(alloc, a.members, (in StructDeclAst.Body.Union.Member it) =>
-			reprRecord!"member"(alloc, [
-				reprSym(it.name),
-				reprOpt!TypeAst(alloc, it.type, (in TypeAst t) =>
-					reprTypeAst(alloc, t))]))]);
-
-Repr reprStructBodyAst(ref Alloc alloc, in StructDeclAst.Body a) =>
-	a.matchIn!Repr(
-		(in StructDeclAst.Body.Builtin) =>
-			reprSym!"builtin" ,
-		(in StructDeclAst.Body.Enum e) =>
-			reprEnumOrFlags(alloc, sym!"enum", e.typeArg, e.members),
-		(in StructDeclAst.Body.Extern) =>
-			reprSym!"extern",
-		(in StructDeclAst.Body.Flags e) =>
-			reprEnumOrFlags(alloc, sym!"flags", e.typeArg, e.members),
-		(in StructDeclAst.Body.Record a) =>
-			reprRecordAst(alloc, a),
-		(in StructDeclAst.Body.Union a) =>
-			reprUnion(alloc, a));
-
-Repr reprStructDeclAst(ref Alloc alloc, in StructDeclAst a) {
-	ArrBuilder!NameAndRepr fields;
-	add(alloc, fields, nameAndRepr!"range"(reprRangeWithinFile(alloc, a.range)));
-	if (!safeCStrIsEmpty(a.docComment))
-		add(alloc, fields, nameAndRepr!"doc"(reprStr(a.docComment)));
-	add(alloc, fields, nameAndRepr!"visibility"(reprVisibility(a.visibility)));
-	maybeAddTypeParams(alloc, fields, a.typeParams);
-	if (!empty(a.modifiers))
-		add(alloc, fields, nameAndRepr!"modifiers"(reprArr!ModifierAst(alloc, a.modifiers, (in ModifierAst x) =>
-			reprModifierAst(alloc, x))));
-	add(alloc, fields, nameAndRepr!"body"(reprStructBodyAst(alloc, a.body_)));
-	return reprNamedRecord!"struct-decl"(finishArr(alloc, fields));
-}
-
-void maybeAddTypeParams(ref Alloc alloc, ref ArrBuilder!NameAndRepr fields, in NameAndRange[] typeParams) {
-	if (!empty(typeParams))
-		add(alloc, fields, nameAndRepr!"type-params"(reprTypeParams(alloc, typeParams)));
-}
-
-Repr reprModifierAst(ref Alloc alloc, in ModifierAst a) =>
-	reprRecord!"modifier"(alloc, [reprNat(a.pos), reprSym(symOfModifierKind(a.kind))]);
-
-Repr reprFunDeclAst(ref Alloc alloc, in FunDeclAst a) {
-	ArrBuilder!NameAndRepr fields;
-	if (!safeCStrIsEmpty(a.docComment))
-		add(alloc, fields, nameAndRepr!"doc"(reprStr(a.docComment)));
-	add(alloc, fields, nameAndRepr!"visibility"(reprVisibility(a.visibility)));
-	add(alloc, fields, nameAndRepr!"range"(reprRangeWithinFile(alloc, a.range)));
-	add(alloc, fields, nameAndRepr!"name"(reprSym(a.name)));
-	maybeAddTypeParams(alloc, fields, a.typeParams);
-	add(alloc, fields, nameAndRepr!"return"(reprTypeAst(alloc, a.returnType)));
-	add(alloc, fields, nameAndRepr!"params"(reprParamsAst(alloc, a.params)));
-	if (!empty(a.modifiers))
-		add(alloc, fields, nameAndRepr!"modifiers"(reprArr!FunModifierAst(alloc, a.modifiers, (in FunModifierAst s) =>
-			reprFunModifierAst(alloc, s))));
-	if (has(a.body_))
-		add(alloc, fields, nameAndRepr!"body"(reprExprAst(alloc, force(a.body_))));
-	return reprNamedRecord!"fun-decl"(finishArr(alloc, fields));
-}
-
-Repr reprParamsAst(ref Alloc alloc, in ParamsAst a) =>
-	a.matchIn!Repr(
-		(in DestructureAst[] params) =>
-			reprDestructureAsts(alloc, params),
-		(in ParamsAst.Varargs v) =>
-			reprRecord!"varargs"(alloc, [reprDestructureAst(alloc, v.param)]));
-
-Repr reprFunModifierAst(ref Alloc alloc, in FunModifierAst a) =>
-	a.matchIn!Repr(
-		(in FunModifierAst.Special x) =>
-			reprRecord!"special"(alloc, [
-				reprNat(x.pos),
-				reprSym(symOfSpecialFlag(x.flag))]),
-		(in FunModifierAst.Extern x) =>
-			reprRecord!"extern"(alloc, [
-				reprTypeAst(alloc, *x.left),
-				reprNat(x.externPos)]),
-		(in TypeAst x) =>
-			reprTypeAst(alloc, x));
-
-Repr reprTypeAst(ref Alloc alloc, in TypeAst a) =>
-	a.matchIn!Repr(
-		(in TypeAst.Bogus x) =>
-			reprRecord!"bogus"(alloc, [reprRangeWithinFile(alloc, x.range)]),
-		(in TypeAst.Fun it) =>
-			reprRecord!"fun"(alloc, [
-				reprRangeWithinFile(alloc, it.range),
-				reprSym(symOfFunKind(it.kind)),
-				reprTypeAsts(alloc, it.returnAndParamTypes)]),
-		(in TypeAst.Map it) =>
-			reprRecord!"map"(alloc, [
-				reprTypeAst(alloc, it.v),
-				reprTypeAst(alloc, it.k)]),
-		(in NameAndRange x) =>
-			reprNameAndRange(alloc, x),
-		(in TypeAst.SuffixName it) =>
-			reprRecord!"suffix"(alloc, [
-				reprTypeAst(alloc, it.left),
-				reprNameAndRange(alloc, it.name)]),
-		(in TypeAst.SuffixSpecial it) =>
-			reprRecord!"suffix"(alloc, [
-				reprTypeAst(alloc, it.left),
-				reprNat(it.suffixPos),
-				reprSym(symForTypeAstSuffix(it.kind))]),
-		(in TypeAst.Tuple it) =>
-			reprRecord!"tuple"(alloc, [
-				reprRangeWithinFile(alloc, it.range),
-				reprTypeAsts(alloc, it.members)]));
-
-Repr reprTypeAsts(ref Alloc alloc, in TypeAst[] a) =>
-	reprArr!TypeAst(alloc, a, (in TypeAst x) =>
-		reprTypeAst(alloc, x));
-
-Repr reprDestructureAsts(ref Alloc alloc, in DestructureAst[] a) =>
-	reprArr!DestructureAst(alloc, a, (in DestructureAst x) =>
-		reprDestructureAst(alloc, x));
-
-Repr reprDestructureAst(ref Alloc alloc, in DestructureAst a) =>
-	a.matchIn!Repr(
-		(in DestructureAst.Single x) =>
-			reprRecord!"single"(alloc, [
-				reprNameAndRange(alloc, x.name),
-				reprBool(x.mut),
-				reprOpt!(TypeAst*)(alloc, x.type, (in TypeAst* t) =>
-					reprTypeAst(alloc, *t))]),
-		(in DestructureAst.Void x) =>
-			reprRecord!"void"(alloc, [reprNat(x.pos)]),
-		(in DestructureAst[] parts) =>
-			reprArr!DestructureAst(alloc, parts, (in DestructureAst part) =>
-				reprDestructureAst(alloc, part)));
-
-Repr reprExprAst(ref Alloc alloc, in ExprAst ast) =>
-	reprExprAstKind(alloc, ast.kind);
-
-Repr reprNameAndRange(ref Alloc alloc, in NameAndRange a) =>
-	reprRecord!"name-range"(alloc, [reprNat(a.start), reprSym(a.name)]);
-
-Repr reprExprAstKind(ref Alloc alloc, in ExprAstKind ast) =>
-	ast.matchIn!Repr(
-		(in ArrowAccessAst e) =>
-			reprRecord!"arrow-access"(alloc, [
-				reprExprAst(alloc, *e.left),
-				reprNameAndRange(alloc, e.name)]),
-		(in AssertOrForbidAst e) =>
-			reprRecord(alloc, symOfAssertOrForbidKind(e.kind), [
-				reprExprAst(alloc, e.condition),
-				reprOpt!ExprAst(alloc, e.thrown, (in ExprAst thrown) =>
-					reprExprAst(alloc, thrown))]),
-		(in AssignmentAst e) =>
-			reprRecord!"assign"(alloc, [
-				reprExprAst(alloc, e.left),
-				reprExprAst(alloc, e.right)]),
-		(in AssignmentCallAst e) =>
-			reprRecord!"assign-call"(alloc, [
-				reprExprAst(alloc, e.left),
-				reprNameAndRange(alloc, e.funName),
-				reprExprAst(alloc, e.right)]),
-		(in BogusAst _) =>
-			reprSym!"bogus" ,
-		(in CallAst e) =>
-			reprRecord!"call"(alloc, [
-				reprSym(symOfCallAstStyle(e.style)),
-				reprNameAndRange(alloc, e.funName),
-				reprOpt!(TypeAst*)(alloc, e.typeArg, (in TypeAst* it) =>
-					reprTypeAst(alloc, *it)),
-				reprArr!ExprAst(alloc, e.args, (in ExprAst it) =>
-					reprExprAst(alloc, it))]),
-		(in EmptyAst e) =>
-			reprSym!"empty",
-		(in ForAst x) =>
-			reprRecord!"for"(alloc, [
-				reprDestructureAst(alloc, x.param),
-				reprExprAst(alloc, x.collection),
-				reprExprAst(alloc, x.body_),
-				reprExprAst(alloc, x.else_)]),
-		(in IdentifierAst a) =>
-			reprSym(a.name),
-		(in IfAst e) =>
-			reprRecord!"if"(alloc, [
-				reprExprAst(alloc, e.cond),
-				reprExprAst(alloc, e.then),
-				reprExprAst(alloc, e.else_)]),
-		(in IfOptionAst it) =>
-			reprRecord!"if"(alloc, [
-				reprDestructureAst(alloc, it.destructure),
-				reprExprAst(alloc, it.option),
-				reprExprAst(alloc, it.then),
-				reprExprAst(alloc, it.else_)]),
-		(in InterpolatedAst it) =>
-			reprRecord!"interpolated"(alloc, [
-				reprArr!InterpolatedPart(alloc, it.parts, (in InterpolatedPart part) =>
-					reprInterpolatedPart(alloc, part))]),
-		(in LambdaAst x) =>
-			reprRecord!"lambda"(alloc, [
-				reprDestructureAst(alloc, x.param),
-				reprExprAst(alloc, x.body_)]),
-		(in LetAst a) =>
-			reprRecord!"let"(alloc, [
-				reprDestructureAst(alloc, a.destructure),
-				reprExprAst(alloc, a.initializer),
-				reprExprAst(alloc, a.then)]),
-		(in LiteralFloatAst a) =>
-			reprLiteralFloatAst(alloc, a),
-		(in LiteralIntAst a) =>
-			reprLiteralIntAst(alloc, a),
-		(in LiteralNatAst a) =>
-			reprLiteralNatAst(alloc, a),
-		(in LiteralStringAst a) =>
-			reprLiteralStringAst(alloc, a),
-		(in LoopAst a) =>
-			reprRecord!"loop"(alloc, [reprExprAst(alloc, a.body_)]),
-		(in LoopBreakAst e) =>
-			reprRecord!"break"(alloc, [reprExprAst(alloc, e.value)]),
-		(in LoopContinueAst _) =>
-			reprSym!"continue",
-		(in LoopUntilAst e) =>
-			reprRecord!"until"(alloc, [
-				reprExprAst(alloc, e.condition),
-				reprExprAst(alloc, e.body_)]),
-		(in LoopWhileAst e) =>
-			reprRecord!"while"(alloc, [
-				reprExprAst(alloc, e.condition),
-				reprExprAst(alloc, e.body_)]),
-		(in MatchAst it) =>
-			reprRecord!"match"(alloc, [
-				reprExprAst(alloc, it.matched),
-				reprArr!(MatchAst.CaseAst)(alloc, it.cases, (in MatchAst.CaseAst case_) =>
-					reprRecord!"case"(alloc, [
-						reprRangeWithinFile(alloc, case_.range),
-						reprSym(case_.memberName),
-						reprOpt!DestructureAst(alloc, case_.destructure, (in DestructureAst x) =>
-							reprDestructureAst(alloc, x)),
-						reprExprAst(alloc, case_.then)]))]),
-		(in ParenthesizedAst it) =>
-			reprRecord!"paren"(alloc, [reprExprAst(alloc, it.inner)]),
-		(in PtrAst a) =>
-			reprRecord!"ptr"(alloc, [reprExprAst(alloc, a.inner)]),
-		(in SeqAst a) =>
-			reprRecord!"seq-ast"(alloc, [
-				reprExprAst(alloc, a.first),
-				reprExprAst(alloc, a.then)]),
-		(in ThenAst it) =>
-			reprRecord!"then"(alloc, [
-				reprDestructureAst(alloc, it.left),
-				reprExprAst(alloc, it.futExpr),
-				reprExprAst(alloc, it.then)]),
-		(in ThrowAst it) =>
-			reprRecord!"throw"(alloc, [reprExprAst(alloc, it.thrown)]),
-		(in TrustedAst it) =>
-			reprRecord!"trusted"(alloc, [reprExprAst(alloc, it.inner)]),
-		(in TypedAst it) =>
-			reprRecord!"typed"(alloc, [
-				reprExprAst(alloc, it.expr),
-				reprTypeAst(alloc, it.type)]),
-		(in UnlessAst it) =>
-			reprRecord!"unless"(alloc, [
-				reprExprAst(alloc, it.cond),
-				reprExprAst(alloc, it.body_)]),
-		(in WithAst x) =>
-			reprRecord!"with"(alloc, [
-				reprDestructureAst(alloc, x.param),
-				reprExprAst(alloc, x.arg),
-				reprExprAst(alloc, x.body_)]));
-
-Repr reprInterpolatedPart(ref Alloc alloc, in InterpolatedPart a) =>
-	a.matchIn!Repr(
-		(in string it) => reprStr(alloc, it),
-		(in ExprAst it) => reprExprAst(alloc, it));
-
-Sym symOfCallAstStyle(CallAst.Style a) {
-	final switch (a) {
-		case CallAst.Style.comma:
-			return sym!"comma";
-		case CallAst.Style.dot:
-			return sym!"dot";
-		case CallAst.Style.emptyParens:
-			return sym!"empty-parens";
-		case CallAst.Style.infix:
-			return sym!"infix";
-		case CallAst.Style.prefixBang:
-			return sym!"prefix-bang";
-		case CallAst.Style.prefixOperator:
-			return sym!"prefix-op";
-		case CallAst.Style.single:
-			return sym!"single";
-		case CallAst.Style.subscript:
-			return sym!"subscript";
-		case CallAst.Style.suffixBang:
-			return sym!"suffix-bang";
-	}
-}
-
-Repr reprTypeParams(ref Alloc alloc, in NameAndRange[] typeParams) =>
-	reprArr!NameAndRange(alloc, typeParams, (in NameAndRange a) =>
-		reprNameAndRange(alloc, a));

@@ -11,7 +11,7 @@ struct ArrBuilder(T) {
 	private MutArr!(immutable T) data;
 }
 
-void add(T)(scope ref Alloc alloc, ref ArrBuilder!T a, in immutable T value) {
+void add(T)(scope ref Alloc alloc, ref ArrBuilder!T a, immutable T value) {
 	push(alloc, a.data, value);
 }
 

@@ -44,25 +44,25 @@ import util.col.arr : empty;
 import util.col.arrBuilder : add, ArrBuilder, arrBuilderSort, finishArr;
 import util.col.arrUtil : exists, indexOf, map, mapOp;
 import util.col.map : mapEachIn;
-import util.col.str : SafeCStr, safeCStrIsEmpty;
+import util.col.str : SafeCStr;
 import util.comparison : compareNat16, compareNat32, Comparison;
+import util.json :
+	field,
+	Json,
+	jsonObject,
+	jsonToString,
+	optionalArrayField,
+	optionalFlagField,
+	optionalField,
+	optionalStringField,
+	jsonList,
+	jsonString,
+	kindField;
 import util.opt : force, has, none, Opt, some;
 import util.path : AllPaths, PathsInfo, pathToSafeCStrPreferRelative;
-import util.repr :
-	jsonStrOfRepr,
-	NameAndRepr,
-	nameAndRepr,
-	Repr,
-	reprArr,
-	reprBool,
-	reprNamedRecord,
-	reprNat,
-	reprOpt,
-	reprStr,
-	reprSym;
 import util.sourceRange : FileAndRange;
 import util.sym : AllSymbols, Sym, sym;
-import util.util : unreachable, verify;
+import util.util : unreachable;
 
 SafeCStr documentJSON(
 	ref Alloc alloc,
@@ -71,22 +71,22 @@ SafeCStr documentJSON(
 	in PathsInfo pathsInfo,
 	in Program program,
 ) =>
-	jsonStrOfRepr(alloc, allSymbols, documentRootModules(alloc, allSymbols, allPaths, pathsInfo, program));
+	jsonToString(alloc, allSymbols, documentRootModules(alloc, allSymbols, allPaths, pathsInfo, program));
 
 private:
 
-Repr documentRootModules(
+Json documentRootModules(
 	ref Alloc alloc,
 	in AllSymbols allSymbols,
 	in AllPaths allPaths,
 	in PathsInfo pathsInfo,
 	in Program program,
 ) =>
-	reprNamedRecord!"root"(alloc, [
-		nameAndRepr!"modules"(reprArr!(Module*)(alloc, program.rootModules, (in Module* x) =>
+	jsonObject(alloc, [
+		field!"modules"(jsonList!(Module*)(alloc, program.rootModules, (in Module* x) =>
 			documentModule(alloc, allSymbols, allPaths, pathsInfo, program, *x)))]);
 
-Repr documentModule(
+Json documentModule(
 	ref Alloc alloc,
 	in AllSymbols allSymbols,
 	in AllPaths allPaths,
@@ -108,23 +108,12 @@ Repr documentModule(
 		});
 	arrBuilderSort!DocExport(exports, (in DocExport x, in DocExport y) =>
 		compareRanges(x.range, y.range));
-	ArrBuilder!NameAndRepr fields;
-	add(alloc, fields, nameAndRepr!"path"(reprModulePath(alloc, allPaths, pathsInfo, program, a)));
-	if (!safeCStrIsEmpty(a.docComment))
-		add(alloc, fields, nameAndRepr!"comment"(reprStr(a.docComment)));
-	add(alloc, fields, nameAndRepr!"exports"(
-		reprArr!DocExport(alloc, finishArr(alloc, exports), (in DocExport x) => x.repr)));
-	return reprNamedRecord!"module"(finishArr(alloc, fields));
+	return jsonObject(alloc, [
+		field!"path"(
+			pathToSafeCStrPreferRelative(alloc, allPaths, pathsInfo, program.filesInfo.filePaths[a.fileIndex])),
+		optionalStringField!"doc"(alloc, a.docComment),
+		field!"exports"(jsonList!DocExport(alloc, finishArr(alloc, exports), (in DocExport x) => x.json))]);
 }
-
-Repr reprModulePath(
-	ref Alloc alloc,
-	in AllPaths allPaths,
-	in PathsInfo pathsInfo,
-	in Program program,
-	in Module module_,
-) =>
-	reprStr(pathToSafeCStrPreferRelative(alloc, allPaths, pathsInfo, program.filesInfo.filePaths[module_.fileIndex]));
 
 Comparison compareRanges(FileAndRange a, FileAndRange b) {
 	Comparison compareFile = compareNat16(a.fileIndex.index, b.fileIndex.index);
@@ -133,7 +122,7 @@ Comparison compareRanges(FileAndRange a, FileAndRange b) {
 
 immutable struct DocExport {
 	FileAndRange range;
-	Repr repr;
+	Json json;
 }
 
 DocExport documentExport(
@@ -142,17 +131,14 @@ DocExport documentExport(
 	Sym name,
 	in SafeCStr docComment,
 	in TypeParam[] typeParams,
-	Repr value,
-) {
-	ArrBuilder!NameAndRepr fields;
-	add(alloc, fields, nameAndRepr!"name"(reprSym(name)));
-	if (!safeCStrIsEmpty(docComment))
-		add(alloc, fields, nameAndRepr!"comment"(reprStr(docComment)));
-	if (!empty(typeParams))
-		add(alloc, fields, nameAndRepr!"type-params"(documentTypeParams(alloc, typeParams)));
-	add(alloc, fields, nameAndRepr!"value"(value));
-	return DocExport(range, reprNamedRecord!"export"(finishArr(alloc, fields)));
-}
+	Json value,
+) =>
+	DocExport(range, jsonObject(alloc, [
+		field!"name"(name),
+		optionalStringField!"doc"(alloc, docComment),
+		optionalArrayField!("type-params", TypeParam)(alloc, typeParams, (in TypeParam x) =>
+			jsonObject(alloc, [field!"name"(x.name)])),
+		field!"value"(value)]));
 
 DocExport documentStructOrAlias(ref Alloc alloc, in StructOrAlias a) =>
 	a.matchIn!DocExport(
@@ -163,50 +149,48 @@ DocExport documentStructOrAlias(ref Alloc alloc, in StructOrAlias a) =>
 
 DocExport documentStructAlias(ref Alloc alloc, in StructAlias a) {
 	Opt!(StructInst*) optTarget = target(a);
-	return documentExport(alloc, a.range, a.name, a.docComment, a.typeParams, reprNamedRecord!"alias"(alloc, [
-		nameAndRepr!"target"(documentStructInst(alloc, *force(optTarget)))]));
+	return documentExport(alloc, a.range, a.name, a.docComment, a.typeParams, jsonObject(alloc, [
+		kindField!"alias",
+		field!"target"(documentStructInst(alloc, *force(optTarget)))]));
 }
 
 DocExport documentStructDecl(ref Alloc alloc, in StructDecl a) =>
-	documentExport(alloc, a.range, a.name, a.docComment, a.typeParams, body_(a).matchIn!Repr(
+	documentExport(alloc, a.range, a.name, a.docComment, a.typeParams, body_(a).matchIn!Json(
 		(in StructBody.Bogus) =>
-			unreachable!Repr,
+			unreachable!Json,
 		(in StructBody.Builtin) =>
-			reprNamedRecord!"builtin"(alloc, [nameAndRepr!"name"(reprSym(a.name))]),
+			jsonObject(alloc, [kindField!"builtin", field!"name"(a.name)]),
 		(in StructBody.Enum x) =>
-			reprNamedRecord!"enum"(alloc, [nameAndRepr!"members"(reprEnumMembers(alloc, x.members))]),
+			jsonObject(alloc, [kindField!"enum", field!"members"(jsonOfEnumMembers(alloc, x.members))]),
 		(in StructBody.Extern x) =>
-			reprNamedRecord!"extern"(alloc, [
-				nameAndRepr!"size"(reprOpt!TypeSize(alloc, x.size, (in TypeSize size) =>
-					reprNamedRecord!"type-size"(alloc, [
-						nameAndRepr!"size"(reprNat(size.sizeBytes)),
-						nameAndRepr!"alignment"(reprNat(size.alignmentBytes))])))]),
+			jsonObject(alloc, [
+				kindField!"extern",
+				optionalField!("size", TypeSize)(x.size, (in TypeSize size) =>
+					jsonObject(alloc, [
+						field!"size"(size.sizeBytes),
+						field!"alignment"(size.alignmentBytes)]))]),
 		(in StructBody.Flags x) =>
-			reprNamedRecord!"flags"(alloc, [nameAndRepr!"members"(reprEnumMembers(alloc, x.members))]),
+			jsonObject(alloc, [kindField!"flags", field!"members"(jsonOfEnumMembers(alloc, x.members))]),
 		(in StructBody.Record x) =>
 			documentRecord(alloc, a, x),
 		(in StructBody.Union x) =>
 			documentUnion(alloc, a, x)));
 
-Repr reprEnumMembers(ref Alloc alloc, in StructBody.Enum.Member[] members) =>
-	reprArr!(StructBody.Enum.Member)(alloc, members, (in StructBody.Enum.Member member) =>
-		reprSym(member.name));
+Json jsonOfEnumMembers(ref Alloc alloc, in StructBody.Enum.Member[] members) =>
+	jsonList!(StructBody.Enum.Member)(alloc, members, (in StructBody.Enum.Member member) =>
+		jsonString(member.name));
 
-Repr documentRecord(ref Alloc alloc, in StructDecl decl, in StructBody.Record a) {
-	ArrBuilder!NameAndRepr fields;
-	maybeAddPurity(alloc, fields, decl);
-	if (hasNonPublicFields(a))
-		add(alloc, fields, nameAndRepr!"has-non-public-fields"(reprBool(true)));
-	add(alloc, fields, nameAndRepr!"fields"(reprArr(
-		mapOp!(Repr, RecordField)(alloc, a.fields, (ref RecordField field) =>
-			documentRecordField(alloc, field)))));
-	return reprNamedRecord!"record"(finishArr(alloc, fields));
-}
+Json documentRecord(ref Alloc alloc, in StructDecl decl, in StructBody.Record a) =>
+	jsonObject(alloc, [
+		kindField!"record",
+		maybePurity(alloc, decl),
+		optionalFlagField!"has-non-public-fields"(hasNonPublicFields(a)),
+		field!"fields"(jsonList(
+			mapOp!(Json, RecordField)(alloc, a.fields, (ref RecordField field) =>
+				documentRecordField(alloc, field))))]);
 
-void maybeAddPurity(ref Alloc alloc, ref ArrBuilder!NameAndRepr fields, in StructDecl decl) {
-	if (decl.purity != Purity.data)
-		add(alloc, fields, nameAndRepr!"purity"(reprSym(symOfPurity(decl.purity))));
-}
+Json.ObjectField maybePurity(ref Alloc alloc, in StructDecl decl) =>
+	optionalField!"purity"(decl.purity != Purity.data, () => jsonString(symOfPurity(decl.purity)));
 
 bool hasNonPublicFields(in StructBody.Record a) =>
 	exists!RecordField(a.fields, (in RecordField x) {
@@ -219,136 +203,113 @@ bool hasNonPublicFields(in StructBody.Record a) =>
 		}
 	});
 
-Repr documentUnion(ref Alloc alloc, in StructDecl decl, in StructBody.Union a) {
-	ArrBuilder!NameAndRepr fields;
-	maybeAddPurity(alloc, fields, decl);
-	add(alloc, fields, nameAndRepr!"members"(reprArr!UnionMember(alloc, a.members, (in UnionMember member) =>
-		documentUnionMember(alloc, member))));
-	return reprNamedRecord!"union"(finishArr(alloc, fields));
-}
+Json documentUnion(ref Alloc alloc, in StructDecl decl, in StructBody.Union a) =>
+	jsonObject(alloc, [
+		kindField!"union",
+		maybePurity(alloc, decl),
+		field!"members"(jsonList!UnionMember(alloc, a.members, (in UnionMember member) =>
+			documentUnionMember(alloc, member)))]);
 
-Opt!Repr documentRecordField(ref Alloc alloc, in RecordField a) {
+Opt!Json documentRecordField(ref Alloc alloc, in RecordField a) {
 	final switch (a.visibility) {
 		case Visibility.private_:
 		case Visibility.internal:
-			return none!Repr;
+			return none!Json;
 		case Visibility.public_:
-			ArrBuilder!NameAndRepr fields;
-			add(alloc, fields, nameAndRepr!"name"(reprSym(a.name)));
-			add(alloc, fields, nameAndRepr!"type"(documentTypeRef(alloc, a.type)));
-			final switch (a.mutability) {
-				case FieldMutability.const_:
-					break;
-				case FieldMutability.private_:
-					break;
-				case FieldMutability.public_:
-					add(alloc, fields, nameAndRepr!"mut"(reprBool(true)));
-					break;
-			}
-			return some(reprNamedRecord!"field"(finishArr(alloc, fields)));
+			return some(jsonObject(alloc, [
+				field!"name"(a.name),
+				field!"type"(documentTypeRef(alloc, a.type)),
+				optionalFlagField!"mut"(a.mutability == FieldMutability.public_)]));
 	}
 }
 
-Repr documentUnionMember(ref Alloc alloc, in UnionMember a) {
-	ArrBuilder!NameAndRepr fields;
-	add(alloc, fields, nameAndRepr!"name"(reprSym(a.name)));
-	add(alloc, fields, nameAndRepr!"type"(documentTypeRef(alloc, a.type)));
-	return reprNamedRecord!"member"(finishArr(alloc, fields));
-}
+Json documentUnionMember(ref Alloc alloc, in UnionMember a) =>
+	jsonObject(alloc, [
+		field!"name"(a.name),
+		field!"type"(documentTypeRef(alloc, a.type))]);
 
 DocExport documentSpec(ref Alloc alloc, in SpecDecl a) =>
-	documentExport(alloc, a.range, a.name, a.docComment, a.typeParams, reprNamedRecord!"spec"(alloc, [
-		nameAndRepr!"parents"(reprArr(map(alloc, a.parents, (ref immutable SpecInst* x) =>
+	documentExport(alloc, a.range, a.name, a.docComment, a.typeParams, jsonObject(alloc, [
+		kindField!"spec",
+		field!"parents"(jsonList(map(alloc, a.parents, (ref immutable SpecInst* x) =>
 			documentSpecInst(alloc, *x)))),
-		nameAndRepr!"body"(a.body_.matchIn!Repr(
+		field!"body"(a.body_.matchIn!Json(
 			(in SpecDeclBody.Builtin) =>
-				reprNamedRecord!"builtin"(alloc, []),
+				jsonObject(alloc, [kindField!"builtin"]),
 			(in SpecDeclSig[] sigs) =>
-				reprNamedRecord!"sigs"(alloc, [
-					nameAndRepr!"sigs"(reprArr!SpecDeclSig(alloc, sigs, (in SpecDeclSig sig) =>
+				jsonObject(alloc, [
+					kindField!"sigs",
+					field!"sigs"(jsonList!SpecDeclSig(alloc, sigs, (in SpecDeclSig sig) =>
 						documentSpecDeclSig(alloc, sig)))])))]));
 
-Repr documentSpecDeclSig(ref Alloc alloc, in SpecDeclSig a) {
-	ArrBuilder!NameAndRepr fields;
-	if (!safeCStrIsEmpty(a.docComment))
-		add(alloc, fields, nameAndRepr!"comment"(reprStr(a.docComment)));
-	add(alloc, fields, nameAndRepr!"name"(reprSym(a.name)));
-	add(alloc, fields, nameAndRepr!"return-type"(documentTypeRef(alloc, a.returnType)));
-	add(alloc, fields, nameAndRepr!"params"(documentParamDestructures(alloc, a.params)));
-	return reprNamedRecord!"sig"(finishArr(alloc, fields));
-}
+Json documentSpecDeclSig(ref Alloc alloc, in SpecDeclSig a) =>
+	jsonObject(alloc, [
+		optionalStringField!"doc"(alloc, a.docComment),
+		field!"name"(a.name),
+		field!"return-type"(documentTypeRef(alloc, a.returnType)),
+		field!"params"(documentParamDestructures(alloc, a.params))]);
 
-DocExport documentFun(ref Alloc alloc, in FunDecl a) {
-	ArrBuilder!NameAndRepr fields;
-	add(alloc, fields, nameAndRepr!"return-type"(documentTypeRef(alloc, a.returnType)));
-	add(alloc, fields, documentParams(alloc, a.params));
-	if (isVariadic(a))
-		add(alloc, fields, nameAndRepr!"variadic"(reprBool(true)));
-	Repr[] specs = documentSpecs(alloc, a);
-	if (!empty(specs))
-		add(alloc, fields, nameAndRepr!"specs"(reprArr(specs)));
-	Repr value = reprNamedRecord!"fun"(finishArr(alloc, fields));
-	return documentExport(alloc, a.range, a.name, a.docComment, a.typeParams, value);
-}
+DocExport documentFun(ref Alloc alloc, in FunDecl a) =>
+	documentExport(alloc, a.range, a.name, a.docComment, a.typeParams, jsonObject(alloc, [
+		kindField!"fun",
+		field!"return-type"(documentTypeRef(alloc, a.returnType)),
+		documentParams(alloc, a.params),
+		optionalFlagField!"variadic"(isVariadic(a)),
+		optionalArrayField!"specs"(documentSpecs(alloc, a))]));
 
-Repr[] documentSpecs(ref Alloc alloc, in FunDecl a) {
-	ArrBuilder!Repr res;
+Json[] documentSpecs(ref Alloc alloc, in FunDecl a) {
+	ArrBuilder!Json res;
 	if (isBare(a))
-		add(alloc, res, reprSpecialSpec(alloc, sym!"bare"));
+		add(alloc, res, jsonOfSpecialSpec(alloc, sym!"bare"));
 	if (isSummon(a))
-		add(alloc, res, reprSpecialSpec(alloc, sym!"summon"));
+		add(alloc, res, jsonOfSpecialSpec(alloc, sym!"summon"));
 	if (isUnsafe(a))
-		add(alloc, res, reprSpecialSpec(alloc, sym!"unsafe"));
+		add(alloc, res, jsonOfSpecialSpec(alloc, sym!"unsafe"));
 	foreach (SpecInst* spec; a.specs)
 		add(alloc, res, documentSpecInst(alloc, *spec));
 	return finishArr(alloc, res);
 }
 
-Repr reprSpecialSpec(ref Alloc alloc, Sym name) =>
-	reprNamedRecord!"special"(alloc, [nameAndRepr!"name"(reprSym(name))]);
+Json jsonOfSpecialSpec(ref Alloc alloc, Sym name) =>
+	jsonObject(alloc, [kindField!"special", field!"name"(name)]);
 
-NameAndRepr documentParams(ref Alloc alloc, in Params params) =>
-	nameAndRepr!"params"(documentParamDestructures(alloc, paramsArray(params)));
+Json.ObjectField documentParams(ref Alloc alloc, in Params params) =>
+	field!"params"(documentParamDestructures(alloc, paramsArray(params)));
 
-Repr documentParamDestructures(ref Alloc alloc, in Destructure[] a) =>
-	reprArr!Destructure(alloc, a, (in Destructure x) =>
+Json documentParamDestructures(ref Alloc alloc, in Destructure[] a) =>
+	jsonList!Destructure(alloc, a, (in Destructure x) =>
 		documentParam(alloc, x));
 
-Repr documentParam(ref Alloc alloc, in Destructure a) {
+Json documentParam(ref Alloc alloc, in Destructure a) {
 	Opt!Sym name = a.name;
-	return reprNamedRecord!"param"(alloc, [
-		nameAndRepr!"name"(reprSym(has(name) ? force(name) : sym!"anonymous")),
-		nameAndRepr!"type"(documentTypeRef(alloc, a.type))]);
+	return jsonObject(alloc, [
+		field!"name"(has(name) ? force(name) : sym!"anonymous"),
+		field!"type"(documentTypeRef(alloc, a.type))]);
 }
 
-Repr documentTypeRef(ref Alloc alloc, Type a) =>
-	a.matchIn!Repr(
+Json documentTypeRef(ref Alloc alloc, Type a) =>
+	a.matchIn!Json(
 		(in Type.Bogus) =>
-			unreachable!Repr,
+			unreachable!Json,
 		(in TypeParam x) =>
-			reprNamedRecord!"type-param"(alloc, [nameAndRepr!"name"(reprSym(x.name))]),
+			jsonObject(alloc, [kindField!"type-param", field!"name"(x.name)]),
 		(in StructInst x) =>
 			documentStructInst(alloc, x));
 
-Repr documentSpecInst(ref Alloc alloc, in SpecInst a) =>
+Json documentSpecInst(ref Alloc alloc, in SpecInst a) =>
 	documentNameAndTypeArgs(alloc, sym!"spec", name(a), typeArgs(a));
 
-Repr documentStructInst(ref Alloc alloc, in StructInst a) =>
+Json documentStructInst(ref Alloc alloc, in StructInst a) =>
 	documentNameAndTypeArgs(alloc, sym!"struct", name(a), typeArgs(a));
 
-Repr documentNameAndTypeArgs(ref Alloc alloc, Sym nodeType, Sym name, scope Type[] typeArgs) =>
+Json documentNameAndTypeArgs(ref Alloc alloc, Sym nodeType, Sym name, scope Type[] typeArgs) =>
 	empty(typeArgs)
-		? reprNamedRecord(alloc, nodeType, [nameAndRepr!"name"(reprSym(name))])
-		: reprNamedRecord(alloc, nodeType, [
-			nameAndRepr!"name"(reprSym(name)),
-			nameAndRepr!"type-args"(reprArr!Type(alloc, typeArgs, (in Type typeArg) =>
+		? jsonObject(alloc, [kindField(nodeType), field!"name"(name)])
+		: jsonObject(alloc, [
+			kindField(nodeType),
+			field!"name"(name),
+			field!"type-args"(jsonList!Type(alloc, typeArgs, (in Type typeArg) =>
 				documentTypeRef(alloc, typeArg)))]);
-
-Repr documentTypeParams(ref Alloc alloc, scope TypeParam[] xs) {
-	verify(!empty(xs));
-	return reprArr!TypeParam(alloc, xs, (in TypeParam x) =>
-		reprNamedRecord!"type-param"(alloc, [nameAndRepr!"name"(reprSym(x.name))]));
-}
 
 void eachLine(string a, in void delegate(string) @safe @nogc pure nothrow cb) {
 	Opt!size_t index = indexOf(a, '\n');

@@ -44,7 +44,7 @@ LowType voidType = LowType(PrimitiveType.void_);
 
 LowExpr genAddPtr(ref Alloc alloc, LowType.PtrRawConst ptrType, FileAndRange range, LowExpr ptr, LowExpr added) =>
 	LowExpr(LowType(ptrType), range, LowExprKind(allocate(alloc,
-		LowExprKind.SpecialBinary(LowExprKind.SpecialBinary.Kind.addPtrAndNat64, ptr, added))));
+		LowExprKind.SpecialBinary(LowExprKind.SpecialBinary.Kind.addPtrAndNat64, [ptr, added]))));
 
 LowExpr genAsAnyPtrConst(ref Alloc alloc, FileAndRange range, LowExpr a) =>
 	LowExpr(anyPtrConstType, range, LowExprKind(allocate(alloc,
@@ -98,15 +98,15 @@ LowExpr genLocalSet(ref Alloc alloc, FileAndRange range, LowLocal* local, LowExp
 
 LowExpr genWrapMulNat64(ref Alloc alloc, FileAndRange range, LowExpr left, LowExpr right) =>
 	LowExpr(nat64Type, range, LowExprKind(allocate(alloc,
-		LowExprKind.SpecialBinary(LowExprKind.SpecialBinary.Kind.wrapMulNat64, left, right))));
+		LowExprKind.SpecialBinary(LowExprKind.SpecialBinary.Kind.wrapMulNat64, [left, right]))));
 
 LowExpr genPtrEq(ref Alloc alloc, FileAndRange range, LowExpr a, LowExpr b) =>
 	LowExpr(boolType, range, LowExprKind(allocate(alloc,
-		LowExprKind.SpecialBinary(LowExprKind.SpecialBinary.Kind.eqPtr, a, b))));
+		LowExprKind.SpecialBinary(LowExprKind.SpecialBinary.Kind.eqPtr, [a, b]))));
 
 LowExprKind genEnumEq(ref Alloc alloc, LowExpr a, LowExpr b) {
 	verify(a.type.as!PrimitiveType == b.type.as!PrimitiveType);
-	return LowExprKind(allocate(alloc, LowExprKind.SpecialBinary(eqForType(a.type.as!PrimitiveType), a, b)));
+	return LowExprKind(allocate(alloc, LowExprKind.SpecialBinary(eqForType(a.type.as!PrimitiveType), [a, b])));
 }
 
 LowExprKind genBitwiseNegate(ref Alloc alloc, LowExpr a) =>
@@ -114,12 +114,12 @@ LowExprKind genBitwiseNegate(ref Alloc alloc, LowExpr a) =>
 
 LowExprKind genEnumIntersect(ref Alloc alloc, LowExpr a, LowExpr b) {
 	verify(a.type.as!PrimitiveType == b.type.as!PrimitiveType);
-	return LowExprKind(allocate(alloc, LowExprKind.SpecialBinary(intersectForType(a.type.as!PrimitiveType), a, b)));
+	return LowExprKind(allocate(alloc, LowExprKind.SpecialBinary(intersectForType(a.type.as!PrimitiveType), [a, b])));
 }
 
 LowExprKind genEnumUnion(ref Alloc alloc, LowExpr a, LowExpr b) {
 	verify(a.type.as!PrimitiveType == b.type.as!PrimitiveType);
-	return LowExprKind(allocate(alloc, LowExprKind.SpecialBinary(unionForType(a.type.as!PrimitiveType), a, b)));
+	return LowExprKind(allocate(alloc, LowExprKind.SpecialBinary(unionForType(a.type.as!PrimitiveType), [a, b])));
 }
 
 private LowExprKind.SpecialUnary.Kind bitwiseNegateForType(PrimitiveType a) {
@@ -247,7 +247,7 @@ LowExpr genSeq(ref Alloc alloc, FileAndRange range, LowExpr line0, LowExpr line1
 LowExpr genWriteToPtr(ref Alloc alloc, FileAndRange range, LowExpr ptr, LowExpr value) =>
 	LowExpr(voidType, range, genWriteToPtr(alloc, ptr, value));
 LowExprKind genWriteToPtr(ref Alloc alloc, LowExpr ptr, LowExpr value) =>
-	LowExprKind(allocate(alloc, LowExprKind.SpecialBinary(LowExprKind.SpecialBinary.Kind.writeToPtr, ptr, value)));
+	LowExprKind(allocate(alloc, LowExprKind.SpecialBinary(LowExprKind.SpecialBinary.Kind.writeToPtr, [ptr, value])));
 
 LowExpr genVoid(FileAndRange source) =>
 	LowExpr(voidType, source, LowExprKind(constantZero));

@@ -65,7 +65,6 @@ void writeFloatLiteral(scope ref Writer writer, double a) {
 		if (1.0 / a < 0)
 			writer ~= '-';
 		writer ~= abs(cast(long) a);
-		writer ~= ".0";
 	} else if ((cast(double) (cast(long) (a * 10.0))) == a * 10.0) {
 		writer ~= cast(long) a;
 		writer ~= '.';
@@ -101,19 +100,6 @@ private void writeNat(scope ref Writer writer, ulong n, ulong base = 10) {
 char digitChar(ulong digit) {
 	verify(digit < 16);
 	return digit < 10 ? cast(char) ('0' + digit) : cast(char) ('a' + (digit - 10));
-}
-
-void writeJoin(T)(
-	scope ref Writer writer,
-	in T[] a,
-	in string joiner,
-	in void delegate(in T) @safe @nogc pure nothrow cb,
-) {
-	foreach (size_t i, ref T x; a) {
-		if (i != 0)
-			writer ~= joiner;
-		cb(x);
-	}
 }
 
 void writeWithCommas(T)(scope ref Writer writer, in T[] a, in void delegate(in T) @safe @nogc pure nothrow cb) {

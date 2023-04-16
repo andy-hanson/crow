@@ -21,13 +21,11 @@ get-modules module[]^(paths string[], remove-prefix string) summon
 		"bin/crow"
 
 -to-modules module[](a json, remove-prefix string)
-	a.get-node-type is "root"
 	res module[] = for x : a["modules"]!.as-list!
 		x to-module remove-prefix
 	res filter x => !x.exports.is-empty
 
 -to-module module(a json, remove-prefix string)
-	a.get-node-type is "module"
 	path = a["path"]! to-path remove-prefix
 	path, a.get-comment, for x : a["exports"]!.as-list!
 		x to-export
@@ -39,11 +37,7 @@ get-modules module[]^(paths string[], remove-prefix string) summon
 	if c ?= a["comment"]
 		c.as-string!
 
--get-node-type string(a json)
-	a["_type"]!.as-string!
-
 -to-export module-export(a json)
-	a.get-node-type is "export"
 	type-params type-param[] = if t ?= a["type-params"]
 		for x : t.as-list!
 			x to-type-param
@@ -51,27 +45,27 @@ get-modules module[]^(paths string[], remove-prefix string) summon
 	a.get-name, a.get-comment, type-params, value
 
 -to-export-value module-export-value(a json)
-	type = a get-node-type
-	if type == "alias"
+	kind = a["kind"]!.as-symbol!
+	if kind == "alias"
 		a.to-alias-decl alias-decl
-	elif type == "builtin"
+	elif kind == "builtin"
 		builtin-decl
-	elif type == "enum"
+	elif kind == "enum"
 		a.to-enum-decl enum-decl
-	elif type == "extern"
+	elif kind == "extern"
 		extern-decl
-	elif type == "flags"
+	elif kind == "flags"
 		a.to-flags-decl flags-decl
-	elif type == "fun"
+	elif kind == "fun"
 		a.to-fun-decl fun-decl
-	elif type == "spec"
+	elif kind == "spec"
 		a.to-spec-decl spec-decl
-	elif type == "record"
+	elif kind == "record"
 		a.to-record-decl record-decl
-	elif type == "union"
+	elif kind == "union"
 		a.to-union-decl union-decl
 	else
-		throw "unexpected export type {type}"
+		throw "unexpected export kind {kind}"
 
 -to-alias-decl alias-decl(a json)
 	target = a["target"]! to-type-ref
@@ -105,7 +99,6 @@ get-modules module[]^(paths string[], remove-prefix string) summon
 		data
 
 -to-record-field record-field(a json)
-	a.get-node-type is "field"
 	is-mut = if m ?= a["mut"]
 		m.as-bool!
 	a.get-name, a.get-type, is-mut
@@ -115,7 +108,6 @@ get-modules module[]^(paths string[], remove-prefix string) summon
 		x to-union-member
 
 -to-union-member union-member(a json)
-	a.get-node-type is "member"
 	type type-ref? = if t ?= a["type"]
 		t.to-type-ref,
 	a.get-name, type
@@ -145,15 +137,15 @@ get-modules module[]^(paths string[], remove-prefix string) summon
 	parents spec-ref[] = for x : a["parents"]!.as-list!
 		x to-spec-ref
 	body-json = a["body"]!
-	type = body-json get-node-type
-	body_ = if type == "builtin"
+	kind = body-json["kind"]!.as-symbol!
+	body_ = if kind == "builtin"
 		spec-builtin
-	elif type == "sigs"
+	elif kind == "sigs"
 		sigs spec-sig[] = for x : body-json["sigs"]!.as-list!
 			x to-sig
 		sigs spec-sigs
 	else
-		throw "unexpected spec type {type}"
+		throw "unexpected spec kind {kind}"
 	parents, body_
 
 -to-sig spec-sig(a json)
@@ -167,23 +159,22 @@ get-modules module[]^(paths string[], remove-prefix string) summon
 		x to-param
 
 -to-param param(a json)
-	a.get-node-type is "param"
 	a.get-name, a.get-type
 
 -to-type-ref type-ref(a json)
-	node-type = a get-node-type
-	name symbol = a["name"]!.as-string! to
-	if node-type == "type-param"
+	kind = a["kind"]!.as-symbol!
+	name symbol = a["name"]!.as-symbol!
+	if kind == "type-param"
 		name, ()
 	else
-		node-type is "struct"
+		kind is "struct"
 		name, a.get-type-args
 
 -to-spec-ref spec-ref(a json)
-	node-type = a get-node-type
-	name symbol = a["name"]!.as-string! to
-	if node-type == "special"
+	kind = a["kind"]!.as-symbol!
+	name symbol = a["name"]!.as-symbol!
+	if kind == "special"
 		name, ()
 	else
-		node-type is "spec"
+		kind is "spec"
 		name, a.get-type-args

@@ -161,10 +161,10 @@ const provideDocumentSemanticTokens = async (document, _cancellationToken) => {
 		comp.addOrChangeFile("main", document.getText())
 		const tokens = comp.getTokens("main")
 		const builder = new SemanticTokensBuilder()
-		for (const {kind, range:{args:[start, end]}} of tokens) {
+		for (const {token, range:{start, end}} of tokens) {
 			const length = end - start
 			const {line, character} = document.positionAt(start)
-			builder.push(line, character, length, encodeTokenType(convertToken(kind)), encodeTokenModifiers([]))
+			builder.push(line, character, length, encodeTokenType(convertToken(token)), encodeTokenModifiers([]))
 		}
 		return builder.build()
 	} catch (e) {

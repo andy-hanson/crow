@@ -434,7 +434,7 @@ immutable struct ConcreteClosureRef {
 
 immutable struct ConcreteExprKind {
 	immutable struct Alloc {
-		ConcreteExpr inner;
+		ConcreteExpr arg;
 	}
 
 	immutable struct Call {

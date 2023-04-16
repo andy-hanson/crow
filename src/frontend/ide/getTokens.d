@@ -65,9 +65,9 @@ import util.col.arrBuilder : add, ArrBuilder, finishArr;
 import util.col.sortUtil : eachSorted, findUnsortedPair, UnsortedPair;
 import util.comparison : compareNat32, Comparison;
 import util.conv : safeToUint;
+import util.json : field, jsonObject, Json, jsonList;
 import util.opt : force, has, Opt;
-import util.repr : Repr, nameAndRepr, reprArr, reprNamedRecord, reprSym;
-import util.sourceRange : Pos, rangeOfStartAndLength, rangeOfStartAndName, RangeWithinFile, reprRangeWithinFile;
+import util.sourceRange : Pos, jsonOfRangeWithinFile, rangeOfStartAndLength, rangeOfStartAndName, RangeWithinFile;
 import util.sym : AllSymbols, Sym, sym, symSize;
 import util.util : todo;
 
@@ -91,9 +91,9 @@ immutable struct Token {
 	RangeWithinFile range;
 }
 
-Repr reprTokens(ref Alloc alloc, scope Token[] tokens) =>
-	reprArr!Token(alloc, tokens, (in Token it) =>
-		reprToken(alloc, it));
+Json jsonOfTokens(ref Alloc alloc, scope Token[] tokens) =>
+	jsonList!Token(alloc, tokens, (in Token x) =>
+		jsonOfToken(alloc, x));
 
 Token[] tokensOfAst(ref Alloc alloc, ref AllSymbols allSymbols, in FileAst ast) {
 	TokensBuilder tokens;
@@ -447,7 +447,7 @@ void addExprTokens(ref Alloc alloc, ref TokensBuilder tokens, ref AllSymbols all
 		},
 		(in LetAst x) {
 			addDestructureTokens(alloc, tokens, allSymbols, x.destructure);
-			addExprTokens(alloc, tokens, allSymbols, x.initializer);
+			addExprTokens(alloc, tokens, allSymbols, x.value);
 			addExprTokens(alloc, tokens, allSymbols, x.then);
 		},
 		(in LiteralFloatAst _) {
@@ -599,7 +599,7 @@ Sym symOfTokenKind(Token.Kind kind) {
 	}
 }
 
-Repr reprToken(ref Alloc alloc, Token token) =>
-	reprNamedRecord!"token"(alloc, [
-		nameAndRepr!"kind"(reprSym(symOfTokenKind(token.kind))),
-		nameAndRepr!"range"(reprRangeWithinFile(alloc, token.range))]);
+Json jsonOfToken(ref Alloc alloc, Token token) =>
+	jsonObject(alloc, [
+		field!"token"(symOfTokenKind(token.kind)),
+		field!"range"(jsonOfRangeWithinFile(alloc, token.range))]);

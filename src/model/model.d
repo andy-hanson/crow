@@ -553,6 +553,15 @@ Sym flagsFunctionName(FlagsFunction a) {
 
 enum VarKind { global, threadLocal }
 
+Sym symOfVarKind(in VarKind a) {
+	final switch (a) {
+		case VarKind.global:
+			return sym!"global";
+		case VarKind.threadLocal:
+			return sym!"thread-local";
+	}
+}
+
 immutable struct FunBody {
 	immutable struct Bogus {}
 	immutable struct Builtin {}
@@ -1360,7 +1369,7 @@ immutable struct ExprKind {
 
 	immutable struct FunPtr {
 		FunInst* funInst;
-		StructInst* structInst;
+		StructInst* type;
 	}
 
 	immutable struct If {
@@ -1396,7 +1405,7 @@ immutable struct ExprKind {
 	}
 
 	immutable struct Literal {
-		StructInst* structInst;
+		StructInst* type;
 		Constant value;
 	}
 
