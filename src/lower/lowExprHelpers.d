@@ -239,7 +239,9 @@ LowExpr genRecordFieldGet(ref Alloc alloc, FileAndRange range, LowExpr target, L
 	LowExpr(fieldType, range, LowExprKind(allocate(alloc, LowExprKind.RecordFieldGet(target, fieldIndex))));
 
 LowExpr genSeq(ref Alloc alloc, FileAndRange range, LowExpr first, LowExpr then) =>
-	LowExpr(then.type, range, LowExprKind(allocate(alloc, LowExprKind.Seq(first, then))));
+	LowExpr(then.type, range, genSeqKind(alloc, first, then));
+LowExprKind genSeqKind(ref Alloc alloc, LowExpr first, LowExpr then) =>
+	LowExprKind(allocate(alloc, LowExprKind.SpecialBinary(LowExprKind.SpecialBinary.Kind.seq, [first, then])));
 
 LowExpr genSeq(ref Alloc alloc, FileAndRange range, LowExpr line0, LowExpr line1, LowExpr line2) =>
 	genSeq(alloc, range, line0, genSeq(alloc, range, line1, line2));

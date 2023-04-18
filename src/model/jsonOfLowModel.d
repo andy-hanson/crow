@@ -220,11 +220,6 @@ Json jsonOfLowExprKind(ref Alloc alloc, in LowExprKind a) =>
 				field!"target"(jsonOfLowExpr(alloc, x.target)),
 				field!"field-index"(x.fieldIndex),
 				field!"value"(jsonOfLowExpr(alloc, x.value))]),
-		(in LowExprKind.Seq x) =>
-			jsonObject(alloc, [
-				kindField!"seq",
-				field!"first"(jsonOfLowExpr(alloc, x.first)),
-				field!"then"(jsonOfLowExpr(alloc, x.then))]),
 		(in LowExprKind.SizeOf x) =>
 			jsonObject(alloc, [
 				kindField!"size-of",
@@ -469,6 +464,8 @@ string strOfSpecialBinaryKind(LowExprKind.SpecialBinary.Kind a) {
 			return "* (float64)";
 		case LowExprKind.SpecialBinary.Kind.orBool:
 			return "or (bool)";
+		case LowExprKind.SpecialBinary.Kind.seq:
+			return "seq";
 		case LowExprKind.SpecialBinary.Kind.subFloat32:
 			return "- (float32)";
 		case LowExprKind.SpecialBinary.Kind.subFloat64:

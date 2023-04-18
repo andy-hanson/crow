@@ -206,10 +206,6 @@ void checkLowExpr(ref FunCtx ctx, in InfoStack info, in LowType type, in LowExpr
 			checkLowExpr(ctx, info, fieldType, it.value);
 			checkTypeEqual(ctx.ctx, type, voidType);
 		},
-		(in LowExprKind.Seq it) {
-			checkLowExpr(ctx, info, voidType, it.first);
-			checkLowExpr(ctx, info, type, it.then);
-		},
 		(in LowExprKind.SizeOf it) {
 			checkTypeEqual(ctx.ctx, type, nat64Type);
 		},
@@ -475,6 +471,9 @@ ExpectBinary binaryExpected(
 			return ExpectBinary(some(boolType), [none!LowType, none!LowType]);
 		case LowExprKind.SpecialBinary.Kind.lessChar8:
 			return expect(boolType, char8Type, char8Type);
+		case LowExprKind.SpecialBinary.Kind.seq:
+			verify(returnType == arg1Type);
+			return ExpectBinary(none!LowType, [some(voidType), none!LowType]);
 		case LowExprKind.SpecialBinary.Kind.writeToPtr:
 			return ExpectBinary(some(voidType), [none!LowType, some(asGcOrRawPointee(arg0Type))]);
 	}

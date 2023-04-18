@@ -759,11 +759,6 @@ WriteExprResult writeExpr(
 				writeTempOrInline(writer, ctx, locals, it.value, fieldValue);
 			});
 		},
-		(in LowExprKind.Seq it) {
-			if (!writeKind.isA!(WriteKind.Inline))
-				writeExprVoid(writer, indent, ctx, locals, it.first);
-			return writeExpr(writer, indent, ctx, locals, writeKind, it.then);
-		},
 		(in LowExprKind.SizeOf it) =>
 			inlineableSimple(() {
 				writer ~= "sizeof(";
@@ -1562,6 +1557,10 @@ WriteExprResult writeSpecialBinary(
 				LogicalOperator.or,
 				left,
 				right);
+		case LowExprKind.SpecialBinary.Kind.seq:
+			if (!writeKind.isA!(WriteKind.Inline))
+				writeExprVoid(writer, indent, ctx, locals, left);
+			return writeExpr(writer, indent, ctx, locals, writeKind, right);
 		case LowExprKind.SpecialBinary.Kind.subFloat32:
 		case LowExprKind.SpecialBinary.Kind.subFloat64:
 		case LowExprKind.SpecialBinary.Kind.subPtrAndNat64:

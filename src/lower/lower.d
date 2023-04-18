@@ -26,6 +26,7 @@ import lower.lowExprHelpers :
 	genPtrCast,
 	genPtrCastKind,
 	genSeq,
+	genSeqKind,
 	genSizeOf,
 	genVoid,
 	genWrapMulNat64,
@@ -1028,10 +1029,11 @@ LowExprKind getLowExprKind(
 			getPtrToLocalExpr(ctx, locals, expr.range, it),
 		(ConcreteExprKind.RecordFieldGet x) =>
 			getRecordFieldGet(ctx, locals, *x.record, x.fieldIndex),
-		(ref ConcreteExprKind.Seq it) =>
-			LowExprKind(allocate(ctx.alloc, LowExprKind.Seq(
-				getLowExpr(ctx, locals, it.first, ExprPos.nonTail),
-				getLowExpr(ctx, locals, it.then, exprPos)))),
+		(ref ConcreteExprKind.Seq x) =>
+			genSeqKind(
+				ctx.alloc,
+				getLowExpr(ctx, locals, x.first, ExprPos.nonTail),
+				getLowExpr(ctx, locals, x.then, exprPos)),
 		(ref ConcreteExprKind.Throw it) =>
 			getThrowExpr(ctx, locals, expr.range, type, it));
 
@@ -1592,7 +1594,8 @@ LowExprKind getThrowExpr(
 		arrLiteral!LowExpr(ctx.alloc, [getLowExpr(ctx, locals, a.thrown, ExprPos.nonTail)])));
 	return type == voidType
 		? callThrow
-		: LowExprKind(allocate(ctx.alloc, LowExprKind.Seq(
+		: genSeqKind(
+			ctx.alloc,
 			LowExpr(voidType, range, callThrow),
-			LowExpr(type, range, LowExprKind(constantZero)))));
+			LowExpr(type, range, LowExprKind(constantZero)));
 }

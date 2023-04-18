@@ -451,11 +451,6 @@ immutable struct LowExprKind {
 		LowExpr value;
 	}
 
-	immutable struct Seq {
-		LowExpr first;
-		LowExpr then;
-	}
-
 	immutable struct SizeOf {
 		LowType type;
 	}
@@ -557,6 +552,7 @@ immutable struct LowExprKind {
 			mulFloat32,
 			mulFloat64,
 			orBool,
+			seq,
 			subFloat32,
 			subFloat64,
 			subPtrAndNat64, // RHS is multiplied by size of pointee first
@@ -652,7 +648,6 @@ immutable struct LowExprKind {
 		PtrToLocal,
 		RecordFieldGet*,
 		RecordFieldSet*,
-		Seq*,
 		SizeOf,
 		Constant,
 		SpecialUnary*,

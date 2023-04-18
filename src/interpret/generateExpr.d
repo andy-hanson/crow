@@ -364,10 +364,6 @@ void generateExpr(
 			generateRecordFieldSet(writer, ctx, source, locals, x);
 			handleAfter(writer, ctx, source, after);
 		},
-		(in LowExprKind.Seq it) {
-			generateExprAndContinue(writer, ctx, locals, it.first);
-			generateExpr(writer, ctx, locals, after, it.then);
-		},
 		(in LowExprKind.SizeOf it) {
 			writePushConstant(writer, source, typeSizeBytes(ctx, it.type));
 			handleAfter(writer, ctx, source, after);
@@ -1167,6 +1163,10 @@ void generateSpecialBinary(
 				(ref ExprAfter innerAfter) {
 					generateExpr(writer, ctx, locals, innerAfter, right);
 				});
+			break;
+		case LowExprKind.SpecialBinary.Kind.seq:
+			generateExprAndContinue(writer, ctx, locals, left);
+			generateExpr(writer, ctx, locals, after, right);
 			break;
 		case LowExprKind.SpecialBinary.Kind.subFloat32:
 			fn!fnSubFloat32();

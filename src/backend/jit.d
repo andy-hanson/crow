@@ -845,8 +845,6 @@ ExprResult toGccExpr(ref ExprCtx ctx, ref Locals locals, ref ExprEmit emit, in L
 			recordFieldGetToGcc(ctx, locals, emit, it),
 		(in LowExprKind.RecordFieldSet it) =>
 			recordFieldSetToGcc(ctx, locals, emit, it),
-		(in LowExprKind.Seq it) =>
-			seqToGcc(ctx, locals, emit, it),
 		(in LowExprKind.SizeOf it) =>
 			sizeOfToGcc(ctx, emit, it),
 		(in Constant it) =>
@@ -1219,11 +1217,6 @@ ExprResult recordFieldSetToGcc(
 	return emitVoid(ctx, emit);
 }
 
-ExprResult seqToGcc(ref ExprCtx ctx, ref Locals locals, ref ExprEmit emit, in LowExprKind.Seq a) {
-	emitToVoid(ctx, locals, a.first);
-	return toGccExpr(ctx, locals, emit, a.then);
-}
-
 ExprResult sizeOfToGcc(ref ExprCtx ctx, ref ExprEmit emit, in LowExprKind.SizeOf a) =>
 	emitSimpleNoSideEffects(
 		ctx,
@@ -1485,6 +1478,9 @@ ExprResult binaryToGcc(
 			return operator(gcc_jit_binary_op.GCC_JIT_BINARY_OP_MULT);
 		case LowExprKind.SpecialBinary.Kind.orBool:
 			return logicalOperatorToGcc(ctx, locals, emit, LogicalOperator.or, left, right);
+		case LowExprKind.SpecialBinary.Kind.seq:
+			emitToVoid(ctx, locals, left);
+			return toGccExpr(ctx, locals, emit, right);
 		case LowExprKind.SpecialBinary.Kind.subFloat32:
 		case LowExprKind.SpecialBinary.Kind.subFloat64:
 		case LowExprKind.SpecialBinary.Kind.unsafeSubInt8:
