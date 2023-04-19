@@ -485,12 +485,16 @@ ConcreteExpr concretizeWithDestructureAndLet(
 		return ConcreteExpr(then.expr.type, range, ConcreteExprKind(
 			allocate(ctx.alloc, ConcreteExprKind.Let(force(then.rootLocal), value, then.expr))));
 	else {
-		ConcreteExpr drop = ConcreteExpr(
-			voidType(ctx.concretizeCtx),
-			range,
-			ConcreteExprKind(allocate(ctx.alloc, ConcreteExprKind.Drop(value))));
-		return ConcreteExpr(then.expr.type, range, ConcreteExprKind(
-			allocate(ctx.alloc, ConcreteExprKind.Seq(drop, then.expr))));
+		if (value.kind.isA!Constant)
+			return then.expr;
+		else {
+			ConcreteExpr drop = ConcreteExpr(
+				voidType(ctx.concretizeCtx),
+				range,
+				ConcreteExprKind(allocate(ctx.alloc, ConcreteExprKind.Drop(value))));
+			return ConcreteExpr(then.expr.type, range, ConcreteExprKind(
+				allocate(ctx.alloc, ConcreteExprKind.Seq(drop, then.expr))));
+		}
 	}
 }
 
@@ -544,14 +548,18 @@ ConcreteExpr concretizeWithDestructurePartsRecur(
 	else {
 		Destructure part = parts[partIndex];
 		FileAndRange range = toFileAndRange(ctx, part.range);
-		ConcreteExpr value = ConcreteExpr(
-			body_(*mustBeByVal(getTemp.type)).as!(ConcreteStructBody.Record).fields[partIndex].type,
-			range,
-			ConcreteExprKind(ConcreteExprKind.RecordFieldGet(getTemp, partIndex)));
+		ConcreteType valueType =
+			body_(*mustBeByVal(getTemp.type)).as!(ConcreteStructBody.Record).fields[partIndex].type;
+		ConcreteExpr value = ConcreteExpr(valueType, range, isVoid(ctx, valueType)
+			? constantVoidKind
+			: ConcreteExprKind(ConcreteExprKind.RecordFieldGet(getTemp, partIndex)));
 		return concretizeWithDestructureAndLet(ctx, range, locals, part, value, (in Locals innerLocals) =>
 			concretizeWithDestructurePartsRecur(ctx, innerLocals, getTemp, parts, partIndex + 1, cb));
 	}
 }
+
+bool isVoid(ref ConcretizeExprCtx ctx, ConcreteType a) =>
+	a == voidType(ctx.concretizeCtx);
 
 ConcreteExpr concretizeIfOption(
 	ref ConcretizeExprCtx ctx,

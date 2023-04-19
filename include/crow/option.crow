@@ -24,9 +24,7 @@ export
 
 # True iff `a` is an empty option.
 +is-empty[t] bool(a t?) bare
-	# TODO: `if _ ?= a`
-	if x ?= a
-		_ = x
+	if _ ?= a
 		false
 	else
 		true
