@@ -22,7 +22,7 @@ import model.model :
 	range,
 	StructInst,
 	VarDecl;
-import util.col.arr : empty, only, PtrAndSmallNumber;
+import util.col.arr : only, PtrAndSmallNumber;
 import util.col.arrUtil : contains;
 import util.col.map : Map;
 import util.col.str : SafeCStr;
@@ -458,16 +458,7 @@ immutable struct ConcreteExprKind {
 	}
 
 	immutable struct CreateArr {
-		@safe @nogc pure nothrow:
-
-		ConcreteStruct* arrType;
 		ConcreteExpr[] args;
-
-		this(ConcreteStruct* at, ConcreteExpr[] as) {
-			arrType = at;
-			args = as;
-			verify(!empty(args));
-		}
 	}
 
 	// TODO: this is only used for closures now, since normal record creation always goes through a function.
@@ -598,9 +589,6 @@ immutable struct ConcreteExprKind {
 immutable struct ConcreteVariableRef {
 	mixin Union!(Constant, ConcreteLocal*, ConcreteClosureRef);
 }
-
-ConcreteType elementType(ConcreteExprKind.CreateArr a) =>
-	only(a.arrType.source.as!(ConcreteStructSource.Inst).typeArgs);
 
 ConcreteType returnType(ConcreteExprKind.Call a) =>
 	a.called.returnType;

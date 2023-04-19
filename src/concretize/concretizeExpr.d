@@ -883,17 +883,15 @@ ConstantsOrExprs constantsOrExprsArr(
 	FileAndRange range,
 	ConstantsOrExprs args,
 	ConcreteType arrayType,
-) {
-	ConcreteStruct* arrayStruct = mustBeByVal(arrayType);
-	return args.match!ConstantsOrExprs(
+) =>
+	args.match!ConstantsOrExprs(
 		(Constant[] constants) =>
 			ConstantsOrExprs(arrLiteral!Constant(ctx.alloc, [
-				getConstantArr(ctx.alloc, ctx.allConstants, arrayStruct, constants)])),
+				getConstantArr(ctx.alloc, ctx.allConstants, mustBeByVal(arrayType), constants)])),
 		(ConcreteExpr[] exprs) =>
 			ConstantsOrExprs(arrLiteral!ConcreteExpr(ctx.alloc, [
 				ConcreteExpr(arrayType, range, ConcreteExprKind(
-					allocate(ctx.alloc, ConcreteExprKind.CreateArr(arrayStruct, exprs))))])));
-}
+					allocate(ctx.alloc, ConcreteExprKind.CreateArr(exprs))))])));
 
 Opt!Constant tryEvalConstant(
 	in ConcreteFun fn,

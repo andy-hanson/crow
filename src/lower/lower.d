@@ -51,10 +51,10 @@ import model.concreteModel :
 	ConcreteProgram,
 	ConcreteStruct,
 	ConcreteStructBody,
+	ConcreteStructSource,
 	ConcreteType,
 	ConcreteVar,
 	ConcreteVariableRef,
-	elementType,
 	fieldOffsets,
 	isFunOrActSubscript,
 	isMarkVisitFun,
@@ -989,8 +989,8 @@ LowExprKind getLowExprKind(
 			getClosureSetExpr(ctx, locals, expr.range, it),
 		(Constant it) =>
 			LowExprKind(it),
-		(ref ConcreteExprKind.CreateArr it) =>
-			getCreateArrExpr(ctx, locals, expr.range, it),
+		(ref ConcreteExprKind.CreateArr x) =>
+			getCreateArrExpr(ctx, locals, expr.range, type, expr.type, x),
 		(ConcreteExprKind.CreateRecord it) =>
 			LowExprKind(LowExprKind.CreateRecord(getArgs(ctx, locals, it.args))),
 		(ref ConcreteExprKind.CreateUnion it) =>
@@ -1374,14 +1374,17 @@ LowExprKind getCreateArrExpr(
 	ref GetLowExprCtx ctx,
 	in Locals locals,
 	FileAndRange range,
+	LowType arrType,
+	ConcreteType concreteArrType,
 	in ConcreteExprKind.CreateArr a,
 ) {
 	// (temp = _alloc(ctx, sizeof(foo) * 2),
 	// *(temp + 0) = a,
 	// *(temp + 1) = b,
 	// arr_foo{2, temp})
-	LowType arrType = lowTypeFromConcreteStruct(ctx.typeCtx, a.arrType);
-	LowType elementType = lowTypeFromConcreteType(ctx.typeCtx, elementType(a));
+	LowType elementType = lowTypeFromConcreteType(
+		ctx.typeCtx,
+		only(mustBeByVal(concreteArrType).source.as!(ConcreteStructSource.Inst).typeArgs));
 	LowType elementPtrType = getLowRawPtrConstType(ctx.typeCtx, elementType);
 	LowExpr elementSize = genSizeOf(range, elementType);
 	LowExpr nElements = genConstantNat64(range, a.args.length);

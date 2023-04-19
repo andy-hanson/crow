@@ -249,7 +249,6 @@ Json jsonOfConcreteExprKind(ref Alloc alloc, in ConcreteExprKind a) =>
 		(in ConcreteExprKind.CreateArr x) =>
 			jsonObject(alloc, [
 				kindField!"create-array",
-				field!"array-type"(jsonOfConcreteStructRef(alloc, *x.arrType)),
 				field!"args"(jsonOfConcreteExprs(alloc, x.args))]),
 		(in ConcreteExprKind.CreateRecord x) =>
 			jsonObject(alloc, [
