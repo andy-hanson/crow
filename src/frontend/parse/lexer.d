@@ -69,7 +69,7 @@ private char curChar(in Lexer lexer) =>
 
 @trusted Pos curPos(scope ref Lexer lexer) {
 	// Ensure start is after any whitespace
-	while (tryTakeChar(lexer, ' ')) {}
+	while (tryTakeChar(lexer, ' ') || tryTakeChar(lexer, '\t')) {}
 	return posOfPtr(lexer, lexer.ptr);
 }
 
@@ -477,6 +477,7 @@ public enum Token {
 			lexer.ptr--;
 			return Token.EOF;
 		case ' ':
+		case '\t':
 			return nextToken(lexer);
 		case '\r':
 		case '\n':
