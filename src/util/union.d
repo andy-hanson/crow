@@ -60,8 +60,7 @@ mixin template Union(ReprTypes...) {
 		private ulong ptrValue() scope const =>
 			value & ~0b11;
 	} else {
-		//TODO:PRIVATE
-		immutable uint kind;
+		private immutable uint kind;
 		union {
 			static foreach (i, T; ReprTypes) {
 				mixin("private immutable T as", i, ";");

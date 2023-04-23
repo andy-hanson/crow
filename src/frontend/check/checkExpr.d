@@ -749,11 +749,8 @@ Expr asFloat(
 	ref Expected expected,
 ) {
 	verify(isFloatType(ctx.commonTypes, numberType));
-	return check(
-		ctx,
-		expected,
-		Type(numberType),
-		Expr(range, ExprKind(allocate(ctx.alloc, ExprKind.Literal(numberType, Constant(Constant.Float(value)))))));
+	return check(ctx, expected, Type(numberType), Expr(range, ExprKind(
+		allocate(ctx.alloc, ExprKind.Literal(Constant(Constant.Float(value)))))));
 }
 
 Expr checkLiteralInt(ref ExprCtx ctx, FileAndRange range, in LiteralIntAst ast, ref Expected expected) {
@@ -778,9 +775,8 @@ Expr checkLiteralInt(ref ExprCtx ctx, FileAndRange range, in LiteralIntAst ast, 
 		Constant constant = Constant(Constant.Integral(ast.value));
 		if (ast.overflow || !contains(ranges[typeIndex], ast.value))
 			addDiag2(ctx, range, Diag(Diag.LiteralOverflow(numberType)));
-		return check(ctx, expected, Type(numberType), Expr(
-			range,
-			ExprKind(allocate(ctx.alloc, ExprKind.Literal(numberType, constant)))));
+		return check(ctx, expected, Type(numberType), Expr(range, ExprKind(
+			allocate(ctx.alloc, ExprKind.Literal(constant)))));
 	}
 }
 immutable struct IntRange {
@@ -811,9 +807,8 @@ Expr checkLiteralNat(ref ExprCtx ctx, FileAndRange range, in LiteralNatAst ast, 
 		Constant constant = Constant(Constant.Integral(ast.value));
 		if (ast.overflow || ast.value > maximums[typeIndex])
 			addDiag2(ctx, range, Diag(Diag.LiteralOverflow(numberType)));
-		return check(ctx, expected, Type(numberType), Expr(
-			range,
-			ExprKind(allocate(ctx.alloc, ExprKind.Literal(numberType, constant)))));
+		return check(ctx, expected, Type(numberType), Expr(range, ExprKind(
+			allocate(ctx.alloc, ExprKind.Literal(constant)))));
 	}
 }
 
@@ -833,11 +828,7 @@ Expr checkLiteralString(
 			} else
 				return only(value);
 		}();
-		return Expr(
-			range,
-			ExprKind(allocate(ctx.alloc, ExprKind.Literal(
-				ctx.commonTypes.char8,
-				Constant(Constant.Integral(char_))))));
+		return Expr(range, ExprKind(allocate(ctx.alloc, ExprKind.Literal(Constant(Constant.Integral(char_))))));
 	} else if (expectedStruct == ctx.commonTypes.symbol)
 		return Expr(range, ExprKind(ExprKind.LiteralSymbol(symOfStr(ctx.allSymbols, value))));
 	else if (expectedStruct == ctx.commonTypes.cString)
@@ -994,7 +985,7 @@ Expr checkPtrInner(
 			addDiag2(ctx, range, Diag(Diag.PtrMutToConst(Diag.PtrMutToConst.Kind.local)));
 		if (expectedMutability == PointerMutability.mutable)
 			markIsUsedSetOnStack(locals, local);
-		return Expr(range, ExprKind(ExprKind.PtrToLocal(pointerType, local)));
+		return Expr(range, ExprKind(ExprKind.PtrToLocal(local)));
 	} else if (inner.kind.isA!(ExprKind.Call))
 		return checkPtrOfCall(ctx, range, inner.kind.as!(ExprKind.Call), pointerType, expectedMutability);
 	else {
@@ -1027,7 +1018,7 @@ Expr checkPtrOfCall(
 				if (fieldMutability < expectedMutability)
 					addDiag2(ctx, range, Diag(Diag.PtrMutToConst(Diag.PtrMutToConst.Kind.field)));
 				return Expr(range, ExprKind(allocate(ctx.alloc,
-					ExprKind.PtrToField(pointerType, ExprAndType(target, Type(recordType)), rfg.fieldIndex))));
+					ExprKind.PtrToField(ExprAndType(target, Type(recordType)), rfg.fieldIndex))));
 			} else if (target.kind.isA!(ExprKind.Call)) {
 				ExprKind.Call targetCall = target.kind.as!(ExprKind.Call);
 				Called called = targetCall.called;
@@ -1040,7 +1031,7 @@ Expr checkPtrOfCall(
 					if (max(fieldMutability, pointerMutability) < expectedMutability)
 						todo!void("diag: can't get mut* to immutable field");
 					return Expr(range, ExprKind(allocate(ctx.alloc,
-						ExprKind.PtrToField(pointerType, ExprAndType(targetPtr, derefedType), rfg.fieldIndex))));
+						ExprKind.PtrToField(ExprAndType(targetPtr, derefedType), rfg.fieldIndex))));
 				} else
 					return fail();
 			} else
@@ -1150,7 +1141,6 @@ Expr checkLambda(ref ExprCtx ctx, ref LocalsInfo locals, FileAndRange range, in 
 			param,
 			body_,
 			closureFields,
-			instFunStruct,
 			kind,
 			actualPossiblyFutReturnType));
 		//TODO: this check should never fail, so could just set inferred directly with no check
@@ -1203,9 +1193,7 @@ Expr checkLoop(ref ExprCtx ctx, ref LocalsInfo locals, FileAndRange range, in Lo
 	Opt!Type expectedType = tryGetInferred(expected);
 	if (has(expectedType)) {
 		Type type = force(expectedType);
-		ExprKind.Loop* loop = allocate(ctx.alloc, ExprKind.Loop(
-			type,
-			Expr(FileAndRange.empty, ExprKind(ExprKind.Bogus()))));
+		ExprKind.Loop* loop = allocate(ctx.alloc, ExprKind.Loop(Expr(FileAndRange.empty, ExprKind(ExprKind.Bogus()))));
 		LoopInfo info = LoopInfo(voidType(ctx), castImmutable(loop), type, false);
 		scope Expected bodyExpected = Expected(&info);
 		Expr body_ = checkExpr(ctx, locals, ast.body_, castNonScope_ref(bodyExpected));

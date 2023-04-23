@@ -368,7 +368,6 @@ Json jsonOfExpr(ref Alloc alloc, in Ctx ctx, in Expr a) =>
 				field!"body"(jsonOfExpr(alloc, ctx, x.body_)),
 				field!"closure"(jsonList!VariableRef(alloc, x.closure, (in VariableRef v) =>
 					jsonString(v.name))),
-				field!"fun-type"(jsonOfStructInst(alloc, ctx, *x.funType)),
 				field!"fun-kind"(symOfFunKind(x.kind)),
 				field!"return-type"(jsonOfType(alloc, ctx, x.returnType))]),
 		(in ExprKind.Let x) =>
@@ -380,7 +379,6 @@ Json jsonOfExpr(ref Alloc alloc, in Ctx ctx, in Expr a) =>
 		(in ExprKind.Literal x) =>
 			jsonObject(alloc, [
 				kindField!"literal",
-				field!"type"(jsonOfStructInst(alloc, ctx, *x.type)),
 				field!"value"(jsonOfConstant(alloc, x.value))]),
 		(in ExprKind.LiteralCString x) =>
 			jsonObject(alloc, [
@@ -433,7 +431,6 @@ Json jsonOfExpr(ref Alloc alloc, in Ctx ctx, in Expr a) =>
 		(in ExprKind.PtrToField x) =>
 			jsonObject(alloc, [
 				kindField!"pointer-to-field",
-				field!"pointer-type"(jsonOfType(alloc, ctx, x.pointerType)),
 				field!"target"(jsonOfExprAndType(alloc, ctx, x.target)),
 				field!"field-index"(x.fieldIndex)]),
 		(in ExprKind.PtrToLocal x) =>

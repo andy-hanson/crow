@@ -1391,8 +1391,6 @@ immutable struct ExprKind {
 		Destructure param;
 		Expr body_;
 		VariableRef[] closure;
-		// This is the function type
-		StructInst* funType; //TODO:KILLTYPE
 		FunKind kind;
 		// For FunKind.send this includes 'future' wrapper
 		Type returnType;
@@ -1405,7 +1403,6 @@ immutable struct ExprKind {
 	}
 
 	immutable struct Literal {
-		StructInst* type; //TODO:KILLTYPE
 		Constant value;
 	}
 
@@ -1427,7 +1424,6 @@ immutable struct ExprKind {
 	}
 
 	immutable struct Loop {
-		Type type; //TODO:KILLTYPE
 		Expr body_;
 	}
 
@@ -1466,13 +1462,11 @@ immutable struct ExprKind {
 	}
 
 	immutable struct PtrToField {
-		Type pointerType; //TODO:KILLTYPE
 		ExprAndType target; // This will be a pointer or by-ref type
 		size_t fieldIndex;
 	}
 
 	immutable struct PtrToLocal {
-		Type ptrType; //TODO:KILLTYPE
 		Local* local;
 	}
 
