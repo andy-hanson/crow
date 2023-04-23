@@ -704,7 +704,7 @@ ConcreteExpr concretizeLoop(
 	// TODO: `cast(immutable)` should be unnecessary
 	scope Locals localsWithLoop = addLoop(castNonScope_ref(locals), castNonScope(&a), cast(immutable) &loopAndType);
 	overwriteMemory(&res.body_, concretizeExpr(ctx, voidType(ctx), localsWithLoop, a.body_));
-	return ConcreteExpr(getConcreteType(ctx, a.type), range, ConcreteExprKind(res));
+	return ConcreteExpr(type, range, ConcreteExprKind(res));
 }
 
 ConcreteExpr concretizeLoopBreak(
@@ -862,7 +862,7 @@ ConcreteExpr concretizeAssertOrForbid(
 				return ConcreteExprKind.If(condition, throw_, void_);
 		}
 	}();
-	return ConcreteExpr(voidType, range, ConcreteExprKind(allocate(ctx.alloc, if_)));
+	return ConcreteExpr(type, range, ConcreteExprKind(allocate(ctx.alloc, if_)));
 }
 
 SafeCStr defaultAssertOrForbidMessage(AssertOrForbidKind a) {
