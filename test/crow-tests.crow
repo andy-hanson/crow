@@ -11,8 +11,7 @@ import
 run-crow-tests test-result^(paths string[], path-to-crow string, options test-options) summon
 	tests string[] = () join for path : paths
 		path list-tests options.match-test
-	# TODO: Have to convert to array and back to avoid list iteration bug
-	failures <- tests.to::(string array).to::string[] flat-map-with-max-size options.max-failures, x =>
+	failures <- tests flat-map-with-max-size options.max-failures, x =>
 		path-to-crow run-single-crow-test x, options
 	if failures is-empty
 		"ran {tests size} crow tests".ok,

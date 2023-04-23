@@ -214,17 +214,22 @@ Concatenate two lists.
 This is O(log n), where `n` is the size of the smaller list.
 ###
 +~~[t] t[](a t[], b t[])
-	# Concatenate the smaller list onto the bigger one.
-	match a.depth <=> b.depth
-	as less
-		(a.root cat-left-node-l1 b.root),
-	as equal
-		if a.size < b.size
+	if a is-empty
+		b
+	elif b is-empty
+		a
+	else
+		# Concatenate the smaller list onto the bigger one.
+		match a.depth <=> b.depth
+		as less
 			(a.root cat-left-node-l1 b.root),
-		else
+		as equal
+			if a.size < b.size
+				(a.root cat-left-node-l1 b.root),
+			else
+				(a.root cat-right-node-l1 b.root),
+		as greater
 			(a.root cat-right-node-l1 b.root),
-	as greater
-		(a.root cat-right-node-l1 b.root),
 
 ###
 Prepend an element to a list.
@@ -234,7 +239,7 @@ This is O(log n), amortized O(1).
 	((a,)::(t array) cat-left-array-l1 b.root),
 
 ###
-Appendd an element to a list.
+Append an element to a list.
 This is O(log n), amortized O(1).
 ###
 +~[t] t[](a t[], b t)
