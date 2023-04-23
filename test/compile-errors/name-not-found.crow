@@ -1,3 +1,6 @@
+main nat64^(_ string[])
+	()
+
 r record
 	f t
 	h array x

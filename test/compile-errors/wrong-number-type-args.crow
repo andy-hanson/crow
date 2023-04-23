@@ -1,3 +1,6 @@
+main nat64^(_ string[])
+	()
+
 magic[out, in] out?(a in?)
 	()
 

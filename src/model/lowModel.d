@@ -23,7 +23,7 @@ import util.hash : Hasher, hashSizeT, hashUint;
 import util.opt : has, none, Opt;
 import util.path : Path;
 import util.sourceRange : FileAndRange;
-import util.sym : AllSymbols, Sym, sym;
+import util.sym : Sym, sym;
 import util.union_ : Union;
 import util.util : verify;
 
@@ -43,6 +43,8 @@ immutable struct LowRecord {
 	//TODO:MOVE
 	bool packed() scope =>
 		source.source.matchIn!bool(
+			(in ConcreteStructSource.Bogus) =>
+				false,
 			(in ConcreteStructSource.Inst it) =>
 				body_(*decl(*it.inst)).as!(StructBody.Record).flags.packed,
 			(in ConcreteStructSource.Lambda) =>
@@ -330,10 +332,10 @@ Opt!Sym name(in LowFun a) =>
 		(in ConcreteFun x) => name(x),
 		(in LowFunSource.Generated) => none!Sym);
 
-FileAndRange lowFunRange(in LowFun a, in AllSymbols allSymbols) =>
+FileAndRange lowFunRange(in LowFun a) =>
 	a.source.matchIn!FileAndRange(
 		(in ConcreteFun x) =>
-			concreteFunRange(x, allSymbols),
+			concreteFunRange(x),
 		(in LowFunSource.Generated) =>
 			FileAndRange.empty);
 

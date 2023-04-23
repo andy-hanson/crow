@@ -36,7 +36,7 @@ ref immutable(V) stackMapMustGet(K, V)(return ref StackMap!(K, V) a, scope immut
 
 struct MutStackMap(K, V) {
 	private:
-	//@disable this(ref const MutStackMap);
+	//TODO: @disable this(ref const MutStackMap);
 	immutable K key = invalid!K;
 	V value;
 	MutStackMap!(K, V)* next;

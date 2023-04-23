@@ -683,7 +683,7 @@ Program checkEverything(
 	immutable EnumMap!(CommonPath, Module*) commonModules =
 		enumMapMapValues!(CommonPath, Module*, FileIndex)(moduleIndices.common, (in FileIndex index) =>
 			&modules[index.index]);
-	Opt!CommonFuns commonFuns = getCommonFuns(
+	CommonFuns commonFuns = getCommonFuns(
 		modelAlloc,
 		programState,
 		diagsBuilder,

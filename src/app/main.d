@@ -40,7 +40,7 @@ import lib.compiler :
 	print,
 	ProgramsAndFilesInfo,
 	justTypeCheck;
-import model.model : hasDiags;
+import model.diag : isEmpty, isFatal;
 import model.lowModel : ExternLibrary;
 version(Test) {
 	import test.test : test;
@@ -273,16 +273,16 @@ ExitCode buildToCAndCompile(
 	withReadOnlyStorage!ExitCode(allPaths, includeDir, (in ReadOnlyStorage storage) {
 		BuildToCResult result =
 			buildToC(alloc, perf, allSymbols, allPaths, pathsInfo, storage, showDiagOptions, mainPath);
-		return safeCStrIsEmpty(result.diagnostics)
-			? withPathOrTemp!cExtension(allPaths, options.out_.outC, mainPath, (Path cPath) {
-				ExitCode res = writeFile(allPaths, cPath, result.cSource);
-				return res == ExitCode.ok && has(options.out_.outExecutable)
-					? compileC(
-						alloc, perf, allSymbols, allPaths,
-						cPath, force(options.out_.outExecutable), result.externLibraries, options.cCompileOptions)
-					: res;
-			})
-			: printErr(result.diagnostics);
+		if (!safeCStrIsEmpty(result.diagnostics))
+			printErr(result.diagnostics);
+		return withPathOrTemp!cExtension(allPaths, options.out_.outC, mainPath, (Path cPath) {
+			ExitCode res = writeFile(allPaths, cPath, result.cSource);
+			return res == ExitCode.ok && has(options.out_.outExecutable)
+				? compileC(
+					alloc, perf, allSymbols, allPaths,
+					cPath, force(options.out_.outExecutable), result.externLibraries, options.cCompileOptions)
+				: res;
+		});
 	});
 
 version (Windows) { } else { ExitCode buildAndJit(
@@ -299,14 +299,16 @@ version (Windows) { } else { ExitCode buildAndJit(
 ) {
 	ProgramsAndFilesInfo programs =
 		buildToLowProgram(alloc, perf, versionInfoForJIT(), allSymbols, allPaths, storage, main);
-	return hasDiags(programs.program)
-		? printErr(strOfDiagnostics(
+	if (!isEmpty(programs.program.diagnostics))
+		printErr(strOfDiagnostics(
 			alloc,
 			allSymbols,
 			allPaths,
 			pathsInfo,
 			showDiagOptions,
-			programs.program))
+			programs.program));
+	return isFatal(programs.program.diagnostics)
+		? ExitCode.error
 		: ExitCode(jitAndRun(alloc, perf, allSymbols, programs.lowProgram, jitOptions, programArgs));
 } }
 

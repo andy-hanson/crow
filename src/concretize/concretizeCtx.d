@@ -3,7 +3,7 @@ module concretize.concretizeCtx;
 @safe @nogc pure nothrow:
 
 import concretize.allConstantsBuilder : AllConstantsBuilder, getConstantArr, getConstantCStr, getConstantSym;
-import concretize.concretizeExpr : concretizeFunBody;
+import concretize.concretizeExpr : concretizeBogus, concretizeFunBody;
 import concretize.safeValue : bodyForSafeValue;
 import model.concreteModel :
 	body_,
@@ -210,11 +210,11 @@ struct ConcretizeCtx {
 	// Index in the MutArr!ConcreteLambdaImpl is the fun ID
 	MutMap!(ConcreteStruct*, MutArr!ConcreteLambdaImpl) funStructToImpls;
 	// TODO: do these eagerly
+	Late!ConcreteType _bogusType;
 	Late!ConcreteType _boolType;
 	Late!ConcreteType _voidType;
 	Late!ConcreteType _ctxType;
 	Late!ConcreteType _cStrType;
-	Late!ConcreteType _symType;
 
 	ref Alloc alloc() return scope =>
 		*allocPtr;
@@ -229,6 +229,22 @@ struct ConcretizeCtx {
 		*programPtr;
 }
 
+private ConcreteType bogusType(ref ConcretizeCtx a) =>
+	lazilySet!ConcreteType(a._bogusType, () {
+		ConcreteStruct* res = allocate(a.alloc, ConcreteStruct(
+			Purity.data,
+			ConcreteStruct.SpecialKind.none,
+			ConcreteStructSource(ConcreteStructSource.Bogus())));
+		add(a.alloc, a.allConcreteStructs, res);
+		lateSet(res.info_, ConcreteStructInfo(
+			ConcreteStructBody(ConcreteStructBody.Record([])),
+			false));
+		lateSet(res.defaultReferenceKind_, ReferenceKind.byVal);
+		lateSet(res.typeSize_, TypeSize(0, 0));
+		lateSet(res.fieldOffsets_, []);
+		return ConcreteType(ReferenceKind.byVal, res);
+	});
+
 ConcreteType boolType(ref ConcretizeCtx a) =>
 	lazilySet!ConcreteType(a._boolType, () =>
 		getConcreteType_forStructInst(a, a.commonTypes.bool_, TypeArgsScope.empty));
@@ -240,10 +256,6 @@ ConcreteType voidType(ref ConcretizeCtx a) =>
 ConcreteType cStrType(ref ConcretizeCtx a) =>
 	lazilySet!ConcreteType(a._cStrType, () =>
 		getConcreteType_forStructInst(a, a.commonTypes.cString, TypeArgsScope.empty));
-
-ConcreteType symType(ref ConcretizeCtx a) =>
-	lazilySet!ConcreteType(a._symType, () =>
-		getConcreteType_forStructInst(a, a.commonTypes.symbol, TypeArgsScope.empty));
 
 Constant constantCStr(ref ConcretizeCtx a, SafeCStr value) =>
 	getConstantCStr(a.alloc, a.allConstants, value);
@@ -281,7 +293,11 @@ ConcreteFun* getConcreteFunForLambdaAndFillBody(
 ConcreteFun* getOrAddNonTemplateConcreteFunAndFillBody(ref ConcretizeCtx ctx, FunInst* decl) =>
 	getOrAddConcreteFunAndFillBody(ctx, ConcreteFunKey(decl, [], []));
 
-ConcreteType getConcreteType_forStructInst(ref ConcretizeCtx ctx, StructInst* i, in TypeArgsScope typeArgsScope) {
+private ConcreteType getConcreteType_forStructInst(
+	ref ConcretizeCtx ctx,
+	StructInst* i,
+	in TypeArgsScope typeArgsScope,
+) {
 	ConcreteType[] typeArgs = typesToConcreteTypes(ctx, typeArgs(*i), typeArgsScope);
 	ConcreteStructKey key = ConcreteStructKey(decl(*i), typeArgs);
 	ValueAndDidAdd!(ConcreteStruct*) res =
@@ -314,7 +330,7 @@ ConcreteType getConcreteType_forStructInst(ref ConcretizeCtx ctx, StructInst* i,
 ConcreteType getConcreteType(ref ConcretizeCtx ctx, in Type t, in TypeArgsScope typeArgsScope) =>
 	t.matchWithPointers!ConcreteType(
 		(Type.Bogus) =>
-			unreachable!ConcreteType,
+			bogusType(ctx),
 		(TypeParam* p) {
 			// Handle calledConcreteFun first
 			verify(p == &typeArgsScope.typeParams[p.index]);
@@ -652,14 +668,14 @@ void fillInConcreteFunBody(ref ConcretizeCtx ctx, in Destructure[] params, Concr
 		ConcreteFunBodyInputs inputs = mustDelete(ctx.concreteFunToBodyInputs, cf);
 		ConcreteFunBody body_ = inputs.body_.match!ConcreteFunBody(
 			(FunBody.Bogus) =>
-				unreachable!ConcreteFunBody,
+				ConcreteFunBody(concretizeBogus(ctx, cf.returnType, concreteFunRange(*cf))),
 			(FunBody.Builtin) {
 				FunInst* inst = cf.source.as!(FunInst*);
 				switch (inst.name.value) {
 					case sym!"all-tests".value:
 						return bodyForAllTests(ctx, cf.returnType);
 					case sym!"safe-value".value:
-						return bodyForSafeValue(ctx, cf, concreteFunRange(*cf, ctx.allSymbols), cf.returnType);
+						return bodyForSafeValue(ctx, cf, concreteFunRange(*cf), cf.returnType);
 					default:
 						return ConcreteFunBody(ConcreteFunBody.Builtin(typeArgs(inputs)));
 				}
@@ -693,8 +709,7 @@ void fillInConcreteFunBody(ref ConcretizeCtx ctx, in Destructure[] params, Concr
 				Constant[] bytes = map(ctx.alloc, e.bytes, (ref immutable ubyte a) =>
 					Constant(Constant.Integral(a)));
 				Constant arr = getConstantArr(ctx.alloc, ctx.allConstants, mustBeByVal(type), bytes);
-				FileAndRange range = concreteFunRange(*cf, ctx.allSymbols);
-				return ConcreteFunBody(ConcreteExpr(type, range, ConcreteExprKind(arr)));
+				return ConcreteFunBody(ConcreteExpr(type, concreteFunRange(*cf), ConcreteExprKind(arr)));
 			},
 			(FlagsFunction it) =>
 				ConcreteFunBody(ConcreteFunBody.FlagsFn(
@@ -722,16 +737,18 @@ ulong getAllValue(ConcreteStructBody.Flags flags) =>
 	fold!(ulong, ulong)(0, flags.values, (ulong a, in ulong b) =>
 		a | b);
 
+ConcreteType arrayElementType(ConcreteType arrayType) =>
+	only(mustBeByVal(arrayType).source.as!(ConcreteStructSource.Inst).typeArgs);
+
 ConcreteFunBody bodyForEnumOrFlagsMembers(ref ConcretizeCtx ctx, ConcreteType returnType) {
-	ConcreteStruct* arrayStruct = mustBeByVal(returnType);
-	ConcreteType elementType = only(arrayStruct.source.as!(ConcreteStructSource.Inst).typeArgs);
 	// First type arg is 'symbol'
-	ConcreteType enumOrFlagsType = only2(mustBeByVal(elementType).source.as!(ConcreteStructSource.Inst).typeArgs)[1];
+	ConcreteType enumOrFlagsType =
+		only2(mustBeByVal(arrayElementType(returnType)).source.as!(ConcreteStructSource.Inst).typeArgs)[1];
 	Constant[] elements = map(ctx.alloc, enumOrFlagsMembers(enumOrFlagsType), (ref StructBody.Enum.Member member) =>
 		Constant(Constant.Record(arrLiteral!Constant(ctx.alloc, [
 			constantSym(ctx, member.name),
 			Constant(Constant.Integral(member.value.value))]))));
-	Constant arr = getConstantArr(ctx.alloc, ctx.allConstants, arrayStruct, elements);
+	Constant arr = getConstantArr(ctx.alloc, ctx.allConstants, mustBeByVal(returnType), elements);
 	return ConcreteFunBody(ConcreteExpr(returnType, FileAndRange.empty, ConcreteExprKind(arr)));
 }
 

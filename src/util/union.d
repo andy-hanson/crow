@@ -60,7 +60,8 @@ mixin template Union(ReprTypes...) {
 		private ulong ptrValue() scope const =>
 			value & ~0b11;
 	} else {
-		private immutable uint kind;
+		//TODO:PRIVATE
+		immutable uint kind;
 		union {
 			static foreach (i, T; ReprTypes) {
 				mixin("private immutable T as", i, ";");
@@ -70,6 +71,8 @@ mixin template Union(ReprTypes...) {
 
 	static foreach (i, T; ReprTypes) {
 		immutable this(immutable toMemberType!T a) {
+			static if (is(T == P*, P))
+				verify(a != null);
 			static if (usesTaggedPointer) {
 				ulong ptr = getAsTaggable!T(a);
 				verify((ptr & 0b11) == 0);

@@ -57,6 +57,8 @@ Json jsonOfConcreteStruct(ref Alloc alloc, in ConcreteStruct a) =>
 
 Json jsonOfConcreteStructSource(ref Alloc alloc, in ConcreteStructSource a) =>
 	a.matchIn!Json(
+		(in ConcreteStructSource.Bogus) =>
+			jsonString!"bogus",
 		(in ConcreteStructSource.Inst x) =>
 			jsonString(name(*x.inst)),
 		(in ConcreteStructSource.Lambda x) =>

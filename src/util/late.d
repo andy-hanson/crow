@@ -14,6 +14,9 @@ immutable struct Late(T) {
 @trusted Late!T late(T)() =>
 	Late!T();
 
+@trusted Late!T late(T)(T value) =>
+	Late!T(some(value));
+
 bool lateIsSet(T)(ref Late!T a) =>
 	has(a.value_);
 

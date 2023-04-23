@@ -1,5 +1,6 @@
-f void(a string) summon
-	a foo
+main nat64^(a string[]) summon
+	a[0] foo
+	()
 
 foo[t] spec
 	foo void(a t)

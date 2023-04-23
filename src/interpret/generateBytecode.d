@@ -252,7 +252,7 @@ void generateBytecodeForFun(
 	});
 	setStackEntryAfterParameters(writer, StackEntry(stackEntry));
 	size_t returnEntries = nStackEntriesForType(program, fun.returnType);
-	ByteCodeSource source = ByteCodeSource(funIndex, lowFunRange(fun, allSymbols).range.start);
+	ByteCodeSource source = ByteCodeSource(funIndex, lowFunRange(fun).range.start);
 
 	fun.body_.matchIn!void(
 		(in LowFunBody.Extern body_) {
@@ -277,7 +277,7 @@ void generateExternCall(
 	in LowFunBody.Extern a,
 	ExternFunPtrsForAllLibraries externFunPtrs,
 ) {
-	ByteCodeSource source = ByteCodeSource(funIndex, lowFunRange(fun, allSymbols).range.start);
+	ByteCodeSource source = ByteCodeSource(funIndex, lowFunRange(fun).range.start);
 	Opt!Sym optName = name(fun);
 	Sym name = force(optName);
 	switch (name.value) {

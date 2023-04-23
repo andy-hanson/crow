@@ -1,7 +1,8 @@
 exit code: 1
 stderr:
-test/compile-errors/set-field-of-by-val.crow 6:5-7:5 there is no function named 'set-x'
-uncaught exception: reached compile error
+uncaught exception: FOO
+	at bar
+	at foo
 	at main
 	at add
 	at call
@@ -15,5 +16,4 @@ uncaught exception: reached compile error
 	at call
 	at invoke
 	at do
-	at thread
 	at thread

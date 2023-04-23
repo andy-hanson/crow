@@ -1,2 +1,3 @@
-f void(a nat)
-	a := 3
+main nat64^(a string[])
+	a := ()
+	()

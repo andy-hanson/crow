@@ -533,7 +533,10 @@ struct ExprEmit {
 	immutable struct Return {}
 	// Return some.
 	immutable struct Value {}
-	// Don't return anything. (Don't even return_void).
+	/**
+	Don't return anything. (Don't even return_void).
+	This is used for `LowExprKind.SpecialUnary.Kind.drop` even if the expression type is not void.
+	**/
 	immutable struct Void {}
 	// Write to this local. Return none.
 	struct WriteTo {
@@ -622,8 +625,11 @@ ExprResult emitWriteToLValue(
 		},
 		(ExprEmit.Value) =>
 			ExprResult(getRValueUsingLocal(ctx, type, cb)),
-		(ExprEmit.Void) =>
-			unreachable!ExprResult,
+		(ExprEmit.Void) {
+			// This can happen for a LowExprKind.SpecialUnary.Kind.drop 
+			getRValueUsingLocal(ctx, type, cb);
+			return ExprResult(ExprResult.Void());
+		},
 		(ref ExprEmit.WriteTo it) {
 			cb(it.lvalue);
 			return ExprResult(ExprResult.Void());

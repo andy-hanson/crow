@@ -1,3 +1,6 @@
+main nat64^(_ string[])
+	()
+
 a spec b
 
 b spec a

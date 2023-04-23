@@ -6,7 +6,7 @@ import backend.writeToC : writeToC;
 import concretize.concretize : concretize;
 import document.document : documentJSON;
 import frontend.frontendCompile : FileAstAndDiagnostics, frontendCompile, parseSingleAst;
-import frontend.ide.getTokens : jsonOfTokens, Token, tokensOfAst;
+import frontend.ide.getTokens : jsonOfTokens, tokensOfAst;
 import frontend.parse.jsonOfAst : jsonOfAst;
 import frontend.showDiag : ShowDiagOptions, strOfDiagnostics;
 import interpret.bytecode : ByteCode;
@@ -15,15 +15,16 @@ import interpret.generateBytecode : generateBytecode;
 import interpret.runBytecode : runBytecode;
 import lower.lower : lower;
 import model.concreteModel : ConcreteProgram;
+import model.diag : isEmpty, isFatal;
 import model.lowModel : ExternLibraries, LowProgram;
-import model.model : fakeProgramForDiagnostics, hasDiags, Program;
+import model.model : fakeProgramForDiagnostics, Program;
 import model.jsonOfConcreteModel : jsonOfConcreteProgram;
 import model.jsonOfLowModel : jsonOfLowProgram;
 import model.jsonOfModel : jsonOfModule;
 import util.alloc.alloc : Alloc;
 import util.col.arr : only;
 import util.col.str : SafeCStr, safeCStr;
-import util.json : jsonToString;
+import util.json : Json, jsonToString;
 import util.opt : force, has, none, Opt, some;
 import util.path : AllPaths, Path, PathsInfo;
 import util.perf : Perf;
@@ -59,20 +60,25 @@ DiagsAndResultStrs print(
 	PrintKind kind,
 	Path main,
 ) {
-	final switch (kind) {
-		case PrintKind.tokens:
-			return printTokens(alloc, perf, allSymbols, allPaths, pathsInfo, storage, showDiagOptions, main);
-		case PrintKind.ast:
-			return printAst(alloc, perf, allSymbols, allPaths, pathsInfo, storage, showDiagOptions, main);
-		case PrintKind.model:
-			return printModel(alloc, perf, allSymbols, allPaths, pathsInfo, storage, showDiagOptions, main);
-		case PrintKind.concreteModel:
-			return printConcreteModel(
-				alloc, perf, versionInfo, allSymbols, allPaths, pathsInfo, storage, showDiagOptions, main);
-		case PrintKind.lowModel:
-			return printLowModel(
-				alloc, perf, versionInfo, allSymbols, allPaths, pathsInfo, storage, showDiagOptions, main);
-	}
+	DiagsAndResultJson json = () {
+		final switch (kind) {
+			case PrintKind.tokens:
+				return printTokens(alloc, perf, allSymbols, allPaths, storage, main);
+			case PrintKind.ast:
+				return printAst(alloc, perf, allSymbols, allPaths, storage, main);
+			case PrintKind.model:
+				return printModel(alloc, perf, allSymbols, allPaths, storage, main);
+			case PrintKind.concreteModel:
+				return printConcreteModel(
+					alloc, perf, versionInfo, allSymbols, allPaths, storage, main);
+			case PrintKind.lowModel:
+				return printLowModel(
+					alloc, perf, versionInfo, allSymbols, allPaths, storage, main);
+		}
+	}();
+	return DiagsAndResultStrs(
+		strOfDiagnostics(alloc, allSymbols, allPaths, pathsInfo, showDiagOptions, json.programForDiags),
+		jsonToString(alloc, allSymbols, json.result));
 }
 
 immutable struct ExitCode {
@@ -100,14 +106,16 @@ ExitCode buildAndInterpret(
 ) {
 	ProgramsAndFilesInfo programs =
 		buildToLowProgram(alloc, perf, versionInfoForInterpret(), allSymbols, allPaths, storage, main);
-	if (!hasDiags(programs.program)) {
-		LowProgram lowProgram = force(programs.concreteAndLowProgram).lowProgram;
+	writeDiagnostics(writeError, alloc, allSymbols, allPaths, pathsInfo, showDiagOptions, programs.program);
+	if (isFatal(programs.program.diagnostics))
+		return ExitCode.error;
+	else {
 		Opt!ExternFunPtrsForAllLibraries externFunPtrs =
-			extern_.loadExternFunPtrs(lowProgram.externLibraries, writeError);
+			extern_.loadExternFunPtrs(programs.lowProgram.externLibraries, writeError);
 		if (has(externFunPtrs)) {
 			ByteCode byteCode = generateBytecode(
 				alloc, perf, allSymbols,
-				programs.program, lowProgram, force(externFunPtrs), extern_.makeSyntheticFunPtrs);
+				programs.program, programs.lowProgram, force(externFunPtrs), extern_.makeSyntheticFunPtrs);
 			return ExitCode(runBytecode(
 				perf,
 				alloc,
@@ -116,122 +124,105 @@ ExitCode buildAndInterpret(
 				pathsInfo,
 				extern_.doDynCall,
 				programs.program,
-				lowProgram,
+				programs.lowProgram,
 				byteCode,
 				allArgs));
 		} else {
 			writeError(safeCStr!"Failed to load external libraries\n");
 			return ExitCode.error;
 		}
-	} else {
-		writeError(strOfDiagnostics(alloc, allSymbols, allPaths, pathsInfo, showDiagOptions, programs.program));
-		return ExitCode.error;
 	}
 }
 
 private:
 
-DiagsAndResultStrs printTokens(
+void writeDiagnostics(
+	in WriteError writeError,
+	ref Alloc alloc,
+	in AllSymbols allSymbols,
+	in AllPaths allPaths,
+	in PathsInfo pathsInfo,
+	in ShowDiagOptions showDiagOptions,
+	in Program program,
+) {
+	if (!isEmpty(program.diagnostics))
+		writeError(strOfDiagnostics(alloc, allSymbols, allPaths, pathsInfo, showDiagOptions, program));
+}
+
+struct DiagsAndResultJson {
+	Program programForDiags;	
+	Json result;
+}
+
+DiagsAndResultJson printTokens(
 	ref Alloc alloc,
 	ref Perf perf,
 	ref AllSymbols allSymbols,
 	ref AllPaths allPaths,
-	in PathsInfo pathsInfo,
 	in ReadOnlyStorage storage,
-	in ShowDiagOptions showDiagOptions,
 	Path main,
 ) {
 	FileAstAndDiagnostics astResult = parseSingleAst(alloc, perf, allSymbols, allPaths, storage, main);
-	Token[] tokens = tokensOfAst(alloc, allSymbols, astResult.ast);
-	return DiagsAndResultStrs(
-		strOfDiagnostics(alloc, allSymbols, allPaths, pathsInfo, showDiagOptions, fakeProgram(astResult)),
-		jsonToString(alloc, allSymbols, jsonOfTokens(alloc, tokens)));
+	return DiagsAndResultJson(
+		fakeProgram(astResult),
+		jsonOfTokens(alloc, tokensOfAst(alloc, allSymbols, astResult.ast)));
 }
 
 Program fakeProgram(FileAstAndDiagnostics astResult) =>
 	fakeProgramForDiagnostics(astResult.filesInfo, astResult.diagnostics);
 
-DiagsAndResultStrs printAst(
+DiagsAndResultJson printAst(
 	ref Alloc alloc,
 	ref Perf perf,
 	ref AllSymbols allSymbols,
 	ref AllPaths allPaths,
-	in PathsInfo pathsInfo,
 	in ReadOnlyStorage storage,
-	in ShowDiagOptions showDiagOptions,
 	Path main,
 ) {
 	FileAstAndDiagnostics astResult = parseSingleAst(alloc, perf, allSymbols, allPaths, storage, main);
-	return DiagsAndResultStrs(
-		strOfDiagnostics(alloc, allSymbols, allPaths, pathsInfo, showDiagOptions, fakeProgram(astResult)),
-		jsonToString(alloc, allSymbols, jsonOfAst(alloc, allPaths, astResult.ast)));
+	return DiagsAndResultJson(fakeProgram(astResult), jsonOfAst(alloc, allPaths, astResult.ast));
 }
 
-DiagsAndResultStrs printModel(
+DiagsAndResultJson printModel(
 	ref Alloc alloc,
 	ref Perf perf,
 	ref AllSymbols allSymbols,
 	ref AllPaths allPaths,
-	in PathsInfo pathsInfo,
 	in ReadOnlyStorage storage,
-	in ShowDiagOptions showDiagOptions,
 	Path main,
 ) {
 	Program program = frontendCompile(alloc, perf, alloc, allPaths, allSymbols, storage, [main], none!Path);
-	return !hasDiags(program)
-		? DiagsAndResultStrs(
-			safeCStr!"",
-			jsonToString(alloc, allSymbols, jsonOfModule(alloc, *only(program.rootModules))))
-		: DiagsAndResultStrs(
-			strOfDiagnostics(alloc, allSymbols, allPaths, pathsInfo, showDiagOptions, program),
-			safeCStr!"");
+	return DiagsAndResultJson(program, jsonOfModule(alloc, *only(program.rootModules)));
 }
 
-DiagsAndResultStrs printConcreteModel(
+DiagsAndResultJson printConcreteModel(
 	ref Alloc alloc,
 	ref Perf perf,
 	in VersionInfo versionInfo,
 	ref AllSymbols allSymbols,
 	ref AllPaths allPaths,
-	in PathsInfo pathsInfo,
 	in ReadOnlyStorage storage,
-	in ShowDiagOptions showDiagOptions,
 	Path main,
 ) {
 	Program program = frontendCompile(alloc, perf, alloc, allPaths, allSymbols, storage, [main], none!Path);
-	if (!hasDiags(program)) {
-		ConcreteProgram concreteProgram = concretize(alloc, perf, versionInfo, allSymbols, program);
-		return DiagsAndResultStrs(
-			safeCStr!"",
-			jsonToString(alloc, allSymbols, jsonOfConcreteProgram(alloc, concreteProgram)));
-	} else
-		return DiagsAndResultStrs(
-			strOfDiagnostics(alloc, allSymbols, allPaths, pathsInfo, showDiagOptions, program),
-			safeCStr!"");
+	return DiagsAndResultJson(
+		program,
+		jsonOfConcreteProgram(alloc, concretize(alloc, perf, versionInfo, allSymbols, program)));
 }
 
-DiagsAndResultStrs printLowModel(
+DiagsAndResultJson printLowModel(
 	ref Alloc alloc,
 	ref Perf perf,
 	in VersionInfo versionInfo,
 	ref AllSymbols allSymbols,
 	ref AllPaths allPaths,
-	in PathsInfo pathsInfo,
 	in ReadOnlyStorage storage,
-	in ShowDiagOptions showDiagOptions,
 	Path main,
 ) {
 	Program program = frontendCompile(alloc, perf, alloc, allPaths, allSymbols, storage, [main], none!Path);
-	if (!hasDiags(program)) {
-		ConcreteProgram concreteProgram = concretize(alloc, perf, versionInfo, allSymbols, program);
-		LowProgram lowProgram = lower(alloc, perf, allSymbols, program.config.extern_, concreteProgram);
-		return DiagsAndResultStrs(
-			safeCStr!"",
-			jsonToString(alloc, allSymbols, jsonOfLowProgram(alloc, lowProgram)));
-	} else
-		return DiagsAndResultStrs(
-			strOfDiagnostics(alloc, allSymbols, allPaths, pathsInfo, showDiagOptions, program),
-			safeCStr!"");
+	ConcreteProgram concreteProgram = concretize(alloc, perf, versionInfo, allSymbols, program);
+	LowProgram lowProgram = lower(alloc, perf, allSymbols, program.config.extern_, concreteProgram);
+	return DiagsAndResultJson(program, jsonOfLowProgram(alloc, lowProgram));
 }
 
 public Opt!SafeCStr justTypeCheck(
@@ -245,9 +236,9 @@ public Opt!SafeCStr justTypeCheck(
 	Path main,
 ) {
 	Program program = frontendCompile(alloc, perf, alloc, allPaths, allSymbols, storage, [main], none!Path);
-	return hasDiags(program)
-		? some(strOfDiagnostics(alloc, allSymbols, allPaths, pathsInfo, showDiagOptions, program))
-		: none!SafeCStr;
+	return isEmpty(program.diagnostics)
+		? none!SafeCStr
+		: some(strOfDiagnostics(alloc, allSymbols, allPaths, pathsInfo, showDiagOptions, program));
 }
 
 version (WebAssembly) {} else {
@@ -268,15 +259,12 @@ version (WebAssembly) {} else {
 	) {
 		ProgramsAndFilesInfo programs =
 			buildToLowProgram(alloc, perf, versionInfoForBuildToC(), allSymbols, allPaths, storage, main);
-		return !hasDiags(programs.program)
-			? BuildToCResult(
-				writeToC(alloc, alloc, allSymbols, programs.program, force(programs.concreteAndLowProgram).lowProgram),
-				safeCStr!"",
-				force(programs.concreteAndLowProgram).lowProgram.externLibraries)
-			: BuildToCResult(
-				safeCStr!"",
-				strOfDiagnostics(alloc, allSymbols, allPaths, pathsInfo, showDiagOptions, programs.program),
-				[]);
+		return BuildToCResult(
+			isFatal(programs.program.diagnostics)
+				? safeCStr!""
+				: writeToC(alloc, alloc, allSymbols, programs.program, programs.lowProgram),
+			strOfDiagnostics(alloc, allSymbols, allPaths, pathsInfo, showDiagOptions, programs.program),
+			programs.lowProgram.externLibraries);
 	}
 }
 
@@ -297,29 +285,16 @@ public DocumentResult compileAndDocument(
 ) {
 	Program program =
 		frontendCompile(alloc, perf, alloc, allPaths, allSymbols, storage, rootPaths, none!Path);
-	return !hasDiags(program)
-		? DocumentResult(
-			documentJSON(alloc, allSymbols, allPaths, pathsInfo, program),
-			safeCStr!"")
-		: DocumentResult(
-			safeCStr!"",
-			strOfDiagnostics(alloc, allSymbols, allPaths, pathsInfo, showDiagOptions, program));
-}
-
-immutable struct ConcreteAndLowProgram {
-	ConcreteProgram concreteProgram;
-	LowProgram lowProgram;
+	return DocumentResult(
+		documentJSON(alloc, allSymbols, allPaths, pathsInfo, program),
+		strOfDiagnostics(alloc, allSymbols, allPaths, pathsInfo, showDiagOptions, program));
 }
 
 //TODO:RENAME
 public immutable struct ProgramsAndFilesInfo {
-	@safe @nogc pure nothrow:
-
 	Program program;
-	Opt!ConcreteAndLowProgram concreteAndLowProgram;
-
-	ref LowProgram lowProgram() return =>
-		force(concreteAndLowProgram).lowProgram;
+	ConcreteProgram concreteProgram;
+	LowProgram lowProgram;
 }
 
 public ProgramsAndFilesInfo buildToLowProgram(
@@ -332,13 +307,7 @@ public ProgramsAndFilesInfo buildToLowProgram(
 	Path main,
 ) {
 	Program program = frontendCompile(alloc, perf, alloc, allPaths, allSymbols, storage, [main], some(main));
-	if (!hasDiags(program)) {
-		ConcreteProgram concreteProgram = concretize(alloc, perf, versionInfo, allSymbols, program);
-		return ProgramsAndFilesInfo(
-			program,
-			some(ConcreteAndLowProgram(
-				concreteProgram,
-				lower(alloc, perf, allSymbols, program.config.extern_, concreteProgram))));
-	} else
-		return ProgramsAndFilesInfo(program, none!ConcreteAndLowProgram);
+	ConcreteProgram concreteProgram = concretize(alloc, perf, versionInfo, allSymbols, program);
+	LowProgram lowProgram = lower(alloc, perf, allSymbols, program.config.extern_, concreteProgram);
+	return ProgramsAndFilesInfo(program, concreteProgram, lowProgram);
 }

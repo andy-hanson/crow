@@ -1,4 +1,4 @@
-exit code: 1
+exit code: 0
 stderr:
 test/compile-errors/trusted-unnecessary.crow 5:5-5:17 'trusted' has no effect inside an 'unsafe' function
 

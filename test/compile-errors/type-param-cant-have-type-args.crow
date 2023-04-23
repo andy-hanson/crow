@@ -1,2 +1,5 @@
+main nat64^(_ string[])
+	()
+
 f[t] void(_ nat t)
-	void
+	()

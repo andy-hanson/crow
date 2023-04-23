@@ -1,5 +1,5 @@
 import
-	crow/io/path: child-path, parent-path
+	crow/io/path: child-path
 	crow/io/print: out, print
 	crow/parse: force, nat, parse
 	crow/parse-command: parse-named-args
@@ -39,12 +39,10 @@ options:
 	--max-failures: stop after this many failures. Defaults to 10."""
 
 -do-test nat^(options test-options) summon
-	test-path = "./test"
-	crow-dir = test-path parent-path
-	crow-exe = crow-dir crow-path
-	crow-failures <- test-path child-path "parse-errors" run-crow-tests crow-exe, options first-failures () =>
-		test-path child-path "compile-errors" run-crow-tests crow-exe, options first-failures () =>
-			test-path child-path "runnable" run-crow-tests crow-exe, options
+	crow-dir = "."
+	paths string[] = for name : ("parse-errors", "compile-errors", "runnable")::string[]
+		"./test" child-path name
+	crow-failures <- paths run-crow-tests crow-dir.crow-path, options
 	all-failures <- crow-failures first-failures () => crow-dir lint options
 	(all-failures print-failures options),
 

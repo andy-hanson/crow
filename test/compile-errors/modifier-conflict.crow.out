@@ -1,4 +1,6 @@
-exit code: 1
+exit code: 0
+stdout:
+hello, world!
 stderr:
 test/compile-errors/modifier-conflict.crow 8:16-8:19 'mut' conflicts with 'data'
 

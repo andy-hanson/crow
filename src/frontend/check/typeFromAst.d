@@ -441,7 +441,7 @@ Destructure checkDestructure(
 				Opt!(Type[]) fieldTypes = asTuple(commonTypes, tupleType);
 				if (has(fieldTypes) && force(fieldTypes).length == partAsts.length)
 					return Destructure(allocate(ctx.alloc, Destructure.Split(
-						tupleType.as!(StructInst*),
+						tupleType,
 						small(mapZip!(Destructure, Type, DestructureAst)(
 							ctx.alloc, force(fieldTypes), partAsts, (ref Type fieldType, ref DestructureAst part) =>
 								checkDestructure(
@@ -454,7 +454,7 @@ Destructure checkDestructure(
 								Diag.DestructureTypeMismatch.Expected.Tuple(partAsts.length)),
 							tupleType)));
 					return Destructure(allocate(ctx.alloc, Destructure.Split(
-						null,
+						Type(Type.Bogus()),
 						small(map!(Destructure, DestructureAst)(
 							ctx.alloc, partAsts, (scope ref DestructureAst part) =>
 								checkDestructure(
@@ -470,7 +470,7 @@ Destructure checkDestructure(
 					ctx.alloc, ctx.programState, commonTypes,
 					//TODO:PERF Use temp alloc
 					map(ctx.alloc, parts, (ref Destructure part) => part.type));
-				return Destructure(allocate(ctx.alloc, Destructure.Split(type.as!(StructInst*), small(parts))));
+				return Destructure(allocate(ctx.alloc, Destructure.Split(type, small(parts))));
 			}
 		});
 }

@@ -1104,7 +1104,8 @@ immutable struct CommonFuns {
 	FunInst* alloc;
 	FunDecl*[] funOrActSubscriptFunDecls;
 	FunInst* curExclusion;
-	FunInst* main;
+	// Missing for the 'doc' command which has no 'main' module
+	Opt!(FunInst*) main;
 	FunInst* mark;
 	FunDecl* markVisitFunDecl;
 	FunInst* rtMain;
@@ -1168,14 +1169,14 @@ immutable struct Program {
 	Config config;
 	Module[] allModules;
 	Module*[] rootModules;
-	Opt!CommonFuns commonFuns;
+	CommonFuns commonFuns;
 	CommonTypes commonTypes;
 	Diagnostics diagnostics;
 }
 Program fakeProgramForTest(FilesInfo filesInfo) =>
 	fakeProgramForDiagnostics(filesInfo, Diagnostics());
 Program fakeProgramForDiagnostics(FilesInfo filesInfo, Diagnostics diagnostics) =>
-	Program(filesInfo, Config(), [], [], none!CommonFuns, CommonTypes(), diagnostics);
+	Program(filesInfo, Config(), [], [], CommonFuns(), CommonTypes(), diagnostics);
 
 immutable struct Config {
 	ConfigImportPaths include;
@@ -1184,9 +1185,6 @@ immutable struct Config {
 
 alias ConfigImportPaths = Map!(Sym, Path);
 alias ConfigExternPaths = Map!(Sym, Path);
-
-bool hasDiags(in Program a) =>
-	!empty(a.diagnostics.diags);
 
 immutable struct Local {
 	@safe @nogc pure nothrow:
@@ -1291,7 +1289,7 @@ immutable struct Destructure {
 		Type type;
 	}
 	immutable struct Split {
-		StructInst* type; // This will be a tuple instance
+		Type destructuredType; // This will be a tuple instance or Bogus.
 		SmallArray!Destructure parts;
 	}
 	mixin Union!(Ignore*, Local*, Split*);
@@ -1328,12 +1326,17 @@ immutable struct Destructure {
 			(in Local x) =>
 				x.type,
 			(in Split x) =>
-				Type(x.type));
+				x.destructuredType);
 }
 
 immutable struct Expr {
 	FileAndRange range;
 	ExprKind kind;
+}
+
+immutable struct ExprAndType {
+	Expr expr;
+	Type type;
 }
 
 immutable struct ExprKind {
@@ -1364,25 +1367,22 @@ immutable struct ExprKind {
 	}
 
 	immutable struct Drop {
-		Expr arg;
+		ExprAndType arg;
 	}
 
 	immutable struct FunPtr {
 		FunInst* funInst;
-		StructInst* type;
 	}
 
 	immutable struct If {
-		Type type;
 		Expr cond;
 		Expr then;
 		Expr else_;
 	}
 
 	immutable struct IfOption {
-		Type type;
 		Destructure destructure;
-		Expr option;
+		ExprAndType option;
 		Expr then;
 		Expr else_;
 	}
@@ -1392,7 +1392,7 @@ immutable struct ExprKind {
 		Expr body_;
 		VariableRef[] closure;
 		// This is the function type
-		StructInst* funType;
+		StructInst* funType; //TODO:KILLTYPE
 		FunKind kind;
 		// For FunKind.send this includes 'future' wrapper
 		Type returnType;
@@ -1405,7 +1405,7 @@ immutable struct ExprKind {
 	}
 
 	immutable struct Literal {
-		StructInst* type;
+		StructInst* type; //TODO:KILLTYPE
 		Constant value;
 	}
 
@@ -1427,7 +1427,7 @@ immutable struct ExprKind {
 	}
 
 	immutable struct Loop {
-		Type type;
+		Type type; //TODO:KILLTYPE
 		Expr body_;
 	}
 
@@ -1451,9 +1451,8 @@ immutable struct ExprKind {
 	}
 
 	immutable struct MatchEnum {
-		Expr matched;
+		ExprAndType matched;
 		Expr[] cases;
-		Type type;
 	}
 
 	immutable struct MatchUnion {
@@ -1462,19 +1461,18 @@ immutable struct ExprKind {
 			Expr then;
 		}
 
-		Expr matched;
+		ExprAndType matched;
 		Case[] cases;
-		Type type;
 	}
 
 	immutable struct PtrToField {
-		Type pointerType;
-		Expr target; // This will be a pointer or by-ref type
+		Type pointerType; //TODO:KILLTYPE
+		ExprAndType target; // This will be a pointer or by-ref type
 		size_t fieldIndex;
 	}
 
 	immutable struct PtrToLocal {
-		Type ptrType;
+		Type ptrType; //TODO:KILLTYPE
 		Local* local;
 	}
 
@@ -1484,7 +1482,6 @@ immutable struct ExprKind {
 	}
 
 	immutable struct Throw {
-		Type type;
 		Expr thrown;
 	}
 

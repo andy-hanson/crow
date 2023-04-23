@@ -1,6 +1,3 @@
-exit code: 1
+exit code: 0
 stderr:
-test/compile-errors/spec-decl-recursion.crow 1:1-3:1 spec's parents tree is too deep. trace: 'b', 'a', 'b', 'a', 'b', 'a', 'b', 'a'
-
-test/compile-errors/spec-decl-recursion.crow 1:1-1:1 module should have a function:
-	main nat64^(args string[])
+test/compile-errors/spec-decl-recursion.crow 4:1-6:1 spec's parents tree is too deep. trace: 'b', 'a', 'b', 'a', 'b', 'a', 'b', 'a'

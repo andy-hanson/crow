@@ -24,9 +24,9 @@ DiagSeverity getDiagnosticSeverity(in Diag a) =>
 		(in Diag.CommonFunDuplicate) =>
 			DiagSeverity.checkError,
 		(in Diag.CommonFunMissing) =>
-			DiagSeverity.checkError,
+			DiagSeverity.commonMissing,
 		(in Diag.CommonTypeMissing) =>
-			DiagSeverity.checkError,
+			DiagSeverity.commonMissing,
 		(in Diag.DestructureTypeMismatch) =>
 			DiagSeverity.checkError,
 		(in Diag.DuplicateDeclaration) =>

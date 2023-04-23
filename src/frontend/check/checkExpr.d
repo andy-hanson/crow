@@ -94,6 +94,7 @@ import model.model :
 	decl,
 	Destructure,
 	Expr,
+	ExprAndType,
 	ExprKind,
 	FieldMutability,
 	FunBody,
@@ -260,11 +261,6 @@ Opt!Expr checkWithParamDestructuresRecur(
 		: checkWithDestructure(ctx, locals, params[0], (ref LocalsInfo innerLocals) =>
 			checkWithParamDestructuresRecur(ctx, innerLocals, params[1 .. $], cb));
 
-immutable struct ExprAndType {
-	Expr expr;
-	Type type;
-}
-
 ExprAndType checkAndInfer(ref ExprCtx ctx, ref LocalsInfo locals, in ExprAst ast) {
 	Expected expected = Expected(Expected.Infer());
 	Expr expr = checkExpr(ctx, locals, ast, expected);
@@ -311,14 +307,14 @@ Expr checkIf(ref ExprCtx ctx, ref LocalsInfo locals, FileAndRange range, in IfAs
 	Expr cond = checkAndExpectBool(ctx, locals, ast.cond);
 	Expr then = checkExpr(ctx, locals, ast.then, expected);
 	Expr else_ = checkExpr(ctx, locals, ast.else_, expected);
-	return Expr(range, ExprKind(allocate(ctx.alloc, ExprKind.If(inferred(expected), cond, then, else_))));
+	return Expr(range, ExprKind(allocate(ctx.alloc, ExprKind.If(cond, then, else_))));
 }
 
 Expr checkThrow(ref ExprCtx ctx, ref LocalsInfo locals, FileAndRange range, in ThrowAst ast, ref Expected expected) {
 	Opt!Type inferred = tryGetInferred(expected);
 	if (has(inferred)) {
 		Expr thrown = checkAndExpectCStr(ctx, locals, ast.thrown);
-		return Expr(range, ExprKind(allocate(ctx.alloc, ExprKind.Throw(force(inferred), thrown))));
+		return Expr(range, ExprKind(allocate(ctx.alloc, ExprKind.Throw(thrown))));
 	} else {
 		addDiag2(ctx, range, Diag(Diag.NeedsExpectedType(Diag.NeedsExpectedType.Kind.throw_)));
 		return bogus(expected, range);
@@ -420,7 +416,7 @@ Expr checkUnless(
 	Expr cond = checkAndExpectBool(ctx, locals, ast.cond);
 	Expr else_ = checkExpr(ctx, locals, ast.body_, expected);
 	Expr then = checkEmptyNew(ctx, range, expected);
-	return Expr(range, ExprKind(allocate(ctx.alloc, ExprKind.If(inferred(expected), cond, then, else_))));
+	return Expr(range, ExprKind(allocate(ctx.alloc, ExprKind.If(cond, then, else_))));
 }
 
 Expr checkEmptyNew(ref ExprCtx ctx, in FileAndRange range, ref Expected expected) =>
@@ -434,24 +430,20 @@ Expr checkIfOption(
 	ref Expected expected,
 ) {
 	// We don't know the cond type, except that it's an option
-	ExprAndType optionAndType = checkAndInfer(ctx, locals, ast.option);
-	Expr option = optionAndType.expr;
-	Type optionType = optionAndType.type;
-
-	StructInst* inst = optionType.isA!(StructInst*)
-		? optionType.as!(StructInst*)
+	ExprAndType option = checkAndInfer(ctx, locals, ast.option);
+	StructInst* inst = option.type.isA!(StructInst*)
+		? option.type.as!(StructInst*)
 		// Arbitrary type that's not opt
 		: ctx.commonTypes.void_;
 	if (decl(*inst) != ctx.commonTypes.opt) {
-		addDiag2(ctx, range, Diag(Diag.IfNeedsOpt(optionType)));
+		addDiag2(ctx, range, Diag(Diag.IfNeedsOpt(option.type)));
 		return bogus(expected, range);
 	} else {
 		Type nonOptionalType = only(typeArgs(*inst));
 		Destructure destructure = checkDestructure(ctx, ast.destructure, nonOptionalType);
 		Expr then = checkExprWithDestructure(ctx, locals, destructure, ast.then, expected);
 		Expr else_ = checkExpr(ctx, locals, ast.else_, expected);
-		return Expr(range, ExprKind(
-			allocate(ctx.alloc, ExprKind.IfOption(inferred(expected), destructure, option, then, else_))));
+		return Expr(range, ExprKind(allocate(ctx.alloc, ExprKind.IfOption(destructure, option, then, else_))));
 	}
 }
 
@@ -1035,19 +1027,20 @@ Expr checkPtrOfCall(
 				if (fieldMutability < expectedMutability)
 					addDiag2(ctx, range, Diag(Diag.PtrMutToConst(Diag.PtrMutToConst.Kind.field)));
 				return Expr(range, ExprKind(allocate(ctx.alloc,
-					ExprKind.PtrToField(pointerType, target, rfg.fieldIndex))));
+					ExprKind.PtrToField(pointerType, ExprAndType(target, Type(recordType)), rfg.fieldIndex))));
 			} else if (target.kind.isA!(ExprKind.Call)) {
 				ExprKind.Call targetCall = target.kind.as!(ExprKind.Call);
 				Called called = targetCall.called;
 				if (called.isA!(FunInst*) && isDerefFunction(ctx, called.as!(FunInst*))) {
 					FunInst* derefFun = called.as!(FunInst*);
+					Type derefedType = only(derefFun.paramTypes);
 					PointerMutability pointerMutability =
-						mutabilityForPtrDecl(ctx, decl(*only(derefFun.paramTypes).as!(StructInst*)));
+						mutabilityForPtrDecl(ctx, decl(*derefedType.as!(StructInst*)));
 					Expr targetPtr = only(targetCall.args);
 					if (max(fieldMutability, pointerMutability) < expectedMutability)
 						todo!void("diag: can't get mut* to immutable field");
 					return Expr(range, ExprKind(allocate(ctx.alloc,
-						ExprKind.PtrToField(pointerType, targetPtr, rfg.fieldIndex))));
+						ExprKind.PtrToField(pointerType, ExprAndType(targetPtr, derefedType), rfg.fieldIndex))));
 				} else
 					return fail();
 			} else
@@ -1104,7 +1097,7 @@ Expr checkFunPointer(ref ExprCtx ctx, FileAndRange range, in PtrAst ast, ref Exp
 	Type paramType = makeTupleType(ctx.alloc, ctx.programState, ctx.commonTypes, funInst.paramTypes);
 	StructInst* structInst = instantiateStructNeverDelay(
 		ctx.alloc, ctx.programState, ctx.commonTypes.funPtrStruct, [funInst.returnType, paramType]);
-	return check(ctx, expected, Type(structInst), Expr(range, ExprKind(ExprKind.FunPtr(funInst, structInst))));
+	return check(ctx, expected, Type(structInst), Expr(range, ExprKind(ExprKind.FunPtr(funInst))));
 }
 
 Expr checkLambda(ref ExprCtx ctx, ref LocalsInfo locals, FileAndRange range, in LambdaAst ast, ref Expected expected) {
@@ -1281,16 +1274,15 @@ Expr checkLoopWhile(
 
 Expr checkMatch(ref ExprCtx ctx, ref LocalsInfo locals, FileAndRange range, in MatchAst ast, ref Expected expected) {
 	ExprAndType matchedAndType = checkAndInfer(ctx, locals, ast.matched);
-	Expr matched = matchedAndType.expr;
 	Type matchedType = matchedAndType.type;
 	StructBody body_ = matchedType.isA!(StructInst*)
 		? body_(*decl(*matchedType.as!(StructInst*)))
 		: StructBody(StructBody.Bogus());
 	if (body_.isA!(StructBody.Enum))
-		return checkMatchEnum(ctx, locals, range, ast, expected, matched, body_.as!(StructBody.Enum).members);
+		return checkMatchEnum(ctx, locals, range, ast, expected, matchedAndType, body_.as!(StructBody.Enum).members);
 	else if (body_.isA!(StructBody.Union))
 		return checkMatchUnion(
-			ctx, locals, range, ast, expected, matched,
+			ctx, locals, range, ast, expected, matchedAndType,
 			body_.as!(StructBody.Union).members,
 			matchedType.as!(StructInst*).instantiatedTypes);
 	else {
@@ -1306,7 +1298,7 @@ Expr checkMatchEnum(
 	FileAndRange range,
 	in MatchAst ast,
 	ref Expected expected,
-	ref Expr matched,
+	ref ExprAndType matched,
 	in StructBody.Enum.Member[] members,
 ) {
 	bool goodCases = arrsCorrespond!(StructBody.Enum.Member, MatchAst.CaseAst)(
@@ -1326,7 +1318,7 @@ Expr checkMatchEnum(
 		});
 		return Expr(
 			range,
-			ExprKind(allocate(ctx.alloc, ExprKind.MatchEnum(matched, cases, inferred(expected)))));
+			ExprKind(allocate(ctx.alloc, ExprKind.MatchEnum(matched, cases))));
 	}
 }
 
@@ -1336,7 +1328,7 @@ Expr checkMatchUnion(
 	FileAndRange range,
 	in MatchAst ast,
 	ref Expected expected,
-	ref Expr matched,
+	ref ExprAndType matched,
 	in UnionMember[] declaredMembers,
 	in Type[] instantiatedTypes,
 ) {
@@ -1355,7 +1347,7 @@ Expr checkMatchUnion(
 				ctx.alloc, declaredMembers, instantiatedTypes, ast.cases,
 				(UnionMember* member, ref Type type, ref MatchAst.CaseAst caseAst) =>
 					checkMatchCase(ctx, locals, member, type, caseAst, expected));
-		return Expr(range, ExprKind(allocate(ctx.alloc, ExprKind.MatchUnion(matched, cases, inferred(expected)))));
+		return Expr(range, ExprKind(allocate(ctx.alloc, ExprKind.MatchUnion(matched, cases))));
 	}
 }
 

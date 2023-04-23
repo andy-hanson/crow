@@ -1,3 +1,6 @@
+main nat64^(_ string[])
+	()
+
 a extern
 
 r record

@@ -1,3 +1,6 @@
+main nat64^(_ string[])
+	()
+
 f void() bare, c extern
 
 f void() unsafe, c extern

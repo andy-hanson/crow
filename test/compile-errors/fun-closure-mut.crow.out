@@ -1,4 +1,4 @@
-exit code: 1
+exit code: 0
 stderr:
 test/compile-errors/fun-closure-mut.crow 6:19-6:26 this lambda is a 'fun' but references 'x' which is 'mut' (should it be an 'act' or 'ref' fun?)
 

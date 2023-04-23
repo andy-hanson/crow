@@ -1,3 +1,6 @@
+main nat64^(_ string[])
+	()
+
 r record extern
 	a string
 	b nat64 list

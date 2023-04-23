@@ -1,3 +1,6 @@
+main nat64^(_ string[])
+	()
+
 foo record
 	a nat
 	a nat

@@ -9,7 +9,9 @@ import model.concreteModel :
 	ConcreteLocalSource,
 	ConcreteStruct,
 	ConcreteStructSource,
-	ConcreteType;
+	ConcreteType,
+	ReferenceKind,
+	symOfReferenceKind;
 import model.lowModel :
 	AllLowTypes, LowFun, LowFunIndex, LowFunSource, LowProgram, LowType, PrimitiveType, symOfPrimitiveType;
 import model.model : decl, FunInst, name, Local, Program, typeArgs, writeTypeArgs, writeTypeArgsGeneric;
@@ -155,6 +157,9 @@ void writeConcreteFunName(ref Writer writer, in AllSymbols allSymbols, in Progra
 
 void writeConcreteStruct(scope ref Writer writer, in AllSymbols allSymbols, in Program program, in ConcreteStruct a) {
 	a.source.matchIn!void(
+		(in ConcreteStructSource.Bogus) {
+			writer ~= "BOGUS";
+		},
 		(in ConcreteStructSource.Inst it) {
 			switch (it.typeArgs.length) {
 				case 0:
@@ -179,7 +184,15 @@ void writeConcreteStruct(scope ref Writer writer, in AllSymbols allSymbols, in P
 		});
 }
 
-void writeConcreteType(scope ref Writer writer, in AllSymbols allSymbols, in Program program, in ConcreteType a) {
-	//TODO: if it doesn't have the usual by-ref or by-val we should write that
+void writeConcreteType(
+	scope ref Writer writer,
+	in AllSymbols allSymbols,
+	in Program program,
+	in ConcreteType a,
+) {
 	writeConcreteStruct(writer, allSymbols, program, *a.struct_);
+	if (a.reference != ReferenceKind.byVal) {
+		writer ~= ' ';
+		writeSym(writer, allSymbols, symOfReferenceKind(a.reference));
+	}
 }

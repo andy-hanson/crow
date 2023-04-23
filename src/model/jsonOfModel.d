@@ -12,6 +12,7 @@ import model.model :
 	EnumFunction,
 	enumFunctionName,
 	Expr,
+	ExprAndType,
 	ExprKind,
 	FlagsFunction,
 	flagsFunctionName,
@@ -311,6 +312,11 @@ Json jsonOfExprs(ref Alloc alloc, in Ctx ctx, in Expr[] a) =>
 	jsonList!Expr(alloc, a, (in Expr x) =>
 		jsonOfExpr(alloc, ctx, x));
 
+Json jsonOfExprAndType(ref Alloc alloc, in Ctx ctx, in ExprAndType a) =>
+	jsonObject(alloc, [
+		field!"expr"(jsonOfExpr(alloc, ctx, a.expr)),
+		field!"type"(jsonOfType(alloc, ctx, a.type))]);
+
 Json jsonOfExpr(ref Alloc alloc, in Ctx ctx, in Expr a) =>
 	a.kind.matchIn!Json(
 		(in ExprKind.AssertOrForbid x) =>
@@ -337,12 +343,11 @@ Json jsonOfExpr(ref Alloc alloc, in Ctx ctx, in Expr a) =>
 		(in ExprKind.Drop x) =>
 			jsonObject(alloc, [
 				kindField!"drop",
-				field!"arg"(jsonOfExpr(alloc, ctx, x.arg))]),
+				field!"arg"(jsonOfExprAndType(alloc, ctx, x.arg))]),
 		(in ExprKind.FunPtr x) =>
 			jsonObject(alloc, [
 				kindField!"fun-pointer",
-				field!"fun"(jsonOfFunInst(alloc, ctx, *x.funInst)),
-				field!"fun-type"(jsonOfStructInst(alloc, ctx, *x.type))]),
+				field!"fun"(jsonOfFunInst(alloc, ctx, *x.funInst))]),
 		(in ExprKind.If x) =>
 			jsonObject(alloc, [
 				kindField!"if",
@@ -353,7 +358,7 @@ Json jsonOfExpr(ref Alloc alloc, in Ctx ctx, in Expr a) =>
 			jsonObject(alloc, [
 				kindField!"if-option",
 				field!"destructure"(jsonOfDestructure(alloc, ctx, x.destructure)),
-				field!"option"(jsonOfExpr(alloc, ctx, x.option)),
+				field!"option"(jsonOfExprAndType(alloc, ctx, x.option)),
 				field!"then"(jsonOfExpr(alloc, ctx, x.then)),
 				field!"else"(jsonOfExpr(alloc, ctx, x.else_))]),
 		(in ExprKind.Lambda x) =>
@@ -417,19 +422,19 @@ Json jsonOfExpr(ref Alloc alloc, in Ctx ctx, in Expr a) =>
 		(in ExprKind.MatchEnum a) =>
 			jsonObject(alloc, [
 				kindField!"match-enum",
-				field!"matched"(jsonOfExpr(alloc, ctx, a.matched)),
+				field!"matched"(jsonOfExprAndType(alloc, ctx, a.matched)),
 				field!"cases"(jsonOfExprs(alloc, ctx, a.cases))]),
 		(in ExprKind.MatchUnion a) =>
 			jsonObject(alloc, [
 				kindField!"match-union",
-				field!"matched"(jsonOfExpr(alloc, ctx, a.matched)),
+				field!"matched"(jsonOfExprAndType(alloc, ctx, a.matched)),
 				field!"cases"(jsonList!(ExprKind.MatchUnion.Case)(alloc, a.cases, (in ExprKind.MatchUnion.Case case_) =>
 					jsonOfMatchUnionCase(alloc, ctx, case_)))]),
 		(in ExprKind.PtrToField x) =>
 			jsonObject(alloc, [
 				kindField!"pointer-to-field",
 				field!"pointer-type"(jsonOfType(alloc, ctx, x.pointerType)),
-				field!"target"(jsonOfExpr(alloc, ctx, x.target)),
+				field!"target"(jsonOfExprAndType(alloc, ctx, x.target)),
 				field!"field-index"(x.fieldIndex)]),
 		(in ExprKind.PtrToLocal x) =>
 			jsonObject(alloc, [
@@ -457,7 +462,7 @@ Json jsonOfDestructure(ref Alloc alloc, in Ctx ctx, in Destructure a) =>
 Json jsonOfDestructureSplit(ref Alloc alloc, in Ctx ctx, in Destructure.Split a) =>
 	jsonObject(alloc, [
 		kindField!"split",
-		field!"type"(jsonOfStructInst(alloc, ctx, *a.type)),
+		field!"type"(jsonOfType(alloc, ctx, a.destructuredType)),
 		field!"parts"(jsonOfDestructures(alloc, ctx, a.parts))]);
 
 Json jsonOfMatchUnionCase(ref Alloc alloc, in Ctx ctx, in ExprKind.MatchUnion.Case a) =>

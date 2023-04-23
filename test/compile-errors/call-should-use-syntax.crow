@@ -4,7 +4,7 @@ import
 main nat^(_ string[]) summon
 	xs string mut[] = "hello", "world"
 	_ nat? = xs for-break x => break 0
-	_ = ()::string? force
+	_ = ("a",)::string? force
 	_ char8[] = xs for-loop x => x[0]
 	_ string[] = new
 	_ string[] = "hello" new

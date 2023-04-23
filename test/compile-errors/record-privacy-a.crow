@@ -1,3 +1,6 @@
+main nat64^(_ string[])
+	()
+
 private-ctor record -new
 	x nat
 

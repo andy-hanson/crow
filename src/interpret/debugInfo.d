@@ -114,7 +114,7 @@ private @trusted BacktraceEntry backtraceEntryFromSource(
 	writeFunName(writer, info.allSymbols, info.program, info.lowProgram, source.fun);
 	CStr funName = finishWriterToSafeCStr(writer).ptr;
 
-	Opt!FileIndex opFileIndex = getFileIndex(info.allSymbols, info.lowProgram, source.fun);
+	Opt!FileIndex opFileIndex = getFileIndex(info.lowProgram, source.fun);
 	if (has(opFileIndex)) {
 		FileIndex fileIndex = force(opFileIndex);
 		Path path = info.filesInfo.filePaths[fileIndex];
@@ -201,15 +201,15 @@ void writeByteCodeSource(
 ) {
 	writeFunName(writer, allSymbols, program, lowProgram, source.fun);
 	writer ~= ' ';
-	Opt!FileIndex where = getFileIndex(allSymbols, lowProgram, source.fun);
+	Opt!FileIndex where = getFileIndex(lowProgram, source.fun);
 	if (has(where))
 		writeFileAndPos(writer, allPaths, pathsInfo, showDiagOptions, filesInfo, FileAndPos(force(where), source.pos));
 }
 
-Opt!FileIndex getFileIndex(in AllSymbols allSymbols, in LowProgram lowProgram, LowFunIndex fun) =>
+Opt!FileIndex getFileIndex(in LowProgram lowProgram, LowFunIndex fun) =>
 	lowProgram.allFuns[fun].source.matchIn!(Opt!FileIndex)(
 		(in ConcreteFun x) =>
-			some(concreteFunRange(x, allSymbols).fileIndex),
+			some(concreteFunRange(x).fileIndex),
 		(in LowFunSource.Generated) =>
 			none!FileIndex);
 

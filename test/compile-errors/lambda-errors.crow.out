@@ -9,3 +9,19 @@ test/compile-errors/lambda-errors.crow 4:11-4:18 multiple lambda types are possi
 expected one of these types:
 	'act void(nat64)'
 	'act void(string)'consider explicitly typing the lambda's parameter.
+uncaught exception: reached compile error
+	at main
+	at add
+	at call
+	at then
+	at call
+	at catch
+	at call
+	at catch
+	at catch
+	at then
+	at call
+	at invoke
+	at do
+	at thread
+	at thread

@@ -8,12 +8,14 @@ import
 		failure, flat-map-with-max-size, handle-output, max-failures, match-test,
 		overwrite-output, print-tests, test-options, test-result
 
-run-crow-tests test-result^(path string, path-to-crow string, options test-options) summon
-	tests = path list-tests options.match-test
-	failures <- tests flat-map-with-max-size options.max-failures, x =>
+run-crow-tests test-result^(paths string[], path-to-crow string, options test-options) summon
+	tests string[] = () join for path : paths
+		path list-tests options.match-test
+	# TODO: Have to convert to array and back to avoid list iteration bug
+	failures <- tests.to::(string array).to::string[] flat-map-with-max-size options.max-failures, x =>
 		path-to-crow run-single-crow-test x, options
 	if failures is-empty
-		"ran {tests size} tests in {path}".ok,
+		"ran {tests size} crow tests".ok,
 	else
 		failures.err,
 
@@ -58,27 +60,44 @@ run-kind enum
 	as jit
 		"run", path, "--jit"
 	res = path-to-crow spawn-and-wait-result args
-	# Exceptions differ between interpreter and JIT
-	out-path = if path ends-with "/fail.crow"
-		match run-kind
-		as interpret
-			"{path}.interpret.out"
-		as jit
-			"{path}.jit.out"
-	else
-		"{path}.out"
-	(path handle-output out-path, res.format-output, overwrite-output),
+	(path handle-output "{path}.out", res.format-output, overwrite-output),
 
-format-output string(a process-result)
+-format-output string(a process-result)
 	if a.exit-code == 0 && a.stderr == ""
 		a.stdout remove-colors
 	else
 		stdout = a.stdout == "" ? "" : "stdout:\n{a.stdout remove-colors}"
-		"exit code: {a exit-code}\n{stdout}stderr:\n{a.stderr remove-colors}"
+		"exit code: {a exit-code}\n{stdout}stderr:\n{a.stderr.remove-colors normalize-exceptions}"
 
-remove-colors string(a string)
+-remove-colors string(a string)
 	if pair ?= a try-split-once "\x1b"
 		pair.a ~~ if pair2 ?= pair.b try-split-once "m"
 			pair2.b remove-colors
 	else
 		a
+
+# Interpreter has more exception info than JIT. Remove extra info so they are the same.
+-normalize-exceptions string(a string)
+	a update-lines line =>
+		# TODO: use a function from parse.crow for this
+		if rest ?= line try-remove-start "\tat "
+			# Printed function names differ, so just take the name
+			# (In JIT hyphens print as '__s', so don't take hyphens)
+			name = rest take-while x => x is-letter
+			normalized-name = if name == "pthread"
+				""
+			else
+				name
+			normalized-name == "" ? () : ("\tat {normalized-name}",)
+		else
+			line,
+
+-update-lines string(a string, cb act string[](string))
+	new-lines string[] = () join for line : a split "\n"
+		cb[line]
+	"\n" join new-lines
+
+-is-letter bool(a char8)
+	# TODO: support other alphabets
+	"a"::char8.to::nat8 <= a.to && a.to::nat8 <= "z"::char8.to
+

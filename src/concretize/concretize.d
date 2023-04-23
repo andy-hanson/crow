@@ -52,13 +52,13 @@ ConcreteProgram concretizeInner(
 		ptrTrustMe(allSymbols),
 		ptrTrustMe(program.commonTypes),
 		ptrTrustMe(program));
-	CommonFuns commonFuns = force(program.commonFuns);
+	CommonFuns commonFuns = program.commonFuns;
 	lateSet(ctx.curExclusionFun_, getOrAddNonTemplateConcreteFunAndFillBody(ctx, commonFuns.curExclusion));
 	ConcreteFun* markFun = getOrAddNonTemplateConcreteFunAndFillBody(ctx, commonFuns.mark);
 	ConcreteFun* rtMainConcreteFun = getOrAddNonTemplateConcreteFunAndFillBody(ctx, commonFuns.rtMain);
 	// We remove items from these maps when we process them.
 	verify(mutMapIsEmpty(ctx.concreteFunToBodyInputs));
-	ConcreteFun* userMainConcreteFun = getOrAddNonTemplateConcreteFunAndFillBody(ctx, commonFuns.main);
+	ConcreteFun* userMainConcreteFun = getOrAddNonTemplateConcreteFunAndFillBody(ctx, force(commonFuns.main));
 	ConcreteFun* allocFun = getOrAddNonTemplateConcreteFunAndFillBody(ctx, commonFuns.alloc);
 	ConcreteFun* throwImplFun = getOrAddNonTemplateConcreteFunAndFillBody(ctx, commonFuns.throwImpl);
 	ConcreteFun* staticSymbolsFun = getOrAddNonTemplateConcreteFunAndFillBody(ctx, commonFuns.staticSymbols);

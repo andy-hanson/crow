@@ -24,6 +24,7 @@ import model.model :
 	Visibility;
 import model.parseDiag : ParseDiag;
 import util.alloc.alloc : Alloc;
+import util.col.arr : empty;
 import util.col.arrUtil : arrLiteral;
 import util.col.map : mapLiteral;
 import util.col.fullIndexMap : fullIndexMapOfArr;
@@ -41,9 +42,13 @@ enum DiagSeverity {
 	checkWarning,
 	checkError,
 	nameNotFound,
+	// Severe error where a common fun (e.g. 'alloc') or type (e.g. 'void') is missing
+	commonMissing,
 	parseError,
 	fileNotFound,
 }
+private bool isFatal(DiagSeverity a) =>
+	a >= DiagSeverity.commonMissing;
 
 immutable struct Diagnostic {
 	FileAndRange where;
@@ -59,6 +64,10 @@ immutable struct Diagnostics {
 	DiagSeverity severity;
 	Diagnostic[] diags;
 }
+bool isEmpty(in Diagnostics a) =>
+	empty(a.diags);
+bool isFatal(in Diagnostics a) =>
+	a.severity >= DiagSeverity.commonMissing;
 
 enum TypeKind {
 	builtin,

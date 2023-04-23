@@ -53,8 +53,13 @@ RangeWithinFile rangeOfStartAndLength(Pos start, size_t length) =>
 	RangeWithinFile(start, safeToUint(start + length));
 
 immutable struct FileAndPos {
+	@safe @nogc pure nothrow:
+
 	FileIndex fileIndex;
 	Pos pos;
+
+	static FileAndPos empty() =>
+		FileAndPos(FileIndex.none, 0);
 }
 
 FileAndPos fileAndPosFromFileAndRange(FileAndRange a) =>

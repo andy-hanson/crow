@@ -1,4 +1,4 @@
-exit code: 1
+exit code: 0
 stderr:
 test/compile-errors/unused.crow 3:5-3:26 imported name sec is unused
 

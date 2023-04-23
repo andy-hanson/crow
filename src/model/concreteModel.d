@@ -31,7 +31,7 @@ import util.late : Late, lateGet, lateIsSet, lateSet;
 import util.opt : none, Opt, some;
 import util.ptr : hashPtr;
 import util.sourceRange : FileAndRange;
-import util.sym : AllSymbols, Sym, sym;
+import util.sym : Sym, sym;
 import util.union_ : Union;
 import util.util : unreachable, verify;
 
@@ -139,6 +139,11 @@ immutable struct ConcreteType {
 	}
 }
 
+bool isVoid(in ConcreteType a) =>
+	a.reference == ReferenceKind.byVal &&
+	body_(*a.struct_).isA!(ConcreteStructBody.Builtin) &&
+	body_(*a.struct_).as!(ConcreteStructBody.Builtin).kind == BuiltinStructKind.void_;
+
 alias ReferenceKind = immutable ReferenceKind_;
 private enum ReferenceKind_ { byVal, byRef, byRefRef }
 
@@ -172,6 +177,8 @@ immutable struct ConcreteStructInfo {
 }
 
 immutable struct ConcreteStructSource {
+	immutable struct Bogus {}
+
 	immutable struct Inst {
 		StructInst* inst;
 		ConcreteType[] typeArgs;
@@ -182,7 +189,7 @@ immutable struct ConcreteStructSource {
 		size_t index;
 	}
 
-	mixin Union!(Inst, Lambda);
+	mixin Union!(Bogus, Inst, Lambda);
 }
 
 immutable struct ConcreteStruct {
@@ -364,13 +371,13 @@ immutable struct ConcreteFun {
 	Late!ConcreteFunBody _body_;
 }
 
-bool isVariadic(ref ConcreteFun a) =>
-	a.source.match!bool(
-		(ref FunInst i) =>
-			i.decl.params.isA!(Params.Varargs*),
-		(ref ConcreteFunSource.Lambda) =>
+bool isVariadic(in ConcreteFun a) =>
+	a.source.matchIn!bool(
+		(in FunInst x) =>
+			x.decl.params.isA!(Params.Varargs*),
+		(in ConcreteFunSource.Lambda) =>
 			false,
-		(ref ConcreteFunSource.Test) =>
+		(in ConcreteFunSource.Test) =>
 			false);
 
 Opt!Sym name(ref ConcreteFun a) =>
@@ -392,13 +399,13 @@ bool isSummon(ref ConcreteFun a) =>
 			// 'isSummon' is called for direct calls, but tests are never called directly
 			unreachable!bool());
 
-FileAndRange concreteFunRange(ref ConcreteFun a, in AllSymbols allSymbols) =>
-	a.source.match!FileAndRange(
-		(ref FunInst x) =>
+FileAndRange concreteFunRange(in ConcreteFun a) =>
+	a.source.matchIn!FileAndRange(
+		(in FunInst x) =>
 			decl(x).range,
-		(ref ConcreteFunSource.Lambda x) =>
+		(in ConcreteFunSource.Lambda x) =>
 			x.range,
-		(ref ConcreteFunSource.Test x) =>
+		(in ConcreteFunSource.Test x) =>
 			x.range);
 
 bool isFunOrActSubscript(ref ConcreteProgram program, ref ConcreteFun a) =>
@@ -554,7 +561,7 @@ immutable struct ConcreteExprKind {
 	}
 
 	immutable struct Throw {
-		// a `c-str`
+		// a `c-string`
 		ConcreteExpr thrown;
 	}
 

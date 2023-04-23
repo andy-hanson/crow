@@ -75,6 +75,7 @@ MangledNames buildMangledNames(
 
 	void build(ConcreteStruct* s) {
 		s.source.match!void(
+			(ConcreteStructSource.Bogus) {},
 			(ConcreteStructSource.Inst it) {
 				addToPrevOrIndex!ConcreteStruct(alloc, structNameToIndex, structToNameIndex, s, name(*it.inst));
 			},
@@ -118,6 +119,9 @@ private immutable(FullIndexMap!(LowVarIndex, size_t)) makeVarToNameIndex(
 
 void writeStructMangledName(scope ref Writer writer, in MangledNames mangledNames, in ConcreteStruct* source) {
 	source.source.matchIn!void(
+		(in ConcreteStructSource.Bogus) {
+			writer ~= "__BOGUS";
+		},
 		(in ConcreteStructSource.Inst it) {
 			writeMangledName(writer, mangledNames, name(*it.inst));
 			maybeWriteIndexSuffix(writer, mangledNames.structToNameIndex[source]);

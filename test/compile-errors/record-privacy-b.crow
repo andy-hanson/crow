@@ -1,6 +1,9 @@
 import
 	./record-privacy-a
 
+main nat64^(_ string[])
+	()
+
 foo void()
 	a private-ctor = 0,
 	_ = a
