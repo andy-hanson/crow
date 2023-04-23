@@ -2,14 +2,14 @@ exit code: 1
 stderr:
 test/compile-errors/spec-inst-recursion.crow 2:5-2:13 a spec was not satisfied.
 	spec instantiation is too deep calling:
-	foo@string (from test/compile-errors/spec-inst-recursion.crow.crow line 11)
-	bar@string (from test/compile-errors/spec-inst-recursion.crow.crow line 14)
-	foo@string (from test/compile-errors/spec-inst-recursion.crow.crow line 11)
-	bar@string (from test/compile-errors/spec-inst-recursion.crow.crow line 14)
-	foo@string (from test/compile-errors/spec-inst-recursion.crow.crow line 11)
-	bar@string (from test/compile-errors/spec-inst-recursion.crow.crow line 14)
-	foo@string (from test/compile-errors/spec-inst-recursion.crow.crow line 11)
-	bar@string (from test/compile-errors/spec-inst-recursion.crow.crow line 14)
+	foo@string (from test/compile-errors/spec-inst-recursion.crow line 11)
+	bar@string (from test/compile-errors/spec-inst-recursion.crow line 14)
+	foo@string (from test/compile-errors/spec-inst-recursion.crow line 11)
+	bar@string (from test/compile-errors/spec-inst-recursion.crow line 14)
+	foo@string (from test/compile-errors/spec-inst-recursion.crow line 11)
+	bar@string (from test/compile-errors/spec-inst-recursion.crow line 14)
+	foo@string (from test/compile-errors/spec-inst-recursion.crow line 11)
+	bar@string (from test/compile-errors/spec-inst-recursion.crow line 14)
 uncaught exception: reached compile error
 	at main
 	at add

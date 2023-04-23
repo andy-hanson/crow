@@ -1,26 +1,26 @@
 exit code: 0
 stderr:
-test/compile-errors/call-flags.crow 2:5-2:19 a non-'unsafe' function can't call an 'unsafe' function foo void(_ string) (from test/compile-errors/call-flags.crow.crow line 26)
+test/compile-errors/call-flags.crow 2:5-2:19 a non-'unsafe' function can't call an 'unsafe' function foo void(_ string) (from test/compile-errors/call-flags.crow line 26)
 (consider putting the call in a 'trusted' expression)
 
-test/compile-errors/call-flags.crow 3:5-3:21 a non-'unsafe' function can't call an 'unsafe' function foo void(_ string) (from test/compile-errors/call-flags.crow.crow line 26)
+test/compile-errors/call-flags.crow 3:5-3:21 a non-'unsafe' function can't call an 'unsafe' function foo void(_ string) (from test/compile-errors/call-flags.crow line 26)
 (consider putting the call in a 'trusted' expression)
 
-test/compile-errors/call-flags.crow 4:5-4:23 a non-'unsafe' function can't call an 'unsafe' function foo void(_ string) (from test/compile-errors/call-flags.crow.crow line 26)
+test/compile-errors/call-flags.crow 4:5-4:23 a non-'unsafe' function can't call an 'unsafe' function foo void(_ string) (from test/compile-errors/call-flags.crow line 26)
 (consider putting the call in a 'trusted' expression)
 
-test/compile-errors/call-flags.crow 6:5-6:17 a 'bare' function can't call a non-'bare' function foo void(_ bool) (from test/compile-errors/call-flags.crow.crow line 29)
+test/compile-errors/call-flags.crow 6:5-6:17 a 'bare' function can't call a non-'bare' function foo void(_ bool) (from test/compile-errors/call-flags.crow line 29)
 
-test/compile-errors/call-flags.crow 7:5-7:19 a 'bare' function can't call a non-'bare' function foo void(_ bool) (from test/compile-errors/call-flags.crow.crow line 29)
+test/compile-errors/call-flags.crow 7:5-7:19 a 'bare' function can't call a non-'bare' function foo void(_ bool) (from test/compile-errors/call-flags.crow line 29)
 
-test/compile-errors/call-flags.crow 8:5-8:21 a 'bare' function can't call a non-'bare' function foo void(_ bool) (from test/compile-errors/call-flags.crow.crow line 29)
+test/compile-errors/call-flags.crow 8:5-8:21 a 'bare' function can't call a non-'bare' function foo void(_ bool) (from test/compile-errors/call-flags.crow line 29)
 
-test/compile-errors/call-flags.crow 10:5-10:16 a non-'summon' function can't call a 'summon' function foo void(_ nat64) (from test/compile-errors/call-flags.crow.crow line 32)
+test/compile-errors/call-flags.crow 10:5-10:16 a non-'summon' function can't call a 'summon' function foo void(_ nat64) (from test/compile-errors/call-flags.crow line 32)
 
-test/compile-errors/call-flags.crow 11:5-11:18 a non-'summon' function can't call a 'summon' function foo void(_ nat64) (from test/compile-errors/call-flags.crow.crow line 32)
+test/compile-errors/call-flags.crow 11:5-11:18 a non-'summon' function can't call a 'summon' function foo void(_ nat64) (from test/compile-errors/call-flags.crow line 32)
 
-test/compile-errors/call-flags.crow 12:5-12:20 a non-'summon' function can't call a 'summon' function foo void(_ nat64) (from test/compile-errors/call-flags.crow.crow line 32)
+test/compile-errors/call-flags.crow 12:5-12:20 a non-'summon' function can't call a 'summon' function foo void(_ nat64) (from test/compile-errors/call-flags.crow line 32)
 
-test/compile-errors/call-flags.crow 14:15-14:17 a 'bare' function can't call a variadic function new t[](...t array) (from include/crow/col/list.crow.crow line 155)
+test/compile-errors/call-flags.crow 14:15-14:17 a 'bare' function can't call a variadic function new t[](...t array) (from include/crow/col/list.crow line 155)
 
-test/compile-errors/call-flags.crow 16:5-16:7 a 'bare' function can't call a non-'bare' function new t^() (from include/crow/future.crow.crow line 43)
+test/compile-errors/call-flags.crow 16:5-16:7 a 'bare' function can't call a non-'bare' function new t^() (from include/crow/future.crow line 43)

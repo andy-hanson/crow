@@ -146,7 +146,6 @@ void writeLineNumber(
 	if (options.color)
 		writeBold(writer);
 	writePath(writer, allPaths, pathsInfo, where);
-	writer ~= ".crow";
 	if (options.color)
 		writeReset(writer);
 	writer ~= " line ";
