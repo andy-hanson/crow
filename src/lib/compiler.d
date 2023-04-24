@@ -221,7 +221,7 @@ DiagsAndResultJson printLowModel(
 ) {
 	Program program = frontendCompile(alloc, perf, alloc, allPaths, allSymbols, storage, [main], none!Path);
 	ConcreteProgram concreteProgram = concretize(alloc, perf, versionInfo, allSymbols, program);
-	LowProgram lowProgram = lower(alloc, perf, allSymbols, program.config.extern_, concreteProgram);
+	LowProgram lowProgram = lower(alloc, perf, allSymbols, program.config.extern_, program, concreteProgram);
 	return DiagsAndResultJson(program, jsonOfLowProgram(alloc, lowProgram));
 }
 
@@ -308,6 +308,6 @@ public ProgramsAndFilesInfo buildToLowProgram(
 ) {
 	Program program = frontendCompile(alloc, perf, alloc, allPaths, allSymbols, storage, [main], some(main));
 	ConcreteProgram concreteProgram = concretize(alloc, perf, versionInfo, allSymbols, program);
-	LowProgram lowProgram = lower(alloc, perf, allSymbols, program.config.extern_, concreteProgram);
+	LowProgram lowProgram = lower(alloc, perf, allSymbols, program.config.extern_, program, concreteProgram);
 	return ProgramsAndFilesInfo(program, concreteProgram, lowProgram);
 }

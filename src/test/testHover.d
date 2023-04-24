@@ -17,6 +17,7 @@ import util.readOnlyStorage : ReadOnlyStorage;
 import util.sourceRange : Pos;
 import util.sym : sym;
 import util.util : verify, verifyFail;
+import util.writer : debugLogWithWriter, Writer;
 
 @trusted void testHover(ref Test test) {
 	testBasic(test);
@@ -109,10 +110,14 @@ void testFunction(ref Test test) {
 
 void verifyStrEq(Pos pos, in SafeCStr actual, in SafeCStr expected) {
 	if (!safeCStrEq(actual, expected)) {
-		debug {
-			import core.stdc.stdio : printf;
-			printf("at position %d:\nactual: %s\nexpected: %s\n", pos, actual.ptr, expected.ptr);
-		}
+		debugLogWithWriter((ref Writer writer) {
+			writer ~= "at position ";
+			writer ~= pos;
+			writer ~= "\nactual: ";
+			writer ~= actual;
+			writer ~= "\nexpected: ";
+			writer ~= expected;
+		});
 		verifyFail();
 	}
 }

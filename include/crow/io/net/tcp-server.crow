@@ -23,12 +23,12 @@ import
 	../../private/bootstrap: todo
 	../../pointer: mut-pointer, pointer-cast, size-of
 	../../range: ..
-	../../string: literal, string
+	../../string: literal
 	../../tuple: new
 	../../version: is-windows
 	../duration: msec
 	../posix-util: check-posix-error
-	../print: err, out, print
+	../print: err, print
 	../time: delay
 	./net: bind-to-port, close-socket
 
@@ -48,7 +48,7 @@ tcp-handler record shared
 Starts running a TCP server on the given port.
 Once the function returns, it is already serving requests.
 ###
-start-tcp-server tcp-server(port string, handler tcp-handler) summon, unsafe
+start-tcp-server tcp-server(port nat16, handler tcp-handler) summon, unsafe
 	sock = port bind-to-port
 	max-connections int32 = 1000
 	sock listen max-connections check-posix-error
@@ -77,12 +77,10 @@ start-tcp-server tcp-server(port string, handler tcp-handler) summon, unsafe
 		_ = state pad-1
 		_ = state pad-2
 
-		out print "starting the server loop"
 		done = state tcp-server-loop-linux
 		done handle-exceptions
 
 		stop far void() = () =>
-			out print "STOP CALLED"
 			state.should-stop := true
 			done
 		stop,

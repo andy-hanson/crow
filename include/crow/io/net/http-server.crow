@@ -18,7 +18,7 @@ import
 	../../hash: hash-mix
 	../../log: error, log, warn
 	../../misc: new, shared, void
-	../../number: ==, <=>, +, nat8, nat64, to
+	../../number: ==, <=>, +, nat8, nat16, nat64, to
 	../../option: ??, new, option
 	../../parse: nat, parse
 	../../string:
@@ -39,9 +39,9 @@ import
 	far http-response(http-request)
 
 +http-server-options record shared
-	port string
+	port nat16
 	handler http-handler
-+http-server http-server-options(port string, handler http-handler)
++http-server http-server-options(port nat16, handler http-handler)
 	port, handler
 
 ###

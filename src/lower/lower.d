@@ -105,6 +105,7 @@ import model.model :
 	FunInst,
 	Local,
 	name,
+	Program,
 	range,
 	VarKind;
 import util.alloc.alloc : Alloc;
@@ -143,16 +144,18 @@ LowProgram lower(
 	scope ref Perf perf,
 	in AllSymbols allSymbols,
 	in ConfigExternPaths configExtern,
+	ref Program program,
 	ref ConcreteProgram a,
 ) =>
 	withMeasure!(LowProgram, () =>
-		lowerInner(alloc, allSymbols, configExtern, a)
+		lowerInner(alloc, allSymbols, configExtern, program, a)
 	)(alloc, perf, PerfMeasure.lower);
 
 private LowProgram lowerInner(
 	ref Alloc alloc,
 	in AllSymbols allSymbols,
 	in ConfigExternPaths configExtern,
+	ref Program program,
 	ref ConcreteProgram a,
 ) {
 	AllLowTypesWithCtx allTypes = getAllLowTypes(alloc, allSymbols, a);
@@ -167,7 +170,7 @@ private LowProgram lowerInner(
 		allFuns.allLowFuns,
 		allFuns.main,
 		allFuns.allExternFuns);
-	checkLowProgram(alloc, allSymbols, res);
+	checkLowProgram(allSymbols, program, res);
 	return res;
 }
 
@@ -420,7 +423,9 @@ LowUnion getLowUnion(ref Alloc alloc, in ConcreteProgram program, ref GetLowType
 	LowUnion(s, body_(*s).matchIn!(LowType[])(
 		(in ConcreteStructBody.Builtin it) {
 			verify(it.kind == BuiltinStructKind.fun);
-			return map(getLowTypeCtx.alloc, mustGetAt(program.funStructToImpls, s), (ref ConcreteLambdaImpl impl) =>
+			ConcreteLambdaImpl[] impls = optOr!(ConcreteLambdaImpl[])(program.funStructToImpls[s], () =>
+				typeAs!(ConcreteLambdaImpl[])([]));
+			return map(getLowTypeCtx.alloc, impls, (ref ConcreteLambdaImpl impl) =>
 				lowTypeFromConcreteType(getLowTypeCtx, impl.closureType));
 		},
 		(in ConcreteStructBody.Enum) => unreachable!(LowType[])(),

@@ -32,7 +32,7 @@ import util.col.mutMap : getOrAdd, insertOrUpdate, MutMap, setInMap;
 import util.opt : force, has, none, Opt, some;
 import util.sym : AllSymbols, eachCharInSym, Sym, sym, writeSym;
 import util.union_ : Union;
-import util.util : todo;
+import util.util : todo, unreachable;
 import util.writer : Writer;
 
 const struct MangledNames {
@@ -75,6 +75,7 @@ MangledNames buildMangledNames(
 
 	void build(ConcreteStruct* s) {
 		s.source.match!void(
+			(ConcreteStructSource.Invalid) { unreachable!void(); },
 			(ConcreteStructSource.Bogus) {},
 			(ConcreteStructSource.Inst it) {
 				addToPrevOrIndex!ConcreteStruct(alloc, structNameToIndex, structToNameIndex, s, name(*it.inst));
@@ -119,6 +120,9 @@ private immutable(FullIndexMap!(LowVarIndex, size_t)) makeVarToNameIndex(
 
 void writeStructMangledName(scope ref Writer writer, in MangledNames mangledNames, in ConcreteStruct* source) {
 	source.source.matchIn!void(
+		(in ConcreteStructSource.Invalid) {
+			unreachable!void();
+		},
 		(in ConcreteStructSource.Bogus) {
 			writer ~= "__BOGUS";
 		},

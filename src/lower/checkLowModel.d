@@ -17,6 +17,7 @@ import lower.lowExprHelpers :
 	nat64Type,
 	voidType;
 import model.constant : Constant;
+import model.jsonOfConcreteModel : jsonOfConcreteStructRef;
 import model.lowModel :
 	asGcOrRawPointee,
 	isPtrGcOrRaw,
@@ -37,20 +38,21 @@ import model.lowModel :
 	targetIsPointer,
 	targetRecordType,
 	UpdateParam;
-import model.jsonOfConcreteModel : jsonOfConcreteStructRef;
+import model.model : Program;
 import util.alloc.alloc : Alloc;
 import util.col.arr : sizeEq;
 import util.col.arrUtil : zip;
 import util.col.stackMap : StackMap, stackMapAdd, stackMapMustGet;
 import util.col.fullIndexMap : fullIndexMapEachValue;
-import util.json : field, Json, jsonObject, jsonString, kindField;
+import util.json : field, Json, jsonObject, jsonString, kindField, writeJson;
 import util.opt : force, has, none, Opt, some;
 import util.ptr : castNonScope_ref, ptrTrustMe;
 import util.sym : AllSymbols;
 import util.util : drop, verify;
+import util.writer : debugLogWithWriter, Writer;
 
-void checkLowProgram(ref Alloc alloc, in AllSymbols allSymbols, in LowProgram a) {
-	Ctx ctx = Ctx(ptrTrustMe(alloc), ptrTrustMe(allSymbols), ptrTrustMe(a));
+void checkLowProgram(in AllSymbols allSymbols, in Program program, in LowProgram a) {
+	Ctx ctx = Ctx(ptrTrustMe(allSymbols), ptrTrustMe(program), ptrTrustMe(a));
 	fullIndexMapEachValue!(LowFunIndex, LowFun)(a.allFuns, (ref LowFun fun) {
 		checkLowFun(ctx, fun);
 	});
@@ -61,15 +63,15 @@ private:
 struct Ctx {
 	@safe @nogc pure nothrow:
 
-	Alloc* allocPtr;
 	const AllSymbols* allSymbolsPtr;
+	immutable Program* modelProgramPtr;
 	immutable LowProgram* programPtr;
-
-	ref Alloc alloc() return scope =>
-		*allocPtr;
 
 	ref const(AllSymbols) allSymbols() return scope const =>
 		*allSymbolsPtr;
+
+	ref Program modelProgram() return scope const =>
+		*modelProgramPtr;
 
 	ref LowProgram program() return scope const =>
 		*programPtr;
@@ -89,16 +91,6 @@ struct FunCtx {
 }
 
 void checkLowFun(ref Ctx ctx, in LowFun fun) {
-	static if (false) debug {
-		import core.stdc.stdio : printf;
-		import interpret.debugging : writeFunName;
-		import util.writer : Writer, finishWriterToCStr;
-	
-		Writer writer = Writer(ctx.allocPtr);
-		writeFunName(writer, ctx.allSymbols, ctx.program, fun);
-		printf("Will check function %s\n", finishWriterToCStr(writer));
-	}
-
 	fun.body_.matchIn!void(
 		(in LowFunBody.Extern) {},
 		// TODO: not @trusted
@@ -487,19 +479,13 @@ ExpectBinary expect(LowType return_, LowType arg0, LowType arg1) =>
 	ExpectBinary(some(return_), [some(arg0), some(arg1)]);
 
 void checkTypeEqual(ref Ctx ctx, in LowType expected, in LowType actual) {
-	static if (false) debug {
-		if (expected != actual) {
-			import core.stdc.stdio : printf;
-			import util.json : writeJson;
-			import util.writer : finishWriterToCStr, Writer;
-			Writer writer = Writer(ctx.allocPtr);
+	if (expected != actual)
+		debugLogWithWriter((scope ref Alloc alloc, scope ref Writer writer) {
 			writer ~= "Type is not as expected. Expected:\n";
-			writeJson(writer, ctx.allSymbols, jsonOfLowType2(ctx.alloc, ctx.program, expected));
+			writeJson(writer, ctx.allSymbols, jsonOfLowType2(alloc, ctx.program, expected));
 			writer ~= "\nActual:\n";
-			writeJson(writer, ctx.allSymbols, jsonOfLowType2(ctx.alloc, ctx.program, actual));
-			printf("%s\n", finishWriterToCStr(writer));
-		}
-	}
+			writeJson(writer, ctx.allSymbols, jsonOfLowType2(alloc, ctx.program, actual));
+		});
 	verify(expected == actual);
 }
 

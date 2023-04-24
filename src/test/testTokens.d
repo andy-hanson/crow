@@ -16,7 +16,7 @@ import util.perf : Perf, withNullPerf;
 import util.sourceRange : RangeWithinFile;
 import util.sym : AllSymbols;
 import util.util : verifyFail;
-import util.writer : finishWriterToSafeCStr, Writer;
+import util.writer : debugLogWithWriter, Writer;
 
 void testTokens(ref Test test) {
 	testOne(test, safeCStr!"", []);
@@ -51,9 +51,7 @@ void testOne(ref Test test, SafeCStr source, Token[] expectedTokens) {
 		parseFile(test.alloc, perf, test.allPaths, allSymbols, diags, source));
 	Token[] tokens = tokensOfAst(test.alloc, allSymbols, ast);
 	if (!arrEqual(tokens, expectedTokens)) {
-		debug {
-			import core.stdc.stdio : printf;
-			Writer writer = Writer(test.allocPtr);
+		debugLogWithWriter((ref Writer writer) {
 			writer ~= "expected tokens:\n";
 			writeJson(writer, allSymbols, jsonOfTokens(test.alloc, expectedTokens));
 			writer ~= "\nactual tokens:\n";
@@ -61,8 +59,7 @@ void testOne(ref Test test, SafeCStr source, Token[] expectedTokens) {
 
 			writer ~= "\n\n(hint: ast is:)\n";
 			writeJson(writer, allSymbols, jsonOfAst(test.alloc, test.allPaths, ast));
-			printf("%s\n", finishWriterToSafeCStr(writer).ptr);
-		}
+		});
 		verifyFail();
 	}
 }

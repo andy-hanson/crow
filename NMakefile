@@ -40,6 +40,7 @@ nmake /f Nmakefile
 ### D build ###
 
 src_files_common = src\concretize\allConstantsBuilder.d \
+	src\concretize\checkConcreteModel.d \
 	src\concretize\concretize.d \
 	src\concretize\concretizeCtx.d \
 	src\concretize\concretizeExpr.d \

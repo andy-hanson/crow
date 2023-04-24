@@ -73,7 +73,6 @@ import util.ptr : ptrTrustMe;
 import util.sourceRange : FileIndex;
 import util.sym : AllSymbols, Sym, sym;
 import util.util : todo, unreachable, verify;
-import util.writer : Writer;
 
 ByteCode generateBytecode(
 	ref Alloc alloc,
@@ -125,6 +124,7 @@ private ByteCode generateBytecodeInner(
 					funToReferences,
 					text.info,
 					vars,
+					modelProgram,
 					program,
 					externFunPtrs,
 					funIndex,
@@ -224,6 +224,7 @@ void generateBytecodeForFun(
 	ref FunToReferences funToReferences,
 	in TextInfo textInfo,
 	in VarsInfo varsInfo,
+	in Program modelProgram,
 	in LowProgram program,
 	ExternFunPtrsForAllLibraries externFunPtrs,
 	LowFunIndex funIndex,
@@ -231,17 +232,6 @@ void generateBytecodeForFun(
 ) {
 	verify(varsInfo.totalSizeWords[VarKind.global] < maxGlobalsSizeWords);
 	verify(varsInfo.totalSizeWords[VarKind.threadLocal] < maxThreadLocalsSizeWords);
-
-	debug {
-		if (false) {
-			import util.writer : finishWriterToCStr;
-			import core.stdc.stdio : printf;
-			import interpret.debugging : writeFunName;
-			Writer w = Writer(ptrTrustMe(tempAlloc));
-			writeFunName(w, allSymbols, todo!(Program)("!"), program, fun);
-			printf("generateBytecodeForFun %s\n", finishWriterToCStr(w));
-		}
-	}
 
 	size_t stackEntry = 0;
 	StackEntries[] parameters = map(tempAlloc, fun.params, (ref LowLocal it) {
@@ -261,7 +251,7 @@ void generateBytecodeForFun(
 		},
 		(in LowFunExprBody body_) {
 			generateFunFromExpr(
-				tempAlloc, writer, allSymbols, program, textInfo, varsInfo, externFunPtrs, funIndex,
+				tempAlloc, writer, allSymbols, modelProgram, program, textInfo, varsInfo, externFunPtrs, funIndex,
 				funToReferences, fun.params, parameters, returnEntries, body_);
 		});
 	verify(getNextStackEntry(writer).entry == returnEntries);

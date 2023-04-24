@@ -3,8 +3,14 @@ module concretize.concretize;
 @safe @nogc pure nothrow:
 
 import concretize.allConstantsBuilder : finishAllConstants;
+import concretize.checkConcreteModel : checkConcreteProgram, ConcreteCommonTypes;
 import concretize.concretizeCtx :
-	ConcretizeCtx, deferredFillRecordAndUnionBodies, getOrAddNonTemplateConcreteFunAndFillBody;
+	boolType,
+	ConcretizeCtx,
+	cStrType,
+	deferredFillRecordAndUnionBodies,
+	getOrAddNonTemplateConcreteFunAndFillBody,
+	voidType;
 import model.concreteModel :
 	ConcreteCommonFuns,
 	ConcreteFun,
@@ -69,7 +75,7 @@ ConcreteProgram concretizeInner(
 
 	deferredFillRecordAndUnionBodies(ctx);
 
-	return ConcreteProgram(
+	ConcreteProgram res = ConcreteProgram(
 		finishAllConstants(alloc, ctx.allConstants, mustBeByVal(staticSymbolsFun.returnType)),
 		finishArr(alloc, ctx.allConcreteStructs),
 		moveToValues(alloc, ctx.concreteVarLookup),
@@ -87,4 +93,6 @@ ConcreteProgram concretizeInner(
 			rtMainConcreteFun,
 			throwImplFun,
 			userMainConcreteFun));
+	checkConcreteProgram(allSymbols, program, ConcreteCommonTypes(boolType(ctx), cStrType(ctx), voidType(ctx)), res);
+	return res;
 }

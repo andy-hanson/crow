@@ -117,7 +117,8 @@ immutable struct ConcreteStructBody {
 		ConcreteField[] fields;
 	}
 	immutable struct Union {
-		// In the concrete model we identify members by index, so don't care about their names
+		// In the concrete model we identify members by index, so don't care about their names.
+		// This may be empty for a lambda type with no implementations.
 		ConcreteType[] members;
 	}
 
@@ -139,6 +140,9 @@ immutable struct ConcreteType {
 	}
 }
 
+bool isBogus(in ConcreteType a) =>
+	a.reference == ReferenceKind.byVal &&
+	isBogus(*a.struct_);
 bool isVoid(in ConcreteType a) =>
 	a.reference == ReferenceKind.byVal &&
 	body_(*a.struct_).isA!(ConcreteStructBody.Builtin) &&
@@ -177,6 +181,8 @@ immutable struct ConcreteStructInfo {
 }
 
 immutable struct ConcreteStructSource {
+	immutable struct Invalid {} //TODO:KILL
+
 	immutable struct Bogus {}
 
 	immutable struct Inst {
@@ -189,7 +195,7 @@ immutable struct ConcreteStructSource {
 		size_t index;
 	}
 
-	mixin Union!(Bogus, Inst, Lambda);
+	mixin Union!(Invalid, Bogus, Inst, Lambda);
 }
 
 immutable struct ConcreteStruct {
@@ -214,6 +220,8 @@ immutable struct ConcreteStruct {
 
 bool isArray(in ConcreteStruct a) =>
 	a.specialKind == ConcreteStruct.SpecialKind.array;
+private bool isBogus(in ConcreteStruct a) =>
+	a.source.isA!(ConcreteStructSource.Bogus);
 bool isTuple(in ConcreteStruct a) =>
 	a.specialKind == ConcreteStruct.SpecialKind.tuple;
 
@@ -437,6 +445,9 @@ immutable struct ConcreteClosureRef {
 
 	ushort fieldIndex() =>
 		paramAndIndex.number;
+
+	ConcreteType type() =>
+		body_(*closureParam.type.struct_).as!(ConcreteStructBody.Record).fields[fieldIndex].type;
 }
 
 immutable struct ConcreteExprKind {
@@ -468,7 +479,7 @@ immutable struct ConcreteExprKind {
 		ConcreteExpr[] args;
 	}
 
-	// TODO: this is only used for closures now, since normal record creation always goes through a function.
+	// TODO: this is only used for 'safeValue'.
 	immutable struct CreateRecord {
 		ConcreteExpr[] args;
 	}
@@ -489,17 +500,17 @@ immutable struct ConcreteExprKind {
 		ConcreteExpr else_;
 	}
 
-	immutable struct Let {
-		ConcreteLocal* local;
-		ConcreteExpr value;
-		ConcreteExpr then;
-	}
-
 	// May be a 'fun' or 'act'.
 	// (A 'far' function is a lambda wrapped in CreateRecord.)
 	immutable struct Lambda {
 		size_t memberIndex; // Member index of a Union (which hasn't been created yet)
 		Opt!(ConcreteExpr*) closure;
+	}
+
+	immutable struct Let {
+		ConcreteLocal* local;
+		ConcreteExpr value;
+		ConcreteExpr then;
 	}
 
 	immutable struct LocalGet {

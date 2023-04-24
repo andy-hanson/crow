@@ -4,25 +4,20 @@ import
 	crow/io/net/http-types:
 		headers, http-bad-query, http-forbidden, http-not-found, http-ok, http-request,
 		http-response, method, request-body-string, url
-	crow/io/print: err, out, print
+	crow/io/print: out, print
 	crow/io/stdin: read-stdin
 	crow/parse: ~~, grammar, nat, parse, separated-by, text-not-containing-any, to
 	./db:
 		add-post, content, cookie-expire-seconds, db, list-posts, list-users, login, open-real-db,
 		post, post-info, register-user, to, user, user-cookie, user-info, user-name, with-block
 
-main nat^(args string[]) summon
-	if args.size == 1
-		port = args[0]
-		with db : open-real-db
-			handler http-handler = req =>
-				(req handle-request db),
-			with _ : port http-server handler
-				out print "Press enter to stop"
-				_ <- read-stdin
-	else
-		err print "Usage: server PORT"
-		1,
+main nat^(_ string[]) summon
+	with db : open-real-db
+		handler http-handler = req =>
+			(req handle-request db),
+		with _ : 8080 http-server handler
+			out print "Serving at http://localhost:8080; press enter to stop"
+			_ <- read-stdin
 
 -handle-request http-response(req http-request, db db) summon
 	su = req.url split-url
@@ -31,9 +26,9 @@ main nat^(args string[]) summon
 	match req method
 	as GET
 		if path == "/"
-			"demo-wip/webapp/index.html".read-file http-ok
+			"demo/webapp/index.html".read-file http-ok
 		elif path == "/index.js"
-			"demo-wip/webapp/index.js".read-file http-ok
+			"demo/webapp/index.js".read-file http-ok
 		elif path == "/posts"
 			(("posts", db.list-posts.to),)::json.to http-ok
 		elif path == "/user-name"

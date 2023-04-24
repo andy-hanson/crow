@@ -70,13 +70,13 @@ connect-to-uri SOCKET(u uri) summon, unsafe
 				sock,
 
 # Returns a file descriptor bound to the given port.
-bind-to-port SOCKET(port string) summon, unsafe
+bind-to-port SOCKET(port nat16) summon, unsafe
 	if is-windows
 		wsa-init
 
 	hints addrinfo = ai-passive, AF_INET, SOCK_STREAM, 0, 0, null, null, null
 	result mut addrinfo mut* = null
-	null getaddrinfo port.to, &hints, &result check-getaddrinfo-error
+	null getaddrinfo "{port}", &hints, &result check-getaddrinfo-error
 	op-sock = result.as-const find-and-bind-working-socket
 	result freeaddrinfo
 	if res ?= op-sock
@@ -101,7 +101,6 @@ close-socket void(sock SOCKET) summon, unsafe
 			a.ai_next find-and-bind-working-socket
 		else
 			if (listen-fd bind a.ai_addr, a.ai_addrlen) == 0
-				out print "Connected!"
 				listen-fd,
 			else
 				listen-fd close-socket

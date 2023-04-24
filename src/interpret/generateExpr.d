@@ -115,7 +115,7 @@ import model.lowModel :
 	targetIsPointer,
 	targetRecordType,
 	UpdateParam;
-import model.model : range;
+import model.model : Program, range;
 import model.typeLayout : nStackEntriesForType, optPack, Pack, typeSizeBytes;
 import util.alloc.alloc : TempAlloc;
 import util.col.arr : empty;
@@ -136,7 +136,8 @@ void generateFunFromExpr(
 	ref TempAlloc tempAlloc,
 	scope ref ByteCodeWriter writer,
 	in AllSymbols allSymbols,
-	in LowProgram program,
+	in Program program,
+	in LowProgram lowProgram,
 	in TextInfo textInfo,
 	in VarsInfo varsInfo,
 	ExternFunPtrsForAllLibraries externFunPtrs,
@@ -149,7 +150,7 @@ void generateFunFromExpr(
 ) {
 	ExprCtx ctx = ExprCtx(
 		ptrTrustMe(allSymbols),
-		ptrTrustMe(program),
+		ptrTrustMe(lowProgram),
 		ptrTrustMe(textInfo),
 		ptrTrustMe(varsInfo),
 		externFunPtrs,
@@ -346,8 +347,8 @@ void generateExpr(
 		(in LowExprKind.LoopContinue it) {
 			generateLoopContinue(writer, ctx, source, locals, after, it);
 		},
-		(in LowExprKind.MatchUnion it) {
-			generateMatchUnion(writer, ctx, source, locals, after, it);
+		(in LowExprKind.MatchUnion x) {
+			generateMatchUnion(writer, ctx, source, locals, after, expr.type, x);
 		},
 		(in LowExprKind.PtrCast it) {
 			generateExpr(writer, ctx, locals, after, it.target);
@@ -516,6 +517,7 @@ void generateMatchUnion(
 	ByteCodeSource source,
 	in Locals locals,
 	scope ref ExprAfter after,
+	in LowType type,
 	in LowExprKind.MatchUnion a,
 ) {
 	StackEntry startStack = getNextStackEntry(writer);
@@ -531,25 +533,30 @@ void generateMatchUnion(
 	StackEntry stackAfterMatched = getNextStackEntry(writer);
 	StackEntries matchedEntriesWithoutKind = StackEntries(startStack, (stackAfterMatched.entry - startStack.entry));
 
-	withBranching(writer, ctx, after, (ref ExprAfter afterBranch, ref ExprAfter afterLastBranch) {
-		foreach (size_t caseIndex, ref LowExprKind.MatchUnion.Case case_; a.cases) {
-			bool isLast = caseIndex == a.cases.length - 1;
-			fillDelayedSwitchEntry(writer, switchDelayed, caseIndex);
-			if (has(case_.local)) {
-				size_t nEntries = nStackEntriesForType(ctx, force(case_.local).type);
-				verify(nEntries <= matchedEntriesWithoutKind.size);
-				scope Locals newLocals = addLocal(
-					castNonScope_ref(locals),
-					force(case_.local),
-					StackEntries(matchedEntriesWithoutKind.start, nEntries));
-				generateExpr(writer, ctx, newLocals, isLast ? afterLastBranch : afterBranch, case_.then);
-			} else
-				generateExpr(writer, ctx, locals, isLast ? afterLastBranch : afterBranch, case_.then);
-			// For the last one, don't reset the stack as by the end one of the cases will have run.
-			if (!isLast)
-				setNextStackEntry(writer, stackAfterMatched);
-		}
-	});
+	// TODO: this should throw on invalid union value.
+	if (empty(a.cases)) {
+		writeZeroed(writer, source, typeSizeBytes(ctx, type));
+		handleAfter(writer, ctx, source, after);
+	} else
+		withBranching(writer, ctx, after, (ref ExprAfter afterBranch, ref ExprAfter afterLastBranch) {
+			foreach (size_t caseIndex, ref LowExprKind.MatchUnion.Case case_; a.cases) {
+				bool isLast = caseIndex == a.cases.length - 1;
+				fillDelayedSwitchEntry(writer, switchDelayed, caseIndex);
+				if (has(case_.local)) {
+					size_t nEntries = nStackEntriesForType(ctx, force(case_.local).type);
+					verify(nEntries <= matchedEntriesWithoutKind.size);
+					scope Locals newLocals = addLocal(
+						castNonScope_ref(locals),
+						force(case_.local),
+						StackEntries(matchedEntriesWithoutKind.start, nEntries));
+					generateExpr(writer, ctx, newLocals, isLast ? afterLastBranch : afterBranch, case_.then);
+				} else
+					generateExpr(writer, ctx, locals, isLast ? afterLastBranch : afterBranch, case_.then);
+				// For the last one, don't reset the stack as by the end one of the cases will have run.
+				if (!isLast)
+					setNextStackEntry(writer, stackAfterMatched);
+			}
+		});
 }
 
 void generateSwitch0ToN(

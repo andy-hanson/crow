@@ -2,11 +2,11 @@ module util.writer;
 
 @safe @nogc pure nothrow:
 
-import util.alloc.alloc : Alloc;
+import util.alloc.alloc : Alloc, withStackAlloc;
 import util.col.arrBuilder : add, ArrBuilder, finishArr;
 import util.col.arrUtil : zip;
 import util.col.str : CStr, eachChar, SafeCStr;
-import util.util : abs, verify;
+import util.util : abs, debugLog, verify;
 
 struct Writer {
 	private:
@@ -32,6 +32,21 @@ struct Writer {
 			writeNat(this, a);
 		else
 			static assert(false, "not writeable");
+	}
+}
+
+void debugLogWithWriter(in void delegate(scope ref Writer) @safe @nogc pure nothrow cb) {
+	debugLogWithWriter((ref Alloc, ref Writer writer) {
+		cb(writer);
+	});
+}
+void debugLogWithWriter(in void delegate(scope ref Alloc, scope ref Writer) @safe @nogc pure nothrow cb) {
+	debug {
+		withStackAlloc!0x1000((scope ref Alloc alloc) {
+			Writer writer = Writer(&alloc);
+			cb(alloc, writer);
+			debugLog(finishWriterToCStr(writer));
+		});
 	}
 }
 

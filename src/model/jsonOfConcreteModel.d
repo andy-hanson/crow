@@ -33,7 +33,7 @@ import util.json :
 	field, Json, jsonObject, optionalArrayField, optionalField, optionalFlagField, jsonList, jsonString, kindField;
 import util.sourceRange : jsonOfFileAndRange;
 import util.sym : Sym, sym;
-import util.util : todo;
+import util.util : todo, unreachable;
 
 Json jsonOfConcreteProgram(ref Alloc alloc, in ConcreteProgram a) =>
 	jsonObject(alloc, [
@@ -57,8 +57,10 @@ Json jsonOfConcreteStruct(ref Alloc alloc, in ConcreteStruct a) =>
 
 Json jsonOfConcreteStructSource(ref Alloc alloc, in ConcreteStructSource a) =>
 	a.matchIn!Json(
+		(in ConcreteStructSource.Invalid) =>
+			unreachable!Json,
 		(in ConcreteStructSource.Bogus) =>
-			jsonString!"bogus",
+			jsonString!"BOGUS",
 		(in ConcreteStructSource.Inst x) =>
 			jsonString(name(*x.inst)),
 		(in ConcreteStructSource.Lambda x) =>

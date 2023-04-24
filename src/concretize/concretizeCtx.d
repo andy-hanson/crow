@@ -28,6 +28,7 @@ import model.concreteModel :
 	ConcreteVar,
 	EnumValues,
 	hasSizeOrPointerSizeBytes,
+	isBogus,
 	isSelfMutable,
 	mustBeByVal,
 	purity,
@@ -240,7 +241,7 @@ private ConcreteType bogusType(ref ConcretizeCtx a) =>
 			ConcreteStructBody(ConcreteStructBody.Record([])),
 			false));
 		lateSet(res.defaultReferenceKind_, ReferenceKind.byVal);
-		lateSet(res.typeSize_, TypeSize(0, 0));
+		lateSet(res.typeSize_, TypeSize(0, 1));
 		lateSet(res.fieldOffsets_, []);
 		return ConcreteType(ReferenceKind.byVal, res);
 	});
@@ -279,6 +280,7 @@ ConcreteFun* getConcreteFunForLambdaAndFillBody(
 	in ContainingFunInfo containing,
 	in Expr body_,
 ) {
+	verify(!isBogus(returnType));
 	ConcreteFun* res = allocate(ctx.alloc, ConcreteFun(
 		ConcreteFunSource(allocate(ctx.alloc, ConcreteFunSource.Lambda(body_.range, containingConcreteFun, index))),
 		returnType,
@@ -503,8 +505,10 @@ TypeSizeAndFieldOffsets recordSize(ref Alloc alloc, bool packed, in ConcreteFiel
 		TypeSize fieldSize = sizeOrPointerSizeBytes(field.type);
 		maxFieldSize = max(maxFieldSize, fieldSize.sizeBytes);
 		if (!packed) {
-			maxFieldAlignment = max(maxFieldAlignment, fieldSize.alignmentBytes);
-			offsetBytes = roundUp(offsetBytes, fieldSize.alignmentBytes);
+			if (fieldSize.alignmentBytes != 0) {
+				maxFieldAlignment = max(maxFieldAlignment, fieldSize.alignmentBytes);
+				offsetBytes = roundUp(offsetBytes, fieldSize.alignmentBytes);
+			}
 		}
 		size_t fieldOffset = offsetBytes;
 		offsetBytes += fieldSize.sizeBytes;

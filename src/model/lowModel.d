@@ -16,6 +16,7 @@ import model.concreteModel :
 	TypeSize;
 import model.constant : Constant;
 import model.model : body_, decl, EnumValue, Local, StructBody;
+import util.col.arr : empty;
 import util.col.map : Map;
 import util.col.fullIndexMap : FullIndexMap;
 import util.col.str : SafeCStr;
@@ -25,7 +26,7 @@ import util.path : Path;
 import util.sourceRange : FileAndRange;
 import util.sym : Sym, sym;
 import util.union_ : Union;
-import util.util : verify;
+import util.util : unreachable, verify;
 
 immutable struct LowExternType {
 	ConcreteStruct* source;
@@ -43,6 +44,8 @@ immutable struct LowRecord {
 	//TODO:MOVE
 	bool packed() scope =>
 		source.source.matchIn!bool(
+			(in ConcreteStructSource.Invalid) =>
+				unreachable!bool,
 			(in ConcreteStructSource.Bogus) =>
 				false,
 			(in ConcreteStructSource.Inst it) =>

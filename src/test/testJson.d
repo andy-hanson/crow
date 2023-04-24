@@ -8,8 +8,8 @@ import util.json : Json, writeJson;
 import util.jsonParse : parseJson;
 import util.opt : force, has, Opt;
 import util.sym : sym;
-import util.util : debugLog, typeAs, verify, verifyFail;
-import util.writer : finishWriterToSafeCStr, Writer;
+import util.util : typeAs, verify, verifyFail;
+import util.writer : debugLogWithWriter, Writer;
 
 void testJson(ref Test test) {
 	testBoolean(test);
@@ -66,12 +66,12 @@ void verifyParseJson(ref Test test, in SafeCStr source, in Json expected) {
 	Opt!Json actual = parseJson(test.alloc, test.allSymbols, source);
 	verify(has(actual));
 	if (force(actual) != expected) {
-		Writer writer = test.writer;
-		writer ~= "actual: ";
-		writeJson(writer, test.allSymbols, force(actual));
-		writer ~= "\nexpected: ";
-		writeJson(writer, test.allSymbols, expected);
-		debugLog(finishWriterToSafeCStr(writer).ptr);
+		debugLogWithWriter((ref Writer writer) {
+			writer ~= "actual: ";
+			writeJson(writer, test.allSymbols, force(actual));
+			writer ~= "\nexpected: ";
+			writeJson(writer, test.allSymbols, expected);
+		});
 		verifyFail();
 	}
 }

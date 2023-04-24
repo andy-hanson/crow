@@ -134,7 +134,7 @@ import util.sourceRange : FileAndRange;
 import util.sym : AllSymbols, writeSym;
 import util.union_ : Union, UnionMutable;
 import util.util : todo, unreachable, verify;
-import util.writer : finishWriterToCStr, Writer;
+import util.writer : debugLogWithWriter, finishWriterToCStr, Writer;
 
 @trusted int jitAndRun(
 	ref Alloc alloc,
@@ -306,15 +306,14 @@ void buildGccProgram(ref Alloc alloc, ref gcc_jit_context ctx, in AllSymbols all
 					globalVoid);
 
 				if (isStubFunction(funIndex)) {
-					debug {
-						import core.stdc.stdio : printf;
+					debugLogWithWriter((ref Writer writer) {
 						import interpret.debugging : writeFunName, writeFunSig;
-						Writer writer = Writer(ptrTrustMe(alloc));
+						writer ~= "Stub ";
+						writer ~= funIndex.index;
 						writeFunName(writer, allSymbols, todo!Program("!"), program, funIndex);
 						writer ~= ' ';
 						writeFunSig(writer, allSymbols, todo!Program("!"), program, fun);
-						printf("Stub %llu %s\n", funIndex.index, finishWriterToCStr(writer));
-					}
+					});
 					gcc_jit_block_end_with_return(exprCtx.curBlock, null, arbitraryValue(exprCtx, expr.expr.type));
 				} else {
 					ExprEmit emit = ExprEmit(ExprEmit.Return());
@@ -326,13 +325,12 @@ void buildGccProgram(ref Alloc alloc, ref gcc_jit_context ctx, in AllSymbols all
 						(ExprResult.Void) {});
 				}
 
-				const char* err = gcc_jit_context_get_first_error(ctx);
-				debug {
-					import core.stdc.stdio : printf;
-					if (err != null) {
-						printf("Error: %s\n", err);
-					}
-				}
+				scope immutable char* err = gcc_jit_context_get_first_error(ctx);
+				if (err != null)
+					debugLogWithWriter((ref Writer writer) @trusted {
+						writer ~= "Error: ";
+						writer ~= SafeCStr(err);
+					});
 				verify(err == null);
 			});
 	});

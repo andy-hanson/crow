@@ -1392,7 +1392,7 @@ immutable struct ExprKind {
 		Expr body_;
 		VariableRef[] closure;
 		FunKind kind;
-		// For FunKind.send this includes 'future' wrapper
+		// For FunKind.far this includes 'future' wrapper
 		Type returnType;
 	}
 

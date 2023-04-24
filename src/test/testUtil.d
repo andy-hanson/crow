@@ -9,8 +9,8 @@ import util.alloc.alloc : Alloc;
 import util.col.arrUtil : arrEqual, arrsCorrespond, makeArr;
 import util.path : AllPaths;
 import util.sym : AllSymbols;
-import util.util : verify;
-import util.writer : finishWriter, Writer;
+import util.util : verifyFail;
+import util.writer : debugLogWithWriter, Writer;
 
 struct Test {
 	@safe @nogc pure nothrow:
@@ -25,17 +25,6 @@ struct Test {
 		allPaths = AllPaths(ap, &allSymbols);
 	}
 
-	Writer writer() =>
-		Writer(allocPtr);
-
-	void fail(string s) {
-		debug {
-			import core.stdc.stdio : printf;
-			printf("Failed: %.*s\n", cast(int) s.length, s.ptr);
-		}
-		verify(false);
-	}
-
 	ref Alloc alloc() return scope =>
 		*allocPtr;
 }
@@ -43,14 +32,13 @@ struct Test {
 @trusted void expectDataStack(ref Test test, in Stacks stacks, in immutable ulong[] expected) {
 	scope immutable ulong[] stack = dataTempAsArr(stacks);
 	if (!arrEqual(stack, expected)) {
-		debug {
-			Writer writer = test.writer();
+		debugLogWithWriter((ref Writer writer) {
 			writer ~= "expected:\n";
 			showDataArr(writer, expected);
 			writer ~= "\nactual:\n";
 			showDataArr(writer, stack);
-			test.fail(finishWriter(writer));
-		}
+		});
+		verifyFail();
 	}
 }
 
@@ -68,8 +56,7 @@ struct Test {
 		(in Operation* a, in ByteCodeIndex b) @trusted =>
 			ByteCodeIndex(a - byteCode.byteCode.ptr) == b);
 	if (!eq) {
-		debug {
-			Writer writer = test.writer();
+		debugLogWithWriter((ref Writer writer) @trusted {
 			writer ~= "expected:\nreturn:";
 			foreach (ByteCodeIndex index; expected) {
 				writer ~= ' ';
@@ -81,9 +68,8 @@ struct Test {
 				writer ~= ptr - byteCode.byteCode.ptr;
 			}
 			writer ~= '\n';
-			test.fail(finishWriter(writer));
-		}
-		verify(false);
+		});
+		verifyFail();
 	}
 }
 

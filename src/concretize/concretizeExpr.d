@@ -42,6 +42,7 @@ import model.concreteModel :
 	ConcreteStructSource,
 	ConcreteType,
 	ConcreteVariableRef,
+	isBogus,
 	isSummon,
 	isVariadic,
 	isVoid,
@@ -177,6 +178,13 @@ immutable struct LocalOrConstant {
 	mixin Union!(ConcreteLocal*, TypedConstant);
 }
 
+ConcreteType type(in LocalOrConstant a) =>
+	a.matchIn!ConcreteType(
+		(in ConcreteLocal x) =>
+			x.type,
+		(in TypedConstant x) =>
+			x.type);
+
 ConcreteType getConcreteType(ref ConcretizeExprCtx ctx, in Type t) =>
 	getConcreteType_fromConcretizeCtx(ctx.concretizeCtx, t, typeScope(ctx));
 
@@ -194,6 +202,8 @@ ConcreteExpr concretizeCall(
 	in ExprKind.Call e,
 ) {
 	ConcreteFun* concreteCalled = getConcreteFunFromCalled(ctx, e.called);
+	if (isBogus(concreteCalled.returnType))
+		return concretizeBogus(ctx.concretizeCtx, type, range);
 	verify(concreteCalled.returnType == type);
 	bool argsMayBeConstants =
 		empty(e.args) || (!isSummon(*concreteCalled) && purity(concreteCalled.returnType) == Purity.data);
@@ -416,11 +426,15 @@ ConcreteExpr concretizeLambda(
 			range,
 			ConcreteExprKind(ConcreteExprKind.ClosureCreate(closureArgs))))));
 
+	ConcreteType returnType = getConcreteType(ctx, e.returnType);
+	if (isBogus(returnType))
+		return concretizeBogus(ctx.concretizeCtx, type, range);
+
 	ConcreteFun* fun = getConcreteFunForLambdaAndFillBody(
 		ctx.concretizeCtx,
 		ctx.currentConcreteFunPtr,
 		lambdaIndex,
-		getConcreteType(ctx, e.returnType),
+		returnType,
 		e.param,
 		paramsIncludingClosure,
 		ctx.containing,
@@ -646,12 +660,14 @@ ConcreteExpr concretizeLocalGet(
 	FileAndRange range,
 	in Locals locals,
 	Local* local,
-) =>
-	castNonScope_ref(getLocal(locals, local)).matchWithPointers!ConcreteExpr(
+) {
+	LocalOrConstant concrete = castNonScope_ref(getLocal(locals, local));
+	return concrete.matchWithPointers!ConcreteExpr(
 		(ConcreteLocal* local) =>
 			ConcreteExpr(type, range, ConcreteExprKind(ConcreteExprKind.LocalGet(local))),
 		(TypedConstant x) =>
 			ConcreteExpr(type, range, ConcreteExprKind(x.value)));
+}
 
 ConcreteExpr concretizePtrToLocal(
 	ref ConcretizeExprCtx ctx,
@@ -877,8 +893,10 @@ SafeCStr defaultAssertOrForbidMessage(AssertOrForbidKind a) {
 ConcreteExpr concretizeExpr(ref ConcretizeExprCtx ctx, in Locals locals, ref ExprAndType a) =>
 	concretizeExpr(ctx, getConcreteType(ctx, a.type), locals, a.expr);
 
-ConcreteExpr concretizeExpr(ref ConcretizeExprCtx ctx, ConcreteType type, in Locals locals, ref Expr a) {
+ConcreteExpr concretizeExpr(ref ConcretizeExprCtx ctx, ConcreteType type, in Locals locals, ref Expr a) {	
 	FileAndRange range = a.range;
+	if (isBogus(type))
+		return concretizeBogus(ctx.concretizeCtx, type, range);
 	return a.kind.match!ConcreteExpr(
 		(ExprKind.AssertOrForbid x) =>
 			concretizeAssertOrForbid(ctx, type, range, locals, x),

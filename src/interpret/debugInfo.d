@@ -11,7 +11,7 @@ import model.diag : FilesInfo, writeFileAndPos;
 import model.concreteModel : ConcreteFun, concreteFunRange;
 import model.lowModel : LowFunIndex, LowFunSource, LowProgram;
 import model.model : Program;
-import util.alloc.alloc : Alloc, withStackAlloc;
+import util.alloc.alloc : Alloc;
 import util.lineAndColumnGetter : LineAndColumn, lineAndColumnAtPos;
 import util.col.str : CStr;
 import util.memory : overwriteMemory;
@@ -21,7 +21,7 @@ import util.ptr : ptrTrustMe;
 import util.sourceRange : FileAndPos, FileIndex;
 import util.sym : AllSymbols;
 import util.util : min, verify;
-import util.writer : finishWriterToSafeCStr, writeHex, Writer;
+import util.writer : debugLogWithWriter, finishWriterToSafeCStr, writeHex, Writer;
 
 const struct InterpreterDebugInfo {
 	@safe @nogc pure nothrow:
@@ -135,16 +135,11 @@ void printDebugInfo(
 	Opt!ByteCodeSource source = nextSource(a, cur);
 
 	debug {
-		import core.stdc.stdio : printf;
-		withStackAlloc!0x1000((ref Alloc dbgAlloc) {
-			scope Writer writer = Writer(ptrTrustMe(dbgAlloc));
+		debugLogWithWriter((ref Writer writer) {
 			showDataArr(writer, dataStack);
 			showReturnStack(writer, a, returnStackReverse, cur);
-			printf("%s\n", finishWriterToSafeCStr(writer).ptr);
 		});
-
-		withStackAlloc!0x1000((ref Alloc dbgAlloc) {
-			scope Writer writer = Writer(ptrTrustMe(dbgAlloc));
+		debugLogWithWriter((ref Writer writer) {
 			writer ~= "STEP: ";
 			ShowDiagOptions showDiagOptions = ShowDiagOptions(false);
 			if (has(source)) {
@@ -153,7 +148,6 @@ void printDebugInfo(
 					a.program, a.lowProgram, a.filesInfo, force(source));
 			} else
 				writer ~= "opStopInterpretation";
-			printf("%s\n", finishWriterToSafeCStr(writer).ptr);
 		});
 	}
 }

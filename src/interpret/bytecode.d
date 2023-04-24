@@ -59,7 +59,7 @@ immutable struct ByteCode {
 	EnumMap!(VarKind, size_t) varsSizeWords;
 	ByteCodeIndex main;
 
-	Operation[] byteCode() =>
+	Operation[] byteCode() return scope =>
 		operations.byteCode;
 	FullIndexMap!(ByteCodeIndex, ByteCodeSource) sources() return scope =>
 		operations.sources;

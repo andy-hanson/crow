@@ -207,7 +207,7 @@ add-post post(db db, cookie user-cookie, content string) summon
 		login-cookie cookie-matches cookie.inner.cookie, cookie-expire-seconds
 
 -db-path string()
-	"demo-wip/webapp/db"
+	"demo/webapp/db"
 
 cookie-expire-seconds nat()
 	5 * 60

@@ -18,7 +18,7 @@ main nat^(_ string[]) summon
 	for file : files
 		for public-export : file.members public
 			# Ignore union.d because it gets confused by the mixin
-			unless public-export in all-imports || public-export in excluded-public || file.path == "src/util/union.d"
+			unless public-export in all-imports || public-export in allow-exports || file.path in allow-paths
 				failures ~= "{file path} export not used: {public-export}"
 	for file : files
 		for private-member : file.members private
@@ -31,8 +31,12 @@ main nat^(_ string[]) summon
 -get-all-imports symbol set(files file[])
 	() join for file : files; file imports
 
--excluded-public symbol set()
+-allow-exports symbol set()
 	"diffSymbols", "main"
+-allow-paths string set()
+	# Ignore debugging.d because unused functions may be useful for debugging.
+	# Ignore union.d because ddscanner gets confused by the mixin.
+	"src/interpret/debugging.d", "src/util/union.d"
 
 -file record
 	path string
