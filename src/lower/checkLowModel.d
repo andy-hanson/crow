@@ -46,7 +46,7 @@ import util.col.stackMap : StackMap, stackMapAdd, stackMapMustGet;
 import util.col.fullIndexMap : fullIndexMapEachValue;
 import util.json : field, Json, jsonObject, jsonString, kindField, writeJson;
 import util.opt : force, has, none, Opt, some;
-import util.ptr : castNonScope_ref, ptrTrustMe;
+import util.ptr : ptrTrustMe;
 import util.sym : AllSymbols;
 import util.util : drop, verify;
 import util.writer : debugLogWithWriter, Writer;
@@ -102,6 +102,8 @@ void checkLowFun(ref Ctx ctx, in LowFun fun) {
 }
 
 alias InfoStack = StackMap!(LowExprKind.Loop*, LowType);
+alias addLoop = stackMapAdd!(LowExprKind.Loop*, LowType);
+alias getLoop = stackMapMustGet!(LowExprKind.Loop*, LowType);
 
 void checkLowExpr(ref FunCtx ctx, in InfoStack info, in LowType type, in LowExpr expr) {
 	checkTypeEqual(ctx.ctx, type, expr.type);
@@ -152,14 +154,13 @@ void checkLowExpr(ref FunCtx ctx, in InfoStack info, in LowType type, in LowExpr
 			checkLowExpr(ctx, info, it.local.type, it.value);
 		},
 		(in LowExprKind.Loop x) {
-			InfoStack innerInfo = stackMapAdd(castNonScope_ref(info), ptrTrustMe(x), type);
-			checkLowExpr(ctx, innerInfo, voidType, x.body_);
+			checkLowExpr(ctx, addLoop(info, ptrTrustMe(x), type), voidType, x.body_);
 		},
 		(in LowExprKind.LoopBreak x) {
-			checkLowExpr(ctx, info, stackMapMustGet(info, x.loop), x.value);
+			checkLowExpr(ctx, info, getLoop(info, x.loop), x.value);
 		},
 		(in LowExprKind.LoopContinue x) {
-			drop(stackMapMustGet(info, x.loop));
+			drop(getLoop(info, x.loop));
 		},
 		(in LowExprKind.MatchUnion it) {
 			checkLowExpr(ctx, info, it.matchedValue.type, it.matchedValue);

@@ -124,7 +124,7 @@ import util.col.arr : empty;
 import util.col.arrUtil : indexOfPointer, makeArr, map, mapToMut, mapWithIndex, zip;
 import util.col.map : mustGetAt;
 import util.col.fullIndexMap : FullIndexMap, fullIndexMapZip, mapFullIndexMap_mut;
-import util.col.stackMap : MutStackMap, mutStackMapAdd, mutStackMapMustGet;
+import util.col.stackMap : StackMap, stackMapAdd, stackMapMustGet, withStackMap;
 import util.col.str : CStr, SafeCStr;
 import util.conv : safeToInt;
 import util.opt : force, has, MutOpt, none, noneMut, Opt, some, someMut;
@@ -317,8 +317,8 @@ void buildGccProgram(ref Alloc alloc, ref gcc_jit_context ctx, in AllSymbols all
 					gcc_jit_block_end_with_return(exprCtx.curBlock, null, arbitraryValue(exprCtx, expr.expr.type));
 				} else {
 					ExprEmit emit = ExprEmit(ExprEmit.Return());
-					Locals locals;
-					ExprResult result = toGccExpr(exprCtx, locals, emit, expr.expr);
+					ExprResult result = withStackMap!(ExprResult, LowLocal*, gcc_jit_lvalue*)((ref Locals locals) =>
+						toGccExpr(exprCtx, locals, emit, expr.expr));
 					result.match!void(
 						(ExprResult.BreakContinueOrReturn) {},
 						(ref gcc_jit_rvalue) => unreachable!void,
@@ -757,13 +757,13 @@ ExprResult emitSwitch(
 				&cases[0]);
 		});
 
-alias Locals = MutStackMap!(LowLocal*, gcc_jit_lvalue*);
-alias addLocal = mutStackMapAdd!(LowLocal*, gcc_jit_lvalue*);
+alias Locals = StackMap!(LowLocal*, gcc_jit_lvalue*);
+alias addLocal = stackMapAdd!(LowLocal*, gcc_jit_lvalue*);
 gcc_jit_lvalue* getLocal(ref ExprCtx ctx, ref Locals locals, in LowLocal* local) {
 	Opt!size_t paramIndex = indexOfPointer(ctx.curFunParams, local);
 	return has(paramIndex)
 		? gcc_jit_param_as_lvalue(gcc_jit_function_get_param(ctx.curFun, safeToInt(force(paramIndex))))
-		: mutStackMapMustGet!(LowLocal*, gcc_jit_lvalue*)(locals, local);
+		: stackMapMustGet!(LowLocal*, gcc_jit_lvalue*)(locals, local);
 }
 
 struct ExprCtx {

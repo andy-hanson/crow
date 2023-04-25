@@ -293,7 +293,9 @@ LowType.PtrRawConst getElementPtrTypeFromArrType(ref AllLowTypes allTypes, LowTy
 	LowType type,
 	in LowExpr delegate(LowExprKind.Loop*) @safe @nogc pure nothrow cbBody,
 ) {
-	LowExprKind.Loop* res = allocate(alloc, LowExprKind.Loop());
+	LowExprKind.Loop* res = allocate(alloc, LowExprKind.Loop(
+		// Dummy initial body
+		LowExpr(voidType, FileAndRange.empty, LowExprKind(constantZero))));
 	overwriteMemory(&res.body_, cbBody(res));
 	return LowExpr(type, range, LowExprKind(res));
 }

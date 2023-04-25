@@ -5,11 +5,11 @@ module util.col.stackMap;
 import util.ptr : castNonScope_ref, ptrTrustMe;
 import util.util : verify;
 
-immutable struct StackMap(K, V) {
+struct StackMap(K, V) {
 	private:
 	@disable this(ref const StackMap);
-	K key = invalid!K;
-	V value;
+	immutable K key = invalid!K;
+	V value = void;
 	StackMap!(K, V)* next;
 }
 
@@ -20,46 +20,29 @@ private immutable(K) invalid(K)() {
 		return K.INVALID;
 }
 
-ref immutable(V) stackMapMustGet(K, V)(return ref StackMap!(K, V) a, scope immutable K key) {
-	verify(a.key != invalid!K);
-	return a.key == key ? a.value : stackMapMustGet!(K, V)(*a.next, key);
-}
-
-@trusted StackMap!(K, V) stackMapAdd(K, V)(
-	scope return ref StackMap!(K, V) a,
-	immutable K key,
-	immutable V value,
-) {
-	verify(key != invalid!K);
-	return StackMap!(K, V)(key, value, ptrTrustMe(a));
-}
-
-struct MutStackMap(K, V) {
-	private:
-	//TODO: @disable this(ref const MutStackMap);
-	immutable K key = invalid!K;
-	V value;
-	MutStackMap!(K, V)* next;
-}
-
-ref inout(V) mutStackMapMustGet(K, V)(return ref inout(MutStackMap!(K, V)) a, scope immutable K key) {
+ref inout(V) stackMapMustGet(K, V)(return ref inout(StackMap!(K, V)) a, scope immutable K key) {
 	verify(a.key != invalid!K);
 	return a.key == key
 		? a.value
-		: mutStackMapMustGet!(K, V)(*a.next, key);
+		: stackMapMustGet!(K, V)(*a.next, key);
 }
 
-@trusted MutStackMap!(K, V) mutStackMapAdd(K, V)(
-	return scope ref MutStackMap!(K, V) a,
+@trusted inout(StackMap!(K, V)) stackMapAdd(K, V)(
+	return scope ref inout StackMap!(K, V) a,
 	immutable K key,
-	V value,
+	inout V value,
 ) {
 	verify(key != invalid!K);
-	return MutStackMap!(K, V)(key, value, ptrTrustMe(a));
+	return inout StackMap!(K, V)(key, value, cast(inout StackMap!(K, V)*) ptrTrustMe(a));
+}
+
+@trusted T withStackMap(T, K, V)(in T delegate(ref StackMap!(K, V)) @safe @nogc pure nothrow cb) {
+	StackMap!(K, V) map;
+	return cb(map);
 }
 
 // 2 StackMaps in one
-alias StackMap2(K0, V0, K1, V1) = MutStackMap!(StackMap2Key!(K0, K1), StackMap2Value!(V0, V1));
+alias StackMap2(K0, V0, K1, V1) = StackMap!(StackMap2Key!(K0, K1), StackMap2Value!(V0, V1));
 private union StackMap2Key(K0, K1) {
 	@safe @nogc pure nothrow:
 
@@ -87,12 +70,19 @@ private union StackMap2Value(V0, V1) {
 	inout this(inout V1 a) { v1 = a; }
 }
 
+@trusted T withStackMap2(T, K0, V0, K1, V1)(
+	in T delegate(ref immutable StackMap2!(K0, V0, K1, V1)) @safe @nogc pure nothrow cb,
+) {
+	immutable StackMap2!(K0, V0, K1, V1) map;
+	return cb(map);
+}
+
 @trusted immutable(StackMap2!(K0, V0, K1, V1)) stackMap2Add0(K0, V0, K1, V1)(
 	return scope ref immutable StackMap2!(K0, V0, K1, V1) a,
 	return scope immutable K0 key,
 	return scope inout V0 value,
 ) =>
-	cast(immutable(StackMap2!(K0, V0, K1, V1))) mutStackMapAdd!(StackMap2Key!(K0, K1), StackMap2Value!(V0, V1))(
+	cast(immutable(StackMap2!(K0, V0, K1, V1))) stackMapAdd!(StackMap2Key!(K0, K1), StackMap2Value!(V0, V1))(
 		cast(StackMap2!(K0, V0, K1, V1)) a,
 		immutable StackMap2Key!(K0, K1)(key),
 		cast(StackMap2Value!(V0, V1)) inout StackMap2Value!(V0, V1)(value));
@@ -102,7 +92,7 @@ private union StackMap2Value(V0, V1) {
 	return scope immutable K1 key,
 	return scope inout V1 value,
 ) =>
-	cast(inout(StackMap2!(K0, V0, K1, V1))) mutStackMapAdd!(StackMap2Key!(K0, K1), StackMap2Value!(V0, V1))(
+	cast(inout(StackMap2!(K0, V0, K1, V1))) stackMapAdd!(StackMap2Key!(K0, K1), StackMap2Value!(V0, V1))(
 		cast(StackMap2!(K0, V0, K1, V1)) a,
 		immutable StackMap2Key!(K0, K1)(key),
 		cast(StackMap2Value!(V0, V1)) inout StackMap2Value!(V0, V1)(value));
@@ -111,7 +101,7 @@ private union StackMap2Value(V0, V1) {
 	scope ref inout StackMap2!(K0, V0, K1, V1) a,
 	scope immutable K0 key,
 ) =>
-	mutStackMapMustGet!(StackMap2Key!(K0, K1), StackMap2Value!(V0, V1))(
+	stackMapMustGet!(StackMap2Key!(K0, K1), StackMap2Value!(V0, V1))(
 		a,
 		immutable StackMap2Key!(K0, K1)(key)).v0;
 
@@ -119,6 +109,6 @@ private union StackMap2Value(V0, V1) {
 	scope ref inout StackMap2!(K0, V0, K1, V1) a,
 	scope immutable K1 key,
 ) =>
-	mutStackMapMustGet!(StackMap2Key!(K0, K1), StackMap2Value!(V0, V1))(
+	stackMapMustGet!(StackMap2Key!(K0, K1), StackMap2Value!(V0, V1))(
 		castNonScope_ref(a),
 		immutable StackMap2Key!(K0, K1)(key)).v1;

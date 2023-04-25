@@ -68,6 +68,7 @@ mixin template Union(ReprTypes...) {
 		}
 	}
 
+	@disable this();
 	static foreach (i, T; ReprTypes) {
 		immutable this(immutable toMemberType!T a) {
 			static if (is(T == P*, P))

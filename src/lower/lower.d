@@ -128,7 +128,7 @@ import util.col.fullIndexMap : FullIndexMap, fullIndexMapEachValue, fullIndexMap
 import util.col.mutIndexMap : getOrAddAndDidAdd, mustGetAt, MutIndexMap, newMutIndexMap;
 import util.col.mutArr : moveToArr, MutArr, push;
 import util.col.mutMap : getAt_mut, getOrAdd, mapToArr_mut, MutMap, MutMap, ValueAndDidAdd;
-import util.col.stackMap : StackMap2, stackMap2Add0, stackMap2Add1, stackMap2MustGet0, stackMap2MustGet1;
+import util.col.stackMap : StackMap2, stackMap2Add0, stackMap2Add1, stackMap2MustGet0, stackMap2MustGet1, withStackMap2;
 import util.late : Late, late, lateGet, lateIsSet, lateSet;
 import util.memory : allocate, overwriteMemory;
 import util.opt : force, has, none, Opt, optOr, some;
@@ -837,8 +837,7 @@ T withLowLocal(T)(
 	LowType typeByVal = lowTypeFromConcreteType(ctx.typeCtx, concreteLocal.type);
 	LowType type = concreteLocal.isAllocated ? getLowGcPtrType(ctx.typeCtx, typeByVal) : typeByVal;
 	LowLocal* local = allocate(ctx.alloc, LowLocal(getLowLocalSource(ctx, concreteLocal.source), type));
-	Locals newLocals = addLocal(locals, concreteLocal, local);
-	return cb(newLocals, local);
+	return cb(addLocal(locals, concreteLocal, local), local);
 }
 
 T withOptLowLocal(T)(
@@ -891,8 +890,9 @@ LowFunBody getLowFunBody(
 				params,
 				false,
 				a.paramsIncludingClosure.length);
-			Locals locals;
-			LowExpr expr = getLowExpr(exprCtx, locals, x, ExprPos.tail);
+			LowExpr expr = withStackMap2!(
+				LowExpr, ConcreteLocal*, LowLocal*, ConcreteExprKind.Loop*, LowExprKind.Loop*
+			)((ref Locals locals) => getLowExpr(exprCtx, locals, x, ExprPos.tail));
 			return LowFunBody(LowFunExprBody(exprCtx.hasTailRecur, expr));
 		},
 		(ConcreteFunBody.FlagsFn) =>
@@ -1083,10 +1083,11 @@ LowExprKind getLoopExpr(
 	LowType type,
 	ref ConcreteExprKind.Loop a,
 ) {
-	immutable LowExprKind.Loop* res = allocate(ctx.alloc, LowExprKind.Loop());
-	Locals newLocals = addLoop(locals, ptrTrustMe(a), res);
+	immutable LowExprKind.Loop* res = allocate(ctx.alloc, LowExprKind.Loop(
+		// Dummy initial body
+		LowExpr(voidType, FileAndRange.empty, LowExprKind(constantZero))));
 	// Go ahead and give the body the same 'exprPos'. 'continue' will know it's non-tail.
-	overwriteMemory(&res.body_, getLowExpr(ctx, newLocals, a.body_, exprPos));
+	overwriteMemory(&res.body_, getLowExpr(ctx, addLoop(locals, &a, res), a.body_, exprPos));
 	return LowExprKind(res);
 }
 

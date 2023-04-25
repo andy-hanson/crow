@@ -460,8 +460,7 @@ void generateLet(
 	StackEntries localEntries = StackEntries(getNextStackEntry(writer), nStackEntriesForType(ctx, a.local.type));
 	generateExprAndContinue(writer, ctx, locals, a.value);
 	verify(getNextStackEntry(writer) == stackEntriesEnd(localEntries));
-	scope Locals newLocals = addLocal(castNonScope_ref(locals), a.local, localEntries);
-	generateExpr(writer, ctx, newLocals, after, a.then);
+	generateExpr(writer, ctx, addLocal(locals, a.local, localEntries), after, a.then);
 }
 
 @trusted void generateLoop(
@@ -545,11 +544,10 @@ void generateMatchUnion(
 				if (has(case_.local)) {
 					size_t nEntries = nStackEntriesForType(ctx, force(case_.local).type);
 					verify(nEntries <= matchedEntriesWithoutKind.size);
-					scope Locals newLocals = addLocal(
-						castNonScope_ref(locals),
-						force(case_.local),
-						StackEntries(matchedEntriesWithoutKind.start, nEntries));
-					generateExpr(writer, ctx, newLocals, isLast ? afterLastBranch : afterBranch, case_.then);
+					generateExpr(
+						writer, ctx,
+						addLocal(locals, force(case_.local), StackEntries(matchedEntriesWithoutKind.start, nEntries)),
+						isLast ? afterLastBranch : afterBranch, case_.then);
 				} else
 					generateExpr(writer, ctx, locals, isLast ? afterLastBranch : afterBranch, case_.then);
 				// For the last one, don't reset the stack as by the end one of the cases will have run.

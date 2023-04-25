@@ -80,7 +80,7 @@ import util.col.arr : empty, only, PtrAndSmallNumber, sizeEq;
 import util.col.arrUtil : arrLiteral, map, mapZip;
 import util.col.mutArr : MutArr, mutArrSize, push;
 import util.col.mutMap : getOrAdd;
-import util.col.stackMap : StackMap2, stackMap2Add0, stackMap2Add1, stackMap2MustGet0, stackMap2MustGet1;
+import util.col.stackMap : StackMap2, stackMap2Add0, stackMap2Add1, stackMap2MustGet0, stackMap2MustGet1, withStackMap2;
 import util.col.str : SafeCStr, safeCStr;
 import util.memory : allocate, overwriteMemory;
 import util.opt : force, has, none, Opt, some;
@@ -99,11 +99,12 @@ ConcreteExpr concretizeFunBody(
 	ref Expr e,
 ) {
 	ConcretizeExprCtx exprCtx = ConcretizeExprCtx(ptrTrustMe(ctx), e.range.fileIndex, containing, cf);
-	Locals locals;
-	// Ignore closure param, which is never destructured.
-	ConcreteLocal[] paramsToDestructure =
-		cf.paramsIncludingClosure[params.length + 1 == cf.paramsIncludingClosure.length ? 1 : 0 .. $];
-	return concretizeWithParamDestructures(exprCtx, cf.returnType, locals, params, paramsToDestructure, e);
+	return withStackMap2!(ConcreteExpr, Local*, LocalOrConstant, ExprKind.Loop*, LoopAndType*)((ref Locals locals) {
+		// Ignore closure param, which is never destructured.
+		ConcreteLocal[] paramsToDestructure =
+			cf.paramsIncludingClosure[params.length + 1 == cf.paramsIncludingClosure.length ? 1 : 0 .. $];
+		return concretizeWithParamDestructures(exprCtx, cf.returnType, locals, params, paramsToDestructure, e);
+	});
 }
 
 ConcreteExpr concretizeBogus(ref ConcretizeCtx ctx, ConcreteType type, FileAndRange range) =>
@@ -717,8 +718,7 @@ ConcreteExpr concretizeLoop(
 ) {
 	immutable ConcreteExprKind.Loop* res = allocate(ctx.alloc, ConcreteExprKind.Loop());
 	LoopAndType loopAndType = LoopAndType(res, type);
-	// TODO: `cast(immutable)` should be unnecessary
-	scope Locals localsWithLoop = addLoop(castNonScope_ref(locals), castNonScope(&a), cast(immutable) &loopAndType);
+	scope Locals localsWithLoop = addLoop(locals, &a, &loopAndType);
 	overwriteMemory(&res.body_, concretizeExpr(ctx, voidType(ctx), localsWithLoop, a.body_));
 	return ConcreteExpr(type, range, ConcreteExprKind(res));
 }

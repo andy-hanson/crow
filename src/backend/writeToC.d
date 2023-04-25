@@ -1775,13 +1775,12 @@ WriteExprResult writeLoop(
 
 	size_t index = nextLoopIndex(ctx);
 	LoopInfo loopInfo = LoopInfo(index, nested.writeKind);
-	Locals innerLocals = addLoop(castNonScope_ref(locals), ptrTrustMe(a), &loopInfo);
 
 	writeNewline(writer, indent);
 	writer ~= "for (;;) {";
 	writeNewline(writer, indent + 1);
 
-	writeExprVoid(writer, indent + 1, ctx, innerLocals, a.body_);
+	writeExprVoid(writer, indent + 1, ctx, addLoop(locals, ptrTrustMe(a), &loopInfo), a.body_);
 
 	writeNewline(writer, indent);
 	writer ~= '}';
