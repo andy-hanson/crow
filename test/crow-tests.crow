@@ -2,7 +2,7 @@ import
 	crow/io/file: each-child-recursive
 	crow/io/path: base-name, get-extension
 	crow/io/print: out, print
-	crow/io/process: exit-code, process-result, spawn-and-wait-result, stderr, stdout
+	crow/io/process: exit, has-error, process-result, spawn-and-wait-result, stderr, stdout
 	crow/version: is-windows
 	./failure:
 		failure, flat-map-with-max-size, handle-output, max-failures, match-test,
@@ -62,11 +62,18 @@ run-kind enum
 	(path handle-output "{path}.out", res.format-output, overwrite-output),
 
 -format-output string(a process-result)
-	if a.exit-code == 0 && a.stderr == ""
-		a.stdout remove-colors
+	if a has-error
+		match a exit
+		as exited exit-code
+			"exit code: {exit-code}\n{a format-stdout-stderr}"
+		as signaled signal
+			"aborted with signal: {signal}\n{a format-stdout-stderr}"
 	else
-		stdout = a.stdout == "" ? "" : "stdout:\n{a.stdout remove-colors}"
-		"exit code: {a exit-code}\n{stdout}stderr:\n{a.stderr.remove-colors normalize-exceptions}"
+		a.stdout remove-colors
+
+-format-stdout-stderr string(a process-result)
+	stdout = a.stdout == "" ? "" : "stdout:\n{a.stdout remove-colors}"
+	"{stdout}stderr:\n{a.stderr.remove-colors normalize-exceptions}"
 
 -remove-colors string(a string)
 	if pair ?= a try-split-once "\x1b"

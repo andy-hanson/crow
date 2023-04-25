@@ -17,20 +17,20 @@ import
 		GetLastError, HANDLE, HANDLE_FLAG_INHERIT, hProcess, hThread, INFINITE, new, _pclose,
 		_popen, PROCESS_INFORMATION, ReadFile, SECURITY_ATTRIBUTES, SetHandleInformation,
 		STARTF_USESTDHANDLES, STARTUPINFOA, WaitForSingleObject
-	../bool: &&, ||, bool, to, true
+	../bool: &&, ||, bool, not, to, true
 	../col/array: array, begin-pointer
 	../col/collection: for-loop, join, subscript
 	../col/mut-array: +, begin, begin-pointer, mut-array, new, next, size
 	../col/list: ~, ~=, build, iterate, list, size, to
 	../col/mut-list: begin-pointer, end-pointer, move-to, mut-list, new, size, unsafe-set-size
-	../compare: <=
+	../compare: !=, <=
 	../c-types: fd-t
 	../misc: new, void
 	../number: ==, <=>, +, int32, int64, nat8, nat32, nat64, to
 	../private/bootstrap: todo
 	../private/c-string-util: find-c-string-end
 	../pointer: ==, +, -, mut-pointer, new, null, pointer-cast
-	../string: ~~, as-string, char8, c-string, literal, move-to, new, string, to
+	../string: ~~, as-string, char8, c-string, is-empty, literal, move-to, new, string, to
 	../version: is-windows
 	./environ: get-environ-raw
 	./file: is-file
@@ -40,9 +40,20 @@ import
 
 # Represents the output of running a process.
 +process-result record
-	exit-code int32
+	exit process-exit
 	stdout string
 	stderr string
+
++process-exit union
+	exited int32
+	signaled int32
+
++has-error bool(a process-result)
+	!a.stderr.is-empty || match a exit
+	as exited code
+		code != 0
+	as signaled _
+		true
 
 ###
 Launches a process and synchronously waits on the result.
@@ -81,7 +92,7 @@ EXE should be a file path and not just a name; this does not search the system p
 Launches a process and synchronously waits on the result.
 The child process shares stdout and stderr with the parent process.
 ###
-+spawn-and-wait int32(exe string, args string[]) summon
++spawn-and-wait process-exit(exe string, args string[]) summon
 	# TODO: kill, handle that error properly
 	assert exe is-file : "{exe} is not a file"
 	# First argument should be the executable path
@@ -146,7 +157,7 @@ The child process shares stdout and stderr with the parent process.
 	unless process-info.hProcess.CloseHandle && process-info.hThread.CloseHandle
 		todo
 
-	exit-code.to, stdout, stderr
+	exit-code.to.exited, stdout, stderr
 
 -read-from-pipe-windows string(pipe HANDLE) summon, unsafe
 	res nat8 mut[] = ()
@@ -261,24 +272,20 @@ The child process shares stdout and stderr with the parent process.
 
 # Args should be terminated by null.
 # TODO: option to get stdout/stderr as a string rather than having them go to the terminal
--spawn-and-wait int32(exe c-string, args c-string[]) summon, unsafe
+-spawn-and-wait process-exit(exe c-string, args c-string[]) summon, unsafe
 	pid mut pid_t = 0
 	args-pointer = args.to::(c-string array) begin-pointer
 	&pid posix_spawn exe, null, null, args-pointer, get-environ-raw check-posix-error
 	pid wait-and-get-exit-code
 
--wait-and-get-exit-code int32(pid pid_t) summon, unsafe
+-wait-and-get-exit-code process-exit(pid pid_t) summon, unsafe
 	wait-status mut status-t = 0
 	res-pid = pid waitpid &wait-status, 0
 	assert res-pid == pid
 	if wait-status WIFEXITED
-		wait-status WEXITSTATUS
+		wait-status.WEXITSTATUS exited
 	elif wait-status WIFSIGNALED
-		signal = wait-status WTERMSIG
-		err print "Subprocess terminated with signal {signal}"
-		todo
-		# use `wait-status WTERMSIG`
-		# and `wait-status WCOREDUMP`
+		wait-status.WTERMSIG signaled
 	elif wait-status WIFSTOPPED
 		err print "WAIT STOPPED"
 		todo

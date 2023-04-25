@@ -1,5 +1,5 @@
 import
-	crow/io/process: exit-code, spawn-and-wait-result, stderr, stdout
+	crow/io/process: has-error, spawn-and-wait-result, stderr, stdout
 	crow/parse: ~~, force, parse, spaces
 	crow/version: is-windows
 	./module:
@@ -10,8 +10,8 @@ import
 
 get-modules module[]^(paths string[], remove-prefix string) summon
 	result = crow-path spawn-and-wait-result "doc" ~ paths
-	unless result.exit-code == 0 && result.stderr.is-empty
-		throw "Could not get documentation: exit code {result exit-code}, stderr: {result stderr}"
+	if result has-error
+		throw "Could not get documentation. stderr: {result stderr}"
 	(((json ~~ spaces) parse result.stdout)! to-modules remove-prefix),
 
 -crow-path string()

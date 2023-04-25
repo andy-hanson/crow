@@ -2,6 +2,7 @@ import
 	crow/io/duration: sec
 	crow/io/time: delay
 	pthread: pthread_create, pthread_t
+	stdio: puts
 
 main nat^(_ string[]) summon
 	thread mut pthread_t = ()
@@ -9,6 +10,8 @@ main nat^(_ string[]) summon
 	assert err == 0
 	<- 1.sec delay
 
--thread-fun any-mut-pointer(a any-mut-pointer) bare
+-thread-fun any-mut-pointer(a any-mut-pointer) bare, summon, unsafe
+	_ = "will assert" puts
 	assert 1 + 1 == 3
+	_ = "did assert" puts
 	a

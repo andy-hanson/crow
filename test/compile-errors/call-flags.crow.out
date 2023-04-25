@@ -23,4 +23,4 @@ test/compile-errors/call-flags.crow 12:5-12:20 a non-'summon' function can't cal
 
 test/compile-errors/call-flags.crow 14:15-14:17 a 'bare' function can't call a variadic function new t[](...t array) (from include/crow/col/list.crow line 155)
 
-test/compile-errors/call-flags.crow 16:5-16:7 a 'bare' function can't call a non-'bare' function new t^() (from include/crow/future.crow line 43)
+test/compile-errors/call-flags.crow 16:5-16:7 a 'bare' function can't call a non-'bare' function new t^() (from include/crow/future.crow line 45)

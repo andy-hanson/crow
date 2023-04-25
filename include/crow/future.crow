@@ -1,7 +1,9 @@
 no-std
 import
-	./col/collection: begin, concatenate, for-loop, iterate, next, size
-	./col/list: ~=, build, iterate, list, size
+	./bool: bool
+	./col/collection:
+		begin, build, concatenate, for-loop, iterate, next, size, subscript, with-block, with-index
+	./col/list: +, ~=, begin, build, iterate, list, next, size
 	./col/mut-list: ~=, hint-size, move-to, mut-list, new
 	./exception: catch, exception
 	./fun-util: subscript
@@ -267,3 +269,15 @@ for-loop[out-elem, in-col, in-elem] out-elem[]^(
 		with : parallel
 			f[x]
 	tasks wait-all
+
+filter[out-col, in-col, elem, builder] out-col^(
+	a in-col parallel-collection,
+	f fun bool^(elem),
+) (in-col, elem) iterate, in-col size, (out-col, elem, builder) build, elem shared, out-col shared
+	bools bool[] <- for x : a; f[x]
+	res out-col = with out : a.inner.size build
+		# TODO: 'zip'
+		for i, x : a.inner with-index
+			if bools[i]
+				out ~= x
+	res,

@@ -14,10 +14,13 @@ debug: bin/crow-debug
 
 ### test ###
 
-test: unit-test wasm-test end-to-end-test
+test: unit-test wasm-test crow-unit-tests end-to-end-test
 
 unit-test: bin/crow-debug
 	./bin/crow-debug test
+
+crow-unit-tests: bin/crow
+	./bin/crow run test/crow-unit-tests.crow
 
 end-to-end-test: bin/crow
 	./bin/crow run test/test.crow
@@ -106,13 +109,13 @@ bin/crow.tar.xz: bin/crow demo/* demo/*/* $(ALL_INCLUDE) libraries/* libraries/*
 
 ### lint ###
 
-lint: lint-dscanner lint-imports-exports
+lint: lint-dscanner lint-d-imports-exports
 
 lint-dscanner:
 	dub run dscanner -- --styleCheck src/*.d src/*/*.d src/*/*/*.d
 
-lint-imports-exports: bin/crow
-	./bin/crow run script/lint.crow
+lint-d-imports-exports: bin/crow
+	./bin/crow run test/lint-d-imports-exports.crow
 
 ### site ###
 

@@ -4,13 +4,10 @@ import
 
 main nat^(_ string[]) summon
 	out print "running with {trusted count-processors} processors"
-	fprimes nat[][]^ = for x : 1_000_000 .. 1_010_000 parallel
-		if x is-prime
-			(x,),
-	primes <- fprimes
-	out print "primes: " ~~ (", " join (for x : primes.flatten; "{x}"))
+	p nat64 range parallel-collection = (1_000_000 .. 1_010_000).parallel
+	primes nat[] <- p filter x => x.is-prime,
+	out print "primes: {(for x : primes; x.to)::json[].to::json}"
 	()
 
-# intentionally inefficient to demonstrate parallel speedup
 is-prime bool(a nat)
 	!(2 .. a exists x => a is-multiple-of x)

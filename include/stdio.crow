@@ -1,7 +1,7 @@
 no-std
 import
 	crow/bool: bool
-	crow/c-types: c-int, fd-t, size_t, long
+	crow/c-types: c-int, err-t, fd-t, size_t, long
 	crow/misc: void
 	crow/number: nat8, nat32
 	crow/private/bootstrap: char8, c-string
@@ -15,6 +15,8 @@ stdout fd-t() bare
 	1
 stderr fd-t() bare
 	2
+
+puts err-t(s c-string) summon, c extern
 
 FILE extern
 

@@ -13,10 +13,13 @@ all: clean bin/crow-debug.exe test lint serve
 
 ### test ###
 
-test: unit-test wasm-test end-to-end-test
+test: unit-test wasm-test crow-unit-tests end-to-end-test
 
 unit-test: bin/crow-debug.exe
 	.\bin\crow-debug.exe test
+
+crow-unit-tests: bin/crow
+	.\bin\crow.exe run test\crow-unit-tests.crow
 
 end-to-end-test: bin/crow.exe
 	.\bin\crow.exe run test\test.crow
@@ -221,13 +224,13 @@ bin\crow.zip: bin\crow.exe demo\* include\* libraries\*
 
 ### lint ###
 
-lint: lint-dscanner lint-imports-exports
+lint: lint-dscanner lint-d-imports-exports
 
 lint-dscanner:
 	dub run dscanner -- --styleCheck $(app_src_with_test)
 
-lint-imports-exports: bin\crow.exe
-	.\bin\crow.exe run script\lint.crow
+lint-d-imports-exports: bin\crow.exe
+	.\bin\crow.exe run test\lint-d-imports-exports.crow
 
 ### site ###
 
