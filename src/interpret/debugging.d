@@ -18,7 +18,6 @@ import model.model : decl, FunInst, name, Local, Program, typeArgs, writeTypeArg
 import util.col.arr : only;
 import util.writer : Writer, writeWithCommas;
 import util.sym : AllSymbols, writeSym;
-import util.util : unreachable;
 
 void writeFunName(
 	scope ref Writer writer,
@@ -158,9 +157,6 @@ private:
 
 void writeConcreteStruct(scope ref Writer writer, in AllSymbols allSymbols, in Program program, in ConcreteStruct a) {
 	a.source.matchIn!void(
-		(in ConcreteStructSource.Invalid) {
-			unreachable!void();
-		},
 		(in ConcreteStructSource.Bogus) {
 			writer ~= "BOGUS";
 		},

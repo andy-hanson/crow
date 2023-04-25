@@ -181,8 +181,6 @@ immutable struct ConcreteStructInfo {
 }
 
 immutable struct ConcreteStructSource {
-	immutable struct Invalid {} //TODO:KILL
-
 	immutable struct Bogus {}
 
 	immutable struct Inst {
@@ -195,7 +193,7 @@ immutable struct ConcreteStructSource {
 		size_t index;
 	}
 
-	mixin Union!(Invalid, Bogus, Inst, Lambda);
+	mixin Union!(Bogus, Inst, Lambda);
 }
 
 immutable struct ConcreteStruct {

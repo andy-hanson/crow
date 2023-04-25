@@ -26,7 +26,7 @@ import util.path : Path;
 import util.sourceRange : FileAndRange;
 import util.sym : Sym, sym;
 import util.union_ : Union;
-import util.util : unreachable, verify;
+import util.util : verify;
 
 immutable struct LowExternType {
 	ConcreteStruct* source;
@@ -44,8 +44,6 @@ immutable struct LowRecord {
 	//TODO:MOVE
 	bool packed() scope =>
 		source.source.matchIn!bool(
-			(in ConcreteStructSource.Invalid) =>
-				unreachable!bool,
 			(in ConcreteStructSource.Bogus) =>
 				false,
 			(in ConcreteStructSource.Inst it) =>
