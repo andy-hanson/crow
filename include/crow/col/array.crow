@@ -6,7 +6,7 @@ import
 	../option: new, option
 	../private/bootstrap: new
 	../private/range-low-level: ..
-	../pointer: ==, +, *, const-pointer
+	../pointer: +, *
 	./collection: .., build, end, sequence-compare, sequence-equal, subscript, with-block
 export
 	../private/bootstrap: array, size
@@ -88,22 +88,6 @@ Unlike for `update-at`, `index` can be `a.size`, though it still can't be higher
 +remove-at[t] t array(a t array, index nat64)
 	assert index < a.size : "index out of bounds"
 	a[0 .. index] ~~ a[index + 1 .. end]
-
-###
-Returns a pointer to the first element equal to `value`.
-Returns an empty option iff `value` is not in the array.
-###
-pointer-of[t] t*?(a t array, value t) bare, unsafe, t equal
-	cur mut = a begin-pointer
-	end = a end-pointer
-	loop
-		if cur == end
-			break
-		elif *cur == value
-			break cur,
-		else
-			cur +:= 1
-			continue
 
 region spec impls (see collection.crow)
 
