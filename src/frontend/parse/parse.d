@@ -270,8 +270,7 @@ Sym[] parseSingleImportNamesOnSingleLine(ref Lexer lexer) {
 		case TrailingComma.no:
 			break;
 		case TrailingComma.yes:
-			//TODO: warn and continue
-			todo!void("!");
+			addDiagAtChar(lexer, ParseDiag(ParseDiag.TrailingComma()));
 			break;
 	}
 	return finishArr(lexer.alloc, names);

@@ -85,6 +85,7 @@ immutable struct ParseDiag {
 	immutable struct RelativeImportReachesPastRoot {
 		RelPath imported;
 	}
+	immutable struct TrailingComma {}
 	//TODO:KILL, always use UnexpectedToken
 	immutable struct Unexpected {
 		enum Kind {
@@ -119,6 +120,7 @@ immutable struct ParseDiag {
 		InvalidStringEscape,
 		NeedsBlockCtx,
 		RelativeImportReachesPastRoot,
+		TrailingComma,
 		Unexpected,
 		UnexpectedCharacter,
 		UnexpectedOperator,

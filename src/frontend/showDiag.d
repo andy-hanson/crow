@@ -330,6 +330,9 @@ void writeParseDiag(
 			writer ~= " reaches above the source directory";
 			//TODO: recommend a compiler option to fix this
 		},
+		(in ParseDiag.TrailingComma) {
+			writer ~= "trailing comma";
+		},
 		(in ParseDiag.Unexpected it) {
 			final switch (it.kind) {
 				case ParseDiag.Unexpected.Kind.dedent:
