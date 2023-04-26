@@ -152,7 +152,7 @@ private void writeCallFunPtrCommon(scope ref ByteCodeWriter writer, ByteCodeSour
 }
 
 private size_t getStackOffsetTo(in ByteCodeWriter writer, StackEntry stackEntry) {
-	verify(stackEntry.entry < getNextStackEntry(writer).entry);
+	verify(stackEntry.entry <= getNextStackEntry(writer).entry);
 	return getNextStackEntry(writer).entry - 1 - stackEntry.entry;
 }
 

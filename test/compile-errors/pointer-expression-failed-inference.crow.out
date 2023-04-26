@@ -1,0 +1,23 @@
+exit code: 1
+stderr:
+test/compile-errors/pointer-expression-failed-inference.crow 3:16-3:18 can't get a pointer to this kind of expression
+
+test/compile-errors/pointer-expression-failed-inference.crow 3:17-3:18 expected type: 'in'
+actual:
+	'nat64'
+uncaught exception: reached compile error
+	at main
+	at add
+	at call
+	at then
+	at call
+	at catch
+	at call
+	at catch
+	at catch
+	at then
+	at call
+	at invoke
+	at do
+	at thread
+	at thread

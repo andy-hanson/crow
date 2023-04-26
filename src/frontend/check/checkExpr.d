@@ -933,7 +933,7 @@ Expr checkPtr(ref ExprCtx ctx, ref LocalsInfo locals, FileAndRange range, in Ptr
 		(ExpectedPointee.FunPointer) =>
 			checkFunPointer(ctx, range, ast, expected),
 		(ExpectedPointee.Pointer x) =>
-			checkPtrInner(ctx, locals, range, ast, x.pointer, x.pointee, x.mutability));
+			checkPtrInner(ctx, locals, range, ast, x.pointer, x.pointee, x.mutability, expected));
 }
 
 immutable struct ExpectedPointee {
@@ -975,6 +975,7 @@ Expr checkPtrInner(
 	Type pointerType,
 	Type pointeeType,
 	PointerMutability expectedMutability,
+	ref Expected expected,
 ) {
 	if (!checkCanDoUnsafe(ctx))
 		addDiag2(ctx, range, Diag(Diag.PtrIsUnsafe()));
@@ -985,12 +986,12 @@ Expr checkPtrInner(
 			addDiag2(ctx, range, Diag(Diag.PtrMutToConst(Diag.PtrMutToConst.Kind.local)));
 		if (expectedMutability == PointerMutability.mutable)
 			markIsUsedSetOnStack(locals, local);
-		return Expr(range, ExprKind(ExprKind.PtrToLocal(local)));
+		return check(ctx, expected, pointerType, Expr(range, ExprKind(ExprKind.PtrToLocal(local))));
 	} else if (inner.kind.isA!(ExprKind.Call))
-		return checkPtrOfCall(ctx, range, inner.kind.as!(ExprKind.Call), pointerType, expectedMutability);
+		return checkPtrOfCall(ctx, range, inner.kind.as!(ExprKind.Call), pointerType, expectedMutability, expected);
 	else {
 		addDiag2(ctx, range, Diag(Diag.PtrUnsupported()));
-		return Expr(range, ExprKind(ExprKind.Bogus()));
+		return bogus(expected, range);
 	}
 }
 
@@ -1000,10 +1001,11 @@ Expr checkPtrOfCall(
 	ExprKind.Call call,
 	Type pointerType,
 	PointerMutability expectedMutability,
+	ref Expected expected,
 ) {
 	Expr fail() {
 		addDiag2(ctx, range, Diag(Diag.PtrUnsupported()));
-		return Expr(range, ExprKind(ExprKind.Bogus()));
+		return bogus(expected, range);
 	}
 
 	if (call.called.isA!(FunInst*)) {
@@ -1017,8 +1019,8 @@ Expr checkPtrOfCall(
 			if (isDefinitelyByRef(*recordType)) {
 				if (fieldMutability < expectedMutability)
 					addDiag2(ctx, range, Diag(Diag.PtrMutToConst(Diag.PtrMutToConst.Kind.field)));
-				return Expr(range, ExprKind(allocate(ctx.alloc,
-					ExprKind.PtrToField(ExprAndType(target, Type(recordType)), rfg.fieldIndex))));
+				return check(ctx, expected, pointerType, Expr(range, ExprKind(allocate(ctx.alloc,
+					ExprKind.PtrToField(ExprAndType(target, Type(recordType)), rfg.fieldIndex)))));
 			} else if (target.kind.isA!(ExprKind.Call)) {
 				ExprKind.Call targetCall = target.kind.as!(ExprKind.Call);
 				Called called = targetCall.called;
@@ -1030,8 +1032,8 @@ Expr checkPtrOfCall(
 					Expr targetPtr = only(targetCall.args);
 					if (max(fieldMutability, pointerMutability) < expectedMutability)
 						todo!void("diag: can't get mut* to immutable field");
-					return Expr(range, ExprKind(allocate(ctx.alloc,
-						ExprKind.PtrToField(ExprAndType(targetPtr, derefedType), rfg.fieldIndex))));
+					return check(ctx, expected, pointerType, Expr(range, ExprKind(allocate(ctx.alloc,
+						ExprKind.PtrToField(ExprAndType(targetPtr, derefedType), rfg.fieldIndex)))));
 				} else
 					return fail();
 			} else

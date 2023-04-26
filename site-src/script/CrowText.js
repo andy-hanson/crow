@@ -182,7 +182,7 @@ export class CrowText extends HTMLElement {
 			const columnWidth = measurerSpan.offsetWidth
 			const line = Math.floor(offsetY / lineHeightPx)
 			const columnPre = Math.floor(offsetX / columnWidth)
-			const lineText = lines[line]
+			const lineText = lines[line] || ''
 			const leadingTabs = countLeadingTabs(lineText)
 			const tabsFix = leadingTabs * (tab_size - 1)
 			const column = clamp(columnPre - tabsFix, 0, lineText.length - 1)

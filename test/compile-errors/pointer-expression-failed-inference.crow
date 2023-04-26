@@ -1,0 +1,4 @@
+main nat^(_ string[]) unsafe
+	x = 0
+	p nat8* = (&x).pointer-cast
+	()
