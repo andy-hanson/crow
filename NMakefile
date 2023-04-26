@@ -239,4 +239,4 @@ prepare-site: bin\crow.exe bin\crow.wasm bin\crow.zip
 
 serve: prepare-site
 	echo "Serving site not yet supported on Windows"
-# bin\crow run site-src\serve.crow -- 8080
+# bin\crow run site-src\serve.crow

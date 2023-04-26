@@ -141,12 +141,17 @@ export class CrowText extends HTMLElement {
 		ta.value = initialText
 		ta.setAttribute("spellcheck", "false")
 		ta.addEventListener("keydown", e => {
-			if (e.key === "Tab") {
+			const insert = (() => {
+				switch (e.key) {
+					case "Enter":
+						return "\n" + indentationAt(ta.value, ta.selectionStart)
+					case "Tab":
+						return "\t"
+				}
+			})()
+			if (insert !== undefined) {
 				e.preventDefault()
-				const { value, selectionStart, selectionEnd } = ta
-				ta.value = value.slice(0, selectionStart) + "\t" + value.slice(selectionEnd)
-				ta.setSelectionRange(selectionStart + 1, selectionStart + 1);
-				text.set(ta.value)
+				text.set(insertTextAreaText(ta, insert))
 			}
 		})
 		ta.addEventListener("input", () => {
@@ -216,6 +221,27 @@ export class CrowText extends HTMLElement {
 }
 customElements.define("crow-text", CrowText)
 
+/** @type {function(HTMLTextAreaElement, string): string} */
+const insertTextAreaText = (textArea, inserted) => {
+	const { value, selectionStart, selectionEnd } = textArea
+	textArea.value = value.slice(0, selectionStart) + inserted + value.slice(selectionEnd)
+	const newCursor = selectionStart + inserted.length
+	textArea.setSelectionRange(newCursor, newCursor)
+	return textArea.value
+}
+
+/** @type {function(string, number): string} */
+const indentationAt = (str, pos) => {
+	// Find beginning of line and end of whitespace
+	let firstNonSpace = pos
+	do {
+		if (str[pos] != " " && str[pos] != "\t")
+			firstNonSpace = pos
+		pos--
+	} while (pos >= 0 && str[pos] != "\n")
+	return str.slice(pos + 1, firstNonSpace)
+}
+
 /**
  * @template T
  * @param {ReadonlyArray<T>} xs
@@ -233,7 +259,7 @@ const sum = (xs, cb) => {
 const countLeadingTabs = s => {
 	let res = 0
 	for (const c of s)
-		if (c === '\t')
+		if (c === "\t")
 			res++
 		else
 			break
@@ -310,7 +336,7 @@ const tokensAndDiagsToNodes = (tokens, diags, text) => {
 				? createDiagSpan(popped.message, popped.children)
 			: popped.type === "line"
 				? createDiv({ className: "line", children: popped.children })
-			: unreachable(`Unexpected type ${popped.type}`);
+			: unreachable(`Unexpected type ${popped.type}`)
 		const lastContainer = last(containerStack)
 		if (/** @type {SomeContainer} */ (lastContainer).type === "text")
 			throw new Error() // text can't contain other nodes
