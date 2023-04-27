@@ -9,6 +9,7 @@ import util.alloc.alloc : Alloc;
 import util.cell : Cell, cellGet, cellSet;
 import util.col.arr : arrOfRange, empty;
 import util.col.arrBuilder : add, ArrBuilder;
+import util.col.arrUtil : contains;
 import util.col.str : copyStr, copyToSafeCStr, CStr, SafeCStr, safeCStr;
 import util.conv : safeIntFromUint, safeToUint;
 import util.opt : force, has, none, Opt, some;
@@ -139,6 +140,12 @@ bool takeOrAddDiagExpectedToken(ref Lexer lexer, Token token, ParseDiag.Expected
 		addDiagAtChar(lexer, ParseDiag(ParseDiag.Expected(kind)));
 	return res;
 }
+bool takeOrAddDiagExpectedToken(ref Lexer lexer, in Token[] tokens, ParseDiag.Expected.Kind kind) {
+	bool res = tryTakeToken(lexer, tokens);
+	if (!res)
+		addDiagAtChar(lexer, ParseDiag(ParseDiag.Expected(kind)));
+	return res;
+}
 
 void addDiagExpected(ref Lexer lexer, ParseDiag.Expected.Kind kind) {
 	addDiagAtChar(lexer, ParseDiag(ParseDiag.Expected(kind)));
@@ -157,8 +164,7 @@ enum NewlineOrIndent {
 }
 
 NewlineOrIndent takeNewlineOrIndent_topLevel(ref Lexer lexer) {
-	if (!takeOrAddDiagExpectedToken(lexer, Token.newline, ParseDiag.Expected.Kind.endOfLine))
-		skipRestOfLineAndNewline(lexer);
+	takeNewlineBeforeIndent(lexer);
 	return takeNewlineOrIndentAfterEOL(lexer);
 }
 
@@ -216,11 +222,12 @@ T takeIndentOrFailGeneric(T)(
 			cbIndent());
 }
 
-void takeNewline_topLevel(ref Lexer lexer) {
-	if (!tryTakeNewline(lexer)) {
-		addDiagAtChar(lexer, ParseDiag(ParseDiag.Expected(ParseDiag.Expected.Kind.endOfLine)));
+private void takeNewlineBeforeIndent(ref Lexer lexer) {
+	if (!takeOrAddDiagExpectedToken(lexer, [Token.newline, Token.EOF], ParseDiag.Expected.Kind.endOfLine))
 		skipRestOfLineAndNewline(lexer);
-	}
+}
+void takeNewline_topLevel(ref Lexer lexer) {
+	takeNewlineBeforeIndent(lexer);
 }
 
 private @trusted IndentDelta takeNewlineAndReturnIndentDelta(ref Lexer lexer, uint curIndent) {
@@ -247,9 +254,7 @@ void takeDedentFromIndent1(ref Lexer lexer) {
 }
 
 uint takeNewlineOrDedentAmount(ref Lexer lexer, uint curIndent) {
-	// Must be at the end of a line
-	if (!takeOrAddDiagExpectedToken(lexer, Token.newline, ParseDiag.Expected.Kind.endOfLine))
-		skipRestOfLineAndNewline(lexer);
+	takeNewlineBeforeIndent(lexer);
 	IndentDelta delta = skipBlankLinesAndGetIndentDelta(lexer, curIndent);
 	return delta.match!uint(
 		(IndentDelta.DedentOrSame dedent) =>
@@ -698,11 +703,13 @@ public LiteralIntAst getCurLiteralInt(ref Lexer lexer) =>
 public LiteralNatAst getCurLiteralNat(ref Lexer lexer) =>
 	cellGet(lexer.curLiteralNat);
 
-public bool tryTakeToken(ref Lexer lexer, Token expected) {
+public bool tryTakeToken(ref Lexer lexer, Token expected) =>
+	tryTakeToken(lexer, [expected]);
+bool tryTakeToken(ref Lexer lexer, in Token[] expected) {
 	//TODO: always have the next token ready, so we don't need to repeatedly lex the same token
 	immutable char* before = lexer.ptr;
 	Token actual = nextToken(lexer);
-	if (actual == expected)
+	if (contains(expected, actual))
 		return true;
 	else {
 		lexer.ptr = before;

@@ -1,3 +1,0 @@
-exit code: 1
-stderr:
-test/parse-errors/function-at-eof.crow 1:6-1:6 expected end of line
