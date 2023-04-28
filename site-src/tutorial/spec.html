@@ -15,7 +15,27 @@
 		even if those functions aren't available yet in the code that uses the <code class="keyword">spec</code>.
 	</p>
 
-	<crow-runnable src="spec"></crow-runnable>
+	<crow-runnable>
+		import
+			crow/math/vec
+
+		main nat^(_ string[]) summon
+			nats nat[] = 0, 1
+			vecs vec2-64[] = (0, 1), (2, 3)
+			info log "nats sum: {nats sum}"
+			info log "vecs sum: {vecs sum}"
+			()
+
+		add[t] spec
+			new t()
+			+ t(a t, b t)
+
+		sum[t] t(xs t[]) t add
+			acc mut t = ()
+			for x : xs
+				acc +:= x
+			acc
+	</crow-runnable>
 
 	<p>
 		In this example, <code class="fun">sum</code> wants to call <code class="fun">+</code>.

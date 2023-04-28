@@ -1,7 +1,23 @@
 <section>
 	<h2>declaring records</h2>
 	<p>A record is a value that stores several other values by name.</p>
-	<crow-runnable src="record"></crow-runnable>
+	<crow-runnable>
+		main nat^(_ string[]) summon
+			a bird = "crow", "cap"
+			b bird = "seagull", "stetson"
+			info log "{a} mix {b} = {a mix b}"
+			()
+
+		bird record
+			species string
+			hat string
+
+		mix bird(a bird, b bird)
+			a.species, b.hat
+
+		to string(a bird)
+			"{a species} in a {a hat}"
+	</crow-runnable>
 	<p>
 		The above program defines a record type <code class="struct">bird</code> with two fields,
 		<code class="field">species</code> and <code class="field">hat</code>.
@@ -28,7 +44,26 @@
 		A field can be made mutable by adding the <code class="keyword">mut</code> keyword
 		after its name and before its type.
 	</p>
-	<crow-runnable src="record-mut"></crow-runnable>
+	<crow-runnable>
+		main nat^(_ string[]) summon
+			a bird = "crow", "cap"
+			b bird = "seagull", "stetson"
+			info log "{a} :: {b}"
+			a steal-hat b
+			info log "{a} :: {b}"
+			()
+
+		bird record mut
+			species string
+			hat mut string
+
+		steal-hat void(a bird, b bird)
+			a.hat := "{a hat} and {b hat}"
+			b.hat := "missing hat"
+
+		to string(a bird)
+			"{a species} in a {a hat}"
+	</crow-runnable>
 	<p>
 		Specifying <code class="keyword">mut</code> in <code>hat mut str</code>
 		generates a function <code class="fun">set-hat</code>

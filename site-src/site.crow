@@ -13,6 +13,7 @@ import
 main nat^(_ string[]) summon
 	run-all-tests
 	all-content <- documentation ~~ pages ~~ include-all
+	info log "got all content"
 	<- for content : all-content parallel
 		content ensure-up-to-date
 	cwd = current-directory
@@ -51,8 +52,6 @@ link record
 	link-path string
 
 -all-to-link link[]^() summon
-	example-paths <- "site-src/example" search-dir-recursive
-	example = example-paths to-links "site-src/"
 	in-src-paths link[] = for x : ("crow.svg", "index.css")::string[]
 		("site-src" child-path x), x
 
@@ -63,7 +62,7 @@ link record
 	font = font-paths to-links "site-src/"
 	other link[] = for x : ("bin/crow.wasm", "bin/crow.tar.xz", "crow-js/crow.js")::string[]
 		x, x
-	example ~~ in-src-paths ~~ script ~~ font ~~ other,
+	in-src-paths ~~ script ~~ font ~~ other,
 
 -include-all path-and-content[]^() summon
 	include <- "include" search-all-with-content ""

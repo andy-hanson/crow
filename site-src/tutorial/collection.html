@@ -1,5 +1,13 @@
 <section>
-	<crow-runnable src="arr"></crow-runnable>
+	<crow-runnable>
+		main nat^(_ string[]) summon
+			xs string[] = "swan", "crow"
+			out print xs[1]
+			ys = xs ~ "raven" ~ "nightingale"
+			info log (", " join ys)
+			info log (", " join ys[1 .. 3])
+			()
+	</crow-runnable>
 	<h2>arrays</h2>
 	<p>
 		<code>foo[]</code> declares an array type.
@@ -35,7 +43,18 @@
 
 	<code>foo mut[]</code> is like <code>foo[]</code>, but can add, remove, and change values.
 
-	<crow-runnable src="mut-arr"></crow-runnable>
+	<crow-runnable>
+		main nat^(_ string[]) summon
+			xs string mut[] = "crow", "raven", "swan"
+			if popped ?= xs pop
+				info log "popped {popped}"
+			xs ~= "crow"
+			xs[1] := "crow"
+			a string[] = xs move-to
+			info log "{xs is-empty}"
+			info log (" " join a)
+			()
+	</crow-runnable>
 
 	<p>
 		<code>xs ~= x</code> pushes a value to the end of the array.
@@ -67,7 +86,15 @@
 		<br />
 		Like arrays, dictionaries are immutable.
 	</p>
-	<crow-runnable src="dict"></crow-runnable>
+	<crow-runnable>
+		main nat^(_ string[]) summon
+			a string[nat] = (10, "ten"), (1, "one")
+			info log (a[1] ?? "n/a")
+			info log (a[3] ?? "n/a")
+			b = a ~ (3, "three")
+			info log (b[3] ?? "n/a")
+			()
+	</crow-runnable>
 	<p>
 		A dictionary is constructed using a list of pairs, like <code>(10, "ten"), (1, "one")</code>.
 	</p>
@@ -102,7 +129,15 @@
 		<br />
 		This supports the same operations as immutable dictionaries, but also supports mutable updates.
 	</p>
-	<crow-runnable src="mut-map"></crow-runnable>
+	<crow-runnable>
+		main nat^(_ string[]) summon
+			x string mut[nat] = (1, "one"), (2, "two")
+			info log (x try-remove 1 ?? "n/a")
+			info log (x try-remove 1 ?? "n/a")
+			x[2] := "dos"
+			info log x[2]!
+			()
+	</crow-runnable>
 	<p>
 		<code>x[k] := v</code> adds or overwrites the value for a key.
 	</p>

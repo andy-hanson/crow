@@ -1,5 +1,22 @@
 <main>
-	<crow-runnable src="fizz-buzz"></crow-runnable>
+	<crow-runnable>
+		import
+			crow/io/print: out, print
+
+		main nat^(_ string[]) summon
+			for x : 1 .. 20
+				m3 = x is-multiple-of 3
+				m5 = x is-multiple-of 5
+				out print if m3 && m5
+					"FizzBuzz"
+				elif m3
+					"Fizz"
+				elif m5
+					"Buzz"
+				else
+					"{x}"
+			()
+	</crow-runnable>
 	<p>
 		Crow is an upcoming programming language for high-quality code.
 		<br />

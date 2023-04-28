@@ -104,8 +104,11 @@ class Allocator {
 		for (let i = 0; i < str.length; i++)
 			this._view.setUint8(res + i, str.charCodeAt(i))
 		this._view.setUint8(res + str.length, 0)
-		if (readCString(this._view, res, this._end) !== str)
+		const readBack = readCString(this._view, res, this._end)
+		if (readBack !== str) {
+			console.error("Failed to write string", {str, readBack})
 			throw new Error()
+		}
 		return res
 	}
 

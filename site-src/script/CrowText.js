@@ -199,8 +199,6 @@ export class CrowText extends HTMLElement {
 						textContainer.append(tooltip)
 						tooltip.style.left = offsetX + "px"
 						tooltip.style.top = offsetY + "px"
-					} else {
-						console.log("NO HOVER")
 					}
 				}
 			}, 200)

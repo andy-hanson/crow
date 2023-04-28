@@ -54,7 +54,18 @@
 		and <code class="struct">float</code> for <code class="struct">float64</code>.
 	</p>
 
-	<crow-runnable src="number-types"></crow-runnable>
+	<crow-runnable>
+		main nat^(_ string[]) summon
+			a nat = 3
+			info log "{a / 2}"
+			b int = 3
+			info log "{b / -2}"
+			c float = 3
+			info log "{c / 2}"
+
+			info log "{a.to::int64 + b}"
+			()
+	</crow-runnable>
 
 	<p>
 		Arithmetic functions work on values of the same type only,
@@ -66,7 +77,12 @@
 	<p>
 		Arithmetic functions throw exceptions on overflow (or underflow).
 	</p>
-	<crow-runnable src="number-overflow"></crow-runnable>
+	<crow-runnable>
+		main nat^(_ string[]) summon
+			a nat8 = 255
+			info log "{a + 1}"
+			()
+	</crow-runnable>
 
 	<p>
 		Common functions on numbers are in the <a href="/doc/crow/number.html">crow/number</a> module.
@@ -105,7 +121,14 @@
 	<br />
 	(Other languages may call these interned strings.)
 
-	<crow-runnable src="symbol"></crow-runnable>
+	<crow-runnable>
+		main nat^(_ string[]) summon
+			x symbol = "flabbergast"
+			info log "{x}"
+			info log "{x == "glabberfast"}"
+			info log "{x == ("flabber" ~~ "gast").to}"
+			()
+	</crow-runnable>
 
 	<p>
 		The syntax for a <code class="struct">symbol</code> is the same as for a <code class="struct">string</code>.

@@ -141,6 +141,11 @@ and the result of `then` will have the same exception as `a`.
 			res reject e
 	res
 
+|[t, u] (t, u)^(a t^, b u^) t shared, u shared
+	x <- a
+	y <- b
+	(x, y),
+
 # Concatenates the values inside the futures.
 ~~[col] col^(a col^, b col^) col shared, col concatenate
 	x <- a

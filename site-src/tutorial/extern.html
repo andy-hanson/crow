@@ -6,7 +6,110 @@
 		In this example, we use the <code>regex.h</code> library.
 	</p>
 
-	<crow-runnable no-run src="regex"></crow-runnable>
+	<crow-runnable no-run name="regex.crow">
+		import
+			crow/c-types: c-int, size_t, u-long
+
+		main nat^(_ string[]) summon
+			"cro\\+w" test-regex ("crow", "crooow", "duck")
+			"[0-9" test-regex ("42",)
+			()
+
+		test-regex void(source string, candidates string[]) summon
+			trusted match source parse
+			as ok regex
+				for x : candidates
+					info log "{source} matches {x}? {regex matches x}"
+				regex free
+			as err e
+				error log "bad regex {source}: {e}"
+
+		regex record mut by-ref
+			wrapped mut regex_t
+
+		# Unsafe because the caller must 'free' the regex
+		parse (regex, string) result(source string) unsafe
+			res regex = (),
+			err = &res.wrapped regcomp source.to, ()
+			if err == REG_NOERROR
+				res ok
+			else
+				buf char8 mut[] = 1000 n-of "\0"
+				_ = err regerror &res.wrapped, buf.begin-pointer, buf.size
+				res free
+				"{buf.begin-pointer.as-const}" err
+
+		free void(a regex) unsafe
+			&a.wrapped regfree
+
+		matches bool(a regex, candidate string)
+			err = trusted &a.wrapped regexec candidate.to, (), (), ()
+			if err == REG_NOERROR
+				true
+			elif err == REG_NOMATCH
+				false
+			else
+				trusted
+					buf char8 mut[] = 1000 n-of "\0"
+					_ = err regerror &a.wrapped, buf.begin-pointer, buf.size
+					throw buf.begin-pointer.as-const
+
+		regex_t record mut extern
+			buffer void mut*
+			allocated size_t
+			used size_t
+			syntax u-long
+			fastmap char8 mut*
+			translate nat8 mut*
+			re_nsub size_t
+			re_flags nat8
+
+		new regex_t() unsafe
+			(), (), (), (), (), (), (), ()
+
+		regoff_t alias
+			c-int
+
+		regmatch_t record extern
+			rm_so regoff_t
+			rm_eo regoff_t
+
+		reg_errcode_t enum(c-int) extern
+			REG_ENOSYS = -1
+			REG_NOERROR
+			REG_NOMATCH
+			_REG_BADPAT
+			_REG_ECOLLATE
+			_REG_ECTYPE
+			_REG_EESCAPE
+			_REG_ESUBREG
+			_REG_EBRACK
+			_REG_EPAREN
+			_REG_EBRACE
+			_REG_BADBR
+			_REG_ERANGE
+			_REG_ESPACE
+			_REG_BADRPT
+
+		regcomp reg_errcode_t(regex regex_t mut*, pattern c-string, cflags c-int) c extern
+
+		regfree void(preg regex_t mut*) c extern
+
+		regexec reg_errcode_t(
+			preg regex_t*,
+			string c-string,
+			nmatch size_t,
+			pmatch regmatch_t mut*,
+			eflags c-int,
+		) c extern
+
+		regerror size_t(
+			errcode reg_errcode_t,
+			preg regex_t*,
+			errbuff char8 mut*,
+			errbuf_size size_t,
+		) c extern
+	</crow-runnable>
 
 	<p>
 		Since this needs to link to libraries on your system,

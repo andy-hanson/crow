@@ -2,7 +2,20 @@
 	<h2>fun</h2>
 	<p>A <em>function value</em> is a value that implements a function.</p>
 
-	<crow-runnable src="fun"></crow-runnable>
+	<crow-runnable>
+		main nat^(_ string[]) summon
+			xs string[] = "crow", "bar", "sea", "weed"
+			ys = xs map-pairs (x, y) => "{x}-{y}"
+			zs = ys map-pairs (x, y) =>
+				"{x}, {y}"
+			info log ("; " join zs)
+			()
+
+		# converts (a, b, c, d, ...) to (f[a, b], f[c, d], ...)
+		map-pairs string[](xs string[], f fun string(string, string))
+			if xs.size >= 2
+				f[xs[0], xs[1]] ~ (xs[2 .. end] map-pairs f)
+	</crow-runnable>
 
 	<h3>syntax for function values</h3>
 	<p>
@@ -48,7 +61,17 @@
 		This is called a <em>closure</em>.
 	</p>
 
-	<crow-runnable src="fun-closure"></crow-runnable>
+	<crow-runnable>
+		main nat^(_ string[]) summon
+			fryer = "fried" make-cooker
+			baker = "baked" make-cooker
+			info log fryer["plaintain"]
+			info log baker["potato"]
+			()
+
+		make-cooker fun string(string)(type string)
+			b => "{type} {b}"
+	</crow-runnable>
 
 	<p>
 		In this example, the <code class="param">type</code> variable becomes part of the closure
@@ -80,7 +103,16 @@
 		to give the caller more flexibility.
 	</p>
 
-	<crow-runnable src="act"></crow-runnable>
+	<crow-runnable>
+		main nat^(_ string[]) summon
+			xs string[] = "crow", "raven"
+			count mut nat = 0
+			ys string[] = for x : xs
+				count +:= 1
+				"{count}: {x}"
+			info log ("; " join ys)
+			()
+	</crow-runnable>
 
 	<p>
 		In the next section we'll see why the difference between

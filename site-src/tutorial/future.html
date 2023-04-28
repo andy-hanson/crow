@@ -68,7 +68,13 @@
 
 <section>
 	<h2>function references</h2>
-	<crow-runnable src="ref"></crow-runnable>
+	<crow-runnable>
+		main nat^(_ string[]) summon
+			greet far nat(string) = name =>
+				info log "hello, {name}!"
+				()
+			greet["crow"]
+	</crow-runnable>
 	<p>
 		In addition to <code class="keyword">fun</code> and <code class="keyword">act</code>,
 		there is a third type of function value: <code class="struct">ref</code>.
@@ -120,7 +126,18 @@
 	<code class="struct">fut</code> is resolved.
 	<br />
 
-	<crow-runnable src="then"></crow-runnable>
+	<crow-runnable>
+		main nat^(_ string[]) summon
+			a string^ = "crow",
+			b string^ = a then x =>
+				info log x
+				x.upper-case,
+			c nat^ = b then y =>
+				info log y
+				()
+			info log "this happens first"
+			c
+	</crow-runnable>
 
 	<p>
 		<code class="fun">then</code> is a function that takes a
@@ -148,7 +165,16 @@
 <section>
 	<h2><code>&lt;-</code> syntax</h2>
 	Since <code class="fun">then</code> is common, there's a special syntax for calling it.
-	<crow-runnable src="then2"></crow-runnable>
+	<crow-runnable>
+		main nat^(_ string[]) summon
+			a string^ = "crow",
+			x &lt;- a
+			info log x
+			b string^ = x.upper-case,
+			y &lt;- b
+			info log y
+			()
+	</crow-runnable>
 	<p>
 		This is like the previous example, but using the special syntax.
 		<br />
@@ -163,7 +189,19 @@
 <section>
 	<h2>launch</h2>
 	<code class="fun">launch</code> adds a task with a new exclusion, allowing it to run in parallel.
-	<crow-runnable src="launch"></crow-runnable>
+	<crow-runnable>
+		main nat^(_ string[]) summon
+			x, y &lt;- "crow".delayed-upper | "bar".delayed-upper
+			info log "{x}{y}"
+			()
+
+		delayed-upper string^(a string) summon
+			info log "will upcase {a}"
+			&lt;- delay
+			res = a upper-case
+			info log "did upcase {res}"
+			res,
+	</crow-runnable>
 	<p>
 		The interpreter used on this website has only one thread,
 		so this example will be deterministic if run here.
@@ -195,7 +233,32 @@
 	<br />
 	This allows parallel tasks to safely communicate by referencing each other's functions.
 
-	<crow-runnable src="launch-with-closure"></crow-runnable>
+	<crow-runnable>
+		main nat^(_ string[]) summon
+			adder &lt;- 0 make-store
+			tasks nat^[] = for x : 0 .. 10
+				with : parallel
+					adder.get-and-set[x + 1]
+			values &lt;- tasks wait-all
+			final-value &lt;- adder.get[]
+			info log "values: {", " join for x : values; "{x}"}"
+			info log "final value: {final-value}"
+			()
+
+		store record shared
+			get far nat()
+			get-and-set far nat(nat)
+
+		make-store store^(initial-value nat)
+			with : parallel
+				cur mut nat = initial-value
+				get far nat() = () => cur,
+				get-and-set far nat(nat) = x =>
+					prev-value = cur
+					cur := x
+					prev-value,
+				(get, get-and-set),
+	</crow-runnable>
 
 	<p>
 		Again, there is only one thread on this website, so you'll have to run on the command line

@@ -9,7 +9,24 @@
 		Enums in crow are not numbers, though they can be explicitly converted to/from them.
 	</p>
 
-	<crow-runnable src="enum"></crow-runnable>
+	<crow-runnable>
+		main nat^(_ string[]) summon
+			info log "{up opposite}"
+			info log "{up == up}"
+			info log "{up == down}"
+			()
+
+		direction enum
+			up
+			down
+
+		opposite direction(a direction)
+			match a
+			as up
+				down
+			as down
+				up
+	</crow-runnable>
 
 	<p>
 		Defining the enum also defines functions <code class="fun">up</code> and <code class="fun">down</code>
@@ -46,7 +63,24 @@
 	<p>
 		A <code class="keyword">flags</code> type is a type that can have any combination its flags set.
 	</p>
-	<crow-runnable src="flags"></crow-runnable>
+	<crow-runnable>
+		main nat^(_ string[]) summon
+			x = shoes
+			info log "{x} receives service? {x receives-service}"
+			y = x | shirt
+			info log "{y} receives service? {y receives-service}"
+			info log "negate: {~y}"
+			info log "take off shoes: {y & ~shoes}"
+			()
+
+		clothes flags
+			shoes
+			shirt
+			hat
+
+		receives-service bool(a clothes)
+			shoes | shirt is-in a
+	</crow-runnable>
 	<p>Declaring a <code class="keyword">flags</code> also declares functions:</p>
 	<table class="operators no-header">
 		<tr>
@@ -90,7 +124,17 @@
 <section>
 	<h2>Other enum/flags features</h2>
 
-	<crow-runnable src="enum-explicit-value"></crow-runnable>
+	<crow-runnable>
+		main nat^(_ string[]) summon
+			for name, value : enum-members::((symbol, lucky-numbers) array)
+				info log "{name} = {value.to::nat8}"
+			0,
+
+		lucky-numbers enum(nat8)
+			friday = 13
+			saturday
+			route = 66
+	</crow-runnable>
 
 	<h3>explicit backing type</h3>
 	<p>
@@ -123,7 +167,34 @@
 		This makes it useful for compatibility between different enums.
 	</p>
 
-	<crow-runnable src="symbol-and-enum"></crow-runnable>
+	<crow-runnable>
+		main nat^(_ string[]) summon
+			strings string[] = "bishop", "cardinal"
+			for x : strings
+				info log if piece ?= x.to::chess-piece?
+					"{piece} = {piece.to::nat32}"
+				else
+					"{x} is not a chess-piece"
+			for face : values@face-card
+				if piece ?= face.to::symbol.to::chess-piece?
+					info log "{face}: face-card={face.to::nat32}, chess-piece={piece.to::nat32}"
+				else
+					info log "{face} is not a chess-piece"
+			()
+
+		chess-piece enum
+			pawn
+			rook
+			knight
+			bishop
+			queen
+			king
+
+		face-card enum
+			jack
+			queen
+			king
+	</crow-runnable>
 
 	<p>
 		Any enum can be converted to a symbol and vice versa.

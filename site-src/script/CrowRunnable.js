@@ -2,7 +2,7 @@ import { copyIcon, downloadIcon, playIcon, upIcon } from "./CrowIcon.js"
 import { CrowText } from "./CrowText.js"
 import { LoadingIcon } from "./LoadingIcon.js"
 import { MutableObservable } from "./util/MutableObservable.js"
-import { createButton, createDiv, nonNull, removeAllChildren, setStyleSheet } from "./util/util.js"
+import { assert, createButton, createDiv, nonNull, removeAllChildren, setStyleSheet } from "./util/util.js"
 import includeAll from '/include-all.json' assert { type: "json" }
 
 const css = `
@@ -49,17 +49,60 @@ export class CrowRunnable extends HTMLElement {
 	}
 
 	connectedCallback() {
-		const src = nonNull(this.getAttribute("src"))
-		Promise.all([crow.getGlobalCompiler(), fetch(`/example/${src}.crow`).then(x => x.text())])
-			.then(([comp, initialText]) =>
-				connected(this.shadowRoot, src, this.getAttribute("no-run") !== null, comp, initialText))
+		crow.getGlobalCompiler()
+			.then(comp =>
+				connected(
+					nonNull(this.shadowRoot),
+					getCrowRunnableName(this.getAttribute("name")),
+					this.getAttribute("no-run") !== null,
+					comp,
+					getChildText(this.childNodes)))
 			.catch(console.error)
 	}
 }
 customElements.define("crow-runnable", CrowRunnable)
 
-const connected = (shadowRoot, src, noRun, comp, initialText) => {
-	const MAIN = `/code/${src}`
+/** @type {Set<string>} */
+const seenNames = new Set()
+/** @type {function(string | null): string} */
+const getCrowRunnableName = specified => {
+	const name = specified === null ? getDefaultName() : specified
+	assert(name.endsWith(".crow"))
+	if (seenNames.has(name))
+		console.error("Two CrowRunnable have the same name", {name})
+	seenNames.add(name)
+	return name
+}
+
+let nextNameIndex = 0
+/** @type {function(): string} */
+const getDefaultName = () => {
+	const res = `demo${nextNameIndex}.crow`
+	nextNameIndex++
+	return res
+}
+
+/** @type {function(ReadonlyArray<ChildNode>): string} */
+const getChildText = childNodes => {
+	assert(childNodes.length === 1)
+	const child = childNodes[0]
+	assert(child instanceof Text)
+	return reduceIndent(child.data)
+}
+
+/**
+@type {function(string): string}
+Counts indentation for the first line, and reduces indentation of all lines so that the first will be at 0.
+*/
+const reduceIndent = a => {
+	// Count indent for the first line
+	assert(a.startsWith("\n"))
+	return a.replaceAll(a.slice(0, a.search(/\S/)), "\n").trim()
+}
+
+/** @type {function(ShadowRoot, string, boolean, crow.Compiler, string): void} */
+const connected = (shadowRoot, name, noRun, comp, initialText) => {
+	const MAIN = `/code/${name}`
 
 	/** @type {MutableObservable<string>} */
 	const text = new MutableObservable(initialText)
@@ -121,9 +164,9 @@ const connected = (shadowRoot, src, noRun, comp, initialText) => {
 	const downloadButton = createButton({children:[downloadIcon()]})
 	downloadButton.onclick = () => {
 		const a = document.createElement("a")
-		a.href = "data:text/csv;charset=utf-8," + encodeURI(text.get())
+		a.href = URL.createObjectURL(new Blob([text.get()], {type:"text/crow"}))
 		a.target = "_blank"
-		a.download = `${src}.crow`
+		a.download = name
 		a.click()
 	}
 

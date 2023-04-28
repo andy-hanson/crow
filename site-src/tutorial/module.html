@@ -41,7 +41,17 @@
 	then names of imports separated by commas.
 	<br />
 	If there are many individual names to import, they can go in an indented block.
-	<crow-runnable no-run src="import-syntax"></crow-runnable>
+	<crow-runnable no-run>
+		import
+			# import all names from module 'x'
+			x
+			# import just 'a' and 'b'
+			y: a, b
+			# import many names
+			z:
+				a, b,
+				c, d
+	</crow-runnable>
 </section>
 <section>
 	<h4>circular imports</h4>
@@ -66,7 +76,13 @@
 		<br />
 		The same syntax works on functions, types, and specs.
 	</p>
-	<crow-runnable no-run src="private"></crow-runnable>
+	<crow-runnable no-run>
+		f string()
+			"a"
+
+		-g string()
+			"swordfish"
+	</crow-runnable>
 	<p>
 		In the above example, other modules could import <code class="fun">f</code>
 		but not <code class="fun">g</code>.
@@ -95,7 +111,50 @@
 	</p>
 
 	<p>
-		<crow-runnable no-run src="private-record"></crow-runnable>
-		<crow-runnable src="private-record-user"></crow-runnable>
+		<crow-runnable no-run name="private-record.crow">
+			# private-record.crow
+			r record mut
+				public string
+				public-mutable mut string
+				public-readonly .mut string
+				-private string
+				-private-mutable .mut string
+
+			new r()
+				"public", "public-mutable", "public-readonly", "private", "private-mutable"
+
+			call-private-getters string(a r)
+				"{a private}|{a private-mutable}"
+
+			call-private-setters void(a r)
+				a.public-readonly := "updated {a public-readonly}"
+				a.private-mutable := "updated {a private-mutable}"
+
+			r2 record -new
+				r2-field string
+
+			new r2()
+				"r2-field",
+		</crow-runnable>
+		<crow-runnable>
+			import
+				./private-record
+
+			main nat^(_ string[]) summon
+				r r = ()
+				info log r.public
+				r.public-mutable := "updated {r public-mutable}"
+				info log r.public-mutable
+				r call-private-setters
+				info log r.public-readonly
+				# won't compile:
+				#r.private-mutable := "updated"
+
+				r2 r2 = ()
+				info log r2.r2-field
+				# won't compile:
+				#s r2 = "construct-me",
+				()
+		</crow-runnable>
 	</p>
 </section>

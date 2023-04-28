@@ -19,7 +19,37 @@
 		The example below declares a <code class="struct">list</code> type
 		that uses a type parameter for the element type.
 	</p>
-	<crow-runnable src="template"></crow-runnable>
+	<crow-runnable>
+		main nat^(_ string[]) summon
+			nats nat linked-list = 1 ~ (2 ~ ())
+			floats float linked-list = 0.5 ~ ()
+			info log "nats size: {nats size}"
+			info log "floats size: {floats size}"
+			0,
+
+		linked-list[t] record
+			head t list-node?
+
+		list-node[t] record
+			value t
+			next t linked-list
+
+		new[t] t linked-list()
+			(),
+
+		~ ~[t] t linked-list(head t, tail t linked-list)
+			((head, tail),),
+
+		size[t] nat(a t linked-list)
+			res mut = 0
+			for _ : a
+				res +:= 1
+			res
+
+		iterate[t] bool(list t linked-list, f act bool(t))
+			if node ?= list head
+				f[node.value] || node.next iterate f
+	</crow-runnable>
 </section>
 <section>
 	<h3>template syntax</h3>

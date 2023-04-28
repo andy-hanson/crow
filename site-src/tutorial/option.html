@@ -6,7 +6,30 @@
 		An option can be empty (have no value inside) or non-empty (have a value inside).
 		This is useful for values that, in other languages, might be null or a special code like -1.
 	</p>
-	<crow-runnable src="option"></crow-runnable>
+	<crow-runnable>
+		main nat^(_ string[]) summon
+			info log "crow".describe
+			info log "ox".describe
+			info log "dr. mario".describe
+			info log "soap".describe
+			()
+
+		describe string(a string)
+			"{a}: {a.category ?? "don't know what that is"}"
+
+		category string?(a string)
+			a.class || a.profession
+
+		class string?(a string)
+			if a == "crow"
+				"bird",
+			elif a == "ox"
+				"mammal",
+
+		profession string?(a string)
+			if a starts-with "dr. "
+				"doctor",
+	</crow-runnable>
 
 	The functions <code class="fun">class</code> and <code class="fun">profession</code> both return options;
 	the return type is <code class="struct">str?</code> instead of <code class="struct">str</code>.
@@ -49,13 +72,37 @@
 	<p>
 		Use <code>x!</code> to get the value of an option or throw an exception if it is empty.
 	</p>
-	<crow-runnable src="option-force"></crow-runnable>
+	<crow-runnable>
+		main nat^(_ string[]) summon
+			info log "{"salsa".pairing!}"
+			info log "{"pickles".pairing!}"
+			()
+
+		pairing string?(a string)
+			if a == "salsa"
+				"chips",
+	</crow-runnable>
 </section>
 <section>
 	<h2>'if' with option</h2>
 
 	The most flexible way to handle an option is an <code class="keyword">if</code> that extracts the value.
-	<crow-runnable src="option-if"></crow-runnable>
+	<crow-runnable>
+		main nat^(_ string[]) summon
+			info log "salsa".pair
+			info log "pickles".pair
+			()
+
+		pair string(a string)
+			if b ?= a pairing
+				"{a} and {b}"
+			else
+				"{a} alone"
+
+		pairing string?(a string)
+			if a == "salsa"
+				"chips",
+	</crow-runnable>
 
 	<p>
 		<code>if n ?= a parse-nat</code> creates a local variable <code class="local">n</code>

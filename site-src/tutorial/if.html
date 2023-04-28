@@ -3,7 +3,29 @@
 
 	Here's an example program that defines and calls a few functions.
 
-	<crow-runnable src="functions"></crow-runnable>
+	<crow-runnable>
+		main nat^(_ string[]) summon
+			info log ("albatross" greet "morning")
+			info log ("fox" greet "afternoon")
+			info log ("ox" greet "evening")
+			info log ("crow" greet "night")
+			()
+
+		greet string(name string, time string)
+			"{good} {time}, {name plural}"
+
+		good string()
+			"Good"
+
+		plural string(name string)
+			suffix = if name ends-with "s" || name == "fox"
+				"es"
+			elif name ends-with "x"
+				"en"
+			else
+				"s"
+			"{name}{suffix}"
+	</crow-runnable>
 
 	This program adds more function declarations than just <code class="fun">main</code>.
 
@@ -54,7 +76,30 @@
 </section>
 <section>
 	<h2>More 'if'</h2>
-	<crow-runnable src="if"></crow-runnable>
+	<crow-runnable>
+		main nat^(_ string[]) summon
+			info log "crow".describe
+			info log "ermisepillo".describe
+			()
+		
+		describe string(a string)
+			"{a a-an} says {"-" join a.vowels}"
+		
+		vowels string[](a string)
+			() join for c : a
+				if c is-vowel
+					"{c}",
+		
+		a-an string(a string)
+			starts-with-vowel = !a.is-empty && a[0].is-vowel
+			starts-with-vowel ? "an {a}" : "a {a}"
+		
+		is-vowel bool(a char8)
+			a in vowels
+		
+		vowels char8 set()
+			"a", "e", "i", "o", "u"
+	</crow-runnable>
 
 	<h3>Implicit 'else'</h3>
 
@@ -82,20 +127,22 @@
 		<br />
 		<code>a.head.is-vowel ? "an {a}" : "a {a}"</code> is equivalent to:
 	</p>
-	<div class="code-block">
-		if a.head is-vowel
-		<div class="indent">"an {a}"</div>
-		else
-		<div class="indent">"a {a}"</div>
-	</div>
+	<crow-runnable>
+		f string()
+			if a.head is-vowel
+				"an {a}"
+			else
+				"a {a}"
+	</crow-runnable>
 
 	<p>
 		The <code class="keyword">:</code> (equivalent to <code class="keyword">else</code>) is still optional.
 		<br />
 		<code>a.head.is-vowel ? (a.head.to-str,)</code> is equivalent to:
 	</p>
-	<div class="code-block">
-		if a.head is-vowel
-		<div class="indent">a.head.to-str,</div>
-	</div>
+	<crow-runnable>
+		f string?()
+			if a.head is-vowel
+				a.head.to-str,
+	</crow-runnable>
 </section>

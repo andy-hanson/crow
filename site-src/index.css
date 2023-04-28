@@ -242,10 +242,6 @@ code {
 	font-size: 92.5%;
 }
 
-div.code-block div.indent {
-	padding-left: 2em;
-}
-
 crow-icon {
 	display: inline-block;
 	margin-left: 0.25em;
